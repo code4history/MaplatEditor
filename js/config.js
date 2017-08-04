@@ -1,46 +1,42 @@
-require.config({
+requirejs.config({
     baseUrl: 'js',
-    /* map: {
+    map: {
         '*': {
-            'css': '//cdnjs.cloudflare.com/ajax/libs/require-css/0.1.8/css.min.js'
+            'css': 'common/js/css.min.js'
         }
-    },*/
+    },
     paths: {
-        'i18nxhr': 'i18nextXHRBackend.min',
-        'ol3': 'ol-debug',
-        'ol-custom': 'ol-custom',
-        'tps': 'thinplatespline',
-        'i18n': '//cdnjs.cloudflare.com/ajax/libs/i18next/8.4.2/i18next.min',
-        'turf': '//npmcdn.com/@turf/turf@4.5.2/turf.min',
-        'swiper': '//cdnjs.cloudflare.com/ajax/libs/Swiper/3.4.2/js/swiper.min',
-        'bootstrap': '//cdnjs.cloudflare.com/ajax/libs/bootstrap.native/2.0.10/bootstrap-native.min',
-        'aigle': 'aigle-es5.min',
-        'buffer': 'buffer',
-        'app': 'app-built'
+        'ol3': '../common/js/ol-debug',
+        'bootstrap': '../common/js/bootstrap-native.min',
+        'backbone': 'backbone-min',
+        'underscore': 'underscore-min',
+        'jquery': 'dummy-jq', // Dummy
+        'histmap': '../common/js/histmap',
+        'aigle': '../common/js/aigle-es5.min',
+        'ol-custom': '../common/js/ol-custom',
+        'histmap_tin': '../common/js/histmap_tin',
+        'tin': '../common/js/tin',
+        'turf': '../common/js/turf.min',
+        'mapshaper': '../node_modules/mapshaper/mapshaper',
+        'contextmenu': 'ol3-contextmenu',
+        'geocoder': 'ol3-geocoder-debug',
+        'switcher': 'ol3-layerswitcher'
     },
     shim: {
-        'i18nxhr': {
-            deps: ['i18n']
-        },
         'turf': {
             exports: 'turf'
         },
         'aigle': {
             exports: 'Promise'
         },
-        'tps': {
-            exports: 'ThinPlateSpline'
+        'contextmenu': {
+            deps: ['ol3']
         },
-        'buffer': {
-            exports: 'exports'
-        }/* ,
-        'app': {
-            deps: [
-                'css!//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min',
-                'css!//cdnjs.cloudflare.com/ajax/libs/Swiper/3.4.2/css/swiper.min',
-                'css!//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min',
-                'css!../css/ol', 'css!../css/app'
-            ]
-        }*/
+        'geocoder': {
+            deps: ['ol3']
+        },
+        'switcher': {
+            deps: ['ol3']
+        }
     }
 });
