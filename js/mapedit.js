@@ -156,7 +156,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
         }
 
         function onClick(evt) {
-            if (tinObject)
             var isIllst = this == illstMap;
             var srcMap = isIllst ? illstMap : mercMap;
             var distMap = isIllst ? mercMap : illstMap;
@@ -292,7 +291,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
                     saveValue.status = 'Copy:' + mapID;
                 }
                 document.body.style.pointerEvents = 'none';
-                backend.save(saveValue);
+                backend.save(saveValue, document.querySelector('input[name=compiled]').checked);
                 ipcRenderer.once('saveResult', function(event, arg) {
                     document.body.style.pointerEvents = null;
                     if (arg == 'Success') {
@@ -367,29 +366,32 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
                     document.querySelector('#viewError').parentNode.classList.add('hide');
                     jsonClear();
                 }
-                tinObject = arg;
-                var forTin = arg.tins.forw;
-                var bakTin = arg.tins.bakw;
-                mercMap.getSource('json').clear();
-                illstMap.getSource('json').clear();
-                var forProj = 'ZOOM:' + illstSource.maxZoom;
-                var jsonReader = new ol.format.GeoJSON();
-                var bakFeatures = jsonReader.readFeatures(bakTin, {dataProjection:'EPSG:3857'});
-                var forFeatures = jsonReader.readFeatures(forTin, {dataProjection:forProj, featureProjection:'EPSG:3857'});
-                mercMap.getSource('json').addFeatures(bakFeatures); //, {dataProjection:'EPSG:3857'});
-                illstMap.getSource('json').addFeatures(forFeatures);// , {dataProjection:bakProj, featureProjection:'EPSG:3857'});
-                document.querySelector('#error_status').innerText = tinObject.strict_status == 'strict' ? 'エラーなし' :
-                    tinObject.strict_status == 'strict_error' ? 'エラー' + tinObject.kinks.bakw.features.length + '件' :
-                        'エラーのため簡易モード';
-                errorNumber = null;
-                if (tinObject.strict_status == 'strict_error') {
-                    document.querySelector('#viewError').parentNode.classList.remove('hide');
-                    var kinkFeatures = jsonReader.readFeatures(tinObject.kinks.bakw, {dataProjection:'EPSG:3857'});
-                    mercMap.getSource('json').addFeatures(kinkFeatures);
-                } else {
-                    document.querySelector('#viewError').parentNode.classList.add('hide');
-                }
+                tinResultUpdate(arg);
             });
+        }
+
+        function tinResultUpdate(tinObject) {
+            var forTin = tinObject.tins.forw;
+            var bakTin = tinObject.tins.bakw;
+            mercMap.getSource('json').clear();
+            illstMap.getSource('json').clear();
+            var forProj = 'ZOOM:' + illstSource.maxZoom;
+            var jsonReader = new ol.format.GeoJSON();
+            var bakFeatures = jsonReader.readFeatures(bakTin, {dataProjection:'EPSG:3857'});
+            var forFeatures = jsonReader.readFeatures(forTin, {dataProjection:forProj, featureProjection:'EPSG:3857'});
+            mercMap.getSource('json').addFeatures(bakFeatures); //, {dataProjection:'EPSG:3857'});
+            illstMap.getSource('json').addFeatures(forFeatures);// , {dataProjection:bakProj, featureProjection:'EPSG:3857'});
+            document.querySelector('#error_status').innerText = tinObject.strict_status == 'strict' ? 'エラーなし' :
+                tinObject.strict_status == 'strict_error' ? 'エラー' + tinObject.kinks.bakw.features.length + '件' :
+                    'エラーのため簡易モード';
+            errorNumber = null;
+            if (tinObject.strict_status == 'strict_error') {
+                document.querySelector('#viewError').parentNode.classList.remove('hide');
+                var kinkFeatures = jsonReader.readFeatures(tinObject.kinks.bakw, {dataProjection:'EPSG:3857'});
+                mercMap.getSource('json').addFeatures(kinkFeatures);
+            } else {
+                document.querySelector('#viewError').parentNode.classList.add('hide');
+            }
         }
 
         function tinStyle(feature) {
@@ -421,7 +423,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
             });
         }
 
-        function reflectIllstMap() {
+        function reflectIllstMap(compiled) {
             ol.source.HistMap.createAsync({
                 mapID: mapID,
                 url: mapObject.get('url'),
@@ -468,9 +470,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
                         mercView.setZoom(results[1]);
 
                         gcpsToMarkers(gcps);
-                        var strict = document.querySelector('input[name=strict]:checked').value;
-                        console.log(strict);
-                        backend.updateTin(gcps, strict);
+                        if (compiled) {
+                            tinResultUpdate(compiled);
+                        } else {
+                            var strict = document.querySelector('input[name=strict]:checked').value;
+                            backend.updateTin(gcps, strict);
+                        }
                     }
                 }).catch(function (err) {
                     console.log(err);
@@ -733,6 +738,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
             setEventListner(mapObject);
         }
         ipcRenderer.on('mapData', function(event, arg) {
+            var compiled = arg.compiled;
+            delete arg.compiled;
             arg.mapID = mapID;
             arg.status = 'Update';
             mapObject = new Map(arg);
@@ -742,7 +749,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
             document.querySelector('#attr').value = mapObject.get('attr');
             document.querySelector('#width').value = mapObject.get('width');
             document.querySelector('#height').value = mapObject.get('height');
-            reflectIllstMap();
+            reflectIllstMap(compiled);
         });
         illstMap.addInteraction(new app.Drag());
 
