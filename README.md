@@ -10,3 +10,10 @@ MaplatEditor is support project of Maplat, providing the data editor of Maplat.
 MaplatEditorはMaplatのサポートプロジェクトで、データエディタを提供します。
 
 # GUI 
+## MapList (地図一覧)
+
+![MapList](https://raw.githubusercontent.com/code4nara/MaplatEditor/master/maplist.png)
+
+## MapEdit (地図編集)
+
+![MapEdit](https://raw.githubusercontent.com/code4nara/MaplatEditor/master/mapedit.png)
