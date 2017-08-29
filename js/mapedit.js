@@ -327,7 +327,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
                         document.body.style.pointerEvents = null;
                         myModal.hide();
                         if (arg.err) {
-                            if (err != 'Canceled') alert('地図アップロードでエラーが発生しました。');
+                            if (arg.err != 'Canceled') alert('地図アップロードでエラーが発生しました。');
                             return;
                         } else {
                             alert('正常に地図がアップロードできました。');
@@ -370,7 +370,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
             });
         }
 
-        function tinResultUpdate(tinObject) {
+        function tinResultUpdate(tin) {
+            tinObject = tin;
             var forTin = tinObject.tins.forw;
             var bakTin = tinObject.tins.bakw;
             mercMap.getSource('json').clear();
