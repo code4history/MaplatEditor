@@ -7,7 +7,7 @@ requirejs.config({
     },
     paths: {
         'ol3': '../common/js/ol-debug',
-        'bootstrap': '../common/js/bootstrap-native.min',
+        'bootstrap': '../common/js/bootstrap-native',
         'backbone': 'backbone-min',
         'underscore': 'underscore-min',
         'jquery': 'dummy-jq', // Dummy
