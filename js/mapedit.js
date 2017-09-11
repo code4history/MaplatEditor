@@ -783,44 +783,31 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
         mercMap.on('click', onClick);
 
         var mercSource;
-        Promise.all([
-            ol.source.HistMap.createAsync({
-                mapID: 'gsimap',
-                label: 'GSI Aerial Photo',
-                attr: 'The Geospatial Information Authority of Japan',
-                maptype: 'base',
-                url: 'https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg',
-                maxZoom: 18
-            }, {})
-                .then(function(source) {
+        var tmsList = backend.getTmsList();
+        var promises = tmsList.reverse().map(function(tms) {
+            return (function(tms){
+                var promise = tms.label ?
+                    ol.source.HistMap.createAsync({
+                        mapID: tms.mapID,
+                        label: tms.label,
+                        attr: tms.attr,
+                        maptype: 'base',
+                        url: tms.url,
+                        maxZoom: tms.maxZoom
+                    }, {}) :
+                    ol.source.HistMap.createAsync(tms.mapID, {});
+                return promise.then(function(source){
                     return new ol.layer.Tile({
-                        title: '地理院航空写真',
+                        title: tms.title,
                         type: 'base',
-                        visible: false,
+                        visible: tms.mapID == 'osm',
                         source: source
                     });
-                }),
-            ol.source.HistMap.createAsync('gsi', {})
-                .then(function(source) {
-                    return new ol.layer.Tile({
-                        title: '地理院地図',
-                        type: 'base',
-                        visible: false,
-                        source: source
-                    });
-                }),
-            ol.source.HistMap.createAsync('osm', {})
-                .then(function(source) {
-                    mercSource = source;
-                    mercSource._map = mercMap;
-                    return new ol.layer.Tile({
-                        title: 'OpenStreetMap',
-                        type: 'base',
-                        visible: true,
-                        source: source
-                    });
-                })
-        ]).then(function(layers) {
+                });
+            })(tms);
+        });
+
+        Promise.all(promises).then(function(layers) {
             var layerGroup = new ol.layer.Group({
                 'title': 'ベースマップ',
                 layers: layers
