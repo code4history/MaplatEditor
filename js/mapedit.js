@@ -1,5 +1,5 @@
-define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmenu', 'geocoder', 'switcher'],
-    function(ol, bsn, _, Map, ContextMenu, Geocoder) {
+define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'contextmenu', 'geocoder', 'switcher'],
+    function(ol, bsn, _, turf, Map, ContextMenu, Geocoder) {
         var labelFontStyle = "Normal 12px Arial";
         const {ipcRenderer} = require('electron');
         var backend = require('electron').remote.require('../lib/mapedit');
@@ -382,6 +382,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
             var forFeatures = jsonReader.readFeatures(forTin, {dataProjection:forProj, featureProjection:'EPSG:3857'});
             mercMap.getSource('json').addFeatures(bakFeatures); //, {dataProjection:'EPSG:3857'});
             illstMap.getSource('json').addFeatures(forFeatures);// , {dataProjection:bakProj, featureProjection:'EPSG:3857'});
+
+            var bbox = turf.lineString([[0, 0], [mapObject.get('width'), 0], [mapObject.get('width'), mapObject.get('height')],
+                [0, mapObject.get('height')], [0, 0]]);
+            var bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
+            illstMap.getSource('json').addFeatures(bboxFeature);
+
             document.querySelector('#error_status').innerText = tinObject.strict_status == 'strict' ? 'エラーなし' :
                 tinObject.strict_status == 'strict_error' ? 'エラー' + tinObject.kinks.bakw.features.length + '件' :
                     'エラーのため簡易モード';
@@ -396,15 +402,24 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
         }
 
         function tinStyle(feature) {
-            if (feature.getGeometry().getType() == 'Polygon') return new ol.style.Style({
-                stroke: new ol.style.Stroke({
-                    color: 'blue',
-                    width: 1
-                }),
-                fill: new ol.style.Fill({
-                    color: 'rgba(0, 0, 255, 0.05)'
-                })
-            });
+            if (feature.getGeometry().getType() == 'Polygon') {
+                return new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'blue',
+                        width: 1
+                    }),
+                    fill: new ol.style.Fill({
+                        color: 'rgba(0, 0, 255, 0.05)'
+                    })
+                });
+            } else if (feature.getGeometry().getType() == 'LineString') {
+                return new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'red',
+                        width: 2
+                    })
+                });
+            }
             var iconSVG = '<svg ' +
                 'version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ' +
                 'x="0px" y="0px" width="6px" height="6px" ' +
@@ -679,7 +694,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'model/map', 'contextmen
                 }
                 if (this.map_ == illstMap) {
                     var xy = illstSource.histMapCoords2Xy(evt.coordinate);
-                    if (xy[0] < 0 || xy[1] < 0 || xy[0] > mapObject.get('width') || xy[1] > mapObject.get('height'))
+                    if (xy[0] < mapObject.get('width') * -0.05 || xy[1] < mapObject.get('height') * -0.05 ||
+                        xy[0] > mapObject.get('width') * 1.05 || xy[1] > mapObject.get('height') * 1.05)
                         setTimeout(function() {contextmenu.close();}, 10);
                 }
             });
