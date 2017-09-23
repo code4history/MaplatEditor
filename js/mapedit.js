@@ -205,6 +205,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
 
         var eventInit = false;
         function setEventListner() {
+            // Settings which must be updated everytime
             var a = document.querySelector('a[href="#gcpsTab"]');
             var li = a.parentNode;
             if (mapObject.gcpsEditReady()) {
@@ -212,11 +213,18 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             } else {
                 li.classList.add('disabled');
             }
+
+            // MapObject Change Event Handler
             mapObject.on('change', function(ev){
                 if (mapObject.isValid() && mapObject.dirty()) {
                     document.querySelector('#saveMap').removeAttribute('disabled');
                 } else {
                     document.querySelector('#saveMap').setAttribute('disabled', true);
+                }
+                if (mapObject.get('onlyOne')) {
+                    document.querySelector('#checkID').setAttribute('disabled', true);
+                } else {
+                    document.querySelector('#checkID').removeAttribute('disabled');
                 }
                 var invalid = mapObject.validationError || {};
                 _.each(formHelp, function(val, key) {
@@ -243,19 +251,27 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                 document.querySelector('#width').value = mapObject.get('width') || '';
                 document.querySelector('#height').value = mapObject.get('height') || '';
             });
+
+            // GCP Change Event Handler
             mapObject.on('change:gcps', function(ev) {
                 var strict = document.querySelector('input[name=strict]:checked').value;
                 backend.updateTin(mapObject.get('gcps'), strict);
             });
+
+            // Settings which only for initializing
             if (eventInit) return;
             eventInit = true;
             var allowClose = false;
+
+            // When move to other pages
             document.querySelector('a[data-nav]').addEventListener('click', function(ev) {
                 if (!mapObject.dirty() || confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
                     allowClose = true;
                     window.location.href = ev.target.getAttribute('data-nav');
                 }
             });
+
+            // When application will close
             window.addEventListener('beforeunload', function(e) {
                 if (!mapObject.dirty()) return;
                 if (allowClose) {
@@ -270,17 +286,24 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                     }
                 }, 2);
             });
-            document.querySelector('#title').addEventListener('change', function(ev) {
+
+            // Title input changes
+            document.querySelector('#title').addEventListener('keyup', function(ev) {
+                if (ev.target.value == mapObject.get('title')) return;
                 mapObject.set('title', ev.target.value);
                 document.querySelector('.map-title').innerText = ev.target.value == '' ? 'タイトル未設定' : ev.target.value;
             });
-            document.querySelector('#mapID').addEventListener('change', function(ev) {
+            // MapID input changes
+            document.querySelector('#mapID').addEventListener('keyup', function(ev) {
+                if (ev.target.value == mapObject.get('mapID')) return;
                 mapObject.set('mapID', ev.target.value);
+                mapObject.set('onlyOne', false);
                 if (mapObject.get('status') == 'Update') {
                     mapObject.set('status', 'Change:' + mapID);
                 }
             });
-            document.querySelector('#attr').addEventListener('change', function(ev) {
+            document.querySelector('#attr').addEventListener('keyup', function(ev) {
+                if (ev.target.value == mapObject.get('attr')) return;
                 mapObject.set('attr', ev.target.value);
             });
             document.querySelector('#saveMap').addEventListener('click', function(ev) {
@@ -311,12 +334,28 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                     }
                 });
             });
+            document.querySelector('#checkID').addEventListener('click', function(ev) {
+                document.body.style.pointerEvents = 'none';
+                var checked = backend.checkID(mapObject.get('mapID'));
+                ipcRenderer.once('checkIDResult', function(event, arg) {
+                    document.body.style.pointerEvents = null;
+                    if (arg) {
+                        alert('一意な地図IDです。');
+                        mapObject.set('onlyOne', true);
+                    } else {
+                        alert('この地図IDは存在します。他のIDにしてください。');
+                        mapObject.set('onlyOne', false);
+                    }
+                });
+
+            });
             document.querySelector('#changeID').addEventListener('click', function(ev) {
                 if (!confirm('地図IDを変更してよろしいですか?')) return;
                 document.querySelector('#mapID').removeAttribute('disabled');
                 document.querySelector('#changeIDdiv').classList.add('hide');
                 document.querySelector('#checkIDdiv').classList.remove('hide');
                 mapObject.set('status', 'Change:' + mapID);
+                mapObject.set('onlyOne', false);
             });
             document.querySelector('#uploadMap').addEventListener('click', function(ev) {
                 if (mapObject.gcpsEditReady() && !confirm('地図画像は既に登録されています。\n置き換えてよいですか?')) return;
@@ -747,9 +786,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             document.querySelector('#checkIDdiv').classList.add('hide');
             backend.request(mapID);
         } else {
-            mapObject = new Map({
-                status: 'New'
-            });
+            mapObject = new Map({});
             document.querySelector('#changeIDdiv').classList.add('hide');
             document.querySelector('#checkIDdiv').classList.remove('hide');
             setEventListner(mapObject);
@@ -759,6 +796,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             delete arg.compiled;
             arg.mapID = mapID;
             arg.status = 'Update';
+            arg.onlyOne = true;
             mapObject = new Map(arg);
             setEventListner(mapObject);
             document.querySelector('#title').value = mapObject.get('title');
