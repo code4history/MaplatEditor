@@ -84,15 +84,71 @@
           </div>
         </div>
         <div class="row">
-          <div class="form-group col-xs-6">
+          <div class="form-group col-xs-4">
             <label for="title">地図名称(表示用)</label>
-            <input type="text" class="form-control" id="title" aria-describedby="titleHelp" placeholder="地図名を入力してください">
-            <small id="titleHelp" class="form-text text-muted">地図の表示用名称を入力してください。</small>
+            <input type="text" class="form-control" id="title" aria-describedby="titleHelp" placeholder="地図名称(表示用)を入力してください">
+            <small id="titleHelp" class="form-text text-muted">地図の表示用名称を15文字以内で入力してください。</small>
+          </div>
+          <div class="form-group col-xs-5">
+            <label for="officialTitle">地図名称(正式名)</label>
+            <input type="text" class="form-control" id="officialTitle" aria-describedby="officialTitleHelp" placeholder="地図名称(正式名)を入力してください">
+            <small id="officialTitleHelp" class="form-text text-muted">地図の正式名称を入力してください。</small>
+          </div>
+          <div class="form-group col-xs-3">
+            <label for="author">制作者</label>
+            <input type="text" class="form-control" id="author" aria-describedby="authorHelp" placeholder="地図の制作者を入力してください">
+            <small id="authorHelp" class="form-text text-muted">地図の制作者を入力してください。</small>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group col-xs-3">
+            <label for="createdAt">作成時期</label>
+            <input type="text" class="form-control" id="createdAt" aria-describedby="createdAtHelp" placeholder="作成時期を入力してください">
+            <small id="createdAtHelp" class="form-text text-muted">地図の作成時期を時代名、和暦、西暦等で入力してください。</small>
+          </div>
+          <div class="form-group col-xs-3">
+            <label for="era">対象時期</label>
+            <input type="text" class="form-control" id="era" aria-describedby="eraHelp" placeholder="対象時期を入力してください">
+            <small id="eraHelp" class="form-text text-muted">地図に表されている時期を入力してください。省略時は作成時期で代替されます。</small>
+          </div>
+          <div class="form-group col-xs-3">
+            <label for="license">ライセンス</label>
+            <select class="form-control" id="license" aria-describedby="licenseHelp" placeholder="ライセンスを入力してください">
+              <option value="All right reserved">著作権保持</oprion>
+              <option value="CC BY">クリエイティブ・コモンズ 表示</oprion>
+              <option value="CC BY-SA">クリエイティブ・コモンズ 表示-継承</oprion>
+              <option value="CC BY-ND">クリエイティブ・コモンズ 表示-改変禁止</oprion>
+              <option value="CC BY-NC">クリエイティブ・コモンズ 表示-非営利</oprion>
+              <option value="CC BY-NC-SA">クリエイティブ・コモンズ 表示-非営利-継承</oprion>
+              <option value="CC BY-NC-ND">クリエイティブ・コモンズ 表示-非営利-改変禁止</oprion>
+              <option value="CC0">クリエイティブ・コモンズ・ゼロ</oprion>
+              <option value="PD">パブリックドメイン</oprion>
+            </select>
+            <small id="licenseHelp" class="form-text text-muted">地図のライセンスを選択してください。</small>
+          </div>
+          <div class="form-group col-xs-3">
+            <label for="contributor">所蔵者等</label>
+            <input type="text" class="form-control" id="contributor" aria-describedby="contributorHelp" placeholder="所蔵者等を入力してください">
+            <small id="contributorHelp" class="form-text text-muted">地図の所蔵者、提供者等を入力してください。</small>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group col-xs-6">
+            <label for="attr">コピーライト</label>
+            <input type="text" class="form-control" id="attr" aria-describedby="attrHelp" placeholder="コピーライト表記を入力してください">
+            <small id="attrHelp" class="form-text text-muted">コピーライト等地図隅に表示しておく文字列を入力してください。</small>
           </div>
           <div class="form-group col-xs-6">
-            <label for="attr">アトリビューション</label>
-            <input type="text" class="form-control" id="attr" aria-describedby="attrHelp" placeholder="コピーライト表記を入力してください">
-            <small id="attrHelp" class="form-text text-muted">コピーライト表記等地図隅に表示しておく文字列を入力してください。</small>
+            <label for="reference">典拠</label>
+            <input type="text" class="form-control" id="reference" aria-describedby="referenceHelp" placeholder="典拠を入力してください">
+            <small id="referenceHelp" class="form-text text-muted">地図の典拠を選択してください。</small>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group col-xs-12">
+            <label for="description">説明</label>
+            <textarea class="form-control" id="description" aria-describedby="descriptionHelp" placeholder="地図の説明文を入力してください"></textarea>
+            <small id="descriptionHelp" class="form-text text-muted">地図の説明文を入力してください。</small>
           </div>
         </div>
       </form>

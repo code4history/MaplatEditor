@@ -287,25 +287,24 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                 }, 2);
             });
 
-            // Title input changes
-            document.querySelector('#title').addEventListener('keyup', function(ev) {
-                if (ev.target.value == mapObject.get('title')) return;
-                mapObject.set('title', ev.target.value);
-                document.querySelector('.map-title').innerText = ev.target.value == '' ? 'タイトル未設定' : ev.target.value;
-            });
-            // MapID input changes
-            document.querySelector('#mapID').addEventListener('keyup', function(ev) {
-                if (ev.target.value == mapObject.get('mapID')) return;
-                mapObject.set('mapID', ev.target.value);
-                mapObject.set('onlyOne', false);
-                if (mapObject.get('status') == 'Update') {
-                    mapObject.set('status', 'Change:' + mapID);
-                }
-            });
-            document.querySelector('#attr').addEventListener('keyup', function(ev) {
-                if (ev.target.value == mapObject.get('attr')) return;
-                mapObject.set('attr', ev.target.value);
-            });
+            // Input changes
+            ['title', 'officialTitle', 'author', 'era', 'createdAt', 'license', 'contributor', 'attr', 'reference',
+                'description', 'mapID']
+                .map(function(attr) {
+                    var action = attr == 'license' ? 'change' : 'keyup';
+                    document.querySelector('#'+attr).addEventListener(action, function(ev) {
+                        if (ev.target.value == mapObject.get(attr)) return;
+                        mapObject.set(attr, ev.target.value);
+                        if (attr == 'title') {
+                            document.querySelector('.map-title').innerText = ev.target.value == '' ? 'タイトル未設定' : ev.target.value;
+                        } else if (attr == 'mapID') {
+                            mapObject.set('onlyOne', false);
+                            if (mapObject.get('status') == 'Update') {
+                                mapObject.set('status', 'Change:' + mapID);
+                            }
+                        }
+                    });
+                });
             document.querySelector('#saveMap').addEventListener('click', function(ev) {
                 if (!confirm('変更を保存します。\nよろしいですか?')) return;
                 var saveValue = mapObject.attributes;
@@ -373,7 +372,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                         }
                         mapObject.set('width', arg.width);
                         mapObject.set('height', arg.height);
-                        mapObject.set('url', arg.url);
+                        mapObject.set('url_', arg.url);
                         backend.setWh([arg.width, arg.height]);
                         reflectIllstMap();
                     });
@@ -481,7 +480,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
         function reflectIllstMap(compiled) {
             ol.source.HistMap.createAsync({
                 mapID: mapID,
-                url: mapObject.get('url'),
+                url: mapObject.get('url_'),
                 width: mapObject.get('width'),
                 height: mapObject.get('height'),
                 attr: mapObject.get('attr'),
@@ -799,11 +798,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             arg.onlyOne = true;
             mapObject = new Map(arg);
             setEventListner(mapObject);
-            document.querySelector('#title').value = mapObject.get('title');
+            ['title', 'officialTitle', 'author', 'era', 'createdAt', 'license', 'contributor', 'attr', 'reference',
+                'description', 'width', 'height']
+                .map(function(attr) {
+                    document.querySelector('#'+attr).value = mapObject.get(attr);
+                });
             document.querySelector('.map-title').innerText = mapObject.get('title');
-            document.querySelector('#attr').value = mapObject.get('attr');
-            document.querySelector('#width').value = mapObject.get('width');
-            document.querySelector('#height').value = mapObject.get('height');
             reflectIllstMap(compiled);
         });
         illstMap.addInteraction(new app.Drag());
