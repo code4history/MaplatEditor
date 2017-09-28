@@ -11,6 +11,7 @@ define(['model/maplatbase', 'backbone', 'underscore'], function(MaplatBase, Back
             era: '',
             createdAt: '',
             license: 'All right reserved',
+            dataLicense: 'CC BY-SA',
             contributor: '',
             reference: '',
             description: '',

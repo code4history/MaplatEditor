@@ -101,19 +101,26 @@
           </div>
         </div>
         <div class="row">
-          <div class="form-group col-xs-3">
+          <div class="form-group col-xs-4">
             <label for="createdAt">作成時期</label>
             <input type="text" class="form-control" id="createdAt" aria-describedby="createdAtHelp" placeholder="作成時期を入力してください">
             <small id="createdAtHelp" class="form-text text-muted">地図の作成時期を時代名、和暦、西暦等で入力してください。</small>
           </div>
-          <div class="form-group col-xs-3">
+          <div class="form-group col-xs-4">
             <label for="era">対象時期</label>
             <input type="text" class="form-control" id="era" aria-describedby="eraHelp" placeholder="対象時期を入力してください">
             <small id="eraHelp" class="form-text text-muted">地図に表されている時期を入力してください。省略時は作成時期で代替されます。</small>
           </div>
+          <div class="form-group col-xs-4">
+            <label for="contributor">所蔵者等</label>
+            <input type="text" class="form-control" id="contributor" aria-describedby="contributorHelp" placeholder="所蔵者等を入力してください">
+            <small id="contributorHelp" class="form-text text-muted">地図の所蔵者、提供者等を入力してください。</small>
+          </div>
+        </div>
+        <div class="row">
           <div class="form-group col-xs-3">
-            <label for="license">ライセンス</label>
-            <select class="form-control" id="license" aria-describedby="licenseHelp" placeholder="ライセンスを入力してください">
+            <label for="license">地図ライセンス</label>
+            <select class="form-control" id="license" aria-describedby="licenseHelp">
               <option value="All right reserved">著作権保持</oprion>
               <option value="CC BY">クリエイティブ・コモンズ 表示</oprion>
               <option value="CC BY-SA">クリエイティブ・コモンズ 表示-継承</oprion>
@@ -127,21 +134,35 @@
             <small id="licenseHelp" class="form-text text-muted">地図のライセンスを選択してください。</small>
           </div>
           <div class="form-group col-xs-3">
-            <label for="contributor">所蔵者等</label>
-            <input type="text" class="form-control" id="contributor" aria-describedby="contributorHelp" placeholder="所蔵者等を入力してください">
-            <small id="contributorHelp" class="form-text text-muted">地図の所蔵者、提供者等を入力してください。</small>
+            <label for="dataLicense">マッピングデータライセンス</label>
+            <select class="form-control" id="dataLicense" aria-describedby="dataLicenseHelp">
+              <option value="All right reserved">著作権保持</oprion>
+              <option value="CC BY">クリエイティブ・コモンズ 表示</oprion>
+              <option value="CC BY-SA">クリエイティブ・コモンズ 表示-継承</oprion>
+              <option value="CC BY-ND">クリエイティブ・コモンズ 表示-改変禁止</oprion>
+              <option value="CC BY-NC">クリエイティブ・コモンズ 表示-非営利</oprion>
+              <option value="CC BY-NC-SA">クリエイティブ・コモンズ 表示-非営利-継承</oprion>
+              <option value="CC BY-NC-ND">クリエイティブ・コモンズ 表示-非営利-改変禁止</oprion>
+              <option value="CC0">クリエイティブ・コモンズ・ゼロ</oprion>
+            </select>
+            <small id="dataLicenseHelp" class="form-text text-muted">マッピングデータのライセンスを選択してください。</small>
           </div>
-        </div>
-        <div class="row">
           <div class="form-group col-xs-6">
             <label for="attr">コピーライト</label>
             <input type="text" class="form-control" id="attr" aria-describedby="attrHelp" placeholder="コピーライト表記を入力してください">
             <small id="attrHelp" class="form-text text-muted">コピーライト等地図隅に表示しておく文字列を入力してください。</small>
           </div>
-          <div class="form-group col-xs-6">
+        </div>
+        <div class="row">
+          <div class="form-group col-xs-4">
             <label for="reference">典拠</label>
             <input type="text" class="form-control" id="reference" aria-describedby="referenceHelp" placeholder="典拠を入力してください">
-            <small id="referenceHelp" class="form-text text-muted">地図の典拠を選択してください。</small>
+            <small id="referenceHelp" class="form-text text-muted">地図の典拠を入力してください。</small>
+          </div>
+          <div class="form-group col-xs-8">
+            <label for="url">地図タイルURL</label>
+            <input type="text" class="form-control" id="url" aria-describedby="urlHelp" placeholder="地図タイルのURLを入力してください">
+            <small id="urlHelp" class="form-text text-muted">外部の地図タイルを用いる場合、http://...{z}/{x}/{y}.{png|jpg}の形で指定してください。標準の配置位置を使う場合は設定不要です。</small>
           </div>
         </div>
         <div class="row">
