@@ -101,25 +101,30 @@
           </div>
         </div>
         <div class="row">
-          <div class="form-group col-xs-4">
+          <div class="form-group col-xs-3">
             <label for="createdAt">作成時期</label>
             <input type="text" class="form-control" id="createdAt" aria-describedby="createdAtHelp" placeholder="作成時期を入力してください">
             <small id="createdAtHelp" class="form-text text-muted">地図の作成時期を時代名、和暦、西暦等で入力してください。</small>
           </div>
-          <div class="form-group col-xs-4">
+          <div class="form-group col-xs-3">
             <label for="era">対象時期</label>
             <input type="text" class="form-control" id="era" aria-describedby="eraHelp" placeholder="対象時期を入力してください">
             <small id="eraHelp" class="form-text text-muted">地図に表されている時期を入力してください。省略時は作成時期で代替されます。</small>
           </div>
-          <div class="form-group col-xs-4">
+          <div class="form-group col-xs-3">
             <label for="contributor">所蔵者等</label>
             <input type="text" class="form-control" id="contributor" aria-describedby="contributorHelp" placeholder="所蔵者等を入力してください">
             <small id="contributorHelp" class="form-text text-muted">地図の所蔵者、提供者等を入力してください。</small>
           </div>
+          <div class="form-group col-xs-3">
+            <label for="mapper">マッパー</label>
+            <input type="text" class="form-control" id="mapper" aria-describedby="mapperHelp" placeholder="マッピング実施者等を入力してください">
+            <small id="mapperHelp" class="form-text text-muted">マッピング実施者等を入力してください。</small>
+          </div>
         </div>
         <div class="row">
           <div class="form-group col-xs-3">
-            <label for="license">地図ライセンス</label>
+            <label for="license">地図画像ライセンス</label>
             <select class="form-control" id="license" aria-describedby="licenseHelp">
               <option value="All right reserved">著作権保持</oprion>
               <option value="CC BY">クリエイティブ・コモンズ 表示</oprion>
@@ -147,10 +152,15 @@
             </select>
             <small id="dataLicenseHelp" class="form-text text-muted">マッピングデータのライセンスを選択してください。</small>
           </div>
-          <div class="form-group col-xs-6">
-            <label for="attr">コピーライト</label>
-            <input type="text" class="form-control" id="attr" aria-describedby="attrHelp" placeholder="コピーライト表記を入力してください">
-            <small id="attrHelp" class="form-text text-muted">コピーライト等地図隅に表示しておく文字列を入力してください。</small>
+          <div class="form-group col-xs-3">
+            <label for="attr">地図画像コピーライト</label>
+            <input type="text" class="form-control" id="attr" aria-describedby="attrHelp" placeholder="地図画像のコピーライト表記を入力してください">
+            <small id="attrHelp" class="form-text text-muted">地図画像のコピーライト驃騎を入力してください。</small>
+          </div>
+          <div class="form-group col-xs-3">
+            <label for="dataAttr">マッピングデータコピーライト</label>
+            <input type="text" class="form-control" id="dataAttr" aria-describedby="dataAttrHelp" placeholder="マッピングのコピーライト表記を入力してください">
+            <small id="dataAttrHelp" class="form-text text-muted">マッピングのコピーライト驃騎を入力してください。</small>
           </div>
         </div>
         <div class="row">

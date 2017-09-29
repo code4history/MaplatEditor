@@ -3,6 +3,7 @@ define(['model/maplatbase', 'backbone', 'underscore'], function(MaplatBase, Back
         defaults: {
             title: '',
             attr: '',
+            dataAttr: '',
             gcps: [],
             status: 'New',
             onlyOne: false,
@@ -13,6 +14,7 @@ define(['model/maplatbase', 'backbone', 'underscore'], function(MaplatBase, Back
             license: 'All right reserved',
             dataLicense: 'CC BY-SA',
             contributor: '',
+            mapper: '',
             reference: '',
             description: '',
             url: ''

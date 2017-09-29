@@ -289,7 +289,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
 
             // Input changes
             ['title', 'officialTitle', 'author', 'era', 'createdAt', 'license', 'dataLicense', 'contributor',
-                'attr', 'reference', 'description', 'url', 'mapID']
+                'mapper', 'attr', 'dataAttr', 'reference', 'description', 'url', 'mapID']
                 .map(function(attr) {
                     var action = attr == 'license' ? 'change' : 'keyup';
                     document.querySelector('#'+attr).addEventListener(action, function(ev) {
@@ -799,7 +799,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             mapObject = new Map(arg);
             setEventListner(mapObject);
             ['title', 'officialTitle', 'author', 'era', 'createdAt', 'license', 'dataLicense', 'contributor',
-                'attr', 'reference', 'description', 'url', 'width', 'height']
+                'mapper', 'attr', 'dataAttr', 'reference', 'description', 'url', 'width', 'height']
                 .map(function(attr) {
                     document.querySelector('#'+attr).value = mapObject.get(attr);
                 });
