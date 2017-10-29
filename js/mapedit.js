@@ -313,7 +313,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                     saveValue.status = 'Copy:' + mapID;
                 }
                 document.body.style.pointerEvents = 'none';
-                backend.save(saveValue, document.querySelector('input[name=compiled]').checked);
+                backend.save(saveValue);
                 ipcRenderer.once('saveResult', function(event, arg) {
                     document.body.style.pointerEvents = null;
                     if (arg == 'Success') {
