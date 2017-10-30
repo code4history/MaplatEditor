@@ -291,7 +291,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             ['title', 'officialTitle', 'author', 'era', 'createdAt', 'license', 'dataLicense', 'contributor',
                 'mapper', 'attr', 'dataAttr', 'reference', 'description', 'url', 'mapID']
                 .map(function(attr) {
-                    var action = attr == 'license' ? 'change' : 'keyup';
+                    var action = (attr == 'license' || attr == 'dataLicense') ? 'change' : 'keyup';
                     document.querySelector('#'+attr).addEventListener(action, function(ev) {
                         if (ev.target.value == mapObject.get(attr)) return;
                         mapObject.set(attr, ev.target.value);
@@ -305,6 +305,25 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                         }
                     });
                 });
+            document.querySelector('#lang').addEventListener('change', function(ev) {
+                var check = document.querySelector('#langDefault');
+                if (ev.target.value == mapObject.get('lang')) {
+                    check.checked = true;
+                    check.setAttribute('disabled', true);
+                } else {
+                    check.checked = false;
+                    check.removeAttribute('disabled');
+                }
+            });
+            document.querySelector('#langDefault').addEventListener('change', function(ev) {
+                if (ev.target.checked == true) {
+                    mapObject.set('lang', document.querySelector('#lang').value);
+                    ev.target.setAttribute('disabled', true);
+                } else {
+                    // Something wrong
+                    ev.target.removeAttribute('disabled');
+                }
+            });
             document.querySelector('#saveMap').addEventListener('click', function(ev) {
                 if (!confirm('変更を保存します。\nよろしいですか?')) return;
                 var saveValue = mapObject.attributes;
@@ -799,11 +818,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             mapObject = new Map(arg);
             setEventListner(mapObject);
             ['title', 'officialTitle', 'author', 'era', 'createdAt', 'license', 'dataLicense', 'contributor',
-                'mapper', 'attr', 'dataAttr', 'reference', 'description', 'url', 'width', 'height']
+                'mapper', 'attr', 'dataAttr', 'reference', 'description', 'url', 'width', 'height', 'lang']
                 .map(function(attr) {
                     document.querySelector('#'+attr).value = mapObject.get(attr);
                 });
             document.querySelector('.map-title').innerText = mapObject.get('title');
+            var langDefault = document.querySelector('#langDefault');
+            langDefault.checked = true;
+            langDefault.setAttribute('disabled', true);
             reflectIllstMap(compiled);
         });
         illstMap.addInteraction(new app.Drag());

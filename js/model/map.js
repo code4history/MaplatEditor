@@ -18,7 +18,7 @@ define(['model/maplatbase', 'backbone', 'underscore'], function(MaplatBase, Back
             reference: '',
             description: '',
             url: '',
-            lang: 'jp'
+            lang: 'ja'
         },
         validate: function(attrs) {
             var err = {};

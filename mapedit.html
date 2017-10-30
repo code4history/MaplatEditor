@@ -38,11 +38,29 @@
 
 <div class="container main" role="main">
   <div class="row title-container">
-    <div class="col-xs-9">
+    <div class="col-xs-5">
       <h4 class="map-title">タイトル未設定</h4>
     </div>
-    <div class="col-xs-3">
-      <label><!--input type="checkbox" name="compiled">コンパイル済</label-->　<button type="button" class="btn btn-primary" id="saveMap" disabled>保存</button>
+    <div class="col-xs-1">
+      <label for="lang">言語</label>
+    </div>
+    <div class="col-xs-2">
+      <select class="form-control" id="lang" aria-describedby="langHelp">
+        <option value="ja">日本語</oprion>
+        <option value="en">英語</oprion>
+        <option value="de">ドイツ語</oprion>
+        <option value="fr">フランス語</oprion>
+        <option value="es">スペイン語</oprion>
+        <option value="ko">韓国語</oprion>
+        <option value="zh-Hans">中国語簡体字</oprion>
+        <option value="zh-Hant">中国語繁体字</oprion>
+      </select>
+    </div>
+    <div class="col-xs-2">
+      <label><input type="checkbox" id="langDefault">デフォルト</label>
+    </div>
+    <div class="col-xs-2">
+      <button type="button" class="btn btn-primary" id="saveMap" disabled>保存</button>
     </div>
   </div>
   <!-- タブ・メニュー -->
