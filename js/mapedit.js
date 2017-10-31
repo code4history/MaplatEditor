@@ -293,10 +293,17 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                 .map(function(attr) {
                     var action = (attr == 'license' || attr == 'dataLicense') ? 'change' : 'keyup';
                     document.querySelector('#'+attr).addEventListener(action, function(ev) {
-                        if (ev.target.value == mapObject.get(attr)) return;
-                        mapObject.set(attr, ev.target.value);
+                        var selectedLocale = document.querySelector('#lang').value;
+                        if (ev.target.value == mapObject.localedGet(selectedLocale, attr)) return;
+                        if (attr == 'license' || attr == 'dataLicense' || attr == 'reference' ||
+                            attr == 'url' || attr == 'mapID') {
+                            mapObject.set(attr, ev.target.value);
+                        } else {
+                            mapObject.localedSet(selectedLocale, attr, ev.target.value);
+                        }
                         if (attr == 'title') {
-                            document.querySelector('.map-title').innerText = ev.target.value == '' ? 'タイトル未設定' : ev.target.value;
+                            var nextTitle = mapObject.localedGet(mapObject.get('lang'), 'title');
+                            document.querySelector('.map-title').innerText = nextTitle == '' ? 'タイトル未設定' : nextTitle;
                         } else if (attr == 'mapID') {
                             mapObject.set('onlyOne', false);
                             if (mapObject.get('status') == 'Update') {
@@ -306,19 +313,30 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                     });
                 });
             document.querySelector('#lang').addEventListener('change', function(ev) {
-                var check = document.querySelector('#langDefault');
-                if (ev.target.value == mapObject.get('lang')) {
-                    check.checked = true;
-                    check.setAttribute('disabled', true);
-                } else {
-                    check.checked = false;
-                    check.removeAttribute('disabled');
-                }
+                reflectSelectedLang();
             });
             document.querySelector('#langDefault').addEventListener('change', function(ev) {
                 if (ev.target.checked == true) {
-                    mapObject.set('lang', document.querySelector('#lang').value);
+                    var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
+                    var langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
+                        'mapper', 'attr', 'dataAttr', 'description'];
+                    var oldLang = mapObject.get('lang');
+                    var newLang = document.querySelector('#lang').value;
                     ev.target.setAttribute('disabled', true);
+                    var buffer = {};
+                    for (var i=0; i < langAttr.length; i++) {
+                        var attr = langAttr[i];
+                        buffer[attr] = mapObject.localedGet(oldLang, attr);
+                    }
+                    mapObject.set('lang', newLang);
+                    for (var i=0; i < langAttr.length; i++) {
+                        var attr = langAttr[i];
+                        mapObject.localedSet(oldLang, attr, buffer[attr]);
+                        mapObject.localedSet(newLang, attr, document.querySelector('#' + attr).value);
+                    }
+                    onOffAttr.map(function(attr) {
+                        document.querySelector('#' + attr).removeAttribute('disabled');
+                    });
                 } else {
                     // Something wrong
                     ev.target.removeAttribute('disabled');
@@ -494,6 +512,33 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                     "anchor": [0.5, 0.5]
                 })
             });
+        }
+
+        function reflectSelectedLang() {
+            var lang = mapObject.get('lang');
+            var selectedLang = document.querySelector('#lang').value;
+            var langDefault = document.querySelector('#langDefault');
+            var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
+
+            if (lang == selectedLang) {
+                langDefault.checked = true;
+                langDefault.setAttribute('disabled', true);
+                onOffAttr.map(function(attr) {
+                    document.querySelector('#'+attr).removeAttribute('disabled');
+                });
+            } else {
+                langDefault.checked = false;
+                langDefault.removeAttribute('disabled');
+                onOffAttr.map(function(attr) {
+                    document.querySelector('#'+attr).setAttribute('disabled', true);
+                });
+            }
+
+            ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
+                'mapper', 'attr', 'dataAttr', 'description']
+                .map(function(attr) {
+                    document.querySelector('#'+attr).value = mapObject.localedGet(selectedLang, attr);
+                });
         }
 
         function reflectIllstMap(compiled) {
@@ -817,15 +862,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             arg.onlyOne = true;
             mapObject = new Map(arg);
             setEventListner(mapObject);
-            ['title', 'officialTitle', 'author', 'era', 'createdAt', 'license', 'dataLicense', 'contributor',
-                'mapper', 'attr', 'dataAttr', 'reference', 'description', 'url', 'width', 'height', 'lang']
+            ['license', 'dataLicense', 'reference', 'url', 'width', 'height', 'lang']
                 .map(function(attr) {
                     document.querySelector('#'+attr).value = mapObject.get(attr);
                 });
-            document.querySelector('.map-title').innerText = mapObject.get('title');
-            var langDefault = document.querySelector('#langDefault');
-            langDefault.checked = true;
-            langDefault.setAttribute('disabled', true);
+            document.querySelector('.map-title').innerText = mapObject.localedGet(mapObject.get('lang'), 'title');
+            reflectSelectedLang();
             reflectIllstMap(compiled);
         });
         illstMap.addInteraction(new app.Drag());
