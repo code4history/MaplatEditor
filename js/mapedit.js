@@ -1,5 +1,9 @@
 define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'contextmenu', 'geocoder', 'switcher'],
     function(ol, bsn, _, turf, Map, ContextMenu, Geocoder) {
+        var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
+        var langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
+            'mapper', 'attr', 'dataAttr', 'description'];
+
         var labelFontStyle = "Normal 12px Arial";
         const {ipcRenderer} = require('electron');
         var backend = require('electron').remote.require('../lib/mapedit');
@@ -288,38 +292,33 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             });
 
             // Input changes
-            ['title', 'officialTitle', 'author', 'era', 'createdAt', 'license', 'dataLicense', 'contributor',
-                'mapper', 'attr', 'dataAttr', 'reference', 'description', 'url', 'mapID']
-                .map(function(attr) {
-                    var action = (attr == 'license' || attr == 'dataLicense') ? 'change' : 'keyup';
-                    document.querySelector('#'+attr).addEventListener(action, function(ev) {
-                        var selectedLocale = document.querySelector('#lang').value;
-                        if (ev.target.value == mapObject.localedGet(selectedLocale, attr)) return;
-                        if (attr == 'license' || attr == 'dataLicense' || attr == 'reference' ||
-                            attr == 'url' || attr == 'mapID') {
-                            mapObject.set(attr, ev.target.value);
-                        } else {
-                            mapObject.localedSet(selectedLocale, attr, ev.target.value);
+            langAttr.concat(onOffAttr).concat(['mapID']).map(function(attr) {
+                var action = (attr == 'license' || attr == 'dataLicense') ? 'change' : 'keyup';
+                document.querySelector('#'+attr).addEventListener(action, function(ev) {
+                    var selectedLocale = document.querySelector('#lang').value;
+                    if (ev.target.value == mapObject.localedGet(selectedLocale, attr)) return;
+                    if (attr == 'license' || attr == 'dataLicense' || attr == 'reference' ||
+                        attr == 'url' || attr == 'mapID') {
+                        mapObject.set(attr, ev.target.value);
+                    } else {
+                        mapObject.localedSet(selectedLocale, attr, ev.target.value);
+                    }
+                    if (attr == 'title') {
+                        var nextTitle = mapObject.localedGet(mapObject.get('lang'), 'title');
+                        document.querySelector('.map-title').innerText = nextTitle == '' ? 'タイトル未設定' : nextTitle;
+                    } else if (attr == 'mapID') {
+                        mapObject.set('onlyOne', false);
+                        if (mapObject.get('status') == 'Update') {
+                            mapObject.set('status', 'Change:' + mapID);
                         }
-                        if (attr == 'title') {
-                            var nextTitle = mapObject.localedGet(mapObject.get('lang'), 'title');
-                            document.querySelector('.map-title').innerText = nextTitle == '' ? 'タイトル未設定' : nextTitle;
-                        } else if (attr == 'mapID') {
-                            mapObject.set('onlyOne', false);
-                            if (mapObject.get('status') == 'Update') {
-                                mapObject.set('status', 'Change:' + mapID);
-                            }
-                        }
-                    });
+                    }
                 });
+            });
             document.querySelector('#lang').addEventListener('change', function(ev) {
                 reflectSelectedLang();
             });
             document.querySelector('#langDefault').addEventListener('change', function(ev) {
                 if (ev.target.checked == true) {
-                    var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
-                    var langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
-                        'mapper', 'attr', 'dataAttr', 'description'];
                     var oldLang = mapObject.get('lang');
                     var newLang = document.querySelector('#lang').value;
                     ev.target.setAttribute('disabled', true);
@@ -518,7 +517,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             var lang = mapObject.get('lang');
             var selectedLang = document.querySelector('#lang').value;
             var langDefault = document.querySelector('#langDefault');
-            var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
 
             if (lang == selectedLang) {
                 langDefault.checked = true;
@@ -534,11 +532,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
                 });
             }
 
-            ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
-                'mapper', 'attr', 'dataAttr', 'description']
-                .map(function(attr) {
-                    document.querySelector('#'+attr).value = mapObject.localedGet(selectedLang, attr);
-                });
+            langAttr.map(function(attr) {
+                document.querySelector('#'+attr).value = mapObject.localedGet(selectedLang, attr);
+            });
         }
 
         function reflectIllstMap(compiled) {
@@ -862,10 +858,15 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             arg.onlyOne = true;
             mapObject = new Map(arg);
             setEventListner(mapObject);
-            ['license', 'dataLicense', 'reference', 'url', 'width', 'height', 'lang']
-                .map(function(attr) {
-                    document.querySelector('#'+attr).value = mapObject.get(attr);
-                });
+            var langs = Object.keys(mapObject.langs);
+            var langOpts = '';
+            for (var i = 0; i < langs.length; i++) {
+                langOpts = langOpts + '<option value="' + langs[i] + '">' + mapObject.langs[langs[i]] + '</oprion>';
+            }
+            document.querySelector('#lang').innerHTML = langOpts;
+            onOffAttr.concat(['width', 'height', 'lang']).map(function(attr) {
+                document.querySelector('#'+attr).value = mapObject.get(attr);
+            });
             document.querySelector('.map-title').innerText = mapObject.localedGet(mapObject.get('lang'), 'title');
             reflectSelectedLang();
             reflectIllstMap(compiled);

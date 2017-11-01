@@ -1,4 +1,14 @@
-define(['model/maplatbase', 'backbone', 'underscore'], function(MaplatBase, Backbone, _) {
+define(['model/maplatbase', 'backbone', 'underscore_extension'], function(MaplatBase, Backbone, _) {
+    var langs = {
+        'ja': '日本語',
+        'en': '英語',
+        'de': 'ドイツ語',
+        'fr': 'フランス語',
+        'es': 'スペイン語',
+        'ko': '韓国語',
+        'zh-Hans': '中国語簡体字',
+        'zh-Hant': '中国語繁体字'
+    };
     var Map = MaplatBase.extend({
         defaults: {
             title: '',
@@ -26,7 +36,17 @@ define(['model/maplatbase', 'backbone', 'underscore'], function(MaplatBase, Back
             else if (attrs.mapID && !attrs.mapID.match(/^[\d\w_\-]+$/)) err['mapID'] = '地図IDは英数字とアンダーバー、ハイフンのみが使えます。';
             else if (!attrs.onlyOne) err['mapID'] = '地図IDの一意性チェックを行ってください。';
             if (attrs.title == null || attrs.title == '') err['title'] = '表示用タイトルを指定してください。';
-            else if (attrs.title.length > 15) err['title'] = '表示用タイトルは15文字以内にしてください。';
+            else {
+                if (typeof attrs.title != 'object') {
+                    if (attrs.title.length > 15) err['title'] = '表示用タイトル(' + langs[attrs.lang] + ')を15文字以内にしてください。';
+                } else {
+                    var keys = Object.keys(langs);
+                    for (var i=0; i<keys.length; i++) {
+                        if (attrs.title[keys[i]] && attrs.title[keys[i]].length > 15)
+                            err['title'] = '表示用タイトル(' + langs[keys[i]] + ')を15文字以内にしてください。';
+                    }
+                }
+            }
             if (attrs.attr == null || attrs.attr == '') err['attr'] = 'アトリビューションを指定してください。';
             if (Object.keys(err).length > 0) return err;
         },
@@ -66,11 +86,13 @@ define(['model/maplatbase', 'backbone', 'underscore'], function(MaplatBase, Back
                         val = val[lang];
                     }
                 } else {
+                    val = _.deepClone(val);
                     val[locale] = value;
                 }
             }
             this.set(key, val);
-        }
+        },
+        langs: langs
     });
     return Map;
 });
