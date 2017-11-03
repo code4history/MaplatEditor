@@ -16,8 +16,9 @@ requirejs.config({
         'ol-custom': '../common/js/ol-custom',
         'histmap_tin': '../common/js/histmap_tin',
         'tin': '../common/js/tin',
-        'turf': '../common/js/turf.min',
-        'mapshaper': '../node_modules/mapshaper/mapshaper',
+        'turf': '../common/js/turf_maplat.min',
+        //'mapshaper': '../node_modules/mapshaper/mapshaper',
+        'mapshaper': '../common/js/mapshaper_maplat',
         'contextmenu': 'ol3-contextmenu',
         'geocoder': 'ol3-geocoder-debug',
         'switcher': 'ol3-layerswitcher'
