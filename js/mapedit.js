@@ -268,12 +268,15 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             var allowClose = false;
 
             // When move to other pages
-            document.querySelector('a[data-nav]').addEventListener('click', function(ev) {
-                if (!mapObject.dirty() || confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
-                    allowClose = true;
-                    window.location.href = ev.target.getAttribute('data-nav');
-                }
-            });
+            var dataNav = document.querySelectorAll('a[data-nav]');
+            for (var i=0; i< dataNav.length; i++) {
+                dataNav[i].addEventListener('click', function(ev) {
+                    if (!mapObject.dirty() || confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
+                        allowClose = true;
+                        window.location.href = ev.target.getAttribute('data-nav');
+                    }
+                });
+            }
 
             // When application will close
             window.addEventListener('beforeunload', function(e) {
