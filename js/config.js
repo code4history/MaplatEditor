@@ -21,7 +21,8 @@ requirejs.config({
         'mapshaper': '../common/js/mapshaper_maplat',
         'contextmenu': 'ol3-contextmenu',
         'geocoder': 'ol3-geocoder-debug',
-        'switcher': 'ol3-layerswitcher'
+        'switcher': 'ol3-layerswitcher',
+        'Vue': 'vue.min'
     },
     shim: {
         'turf': {

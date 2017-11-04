@@ -57,6 +57,12 @@
       </a>
       <p>新規作成</p>
     </li>
+    <li v-for="map in maplist" :key="map.mapID">
+      <a v-bind:href="'mapedit.html?mapid=' + map.mapID">
+        <img v-bind:src="map.image" width="190" v-bind:height="map.height">
+      </a>
+      <p>{{map.name}}</p>
+    </li>
   </ul>
 </div> <!-- /container -->
 
