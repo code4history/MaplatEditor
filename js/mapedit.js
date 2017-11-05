@@ -209,6 +209,13 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
 
         var eventInit = false;
         function setEventListner() {
+            var langs = Object.keys(mapObject.langs);
+            var langOpts = '';
+            for (var i = 0; i < langs.length; i++) {
+                langOpts = langOpts + '<option value="' + langs[i] + '">' + mapObject.langs[langs[i]] + '</oprion>';
+            }
+            document.querySelector('#lang').innerHTML = langOpts;
+
             // Settings which must be updated everytime
             var a = document.querySelector('a[href="#gcpsTab"]');
             var li = a.parentNode;
@@ -852,6 +859,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             document.querySelector('#changeIDdiv').classList.add('hide');
             document.querySelector('#checkIDdiv').classList.remove('hide');
             setEventListner(mapObject);
+            document.querySelector('#lang').value = mapObject.get('lang');
+            reflectSelectedLang();
         }
         ipcRenderer.on('mapData', function(event, arg) {
             var compiled = arg.compiled;
@@ -861,12 +870,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             arg.onlyOne = true;
             mapObject = new Map(arg);
             setEventListner(mapObject);
-            var langs = Object.keys(mapObject.langs);
-            var langOpts = '';
-            for (var i = 0; i < langs.length; i++) {
-                langOpts = langOpts + '<option value="' + langs[i] + '">' + mapObject.langs[langs[i]] + '</oprion>';
-            }
-            document.querySelector('#lang').innerHTML = langOpts;
             onOffAttr.concat(['width', 'height', 'lang']).map(function(attr) {
                 document.querySelector('#'+attr).value = mapObject.get(attr);
             });
