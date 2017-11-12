@@ -1,5 +1,5 @@
-define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'contextmenu', 'geocoder', 'switcher'],
-    function(ol, bsn, _, turf, Map, ContextMenu, Geocoder) {
+define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'model/vuemap', 'contextmenu', 'geocoder', 'switcher'],
+    function(ol, bsn, _, turf, Map, VueMap, ContextMenu, Geocoder) {
         var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
         var langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
             'mapper', 'attr', 'dataAttr', 'description'];
@@ -209,13 +209,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
 
         var eventInit = false;
         function setEventListner() {
-            var langs = Object.keys(mapObject.langs);
-            var langOpts = '';
-            for (var i = 0; i < langs.length; i++) {
-                langOpts = langOpts + '<option value="' + langs[i] + '">' + mapObject.langs[langs[i]] + '</oprion>';
-            }
-            document.querySelector('#lang').innerHTML = langOpts;
-
             // Settings which must be updated everytime
             var a = document.querySelector('a[href="#gcpsTab"]');
             var li = a.parentNode;
@@ -847,20 +840,40 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
         var illstSource;
 
         var mapObject;
+        var vueMap = new VueMap({
+            el: '#title-vue'
+        });
         if (mapID) {
             var mapIDElm = document.querySelector('#mapID');
-            mapIDElm.value = mapID;
-            mapIDElm.setAttribute('disabled', true);
-            document.querySelector('#changeIDdiv').classList.remove('hide');
-            document.querySelector('#checkIDdiv').classList.add('hide');
+            // mapIDElm.value = mapID;
+            // mapIDElm.setAttribute('disabled', true);
+            // document.querySelector('#changeIDdiv').classList.remove('hide');
+            // document.querySelector('#checkIDdiv').classList.add('hide');
             backend.request(mapID);
         } else {
             mapObject = new Map({});
-            document.querySelector('#changeIDdiv').classList.add('hide');
-            document.querySelector('#checkIDdiv').classList.remove('hide');
-            setEventListner(mapObject);
-            document.querySelector('#lang').value = mapObject.get('lang');
-            reflectSelectedLang();
+            setVueMap();
+            // document.querySelector('#changeIDdiv').classList.add('hide');
+            // document.querySelector('#checkIDdiv').classList.remove('hide');
+            // setEventListner(mapObject);
+            // document.querySelector('#lang').value = mapObject.get('lang');
+            // reflectSelectedLang();
+        }
+        function setVueMap() {
+            var vueMap2 = vueMap.createSharedClone();
+            vueMap2.$mount('#metadataTab');
+            vueMap2.$on('checkOnlyOne', function(){
+                alert('checkOnlyOne');
+            });
+            console.log(vueMap);
+            console.log(vueMap.dirty);
+            console.log(vueMap2.dirty);
+            vueMap.share.currentLang = 'en';
+            vueMap.dataAttr = 'hoge';
+            vueMap.defaultLangFlag = true;
+            console.log(vueMap);
+            console.log(vueMap.dirty);
+            console.log(vueMap2.dirty);
         }
         ipcRenderer.on('mapData', function(event, arg) {
             var compiled = arg.compiled;
@@ -869,13 +882,17 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
             arg.status = 'Update';
             arg.onlyOne = true;
             mapObject = new Map(arg);
-            setEventListner(mapObject);
-            onOffAttr.concat(['width', 'height', 'lang']).map(function(attr) {
-                document.querySelector('#'+attr).value = mapObject.get(attr);
-            });
-            document.querySelector('.map-title').innerText = mapObject.localedGet(mapObject.get('lang'), 'title');
-            reflectSelectedLang();
-            reflectIllstMap(compiled);
+            vueMap.setInitialMap(arg);
+            setVueMap();
+            //console.log(JSON.stringify(vueMap.mapObject));
+            //console.log(JSON.stringify(vueMap.mapObject_));
+            // setEventListner(mapObject);
+            // onOffAttr.concat(['width', 'height', 'lang']).map(function(attr) {
+            //     document.querySelector('#'+attr).value = mapObject.get(attr);
+            // });
+            // document.querySelector('.map-title').innerText = mapObject.localedGet(mapObject.get('lang'), 'title');
+            // reflectSelectedLang();
+            // reflectIllstMap(compiled);
         });
         illstMap.addInteraction(new app.Drag());
 
@@ -960,9 +977,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'co
 
         var myModal = new bsn.Modal(document.getElementById('staticModal'), {});
 
-        var myMapTab = document.querySelector('a[href="#gcpsTab"]');
-        myMapTab.addEventListener('shown.bs.tab', function(event) {
-            illstMap.updateSize();
-            mercMap.updateSize();
-        });
+        // var myMapTab = document.querySelector('a[href="#gcpsTab"]');
+        // myMapTab.addEventListener('shown.bs.tab', function(event) {
+        //     illstMap.updateSize();
+        //     mercMap.updateSize();
+        // });
     });

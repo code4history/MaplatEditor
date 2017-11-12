@@ -37,7 +37,7 @@
 </nav>
 
 <div class="container main" role="main">
-  <div class="row title-container">
+  <div class="row title-container" id="title-vue">
     <div class="col-xs-5">
       <h4><a href="#" data-nav="maplist.html">&lt;&lt;</a> <span class="map-title">タイトル未設定</span></h4>
     </div>
@@ -45,10 +45,10 @@
       <label for="lang">言語</label>
     </div>
     <div class="col-xs-2">
-      <select class="form-control" id="lang" aria-describedby="langHelp"></select>
+      <select class="form-control" id="lang" aria-describedby="langHelp" v-model="share.currentLang"></select>
     </div>
     <div class="col-xs-2">
-      <label><input type="checkbox" id="langDefault">デフォルト</label>
+      <label><input type="checkbox" id="langDefault" v-bind:disabled="defaultLangFlag" v-model="defaultLangFlag">デフォルト</label>
     </div>
     <div class="col-xs-2">
       <button type="button" class="btn btn-primary" id="saveMap" disabled>保存</button>
@@ -66,26 +66,27 @@
     <div class="tab-pane active" id="metadataTab">
       <form>
         <div class="row">
-          <div class="form-group col-xs-4">
+          <div class="form-group col-xs-4" v-bind:class="error && error.mapID ? 'has-error' : ''">
             <label for="mapID">地図ID</label>
-            <input type="text" class="form-control" id="mapID" aria-describedby="mapIDHelp" placeholder="地図IDを入力してください。">
-            <small id="mapIDHelp" class="form-text text-muted">一意な地図IDを入力してください。</small>
+            <input type="text" class="form-control" id="mapID" aria-describedby="mapIDHelp" placeholder="地図IDを入力してください。" v-model="share.map.mapID" v-bind:disabled="share.onlyOne">
+            <small class="form-text text-muted text-danger" v-if="error && error.mapID">{{error.mapID}}</small>
+            <small class="form-text text-muted" v-else>一意な地図IDを入力してください。</small>
           </div>
-          <div class="form-group col-xs-2" id="changeIDdiv">
+          <div class="form-group col-xs-2" id="changeIDdiv" v-if="share.onlyOne">
             <label for="changeID" class="w100">　</label>
-            <button type="button" class="btn btn-danger" id="changeID">地図ID変更</button>
+            <button type="button" class="btn btn-danger" id="changeID" v-on:click="$emit('checkOnlyOne')">地図ID変更</button>
           </div>
-          <div class="form-group col-xs-2 hide" id="checkIDdiv">
+          <div class="form-group col-xs-2" id="checkIDdiv" v-else>
             <label for="checkID" class="w100">　</label>
             <button type="button" class="btn btn-secondary" id="checkID">一意性確認</button>
           </div>
           <div class="form-group col-xs-2">
             <label for="width">地図画像幅</label>
-            <input type="text" class="form-control" id="width" disabled>
+            <input type="text" class="form-control" id="width" disabled v-model="share.map.width">
           </div>
           <div class="form-group col-xs-2">
             <label for="height">地図画像高さ</label>
-            <input type="text" class="form-control" id="height" disabled>
+            <input type="text" class="form-control" id="height" disabled v-model="share.map.height">
           </div>
           <div class="form-group col-xs-2">
             <label for="uploadMap" class="w100">　</label>
@@ -93,48 +94,49 @@
           </div>
         </div>
         <div class="row">
-          <div class="form-group col-xs-4">
+          <div class="form-group col-xs-4" v-bind:class="error && error.title ? 'has-error' : ''">
             <label for="title">地図名称(表示用)</label>
-            <input type="text" class="form-control" id="title" aria-describedby="titleHelp" placeholder="地図名称(表示用)を入力してください">
-            <small id="titleHelp" class="form-text text-muted">地図の表示用名称を15文字以内で入力してください。</small>
+            <input type="text" class="form-control" id="title" aria-describedby="titleHelp" placeholder="地図名称(表示用)を入力してください" v-model="title">
+            <small class="form-text text-muted text-danger" v-if="error && error.title">{{error.title}}</small>
+            <small class="form-text text-muted" v-else>地図の表示用名称を15文字以内で入力してください。</small>
           </div>
           <div class="form-group col-xs-5">
             <label for="officialTitle">地図名称(正式名)</label>
-            <input type="text" class="form-control" id="officialTitle" aria-describedby="officialTitleHelp" placeholder="地図名称(正式名)を入力してください">
+            <input type="text" class="form-control" id="officialTitle" aria-describedby="officialTitleHelp" placeholder="地図名称(正式名)を入力してください" v-model="officialTitle">
             <small id="officialTitleHelp" class="form-text text-muted">地図の正式名称を入力してください。</small>
           </div>
           <div class="form-group col-xs-3">
             <label for="author">制作者</label>
-            <input type="text" class="form-control" id="author" aria-describedby="authorHelp" placeholder="地図の制作者を入力してください">
+            <input type="text" class="form-control" id="author" aria-describedby="authorHelp" placeholder="地図の制作者を入力してください" v-model="author">
             <small id="authorHelp" class="form-text text-muted">地図の制作者を入力してください。</small>
           </div>
         </div>
         <div class="row">
           <div class="form-group col-xs-3">
             <label for="createdAt">作成時期</label>
-            <input type="text" class="form-control" id="createdAt" aria-describedby="createdAtHelp" placeholder="作成時期を入力してください">
+            <input type="text" class="form-control" id="createdAt" aria-describedby="createdAtHelp" placeholder="作成時期を入力してください" v-model="createdAt">
             <small id="createdAtHelp" class="form-text text-muted">地図の作成時期を時代名、和暦、西暦等で入力してください。</small>
           </div>
           <div class="form-group col-xs-3">
             <label for="era">対象時期</label>
-            <input type="text" class="form-control" id="era" aria-describedby="eraHelp" placeholder="対象時期を入力してください">
+            <input type="text" class="form-control" id="era" aria-describedby="eraHelp" placeholder="対象時期を入力してください" v-model="era">
             <small id="eraHelp" class="form-text text-muted">地図に表されている時期を入力してください。省略時は作成時期で代替されます。</small>
           </div>
           <div class="form-group col-xs-3">
             <label for="contributor">所蔵者等</label>
-            <input type="text" class="form-control" id="contributor" aria-describedby="contributorHelp" placeholder="所蔵者等を入力してください">
+            <input type="text" class="form-control" id="contributor" aria-describedby="contributorHelp" placeholder="所蔵者等を入力してください" v-model="contributor">
             <small id="contributorHelp" class="form-text text-muted">地図の所蔵者、提供者等を入力してください。</small>
           </div>
           <div class="form-group col-xs-3">
             <label for="mapper">マッパー</label>
-            <input type="text" class="form-control" id="mapper" aria-describedby="mapperHelp" placeholder="マッピング実施者等を入力してください">
+            <input type="text" class="form-control" id="mapper" aria-describedby="mapperHelp" placeholder="マッピング実施者等を入力してください" v-model="mapper">
             <small id="mapperHelp" class="form-text text-muted">マッピング実施者等を入力してください。</small>
           </div>
         </div>
         <div class="row">
           <div class="form-group col-xs-3">
             <label for="license">地図画像ライセンス</label>
-            <select class="form-control" id="license" aria-describedby="licenseHelp">
+            <select class="form-control" id="license" aria-describedby="licenseHelp" v-model="share.map.license" v-bind:disabled="!defaultLangFlag">
               <option value="All right reserved">著作権保持</oprion>
               <option value="CC BY">クリエイティブ・コモンズ 表示</oprion>
               <option value="CC BY-SA">クリエイティブ・コモンズ 表示-継承</oprion>
@@ -149,7 +151,7 @@
           </div>
           <div class="form-group col-xs-3">
             <label for="dataLicense">マッピングデータライセンス</label>
-            <select class="form-control" id="dataLicense" aria-describedby="dataLicenseHelp">
+            <select class="form-control" id="dataLicense" aria-describedby="dataLicenseHelp" v-model="share.map.dataLicense" v-bind:disabled="!defaultLangFlag">
               <option value="All right reserved">著作権保持</oprion>
               <option value="CC BY">クリエイティブ・コモンズ 表示</oprion>
               <option value="CC BY-SA">クリエイティブ・コモンズ 表示-継承</oprion>
@@ -163,31 +165,31 @@
           </div>
           <div class="form-group col-xs-3">
             <label for="attr">地図画像コピーライト</label>
-            <input type="text" class="form-control" id="attr" aria-describedby="attrHelp" placeholder="地図画像のコピーライト表記を入力してください">
-            <small id="attrHelp" class="form-text text-muted">地図画像のコピーライト驃騎を入力してください。</small>
+            <input type="text" class="form-control" id="attr" aria-describedby="attrHelp" placeholder="地図画像のコピーライト表記を入力してください" v-model="attr">
+            <small id="attrHelp" class="form-text text-muted">地図画像のコピーライト表記を入力してください。</small>
           </div>
           <div class="form-group col-xs-3">
             <label for="dataAttr">マッピングデータコピーライト</label>
-            <input type="text" class="form-control" id="dataAttr" aria-describedby="dataAttrHelp" placeholder="マッピングのコピーライト表記を入力してください">
-            <small id="dataAttrHelp" class="form-text text-muted">マッピングのコピーライト驃騎を入力してください。</small>
+            <input type="text" class="form-control" id="dataAttr" aria-describedby="dataAttrHelp" placeholder="マッピングのコピーライト表記を入力してください" v-model="dataAttr">
+            <small id="dataAttrHelp" class="form-text text-muted">マッピングのコピーライト表記を入力してください。</small>
           </div>
         </div>
         <div class="row">
           <div class="form-group col-xs-4">
             <label for="reference">典拠</label>
-            <input type="text" class="form-control" id="reference" aria-describedby="referenceHelp" placeholder="典拠を入力してください">
+            <input type="text" class="form-control" id="reference" aria-describedby="referenceHelp" placeholder="典拠を入力してください" v-model="share.map.reference" v-bind:disabled="!defaultLangFlag">
             <small id="referenceHelp" class="form-text text-muted">地図の典拠を入力してください。</small>
           </div>
           <div class="form-group col-xs-8">
             <label for="url">地図タイルURL</label>
-            <input type="text" class="form-control" id="url" aria-describedby="urlHelp" placeholder="地図タイルのURLを入力してください">
+            <input type="text" class="form-control" id="url" aria-describedby="urlHelp" placeholder="地図タイルのURLを入力してください" v-model="share.map.url" v-bind:disabled="!defaultLangFlag">
             <small id="urlHelp" class="form-text text-muted">外部の地図タイルを用いる場合、http://...{z}/{x}/{y}.{png|jpg}の形で指定してください。標準の配置位置を使う場合は設定不要です。</small>
           </div>
         </div>
         <div class="row">
           <div class="form-group col-xs-12">
             <label for="description">説明</label>
-            <textarea class="form-control" id="description" aria-describedby="descriptionHelp" placeholder="地図の説明文を入力してください"></textarea>
+            <textarea class="form-control" id="description" aria-describedby="descriptionHelp" placeholder="地図の説明文を入力してください" v-model="description"></textarea>
             <small id="descriptionHelp" class="form-text text-muted">地図の説明文を入力してください。</small>
           </div>
         </div>

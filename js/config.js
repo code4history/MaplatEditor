@@ -22,7 +22,7 @@ requirejs.config({
         'contextmenu': 'ol3-contextmenu',
         'geocoder': 'ol3-geocoder-debug',
         'switcher': 'ol3-layerswitcher',
-        'Vue': 'vue.min'
+        'Vue': 'vue'
     },
     shim: {
         'turf': {
