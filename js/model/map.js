@@ -9,6 +9,20 @@ define(['model/maplatbase', 'backbone', 'underscore_extension'], function(Maplat
         'zh-Hans': '中国語簡体字',
         'zh-Hant': '中国語繁体字'
     };
+    function zenHankakuLength(text) {
+        var len = 0;
+        var str = escape(text);
+        for (var i=0; i<str.length; i++,len++) {
+            if (str.charAt(i) == "%") {
+                if (str.charAt(++i) == "u") {
+                    i += 3;
+                    len++;
+                }
+                i++;
+            }
+        }
+        return len;
+    }
     var Map = MaplatBase.extend({
         defaults: {
             title: '',
@@ -38,12 +52,12 @@ define(['model/maplatbase', 'backbone', 'underscore_extension'], function(Maplat
             if (attrs.title == null || attrs.title == '') err['title'] = '表示用タイトルを指定してください。';
             else {
                 if (typeof attrs.title != 'object') {
-                    if (attrs.title.length > 15) err['title'] = '表示用タイトル(' + langs[attrs.lang] + ')を15文字以内にしてください。';
+                    if (zenHankakuLength(attrs.title) > 30) err['title'] = '表示用タイトル(' + langs[attrs.lang] + ')を15文字(半角30文字)以内にしてください。';
                 } else {
                     var keys = Object.keys(langs);
                     for (var i=0; i<keys.length; i++) {
-                        if (attrs.title[keys[i]] && attrs.title[keys[i]].length > 15)
-                            err['title'] = '表示用タイトル(' + langs[keys[i]] + ')を15文字以内にしてください。';
+                        if (attrs.title[keys[i]] && zenHankakuLength(attrs.title[keys[i]]) > 30)
+                            err['title'] = '表示用タイトル(' + langs[keys[i]] + ')を15文字(半角30文字)以内にしてください。';
                     }
                 }
             }

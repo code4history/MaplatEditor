@@ -14,7 +14,7 @@
     "argv": "0.0.2",
     "async": "^2.5.0",
     "child_process": "^1.0.2",
-    "electron-json-storage": "^3.0.6",
+    "electron-json-storage": "^3.2.0",
     "file-url": "^2.0.2",
     "fs-extra": "^3.0.1",
     "imagemagick": "^0.1.3",
