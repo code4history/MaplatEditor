@@ -1,20 +1,26 @@
 {
   "name": "MaplatEditor",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "lib/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "win32": "gulp win32",
+    "darwin": "gulp darwin"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "devDependencies": {
+    "electron": "~1.7.8",
+    "electron-packager": "^10.1.0",
+    "gulp": "^3.9.1"
+  },
   "dependencies": {
-    "@turf/turf": "^4.6.1",
+    "@turf/turf": "^5.0.4",
     "argv": "0.0.2",
     "async": "^2.5.0",
     "child_process": "^1.0.2",
-    "electron-json-storage": "^3.0.6",
+    "electron-json-storage": "^3.2.0",
     "file-url": "^2.0.2",
     "fs-extra": "^3.0.1",
     "imagemagick": "^0.1.3",

@@ -45,14 +45,21 @@ define(['bootstrap', 'model/settings'],
             document.querySelector('#submit').setAttribute('disabled', true);
         });
 
-        document.querySelector('#close').addEventListener('click', function(){
-            window.close();
-        });
+        // When move to other pages
+        var dataNav = document.querySelectorAll('a[data-nav]');
+        for (var i=0; i< dataNav.length; i++) {
+            dataNav[i].addEventListener('click', function(ev) {
+                if (!settings.dirty() || confirm('設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
+                    allowClose = true;
+                    window.location.href = ev.target.getAttribute('data-nav');
+                }
+            });
+        }
 
-        window.addEventListener('beforeunload', function(e) {
+        /*window.addEventListener('beforeunload', function(e) {
             if (!settings.dirty()) return;
             if (!confirm('設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
                 e.returnValue = "false";
             }
-        });
+        });*/
     });

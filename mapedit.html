@@ -31,6 +31,7 @@
       <ul class="nav navbar-nav">
         <li class="active"><a href="#">地図編集</a></li>
         <li><a href="#" data-nav="applist.html">アプリ編集</a></li>
+        <li><a href="#" data-nav="settings.html">設定</a></li>
       </ul>
     </div><!--/.nav-collapse -->
   </div>
@@ -98,7 +99,7 @@
             <label for="title">地図名称(表示用)</label>
             <input type="text" class="form-control" id="title" aria-describedby="titleHelp" placeholder="地図名称(表示用)を入力してください" v-model="title">
             <small class="form-text text-muted text-danger" v-if="error && error.title">{{error.title}}</small>
-            <small class="form-text text-muted" v-else>地図の表示用名称を15文字以内で入力してください。</small>
+            <small class="form-text text-muted" v-else>地図の表示用名称を15文字(半角30文字)以内で入力してください。</small>
           </div>
           <div class="form-group col-xs-5">
             <label for="officialTitle">地図名称(正式名)</label>
