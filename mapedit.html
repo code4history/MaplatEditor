@@ -75,11 +75,11 @@
           </div>
           <div class="form-group col-xs-2" id="changeIDdiv" v-if="share.onlyOne">
             <label for="changeID" class="w100">　</label>
-            <button type="button" class="btn btn-danger" id="changeID" v-on:click="$emit('checkOnlyOne')">地図ID変更</button>
+            <button type="button" class="btn btn-danger" id="changeID" v-on:click="$emit('updateMapID')">地図ID変更</button>
           </div>
           <div class="form-group col-xs-2" id="checkIDdiv" v-else>
             <label for="checkID" class="w100">　</label>
-            <button type="button" class="btn btn-secondary" id="checkID">一意性確認</button>
+            <button type="button" class="btn btn-secondary" id="checkID" v-on:click="$emit('checkOnlyOne')">一意性確認</button>
           </div>
           <div class="form-group col-xs-2">
             <label for="width">地図画像幅</label>

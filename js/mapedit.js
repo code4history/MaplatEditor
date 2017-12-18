@@ -874,8 +874,22 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
         function setVueMap() {
             var vueMap2 = vueMap.createSharedClone();
             vueMap2.$mount('#metadataTab');
+            vueMap2.$on('updateMapID', function(){
+                vueMap2.share.onlyOne = false;
+            });
             vueMap2.$on('checkOnlyOne', function(){
-                alert('checkOnlyOne');
+                document.body.style.pointerEvents = 'none';
+                var checked = backend.checkID(vueMap.share.map.mapID);
+                ipcRenderer.once('checkIDResult', function(event, arg) {
+                    document.body.style.pointerEvents = null;
+                    if (arg) {
+                        alert('一意な地図IDです。');
+                        vueMap.share.onlyOne = true;
+                    } else {
+                        alert('この地図IDは存在します。他のIDにしてください。');
+                        vueMap.share.onlyOne = false;
+                    }
+                });
             });
             gcpsEditReady(vueMap.gcpsEditReady);
 

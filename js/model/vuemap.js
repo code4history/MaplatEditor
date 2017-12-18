@@ -35,6 +35,20 @@ define(['underscore_extension', 'Vue'],
             'zh-Hans': '中国語簡体字',
             'zh-Hant': '中国語繁体字'
         };
+        function zenHankakuLength(text) {
+            var len = 0;
+            var str = escape(text);
+            for (var i=0; i<str.length; i++,len++) {
+                if (str.charAt(i) == "%") {
+                    if (str.charAt(++i) == "u") {
+                        i += 3;
+                        len++;
+                    }
+                    i++;
+                }
+            }
+            return len;
+        }
         var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
         var langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
             'mapper', 'attr', 'dataAttr', 'description'];
@@ -91,12 +105,12 @@ define(['underscore_extension', 'Vue'],
             if (this.share.map.title == null || this.share.map.title == '') err['title'] = '表示用タイトルを指定してください。';
             else {
                 if (typeof this.share.map.title != 'object') {
-                    if (this.share.map.title.length > 15) err['title'] = '表示用タイトル(' + this.langs[this.share.map.lang] + ')を15文字以内にしてください。';
+                    if (zenHankakuLength(this.share.map.title) > 30) err['title'] = '表示用タイトル(' + this.langs[this.share.map.lang] + ')を15文字(半角30文字)以内にしてください。';
                 } else {
                     var keys = Object.keys(this.langs);
                     for (var i=0; i<keys.length; i++) {
-                        if (this.share.map.title[keys[i]] && this.share.map.title[keys[i]].length > 15)
-                            err['title'] = '表示用タイトル(' + this.langs[keys[i]] + ')を15文字以内にしてください。';
+                        if (this.share.map.title[keys[i]] && zenHankakuLength(this.share.map.title[keys[i]]) > 30)
+                            err['title'] = '表示用タイトル(' + this.langs[keys[i]] + ')を15文字(半角30文字)以内にしてください。';
                     }
                 }
             }
