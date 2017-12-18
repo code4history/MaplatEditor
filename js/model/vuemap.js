@@ -20,6 +20,9 @@ define(['underscore_extension', 'Vue'],
             reference: '',
             description: '',
             url: '',
+            width: undefined,
+            height: undefined,
+            url_: '',
             lang: 'ja'
         };
         var langs = {
@@ -73,6 +76,9 @@ define(['underscore_extension', 'Vue'],
                     }
                 }
             }
+        };
+        computed.gcpsEditReady = function() {
+            return (this.share.map.width && this.share.map.height && this.share.map.url_) || false;
         };
         computed.dirty = function() {
             return !_.isDeepEqual(this.share.map_, this.share.map);

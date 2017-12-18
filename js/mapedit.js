@@ -219,7 +219,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
             }
 
             // MapObject Change Event Handler
-            mapObject.on('change', function(ev){
+            /*mapObject.on('change', function(ev){
                 if (mapObject.isValid() && mapObject.dirty()) {
                     document.querySelector('#saveMap').removeAttribute('disabled');
                 } else {
@@ -254,7 +254,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
                 }
                 document.querySelector('#width').value = mapObject.get('width') || '';
                 document.querySelector('#height').value = mapObject.get('height') || '';
-            });
+            });*/
 
             // GCP Change Event Handler
             mapObject.on('change:gcps', function(ev) {
@@ -543,16 +543,16 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
         function reflectIllstMap(compiled) {
             ol.source.HistMap.createAsync({
                 mapID: mapID,
-                url: mapObject.get('url_'),
-                width: mapObject.get('width'),
-                height: mapObject.get('height'),
-                attr: mapObject.get('attr'),
+                url: vueMap.share.map.url_,
+                width: vueMap.share.map.width,
+                height: vueMap.share.map.height,
+                attr: vueMap.share.map.attr,
                 noload: true
             },{})
                 .then(function(source) {
                     illstSource = source;
                     illstMap.exchangeSource(illstSource);
-                    var initialCenter = illstSource.xy2HistMapCoords([mapObject.get('width') / 2, mapObject.get('height') / 2]);
+                    var initialCenter = illstSource.xy2HistMapCoords([vueMap.share.map.width / 2, vueMap.share.map.height / 2]);
                     var illstView = illstMap.getView();
                     illstView.setCenter(initialCenter);
 
@@ -841,8 +841,20 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
 
         var mapObject;
         var vueMap = new VueMap({
-            el: '#title-vue'
+            el: '#title-vue',
+            watch: {
+                gcpsEditReady: gcpsEditReady
+            }
         });
+        function gcpsEditReady(val) {
+            var a = document.querySelector('a[href="#gcpsTab"]');
+            var li = a.parentNode;
+            if (val) {
+                li.classList.remove('disabled');
+            } else {
+                li.classList.add('disabled');
+            }
+        }
         if (mapID) {
             var mapIDElm = document.querySelector('#mapID');
             // mapIDElm.value = mapID;
@@ -865,15 +877,37 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
             vueMap2.$on('checkOnlyOne', function(){
                 alert('checkOnlyOne');
             });
-            console.log(vueMap);
-            console.log(vueMap.dirty);
-            console.log(vueMap2.dirty);
-            vueMap.share.currentLang = 'en';
-            vueMap.dataAttr = 'hoge';
-            vueMap.defaultLangFlag = true;
-            console.log(vueMap);
-            console.log(vueMap.dirty);
-            console.log(vueMap2.dirty);
+            gcpsEditReady(vueMap.gcpsEditReady);
+
+            var allowClose = false;
+
+            // When move to other pages
+            var dataNav = document.querySelectorAll('a[data-nav]');
+            for (var i=0; i< dataNav.length; i++) {
+                dataNav[i].addEventListener('click', function(ev) {
+                    if (!vueMap.dirty || confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
+                        allowClose = true;
+                        window.location.href = ev.target.getAttribute('data-nav');
+                    }
+                });
+            }
+
+            // When application will close
+            window.addEventListener('beforeunload', function(e) {
+                if (!vueMap.dirty) return;
+                if (allowClose) {
+                    allowClose = false;
+                    return;
+                }
+                e.returnValue = 'false';
+                setTimeout(function() {
+                    if (confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
+                        allowClose = true;
+                        window.close();
+                    }
+                }, 2);
+            });
+
         }
         ipcRenderer.on('mapData', function(event, arg) {
             var compiled = arg.compiled;
@@ -886,13 +920,13 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
             setVueMap();
             //console.log(JSON.stringify(vueMap.mapObject));
             //console.log(JSON.stringify(vueMap.mapObject_));
-            // setEventListner(mapObject);
+            //setEventListner(mapObject);
             // onOffAttr.concat(['width', 'height', 'lang']).map(function(attr) {
             //     document.querySelector('#'+attr).value = mapObject.get(attr);
             // });
             // document.querySelector('.map-title').innerText = mapObject.localedGet(mapObject.get('lang'), 'title');
             // reflectSelectedLang();
-            // reflectIllstMap(compiled);
+            reflectIllstMap(compiled);
         });
         illstMap.addInteraction(new app.Drag());
 
@@ -977,9 +1011,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
 
         var myModal = new bsn.Modal(document.getElementById('staticModal'), {});
 
-        // var myMapTab = document.querySelector('a[href="#gcpsTab"]');
-        // myMapTab.addEventListener('shown.bs.tab', function(event) {
-        //     illstMap.updateSize();
-        //     mercMap.updateSize();
-        // });
+        var myMapTab = document.querySelector('a[href="#gcpsTab"]');
+        myMapTab.addEventListener('shown.bs.tab', function(event) {
+            illstMap.updateSize();
+            mercMap.updateSize();
+        });
     });
