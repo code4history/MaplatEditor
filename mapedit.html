@@ -91,7 +91,7 @@
           </div>
           <div class="form-group col-xs-2">
             <label for="uploadMap" class="w100">　</label>
-            <button type="button" class="btn btn-secondary" id="uploadMap">地図アップロード</button>
+            <button type="button" class="btn btn-secondary" id="uploadMap" v-on:click="$emit('mapUpload')">地図アップロード</button>
           </div>
         </div>
         <div class="row">

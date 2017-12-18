@@ -891,6 +891,32 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
                     }
                 });
             });
+            vueMap2.$on('mapUpload', function(){
+                if (vueMap.gcpsEditReady && !confirm('地図画像は既に登録されています。\n置き換えてよいですか?')) return;
+                if (!uploader) {
+                    uploader = require('electron').remote.require('../lib/mapupload');
+                    uploader.init();
+                    ipcRenderer.on('mapUploaded', function(event, arg) {
+                        document.body.style.pointerEvents = null;
+                        myModal.hide();
+                        if (arg.err) {
+                            if (arg.err != 'Canceled') alert('地図アップロードでエラーが発生しました。');
+                            return;
+                        } else {
+                            alert('正常に地図がアップロードできました。');
+                        }
+                        vueMap.share.map.width = arg.width;
+                        vueMap.share.map.height = arg.height;
+                        vueMap.share.map.url_ = arg.url;
+                        backend.setWh([arg.width, arg.height]);
+                        reflectIllstMap();
+                    });
+                }
+                document.body.style.pointerEvents = 'none';
+                document.querySelector('div.modal-body > p').innerText = '地図アップロード中です。';
+                myModal.show();
+                uploader.showMapSelectDialog();
+            });
             gcpsEditReady(vueMap.gcpsEditReady);
 
             var allowClose = false;
