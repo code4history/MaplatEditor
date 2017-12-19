@@ -97,6 +97,9 @@ define(['underscore_extension', 'Vue'],
         computed.dirty = function() {
             return !_.isDeepEqual(this.share.map_, this.share.map);
         };
+        computed.gcps = function() {
+            return this.share.map.gcps;
+        }
         computed.error = function() {
             var err = {};
             if (this.share.map.mapID == null || this.share.map.mapID == '') err['mapID'] = '地図IDを指定してください。';
