@@ -4,7 +4,7 @@ define(['bootstrap', 'wookmark', 'Vue'],
 
         var app = new Vue({
             created: function () {
-                var wookmark = new Wookmark('#maplist');
+                var wookmark;
                 var self = this;
 
                 var backend = require('electron').remote.require('../lib/maplist');
@@ -36,6 +36,9 @@ define(['bootstrap', 'wookmark', 'Vue'],
                     Vue.nextTick(function () {
                         wookmark = new Wookmark('#maplist');
                     });
+                });
+                Vue.nextTick(function () {
+                    wookmark = new Wookmark('#maplist');
                 });
             },
             el: '#maplist',
