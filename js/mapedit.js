@@ -1,5 +1,5 @@
-define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'model/vuemap', 'contextmenu', 'geocoder', 'switcher'],
-    function(ol, bsn, _, turf, Map, VueMap, ContextMenu, Geocoder) {
+define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 'contextmenu', 'geocoder', 'switcher'],
+    function(ol, bsn, _, turf, VueMap, ContextMenu, Geocoder) {
         var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
         var langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
             'mapper', 'attr', 'dataAttr', 'description'];
@@ -99,14 +99,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
                 newlyAddGcp = null;
                 map.getSource('marker').removeFeature(marker);
             } else {
-                var gcps = vueMap.share.map.gcps; //_.deepClone(mapObject.get('gcps'));
+                var gcps = vueMap.share.map.gcps;
                 gcps.splice(gcpIndex, 1);
                 gcpsToMarkers(gcps);
             }
         }
 
         function addNewMarker (arg, map) {
-            var gcps = vueMap.share.map.gcps; //_.deepClone(mapObject.get('gcps'));
+            var gcps = vueMap.share.map.gcps;
             var number = gcps.length + 1;
             var isIllst = map == illstMap;
             var coord = arg.coordinate;
@@ -205,141 +205,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
             distCheck.addFeature(distFeature);
         }
 
-        var eventInit = false;
-        function setEventListner() {
-            // Settings which must be updated everytime
-            var a = document.querySelector('a[href="#gcpsTab"]');
-            var li = a.parentNode;
-            if (mapObject.gcpsEditReady()) {
-                li.classList.remove('disabled');
-            } else {
-                li.classList.add('disabled');
-            }
-
-            // MapObject Change Event Handler
-            /*mapObject.on('change', function(ev){
-                if (mapObject.isValid() && mapObject.dirty()) {
-                    document.querySelector('#saveMap').removeAttribute('disabled');
-                } else {
-                    document.querySelector('#saveMap').setAttribute('disabled', true);
-                }
-                if (mapObject.get('onlyOne')) {
-                    document.querySelector('#checkID').setAttribute('disabled', true);
-                } else {
-                    document.querySelector('#checkID').removeAttribute('disabled');
-                }
-                var invalid = mapObject.validationError || {};
-                _.each(formHelp, function(val, key) {
-                    var errText = invalid[key];
-                    var targetHelp = document.querySelector('#' + key + 'Help');
-                    var targetForm = targetHelp.parentNode;
-                    if (errText) {
-                        targetHelp.classList.add('text-danger');
-                        targetHelp.innerText = errText;
-                        targetForm.classList.add('has-error');
-                    } else {
-                        targetHelp.classList.remove('text-danger');
-                        targetHelp.innerText = val;
-                        targetForm.classList.remove('has-error');
-                    }
-                });
-                var a = document.querySelector('a[href="#gcpsTab"]');
-                var li = a.parentNode;
-                if (mapObject.gcpsEditReady()) {
-                    li.classList.remove('disabled');
-                } else {
-                    li.classList.add('disabled');
-                }
-                document.querySelector('#width').value = mapObject.get('width') || '';
-                document.querySelector('#height').value = mapObject.get('height') || '';
-            });*/
-
-            // Settings which only for initializing
-            if (eventInit) return;
-            eventInit = true;
-            var allowClose = false;
-
-            // When move to other pages
-            var dataNav = document.querySelectorAll('a[data-nav]');
-            for (var i=0; i< dataNav.length; i++) {
-                dataNav[i].addEventListener('click', function(ev) {
-                    if (!mapObject.dirty() || confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
-                        allowClose = true;
-                        window.location.href = ev.target.getAttribute('data-nav');
-                    }
-                });
-            }
-
-            // When application will close
-            window.addEventListener('beforeunload', function(e) {
-                if (!mapObject.dirty()) return;
-                if (allowClose) {
-                    allowClose = false;
-                    return;
-                }
-                e.returnValue = 'false';
-                setTimeout(function() {
-                    if (confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) {
-                        allowClose = true;
-                        window.close();
-                    }
-                }, 2);
-            });
-
-            // Input changes
-            langAttr.concat(onOffAttr).concat(['mapID']).map(function(attr) {
-                var action = (attr == 'license' || attr == 'dataLicense') ? 'change' : 'keyup';
-                document.querySelector('#'+attr).addEventListener(action, function(ev) {
-                    var selectedLocale = document.querySelector('#lang').value;
-                    if (ev.target.value == mapObject.localedGet(selectedLocale, attr)) return;
-                    if (attr == 'license' || attr == 'dataLicense' || attr == 'reference' ||
-                        attr == 'url' || attr == 'mapID') {
-                        mapObject.set(attr, ev.target.value);
-                    } else {
-                        mapObject.localedSet(selectedLocale, attr, ev.target.value);
-                    }
-                    if (attr == 'title') {
-                        var nextTitle = mapObject.localedGet(mapObject.get('lang'), 'title');
-                        document.querySelector('.map-title').innerText = nextTitle == '' ? 'タイトル未設定' : nextTitle;
-                    } else if (attr == 'mapID') {
-                        mapObject.set('onlyOne', false);
-                        if (mapObject.get('status') == 'Update') {
-                            mapObject.set('status', 'Change:' + mapID);
-                        }
-                    }
-                });
-            });
-            document.querySelector('#saveMap').addEventListener('click', function(ev) {
-                if (!confirm('変更を保存します。\nよろしいですか?')) return;
-                var saveValue = mapObject.attributes;
-                if (saveValue.status.match(/^Change:(.+)$/) &&
-                    confirm('地図IDが変更されています。コピーを行いますか?\nコピーの場合はOK、移動の場合はキャンセルを選んでください。')) {
-                    saveValue.status = 'Copy:' + mapID;
-                }
-                document.body.style.pointerEvents = 'none';
-                backend.save(saveValue);
-                ipcRenderer.once('saveResult', function(event, arg) {
-                    document.body.style.pointerEvents = null;
-                    if (arg == 'Success') {
-                        alert('正常に保存できました。');
-                        mapObject.set('status', 'Update');
-                        mapObject.setCurrentAsDefault();
-                        document.querySelector('#saveMap').setAttribute('disabled', true);
-                        if (mapID != mapObject.get('mapID')) {
-                            mapID = mapObject.get('mapID');
-                            backend.request(mapID);
-                        }
-                    } else if (arg == 'Exist') {
-                        alert('地図IDが重複しています。\n地図IDを変更してください。');
-                    } else {
-                        console.log(arg);
-                        alert('保存時エラーが発生しました。');
-                    }
-                });
-            });
-
-        }
-
         function tinResultUpdate(tin) {
             tinObject = tin;
             var forTin = tinObject.tins.forw;
@@ -353,8 +218,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
             mercMap.getSource('json').addFeatures(bakFeatures); //, {dataProjection:'EPSG:3857'});
             illstMap.getSource('json').addFeatures(forFeatures);// , {dataProjection:bakProj, featureProjection:'EPSG:3857'});
 
-            var bbox = turf.lineString([[0, 0], [mapObject.get('width'), 0], [mapObject.get('width'), mapObject.get('height')],
-                [0, mapObject.get('height')], [0, 0]]);
+            var bbox = turf.lineString([[0, 0], [vueMap.share.map.width, 0], [vueMap.share.map.width, vueMap.share.map.height],
+                [0, vueMap.share.map.height], [0, 0]]);
             var bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
             illstMap.getSource('json').addFeatures(bboxFeature);
 
@@ -425,7 +290,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
                     var illstView = illstMap.getView();
                     illstView.setCenter(initialCenter);
 
-                    var gcps = mapObject.get('gcps');
+                    var gcps = vueMap.share.map.gcps;
                     if (gcps && gcps.length > 0) {
                         var center;
                         var zoom;
@@ -665,8 +530,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
                 }
                 if (this.map_ == illstMap) {
                     var xy = illstSource.histMapCoords2Xy(evt.coordinate);
-                    if (xy[0] < mapObject.get('width') * -0.05 || xy[1] < mapObject.get('height') * -0.05 ||
-                        xy[0] > mapObject.get('width') * 1.05 || xy[1] > mapObject.get('height') * 1.05)
+                    if (xy[0] < vueMap.share.map.width * -0.05 || xy[1] < vueMap.share.map.height * -0.05 ||
+                        xy[0] > vueMap.share.map.width * 1.05 || xy[1] > vueMap.share.map.height * 1.05)
                         setTimeout(function() {contextmenu.close();}, 10);
                 }
             });
@@ -709,7 +574,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
 
         var illstSource;
 
-        var mapObject;
         var vueMap = new VueMap({
             el: '#title-vue',
             watch: {
@@ -733,7 +597,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
             var mapIDElm = document.querySelector('#mapID');
             backend.request(mapID);
         } else {
-            mapObject = new Map({});
             setVueMap();
         }
         function setVueMap() {
@@ -741,7 +604,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
             vueMap2.$mount('#metadataTab');
             vueMap2.$on('updateMapID', function(){
                 if (!confirm('地図IDを変更してよろしいですか?')) return;
-                vueMap2.share.map.status = 'Change:' + mapID;
+                //vueMap2.share.map.status = 'Change:' + mapID;
                 vueMap2.share.onlyOne = false;
             });
             vueMap2.$on('checkOnlyOne', function(){
@@ -786,6 +649,34 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
                 document.querySelector('div.modal-body > p').innerText = '地図アップロード中です。';
                 myModal.show();
                 uploader.showMapSelectDialog();
+            });
+            vueMap.$on('saveMap', function(){
+                if (!confirm('変更を保存します。\nよろしいですか?')) return;
+                var saveValue = vueMap.share.map;
+                if (saveValue.status.match(/^Change:(.+)$/) &&
+                    confirm('地図IDが変更されています。コピーを行いますか?\nコピーの場合はOK、移動の場合はキャンセルを選んでください。')) {
+                    saveValue.status = 'Copy:' + mapID;
+                }
+                document.body.style.pointerEvents = 'none';
+                backend.save(saveValue);
+                ipcRenderer.once('saveResult', function(event, arg) {
+                    document.body.style.pointerEvents = null;
+                    if (arg == 'Success') {
+                        alert('正常に保存できました。');
+                        vueMap.share.map.status = 'Update';
+                        vueMap.setCurrentAsDefault();
+                        document.querySelector('#saveMap').setAttribute('disabled', true);
+                        if (mapID != vueMap.share.map.mapID) {
+                            mapID = vueMap.share.map.mapID;
+                            //backend.request(mapID);
+                        }
+                    } else if (arg == 'Exist') {
+                        alert('地図IDが重複しています。\n地図IDを変更してください。');
+                    } else {
+                        console.log(arg);
+                        alert('保存時エラーが発生しました。');
+                    }
+                });
             });
             gcpsEditReady(vueMap.gcpsEditReady);
 
@@ -850,7 +741,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/map', 'mo
             arg.mapID = mapID;
             arg.status = 'Update';
             arg.onlyOne = true;
-            mapObject = new Map(arg);
             vueMap.setInitialMap(arg);
             setVueMap();
             reflectIllstMap(compiled);

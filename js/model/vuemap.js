@@ -68,6 +68,18 @@ define(['underscore_extension', 'Vue'],
                 })(key),
             }
         }
+        computed.displayTitle = function() {
+            if (this.share.map.title == null || this.share.map.title == '') return 'タイトル未設定';
+            else {
+                if (typeof this.share.map.title != 'object') {
+                    return this.share.map.title;
+                } else {
+                    var title = this.share.map.title[this.share.map.lang];
+                    if (title == null || title == '') return 'タイトル未設定';
+                    return title;
+                }
+            }
+        };
         computed.defaultLangFlag = {
             get: function() {
                 return this.share.map.lang == this.share.currentLang;
@@ -117,7 +129,7 @@ define(['underscore_extension', 'Vue'],
                     }
                 }
             }
-            if (this.share.map.attr == null || this.share.map.attr == '') err['attr'] = 'アトリビューションを指定してください。';
+            if (this.share.map.attr == null || this.share.map.attr == '') err['attr'] = '地図画像のコピーライト表記を指定してください。';
             return Object.keys(err).length > 0 ? err : null;
         };
 
@@ -142,6 +154,9 @@ define(['underscore_extension', 'Vue'],
                 };
             },
             methods: {
+                setCurrentAsDefault: function() {
+                    this.share.map_ = _.deepClone(this.share.map);
+                },
                 setInitialMap: function(map) {
                     var setMap = _.deepClone(defaultMap);
                     Object.assign(setMap, map);
