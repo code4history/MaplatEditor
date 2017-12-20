@@ -165,8 +165,10 @@ define(['underscore_extension', 'Vue'],
                     this.share.currentLang = this.share.map.lang;
                     this.share.onlyOne = true;
                 },
-                createSharedClone: function() {
-                    var newVueMap = new VueMap();
+                createSharedClone: function(template) {
+                    var newVueMap = new VueMap({
+                        template: template
+                    });
                     newVueMap.share = this.share;
                     return newVueMap;
                 },

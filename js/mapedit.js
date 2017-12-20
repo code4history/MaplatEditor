@@ -576,6 +576,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
         var vueMap = new VueMap({
             el: '#title-vue',
+            template: '#title-vue-template',
             watch: {
                 gcpsEditReady: gcpsEditReady,
                 gcps: function(val) {
@@ -600,8 +601,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             setVueMap();
         }
         function setVueMap() {
-            var vueMap2 = vueMap.createSharedClone();
-            vueMap2.$mount('#metadataTab');
+            var vueMap2 = vueMap.createSharedClone('#metadataTabForm-template');
+            vueMap2.$mount('#metadataTabForm');
             vueMap2.$on('updateMapID', function(){
                 if (!confirm('地図IDを変更してよろしいですか?')) return;
                 //vueMap2.share.map.status = 'Change:' + mapID;
