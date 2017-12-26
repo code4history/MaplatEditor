@@ -12,6 +12,7 @@ MaplatEditorはMaplatのサポートプロジェクトで、データエディ�
 # パッケージ版 (最新バージョン0.0.4)
 * WIndows用 (64ビット): https://t.tilemap.jp/maplat/MaplatEditor-0.0.4-win32.zip
 * Mac用: https://t.tilemap.jp/maplat/MaplatEditor-0.0.4-darwin.zip
+* [履歴](https://github.com/code4nara/MaplatEditor/wiki/Binary-History)
 
 # GUI 
 ## MapList (地図一覧)
