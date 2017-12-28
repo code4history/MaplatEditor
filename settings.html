@@ -13,35 +13,100 @@
   <link href="css/theme.css" rel="stylesheet">
 </head>
 
-<body class="settings">
+<body>
 
-<div class="container" role="main">
-  <h3>設定</h3>
-
-  <div>
-    <form class="form-horizontal">
-      <div class="form-group">
-        <label class="col-xs-3 control-label" for="saveFolder">結果出力フォルダ</label>
-        <div class="col-xs-9">
-          <input type="text" class="form-control" id="saveFolder" placeholder="出力フォルダを指定してください">
-        </div>
-      </div>
-      <div class="form-group">
-        <div class="col-xs-offset-8 col-xs-4">
-          <button type="button" class="btn btn-secondary" id="reset" disabled>リセット</button>
-          <button type="button" class="btn btn-primary" id="submit" disabled>保存</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <div class="col-xs-offset-10 col-xs-2">
-          <button type="button" class="btn btn-secondary" id="close">終了</button>
-        </div>
-      </div>
-    </form>
+<!-- Fixed navbar -->
+<nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#">Maplat Editor</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li><a href="#" data-nav="maplist.html">地図編集</a></li>
+        <li><a href="#" data-nav="applist.html">アプリ編集</a></li>
+        <li class="active"><a href="#">設定</a></li>
+      </ul>
+    </div><!--/.nav-collapse -->
   </div>
+</nav>
 
+<div class="container main" role="main">
+  <!-- タブ・メニュー -->
+  <ul class="nav nav-tabs nav-justified" role="tablist">
+    <li class="active"><a href="#dataFolderTab" data-toggle="tab" role="tab">データフォルダ</a></li>
+    <li class="disabled"><a href="#baseMapTab" data-toggle="tab" role="tab">ベースマップ</a></li>
+    <li class="disabled"><a href="#privateMapTab" data-toggle="tab" role="tab">独自マップ</a></li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane active" id="dataFolderTab">
+      <form class="form-horizontal">
+        <div class="form-group">
+          <label class="col-xs-3 control-label" for="saveFolder">結果出力フォルダ</label>
+          <div class="col-xs-9">
+            <input type="text" class="form-control" id="saveFolder" placeholder="出力フォルダを指定してください">
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="col-xs-offset-8 col-xs-4">
+            <button type="button" class="btn btn-secondary" id="reset" disabled>リセット</button>
+            <button type="button" class="btn btn-primary" id="submit" disabled>保存</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="tab-pane h100" id="baseMapTab">
+      <div class="row map-row"></div>
+      <div class="row map-control-footer">
+        <div class="col-xs-3">
+          <label>エラーモード</label>
+          <label><input type="radio" name="strict" value="strict" checked>厳格</label>
+          <label><input type="radio" name="strict" value="auto">自動</label>
+        </div>
+        <div class="col-xs-3">
+          <label>エラー状態:</label><label id="error_status"></label>
+        </div>
+        <div class="col-xs-3 hide">
+          <button type="button" class="btn btn-secondary" id="viewError">次のエラー表示</button>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane" id="privateMapTab">
+      <p>タブＣの内容</p>
+    </div>
+  </div>
 </div> <!-- /container -->
 
+<div class="modal" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel" aria-hidden="true" data-show="true" data-keyboard="false" data-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!--div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&#215;</span><span class="sr-only">閉じる</span>
+        </button>
+        <h4 class="modal-title">Static Modal タイトル</h4>
+      </div--><!-- /modal-header -->
+      <div class="modal-body">
+        <p class="recipient"></p>
+        <!--p>
+          <a class="btn btn-info" href="#001" data-dismiss="modal">data-dismiss 有り</a>
+          <a class="btn btn-info" href="#002">data-dismiss 無し</a>
+        </p-->
+      </div>
+      <!--div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">閉じる</button>
+        <button type="button" class="btn btn-primary">変更を保存</button>
+      </div-->
+    </div> <!-- /.modal-content -->
+  </div> <!-- /.modal-dialog -->
+</div> <!-- /.modal -->
 
 <!-- Bootstrap core JavaScript
 ================================================== -->
