@@ -148,7 +148,8 @@ define(['underscore_extension', 'Vue'],
                         map: _.deepClone(defaultMap),
                         map_: _.deepClone(defaultMap),
                         currentLang: 'ja',
-                        onlyOne: false
+                        onlyOne: false,
+                        gcpsInit: false
                     },
                     langs: langs
                 };

@@ -226,6 +226,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             document.querySelector('#error_status').innerText = tinObject.strict_status == 'strict' ? 'エラーなし' :
                 tinObject.strict_status == 'strict_error' ? 'エラー' + tinObject.kinks.bakw.features.length + '件' :
                     'エラーのため簡易モード';
+            var strict = document.querySelector('input[name=strict]:checked').value;
+            if (tinObject.strict_status == 'loose' && strict != 'auto') {
+                document.querySelector('input[name=strict][value=auto]').checked = true;
+            } else if (tinObject.strict_status == 'strict_error' && strict != 'strict') {
+                document.querySelector('input[name=strict][value=strict]').checked = true;
+            }
             errorNumber = null;
             if (tinObject.strict_status == 'strict_error') {
                 document.querySelector('#viewError').parentNode.classList.remove('hide');
@@ -580,6 +586,10 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             watch: {
                 gcpsEditReady: gcpsEditReady,
                 gcps: function(val) {
+                    if (!this.share.gcpsInit) {
+                        this.share.gcpsInit = true;
+                        return;
+                    }
                     var strict = document.querySelector('input[name=strict]:checked').value;
                     backend.updateTin(val, strict);
                 }
