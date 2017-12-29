@@ -229,9 +229,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var strict = document.querySelector('input[name=strict]:checked').value;
             if (tinObject.strict_status == 'loose' && strict != 'auto') {
                 document.querySelector('input[name=strict][value=auto]').checked = true;
+                vueMap.share.map.strictMode = 'auto';
             } else if (tinObject.strict_status == 'strict_error' && strict != 'strict') {
                 document.querySelector('input[name=strict][value=strict]').checked = true;
+                vueMap.share.map.strictMode = 'strict';
+            } else {
+                document.querySelector('input[name=strict][value=' + vueMap.share.map.strictMode + ']').checked = true;
             }
+            document.querySelector('input[name=vertex][value=' + vueMap.share.map.vertexMode + ']').checked = true;
             errorNumber = null;
             if (tinObject.strict_status == 'strict_error') {
                 document.querySelector('#viewError').parentNode.classList.remove('hide');
@@ -330,8 +335,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         if (compiled) {
                             tinResultUpdate(compiled);
                         } else {
-                            var strict = document.querySelector('input[name=strict]:checked').value;
-                            backend.updateTin(gcps, strict);
+                            backend.updateTin(gcps, vueMap.share.map.strictMode, vueMap.share.map.vertexMode);
                         }
                     }
                 }).catch(function (err) {
@@ -683,8 +687,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         this.share.gcpsInit = true;
                         return;
                     }
-                    var strict = document.querySelector('input[name=strict]:checked').value;
-                    backend.updateTin(val, strict);
+                    backend.updateTin(val, this.share.map.strictMode, vueMap.share.map.vertexMode);
                 }
             }
         });
@@ -868,7 +871,18 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var strict = stricts[i];
             strict.addEventListener('click', function(e) {
                 var value = document.querySelector('input[name=strict]:checked').value;
-                backend.updateTin(vueMap.share.map.gcps, value);
+                vueMap.share.map.strictMode = value;
+                backend.updateTin(vueMap.share.map.gcps, value, vueMap.share.map.vertexMode);
+            });
+        }
+        // 外郭判定モード変更時、TINを更新する
+        var vertices = document.querySelectorAll('input[name=vertex]');
+        for (var i=0; i<vertices.length; i++) {
+            var vertex = vertices[i];
+            vertex.addEventListener('click', function(e) {
+                var value = document.querySelector('input[name=vertex]:checked').value;
+                vueMap.share.map.vertexMode = value;
+                backend.updateTin(vueMap.share.map.gcps, vueMap.share.map.strictMode, value);
             });
         }
         // 起動時処理: 地図外のUI設定ここまで
