@@ -550,6 +550,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             this.contextmenu.close();
         };
 
+        // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここから
         var illstMap = new ol.MaplatMap({
             div: 'illstMap',
             interactions: ol.interaction.defaults().extend([
@@ -559,7 +560,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             ]),
             controls: ol.control.defaults()
         });
+        // コンテクストメニュー初期化
         illstMap.initContextMenu();
+        // マーカーなど表示用レイヤー設定
         var jsonLayer = new ol.layer.Vector({
             source: new ol.source.Vector({
                 wrapX: false
@@ -568,6 +571,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         });
         jsonLayer.set('name', 'json');
         illstMap.getLayer('overlay').getLayers().push(jsonLayer);
+        // 三角網など表示用レイヤー設定
         var checkLayer = new ol.layer.Vector({
             source: new ol.source.Vector({
                 wrapX: false
@@ -576,10 +580,99 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         });
         checkLayer.set('name', 'check');
         illstMap.getLayers().push(checkLayer);
+        // インタラクション設定
         illstMap.on('click', onClick);
-
+        illstMap.addInteraction(new app.Drag());
         var illstSource;
+        // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここまで
 
+        // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここから
+        var mercMap = new ol.MaplatMap({
+            div: 'mercMap',
+            interactions: ol.interaction.defaults().extend([
+                new ol.interaction.DragRotateAndZoom({
+                    condition: ol.events.condition.altKeyOnly
+                })
+            ]),
+            controls: ol.control.defaults()
+        });
+        // コンテクストメニュー初期化
+        mercMap.initContextMenu();
+        // マーカーなど表示用レイヤー設定
+        jsonLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                wrapX: false
+            }),
+            style: tinStyle
+        });
+        jsonLayer.set('name', 'json');
+        mercMap.getLayer('overlay').getLayers().push(jsonLayer);
+        // 三角網など表示用レイヤー設定
+        checkLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                wrapX: false
+            }),
+            style: tinStyle
+        });
+        checkLayer.set('name', 'check');
+        mercMap.getLayers().push(checkLayer);
+        // インタラクション設定
+        mercMap.on('click', onClick);
+        mercMap.addInteraction(new app.Drag());
+        var mercSource;
+        // ベースマップリスト作成
+        var tmsList = backend.getTmsList();
+        var promises = tmsList.reverse().map(function(tms) {
+            return (function(tms){
+                var promise = tms.label ?
+                    ol.source.HistMap.createAsync({
+                        mapID: tms.mapID,
+                        label: tms.label,
+                        attr: tms.attr,
+                        maptype: 'base',
+                        url: tms.url,
+                        maxZoom: tms.maxZoom
+                    }, {}) :
+                    ol.source.HistMap.createAsync(tms.mapID, {});
+                return promise.then(function(source){
+                    return new ol.layer.Tile({
+                        title: tms.title,
+                        type: 'base',
+                        visible: tms.mapID == 'osm',
+                        source: source
+                    });
+                });
+            })(tms);
+        });
+        // ベースマップコントロール追加
+        Promise.all(promises).then(function(layers) {
+            var layerGroup = new ol.layer.Group({
+                'title': 'ベースマップ',
+                layers: layers
+            });
+            var layers = mercMap.getLayers();
+            layers.removeAt(0);
+            layers.insertAt(0, layerGroup);
+
+            var layerSwitcher = new ol.control.LayerSwitcher({});
+            mercMap.addControl(layerSwitcher);
+        });
+        // ジオコーダコントロール追加
+        var geocoder = new Geocoder('nominatim', {
+            provider: 'osm',
+            lang: 'en-US', //en-US, fr-FR
+            placeholder: '住所を指定してください',
+            limit: 5,
+            keepOpen: false
+        });
+        mercMap.addControl(geocoder);
+
+        // var switcher = new ol.control.LayerSwitcher();
+        // mercMap.addControl(switcher);
+
+        // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここまで
+
+        // 起動時処理: Vue Mapオブジェクト関連の設定ここから
         var vueMap = new VueMap({
             el: '#title-vue',
             template: '#title-vue-template',
@@ -746,6 +839,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 view.setZoom(17);
             });
         }
+        // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
         ipcRenderer.on('mapData', function(event, arg) {
             var compiled = arg.compiled;
             delete arg.compiled;
@@ -754,94 +848,28 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             arg.onlyOne = true;
             vueMap.setInitialMap(arg);
             setVueMap();
+            // compiledは空の場合もある（未コンパイルのデータファイルの場合）
             reflectIllstMap(compiled);
         });
-        illstMap.addInteraction(new app.Drag());
+        // 起動時処理: Vue Mapオブジェクト関連の設定ここまで
 
-        var mercMap = new ol.MaplatMap({
-            div: 'mercMap',
-            interactions: ol.interaction.defaults().extend([
-                new ol.interaction.DragRotateAndZoom({
-                    condition: ol.events.condition.altKeyOnly
-                })
-            ]),
-            controls: ol.control.defaults()
-        });
-        mercMap.initContextMenu();
-        jsonLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-                wrapX: false
-            }),
-            style: tinStyle
-        });
-        jsonLayer.set('name', 'json');
-        mercMap.getLayer('overlay').getLayers().push(jsonLayer);
-        checkLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-                wrapX: false
-            }),
-            style: tinStyle
-        });
-        checkLayer.set('name', 'check');
-        mercMap.getLayers().push(checkLayer);
-        mercMap.on('click', onClick);
-
-        var mercSource;
-        var tmsList = backend.getTmsList();
-        var promises = tmsList.reverse().map(function(tms) {
-            return (function(tms){
-                var promise = tms.label ?
-                    ol.source.HistMap.createAsync({
-                        mapID: tms.mapID,
-                        label: tms.label,
-                        attr: tms.attr,
-                        maptype: 'base',
-                        url: tms.url,
-                        maxZoom: tms.maxZoom
-                    }, {}) :
-                    ol.source.HistMap.createAsync(tms.mapID, {});
-                return promise.then(function(source){
-                    return new ol.layer.Tile({
-                        title: tms.title,
-                        type: 'base',
-                        visible: tms.mapID == 'osm',
-                        source: source
-                    });
-                });
-            })(tms);
-        });
-
-        Promise.all(promises).then(function(layers) {
-            var layerGroup = new ol.layer.Group({
-                'title': 'ベースマップ',
-                layers: layers
-            });
-            var layers = mercMap.getLayers();
-            layers.removeAt(0);
-            layers.insertAt(0, layerGroup);
-
-            var layerSwitcher = new ol.control.LayerSwitcher({});
-            mercMap.addControl(layerSwitcher);
-        });
-        mercMap.addInteraction(new app.Drag());
-
-        var geocoder = new Geocoder('nominatim', {
-            provider: 'osm',
-            lang: 'en-US', //en-US, fr-FR
-            placeholder: '住所を指定してください',
-            limit: 5,
-            keepOpen: false
-        });
-        mercMap.addControl(geocoder);
-
-        var switcher = new ol.control.LayerSwitcher();
-        mercMap.addControl(switcher);
-
+        // 起動時処理: 地図外のUI設定ここから
+        // モーダルオブジェクト作成
         var myModal = new bsn.Modal(document.getElementById('staticModal'), {});
-
+        // 対応点設定タブが選ばれた際、OpenLayersを初期化
         var myMapTab = document.querySelector('a[href="#gcpsTab"]');
-        myMapTab.addEventListener('shown.bs.tab', function(event) {
+        myMapTab.addEventListener('shown.bs.tab', function(e) {
             illstMap.updateSize();
             mercMap.updateSize();
         });
+        // エラーモード変更時、TINを更新する
+        var stricts = document.querySelectorAll('input[name=strict]');
+        for (var i=0; i<stricts.length; i++) {
+            var strict = stricts[i];
+            strict.addEventListener('click', function(e) {
+                var value = document.querySelector('input[name=strict]:checked').value;
+                backend.updateTin(vueMap.share.map.gcps, value);
+            });
+        }
+        // 起動時処理: 地図外のUI設定ここまで
     });
