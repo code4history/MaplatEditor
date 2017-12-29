@@ -13,6 +13,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         var newlyAddGcp;
         var tinObject;
         var errorNumber;
+        // setVueMap実行済みかのフラグ
+        var vueInit = false;
         var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
         for (var i = 0; i < hashes.length; i++) {
             hash = hashes[i].split('=');
@@ -706,7 +708,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         } else {
             setVueMap();
         }
+
         function setVueMap() {
+            vueInit = true;
             var vueMap2 = vueMap.createSharedClone('#metadataTabForm-template');
             vueMap2.$mount('#metadataTabForm');
             vueMap2.$on('updateMapID', function(){
@@ -775,7 +779,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         document.querySelector('#saveMap').setAttribute('disabled', true);
                         if (mapID != vueMap.share.map.mapID) {
                             mapID = vueMap.share.map.mapID;
-                            //backend.request(mapID);
+                            backend.request(mapID);
                         }
                     } else if (arg == 'Exist') {
                         alert('地図IDが重複しています。\n地図IDを変更してください。');
@@ -850,7 +854,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             arg.status = 'Update';
             arg.onlyOne = true;
             vueMap.setInitialMap(arg);
-            setVueMap();
+            if (!vueInit) {
+                setVueMap();
+            }
             // compiledは空の場合もある（未コンパイルのデータファイルの場合）
             reflectIllstMap(compiled);
         });
