@@ -774,13 +774,10 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     document.body.style.pointerEvents = null;
                     if (arg == 'Success') {
                         alert('正常に保存できました。');
-                        vueMap.share.map.status = 'Update';
-                        vueMap.setCurrentAsDefault();
-                        document.querySelector('#saveMap').setAttribute('disabled', true);
                         if (mapID != vueMap.share.map.mapID) {
                             mapID = vueMap.share.map.mapID;
-                            backend.request(mapID);
                         }
+                        backend.request(mapID);
                     } else if (arg == 'Exist') {
                         alert('地図IDが重複しています。\n地図IDを変更してください。');
                     } else {
