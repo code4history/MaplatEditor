@@ -13,8 +13,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         var newlyAddGcp;
         var tinObject;
         var errorNumber;
-        // setVueMap実行済みかのフラグ
-        var vueInit = false;
         var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
         for (var i = 0; i < hashes.length; i++) {
             hash = hashes[i].split('=');
@@ -710,7 +708,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         }
 
         function setVueMap() {
-            vueInit = true;
+            vueMap.share.vueInit = true;
             var vueMap2 = vueMap.createSharedClone('#metadataTabForm-template');
             vueMap2.$mount('#metadataTabForm');
             vueMap2.$on('updateMapID', function(){
@@ -819,13 +817,17 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
             ipcRenderer.on('updatedTin', function(event, arg) {
                 checkClear();
-                if (arg == 'tooLessGcps') {
+                if (arg == 'tooLessGcps' || arg == 'tooLinear') {
                     delete tinObject;
-                    document.querySelector('#error_status').innerText = '対応点が少なすぎます';
+                    document.querySelector('#error_status').innerText = arg == 'tooLessGcps' ? '対応点が少なすぎます。' :
+                        '対応点が直線的に並びすぎています。もっと散らしてください。';
+                    vueMap.share.linearGcps = arg == 'tooLinear';
                     document.querySelector('#viewError').parentNode.classList.add('hide');
                     jsonClear();
+                } else {
+                    vueMap.share.linearGcps = false;
+                    tinResultUpdate(arg);
                 }
-                tinResultUpdate(arg);
             });
 
             document.querySelector('#viewError').addEventListener('click', function(ev) {
@@ -851,7 +853,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             arg.status = 'Update';
             arg.onlyOne = true;
             vueMap.setInitialMap(arg);
-            if (!vueInit) {
+            if (!vueMap.share.vueInit) {
                 setVueMap();
             }
             // compiledは空の場合もある（未コンパイルのデータファイルの場合）
