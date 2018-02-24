@@ -6,6 +6,8 @@ define(['underscore_extension', 'Vue'],
             title: '',
             attr: '',
             dataAttr: '',
+            strictMode: 'strict',
+            vertexMode: 'plain',
             gcps: [],
             status: 'New',
             onlyOne: false,
@@ -130,6 +132,7 @@ define(['underscore_extension', 'Vue'],
                 }
             }
             if (this.share.map.attr == null || this.share.map.attr == '') err['attr'] = '地図画像のコピーライト表記を指定してください。';
+            if (this.share.linearGcps) err['linearGcps'] = 'linearGcps';
             return Object.keys(err).length > 0 ? err : null;
         };
 
@@ -148,7 +151,10 @@ define(['underscore_extension', 'Vue'],
                         map: _.deepClone(defaultMap),
                         map_: _.deepClone(defaultMap),
                         currentLang: 'ja',
-                        onlyOne: false
+                        onlyOne: false,
+                        gcpsInit: false,
+                        vueInit: false,
+                        linearGcps: false
                     },
                     langs: langs
                 };
