@@ -10,6 +10,7 @@
 {"mapID":"gsi_gazo4","label":"GSI gazo4","attr":"The Geospatial Information Authority of Japan","url":"https://cyberjapandata.gsi.go.jp/xyz/gazo4/{z}/{x}/{y}.jpg","maxZoom":"17","title":"地理院航空写真1988-90"},
 {"mapID":"affrc_rapid16","label":"Affrc","attr":"（独）農業環境技術研究所","url":"http://habs.dc.affrc.go.jp/rapid16/{z}/{x}/{y}.png","maxZoom":"16","title":"1/2万　迅速測図原図"},
 {"mapID":"affrc_tokyo5k","label":"Affrc","attr":"（独）農業環境技術研究所","url":"http://habs.dc.affrc.go.jp/tokyo5k/{z}/{x}/{y}.png","maxZoom":"18","title":"1/5千　東京測量図原図"},
+{"mapID":"yukuhashi_map","label":"Yukuhashi Map","attr":"行橋市歴史地図","url":"https://t.tilemap.jp/private/yukuhashi_map/{z}/{x}/{-y}.png","maxZoom":"18","title":"行橋市歴史地図"},
 {"mapID":"shinrin_kihonzu","label":"shinrin_kihonzu","attr":"森林基本図","url":"file:///Users/kokogiko/Documents/MaplatEditor/tiles/shinrin_kihonzu/{z}/{x}/{y}.jpg","maxZoom":"3","title":"森林基本図"},
 {"mapID":"iwaki_castle","label":"Iwaki","attr":"磐城平　城下町DVD","url":"https://t.tilemap.jp/private/iwaki_taira_dvd/{z}/{x}/{-y}.png","maxZoom":"17","title":"磐城平　城下町DVD"},
 {"mapID":"iwaki_history","label":"Iwaki History","attr":"いわき市教育委員会","url":"https://t.tilemap.jp/private/iwaki_city_history/{z}/{x}/{-y}.png","maxZoom":"18","title":"いわき市の歴史"},
