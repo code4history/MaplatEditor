@@ -9,9 +9,9 @@ MaplatEditor is support project of Maplat, providing the data editor of Maplat.
 [Maplat](https://github.com/code4nara/Maplat/wiki) は古地図/絵地図を歪める事なくGPSや正確な地図と連携させられるオープンソースプラットフォームです。  
 MaplatEditorはMaplatのサポートプロジェクトで、データエディタを提供します。
 
-# パッケージ版 (最新バージョン0.0.7)
-* WIndows用 (64ビット): https://t.tilemap.jp/maplat/dist/MaplatEditor-0.0.7-win32.zip
-* Mac用: https://t.tilemap.jp/maplat/dist/MaplatEditor-0.0.7-darwin.zip
+# パッケージ版 (最新バージョン0.1.0)
+* WIndows用 (64ビット): https://t.tilemap.jp/maplat/dist/MaplatEditor-0.1.0-win32.zip
+* Mac用: https://t.tilemap.jp/maplat/dist/MaplatEditor-0.1.0-darwin.zip
 * [履歴](https://github.com/code4nara/MaplatEditor/wiki/Binary-History)
 
 # GUI 
