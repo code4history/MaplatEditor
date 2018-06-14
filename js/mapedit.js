@@ -750,6 +750,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         vueMap.share.map.width = arg.width;
                         vueMap.share.map.height = arg.height;
                         vueMap.share.map.url_ = arg.url;
+                        if (arg.imageExtention == 'jpg') {
+                            delete vueMap.share.map.imageExtention;
+                        } else {
+                            vueMap.share.map.imageExtention = arg.imageExtention;
+                        }
                         backend.setWh([arg.width, arg.height]);
                         reflectIllstMap();
                     });
