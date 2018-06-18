@@ -25,7 +25,8 @@ define(['underscore_extension', 'Vue'],
             width: undefined,
             height: undefined,
             url_: '',
-            lang: 'ja'
+            lang: 'ja',
+            imageExtention: undefined
         };
         var langs = {
             'ja': '日本語',
@@ -104,6 +105,11 @@ define(['underscore_extension', 'Vue'],
                     }
                 }
             }
+        };
+        computed.imageExtentionCalc = function() {
+            if (this.share.map.imageExtention) return this.share.map.imageExtention;
+            if (this.share.map.width && this.share.map.height) return 'jpg';
+            return;
         };
         computed.gcpsEditReady = function() {
             return (this.share.map.width && this.share.map.height && this.share.map.url_) || false;
