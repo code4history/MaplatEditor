@@ -18,7 +18,7 @@ requirejs.config({
         'tin': '../common/js/tin',
         'turf': '../common/lib/turf_maplat.min',
         //'mapshaper': '../node_modules/mapshaper/mapshaper',
-        'mapshaper': '../common/js/mapshaper_maplat',
+        'mapshaper': '../common/lib/mapshaper_maplat',
         'resize': '../common/js/detect-element-resize',
         'contextmenu': 'ol3-contextmenu',
         'geocoder': 'ol3-geocoder-debug',
