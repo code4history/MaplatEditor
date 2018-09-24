@@ -6,8 +6,8 @@ requirejs.config({
         }
     },
     paths: {
-        'ol3': '../common/js/ol-debug',
-        'bootstrap': '../common/js/bootstrap-native',
+        'ol3': '../common/lib/ol-maplat',
+        'bootstrap': '../common/lib/bootstrap-native',
         'backbone': 'backbone-min',
         'underscore': 'underscore-min',
         'jquery': 'dummy-jq', // Dummy
@@ -16,9 +16,9 @@ requirejs.config({
         'ol-custom': '../common/js/ol-custom',
         'histmap_tin': '../common/js/histmap_tin',
         'tin': '../common/js/tin',
-        'turf': '../common/js/turf_maplat.min',
+        'turf': '../common/lib/turf_maplat.min',
         //'mapshaper': '../node_modules/mapshaper/mapshaper',
-        'mapshaper': '../common/js/mapshaper_maplat',
+        'mapshaper': '../common/lib/mapshaper_maplat',
         'resize': '../common/js/detect-element-resize',
         'contextmenu': 'ol3-contextmenu',
         'geocoder': 'ol3-geocoder-debug',
@@ -26,6 +26,9 @@ requirejs.config({
         'Vue': 'vue'
     },
     shim: {
+        'ol3': {
+            exports: 'ol'
+        },
         'turf': {
             exports: 'turf'
         },
