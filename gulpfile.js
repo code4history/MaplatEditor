@@ -8,10 +8,12 @@ var version = pkg.version;
 
 gulp.task('win32', function() {
     runPackager(true);
+    return Promise.resolve();
 });
 
 gulp.task('darwin', function() {
     runPackager(false);
+    return Promise.resolve();
 });
 
 function runPackager(isWin) {
