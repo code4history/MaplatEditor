@@ -9,8 +9,8 @@ define(['underscore_extension', 'Vue'],
             strictMode: 'strict',
             vertexMode: 'plain',
             gcps: [],
+            sub_maps: [],
             status: 'New',
-            onlyOne: false,
             officialTitle: '',
             author: '',
             era: '',
@@ -71,13 +71,46 @@ define(['underscore_extension', 'Vue'],
                 })(key),
             }
         }
+        var shareAttr = ['currentLang', 'onlyOne', 'gcpsInit', 'vueInit', 'linearGcps', 'currentEditingLayer', 'map',
+            'map_'];
+        for (var i=0; i<shareAttr.length; i++) {
+            var key = shareAttr[i];
+            computed[key] = {
+                get:(function(key){
+                    return function() {
+                        return this.share[key];
+                    };
+                })(key),
+                set:(function(key){
+                    return function(newValue) {
+                        return this.share[key] = newValue;
+                    };
+                })(key),
+            }
+        }
+        var mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtention', 'mapID', 'lang'];
+        for (var i=0; i<mapAttr.length; i++) {
+            var key = mapAttr[i];
+            computed[key] = {
+                get:(function(key){
+                    return function() {
+                        return this.share.map[key];
+                    };
+                })(key),
+                set:(function(key){
+                    return function(newValue) {
+                        return this.share.map[key] = newValue;
+                    };
+                })(key),
+            }
+        }
         computed.displayTitle = function() {
-            if (this.share.map.title == null || this.share.map.title == '') return 'タイトル未設定';
+            if (this.map.title == null || this.map.title == '') return 'タイトル未設定';
             else {
-                if (typeof this.share.map.title != 'object') {
-                    return this.share.map.title;
+                if (typeof this.map.title != 'object') {
+                    return this.map.title;
                 } else {
-                    var title = this.share.map.title[this.share.map.lang];
+                    var title = this.map.title[this.lang];
                     if (title == null || title == '') return 'タイトル未設定';
                     return title;
                 }
@@ -85,19 +118,18 @@ define(['underscore_extension', 'Vue'],
         };
         computed.defaultLangFlag = {
             get: function() {
-                return this.share.map.lang == this.share.currentLang;
+                return this.lang == this.currentLang;
             },
             set: function(newValue) {
                 if (newValue) {
-                    // this.share.map.lang = this.share.currentLang;
-                    var oldLang = this.share.map.lang;
-                    var newLang = this.share.currentLang;
+                    var oldLang = this.lang;
+                    var newLang = this.currentLang;
                     var buffer = {};
                     for (var i=0; i < langAttr.length; i++) {
                         var attr = langAttr[i];
                         buffer[attr] = this.localedGetBylocale(oldLang, attr);
                     }
-                    this.share.map.lang = newLang;
+                    this.lang = newLang;
                     for (var i=0; i < langAttr.length; i++) {
                         var attr = langAttr[i];
                         this.localedSetBylocale(oldLang, attr, buffer[attr]);
@@ -107,38 +139,44 @@ define(['underscore_extension', 'Vue'],
             }
         };
         computed.imageExtentionCalc = function() {
-            if (this.share.map.imageExtention) return this.share.map.imageExtention;
-            if (this.share.map.width && this.share.map.height) return 'jpg';
+            if (this.imageExtention) return this.imageExtention;
+            if (this.width && this.height) return 'jpg';
             return;
         };
         computed.gcpsEditReady = function() {
-            return (this.share.map.width && this.share.map.height && this.share.map.url_) || false;
+            return (this.width && this.height && this.url_) || false;
         };
         computed.dirty = function() {
-            return !_.isDeepEqual(this.share.map_, this.share.map);
+            return !_.isDeepEqual(this.map_, this.map);
         };
         computed.gcps = function() {
-            return this.share.map.gcps;
-        }
+            if (this.currentEditingLayer == 0) {
+                return this.map.gcps;
+            } else if (this.map.sub_maps.length > 0) {
+                return this.map.sub_maps[this.currentEditingLayer - 1].gcps;
+            } else {
+                return;
+            }
+        };
         computed.error = function() {
             var err = {};
-            if (this.share.map.mapID == null || this.share.map.mapID == '') err['mapID'] = '地図IDを指定してください。';
-            else if (this.share.map.mapID && !this.share.map.mapID.match(/^[\d\w_\-]+$/)) err['mapID'] = '地図IDは英数字とアンダーバー、ハイフンのみが使えます。';
-            else if (!this.share.onlyOne) err['mapID'] = '地図IDの一意性チェックを行ってください。';
-            if (this.share.map.title == null || this.share.map.title == '') err['title'] = '表示用タイトルを指定してください。';
+            if (this.mapID == null || this.mapID == '') err['mapID'] = '地図IDを指定してください。';
+            else if (this.mapID && !this.mapID.match(/^[\d\w_\-]+$/)) err['mapID'] = '地図IDは英数字とアンダーバー、ハイフンのみが使えます。';
+            else if (!this.onlyOne) err['mapID'] = '地図IDの一意性チェックを行ってください。';
+            if (this.map.title == null || this.map.title == '') err['title'] = '表示用タイトルを指定してください。';
             else {
-                if (typeof this.share.map.title != 'object') {
-                    if (zenHankakuLength(this.share.map.title) > 30) err['title'] = '表示用タイトル(' + this.langs[this.share.map.lang] + ')を15文字(半角30文字)以内にしてください。';
+                if (typeof this.map.title != 'object') {
+                    if (zenHankakuLength(this.map.title) > 30) err['title'] = '表示用タイトル(' + this.langs[this.lang] + ')を15文字(半角30文字)以内にしてください。';
                 } else {
                     var keys = Object.keys(this.langs);
                     for (var i=0; i<keys.length; i++) {
-                        if (this.share.map.title[keys[i]] && zenHankakuLength(this.share.map.title[keys[i]]) > 30)
+                        if (this.map.title[keys[i]] && zenHankakuLength(this.map.title[keys[i]]) > 30)
                             err['title'] = '表示用タイトル(' + this.langs[keys[i]] + ')を15文字(半角30文字)以内にしてください。';
                     }
                 }
             }
-            if (this.share.map.attr == null || this.share.map.attr == '') err['attr'] = '地図画像のコピーライト表記を指定してください。';
-            if (this.share.linearGcps) err['linearGcps'] = 'linearGcps';
+            if (this.map.attr == null || this.map.attr == '') err['attr'] = '地図画像のコピーライト表記を指定してください。';
+            if (this.linearGcps) err['linearGcps'] = 'linearGcps';
             return Object.keys(err).length > 0 ? err : null;
         };
 
@@ -160,22 +198,23 @@ define(['underscore_extension', 'Vue'],
                         onlyOne: false,
                         gcpsInit: false,
                         vueInit: false,
-                        linearGcps: false
+                        linearGcps: false,
+                        currentEditingLayer: 0
                     },
                     langs: langs
                 };
             },
             methods: {
                 setCurrentAsDefault: function() {
-                    this.share.map_ = _.deepClone(this.share.map);
+                    this.map_ = _.deepClone(this.map);
                 },
                 setInitialMap: function(map) {
                     var setMap = _.deepClone(defaultMap);
                     Object.assign(setMap, map);
-                    this.share.map = setMap;
-                    this.share.map_ = _.deepClone(setMap);
-                    this.share.currentLang = this.share.map.lang;
-                    this.share.onlyOne = true;
+                    this.map = setMap;
+                    this.map_ = _.deepClone(setMap);
+                    this.currentLang = this.share.map.lang;
+                    this.onlyOne = true;
                 },
                 createSharedClone: function(template) {
                     var newVueMap = new VueMap({
@@ -185,8 +224,8 @@ define(['underscore_extension', 'Vue'],
                     return newVueMap;
                 },
                 localedGetBylocale: function(locale, key) {
-                    var lang = this.share.map.lang;
-                    var val = this.share.map[key];
+                    var lang = this.lang;
+                    var val = this.map[key];
                     if (typeof val != 'object') {
                         return lang == locale ? val : '';
                     } else {
@@ -194,11 +233,11 @@ define(['underscore_extension', 'Vue'],
                     }
                 },
                 localedGet: function(key) {
-                    return this.localedGetBylocale(this.share.currentLang, key);
+                    return this.localedGetBylocale(this.currentLang, key);
                 },
                 localedSetBylocale: function(locale, key, value) {
-                    var lang = this.share.map.lang;
-                    var val = this.share.map[key];
+                    var lang = this.lang;
+                    var val = this.map[key];
                     if (value == null) value = '';
                     if (typeof val != 'object') {
                         if (lang == locale) {
@@ -223,10 +262,10 @@ define(['underscore_extension', 'Vue'],
                             val[locale] = value;
                         }
                     }
-                    this.share.map[key] = val;
+                    this.map[key] = val;
                 },
                 localedSet: function(key, value) {
-                    this.localedSetBylocale(this.share.currentLang, key, value);
+                    this.localedSetBylocale(this.currentLang, key, value);
                 }
             },
             computed: computed

@@ -79,7 +79,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var marker = arg.data.marker;
             var gcpIndex = marker.get('gcpIndex');
             if (gcpIndex != 'new') {
-                var gcps = vueMap.share.map.gcps;
+                var gcps = vueMap.gcps;
                 var gcp = gcps[gcpIndex];
                 var forw = illstSource.xy2HistMapCoords(gcp[0]);
                 var bakw = gcp[1];
@@ -99,14 +99,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 newlyAddGcp = null;
                 map.getSource('marker').removeFeature(marker);
             } else {
-                var gcps = vueMap.share.map.gcps;
+                var gcps = vueMap.gcps;
                 gcps.splice(gcpIndex, 1);
                 gcpsToMarkers(gcps);
             }
         }
 
         function addNewMarker (arg, map) {
-            var gcps = vueMap.share.map.gcps;
+            var gcps = vueMap.gcps;
             var number = gcps.length + 1;
             var isIllst = map == illstMap;
             var coord = arg.coordinate;
@@ -218,8 +218,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             mercMap.getSource('json').addFeatures(bakFeatures); //, {dataProjection:'EPSG:3857'});
             illstMap.getSource('json').addFeatures(forFeatures);// , {dataProjection:bakProj, featureProjection:'EPSG:3857'});
 
-            var bbox = turf.lineString([[0, 0], [vueMap.share.map.width, 0], [vueMap.share.map.width, vueMap.share.map.height],
-                [0, vueMap.share.map.height], [0, 0]]);
+            var bbox = turf.lineString([[0, 0], [vueMap.width, 0], [vueMap.width, vueMap.height],
+                [0, vueMap.height], [0, 0]]);
             var bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
             illstMap.getSource('json').addFeatures(bboxFeature);
 
@@ -229,14 +229,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var strict = document.querySelector('input[name=strict]:checked').value;
             if (tinObject.strict_status == 'loose' && strict != 'auto') {
                 document.querySelector('input[name=strict][value=auto]').checked = true;
-                vueMap.share.map.strictMode = 'auto';
+                vueMap.strictMode = 'auto';
             } else if (tinObject.strict_status == 'strict_error' && strict != 'strict') {
                 document.querySelector('input[name=strict][value=strict]').checked = true;
-                vueMap.share.map.strictMode = 'strict';
+                vueMap.strictMode = 'strict';
             } else {
-                document.querySelector('input[name=strict][value=' + vueMap.share.map.strictMode + ']').checked = true;
+                document.querySelector('input[name=strict][value=' + vueMap.strictMode + ']').checked = true;
             }
-            document.querySelector('input[name=vertex][value=' + vueMap.share.map.vertexMode + ']').checked = true;
+            document.querySelector('input[name=vertex][value=' + vueMap.vertexMode + ']').checked = true;
             errorNumber = null;
             if (tinObject.strict_status == 'strict_error') {
                 document.querySelector('#viewError').parentNode.classList.remove('hide');
@@ -288,20 +288,20 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         function reflectIllstMap(compiled) {
             ol.source.HistMap.createAsync({
                 mapID: mapID,
-                url: vueMap.share.map.url_,
-                width: vueMap.share.map.width,
-                height: vueMap.share.map.height,
-                attr: vueMap.share.map.attr,
+                url: vueMap.url_,
+                width: vueMap.width,
+                height: vueMap.height,
+                attr: vueMap.attr,
                 noload: true
             },{})
                 .then(function(source) {
                     illstSource = source;
                     illstMap.exchangeSource(illstSource);
-                    var initialCenter = illstSource.xy2HistMapCoords([vueMap.share.map.width / 2, vueMap.share.map.height / 2]);
+                    var initialCenter = illstSource.xy2HistMapCoords([vueMap.width / 2, vueMap.height / 2]);
                     var illstView = illstMap.getView();
                     illstView.setCenter(initialCenter);
 
-                    var gcps = vueMap.share.map.gcps;
+                    var gcps = vueMap.gcps;
                     if (gcps && gcps.length > 0) {
                         var center;
                         var zoom;
@@ -335,7 +335,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         if (compiled) {
                             tinResultUpdate(compiled);
                         } else {
-                            backend.updateTin(gcps, vueMap.share.map.strictMode, vueMap.share.map.vertexMode);
+                            backend.updateTin(gcps, vueMap.strictMode, vueMap.vertexMode);
                         }
                     }
                 }).catch(function (err) {
@@ -474,7 +474,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
             var gcpIndex = feature.get('gcpIndex');
             if (gcpIndex != 'new') {
-                var gcps = vueMap.share.map.gcps;
+                var gcps = vueMap.gcps;
                 var gcp = gcps[gcpIndex];
                 gcp[isIllst ? 0 : 1] = xy;
                 gcps.splice(gcpIndex, 1, gcp);
@@ -540,8 +540,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 }
                 if (this.map_ == illstMap) {
                     var xy = illstSource.histMapCoords2Xy(evt.coordinate);
-                    if (xy[0] < vueMap.share.map.width * -0.05 || xy[1] < vueMap.share.map.height * -0.05 ||
-                        xy[0] > vueMap.share.map.width * 1.05 || xy[1] > vueMap.share.map.height * 1.05)
+                    if (xy[0] < vueMap.width * -0.05 || xy[1] < vueMap.height * -0.05 ||
+                        xy[0] > vueMap.width * 1.05 || xy[1] > vueMap.height * 1.05)
                         setTimeout(function() {contextmenu.close();}, 10);
                 }
             });
@@ -683,11 +683,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             watch: {
                 gcpsEditReady: gcpsEditReady,
                 gcps: function(val) {
-                    if (!this.share.gcpsInit) {
-                        this.share.gcpsInit = true;
+                    if (!this.gcpsInit) {
+                        this.gcpsInit = true;
                         return;
                     }
-                    backend.updateTin(val, this.share.map.strictMode, vueMap.share.map.vertexMode);
+                    backend.updateTin(val, this.strictMode, vueMap.vertexMode);
+                },
+                sub_maps: function(val) {
+                    console.log('sub_maps');
                 }
             }
         });
@@ -708,28 +711,27 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         }
 
         function setVueMap() {
-            vueMap.share.vueInit = true;
+            vueMap.vueInit = true;
             var vueMap2 = vueMap.createSharedClone('#metadataTabForm-template');
             vueMap2.$mount('#metadataTabForm');
             vueMap2.$on('updateMapID', function(){
                 if (!confirm('地図IDを変更してよろしいですか?')) return;
-                //vueMap2.share.map.status = 'Change:' + mapID;
-                vueMap2.share.onlyOne = false;
+                vueMap2.onlyOne = false;
             });
             vueMap2.$on('checkOnlyOne', function(){
                 document.body.style.pointerEvents = 'none';
-                var checked = backend.checkID(vueMap.share.map.mapID);
+                var checked = backend.checkID(vueMap.mapID);
                 ipcRenderer.once('checkIDResult', function(event, arg) {
                     document.body.style.pointerEvents = null;
                     if (arg) {
                         alert('一意な地図IDです。');
-                        vueMap.share.onlyOne = true;
-                        if (vueMap.share.map.status == 'Update') {
-                            vueMap.share.map.status = 'Change:' + mapID;
+                        vueMap.onlyOne = true;
+                        if (vueMap.status == 'Update') {
+                            vueMap.status = 'Change:' + mapID;
                         }
                     } else {
                         alert('この地図IDは存在します。他のIDにしてください。');
-                        vueMap.share.onlyOne = false;
+                        vueMap.onlyOne = false;
                     }
                 });
             });
@@ -747,13 +749,13 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         } else {
                             alert('正常に地図がアップロードできました。');
                         }
-                        vueMap.share.map.width = arg.width;
-                        vueMap.share.map.height = arg.height;
-                        vueMap.share.map.url_ = arg.url;
+                        vueMap.width = arg.width;
+                        vueMap.height = arg.height;
+                        vueMap.url_ = arg.url;
                         if (arg.imageExtention == 'jpg') {
-                            delete vueMap.share.map.imageExtention;
+                            vueMap.imageExtention = undefined;
                         } else {
-                            vueMap.share.map.imageExtention = arg.imageExtention;
+                            vueMap.imageExtention = arg.imageExtention;
                         }
                         backend.setWh([arg.width, arg.height]);
                         reflectIllstMap();
@@ -766,7 +768,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             });
             vueMap.$on('saveMap', function(){
                 if (!confirm('変更を保存します。\nよろしいですか?')) return;
-                var saveValue = vueMap.share.map;
+                var saveValue = vueMap.map;
                 if (saveValue.status.match(/^Change:(.+)$/) &&
                     confirm('地図IDが変更されています。コピーを行いますか?\nコピーの場合はOK、移動の場合はキャンセルを選んでください。')) {
                     saveValue.status = 'Copy:' + mapID;
@@ -777,8 +779,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     document.body.style.pointerEvents = null;
                     if (arg == 'Success') {
                         alert('正常に保存できました。');
-                        if (mapID != vueMap.share.map.mapID) {
-                            mapID = vueMap.share.map.mapID;
+                        if (mapID != vueMap.mapID) {
+                            mapID = vueMap.mapID;
                         }
                         backend.request(mapID);
                     } else if (arg == 'Exist') {
@@ -826,11 +828,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     delete tinObject;
                     document.querySelector('#error_status').innerText = arg == 'tooLessGcps' ? '対応点が少なすぎます。' :
                         '対応点が直線的に並びすぎています。もっと散らしてください。';
-                    vueMap.share.linearGcps = arg == 'tooLinear';
+                    vueMap.linearGcps = arg == 'tooLinear';
                     document.querySelector('#viewError').parentNode.classList.add('hide');
                     jsonClear();
                 } else {
-                    vueMap.share.linearGcps = false;
+                    vueMap.linearGcps = false;
                     tinResultUpdate(arg);
                 }
             });
@@ -858,7 +860,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             arg.status = 'Update';
             arg.onlyOne = true;
             vueMap.setInitialMap(arg);
-            if (!vueMap.share.vueInit) {
+            if (!vueMap.vueInit) {
                 setVueMap();
             }
             // compiledは空の場合もある（未コンパイルのデータファイルの場合）
@@ -881,8 +883,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var strict = stricts[i];
             strict.addEventListener('click', function(e) {
                 var value = document.querySelector('input[name=strict]:checked').value;
-                vueMap.share.map.strictMode = value;
-                backend.updateTin(vueMap.share.map.gcps, value, vueMap.share.map.vertexMode);
+                vueMap.strictMode = value;
+                backend.updateTin(vueMap.gcps, value, vueMap.vertexMode);
             });
         }
         // 外郭判定モード変更時、TINを更新する
@@ -891,8 +893,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var vertex = vertices[i];
             vertex.addEventListener('click', function(e) {
                 var value = document.querySelector('input[name=vertex]:checked').value;
-                vueMap.share.map.vertexMode = value;
-                backend.updateTin(vueMap.share.map.gcps, vueMap.share.map.strictMode, value);
+                vueMap.vertexMode = value;
+                backend.updateTin(vueMap.gcps, vueMap.strictMode, value);
             });
         }
         // 起動時処理: 地図外のUI設定ここまで
