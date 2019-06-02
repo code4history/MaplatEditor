@@ -71,7 +71,7 @@ define(['underscore_extension', 'Vue'],
                 })(key),
             }
         }
-        var shareAttr = ['currentLang', 'onlyOne', 'gcpsInit', 'vueInit', 'linearGcps', 'currentEditingLayer', 'map',
+        var shareAttr = ['currentLang', 'onlyOne', 'gcpsInit', 'vueInit', 'currentEditingLayer', 'map',
             'map_'];
         for (var i=0; i<shareAttr.length; i++) {
             var key = shareAttr[i];
@@ -88,7 +88,8 @@ define(['underscore_extension', 'Vue'],
                 })(key),
             }
         }
-        var mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtention', 'mapID', 'lang'];
+        var mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtention', 'mapID', 'lang',
+            'license', 'dataLicense', 'reference', 'url'];
         for (var i=0; i<mapAttr.length; i++) {
             var key = mapAttr[i];
             computed[key] = {
@@ -158,11 +159,40 @@ define(['underscore_extension', 'Vue'],
                 return;
             }
         };
+        computed.tinObject = {
+            get: function() {
+                return this.tinObjects[this.currentEditingLayer];
+            },
+            set: function(newValue) {
+                this.tinObjects.splice(this.currentEditingLayer, 1, newValue);
+            }
+        };
+        computed.tinObjects = {
+            get: function() {
+                return this.share.tinObjects;
+            },
+            set: function(newValue) {
+                this.share.tinObjects = newValue;
+            }
+        };
+        computed.bounds = {
+            get: function() {
+                if (this.currentEditingLayer == 0) {
+                    return [this.width, this.height];
+                }
+                return this.map.sub_maps[this.currentEditingLayer - 1].bounds;
+            },
+            set: function(newValue) {
+                if (this.currentEditingLayer != 0) {
+                    this.map.sub_maps[this.currentEditingLayer - 1].bounds = newValue;
+                }
+            }
+        };
         computed.error = function() {
             var err = {};
             if (this.mapID == null || this.mapID == '') err['mapID'] = '地図IDを指定してください。';
             else if (this.mapID && !this.mapID.match(/^[\d\w_\-]+$/)) err['mapID'] = '地図IDは英数字とアンダーバー、ハイフンのみが使えます。';
-            else if (!this.onlyOne) err['mapID'] = '地図IDの一意性チェックを行ってください。';
+            else if (!this.onlyOne) err['mapIDOnlyOne'] = '地図IDの一意性チェックを行ってください。';
             if (this.map.title == null || this.map.title == '') err['title'] = '表示用タイトルを指定してください。';
             else {
                 if (typeof this.map.title != 'object') {
@@ -178,6 +208,11 @@ define(['underscore_extension', 'Vue'],
             if (this.map.attr == null || this.map.attr == '') err['attr'] = '地図画像のコピーライト表記を指定してください。';
             if (this.linearGcps) err['linearGcps'] = 'linearGcps';
             return Object.keys(err).length > 0 ? err : null;
+        };
+        computed.linearGcps = function() {
+            return this.tinObjects.reduce(function(prev, curr) {
+                return curr == 'tooLinear' || prev;
+            }, false);
         };
 
         var VueMap = Vue.extend({
@@ -198,8 +233,8 @@ define(['underscore_extension', 'Vue'],
                         onlyOne: false,
                         gcpsInit: false,
                         vueInit: false,
-                        linearGcps: false,
-                        currentEditingLayer: 0
+                        currentEditingLayer: 0,
+                        tinObjects: []
                     },
                     langs: langs
                 };
@@ -213,7 +248,7 @@ define(['underscore_extension', 'Vue'],
                     Object.assign(setMap, map);
                     this.map = setMap;
                     this.map_ = _.deepClone(setMap);
-                    this.currentLang = this.share.map.lang;
+                    this.currentLang = this.lang;
                     this.onlyOne = true;
                 },
                 createSharedClone: function(template) {

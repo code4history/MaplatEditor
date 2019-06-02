@@ -1,5 +1,5 @@
-define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 'contextmenu', 'geocoder', 'switcher'],
-    function(ol, bsn, _, turf, VueMap, ContextMenu, Geocoder) {
+define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 'contextmenu', 'geocoder', 'tin', 'switcher'],
+    function(ol, bsn, _, turf, VueMap, ContextMenu, Geocoder, Tin) {
         var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
         var langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
             'mapper', 'attr', 'dataAttr', 'description'];
@@ -11,7 +11,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         var uploader;
         var mapID;
         var newlyAddGcp;
-        var tinObject;
         var errorNumber;
         var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
         for (var i = 0; i < hashes.length; i++) {
@@ -169,14 +168,17 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             srcCheck.clear();
             distCheck.clear();
 
-            var distXy = backend.transform(srcXy, isIllst);
-            if (distXy == 'tooLessGcps') {
+            var tinObject = vueMap.tinObject;
+            if (!tinObject.points || tinObject.points.length < 3) {
                 alert('変換テストに必要な対応点の数が少なすぎます');
                 return;
-            } else if (distXy == 'strictError') {
+            }
+            if (tinObject.strict_status == 'strict_error' && !isIllst) {
                 alert('厳格モードでエラーがある際は、逆変換ができません');
                 return;
             }
+            var distXy = tinObject.transform(srcXy, !isIllst);
+
             var distMarkerLoc = isIllst ? distXy : illstSource.xy2HistMapCoords(distXy);
             distMap.getView().setCenter(distMarkerLoc);
 
@@ -205,8 +207,17 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             distCheck.addFeature(distFeature);
         }
 
-        function tinResultUpdate(tin) {
-            tinObject = tin;
+        function tinResultUpdate() {
+            var tinObject = vueMap.tinObject;
+
+            if (tinObject == 'tooLessGcps' || tinObject == 'tooLinear') {
+                document.querySelector('#error_status').innerText = tinObject == 'tooLessGcps' ? '対応点が少なすぎます。' :
+                    '対応点が直線的に並びすぎています。もっと散らしてください。';
+                document.querySelector('#viewError').parentNode.classList.add('hide');
+                jsonClear();
+                return;
+            }
+
             var forTin = tinObject.tins.forw;
             var bakTin = tinObject.tins.bakw;
             mercMap.getSource('json').clear();
@@ -285,8 +296,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             });
         }
 
-        function reflectIllstMap(compiled) {
-            ol.source.HistMap.createAsync({
+        function reflectIllstMap() {
+            return ol.source.HistMap.createAsync({
                 mapID: mapID,
                 url: vueMap.url_,
                 width: vueMap.width,
@@ -330,13 +341,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         var mercView = mercMap.getView();
                         mercView.setCenter(results[0]);
                         mercView.setZoom(results[1]);
-
-                        gcpsToMarkers(gcps);
-                        if (compiled) {
-                            tinResultUpdate(compiled);
-                        } else {
-                            backend.updateTin(gcps, vueMap.strictMode, vueMap.vertexMode);
-                        }
                     }
                 }).catch(function (err) {
                     console.log(err);
@@ -392,6 +396,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
          * @return {boolean} `true` to start the drag sequence.
          */
         app.Drag.prototype.handleDownEvent = function(evt) {
+            if (evt.pointerEvent.button == 2) return;
             var map = evt.map;
 
             var this_ = this;
@@ -415,6 +420,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
          * @param {ol.MapBrowserEvent} evt Map browser event.
          */
         app.Drag.prototype.handleDragEvent = function(evt) {
+            if (evt.pointerEvent.button == 2) return;
             var map = evt.map;
 
             var this_ = this;
@@ -434,6 +440,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
          * @param {ol.MapBrowserEvent} evt Event.
          */
         app.Drag.prototype.handleMoveEvent = function(evt) {
+            if (evt.pointerEvent.button == 2) return;
             var anotherMap = evt.map == illstMap ? mercMap : illstMap;
             anotherMap.closeContextMenu();
             if (this.cursor_) {
@@ -466,6 +473,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
          * @return {boolean} `false` to stop the drag sequence.
          */
         app.Drag.prototype.handleUpEvent = function(evt) {
+            if (evt.pointerEvent.button == 2) return;
             var map = evt.map;
             var isIllst = map == illstMap;
             var feature = this.feature_;
@@ -687,7 +695,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         this.gcpsInit = true;
                         return;
                     }
-                    backend.updateTin(val, this.strictMode, vueMap.vertexMode);
+                    backend.updateTin(val, this.currentEditingLayer, this.bounds, this.strictMode, vueMap.vertexMode);
                 },
                 sub_maps: function(val) {
                     console.log('sub_maps');
@@ -757,8 +765,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         } else {
                             vueMap.imageExtention = arg.imageExtention;
                         }
-                        backend.setWh([arg.width, arg.height]);
-                        reflectIllstMap();
+
+                        reflectIllstMap().then(function() {
+                            gcpsToMarkers(vueMap.gcps);
+                            backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+                        });
                     });
                 }
                 document.body.style.pointerEvents = 'none';
@@ -774,7 +785,10 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     saveValue.status = 'Copy:' + mapID;
                 }
                 document.body.style.pointerEvents = 'none';
-                backend.save(saveValue);
+                backend.save(saveValue, vueMap.tinObjects.map(function(tin) {
+                    if (typeof tin == 'string') return tin;
+                    return tin.getCompiled();
+                }));
                 ipcRenderer.once('saveResult', function(event, arg) {
                     document.body.style.pointerEvents = null;
                     if (arg == 'Success') {
@@ -823,22 +837,22 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             });
 
             ipcRenderer.on('updatedTin', function(event, arg) {
-                checkClear();
-                if (arg == 'tooLessGcps' || arg == 'tooLinear') {
-                    delete tinObject;
-                    document.querySelector('#error_status').innerText = arg == 'tooLessGcps' ? '対応点が少なすぎます。' :
-                        '対応点が直線的に並びすぎています。もっと散らしてください。';
-                    vueMap.linearGcps = arg == 'tooLinear';
-                    document.querySelector('#viewError').parentNode.classList.add('hide');
-                    jsonClear();
+                var index = arg[0];
+                var tin;
+                if (typeof arg[1] == 'string') {
+                    tin = arg[1];
                 } else {
-                    vueMap.linearGcps = false;
-                    tinResultUpdate(arg);
+                    tin = new Tin({});
+                    tin.setCompiled(arg[1]);
                 }
+                vueMap.tinObjects.splice(index, 1, tin);
+                checkClear();
+                tinResultUpdate();
             });
 
             document.querySelector('#viewError').addEventListener('click', function(ev) {
-                if (!tinObject) return;
+                var tinObject = vueMap.tinObject;
+                if (!(tinObject instanceof Tin)) return;
                 var kinks = tinObject.kinks.bakw.features;
                 if (errorNumber == null) {
                     errorNumber = 0;
@@ -854,17 +868,25 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         }
         // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
         ipcRenderer.on('mapData', function(event, arg) {
-            var compiled = arg.compiled;
-            delete arg.compiled;
-            arg.mapID = mapID;
-            arg.status = 'Update';
-            arg.onlyOne = true;
-            vueMap.setInitialMap(arg);
+            var json = arg[0];
+            var tins = arg[1];
+            json.mapID = mapID;
+            json.status = 'Update';
+            json.onlyOne = true;
+            vueMap.setInitialMap(json);
+            vueMap.tinObjects = tins.map(function(compiled) {
+                if (typeof compiled == 'string') return compiled;
+                var tin = new Tin({});
+                tin.setCompiled(compiled);
+                return tin;
+            });
             if (!vueMap.vueInit) {
                 setVueMap();
             }
-            // compiledは空の場合もある（未コンパイルのデータファイルの場合）
-            reflectIllstMap(compiled);
+            reflectIllstMap().then(function() {
+                gcpsToMarkers(vueMap.gcps);
+                tinResultUpdate();
+            });
         });
         // 起動時処理: Vue Mapオブジェクト関連の設定ここまで
 
@@ -884,7 +906,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             strict.addEventListener('click', function(e) {
                 var value = document.querySelector('input[name=strict]:checked').value;
                 vueMap.strictMode = value;
-                backend.updateTin(vueMap.gcps, value, vueMap.vertexMode);
+                backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, value, vueMap.vertexMode);
             });
         }
         // 外郭判定モード変更時、TINを更新する
@@ -894,7 +916,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             vertex.addEventListener('click', function(e) {
                 var value = document.querySelector('input[name=vertex]:checked').value;
                 vueMap.vertexMode = value;
-                backend.updateTin(vueMap.gcps, vueMap.strictMode, value);
+                backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, value);
             });
         }
         // 起動時処理: 地図外のUI設定ここまで
