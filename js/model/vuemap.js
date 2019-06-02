@@ -89,7 +89,7 @@ define(['underscore_extension', 'Vue'],
             }
         }
         var mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtention', 'mapID', 'lang',
-            'license', 'dataLicense', 'reference', 'url'];
+            'license', 'dataLicense', 'reference', 'url', 'sub_maps'];
         for (var i=0; i<mapAttr.length; i++) {
             var key = mapAttr[i];
             computed[key] = {

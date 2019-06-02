@@ -689,6 +689,10 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 strictMode: function() {
                     if (!illstSource) return;
                     backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+                },
+                currentEditingLayer: function() {
+                    if (!illstSource) return;
+                    gcpsToMarkers(vueMap.gcps);
                 }
             }
         });

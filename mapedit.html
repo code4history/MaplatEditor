@@ -247,6 +247,10 @@
 <script type="text/x-template" id="gcpsTabDiv-template">
   <div class="h100">
     <div class="row map-control-header">
+      <select name="editingLayer" v-model="currentEditingLayer">
+        <option value="0">メインレイヤー</option>
+        <option v-for="(sub_map, index) in sub_maps" :value="index+1">サブレイヤー</option>
+      </select>
     </div>
     <div class="row map-row">
       <div id="illstMap" class="col-xs-6 h100">
