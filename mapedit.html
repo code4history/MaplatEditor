@@ -52,30 +52,7 @@
       <form id="metadataTabForm"></form>
     </div>
     <div class="tab-pane h100" id="gcpsTab">
-      <div class="row map-row">
-        <div id="illstMap" class="col-xs-6 h100">
-        </div>
-        <div id="mercMap" class="col-xs-6 h100">
-        </div>
-      </div>
-      <div class="row map-control-footer">
-        <div class="col-xs-3">
-          <label>外郭判定モード</label>
-          <label><input type="radio" name="vertex" value="plain" checked>平面図</label>
-          <label><input type="radio" name="vertex" value="birdeye">鳥観図</label>
-        </div>
-        <div class="col-xs-3">
-          <label>エラーモード</label>
-          <label><input type="radio" name="strict" value="strict" checked>厳格</label>
-          <label><input type="radio" name="strict" value="auto">自動</label>
-        </div>
-        <div class="col-xs-3">
-          <label>エラー状態:</label><label id="error_status"></label>
-        </div>
-        <div class="col-xs-3 hide">
-          <button type="button" class="btn btn-secondary" id="viewError">次のエラー表示</button>
-        </div>
-      </div>
+      <div id="gcpsTabDiv"></div>
     </div>
     <div class="tab-pane" id="landmarkTab">
       <p>タブＣの内容</p>
@@ -266,6 +243,42 @@
       </div>
     </div>
   </form>
+</script>
+<script type="text/x-template" id="gcpsTabDiv-template">
+  <div class="h100">
+    <div class="row map-control-header">
+    </div>
+    <div class="row map-row">
+      <div id="illstMap" class="col-xs-6 h100">
+      </div>
+      <div id="mercMap" class="col-xs-6 h100">
+      </div>
+    </div>
+    <div class="row map-control-footer">
+      <div class="col-xs-3">
+        <label>外郭判定モード</label>
+        <label><input type="radio" name="vertex" value="plain" v-model="vertexMode">平面図</label>
+        <label><input type="radio" name="vertex" value="birdeye" v-model="vertexMode">鳥観図</label>
+      </div>
+      <div class="col-xs-3">
+        <label>エラーモード</label>
+        <label><input type="radio" name="strict" value="strict" v-model="strictMode">厳格</label>
+        <label><input type="radio" name="strict" value="auto" v-model="strictMode">自動</label>
+      </div>
+      <div class="col-xs-3">
+        <label>エラー状態:</label><label id="error_status">
+          <span v-if="errorStatus == 'tooLessGcps'">対応点が少なすぎます。</span>
+          <span v-else-if="errorStatus == 'tooLinear'">対応点が直線的に並びすぎています。もっと散らしてください。</span>
+          <span v-else-if="errorStatus == 'strict'">エラーなし</span>
+          <span v-else-if="errorStatus == 'strict_error'">エラー{{errorNumber}}件</span>
+          <span v-else-if="errorStatus == 'loose'">エラーのため簡易モード</span>
+        </label>
+      </div>
+      <div class="col-xs-3">
+        <button type="button" class="btn btn-secondary" v-bind:class="errorNumber == 0 ? 'hide' : ''" id="viewError" v-on:click="$emit('viewError')">次のエラー表示</button>
+      </div>
+    </div>
+  </div>
 </script>
 <script src="common/lib/require.min.js"></script>
 <script>

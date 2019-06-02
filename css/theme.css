@@ -109,8 +109,14 @@ body.settings {
   width: 100%;
 }
 
+.map-control-header {
+  height: 60px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
 .map-row {
-  height: calc(100% - 50px);
+  height: calc(100% - 110px);
 }
 
 .map-control-footer {

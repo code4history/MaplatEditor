@@ -71,7 +71,7 @@ define(['underscore_extension', 'Vue'],
                 })(key),
             }
         }
-        var shareAttr = ['currentLang', 'onlyOne', 'gcpsInit', 'vueInit', 'currentEditingLayer', 'map',
+        var shareAttr = ['currentLang', 'onlyOne', 'vueInit', 'currentEditingLayer', 'map',
             'map_'];
         for (var i=0; i<shareAttr.length; i++) {
             var key = shareAttr[i];
@@ -214,6 +214,14 @@ define(['underscore_extension', 'Vue'],
                 return curr == 'tooLinear' || prev;
             }, false);
         };
+        computed.errorStatus = function() {
+            var tinObject = this.tinObject;
+            return typeof tinObject == 'string' ? this.tinObject :
+                tinObject.strict_status ? tinObject.strict_status : undefined;
+        };
+        computed.errorNumber = function() {
+            return this.errorStatus == 'strict_error' ? this.tinObject.kinks.bakw.features.length : 0;
+        };
 
         var VueMap = Vue.extend({
             created: function () {
@@ -231,7 +239,6 @@ define(['underscore_extension', 'Vue'],
                         map_: _.deepClone(defaultMap),
                         currentLang: 'ja',
                         onlyOne: false,
-                        gcpsInit: false,
                         vueInit: false,
                         currentEditingLayer: 0,
                         tinObjects: []

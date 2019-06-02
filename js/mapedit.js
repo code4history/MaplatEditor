@@ -12,6 +12,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         var mapID;
         var newlyAddGcp;
         var errorNumber;
+        var illstMap;
+        var illstSource;
+        var mercMap;
         var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
         for (var i = 0; i < hashes.length; i++) {
             hash = hashes[i].split('=');
@@ -210,10 +213,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         function tinResultUpdate() {
             var tinObject = vueMap.tinObject;
 
-            if (tinObject == 'tooLessGcps' || tinObject == 'tooLinear') {
-                document.querySelector('#error_status').innerText = tinObject == 'tooLessGcps' ? '対応点が少なすぎます。' :
-                    '対応点が直線的に並びすぎています。もっと散らしてください。';
-                document.querySelector('#viewError').parentNode.classList.add('hide');
+            if (typeof tinObject == 'string') {
                 jsonClear();
                 return;
             }
@@ -234,27 +234,10 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
             illstMap.getSource('json').addFeatures(bboxFeature);
 
-            document.querySelector('#error_status').innerText = tinObject.strict_status == 'strict' ? 'エラーなし' :
-                tinObject.strict_status == 'strict_error' ? 'エラー' + tinObject.kinks.bakw.features.length + '件' :
-                    'エラーのため簡易モード';
-            var strict = document.querySelector('input[name=strict]:checked').value;
-            if (tinObject.strict_status == 'loose' && strict != 'auto') {
-                document.querySelector('input[name=strict][value=auto]').checked = true;
-                vueMap.strictMode = 'auto';
-            } else if (tinObject.strict_status == 'strict_error' && strict != 'strict') {
-                document.querySelector('input[name=strict][value=strict]').checked = true;
-                vueMap.strictMode = 'strict';
-            } else {
-                document.querySelector('input[name=strict][value=' + vueMap.strictMode + ']').checked = true;
-            }
-            document.querySelector('input[name=vertex][value=' + vueMap.vertexMode + ']').checked = true;
             errorNumber = null;
             if (tinObject.strict_status == 'strict_error') {
-                document.querySelector('#viewError').parentNode.classList.remove('hide');
                 var kinkFeatures = jsonReader.readFeatures(tinObject.kinks.bakw, {dataProjection:'EPSG:3857'});
                 mercMap.getSource('json').addFeatures(kinkFeatures);
-            } else {
-                document.querySelector('#viewError').parentNode.classList.add('hide');
             }
         }
 
@@ -562,127 +545,129 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             this.contextmenu.close();
         };
 
-        // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここから
-        var illstMap = new ol.MaplatMap({
-            div: 'illstMap',
-            interactions: ol.interaction.defaults().extend([
-                new ol.interaction.DragRotateAndZoom({
-                    condition: ol.events.condition.altKeyOnly
-                })
-            ]),
-            controls: ol.control.defaults()
-        });
-        // コンテクストメニュー初期化
-        illstMap.initContextMenu();
-        // マーカーなど表示用レイヤー設定
-        var jsonLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-                wrapX: false
-            }),
-            style: tinStyle
-        });
-        jsonLayer.set('name', 'json');
-        illstMap.getLayer('overlay').getLayers().push(jsonLayer);
-        // 三角網など表示用レイヤー設定
-        var checkLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-                wrapX: false
-            }),
-            style: tinStyle
-        });
-        checkLayer.set('name', 'check');
-        illstMap.getLayers().push(checkLayer);
-        // インタラクション設定
-        illstMap.on('click', onClick);
-        illstMap.addInteraction(new app.Drag());
-        var illstSource;
-        // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここまで
-
-        // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここから
-        var mercMap = new ol.MaplatMap({
-            div: 'mercMap',
-            interactions: ol.interaction.defaults().extend([
-                new ol.interaction.DragRotateAndZoom({
-                    condition: ol.events.condition.altKeyOnly
-                })
-            ]),
-            controls: ol.control.defaults()
-        });
-        // コンテクストメニュー初期化
-        mercMap.initContextMenu();
-        // マーカーなど表示用レイヤー設定
-        jsonLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-                wrapX: false
-            }),
-            style: tinStyle
-        });
-        jsonLayer.set('name', 'json');
-        mercMap.getLayer('overlay').getLayers().push(jsonLayer);
-        // 三角網など表示用レイヤー設定
-        checkLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-                wrapX: false
-            }),
-            style: tinStyle
-        });
-        checkLayer.set('name', 'check');
-        mercMap.getLayers().push(checkLayer);
-        // インタラクション設定
-        mercMap.on('click', onClick);
-        mercMap.addInteraction(new app.Drag());
-        var mercSource;
-        // ベースマップリスト作成
-        var tmsList = backend.getTmsList();
-        var promises = tmsList.reverse().map(function(tms) {
-            return (function(tms){
-                var promise = tms.label ?
-                    ol.source.HistMap.createAsync({
-                        mapID: tms.mapID,
-                        label: tms.label,
-                        attr: tms.attr,
-                        maptype: 'base',
-                        url: tms.url,
-                        maxZoom: tms.maxZoom
-                    }, {}) :
-                    ol.source.HistMap.createAsync(tms.mapID, {});
-                return promise.then(function(source){
-                    return new ol.layer.Tile({
-                        title: tms.title,
-                        type: 'base',
-                        visible: tms.mapID == 'osm',
-                        source: source
-                    });
-                });
-            })(tms);
-        });
-        // ベースマップコントロール追加
-        Promise.all(promises).then(function(layers) {
-            var layerGroup = new ol.layer.Group({
-                'title': 'ベースマップ',
-                layers: layers
+        function mapObjectInit() {
+            // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここから
+            illstMap = new ol.MaplatMap({
+                div: 'illstMap',
+                interactions: ol.interaction.defaults().extend([
+                    new ol.interaction.DragRotateAndZoom({
+                        condition: ol.events.condition.altKeyOnly
+                    })
+                ]),
+                controls: ol.control.defaults()
             });
-            var layers = mercMap.getLayers();
-            layers.removeAt(0);
-            layers.insertAt(0, layerGroup);
+            // コンテクストメニュー初期化
+            illstMap.initContextMenu();
+            // マーカーなど表示用レイヤー設定
+            var jsonLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    wrapX: false
+                }),
+                style: tinStyle
+            });
+            jsonLayer.set('name', 'json');
+            illstMap.getLayer('overlay').getLayers().push(jsonLayer);
+            // 三角網など表示用レイヤー設定
+            var checkLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    wrapX: false
+                }),
+                style: tinStyle
+            });
+            checkLayer.set('name', 'check');
+            illstMap.getLayers().push(checkLayer);
+            // インタラクション設定
+            illstMap.on('click', onClick);
+            illstMap.addInteraction(new app.Drag());
 
-            var layerSwitcher = new ol.control.LayerSwitcher({});
-            mercMap.addControl(layerSwitcher);
-        });
-        // ジオコーダコントロール追加
-        var geocoder = new Geocoder('nominatim', {
-            provider: 'osm',
-            lang: 'en-US', //en-US, fr-FR
-            placeholder: '住所を指定してください',
-            limit: 5,
-            keepOpen: false
-        });
-        mercMap.addControl(geocoder);
+            // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここまで
 
-        // var switcher = new ol.control.LayerSwitcher();
-        // mercMap.addControl(switcher);
+            // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここから
+            mercMap = new ol.MaplatMap({
+                div: 'mercMap',
+                interactions: ol.interaction.defaults().extend([
+                    new ol.interaction.DragRotateAndZoom({
+                        condition: ol.events.condition.altKeyOnly
+                    })
+                ]),
+                controls: ol.control.defaults()
+            });
+            // コンテクストメニュー初期化
+            mercMap.initContextMenu();
+            // マーカーなど表示用レイヤー設定
+            jsonLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    wrapX: false
+                }),
+                style: tinStyle
+            });
+            jsonLayer.set('name', 'json');
+            mercMap.getLayer('overlay').getLayers().push(jsonLayer);
+            // 三角網など表示用レイヤー設定
+            checkLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    wrapX: false
+                }),
+                style: tinStyle
+            });
+            checkLayer.set('name', 'check');
+            mercMap.getLayers().push(checkLayer);
+            // インタラクション設定
+            mercMap.on('click', onClick);
+            mercMap.addInteraction(new app.Drag());
+            var mercSource;
+            // ベースマップリスト作成
+            var tmsList = backend.getTmsList();
+            var promises = tmsList.reverse().map(function(tms) {
+                return (function(tms){
+                    var promise = tms.label ?
+                        ol.source.HistMap.createAsync({
+                            mapID: tms.mapID,
+                            label: tms.label,
+                            attr: tms.attr,
+                            maptype: 'base',
+                            url: tms.url,
+                            maxZoom: tms.maxZoom
+                        }, {}) :
+                        ol.source.HistMap.createAsync(tms.mapID, {});
+                    return promise.then(function(source){
+                        return new ol.layer.Tile({
+                            title: tms.title,
+                            type: 'base',
+                            visible: tms.mapID == 'osm',
+                            source: source
+                        });
+                    });
+                })(tms);
+            });
+            // ベースマップコントロール追加
+            Promise.all(promises).then(function(layers) {
+                var layerGroup = new ol.layer.Group({
+                    'title': 'ベースマップ',
+                    layers: layers
+                });
+                var layers = mercMap.getLayers();
+                layers.removeAt(0);
+                layers.insertAt(0, layerGroup);
 
-        // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここまで
+                var layerSwitcher = new ol.control.LayerSwitcher({});
+                mercMap.addControl(layerSwitcher);
+            });
+            // ジオコーダコントロール追加
+            var geocoder = new Geocoder('nominatim', {
+                provider: 'osm',
+                lang: 'en-US', //en-US, fr-FR
+                placeholder: '住所を指定してください',
+                limit: 5,
+                keepOpen: false
+            });
+            mercMap.addControl(geocoder);
+
+            // var switcher = new ol.control.LayerSwitcher();
+            // mercMap.addControl(switcher);
+
+            // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここまで
+        }
 
         // 起動時処理: Vue Mapオブジェクト関連の設定ここから
         var vueMap = new VueMap({
@@ -691,14 +676,19 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             watch: {
                 gcpsEditReady: gcpsEditReady,
                 gcps: function(val) {
-                    if (!this.gcpsInit) {
-                        this.gcpsInit = true;
-                        return;
-                    }
+                    if (!illstSource) return;
                     backend.updateTin(val, this.currentEditingLayer, this.bounds, this.strictMode, vueMap.vertexMode);
                 },
                 sub_maps: function(val) {
                     console.log('sub_maps');
+                },
+                vertexMode: function() {
+                    if (!illstSource) return;
+                    backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+                },
+                strictMode: function() {
+                    if (!illstSource) return;
+                    backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
                 }
             }
         });
@@ -717,11 +707,13 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         } else {
             setVueMap();
         }
-
         function setVueMap() {
             vueMap.vueInit = true;
             var vueMap2 = vueMap.createSharedClone('#metadataTabForm-template');
             vueMap2.$mount('#metadataTabForm');
+            var vueMap3 = vueMap.createSharedClone('#gcpsTabDiv-template');
+            vueMap3.$mount('#gcpsTabDiv');
+            mapObjectInit();
             vueMap2.$on('updateMapID', function(){
                 if (!confirm('地図IDを変更してよろしいですか?')) return;
                 vueMap2.onlyOne = false;
@@ -805,6 +797,21 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     }
                 });
             });
+            vueMap3.$on('viewError', function(){
+                var tinObject = vueMap.tinObject;
+                if (!(tinObject instanceof Tin)) return;
+                var kinks = tinObject.kinks.bakw.features;
+                if (errorNumber == null) {
+                    errorNumber = 0;
+                } else {
+                    errorNumber++;
+                    if (errorNumber >= kinks.length) errorNumber = 0;
+                }
+                var errorPoint = kinks[errorNumber].geometry.coordinates;
+                var view = mercMap.getView();
+                view.setCenter(errorPoint);
+                view.setZoom(17);
+            });
             gcpsEditReady(vueMap.gcpsEditReady);
 
             var allowClose = false;
@@ -850,7 +857,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 tinResultUpdate();
             });
 
-            document.querySelector('#viewError').addEventListener('click', function(ev) {
+            /*document.querySelector('#viewError').addEventListener('click', function(ev) {
                 var tinObject = vueMap.tinObject;
                 if (!(tinObject instanceof Tin)) return;
                 var kinks = tinObject.kinks.bakw.features;
@@ -864,7 +871,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 var view = mercMap.getView();
                 view.setCenter(errorPoint);
                 view.setZoom(17);
-            });
+            });*/
         }
         // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
         ipcRenderer.on('mapData', function(event, arg) {
@@ -899,25 +906,5 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             illstMap.updateSize();
             mercMap.updateSize();
         });
-        // エラーモード変更時、TINを更新する
-        var stricts = document.querySelectorAll('input[name=strict]');
-        for (var i=0; i<stricts.length; i++) {
-            var strict = stricts[i];
-            strict.addEventListener('click', function(e) {
-                var value = document.querySelector('input[name=strict]:checked').value;
-                vueMap.strictMode = value;
-                backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, value, vueMap.vertexMode);
-            });
-        }
-        // 外郭判定モード変更時、TINを更新する
-        var vertices = document.querySelectorAll('input[name=vertex]');
-        for (var i=0; i<vertices.length; i++) {
-            var vertex = vertices[i];
-            vertex.addEventListener('click', function(e) {
-                var value = document.querySelector('input[name=vertex]:checked').value;
-                vueMap.vertexMode = value;
-                backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, value);
-            });
-        }
         // 起動時処理: 地図外のUI設定ここまで
     });
