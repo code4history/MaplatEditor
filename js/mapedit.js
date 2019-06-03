@@ -15,6 +15,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         var illstMap;
         var illstSource;
         var mercMap;
+        var modify;
+        var snap;
         var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
         for (var i = 0; i < hashes.length; i++) {
             hash = hashes[i].split('=');
@@ -159,7 +161,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             mercMap.getSource('check').clear();
         }
 
+        function boundsClear() {
+            illstMap.getSource('bounds').clear();
+        }
+
         function onClick(evt) {
+            if (evt.pointerEvent.altKey) return;
             var isIllst = this == illstMap;
             var srcMap = isIllst ? illstMap : mercMap;
             var distMap = isIllst ? mercMap : illstMap;
@@ -213,15 +220,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         function tinResultUpdate() {
             var tinObject = vueMap.tinObject;
 
+            jsonClear();
+            boundsClear();
             if (typeof tinObject == 'string') {
-                jsonClear();
                 return;
             }
 
             var forTin = tinObject.tins.forw;
             var bakTin = tinObject.tins.bakw;
-            mercMap.getSource('json').clear();
-            illstMap.getSource('json').clear();
             var forProj = 'ZOOM:' + illstSource.maxZoom;
             var jsonReader = new ol.format.GeoJSON();
             var bakFeatures = jsonReader.readFeatures(bakTin, {dataProjection:'EPSG:3857'});
@@ -229,10 +235,35 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             mercMap.getSource('json').addFeatures(bakFeatures); //, {dataProjection:'EPSG:3857'});
             illstMap.getSource('json').addFeatures(forFeatures);// , {dataProjection:bakProj, featureProjection:'EPSG:3857'});
 
-            var bbox = turf.lineString([[0, 0], [vueMap.width, 0], [vueMap.width, vueMap.height],
-                [0, vueMap.height], [0, 0]]);
+            var boundsSource = illstMap.getSource('bounds');
+            var bboxPoints;
+            if (vueMap.currentEditingLayer == 0) {
+                bboxPoints = [[0, 0], [vueMap.width, 0], [vueMap.width, vueMap.height], [0, vueMap.height], [0, 0]];
+            } else {
+                bboxPoints = Object.assign([], vueMap.bounds);
+                bboxPoints.push(vueMap.bounds[0]);
+            }
+            var bbox = turf.lineString(bboxPoints);
             var bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
-            illstMap.getSource('json').addFeatures(bboxFeature);
+            boundsSource.addFeatures(bboxFeature);
+
+            if (modify) {
+                illstMap.removeInteraction(modify);
+            }
+            if (snap) {
+                illstMap.removeInteraction(snap);
+            }
+            if (vueMap.currentEditingLayer != 0) {
+                modify = new ol.interaction.Modify({
+                    source: boundsSource
+                });
+                modify.on('modifyend', function(evt) {
+                    console.log(evt.features.getArray());
+                });
+                snap = new ol.interaction.Snap({source: boundsSource});
+                illstMap.addInteraction(modify);
+                illstMap.addInteraction(snap);
+            }
 
             errorNumber = null;
             if (tinObject.strict_status == 'strict_error') {
@@ -576,6 +607,15 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             });
             checkLayer.set('name', 'check');
             illstMap.getLayers().push(checkLayer);
+            // bounds表示用レイヤー設定
+            var boundsLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    wrapX: false
+                }),
+                style: tinStyle
+            });
+            boundsLayer.set('name', 'bounds');
+            illstMap.getLayer('overlay').getLayers().push(boundsLayer);
             // インタラクション設定
             illstMap.on('click', onClick);
             illstMap.addInteraction(new app.Drag());
@@ -860,22 +900,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 checkClear();
                 tinResultUpdate();
             });
-
-            /*document.querySelector('#viewError').addEventListener('click', function(ev) {
-                var tinObject = vueMap.tinObject;
-                if (!(tinObject instanceof Tin)) return;
-                var kinks = tinObject.kinks.bakw.features;
-                if (errorNumber == null) {
-                    errorNumber = 0;
-                } else {
-                    errorNumber++;
-                    if (errorNumber >= kinks.length) errorNumber = 0;
-                }
-                var errorPoint = kinks[errorNumber].geometry.coordinates;
-                var view = mercMap.getView();
-                view.setCenter(errorPoint);
-                view.setZoom(17);
-            });*/
         }
         // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
         ipcRenderer.on('mapData', function(event, arg) {
