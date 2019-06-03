@@ -308,6 +308,23 @@ define(['underscore_extension', 'Vue'],
                 },
                 localedSet: function(key, value) {
                     this.localedSetBylocale(this.currentLang, key, value);
+                },
+                addSubMap: function() {
+                    this.sub_maps.push({
+                        gcps:[],
+                        priority: this.sub_maps.length,
+                        importance: this.sub_maps.length,
+                        bounds: [[0,0], [this.width, 0], [this.width, this.height], [0, this.height]]
+                    });
+                    this.tinObjects.push('');
+                    this.currentEditingLayer = this.sub_maps.length;
+                },
+                removeSubMap: function() {
+                    if (this.currentEditingLayer == 0) return;
+                    var index = this.currentEditingLayer - 1;
+                    this.currentEditingLayer = 0;
+                    this.sub_maps.splice(index, 1);
+                    this.tinObjects.splice(index+1, 1);
                 }
             },
             computed: computed

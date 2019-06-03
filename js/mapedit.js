@@ -257,7 +257,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     source: boundsSource
                 });
                 modify.on('modifyend', function(evt) {
-                    vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].map(function(merc) {
+                    vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter(function(item, index, array) {
+                        return index == array.length - 1 ? false : true;
+                    }).map(function(merc) {
                         return ol.proj.transform(merc, 'EPSG:3857', forProj);
                     });
                     backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
@@ -885,6 +887,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 var view = mercMap.getView();
                 view.setCenter(errorPoint);
                 view.setZoom(17);
+            });
+            vueMap3.$on('removeSubMap', function(){
+                if (confirm('本当にこのサブレイヤを削除してよろしいですか?')) {
+                    vueMap.removeSubMap();
+                }
             });
             gcpsEditReady(vueMap.gcpsEditReady);
 
