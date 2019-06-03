@@ -179,15 +179,23 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             distCheck.clear();
 
             var tinObject = vueMap.tinObject;
-            if (!tinObject.points || tinObject.points.length < 3) {
-                alert('変換テストに必要な対応点の数が少なすぎます');
+            if (typeof tinObject == 'string') {
+                alert(tinObject == 'tooLessGcps' ? '変換テストに必要な対応点の数が少なすぎます' :
+                tinObject == 'tooLinear' ? '対応点が直線的に並びすぎているため、変換テストが実行できません。' :
+                tinObject == 'pointsOutside' ? '対応点が地図領域外にあるため、変換テストが実行できません。' :
+                '原因不明のエラーのため、変換テストが実行できません。');
                 return;
             }
             if (tinObject.strict_status == 'strict_error' && !isIllst) {
-                alert('厳格モードでエラーがある際は、逆変換ができません');
+                alert('厳格モードでエラーがある際は、逆変換ができません。');
                 return;
             }
             var distXy = tinObject.transform(srcXy, !isIllst);
+
+            if (!distXy) {
+                alert('地図領域範囲外のため、変換ができません。');
+                return;
+            }
 
             var distMarkerLoc = isIllst ? distXy : illstSource.xy2HistMapCoords(distXy);
             distMap.getView().setCenter(distMarkerLoc);
@@ -222,18 +230,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
             jsonClear();
             boundsClear();
-            if (typeof tinObject == 'string') {
-                return;
-            }
 
-            var forTin = tinObject.tins.forw;
-            var bakTin = tinObject.tins.bakw;
             var forProj = 'ZOOM:' + illstSource.maxZoom;
             var jsonReader = new ol.format.GeoJSON();
-            var bakFeatures = jsonReader.readFeatures(bakTin, {dataProjection:'EPSG:3857'});
-            var forFeatures = jsonReader.readFeatures(forTin, {dataProjection:forProj, featureProjection:'EPSG:3857'});
-            mercMap.getSource('json').addFeatures(bakFeatures); //, {dataProjection:'EPSG:3857'});
-            illstMap.getSource('json').addFeatures(forFeatures);// , {dataProjection:bakProj, featureProjection:'EPSG:3857'});
 
             var boundsSource = illstMap.getSource('bounds');
             var bboxPoints;
@@ -243,7 +242,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 bboxPoints = Object.assign([], vueMap.bounds);
                 bboxPoints.push(vueMap.bounds[0]);
             }
-            var bbox = turf.lineString(bboxPoints);
+            var bbox = turf.polygon([bboxPoints]);
             var bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
             boundsSource.addFeatures(bboxFeature);
 
@@ -258,12 +257,26 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     source: boundsSource
                 });
                 modify.on('modifyend', function(evt) {
-                    console.log(evt.features.getArray());
+                    vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].map(function(merc) {
+                        return ol.proj.transform(merc, 'EPSG:3857', forProj);
+                    });
+                    backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
                 });
                 snap = new ol.interaction.Snap({source: boundsSource});
                 illstMap.addInteraction(modify);
                 illstMap.addInteraction(snap);
             }
+
+            if (typeof tinObject == 'string') {
+                return;
+            }
+
+            var forTin = tinObject.tins.forw;
+            var bakTin = tinObject.tins.bakw;
+            var bakFeatures = jsonReader.readFeatures(bakTin, {dataProjection:'EPSG:3857'});
+            var forFeatures = jsonReader.readFeatures(forTin, {dataProjection:forProj, featureProjection:'EPSG:3857'});
+            mercMap.getSource('json').addFeatures(bakFeatures);
+            illstMap.getSource('json').addFeatures(forFeatures);
 
             errorNumber = null;
             if (tinObject.strict_status == 'strict_error') {
@@ -309,6 +322,16 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 })
             });
         }
+
+        var boundsStyle = new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: 'red',
+                width: 2
+            }),
+            fill: new ol.style.Fill({
+                color: 'rgba(0, 0, 0, 0)'
+            })
+        });
 
         function reflectIllstMap() {
             return ol.source.HistMap.createAsync({
@@ -562,9 +585,16 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 }
                 if (this.map_ == illstMap) {
                     var xy = illstSource.histMapCoords2Xy(evt.coordinate);
-                    if (xy[0] < vueMap.width * -0.05 || xy[1] < vueMap.height * -0.05 ||
-                        xy[0] > vueMap.width * 1.05 || xy[1] > vueMap.height * 1.05)
-                        setTimeout(function() {contextmenu.close();}, 10);
+                    var outsideCheck = vueMap.currentEditingLayer ? function(xy) {
+                        var bboxPoints = Object.assign([], vueMap.bounds);
+                        bboxPoints.push(vueMap.bounds[0]);
+                        var bbox = turf.polygon([bboxPoints]);
+                        return !turf.booleanPointInPolygon(xy, bbox);
+                    } : function(xy) {
+                        return xy[0] < 0 || xy[1] < 0 ||
+                            xy[0] > vueMap.width || xy[1] > vueMap.height;
+                    };
+                    if (outsideCheck(xy)) setTimeout(function() {contextmenu.close();}, 10);
                 }
             });
 
@@ -612,7 +642,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 source: new ol.source.Vector({
                     wrapX: false
                 }),
-                style: tinStyle
+                style: boundsStyle
             });
             boundsLayer.set('name', 'bounds');
             illstMap.getLayer('overlay').getLayers().push(boundsLayer);
@@ -717,18 +747,18 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 gcpsEditReady: gcpsEditReady,
                 gcps: function(val) {
                     if (!illstSource) return;
-                    backend.updateTin(val, this.currentEditingLayer, this.bounds, this.strictMode, vueMap.vertexMode);
+                    backend.updateTin(val, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
                 },
                 sub_maps: function(val) {
                     console.log('sub_maps');
                 },
                 vertexMode: function() {
                     if (!illstSource) return;
-                    backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+                    backend.updateTin(this.gcps, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
                 },
                 strictMode: function() {
                     if (!illstSource) return;
-                    backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+                    backend.updateTin(this.gcps, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
                 },
                 currentEditingLayer: function() {
                     if (!illstSource) return;

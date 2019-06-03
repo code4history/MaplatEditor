@@ -206,12 +206,12 @@ define(['underscore_extension', 'Vue'],
                 }
             }
             if (this.map.attr == null || this.map.attr == '') err['attr'] = '地図画像のコピーライト表記を指定してください。';
-            if (this.linearGcps) err['linearGcps'] = 'linearGcps';
+            if (this.blockingGcpsError) err['blockingGcpsError'] = 'blockingGcpsError';
             return Object.keys(err).length > 0 ? err : null;
         };
-        computed.linearGcps = function() {
+        computed.blockingGcpsError = function() {
             return this.tinObjects.reduce(function(prev, curr) {
-                return curr == 'tooLinear' || prev;
+                return curr == 'tooLinear' || curr == 'pointsOutside' || prev;
             }, false);
         };
         computed.errorStatus = function() {
