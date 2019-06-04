@@ -362,6 +362,8 @@ define(['underscore_extension', 'Vue'],
                     });
                     this.tinObjects.push('');
                     this.currentEditingLayer = this.sub_maps.length;
+                    this.normalizeImportance(this.importanceSortedSubMaps);
+                    this.normalizePriority(this.prioritySortedSubMaps);
                 },
                 removeSubMap: function() {
                     if (this.currentEditingLayer == 0) return;
@@ -369,6 +371,50 @@ define(['underscore_extension', 'Vue'],
                     this.currentEditingLayer = 0;
                     this.sub_maps.splice(index, 1);
                     this.tinObjects.splice(index+1, 1);
+                    this.normalizeImportance(this.importanceSortedSubMaps);
+                    this.normalizePriority(this.prioritySortedSubMaps);
+                },
+                normalizeImportance: function(arr) {
+                    var zeroIndex = arr.indexOf(0);
+                    arr.map(function(item, index) {
+                        if (index == zeroIndex) return;
+                        item.importance = zeroIndex - index;
+                    });
+                },
+                normalizePriority: function(arr) {
+                    arr.map(function(item, index) {
+                        item.priority = arr.length - index;
+                    });
+                },
+                upImportance: function() {
+                    if (!this.canUpImportance) return;
+                    var arr = this.importanceSortedSubMaps;
+                    var target = this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer-1];
+                    var index = arr.indexOf(target);
+                    arr.splice(index-1, 2, arr[index], arr[index-1]);
+                    this.normalizeImportance(arr);
+                },
+                downImportance: function() {
+                    if (!this.canDownImportance) return;
+                    var arr = this.importanceSortedSubMaps;
+                    var target = this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer-1];
+                    var index = arr.indexOf(target);
+                    arr.splice(index, 2, arr[index+1], arr[index]);
+                    this.normalizeImportance(arr);
+                },
+                upPriority: function() {
+                    if (!this.canUpPriority) return;
+                    var arr = this.prioritySortedSubMaps;
+                    var index = arr.indexOf(this.sub_maps[this.currentEditingLayer-1]);
+                    arr.splice(index-1, 2, arr[index], arr[index-1]);
+                    this.normalizePriority(arr);
+                },
+                downPriority: function() {
+                    if (!this.canDownPriority) return;
+                    var arr = this.prioritySortedSubMaps;
+                    var index = arr.indexOf(this.sub_maps[this.currentEditingLayer-1]);
+                    arr.splice(index, 2, arr[index+1], arr[index]);
+                    this.normalizePriority(arr);
                 }
             },
             computed: computed
