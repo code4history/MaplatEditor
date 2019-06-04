@@ -83,7 +83,8 @@ define(['underscore_extension', 'Vue'],
                 })(key),
                 set:(function(key){
                     return function(newValue) {
-                        return this.share[key] = newValue;
+                        this.$set(this.share, key, newValue);
+                        return newValue;
                     };
                 })(key),
             }
@@ -100,7 +101,8 @@ define(['underscore_extension', 'Vue'],
                 })(key),
                 set:(function(key){
                     return function(newValue) {
-                        return this.share.map[key] = newValue;
+                        this.$set(this.share.map, key, newValue);
+                        return newValue;
                     };
                 })(key),
             }
@@ -222,6 +224,48 @@ define(['underscore_extension', 'Vue'],
         computed.errorNumber = function() {
             return this.errorStatus == 'strict_error' ? this.tinObject.kinks.bakw.features.length : 0;
         };
+        computed.importanceSortedSubMaps = function() {
+            var array = Object.assign([], this.sub_maps);
+            array.push(0);
+            return array.sort(function(a, b) {
+                var ac = a == 0 ? 0 : a.importance;
+                var bc = b == 0 ? 0 : b.importance;
+                return (ac < bc ? 1 : -1);
+            });
+        };
+        computed.prioritySortedSubMaps = function() {
+            var array = Object.assign([], this.sub_maps);
+            return array.sort(function(a, b) {
+                return (a.priority < b.priority ? 1 : -1);
+            });
+        };
+        computed.canUpImportance = function() {
+            var most = this.importanceSortedSubMaps[0];
+            var mostImportance = most == 0 ? 0 : most.importance;
+            return this.importance != mostImportance;
+        };
+        computed.canDownImportance = function() {
+            var importance = this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer - 1].importance;
+            var least = this.importanceSortedSubMaps[this.importanceSortedSubMaps.length - 1];
+            var leastImportance = least == 0 ? 0 : least.importance;
+            return this.importance != leastImportance;
+        };
+        computed.canUpPriority = function() {
+            if (this.currentEditingLayer == 0) return false;
+            var mostPriority = this.prioritySortedSubMaps[0].priority;
+            return this.priority != mostPriority;
+        };
+        computed.canDownPriority = function() {
+            if (this.currentEditingLayer == 0) return false;
+            var leastPriority = this.prioritySortedSubMaps[this.prioritySortedSubMaps.length - 1].priority;
+            return this.priority != leastPriority;
+        };
+        computed.importance = function() {
+            return this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer - 1].importance;
+        };
+        computed.priority = function() {
+            return this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer - 1].priority;
+        };
 
         var VueMap = Vue.extend({
             created: function () {
@@ -304,7 +348,7 @@ define(['underscore_extension', 'Vue'],
                             val[locale] = value;
                         }
                     }
-                    this.map[key] = val;
+                    this.$set(this.map, key, val);
                 },
                 localedSet: function(key, value) {
                     this.localedSetBylocale(this.currentLang, key, value);
@@ -312,8 +356,8 @@ define(['underscore_extension', 'Vue'],
                 addSubMap: function() {
                     this.sub_maps.push({
                         gcps:[],
-                        priority: this.sub_maps.length,
-                        importance: this.sub_maps.length,
+                        priority: this.sub_maps.length+1,
+                        importance: this.sub_maps.length+1,
                         bounds: [[0,0], [this.width, 0], [this.width, this.height], [0, this.height]]
                     });
                     this.tinObjects.push('');

@@ -112,7 +112,7 @@
     <div class="row">
       <div class="form-group col-xs-3" v-bind:class="error && error.mapID ? 'has-error' : ''">
         <label for="mapID">地図ID</label>
-        <input type="text" class="form-control" id="mapID" aria-describedby="mapIDHelp" placeholder="地図IDを入力してください。" v-model="map.mapID" v-bind:disabled="onlyOne">
+        <input type="text" class="form-control" id="mapID" aria-describedby="mapIDHelp" placeholder="地図IDを入力してください。" v-model="mapID" v-bind:disabled="onlyOne">
         <small class="form-text text-muted text-danger" v-if="error && (error.mapID || error.mapIDOnlyOne)">{{error.mapID || error.mapIDOnlyOne}}</small>
         <small class="form-text text-muted" v-else>一意な地図IDを入力してください。</small>
       </div>
@@ -260,6 +260,32 @@
           </div>
           <div class="col-xs-3">
             <button type="button" class="btn btn-secondary" v-on:click="$emit('removeSubMap')" v-bind:disabled="currentEditingLayer==0">レイヤ削除</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-xs-4">
+        <div class="row">
+          <div class="col-xs-4">
+            重要度: {{importance}}
+          </div>
+          <div class="col-xs-4">
+            <button type="button" class="btn btn-secondary" v-bind:disabled="!canUpImportance">重要度UP</button>
+          </div>
+          <div class="col-xs-4">
+            <button type="button" class="btn btn-secondary" v-bind:disabled="!canDownImportance">重要度DOWN</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-xs-4">
+        <div class="row">
+          <div class="col-xs-4">
+            前面度: {{priority}}
+          </div>
+          <div class="col-xs-4">
+            <button type="button" class="btn btn-secondary" v-bind:disabled="!canUpPriority">前面度UP</button>
+          </div>
+          <div class="col-xs-4">
+            <button type="button" class="btn btn-secondary" v-bind:disabled="!canDownPriority">前面度DOWN</button>
           </div>
         </div>
       </div>
