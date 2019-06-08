@@ -6,8 +6,8 @@ define(['model/maplatbase', 'backbone', 'underscore_extension'], function(Maplat
         'fr': 'フランス語',
         'es': 'スペイン語',
         'ko': '韓国語',
-        'zh-Hans': '中国語簡体字',
-        'zh-Hant': '中国語繁体字'
+        'zh': '中国語簡体字',
+        'zh-TW': '中国語繁体字'
     };
     function zenHankakuLength(text) {
         var len = 0;
