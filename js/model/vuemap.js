@@ -218,6 +218,7 @@ define(['underscore_extension', 'Vue'],
         };
         computed.errorStatus = function() {
             var tinObject = this.tinObject;
+            if (!tinObject) return;
             return typeof tinObject == 'string' ? this.tinObject :
                 tinObject.strict_status ? tinObject.strict_status : undefined;
         };
