@@ -11,6 +11,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         var uploader;
         var mapID;
         var newlyAddGcp;
+        var newlyAddEdge;
         var errorNumber;
         var illstMap;
         var illstSource;
@@ -20,7 +21,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
         for (var i = 0; i < hashes.length; i++) {
             hash = hashes[i].split('=');
-            if (hash[0] == 'mapid') mapID = hash[1];
+            if (hash[0] === 'mapid') mapID = hash[1];
         }
         var formHelp = {
             'mapID': '一意な地図IDを入力してください。',
@@ -79,10 +80,30 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             }
         }
 
+        function edgeStartMarker (arg, map) {
+            var marker = arg.data.marker;
+            var gcpIndex = marker.get('gcpIndex');
+            if (gcpIndex !== 'new') {
+                newlyAddEdge = gcpIndex;
+            }
+        }
+
+        function edgeEndMarker (arg, map) {
+            var marker = arg.data.marker;
+            var gcpIndex = marker.get('gcpIndex');
+            if (gcpIndex !== 'new') {
+                newlyAddEdge = undefined;
+            }
+        }
+
+        function edgeCancelMarker (arg, map) {
+            newlyAddEdge = undefined;
+        }
+
         function pairingMarker (arg, map) {
             var marker = arg.data.marker;
             var gcpIndex = marker.get('gcpIndex');
-            if (gcpIndex != 'new') {
+            if (gcpIndex !== 'new') {
                 var gcps = vueMap.gcps;
                 var gcp = gcps[gcpIndex];
                 var forw = illstSource.xy2HistMapCoords(gcp[0]);
@@ -99,7 +120,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         function removeMarker (arg, map) {
             var marker = arg.data.marker;
             var gcpIndex = marker.get('gcpIndex');
-            if (gcpIndex == 'new') {
+            if (gcpIndex === 'new') {
                 newlyAddGcp = null;
                 map.getSource('marker').removeFeature(marker);
             } else {
@@ -112,7 +133,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         function addNewMarker (arg, map) {
             var gcps = vueMap.gcps;
             var number = gcps.length + 1;
-            var isIllst = map == illstMap;
+            var isIllst = map === illstMap;
             var coord = arg.coordinate;
             var xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
 
@@ -167,7 +188,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
         function onClick(evt) {
             if (evt.pointerEvent.altKey) return;
-            var isIllst = this == illstMap;
+            var isIllst = this === illstMap;
             var srcMap = isIllst ? illstMap : mercMap;
             var distMap = isIllst ? mercMap : illstMap;
             var srcMarkerLoc = evt.coordinate;
@@ -179,14 +200,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             distCheck.clear();
 
             var tinObject = vueMap.tinObject;
-            if (typeof tinObject == 'string') {
-                alert(tinObject == 'tooLessGcps' ? '変換テストに必要な対応点の数が少なすぎます' :
-                tinObject == 'tooLinear' ? '対応点が直線的に並びすぎているため、変換テストが実行できません。' :
-                tinObject == 'pointsOutside' ? '対応点が地図領域外にあるため、変換テストが実行できません。' :
+            if (typeof tinObject === 'string') {
+                alert(tinObject === 'tooLessGcps' ? '変換テストに必要な対応点の数が少なすぎます' :
+                tinObject === 'tooLinear' ? '対応点が直線的に並びすぎているため、変換テストが実行できません。' :
+                tinObject === 'pointsOutside' ? '対応点が地図領域外にあるため、変換テストが実行できません。' :
                 '原因不明のエラーのため、変換テストが実行できません。');
                 return;
             }
-            if (tinObject.strict_status == 'strict_error' && !isIllst) {
+            if (tinObject.strict_status === 'strict_error' && !isIllst) {
                 alert('厳格モードでエラーがある際は、逆変換ができません。');
                 return;
             }
@@ -236,7 +257,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
             var boundsSource = illstMap.getSource('bounds');
             var bboxPoints;
-            if (vueMap.currentEditingLayer == 0) {
+            if (vueMap.currentEditingLayer === 0) {
                 bboxPoints = [[0, 0], [vueMap.width, 0], [vueMap.width, vueMap.height], [0, vueMap.height], [0, 0]];
             } else {
                 bboxPoints = Object.assign([], vueMap.bounds);
@@ -252,13 +273,13 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             if (snap) {
                 illstMap.removeInteraction(snap);
             }
-            if (vueMap.currentEditingLayer != 0) {
+            if (vueMap.currentEditingLayer !== 0) {
                 modify = new ol.interaction.Modify({
                     source: boundsSource
                 });
                 modify.on('modifyend', function(evt) {
                     vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter(function(item, index, array) {
-                        return index == array.length - 1 ? false : true;
+                        return index === array.length - 1 ? false : true;
                     }).map(function(merc) {
                         return ol.proj.transform(merc, 'EPSG:3857', forProj);
                     });
@@ -269,7 +290,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 illstMap.addInteraction(snap);
             }
 
-            if (typeof tinObject == 'string') {
+            if (typeof tinObject === 'string') {
                 return;
             }
 
@@ -281,14 +302,14 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             illstMap.getSource('json').addFeatures(forFeatures);
 
             errorNumber = null;
-            if (tinObject.strict_status == 'strict_error') {
+            if (tinObject.strict_status === 'strict_error') {
                 var kinkFeatures = jsonReader.readFeatures(tinObject.kinks.bakw, {dataProjection:'EPSG:3857'});
                 mercMap.getSource('json').addFeatures(kinkFeatures);
             }
         }
 
         function tinStyle(feature) {
-            if (feature.getGeometry().getType() == 'Polygon') {
+            if (feature.getGeometry().getType() === 'Polygon') {
                 return new ol.style.Style({
                     stroke: new ol.style.Stroke({
                         color: 'blue',
@@ -298,7 +319,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         color: 'rgba(0, 0, 255, 0.05)'
                     })
                 });
-            } else if (feature.getGeometry().getType() == 'LineString') {
+            } else if (feature.getGeometry().getType() === 'LineString') {
                 return new ol.style.Style({
                     stroke: new ol.style.Stroke({
                         color: 'red',
@@ -355,7 +376,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     if (gcps && gcps.length > 0) {
                         var center;
                         var zoom;
-                        if (gcps.length == 1) {
+                        if (gcps.length === 1) {
                             center = gcps[0][1];
                             zoom = 16;
                         } else {
@@ -367,7 +388,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                                 if (merc[1] > prev[1][1]) prev[1][1] = merc[1];
                                 if (merc[0] < prev[2][0]) prev[2][0] = merc[0];
                                 if (merc[1] < prev[2][1]) prev[2][1] = merc[1];
-                                if (index == gcps.length - 1) {
+                                if (index === gcps.length - 1) {
                                     var center = [prev[0][0]/gcps.length, prev[0][1]/gcps.length];
                                     var deltax = prev[1][0] - prev[2][0];
                                     var deltay = prev[1][1] - prev[2][1];
@@ -435,7 +456,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
          * @return {boolean} `true` to start the drag sequence.
          */
         app.Drag.prototype.handleDownEvent = function(evt) {
-            if (evt.pointerEvent.button == 2) return;
+            if (evt.pointerEvent.button === 2) return;
             var map = evt.map;
 
             var this_ = this;
@@ -443,7 +464,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 return feature;
             }, {
                 layerFilter: function(layer) {
-                    return layer.get('name') == this_.layerFilter;
+                    return layer.get('name') === this_.layerFilter;
                 }
             });
 
@@ -459,7 +480,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
          * @param {ol.MapBrowserEvent} evt Map browser event.
          */
         app.Drag.prototype.handleDragEvent = function(evt) {
-            if (evt.pointerEvent.button == 2) return;
+            if (evt.pointerEvent.button === 2) return;
             var map = evt.map;
 
             var this_ = this;
@@ -479,8 +500,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
          * @param {ol.MapBrowserEvent} evt Event.
          */
         app.Drag.prototype.handleMoveEvent = function(evt) {
-            if (evt.pointerEvent.button == 2) return;
-            var anotherMap = evt.map == illstMap ? mercMap : illstMap;
+            if (evt.pointerEvent.button === 2) return;
+            var anotherMap = evt.map === illstMap ? mercMap : illstMap;
             anotherMap.closeContextMenu();
             if (this.cursor_) {
                 var map = evt.map;
@@ -490,13 +511,13 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     return feature;
                 }, {
                     layerFilter: function(layer) {
-                        return layer.get('name') == this_.layerFilter;
+                        return layer.get('name') === this_.layerFilter;
                     }
                 });
 
                 var element = evt.map.getTargetElement();
                 if (feature) {
-                    if (element.style.cursor != this.cursor_) {
+                    if (element.style.cursor !== this.cursor_) {
                         this.previousCursor_ = element.style.cursor;
                         element.style.cursor = this.cursor_;
                     }
@@ -512,15 +533,15 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
          * @return {boolean} `false` to stop the drag sequence.
          */
         app.Drag.prototype.handleUpEvent = function(evt) {
-            if (evt.pointerEvent.button == 2) return;
+            if (evt.pointerEvent.button === 2) return;
             var map = evt.map;
-            var isIllst = map == illstMap;
+            var isIllst = map === illstMap;
             var feature = this.feature_;
             var xy = feature.getGeometry().getCoordinates();
             xy = isIllst ? illstSource.histMapCoords2Xy(xy) : xy;
 
             var gcpIndex = feature.get('gcpIndex');
-            if (gcpIndex != 'new') {
+            if (gcpIndex !== 'new') {
                 var gcps = vueMap.gcps;
                 var gcp = gcps[gcpIndex];
                 gcp[isIllst ? 0 : 1] = xy;
@@ -546,8 +567,22 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
             var pairingContextMenu = {
                 text: '対応マーカー表示',
-                // icon: 'img/marker.png',
                 callback: pairingMarker
+            };
+
+            var edgeStartContextMenu = {
+                text: '対応線開始マーカー指定',
+                callback: edgeStartMarker
+            };
+
+            var edgeEndContextMenu = {
+                text: '対応線終了マーカー指定',
+                callback: edgeEndMarker
+            };
+
+            var edgeCancelContextMenu = {
+                text: '対応線指定キャンセル',
+                callback: edgeCancelMarker
             };
 
             var contextmenu = this.contextmenu = new ContextMenu({
@@ -563,29 +598,47 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     return ft;
                 }, {
                     layerFilter: function(layer) {
-                        return layer.get('name') == 'marker';
+                        return layer.get('name') === 'marker';
                     }
                 });
                 if (feature) {
                     contextmenu.clear();
-                    if (feature.get('gcpIndex') != 'new') {
-                        pairingContextMenu.data = {
+                    if (newlyAddEdge !== undefined) {
+                        if (feature.get('gcpIndex') !== 'new' && feature.get('gcpIndex') !== newlyAddEdge) {
+                            edgeEndContextMenu.data = {
+                                marker: feature
+                            };
+                            contextmenu.push(edgeEndContextMenu);
+                        } else {
+                            contextmenu.push(edgeCancelContextMenu);
+                        }
+                    } else {
+                        if (feature.get('gcpIndex') !== 'new') {
+                            pairingContextMenu.data = {
+                                marker: feature
+                            };
+                            contextmenu.push(pairingContextMenu);
+                            edgeStartContextMenu.data = {
+                                marker: feature
+                            };
+                            contextmenu.push(edgeStartContextMenu);
+                        }
+                        removeContextMenu.data = {
                             marker: feature
                         };
-                        contextmenu.push(pairingContextMenu);
+                        contextmenu.push(removeContextMenu);
                     }
-                    removeContextMenu.data = {
-                        marker: feature
-                    };
-                    contextmenu.push(removeContextMenu);
                     restore = true;
+                } else if (newlyAddEdge !== undefined) {
+                    contextmenu.clear();
+                    contextmenu.push(edgeCancelContextMenu);
                 } else if (restore) {
                     contextmenu.clear();
                     contextmenu.push(normalContextMenu);
                     //contextmenu.extend(contextmenu.getDefaultItems());
                     restore = false;
                 }
-                if (this.map_ == illstMap) {
+                if (this.map_ === illstMap) {
                     var xy = illstSource.histMapCoords2Xy(evt.coordinate);
                     var outsideCheck = vueMap.currentEditingLayer ? function(xy) {
                         var bboxPoints = Object.assign([], vueMap.bounds);
@@ -706,7 +759,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         return new ol.layer.Tile({
                             title: tms.title,
                             type: 'base',
-                            visible: tms.mapID == 'osm',
+                            visible: tms.mapID === 'osm',
                             source: source
                         });
                     });
@@ -802,7 +855,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     if (arg) {
                         alert('一意な地図IDです。');
                         vueMap.onlyOne = true;
-                        if (vueMap.status == 'Update') {
+                        if (vueMap.status === 'Update') {
                             vueMap.status = 'Change:' + mapID;
                         }
                     } else {
@@ -820,7 +873,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         document.body.style.pointerEvents = null;
                         myModal.hide();
                         if (arg.err) {
-                            if (arg.err != 'Canceled') alert('地図アップロードでエラーが発生しました。');
+                            if (arg.err !== 'Canceled') alert('地図アップロードでエラーが発生しました。');
                             return;
                         } else {
                             alert('正常に地図がアップロードできました。');
@@ -828,7 +881,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         vueMap.width = arg.width;
                         vueMap.height = arg.height;
                         vueMap.url_ = arg.url;
-                        if (arg.imageExtention == 'jpg') {
+                        if (arg.imageExtention === 'jpg') {
                             vueMap.imageExtention = undefined;
                         } else {
                             vueMap.imageExtention = arg.imageExtention;
@@ -854,18 +907,18 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 }
                 document.body.style.pointerEvents = 'none';
                 backend.save(saveValue, vueMap.tinObjects.map(function(tin) {
-                    if (typeof tin == 'string') return tin;
+                    if (typeof tin === 'string') return tin;
                     return tin.getCompiled();
                 }));
                 ipcRenderer.once('saveResult', function(event, arg) {
                     document.body.style.pointerEvents = null;
-                    if (arg == 'Success') {
+                    if (arg === 'Success') {
                         alert('正常に保存できました。');
-                        if (mapID != vueMap.mapID) {
+                        if (mapID !== vueMap.mapID) {
                             mapID = vueMap.mapID;
                         }
                         backend.request(mapID);
-                    } else if (arg == 'Exist') {
+                    } else if (arg === 'Exist') {
                         alert('地図IDが重複しています。\n地図IDを変更してください。');
                     } else {
                         console.log(arg);
@@ -877,7 +930,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 var tinObject = vueMap.tinObject;
                 if (!(tinObject instanceof Tin)) return;
                 var kinks = tinObject.kinks.bakw.features;
-                if (errorNumber == null) {
+                if (errorNumber === null) {
                     errorNumber = 0;
                 } else {
                     errorNumber++;
@@ -927,7 +980,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             ipcRenderer.on('updatedTin', function(event, arg) {
                 var index = arg[0];
                 var tin;
-                if (typeof arg[1] == 'string') {
+                if (typeof arg[1] === 'string') {
                     tin = arg[1];
                 } else {
                     tin = new Tin({});
@@ -947,7 +1000,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             json.onlyOne = true;
             vueMap.setInitialMap(json);
             vueMap.tinObjects = tins.map(function(compiled) {
-                if (typeof compiled == 'string') return compiled;
+                if (typeof compiled === 'string') return compiled;
                 var tin = new Tin({});
                 tin.setCompiled(compiled);
                 return tin;
