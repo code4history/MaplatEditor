@@ -100,6 +100,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             newlyAddEdge = undefined;
         }
 
+        function addNewCancelMarker (arg, map) {
+            newlyAddGcp = undefined;
+            var gcps = vueMap.gcps;
+            gcpsToMarkers(gcps);
+        }
+
         function pairingMarker (arg, map) {
             var marker = arg.data.marker;
             var gcpIndex = marker.get('gcpIndex');
@@ -121,7 +127,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var marker = arg.data.marker;
             var gcpIndex = marker.get('gcpIndex');
             if (gcpIndex === 'new') {
-                newlyAddGcp = null;
+                newlyAddGcp = undefined;
                 map.getSource('marker').removeFeature(marker);
             } else {
                 var gcps = vueMap.gcps;
@@ -168,7 +174,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 if (isIllst) { newlyAddGcp[0] = xy; } else { newlyAddGcp[1] = xy; }
                 gcps.push(newlyAddGcp);
                 gcpsToMarkers(gcps);
-                newlyAddGcp = null;
+                newlyAddGcp = undefined;
             }
         }
 
@@ -555,6 +561,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         };
 
         ol.MaplatMap.prototype.initContextMenu = function() {
+            var map = this;
             var normalContextMenu = {
                 text: 'マーカー追加',
                 callback: addNewMarker
@@ -568,6 +575,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var pairingContextMenu = {
                 text: '対応マーカー表示',
                 callback: pairingMarker
+            };
+
+            var addNewCancelContextMenu = {
+                text: 'マーカー追加キャンセル',
+                callback: addNewCancelMarker
             };
 
             var edgeStartContextMenu = {
@@ -612,6 +624,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         } else {
                             contextmenu.push(edgeCancelContextMenu);
                         }
+                    } else if (newlyAddGcp !== undefined) {
+                        contextmenu.push(addNewCancelContextMenu);
                     } else {
                         if (feature.get('gcpIndex') !== 'new') {
                             pairingContextMenu.data = {
@@ -632,6 +646,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 } else if (newlyAddEdge !== undefined) {
                     contextmenu.clear();
                     contextmenu.push(edgeCancelContextMenu);
+                    restore = true;
+                } else if (newlyAddGcp !== undefined && newlyAddGcp[map === illstMap ? 0 : 1] !== undefined) {
+                    contextmenu.clear();
+                    contextmenu.push(addNewCancelContextMenu);
+                    restore = true;
                 } else if (restore) {
                     contextmenu.clear();
                     contextmenu.push(normalContextMenu);
