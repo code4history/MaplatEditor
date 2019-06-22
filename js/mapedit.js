@@ -44,7 +44,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             return metrics.width;
         }
 
-        function gcpsToMarkers (gcps) {
+        function gcpsToMarkers (targetIndex) {
+            var gcps = vueMap.gcps;
+            var edges = vueMap.edges;
             illstMap.resetMarker();
             mercMap.resetMarker();
 
@@ -59,7 +61,9 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     'x="0px" y="0px" width="' + labelWidth + 'px" height="20px" ' +
                     'viewBox="0 0 ' + labelWidth + ' 20" enable-background="new 0 0 ' + labelWidth + ' 20" xml:space="preserve">'+
                     '<polygon x="0" y="0" points="0,0 ' + labelWidth + ',0 ' + labelWidth + ',16 ' + (labelWidth / 2 + 4) + ',16 ' +
-                    (labelWidth / 2) + ',20 ' + (labelWidth / 2 - 4) + ',16 0,16 0,0" stroke="#000000" fill="#DEEFAE" stroke-width="2"></polygon>' +
+                    (labelWidth / 2) + ',20 ' + (labelWidth / 2 - 4) + ',16 0,16 0,0" stroke="#000000" fill="' +
+                    (i === targetIndex ? '#FF0000' : '#DEEFAE') +
+                    '" stroke-width="2"></polygon>' +
                     '<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">' + (i + 1) + '</text>' +
                     '</svg>';
 
@@ -85,6 +89,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var gcpIndex = marker.get('gcpIndex');
             if (gcpIndex !== 'new') {
                 newlyAddEdge = gcpIndex;
+                gcpsToMarkers(gcpIndex);
             }
         }
 
@@ -92,12 +97,22 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var marker = arg.data.marker;
             var gcpIndex = marker.get('gcpIndex');
             if (gcpIndex !== 'new') {
+                var edge = [newlyAddEdge, gcpIndex].sort(function (a, b) {
+                    return a > b ? 1 : a < b ? -1 : 0;
+                });
                 newlyAddEdge = undefined;
+                if (vueMap.edges.findIndex(function(item) {
+                    return item[0] === edge[0] && item[1] === edge[1]
+                }) < 0) {
+                    vueMap.edges.push(edge);
+                }
+                gcpsToMarkers();
             }
         }
 
         function edgeCancelMarker (arg, map) {
             newlyAddEdge = undefined;
+            gcpsToMarkers();
         }
 
         function pairingMarker (arg, map) {
@@ -126,7 +141,17 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             } else {
                 var gcps = vueMap.gcps;
                 gcps.splice(gcpIndex, 1);
-                gcpsToMarkers(gcps);
+                var edges = vueMap.edges;
+                for (var i = edges.length-1; i >= 0; i--) {
+                    var edge = edges[i];
+                    if (edge[0] === gcpIndex || edge[1] === gcpIndex) {
+                        edges.splice(i, 1);
+                    } else {
+                        if (edge[0] > gcpIndex) edge[0] = edge[0] - 1;
+                        if (edge[1] > gcpIndex) edge[1] = edge[1] - 1;
+                    }
+                }
+                gcpsToMarkers();
             }
         }
 
@@ -167,7 +192,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             } else if ((isIllst && !newlyAddGcp[0]) || (!isIllst && !newlyAddGcp[1])) {
                 if (isIllst) { newlyAddGcp[0] = xy; } else { newlyAddGcp[1] = xy; }
                 gcps.push(newlyAddGcp);
-                gcpsToMarkers(gcps);
+                gcpsToMarkers();
                 newlyAddGcp = null;
             }
         }
@@ -817,7 +842,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 },
                 currentEditingLayer: function() {
                     if (!illstSource) return;
-                    gcpsToMarkers(vueMap.gcps);
+                    gcpsToMarkers();
                 }
             }
         });
@@ -888,7 +913,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         }
 
                         reflectIllstMap().then(function() {
-                            gcpsToMarkers(vueMap.gcps);
+                            gcpsToMarkers();
                             backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
                         });
                     });
@@ -1009,7 +1034,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 setVueMap();
             }
             reflectIllstMap().then(function() {
-                gcpsToMarkers(vueMap.gcps);
+                gcpsToMarkers();
                 tinResultUpdate();
             });
         });
