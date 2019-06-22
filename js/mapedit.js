@@ -82,6 +82,28 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 illstMap.setMarker(mapXyIllst, { gcpIndex: i }, iconStyle);
                 mercMap.setMarker(gcp[1], { gcpIndex: i }, iconStyle);
             }
+            for (var i=0; i<edges.length; i++) {
+                var gcp1 = gcps[edges[i].startEnd[0]];
+                var gcp2 = gcps[edges[i].startEnd[1]];
+                var illst1 = illstSource.xy2HistMapCoords(gcp1[0]);
+                var illst2 = illstSource.xy2HistMapCoords(gcp2[0]);
+                var style = new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'red',
+                        width: 2
+                    })
+                });
+                var mercLine = {
+                    geometry: new ol.geom.LineString([gcp1[1], gcp2[1]]),
+                    startEnd: edges[i].startEnd
+                };
+                var illstLine = {
+                    geometry: new ol.geom.LineString([illst1, illst2]),
+                    startEnd: edges[i].startEnd
+                };
+                illstMap.setFeature(illstLine, style, 'marker');
+                mercMap.setFeature(mercLine, style, 'marker');
+            }
         }
 
         function edgeStartMarker (arg, map) {
@@ -102,9 +124,15 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 });
                 newlyAddEdge = undefined;
                 if (vueMap.edges.findIndex(function(item) {
-                    return item[0] === edge[0] && item[1] === edge[1]
+                    return item.startEnd[0] === edge[0] && item.startEnd[1] === edge[1]
                 }) < 0) {
-                    vueMap.edges.push(edge);
+                    vueMap.edges.push({
+                        startEnd: edge,
+                        mercNodes: [],
+                        illstNodes: []
+                    });
+                } else {
+                    alert('その対応線は指定済です。');
                 }
                 gcpsToMarkers();
             }
@@ -138,6 +166,19 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             }
         }
 
+        function removeEdge (arg, map) {
+            var edge = arg.data.edge;
+            var startEnd = edge.get('startEnd');
+            var edges = vueMap.edges;
+            var edgeIndex = edges.findIndex(function(item) {
+                return item.startEnd[0] === startEnd[0] && item.startEnd[1] === startEnd[1];
+            });
+            if (edgeIndex > -1) {
+                edges.splice(edgeIndex, 1);
+            }
+            gcpsToMarkers();
+        }
+
         function removeMarker (arg, map) {
             var marker = arg.data.marker;
             var gcpIndex = marker.get('gcpIndex');
@@ -150,11 +191,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 var edges = vueMap.edges;
                 for (var i = edges.length-1; i >= 0; i--) {
                     var edge = edges[i];
-                    if (edge[0] === gcpIndex || edge[1] === gcpIndex) {
+                    if (edge.startEnd[0] === gcpIndex || edge.startEnd[1] === gcpIndex) {
                         edges.splice(i, 1);
                     } else {
-                        if (edge[0] > gcpIndex) edge[0] = edge[0] - 1;
-                        if (edge[1] > gcpIndex) edge[1] = edge[1] - 1;
+                        if (edge.startEnd[0] > gcpIndex) edge.startEnd[0] = edge.startEnd[0] - 1;
+                        if (edge.startEnd[1] > gcpIndex) edge.startEnd[1] = edge.startEnd[1] - 1;
                     }
                 }
                 gcpsToMarkers();
@@ -622,6 +663,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 callback: edgeCancelMarker
             };
 
+            var removeEdgeContextMenu = {
+                text: '対応線削除',
+                callback: removeEdge
+            };
+
             var contextmenu = this.contextmenu = new ContextMenu({
                 width: 170,
                 defaultItems: false,
@@ -639,9 +685,10 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     }
                 });
                 if (feature) {
+                    var isLine = feature.getGeometry().getType() === 'LineString';
                     contextmenu.clear();
                     if (newlyAddEdge !== undefined) {
-                        if (feature.get('gcpIndex') !== 'new' && feature.get('gcpIndex') !== newlyAddEdge) {
+                        if (!isLine && feature.get('gcpIndex') !== 'new' && feature.get('gcpIndex') !== newlyAddEdge) {
                             edgeEndContextMenu.data = {
                                 marker: feature
                             };
@@ -652,20 +699,27 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     } else if (newlyAddGcp !== undefined) {
                         contextmenu.push(addNewCancelContextMenu);
                     } else {
-                        if (feature.get('gcpIndex') !== 'new') {
-                            pairingContextMenu.data = {
+                        if (isLine) {
+                            removeEdgeContextMenu.data = {
+                                edge: feature
+                            };
+                            contextmenu.push(removeEdgeContextMenu);
+                        } else {
+                            if (feature.get('gcpIndex') !== 'new') {
+                                pairingContextMenu.data = {
+                                    marker: feature
+                                };
+                                contextmenu.push(pairingContextMenu);
+                                edgeStartContextMenu.data = {
+                                    marker: feature
+                                };
+                                contextmenu.push(edgeStartContextMenu);
+                            }
+                            removeContextMenu.data = {
                                 marker: feature
                             };
-                            contextmenu.push(pairingContextMenu);
-                            edgeStartContextMenu.data = {
-                                marker: feature
-                            };
-                            contextmenu.push(edgeStartContextMenu);
+                            contextmenu.push(removeContextMenu);
                         }
-                        removeContextMenu.data = {
-                            marker: feature
-                        };
-                        contextmenu.push(removeContextMenu);
                     }
                     restore = true;
                 } else if (newlyAddEdge !== undefined) {
@@ -848,8 +902,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     if (!illstSource) return;
                     backend.updateTin(val, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
                 },
+                edges: function(val) {
+                    if (!illstSource) return;
+                    backend.updateTin(this.gcps, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+                },
                 sub_maps: function(val) {
-                    console.log('sub_maps');
                 },
                 vertexMode: function() {
                     if (!illstSource) return;
