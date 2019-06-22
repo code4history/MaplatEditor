@@ -276,6 +276,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 alert(tinObject === 'tooLessGcps' ? '変換テストに必要な対応点の数が少なすぎます' :
                 tinObject === 'tooLinear' ? '対応点が直線的に並びすぎているため、変換テストが実行できません。' :
                 tinObject === 'pointsOutside' ? '対応点が地図領域外にあるため、変換テストが実行できません。' :
+                tinObject === 'edgeError' ? '対応線にエラーがあるため、変換テストが実行できません。' :
                 '原因不明のエラーのため、変換テストが実行できません。');
                 return;
             }
@@ -355,7 +356,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     }).map(function(merc) {
                         return ol.proj.transform(merc, 'EPSG:3857', forProj);
                     });
-                    backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+                    backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
                 });
                 snap = new ol.interaction.Snap({source: boundsSource});
                 illstMap.addInteraction(modify);
@@ -541,8 +542,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             });
 
             if (feature) {
-                this.coordinate_ = evt.coordinate;
-                this.feature_ = feature;
+                if (feature.getGeometry().getType() === 'LineString') {
+                    feature = undefined;
+                } else {
+                    this.coordinate_ = evt.coordinate;
+                    this.feature_ = feature;
+                }
             }
 
             return !!feature;
@@ -618,6 +623,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 var gcp = gcps[gcpIndex];
                 gcp[isIllst ? 0 : 1] = xy;
                 gcps.splice(gcpIndex, 1, gcp);
+                gcpsToMarkers();
             } else {
                 newlyAddGcp[isIllst ? 0 : 1] = xy;
             }
@@ -900,21 +906,21 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 gcpsEditReady: gcpsEditReady,
                 gcps: function(val) {
                     if (!illstSource) return;
-                    backend.updateTin(val, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+                    backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
                 },
                 edges: function(val) {
                     if (!illstSource) return;
-                    backend.updateTin(this.gcps, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+                    backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
                 },
                 sub_maps: function(val) {
                 },
                 vertexMode: function() {
                     if (!illstSource) return;
-                    backend.updateTin(this.gcps, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+                    backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
                 },
                 strictMode: function() {
                     if (!illstSource) return;
-                    backend.updateTin(this.gcps, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+                    backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
                 },
                 currentEditingLayer: function() {
                     if (!illstSource) return;
@@ -990,7 +996,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
                         reflectIllstMap().then(function() {
                             gcpsToMarkers();
-                            backend.updateTin(vueMap.gcps, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+                            backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
                         });
                     });
                 }

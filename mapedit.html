@@ -312,6 +312,7 @@
           <span v-if="errorStatus == 'tooLessGcps'">対応点が少なすぎます。</span>
           <span v-else-if="errorStatus == 'tooLinear'">対応点が直線的に並びすぎています。もっと散らしてください。</span>
           <span v-else-if="errorStatus == 'pointsOutside'">対応点が地図領域の範囲外にあります。地図領域内に対応点を打ってください。</span>
+          <span v-else-if="errorStatus == 'edgeError'">対応線にエラーがあります(対応線が交差しているなど)。修正してください。</span>
           <span v-else-if="errorStatus == 'strict'">エラーなし</span>
           <span v-else-if="errorStatus == 'strict_error'">エラー{{errorNumber}}件</span>
           <span v-else-if="errorStatus == 'loose'">エラーのため簡易モード</span>
