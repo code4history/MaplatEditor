@@ -808,6 +808,50 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             // インタラクション設定
             illstMap.on('click', onClick);
             illstMap.addInteraction(new app.Drag());
+            var illustMarkerSource = illstMap.getSource('marker');
+            var illustEdgeModify = new ol.interaction.Modify({
+                source: illustMarkerSource,
+                condition: function(e){
+                    var f = this.getMap().getFeaturesAtPixel(e.pixel,{
+                        layerFilter: function(layer) {
+                            return layer.get('name') === 'marker';
+                        }
+                    });
+                    if (f && f[0].getGeometry().getType() == 'LineString') {
+                        var coordinates = f[0].getGeometry().getCoordinates();
+                        var p0 = e.pixel;
+                        var p1 = this.getMap().getPixelFromCoordinate(coordinates[0]);
+                        var dx = p0[0]-p1[0];
+                        var dy = p0[1]-p1[1];
+                        if (Math.sqrt(dx*dx+dy*dy) <= 10) {
+                            return false;
+                        }
+                        var p1 = this.getMap().getPixelFromCoordinate(coordinates.slice(-1)[0]);
+                        var dx = p0[0]-p1[0];
+                        var dy = p0[1]-p1[1];
+                        if (Math.sqrt(dx*dx+dy*dy) <= 10) {
+                            return false;
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+            });
+            var illustEdgeSnap = new ol.interaction.Snap({
+                source: illustMarkerSource,
+                condition:  function(e){
+                    var f = this.getMap().getFeaturesAtPixel(e.pixel,{
+                        layerFilter: function(layer) {
+                            return layer.get('name') === 'marker';
+                        }
+                    });
+                    if (f && f[0].getGeometry().getType() == 'LineString') return true;
+                    return false;
+                }
+            });
+            illstMap.addInteraction(illustEdgeModify);
+            illstMap.addInteraction(illustEdgeSnap);
+
 
             // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここまで
 
