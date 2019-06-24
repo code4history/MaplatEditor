@@ -49,6 +49,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var edges = vueMap.edges;
             illstMap.resetMarker();
             mercMap.resetMarker();
+            edgesClear();
 
             for (var i=0; i<gcps.length; i++) {
                 var gcp = gcps[i];
@@ -101,8 +102,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     geometry: new ol.geom.LineString([illst1, illst2]),
                     startEnd: edges[i].startEnd
                 };
-                illstMap.setFeature(illstLine, style, 'marker');
-                mercMap.setFeature(mercLine, style, 'marker');
+                illstMap.setFeature(illstLine, style, 'edges');
+                mercMap.setFeature(mercLine, style, 'edges');
             }
         }
 
@@ -256,6 +257,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
         function boundsClear() {
             illstMap.getSource('bounds').clear();
+        }
+
+        function edgesClear() {
+            illstMap.getSource('edges').clear();
+            mercMap.getSource('edges').clear();
         }
 
         function onClick(evt) {
@@ -687,7 +693,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     return ft;
                 }, {
                     layerFilter: function(layer) {
-                        return layer.get('name') === 'marker';
+                        return layer.get('name') === 'marker' || layer.get('name') === 'edges';
                     }
                 });
                 if (feature) {
@@ -805,16 +811,25 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             });
             boundsLayer.set('name', 'bounds');
             illstMap.getLayer('overlay').getLayers().push(boundsLayer);
+            // edge表示用レイヤー設定
+            var edgesLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    wrapX: false
+                }),
+                style: boundsStyle
+            });
+            edgesLayer.set('name', 'edges');
+            illstMap.getLayer('overlay').getLayers().push(edgesLayer);
             // インタラクション設定
             illstMap.on('click', onClick);
             illstMap.addInteraction(new app.Drag());
-            var illustMarkerSource = illstMap.getSource('marker');
-            var illustEdgeModify = new ol.interaction.Modify({
-                source: illustMarkerSource,
+            var edgesSource = illstMap.getSource('edges');
+            var edgeModify = new ol.interaction.Modify({
+                source: edgesSource,
                 condition: function(e){
                     var f = this.getMap().getFeaturesAtPixel(e.pixel,{
                         layerFilter: function(layer) {
-                            return layer.get('name') === 'marker';
+                            return layer.get('name') === 'edges';
                         }
                     });
                     if (f && f[0].getGeometry().getType() == 'LineString') {
@@ -837,21 +852,11 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     return false;
                 }
             });
-            var illustEdgeSnap = new ol.interaction.Snap({
-                source: illustMarkerSource,
-                condition:  function(e){
-                    var f = this.getMap().getFeaturesAtPixel(e.pixel,{
-                        layerFilter: function(layer) {
-                            return layer.get('name') === 'marker';
-                        }
-                    });
-                    if (f && f[0].getGeometry().getType() == 'LineString') return true;
-                    return false;
-                }
+            var edgeSnap = new ol.interaction.Snap({
+                source: edgesSource
             });
-            illstMap.addInteraction(illustEdgeModify);
-            illstMap.addInteraction(illustEdgeSnap);
-
+            illstMap.addInteraction(edgeModify);
+            illstMap.addInteraction(edgeSnap);
 
             // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここまで
 
@@ -885,9 +890,53 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             });
             checkLayer.set('name', 'check');
             mercMap.getLayers().push(checkLayer);
+            // edge表示用レイヤー設定
+            edgesLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    wrapX: false
+                }),
+                style: boundsStyle
+            });
+            edgesLayer.set('name', 'edges');
+            mercMap.getLayer('overlay').getLayers().push(edgesLayer);
             // インタラクション設定
             mercMap.on('click', onClick);
             mercMap.addInteraction(new app.Drag());
+            edgesSource = mercMap.getSource('edges');
+            edgeModify = new ol.interaction.Modify({
+                source: edgesSource,
+                condition: function(e){
+                    var f = this.getMap().getFeaturesAtPixel(e.pixel,{
+                        layerFilter: function(layer) {
+                            return layer.get('name') === 'edges';
+                        }
+                    });
+                    if (f && f[0].getGeometry().getType() == 'LineString') {
+                        var coordinates = f[0].getGeometry().getCoordinates();
+                        var p0 = e.pixel;
+                        var p1 = this.getMap().getPixelFromCoordinate(coordinates[0]);
+                        var dx = p0[0]-p1[0];
+                        var dy = p0[1]-p1[1];
+                        if (Math.sqrt(dx*dx+dy*dy) <= 10) {
+                            return false;
+                        }
+                        var p1 = this.getMap().getPixelFromCoordinate(coordinates.slice(-1)[0]);
+                        var dx = p0[0]-p1[0];
+                        var dy = p0[1]-p1[1];
+                        if (Math.sqrt(dx*dx+dy*dy) <= 10) {
+                            return false;
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+            });
+            edgeSnap = new ol.interaction.Snap({
+                source: edgesSource
+            });
+            mercMap.addInteraction(edgeModify);
+            mercMap.addInteraction(edgeSnap);
+
             var mercSource;
             // ベースマップリスト作成
             var tmsList = backend.getTmsList();
