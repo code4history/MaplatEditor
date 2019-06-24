@@ -852,6 +852,15 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     return false;
                 }
             });
+            edgeModify.on('modifyend', function(evt) {
+                console.log(evt.features.item(0));
+                /*vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter(function(item, index, array) {
+                    return index === array.length - 1 ? false : true;
+                }).map(function(merc) {
+                    return ol.proj.transform(merc, 'EPSG:3857', forProj);
+                });
+                backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);*/
+            });
             var edgeSnap = new ol.interaction.Snap({
                 source: edgesSource
             });
@@ -930,6 +939,15 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                     }
                     return false;
                 }
+            });
+            edgeModify.on('modifyend', function(evt) {
+                console.log(evt.features.item(0));
+                /*vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter(function(item, index, array) {
+                    return index === array.length - 1 ? false : true;
+                }).map(function(merc) {
+                    return ol.proj.transform(merc, 'EPSG:3857', forProj);
+                });
+                backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);*/
             });
             edgeSnap = new ol.interaction.Snap({
                 source: edgesSource
