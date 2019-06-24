@@ -823,44 +823,68 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             // インタラクション設定
             illstMap.on('click', onClick);
             illstMap.addInteraction(new app.Drag());
+            var edgeModifyFunc = function(e){
+                var f = this.getMap().getFeaturesAtPixel(e.pixel,{
+                    layerFilter: function(layer) {
+                        return layer.get('name') === 'edges';
+                    }
+                });
+                if (f && f[0].getGeometry().getType() == 'LineString') {
+                    var coordinates = f[0].getGeometry().getCoordinates();
+                    var p0 = e.pixel;
+                    var p1 = this.getMap().getPixelFromCoordinate(coordinates[0]);
+                    var dx = p0[0]-p1[0];
+                    var dy = p0[1]-p1[1];
+                    if (Math.sqrt(dx*dx+dy*dy) <= 10) {
+                        return false;
+                    }
+                    var p1 = this.getMap().getPixelFromCoordinate(coordinates.slice(-1)[0]);
+                    var dx = p0[0]-p1[0];
+                    var dy = p0[1]-p1[1];
+                    if (Math.sqrt(dx*dx+dy*dy) <= 10) {
+                        return false;
+                    }
+                    return true;
+                }
+                return false;
+            };
             var edgesSource = illstMap.getSource('edges');
             var edgeModify = new ol.interaction.Modify({
                 source: edgesSource,
-                condition: function(e){
-                    var f = this.getMap().getFeaturesAtPixel(e.pixel,{
-                        layerFilter: function(layer) {
-                            return layer.get('name') === 'edges';
-                        }
-                    });
-                    if (f && f[0].getGeometry().getType() == 'LineString') {
-                        var coordinates = f[0].getGeometry().getCoordinates();
-                        var p0 = e.pixel;
-                        var p1 = this.getMap().getPixelFromCoordinate(coordinates[0]);
-                        var dx = p0[0]-p1[0];
-                        var dy = p0[1]-p1[1];
-                        if (Math.sqrt(dx*dx+dy*dy) <= 10) {
-                            return false;
-                        }
-                        var p1 = this.getMap().getPixelFromCoordinate(coordinates.slice(-1)[0]);
-                        var dx = p0[0]-p1[0];
-                        var dy = p0[1]-p1[1];
-                        if (Math.sqrt(dx*dx+dy*dy) <= 10) {
-                            return false;
-                        }
-                        return true;
-                    }
-                    return false;
-                }
+                condition: edgeModifyFunc
             });
-            edgeModify.on('modifyend', function(evt) {
-                console.log(evt.features.item(0));
-                /*vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter(function(item, index, array) {
-                    return index === array.length - 1 ? false : true;
-                }).map(function(merc) {
+            var edgeRevisionBuffer = [];
+            var edgeModifyStart = function(evt) {
+                edgeRevisionBuffer = [];
+                evt.features.forEach(function(f) {
+                    edgeRevisionBuffer.push(f.getRevision());
+                });
+            }
+            var edgeModifyEnd = function(evt) {
+                var isIllust = evt.target.getMap() === illstMap;
+                var forProj = isIllust ? 'ZOOM:' + illstSource.maxZoom : 'EPSG:3857';
+                var feature = null;
+                evt.features.forEach(function(f, i) {
+                    if (f.getRevision() !== edgeRevisionBuffer[i]) feature = f;
+                });
+                var startEnd = feature.get('startEnd');
+                var start = vueMap.gcps[startEnd[0]];
+                var end = vueMap.gcps[startEnd[1]];
+                var edgeIndex = vueMap.edges.findIndex(function(edge) {
+                    return edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1];
+                });
+                var edge = vueMap.edges[edgeIndex];
+                var points = feature.getGeometry().getCoordinates().filter(function(item, index, array) {
+                    return (index === 0 || index === array.length - 1) ? false : true;
+                }).map(function(merc){
                     return ol.proj.transform(merc, 'EPSG:3857', forProj);
                 });
-                backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);*/
-            });
+                if (isIllust) edge.illstNodes = points;
+                else edge.mercNodes = points;
+                vueMap.edges.splice(edgeIndex, 1, edge);
+            };
+            edgeModify.on('modifystart', edgeModifyStart);
+            edgeModify.on('modifyend', edgeModifyEnd);
             var edgeSnap = new ol.interaction.Snap({
                 source: edgesSource
             });
@@ -914,41 +938,10 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             edgesSource = mercMap.getSource('edges');
             edgeModify = new ol.interaction.Modify({
                 source: edgesSource,
-                condition: function(e){
-                    var f = this.getMap().getFeaturesAtPixel(e.pixel,{
-                        layerFilter: function(layer) {
-                            return layer.get('name') === 'edges';
-                        }
-                    });
-                    if (f && f[0].getGeometry().getType() == 'LineString') {
-                        var coordinates = f[0].getGeometry().getCoordinates();
-                        var p0 = e.pixel;
-                        var p1 = this.getMap().getPixelFromCoordinate(coordinates[0]);
-                        var dx = p0[0]-p1[0];
-                        var dy = p0[1]-p1[1];
-                        if (Math.sqrt(dx*dx+dy*dy) <= 10) {
-                            return false;
-                        }
-                        var p1 = this.getMap().getPixelFromCoordinate(coordinates.slice(-1)[0]);
-                        var dx = p0[0]-p1[0];
-                        var dy = p0[1]-p1[1];
-                        if (Math.sqrt(dx*dx+dy*dy) <= 10) {
-                            return false;
-                        }
-                        return true;
-                    }
-                    return false;
-                }
+                condition: edgeModifyFunc
             });
-            edgeModify.on('modifyend', function(evt) {
-                console.log(evt.features.item(0));
-                /*vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter(function(item, index, array) {
-                    return index === array.length - 1 ? false : true;
-                }).map(function(merc) {
-                    return ol.proj.transform(merc, 'EPSG:3857', forProj);
-                });
-                backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);*/
-            });
+            edgeModify.on('modifystart', edgeModifyStart);
+            edgeModify.on('modifyend', edgeModifyEnd);
             edgeSnap = new ol.interaction.Snap({
                 source: edgesSource
             });
