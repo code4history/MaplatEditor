@@ -694,7 +694,8 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 }, {
                     layerFilter: function(layer) {
                         return layer.get('name') === 'marker' || layer.get('name') === 'edges';
-                    }
+                    },
+                    hitTolerance: 5
                 });
                 if (feature) {
                     var isLine = feature.getGeometry().getType() === 'LineString';
