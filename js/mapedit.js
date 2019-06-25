@@ -94,12 +94,22 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                         width: 2
                     })
                 });
+                var mercCoords = [gcp1[1]];
+                edges[i].mercNodes.map(function(node) {
+                    mercCoords.push(node);
+                });
+                mercCoords.push(gcp2[1]);
                 var mercLine = {
-                    geometry: new ol.geom.LineString([gcp1[1], gcp2[1]]),
+                    geometry: new ol.geom.LineString(mercCoords),
                     startEnd: edges[i].startEnd
                 };
+                var illstCoords = [illst1];
+                edges[i].illstNodes.map(function(node) {
+                    illstCoords.push(illstSource.xy2HistMapCoords(node));
+                });
+                illstCoords.push(illst2);
                 var illstLine = {
-                    geometry: new ol.geom.LineString([illst1, illst2]),
+                    geometry: new ol.geom.LineString(illstCoords),
                     startEnd: edges[i].startEnd
                 };
                 illstMap.setFeature(illstLine, style, 'edges');
