@@ -835,6 +835,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             illstMap.on('click', onClick);
             illstMap.addInteraction(new app.Drag());
             var edgeModifyFunc = function(e){
+                if (e.pointerEvent.button === 2) return false;
                 var f = this.getMap().getFeaturesAtPixel(e.pixel,{
                     layerFilter: function(layer) {
                         return layer.get('name') === 'edges';
