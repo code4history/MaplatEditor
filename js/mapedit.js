@@ -190,6 +190,97 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             gcpsToMarkers();
         }
 
+        function addMarkerOnEdge (arg, map) {
+            var edgeGeom = arg.data.edge;
+            var isIllst = map === illstMap;
+            var coord = edgeGeom.getGeometry().getClosestPoint(arg.coordinate);
+            var xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
+            var startEnd = edgeGeom.get('startEnd');
+            var edgeIndex = vueMap.edges.findIndex(function(edge) {
+                return edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1];
+            });
+            var edge = vueMap.edges[edgeIndex];
+
+            console.log(xy);
+
+            var gcp1 = vueMap.gcps[startEnd[0]];
+            var gcp2 = vueMap.gcps[startEnd[1]];
+            var this1 = gcp1[isIllst ? 0 : 1];
+            var this2 = gcp2[isIllst ? 0 : 1];
+            var that1 = gcp1[isIllst ? 1 : 0];
+            var that2 = gcp2[isIllst ? 1 : 0];
+
+            var thisNodes = Object.assign([], isIllst ? edge.illstNodes : edge.mercNodes);
+            var thatNodes = Object.assign([], isIllst ? edge.mercNodes : edge.illstNodes);
+            thisNodes.unshift(this1);
+            thisNodes.push(this2);
+            thatNodes.unshift(that1);
+            thatNodes.push(that2);
+            var nearest = 0;
+            var nearestIndex = 0;
+            var nearestLength = 0;
+            var thisResults = thisNodes.reduce(function(prev, curr, index, arr) {
+                if (index === 0) {
+                    prev.push([0,0]);
+                    return prev;
+                }
+                var prevCoord = arr[index - 1];
+                var length = Math.sqrt(Math.pow(curr[1] - prevCoord[1], 2) + Math.pow(curr[0] - prevCoord[0], 2));
+                var distance = Math.abs((curr[1] - prevCoord[1]) * xy[0] - (curr[0] - prevCoord[0]) * xy[1] + curr[0] * prevCoord[1] - curr[1] * prevCoord[0]) / length;
+                var sum = prev[index-1][1] + length;
+                prev.push([length, sum, distance]);
+                if (!nearestIndex || nearest > distance) {
+                    nearestIndex = index;
+                    nearest = distance;
+                    nearestLength = prev[index-1][1] + Math.sqrt(Math.pow(xy[1] - prevCoord[1], 2) + Math.pow(xy[0] - prevCoord[0], 2));
+                }
+                return prev;
+            }, []);
+            var thisPrevNodes = thisNodes.slice(1, nearestIndex);
+            var thisLastNodes = thisNodes.slice(nearestIndex, thisNodes.length - 1);
+            var nearestRatio = nearestLength / thisResults[thisResults.length - 1][1];
+
+            var thatResults = thatNodes.reduce(function(prev, curr, index, arr) {
+                if (index === 0) {
+                    prev.push([0,0]);
+                    return prev;
+                }
+                var prevCoord = arr[index - 1];
+                var length = Math.sqrt(Math.pow(curr[1] - prevCoord[1], 2) + Math.pow(curr[0] - prevCoord[0], 2));
+                var sum = prev[index-1][1] + length;
+                prev.push([length, sum]);
+                return prev;
+            }, []);
+            var thatXy = [];
+            var thatIndex  = 0;
+            var thatLengthToXy = nearestRatio * thatResults[thatResults.length - 1][1];
+            thatResults.map(function(result, index, arr) {
+                if (thatLengthToXy < result[1] && !thatIndex) {
+                    thatIndex = index;
+                    var localRatio = (thatLengthToXy - arr[index - 1][1]) / result[0];
+                    var prevNode = thatNodes[index - 1];
+                    var nextNode = thatNodes[index];
+                    thatXy = [(nextNode[0] - prevNode[0]) * localRatio + prevNode[0],
+                        (nextNode[1] - prevNode[1]) * localRatio + prevNode[1]];
+                }
+            });
+            var thatPrevNodes = thatNodes.slice(1, thatIndex);
+            var thatLastNodes = thatNodes.slice(thatIndex, thatNodes.length - 1);
+            vueMap.gcps.push([isIllst ? xy : thatXy, isIllst ? thatXy : xy]);
+            var newGcpIndex = vueMap.gcps.length - 1;
+            vueMap.edges.splice(edgeIndex, 1, {
+                startEnd: [startEnd[0], newGcpIndex],
+                illstNodes: isIllst ? thisPrevNodes : thatPrevNodes,
+                mercNodes: isIllst ? thatPrevNodes : thisPrevNodes
+            });
+            vueMap.edges.push({
+                startEnd: [newGcpIndex, startEnd[1]],
+                illstNodes: isIllst ? thisLastNodes : thatLastNodes,
+                mercNodes: isIllst ? thatLastNodes : thisLastNodes
+            });
+            gcpsToMarkers();
+        }
+
         function removeMarker (arg, map) {
             var marker = arg.data.marker;
             var gcpIndex = marker.get('gcpIndex');
@@ -690,6 +781,12 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 callback: removeEdge
             };
 
+            var addMarkerOnEdgeContextMenu = {
+                text: '対応線上にマーカー追加',
+                callback: addMarkerOnEdge
+            };
+
+
             var contextmenu = this.contextmenu = new ContextMenu({
                 width: 170,
                 defaultItems: false,
@@ -727,6 +824,10 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                                 edge: feature
                             };
                             contextmenu.push(removeEdgeContextMenu);
+                            addMarkerOnEdgeContextMenu.data = {
+                                edge: feature
+                            };
+                            contextmenu.push(addMarkerOnEdgeContextMenu);
                         } else {
                             if (feature.get('gcpIndex') !== 'new') {
                                 pairingContextMenu.data = {
