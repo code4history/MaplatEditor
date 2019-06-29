@@ -250,7 +250,7 @@
       <div class="col-xs-4">
         <div class="row">
           <div class="col-xs-6">
-            <select class="form-control" name="editingLayer" v-model="currentEditingLayer">
+            <select class="form-control" name="editingLayer" v-model.number="currentEditingLayer">
               <option value="0">メインレイヤ</option>
               <option v-for="(sub_map, index) in sub_maps" :value="index+1">サブレイヤ{{index+1}}</option>
             </select>
@@ -259,7 +259,7 @@
             <button type="button" class="btn btn-secondary" v-on:click="addSubMap">レイヤ追加</button>
           </div>
           <div class="col-xs-3">
-            <button type="button" class="btn btn-secondary" v-on:click="$emit('removeSubMap')" v-bind:disabled="currentEditingLayer==0">レイヤ削除</button>
+            <button type="button" class="btn btn-secondary" v-on:click="$emit('removeSubMap')" v-bind:disabled="currentEditingLayer===0">レイヤ削除</button>
           </div>
         </div>
       </div>
@@ -312,6 +312,7 @@
           <span v-if="errorStatus == 'tooLessGcps'">対応点が少なすぎます。</span>
           <span v-else-if="errorStatus == 'tooLinear'">対応点が直線的に並びすぎています。もっと散らしてください。</span>
           <span v-else-if="errorStatus == 'pointsOutside'">対応点が地図領域の範囲外にあります。地図領域内に対応点を打ってください。</span>
+          <span v-else-if="errorStatus == 'edgeError'">対応線にエラーがあります(対応線が交差しているなど)。修正してください。</span>
           <span v-else-if="errorStatus == 'strict'">エラーなし</span>
           <span v-else-if="errorStatus == 'strict_error'">エラー{{errorNumber}}件</span>
           <span v-else-if="errorStatus == 'loose'">エラーのため簡易モード</span>

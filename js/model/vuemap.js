@@ -9,6 +9,7 @@ define(['underscore_extension', 'Vue'],
             strictMode: 'strict',
             vertexMode: 'plain',
             gcps: [],
+            edges: [],
             sub_maps: [],
             status: 'New',
             officialTitle: '',
@@ -157,6 +158,19 @@ define(['underscore_extension', 'Vue'],
                 return this.map.gcps;
             } else if (this.map.sub_maps.length > 0) {
                 return this.map.sub_maps[this.currentEditingLayer - 1].gcps;
+            } else {
+                return;
+            }
+        };
+        computed.edges = function() {
+            if (this.currentEditingLayer == 0) {
+                if (!this.map.edges) this.$set(this.map, 'edges', []);
+                return this.map.edges;
+            } else if (this.map.sub_maps.length > 0) {
+                if (!this.map.sub_maps[this.currentEditingLayer - 1].edges) {
+                    this.$set(this.map.sub_maps[this.currentEditingLayer - 1], 'edges', []);
+                }
+                return this.map.sub_maps[this.currentEditingLayer - 1].edges;
             } else {
                 return;
             }
@@ -357,6 +371,7 @@ define(['underscore_extension', 'Vue'],
                 addSubMap: function() {
                     this.sub_maps.push({
                         gcps:[],
+                        edges: [],
                         priority: this.sub_maps.length+1,
                         importance: this.sub_maps.length+1,
                         bounds: [[0,0], [this.width, 0], [this.width, this.height], [0, this.height]]
