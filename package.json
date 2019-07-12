@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "sshpk": "^1.13.2",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.13",
     "cryptiles": "^4.1.2",
     "deep-extend": "^0.5.1",
     "randomatic": "^3.0.0",
