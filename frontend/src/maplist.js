@@ -36,13 +36,12 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
                 wookmark = new Wookmark('#maplist');
             });
         });
-        /*Vue.nextTick(() => {
+        Vue.nextTick(() => {
             wookmark = new Wookmark('#maplist');
-        });*/
+        });
     },
     el: '#maplist',
     data: {
         maplist: []
     }
 });
-//    });

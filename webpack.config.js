@@ -11,8 +11,10 @@ module.exports = {
         path: `${__dirname}/frontend/dist`,
         filename: '[name].bundle.js'
     },
-    node: {
-        electron: "empty"
+    resolve: {
+        alias: {
+            'vue$': 'vue/dist/vue.esm.js'
+        }
     },
     module: {
         rules: [
