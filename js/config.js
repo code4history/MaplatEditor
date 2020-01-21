@@ -6,7 +6,7 @@ requirejs.config({
         }
     },
     paths: {
-        'ol3': '../common/src/ol-maplat',
+        'ol3': '../common/lib/ol-maplat',
         'bootstrap': '../common/lib/bootstrap-native',
         'underscore': 'underscore-min',
         'histmap': '../common/js/histmap',

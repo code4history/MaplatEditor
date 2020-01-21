@@ -6,7 +6,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
         var labelFontStyle = "Normal 12px Arial";
         const {ipcRenderer} = require('electron');
-        var backend = require('electron').remote.require('../src/mapedit');
+        var backend = require('electron').remote.require('./mapedit');
         backend.init();
         var uploader;
         var mapID;
