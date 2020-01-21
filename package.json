@@ -4,7 +4,8 @@
   "description": "",
   "main": "backend/src/main.js",
   "scripts": {
-    "lint": "eslint backend/src/",
+    "lint": "eslint backend/src/ && eslint frontend/src/",
+    "js_build": "webpack",
     "testrun": "electron .",
     "win32": "gulp win32",
     "darwin": "gulp darwin"
@@ -31,6 +32,7 @@
     "@maplat/tin": "^0.6.3",
     "argv": "0.0.2",
     "async": "^2.6.2",
+    "bootstrap.native": "^2.0.27",
     "child_process": "^1.0.2",
     "cryptiles": "^4.1.2",
     "deep-extend": "^0.5.1",
@@ -42,6 +44,10 @@
     "lodash": "^4.17.13",
     "path": "^0.12.7",
     "randomatic": "^3.0.0",
-    "sshpk": "^1.13.2"
+    "sshpk": "^1.13.2",
+    "vue": "^2.6.11",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10",
+    "wookmark": "^2.2.0"
   }
 }
