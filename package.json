@@ -2,8 +2,9 @@
   "name": "MaplatEditor",
   "version": "0.3.2",
   "description": "",
-  "main": "lib/main.js",
+  "main": "backend/src/main.js",
   "scripts": {
+    "lint": "eslint backend/src/",
     "testrun": "electron .",
     "win32": "gulp win32",
     "darwin": "gulp darwin"
@@ -12,13 +13,22 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babel/cli": "^7.8.3",
+    "@babel/core": "^7.8.3",
+    "@babel/polyfill": "^7.8.3",
+    "@babel/preset-env": "^7.8.3",
+    "@babel/register": "^7.8.3",
+    "babel-loader": "^8.0.6",
+    "core-js": "^3.6.4",
     "electron": "^4.2.12",
     "electron-packager": "^13.1.1",
+    "eslint": "^6.8.0",
     "gulp": "^4.0.2",
     "mapshaper": "^0.4.154"
   },
   "dependencies": {
     "@maplat/core": "^0.6.5",
+    "@maplat/tin": "^0.6.3",
     "argv": "0.0.2",
     "async": "^2.6.2",
     "child_process": "^1.0.2",

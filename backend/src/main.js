@@ -58,7 +58,7 @@ app.on('ready', () => {
 
 
 // メニュー情報の作成
-var template = [
+const template = [
     {
         label: 'ReadUs',
         submenu: [
@@ -83,7 +83,7 @@ var template = [
             {label: 'Open', accelerator: 'Command+O', click() {
                 // 「ファイルを開く」ダイアログの呼び出し
                 const {dialog} = require('electron'); // eslint-disable-line no-undef
-                dialog.showOpenDialog({ properties: ['openDirectory']}, function (baseDir){
+                dialog.showOpenDialog({ properties: ['openDirectory']}, (baseDir) => {
                     if(baseDir && baseDir[0]) {
                         openWindow(baseDir[0]); // eslint-disable-line no-undef
                     }

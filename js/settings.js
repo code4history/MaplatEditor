@@ -1,6 +1,6 @@
 define(['bootstrap', 'model/settings'],
     function(bsn, Settings) {
-        var backend = require('electron').remote.require('../lib/settings');
+        var backend = require('electron').remote.require('../src/settings');
         var settings = new Settings(backend.getSettings());
 
         var saveFolder = document.querySelector('#saveFolder');

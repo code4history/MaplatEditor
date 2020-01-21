@@ -1,51 +1,49 @@
 'use strict';
 
-var im    = require('./imagemagick_modified.js');
-const os = require('os');
-const path = require('path');
-const app = require('electron').app;
-const fs = require('fs-extra');
-var electron = require('electron');
-var BrowserWindow = electron.BrowserWindow;
-var settings;
-var electron = require('electron');
+const im = require('../lib/imagemagick_modified.js'); // eslint-disable-line no-undef
+const path = require('path'); // eslint-disable-line no-undef
+const app = require('electron').app; // eslint-disable-line no-undef
+const fs = require('fs-extra'); // eslint-disable-line no-undef
+const electron = require('electron'); // eslint-disable-line no-undef
+const BrowserWindow = electron.BrowserWindow;
+let settings;
 if (electron.app || electron.remote) {
-    settings = require('./settings');
+    settings = require('./settings'); // eslint-disable-line no-undef
     settings.init();
 }
-var fileUrl = require('file-url');
+const fileUrl = require('file-url'); // eslint-disable-line no-undef
 
-var mapFolder;
-var tileFolder;
-var tmpFolder;
-var outFolder;
-var focused;
-var extKey;
+let mapFolder;
+let tileFolder;
+let tmpFolder;
+let outFolder;
+let focused;
+let extKey;
 
-var cropperForLogic2 = function(srcFile, zoom, x, y, maxZoom, width, height) {
-    var parallel = [];
-    var cropSize = 256 * Math.pow(2, maxZoom - zoom - 1);
+const cropperForLogic2 = (srcFile, zoom, x, y, maxZoom, width, height) => {
+    const parallel = [];
+    const cropSize = 256 * Math.pow(2, maxZoom - zoom - 1);
 
-    parallel.push(new Promise(function(resolve, reject) {
-        var args = [srcFile];
-        var zw, zh;
+    parallel.push(new Promise((resolve, reject) => {
+        const args = [srcFile];
+        let zw, zh;
         if (zoom != maxZoom) {
             zw = Math.round(width / Math.pow(2, maxZoom - zoom));
             zh = Math.round(height / Math.pow(2, maxZoom - zoom));
             args.push('-geometry');
-            args.push(zw + 'x' + zh + '!');
+            args.push(`${zw}x${zh}!`);
         } else {
             zw = width;
             zh = height;
         }
-        var tileFolder = outFolder + path.sep + zoom + path.sep + x;
-        fs.ensureDir(tileFolder, function (err) {
+        const tileFolder = outFolder + path.sep + zoom + path.sep + x;
+        fs.ensureDir(tileFolder, (err) => {
             if (err) {
                 reject(err);
                 return;
             }
-            args.push(tileFolder + path.sep + y + '.' + extKey);
-            im.convert(args, function (err, stdout, stderr) {
+            args.push(`${tileFolder}${path.sep}${y}.${extKey}`);
+            im.convert(args, (err, stdout, stderr) => { // eslint-disable-line no-unused-vars
                 if (err) {
                     reject(err);
                     return;
@@ -56,31 +54,31 @@ var cropperForLogic2 = function(srcFile, zoom, x, y, maxZoom, width, height) {
     }));
 
     if (zoom != maxZoom) {
-        parallel.push(new Promise(function(resolve, reject) {
-            var args = [srcFile];
+        parallel.push(new Promise((resolve, reject) => {
+            const args = [srcFile];
             args.push('+repage');
             args.push('-crop');
-            args.push(cropSize + 'x' + cropSize);
+            args.push(`${cropSize}x${cropSize}`);
             args.push('+repage');
-            var tmpImageBase = outFolder + '/tmpImage-' + zoom + '-' + x + '-' + y;
-            args.push(tmpImageBase + '.' + extKey);
+            const tmpImageBase = `${outFolder}/tmpImage-${zoom}-${x}-${y}`;
+            args.push(`${tmpImageBase}.${extKey}`);
 
-            im.convert(args, function (err, stdout, stderr) {
+            im.convert(args, (err, stdout, stderr) => { // eslint-disable-line no-unused-vars
                 if (err) {
                     reject(err);
                     return;
                 }
-                var zi = 0;
-                var innerPromise;
+                let zi = 0;
+                let innerPromise;
                 if (width <= cropSize && height <= cropSize) {
-                    innerPromise = cropperForLogic2(tmpImageBase + '.' + extKey, zoom + 1, x * 2, y * 2, maxZoom, width, height);
+                    innerPromise = cropperForLogic2(`${tmpImageBase}.${extKey}`, zoom + 1, x * 2, y * 2, maxZoom, width, height);
                 } else {
-                    var innerPromises = [];
-                    for (var zy = 0; zy < (height <= cropSize ? 1 : 2); zy++) {
-                        for (var zx = 0; zx < (width <= cropSize ? 1 : 2); zx++) {
-                            var nextFile = tmpImageBase + '-' + zi + '.' + extKey;
-                            var nextWidth = zx == 0 ? width <= cropSize ? width : cropSize : width - cropSize;
-                            var nextHeight = zy == 0 ? height <= cropSize ? height : cropSize : height - cropSize;
+                    const innerPromises = [];
+                    for (let zy = 0; zy < (height <= cropSize ? 1 : 2); zy++) {
+                        for (let zx = 0; zx < (width <= cropSize ? 1 : 2); zx++) {
+                            const nextFile = `${tmpImageBase}-${zi}.${extKey}`;
+                            const nextWidth = zx == 0 ? width <= cropSize ? width : cropSize : width - cropSize;
+                            const nextHeight = zy == 0 ? height <= cropSize ? height : cropSize : height - cropSize;
                             innerPromises.push(cropperForLogic2(nextFile, zoom + 1, x * 2 + zx, y * 2 + zy, maxZoom, nextWidth, nextHeight));
                             zi++;
                         }
@@ -88,9 +86,9 @@ var cropperForLogic2 = function(srcFile, zoom, x, y, maxZoom, width, height) {
                     innerPromise = Promise.all(innerPromises);
                 }
 
-                innerPromise.then(function() {
+                innerPromise.then(() => {
                     resolve();
-                }).catch(function(err) {
+                }).catch((err) => {
                     reject(err);
                 });
             });
@@ -98,33 +96,32 @@ var cropperForLogic2 = function(srcFile, zoom, x, y, maxZoom, width, height) {
     }
 
     if (zoom == 0) {
-        parallel.push(new Promise(function(resolve, reject) {
-            fs.copy(srcFile, outFolder + path.sep + 'original.' + extKey, function(err){
+        parallel.push(new Promise((resolve, reject) => {
+            fs.copy(srcFile, `${outFolder}${path.sep}original.${extKey}`, (err) => {
                 if (err) reject(err);
                 else resolve();
             });
         }));
     }
 
-    return Promise.all(parallel).then(function() {
+    return Promise.all(parallel).then(() => {
         if (zoom != 0) {
-            fs.remove(srcFile, function(err) {
+            fs.remove(srcFile, () => {
             });
         }
         return Promise.resolve();
     });
 };
 
-
-var MapUpload = {
-    init: function() {
+const MapUpload = {
+    init() {
         if (settings) {
-            var saveFolder = settings.getSetting('saveFolder');
-            mapFolder = saveFolder + path.sep + 'maps';
-            fs.ensureDir(mapFolder, function (err) {
+            const saveFolder = settings.getSetting('saveFolder');
+            mapFolder = `${saveFolder}${path.sep}maps`;
+            fs.ensureDir(mapFolder, () => {
             });
-            tileFolder = saveFolder + path.sep + 'tiles';
-            fs.ensureDir(tileFolder, function (err) {
+            tileFolder = `${saveFolder}${path.sep}tiles`;
+            fs.ensureDir(tileFolder, () => {
             });
             tmpFolder = settings.getSetting('tmpFolder');
             focused = BrowserWindow.getFocusedWindow();

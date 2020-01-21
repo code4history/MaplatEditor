@@ -7,7 +7,7 @@ define(['bootstrap', 'wookmark', 'Vue'],
                 var wookmark;
                 var self = this;
 
-                var backend = require('electron').remote.require('../lib/maplist');
+                var backend = require('electron').remote.require('../src/maplist');
                 backend.request();
 
                 ipcRenderer.on('mapListAdd', function(event, arg) {

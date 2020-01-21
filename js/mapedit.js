@@ -6,7 +6,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
 
         var labelFontStyle = "Normal 12px Arial";
         const {ipcRenderer} = require('electron');
-        var backend = require('electron').remote.require('../lib/mapedit');
+        var backend = require('electron').remote.require('../src/mapedit');
         backend.init();
         var uploader;
         var mapID;
@@ -1191,7 +1191,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             vueMap2.$on('mapUpload', function(){
                 if (vueMap.gcpsEditReady && !confirm('地図画像は既に登録されています。\n置き換えてよいですか?')) return;
                 if (!uploader) {
-                    uploader = require('electron').remote.require('../lib/mapupload');
+                    uploader = require('electron').remote.require('../src/mapupload');
                     uploader.init();
                     ipcRenderer.on('mapUploaded', function(event, arg) {
                         document.body.style.pointerEvents = null;

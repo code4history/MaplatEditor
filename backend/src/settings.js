@@ -6,7 +6,7 @@ const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
-const tmsList = require('../tms_list.json'); // eslint-disable-line no-undef
+const tmsList = require('../../tms_list.json'); // eslint-disable-line no-undef
 let json;
 
 const protect = [

@@ -2,8 +2,8 @@ var childproc = require('child_process'),
     EventEmitter = require('events').EventEmitter;
 
 var pf = process.platform;
-var imhome = pf == 'darwin' ? __dirname + '/../assets/mac/imagemagick' :
-              pf == 'win32' ? __dirname + '\\..\\assets\\win\\imagemagick' : '';
+var imhome = pf == 'darwin' ? __dirname + '/../../assets/mac/imagemagick' :
+              pf == 'win32' ? __dirname + '\\..\\..\\assets\\win\\imagemagick' : '';
 var imbin = imhome + '/bin';
 var imenv = pf == 'darwin' ? {
     'MAGICK_HOME' : imhome,
