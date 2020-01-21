@@ -127,17 +127,17 @@ const MapUpload = {
             focused = BrowserWindow.getFocusedWindow();
         } else {
             mapFolder = '.';
-            tileFolder = '.' + path.sep + 'tiles';
-            tmpFolder = '.' + path.sep + 'tmp';
+            tileFolder = `.${path.sep}tiles`;
+            tmpFolder = `.${path.sep}tmp`;
         }
     },
-    showMapSelectDialog: function() {
-        var dialog = require('electron').dialog;
-        var focused = BrowserWindow.getFocusedWindow();
-        var self = this;
+    showMapSelectDialog() {
+        const dialog = require('electron').dialog; // eslint-disable-line no-undef
+        const focused = BrowserWindow.getFocusedWindow();
+        const self = this;
         dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
             // filters: [ {name: '地図画像', extensions: ['jpg']} ] }, function (baseDir){
-            filters: [ {name: '地図画像', extensions: ['jpg', 'png', 'jpeg']} ] }, function (baseDir){
+            filters: [ {name: '地図画像', extensions: ['jpg', 'png', 'jpeg']} ] }, (baseDir) => {
             if(baseDir && baseDir[0]) {
                 self.imageCutter2(baseDir[0]);
             } else {
@@ -147,19 +147,19 @@ const MapUpload = {
             }
         });
     },
-    imageCutter: function(srcFile) {
-        var regex   =  new RegExp('([^\\/]+)\\.([^\\.]+)$');
+    imageCutter(srcFile) {
+        const regex   =  new RegExp('([^\\/]+)\\.([^\\.]+)$');
 
-        new Promise(function(resolve, reject) {
+        new Promise((resolve, reject) => {
             if (srcFile.match(regex)) {
                 extKey  = RegExp.$2;
             } else {
                 reject('画像拡張子エラー');
             }
-            outFolder = tmpFolder + path.sep + 'tiles';
+            outFolder = `${tmpFolder}${path.sep}tiles`;
             try {
                 fs.statSync(outFolder);
-                fs.remove(outFolder, function (err) {
+                fs.remove(outFolder, (err) => {
                     if (err) {
                         reject(err);
                         return;
@@ -169,16 +169,16 @@ const MapUpload = {
             } catch(err) {
                 resolve();
             }
-        }).then(function() {
-            return new Promise(function(resolve, reject) {
-                var result = {};
-                fs.ensureDir(outFolder, function(err) {
+        }).then(() =>
+            new Promise((resolve, reject) => {
+                const result = {};
+                fs.ensureDir(outFolder, (err) => {
                     if (err) {
                         reject(err);
                         return;
                     }
 
-                    im.identify(srcFile, function(err, features) {
+                    im.identify(srcFile, (err, features) => {
                         if (err) {
                             reject(err);
                             return;
@@ -187,56 +187,56 @@ const MapUpload = {
                         result.width = features.width;
                         result.height = features.height;
 
-                        var xZoom = Math.ceil(Math.log(result.width / 256) / Math.log(2));
-                        var yZoom = Math.ceil(Math.log(result.height / 256) / Math.log(2));
+                        const xZoom = Math.ceil(Math.log(result.width / 256) / Math.log(2));
+                        const yZoom = Math.ceil(Math.log(result.height / 256) / Math.log(2));
                         result.zoom = xZoom > yZoom ? xZoom : yZoom;
                         if (result.zoom < 0) result.zoom = 0;
 
                         resolve(result);
                     });
                 });
-            });
-        }).then(function(arg) {
-            var parallel = [Promise.resolve(arg)];
+            })
+        ).then((arg) => {
+            const parallel = [Promise.resolve(arg)];
 
-            for (var z = arg.zoom; z >= 0; z--) {
-                var args = [srcFile];
-                var zw, zh;
+            for (let z = arg.zoom; z >= 0; z--) {
+                const args = [srcFile];
+                let zw, zh;
                 if (z != arg.zoom) {
                     zw = Math.round(arg.width / Math.pow(2, arg.zoom - z));
                     zh = Math.round(arg.height / Math.pow(2, arg.zoom - z));
                     args.push('-geometry');
-                    args.push(zw + 'x' + zh + '!');
+                    args.push(`${zw}x${zh}!`);
                 } else {
                     zw = arg.width;
                     zh = arg.height;
                 }
                 args.push('-crop');
                 args.push('256x256');
-                args.push(outFolder + '/tmpImage-' + z + '.' + extKey);
+                args.push(`${outFolder}/tmpImage-${z}.${extKey}`);
 
-                (function () {
-                    var _args = args;
-                    var _z = z;
-                    var _zw = zw;
-                    var _zh = zh;
-                    var func = new Promise(function (resolve, reject) {
-                        im.convert(_args, function (err, stdout, stderr) {
+                (() => {
+                    const _args = args;
+                    const _z = z;
+                    const _zw = zw;
+                    const _zh = zh;
+                    const func = new Promise((resolve, reject) => {
+                        im.convert(_args, (err, stdout, stderr) => { // eslint-disable-line no-unused-vars
                             if (err) {
                                 reject(err);
                                 return;
                             }
-                            var zi = 0;
-                            for (var zy = 0; zy * 256 < _zh; zy++) {
-                                for (var zx = 0; zx * 256 < _zw; zx++) {
-                                    var origName;
+                            let zi = 0;
+                            for (let zy = 0; zy * 256 < _zh; zy++) {
+                                for (let zx = 0; zx * 256 < _zw; zx++) {
+                                    let origName;
                                     if (_z == 0) {
-                                        origName = outFolder + '/tmpImage-0.' + extKey;
+                                        origName = `${outFolder}/tmpImage-0.${extKey}`;
                                     } else {
-                                        origName = outFolder + '/tmpImage-' + _z + '-' + zi + '.' + extKey;
+                                        origName = `${outFolder}/tmpImage-${z}-${zi}.${extKey}`;
                                     }
-                                    fs.mkdirsSync(outFolder + '/' + _z + '/' + zx);
-                                    var changeName = outFolder + '/' + _z + '/' + zx + '/' + zy + '.' + extKey;
+                                    fs.mkdirsSync(`${outFolder}/${z}/${zx}`);
+                                    const changeName = `${outFolder}/${z}/${zx}/${zy}.${extKey}`;
 
                                     fs.renameSync(origName, changeName);
 
@@ -247,23 +247,22 @@ const MapUpload = {
                             resolve();
                         });
                     });
-
                     parallel.push(func);
                 })();
             }
 
-            parallel.push(new Promise(function(resolve, reject) {
-                fs.copy(srcFile, outFolder + path.sep + 'original.' + extKey, function(err){
+            parallel.push(new Promise((resolve, reject) => {
+                fs.copy(srcFile, `${outFolder}${path.sep}original.${extKey}`, (err) => {
                     if (err) reject(err);
                     else resolve();
                 });
             }));
 
             return Promise.all(parallel);
-        }).then(function(args) {
-            var arg = args[0];
-            var thumbURL = fileUrl(outFolder);
-            thumbURL = thumbURL + '/{z}/{x}/{y}.' + extKey;
+        }).then((args) => {
+            const arg = args[0];
+            let thumbURL = fileUrl(outFolder);
+            thumbURL = `${thumbURL}/{z}/{x}/{y}.${extKey}`;
             if (focused) {
                 focused.webContents.send('mapUploaded', {
                     width: arg.width,
@@ -272,27 +271,27 @@ const MapUpload = {
                     imageExtention: extKey
                 });
             }
-        }).catch(function(err) {
+        }).catch((err) => {
             if (focused) {
                 focused.webContents.send('mapUploaded', {
-                    err: err
+                    err
                 });
             }
         });
     },
-    imageCutter2: function(srcFile) {
-        var regex   =  new RegExp('([^\\/]+)\\.([^\\.]+)$');
+    imageCutter2(srcFile) {
+        const regex   =  new RegExp('([^\\/]+)\\.([^\\.]+)$');
 
-        new Promise(function(resolve, reject) {
+        new Promise((resolve, reject) => {
             if (srcFile.match(regex)) {
                 extKey  = RegExp.$2;
             } else {
                 reject('画像拡張子エラー');
             }
-            outFolder = tmpFolder + path.sep + 'tiles';
+            outFolder = `${tmpFolder}${path.sep}tiles`;
             try {
                 fs.statSync(outFolder);
-                fs.remove(outFolder, function (err) {
+                fs.remove(outFolder, (err) => {
                     if (err) {
                         reject(err);
                         return;
@@ -302,16 +301,16 @@ const MapUpload = {
             } catch(err) {
                 resolve();
             }
-        }).then(function() {
-            return new Promise(function(resolve, reject) {
-                var result = {};
-                fs.ensureDir(outFolder, function(err) {
+        }).then(() =>
+            new Promise((resolve, reject) => {
+                const result = {};
+                fs.ensureDir(outFolder, (err) => {
                     if (err) {
                         reject(err);
                         return;
                     }
 
-                    im.identify(srcFile, function(err, features) {
+                    im.identify(srcFile, (err, features) => {
                         if (err) {
                             reject(err);
                             return;
@@ -320,21 +319,21 @@ const MapUpload = {
                         result.width = features.width;
                         result.height = features.height;
 
-                        var xZoom = Math.ceil(Math.log(result.width / 256) / Math.log(2));
-                        var yZoom = Math.ceil(Math.log(result.height / 256) / Math.log(2));
+                        const xZoom = Math.ceil(Math.log(result.width / 256) / Math.log(2));
+                        const yZoom = Math.ceil(Math.log(result.height / 256) / Math.log(2));
                         result.zoom = xZoom > yZoom ? xZoom : yZoom;
                         if (result.zoom < 0) result.zoom = 0;
 
                         resolve(result);
                     });
                 });
-            });
-        }).then(function(arg) {
-            return Promise.all([Promise.resolve(arg), cropperForLogic2(srcFile, 0, 0, 0, arg.zoom, arg.width, arg.height)]);
-        }).then(function(args) {
-            var arg = args[0];
-            var thumbURL = fileUrl(outFolder);
-            thumbURL = thumbURL + '/{z}/{x}/{y}.' + extKey;
+            })
+        ).then((arg) =>
+            Promise.all([Promise.resolve(arg), cropperForLogic2(srcFile, 0, 0, 0, arg.zoom, arg.width, arg.height)])
+        ).then((args) => {
+            const arg = args[0];
+            let thumbURL = fileUrl(outFolder);
+            thumbURL = `${thumbURL}/{z}/{x}/{y}.${extKey}`;
             if (focused) {
                 focused.webContents.send('mapUploaded', {
                     width: arg.width,
@@ -343,16 +342,16 @@ const MapUpload = {
                     imageExtention: extKey
                 });
             }
-        }).catch(function(err) {
+        }).catch((err) => {
             if (focused) {
                 focused.webContents.send('mapUploaded', {
-                    err: err
+                    err
                 });
             } else {
-                console.log(err);
+                console.log(err); // eslint-disable-line no-undef
             }
         });
     }
 };
 
-module.exports = MapUpload;
+module.exports = MapUpload; // eslint-disable-line no-undef

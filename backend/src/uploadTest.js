@@ -1,6 +1,6 @@
 'use strict';
 
-var mapupload = require('./mapupload');
+const mapupload = require('./mapupload'); // eslint-disable-line no-undef
 
 mapupload.init();
 
