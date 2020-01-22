@@ -6,12 +6,18 @@ import ContextMenu from 'ol-contextmenu';
 import Geocoder from 'ol-geocoder';
 import Tin from '@maplat/tin';
 import LayerSwitcher from "ol-layerswitcher/dist/ol-layerswitcher";
-import { Pointer, Modify, Snap } from 'ol/interaction';
+import { Pointer, Modify, Snap, DragRotateAndZoom, defaults as interactionDefaults } from 'ol/interaction';
+import { defaults as controlDefaults } from 'ol/control';
 import {Style, Icon, Stroke, Fill} from "ol/style";
 import {LineString, Point} from "ol/geom";
 import {Feature} from "ol";
 import GeoJSON from "ol/format";
 import {transform} from "ol/proj";
+import {MERC_MAX} from "@maplat/core/src/const_ex";
+import {MaplatMap} from "@maplat/core/src/map_ex";
+import {altKeyOnly} from "ol/events/condition";
+import {Vector as layerVector, Tile} from "ol/layer";
+import {Vector as sourceVector} from "ol/source";
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
@@ -565,518 +571,499 @@ function reflectIllstMap() {
                             const center = [prev[0][0]/gcps.length, prev[0][1]/gcps.length];
                             const deltax = prev[1][0] - prev[2][0];
                             const deltay = prev[1][1] - prev[2][1];
-                            const delta = deltax > deltay ? deltax : deltay;
-                            const zoom = Math.log(600 / 256 * ol.const.MERC_MAX * 2 / deltax) / Math.log(2);
+                            const delta = deltax > deltay ? deltax : deltay; // eslint-disable-line no-unused-vars
+                            const zoom = Math.log(600 / 256 * MERC_MAX * 2 / deltax) / Math.log(2);
                             return [center, zoom];
                         } else return prev;
-                        },[[0,0],[-1*ol.const.MERC_MAX,-1*ol.const.MERC_MAX],[ol.const.MERC_MAX,ol.const.MERC_MAX]]);
+                        },[[0,0],[-1*MERC_MAX,-1*MERC_MAX],[MERC_MAX,MERC_MAX]]);
+                    center = results[0];
+                    zoom = results[1];
                 }
                 const mercView = mercMap.getView();
-                mercView.setCenter(results[0]);
-                mercView.setZoom(results[1]);
+                mercView.setCenter(center);
+                mercView.setZoom(zoom);
             }
-                }).catch(function (err) {
-                    console.log(err);
-                });
+        }).catch((err) => {
+            console.log(err); // eslint-disable-line no-undef,no-console
+        });
+}
+
+//マーカードラッグ用(Exampleよりコピペ)
+class Drag extends Pointer {
+    /**
+     * @constructor
+     * @extends {ol.interaction.Pointer}
+     */
+    constructor() {
+        super({
+            handleDownEvent: Drag.prototype.handleDownEvent,
+            handleDragEvent: Drag.prototype.handleDragEvent,
+            handleMoveEvent: Drag.prototype.handleMoveEvent,
+            handleUpEvent: Drag.prototype.handleUpEvent
+        });
+
+        /**
+         * @type {ol.Pixel}
+         * @private
+         */
+        this.coordinate_ = null;
+
+        /**
+         * @type {string|undefined}
+         * @private
+         */
+        this.cursor_ = 'pointer';
+
+        /**
+         * @type {ol.Feature}
+         * @private
+         */
+        this.feature_ = null;
+
+        /**
+         * @type {string|undefined}
+         * @private
+         */
+        this.previousCursor_ = undefined;
+
+        //マーカーレイヤのみ対象とするようにlayerFilterを設定
+        this.layerFilter = 'marker';
+    }
+    /**
+     * @param {ol.MapBrowserEvent} evt Map browser event.
+     * @return {boolean} `true` to start the drag sequence.
+     */
+    handleDownEvent(evt) {
+        if (evt.pointerEvent.button === 2) return;
+        const map = evt.map;
+
+        const this_ = this;
+        let feature = map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => feature, {
+            layerFilter(layer) {
+                return layer.get('name') === this_.layerFilter;
+            }
+        });
+
+        if (feature) {
+            if (feature.getGeometry().getType() === 'LineString') {
+                feature = undefined;
+            } else {
+                this.coordinate_ = evt.coordinate;
+                this.feature_ = feature;
+            }
         }
 
-        //マーカードラッグ用(Exampleよりコピペ)
-        class Drag extends Pointer {
-            /**
-             * @constructor
-             * @extends {ol.interaction.Pointer}
-             */
-            constructor() {
-                super({
-                    handleDownEvent: Drag.prototype.handleDownEvent,
-                    handleDragEvent: Drag.prototype.handleDragEvent,
-                    handleMoveEvent: Drag.prototype.handleMoveEvent,
-                    handleUpEvent: Drag.prototype.handleUpEvent
-                });
+        return !!feature;
+    }
 
-                /**
-                 * @type {ol.Pixel}
-                 * @private
-                 */
-                this.coordinate_ = null;
+    /**
+     * @param {ol.MapBrowserEvent} evt Map browser event.
+     */
+    handleDragEvent(evt) {
+        if (evt.pointerEvent.button === 2) return;
 
-                /**
-                 * @type {string|undefined}
-                 * @private
-                 */
-                this.cursor_ = 'pointer';
+        const deltaX = evt.coordinate[0] - this.coordinate_[0];
+        const deltaY = evt.coordinate[1] - this.coordinate_[1];
 
-                /**
-                 * @type {ol.Feature}
-                 * @private
-                 */
-                this.feature_ = null;
+        const geometry = /** @type {ol.geom.SimpleGeometry} */
+        (this.feature_.getGeometry());
+        geometry.translate(deltaX, deltaY);
 
-                /**
-                 * @type {string|undefined}
-                 * @private
-                 */
+        this.coordinate_[0] = evt.coordinate[0];
+        this.coordinate_[1] = evt.coordinate[1];
+    }
+    /**
+     * @param {ol.MapBrowserEvent} evt Event.
+     */
+    handleMoveEvent(evt) {
+        if (evt.pointerEvent.button === 2) return;
+        const anotherMap = evt.map === illstMap ? mercMap : illstMap;
+        anotherMap.closeContextMenu();
+        if (this.cursor_) {
+            const map = evt.map;
+
+            const this_ = this;
+            const feature = map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => feature, {
+                layerFilter(layer) {
+                    return layer.get('name') === this_.layerFilter;
+                }
+            });
+
+            const element = evt.map.getTargetElement();
+            if (feature) {
+                if (element.style.cursor !== this.cursor_) {
+                    this.previousCursor_ = element.style.cursor;
+                    element.style.cursor = this.cursor_;
+                }
+            } else if (this.previousCursor_ !== undefined) {
+                element.style.cursor = this.previousCursor_;
                 this.previousCursor_ = undefined;
-
-                //マーカーレイヤのみ対象とするようにlayerFilterを設定
-                this.layerFilter = 'marker';
-            }
-            /**
-             * @param {ol.MapBrowserEvent} evt Map browser event.
-             * @return {boolean} `true` to start the drag sequence.
-             */
-            handleDownEvent(evt) {
-                if (evt.pointerEvent.button === 2) return;
-                const map = evt.map;
-
-                const this_ = this;
-                let feature = map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => feature, {
-                    layerFilter(layer) {
-                        return layer.get('name') === this_.layerFilter;
-                    }
-                });
-
-                if (feature) {
-                    if (feature.getGeometry().getType() === 'LineString') {
-                        feature = undefined;
-                    } else {
-                        this.coordinate_ = evt.coordinate;
-                        this.feature_ = feature;
-                    }
-                }
-
-                return !!feature;
-            }
-
-            /**
-             * @param {ol.MapBrowserEvent} evt Map browser event.
-             */
-            handleDragEvent(evt) {
-                if (evt.pointerEvent.button === 2) return;
-
-                const deltaX = evt.coordinate[0] - this.coordinate_[0];
-                const deltaY = evt.coordinate[1] - this.coordinate_[1];
-
-                const geometry = /** @type {ol.geom.SimpleGeometry} */
-                    (this.feature_.getGeometry());
-                geometry.translate(deltaX, deltaY);
-
-                this.coordinate_[0] = evt.coordinate[0];
-                this.coordinate_[1] = evt.coordinate[1];
-            }
-            /**
-             * @param {ol.MapBrowserEvent} evt Event.
-             */
-            handleMoveEvent(evt) {
-                if (evt.pointerEvent.button === 2) return;
-                const anotherMap = evt.map === illstMap ? mercMap : illstMap;
-                anotherMap.closeContextMenu();
-                if (this.cursor_) {
-                    const map = evt.map;
-
-                    const this_ = this;
-                    const feature = map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => feature, {
-                        layerFilter(layer) {
-                            return layer.get('name') === this_.layerFilter;
-                        }
-                    });
-
-                    const element = evt.map.getTargetElement();
-                    if (feature) {
-                        if (element.style.cursor !== this.cursor_) {
-                            this.previousCursor_ = element.style.cursor;
-                            element.style.cursor = this.cursor_;
-                        }
-                    } else if (this.previousCursor_ !== undefined) {
-                        element.style.cursor = this.previousCursor_;
-                        this.previousCursor_ = undefined;
-                    }
-                }
-            }
-            /**
-             * @param {ol.MapBrowserEvent} evt Map browser event.
-             * @return {boolean} `false` to stop the drag sequence.
-             */
-            handleUpEvent(evt) {
-                if (evt.pointerEvent.button === 2) return;
-                const map = evt.map;
-                const isIllst = map === illstMap;
-                const feature = this.feature_;
-                let xy = feature.getGeometry().getCoordinates();
-                xy = isIllst ? illstSource.histMapCoords2Xy(xy) : xy;
-
-                const gcpIndex = feature.get('gcpIndex');
-                if (gcpIndex !== 'new') {
-                    const gcps = vueMap.gcps;
-                    const gcp = gcps[gcpIndex];
-                    gcp[isIllst ? 0 : 1] = xy;
-                    gcps.splice(gcpIndex, 1, gcp);
-                    gcpsToMarkers();
-                } else {
-                    newlyAddGcp[isIllst ? 0 : 1] = xy;
-                }
-                this.coordinate_ = null;
-                this.feature_ = null;
-                return false;
             }
         }
+    }
+    /**
+     * @param {ol.MapBrowserEvent} evt Map browser event.
+     * @return {boolean} `false` to stop the drag sequence.
+     */
+    handleUpEvent(evt) {
+        if (evt.pointerEvent.button === 2) return;
+        const map = evt.map;
+        const isIllst = map === illstMap;
+        const feature = this.feature_;
+        let xy = feature.getGeometry().getCoordinates();
+        xy = isIllst ? illstSource.histMapCoords2Xy(xy) : xy;
 
+        const gcpIndex = feature.get('gcpIndex');
+        if (gcpIndex !== 'new') {
+            const gcps = vueMap.gcps;
+            const gcp = gcps[gcpIndex];
+            gcp[isIllst ? 0 : 1] = xy;
+            gcps.splice(gcpIndex, 1, gcp);
+            gcpsToMarkers();
+        } else {
+            newlyAddGcp[isIllst ? 0 : 1] = xy;
+        }
+        this.coordinate_ = null;
+        this.feature_ = null;
+        return false;
+    }
+}
 
+MaplatMap.prototype.initContextMenu = () => {
+    const map = this;
+    const normalContextMenu = {
+        text: 'マーカー追加',
+        callback: addNewMarker
+    };
 
+    const removeContextMenu = {
+        text: 'マーカー削除',
+        callback: removeMarker
+    };
 
+    const pairingContextMenu = {
+        text: '対応マーカー表示',
+        callback: pairingMarker
+    };
 
+    const addNewCancelContextMenu = {
+        text: 'マーカー追加キャンセル',
+        callback: addNewCancelMarker
+    };
 
+    const edgeStartContextMenu = {
+        text: '対応線開始マーカー指定',
+        callback: edgeStartMarker
+    };
 
+    const edgeEndContextMenu = {
+        text: '対応線終了マーカー指定',
+        callback: edgeEndMarker
+    };
 
+    const edgeCancelContextMenu = {
+        text: '対応線指定キャンセル',
+        callback: edgeCancelMarker
+    };
 
-        ol.MaplatMap.prototype.initContextMenu = function() {
-            var map = this;
-            var normalContextMenu = {
-                text: 'マーカー追加',
-                callback: addNewMarker
-            };
+    const removeEdgeContextMenu = {
+        text: '対応線削除',
+        callback: removeEdge
+    };
 
-            var removeContextMenu = {
-                text: 'マーカー削除',
-                callback: removeMarker
-            };
+    const addMarkerOnEdgeContextMenu = {
+        text: '対応線上にマーカー追加',
+        callback: addMarkerOnEdge
+    };
 
-            var pairingContextMenu = {
-                text: '対応マーカー表示',
-                callback: pairingMarker
-            };
+    const contextmenu = this.contextmenu = new ContextMenu({
+        width: 170,
+        defaultItems: false,
+        items: [ normalContextMenu ]
+    });
+    this.addControl(contextmenu);
+    let restore = false;
 
-            var addNewCancelContextMenu = {
-                text: 'マーカー追加キャンセル',
-                callback: addNewCancelMarker
-            };
-
-            var edgeStartContextMenu = {
-                text: '対応線開始マーカー指定',
-                callback: edgeStartMarker
-            };
-
-            var edgeEndContextMenu = {
-                text: '対応線終了マーカー指定',
-                callback: edgeEndMarker
-            };
-
-            var edgeCancelContextMenu = {
-                text: '対応線指定キャンセル',
-                callback: edgeCancelMarker
-            };
-
-            var removeEdgeContextMenu = {
-                text: '対応線削除',
-                callback: removeEdge
-            };
-
-            var addMarkerOnEdgeContextMenu = {
-                text: '対応線上にマーカー追加',
-                callback: addMarkerOnEdge
-            };
-
-
-            var contextmenu = this.contextmenu = new ContextMenu({
-                width: 170,
-                defaultItems: false,
-                items: [ normalContextMenu ]
-            });
-            this.addControl(contextmenu);
-            var restore = false;
-
-            contextmenu.on('open', function(evt){
-                var feature = this.map_.forEachFeatureAtPixel(evt.pixel, function(ft, l){
-                    return ft;
-                }, {
-                    layerFilter: function(layer) {
-                        return layer.get('name') === 'marker' || layer.get('name') === 'edges';
-                    },
-                    hitTolerance: 5
-                });
-                if (feature) {
-                    var isLine = feature.getGeometry().getType() === 'LineString';
-                    contextmenu.clear();
-                    if (newlyAddEdge !== undefined) {
-                        if (!isLine && feature.get('gcpIndex') !== 'new' && feature.get('gcpIndex') !== newlyAddEdge) {
-                            edgeEndContextMenu.data = {
-                                marker: feature
-                            };
-                            contextmenu.push(edgeEndContextMenu);
-                        } else {
-                            contextmenu.push(edgeCancelContextMenu);
-                        }
-                    } else if (newlyAddGcp !== undefined) {
-                        contextmenu.push(addNewCancelContextMenu);
-                    } else {
-                        if (isLine) {
-                            removeEdgeContextMenu.data = {
-                                edge: feature
-                            };
-                            contextmenu.push(removeEdgeContextMenu);
-                            addMarkerOnEdgeContextMenu.data = {
-                                edge: feature
-                            };
-                            contextmenu.push(addMarkerOnEdgeContextMenu);
-                        } else {
-                            if (feature.get('gcpIndex') !== 'new') {
-                                pairingContextMenu.data = {
-                                    marker: feature
-                                };
-                                contextmenu.push(pairingContextMenu);
-                                edgeStartContextMenu.data = {
-                                    marker: feature
-                                };
-                                contextmenu.push(edgeStartContextMenu);
-                            }
-                            removeContextMenu.data = {
-                                marker: feature
-                            };
-                            contextmenu.push(removeContextMenu);
-                        }
-                    }
-                    restore = true;
-                } else if (newlyAddEdge !== undefined) {
-                    contextmenu.clear();
-                    contextmenu.push(edgeCancelContextMenu);
-                    restore = true;
-                } else if (newlyAddGcp !== undefined && newlyAddGcp[map === illstMap ? 0 : 1] !== undefined) {
-                    contextmenu.clear();
-                    contextmenu.push(addNewCancelContextMenu);
-                    restore = true;
-                } else if (restore) {
-                    contextmenu.clear();
-                    contextmenu.push(normalContextMenu);
-                    //contextmenu.extend(contextmenu.getDefaultItems());
-                    restore = false;
-                }
-                if (this.map_ === illstMap) {
-                    var xy = illstSource.histMapCoords2Xy(evt.coordinate);
-                    var outsideCheck = vueMap.currentEditingLayer ? function(xy) {
-                        var bboxPoints = Object.assign([], vueMap.bounds);
-                        bboxPoints.push(vueMap.bounds[0]);
-                        var bbox = turf.polygon([bboxPoints]);
-                        return !turf.booleanPointInPolygon(xy, bbox);
-                    } : function(xy) {
-                        return xy[0] < 0 || xy[1] < 0 ||
-                            xy[0] > vueMap.width || xy[1] > vueMap.height;
+    contextmenu.on('open', (evt) => {
+        const feature = this.map_.forEachFeatureAtPixel(evt.pixel, (ft, l) => ft, {
+            layerFilter(layer) {
+                return layer.get('name') === 'marker' || layer.get('name') === 'edges';
+                },
+            hitTolerance: 5
+        });
+        if (feature) {
+            const isLine = feature.getGeometry().getType() === 'LineString';
+            contextmenu.clear();
+            if (newlyAddEdge !== undefined) {
+                if (!isLine && feature.get('gcpIndex') !== 'new' && feature.get('gcpIndex') !== newlyAddEdge) {
+                    edgeEndContextMenu.data = {
+                        marker: feature
                     };
-                    if (outsideCheck(xy)) setTimeout(function() {contextmenu.close();}, 10);
+                    contextmenu.push(edgeEndContextMenu);
+                } else {
+                    contextmenu.push(edgeCancelContextMenu);
                 }
-            });
-
-            this.on('unfocus',function() {
-                console.log('unfocus');
-            });
-        };
-        ol.MaplatMap.prototype.closeContextMenu = function() {
-            this.contextmenu.close();
-        };
-
-        function mapObjectInit() {
-            // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここから
-            illstMap = new ol.MaplatMap({
-                div: 'illstMap',
-                interactions: ol.interaction.defaults().extend([
-                    new ol.interaction.DragRotateAndZoom({
-                        condition: ol.events.condition.altKeyOnly
-                    })
-                ]),
-                controls: ol.control.defaults()
-            });
-            // コンテクストメニュー初期化
-            illstMap.initContextMenu();
-            // マーカーなど表示用レイヤー設定
-            var jsonLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    wrapX: false
-                }),
-                style: tinStyle
-            });
-            jsonLayer.set('name', 'json');
-            illstMap.getLayer('overlay').getLayers().push(jsonLayer);
-            // 三角網など表示用レイヤー設定
-            var checkLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    wrapX: false
-                }),
-                style: tinStyle
-            });
-            checkLayer.set('name', 'check');
-            illstMap.getLayers().push(checkLayer);
-            // bounds表示用レイヤー設定
-            var boundsLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    wrapX: false
-                }),
-                style: boundsStyle
-            });
-            boundsLayer.set('name', 'bounds');
-            illstMap.getLayer('overlay').getLayers().push(boundsLayer);
-            // edge表示用レイヤー設定
-            var edgesLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    wrapX: false
-                }),
-                style: boundsStyle
-            });
-            edgesLayer.set('name', 'edges');
-            illstMap.getLayer('overlay').getLayers().push(edgesLayer);
-            // インタラクション設定
-            illstMap.on('click', onClick);
-            illstMap.addInteraction(new Drag());
-            var edgeModifyFunc = function(e){
-                if (e.pointerEvent.button === 2) return false;
-                var f = this.getMap().getFeaturesAtPixel(e.pixel,{
-                    layerFilter: function(layer) {
-                        return layer.get('name') === 'edges';
+            } else if (newlyAddGcp !== undefined) {
+                contextmenu.push(addNewCancelContextMenu);
+            } else {
+                if (isLine) {
+                    removeEdgeContextMenu.data = {
+                        edge: feature
+                    };
+                    contextmenu.push(removeEdgeContextMenu);
+                    addMarkerOnEdgeContextMenu.data = {
+                        edge: feature
+                    };
+                    contextmenu.push(addMarkerOnEdgeContextMenu);
+                } else {
+                    if (feature.get('gcpIndex') !== 'new') {
+                        pairingContextMenu.data = {
+                            marker: feature
+                        };
+                        contextmenu.push(pairingContextMenu);
+                        edgeStartContextMenu.data = {
+                            marker: feature
+                        };
+                        contextmenu.push(edgeStartContextMenu);
                     }
-                });
-                if (f && f[0].getGeometry().getType() == 'LineString') {
-                    var coordinates = f[0].getGeometry().getCoordinates();
-                    var p0 = e.pixel;
-                    var p1 = this.getMap().getPixelFromCoordinate(coordinates[0]);
-                    var dx = p0[0]-p1[0];
-                    var dy = p0[1]-p1[1];
-                    if (Math.sqrt(dx*dx+dy*dy) <= 10) {
-                        return false;
-                    }
-                    var p1 = this.getMap().getPixelFromCoordinate(coordinates.slice(-1)[0]);
-                    var dx = p0[0]-p1[0];
-                    var dy = p0[1]-p1[1];
-                    if (Math.sqrt(dx*dx+dy*dy) <= 10) {
-                        return false;
-                    }
-                    return true;
+                    removeContextMenu.data = {
+                        marker: feature
+                    };
+                    contextmenu.push(removeContextMenu);
                 }
-                return false;
-            };
-            var edgesSource = illstMap.getSource('edges');
-            var edgeModify = new ol.interaction.Modify({
-                source: edgesSource,
-                condition: edgeModifyFunc
-            });
-            var edgeRevisionBuffer = [];
-            var edgeModifyStart = function(evt) {
-                edgeRevisionBuffer = [];
-                evt.features.forEach(function(f) {
-                    edgeRevisionBuffer.push(f.getRevision());
-                });
             }
-            var edgeModifyEnd = function(evt) {
-                var isIllust = evt.target.getMap() === illstMap;
-                var forProj = isIllust ? 'ZOOM:' + illstSource.maxZoom : 'EPSG:3857';
-                var feature = null;
-                evt.features.forEach(function(f, i) {
-                    if (f.getRevision() !== edgeRevisionBuffer[i]) feature = f;
-                });
-                var startEnd = feature.get('startEnd');
-                var start = vueMap.gcps[startEnd[0]];
-                var end = vueMap.gcps[startEnd[1]];
-                var edgeIndex = vueMap.edges.findIndex(function(edge) {
-                    return edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1];
-                });
-                var edge = vueMap.edges[edgeIndex];
-                var points = feature.getGeometry().getCoordinates().filter(function(item, index, array) {
-                    return (index === 0 || index === array.length - 1) ? false : true;
-                }).map(function(merc){
-                    return ol.proj.transform(merc, 'EPSG:3857', forProj);
-                });
-                if (isIllust) edge.illstNodes = points;
-                else edge.mercNodes = points;
-                vueMap.edges.splice(edgeIndex, 1, edge);
-            };
-            edgeModify.on('modifystart', edgeModifyStart);
-            edgeModify.on('modifyend', edgeModifyEnd);
-            var edgeSnap = new ol.interaction.Snap({
-                source: edgesSource
-            });
-            illstMap.addInteraction(edgeModify);
-            illstMap.addInteraction(edgeSnap);
+            restore = true;
+        } else if (newlyAddEdge !== undefined) {
+            contextmenu.clear();
+            contextmenu.push(edgeCancelContextMenu);
+            restore = true;
+        } else if (newlyAddGcp !== undefined && newlyAddGcp[map === illstMap ? 0 : 1] !== undefined) {
+            contextmenu.clear();
+            contextmenu.push(addNewCancelContextMenu);
+            restore = true;
+        } else if (restore) {
+            contextmenu.clear();
+            contextmenu.push(normalContextMenu);
+            //contextmenu.extend(contextmenu.getDefaultItems());
+            restore = false;
+        }
+        if (this.map_ === illstMap) {
+            const xy = illstSource.histMapCoords2Xy(evt.coordinate);
+            const outsideCheck = vueMap.currentEditingLayer ? (xy) => {
+                const bboxPoints = Object.assign([], vueMap.bounds);
+                bboxPoints.push(vueMap.bounds[0]);
+                const bbox = turf.polygon([bboxPoints]);
+                return !turf.booleanPointInPolygon(xy, bbox);
+            } : (xy) => xy[0] < 0 || xy[1] < 0 || xy[0] > vueMap.width || xy[1] > vueMap.height;
+            if (outsideCheck(xy)) setTimeout(function() {contextmenu.close();}, 10);
+        }
+    });
 
-            // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここまで
+    this.on('unfocus', () => {
+        console.log('unfocus'); // eslint-disable-line no-undef,no-console
+    });
+};
+MaplatMap.prototype.closeContextMenu = () => {
+    this.contextmenu.close();
+};
 
-            // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここから
-            mercMap = new ol.MaplatMap({
-                div: 'mercMap',
-                interactions: ol.interaction.defaults().extend([
-                    new ol.interaction.DragRotateAndZoom({
-                        condition: ol.events.condition.altKeyOnly
-                    })
-                ]),
-                controls: ol.control.defaults()
-            });
-            // コンテクストメニュー初期化
-            mercMap.initContextMenu();
-            // マーカーなど表示用レイヤー設定
-            jsonLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    wrapX: false
-                }),
-                style: tinStyle
-            });
-            jsonLayer.set('name', 'json');
-            mercMap.getLayer('overlay').getLayers().push(jsonLayer);
-            // 三角網など表示用レイヤー設定
-            checkLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    wrapX: false
-                }),
-                style: tinStyle
-            });
-            checkLayer.set('name', 'check');
-            mercMap.getLayers().push(checkLayer);
-            // edge表示用レイヤー設定
-            edgesLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    wrapX: false
-                }),
-                style: boundsStyle
-            });
-            edgesLayer.set('name', 'edges');
-            mercMap.getLayer('overlay').getLayers().push(edgesLayer);
-            // インタラクション設定
-            mercMap.on('click', onClick);
-            mercMap.addInteraction(new Drag());
-            edgesSource = mercMap.getSource('edges');
-            edgeModify = new ol.interaction.Modify({
-                source: edgesSource,
-                condition: edgeModifyFunc
-            });
-            edgeModify.on('modifystart', edgeModifyStart);
-            edgeModify.on('modifyend', edgeModifyEnd);
-            edgeSnap = new ol.interaction.Snap({
-                source: edgesSource
-            });
-            mercMap.addInteraction(edgeModify);
-            mercMap.addInteraction(edgeSnap);
+function mapObjectInit() {
+    // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここから
+    illstMap = new MaplatMap({
+        div: 'illstMap',
+        interactions: interactionDefaults().extend([
+            new DragRotateAndZoom({
+                condition: altKeyOnly
+            })
+        ]),
+        controls: controlDefaults()
+    });
+    // コンテクストメニュー初期化
+    illstMap.initContextMenu();
+    // マーカーなど表示用レイヤー設定
+    let jsonLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: tinStyle
+    });
+    jsonLayer.set('name', 'json');
+    illstMap.getLayer('overlay').getLayers().push(jsonLayer);
+    // 三角網など表示用レイヤー設定
+    let checkLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: tinStyle
+    });
+    checkLayer.set('name', 'check');
+    illstMap.getLayers().push(checkLayer);
+    // bounds表示用レイヤー設定
+    const boundsLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: boundsStyle
+    });
+    boundsLayer.set('name', 'bounds');
+    illstMap.getLayer('overlay').getLayers().push(boundsLayer);
+    // edge表示用レイヤー設定
+    let edgesLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: boundsStyle
+    });
+    edgesLayer.set('name', 'edges');
+    illstMap.getLayer('overlay').getLayers().push(edgesLayer);
+    // インタラクション設定
+    illstMap.on('click', onClick);
+    illstMap.addInteraction(new Drag());
+    const edgeModifyFunc = (e) => {
+        if (e.pointerEvent.button === 2) return false;
+        const f = this.getMap().getFeaturesAtPixel(e.pixel, {
+            layerFilter(layer) {
+                return layer.get('name') === 'edges';
+            }
+        });
+        if (f && f[0].getGeometry().getType() == 'LineString') {
+            const coordinates = f[0].getGeometry().getCoordinates();
+            const p0 = e.pixel;
+            let p1 = this.getMap().getPixelFromCoordinate(coordinates[0]);
+            let dx = p0[0]-p1[0];
+            let dy = p0[1]-p1[1];
+            if (Math.sqrt(dx*dx+dy*dy) <= 10) {
+                return false;
+            }
+            p1 = this.getMap().getPixelFromCoordinate(coordinates.slice(-1)[0]);
+            dx = p0[0]-p1[0];
+            dy = p0[1]-p1[1];
+            if (Math.sqrt(dx*dx+dy*dy) <= 10) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    };
+    let edgesSource = illstMap.getSource('edges');
+    let edgeModify = new Modify({
+        source: edgesSource,
+        condition: edgeModifyFunc
+    });
+    let edgeRevisionBuffer = [];
+    const edgeModifyStart = (evt) => {
+        edgeRevisionBuffer = [];
+        evt.features.forEach((f) => {
+            edgeRevisionBuffer.push(f.getRevision());
+        });
+    }
+    const edgeModifyEnd = (evt) => {
+        const isIllust = evt.target.getMap() === illstMap;
+        const forProj = isIllust ? `ZOOM:${illstSource.maxZoom}` : 'EPSG:3857';
+        let feature = null;
+        evt.features.forEach((f, i) => {
+            if (f.getRevision() !== edgeRevisionBuffer[i]) feature = f;
+        });
+        const startEnd = feature.get('startEnd');
+        const start = vueMap.gcps[startEnd[0]];
+        const end = vueMap.gcps[startEnd[1]];
+        const edgeIndex = vueMap.edges.findIndex((edge) => edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1]);
+        const edge = vueMap.edges[edgeIndex];
+        const points = feature.getGeometry().getCoordinates().filter((item, index, array) =>
+            (index === 0 || index === array.length - 1) ? false : true).map((merc) =>
+            transform(merc, 'EPSG:3857', forProj));
+        if (isIllust) edge.illstNodes = points;
+        else edge.mercNodes = points;
+        vueMap.edges.splice(edgeIndex, 1, edge);
+    };
+    edgeModify.on('modifystart', edgeModifyStart);
+    edgeModify.on('modifyend', edgeModifyEnd);
+    let edgeSnap = new Snap({
+        source: edgesSource
+    });
+    illstMap.addInteraction(edgeModify);
+    illstMap.addInteraction(edgeSnap);
 
-            var mercSource;
-            // ベースマップリスト作成
-            var tmsList = backend.getTmsList();
-            var promises = tmsList.reverse().map(function(tms) {
-                return (function(tms){
-                    var promise = tms.label ?
-                        HistMap.createAsync({
-                            mapID: tms.mapID,
-                            label: tms.label,
-                            attr: tms.attr,
-                            maptype: 'base',
-                            url: tms.url,
-                            maxZoom: tms.maxZoom
-                        }, {}) :
-                        HistMap.createAsync(tms.mapID, {});
-                    return promise.then(function(source){
-                        return new ol.layer.Tile({
-                            title: tms.title,
-                            type: 'base',
-                            visible: tms.mapID === 'osm',
-                            source: source
-                        });
-                    });
-                })(tms);
-            });
-            // ベースマップコントロール追加
+    // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここまで
+
+    // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここから
+    mercMap = new MaplatMap({
+        div: 'mercMap',
+        interactions: interactionDefaults().extend([
+            new DragRotateAndZoom({
+                condition: altKeyOnly
+            })
+        ]),
+        controls: controlDefaults()
+    });
+    // コンテクストメニュー初期化
+    mercMap.initContextMenu();
+    // マーカーなど表示用レイヤー設定
+    jsonLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: tinStyle
+    });
+    jsonLayer.set('name', 'json');
+    mercMap.getLayer('overlay').getLayers().push(jsonLayer);
+    // 三角網など表示用レイヤー設定
+    checkLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: tinStyle
+    });
+    checkLayer.set('name', 'check');
+    mercMap.getLayers().push(checkLayer);
+    // edge表示用レイヤー設定
+    edgesLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: boundsStyle
+    });
+    edgesLayer.set('name', 'edges');
+    mercMap.getLayer('overlay').getLayers().push(edgesLayer);
+    // インタラクション設定
+    mercMap.on('click', onClick);
+    mercMap.addInteraction(new Drag());
+    edgesSource = mercMap.getSource('edges');
+    edgeModify = new Modify({
+        source: edgesSource,
+        condition: edgeModifyFunc
+    });
+    edgeModify.on('modifystart', edgeModifyStart);
+    edgeModify.on('modifyend', edgeModifyEnd);
+    edgeSnap = new Snap({
+        source: edgesSource
+    });
+    mercMap.addInteraction(edgeModify);
+    mercMap.addInteraction(edgeSnap);
+
+    // ベースマップリスト作成
+    const tmsList = backend.getTmsList();
+    const promises = tmsList.reverse().map((tms) => {
+        return ((tms) => {
+            const promise = tms.label ?
+                HistMap.createAsync({
+                    mapID: tms.mapID,
+                    label: tms.label,
+                    attr: tms.attr,
+                    maptype: 'base',
+                    url: tms.url,
+                    maxZoom: tms.maxZoom
+                }, {}) :
+                HistMap.createAsync(tms.mapID, {});
+            return promise.then((source) => new Tile({
+                    title: tms.title,
+                    type: 'base',
+                    visible: tms.mapID === 'osm',
+                    source
+                }));
+        })(tms);
+    });
+    // ベースマップコントロール追加
             Promise.all(promises).then(function(layers) {
                 var layerGroup = new ol.layer.Group({
                     'title': 'ベースマップ',
