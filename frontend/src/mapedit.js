@@ -6,15 +6,20 @@ import ContextMenu from 'ol-contextmenu';
 import Geocoder from 'ol-geocoder';
 import Tin from '@maplat/tin';
 import LayerSwitcher from "ol-layerswitcher/dist/ol-layerswitcher";
-import { Pointer } from 'ol/interaction';
+import { Pointer, Modify, Snap } from 'ol/interaction';
+import {Style, Icon, Stroke, Fill} from "ol/style";
+import {LineString, Point} from "ol/geom";
+import {Feature} from "ol";
+import GeoJSON from "ol/format";
+import {transform} from "ol/proj";
 
-const onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
-const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
+const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
+const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
     'mapper', 'attr', 'dataAttr', 'description'];
 
 const labelFontStyle = "Normal 12px Arial";
-const {ipcRenderer} = require('electron');
-const backend = require('electron').remote.require('./mapedit');
+const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
+const backend = require('electron').remote.require('./mapedit'); // eslint-disable-line no-undef
 backend.init();
 let uploader;
 let mapID;
@@ -26,8 +31,8 @@ let illstSource;
 let mercMap;
 let modify;
 let snap;
-const hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-for (var i = 0; i < hashes.length; i++) {
+const hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&'); // eslint-disable-line no-undef
+for (let i = 0; i < hashes.length; i++) {
     const hash = hashes[i].split('=');
     if (hash[0] === 'mapid') mapID = hash[1];
 }
@@ -37,7 +42,7 @@ function getTextWidth ( _text, _fontStyle ) {
         context = undefined,
         metrics = undefined;
 
-    canvas = document.createElement( "canvas" );
+    canvas = document.createElement( "canvas" ); // eslint-disable-line no-undef
 
     context = canvas.getContext( "2d" );
 
@@ -70,676 +75,659 @@ function gcpsToMarkers (targetIndex) {
                     <text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${(i + 1)}</text>
                     </svg>`;
 
-                const imageElement = new Image();
-                imageElement.src = 'data:image/svg+xml,' + encodeURIComponent( iconSVG );
+        const imageElement = new Image(); // eslint-disable-line no-undef
+        imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
 
-                var iconStyle = new ol.style.Style({
-                    "image": new ol.style.Icon({
-                        "img": imageElement,
-                        "imgSize":[labelWidth, 70],
-                        "anchor": [0.5, 1],
-                        "offset": [0, -50]
-                    })
-                });
-
-                illstMap.setMarker(mapXyIllst, { gcpIndex: i }, iconStyle);
-                mercMap.setMarker(gcp[1], { gcpIndex: i }, iconStyle);
-            }
-            for (var i=0; i<edges.length; i++) {
-                var gcp1 = gcps[edges[i].startEnd[0]];
-                var gcp2 = gcps[edges[i].startEnd[1]];
-                var illst1 = illstSource.xy2HistMapCoords(gcp1[0]);
-                var illst2 = illstSource.xy2HistMapCoords(gcp2[0]);
-                var style = new ol.style.Style({
-                    stroke: new ol.style.Stroke({
-                        color: 'red',
-                        width: 2
-                    })
-                });
-                var mercCoords = [gcp1[1]];
-                edges[i].mercNodes.map(function(node) {
-                    mercCoords.push(node);
-                });
-                mercCoords.push(gcp2[1]);
-                var mercLine = {
-                    geometry: new ol.geom.LineString(mercCoords),
-                    startEnd: edges[i].startEnd
-                };
-                var illstCoords = [illst1];
-                edges[i].illstNodes.map(function(node) {
-                    illstCoords.push(illstSource.xy2HistMapCoords(node));
-                });
-                illstCoords.push(illst2);
-                var illstLine = {
-                    geometry: new ol.geom.LineString(illstCoords),
-                    startEnd: edges[i].startEnd
-                };
-                illstMap.setFeature(illstLine, style, 'edges');
-                mercMap.setFeature(mercLine, style, 'edges');
-            }
-        }
-
-        function edgeStartMarker (arg, map) {
-            var marker = arg.data.marker;
-            var gcpIndex = marker.get('gcpIndex');
-            if (gcpIndex !== 'new') {
-                newlyAddEdge = gcpIndex;
-                gcpsToMarkers(gcpIndex);
-            }
-        }
-
-        function edgeEndMarker (arg, map) {
-            var marker = arg.data.marker;
-            var gcpIndex = marker.get('gcpIndex');
-            if (gcpIndex !== 'new') {
-                var edge = [newlyAddEdge, gcpIndex].sort(function (a, b) {
-                    return a > b ? 1 : a < b ? -1 : 0;
-                });
-                newlyAddEdge = undefined;
-                if (vueMap.edges.findIndex(function(item) {
-                    return item.startEnd[0] === edge[0] && item.startEnd[1] === edge[1]
-                }) < 0) {
-                    vueMap.edges.push({
-                        startEnd: edge,
-                        mercNodes: [],
-                        illstNodes: []
-                    });
-                } else {
-                    alert('その対応線は指定済です。');
-                }
-                gcpsToMarkers();
-            }
-        }
-
-        function edgeCancelMarker (arg, map) {
-            newlyAddEdge = undefined;
-            gcpsToMarkers();
-        }
-
-        function addNewCancelMarker (arg, map) {
-            newlyAddGcp = undefined;
-            var gcps = vueMap.gcps;
-            gcpsToMarkers(gcps);
-        }
-
-        function pairingMarker (arg, map) {
-            var marker = arg.data.marker;
-            var gcpIndex = marker.get('gcpIndex');
-            if (gcpIndex !== 'new') {
-                var gcps = vueMap.gcps;
-                var gcp = gcps[gcpIndex];
-                var forw = illstSource.xy2HistMapCoords(gcp[0]);
-                var bakw = gcp[1];
-                var forView = illstMap.getView();
-                var bakView = mercMap.getView();
-                forView.setCenter(forw);
-                bakView.setCenter(bakw);
-                forView.setZoom(illstSource.maxZoom - 1);
-                bakView.setZoom(17);
-            }
-        }
-
-        function removeEdge (arg, map) {
-            var edge = arg.data.edge;
-            var startEnd = edge.get('startEnd');
-            var edges = vueMap.edges;
-            var edgeIndex = edges.findIndex(function(item) {
-                return item.startEnd[0] === startEnd[0] && item.startEnd[1] === startEnd[1];
-            });
-            if (edgeIndex > -1) {
-                edges.splice(edgeIndex, 1);
-            }
-            gcpsToMarkers();
-        }
-
-        function addMarkerOnEdge (arg, map) {
-            var edgeGeom = arg.data.edge;
-            var isIllst = map === illstMap;
-            var coord = edgeGeom.getGeometry().getClosestPoint(arg.coordinate);
-            var xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
-            var startEnd = edgeGeom.get('startEnd');
-            var edgeIndex = vueMap.edges.findIndex(function(edge) {
-                return edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1];
-            });
-            var edge = vueMap.edges[edgeIndex];
-
-            console.log(xy);
-
-            var gcp1 = vueMap.gcps[startEnd[0]];
-            var gcp2 = vueMap.gcps[startEnd[1]];
-            var this1 = gcp1[isIllst ? 0 : 1];
-            var this2 = gcp2[isIllst ? 0 : 1];
-            var that1 = gcp1[isIllst ? 1 : 0];
-            var that2 = gcp2[isIllst ? 1 : 0];
-
-            var thisNodes = Object.assign([], isIllst ? edge.illstNodes : edge.mercNodes);
-            var thatNodes = Object.assign([], isIllst ? edge.mercNodes : edge.illstNodes);
-            thisNodes.unshift(this1);
-            thisNodes.push(this2);
-            thatNodes.unshift(that1);
-            thatNodes.push(that2);
-            var nearest = 0;
-            var nearestIndex = 0;
-            var nearestLength = 0;
-            var thisResults = thisNodes.reduce(function(prev, curr, index, arr) {
-                if (index === 0) {
-                    prev.push([0,0]);
-                    return prev;
-                }
-                var prevCoord = arr[index - 1];
-                var length = Math.sqrt(Math.pow(curr[1] - prevCoord[1], 2) + Math.pow(curr[0] - prevCoord[0], 2));
-                var distance = Math.abs((curr[1] - prevCoord[1]) * xy[0] - (curr[0] - prevCoord[0]) * xy[1] + curr[0] * prevCoord[1] - curr[1] * prevCoord[0]) / length;
-                var sum = prev[index-1][1] + length;
-                prev.push([length, sum, distance]);
-                if (!nearestIndex || nearest > distance) {
-                    nearestIndex = index;
-                    nearest = distance;
-                    nearestLength = prev[index-1][1] + Math.sqrt(Math.pow(xy[1] - prevCoord[1], 2) + Math.pow(xy[0] - prevCoord[0], 2));
-                }
-                return prev;
-            }, []);
-            var thisPrevNodes = thisNodes.slice(1, nearestIndex);
-            var thisLastNodes = thisNodes.slice(nearestIndex, thisNodes.length - 1);
-            var nearestRatio = nearestLength / thisResults[thisResults.length - 1][1];
-
-            var thatResults = thatNodes.reduce(function(prev, curr, index, arr) {
-                if (index === 0) {
-                    prev.push([0,0]);
-                    return prev;
-                }
-                var prevCoord = arr[index - 1];
-                var length = Math.sqrt(Math.pow(curr[1] - prevCoord[1], 2) + Math.pow(curr[0] - prevCoord[0], 2));
-                var sum = prev[index-1][1] + length;
-                prev.push([length, sum]);
-                return prev;
-            }, []);
-            var thatXy = [];
-            var thatIndex  = 0;
-            var thatLengthToXy = nearestRatio * thatResults[thatResults.length - 1][1];
-            thatResults.map(function(result, index, arr) {
-                if (thatLengthToXy < result[1] && !thatIndex) {
-                    thatIndex = index;
-                    var localRatio = (thatLengthToXy - arr[index - 1][1]) / result[0];
-                    var prevNode = thatNodes[index - 1];
-                    var nextNode = thatNodes[index];
-                    thatXy = [(nextNode[0] - prevNode[0]) * localRatio + prevNode[0],
-                        (nextNode[1] - prevNode[1]) * localRatio + prevNode[1]];
-                }
-            });
-            var thatPrevNodes = thatNodes.slice(1, thatIndex);
-            var thatLastNodes = thatNodes.slice(thatIndex, thatNodes.length - 1);
-            vueMap.gcps.push([isIllst ? xy : thatXy, isIllst ? thatXy : xy]);
-            var newGcpIndex = vueMap.gcps.length - 1;
-            vueMap.edges.splice(edgeIndex, 1, {
-                startEnd: [startEnd[0], newGcpIndex],
-                illstNodes: isIllst ? thisPrevNodes : thatPrevNodes,
-                mercNodes: isIllst ? thatPrevNodes : thisPrevNodes
-            });
-            vueMap.edges.push({
-                startEnd: [newGcpIndex, startEnd[1]],
-                illstNodes: isIllst ? thisLastNodes : thatLastNodes,
-                mercNodes: isIllst ? thatLastNodes : thisLastNodes
-            });
-            gcpsToMarkers();
-        }
-
-        function removeMarker (arg, map) {
-            var marker = arg.data.marker;
-            var gcpIndex = marker.get('gcpIndex');
-            if (gcpIndex === 'new') {
-                newlyAddGcp = undefined;
-                map.getSource('marker').removeFeature(marker);
-            } else {
-                var gcps = vueMap.gcps;
-                gcps.splice(gcpIndex, 1);
-                var edges = vueMap.edges;
-                for (var i = edges.length-1; i >= 0; i--) {
-                    var edge = edges[i];
-                    if (edge.startEnd[0] === gcpIndex || edge.startEnd[1] === gcpIndex) {
-                        edges.splice(i, 1);
-                    } else {
-                        if (edge.startEnd[0] > gcpIndex) edge.startEnd[0] = edge.startEnd[0] - 1;
-                        if (edge.startEnd[1] > gcpIndex) edge.startEnd[1] = edge.startEnd[1] - 1;
-                    }
-                }
-                gcpsToMarkers();
-            }
-        }
-
-        function addNewMarker (arg, map) {
-            var gcps = vueMap.gcps;
-            var number = gcps.length + 1;
-            var isIllst = map === illstMap;
-            var coord = arg.coordinate;
-            var xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
-
-            if (!newlyAddGcp) {
-                var labelWidth = getTextWidth( number, labelFontStyle ) + 10;
-
-                var iconSVG = '<svg ' +
-                    'version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ' +
-                    'x="0px" y="0px" width="' + labelWidth + 'px" height="20px" ' +
-                    'viewBox="0 0 ' + labelWidth + ' 20" enable-background="new 0 0 ' + labelWidth + ' 20" xml:space="preserve">'+
-                    '<polygon x="0" y="0" points="0,0 ' + labelWidth + ',0 ' + labelWidth + ',16 ' + (labelWidth / 2 + 4) + ',16 ' +
-                    (labelWidth / 2) + ',20 ' + (labelWidth / 2 - 4) + ',16 0,16 0,0" stroke="#000000" fill="#FFCCCC" stroke-width="2"></polygon>' +
-                    '<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">' + number + '</text>' +
-                    '</svg>';
-
-                var imageElement = new Image();
-                imageElement.src = 'data:image/svg+xml,' + encodeURIComponent( iconSVG );
-
-                var iconStyle = new ol.style.Style({
-                    "image": new ol.style.Icon({
-                        "img": imageElement,
-                        "imgSize":[labelWidth, 70],
-                        "anchor": [0.5, 1],
-                        "offset": [0, -50]
-                    })
-                });
-
-                map.setMarker(coord, { gcpIndex: 'new' }, iconStyle);
-
-                newlyAddGcp = isIllst ? [xy, ] : [, xy];
-            } else if ((isIllst && !newlyAddGcp[0]) || (!isIllst && !newlyAddGcp[1])) {
-                if (isIllst) { newlyAddGcp[0] = xy; } else { newlyAddGcp[1] = xy; }
-                gcps.push(newlyAddGcp);
-                gcpsToMarkers();
-                newlyAddGcp = undefined;
-            }
-        }
-
-        function jsonClear() {
-            illstMap.getSource('json').clear();
-            mercMap.getSource('json').clear();
-        }
-
-        function checkClear() {
-            illstMap.getSource('check').clear();
-            mercMap.getSource('check').clear();
-        }
-
-        function boundsClear() {
-            illstMap.getSource('bounds').clear();
-        }
-
-        function edgesClear() {
-            illstMap.getSource('edges').clear();
-            mercMap.getSource('edges').clear();
-        }
-
-        function onClick(evt) {
-            if (evt.pointerEvent.altKey) return;
-            var isIllst = this === illstMap;
-            var srcMap = isIllst ? illstMap : mercMap;
-            var distMap = isIllst ? mercMap : illstMap;
-            var srcMarkerLoc = evt.coordinate;
-            var srcXy = isIllst ? illstSource.histMapCoords2Xy(srcMarkerLoc) : srcMarkerLoc;
-
-            var srcCheck = srcMap.getSource('check');
-            var distCheck = distMap.getSource('check');
-            srcCheck.clear();
-            distCheck.clear();
-
-            var tinObject = vueMap.tinObject;
-            if (typeof tinObject === 'string') {
-                alert(tinObject === 'tooLessGcps' ? '変換テストに必要な対応点の数が少なすぎます' :
-                tinObject === 'tooLinear' ? '対応点が直線的に並びすぎているため、変換テストが実行できません。' :
-                tinObject === 'pointsOutside' ? '対応点が地図領域外にあるため、変換テストが実行できません。' :
-                tinObject === 'edgeError' ? '対応線にエラーがあるため、変換テストが実行できません。' :
-                '原因不明のエラーのため、変換テストが実行できません。');
-                return;
-            }
-            if (tinObject.strict_status === 'strict_error' && !isIllst) {
-                alert('厳格モードでエラーがある際は、逆変換ができません。');
-                return;
-            }
-            var distXy = tinObject.transform(srcXy, !isIllst);
-
-            if (!distXy) {
-                alert('地図領域範囲外のため、変換ができません。');
-                return;
-            }
-
-            var distMarkerLoc = isIllst ? distXy : illstSource.xy2HistMapCoords(distXy);
-            distMap.getView().setCenter(distMarkerLoc);
-
-            var iconSVG = '<svg ' +
-                'version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ' +
-                'x="0px" y="0px" width="10px" height="15px" ' +
-                'viewBox="0 0 10 15" enable-background="new 0 0 10 15" xml:space="preserve">'+
-                '<polygon x="0" y="0" points="5,1 9,5 5,14 1,5 5,1" ' +
-                'stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon>' +
-                '</svg>';
-            var imageElement = new Image();
-            imageElement.src = 'data:image/svg+xml,' + encodeURIComponent( iconSVG );
-
-            var style = new ol.style.Style({
-                "image": new ol.style.Icon({
-                    "img": imageElement,
-                    "imgSize":[10, 15],
-                    "anchor": [0.5, 1]
-                })
-            });
-            var srcFeature = new ol.Feature({geometry: new ol.geom.Point(srcMarkerLoc)});
-            var distFeature = new ol.Feature({geometry: new ol.geom.Point(distMarkerLoc)});
-            srcFeature.setStyle(style);
-            distFeature.setStyle(style);
-            srcCheck.addFeature(srcFeature);
-            distCheck.addFeature(distFeature);
-        }
-
-        function tinResultUpdate() {
-            var tinObject = vueMap.tinObject;
-
-            jsonClear();
-            boundsClear();
-
-            var forProj = 'ZOOM:' + illstSource.maxZoom;
-            var jsonReader = new ol.format.GeoJSON();
-
-            var boundsSource = illstMap.getSource('bounds');
-            var bboxPoints;
-            if (vueMap.currentEditingLayer === 0) {
-                bboxPoints = [[0, 0], [vueMap.width, 0], [vueMap.width, vueMap.height], [0, vueMap.height], [0, 0]];
-            } else {
-                bboxPoints = Object.assign([], vueMap.bounds);
-                bboxPoints.push(vueMap.bounds[0]);
-            }
-            var bbox = turf.polygon([bboxPoints]);
-            var bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
-            boundsSource.addFeatures(bboxFeature);
-
-            if (modify) {
-                illstMap.removeInteraction(modify);
-            }
-            if (snap) {
-                illstMap.removeInteraction(snap);
-            }
-            if (vueMap.currentEditingLayer !== 0) {
-                modify = new ol.interaction.Modify({
-                    source: boundsSource
-                });
-                modify.on('modifyend', function(evt) {
-                    vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter(function(item, index, array) {
-                        return index === array.length - 1 ? false : true;
-                    }).map(function(merc) {
-                        return ol.proj.transform(merc, 'EPSG:3857', forProj);
-                    });
-                    backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
-                });
-                snap = new ol.interaction.Snap({source: boundsSource});
-                illstMap.addInteraction(modify);
-                illstMap.addInteraction(snap);
-            }
-
-            if (typeof tinObject === 'string') {
-                return;
-            }
-
-            var forTin = tinObject.tins.forw;
-            var bakTin = tinObject.tins.bakw;
-            var bakFeatures = jsonReader.readFeatures(bakTin, {dataProjection:'EPSG:3857'});
-            var forFeatures = jsonReader.readFeatures(forTin, {dataProjection:forProj, featureProjection:'EPSG:3857'});
-            mercMap.getSource('json').addFeatures(bakFeatures);
-            illstMap.getSource('json').addFeatures(forFeatures);
-
-            errorNumber = null;
-            if (tinObject.strict_status === 'strict_error') {
-                var kinkFeatures = jsonReader.readFeatures(tinObject.kinks.bakw, {dataProjection:'EPSG:3857'});
-                mercMap.getSource('json').addFeatures(kinkFeatures);
-            }
-        }
-
-        function tinStyle(feature) {
-            if (feature.getGeometry().getType() === 'Polygon') {
-                return new ol.style.Style({
-                    stroke: new ol.style.Stroke({
-                        color: 'blue',
-                        width: 1
-                    }),
-                    fill: new ol.style.Fill({
-                        color: 'rgba(0, 0, 255, 0.05)'
-                    })
-                });
-            } else if (feature.getGeometry().getType() === 'LineString') {
-                return new ol.style.Style({
-                    stroke: new ol.style.Stroke({
-                        color: 'red',
-                        width: 2
-                    })
-                });
-            }
-            var iconSVG = '<svg ' +
-                'version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ' +
-                'x="0px" y="0px" width="6px" height="6px" ' +
-                'viewBox="0 0 6 6" enable-background="new 0 0 6 6" xml:space="preserve">'+
-                '<polygon x="0" y="0" points="3,0 6,3 3,6 0,3 ' +
-                '3,0" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon>' +
-                '</svg>';
-            var imageElement = new Image();
-            imageElement.src = 'data:image/svg+xml,' + encodeURIComponent( iconSVG );
-
-            return new ol.style.Style({
-                "image": new ol.style.Icon({
-                    "img": imageElement,
-                    "imgSize":[6, 6],
-                    "anchor": [0.5, 0.5]
-                })
-            });
-        }
-
-        var boundsStyle = new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: 'red',
-                width: 2
-            }),
-            fill: new ol.style.Fill({
-                color: 'rgba(0, 0, 0, 0)'
+        const iconStyle = new Style({
+            "image": new Icon({
+                "img": imageElement,
+                "imgSize":[labelWidth, 70],
+                "anchor": [0.5, 1],
+                "offset": [0, -50]
             })
         });
 
-        function reflectIllstMap() {
-            return HistMap.createAsync({
-                mapID: mapID,
-                url: vueMap.url_,
-                width: vueMap.width,
-                height: vueMap.height,
-                attr: vueMap.attr,
-                noload: true
-            },{})
-                .then(function(source) {
-                    illstSource = source;
-                    illstMap.exchangeSource(illstSource);
-                    var initialCenter = illstSource.xy2HistMapCoords([vueMap.width / 2, vueMap.height / 2]);
-                    var illstView = illstMap.getView();
-                    illstView.setCenter(initialCenter);
+        illstMap.setMarker(mapXyIllst, { gcpIndex: i }, iconStyle);
+        mercMap.setMarker(gcp[1], { gcpIndex: i }, iconStyle);
+    }
+    for (let i=0; i<edges.length; i++) {
+        const gcp1 = gcps[edges[i].startEnd[0]];
+        const gcp2 = gcps[edges[i].startEnd[1]];
+        const illst1 = illstSource.xy2HistMapCoords(gcp1[0]);
+        const illst2 = illstSource.xy2HistMapCoords(gcp2[0]);
+        const style = new Style({
+            stroke: new Stroke({
+                color: 'red',
+                width: 2
+            })
+        });
+        const mercCoords = [gcp1[1]];
+        edges[i].mercNodes.map((node) => {
+            mercCoords.push(node);
+        });
+        mercCoords.push(gcp2[1]);
+        const mercLine = {
+            geometry: new LineString(mercCoords),
+            startEnd: edges[i].startEnd
+        };
+        const illstCoords = [illst1];
+        edges[i].illstNodes.map((node) => {
+            illstCoords.push(illstSource.xy2HistMapCoords(node));
+        });
+        illstCoords.push(illst2);
+        const illstLine = {
+            geometry: new LineString(illstCoords),
+            startEnd: edges[i].startEnd
+        };
+        illstMap.setFeature(illstLine, style, 'edges');
+        mercMap.setFeature(mercLine, style, 'edges');
+    }
+}
 
-                    var gcps = vueMap.gcps;
-                    if (gcps && gcps.length > 0) {
-                        var center;
-                        var zoom;
-                        if (gcps.length === 1) {
-                            center = gcps[0][1];
-                            zoom = 16;
-                        } else {
-                            var results = gcps.reduce(function(prev, curr, index) {
-                                var merc = curr[1];
-                                prev[0][0] = prev[0][0] + merc[0];
-                                prev[0][1] = prev[0][1] + merc[1];
-                                if (merc[0] > prev[1][0]) prev[1][0] = merc[0];
-                                if (merc[1] > prev[1][1]) prev[1][1] = merc[1];
-                                if (merc[0] < prev[2][0]) prev[2][0] = merc[0];
-                                if (merc[1] < prev[2][1]) prev[2][1] = merc[1];
-                                if (index === gcps.length - 1) {
-                                    var center = [prev[0][0]/gcps.length, prev[0][1]/gcps.length];
-                                    var deltax = prev[1][0] - prev[2][0];
-                                    var deltay = prev[1][1] - prev[2][1];
-                                    var delta = deltax > deltay ? deltax : deltay;
-                                    var zoom = Math.log(600 / 256 * ol.const.MERC_MAX * 2 / deltax) / Math.log(2);
-                                    return [center, zoom];
-                                } else return prev;
-                            },[[0,0],[-1*ol.const.MERC_MAX,-1*ol.const.MERC_MAX],[ol.const.MERC_MAX,ol.const.MERC_MAX]]);
-                        }
-                        var mercView = mercMap.getView();
-                        mercView.setCenter(results[0]);
-                        mercView.setZoom(results[1]);
-                    }
+function edgeStartMarker (arg, map) { // eslint-disable-line no-unused-vars
+    const marker = arg.data.marker;
+    const gcpIndex = marker.get('gcpIndex');
+    if (gcpIndex !== 'new') {
+        newlyAddEdge = gcpIndex;
+        gcpsToMarkers(gcpIndex);
+    }
+}
+
+function edgeEndMarker (arg, map) { // eslint-disable-line no-unused-vars
+    const marker = arg.data.marker;
+    const gcpIndex = marker.get('gcpIndex');
+    if (gcpIndex !== 'new') {
+        const edge = [newlyAddEdge, gcpIndex].sort((a, b) => a > b ? 1 : a < b ? -1 : 0);
+        newlyAddEdge = undefined;
+        if (vueMap.edges.findIndex((item) => item.startEnd[0] === edge[0] && item.startEnd[1] === edge[1]) < 0) {
+            vueMap.edges.push({
+                startEnd: edge,
+                mercNodes: [],
+                illstNodes: []
+            });
+        } else {
+            alert('その対応線は指定済です。'); // eslint-disable-line no-undef
+        }
+        gcpsToMarkers();
+    }
+}
+
+function edgeCancelMarker (arg, map) { // eslint-disable-line no-unused-vars
+    newlyAddEdge = undefined;
+    gcpsToMarkers();
+}
+
+function addNewCancelMarker (arg, map) { // eslint-disable-line no-unused-vars
+    newlyAddGcp = undefined;
+    const gcps = vueMap.gcps;
+    gcpsToMarkers(gcps);
+}
+
+function pairingMarker (arg, map) { // eslint-disable-line no-unused-vars
+    const marker = arg.data.marker;
+    const gcpIndex = marker.get('gcpIndex');
+    if (gcpIndex !== 'new') {
+        const gcps = vueMap.gcps;
+        const gcp = gcps[gcpIndex];
+        const forw = illstSource.xy2HistMapCoords(gcp[0]);
+        const bakw = gcp[1];
+        const forView = illstMap.getView();
+        const bakView = mercMap.getView();
+        forView.setCenter(forw);
+        bakView.setCenter(bakw);
+        forView.setZoom(illstSource.maxZoom - 1);
+        bakView.setZoom(17);
+    }
+}
+
+function removeEdge (arg, map) { // eslint-disable-line no-unused-vars
+    const edge = arg.data.edge;
+    const startEnd = edge.get('startEnd');
+    const edges = vueMap.edges;
+    const edgeIndex = edges.findIndex((item) => item.startEnd[0] === startEnd[0] && item.startEnd[1] === startEnd[1]);
+    if (edgeIndex > -1) {
+        edges.splice(edgeIndex, 1);
+    }
+    gcpsToMarkers();
+}
+
+function addMarkerOnEdge (arg, map) {
+    const edgeGeom = arg.data.edge;
+    const isIllst = map === illstMap;
+    const coord = edgeGeom.getGeometry().getClosestPoint(arg.coordinate);
+    const xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
+    const startEnd = edgeGeom.get('startEnd');
+    const edgeIndex = vueMap.edges.findIndex((edge) => edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1]);
+    const edge = vueMap.edges[edgeIndex];
+
+    console.log(xy); // eslint-disable-line no-undef,no-console
+
+    const gcp1 = vueMap.gcps[startEnd[0]];
+    const gcp2 = vueMap.gcps[startEnd[1]];
+    const this1 = gcp1[isIllst ? 0 : 1];
+    const this2 = gcp2[isIllst ? 0 : 1];
+    const that1 = gcp1[isIllst ? 1 : 0];
+    const that2 = gcp2[isIllst ? 1 : 0];
+
+    const thisNodes = Object.assign([], isIllst ? edge.illstNodes : edge.mercNodes);
+    const thatNodes = Object.assign([], isIllst ? edge.mercNodes : edge.illstNodes);
+    thisNodes.unshift(this1);
+    thisNodes.push(this2);
+    thatNodes.unshift(that1);
+    thatNodes.push(that2);
+    let nearest = 0;
+    let nearestIndex = 0;
+    let nearestLength = 0;
+    const thisResults = thisNodes.reduce((prev, curr, index, arr) => {
+        if (index === 0) {
+            prev.push([0,0]);
+            return prev;
+        }
+        const prevCoord = arr[index - 1];
+        const length = Math.sqrt(Math.pow(curr[1] - prevCoord[1], 2) + Math.pow(curr[0] - prevCoord[0], 2));
+        const distance = Math.abs((curr[1] - prevCoord[1]) * xy[0] - (curr[0] - prevCoord[0]) * xy[1] + curr[0] * prevCoord[1] - curr[1] * prevCoord[0]) / length;
+        const sum = prev[index-1][1] + length;
+        prev.push([length, sum, distance]);
+        if (!nearestIndex || nearest > distance) {
+            nearestIndex = index;
+            nearest = distance;
+            nearestLength = prev[index-1][1] + Math.sqrt(Math.pow(xy[1] - prevCoord[1], 2) + Math.pow(xy[0] - prevCoord[0], 2));
+        }
+        return prev;
+        }, []);
+    const thisPrevNodes = thisNodes.slice(1, nearestIndex);
+    const thisLastNodes = thisNodes.slice(nearestIndex, thisNodes.length - 1);
+    const nearestRatio = nearestLength / thisResults[thisResults.length - 1][1];
+
+    const thatResults = thatNodes.reduce((prev, curr, index, arr) => {
+        if (index === 0) {
+            prev.push([0,0]);
+            return prev;
+        }
+        const prevCoord = arr[index - 1];
+        const length = Math.sqrt(Math.pow(curr[1] - prevCoord[1], 2) + Math.pow(curr[0] - prevCoord[0], 2));
+        const sum = prev[index-1][1] + length;
+        prev.push([length, sum]);
+        return prev;
+        }, []);
+    let thatXy = [];
+    let thatIndex  = 0;
+    const thatLengthToXy = nearestRatio * thatResults[thatResults.length - 1][1];
+    thatResults.map((result, index, arr) => {
+        if (thatLengthToXy < result[1] && !thatIndex) {
+            thatIndex = index;
+            const localRatio = (thatLengthToXy - arr[index - 1][1]) / result[0];
+            const prevNode = thatNodes[index - 1];
+            const nextNode = thatNodes[index];
+            thatXy = [(nextNode[0] - prevNode[0]) * localRatio + prevNode[0],
+                (nextNode[1] - prevNode[1]) * localRatio + prevNode[1]];
+        }
+    });
+    const thatPrevNodes = thatNodes.slice(1, thatIndex);
+    const thatLastNodes = thatNodes.slice(thatIndex, thatNodes.length - 1);
+    vueMap.gcps.push([isIllst ? xy : thatXy, isIllst ? thatXy : xy]);
+    const newGcpIndex = vueMap.gcps.length - 1;
+    vueMap.edges.splice(edgeIndex, 1, {
+        startEnd: [startEnd[0], newGcpIndex],
+        illstNodes: isIllst ? thisPrevNodes : thatPrevNodes,
+        mercNodes: isIllst ? thatPrevNodes : thisPrevNodes
+    });
+    vueMap.edges.push({
+        startEnd: [newGcpIndex, startEnd[1]],
+        illstNodes: isIllst ? thisLastNodes : thatLastNodes,
+        mercNodes: isIllst ? thatLastNodes : thisLastNodes
+    });
+    gcpsToMarkers();
+}
+
+function removeMarker (arg, map) {
+    const marker = arg.data.marker;
+    const gcpIndex = marker.get('gcpIndex');
+    if (gcpIndex === 'new') {
+        newlyAddGcp = undefined;
+        map.getSource('marker').removeFeature(marker);
+    } else {
+        const gcps = vueMap.gcps;
+        gcps.splice(gcpIndex, 1);
+        const edges = vueMap.edges;
+        for (let i = edges.length-1; i >= 0; i--) {
+            const edge = edges[i];
+            if (edge.startEnd[0] === gcpIndex || edge.startEnd[1] === gcpIndex) {
+                edges.splice(i, 1);
+            } else {
+                if (edge.startEnd[0] > gcpIndex) edge.startEnd[0] = edge.startEnd[0] - 1;
+                if (edge.startEnd[1] > gcpIndex) edge.startEnd[1] = edge.startEnd[1] - 1;
+            }
+        }
+        gcpsToMarkers();
+    }
+}
+
+function addNewMarker (arg, map) {
+    const gcps = vueMap.gcps;
+    const number = gcps.length + 1;
+    const isIllst = map === illstMap;
+    const coord = arg.coordinate;
+    const xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
+
+    if (!newlyAddGcp) {
+        const labelWidth = getTextWidth( number, labelFontStyle ) + 10;
+
+        const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                    x="0px" y="0px" width="${labelWidth}px" height="20px"
+                    viewBox="0 0 ${labelWidth} 20" enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
+                    <polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
+                    ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="#FFCCCC" stroke-width="2"></polygon>
+                    <text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${number}</text>
+                    </svg>`;
+
+        const imageElement = new Image(); // eslint-disable-line no-undef
+        imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
+
+        const iconStyle = new Style({
+            "image": new Icon({
+                "img": imageElement,
+                "imgSize":[labelWidth, 70],
+                "anchor": [0.5, 1],
+                "offset": [0, -50]
+            })
+        });
+
+        map.setMarker(coord, { gcpIndex: 'new' }, iconStyle);
+
+        newlyAddGcp = isIllst ? [xy, ] : [, xy]; // eslint-disable-line no-sparse-arrays
+    } else if ((isIllst && !newlyAddGcp[0]) || (!isIllst && !newlyAddGcp[1])) {
+        if (isIllst) { newlyAddGcp[0] = xy; } else { newlyAddGcp[1] = xy; }
+        gcps.push(newlyAddGcp);
+        gcpsToMarkers();
+        newlyAddGcp = undefined;
+    }
+}
+
+function jsonClear() {
+    illstMap.getSource('json').clear();
+    mercMap.getSource('json').clear();
+}
+
+function checkClear() {
+    illstMap.getSource('check').clear();
+    mercMap.getSource('check').clear();
+}
+
+function boundsClear() {
+    illstMap.getSource('bounds').clear();
+}
+
+function edgesClear() {
+    illstMap.getSource('edges').clear();
+    mercMap.getSource('edges').clear();
+}
+
+function onClick(evt) {
+    if (evt.pointerEvent.altKey) return;
+    const isIllst = this === illstMap;
+    const srcMap = isIllst ? illstMap : mercMap;
+    const distMap = isIllst ? mercMap : illstMap;
+    const srcMarkerLoc = evt.coordinate;
+    const srcXy = isIllst ? illstSource.histMapCoords2Xy(srcMarkerLoc) : srcMarkerLoc;
+
+    const srcCheck = srcMap.getSource('check');
+    const distCheck = distMap.getSource('check');
+    srcCheck.clear();
+    distCheck.clear();
+
+    const tinObject = vueMap.tinObject;
+    if (typeof tinObject === 'string') {
+        alert(tinObject === 'tooLessGcps' ? '変換テストに必要な対応点の数が少なすぎます' : // eslint-disable-line no-undef
+            tinObject === 'tooLinear' ? '対応点が直線的に並びすぎているため、変換テストが実行できません。' :
+                tinObject === 'pointsOutside' ? '対応点が地図領域外にあるため、変換テストが実行できません。' :
+                    tinObject === 'edgeError' ? '対応線にエラーがあるため、変換テストが実行できません。' :
+                        '原因不明のエラーのため、変換テストが実行できません。');
+        return;
+    }
+    if (tinObject.strict_status === 'strict_error' && !isIllst) {
+        alert('厳格モードでエラーがある際は、逆変換ができません。'); // eslint-disable-line no-undef
+        return;
+    }
+    const distXy = tinObject.transform(srcXy, !isIllst);
+
+    if (!distXy) {
+        alert('地図領域範囲外のため、変換ができません。'); // eslint-disable-line no-undef
+        return;
+    }
+
+    const distMarkerLoc = isIllst ? distXy : illstSource.xy2HistMapCoords(distXy);
+    distMap.getView().setCenter(distMarkerLoc);
+
+    const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                x="0px" y="0px" width="10px" height="15px"
+                viewBox="0 0 10 15" enable-background="new 0 0 10 15" xml:space="preserve">
+                <polygon x="0" y="0" points="5,1 9,5 5,14 1,5 5,1"
+                stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon>
+                </svg>`;
+    const imageElement = new Image(); // eslint-disable-line no-undef
+    imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
+
+    const style = new Style({
+        "image": new Icon({
+            "img": imageElement,
+            "imgSize":[10, 15],
+            "anchor": [0.5, 1]
+        })
+    });
+    const srcFeature = new Feature({geometry: new Point(srcMarkerLoc)});
+    const distFeature = new Feature({geometry: new Point(distMarkerLoc)});
+    srcFeature.setStyle(style);
+    distFeature.setStyle(style);
+    srcCheck.addFeature(srcFeature);
+    distCheck.addFeature(distFeature);
+}
+
+function tinResultUpdate() {
+    const tinObject = vueMap.tinObject;
+
+    jsonClear();
+    boundsClear();
+
+    const forProj = `ZOOM:${illstSource.maxZoom}`;
+    const jsonReader = new GeoJSON();
+
+    const boundsSource = illstMap.getSource('bounds');
+    let bboxPoints;
+    if (vueMap.currentEditingLayer === 0) {
+        bboxPoints = [[0, 0], [vueMap.width, 0], [vueMap.width, vueMap.height], [0, vueMap.height], [0, 0]];
+    } else {
+        bboxPoints = Object.assign([], vueMap.bounds);
+        bboxPoints.push(vueMap.bounds[0]);
+    }
+    const bbox = turf.polygon([bboxPoints]);
+    const bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
+    boundsSource.addFeatures(bboxFeature);
+
+    if (modify) {
+        illstMap.removeInteraction(modify);
+    }
+    if (snap) {
+        illstMap.removeInteraction(snap);
+    }
+    if (vueMap.currentEditingLayer !== 0) {
+        modify = new Modify({
+            source: boundsSource
+        });
+        modify.on('modifyend', (evt) => {
+            vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter((item, index, array) =>
+                index === array.length - 1 ? false : true).map((merc) => transform(merc, 'EPSG:3857', forProj));
+            backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+        });
+        snap = new Snap({source: boundsSource});
+        illstMap.addInteraction(modify);
+        illstMap.addInteraction(snap);
+    }
+
+    if (typeof tinObject === 'string') {
+        return;
+    }
+
+    const forTin = tinObject.tins.forw;
+    const bakTin = tinObject.tins.bakw;
+    const bakFeatures = jsonReader.readFeatures(bakTin, {dataProjection:'EPSG:3857'});
+    const forFeatures = jsonReader.readFeatures(forTin, {dataProjection:forProj, featureProjection:'EPSG:3857'});
+    mercMap.getSource('json').addFeatures(bakFeatures);
+    illstMap.getSource('json').addFeatures(forFeatures);
+
+    errorNumber = null;
+    if (tinObject.strict_status === 'strict_error') {
+        const kinkFeatures = jsonReader.readFeatures(tinObject.kinks.bakw, {dataProjection:'EPSG:3857'});
+        mercMap.getSource('json').addFeatures(kinkFeatures);
+    }
+}
+
+function tinStyle(feature) {
+    if (feature.getGeometry().getType() === 'Polygon') {
+        return new Style({
+            stroke: new Stroke({
+                color: 'blue',
+                width: 1
+            }),
+            fill: new Fill({
+                color: 'rgba(0, 0, 255, 0.05)'
+            })
+        });
+    } else if (feature.getGeometry().getType() === 'LineString') {
+        return new Style({
+            stroke: new Stroke({
+                color: 'red',
+                width: 2
+            })
+        });
+    }
+    const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                x="0px" y="0px" width="6px" height="6px"
+                viewBox="0 0 6 6" enable-background="new 0 0 6 6" xml:space="preserve">
+                <polygon x="0" y="0" points="3,0 6,3 3,6 0,3
+                3,0" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon>
+                </svg>`;
+    const imageElement = new Image(); // eslint-disable-line no-undef
+    imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
+
+    return new Style({
+        "image": new Icon({
+            "img": imageElement,
+            "imgSize":[6, 6],
+            "anchor": [0.5, 0.5]
+        })
+    });
+}
+
+const boundsStyle = new Style({
+    stroke: new Stroke({
+        color: 'red',
+        width: 2
+    }),
+    fill: new Fill({
+        color: 'rgba(0, 0, 0, 0)'
+    })
+});
+
+function reflectIllstMap() {
+    return HistMap.createAsync({
+        mapID,
+        url: vueMap.url_,
+        width: vueMap.width,
+        height: vueMap.height,
+        attr: vueMap.attr,
+        noload: true
+    },{})
+        .then((source) => {
+            illstSource = source;
+            illstMap.exchangeSource(illstSource);
+            const initialCenter = illstSource.xy2HistMapCoords([vueMap.width / 2, vueMap.height / 2]);
+            const illstView = illstMap.getView();
+            illstView.setCenter(initialCenter);
+
+            const gcps = vueMap.gcps;
+            if (gcps && gcps.length > 0) {
+                let center;
+                let zoom;
+                if (gcps.length === 1) {
+                    center = gcps[0][1];
+                    zoom = 16;
+                } else {
+                    const results = gcps.reduce((prev, curr, index) => {
+                        const merc = curr[1];
+                        prev[0][0] = prev[0][0] + merc[0];
+                        prev[0][1] = prev[0][1] + merc[1];
+                        if (merc[0] > prev[1][0]) prev[1][0] = merc[0];
+                        if (merc[1] > prev[1][1]) prev[1][1] = merc[1];
+                        if (merc[0] < prev[2][0]) prev[2][0] = merc[0];
+                        if (merc[1] < prev[2][1]) prev[2][1] = merc[1];
+                        if (index === gcps.length - 1) {
+                            const center = [prev[0][0]/gcps.length, prev[0][1]/gcps.length];
+                            const deltax = prev[1][0] - prev[2][0];
+                            const deltay = prev[1][1] - prev[2][1];
+                            const delta = deltax > deltay ? deltax : deltay;
+                            const zoom = Math.log(600 / 256 * ol.const.MERC_MAX * 2 / deltax) / Math.log(2);
+                            return [center, zoom];
+                        } else return prev;
+                        },[[0,0],[-1*ol.const.MERC_MAX,-1*ol.const.MERC_MAX],[ol.const.MERC_MAX,ol.const.MERC_MAX]]);
+                }
+                const mercView = mercMap.getView();
+                mercView.setCenter(results[0]);
+                mercView.setZoom(results[1]);
+            }
                 }).catch(function (err) {
                     console.log(err);
                 });
         }
 
-        var app = {};
         //マーカードラッグ用(Exampleよりコピペ)
-        /**
-         * @constructor
-         * @extends {ol.interaction.Pointer}
-         */
-        app.Drag = function() {
-            ol.interaction.Pointer.call(this, {
-                handleDownEvent: app.Drag.prototype.handleDownEvent,
-                handleDragEvent: app.Drag.prototype.handleDragEvent,
-                handleMoveEvent: app.Drag.prototype.handleMoveEvent,
-                handleUpEvent: app.Drag.prototype.handleUpEvent
-            });
-
+        class Drag extends Pointer {
             /**
-             * @type {ol.Pixel}
-             * @private
+             * @constructor
+             * @extends {ol.interaction.Pointer}
              */
-            this.coordinate_ = null;
+            constructor() {
+                super({
+                    handleDownEvent: Drag.prototype.handleDownEvent,
+                    handleDragEvent: Drag.prototype.handleDragEvent,
+                    handleMoveEvent: Drag.prototype.handleMoveEvent,
+                    handleUpEvent: Drag.prototype.handleUpEvent
+                });
 
-            /**
-             * @type {string|undefined}
-             * @private
-             */
-            this.cursor_ = 'pointer';
+                /**
+                 * @type {ol.Pixel}
+                 * @private
+                 */
+                this.coordinate_ = null;
 
-            /**
-             * @type {ol.Feature}
-             * @private
-             */
-            this.feature_ = null;
+                /**
+                 * @type {string|undefined}
+                 * @private
+                 */
+                this.cursor_ = 'pointer';
 
-            /**
-             * @type {string|undefined}
-             * @private
-             */
-            this.previousCursor_ = undefined;
+                /**
+                 * @type {ol.Feature}
+                 * @private
+                 */
+                this.feature_ = null;
 
-            //マーカーレイヤのみ対象とするようにlayerFilterを設定
-            this.layerFilter = 'marker';
+                /**
+                 * @type {string|undefined}
+                 * @private
+                 */
+                this.previousCursor_ = undefined;
 
-        };
-        ol.inherits(app.Drag, ol.interaction.Pointer);
-
-        /**
-         * @param {ol.MapBrowserEvent} evt Map browser event.
-         * @return {boolean} `true` to start the drag sequence.
-         */
-        app.Drag.prototype.handleDownEvent = function(evt) {
-            if (evt.pointerEvent.button === 2) return;
-            var map = evt.map;
-
-            var this_ = this;
-            var feature = map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
-                return feature;
-            }, {
-                layerFilter: function(layer) {
-                    return layer.get('name') === this_.layerFilter;
-                }
-            });
-
-            if (feature) {
-                if (feature.getGeometry().getType() === 'LineString') {
-                    feature = undefined;
-                } else {
-                    this.coordinate_ = evt.coordinate;
-                    this.feature_ = feature;
-                }
+                //マーカーレイヤのみ対象とするようにlayerFilterを設定
+                this.layerFilter = 'marker';
             }
+            /**
+             * @param {ol.MapBrowserEvent} evt Map browser event.
+             * @return {boolean} `true` to start the drag sequence.
+             */
+            handleDownEvent(evt) {
+                if (evt.pointerEvent.button === 2) return;
+                const map = evt.map;
 
-            return !!feature;
-        };
-
-        /**
-         * @param {ol.MapBrowserEvent} evt Map browser event.
-         */
-        app.Drag.prototype.handleDragEvent = function(evt) {
-            if (evt.pointerEvent.button === 2) return;
-            var map = evt.map;
-
-            var this_ = this;
-
-            var deltaX = evt.coordinate[0] - this.coordinate_[0];
-            var deltaY = evt.coordinate[1] - this.coordinate_[1];
-
-            var geometry = /** @type {ol.geom.SimpleGeometry} */
-                (this.feature_.getGeometry());
-            geometry.translate(deltaX, deltaY);
-
-            this.coordinate_[0] = evt.coordinate[0];
-            this.coordinate_[1] = evt.coordinate[1];
-        };
-
-        /**
-         * @param {ol.MapBrowserEvent} evt Event.
-         */
-        app.Drag.prototype.handleMoveEvent = function(evt) {
-            if (evt.pointerEvent.button === 2) return;
-            var anotherMap = evt.map === illstMap ? mercMap : illstMap;
-            anotherMap.closeContextMenu();
-            if (this.cursor_) {
-                var map = evt.map;
-
-                var this_ = this;
-                var feature = map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
-                    return feature;
-                }, {
-                    layerFilter: function(layer) {
+                const this_ = this;
+                let feature = map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => feature, {
+                    layerFilter(layer) {
                         return layer.get('name') === this_.layerFilter;
                     }
                 });
 
-                var element = evt.map.getTargetElement();
                 if (feature) {
-                    if (element.style.cursor !== this.cursor_) {
-                        this.previousCursor_ = element.style.cursor;
-                        element.style.cursor = this.cursor_;
+                    if (feature.getGeometry().getType() === 'LineString') {
+                        feature = undefined;
+                    } else {
+                        this.coordinate_ = evt.coordinate;
+                        this.feature_ = feature;
                     }
-                } else if (this.previousCursor_ !== undefined) {
-                    element.style.cursor = this.previousCursor_;
-                    this.previousCursor_ = undefined;
+                }
+
+                return !!feature;
+            }
+
+            /**
+             * @param {ol.MapBrowserEvent} evt Map browser event.
+             */
+            handleDragEvent(evt) {
+                if (evt.pointerEvent.button === 2) return;
+
+                const deltaX = evt.coordinate[0] - this.coordinate_[0];
+                const deltaY = evt.coordinate[1] - this.coordinate_[1];
+
+                const geometry = /** @type {ol.geom.SimpleGeometry} */
+                    (this.feature_.getGeometry());
+                geometry.translate(deltaX, deltaY);
+
+                this.coordinate_[0] = evt.coordinate[0];
+                this.coordinate_[1] = evt.coordinate[1];
+            }
+            /**
+             * @param {ol.MapBrowserEvent} evt Event.
+             */
+            handleMoveEvent(evt) {
+                if (evt.pointerEvent.button === 2) return;
+                const anotherMap = evt.map === illstMap ? mercMap : illstMap;
+                anotherMap.closeContextMenu();
+                if (this.cursor_) {
+                    const map = evt.map;
+
+                    const this_ = this;
+                    const feature = map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => feature, {
+                        layerFilter(layer) {
+                            return layer.get('name') === this_.layerFilter;
+                        }
+                    });
+
+                    const element = evt.map.getTargetElement();
+                    if (feature) {
+                        if (element.style.cursor !== this.cursor_) {
+                            this.previousCursor_ = element.style.cursor;
+                            element.style.cursor = this.cursor_;
+                        }
+                    } else if (this.previousCursor_ !== undefined) {
+                        element.style.cursor = this.previousCursor_;
+                        this.previousCursor_ = undefined;
+                    }
                 }
             }
-        };
+            /**
+             * @param {ol.MapBrowserEvent} evt Map browser event.
+             * @return {boolean} `false` to stop the drag sequence.
+             */
+            handleUpEvent(evt) {
+                if (evt.pointerEvent.button === 2) return;
+                const map = evt.map;
+                const isIllst = map === illstMap;
+                const feature = this.feature_;
+                let xy = feature.getGeometry().getCoordinates();
+                xy = isIllst ? illstSource.histMapCoords2Xy(xy) : xy;
 
-        /**
-         * @param {ol.MapBrowserEvent} evt Map browser event.
-         * @return {boolean} `false` to stop the drag sequence.
-         */
-        app.Drag.prototype.handleUpEvent = function(evt) {
-            if (evt.pointerEvent.button === 2) return;
-            var map = evt.map;
-            var isIllst = map === illstMap;
-            var feature = this.feature_;
-            var xy = feature.getGeometry().getCoordinates();
-            xy = isIllst ? illstSource.histMapCoords2Xy(xy) : xy;
-
-            var gcpIndex = feature.get('gcpIndex');
-            if (gcpIndex !== 'new') {
-                var gcps = vueMap.gcps;
-                var gcp = gcps[gcpIndex];
-                gcp[isIllst ? 0 : 1] = xy;
-                gcps.splice(gcpIndex, 1, gcp);
-                gcpsToMarkers();
-            } else {
-                newlyAddGcp[isIllst ? 0 : 1] = xy;
+                const gcpIndex = feature.get('gcpIndex');
+                if (gcpIndex !== 'new') {
+                    const gcps = vueMap.gcps;
+                    const gcp = gcps[gcpIndex];
+                    gcp[isIllst ? 0 : 1] = xy;
+                    gcps.splice(gcpIndex, 1, gcp);
+                    gcpsToMarkers();
+                } else {
+                    newlyAddGcp[isIllst ? 0 : 1] = xy;
+                }
+                this.coordinate_ = null;
+                this.feature_ = null;
+                return false;
             }
-            this.coordinate_ = null;
-            this.feature_ = null;
-            return false;
-        };
+        }
+
+
+
+
+
+
+
+
 
         ol.MaplatMap.prototype.initContextMenu = function() {
             var map = this;
@@ -936,7 +924,7 @@ function gcpsToMarkers (targetIndex) {
             illstMap.getLayer('overlay').getLayers().push(edgesLayer);
             // インタラクション設定
             illstMap.on('click', onClick);
-            illstMap.addInteraction(new app.Drag());
+            illstMap.addInteraction(new Drag());
             var edgeModifyFunc = function(e){
                 if (e.pointerEvent.button === 2) return false;
                 var f = this.getMap().getFeaturesAtPixel(e.pixel,{
@@ -1049,7 +1037,7 @@ function gcpsToMarkers (targetIndex) {
             mercMap.getLayer('overlay').getLayers().push(edgesLayer);
             // インタラクション設定
             mercMap.on('click', onClick);
-            mercMap.addInteraction(new app.Drag());
+            mercMap.addInteraction(new Drag());
             edgesSource = mercMap.getSource('edges');
             edgeModify = new ol.interaction.Modify({
                 source: edgesSource,
