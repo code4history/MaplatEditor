@@ -30,6 +30,7 @@
   "dependencies": {
     "@maplat/core": "^0.6.5",
     "@maplat/tin": "^0.6.3",
+    "@turf/turf": "^5.1.6",
     "argv": "0.0.2",
     "async": "^2.6.2",
     "bootstrap.native": "^2.0.27",
@@ -45,6 +46,7 @@
     "path": "^0.12.7",
     "randomatic": "^3.0.0",
     "sshpk": "^1.13.2",
+    "underscore": "^1.9.2",
     "vue": "^2.6.11",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10",

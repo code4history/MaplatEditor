@@ -3,9 +3,8 @@ import Vue from 'vue';
 
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 
-const app = new Vue({ // eslint-disable-line no-unused-vars
+new Vue({
     created() {
-        let wookmark; // eslint-disable-line no-unused-vars
         const self = this;
 
         const backend = require('electron').remote.require('./maplist'); // eslint-disable-line no-undef
@@ -33,11 +32,11 @@ const app = new Vue({ // eslint-disable-line no-unused-vars
             });
 
             Vue.nextTick(() => {
-                wookmark = new Wookmark('#maplist');
+                new Wookmark('#maplist');
             });
         });
         Vue.nextTick(() => {
-            wookmark = new Wookmark('#maplist');
+            new Wookmark('#maplist');
         });
     },
     el: '#maplist',
