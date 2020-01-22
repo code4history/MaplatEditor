@@ -6,6 +6,7 @@ import ContextMenu from 'ol-contextmenu';
 import Geocoder from 'ol-geocoder';
 import Tin from '@maplat/tin';
 import LayerSwitcher from "ol-layerswitcher/dist/ol-layerswitcher";
+import { Pointer } from 'ol/interaction';
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
