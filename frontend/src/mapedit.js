@@ -1,81 +1,75 @@
-import histmap from '@maplat/core/src/histmap';
+import {HistMap} from '@maplat/core/src/histmap';
 import bsn from 'bootstrap.native';
-import _ from '../lib/underscore_extension';
 import turf from '@turf/turf';
+import VueMap from "./model/map";
+import ContextMenu from 'ol-contextmenu';
+import Geocoder from 'ol-geocoder';
+import Tin from '@maplat/tin';
+import LayerSwitcher from "ol-layerswitcher/dist/ol-layerswitcher";
 
+const onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
+const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
+    'mapper', 'attr', 'dataAttr', 'description'];
 
+const labelFontStyle = "Normal 12px Arial";
+const {ipcRenderer} = require('electron');
+const backend = require('electron').remote.require('./mapedit');
+backend.init();
+let uploader;
+let mapID;
+let newlyAddGcp;
+let newlyAddEdge;
+let errorNumber;
+let illstMap;
+let illstSource;
+let mercMap;
+let modify;
+let snap;
+const hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+for (var i = 0; i < hashes.length; i++) {
+    const hash = hashes[i].split('=');
+    if (hash[0] === 'mapid') mapID = hash[1];
+}
 
-define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 'contextmenu', 'geocoder', 'tin', 'switcher'],
-    function(ol, bsn, _, turf, VueMap, ContextMenu, Geocoder, Tin) {
-        var onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
-        var langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
-            'mapper', 'attr', 'dataAttr', 'description'];
+function getTextWidth ( _text, _fontStyle ) {
+    let canvas = undefined,
+        context = undefined,
+        metrics = undefined;
 
-        var labelFontStyle = "Normal 12px Arial";
-        const {ipcRenderer} = require('electron');
-        var backend = require('electron').remote.require('./mapedit');
-        backend.init();
-        var uploader;
-        var mapID;
-        var newlyAddGcp;
-        var newlyAddEdge;
-        var errorNumber;
-        var illstMap;
-        var illstSource;
-        var mercMap;
-        var modify;
-        var snap;
-        var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-        for (var i = 0; i < hashes.length; i++) {
-            hash = hashes[i].split('=');
-            if (hash[0] === 'mapid') mapID = hash[1];
-        }
-        var formHelp = {
-            'mapID': '一意な地図IDを入力してください。',
-            'title': '地図の表示用名称を入力してください。',
-            'attr': 'コピーライト表記等地図隅に表示しておく文字列を入力してください。'
-        };
+    canvas = document.createElement( "canvas" );
 
-        function getTextWidth ( _text, _fontStyle ) {
-            var canvas = undefined,
-                context = undefined,
-                metrics = undefined;
+    context = canvas.getContext( "2d" );
 
-            canvas = document.createElement( "canvas" );
+    context.font = _fontStyle;
+    metrics = context.measureText( _text );
 
-            context = canvas.getContext( "2d" );
+    return metrics.width;
+}
 
-            context.font = _fontStyle;
-            metrics = context.measureText( _text );
+function gcpsToMarkers (targetIndex) {
+    const gcps = vueMap.gcps;
+    const edges = vueMap.edges;
+    illstMap.resetMarker();
+    mercMap.resetMarker();
+    edgesClear();
 
-            return metrics.width;
-        }
+    for (let i=0; i<gcps.length; i++) {
+        const gcp = gcps[i];
+        const mapXyIllst = illstSource.xy2HistMapCoords(gcp[0]);
 
-        function gcpsToMarkers (targetIndex) {
-            var gcps = vueMap.gcps;
-            var edges = vueMap.edges;
-            illstMap.resetMarker();
-            mercMap.resetMarker();
-            edgesClear();
+        const labelWidth = getTextWidth( (i + 1), labelFontStyle ) + 10;
 
-            for (var i=0; i<gcps.length; i++) {
-                var gcp = gcps[i];
-                var mapXyIllst = illstSource.xy2HistMapCoords(gcp[0]);
+        const iconSVG = `<svg 
+                    version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                    x="0px" y="0px" width="${labelWidth}px" height="20px"
+                    viewBox="0 0 ${labelWidth} 20" enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
+                    <polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
+                    ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="${(i === targetIndex ? '#FF0000' : '#DEEFAE')}"
+                    stroke-width="2"></polygon>
+                    <text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${(i + 1)}</text>
+                    </svg>`;
 
-                var labelWidth = getTextWidth( (i + 1), labelFontStyle ) + 10;
-
-                var iconSVG = '<svg ' +
-                    'version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ' +
-                    'x="0px" y="0px" width="' + labelWidth + 'px" height="20px" ' +
-                    'viewBox="0 0 ' + labelWidth + ' 20" enable-background="new 0 0 ' + labelWidth + ' 20" xml:space="preserve">'+
-                    '<polygon x="0" y="0" points="0,0 ' + labelWidth + ',0 ' + labelWidth + ',16 ' + (labelWidth / 2 + 4) + ',16 ' +
-                    (labelWidth / 2) + ',20 ' + (labelWidth / 2 - 4) + ',16 0,16 0,0" stroke="#000000" fill="' +
-                    (i === targetIndex ? '#FF0000' : '#DEEFAE') +
-                    '" stroke-width="2"></polygon>' +
-                    '<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">' + (i + 1) + '</text>' +
-                    '</svg>';
-
-                var imageElement = new Image();
+                const imageElement = new Image();
                 imageElement.src = 'data:image/svg+xml,' + encodeURIComponent( iconSVG );
 
                 var iconStyle = new ol.style.Style({
@@ -544,7 +538,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
         });
 
         function reflectIllstMap() {
-            return ol.source.HistMap.createAsync({
+            return HistMap.createAsync({
                 mapID: mapID,
                 url: vueMap.url_,
                 width: vueMap.width,
@@ -1074,7 +1068,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             var promises = tmsList.reverse().map(function(tms) {
                 return (function(tms){
                     var promise = tms.label ?
-                        ol.source.HistMap.createAsync({
+                        HistMap.createAsync({
                             mapID: tms.mapID,
                             label: tms.label,
                             attr: tms.attr,
@@ -1082,7 +1076,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                             url: tms.url,
                             maxZoom: tms.maxZoom
                         }, {}) :
-                        ol.source.HistMap.createAsync(tms.mapID, {});
+                        HistMap.createAsync(tms.mapID, {});
                     return promise.then(function(source){
                         return new ol.layer.Tile({
                             title: tms.title,
@@ -1103,7 +1097,7 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 layers.removeAt(0);
                 layers.insertAt(0, layerGroup);
 
-                var layerSwitcher = new ol.control.LayerSwitcher({});
+                var layerSwitcher = new LayerSwitcher({});
                 mercMap.addControl(layerSwitcher);
             });
             // ジオコーダコントロール追加
@@ -1115,9 +1109,6 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
                 keepOpen: false
             });
             mercMap.addControl(geocoder);
-
-            // var switcher = new ol.control.LayerSwitcher();
-            // mercMap.addControl(switcher);
 
             // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここまで
         }
@@ -1356,4 +1347,3 @@ define(['histmap', 'bootstrap', 'underscore_extension', 'turf', 'model/vuemap', 
             mercMap.updateSize();
         });
         // 起動時処理: 地図外のUI設定ここまで
-    });
