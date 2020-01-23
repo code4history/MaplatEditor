@@ -72,15 +72,13 @@ function gcpsToMarkers (targetIndex) {
 
         const labelWidth = getTextWidth( (i + 1), labelFontStyle ) + 10;
 
-        const iconSVG = `<svg 
-                    version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                    x="0px" y="0px" width="${labelWidth}px" height="20px"
-                    viewBox="0 0 ${labelWidth} 20" enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
-                    <polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
-                    ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="${(i === targetIndex ? '#FF0000' : '#DEEFAE')}"
-                    stroke-width="2"></polygon>
-                    <text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${(i + 1)}</text>
-                    </svg>`;
+        const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+x="0px" y="0px" width="${labelWidth}px" height="20px"
+viewBox="0 0 ${labelWidth} 20" enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
+<polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
+${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="${(i === targetIndex ? '#FF0000' : '#DEEFAE')}"
+stroke-width="2"></polygon>
+<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${(i + 1)}</text></svg>`;
 
         const imageElement = new Image(); // eslint-disable-line no-undef
         imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
@@ -321,12 +319,11 @@ function addNewMarker (arg, map) {
         const labelWidth = getTextWidth( number, labelFontStyle ) + 10;
 
         const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                    x="0px" y="0px" width="${labelWidth}px" height="20px"
-                    viewBox="0 0 ${labelWidth} 20" enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
-                    <polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
-                    ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="#FFCCCC" stroke-width="2"></polygon>
-                    <text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${number}</text>
-                    </svg>`;
+x="0px" y="0px" width="${labelWidth}px" height="20px" viewBox="0 0 ${labelWidth} 20"
+enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
+<polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
+${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="#FFCCCC" stroke-width="2"></polygon>
+<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${number}</text></svg>`;
 
         const imageElement = new Image(); // eslint-disable-line no-undef
         imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
@@ -407,11 +404,8 @@ function onClick(evt) {
     distMap.getView().setCenter(distMarkerLoc);
 
     const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                x="0px" y="0px" width="10px" height="15px"
-                viewBox="0 0 10 15" enable-background="new 0 0 10 15" xml:space="preserve">
-                <polygon x="0" y="0" points="5,1 9,5 5,14 1,5 5,1"
-                stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon>
-                </svg>`;
+x="0px" y="0px" width="10px" height="15px" viewBox="0 0 10 15" enable-background="new 0 0 10 15" xml:space="preserve">
+<polygon x="0" y="0" points="5,1 9,5 5,14 1,5 5,1" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon></svg>`;
     const imageElement = new Image(); // eslint-disable-line no-undef
     imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
 
@@ -509,11 +503,8 @@ function tinStyle(feature) {
         });
     }
     const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                x="0px" y="0px" width="6px" height="6px"
-                viewBox="0 0 6 6" enable-background="new 0 0 6 6" xml:space="preserve">
-                <polygon x="0" y="0" points="3,0 6,3 3,6 0,3
-                3,0" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon>
-                </svg>`;
+x="0px" y="0px" width="6px" height="6px" viewBox="0 0 6 6" enable-background="new 0 0 6 6" xml:space="preserve">
+<polygon x="0" y="0" points="3,0 6,3 3,6 0,3 3,0" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon></svg>`;
     const imageElement = new Image(); // eslint-disable-line no-undef
     imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
 
@@ -927,7 +918,7 @@ function mapObjectInit() {
                 return layer.get('name') === 'edges';
             }
         });
-        if (f && f[0].getGeometry().getType() == 'LineString') {
+        if (f && f.length > 0 && f[0].getGeometry().getType() == 'LineString') {
             const coordinates = f[0].getGeometry().getCoordinates();
             const p0 = e.pixel;
             let p1 = this.getMap().getPixelFromCoordinate(coordinates[0]);
@@ -1220,7 +1211,7 @@ function setVueMap() {
             } else if (arg === 'Exist') {
                 alert('地図IDが重複しています。\n地図IDを変更してください。'); // eslint-disable-line no-undef
             } else {
-                console.log(arg); // eslint-disable-line no-undef
+                console.log(arg); // eslint-disable-line no-undef,no-console
                 alert('保存時エラーが発生しました。'); // eslint-disable-line no-undef
             }
         });
@@ -1294,8 +1285,6 @@ function setVueMap() {
 ipcRenderer.on('mapData', (event, arg) => {
     const json = arg[0];
     const tins = arg[1];
-    console.log(json);
-    console.log(tins);
     json.mapID = mapID;
     json.status = 'Update';
     json.onlyOne = true;
