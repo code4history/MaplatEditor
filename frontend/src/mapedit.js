@@ -1,7 +1,7 @@
 import { HistMap_tin } from '@maplat/core/src/histmap_tin'; // eslint-disable-line no-unused-vars
 import {HistMap} from '@maplat/core/src/histmap';
 import bsn from 'bootstrap.native';
-import turf from '@turf/turf';
+import {polygon, booleanPointInPolygon} from '@turf/turf';
 import Map from "./model/map";
 import ContextMenu from 'ol-contextmenu';
 import Geocoder from 'ol-geocoder';
@@ -12,7 +12,7 @@ import { defaults as controlDefaults } from 'ol/control';
 import {Style, Icon, Stroke, Fill} from "ol/style";
 import {LineString, Point} from "ol/geom";
 import {Feature} from "ol";
-import GeoJSON from "ol/format";
+import {GeoJSON} from "ol/format";
 import {transform} from "ol/proj";
 import {MERC_MAX} from "@maplat/core/src/const_ex";
 import {MaplatMap} from "@maplat/core/src/map_ex";
@@ -447,7 +447,7 @@ function tinResultUpdate() {
         bboxPoints = Object.assign([], vueMap.bounds);
         bboxPoints.push(vueMap.bounds[0]);
     }
-    const bbox = turf.polygon([bboxPoints]);
+    const bbox = polygon([bboxPoints]);
     const bboxFeature = jsonReader.readFeatures(bbox, {dataProjection:forProj, featureProjection:'EPSG:3857'});
     boundsSource.addFeatures(bboxFeature);
 
@@ -853,8 +853,8 @@ MaplatMap.prototype.initContextMenu = function() {
             const outsideCheck = vueMap.currentEditingLayer ? (xy) => {
                 const bboxPoints = Object.assign([], vueMap.bounds);
                 bboxPoints.push(vueMap.bounds[0]);
-                const bbox = turf.polygon([bboxPoints]);
-                return !turf.booleanPointInPolygon(xy, bbox);
+                const bbox = polygon([bboxPoints]);
+                return !booleanPointInPolygon(xy, bbox);
             } : (xy) => xy[0] < 0 || xy[1] < 0 || xy[0] > vueMap.width || xy[1] > vueMap.height;
             if (outsideCheck(xy)) setTimeout(() => {contextmenu.close();}, 10); // eslint-disable-line no-undef
         }
