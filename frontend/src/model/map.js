@@ -61,8 +61,16 @@ const computed = {};
 for (let i=0; i<langAttr.length; i++) {
     const key = langAttr[i];
     computed[key] = {
-        get:((key) => () => this.localedGet(key))(key),
-        set:((key) => (newValue) => this.localedSet(key, newValue))(key),
+        get:(function(key) {
+            return function() {
+                return this.localedGet(key);
+            };
+        })(key),
+        set:(function(key) {
+            return function(newValue) {
+                return this.localedSet(key, newValue);
+            };
+        })(key),
     }
 }
 const shareAttr = ['currentLang', 'onlyOne', 'vueInit', 'currentEditingLayer', 'map',
@@ -70,11 +78,17 @@ const shareAttr = ['currentLang', 'onlyOne', 'vueInit', 'currentEditingLayer', '
 for (let i=0; i<shareAttr.length; i++) {
     const key = shareAttr[i];
     computed[key] = {
-        get:((key) => () => this.share[key])(key),
-        set:((key) => (newValue) => {
+        get:(function(key) {
+            return function() {
+                return this.share[key];
+            };
+        })(key),
+        set:(function(key) {
+            return function(newValue) {
                 this.$set(this.share, key, newValue);
                 return newValue;
-            })(key),
+            };
+        })(key),
     }
 }
 const mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtention', 'mapID', 'lang',
@@ -82,14 +96,20 @@ const mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_'
 for (let i=0; i<mapAttr.length; i++) {
     const key = mapAttr[i];
     computed[key] = {
-        get:((key) => () => this.share.map[key])(key),
-        set:((key) => (newValue) => {
+        get:(function(key) {
+            return function() {
+                return this.share.map[key];
+            };
+        })(key),
+        set:(function(key) {
+            return function(newValue) {
                 this.$set(this.share.map, key, newValue);
                 return newValue;
-            })(key),
-    }
+            };
+        })(key),
+    };
 }
-computed.displayTitle = () => {
+computed.displayTitle = function() {
     if (this.map.title == null || this.map.title == '') return 'タイトル未設定';
     else {
         if (typeof this.map.title != 'object') {
@@ -123,14 +143,18 @@ computed.defaultLangFlag = {
         }
     }
 };
-computed.imageExtentionCalc = () => {
+computed.imageExtentionCalc = function() {
     if (this.imageExtention) return this.imageExtention;
     if (this.width && this.height) return 'jpg';
     return;
 };
-computed.gcpsEditReady = () => (this.width && this.height && this.url_) || false;
-computed.dirty = () => !_.isDeepEqual(this.map_, this.map);
-computed.gcps = () => {
+computed.gcpsEditReady = function() {
+    return (this.width && this.height && this.url_) || false;
+};
+computed.dirty = function() {
+    return !_.isDeepEqual(this.map_, this.map);
+};
+computed.gcps = function() {
     if (this.currentEditingLayer == 0) {
         return this.map.gcps;
     } else if (this.map.sub_maps.length > 0) {
@@ -139,7 +163,7 @@ computed.gcps = () => {
         return;
     }
 };
-computed.edges = () => {
+computed.edges = function() {
     if (this.currentEditingLayer == 0) {
         if (!this.map.edges) this.$set(this.map, 'edges', []);
         return this.map.edges;
@@ -181,7 +205,7 @@ computed.bounds = {
         }
     }
 };
-computed.error = () => {
+computed.error = function() {
     const err = {};
     if (this.mapID == null || this.mapID == '') err['mapID'] = '地図IDを指定してください。';
     else if (this.mapID && !this.mapID.match(/^[\d\w_-]+$/)) err['mapID'] = '地図IDは英数字とアンダーバー、ハイフンのみが使えます。';
@@ -202,16 +226,19 @@ computed.error = () => {
     if (this.blockingGcpsError) err['blockingGcpsError'] = 'blockingGcpsError';
     return Object.keys(err).length > 0 ? err : null;
 };
-computed.blockingGcpsError = () =>
-    this.tinObjects.reduce((prev, curr) => curr == 'tooLinear' || curr == 'pointsOutside' || prev, false);
+computed.blockingGcpsError = function() {
+    return this.tinObjects.reduce((prev, curr) => curr == 'tooLinear' || curr == 'pointsOutside' || prev, false);
+}
 computed.errorStatus = function() {
     const tinObject = this.tinObject;
     if (!tinObject) return;
     return typeof tinObject == 'string' ? this.tinObject :
         tinObject.strict_status ? tinObject.strict_status : undefined;
 };
-computed.errorNumber = () => this.errorStatus == 'strict_error' ? this.tinObject.kinks.bakw.features.length : 0;
-computed.importanceSortedSubMaps = () => {
+computed.errorNumber = function() {
+    return this.errorStatus == 'strict_error' ? this.tinObject.kinks.bakw.features.length : 0;
+}
+computed.importanceSortedSubMaps = function() {
     const array = Object.assign([], this.sub_maps);
     array.push(0);
     return array.sort((a, b) => {
@@ -220,7 +247,7 @@ computed.importanceSortedSubMaps = () => {
         return (ac < bc ? 1 : -1);
     });
 };
-computed.prioritySortedSubMaps = () => {
+computed.prioritySortedSubMaps = function() {
     const array = Object.assign([], this.sub_maps);
     return array.sort((a, b) => (a.priority < b.priority ? 1 : -1));
 };
@@ -234,18 +261,22 @@ computed.canDownImportance = function() {
     const leastImportance = least == 0 ? 0 : least.importance;
     return this.importance != leastImportance;
 };
-computed.canUpPriority = () => {
+computed.canUpPriority = function() {
     if (this.currentEditingLayer == 0) return false;
     const mostPriority = this.prioritySortedSubMaps[0].priority;
     return this.priority != mostPriority;
 };
-computed.canDownPriority = () => {
+computed.canDownPriority = function() {
     if (this.currentEditingLayer == 0) return false;
     const leastPriority = this.prioritySortedSubMaps[this.prioritySortedSubMaps.length - 1].priority;
     return this.priority != leastPriority;
 };
-computed.importance = () => this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer - 1].importance;
-computed.priority = () => this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer - 1].priority;
+computed.importance = function() {
+    return this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer - 1].importance;
+}
+computed.priority = function() {
+    return this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer - 1].priority;
+}
 
 const VueMap = Vue.extend({
     created() {

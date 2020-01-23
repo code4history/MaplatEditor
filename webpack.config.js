@@ -33,7 +33,8 @@ module.exports = {
     devtool: 'source-map',
     entry: {
         maplist: './frontend/src/maplist.js',
-        mapedit: './frontend/src/mapedit.js'
+        mapedit: './frontend/src/mapedit.js',
+        webbridge: './tmpl/web-bridge.js'
     },
     output: {
         path: `${__dirname}/frontend/dist`,
@@ -48,7 +49,7 @@ module.exports = {
         rules: [
             {
                 test: /\.js$/,
-                exclude: /node_modules/,
+                exclude: /node_modules(?!\/@maplat)/,
                 use: {
                     loader: 'babel-loader',
                     query: {

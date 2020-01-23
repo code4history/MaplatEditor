@@ -1,7 +1,8 @@
+import { HistMap_tin } from '@maplat/core/src/histmap_tin'; // eslint-disable-line no-unused-vars
 import {HistMap} from '@maplat/core/src/histmap';
 import bsn from 'bootstrap.native';
 import turf from '@turf/turf';
-import VueMap from "./model/map";
+import Map from "./model/map";
 import ContextMenu from 'ol-contextmenu';
 import Geocoder from 'ol-geocoder';
 import Tin from '@maplat/tin';
@@ -240,7 +241,7 @@ function addMarkerOnEdge (arg, map) {
             nearestLength = prev[index-1][1] + Math.sqrt(Math.pow(xy[1] - prevCoord[1], 2) + Math.pow(xy[0] - prevCoord[0], 2));
         }
         return prev;
-        }, []);
+    }, []);
     const thisPrevNodes = thisNodes.slice(1, nearestIndex);
     const thisLastNodes = thisNodes.slice(nearestIndex, thisNodes.length - 1);
     const nearestRatio = nearestLength / thisResults[thisResults.length - 1][1];
@@ -255,7 +256,7 @@ function addMarkerOnEdge (arg, map) {
         const sum = prev[index-1][1] + length;
         prev.push([length, sum]);
         return prev;
-        }, []);
+    }, []);
     let thatXy = [];
     let thatIndex  = 0;
     const thatLengthToXy = nearestRatio * thatResults[thatResults.length - 1][1];
@@ -575,7 +576,7 @@ function reflectIllstMap() {
                             const zoom = Math.log(600 / 256 * MERC_MAX * 2 / deltax) / Math.log(2);
                             return [center, zoom];
                         } else return prev;
-                        },[[0,0],[-1*MERC_MAX,-1*MERC_MAX],[MERC_MAX,MERC_MAX]]);
+                    },[[0,0],[-1*MERC_MAX,-1*MERC_MAX],[MERC_MAX,MERC_MAX]]);
                     center = results[0];
                     zoom = results[1];
                 }
@@ -666,7 +667,7 @@ class Drag extends Pointer {
         const deltaY = evt.coordinate[1] - this.coordinate_[1];
 
         const geometry = /** @type {ol.geom.SimpleGeometry} */
-        (this.feature_.getGeometry());
+            (this.feature_.getGeometry());
         geometry.translate(deltaX, deltaY);
 
         this.coordinate_[0] = evt.coordinate[0];
@@ -729,7 +730,7 @@ class Drag extends Pointer {
     }
 }
 
-MaplatMap.prototype.initContextMenu = () => {
+MaplatMap.prototype.initContextMenu = function() {
     const map = this;
     const normalContextMenu = {
         text: 'マーカー追加',
@@ -784,11 +785,11 @@ MaplatMap.prototype.initContextMenu = () => {
     this.addControl(contextmenu);
     let restore = false;
 
-    contextmenu.on('open', (evt) => {
+    contextmenu.on('open', function(evt) {
         const feature = this.map_.forEachFeatureAtPixel(evt.pixel, (ft, l) => ft, { // eslint-disable-line no-unused-vars
             layerFilter(layer) {
                 return layer.get('name') === 'marker' || layer.get('name') === 'edges';
-                },
+            },
             hitTolerance: 5
         });
         if (feature) {
@@ -863,7 +864,7 @@ MaplatMap.prototype.initContextMenu = () => {
         console.log('unfocus'); // eslint-disable-line no-undef,no-console
     });
 };
-MaplatMap.prototype.closeContextMenu = () => {
+MaplatMap.prototype.closeContextMenu = function() {
     this.contextmenu.close();
 };
 
@@ -919,7 +920,7 @@ function mapObjectInit() {
     // インタラクション設定
     illstMap.on('click', onClick);
     illstMap.addInteraction(new Drag());
-    const edgeModifyFunc = (e) => {
+    const edgeModifyFunc = function(e) {
         if (e.pointerEvent.button === 2) return false;
         const f = this.getMap().getFeaturesAtPixel(e.pixel, {
             layerFilter(layer) {
@@ -951,13 +952,13 @@ function mapObjectInit() {
         condition: edgeModifyFunc
     });
     let edgeRevisionBuffer = [];
-    const edgeModifyStart = (evt) => {
+    const edgeModifyStart = function (evt) {
         edgeRevisionBuffer = [];
         evt.features.forEach((f) => {
             edgeRevisionBuffer.push(f.getRevision());
         });
     }
-    const edgeModifyEnd = (evt) => {
+    const edgeModifyEnd = function(evt) {
         const isIllust = evt.target.getMap() === illstMap;
         const forProj = isIllust ? `ZOOM:${illstSource.maxZoom}` : 'EPSG:3857';
         let feature = null;
@@ -1088,7 +1089,7 @@ function mapObjectInit() {
 }
 
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
-const vueMap = new VueMap({
+const vueMap = new Map({
     el: '#title-vue',
     template: '#title-vue-template',
     watch: {
@@ -1096,21 +1097,21 @@ const vueMap = new VueMap({
         gcps(val) { // eslint-disable-line no-unused-vars
             if (!illstSource) return;
             backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
-            },
+        },
         edges(val) { // eslint-disable-line no-unused-vars
             if (!illstSource) return;
             backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
-            },
+        },
         sub_maps(val) { // eslint-disable-line no-unused-vars
-            },
+        },
         vertexMode() {
             if (!illstSource) return;
             backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
-            },
+        },
         strictMode() {
             if (!illstSource) return;
             backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
-            },
+        },
         currentEditingLayer() {
             if (!illstSource) return;
             gcpsToMarkers();
@@ -1272,7 +1273,7 @@ function setVueMap() {
                 allowClose = true;
                 window.close(); // eslint-disable-line no-undef
             }
-            }, 2);
+        }, 2);
     });
 
     ipcRenderer.on('updatedTin', (event, arg) => {
@@ -1293,6 +1294,8 @@ function setVueMap() {
 ipcRenderer.on('mapData', (event, arg) => {
     const json = arg[0];
     const tins = arg[1];
+    console.log(json);
+    console.log(tins);
     json.mapID = mapID;
     json.status = 'Update';
     json.onlyOne = true;
