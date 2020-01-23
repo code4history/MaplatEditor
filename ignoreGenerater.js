@@ -13,11 +13,12 @@ const requireFiles = [
 ];
 
 const installedNodeModules = ls('node_modules').map(e => e);
+
+console.log(installedNodeModules);
+
 const productionInfo = JSON.parse(
   exec('npm list --production --depth=1000 --json', { silent: true }).stdout
 );
-
-console.log(productionInfo);
 
 function extractDependencies(info) {
   if (!info.dependencies) { return []; }
@@ -27,7 +28,18 @@ function extractDependencies(info) {
   }, []);
 }
 
-const productionDependencies = extractDependencies(productionInfo);
+const productionDependencies = extractDependencies(productionInfo).reduce((prev, curr, index, array) =>{
+  const name = curr.split('/')[0];
+  prev[name] = 1;
+  if (index == array.length -1) {
+    return Object.keys(prev);
+  } else {
+    return prev;
+  }
+},{});
+
+console.log(productionDependencies);
+
 const devDependencies = difference(installedNodeModules, productionDependencies);
 
 // これを electron-packager の ignore に指定する
