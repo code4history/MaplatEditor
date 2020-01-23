@@ -1165,7 +1165,7 @@ function setVueMap() {
     vueMap2.$on('mapUpload', () => {
         if (vueMap.gcpsEditReady && !confirm('地図画像は既に登録されています。\n置き換えてよいですか?')) return; // eslint-disable-line no-undef
         if (!uploader) {
-            uploader = require('electron').remote.require('../src/mapupload'); // eslint-disable-line no-undef
+            uploader = require('electron').remote.require('./mapupload'); // eslint-disable-line no-undef
             uploader.init();
             ipcRenderer.on('mapUploaded', (event, arg) => {
                 document.body.style.pointerEvents = null; // eslint-disable-line no-undef
