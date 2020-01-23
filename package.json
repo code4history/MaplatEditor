@@ -34,6 +34,7 @@
     "@maplat/tin": "^0.6.3",
     "@turf/turf": "^5.1.6",
     "bootstrap.native": "^2.0.27",
+    "bootstrap3": "^3.3.5",
     "child_process": "^1.0.2",
     "electron-json-storage": "^3.2.0",
     "file-url": "^2.0.2",
