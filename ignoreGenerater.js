@@ -21,6 +21,7 @@ const productionInfo = JSON.parse(
 );
 
 function extractDependencies(info) {
+  console.log(info);
   if (!info.dependencies) { return []; }
   return Object.keys(info.dependencies).reduce((pkgs, name) => {
     const childDeps = extractDependencies(info.dependencies[name]);

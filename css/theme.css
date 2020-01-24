@@ -1,10 +1,10 @@
-@import url('../node_modules/bootstrap3/dist/css/bootstrap.css');
-@import url('non-responsive.css');
-@import url('../node_modules/bootstrap3/dist/css/bootstrap-theme.css');
-@import url('../node_modules/ol/ol.css');
-@import url('../node_modules/ol-geocoder/dist/ol-geocoder.css');
-@import url('../node_modules/ol-contextmenu/dist/ol-contextmenu.css');
-@import url('../node_modules/ol-layerswitcher/src/ol-layerswitcher.css');
+@import (less) url('../node_modules/bootstrap3/dist/css/bootstrap.css');
+@import (less) url('non-responsive.css');
+@import (less) url('../node_modules/bootstrap3/dist/css/bootstrap-theme.css');
+@import (less) url('../node_modules/ol/ol.css');
+@import (less) url('../node_modules/ol-geocoder/dist/ol-geocoder.css');
+@import (less) url('../node_modules/ol-contextmenu/dist/ol-contextmenu.css');
+@import (less) url('../node_modules/ol-layerswitcher/src/ol-layerswitcher.css');
 
 html {
   height: 100vh;

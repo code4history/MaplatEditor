@@ -6,9 +6,11 @@
   "scripts": {
     "lint": "eslint backend/src/ && eslint frontend/src/",
     "js_build": "webpack",
+    "css_build": "lessc --clean-css css/theme.css frontend/dist/maplateditor.css",
     "testrun": "electron .",
     "win32": "gulp win32",
-    "darwin": "gulp darwin"
+    "darwin": "gulp darwin",
+    "ignore": "gulp ignore"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +27,8 @@
     "electron-packager": "^13.1.1",
     "eslint": "^6.8.0",
     "gulp": "^4.0.2",
+    "less": "^3.10.3",
+    "less-plugin-clean-css": "^1.5.1",
     "shelljs": "^0.8.3",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10"

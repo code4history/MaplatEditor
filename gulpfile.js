@@ -1,10 +1,19 @@
-var gulp = require('gulp'),
+const gulp = require('gulp'),
     execSync = require('child_process').execSync,
-    spawn = require('child_process').spawn,
     fs = require('fs-extra');
+require('shelljs/global');
+const difference = require('lodash/difference');
 
-var pkg = require('./package.json');
-var version = pkg.version;
+const pkg = require('./package.json');
+const version = pkg.version;
+
+const requireFiles = [
+    'bundle.js',
+    'index.html',
+    'main.js',
+    'node_modules',
+    'package.json',
+];
 
 gulp.task('win32', function() {
     runPackager(true);
@@ -16,23 +25,26 @@ gulp.task('darwin', function() {
     return Promise.resolve();
 });
 
-function runPackager(isWin) {
-    var platform = isWin ? 'win32' : 'darwin';
-    var ignore = isWin ? 'mac' : 'win';
+gulp.task('ignore', function() {
+    console.log(ignoreGenerate());
+    return Promise.resolve();
+});
 
-    var compiledFolder = 'MaplatEditor-' + platform + '-x64';
-    var compiledZip = 'MaplatEditor-' + version + '-' + platform + '.zip';
+function runPackager(isWin) {
+    const platform = isWin ? 'win32' : 'darwin';
+    const ignore = isWin ? 'mac' : 'win';
+
+    const compiledFolder = 'MaplatEditor-' + platform + '-x64';
+    const compiledZip = 'MaplatEditor-' + version + '-' + platform + '.zip';
 
     try {
         fs.statSync(compiledFolder);
         fs.removeSync(compiledFolder);
-    } catch(err) {
-    }
+    } catch(err) {}
     try {
         fs.statSync(compiledZip);
         fs.removeSync(compiledZip);
-    } catch(err) {
-    }
+    } catch(err) {}
 
     var compileCommand = 'electron-packager . --platform=' + platform +' --ignore=assets/' + ignore;
     execSync(compileCommand);
@@ -41,4 +53,44 @@ function runPackager(isWin) {
     execSync(zipCommand);
 
     fs.removeSync(compiledFolder);
+}
+
+//https://qiita.com/gin0606/items/8a76695e8a3263549bd4
+function ignoreGenerate() {
+    const installedNodeModules = ls('node_modules').map((e) => e);
+
+    console.log(installedNodeModules);
+
+    const productionInfo = JSON.parse(
+        exec('npm list --production --depth=1000 --json', { silent: true }).stdout
+    );
+
+    function extractDependencies(info) {
+        if (!info.dependencies) { return []; }
+        return Object.keys(info.dependencies).reduce((pkgs, name) => {
+            const childDeps = extractDependencies(info.dependencies[name]);
+            return pkgs.concat(name, childDeps);
+        }, []);
+    }
+
+    const productionDependencies = extractDependencies(productionInfo).reduce((prev, curr, index, array) =>{
+        const name = curr.split('/')[0];
+        prev[name] = 1;
+        if (index == array.length -1) {
+            return Object.keys(prev);
+        } else {
+            return prev;
+        }
+    },{});
+
+    console.log(productionDependencies);
+
+    const devDependencies = difference(installedNodeModules, productionDependencies);
+
+    // これを electron-packager の ignore に指定する
+    const ignoreFiles = difference(ls('./').map(e => e), requireFiles)
+        .concat(devDependencies.map(name => `/node_modules/${name}(/|$)`));
+
+    console.log(ignoreFiles);
+    return ignoreFiles;
 }
