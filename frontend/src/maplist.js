@@ -17,7 +17,7 @@ new Vue({
             };
             if (!arg.width || !arg.height || !arg.thumbnail) {
                 map.height = 190;
-                map.image = 'img/no_image.png';
+                map.image = '../img/no_image.png';
             } else {
                 map.height = Math.floor(190 / arg.width * arg.height);
                 map.image = arg.thumbnail;

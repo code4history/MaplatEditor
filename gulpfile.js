@@ -8,11 +8,20 @@ const pkg = require('./package.json');
 const version = pkg.version;
 
 const requireFiles = [
-    'bundle.js',
-    'index.html',
-    'main.js',
+    'assets',
+    'backend',
+    'frontend',
+    'html',
+    'img',
     'node_modules',
     'package.json',
+    'README.md',
+    'tms_list.json'
+];
+
+const additionalIgnores = [
+    'frontend/lib',
+    'frontend/src'
 ];
 
 gulp.task('win32', function() {
@@ -34,8 +43,8 @@ function runPackager(isWin) {
     const platform = isWin ? 'win32' : 'darwin';
     const ignore = isWin ? 'mac' : 'win';
 
-    const compiledFolder = 'MaplatEditor-' + platform + '-x64';
-    const compiledZip = 'MaplatEditor-' + version + '-' + platform + '.zip';
+    const compiledFolder = `MaplatEditor-${platform}-x64`;
+    const compiledZip = `MaplatEditor-${version}-${platform}.zip`;
 
     try {
         fs.statSync(compiledFolder);
@@ -46,20 +55,20 @@ function runPackager(isWin) {
         fs.removeSync(compiledZip);
     } catch(err) {}
 
-    var compileCommand = 'electron-packager . --platform=' + platform +' --ignore=assets/' + ignore;
+    const ignoreOption = '';//--ignore=assets/win'; //ignoreGenerate(isWin).map((path) => `--ignore="${path}"`).join(' ');
+    const compileCommand = `electron-packager . --platform=${platform} ${ignoreOption}`;
     execSync(compileCommand);
 
-    var zipCommand = 'zip -r ' + compiledZip + ' ' + compiledFolder;
+    const zipCommand = `zip -r ${compiledZip} ${compiledFolder}`;
     execSync(zipCommand);
 
     fs.removeSync(compiledFolder);
 }
 
 //https://qiita.com/gin0606/items/8a76695e8a3263549bd4
-function ignoreGenerate() {
+function ignoreGenerate(isWin) {
+    const assetsIgnore = `assets/${isWin ? 'mac' : 'win'}`;
     const installedNodeModules = ls('node_modules').map((e) => e);
-
-    console.log(installedNodeModules);
 
     const productionInfo = JSON.parse(
         exec('npm list --production --depth=1000 --json', { silent: true }).stdout
@@ -83,14 +92,13 @@ function ignoreGenerate() {
         }
     },{});
 
-    console.log(productionDependencies);
-
     const devDependencies = difference(installedNodeModules, productionDependencies);
 
     // これを electron-packager の ignore に指定する
     const ignoreFiles = difference(ls('./').map(e => e), requireFiles)
-        .concat(devDependencies.map(name => `/node_modules/${name}(/|$)`));
+        .concat(additionalIgnores)
+        .concat([assetsIgnore])
+        .concat(devDependencies.map(name => `node_modules/${name}(/|$)`));
 
-    console.log(ignoreFiles);
     return ignoreFiles;
 }
