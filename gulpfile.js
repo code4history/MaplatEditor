@@ -21,27 +21,30 @@ const requireFiles = [
 
 const additionalIgnores = [
     'frontend/lib',
-    'frontend/src'
+    'frontend/src',
+    'node_modules/.cache',
+    '.eslintrc.json',
+    '.gitignore',
+    '.idea'
 ];
 
-gulp.task('win32', function() {
+gulp.task('win32', () => {
     runPackager(true);
     return Promise.resolve();
 });
 
-gulp.task('darwin', function() {
+gulp.task('darwin', () => {
     runPackager(false);
     return Promise.resolve();
 });
 
-gulp.task('ignore', function() {
+gulp.task('ignore', () => {
     console.log(ignoreGenerate());
     return Promise.resolve();
 });
 
 function runPackager(isWin) {
     const platform = isWin ? 'win32' : 'darwin';
-    const ignore = isWin ? 'mac' : 'win';
 
     const compiledFolder = `MaplatEditor-${platform}-x64`;
     const compiledZip = `MaplatEditor-${version}-${platform}.zip`;
@@ -55,12 +58,12 @@ function runPackager(isWin) {
         fs.removeSync(compiledZip);
     } catch(err) {}
 
-    const ignoreOption = '';//--ignore=assets/win'; //ignoreGenerate(isWin).map((path) => `--ignore="${path}"`).join(' ');
+    const ignoreOption = ignoreGenerate(isWin).map((path) => `--ignore="${path}"`).join(' ');
     const compileCommand = `electron-packager . --platform=${platform} ${ignoreOption}`;
-    execSync(compileCommand);
+    execSync(compileCommand, {maxBuffer: 1000*1024*1024});
 
     const zipCommand = `zip -r ${compiledZip} ${compiledFolder}`;
-    execSync(zipCommand);
+    execSync(zipCommand, {maxBuffer: 1000*1024*1024});
 
     fs.removeSync(compiledFolder);
 }
@@ -95,10 +98,11 @@ function ignoreGenerate(isWin) {
     const devDependencies = difference(installedNodeModules, productionDependencies);
 
     // これを electron-packager の ignore に指定する
-    const ignoreFiles = difference(ls('./').map(e => e), requireFiles)
+    const ignoreFiles = difference(ls('./').map((e) => e), requireFiles)
         .concat(additionalIgnores)
         .concat([assetsIgnore])
-        .concat(devDependencies.map(name => `node_modules/${name}(/|$)`));
+        .concat(devDependencies.map((name) => `node_modules/${name}`))
+        .map((name) => `/${name}(/|$)`);
 
     return ignoreFiles;
 }
