@@ -6,6 +6,6 @@ const VueMap = Vue.extend({
     data() {
         return {
             saveFolder: ''
-
-    }
+        };
+    },
 });
