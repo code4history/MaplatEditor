@@ -6,7 +6,8 @@ module.exports = {
     devtool: 'source-map',
     entry: {
         maplist: './frontend/src/maplist.js',
-        mapedit: './frontend/src/mapedit.js'
+        mapedit: './frontend/src/mapedit.js',
+        settings: './frontend/src/settings.js'
     },
     output: {
         path: `${__dirname}/frontend/dist`,

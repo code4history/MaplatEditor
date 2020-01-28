@@ -38,7 +38,7 @@ const mapedit = {
         const loadData = (data) => {
             const json = JSON.parse(data);
             if (!json.width || !json.height) {
-                focused.webContents.send('mapData', json);
+                focused.webContents.send('mapData', [json, ]);
                 return;
             }
             const promise = new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars

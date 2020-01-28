@@ -23,12 +23,16 @@ const vueSettings = new Vue({
         saveFolder_: ''
     },
     methods: {
-        reset() {
+        resetSettings() {
             this.saveFolder = this.saveFolder_;
         },
-        save() {
+        saveSettings() {
             this.backend.setSetting('saveFolder', this.saveFolder);
             this.saveFolder_ = this.saveFolder;
+        },
+        focusSettings(evt) {
+            evt.target.blur();
+            this.backend.showSaveFolderDialog(this.saveFolder);
         }
     }
 });

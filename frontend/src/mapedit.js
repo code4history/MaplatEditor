@@ -1289,12 +1289,14 @@ ipcRenderer.on('mapData', (event, arg) => {
     json.status = 'Update';
     json.onlyOne = true;
     vueMap.setInitialMap(json);
-    vueMap.tinObjects = tins.map((compiled) => {
-        if (typeof compiled === 'string') return compiled;
-        const tin = new Tin({});
-        tin.setCompiled(compiled);
-        return tin;
-    });
+    if (tins) {
+        vueMap.tinObjects = tins.map((compiled) => {
+            if (typeof compiled === 'string') return compiled;
+            const tin = new Tin({});
+            tin.setCompiled(compiled);
+            return tin;
+        });
+    }
     if (!vueMap.vueInit) {
         setVueMap();
     }
