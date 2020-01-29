@@ -36,6 +36,7 @@
   "dependencies": {
     "@maplat/core": "^0.6.5",
     "@maplat/tin": "^0.6.3",
+    "@panter/vue-i18next": "^0.15.1",
     "@turf/turf": "^5.1.6",
     "bootstrap.native": "^2.0.27",
     "bootstrap3": "^3.3.5",
@@ -43,6 +44,8 @@
     "electron-json-storage": "^3.2.0",
     "file-url": "^2.0.2",
     "fs-extra": "^3.0.1",
+    "i18next": "^19.1.0",
+    "i18next-xhr-backend": "^3.2.2",
     "lodash": "^4.17.15",
     "ol": "^6.1.1",
     "ol-contextmenu": "^4.0.0",

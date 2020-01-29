@@ -14,6 +14,10 @@ const protect = [
     'tmsList'
 ];
 
+const defaultSetting = {
+    lang: 'ja'
+};
+
 const settings = {
     init() {
         if (json) return;
@@ -29,6 +33,7 @@ const settings = {
             } else {
                 json = data;
             }
+            json = Object.assign(defaultSetting, json);
             json.tmpFolder = path.resolve(app.getPath('temp') + path.sep + app.getName());
             fs.ensureDir(json.tmpFolder, () => {});
             json.tmsList = tmsList;
