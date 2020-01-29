@@ -5,7 +5,7 @@ const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const vueSettings = new Vue({
     created() {
         const self = this;
-        self.backend = require('electron').remote.require('./settings');
+        self.backend = require('electron').remote.require('./settings'); // eslint-disable-line no-undef
         self.saveFolder = self.saveFolder_ = self.backend.getSetting('saveFolder');
 
         ipcRenderer.on('saveFolderSelected', (event, arg) => {
