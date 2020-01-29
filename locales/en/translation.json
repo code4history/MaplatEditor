@@ -1,0 +1,14 @@
+{
+  "control": {
+    "compass": "Reset Rotation",
+    "info": "Show Map Information",
+    "zoom": "Change Map Zoom",
+    "gps": "Acquire GPS Position",
+    "home": "Go Home Position",
+    "help": "Show Help",
+    "trans": "Change Map Transparency",
+    "share": "Share",
+    "hide_marker": "Hide Markers",
+    "border": "Show Map Border"
+  }
+}
