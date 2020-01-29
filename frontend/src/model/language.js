@@ -17,6 +17,17 @@ export class Language {
             }
         });
 
-        this.i18n = new VueI18Next(i18n);
+        this.vi18n = new VueI18Next(i18n);
+        this.i18n = i18n;
+        this.t = i18n.t;
+
+        const items = document.querySelectorAll('.vi18n');
+
+        items.forEach((el, i) => {
+            new Vue({
+                el, // HTMLElementをそのままelプロパティに渡す
+                i18n: this.vi18n
+            });
+        });
     }
 }

@@ -16,7 +16,7 @@
 <body>
 
 <!-- Fixed navbar -->
-<nav class="navbar navbar-inverse navbar-fixed-top">
+<nav class="navbar navbar-inverse navbar-fixed-top vi18n">
   <div class="container">
     <div class="navbar-header">
       <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
@@ -29,9 +29,9 @@
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-        <li class="active"><a href="#">地図編集</a></li>
-        <li><a href="applist.html">アプリ編集</a></li>
-        <li><a href="settings.html">設定</a></li>
+        <li class="active"><a href="#">{{$t("navbar.mapEdit")}}</a></li>
+        <li><a href="applist.html">{{$t("navbar.appEdit")}}</a></li>
+        <li><a href="settings.html">{{$t("navbar.settings")}}</a></li>
       </ul>
     </div><!--/.nav-collapse -->
   </div>
@@ -43,7 +43,7 @@
       <a href="mapedit.html">
         <img src="../img/add_image.png" width="190" height="190">
       </a>
-      <p>新規作成{{ $t('control.gps') }}</p>
+      <p>{{$t('maplist.newCreate')}}</p>
     </li>
     <li v-for="map in maplist" :key="map.mapID">
       <a v-bind:href="'mapedit.html?mapid=' + map.mapID">

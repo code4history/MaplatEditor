@@ -1,4 +1,12 @@
 {
+  "navbar": {
+    "mapEdit": "地図編集",
+    "appEdit": "アプリ編集",
+    "settings": "設定(Settings)"
+  },
+  "maplist": {
+    "newCreate": "新規作成"
+  },
   "control": {
     "compass": "回転解除",
     "info": "地図情報表示",

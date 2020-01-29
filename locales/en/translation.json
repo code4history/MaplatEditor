@@ -1,4 +1,12 @@
 {
+  "navbar": {
+    "mapEdit": "Edit Map",
+    "appEdit": "Edit Application",
+    "settings": "Settings"
+  },
+  "maplist": {
+    "newCreate": "Create new map"
+  },
   "control": {
     "compass": "Reset Rotation",
     "info": "Show Map Information",

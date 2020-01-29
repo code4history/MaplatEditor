@@ -6,7 +6,7 @@ const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const langObj = new Language();
 
 new Vue({
-    i18n: langObj.i18n,
+    i18n: langObj.vi18n,
     created() {
         const self = this;
 
