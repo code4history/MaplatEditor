@@ -7,6 +7,7 @@ module.exports = {
     entry: {
         maplist: './frontend/src/maplist.js',
         mapedit: './frontend/src/mapedit.js',
+        applist: './frontend/src/applist.js',
         settings: './frontend/src/settings.js'
     },
     output: {

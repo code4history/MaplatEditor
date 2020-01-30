@@ -1,11 +1,15 @@
 {
+  "test": "Hoge",
   "navbar": {
-    "mapEdit": "Edit Map",
-    "appEdit": "Edit Application",
+    "edit_map": "Edit Map",
+    "edit_app": "Edit Application",
     "settings": "Settings"
   },
   "maplist": {
     "newCreate": "Create new map"
+  },
+  "applist": {
+    "not_implement": "Not implemented yet"
   },
   "control": {
     "compass": "Reset Rotation",

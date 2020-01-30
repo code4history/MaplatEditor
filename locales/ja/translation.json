@@ -1,11 +1,15 @@
 {
+  "test": "ほげ",
   "navbar": {
-    "mapEdit": "地図編集",
-    "appEdit": "アプリ編集",
+    "edit_map": "地図編集",
+    "edit_app": "アプリ編集",
     "settings": "設定(Settings)"
   },
   "maplist": {
     "newCreate": "新規作成"
+  },
+  "applist": {
+    "not_implement": "未実装"
   },
   "control": {
     "compass": "回転解除",

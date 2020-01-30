@@ -16,7 +16,7 @@
 <body>
 
 <!-- Fixed navbar -->
-<nav class="navbar navbar-inverse navbar-fixed-top">
+<nav class="navbar navbar-inverse navbar-fixed-top vi18n">
   <div class="container">
     <div class="navbar-header">
       <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
@@ -29,16 +29,16 @@
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-        <li><a href="maplist.html">地図編集</a></li>
-        <li class="active"><a href="#">アプリ編集</a></li>
-        <li><a href="settings.html">設定</a></li>
+        <li><a href="maplist.html">{{$t("navbar.edit_map")}}</a></li>
+        <li class="active"><a href="#">{{$t("navbar.edit_app")}}</a></li>
+        <li><a href="settings.html">{{$t("navbar.settings")}}</a></li>
       </ul>
     </div><!--/.nav-collapse -->
   </div>
 </nav>
 
-<div class="container main" role="main">
-  未実装
+<div id="applist" class="container main" role="main">
+  {{$t("applist.not_implement")}}
 </div> <!-- /container -->
 
 <div class="modal" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel" aria-hidden="true" data-show="true" data-keyboard="false" data-backdrop="static">
@@ -64,9 +64,6 @@
     </div> <!-- /.modal-content -->
   </div> <!-- /.modal-dialog -->
 </div> <!-- /.modal -->
-
-<!-- Bootstrap core JavaScript
-================================================== -->
-<!-- Placed at the end of the document so the pages load faster -->
+<script src="../frontend/dist/applist.bundle.js"></script>
 </body>
 </html>

@@ -19,7 +19,7 @@ export class Language {
 
         this.vi18n = new VueI18Next(i18n);
         this.i18n = i18n;
-        this.t = i18n.t;
+        //this.t = i18n.t;
 
         const items = document.querySelectorAll('.vi18n');
 
