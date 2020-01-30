@@ -1,5 +1,8 @@
 {
-  "test": "Hoge",
+  "common": {
+    "reset": "Reset",
+    "save": "Save"
+  },
   "navbar": {
     "edit_map": "Edit Map",
     "edit_app": "Edit Application",

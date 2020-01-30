@@ -1,12 +1,16 @@
 import Vue from 'vue';
+import {Language} from './model/language';
 
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
+const langObj = new Language();
 
 const vueSettings = new Vue({
+    i18n: langObj.vi18n,
     created() {
         const self = this;
         self.backend = require('electron').remote.require('./settings'); // eslint-disable-line no-undef
         self.saveFolder = self.saveFolder_ = self.backend.getSetting('saveFolder');
+        self.lang = self.lang_ = self.backend.getSetting('lang');
 
         ipcRenderer.on('saveFolderSelected', (event, arg) => {
             self.saveFolder = arg;
@@ -14,7 +18,7 @@ const vueSettings = new Vue({
     },
     computed: {
         dirty() {
-            return !(this.saveFolder === this.saveFolder_);
+            return !(this.saveFolder === this.saveFolder_ || this.lang === this.lang_);
         }
     },
     el: '#dataFolderTab',
@@ -25,10 +29,18 @@ const vueSettings = new Vue({
     methods: {
         resetSettings() {
             this.saveFolder = this.saveFolder_;
+            this.lang = this.lang_;
         },
         saveSettings() {
-            this.backend.setSetting('saveFolder', this.saveFolder);
-            this.saveFolder_ = this.saveFolder;
+            if (this.saveFolder !== this.saveFolder_) {
+                this.backend.setSetting('saveFolder', this.saveFolder);
+                this.saveFolder_ = this.saveFolder;
+            }
+            if (this.lang !== this.lang_) {
+                this.backend.setSetting('lang', this.lang);
+                this.lang_ = this.lang;
+                this.$i18n.i18next.changeLanguage(this.lang);
+            }
         },
         focusSettings(evt) {
             evt.target.blur();

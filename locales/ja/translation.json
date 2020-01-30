@@ -1,5 +1,8 @@
 {
-  "test": "ほげ",
+  "common": {
+    "reset": "リセット",
+    "save": "保存"
+  },
   "navbar": {
     "edit_map": "地図編集",
     "edit_app": "アプリ編集",
