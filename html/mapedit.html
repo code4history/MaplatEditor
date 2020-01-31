@@ -16,7 +16,7 @@
 <body>
 
 <!-- Fixed navbar -->
-<nav class="navbar navbar-inverse navbar-fixed-top">
+<nav class="navbar navbar-inverse navbar-fixed-top vi18n">
   <div class="container">
     <div class="navbar-header">
       <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
@@ -29,9 +29,9 @@
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-        <li class="active"><a href="#">地図編集</a></li>
-        <li><a href="#" data-nav="applist.html">アプリ編集</a></li>
-        <li><a href="#" data-nav="settings.html">設定</a></li>
+        <li class="active"><a href="#">{{$t("navbar.edit_map")}}</a></li>
+        <li><a href="#" data-nav="applist.html">{{$t("navbar.edit_app")}}</a></li>
+        <li><a href="#" data-nav="settings.html">{{$t("navbar.settings")}}</a></li>
       </ul>
     </div><!--/.nav-collapse -->
   </div>
@@ -40,7 +40,7 @@
 <div class="container main" role="main" id="main">
   <div class="row title-container" id="title-vue"></div>
   <!-- タブ・メニュー -->
-  <ul class="nav nav-tabs nav-justified" role="tablist">
+  <ul class="nav nav-tabs nav-justified vi18n" role="tablist">
     <li class="active"><a href="#metadataTab" data-toggle="tab" role="tab">メタデータ</a></li>
     <li><a href="#gcpsTab" data-toggle="tab" role="tab" disabled>対応点設定</a></li>
     <li class="disabled"><a href="#landmarkTab" data-toggle="tab" role="tab">ランドマーク設定</a></li>

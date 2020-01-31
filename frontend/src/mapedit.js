@@ -19,6 +19,7 @@ import {MaplatMap} from "@maplat/core/src/map_ex";
 import {altKeyOnly} from "ol/events/condition";
 import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
+import {Language} from './model/language';
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
@@ -28,6 +29,8 @@ const labelFontStyle = "Normal 12px Arial";
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const backend = require('electron').remote.require('./mapedit'); // eslint-disable-line no-undef
 backend.init();
+const langObj = new Language();
+
 let uploader;
 let mapID;
 let newlyAddGcp;
@@ -1081,6 +1084,7 @@ function mapObjectInit() {
 
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
 const vueMap = new Map({
+    i18n: langObj.vi18n,
     el: '#title-vue',
     template: '#title-vue-template',
     watch: {
