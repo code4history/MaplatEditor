@@ -1,7 +1,9 @@
 import _ from '../../lib/underscore_extension';
 import Vue from 'vue';
+import {Language} from "./language";
 
 Vue.config.debug = true;
+const langObj = Language.getSingleton();
 
 const defaultMap = {
     title: '',
@@ -31,15 +33,16 @@ const defaultMap = {
     imageExtention: undefined
 };
 const langs = {
-    'ja': '日本語',
-    'en': '英語',
-    'de': 'ドイツ語',
-    'fr': 'フランス語',
-    'es': 'スペイン語',
-    'ko': '韓国語',
-    'zh': '中国語簡体字',
-    'zh-TW': '中国語繁体字'
+    'ja': 'japanese',
+    'en': 'english',
+    'de': 'germany',
+    'fr': 'french',
+    'es': 'spanish',
+    'ko': 'korean',
+    'zh': 'simplified',
+    'zh-TW': 'traditional'
 };
+defaultMap.langs = langs;
 function zenHankakuLength(text) {
     let len = 0;
     const str = escape(text);
@@ -207,9 +210,9 @@ computed.bounds = {
 };
 computed.error = function() {
     const err = {};
-    if (this.mapID == null || this.mapID == '') err['mapID'] = '地図IDを指定してください。';
-    else if (this.mapID && !this.mapID.match(/^[\d\w_-]+$/)) err['mapID'] = '地図IDは英数字とアンダーバー、ハイフンのみが使えます。';
-    else if (!this.onlyOne) err['mapIDOnlyOne'] = '地図IDの一意性チェックを行ってください。';
+    if (this.mapID == null || this.mapID == '') err['mapID'] = 'mapedit.error_set_mapid';
+    else if (this.mapID && !this.mapID.match(/^[\d\w_-]+$/)) err['mapID'] = 'mapedit.error_mapid_character';
+    else if (!this.onlyOne) err['mapIDOnlyOne'] = 'mapedit.check_uniqueness';
     if (this.map.title == null || this.map.title == '') err['title'] = '表示用タイトルを指定してください。';
     else {
         if (typeof this.map.title != 'object') {
@@ -280,12 +283,15 @@ computed.priority = function() {
 
 const VueMap = Vue.extend({
     created() {
-        const langKeys = Object.keys(langs);
-        let langOpts = '';
-        for (let i = 0; i < langKeys.length; i++) {
-            langOpts = `${langOpts}<option value="${langKeys[i]}">${langs[langKeys[i]]}</oprion>`;
-        }
-        document.querySelector('#lang').innerHTML = langOpts; // eslint-disable-line no-undef
+        langObj.i18n.then((t) => {
+            const langKeys = Object.keys(langs);
+            let langOpts = '';
+            for (let i = 0; i < langKeys.length; i++) {
+                const transKey = `common.${langs[langKeys[i]]}`
+                langOpts = `${langOpts}<option value="${langKeys[i]}">${t(transKey)}</oprion>`;
+            }
+            document.querySelector('#lang').innerHTML = langOpts; // eslint-disable-line no-undef
+        });
         },
     data() {
         return {
@@ -315,6 +321,7 @@ const VueMap = Vue.extend({
             },
         createSharedClone(template) {
             const newVueMap = new VueMap({
+                i18n: langObj.vi18n,
                 template
             });
             newVueMap.share = this.share;

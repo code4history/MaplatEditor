@@ -29,7 +29,7 @@ const labelFontStyle = "Normal 12px Arial";
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const backend = require('electron').remote.require('./mapedit'); // eslint-disable-line no-undef
 backend.init();
-const langObj = new Language();
+const langObj = Language.getSingleton();
 
 let uploader;
 let mapID;
@@ -1138,7 +1138,7 @@ function setVueMap() {
     vueMap3.$mount('#gcpsTabDiv');
     mapObjectInit();
     vueMap2.$on('updateMapID', () => {
-        if (!confirm('地図IDを変更してよろしいですか?')) return; // eslint-disable-line no-undef
+        if (!confirm(langObj.t('mapedit.confirm_change_mapid'))) return; // eslint-disable-line no-undef
         vueMap2.onlyOne = false;
     });
     vueMap2.$on('checkOnlyOne', () => {

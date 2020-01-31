@@ -2,7 +2,16 @@
   "common": {
     "reset": "Reset",
     "save": "Save",
-    "save_with_english": "Save"
+    "save_with_english": "Save",
+    "language": "Language",
+    "japanese": "Japanese",
+    "english": "English",
+    "germany": "Germany",
+    "french": "French",
+    "spanish": "Spanish",
+    "korean": "Korean",
+    "simplified": "Simplified Chinese",
+    "traditional": "Traditional Chinese"
   },
   "navbar": {
     "edit_map": "Edit Map",
@@ -20,19 +29,22 @@
   "maplist": {
     "newCreate": "Create new map"
   },
+  "mapedit": {
+    "edit_metadata": "Edit Metadata",
+    "edit_gcp": "Edit GCP",
+    "edit_landmark": "Edit Landmark",
+    "set_default": "Set as default",
+    "mapid": "Map ID",
+    "input_mapid": "Input Map ID.",
+    "unique_mapid": "Input unique Map ID.",
+    "error_set_mapid": "Specify Map ID.",
+    "error_mapid_character": "Only alphanumeric characters, under-bar & hyphen can be used for Map ID.",
+    "check_uniqueness": "Check uniqueness of Map ID.",
+    "change_mapid": "Change Map ID",
+    "uniqueness_button": "Check uniqueness",
+    "confirm_change_mapid": "Are you sure you want to change the Map ID?"
+  },
   "applist": {
     "not_implement": "Not implemented yet"
-  },
-  "control": {
-    "compass": "Reset Rotation",
-    "info": "Show Map Information",
-    "zoom": "Change Map Zoom",
-    "gps": "Acquire GPS Position",
-    "home": "Go Home Position",
-    "help": "Show Help",
-    "trans": "Change Map Transparency",
-    "share": "Share",
-    "hide_marker": "Hide Markers",
-    "border": "Show Map Border"
   }
 }

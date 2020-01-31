@@ -2,7 +2,16 @@
   "common": {
     "reset": "リセット",
     "save": "保存",
-    "save_with_english": "保存(Save)"
+    "save_with_english": "保存(Save)",
+    "language": "言語",
+    "japanese": "日本語",
+    "english": "英語",
+    "germany": "ドイツ語",
+    "french": "フランス語",
+    "spanish": "スペイン語",
+    "korean": "韓国語",
+    "simplified": "中国語簡体字",
+    "traditional": "中国語繁体字"
   },
   "navbar": {
     "edit_map": "地図編集",
@@ -20,19 +29,22 @@
   "maplist": {
     "newCreate": "新規作成"
   },
+  "mapedit": {
+    "edit_metadata": "メタデータ編集",
+    "edit_gcp": "対応点編集",
+    "edit_landmark": "ランドマーク編集",
+    "set_default": "デフォルトに設定",
+    "mapid": "地図ID",
+    "input_mapid": "地図IDを入力してください。",
+    "unique_mapid": "一意な地図IDを入力してください。",
+    "error_set_mapid": "地図IDを指定してください。",
+    "error_mapid_character": "地図IDは英数字とアンダーバー、ハイフンのみが使えます。",
+    "check_uniqueness": "地図IDの一意性チェックを行ってください。",
+    "change_mapid": "地図ID変更",
+    "uniqueness_button": "一意性確認",
+    "confirm_change_mapid": "地図IDを変更してよろしいですか?"
+  },
   "applist": {
     "not_implement": "未実装"
-  },
-  "control": {
-    "compass": "回転解除",
-    "info": "地図情報表示",
-    "zoom": "地図ズーム変更",
-    "gps": "GPS位置取得",
-    "home": "ホーム位置復帰",
-    "help": "ヘルプ表示",
-    "trans": "地図透明度変更",
-    "share": "共有",
-    "hide_marker": "マーカー非表示",
-    "border": "地図境界表示"
   }
 }
