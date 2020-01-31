@@ -18,13 +18,15 @@ const vueSettings = new Vue({
     },
     computed: {
         dirty() {
-            return !(this.saveFolder === this.saveFolder_ || this.lang === this.lang_);
+            return !(this.lang === this.lang_ && this.saveFolder === this.saveFolder_);
         }
     },
     el: '#dataFolderTab',
     data: {
         saveFolder: '',
-        saveFolder_: ''
+        saveFolder_: '',
+        lang: '',
+        lang_: ''
     },
     methods: {
         resetSettings() {

@@ -1,12 +1,21 @@
 {
   "common": {
     "reset": "Reset",
-    "save": "Save"
+    "save": "Save",
+    "save_with_english": "Save"
   },
   "navbar": {
     "edit_map": "Edit Map",
     "edit_app": "Edit Application",
     "settings": "Settings"
+  },
+  "settings": {
+    "basic_settings": "Basic settings",
+    "base_map": "Base map settings",
+    "original_map": "Original map settings",
+    "switch_lang": "Switch Language",
+    "data_folder": "Data Folder",
+    "specify_data_folder": "Please specify data folder."
   },
   "maplist": {
     "newCreate": "Create new map"

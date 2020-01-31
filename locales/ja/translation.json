@@ -1,12 +1,21 @@
 {
   "common": {
     "reset": "リセット",
-    "save": "保存"
+    "save": "保存",
+    "save_with_english": "保存(Save)"
   },
   "navbar": {
     "edit_map": "地図編集",
     "edit_app": "アプリ編集",
     "settings": "設定(Settings)"
+  },
+  "settings": {
+    "basic_settings": "基本設定",
+    "base_map": "ベースマップ設定",
+    "original_map": "オリジナル地図設定",
+    "switch_lang": "言語切り替え(Switch Language)",
+    "data_folder": "データフォルダ",
+    "specify_data_folder": "データフォルダを指定してください。"
   },
   "maplist": {
     "newCreate": "新規作成"

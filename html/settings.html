@@ -39,34 +39,34 @@
 
 <div class="container main" role="main">
   <!-- タブ・メニュー -->
-  <ul class="nav nav-tabs nav-justified" role="tablist">
-    <li class="active"><a href="#dataFolderTab" data-toggle="tab" role="tab">データフォルダ</a></li>
-    <li class="disabled"><a href="#baseMapTab" data-toggle="tab" role="tab">ベースマップ</a></li>
-    <li class="disabled"><a href="#privateMapTab" data-toggle="tab" role="tab">独自マップ</a></li>
+  <ul class="nav nav-tabs nav-justified vi18n" role="tablist">
+    <li class="active"><a href="#dataFolderTab" data-toggle="tab" role="tab">{{$t("settings.basic_settings")}}</a></li>
+    <li class="disabled"><a href="#baseMapTab" data-toggle="tab" role="tab">{{$t("settings.base_map")}}</a></li>
+    <li class="disabled"><a href="#privateMapTab" data-toggle="tab" role="tab">{{$t("settings.original_map")}}</a></li>
   </ul>
 
   <div class="tab-content">
     <div class="tab-pane active" id="dataFolderTab">
       <form class="form-horizontal">
         <div class="form-group">
-          <label class="col-xs-3 control-label" for="langSwitcher">言語切り替え(Switch Language)</label>
+          <label class="col-xs-3 control-label" for="langSwitcher">{{$t("settings.switch_lang")}}</label>
           <div class="col-xs-9">
-            <select class="form-control" id="langSwitcher" v-model="lang" v-on:change="">
+            <select class="form-control" id="langSwitcher" v-bind:value="lang" v-on:change="lang = $event.target.value">
               <option value="ja">日本語</option>
               <option value="en">English</option>
             </select>
           </div>
         </div>
         <div class="form-group">
-          <label class="col-xs-3 control-label" for="saveFolder">結果出力フォルダ</label>
+          <label class="col-xs-3 control-label" for="saveFolder">{{$t("settings.data_folder")}}</label>
           <div class="col-xs-9">
-            <input type="text" class="form-control" id="saveFolder" placeholder="出力フォルダを指定してください" v-model="saveFolder" v-on:focus="focusSettings($event)">
+            <input type="text" class="form-control" id="saveFolder" placeholder="{{$t('settings.specify_data_folder')}}" v-model="saveFolder" v-on:focus="focusSettings($event)">
           </div>
         </div>
         <div class="form-group">
           <div class="col-xs-offset-8 col-xs-4">
             <button type="button" class="btn btn-secondary" id="reset" v-bind:disabled="!dirty" v-on:click="resetSettings">{{$t("common.reset")}}</button>
-            <button type="button" class="btn btn-primary" id="submit" v-bind:disabled="!dirty" v-on:click="saveSettings">{{$t("common.save")}}</button>
+            <button type="button" class="btn btn-primary" id="submit" v-bind:disabled="!dirty" v-on:click="saveSettings">{{$t("common.save_with_english")}}</button>
           </div>
         </div>
       </form>
