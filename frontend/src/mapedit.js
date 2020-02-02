@@ -724,15 +724,16 @@ class Drag extends Pointer {
     }
 }
 
-MaplatMap.prototype.initContextMenu = function() {
+MaplatMap.prototype.initContextMenu = async function() {
     const map = this;
+    const t = await langObj.awaitT();
     const normalContextMenu = {
-        text: 'マーカー追加',
+        text: t('mapedit.context_add_marker'),
         callback: addNewMarker
     };
 
     const removeContextMenu = {
-        text: 'マーカー削除',
+        text: t('mapedit.context_remove_marker'),
         callback: removeMarker
     };
 

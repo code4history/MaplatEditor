@@ -24,6 +24,11 @@ export class Language {
 
         this.vi18n = new VueI18Next(i18n);
         this.i18n = i18nPromise;
+        this.awaitT = function() {
+            return i18nPromise.then((t) => {
+                return t;
+            });
+        }
 
         const items = document.querySelectorAll('.vi18n');
 
