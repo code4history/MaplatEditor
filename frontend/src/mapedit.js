@@ -738,37 +738,37 @@ MaplatMap.prototype.initContextMenu = async function() {
     };
 
     const pairingContextMenu = {
-        text: '対応マーカー表示',
+        text: t('mapedit.context_correspond_marker'),
         callback: pairingMarker
     };
 
     const addNewCancelContextMenu = {
-        text: 'マーカー追加キャンセル',
+        text: t('mapedit.cancel_add_marker'),
         callback: addNewCancelMarker
     };
 
     const edgeStartContextMenu = {
-        text: '対応線開始マーカー指定',
+        text: t('mapedit.context_correspond_line_start'),
         callback: edgeStartMarker
     };
 
     const edgeEndContextMenu = {
-        text: '対応線終了マーカー指定',
+        text: t('mapedit.context_correspond_line_end'),
         callback: edgeEndMarker
     };
 
     const edgeCancelContextMenu = {
-        text: '対応線指定キャンセル',
+        text: t('mapedit.context_correspond_line_cancel'),
         callback: edgeCancelMarker
     };
 
     const removeEdgeContextMenu = {
-        text: '対応線削除',
+        text: t('mapedit.context_correspond_line_cancel'),
         callback: removeEdge
     };
 
     const addMarkerOnEdgeContextMenu = {
-        text: '対応線上にマーカー追加',
+        text: t('mapedit.context_marker_on_line'),
         callback: addMarkerOnEdge
     };
 
@@ -863,7 +863,7 @@ MaplatMap.prototype.closeContextMenu = function() {
     this.contextmenu.close();
 };
 
-function mapObjectInit() {
+async function mapObjectInit() {
     // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここから
     illstMap = new MaplatMap({
         div: 'illstMap',
@@ -1058,9 +1058,10 @@ function mapObjectInit() {
         }));
     })(tms));
     // ベースマップコントロール追加
+    const t = await langObj.awaitT();
     Promise.all(promises).then((layers) => {
         const layerGroup = new Group({
-            'title': 'ベースマップ',
+            'title': t('mapedit.control_basemap'),
             layers
         });
         const mapLayers = mercMap.getLayers();
@@ -1074,7 +1075,7 @@ function mapObjectInit() {
     const geocoder = new Geocoder('nominatim', {
         provider: 'osm',
         lang: 'en-US', //en-US, fr-FR
-        placeholder: '住所を指定してください',
+        placeholder: t('mapedit.control_put_address'),
         limit: 5,
         keepOpen: false
     });

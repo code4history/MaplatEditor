@@ -122,7 +122,16 @@
     "map_loose_by_error": "エラーのため簡易モード",
     "map_error_next": "次のエラー表示",
     "context_add_marker": "マーカー追加",
-    "context_remove_marker": "マーカー削除"
+    "context_remove_marker": "マーカー削除",
+    "context_correspond_marker": "対応マーカー表示",
+    "context_cancel_add_marker":"マーカー追加キャンセル",
+    "context_correspond_line_start": "対応線開始マーカー指定",
+    "context_correspond_line_end": "対応線終了マーカー指定",
+    "context_correspond_line_cancel": "対応線指定キャンセル",
+    "context_correspond_line_remove": "対応線削除",
+    "context_marker_on_line": "対応線上にマーカー追加",
+    "control_basemap": "ベースマップ",
+    "control_put_address": "住所を指定してください"
   },
   "applist": {
     "not_implement": "未実装"
