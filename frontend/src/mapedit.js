@@ -1086,6 +1086,15 @@ async function mapObjectInit() {
 
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
 const vueMap = new Map({
+    created() {
+        const tabs = document.querySelectorAll('a[data-toggle="tab"]');
+        for (let i = 0; i < tabs.length; i++) {
+            new bsn.Tab(tabs[i],
+                {
+                    height: true
+                });
+        }
+    },
     i18n: langObj.vi18n,
     el: '#title-vue',
     template: '#title-vue-template',
