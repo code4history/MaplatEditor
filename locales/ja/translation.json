@@ -137,7 +137,12 @@
     "confirm_override_image": "地図画像は既に登録されています。\n置き換えてよいですか?",
     "error_image_upload": "地図アップロードでエラーが発生しました。",
     "success_image_upload": "正常に地図がアップロードできました。",
-    "image_uploading": "地図アップロード中です。"
+    "image_uploading": "地図アップロード中です。",
+    "confirm_save": "変更を保存します。\nよろしいですか?",
+    "copy_or_move": "地図IDが変更されています。コピーを行いますか?\nコピーの場合はOK、移動の場合はキャンセルを選んでください。",
+    "success_save": "正常に保存できました。",
+    "error_duplicate_id": "地図IDが重複しています。\n地図IDを変更してください。",
+    "error_saving": "保存時エラーが発生しました。"
   },
   "applist": {
     "not_implement": "未実装"

@@ -1222,10 +1222,10 @@ async function setVueMap() {
         uploader.showMapSelectDialog();
     });
     vueMap.$on('saveMap', () => {
-        if (!confirm('変更を保存します。\nよろしいですか?')) return; // eslint-disable-line no-undef
+        if (!confirm(t('mapedit.confirm_save'))) return; // eslint-disable-line no-undef
         const saveValue = vueMap.map;
         if (saveValue.status.match(/^Change:(.+)$/) &&
-            confirm('地図IDが変更されています。コピーを行いますか?\nコピーの場合はOK、移動の場合はキャンセルを選んでください。')) { // eslint-disable-line no-undef
+            confirm(t('mapedit.copy_or_move'))) { // eslint-disable-line no-undef
             saveValue.status = `Copy:${mapID}`;
         }
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
@@ -1236,16 +1236,16 @@ async function setVueMap() {
         ipcRenderer.once('saveResult', (event, arg) => {
             document.body.style.pointerEvents = null; // eslint-disable-line no-undef
             if (arg === 'Success') {
-                alert('正常に保存できました。'); // eslint-disable-line no-undef
+                alert(t('mapedit.success_save')); // eslint-disable-line no-undef
                 if (mapID !== vueMap.mapID) {
                     mapID = vueMap.mapID;
                 }
                 backend.request(mapID);
             } else if (arg === 'Exist') {
-                alert('地図IDが重複しています。\n地図IDを変更してください。'); // eslint-disable-line no-undef
+                alert(t('mapedit.error_duplicate_id')); // eslint-disable-line no-undef
             } else {
                 console.log(arg); // eslint-disable-line no-undef,no-console
-                alert('保存時エラーが発生しました。'); // eslint-disable-line no-undef
+                alert(t('mapedit.error_saving')); // eslint-disable-line no-undef
             }
         });
     });

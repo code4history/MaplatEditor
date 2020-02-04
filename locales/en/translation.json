@@ -137,7 +137,11 @@
     "confirm_override_image": "Map image was already submitted.\nDo you want to replace it?",
     "error_image_upload": "Error occurs while uploading map image.",
     "success_image_upload": "Map image is successfully uploaded.",
-    "image_uploading": "Uploading map image..."
+    "image_uploading": "Uploading map image...",
+    "confirm_save": "Save your changes. \nAre you sure?",
+    "copy_or_move": "Map ID has been changed. Do you want to make a copy?\nSelect OK to copy, Cancel to move.",
+    "success_save": "Save succeeded.",
+    "error_saving": "Error occurred during save."
   },
   "applist": {
     "not_implement": "Not implemented yet"
