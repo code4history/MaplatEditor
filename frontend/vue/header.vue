@@ -12,7 +12,7 @@
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
-                    <header-option v-bind:current="current" v-bind:target="target0" v-bind:title="$t('navbar.edit_map')"></header-option>
+                    <header-option v-bind:current="current" v-bind:target="target0_" v-bind:title="$t('navbar.edit_map')"></header-option>
                     <header-option v-bind:current="current" target="applist.html" v-bind:title="$t('navbar.edit_app')"></header-option>
                     <header-option v-bind:current="current" target="settings.html" v-bind:title="$t('navbar.settings')"></header-option>
                 </ul>
@@ -22,17 +22,18 @@
 </template>
 
 <script>
-    module.exports = {
-        created() {
-            console.log('HOgehohe');
-            if (!this.target0) this.target0 = 'maplist.html';
-        },
+    export default {
         props:[
             '$t',
             'current',
             'target0'
         ],
-        /*components: {
+        computed: {
+            target0_() {
+                return this.target0 || 'maplist.html';
+            }
+        },
+        components: {
             'header-option': {
                 props: [
                     'current',
@@ -41,7 +42,7 @@
                 ],
                 template: '<li v-if="current == target" class="active"><a href="#">{{title}}</a></li><li v-else><a v-bind:href="target">{{title}}</a></li>'
             }
-        }*/
+        }
     }
 </script>
 

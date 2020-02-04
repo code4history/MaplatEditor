@@ -20,7 +20,7 @@ import {altKeyOnly} from "ol/events/condition";
 import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
-import HeaderOption from '../vue/headeroption.vue';
+import Header from '../vue/header.vue';
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
@@ -725,7 +725,7 @@ class Drag extends Pointer {
     }
 }
 
-MaplatMap.prototype.initContextMenu = async function() {
+MaplatMap.prototype.initContextMenu = async function() { // eslint-disable-line
     const map = this;
     const t = await langObj.awaitT();
     const normalContextMenu = {
@@ -1108,7 +1108,7 @@ if (mapID) {
 function initVueMap(json) {
     const options = {
         mounted() {
-            const tabs = document.querySelectorAll('a[data-toggle="tab"]');
+            const tabs = document.querySelectorAll('a[data-toggle="tab"]'); //eslint-disable-line no-undef
             for (let i = 0; i < tabs.length; i++) {
                 new bsn.Tab(tabs[i],
                     {
@@ -1123,11 +1123,11 @@ function initVueMap(json) {
             });
         },
         components: {
-            "header-option": HeaderOption
+            "header-template": Header
         },
         i18n: langObj.vi18n,
-        el: '#container',//'#title-vue',
-        template: '#navbar-vue-template',
+        el: '#container',
+        template: '#mapedit-vue-template',
         watch: {
             gcpsEditReady,
             gcps(val) { // eslint-disable-line no-unused-vars
@@ -1162,12 +1162,13 @@ function initVueMap(json) {
     vueMap = new Map(options);
 }
 
-function setVueMap() {
+async function setVueMap() {
     vueMap.vueInit = true;
+    const t = await langObj.awaitT();
 
     vueMap.$on('updateMapID', () => {
-        if (!confirm(langObj.t('mapedit.confirm_change_mapid'))) return; // eslint-disable-line no-undef
-        vueMap2.onlyOne = false;
+        if (!confirm(t('mapedit.confirm_change_mapid'))) return; // eslint-disable-line no-undef
+        vueMap.onlyOne = false;
     });
     vueMap.$on('checkOnlyOne', () => {
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
@@ -1175,19 +1176,19 @@ function setVueMap() {
         ipcRenderer.once('checkIDResult', (event, arg) => {
             document.body.style.pointerEvents = null; // eslint-disable-line no-undef
             if (arg) {
-                alert('一意な地図IDです。'); // eslint-disable-line no-undef
+                alert(t('mapedit.alert_mapid_checked')); // eslint-disable-line no-undef
                 vueMap.onlyOne = true;
                 if (vueMap.status === 'Update') {
                     vueMap.status = `Change:${mapID}`;
                 }
             } else {
-                alert('この地図IDは存在します。他のIDにしてください。'); // eslint-disable-line no-undef
+                alert(t('mapedit.alert_mapid_duplicated')); // eslint-disable-line no-undef
                 vueMap.onlyOne = false;
             }
         });
     });
     vueMap.$on('mapUpload', () => {
-        if (vueMap.gcpsEditReady && !confirm('地図画像は既に登録されています。\n置き換えてよいですか?')) return; // eslint-disable-line no-undef
+        if (vueMap.gcpsEditReady && !confirm(t('mapedit.confirm_override_image'))) return; // eslint-disable-line no-undef
         if (!uploader) {
             uploader = require('electron').remote.require('./mapupload'); // eslint-disable-line no-undef
             uploader.init();
@@ -1195,10 +1196,10 @@ function setVueMap() {
                 document.body.style.pointerEvents = null; // eslint-disable-line no-undef
                 myModal.hide();
                 if (arg.err) {
-                    if (arg.err !== 'Canceled') alert('地図アップロードでエラーが発生しました。'); // eslint-disable-line no-undef
+                    if (arg.err !== 'Canceled') alert(t('mapedit.error_image_upload')); // eslint-disable-line no-undef
                     return;
                 } else {
-                    alert('正常に地図がアップロードできました。'); // eslint-disable-line no-undef
+                    alert(t('mapedit.success_image_upload')); // eslint-disable-line no-undef
                 }
                 vueMap.width = arg.width;
                 vueMap.height = arg.height;
@@ -1216,7 +1217,7 @@ function setVueMap() {
             });
         }
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-        document.querySelector('div.modal-body > p').innerText = '地図アップロード中です。'; // eslint-disable-line no-undef
+        document.querySelector('div.modal-body > p').innerText = t('mapedit.image_uploading'); // eslint-disable-line no-undef
         myModal.show();
         uploader.showMapSelectDialog();
     });

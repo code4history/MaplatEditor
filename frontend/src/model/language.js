@@ -7,7 +7,7 @@ let singleton;
 
 export class Language {
     constructor() {
-        const backend = this.backend = require('electron').remote.require('./settings');
+        const backend = this.backend = require('electron').remote.require('./settings'); // eslint-disable-line no-undef
         const lang = backend.getSetting('lang');
         const i18n = i18next.use(i18nxhr);
         Vue.use(VueI18Next);
@@ -25,14 +25,12 @@ export class Language {
         this.vi18n = new VueI18Next(i18n);
         this.i18n = i18nPromise;
         this.awaitT = function() {
-            return i18nPromise.then((t) => {
-                return t;
-            });
+            return i18nPromise.then((t) => t);
         }
 
-        const items = document.querySelectorAll('.vi18n');
+        const items = document.querySelectorAll('.vi18n'); // eslint-disable-line no-undef
 
-        items.forEach((el, i) => {
+        items.forEach((el) => {
             new Vue({
                 el, // HTMLElementをそのままelプロパティに渡す
                 i18n: this.vi18n

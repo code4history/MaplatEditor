@@ -18,7 +18,8 @@ module.exports = {
     resolve: {
         alias: {
             'vue$': 'vue/dist/vue.esm.js'
-        }
+        },
+        symlinks: false
     },
     plugins: [
         // make sure to include the plugin!
