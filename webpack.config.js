@@ -1,5 +1,6 @@
 const webpack = require('webpack');
 const pjson = require('./package.json');
+const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 module.exports = {
     mode: 'production',
@@ -19,8 +20,21 @@ module.exports = {
             'vue$': 'vue/dist/vue.esm.js'
         }
     },
+    plugins: [
+        // make sure to include the plugin!
+        new VueLoaderPlugin()
+    ],
     module: {
         rules: [
+            {
+                test: /\.vue$/,
+                loader: 'vue-loader',
+                options: {
+                    loaders: {
+                        js: 'babel-loader'
+                    }
+                }
+            },
             {
                 test: /\.js$/,
                 exclude: /node_modules(?!\/@maplat)/,

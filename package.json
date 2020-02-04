@@ -30,6 +30,8 @@
     "less": "^3.10.3",
     "less-plugin-clean-css": "^1.5.1",
     "shelljs": "^0.8.3",
+    "vue-loader": "^15.8.3",
+    "vue-template-compiler": "^2.6.11",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10"
   },

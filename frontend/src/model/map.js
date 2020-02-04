@@ -290,7 +290,7 @@ const VueMap = Vue.extend({
                 const transKey = `common.${langs[langKeys[i]]}`
                 langOpts = `${langOpts}<option value="${langKeys[i]}">${t(transKey)}</oprion>`;
             }
-            document.querySelector('#lang').innerHTML = langOpts; // eslint-disable-line no-undef
+            //document.querySelector('#lang').innerHTML = langOpts; // eslint-disable-line no-undef
         });
         },
     data() {

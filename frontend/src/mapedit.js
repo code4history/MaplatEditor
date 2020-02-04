@@ -20,6 +20,7 @@ import {altKeyOnly} from "ol/events/condition";
 import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
+import HeaderOption from '../vue/headeroption.vue';
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
@@ -743,7 +744,7 @@ MaplatMap.prototype.initContextMenu = async function() {
     };
 
     const addNewCancelContextMenu = {
-        text: t('mapedit.cancel_add_marker'),
+        text: t('mapedit.context_cancel_add_marker'),
         callback: addNewCancelMarker
     };
 
@@ -1085,45 +1086,7 @@ async function mapObjectInit() {
 }
 
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
-const vueMap = new Map({
-    created() {
-        const tabs = document.querySelectorAll('a[data-toggle="tab"]');
-        for (let i = 0; i < tabs.length; i++) {
-            new bsn.Tab(tabs[i],
-                {
-                    height: true
-                });
-        }
-    },
-    i18n: langObj.vi18n,
-    el: '#title-vue',
-    template: '#title-vue-template',
-    watch: {
-        gcpsEditReady,
-        gcps(val) { // eslint-disable-line no-unused-vars
-            if (!illstSource) return;
-            backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
-        },
-        edges(val) { // eslint-disable-line no-unused-vars
-            if (!illstSource) return;
-            backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
-        },
-        sub_maps(val) { // eslint-disable-line no-unused-vars
-        },
-        vertexMode() {
-            if (!illstSource) return;
-            backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
-        },
-        strictMode() {
-            if (!illstSource) return;
-            backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
-        },
-        currentEditingLayer() {
-            if (!illstSource) return;
-            gcpsToMarkers();
-        }
-    }
-});
+let vueMap;
 function gcpsEditReady(val) {
     const a = document.querySelector('a[href="#gcpsTab"]'); // eslint-disable-line no-undef
     const li = a.parentNode;
@@ -1138,21 +1101,75 @@ if (mapID) {
     const mapIDElm = document.querySelector('#mapID'); // eslint-disable-line no-unused-vars,no-undef
     backend.request(mapID);
 } else {
+    initVueMap();
     setVueMap();
+}
+
+function initVueMap(json) {
+    const options = {
+        mounted() {
+            const tabs = document.querySelectorAll('a[data-toggle="tab"]');
+            for (let i = 0; i < tabs.length; i++) {
+                new bsn.Tab(tabs[i],
+                    {
+                        height: true
+                    });
+            }
+            mapObjectInit();
+            const myMapTab = document.querySelector('a[href="#gcpsTab"]'); //eslint-disable-line no-undef
+            myMapTab.addEventListener('shown.bs.tab', (e) => { //eslint-disable-line no-unused-vars
+                illstMap.updateSize();
+                mercMap.updateSize();
+            });
+        },
+        components: {
+            "header-option": HeaderOption
+        },
+        i18n: langObj.vi18n,
+        el: '#container',//'#title-vue',
+        template: '#navbar-vue-template',
+        watch: {
+            gcpsEditReady,
+            gcps(val) { // eslint-disable-line no-unused-vars
+                if (!illstSource) return;
+                backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+            },
+            edges(val) { // eslint-disable-line no-unused-vars
+                if (!illstSource) return;
+                backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+            },
+            sub_maps(val) { // eslint-disable-line no-unused-vars
+            },
+            vertexMode() {
+                if (!illstSource) return;
+                backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+            },
+            strictMode() {
+                if (!illstSource) return;
+                backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+            },
+            currentEditingLayer() {
+                if (!illstSource) return;
+                gcpsToMarkers();
+            }
+        }
+    };
+    if (json) {
+        options.data = function() {
+
+        };
+    }
+    vueMap = new Map(options);
 }
 
 function setVueMap() {
     vueMap.vueInit = true;
-    const vueMap2 = vueMap.createSharedClone('#metadataTabForm-template');
-    vueMap2.$mount('#metadataTabForm');
-    const vueMap3 = vueMap.createSharedClone('#gcpsTabDiv-template');
-    vueMap3.$mount('#gcpsTabDiv');
-    mapObjectInit();
-    vueMap2.$on('updateMapID', () => {
+
+    vueMap.$on('updateMapID', () => {
         if (!confirm(langObj.t('mapedit.confirm_change_mapid'))) return; // eslint-disable-line no-undef
         vueMap2.onlyOne = false;
     });
-    vueMap2.$on('checkOnlyOne', () => {
+    vueMap.$on('checkOnlyOne', () => {
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
         const checked = backend.checkID(vueMap.mapID); // eslint-disable-line no-unused-vars
         ipcRenderer.once('checkIDResult', (event, arg) => {
@@ -1169,7 +1186,7 @@ function setVueMap() {
             }
         });
     });
-    vueMap2.$on('mapUpload', () => {
+    vueMap.$on('mapUpload', () => {
         if (vueMap.gcpsEditReady && !confirm('地図画像は既に登録されています。\n置き換えてよいですか?')) return; // eslint-disable-line no-undef
         if (!uploader) {
             uploader = require('electron').remote.require('./mapupload'); // eslint-disable-line no-undef
@@ -1231,7 +1248,7 @@ function setVueMap() {
             }
         });
     });
-    vueMap3.$on('viewError', () => {
+    vueMap.$on('viewError', () => {
         const tinObject = vueMap.tinObject;
         if (!(tinObject instanceof Tin)) return;
         const kinks = tinObject.kinks.bakw.features;
@@ -1246,7 +1263,7 @@ function setVueMap() {
         view.setCenter(errorPoint);
         view.setZoom(17);
     });
-    vueMap3.$on('removeSubMap', () => {
+    vueMap.$on('removeSubMap', () => {
         if (confirm('本当にこのサブレイヤを削除してよろしいですか?')) { // eslint-disable-line no-undef
             vueMap.removeSubMap();
         }
@@ -1303,6 +1320,9 @@ ipcRenderer.on('mapData', (event, arg) => {
     json.mapID = mapID;
     json.status = 'Update';
     json.onlyOne = true;
+    if (!vueMap) {
+        initVueMap();
+    }
     vueMap.setInitialMap(json);
     if (tins) {
         vueMap.tinObjects = tins.map((compiled) => {
@@ -1325,10 +1345,4 @@ ipcRenderer.on('mapData', (event, arg) => {
 // 起動時処理: 地図外のUI設定ここから
 // モーダルオブジェクト作成
 const myModal = new bsn.Modal(document.getElementById('staticModal'), {}); //eslint-disable-line no-undef
-// 対応点設定タブが選ばれた際、OpenLayersを初期化
-const myMapTab = document.querySelector('a[href="#gcpsTab"]'); //eslint-disable-line no-undef
-myMapTab.addEventListener('shown.bs.tab', (e) => { //eslint-disable-line no-unused-vars
-    illstMap.updateSize();
-    mercMap.updateSize();
-});
 // 起動時処理: 地図外のUI設定ここまで
