@@ -5,7 +5,7 @@ const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const langObj = new Language();
 
 async function initRun() {
-    await langObj.awaitT();
+    const t = await langObj.awaitT();
     const vueSettings = new Vue({
         i18n: langObj.vi18n,
         created() {
@@ -63,7 +63,7 @@ async function initRun() {
     const dataNav = document.querySelectorAll('a[data-nav]'); // eslint-disable-line no-undef
     for (let i = 0; i < dataNav.length; i++) {
         dataNav[i].addEventListener('click', (ev) => {
-            if (!vueSettings.dirty || confirm('設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) { // eslint-disable-line no-undef
+            if (!vueSettings.dirty || confirm(t('settings.confirm_close_no_save'))) { // eslint-disable-line no-undef
                 allowClose = true;
                 window.location.href = ev.target.getAttribute('data-nav'); // eslint-disable-line no-undef
             }
@@ -79,7 +79,7 @@ async function initRun() {
         }
         e.returnValue = 'false';
         setTimeout(() => { // eslint-disable-line no-undef
-            if (confirm('設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) { // eslint-disable-line no-undef
+            if (confirm(t('settings.confirm_close_no_save'))) { // eslint-disable-line no-undef
                 allowClose = true;
                 window.close(); // eslint-disable-line no-undef
             }

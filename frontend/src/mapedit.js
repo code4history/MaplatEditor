@@ -371,8 +371,9 @@ function edgesClear() {
     mercMap.getSource('edges').clear();
 }
 
-function onClick(evt) {
+async function onClick(evt) {
     if (evt.pointerEvent.altKey) return;
+    const t = await langObj.awaitT();
     const isIllst = this === illstMap;
     const srcMap = isIllst ? illstMap : mercMap;
     const distMap = isIllst ? mercMap : illstMap;
@@ -386,21 +387,21 @@ function onClick(evt) {
 
     const tinObject = vueMap.tinObject;
     if (typeof tinObject === 'string') {
-        alert(tinObject === 'tooLessGcps' ? '変換テストに必要な対応点の数が少なすぎます' : // eslint-disable-line no-undef
-            tinObject === 'tooLinear' ? '対応点が直線的に並びすぎているため、変換テストが実行できません。' :
-                tinObject === 'pointsOutside' ? '対応点が地図領域外にあるため、変換テストが実行できません。' :
-                    tinObject === 'edgeError' ? '対応線にエラーがあるため、変換テストが実行できません。' :
-                        '原因不明のエラーのため、変換テストが実行できません。');
+        alert(tinObject === 'tooLessGcps' ? t('mapedit.testerror_too_short') : // eslint-disable-line no-undef
+            tinObject === 'tooLinear' ? t('mapedit.testerror_too_linear') :
+                tinObject === 'pointsOutside' ? t('mapedit.testerror_outside') :
+                    tinObject === 'edgeError' ? t('mapedit.testerror_line') :
+                        t('mapedit.testerror_unknown'));
         return;
     }
     if (tinObject.strict_status === 'strict_error' && !isIllst) {
-        alert('厳格モードでエラーがある際は、逆変換ができません。'); // eslint-disable-line no-undef
+        alert(t('mapedit.testerror_valid_error')); // eslint-disable-line no-undef
         return;
     }
     const distXy = tinObject.transform(srcXy, !isIllst);
 
     if (!distXy) {
-        alert('地図領域範囲外のため、変換ができません。'); // eslint-disable-line no-undef
+        alert(t('mapedit.testerror_outside_map')); // eslint-disable-line no-undef
         return;
     }
 
@@ -1265,7 +1266,7 @@ async function setVueMap() {
         view.setZoom(17);
     });
     vueMap.$on('removeSubMap', () => {
-        if (confirm('本当にこのサブレイヤを削除してよろしいですか?')) { // eslint-disable-line no-undef
+        if (confirm(t('mapedit.confirm_layer_delete'))) { // eslint-disable-line no-undef
             vueMap.removeSubMap();
         }
     });
@@ -1277,7 +1278,7 @@ async function setVueMap() {
     const dataNav = document.querySelectorAll('a[data-nav]'); // eslint-disable-line no-undef
     for (let i=0; i< dataNav.length; i++) {
         dataNav[i].addEventListener('click', (ev) => {
-            if (!vueMap.dirty || confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) { // eslint-disable-line no-undef
+            if (!vueMap.dirty || confirm(t('mapedit.confirm_no_save'))) { // eslint-disable-line no-undef
                 allowClose = true;
                 window.location.href = ev.target.getAttribute('data-nav'); // eslint-disable-line no-undef
             }
@@ -1293,7 +1294,7 @@ async function setVueMap() {
         }
         e.returnValue = 'false';
         setTimeout(() => { // eslint-disable-line no-undef
-            if (confirm('地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?')) { // eslint-disable-line no-undef
+            if (confirm(t('mapedit.confirm_no_save'))) { // eslint-disable-line no-undef
                 allowClose = true;
                 window.close(); // eslint-disable-line no-undef
             }

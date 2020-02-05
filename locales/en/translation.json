@@ -24,7 +24,8 @@
     "original_map": "Original map settings",
     "switch_lang": "Switch Language",
     "data_folder": "Data Folder",
-    "specify_data_folder": "Please specify data folder."
+    "specify_data_folder": "Please specify data folder.",
+    "confirm_close_no_save": "The settings have been changed but not saved.\nDo you want to close without saving?"
   },
   "maplist": {
     "newCreate": "Create new map"
@@ -134,16 +135,31 @@
     "control_put_address": "Put address here",
     "alert_mapid_checked": "This is unique map ID. Confirmed.",
     "alert_mapid_duplicated": "Map ID is duplicated. Change to another ID.",
-    "confirm_override_image": "Map image was already submitted.\nDo you want to replace it?",
+    "confirm_override_image": "Map image was already submitted.\nAre you sure you want to replace it?",
     "error_image_upload": "Error occurs while uploading map image.",
     "success_image_upload": "Map image is successfully uploaded.",
     "image_uploading": "Uploading map image...",
     "confirm_save": "Save your changes. \nAre you sure?",
     "copy_or_move": "Map ID has been changed. Do you want to make a copy?\nSelect OK to copy, Cancel to move.",
     "success_save": "Save succeeded.",
-    "error_saving": "Error occurred during save."
+    "error_saving": "Error occurred during save.",
+    "confirm_layer_delete": "Are you sure you want to delete this sublayer?",
+    "confirm_no_save": "The map data has been changed but not saved.\nAre you sure you want to close without saving?",
+    "testerror_too_short": "Too few GCPs for projection test.",
+    "testerror_too_linear": "The projection test cannot be performed because GCPs are too linear.",
+    "testerror_outside": "The projection test cannot be performed because some GCPs are outside the map area.",
+    "testerror_line": "The projection test cannot be performed because there are some errors in corresponding lines.",
+    "testerror_unknown": "The projection test cannot be performed because of unknown error.",
+    "testerror_valid_error": "If there are any errors in strict mode, the inverse projection test is not possible.",
+    "testerror_outside_map": "Cannot perform projection test because it is outside the map area."
   },
   "applist": {
     "not_implement": "Not implemented yet"
+  },
+  "mapmodel": {
+    "untitled": "Untitled",
+    "no_title": "Enter title for representation.",
+    "over_title": "Enter {{lang}} title for representation within 30 half-width characters (or 15 full-width characters).",
+    "image_copyright": "Enter representation of map image's copyright."
   }
 }

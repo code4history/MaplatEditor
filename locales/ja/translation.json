@@ -24,7 +24,8 @@
     "original_map": "オリジナル地図設定",
     "switch_lang": "言語切り替え(Switch Language)",
     "data_folder": "データフォルダ",
-    "specify_data_folder": "データフォルダを指定してください。"
+    "specify_data_folder": "データフォルダを指定してください。",
+    "confirm_close_no_save": "設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?"
   },
   "maplist": {
     "newCreate": "新規作成"
@@ -142,9 +143,24 @@
     "copy_or_move": "地図IDが変更されています。コピーを行いますか?\nコピーの場合はOK、移動の場合はキャンセルを選んでください。",
     "success_save": "正常に保存できました。",
     "error_duplicate_id": "地図IDが重複しています。\n地図IDを変更してください。",
-    "error_saving": "保存時エラーが発生しました。"
+    "error_saving": "保存時エラーが発生しました。",
+    "confirm_layer_delete": "本当にこのサブレイヤを削除してよろしいですか?",
+    "confirm_no_save": "地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?",
+    "testerror_too_short": "変換テストに必要な対応点の数が少なすぎます。",
+    "testerror_too_linear": "対応点が直線的に並びすぎているため、変換テストが実行できません。",
+    "testerror_outside": "対応点が地図領域外にあるため、変換テストが実行できません。",
+    "testerror_line": "対応線にエラーがあるため、変換テストが実行できません。",
+    "testerror_unknown": "原因不明のエラーのため、変換テストが実行できません。",
+    "testerror_valid_error": "厳格モードでエラーがある際は、逆変換ができません。",
+    "testerror_outside_map": "地図領域範囲外のため、変換ができません。"
   },
   "applist": {
     "not_implement": "未実装"
+  },
+  "mapmodel": {
+    "untitled": "タイトル未設定",
+    "no_title": "表示用タイトルを指定してください。",
+    "over_title": "表示用タイトル({{lang}})を15文字(半角30文字)以内にしてください。",
+    "image_copyright": "地図画像のコピーライト表記を指定してください。"
   }
 }

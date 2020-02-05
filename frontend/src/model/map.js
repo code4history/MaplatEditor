@@ -113,13 +113,13 @@ for (let i=0; i<mapAttr.length; i++) {
     };
 }
 computed.displayTitle = function() {
-    if (this.map.title == null || this.map.title == '') return 'タイトル未設定';
+    if (this.map.title == null || this.map.title == '') return this.$t('mapmodel.untitled');
     else {
         if (typeof this.map.title != 'object') {
             return this.map.title;
         } else {
             const title = this.map.title[this.lang];
-            if (title == null || title == '') return 'タイトル未設定';
+            if (title == null || title == '') return this.$t('mapmodel.untitled');
             return title;
         }
     }
@@ -213,19 +213,19 @@ computed.error = function() {
     if (this.mapID == null || this.mapID == '') err['mapID'] = 'mapedit.error_set_mapid';
     else if (this.mapID && !this.mapID.match(/^[\d\w_-]+$/)) err['mapID'] = 'mapedit.error_mapid_character';
     else if (!this.onlyOne) err['mapIDOnlyOne'] = 'mapedit.check_uniqueness';
-    if (this.map.title == null || this.map.title == '') err['title'] = '表示用タイトルを指定してください。';
+    if (this.map.title == null || this.map.title == '') err['title'] = this.$t('mapmodel.no_title');
     else {
         if (typeof this.map.title != 'object') {
-            if (zenHankakuLength(this.map.title) > 30) err['title'] = `表示用タイトル(${this.langs[this.lang]})を15文字(半角30文字)以内にしてください。`;
+            if (zenHankakuLength(this.map.title) > 30) err['title'] = this.$t('mapmodel.over_title', {lang: this.$t(`common.${this.langs[this.lang]}`)});
         } else {
             const keys = Object.keys(this.langs);
             for (let i=0; i<keys.length; i++) {
                 if (this.map.title[keys[i]] && zenHankakuLength(this.map.title[keys[i]]) > 30)
-                    err['title'] = `表示用タイトル(${this.langs[keys[i]]})を15文字(半角30文字)以内にしてください。`;
+                    err['title'] = this.$t('mapmodel.over_title', {lang: this.$t(`common.${this.langs[keys[i]]}`)});
             }
         }
     }
-    if (this.map.attr == null || this.map.attr == '') err['attr'] = '地図画像のコピーライト表記を指定してください。';
+    if (this.map.attr == null || this.map.attr == '') err['attr'] = this.$t('mapmodel.image_copyright');
     if (this.blockingGcpsError) err['blockingGcpsError'] = 'blockingGcpsError';
     return Object.keys(err).length > 0 ? err : null;
 };
@@ -282,17 +282,7 @@ computed.priority = function() {
 }
 
 const VueMap = Vue.extend({
-    created() {
-        langObj.i18n.then((t) => {
-            const langKeys = Object.keys(langs);
-            let langOpts = '';
-            for (let i = 0; i < langKeys.length; i++) {
-                const transKey = `common.${langs[langKeys[i]]}`
-                langOpts = `${langOpts}<option value="${langKeys[i]}">${t(transKey)}</oprion>`;
-            }
-            //document.querySelector('#lang').innerHTML = langOpts; // eslint-disable-line no-undef
-        });
-        },
+    i18n: langObj.vi18n,
     data() {
         return {
             share: {
@@ -318,14 +308,6 @@ const VueMap = Vue.extend({
             this.map_ = _.deepClone(setMap);
             this.currentLang = this.lang;
             this.onlyOne = true;
-            },
-        createSharedClone(template) {
-            const newVueMap = new VueMap({
-                i18n: langObj.vi18n,
-                template
-            });
-            newVueMap.share = this.share;
-            return newVueMap;
             },
         localedGetBylocale(locale, key) {
             const lang = this.lang;
