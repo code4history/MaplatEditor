@@ -79,7 +79,7 @@ const maplist = {
                     focused.webContents.send('mapListAdd', file);
 
                     const uiThumbnail = `${uiThumbnailFolder}${path.sep}${file.mapID}_menu.jpg`;
-                    fs.stat(uiThumbnail, (err, stat) => {
+                    fs.stat(uiThumbnail, (err) => {
                         if (err != null && err.code === 'ENOENT') {
                             im.identify(thumbFile, (err, features) => {
                                 if (err) {
@@ -89,7 +89,15 @@ const maplist = {
 
                                 const width = features.width;
                                 const height = features.height;
-                                console.log(`${width} ${height}`);
+                                const w = width > height ? 52 : Math.ceil(52 * width / height);
+                                const h = width > height ? Math.ceil(52 * height / width) : 52;
+                                const args = [
+                                    thumbFile,
+                                    '-geometry',
+                                    `${w}x${h}!`,
+                                    uiThumbnail
+                                ];
+                                im.convert(args);
                             });
                         }
                     });

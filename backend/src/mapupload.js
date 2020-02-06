@@ -15,6 +15,7 @@ const fileUrl = require('file-url'); // eslint-disable-line no-undef
 
 let mapFolder;
 let tileFolder;
+let uiThumbnailFolder;
 let tmpFolder;
 let outFolder;
 let focused;
@@ -36,7 +37,7 @@ const cropperForLogic2 = (srcFile, zoom, x, y, maxZoom, width, height) => {
             zw = width;
             zh = height;
         }
-        const tileFolder = outFolder + path.sep + zoom + path.sep + x;
+        const tileFolder = `${outFolder}${path.sep}${zoom}${path.sep}${x}`;
         fs.ensureDir(tileFolder, (err) => {
             if (err) {
                 reject(err);
@@ -122,6 +123,9 @@ const MapUpload = {
             });
             tileFolder = `${saveFolder}${path.sep}tiles`;
             fs.ensureDir(tileFolder, () => {
+            });
+            uiThumbnailFolder = `${saveFolder}${path.sep}tmbs`;
+            fs.ensureDir(uiThumbnailFolder, () => {
             });
             tmpFolder = settings.getSetting('tmpFolder');
             focused = BrowserWindow.getFocusedWindow();
@@ -328,9 +332,17 @@ const MapUpload = {
                     });
                 });
             })
-        ).then((arg) =>
-            Promise.all([Promise.resolve(arg), cropperForLogic2(srcFile, 0, 0, 0, arg.zoom, arg.width, arg.height)])
-        ).then((args) => {
+        ).then((arg) => Promise.all([
+            Promise.resolve(arg),
+            cropperForLogic2(srcFile, 0, 0, 0, arg.zoom, arg.width, arg.height)
+
+        ])).then((args) => {
+            return new Promise((resolve) => {
+                const thumbFrom = `${outFolder}${path.sep}0${path.sep}0${path.sep}0${extKey}`;
+                const thumbTo = `${outFolder}${path.sep}thumbnail.jpg`;
+                resolve(args);
+            })
+        }).then((args) => {
             const arg = args[0];
             let thumbURL = fileUrl(outFolder);
             thumbURL = `${thumbURL}/{z}/{x}/{y}.${extKey}`;
