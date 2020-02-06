@@ -153,6 +153,9 @@
     "testerror_valid_error": "If there are any errors in strict mode, the inverse projection test is not possible.",
     "testerror_outside_map": "Cannot perform projection test because it is outside the map area."
   },
+  "mapupload": {
+    "map_image": "Map Image"
+  },
   "applist": {
     "not_implement": "Not implemented yet"
   },

@@ -1220,7 +1220,7 @@ async function setVueMap() {
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
         document.querySelector('div.modal-body > p').innerText = t('mapedit.image_uploading'); // eslint-disable-line no-undef
         myModal.show();
-        uploader.showMapSelectDialog();
+        uploader.showMapSelectDialog(t('mapupload.map_image'));
     });
     vueMap.$on('saveMap', () => {
         if (!confirm(t('mapedit.confirm_save'))) return; // eslint-disable-line no-undef

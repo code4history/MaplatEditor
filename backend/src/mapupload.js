@@ -131,13 +131,13 @@ const MapUpload = {
             tmpFolder = `.${path.sep}tmp`;
         }
     },
-    showMapSelectDialog() {
+    showMapSelectDialog(mapImageRepl) {
         const dialog = require('electron').dialog; // eslint-disable-line no-undef
         const focused = BrowserWindow.getFocusedWindow();
         const self = this;
         dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
             // filters: [ {name: '地図画像', extensions: ['jpg']} ] }, function (baseDir){
-            filters: [ {name: '地図画像', extensions: ['jpg', 'png', 'jpeg']} ] }, (baseDir) => {
+            filters: [ {name: mapImageRepl, extensions: ['jpg', 'png', 'jpeg']} ] }, (baseDir) => {
             if(baseDir && baseDir[0]) {
                 self.imageCutter2(baseDir[0]);
             } else {

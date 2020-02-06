@@ -154,6 +154,9 @@
     "testerror_valid_error": "厳格モードでエラーがある際は、逆変換ができません。",
     "testerror_outside_map": "地図領域範囲外のため、変換ができません。"
   },
+  "mapupload": {
+    "map_image": "地図画像"
+  },
   "applist": {
     "not_implement": "未実装"
   },
