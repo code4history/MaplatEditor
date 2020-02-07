@@ -14,6 +14,7 @@ let mapFolder;
 let compiledFolder;
 let tileFolder;
 let originalFolder;
+let thumbFolder;
 let focused;
 
 const mapedit = {
@@ -27,6 +28,8 @@ const mapedit = {
         fs.ensureDir(tileFolder, () => {});
         originalFolder = `${saveFolder}${path.sep}originals`;
         fs.ensureDir(originalFolder, () => {});
+        thumbFolder = `${saveFolder}${path.sep}tmbs`;
+        fs.ensureDir(thumbFolder, () => {});
 
         focused = BrowserWindow.getFocusedWindow();
     },
@@ -147,6 +150,7 @@ const mapedit = {
         const tmpUrl = fileUrl(tmpFolder);
         const newTile = tileFolder + path.sep + mapID;
         const newOriginal = `${originalFolder}${path.sep}${mapID}.${imageExtention}`;
+        const newThumbnail = `${thumbFolder}${path.sep}${mapID}_menu.jpg`;
         const regex = new RegExp(`^${tmpUrl}`);
         const tmpCheck = url_ && url_.match(regex);
 
@@ -166,6 +170,7 @@ const mapedit = {
                         const oldCompiledFile = `${compiledFolder}${path.sep}${oldMapID}.json`;
                         const oldTile = `${tileFolder}${path.sep}${oldMapID}`;
                         const oldOriginal = `${originalFolder}${path.sep}${oldMapID}.${imageExtention}`;
+                        const oldThumbnail = `${thumbFolder}${path.sep}${oldMapID}_menu.jpg`;
                         fs.writeFile(mapFile, content, (err) => {
                             if (err) {
                                 reject('Error');
@@ -239,7 +244,15 @@ const mapedit = {
                                             fs.statSync(oldOriginal);
                                             process(oldOriginal, newOriginal, (err) => {
                                                 if (err) reject_(err);
-                                                resolve_();
+                                                try {
+                                                    fs.statSync(oldThumbnail);
+                                                    process(oldThumbnail, newThumbnail, (err) => {
+                                                        if (err) reject_(err);
+                                                        resolve();
+                                                    });
+                                                } catch(err) {
+                                                    resolve();
+                                                }
                                             });
                                         } catch (err) {
                                             resolve_();
@@ -294,7 +307,15 @@ const mapedit = {
                         }
                         fs.move(`${newTile}${path.sep}original.${imageExtention}`, newOriginal, (err) => {
                             if (err) reject(err);
-                            resolve();
+                            try {
+                                fs.statSync(newThumbnail);
+                                fs.removeSync(newThumbnail);
+                            } catch(err) { // eslint-disable-line no-empty
+                            }
+                            fs.move(`${newTile}${path.sep}thumbnail.jpg`, newThumbnail, (err) => {
+                                if (err) reject(err);
+                                resolve();
+                            });
                         });
                     });
                 } else {

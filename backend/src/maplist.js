@@ -6,6 +6,7 @@ const im = require('../lib/imagemagick_modified.js'); // eslint-disable-line no-
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
+const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
 
 settings.init();
 
@@ -79,28 +80,8 @@ const maplist = {
                     focused.webContents.send('mapListAdd', file);
 
                     const uiThumbnail = `${uiThumbnailFolder}${path.sep}${file.mapID}_menu.jpg`;
-                    fs.stat(uiThumbnail, (err) => {
-                        if (err != null && err.code === 'ENOENT') {
-                            im.identify(thumbFile, (err, features) => {
-                                if (err) {
-                                    console.log(err);
-                                    return;
-                                }
 
-                                const width = features.width;
-                                const height = features.height;
-                                const w = width > height ? 52 : Math.ceil(52 * width / height);
-                                const h = width > height ? Math.ceil(52 * height / width) : 52;
-                                const args = [
-                                    thumbFile,
-                                    '-geometry',
-                                    `${w}x${h}!`,
-                                    uiThumbnail
-                                ];
-                                im.convert(args);
-                            });
-                        }
-                    });
+                    thumbExtractor.make_thumbnail(thumbFile, uiThumbnail, true).then(() => {});
                 });
             }
         });

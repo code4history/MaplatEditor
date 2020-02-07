@@ -12,6 +12,7 @@ if (electron.app || electron.remote) {
     settings.init();
 }
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
+const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
 
 let mapFolder;
 let tileFolder;
@@ -335,14 +336,13 @@ const MapUpload = {
         ).then((arg) => Promise.all([
             Promise.resolve(arg),
             cropperForLogic2(srcFile, 0, 0, 0, arg.zoom, arg.width, arg.height)
-
-        ])).then((args) => {
-            return new Promise((resolve) => {
-                const thumbFrom = `${outFolder}${path.sep}0${path.sep}0${path.sep}0${extKey}`;
-                const thumbTo = `${outFolder}${path.sep}thumbnail.jpg`;
+        ])).then((args) => new Promise((resolve) => {
+            const thumbFrom = `${outFolder}${path.sep}0${path.sep}0${path.sep}0.${extKey}`;
+            const thumbTo = `${outFolder}${path.sep}thumbnail.jpg`;
+            thumbExtractor.make_thumbnail(thumbFrom, thumbTo).then(() => {
                 resolve(args);
-            })
-        }).then((args) => {
+            });
+        })).then((args) => {
             const arg = args[0];
             let thumbURL = fileUrl(outFolder);
             thumbURL = `${thumbURL}/{z}/{x}/{y}.${extKey}`;
