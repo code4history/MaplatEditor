@@ -23,7 +23,7 @@
 
     <div class="container main" role="main" id="main">
       <div class="row title-container">
-        <div class="col-xs-5">
+        <div class="col-xs-4">
           <h4><a href="#" data-nav="maplist.html">&lt;&lt;</a> <span class="map-title">{{displayTitle}}</span></h4>
         </div>
         <div class="col-xs-1">
@@ -37,15 +37,16 @@
         <div class="col-xs-2">
           <label><input type="checkbox" id="langDefault" v-bind:disabled="defaultLangFlag" v-model="defaultLangFlag">{{$t("mapedit.set_default")}}</label>
         </div>
-        <div class="col-xs-2">
+        <div class="col-xs-3">
           <button type="button" class="btn btn-primary" id="saveMap" v-bind:disabled="error || !dirty" v-on:click="$emit('saveMap')">{{$t("common.save")}}</button>
+          <button type="button" class="btn btn-default" id="dlMap" v-bind:disabled="error || dirty" v-on:click="$emit('dlMap')">{{$t("mapedit.download_map_data")}}</button>
         </div>
       </div>
       <!-- タブ・メニュー -->
       <ul class="nav nav-tabs nav-justified" role="tablist">
         <li class="active"><a href="#metadataTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_metadata")}}</span></a></li>
         <li><a href="#gcpsTab" data-toggle="tab" role="tab" disabled><span class="vi18nf">{{$t("mapedit.edit_gcp")}}</span></a></li>
-        <li class="disabled"><a href="#landmarkTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_landmark")}}</span></a></li>
+        <li class="disabled"><a href="#configureTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.configure_map")}}</span></a></li>
       </ul>
 
       <!-- タブ内容 -->
@@ -190,27 +191,19 @@
         <div class="tab-pane h100" id="gcpsTab">
           <div class="h100">
             <div class="row map-control-header">
-              <div class="col-xs-4">
-                <div class="row">
-                  <div class="col-xs-4">
-                    <select class="form-control" name="editingLayer" v-model.number="currentEditingLayer">
-                      <option value="0">{{$t('mapedit.map_mainlayer')}}</option>
-                      <option v-for="(sub_map, index) in sub_maps" :value="index+1">{{$t('mapedit.map_sublayer')}}{{index+1}}</option>
-                    </select>
-                  </div>
-                  <div class="col-xs-8">
-                    <button type="button" class="btn btn-default" v-on:click="addSubMap">{{$t('mapedit.map_addlayer')}}</button>
-                    <button type="button" class="btn btn-default" v-on:click="$emit('removeSubMap')" v-bind:disabled="currentEditingLayer===0">{{$t('mapedit.map_removelayer')}}</button>
-                  </div>
-                </div>
+              <div class="col-xs-2">
+                <select class="form-control" name="editingLayer" v-model.number="currentEditingLayer">
+                  <option value="0">{{$t('mapedit.map_mainlayer')}}</option>
+                  <option v-for="(sub_map, index) in sub_maps" :value="index+1">{{$t('mapedit.map_sublayer')}}{{index+1}}</option>
+                </select>
               </div>
-              <div class="col-xs-4">
-                <label>{{$t('mapedit.map_importance')}}: {{importance}}</label>
+              <div class="col-xs-10">
+                <button type="button" class="btn btn-default" v-on:click="addSubMap">{{$t('mapedit.map_addlayer')}}</button>
+                <button type="button" class="btn btn-default" v-on:click="$emit('removeSubMap')" v-bind:disabled="currentEditingLayer===0">{{$t('mapedit.map_removelayer')}}</button>
+                　<label>{{$t('mapedit.map_importance')}}: {{importance}}</label>
                 <button type="button" class="btn btn-default" v-bind:disabled="!canUpImportance" v-on:click="upImportance">{{$t('mapedit.map_importance_up')}}</button>
                 <button type="button" class="btn btn-default" v-bind:disabled="!canDownImportance" v-on:click="downImportance">{{$t('mapedit.map_importance_down')}}</button>
-              </div>
-              <div class="col-xs-4">
-                <label>{{$t('mapedit.map_priority')}}: {{priority}}</label>
+                　<label>{{$t('mapedit.map_priority')}}: {{priority}}</label>
                 <button type="button" class="btn btn-default" v-bind:disabled="!canUpPriority" v-on:click="upPriority">{{$t('mapedit.map_priority_up')}}</button>
                 <button type="button" class="btn btn-default" v-bind:disabled="!canDownPriority" v-on:click="downPriority">{{$t('mapedit.map_priority_down')}}</button>
               </div>
@@ -249,8 +242,8 @@
             </div>
           </div>
         </div>
-        <div class="tab-pane" id="landmarkTab">
-          <p></p>
+        <div class="tab-pane" id="configureTab">
+          <p>地図設定</p>
         </div>
       </div>
     </div> <!-- /container -->

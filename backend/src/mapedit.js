@@ -4,9 +4,10 @@ const settings = require('./settings'); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
+const app = require('electron').app; // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const Tin = require('@maplat/tin'); // eslint-disable-line no-undef
-// const {ipcMain} = require('electron');
+const archiver = require('archiver'); // eslint-disable-line no-undef
 
 settings.init();
 
@@ -15,6 +16,7 @@ let compiledFolder;
 let tileFolder;
 let originalFolder;
 let thumbFolder;
+let tmpFolder;
 let focused;
 
 const mapedit = {
@@ -29,6 +31,7 @@ const mapedit = {
         originalFolder = `${saveFolder}${path.sep}originals`;
         fs.ensureDir(originalFolder, () => {});
         thumbFolder = `${saveFolder}${path.sep}tmbs`;
+        tmpFolder = settings.getSetting('tmpFolder');
         fs.ensureDir(thumbFolder, () => {});
 
         focused = BrowserWindow.getFocusedWindow();
@@ -118,6 +121,51 @@ const mapedit = {
             }
             loadData(data);
         });
+    },
+    download(mapObject) {
+        const mapID = mapObject.mapID;
+        const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
+        const archive = archiver.create('zip', {});
+        const output = fs.createWriteStream(zip_file);
+        archive.pipe(output);
+        archive.file(`${compiledFolder}${path.sep}${mapID}.json`, { name: `maps${path.sep}${mapID}.json` });
+        archive.file(`${thumbFolder}${path.sep}${mapID}_menu.jpg`, { name: `tmbs${path.sep}${mapID}_menu.jpg` });
+        archive.directory(`${tileFolder}${path.sep}${mapID}${path.sep}`, `tiles${path.sep}${mapID}`);
+
+        archive.on('warning', (err) => {
+            fs.removeSync(zip_file);
+            if (err.code === 'ENOENT') {
+                focused.webContents.send('mapDownloadResult', 'No file');
+            } else {
+                focused.webContents.send('mapDownloadResult', err);
+            }
+        });
+
+        archive.on('error', (err) => {
+            fs.removeSync(zip_file);
+            focused.webContents.send('mapDownloadResult', err);
+        });
+
+        output.on('close', () => {
+            const dialog = require('electron').dialog; // eslint-disable-line no-undef
+            const focused = BrowserWindow.getFocusedWindow();
+            dialog.showSaveDialog({
+                defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
+                filters: [ {name: "Output file", extensions: ['zip']} ]
+            }, (filename) => {
+                if(filename && filename[0]) {
+                    fs.moveSync(zip_file, filename, {
+                        overwrite: true
+                    });
+                    focused.webContents.send('mapDownloadResult', 'Success');
+                } else {
+                    fs.removeSync(zip_file);
+                    focused.webContents.send('mapDownloadResult', 'Canceled');
+                }
+            });
+        });
+
+        archive.finalize();
     },
     save(mapObject, tins) {
         const status = mapObject.status;

@@ -2,7 +2,6 @@
 const path = require('path'); // eslint-disable-line no-undef
 const settings = require('./settings'); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
-const im = require('../lib/imagemagick_modified.js'); // eslint-disable-line no-undef
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;

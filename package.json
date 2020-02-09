@@ -41,6 +41,7 @@
     "@maplat/tin": "^0.6.3",
     "@panter/vue-i18next": "^0.15.1",
     "@turf/turf": "^5.1.6",
+    "archiver": "^3.1.1",
     "bootstrap.native": "^2.0.27",
     "bootstrap3": "^3.3.5",
     "child_process": "^1.0.2",
