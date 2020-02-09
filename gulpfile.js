@@ -13,6 +13,7 @@ const requireFiles = [
     'frontend',
     'html',
     'img',
+    'locales',
     'node_modules',
     'package.json',
     'README.md',
@@ -39,7 +40,7 @@ gulp.task('darwin', () => {
 });
 
 gulp.task('ignore', () => {
-    console.log(ignoreGenerate());
+    // console.log(ignoreGenerate());
     return Promise.resolve();
 });
 
