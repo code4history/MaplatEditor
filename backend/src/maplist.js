@@ -51,12 +51,12 @@ const maplist = {
                     });
                 }).then((file) => {
                     if (!file) return;
-                    if (!file.width || !file.height) return file;
+                    if (!file.width || !file.height) return [file];
                     const thumbFolder = `${tileFolder}${path.sep}${file.mapID}${path.sep}0${path.sep}0`;
                     return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
                         fs.readdir(thumbFolder, (err, thumbs) => {
                             if (!thumbs) {
-                                resolve(file);
+                                resolve([file]);
                                 return;
                             }
                             let thumbFile;
@@ -73,14 +73,18 @@ const maplist = {
                         });
                     });
                 }).then((result) => {
+                    if (!result) return;
                     const file = result[0];
                     const thumbFile = result[1];
                     if (!file) return;
                     focused.webContents.send('mapListAdd', file);
+                    if (!thumbFile) return;
 
                     const uiThumbnail = `${uiThumbnailFolder}${path.sep}${file.mapID}_menu.jpg`;
 
                     thumbExtractor.make_thumbnail(thumbFile, uiThumbnail, true).then(() => {});
+                }).catch((err) => {
+                    console.log(err);
                 });
             }
         });
