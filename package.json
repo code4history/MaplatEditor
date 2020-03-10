@@ -10,6 +10,8 @@
     "testrun": "electron .",
     "win32": "gulp win32",
     "darwin": "gulp darwin",
+    "win_build": "electron-builder --win --x64 --config ./build_win.json",
+    "mac_build": "electron-builder --mac --x64 --config ./build_mac.json",
     "ignore": "gulp ignore"
   },
   "keywords": [],
@@ -25,6 +27,7 @@
     "clean-css": "^4.2.3",
     "core-js": "^3.6.4",
     "electron": "^4.2.12",
+    "electron-builder": "^22.4.0",
     "electron-packager": "^13.1.1",
     "eslint": "^6.8.0",
     "gulp": "^4.0.2",
