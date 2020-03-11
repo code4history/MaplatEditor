@@ -1,14 +1,15 @@
 var childproc = require('child_process'),
-    EventEmitter = require('events').EventEmitter;
+    EventEmitter = require('events').EventEmitter,
+    path = require('path');
 
 var pf = process.platform;
 var isAsar = __dirname.match(/app\.asar/);
 var imhome = pf == 'darwin' ? isAsar ?
-                    __dirname + '/../../../app.asar.unpacked/assets/mac/imagemagick' :
-                    __dirname + '/../../assets/mac/imagemagick' :
+                    path.resolve(__dirname, '../../../app.asar.unpacked/assets/mac/imagemagick') :
+                    path.resolve(__dirname, '../../assets/mac/imagemagick') :
               pf == 'win32' ? isAsar ?
-                    __dirname + '\\..\\..\\..\\app.asar.unpacked\\assets\\win\\imagemagick' :
-                    __dirname + '\\..\\..\\assets\\win\\imagemagick' : '';
+                    path.resolve(__dirname, '..\\..\\..\\app.asar.unpacked\\assets\\win\\imagemagick') :
+                    path.resolve(__dirname, '..\\..\\assets\\win\\imagemagick') : '';
 var imbin = imhome + '/bin';
 var imenv = pf == 'darwin' ? {
     'MAGICK_HOME' : imhome,
@@ -37,6 +38,7 @@ function exec2(file, args /*, options, callback */) {
     }
   }
 
+  //throw(new Error(`${isAsar} ${__dirname} ${imidfy} ${file}`));
   var child = childproc.spawn(file, args, {env:imenv});
   var killed = false;
   var timedOut = false;
