@@ -1,6 +1,8 @@
 {
   "appId": "jp.maplat.editor",
-  "asar": false,
+  "asarUnpack": [
+    "assets/mac/imagemagick"
+  ],
   "directories": {
     "output": "dist"
   },
