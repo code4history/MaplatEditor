@@ -125,8 +125,8 @@ const mapedit = {
     download(mapObject) {
         const mapID = mapObject.mapID;
         const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
-        const archive = archiver.create('zip', {});
-        const output = fs.createWriteStream(zip_file);
+        const archive = archiver('zip', {});
+        /*const output = fs.createWriteStream(zip_file);
         archive.pipe(output);
         archive.file(`${compiledFolder}${path.sep}${mapID}.json`, { name: `maps${path.sep}${mapID}.json` });
         archive.file(`${thumbFolder}${path.sep}${mapID}_menu.jpg`, { name: `tmbs${path.sep}${mapID}_menu.jpg` });
@@ -165,7 +165,7 @@ const mapedit = {
             });
         });
 
-        archive.finalize();
+        archive.finalize();*/
     },
     save(mapObject, tins) {
         const status = mapObject.status;
@@ -389,6 +389,8 @@ const mapedit = {
         this.createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex)
             .then((tin) => {
                 focused.webContents.send('updatedTin', [index, tin]);
+            }).catch((err) => {
+                throw(err);
             });
     },
     createTinFromGcpsAsync(gcps, edges, wh, bounds, strict, vertex) {
