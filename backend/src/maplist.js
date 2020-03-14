@@ -84,7 +84,7 @@ const maplist = {
 
                     thumbExtractor.make_thumbnail(thumbFile, uiThumbnail, true).then(() => {});
                 }).catch((err) => {
-                    console.log(err);
+                    console.log(err); // eslint-disable-line no-undef
                 });
             }
         });

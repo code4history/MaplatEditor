@@ -1226,7 +1226,6 @@ async function setVueMap() {
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
         document.querySelector('div.modal-body > p').innerText = t('mapedit.message_download'); // eslint-disable-line no-undef
         myModal.show();
-        backend.download(vueMap.map);
         ipcRenderer.once('mapDownloadResult', (event, arg) => {
             document.body.style.pointerEvents = null; // eslint-disable-line no-undef
             myModal.hide();
@@ -1239,6 +1238,7 @@ async function setVueMap() {
                 alert(t('mapedit.download_error')); // eslint-disable-line no-undef
             }
         });
+        backend.download(vueMap.map);
     });
     vueMap.$on('saveMap', () => {
         if (!confirm(t('mapedit.confirm_save'))) return; // eslint-disable-line no-undef

@@ -7,7 +7,7 @@ const electron = require('electron'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const Tin = require('@maplat/tin'); // eslint-disable-line no-undef
-const archiver = require('archiver'); // eslint-disable-line no-undef
+const AdmZip = require('adm-zip'); // eslint-disable-line no-undef
 
 settings.init();
 
@@ -123,49 +123,34 @@ const mapedit = {
         });
     },
     download(mapObject) {
-        const mapID = mapObject.mapID;
-        const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
-        const archive = archiver('zip', {});
-        /*const output = fs.createWriteStream(zip_file);
-        archive.pipe(output);
-        archive.file(`${compiledFolder}${path.sep}${mapID}.json`, { name: `maps${path.sep}${mapID}.json` });
-        archive.file(`${thumbFolder}${path.sep}${mapID}_menu.jpg`, { name: `tmbs${path.sep}${mapID}_menu.jpg` });
-        archive.directory(`${tileFolder}${path.sep}${mapID}${path.sep}`, `tiles${path.sep}${mapID}`);
+        setTimeout(() => { // eslint-disable-line no-undef
+            const mapID = mapObject.mapID;
+            const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
+            const zip = new AdmZip();
 
-        archive.on('warning', (err) => {
-            fs.removeSync(zip_file);
-            if (err.code === 'ENOENT') {
-                focused.webContents.send('mapDownloadResult', 'No file');
-            } else {
-                focused.webContents.send('mapDownloadResult', err);
-            }
-        });
+            zip.addLocalFile(`${compiledFolder}${path.sep}${mapID}.json`, 'maps', `${mapID}.json`);
+            zip.addLocalFile(`${thumbFolder}${path.sep}${mapID}_menu.jpg`, 'tmbs', `${mapID}_menu.jpg`);
+            zip.addLocalFolder(`${tileFolder}${path.sep}${mapID}`, `tiles${path.sep}${mapID}`);
 
-        archive.on('error', (err) => {
-            fs.removeSync(zip_file);
-            focused.webContents.send('mapDownloadResult', err);
-        });
-
-        output.on('close', () => {
-            const dialog = require('electron').dialog; // eslint-disable-line no-undef
-            const focused = BrowserWindow.getFocusedWindow();
-            dialog.showSaveDialog({
-                defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
-                filters: [ {name: "Output file", extensions: ['zip']} ]
-            }, (filename) => {
-                if(filename && filename[0]) {
-                    fs.moveSync(zip_file, filename, {
-                        overwrite: true
-                    });
-                    focused.webContents.send('mapDownloadResult', 'Success');
-                } else {
-                    fs.removeSync(zip_file);
-                    focused.webContents.send('mapDownloadResult', 'Canceled');
-                }
+            zip.writeZip(zip_file, () => {
+                const dialog = require('electron').dialog; // eslint-disable-line no-undef
+                const focused = BrowserWindow.getFocusedWindow();
+                dialog.showSaveDialog({
+                    defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
+                    filters: [ {name: "Output file", extensions: ['zip']} ]
+                }, (filename) => {
+                    if(filename && filename[0]) {
+                        fs.moveSync(zip_file, filename, {
+                            overwrite: true
+                        });
+                        focused.webContents.send('mapDownloadResult', 'Success');
+                    } else {
+                        fs.removeSync(zip_file);
+                        focused.webContents.send('mapDownloadResult', 'Canceled');
+                    }
+                });
             });
-        });
-
-        archive.finalize();*/
+        }, 1000);
     },
     save(mapObject, tins) {
         const status = mapObject.status;
