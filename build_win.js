@@ -1,4 +1,4 @@
-{
+const config = {
   "appId": "jp.maplat.editor",
   "asarUnpack": [
     "assets/win/imagemagick"
@@ -32,4 +32,6 @@
     "oneClick": false,
     "allowToChangeInstallationDirectory": true
   }
-}
+};
+
+module.exports = config;
