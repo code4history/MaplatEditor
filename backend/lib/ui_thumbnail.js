@@ -3,7 +3,7 @@
 const im = require('./imagemagick_modified.js'); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 
-exports.make_thumbnail = function(from, to, existCheck) {
+exports.make_thumbnail = function(from, to, oldSpec) {
     let extractor;
     const extractor_ = function(resolve, reject) {
         im.identify(from, (err, features) => {
@@ -27,14 +27,22 @@ exports.make_thumbnail = function(from, to, existCheck) {
         });
     };
 
-    if (existCheck) {
+    if (oldSpec) {
         extractor = function(resolve, reject) {
-            fs.stat(to, (err) => {
+            fs.stat(oldSpec, (err) => {
                 if (err != null && err.code === 'ENOENT') {
-                    extractor_(resolve, reject);
+                    fs.stat(to, (err) => {
+                        if (err != null && err.code === 'ENOENT') {
+                            extractor_(resolve, reject);
+                            return;
+                        }
+                        resolve();
+                    });
                     return;
                 }
-                resolve();
+                fs.move(oldSpec, to, {overwrite: true}, (err) => { // eslint-disable-line no-unused-vars
+                    resolve();
+                });
             });
         };
     } else {

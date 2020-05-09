@@ -129,7 +129,7 @@ const mapedit = {
             const zip = new AdmZip();
 
             zip.addLocalFile(`${compiledFolder}${path.sep}${mapID}.json`, 'maps', `${mapID}.json`);
-            zip.addLocalFile(`${thumbFolder}${path.sep}${mapID}_menu.jpg`, 'tmbs', `${mapID}_menu.jpg`);
+            zip.addLocalFile(`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`);
             zip.addLocalFolder(`${tileFolder}${path.sep}${mapID}`, `tiles${path.sep}${mapID}`);
 
             zip.writeZip(zip_file, () => {
@@ -183,7 +183,7 @@ const mapedit = {
         const tmpUrl = fileUrl(tmpFolder);
         const newTile = tileFolder + path.sep + mapID;
         const newOriginal = `${originalFolder}${path.sep}${mapID}.${imageExtention}`;
-        const newThumbnail = `${thumbFolder}${path.sep}${mapID}_menu.jpg`;
+        const newThumbnail = `${thumbFolder}${path.sep}${mapID}.jpg`;
         const regex = new RegExp(`^${tmpUrl}`);
         const tmpCheck = url_ && url_.match(regex);
 

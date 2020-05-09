@@ -80,9 +80,10 @@ const maplist = {
                     focused.webContents.send('mapListAdd', file);
                     if (!thumbFile) return;
 
-                    const uiThumbnail = `${uiThumbnailFolder}${path.sep}${file.mapID}_menu.jpg`;
+                    const uiThumbnail = `${uiThumbnailFolder}${path.sep}${file.mapID}.jpg`;
+                    const uiThumbnail_old = `${uiThumbnailFolder}${path.sep}${file.mapID}_menu.jpg`;
 
-                    thumbExtractor.make_thumbnail(thumbFile, uiThumbnail, true).then(() => {});
+                    thumbExtractor.make_thumbnail(thumbFile, uiThumbnail, uiThumbnail_old).then(() => {});
                 }).catch((err) => {
                     console.log(err); // eslint-disable-line no-undef
                 });
