@@ -5,12 +5,16 @@ const settings = require('./settings'); // eslint-disable-line no-undef,no-unuse
 const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const Menu = electron.Menu;
+const fs = require('fs-extra'); // eslint-disable-line no-undef
+const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
 
 let mainWindow = null;
 
 let force_quit = false;
 const appWidth = 1200;
 const appHeight = 800;
+
+const isDev = isExistFile('.env');
 
 app.on('window-all-closed', () => {
     if (process.platform != 'darwin') // eslint-disable-line no-undef
@@ -60,11 +64,32 @@ app.on('ready', () => {
 // メニュー情報の作成
 const template = [
     {
-        label: 'ReadUs',
+        label: 'MaplatEditor',
         submenu: [
-            {label: 'Quit', accelerator: 'CmdOrCtrl+Q', click() {app.quit();}}
+            {
+                label: 'Quit MaplatEditor',
+                accelerator: 'CmdOrCtrl+Q',
+                click() {
+                    app.quit();
+                }
+            },
+            {
+                type: 'separator',
+            },
+            {
+                label: 'About MaplatEditor',
+                click() {
+                    openAboutWindow({
+                        icon_path: `file://${__dirname.replace(/\\/g, '/')}/../../img/icon.png`, // eslint-disable-line no-undef
+                        product_name: 'MaplatEditor',
+                        copyright: 'Copyright (c) 2015-2020 Code for History',
+                        use_version_info: true
+                    });
+                }
+            },
         ]
-    }, {
+    },
+    /*{
         label: "Edit",
         submenu: [
             // { label: "Undo", accelerator: "CmdOrCtrl+Z", selector: "undo:" },
@@ -90,17 +115,30 @@ const template = [
                 });
             }}
         ]
-    }, {
-        label: 'View',
-        submenu: [
-            {label: 'Reload', accelerator: 'Command+R', click() {
-                BrowserWindow.getFocusedWindow().reload();
-            }},
-            {label: 'Toggle DevTools', accelerator: 'Alt+Command+I', click() {
-                BrowserWindow.getFocusedWindow().toggleDevTools();
-            }}
-        ]
-    }
+    }, */
 ];
 
+const devMenu = {
+    label: 'Develop',
+    submenu: [
+        {label: 'Reload', accelerator: 'Command+R', click() {
+                BrowserWindow.getFocusedWindow().reload();
+            }},
+        {label: 'Toggle DevTools', accelerator: 'Alt+Command+I', click() {
+                BrowserWindow.getFocusedWindow().toggleDevTools();
+            }}
+    ]
+};
+
+if (isDev) template.push(devMenu);
+
 const menu = Menu.buildFromTemplate(template);
+
+function isExistFile(file) {
+    try {
+        fs.statSync(file);
+        return true;
+    } catch(err) {
+        if(err.code === 'ENOENT') return false;
+    }
+}
