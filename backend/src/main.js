@@ -1,13 +1,14 @@
 'use strict';
 
 const electron = require('electron'); // eslint-disable-line no-undef
-const settings = require('./settings'); // eslint-disable-line no-undef,no-unused-vars
 const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const Menu = electron.Menu;
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
+const Settings = require('./settings'); // eslint-disable-line no-undef
 
+let settings;
 let mainWindow = null;
 
 let force_quit = false;
@@ -29,7 +30,9 @@ app.on('will-quit', () => {
     mainWindow = null;
 });
 
-app.on('ready', () => {
+app.on('ready', async () => {
+    settings = await Settings.asyncInit();
+    const menu = setupMenu();
     Menu.setApplicationMenu(menu);
 
     // ブラウザ(Chromium)の起動, 初期画面のロード
@@ -60,46 +63,70 @@ app.on('ready', () => {
     });
 });
 
+function setupMenu() {
+    const t = settings.t;
+    // メニュー情報の作成
+    const template = [
+        {
+            label: 'MaplatEditor',
+            submenu: [
+                {
+                    label: 'Quit MaplatEditor',
+                    accelerator: 'CmdOrCtrl+Q',
+                    click() {
+                        app.quit();
+                    }
+                },
+                {
+                    type: 'separator',
+                },
+                {
+                    label: 'About MaplatEditor',
+                    click() {
+                        openAboutWindow({
+                            icon_path: `file://${__dirname.replace(/\\/g, '/')}/../../img/icon.png`, // eslint-disable-line no-undef
+                            product_name: 'MaplatEditor',
+                            copyright: 'Copyright (c) 2015-2020 Code for History',
+                            use_version_info: true
+                        });
+                    }
+                },
+            ]
+        },
+        {
+            label: t("menu.edit"),
+            submenu: [
+                {
+                    id:          'menu-undo',
+                    label:       'Undo',
+                    accelerator: 'CmdOrCtrl+Z',
+                    enabled: false,
+                    click(menuItem, focusedWin) {
+                        // Undo.
+                        // focusedWin.webContents.undo();
 
-// メニュー情報の作成
-const template = [
-    {
-        label: 'MaplatEditor',
-        submenu: [
-            {
-                label: 'Quit MaplatEditor',
-                accelerator: 'CmdOrCtrl+Q',
-                click() {
-                    app.quit();
+                        // Run some custom code.
+                    }
+                },
+                {
+                    id:          'menu-redo',
+                    label:       'Redo',
+                    accelerator: 'Shift+CmdOrCtrl+Z',
+                    enabled: false,
+                    click(menuItem, focusedWin) {
+                        // Undo.
+                        // focusedWin.webContents.undo();
+
+                        // Run some custom code.
+                    }
                 }
-            },
-            {
-                type: 'separator',
-            },
-            {
-                label: 'About MaplatEditor',
-                click() {
-                    openAboutWindow({
-                        icon_path: `file://${__dirname.replace(/\\/g, '/')}/../../img/icon.png`, // eslint-disable-line no-undef
-                        product_name: 'MaplatEditor',
-                        copyright: 'Copyright (c) 2015-2020 Code for History',
-                        use_version_info: true
-                    });
-                }
-            },
-        ]
-    },
-    /*{
-        label: "Edit",
-        submenu: [
-            // { label: "Undo", accelerator: "CmdOrCtrl+Z", selector: "undo:" },
-            // { label: "Redo", accelerator: "Shift+CmdOrCtrl+Z", selector: "redo:" },
-            // { type: "separator" },
-            { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
-            { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
-            { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
-            { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
-    ]}, {
+                // { type: "separator" },
+                // { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
+                // { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
+                // { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
+                // { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
+            ]
+        }, /*{
 
 
 
@@ -116,23 +143,25 @@ const template = [
             }}
         ]
     }, */
-];
+    ];
 
-const devMenu = {
-    label: 'Develop',
-    submenu: [
-        {label: 'Reload', accelerator: 'Command+R', click() {
-                BrowserWindow.getFocusedWindow().reload();
-            }},
-        {label: 'Toggle DevTools', accelerator: 'Alt+Command+I', click() {
-                BrowserWindow.getFocusedWindow().toggleDevTools();
-            }}
-    ]
-};
+    const devMenu = {
+        label: 'Develop',
+        submenu: [
+            {label: 'Reload', accelerator: 'Command+R', click() {
+                    BrowserWindow.getFocusedWindow().reload();
+                }},
+            {label: 'Toggle DevTools', accelerator: 'Alt+Command+I', click() {
+                    BrowserWindow.getFocusedWindow().toggleDevTools();
+                }}
+        ]
+    };
 
-if (isDev) template.push(devMenu);
+    if (isDev) template.push(devMenu);
 
-const menu = Menu.buildFromTemplate(template);
+    const menu = Menu.buildFromTemplate(template);
+    return menu;
+}
 
 function isExistFile(file) {
     try {

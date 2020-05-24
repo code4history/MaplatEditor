@@ -10,7 +10,7 @@ async function initRun() {
         i18n: langObj.vi18n,
         created() {
             const self = this;
-            self.backend = require('electron').remote.require('./settings'); // eslint-disable-line no-undef
+            self.backend = require('electron').remote.require('./settings').init(); // eslint-disable-line no-undef
             self.saveFolder = self.saveFolder_ = self.backend.getSetting('saveFolder');
             self.lang = self.lang_ = self.backend.getSetting('lang');
 

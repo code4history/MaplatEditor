@@ -1,6 +1,6 @@
 'use strict';
 const path = require('path'); // eslint-disable-line no-undef
-const settings = require('./settings'); // eslint-disable-line no-undef
+const settings = require('./settings').init(); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
@@ -8,8 +8,6 @@ const app = require('electron').app; // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const Tin = require('@maplat/tin'); // eslint-disable-line no-undef
 const AdmZip = require('adm-zip'); // eslint-disable-line no-undef
-
-settings.init();
 
 let mapFolder;
 let compiledFolder;

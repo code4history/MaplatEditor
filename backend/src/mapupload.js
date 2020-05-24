@@ -8,8 +8,7 @@ const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 let settings;
 if (electron.app || electron.remote) {
-    settings = require('./settings'); // eslint-disable-line no-undef
-    settings.init();
+    settings = require('./settings').init(); // eslint-disable-line no-undef
 }
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef

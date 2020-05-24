@@ -8,8 +8,8 @@ const fs = require('fs-extra'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const tmsList = require('../../tms_list.json'); // eslint-disable-line no-undef
-let json;
-let undoredo;
+const i18next = require('i18next'); // eslint-disable-line no-undef
+const Backend = require('i18next-fs-backend'); // eslint-disable-line no-undef
 let settings;
 
 const protect = [
@@ -21,64 +21,6 @@ const defaultSetting = {
     lang: 'ja'
 };
 
-const settings = {
-    init() {
-        if (!undoredo) {
-            undoredo = new UndoRedo();
-        }
-        if (json) return;
-        storage.getAll((error, data) => {
-            if (error) throw error;
-
-            if (Object.keys(data).length === 0) {
-                json = {
-                    saveFolder: path.resolve(app.getPath('documents') + path.sep + app.getName())
-                };
-                storage.set('saveFolder', json.saveFolder, {});
-                fs.ensureDir(json.saveFolder, () => {});
-            } else {
-                json = data;
-            }
-            json = Object.assign(defaultSetting, json);
-            json.tmpFolder = path.resolve(app.getPath('temp') + path.sep + app.getName());
-            fs.ensureDir(json.tmpFolder, () => {});
-            json.tmsList = tmsList;
-        });
-    },
-    getSetting(key) {
-        return json[key];
-    },
-    getSettings() {
-        return json;
-    },
-    setSetting(key, value) {
-        if (protect.indexOf(key) >= 0) throw `"${key}" is protected.`;
-        json[key] = value;
-        storage.set(key, value, {}, (error) => {
-            if (error) throw error;
-        });
-    },
-    showSaveFolderDialog(oldSetting) {
-        const dialog = require('electron').dialog; // eslint-disable-line no-undef
-        const focused = BrowserWindow.getFocusedWindow();
-        dialog.showOpenDialog({ defaultPath: oldSetting, properties: ['openDirectory']}, (baseDir) => {
-            if(baseDir && baseDir[0]) {
-                focused.webContents.send('saveFolderSelected',baseDir[0]);
-            }
-        });
-    },
-    do(verb, data) {
-        undoredo.do(verb, data);
-    },
-    undo() {
-        undoredo.undo();
-    },
-    redo() {
-        undoredo.redo();
-    }
-};
-settings.init();
-
 class Settings extends EventEmitter {
     static init() {
         if (!settings) {
@@ -87,10 +29,19 @@ class Settings extends EventEmitter {
         return settings;
     }
 
+    static asyncInit() {
+        const settings = Settings.init();
+        return settings.asyncReady;
+    }
+
     constructor() {
         super();
         this.behaviorChain = [];
         this.currentPosition = 0;
+        let resolve_;
+        this.asyncReady = new Promise((resolve) => {
+            resolve_ = resolve;
+        });
         storage.getAll((error, data) => {
             if (error) throw error;
 
@@ -107,6 +58,20 @@ class Settings extends EventEmitter {
             this.json.tmpFolder = path.resolve(app.getPath('temp') + path.sep + app.getName());
             fs.ensureDir(this.json.tmpFolder, () => {});
             this.json.tmsList = tmsList;
+
+            const lang = this.json.lang;
+            this.i18n = i18next.use(Backend);
+            const i18nPromise = this.i18n.init({
+                lng: lang,
+                fallbackLng: 'en',
+                backend: {
+                    loadPath: `${__dirname}/../../locales/{{lng}}/{{ns}}.json`
+                }
+            });
+            i18nPromise.then((t) => {
+                this.t = t;
+                resolve_(this);
+            });
         });
     }
 
@@ -173,5 +138,6 @@ class Settings extends EventEmitter {
         });
     }
 }
+Settings.init();
 
-module.exports = settings; // eslint-disable-line no-undef
+module.exports = Settings; // eslint-disable-line no-undef

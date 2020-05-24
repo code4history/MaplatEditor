@@ -1,13 +1,11 @@
 'use strict';
 const path = require('path'); // eslint-disable-line no-undef
-const settings = require('./settings'); // eslint-disable-line no-undef
+const settings = require('./settings').init(); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
-
-settings.init();
 
 let mapFolder;
 let tileFolder;
