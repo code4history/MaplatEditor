@@ -371,9 +371,9 @@ function edgesClear() {
     mercMap.getSource('edges').clear();
 }
 
-async function onClick(evt) {
+function onClick(evt) {
     if (evt.pointerEvent.altKey) return;
-    const t = await langObj.awaitT();
+    const t = langObj.t;
     const isIllst = this === illstMap;
     const srcMap = isIllst ? illstMap : mercMap;
     const distMap = isIllst ? mercMap : illstMap;
@@ -726,9 +726,9 @@ class Drag extends Pointer {
     }
 }
 
-MaplatMap.prototype.initContextMenu = async function() { // eslint-disable-line
+MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
     const map = this;
-    const t = await langObj.awaitT();
+    const t = langObj.t;
     const normalContextMenu = {
         text: t('mapedit.context_add_marker'),
         callback: addNewMarker
@@ -865,7 +865,7 @@ MaplatMap.prototype.closeContextMenu = function() {
     this.contextmenu.close();
 };
 
-async function mapObjectInit() {
+function mapObjectInit() {
     // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここから
     illstMap = new MaplatMap({
         div: 'illstMap',
@@ -1060,7 +1060,7 @@ async function mapObjectInit() {
         }));
     })(tms));
     // ベースマップコントロール追加
-    const t = await langObj.awaitT();
+    const t = langObj.t;
     Promise.all(promises).then((layers) => {
         const layerGroup = new Group({
             'title': t('mapedit.control_basemap'),
@@ -1163,9 +1163,9 @@ function initVueMap(json) {
     vueMap = new Map(options);
 }
 
-async function setVueMap() {
+function setVueMap() {
     vueMap.vueInit = true;
-    const t = await langObj.awaitT();
+    const t = langObj.t;
 
     vueMap.$on('updateMapID', () => {
         if (!confirm(t('mapedit.confirm_change_mapid'))) return; // eslint-disable-line no-undef

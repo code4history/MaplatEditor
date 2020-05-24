@@ -4,8 +4,8 @@ import Header from '../vue/header.vue';
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const langObj = new Language();
 
-async function initRun() {
-    const t = await langObj.awaitT();
+function initRun() {
+    const t = langObj.t;
     const vueSettings = new Vue({
         i18n: langObj.vi18n,
         created() {

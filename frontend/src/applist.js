@@ -5,7 +5,6 @@ const {ipcRenderer} = require('electron'); // eslint-disable-line no-unused-vars
 const langObj = new Language();
 
 async function initRun() {
-    await langObj.awaitT();
     new Vue({
         i18n: langObj.vi18n,
         el: '#container',
