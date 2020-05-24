@@ -173,6 +173,13 @@
     "image_copyright": "地図画像のコピーライト表記を指定してください。"
   },
   "menu": {
-    "edit": "編集"
+    "quit": "MaplatEditorを終了",
+    "about": "MaplatEditorについて",
+    "edit": "編集",
+    "undo": "元に戻す",
+    "redo": "やり直す",
+    "dev": "開発",
+    "reload": "再読み込み",
+    "tools": "開発ツールの表示"
   }
 }

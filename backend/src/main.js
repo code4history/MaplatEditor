@@ -9,6 +9,7 @@ const openAboutWindow =require('about-window').default; // eslint-disable-line n
 const Settings = require('./settings'); // eslint-disable-line no-undef
 
 let settings;
+let menuTemplate;
 let mainWindow = null;
 
 let force_quit = false;
@@ -16,6 +17,14 @@ const appWidth = 1200;
 const appHeight = 800;
 
 const isDev = isExistFile('.env');
+
+const menuList = [
+    'menu.quit',
+    'menu.about',
+    'menu.edit',
+    'menu.undo',
+    'menu.redo'
+];
 
 app.on('window-all-closed', () => {
     if (process.platform != 'darwin') // eslint-disable-line no-undef
@@ -34,6 +43,16 @@ app.on('ready', async () => {
     settings = await Settings.asyncInit();
     const menu = setupMenu();
     Menu.setApplicationMenu(menu);
+    settings.on('changeLang', () => {
+        /*for (const m of menuList) {
+            const item = menu.getMenuItemById(m);
+            item.label = settings.t(m);
+            console.log(settings.t(m));
+        }*/
+        menulabelChange();
+        const menu = Menu.buildFromTemplate(menuTemplate);
+        Menu.setApplicationMenu(menu);
+    });
 
     // ブラウザ(Chromium)の起動, 初期画面のロード
     mainWindow = new BrowserWindow({width: appWidth, height: appHeight});
@@ -66,12 +85,13 @@ app.on('ready', async () => {
 function setupMenu() {
     const t = settings.t;
     // メニュー情報の作成
-    const template = [
+    menuTemplate = [
         {
             label: 'MaplatEditor',
             submenu: [
                 {
-                    label: 'Quit MaplatEditor',
+                    id: 'menu.quit',
+                    label: t('menu.quit'),
                     accelerator: 'CmdOrCtrl+Q',
                     click() {
                         app.quit();
@@ -81,24 +101,29 @@ function setupMenu() {
                     type: 'separator',
                 },
                 {
-                    label: 'About MaplatEditor',
+                    id: 'menu.about',
+                    label: t('menu.about'),
                     click() {
                         openAboutWindow({
                             icon_path: `file://${__dirname.replace(/\\/g, '/')}/../../img/icon.png`, // eslint-disable-line no-undef
                             product_name: 'MaplatEditor',
                             copyright: 'Copyright (c) 2015-2020 Code for History',
-                            use_version_info: true
+                            use_version_info: true,
+                            win_options: {
+                                title: settings.t('menu.about')
+                            }
                         });
                     }
                 },
             ]
         },
         {
-            label: t("menu.edit"),
+            id: 'menu.edit',
+            label: t('menu.edit'),
             submenu: [
                 {
-                    id:          'menu-undo',
-                    label:       'Undo',
+                    id: 'menu.undo',
+                    label: t('menu.undo'),
                     accelerator: 'CmdOrCtrl+Z',
                     enabled: false,
                     click(menuItem, focusedWin) {
@@ -109,8 +134,8 @@ function setupMenu() {
                     }
                 },
                 {
-                    id:          'menu-redo',
-                    label:       'Redo',
+                    id: 'menu.redo',
+                    label: t('menu.redo'),
                     accelerator: 'Shift+CmdOrCtrl+Z',
                     enabled: false,
                     click(menuItem, focusedWin) {
@@ -146,21 +171,50 @@ function setupMenu() {
     ];
 
     const devMenu = {
-        label: 'Develop',
+        id: 'menu.dev',
+        label: t('menu.dev'),
         submenu: [
-            {label: 'Reload', accelerator: 'Command+R', click() {
+            {
+                id: 'menu.reload',
+                label: t('menu.reload'),
+                accelerator: 'Command+R',
+                click() {
                     BrowserWindow.getFocusedWindow().reload();
                 }},
-            {label: 'Toggle DevTools', accelerator: 'Alt+Command+I', click() {
+            {
+                id: 'menu.tools',
+                label: t('menu.tools'),
+                accelerator: 'Alt+Command+I',
+                click() {
                     BrowserWindow.getFocusedWindow().toggleDevTools();
                 }}
         ]
     };
 
-    if (isDev) template.push(devMenu);
+    if (isDev) {
+        menuTemplate.push(devMenu);
+        menuList.push('menu.dev', 'menu.reload', 'menu.tools');
+    }
 
-    const menu = Menu.buildFromTemplate(template);
+    const menu = Menu.buildFromTemplate(menuTemplate);
     return menu;
+}
+
+function menulabelChange(list) {
+    if (!list) {
+        list = menuList.reduce((prev, curr) => {
+            prev[curr] = settings.t(curr);
+            return prev;
+        }, {});
+    }
+    menuTemplate.map((menu) => {
+        if (list[menu.id]) menu.label = list[menu.id];
+        if (menu.submenu) {
+            menu.submenu.map((submenu) => {
+                if (list[submenu.id]) submenu.label = list[submenu.id];
+            });
+        }
+    });
 }
 
 function isExistFile(file) {

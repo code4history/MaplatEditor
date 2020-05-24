@@ -172,6 +172,13 @@
     "image_copyright": "Enter representation of map image's copyright."
   },
   "menu": {
-    "edit": "Edit"
+    "quit": "Quit MaplatEditor",
+    "about": "About MaplatEditor",
+    "edit": "Edit",
+    "undo": "Undo",
+    "redo": "Redo",
+    "dev": "Development",
+    "reload": "Reload",
+    "tools": "Toggle DevTools"
   }
 }

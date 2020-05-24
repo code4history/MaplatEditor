@@ -125,6 +125,11 @@ class Settings extends EventEmitter {
         this.json[key] = value;
         storage.set(key, value, {}, (error) => {
             if (error) throw error;
+            if (key == 'lang') {
+                this.i18n.changeLanguage(value, () => {
+                    this.emit('changeLang');
+                });
+            }
         });
     }
 
