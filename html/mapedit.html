@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--meta name="viewport" content="width=device-width, initial-scale=1"-->
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="icon" href="../../favicon.ico">
+
+  <title>Maplat Editor</title>
+  <link href="../frontend/dist/maplateditor.css" rel="stylesheet">
+</head>
+
+<body>
+<div id="container" class="h100">
+  <nav class="navbar navbar-inverse navbar-fixed-top"></nav>
+</div>
+<script type="text/x-template" id="mapedit-vue-template">
+  <div class="h100">
+    <header-template current="mapedit.html" target0="mapedit.html" v-bind:$t="$t"></header-template>
+
+    <div class="container main" role="main" id="main">
+      <div class="row title-container">
+        <div class="col-xs-4">
+          <h4><a href="#" data-nav="maplist.html">&lt;&lt;</a> <span class="map-title">{{displayTitle}}</span></h4>
+        </div>
+        <div class="col-xs-1">
+          <label for="lang">{{$t("common.language")}}</label>
+        </div>
+        <div class="col-xs-2">
+          <select class="form-control" id="lang" aria-describedby="langHelp" v-model="currentLang">
+            <option v-for="(v, k) in langs" v-bind:value="k">{{$t('common.' + v)}}</option>
+          </select>
+        </div>
+        <div class="col-xs-2">
+          <label><input type="checkbox" id="langDefault" v-bind:disabled="defaultLangFlag" v-model="defaultLangFlag">{{$t("mapedit.set_default")}}</label>
+        </div>
+        <div class="col-xs-3">
+          <button type="button" class="btn btn-primary" id="saveMap" v-bind:disabled="error || !dirty" v-on:click="$emit('saveMap')">{{$t("common.save")}}</button>
+          <button type="button" class="btn btn-default" id="dlMap" v-bind:disabled="error || dirty" v-on:click="$emit('dlMap')">{{$t("mapedit.download_map_data")}}</button>
+        </div>
+      </div>
+      <!-- タブ・メニュー -->
+      <ul class="nav nav-tabs nav-justified" role="tablist">
+        <li class="active"><a href="#metadataTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_metadata")}}</span></a></li>
+        <li><a href="#gcpsTab" data-toggle="tab" role="tab" disabled><span class="vi18nf">{{$t("mapedit.edit_gcp")}}</span></a></li>
+        <li class="disabled"><a href="#configureTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.configure_map")}}</span></a></li>
+      </ul>
+
+      <!-- タブ内容 -->
+      <div class="tab-content">
+        <div class="tab-pane active" id="metadataTab">
+          <form>
+            <div class="row">
+              <div class="form-group col-xs-3" v-bind:class="error && error.mapID ? 'has-error' : ''">
+                <label for="mapID">{{$t("mapedit.mapid")}}</label>
+                <input type="text" class="form-control" id="mapID" aria-describedby="mapIDHelp" v-bind:placeholder="$t('mapedit.input_mapid')" v-model="mapID" v-bind:disabled="onlyOne">
+                <small class="form-text text-muted text-danger" v-if="error && (error.mapID || error.mapIDOnlyOne)">{{$t(error.mapID || error.mapIDOnlyOne)}}</small>
+                <small class="form-text text-muted" v-else>{{$t("mapedit.unique_mapid")}}</small>
+              </div>
+              <div class="form-group col-xs-2" id="changeIDdiv" v-if="onlyOne">
+                <label for="changeID" class="w100">　</label>
+                <button type="button" class="btn btn-danger" id="changeID" v-on:click="$emit('updateMapID')">{{$t('mapedit.change_mapid')}}</button>
+              </div>
+              <div class="form-group col-xs-2" id="checkIDdiv" v-else>
+                <label for="checkID" class="w100">　</label>
+                <button type="button" class="btn btn-default" id="checkID" v-on:click="$emit('checkOnlyOne')" v-bind:disabled="error && error.mapID">{{$t('mapedit.uniqueness_button')}}</button>
+              </div>
+              <div class="form-group col-xs-2">
+                <label for="width">{{$t('mapedit.image_width')}}</label>
+                <input type="text" class="form-control" id="width" disabled v-model="width">
+              </div>
+              <div class="form-group col-xs-2">
+                <label for="height">{{$t('mapedit.image_height')}}</label>
+                <input type="text" class="form-control" id="height" disabled v-model="height">
+              </div>
+              <div class="form-group col-xs-1">
+                <label for="height">{{$t('mapedit.extension')}}</label>
+                <input type="text" class="form-control" id="imageExtention" disabled v-model="imageExtentionCalc">
+              </div>
+              <div class="form-group col-xs-2">
+                <label for="uploadMap" class="w100">　</label>
+                <button type="button" class="btn btn-default" id="uploadMap" v-on:click="$emit('mapUpload')">{{$t('mapedit.upload_map')}}</button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-xs-4" v-bind:class="error && error.title ? 'has-error' : ''">
+                <label for="title">{{$t('mapedit.map_name_repr')}}</label>
+                <input type="text" class="form-control" id="title" aria-describedby="titleHelp" v-bind:placeholder="$t('mapedit.map_name_repr_pf')" v-model="title">
+                <small class="form-text text-muted text-danger" v-if="error && error.title">{{error.title}}</small>
+                <small class="form-text text-muted" v-else>{{$t('mapedit.map_name_repr_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-5">
+                <label for="officialTitle">{{$t('mapedit.map_name_ofc')}}</label>
+                <input type="text" class="form-control" id="officialTitle" aria-describedby="officialTitleHelp" v-bind:placeholder="$t('mapedit.map_name_ofc_pf')" v-model="officialTitle">
+                <small id="officialTitleHelp" class="form-text text-muted">{{$t('mapedit.map_name_ofc_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-3">
+                <label for="author">{{$t('mapedit.map_author')}}</label>
+                <input type="text" class="form-control" id="author" aria-describedby="authorHelp" v-bind:placeholder="$t('mapedit.map_author_pf')" v-model="author">
+                <small id="authorHelp" class="form-text text-muted">{{$t('mapedit.map_author_desc')}}</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-xs-3">
+                <label for="createdAt">{{$t('mapedit.map_create_at')}}</label>
+                <input type="text" class="form-control" id="createdAt" aria-describedby="createdAtHelp" v-bind:placeholder="$t('mapedit.map_create_at_pf')" v-model="createdAt">
+                <small id="createdAtHelp" class="form-text text-muted">{{$t('mapedit.map_create_at_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-3">
+                <label for="era">{{$t('mapedit.map_era')}}</label>
+                <input type="text" class="form-control" id="era" aria-describedby="eraHelp" v-bind:placeholder="$t('mapedit.map_era_pf')" v-model="era">
+                <small id="eraHelp" class="form-text text-muted">{{$t('mapedit.map_era_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-3">
+                <label for="contributor">{{$t('mapedit.map_owner')}}</label>
+                <input type="text" class="form-control" id="contributor" aria-describedby="contributorHelp" v-bind:placeholder="$t('mapedit.map_owner_pf')" v-model="contributor">
+                <small id="contributorHelp" class="form-text text-muted">{{$t('mapedit.map_owner_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-3">
+                <label for="mapper">{{$t('mapedit.map_mapper')}}</label>
+                <input type="text" class="form-control" id="mapper" aria-describedby="mapperHelp" v-bind:placeholder="$t('mapedit.map_mapper')" v-model="mapper">
+                <small id="mapperHelp" class="form-text text-muted">{{$t('mapedit.map_mapper_desc')}}</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-xs-3">
+                <label for="license">{{$t('mapedit.map_image_license')}}</label>
+                <select class="form-control" id="license" aria-describedby="licenseHelp" v-model="license" v-bind:disabled="!defaultLangFlag">
+                  <option value="All right reserved">{{$t('mapedit.cc_allright_reserved')}}</option>
+                  <option value="CC BY">{{$t('mapedit.cc_by')}}</option>
+                  <option value="CC BY-SA">{{$t('mapedit.cc_by_sa')}}</option>
+                  <option value="CC BY-ND">{{$t('mapedit.cc_by_nd')}}</option>
+                  <option value="CC BY-NC">{{$t('mapedit.cc_by_nc')}}</option>
+                  <option value="CC BY-NC-SA">{{$t('mapedit.cc_by_nc_sa')}}</option>
+                  <option value="CC BY-NC-ND">{{$t('mapedit.cc_by_nc_nd')}}</option>
+                  <option value="CC0">{{$t('mapedit.cc0')}}</option>
+                  <option value="PD">{{$t('mapedit.cc_pd')}}</option>
+                </select>
+                <small id="licenseHelp" class="form-text text-muted">{{$t('mapedit.map_image_license_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-3">
+                <label for="dataLicense">{{$t('mapedit.map_gcp_license')}}</label>
+                <select class="form-control" id="dataLicense" aria-describedby="dataLicenseHelp" v-model="dataLicense" v-bind:disabled="!defaultLangFlag">
+                  <option value="All right reserved">{{$t('mapedit.cc_allright_reserved')}}</option>
+                  <option value="CC BY">{{$t('mapedit.cc_by')}}</option>
+                  <option value="CC BY-SA">{{$t('mapedit.cc_by_sa')}}</option>
+                  <option value="CC BY-ND">{{$t('mapedit.cc_by_nd')}}</option>
+                  <option value="CC BY-NC">{{$t('mapedit.cc_by_nc')}}</option>
+                  <option value="CC BY-NC-SA">{{$t('mapedit.cc_by_nc_sa')}}</option>
+                  <option value="CC BY-NC-ND">{{$t('mapedit.cc_by_nc_nd')}}</option>
+                  <option value="CC0">{{$t('mapedit.cc0')}}</option>
+                </select>
+                <small id="dataLicenseHelp" class="form-text text-muted">{{$t('mapedit.map_gcp_license_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-3">
+                <label for="attr">{{$t('mapedit.map_copyright')}}</label>
+                <input type="text" class="form-control" id="attr" aria-describedby="attrHelp" v-bind:placeholder="$t('mapedit.map_copyright_pf')" v-model="attr">
+                <small class="form-text text-muted text-danger" v-if="error && error.attr">{{error.attr}}</small>
+                <small class="form-text text-muted" v-else>{{$t('mapedit.map_copyright_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-3">
+                <label for="dataAttr">{{$t('mapedit.map_gcp_copyright')}}</label>
+                <input type="text" class="form-control" id="dataAttr" aria-describedby="dataAttrHelp" v-bind:placeholder="$t('mapedit.map_gcp_copyright_pf')" v-model="dataAttr">
+                <small id="dataAttrHelp" class="form-text text-muted">{{$t('mapedit.map_gcp_copyright_desc')}}</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-xs-4">
+                <label for="reference">{{$t('mapedit.map_source')}}</label>
+                <input type="text" class="form-control" id="reference" aria-describedby="referenceHelp" v-bind:placeholder="$t('mapedit.map_source_pf')" v-model="reference" v-bind:disabled="!defaultLangFlag">
+                <small id="referenceHelp" class="form-text text-muted">{{$t('mapedit.map_source_desc')}}</small>
+              </div>
+              <div class="form-group col-xs-8">
+                <label for="url">{{$t('mapedit.map_tile')}}</label>
+                <input type="text" class="form-control" id="url" aria-describedby="urlHelp" v-bind:placeholder="$t('mapedit.map_tile_pf')" v-model="url" v-bind:disabled="!defaultLangFlag">
+                <small id="urlHelp" class="form-text text-muted">{{$t('mapedit.map_tile_desc')}}</small>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-xs-12">
+                <label for="description">{{$t('mapedit.map_description')}}</label>
+                <textarea class="form-control" id="description" aria-describedby="descriptionHelp" v-bind:placeholder="$t('mapedit.map_description_pf')" v-model="description"></textarea>
+                <small id="descriptionHelp" class="form-text text-muted">{{$t('mapedit.map_description_desc')}}</small>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="tab-pane h100" id="gcpsTab">
+          <div class="h100">
+            <div class="row map-control-header">
+              <div class="col-xs-2">
+                <select class="form-control" name="editingLayer" v-model.number="currentEditingLayer">
+                  <option value="0">{{$t('mapedit.map_mainlayer')}}</option>
+                  <option v-for="(sub_map, index) in sub_maps" :value="index+1">{{$t('mapedit.map_sublayer')}}{{index+1}}</option>
+                </select>
+              </div>
+              <div class="col-xs-10">
+                <button type="button" class="btn btn-default" v-on:click="addSubMap">{{$t('mapedit.map_addlayer')}}</button>
+                <button type="button" class="btn btn-default" v-on:click="$emit('removeSubMap')" v-bind:disabled="currentEditingLayer===0">{{$t('mapedit.map_removelayer')}}</button>
+                　<label>{{$t('mapedit.map_importance')}}: {{importance}}</label>
+                <button type="button" class="btn btn-default" v-bind:disabled="!canUpImportance" v-on:click="upImportance">{{$t('mapedit.map_importance_up')}}</button>
+                <button type="button" class="btn btn-default" v-bind:disabled="!canDownImportance" v-on:click="downImportance">{{$t('mapedit.map_importance_down')}}</button>
+                　<label>{{$t('mapedit.map_priority')}}: {{priority}}</label>
+                <button type="button" class="btn btn-default" v-bind:disabled="!canUpPriority" v-on:click="upPriority">{{$t('mapedit.map_priority_up')}}</button>
+                <button type="button" class="btn btn-default" v-bind:disabled="!canDownPriority" v-on:click="downPriority">{{$t('mapedit.map_priority_down')}}</button>
+              </div>
+            </div>
+            <div class="row map-row">
+              <div id="illstMap" class="col-xs-6 h100">
+              </div>
+              <div id="mercMap" class="col-xs-6 h100">
+              </div>
+            </div>
+            <div class="row map-control-footer">
+              <div class="col-xs-3">
+                <label>{{$t('mapedit.map_outline')}}</label>
+                <label class="radio-inline"><input type="radio" name="vertex" value="plain" v-model="vertexMode">{{$t('mapedit.map_outline_plain')}}</label>
+                <label class="radio-inline"><input type="radio" name="vertex" value="birdeye" v-model="vertexMode">{{$t('mapedit.map_outline_birdeye')}}</label>
+              </div>
+              <div class="col-xs-3">
+                <label>{{$t('mapedit.map_error')}}</label>
+                <label class="radio-inline"><input type="radio" name="strict" value="strict" v-model="strictMode">{{$t('mapedit.map_error_valid')}}</label>
+                <label class="radio-inline"><input type="radio" name="strict" value="auto" v-model="strictMode">{{$t('mapedit.map_error_auto')}}</label>
+              </div>
+              <div class="col-xs-3">
+                <label>{{$t('mapedit.map_error_status')}}:</label><label id="error_status">
+                <span v-if="errorStatus == 'tooLessGcps'">{{$t('mapedit.map_error_too_short')}}</span>
+                <span v-else-if="errorStatus == 'tooLinear'">{{$t('mapedit.map_error_linear')}}</span>
+                <span v-else-if="errorStatus == 'pointsOutside'">{{$t('mapedit.map_error_outside')}}</span>
+                <span v-else-if="errorStatus == 'edgeError'">{{$t('mapedit.map_error_crossing')}}</span>
+                <span v-else-if="errorStatus == 'strict'">{{$t('mapedit.map_no_error')}}</span>
+                <span v-else-if="errorStatus == 'strict_error'">{{$t('mapedit.map_error_number',{num:errorNumber})}}</span>
+                <span v-else-if="errorStatus == 'loose'">{{$t('mapedit.map_loose_by_error')}}</span>
+              </label>
+              </div>
+              <div class="col-xs-3">
+                <button type="button" class="btn btn-default" v-bind:class="errorNumber == 0 ? 'hide' : ''" id="viewError" v-on:click="$emit('viewError')">{{$t('mapedit.map_error_next')}}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-pane" id="configureTab">
+          <p>地図設定</p>
+        </div>
+      </div>
+    </div> <!-- /container -->
+  </div>
+</script>
+
+<div class="modal" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel" aria-hidden="true" data-show="true" data-keyboard="false" data-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-body">
+        <p class="recipient"></p>
+      </div>
+    </div> <!-- /.modal-content -->
+  </div> <!-- /.modal-dialog -->
+</div> <!-- /.modal -->
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="../frontend/dist/mapedit.bundle.js"></script>
+</body>
+</html>

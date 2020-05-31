@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--meta name="viewport" content="width=device-width, initial-scale=1"-->
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link rel="icon" href="../../favicon.ico">
+
+  <title>Maplat Editor</title>
+  <link href="../frontend/dist/maplateditor.css" rel="stylesheet">
+</head>
+
+<body>
+<div id="container" class="h100">
+  <nav class="navbar navbar-inverse navbar-fixed-top"></nav>
+</div>
+<script type="text/x-template" id="maplist-vue-template">
+  <div class="h100">
+    <header-template current="maplist.html" v-bind:$t="$t"></header-template>
+    <div class="container main" role="main">
+      <ul id="maplist" class="tiles-wrap animated">
+        <li>
+          <a href="mapedit.html">
+            <img src="../img/add_image.png" width="190" height="190">
+          </a>
+          <p>{{$t('maplist.newCreate')}}</p>
+        </li>
+        <li v-for="map in maplist" :key="map.mapID">
+          <a v-bind:href="'mapedit.html?mapid=' + map.mapID">
+            <img v-bind:src="map.image" width="190" v-bind:height="map.height">
+          </a>
+          <p>{{map.name}}</p>
+        </li>
+      </ul>
+    </div>
+  </div>
+</script>
+<script src="../frontend/dist/maplist.bundle.js"></script>
+</body>
+</html>
