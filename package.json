@@ -16,7 +16,7 @@
   },
   "keywords": [],
   "author": "Code for History",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@babel/cli": "^7.8.4",
     "@babel/core": "^7.9.6",
@@ -34,7 +34,7 @@
     "less": "^3.11.1",
     "less-plugin-clean-css": "^1.5.1",
     "minimist": "^1.2.5",
-    "utils-extend": "^1.0.8",
+    "utils-extend": "npm:utils-extend-patched@^1.0.9",
     "vue-loader": "^15.9.2",
     "vue-template-compiler": "^2.6.11",
     "webpack": "^4.43.0",
@@ -72,6 +72,6 @@
   "resolutions": {
     "clean-css": "^4.2.3",
     "minimist": "^1.2.5",
-    "utils-extend": "^1.0.8"
+    "utils-extend": "npm:utils-extend-patched@^1.0.9"
   }
 }
