@@ -126,7 +126,7 @@ function setupMenu() {
                     label: t('menu.undo'),
                     accelerator: 'CmdOrCtrl+Z',
                     enabled: false,
-                    click(menuItem, focusedWin) {
+                    click(menuItem, focusedWin) { // eslint-disable-line no-unused-vars
                         // Undo.
                         // focusedWin.webContents.undo();
 
@@ -138,7 +138,7 @@ function setupMenu() {
                     label: t('menu.redo'),
                     accelerator: 'Shift+CmdOrCtrl+Z',
                     enabled: false,
-                    click(menuItem, focusedWin) {
+                    click(menuItem, focusedWin) { // eslint-disable-line no-unused-vars
                         // Undo.
                         // focusedWin.webContents.undo();
 

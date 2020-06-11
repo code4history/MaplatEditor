@@ -65,7 +65,7 @@ class Settings extends EventEmitter {
                 lng: lang,
                 fallbackLng: 'en',
                 backend: {
-                    loadPath: `${__dirname}/../../locales/{{lng}}/{{ns}}.json`
+                    loadPath: `${__dirname}/../../locales/{{lng}}/{{ns}}.json` // eslint-disable-line no-undef
                 }
             });
             i18nPromise.then((t) => {

@@ -11,11 +11,12 @@
     "win_build": "npm run lint && npm run js_build && npm run css_build && npm run win_package",
     "mac_build": "npm run lint && npm run js_build && npm run css_build && npm run mac_package",
     "win_package": "electron-builder --win --x64 --config ./build_win.js",
-    "mac_package": "electron-builder --mac --x64 --config ./build_mac.js"
+    "mac_package": "electron-builder --mac --x64 --config ./build_mac.js",
+    "preinstall": "npx npm-force-resolutions || echo 'ignore'"
   },
   "keywords": [],
   "author": "Code for History",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@babel/cli": "^7.8.4",
     "@babel/core": "^7.9.6",
@@ -32,14 +33,16 @@
     "eslint": "^6.8.0",
     "less": "^3.11.1",
     "less-plugin-clean-css": "^1.5.1",
+    "minimist": "^1.2.5",
+    "utils-extend": "npm:utils-extend-patched@^1.0.9",
     "vue-loader": "^15.9.2",
     "vue-template-compiler": "^2.6.11",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
-    "@maplat/core": "^0.6.6",
-    "@maplat/tin": "^0.6.3",
+    "@maplat/core": "^0.6.8",
+    "@maplat/tin": "^0.6.6",
     "@panter/vue-i18next": "^0.15.2",
     "@turf/helpers": "^6.1.4",
     "@turf/turf": "^5.1.6",
@@ -65,5 +68,10 @@
     "underscore": "^1.10.2",
     "vue": "^2.6.11",
     "wookmark": "^2.2.0"
+  },
+  "resolutions": {
+    "clean-css": "^4.2.3",
+    "minimist": "^1.2.5",
+    "utils-extend": "npm:utils-extend-patched@^1.0.9"
   }
 }
