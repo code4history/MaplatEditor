@@ -1198,6 +1198,7 @@ function setVueMap() {
                 myModal.hide();
                 if (arg.err) {
                     if (arg.err !== 'Canceled') alert(t('mapedit.error_image_upload')); // eslint-disable-line no-undef
+                    console.log(arg.err);
                     return;
                 } else {
                     alert(t('mapedit.success_image_upload')); // eslint-disable-line no-undef
