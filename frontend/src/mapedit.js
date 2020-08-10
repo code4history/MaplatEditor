@@ -372,7 +372,7 @@ function edgesClear() {
 }
 
 function onClick(evt) {
-    if (evt.pointerEvent.altKey) return;
+    if (evt.originalEvent.altKey) return;
     const t = langObj.t;
     const isIllst = this === illstMap;
     const srcMap = isIllst ? illstMap : mercMap;
@@ -631,7 +631,7 @@ class Drag extends Pointer {
      * @return {boolean} `true` to start the drag sequence.
      */
     handleDownEvent(evt) {
-        if (evt.pointerEvent.button === 2) return;
+        if (evt.originalEvent.button === 2) return;
         const map = evt.map;
 
         const this_ = this;
@@ -657,7 +657,7 @@ class Drag extends Pointer {
      * @param {ol.MapBrowserEvent} evt Map browser event.
      */
     handleDragEvent(evt) {
-        if (evt.pointerEvent.button === 2) return;
+        if (evt.originalEvent.button === 2) return;
 
         const deltaX = evt.coordinate[0] - this.coordinate_[0];
         const deltaY = evt.coordinate[1] - this.coordinate_[1];
@@ -673,7 +673,7 @@ class Drag extends Pointer {
      * @param {ol.MapBrowserEvent} evt Event.
      */
     handleMoveEvent(evt) {
-        if (evt.pointerEvent.button === 2) return;
+        if (evt.originalEvent.button === 2) return;
         const anotherMap = evt.map === illstMap ? mercMap : illstMap;
         anotherMap.closeContextMenu();
         if (this.cursor_) {
@@ -703,7 +703,7 @@ class Drag extends Pointer {
      * @return {boolean} `false` to stop the drag sequence.
      */
     handleUpEvent(evt) {
-        if (evt.pointerEvent.button === 2) return;
+        if (evt.originalEvent.button === 2) return;
         const map = evt.map;
         const isIllst = map === illstMap;
         const feature = this.feature_;
@@ -918,7 +918,7 @@ function mapObjectInit() {
     illstMap.on('click', onClick);
     illstMap.addInteraction(new Drag());
     const edgeModifyFunc = function(e) {
-        if (e.pointerEvent.button === 2) return false;
+        if (e.originalEvent.button === 2) return false;
         const f = this.getMap().getFeaturesAtPixel(e.pixel, {
             layerFilter(layer) {
                 return layer.get('name') === 'edges';
