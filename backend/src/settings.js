@@ -2,6 +2,7 @@
 
 const EventEmitter = require('events'); // eslint-disable-line no-undef
 const storage = require('electron-json-storage'); // eslint-disable-line no-undef
+const editorSetting = require('electron-json-storage'); // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef

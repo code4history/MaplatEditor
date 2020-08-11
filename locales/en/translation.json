@@ -179,6 +179,10 @@
     "redo": "Redo",
     "dev": "Development",
     "reload": "Reload",
-    "tools": "Toggle DevTools"
+    "tools": "Toggle DevTools",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "select_all": "Select All"
   }
 }
