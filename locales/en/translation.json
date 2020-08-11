@@ -132,6 +132,7 @@
     "context_correspond_line_cancel": "Cancel Making Corresponding Line",
     "context_correspond_line_remove": "Remove Corresponding Line",
     "context_marker_on_line": "Add Marker On Corresponding Line",
+    "context_remove_inflection_point": "Remove This Inflection Point",
     "control_basemap": "Base Map",
     "control_put_address": "Put address here",
     "alert_mapid_checked": "This is unique map ID. Confirmed.",
