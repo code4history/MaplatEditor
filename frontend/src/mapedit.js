@@ -200,26 +200,6 @@ function removeEdge (arg, map) { // eslint-disable-line no-unused-vars
     gcpsToMarkers();
 }
 
-function removeInflectinPoint (arg, map) {
-    const edgeGeom = arg.data.edge;
-    const removeIndex = arg.data.index;
-    const isIllst = map === illstMap;
-    const startEnd = edgeGeom.get('startEnd');
-    const edgeIndex = vueMap.edges.findIndex((edge) => edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1]);
-    const edge = vueMap.edges[edgeIndex];
-
-    const thisNodes = Object.assign([], isIllst ? edge.illstNodes : edge.mercNodes);
-    const thatNodes = Object.assign([], isIllst ? edge.mercNodes : edge.illstNodes);
-
-    thisNodes.splice(removeIndex - 1, 1);
-    vueMap.edges.splice(edgeIndex, 1, {
-        startEnd,
-        illstNodes: isIllst ? thisNodes : thatNodes,
-        mercNodes: isIllst ? thatNodes : thisNodes
-    });
-    gcpsToMarkers();
-}
-
 function addMarkerOnEdge (arg, map) {
     const edgeGeom = arg.data.edge;
     const isIllst = map === illstMap;
@@ -794,11 +774,6 @@ MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
         callback: addMarkerOnEdge
     };
 
-    const removeInflectinPointContextMenu = {
-        text: t('mapedit.context_remove_inflection_point'),
-        callback: removeInflectinPoint
-    };
-
     const contextmenu = this.contextmenu = new ContextMenu({
         width: 170,
         defaultItems: false,
@@ -838,35 +813,6 @@ MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
                         edge: feature
                     };
                     contextmenu.push(addMarkerOnEdgeContextMenu);
-
-                    const p0 = evt.pixel;
-                    const coords  = feature.getGeometry().getCoordinates();
-                    const nearest = coords.reduce((prev, curr, index, arr) => {
-                        if (index === 0 || index === arr.length - 1) return prev;
-                        const p1 = this.getMap().getPixelFromCoordinate(curr);
-                        const dx = p0[0]-p1[0];
-                        const dy = p0[1]-p1[1];
-                        const d = Math.sqrt(dx*dx+dy*dy);
-
-                        if (d <= 10) {
-                            if (!prev || prev.d > d) {
-                                return {
-                                    d,
-                                    index
-                                };
-                            } else return prev;
-                        } else {
-                            return prev;
-                        }
-                    }, undefined);
-
-                    if (nearest) {
-                        removeInflectinPointContextMenu.data = {
-                            edge: feature,
-                            index: nearest.index
-                        };
-                        contextmenu.push(removeInflectinPointContextMenu);
-                    }
                 } else {
                     if (feature.get('gcpIndex') !== 'new') {
                         pairingContextMenu.data = {
@@ -975,7 +921,8 @@ function mapObjectInit() {
         if (e.originalEvent.button === 2) return false;
         const f = this.getMap().getFeaturesAtPixel(e.pixel, {
             layerFilter(layer) {
-                return layer.get('name') === 'edges';
+                const name = layer.get('name');
+                return name === 'edges' || name === 'marker';
             }
         });
         if (f && f.length > 0 && f[0].getGeometry().getType() == 'LineString') {

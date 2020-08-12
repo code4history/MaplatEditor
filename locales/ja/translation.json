@@ -132,7 +132,6 @@
     "context_correspond_line_cancel": "対応線指定キャンセル",
     "context_correspond_line_remove": "対応線削除",
     "context_marker_on_line": "対応線上にマーカー追加",
-    "context_remove_inflection_point": "ここの屈折点を削除",
     "control_basemap": "ベースマップ",
     "control_put_address": "住所を指定してください",
     "alert_mapid_checked": "一意な地図IDです。",
