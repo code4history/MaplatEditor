@@ -878,6 +878,15 @@ function mapObjectInit() {
     });
     // コンテクストメニュー初期化
     illstMap.initContextMenu();
+    // bounds表示用レイヤー設定
+    const boundsLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: boundsStyle
+    });
+    boundsLayer.set('name', 'bounds');
+    illstMap.getLayer('overlay').getLayers().push(boundsLayer);
     // マーカーなど表示用レイヤー設定
     let jsonLayer = new layerVector({
         source: new sourceVector({
@@ -896,15 +905,6 @@ function mapObjectInit() {
     });
     checkLayer.set('name', 'check');
     illstMap.getLayers().push(checkLayer);
-    // bounds表示用レイヤー設定
-    const boundsLayer = new layerVector({
-        source: new sourceVector({
-            wrapX: false
-        }),
-        style: boundsStyle
-    });
-    boundsLayer.set('name', 'bounds');
-    illstMap.getLayer('overlay').getLayers().push(boundsLayer);
     // edge表示用レイヤー設定
     let edgesLayer = new layerVector({
         source: new sourceVector({
