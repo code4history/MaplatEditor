@@ -39,9 +39,16 @@ class Settings extends EventEmitter {
         super();
         this.behaviorChain = [];
         this.currentPosition = 0;
-        let resolve_;
-        this.asyncReady = new Promise((resolve) => {
-            resolve_ = resolve;
+        let resolveEditorSetting, resolveI18n;
+        this.asyncReady = Promise.all([
+            new Promise((resolve) => {
+                resolveI18n = resolve;
+            }),
+            new Promise((resolve) => {
+                resolveEditorSetting = resolve;
+            })
+        ]).then((res) => {
+            return res[0];
         });
         storage.getAll((error, data) => {
             if (error) throw error;
@@ -51,12 +58,17 @@ class Settings extends EventEmitter {
                     saveFolder: path.resolve(app.getPath('documents') + path.sep + app.getName())
                 };
                 storage.set('saveFolder', this.json.saveFolder, {});
-                fs.ensureDir(this.json.saveFolder, () => {});
             } else {
                 this.json = data;
             }
+            fs.ensureDir(this.json.saveFolder, () => {
+                const editorSettingFolder = `${this.json.saveFolder}${path.sep}settings`;
+                editorSetting.setDataPath(editorSettingFolder);
+                editorSetting.set('test', 'f', {});
+                resolveEditorSetting();
+            });
             this.json = Object.assign(defaultSetting, this.json);
-            this.json.tmpFolder = path.resolve(app.getPath('temp') + path.sep + app.getName());
+            this.json.tmpFolder = path.resolve(`${app.getPath('temp')}${path.sep}${app.getName()}`);
             fs.ensureDir(this.json.tmpFolder, () => {});
             this.json.tmsList = tmsList;
 
@@ -71,7 +83,7 @@ class Settings extends EventEmitter {
             });
             i18nPromise.then((t) => {
                 this.t = t;
-                resolve_(this);
+                resolveI18n(this);
             });
         });
     }
@@ -126,9 +138,15 @@ class Settings extends EventEmitter {
         this.json[key] = value;
         storage.set(key, value, {}, (error) => {
             if (error) throw error;
-            if (key == 'lang') {
+            if (key === 'lang') {
                 this.i18n.changeLanguage(value, () => {
                     this.emit('changeLang');
+                });
+            } else if (key === 'saveFolder') {
+                fs.ensureDir(value, () => {
+                    const editorSettingFolder = `${value}${path.sep}settings`;
+                    editorSetting.setDataPath(editorSettingFolder);
+                    editorSetting.set('test', 'f', {});
                 });
             }
         });
