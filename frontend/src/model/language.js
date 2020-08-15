@@ -11,6 +11,7 @@ export class Language {
 
         this.vi18n = new VueI18Next(i18n);
         this.t = backend.t;
+        this.translate = backend.translate;
 
         const items = document.querySelectorAll('.vi18n'); // eslint-disable-line no-undef
 

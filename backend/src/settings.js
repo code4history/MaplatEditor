@@ -83,6 +83,24 @@ class Settings extends EventEmitter {
             });
             i18nPromise.then((t) => {
                 this.t = t;
+                this.translate = function(dataFragment) {
+                    if (!dataFragment || typeof dataFragment != 'object') return dataFragment;
+                    const langs = Object.keys(dataFragment);
+                    let key = langs.reduce((prev, curr) => {
+                        if (curr == 'en' || !prev) {
+                            prev = dataFragment[curr];
+                        }
+                        return prev;
+                    }, null);
+                    key = (typeof key == 'string') ? key : `${key}`;
+                    if (this.i18n.exists(key, {ns: 'translation', nsSeparator: '__X__yX__X__'}))
+                        return this.t(key, {ns: 'translation', nsSeparator: '__X__yX__X__'});
+                    for (let i = 0; i < langs.length; i++) {
+                        const lang = langs[i];
+                        this.i18n.addResource(lang, 'translation', key, dataFragment[lang]);
+                    }
+                    return this.t(key, {ns: 'translation', nsSeparator: '__X__yX__X__'});
+                };
                 resolveI18n(this);
             });
         });

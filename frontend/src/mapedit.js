@@ -21,6 +21,7 @@ import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
+import {applyTransform} from "ol/extent";
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
@@ -1046,19 +1047,24 @@ function mapObjectInit() {
         const promise = tms.label ?
             HistMap.createAsync({
                 mapID: tms.mapID,
-                label: tms.label,
                 attr: tms.attr,
                 maptype: 'base',
                 url: tms.url,
                 maxZoom: tms.maxZoom
             }, {}) :
             HistMap.createAsync(tms.mapID, {});
-        return promise.then((source) => new Tile({
-            title: tms.title,
-            type: 'base',
-            visible: tms.mapID === 'osm',
-            source
-        }));
+        return promise.then((source) => {
+            const attr = langObj.translate(source.attr);
+            console.log(langObj.translate);
+            console.log(attr);
+            source.setAttributions(attr);
+            return new Tile({
+                title: tms.title,
+                type: 'base',
+                visible: tms.mapID === 'osm',
+                source
+            })
+        });
     })(tms));
     // ベースマップコントロール追加
     const t = langObj.t;
