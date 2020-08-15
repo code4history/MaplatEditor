@@ -1044,7 +1044,7 @@ function mapObjectInit() {
     // ベースマップリスト作成
     const tmsList = backend.getTmsList();
     const promises = tmsList.reverse().map((tms) => ((tms) => {
-        const promise = tms.label ?
+        const promise = tms.attr ?
             HistMap.createAsync({
                 mapID: tms.mapID,
                 attr: tms.attr,
@@ -1055,8 +1055,6 @@ function mapObjectInit() {
             HistMap.createAsync(tms.mapID, {});
         return promise.then((source) => {
             const attr = langObj.translate(source.attr);
-            console.log(langObj.translate);
-            console.log(attr);
             source.setAttributions(attr);
             return new Tile({
                 title: tms.title,
