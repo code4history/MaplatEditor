@@ -65,6 +65,10 @@ class Settings extends EventEmitter {
                 const editorSettingFolder = `${this.json.saveFolder}${path.sep}settings`;
                 editorSetting.setDataPath(editorSettingFolder);
                 editorSetting.get('tmsList', {}, (error, data) => {
+                    if (!Array.isArray(data)) {
+                        data = [];
+                        editorSetting.set('tmsList', [], {});
+                    }
                     this.json.tmsList = tmsListDefault.concat(data);
                     resolveEditorSetting();
                 });
