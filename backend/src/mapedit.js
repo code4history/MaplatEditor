@@ -411,6 +411,10 @@ const mapedit = {
     },
     getTmsList() {
         return settings.getSetting('tmsList');
+    },
+    async getTmsListOfMapID(mapID) {
+        if (mapID) return settings.getTmsListOfMapID(mapID);
+        else return this.getTmsList();
     }
 };
 

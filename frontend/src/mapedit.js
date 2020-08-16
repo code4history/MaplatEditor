@@ -1042,31 +1042,36 @@ function mapObjectInit() {
     mercMap.addInteraction(edgeSnap);
 
     // ベースマップリスト作成
-    const tmsList = backend.getTmsList();
-    const promises = tmsList.reverse().map((tms) => ((tms) => {
-        const promise = tms.attr ?
-            HistMap.createAsync({
-                mapID: tms.mapID,
-                attr: tms.attr,
-                maptype: 'base',
-                url: tms.url,
-                maxZoom: tms.maxZoom
-            }, {}) :
-            HistMap.createAsync(tms.mapID, {});
-        return promise.then((source) => {
-            const attr = langObj.translate(source.attr);
-            source.setAttributions(attr);
-            return new Tile({
-                title: tms.title,
-                type: 'base',
-                visible: tms.mapID === 'osm',
-                source
-            })
-        });
-    })(tms));
+    let tmsList;
+    const promises = backend.getTmsListOfMapID(mapID).then((list) => {
+        tmsList = list;
+        return Promise.all(tmsList.reverse().map((tms) =>
+            ((tms) => {
+                const promise = tms.attr ?
+                    HistMap.createAsync({
+                        mapID: tms.mapID,
+                        attr: tms.attr,
+                        maptype: 'base',
+                        url: tms.url,
+                        maxZoom: tms.maxZoom
+                    }, {}) :
+                    HistMap.createAsync(tms.mapID, {});
+                return promise.then((source) => {
+                    const attr = langObj.translate(source.attr);
+                    source.setAttributions(attr);
+                    return new Tile({
+                        title: tms.title,
+                        type: 'base',
+                        visible: tms.mapID === 'osm',
+                        source
+                    })
+                });
+            })(tms)
+        ));
+    });
     // ベースマップコントロール追加
     const t = langObj.t;
-    Promise.all(promises).then((layers) => {
+    promises.then((layers) => {
         const layerGroup = new Group({
             'title': t('mapedit.control_basemap'),
             layers

@@ -2,7 +2,7 @@
 
 const EventEmitter = require('events'); // eslint-disable-line no-undef
 const storage = require('electron-json-storage'); // eslint-disable-line no-undef
-const editorSetting = require('electron-json-storage'); // eslint-disable-line no-undef
+const defaultStoragePath = storage.DEFAULT_DATA_PATH;
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
@@ -12,6 +12,7 @@ const tmsListDefault = require('../../tms_list.json'); // eslint-disable-line no
 const i18next = require('i18next'); // eslint-disable-line no-undef
 const Backend = require('i18next-fs-backend'); // eslint-disable-line no-undef
 let settings;
+let editorStoragePath;
 
 const protect = [
     'tmpFolder',
@@ -50,24 +51,23 @@ class Settings extends EventEmitter {
         ]).then((res) => {
             return res[0];
         });
-        storage.getAll((error, data) => {
+        this.defaultStorage().getAll((error, data) => {
             if (error) throw error;
 
             if (Object.keys(data).length === 0) {
                 this.json = {
                     saveFolder: path.resolve(app.getPath('documents') + path.sep + app.getName())
                 };
-                storage.set('saveFolder', this.json.saveFolder, {});
+                this.defaultStorage().set('saveFolder', this.json.saveFolder, {});
             } else {
                 this.json = data;
             }
             fs.ensureDir(this.json.saveFolder, () => {
-                const editorSettingFolder = `${this.json.saveFolder}${path.sep}settings`;
-                editorSetting.setDataPath(editorSettingFolder);
-                editorSetting.get('tmsList', {}, (error, data) => {
+                editorStoragePath = `${this.json.saveFolder}${path.sep}settings`;
+                this.editorStorage().get('tmsList', {}, (error, data) => {
                     if (!Array.isArray(data)) {
                         data = [];
-                        editorSetting.set('tmsList', [], {});
+                        this.editorStorage().set('tmsList', [], {});
                     }
                     this.json.tmsList = tmsListDefault.concat(data);
                     resolveEditorSetting();
@@ -111,6 +111,16 @@ class Settings extends EventEmitter {
         });
     }
 
+    defaultStorage() {
+        storage.setDataPath(defaultStoragePath);
+        return storage;
+    }
+
+    editorStorage() {
+        storage.setDataPath(editorStoragePath);
+        return storage;
+    }
+
     do(verb, data) {
         if (this.redoable) {
             this.behaviorChain = this.behaviorChain.slice(0, this.currentPosition + 1);
@@ -148,6 +158,33 @@ class Settings extends EventEmitter {
         };
     }
 
+    async getTmsListOfMapID(mapID) {
+        return new Promise((resolve) => {
+            const settingKey = `tmsList.${mapID}`;
+            const tmsListBase = this.json.tmsList;
+            this.editorStorage().get(settingKey, {}, (error, data) => {
+                let saveFlag = false;
+                const tmsList = [];
+                tmsListBase.map((tms) => {
+                    const mapID = tms.mapID;
+                    let flag = data[mapID];
+                    if (flag == null) {
+                        flag = data[mapID] = true;
+                        saveFlag = true;
+                    }
+                    if (flag) {
+                        tmsList.push(tms);
+                    }
+                });
+                if (saveFlag) {
+                    this.editorStorage().set(settingKey, data, {}, () => {
+                        resolve(tmsList);
+                    });
+                } else resolve(tmsList);
+            });
+        });
+    }
+
     getSetting(key) {
         return this.json[key];
     }
@@ -159,7 +196,7 @@ class Settings extends EventEmitter {
     setSetting(key, value) {
         if (protect.indexOf(key) >= 0) throw `"${key}" is protected.`;
         this.json[key] = value;
-        storage.set(key, value, {}, (error) => {
+        this.defaultStorage().set(key, value, {}, (error) => {
             if (error) throw error;
             if (key === 'lang') {
                 this.i18n.changeLanguage(value, () => {
@@ -167,9 +204,7 @@ class Settings extends EventEmitter {
                 });
             } else if (key === 'saveFolder') {
                 fs.ensureDir(value, () => {
-                    const editorSettingFolder = `${value}${path.sep}settings`;
-                    editorSetting.setDataPath(editorSettingFolder);
-                    editorSetting.set('test', 'f', {});
+                    editorStoragePath = `${value}${path.sep}settings`;
                 });
             }
         });
