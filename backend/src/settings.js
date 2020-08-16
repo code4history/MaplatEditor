@@ -166,6 +166,10 @@ class Settings extends EventEmitter {
                 let saveFlag = false;
                 const tmsList = [];
                 tmsListBase.map((tms) => {
+                    if (tms.always) {
+                        tmsList.push(tms);
+                        return;
+                    }
                     const mapID = tms.mapID;
                     let flag = data[mapID];
                     if (flag == null) {
