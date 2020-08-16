@@ -8,7 +8,7 @@ const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
-const tmsList = require('../../tms_list.json'); // eslint-disable-line no-undef
+const tmsListDefault = require('../../tms_list.json'); // eslint-disable-line no-undef
 const i18next = require('i18next'); // eslint-disable-line no-undef
 const Backend = require('i18next-fs-backend'); // eslint-disable-line no-undef
 let settings;
@@ -64,13 +64,14 @@ class Settings extends EventEmitter {
             fs.ensureDir(this.json.saveFolder, () => {
                 const editorSettingFolder = `${this.json.saveFolder}${path.sep}settings`;
                 editorSetting.setDataPath(editorSettingFolder);
-                editorSetting.set('test', 'f', {});
-                resolveEditorSetting();
+                editorSetting.get('tmsList', {}, (error, data) => {
+                    this.json.tmsList = tmsListDefault.concat(data);
+                    resolveEditorSetting();
+                });
             });
             this.json = Object.assign(defaultSetting, this.json);
             this.json.tmpFolder = path.resolve(`${app.getPath('temp')}${path.sep}${app.getName()}`);
             fs.ensureDir(this.json.tmpFolder, () => {});
-            this.json.tmsList = tmsList;
 
             const lang = this.json.lang;
             this.i18n = i18next.use(Backend);

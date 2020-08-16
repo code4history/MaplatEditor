@@ -88,20 +88,5 @@
   {"mapID":"niigata01","attr":"今昔マップ on the web","url":"https://sv53.wadax.ne.jp/~ktgis-net/kjmapw/kjtilemap/niigata/01/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 新潟編 1931年"},
   {"mapID":"niigata02","attr":"今昔マップ on the web","url":"https://sv53.wadax.ne.jp/~ktgis-net/kjmapw/kjtilemap/niigata/02/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 新潟編 1967-1968年"},
   {"mapID":"niigata03","attr":"今昔マップ on the web","url":"https://sv53.wadax.ne.jp/~ktgis-net/kjmapw/kjtilemap/niigata/03/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 新潟編 1983-1985年"},
-  {"mapID":"niigata04","attr":"今昔マップ on the web","url":"https://sv53.wadax.ne.jp/~ktgis-net/kjmapw/kjtilemap/niigata/04/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 新潟編 2000-2001年"},
-  {"mapID":"yukuhashi_map","attr":"行橋市歴史地図","url":"https://t.tilemap.jp/private/yukuhashi_map/{z}/{x}/{-y}.png","maxZoom":18,"title":"行橋市歴史地図"},
-  {"mapID":"shinrin_kihonzu","attr":"森林基本図","url":"file:///Users/kokogiko/Documents/MaplatEditor/tiles/shinrin_kihonzu/{z}/{x}/{y}.jpg","maxZoom":3,"title":"森林基本図"},
-  {"mapID":"iwaki_castle","attr":"磐城平　城下町DVD","url":"https://t.tilemap.jp/private/iwaki_taira_dvd/{z}/{x}/{-y}.png","maxZoom":17,"title":"磐城平　城下町DVD"},
-  {"mapID":"iwaki_history","attr":"いわき市教育委員会","url":"https://t.tilemap.jp/private/iwaki_city_history/{z}/{x}/{-y}.png","maxZoom":18,"title":"いわき市の歴史"},
-  {"mapID":"taira_castle01","attr":"平城復元図1","url":"https://t.tilemap.jp/private/taira_castle01/{z}/{x}/{-y}.png","maxZoom":16,"title":"平城復元図1"},
-  {"mapID":"taira_castle02","attr":"平城復元図2","url":"https://t.tilemap.jp/private/taira_castle02/{z}/{x}/{-y}.png","maxZoom":16,"title":"平城復元図2"},
-  {"mapID":"morioka1","attr":"盛岡 北上川旧河道推定1","url":"https://t.tilemap.jp/private/morioka1/{z}/{x}/{-y}.png","maxZoom":17,"title":"盛岡 北上川旧河道推定1"},
-  {"mapID":"morioka2","attr":"盛岡 北上川旧河道推定2","url":"https://t.tilemap.jp/private/morioka2/{z}/{x}/{-y}.png","maxZoom":17,"title":"盛岡 北上川旧河道推定2"},
-  {"mapID":"aizukokon","attr":"会津古今地図帳","url":"https://t.tilemap.jp/private/aizukokon/x%3D{x}%26y%3D{y}%26z%3D{z}.png","maxZoom":18,"title":"会津古今地図帳"},
-  {"mapID":"sekigahara","attr":"関ヶ原ちずっ子","url":"https://t.tilemap.jp/private/Sekigahara/{z}/{x}/{-y}.png","maxZoom":15,"title":"関ヶ原ちずっ子"},
-  {"mapID":"nobeoka_usarmy","attr":"延岡米軍航空写真","url":"https://mtile.pref.miyazaki.lg.jp/tile/hoka/usa/nobeoka01/{z}/{x}/{-y}.png","maxZoom":17,"title":"延岡米軍航空写真"},
-  {"mapID":"gangouji","attr":"元興寺伽藍配置図","url":"https://t.tilemap.jp/private/gangouji/{z}/{x}/{-y}.png","maxZoom":16,"title":"元興寺伽藍配置図"},
-  {"mapID":"tatebayashi_castle","attr":"館林城縄張図","url":"https://t.tilemap.jp/private/tatebayashi_castle/{z}/{x}/{-y}.png","maxZoom":17,"title":"館林城縄張図"},
-  {"mapID":"fushimi_castle","attr":"伏見城縄張図","url":"https://t.tilemap.jp/private/fushimijo_tms/{z}/{x}/{-y}.png","maxZoom":18,"title":"伏見城縄張図"},
-  {"mapID":"fushimi_joka","attr":"伏見城城下","url":"https://t.tilemap.jp/private/fushimi_joka_tms/{z}/{x}/{-y}.png","maxZoom":17,"title":"伏見城城下"}
+  {"mapID":"niigata04","attr":"今昔マップ on the web","url":"https://sv53.wadax.ne.jp/~ktgis-net/kjmapw/kjtilemap/niigata/04/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 新潟編 2000-2001年"}
 ]
