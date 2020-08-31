@@ -41,8 +41,8 @@
     "webpack-cli": "^3.3.12"
   },
   "dependencies": {
-    "@maplat/core": "^0.6.8",
-    "@maplat/tin": "^0.6.6",
+    "@maplat/core": "^0.6.9",
+    "@maplat/tin": "^0.6.7",
     "@panter/vue-i18next": "^0.15.2",
     "@turf/helpers": "^6.1.4",
     "@turf/turf": "^5.1.6",
