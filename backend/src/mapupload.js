@@ -1,6 +1,12 @@
 'use strict';
 
-const im = require('../lib/imagemagick_modified.js'); // eslint-disable-line no-undef
+const pf = process.platform; // eslint-disable-line no-undef
+const isAsar = __dirname.match(/app\.asar/); // eslint-disable-line no-undef
+const canvasPath = pf == 'darwin' ?
+    isAsar ? '../../../app.asar.unpacked/assets/mac/canvas' : '../../assets/mac/canvas' :
+    isAsar ? '../../../app.asar.unpacked/assets/win/canvas' : '../../assets/win/canvas';
+const { createCanvas, loadImage } = require(canvasPath); // eslint-disable-line no-undef
+
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
@@ -20,99 +26,6 @@ let tmpFolder;
 let outFolder;
 let focused;
 let extKey;
-
-const cropperForLogic2 = (srcFile, zoom, x, y, maxZoom, width, height) => {
-    const parallel = [];
-    const cropSize = 256 * Math.pow(2, maxZoom - zoom - 1);
-
-    parallel.push(new Promise((resolve, reject) => {
-        const args = [srcFile];
-        let zw, zh;
-        if (zoom != maxZoom) {
-            zw = Math.round(width / Math.pow(2, maxZoom - zoom));
-            zh = Math.round(height / Math.pow(2, maxZoom - zoom));
-            args.push('-geometry');
-            args.push(`${zw}x${zh}!`);
-        } else {
-            zw = width;
-            zh = height;
-        }
-        const tileFolder = `${outFolder}${path.sep}${zoom}${path.sep}${x}`;
-        fs.ensureDir(tileFolder, (err) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            args.push(`${tileFolder}${path.sep}${y}.${extKey}`);
-            im.convert(args, (err, stdout, stderr) => { // eslint-disable-line no-unused-vars
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve();
-            });
-        });
-    }));
-
-    if (zoom != maxZoom) {
-        parallel.push(new Promise((resolve, reject) => {
-            const args = [srcFile];
-            args.push('+repage');
-            args.push('-crop');
-            args.push(`${cropSize}x${cropSize}`);
-            args.push('+repage');
-            const tmpImageBase = `${outFolder}/tmpImage-${zoom}-${x}-${y}`;
-            args.push(`${tmpImageBase}.${extKey}`);
-
-            im.convert(args, (err, stdout, stderr) => { // eslint-disable-line no-unused-vars
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                let zi = 0;
-                let innerPromise;
-                if (width <= cropSize && height <= cropSize) {
-                    innerPromise = cropperForLogic2(`${tmpImageBase}.${extKey}`, zoom + 1, x * 2, y * 2, maxZoom, width, height);
-                } else {
-                    const innerPromises = [];
-                    for (let zy = 0; zy < (height <= cropSize ? 1 : 2); zy++) {
-                        for (let zx = 0; zx < (width <= cropSize ? 1 : 2); zx++) {
-                            const nextFile = `${tmpImageBase}-${zi}.${extKey}`;
-                            const nextWidth = zx == 0 ? width <= cropSize ? width : cropSize : width - cropSize;
-                            const nextHeight = zy == 0 ? height <= cropSize ? height : cropSize : height - cropSize;
-                            innerPromises.push(cropperForLogic2(nextFile, zoom + 1, x * 2 + zx, y * 2 + zy, maxZoom, nextWidth, nextHeight));
-                            zi++;
-                        }
-                    }
-                    innerPromise = Promise.all(innerPromises);
-                }
-
-                innerPromise.then(() => {
-                    resolve();
-                }).catch((err) => {
-                    reject(err);
-                });
-            });
-        }));
-    }
-
-    if (zoom == 0) {
-        parallel.push(new Promise((resolve, reject) => {
-            fs.copy(srcFile, `${outFolder}${path.sep}original.${extKey}`, (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
-        }));
-    }
-
-    return Promise.all(parallel).then(() => {
-        if (zoom != 0) {
-            fs.remove(srcFile, () => {
-            });
-        }
-        return Promise.resolve();
-    });
-};
 
 const MapUpload = {
     init() {
@@ -140,10 +53,9 @@ const MapUpload = {
         const focused = BrowserWindow.getFocusedWindow();
         const self = this;
         dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
-            // filters: [ {name: '地図画像', extensions: ['jpg']} ] }, function (baseDir){
             filters: [ {name: mapImageRepl, extensions: ['jpg', 'png', 'jpeg']} ] }, (baseDir) => {
             if(baseDir && baseDir[0]) {
-                self.imageCutter2(baseDir[0]);
+                self.imageCutter(baseDir[0]);
             } else {
                 focused.webContents.send('mapUploaded', {
                     err: 'Canceled'
@@ -151,77 +63,76 @@ const MapUpload = {
             }
         });
     },
-    imageCutter2(srcFile) {
-        const regex   =  new RegExp('([^\\/]+)\\.([^\\.]+)$');
-
-        new Promise((resolve, reject) => {
-            if (srcFile.match(regex)) {
-                extKey  = RegExp.$2;
-            } else {
-                reject('画像拡張子エラー');
-            }
-            outFolder = `${tmpFolder}${path.sep}tiles`;
-            try {
-                fs.statSync(outFolder);
-                fs.remove(outFolder, (err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    resolve();
-                });
-            } catch(err) {
-                resolve();
-            }
-        }).then(() =>
-            new Promise((resolve, reject) => {
-                const result = {};
-                fs.ensureDir(outFolder, (err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    im.identify(srcFile, (err, features) => {
+    async imageCutter(srcFile) {
+        try {
+            const regex   =  new RegExp('([^\\/]+)\\.([^\\.]+)$');
+            await new Promise((resolve, reject) => {
+                if (srcFile.match(regex)) {
+                    extKey  = RegExp.$2;
+                } else {
+                    reject('画像拡張子エラー');
+                }
+                outFolder = `${tmpFolder}${path.sep}tiles`;
+                try {
+                    fs.statSync(outFolder);
+                    fs.remove(outFolder, (err) => {
                         if (err) {
                             reject(err);
                             return;
                         }
-
-                        result.width = features.width;
-                        result.height = features.height;
-
-                        const xZoom = Math.ceil(Math.log(result.width / 256) / Math.log(2));
-                        const yZoom = Math.ceil(Math.log(result.height / 256) / Math.log(2));
-                        result.zoom = xZoom > yZoom ? xZoom : yZoom;
-                        if (result.zoom < 0) result.zoom = 0;
-
-                        resolve(result);
+                        resolve();
                     });
-                });
-            })
-        ).then((arg) => Promise.all([
-            Promise.resolve(arg),
-            cropperForLogic2(srcFile, 0, 0, 0, arg.zoom, arg.width, arg.height)
-        ])).then((args) => new Promise((resolve) => {
+                } catch(err) {
+                    resolve();
+                }
+            });
+            await fs.ensureDir(outFolder);
+            const image = await loadImage(srcFile);
+            const width = image.width;
+            const height = image.height;
+            const maxZoom = Math.ceil(Math.log(Math.max(width, height) / 256)/ Math.log(2));
+
+            for (let z = maxZoom; z >= 0; z--) {
+                const pw = Math.round(width / Math.pow(2, maxZoom - z));
+                const ph = Math.round(height / Math.pow(2, maxZoom - z));
+                for (let tx = 0; tx * 256 < pw; tx++) {
+                    const tw = (tx + 1) * 256 > pw ? pw - tx * 256 : 256;
+                    const sx = tx * 256 * Math.pow(2, maxZoom - z);
+                    const sw = (tx + 1) * 256 * Math.pow(2, maxZoom - z) > width ? width - sx : 256 * Math.pow(2, maxZoom - z);
+                    const tileFolder = `${outFolder}${path.sep}${z}${path.sep}${tx}`;
+                    await fs.ensureDir(tileFolder);
+                    for (let ty = 0; ty * 256 < ph; ty++) {
+                        const th = (ty + 1) * 256 > ph ? ph - ty * 256 : 256;
+                        const sy = ty * 256 * Math.pow(2, maxZoom - z);
+                        const sh = (ty + 1) * 256 * Math.pow(2, maxZoom - z) > height ? height - sy : 256 * Math.pow(2, maxZoom - z);
+                        const canvas = createCanvas(tw, th);
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(image, sx, sy, sw, sh, 0, 0, tw, th);
+
+                        const tileFile = `${tileFolder}${path.sep}${ty}.${extKey}`;
+
+                        const buffer = canvas.toBuffer(extKey == 'png' ? 'image/png' : 'image/jpeg');
+                        await fs.outputFile(tileFile, buffer);
+                    }
+                }
+            }
+
+            await fs.copy(srcFile, `${outFolder}${path.sep}original.${extKey}`);
+
             const thumbFrom = `${outFolder}${path.sep}0${path.sep}0${path.sep}0.${extKey}`;
             const thumbTo = `${outFolder}${path.sep}thumbnail.jpg`;
-            thumbExtractor.make_thumbnail(thumbFrom, thumbTo).then(() => {
-                resolve(args);
-            });
-        })).then((args) => {
-            const arg = args[0];
-            let thumbURL = fileUrl(outFolder);
-            thumbURL = `${thumbURL}/{z}/{x}/{y}.${extKey}`;
+            await thumbExtractor.make_thumbnail(thumbFrom, thumbTo);
+
+            const url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${extKey}`;
             if (focused) {
                 focused.webContents.send('mapUploaded', {
-                    width: arg.width,
-                    height: arg.height,
-                    url: thumbURL,
+                    width,
+                    height,
+                    url,
                     imageExtention: extKey
                 });
             }
-        }).catch((err) => {
+        } catch(err) {
             if (focused) {
                 focused.webContents.send('mapUploaded', {
                     err
@@ -229,7 +140,7 @@ const MapUpload = {
             } else {
                 console.log(err); // eslint-disable-line no-undef
             }
-        });
+        }
     }
 };
 

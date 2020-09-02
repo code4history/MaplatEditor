@@ -7,7 +7,7 @@
     value CDATA #REQUIRED>
 ]>
 <!--
-  ImageMagick build configuration.
+  ImageMagick build__ configuration.
 -->
 <configuremap>
   <configure name="CC" value="gcc"/>

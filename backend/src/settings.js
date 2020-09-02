@@ -48,9 +48,7 @@ class Settings extends EventEmitter {
             new Promise((resolve) => {
                 resolveEditorSetting = resolve;
             })
-        ]).then((res) => {
-            return res[0];
-        });
+        ]).then((res) => res[0]);
         this.defaultStorage().getAll((error, data) => {
             if (error) throw error;
 

@@ -21,7 +21,6 @@ import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
-import {applyTransform} from "ol/extent";
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
@@ -1208,7 +1207,6 @@ function setVueMap() {
                 myModal.hide();
                 if (arg.err) {
                     if (arg.err !== 'Canceled') alert(t('mapedit.error_image_upload')); // eslint-disable-line no-undef
-                    console.log(arg.err);
                     return;
                 } else {
                     alert(t('mapedit.success_image_upload')); // eslint-disable-line no-undef

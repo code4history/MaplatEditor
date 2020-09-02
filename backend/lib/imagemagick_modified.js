@@ -388,7 +388,7 @@ exports.resizeArgs = function(options) {
   if (opt.width === 0 && opt.height === 0)
     throw new Error('both width and height can not be 0 (zero)');
 
-  // build args
+  // build__ args
   var args = [opt.srcPath];
   if (opt.sharpening > 0) {
     args = args.concat([
