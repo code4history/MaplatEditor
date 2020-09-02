@@ -161,7 +161,9 @@
     "testerror_outside_map": "地図領域範囲外のため、変換ができません。"
   },
   "mapupload": {
-    "map_image": "地図画像"
+    "map_image": "地図画像",
+    "dividing_tile": "地図画像をタイル分割中",
+    "next_thumbnail": "地図サムネイル生成中"
   },
   "applist": {
     "not_implement": "未実装"

@@ -254,7 +254,19 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-body">
-        <p class="recipient"></p>
+        <div class="row">
+          <div id="modalText" class="recipient col-xs-9"></div>
+        </div>
+        <div class="row">
+          <div class="col-xs-12">
+            <div class="progress">
+              <div id="progress" class="progress-bar progress-bar-info" role="progressbar" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="row text-center">
+          <div><button id="modalClose" type="button" class="btn btn-default" disabled>OK</button></div>
+        </div>
       </div>
     </div> <!-- /.modal-content -->
   </div> <!-- /.modal-dialog -->

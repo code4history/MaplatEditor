@@ -18,6 +18,7 @@ if (electron.app || electron.remote) {
 }
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
+const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 
 let mapFolder;
 let tileFolder;
@@ -92,6 +93,9 @@ const MapUpload = {
             const height = image.height;
             const maxZoom = Math.ceil(Math.log(Math.max(width, height) / 256)/ Math.log(2));
 
+            const tasks = [];
+            const mime = extKey == 'png' ? 'image/png' : 'image/jpeg';
+
             for (let z = maxZoom; z >= 0; z--) {
                 const pw = Math.round(width / Math.pow(2, maxZoom - z));
                 const ph = Math.round(height / Math.pow(2, maxZoom - z));
@@ -105,16 +109,25 @@ const MapUpload = {
                         const th = (ty + 1) * 256 > ph ? ph - ty * 256 : 256;
                         const sy = ty * 256 * Math.pow(2, maxZoom - z);
                         const sh = (ty + 1) * 256 * Math.pow(2, maxZoom - z) > height ? height - sy : 256 * Math.pow(2, maxZoom - z);
-                        const canvas = createCanvas(tw, th);
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(image, sx, sy, sw, sh, 0, 0, tw, th);
 
                         const tileFile = `${tileFolder}${path.sep}${ty}.${extKey}`;
-
-                        const buffer = canvas.toBuffer(extKey == 'png' ? 'image/png' : 'image/jpeg');
-                        await fs.outputFile(tileFile, buffer);
+                        tasks.push([tileFile, sx, sy, sw, sh, tw, th]);
                     }
                 }
+            }
+
+            const progress = new ProgressReporter(focused, tasks.length, 'mapupload.dividing_tile', 'mapupload.next_thumbnail');
+            progress.update(0);
+
+            for (let i = 0; i < tasks.length; i++) {
+                const task = tasks[i];
+                const canvas = createCanvas(task[5], task[6]);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(image, task[1], task[2], task[3], task[4], 0, 0, task[5], task[6]);
+
+                const buffer = canvas.toBuffer(mime);
+                await fs.outputFile(task[0], buffer);
+                progress.update(i + 1);
             }
 
             await fs.copy(srcFile, `${outFolder}${path.sep}original.${extKey}`);

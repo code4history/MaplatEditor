@@ -1204,12 +1204,19 @@ function setVueMap() {
             uploader.init();
             ipcRenderer.on('mapUploaded', (event, arg) => {
                 document.body.style.pointerEvents = null; // eslint-disable-line no-undef
-                myModal.hide();
+                const close = document.querySelector('#modalClose');
+                close.removeAttribute('disabled');
+                const closeFunc = () => {
+                    close.removeEventListener('click', closeFunc);
+                    myModal.hide();
+                };
+                close.addEventListener('click', closeFunc);
                 if (arg.err) {
-                    if (arg.err !== 'Canceled') alert(t('mapedit.error_image_upload')); // eslint-disable-line no-undef
+                    if (arg.err !== 'Canceled') document.querySelector('#modalText').innerText = t('mapedit.error_image_upload'); // eslint-disable-line no-undef
+                    else closeFunc();
                     return;
                 } else {
-                    alert(t('mapedit.success_image_upload')); // eslint-disable-line no-undef
+                    document.querySelector('#modalText').innerText = t('mapedit.success_image_upload'); // eslint-disable-line no-undef
                 }
                 vueMap.width = arg.width;
                 vueMap.height = arg.height;
@@ -1227,13 +1234,17 @@ function setVueMap() {
             });
         }
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-        document.querySelector('div.modal-body > p').innerText = t('mapedit.image_uploading'); // eslint-disable-line no-undef
+        document.querySelector('#modalText').innerText = t('mapedit.image_uploading'); // eslint-disable-line no-undef
+        const progress = document.querySelector('#progress');
+        progress.innerText = '';
+        progress.style.width = '0%';
+        document.querySelector('#modalClose').setAttribute('disabled', 'disabled');
         myModal.show();
         uploader.showMapSelectDialog(t('mapupload.map_image'));
     });
     vueMap.$on('dlMap', () => {
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-        document.querySelector('div.modal-body > p').innerText = t('mapedit.message_download'); // eslint-disable-line no-undef
+        document.querySelector('#modalText').innerText = t('mapedit.message_download'); // eslint-disable-line no-undef
         myModal.show();
         ipcRenderer.once('mapDownloadResult', (event, arg) => {
             document.body.style.pointerEvents = null; // eslint-disable-line no-undef
@@ -1340,6 +1351,13 @@ function setVueMap() {
         vueMap.tinObjects.splice(index, 1, tin);
         checkClear();
         tinResultUpdate();
+    });
+
+    ipcRenderer.on('taskProgress', (event, arg) => {
+        document.querySelector('#modalText').innerText = t(arg.text);
+        const progress = document.querySelector('#progress');
+        progress.innerText = arg.progress;
+        progress.style.width = `${arg.percent}%`;
     });
 }
 // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
