@@ -143,7 +143,7 @@
     "download_map_data": "Export map data",
     "message_download": "Now preparing map data for exporting...",
     "download_success": "Successfully exported.",
-    "download_canceled": "Canceled.",
+    "updownload_canceled": "Canceled.",
     "download_error": "Error occurred while processing.",
     "confirm_save": "Save your changes. \nAre you sure?",
     "copy_or_move": "Map ID has been changed. Do you want to make a copy?\nSelect OK to copy, Cancel to move.",
@@ -160,7 +160,9 @@
     "testerror_outside_map": "Cannot perform projection test because it is outside the map area."
   },
   "mapupload": {
-    "map_image": "Map Image"
+    "map_image": "Map Image",
+    "dividing_tile": "Splitting map image into tiles",
+    "next_thumbnail": "Generating map thumbnail"
   },
   "applist": {
     "not_implement": "Not implemented yet"

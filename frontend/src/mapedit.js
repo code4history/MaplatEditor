@@ -3,6 +3,7 @@ import {HistMap} from '@maplat/core/src/histmap';
 import bsn from 'bootstrap.native';
 import {polygon, booleanPointInPolygon} from '@turf/turf';
 import Map from "./model/map";
+import Vue from "vue";
 import ContextMenu from 'ol-contextmenu';
 import Geocoder from 'ol-geocoder';
 import Tin from '@maplat/tin';
@@ -1097,6 +1098,7 @@ function mapObjectInit() {
 
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
 let vueMap;
+let vueModal;
 function gcpsEditReady(val) {
     const a = document.querySelector('a[href="#gcpsTab"]'); // eslint-disable-line no-undef
     const li = a.parentNode;
@@ -1204,19 +1206,12 @@ function setVueMap() {
             uploader.init();
             ipcRenderer.on('mapUploaded', (event, arg) => {
                 document.body.style.pointerEvents = null; // eslint-disable-line no-undef
-                const close = document.querySelector('#modalClose');
-                close.removeAttribute('disabled');
-                const closeFunc = () => {
-                    close.removeEventListener('click', closeFunc);
-                    myModal.hide();
-                };
-                close.addEventListener('click', closeFunc);
                 if (arg.err) {
-                    if (arg.err !== 'Canceled') document.querySelector('#modalText').innerText = t('mapedit.error_image_upload'); // eslint-disable-line no-undef
-                    else closeFunc();
+                    if (arg.err !== 'Canceled') vueModal.finish(t('mapedit.error_image_upload')); // eslint-disable-line no-undef
+                    else vueModal.finish(t('mapedit.updownload_canceled'));
                     return;
                 } else {
-                    document.querySelector('#modalText').innerText = t('mapedit.success_image_upload'); // eslint-disable-line no-undef
+                    vueModal.finish(t('mapedit.success_image_upload')); // eslint-disable-line no-undef
                 }
                 vueMap.width = arg.width;
                 vueMap.height = arg.height;
@@ -1234,28 +1229,21 @@ function setVueMap() {
             });
         }
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-        document.querySelector('#modalText').innerText = t('mapedit.image_uploading'); // eslint-disable-line no-undef
-        const progress = document.querySelector('#progress');
-        progress.innerText = '';
-        progress.style.width = '0%';
-        document.querySelector('#modalClose').setAttribute('disabled', 'disabled');
-        myModal.show();
+        vueModal.show(t('mapedit.image_uploading'));
         uploader.showMapSelectDialog(t('mapupload.map_image'));
     });
     vueMap.$on('dlMap', () => {
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-        document.querySelector('#modalText').innerText = t('mapedit.message_download'); // eslint-disable-line no-undef
-        myModal.show();
+        vueModal.show(t('mapedit.message_download'));
         ipcRenderer.once('mapDownloadResult', (event, arg) => {
             document.body.style.pointerEvents = null; // eslint-disable-line no-undef
-            myModal.hide();
             if (arg === 'Success') {
-                alert(t('mapedit.download_success')); // eslint-disable-line no-undef
+                vueModal.finish(t('mapedit.download_success')); // eslint-disable-line no-undef
             } else if (arg === 'Canceled') {
-                alert(t('mapedit.download_canceled')); // eslint-disable-line no-undef
+                vueModal.finish(t('mapedit.updownload_canceled')); // eslint-disable-line no-undef
             } else {
                 console.log(arg); // eslint-disable-line no-undef,no-console
-                alert(t('mapedit.download_error')); // eslint-disable-line no-undef
+                vueModal.finish(t('mapedit.download_error')); // eslint-disable-line no-undef
             }
         });
         backend.download(vueMap.map);
@@ -1354,10 +1342,7 @@ function setVueMap() {
     });
 
     ipcRenderer.on('taskProgress', (event, arg) => {
-        document.querySelector('#modalText').innerText = t(arg.text);
-        const progress = document.querySelector('#progress');
-        progress.innerText = arg.progress;
-        progress.style.width = `${arg.percent}%`;
+        vueModal.progress(t(arg.text), arg.percent, arg.progress);
     });
 }
 // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
@@ -1391,5 +1376,38 @@ ipcRenderer.on('mapData', (event, arg) => {
 
 // 起動時処理: 地図外のUI設定ここから
 // モーダルオブジェクト作成
-const myModal = new bsn.Modal(document.getElementById('staticModal'), {}); //eslint-disable-line no-undef
+vueModal = new Vue({
+    el: "#modalBody",
+    data: {
+        modal: new bsn.Modal(document.getElementById('staticModal'), {}), //eslint-disable-line no-undef
+        percent: 0,
+        progressText: '',
+        enableClose: false,
+        text: ''
+    },
+    methods: {
+        show: function(text) {
+            this.text = text;
+            this.percent = 0;
+            this.progressText = '';
+            this.enableClose = false;
+            this.modal.show();
+        },
+        progress: function(text, perecent, progress) {
+            this.text = text;
+            this.percent = perecent;
+            this.progressText = progress;
+        },
+        finish: function(text) {
+            this.text = text;
+            this.enableClose = true;
+        },
+        hide: function() {
+            this.modal.hide();
+        }
+    }
+});
+/*vueModal.$on('closeModal', function() {
+    this.modal.hide();
+});*/
 // 起動時処理: 地図外のUI設定ここまで

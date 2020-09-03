@@ -143,7 +143,7 @@
     "download_map_data": "地図データエクスポート",
     "message_download": "エクスポート用地図データを準備しています。",
     "download_success": "エクスポート成功しました。",
-    "download_canceled": "キャンセルされました。",
+    "updownload_canceled": "キャンセルされました。",
     "download_error": "処理中にエラーが発生しました。",
     "confirm_save": "変更を保存します。\nよろしいですか?",
     "copy_or_move": "地図IDが変更されています。コピーを行いますか?\nコピーの場合はOK、移動の場合はキャンセルを選んでください。",
