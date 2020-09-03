@@ -8,6 +8,8 @@ const app = require('electron').app; // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const Tin = require('@maplat/tin'); // eslint-disable-line no-undef
 const AdmZip = require('adm-zip'); // eslint-disable-line no-undef
+const rfs = require('recursive-fs'); // eslint-disable-line no-undef
+const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 
 let mapFolder;
 let compiledFolder;
@@ -121,14 +123,31 @@ const mapedit = {
         });
     },
     download(mapObject) {
-        setTimeout(() => { // eslint-disable-line no-undef
+        setTimeout(async () => { // eslint-disable-line no-undef
             const mapID = mapObject.mapID;
+            const targets = [
+                [`${compiledFolder}${path.sep}${mapID}.json`, 'maps', `${mapID}.json`],
+                [`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`]
+            ];
+
+            const {dirs, files} = await rfs.read(`${tileFolder}${path.sep}${mapID}`);
+            files.map((file) => {
+                const localPath = path.resolve(file);
+                const zipName = path.basename(localPath);
+                const zipPath = path.dirname(localPath).match(/[\/\\](tiles[\/\\].+$)/)[1];
+                targets.push([localPath, zipPath, zipName]);
+            });
+
+            const progress = new ProgressReporter(focused, targets.length, 'mapdownload.adding_zip', 'mapdownload.creating_zip');
+            progress.update(0);
             const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
             const zip = new AdmZip();
 
-            zip.addLocalFile(`${compiledFolder}${path.sep}${mapID}.json`, 'maps', `${mapID}.json`);
-            zip.addLocalFile(`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`);
-            zip.addLocalFolder(`${tileFolder}${path.sep}${mapID}`, `tiles${path.sep}${mapID}`);
+            for (let i = 0; i < targets.length; i++) {
+                const target = targets[i];
+                zip.addLocalFile(target[0], target[1], target[2]);
+                progress.update(i + 1);
+            }
 
             zip.writeZip(zip_file, () => {
                 const dialog = require('electron').dialog; // eslint-disable-line no-undef
