@@ -1099,15 +1099,6 @@ function mapObjectInit() {
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
 let vueMap;
 let vueModal;
-function gcpsEditReady(val) {
-    const a = document.querySelector('a[href="#gcpsTab"]'); // eslint-disable-line no-undef
-    const li = a.parentNode;
-    if (val) {
-        li.classList.remove('disabled');
-    } else {
-        li.classList.add('disabled');
-    }
-}
 
 if (mapID) {
     const mapIDElm = document.querySelector('#mapID'); // eslint-disable-line no-unused-vars,no-undef
@@ -1141,7 +1132,6 @@ function initVueMap(json) {
         el: '#container',
         template: '#mapedit-vue-template',
         watch: {
-            gcpsEditReady,
             gcps(val) { // eslint-disable-line no-unused-vars
                 if (!illstSource) return;
                 backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
@@ -1296,7 +1286,6 @@ function setVueMap() {
             vueMap.removeSubMap();
         }
     });
-    gcpsEditReady(vueMap.gcpsEditReady);
 
     let allowClose = false;
 
