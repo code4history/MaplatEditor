@@ -46,7 +46,7 @@
       <ul class="nav nav-tabs nav-justified" role="tablist">
         <li class="active"><a href="#metadataTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_metadata")}}</span></a></li>
         <li v-bind:class="{ disabled: !gcpsEditReady }"><a href="#gcpsTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_gcp")}}</span></a></li>
-        <li><a href="#wmtsTab" data-toggle="tab" role="tab"><span class="vi18nf">WMTS</span></a></li>
+        <li v-bind:class="{ disabled: !wmtsEditReady }"><a href="#wmtsTab" data-toggle="tab" role="tab"><span class="vi18nf">WMTS</span></a></li>
         <li class="disabled"><a href="#configureTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.configure_map")}}</span></a></li>
       </ul>
 
@@ -242,6 +242,9 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="tab-pane" id="wmtsTab">
+          <p>WMTS設定</p>
         </div>
         <div class="tab-pane" id="configureTab">
           <p>地図設定</p>

@@ -1,6 +1,8 @@
 import _ from '../../lib/underscore_extension';
 import Vue from 'vue';
 import {Language} from "./language";
+import crypto from 'crypto';
+import Tin from '@maplat/tin';
 
 Vue.config.debug = true;
 const langObj = Language.getSingleton();
@@ -154,6 +156,10 @@ computed.imageExtentionCalc = function() {
 computed.gcpsEditReady = function() {
     return (this.width && this.height && this.url_) || false;
 };
+computed.wmtsEditReady = function() {
+    const tin = this.share.tinObjects[0];
+    return (this.mainLayerHash && tin.strict_status == Tin.STATUS_STRICT);
+}
 computed.dirty = function() {
     return !_.isDeepEqual(this.map_, this.map);
 };
@@ -194,6 +200,13 @@ computed.tinObjects = {
     set(newValue) {
         this.share.tinObjects = newValue;
     }
+};
+computed.mainLayerHash = function() {
+    const tin = this.share.tinObjects[0];
+    if (!tin || typeof tin === 'string') return;
+    var hashsum = crypto.createHash('sha1');
+    hashsum.update(JSON.stringify(tin.getCompiled()));
+    return hashsum.digest('hex');
 };
 computed.bounds = {
     get() {
