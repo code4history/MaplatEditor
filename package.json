@@ -35,6 +35,7 @@
     "less": "^3.12.2",
     "less-plugin-clean-css": "^1.5.1",
     "minimist": "^1.2.5",
+    "npx": "^10.2.2",
     "utils-extend": "npm:utils-extend-patched@^1.0.9",
     "vue-loader": "^15.9.3",
     "vue-template-compiler": "^2.6.11",
