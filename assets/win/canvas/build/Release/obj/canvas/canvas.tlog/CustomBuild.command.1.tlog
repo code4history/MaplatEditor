@@ -1,0 +1,3 @@
+^C:\LIBJPEG-TURBO64\BIN\JPEG62.DLL
+call mkdir "C:\Users\10467\github\MaplatEditor\node_modules\canvas\build\Release\" 2>nul & set ERRORLEVEL=0 & copy /Y "C:\libjpeg-turbo64\bin\jpeg62.dll" "C:\Users\10467\github\MaplatEditor\node_modules\canvas\build\Release\jpeg62.dll"
+if %errorlevel% neq 0 exit /b %errorlevel%
