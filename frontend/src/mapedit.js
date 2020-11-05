@@ -34,6 +34,7 @@ backend.init();
 const langObj = Language.getSingleton();
 
 let uploader;
+let wmtsGenerator;
 let mapID;
 let newlyAddGcp;
 let newlyAddEdge;
@@ -1098,7 +1099,7 @@ function mapObjectInit() {
 
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
 let vueMap;
-let vueModal;
+let vueModal; // eslint-disable-line prefer-const
 
 if (mapID) {
     const mapIDElm = document.querySelector('#mapID'); // eslint-disable-line no-unused-vars,no-undef
@@ -1188,6 +1189,28 @@ function setVueMap() {
                 vueMap.onlyOne = false;
             }
         });
+    });
+    vueMap.$on('wmtsGenerate', () => {
+        if (!wmtsGenerator) {
+            wmtsGenerator = require('electron').remote.require('./wmtsGenerator'); // eslint-disable-line no-undef
+            wmtsGenerator.init();
+            alert("!");
+            ipcRenderer.on('wmtsGenerated', (event, arg) => {
+                document.body.style.pointerEvents = null; // eslint-disable-line no-undef
+                if (arg.err) {
+                    console.log(arg.err);
+                    vueModal.finish(t('wmtsgenerate.error_generation')); // eslint-disable-line no-undef
+                    return;
+                } else {
+                    vueModal.finish(t('wmtsgenerate.success_generation')); // eslint-disable-line no-undef
+                }
+            });
+        }
+        document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
+        vueModal.show(t('wmtsgenerate.generating_tile'));
+        setTimeout(() => {
+            wmtsGenerator.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtention);
+        }, 1);
     });
     vueMap.$on('mapUpload', () => {
         if (vueMap.gcpsEditReady && !confirm(t('mapedit.confirm_override_image'))) return; // eslint-disable-line no-undef
@@ -1375,23 +1398,23 @@ vueModal = new Vue({
         text: ''
     },
     methods: {
-        show: function(text) {
+        show(text) {
             this.text = text;
             this.percent = 0;
             this.progressText = '';
             this.enableClose = false;
             this.modal.show();
         },
-        progress: function(text, perecent, progress) {
+        progress(text, perecent, progress) {
             this.text = text;
             this.percent = perecent;
             this.progressText = progress;
         },
-        finish: function(text) {
+        finish(text) {
             this.text = text;
             this.enableClose = true;
         },
-        hide: function() {
+        hide() {
             this.modal.hide();
         }
     }

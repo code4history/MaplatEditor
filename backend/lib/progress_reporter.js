@@ -11,7 +11,7 @@ class ProgressReporter {
     }
 
     update(currentNumber) {
-        const currentPercent = currentNumber * 100 / this.fullnumber;
+        const currentPercent = Math.floor(currentNumber * 100 / this.fullnumber);
         const currentTime = new Date();
         if (this.percent == null || this.time == null || currentPercent == 100 || currentPercent - this.percent > 5 || currentTime - this.time > 30000) {
             this.percent = currentPercent;

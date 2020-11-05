@@ -204,7 +204,7 @@ computed.tinObjects = {
 computed.mainLayerHash = function() {
     const tin = this.share.tinObjects[0];
     if (!tin || typeof tin === 'string') return;
-    var hashsum = crypto.createHash('sha1');
+    const hashsum = crypto.createHash('sha1');
     hashsum.update(JSON.stringify(tin.getCompiled()));
     return hashsum.digest('hex');
 };
@@ -429,7 +429,7 @@ const VueMap = Vue.extend({
             const index = arr.indexOf(this.sub_maps[this.currentEditingLayer-1]);
             arr.splice(index, 2, arr[index+1], arr[index]);
             this.normalizePriority(arr);
-        }
+            }
         },
     computed
 });

@@ -130,11 +130,11 @@ const mapedit = {
                 [`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`]
             ];
 
-            const {dirs, files} = await rfs.read(`${tileFolder}${path.sep}${mapID}`);
+            const {dirs, files} = await rfs.read(`${tileFolder}${path.sep}${mapID}`); // eslint-disable-line no-unused-vars
             files.map((file) => {
                 const localPath = path.resolve(file);
                 const zipName = path.basename(localPath);
-                const zipPath = path.dirname(localPath).match(/[\/\\](tiles[\/\\].+$)/)[1];
+                const zipPath = path.dirname(localPath).match(/[/\\](tiles[/\\].+$)/)[1];
                 targets.push([localPath, zipPath, zipName]);
             });
 
