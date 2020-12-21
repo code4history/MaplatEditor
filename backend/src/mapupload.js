@@ -95,6 +95,7 @@ const MapUpload = {
 
             const tasks = [];
             const mime = extKey == 'png' ? 'image/png' : 'image/jpeg';
+            const quality = extKey == 'png' ? {} : {quality: 0.9};
 
             for (let z = maxZoom; z >= 0; z--) {
                 const pw = Math.round(width / Math.pow(2, maxZoom - z));
@@ -125,7 +126,7 @@ const MapUpload = {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(image, task[1], task[2], task[3], task[4], 0, 0, task[5], task[6]);
 
-                const buffer = canvas.toBuffer(mime);
+                const buffer = canvas.toBuffer(mime, quality);
                 await fs.outputFile(task[0], buffer);
                 progress.update(i + 1);
             }

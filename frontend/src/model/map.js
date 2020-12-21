@@ -32,7 +32,8 @@ const defaultMap = {
     height: undefined,
     url_: '',
     lang: 'ja',
-    imageExtention: undefined
+    imageExtention: undefined,
+    wmtsHash: undefined
 };
 const langs = {
     'ja': 'japanese',
@@ -158,10 +159,13 @@ computed.gcpsEditReady = function() {
 };
 computed.wmtsEditReady = function() {
     const tin = this.share.tinObjects[0];
-    return (this.mainLayerHash && tin.strict_status == Tin.STATUS_STRICT);
+    return (this.mainLayerHash && this.wmtsDirty && tin.strict_status == Tin.STATUS_STRICT);
 }
 computed.dirty = function() {
     return !_.isDeepEqual(this.map_, this.map);
+};
+computed.wmtsDirty = function() {
+    return this.wmtsHash !== this.mainLayerHash;
 };
 computed.gcps = function() {
     if (this.currentEditingLayer == 0) {

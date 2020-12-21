@@ -37,7 +37,7 @@ async function handleMaxZoom(imagePath, tileRoot, mapID, extension) {
 
                 const tileFile = `${tileFolder}\\${ty}.${extension}`;
 
-                const jpgTile = canvas.toBuffer('image/jpeg');
+                const jpgTile = canvas.toBuffer('image/jpeg', {quality: 0.9});
                 await fs.outputFile(tileFile, jpgTile);
             }
         }

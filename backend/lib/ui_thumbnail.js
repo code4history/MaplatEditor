@@ -23,7 +23,7 @@ exports.make_thumbnail = async function(from, to, oldSpec) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(image, 0, 0, w, h);
 
-            const jpgTile = canvas.toBuffer('image/jpeg');
+            const jpgTile = canvas.toBuffer('image/jpeg', {quality: 0.9});
             fs.outputFile(to, jpgTile);
         } catch (e) {
             throw e;

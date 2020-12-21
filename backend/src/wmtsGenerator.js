@@ -166,7 +166,7 @@ const WmtsGenerator = {
             }
         }
 
-        const pngTile = tileCanvas.toBuffer('image/png');
+        const pngTile = tileCanvas.toBuffer('image/png', {});
 
         const tileFolder = `${tileRoot}${path.sep}${z}${path.sep}${x}`;
         const tileFile = `${tileFolder}${path.sep}${y}.png`;
@@ -221,7 +221,7 @@ const WmtsGenerator = {
         }
 
         tileCtx.putImageData(tileImgData, 0, 0);
-        const pngTile = tileCanvas.toBuffer('image/png');
+        const pngTile = tileCanvas.toBuffer('image/png', {});
 
         const tileFolder = `${tileRoot}${path.sep}${z}${path.sep}${x}`;
         const tileFile = `${tileFolder}${path.sep}${y}.png`;
