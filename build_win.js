@@ -1,7 +1,7 @@
 const config = {
   "appId": "jp.maplat.editor",
   "asarUnpack": [
-    "assets/win/imagemagick"
+    "assets/win/canvas"
   ],
   "directories": {
     "output": "dist"

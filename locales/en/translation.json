@@ -173,6 +173,12 @@
     "over_title": "Enter {{lang}} title for representation within 30 half-width characters (or 15 full-width characters).",
     "image_copyright": "Enter representation of map image's copyright."
   },
+  "wmtsgenerate": {
+    "generate": "WMTS Tile Generation",
+    "error_generation": "Error in WMTS tile generation.",
+    "success_generation": "WMTS tile generation succeeded.",
+    "generating_tile": "WMTS tiles are being generated."
+  },
   "menu": {
     "quit": "Quit MaplatEditor",
     "about": "About MaplatEditor",

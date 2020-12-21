@@ -1194,11 +1194,10 @@ function setVueMap() {
         if (!wmtsGenerator) {
             wmtsGenerator = require('electron').remote.require('./wmtsGenerator'); // eslint-disable-line no-undef
             wmtsGenerator.init();
-            alert("!");
             ipcRenderer.on('wmtsGenerated', (event, arg) => {
                 document.body.style.pointerEvents = null; // eslint-disable-line no-undef
                 if (arg.err) {
-                    console.log(arg.err);
+                    console.log(arg.err); // eslint-disable-line no-undef
                     vueModal.finish(t('wmtsgenerate.error_generation')); // eslint-disable-line no-undef
                     return;
                 } else {
@@ -1208,7 +1207,7 @@ function setVueMap() {
         }
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
         vueModal.show(t('wmtsgenerate.generating_tile'));
-        setTimeout(() => {
+        setTimeout(() => { // eslint-disable-line no-undef
             wmtsGenerator.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtention);
         }, 1);
     });

@@ -133,7 +133,7 @@ const WmtsGenerator = {
                 focused.webContents.send('wmtsGenerated', {});
             }
         } catch (err) {
-            console.log(err);
+            console.log(err); // eslint-disable-line no-undef
             if (focused) {
                 focused.webContents.send('wmtsGenerated', {
                     err
