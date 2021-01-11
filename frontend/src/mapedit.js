@@ -1,5 +1,6 @@
-import { HistMap_tin } from '@maplat/core/src/histmap_tin'; // eslint-disable-line no-unused-vars
-import {HistMap} from '@maplat/core/src/histmap';
+import { HistMap_tin } from '@maplat/core/lib/source/histmap_tin'; // eslint-disable-line no-unused-vars
+import {HistMap} from '@maplat/core/lib/source/histmap';
+import { mapSourceFactory } from "@maplat/core/lib/source_ex";
 import bsn from 'bootstrap.native';
 import {polygon, booleanPointInPolygon} from '@turf/turf';
 import Map from "./model/map";
@@ -15,8 +16,8 @@ import {LineString, Point} from "ol/geom";
 import {Feature} from "ol";
 import {GeoJSON} from "ol/format";
 import {transform} from "ol/proj";
-import {MERC_MAX} from "@maplat/core/src/const_ex";
-import {MaplatMap} from "@maplat/core/src/map_ex";
+import {MERC_MAX} from "@maplat/core/lib/const_ex";
+import {MaplatMap} from "@maplat/core/lib/map_ex";
 import {altKeyOnly} from "ol/events/condition";
 import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
@@ -535,7 +536,7 @@ const boundsStyle = new Style({
 });
 
 function reflectIllstMap() {
-    return HistMap.createAsync({
+    return mapSourceFactory({
         mapID,
         url: vueMap.url_,
         width: vueMap.width,
@@ -1049,14 +1050,14 @@ function mapObjectInit() {
         return Promise.all(tmsList.reverse().map((tms) =>
             ((tms) => {
                 const promise = tms.attr ?
-                    HistMap.createAsync({
+                    mapSourceFactory({
                         mapID: tms.mapID,
                         attr: tms.attr,
                         maptype: 'base',
                         url: tms.url,
                         maxZoom: tms.maxZoom
                     }, {}) :
-                    HistMap.createAsync(tms.mapID, {});
+                    mapSourceFactory(tms.mapID, {});
                 return promise.then((source) => {
                     const attr = langObj.translate(source.attr);
                     source.setAttributions(attr);
