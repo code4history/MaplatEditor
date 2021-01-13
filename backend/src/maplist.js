@@ -10,6 +10,7 @@ const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no
 let mapFolder;
 let tileFolder;
 let uiThumbnailFolder;
+let dbFile;
 
 const maplist = {
     request() {
@@ -21,8 +22,9 @@ const maplist = {
         uiThumbnailFolder = `${saveFolder}${path.sep}tmbs`;
         fs.ensureDir(uiThumbnailFolder, () => {});
         const focused = BrowserWindow.getFocusedWindow();
+        dbFile = `${saveFolder}${path.sep}nedb.db`;
 
-        new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+        new Promise((resolve, _reject) => { // eslint-disable-line no-unused-vars
             fs.readdir(mapFolder, (err, files) => {
                 resolve(files.map((file) => {
                     const fullPath = mapFolder + path.sep + file;
@@ -33,7 +35,7 @@ const maplist = {
         }).then((files) => {
             for (let i=0; i<files.length; i++) {
                 const tmp = files[i];
-                new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+                new Promise((resolve, _reject) => { // eslint-disable-line no-unused-vars
                     const file = tmp;
                     fs.readFile(file.fullPath, 'utf8', (err, data) => {
                         if (err) throw err;

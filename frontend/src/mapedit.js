@@ -103,8 +103,8 @@ stroke-width="2"></polygon>
         mercMap.setMarker(gcp[1], { gcpIndex: i }, iconStyle);
     }
     for (let i=0; i<edges.length; i++) {
-        const gcp1 = gcps[edges[i].startEnd[0]];
-        const gcp2 = gcps[edges[i].startEnd[1]];
+        const gcp1 = gcps[edges[i][2][0]];
+        const gcp2 = gcps[edges[i][2][1]];
         const illst1 = illstSource.xy2HistMapCoords(gcp1[0]);
         const illst2 = illstSource.xy2HistMapCoords(gcp2[0]);
         const style = new Style({
@@ -114,22 +114,22 @@ stroke-width="2"></polygon>
             })
         });
         const mercCoords = [gcp1[1]];
-        edges[i].mercNodes.map((node) => {
+        edges[i][1].map((node) => {
             mercCoords.push(node);
         });
         mercCoords.push(gcp2[1]);
         const mercLine = {
             geometry: new LineString(mercCoords),
-            startEnd: edges[i].startEnd
+            startEnd: edges[i][2]
         };
         const illstCoords = [illst1];
-        edges[i].illstNodes.map((node) => {
+        edges[i][0].map((node) => {
             illstCoords.push(illstSource.xy2HistMapCoords(node));
         });
         illstCoords.push(illst2);
         const illstLine = {
             geometry: new LineString(illstCoords),
-            startEnd: edges[i].startEnd
+            startEnd: edges[i][2]
         };
         illstMap.setFeature(illstLine, style, 'edges');
         mercMap.setFeature(mercLine, style, 'edges');
@@ -151,12 +151,8 @@ function edgeEndMarker (arg, map) { // eslint-disable-line no-unused-vars
     if (gcpIndex !== 'new') {
         const edge = [newlyAddEdge, gcpIndex].sort((a, b) => a > b ? 1 : a < b ? -1 : 0);
         newlyAddEdge = undefined;
-        if (vueMap.edges.findIndex((item) => item.startEnd[0] === edge[0] && item.startEnd[1] === edge[1]) < 0) {
-            vueMap.edges.push({
-                startEnd: edge,
-                mercNodes: [],
-                illstNodes: []
-            });
+        if (vueMap.edges.findIndex((item) => item[2][0] === edge[0] && item[2][1] === edge[1]) < 0) {
+            vueMap.edges.push([[], [], edge]);
         } else {
             alert('その対応線は指定済です。'); // eslint-disable-line no-undef
         }
@@ -196,7 +192,7 @@ function removeEdge (arg, map) { // eslint-disable-line no-unused-vars
     const edge = arg.data.edge;
     const startEnd = edge.get('startEnd');
     const edges = vueMap.edges;
-    const edgeIndex = edges.findIndex((item) => item.startEnd[0] === startEnd[0] && item.startEnd[1] === startEnd[1]);
+    const edgeIndex = edges.findIndex((item) => item[2][0] === startEnd[0] && item[2][1] === startEnd[1]);
     if (edgeIndex > -1) {
         edges.splice(edgeIndex, 1);
     }
@@ -209,7 +205,7 @@ function addMarkerOnEdge (arg, map) {
     const coord = edgeGeom.getGeometry().getClosestPoint(arg.coordinate);
     const xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
     const startEnd = edgeGeom.get('startEnd');
-    const edgeIndex = vueMap.edges.findIndex((edge) => edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1]);
+    const edgeIndex = vueMap.edges.findIndex((edge) => edge[2][0] === startEnd[0] && edge[2][1] === startEnd[1]);
     const edge = vueMap.edges[edgeIndex];
 
     console.log(xy); // eslint-disable-line no-undef,no-console
@@ -221,8 +217,8 @@ function addMarkerOnEdge (arg, map) {
     const that1 = gcp1[isIllst ? 1 : 0];
     const that2 = gcp2[isIllst ? 1 : 0];
 
-    const thisNodes = Object.assign([], isIllst ? edge.illstNodes : edge.mercNodes);
-    const thatNodes = Object.assign([], isIllst ? edge.mercNodes : edge.illstNodes);
+    const thisNodes = Object.assign([], isIllst ? edge[0] : edge[1]);
+    const thatNodes = Object.assign([], isIllst ? edge[1] : edge[0]);
     thisNodes.unshift(this1);
     thisNodes.push(this2);
     thatNodes.unshift(that1);
@@ -279,16 +275,16 @@ function addMarkerOnEdge (arg, map) {
     const thatLastNodes = thatNodes.slice(thatIndex, thatNodes.length - 1);
     vueMap.gcps.push([isIllst ? xy : thatXy, isIllst ? thatXy : xy]);
     const newGcpIndex = vueMap.gcps.length - 1;
-    vueMap.edges.splice(edgeIndex, 1, {
-        startEnd: [startEnd[0], newGcpIndex],
-        illstNodes: isIllst ? thisPrevNodes : thatPrevNodes,
-        mercNodes: isIllst ? thatPrevNodes : thisPrevNodes
-    });
-    vueMap.edges.push({
-        startEnd: [newGcpIndex, startEnd[1]],
-        illstNodes: isIllst ? thisLastNodes : thatLastNodes,
-        mercNodes: isIllst ? thatLastNodes : thisLastNodes
-    });
+    vueMap.edges.splice(edgeIndex, 1, [
+        isIllst ? thisPrevNodes : thatPrevNodes,
+        isIllst ? thatPrevNodes : thisPrevNodes,
+        [startEnd[0], newGcpIndex]
+    ]);
+    vueMap.edges.push([
+        isIllst ? thisLastNodes : thatLastNodes,
+        isIllst ? thatLastNodes : thisLastNodes,
+        [newGcpIndex, startEnd[1]]
+    ]);
     gcpsToMarkers();
 }
 
@@ -304,11 +300,11 @@ function removeMarker (arg, map) {
         const edges = vueMap.edges;
         for (let i = edges.length-1; i >= 0; i--) {
             const edge = edges[i];
-            if (edge.startEnd[0] === gcpIndex || edge.startEnd[1] === gcpIndex) {
+            if (edge[2][0] === gcpIndex || edge[2][1] === gcpIndex) {
                 edges.splice(i, 1);
             } else {
-                if (edge.startEnd[0] > gcpIndex) edge.startEnd[0] = edge.startEnd[0] - 1;
-                if (edge.startEnd[1] > gcpIndex) edge.startEnd[1] = edge.startEnd[1] - 1;
+                if (edge[2][0] > gcpIndex) edge[2][0] = edge[2][0] - 1;
+                if (edge[2][1] > gcpIndex) edge[2][1] = edge[2][1] - 1;
             }
         }
         gcpsToMarkers();
@@ -969,13 +965,13 @@ function mapObjectInit() {
         const startEnd = feature.get('startEnd');
         const start = vueMap.gcps[startEnd[0]]; // eslint-disable-line no-unused-vars
         const end = vueMap.gcps[startEnd[1]]; // eslint-disable-line no-unused-vars
-        const edgeIndex = vueMap.edges.findIndex((edge) => edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1]);
+        const edgeIndex = vueMap.edges.findIndex((edge) => edge[2][0] === startEnd[0] && edge[2][1] === startEnd[1]);
         const edge = vueMap.edges[edgeIndex];
         const points = feature.getGeometry().getCoordinates().filter((item, index, array) =>
             (index === 0 || index === array.length - 1) ? false : true).map((merc) =>
             transform(merc, 'EPSG:3857', forProj));
-        if (isIllust) edge.illstNodes = points;
-        else edge.mercNodes = points;
+        if (isIllust) edge[0] = points;
+        else edge[1] = points;
         vueMap.edges.splice(edgeIndex, 1, edge);
     };
     edgeModify.on('modifystart', edgeModifyStart);

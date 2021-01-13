@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@maplat/core": "^0.8.5",
-    "@maplat/tin": "^0.7.2",
+    "@maplat/tin": "github:code4history/MaplatTin#master",
     "@panter/vue-i18next": "^0.15.2",
     "@turf/helpers": "^6.1.4",
     "@turf/turf": "^5.1.6",
