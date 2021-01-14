@@ -6,6 +6,7 @@ const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
+const nedbAccessor = require('../lib/nedbAccessor'); // eslint-disable-line no-undef
 
 let mapFolder;
 let tileFolder;
@@ -24,17 +25,16 @@ const maplist = {
         const focused = BrowserWindow.getFocusedWindow();
         dbFile = `${saveFolder}${path.sep}nedb.db`;
 
-        new Promise((resolve, _reject) => { // eslint-disable-line no-unused-vars
-            fs.readdir(mapFolder, (err, files) => {
-                resolve(files.map((file) => {
-                    const fullPath = mapFolder + path.sep + file;
-                    const mapID = path.parse(fullPath).name;
-                    return { fullPath, mapID };
-                }).filter((file) => fs.statSync(file.fullPath).isFile() && /.*\.json$/.test(file.fullPath)));
-            });
-        }).then((files) => {
-            for (let i=0; i<files.length; i++) {
-                const tmp = files[i];
+        const nedb = nedbAccessor.getInstance(dbFile);
+
+        nedb.search().then((result) => {
+            for (let i=0; i < result.docs.length; i++) {
+                const doc = result.docs[i];
+
+
+
+
+
                 new Promise((resolve, _reject) => { // eslint-disable-line no-unused-vars
                     const file = tmp;
                     fs.readFile(file.fullPath, 'utf8', (err, data) => {
