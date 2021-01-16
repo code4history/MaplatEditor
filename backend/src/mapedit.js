@@ -10,22 +10,19 @@ const Tin = require('@maplat/tin'); // eslint-disable-line no-undef
 const AdmZip = require('adm-zip'); // eslint-disable-line no-undef
 const rfs = require('recursive-fs'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
+const nedbAccessor = require('../lib/nedbAccessor'); // eslint-disable-line no-undef
 
-let mapFolder;
-let compiledFolder;
 let tileFolder;
 let originalFolder;
 let thumbFolder;
 let tmpFolder;
 let focused;
+let dbFile;
+let nedb;
 
 const mapedit = {
     init() {
         const saveFolder = settings.getSetting('saveFolder');
-        mapFolder = `${saveFolder}${path.sep}maps`;
-        fs.ensureDir(mapFolder, () => {});
-        compiledFolder = `${saveFolder}${path.sep}compiled`;
-        fs.ensureDir(compiledFolder, () => {});
         tileFolder = `${saveFolder}${path.sep}tiles`;
         fs.ensureDir(tileFolder, () => {});
         originalFolder = `${saveFolder}${path.sep}originals`;
@@ -34,93 +31,74 @@ const mapedit = {
         tmpFolder = settings.getSetting('tmpFolder');
         fs.ensureDir(thumbFolder, () => {});
 
+        dbFile = `${saveFolder}${path.sep}nedb.db`;
+        nedb = nedbAccessor.getInstance(dbFile);
+
         focused = BrowserWindow.getFocusedWindow();
     },
-    request(mapID) {
-        const self = this;
-        const mapFile = `${mapFolder}${path.sep}${mapID}.json`;
-        const compiledFile = `${compiledFolder}${path.sep}${mapID}.json`;
-
-        const loadData = (data) => {
-            const json = JSON.parse(data);
-            if (!json.width || !json.height) {
-                focused.webContents.send('mapData', [json, ]);
-                return;
-            }
-            const promise = new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-                if (json.url) {
-                    json.url_ = json.url;
-                    resolve(json);
-                } else {
-                    const thumbFolder = `${tileFolder}${path.sep}${mapID}${path.sep}0${path.sep}0`;
-                    fs.readdir(thumbFolder, (err, thumbs) => {
-                        if (!thumbs) {
+    async request(mapID) {
+        let json = await nedb.find(mapID);
+        if (!json.width || !json.height) {
+            focused.webContents.send('mapData', [json, ]);
+            return;
+        }
+        json = await new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+            if (json.url) {
+                json.url_ = json.url;
+                resolve(json);
+            } else {
+                const thumbFolder = `${tileFolder}${path.sep}${mapID}${path.sep}0${path.sep}0`;
+                fs.readdir(thumbFolder, (err, thumbs) => {
+                    if (!thumbs) {
+                        resolve(json);
+                        return;
+                    }
+                    for (let i=0; i<thumbs.length; i++) {
+                        const thumb = thumbs[i];
+                        if (/^0\.(?:jpg|jpeg|png)$/.test(thumb)) {
+                            let thumbURL = fileUrl(thumbFolder + path.sep + thumb);
+                            thumbURL = thumbURL.replace(/\/0\/0\/0\./, '/{z}/{x}/{y}.');
+                            json.url_ = thumbURL;
                             resolve(json);
                             return;
                         }
-                        for (let i=0; i<thumbs.length; i++) {
-                            const thumb = thumbs[i];
-                            if (/^0\.(?:jpg|jpeg|png)$/.test(thumb)) {
-                                let thumbURL = fileUrl(thumbFolder + path.sep + thumb);
-                                thumbURL = thumbURL.replace(/\/0\/0\/0\./, '/{z}/{x}/{y}.');
-                                json.url_ = thumbURL;
-                                resolve(json);
-                                return;
-                            }
-                        }
-                    });
-                }
-            });
+                    }
+                });
+            }
+        });
 
-            promise.then((json) => {
-                const promises = [Promise.resolve(json)];
+        const promises = [];
 
-                if (json.compiled) {
+        if (json.compiled) {
+            const tin = new Tin({});
+            tin.setCompiled(json.compiled);
+            json.gcps = tin.points;
+            json.edges = tin.edges || [];
+            delete json.compiled;
+            promises.push(Promise.resolve(tin.getCompiled()));
+        } else {
+            promises.push(this.createTinFromGcpsAsync(json.gcps, json.edges || [], [json.width, json.height],
+              null, json.strictMode, json.vertexMode));
+        }
+        if (json.sub_maps) {
+            for (let i=0; i< json.sub_maps.length; i++) {
+                const sub_map = json.sub_maps[i];
+                if (sub_map.compiled) {
                     const tin = new Tin({});
-                    tin.setCompiled(json.compiled);
-                    json.gcps = tin.points;
-                    json.edges = tin.edges || [];
-                    delete json.compiled;
+                    tin.setCompiled(sub_map.compiled);
+                    sub_map.gcps = tin.points;
+                    sub_map.edges = tin.edges || [];
+                    delete sub_map.compiled;
                     promises.push(Promise.resolve(tin.getCompiled()));
                 } else {
-                    promises.push(self.createTinFromGcpsAsync(json.gcps, json.edges || [], [json.width, json.height],
-                        null, json.strictMode, json.vertexMode));
+                    promises.push(this.createTinFromGcpsAsync(sub_map.gcps, sub_map.edges || [], null,
+                      sub_map.bounds, json.strictMode, json.vertexMode));
                 }
-                if (json.sub_maps) {
-                    for (let i=0; i< json.sub_maps.length; i++) {
-                        const sub_map = json.sub_maps[i];
-                        if (sub_map.compiled) {
-                            const tin = new Tin({});
-                            tin.setCompiled(sub_map.compiled);
-                            sub_map.gcps = tin.points;
-                            sub_map.edges = tin.edges || [];
-                            delete sub_map.compiled;
-                            promises.push(Promise.resolve(tin.getCompiled()));
-                        } else {
-                            promises.push(self.createTinFromGcpsAsync(sub_map.gcps, sub_map.edges || [], null,
-                                sub_map.bounds, json.strictMode, json.vertexMode));
-                        }
-                    }
-                }
-
-                return Promise.all(promises);
-            }).then((results) => {
-                const json = results.shift();
-                const tins = results;
-                focused.webContents.send('mapData', [json, tins]);
-            });
-        };
-
-        fs.readFile(compiledFile, 'utf8', (err, data) => {
-            if (err) {
-                fs.readFile(mapFile, 'utf8', (err, data) => {
-                    if (err) throw err;
-                    loadData(data);
-                });
-                return;
             }
-            loadData(data);
-        });
+        }
+
+        const tins = await Promise.all(promises);
+        focused.webContents.send('mapData', [json, tins]);
     },
     download(mapObject) {
         setTimeout(async () => { // eslint-disable-line no-undef
@@ -184,10 +162,14 @@ const mapedit = {
             if (typeof tin == 'string') return;
             if (index == 0) {
                 delete compiled.gcps;
+                delete compiled.edges;
+                delete compiled.width;
+                delete compiled.height;
                 compiled.compiled = tin;
             } else {
                 const sub_map = compiled.sub_maps[index - 1];
                 delete sub_map.gcps;
+                delete sub_map.edges;
                 sub_map.compiled = tin;
             }
         });
@@ -378,12 +360,10 @@ const mapedit = {
             focused.webContents.send('saveResult', err);
         });
     },
-    checkID(id) {
-        const mapFile = `${mapFolder}${path.sep}${id}.json`;
-        fs.stat(mapFile, (err, stats) => { // eslint-disable-line no-unused-vars
-            if (err) focused.webContents.send('checkIDResult', true);
-            else focused.webContents.send('checkIDResult', false);
-        });
+    async checkID(id) {
+        const json = await nedb.find(id);
+        if (!json) focused.webContents.send('checkIDResult', true);
+        else focused.webContents.send('checkIDResult', false);
     },
     updateTin(gcps, edges, index, bounds, strict, vertex) {
         const wh = index == 0 ? bounds : null;

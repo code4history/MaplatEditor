@@ -17,6 +17,24 @@ class nedbAccessor {
     this.db = new Datastore({ filename: file, autoload: true });
   }
 
+  async find(mapID) {
+    return new Promise((res, rej) => {
+      this.db.findOne({ mapID }, (err, doc) => {
+        if (err) rej(err);
+        else res(doc);
+      });
+    });
+  }
+
+  async upsert(mapID, data) {
+    return new Promise((res, rej) => {
+      this.db.update({ mapID }, data, { upsert: true }, (err, num) => {
+        if (err) rej(err);
+        else res();
+      });
+    });
+  }
+
   async search(condition = null, skip = 0, limit = 20) {
     const where = {};
     if (condition) where["$where"] = function() {
