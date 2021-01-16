@@ -147,7 +147,7 @@ const mapedit = {
             });
         }, 1000);
     },
-    save(mapObject, tins) {
+    async save(mapObject, tins) {
         const status = mapObject.status;
         const mapID = mapObject.mapID;
         const url_ = mapObject.url_;
@@ -160,7 +160,7 @@ const mapedit = {
         const compiled = JSON.parse(content);
         tins.map((tin, index) => {
             if (typeof tin == 'string') return;
-            if (index == 0) {
+            if (index === 0) {
                 delete compiled.gcps;
                 delete compiled.edges;
                 delete compiled.width;
@@ -173,10 +173,6 @@ const mapedit = {
                 sub_map.compiled = tin;
             }
         });
-        const compiledContent = JSON.stringify(compiled, null, null);
-
-        const mapFile = `${mapFolder}${path.sep}${mapID}.json`;
-        const compiledFile = `${compiledFolder}${path.sep}${mapID}.json`;
 
         const tmpFolder = `${settings.getSetting('tmpFolder')}${path.sep}tiles`;
         const tmpUrl = fileUrl(tmpFolder);
@@ -187,140 +183,116 @@ const mapedit = {
         const tmpCheck = url_ && url_.match(regex);
 
         Promise.all([
-            new Promise((resolve, reject) => {
-                if (status != 'Update') {
-                    try {
-                        fs.statSync(mapFile);
+            new Promise(async (resolve, reject) => {
+                if (status !== 'Update') {
+                    const existCheck = await nedb.find(mapID);
+                    if (existCheck) {
                         reject('Exist');
                         return;
-                    } catch(err) { // eslint-disable-line no-empty
                     }
+
                     if (status.match(/^(Change|Copy):(.+)$/)) {
-                        const isCopy = RegExp.$1 == 'Copy';
+                        const isCopy = RegExp.$1 === 'Copy';
                         const oldMapID = RegExp.$2;
-                        const oldMapFile = `${mapFolder}${path.sep}${oldMapID}.json`;
-                        const oldCompiledFile = `${compiledFolder}${path.sep}${oldMapID}.json`;
                         const oldTile = `${tileFolder}${path.sep}${oldMapID}`;
                         const oldOriginal = `${originalFolder}${path.sep}${oldMapID}.${imageExtention}`;
-                        const oldThumbnail = `${thumbFolder}${path.sep}${oldMapID}_menu.jpg`;
-                        fs.writeFile(mapFile, content, (err) => {
-                            if (err) {
-                                reject('Error');
-                                return;
+                        const oldThumbnail = `${thumbFolder}${path.sep}${oldMapID}.jpg`;
+                        try {
+                            await nedb.upsert(mapID, compiled);
+                            if (!isCopy) {
+                                await nedb.delete(oldMapID);
                             }
-                            const nextPromise = Promise.all([
-                                new Promise((resolve_, reject_) => {
-                                    if (isCopy) {
-                                        resolve_();
-                                    } else {
-                                        fs.remove(oldMapFile, (err) => {
-                                            if (err) reject_(err);
-                                            try {
-                                                fs.statSync(oldCompiledFile);
-                                                fs.remove(oldCompiledFile, (err) => {
-                                                    if (err) reject_(err);
-                                                    resolve_();
-                                                });
-                                            } catch(err) {
-                                                resolve_();
-                                            }
-                                        });
-                                    }
-                                }),
-                                new Promise((resolve_, reject_) => {
-                                    if (tmpCheck) {
-                                        if (isCopy) {
-                                            resolve_();
-                                        } else {
-                                            try {
-                                                fs.statSync(oldTile);
-                                                fs.remove(oldTile, (err) => {
-                                                    if (err) reject_(err);
-                                                    resolve_();
-                                                });
-                                            } catch(err) {
-                                                resolve_();
-                                            }
-                                        }
-                                    } else {
-                                        const process = isCopy ? fs.copy : fs.move;
+                            if (tmpCheck) {
+                                if (!isCopy) {
+                                    await new Promise((res_, rej_) => {
                                         try {
                                             fs.statSync(oldTile);
-                                            process(oldTile, newTile, (err) => {
-                                                if (err) reject_(err);
-                                                resolve_();
+                                            fs.remove(oldTile, (err) => {
+                                                if (err) rej_(err);
+                                                res_();
                                             });
                                         } catch(err) {
-                                            resolve_();
+                                            res_();
                                         }
-                                    }
-                                }),
-                                new Promise((resolve_, reject_) => {
-                                    if (tmpCheck) {
-                                        if (isCopy) {
-                                            resolve_();
-                                        } else {
-                                            try {
-                                                fs.statSync(oldOriginal);
-                                                fs.remove(oldOriginal, (err) => {
-                                                    if (err) reject_(err);
-                                                    resolve_();
-                                                });
-                                            } catch(err) {
-                                                resolve_();
-                                            }
-                                        }
-                                    } else {
-                                        const process = isCopy ? fs.copy : fs.move;
+                                    });
+                                    await new Promise((res_, rej_) => {
                                         try {
                                             fs.statSync(oldOriginal);
-                                            process(oldOriginal, newOriginal, (err) => {
-                                                if (err) reject_(err);
-                                                try {
-                                                    fs.statSync(oldThumbnail);
-                                                    process(oldThumbnail, newThumbnail, (err) => {
-                                                        if (err) reject_(err);
-                                                        resolve();
-                                                    });
-                                                } catch(err) {
-                                                    resolve();
-                                                }
+                                            fs.remove(oldOriginal, (err) => {
+                                                if (err) rej_(err);
+                                                res_();
                                             });
                                         } catch (err) {
-                                            resolve_();
+                                            res_();
                                         }
-                                    }
-                                })
-                            ]);
-                            fs.writeFile(compiledFile, compiledContent, (err) => {
-                                if (err) {
-                                    reject('Error');
-                                    return;
+                                    });
+                                    await new Promise((res_, rej_) => {
+                                        try {
+                                            fs.statSync(oldThumbnail);
+                                            fs.remove(oldThumbnail, (err) => {
+                                                if (err) rej_(err);
+                                                res_();
+                                            });
+                                        } catch (err) {
+                                            res_();
+                                        }
+                                    });
                                 }
-                                nextPromise.then(() => {
-                                    resolve('Success');
-                                }).catch(() => {
-                                    reject('Error');
+                            } else {
+                                const process = isCopy ? fs.copy : fs.move;
+                                await new Promise((res_, rej_) => {
+                                    try {
+                                        fs.statSync(oldTile);
+                                        process(oldTile, newTile, (err) => {
+                                            if (err) rej_(err);
+                                            res_();
+                                        });
+                                    } catch (err) {
+                                        res_();
+                                    }
                                 });
-                            });
-                        });
+                                await new Promise((res_, rej_) => {
+                                    try {
+                                        fs.statSync(oldOriginal);
+                                        process(oldOriginal, newOriginal, (err) => {
+                                            if (err) rej_(err);
+                                            res_();
+                                        });
+                                    } catch (err) {
+                                        res_();
+                                    }
+                                });
+                                await new Promise((res_, rej_) => {
+                                    try {
+                                        fs.statSync(oldThumbnail);
+                                        process(oldThumbnail, newThumbnail, (err) => {
+                                            if (err) rej_(err);
+                                            res_();
+                                        });
+                                    } catch (err) {
+                                        res_();
+                                    }
+                                });
+                            }
+                            resolve('Success');
+                        } catch(e) {
+                            reject('Error');
+                        }
                     } else {
-                        fs.writeFile(mapFile, content, (err) => {
-                            if (err) reject('Error');
-                            else fs.writeFile(compiledFile, compiledContent, (err) => {
-                                if (err) reject('Error');
-                                else resolve('Success');
-                            });
-                        });
+                        try {
+                            await nedb.upsert(mapID, compiled);
+                            resolve('Success');
+                        } catch(e) {
+                            reject('Error');
+                        }
                     }
                 } else {
-                    fs.writeFile(mapFile, content, (err) => {
-                        if (err) reject('Error');
-                        else fs.writeFile(compiledFile, compiledContent, (err) => {
-                            if (err) reject('Error');
-                            else resolve('Success');
-                        });
-                    });
+                    try {
+                        await nedb.upsert(mapID, compiled);
+                        resolve('Success');
+                    } catch(e) {
+                        reject('Error');
+                    }
                 }
             }),
             new Promise((resolve, reject) => {

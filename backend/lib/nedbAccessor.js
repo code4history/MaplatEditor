@@ -17,6 +17,15 @@ class nedbAccessor {
     this.db = new Datastore({ filename: file, autoload: true });
   }
 
+  async delete(mapID) {
+    return new Promise((res, rej) => {
+      this.db.remove(mapID, {}, (err, num) => {
+        if (err) rej(err);
+        else res();
+      });
+    });
+  }
+
   async find(mapID) {
     return new Promise((res, rej) => {
       this.db.findOne({ mapID }, (err, doc) => {
