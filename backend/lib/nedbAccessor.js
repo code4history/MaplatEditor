@@ -47,13 +47,13 @@ class nedbAccessor {
 };
 
 function checkLocaleAttr(attr, condition) {
-  const conds = condition.split(" ");
+  const conds = condition.trim().split(" ");
   const isString = typeof attr === "string";
   return conds.reduce((ret, cond) => {
     const reg = new RegExp(cond);
-    if (isString) return ret || (!!attr.match(reg));
-    else return ret || (!!Object.keys(attr).reduce((ret_, lang) => ret_ || attr[lang].match(reg), false));
-  }, false);
+    if (isString) return ret && (!!attr.match(reg));
+    else return ret && (!!Object.keys(attr).reduce((ret_, lang) => ret_ || attr[lang].match(reg), false));
+  }, true);
 }
 
 module.exports = nedbAccessor; // eslint-disable-line no-undef

@@ -63,6 +63,7 @@
     "i18next-fs-backend": "^1.0.7",
     "i18next-xhr-backend": "^3.2.2",
     "nan": "^2.14.1",
+    "nedb": "^1.8.0",
     "node-pre-gyp": "^0.15.0",
     "ol": "^6.4.3",
     "ol-contextmenu": "^4.0.1",

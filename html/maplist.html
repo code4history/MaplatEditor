@@ -21,15 +21,21 @@
   <div class="h100">
     <header-template current="maplist.html" v-bind:$t="$t"></header-template>
     <div class="container main" role="main">
+      <div class="row" v-bind:style="{ 'padding-left': padding + 'px', 'padding-right': padding + 'px' }">
+        <div class="form-group col-xs-3" style="width: 200px; padding: 0px;">
+          <a href="mapedit.html" class="btn btn-default" style="width: 200px;">{{$t('maplist.newCreate')}}</a>
+        </div>
+        <div class="form-group col-xs-6" v-bind:style="{ width: searchWidth + 'px' }" style="padding: 0px;">
+          <input type="text" class="form-control" style="margin-left: 5px;" v-bind:style="{ width: (searchWidth - 5) + 'px' }" placeholder="検索条件を入力してください" v-model="condition">
+        </div>
+        <div class="form-group col-xs-3" style="width: 105px; padding: 0px;">
+          <button class="btn btn-default form-group" style="width: 100px; margin-left: 5px;" v-bind:disabled="!prev" @click="prevSearch()">&lt;</button>
+        </div>
+        <div class="form-group col-xs-3" style="width: 105px; padding: 0px;">
+          <button class="btn btn-default form-group" style="width: 100px; margin-left: 5px;" v-bind:disabled="!next" @click="nextSearch()">&gt;</button>
+        </div>
+      </div>
       <ul id="maplist" class="tiles-wrap animated">
-        <li>
-          <a href="mapedit.html">
-            <div style="height: 190px; width: 190px; position: relative;">
-              <img src="../img/add_image.png" style="position: absolute; top:0; bottom:0; left: 0; right: 0; height: 190px; width: 190px; margin: auto;">
-            </div>
-          </a>
-          <p>{{$t('maplist.newCreate')}}</p>
-        </li>
         <li v-for="map in maplist" :key="map.mapID">
           <a v-bind:href="'mapedit.html?mapid=' + map.mapID">
             <div style="height: 190px; width: 190px; position: relative;">

@@ -14,80 +14,83 @@ let uiThumbnailFolder;
 let dbFile;
 
 const maplist = {
-    request() {
+    async request(condition, page) {
         const saveFolder = settings.getSetting('saveFolder');
         mapFolder = `${saveFolder}${path.sep}maps`;
-        fs.ensureDir(mapFolder, () => {});
+        fs.ensureDir(mapFolder, () => {
+        });
         tileFolder = `${saveFolder}${path.sep}tiles`;
-        fs.ensureDir(tileFolder, () => {});
+        fs.ensureDir(tileFolder, () => {
+        });
         uiThumbnailFolder = `${saveFolder}${path.sep}tmbs`;
-        fs.ensureDir(uiThumbnailFolder, () => {});
+        fs.ensureDir(uiThumbnailFolder, () => {
+        });
         const focused = BrowserWindow.getFocusedWindow();
         dbFile = `${saveFolder}${path.sep}nedb.db`;
 
         const nedb = nedbAccessor.getInstance(dbFile);
 
-        nedb.search().then((result) => {
-            for (let i=0; i < result.docs.length; i++) {
-                const doc = result.docs[i];
+        if (!condition || condition === "") condition = null;
+        let result;
+        let pageUpdate = 0;
+        while (1) {
+            result = await nedb.search(condition, (page - 1) * 20, 20);
+            if (result.docs.length === 0 && page > 1) {
+                page--;
+                pageUpdate = page;
+            } else break;
+        }
+        if (pageUpdate) result.pageUpdate = pageUpdate;
 
+        const thumbFiles = [];
+        const docs = await Promise.all(result.docs.map(async (doc) => {
+            const res = {
+                mapID: doc.mapID
+            };
+            if (typeof doc.title === 'object') {
+                const lang = doc.lang || 'ja';
+                res.title = doc.title[lang];
+            } else res.title = doc.title;
+            res.width = doc.width;
+            res.height = doc.height;
 
+            if (!res.width || !res.height) return res;
 
-
-
-                new Promise((resolve, _reject) => { // eslint-disable-line no-unused-vars
-                    const file = tmp;
-                    fs.readFile(file.fullPath, 'utf8', (err, data) => {
-                        if (err) throw err;
-                        const json = JSON.parse(data);
-                        if (json.title == null || json.attr == null) resolve();
-                        if (typeof json.title == 'object') {
-                            const lang = json.lang || 'ja';
-                            file.title = json.title[lang];
-                        } else file.title = json.title;
-                        file.width = json.width;
-                        file.height = json.height;
-                        resolve(file);
-                    });
-                }).then((file) => {
-                    if (!file) return;
-                    if (!file.width || !file.height) return [file];
-                    const thumbFolder = `${tileFolder}${path.sep}${file.mapID}${path.sep}0${path.sep}0`;
-                    return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-                        fs.readdir(thumbFolder, (err, thumbs) => {
-                            if (!thumbs) {
-                                resolve([file]);
-                                return;
-                            }
-                            let thumbFile;
-                            for (let i=0; i<thumbs.length; i++) {
-                                const thumb = thumbs[i];
-                                // if (/^0\.jpg$/.test(thumb)) {
-                                if (/^0\.(?:jpg|jpeg|png)$/.test(thumb)) {
-                                    thumbFile = `${thumbFolder}${path.sep}${thumb}`;
-                                    const thumbURL = fileUrl(thumbFile);
-                                    file.thumbnail = thumbURL;
-                                }
-                            }
-                            resolve([file, thumbFile]);
-                        });
-                    });
-                }).then((result) => {
-                    if (!result) return;
-                    const file = result[0];
-                    const thumbFile = result[1];
-                    if (!file) return;
-                    focused.webContents.send('mapListAdd', file);
-                    if (!thumbFile) return;
-
-                    const uiThumbnail = `${uiThumbnailFolder}${path.sep}${file.mapID}.jpg`;
-                    const uiThumbnail_old = `${uiThumbnailFolder}${path.sep}${file.mapID}_menu.jpg`;
-
-                    thumbExtractor.make_thumbnail(thumbFile, uiThumbnail, uiThumbnail_old).then(() => {});
-                }).catch((err) => {
-                    console.log(err); // eslint-disable-line no-undef
+            const thumbFolder = `${tileFolder}${path.sep}${res.mapID}${path.sep}0${path.sep}0`;
+            return new Promise((resolve, reject) => {
+                fs.readdir(thumbFolder, (err, thumbs) => {
+                    if (err) {
+                        //reject(err);
+                        resolve(res);
+                        return;
+                    }
+                    if (!thumbs) {
+                        resolve(res);
+                        return;
+                    }
+                    let thumbFile;
+                    for (let i = 0; i < thumbs.length; i++) {
+                        const thumb = thumbs[i];
+                        if (/^0\.(?:jpg|jpeg|png)$/.test(thumb)) {
+                            thumbFile = `${thumbFolder}${path.sep}${thumb}`;
+                            res.thumbnail = fileUrl(thumbFile);
+                            const uiThumbnail = `${uiThumbnailFolder}${path.sep}${res.mapID}.jpg`;
+                            const uiThumbnail_old = `${uiThumbnailFolder}${path.sep}${res.mapID}_menu.jpg`;
+                            thumbFiles.push([thumbFile, uiThumbnail, uiThumbnail_old]);
+                        }
+                    }
+                    resolve(res);
                 });
-            }
+            });
+        }));
+
+        result.docs = docs;
+
+        focused.webContents.send('mapList', result);
+
+        thumbFiles.forEach((thumbFile) => {
+            thumbExtractor.make_thumbnail(thumbFile[0], thumbFile[1], thumbFile[2]).then(() => {
+            });
         });
     }
 };
