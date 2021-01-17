@@ -19,7 +19,7 @@ class nedbAccessor {
 
   async delete(mapID) {
     return new Promise((res, rej) => {
-      this.db.remove(mapID, {}, (err, num) => {
+      this.db.remove({ _id: mapID }, {}, (err, num) => {
         if (err) rej(err);
         else res();
       });
@@ -28,7 +28,7 @@ class nedbAccessor {
 
   async find(mapID) {
     return new Promise((res, rej) => {
-      this.db.findOne({ mapID }, (err, doc) => {
+      this.db.findOne({ _id: mapID }, (err, doc) => {
         if (err) rej(err);
         else res(doc);
       });
@@ -37,7 +37,8 @@ class nedbAccessor {
 
   async upsert(mapID, data) {
     return new Promise((res, rej) => {
-      this.db.update({ mapID }, data, { upsert: true }, (err, num) => {
+      data._id = mapID;
+      this.db.update({ _id: mapID }, data, { upsert: true }, (err, num) => {
         if (err) rej(err);
         else res();
       });
@@ -51,7 +52,7 @@ class nedbAccessor {
         return ret || checkLocaleAttr(this[attr], condition);
       }, false);
     }
-    const task = this.db.find(where).sort({mapID: 1}).skip(skip).limit(limit + 1);
+    const task = this.db.find(where).sort({ _id: 1 }).skip(skip).limit(limit + 1);
 
     return new Promise((res, rej) => {
       task.exec((err, docs) => {

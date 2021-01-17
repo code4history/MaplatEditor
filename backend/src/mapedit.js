@@ -38,7 +38,8 @@ const mapedit = {
     },
     async request(mapID) {
         let json = await nedb.find(mapID);
-        if (!json.width || !json.height) {
+        const whReady = (json.width && json.height) || json.compiled.wh;
+        if (!whReady) {
             focused.webContents.send('mapData', [json, ]);
             return;
         }
@@ -74,6 +75,10 @@ const mapedit = {
             tin.setCompiled(json.compiled);
             json.gcps = tin.points;
             json.edges = tin.edges || [];
+            if (tin.wh) {
+                json.width = tin.wh[0];
+                json.height = tin.wh[1];
+            }
             delete json.compiled;
             promises.push(Promise.resolve(tin.getCompiled()));
         } else {

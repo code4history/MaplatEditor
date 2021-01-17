@@ -45,14 +45,14 @@ const maplist = {
         const thumbFiles = [];
         const docs = await Promise.all(result.docs.map(async (doc) => {
             const res = {
-                mapID: doc.mapID
+                mapID: doc._id
             };
             if (typeof doc.title === 'object') {
                 const lang = doc.lang || 'ja';
                 res.title = doc.title[lang];
             } else res.title = doc.title;
-            res.width = doc.width;
-            res.height = doc.height;
+            res.width = doc.width || (doc.compiled.wh && doc.compiled.wh[0]);
+            res.height = doc.height || (doc.compiled.wh && doc.compiled.wh[1]);
 
             if (!res.width || !res.height) return res;
 
