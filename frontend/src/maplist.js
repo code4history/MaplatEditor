@@ -2,9 +2,15 @@ import Wookmark from 'wookmark/wookmark';
 import Vue from 'vue';
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
+import VueContextMenu from "vue-context-menu";
+
+console.log(VueContextMenu);
 
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const langObj = new Language();
+
+Vue.use(VueContextMenu);
+const newMenuData = () => ({ mapID: "", name: "" });
 
 async function initRun() {
   new Vue({
@@ -70,7 +76,10 @@ async function initRun() {
         next: false,
         page: 1,
         backend: undefined,
-        condition: ""
+        condition: "",
+        menuData: newMenuData(),
+        showCtx: false,
+        contextClicks: []
       }
     },
     methods: {
@@ -89,6 +98,17 @@ async function initRun() {
       },
       search() {
         this.backend.request(this.condition, this.page);
+      },
+      onCtxOpen(locals) {
+        this.menuData = locals;
+      },
+      onCtxClose(locals) {
+      },
+      resetCtxLocals() {
+        this.menuData = newMenuData();
+      },
+      deleteMap(menuData) {
+        alert(JSON.stringify(menuData));
       }
     },
   });

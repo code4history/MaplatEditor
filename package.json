@@ -76,6 +76,7 @@
     "simple-get": "^4.0.0",
     "underscore": "^1.10.2",
     "vue": "^2.6.11",
+    "vue-context-menu": "^2.0.6",
     "wookmark": "^2.2.0"
   },
   "resolutions": {
