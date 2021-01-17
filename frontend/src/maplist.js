@@ -4,12 +4,12 @@ import {Language} from './model/language';
 import Header from '../vue/header.vue';
 import VueContextMenu from "vue-context-menu";
 
-console.log(VueContextMenu);
-
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
-const langObj = new Language();
+const langObj = Language.getSingleton();
+const backend = require('electron').remote.require('./maplist'); // eslint-disable-line no-undef
+backend.init();
 
-Vue.use(VueContextMenu);
+//Vue.use(VueContextMenu);
 const newMenuData = () => ({ mapID: "", name: "" });
 
 async function initRun() {
@@ -21,11 +21,13 @@ async function initRun() {
       }
     },
     mounted() {
-      this.backend = require('electron').remote.require('./maplist'); // eslint-disable-line no-undef
-      this.backend.request();
+      backend.request();
 
       window.addEventListener('resize', this.handleResize);
 
+      ipcRenderer.on("deleteError", (event, result) => {
+        alert("削除が失敗しました。");
+      });
       ipcRenderer.on('mapList', (event, result) => {
         this.maplist = [];
         this.prev = result.prev;
@@ -64,7 +66,8 @@ async function initRun() {
     el: '#container',
     template: "#maplist-vue-template",
     components: {
-      "header-template": Header
+      "header-template": Header,
+      "context-menu": VueContextMenu
     },
     data() {
       const size = calcResize(document.body.clientWidth);
@@ -75,7 +78,6 @@ async function initRun() {
         prev: false,
         next: false,
         page: 1,
-        backend: undefined,
         condition: "",
         menuData: newMenuData(),
         showCtx: false,
@@ -97,7 +99,7 @@ async function initRun() {
         this.search();
       },
       search() {
-        this.backend.request(this.condition, this.page);
+        backend.request(this.condition, this.page);
       },
       onCtxOpen(locals) {
         this.menuData = locals;
@@ -108,7 +110,8 @@ async function initRun() {
         this.menuData = newMenuData();
       },
       deleteMap(menuData) {
-        alert(JSON.stringify(menuData));
+        if (!confirm(`${menuData.name}を削除しますか?\n(この処理は元に戻せません)`)) return;
+        backend.delete(menuData.mapID, this.condition, this.page);
       }
     },
   });
