@@ -90,7 +90,7 @@ const maplist = {
 
         thumbFiles.forEach((thumbFile) => {
             thumbExtractor.make_thumbnail(thumbFile[0], thumbFile[1], thumbFile[2]).then(() => {
-            });
+            }).catch((e) => { console.log(e); });
         });
     }
 };
