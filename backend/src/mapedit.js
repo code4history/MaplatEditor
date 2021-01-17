@@ -79,6 +79,8 @@ const mapedit = {
                 json.width = tin.wh[0];
                 json.height = tin.wh[1];
             }
+            json.vertexMode = tin.vertexMode;
+            json.strictMode = tin.strictMode;
             delete json.compiled;
             promises.push(Promise.resolve(tin.getCompiled()));
         } else {
@@ -93,6 +95,7 @@ const mapedit = {
                     tin.setCompiled(sub_map.compiled);
                     sub_map.gcps = tin.points;
                     sub_map.edges = tin.edges || [];
+                    sub_map.bounds = tin.bounds;
                     delete sub_map.compiled;
                     promises.push(Promise.resolve(tin.getCompiled()));
                 } else {
@@ -105,11 +108,39 @@ const mapedit = {
         const tins = await Promise.all(promises);
         focused.webContents.send('mapData', [json, tins]);
     },
-    download(mapObject) {
+    download(mapObject, tins) {
         setTimeout(async () => { // eslint-disable-line no-undef
             const mapID = mapObject.mapID;
+            delete mapObject.status;
+            delete mapObject.mapID;
+            delete mapObject.url_;
+            delete mapObject.langs;
+            delete mapObject.onlyOne;
+            delete mapObject._id;
+            tins.map((tin, index) => {
+                if (typeof tin == 'string') return;
+                if (index === 0) {
+                    delete mapObject.gcps;
+                    delete mapObject.edges;
+                    delete mapObject.width;
+                    delete mapObject.height;
+                    delete compiled.strictMode;
+                    delete compiled.vertexMode;
+                    mapObject.compiled = tin;
+                } else {
+                    const sub_map = mapObject.sub_maps[index - 1];
+                    delete sub_map.gcps;
+                    delete sub_map.edges;
+                    delete sub_map.bounds;
+                    sub_map.compiled = tin;
+                }
+            });
+
+            const tmpFile = `${settings.getSetting('tmpFolder')}${path.sep}${mapID}.json`;
+            fs.writeFileSync(tmpFile, JSON.stringify(mapObject, null, "  "));
+
             const targets = [
-                [`${compiledFolder}${path.sep}${mapID}.json`, 'maps', `${mapID}.json`],
+                [tmpFile, 'maps', `${mapID}.json`],
                 [`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`]
             ];
 
@@ -148,6 +179,7 @@ const mapedit = {
                         fs.removeSync(zip_file);
                         focused.webContents.send('mapDownloadResult', 'Canceled');
                     }
+                    fs.removeSync(tmpFile);
                 });
             });
         }, 1000);
@@ -163,6 +195,9 @@ const mapedit = {
         const content = JSON.stringify(mapObject, null, '    ');
 
         const compiled = JSON.parse(content);
+        delete compiled.langs;
+        delete compiled.onlyOne;
+        delete compiled._id;
         tins.map((tin, index) => {
             if (typeof tin == 'string') return;
             if (index === 0) {
@@ -170,11 +205,14 @@ const mapedit = {
                 delete compiled.edges;
                 delete compiled.width;
                 delete compiled.height;
+                delete compiled.strictMode;
+                delete compiled.vertexMode;
                 compiled.compiled = tin;
             } else {
                 const sub_map = compiled.sub_maps[index - 1];
                 delete sub_map.gcps;
                 delete sub_map.edges;
+                delete sub_map.bounds;
                 sub_map.compiled = tin;
             }
         });

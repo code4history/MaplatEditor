@@ -1255,7 +1255,10 @@ function setVueMap() {
                 vueModal.finish(t('mapedit.download_error')); // eslint-disable-line no-undef
             }
         });
-        backend.download(vueMap.map);
+        backend.download(vueMap.map, vueMap.tinObjects.map((tin) => {
+            if (typeof tin === 'string') return tin;
+            return tin.getCompiled();
+        }));
     });
     vueMap.$on('saveMap', () => {
         if (!confirm(t('mapedit.confirm_save'))) return; // eslint-disable-line no-undef
