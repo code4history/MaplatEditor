@@ -32,7 +32,7 @@ const defaultMap = {
     height: undefined,
     url_: '',
     lang: 'ja',
-    imageExtention: undefined,
+    imageExtension: undefined,
     wmtsHash: undefined
 };
 const langs = {
@@ -97,7 +97,7 @@ for (let i=0; i<shareAttr.length; i++) {
         })(key),
     }
 }
-const mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtention', 'mapID', 'lang',
+const mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtension', 'mapID', 'lang',
     'license', 'dataLicense', 'reference', 'url', 'sub_maps'];
 for (let i=0; i<mapAttr.length; i++) {
     const key = mapAttr[i];
@@ -149,8 +149,8 @@ computed.defaultLangFlag = {
         }
     }
 };
-computed.imageExtentionCalc = function() {
-    if (this.imageExtention) return this.imageExtention;
+computed.imageExtensionCalc = function() {
+    if (this.imageExtension) return this.imageExtension;
     if (this.width && this.height) return 'jpg';
     return;
 };

@@ -11,6 +11,9 @@ const AdmZip = require('adm-zip'); // eslint-disable-line no-undef
 const rfs = require('recursive-fs'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 const nedbAccessor = require('../lib/nedbAccessor'); // eslint-disable-line no-undef
+//const {histMap2Store, store2HistMap} = require('@maplat/core/lib/source/store_handler');
+const storeHandler = require('@maplat/core/lib/source/store_handler');
+console.log(storeHandler);
 
 let tileFolder;
 let originalFolder;
@@ -37,21 +40,22 @@ const mapedit = {
         focused = BrowserWindow.getFocusedWindow();
     },
     async request(mapID) {
-        let json = await nedb.find(mapID);
+        const json = await nedb.find(mapID);
+        let url_;
         const whReady = (json.width && json.height) || json.compiled.wh;
         if (!whReady) {
             focused.webContents.send('mapData', [json, ]);
             return;
         }
-        json = await new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+        await new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
             if (json.url) {
-                json.url_ = json.url;
-                resolve(json);
+                url_ = json.url;
+                resolve();
             } else {
                 const thumbFolder = `${tileFolder}${path.sep}${mapID}${path.sep}0${path.sep}0`;
                 fs.readdir(thumbFolder, (err, thumbs) => {
                     if (!thumbs) {
-                        resolve(json);
+                        resolve();
                         return;
                     }
                     for (let i=0; i<thumbs.length; i++) {
@@ -59,8 +63,8 @@ const mapedit = {
                         if (/^0\.(?:jpg|jpeg|png)$/.test(thumb)) {
                             let thumbURL = fileUrl(thumbFolder + path.sep + thumb);
                             thumbURL = thumbURL.replace(/\/0\/0\/0\./, '/{z}/{x}/{y}.');
-                            json.url_ = thumbURL;
-                            resolve(json);
+                            url_ = thumbURL;
+                            resolve();
                             return;
                         }
                     }
@@ -68,7 +72,7 @@ const mapedit = {
             }
         });
 
-        const promises = [];
+        /*const promises = [];
 
         if (json.compiled) {
             const tin = new Tin({});
@@ -105,13 +109,15 @@ const mapedit = {
             }
         }
 
-        const tins = await Promise.all(promises);
-        focused.webContents.send('mapData', [json, tins]);
+        const tins = await Promise.all(promises);*/
+        const res = await store2HistMap(json, true);
+        res[0].url_ = url_;
+        focused.webContents.send('mapData', res);
     },
-    download(mapObject, tins) {
-        setTimeout(async () => { // eslint-disable-line no-undef
+    async download(mapObject, tins) {
+        //setTimeout(async () => { // eslint-disable-line no-undef
             const mapID = mapObject.mapID;
-            delete mapObject.status;
+        /*    delete mapObject.status;
             delete mapObject.mapID;
             delete mapObject.url_;
             delete mapObject.langs;
@@ -134,7 +140,8 @@ const mapedit = {
                     delete sub_map.bounds;
                     sub_map.compiled = tin;
                 }
-            });
+            });*/
+            mapObject = await histMap2Store(mapObject, tins);
 
             const tmpFile = `${settings.getSetting('tmpFolder')}${path.sep}${mapID}.json`;
             fs.writeFileSync(tmpFile, JSON.stringify(mapObject, null, "  "));
@@ -182,14 +189,15 @@ const mapedit = {
                     fs.removeSync(tmpFile);
                 });
             });
-        }, 1000);
+        //}, 1000);
     },
     async save(mapObject, tins) {
         const status = mapObject.status;
         const mapID = mapObject.mapID;
         const url_ = mapObject.url_;
-        const imageExtention = mapObject.imageExtention || 'jpg';
-        delete mapObject.status;
+        const imageExtension = mapObject.imageExtension || mapObject.imageExtention || 'jpg';
+        const compiled = await histMap2Store(mapObject, tins);
+        /*delete mapObject.status;
         delete mapObject.mapID;
         delete mapObject.url_;
         const content = JSON.stringify(mapObject, null, '    ');
@@ -215,12 +223,12 @@ const mapedit = {
                 delete sub_map.bounds;
                 sub_map.compiled = tin;
             }
-        });
+        });*/
 
         const tmpFolder = `${settings.getSetting('tmpFolder')}${path.sep}tiles`;
         const tmpUrl = fileUrl(tmpFolder);
         const newTile = tileFolder + path.sep + mapID;
-        const newOriginal = `${originalFolder}${path.sep}${mapID}.${imageExtention}`;
+        const newOriginal = `${originalFolder}${path.sep}${mapID}.${imageExtension}`;
         const newThumbnail = `${thumbFolder}${path.sep}${mapID}.jpg`;
         const regex = new RegExp(`^${tmpUrl}`);
         const tmpCheck = url_ && url_.match(regex);
@@ -238,7 +246,7 @@ const mapedit = {
                         const isCopy = RegExp.$1 === 'Copy';
                         const oldMapID = RegExp.$2;
                         const oldTile = `${tileFolder}${path.sep}${oldMapID}`;
-                        const oldOriginal = `${originalFolder}${path.sep}${oldMapID}.${imageExtention}`;
+                        const oldOriginal = `${originalFolder}${path.sep}${oldMapID}.${imageExtension}`;
                         const oldThumbnail = `${thumbFolder}${path.sep}${oldMapID}.jpg`;
                         try {
                             await nedb.upsert(mapID, compiled);
@@ -352,7 +360,7 @@ const mapedit = {
                             fs.removeSync(newOriginal);
                         } catch(err) { // eslint-disable-line no-empty
                         }
-                        fs.move(`${newTile}${path.sep}original.${imageExtention}`, newOriginal, (err) => {
+                        fs.move(`${newTile}${path.sep}original.${imageExtension}`, newOriginal, (err) => {
                             if (err) reject(err);
                             try {
                                 fs.statSync(newThumbnail);

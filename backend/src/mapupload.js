@@ -143,7 +143,7 @@ const MapUpload = {
                     width,
                     height,
                     url,
-                    imageExtention: extKey
+                    imageExtension: extKey
                 });
             }
         } catch(err) {

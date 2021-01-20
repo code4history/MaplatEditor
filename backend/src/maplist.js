@@ -52,7 +52,7 @@ const maplist = {
                 const lang = doc.lang || 'ja';
                 res.title = doc.title[lang];
             } else res.title = doc.title;
-            res.imageExtention = doc.imageExtention;
+            res.imageExtension = doc.imageExtension || doc.imageExtention;
             res.width = doc.width || (doc.compiled && doc.compiled.wh && doc.compiled.wh[0]);
             res.height = doc.height || (doc.compiled && doc.compiled.wh && doc.compiled.wh[1]);
 
