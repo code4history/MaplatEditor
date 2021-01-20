@@ -11,9 +11,7 @@ const AdmZip = require('adm-zip'); // eslint-disable-line no-undef
 const rfs = require('recursive-fs'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 const nedbAccessor = require('../lib/nedbAccessor'); // eslint-disable-line no-undef
-//const {histMap2Store, store2HistMap} = require('@maplat/core/lib/source/store_handler');
-const storeHandler = require('@maplat/core/lib/source/store_handler');
-console.log(storeHandler);
+const storeHandler = require('@maplat/core/es5/source/store_handler'); // eslint-disable-line no-undef
 
 let tileFolder;
 let originalFolder;
@@ -71,159 +69,69 @@ const mapedit = {
                 });
             }
         });
-
-        /*const promises = [];
-
-        if (json.compiled) {
-            const tin = new Tin({});
-            tin.setCompiled(json.compiled);
-            json.gcps = tin.points;
-            json.edges = tin.edges || [];
-            if (tin.wh) {
-                json.width = tin.wh[0];
-                json.height = tin.wh[1];
-            }
-            json.vertexMode = tin.vertexMode;
-            json.strictMode = tin.strictMode;
-            delete json.compiled;
-            promises.push(Promise.resolve(tin.getCompiled()));
-        } else {
-            promises.push(this.createTinFromGcpsAsync(json.gcps, json.edges || [], [json.width, json.height],
-              null, json.strictMode, json.vertexMode));
-        }
-        if (json.sub_maps) {
-            for (let i=0; i< json.sub_maps.length; i++) {
-                const sub_map = json.sub_maps[i];
-                if (sub_map.compiled) {
-                    const tin = new Tin({});
-                    tin.setCompiled(sub_map.compiled);
-                    sub_map.gcps = tin.points;
-                    sub_map.edges = tin.edges || [];
-                    sub_map.bounds = tin.bounds;
-                    delete sub_map.compiled;
-                    promises.push(Promise.resolve(tin.getCompiled()));
-                } else {
-                    promises.push(this.createTinFromGcpsAsync(sub_map.gcps, sub_map.edges || [], null,
-                      sub_map.bounds, json.strictMode, json.vertexMode));
-                }
-            }
-        }
-
-        const tins = await Promise.all(promises);*/
-        const res = await store2HistMap(json, true);
+        
+        const res = await storeHandler.store2HistMap(json, true);
         res[0].url_ = url_;
         focused.webContents.send('mapData', res);
     },
     async download(mapObject, tins) {
-        //setTimeout(async () => { // eslint-disable-line no-undef
-            const mapID = mapObject.mapID;
-        /*    delete mapObject.status;
-            delete mapObject.mapID;
-            delete mapObject.url_;
-            delete mapObject.langs;
-            delete mapObject.onlyOne;
-            delete mapObject._id;
-            tins.map((tin, index) => {
-                if (typeof tin == 'string') return;
-                if (index === 0) {
-                    delete mapObject.gcps;
-                    delete mapObject.edges;
-                    delete mapObject.width;
-                    delete mapObject.height;
-                    delete compiled.strictMode;
-                    delete compiled.vertexMode;
-                    mapObject.compiled = tin;
+        const mapID = mapObject.mapID;
+
+        mapObject = await storeHandler.histMap2Store(mapObject, tins);
+
+        const tmpFile = `${settings.getSetting('tmpFolder')}${path.sep}${mapID}.json`;
+        fs.writeFileSync(tmpFile, JSON.stringify(mapObject));
+
+        const targets = [
+          [tmpFile, 'maps', `${mapID}.json`],
+            [`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`]
+        ];
+
+        const {dirs, files} = await rfs.read(`${tileFolder}${path.sep}${mapID}`); // eslint-disable-line no-unused-vars
+        files.map((file) => {
+            const localPath = path.resolve(file);
+            const zipName = path.basename(localPath);
+            const zipPath = path.dirname(localPath).match(/[/\\](tiles[/\\].+$)/)[1];
+            targets.push([localPath, zipPath, zipName]);
+        });
+
+        const progress = new ProgressReporter(focused, targets.length, 'mapdownload.adding_zip', 'mapdownload.creating_zip');
+        progress.update(0);
+        const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
+        const zip = new AdmZip();
+
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
+            zip.addLocalFile(target[0], target[1], target[2]);
+            progress.update(i + 1);
+        }
+
+        zip.writeZip(zip_file, () => {
+            const dialog = require('electron').dialog; // eslint-disable-line no-undef
+            const focused = BrowserWindow.getFocusedWindow();
+            dialog.showSaveDialog({
+                defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
+                filters: [ {name: "Output file", extensions: ['zip']} ]
+            }, (filename) => {
+                if(filename && filename[0]) {
+                    fs.moveSync(zip_file, filename, {
+                        overwrite: true
+                    });
+                    focused.webContents.send('mapDownloadResult', 'Success');
                 } else {
-                    const sub_map = mapObject.sub_maps[index - 1];
-                    delete sub_map.gcps;
-                    delete sub_map.edges;
-                    delete sub_map.bounds;
-                    sub_map.compiled = tin;
+                    fs.removeSync(zip_file);
+                    focused.webContents.send('mapDownloadResult', 'Canceled');
                 }
-            });*/
-            mapObject = await histMap2Store(mapObject, tins);
-
-            const tmpFile = `${settings.getSetting('tmpFolder')}${path.sep}${mapID}.json`;
-            fs.writeFileSync(tmpFile, JSON.stringify(mapObject, null, "  "));
-
-            const targets = [
-                [tmpFile, 'maps', `${mapID}.json`],
-                [`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`]
-            ];
-
-            const {dirs, files} = await rfs.read(`${tileFolder}${path.sep}${mapID}`); // eslint-disable-line no-unused-vars
-            files.map((file) => {
-                const localPath = path.resolve(file);
-                const zipName = path.basename(localPath);
-                const zipPath = path.dirname(localPath).match(/[/\\](tiles[/\\].+$)/)[1];
-                targets.push([localPath, zipPath, zipName]);
+                fs.removeSync(tmpFile);
             });
-
-            const progress = new ProgressReporter(focused, targets.length, 'mapdownload.adding_zip', 'mapdownload.creating_zip');
-            progress.update(0);
-            const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
-            const zip = new AdmZip();
-
-            for (let i = 0; i < targets.length; i++) {
-                const target = targets[i];
-                zip.addLocalFile(target[0], target[1], target[2]);
-                progress.update(i + 1);
-            }
-
-            zip.writeZip(zip_file, () => {
-                const dialog = require('electron').dialog; // eslint-disable-line no-undef
-                const focused = BrowserWindow.getFocusedWindow();
-                dialog.showSaveDialog({
-                    defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
-                    filters: [ {name: "Output file", extensions: ['zip']} ]
-                }, (filename) => {
-                    if(filename && filename[0]) {
-                        fs.moveSync(zip_file, filename, {
-                            overwrite: true
-                        });
-                        focused.webContents.send('mapDownloadResult', 'Success');
-                    } else {
-                        fs.removeSync(zip_file);
-                        focused.webContents.send('mapDownloadResult', 'Canceled');
-                    }
-                    fs.removeSync(tmpFile);
-                });
-            });
-        //}, 1000);
+        });
     },
     async save(mapObject, tins) {
         const status = mapObject.status;
         const mapID = mapObject.mapID;
         const url_ = mapObject.url_;
         const imageExtension = mapObject.imageExtension || mapObject.imageExtention || 'jpg';
-        const compiled = await histMap2Store(mapObject, tins);
-        /*delete mapObject.status;
-        delete mapObject.mapID;
-        delete mapObject.url_;
-        const content = JSON.stringify(mapObject, null, '    ');
-
-        const compiled = JSON.parse(content);
-        delete compiled.langs;
-        delete compiled.onlyOne;
-        delete compiled._id;
-        tins.map((tin, index) => {
-            if (typeof tin == 'string') return;
-            if (index === 0) {
-                delete compiled.gcps;
-                delete compiled.edges;
-                delete compiled.width;
-                delete compiled.height;
-                delete compiled.strictMode;
-                delete compiled.vertexMode;
-                compiled.compiled = tin;
-            } else {
-                const sub_map = compiled.sub_maps[index - 1];
-                delete sub_map.gcps;
-                delete sub_map.edges;
-                delete sub_map.bounds;
-                sub_map.compiled = tin;
-            }
-        });*/
+        const compiled = await storeHandler.histMap2Store(mapObject, tins);
 
         const tmpFolder = `${settings.getSetting('tmpFolder')}${path.sep}tiles`;
         const tmpUrl = fileUrl(tmpFolder);
