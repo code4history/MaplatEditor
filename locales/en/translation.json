@@ -29,7 +29,11 @@
     "confirm_close_no_save": "The settings have been changed but not saved.\nDo you want to close without saving?"
   },
   "maplist": {
-    "newCreate": "Create new map"
+    "new_create": "Create new map",
+    "delete_error": "Deletion failed.",
+    "delete_confirm": "Do you want to delete {{name}}?\n(This process is irreversible.)",
+    "delete_menu": "Delete menu",
+    "delete_item": "Delete {{name}}"
   },
   "mapedit": {
     "edit_metadata": "Edit Metadata",

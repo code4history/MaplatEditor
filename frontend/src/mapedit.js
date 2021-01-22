@@ -1,5 +1,3 @@
-import { HistMap_tin } from '@maplat/core/lib/source/histmap_tin'; // eslint-disable-line no-unused-vars
-import {HistMap} from '@maplat/core/lib/source/histmap';
 import { mapSourceFactory } from "@maplat/core/lib/source_ex";
 import bsn from 'bootstrap.native';
 import {polygon, booleanPointInPolygon} from '@turf/turf';
@@ -28,11 +26,6 @@ import roundTo from "round-to";
 function arrayRoundTo(array, decimal) {
     return array.map((item) => roundTo(item, decimal));
 }
-
-
-const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
-const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
-    'mapper', 'attr', 'dataAttr', 'description'];
 
 const labelFontStyle = "Normal 12px Arial";
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef

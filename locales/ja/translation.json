@@ -29,7 +29,11 @@
     "confirm_close_no_save": "設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?"
   },
   "maplist": {
-    "newCreate": "新規作成"
+    "new_create": "新規作成",
+    "delete_error": "削除が失敗しました。",
+    "delete_confirm": "{{name}}を削除しますか?\n(この処理は元に戻せません)",
+    "delete_menu": "削除メニュー",
+    "delete_item": "{{name}}を削除"
   },
   "mapedit": {
     "edit_metadata": "メタデータ編集",

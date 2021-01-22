@@ -26,7 +26,8 @@ async function initRun() {
       window.addEventListener('resize', this.handleResize);
 
       ipcRenderer.on("deleteError", (event, result) => {
-        alert("削除が失敗しました。");
+        const t = langObj.t;
+        alert(t('maplist.delete_error'));
       });
       ipcRenderer.on('mapList', (event, result) => {
         this.maplist = [];
@@ -70,7 +71,7 @@ async function initRun() {
       "context-menu": VueContextMenu
     },
     data() {
-      const size = calcResize(document.body.clientWidth);
+      const size = calcResize(document.body.clientWidth);  // eslint-disable-line no-undef
       return {
         maplist: [],
         padding: size[0],
@@ -86,7 +87,7 @@ async function initRun() {
     },
     methods: {
       handleResize() {
-        const size = calcResize(document.body.clientWidth);
+        const size = calcResize(document.body.clientWidth);  // eslint-disable-line no-undef
         this.padding = size[0];
         this.searchWidth = size[1];
       },
@@ -110,7 +111,8 @@ async function initRun() {
         this.menuData = newMenuData();
       },
       deleteMap(menuData) {
-        if (!confirm(`${menuData.name}を削除しますか?\n(この処理は元に戻せません)`)) return;
+        const t = langObj.t;
+        if (!confirm(t('maplist.delete_confirm', { name: menuData.name }))) return;  // eslint-disable-line no-undef
         backend.delete(menuData.mapID, this.condition, this.page);
       }
     },

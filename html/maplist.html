@@ -21,13 +21,13 @@
   <div class="h100">
     <header-template current="maplist.html" v-bind:$t="$t"></header-template>
     <context-menu id="deletingctx" ref="ctx" @ctx-open="onCtxOpen" @ctx-cancel="resetCtxLocals" @ctx-close="onCtxClose">
-      <li class="ctx-header">削除メニュー</li>
-      <li class="ctx-item" @click="deleteMap(menuData)">{{menuData.name}}を削除</li>
+      <li class="ctx-header">{{$t('maplist.delete_menu')}}</li>
+      <li class="ctx-item" @click="deleteMap(menuData)">{{$t('maplist.delete_item', { name: menuData.name })}}</li>
     </context-menu>
     <div class="container main" role="main">
       <div class="row" v-bind:style="{ 'padding-left': padding + 'px', 'padding-right': padding + 'px' }">
         <div class="form-group col-xs-3" style="width: 200px; padding: 0px;">
-          <a href="mapedit.html" class="btn btn-default" style="width: 200px;">{{$t('maplist.newCreate')}}</a>
+          <a href="mapedit.html" class="btn btn-default" style="width: 200px;">{{$t('maplist.new_create')}}</a>
         </div>
         <div class="form-group col-xs-6" v-bind:style="{ width: searchWidth + 'px' }" style="padding: 0px;">
           <input type="text" class="form-control" style="margin-left: 5px;" v-bind:style="{ width: (searchWidth - 5) + 'px' }" placeholder="検索条件を入力してください" v-model="condition">
