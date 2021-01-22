@@ -23,6 +23,12 @@ import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
+import roundTo from "round-to";
+
+function arrayRoundTo(array, decimal) {
+    return array.map((item) => roundTo(item, decimal));
+}
+
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
@@ -203,7 +209,7 @@ function addMarkerOnEdge (arg, map) {
     const edgeGeom = arg.data.edge;
     const isIllst = map === illstMap;
     const coord = edgeGeom.getGeometry().getClosestPoint(arg.coordinate);
-    const xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
+    const xy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(coord), 2) : arrayRoundTo(coord, 6);
     const startEnd = edgeGeom.get('startEnd');
     const edgeIndex = vueMap.edges.findIndex((edge) => edge[2][0] === startEnd[0] && edge[2][1] === startEnd[1]);
     const edge = vueMap.edges[edgeIndex];
@@ -316,7 +322,7 @@ function addNewMarker (arg, map) {
     const number = gcps.length + 1;
     const isIllst = map === illstMap;
     const coord = arg.coordinate;
-    const xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
+    const xy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(coord), 2) : arrayRoundTo(coord, 6);
 
     if (!newlyAddGcp) {
         const labelWidth = getTextWidth( number, labelFontStyle ) + 10;
@@ -377,7 +383,7 @@ function onClick(evt) {
     const srcMap = isIllst ? illstMap : mercMap;
     const distMap = isIllst ? mercMap : illstMap;
     const srcMarkerLoc = evt.coordinate;
-    const srcXy = isIllst ? illstSource.histMapCoords2Xy(srcMarkerLoc) : srcMarkerLoc;
+    const srcXy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(srcMarkerLoc),2) : arrayRoundTo(srcMarkerLoc, 6);
 
     const srcCheck = srcMap.getSource('check');
     const distCheck = distMap.getSource('check');
@@ -707,7 +713,7 @@ class Drag extends Pointer {
         const isIllst = map === illstMap;
         const feature = this.feature_;
         let xy = feature.getGeometry().getCoordinates();
-        xy = isIllst ? illstSource.histMapCoords2Xy(xy) : xy;
+        xy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(xy), 2) : arrayRoundTo(xy, 6);
 
         const gcpIndex = feature.get('gcpIndex');
         if (gcpIndex !== 'new') {
@@ -845,7 +851,7 @@ MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
             restore = false;
         }
         if (this.map_ === illstMap) {
-            const xy = illstSource.histMapCoords2Xy(evt.coordinate);
+            const xy = arrayRoundTo(illstSource.histMapCoords2Xy(evt.coordinate), 2);
             const outsideCheck = vueMap.currentEditingLayer ? (xy) => {
                 const bboxPoints = Object.assign([], vueMap.bounds);
                 bboxPoints.push(vueMap.bounds[0]);

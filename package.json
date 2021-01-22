@@ -43,7 +43,7 @@
     "webpack-cli": "^3.3.12"
   },
   "dependencies": {
-    "@maplat/core": "github:code4history/MaplatCore#storage_handler",
+    "@maplat/core": "github:code4history/MaplatCore#master",
     "@maplat/tin": "github:code4history/MaplatTin#master",
     "@panter/vue-i18next": "^0.15.2",
     "@turf/helpers": "^6.1.4",
@@ -73,6 +73,7 @@
     "process": "^0.11.10",
     "process-nextick-args": "^2.0.1",
     "recursive-fs": "^2.1.0",
+    "round-to": "^5.0.0",
     "simple-get": "^4.0.0",
     "underscore": "^1.10.2",
     "vue": "^2.6.11",
