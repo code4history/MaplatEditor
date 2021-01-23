@@ -3,14 +3,16 @@ import Vue from 'vue';
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
 import VueContextMenu from "vue-context-menu";
+import bsn from "bootstrap.native";
 
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const langObj = Language.getSingleton();
 const backend = require('electron').remote.require('./maplist'); // eslint-disable-line no-undef
 backend.init();
 
-//Vue.use(VueContextMenu);
 const newMenuData = () => ({ mapID: "", name: "" });
+
+let vueModal; // eslint-disable-line prefer-const
 
 async function initRun() {
   new Vue({
@@ -21,13 +23,43 @@ async function initRun() {
       }
     },
     mounted() {
-      backend.request();
+      const t = langObj.t;
+      backend.start();
 
       window.addEventListener('resize', this.handleResize);
 
-      ipcRenderer.on("deleteError", (event, result) => {
+      ipcRenderer.on("migrationConfirm", (_event, _result) => {
+        if (confirm(t("maplist.migration_confirm"))) {
+          vueModal.show(t("maplist.migrating"));
+          setTimeout(() => {
+            backend.migration();
+          }, 1000);
+        } else {
+          backend.request();
+        }
+      });
+      ipcRenderer.on("deleteOldConfirm", (_event, _result) => {
+        vueModal.hide();
+        setTimeout(() => {
+          if (confirm(t("maplist.delete_old_confirm"))) {
+            vueModal.show(t("maplist.deleting_old"));
+            setTimeout(() => {
+              backend.deleteOld();
+            }, 1000);
+          }
+        }, 1000);
+      });
+      ipcRenderer.on("deletedOld", (_event, _result) => {
+        const t = langObj.t;
+        vueModal.finish(t('maplist.deleted_old'));
+      });
+      ipcRenderer.on("deleteError", (_event, _result) => {
         const t = langObj.t;
         alert(t('maplist.delete_error'));
+      });
+      ipcRenderer.on('taskProgress', (event, arg) => {
+        const t = langObj.t;
+        vueModal.progress(t(arg.text), arg.percent, arg.progress);
       });
       ipcRenderer.on('mapList', (event, result) => {
         this.maplist = [];
@@ -118,6 +150,38 @@ async function initRun() {
     },
   });
 }
+
+vueModal = new Vue({
+  el: "#modalBody",
+  data: {
+    modal: new bsn.Modal(document.getElementById('staticModal'), {}), //eslint-disable-line no-undef
+    percent: 0,
+    progressText: '',
+    enableClose: false,
+    text: ''
+  },
+  methods: {
+    show(text) {
+      this.text = text;
+      this.percent = 0;
+      this.progressText = '';
+      this.enableClose = false;
+      this.modal.show();
+    },
+    progress(text, perecent, progress) {
+      this.text = text;
+      this.percent = perecent;
+      this.progressText = progress;
+    },
+    finish(text) {
+      this.text = text;
+      this.enableClose = true;
+    },
+    hide() {
+      this.modal.hide();
+    }
+  }
+});
 
 function calcResize(width) {
   const pow = Math.floor((width - 25) / 205);

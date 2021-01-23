@@ -33,7 +33,13 @@
     "delete_error": "削除が失敗しました。",
     "delete_confirm": "{{name}}を削除しますか?\n(この処理は元に戻せません)",
     "delete_menu": "削除メニュー",
-    "delete_item": "{{name}}を削除"
+    "delete_item": "{{name}}を削除",
+    "migrating": "データベース移行中...",
+    "migrated": "データベース移行完了",
+    "deleting_old": "旧データファイル削除中...",
+    "deleted_old": "旧データファイル削除完了",
+    "migration_confirm": "旧仕様の地図データファイルがあります。\nデータベースへの移行を行いますか?",
+    "delete_old_confirm": "新仕様へのデータ移行が完了しました。\n旧仕様のデータファイルを削除しますか?"
   },
   "mapedit": {
     "edit_metadata": "メタデータ編集",

@@ -33,7 +33,13 @@
     "delete_error": "Deletion failed.",
     "delete_confirm": "Do you want to delete {{name}}?\n(This process is irreversible.)",
     "delete_menu": "Delete menu",
-    "delete_item": "Delete {{name}}"
+    "delete_item": "Delete {{name}}",
+    "migrating": "Migrating database...",
+    "migrated": "Migration is finished",
+    "deleting_old": "Removing old data files...",
+    "deleted_old": "Removing old data is finished",
+    "migration_confirm": "There are map data files with old specifications.\nDo you want to migrate them to the database?",
+    "delete_old_confirm": "The data migration to the new specification is completed.\nDo you want to delete the old data files?"
   },
   "mapedit": {
     "edit_metadata": "Edit Metadata",

@@ -54,6 +54,29 @@
     </div>
   </div>
 </script>
+
+<div class="modal" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel" aria-hidden="true" data-show="true" data-keyboard="false" data-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div id="modalBody" class="modal-body">
+        <div class="row">
+          <div id="modalText" class="recipient col-xs-9">{{text}}</div>
+        </div>
+        <div class="row">
+          <div class="col-xs-12">
+            <div class="progress">
+              <div id="progress" class="progress-bar progress-bar-info" role="progressbar" v-bind:style="{ width: `${percent}%` }">{{progressText}}</div>
+            </div>
+          </div>
+        </div>
+        <div class="row text-center">
+          <div><button id="modalClose" type="button" class="btn btn-default" v-bind:disabled="!enableClose" v-on:click="hide">OK</button></div>
+        </div>
+      </div>
+    </div> <!-- /.modal-content -->
+  </div> <!-- /.modal-dialog -->
+</div> <!-- /.modal -->
+
 <script src="../frontend/dist/maplist.bundle.js"></script>
 </body>
 </html>
