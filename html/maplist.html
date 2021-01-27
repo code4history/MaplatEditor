@@ -20,17 +20,33 @@
 <script type="text/x-template" id="maplist-vue-template">
   <div class="h100">
     <header-template current="maplist.html" v-bind:$t="$t"></header-template>
+    <context-menu id="deletingctx" ref="ctx" @ctx-open="onCtxOpen" @ctx-cancel="resetCtxLocals" @ctx-close="onCtxClose">
+      <li class="ctx-header">{{$t('maplist.delete_menu')}}</li>
+      <li class="ctx-item" @click="deleteMap(menuData)">{{$t('maplist.delete_item', { name: menuData.name })}}</li>
+    </context-menu>
     <div class="container main" role="main">
+      <div class="row" v-bind:style="{ 'padding-left': padding + 'px', 'padding-right': padding + 'px' }">
+        <div class="form-group col-xs-3" style="width: 200px; padding: 0px;">
+          <a href="mapedit.html" class="btn btn-default" style="width: 200px;">{{$t('maplist.new_create')}}</a>
+        </div>
+        <div class="form-group col-xs-6" v-bind:style="{ width: searchWidth + 'px' }" style="padding: 0px;">
+          <input type="text" class="form-control" style="margin-left: 5px;" v-bind:style="{ width: (searchWidth - 5) + 'px' }" placeholder="検索条件を入力してください" v-model="condition">
+        </div>
+        <div class="form-group col-xs-3" style="width: 105px; padding: 0px;">
+          <button class="btn btn-default form-group" style="width: 100px; margin-left: 5px;" v-bind:disabled="!prev" @click="prevSearch()">&lt;</button>
+        </div>
+        <div class="form-group col-xs-3" style="width: 105px; padding: 0px;">
+          <button class="btn btn-default form-group" style="width: 100px; margin-left: 5px;" v-bind:disabled="!next" @click="nextSearch()">&gt;</button>
+        </div>
+      </div>
       <ul id="maplist" class="tiles-wrap animated">
-        <li>
-          <a href="mapedit.html">
-            <img src="../img/add_image.png" width="190" height="190">
-          </a>
-          <p>{{$t('maplist.newCreate')}}</p>
-        </li>
         <li v-for="map in maplist" :key="map.mapID">
           <a v-bind:href="'mapedit.html?mapid=' + map.mapID">
-            <img v-bind:src="map.image" width="190" v-bind:height="map.height">
+            <div style="height: 190px; width: 190px; position: relative;">
+              <img v-bind:src="map.image"
+                v-bind:style="{ position: 'absolute', top: '0', bottom: '0', left: '0', right: '0', width: map.width + 'px', height: map.height + 'px', margin: 'auto' }"
+                @contextmenu.prevent="$refs.ctx.open($event, {mapID: map.mapID, name: map.name})">
+            </div>
           </a>
           <p>{{map.name}}</p>
         </li>
@@ -38,6 +54,29 @@
     </div>
   </div>
 </script>
+
+<div class="modal" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel" aria-hidden="true" data-show="true" data-keyboard="false" data-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div id="modalBody" class="modal-body">
+        <div class="row">
+          <div id="modalText" class="recipient col-xs-9">{{text}}</div>
+        </div>
+        <div class="row">
+          <div class="col-xs-12">
+            <div class="progress">
+              <div id="progress" class="progress-bar progress-bar-info" role="progressbar" v-bind:style="{ width: `${percent}%` }">{{progressText}}</div>
+            </div>
+          </div>
+        </div>
+        <div class="row text-center">
+          <div><button id="modalClose" type="button" class="btn btn-default" v-bind:disabled="!enableClose" v-on:click="hide">OK</button></div>
+        </div>
+      </div>
+    </div> <!-- /.modal-content -->
+  </div> <!-- /.modal-dialog -->
+</div> <!-- /.modal -->
+
 <script src="../frontend/dist/maplist.bundle.js"></script>
 </body>
 </html>

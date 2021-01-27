@@ -1,53 +1,51 @@
 'use strict';
 
-const im = require('./imagemagick_modified.js'); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 
-exports.make_thumbnail = function(from, to, oldSpec) {
-    let extractor;
-    const extractor_ = function(resolve, reject) {
-        im.identify(from, (err, features) => {
-            if (err) {
-                reject(err);
-                return;
-            }
+const pf = process.platform;
+var isAsar = __dirname.match(/app\.asar/);
+const canvasPath = pf == 'darwin' ?
+    isAsar ? '../../../app.asar.unpacked/assets/mac/canvas' : '../../assets/mac/canvas' :
+    isAsar ? '../../../app.asar.unpacked/assets/win/canvas' : '../../assets/win/canvas';
+const { createCanvas, loadImage } = require(canvasPath);
 
-            const width = features.width;
-            const height = features.height;
+exports.make_thumbnail = async function(from, to, oldSpec) {
+    const extractor = async function(from, to) {
+        try {
+            const image = await loadImage(from);
+
+            const width = image.width;
+            const height = image.height;
             const w = width > height ? 52 : Math.ceil(52 * width / height);
             const h = width > height ? Math.ceil(52 * height / width) : 52;
-            const args = [from, '-geometry', `${w}x${h}!`, to];
-            im.convert(args, (err, stdout, stderr) => { // eslint-disable-line no-unused-vars
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve();
-            });
-        });
+
+            const canvas = createCanvas(w, h);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0, w, h);
+
+            const jpgTile = canvas.toBuffer('image/jpeg', {quality: 0.9});
+            fs.outputFile(to, jpgTile);
+        } catch (e) {
+            throw e;
+        }
     };
 
     if (oldSpec) {
-        extractor = function(resolve, reject) {
-            fs.stat(oldSpec, (err) => {
-                if (err != null && err.code === 'ENOENT') {
-                    fs.stat(to, (err) => {
-                        if (err != null && err.code === 'ENOENT') {
-                            extractor_(resolve, reject);
-                            return;
-                        }
-                        resolve();
-                    });
-                    return;
+        try {
+            await fs.stat(oldSpec);
+            await fs.move(oldSpec, to, {overwrite: true});
+        } catch (noOldSpec) {
+            if (noOldSpec.code === 'ENOENT'){
+                try {
+                    await fs.stat(to);
+                } catch (noTo) {
+                    if (noTo.code === 'ENOENT') {
+                        await extractor(from, to);
+                    } else throw noTo;
                 }
-                fs.move(oldSpec, to, {overwrite: true}, (err) => { // eslint-disable-line no-unused-vars
-                    resolve();
-                });
-            });
-        };
+            } else throw noOldSpec;
+        }
     } else {
-        extractor = extractor_;
+        await extractor(from, to);
     }
-
-    return new Promise(extractor);
 };

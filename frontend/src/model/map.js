@@ -1,6 +1,8 @@
 import _ from '../../lib/underscore_extension';
 import Vue from 'vue';
 import {Language} from "./language";
+import crypto from 'crypto';
+import Tin from '@maplat/tin';
 
 Vue.config.debug = true;
 const langObj = Language.getSingleton();
@@ -30,7 +32,8 @@ const defaultMap = {
     height: undefined,
     url_: '',
     lang: 'ja',
-    imageExtention: undefined
+    imageExtension: undefined,
+    wmtsHash: undefined
 };
 const langs = {
     'ja': 'japanese',
@@ -94,7 +97,7 @@ for (let i=0; i<shareAttr.length; i++) {
         })(key),
     }
 }
-const mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtention', 'mapID', 'lang',
+const mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtension', 'mapID', 'lang',
     'license', 'dataLicense', 'reference', 'url', 'sub_maps'];
 for (let i=0; i<mapAttr.length; i++) {
     const key = mapAttr[i];
@@ -146,16 +149,23 @@ computed.defaultLangFlag = {
         }
     }
 };
-computed.imageExtentionCalc = function() {
-    if (this.imageExtention) return this.imageExtention;
+computed.imageExtensionCalc = function() {
+    if (this.imageExtension) return this.imageExtension;
     if (this.width && this.height) return 'jpg';
     return;
 };
 computed.gcpsEditReady = function() {
     return (this.width && this.height && this.url_) || false;
 };
+computed.wmtsEditReady = function() {
+    const tin = this.share.tinObjects[0];
+    return (this.mainLayerHash && this.wmtsDirty && tin.strict_status == Tin.STATUS_STRICT);
+}
 computed.dirty = function() {
     return !_.isDeepEqual(this.map_, this.map);
+};
+computed.wmtsDirty = function() {
+    return this.wmtsHash !== this.mainLayerHash;
 };
 computed.gcps = function() {
     if (this.currentEditingLayer == 0) {
@@ -194,6 +204,13 @@ computed.tinObjects = {
     set(newValue) {
         this.share.tinObjects = newValue;
     }
+};
+computed.mainLayerHash = function() {
+    const tin = this.share.tinObjects[0];
+    if (!tin || typeof tin === 'string') return;
+    const hashsum = crypto.createHash('sha1');
+    hashsum.update(JSON.stringify(tin.getCompiled()));
+    return hashsum.digest('hex');
 };
 computed.bounds = {
     get() {
@@ -416,7 +433,7 @@ const VueMap = Vue.extend({
             const index = arr.indexOf(this.sub_maps[this.currentEditingLayer-1]);
             arr.splice(index, 2, arr[index+1], arr[index]);
             this.normalizePriority(arr);
-        }
+            }
         },
     computed
 });

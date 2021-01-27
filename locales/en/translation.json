@@ -29,7 +29,17 @@
     "confirm_close_no_save": "The settings have been changed but not saved.\nDo you want to close without saving?"
   },
   "maplist": {
-    "newCreate": "Create new map"
+    "new_create": "Create new map",
+    "delete_error": "Deletion failed.",
+    "delete_confirm": "Do you want to delete {{name}}?\n(This process is irreversible.)",
+    "delete_menu": "Delete menu",
+    "delete_item": "Delete {{name}}",
+    "migrating": "Migrating database...",
+    "migrated": "Migration is finished",
+    "deleting_old": "Removing old data files...",
+    "deleted_old": "Removing old data is finished",
+    "migration_confirm": "There are map data files with old specifications.\nDo you want to migrate them to the database?",
+    "delete_old_confirm": "The data migration to the new specification is completed.\nDo you want to delete the old data files?"
   },
   "mapedit": {
     "edit_metadata": "Edit Metadata",
@@ -143,7 +153,7 @@
     "download_map_data": "Export map data",
     "message_download": "Now preparing map data for exporting...",
     "download_success": "Successfully exported.",
-    "download_canceled": "Canceled.",
+    "updownload_canceled": "Canceled.",
     "download_error": "Error occurred while processing.",
     "confirm_save": "Save your changes. \nAre you sure?",
     "copy_or_move": "Map ID has been changed. Do you want to make a copy?\nSelect OK to copy, Cancel to move.",
@@ -160,7 +170,9 @@
     "testerror_outside_map": "Cannot perform projection test because it is outside the map area."
   },
   "mapupload": {
-    "map_image": "Map Image"
+    "map_image": "Map Image",
+    "dividing_tile": "Splitting map image into tiles",
+    "next_thumbnail": "Generating map thumbnail"
   },
   "applist": {
     "not_implement": "Not implemented yet"
@@ -171,6 +183,12 @@
     "over_title": "Enter {{lang}} title for representation within 30 half-width characters (or 15 full-width characters).",
     "image_copyright": "Enter representation of map image's copyright."
   },
+  "wmtsgenerate": {
+    "generate": "WMTS Tile Generation",
+    "error_generation": "Error in WMTS tile generation.",
+    "success_generation": "WMTS tile generation succeeded.",
+    "generating_tile": "WMTS tiles are being generated."
+  },
   "menu": {
     "quit": "Quit MaplatEditor",
     "about": "About MaplatEditor",
@@ -179,6 +197,10 @@
     "redo": "Redo",
     "dev": "Development",
     "reload": "Reload",
-    "tools": "Toggle DevTools"
+    "tools": "Toggle DevTools",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "select_all": "Select All"
   }
 }

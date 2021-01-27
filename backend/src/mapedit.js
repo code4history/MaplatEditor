@@ -8,22 +8,22 @@ const app = require('electron').app; // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const Tin = require('@maplat/tin'); // eslint-disable-line no-undef
 const AdmZip = require('adm-zip'); // eslint-disable-line no-undef
+const rfs = require('recursive-fs'); // eslint-disable-line no-undef
+const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
+const nedbAccessor = require('../lib/nedbAccessor'); // eslint-disable-line no-undef
+const storeHandler = require('@maplat/core/es5/source/store_handler'); // eslint-disable-line no-undef
 
-let mapFolder;
-let compiledFolder;
 let tileFolder;
 let originalFolder;
 let thumbFolder;
 let tmpFolder;
 let focused;
+let dbFile;
+let nedb;
 
 const mapedit = {
     init() {
         const saveFolder = settings.getSetting('saveFolder');
-        mapFolder = `${saveFolder}${path.sep}maps`;
-        fs.ensureDir(mapFolder, () => {});
-        compiledFolder = `${saveFolder}${path.sep}compiled`;
-        fs.ensureDir(compiledFolder, () => {});
         tileFolder = `${saveFolder}${path.sep}tiles`;
         fs.ensureDir(tileFolder, () => {});
         originalFolder = `${saveFolder}${path.sep}originals`;
@@ -32,294 +32,226 @@ const mapedit = {
         tmpFolder = settings.getSetting('tmpFolder');
         fs.ensureDir(thumbFolder, () => {});
 
+        dbFile = `${saveFolder}${path.sep}nedb.db`;
+        nedb = nedbAccessor.getInstance(dbFile);
+
         focused = BrowserWindow.getFocusedWindow();
     },
-    request(mapID) {
-        const self = this;
-        const mapFile = `${mapFolder}${path.sep}${mapID}.json`;
-        const compiledFile = `${compiledFolder}${path.sep}${mapID}.json`;
-
-        const loadData = (data) => {
-            const json = JSON.parse(data);
-            if (!json.width || !json.height) {
-                focused.webContents.send('mapData', [json, ]);
-                return;
-            }
-            const promise = new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-                if (json.url) {
-                    json.url_ = json.url;
-                    resolve(json);
-                } else {
-                    const thumbFolder = `${tileFolder}${path.sep}${mapID}${path.sep}0${path.sep}0`;
-                    fs.readdir(thumbFolder, (err, thumbs) => {
-                        if (!thumbs) {
-                            resolve(json);
+    async request(mapID) {
+        const json = await nedb.find(mapID);
+        let url_;
+        const whReady = (json.width && json.height) || json.compiled.wh;
+        if (!whReady) {
+            focused.webContents.send('mapData', [json, ]);
+            return;
+        }
+        await new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
+            if (json.url) {
+                url_ = json.url;
+                resolve();
+            } else {
+                const thumbFolder = `${tileFolder}${path.sep}${mapID}${path.sep}0${path.sep}0`;
+                fs.readdir(thumbFolder, (err, thumbs) => {
+                    if (!thumbs) {
+                        resolve();
+                        return;
+                    }
+                    for (let i=0; i<thumbs.length; i++) {
+                        const thumb = thumbs[i];
+                        if (/^0\.(?:jpg|jpeg|png)$/.test(thumb)) {
+                            let thumbURL = fileUrl(thumbFolder + path.sep + thumb);
+                            thumbURL = thumbURL.replace(/\/0\/0\/0\./, '/{z}/{x}/{y}.');
+                            url_ = thumbURL;
+                            resolve();
                             return;
                         }
-                        for (let i=0; i<thumbs.length; i++) {
-                            const thumb = thumbs[i];
-                            if (/^0\.(?:jpg|jpeg|png)$/.test(thumb)) {
-                                let thumbURL = fileUrl(thumbFolder + path.sep + thumb);
-                                thumbURL = thumbURL.replace(/\/0\/0\/0\./, '/{z}/{x}/{y}.');
-                                json.url_ = thumbURL;
-                                resolve(json);
-                                return;
-                            }
-                        }
-                    });
-                }
-            });
-
-            promise.then((json) => {
-                const promises = [Promise.resolve(json)];
-
-                if (json.compiled) {
-                    const tin = new Tin({});
-                    tin.setCompiled(json.compiled);
-                    json.gcps = tin.points;
-                    json.edges = tin.edges || [];
-                    delete json.compiled;
-                    promises.push(Promise.resolve(tin.getCompiled()));
-                } else {
-                    promises.push(self.createTinFromGcpsAsync(json.gcps, json.edges || [], [json.width, json.height],
-                        null, json.strictMode, json.vertexMode));
-                }
-                if (json.sub_maps) {
-                    for (let i=0; i< json.sub_maps.length; i++) {
-                        const sub_map = json.sub_maps[i];
-                        if (sub_map.compiled) {
-                            const tin = new Tin({});
-                            tin.setCompiled(sub_map.compiled);
-                            sub_map.gcps = tin.points;
-                            sub_map.edges = tin.edges || [];
-                            delete sub_map.compiled;
-                            promises.push(Promise.resolve(tin.getCompiled()));
-                        } else {
-                            promises.push(self.createTinFromGcpsAsync(sub_map.gcps, sub_map.edges || [], null,
-                                sub_map.bounds, json.strictMode, json.vertexMode));
-                        }
                     }
-                }
-
-                return Promise.all(promises);
-            }).then((results) => {
-                const json = results.shift();
-                const tins = results;
-                focused.webContents.send('mapData', [json, tins]);
-            });
-        };
-
-        fs.readFile(compiledFile, 'utf8', (err, data) => {
-            if (err) {
-                fs.readFile(mapFile, 'utf8', (err, data) => {
-                    if (err) throw err;
-                    loadData(data);
                 });
-                return;
             }
-            loadData(data);
+        });
+        
+        const res = await storeHandler.store2HistMap(json, true);
+        res[0].url_ = url_;
+        focused.webContents.send('mapData', res);
+    },
+    async download(mapObject, tins) {
+        const mapID = mapObject.mapID;
+
+        mapObject = await storeHandler.histMap2Store(mapObject, tins);
+
+        const tmpFile = `${settings.getSetting('tmpFolder')}${path.sep}${mapID}.json`;
+        fs.writeFileSync(tmpFile, JSON.stringify(mapObject));
+
+        const targets = [
+          [tmpFile, 'maps', `${mapID}.json`],
+            [`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`]
+        ];
+
+        const {dirs, files} = await rfs.read(`${tileFolder}${path.sep}${mapID}`); // eslint-disable-line no-unused-vars
+        files.map((file) => {
+            const localPath = path.resolve(file);
+            const zipName = path.basename(localPath);
+            const zipPath = path.dirname(localPath).match(/[/\\](tiles[/\\].+$)/)[1];
+            targets.push([localPath, zipPath, zipName]);
+        });
+
+        const progress = new ProgressReporter(focused, targets.length, 'mapdownload.adding_zip', 'mapdownload.creating_zip');
+        progress.update(0);
+        const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
+        const zip = new AdmZip();
+
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
+            zip.addLocalFile(target[0], target[1], target[2]);
+            progress.update(i + 1);
+        }
+
+        zip.writeZip(zip_file, () => {
+            const dialog = require('electron').dialog; // eslint-disable-line no-undef
+            const focused = BrowserWindow.getFocusedWindow();
+            dialog.showSaveDialog({
+                defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
+                filters: [ {name: "Output file", extensions: ['zip']} ]
+            }, (filename) => {
+                if(filename && filename[0]) {
+                    fs.moveSync(zip_file, filename, {
+                        overwrite: true
+                    });
+                    focused.webContents.send('mapDownloadResult', 'Success');
+                } else {
+                    fs.removeSync(zip_file);
+                    focused.webContents.send('mapDownloadResult', 'Canceled');
+                }
+                fs.removeSync(tmpFile);
+            });
         });
     },
-    download(mapObject) {
-        setTimeout(() => { // eslint-disable-line no-undef
-            const mapID = mapObject.mapID;
-            const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
-            const zip = new AdmZip();
-
-            zip.addLocalFile(`${compiledFolder}${path.sep}${mapID}.json`, 'maps', `${mapID}.json`);
-            zip.addLocalFile(`${thumbFolder}${path.sep}${mapID}.jpg`, 'tmbs', `${mapID}.jpg`);
-            zip.addLocalFolder(`${tileFolder}${path.sep}${mapID}`, `tiles${path.sep}${mapID}`);
-
-            zip.writeZip(zip_file, () => {
-                const dialog = require('electron').dialog; // eslint-disable-line no-undef
-                const focused = BrowserWindow.getFocusedWindow();
-                dialog.showSaveDialog({
-                    defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
-                    filters: [ {name: "Output file", extensions: ['zip']} ]
-                }, (filename) => {
-                    if(filename && filename[0]) {
-                        fs.moveSync(zip_file, filename, {
-                            overwrite: true
-                        });
-                        focused.webContents.send('mapDownloadResult', 'Success');
-                    } else {
-                        fs.removeSync(zip_file);
-                        focused.webContents.send('mapDownloadResult', 'Canceled');
-                    }
-                });
-            });
-        }, 1000);
-    },
-    save(mapObject, tins) {
+    async save(mapObject, tins) {
         const status = mapObject.status;
         const mapID = mapObject.mapID;
         const url_ = mapObject.url_;
-        const imageExtention = mapObject.imageExtention || 'jpg';
-        delete mapObject.status;
-        delete mapObject.mapID;
-        delete mapObject.url_;
-        const content = JSON.stringify(mapObject, null, '    ');
-
-        const compiled = JSON.parse(content);
-        tins.map((tin, index) => {
-            if (typeof tin == 'string') return;
-            if (index == 0) {
-                delete compiled.gcps;
-                compiled.compiled = tin;
-            } else {
-                const sub_map = compiled.sub_maps[index - 1];
-                delete sub_map.gcps;
-                sub_map.compiled = tin;
-            }
-        });
-        const compiledContent = JSON.stringify(compiled, null, null);
-
-        const mapFile = `${mapFolder}${path.sep}${mapID}.json`;
-        const compiledFile = `${compiledFolder}${path.sep}${mapID}.json`;
+        const imageExtension = mapObject.imageExtension || mapObject.imageExtention || 'jpg';
+        const compiled = await storeHandler.histMap2Store(mapObject, tins);
 
         const tmpFolder = `${settings.getSetting('tmpFolder')}${path.sep}tiles`;
         const tmpUrl = fileUrl(tmpFolder);
         const newTile = tileFolder + path.sep + mapID;
-        const newOriginal = `${originalFolder}${path.sep}${mapID}.${imageExtention}`;
+        const newOriginal = `${originalFolder}${path.sep}${mapID}.${imageExtension}`;
         const newThumbnail = `${thumbFolder}${path.sep}${mapID}.jpg`;
         const regex = new RegExp(`^${tmpUrl}`);
         const tmpCheck = url_ && url_.match(regex);
 
         Promise.all([
-            new Promise((resolve, reject) => {
-                if (status != 'Update') {
-                    try {
-                        fs.statSync(mapFile);
+            new Promise(async (resolve, reject) => {
+                if (status !== 'Update') {
+                    const existCheck = await nedb.find(mapID);
+                    if (existCheck) {
                         reject('Exist');
                         return;
-                    } catch(err) { // eslint-disable-line no-empty
                     }
+
                     if (status.match(/^(Change|Copy):(.+)$/)) {
-                        const isCopy = RegExp.$1 == 'Copy';
+                        const isCopy = RegExp.$1 === 'Copy';
                         const oldMapID = RegExp.$2;
-                        const oldMapFile = `${mapFolder}${path.sep}${oldMapID}.json`;
-                        const oldCompiledFile = `${compiledFolder}${path.sep}${oldMapID}.json`;
                         const oldTile = `${tileFolder}${path.sep}${oldMapID}`;
-                        const oldOriginal = `${originalFolder}${path.sep}${oldMapID}.${imageExtention}`;
-                        const oldThumbnail = `${thumbFolder}${path.sep}${oldMapID}_menu.jpg`;
-                        fs.writeFile(mapFile, content, (err) => {
-                            if (err) {
-                                reject('Error');
-                                return;
+                        const oldOriginal = `${originalFolder}${path.sep}${oldMapID}.${imageExtension}`;
+                        const oldThumbnail = `${thumbFolder}${path.sep}${oldMapID}.jpg`;
+                        try {
+                            await nedb.upsert(mapID, compiled);
+                            if (!isCopy) {
+                                await nedb.delete(oldMapID);
                             }
-                            const nextPromise = Promise.all([
-                                new Promise((resolve_, reject_) => {
-                                    if (isCopy) {
-                                        resolve_();
-                                    } else {
-                                        fs.remove(oldMapFile, (err) => {
-                                            if (err) reject_(err);
-                                            try {
-                                                fs.statSync(oldCompiledFile);
-                                                fs.remove(oldCompiledFile, (err) => {
-                                                    if (err) reject_(err);
-                                                    resolve_();
-                                                });
-                                            } catch(err) {
-                                                resolve_();
-                                            }
-                                        });
-                                    }
-                                }),
-                                new Promise((resolve_, reject_) => {
-                                    if (tmpCheck) {
-                                        if (isCopy) {
-                                            resolve_();
-                                        } else {
-                                            try {
-                                                fs.statSync(oldTile);
-                                                fs.remove(oldTile, (err) => {
-                                                    if (err) reject_(err);
-                                                    resolve_();
-                                                });
-                                            } catch(err) {
-                                                resolve_();
-                                            }
-                                        }
-                                    } else {
-                                        const process = isCopy ? fs.copy : fs.move;
+                            if (tmpCheck) {
+                                if (!isCopy) {
+                                    await new Promise((res_, rej_) => {
                                         try {
                                             fs.statSync(oldTile);
-                                            process(oldTile, newTile, (err) => {
-                                                if (err) reject_(err);
-                                                resolve_();
+                                            fs.remove(oldTile, (err) => {
+                                                if (err) rej_(err);
+                                                res_();
                                             });
                                         } catch(err) {
-                                            resolve_();
+                                            res_();
                                         }
-                                    }
-                                }),
-                                new Promise((resolve_, reject_) => {
-                                    if (tmpCheck) {
-                                        if (isCopy) {
-                                            resolve_();
-                                        } else {
-                                            try {
-                                                fs.statSync(oldOriginal);
-                                                fs.remove(oldOriginal, (err) => {
-                                                    if (err) reject_(err);
-                                                    resolve_();
-                                                });
-                                            } catch(err) {
-                                                resolve_();
-                                            }
-                                        }
-                                    } else {
-                                        const process = isCopy ? fs.copy : fs.move;
+                                    });
+                                    await new Promise((res_, rej_) => {
                                         try {
                                             fs.statSync(oldOriginal);
-                                            process(oldOriginal, newOriginal, (err) => {
-                                                if (err) reject_(err);
-                                                try {
-                                                    fs.statSync(oldThumbnail);
-                                                    process(oldThumbnail, newThumbnail, (err) => {
-                                                        if (err) reject_(err);
-                                                        resolve();
-                                                    });
-                                                } catch(err) {
-                                                    resolve();
-                                                }
+                                            fs.remove(oldOriginal, (err) => {
+                                                if (err) rej_(err);
+                                                res_();
                                             });
                                         } catch (err) {
-                                            resolve_();
+                                            res_();
                                         }
-                                    }
-                                })
-                            ]);
-                            fs.writeFile(compiledFile, compiledContent, (err) => {
-                                if (err) {
-                                    reject('Error');
-                                    return;
+                                    });
+                                    await new Promise((res_, rej_) => {
+                                        try {
+                                            fs.statSync(oldThumbnail);
+                                            fs.remove(oldThumbnail, (err) => {
+                                                if (err) rej_(err);
+                                                res_();
+                                            });
+                                        } catch (err) {
+                                            res_();
+                                        }
+                                    });
                                 }
-                                nextPromise.then(() => {
-                                    resolve('Success');
-                                }).catch(() => {
-                                    reject('Error');
+                            } else {
+                                const process = isCopy ? fs.copy : fs.move;
+                                await new Promise((res_, rej_) => {
+                                    try {
+                                        fs.statSync(oldTile);
+                                        process(oldTile, newTile, (err) => {
+                                            if (err) rej_(err);
+                                            res_();
+                                        });
+                                    } catch (err) {
+                                        res_();
+                                    }
                                 });
-                            });
-                        });
+                                await new Promise((res_, rej_) => {
+                                    try {
+                                        fs.statSync(oldOriginal);
+                                        process(oldOriginal, newOriginal, (err) => {
+                                            if (err) rej_(err);
+                                            res_();
+                                        });
+                                    } catch (err) {
+                                        res_();
+                                    }
+                                });
+                                await new Promise((res_, rej_) => {
+                                    try {
+                                        fs.statSync(oldThumbnail);
+                                        process(oldThumbnail, newThumbnail, (err) => {
+                                            if (err) rej_(err);
+                                            res_();
+                                        });
+                                    } catch (err) {
+                                        res_();
+                                    }
+                                });
+                            }
+                            resolve('Success');
+                        } catch(e) {
+                            reject('Error');
+                        }
                     } else {
-                        fs.writeFile(mapFile, content, (err) => {
-                            if (err) reject('Error');
-                            else fs.writeFile(compiledFile, compiledContent, (err) => {
-                                if (err) reject('Error');
-                                else resolve('Success');
-                            });
-                        });
+                        try {
+                            await nedb.upsert(mapID, compiled);
+                            resolve('Success');
+                        } catch(e) {
+                            reject('Error');
+                        }
                     }
                 } else {
-                    fs.writeFile(mapFile, content, (err) => {
-                        if (err) reject('Error');
-                        else fs.writeFile(compiledFile, compiledContent, (err) => {
-                            if (err) reject('Error');
-                            else resolve('Success');
-                        });
-                    });
+                    try {
+                        await nedb.upsert(mapID, compiled);
+                        resolve('Success');
+                    } catch(e) {
+                        reject('Error');
+                    }
                 }
             }),
             new Promise((resolve, reject) => {
@@ -336,7 +268,7 @@ const mapedit = {
                             fs.removeSync(newOriginal);
                         } catch(err) { // eslint-disable-line no-empty
                         }
-                        fs.move(`${newTile}${path.sep}original.${imageExtention}`, newOriginal, (err) => {
+                        fs.move(`${newTile}${path.sep}original.${imageExtension}`, newOriginal, (err) => {
                             if (err) reject(err);
                             try {
                                 fs.statSync(newThumbnail);
@@ -359,12 +291,10 @@ const mapedit = {
             focused.webContents.send('saveResult', err);
         });
     },
-    checkID(id) {
-        const mapFile = `${mapFolder}${path.sep}${id}.json`;
-        fs.stat(mapFile, (err, stats) => { // eslint-disable-line no-unused-vars
-            if (err) focused.webContents.send('checkIDResult', true);
-            else focused.webContents.send('checkIDResult', false);
-        });
+    async checkID(id) {
+        const json = await nedb.find(id);
+        if (!json) focused.webContents.send('checkIDResult', true);
+        else focused.webContents.send('checkIDResult', false);
     },
     updateTin(gcps, edges, index, bounds, strict, vertex) {
         const wh = index == 0 ? bounds : null;
@@ -411,6 +341,10 @@ const mapedit = {
     },
     getTmsList() {
         return settings.getSetting('tmsList');
+    },
+    async getTmsListOfMapID(mapID) {
+        if (mapID) return settings.getTmsListOfMapID(mapID);
+        else return this.getTmsList();
     }
 };
 

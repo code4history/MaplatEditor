@@ -1,8 +1,8 @@
-import { HistMap_tin } from '@maplat/core/src/histmap_tin'; // eslint-disable-line no-unused-vars
-import {HistMap} from '@maplat/core/src/histmap';
+import { mapSourceFactory } from "@maplat/core/lib/source_ex";
 import bsn from 'bootstrap.native';
 import {polygon, booleanPointInPolygon} from '@turf/turf';
 import Map from "./model/map";
+import Vue from "vue";
 import ContextMenu from 'ol-contextmenu';
 import Geocoder from 'ol-geocoder';
 import Tin from '@maplat/tin';
@@ -14,17 +14,18 @@ import {LineString, Point} from "ol/geom";
 import {Feature} from "ol";
 import {GeoJSON} from "ol/format";
 import {transform} from "ol/proj";
-import {MERC_MAX} from "@maplat/core/src/const_ex";
-import {MaplatMap} from "@maplat/core/src/map_ex";
+import {MERC_MAX} from "@maplat/core/lib/const_ex";
+import {MaplatMap} from "@maplat/core/lib/map_ex";
 import {altKeyOnly} from "ol/events/condition";
 import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
+import roundTo from "round-to";
 
-const onOffAttr = ['license', 'dataLicense', 'reference', 'url']; // eslint-disable-line no-unused-vars
-const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor', // eslint-disable-line no-unused-vars
-    'mapper', 'attr', 'dataAttr', 'description'];
+function arrayRoundTo(array, decimal) {
+    return array.map((item) => roundTo(item, decimal));
+}
 
 const labelFontStyle = "Normal 12px Arial";
 const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
@@ -33,6 +34,7 @@ backend.init();
 const langObj = Language.getSingleton();
 
 let uploader;
+let wmtsGenerator;
 let mapID;
 let newlyAddGcp;
 let newlyAddEdge;
@@ -100,8 +102,8 @@ stroke-width="2"></polygon>
         mercMap.setMarker(gcp[1], { gcpIndex: i }, iconStyle);
     }
     for (let i=0; i<edges.length; i++) {
-        const gcp1 = gcps[edges[i].startEnd[0]];
-        const gcp2 = gcps[edges[i].startEnd[1]];
+        const gcp1 = gcps[edges[i][2][0]];
+        const gcp2 = gcps[edges[i][2][1]];
         const illst1 = illstSource.xy2HistMapCoords(gcp1[0]);
         const illst2 = illstSource.xy2HistMapCoords(gcp2[0]);
         const style = new Style({
@@ -111,22 +113,22 @@ stroke-width="2"></polygon>
             })
         });
         const mercCoords = [gcp1[1]];
-        edges[i].mercNodes.map((node) => {
+        edges[i][1].map((node) => {
             mercCoords.push(node);
         });
         mercCoords.push(gcp2[1]);
         const mercLine = {
             geometry: new LineString(mercCoords),
-            startEnd: edges[i].startEnd
+            startEnd: edges[i][2]
         };
         const illstCoords = [illst1];
-        edges[i].illstNodes.map((node) => {
+        edges[i][0].map((node) => {
             illstCoords.push(illstSource.xy2HistMapCoords(node));
         });
         illstCoords.push(illst2);
         const illstLine = {
             geometry: new LineString(illstCoords),
-            startEnd: edges[i].startEnd
+            startEnd: edges[i][2]
         };
         illstMap.setFeature(illstLine, style, 'edges');
         mercMap.setFeature(mercLine, style, 'edges');
@@ -148,12 +150,8 @@ function edgeEndMarker (arg, map) { // eslint-disable-line no-unused-vars
     if (gcpIndex !== 'new') {
         const edge = [newlyAddEdge, gcpIndex].sort((a, b) => a > b ? 1 : a < b ? -1 : 0);
         newlyAddEdge = undefined;
-        if (vueMap.edges.findIndex((item) => item.startEnd[0] === edge[0] && item.startEnd[1] === edge[1]) < 0) {
-            vueMap.edges.push({
-                startEnd: edge,
-                mercNodes: [],
-                illstNodes: []
-            });
+        if (vueMap.edges.findIndex((item) => item[2][0] === edge[0] && item[2][1] === edge[1]) < 0) {
+            vueMap.edges.push([[], [], edge]);
         } else {
             alert('その対応線は指定済です。'); // eslint-disable-line no-undef
         }
@@ -193,7 +191,7 @@ function removeEdge (arg, map) { // eslint-disable-line no-unused-vars
     const edge = arg.data.edge;
     const startEnd = edge.get('startEnd');
     const edges = vueMap.edges;
-    const edgeIndex = edges.findIndex((item) => item.startEnd[0] === startEnd[0] && item.startEnd[1] === startEnd[1]);
+    const edgeIndex = edges.findIndex((item) => item[2][0] === startEnd[0] && item[2][1] === startEnd[1]);
     if (edgeIndex > -1) {
         edges.splice(edgeIndex, 1);
     }
@@ -204,9 +202,9 @@ function addMarkerOnEdge (arg, map) {
     const edgeGeom = arg.data.edge;
     const isIllst = map === illstMap;
     const coord = edgeGeom.getGeometry().getClosestPoint(arg.coordinate);
-    const xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
+    const xy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(coord), 2) : arrayRoundTo(coord, 6);
     const startEnd = edgeGeom.get('startEnd');
-    const edgeIndex = vueMap.edges.findIndex((edge) => edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1]);
+    const edgeIndex = vueMap.edges.findIndex((edge) => edge[2][0] === startEnd[0] && edge[2][1] === startEnd[1]);
     const edge = vueMap.edges[edgeIndex];
 
     console.log(xy); // eslint-disable-line no-undef,no-console
@@ -218,8 +216,8 @@ function addMarkerOnEdge (arg, map) {
     const that1 = gcp1[isIllst ? 1 : 0];
     const that2 = gcp2[isIllst ? 1 : 0];
 
-    const thisNodes = Object.assign([], isIllst ? edge.illstNodes : edge.mercNodes);
-    const thatNodes = Object.assign([], isIllst ? edge.mercNodes : edge.illstNodes);
+    const thisNodes = Object.assign([], isIllst ? edge[0] : edge[1]);
+    const thatNodes = Object.assign([], isIllst ? edge[1] : edge[0]);
     thisNodes.unshift(this1);
     thisNodes.push(this2);
     thatNodes.unshift(that1);
@@ -276,16 +274,16 @@ function addMarkerOnEdge (arg, map) {
     const thatLastNodes = thatNodes.slice(thatIndex, thatNodes.length - 1);
     vueMap.gcps.push([isIllst ? xy : thatXy, isIllst ? thatXy : xy]);
     const newGcpIndex = vueMap.gcps.length - 1;
-    vueMap.edges.splice(edgeIndex, 1, {
-        startEnd: [startEnd[0], newGcpIndex],
-        illstNodes: isIllst ? thisPrevNodes : thatPrevNodes,
-        mercNodes: isIllst ? thatPrevNodes : thisPrevNodes
-    });
-    vueMap.edges.push({
-        startEnd: [newGcpIndex, startEnd[1]],
-        illstNodes: isIllst ? thisLastNodes : thatLastNodes,
-        mercNodes: isIllst ? thatLastNodes : thisLastNodes
-    });
+    vueMap.edges.splice(edgeIndex, 1, [
+        isIllst ? thisPrevNodes : thatPrevNodes,
+        isIllst ? thatPrevNodes : thisPrevNodes,
+        [startEnd[0], newGcpIndex]
+    ]);
+    vueMap.edges.push([
+        isIllst ? thisLastNodes : thatLastNodes,
+        isIllst ? thatLastNodes : thisLastNodes,
+        [newGcpIndex, startEnd[1]]
+    ]);
     gcpsToMarkers();
 }
 
@@ -301,11 +299,11 @@ function removeMarker (arg, map) {
         const edges = vueMap.edges;
         for (let i = edges.length-1; i >= 0; i--) {
             const edge = edges[i];
-            if (edge.startEnd[0] === gcpIndex || edge.startEnd[1] === gcpIndex) {
+            if (edge[2][0] === gcpIndex || edge[2][1] === gcpIndex) {
                 edges.splice(i, 1);
             } else {
-                if (edge.startEnd[0] > gcpIndex) edge.startEnd[0] = edge.startEnd[0] - 1;
-                if (edge.startEnd[1] > gcpIndex) edge.startEnd[1] = edge.startEnd[1] - 1;
+                if (edge[2][0] > gcpIndex) edge[2][0] = edge[2][0] - 1;
+                if (edge[2][1] > gcpIndex) edge[2][1] = edge[2][1] - 1;
             }
         }
         gcpsToMarkers();
@@ -317,7 +315,7 @@ function addNewMarker (arg, map) {
     const number = gcps.length + 1;
     const isIllst = map === illstMap;
     const coord = arg.coordinate;
-    const xy = isIllst ? illstSource.histMapCoords2Xy(coord) : coord;
+    const xy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(coord), 2) : arrayRoundTo(coord, 6);
 
     if (!newlyAddGcp) {
         const labelWidth = getTextWidth( number, labelFontStyle ) + 10;
@@ -372,13 +370,13 @@ function edgesClear() {
 }
 
 function onClick(evt) {
-    if (evt.pointerEvent.altKey) return;
+    if (evt.originalEvent.altKey) return;
     const t = langObj.t;
     const isIllst = this === illstMap;
     const srcMap = isIllst ? illstMap : mercMap;
     const distMap = isIllst ? mercMap : illstMap;
     const srcMarkerLoc = evt.coordinate;
-    const srcXy = isIllst ? illstSource.histMapCoords2Xy(srcMarkerLoc) : srcMarkerLoc;
+    const srcXy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(srcMarkerLoc),2) : arrayRoundTo(srcMarkerLoc, 6);
 
     const srcCheck = srcMap.getSource('check');
     const distCheck = distMap.getSource('check');
@@ -533,7 +531,7 @@ const boundsStyle = new Style({
 });
 
 function reflectIllstMap() {
-    return HistMap.createAsync({
+    return mapSourceFactory({
         mapID,
         url: vueMap.url_,
         width: vueMap.width,
@@ -631,7 +629,7 @@ class Drag extends Pointer {
      * @return {boolean} `true` to start the drag sequence.
      */
     handleDownEvent(evt) {
-        if (evt.pointerEvent.button === 2) return;
+        if (evt.originalEvent.button === 2) return;
         const map = evt.map;
 
         const this_ = this;
@@ -657,7 +655,7 @@ class Drag extends Pointer {
      * @param {ol.MapBrowserEvent} evt Map browser event.
      */
     handleDragEvent(evt) {
-        if (evt.pointerEvent.button === 2) return;
+        if (evt.originalEvent.button === 2) return;
 
         const deltaX = evt.coordinate[0] - this.coordinate_[0];
         const deltaY = evt.coordinate[1] - this.coordinate_[1];
@@ -673,7 +671,7 @@ class Drag extends Pointer {
      * @param {ol.MapBrowserEvent} evt Event.
      */
     handleMoveEvent(evt) {
-        if (evt.pointerEvent.button === 2) return;
+        if (evt.originalEvent.button === 2) return;
         const anotherMap = evt.map === illstMap ? mercMap : illstMap;
         anotherMap.closeContextMenu();
         if (this.cursor_) {
@@ -703,12 +701,12 @@ class Drag extends Pointer {
      * @return {boolean} `false` to stop the drag sequence.
      */
     handleUpEvent(evt) {
-        if (evt.pointerEvent.button === 2) return;
+        if (evt.originalEvent.button === 2) return;
         const map = evt.map;
         const isIllst = map === illstMap;
         const feature = this.feature_;
         let xy = feature.getGeometry().getCoordinates();
-        xy = isIllst ? illstSource.histMapCoords2Xy(xy) : xy;
+        xy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(xy), 2) : arrayRoundTo(xy, 6);
 
         const gcpIndex = feature.get('gcpIndex');
         if (gcpIndex !== 'new') {
@@ -846,7 +844,7 @@ MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
             restore = false;
         }
         if (this.map_ === illstMap) {
-            const xy = illstSource.histMapCoords2Xy(evt.coordinate);
+            const xy = arrayRoundTo(illstSource.histMapCoords2Xy(evt.coordinate), 2);
             const outsideCheck = vueMap.currentEditingLayer ? (xy) => {
                 const bboxPoints = Object.assign([], vueMap.bounds);
                 bboxPoints.push(vueMap.bounds[0]);
@@ -878,6 +876,15 @@ function mapObjectInit() {
     });
     // コンテクストメニュー初期化
     illstMap.initContextMenu();
+    // bounds表示用レイヤー設定
+    const boundsLayer = new layerVector({
+        source: new sourceVector({
+            wrapX: false
+        }),
+        style: boundsStyle
+    });
+    boundsLayer.set('name', 'bounds');
+    illstMap.getLayer('overlay').getLayers().push(boundsLayer);
     // マーカーなど表示用レイヤー設定
     let jsonLayer = new layerVector({
         source: new sourceVector({
@@ -896,15 +903,6 @@ function mapObjectInit() {
     });
     checkLayer.set('name', 'check');
     illstMap.getLayers().push(checkLayer);
-    // bounds表示用レイヤー設定
-    const boundsLayer = new layerVector({
-        source: new sourceVector({
-            wrapX: false
-        }),
-        style: boundsStyle
-    });
-    boundsLayer.set('name', 'bounds');
-    illstMap.getLayer('overlay').getLayers().push(boundsLayer);
     // edge表示用レイヤー設定
     let edgesLayer = new layerVector({
         source: new sourceVector({
@@ -918,10 +916,11 @@ function mapObjectInit() {
     illstMap.on('click', onClick);
     illstMap.addInteraction(new Drag());
     const edgeModifyFunc = function(e) {
-        if (e.pointerEvent.button === 2) return false;
+        if (e.originalEvent.button === 2) return false;
         const f = this.getMap().getFeaturesAtPixel(e.pixel, {
             layerFilter(layer) {
-                return layer.get('name') === 'edges';
+                const name = layer.get('name');
+                return name === 'edges' || name === 'marker';
             }
         });
         if (f && f.length > 0 && f[0].getGeometry().getType() == 'LineString') {
@@ -965,13 +964,13 @@ function mapObjectInit() {
         const startEnd = feature.get('startEnd');
         const start = vueMap.gcps[startEnd[0]]; // eslint-disable-line no-unused-vars
         const end = vueMap.gcps[startEnd[1]]; // eslint-disable-line no-unused-vars
-        const edgeIndex = vueMap.edges.findIndex((edge) => edge.startEnd[0] === startEnd[0] && edge.startEnd[1] === startEnd[1]);
+        const edgeIndex = vueMap.edges.findIndex((edge) => edge[2][0] === startEnd[0] && edge[2][1] === startEnd[1]);
         const edge = vueMap.edges[edgeIndex];
         const points = feature.getGeometry().getCoordinates().filter((item, index, array) =>
             (index === 0 || index === array.length - 1) ? false : true).map((merc) =>
             transform(merc, 'EPSG:3857', forProj));
-        if (isIllust) edge.illstNodes = points;
-        else edge.mercNodes = points;
+        if (isIllust) edge[0] = points;
+        else edge[1] = points;
         vueMap.edges.splice(edgeIndex, 1, edge);
     };
     edgeModify.on('modifystart', edgeModifyStart);
@@ -1040,28 +1039,36 @@ function mapObjectInit() {
     mercMap.addInteraction(edgeSnap);
 
     // ベースマップリスト作成
-    const tmsList = backend.getTmsList();
-    const promises = tmsList.reverse().map((tms) => ((tms) => {
-        const promise = tms.label ?
-            HistMap.createAsync({
-                mapID: tms.mapID,
-                label: tms.label,
-                attr: tms.attr,
-                maptype: 'base',
-                url: tms.url,
-                maxZoom: tms.maxZoom
-            }, {}) :
-            HistMap.createAsync(tms.mapID, {});
-        return promise.then((source) => new Tile({
-            title: tms.title,
-            type: 'base',
-            visible: tms.mapID === 'osm',
-            source
-        }));
-    })(tms));
+    let tmsList;
+    const promises = backend.getTmsListOfMapID(mapID).then((list) => {
+        tmsList = list;
+        return Promise.all(tmsList.reverse().map((tms) =>
+            ((tms) => {
+                const promise = tms.attr ?
+                    mapSourceFactory({
+                        mapID: tms.mapID,
+                        attr: tms.attr,
+                        maptype: 'base',
+                        url: tms.url,
+                        maxZoom: tms.maxZoom
+                    }, {}) :
+                    mapSourceFactory(tms.mapID, {});
+                return promise.then((source) => {
+                    const attr = langObj.translate(source.attr);
+                    source.setAttributions(attr);
+                    return new Tile({
+                        title: tms.title,
+                        type: 'base',
+                        visible: tms.mapID === 'osm',
+                        source
+                    })
+                });
+            })(tms)
+        ));
+    });
     // ベースマップコントロール追加
     const t = langObj.t;
-    Promise.all(promises).then((layers) => {
+    promises.then((layers) => {
         const layerGroup = new Group({
             'title': t('mapedit.control_basemap'),
             layers
@@ -1088,15 +1095,7 @@ function mapObjectInit() {
 
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
 let vueMap;
-function gcpsEditReady(val) {
-    const a = document.querySelector('a[href="#gcpsTab"]'); // eslint-disable-line no-undef
-    const li = a.parentNode;
-    if (val) {
-        li.classList.remove('disabled');
-    } else {
-        li.classList.add('disabled');
-    }
-}
+let vueModal; // eslint-disable-line prefer-const
 
 if (mapID) {
     const mapIDElm = document.querySelector('#mapID'); // eslint-disable-line no-unused-vars,no-undef
@@ -1130,7 +1129,6 @@ function initVueMap(json) {
         el: '#container',
         template: '#mapedit-vue-template',
         watch: {
-            gcpsEditReady,
             gcps(val) { // eslint-disable-line no-unused-vars
                 if (!illstSource) return;
                 backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
@@ -1188,6 +1186,27 @@ function setVueMap() {
             }
         });
     });
+    vueMap.$on('wmtsGenerate', () => {
+        if (!wmtsGenerator) {
+            wmtsGenerator = require('electron').remote.require('./wmtsGenerator'); // eslint-disable-line no-undef
+            wmtsGenerator.init();
+            ipcRenderer.on('wmtsGenerated', (event, arg) => {
+                document.body.style.pointerEvents = null; // eslint-disable-line no-undef
+                if (arg.err) {
+                    console.log(arg.err); // eslint-disable-line no-undef
+                    vueModal.finish(t('wmtsgenerate.error_generation')); // eslint-disable-line no-undef
+                    return;
+                } else {
+                    vueModal.finish(t('wmtsgenerate.success_generation')); // eslint-disable-line no-undef
+                }
+            });
+        }
+        document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
+        vueModal.show(t('wmtsgenerate.generating_tile'));
+        setTimeout(() => { // eslint-disable-line no-undef
+            wmtsGenerator.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtension);
+        }, 1);
+    });
     vueMap.$on('mapUpload', () => {
         if (vueMap.gcpsEditReady && !confirm(t('mapedit.confirm_override_image'))) return; // eslint-disable-line no-undef
         if (!uploader) {
@@ -1195,20 +1214,20 @@ function setVueMap() {
             uploader.init();
             ipcRenderer.on('mapUploaded', (event, arg) => {
                 document.body.style.pointerEvents = null; // eslint-disable-line no-undef
-                myModal.hide();
                 if (arg.err) {
-                    if (arg.err !== 'Canceled') alert(t('mapedit.error_image_upload')); // eslint-disable-line no-undef
+                    if (arg.err !== 'Canceled') vueModal.finish(t('mapedit.error_image_upload')); // eslint-disable-line no-undef
+                    else vueModal.finish(t('mapedit.updownload_canceled'));
                     return;
                 } else {
-                    alert(t('mapedit.success_image_upload')); // eslint-disable-line no-undef
+                    vueModal.finish(t('mapedit.success_image_upload')); // eslint-disable-line no-undef
                 }
                 vueMap.width = arg.width;
                 vueMap.height = arg.height;
                 vueMap.url_ = arg.url;
-                if (arg.imageExtention === 'jpg') {
-                    vueMap.imageExtention = undefined;
+                if (arg.imageExtension === 'jpg') {
+                    vueMap.imageExtension = undefined;
                 } else {
-                    vueMap.imageExtention = arg.imageExtention;
+                    vueMap.imageExtension = arg.imageExtension;
                 }
 
                 reflectIllstMap().then(() => {
@@ -1218,27 +1237,27 @@ function setVueMap() {
             });
         }
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-        document.querySelector('div.modal-body > p').innerText = t('mapedit.image_uploading'); // eslint-disable-line no-undef
-        myModal.show();
+        vueModal.show(t('mapedit.image_uploading'));
         uploader.showMapSelectDialog(t('mapupload.map_image'));
     });
     vueMap.$on('dlMap', () => {
         document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-        document.querySelector('div.modal-body > p').innerText = t('mapedit.message_download'); // eslint-disable-line no-undef
-        myModal.show();
+        vueModal.show(t('mapedit.message_download'));
         ipcRenderer.once('mapDownloadResult', (event, arg) => {
             document.body.style.pointerEvents = null; // eslint-disable-line no-undef
-            myModal.hide();
             if (arg === 'Success') {
-                alert(t('mapedit.download_success')); // eslint-disable-line no-undef
+                vueModal.finish(t('mapedit.download_success')); // eslint-disable-line no-undef
             } else if (arg === 'Canceled') {
-                alert(t('mapedit.download_canceled')); // eslint-disable-line no-undef
+                vueModal.finish(t('mapedit.updownload_canceled')); // eslint-disable-line no-undef
             } else {
                 console.log(arg); // eslint-disable-line no-undef,no-console
-                alert(t('mapedit.download_error')); // eslint-disable-line no-undef
+                vueModal.finish(t('mapedit.download_error')); // eslint-disable-line no-undef
             }
         });
-        backend.download(vueMap.map);
+        backend.download(vueMap.map, vueMap.tinObjects.map((tin) => {
+            if (typeof tin === 'string') return tin;
+            return tin.getCompiled();
+        }));
     });
     vueMap.$on('saveMap', () => {
         if (!confirm(t('mapedit.confirm_save'))) return; // eslint-disable-line no-undef
@@ -1288,7 +1307,6 @@ function setVueMap() {
             vueMap.removeSubMap();
         }
     });
-    gcpsEditReady(vueMap.gcpsEditReady);
 
     let allowClose = false;
 
@@ -1332,6 +1350,10 @@ function setVueMap() {
         checkClear();
         tinResultUpdate();
     });
+
+    ipcRenderer.on('taskProgress', (event, arg) => {
+        vueModal.progress(t(arg.text), arg.percent, arg.progress);
+    });
 }
 // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
 ipcRenderer.on('mapData', (event, arg) => {
@@ -1364,5 +1386,38 @@ ipcRenderer.on('mapData', (event, arg) => {
 
 // 起動時処理: 地図外のUI設定ここから
 // モーダルオブジェクト作成
-const myModal = new bsn.Modal(document.getElementById('staticModal'), {}); //eslint-disable-line no-undef
+vueModal = new Vue({
+    el: "#modalBody",
+    data: {
+        modal: new bsn.Modal(document.getElementById('staticModal'), {}), //eslint-disable-line no-undef
+        percent: 0,
+        progressText: '',
+        enableClose: false,
+        text: ''
+    },
+    methods: {
+        show(text) {
+            this.text = text;
+            this.percent = 0;
+            this.progressText = '';
+            this.enableClose = false;
+            this.modal.show();
+        },
+        progress(text, perecent, progress) {
+            this.text = text;
+            this.percent = perecent;
+            this.progressText = progress;
+        },
+        finish(text) {
+            this.text = text;
+            this.enableClose = true;
+        },
+        hide() {
+            this.modal.hide();
+        }
+    }
+});
+/*vueModal.$on('closeModal', function() {
+    this.modal.hide();
+});*/
 // 起動時処理: 地図外のUI設定ここまで

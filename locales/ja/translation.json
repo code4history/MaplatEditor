@@ -29,7 +29,17 @@
     "confirm_close_no_save": "設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?"
   },
   "maplist": {
-    "newCreate": "新規作成"
+    "new_create": "新規作成",
+    "delete_error": "削除が失敗しました。",
+    "delete_confirm": "{{name}}を削除しますか?\n(この処理は元に戻せません)",
+    "delete_menu": "削除メニュー",
+    "delete_item": "{{name}}を削除",
+    "migrating": "データベース移行中...",
+    "migrated": "データベース移行完了",
+    "deleting_old": "旧データファイル削除中...",
+    "deleted_old": "旧データファイル削除完了",
+    "migration_confirm": "旧仕様の地図データファイルがあります。\nデータベースへの移行を行いますか?",
+    "delete_old_confirm": "新仕様へのデータ移行が完了しました。\n旧仕様のデータファイルを削除しますか?"
   },
   "mapedit": {
     "edit_metadata": "メタデータ編集",
@@ -143,7 +153,7 @@
     "download_map_data": "地図データエクスポート",
     "message_download": "エクスポート用地図データを準備しています。",
     "download_success": "エクスポート成功しました。",
-    "download_canceled": "キャンセルされました。",
+    "updownload_canceled": "キャンセルされました。",
     "download_error": "処理中にエラーが発生しました。",
     "confirm_save": "変更を保存します。\nよろしいですか?",
     "copy_or_move": "地図IDが変更されています。コピーを行いますか?\nコピーの場合はOK、移動の場合はキャンセルを選んでください。",
@@ -161,7 +171,9 @@
     "testerror_outside_map": "地図領域範囲外のため、変換ができません。"
   },
   "mapupload": {
-    "map_image": "地図画像"
+    "map_image": "地図画像",
+    "dividing_tile": "地図画像をタイル分割中",
+    "next_thumbnail": "地図サムネイル生成中"
   },
   "applist": {
     "not_implement": "未実装"
@@ -172,6 +184,12 @@
     "over_title": "表示用タイトル({{lang}})を15文字(半角30文字)以内にしてください。",
     "image_copyright": "地図画像のコピーライト表記を指定してください。"
   },
+  "wmtsgenerate": {
+    "generate": "WMTSタイル生成",
+    "error_generation": "WMTSタイル生成でエラーが発生しました。",
+    "success_generation": "WMTSタイル生成に成功しました。",
+    "generating_tile": "WMTSタイル生成中です。"
+  },
   "menu": {
     "quit": "MaplatEditorを終了",
     "about": "MaplatEditorについて",
@@ -180,6 +198,10 @@
     "redo": "やり直す",
     "dev": "開発",
     "reload": "再読み込み",
-    "tools": "開発ツールの表示"
+    "tools": "開発ツールの表示",
+    "cut": "切り取り",
+    "copy": "コピー",
+    "paste": "貼り付け",
+    "select_all": "すべて選択"
   }
 }

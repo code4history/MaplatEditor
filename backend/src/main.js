@@ -23,7 +23,11 @@ const menuList = [
     'menu.about',
     'menu.edit',
     'menu.undo',
-    'menu.redo'
+    'menu.redo',
+    'menu.cut',
+    'menu.copy',
+    'menu.paste',
+    'menu.select_all'
 ];
 
 app.on('window-all-closed', () => {
@@ -144,12 +148,32 @@ function setupMenu() {
 
                         // Run some custom code.
                     }
+                },
+                { type: "separator" },
+                {
+                    id: 'menu.cut',
+                    label: t('menu.cut'),
+                    accelerator: 'CmdOrCtrl+X',
+                    selector: 'cut:'
+                },
+                {
+                    id: 'menu.copy',
+                    label: t('menu.copy'),
+                    accelerator: 'CmdOrCtrl+C',
+                    selector: 'copy:'
+                },
+                {
+                    id: 'menu.paste',
+                    label: t('menu.paste'),
+                    accelerator: 'CmdOrCtrl+V',
+                    selector: 'paste:'
+                },
+                {
+                    id: 'menu.select_all',
+                    label: t('menu.select_all'),
+                    accelerator: 'CmdOrCtrl+A',
+                    selector: 'selectAll:'
                 }
-                // { type: "separator" },
-                // { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
-                // { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
-                // { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
-                // { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
             ]
         }, /*{
 

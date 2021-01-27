@@ -45,7 +45,8 @@
       <!-- タブ・メニュー -->
       <ul class="nav nav-tabs nav-justified" role="tablist">
         <li class="active"><a href="#metadataTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_metadata")}}</span></a></li>
-        <li><a href="#gcpsTab" data-toggle="tab" role="tab" disabled><span class="vi18nf">{{$t("mapedit.edit_gcp")}}</span></a></li>
+        <li v-bind:class="{ disabled: !gcpsEditReady }"><a href="#gcpsTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_gcp")}}</span></a></li>
+        <li v-bind:class="{ disabled: !wmtsEditReady }"><a href="#wmtsTab" data-toggle="tab" role="tab"><span class="vi18nf">WMTS</span></a></li>
         <li class="disabled"><a href="#configureTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.configure_map")}}</span></a></li>
       </ul>
 
@@ -78,7 +79,7 @@
               </div>
               <div class="form-group col-xs-1">
                 <label for="height">{{$t('mapedit.extension')}}</label>
-                <input type="text" class="form-control" id="imageExtention" disabled v-model="imageExtentionCalc">
+                <input type="text" class="form-control" id="imageExtension" disabled v-model="imageExtensionCalc">
               </div>
               <div class="form-group col-xs-2">
                 <label for="uploadMap" class="w100">　</label>
@@ -242,6 +243,15 @@
             </div>
           </div>
         </div>
+        <div class="tab-pane" id="wmtsTab">
+            <div class="h100">
+                <div class="row">
+                    <div class="col-xs-3">
+                        <button type="button" class="btn btn-default" v-on:click="$emit('wmtsGenerate')" v-bind:disabled="!wmtsEditReady">{{$t('wmtsgenerate.generate')}}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="tab-pane" id="configureTab">
           <p>地図設定</p>
         </div>
@@ -253,8 +263,20 @@
 <div class="modal" id="staticModal" tabindex="-1" role="dialog" aria-labelledby="staticModalLabel" aria-hidden="true" data-show="true" data-keyboard="false" data-backdrop="static">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-body">
-        <p class="recipient"></p>
+      <div id="modalBody" class="modal-body">
+        <div class="row">
+          <div id="modalText" class="recipient col-xs-9">{{text}}</div>
+        </div>
+        <div class="row">
+          <div class="col-xs-12">
+            <div class="progress">
+              <div id="progress" class="progress-bar progress-bar-info" role="progressbar" v-bind:style="{ width: `${percent}%` }">{{progressText}}</div>
+            </div>
+          </div>
+        </div>
+        <div class="row text-center">
+          <div><button id="modalClose" type="button" class="btn btn-default" v-bind:disabled="!enableClose" v-on:click="hide">OK</button></div>
+        </div>
       </div>
     </div> <!-- /.modal-content -->
   </div> <!-- /.modal-dialog -->
