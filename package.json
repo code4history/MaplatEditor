@@ -43,8 +43,8 @@
     "webpack-cli": "^3.3.12"
   },
   "dependencies": {
-    "@maplat/core": "github:code4history/MaplatCore#master",
-    "@maplat/tin": "github:code4history/MaplatTin#master",
+    "@maplat/core": "^0.8.6",
+    "@maplat/tin": "^0.7.3",
     "@panter/vue-i18next": "^0.15.2",
     "@turf/helpers": "^6.1.4",
     "@turf/turf": "^5.1.6",
