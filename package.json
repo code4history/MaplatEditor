@@ -27,7 +27,7 @@
     "clean-css": "^4.2.3",
     "core-js": "^3.6.5",
     "dotenv": "^8.2.0",
-    "electron": "^4.2.12",
+    "electron": "^7.2.4",
     "electron-builder": "^22.8.0",
     "electron-notarize": "^0.2.1",
     "electron-rebuild": "^2.0.1",
