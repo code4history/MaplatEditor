@@ -128,7 +128,7 @@ class Settings extends EventEmitter {
     }
 
     get redoable() {
-        return this.behaviorChain.length != this.currentPosition;
+        return this.behaviorChain.length !== this.currentPosition;
     }
 
     redo() {
@@ -138,7 +138,7 @@ class Settings extends EventEmitter {
     }
 
     get undoable() {
-        return this.currentPosition != 0;
+        return this.currentPosition !== 0;
     }
 
     undo() {
@@ -215,9 +215,9 @@ class Settings extends EventEmitter {
     showSaveFolderDialog(oldSetting) {
         const dialog = require('electron').dialog; // eslint-disable-line no-undef
         const focused = BrowserWindow.getFocusedWindow();
-        dialog.showOpenDialog({ defaultPath: oldSetting, properties: ['openDirectory']}, (baseDir) => {
-            if(baseDir && baseDir[0]) {
-                focused.webContents.send('saveFolderSelected',baseDir[0]);
+        dialog.showOpenDialog({ defaultPath: oldSetting, properties: ['openDirectory']}).then((ret) => {
+            if(!ret.canceled) {
+                focused.webContents.send('saveFolderSelected', ret.filePaths[0]);
             }
         });
     }

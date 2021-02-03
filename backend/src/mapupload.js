@@ -5,7 +5,7 @@ const isAsar = __dirname.match(/app\.asar/); // eslint-disable-line no-undef
 const canvasPath = pf == 'darwin' ?
     isAsar ? '../../../app.asar.unpacked/assets/mac/canvas' : '../../assets/mac/canvas' :
     isAsar ? '../../../app.asar.unpacked/assets/win/canvas' : '../../assets/win/canvas';
-const { createCanvas, loadImage } = require(canvasPath); // eslint-disable-line no-undef
+const { createCanvas, Image } = require(canvasPath); // eslint-disable-line no-undef
 
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
@@ -54,13 +54,13 @@ const MapUpload = {
         const focused = BrowserWindow.getFocusedWindow();
         const self = this;
         dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
-            filters: [ {name: mapImageRepl, extensions: ['jpg', 'png', 'jpeg']} ] }, (baseDir) => {
-            if(baseDir && baseDir[0]) {
-                self.imageCutter(baseDir[0]);
-            } else {
+            filters: [ {name: mapImageRepl, extensions: ['jpg', 'png', 'jpeg']} ]}).then((ret) => {
+            if (ret.canceled) {
                 focused.webContents.send('mapUploaded', {
                     err: 'Canceled'
                 });
+            } else {
+                self.imageCutter(ret.filePaths[0]);
             }
         });
     },
@@ -88,14 +88,22 @@ const MapUpload = {
                 }
             });
             await fs.ensureDir(outFolder);
-            const image = await loadImage(srcFile);
+            const image = await new Promise((res, rej) => {
+                fs.readFile(srcFile, (err, buf) => {
+                    if (err) rej(err);
+                    const img = new Image();
+                    img.onload = () => { res(img) };
+                    img.onerror = (err) => { rej(err) };
+                    img.src = buf;
+                });
+            });
             const width = image.width;
             const height = image.height;
             const maxZoom = Math.ceil(Math.log(Math.max(width, height) / 256)/ Math.log(2));
 
             const tasks = [];
-            const mime = extKey == 'png' ? 'image/png' : 'image/jpeg';
-            const quality = extKey == 'png' ? {} : {quality: 0.9};
+            const mime = extKey === 'png' ? 'image/png' : 'image/jpeg';
+            const quality = extKey === 'png' ? {} : {quality: 0.9};
 
             for (let z = maxZoom; z >= 0; z--) {
                 const pw = Math.round(width / Math.pow(2, maxZoom - z));

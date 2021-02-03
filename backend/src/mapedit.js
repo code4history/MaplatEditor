@@ -112,9 +112,10 @@ const mapedit = {
             dialog.showSaveDialog({
                 defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
                 filters: [ {name: "Output file", extensions: ['zip']} ]
-            }, (filename) => {
-                if(filename && filename[0]) {
-                    fs.moveSync(zip_file, filename, {
+            }).then((ret) => {
+                console.log(ret);
+                if(!ret.canceled) {
+                    fs.moveSync(zip_file, ret.filePath, {
                         overwrite: true
                     });
                     focused.webContents.send('mapDownloadResult', 'Success');

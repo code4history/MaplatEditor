@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{9F8FA9D6-65D5-6B86-F8F8-4E964782AAF8}</ProjectGuid>
+    <ProjectGuid>{9BAA8B64-1E61-F6E7-E025-2F1E20349739}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>canvas</RootNamespace>
     <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
@@ -48,8 +48,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\10467\.electron-gyp\4.2.12\include\node;C:\Users\10467\.electron-gyp\4.2.12\src;C:\Users\10467\.electron-gyp\4.2.12\deps\openssl\config;C:\Users\10467\.electron-gyp\4.2.12\deps\openssl\openssl\include;C:\Users\10467\.electron-gyp\4.2.12\deps\uv\include;C:\Users\10467\.electron-gyp\4.2.12\deps\zlib;C:\Users\10467\.electron-gyp\4.2.12\deps\v8\include;..\..\nan;C:\GTK\include;C:\GTK\include\cairo;C:\GTK\include\pango-1.0;C:\GTK\include\glib-2.0;C:\GTK\include\freetype2;C:\GTK\lib\glib-2.0\include;C:\libjpeg-turbo64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\include\node;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\src;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\openssl\config;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\openssl\openssl\include;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\uv\include;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\zlib;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\v8\include;..\..\nan;C:\GTK\include;C:\GTK\include\cairo;C:\GTK\include\pango-1.0;C:\GTK\include\glib-2.0;C:\GTK\include\freetype2;C:\GTK\lib\glib-2.0\include;C:\libjpeg-turbo64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -60,7 +59,7 @@
       <OmitFramePointers>false</OmitFramePointers>
       <Optimization>Disabled</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=canvas;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;_USE_MATH_DEFINES;HAVE_JPEG;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;V8_ENABLE_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=canvas;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;V8_DEPRECATION_WARNINGS;V8_IMMINENT_DEPRECATION_WARNINGS;V8_COMPRESS_POINTERS;V8_31BIT_SMIS_ON_64BIT_ARCH;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;_USE_MATH_DEFINES;HAVE_JPEG;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;V8_ENABLE_CHECKS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StringPooling>true</StringPooling>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -72,31 +71,25 @@
       <AdditionalOptions>/LTCG:INCREMENTAL %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;DelayImp.lib;&quot;C:\\Users\\10467\\.electron-gyp\\4.2.12\\x64\\node.lib&quot;;C:\GTK\lib\cairo.lib;C:\GTK\lib\libpng.lib;C:\GTK\lib\pangocairo-1.0.lib;C:\GTK\lib\pango-1.0.lib;C:\GTK\lib\freetype.lib;C:\GTK\lib\glib-2.0.lib;C:\GTK\lib\gobject-2.0.lib;C:\libjpeg-turbo64\lib\jpeg.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;DelayImp.lib;&quot;C:\\Users\\10467\\github\\canvas\\node_modules\\canvas\\9.4.0\\x64\\node.lib&quot;;C:\GTK\lib\cairo.lib;C:\GTK\lib\libpng.lib;C:\GTK\lib\pangocairo-1.0.lib;C:\GTK\lib\pango-1.0.lib;C:\GTK\lib\freetype.lib;C:\GTK\lib\glib-2.0.lib;C:\GTK\lib\gobject-2.0.lib;C:\libjpeg-turbo64\lib\jpeg.lib</AdditionalDependencies>
       <AdditionalOptions>/LTCG:INCREMENTAL /ignore:4199 %(AdditionalOptions)</AdditionalOptions>
-      <AllowIsolation>true</AllowIsolation>
-      <DataExecutionPrevention>true</DataExecutionPrevention>
       <DelayLoadDLLs>node.exe;%(DelayLoadDLLs)</DelayLoadDLLs>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <GenerateMapFile>true</GenerateMapFile>
-      <MapExports>true</MapExports>
       <OptimizeReferences>true</OptimizeReferences>
       <OutputFile>$(OutDir)$(ProjectName).node</OutputFile>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TargetExt>.node</TargetExt>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>C:\Users\10467\.electron-gyp\4.2.12\include\node;C:\Users\10467\.electron-gyp\4.2.12\src;C:\Users\10467\.electron-gyp\4.2.12\deps\openssl\config;C:\Users\10467\.electron-gyp\4.2.12\deps\openssl\openssl\include;C:\Users\10467\.electron-gyp\4.2.12\deps\uv\include;C:\Users\10467\.electron-gyp\4.2.12\deps\zlib;C:\Users\10467\.electron-gyp\4.2.12\deps\v8\include;..\..\nan;C:\GTK\include;C:\GTK\include\cairo;C:\GTK\include\pango-1.0;C:\GTK\include\glib-2.0;C:\GTK\include\freetype2;C:\GTK\lib\glib-2.0\include;C:\libjpeg-turbo64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=canvas;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;_USE_MATH_DEFINES;HAVE_JPEG;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;V8_ENABLE_CHECKS;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\include\node;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\src;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\openssl\config;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\openssl\openssl\include;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\uv\include;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\zlib;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\v8\include;..\..\nan;C:\GTK\include;C:\GTK\include\cairo;C:\GTK\include\pango-1.0;C:\GTK\include\glib-2.0;C:\GTK\include\freetype2;C:\GTK\lib\glib-2.0\include;C:\libjpeg-turbo64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=canvas;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;V8_DEPRECATION_WARNINGS;V8_IMMINENT_DEPRECATION_WARNINGS;V8_COMPRESS_POINTERS;V8_31BIT_SMIS_ON_64BIT_ARCH;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;_USE_MATH_DEFINES;HAVE_JPEG;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;V8_ENABLE_CHECKS;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\10467\.electron-gyp\4.2.12\include\node;C:\Users\10467\.electron-gyp\4.2.12\src;C:\Users\10467\.electron-gyp\4.2.12\deps\openssl\config;C:\Users\10467\.electron-gyp\4.2.12\deps\openssl\openssl\include;C:\Users\10467\.electron-gyp\4.2.12\deps\uv\include;C:\Users\10467\.electron-gyp\4.2.12\deps\zlib;C:\Users\10467\.electron-gyp\4.2.12\deps\v8\include;..\..\nan;C:\GTK\include;C:\GTK\include\cairo;C:\GTK\include\pango-1.0;C:\GTK\include\glib-2.0;C:\GTK\include\freetype2;C:\GTK\lib\glib-2.0\include;C:\libjpeg-turbo64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\include\node;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\src;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\openssl\config;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\openssl\openssl\include;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\uv\include;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\zlib;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\v8\include;..\..\nan;C:\GTK\include;C:\GTK\include\cairo;C:\GTK\include\pango-1.0;C:\GTK\include\glib-2.0;C:\GTK\include\freetype2;C:\GTK\lib\glib-2.0\include;C:\libjpeg-turbo64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <DisableSpecificWarnings>4100;4611;4351;4355;4800;4251;4275;4244;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -109,7 +102,7 @@
       <OmitFramePointers>true</OmitFramePointers>
       <Optimization>Full</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=canvas;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;_USE_MATH_DEFINES;HAVE_JPEG;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=canvas;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;V8_DEPRECATION_WARNINGS;V8_IMMINENT_DEPRECATION_WARNINGS;V8_COMPRESS_POINTERS;V8_31BIT_SMIS_ON_64BIT_ARCH;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;_USE_MATH_DEFINES;HAVE_JPEG;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <StringPooling>true</StringPooling>
@@ -122,48 +115,75 @@
       <AdditionalOptions>/LTCG:INCREMENTAL %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;DelayImp.lib;&quot;C:\\Users\\10467\\.electron-gyp\\4.2.12\\x64\\node.lib&quot;;C:\GTK\lib\cairo.lib;C:\GTK\lib\libpng.lib;C:\GTK\lib\pangocairo-1.0.lib;C:\GTK\lib\pango-1.0.lib;C:\GTK\lib\freetype.lib;C:\GTK\lib\glib-2.0.lib;C:\GTK\lib\gobject-2.0.lib;C:\libjpeg-turbo64\lib\jpeg.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;DelayImp.lib;&quot;C:\\Users\\10467\\github\\canvas\\node_modules\\canvas\\9.4.0\\x64\\node.lib&quot;;C:\GTK\lib\cairo.lib;C:\GTK\lib\libpng.lib;C:\GTK\lib\pangocairo-1.0.lib;C:\GTK\lib\pango-1.0.lib;C:\GTK\lib\freetype.lib;C:\GTK\lib\glib-2.0.lib;C:\GTK\lib\gobject-2.0.lib;C:\libjpeg-turbo64\lib\jpeg.lib</AdditionalDependencies>
       <AdditionalOptions>/LTCG:INCREMENTAL /ignore:4199 %(AdditionalOptions)</AdditionalOptions>
-      <AllowIsolation>true</AllowIsolation>
-      <DataExecutionPrevention>true</DataExecutionPrevention>
       <DelayLoadDLLs>node.exe;%(DelayLoadDLLs)</DelayLoadDLLs>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <GenerateMapFile>true</GenerateMapFile>
-      <MapExports>true</MapExports>
       <OptimizeReferences>true</OptimizeReferences>
       <OutputFile>$(OutDir)$(ProjectName).node</OutputFile>
-      <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TargetExt>.node</TargetExt>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>C:\Users\10467\.electron-gyp\4.2.12\include\node;C:\Users\10467\.electron-gyp\4.2.12\src;C:\Users\10467\.electron-gyp\4.2.12\deps\openssl\config;C:\Users\10467\.electron-gyp\4.2.12\deps\openssl\openssl\include;C:\Users\10467\.electron-gyp\4.2.12\deps\uv\include;C:\Users\10467\.electron-gyp\4.2.12\deps\zlib;C:\Users\10467\.electron-gyp\4.2.12\deps\v8\include;..\..\nan;C:\GTK\include;C:\GTK\include\cairo;C:\GTK\include\pango-1.0;C:\GTK\include\glib-2.0;C:\GTK\include\freetype2;C:\GTK\lib\glib-2.0\include;C:\libjpeg-turbo64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=canvas;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;_USE_MATH_DEFINES;HAVE_JPEG;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\include\node;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\src;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\openssl\config;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\openssl\openssl\include;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\uv\include;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\zlib;C:\Users\10467\github\canvas\node_modules\canvas\9.4.0\deps\v8\include;..\..\nan;C:\GTK\include;C:\GTK\include\cairo;C:\GTK\include\pango-1.0;C:\GTK\include\glib-2.0;C:\GTK\include\freetype2;C:\GTK\lib\glib-2.0\include;C:\libjpeg-turbo64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=canvas;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;V8_DEPRECATION_WARNINGS;V8_IMMINENT_DEPRECATION_WARNINGS;V8_COMPRESS_POINTERS;V8_31BIT_SMIS_ON_64BIT_ARCH;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;_USE_MATH_DEFINES;HAVE_JPEG;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="..\binding.gyp"/>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\backend\Backend.cc"/>
-    <ClCompile Include="..\src\backend\ImageBackend.cc"/>
-    <ClCompile Include="..\src\backend\PdfBackend.cc"/>
-    <ClCompile Include="..\src\backend\SvgBackend.cc"/>
-    <ClCompile Include="..\src\bmp\BMPParser.cc"/>
-    <ClCompile Include="..\src\Backends.cc"/>
-    <ClCompile Include="..\src\Canvas.cc"/>
-    <ClCompile Include="..\src\CanvasGradient.cc"/>
-    <ClCompile Include="..\src\CanvasPattern.cc"/>
-    <ClCompile Include="..\src\CanvasRenderingContext2d.cc"/>
-    <ClCompile Include="..\src\closure.cc"/>
-    <ClCompile Include="..\src\color.cc"/>
-    <ClCompile Include="..\src\Image.cc"/>
-    <ClCompile Include="..\src\ImageData.cc"/>
-    <ClCompile Include="..\src\init.cc"/>
-    <ClCompile Include="..\src\register_font.cc"/>
-    <ClCompile Include="C:\Users\10467\github\MaplatEditor\node_modules\node-gyp\src\win_delay_load_hook.cc"/>
+    <ClCompile Include="..\src\backend\Backend.cc">
+      <ObjectFileName>$(IntDir)\src\backend\Backend.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\backend\ImageBackend.cc">
+      <ObjectFileName>$(IntDir)\src\backend\ImageBackend.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\backend\PdfBackend.cc">
+      <ObjectFileName>$(IntDir)\src\backend\PdfBackend.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\backend\SvgBackend.cc">
+      <ObjectFileName>$(IntDir)\src\backend\SvgBackend.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\bmp\BMPParser.cc">
+      <ObjectFileName>$(IntDir)\src\bmp\BMPParser.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\Backends.cc">
+      <ObjectFileName>$(IntDir)\src\Backends.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\Canvas.cc">
+      <ObjectFileName>$(IntDir)\src\Canvas.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\CanvasGradient.cc">
+      <ObjectFileName>$(IntDir)\src\CanvasGradient.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\CanvasPattern.cc">
+      <ObjectFileName>$(IntDir)\src\CanvasPattern.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\CanvasRenderingContext2d.cc">
+      <ObjectFileName>$(IntDir)\src\CanvasRenderingContext2d.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\closure.cc">
+      <ObjectFileName>$(IntDir)\src\closure.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\color.cc">
+      <ObjectFileName>$(IntDir)\src\color.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\Image.cc">
+      <ObjectFileName>$(IntDir)\src\Image.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\ImageData.cc">
+      <ObjectFileName>$(IntDir)\src\ImageData.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\init.cc">
+      <ObjectFileName>$(IntDir)\src\init.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\register_font.cc">
+      <ObjectFileName>$(IntDir)\src\register_font.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="C:\Users\10467\github\canvas\node_modules\node-gyp\src\win_delay_load_hook.cc"/>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="C:\libjpeg-turbo64\bin\jpeg62.dll">

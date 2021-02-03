@@ -59,7 +59,13 @@ app.on('ready', async () => {
     });
 
     // ブラウザ(Chromium)の起動, 初期画面のロード
-    mainWindow = new BrowserWindow({width: appWidth, height: appHeight});
+    mainWindow = new BrowserWindow({
+        width: appWidth,
+        height: appHeight,
+        webPreferences: {
+            nodeIntegration: true
+        }
+    });
     const indexurl = `file://${__dirname.replace(/\\/g, '/')}/../../html/maplist.html`; // eslint-disable-line no-undef
     mainWindow.loadURL(indexurl);
     mainWindow.setMinimumSize(appWidth, appHeight);
