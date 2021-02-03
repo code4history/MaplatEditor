@@ -71,16 +71,15 @@
     "v8_use_siphash": 1,
     "want_separate_host_toolset": 0,
     "xcode_version": "8.0",
-    "nodedir": "/Users/kokogiko/.electron-gyp/4.2.12",
+    "nodedir": "/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0",
     "standalone_static_library": 1,
-    "target": "4.2.12",
+    "runtime": "electron",
+    "target": "9.4.0",
     "build_from_source": "true",
     "module_name": "canvas",
-    "module_path": "/Users/kokogiko/github/MaplatEditor/node_modules/canvas/build/Release",
+    "module_path": "/Users/kokogiko/github/canvas_/node_modules/canvas/build/Release",
     "host": "https://github.com/node-gfx/node-canvas-prebuilt/releases/download/",
     "remote_path": "v2.6.1",
-    "package_name": "canvas-v2.6.1-electron-v4.2-darwin-unknown-x64.tar.gz",
-    "disturl": "https://www.electronjs.org/headers",
-    "runtime": "electron"
+    "package_name": "canvas-v2.6.1-electron-v9.4-darwin-unknown-x64.tar.gz"
   }
 }

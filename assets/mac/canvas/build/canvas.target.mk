@@ -7,9 +7,15 @@ DEFS_Debug := \
 	'-DUSING_UV_SHARED=1' \
 	'-DUSING_V8_SHARED=1' \
 	'-DV8_DEPRECATION_WARNINGS=1' \
+	'-DV8_DEPRECATION_WARNINGS' \
+	'-DV8_IMMINENT_DEPRECATION_WARNINGS' \
 	'-D_DARWIN_USE_64_BIT_INODE=1' \
 	'-D_LARGEFILE_SOURCE' \
 	'-D_FILE_OFFSET_BITS=64' \
+	'-DV8_COMPRESS_POINTERS' \
+	'-DV8_31BIT_SMIS_ON_64BIT_ARCH' \
+	'-DOPENSSL_NO_PINSHARED' \
+	'-DOPENSSL_THREADS' \
 	'-DHAVE_JPEG' \
 	'-DHAVE_GIF' \
 	'-DBUILDING_NODE_EXTENSION' \
@@ -21,7 +27,7 @@ DEFS_Debug := \
 CFLAGS_Debug := \
 	-O0 \
 	-gdwarf-2 \
-	-mmacosx-version-min=10.7 \
+	-mmacosx-version-min=10.10 \
 	-arch x86_64 \
 	-Wall \
 	-Wendif-labels \
@@ -46,13 +52,13 @@ CFLAGS_OBJC_Debug :=
 CFLAGS_OBJCC_Debug :=
 
 INCS_Debug := \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/include/node \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/src \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/openssl/config \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/openssl/openssl/include \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/uv/include \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/zlib \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/v8/include \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/include/node \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/src \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/openssl/config \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/openssl/openssl/include \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/uv/include \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/zlib \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/v8/include \
 	-I$(srcdir)/../nan \
 	-I/usr/local/Cellar/libffi/3.3/include \
 	-I/usr/local/Cellar/cairo/1.16.0_3/include/cairo \
@@ -75,9 +81,15 @@ DEFS_Release := \
 	'-DUSING_UV_SHARED=1' \
 	'-DUSING_V8_SHARED=1' \
 	'-DV8_DEPRECATION_WARNINGS=1' \
+	'-DV8_DEPRECATION_WARNINGS' \
+	'-DV8_IMMINENT_DEPRECATION_WARNINGS' \
 	'-D_DARWIN_USE_64_BIT_INODE=1' \
 	'-D_LARGEFILE_SOURCE' \
 	'-D_FILE_OFFSET_BITS=64' \
+	'-DV8_COMPRESS_POINTERS' \
+	'-DV8_31BIT_SMIS_ON_64BIT_ARCH' \
+	'-DOPENSSL_NO_PINSHARED' \
+	'-DOPENSSL_THREADS' \
 	'-DHAVE_JPEG' \
 	'-DHAVE_GIF' \
 	'-DBUILDING_NODE_EXTENSION'
@@ -86,7 +98,7 @@ DEFS_Release := \
 CFLAGS_Release := \
 	-Os \
 	-gdwarf-2 \
-	-mmacosx-version-min=10.7 \
+	-mmacosx-version-min=10.10 \
 	-arch x86_64 \
 	-Wall \
 	-Wendif-labels \
@@ -111,13 +123,13 @@ CFLAGS_OBJC_Release :=
 CFLAGS_OBJCC_Release :=
 
 INCS_Release := \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/include/node \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/src \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/openssl/config \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/openssl/openssl/include \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/uv/include \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/zlib \
-	-I/Users/kokogiko/.electron-gyp/4.2.12/deps/v8/include \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/include/node \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/src \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/openssl/config \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/openssl/openssl/include \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/uv/include \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/zlib \
+	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/v8/include \
 	-I$(srcdir)/../nan \
 	-I/usr/local/Cellar/libffi/3.3/include \
 	-I/usr/local/Cellar/cairo/1.16.0_3/include/cairo \
@@ -183,7 +195,7 @@ LDFLAGS_Debug := \
 	-undefined dynamic_lookup \
 	-Wl,-no_pie \
 	-Wl,-search_paths_first \
-	-mmacosx-version-min=10.7 \
+	-mmacosx-version-min=10.10 \
 	-arch x86_64 \
 	-L$(builddir) \
 	-stdlib=libc++
@@ -197,7 +209,7 @@ LDFLAGS_Release := \
 	-undefined dynamic_lookup \
 	-Wl,-no_pie \
 	-Wl,-search_paths_first \
-	-mmacosx-version-min=10.7 \
+	-mmacosx-version-min=10.10 \
 	-arch x86_64 \
 	-L$(builddir) \
 	-stdlib=libc++
