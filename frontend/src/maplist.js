@@ -26,36 +26,36 @@ async function initRun() {
       const t = langObj.t;
       backend.start();
 
-      window.addEventListener('resize', this.handleResize);
+      window.addEventListener('resize', this.handleResize); // eslint-disable-line no-undef
 
-      ipcRenderer.on("migrationConfirm", (_event, _result) => {
-        if (confirm(t("maplist.migration_confirm"))) {
+      ipcRenderer.on("migrationConfirm", (_event, _result) => { // eslint-disable-line no-unused-vars
+        if (confirm(t("maplist.migration_confirm"))) { // eslint-disable-line no-undef
           vueModal.show(t("maplist.migrating"));
-          setTimeout(() => {
+          setTimeout(() => { // eslint-disable-line no-undef
             backend.migration();
           }, 1000);
         } else {
           backend.request();
         }
       });
-      ipcRenderer.on("deleteOldConfirm", (_event, _result) => {
+      ipcRenderer.on("deleteOldConfirm", (_event, _result) => { // eslint-disable-line no-unused-vars
         vueModal.hide();
-        setTimeout(() => {
-          if (confirm(t("maplist.delete_old_confirm"))) {
+        setTimeout(() => { // eslint-disable-line no-undef
+          if (confirm(t("maplist.delete_old_confirm"))) { // eslint-disable-line no-undef
             vueModal.show(t("maplist.deleting_old"));
-            setTimeout(() => {
+            setTimeout(() => { // eslint-disable-line no-undef
               backend.deleteOld();
             }, 1000);
           }
         }, 1000);
       });
-      ipcRenderer.on("deletedOld", (_event, _result) => {
+      ipcRenderer.on("deletedOld", (_event, _result) => { // eslint-disable-line no-unused-vars
         const t = langObj.t;
         vueModal.finish(t('maplist.deleted_old'));
       });
-      ipcRenderer.on("deleteError", (_event, _result) => {
+      ipcRenderer.on("deleteError", (_event, _result) => { // eslint-disable-line no-unused-vars
         const t = langObj.t;
-        alert(t('maplist.delete_error'));
+        alert(t('maplist.delete_error')); // eslint-disable-line no-undef
       });
       ipcRenderer.on('taskProgress', (event, arg) => {
         const t = langObj.t;
@@ -137,7 +137,7 @@ async function initRun() {
       onCtxOpen(locals) {
         this.menuData = locals;
       },
-      onCtxClose(locals) {
+      onCtxClose(locals) { // eslint-disable-line no-unused-vars
       },
       resetCtxLocals() {
         this.menuData = newMenuData();

@@ -113,7 +113,6 @@ const mapedit = {
                 defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
                 filters: [ {name: "Output file", extensions: ['zip']} ]
             }).then((ret) => {
-                console.log(ret);
                 if(!ret.canceled) {
                     fs.moveSync(zip_file, ret.filePath, {
                         overwrite: true
@@ -143,7 +142,7 @@ const mapedit = {
         const tmpCheck = url_ && url_.match(regex);
 
         Promise.all([
-            new Promise(async (resolve, reject) => {
+            new Promise(async (resolve, reject) => { // eslint-disable-line no-async-promise-executor
                 if (status !== 'Update') {
                     const existCheck = await nedb.find(mapID);
                     if (existCheck) {

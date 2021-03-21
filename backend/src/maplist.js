@@ -15,9 +15,7 @@ function arrayRoundTo(array, decimal) {
     return array.map((item) => roundTo(item, decimal));
 }
 function pointsRoundTo(points) {
-    return points.map((point) => {
-        return arrayRoundTo(point, 2);
-    });
+    return points.map((point) => arrayRoundTo(point, 2));
 }
 function pointSetsRoundTo(pointsets) {
     return pointsets.map((pointset) => {
@@ -107,7 +105,7 @@ const maplist = {
             }
             progress.update(i + 1);
             await new Promise((res) => {
-                setTimeout(res, 500);
+                setTimeout(res, 500); // eslint-disable-line no-undef
             });
         }
         fs.writeFileSync(`${compFolder}${path.sep}.updated`, "done");
@@ -123,7 +121,7 @@ const maplist = {
             fs.removeSync(folder);
             progress.update(i + 1);
             await new Promise((res) => {
-                setTimeout(res, 500);
+                setTimeout(res, 500); // eslint-disable-line no-undef
             });
         }
         focused.webContents.send('deletedOld', {});
@@ -132,7 +130,7 @@ const maplist = {
         if (!condition || condition === "") condition = null;
         let result;
         let pageUpdate = 0;
-        while (1) {
+        while (1) { // eslint-disable-line no-constant-condition
             result = await nedb.search(condition, (page - 1) * 20, 20);
             if (result.docs.length === 0 && page > 1) {
                 page--;
@@ -157,7 +155,7 @@ const maplist = {
             if (!res.width || !res.height) return res;
 
             const thumbFolder = `${tileFolder}${path.sep}${res.mapID}${path.sep}0${path.sep}0`;
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
                 fs.readdir(thumbFolder, (err, thumbs) => {
                     if (err) {
                         //reject(err);
@@ -190,7 +188,7 @@ const maplist = {
 
         thumbFiles.forEach((thumbFile) => {
             thumbExtractor.make_thumbnail(thumbFile[0], thumbFile[1], thumbFile[2]).then(() => {
-            }).catch((e) => { console.log(e); });
+            }).catch((e) => { console.log(e); }); // eslint-disable-line no-undef
         });
     },
     async delete(mapID, condition, page) {
