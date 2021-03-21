@@ -346,6 +346,10 @@ const mapedit = {
     async getTmsListOfMapID(mapID) {
         if (mapID) return settings.getTmsListOfMapID(mapID);
         else return this.getTmsList();
+    },
+    getWmtsFolder() {
+        const saveFolder = settings.getSetting('saveFolder');
+        return path.resolve(saveFolder, './wmts');
     }
 };
 

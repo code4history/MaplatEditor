@@ -44,6 +44,7 @@
   "mapedit": {
     "edit_metadata": "メタデータ編集",
     "edit_gcp": "対応点編集",
+    "wmts": "WMTS (参考機能)",
     "configure_map": "地図設定",
     "set_default": "デフォルトに設定",
     "mapid": "地図ID",
@@ -188,7 +189,8 @@
     "generate": "WMTSタイル生成",
     "error_generation": "WMTSタイル生成でエラーが発生しました。",
     "success_generation": "WMTSタイル生成に成功しました。",
-    "generating_tile": "WMTSタイル生成中です。"
+    "generating_tile": "WMTSタイル生成中です。",
+    "result_folder": "生成結果は\"{{folder}}\"フォルダの下に出力されます。"
   },
   "menu": {
     "quit": "MaplatEditorを終了",

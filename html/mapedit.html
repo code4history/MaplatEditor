@@ -46,7 +46,7 @@
       <ul class="nav nav-tabs nav-justified" role="tablist">
         <li class="active"><a href="#metadataTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_metadata")}}</span></a></li>
         <li v-bind:class="{ disabled: !gcpsEditReady }"><a href="#gcpsTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.edit_gcp")}}</span></a></li>
-        <li v-bind:class="{ disabled: !wmtsEditReady }"><a href="#wmtsTab" data-toggle="tab" role="tab"><span class="vi18nf">WMTS</span></a></li>
+        <li v-bind:class="{ disabled: !wmtsEditReady }"><a href="#wmtsTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.wmts")}}</span></a></li>
         <li class="disabled"><a href="#configureTab" data-toggle="tab" role="tab"><span class="vi18nf">{{$t("mapedit.configure_map")}}</span></a></li>
       </ul>
 
@@ -248,6 +248,9 @@
                 <div class="row">
                     <div class="col-xs-3">
                         <button type="button" class="btn btn-default" v-on:click="$emit('wmtsGenerate')" v-bind:disabled="!wmtsEditReady">{{$t('wmtsgenerate.generate')}}</button>
+                    </div>
+                    <div class="col-xs-9">
+                        <span>{{$t('wmtsgenerate.result_folder', { folder: wmtsFolder })}}</span>
                     </div>
                 </div>
             </div>

@@ -1151,6 +1151,9 @@ function initVueMap(json) {
                 if (!illstSource) return;
                 gcpsToMarkers();
             }
+        },
+        data: {
+            wmtsFolder: backend.getWmtsFolder()
         }
     };
     if (json) {

@@ -33,7 +33,8 @@ const defaultMap = {
     url_: '',
     lang: 'ja',
     imageExtension: undefined,
-    wmtsHash: undefined
+    wmtsHash: undefined,
+    wmtsFolder: ''
 };
 const langs = {
     'ja': 'japanese',

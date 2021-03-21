@@ -44,6 +44,7 @@
   "mapedit": {
     "edit_metadata": "Edit Metadata",
     "edit_gcp": "Edit GCP",
+    "wmts": "WMTS (Reference)",
     "configure_map": "Configure Map",
     "set_default": "Set as default",
     "mapid": "Map ID",
@@ -187,7 +188,8 @@
     "generate": "WMTS Tile Generation",
     "error_generation": "Error in WMTS tile generation.",
     "success_generation": "WMTS tile generation succeeded.",
-    "generating_tile": "WMTS tiles are being generated."
+    "generating_tile": "WMTS tiles are being generated.",
+    "result_folder": "Generated results are outputted under \"{{folder}}\" folder."
   },
   "menu": {
     "quit": "Quit MaplatEditor",

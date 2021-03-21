@@ -7,6 +7,7 @@ const Menu = electron.Menu;
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
 const Settings = require('./settings'); // eslint-disable-line no-undef
+const path = require('path'); // eslint-disable-line no-undef
 
 let settings;
 let menuTemplate;
@@ -115,7 +116,7 @@ function setupMenu() {
                     label: t('menu.about'),
                     click() {
                         openAboutWindow({
-                            icon_path: `file://${__dirname.replace(/\\/g, '/')}/../../img/icon.png`, // eslint-disable-line no-undef
+                            icon_path: path.resolve(__dirname, '../../img/icon.png'), // eslint-disable-line no-undef
                             product_name: 'MaplatEditor',
                             copyright: 'Copyright (c) 2015-2020 Code for History',
                             use_version_info: true,
