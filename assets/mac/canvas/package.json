@@ -1,8 +1,8 @@
 {
   "_from": "canvas",
-  "_id": "canvas@2.6.1",
+  "_id": "canvas@2.7.0",
   "_inBundle": false,
-  "_integrity": "sha512-S98rKsPcuhfTcYbtF53UIJhcbgIAK533d1kJKMwsMwAIFgfd58MOyxRud3kktlzWiEkFliaJtvyZCBtud/XVEA==",
+  "_integrity": "sha512-pzCxtkHb+5su5MQjTtepMDlIOtaXo277x0C0u3nMOxtkhTyQ+h2yNKhlROAaDllWgRyePAUitC08sXw26Eb6aw==",
   "_location": "/canvas",
   "_phantomChildren": {},
   "_requested": {
@@ -19,10 +19,10 @@
     "#USER",
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/canvas/-/canvas-2.6.1.tgz",
-  "_shasum": "0d087dd4d60f5a5a9efa202757270abea8bef89e",
+  "_resolved": "https://registry.npmjs.org/canvas/-/canvas-2.7.0.tgz",
+  "_shasum": "3ce3fe30c69595ccd2bd1232967e681c026be61e",
   "_spec": "canvas",
-  "_where": "/Users/kokogiko/github/canvas_",
+  "_where": "/Users/kokogiko/github/NodeCanvasMac",
   "author": {
     "name": "TJ Holowaychuk",
     "email": "tj@learnboost.com"
@@ -30,7 +30,7 @@
   "binary": {
     "module_name": "canvas",
     "module_path": "build/Release",
-    "host": "https://github.com/node-gfx/node-canvas-prebuilt/releases/download/",
+    "host": "https://github.com/Automattic/node-canvas/releases/download/",
     "remote_path": "v{version}",
     "package_name": "{module_name}-v{version}-{node_abi}-{platform}-{libc}-{arch}.tar.gz"
   },
@@ -55,7 +55,7 @@
   ],
   "dependencies": {
     "nan": "^2.14.0",
-    "node-pre-gyp": "^0.11.0",
+    "node-pre-gyp": "^0.15.0",
     "simple-get": "^3.0.3"
   },
   "deprecated": false,
@@ -101,12 +101,12 @@
     "benchmark": "node benchmarks/run.js",
     "dtslint": "dtslint types",
     "install": "node-pre-gyp install --fallback-to-build",
+    "lint": "standard examples/*.js test/server.js test/public/*.js benchmarks/run.js lib/context2d.js util/has_lib.js browser.js index.js",
     "prebenchmark": "node-gyp build",
-    "pretest": "standard examples/*.js test/server.js test/public/*.js benchmarks/run.js lib/context2d.js util/has_lib.js browser.js index.js && node-gyp build",
     "pretest-server": "node-gyp build",
     "test": "mocha test/*.test.js",
     "test-server": "node test/server.js"
   },
   "types": "types/index.d.ts",
-  "version": "2.6.1"
+  "version": "2.7.0"
 }

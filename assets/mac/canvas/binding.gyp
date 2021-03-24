@@ -124,11 +124,24 @@
           }
         }, {  # 'OS!="win"'
           'libraries': [
-            '<!@(pkg-config pixman-1 --libs)',
-            '<!@(pkg-config cairo --libs)',
-            '<!@(pkg-config libpng --libs)',
-            '<!@(pkg-config pangocairo --libs)',
-            '<!@(pkg-config freetype2 --libs)'
+            #'<!@(pkg-config pixman-1 --libs)',
+            #'<!@(pkg-config cairo --libs)',
+            #'<!@(pkg-config libpng --libs)',
+            #'<!@(pkg-config pangocairo --libs)',
+            #'<!@(pkg-config freetype2 --libs)'
+            '/usr/local/opt/pixman/lib/libpixman-1.a',
+            '/usr/local/opt/cairo/lib/libcairo.a',
+            '/usr/local/opt/libpng/lib/libpng16.a',
+            '/usr/local/opt/pango/lib/libpango-1.0.a',
+            '/usr/local/opt/pango/lib/libpangocairo-1.0.a',
+            '/usr/local/opt/gettext/lib/libintl.a',
+            '/usr/local/opt/harfbuzz/lib/libharfbuzz.a',
+            '/usr/local/opt/freetype/lib/libfreetype.a',
+            '/usr/local/opt/glib/lib/libgobject-2.0.0.dylib',
+            '/usr/local/opt/glib/lib/libglib-2.0.0.dylib',
+            '/usr/local/opt/glib/lib/libgio-2.0.0.dylib',
+            #'/usr/local/opt/jpeg/lib/libjpeg.a',
+            #'/usr/local/opt/giflib/lib/libgif.a'
           ],
           'include_dirs': [
             '<!@(pkg-config cairo --cflags-only-I | sed s/-I//g)',
@@ -136,6 +149,7 @@
             '<!@(pkg-config pangocairo --cflags-only-I | sed s/-I//g)',
             '<!@(pkg-config freetype2 --cflags-only-I | sed s/-I//g)'
           ],
+          'cflags': ['-Wno-cast-function-type'],
           'cflags!': ['-fno-exceptions'],
           'cflags_cc!': ['-fno-exceptions']
         }],

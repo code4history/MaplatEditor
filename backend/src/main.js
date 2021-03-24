@@ -1,5 +1,8 @@
 'use strict';
 
+console.log(process.env.DYLD_LIBRARY_PATH); // eslint-disable-line no-undef
+console.log(process.env.LD_LIBRARY_PATH); // eslint-disable-line no-undef
+
 const electron = require('electron'); // eslint-disable-line no-undef
 const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
@@ -8,6 +11,17 @@ const fs = require('fs-extra'); // eslint-disable-line no-undef
 const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
 const Settings = require('./settings'); // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
+const pf = process.platform; // eslint-disable-line no-undef
+const isAsar = __dirname.match(/app\.asar/); // eslint-disable-line no-undef
+const assetsPath = pf == 'darwin' ?
+    isAsar ? '../../../app.asar.unpacked/assets/mac' : '../../assets/mac' :
+    isAsar ? '../../../app.asar.unpacked/assets/win' : '../../assets/win';
+if (pf == 'darwin') {
+    process.env.DYLD_LIBRARY_PATH = [ // eslint-disable-line no-undef
+        `${assetsPath}/lib`,
+        '$DYLD_LIBRARY_PATH'
+    ].join(':');
+}
 
 let settings;
 let menuTemplate;
@@ -222,7 +236,7 @@ function setupMenu() {
         ]
     };
 
-    if (isDev) {
+    if (isDev || 1) { // eslint-disable-line no-constant-condition
         menuTemplate.push(devMenu);
         menuList.push('menu.dev', 'menu.reload', 'menu.tools');
     }

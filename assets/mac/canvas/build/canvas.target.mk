@@ -52,13 +52,13 @@ CFLAGS_OBJC_Debug :=
 CFLAGS_OBJCC_Debug :=
 
 INCS_Debug := \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/include/node \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/src \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/openssl/config \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/openssl/openssl/include \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/uv/include \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/zlib \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/v8/include \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/include/node \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/src \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/openssl/config \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/openssl/openssl/include \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/uv/include \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/zlib \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/v8/include \
 	-I$(srcdir)/../nan \
 	-I/usr/local/Cellar/libffi/3.3/include \
 	-I/usr/local/Cellar/cairo/1.16.0_3/include/cairo \
@@ -123,13 +123,13 @@ CFLAGS_OBJC_Release :=
 CFLAGS_OBJCC_Release :=
 
 INCS_Release := \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/include/node \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/src \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/openssl/config \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/openssl/openssl/include \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/uv/include \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/zlib \
-	-I/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0/deps/v8/include \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/include/node \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/src \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/openssl/config \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/openssl/openssl/include \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/uv/include \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/zlib \
+	-I/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0/deps/v8/include \
 	-I$(srcdir)/../nan \
 	-I/usr/local/Cellar/libffi/3.3/include \
 	-I/usr/local/Cellar/cairo/1.16.0_3/include/cairo \
@@ -220,25 +220,17 @@ LIBTOOLFLAGS_Release := \
 	-Wl,-search_paths_first
 
 LIBS := \
-	-L/usr/local/Cellar/pixman/0.40.0/lib \
-	-lpixman-1 \
-	-L/usr/local/Cellar/cairo/1.16.0_3/lib \
-	-lcairo \
-	-L/usr/local/Cellar/libpng/1.6.37/lib \
-	-lpng16 \
-	-lz \
-	-L/usr/local/Cellar/pango/1.46.1/lib \
-	-L/usr/local/Cellar/glib/2.64.5/lib \
-	-L/usr/local/opt/gettext/lib \
-	-L/usr/local/Cellar/harfbuzz/2.7.2/lib \
-	-lpangocairo-1.0 \
-	-lpango-1.0 \
-	-lgobject-2.0 \
-	-lglib-2.0 \
-	-lintl \
-	-lharfbuzz \
-	-L/usr/local/opt/freetype/lib \
-	-lfreetype \
+	/usr/local/opt/pixman/lib/libpixman-1.a \
+	/usr/local/opt/cairo/lib/libcairo.a \
+	/usr/local/opt/libpng/lib/libpng16.a \
+	/usr/local/opt/pango/lib/libpango-1.0.a \
+	/usr/local/opt/pango/lib/libpangocairo-1.0.a \
+	/usr/local/opt/gettext/lib/libintl.a \
+	/usr/local/opt/harfbuzz/lib/libharfbuzz.a \
+	/usr/local/opt/freetype/lib/libfreetype.a \
+	/usr/local/opt/glib/lib/libgobject-2.0.0.dylib \
+	/usr/local/opt/glib/lib/libglib-2.0.0.dylib \
+	/usr/local/opt/glib/lib/libgio-2.0.0.dylib \
 	-ljpeg \
 	-lgif
 

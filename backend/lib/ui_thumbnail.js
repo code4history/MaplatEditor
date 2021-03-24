@@ -4,10 +4,17 @@ const fs = require('fs-extra'); // eslint-disable-line no-undef
 
 const pf = process.platform;
 var isAsar = __dirname.match(/app\.asar/);
-const canvasPath = pf == 'darwin' ?
-    isAsar ? '../../../app.asar.unpacked/assets/mac/canvas' : '../../assets/mac/canvas' :
-    isAsar ? '../../../app.asar.unpacked/assets/win/canvas' : '../../assets/win/canvas';
+const assetsPath = pf == 'darwin' ?
+    isAsar ? '../../../app.asar.unpacked/assets/mac' : '../../assets/mac' :
+    isAsar ? '../../../app.asar.unpacked/assets/win' : '../../assets/win';
+const canvasPath = `${assetsPath}/canvas`;
 const { createCanvas, loadImage } = require(canvasPath);
+if (pf == 'darwin') {
+    process.env.DYLD_LIBRARY_PATH = [
+        '$DYLD_LIBRARY_PATH',
+        `${assetsPath}/lib`
+    ].join(':');
+}
 
 exports.make_thumbnail = async function(from, to, oldSpec) {
     const extractor = async function(from, to) {

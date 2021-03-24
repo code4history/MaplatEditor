@@ -27,7 +27,7 @@ const config = {
     "hardenedRuntime": true,
     "gatekeeperAssess": false,
     "entitlements": "script/notarize/entitlements.mac.plist",
-    "entitlementsInherit": "script/notarize/entitlements.mac.plist",
+    "entitlementsInherit": "script/notarize/entitlements.mac.plist"
   },
   "win": {
     "icon": "assets/win/icon_win.ico",

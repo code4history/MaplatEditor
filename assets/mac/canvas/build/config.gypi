@@ -71,15 +71,15 @@
     "v8_use_siphash": 1,
     "want_separate_host_toolset": 0,
     "xcode_version": "8.0",
-    "nodedir": "/Users/kokogiko/github/canvas_/node_modules/canvas/9.4.0",
+    "nodedir": "/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/9.4.0",
     "standalone_static_library": 1,
     "runtime": "electron",
     "target": "9.4.0",
     "build_from_source": "true",
     "module_name": "canvas",
-    "module_path": "/Users/kokogiko/github/canvas_/node_modules/canvas/build/Release",
-    "host": "https://github.com/node-gfx/node-canvas-prebuilt/releases/download/",
-    "remote_path": "v2.6.1",
-    "package_name": "canvas-v2.6.1-electron-v9.4-darwin-unknown-x64.tar.gz"
+    "module_path": "/Users/kokogiko/github/NodeCanvasMac/node_modules/canvas/build/Release",
+    "host": "https://github.com/Automattic/node-canvas/releases/download/",
+    "remote_path": "v2.7.0",
+    "package_name": "canvas-v2.7.0-electron-v9.4-darwin-unknown-x64.tar.gz"
   }
 }
