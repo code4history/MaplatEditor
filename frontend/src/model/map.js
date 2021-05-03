@@ -3,6 +3,7 @@ import Vue from 'vue';
 import {Language} from "./language";
 import crypto from 'crypto';
 import Tin from '@maplat/tin';
+import {transform} from "ol/proj";
 
 Vue.config.debug = true;
 const langObj = Language.getSingleton();
@@ -34,7 +35,9 @@ const defaultMap = {
     lang: 'ja',
     imageExtension: undefined,
     wmtsHash: undefined,
-    wmtsFolder: ''
+    wmtsFolder: '',
+    homePosition: undefined,
+    mercZoom: undefined
 };
 const langs = {
     'ja': 'japanese',
@@ -99,7 +102,7 @@ for (let i=0; i<shareAttr.length; i++) {
     }
 }
 const mapAttr = ['vertexMode', 'strictMode', 'status', 'width', 'height', 'url_', 'imageExtension', 'mapID', 'lang',
-    'license', 'dataLicense', 'reference', 'url', 'sub_maps'];
+    'license', 'dataLicense', 'reference', 'url', 'sub_maps', 'homePosition', 'mercZoom'];
 for (let i=0; i<mapAttr.length; i++) {
     const key = mapAttr[i];
     computed[key] = {
@@ -298,6 +301,85 @@ computed.importance = function() {
 computed.priority = function() {
     return this.currentEditingLayer == 0 ? 0 : this.sub_maps[this.currentEditingLayer - 1].priority;
 }
+computed.editingID = {
+    get() {
+        if (this.newGcp) this.editingID_ = '';
+        return this.newGcp ? this.newGcp[2] : this.editingID_;
+    },
+    set(newValue) {
+        if (this.newGcp) {
+            this.editingID_ = '';
+        } else {
+            this.editingID_ = newValue;
+        }
+    }
+}
+computed.editingX = {
+    get() {
+        return this.newGcp ? this.newGcp[0] ? this.newGcp[0][0] : '' : this.editingID === '' ? '' : this.gcps[this.editingID - 1][0][0];
+    },
+    set(newValue) {
+        if (this.newGcp && this.newGcp[0]) {
+            this.newGcp.splice(0, 1, [newValue, this.editingY]);
+            this.$emit('setXY');
+        } else if ((!this.newGcp) && this.editingID !== '') {
+            this.gcps[this.editingID - 1].splice(0, 1, [newValue, this.editingY]);
+            this.$emit('setXY');
+        }
+    }
+}
+computed.editingY = {
+    get() {
+        return this.newGcp ? this.newGcp[0] ? this.newGcp[0][1] : '' : this.editingID === '' ? '' : this.gcps[this.editingID - 1][0][1];
+    },
+    set(newValue) {
+        if (this.newGcp && this.newGcp[0]) {
+            this.newGcp.splice(0, 1, [this.editingX, newValue]);
+            this.$emit('setXY');
+        } else if ((!this.newGcp) && this.editingID !== '') {
+            this.gcps[this.editingID - 1].splice(0, 1, [this.editingX, newValue]);
+            this.$emit('setXY');
+        }
+    }
+}
+computed.editingLongLat = {
+    get() {
+        const merc = this.newGcp ? this.newGcp[1] ? this.newGcp[1] : '' : this.editingID === '' ? '' : this.gcps[this.editingID - 1][1];
+        return merc === '' ? '' : transform(merc, 'EPSG:3857', 'EPSG:4326');
+    },
+    set(newValue) {
+        const merc = transform(newValue, 'EPSG:4326', 'EPSG:3857');
+        if (this.newGcp && this.newGcp[1]) {
+            this.newGcp.splice(1, 1, merc);
+            this.$emit('setLongLat');
+        } else if ((!this.newGcp) && this.editingID !== '') {
+            this.gcps[this.editingID - 1].splice(1, 1, merc);
+            this.$emit('setLongLat');
+        }
+    }
+}
+computed.editingLong = {
+    get() {
+        return this.editingLongLat === '' ? '' : this.editingLongLat[0];
+    },
+    set(newValue) {
+        this.editingLongLat = [newValue, this.editingLat];
+    }
+}
+computed.editingLat = {
+    get() {
+        return this.editingLongLat === '' ? '' : this.editingLongLat[1];
+    },
+    set(newValue) {
+        this.editingLongLat = [this.editingLong, newValue];
+    }
+}
+computed.enableSetHomeIllst = function() {
+    return (this.errorStatus === 'strict' || this.errorStatus === 'loose') && !this.homePosition;
+}
+computed.enableSetHomeMerc = function() {
+    return !this.homePosition;
+}
 
 const VueMap = Vue.extend({
     i18n: langObj.vi18n,
@@ -312,7 +394,9 @@ const VueMap = Vue.extend({
                 currentEditingLayer: 0,
                 tinObjects: []
             },
-            langs
+            langs,
+            editingID_: '',
+            newGcp: undefined
         };
         },
     methods: {
@@ -435,7 +519,7 @@ const VueMap = Vue.extend({
             arr.splice(index, 2, arr[index+1], arr[index]);
             this.normalizePriority(arr);
             }
-        },
+    },
     computed
 });
 

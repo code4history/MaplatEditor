@@ -22,6 +22,7 @@ import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
 import roundTo from "round-to";
+import {MERC_CROSSMATRIX} from "@maplat/core/lib/const_ex";
 
 function arrayRoundTo(array, decimal) {
     return array.map((item) => roundTo(item, decimal));
@@ -36,7 +37,6 @@ const langObj = Language.getSingleton();
 let uploader;
 let wmtsGenerator;
 let mapID;
-let newlyAddGcp;
 let newlyAddEdge;
 let errorNumber;
 let illstMap;
@@ -65,12 +65,110 @@ function getTextWidth ( _text, _fontStyle ) {
     return metrics.width;
 }
 
+// 地図座標5地点情報から地図サイズ情報（中心座標、サイズ、回転）を得る
+function xys2Size(xys, size) {
+    const center = xys[0];
+    const nesw = xys.slice(1, 5);
+    const neswDelta = nesw.map((val) => [
+        val[0] - center[0],
+        val[1] - center[1]
+    ]);
+    const normal = [
+        [0.0, 1.0],
+        [1.0, 0.0],
+        [0.0, -1.0],
+        [-1.0, 0.0]
+    ];
+    let abss = 0;
+    let cosx = 0;
+    let sinx = 0;
+    for (let i = 0; i < 4; i++) {
+        const delta = neswDelta[i];
+        const norm = normal[i];
+        const abs = Math.sqrt(Math.pow(delta[0], 2) + Math.pow(delta[1], 2));
+        abss += abs;
+        const outer = delta[0] * norm[1] - delta[1] * norm[0];
+        const inner = Math.acos(
+          (delta[0] * norm[0] + delta[1] * norm[1]) / abs
+        );
+        const theta = outer > 0.0 ? -1.0 * inner : inner;
+        cosx += Math.cos(theta);
+        sinx += Math.sin(theta);
+    }
+    const scale = abss / 4.0;
+    const omega = Math.atan2(sinx, cosx);
+
+    const radius = Math.floor(Math.min(size[0], size[1]) / 4);
+    const zoom = Math.log((radius * MERC_MAX) / 128 / scale) / Math.log(2);
+
+    return [center, zoom, omega];
+}
+
+function getRadius(size, zoom) {
+    const radius = Math.floor(Math.min(size[0], size[1]) / 4);
+    return (radius * MERC_MAX) / 128 / Math.pow(2, zoom);
+}
+
+function size2Xys(center, zoom, rotate) {
+    const size = mercMap.getSize();
+    const radius = getRadius(size, zoom);
+    const crossDelta = rotateMatrix(MERC_CROSSMATRIX, rotate);
+    const cross = crossDelta.map(xy => [
+        xy[0] * radius + center[0],
+        xy[1] * radius + center[1]
+    ]);
+    cross.push(size);
+    return cross;
+}
+
+function updateHomeMarkers() {
+    const iFeature = illstMap.getSource('marker').getFeatures().filter((feature) => {
+        const gcpIndex = feature.get('gcpIndex');
+        return gcpIndex === 'home';
+    })[0];
+    const mFeature = mercMap.getSource('marker').getFeatures().filter((feature) => {
+        const gcpIndex = feature.get('gcpIndex');
+        return gcpIndex === 'home';
+    })[0];
+    if (iFeature) illstMap.getSource('marker').removeFeature(iFeature);
+    if (mFeature) mercMap.getSource('marker').removeFeature(mFeature);
+
+    homeToMarkers();
+}
+
+function homeToMarkers() {
+    if (vueMap.homePosition) {
+        const homeSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve">
+<polygon x="0" y="0" points="10,0 20,10 17,10 17,20 3,20 3,10 0,10 10,0" stroke="#FF0000" fill="#FF0000" stroke-width="2"></polygon></svg>`;
+        const homeElement = new Image(); // eslint-disable-line no-undef
+        homeElement.src = `data:image/svg+xml,${encodeURIComponent(homeSVG)}`;
+        const homeStyle = new Style({
+            image: new Icon({
+                "img": homeElement,
+                "imgSize": [20, 20],
+                "anchor": [0.5, 1.0]
+            })
+        });
+        const merc = transform(vueMap.homePosition, 'EPSG:4326', 'EPSG:3857');
+        mercMap.setMarker(merc, {gcpIndex: 'home'}, homeStyle);
+        if (vueMap.errorStatus === 'strict' || vueMap.errorStatus === 'loose') {
+            const tinObject = vueMap.tinObjects[0];
+            const xy = tinObject.transform(merc, true);
+            const histCoord = illstSource.xy2HistMapCoords(xy);
+            illstMap.setMarker(histCoord, {gcpIndex: 'home'}, homeStyle);
+        }
+    }
+}
+
 function gcpsToMarkers (targetIndex) {
     const gcps = vueMap.gcps;
     const edges = vueMap.edges;
     illstMap.resetMarker();
     mercMap.resetMarker();
     edgesClear();
+
+    homeToMarkers();
 
     for (let i=0; i<gcps.length; i++) {
         const gcp = gcps[i];
@@ -165,7 +263,8 @@ function edgeCancelMarker (arg, map) { // eslint-disable-line no-unused-vars
 }
 
 function addNewCancelMarker (arg, map) { // eslint-disable-line no-unused-vars
-    newlyAddGcp = undefined;
+    vueMap.newGcp = undefined;
+    //vueMap.editingID = '';
     const gcps = vueMap.gcps;
     gcpsToMarkers(gcps);
 }
@@ -184,6 +283,51 @@ function pairingMarker (arg, map) { // eslint-disable-line no-unused-vars
         bakView.setCenter(bakw);
         forView.setZoom(illstSource.maxZoom - 1);
         bakView.setZoom(17);
+    }
+}
+
+function removeHomePosition(arg, map) { // eslint-disable-line no-unused-vars
+    vueMap.homePosition = undefined;
+    vueMap.mercZoom = undefined;
+    gcpsToMarkers();
+}
+
+function rotateMatrix(xys, theta) {
+    const result = [];
+    for (let i = 0; i < xys.length; i++) {
+        const xy = xys[i];
+        const x = xy[0] * Math.cos(theta) - xy[1] * Math.sin(theta);
+        const y = xy[0] * Math.sin(theta) + xy[1] * Math.cos(theta);
+        result.push([x, y]);
+    }
+    return result;
+}
+
+function showHomePosition(arg, map) { // eslint-disable-line no-unused-vars
+    if (vueMap.homePosition) {
+        const mercView = mercMap.getView();
+        const merc = transform(vueMap.homePosition, 'EPSG:4326', 'EPSG:3857');
+        mercView.setCenter(merc);
+        mercView.setZoom(vueMap.mercZoom);
+
+        if (vueMap.errorStatus === 'strict' || vueMap.errorStatus === 'loose') {
+            const mercSize = size2Xys(merc, vueMap.mercZoom, 0);
+            const wh = mercSize[5];
+            delete mercSize[5];
+
+            const illstSize = mercSize.map((coord) => {
+                const xy = vueMap.tinObjects[0].transform(coord, true);
+                return illstSource.xy2HistMapCoords(xy);
+            });
+
+            const centerZoom = xys2Size(illstSize, wh);
+
+            const illstView = illstMap.getView();
+            illstView.setCenter(centerZoom[0]);
+            illstView.setZoom(centerZoom[1]);
+            illstView.setRotation(0);
+            mercView.setRotation(-centerZoom[2]);
+        }
     }
 }
 
@@ -206,8 +350,6 @@ function addMarkerOnEdge (arg, map) {
     const startEnd = edgeGeom.get('startEnd');
     const edgeIndex = vueMap.edges.findIndex((edge) => edge[2][0] === startEnd[0] && edge[2][1] === startEnd[1]);
     const edge = vueMap.edges[edgeIndex];
-
-    console.log(xy); // eslint-disable-line no-undef,no-console
 
     const gcp1 = vueMap.gcps[startEnd[0]];
     const gcp2 = vueMap.gcps[startEnd[1]];
@@ -274,6 +416,7 @@ function addMarkerOnEdge (arg, map) {
     const thatLastNodes = thatNodes.slice(thatIndex, thatNodes.length - 1);
     vueMap.gcps.push([isIllst ? xy : thatXy, isIllst ? thatXy : xy]);
     const newGcpIndex = vueMap.gcps.length - 1;
+    vueMap.editingID = newGcpIndex + 1;
     vueMap.edges.splice(edgeIndex, 1, [
         isIllst ? thisPrevNodes : thatPrevNodes,
         isIllst ? thatPrevNodes : thisPrevNodes,
@@ -291,7 +434,8 @@ function removeMarker (arg, map) {
     const marker = arg.data.marker;
     const gcpIndex = marker.get('gcpIndex');
     if (gcpIndex === 'new') {
-        newlyAddGcp = undefined;
+        vueMap.newGcp = undefined;
+        //vueMap.editingID = '';
         map.getSource('marker').removeFeature(marker);
     } else {
         const gcps = vueMap.gcps;
@@ -308,6 +452,7 @@ function removeMarker (arg, map) {
         }
         gcpsToMarkers();
     }
+    vueMap.editingID = '';
 }
 
 function addNewMarker (arg, map) {
@@ -317,7 +462,7 @@ function addNewMarker (arg, map) {
     const coord = arg.coordinate;
     const xy = isIllst ? arrayRoundTo(illstSource.histMapCoords2Xy(coord), 2) : arrayRoundTo(coord, 6);
 
-    if (!newlyAddGcp) {
+    if (!vueMap.newGcp) {
         const labelWidth = getTextWidth( number, labelFontStyle ) + 10;
 
         const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -341,12 +486,16 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
 
         map.setMarker(coord, { gcpIndex: 'new' }, iconStyle);
 
-        newlyAddGcp = isIllst ? [xy, ] : [, xy]; // eslint-disable-line no-sparse-arrays
-    } else if ((isIllst && !newlyAddGcp[0]) || (!isIllst && !newlyAddGcp[1])) {
-        if (isIllst) { newlyAddGcp[0] = xy; } else { newlyAddGcp[1] = xy; }
-        gcps.push(newlyAddGcp);
+        vueMap.newGcp = isIllst ? [xy, , number] : [, xy, number]; // eslint-disable-line no-sparse-arrays
+        //vueMap.editingID = number;
+    } else if ((isIllst && !vueMap.newGcp[0]) || (!isIllst && !vueMap.newGcp[1])) {
+        if (isIllst) { vueMap.newGcp[0] = xy; } else { vueMap.newGcp[1] = xy; }
+        delete vueMap.newGcp[2];
+        //vueMap.editingID = '';
+        gcps.push(vueMap.newGcp);
         gcpsToMarkers();
-        newlyAddGcp = undefined;
+        vueMap.newGcp = undefined;
+        vueMap.editingID = gcps.length;
     }
 }
 
@@ -467,6 +616,8 @@ function tinResultUpdate() {
         illstMap.addInteraction(modify);
         illstMap.addInteraction(snap);
     }
+
+    updateHomeMarkers();
 
     if (typeof tinObject === 'string') {
         return;
@@ -642,9 +793,12 @@ class Drag extends Pointer {
         if (feature) {
             if (feature.getGeometry().getType() === 'LineString') {
                 feature = undefined;
+            } else if (feature.get('gcpIndex') === 'home') {
+                feature = undefined;
             } else {
                 this.coordinate_ = evt.coordinate;
                 this.feature_ = feature;
+                if (feature.get('gcpIndex') !== 'new') vueMap.editingID = feature.get('gcpIndex') + 1;
             }
         }
 
@@ -716,7 +870,8 @@ class Drag extends Pointer {
             gcps.splice(gcpIndex, 1, gcp);
             gcpsToMarkers();
         } else {
-            newlyAddGcp[isIllst ? 0 : 1] = xy;
+            // vueMap.newGcp[isIllst ? 0 : 1] = xy;
+            vueMap.newGcp.splice(isIllst ? 0 : 1, 1, xy);
         }
         this.coordinate_ = null;
         this.feature_ = null;
@@ -772,6 +927,16 @@ MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
         callback: addMarkerOnEdge
     };
 
+    const removeHomePositionConextMenu = {
+        text: t('mapedit.context_home_remove'),
+        callback: removeHomePosition
+    };
+
+    const showHomePositionConextMenu = {
+        text: t('mapedit.context_home_show'),
+        callback: showHomePosition
+    };
+
     const contextmenu = this.contextmenu = new ContextMenu({
         width: 170,
         defaultItems: false,
@@ -799,7 +964,7 @@ MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
                 } else {
                     contextmenu.push(edgeCancelContextMenu);
                 }
-            } else if (newlyAddGcp !== undefined) {
+            } else if (vueMap.newGcp !== undefined) {
                 contextmenu.push(addNewCancelContextMenu);
             } else {
                 if (isLine) {
@@ -812,20 +977,26 @@ MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
                     };
                     contextmenu.push(addMarkerOnEdgeContextMenu);
                 } else {
-                    if (feature.get('gcpIndex') !== 'new') {
-                        pairingContextMenu.data = {
+                    if (feature.get('gcpIndex') === 'home') {
+                        contextmenu.push(removeHomePositionConextMenu);
+                        contextmenu.push(showHomePositionConextMenu);
+                    } else {
+                        if (feature.get('gcpIndex') !== 'new') {
+                            vueMap.editingID = feature.get('gcpIndex') + 1;
+                            pairingContextMenu.data = {
+                                marker: feature
+                            };
+                            contextmenu.push(pairingContextMenu);
+                            edgeStartContextMenu.data = {
+                                marker: feature
+                            };
+                            contextmenu.push(edgeStartContextMenu);
+                        }
+                        removeContextMenu.data = {
                             marker: feature
                         };
-                        contextmenu.push(pairingContextMenu);
-                        edgeStartContextMenu.data = {
-                            marker: feature
-                        };
-                        contextmenu.push(edgeStartContextMenu);
+                        contextmenu.push(removeContextMenu);
                     }
-                    removeContextMenu.data = {
-                        marker: feature
-                    };
-                    contextmenu.push(removeContextMenu);
                 }
             }
             restore = true;
@@ -833,7 +1004,7 @@ MaplatMap.prototype.initContextMenu = function() { // eslint-disable-line
             contextmenu.clear();
             contextmenu.push(edgeCancelContextMenu);
             restore = true;
-        } else if (newlyAddGcp !== undefined && newlyAddGcp[map === illstMap ? 0 : 1] !== undefined) {
+        } else if (vueMap.newGcp !== undefined && vueMap.newGcp[map === illstMap ? 0 : 1] !== undefined) {
             contextmenu.clear();
             contextmenu.push(addNewCancelContextMenu);
             restore = true;
@@ -1167,6 +1338,59 @@ function initVueMap(json) {
 function setVueMap() {
     vueMap.vueInit = true;
     const t = langObj.t;
+
+    vueMap.$on('setHomeMerc', () => {
+        const view = mercMap.getView();
+        const longlat = transform(view.getCenter(), 'EPSG:3857', 'EPSG:4326');
+        const zoom = view.getZoom();
+        vueMap.homePosition = longlat;
+        vueMap.mercZoom = zoom;
+        gcpsToMarkers();
+    });
+
+    // Prepare for future implements
+    vueMap.$on('setHomeIllst', () => {
+        const view = illstMap.getView();
+        const illstCenter = view.getCenter();
+        const illstZoom = view.getZoom();
+
+        const illstSize = illstSource.size2Xys(illstCenter, illstZoom, 0);
+        const wh = illstSize[5];
+        delete illstSize[5];
+
+        const mercSize = illstSize.map((coords) => {
+            const xy = illstSource.histMapCoords2Xy(coords);
+            const merc = vueMap.tinObjects[0].transform(xy, false);
+            return merc;
+        });
+
+        const sizeArray = xys2Size(mercSize, wh);
+
+        const longlat = transform(sizeArray[0], 'EPSG:3857', 'EPSG:4326');
+        vueMap.homePosition = longlat;
+        vueMap.mercZoom = sizeArray[1];
+        gcpsToMarkers();
+    });
+
+    vueMap.$on('setXY', () => {
+        const feature = illstMap.getSource('marker').getFeatures().filter((feature) => {
+            const gcpIndex = feature.get('gcpIndex');
+            if (vueMap.newGcp) return gcpIndex === 'new';
+            else return gcpIndex === vueMap.editingID - 1;
+        })[0];
+        const xy = illstSource.xy2HistMapCoords(vueMap.newGcp ? vueMap.newGcp[0] : vueMap.gcps[vueMap.editingID - 1][0]);
+        feature.getGeometry().setCoordinates(xy);
+    });
+
+    vueMap.$on('setLongLat', () => {
+        const feature = mercMap.getSource('marker').getFeatures().filter((feature) => {
+            const gcpIndex = feature.get('gcpIndex');
+            if (vueMap.newGcp) return gcpIndex === 'new';
+            else return gcpIndex === vueMap.editingID - 1;
+        })[0];
+        const xy = vueMap.newGcp ? vueMap.newGcp[1] : vueMap.gcps[vueMap.editingID - 1][1];
+        feature.getGeometry().setCoordinates(xy);
+    });
 
     vueMap.$on('updateMapID', () => {
         if (!confirm(t('mapedit.confirm_change_mapid'))) return; // eslint-disable-line no-undef

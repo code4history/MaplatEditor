@@ -116,7 +116,12 @@ body.settings {
 }
 
 .map-row {
-  height: calc(100% - 110px);
+  height: calc(100% - 160px);
+}
+
+.map-control-coordinates {
+  height: 50px;
+  padding-top: 10px;
 }
 
 .map-control-footer {
@@ -147,4 +152,11 @@ body.settings {
 
 li.disabled {
   pointer-events: none;
+}
+
+.homeBtn {
+  position: absolute;
+  right: 20px;
+  bottom: 35px;
+  z-index: 1000;
 }

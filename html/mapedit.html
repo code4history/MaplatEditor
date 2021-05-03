@@ -211,8 +211,19 @@
             </div>
             <div class="row map-row">
               <div id="illstMap" class="col-xs-6 h100">
+                <button type="button" class="btn btn-default homeBtn" v-bind:disabled="!enableSetHomeIllst" v-on:click="$emit('setHomeIllst')"><i class="glyphicon glyphicon-home"></i></button>
               </div>
               <div id="mercMap" class="col-xs-6 h100">
+                <button type="button" class="btn btn-default homeBtn" v-bind:disabled="!enableSetHomeMerc" v-on:click="$emit('setHomeMerc')"><i class="glyphicon glyphicon-home"></i></button>
+              </div>
+            </div>
+            <div class="row map-control-coordinates">
+              <div class="col-xs-2"><label for="reference">{{$t('mapedit.marker_id')}}</label><input type="text" id="editingID" class="form-control" disabled="true" v-model="editingID"></div>
+              <div class="row col-xs-10">
+                <div class="col-xs-3"><label for="reference">X</label><input type="text" id="editingX" class="form-control" v-bind:disabled="editingX === ''" v-model.lazy.number="editingX"></div>
+                <div class="col-xs-3"><label for="reference">Y</label><input type="text" id="editingY" class="form-control" v-bind:disabled="editingY === ''" v-model.lazy.number="editingY"></div>
+                <div class="col-xs-3"><label for="reference">{{$t('mapedit.longitude')}}</label><input type="text" id="editingLong" class="form-control" v-bind:disabled="editingLong === ''" v-model.lazy.number="editingLong"></div>
+                <div class="col-xs-3"><label for="reference">{{$t('mapedit.latitude')}}</label><input type="text" id="editingLat" class="form-control" v-bind:disabled="editingLat === ''" v-model.lazy.number="editingLat"></div>
               </div>
             </div>
             <div class="row map-control-footer">
@@ -228,17 +239,17 @@
               </div>
               <div class="col-xs-3">
                 <label>{{$t('mapedit.map_error_status')}}:</label><label id="error_status">
-                <span v-if="errorStatus == 'tooLessGcps'">{{$t('mapedit.map_error_too_short')}}</span>
-                <span v-else-if="errorStatus == 'tooLinear'">{{$t('mapedit.map_error_linear')}}</span>
-                <span v-else-if="errorStatus == 'pointsOutside'">{{$t('mapedit.map_error_outside')}}</span>
-                <span v-else-if="errorStatus == 'edgeError'">{{$t('mapedit.map_error_crossing')}}</span>
-                <span v-else-if="errorStatus == 'strict'">{{$t('mapedit.map_no_error')}}</span>
-                <span v-else-if="errorStatus == 'strict_error'">{{$t('mapedit.map_error_number',{num:errorNumber})}}</span>
-                <span v-else-if="errorStatus == 'loose'">{{$t('mapedit.map_loose_by_error')}}</span>
+                <span v-if="errorStatus === 'tooLessGcps'">{{$t('mapedit.map_error_too_short')}}</span>
+                <span v-else-if="errorStatus === 'tooLinear'">{{$t('mapedit.map_error_linear')}}</span>
+                <span v-else-if="errorStatus === 'pointsOutside'">{{$t('mapedit.map_error_outside')}}</span>
+                <span v-else-if="errorStatus === 'edgeError'">{{$t('mapedit.map_error_crossing')}}</span>
+                <span v-else-if="errorStatus === 'strict'">{{$t('mapedit.map_no_error')}}</span>
+                <span v-else-if="errorStatus === 'strict_error'">{{$t('mapedit.map_error_number',{num:errorNumber})}}</span>
+                <span v-else-if="errorStatus === 'loose'">{{$t('mapedit.map_loose_by_error')}}</span>
               </label>
               </div>
               <div class="col-xs-3">
-                <button type="button" class="btn btn-default" v-bind:class="errorNumber == 0 ? 'hide' : ''" id="viewError" v-on:click="$emit('viewError')">{{$t('mapedit.map_error_next')}}</button>
+                <button type="button" class="btn btn-default" v-bind:class="errorNumber === 0 ? 'hide' : ''" id="viewError" v-on:click="$emit('viewError')">{{$t('mapedit.map_error_next')}}</button>
               </div>
             </div>
           </div>

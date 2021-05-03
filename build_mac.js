@@ -11,6 +11,7 @@ const config = {
     "backend",
     "css",
     "frontend/dist",
+    "frontend/fonts",
     "html",
     "img",
     "locales",

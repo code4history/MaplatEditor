@@ -143,6 +143,8 @@
     "context_correspond_line_cancel": "Cancel Making Corresponding Line",
     "context_correspond_line_remove": "Remove Corresponding Line",
     "context_marker_on_line": "Add Marker On Corresponding Line",
+    "context_home_remove": "Delete Home Position",
+    "context_home_show": "Show Home Position",
     "control_basemap": "Base Map",
     "control_put_address": "Put address here",
     "alert_mapid_checked": "This is unique map ID. Confirmed.",
@@ -168,7 +170,10 @@
     "testerror_line": "The projection test cannot be performed because there are some errors in corresponding lines.",
     "testerror_unknown": "The projection test cannot be performed because of unknown error.",
     "testerror_valid_error": "If there are any errors in strict mode, the inverse projection test is not possible.",
-    "testerror_outside_map": "Cannot perform projection test because it is outside the map area."
+    "testerror_outside_map": "Cannot perform projection test because it is outside the map area.",
+    "marker_id": "Marker ID",
+    "latitude": "Latitude",
+    "longitude": "Longitude"
   },
   "mapupload": {
     "map_image": "Map Image",
