@@ -10,9 +10,9 @@ MaplatEditor is support project of Maplat, providing the data editor of Maplat.
 MaplatEditorはMaplatのサポートプロジェクトで、データエディタを提供します。
 
 # パッケージ版 (最新バージョン0.5.0)
-* Windows用 (64ビット): https://t.tilemap.jp/maplat/dist/MaplatEditor%20Setup%200.5.0.exe
-* Mac用: https://t.tilemap.jp/maplat/dist/MaplatEditor-0.5.0.dmg
-* [リリースノート](https://github.com/code4history/MaplatEditor/releases/tag/v0.5.0)
+* Windows用 (64ビット): https://t.tilemap.jp/maplat/dist/MaplatEditor%20Setup%200.5.1.exe
+* Mac用: https://t.tilemap.jp/maplat/dist/MaplatEditor-0.5.1.dmg
+* [リリースノート](https://github.com/code4history/MaplatEditor/releases/tag/v0.5.1)
 
 # GUI 
 ## MapList (地図一覧)
