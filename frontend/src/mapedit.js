@@ -14,7 +14,7 @@ import {LineString, Point} from "ol/geom";
 import {Feature} from "ol";
 import {GeoJSON} from "ol/format";
 import {transform} from "ol/proj";
-import {MERC_MAX} from "@maplat/core/lib/const_ex";
+import {MERC_MAX, MERC_CROSSMATRIX} from "@maplat/core/lib/const_ex";
 import {MaplatMap} from "@maplat/core/lib/map_ex";
 import {altKeyOnly} from "ol/events/condition";
 import {Vector as layerVector, Tile, Group} from "ol/layer";
@@ -22,7 +22,6 @@ import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
 import roundTo from "round-to";
-import {MERC_CROSSMATRIX} from "@maplat/core/lib/const_ex";
 
 function arrayRoundTo(array, decimal) {
     return array.map((item) => roundTo(item, decimal));
@@ -113,7 +112,7 @@ function size2Xys(center, zoom, rotate) {
     const size = mercMap.getSize();
     const radius = getRadius(size, zoom);
     const crossDelta = rotateMatrix(MERC_CROSSMATRIX, rotate);
-    const cross = crossDelta.map(xy => [
+    const cross = crossDelta.map((xy) => [
         xy[0] * radius + center[0],
         xy[1] * radius + center[1]
     ]);
