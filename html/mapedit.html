@@ -23,7 +23,7 @@
 
     <div class="container main" role="main" id="main">
       <div class="row title-container">
-        <div class="col-xs-4">
+        <div class="col-xs-5">
           <h4><a href="#" data-nav="maplist.html">&lt;&lt;</a> <span class="map-title">{{displayTitle}}</span></h4>
         </div>
         <div class="col-xs-1">
@@ -37,9 +37,8 @@
         <div class="col-xs-2">
           <label><input type="checkbox" id="langDefault" v-bind:disabled="defaultLangFlag" v-model="defaultLangFlag">{{$t("mapedit.set_default")}}</label>
         </div>
-        <div class="col-xs-3">
+        <div class="col-xs-2">
           <button type="button" class="btn btn-primary" id="saveMap" v-bind:disabled="error || !dirty" v-on:click="$emit('saveMap')">{{$t("common.save")}}</button>
-          <button type="button" class="btn btn-default" id="dlMap" v-bind:disabled="error || dirty" v-on:click="$emit('dlMap')">{{$t("mapedit.download_map_data")}}</button>
         </div>
       </div>
       <!-- タブ・メニュー -->
@@ -255,16 +254,19 @@
           </div>
         </div>
         <div class="tab-pane" id="wmtsTab">
-            <div class="h100">
-                <div class="row">
-                    <div class="col-xs-3">
-                        <button type="button" class="btn btn-default" v-on:click="$emit('wmtsGenerate')" v-bind:disabled="!wmtsEditReady">{{$t('wmtsgenerate.generate')}}</button>
-                    </div>
-                    <div class="col-xs-9">
-                        <span>{{$t('wmtsgenerate.result_folder', { folder: wmtsFolder })}}</span>
-                    </div>
-                </div>
+          <div class="h100">
+            <div class="row">
+              <div class="col-xs-2">
+                <button type="button" class="btn btn-default" v-on:click="$emit('wmtsGenerate')" v-bind:disabled="!wmtsEditReady">{{$t('wmtsgenerate.generate')}}</button>
+              </div>
+              <div class="col-xs-7">
+                <span>{{$t('wmtsgenerate.result_folder', { folder: wmtsFolder })}}</span>
+              </div>
+              <div class="col-xs-3">
+                <button type="button" class="btn btn-default" id="dlMap" v-bind:disabled="error || dirty" v-on:click="$emit('dlMap')">{{$t("mapedit.download_map_data")}}</button>
+              </div>
             </div>
+          </div>
         </div>
         <div class="tab-pane" id="configureTab">
           <p>地図設定</p>
