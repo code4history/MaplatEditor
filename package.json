@@ -12,7 +12,8 @@
     "win_build": "npm run lint && npm run js_build && npm run css_build && npm run win_package",
     "mac_build": "npm run lint && npm run js_build && npm run css_build && npm run mac_package",
     "win_package": "electron-builder --win --x64 --config ./build_win.js",
-    "mac_package": "electron-builder --mac --x64 --config ./build_mac.js"
+    "mac_package": "electron-builder --mac --x64 --config ./build_mac.js",
+    "git_switch": "gulp git_switch"
   },
   "keywords": [],
   "author": "Code for History",
@@ -32,6 +33,8 @@
     "electron-notarize": "^0.2.1",
     "electron-rebuild": "^2.3.4",
     "eslint": "^6.8.0",
+    "gulp": "^4.0.2",
+    "gulp-cli": "^2.3.0",
     "less": "^3.12.2",
     "less-plugin-clean-css": "^1.5.1",
     "minimist": "^1.2.5",

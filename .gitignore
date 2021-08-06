@@ -23,3 +23,7 @@ xcuserdata
 *-win32.zip
 out
 dist
+
+# Open/Keep
+.git.keep
+.git.open
