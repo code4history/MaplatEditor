@@ -42,6 +42,7 @@
     "delete_old_confirm": "The data migration to the new specification is completed.\nDo you want to delete the old data files?"
   },
   "mapedit": {
+    "line_selected_already": "This corresponding line is already specified.",
     "edit_metadata": "Edit Metadata",
     "edit_gcp": "Edit GCP",
     "wmts": "WMTS (Reference)",

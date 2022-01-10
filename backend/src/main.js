@@ -8,17 +8,7 @@ const fs = require('fs-extra'); // eslint-disable-line no-undef
 const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
 const Settings = require('./settings'); // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
-const pf = process.platform; // eslint-disable-line no-undef
-const isAsar = __dirname.match(/app\.asar/); // eslint-disable-line no-undef
-const assetsPath = pf == 'darwin' ?
-  isAsar ? '../../../app.asar.unpacked/assets/mac' : '../../assets/mac' :
-  isAsar ? '../../../app.asar.unpacked/assets/win' : '../../assets/win';
-if (pf == 'darwin') {
-  process.env.DYLD_LIBRARY_PATH = [ // eslint-disable-line no-undef
-    `${assetsPath}/lib`,
-    '$DYLD_LIBRARY_PATH'
-  ].join(':');
-}
+require('../lib/canvas_loader'); // eslint-disable-line no-undef
 
 let settings;
 let menuTemplate;
@@ -75,7 +65,8 @@ app.on('ready', async () => {
     width: appWidth,
     height: appHeight,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      enableRemoteModule: true
     }
   });
   const indexurl = `file://${__dirname.replace(/\\/g, '/')}/../../html/maplist.html`; // eslint-disable-line no-undef

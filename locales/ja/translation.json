@@ -42,6 +42,7 @@
     "delete_old_confirm": "新仕様へのデータ移行が完了しました。\n旧仕様のデータファイルを削除しますか?"
   },
   "mapedit": {
+    "line_selected_already": "その対応線は指定済です。",
     "edit_metadata": "メタデータ編集",
     "edit_gcp": "対応点編集",
     "wmts": "WMTS (参考機能)",

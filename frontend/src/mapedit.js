@@ -28,7 +28,10 @@ function arrayRoundTo(array, decimal) {
 }
 
 const labelFontStyle = "Normal 12px Arial";
-const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
+//const {ipcRenderer, dialog} = require('electron'); // eslint-disable-line no-undef
+const electron = require('electron'); // eslint-disable-line no-undef
+const ipcRenderer = electron.ipcRenderer;
+const dialog = electron.remote.dialog;
 const backend = require('electron').remote.require('./mapedit'); // eslint-disable-line no-undef
 backend.init();
 const langObj = Language.getSingleton();
@@ -154,7 +157,7 @@ x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20" enable-background
     if (vueMap.errorStatus === 'strict' || vueMap.errorStatus === 'loose') {
       const tinObject = vueMap.tinObjects[0];
       const xy = tinObject.transform(merc, true);
-      const histCoord = illstSource.xy2HistMapCoords(xy);
+      const histCoord = illstSource.xy2SysCoord(xy);
       illstMap.setMarker(histCoord, {gcpIndex: 'home'}, homeStyle);
     }
   }
@@ -241,7 +244,8 @@ function edgeStartMarker (arg, map) { // eslint-disable-line no-unused-vars
   }
 }
 
-function edgeEndMarker (arg, map) { // eslint-disable-line no-unused-vars
+async function edgeEndMarker (arg, map) { // eslint-disable-line no-unused-vars
+  const t = langObj.t;
   const marker = arg.data.marker;
   const gcpIndex = marker.get('gcpIndex');
   if (gcpIndex !== 'new') {
@@ -250,7 +254,11 @@ function edgeEndMarker (arg, map) { // eslint-disable-line no-unused-vars
     if (vueMap.edges.findIndex((item) => item[2][0] === edge[0] && item[2][1] === edge[1]) < 0) {
       vueMap.edges.push([[], [], edge]);
     } else {
-      alert('その対応線は指定済です。'); // eslint-disable-line no-undef
+      await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['OK'],
+        message: t('mapedit.line_selected_already')
+      });
     }
     gcpsToMarkers();
   }
@@ -517,7 +525,7 @@ function edgesClear() {
   mercMap.getSource('edges').clear();
 }
 
-function onClick(evt) {
+async function onClick(evt) {
   if (evt.originalEvent.altKey) return;
   const t = langObj.t;
   const isIllst = this === illstMap;
@@ -533,21 +541,33 @@ function onClick(evt) {
 
   const tinObject = vueMap.tinObject;
   if (typeof tinObject === 'string') {
-    alert(tinObject === 'tooLessGcps' ? t('mapedit.testerror_too_short') : // eslint-disable-line no-undef
-      tinObject === 'tooLinear' ? t('mapedit.testerror_too_linear') :
-        tinObject === 'pointsOutside' ? t('mapedit.testerror_outside') :
-          tinObject === 'edgeError' ? t('mapedit.testerror_line') :
-            t('mapedit.testerror_unknown'));
+    await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK'],
+      message: tinObject === 'tooLessGcps' ? t('mapedit.testerror_too_short') :
+        tinObject === 'tooLinear' ? t('mapedit.testerror_too_linear') :
+          tinObject === 'pointsOutside' ? t('mapedit.testerror_outside') :
+            tinObject === 'edgeError' ? t('mapedit.testerror_line') :
+              t('mapedit.testerror_unknown')
+    });
     return;
   }
   if (tinObject.strict_status === 'strict_error' && !isIllst) {
-    alert(t('mapedit.testerror_valid_error')); // eslint-disable-line no-undef
+    await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK'],
+      message: t('mapedit.testerror_valid_error')
+    });
     return;
   }
   const distXy = tinObject.transform(srcXy, !isIllst);
 
   if (!distXy) {
-    alert(t('mapedit.testerror_outside_map')); // eslint-disable-line no-undef
+    await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK'],
+      message: t('mapedit.testerror_outside_map')
+    });
     return;
   }
 
@@ -1353,9 +1373,7 @@ function setVueMap() {
     const illstCenter = view.getCenter();
     const illstZoom = view.getZoom();
 
-    const illstSize = illstSource.viewPoint2SysCoords(illstCenter, illstZoom, 0);
-    const wh = illstSize[5];
-    delete illstSize[5];
+    const [illstSize, wh] = illstSource.viewpoint2SysCoords([illstCenter, illstZoom, 0]);
 
     const mercSize = illstSize.map((coords) => {
       const xy = illstSource.sysCoord2Xy(coords);
@@ -1391,30 +1409,44 @@ function setVueMap() {
     feature.getGeometry().setCoordinates(xy);
   });
 
-  vueMap.$on('updateMapID', () => {
-    if (!confirm(t('mapedit.confirm_change_mapid'))) return; // eslint-disable-line no-undef
+  vueMap.$on('updateMapID', async () => {
+    const confirm = await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK', 'Cancel'],
+      cancelId: 1,
+      message: t('mapedit.confirm_change_mapid')
+    });
+    if (confirm.response === 1) return;
     vueMap.onlyOne = false;
   });
   vueMap.$on('checkOnlyOne', () => {
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
     const checked = backend.checkID(vueMap.mapID); // eslint-disable-line no-unused-vars
-    ipcRenderer.once('checkIDResult', (event, arg) => {
+    ipcRenderer.once('checkIDResult', async (event, arg) => {
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
       if (arg) {
-        alert(t('mapedit.alert_mapid_checked')); // eslint-disable-line no-undef
+        await dialog.showMessageBox({
+          type: 'info',
+          buttons: ['OK'],
+          message: t('mapedit.alert_mapid_checked')
+        });
         vueMap.onlyOne = true;
         if (vueMap.status === 'Update') {
           vueMap.status = `Change:${mapID}`;
         }
       } else {
-        alert(t('mapedit.alert_mapid_duplicated')); // eslint-disable-line no-undef
+        await dialog.showMessageBox({
+          type: 'info',
+          buttons: ['OK'],
+          message: t('mapedit.alert_mapid_duplicated')
+        });
         vueMap.onlyOne = false;
       }
     });
   });
   vueMap.$on('wmtsGenerate', () => {
     if (!wmtsGenerator) {
-      wmtsGenerator = require('electron').remote.require('./wmtsGenerator'); // eslint-disable-line no-undef
+      wmtsGenerator = require('electron').remote.require('./wmts_generator'); // eslint-disable-line no-undef
       wmtsGenerator.init();
       ipcRenderer.on('wmtsGenerated', (event, arg) => {
         document.body.style.pointerEvents = null; // eslint-disable-line no-undef
@@ -1433,19 +1465,26 @@ function setVueMap() {
       wmtsGenerator.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtension, vueMap.mainLayerHash);
     }, 1);
   });
-  vueMap.$on('mapUpload', () => {
-    if (vueMap.gcpsEditReady && !confirm(t('mapedit.confirm_override_image'))) return; // eslint-disable-line no-undef
+  vueMap.$on('mapUpload', async () => {
+    if (vueMap.gcpsEditReady && (await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK', 'Cancel'],
+      cancelId: 1,
+      message: t('mapedit.confirm_override_image')
+    })).response === 1) return;
     if (!uploader) {
       uploader = require('electron').remote.require('./mapupload'); // eslint-disable-line no-undef
       uploader.init();
       ipcRenderer.on('mapUploaded', (event, arg) => {
         document.body.style.pointerEvents = null; // eslint-disable-line no-undef
         if (arg.err) {
-          if (arg.err !== 'Canceled') vueModal.finish(t('mapedit.error_image_upload')); // eslint-disable-line no-undef
-          else vueModal.finish(t('mapedit.updownload_canceled'));
+          if (arg.err !== 'Canceled') {
+            console.log(arg.err); // eslint-disable-line no-undef
+            vueModal.finish(t('mapedit.error_image_upload'));
+          } else vueModal.finish(t('mapedit.updownload_canceled'));
           return;
         } else {
-          vueModal.finish(t('mapedit.success_image_upload')); // eslint-disable-line no-undef
+          vueModal.finish(t('mapedit.success_image_upload'));
         }
         vueMap.width = arg.width;
         vueMap.height = arg.height;
@@ -1485,11 +1524,21 @@ function setVueMap() {
       return tin.getCompiled();
     }));
   });
-  vueMap.$on('saveMap', () => {
-    if (!confirm(t('mapedit.confirm_save'))) return; // eslint-disable-line no-undef
+  vueMap.$on('saveMap', async () => {
+    if ((await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK', 'Cancel'],
+      cancelId: 1,
+      message: t('mapedit.confirm_save')
+    })).response === 1) return; // eslint-disable-line no-undef
     const saveValue = vueMap.map;
     if (saveValue.status.match(/^Change:(.+)$/) &&
-      confirm(t('mapedit.copy_or_move'))) { // eslint-disable-line no-undef
+      (await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['OK', 'Cancel'],
+        cancelId: 1,
+        message: t('mapedit.confirm_save')
+      })).response === 0) {
       saveValue.status = `Copy:${mapID}`;
     }
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
@@ -1497,19 +1546,31 @@ function setVueMap() {
       if (typeof tin === 'string') return tin;
       return tin.getCompiled();
     }));
-    ipcRenderer.once('saveResult', (event, arg) => {
+    ipcRenderer.once('saveResult', async (event, arg) => {
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
       if (arg === 'Success') {
-        alert(t('mapedit.success_save')); // eslint-disable-line no-undef
+        await dialog.showMessageBox({
+          type: 'info',
+          buttons: ['OK'],
+          message: t('mapedit.success_save')
+        });
         if (mapID !== vueMap.mapID) {
           mapID = vueMap.mapID;
         }
         backend.request(mapID);
       } else if (arg === 'Exist') {
-        alert(t('mapedit.error_duplicate_id')); // eslint-disable-line no-undef
+        await dialog.showMessageBox({
+          type: 'info',
+          buttons: ['OK'],
+          message: t('mapedit.error_duplicate_id')
+        });
       } else {
         console.log(arg); // eslint-disable-line no-undef,no-console
-        alert(t('mapedit.error_saving')); // eslint-disable-line no-undef
+        await dialog.showMessageBox({
+          type: 'info',
+          buttons: ['OK'],
+          message: t('mapedit.error_saving')
+        });
       }
     });
   });
@@ -1528,8 +1589,13 @@ function setVueMap() {
     view.setCenter(errorPoint);
     view.setZoom(17);
   });
-  vueMap.$on('removeSubMap', () => {
-    if (confirm(t('mapedit.confirm_layer_delete'))) { // eslint-disable-line no-undef
+  vueMap.$on('removeSubMap', async () => {
+    if ((await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['OK', 'Cancel'],
+      cancelId: 1,
+      message: t('mapedit.confirm_layer_delete')
+    })).response === 0) { // eslint-disable-line no-undef
       vueMap.removeSubMap();
     }
   });
@@ -1539,8 +1605,13 @@ function setVueMap() {
   // When move to other pages
   const dataNav = document.querySelectorAll('a[data-nav]'); // eslint-disable-line no-undef
   for (let i=0; i< dataNav.length; i++) {
-    dataNav[i].addEventListener('click', (ev) => {
-      if (!vueMap.dirty || confirm(t('mapedit.confirm_no_save'))) { // eslint-disable-line no-undef
+    dataNav[i].addEventListener('click', async (ev) => {
+      if (!vueMap.dirty || (await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['OK', 'Cancel'],
+        cancelId: 1,
+        message: t('mapedit.confirm_no_save')
+      })).response === 0) {
         allowClose = true;
         window.location.href = ev.target.getAttribute('data-nav'); // eslint-disable-line no-undef
       }
@@ -1555,8 +1626,15 @@ function setVueMap() {
       return;
     }
     e.returnValue = 'false';
-    setTimeout(() => { // eslint-disable-line no-undef
-      if (confirm(t('mapedit.confirm_no_save'))) { // eslint-disable-line no-undef
+    setTimeout(async () => { // eslint-disable-line no-undef
+      const confirm = await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['OK', 'Cancel'],
+        cancelId: 1,
+        message: t('mapedit.confirm_no_save')
+      });
+
+      if (confirm.response === 0) { // eslint-disable-line no-undef
         allowClose = true;
         window.close(); // eslint-disable-line no-undef
       }

@@ -7,7 +7,7 @@ const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
-const nedbAccessor = require('../lib/nedbAccessor'); // eslint-disable-line no-undef
+const nedbAccessor = require('../lib/nedb_accessor'); // eslint-disable-line no-undef
 const storeHandler = require('@maplat/core/es5/source/store_handler'); // eslint-disable-line no-undef
 const roundTo = require("round-to"); // eslint-disable-line no-undef
 

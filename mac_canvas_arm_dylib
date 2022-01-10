@@ -1,0 +1,88 @@
+assets/mac_arm/canvas/build/Release/canvas.node:
+	* /opt/homebrew/opt/pixman/lib/libpixman-1.0.dylib (compatibility version 41.0.0, current version 41.0.0)
+	* /opt/homebrew/opt/cairo/lib/libcairo.2.dylib (compatibility version 11603.0.0, current version 11603.0.0)
+	* /opt/homebrew/opt/libpng/lib/libpng16.16.dylib (compatibility version 54.0.0, current version 54.0.0)
+	X /usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.11)
+	* /opt/homebrew/opt/pango/lib/libpangocairo-1.0.0.dylib (compatibility version 5001.0.0, current version 5001.3.0)
+	/opt/homebrew/opt/pango/lib/libpango-1.0.0.dylib (compatibility version 5001.0.0, current version 5001.3.0)
+	/opt/homebrew/opt/glib/lib/libgobject-2.0.0.dylib (compatibility version 7001.0.0, current version 7001.2.0)
+	/opt/homebrew/opt/glib/lib/libglib-2.0.0.dylib (compatibility version 7001.0.0, current version 7001.2.0)
+	/opt/homebrew/opt/gettext/lib/libintl.8.dylib (compatibility version 11.0.0, current version 11.0.0)
+	/opt/homebrew/opt/harfbuzz/lib/libharfbuzz.0.dylib (compatibility version 30200.0.0, current version 30200.0.0)
+	/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib (compatibility version 25.0.0, current version 25.1.0)
+	/opt/homebrew/opt/librsvg/lib/librsvg-2.2.dylib (compatibility version 50.0.0, current version 50.0.0)
+	X /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1311.0.0)
+	/opt/homebrew/opt/glib/lib/libgio-2.0.0.dylib (compatibility version 7001.0.0, current version 7001.2.0)
+	/opt/homebrew/opt/gdk-pixbuf/lib/libgdk_pixbuf-2.0.0.dylib (compatibility version 4201.0.0, current version 4201.6.0)
+	X /usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 1200.3.0)
+
+assets/mac_arm/canvas/build/Release/libpixman-1.0.dylib:
+	X @rpath/libpixman-1.0.dylib (compatibility version 41.0.0, current version 41.0.0)
+	X /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.60.1)
+
+assets/mac_arm/canvas/build/Release/libcairo.2.dylib:
+	X @rpath/libcairo.2.dylib (compatibility version 11603.0.0, current version 11603.0.0)
+	* /opt/homebrew/opt/pixman/lib/libpixman-1.0.dylib (compatibility version 41.0.0, current version 41.0.0)
+	/opt/homebrew/opt/fontconfig/lib/libfontconfig.1.dylib (compatibility version 14.0.0, current version 14.0.0)
+	/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib (compatibility version 24.0.0, current version 24.4.0)
+	* /opt/homebrew/opt/libpng/lib/libpng16.16.dylib (compatibility version 54.0.0, current version 54.0.0)
+	/opt/homebrew/opt/libxcb/lib/libxcb-shm.0.dylib (compatibility version 1.0.0, current version 1.0.0)
+	/opt/homebrew/opt/libxcb/lib/libxcb.1.dylib (compatibility version 3.0.0, current version 3.0.0)
+	/opt/homebrew/opt/libxcb/lib/libxcb-render.0.dylib (compatibility version 1.0.0, current version 1.0.0)
+	/opt/homebrew/opt/libxrender/lib/libXrender.1.dylib (compatibility version 5.0.0, current version 5.0.0)
+	/opt/homebrew/opt/libx11/lib/libX11.6.dylib (compatibility version 11.0.0, current version 11.0.0)
+	/opt/homebrew/opt/libxext/lib/libXext.6.dylib (compatibility version 11.0.0, current version 11.0.0)
+	X /usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.11)
+	X /System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices (compatibility version 1.0.0, current version 54.0.0)
+	X /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.60.1)
+	X /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 1770.255.0)
+	X /System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics (compatibility version 64.0.0, current version 1463.2.1)
+
+assets/mac_arm/canvas/build/Release/libpng16.16.dylib:
+	X @rpath/libpng16.16.dylib (compatibility version 54.0.0, current version 54.0.0)
+	X /usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.11)
+	X /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.60.1)
+
+assets/mac_arm/canvas/build/Release/libpangocairo-1.0.0.dylib:
+	X @rpath/libpangocairo-1.0.0.dylib (compatibility version 5001.0.0, current version 5001.3.0)
+	/opt/homebrew/Cellar/pango/1.50.3/lib/libpango-1.0.0.dylib (compatibility version 5001.0.0, current version 5001.3.0)
+	/opt/homebrew/Cellar/pango/1.50.3/lib/libpangoft2-1.0.0.dylib (compatibility version 5001.0.0, current version 5001.3.0)
+	X /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1292.100.5)
+	/opt/homebrew/opt/glib/lib/libglib-2.0.0.dylib (compatibility version 7001.0.0, current version 7001.2.0)
+	/opt/homebrew/opt/glib/lib/libgobject-2.0.0.dylib (compatibility version 7001.0.0, current version 7001.2.0)
+	/opt/homebrew/opt/harfbuzz/lib/libharfbuzz.0.dylib (compatibility version 30200.0.0, current version 30200.0.0)
+	/opt/homebrew/opt/fontconfig/lib/libfontconfig.1.dylib (compatibility version 14.0.0, current version 14.0.0)
+	X /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 1775.118.101)
+	* /opt/homebrew/opt/cairo/lib/libcairo.2.dylib (compatibility version 11603.0.0, current version 11603.0.0)
+	X /System/Library/Frameworks/CoreText.framework/Versions/A/CoreText (compatibility version 1.0.0, current version 1.0.0)
+
+otool -L assets/mac_arm/canvas/build/Release/canvas.node
+
+cp /opt/homebrew/opt/pixman/lib/libpixman-1.0.dylib assets/mac_arm/canvas/build/Release/.
+install_name_tool -id "@rpath/libpixman-1.0.dylib" assets/mac_arm/canvas/build/Release/libpixman-1.0.dylib
+otool -D assets/mac_arm/canvas/build/Release/libpixman-1.0.dylib
+otool -L assets/mac_arm/canvas/build/Release/libpixman-1.0.dylib
+install_name_tool -change "/opt/homebrew/opt/pixman/lib/libpixman-1.0.dylib" "@loader_path/libpixman-1.0.dylib" assets/mac_arm/canvas/build/Release/canvas.node
+
+cp /opt/homebrew/opt/cairo/lib/libcairo.2.dylib assets/mac_arm/canvas/build/Release/.
+install_name_tool -id "@rpath/libcairo.2.dylib" assets/mac_arm/canvas/build/Release/libcairo.2.dylib
+otool -D assets/mac_arm/canvas/build/Release/libcairo.2.dylib
+otool -L assets/mac_arm/canvas/build/Release/libcairo.2.dylib
+install_name_tool -change "/opt/homebrew/opt/cairo/lib/libcairo.2.dylib" "@loader_path/libcairo.2.dylib" assets/mac_arm/canvas/build/Release/canvas.node
+install_name_tool -change "/opt/homebrew/opt/pixman/lib/libpixman-1.0.dylib" "@loader_path/libpixman-1.0.dylib" assets/mac_arm/canvas/build/Release/libcairo.2.dylib
+
+cp /opt/homebrew/opt/libpng/lib/libpng16.16.dylib assets/mac_arm/canvas/build/Release/.
+install_name_tool -id "@rpath/libpng16.16.dylib" assets/mac_arm/canvas/build/Release/libpng16.16.dylib
+otool -D assets/mac_arm/canvas/build/Release/libpng16.16.dylib
+otool -L assets/mac_arm/canvas/build/Release/libpng16.16.dylib
+install_name_tool -change "/opt/homebrew/opt/libpng/lib/libpng16.16.dylib" "@loader_path/libpng16.16.dylib" assets/mac_arm/canvas/build/Release/canvas.node
+install_name_tool -change "/opt/homebrew/opt/libpng/lib/libpng16.16.dylib" "@loader_path/libpng16.16.dylib" assets/mac_arm/canvas/build/Release/libcairo.2.dylib
+
+cp /opt/homebrew/opt/pango/lib/libpangocairo-1.0.0.dylib assets/mac_arm/canvas/build/Release/.
+install_name_tool -id "@rpath/libpangocairo-1.0.0.dylib" assets/mac_arm/canvas/build/Release/libpangocairo-1.0.0.dylib
+otool -D assets/mac_arm/canvas/build/Release/libpangocairo-1.0.0.dylib
+otool -L assets/mac_arm/canvas/build/Release/libpangocairo-1.0.0.dylib
+install_name_tool -change "/opt/homebrew/opt/pango/lib/libpangocairo-1.0.0.dylib" "@loader_path/libpangocairo-1.0.0.dylib" assets/mac_arm/canvas/build/Release/canvas.node
+install_name_tool -change "/opt/homebrew/opt/cairo/lib/libcairo.2.dylib" "@loader_path/libcairo.2.dylib" assets/mac_arm/canvas/build/Release/libpangocairo-1.0.0.dylib
+
+

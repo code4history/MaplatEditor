@@ -1,11 +1,6 @@
 'use strict';
 
-const pf = process.platform; // eslint-disable-line no-undef
-const isAsar = __dirname.match(/app\.asar/); // eslint-disable-line no-undef
-const canvasPath = pf === 'darwin' ?
-  isAsar ? '../../../app.asar.unpacked/assets/mac/canvas' : '../../assets/mac/canvas' :
-  isAsar ? '../../../app.asar.unpacked/assets/win/canvas' : '../../assets/win/canvas';
-const { createCanvas, Image } = require(canvasPath); // eslint-disable-line no-undef
+const { createCanvas, Image } = require('../lib/canvas_loader'); // eslint-disable-line no-undef
 
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
