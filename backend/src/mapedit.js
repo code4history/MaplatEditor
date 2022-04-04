@@ -12,6 +12,9 @@ const rfs = require('recursive-fs'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 const nedbAccessor = require('../lib/nedb_accessor'); // eslint-disable-line no-undef
 const storeHandler = require('@maplat/core/es5/source/store_handler'); // eslint-disable-line no-undef
+const {dialog} = require("electron"); // eslint-disable-line no-undef
+const csv = require('csv-parser'); // eslint-disable-line no-undef
+const proj  = require('proj4'); // eslint-disable-line no-undef
 
 let tileFolder;
 let originalFolder;
@@ -20,6 +23,8 @@ let tmpFolder;
 let focused;
 let dbFile;
 let nedb;
+let extentCheck;
+let extentBuffer;
 
 const mapedit = {
   init() {
@@ -131,7 +136,7 @@ const mapedit = {
     const mapID = mapObject.mapID;
     const url_ = mapObject.url_;
     const imageExtension = mapObject.imageExtension || mapObject.imageExtention || 'jpg';
-    if (tins.length == 0) tins = ['tooLessGcps'];
+    if (tins.length === 0) tins = ['tooLessGcps'];
     const compiled = await storeHandler.histMap2Store(mapObject, tins);
 
     const tmpFolder = `${settings.getSetting('tmpFolder')}${path.sep}tiles`;
@@ -297,9 +302,65 @@ const mapedit = {
     if (!json) focused.webContents.send('checkIDResult', true);
     else focused.webContents.send('checkIDResult', false);
   },
+  uploadCsv(csvRepl, csvUpSettings) {
+    dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
+      filters: [ {name: csvRepl, extensions: []} ]}).then((ret) => {
+      if (ret.canceled) {
+        focused.webContents.send('uploadedCsv', {
+          err: 'Canceled'
+        });
+      } else {
+        const file = ret.filePaths[0];
+        const results = [];
+        const options = {
+          strict: true,
+          headers: false,
+          skipLines: csvUpSettings.ignoreHeader ? 1 : 0
+        };
+        fs.createReadStream(file)
+          .pipe(csv(options))
+          .on('data', (data) => results.push(data))
+          .on('end', () => {
+            let error;
+            const gcps = [];
+            if (results.length === 0) error = "csv_format_error";
+            results.forEach((line) => {
+              if (error) return;
+              try {
+                const illstCoord = [];
+                const rawGeoCoord = [];
+                illstCoord[0] = parseFloat(line[csvUpSettings.pixXColumn - 1]);
+                illstCoord[1] = parseFloat(line[csvUpSettings.pixYColumn - 1]);
+                if (csvUpSettings.reverseMapY) illstCoord[1] = -1 * illstCoord[1];
+                rawGeoCoord[0] = parseFloat(line[csvUpSettings.lngColumn - 1]);
+                rawGeoCoord[1] = parseFloat(line[csvUpSettings.latColumn - 1]);
+                const geoCoord = proj(csvUpSettings.projText, "EPSG:3857", rawGeoCoord);
+                gcps.push([illstCoord, geoCoord]);
+              } catch(e) {
+                error = "csv_format_error";
+              }
+            });
+            if (error) {
+              focused.webContents.send('uploadedCsv', {
+                err: error
+              });
+            } else {
+              focused.webContents.send('uploadedCsv', {
+                gcps
+              });
+            }
+          })
+          .on('error', (e) => {
+            focused.webContents.send('uploadedCsv', {
+              err: e
+            });
+          });
+      }
+    });
+  },
   updateTin(gcps, edges, index, bounds, strict, vertex) {
-    const wh = index == 0 ? bounds : null;
-    const bd = index != 0 ? bounds : null;
+    const wh = index === 0 ? bounds : null;
+    const bd = index !== 0 ? bounds : null;
     this.createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex)
       .then((tin) => {
         focused.webContents.send('updatedTin', [index, tin]);
@@ -346,6 +407,26 @@ const mapedit = {
   async getTmsListOfMapID(mapID) {
     if (mapID) return settings.getTmsListOfMapID(mapID);
     else return this.getTmsList();
+  },
+  async checkExtentMap(extent) {
+    if (!extentCheck) {
+      if (!(extentBuffer && extentBuffer.reduce((ret, item, idx) => ret && (item === extent[idx]), true))) {
+        extentCheck = true;
+        extentBuffer = extent;
+        const mapList = await nedb.searchExtent(extent);
+        console.log('mapList'); // eslint-disable-line no-undef
+        focused.webContents.send('extentMapList', mapList);
+        setTimeout(() => { // eslint-disable-line no-undef
+          extent = extentCheck;
+          extentCheck = undefined;
+          if (extent !== true) {
+            this.checkExtentMap(extent);
+          }
+        }, 1000);
+      }
+    } else {
+      extentCheck = extent;
+    }
   },
   getWmtsFolder() {
     const saveFolder = settings.getSetting('saveFolder');

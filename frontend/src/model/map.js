@@ -4,6 +4,7 @@ import {Language} from "./language";
 import crypto from 'crypto';
 import Tin from '@maplat/tin';
 import {transform} from "ol/proj";
+import proj from "proj4";
 
 Vue.config.debug = true;
 const langObj = Language.getSingleton();
@@ -83,7 +84,7 @@ for (let i=0; i<langAttr.length; i++) {
     })(key),
   }
 }
-const shareAttr = ['currentLang', 'onlyOne', 'vueInit', 'currentEditingLayer', 'map',
+const shareAttr = ['currentLang', 'onlyOne', 'vueInit', 'currentEditingLayer', 'csvUploadUiValue', 'map',
   'map_'];
 for (let i=0; i<shareAttr.length; i++) {
   const key = shareAttr[i];
@@ -153,6 +154,14 @@ computed.defaultLangFlag = {
     }
   }
 };
+computed.templateMaps = {
+  get() {
+    return this.gcps.length > 0 ? this.templateMaps_ : [];
+  },
+  set(maps) {
+    this.templateMaps_ = maps;
+  }
+};
 computed.imageExtensionCalc = function() {
   if (this.imageExtension) return this.imageExtension;
   if (this.width && this.height) return 'jpg';
@@ -163,6 +172,38 @@ computed.gcpsEditReady = function() {
 computed.wmtsEditReady = function() {
   const tin = this.share.tinObjects[0];
   return (this.mainLayerHash && this.wmtsDirty && tin.strict_status === Tin.STATUS_STRICT);
+}
+computed.csvUpError = function() {
+  const uiValue = this.csvUploadUiValue;
+  if (uiValue.pixXColumn === uiValue.pixYColumn || uiValue.pixXColumn === uiValue.lngColumn || uiValue.pixXColumn === uiValue.latColumn ||
+    uiValue.pixYColumn === uiValue.lngColumn || uiValue.pixYColumn === uiValue.latColumn || uiValue.lngColumn === uiValue.latColumn) {
+    return "column_dup";
+  } else if (!(typeof uiValue.pixXColumn == 'number' && typeof uiValue.pixYColumn == 'number' && typeof uiValue.lngColumn == 'number' && typeof uiValue.latColumn == 'number')) {
+    return "column_null";
+  } else if (!(typeof uiValue.ignoreHeader == 'number')) {
+    return "ignore_header";
+  } else {
+    if (uiValue.projText === "") return "proj_text";
+    try {
+      proj(uiValue.projText, "EPSG:4326");
+      return false;
+    } catch(e) {
+      return "proj_text";
+    }
+  }
+}
+computed.csvProjTextError = function() {
+
+}
+computed.csvProjPreset = {
+  get() {
+    const uiValue = this.csvUploadUiValue;
+    return uiValue.projText === "EPSG:4326" ? "wgs84" : uiValue.projText === "EPSG:3857" ? "mercator" : "other";
+  },
+  set(newValue) {
+    const uiValue = this.csvUploadUiValue;
+    uiValue.projText = newValue === "wgs84" ? "EPSG:4326" : newValue === "mercator" ? "EPSG:3857" : "";
+  }
 }
 computed.dirty = function() {
   return !_.isDeepEqual(this.map_, this.map);
@@ -387,14 +428,45 @@ const VueMap = Vue.extend({
         onlyOne: false,
         vueInit: false,
         currentEditingLayer: 0,
+        csvUploadUiValue: {
+          pixXColumn: 1,
+          pixYColumn: 2,
+          lngColumn: 3,
+          latColumn: 4,
+          ignoreHeader: 0,
+          reverseMapY: false,
+          projText: "EPSG:4326"
+        },
+        csvProjPreset: "wgs84",
         tinObjects: []
       },
       langs,
       editingID_: '',
-      newGcp: undefined
+      newGcp: undefined,
+      mappingUIRow: 'layer',
+      templateMaps_: []
     };
     },
   methods: {
+    _updateWholeGcps(gcps) {
+      if (this.currentEditingLayer === 0) {
+        this.map.gcps = gcps;
+        this.$set(this.map, 'edges', []);
+      } else if (this.map.sub_maps.length > 0) {
+        this.map.sub_maps[this.currentEditingLayer - 1].gcps = gcps;
+        this.$set(this.map.sub_maps[this.currentEditingLayer - 1], 'edges', []);
+      }
+    },
+    csvQgisSetting() {
+      this.csvUploadUiValue = Object.assign(this.csvUploadUiValue, {
+        pixXColumn: 1,
+        pixYColumn: 2,
+        lngColumn: 3,
+        latColumn: 4,
+        ignoreHeader: 2,
+        reverseMapY: true,
+      });
+    },
     setCurrentAsDefault() {
       this.map_ = _.deepClone(this.map);
       },

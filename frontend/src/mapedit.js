@@ -1227,8 +1227,26 @@ function mapObjectInit() {
   });
   mercMap.addInteraction(edgeModify);
   mercMap.addInteraction(edgeSnap);
+  const extentCheck = async (view) => {
+    const extent = view.calculateExtent();
+    backend.checkExtentMap(extent);
+  };
+  /*mercMap.getView().on('change', (evt) => {
+    extentCheck(evt.target);
+  });*/
+  let firstRender = false;//true;
+  mercMap.on('postrender', (evt) => { // eslint-disable-line no-unused-vars
+    if (!firstRender) {
+      firstRender = false;
+      extentCheck(mercMap.getView());
+    }
+  });
+  ipcRenderer.on('extentMapList', (event, arg) => {
+    console.log(arg); // eslint-disable-line no-undef
+    vueMap.templateMaps = arg;
+  });
 
-  // ベースマップリスト作成
+    // ベースマップリスト作成
   let tmsList;
   const promises = backend.getTmsListOfMapID(mapID).then((list) => {
     tmsList = list;
@@ -1475,7 +1493,7 @@ function setVueMap() {
     if (!uploader) {
       uploader = require('electron').remote.require('./mapupload'); // eslint-disable-line no-undef
       uploader.init();
-      ipcRenderer.on('mapUploaded', (event, arg) => {
+      ipcRenderer.on('uploadedMap', (event, arg) => {
         document.body.style.pointerEvents = null; // eslint-disable-line no-undef
         if (arg.err) {
           if (arg.err !== 'Canceled') {
@@ -1505,24 +1523,51 @@ function setVueMap() {
     vueModal.show(t('mapedit.image_uploading'));
     uploader.showMapSelectDialog(t('mapupload.map_image'));
   });
-  vueMap.$on('dlMap', () => {
+  vueMap.$on('exportMap', () => {
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-    vueModal.show(t('mapedit.message_download'));
+    vueModal.show(t('mapedit.message_export'));
     ipcRenderer.once('mapDownloadResult', (event, arg) => {
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
       if (arg === 'Success') {
-        vueModal.finish(t('mapedit.download_success')); // eslint-disable-line no-undef
+        vueModal.finish(t('mapedit.export_success')); // eslint-disable-line no-undef
       } else if (arg === 'Canceled') {
-        vueModal.finish(t('mapedit.updownload_canceled')); // eslint-disable-line no-undef
+        vueModal.finish(t('mapedit.imexport_canceled')); // eslint-disable-line no-undef
       } else {
         console.log(arg); // eslint-disable-line no-undef,no-console
-        vueModal.finish(t('mapedit.download_error')); // eslint-disable-line no-undef
+        vueModal.finish(t('mapedit.export_error')); // eslint-disable-line no-undef
       }
     });
     backend.download(vueMap.map, vueMap.tinObjects.map((tin) => {
       if (typeof tin === 'string') return tin;
       return tin.getCompiled();
     }));
+  });
+  vueMap.$on('uploadCsv', async () => {
+    if (vueMap.gcps.length > 0) {
+      if ((await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['OK', 'Cancel'],
+        cancelId: 1,
+        message: t('dataio.csv_override_confirm')
+      })).response === 1) return; // eslint-disable-line no-undef
+    }
+    //document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
+    backend.uploadCsv(t('dataio.csv_file'), vueMap.csvUploadUiValue, [vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode]);
+    ipcRenderer.once('uploadedCsv', async (event, arg) => {
+      document.body.style.pointerEvents = null; // eslint-disable-line no-undef
+      if (arg.err) {
+        const message = arg.err === 'Canceled' ? t('mapedit.updownload_canceled') : `${t('dataio.error_occurs')}: ${t(`dataio.${arg.err}`)}`;
+        await dialog.showMessageBox({
+          type: 'info',
+          buttons: ['OK'],
+          message
+        });
+        return;
+      } else if (arg.gcps) {
+        vueMap._updateWholeGcps(arg.gcps);
+        gcpsToMarkers();
+      }
+    });
   });
   vueMap.$on('saveMap', async () => {
     if ((await dialog.showMessageBox({

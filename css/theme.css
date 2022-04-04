@@ -110,22 +110,15 @@ body.settings {
 }
 
 .map-control-header {
-  height: 60px;
   padding-top: 10px;
   padding-bottom: 10px;
 }
 
 .map-row {
-  height: calc(100% - 160px);
-}
-
-.map-control-coordinates {
-  height: 50px;
-  padding-top: 10px;
+  height: calc(100% - 115px);
 }
 
 .map-control-footer {
-  height: 50px;
   padding-top: 10px;
 }
 

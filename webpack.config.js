@@ -19,7 +19,12 @@ module.exports = {
     alias: {
       'vue$': 'vue/dist/vue.esm.js'
     },
-    symlinks: false
+    symlinks: false,
+    fallback: {
+      crypto: require.resolve("crypto-browserify"),
+      buffer: require.resolve("buffer"),
+      stream: require.resolve("stream-browserify")
+    }
   },
   plugins: [
     // make sure to include the plugin!
@@ -41,7 +46,7 @@ module.exports = {
         exclude: /node_modules(?![\\/]@maplat)/,
         use: {
           loader: 'babel-loader',
-          query: {
+          options: {
             "presets": [
               [
                 "@babel/preset-env",

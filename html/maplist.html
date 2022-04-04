@@ -30,7 +30,7 @@
           <a href="mapedit.html" class="btn btn-default" style="width: 200px;">{{$t('maplist.new_create')}}</a>
         </div>
         <div class="form-group col-xs-6" v-bind:style="{ width: searchWidth + 'px' }" style="padding: 0px;">
-          <input type="text" class="form-control" style="margin-left: 5px;" v-bind:style="{ width: (searchWidth - 5) + 'px' }" placeholder="検索条件を入力してください" v-model="condition">
+          <input type="text" class="form-control" style="margin-left: 5px;" v-bind:style="{ width: (searchWidth - 5) + 'px' }" :placeholder="$t('maplist.search_placeholder')" v-model="condition">
         </div>
         <div class="form-group col-xs-3" style="width: 105px; padding: 0px;">
           <button class="btn btn-default form-group" style="width: 100px; margin-left: 5px;" v-bind:disabled="!prev" @click="prevSearch()">&lt;</button>

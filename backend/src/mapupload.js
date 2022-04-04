@@ -51,7 +51,7 @@ const MapUpload = {
     dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
       filters: [ {name: mapImageRepl, extensions: ['jpg', 'png', 'jpeg']} ]}).then((ret) => {
       if (ret.canceled) {
-        focused.webContents.send('mapUploaded', {
+        focused.webContents.send('uploadedMap', {
           err: 'Canceled'
         });
       } else {
@@ -142,7 +142,7 @@ const MapUpload = {
 
       const url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${extKey}`;
       if (focused) {
-        focused.webContents.send('mapUploaded', {
+        focused.webContents.send('uploadedMap', {
           width,
           height,
           url,
@@ -151,7 +151,7 @@ const MapUpload = {
       }
     } catch(err) {
       if (focused) {
-        focused.webContents.send('mapUploaded', {
+        focused.webContents.send('uploadedMap', {
           err
         });
       } else {

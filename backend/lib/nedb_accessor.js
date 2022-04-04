@@ -1,6 +1,6 @@
 'use strict';
 
-const Datastore = require("nedb"); // eslint-disable-line no-undef
+const Datastore = require("@seald-io/nedb"); // eslint-disable-line no-undef
 
 let instance;
 
@@ -51,7 +51,7 @@ class nedbAccessor {
       return ["title", "officialTitle", "description"].reduce((ret, attr) => {
         return ret || checkLocaleAttr(this[attr], condition);
       }, false);
-    }
+    };
     const task = this.db.find(where).sort({ _id: 1 }).skip(skip).limit(limit + 1);
 
     return new Promise((res, rej) => {
@@ -72,7 +72,35 @@ class nedbAccessor {
       }
     });
   }
-};
+
+  async searchExtent(extent) {
+    const where = {};
+    where["$where"] = function() {
+      if (!this.compiled) return false;
+      const map_extent = this.compiled.vertices_points.reduce((ret, vertex) => {
+        const merc = vertex[1];
+        if (ret.length === 0) {
+          ret = [merc[0], merc[1], merc[0], merc[1]];
+        } else {
+          if (ret[0] > merc[0]) ret[0] = merc[0];
+          if (ret[1] > merc[1]) ret[1] = merc[1];
+          if (ret[2] < merc[0]) ret[2] = merc[0];
+          if (ret[3] < merc[1]) ret[3] = merc[1];
+        }
+        return ret;
+      }, []);
+      return (extent[0] <= map_extent[2] && map_extent[0] <= extent[2] && extent[1] <= map_extent[3] && map_extent[1] <= extent[3]);
+    };
+    const task = this.db.find(where).sort({ _id: 1 });
+
+    return new Promise((res, rej) => {
+      task.exec((err, docs) => {
+        if (err) rej(err);
+        else res(docs);
+      });
+    });
+  }
+}
 
 function checkLocaleAttr(attr, condition) {
   const conds = condition.trim().split(" ");
