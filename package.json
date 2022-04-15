@@ -38,7 +38,7 @@
     "gulp": "^4.0.2",
     "gulp-cli": "^2.3.0",
     "less": "^3.12.2",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "utils-extend": "npm:utils-extend-patched@^1.0.9",
     "vue-loader": "^15.9.3",
     "vue-template-compiler": "^2.6.11",
