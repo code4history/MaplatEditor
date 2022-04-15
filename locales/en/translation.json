@@ -216,6 +216,9 @@
     "dividing_tile": "Splitting map image into tiles",
     "next_thumbnail": "Generating map thumbnail"
   },
+  "dataupload": {
+    "data_zip": "Map Data"
+  },
   "applist": {
     "not_implement": "Not implemented yet"
   },

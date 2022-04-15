@@ -37,6 +37,7 @@ backend.init();
 const langObj = Language.getSingleton();
 
 let uploader;
+let dataUploader;
 let wmtsGenerator;
 let mapID;
 let newlyAddEdge;
@@ -1499,7 +1500,7 @@ function setVueMap() {
           if (arg.err !== 'Canceled') {
             console.log(arg.err); // eslint-disable-line no-undef
             vueModal.finish(t('mapedit.error_image_upload'));
-          } else vueModal.finish(t('mapedit.updownload_canceled'));
+          } else vueModal.finish(t('mapedit.imexport_canceled'));
           return;
         } else {
           vueModal.finish(t('mapedit.success_image_upload'));
@@ -1522,6 +1523,37 @@ function setVueMap() {
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
     vueModal.show(t('mapedit.image_uploading'));
     uploader.showMapSelectDialog(t('mapupload.map_image'));
+  });
+  vueMap.$on('importMap', () => {
+    if (!dataUploader) {
+      dataUploader = require('electron').remote.require('./dataupload'); // eslint-disable-line no-undef
+      dataUploader.init();
+
+      ipcRenderer.on('uploadedData', (event, arg) => {
+        document.body.style.pointerEvents = null; // eslint-disable-line no-undef
+        if (arg.err) {
+          if (arg.err === 'Canceled') {
+            vueModal.finish('キャンセルされました。');
+          } else if (arg.err === 'Exist') {
+            vueModal.finish('存在する地図IDです。処理を停止します。');
+          } else if (arg.err === 'NoTile') {
+            vueModal.finish('データにタイル画像が含まれていません。処理を停止します。');
+          } else if (arg.err === 'NoTmb') {
+            vueModal.finish('データにサムネイルが含まれていません。処理を停止します。');
+          } else {
+            console.log(arg.err); // eslint-disable-line no-undef
+            vueModal.finish('地図データ登録でエラーが発生しました。');
+          }
+          return;
+        } else {
+          vueModal.finish('正常に地図データが登録できました。');
+          mapDataCommon(arg[0], arg[1]);
+        }
+      });
+    }
+    document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
+    vueModal.show(t('mapedit.image_uploading'));
+    dataUploader.showDataSelectDialog(t('dataupload.data_zip'));
   });
   vueMap.$on('exportMap', () => {
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
@@ -1551,7 +1583,7 @@ function setVueMap() {
         message: t('dataio.csv_override_confirm')
       })).response === 1) return; // eslint-disable-line no-undef
     }
-    //document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
+    document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
     backend.uploadCsv(t('dataio.csv_file'), vueMap.csvUploadUiValue, [vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode]);
     ipcRenderer.once('uploadedCsv', async (event, arg) => {
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
@@ -1706,11 +1738,12 @@ function setVueMap() {
 }
 // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
 ipcRenderer.on('mapData', (event, arg) => {
-  const json = arg[0];
-  const tins = arg[1];
-  json.mapID = mapID;
-  json.status = 'Update';
-  json.onlyOne = true;
+  mapDataCommon(arg[0], arg[1]);
+});
+// 起動時処理: Vue Mapオブジェクト関連の設定ここまで
+
+function mapDataCommon(json, tins) {
+  document.body.style.pointerEvents = null; // eslint-disable-line no-undef
   if (!vueMap) {
     initVueMap();
   }
@@ -1730,8 +1763,7 @@ ipcRenderer.on('mapData', (event, arg) => {
     gcpsToMarkers();
     tinResultUpdate();
   });
-});
-// 起動時処理: Vue Mapオブジェクト関連の設定ここまで
+}
 
 // 起動時処理: 地図外のUI設定ここから
 // モーダルオブジェクト作成

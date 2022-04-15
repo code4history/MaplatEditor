@@ -15,6 +15,7 @@ const storeHandler = require('@maplat/core/es5/source/store_handler'); // eslint
 const {dialog} = require("electron"); // eslint-disable-line no-undef
 const csv = require('csv-parser'); // eslint-disable-line no-undef
 const proj  = require('proj4'); // eslint-disable-line no-undef
+const {normalizeRequestData} = require('../lib/utils'); // eslint-disable-line no-undef
 
 let tileFolder;
 let originalFolder;
@@ -44,39 +45,12 @@ const mapedit = {
   },
   async request(mapID) {
     const json = await nedb.find(mapID);
-    let url_;
-    const whReady = (json.width && json.height) || (json.compiled && json.compiled.wh);
-    if (!whReady) {
-      focused.webContents.send('mapData', [json, ]);
-      return;
-    }
-    await new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
-      if (json.url) {
-        url_ = json.url;
-        resolve();
-      } else {
-        const thumbFolder = `${tileFolder}${path.sep}${mapID}${path.sep}0${path.sep}0`;
-        fs.readdir(thumbFolder, (err, thumbs) => {
-          if (!thumbs) {
-            resolve();
-            return;
-          }
-          for (let i=0; i<thumbs.length; i++) {
-            const thumb = thumbs[i];
-            if (/^0\.(?:jpg|jpeg|png)$/.test(thumb)) {
-              let thumbURL = fileUrl(thumbFolder + path.sep + thumb);
-              thumbURL = thumbURL.replace(/\/0\/0\/0\./, '/{z}/{x}/{y}.');
-              url_ = thumbURL;
-              resolve();
-              return;
-            }
-          }
-        });
-      }
-    });
-    
-    const res = await storeHandler.store2HistMap(json, true);
-    res[0].url_ = url_;
+
+    const res = await normalizeRequestData(json, `${tileFolder}${path.sep}${mapID}${path.sep}0${path.sep}0`);
+
+    res[0].mapID = mapID;
+    res[0].status = 'Update';
+    res[0].onlyOne = true;
     focused.webContents.send('mapData', res);
   },
   async download(mapObject, tins) {

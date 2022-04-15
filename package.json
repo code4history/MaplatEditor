@@ -1,5 +1,5 @@
 {
-  "name": "MaplatEditor",
+  "name": "maplateditor",
   "version": "0.6.1",
   "description": "",
   "main": "backend/src/main.js",

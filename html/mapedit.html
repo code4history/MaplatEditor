@@ -278,7 +278,7 @@
               <div class="row">
                 <div class="col-xs-12">
                   <label class="form-check-label" for="importMap">{{$t("dataio.import_map_data")}}</label>
-                  <button type="button" class="btn btn-default" id="importMap" v-bind:disabled="error || dirty" v-on:click="$emit('importMap')">{{$t("dataio.import_map_data")}}</button>
+                  <button type="button" class="btn btn-default" id="importMap" v-bind:disabled="dirty || status !== 'New'" v-on:click="$emit('importMap')">{{$t("dataio.import_map_data")}}</button>
                 </div>
               </div>
             </div>

@@ -217,6 +217,9 @@
     "dividing_tile": "地図画像をタイル分割中",
     "next_thumbnail": "地図サムネイル生成中"
   },
+  "dataupload": {
+    "data_zip": "地図データ"
+  },
   "applist": {
     "not_implement": "未実装"
   },
