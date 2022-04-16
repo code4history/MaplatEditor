@@ -1,6 +1,8 @@
 'use strict';
 
 const { createCanvas, Image } = require('../lib/canvas_loader'); // eslint-disable-line no-undef
+const {Jimp} = require('../lib/utils'); // eslint-disable-line no-undef
+
 const Tin = require('@maplat/tin').default; // eslint-disable-line no-undef
 
 const path = require('path'); // eslint-disable-line no-undef
@@ -27,13 +29,13 @@ const WmtsGenerator = {
   init() {
     if (settings) {
       const saveFolder = settings.getSetting('saveFolder');
-      mapFolder = `${saveFolder}${path.sep}maps`;
+      mapFolder = path.resolve(saveFolder, "maps");
       fs.ensureDir(mapFolder, () => {
       });
-      wmtsFolder = `${saveFolder}${path.sep}wmts`;
+      wmtsFolder = path.resolve(saveFolder, "wmts");
       fs.ensureDir(wmtsFolder, () => {
       });
-      originalFolder = `${saveFolder}${path.sep}originals`;
+      originalFolder = path.resolve(saveFolder, "originals");
       fs.ensureDir(originalFolder, () => {
       });
       tmpFolder = settings.getSetting('tmpFolder');
@@ -50,8 +52,8 @@ const WmtsGenerator = {
       const tin = new Tin({});
       tin.setCompiled(tinSerial);
       extKey = extKey ? extKey : 'jpg';
-      const imagePath = `${originalFolder}${path.sep}${mapID}.${extKey}`;
-      const tileRoot = `${wmtsFolder}${path.sep}${mapID}`;
+      const imagePath = path.resolve(originalFolder, `${mapID}.${extKey}`);
+      const tileRoot = path.resolve(wmtsFolder, mapID);
 
       const lt = tin.transform([0, 0], false, true);
       const rt = tin.transform([width, 0], false, true);
@@ -104,22 +106,8 @@ const WmtsGenerator = {
         }
       }
 
-      const canvas = createCanvas(width, height);
-      const ctx = canvas.getContext('2d');
-
-      const image = await new Promise((res, rej) => {
-        fs.readFile(imagePath, (err, buf) => {
-          if (err) rej(err);
-          const img = new Image();
-          img.onload = () => { res(img) };
-          img.onerror = (err) => { rej(err) };
-          img.src = buf;
-        });
-      });
-
-      ctx.drawImage(image, 0, 0);
-      const imgData = ctx.getImageData(0, 0, width, height);
-      const imageBuffer = imgData.data;
+      const imageJimp = await Jimp.read(imagePath);
+      const imageBuffer = imageJimp.bitmap.data;
 
       const progress = new ProgressReporter(focused, processArray.length, 'wmtsgenerate.generating_tile');
       progress.update(0);
@@ -131,6 +119,7 @@ const WmtsGenerator = {
         } else {
           await self.upperZoomTileLoop(process[0], process[1], process[2], tileRoot);
         }
+        await new Promise(s => setTimeout(s, 1));
         progress.update(i + 1);
       }
       if (focused) {
@@ -153,11 +142,7 @@ const WmtsGenerator = {
   async upperZoomTileLoop(z, x, y, tileRoot) {
     const downZoom = z + 1;
 
-    const tileCanvas = createCanvas(256, 256);
-    const tileCtx = tileCanvas.getContext('2d');
-    const tileImgData = tileCtx.getImageData(0, 0, 256, 256);
-    tileImgData.data = tileImgData.data.map(() => 0);
-    tileCtx.putImageData(tileImgData, 0, 0);
+    const tileJimp = await new Jimp(256, 256);
 
     for (let dx = 0; dx < 2; dx++) {
       const ux = x * 2 + dx;
@@ -165,28 +150,19 @@ const WmtsGenerator = {
       for (let dy = 0; dy < 2; dy ++) {
         const uy = y * 2 + dy;
         const oy = dy * 128;
-        const upImage = `${tileRoot}${path.sep}${downZoom}${path.sep}${ux}${path.sep}${uy}.png`;
+        const upImage = path.resolve(tileRoot, `${downZoom}`, `${ux}`, `${uy}.png`);
         try {
-          const image = await new Promise((res, rej) => {
-            fs.readFile(upImage, (err, buf) => {
-              if (err) rej(err);
-              const img = new Image();
-              img.onload = () => { res(img) };
-              img.onerror = (err) => { rej(err) };
-              img.src = buf;
-            });
-          });
-          if (image) tileCtx.drawImage(image, ox, oy, 128, 128);
-        } catch(e) {} // eslint-disable-line no-empty
+          const imageJimp = (await Jimp.read(upImage)).resize(128, 128);
+          await tileJimp.composite(imageJimp, ox, oy);
+        } catch(e) {
+        } // eslint-disable-line no-empty
       }
     }
 
-    const pngTile = tileCanvas.toBuffer('image/png', {});
-
-    const tileFolder = `${tileRoot}${path.sep}${z}${path.sep}${x}`;
-    const tileFile = `${tileFolder}${path.sep}${y}.png`;
+    const tileFolder = path.resolve(tileRoot, `${z}`, `${x}`);
+    const tileFile = path.resolve(tileFolder, `${y}.png`);
     await fs.ensureDir(tileFolder);
-    await fs.outputFile(tileFile, pngTile);
+    await tileJimp.write(tileFile);
   },
   async maxZoomTileLoop(tin, z, x, y, imageBuffer, width, height, tileRoot) {
     const self = this;
@@ -194,10 +170,8 @@ const WmtsGenerator = {
     const startPixelX = x * 256;
     const startPixelY = y * 256;
 
-    const tileCanvas = createCanvas(256, 256);
-    const tileCtx = tileCanvas.getContext('2d');
-    const tileImgData = tileCtx.getImageData(0, 0, 256, 256);
-    const tileData = tileImgData.data;
+    const tileJimp = await new Jimp(256, 256);
+    const tileData = tileJimp.bitmap.data;
 
     const range = [-1, 0, 1, 2];
     let pos = 0;
@@ -231,17 +205,21 @@ const WmtsGenerator = {
         tileData[pos+1] = ~~g;
         tileData[pos+2] = ~~b;
         tileData[pos+3] = ~~a;
+
         pos = pos + 4;
       }
     }
 
-    tileCtx.putImageData(tileImgData, 0, 0);
-    const pngTile = tileCanvas.toBuffer('image/png', {});
+    tileJimp.bitmap.data = tileData;
 
-    const tileFolder = `${tileRoot}${path.sep}${z}${path.sep}${x}`;
-    const tileFile = `${tileFolder}${path.sep}${y}.png`;
+    const tileFolder = path.resolve(tileRoot, `${z}`, `${x}`);
+    const tileFile = path.resolve(tileFolder, `${y}.png`);
     await fs.ensureDir(tileFolder);
-    await fs.outputFile(tileFile, pngTile);
+    await tileJimp.write(tileFile);
+  },
+  norm(val) {
+    const ret = ~~val;
+    return ret < 0 ? 0 : ret;
   },
   rgba(pixels, w, h, x, y) {
     if (x < 0 || y < 0 || x >= w || y >= h) {

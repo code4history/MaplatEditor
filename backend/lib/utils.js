@@ -1,7 +1,14 @@
-const path = require("path");
-const fileUrl = require("file-url");
-const storeHandler = require("@maplat/core/es5/source/store_handler");
+const path = require("path"); // eslint-disable-line no-undef
+const fileUrl = require("file-url"); // eslint-disable-line no-undef
+const storeHandler = require("@maplat/core/es5/source/store_handler"); // eslint-disable-line no-undef
 const fs = require('fs').promises // eslint-disable-line no-undef
+const Jimp = require('jimp'); // eslint-disable-line no-undef
+const JPEG = require('jpeg-js'); // eslint-disable-line no-undef
+
+Jimp.decoders['image/jpeg'] = (data) => JPEG.decode(data, {
+  maxMemoryUsageInMB: 6144,
+  maxResolutionInMP: 600
+});
 
 async function exists(filepath) {
   try {
@@ -48,5 +55,6 @@ async function normalizeRequestData(json, thumbFolder) {
 
 module.exports = { // eslint-disable-line no-undef
   exists,
-  normalizeRequestData
+  normalizeRequestData,
+  Jimp
 };

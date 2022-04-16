@@ -1,31 +1,18 @@
 'use strict';
 
 const fs = require('fs-extra'); // eslint-disable-line no-undef
-const { createCanvas, Image } = require('../lib/canvas_loader'); // eslint-disable-line no-undef
+const {Jimp} = require('../lib/utils'); // eslint-disable-line no-undef
 
 exports.make_thumbnail = async function(from, to, oldSpec) { // eslint-disable-line no-undef
   const extractor = async function(from, to) {
-    const image = await new Promise((res, rej) => {
-      fs.readFile(from, (err, buf) => {
-        if (err) rej(err);
-        const img = new Image();
-        img.onload = () => { res(img) };
-        img.onerror = (err) => { rej(err) };
-        img.src = buf;
-      });
-    });
+    const imageJimp = await Jimp.read(from);
 
-    const width = image.width;
-    const height = image.height;
+    const width = imageJimp.bitmap.width;
+    const height = imageJimp.bitmap.height;
     const w = width > height ? 52 : Math.ceil(52 * width / height);
     const h = width > height ? Math.ceil(52 * height / width) : 52;
 
-    const canvas = createCanvas(w, h);
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0, w, h);
-
-    const jpgTile = canvas.toBuffer('image/jpeg', {quality: 0.9});
-    await fs.outputFile(to, jpgTile);
+    await imageJimp.resize(w, h).write(to);
   };
 
   if (oldSpec) {

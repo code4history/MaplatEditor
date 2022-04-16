@@ -9,9 +9,6 @@ let settings;
 if (electron.app || electron.remote) {
   settings = require('./settings').init(); // eslint-disable-line no-undef
 }
-//const fileUrl = require('file-url'); // eslint-disable-line no-undef
-//const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
-//const ProgressReporter = require('../lib/progress_reporter');
 const AdmZip = require("adm-zip"); // eslint-disable-line no-undef
 const nedbAccessor = require("../lib/nedb_accessor"); // eslint-disable-line no-undef
 const {exists, normalizeRequestData} = require("../lib/utils"); // eslint-disable-line no-undef
