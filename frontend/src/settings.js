@@ -1,7 +1,6 @@
 import Vue from 'vue';
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
-const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
 const langObj = new Language();
 
 function initRun() {
@@ -10,7 +9,7 @@ function initRun() {
     i18n: langObj.vi18n,
     created() {
       const self = this;
-      self.backend = require('electron').remote.require('./settings').init(); // eslint-disable-line no-undef
+      self.backend = require('./settings').init(); // eslint-disable-line no-undef
       self.saveFolder = self.saveFolder_ = self.backend.getSetting('saveFolder');
       self.lang = self.lang_ = self.backend.getSetting('lang');
 

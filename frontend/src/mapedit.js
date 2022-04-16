@@ -28,11 +28,8 @@ function arrayRoundTo(array, decimal) {
 }
 
 const labelFontStyle = "Normal 12px Arial";
-//const {ipcRenderer, dialog} = require('electron'); // eslint-disable-line no-undef
-const electron = require('electron'); // eslint-disable-line no-undef
-const ipcRenderer = electron.ipcRenderer;
-const dialog = electron.remote.dialog;
-const backend = require('electron').remote.require('./mapedit'); // eslint-disable-line no-undef
+const dialog = remote.dialog;
+const backend = remote.require('./mapedit'); // eslint-disable-line no-undef
 backend.init();
 const langObj = Language.getSingleton();
 
@@ -1465,7 +1462,7 @@ function setVueMap() {
   });
   vueMap.$on('wmtsGenerate', () => {
     if (!wmtsGenerator) {
-      wmtsGenerator = require('electron').remote.require('./wmts_generator'); // eslint-disable-line no-undef
+      wmtsGenerator = remote.require('./wmts_generator'); // eslint-disable-line no-undef
       wmtsGenerator.init();
       ipcRenderer.on('wmtsGenerated', (event, arg) => {
         document.body.style.pointerEvents = null; // eslint-disable-line no-undef
@@ -1492,7 +1489,7 @@ function setVueMap() {
       message: t('mapedit.confirm_override_image')
     })).response === 1) return;
     if (!uploader) {
-      uploader = require('electron').remote.require('./mapupload'); // eslint-disable-line no-undef
+      uploader = remote.require('./mapupload'); // eslint-disable-line no-undef
       uploader.init();
       ipcRenderer.on('uploadedMap', (event, arg) => {
         document.body.style.pointerEvents = null; // eslint-disable-line no-undef
@@ -1526,7 +1523,7 @@ function setVueMap() {
   });
   vueMap.$on('importMap', () => {
     if (!dataUploader) {
-      dataUploader = require('electron').remote.require('./dataupload'); // eslint-disable-line no-undef
+      dataUploader = remote.require('./dataupload'); // eslint-disable-line no-undef
       dataUploader.init();
 
       ipcRenderer.on('uploadedData', (event, arg) => {

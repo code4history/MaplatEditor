@@ -5,7 +5,7 @@ let singleton;
 
 export class Language {
   constructor() {
-    const backend = this.backend = require('electron').remote.require('./settings').init(); // eslint-disable-line no-undef
+    const backend = this.backend = window.settingsBackend.init(); // eslint-disable-line no-undef
     const i18n = backend.i18n;
     Vue.use(VueI18Next);
 

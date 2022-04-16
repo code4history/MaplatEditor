@@ -1,6 +1,5 @@
 'use strict';
 
-const { createCanvas, Image } = require('../lib/canvas_loader'); // eslint-disable-line no-undef
 const {Jimp} = require('../lib/utils'); // eslint-disable-line no-undef
 
 const Tin = require('@maplat/tin').default; // eslint-disable-line no-undef

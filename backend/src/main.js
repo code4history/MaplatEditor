@@ -8,7 +8,6 @@ const fs = require('fs-extra'); // eslint-disable-line no-undef
 const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
 const Settings = require('./settings'); // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
-require('../lib/canvas_loader'); // eslint-disable-line no-undef
 
 let settings;
 let menuTemplate;
@@ -65,8 +64,8 @@ app.on('ready', async () => {
     width: appWidth,
     height: appHeight,
     webPreferences: {
-      nodeIntegration: true,
-      enableRemoteModule: true
+      nodeIntegration: false,
+      preload: `${__dirname}/preload.js`
     }
   });
   const indexurl = `file://${__dirname.replace(/\\/g, '/')}/../../html/maplist.html`; // eslint-disable-line no-undef

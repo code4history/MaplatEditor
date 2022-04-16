@@ -5,9 +5,8 @@ import Header from '../vue/header.vue';
 import VueContextMenu from "vue-context-menu";
 import bsn from "bootstrap.native";
 
-const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
+const backend = window.maplistBackend; // eslint-disable-line no-undef
 const langObj = Language.getSingleton();
-const backend = require('electron').remote.require('./maplist'); // eslint-disable-line no-undef
 backend.init();
 
 const newMenuData = () => ({ mapID: "", name: "" });

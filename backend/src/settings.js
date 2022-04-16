@@ -2,7 +2,7 @@
 
 const EventEmitter = require('events'); // eslint-disable-line no-undef
 const storage = require('electron-json-storage'); // eslint-disable-line no-undef
-const defaultStoragePath = storage.DEFAULT_DATA_PATH;
+const defaultStoragePath = storage.getDefaultDataPath();
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
@@ -110,11 +110,15 @@ class Settings extends EventEmitter {
   }
 
   defaultStorage() {
+    console.log("defaultStorage");
+    console.log(defaultStoragePath);
     storage.setDataPath(defaultStoragePath);
     return storage;
   }
 
   editorStorage() {
+    console.log("editorStorage");
+    console.log(editorStoragePath);
     storage.setDataPath(editorStoragePath);
     return storage;
   }
