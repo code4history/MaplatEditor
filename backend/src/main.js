@@ -8,7 +8,6 @@ const fs = require('fs-extra'); // eslint-disable-line no-undef
 const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
 const Settings = require('./settings'); // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
-require('../lib/canvas_loader'); // eslint-disable-line no-undef
 
 let settings;
 let menuTemplate;
