@@ -113,6 +113,7 @@ class Settings extends EventEmitter {
     console.log("defaultStorage");
     console.log(defaultStoragePath);
     storage.setDataPath(defaultStoragePath);
+    console.log(storage.getDataPath());
     return storage;
   }
 
@@ -120,6 +121,7 @@ class Settings extends EventEmitter {
     console.log("editorStorage");
     console.log(editorStoragePath);
     storage.setDataPath(editorStoragePath);
+    console.log(storage.getDataPath());
     return storage;
   }
 
