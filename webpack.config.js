@@ -1,5 +1,3 @@
-const webpack = require('webpack');
-const pjson = require('./package.json');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 module.exports = {
@@ -71,10 +69,10 @@ module.exports = {
   },
   externals: [
     (function () {
-      var IGNORES = [
+      const IGNORES = [
         'electron'
       ];
-      return function (context, request, callback) {
+      return ({context, request}, callback) => {
         if (IGNORES.indexOf(request) >= 0) {
           return callback(null, "require('" + request + "')");
         }

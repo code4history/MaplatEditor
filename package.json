@@ -51,6 +51,7 @@
     "bootstrap.native": "^2.0.27",
     "bootstrap3": "^3.3.5",
     "buffer": "^6.0.3",
+    "caniuse-lite": "^1.0.30001332",
     "child_process": "^1.0.2",
     "concaveman": "https://github.com/grassick/concaveman#patch-1",
     "crypto-browserify": "^3.12.0",
