@@ -1,9 +1,10 @@
 'use strict';
 
-const electron = require('electron'); // eslint-disable-line no-undef
-const app = electron.app;
-const BrowserWindow = electron.BrowserWindow;
-const Menu = electron.Menu;
+//const electron = require('electron'); // eslint-disable-line no-undef
+//const app = electron.app;
+//const BrowserWindow = electron.BrowserWindow;
+//const Menu = electron.Menu;
+const {app, BrowserWindow, ipcMain, Menu} = require('electron'); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
 const Settings = require('./settings'); // eslint-disable-line no-undef
@@ -31,6 +32,8 @@ const menuList = [
   'menu.select_all'
 ];
 
+app.disableHardwareAcceleration();
+
 app.on('window-all-closed', () => {
   if (process.platform != 'darwin') // eslint-disable-line no-undef
     app.quit();
@@ -49,11 +52,6 @@ app.on('ready', async () => {
   const menu = setupMenu();
   Menu.setApplicationMenu(menu);
   settings.on('changeLang', () => {
-    /*for (const m of menuList) {
-      const item = menu.getMenuItemById(m);
-      item.label = settings.t(m);
-      console.log(settings.t(m));
-    }*/
     menulabelChange();
     const menu = Menu.buildFromTemplate(menuTemplate);
     Menu.setApplicationMenu(menu);
@@ -64,13 +62,21 @@ app.on('ready', async () => {
     width: appWidth,
     height: appHeight,
     webPreferences: {
-      nodeIntegration: true,
-      enableRemoteModule: true
+      preload: path.join(__dirname, '../../frontend/api/preload.js') // eslint-disable-line no-undef
     }
   });
   const indexurl = `file://${__dirname.replace(/\\/g, '/')}/../../html/maplist.html`; // eslint-disable-line no-undef
   mainWindow.loadURL(indexurl);
   mainWindow.setMinimumSize(appWidth, appHeight);
+
+  ipcMain.on('require', (event, ...args) => {
+    // Backend logic registration
+    const module_name = args[0];
+    const backend = require(`./${module_name}`); // eslint-disable-line no-undef
+    backend.init();
+    // Event that backend logic registration was finished
+    event.reply('require_ready');
+  });
 
   // Continue to handle mainWindow "close" event here
   mainWindow.on('close', (e) => {

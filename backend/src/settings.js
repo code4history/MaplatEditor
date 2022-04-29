@@ -2,7 +2,7 @@
 
 const EventEmitter = require('events'); // eslint-disable-line no-undef
 const storage = require('electron-json-storage'); // eslint-disable-line no-undef
-const defaultStoragePath = storage.DEFAULT_DATA_PATH;
+const defaultStoragePath = storage.getDefaultDataPath();
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
@@ -10,7 +10,8 @@ const electron = require('electron'); // eslint-disable-line no-undef
 const BrowserWindow = electron.BrowserWindow;
 const tmsListDefault = require('../../tms_list.json'); // eslint-disable-line no-undef
 const i18next = require('i18next'); // eslint-disable-line no-undef
-const Backend = require('i18next-fs-backend'); // eslint-disable-line no-undef
+const Backend = require('i18next-fs-backend');
+const {ipcMain} = require("electron"); // eslint-disable-line no-undef
 let settings;
 let editorStoragePath;
 
@@ -27,6 +28,10 @@ class Settings extends EventEmitter {
   static init() {
     if (!settings) {
       settings = new Settings();
+      ipcMain.on('settings_lang', async (ev) => {
+        await settings.asyncReady;
+        ev.reply('settings_lang_got', settings.json.lang);
+      });
     }
     return settings;
   }
@@ -86,11 +91,11 @@ class Settings extends EventEmitter {
       });
       i18nPromise.then((t) => {
         this.t = t;
-        this.translate = function(dataFragment) {
+        this.translate = (dataFragment) => {
           if (!dataFragment || typeof dataFragment != 'object') return dataFragment;
           const langs = Object.keys(dataFragment);
           let key = langs.reduce((prev, curr) => {
-            if (curr == 'en' || !prev) {
+            if (curr === 'en' || !prev) {
               prev = dataFragment[curr];
             }
             return prev;

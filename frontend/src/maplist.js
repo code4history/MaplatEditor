@@ -5,16 +5,14 @@ import Header from '../vue/header.vue';
 import VueContextMenu from "vue-context-menu";
 import bsn from "bootstrap.native";
 
-const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
-const langObj = Language.getSingleton();
-const backend = require('electron').remote.require('./maplist'); // eslint-disable-line no-undef
-backend.init();
-
+let langObj;
 const newMenuData = () => ({ mapID: "", name: "" });
 
 let vueModal; // eslint-disable-line prefer-const
 
 async function initRun() {
+  await window.baseApi.require('maplist'); // eslint-disable-line no-undef
+  langObj = await Language.getSingleton();
   new Vue({
     i18n: langObj.vi18n,
     watch: {
@@ -24,63 +22,63 @@ async function initRun() {
     },
     mounted() {
       const t = langObj.t;
-      backend.start();
+      window.maplist.start(); // eslint-disable-line no-undef
 
       window.addEventListener('resize', this.handleResize); // eslint-disable-line no-undef
 
-      ipcRenderer.on("migrationConfirm", (_event, _result) => { // eslint-disable-line no-unused-vars
+      window.maplist.on("migrationConfirm", () => { // eslint-disable-line no-undef
         if (confirm(t("maplist.migration_confirm"))) { // eslint-disable-line no-undef
           vueModal.show(t("maplist.migrating"));
           setTimeout(() => { // eslint-disable-line no-undef
-            backend.migration();
+            window.maplist.migration(); // eslint-disable-line no-undef
           }, 1000);
         } else {
-          backend.request();
+          window.maplist.request(); // eslint-disable-line no-undef
         }
       });
-      ipcRenderer.on("deleteOldConfirm", (_event, _result) => { // eslint-disable-line no-unused-vars
+      window.maplist.on("deleteOldConfirm", () => { // eslint-disable-line no-undef
         vueModal.hide();
         setTimeout(() => { // eslint-disable-line no-undef
           if (confirm(t("maplist.delete_old_confirm"))) { // eslint-disable-line no-undef
             vueModal.show(t("maplist.deleting_old"));
             setTimeout(() => { // eslint-disable-line no-undef
-              backend.deleteOld();
+              window.maplist.deleteOld(); // eslint-disable-line no-undef
             }, 1000);
           }
         }, 1000);
       });
-      ipcRenderer.on("deletedOld", (_event, _result) => { // eslint-disable-line no-unused-vars
+      window.maplist.on("deletedOld", () => { // eslint-disable-line no-undef
         const t = langObj.t;
         vueModal.finish(t('maplist.deleted_old'));
       });
-      ipcRenderer.on("deleteError", (_event, _result) => { // eslint-disable-line no-unused-vars
+      window.maplist.on("deleteError", () => { // eslint-disable-line no-undef
         const t = langObj.t;
         alert(t('maplist.delete_error')); // eslint-disable-line no-undef
       });
-      ipcRenderer.on('taskProgress', (event, arg) => {
+      window.maplist.on('taskProgress', (ev, args) => { // eslint-disable-line no-undef
         const t = langObj.t;
-        vueModal.progress(t(arg.text), arg.percent, arg.progress);
+        vueModal.progress(t(args.text), args.percent, args.progress);
       });
-      ipcRenderer.on('mapList', (event, result) => {
+      window.maplist.on('mapList', (ev, args) => { // eslint-disable-line no-undef
         this.maplist = [];
-        this.prev = result.prev;
-        this.next = result.next;
-        if (result.pageUpdate) {
-          this.page = result.pageUpdate;
+        this.prev = args.prev;
+        this.next = args.next;
+        if (args.pageUpdate) {
+          this.page = args.pageUpdate;
         }
-        result.docs.forEach((arg) => {
+        args.docs.forEach((doc) => {
           const map = {
-            mapID: arg.mapID,
-            name: arg.title,
+            mapID: doc.mapID,
+            name: doc.title,
           };
-          if (!arg.width || !arg.height || !arg.thumbnail) {
+          if (!doc.width || !doc.height || !doc.thumbnail) {
             map.width = 190;
             map.height = 190;
             map.image = '../img/no_image.png';
           } else {
-            map.width = arg.width > arg.height ? 190 : Math.floor(190 / arg.height * arg.width);
-            map.height = arg.width > arg.height ? Math.floor(190 / arg.width * arg.height) : 190;
-            map.image = arg.thumbnail;
+            map.width = doc.width > doc.height ? 190 : Math.floor(190 / doc.height * doc.width);
+            map.height = doc.width > doc.height ? Math.floor(190 / doc.width * doc.height) : 190;
+            map.image = doc.thumbnail;
           }
 
           this.maplist.push(map);
@@ -132,7 +130,7 @@ async function initRun() {
         this.search();
       },
       search() {
-        backend.request(this.condition, this.page);
+        window.maplist.request(this.condition, this.page); // eslint-disable-line no-undef
       },
       onCtxOpen(locals) {
         this.menuData = locals;
@@ -144,8 +142,8 @@ async function initRun() {
       },
       deleteMap(menuData) {
         const t = langObj.t;
-        if (!confirm(t('maplist.delete_confirm', { name: menuData.name }))) return;  // eslint-disable-line no-undef
-        backend.delete(menuData.mapID, this.condition, this.page);
+        if (!confirm(t('maplist.delete_confirm', { name: menuData.name }))) return; // eslint-disable-line no-undef
+        window.maplist.delete(menuData.mapID, this.condition, this.page); // eslint-disable-line no-undef
       }
     },
   });

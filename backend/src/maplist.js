@@ -3,8 +3,7 @@ const path = require('path'); // eslint-disable-line no-undef
 const settings = require('./settings').init(); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
-const electron = require('electron'); // eslint-disable-line no-undef
-const BrowserWindow = electron.BrowserWindow;
+const {BrowserWindow, ipcMain} = require('electron'); // eslint-disable-line no-undef
 const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 const nedbAccessor = require('../lib/nedb_accessor'); // eslint-disable-line no-undef
@@ -42,41 +41,61 @@ let nedb;
 // For legacy use
 let mapFolder;
 let compFolder;
+let initialized = false;
 
 const maplist = {
   init() {
     const saveFolder = settings.getSetting('saveFolder');
-    tileFolder = `${saveFolder}${path.sep}tiles`;
+    tileFolder = path.resolve(saveFolder, "tiles");
     fs.ensureDir(tileFolder, () => {});
-    originalFolder = `${saveFolder}${path.sep}originals`;
+    originalFolder = path.resolve(saveFolder, "originals");
     fs.ensureDir(originalFolder, () => {});
-    uiThumbnailFolder = `${saveFolder}${path.sep}tmbs`;
+    uiThumbnailFolder = path.resolve(saveFolder, "tmbs");
     fs.ensureDir(uiThumbnailFolder, () => {});
     // For legacy
-    mapFolder = `${saveFolder}${path.sep}maps`;
-    compFolder = `${saveFolder}${path.sep}compiled`;
+    mapFolder = path.resolve(saveFolder, "maps");
+    compFolder = path.resolve(saveFolder, "compiled");
 
-    dbFile = `${saveFolder}${path.sep}nedb.db`;
+    dbFile = path.resolve(saveFolder, "nedb.db");
     nedb = nedbAccessor.getInstance(dbFile);
 
     focused = BrowserWindow.getFocusedWindow();
+
+    if (!initialized) {
+      initialized = true;
+      ipcMain.on('maplist_start', (event) => {
+        this.start(event);
+      });
+      // Defining interface for getter of electron-json-storage
+      ipcMain.on('maplist_request', (event, ...args) => {
+        this.request(event, args);
+      });
+      ipcMain.on('maplist_delete', (event, ...args) => {
+        this.delete(event, args);
+      });
+      ipcMain.on('maplist_deleteOld', (event) => {
+        this.deleteOld(event);
+      });
+      ipcMain.on('maplist_migration', (event) => {
+        this.migration(event);
+      });
+    }
   },
-  async start() {
+  async start(ev) {
     try {
       fs.statSync(compFolder);
     } catch (err) {
-      this.request();
+      this.request(ev);
       return;
     }
     try {
       fs.statSync(`${compFolder}${path.sep}.updated`);
-      this.request();
-      return;
+      this.request(ev);
     } catch (err) {
-      focused.webContents.send('migrationConfirm', {});
+      ev.reply('maplist_migrationConfirm');
     }
   },
-  async migration() {
+  async migration(ev) {
     const maps = fs.readdirSync(compFolder);
     const progress = new ProgressReporter(focused, maps.length, 'maplist.migrating', 'maplist.migrated');
     progress.update(0);
@@ -110,10 +129,10 @@ const maplist = {
     }
     fs.writeFileSync(`${compFolder}${path.sep}.updated`, "done");
 
-    this.request();
-    focused.webContents.send('deleteOldConfirm', {});
+    this.request(ev);
+    ev.reply('maplist_deleteOldConfirm');
   },
-  async deleteOld() {
+  async deleteOld(ev) {
     const folders = [compFolder, mapFolder];
     const progress = new ProgressReporter(focused, folders.length, 'maplist.deleting_old', 'maplist.deleted_old');
     for (let i = 0; i < folders.length; i++) {
@@ -124,9 +143,11 @@ const maplist = {
         setTimeout(res, 500); // eslint-disable-line no-undef
       });
     }
-    focused.webContents.send('deletedOld', {});
+    ev.reply('maplist_deletedOld');
   },
-  async request(condition = "", page = 1) {
+  async request(ev, args = []) {
+    let condition = args[0];
+    let page = args[1] || 1;
     if (!condition || condition === "") condition = null;
     let result;
     let pageUpdate = 0;
@@ -140,7 +161,7 @@ const maplist = {
     if (pageUpdate) result.pageUpdate = pageUpdate;
 
     const thumbFiles = [];
-    const docs = await Promise.all(result.docs.map(async (doc) => {
+    result.docs = await Promise.all(result.docs.map(async (doc) => {
       const res = {
         mapID: doc._id
       };
@@ -182,16 +203,17 @@ const maplist = {
       });
     }));
 
-    result.docs = docs;
-
-    focused.webContents.send('mapList', result);
+    ev.reply('maplist_mapList', result);
 
     thumbFiles.forEach((thumbFile) => {
       thumbExtractor.make_thumbnail(thumbFile[0], thumbFile[1], thumbFile[2]).then(() => {
       }).catch((e) => { console.log(e); }); // eslint-disable-line no-undef
     });
   },
-  async delete(mapID, condition, page) {
+  async delete(ev, args = []) {
+    const mapID = args[0];
+    const condition = args[1];
+    const page = args[2];
     const nedb = nedbAccessor.getInstance(dbFile);
     try {
       await nedb.delete(mapID);
@@ -238,9 +260,9 @@ const maplist = {
           res_();
         }
       });
-      this.request(condition, page);
+      this.request(ev, [condition, page]);
     } catch (e) {
-      focused.webContents.send('deleteError', e);
+      ev.reply('maplist_deleteError', e);
     }
   }
 };
