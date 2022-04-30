@@ -66,7 +66,6 @@ const maplist = {
       ipcMain.on('maplist_start', (event) => {
         this.start(event);
       });
-      // Defining interface for getter of electron-json-storage
       ipcMain.on('maplist_request', (event, ...args) => {
         this.request(event, args);
       });
@@ -97,8 +96,8 @@ const maplist = {
   },
   async migration(ev) {
     const maps = fs.readdirSync(compFolder);
-    const progress = new ProgressReporter(focused, maps.length, 'maplist.migrating', 'maplist.migrated');
-    progress.update(0);
+    const progress = new ProgressReporter("maplist", maps.length, 'maplist.migrating', 'maplist.migrated');
+    progress.update(ev, 0);
     for (let i = 0; i < maps.length; i++) {
       const map = maps[i];
       if (map.match(/\.json$/)) {
@@ -122,7 +121,7 @@ const maplist = {
 
         nedb.upsert(mapID, store);
       }
-      progress.update(i + 1);
+      progress.update(ev, i + 1);
       await new Promise((res) => {
         setTimeout(res, 500); // eslint-disable-line no-undef
       });
@@ -134,11 +133,11 @@ const maplist = {
   },
   async deleteOld(ev) {
     const folders = [compFolder, mapFolder];
-    const progress = new ProgressReporter(focused, folders.length, 'maplist.deleting_old', 'maplist.deleted_old');
+    const progress = new ProgressReporter("maplist", folders.length, 'maplist.deleting_old', 'maplist.deleted_old');
     for (let i = 0; i < folders.length; i++) {
       const folder = folders[i];
       fs.removeSync(folder);
-      progress.update(i + 1);
+      progress.update(ev, i + 1);
       await new Promise((res) => {
         setTimeout(res, 500); // eslint-disable-line no-undef
       });

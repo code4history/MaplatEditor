@@ -3,16 +3,13 @@ const path = require('path'); // eslint-disable-line no-undef
 const settings = require('./settings').init(); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
-const electron = require('electron'); // eslint-disable-line no-undef
-const app = require('electron').app; // eslint-disable-line no-undef
-const BrowserWindow = electron.BrowserWindow;
 const Tin = require('@maplat/tin').default; // eslint-disable-line no-undef
 const AdmZip = require('adm-zip'); // eslint-disable-line no-undef
 const rfs = require('recursive-fs'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 const nedbAccessor = require('../lib/nedb_accessor'); // eslint-disable-line no-undef
 const storeHandler = require('@maplat/core/es5/source/store_handler'); // eslint-disable-line no-undef
-const {dialog} = require("electron"); // eslint-disable-line no-undef
+const {dialog, ipcMain, app, BrowserWindow} = require("electron"); // eslint-disable-line no-undef
 const csv = require('csv-parser'); // eslint-disable-line no-undef
 const proj  = require('proj4'); // eslint-disable-line no-undef
 const {normalizeRequestData} = require('../lib/utils'); // eslint-disable-line no-undef
@@ -26,6 +23,8 @@ let dbFile;
 let nedb;
 let extentCheck;
 let extentBuffer;
+
+let initialized = false;
 
 const mapedit = {
   init() {
@@ -42,8 +41,41 @@ const mapedit = {
     nedb = nedbAccessor.getInstance(dbFile);
 
     focused = BrowserWindow.getFocusedWindow();
+
+    if (!initialized) {
+      initialized = true;
+      ipcMain.on('mapedit_request', (event, mapID) => {
+        this.request(event, mapID);
+      });
+      ipcMain.on('mapedit_updateTin', (event, gcps, edges, index, bounds, strict, vertex) => {
+        this.updateTin(event, gcps, edges, index, bounds, strict, vertex);
+      });
+      ipcMain.on('mapedit_checkExtentMap', (event, extent) => {
+        this.checkExtentMap(event, extent);
+      });
+      ipcMain.on('mapedit_getTmsListOfMapID', async (event, mapID) => {
+        const list = await this.getTmsListOfMapID(mapID);
+        event.reply('mapedit_getTmsListOfMapID_finished', list);
+      });
+      ipcMain.on('mapedit_getWmtsFolder', async (event) => {
+        const folder = await this.getWmtsFolder();
+        event.reply('mapedit_getWmtsFolder_finished', folder);
+      });
+      ipcMain.on('mapedit_checkID', async (event, mapID) => {
+        this.checkID(event, mapID);
+      });
+      ipcMain.on('mapedit_download', async (event, mapObject, tins) => {
+        this.download(event, mapObject, tins);
+      });
+      ipcMain.on('mapedit_uploadCsv', async (event, csvRepl, csvUpSettings) => {
+        this.uploadCsv(event, csvRepl, csvUpSettings);
+      });
+      ipcMain.on('mapedit_save', async (event, mapObject, tins) => {
+        this.save(event, mapObject, tins);
+      });
+    }
   },
-  async request(mapID) {
+  async request(ev, mapID) {
     const json = await nedb.find(mapID);
 
     const res = await normalizeRequestData(json, `${tileFolder}${path.sep}${mapID}${path.sep}0${path.sep}0`);
@@ -51,9 +83,9 @@ const mapedit = {
     res[0].mapID = mapID;
     res[0].status = 'Update';
     res[0].onlyOne = true;
-    focused.webContents.send('mapData', res);
+    ev.reply('mapedit_mapData', res);
   },
-  async download(mapObject, tins) {
+  async download(ev, mapObject, tins) {
     const mapID = mapObject.mapID;
 
     mapObject = await storeHandler.histMap2Store(mapObject, tins);
@@ -74,20 +106,19 @@ const mapedit = {
       targets.push([localPath, zipPath, zipName]);
     });
 
-    const progress = new ProgressReporter(focused, targets.length, 'mapdownload.adding_zip', 'mapdownload.creating_zip');
-    progress.update(0);
+    const progress = new ProgressReporter("mapedit", targets.length, 'mapdownload.adding_zip', 'mapdownload.creating_zip');
+    progress.update(ev, 0);
     const zip_file = `${tmpFolder}${path.sep}${mapID}.zip`;
     const zip = new AdmZip();
 
     for (let i = 0; i < targets.length; i++) {
       const target = targets[i];
       zip.addLocalFile(target[0], target[1], target[2]);
-      progress.update(i + 1);
+      progress.update(ev, i + 1);
     }
 
     zip.writeZip(zip_file, () => {
       const dialog = require('electron').dialog; // eslint-disable-line no-undef
-      const focused = BrowserWindow.getFocusedWindow();
       dialog.showSaveDialog({
         defaultPath: `${app.getPath('documents')}${path.sep}${mapID}.zip`,
         filters: [ {name: "Output file", extensions: ['zip']} ]
@@ -96,16 +127,16 @@ const mapedit = {
           fs.moveSync(zip_file, ret.filePath, {
             overwrite: true
           });
-          focused.webContents.send('mapDownloadResult', 'Success');
+          ev.reply('mapedit_mapDownloadResult', 'Success');
         } else {
           fs.removeSync(zip_file);
-          focused.webContents.send('mapDownloadResult', 'Canceled');
+          ev.reply('mapedit_mapDownloadResult', 'Canceled');
         }
         fs.removeSync(tmpFile);
       });
     });
   },
-  async save(mapObject, tins) {
+  async save(ev, mapObject, tins) {
     const status = mapObject.status;
     const mapID = mapObject.mapID;
     const url_ = mapObject.url_;
@@ -266,21 +297,21 @@ const mapedit = {
         }
       })
     ]).then(() => {
-      focused.webContents.send('saveResult', 'Success');
+      ev.reply('mapedit_saveResult', 'Success');
     }).catch((err) => {
-      focused.webContents.send('saveResult', err);
+      ev.reply('mapedit_saveResult', err);
     });
   },
-  async checkID(id) {
+  async checkID(ev, id) {
     const json = await nedb.find(id);
-    if (!json) focused.webContents.send('checkIDResult', true);
-    else focused.webContents.send('checkIDResult', false);
+    if (!json) ev.reply('checkIDResult', true);
+    else ev.reply('checkIDResult', false);
   },
-  uploadCsv(csvRepl, csvUpSettings) {
+  uploadCsv(ev, csvRepl, csvUpSettings) {
     dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
       filters: [ {name: csvRepl, extensions: []} ]}).then((ret) => {
       if (ret.canceled) {
-        focused.webContents.send('uploadedCsv', {
+        ev.reply('mapedit_uploadedCsv', {
           err: 'Canceled'
         });
       } else {
@@ -315,29 +346,29 @@ const mapedit = {
               }
             });
             if (error) {
-              focused.webContents.send('uploadedCsv', {
+              ev.reply('mapedit_uploadedCsv', {
                 err: error
               });
             } else {
-              focused.webContents.send('uploadedCsv', {
+              ev.reply('mapedit_uploadedCsv', {
                 gcps
               });
             }
           })
           .on('error', (e) => {
-            focused.webContents.send('uploadedCsv', {
+            ev.reply('mapedit_uploadedCsv', {
               err: e
             });
           });
       }
     });
   },
-  updateTin(gcps, edges, index, bounds, strict, vertex) {
+  updateTin(ev, gcps, edges, index, bounds, strict, vertex) {
     const wh = index === 0 ? bounds : null;
     const bd = index !== 0 ? bounds : null;
     this.createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex)
       .then((tin) => {
-        focused.webContents.send('updatedTin', [index, tin]);
+        ev.reply('mapedit_updatedTin', [index, tin]);
       }).catch((err) => {
         throw(err);
       });
@@ -362,9 +393,9 @@ const mapedit = {
           resolve(tin.getCompiled());
         }).catch((err) => {
           console.log(err); // eslint-disable-line no-console,no-undef
-          if (err == 'SOME POINTS OUTSIDE') {
+          if (err === 'SOME POINTS OUTSIDE') {
             resolve('pointsOutside');
-          } else if (err.indexOf('TOO LINEAR') == 0) {
+          } else if (err.indexOf('TOO LINEAR') === 0) {
             resolve('tooLinear');
           } else if (err.indexOf('Vertex indices of edge') > -1 || err.indexOf('is degenerate!') > -1 ||
             err.indexOf('already exists or intersects with an existing edge!') > -1) {
@@ -382,19 +413,19 @@ const mapedit = {
     if (mapID) return settings.getTmsListOfMapID(mapID);
     else return this.getTmsList();
   },
-  async checkExtentMap(extent) {
+  async checkExtentMap(ev, extent) {
     if (!extentCheck) {
       if (!(extentBuffer && extentBuffer.reduce((ret, item, idx) => ret && (item === extent[idx]), true))) {
         extentCheck = true;
         extentBuffer = extent;
         const mapList = await nedb.searchExtent(extent);
         console.log('mapList'); // eslint-disable-line no-undef
-        focused.webContents.send('extentMapList', mapList);
+        ev.reply('mapedit_extentMapList', mapList);
         setTimeout(() => { // eslint-disable-line no-undef
           extent = extentCheck;
           extentCheck = undefined;
           if (extent !== true) {
-            this.checkExtentMap(extent);
+            this.checkExtentMap(ev, extent);
           }
         }, 1000);
       }
@@ -402,7 +433,7 @@ const mapedit = {
       extentCheck = extent;
     }
   },
-  getWmtsFolder() {
+  async getWmtsFolder() {
     const saveFolder = settings.getSetting('saveFolder');
     return path.resolve(saveFolder, './wmts');
   }

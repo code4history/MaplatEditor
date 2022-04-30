@@ -52,8 +52,9 @@ export class Language {
 
   static async getSingleton() {
     if (!singleton) {
-      singleton = new Language();
-      await singleton.setup();
+      const temp = new Language();
+      await temp.setup();
+      singleton = temp;
     }
     return singleton;
   }

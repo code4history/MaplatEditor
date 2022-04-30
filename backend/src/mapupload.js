@@ -5,12 +5,9 @@ const {Jimp} = require('../lib/utils'); // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
-const electron = require('electron'); // eslint-disable-line no-undef
-const BrowserWindow = electron.BrowserWindow;
-let settings;
-if (electron.app || electron.remote) {
-  settings = require('./settings').init(); // eslint-disable-line no-undef
-}
+const {ipcMain, BrowserWindow} = require("electron"); // eslint-disable-line no-undef
+const settings = require('./settings').init(); // eslint-disable-line no-undef
+
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
 const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
@@ -24,43 +21,45 @@ let focused;
 let extKey;
 let toExtKey;
 
+let initialized = false;
+
 const MapUpload = {
   init() {
-    if (settings) {
-      const saveFolder = settings.getSetting('saveFolder');
-      mapFolder = path.resolve(saveFolder, "maps");
-      fs.ensureDir(mapFolder, () => {
+    const saveFolder = settings.getSetting('saveFolder');
+    mapFolder = path.resolve(saveFolder, "maps");
+    fs.ensureDir(mapFolder, () => {
+    });
+    tileFolder = path.resolve(saveFolder, "tiles");
+    fs.ensureDir(tileFolder, () => {
+    });
+    uiThumbnailFolder = path.resolve(saveFolder, "tmbs");
+    fs.ensureDir(uiThumbnailFolder, () => {
+    });
+    tmpFolder = settings.getSetting('tmpFolder');
+    focused = BrowserWindow.getFocusedWindow();
+
+    if (!initialized) {
+      initialized = true;
+      ipcMain.on('mapupload_showMapSelectDialog', async (event, mapImageRepl) => {
+        this.showMapSelectDialog(event, mapImageRepl);
       });
-      tileFolder = path.resolve(saveFolder, "tiles");
-      fs.ensureDir(tileFolder, () => {
-      });
-      uiThumbnailFolder = path.resolve(saveFolder, "tmbs");
-      fs.ensureDir(uiThumbnailFolder, () => {
-      });
-      tmpFolder = settings.getSetting('tmpFolder');
-      focused = BrowserWindow.getFocusedWindow();
-    } else {
-      mapFolder = '.';
-      tileFolder = `.${path.sep}tiles`;
-      tmpFolder = `.${path.sep}tmp`;
     }
   },
-  showMapSelectDialog(mapImageRepl) {
+  showMapSelectDialog(ev, mapImageRepl) {
     const dialog = require('electron').dialog; // eslint-disable-line no-undef
-    const focused = BrowserWindow.getFocusedWindow();
     const self = this;
     dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
       filters: [ {name: mapImageRepl, extensions: ['jpg', 'png', 'jpeg']} ]}).then((ret) => {
       if (ret.canceled) {
-        focused.webContents.send('uploadedMap', {
+        ev.reply('mapupload_uploadedMap', {
           err: 'Canceled'
         });
       } else {
-        self.imageCutter(ret.filePaths[0]);
+        self.imageCutter(ev, ret.filePaths[0]);
       }
     });
   },
-  async imageCutter(srcFile) {
+  async imageCutter(ev, srcFile) {
     try {
       const regex   =  new RegExp('([^\\/]+)\\.([^\\.]+)$');
       await new Promise((resolve, reject) => {
@@ -92,9 +91,6 @@ const MapUpload = {
       const maxZoom = Math.ceil(Math.log(Math.max(width, height) / 256)/ Math.log(2));
 
       const tasks = [];
-      //const mime = extKey === 'png' ? 'image/png' : 'image/jpeg';
-      //const quality = extKey === 'png' ? {} : {quality: 0.9};
-
       for (let z = maxZoom; z >= 0; z--) {
         const pw = Math.round(width / Math.pow(2, maxZoom - z));
         const ph = Math.round(height / Math.pow(2, maxZoom - z));
@@ -115,8 +111,8 @@ const MapUpload = {
         }
       }
 
-      const progress = new ProgressReporter(focused, tasks.length, 'mapupload.dividing_tile', 'mapupload.next_thumbnail');
-      progress.update(0);
+      const progress = new ProgressReporter("mapedit", tasks.length, 'mapupload.dividing_tile', 'mapupload.next_thumbnail');
+      progress.update(ev, 0);
 
       for (let i = 0; i < tasks.length; i++) {
         const task = tasks[i];
@@ -124,8 +120,8 @@ const MapUpload = {
         const canvasJimp = imageJimp.clone().crop(task[1], task[2], task[3], task[4]).resize(task[5], task[6]);
         await canvasJimp.write(task[0]);
 
-        progress.update(i + 1);
-        await new Promise(s => setTimeout(s, 1));
+        progress.update(ev, i + 1);
+        await new Promise((s) => setTimeout(s, 1)); // eslint-disable-line no-undef
       }
 
       await fs.copy(srcFile, path.resolve(outFolder, `original.${toExtKey}`));
@@ -135,22 +131,16 @@ const MapUpload = {
       await thumbExtractor.make_thumbnail(thumbFrom, thumbTo);
 
       const url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`;
-      if (focused) {
-        focused.webContents.send('uploadedMap', {
-          width,
-          height,
-          url,
-          imageExtension: toExtKey
-        });
-      }
+      ev.reply('mapupload_uploadedMap', {
+        width,
+        height,
+        url,
+        imageExtension: toExtKey
+      });
     } catch(err) {
-      if (focused) {
-        focused.webContents.send('uploadedMap', {
-          err
-        });
-      } else {
-        console.log(err); // eslint-disable-line no-undef
-      }
+      ev.reply('mapupload_uploadedMap', {
+        err
+      });
     }
   }
 };

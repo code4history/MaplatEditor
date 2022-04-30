@@ -7,12 +7,9 @@ const Tin = require('@maplat/tin').default; // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
 //const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
-const electron = require('electron'); // eslint-disable-line no-undef
-const BrowserWindow = electron.BrowserWindow;
-let settings;
-if (electron.app || electron.remote) {
-  settings = require('./settings').init(); // eslint-disable-line no-undef
-}
+const {ipcMain, BrowserWindow} = require("electron"); // eslint-disable-line no-undef
+const settings = require('./settings').init(); // eslint-disable-line no-undef
+
 const MERC_MAX = 20037508.342789244;
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 
@@ -20,32 +17,33 @@ let mapFolder;
 let wmtsFolder;
 let originalFolder;
 let tmpFolder; // eslint-disable-line no-unused-vars
-let outFolder; // eslint-disable-line no-unused-vars
 let focused;
-let extKey; // eslint-disable-line no-unused-vars
+
+let initialized = false;
 
 const WmtsGenerator = {
   init() {
-    if (settings) {
-      const saveFolder = settings.getSetting('saveFolder');
-      mapFolder = path.resolve(saveFolder, "maps");
-      fs.ensureDir(mapFolder, () => {
+    const saveFolder = settings.getSetting('saveFolder');
+    mapFolder = path.resolve(saveFolder, "maps");
+    fs.ensureDir(mapFolder, () => {
+    });
+    wmtsFolder = path.resolve(saveFolder, "wmts");
+    fs.ensureDir(wmtsFolder, () => {
+    });
+    originalFolder = path.resolve(saveFolder, "originals");
+    fs.ensureDir(originalFolder, () => {
+    });
+    tmpFolder = settings.getSetting('tmpFolder');
+    focused = BrowserWindow.getFocusedWindow();
+
+    if (!initialized) {
+      initialized = true;
+      ipcMain.on('wmtsGen_generate', async (event, mapID, width, height, tinSerial, extKey, hash) => {
+        this.generate(event, mapID, width, height, tinSerial, extKey, hash);
       });
-      wmtsFolder = path.resolve(saveFolder, "wmts");
-      fs.ensureDir(wmtsFolder, () => {
-      });
-      originalFolder = path.resolve(saveFolder, "originals");
-      fs.ensureDir(originalFolder, () => {
-      });
-      tmpFolder = settings.getSetting('tmpFolder');
-      focused = BrowserWindow.getFocusedWindow();
-    } else {
-      mapFolder = '.';
-      wmtsFolder = `.${path.sep}wmts`;
-      tmpFolder = `.${path.sep}tmp`;
     }
   },
-  async generate(mapID, width, height, tinSerial, extKey, hash) {
+  async generate(ev, mapID, width, height, tinSerial, extKey, hash) {
     try {
       const self = this;
       const tin = new Tin({});
@@ -108,8 +106,8 @@ const WmtsGenerator = {
       const imageJimp = await Jimp.read(imagePath);
       const imageBuffer = imageJimp.bitmap.data;
 
-      const progress = new ProgressReporter(focused, processArray.length, 'wmtsgenerate.generating_tile');
-      progress.update(0);
+      const progress = new ProgressReporter("mapedit", processArray.length, 'wmtsgenerate.generating_tile');
+      progress.update(ev, 0);
 
       for (let i = 0; i < processArray.length; i++) {
         const process = processArray[i];
@@ -118,24 +116,18 @@ const WmtsGenerator = {
         } else {
           await self.upperZoomTileLoop(process[0], process[1], process[2], tileRoot);
         }
-        await new Promise(s => setTimeout(s, 1));
-        progress.update(i + 1);
+        await new Promise((s) => setTimeout(s, 1)); // eslint-disable-line no-undef
+        progress.update(ev, i + 1);
       }
-      if (focused) {
-        focused.webContents.send('wmtsGenerated', {
-          hash
-        });
-      }
+      ev.reply('wmtsGen_wmtsGenerated', {
+        hash
+      });
     } catch (err) {
       console.log(err); // eslint-disable-line no-undef
-      if (focused) {
-        focused.webContents.send('wmtsGenerated', {
-          err,
-          hash
-        });
-      } else {
-        console.log(err); // eslint-disable-line no-undef
-      }
+      ev.reply('wmtsGen_wmtsGenerated', {
+        err,
+        hash
+      });
     }
   },
   async upperZoomTileLoop(z, x, y, tileRoot) {
@@ -153,8 +145,8 @@ const WmtsGenerator = {
         try {
           const imageJimp = (await Jimp.read(upImage)).resize(128, 128);
           await tileJimp.composite(imageJimp, ox, oy);
-        } catch(e) {
-        } // eslint-disable-line no-empty
+        } catch(e) { // eslint-disable-line no-empty
+        }
       }
     }
 

@@ -28,13 +28,7 @@ function arrayRoundTo(array, decimal) {
 }
 
 const labelFontStyle = "Normal 12px Arial";
-//const {ipcRenderer, dialog} = require('electron'); // eslint-disable-line no-undef
-const electron = require('electron'); // eslint-disable-line no-undef
-const ipcRenderer = electron.ipcRenderer;
-const dialog = electron.remote.dialog;
-const backend = require('electron').remote.require('./mapedit'); // eslint-disable-line no-undef
-backend.init();
-const langObj = Language.getSingleton();
+let langObj;
 
 let uploader;
 let dataUploader;
@@ -47,10 +41,68 @@ let illstSource;
 let mercMap;
 let modify;
 let snap;
-const hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&'); // eslint-disable-line no-undef
-for (let i = 0; i < hashes.length; i++) {
-  const hash = hashes[i].split('=');
-  if (hash[0] === 'mapid') mapID = hash[1];
+
+let vueMap;
+let vueModal; // eslint-disable-line prefer-const
+
+async function initRun() {
+  await window.baseApi.require('mapedit'); // eslint-disable-line no-undef
+  await window.baseApi.require('dialog'); // eslint-disable-line no-undef
+  langObj = await Language.getSingleton();
+
+  const hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&'); // eslint-disable-line no-undef
+  for (let i = 0; i < hashes.length; i++) {
+    const hash = hashes[i].split('=');
+    if (hash[0] === 'mapid') mapID = hash[1];
+  }
+
+  // 起動時処理: Vue Mapオブジェクト関連の設定ここから
+  if (mapID) {
+    window.mapedit.request(mapID); // eslint-disable-line no-undef
+  } else {
+    await initVueMap();
+    setVueMap();
+  }
+
+  // バックエンドからマップファイル読み込み完了の通知が届いた際の処理
+  window.mapedit.on('mapData', (event, arg) => { // eslint-disable-line no-undef
+    mapDataCommon(arg[0], arg[1]);
+  });
+
+  // 起動時処理: 地図外のUI設定ここから
+  // モーダルオブジェクト作成
+  vueModal = new Vue({
+    el: "#modalBody",
+    data: {
+      modal: new bsn.Modal(document.getElementById('staticModal'), {}), //eslint-disable-line no-undef
+      percent: 0,
+      progressText: '',
+      enableClose: false,
+      text: ''
+    },
+    methods: {
+      show(text) {
+        this.text = text;
+        this.percent = 0;
+        this.progressText = '';
+        this.enableClose = false;
+        this.modal.show();
+      },
+      progress(text, perecent, progress) {
+        this.text = text;
+        this.percent = perecent;
+        this.progressText = progress;
+      },
+      finish(text) {
+        this.text = text;
+        this.enableClose = true;
+      },
+      hide() {
+        this.modal.hide();
+      }
+    }
+  });
+  // 起動時処理: 地図外のUI設定ここまで
 }
 
 function getTextWidth ( _text, _fontStyle ) {
@@ -255,7 +307,7 @@ async function edgeEndMarker (arg, map) { // eslint-disable-line no-unused-vars
     if (vueMap.edges.findIndex((item) => item[2][0] === edge[0] && item[2][1] === edge[1]) < 0) {
       vueMap.edges.push([[], [], edge]);
     } else {
-      await dialog.showMessageBox({
+      await window.dialog.showMessageBox({ // eslint-disable-line no-undef
         type: 'info',
         buttons: ['OK'],
         message: t('mapedit.line_selected_already')
@@ -542,7 +594,7 @@ async function onClick(evt) {
 
   const tinObject = vueMap.tinObject;
   if (typeof tinObject === 'string') {
-    await dialog.showMessageBox({
+    await window.dialog.showMessageBox({ // eslint-disable-line no-undef
       type: 'info',
       buttons: ['OK'],
       message: tinObject === 'tooLessGcps' ? t('mapedit.testerror_too_short') :
@@ -554,7 +606,7 @@ async function onClick(evt) {
     return;
   }
   if (tinObject.strict_status === 'strict_error' && !isIllst) {
-    await dialog.showMessageBox({
+    await window.dialog.showMessageBox({ // eslint-disable-line no-undef
       type: 'info',
       buttons: ['OK'],
       message: t('mapedit.testerror_valid_error')
@@ -564,7 +616,7 @@ async function onClick(evt) {
   const distXy = tinObject.transform(srcXy, !isIllst);
 
   if (!distXy) {
-    await dialog.showMessageBox({
+    await window.dialog.showMessageBox({ // eslint-disable-line no-undef
       type: 'info',
       buttons: ['OK'],
       message: t('mapedit.testerror_outside_map')
@@ -630,7 +682,7 @@ function tinResultUpdate() {
     modify.on('modifyend', (evt) => {
       vueMap.bounds = evt.features.item(0).getGeometry().getCoordinates()[0].filter((item, index, array) =>
         index !== array.length - 1).map((merc) => transform(merc, 'EPSG:3857', forProj));
-      backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+      window.mapedit.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode); // eslint-disable-line no-undef
     });
     snap = new Snap({source: boundsSource});
     illstMap.addInteraction(modify);
@@ -1230,11 +1282,8 @@ function mapObjectInit() {
   mercMap.addInteraction(edgeSnap);
   const extentCheck = async (view) => {
     const extent = view.calculateExtent();
-    backend.checkExtentMap(extent);
+    window.mapedit.checkExtentMap(extent); // eslint-disable-line no-undef
   };
-  /*mercMap.getView().on('change', (evt) => {
-    extentCheck(evt.target);
-  });*/
   let firstRender = false;//true;
   mercMap.on('postrender', (evt) => { // eslint-disable-line no-unused-vars
     if (!firstRender) {
@@ -1242,14 +1291,14 @@ function mapObjectInit() {
       extentCheck(mercMap.getView());
     }
   });
-  ipcRenderer.on('extentMapList', (event, arg) => {
+  window.mapedit.on('extentMapList', (event, arg) => { // eslint-disable-line no-undef
     console.log(arg); // eslint-disable-line no-undef
     vueMap.templateMaps = arg;
   });
 
     // ベースマップリスト作成
   let tmsList;
-  const promises = backend.getTmsListOfMapID(mapID).then((list) => {
+  const promises = window.mapedit.getTmsListOfMapID(mapID).then((list) => { // eslint-disable-line no-undef
     tmsList = list;
     return Promise.all(tmsList.reverse().map((tms) =>
       ((tms) => {
@@ -1303,18 +1352,7 @@ function mapObjectInit() {
 }
 
 // 起動時処理: Vue Mapオブジェクト関連の設定ここから
-let vueMap;
-let vueModal; // eslint-disable-line prefer-const
-
-if (mapID) {
-  const mapIDElm = document.querySelector('#mapID'); // eslint-disable-line no-unused-vars,no-undef
-  backend.request(mapID);
-} else {
-  initVueMap();
-  setVueMap();
-}
-
-function initVueMap(json) {
+async function initVueMap() {
   const options = {
     mounted() {
       const tabs = document.querySelectorAll('a[data-toggle="tab"]'); //eslint-disable-line no-undef
@@ -1340,21 +1378,21 @@ function initVueMap(json) {
     watch: {
       gcps(val) { // eslint-disable-line no-unused-vars
         if (!illstSource) return;
-        backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+        window.mapedit.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode); //eslint-disable-line no-undef
       },
       edges(val) { // eslint-disable-line no-unused-vars
         if (!illstSource) return;
-        backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+        window.mapedit.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode); //eslint-disable-line no-undef
       },
       sub_maps(val) { // eslint-disable-line no-unused-vars
       },
       vertexMode() {
         if (!illstSource) return;
-        backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+        window.mapedit.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode); //eslint-disable-line no-undef
       },
       strictMode() {
         if (!illstSource) return;
-        backend.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode);
+        window.mapedit.updateTin(this.gcps, this.edges, this.currentEditingLayer, this.bounds, this.strictMode, this.vertexMode); //eslint-disable-line no-undef
       },
       currentEditingLayer() {
         if (!illstSource) return;
@@ -1362,14 +1400,9 @@ function initVueMap(json) {
       }
     },
     data: {
-      wmtsFolder: backend.getWmtsFolder()
+      wmtsFolder: await window.mapedit.getWmtsFolder() //eslint-disable-line no-undef
     }
   };
-  if (json) {
-    options.data = function() {
-
-    };
-  }
   vueMap = new Map(options);
 }
 
@@ -1429,7 +1462,7 @@ function setVueMap() {
   });
 
   vueMap.$on('updateMapID', async () => {
-    const confirm = await dialog.showMessageBox({
+    const confirm = await window.dialog.showMessageBox({ // eslint-disable-line no-undef
       type: 'info',
       buttons: ['OK', 'Cancel'],
       cancelId: 1,
@@ -1438,13 +1471,13 @@ function setVueMap() {
     if (confirm.response === 1) return;
     vueMap.onlyOne = false;
   });
-  vueMap.$on('checkOnlyOne', () => {
+  vueMap.$on('checkOnlyOne', async () => {
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-    const checked = backend.checkID(vueMap.mapID); // eslint-disable-line no-unused-vars
-    ipcRenderer.once('checkIDResult', async (event, arg) => {
+    await window.mapedit.checkID(vueMap.mapID); // eslint-disable-line no-undef
+    window.mapedit.once('checkIDResult', async (event, arg) => { // eslint-disable-line no-undef
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
       if (arg) {
-        await dialog.showMessageBox({
+        await window.dialog.showMessageBox({ // eslint-disable-line no-undef
           type: 'info',
           buttons: ['OK'],
           message: t('mapedit.alert_mapid_checked')
@@ -1454,7 +1487,7 @@ function setVueMap() {
           vueMap.status = `Change:${mapID}`;
         }
       } else {
-        await dialog.showMessageBox({
+        await window.dialog.showMessageBox({ // eslint-disable-line no-undef
           type: 'info',
           buttons: ['OK'],
           message: t('mapedit.alert_mapid_duplicated')
@@ -1463,11 +1496,11 @@ function setVueMap() {
       }
     });
   });
-  vueMap.$on('wmtsGenerate', () => {
+  vueMap.$on('wmtsGenerate', async () => {
     if (!wmtsGenerator) {
-      wmtsGenerator = require('electron').remote.require('./wmts_generator'); // eslint-disable-line no-undef
-      wmtsGenerator.init();
-      ipcRenderer.on('wmtsGenerated', (event, arg) => {
+      wmtsGenerator = true;
+      await window.baseApi.require('wmts_generator'); // eslint-disable-line no-undef
+      window.wmtsGen.on('wmtsGenerated', (event, arg) => { // eslint-disable-line no-undef
         document.body.style.pointerEvents = null; // eslint-disable-line no-undef
         if (arg.err) {
           console.log(arg.err); // eslint-disable-line no-undef
@@ -1481,20 +1514,20 @@ function setVueMap() {
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
     vueModal.show(t('wmtsgenerate.generating_tile'));
     setTimeout(() => { // eslint-disable-line no-undef
-      wmtsGenerator.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtension, vueMap.mainLayerHash);
+      window.wmtsGen.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtension, vueMap.mainLayerHash); // eslint-disable-line no-undef
     }, 1);
   });
   vueMap.$on('mapUpload', async () => {
-    if (vueMap.gcpsEditReady && (await dialog.showMessageBox({
+    if (vueMap.gcpsEditReady && (await window.dialog.showMessageBox({ // eslint-disable-line no-undef
       type: 'info',
       buttons: ['OK', 'Cancel'],
       cancelId: 1,
       message: t('mapedit.confirm_override_image')
     })).response === 1) return;
     if (!uploader) {
-      uploader = require('electron').remote.require('./mapupload'); // eslint-disable-line no-undef
-      uploader.init();
-      ipcRenderer.on('uploadedMap', (event, arg) => {
+      uploader = true;
+      await window.baseApi.require('mapupload'); // eslint-disable-line no-undef
+      window.mapupload.on('uploadedMap', (event, arg) => { // eslint-disable-line no-undef
         document.body.style.pointerEvents = null; // eslint-disable-line no-undef
         if (arg.err) {
           if (arg.err !== 'Canceled') {
@@ -1516,20 +1549,20 @@ function setVueMap() {
 
         reflectIllstMap().then(() => {
           gcpsToMarkers();
-          backend.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode);
+          window.mapedit.updateTin(vueMap.gcps, vueMap.edges, vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode); // eslint-disable-line no-undef
         });
       });
     }
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
     vueModal.show(t('mapedit.image_uploading'));
-    uploader.showMapSelectDialog(t('mapupload.map_image'));
+    window.mapupload.showMapSelectDialog(t('mapupload.map_image')); // eslint-disable-line no-undef
   });
-  vueMap.$on('importMap', () => {
+  vueMap.$on('importMap', async () => {
     if (!dataUploader) {
-      dataUploader = require('electron').remote.require('./dataupload'); // eslint-disable-line no-undef
-      dataUploader.init();
+      dataUploader = true;
+      await window.baseApi.require('dataupload'); // eslint-disable-line no-undef
 
-      ipcRenderer.on('uploadedData', (event, arg) => {
+      window.dataupload.on('uploadedData', (event, arg) => { // eslint-disable-line no-undef
         document.body.style.pointerEvents = null; // eslint-disable-line no-undef
         if (arg.err) {
           if (arg.err === 'Canceled') {
@@ -1544,7 +1577,6 @@ function setVueMap() {
             console.log(arg.err); // eslint-disable-line no-undef
             vueModal.finish('地図データ登録でエラーが発生しました。');
           }
-          return;
         } else {
           vueModal.finish('正常に地図データが登録できました。');
           mapDataCommon(arg[0], arg[1]);
@@ -1553,12 +1585,12 @@ function setVueMap() {
     }
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
     vueModal.show(t('mapedit.image_uploading'));
-    dataUploader.showDataSelectDialog(t('dataupload.data_zip'));
+    window.dataupload.showDataSelectDialog(t('dataupload.data_zip')); // eslint-disable-line no-undef
   });
   vueMap.$on('exportMap', () => {
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
     vueModal.show(t('mapedit.message_export'));
-    ipcRenderer.once('mapDownloadResult', (event, arg) => {
+    window.mapedit.once('mapDownloadResult', (event, arg) => { // eslint-disable-line no-undef
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
       if (arg === 'Success') {
         vueModal.finish(t('mapedit.export_success')); // eslint-disable-line no-undef
@@ -1569,14 +1601,14 @@ function setVueMap() {
         vueModal.finish(t('mapedit.export_error')); // eslint-disable-line no-undef
       }
     });
-    backend.download(vueMap.map, vueMap.tinObjects.map((tin) => {
+    window.mapedit.download(vueMap.map, vueMap.tinObjects.map((tin) => { // eslint-disable-line no-undef
       if (typeof tin === 'string') return tin;
       return tin.getCompiled();
     }));
   });
   vueMap.$on('uploadCsv', async () => {
     if (vueMap.gcps.length > 0) {
-      if ((await dialog.showMessageBox({
+      if ((await window.dialog.showMessageBox({ // eslint-disable-line no-undef
         type: 'info',
         buttons: ['OK', 'Cancel'],
         cancelId: 1,
@@ -1584,12 +1616,12 @@ function setVueMap() {
       })).response === 1) return; // eslint-disable-line no-undef
     }
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-    backend.uploadCsv(t('dataio.csv_file'), vueMap.csvUploadUiValue, [vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode]);
-    ipcRenderer.once('uploadedCsv', async (event, arg) => {
+    window.mapedit.uploadCsv(t('dataio.csv_file'), vueMap.csvUploadUiValue, [vueMap.currentEditingLayer, vueMap.bounds, vueMap.strictMode, vueMap.vertexMode]); // eslint-disable-line no-undef
+    window.mapedit.once('uploadedCsv', async (event, arg) => { // eslint-disable-line no-undef
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
       if (arg.err) {
         const message = arg.err === 'Canceled' ? t('mapedit.updownload_canceled') : `${t('dataio.error_occurs')}: ${t(`dataio.${arg.err}`)}`;
-        await dialog.showMessageBox({
+        await window.dialog.showMessageBox({ // eslint-disable-line no-undef
           type: 'info',
           buttons: ['OK'],
           message
@@ -1602,7 +1634,7 @@ function setVueMap() {
     });
   });
   vueMap.$on('saveMap', async () => {
-    if ((await dialog.showMessageBox({
+    if ((await window.dialog.showMessageBox({ // eslint-disable-line no-undef
       type: 'info',
       buttons: ['OK', 'Cancel'],
       cancelId: 1,
@@ -1610,7 +1642,7 @@ function setVueMap() {
     })).response === 1) return; // eslint-disable-line no-undef
     const saveValue = vueMap.map;
     if (saveValue.status.match(/^Change:(.+)$/) &&
-      (await dialog.showMessageBox({
+      (await window.dialog.showMessageBox({ // eslint-disable-line no-undef
         type: 'info',
         buttons: ['OK', 'Cancel'],
         cancelId: 1,
@@ -1619,14 +1651,14 @@ function setVueMap() {
       saveValue.status = `Copy:${mapID}`;
     }
     document.body.style.pointerEvents = 'none'; // eslint-disable-line no-undef
-    backend.save(saveValue, vueMap.tinObjects.map((tin) => {
+    window.mapedit.save(saveValue, vueMap.tinObjects.map((tin) => { // eslint-disable-line no-undef
       if (typeof tin === 'string') return tin;
       return tin.getCompiled();
     }));
-    ipcRenderer.once('saveResult', async (event, arg) => {
+    window.mapedit.once('saveResult', async (event, arg) => { // eslint-disable-line no-undef
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
       if (arg === 'Success') {
-        await dialog.showMessageBox({
+        await window.dialog.showMessageBox({ // eslint-disable-line no-undef
           type: 'info',
           buttons: ['OK'],
           message: t('mapedit.success_save')
@@ -1634,16 +1666,16 @@ function setVueMap() {
         if (mapID !== vueMap.mapID) {
           mapID = vueMap.mapID;
         }
-        backend.request(mapID);
+        window.mapedit.request(mapID); // eslint-disable-line no-undef
       } else if (arg === 'Exist') {
-        await dialog.showMessageBox({
+        await window.dialog.showMessageBox({ // eslint-disable-line no-undef
           type: 'info',
           buttons: ['OK'],
           message: t('mapedit.error_duplicate_id')
         });
       } else {
         console.log(arg); // eslint-disable-line no-undef,no-console
-        await dialog.showMessageBox({
+        await window.dialog.showMessageBox({ // eslint-disable-line no-undef
           type: 'info',
           buttons: ['OK'],
           message: t('mapedit.error_saving')
@@ -1667,7 +1699,7 @@ function setVueMap() {
     view.setZoom(17);
   });
   vueMap.$on('removeSubMap', async () => {
-    if ((await dialog.showMessageBox({
+    if ((await window.dialog.showMessageBox({ // eslint-disable-line no-undef
       type: 'info',
       buttons: ['OK', 'Cancel'],
       cancelId: 1,
@@ -1683,7 +1715,7 @@ function setVueMap() {
   const dataNav = document.querySelectorAll('a[data-nav]'); // eslint-disable-line no-undef
   for (let i=0; i< dataNav.length; i++) {
     dataNav[i].addEventListener('click', async (ev) => {
-      if (!vueMap.dirty || (await dialog.showMessageBox({
+      if (!vueMap.dirty || (await window.dialog.showMessageBox({ // eslint-disable-line no-undef
         type: 'info',
         buttons: ['OK', 'Cancel'],
         cancelId: 1,
@@ -1704,7 +1736,7 @@ function setVueMap() {
     }
     e.returnValue = 'false';
     setTimeout(async () => { // eslint-disable-line no-undef
-      const confirm = await dialog.showMessageBox({
+      const confirm = await window.dialog.showMessageBox({ // eslint-disable-line no-undef
         type: 'info',
         buttons: ['OK', 'Cancel'],
         cancelId: 1,
@@ -1718,7 +1750,7 @@ function setVueMap() {
     }, 2);
   });
 
-  ipcRenderer.on('updatedTin', (event, arg) => {
+  window.mapedit.on('updatedTin', (event, arg) => { // eslint-disable-line no-undef
     const index = arg[0];
     let tin;
     if (typeof arg[1] === 'string') {
@@ -1732,20 +1764,17 @@ function setVueMap() {
     tinResultUpdate();
   });
 
-  ipcRenderer.on('taskProgress', (event, arg) => {
+  window.mapedit.on('taskProgress', (event, arg) => { // eslint-disable-line no-undef
     vueModal.progress(t(arg.text), arg.percent, arg.progress);
   });
 }
-// バックエンドからマップファイル読み込み完了の通知が届いた際の処理
-ipcRenderer.on('mapData', (event, arg) => {
-  mapDataCommon(arg[0], arg[1]);
-});
+
 // 起動時処理: Vue Mapオブジェクト関連の設定ここまで
 
-function mapDataCommon(json, tins) {
+async function mapDataCommon(json, tins) {
   document.body.style.pointerEvents = null; // eslint-disable-line no-undef
   if (!vueMap) {
-    initVueMap();
+    await initVueMap();
   }
   vueMap.setInitialMap(json);
   if (tins) {
@@ -1765,40 +1794,4 @@ function mapDataCommon(json, tins) {
   });
 }
 
-// 起動時処理: 地図外のUI設定ここから
-// モーダルオブジェクト作成
-vueModal = new Vue({
-  el: "#modalBody",
-  data: {
-    modal: new bsn.Modal(document.getElementById('staticModal'), {}), //eslint-disable-line no-undef
-    percent: 0,
-    progressText: '',
-    enableClose: false,
-    text: ''
-  },
-  methods: {
-    show(text) {
-      this.text = text;
-      this.percent = 0;
-      this.progressText = '';
-      this.enableClose = false;
-      this.modal.show();
-    },
-    progress(text, perecent, progress) {
-      this.text = text;
-      this.percent = perecent;
-      this.progressText = progress;
-    },
-    finish(text) {
-      this.text = text;
-      this.enableClose = true;
-    },
-    hide() {
-      this.modal.hide();
-    }
-  }
-});
-/*vueModal.$on('closeModal', function() {
-  this.modal.hide();
-});*/
-// 起動時処理: 地図外のUI設定ここまで
+initRun();

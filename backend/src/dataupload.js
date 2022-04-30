@@ -3,12 +3,9 @@
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
-const electron = require('electron'); // eslint-disable-line no-undef
-const BrowserWindow = electron.BrowserWindow;
-let settings;
-if (electron.app || electron.remote) {
-  settings = require('./settings').init(); // eslint-disable-line no-undef
-}
+const {ipcMain, BrowserWindow} = require("electron"); // eslint-disable-line no-undef
+const settings = require('./settings').init(); // eslint-disable-line no-undef
+
 const AdmZip = require("adm-zip"); // eslint-disable-line no-undef
 const nedbAccessor = require("../lib/nedb_accessor"); // eslint-disable-line no-undef
 const {exists, normalizeRequestData} = require("../lib/utils"); // eslint-disable-line no-undef
@@ -17,53 +14,54 @@ let mapFolder;
 let tileFolder;
 let uiThumbnailFolder;
 let tmpFolder;
-//let outFolder;
 let focused;
-//let extKey;
 let dbFile;
 let nedb;
 
+let initialized = false;
+
 const DataUpload = {
   init() {
-    if (settings) {
-      const saveFolder = settings.getSetting("saveFolder");
-      mapFolder = path.resolve(saveFolder, "maps");
-      fs.ensureDir(mapFolder, () => {
-      });
-      tileFolder = path.resolve(saveFolder, "tiles");
-      fs.ensureDir(tileFolder, () => {
-      });
-      uiThumbnailFolder = path.resolve(saveFolder, "tmbs");
-      fs.ensureDir(uiThumbnailFolder, () => {
-      });
-      tmpFolder = settings.getSetting("tmpFolder");
+    const saveFolder = settings.getSetting("saveFolder");
+    mapFolder = path.resolve(saveFolder, "maps");
+    fs.ensureDir(mapFolder, () => {
+    });
+    tileFolder = path.resolve(saveFolder, "tiles");
+    fs.ensureDir(tileFolder, () => {
+    });
+    uiThumbnailFolder = path.resolve(saveFolder, "tmbs");
+    fs.ensureDir(uiThumbnailFolder, () => {
+    });
+    tmpFolder = settings.getSetting("tmpFolder");
 
-      dbFile = path.resolve(saveFolder, "nedb.db");
-      nedb = nedbAccessor.getInstance(dbFile);
+    dbFile = path.resolve(saveFolder, "nedb.db");
+    nedb = nedbAccessor.getInstance(dbFile);
 
-      focused = BrowserWindow.getFocusedWindow();
-    } else {
-      mapFolder = '.';
-      tileFolder = `.${path.sep}tiles`;
-      tmpFolder = `.${path.sep}tmp`;
+    focused = BrowserWindow.getFocusedWindow();
+
+    if (!initialized) {
+      initialized = true;
+      ipcMain.on('dataupload_showDataSelectDialog', async (event, mapImageRepl) => {
+        this.showDataSelectDialog(event, mapImageRepl);
+      });
     }
   },
-  showDataSelectDialog(mapImageRepl) {
+  showDataSelectDialog(ev, mapImageRepl) {
     const dialog = require('electron').dialog; // eslint-disable-line no-undef
     const focused = BrowserWindow.getFocusedWindow();
     const self = this;
     dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
       filters: [ {name: mapImageRepl, extensions: ['zip']} ]}).then(async (ret) => {
       if (ret.canceled) {
-        focused.webContents.send('uploadedData', {
+        ev.reply('dataupload_uploadedData', {
           err: 'Canceled'
         });
       } else {
-        self.extractZip(ret.filePaths[0]);
+        self.extractZip(ev, ret.filePaths[0]);
       }
     });
   },
-  async extractZip(zipFile) {
+  async extractZip(ev, zipFile) {
     try {
       const dataTmpFolder = path.resolve(tmpFolder, "zip");
       await fs.remove(dataTmpFolder);
@@ -101,10 +99,10 @@ const DataUpload = {
       res[0].mapID = mapID;
       res[0].status = 'Update';
       res[0].onlyOne = true;
-      focused.webContents.send('uploadedData', res);
+      ev.reply('dataupload_uploadedData', res);
     } catch(err) {
       if (focused) {
-        focused.webContents.send('uploadedData', {
+        ev.reply('dataupload_uploadedData', {
           err
         });
       } else {
