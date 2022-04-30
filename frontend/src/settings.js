@@ -1,20 +1,19 @@
 import Vue from 'vue';
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
-const {ipcRenderer} = require('electron'); // eslint-disable-line no-undef
-const langObj = new Language();
+let langObj;
 
-function initRun() {
+async function initRun() {
+  langObj = await Language.getSingleton();
   const t = langObj.t;
   const vueSettings = new Vue({
     i18n: langObj.vi18n,
-    created() {
+    async created() {
       const self = this;
-      self.backend = require('electron').remote.require('./settings').init(); // eslint-disable-line no-undef
-      self.saveFolder = self.saveFolder_ = self.backend.getSetting('saveFolder');
-      self.lang = self.lang_ = self.backend.getSetting('lang');
+      self.saveFolder = self.saveFolder_ = await window.settings.getSetting('saveFolder'); // eslint-disable-line no-undef
+      self.lang = self.lang_ = await window.settings.getSetting('lang'); // eslint-disable-line no-undef
 
-      ipcRenderer.on('saveFolderSelected', (event, arg) => {
+      window.settings.on('saveFolderSelected', (event, arg) => { // eslint-disable-line no-undef
         self.saveFolder = arg;
       });
     },
@@ -39,20 +38,20 @@ function initRun() {
         this.saveFolder = this.saveFolder_;
         this.lang = this.lang_;
       },
-      saveSettings() {
+      async saveSettings() {
         if (this.saveFolder !== this.saveFolder_) {
-          this.backend.setSetting('saveFolder', this.saveFolder);
+          await window.settings.setSetting('saveFolder', this.saveFolder); // eslint-disable-line no-undef
           this.saveFolder_ = this.saveFolder;
         }
         if (this.lang !== this.lang_) {
-          this.backend.setSetting('lang', this.lang);
+          await window.settings.setSetting('lang', this.lang); // eslint-disable-line no-undef
           this.lang_ = this.lang;
           this.$i18n.i18next.changeLanguage(this.lang);
         }
       },
-      focusSettings(evt) {
+      async focusSettings(evt) {
         evt.target.blur();
-        this.backend.showSaveFolderDialog(this.saveFolder);
+        window.settings.showSaveFolderDialog(this.saveFolder); // eslint-disable-line no-undef
       }
     }
   });

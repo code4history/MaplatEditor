@@ -32,6 +32,20 @@ class Settings extends EventEmitter {
         await settings.asyncReady;
         ev.reply('settings_lang_got', settings.json.lang);
       });
+      ipcMain.on('settings_setSetting', async (ev, key, value) => {
+        await settings.asyncReady;
+        settings.setSetting(key, value);
+        ev.reply('settings_setSetting_finished');
+      });
+      ipcMain.on('settings_getSetting', async (ev, key) => {
+        await settings.asyncReady;
+        const value = key == null ? settings.getSetting() : settings.getSetting(key);
+        ev.reply('settings_getSetting_finished', value);
+      });
+      ipcMain.on('settings_showSaveFolderDialog', async (ev, current) => {
+        await settings.asyncReady;
+        settings.showSaveFolderDialog(ev, current);
+      });
     }
     return settings;
   }
@@ -217,12 +231,11 @@ class Settings extends EventEmitter {
     });
   }
 
-  showSaveFolderDialog(oldSetting) {
+  showSaveFolderDialog(ev, oldSetting) {
     const dialog = require('electron').dialog; // eslint-disable-line no-undef
-    const focused = BrowserWindow.getFocusedWindow();
     dialog.showOpenDialog({ defaultPath: oldSetting, properties: ['openDirectory']}).then((ret) => {
       if(!ret.canceled) {
-        focused.webContents.send('saveFolderSelected', ret.filePaths[0]);
+        ev.reply('settings_saveFolderSelected', ret.filePaths[0]);
       }
     });
   }

@@ -9,7 +9,6 @@ export class Language {
   constructor() {
     this.asyncReady = (async () => {
       await window.baseApi.require('settings'); // eslint-disable-line no-undef
-      //const backend = this.backend = require('electron').remote.require('./settings').init(); // eslint-disable-line no-undef
       this.i18n = i18next.use(HttpApi); //backend.i18n;
       Vue.use(VueI18Next);
 
