@@ -31,8 +31,8 @@ const apis = {
   async checkID(mapID) {
     ipcRenderer.send('mapedit_checkID', mapID);
   },
-  async download(mapID) {
-    ipcRenderer.send('mapedit_download', mapID);
+  async download(mapObject, tins) {
+    ipcRenderer.send('mapedit_download', mapObject, tins);
   },
   async uploadCsv(csvRepl, csvUpSettings) {
     ipcRenderer.send('mapedit_uploadCsv', csvRepl, csvUpSettings);
