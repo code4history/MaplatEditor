@@ -217,6 +217,10 @@
     "dividing_tile": "地図画像をタイル分割中",
     "next_thumbnail": "地図サムネイル生成中"
   },
+  "mapdownload": {
+    "adding_zip": "ダウンロードするデータを準備中",
+    "creating_zip": "ZIPファイルを作成中"
+  },
   "dataupload": {
     "data_zip": "地図データ"
   },

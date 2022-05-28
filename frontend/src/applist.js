@@ -1,10 +1,10 @@
 import Vue from 'vue';
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
-const {ipcRenderer} = require('electron'); // eslint-disable-line no-unused-vars,no-undef
-const langObj = new Language();
+let langObj;
 
 async function initRun() {
+  langObj = await Language.getSingleton();
   new Vue({
     i18n: langObj.vi18n,
     el: '#container',

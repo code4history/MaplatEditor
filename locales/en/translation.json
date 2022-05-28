@@ -216,6 +216,10 @@
     "dividing_tile": "Splitting map image into tiles",
     "next_thumbnail": "Generating map thumbnail"
   },
+  "mapdownload": {
+    "adding_zip": "Preparing data for download",
+    "creating_zip": "Generating zip file"
+  },
   "dataupload": {
     "data_zip": "Map Data"
   },
