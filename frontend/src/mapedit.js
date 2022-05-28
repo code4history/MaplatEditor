@@ -21,7 +21,7 @@ import {Vector as layerVector, Tile, Group} from "ol/layer";
 import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
-import {roundTo} from "round-to";
+import roundTo from "round-to";
 
 function arrayRoundTo(array, decimal) {
   return array.map((item) => roundTo(item, decimal));
