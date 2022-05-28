@@ -7656,7 +7656,8 @@ fieldset[disabled] .btn-danger.active {
 .ol-box {
   box-sizing: border-box;
   border-radius: 2px;
-  border: 2px solid blue;
+  border: 1.5px solid #b3c5db;
+  background-color: rgba(255, 255, 255, 0.4);
 }
 .ol-mouse-position {
   top: 8px;
@@ -7691,13 +7692,13 @@ fieldset[disabled] .btn-danger.active {
   height: 15px;
   background-color: #000000;
   float: right;
-  z-Index: 10;
+  z-index: 10;
 }
 .ol-scale-step-text {
   position: absolute;
   bottom: -5px;
   font-size: 12px;
-  z-Index: 11;
+  z-index: 11;
   color: #000000;
   text-shadow: -2px 0 #FFFFFF, 0 2px #FFFFFF, 2px 0 #FFFFFF, 0 -2px #FFFFFF;
 }
@@ -7712,7 +7713,7 @@ fieldset[disabled] .btn-danger.active {
 .ol-scale-singlebar {
   position: relative;
   height: 10px;
-  z-Index: 9;
+  z-index: 9;
   box-sizing: border-box;
   border: 1px solid black;
 }
@@ -7727,6 +7728,9 @@ fieldset[disabled] .btn-danger.active {
   -ms-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+.ol-viewport canvas {
+  all: unset;
 }
 .ol-selectable {
   -webkit-touch-callout: default;
@@ -7782,9 +7786,9 @@ fieldset[disabled] .btn-danger.active {
   margin: 1px;
   padding: 0;
   color: white;
-  font-size: 1.14em;
   font-weight: bold;
   text-decoration: none;
+  font-size: inherit;
   text-align: center;
   height: 1.375em;
   width: 1.375em;
@@ -7828,12 +7832,20 @@ fieldset[disabled] .btn-danger.active {
   bottom: 0.5em;
   right: 0.5em;
   max-width: calc(100% - 1.3em);
+  display: flex;
+  flex-flow: row-reverse;
+  align-items: center;
+}
+.ol-attribution a {
+  color: rgba(0, 60, 136, 0.7);
+  text-decoration: none;
 }
 .ol-attribution ul {
   margin: 0;
-  padding: 0 0.5em;
+  padding: 1px 0.5em;
   color: #000;
   text-shadow: 0 0 2px #fff;
+  font-size: 12px;
 }
 .ol-attribution li {
   display: inline;
@@ -7847,9 +7859,8 @@ fieldset[disabled] .btn-danger.active {
   max-width: inherit;
   vertical-align: middle;
 }
-.ol-attribution ul,
 .ol-attribution button {
-  display: inline-block;
+  flex-shrink: 0;
 }
 .ol-attribution.ol-collapsed ul {
   display: none;
@@ -7892,7 +7903,7 @@ fieldset[disabled] .btn-danger.active {
 }
 .ol-overviewmap .ol-overviewmap-map,
 .ol-overviewmap button {
-  display: inline-block;
+  display: block;
 }
 .ol-overviewmap .ol-overviewmap-map {
   border: 1px solid #7b98bc;
@@ -7901,7 +7912,7 @@ fieldset[disabled] .btn-danger.active {
   width: 150px;
 }
 .ol-overviewmap:not(.ol-collapsed) button {
-  bottom: 1px;
+  bottom: 2px;
   left: 2px;
   position: absolute;
 }
@@ -7919,16 +7930,23 @@ fieldset[disabled] .btn-danger.active {
   cursor: move;
 }
 /*!
- * ol-geocoder - v4.0.0
+ * ol-geocoder - v4.1.2
  * A geocoder extension for OpenLayers.
  * https://github.com/jonataswalker/ol-geocoder
- * Built: Wed Oct 09 2019 11:36:45 GMT-0300 (Brasilia Standard Time)
+ * Built: Wed Jan 20 2021 10:05:07 GMT-0300 (Brasilia Standard Time)
  */
+.ol-touch .ol-control.gcd-gl-control button {
+  font-size: 1.14em;
+}
+.ol-touch .ol-geocoder.gcd-gl-container {
+  font-size: 1.1em;
+}
 .ol-geocoder.gcd-gl-container {
   position: absolute;
   top: 4.875em;
   left: 0.5em;
   box-sizing: border-box;
+  font-size: 0.9em;
 }
 .ol-geocoder.gcd-gl-container *,
 .ol-geocoder.gcd-gl-container *::before,
@@ -8195,9 +8213,9 @@ fieldset[disabled] .btn-danger.active {
   color: #333;
 }
 /*!
-  * ol-contextmenu - v4.0.1
+  * ol-contextmenu - v4.1.0
   * https://github.com/jonataswalker/ol-contextmenu
-  * Built: Mon Apr 27 2020 07:41:51 GMT-0300 (Brasilia Standard Time)
+  * Built: Sat Aug 15 2020 10:43:26 GMT-0300 (Brasilia Standard Time)
   */
 .ol-ctx-menu-container {
   position: absolute;
@@ -8302,78 +8320,106 @@ fieldset[disabled] .btn-danger.active {
 .ol-ctx-menu-container li:hover.ol-ctx-menu-zoom-out {
   background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABYklEQVQ4T72U4VHCQBCF36tA91KAWIFYgViBWIFYgWMFYgdYgVCBWAFSgdiBFpAsFWSdxcDkQoBkhnF/ZjbfvX377ogjF4/Mw/8CVbUD4MynEJF5k2lqFapqz8yeAPRKkCXJEYAXEVnugm8BVXVgZq/FD+9mtgBwSrJfqF2QvN4FjYCq2jWzTwA/DhARh20qTdMRyQcA0xDCbZ3KCJhl2RTATaHgo+6HLMv8+xXJy+qB3l8FGoB5CKHsXcRV1b6ZvZF8FBH3NKotoJlNkiQZFONdlLtJ3rufbouZPSdJMjwIbKDQEzBrClx7eC4i33Uepmk6JnnXaOQifzMAtdGoRApugYiMI1uqKkrRWAfZo9MxM1+UZzFewl8mN4nYdVM83L7BkwbXLUrF3sfBLQDQBbDy08x8vOohXyEE71lVq9emuEk+3gZa3XYroCvwFyjP8yHJDsnxwaU08GxvS2uFhw78BbzWrxXgMbsHAAAAAElFTkSuQmCC");
 }
-.layer-switcher.shown.ol-control {
-  background-color: transparent;
-}
-.layer-switcher.shown.ol-control:hover {
-  background-color: transparent;
-}
 .layer-switcher {
   position: absolute;
   top: 3.5em;
   right: 0.5em;
   text-align: left;
 }
-.layer-switcher.shown {
-  bottom: 3em;
-}
 .layer-switcher .panel {
-  padding: 0 1em 0 0;
   margin: 0;
   border: 4px solid #eee;
   border-radius: 4px;
   background-color: white;
   display: none;
-  max-height: 100%;
+  max-height: inherit;
+  height: 100%;
+  box-sizing: border-box;
   overflow-y: auto;
-}
-.layer-switcher.shown .panel {
-  display: block;
 }
 .layer-switcher button {
   float: right;
+  z-index: 1;
   width: 38px;
   height: 38px;
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAACE1BMVEX///8A//8AgICA//8AVVVAQID///8rVVVJtttgv98nTmJ2xNgkW1ttyNsmWWZmzNZYxM4gWGgeU2JmzNNr0N1Rwc0eU2VXxdEhV2JqytQeVmMhVmNoydUfVGUgVGQfVGQfVmVqy9hqy9dWw9AfVWRpydVry9YhVmMgVGNUw9BrytchVWRexdGw294gVWQgVmUhVWPd4N6HoaZsy9cfVmQgVGRrytZsy9cgVWQgVWMgVWRsy9YfVWNsy9YgVWVty9YgVWVry9UgVWRsy9Zsy9UfVWRsy9YgVWVty9YgVWRty9Vsy9aM09sgVWRTws/AzM0gVWRtzNYgVWRuy9Zsy9cgVWRGcHxty9bb5ORbxdEgVWRty9bn6OZTws9mydRfxtLX3Nva5eRix9NFcXxOd4JPeINQeIMiVmVUws9Vws9Vw9BXw9BYxNBaxNBbxNBcxdJexdElWWgmWmhjyNRlx9IqXGtoipNpytVqytVryNNrytZsjZUuX210k5t1y9R2zNR3y9V4lp57zth9zdaAnKOGoaeK0NiNpquV09mesrag1tuitbmj1tuj19uktrqr2d2svcCu2d2xwMO63N+7x8nA3uDC3uDFz9DK4eHL4eLN4eIyYnDX5OM5Z3Tb397e4uDf4uHf5uXi5ePi5+Xj5+Xk5+Xm5+Xm6OY6aHXQ19fT4+NfhI1Ww89gx9Nhx9Nsy9ZWw9Dpj2abAAAAWnRSTlMAAQICAwQEBgcIDQ0ODhQZGiAiIyYpKywvNTs+QklPUlNUWWJjaGt0dnd+hIWFh4mNjZCSm6CpsbW2t7nDzNDT1dje5efr7PHy9PT29/j4+Pn5+vr8/f39/f6DPtKwAAABTklEQVR4Xr3QVWPbMBSAUTVFZmZmhhSXMjNvkhwqMzMzMzPDeD+xASvObKePPa+ffHVl8PlsnE0+qPpBuQjVJjno6pZpSKXYl7/bZyFaQxhf98hHDKEppwdWIW1frFnrxSOWHFfWesSEWC6R/P4zOFrix3TzDFLlXRTR8c0fEEJ1/itpo7SVO9Jdr1DVxZ0USyjZsEY5vZfiiAC0UoTGOrm9PZLuRl8X+Dq1HQtoFbJZbv61i+Poblh/97TC7n0neCcK0ETNUrz1/xPHf+DNAW9Ac6t8O8WH3Vp98f5lCaYKAOFZMLyHL4Y0fe319idMNgMMp+zWVSybUed/+/h7I4wRAG1W6XDy4XmjR9HnzvDRZXUAYDFOhC1S/Hh+fIXxen+eO+AKqbs+wAo30zDTDvDxKoJN88sjUzDFAvBzEUGFsnADoIvAJzoh2BZ8sner+Ke/vwECuQAAAABJRU5ErkJggg==') /*logo.png*/;
   background-repeat: no-repeat;
   background-position: 2px;
   background-color: white;
-  border: none;
-}
-.layer-switcher.shown button {
-  display: none;
-}
-.layer-switcher.shown.activationModeClick > button {
-  display: block;
-  background-image: unset;
   color: black;
-  right: 2px;
-  position: absolute;
+  border: none;
 }
 .layer-switcher button:focus,
 .layer-switcher button:hover {
   background-color: white;
 }
+.layer-switcher.shown {
+  overflow-y: hidden;
+}
+.layer-switcher.shown.ol-control {
+  background-color: transparent;
+}
+.layer-switcher.shown.ol-control:hover {
+  background-color: transparent;
+}
+.layer-switcher.shown .panel {
+  display: block;
+}
+.layer-switcher.shown button {
+  display: none;
+}
+.layer-switcher.shown.layer-switcher-activation-mode-click > button {
+  display: block;
+  background-image: unset;
+  right: 2px;
+  position: absolute;
+  background-color: #eee;
+  margin: 0 1px;
+}
+.layer-switcher.shown button:focus,
+.layer-switcher.shown button:hover {
+  background-color: #fafafa;
+}
 .layer-switcher ul {
-  padding-left: 2em;
   list-style: none;
+  margin: 1.6em 0.4em;
+  padding-left: 0;
+}
+.layer-switcher ul ul {
+  padding-left: 1.2em;
+  margin: 0.1em 0 0 0;
+}
+.layer-switcher li.group + li.group {
+  margin-top: 0.4em;
 }
 .layer-switcher li.group > label {
   font-weight: bold;
 }
-.layer-switcher li.layer {
-  display: table;
+.layer-switcher.layer-switcher-group-select-style-none li.group > label {
+  padding-left: 1.2em;
 }
-.layer-switcher li.layer label,
-.layer-switcher li.layer input {
-  display: table-cell;
-  vertical-align: middle;
+.layer-switcher li {
+  position: relative;
+  margin-top: 0.3em;
+}
+.layer-switcher li input {
+  position: absolute;
+  left: 1.2em;
+  height: 1em;
+  width: 1em;
+  font-size: 1em;
+}
+.layer-switcher li label {
+  padding-left: 2.7em;
+  padding-right: 1.2em;
+  display: inline-block;
+  margin-top: 1px;
 }
 .layer-switcher label.disabled {
   opacity: 0.4;
 }
 .layer-switcher input {
-  margin: 4px;
+  margin: 0px;
 }
 .layer-switcher.touch ::-webkit-scrollbar {
   width: 4px;
@@ -8386,12 +8432,19 @@ fieldset[disabled] .btn-danger.active {
   border-radius: 10px;
   -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
 }
+li.layer-switcher-base-group > label {
+  padding-left: 1.2em;
+}
 .layer-switcher .group button {
+  position: absolute;
+  left: 0;
   display: inline-block;
   vertical-align: top;
   float: none;
-  width: 16px;
-  height: 16px;
+  font-size: 1em;
+  width: 1em;
+  height: 1em;
+  margin: 0;
   background-position: center 2px;
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAW0lEQVR4nGNgGAWMyBwXFxcGBgaGeii3EU0tXHzPnj1wQRYsihqQ+I0ExDEMQAYNONgoAN0AmMkNaDSyQSheY8JiaCMOGzE04zIAmyFYNTMw4A+DRhzsUUBtAADw4BCeIZkGdwAAAABJRU5ErkJggg==');
   -webkit-transition: -webkit-transform 0.2s ease-in-out;
@@ -8402,16 +8455,28 @@ fieldset[disabled] .btn-danger.active {
   transform: rotate(-90deg);
   -webkit-transform: rotate(-90deg);
 }
-li.group.layer-switcher-fold {
-  margin-left: -18px;
-}
-.layer-switcher .group.layer-switcher-fold > ul {
-  padding-left: 3em;
-}
 .layer-switcher .group.layer-switcher-fold.layer-switcher-close > ul {
   overflow: hidden;
   height: 0;
 }
+/*layerswitcher on the right*/
+.layer-switcher.shown.layer-switcher-activation-mode-click {
+  padding-left: 34px;
+}
+.layer-switcher.shown.layer-switcher-activation-mode-click > button {
+  left: 0;
+  border-right: 0;
+}
+/*layerswitcher on the left*/
+/*
+.layer-switcher.shown.layer-switcher-activation-mode-click {
+  padding-right: 34px;
+}
+.layer-switcher.shown.layer-switcher-activation-mode-click > button {
+  right: 0;
+  border-left: 0;
+}
+*/
 html {
   height: 100vh;
 }
