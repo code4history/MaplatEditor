@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@maplat/core": "^0.10.1",
-    "@maplat/tin": "^0.9.1",
+    "@maplat/tin": "github:code4history/MaplatTin#delaunay",
     "@panter/vue-i18next": "^0.15.2",
     "@seald-io/nedb": "^2.2.0",
     "@turf/turf": "^6.5.0",
