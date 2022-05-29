@@ -7,6 +7,7 @@ const config = {
     "assets/mac",
     "backend",
     "css",
+    "frontend/api",
     "frontend/dist",
     "frontend/fonts",
     "html",

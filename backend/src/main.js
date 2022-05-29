@@ -58,7 +58,7 @@ app.on('ready', async () => {
     width: appWidth,
     height: appHeight,
     webPreferences: {
-      preload: path.join(__dirname, '../../frontend/src/api/preload.js') // eslint-disable-line no-undef
+      preload: path.join(__dirname, '../../frontend/api/preload.js') // eslint-disable-line no-undef
     }
   });
   const indexurl = `file://${__dirname.replace(/\\/g, '/')}/../../html/maplist.html`; // eslint-disable-line no-undef
@@ -121,7 +121,7 @@ function setupMenu() {
             openAboutWindow({
               icon_path: path.resolve(__dirname, '../../img/icon.png'), // eslint-disable-line no-undef
               product_name: 'MaplatEditor',
-              copyright: 'Copyright (c) 2015-2020 Code for History',
+              copyright: 'Copyright (c) 2015-2022 Code for History',
               use_version_info: true,
               win_options: {
                 title: settings.t('menu.about')
