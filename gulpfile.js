@@ -27,19 +27,6 @@ gulp.task("exec", async () => {
   execSync(commands.join(" && "), {stdio: 'inherit'});
 });
 
-gulp.task("canvas_rebuild", async () => {
-  const [os, arch_abbr, pf, arch] = getArchOption();
-
-  execSync(`electron-rebuild --arch ${arch}`, {stdio: 'inherit'});
-  const assets_root = `./assets/${os}_${arch_abbr}`;
-  fs.ensureDirSync(assets_root);
-  try {
-    fs.removeSync(`${assets_root}/canvas`);
-  } catch(e) {}
-  fs.copySync("./node_modules/canvas", `${assets_root}/canvas`);
-  if (os === "mac") dylib_handler(`${assets_root}/canvas/build/Release`);
-});
-
 gulp.task("build", async () => {
   const [os, arch_abbr, pf, arch] = getArchOption();
   const commands = [
@@ -47,7 +34,7 @@ gulp.task("build", async () => {
     "npm run js_build",
     "npm run css_build"
   ];
-  const packege_cmd = `electron-builder --${os} --${arch} --config ./build_${os}_${arch_abbr}.js`;
+  const packege_cmd = `electron-builder --${os} --${arch} --config ./build_${os}.js`;
   console.log(packege_cmd);
   commands.push(packege_cmd);
   execSync(commands.join(" && "), {stdio: 'inherit'});
@@ -58,40 +45,4 @@ function getArchOption() {
     string: 'arch'
   });
   return osArchFinder(options.arch);
-}
-
-gulp.task("canvas_rebuild_dummy", async () => {
-  const [os, arch_abbr, pf, arch] = getArchOption();
-
-  const assets_root = `./assets/${os}_${arch_abbr}`;
-  fs.ensureDirSync(assets_root);
-  if (os === "mac") dylib_handler(`${assets_root}/canvas/build/Release`);
-});
-
-function dylib_handler(root) {
-  const moved = {};
-  const targets = fs.readdirSync(root).filter(x => x.match(/(?:^canvas\.node|\.dylib)$/));
-  targets.forEach((target) => {
-    moved[target] = 1
-  });
-  while (targets.length > 0) {
-    const next = `${root}/${targets.shift()}`;
-    const links = execSync(`otool -L ${next}`).toString().split(/\n\t/).filter((line) => {
-      if (!line.match(/^\//)) return false;
-      if (line.match(/^\/(?:System|usr\/lib)/)) return false;
-      return true;
-    }).map((line) => {
-      return line.split(' (compatibility')[0];
-    });
-    links.forEach((libPath) => {
-      const base = libPath.match(/\/([^/]+\.dylib)$/)[1];
-      if (!moved[base]) {
-        execSync(`cp ${libPath} ${root}/${base}`);
-        execSync(`install_name_tool -id "@rpath/${base}" ${root}/${base}`);
-        targets.push(base);
-        moved[base] = 1;
-      }
-      execSync(`install_name_tool -change "${libPath}" "@loader_path/${base}" ${next}`);
-    });
-  }
 }
