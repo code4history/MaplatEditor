@@ -5,7 +5,7 @@ const {Jimp} = require('../lib/utils'); // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
-const {ipcMain, BrowserWindow} = require("electron"); // eslint-disable-line no-undef
+const {ipcMain} = require("electron"); // eslint-disable-line no-undef
 const settings = require('./settings').init(); // eslint-disable-line no-undef
 
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
@@ -17,7 +17,6 @@ let tileFolder;
 let uiThumbnailFolder;
 let tmpFolder;
 let outFolder;
-let focused;
 let extKey;
 let toExtKey;
 
@@ -36,7 +35,6 @@ const MapUpload = {
     fs.ensureDir(uiThumbnailFolder, () => {
     });
     tmpFolder = settings.getSetting('tmpFolder');
-    focused = BrowserWindow.getFocusedWindow();
 
     if (!initialized) {
       initialized = true;

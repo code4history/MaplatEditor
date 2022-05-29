@@ -3,7 +3,7 @@ const path = require('path'); // eslint-disable-line no-undef
 const settings = require('./settings').init(); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const fileUrl = require('file-url'); // eslint-disable-line no-undef
-const {BrowserWindow, ipcMain} = require('electron'); // eslint-disable-line no-undef
+const {ipcMain} = require('electron'); // eslint-disable-line no-undef
 const thumbExtractor = require('../lib/ui_thumbnail'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 const nedbAccessor = require('../lib/nedb_accessor'); // eslint-disable-line no-undef
@@ -35,7 +35,6 @@ let tileFolder;
 let originalFolder;
 let uiThumbnailFolder;
 let dbFile;
-let focused;
 let nedb;
 
 // For legacy use
@@ -58,8 +57,6 @@ const maplist = {
 
     dbFile = path.resolve(saveFolder, "nedb.db");
     nedb = nedbAccessor.getInstance(dbFile);
-
-    focused = BrowserWindow.getFocusedWindow();
 
     if (!initialized) {
       initialized = true;

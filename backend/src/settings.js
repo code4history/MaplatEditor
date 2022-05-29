@@ -6,11 +6,9 @@ const defaultStoragePath = storage.getDefaultDataPath();
 const path = require('path'); // eslint-disable-line no-undef
 const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
-const electron = require('electron'); // eslint-disable-line no-undef
-const BrowserWindow = electron.BrowserWindow;
 const tmsListDefault = require('../../tms_list.json'); // eslint-disable-line no-undef
 const i18next = require('i18next'); // eslint-disable-line no-undef
-const Backend = require('i18next-fs-backend');
+const Backend = require('i18next-fs-backend'); // eslint-disable-line no-undef
 const {ipcMain} = require("electron"); // eslint-disable-line no-undef
 let settings;
 let editorStoragePath;

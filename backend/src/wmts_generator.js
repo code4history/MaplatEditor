@@ -7,7 +7,7 @@ const Tin = require('@maplat/tin').default; // eslint-disable-line no-undef
 const path = require('path'); // eslint-disable-line no-undef
 //const app = require('electron').app; // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
-const {ipcMain, BrowserWindow} = require("electron"); // eslint-disable-line no-undef
+const {ipcMain} = require("electron"); // eslint-disable-line no-undef
 const settings = require('./settings').init(); // eslint-disable-line no-undef
 
 const MERC_MAX = 20037508.342789244;
@@ -17,7 +17,6 @@ let mapFolder;
 let wmtsFolder;
 let originalFolder;
 let tmpFolder; // eslint-disable-line no-unused-vars
-let focused;
 
 let initialized = false;
 
@@ -34,7 +33,6 @@ const WmtsGenerator = {
     fs.ensureDir(originalFolder, () => {
     });
     tmpFolder = settings.getSetting('tmpFolder');
-    focused = BrowserWindow.getFocusedWindow();
 
     if (!initialized) {
       initialized = true;

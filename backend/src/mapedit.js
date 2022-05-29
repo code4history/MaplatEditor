@@ -9,7 +9,7 @@ const rfs = require('recursive-fs'); // eslint-disable-line no-undef
 const ProgressReporter = require('../lib/progress_reporter'); // eslint-disable-line no-undef
 const nedbAccessor = require('../lib/nedb_accessor'); // eslint-disable-line no-undef
 const storeHandler = require('@maplat/core/es5/source/store_handler'); // eslint-disable-line no-undef
-const {dialog, ipcMain, app, BrowserWindow} = require("electron"); // eslint-disable-line no-undef
+const {dialog, ipcMain, app} = require("electron"); // eslint-disable-line no-undef
 const csv = require('csv-parser'); // eslint-disable-line no-undef
 const proj  = require('proj4'); // eslint-disable-line no-undef
 const {normalizeRequestData} = require('../lib/utils'); // eslint-disable-line no-undef
@@ -18,7 +18,6 @@ let tileFolder;
 let originalFolder;
 let thumbFolder;
 let tmpFolder;
-let focused;
 let dbFile;
 let nedb;
 let extentCheck;
@@ -39,8 +38,6 @@ const mapedit = {
 
     dbFile = `${saveFolder}${path.sep}nedb.db`;
     nedb = nedbAccessor.getInstance(dbFile);
-
-    focused = BrowserWindow.getFocusedWindow();
 
     if (!initialized) {
       initialized = true;

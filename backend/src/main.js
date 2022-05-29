@@ -1,9 +1,5 @@
 'use strict';
 
-//const electron = require('electron'); // eslint-disable-line no-undef
-//const app = electron.app;
-//const BrowserWindow = electron.BrowserWindow;
-//const Menu = electron.Menu;
 const {app, BrowserWindow, ipcMain, Menu} = require('electron'); // eslint-disable-line no-undef
 const fs = require('fs-extra'); // eslint-disable-line no-undef
 const openAboutWindow =require('about-window').default; // eslint-disable-line no-undef
@@ -62,7 +58,7 @@ app.on('ready', async () => {
     width: appWidth,
     height: appHeight,
     webPreferences: {
-      preload: path.join(__dirname, '../../frontend/api/preload.js') // eslint-disable-line no-undef
+      preload: path.join(__dirname, '../../frontend/src/api/preload.js') // eslint-disable-line no-undef
     }
   });
   const indexurl = `file://${__dirname.replace(/\\/g, '/')}/../../html/maplist.html`; // eslint-disable-line no-undef

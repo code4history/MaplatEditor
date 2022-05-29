@@ -48,7 +48,6 @@ const DataUpload = {
   },
   showDataSelectDialog(ev, mapImageRepl) {
     const dialog = require('electron').dialog; // eslint-disable-line no-undef
-    const focused = BrowserWindow.getFocusedWindow();
     const self = this;
     dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],
       filters: [ {name: mapImageRepl, extensions: ['zip']} ]}).then(async (ret) => {
@@ -71,7 +70,6 @@ const DataUpload = {
       const mapTmpFolder = path.resolve(dataTmpFolder, "maps");
       const tileTmpFolder = path.resolve(dataTmpFolder, "tiles");
       const tmbTmpFolder = path.resolve(dataTmpFolder, "tmbs");
-      const tmbOriginFolder = path.resolve(dataTmpFolder, "originals");
       const mapFile = (await fs.readdir(mapTmpFolder))[0];
       const mapID = mapFile.split(/\./)[0];
       const mapPath = path.resolve(mapTmpFolder, mapFile);
