@@ -301,8 +301,8 @@ const mapedit = {
   },
   async checkID(ev, id) {
     const json = await nedb.find(id);
-    if (!json) ev.reply('checkIDResult', true);
-    else ev.reply('checkIDResult', false);
+    if (!json) ev.reply('mapedit_checkIDResult', true);
+    else ev.reply('mapedit_checkIDResult', false);
   },
   uploadCsv(ev, csvRepl, csvUpSettings) {
     dialog.showOpenDialog({ defaultPath: app.getPath('documents'), properties: ['openFile'],

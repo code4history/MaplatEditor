@@ -1620,7 +1620,7 @@ function setVueMap() {
     window.mapedit.once('uploadedCsv', async (event, arg) => { // eslint-disable-line no-undef
       document.body.style.pointerEvents = null; // eslint-disable-line no-undef
       if (arg.err) {
-        const message = arg.err === 'Canceled' ? t('mapedit.updownload_canceled') : `${t('dataio.error_occurs')}: ${t(`dataio.${arg.err}`)}`;
+        const message = arg.err === 'Canceled' ? t('mapedit.imexport_canceled') : `${t('dataio.error_occurs')}: ${t(`dataio.${arg.err}`)}`;
         await window.dialog.showMessageBox({ // eslint-disable-line no-undef
           type: 'info',
           buttons: ['OK'],
