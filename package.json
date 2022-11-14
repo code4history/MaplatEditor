@@ -39,8 +39,8 @@
     "webpack-cli": "^4.9.2"
   },
   "dependencies": {
-    "@maplat/core": "^0.10.3",
-    "@maplat/tin": "^0.9.2",
+    "@maplat/core": "^0.10.4",
+    "@maplat/tin": "^0.9.3",
     "@panter/vue-i18next": "^0.15.2",
     "@seald-io/nedb": "^3.0.0",
     "@turf/turf": "^6.5.0",
