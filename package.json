@@ -27,7 +27,7 @@
     "clean-css": "^5.3.0",
     "core-js": "^3.22.7",
     "dotenv": "^16.0.1",
-    "electron": "^20.0.0",
+    "electron": "^21.2.3",
     "electron-builder": "^23.6.0",
     "eslint": "^7.32.0",
     "gulp": "^4.0.2",

@@ -58,7 +58,8 @@ app.on('ready', async () => {
     width: appWidth,
     height: appHeight,
     webPreferences: {
-      preload: path.join(__dirname, '../../frontend/api/preload.js') // eslint-disable-line no-undef
+      preload: path.join(__dirname, '../../frontend/api/preload.js'), // eslint-disable-line no-undef
+      sandbox: false
     }
   });
   const indexurl = `file://${__dirname.replace(/\\/g, '/')}/../../html/maplist.html`; // eslint-disable-line no-undef
