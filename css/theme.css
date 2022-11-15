@@ -153,3 +153,7 @@ li.disabled {
   bottom: 35px;
   z-index: 1000;
 }
+
+.layer-switcher.shown {
+  max-height: 300px;
+}

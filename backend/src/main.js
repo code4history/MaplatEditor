@@ -28,6 +28,7 @@ const menuList = [
   'menu.select_all'
 ];
 
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=8192');
 app.disableHardwareAcceleration();
 
 app.on('window-all-closed', () => {
