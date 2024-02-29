@@ -1,6 +1,5 @@
 # MaplatEditor
 ![Maplat Logo](https://code4history.github.io/Maplat/page_imgs/maplat.png)
-![Maplat Catch Phrase](https://code4history.github.io/Maplat/page_imgs/bijective.png)
 
 [Maplat](https://github.com/code4history/Maplat/wiki) is the cool Historical Map/Illustrated Map Viewer.  
 MaplatEditor is support project of Maplat, providing the data editor of Maplat.  
