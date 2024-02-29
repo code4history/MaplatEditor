@@ -23,7 +23,7 @@ gulp.task("exec", async () => {
   }
   commands.push("npm run js_build");
   commands.push("npm run css_build");
-  commands.push("electron .");
+  commands.push("electron --js-flags=\"--max_old_space_size = 8192\" .");
   execSync(commands.join(" && "), {stdio: 'inherit'});
 });
 

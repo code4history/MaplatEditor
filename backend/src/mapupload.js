@@ -1,5 +1,5 @@
 'use strict';
-
+const JPEG = require('jpeg-js'); // eslint-disable-line no-undef
 const {Jimp} = require('../lib/utils'); // eslint-disable-line no-undef
 
 const path = require('path'); // eslint-disable-line no-undef
@@ -21,6 +21,11 @@ let extKey;
 let toExtKey;
 
 let initialized = false;
+
+Jimp.decoders['image/jpeg'] = (data) => JPEG.decode(data, {
+  maxMemoryUsageInMB: 8192,
+  maxResolutionInMP: 800
+});
 
 const MapUpload = {
   init() {
