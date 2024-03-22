@@ -7653,11 +7653,21 @@ fieldset[disabled] .btn-danger.active {
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 /*# sourceMappingURL=bootstrap-theme.css.map */
+:root,
+:host {
+  --ol-background-color: white;
+  --ol-accent-background-color: #F5F5F5;
+  --ol-subtle-background-color: rgba(128, 128, 128, 0.25);
+  --ol-partial-background-color: rgba(255, 255, 255, 0.75);
+  --ol-foreground-color: #333333;
+  --ol-subtle-foreground-color: #666666;
+  --ol-brand-color: #00AAFF;
+}
 .ol-box {
   box-sizing: border-box;
   border-radius: 2px;
-  border: 1.5px solid #b3c5db;
-  background-color: rgba(255, 255, 255, 0.4);
+  border: 1.5px solid var(--ol-background-color);
+  background-color: var(--ol-partial-background-color);
 }
 .ol-mouse-position {
   top: 8px;
@@ -7665,7 +7675,7 @@ fieldset[disabled] .btn-danger.active {
   position: absolute;
 }
 .ol-scale-line {
-  background: rgba(0, 60, 136, 0.3);
+  background: var(--ol-partial-background-color);
   border-radius: 4px;
   bottom: 8px;
   left: 8px;
@@ -7673,9 +7683,9 @@ fieldset[disabled] .btn-danger.active {
   position: absolute;
 }
 .ol-scale-line-inner {
-  border: 1px solid #eee;
+  border: 1px solid var(--ol-subtle-foreground-color);
   border-top: none;
-  color: #eee;
+  color: var(--ol-foreground-color);
   font-size: 10px;
   text-align: center;
   margin: 1px;
@@ -7687,35 +7697,44 @@ fieldset[disabled] .btn-danger.active {
   bottom: 8px;
   left: 8px;
 }
+.ol-scale-bar-inner {
+  display: flex;
+}
 .ol-scale-step-marker {
   width: 1px;
   height: 15px;
-  background-color: #000000;
+  background-color: var(--ol-foreground-color);
   float: right;
   z-index: 10;
 }
 .ol-scale-step-text {
   position: absolute;
   bottom: -5px;
-  font-size: 12px;
+  font-size: 10px;
   z-index: 11;
-  color: #000000;
-  text-shadow: -2px 0 #FFFFFF, 0 2px #FFFFFF, 2px 0 #FFFFFF, 0 -2px #FFFFFF;
+  color: var(--ol-foreground-color);
+  text-shadow: -1.5px 0 var(--ol-partial-background-color), 0 1.5px var(--ol-partial-background-color), 1.5px 0 var(--ol-partial-background-color), 0 -1.5px var(--ol-partial-background-color);
 }
 .ol-scale-text {
   position: absolute;
-  font-size: 14px;
+  font-size: 12px;
   text-align: center;
   bottom: 25px;
-  color: #000000;
-  text-shadow: -2px 0 #FFFFFF, 0 2px #FFFFFF, 2px 0 #FFFFFF, 0 -2px #FFFFFF;
+  color: var(--ol-foreground-color);
+  text-shadow: -1.5px 0 var(--ol-partial-background-color), 0 1.5px var(--ol-partial-background-color), 1.5px 0 var(--ol-partial-background-color), 0 -1.5px var(--ol-partial-background-color);
 }
 .ol-scale-singlebar {
   position: relative;
   height: 10px;
   z-index: 9;
   box-sizing: border-box;
-  border: 1px solid black;
+  border: 1px solid var(--ol-foreground-color);
+}
+.ol-scale-singlebar-even {
+  background-color: var(--ol-subtle-foreground-color);
+}
+.ol-scale-singlebar-odd {
+  background-color: var(--ol-background-color);
 }
 .ol-unsupported {
   display: none;
@@ -7725,18 +7744,20 @@ fieldset[disabled] .btn-danger.active {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-tap-highlight-color: transparent;
 }
 .ol-viewport canvas {
   all: unset;
+  overflow: hidden;
+}
+.ol-viewport {
+  touch-action: pan-x pan-y;
 }
 .ol-selectable {
   -webkit-touch-callout: default;
   -webkit-user-select: text;
   -moz-user-select: text;
-  -ms-user-select: text;
   user-select: text;
 }
 .ol-grabbing {
@@ -7752,12 +7773,8 @@ fieldset[disabled] .btn-danger.active {
 }
 .ol-control {
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: var(--ol-subtle-background-color);
   border-radius: 4px;
-  padding: 2px;
-}
-.ol-control:hover {
-  background-color: rgba(255, 255, 255, 0.6);
 }
 .ol-zoom {
   top: 0.5em;
@@ -7785,7 +7802,7 @@ fieldset[disabled] .btn-danger.active {
   display: block;
   margin: 1px;
   padding: 0;
-  color: white;
+  color: var(--ol-subtle-foreground-color);
   font-weight: bold;
   text-decoration: none;
   font-size: inherit;
@@ -7793,7 +7810,7 @@ fieldset[disabled] .btn-danger.active {
   height: 1.375em;
   width: 1.375em;
   line-height: 0.4em;
-  background-color: rgba(0, 60, 136, 0.5);
+  background-color: var(--ol-background-color);
   border: none;
   border-radius: 2px;
 }
@@ -7807,7 +7824,6 @@ fieldset[disabled] .btn-danger.active {
 .ol-compass {
   display: block;
   font-weight: normal;
-  font-size: 1.2em;
   will-change: transform;
 }
 .ol-touch .ol-control button {
@@ -7819,7 +7835,8 @@ fieldset[disabled] .btn-danger.active {
 .ol-control button:hover,
 .ol-control button:focus {
   text-decoration: none;
-  background-color: rgba(0, 60, 136, 0.7);
+  outline: 1px solid var(--ol-subtle-foreground-color);
+  color: var(--ol-foreground-color);
 }
 .ol-zoom .ol-zoom-in {
   border-radius: 2px 2px 0 0;
@@ -7837,14 +7854,14 @@ fieldset[disabled] .btn-danger.active {
   align-items: center;
 }
 .ol-attribution a {
-  color: rgba(0, 60, 136, 0.7);
+  color: var(--ol-subtle-foreground-color);
   text-decoration: none;
 }
 .ol-attribution ul {
   margin: 0;
   padding: 1px 0.5em;
-  color: #000;
-  text-shadow: 0 0 2px #fff;
+  color: var(--ol-foreground-color);
+  text-shadow: 0 0 2px var(--ol-background-color);
   font-size: 12px;
 }
 .ol-attribution li {
@@ -7866,7 +7883,7 @@ fieldset[disabled] .btn-danger.active {
   display: none;
 }
 .ol-attribution:not(.ol-collapsed) {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--ol-partial-background-color);
 }
 .ol-attribution.ol-uncollapsible {
   bottom: 0;
@@ -7906,14 +7923,13 @@ fieldset[disabled] .btn-danger.active {
   display: block;
 }
 .ol-overviewmap .ol-overviewmap-map {
-  border: 1px solid #7b98bc;
+  border: 1px solid var(--ol-subtle-foreground-color);
   height: 150px;
-  margin: 2px;
   width: 150px;
 }
 .ol-overviewmap:not(.ol-collapsed) button {
-  bottom: 2px;
-  left: 2px;
+  bottom: 0;
+  left: 0;
   position: absolute;
 }
 .ol-overviewmap.ol-collapsed .ol-overviewmap-map,
@@ -7921,19 +7937,19 @@ fieldset[disabled] .btn-danger.active {
   display: none;
 }
 .ol-overviewmap:not(.ol-collapsed) {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--ol-subtle-background-color);
 }
 .ol-overviewmap-box {
-  border: 2px dotted rgba(0, 60, 136, 0.7);
+  border: 1.5px dotted var(--ol-subtle-foreground-color);
 }
 .ol-overviewmap .ol-overviewmap-box:hover {
   cursor: move;
 }
 /*!
- * ol-geocoder - v4.1.2
- * A geocoder extension for OpenLayers.
- * https://github.com/jonataswalker/ol-geocoder
- * Built: Wed Jan 20 2021 10:05:07 GMT-0300 (Brasilia Standard Time)
+ * ol-geocoder - v4.3.3
+ * A geocoder extension compatible with OpenLayers v6.x to v9.0
+ * https://github.com/Dominique92/ol-geocoder
+ * Built: 15/03/2024 08:57:06
  */
 .ol-touch .ol-control.gcd-gl-control button {
   font-size: 1.14em;
@@ -7981,7 +7997,7 @@ fieldset[disabled] .btn-danger.active {
   outline: none;
   box-shadow: inset 0 0 0 1px #4d90fe, inset 0 0 5px #4d90fe;
 }
-.ol-geocoder .gcd-gl-reset {
+.ol-geocoder .gcd-gl-search {
   position: absolute;
   z-index: 100;
   top: 0;
@@ -7995,8 +8011,8 @@ fieldset[disabled] .btn-danger.active {
   outline: 0;
   cursor: pointer;
 }
-.ol-geocoder .gcd-gl-reset::after {
-  content: "\d7";
+.ol-geocoder .gcd-gl-search::after {
+  content: "\2386";
   display: inline-block;
   color: #333;
   font-size: 1.5em;
@@ -8008,9 +8024,10 @@ fieldset[disabled] .btn-danger.active {
   height: 1.5625em;
   top: 0.125em;
   left: 0.125em;
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAABPUlEQVQoU41SwXHCQAzUHh58eoUOIBWEDkI6oAToIKkg7iAuwakgpAIowXRACcnrzp6BzchjMx4wE/S6kW5XK60gvQghzJIkmVoqSZI9gJ9+/fINS5Cc1HX9QXIlIr/tpwcRyb33b7cIGnAIYQdg4pxbjcfj0nJ1Xc+Px+PGObdN03Q9RIAQwgpAnqbp7FKmjQGgJLlU1d2V7BjjRkQO3vvXIXarkyxVNbsCm2QR2Q0V7XOMMReRmfd+OQQubN6hYgs22ZtbnRcAtiRfLueqqmpJ8ovko6oeBq0KIWQA3gFkzrlmMafTaUEyI/mpqmbhVTRWWbRdbClPbeobQNES5KPRqOxs7DBn8K1DsAOKMZYApiTXqlrcDe4d0XN7jWeCfzt351tVle2iGalTcBd4gGDvvZ/fDe4RmCOFLe8Pr7mvEP2N9PQAAAAASUVORK5CYII=");
-  background-repeat: no-repeat;
-  background-position: center center;
+  cursor: pointer;
+}
+.ol-geocoder .gcd-gl-btn:after {
+  content: "\1F50D";
 }
 .ol-geocoder ul.gcd-gl-result {
   position: absolute;
@@ -8074,6 +8091,11 @@ fieldset[disabled] .btn-danger.active {
   background-color: #fff;
   overflow: hidden;
 }
+.ol-geocoder .gcd-txt-label {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+}
 .ol-geocoder .gcd-txt-input {
   position: absolute;
   z-index: 99;
@@ -8092,7 +8114,7 @@ fieldset[disabled] .btn-danger.active {
   outline: none;
   box-shadow: inset 0 0 0 1px #4d90fe, inset 0 0 6px #4d90fe;
 }
-.ol-geocoder .gcd-txt-reset {
+.ol-geocoder .gcd-txt-search {
   position: absolute;
   z-index: 100;
   top: 0;
@@ -8107,8 +8129,8 @@ fieldset[disabled] .btn-danger.active {
   outline: 0;
   cursor: pointer;
 }
-.ol-geocoder .gcd-txt-reset::after {
-  content: "\d7";
+.ol-geocoder .gcd-txt-search::after {
+  content: "\2386";
   display: inline-block;
   color: #333;
   font-size: 2em;
@@ -8116,16 +8138,15 @@ fieldset[disabled] .btn-danger.active {
 }
 .ol-geocoder .gcd-txt-glass {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 26px;
+  left: 9px;
   z-index: 100;
   display: inline-block;
   width: 2.5em;
   height: 100%;
-  background-size: 1.38889em;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath fill='%23333' d='M29.156 29.961l-.709.709a2.006 2.006 0 0 1-2.838 0l-5.676-5.674c-.656-.658-.729-1.644-.281-2.412l-3.104-3.102a9.975 9.975 0 0 1-5.965 1.979C5.043 21.461.552 16.97.552 11.43S5.043 1.398 10.583 1.398c5.541 0 10.031 4.491 10.031 10.032 0 2.579-.98 4.923-2.58 6.7l3.035 3.035c.768-.447 1.754-.375 2.41.283l5.676 5.674c.784.785.784 2.056.001 2.839zM18.088 11.389c0-4.155-3.369-7.523-7.524-7.523a7.523 7.523 0 1 0-.001 15.046 7.525 7.525 0 0 0 7.525-7.523z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center center;
+}
+.ol-geocoder .gcd-txt-glass:after {
+  content: "\1F50D";
 }
 .ol-geocoder ul.gcd-txt-result {
   position: absolute;
@@ -8173,16 +8194,7 @@ fieldset[disabled] .btn-danger.active {
   visibility: hidden;
 }
 .ol-geocoder .gcd-pseudo-rotate::after {
-  -webkit-animation: spin 0.7s linear infinite;
   animation: spin 0.7s linear infinite;
-}
-@-webkit-keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 @keyframes spin {
   from {
@@ -8213,9 +8225,9 @@ fieldset[disabled] .btn-danger.active {
   color: #333;
 }
 /*!
-  * ol-contextmenu - v4.1.0
+  * ol-contextmenu - v5.3.0
   * https://github.com/jonataswalker/ol-contextmenu
-  * Built: Sat Aug 15 2020 10:43:26 GMT-0300 (Brasilia Standard Time)
+  * Built: Mon Mar 04 2024 14:16:10 GMT+0900 (Japan Standard Time)
   */
 .ol-ctx-menu-container {
   position: absolute;
@@ -8224,7 +8236,7 @@ fieldset[disabled] .btn-danger.active {
   color: #222;
   font-size: 13px;
   border-radius: 5px;
-  box-shadow: rgba(0, 0, 0, 0.2) 3px 3px 5px;
+  box-shadow: #0003 3px 3px 5px;
   box-sizing: border-box;
 }
 .ol-ctx-menu-container div,
@@ -8244,14 +8256,14 @@ fieldset[disabled] .btn-danger.active {
   border: none;
 }
 .ol-ctx-menu-container *,
-.ol-ctx-menu-container *::before,
-.ol-ctx-menu-container *::after {
+.ol-ctx-menu-container *:before,
+.ol-ctx-menu-container *:after {
   box-sizing: inherit;
 }
 .ol-ctx-menu-container.ol-ctx-menu-hidden {
   opacity: 0;
   visibility: hidden;
-  transition: visibility 0s linear 300ms, opacity 300ms;
+  transition: visibility 0s linear 0.3s, opacity 0.3s;
 }
 .ol-ctx-menu-container ul {
   list-style: none;
@@ -8260,6 +8272,7 @@ fieldset[disabled] .btn-danger.active {
   position: relative;
   line-height: 20px;
   padding: 2px 5px;
+  white-space: nowrap;
 }
 .ol-ctx-menu-container li:not(.ol-ctx-menu-separator):hover {
   cursor: pointer;
@@ -8272,14 +8285,9 @@ fieldset[disabled] .btn-danger.active {
   top: 0;
   opacity: 0;
   visibility: hidden;
-  transition: visibility 0s linear 300ms, opacity 300ms;
+  transition: visibility 0s linear 0.3s, opacity 0.3s;
 }
-.ol-ctx-menu-container li.ol-ctx-menu-submenu:hover .ol-ctx-menu-container {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s;
-}
-.ol-ctx-menu-container li.ol-ctx-menu-submenu::after {
+.ol-ctx-menu-container li.ol-ctx-menu-submenu:after {
   position: absolute;
   top: 7px;
   right: 10px;
@@ -8291,8 +8299,13 @@ fieldset[disabled] .btn-danger.active {
   border-top: 0.3em solid #222;
   transform: rotate(45deg);
 }
-.ol-ctx-menu-container li.ol-ctx-menu-submenu:hover::after {
+.ol-ctx-menu-container li.ol-ctx-menu-submenu:hover:after {
   border-color: #eee;
+}
+.ol-ctx-menu-container:not(.ol-ctx-menu-hidden) li.ol-ctx-menu-submenu:hover > .ol-ctx-menu-container {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
 }
 .ol-ctx-menu-container li.ol-ctx-menu-separator {
   padding: 0;
@@ -8309,16 +8322,16 @@ fieldset[disabled] .btn-danger.active {
   background-position: left center;
 }
 .ol-ctx-menu-zoom-in {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABaUlEQVQ4T72U7VHCQBCGn90GtAMuNGCswFiBWIFQgWMFxg6wArECsQKhArEBiB1Qwa1zgQn5IAYcxv13k71n3919L8KJQ07M47+BzgG9TRfZ/JBuWhS6BJFHRJICYrZGZIz3z5Ct2+B7gG6I6kt+wewdkQVwjtkAkR5mC8yu26A1oItR/cTsOweQBdgutD8G7jGm2PJ2n8oqUKIpIjd4HxTM8gvaT/F+AlmWnyWaIXKF95eNguFzTYFhNsdWu9kFgFlaFMANUH3D8wDLoLgSTSD2il8NCe2ZXQBxWDGwxmyUzzOMBZ7wy7Qb2K0wQfXjMOBuhlFpZtNty5sFaTQBuTusZdymeqs1SpYKcO9HkE3KbTd9WFijMHJQ5hBNEAYNq5Qd0dhyke0GiE4QzjqfW23mHT8Hl4DG4Lce3FPE7AtbBSdsbNqpoJLgYkRnNeUV+xwJDHTnUEkxHGbhBXUs5TjJjew/KPy94g+NRaIVRYmMXwAAAABJRU5ErkJggg==");
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABaUlEQVQ4T72U7VHCQBCGn90GtAMuNGCswFiBWIFQgWMFxg6wArECsQKhArEBiB1Qwa1zgQn5IAYcxv13k71n3919L8KJQ07M47+BzgG9TRfZ/JBuWhS6BJFHRJICYrZGZIz3z5Ct2+B7gG6I6kt+wewdkQVwjtkAkR5mC8yu26A1oItR/cTsOweQBdgutD8G7jGm2PJ2n8oqUKIpIjd4HxTM8gvaT/F+AlmWnyWaIXKF95eNguFzTYFhNsdWu9kFgFlaFMANUH3D8wDLoLgSTSD2il8NCe2ZXQBxWDGwxmyUzzOMBZ7wy7Qb2K0wQfXjMOBuhlFpZtNty5sFaTQBuTusZdymeqs1SpYKcO9HkE3KbTd9WFijMHJQ5hBNEAYNq5Qd0dhyke0GiE4QzjqfW23mHT8Hl4DG4Lce3FPE7AtbBSdsbNqpoJLgYkRnNeUV+xwJDHTnUEkxHGbhBXUs5TjJjew/KPy94g+NRaIVRYmMXwAAAABJRU5ErkJggg==);
 }
 .ol-ctx-menu-container li:hover.ol-ctx-menu-zoom-in {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABc0lEQVQ4T71U21ECQRDsJgGdvQDECMQIxAjECMQILCPwzAAjECIQI0AiEDPQAPaWCBhrcKHuCUcV5f7dY3v6tUscefHIePhfwBBCF8CZqRCReRs1tQxDCH1VfQLQz4EsSY4AvIjIsgm8AhhCGKrqa9zwrqoLAKckB5HtguR1E2gBMITQU9VPAD8GICIGtl3e+xHJBwBT59xtHcsCYJZlUwA3kcGHbfDep51OZywi3/acZZm9vyJ5WR5o38uACmDunNt6ZwAkUxFZDwghDFT1jeSjiJinhVUBVNVJkiTDKO8CQA+AsbNQ7s1Ps0VVn5MkSfcCtmBoDZi1Bdx4eJ7zbBolrwPy3o9J3rWSHPs3A1BbjVKlYBaIyDgvu9LDXDU2RTZmXVW1oKyLxRD+OrkOrJLy5mVM0iaftDhuhVbsvBzMglzKUNW6IV/OOWtCM8MmVvEkmbwt83LaB19fdgOtVquUZJeknaDdobTwbOcvBzPcN/AXH1DFFWP7u9oAAAAASUVORK5CYII=");
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABc0lEQVQ4T71U21ECQRDsJgGdvQDECMQIxAjECMQILCPwzAAjECIQI0AiEDPQAPaWCBhrcKHuCUcV5f7dY3v6tUscefHIePhfwBBCF8CZqRCReRs1tQxDCH1VfQLQz4EsSY4AvIjIsgm8AhhCGKrqa9zwrqoLAKckB5HtguR1E2gBMITQU9VPAD8GICIGtl3e+xHJBwBT59xtHcsCYJZlUwA3kcGHbfDep51OZywi3/acZZm9vyJ5WR5o38uACmDunNt6ZwAkUxFZDwghDFT1jeSjiJinhVUBVNVJkiTDKO8CQA+AsbNQ7s1Ps0VVn5MkSfcCtmBoDZi1Bdx4eJ7zbBolrwPy3o9J3rWSHPs3A1BbjVKlYBaIyDgvu9LDXDU2RTZmXVW1oKyLxRD+OrkOrJLy5mVM0iaftDhuhVbsvBzMglzKUNW6IV/OOWtCM8MmVvEkmbwt83LaB19fdgOtVquUZJeknaDdobTwbOcvBzPcN/AXH1DFFWP7u9oAAAAASUVORK5CYII=);
 }
 .ol-ctx-menu-zoom-out {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABU0lEQVQ4T72U7VECMRRFz3sNaAdkacC1AtcKxApcKnCsQOwAK3CtQKxAqEBsANYOqCDPyTIC+8WCw5jfybn33dxEOPGSE/P4b6BzQG89RT47ZJoWhy5B5BGRZAMxWyEyxvtnyFdt8AagS1F9KQ6YvSMyB84xGyDSw2yO2XUbtAJ0MaqfmH0XAPIA2y7tj4F7jAm2uG1yWQZKNEHkBu+Dg2njWBJNEbnC+8uaIFRuWfuG2QxbbrOrUd0A1Tc8D7AIjkur7DAAsVf8MiWMZ3ZR2m02LPIMscATfjHqBnY7TFD9OAy4zTCCPG/MUKMM5O6wkXFr9dZq7FQqqHk/hDzbFa73cFONTZFDdRyiCcKg5rrSiLaXkiI6RjjrfG6VzDs+B5eAxuDXeYpmNRGzL2wZ/wof+du4GNFpBVqqz5HA4MM5VEYYDrOs+1I6Q9u/4Q8O9wN/AGgWjBVqQjjgAAAAAElFTkSuQmCC");
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABU0lEQVQ4T72U7VECMRRFz3sNaAdkacC1AtcKxApcKnCsQOwAK3CtQKxAqEBsANYOqCDPyTIC+8WCw5jfybn33dxEOPGSE/P4b6BzQG89RT47ZJoWhy5B5BGRZAMxWyEyxvtnyFdt8AagS1F9KQ6YvSMyB84xGyDSw2yO2XUbtAJ0MaqfmH0XAPIA2y7tj4F7jAm2uG1yWQZKNEHkBu+Dg2njWBJNEbnC+8uaIFRuWfuG2QxbbrOrUd0A1Tc8D7AIjkur7DAAsVf8MiWMZ3ZR2m02LPIMscATfjHqBnY7TFD9OAy4zTCCPG/MUKMM5O6wkXFr9dZq7FQqqHk/hDzbFa73cFONTZFDdRyiCcKg5rrSiLaXkiI6RjjrfG6VzDs+B5eAxuDXeYpmNRGzL2wZ/wof+du4GNFpBVqqz5HA4MM5VEYYDrOs+1I6Q9u/4Q8O9wN/AGgWjBVqQjjgAAAAAElFTkSuQmCC);
 }
 .ol-ctx-menu-container li:hover.ol-ctx-menu-zoom-out {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABYklEQVQ4T72U4VHCQBCF36tA91KAWIFYgViBWIFYgWMFYgdYgVCBWAFSgdiBFpAsFWSdxcDkQoBkhnF/ZjbfvX377ogjF4/Mw/8CVbUD4MynEJF5k2lqFapqz8yeAPRKkCXJEYAXEVnugm8BVXVgZq/FD+9mtgBwSrJfqF2QvN4FjYCq2jWzTwA/DhARh20qTdMRyQcA0xDCbZ3KCJhl2RTATaHgo+6HLMv8+xXJy+qB3l8FGoB5CKHsXcRV1b6ZvZF8FBH3NKotoJlNkiQZFONdlLtJ3rufbouZPSdJMjwIbKDQEzBrClx7eC4i33Uepmk6JnnXaOQifzMAtdGoRApugYiMI1uqKkrRWAfZo9MxM1+UZzFewl8mN4nYdVM83L7BkwbXLUrF3sfBLQDQBbDy08x8vOohXyEE71lVq9emuEk+3gZa3XYroCvwFyjP8yHJDsnxwaU08GxvS2uFhw78BbzWrxXgMbsHAAAAAElFTkSuQmCC");
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABYklEQVQ4T72U4VHCQBCF36tA91KAWIFYgViBWIFYgWMFYgdYgVCBWAFSgdiBFpAsFWSdxcDkQoBkhnF/ZjbfvX377ogjF4/Mw/8CVbUD4MynEJF5k2lqFapqz8yeAPRKkCXJEYAXEVnugm8BVXVgZq/FD+9mtgBwSrJfqF2QvN4FjYCq2jWzTwA/DhARh20qTdMRyQcA0xDCbZ3KCJhl2RTATaHgo+6HLMv8+xXJy+qB3l8FGoB5CKHsXcRV1b6ZvZF8FBH3NKotoJlNkiQZFONdlLtJ3rufbouZPSdJMjwIbKDQEzBrClx7eC4i33Uepmk6JnnXaOQifzMAtdGoRApugYiMI1uqKkrRWAfZo9MxM1+UZzFewl8mN4nYdVM83L7BkwbXLUrF3sfBLQDQBbDy08x8vOohXyEE71lVq9emuEk+3gZa3XYroCvwFyjP8yHJDsnxwaU08GxvS2uFhw78BbzWrxXgMbsHAAAAAElFTkSuQmCC);
 }
 .layer-switcher {
   position: absolute;
@@ -8355,6 +8368,9 @@ fieldset[disabled] .btn-danger.active {
 }
 .layer-switcher.shown {
   overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100% - 5.5em);
 }
 .layer-switcher.shown.ol-control {
   background-color: transparent;
@@ -8374,7 +8390,7 @@ fieldset[disabled] .btn-danger.active {
   right: 2px;
   position: absolute;
   background-color: #eee;
-  margin: 0 1px;
+  margin: 1px;
 }
 .layer-switcher.shown button:focus,
 .layer-switcher.shown button:hover {

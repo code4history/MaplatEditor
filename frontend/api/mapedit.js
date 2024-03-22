@@ -10,7 +10,7 @@ const apis = {
     ipcRenderer.send('mapedit_updateTin', gcps, edges, index, bounds, strict, vertex);
   },
   async checkExtentMap(extent) {
-    ipcRenderer.send('mapedit_checkExtentMap', extent);
+    //ipcRenderer.send('mapedit_checkExtentMap', extent);
   },
   async getTmsListOfMapID(mapID) {
     return new Promise((res) => {

@@ -3,7 +3,7 @@ import bsn from 'bootstrap.native';
 import {polygon, booleanPointInPolygon} from '@turf/turf';
 import Map from "./model/map";
 import Vue from "vue";
-import ContextMenu from 'ol-contextmenu';
+import ContextMenu from './contextmenu/base';
 import Geocoder from 'ol-geocoder';
 import Tin from '@maplat/tin';
 import LayerSwitcher from "ol-layerswitcher/dist/ol-layerswitcher";
@@ -22,6 +22,7 @@ import {Vector as sourceVector} from "ol/source";
 import {Language} from './model/language';
 import Header from '../vue/header.vue';
 import roundTo from "round-to";
+import { createXYZ } from 'ol/tilegrid';
 
 function arrayRoundTo(array, decimal) {
   return array.map((item) => roundTo(item, decimal));
@@ -1308,9 +1309,10 @@ function mapObjectInit() {
             attr: tms.attr,
             maptype: 'base',
             url: tms.url,
-            maxZoom: tms.maxZoom
+            maxZoom: tms.maxZoom,
+            tileSize: tms.tileSize || 256
           }, {}) :
-          mapSourceFactory(tms.mapID, {});
+          mapSourceFactory(tms.mapID, { tileSize: tms.tileSize || 256 });
         return promise.then((source) => {
           const attr = langObj.translate(source.attr);
           source.setAttributions(attr);

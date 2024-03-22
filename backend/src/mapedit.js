@@ -48,7 +48,7 @@ const mapedit = {
         this.updateTin(event, gcps, edges, index, bounds, strict, vertex);
       });
       ipcMain.on('mapedit_checkExtentMap', (event, extent) => {
-        this.checkExtentMap(event, extent);
+        //this.checkExtentMap(event, extent);
       });
       ipcMain.on('mapedit_getTmsListOfMapID', async (event, mapID) => {
         const list = await this.getTmsListOfMapID(mapID);
@@ -411,7 +411,7 @@ const mapedit = {
     else return this.getTmsList();
   },
   async checkExtentMap(ev, extent) {
-    if (!extentCheck) {
+    /*if (!extentCheck) {
       if (!(extentBuffer && extentBuffer.reduce((ret, item, idx) => ret && (item === extent[idx]), true))) {
         extentCheck = true;
         extentBuffer = extent;
@@ -428,7 +428,7 @@ const mapedit = {
       }
     } else {
       extentCheck = extent;
-    }
+    }*/
   },
   async getWmtsFolder() {
     const saveFolder = settings.getSetting('saveFolder');

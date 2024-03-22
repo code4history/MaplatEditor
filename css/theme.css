@@ -3,7 +3,7 @@
 @import (less) url('../node_modules/bootstrap3/dist/css/bootstrap-theme.css');
 @import (less) url('../node_modules/ol/ol.css');
 @import (less) url('../node_modules/ol-geocoder/dist/ol-geocoder.css');
-@import (less) url('../node_modules/ol-contextmenu/dist/ol-contextmenu.css');
+@import (less) url('./contextmenu.css');
 @import (less) url('../node_modules/ol-layerswitcher/src/ol-layerswitcher.css');
 
 html {
