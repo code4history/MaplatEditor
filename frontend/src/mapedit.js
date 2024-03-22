@@ -1096,10 +1096,11 @@ function mapObjectInit() {
   // 起動時処理: 編集用地図の設定、絵地図側OpenLayersの設定ここから
   illstMap = new MaplatMap({
     div: 'illstMap',
-    interactions: interactionDefaults().extend([
+    interactions: interactionDefaults({ zoomDuration: 0 }).extend([
       new DragRotateAndZoom({
         condition: altKeyOnly
-      })
+      }),
+
     ]),
     controls: controlDefaults()
   });
@@ -1215,7 +1216,7 @@ function mapObjectInit() {
   // 起動時処理: 編集用地図の設定、ベースマップ側OpenLayersの設定ここから
   mercMap = new MaplatMap({
     div: 'mercMap',
-    interactions: interactionDefaults().extend([
+    interactions: interactionDefaults({ zoomDuration: 0 }).extend([
       new DragRotateAndZoom({
         condition: altKeyOnly
       })
