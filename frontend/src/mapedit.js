@@ -197,12 +197,10 @@ function homeToMarkers() {
     const homeSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
 x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve">
 <polygon x="0" y="0" points="10,0 20,10 17,10 17,20 3,20 3,10 0,10 10,0" stroke="#FF0000" fill="#FF0000" stroke-width="2"></polygon></svg>`;
-    const homeElement = new Image(); // eslint-disable-line no-undef
-    homeElement.src = `data:image/svg+xml,${encodeURIComponent(homeSVG)}`;
     const homeStyle = new Style({
       image: new Icon({
-        "img": homeElement,
-        "imgSize": [20, 20],
+        "src": `data:image/svg+xml,${encodeURIComponent(homeSVG)}`,
+        "size": [20, 20],
         "anchor": [0.5, 1.0]
       })
     });
@@ -239,19 +237,16 @@ viewBox="0 0 ${labelWidth} 20" enable-background="new 0 0 ${labelWidth} 20" xml:
 ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="${(i === targetIndex ? '#FF0000' : '#DEEFAE')}"
 stroke-width="2"></polygon>
 <text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${(i + 1)}</text></svg>`;
-
-    const imageElement = new Image(); // eslint-disable-line no-undef
-    imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
-
     const iconStyle = new Style({
       "image": new Icon({
-        "img": imageElement,
-        "imgSize":[labelWidth, 70],
+        "src": `data:image/svg+xml;charset=utf-8,${encodeURIComponent(iconSVG)}`,
+        "size":[labelWidth, 70],
         "anchor": [0.5, 1],
         "offset": [0, -50]
       })
     });
 
+    console.log(`gcpsToMarkers ${i}, ${gcp}, ${iconSVG}`);
     illstMap.setMarker(mapXyIllst, { gcpIndex: i }, iconStyle);
     mercMap.setMarker(gcp[1], { gcpIndex: i }, iconStyle);
   }
@@ -532,14 +527,10 @@ enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
 <polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
 ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="#FFCCCC" stroke-width="2"></polygon>
 <text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${number}</text></svg>`;
-
-    const imageElement = new Image(); // eslint-disable-line no-undef
-    imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
-
     const iconStyle = new Style({
       "image": new Icon({
-        "img": imageElement,
-        "imgSize":[labelWidth, 70],
+        "src": `data:image/svg+xml,${encodeURIComponent(iconSVG)}`,
+        "size":[labelWidth, 70],
         "anchor": [0.5, 1],
         "offset": [0, -50]
       })
@@ -631,13 +622,10 @@ async function onClick(evt) {
   const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
 x="0px" y="0px" width="10px" height="15px" viewBox="0 0 10 15" enable-background="new 0 0 10 15" xml:space="preserve">
 <polygon x="0" y="0" points="5,1 9,5 5,14 1,5 5,1" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon></svg>`;
-  const imageElement = new Image(); // eslint-disable-line no-undef
-  imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
-
   const style = new Style({
     "image": new Icon({
-      "img": imageElement,
-      "imgSize":[10, 15],
+      "src": `data:image/svg+xml,${encodeURIComponent(iconSVG)}`,
+      "size":[10, 15],
       "anchor": [0.5, 1]
     })
   });
@@ -732,13 +720,10 @@ function tinStyle(feature) {
   const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
 x="0px" y="0px" width="6px" height="6px" viewBox="0 0 6 6" enable-background="new 0 0 6 6" xml:space="preserve">
 <polygon x="0" y="0" points="3,0 6,3 3,6 0,3 3,0" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon></svg>`;
-  const imageElement = new Image(); // eslint-disable-line no-undef
-  imageElement.src = `data:image/svg+xml,${encodeURIComponent( iconSVG )}`;
-
   return new Style({
     "image": new Icon({
-      "img": imageElement,
-      "imgSize":[6, 6],
+      "src": `data:image/svg+xml,${encodeURIComponent(iconSVG)}`,
+      "size":[6, 6],
       "anchor": [0.5, 0.5]
     })
   });
