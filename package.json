@@ -27,7 +27,7 @@
     "clean-css": "^5.3.0",
     "core-js": "^3.22.7",
     "dotenv": "^16.0.1",
-    "electron": "^22.0.0",
+    "electron": "^22.3.24",
     "electron-builder": "^23.6.0",
     "eslint": "^7.32.0",
     "gulp": "^4.0.2",
@@ -79,5 +79,16 @@
     "vue": "^2.7.14",
     "vue-context-menu": "^2.0.6",
     "wookmark": "^2.2.0"
+  },
+  "overrides": {
+    "@babel/traverse": "7.23.2",
+    "glob-parent": "5.1.2",
+    "axios": "1.6.0",
+    "minimist": "1.2.8",
+    "minimatch": "3.0.5",
+    "http-cache-semantics": "4.1.1",
+    "json5": "1.0.2",
+    "browserify-sign": "4.2.3",
+    "app-builder-lib": "24.13.2"
   }
 }
