@@ -1,6 +1,8 @@
 import {app, BrowserWindow, ipcMain, session} from 'electron';
 import {join} from 'path';
 import fs from 'fs-extra';
+import openAboutWindow from 'about-window';
+import Settings from './settings'; 
 
 const isDev = isExistFile('.env');
 
@@ -51,6 +53,9 @@ app.whenReady().then(() => {
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit()
 });
+
+
+const menu = setupMenu();
 
 ipcMain.on('message', (event, message) => {
   console.log(message);
