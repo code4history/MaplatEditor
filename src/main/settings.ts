@@ -4,8 +4,7 @@ const defaultStoragePath = storage.getDefaultDataPath();
 import path from 'path';
 import { app, ipcMain } from 'electron';
 import fs from 'fs-extra';
-console.log(path.resolve(".")); // eslint-disable-line no-undef
-const tmsListDefault = fs.readJSONSync('./tms_list.json'); // eslint-disable-line no-undef
+const tmsListDefault = fs.readJSONSync(path.resolve(__dirname, '../../tms_list.json')); // eslint-disable-line no-undef
 import i18next, { i18n } from 'i18next';
 import Backend from 'i18next-fs-backend';
 let settings;
@@ -30,7 +29,6 @@ export default class Settings extends EventEmitter {
   translate?: (dataFragment: any) => string;
 
   static init() {
-    console.log("Settings.init");
     if (!settings) {
       settings = new Settings();
       ipcMain.on('settings_lang', async (ev) => {
@@ -75,8 +73,6 @@ export default class Settings extends EventEmitter {
     ]).then((res) => res[0]).catch((err) => console.error(err));
     this.defaultStorage().getAll((error, data) => {
       if (error) throw error;
-      console.log("Default Storage");
-
       if (Object.keys(data).length === 0) {
         this.json = {
           saveFolder: path.resolve(app.getPath('documents') + path.sep + app.getName())
@@ -93,7 +89,6 @@ export default class Settings extends EventEmitter {
             this.editorStorage().set('tmsList', [], {});
           }
           this.json.tmsList = tmsListDefault.concat(data);
-          console.log("ResolveEditorSetting");
           resolveEditorSetting();
         });
       });
@@ -107,7 +102,7 @@ export default class Settings extends EventEmitter {
         lng: lang,
         fallbackLng: 'en',
         backend: {
-          loadPath: `${__dirname}/../../locales/{{lng}}/{{ns}}.json` // eslint-disable-line no-undef
+          loadPath: path.join(__dirname, `../../locales/{{lng}}/{{ns}}.json`)
         }
       });
       i18nPromise.then((t) => {

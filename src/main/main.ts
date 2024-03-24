@@ -70,7 +70,6 @@ app.on('window-all-closed', function () {
 });
 
 app.on('ready', async () => { 
-  console.log("onReady");
   settings = await Settings.asyncInit();
   const menu = setupMenu();
   Menu.setApplicationMenu(menu);
