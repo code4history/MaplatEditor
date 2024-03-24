@@ -4,9 +4,10 @@ const defaultStoragePath = storage.getDefaultDataPath();
 import path from 'path';
 import { app, ipcMain } from 'electron';
 import fs from 'fs-extra';
-const tmsListDefault = fs.readJSONSync('../../tms_list.json'); // eslint-disable-line no-undef
-import i18next, { i18n } from 'i18next'; 
-import Backend from 'i18next-fs-backend'; 
+console.log(path.resolve(".")); // eslint-disable-line no-undef
+const tmsListDefault = fs.readJSONSync('./tms_list.json'); // eslint-disable-line no-undef
+import i18next, { i18n } from 'i18next';
+import Backend from 'i18next-fs-backend';
 let settings;
 let editorStoragePath;
 
@@ -29,6 +30,7 @@ export default class Settings extends EventEmitter {
   translate?: (dataFragment: any) => string;
 
   static init() {
+    console.log("Settings.init");
     if (!settings) {
       settings = new Settings();
       ipcMain.on('settings_lang', async (ev) => {
@@ -70,9 +72,10 @@ export default class Settings extends EventEmitter {
       new Promise((resolve) => {
         resolveEditorSetting = resolve;
       })
-    ]).then((res) => res[0]);
+    ]).then((res) => res[0]).catch((err) => console.error(err));
     this.defaultStorage().getAll((error, data) => {
       if (error) throw error;
+      console.log("Default Storage");
 
       if (Object.keys(data).length === 0) {
         this.json = {
@@ -90,6 +93,7 @@ export default class Settings extends EventEmitter {
             this.editorStorage().set('tmsList', [], {});
           }
           this.json.tmsList = tmsListDefault.concat(data);
+          console.log("ResolveEditorSetting");
           resolveEditorSetting();
         });
       });
@@ -111,7 +115,7 @@ export default class Settings extends EventEmitter {
         this.translate = (dataFragment) => {
           if (!dataFragment || typeof dataFragment != 'object') return dataFragment;
           const langs = Object.keys(dataFragment);
-          let key:string = langs.reduce((prev, curr) => {
+          let key: string = langs.reduce((prev, curr) => {
             if (curr === 'en' || !prev) {
               prev = dataFragment[curr];
             }
@@ -184,7 +188,7 @@ export default class Settings extends EventEmitter {
       const tmsListBase = this.json.tmsList;
       this.editorStorage().get(settingKey, {}, (error, data) => {
         let saveFlag = false;
-        const tmsList:any[] = [];
+        const tmsList: any[] = [];
         tmsListBase.map((tms) => {
           if (tms.always) {
             tmsList.push(tms);
@@ -243,6 +247,6 @@ export default class Settings extends EventEmitter {
     });
   }
 }
-Settings.init();
+//Settings.init();
 
 module.exports = Settings; // eslint-disable-line no-undef
