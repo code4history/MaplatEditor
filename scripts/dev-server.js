@@ -74,6 +74,7 @@ function restartElectron() {
 
 function copyStaticFiles() {
     copy('static');
+    copyPublic();
 }
 
 /*
@@ -84,6 +85,14 @@ function copy(path) {
     FileSystem.cpSync(
         Path.join(__dirname, '..', 'src', 'main', path),
         Path.join(__dirname, '..', 'build', 'main', path),
+        { recursive: true }
+    );
+}
+
+function copyPublic(path = '') {
+    FileSystem.cpSync(
+        Path.join(__dirname, '..', 'public', path),
+        Path.join(__dirname, '..', 'build', 'main', 'public', path),
         { recursive: true }
     );
 }
@@ -104,15 +113,26 @@ async function start() {
     copyStaticFiles();
     startElectron();
 
-    const path = Path.join(__dirname, '..', 'src', 'main');
-    Chokidar.watch(path, {
-        cwd: path,
+    const logicPath = Path.join(__dirname, '..', 'src', 'main');
+    Chokidar.watch(logicPath, {
+        cwd: logicPath,
     }).on('change', (path) => {
-        console.log(Chalk.blueBright(`[electron] `) + `Change in ${path}. reloading... 🚀`);
+        console.log(Chalk.blueBright(`[electron] `) + `Change in logic file: ${path}. reloading... 🚀`);
 
         if (path.startsWith(Path.join('static', '/'))) {
             copy(path);
         }
+
+        restartElectron();
+    });
+
+    const publicPath = Path.join(__dirname, '..', 'public');
+    Chokidar.watch(publicPath, {
+        cwd: publicPath,
+    }).on('change', (path) => {
+        console.log(Chalk.blueBright(`[electron] `) + `Change in public file: ${path}. reloading... 🚀`);
+
+        copyPublic(path);
 
         restartElectron();
     });

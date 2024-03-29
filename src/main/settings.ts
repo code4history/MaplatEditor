@@ -4,11 +4,12 @@ const defaultStoragePath = storage.getDefaultDataPath();
 import path from 'path';
 import { app, ipcMain } from 'electron';
 import fs from 'fs-extra';
-const tmsListDefault = fs.readJSONSync(path.resolve(__dirname, '../../tms_list.json')); // eslint-disable-line no-undef
 import i18next, { i18n } from 'i18next';
 import Backend from 'i18next-fs-backend';
 let settings;
 let editorStoragePath;
+
+const tmsListDefault = fs.readJSONSync(path.join(app.getAppPath(), 'public', 'tms_list.json'));
 
 const protect = [
   'tmpFolder',
@@ -98,11 +99,12 @@ export default class Settings extends EventEmitter {
 
       const lang = this.json.lang;
       this.i18n = i18next.use(Backend);
+      const localePath = path.join(app.getAppPath(), 'public', 'locales', '{{lng}}', '{{ns}}.json');
       const i18nPromise = this.i18n.init({
         lng: lang,
         fallbackLng: 'en',
         backend: {
-          loadPath: path.join(__dirname, `../../locales/{{lng}}/{{ns}}.json`)
+          loadPath: localePath
         }
       });
       i18nPromise.then((t) => {

@@ -1,0 +1,36 @@
+元設計
+* main
+  - original
+    ./src/main -- logic
+    ./src/main/static/* -- static
+  - development
+    ./build/main -- logic 
+    ./build/main/main.js -- package.json/main
+    ./build/main -- base (default)
+    ./build/main/static/* -- static
+  - deployment
+    ./build/main -- logic 
+    ./build/main/main.js -- package.json/main
+    ./ -- base
+    ./static/* -- static
+* renderer
+  - original
+    ./src/renderer -- logic
+    ./public/* -- static
+  - development
+    ./build/renderer -- logic
+    ./build/renderer/index.html -- dev-server root is ./build/renderer
+    http://localhost:port/ -- src/main/main.ts
+    http://localhost:port/* -- static
+  - deployment
+    ./renderer -- logic
+    ./renderer/* -- static
+
+Solution -- main側でも、./publicをstatic相当にする
+* main
+  - original
+    ./public/* -- static
+  - development
+    ./build/main/public/* -- static
+  - deployment
+    ./public/* -- static
