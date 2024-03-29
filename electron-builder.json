@@ -1,4 +1,5 @@
 {
+    "asar": true,
     "appId": "com.electron.app",
     "directories": {
         "output": "dist"

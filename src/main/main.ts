@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain, session, Menu} from 'electron';
+import {app, BrowserWindow, ipcMain, session, Menu, protocol} from 'electron';
 import path from 'path';
 import fs from 'fs-extra';
 import openAboutWindow from 'about-window';
@@ -40,11 +40,17 @@ function createWindow () {
     mainWindow.loadURL(`http://localhost:${rendererPort}`);
   }
   else {
-    mainWindow.loadFile(path.join(app.getAppPath(), 'renderer', 'index.html'));
+    console.log(path.join(app.getAppPath(), 'renderer', 'index.html'));
+    mainWindow.loadFile(path.join('.', 'renderer', 'index.html'));
   }
 }
 
 app.whenReady().then(async () => {
+  protocol.registerFileProtocol('file', (request, callback) => {
+    const pathname = decodeURI(request.url.replace('file:///', ''));
+    callback(pathname);
+  });
+
   createWindow();
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {

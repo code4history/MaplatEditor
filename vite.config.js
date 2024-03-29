@@ -8,14 +8,14 @@ const { defineConfig } = require('vite');
  */
 const config = defineConfig({
     root: Path.join(__dirname, 'src', 'renderer'),
-    publicDir: 'public',
+    publicDir: Path.join(__dirname, 'public'),
     server: {
         port: 8080,
     },
     open: false,
     build: {
         outDir: Path.join(__dirname, 'build', 'renderer'),
-        emptyOutDir: true,
+        emptyOutDir: false,
     },
     plugins: [vuePlugin()],
     resolve: {
