@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "about-window": "^1.15.2",
+    "bootstrap3": "^3.3.5",
     "electron-json-storage": "^4.6.0",
     "fs-extra": "^11.2.0",
     "i18next": "^23.10.1",
