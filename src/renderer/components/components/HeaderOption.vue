@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, defineProps } from 'vue';
 const props = defineProps<{
   current: string;
   target: string;
@@ -8,8 +7,9 @@ const props = defineProps<{
 </script>
 
 <template>
-  <li v-if="current == target" class="active"><a href="#">{{ title }}</a></li>
-  <li v-else><a v-bind:href="target">{{ title }}</a></li>
+  <li v-if="current == target" class="active"><router-link v-bind:to="target">{{ title }}</router-link></li>
+  <li v-else><router-link v-bind:to="target">{{ title }}</router-link>
+  </li>
 </template>
 
 <style>

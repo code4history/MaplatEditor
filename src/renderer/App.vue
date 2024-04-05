@@ -55,24 +55,23 @@ const target0_ = computed(() => {
       </div>
       <div id="navbar" class="navbar-collapse collapse">
         <ul class="nav navbar-nav">
-          <component :is="header_option" v-bind:current="current" v-bind:target="target0_"
+          <component :is="header_option" v-bind:current="current" target="/"
             v-bind:title="$t('navbar.edit_map')">
           </component>
-          <component :is="header_option" v-bind:current="current" target="applist.html"
+          <component :is="header_option" v-bind:current="current" target="/edit"
             v-bind:title="$t('navbar.edit_app')">
           </component>
-          <component :is="header_option" v-bind:current="current" target="settings.html"
+          <component :is="header_option" v-bind:current="current" target="/edit"
             v-bind:title="$t('navbar.settings')">
           </component>
         </ul>
       </div><!--/.nav-collapse -->
     </div>
   </nav>
+  <router-view />
 </template>
 
 <style>
-@import url('../../node_modules/bootstrap3/dist/css/bootstrap.css');
-@import url('styles/non-responsive.css');
 
 .container {
   width: auto;

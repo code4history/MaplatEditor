@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from './components/pages/Home.vue'
 import Edit from './components/pages/Edit.vue'
+//import { pathToRegexp } from 'path-to-regexp'
 
 const routes = [
-  { path: '/', name: 'Home', component: Home },
+  { path: '/', alias: '*', name: 'Home', component: Home },
   { path: '/edit', name: 'Edit', component: Edit },
 ]
 
