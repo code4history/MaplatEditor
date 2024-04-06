@@ -1,15 +1,14 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import Home from './components/pages/Home.vue'
-import Edit from './components/pages/Edit.vue'
-//import { pathToRegexp } from 'path-to-regexp'
+import { createRouter, createWebHashHistory } from 'vue-router'
+import MapEdit from './components/pages/MapEdit.vue'
+import MapList from './components/pages/MapList.vue'
 
 const routes = [
-  { path: '/', alias: '*', name: 'Home', component: Home },
-  { path: '/edit', name: 'Edit', component: Edit },
+  { path: '/', name: 'MapList', component: MapList },
+  { path: '/edit', name: 'MapEdit', component: MapEdit },
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
 })
 
