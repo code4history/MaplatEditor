@@ -24,10 +24,10 @@ const route = useRoute()
           <component :is="header_option" v-bind:current="current" target="/"
             v-bind:title="$t('navbar.edit_map')">
           </component>
-          <component :is="header_option" v-bind:current="current" target="/edit#1?edit=1"
+          <component :is="header_option" v-bind:current="current" target="/edit"
             v-bind:title="$t('navbar.edit_app')">
           </component>
-          <component :is="header_option" v-bind:current="current" target="/edit#2"
+          <component :is="header_option" v-bind:current="current" target="/settings"
             v-bind:title="$t('navbar.settings')">
           </component>
         </ul>

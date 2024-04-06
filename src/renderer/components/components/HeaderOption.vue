@@ -5,7 +5,9 @@ const props = defineProps<{
   title: string;
 }>();
 const route = useRoute();
-const isCurrentPath = (path: string) => route.path === path;
+const isCurrentPath = (path: string) => {
+  return route.path === path;
+}
 </script>
 
 <template>
@@ -15,4 +17,8 @@ const isCurrentPath = (path: string) => route.path === path;
 </template>
 
 <style>
+.navbar-inverse .navbar-nav > li > a.router-link-active {
+    color: #fff;
+    background-color: #080808;
+}
 </style>
