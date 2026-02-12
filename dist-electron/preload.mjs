@@ -20,3 +20,23 @@ electron.contextBridge.exposeInMainWorld("ipcRenderer", {
   // You can expose other APTs you need here.
   // ...
 });
+electron.contextBridge.exposeInMainWorld("settings", {
+  get: (key) => electron.ipcRenderer.invoke("settings:get", key),
+  set: (key, value) => electron.ipcRenderer.invoke("settings:set", key, value),
+  showSaveFolderDialog: () => electron.ipcRenderer.invoke("settings:select-folder")
+});
+electron.contextBridge.exposeInMainWorld("maplist", {
+  request: (query, page) => electron.ipcRenderer.invoke("maplist:request", query, page),
+  on: (channel, listener) => {
+    electron.ipcRenderer.on(channel, (event, ...args) => listener(event, ...args));
+  },
+  off: (channel, listener) => {
+    electron.ipcRenderer.removeListener(channel, listener);
+  }
+});
+electron.contextBridge.exposeInMainWorld("versions", {
+  node: process.versions.node,
+  chrome: process.versions.chrome,
+  electron: process.versions.electron,
+  v8: process.versions.v8
+});

@@ -4,19 +4,34 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "chcp 65001 && vite",
     "build": "vue-tsc && vite build && electron-builder",
     "preview": "vite preview"
   },
   "dependencies": {
     "@maplat/core": "^0.13.0",
+    "@maplat/transform": "^0.4.1",
+    "@popperjs/core": "^2.11.8",
+    "@seald-io/nedb": "^4.1.2",
+    "@types/geojson": "^7946.0.16",
+    "bootstrap": "^5.3.8",
+    "electron-store": "^11.0.2",
+    "fs-extra": "^11.3.3",
+    "i18next": "^25.8.5",
+    "i18next-http-backend": "^3.0.2",
+    "i18next-vue": "^5.4.0",
+    "jimp": "^1.6.0",
     "ol": "^10.7.0",
-    "vue": "^3.4.21"
+    "vue": "^3.4.21",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/nedb": "^1.8.16",
     "@vitejs/plugin-vue": "^5.0.4",
     "electron": "^30.0.1",
     "electron-builder": "^24.13.3",
+    "sass": "^1.97.3",
     "typescript": "^5.2.2",
     "vite": "^5.1.6",
     "vite-plugin-electron": "^0.28.6",

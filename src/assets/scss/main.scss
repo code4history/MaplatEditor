@@ -1,0 +1,19 @@
+// Import Bootstrap 5
+@import "bootstrap/scss/bootstrap";
+
+// Custom Overrides (Migration from legacy theme)
+// TODO: Port necessary styles from maplateditor.css using BS5 utilities where possible
+
+// Global styles
+html, body {
+  height: 100%;
+}
+
+body {
+  /* padding-top: 56px; Removed to prevent double offset with App.vue */
+}
+
+/* Helper to emulate legacy .h100 */
+.h-100-legacy {
+    height: 100%;
+}
