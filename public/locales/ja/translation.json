@@ -1,5 +1,10 @@
 {
+  "app": {
+    "title": "Maplat Editor"
+  },
   "common": {
+    "back": "戻る",
+    "settings": "設定",
     "reset": "リセット",
     "save": "保存",
     "save_with_english": "保存(Save)",
@@ -20,18 +25,25 @@
     "settings": "設定(Settings)"
   },
   "settings": {
+    "title": "設定",
     "basic_settings": "基本設定",
     "base_map": "ベースマップ設定",
     "original_map": "オリジナル地図設定",
     "switch_lang": "言語切り替え(Switch Language)",
     "data_folder": "データフォルダ",
     "specify_data_folder": "データフォルダを指定してください。",
-    "confirm_close_no_save": "設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?"
+    "confirm_close_no_save": "設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?",
+    "select": "選択",
+    "language": "言語",
+    "theme": "テーマ"
   },
   "maplist": {
+    "title": "地図一覧",
+    "create_new": "新規作成",
     "new_create": "新規作成",
     "delete_error": "削除が失敗しました。",
     "delete_confirm": "{{name}}を削除しますか?\n(この処理は元に戻せません)",
+    "confirm_delete": "本当に削除しますか？",
     "delete_menu": "削除メニュー",
     "delete_item": "{{name}}を削除",
     "migrating": "データベース移行中...",
@@ -40,7 +52,15 @@
     "deleted_old": "旧データファイル削除完了",
     "migration_confirm": "旧仕様の地図データファイルがあります。\nデータベースへの移行を行いますか?",
     "delete_old_confirm": "新仕様へのデータ移行が完了しました。\n旧仕様のデータファイルを削除しますか?",
-    "search_placeholder": "検索条件を入力してください"
+    "search_placeholder": "検索条件を入力してください",
+    "id": "ID",
+    "name": "地図名",
+    "era": "時代",
+    "description": "説明",
+    "last_modified": "最終更新日",
+    "action": "操作",
+    "edit": "編集",
+    "delete": "削除"
   },
   "dataio": {
     "import_map_data": "地図データ入力",
@@ -73,6 +93,17 @@
     "csv_override_confirm": "GCPは既に登録済みです。CSVを読み込むとGCPはリセットされますが、よろしいですか?"
   },
   "mapedit": {
+    "title": "地図編集",
+    "metadata": "メタデータ",
+    "gcp": "GCP編集",
+    "data_io": "データ入出力",
+    "base_map": "ベースマップ",
+    "illustrated_map": "絵地図",
+    "map_title": "地図タイトル",
+    "map_official_title": "正式名称",
+    "map_license": "ライセンス",
+    "map_note": "備考",
+    "save": "保存",
     "line_selected_already": "その対応線は指定済です。",
     "edit_metadata": "メタデータ編集",
     "edit_gcp": "対応点編集",

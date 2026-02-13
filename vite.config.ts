@@ -3,10 +3,21 @@ import path from 'node:path'
 import electron from 'vite-plugin-electron/simple'
 import vue from '@vitejs/plugin-vue'
 
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
+    nodePolyfills({
+      include: ['path', 'stream', 'util', 'url', 'http', 'https', 'zlib', 'events', 'string_decoder', 'punycode', 'buffer', 'assert', 'process', 'timers', 'fs', 'net', 'tls', 'child_process'],
+      globals: {
+        process: true,
+        Buffer: true,
+        global: true,
+      },
+      protocolImports: true,
+    }),
     electron({
       main: {
         // Shortcut of `build.lib.entry`.
@@ -26,4 +37,11 @@ export default defineConfig({
         : {},
     }),
   ],
+  resolve: {
+    alias: {
+      '@maplat/core/src': path.resolve(__dirname, 'node_modules/@maplat/core/src'),
+      'i18next-http-backend': path.resolve(__dirname, 'node_modules/i18next-http-backend/esm/index.js'),
+      'cross-fetch': path.resolve(__dirname, 'src/utils/cross-fetch-sham.ts')
+    }
+  }
 })

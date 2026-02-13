@@ -3,6 +3,7 @@ import SettingsService from '../services/SettingsService';
 import MapDataService from '../services/MapDataService';
 
 export function registerSettingsHandlers() {
+  ipcMain.removeHandler('settings:get'); // Remove if exists (idempotent)
   ipcMain.handle('settings:get', (_, key: string) => {
     return SettingsService.get(key);
   });

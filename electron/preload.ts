@@ -39,9 +39,17 @@ contextBridge.exposeInMainWorld('maplist', {
   }
 })
 
+contextBridge.exposeInMainWorld('mapedit', {
+  request: (mapID: string) => ipcRenderer.invoke('mapedit:request', mapID),
+})
+
 contextBridge.exposeInMainWorld('versions', {
   node: process.versions.node,
   chrome: process.versions.chrome,
   electron: process.versions.electron,
   v8: process.versions.v8
+})
+
+contextBridge.exposeInMainWorld('dialog', {
+  showMessageBox: (options: any) => ipcRenderer.invoke('dialog:showMessageBox', options),
 })

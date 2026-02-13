@@ -22,6 +22,10 @@ class MapDataService {
     };
   }
 
+  async getDBInstance(): Promise<Datastore> {
+    return this.getDB();
+  }
+
   private async getDB(): Promise<Datastore> {
     if (this.db) return this.db;
     const { dbFile } = this.folders;

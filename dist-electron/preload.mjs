@@ -34,9 +34,15 @@ electron.contextBridge.exposeInMainWorld("maplist", {
     electron.ipcRenderer.removeListener(channel, listener);
   }
 });
+electron.contextBridge.exposeInMainWorld("mapedit", {
+  request: (mapID) => electron.ipcRenderer.invoke("mapedit:request", mapID)
+});
 electron.contextBridge.exposeInMainWorld("versions", {
   node: process.versions.node,
   chrome: process.versions.chrome,
   electron: process.versions.electron,
   v8: process.versions.v8
+});
+electron.contextBridge.exposeInMainWorld("dialog", {
+  showMessageBox: (options) => electron.ipcRenderer.invoke("dialog:showMessageBox", options)
 });

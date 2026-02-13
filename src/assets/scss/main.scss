@@ -1,5 +1,13 @@
 // Import Bootstrap 5
 @import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+// OpenLayers & Plugins
+@import "ol/ol.css";
+@import "ol-geocoder/dist/ol-geocoder.css";
+@import "ol-geocoder/dist/ol-geocoder.css";
+// @import "ol-contextmenu/dist/ol-contextmenu.css"; // CSS is injected by JS in v6+
+@import "ol-layerswitcher/dist/ol-layerswitcher.css";
 
 // Custom Overrides (Migration from legacy theme)
 // TODO: Port necessary styles from maplateditor.css using BS5 utilities where possible

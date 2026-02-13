@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, Menu, dialog } from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -72,10 +72,29 @@ app.on('activate', () => {
 
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerMapHandlers } from './ipc/maps'
+import { registerMapEditHandlers } from './ipc/mapedit'
+
+import { ipcMain } from 'electron'
 
 app.whenReady().then(() => {
+  // Remove existing handlers to avoid "Attempted to register a second handler" error during HMR
+  ipcMain.removeHandler('settings:get')
+  ipcMain.removeHandler('settings:set')
+  ipcMain.removeHandler('settings:select-data-folder')
+  ipcMain.removeHandler('map:list')
+  ipcMain.removeHandler('map:get')
+  ipcMain.removeHandler('mapedit:request')
+  ipcMain.removeHandler('mapedit:request')
+  ipcMain.removeHandler('mapedit:get-tms-list')
+  ipcMain.removeHandler('dialog:showMessageBox')
+
+  ipcMain.handle('dialog:showMessageBox', async (event, options) => {
+    return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
+  })
+
   registerSettingsHandlers()
   registerMapHandlers()
+  registerMapEditHandlers()
   createWindow()
   setupMenu()
 })
@@ -180,16 +199,14 @@ function setupMenu() {
     }
   ]
   
-  // Add Dev menu if in development
-  if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL) {
-    template.push({
-      label: t('menu.development'),
-      submenu: [
-        { role: 'reload', label: t('menu.reload') },
-        { role: 'toggleDevTools', label: t('menu.toggleDevTools') }
-      ]
-    })
-  }
+  // Add Dev menu
+  template.push({
+    label: t('menu.development'),
+    submenu: [
+      { role: 'reload', label: t('menu.reload') },
+      { role: 'toggleDevTools', label: t('menu.toggleDevTools') }
+    ]
+  })
 
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)

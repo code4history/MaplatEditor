@@ -10,10 +10,13 @@ interface AppSettings {
   [key: string]: any;
 }
 
+// @ts-ignore
+import defaultTmsList from '../tms_list.json';
+
 const defaultSettings: AppSettings = {
   lang: 'ja',
   saveFolder: path.join(app.getPath('documents'), app.getName()),
-  tmsList: []
+  tmsList: defaultTmsList
 };
 
 import { EventEmitter } from 'events';
