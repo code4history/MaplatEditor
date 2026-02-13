@@ -11,16 +11,24 @@ import 'ol-geocoder/dist/ol-geocoder.min.css';
 import { MaplatMap } from '@maplat/core/src/map_ex';
 // @ts-ignore
 import { mapSourceFactory } from '@maplat/core/src/source_ex';
-import { defaults as interactionDefaults } from 'ol/interaction';
+
+import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Drag } from 'ol/interaction';
 import { defaults as controlDefaults } from 'ol/control';
 import { altKeyOnly } from 'ol/events/condition';
-import { DragRotateAndZoom } from 'ol/interaction';
+import { Tile, Group } from 'ol/layer';
+import LayerSwitcher from 'ol-layerswitcher';
+import 'ol-layerswitcher/dist/ol-layerswitcher.css';
+import { Vector as VectorLayer } from 'ol/layer';
+import { Vector as VectorSource } from 'ol/source';
+import { Style, Stroke, Fill, Icon } from 'ol/style';
+import { LineString, Point } from 'ol/geom';
+import { transform } from 'ol/proj';
+import { getCenter } from 'ol/extent';
+import { Projection } from 'ol/proj';
+import { XYZ } from 'ol/source';
 
 const { t } = useTranslation();
 const router = useRouter();
-
-// ... imports
-const activeTab = ref('metadata');
 const mapID = ref('oba'); // Default or get from route?
 const mapData = ref<any>({});
 const originalMapData = ref<any>({}); // Store as deep clone for robust comparison
@@ -253,7 +261,7 @@ onMounted(async () => {
     }
 });
 
-const initMaps = () => {
+const initMaps = async () => {
     // 1. Initialize Illustrated Map (LEFT side)
     illstMap = new MaplatMap({
         div: 'illstMap',
@@ -293,11 +301,9 @@ const initMaps = () => {
     mercView.setCenter([15545266.36, 4253560.83]); // Tokyo
     mercView.setZoom(5);
 
-    // Initial Base Map
-    changeBaseMap();
+    // Initial Base Map setup
+    await setupBaseMaps();
 };
-
-import LayerSwitcher from 'ol-layerswitcher';
 
 // ... (imports)
 
@@ -332,40 +338,103 @@ const loadMapTiles = async () => {
     }
 };
 
-const changeBaseMap = async () => {
+import { Tile, Group } from 'ol/layer';
+
+const setupBaseMaps = async () => {
     if (!mercMap) return;
-    
-    const targetID = currentBaseMapID.value;
-    const targetMap = baseMapList.value.find(m => m.mapID === targetID);
-    
-    if (targetMap) {
+
+    // Populate baseMapList if empty
+    if (baseMapList.value.length === 0) {
+        // 1. Try fetching tms_list.json from root (public)
         try {
-            let source;
-            if (['osm', 'gsi', 'gsi_ortho'].includes(targetMap.mapID)) {
-                source = await mapSourceFactory(targetMap.mapID, {});
-            } else {
-                 // Generic XYZ or TMS from tmsList
-                 source = await mapSourceFactory({
-                     mapID: targetMap.mapID || 'custom',
-                     url: targetMap.url,
-                     attr: targetMap.attr,
-                     maptype: 'base', // or 'xyz'
-                     maxZoom: targetMap.maxZoom || 18,
-                     minZoom: targetMap.minZoom || 0
-                 }, {});
-            }
-            
-            if (source) {
-                // For Mercator map (which is a MaplatMap), exchangeSource might be the way?
-                // Or standard OL setSource.
-                // MaplatMap.exchangeSource replaces the first layer.
-                mercMap.exchangeSource(source);
-                mercSource = source;
+            const response = await fetch('/tms_list.json');
+            if (response.ok) {
+                const json = await response.json();
+                if (Array.isArray(json)) {
+                    baseMapList.value = json.reverse();
+                }
             }
         } catch (e) {
-            console.error("Failed to change base map:", e);
+            console.log("No tms_list.json found at root or failed to load.", e);
+        }
+
+        // 2. Try legacy window.mapedit API if available and list is still empty or we want to merge?
+        // Legacy behavior: settings.js loads tms_list.json AND user settings.
+        // For now, if we found root tms_list.json, we use it. If not, we try legacy API.
+        
+        if (baseMapList.value.length === 0 && window.mapedit && window.mapedit.getTmsListOfMapID) {
+            try {
+                // @ts-ignore
+                const list = await window.mapedit.getTmsListOfMapID(mapID.value);
+                 if (list && list.length > 0) {
+                    baseMapList.value = list.reverse();
+                }
+            } catch (e) {
+                console.error("Failed to fetch base map list via legacy API:", e);
+            }
+        }
+        
+        // 3. Fallback to defaults
+        if (baseMapList.value.length === 0) {
+            baseMapList.value = [
+                { mapID: 'osm', title: 'OpenStreetMap', maxZoom: 18 },
+                { mapID: 'gsi', title: 'GSI Maps', maxZoom: 18 },
+                { mapID: 'gsi_ortho', title: 'GSI Ortho', maxZoom: 18 }
+            ].reverse();
         }
     }
+
+    const layers = await Promise.all(baseMapList.value.map(async (tms) => {
+        let source;
+        try {
+            if (['osm', 'gsi', 'gsi_ortho'].includes(tms.mapID)) {
+                source = await mapSourceFactory(tms.mapID, {});
+            } else {
+                 source = await mapSourceFactory({
+                     mapID: tms.mapID || 'custom',
+                     url: tms.url,
+                     attr: tms.attr,
+                     maptype: 'base',
+                     maxZoom: tms.maxZoom || 18,
+                     minZoom: tms.minZoom || 0
+                 }, {});
+            }
+        } catch (e) {
+            console.error(`Failed to create source for ${tms.mapID}:`, e);
+            return null;
+        }
+
+        if (!source) return null;
+
+        // Legacy: source.setAttributions(attr) - mapSourceFactory handles this usually.
+        
+        return new Tile({
+            source: source,
+            properties: {
+                title: tms.title,
+                type: 'base'
+            },
+            visible: tms.mapID === (currentBaseMapID.value || 'osm')
+        });
+    }));
+
+    const validLayers = layers.filter(l => l !== null);
+
+    const layerGroup = new Group({
+        properties: {
+            title: t('mapedit.control_basemap') || 'Base Maps',
+        },
+        layers: validLayers
+    });
+
+    const mapLayers = mercMap.getLayers();
+    // Replace index 0 (default base layer) with our Group
+    mapLayers.setAt(0, layerGroup);
+};
+
+const changeBaseMap = async () => {
+    // Deprecated: LayerSwitcher handles switching.
+    // We might want to update currentBaseMapID if we listen to layer changes, but strictly speaking checking visual is enough.
 };
 
 const saveMap = () => {
