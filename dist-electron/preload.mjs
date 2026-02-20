@@ -35,7 +35,8 @@ electron.contextBridge.exposeInMainWorld("maplist", {
   }
 });
 electron.contextBridge.exposeInMainWorld("mapedit", {
-  request: (mapID) => electron.ipcRenderer.invoke("mapedit:request", mapID)
+  request: (mapID) => electron.ipcRenderer.invoke("mapedit:request", mapID),
+  getTmsListOfMapID: (mapID) => electron.ipcRenderer.invoke("mapedit:get-tms-list", mapID)
 });
 electron.contextBridge.exposeInMainWorld("versions", {
   node: process.versions.node,

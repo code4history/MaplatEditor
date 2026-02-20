@@ -14369,6 +14369,64 @@ class SettingsService extends EventEmitter$1 {
     }
     return null;
   }
+  async getTmsListOfMapID(mapID) {
+    return new Promise((resolve2) => {
+      const tmsListBase = [...defaultTmsList];
+      const saveFolder = this.store.get("saveFolder");
+      const settingsDir = path$e.join(saveFolder, "settings");
+      let userListFromStore = this.store.get("tmsList") || [];
+      if (!Array.isArray(userListFromStore)) {
+        userListFromStore = [];
+      }
+      let mergedTmsList = tmsListBase.concat(userListFromStore);
+      try {
+        const userTmsListPath = path$e.join(settingsDir, "tmsList.json");
+        if (fs$1.existsSync(userTmsListPath)) {
+          const userTmsList = fs$1.readJsonSync(userTmsListPath);
+          if (Array.isArray(userTmsList)) {
+            mergedTmsList = tmsListBase.concat(userTmsList);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to read user tmsList.json", e);
+      }
+      let fileData = {};
+      const mapSpecificConfigPath = path$e.join(settingsDir, `tmsList.${mapID}.json`);
+      let saveFlag = false;
+      try {
+        if (fs$1.existsSync(mapSpecificConfigPath)) {
+          fileData = fs$1.readJsonSync(mapSpecificConfigPath) || {};
+        }
+      } catch (e) {
+        console.error(`Failed to read ${mapSpecificConfigPath}`, e);
+      }
+      const tmsList = [];
+      mergedTmsList.forEach((tms) => {
+        if (tms.always) {
+          tmsList.push(tms);
+          return;
+        }
+        const tmsMapID = tms.mapID;
+        let flag = fileData[tmsMapID];
+        if (flag == null) {
+          flag = fileData[tmsMapID] = true;
+          saveFlag = true;
+        }
+        if (flag) {
+          tmsList.push(tms);
+        }
+      });
+      if (saveFlag) {
+        try {
+          fs$1.ensureDirSync(settingsDir);
+          fs$1.writeJsonSync(mapSpecificConfigPath, fileData, { spaces: 2 });
+        } catch (e) {
+          console.error(`Failed to write to ${mapSpecificConfigPath}`, e);
+        }
+      }
+      resolve2(tmsList);
+    });
+  }
 }
 const SettingsService$1 = new SettingsService();
 var model$4 = {};
@@ -18265,7 +18323,7 @@ function registerSettingsHandlers() {
   ipcMain$1.handle("settings:get", (_, key) => {
     return SettingsService$1.get(key);
   });
-  ipcMain$1.handle("settings:set", async (event, key, value) => {
+  ipcMain$1.handle("settings:set", async (_, key, value) => {
     SettingsService$1.set(key, value);
     if (key === "saveFolder") {
       await MapDataService$1.switchDataFolder();
@@ -18277,6 +18335,9 @@ function registerSettingsHandlers() {
   ipcMain$1.handle("settings:select-folder", async (event) => {
     const window2 = BrowserWindow.fromWebContents(event.sender);
     return await SettingsService$1.showSaveFolderDialog(window2);
+  });
+  ipcMain$1.handle("mapedit:get-tms-list", async (_, mapID) => {
+    return await SettingsService$1.getTmsListOfMapID(mapID);
   });
 }
 function registerMapHandlers() {

@@ -8,7 +8,7 @@ export function registerSettingsHandlers() {
     return SettingsService.get(key);
   });
 
-  ipcMain.handle('settings:set', async (event, key: string, value: any) => {
+  ipcMain.handle('settings:set', async (_, key: string, value: any) => {
     SettingsService.set(key, value);
     if (key === 'saveFolder') {
         await MapDataService.switchDataFolder();
@@ -22,5 +22,9 @@ export function registerSettingsHandlers() {
   ipcMain.handle('settings:select-folder', async (event) => {
     const window = BrowserWindow.fromWebContents(event.sender);
     return await SettingsService.showSaveFolderDialog(window);
+  });
+
+  ipcMain.handle('mapedit:get-tms-list', async (_, mapID: string) => {
+    return await SettingsService.getTmsListOfMapID(mapID);
   });
 }

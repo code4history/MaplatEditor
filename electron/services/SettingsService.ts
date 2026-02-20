@@ -113,6 +113,91 @@ class SettingsService extends EventEmitter {
     }
     return null;
   }
+
+  public async getTmsListOfMapID(mapID: string): Promise<any[]> {
+    return new Promise((resolve) => {
+      // 1. Get base tmsList (from default settings which is tms_list.json)
+      // The `tmsList` store could be empty due to earlier bugs overwriting it persistently in electron-store.
+      // We will ALWAYS load default maps from our constant source `defaultTmsList`, then fetch store's tmsList, then concat user's file.
+      // Let's re-read config from original file just in case store is polluted
+      const tmsListBase: any[] = [...defaultTmsList];
+      
+      const saveFolder = this.store.get('saveFolder');
+      const settingsDir = path.join(saveFolder, 'settings');
+      
+      // Legacy behavior: `data` was loaded from editorStorage('tmsList.json')
+      let userListFromStore: any[] = this.store.get('tmsList') || [];
+      if (!Array.isArray(userListFromStore)) {
+          userListFromStore = [];
+      }
+      
+      // Let's concat user's explicitly loaded list on top of defaults
+      let mergedTmsList = tmsListBase.concat(userListFromStore);
+
+      try {
+          const userTmsListPath = path.join(settingsDir, 'tmsList.json');
+          if (fs.existsSync(userTmsListPath)) {
+              const userTmsList = fs.readJsonSync(userTmsListPath);
+              if (Array.isArray(userTmsList)) {
+                  mergedTmsList = tmsListBase.concat(userTmsList);
+              }
+          }
+      } catch(e) {
+          console.error("Failed to read user tmsList.json", e);
+      }
+
+      // 2. Map-specific visible status (tmsList.mapID.json equivalent)
+      // Legacy code used `editorStorage().get('tmsList.' + mapID)`
+      // In the new system, we'll store this in a file specific to the map ID under settings/tmsList_[mapID].json
+      // or using electron-store if it was migrated.
+      
+      // For compatibility with manual edits, we look for settings/tmsList.[mapID].json
+      let fileData: Record<string, boolean> = {};
+      const mapSpecificConfigPath = path.join(settingsDir, `tmsList.${mapID}.json`);
+      let saveFlag = false;
+
+      try {
+          if (fs.existsSync(mapSpecificConfigPath)) {
+              fileData = fs.readJsonSync(mapSpecificConfigPath) || {};
+          }
+      } catch (e) {
+          console.error(`Failed to read ${mapSpecificConfigPath}`, e);
+      }
+
+      const tmsList: any[] = [];
+      
+      mergedTmsList.forEach((tms) => {
+        if (tms.always) {
+          tmsList.push(tms);
+          return;
+        }
+        
+        const tmsMapID = tms.mapID;
+        let flag = fileData[tmsMapID];
+        
+        if (flag == null) {
+          flag = fileData[tmsMapID] = true;
+          saveFlag = true;
+        }
+        
+        if (flag) {
+          tmsList.push(tms);
+        }
+      });
+
+      if (saveFlag) {
+        // Save back the defaults if it was missing keys
+        try {
+            fs.ensureDirSync(settingsDir);
+            fs.writeJsonSync(mapSpecificConfigPath, fileData, { spaces: 2 });
+        } catch (e) {
+            console.error(`Failed to write to ${mapSpecificConfigPath}`, e);
+        }
+      }
+      
+      resolve(tmsList);
+    });
+  }
 }
 
 export default new SettingsService();

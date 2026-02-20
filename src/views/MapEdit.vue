@@ -286,7 +286,6 @@ const initMaps = async () => {
         ])
     });
     
-    // Add Geocoder
     const geocoder = new Geocoder('nominatim', {
         provider: 'osm',
         lang: 'en-US',
@@ -294,6 +293,14 @@ const initMaps = async () => {
         limit: 5,
         keepOpen: false
     });
+    
+    // Disable the pin marker when searching an address
+    geocoder.on('addresschosen', () => {
+        if (geocoder.getLayer && geocoder.getLayer()) {
+            geocoder.getLayer().getSource().clear();
+        }
+    });
+    
     mercMap.addControl(geocoder);
     
     // Set default view for Mercator
@@ -345,32 +352,35 @@ const setupBaseMaps = async () => {
 
     // Populate baseMapList if empty
     if (baseMapList.value.length === 0) {
-        // 1. Try fetching tms_list.json from root (public)
-        try {
-            const response = await fetch('/tms_list.json');
-            if (response.ok) {
-                const json = await response.json();
-                if (Array.isArray(json)) {
-                    baseMapList.value = json.reverse();
-                }
-            }
-        } catch (e) {
-            console.log("No tms_list.json found at root or failed to load.", e);
-        }
-
-        // 2. Try legacy window.mapedit API if available and list is still empty or we want to merge?
-        // Legacy behavior: settings.js loads tms_list.json AND user settings.
-        // For now, if we found root tms_list.json, we use it. If not, we try legacy API.
         
-        if (baseMapList.value.length === 0 && window.mapedit && window.mapedit.getTmsListOfMapID) {
+        // 1. Fetch via legacy API which now properly checks custom settings/tmsList.json 
+        // and settings/tmsList.[mapID].json logic
+        if (window.mapedit && window.mapedit.getTmsListOfMapID && mapID.value) {
             try {
                 // @ts-ignore
                 const list = await window.mapedit.getTmsListOfMapID(mapID.value);
-                 if (list && list.length > 0) {
+                console.log("MapEdit.vue: Received tms list from IPC", list);
+                if (list && list.length > 0) {
                     baseMapList.value = list.reverse();
+                    console.log("MapEdit.vue: set baseMapList to", baseMapList.value);
                 }
             } catch (e) {
                 console.error("Failed to fetch base map list via legacy API:", e);
+            }
+        }
+        
+        // 2. Try fetching tms_list.json from root (public) as fallback if IPC fails or mapID missing
+        if (baseMapList.value.length === 0) {
+            try {
+                const response = await fetch('/tms_list.json');
+                if (response.ok) {
+                    const json = await response.json();
+                    if (Array.isArray(json)) {
+                        baseMapList.value = json.reverse();
+                    }
+                }
+            } catch (e) {
+                console.log("No tms_list.json found at root or failed to load.", e);
             }
         }
         

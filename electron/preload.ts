@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('maplist', {
 
 contextBridge.exposeInMainWorld('mapedit', {
   request: (mapID: string) => ipcRenderer.invoke('mapedit:request', mapID),
+  getTmsListOfMapID: (mapID: string) => ipcRenderer.invoke('mapedit:get-tms-list', mapID),
 })
 
 contextBridge.exposeInMainWorld('versions', {
