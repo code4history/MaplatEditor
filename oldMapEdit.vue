@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { isEqual, cloneDeep } from 'lodash-es';
 // @ts-ignore
@@ -8,16 +8,13 @@ import { useTranslation } from 'i18next-vue';
 import Geocoder from 'ol-geocoder';
 import 'ol-geocoder/dist/ol-geocoder.min.css';
 // @ts-ignore
-import ContextMenu from 'ol-contextmenu';
-// @ts-ignore
 import { MaplatMap } from '@maplat/core/src/map_ex';
 // @ts-ignore
 import { mapSourceFactory } from '@maplat/core/src/source_ex';
 
-import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
+import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Drag } from 'ol/interaction';
 import { defaults as controlDefaults } from 'ol/control';
 import { altKeyOnly } from 'ol/events/condition';
-import 'ol/ol.css';
 import { Tile, Group } from 'ol/layer';
 import LayerSwitcher from 'ol-layerswitcher';
 import 'ol-layerswitcher/dist/ol-layerswitcher.css';
@@ -29,9 +26,6 @@ import { transform } from 'ol/proj';
 import { getCenter } from 'ol/extent';
 import { Projection } from 'ol/proj';
 import { XYZ } from 'ol/source';
-import type { MapBrowserEvent } from 'ol';
-import type Feature from 'ol/Feature';
-import type { SimpleGeometry } from 'ol/geom';
 
 const { t } = useTranslation();
 const router = useRouter();
@@ -41,228 +35,21 @@ const originalMapData = ref<any>({}); // Store as deep clone for robust comparis
 const mappingUIRow = ref('layer');
 const currentEditingLayer = ref(0);
 const editingID = ref('');
-const createCoordinateComputed = (isX: boolean, isIllst: boolean) => computed({
-    get: () => {
-        if (!editingID.value) return '';
-        const idInt = Number(editingID.value);
-        let pt;
-        if (newGcp.value && idInt === newGcp.value[2]) {
-            pt = newGcp.value[isIllst ? 0 : 1];
-        } else {
-            const gcp = gcps.value[idInt - 1];
-            if (gcp) pt = gcp[isIllst ? 0 : 1];
-        }
-        if (!pt) return '';
-        
-        if (isIllst) {
-            return pt[isX ? 0 : 1];
-        } else {
-            const lonlat = transform(pt, 'EPSG:3857', 'EPSG:4326');
-            return arrayRoundTo(lonlat, 6)[isX ? 0 : 1];
-        }
-    },
-    set: (val: number | string) => {
-        if (!editingID.value || val === '') return;
-        const numVal = Number(val);
-        const isNew = newGcp.value && Number(editingID.value) === newGcp.value[2];
-        
-        if (isNew) {
-             if (!newGcp.value[isIllst ? 0 : 1]) newGcp.value[isIllst ? 0 : 1] = [0, 0];
-        }
-        
-        const targetPoint = isNew ? newGcp.value[isIllst ? 0 : 1] : gcps.value[Number(editingID.value) - 1][isIllst ? 0 : 1];
-        if (!targetPoint) return;
-        
-        if (isIllst) {
-            targetPoint[isX ? 0 : 1] = numVal;
-        } else {
-            const lonlat = transform(targetPoint, 'EPSG:3857', 'EPSG:4326');
-            lonlat[isX ? 0 : 1] = numVal;
-            const merc = transform(lonlat, 'EPSG:4326', 'EPSG:3857');
-            targetPoint[0] = merc[0];
-            targetPoint[1] = merc[1];
-        }
-        
-        // Update OpenLayers marker to mirror Vue Event Bus behavior
-        const map = isIllst ? illstMap : mercMap;
-        const source = map?.getSource('marker');
-        if (source) {
-            const feature = source.getFeatures().find((f: any) => f.get('gcpIndex') === (isNew ? 'new' : Number(editingID.value) - 1));
-            if (feature) {
-                const geom = feature.getGeometry();
-                const coords = (isIllst && illstSource) ? illstSource.xy2SysCoord(targetPoint) : targetPoint;
-                if (geom) geom.setCoordinates(coords);
-            }
-        }
-    }
-});
-
-const editingX = createCoordinateComputed(true, true);
-const editingY = createCoordinateComputed(false, true);
-const editingLong = createCoordinateComputed(true, false);
-const editingLat = createCoordinateComputed(false, false);
+const editingX = ref<number | ''>('');
+const editingY = ref<number | ''>('');
+const editingLong = ref<number | ''>('');
+const editingLat = ref<number | ''>('');
 const sub_maps = ref([]); // Placeholder for sub_maps
 const importance = ref(0);
 const priority = ref(0);
 const baseMapList = ref<any[]>([]);
 const currentBaseMapID = ref('osm');
 
-const activeTab = ref('metadata');
-
-const gcps = ref<any[]>([]);
-const newGcp = ref<any>(undefined);
-const homePosition = ref<any>(undefined);
-const mercZoom = ref<number | undefined>(undefined);
-const edges = ref<any[]>([]);
-
-const editingID_ = ref('');
-const strictMode = ref('auto');
-const vertexMode = ref(false);
-
-const editableGCPID = computed({
-  get() {
-    if (newGcp.value) editingID_.value = '';
-    return newGcp.value ? newGcp.value[2] : editingID_.value;
-  },
-  set(newValue) {
-    if (newGcp.value) {
-      editingID_.value = '';
-    } else {
-      editingID_.value = newValue;
-    }
-  }
-});
-
 const currentLang = ref('ja');
 
 const onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
   'mapper', 'attr', 'dataAttr', 'description'];
-
-const arrayRoundTo = (array: number[], decimal: number) => {
-    const factor = Math.pow(10, decimal);
-    return array.map((item) => Math.round(item * factor) / factor);
-};
-
-// Custom Drag Interaction class, replicating MaplatEditor legacy behavior
-class Drag extends Pointer {
-    coordinate_: number[] | null = null;
-    cursor_: string = 'pointer';
-    feature_: Feature | null = null;
-    previousCursor_: string | undefined = undefined;
-    layerFilter: string = 'marker';
-
-    constructor() {
-        super({
-            handleDownEvent: Drag.prototype.handleDownEvent,
-            handleDragEvent: Drag.prototype.handleDragEvent,
-            handleMoveEvent: Drag.prototype.handleMoveEvent,
-            handleUpEvent: Drag.prototype.handleUpEvent
-        });
-    }
-
-    handleDownEvent(evt: MapBrowserEvent<any>) {
-        if (evt.originalEvent.button === 2) return false;
-        const map = evt.map;
-        const this_ = this;
-        let feature = map.forEachFeatureAtPixel(evt.pixel, (f) => f as Feature, {
-            layerFilter(layer) {
-                return layer.get('name') === this_.layerFilter;
-            }
-        });
-
-        if (feature) {
-            const geom = feature.getGeometry();
-            if (geom && geom.getType() === 'LineString') {
-                feature = undefined;
-            } else if (feature.get('gcpIndex') === 'home') {
-                feature = undefined;
-            } else {
-                this.coordinate_ = evt.coordinate;
-                this.feature_ = feature;
-                const gcpIndex = feature.get('gcpIndex');
-                if (gcpIndex !== 'new') {
-                    // Triggers the reactive state updates natively instead of touching generic vueMap properties
-                    editingID.value = String(Number(gcpIndex) + 1);
-                }
-            }
-        }
-        return !!feature;
-    }
-
-    handleDragEvent(evt: MapBrowserEvent<any>) {
-        if (evt.originalEvent.button === 2 || !this.coordinate_ || !this.feature_) return;
-
-        const deltaX = evt.coordinate[0] - this.coordinate_[0];
-        const deltaY = evt.coordinate[1] - this.coordinate_[1];
-
-        const geometry = this.feature_.getGeometry() as SimpleGeometry;
-        if (geometry) {
-             geometry.translate(deltaX, deltaY);
-        }
-
-        this.coordinate_[0] = evt.coordinate[0];
-        this.coordinate_[1] = evt.coordinate[1];
-    }
-
-    handleMoveEvent(evt: MapBrowserEvent<any>) {
-        if (evt.originalEvent.button === 2) return;
-        
-        // Handling cursor pointer styling
-        if (this.cursor_) {
-            const map = evt.map;
-            const this_ = this;
-            const feature = map.forEachFeatureAtPixel(evt.pixel, (f) => f as Feature, {
-                layerFilter(layer) {
-                    return layer.get('name') === this_.layerFilter;
-                }
-            });
-
-            const element = evt.map.getTargetElement();
-            if (feature) {
-                if (element.style.cursor !== this.cursor_) {
-                    this.previousCursor_ = element.style.cursor;
-                    element.style.cursor = this.cursor_;
-                }
-            } else if (this.previousCursor_ !== undefined) {
-                element.style.cursor = this.previousCursor_;
-                this.previousCursor_ = undefined;
-            }
-        }
-    }
-
-    handleUpEvent(evt: MapBrowserEvent<any>) {
-        if (evt.originalEvent.button === 2 || !this.feature_) return false;
-        const map = evt.map;
-        const isIllst = map === illstMap;
-        const feature = this.feature_;
-        const geom = feature.getGeometry() as SimpleGeometry;
-        
-        if (!geom) return false;
-        
-        let xy = geom.getCoordinates();
-        xy = isIllst && illstSource ? arrayRoundTo(illstSource.sysCoord2Xy(xy), 2) : arrayRoundTo(xy, 6);
-
-        const gcpIndex = feature.get('gcpIndex');
-        if (gcpIndex !== 'new') {
-            const index = Number(gcpIndex);
-            if (gcps.value[index]) {
-                const gcp = gcps.value[index];
-                gcp[isIllst ? 0 : 1] = xy;
-                gcps.value.splice(index, 1, gcp);
-                gcpsToMarkers();
-            }
-        } else {
-            if (newGcp.value) {
-                newGcp.value.splice(isIllst ? 0 : 1, 1, xy);
-            }
-        }
-        
-        this.coordinate_ = null as any;
-        this.feature_ = null;
-        return false;
-    }
-}
 
 const localedGet = (key: string) => {
     const lang = mapData.value.lang || 'ja';
@@ -438,188 +225,6 @@ let illstSource: any = null;
 let mercMap: any = null;
 let mercSource: any = null;
 
-const labelFontStyle = "Normal 12px Arial";
-
-const getTextWidth = ( _text: string | number, _fontStyle: string ) => {
-  const canvas = document.createElement( "canvas" );
-  const context = canvas.getContext( "2d" );
-  if (!context) return 0;
-  context.font = _fontStyle;
-  const metrics = context.measureText( String(_text) );
-  return metrics.width;
-}
-
-const homeToMarkers = () => {
-  if (homePosition.value && mercMap && illstMap) {
-    const homeSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve">
-<polygon x="0" y="0" points="10,0 20,10 17,10 17,20 3,20 3,10 0,10 10,0" stroke="#FF0000" fill="#FF0000" stroke-width="2"></polygon></svg>`;
-    const homeStyle = new Style({
-      image: new Icon({
-        "src": `data:image/svg+xml,${encodeURIComponent(homeSVG)}`,
-        "anchor": [0.5, 1.0]
-      })
-    });
-    const merc = transform(homePosition.value, 'EPSG:4326', 'EPSG:3857');
-    mercMap.setMarker(merc, {gcpIndex: 'home'}, homeStyle);
-    if (errorStatus.value === 'strict' || errorStatus.value === 'loose') {
-      // Assuming mapData.value.tinObjects exist from backend load
-      const tinObjects = mapData.value.tinObjects || [];
-      if (tinObjects[0] && illstSource) {
-         const xy = tinObjects[0].transform(merc, true);
-         const histCoord = illstSource.xy2SysCoord(xy);
-         illstMap.setMarker(histCoord, {gcpIndex: 'home'}, homeStyle);
-      }
-    }
-  }
-};
-
-const edgesClear = () => {
-    if (illstMap && illstMap.getSource('edges')) {
-        illstMap.getSource('edges').clear();
-    }
-    if (mercMap && mercMap.getSource('edges')) {
-        mercMap.getSource('edges').clear();
-    }
-};
-
-const gcpsToMarkers = (targetIndex?: number) => {
-  console.log('[gcpsToMarkers] gcps[0]:', JSON.stringify(gcps.value[0]));
-  if (gcps.value.length > 0) {
-    const g0 = gcps.value[0];
-    const testCoord = illstSource.xy2SysCoord(g0[0]);
-    console.log('[gcpsToMarkers] xy2SysCoord(gcp[0]):', JSON.stringify(testCoord), 'illstView center:', JSON.stringify(illstMap.getView().getCenter()), 'maxZoom:', illstSource.maxZoom, '_maxxy:', illstSource._maxxy);
-  }
-  if (!illstMap || !mercMap || !illstSource) return;
-
-  illstMap.resetMarker();
-  mercMap.resetMarker();
-  edgesClear();
-
-  homeToMarkers();
-
-  for (let i=0; i<gcps.value.length; i++) {
-    const gcp = gcps.value[i];
-    const mapXyIllst = illstSource.xy2SysCoord(gcp[0]);
-
-    const labelWidth = getTextWidth( (i + 1), labelFontStyle ) + 10;
-
-    const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-x="0px" y="0px" width="${labelWidth}px" height="20px"
-viewBox="0 0 ${labelWidth} 20" enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
-<polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
-${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="${(i === targetIndex ? '#FF0000' : '#DEEFAE')}"
-stroke-width="2"></polygon>
-<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${(i + 1)}</text></svg>`;
-
-    const iconSrc = `data:image/svg+xml,${encodeURIComponent(iconSVG)}`;
-
-    const iconStyle = new Style({
-      "image": new Icon({
-        "src": iconSrc,
-        "anchor": [0.5, 1]
-      })
-    });
-
-    illstMap.setMarker(mapXyIllst, { gcpIndex: i }, iconStyle);
-    mercMap.setMarker(gcp[1], { gcpIndex: i }, iconStyle);
-  }
-  
-  // NOTE: LineString rendering for 'edges' will be implemented here when Error Check Phase is reached
-};
-
-
-const addNewMarker = (arg: any, map: any) => {
-  const number = gcps.value.length + 1;
-  const isIllst = map === illstMap;
-  const coord = arg.coordinate;
-  const xy = isIllst ? arrayRoundTo(illstSource.sysCoord2Xy(coord), 2) : arrayRoundTo(coord, 6);
-
-  if (!newGcp.value) {
-    const labelWidth = getTextWidth( number, labelFontStyle ) + 10;
-    const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-x="0px" y="0px" width="${labelWidth}px" height="20px" viewBox="0 0 ${labelWidth} 20"
-enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
-<polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
-${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="#FFCCCC" stroke-width="2"></polygon>
-<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${number}</text></svg>`;
-
-    const iconStyle = new Style({
-      "image": new Icon({
-        "src": `data:image/svg+xml,${encodeURIComponent(iconSVG)}`,
-        "anchor": [0.5, 1]
-      })
-    });
-
-    map.setMarker(coord, { gcpIndex: 'new' }, iconStyle);
-
-    if (isIllst) {
-       newGcp.value = [xy, undefined, number];
-    } else {
-       newGcp.value = [undefined, xy, number];
-    }
-  } else if ((isIllst && !newGcp.value[0]) || (!isIllst && !newGcp.value[1])) {
-    if (isIllst) { newGcp.value[0] = xy; } else { newGcp.value[1] = xy; }
-    const newPoint = [newGcp.value[0], newGcp.value[1]];
-    gcps.value.push(newPoint);
-    gcpsToMarkers();
-    newGcp.value = undefined;
-    editingID.value = String(gcps.value.length);
-  }
-};
-
-const removeMarker = (arg: any, map: any) => {
-  const marker = arg.data.marker;
-  const gcpIndex = marker.get('gcpIndex');
-  if (gcpIndex === 'new') {
-    newGcp.value = undefined;
-    map.getSource('marker').removeFeature(marker);
-  } else {
-    gcps.value.splice(Number(gcpIndex), 1);
-    
-    // Line string Edge removal omitted for now as edges are phase 4
-    
-    gcpsToMarkers();
-  }
-  editingID.value = '';
-};
-
-const createContextMenu = (map: any) => {
-  const contextmenu = new ContextMenu({
-    width: 170,
-    defaultItems: false,
-    items: [
-      { text: t('mapedit.context_add_marker'), callback: (e: any) => addNewMarker(e, map) }
-    ]
-  });
-  
-  contextmenu.on('open', (evt: any) => {
-    // Typecast map element correctly below (contextmenu instance doesn't strictly type map property, so we use map arg directly)
-    const feature = map.forEachFeatureAtPixel(evt.pixel, (ft: any) => ft as Feature, {
-      layerFilter(layer: any) {
-        return layer.get('name') === 'marker' || layer.get('name') === 'edges';
-      },
-      hitTolerance: 5
-    });
-    
-    contextmenu.clear();
-    if (feature) {
-      const gcpIndex = feature.get('gcpIndex');
-      if (gcpIndex !== 'home' && gcpIndex !== 'new') {
-         editingID.value = String(Number(gcpIndex) + 1);
-      }
-      contextmenu.push({ text: t('mapedit.context_remove_marker'), data: { marker: feature }, callback: (e: any) => removeMarker(e, map) });
-    } else if (newGcp.value !== undefined && newGcp.value[map === illstMap ? 0 : 1] !== undefined) {
-      // Pending marker adding logic - omit for simplified baseline
-      contextmenu.push({ text: t('mapedit.context_cancel_add_marker'), callback: () => removeMarker({data: {marker: map.getSource('marker').getFeatures().find((f:any)=>f.get('gcpIndex')==='new')}}, map) });
-    } else {
-      contextmenu.push({ text: t('mapedit.context_add_marker'), callback: (e: any) => addNewMarker(e, map) });
-    }
-  });
-  
-  return contextmenu;
-};
-
 onMounted(async () => {
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
     const id = urlParams.get('mapid');
@@ -651,19 +256,9 @@ onMounted(async () => {
 
     initMaps();
     if (mapData.value.url_) {
+        // Delay load slightly to ensure div is ready?
         setTimeout(() => loadMapTiles(), 100);
     }
-    
-    // Watch for tab switch to GCP: v-show hides the map container until the user clicks the tab,
-    // so OpenLayers renders into a 0-height div. updateSize() forces a re-render.
-    watch(activeTab, (newTab) => {
-        if (newTab === 'gcps') {
-            nextTick(() => {
-                illstMap?.updateSize();
-                mercMap?.updateSize();
-            });
-        }
-    });
 });
 
 const initMaps = async () => {
@@ -673,12 +268,10 @@ const initMaps = async () => {
         interactions: interactionDefaults().extend([
             new DragRotateAndZoom({
                 condition: altKeyOnly
-            }),
-            new Drag()
+            })
         ]),
         controls: controlDefaults()
     });
-    illstMap.addControl(createContextMenu(illstMap));
 
     // 2. Initialize Mercator Map (RIGHT side)
     mercMap = new MaplatMap({
@@ -686,14 +279,12 @@ const initMaps = async () => {
         interactions: interactionDefaults().extend([
             new DragRotateAndZoom({
                 condition: altKeyOnly
-            }),
-            new Drag()
+            })
         ]),
         controls: controlDefaults().extend([
             new LayerSwitcher()
         ])
     });
-    mercMap.addControl(createContextMenu(mercMap));
     
     const geocoder = new Geocoder('nominatim', {
         provider: 'osm',
@@ -742,66 +333,19 @@ const loadMapTiles = async () => {
         const source = await mapSourceFactory(options, {});
         illstSource = source;
         illstMap.exchangeSource(source);
-        console.log('[loadMapTiles] source ready, mapData.gcps:', mapData.value.gcps?.length);
 
-        // Set View center for illstMap — exact replica of legacy reflectIllstMap
-        // Legacy does: illstView.setCenter(initialCenter) and NOTHING ELSE
-        // It does NOT change view projection (stays EPSG:3857)
+        // Set View logic (simplified from legacy xys2Size logic for now, aiming for center/fit)
         const initialCenter = source.xy2SysCoord([mapData.value.width / 2, mapData.value.height / 2]);
         const illstView = illstMap.getView();
         illstView.setCenter(initialCenter);
-
-        // --- Replicate legacy mapDataCommon flow ---
-        // Populate gcps/edges/homePosition from loaded mapData (equivalent to vueMap.setInitialMap(json))
-        if (mapData.value.gcps) gcps.value = mapData.value.gcps;
-        if (mapData.value.edges) edges.value = mapData.value.edges;
-        if (mapData.value.homePosition) homePosition.value = mapData.value.homePosition;
-        if (mapData.value.mercZoom) mercZoom.value = mapData.value.mercZoom;
-
-        // Set mercMap view — replicate legacy reflectIllstMap GCP bounding box calculation
-        // gcp[1] is ALREADY in EPSG:3857 (stored as merc coords from mercMap clicks)
-        const MERC_MAX = 20037508.342789244;
-        const gcpList = gcps.value;
-        if (gcpList && gcpList.length > 0) {
-            let center: number[], zoom: number;
-            if (gcpList.length === 1) {
-                center = gcpList[0][1];
-                zoom = 16;
-            } else {
-                const results = gcpList.reduce((prev: any, curr: any, index: number) => {
-                    const merc = curr[1];
-                    prev[0][0] += merc[0];
-                    prev[0][1] += merc[1];
-                    if (merc[0] > prev[1][0]) prev[1][0] = merc[0];
-                    if (merc[1] > prev[1][1]) prev[1][1] = merc[1];
-                    if (merc[0] < prev[2][0]) prev[2][0] = merc[0];
-                    if (merc[1] < prev[2][1]) prev[2][1] = merc[1];
-                    if (index === gcpList.length - 1) {
-                        const c = [prev[0][0] / gcpList.length, prev[0][1] / gcpList.length];
-                        const deltax = prev[1][0] - prev[2][0];
-                        const z = Math.log(600 / 256 * MERC_MAX * 2 / deltax) / Math.log(2);
-                        return [c, z];
-                    }
-                    return prev;
-                }, [[0, 0], [-MERC_MAX, -MERC_MAX], [MERC_MAX, MERC_MAX]]);
-                center = results[0];
-                zoom = results[1];
-            }
-            mercMap.getView().setCenter(center);
-            mercMap.getView().setZoom(zoom);
-        } else if (homePosition.value) {
-            // Fallback: use homePosition (also EPSG:3857)
-            mercMap.getView().setCenter(homePosition.value);
-            if (mercZoom.value) mercMap.getView().setZoom(mercZoom.value);
-        }
-
-        // Draw markers (equivalent to legacy gcpsToMarkers() call after reflectIllstMap())
-        gcpsToMarkers();
-
+        // Zoom defaults?
+        illstView.setZoom(2); 
     } catch (e) {
         console.error("Failed to load map tiles via factory:", e);
     }
 };
+
+import { Tile, Group } from 'ol/layer';
 
 const setupBaseMaps = async () => {
     if (!mercMap) return;
@@ -811,10 +355,10 @@ const setupBaseMaps = async () => {
         
         // 1. Fetch via legacy API which now properly checks custom settings/tmsList.json 
         // and settings/tmsList.[mapID].json logic
-        if ((window as any).mapedit && (window as any).mapedit.getTmsListOfMapID && mapID.value) {
+        if (window.mapedit && window.mapedit.getTmsListOfMapID && mapID.value) {
             try {
                 // @ts-ignore
-                const list = await (window as any).mapedit.getTmsListOfMapID(mapID.value);
+                const list = await window.mapedit.getTmsListOfMapID(mapID.value);
                 console.log("MapEdit.vue: Received tms list from IPC", list);
                 if (list && list.length > 0) {
                     baseMapList.value = list.reverse();
@@ -1171,7 +715,7 @@ const goBack = async () => {
                                         <label class="small fw-bold mb-0">{{ t("mapedit.map_layer_select") }}</label>
                                         <select class="form-select form-select-sm" v-model.number="currentEditingLayer">
                                             <option :value="0">{{ t("mapedit.map_mainlayer") }}</option>
-                                            <option v-for="(_, index) in sub_maps" :value="index+1">{{ t("mapedit.map_sublayer") }}{{index+1}}</option>
+                                            <option v-for="(sub_map, index) in sub_maps" :value="index+1">{{ t("mapedit.map_sublayer") }}{{index+1}}</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
