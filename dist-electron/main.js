@@ -11,7 +11,6 @@ var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "
 var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 var _validator, _encryptionKey, _encryptionAlgorithm, _options, _defaultValues, _isInMigration, _watcher, _watchFile, _debouncedChangeHandler, _Conf_instances, prepareOptions_fn, setupValidator_fn, captureSchemaDefaults_fn, applyDefaultValues_fn, configureSerialization_fn, resolvePath_fn, initializeStore_fn, runMigrations_fn;
 import electron, { app as app$1, dialog, ipcMain as ipcMain$1, BrowserWindow, Menu } from "electron";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path$d from "node:path";
 import process$1 from "node:process";
@@ -21660,7 +21659,6 @@ const registerMapEditHandlers = () => {
     }
   });
 };
-createRequire(import.meta.url);
 const __dirname$1 = path$d.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path$d.join(__dirname$1, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];

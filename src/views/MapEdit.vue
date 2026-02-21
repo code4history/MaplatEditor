@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { isEqual, cloneDeep } from 'lodash-es';
 // @ts-ignore
@@ -26,11 +26,11 @@ import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Style, Stroke, Fill, Icon } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
+import { LineString } from 'ol/geom';
 import { transform } from 'ol/proj';
-import { getCenter } from 'ol/extent';
-import { Projection } from 'ol/proj';
-import { XYZ } from 'ol/source';
+// import { getCenter } from 'ol/extent';
+// import { Projection } from 'ol/proj';
+// import { XYZ } from 'ol/source';
 import type { MapBrowserEvent } from 'ol';
 import type Feature from 'ol/Feature';
 import type { SimpleGeometry } from 'ol/geom';
@@ -103,9 +103,17 @@ const editingX = createCoordinateComputed(true, true);
 const editingY = createCoordinateComputed(false, true);
 const editingLong = createCoordinateComputed(true, false);
 const editingLat = createCoordinateComputed(false, false);
-const sub_maps = ref([]); // Placeholder for sub_maps
-const importance = ref(0);
-const priority = ref(0);
+const sub_maps = ref<any[]>([]);
+const importance = computed(() => {
+    if (currentEditingLayer.value === 0) return 0;
+    return sub_maps.value[currentEditingLayer.value - 1]?.importance ?? 0;
+});
+const priority = computed(() => {
+    if (sub_maps.value.length === 0) return 3; // Default for main layer? 
+    // Actually priority is only for submaps.
+    if (currentEditingLayer.value === 0) return 0;
+    return sub_maps.value[currentEditingLayer.value - 1]?.priority ?? 0;
+});
 const baseMapList = ref<any[]>([]);
 const currentBaseMapID = ref('osm');
 
@@ -138,27 +146,47 @@ const kinksCount = computed(() => {
     return tin.kinks?.bakw?.features?.length ?? 0;
 });
 
-const editingID_ = ref('');
+watch(sub_maps, (newVal) => {
+    mapData.value.sub_maps = newVal;
+}, { deep: true });
+
+watch(currentEditingLayer, (newLayer) => {
+    if (newLayer === 0) {
+        gcps.value = mapData.value.gcps || [];
+        edges.value = mapData.value.edges || [];
+    } else {
+        const subMap = sub_maps.value[newLayer - 1];
+        if (subMap) {
+            gcps.value = subMap.gcps || [];
+            edges.value = subMap.edges || [];
+        }
+    }
+    editingID.value = '';
+    newGcp.value = undefined;
+    nextTick(() => gcpsToMarkers());
+});
+
+// const editingID_ = ref('');
 const strictMode = ref('auto');
 const vertexMode = ref<'plain' | 'birdeye'>('plain');
 
-const editableGCPID = computed({
-  get() {
-    if (newGcp.value) editingID_.value = '';
-    return newGcp.value ? newGcp.value[2] : editingID_.value;
-  },
-  set(newValue) {
-    if (newGcp.value) {
-      editingID_.value = '';
-    } else {
-      editingID_.value = newValue;
-    }
-  }
-});
+// const editableGCPID = computed({
+//   get() {
+//     if (newGcp.value) editingID_.value = '';
+//     return newGcp.value ? newGcp.value[2] : editingID_.value;
+//   },
+//   set(newValue) {
+//     if (newGcp.value) {
+//       editingID_.value = '';
+//     } else {
+//       editingID_.value = newValue;
+//     }
+//   }
+// });
 
 const currentLang = ref('ja');
 
-const onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
+// const onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
   'mapper', 'attr', 'dataAttr', 'description'];
 
@@ -264,7 +292,7 @@ class Drag extends Pointer {
         if (!geom) return false;
         
         let xy = geom.getCoordinates();
-        xy = isIllst && illstSource ? arrayRoundTo(illstSource.sysCoord2Xy(xy), 2) : arrayRoundTo(xy, 6);
+        xy = isIllst && illstSource ? arrayRoundTo(illstSource.sysCoord2Xy(xy as number[]) as number[], 2) : arrayRoundTo(xy as number[], 6);
 
         const gcpIndex = feature.get('gcpIndex');
         if (gcpIndex !== 'new') {
@@ -384,7 +412,7 @@ const isDefaultLang = computed({
                 // It's complicated to call localedSet because it depends on currentLang.
                 // Better to manipulate object directly.
                 
-                let currentVal = mapData.value[attr];
+                // const currentVal = mapData.value[attr];
                 // Resetting to normalize is tricky.
                 // Let's use the logic:
                 // We need to ensure newLang value is at root (or top of object?)
@@ -445,15 +473,70 @@ const displayTitle = computed(() => {
     return t('mapedit.untitled') || "Untitled";
 });
 
-const canUpImportance = computed(() => false); // Placeholder
-const canDownImportance = computed(() => false); // Placeholder
-const canUpPriority = computed(() => false); // Placeholder
-const canDownPriority = computed(() => false);
+const normalizeImportance = (arr: any[]) => {
+    const zeroIndex = arr.indexOf(0);
+    arr.forEach((item, index) => {
+        if (index === zeroIndex) return;
+        item.importance = zeroIndex - index;
+    });
+};
+
+const normalizePriority = (arr: any[]) => {
+    arr.forEach((item, index) => {
+        item.priority = arr.length - index;
+    });
+};
+
+// --- Submap Computeds ---
+const importanceSortedSubMaps = computed(() => {
+    const array = [...sub_maps.value];
+    array.push(0 as any); // 0 represents the main map
+    return array.sort((a, b) => {
+        const ac = a === 0 ? 0 : a.importance;
+        const bc = b === 0 ? 0 : b.importance;
+        return (ac < bc ? 1 : -1);
+    });
+});
+
+const prioritySortedSubMaps = computed(() => {
+    const array = [...sub_maps.value];
+    return array.sort((a, b) => (a.priority < b.priority ? 1 : -1));
+});
+
+const canUpImportance = computed(() => {
+    if (currentEditingLayer.value === 0) return false;
+    const most = importanceSortedSubMaps.value[0];
+    const mostImportance = most === 0 ? 0 : most.importance;
+    const currentMap = sub_maps.value[currentEditingLayer.value - 1];
+    return currentMap && currentMap.importance !== mostImportance;
+});
+
+const canDownImportance = computed(() => {
+    if (currentEditingLayer.value === 0) return false;
+    const least = importanceSortedSubMaps.value[importanceSortedSubMaps.value.length - 1];
+    const leastImportance = least === 0 ? 0 : least.importance;
+    const currentMap = sub_maps.value[currentEditingLayer.value - 1];
+    return currentMap && currentMap.importance !== leastImportance;
+});
+
+const canUpPriority = computed(() => {
+    if (currentEditingLayer.value === 0) return false;
+    const mostPriority = prioritySortedSubMaps.value[0]?.priority;
+    const currentMap = sub_maps.value[currentEditingLayer.value - 1];
+    return currentMap && currentMap.priority !== mostPriority;
+});
+
+const canDownPriority = computed(() => {
+    if (currentEditingLayer.value === 0) return false;
+    const leastPriority = prioritySortedSubMaps.value[prioritySortedSubMaps.value.length - 1]?.priority;
+    const currentMap = sub_maps.value[currentEditingLayer.value - 1];
+    return currentMap && currentMap.priority !== leastPriority;
+});
 
 let illstMap: any = null;
 let illstSource: any = null;
 let mercMap: any = null;
-let mercSource: any = null;
+// let mercSource: any = null;
 
 // Cached VectorSource references for json/bounds layers (not exposed via MaplatMap.getSource)
 let illstJsonSource: VectorSource | null = null;
@@ -491,8 +574,9 @@ const gcpsToMarkers = () => {
     if (illstSourceMarker) illstSourceMarker.clear();
     if (mercSourceMarker) mercSourceMarker.clear();
 
-    const addMarkerToMap = (pt1: number[], pt2: number[], index: number | string, isCurrentEditing: boolean) => {
-        const isEditing = typeof index === 'number' && currentEditingLayer.value !== 0 && currentEditingLayer.value !== (gcps.value[index] ? gcps.value[index][2] : 0);
+    const addMarkerToMap = (pt1: number[], pt2: number[], index: number | string, _isCurrentEditing: boolean) => {
+        const _isEditing = typeof index === 'number' && currentEditingLayer.value !== 0 && currentEditingLayer.value !== (gcps.value[index] ? gcps.value[index][2] : 0);
+        if (_isEditing) { /* console.log("Currently editing this layer"); */ }
         
         let iconSrc;
         if (index === 'home') {
@@ -549,7 +633,7 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
     }
 
     // Draw Edges (Delaunay Borders)
-    edges.value.forEach((edge, i) => {
+    edges.value.forEach((edge, _i) => {
         const gcp1 = gcps.value[edge[2][0]];
         const gcp2 = gcps.value[edge[2][1]];
         if (!gcp1 || !gcp2) return;
@@ -808,6 +892,7 @@ onMounted(async () => {
         console.error("Failed to load map data or settings:", e);
     }
 
+    sub_maps.value = cloneDeep(mapData.value.sub_maps || []);
     initMaps();
     if (mapData.value.url_) {
         setTimeout(() => loadMapTiles(), 100);
@@ -949,9 +1034,9 @@ const tinResultUpdate = () => {
             [0, mapData.value.height], [0, 0]
         ];
     } else {
-        // For sub-layers: use bounds polygon (Phase 5)
-        const bd = mapData.value.bounds || [];
-        bboxPoints = [...bd, bd[0]];
+        const subMap = sub_maps.value[currentEditingLayer.value - 1];
+        const bd = subMap?.bounds || [];
+        bboxPoints = bd.length > 0 ? [...bd, bd[0]] : [];
     }
     if (bboxPoints && bboxPoints.length > 1) {
         const bboxGeoJson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [bboxPoints] }, properties: {} };
@@ -1000,17 +1085,34 @@ const updateTin = async () => {
     }
     // bounds / wh を IPC に渡すための変換（オリジナルの backend/mapedit.js と同じ引数）
     const index = currentEditingLayer.value;
-    const wh = index === 0 ? [mapData.value.width, mapData.value.height] : null;
-    const bounds = index !== 0 ? (mapData.value.bounds || null) : wh; // index=0 は wh として使う
+    const width = Number(mapData.value.width) || 0;
+    const height = Number(mapData.value.height) || 0;
+    const wh = index === 0 ? [width, height] : null;
+    
+    let subMapBounds = index !== 0 ? sub_maps.value[index - 1]?.bounds : null;
+    // Fallback: If submap has no bounds, use main map bounds or default rect
+    if (index !== 0 && !subMapBounds) {
+        subMapBounds = mapData.value.bounds || [[0, 0], [width, 0], [width, height], [0, height]];
+    }
+
+    const bounds = index !== 0 ? subMapBounds : wh; // index=0 uses [w,h] as wh
+
+    console.log(`[updateTin] index: ${index}, wh: ${JSON.stringify(wh)}, bounds: ${JSON.stringify(bounds)}`);
+
+    if (!bounds && !wh) {
+        console.error('[updateTin] Both wh and bounds are missing for index:', index);
+        return;
+    }
     try {
         // Vue の Proxy は IPC の Structured Clone に対応しないため、JSON でプレーンオブジェクトに変換する
         const plainGcps = JSON.parse(JSON.stringify(gcpList.map((g: any[]) => [g[0], g[1]])));
         const plainEdges = JSON.parse(JSON.stringify(edges.value));
+        const plainBounds = bounds ? JSON.parse(JSON.stringify(bounds)) : null;
         const [, compiled] = await (window as any).mapedit.updateTin(
             plainGcps,
             plainEdges,
             index,
-            bounds,
+            plainBounds,
             strictMode.value,
             vertexMode.value
         );
@@ -1028,6 +1130,31 @@ const updateTin = async () => {
         tinObject.value = 'unknownError';
     }
     tinResultUpdate();
+};
+
+const boundsModifyEnd = (evt: any) => {
+    const feature = evt.features.getArray()[0];
+    if (!feature || !illstSource) return;
+    const geom = feature.getGeometry();
+    if (!geom || geom.getType() !== 'Polygon') return;
+    
+    const coords = (geom as any).getCoordinates()[0]; // Get outer ring
+    coords.pop(); // Remove the duplicated last point for storage
+    
+    // Transform back to image coordinates
+    const imageCoords = coords.map((c: number[]) => {
+        return arrayRoundTo(illstSource.sysCoord2Xy(c) as number[], 2);
+    });
+
+    const index = currentEditingLayer.value;
+    if (index === 0) {
+        mapData.value.bounds = imageCoords;
+    } else {
+        sub_maps.value[index - 1].bounds = imageCoords;
+    }
+    
+    // Trigger TIN update since the domain changed
+    updateTin();
 };
 
 // A-1: 座標変換テスト（クリックした地点を相手地図に対応点で表示）
@@ -1166,6 +1293,14 @@ const initMaps = async () => {
     const illstEdgeSnap = new Snap({ source: illstEdgesVSrc as VectorSource });
     illstMap.addInteraction(illstEdgeModify);
     illstMap.addInteraction(illstEdgeSnap);
+
+    const illstBoundsModify = new Modify({
+        source: illstBoundsVSrc,
+    });
+    illstBoundsModify.on('modifyend', boundsModifyEnd);
+    const illstBoundsSnap = new Snap({ source: illstBoundsVSrc });
+    illstMap.addInteraction(illstBoundsModify);
+    illstMap.addInteraction(illstBoundsSnap);
 
     // 2. Initialize Mercator Map (RIGHT side)
     mercMap = new MaplatMap({
@@ -1449,10 +1584,12 @@ const setupBaseMaps = async () => {
     mapLayers.setAt(0, layerGroup);
 };
 
+/*
 const changeBaseMap = async () => {
     // Deprecated: LayerSwitcher handles switching.
     // We might want to update currentBaseMapID if we listen to layer changes, but strictly speaking checking visual is enough.
 };
+*/
 
 const saveMap = () => {
     console.log("Saving map...", mapData.value);
@@ -1479,11 +1616,81 @@ const viewError = () => {
 };
 
 // Placeholder functions for new UI elements
-const addSubMap = () => { console.log("Add sub map"); };
-const upImportance = () => { console.log("Up importance"); };
-const downImportance = () => { console.log("Down importance"); };
-const upPriority = () => { console.log("Up priority"); };
-const downPriority = () => { console.log("Down priority"); };
+// --- Submap Methods ---
+const addSubMap = () => {
+    const width = Number(mapData.value.width) || 0;
+    const height = Number(mapData.value.height) || 0;
+    sub_maps.value.push({
+        gcps: [],
+        edges: [],
+        priority: sub_maps.value.length + 1,
+        importance: sub_maps.value.length + 1,
+        bounds: [[0, 0], [width, 0], [width, height], [0, height]]
+    });
+    // Let reactivity update mapData.value.sub_maps via watcher
+    currentEditingLayer.value = sub_maps.value.length;
+    normalizeImportance(importanceSortedSubMaps.value);
+    normalizePriority(prioritySortedSubMaps.value);
+};
+
+const removeSubMap = async () => {
+    if (currentEditingLayer.value === 0) return;
+    
+    // Using simple console confirm or electron dialog if available
+    const dialog = (window as any).dialog;
+    if (dialog) {
+        const confirmResult = await dialog.showMessageBox({
+            type: 'info',
+            buttons: ['OK', 'Cancel'],
+            cancelId: 1,
+            message: 'Are you sure you want to delete this submap layer?'
+        });
+        if (confirmResult.response === 1) return;
+    } else {
+        if (!confirm('Are you sure you want to delete this submap layer?')) return;
+    }
+
+    const index = currentEditingLayer.value - 1;
+    currentEditingLayer.value = 0;
+    sub_maps.value.splice(index, 1);
+    
+    normalizeImportance(importanceSortedSubMaps.value);
+    normalizePriority(prioritySortedSubMaps.value);
+};
+
+const upImportance = () => {
+    if (!canUpImportance.value) return;
+    const arr = [...importanceSortedSubMaps.value];
+    const target = currentEditingLayer.value === 0 ? 0 : sub_maps.value[currentEditingLayer.value - 1];
+    const index = arr.indexOf(target);
+    arr.splice(index - 1, 2, arr[index], arr[index - 1]);
+    normalizeImportance(arr);
+};
+
+const downImportance = () => {
+    if (!canDownImportance.value) return;
+    const arr = [...importanceSortedSubMaps.value];
+    const target = currentEditingLayer.value === 0 ? 0 : sub_maps.value[currentEditingLayer.value - 1];
+    const index = arr.indexOf(target);
+    arr.splice(index, 2, arr[index + 1], arr[index]);
+    normalizeImportance(arr);
+};
+
+const upPriority = () => {
+    if (!canUpPriority.value) return;
+    const arr = [...prioritySortedSubMaps.value];
+    const index = arr.indexOf(sub_maps.value[currentEditingLayer.value - 1]);
+    arr.splice(index - 1, 2, arr[index], arr[index - 1]);
+    normalizePriority(arr);
+};
+
+const downPriority = () => {
+    if (!canDownPriority.value) return;
+    const arr = [...prioritySortedSubMaps.value];
+    const index = arr.indexOf(sub_maps.value[currentEditingLayer.value - 1]);
+    arr.splice(index, 2, arr[index + 1], arr[index]);
+    normalizePriority(arr);
+};
 const goBack = async () => {
     if (isDirty.value) {
         const response = await (window as any).dialog.showMessageBox({
@@ -1744,7 +1951,7 @@ const goBack = async () => {
                                     <div class="col-md-3">
                                         <div class="btn-group w-100">
                                             <button class="btn btn-sm btn-outline-secondary" @click="addSubMap">{{ t("mapedit.map_addlayer") }}</button>
-                                            <button class="btn btn-sm btn-outline-secondary" @click="$emit('removeSubMap')" :disabled="currentEditingLayer===0">{{ t("mapedit.map_removelayer") }}</button>
+                                            <button class="btn btn-sm btn-outline-secondary" @click="removeSubMap" :disabled="currentEditingLayer===0">{{ t("mapedit.map_removelayer") }}</button>
                                         </div>
                                     </div>
                                     <div class="col-md-2 d-flex flex-column align-items-center">
