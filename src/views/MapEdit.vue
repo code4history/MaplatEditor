@@ -123,14 +123,12 @@ const errorNumber = ref<number | null>(null);
 let illstCheckSource: VectorSource | null = null;
 let mercCheckSource: VectorSource | null = null;
 // errorStatus: TIN strict_status string
+// NOTE: strict_status is a direct property of Transform class (not inside getCompiled())
 const errorStatus = computed(() => {
     const tin = tinObject.value;
     if (!tin || typeof tin !== 'object') return tin as string | undefined;
-    // Real Tin object: get strict_status from compiled
-    try {
-        const c = tin.getCompiled?.();
-        return c?.strict_status as string | undefined;
-    } catch { return undefined; }
+    // Transform.strict_status is set directly after setCompiled()
+    return tin.strict_status as string | undefined;
 });
 
 // kinksCount: kinks のエラー点数（strict_error 時に使用）
@@ -142,7 +140,7 @@ const kinksCount = computed(() => {
 
 const editingID_ = ref('');
 const strictMode = ref('auto');
-const vertexMode = ref(false);
+const vertexMode = ref<'plain' | 'birdeye'>('plain');
 
 const editableGCPID = computed({
   get() {
@@ -1295,6 +1293,8 @@ const loadMapTiles = async () => {
         if (mapData.value.edges) edges.value = mapData.value.edges;
         if (mapData.value.homePosition) homePosition.value = mapData.value.homePosition;
         if (mapData.value.mercZoom) mercZoom.value = mapData.value.mercZoom;
+        if (mapData.value.strictMode) strictMode.value = mapData.value.strictMode;
+        if (mapData.value.vertexMode) vertexMode.value = mapData.value.vertexMode;
 
         // Set mercMap view — replicate legacy reflectIllstMap GCP bounding box calculation
         // gcp[1] is ALREADY in EPSG:3857 (stored as merc coords from mercMap clicks)
@@ -1345,8 +1345,14 @@ const loadMapTiles = async () => {
 // Mirror original vueMap watchers: gcps/edges/strictMode/vertexMode → updateTin()
 watch(gcps, () => { if (illstSource) updateTin(); }, { deep: true });
 watch(edges, () => { if (illstSource) updateTin(); }, { deep: true });
-watch(strictMode, () => { if (illstSource) updateTin(); });
-watch(vertexMode, () => { if (illstSource) updateTin(); });
+watch(strictMode, (newVal) => { 
+    mapData.value.strictMode = newVal;
+    if (illstSource) updateTin(); 
+});
+watch(vertexMode, (newVal) => { 
+    mapData.value.vertexMode = newVal;
+    if (illstSource) updateTin(); 
+});
 
 const setupBaseMaps = async () => {
     if (!mercMap) return;
