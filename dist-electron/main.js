@@ -342,31 +342,31 @@ function envPaths(name, { suffix = "nodejs" } = {}) {
   }
   return linux(name);
 }
-const attemptifyAsync = (fn, options) => {
+const attemptifyAsync = (fn2, options) => {
   const { onError } = options;
   return function attemptified(...args) {
-    return fn.apply(void 0, args).catch(onError);
+    return fn2.apply(void 0, args).catch(onError);
   };
 };
-const attemptifySync = (fn, options) => {
+const attemptifySync = (fn2, options) => {
   const { onError } = options;
   return function attemptified(...args) {
     try {
-      return fn.apply(void 0, args);
+      return fn2.apply(void 0, args);
     } catch (error2) {
       return onError(error2);
     }
   };
 };
 const RETRY_INTERVAL = 250;
-const retryifyAsync = (fn, options) => {
+const retryifyAsync = (fn2, options) => {
   const { isRetriable } = options;
   return function retryified(options2) {
     const { timeout } = options2;
     const interval = options2.interval ?? RETRY_INTERVAL;
     const timestamp = Date.now() + timeout;
     return function attempt(...args) {
-      return fn.apply(void 0, args).catch((error2) => {
+      return fn2.apply(void 0, args).catch((error2) => {
         if (!isRetriable(error2))
           throw error2;
         if (Date.now() >= timestamp)
@@ -382,7 +382,7 @@ const retryifyAsync = (fn, options) => {
     };
   };
 };
-const retryifySync = (fn, options) => {
+const retryifySync = (fn2, options) => {
   const { isRetriable } = options;
   return function retryified(options2) {
     const { timeout } = options2;
@@ -390,7 +390,7 @@ const retryifySync = (fn, options) => {
     return function attempt(...args) {
       while (true) {
         try {
-          return fn.apply(void 0, args);
+          return fn2.apply(void 0, args);
         } catch (error2) {
           if (!isRetriable(error2))
             throw error2;
@@ -1051,10 +1051,10 @@ var scope = {};
       this.name = name;
       this.rhs = rhs;
     }
-    render({ es5, _n }) {
+    render({ es5, _n: _n2 }) {
       const varKind = es5 ? scope_1.varKinds.var : this.varKind;
       const rhs = this.rhs === void 0 ? "" : ` = ${this.rhs}`;
-      return `${varKind} ${this.name}${rhs};` + _n;
+      return `${varKind} ${this.name}${rhs};` + _n2;
     }
     optimizeNames(names2, constants2) {
       if (!names2[this.name.str])
@@ -1074,8 +1074,8 @@ var scope = {};
       this.rhs = rhs;
       this.sideEffects = sideEffects;
     }
-    render({ _n }) {
-      return `${this.lhs} = ${this.rhs};` + _n;
+    render({ _n: _n2 }) {
+      return `${this.lhs} = ${this.rhs};` + _n2;
     }
     optimizeNames(names2, constants2) {
       if (this.lhs instanceof code_12.Name && !names2[this.lhs.str] && !this.sideEffects)
@@ -1093,8 +1093,8 @@ var scope = {};
       super(lhs, rhs, sideEffects);
       this.op = op;
     }
-    render({ _n }) {
-      return `${this.lhs} ${this.op}= ${this.rhs};` + _n;
+    render({ _n: _n2 }) {
+      return `${this.lhs} ${this.op}= ${this.rhs};` + _n2;
     }
   }
   class Label extends Node {
@@ -1103,8 +1103,8 @@ var scope = {};
       this.label = label;
       this.names = {};
     }
-    render({ _n }) {
-      return `${this.label}:` + _n;
+    render({ _n: _n2 }) {
+      return `${this.label}:` + _n2;
     }
   }
   class Break extends Node {
@@ -1113,9 +1113,9 @@ var scope = {};
       this.label = label;
       this.names = {};
     }
-    render({ _n }) {
+    render({ _n: _n2 }) {
       const label = this.label ? ` ${this.label}` : "";
-      return `break${label};` + _n;
+      return `break${label};` + _n2;
     }
   }
   class Throw extends Node {
@@ -1123,8 +1123,8 @@ var scope = {};
       super();
       this.error = error2;
     }
-    render({ _n }) {
-      return `throw ${this.error};` + _n;
+    render({ _n: _n2 }) {
+      return `throw ${this.error};` + _n2;
     }
     get names() {
       return this.error.names;
@@ -1135,8 +1135,8 @@ var scope = {};
       super();
       this.code = code2;
     }
-    render({ _n }) {
-      return `${this.code};` + _n;
+    render({ _n: _n2 }) {
+      return `${this.code};` + _n2;
     }
     optimizeNodes() {
       return `${this.code}` ? this : void 0;
@@ -1685,10 +1685,10 @@ var scope = {};
   }
   exports$1.and = and;
   const orCode = mappend(exports$1.operators.OR);
-  function or(...args) {
+  function or2(...args) {
     return args.reduce(orCode);
   }
-  exports$1.or = or;
+  exports$1.or = or2;
   function mappend(op) {
     return (x2, y) => x2 === code_12.nil ? y : y === code_12.nil ? x2 : (0, code_12._)`${par(x2)} ${op} ${par(y)}`;
   }
@@ -1699,8 +1699,8 @@ var scope = {};
 var util$1 = {};
 Object.defineProperty(util$1, "__esModule", { value: true });
 util$1.checkStrictMode = util$1.getErrorPath = util$1.Type = util$1.useFunc = util$1.setEvaluated = util$1.evaluatedPropsToName = util$1.mergeEvaluated = util$1.eachItem = util$1.unescapeJsonPointer = util$1.escapeJsonPointer = util$1.escapeFragment = util$1.unescapeFragment = util$1.schemaRefOrVal = util$1.schemaHasRulesButRef = util$1.schemaHasRules = util$1.checkUnknownRules = util$1.alwaysValidSchema = util$1.toHash = void 0;
-const codegen_1$z = codegen;
-const code_1$a = code$1;
+const codegen_1$u = codegen;
+const code_1$9 = code$1;
 function toHash(arr) {
   const hash = {};
   for (const item of arr)
@@ -1753,9 +1753,9 @@ function schemaRefOrVal({ topSchemaRef, schemaPath }, schema, keyword2, $data) {
     if (typeof schema == "number" || typeof schema == "boolean")
       return schema;
     if (typeof schema == "string")
-      return (0, codegen_1$z._)`${schema}`;
+      return (0, codegen_1$u._)`${schema}`;
   }
-  return (0, codegen_1$z._)`${topSchemaRef}${schemaPath}${(0, codegen_1$z.getProperty)(keyword2)}`;
+  return (0, codegen_1$u._)`${topSchemaRef}${schemaPath}${(0, codegen_1$u.getProperty)(keyword2)}`;
 }
 util$1.schemaRefOrVal = schemaRefOrVal;
 function unescapeFragment(str) {
@@ -1787,20 +1787,20 @@ function eachItem(xs, f) {
 util$1.eachItem = eachItem;
 function makeMergeEvaluated({ mergeNames, mergeToName, mergeValues, resultToName }) {
   return (gen, from, to, toName) => {
-    const res = to === void 0 ? from : to instanceof codegen_1$z.Name ? (from instanceof codegen_1$z.Name ? mergeNames(gen, from, to) : mergeToName(gen, from, to), to) : from instanceof codegen_1$z.Name ? (mergeToName(gen, to, from), from) : mergeValues(from, to);
-    return toName === codegen_1$z.Name && !(res instanceof codegen_1$z.Name) ? resultToName(gen, res) : res;
+    const res = to === void 0 ? from : to instanceof codegen_1$u.Name ? (from instanceof codegen_1$u.Name ? mergeNames(gen, from, to) : mergeToName(gen, from, to), to) : from instanceof codegen_1$u.Name ? (mergeToName(gen, to, from), from) : mergeValues(from, to);
+    return toName === codegen_1$u.Name && !(res instanceof codegen_1$u.Name) ? resultToName(gen, res) : res;
   };
 }
 util$1.mergeEvaluated = {
   props: makeMergeEvaluated({
-    mergeNames: (gen, from, to) => gen.if((0, codegen_1$z._)`${to} !== true && ${from} !== undefined`, () => {
-      gen.if((0, codegen_1$z._)`${from} === true`, () => gen.assign(to, true), () => gen.assign(to, (0, codegen_1$z._)`${to} || {}`).code((0, codegen_1$z._)`Object.assign(${to}, ${from})`));
+    mergeNames: (gen, from, to) => gen.if((0, codegen_1$u._)`${to} !== true && ${from} !== undefined`, () => {
+      gen.if((0, codegen_1$u._)`${from} === true`, () => gen.assign(to, true), () => gen.assign(to, (0, codegen_1$u._)`${to} || {}`).code((0, codegen_1$u._)`Object.assign(${to}, ${from})`));
     }),
-    mergeToName: (gen, from, to) => gen.if((0, codegen_1$z._)`${to} !== true`, () => {
+    mergeToName: (gen, from, to) => gen.if((0, codegen_1$u._)`${to} !== true`, () => {
       if (from === true) {
         gen.assign(to, true);
       } else {
-        gen.assign(to, (0, codegen_1$z._)`${to} || {}`);
+        gen.assign(to, (0, codegen_1$u._)`${to} || {}`);
         setEvaluated(gen, to, from);
       }
     }),
@@ -1808,8 +1808,8 @@ util$1.mergeEvaluated = {
     resultToName: evaluatedPropsToName
   }),
   items: makeMergeEvaluated({
-    mergeNames: (gen, from, to) => gen.if((0, codegen_1$z._)`${to} !== true && ${from} !== undefined`, () => gen.assign(to, (0, codegen_1$z._)`${from} === true ? true : ${to} > ${from} ? ${to} : ${from}`)),
-    mergeToName: (gen, from, to) => gen.if((0, codegen_1$z._)`${to} !== true`, () => gen.assign(to, from === true ? true : (0, codegen_1$z._)`${to} > ${from} ? ${to} : ${from}`)),
+    mergeNames: (gen, from, to) => gen.if((0, codegen_1$u._)`${to} !== true && ${from} !== undefined`, () => gen.assign(to, (0, codegen_1$u._)`${from} === true ? true : ${to} > ${from} ? ${to} : ${from}`)),
+    mergeToName: (gen, from, to) => gen.if((0, codegen_1$u._)`${to} !== true`, () => gen.assign(to, from === true ? true : (0, codegen_1$u._)`${to} > ${from} ? ${to} : ${from}`)),
     mergeValues: (from, to) => from === true ? true : Math.max(from, to),
     resultToName: (gen, items2) => gen.var("items", items2)
   })
@@ -1817,21 +1817,21 @@ util$1.mergeEvaluated = {
 function evaluatedPropsToName(gen, ps) {
   if (ps === true)
     return gen.var("props", true);
-  const props = gen.var("props", (0, codegen_1$z._)`{}`);
+  const props = gen.var("props", (0, codegen_1$u._)`{}`);
   if (ps !== void 0)
     setEvaluated(gen, props, ps);
   return props;
 }
 util$1.evaluatedPropsToName = evaluatedPropsToName;
 function setEvaluated(gen, props, ps) {
-  Object.keys(ps).forEach((p) => gen.assign((0, codegen_1$z._)`${props}${(0, codegen_1$z.getProperty)(p)}`, true));
+  Object.keys(ps).forEach((p) => gen.assign((0, codegen_1$u._)`${props}${(0, codegen_1$u.getProperty)(p)}`, true));
 }
 util$1.setEvaluated = setEvaluated;
 const snippets = {};
 function useFunc(gen, f) {
   return gen.scopeValue("func", {
     ref: f,
-    code: snippets[f.code] || (snippets[f.code] = new code_1$a._Code(f.code))
+    code: snippets[f.code] || (snippets[f.code] = new code_1$9._Code(f.code))
   });
 }
 util$1.useFunc = useFunc;
@@ -1841,11 +1841,11 @@ var Type;
   Type2[Type2["Str"] = 1] = "Str";
 })(Type || (util$1.Type = Type = {}));
 function getErrorPath(dataProp, dataPropType, jsPropertySyntax) {
-  if (dataProp instanceof codegen_1$z.Name) {
+  if (dataProp instanceof codegen_1$u.Name) {
     const isNumber = dataPropType === Type.Num;
-    return jsPropertySyntax ? isNumber ? (0, codegen_1$z._)`"[" + ${dataProp} + "]"` : (0, codegen_1$z._)`"['" + ${dataProp} + "']"` : isNumber ? (0, codegen_1$z._)`"/" + ${dataProp}` : (0, codegen_1$z._)`"/" + ${dataProp}.replace(/~/g, "~0").replace(/\\//g, "~1")`;
+    return jsPropertySyntax ? isNumber ? (0, codegen_1$u._)`"[" + ${dataProp} + "]"` : (0, codegen_1$u._)`"['" + ${dataProp} + "']"` : isNumber ? (0, codegen_1$u._)`"/" + ${dataProp}` : (0, codegen_1$u._)`"/" + ${dataProp}.replace(/~/g, "~0").replace(/\\//g, "~1")`;
   }
-  return jsPropertySyntax ? (0, codegen_1$z.getProperty)(dataProp).toString() : "/" + escapeJsonPointer(dataProp);
+  return jsPropertySyntax ? (0, codegen_1$u.getProperty)(dataProp).toString() : "/" + escapeJsonPointer(dataProp);
 }
 util$1.getErrorPath = getErrorPath;
 function checkStrictMode(it, msg, mode = it.opts.strictSchema) {
@@ -1859,35 +1859,35 @@ function checkStrictMode(it, msg, mode = it.opts.strictSchema) {
 util$1.checkStrictMode = checkStrictMode;
 var names$1 = {};
 Object.defineProperty(names$1, "__esModule", { value: true });
-const codegen_1$y = codegen;
+const codegen_1$t = codegen;
 const names = {
   // validation function arguments
-  data: new codegen_1$y.Name("data"),
+  data: new codegen_1$t.Name("data"),
   // data passed to validation function
   // args passed from referencing schema
-  valCxt: new codegen_1$y.Name("valCxt"),
+  valCxt: new codegen_1$t.Name("valCxt"),
   // validation/data context - should not be used directly, it is destructured to the names below
-  instancePath: new codegen_1$y.Name("instancePath"),
-  parentData: new codegen_1$y.Name("parentData"),
-  parentDataProperty: new codegen_1$y.Name("parentDataProperty"),
-  rootData: new codegen_1$y.Name("rootData"),
+  instancePath: new codegen_1$t.Name("instancePath"),
+  parentData: new codegen_1$t.Name("parentData"),
+  parentDataProperty: new codegen_1$t.Name("parentDataProperty"),
+  rootData: new codegen_1$t.Name("rootData"),
   // root data - same as the data passed to the first/top validation function
-  dynamicAnchors: new codegen_1$y.Name("dynamicAnchors"),
+  dynamicAnchors: new codegen_1$t.Name("dynamicAnchors"),
   // used to support recursiveRef and dynamicRef
   // function scoped variables
-  vErrors: new codegen_1$y.Name("vErrors"),
+  vErrors: new codegen_1$t.Name("vErrors"),
   // null or array of validation errors
-  errors: new codegen_1$y.Name("errors"),
+  errors: new codegen_1$t.Name("errors"),
   // counter of validation errors
-  this: new codegen_1$y.Name("this"),
+  this: new codegen_1$t.Name("this"),
   // "globals"
-  self: new codegen_1$y.Name("self"),
-  scope: new codegen_1$y.Name("scope"),
+  self: new codegen_1$t.Name("self"),
+  scope: new codegen_1$t.Name("scope"),
   // JTD serialize/parse name for JSON string and position
-  json: new codegen_1$y.Name("json"),
-  jsonPos: new codegen_1$y.Name("jsonPos"),
-  jsonLen: new codegen_1$y.Name("jsonLen"),
-  jsonPart: new codegen_1$y.Name("jsonPart")
+  json: new codegen_1$t.Name("json"),
+  jsonPos: new codegen_1$t.Name("jsonPos"),
+  jsonLen: new codegen_1$t.Name("jsonLen"),
+  jsonPart: new codegen_1$t.Name("jsonPart")
 };
 names$1.default = names;
 (function(exports$1) {
@@ -2007,49 +2007,55 @@ names$1.default = names;
       keyValues.push([E3.propertyName, propertyName]);
   }
 })(errors);
-Object.defineProperty(boolSchema, "__esModule", { value: true });
-boolSchema.boolOrEmptySchema = boolSchema.topBoolOrEmptySchema = void 0;
-const errors_1$3 = errors;
-const codegen_1$x = codegen;
-const names_1$9 = names$1;
-const boolError = {
-  message: "boolean schema is false"
-};
-function topBoolOrEmptySchema(it) {
-  const { gen, schema, validateName } = it;
-  if (schema === false) {
-    falseSchemaError(it, false);
-  } else if (typeof schema == "object" && schema.$async === true) {
-    gen.return(names_1$9.default.data);
-  } else {
-    gen.assign((0, codegen_1$x._)`${validateName}.errors`, null);
-    gen.return(true);
-  }
-}
-boolSchema.topBoolOrEmptySchema = topBoolOrEmptySchema;
-function boolOrEmptySchema(it, valid2) {
-  const { gen, schema } = it;
-  if (schema === false) {
-    gen.var(valid2, false);
-    falseSchemaError(it);
-  } else {
-    gen.var(valid2, true);
-  }
-}
-boolSchema.boolOrEmptySchema = boolOrEmptySchema;
-function falseSchemaError(it, overrideAllErrors) {
-  const { gen, data } = it;
-  const cxt = {
-    gen,
-    keyword: "false schema",
-    data,
-    schema: false,
-    schemaCode: false,
-    schemaValue: false,
-    params: {},
-    it
+var hasRequiredBoolSchema;
+function requireBoolSchema() {
+  if (hasRequiredBoolSchema) return boolSchema;
+  hasRequiredBoolSchema = 1;
+  Object.defineProperty(boolSchema, "__esModule", { value: true });
+  boolSchema.boolOrEmptySchema = boolSchema.topBoolOrEmptySchema = void 0;
+  const errors_12 = errors;
+  const codegen_12 = codegen;
+  const names_12 = names$1;
+  const boolError = {
+    message: "boolean schema is false"
   };
-  (0, errors_1$3.reportError)(cxt, boolError, void 0, overrideAllErrors);
+  function topBoolOrEmptySchema(it) {
+    const { gen, schema, validateName } = it;
+    if (schema === false) {
+      falseSchemaError(it, false);
+    } else if (typeof schema == "object" && schema.$async === true) {
+      gen.return(names_12.default.data);
+    } else {
+      gen.assign((0, codegen_12._)`${validateName}.errors`, null);
+      gen.return(true);
+    }
+  }
+  boolSchema.topBoolOrEmptySchema = topBoolOrEmptySchema;
+  function boolOrEmptySchema(it, valid2) {
+    const { gen, schema } = it;
+    if (schema === false) {
+      gen.var(valid2, false);
+      falseSchemaError(it);
+    } else {
+      gen.var(valid2, true);
+    }
+  }
+  boolSchema.boolOrEmptySchema = boolOrEmptySchema;
+  function falseSchemaError(it, overrideAllErrors) {
+    const { gen, data } = it;
+    const cxt = {
+      gen,
+      keyword: "false schema",
+      data,
+      schema: false,
+      schemaCode: false,
+      schemaValue: false,
+      params: {},
+      it
+    };
+    (0, errors_12.reportError)(cxt, boolError, void 0, overrideAllErrors);
+  }
+  return boolSchema;
 }
 var dataType = {};
 var rules = {};
@@ -2097,10 +2103,10 @@ applicability.shouldUseRule = shouldUseRule;
 Object.defineProperty(dataType, "__esModule", { value: true });
 dataType.reportTypeError = dataType.checkDataTypes = dataType.checkDataType = dataType.coerceAndCheckDataType = dataType.getJSONTypes = dataType.getSchemaTypes = dataType.DataType = void 0;
 const rules_1 = rules;
-const applicability_1$1 = applicability;
-const errors_1$2 = errors;
-const codegen_1$w = codegen;
-const util_1$u = util$1;
+const applicability_1 = applicability;
+const errors_1 = errors;
+const codegen_1$s = codegen;
+const util_1$r = util$1;
 var DataType;
 (function(DataType2) {
   DataType2[DataType2["Correct"] = 0] = "Correct";
@@ -2132,7 +2138,7 @@ dataType.getJSONTypes = getJSONTypes;
 function coerceAndCheckDataType(it, types2) {
   const { gen, data, opts } = it;
   const coerceTo = coerceToTypes(types2, opts.coerceTypes);
-  const checkTypes = types2.length > 0 && !(coerceTo.length === 0 && types2.length === 1 && (0, applicability_1$1.schemaHasRulesForType)(it, types2[0]));
+  const checkTypes = types2.length > 0 && !(coerceTo.length === 0 && types2.length === 1 && (0, applicability_1.schemaHasRulesForType)(it, types2[0]));
   if (checkTypes) {
     const wrongType = checkDataTypes(types2, data, opts.strictNumbers, DataType.Wrong);
     gen.if(wrongType, () => {
@@ -2151,12 +2157,12 @@ function coerceToTypes(types2, coerceTypes) {
 }
 function coerceData(it, types2, coerceTo) {
   const { gen, data, opts } = it;
-  const dataType2 = gen.let("dataType", (0, codegen_1$w._)`typeof ${data}`);
-  const coerced = gen.let("coerced", (0, codegen_1$w._)`undefined`);
+  const dataType2 = gen.let("dataType", (0, codegen_1$s._)`typeof ${data}`);
+  const coerced = gen.let("coerced", (0, codegen_1$s._)`undefined`);
   if (opts.coerceTypes === "array") {
-    gen.if((0, codegen_1$w._)`${dataType2} == 'object' && Array.isArray(${data}) && ${data}.length == 1`, () => gen.assign(data, (0, codegen_1$w._)`${data}[0]`).assign(dataType2, (0, codegen_1$w._)`typeof ${data}`).if(checkDataTypes(types2, data, opts.strictNumbers), () => gen.assign(coerced, data)));
+    gen.if((0, codegen_1$s._)`${dataType2} == 'object' && Array.isArray(${data}) && ${data}.length == 1`, () => gen.assign(data, (0, codegen_1$s._)`${data}[0]`).assign(dataType2, (0, codegen_1$s._)`typeof ${data}`).if(checkDataTypes(types2, data, opts.strictNumbers), () => gen.assign(coerced, data)));
   }
-  gen.if((0, codegen_1$w._)`${coerced} !== undefined`);
+  gen.if((0, codegen_1$s._)`${coerced} !== undefined`);
   for (const t2 of coerceTo) {
     if (COERCIBLE.has(t2) || t2 === "array" && opts.coerceTypes === "array") {
       coerceSpecificType(t2);
@@ -2165,63 +2171,63 @@ function coerceData(it, types2, coerceTo) {
   gen.else();
   reportTypeError(it);
   gen.endIf();
-  gen.if((0, codegen_1$w._)`${coerced} !== undefined`, () => {
+  gen.if((0, codegen_1$s._)`${coerced} !== undefined`, () => {
     gen.assign(data, coerced);
     assignParentData(it, coerced);
   });
   function coerceSpecificType(t2) {
     switch (t2) {
       case "string":
-        gen.elseIf((0, codegen_1$w._)`${dataType2} == "number" || ${dataType2} == "boolean"`).assign(coerced, (0, codegen_1$w._)`"" + ${data}`).elseIf((0, codegen_1$w._)`${data} === null`).assign(coerced, (0, codegen_1$w._)`""`);
+        gen.elseIf((0, codegen_1$s._)`${dataType2} == "number" || ${dataType2} == "boolean"`).assign(coerced, (0, codegen_1$s._)`"" + ${data}`).elseIf((0, codegen_1$s._)`${data} === null`).assign(coerced, (0, codegen_1$s._)`""`);
         return;
       case "number":
-        gen.elseIf((0, codegen_1$w._)`${dataType2} == "boolean" || ${data} === null
-              || (${dataType2} == "string" && ${data} && ${data} == +${data})`).assign(coerced, (0, codegen_1$w._)`+${data}`);
+        gen.elseIf((0, codegen_1$s._)`${dataType2} == "boolean" || ${data} === null
+              || (${dataType2} == "string" && ${data} && ${data} == +${data})`).assign(coerced, (0, codegen_1$s._)`+${data}`);
         return;
       case "integer":
-        gen.elseIf((0, codegen_1$w._)`${dataType2} === "boolean" || ${data} === null
-              || (${dataType2} === "string" && ${data} && ${data} == +${data} && !(${data} % 1))`).assign(coerced, (0, codegen_1$w._)`+${data}`);
+        gen.elseIf((0, codegen_1$s._)`${dataType2} === "boolean" || ${data} === null
+              || (${dataType2} === "string" && ${data} && ${data} == +${data} && !(${data} % 1))`).assign(coerced, (0, codegen_1$s._)`+${data}`);
         return;
       case "boolean":
-        gen.elseIf((0, codegen_1$w._)`${data} === "false" || ${data} === 0 || ${data} === null`).assign(coerced, false).elseIf((0, codegen_1$w._)`${data} === "true" || ${data} === 1`).assign(coerced, true);
+        gen.elseIf((0, codegen_1$s._)`${data} === "false" || ${data} === 0 || ${data} === null`).assign(coerced, false).elseIf((0, codegen_1$s._)`${data} === "true" || ${data} === 1`).assign(coerced, true);
         return;
       case "null":
-        gen.elseIf((0, codegen_1$w._)`${data} === "" || ${data} === 0 || ${data} === false`);
+        gen.elseIf((0, codegen_1$s._)`${data} === "" || ${data} === 0 || ${data} === false`);
         gen.assign(coerced, null);
         return;
       case "array":
-        gen.elseIf((0, codegen_1$w._)`${dataType2} === "string" || ${dataType2} === "number"
-              || ${dataType2} === "boolean" || ${data} === null`).assign(coerced, (0, codegen_1$w._)`[${data}]`);
+        gen.elseIf((0, codegen_1$s._)`${dataType2} === "string" || ${dataType2} === "number"
+              || ${dataType2} === "boolean" || ${data} === null`).assign(coerced, (0, codegen_1$s._)`[${data}]`);
     }
   }
 }
 function assignParentData({ gen, parentData, parentDataProperty }, expr) {
-  gen.if((0, codegen_1$w._)`${parentData} !== undefined`, () => gen.assign((0, codegen_1$w._)`${parentData}[${parentDataProperty}]`, expr));
+  gen.if((0, codegen_1$s._)`${parentData} !== undefined`, () => gen.assign((0, codegen_1$s._)`${parentData}[${parentDataProperty}]`, expr));
 }
 function checkDataType(dataType2, data, strictNums, correct = DataType.Correct) {
-  const EQ = correct === DataType.Correct ? codegen_1$w.operators.EQ : codegen_1$w.operators.NEQ;
+  const EQ = correct === DataType.Correct ? codegen_1$s.operators.EQ : codegen_1$s.operators.NEQ;
   let cond;
   switch (dataType2) {
     case "null":
-      return (0, codegen_1$w._)`${data} ${EQ} null`;
+      return (0, codegen_1$s._)`${data} ${EQ} null`;
     case "array":
-      cond = (0, codegen_1$w._)`Array.isArray(${data})`;
+      cond = (0, codegen_1$s._)`Array.isArray(${data})`;
       break;
     case "object":
-      cond = (0, codegen_1$w._)`${data} && typeof ${data} == "object" && !Array.isArray(${data})`;
+      cond = (0, codegen_1$s._)`${data} && typeof ${data} == "object" && !Array.isArray(${data})`;
       break;
     case "integer":
-      cond = numCond((0, codegen_1$w._)`!(${data} % 1) && !isNaN(${data})`);
+      cond = numCond((0, codegen_1$s._)`!(${data} % 1) && !isNaN(${data})`);
       break;
     case "number":
       cond = numCond();
       break;
     default:
-      return (0, codegen_1$w._)`typeof ${data} ${EQ} ${dataType2}`;
+      return (0, codegen_1$s._)`typeof ${data} ${EQ} ${dataType2}`;
   }
-  return correct === DataType.Correct ? cond : (0, codegen_1$w.not)(cond);
-  function numCond(_cond = codegen_1$w.nil) {
-    return (0, codegen_1$w.and)((0, codegen_1$w._)`typeof ${data} == "number"`, _cond, strictNums ? (0, codegen_1$w._)`isFinite(${data})` : codegen_1$w.nil);
+  return correct === DataType.Correct ? cond : (0, codegen_1$s.not)(cond);
+  function numCond(_cond = codegen_1$s.nil) {
+    return (0, codegen_1$s.and)((0, codegen_1$s._)`typeof ${data} == "number"`, _cond, strictNums ? (0, codegen_1$s._)`isFinite(${data})` : codegen_1$s.nil);
   }
 }
 dataType.checkDataType = checkDataType;
@@ -2230,35 +2236,35 @@ function checkDataTypes(dataTypes, data, strictNums, correct) {
     return checkDataType(dataTypes[0], data, strictNums, correct);
   }
   let cond;
-  const types2 = (0, util_1$u.toHash)(dataTypes);
+  const types2 = (0, util_1$r.toHash)(dataTypes);
   if (types2.array && types2.object) {
-    const notObj = (0, codegen_1$w._)`typeof ${data} != "object"`;
-    cond = types2.null ? notObj : (0, codegen_1$w._)`!${data} || ${notObj}`;
+    const notObj = (0, codegen_1$s._)`typeof ${data} != "object"`;
+    cond = types2.null ? notObj : (0, codegen_1$s._)`!${data} || ${notObj}`;
     delete types2.null;
     delete types2.array;
     delete types2.object;
   } else {
-    cond = codegen_1$w.nil;
+    cond = codegen_1$s.nil;
   }
   if (types2.number)
     delete types2.integer;
   for (const t2 in types2)
-    cond = (0, codegen_1$w.and)(cond, checkDataType(t2, data, strictNums, correct));
+    cond = (0, codegen_1$s.and)(cond, checkDataType(t2, data, strictNums, correct));
   return cond;
 }
 dataType.checkDataTypes = checkDataTypes;
 const typeError = {
   message: ({ schema }) => `must be ${schema}`,
-  params: ({ schema, schemaValue }) => typeof schema == "string" ? (0, codegen_1$w._)`{type: ${schema}}` : (0, codegen_1$w._)`{type: ${schemaValue}}`
+  params: ({ schema, schemaValue }) => typeof schema == "string" ? (0, codegen_1$s._)`{type: ${schema}}` : (0, codegen_1$s._)`{type: ${schemaValue}}`
 };
 function reportTypeError(it) {
   const cxt = getTypeErrorContext(it);
-  (0, errors_1$2.reportError)(cxt, typeError);
+  (0, errors_1.reportError)(cxt, typeError);
 }
 dataType.reportTypeError = reportTypeError;
 function getTypeErrorContext(it) {
   const { gen, data, schema } = it;
-  const schemaCode = (0, util_1$u.schemaRefOrVal)(it, schema, "type");
+  const schemaCode = (0, util_1$r.schemaRefOrVal)(it, schema, "type");
   return {
     gen,
     keyword: "type",
@@ -2272,54 +2278,60 @@ function getTypeErrorContext(it) {
   };
 }
 var defaults = {};
-Object.defineProperty(defaults, "__esModule", { value: true });
-defaults.assignDefaults = void 0;
-const codegen_1$v = codegen;
-const util_1$t = util$1;
-function assignDefaults(it, ty) {
-  const { properties: properties2, items: items2 } = it.schema;
-  if (ty === "object" && properties2) {
-    for (const key in properties2) {
-      assignDefault(it, key, properties2[key].default);
+var hasRequiredDefaults;
+function requireDefaults() {
+  if (hasRequiredDefaults) return defaults;
+  hasRequiredDefaults = 1;
+  Object.defineProperty(defaults, "__esModule", { value: true });
+  defaults.assignDefaults = void 0;
+  const codegen_12 = codegen;
+  const util_12 = util$1;
+  function assignDefaults(it, ty) {
+    const { properties: properties2, items: items2 } = it.schema;
+    if (ty === "object" && properties2) {
+      for (const key in properties2) {
+        assignDefault(it, key, properties2[key].default);
+      }
+    } else if (ty === "array" && Array.isArray(items2)) {
+      items2.forEach((sch, i) => assignDefault(it, i, sch.default));
     }
-  } else if (ty === "array" && Array.isArray(items2)) {
-    items2.forEach((sch, i) => assignDefault(it, i, sch.default));
   }
-}
-defaults.assignDefaults = assignDefaults;
-function assignDefault(it, prop, defaultValue) {
-  const { gen, compositeRule, data, opts } = it;
-  if (defaultValue === void 0)
-    return;
-  const childData = (0, codegen_1$v._)`${data}${(0, codegen_1$v.getProperty)(prop)}`;
-  if (compositeRule) {
-    (0, util_1$t.checkStrictMode)(it, `default is ignored for: ${childData}`);
-    return;
+  defaults.assignDefaults = assignDefaults;
+  function assignDefault(it, prop, defaultValue) {
+    const { gen, compositeRule, data, opts } = it;
+    if (defaultValue === void 0)
+      return;
+    const childData = (0, codegen_12._)`${data}${(0, codegen_12.getProperty)(prop)}`;
+    if (compositeRule) {
+      (0, util_12.checkStrictMode)(it, `default is ignored for: ${childData}`);
+      return;
+    }
+    let condition = (0, codegen_12._)`${childData} === undefined`;
+    if (opts.useDefaults === "empty") {
+      condition = (0, codegen_12._)`${condition} || ${childData} === null || ${childData} === ""`;
+    }
+    gen.if(condition, (0, codegen_12._)`${childData} = ${(0, codegen_12.stringify)(defaultValue)}`);
   }
-  let condition = (0, codegen_1$v._)`${childData} === undefined`;
-  if (opts.useDefaults === "empty") {
-    condition = (0, codegen_1$v._)`${condition} || ${childData} === null || ${childData} === ""`;
-  }
-  gen.if(condition, (0, codegen_1$v._)`${childData} = ${(0, codegen_1$v.stringify)(defaultValue)}`);
+  return defaults;
 }
 var keyword = {};
 var code = {};
 Object.defineProperty(code, "__esModule", { value: true });
 code.validateUnion = code.validateArray = code.usePattern = code.callValidateCode = code.schemaProperties = code.allSchemaProperties = code.noPropertyInData = code.propertyInData = code.isOwnProperty = code.hasPropFunc = code.reportMissingProp = code.checkMissingProp = code.checkReportMissingProp = void 0;
-const codegen_1$u = codegen;
-const util_1$s = util$1;
-const names_1$8 = names$1;
+const codegen_1$r = codegen;
+const util_1$q = util$1;
+const names_1$6 = names$1;
 const util_2$1 = util$1;
 function checkReportMissingProp(cxt, prop) {
   const { gen, data, it } = cxt;
   gen.if(noPropertyInData(gen, data, prop, it.opts.ownProperties), () => {
-    cxt.setParams({ missingProperty: (0, codegen_1$u._)`${prop}` }, true);
+    cxt.setParams({ missingProperty: (0, codegen_1$r._)`${prop}` }, true);
     cxt.error();
   });
 }
 code.checkReportMissingProp = checkReportMissingProp;
 function checkMissingProp({ gen, data, it: { opts } }, properties2, missing) {
-  return (0, codegen_1$u.or)(...properties2.map((prop) => (0, codegen_1$u.and)(noPropertyInData(gen, data, prop, opts.ownProperties), (0, codegen_1$u._)`${missing} = ${prop}`)));
+  return (0, codegen_1$r.or)(...properties2.map((prop) => (0, codegen_1$r.and)(noPropertyInData(gen, data, prop, opts.ownProperties), (0, codegen_1$r._)`${missing} = ${prop}`)));
 }
 code.checkMissingProp = checkMissingProp;
 function reportMissingProp(cxt, missing) {
@@ -2331,22 +2343,22 @@ function hasPropFunc(gen) {
   return gen.scopeValue("func", {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     ref: Object.prototype.hasOwnProperty,
-    code: (0, codegen_1$u._)`Object.prototype.hasOwnProperty`
+    code: (0, codegen_1$r._)`Object.prototype.hasOwnProperty`
   });
 }
 code.hasPropFunc = hasPropFunc;
 function isOwnProperty(gen, data, property) {
-  return (0, codegen_1$u._)`${hasPropFunc(gen)}.call(${data}, ${property})`;
+  return (0, codegen_1$r._)`${hasPropFunc(gen)}.call(${data}, ${property})`;
 }
 code.isOwnProperty = isOwnProperty;
 function propertyInData(gen, data, property, ownProperties) {
-  const cond = (0, codegen_1$u._)`${data}${(0, codegen_1$u.getProperty)(property)} !== undefined`;
-  return ownProperties ? (0, codegen_1$u._)`${cond} && ${isOwnProperty(gen, data, property)}` : cond;
+  const cond = (0, codegen_1$r._)`${data}${(0, codegen_1$r.getProperty)(property)} !== undefined`;
+  return ownProperties ? (0, codegen_1$r._)`${cond} && ${isOwnProperty(gen, data, property)}` : cond;
 }
 code.propertyInData = propertyInData;
 function noPropertyInData(gen, data, property, ownProperties) {
-  const cond = (0, codegen_1$u._)`${data}${(0, codegen_1$u.getProperty)(property)} === undefined`;
-  return ownProperties ? (0, codegen_1$u.or)(cond, (0, codegen_1$u.not)(isOwnProperty(gen, data, property))) : cond;
+  const cond = (0, codegen_1$r._)`${data}${(0, codegen_1$r.getProperty)(property)} === undefined`;
+  return ownProperties ? (0, codegen_1$r.or)(cond, (0, codegen_1$r.not)(isOwnProperty(gen, data, property))) : cond;
 }
 code.noPropertyInData = noPropertyInData;
 function allSchemaProperties(schemaMap) {
@@ -2354,24 +2366,24 @@ function allSchemaProperties(schemaMap) {
 }
 code.allSchemaProperties = allSchemaProperties;
 function schemaProperties(it, schemaMap) {
-  return allSchemaProperties(schemaMap).filter((p) => !(0, util_1$s.alwaysValidSchema)(it, schemaMap[p]));
+  return allSchemaProperties(schemaMap).filter((p) => !(0, util_1$q.alwaysValidSchema)(it, schemaMap[p]));
 }
 code.schemaProperties = schemaProperties;
 function callValidateCode({ schemaCode, data, it: { gen, topSchemaRef, schemaPath, errorPath }, it }, func, context, passSchema) {
-  const dataAndSchema = passSchema ? (0, codegen_1$u._)`${schemaCode}, ${data}, ${topSchemaRef}${schemaPath}` : data;
+  const dataAndSchema = passSchema ? (0, codegen_1$r._)`${schemaCode}, ${data}, ${topSchemaRef}${schemaPath}` : data;
   const valCxt = [
-    [names_1$8.default.instancePath, (0, codegen_1$u.strConcat)(names_1$8.default.instancePath, errorPath)],
-    [names_1$8.default.parentData, it.parentData],
-    [names_1$8.default.parentDataProperty, it.parentDataProperty],
-    [names_1$8.default.rootData, names_1$8.default.rootData]
+    [names_1$6.default.instancePath, (0, codegen_1$r.strConcat)(names_1$6.default.instancePath, errorPath)],
+    [names_1$6.default.parentData, it.parentData],
+    [names_1$6.default.parentDataProperty, it.parentDataProperty],
+    [names_1$6.default.rootData, names_1$6.default.rootData]
   ];
   if (it.opts.dynamicRef)
-    valCxt.push([names_1$8.default.dynamicAnchors, names_1$8.default.dynamicAnchors]);
-  const args = (0, codegen_1$u._)`${dataAndSchema}, ${gen.object(...valCxt)}`;
-  return context !== codegen_1$u.nil ? (0, codegen_1$u._)`${func}.call(${context}, ${args})` : (0, codegen_1$u._)`${func}(${args})`;
+    valCxt.push([names_1$6.default.dynamicAnchors, names_1$6.default.dynamicAnchors]);
+  const args = (0, codegen_1$r._)`${dataAndSchema}, ${gen.object(...valCxt)}`;
+  return context !== codegen_1$r.nil ? (0, codegen_1$r._)`${func}.call(${context}, ${args})` : (0, codegen_1$r._)`${func}(${args})`;
 }
 code.callValidateCode = callValidateCode;
-const newRegExp = (0, codegen_1$u._)`new RegExp`;
+const newRegExp = (0, codegen_1$r._)`new RegExp`;
 function usePattern({ gen, it: { opts } }, pattern2) {
   const u2 = opts.unicodeRegExp ? "u" : "";
   const { regExp } = opts.code;
@@ -2379,7 +2391,7 @@ function usePattern({ gen, it: { opts } }, pattern2) {
   return gen.scopeValue("pattern", {
     key: rx.toString(),
     ref: rx,
-    code: (0, codegen_1$u._)`${regExp.code === "new RegExp" ? newRegExp : (0, util_2$1.useFunc)(gen, regExp)}(${pattern2}, ${u2})`
+    code: (0, codegen_1$r._)`${regExp.code === "new RegExp" ? newRegExp : (0, util_2$1.useFunc)(gen, regExp)}(${pattern2}, ${u2})`
   });
 }
 code.usePattern = usePattern;
@@ -2395,14 +2407,14 @@ function validateArray(cxt) {
   validateItems(() => gen.break());
   return valid2;
   function validateItems(notValid) {
-    const len = gen.const("len", (0, codegen_1$u._)`${data}.length`);
+    const len = gen.const("len", (0, codegen_1$r._)`${data}.length`);
     gen.forRange("i", 0, len, (i) => {
       cxt.subschema({
         keyword: keyword2,
         dataProp: i,
-        dataPropType: util_1$s.Type.Num
+        dataPropType: util_1$q.Type.Num
       }, valid2);
-      gen.if((0, codegen_1$u.not)(valid2), notValid);
+      gen.if((0, codegen_1$r.not)(valid2), notValid);
     });
   }
 }
@@ -2411,7 +2423,7 @@ function validateUnion(cxt) {
   const { gen, schema, keyword: keyword2, it } = cxt;
   if (!Array.isArray(schema))
     throw new Error("ajv implementation error");
-  const alwaysValid = schema.some((sch) => (0, util_1$s.alwaysValidSchema)(it, sch));
+  const alwaysValid = schema.some((sch) => (0, util_1$q.alwaysValidSchema)(it, sch));
   if (alwaysValid && !it.opts.unevaluated)
     return;
   const valid2 = gen.let("valid", false);
@@ -2422,202 +2434,214 @@ function validateUnion(cxt) {
       schemaProp: i,
       compositeRule: true
     }, schValid);
-    gen.assign(valid2, (0, codegen_1$u._)`${valid2} || ${schValid}`);
+    gen.assign(valid2, (0, codegen_1$r._)`${valid2} || ${schValid}`);
     const merged = cxt.mergeValidEvaluated(schCxt, schValid);
     if (!merged)
-      gen.if((0, codegen_1$u.not)(valid2));
+      gen.if((0, codegen_1$r.not)(valid2));
   }));
   cxt.result(valid2, () => cxt.reset(), () => cxt.error(true));
 }
 code.validateUnion = validateUnion;
-Object.defineProperty(keyword, "__esModule", { value: true });
-keyword.validateKeywordUsage = keyword.validSchemaType = keyword.funcKeywordCode = keyword.macroKeywordCode = void 0;
-const codegen_1$t = codegen;
-const names_1$7 = names$1;
-const code_1$9 = code;
-const errors_1$1 = errors;
-function macroKeywordCode(cxt, def2) {
-  const { gen, keyword: keyword2, schema, parentSchema, it } = cxt;
-  const macroSchema = def2.macro.call(it.self, schema, parentSchema, it);
-  const schemaRef = useKeyword(gen, keyword2, macroSchema);
-  if (it.opts.validateSchema !== false)
-    it.self.validateSchema(macroSchema, true);
-  const valid2 = gen.name("valid");
-  cxt.subschema({
-    schema: macroSchema,
-    schemaPath: codegen_1$t.nil,
-    errSchemaPath: `${it.errSchemaPath}/${keyword2}`,
-    topSchemaRef: schemaRef,
-    compositeRule: true
-  }, valid2);
-  cxt.pass(valid2, () => cxt.error(true));
-}
-keyword.macroKeywordCode = macroKeywordCode;
-function funcKeywordCode(cxt, def2) {
-  var _a;
-  const { gen, keyword: keyword2, schema, parentSchema, $data, it } = cxt;
-  checkAsyncKeyword(it, def2);
-  const validate2 = !$data && def2.compile ? def2.compile.call(it.self, schema, parentSchema, it) : def2.validate;
-  const validateRef = useKeyword(gen, keyword2, validate2);
-  const valid2 = gen.let("valid");
-  cxt.block$data(valid2, validateKeyword);
-  cxt.ok((_a = def2.valid) !== null && _a !== void 0 ? _a : valid2);
-  function validateKeyword() {
-    if (def2.errors === false) {
-      assignValid();
-      if (def2.modifying)
-        modifyData(cxt);
-      reportErrs(() => cxt.error());
-    } else {
-      const ruleErrs = def2.async ? validateAsync() : validateSync();
-      if (def2.modifying)
-        modifyData(cxt);
-      reportErrs(() => addErrs(cxt, ruleErrs));
+var hasRequiredKeyword;
+function requireKeyword() {
+  if (hasRequiredKeyword) return keyword;
+  hasRequiredKeyword = 1;
+  Object.defineProperty(keyword, "__esModule", { value: true });
+  keyword.validateKeywordUsage = keyword.validSchemaType = keyword.funcKeywordCode = keyword.macroKeywordCode = void 0;
+  const codegen_12 = codegen;
+  const names_12 = names$1;
+  const code_12 = code;
+  const errors_12 = errors;
+  function macroKeywordCode(cxt, def2) {
+    const { gen, keyword: keyword2, schema, parentSchema, it } = cxt;
+    const macroSchema = def2.macro.call(it.self, schema, parentSchema, it);
+    const schemaRef = useKeyword(gen, keyword2, macroSchema);
+    if (it.opts.validateSchema !== false)
+      it.self.validateSchema(macroSchema, true);
+    const valid2 = gen.name("valid");
+    cxt.subschema({
+      schema: macroSchema,
+      schemaPath: codegen_12.nil,
+      errSchemaPath: `${it.errSchemaPath}/${keyword2}`,
+      topSchemaRef: schemaRef,
+      compositeRule: true
+    }, valid2);
+    cxt.pass(valid2, () => cxt.error(true));
+  }
+  keyword.macroKeywordCode = macroKeywordCode;
+  function funcKeywordCode(cxt, def2) {
+    var _a;
+    const { gen, keyword: keyword2, schema, parentSchema, $data, it } = cxt;
+    checkAsyncKeyword(it, def2);
+    const validate2 = !$data && def2.compile ? def2.compile.call(it.self, schema, parentSchema, it) : def2.validate;
+    const validateRef = useKeyword(gen, keyword2, validate2);
+    const valid2 = gen.let("valid");
+    cxt.block$data(valid2, validateKeyword);
+    cxt.ok((_a = def2.valid) !== null && _a !== void 0 ? _a : valid2);
+    function validateKeyword() {
+      if (def2.errors === false) {
+        assignValid();
+        if (def2.modifying)
+          modifyData(cxt);
+        reportErrs(() => cxt.error());
+      } else {
+        const ruleErrs = def2.async ? validateAsync() : validateSync();
+        if (def2.modifying)
+          modifyData(cxt);
+        reportErrs(() => addErrs(cxt, ruleErrs));
+      }
+    }
+    function validateAsync() {
+      const ruleErrs = gen.let("ruleErrs", null);
+      gen.try(() => assignValid((0, codegen_12._)`await `), (e) => gen.assign(valid2, false).if((0, codegen_12._)`${e} instanceof ${it.ValidationError}`, () => gen.assign(ruleErrs, (0, codegen_12._)`${e}.errors`), () => gen.throw(e)));
+      return ruleErrs;
+    }
+    function validateSync() {
+      const validateErrs = (0, codegen_12._)`${validateRef}.errors`;
+      gen.assign(validateErrs, null);
+      assignValid(codegen_12.nil);
+      return validateErrs;
+    }
+    function assignValid(_await = def2.async ? (0, codegen_12._)`await ` : codegen_12.nil) {
+      const passCxt = it.opts.passContext ? names_12.default.this : names_12.default.self;
+      const passSchema = !("compile" in def2 && !$data || def2.schema === false);
+      gen.assign(valid2, (0, codegen_12._)`${_await}${(0, code_12.callValidateCode)(cxt, validateRef, passCxt, passSchema)}`, def2.modifying);
+    }
+    function reportErrs(errors2) {
+      var _a2;
+      gen.if((0, codegen_12.not)((_a2 = def2.valid) !== null && _a2 !== void 0 ? _a2 : valid2), errors2);
     }
   }
-  function validateAsync() {
-    const ruleErrs = gen.let("ruleErrs", null);
-    gen.try(() => assignValid((0, codegen_1$t._)`await `), (e) => gen.assign(valid2, false).if((0, codegen_1$t._)`${e} instanceof ${it.ValidationError}`, () => gen.assign(ruleErrs, (0, codegen_1$t._)`${e}.errors`), () => gen.throw(e)));
-    return ruleErrs;
+  keyword.funcKeywordCode = funcKeywordCode;
+  function modifyData(cxt) {
+    const { gen, data, it } = cxt;
+    gen.if(it.parentData, () => gen.assign(data, (0, codegen_12._)`${it.parentData}[${it.parentDataProperty}]`));
   }
-  function validateSync() {
-    const validateErrs = (0, codegen_1$t._)`${validateRef}.errors`;
-    gen.assign(validateErrs, null);
-    assignValid(codegen_1$t.nil);
-    return validateErrs;
+  function addErrs(cxt, errs) {
+    const { gen } = cxt;
+    gen.if((0, codegen_12._)`Array.isArray(${errs})`, () => {
+      gen.assign(names_12.default.vErrors, (0, codegen_12._)`${names_12.default.vErrors} === null ? ${errs} : ${names_12.default.vErrors}.concat(${errs})`).assign(names_12.default.errors, (0, codegen_12._)`${names_12.default.vErrors}.length`);
+      (0, errors_12.extendErrors)(cxt);
+    }, () => cxt.error());
   }
-  function assignValid(_await = def2.async ? (0, codegen_1$t._)`await ` : codegen_1$t.nil) {
-    const passCxt = it.opts.passContext ? names_1$7.default.this : names_1$7.default.self;
-    const passSchema = !("compile" in def2 && !$data || def2.schema === false);
-    gen.assign(valid2, (0, codegen_1$t._)`${_await}${(0, code_1$9.callValidateCode)(cxt, validateRef, passCxt, passSchema)}`, def2.modifying);
+  function checkAsyncKeyword({ schemaEnv }, def2) {
+    if (def2.async && !schemaEnv.$async)
+      throw new Error("async keyword in sync schema");
   }
-  function reportErrs(errors2) {
-    var _a2;
-    gen.if((0, codegen_1$t.not)((_a2 = def2.valid) !== null && _a2 !== void 0 ? _a2 : valid2), errors2);
+  function useKeyword(gen, keyword2, result) {
+    if (result === void 0)
+      throw new Error(`keyword "${keyword2}" failed to compile`);
+    return gen.scopeValue("keyword", typeof result == "function" ? { ref: result } : { ref: result, code: (0, codegen_12.stringify)(result) });
   }
-}
-keyword.funcKeywordCode = funcKeywordCode;
-function modifyData(cxt) {
-  const { gen, data, it } = cxt;
-  gen.if(it.parentData, () => gen.assign(data, (0, codegen_1$t._)`${it.parentData}[${it.parentDataProperty}]`));
-}
-function addErrs(cxt, errs) {
-  const { gen } = cxt;
-  gen.if((0, codegen_1$t._)`Array.isArray(${errs})`, () => {
-    gen.assign(names_1$7.default.vErrors, (0, codegen_1$t._)`${names_1$7.default.vErrors} === null ? ${errs} : ${names_1$7.default.vErrors}.concat(${errs})`).assign(names_1$7.default.errors, (0, codegen_1$t._)`${names_1$7.default.vErrors}.length`);
-    (0, errors_1$1.extendErrors)(cxt);
-  }, () => cxt.error());
-}
-function checkAsyncKeyword({ schemaEnv }, def2) {
-  if (def2.async && !schemaEnv.$async)
-    throw new Error("async keyword in sync schema");
-}
-function useKeyword(gen, keyword2, result) {
-  if (result === void 0)
-    throw new Error(`keyword "${keyword2}" failed to compile`);
-  return gen.scopeValue("keyword", typeof result == "function" ? { ref: result } : { ref: result, code: (0, codegen_1$t.stringify)(result) });
-}
-function validSchemaType(schema, schemaType, allowUndefined = false) {
-  return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema) : st === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st || allowUndefined && typeof schema == "undefined");
-}
-keyword.validSchemaType = validSchemaType;
-function validateKeywordUsage({ schema, opts, self: self2, errSchemaPath }, def2, keyword2) {
-  if (Array.isArray(def2.keyword) ? !def2.keyword.includes(keyword2) : def2.keyword !== keyword2) {
-    throw new Error("ajv implementation error");
+  function validSchemaType(schema, schemaType, allowUndefined = false) {
+    return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema) : st === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st || allowUndefined && typeof schema == "undefined");
   }
-  const deps = def2.dependencies;
-  if (deps === null || deps === void 0 ? void 0 : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema, kwd))) {
-    throw new Error(`parent schema must have dependencies of ${keyword2}: ${deps.join(",")}`);
-  }
-  if (def2.validateSchema) {
-    const valid2 = def2.validateSchema(schema[keyword2]);
-    if (!valid2) {
-      const msg = `keyword "${keyword2}" value is invalid at path "${errSchemaPath}": ` + self2.errorsText(def2.validateSchema.errors);
-      if (opts.validateSchema === "log")
-        self2.logger.error(msg);
-      else
-        throw new Error(msg);
+  keyword.validSchemaType = validSchemaType;
+  function validateKeywordUsage({ schema, opts, self: self2, errSchemaPath }, def2, keyword2) {
+    if (Array.isArray(def2.keyword) ? !def2.keyword.includes(keyword2) : def2.keyword !== keyword2) {
+      throw new Error("ajv implementation error");
+    }
+    const deps = def2.dependencies;
+    if (deps === null || deps === void 0 ? void 0 : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema, kwd))) {
+      throw new Error(`parent schema must have dependencies of ${keyword2}: ${deps.join(",")}`);
+    }
+    if (def2.validateSchema) {
+      const valid2 = def2.validateSchema(schema[keyword2]);
+      if (!valid2) {
+        const msg = `keyword "${keyword2}" value is invalid at path "${errSchemaPath}": ` + self2.errorsText(def2.validateSchema.errors);
+        if (opts.validateSchema === "log")
+          self2.logger.error(msg);
+        else
+          throw new Error(msg);
+      }
     }
   }
+  keyword.validateKeywordUsage = validateKeywordUsage;
+  return keyword;
 }
-keyword.validateKeywordUsage = validateKeywordUsage;
 var subschema = {};
-Object.defineProperty(subschema, "__esModule", { value: true });
-subschema.extendSubschemaMode = subschema.extendSubschemaData = subschema.getSubschema = void 0;
-const codegen_1$s = codegen;
-const util_1$r = util$1;
-function getSubschema(it, { keyword: keyword2, schemaProp, schema, schemaPath, errSchemaPath, topSchemaRef }) {
-  if (keyword2 !== void 0 && schema !== void 0) {
-    throw new Error('both "keyword" and "schema" passed, only one allowed');
-  }
-  if (keyword2 !== void 0) {
-    const sch = it.schema[keyword2];
-    return schemaProp === void 0 ? {
-      schema: sch,
-      schemaPath: (0, codegen_1$s._)`${it.schemaPath}${(0, codegen_1$s.getProperty)(keyword2)}`,
-      errSchemaPath: `${it.errSchemaPath}/${keyword2}`
-    } : {
-      schema: sch[schemaProp],
-      schemaPath: (0, codegen_1$s._)`${it.schemaPath}${(0, codegen_1$s.getProperty)(keyword2)}${(0, codegen_1$s.getProperty)(schemaProp)}`,
-      errSchemaPath: `${it.errSchemaPath}/${keyword2}/${(0, util_1$r.escapeFragment)(schemaProp)}`
-    };
-  }
-  if (schema !== void 0) {
-    if (schemaPath === void 0 || errSchemaPath === void 0 || topSchemaRef === void 0) {
-      throw new Error('"schemaPath", "errSchemaPath" and "topSchemaRef" are required with "schema"');
+var hasRequiredSubschema;
+function requireSubschema() {
+  if (hasRequiredSubschema) return subschema;
+  hasRequiredSubschema = 1;
+  Object.defineProperty(subschema, "__esModule", { value: true });
+  subschema.extendSubschemaMode = subschema.extendSubschemaData = subschema.getSubschema = void 0;
+  const codegen_12 = codegen;
+  const util_12 = util$1;
+  function getSubschema(it, { keyword: keyword2, schemaProp, schema, schemaPath, errSchemaPath, topSchemaRef }) {
+    if (keyword2 !== void 0 && schema !== void 0) {
+      throw new Error('both "keyword" and "schema" passed, only one allowed');
     }
-    return {
-      schema,
-      schemaPath,
-      topSchemaRef,
-      errSchemaPath
-    };
+    if (keyword2 !== void 0) {
+      const sch = it.schema[keyword2];
+      return schemaProp === void 0 ? {
+        schema: sch,
+        schemaPath: (0, codegen_12._)`${it.schemaPath}${(0, codegen_12.getProperty)(keyword2)}`,
+        errSchemaPath: `${it.errSchemaPath}/${keyword2}`
+      } : {
+        schema: sch[schemaProp],
+        schemaPath: (0, codegen_12._)`${it.schemaPath}${(0, codegen_12.getProperty)(keyword2)}${(0, codegen_12.getProperty)(schemaProp)}`,
+        errSchemaPath: `${it.errSchemaPath}/${keyword2}/${(0, util_12.escapeFragment)(schemaProp)}`
+      };
+    }
+    if (schema !== void 0) {
+      if (schemaPath === void 0 || errSchemaPath === void 0 || topSchemaRef === void 0) {
+        throw new Error('"schemaPath", "errSchemaPath" and "topSchemaRef" are required with "schema"');
+      }
+      return {
+        schema,
+        schemaPath,
+        topSchemaRef,
+        errSchemaPath
+      };
+    }
+    throw new Error('either "keyword" or "schema" must be passed');
   }
-  throw new Error('either "keyword" or "schema" must be passed');
+  subschema.getSubschema = getSubschema;
+  function extendSubschemaData(subschema2, it, { dataProp, dataPropType: dpType, data, dataTypes, propertyName }) {
+    if (data !== void 0 && dataProp !== void 0) {
+      throw new Error('both "data" and "dataProp" passed, only one allowed');
+    }
+    const { gen } = it;
+    if (dataProp !== void 0) {
+      const { errorPath, dataPathArr, opts } = it;
+      const nextData = gen.let("data", (0, codegen_12._)`${it.data}${(0, codegen_12.getProperty)(dataProp)}`, true);
+      dataContextProps(nextData);
+      subschema2.errorPath = (0, codegen_12.str)`${errorPath}${(0, util_12.getErrorPath)(dataProp, dpType, opts.jsPropertySyntax)}`;
+      subschema2.parentDataProperty = (0, codegen_12._)`${dataProp}`;
+      subschema2.dataPathArr = [...dataPathArr, subschema2.parentDataProperty];
+    }
+    if (data !== void 0) {
+      const nextData = data instanceof codegen_12.Name ? data : gen.let("data", data, true);
+      dataContextProps(nextData);
+      if (propertyName !== void 0)
+        subschema2.propertyName = propertyName;
+    }
+    if (dataTypes)
+      subschema2.dataTypes = dataTypes;
+    function dataContextProps(_nextData) {
+      subschema2.data = _nextData;
+      subschema2.dataLevel = it.dataLevel + 1;
+      subschema2.dataTypes = [];
+      it.definedProperties = /* @__PURE__ */ new Set();
+      subschema2.parentData = it.data;
+      subschema2.dataNames = [...it.dataNames, _nextData];
+    }
+  }
+  subschema.extendSubschemaData = extendSubschemaData;
+  function extendSubschemaMode(subschema2, { jtdDiscriminator, jtdMetadata, compositeRule, createErrors, allErrors }) {
+    if (compositeRule !== void 0)
+      subschema2.compositeRule = compositeRule;
+    if (createErrors !== void 0)
+      subschema2.createErrors = createErrors;
+    if (allErrors !== void 0)
+      subschema2.allErrors = allErrors;
+    subschema2.jtdDiscriminator = jtdDiscriminator;
+    subschema2.jtdMetadata = jtdMetadata;
+  }
+  subschema.extendSubschemaMode = extendSubschemaMode;
+  return subschema;
 }
-subschema.getSubschema = getSubschema;
-function extendSubschemaData(subschema2, it, { dataProp, dataPropType: dpType, data, dataTypes, propertyName }) {
-  if (data !== void 0 && dataProp !== void 0) {
-    throw new Error('both "data" and "dataProp" passed, only one allowed');
-  }
-  const { gen } = it;
-  if (dataProp !== void 0) {
-    const { errorPath, dataPathArr, opts } = it;
-    const nextData = gen.let("data", (0, codegen_1$s._)`${it.data}${(0, codegen_1$s.getProperty)(dataProp)}`, true);
-    dataContextProps(nextData);
-    subschema2.errorPath = (0, codegen_1$s.str)`${errorPath}${(0, util_1$r.getErrorPath)(dataProp, dpType, opts.jsPropertySyntax)}`;
-    subschema2.parentDataProperty = (0, codegen_1$s._)`${dataProp}`;
-    subschema2.dataPathArr = [...dataPathArr, subschema2.parentDataProperty];
-  }
-  if (data !== void 0) {
-    const nextData = data instanceof codegen_1$s.Name ? data : gen.let("data", data, true);
-    dataContextProps(nextData);
-    if (propertyName !== void 0)
-      subschema2.propertyName = propertyName;
-  }
-  if (dataTypes)
-    subschema2.dataTypes = dataTypes;
-  function dataContextProps(_nextData) {
-    subschema2.data = _nextData;
-    subschema2.dataLevel = it.dataLevel + 1;
-    subschema2.dataTypes = [];
-    it.definedProperties = /* @__PURE__ */ new Set();
-    subschema2.parentData = it.data;
-    subschema2.dataNames = [...it.dataNames, _nextData];
-  }
-}
-subschema.extendSubschemaData = extendSubschemaData;
-function extendSubschemaMode(subschema2, { jtdDiscriminator, jtdMetadata, compositeRule, createErrors, allErrors }) {
-  if (compositeRule !== void 0)
-    subschema2.compositeRule = compositeRule;
-  if (createErrors !== void 0)
-    subschema2.createErrors = createErrors;
-  if (allErrors !== void 0)
-    subschema2.allErrors = allErrors;
-  subschema2.jtdDiscriminator = jtdDiscriminator;
-  subschema2.jtdMetadata = jtdMetadata;
-}
-subschema.extendSubschemaMode = extendSubschemaMode;
 var resolve$2 = {};
 var fastDeepEqual = function equal(a, b) {
   if (a === b) return true;
@@ -2732,7 +2756,7 @@ function escapeJsonPtr(str) {
 var jsonSchemaTraverseExports = jsonSchemaTraverse.exports;
 Object.defineProperty(resolve$2, "__esModule", { value: true });
 resolve$2.getSchemaRefs = resolve$2.resolveUrl = resolve$2.normalizeId = resolve$2._getFullPath = resolve$2.getFullPath = resolve$2.inlineRef = void 0;
-const util_1$q = util$1;
+const util_1$p = util$1;
 const equal$3 = fastDeepEqual;
 const traverse = jsonSchemaTraverseExports;
 const SIMPLE_INLINED = /* @__PURE__ */ new Set([
@@ -2791,7 +2815,7 @@ function countKeys(schema) {
     if (SIMPLE_INLINED.has(key))
       continue;
     if (typeof schema[key] == "object") {
-      (0, util_1$q.eachItem)(schema[key], (sch) => count += countKeys(sch));
+      (0, util_1$p.eachItem)(schema[key], (sch) => count += countKeys(sch));
     }
     if (count === Infinity)
       return Infinity;
@@ -2879,516 +2903,528 @@ function getSchemaRefs(schema, baseId) {
   }
 }
 resolve$2.getSchemaRefs = getSchemaRefs;
-Object.defineProperty(validate, "__esModule", { value: true });
-validate.getData = validate.KeywordCxt = validate.validateFunctionCode = void 0;
-const boolSchema_1 = boolSchema;
-const dataType_1$1 = dataType;
-const applicability_1 = applicability;
-const dataType_2 = dataType;
-const defaults_1 = defaults;
-const keyword_1 = keyword;
-const subschema_1 = subschema;
-const codegen_1$r = codegen;
-const names_1$6 = names$1;
-const resolve_1$2 = resolve$2;
-const util_1$p = util$1;
-const errors_1 = errors;
-function validateFunctionCode(it) {
-  if (isSchemaObj(it)) {
-    checkKeywords(it);
-    if (schemaCxtHasRules(it)) {
-      topSchemaObjCode(it);
-      return;
+var hasRequiredValidate;
+function requireValidate() {
+  if (hasRequiredValidate) return validate;
+  hasRequiredValidate = 1;
+  Object.defineProperty(validate, "__esModule", { value: true });
+  validate.getData = validate.KeywordCxt = validate.validateFunctionCode = void 0;
+  const boolSchema_1 = requireBoolSchema();
+  const dataType_12 = dataType;
+  const applicability_12 = applicability;
+  const dataType_2 = dataType;
+  const defaults_1 = requireDefaults();
+  const keyword_1 = requireKeyword();
+  const subschema_1 = requireSubschema();
+  const codegen_12 = codegen;
+  const names_12 = names$1;
+  const resolve_12 = resolve$2;
+  const util_12 = util$1;
+  const errors_12 = errors;
+  function validateFunctionCode(it) {
+    if (isSchemaObj(it)) {
+      checkKeywords(it);
+      if (schemaCxtHasRules(it)) {
+        topSchemaObjCode(it);
+        return;
+      }
+    }
+    validateFunction(it, () => (0, boolSchema_1.topBoolOrEmptySchema)(it));
+  }
+  validate.validateFunctionCode = validateFunctionCode;
+  function validateFunction({ gen, validateName, schema, schemaEnv, opts }, body) {
+    if (opts.code.es5) {
+      gen.func(validateName, (0, codegen_12._)`${names_12.default.data}, ${names_12.default.valCxt}`, schemaEnv.$async, () => {
+        gen.code((0, codegen_12._)`"use strict"; ${funcSourceUrl(schema, opts)}`);
+        destructureValCxtES5(gen, opts);
+        gen.code(body);
+      });
+    } else {
+      gen.func(validateName, (0, codegen_12._)`${names_12.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema, opts)).code(body));
     }
   }
-  validateFunction(it, () => (0, boolSchema_1.topBoolOrEmptySchema)(it));
-}
-validate.validateFunctionCode = validateFunctionCode;
-function validateFunction({ gen, validateName, schema, schemaEnv, opts }, body) {
-  if (opts.code.es5) {
-    gen.func(validateName, (0, codegen_1$r._)`${names_1$6.default.data}, ${names_1$6.default.valCxt}`, schemaEnv.$async, () => {
-      gen.code((0, codegen_1$r._)`"use strict"; ${funcSourceUrl(schema, opts)}`);
-      destructureValCxtES5(gen, opts);
-      gen.code(body);
-    });
-  } else {
-    gen.func(validateName, (0, codegen_1$r._)`${names_1$6.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema, opts)).code(body));
+  function destructureValCxt(opts) {
+    return (0, codegen_12._)`{${names_12.default.instancePath}="", ${names_12.default.parentData}, ${names_12.default.parentDataProperty}, ${names_12.default.rootData}=${names_12.default.data}${opts.dynamicRef ? (0, codegen_12._)`, ${names_12.default.dynamicAnchors}={}` : codegen_12.nil}}={}`;
   }
-}
-function destructureValCxt(opts) {
-  return (0, codegen_1$r._)`{${names_1$6.default.instancePath}="", ${names_1$6.default.parentData}, ${names_1$6.default.parentDataProperty}, ${names_1$6.default.rootData}=${names_1$6.default.data}${opts.dynamicRef ? (0, codegen_1$r._)`, ${names_1$6.default.dynamicAnchors}={}` : codegen_1$r.nil}}={}`;
-}
-function destructureValCxtES5(gen, opts) {
-  gen.if(names_1$6.default.valCxt, () => {
-    gen.var(names_1$6.default.instancePath, (0, codegen_1$r._)`${names_1$6.default.valCxt}.${names_1$6.default.instancePath}`);
-    gen.var(names_1$6.default.parentData, (0, codegen_1$r._)`${names_1$6.default.valCxt}.${names_1$6.default.parentData}`);
-    gen.var(names_1$6.default.parentDataProperty, (0, codegen_1$r._)`${names_1$6.default.valCxt}.${names_1$6.default.parentDataProperty}`);
-    gen.var(names_1$6.default.rootData, (0, codegen_1$r._)`${names_1$6.default.valCxt}.${names_1$6.default.rootData}`);
-    if (opts.dynamicRef)
-      gen.var(names_1$6.default.dynamicAnchors, (0, codegen_1$r._)`${names_1$6.default.valCxt}.${names_1$6.default.dynamicAnchors}`);
-  }, () => {
-    gen.var(names_1$6.default.instancePath, (0, codegen_1$r._)`""`);
-    gen.var(names_1$6.default.parentData, (0, codegen_1$r._)`undefined`);
-    gen.var(names_1$6.default.parentDataProperty, (0, codegen_1$r._)`undefined`);
-    gen.var(names_1$6.default.rootData, names_1$6.default.data);
-    if (opts.dynamicRef)
-      gen.var(names_1$6.default.dynamicAnchors, (0, codegen_1$r._)`{}`);
-  });
-}
-function topSchemaObjCode(it) {
-  const { schema, opts, gen } = it;
-  validateFunction(it, () => {
+  function destructureValCxtES5(gen, opts) {
+    gen.if(names_12.default.valCxt, () => {
+      gen.var(names_12.default.instancePath, (0, codegen_12._)`${names_12.default.valCxt}.${names_12.default.instancePath}`);
+      gen.var(names_12.default.parentData, (0, codegen_12._)`${names_12.default.valCxt}.${names_12.default.parentData}`);
+      gen.var(names_12.default.parentDataProperty, (0, codegen_12._)`${names_12.default.valCxt}.${names_12.default.parentDataProperty}`);
+      gen.var(names_12.default.rootData, (0, codegen_12._)`${names_12.default.valCxt}.${names_12.default.rootData}`);
+      if (opts.dynamicRef)
+        gen.var(names_12.default.dynamicAnchors, (0, codegen_12._)`${names_12.default.valCxt}.${names_12.default.dynamicAnchors}`);
+    }, () => {
+      gen.var(names_12.default.instancePath, (0, codegen_12._)`""`);
+      gen.var(names_12.default.parentData, (0, codegen_12._)`undefined`);
+      gen.var(names_12.default.parentDataProperty, (0, codegen_12._)`undefined`);
+      gen.var(names_12.default.rootData, names_12.default.data);
+      if (opts.dynamicRef)
+        gen.var(names_12.default.dynamicAnchors, (0, codegen_12._)`{}`);
+    });
+  }
+  function topSchemaObjCode(it) {
+    const { schema, opts, gen } = it;
+    validateFunction(it, () => {
+      if (opts.$comment && schema.$comment)
+        commentKeyword(it);
+      checkNoDefault(it);
+      gen.let(names_12.default.vErrors, null);
+      gen.let(names_12.default.errors, 0);
+      if (opts.unevaluated)
+        resetEvaluated(it);
+      typeAndKeywords(it);
+      returnResults(it);
+    });
+    return;
+  }
+  function resetEvaluated(it) {
+    const { gen, validateName } = it;
+    it.evaluated = gen.const("evaluated", (0, codegen_12._)`${validateName}.evaluated`);
+    gen.if((0, codegen_12._)`${it.evaluated}.dynamicProps`, () => gen.assign((0, codegen_12._)`${it.evaluated}.props`, (0, codegen_12._)`undefined`));
+    gen.if((0, codegen_12._)`${it.evaluated}.dynamicItems`, () => gen.assign((0, codegen_12._)`${it.evaluated}.items`, (0, codegen_12._)`undefined`));
+  }
+  function funcSourceUrl(schema, opts) {
+    const schId = typeof schema == "object" && schema[opts.schemaId];
+    return schId && (opts.code.source || opts.code.process) ? (0, codegen_12._)`/*# sourceURL=${schId} */` : codegen_12.nil;
+  }
+  function subschemaCode(it, valid2) {
+    if (isSchemaObj(it)) {
+      checkKeywords(it);
+      if (schemaCxtHasRules(it)) {
+        subSchemaObjCode(it, valid2);
+        return;
+      }
+    }
+    (0, boolSchema_1.boolOrEmptySchema)(it, valid2);
+  }
+  function schemaCxtHasRules({ schema, self: self2 }) {
+    if (typeof schema == "boolean")
+      return !schema;
+    for (const key in schema)
+      if (self2.RULES.all[key])
+        return true;
+    return false;
+  }
+  function isSchemaObj(it) {
+    return typeof it.schema != "boolean";
+  }
+  function subSchemaObjCode(it, valid2) {
+    const { schema, gen, opts } = it;
     if (opts.$comment && schema.$comment)
       commentKeyword(it);
-    checkNoDefault(it);
-    gen.let(names_1$6.default.vErrors, null);
-    gen.let(names_1$6.default.errors, 0);
-    if (opts.unevaluated)
-      resetEvaluated(it);
-    typeAndKeywords(it);
-    returnResults(it);
-  });
-  return;
-}
-function resetEvaluated(it) {
-  const { gen, validateName } = it;
-  it.evaluated = gen.const("evaluated", (0, codegen_1$r._)`${validateName}.evaluated`);
-  gen.if((0, codegen_1$r._)`${it.evaluated}.dynamicProps`, () => gen.assign((0, codegen_1$r._)`${it.evaluated}.props`, (0, codegen_1$r._)`undefined`));
-  gen.if((0, codegen_1$r._)`${it.evaluated}.dynamicItems`, () => gen.assign((0, codegen_1$r._)`${it.evaluated}.items`, (0, codegen_1$r._)`undefined`));
-}
-function funcSourceUrl(schema, opts) {
-  const schId = typeof schema == "object" && schema[opts.schemaId];
-  return schId && (opts.code.source || opts.code.process) ? (0, codegen_1$r._)`/*# sourceURL=${schId} */` : codegen_1$r.nil;
-}
-function subschemaCode(it, valid2) {
-  if (isSchemaObj(it)) {
-    checkKeywords(it);
-    if (schemaCxtHasRules(it)) {
-      subSchemaObjCode(it, valid2);
+    updateContext(it);
+    checkAsyncSchema(it);
+    const errsCount = gen.const("_errs", names_12.default.errors);
+    typeAndKeywords(it, errsCount);
+    gen.var(valid2, (0, codegen_12._)`${errsCount} === ${names_12.default.errors}`);
+  }
+  function checkKeywords(it) {
+    (0, util_12.checkUnknownRules)(it);
+    checkRefsAndKeywords(it);
+  }
+  function typeAndKeywords(it, errsCount) {
+    if (it.opts.jtd)
+      return schemaKeywords(it, [], false, errsCount);
+    const types2 = (0, dataType_12.getSchemaTypes)(it.schema);
+    const checkedTypes = (0, dataType_12.coerceAndCheckDataType)(it, types2);
+    schemaKeywords(it, types2, !checkedTypes, errsCount);
+  }
+  function checkRefsAndKeywords(it) {
+    const { schema, errSchemaPath, opts, self: self2 } = it;
+    if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_12.schemaHasRulesButRef)(schema, self2.RULES)) {
+      self2.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
+    }
+  }
+  function checkNoDefault(it) {
+    const { schema, opts } = it;
+    if (schema.default !== void 0 && opts.useDefaults && opts.strictSchema) {
+      (0, util_12.checkStrictMode)(it, "default is ignored in the schema root");
+    }
+  }
+  function updateContext(it) {
+    const schId = it.schema[it.opts.schemaId];
+    if (schId)
+      it.baseId = (0, resolve_12.resolveUrl)(it.opts.uriResolver, it.baseId, schId);
+  }
+  function checkAsyncSchema(it) {
+    if (it.schema.$async && !it.schemaEnv.$async)
+      throw new Error("async schema in sync schema");
+  }
+  function commentKeyword({ gen, schemaEnv, schema, errSchemaPath, opts }) {
+    const msg = schema.$comment;
+    if (opts.$comment === true) {
+      gen.code((0, codegen_12._)`${names_12.default.self}.logger.log(${msg})`);
+    } else if (typeof opts.$comment == "function") {
+      const schemaPath = (0, codegen_12.str)`${errSchemaPath}/$comment`;
+      const rootName = gen.scopeValue("root", { ref: schemaEnv.root });
+      gen.code((0, codegen_12._)`${names_12.default.self}.opts.$comment(${msg}, ${schemaPath}, ${rootName}.schema)`);
+    }
+  }
+  function returnResults(it) {
+    const { gen, schemaEnv, validateName, ValidationError, opts } = it;
+    if (schemaEnv.$async) {
+      gen.if((0, codegen_12._)`${names_12.default.errors} === 0`, () => gen.return(names_12.default.data), () => gen.throw((0, codegen_12._)`new ${ValidationError}(${names_12.default.vErrors})`));
+    } else {
+      gen.assign((0, codegen_12._)`${validateName}.errors`, names_12.default.vErrors);
+      if (opts.unevaluated)
+        assignEvaluated(it);
+      gen.return((0, codegen_12._)`${names_12.default.errors} === 0`);
+    }
+  }
+  function assignEvaluated({ gen, evaluated, props, items: items2 }) {
+    if (props instanceof codegen_12.Name)
+      gen.assign((0, codegen_12._)`${evaluated}.props`, props);
+    if (items2 instanceof codegen_12.Name)
+      gen.assign((0, codegen_12._)`${evaluated}.items`, items2);
+  }
+  function schemaKeywords(it, types2, typeErrors, errsCount) {
+    const { gen, schema, data, allErrors, opts, self: self2 } = it;
+    const { RULES } = self2;
+    if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_12.schemaHasRulesButRef)(schema, RULES))) {
+      gen.block(() => keywordCode(it, "$ref", RULES.all.$ref.definition));
       return;
     }
+    if (!opts.jtd)
+      checkStrictTypes(it, types2);
+    gen.block(() => {
+      for (const group of RULES.rules)
+        groupKeywords(group);
+      groupKeywords(RULES.post);
+    });
+    function groupKeywords(group) {
+      if (!(0, applicability_12.shouldUseGroup)(schema, group))
+        return;
+      if (group.type) {
+        gen.if((0, dataType_2.checkDataType)(group.type, data, opts.strictNumbers));
+        iterateKeywords(it, group);
+        if (types2.length === 1 && types2[0] === group.type && typeErrors) {
+          gen.else();
+          (0, dataType_2.reportTypeError)(it);
+        }
+        gen.endIf();
+      } else {
+        iterateKeywords(it, group);
+      }
+      if (!allErrors)
+        gen.if((0, codegen_12._)`${names_12.default.errors} === ${errsCount || 0}`);
+    }
   }
-  (0, boolSchema_1.boolOrEmptySchema)(it, valid2);
-}
-function schemaCxtHasRules({ schema, self: self2 }) {
-  if (typeof schema == "boolean")
-    return !schema;
-  for (const key in schema)
-    if (self2.RULES.all[key])
-      return true;
-  return false;
-}
-function isSchemaObj(it) {
-  return typeof it.schema != "boolean";
-}
-function subSchemaObjCode(it, valid2) {
-  const { schema, gen, opts } = it;
-  if (opts.$comment && schema.$comment)
-    commentKeyword(it);
-  updateContext(it);
-  checkAsyncSchema(it);
-  const errsCount = gen.const("_errs", names_1$6.default.errors);
-  typeAndKeywords(it, errsCount);
-  gen.var(valid2, (0, codegen_1$r._)`${errsCount} === ${names_1$6.default.errors}`);
-}
-function checkKeywords(it) {
-  (0, util_1$p.checkUnknownRules)(it);
-  checkRefsAndKeywords(it);
-}
-function typeAndKeywords(it, errsCount) {
-  if (it.opts.jtd)
-    return schemaKeywords(it, [], false, errsCount);
-  const types2 = (0, dataType_1$1.getSchemaTypes)(it.schema);
-  const checkedTypes = (0, dataType_1$1.coerceAndCheckDataType)(it, types2);
-  schemaKeywords(it, types2, !checkedTypes, errsCount);
-}
-function checkRefsAndKeywords(it) {
-  const { schema, errSchemaPath, opts, self: self2 } = it;
-  if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1$p.schemaHasRulesButRef)(schema, self2.RULES)) {
-    self2.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
+  function iterateKeywords(it, group) {
+    const { gen, schema, opts: { useDefaults } } = it;
+    if (useDefaults)
+      (0, defaults_1.assignDefaults)(it, group.type);
+    gen.block(() => {
+      for (const rule of group.rules) {
+        if ((0, applicability_12.shouldUseRule)(schema, rule)) {
+          keywordCode(it, rule.keyword, rule.definition, group.type);
+        }
+      }
+    });
   }
-}
-function checkNoDefault(it) {
-  const { schema, opts } = it;
-  if (schema.default !== void 0 && opts.useDefaults && opts.strictSchema) {
-    (0, util_1$p.checkStrictMode)(it, "default is ignored in the schema root");
-  }
-}
-function updateContext(it) {
-  const schId = it.schema[it.opts.schemaId];
-  if (schId)
-    it.baseId = (0, resolve_1$2.resolveUrl)(it.opts.uriResolver, it.baseId, schId);
-}
-function checkAsyncSchema(it) {
-  if (it.schema.$async && !it.schemaEnv.$async)
-    throw new Error("async schema in sync schema");
-}
-function commentKeyword({ gen, schemaEnv, schema, errSchemaPath, opts }) {
-  const msg = schema.$comment;
-  if (opts.$comment === true) {
-    gen.code((0, codegen_1$r._)`${names_1$6.default.self}.logger.log(${msg})`);
-  } else if (typeof opts.$comment == "function") {
-    const schemaPath = (0, codegen_1$r.str)`${errSchemaPath}/$comment`;
-    const rootName = gen.scopeValue("root", { ref: schemaEnv.root });
-    gen.code((0, codegen_1$r._)`${names_1$6.default.self}.opts.$comment(${msg}, ${schemaPath}, ${rootName}.schema)`);
-  }
-}
-function returnResults(it) {
-  const { gen, schemaEnv, validateName, ValidationError: ValidationError2, opts } = it;
-  if (schemaEnv.$async) {
-    gen.if((0, codegen_1$r._)`${names_1$6.default.errors} === 0`, () => gen.return(names_1$6.default.data), () => gen.throw((0, codegen_1$r._)`new ${ValidationError2}(${names_1$6.default.vErrors})`));
-  } else {
-    gen.assign((0, codegen_1$r._)`${validateName}.errors`, names_1$6.default.vErrors);
-    if (opts.unevaluated)
-      assignEvaluated(it);
-    gen.return((0, codegen_1$r._)`${names_1$6.default.errors} === 0`);
-  }
-}
-function assignEvaluated({ gen, evaluated, props, items: items2 }) {
-  if (props instanceof codegen_1$r.Name)
-    gen.assign((0, codegen_1$r._)`${evaluated}.props`, props);
-  if (items2 instanceof codegen_1$r.Name)
-    gen.assign((0, codegen_1$r._)`${evaluated}.items`, items2);
-}
-function schemaKeywords(it, types2, typeErrors, errsCount) {
-  const { gen, schema, data, allErrors, opts, self: self2 } = it;
-  const { RULES } = self2;
-  if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1$p.schemaHasRulesButRef)(schema, RULES))) {
-    gen.block(() => keywordCode(it, "$ref", RULES.all.$ref.definition));
-    return;
-  }
-  if (!opts.jtd)
-    checkStrictTypes(it, types2);
-  gen.block(() => {
-    for (const group of RULES.rules)
-      groupKeywords(group);
-    groupKeywords(RULES.post);
-  });
-  function groupKeywords(group) {
-    if (!(0, applicability_1.shouldUseGroup)(schema, group))
+  function checkStrictTypes(it, types2) {
+    if (it.schemaEnv.meta || !it.opts.strictTypes)
       return;
-    if (group.type) {
-      gen.if((0, dataType_2.checkDataType)(group.type, data, opts.strictNumbers));
-      iterateKeywords(it, group);
-      if (types2.length === 1 && types2[0] === group.type && typeErrors) {
-        gen.else();
-        (0, dataType_2.reportTypeError)(it);
+    checkContextTypes(it, types2);
+    if (!it.opts.allowUnionTypes)
+      checkMultipleTypes(it, types2);
+    checkKeywordTypes(it, it.dataTypes);
+  }
+  function checkContextTypes(it, types2) {
+    if (!types2.length)
+      return;
+    if (!it.dataTypes.length) {
+      it.dataTypes = types2;
+      return;
+    }
+    types2.forEach((t2) => {
+      if (!includesType(it.dataTypes, t2)) {
+        strictTypesError(it, `type "${t2}" not allowed by context "${it.dataTypes.join(",")}"`);
       }
-      gen.endIf();
-    } else {
-      iterateKeywords(it, group);
-    }
-    if (!allErrors)
-      gen.if((0, codegen_1$r._)`${names_1$6.default.errors} === ${errsCount || 0}`);
+    });
+    narrowSchemaTypes(it, types2);
   }
-}
-function iterateKeywords(it, group) {
-  const { gen, schema, opts: { useDefaults } } = it;
-  if (useDefaults)
-    (0, defaults_1.assignDefaults)(it, group.type);
-  gen.block(() => {
-    for (const rule of group.rules) {
-      if ((0, applicability_1.shouldUseRule)(schema, rule)) {
-        keywordCode(it, rule.keyword, rule.definition, group.type);
-      }
+  function checkMultipleTypes(it, ts) {
+    if (ts.length > 1 && !(ts.length === 2 && ts.includes("null"))) {
+      strictTypesError(it, "use allowUnionTypes to allow union type keyword");
     }
-  });
-}
-function checkStrictTypes(it, types2) {
-  if (it.schemaEnv.meta || !it.opts.strictTypes)
-    return;
-  checkContextTypes(it, types2);
-  if (!it.opts.allowUnionTypes)
-    checkMultipleTypes(it, types2);
-  checkKeywordTypes(it, it.dataTypes);
-}
-function checkContextTypes(it, types2) {
-  if (!types2.length)
-    return;
-  if (!it.dataTypes.length) {
-    it.dataTypes = types2;
-    return;
   }
-  types2.forEach((t2) => {
-    if (!includesType(it.dataTypes, t2)) {
-      strictTypesError(it, `type "${t2}" not allowed by context "${it.dataTypes.join(",")}"`);
-    }
-  });
-  narrowSchemaTypes(it, types2);
-}
-function checkMultipleTypes(it, ts) {
-  if (ts.length > 1 && !(ts.length === 2 && ts.includes("null"))) {
-    strictTypesError(it, "use allowUnionTypes to allow union type keyword");
-  }
-}
-function checkKeywordTypes(it, ts) {
-  const rules2 = it.self.RULES.all;
-  for (const keyword2 in rules2) {
-    const rule = rules2[keyword2];
-    if (typeof rule == "object" && (0, applicability_1.shouldUseRule)(it.schema, rule)) {
-      const { type: type2 } = rule.definition;
-      if (type2.length && !type2.some((t2) => hasApplicableType(ts, t2))) {
-        strictTypesError(it, `missing type "${type2.join(",")}" for keyword "${keyword2}"`);
+  function checkKeywordTypes(it, ts) {
+    const rules2 = it.self.RULES.all;
+    for (const keyword2 in rules2) {
+      const rule = rules2[keyword2];
+      if (typeof rule == "object" && (0, applicability_12.shouldUseRule)(it.schema, rule)) {
+        const { type: type2 } = rule.definition;
+        if (type2.length && !type2.some((t2) => hasApplicableType(ts, t2))) {
+          strictTypesError(it, `missing type "${type2.join(",")}" for keyword "${keyword2}"`);
+        }
       }
     }
   }
-}
-function hasApplicableType(schTs, kwdT) {
-  return schTs.includes(kwdT) || kwdT === "number" && schTs.includes("integer");
-}
-function includesType(ts, t2) {
-  return ts.includes(t2) || t2 === "integer" && ts.includes("number");
-}
-function narrowSchemaTypes(it, withTypes) {
-  const ts = [];
-  for (const t2 of it.dataTypes) {
-    if (includesType(withTypes, t2))
-      ts.push(t2);
-    else if (withTypes.includes("integer") && t2 === "number")
-      ts.push("integer");
+  function hasApplicableType(schTs, kwdT) {
+    return schTs.includes(kwdT) || kwdT === "number" && schTs.includes("integer");
   }
-  it.dataTypes = ts;
-}
-function strictTypesError(it, msg) {
-  const schemaPath = it.schemaEnv.baseId + it.errSchemaPath;
-  msg += ` at "${schemaPath}" (strictTypes)`;
-  (0, util_1$p.checkStrictMode)(it, msg, it.opts.strictTypes);
-}
-class KeywordCxt {
-  constructor(it, def2, keyword2) {
-    (0, keyword_1.validateKeywordUsage)(it, def2, keyword2);
-    this.gen = it.gen;
-    this.allErrors = it.allErrors;
-    this.keyword = keyword2;
-    this.data = it.data;
-    this.schema = it.schema[keyword2];
-    this.$data = def2.$data && it.opts.$data && this.schema && this.schema.$data;
-    this.schemaValue = (0, util_1$p.schemaRefOrVal)(it, this.schema, keyword2, this.$data);
-    this.schemaType = def2.schemaType;
-    this.parentSchema = it.schema;
-    this.params = {};
-    this.it = it;
-    this.def = def2;
-    if (this.$data) {
-      this.schemaCode = it.gen.const("vSchema", getData(this.$data, it));
-    } else {
-      this.schemaCode = this.schemaValue;
-      if (!(0, keyword_1.validSchemaType)(this.schema, def2.schemaType, def2.allowUndefined)) {
-        throw new Error(`${keyword2} value must be ${JSON.stringify(def2.schemaType)}`);
+  function includesType(ts, t2) {
+    return ts.includes(t2) || t2 === "integer" && ts.includes("number");
+  }
+  function narrowSchemaTypes(it, withTypes) {
+    const ts = [];
+    for (const t2 of it.dataTypes) {
+      if (includesType(withTypes, t2))
+        ts.push(t2);
+      else if (withTypes.includes("integer") && t2 === "number")
+        ts.push("integer");
+    }
+    it.dataTypes = ts;
+  }
+  function strictTypesError(it, msg) {
+    const schemaPath = it.schemaEnv.baseId + it.errSchemaPath;
+    msg += ` at "${schemaPath}" (strictTypes)`;
+    (0, util_12.checkStrictMode)(it, msg, it.opts.strictTypes);
+  }
+  class KeywordCxt {
+    constructor(it, def2, keyword2) {
+      (0, keyword_1.validateKeywordUsage)(it, def2, keyword2);
+      this.gen = it.gen;
+      this.allErrors = it.allErrors;
+      this.keyword = keyword2;
+      this.data = it.data;
+      this.schema = it.schema[keyword2];
+      this.$data = def2.$data && it.opts.$data && this.schema && this.schema.$data;
+      this.schemaValue = (0, util_12.schemaRefOrVal)(it, this.schema, keyword2, this.$data);
+      this.schemaType = def2.schemaType;
+      this.parentSchema = it.schema;
+      this.params = {};
+      this.it = it;
+      this.def = def2;
+      if (this.$data) {
+        this.schemaCode = it.gen.const("vSchema", getData(this.$data, it));
+      } else {
+        this.schemaCode = this.schemaValue;
+        if (!(0, keyword_1.validSchemaType)(this.schema, def2.schemaType, def2.allowUndefined)) {
+          throw new Error(`${keyword2} value must be ${JSON.stringify(def2.schemaType)}`);
+        }
+      }
+      if ("code" in def2 ? def2.trackErrors : def2.errors !== false) {
+        this.errsCount = it.gen.const("_errs", names_12.default.errors);
       }
     }
-    if ("code" in def2 ? def2.trackErrors : def2.errors !== false) {
-      this.errsCount = it.gen.const("_errs", names_1$6.default.errors);
+    result(condition, successAction, failAction) {
+      this.failResult((0, codegen_12.not)(condition), successAction, failAction);
     }
-  }
-  result(condition, successAction, failAction) {
-    this.failResult((0, codegen_1$r.not)(condition), successAction, failAction);
-  }
-  failResult(condition, successAction, failAction) {
-    this.gen.if(condition);
-    if (failAction)
-      failAction();
-    else
+    failResult(condition, successAction, failAction) {
+      this.gen.if(condition);
+      if (failAction)
+        failAction();
+      else
+        this.error();
+      if (successAction) {
+        this.gen.else();
+        successAction();
+        if (this.allErrors)
+          this.gen.endIf();
+      } else {
+        if (this.allErrors)
+          this.gen.endIf();
+        else
+          this.gen.else();
+      }
+    }
+    pass(condition, failAction) {
+      this.failResult((0, codegen_12.not)(condition), void 0, failAction);
+    }
+    fail(condition) {
+      if (condition === void 0) {
+        this.error();
+        if (!this.allErrors)
+          this.gen.if(false);
+        return;
+      }
+      this.gen.if(condition);
       this.error();
-    if (successAction) {
-      this.gen.else();
-      successAction();
-      if (this.allErrors)
-        this.gen.endIf();
-    } else {
       if (this.allErrors)
         this.gen.endIf();
       else
         this.gen.else();
     }
-  }
-  pass(condition, failAction) {
-    this.failResult((0, codegen_1$r.not)(condition), void 0, failAction);
-  }
-  fail(condition) {
-    if (condition === void 0) {
-      this.error();
-      if (!this.allErrors)
-        this.gen.if(false);
-      return;
+    fail$data(condition) {
+      if (!this.$data)
+        return this.fail(condition);
+      const { schemaCode } = this;
+      this.fail((0, codegen_12._)`${schemaCode} !== undefined && (${(0, codegen_12.or)(this.invalid$data(), condition)})`);
     }
-    this.gen.if(condition);
-    this.error();
-    if (this.allErrors)
-      this.gen.endIf();
-    else
-      this.gen.else();
-  }
-  fail$data(condition) {
-    if (!this.$data)
-      return this.fail(condition);
-    const { schemaCode } = this;
-    this.fail((0, codegen_1$r._)`${schemaCode} !== undefined && (${(0, codegen_1$r.or)(this.invalid$data(), condition)})`);
-  }
-  error(append2, errorParams, errorPaths) {
-    if (errorParams) {
-      this.setParams(errorParams);
+    error(append2, errorParams, errorPaths) {
+      if (errorParams) {
+        this.setParams(errorParams);
+        this._error(append2, errorPaths);
+        this.setParams({});
+        return;
+      }
       this._error(append2, errorPaths);
-      this.setParams({});
-      return;
     }
-    this._error(append2, errorPaths);
-  }
-  _error(append2, errorPaths) {
-    (append2 ? errors_1.reportExtraError : errors_1.reportError)(this, this.def.error, errorPaths);
-  }
-  $dataError() {
-    (0, errors_1.reportError)(this, this.def.$dataError || errors_1.keyword$DataError);
-  }
-  reset() {
-    if (this.errsCount === void 0)
-      throw new Error('add "trackErrors" to keyword definition');
-    (0, errors_1.resetErrorsCount)(this.gen, this.errsCount);
-  }
-  ok(cond) {
-    if (!this.allErrors)
-      this.gen.if(cond);
-  }
-  setParams(obj, assign) {
-    if (assign)
-      Object.assign(this.params, obj);
-    else
-      this.params = obj;
-  }
-  block$data(valid2, codeBlock, $dataValid = codegen_1$r.nil) {
-    this.gen.block(() => {
-      this.check$data(valid2, $dataValid);
-      codeBlock();
-    });
-  }
-  check$data(valid2 = codegen_1$r.nil, $dataValid = codegen_1$r.nil) {
-    if (!this.$data)
-      return;
-    const { gen, schemaCode, schemaType, def: def2 } = this;
-    gen.if((0, codegen_1$r.or)((0, codegen_1$r._)`${schemaCode} === undefined`, $dataValid));
-    if (valid2 !== codegen_1$r.nil)
-      gen.assign(valid2, true);
-    if (schemaType.length || def2.validateSchema) {
-      gen.elseIf(this.invalid$data());
-      this.$dataError();
-      if (valid2 !== codegen_1$r.nil)
-        gen.assign(valid2, false);
+    _error(append2, errorPaths) {
+      (append2 ? errors_12.reportExtraError : errors_12.reportError)(this, this.def.error, errorPaths);
     }
-    gen.else();
-  }
-  invalid$data() {
-    const { gen, schemaCode, schemaType, def: def2, it } = this;
-    return (0, codegen_1$r.or)(wrong$DataType(), invalid$DataSchema());
-    function wrong$DataType() {
-      if (schemaType.length) {
-        if (!(schemaCode instanceof codegen_1$r.Name))
-          throw new Error("ajv implementation error");
-        const st = Array.isArray(schemaType) ? schemaType : [schemaType];
-        return (0, codegen_1$r._)`${(0, dataType_2.checkDataTypes)(st, schemaCode, it.opts.strictNumbers, dataType_2.DataType.Wrong)}`;
+    $dataError() {
+      (0, errors_12.reportError)(this, this.def.$dataError || errors_12.keyword$DataError);
+    }
+    reset() {
+      if (this.errsCount === void 0)
+        throw new Error('add "trackErrors" to keyword definition');
+      (0, errors_12.resetErrorsCount)(this.gen, this.errsCount);
+    }
+    ok(cond) {
+      if (!this.allErrors)
+        this.gen.if(cond);
+    }
+    setParams(obj, assign) {
+      if (assign)
+        Object.assign(this.params, obj);
+      else
+        this.params = obj;
+    }
+    block$data(valid2, codeBlock, $dataValid = codegen_12.nil) {
+      this.gen.block(() => {
+        this.check$data(valid2, $dataValid);
+        codeBlock();
+      });
+    }
+    check$data(valid2 = codegen_12.nil, $dataValid = codegen_12.nil) {
+      if (!this.$data)
+        return;
+      const { gen, schemaCode, schemaType, def: def2 } = this;
+      gen.if((0, codegen_12.or)((0, codegen_12._)`${schemaCode} === undefined`, $dataValid));
+      if (valid2 !== codegen_12.nil)
+        gen.assign(valid2, true);
+      if (schemaType.length || def2.validateSchema) {
+        gen.elseIf(this.invalid$data());
+        this.$dataError();
+        if (valid2 !== codegen_12.nil)
+          gen.assign(valid2, false);
       }
-      return codegen_1$r.nil;
+      gen.else();
     }
-    function invalid$DataSchema() {
-      if (def2.validateSchema) {
-        const validateSchemaRef = gen.scopeValue("validate$data", { ref: def2.validateSchema });
-        return (0, codegen_1$r._)`!${validateSchemaRef}(${schemaCode})`;
+    invalid$data() {
+      const { gen, schemaCode, schemaType, def: def2, it } = this;
+      return (0, codegen_12.or)(wrong$DataType(), invalid$DataSchema());
+      function wrong$DataType() {
+        if (schemaType.length) {
+          if (!(schemaCode instanceof codegen_12.Name))
+            throw new Error("ajv implementation error");
+          const st = Array.isArray(schemaType) ? schemaType : [schemaType];
+          return (0, codegen_12._)`${(0, dataType_2.checkDataTypes)(st, schemaCode, it.opts.strictNumbers, dataType_2.DataType.Wrong)}`;
+        }
+        return codegen_12.nil;
       }
-      return codegen_1$r.nil;
+      function invalid$DataSchema() {
+        if (def2.validateSchema) {
+          const validateSchemaRef = gen.scopeValue("validate$data", { ref: def2.validateSchema });
+          return (0, codegen_12._)`!${validateSchemaRef}(${schemaCode})`;
+        }
+        return codegen_12.nil;
+      }
+    }
+    subschema(appl, valid2) {
+      const subschema2 = (0, subschema_1.getSubschema)(this.it, appl);
+      (0, subschema_1.extendSubschemaData)(subschema2, this.it, appl);
+      (0, subschema_1.extendSubschemaMode)(subschema2, appl);
+      const nextContext = { ...this.it, ...subschema2, items: void 0, props: void 0 };
+      subschemaCode(nextContext, valid2);
+      return nextContext;
+    }
+    mergeEvaluated(schemaCxt, toName) {
+      const { it, gen } = this;
+      if (!it.opts.unevaluated)
+        return;
+      if (it.props !== true && schemaCxt.props !== void 0) {
+        it.props = util_12.mergeEvaluated.props(gen, schemaCxt.props, it.props, toName);
+      }
+      if (it.items !== true && schemaCxt.items !== void 0) {
+        it.items = util_12.mergeEvaluated.items(gen, schemaCxt.items, it.items, toName);
+      }
+    }
+    mergeValidEvaluated(schemaCxt, valid2) {
+      const { it, gen } = this;
+      if (it.opts.unevaluated && (it.props !== true || it.items !== true)) {
+        gen.if(valid2, () => this.mergeEvaluated(schemaCxt, codegen_12.Name));
+        return true;
+      }
     }
   }
-  subschema(appl, valid2) {
-    const subschema2 = (0, subschema_1.getSubschema)(this.it, appl);
-    (0, subschema_1.extendSubschemaData)(subschema2, this.it, appl);
-    (0, subschema_1.extendSubschemaMode)(subschema2, appl);
-    const nextContext = { ...this.it, ...subschema2, items: void 0, props: void 0 };
-    subschemaCode(nextContext, valid2);
-    return nextContext;
-  }
-  mergeEvaluated(schemaCxt, toName) {
-    const { it, gen } = this;
-    if (!it.opts.unevaluated)
-      return;
-    if (it.props !== true && schemaCxt.props !== void 0) {
-      it.props = util_1$p.mergeEvaluated.props(gen, schemaCxt.props, it.props, toName);
-    }
-    if (it.items !== true && schemaCxt.items !== void 0) {
-      it.items = util_1$p.mergeEvaluated.items(gen, schemaCxt.items, it.items, toName);
+  validate.KeywordCxt = KeywordCxt;
+  function keywordCode(it, keyword2, def2, ruleType) {
+    const cxt = new KeywordCxt(it, def2, keyword2);
+    if ("code" in def2) {
+      def2.code(cxt, ruleType);
+    } else if (cxt.$data && def2.validate) {
+      (0, keyword_1.funcKeywordCode)(cxt, def2);
+    } else if ("macro" in def2) {
+      (0, keyword_1.macroKeywordCode)(cxt, def2);
+    } else if (def2.compile || def2.validate) {
+      (0, keyword_1.funcKeywordCode)(cxt, def2);
     }
   }
-  mergeValidEvaluated(schemaCxt, valid2) {
-    const { it, gen } = this;
-    if (it.opts.unevaluated && (it.props !== true || it.items !== true)) {
-      gen.if(valid2, () => this.mergeEvaluated(schemaCxt, codegen_1$r.Name));
-      return true;
+  const JSON_POINTER = /^\/(?:[^~]|~0|~1)*$/;
+  const RELATIVE_JSON_POINTER = /^([0-9]+)(#|\/(?:[^~]|~0|~1)*)?$/;
+  function getData($data, { dataLevel, dataNames, dataPathArr }) {
+    let jsonPointer;
+    let data;
+    if ($data === "")
+      return names_12.default.rootData;
+    if ($data[0] === "/") {
+      if (!JSON_POINTER.test($data))
+        throw new Error(`Invalid JSON-pointer: ${$data}`);
+      jsonPointer = $data;
+      data = names_12.default.rootData;
+    } else {
+      const matches = RELATIVE_JSON_POINTER.exec($data);
+      if (!matches)
+        throw new Error(`Invalid JSON-pointer: ${$data}`);
+      const up = +matches[1];
+      jsonPointer = matches[2];
+      if (jsonPointer === "#") {
+        if (up >= dataLevel)
+          throw new Error(errorMsg("property/index", up));
+        return dataPathArr[dataLevel - up];
+      }
+      if (up > dataLevel)
+        throw new Error(errorMsg("data", up));
+      data = dataNames[dataLevel - up];
+      if (!jsonPointer)
+        return data;
+    }
+    let expr = data;
+    const segments = jsonPointer.split("/");
+    for (const segment of segments) {
+      if (segment) {
+        data = (0, codegen_12._)`${data}${(0, codegen_12.getProperty)((0, util_12.unescapeJsonPointer)(segment))}`;
+        expr = (0, codegen_12._)`${expr} && ${data}`;
+      }
+    }
+    return expr;
+    function errorMsg(pointerType, up) {
+      return `Cannot access ${pointerType} ${up} levels up, current level is ${dataLevel}`;
     }
   }
+  validate.getData = getData;
+  return validate;
 }
-validate.KeywordCxt = KeywordCxt;
-function keywordCode(it, keyword2, def2, ruleType) {
-  const cxt = new KeywordCxt(it, def2, keyword2);
-  if ("code" in def2) {
-    def2.code(cxt, ruleType);
-  } else if (cxt.$data && def2.validate) {
-    (0, keyword_1.funcKeywordCode)(cxt, def2);
-  } else if ("macro" in def2) {
-    (0, keyword_1.macroKeywordCode)(cxt, def2);
-  } else if (def2.compile || def2.validate) {
-    (0, keyword_1.funcKeywordCode)(cxt, def2);
-  }
-}
-const JSON_POINTER = /^\/(?:[^~]|~0|~1)*$/;
-const RELATIVE_JSON_POINTER = /^([0-9]+)(#|\/(?:[^~]|~0|~1)*)?$/;
-function getData($data, { dataLevel, dataNames, dataPathArr }) {
-  let jsonPointer;
-  let data;
-  if ($data === "")
-    return names_1$6.default.rootData;
-  if ($data[0] === "/") {
-    if (!JSON_POINTER.test($data))
-      throw new Error(`Invalid JSON-pointer: ${$data}`);
-    jsonPointer = $data;
-    data = names_1$6.default.rootData;
-  } else {
-    const matches = RELATIVE_JSON_POINTER.exec($data);
-    if (!matches)
-      throw new Error(`Invalid JSON-pointer: ${$data}`);
-    const up = +matches[1];
-    jsonPointer = matches[2];
-    if (jsonPointer === "#") {
-      if (up >= dataLevel)
-        throw new Error(errorMsg("property/index", up));
-      return dataPathArr[dataLevel - up];
-    }
-    if (up > dataLevel)
-      throw new Error(errorMsg("data", up));
-    data = dataNames[dataLevel - up];
-    if (!jsonPointer)
-      return data;
-  }
-  let expr = data;
-  const segments = jsonPointer.split("/");
-  for (const segment of segments) {
-    if (segment) {
-      data = (0, codegen_1$r._)`${data}${(0, codegen_1$r.getProperty)((0, util_1$p.unescapeJsonPointer)(segment))}`;
-      expr = (0, codegen_1$r._)`${expr} && ${data}`;
-    }
-  }
-  return expr;
-  function errorMsg(pointerType, up) {
-    return `Cannot access ${pointerType} ${up} levels up, current level is ${dataLevel}`;
-  }
-}
-validate.getData = getData;
 var validation_error = {};
-Object.defineProperty(validation_error, "__esModule", { value: true });
-class ValidationError extends Error {
-  constructor(errors2) {
-    super("validation failed");
-    this.errors = errors2;
-    this.ajv = this.validation = true;
+var hasRequiredValidation_error;
+function requireValidation_error() {
+  if (hasRequiredValidation_error) return validation_error;
+  hasRequiredValidation_error = 1;
+  Object.defineProperty(validation_error, "__esModule", { value: true });
+  class ValidationError extends Error {
+    constructor(errors2) {
+      super("validation failed");
+      this.errors = errors2;
+      this.ajv = this.validation = true;
+    }
   }
+  validation_error.default = ValidationError;
+  return validation_error;
 }
-validation_error.default = ValidationError;
 var ref_error = {};
 Object.defineProperty(ref_error, "__esModule", { value: true });
 const resolve_1$1 = resolve$2;
@@ -3404,11 +3440,11 @@ var compile = {};
 Object.defineProperty(compile, "__esModule", { value: true });
 compile.resolveSchema = compile.getCompilingSchema = compile.resolveRef = compile.compileSchema = compile.SchemaEnv = void 0;
 const codegen_1$q = codegen;
-const validation_error_1 = validation_error;
+const validation_error_1 = requireValidation_error();
 const names_1$5 = names$1;
 const resolve_1 = resolve$2;
 const util_1$o = util$1;
-const validate_1$1 = validate;
+const validate_1$1 = requireValidate();
 class SchemaEnv {
   constructor(env2) {
     var _a;
@@ -4337,7 +4373,7 @@ uri$1.default = uri;
 (function(exports$1) {
   Object.defineProperty(exports$1, "__esModule", { value: true });
   exports$1.CodeGen = exports$1.Name = exports$1.nil = exports$1.stringify = exports$1.str = exports$1._ = exports$1.KeywordCxt = void 0;
-  var validate_12 = validate;
+  var validate_12 = requireValidate();
   Object.defineProperty(exports$1, "KeywordCxt", { enumerable: true, get: function() {
     return validate_12.KeywordCxt;
   } });
@@ -4360,7 +4396,7 @@ uri$1.default = uri;
   Object.defineProperty(exports$1, "CodeGen", { enumerable: true, get: function() {
     return codegen_12.CodeGen;
   } });
-  const validation_error_12 = validation_error;
+  const validation_error_12 = requireValidation_error();
   const ref_error_12 = ref_error;
   const rules_12 = rules;
   const compile_12 = compile;
@@ -4412,7 +4448,7 @@ uri$1.default = uri;
   };
   const MAX_EXPRESSION = 200;
   function requiredOptions(o) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t2, _u, _v, _w, _x, _y, _z, _0;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r2, _s, _t2, _u, _v, _w, _x, _y, _z, _0;
     const s = o.strict;
     const _optz = (_a = o.code) === null || _a === void 0 ? void 0 : _a.optimize;
     const optimize = _optz === true || _optz === void 0 ? 1 : _optz || 0;
@@ -4426,7 +4462,7 @@ uri$1.default = uri;
       strictRequired: (_p = (_o = o.strictRequired) !== null && _o !== void 0 ? _o : s) !== null && _p !== void 0 ? _p : false,
       code: o.code ? { ...o.code, optimize, regExp } : { optimize, regExp },
       loopRequired: (_q = o.loopRequired) !== null && _q !== void 0 ? _q : MAX_EXPRESSION,
-      loopEnum: (_r = o.loopEnum) !== null && _r !== void 0 ? _r : MAX_EXPRESSION,
+      loopEnum: (_r2 = o.loopEnum) !== null && _r2 !== void 0 ? _r2 : MAX_EXPRESSION,
       meta: (_s = o.meta) !== null && _s !== void 0 ? _s : true,
       messages: (_t2 = o.messages) !== null && _t2 !== void 0 ? _t2 : true,
       inlineRefs: (_u = o.inlineRefs) !== null && _u !== void 0 ? _u : true,
@@ -5939,7 +5975,7 @@ const def$j = {
 additionalProperties.default = def$j;
 var properties$9 = {};
 Object.defineProperty(properties$9, "__esModule", { value: true });
-const validate_1 = validate;
+const validate_1 = requireValidate();
 const code_1$2 = code;
 const util_1$b = util$1;
 const additionalProperties_1$1 = additionalProperties;
@@ -7346,7 +7382,7 @@ jsonSchema202012.default = addMetaSchema2020;
   module.exports.Ajv2020 = Ajv2020;
   Object.defineProperty(exports$1, "__esModule", { value: true });
   exports$1.default = Ajv2020;
-  var validate_12 = validate;
+  var validate_12 = requireValidate();
   Object.defineProperty(exports$1, "KeywordCxt", { enumerable: true, get: function() {
     return validate_12.KeywordCxt;
   } });
@@ -7369,7 +7405,7 @@ jsonSchema202012.default = addMetaSchema2020;
   Object.defineProperty(exports$1, "CodeGen", { enumerable: true, get: function() {
     return codegen_12.CodeGen;
   } });
-  var validation_error_12 = validation_error;
+  var validation_error_12 = requireValidation_error();
   Object.defineProperty(exports$1, "ValidationError", { enumerable: true, get: function() {
     return validation_error_12.default;
   } });
@@ -7479,7 +7515,7 @@ var formats = {};
       const matches = TIME.exec(str);
       if (!matches)
         return false;
-      const hr = +matches[1];
+      const hr2 = +matches[1];
       const min = +matches[2];
       const sec = +matches[3];
       const tz = matches[4];
@@ -7488,10 +7524,10 @@ var formats = {};
       const tzM = +(matches[7] || 0);
       if (tzH > 23 || tzM > 59 || strictTimeZone && !tz)
         return false;
-      if (hr <= 23 && min <= 59 && sec < 60)
+      if (hr2 <= 23 && min <= 59 && sec < 60)
         return true;
       const utcMin = min - tzM * tzSign;
-      const utcHr = hr - tzH * tzSign - (utcMin < 0 ? 1 : 0);
+      const utcHr = hr2 - tzH * tzSign - (utcMin < 0 ? 1 : 0);
       return (utcHr === 23 || utcHr === -1) && (utcMin === 59 || utcMin === -1) && sec < 61;
     };
   }
@@ -7877,7 +7913,7 @@ const require$$3 = {
   module.exports.Ajv = Ajv;
   Object.defineProperty(exports$1, "__esModule", { value: true });
   exports$1.default = Ajv;
-  var validate_12 = validate;
+  var validate_12 = requireValidate();
   Object.defineProperty(exports$1, "KeywordCxt", { enumerable: true, get: function() {
     return validate_12.KeywordCxt;
   } });
@@ -7900,7 +7936,7 @@ const require$$3 = {
   Object.defineProperty(exports$1, "CodeGen", { enumerable: true, get: function() {
     return codegen_12.CodeGen;
   } });
-  var validation_error_12 = validation_error;
+  var validation_error_12 = requireValidation_error();
   Object.defineProperty(exports$1, "ValidationError", { enumerable: true, get: function() {
     return validation_error_12.default;
   } });
@@ -8125,7 +8161,7 @@ const debounceFunction = (inputFunction, options = {}) => {
   };
   return debouncedFunction;
 };
-var re$2 = { exports: {} };
+var re$3 = { exports: {} };
 const SEMVER_SPEC_VERSION = "2.0.0";
 const MAX_LENGTH$1 = 256;
 const MAX_SAFE_INTEGER$1 = Number.MAX_SAFE_INTEGER || /* istanbul ignore next */
@@ -8236,8 +8272,8 @@ var debug_1 = debug$2;
   createToken("STAR", "(<|>)?=?\\s*\\*");
   createToken("GTE0", "^\\s*>=\\s*0\\.0\\.0\\s*$");
   createToken("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
-})(re$2, re$2.exports);
-var reExports = re$2.exports;
+})(re$3, re$3.exports);
+var reExports = re$3.exports;
 const looseOption = Object.freeze({ loose: true });
 const emptyOpts = Object.freeze({});
 const parseOptions$1 = (options) => {
@@ -8270,7 +8306,7 @@ var identifiers$1 = {
 };
 const debug$1 = debug_1;
 const { MAX_LENGTH, MAX_SAFE_INTEGER } = constants$2;
-const { safeRe: re$1, t: t$1 } = reExports;
+const { safeRe: re$2, t: t$1 } = reExports;
 const parseOptions = parseOptions_1;
 const { compareIdentifiers } = identifiers$1;
 let SemVer$d = class SemVer {
@@ -8294,7 +8330,7 @@ let SemVer$d = class SemVer {
     this.options = options;
     this.loose = !!options.loose;
     this.includePrerelease = !!options.includePrerelease;
-    const m = version.trim().match(options.loose ? re$1[t$1.LOOSE] : re$1[t$1.FULL]);
+    const m = version.trim().match(options.loose ? re$2[t$1.LOOSE] : re$2[t$1.FULL]);
     if (!m) {
       throw new TypeError(`Invalid Version: ${version}`);
     }
@@ -8433,7 +8469,7 @@ let SemVer$d = class SemVer {
         throw new Error("invalid increment argument: identifier is empty");
       }
       if (identifier) {
-        const match2 = `-${identifier}`.match(this.options.loose ? re$1[t$1.PRERELEASELOOSE] : re$1[t$1.PRERELEASE]);
+        const match2 = `-${identifier}`.match(this.options.loose ? re$2[t$1.PRERELEASELOOSE] : re$2[t$1.PRERELEASE]);
         if (!match2 || match2[1] !== identifier) {
           throw new Error(`invalid identifier: ${identifier}`);
         }
@@ -8543,11 +8579,11 @@ const parse$6 = (version, options, throwErrors = false) => {
   }
   try {
     return new SemVer$c(version, options);
-  } catch (er) {
+  } catch (er2) {
     if (!throwErrors) {
       return null;
     }
-    throw er;
+    throw er2;
   }
 };
 var parse_1 = parse$6;
@@ -8575,7 +8611,7 @@ const inc$1 = (version, release, options, identifier, identifierBase) => {
       version instanceof SemVer$b ? version.version : version,
       options
     ).inc(release, identifier, identifierBase).version;
-  } catch (er) {
+  } catch (er2) {
     return null;
   }
 };
@@ -8717,7 +8753,7 @@ const cmp$1 = (a, op, b, loose) => {
 var cmp_1 = cmp$1;
 const SemVer$5 = semver$2;
 const parse$1 = parse_1;
-const { safeRe: re, t } = reExports;
+const { safeRe: re$1, t } = reExports;
 const coerce$1 = (version, options) => {
   if (version instanceof SemVer$5) {
     return version;
@@ -8731,9 +8767,9 @@ const coerce$1 = (version, options) => {
   options = options || {};
   let match2 = null;
   if (!options.rtl) {
-    match2 = version.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
+    match2 = version.match(options.includePrerelease ? re$1[t.COERCEFULL] : re$1[t.COERCE]);
   } else {
-    const coerceRtlRegex = options.includePrerelease ? re[t.COERCERTLFULL] : re[t.COERCERTL];
+    const coerceRtlRegex = options.includePrerelease ? re$1[t.COERCERTLFULL] : re$1[t.COERCERTL];
     let next2;
     while ((next2 = coerceRtlRegex.exec(version)) && (!match2 || match2.index + match2[0].length !== version.length)) {
       if (!match2 || next2.index + next2[0].length !== match2.index + match2[0].length) {
@@ -8863,8 +8899,8 @@ function requireRange() {
         return cached;
       }
       const loose = this.options.loose;
-      const hr = loose ? re2[t2.HYPHENRANGELOOSE] : re2[t2.HYPHENRANGE];
-      range2 = range2.replace(hr, hyphenReplace(this.options.includePrerelease));
+      const hr2 = loose ? re2[t2.HYPHENRANGELOOSE] : re2[t2.HYPHENRANGE];
+      range2 = range2.replace(hr2, hyphenReplace(this.options.includePrerelease));
       debug2("hyphen replace", range2);
       range2 = range2.replace(re2[t2.COMPARATORTRIM], comparatorTrimReplace);
       debug2("comparator trim", range2);
@@ -8917,7 +8953,7 @@ function requireRange() {
       if (typeof version === "string") {
         try {
           version = new SemVer3(version, this.options);
-        } catch (er) {
+        } catch (er2) {
           return false;
         }
       }
@@ -8977,8 +9013,8 @@ function requireRange() {
   };
   const replaceTilde = (comp, options) => {
     const r = options.loose ? re2[t2.TILDELOOSE] : re2[t2.TILDE];
-    return comp.replace(r, (_, M, m, p, pr) => {
-      debug2("tilde", comp, _, M, m, p, pr);
+    return comp.replace(r, (_, M, m, p, pr2) => {
+      debug2("tilde", comp, _, M, m, p, pr2);
       let ret;
       if (isX(M)) {
         ret = "";
@@ -8986,9 +9022,9 @@ function requireRange() {
         ret = `>=${M}.0.0 <${+M + 1}.0.0-0`;
       } else if (isX(p)) {
         ret = `>=${M}.${m}.0 <${M}.${+m + 1}.0-0`;
-      } else if (pr) {
-        debug2("replaceTilde pr", pr);
-        ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+      } else if (pr2) {
+        debug2("replaceTilde pr", pr2);
+        ret = `>=${M}.${m}.${p}-${pr2} <${M}.${+m + 1}.0-0`;
       } else {
         ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
       }
@@ -9003,8 +9039,8 @@ function requireRange() {
     debug2("caret", comp, options);
     const r = options.loose ? re2[t2.CARETLOOSE] : re2[t2.CARET];
     const z2 = options.includePrerelease ? "-0" : "";
-    return comp.replace(r, (_, M, m, p, pr) => {
-      debug2("caret", comp, _, M, m, p, pr);
+    return comp.replace(r, (_, M, m, p, pr2) => {
+      debug2("caret", comp, _, M, m, p, pr2);
       let ret;
       if (isX(M)) {
         ret = "";
@@ -9016,16 +9052,16 @@ function requireRange() {
         } else {
           ret = `>=${M}.${m}.0${z2} <${+M + 1}.0.0-0`;
         }
-      } else if (pr) {
-        debug2("replaceCaret pr", pr);
+      } else if (pr2) {
+        debug2("replaceCaret pr", pr2);
         if (M === "0") {
           if (m === "0") {
-            ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
+            ret = `>=${M}.${m}.${p}-${pr2} <${M}.${m}.${+p + 1}-0`;
           } else {
-            ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+            ret = `>=${M}.${m}.${p}-${pr2} <${M}.${+m + 1}.0-0`;
           }
         } else {
-          ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
+          ret = `>=${M}.${m}.${p}-${pr2} <${+M + 1}.0.0-0`;
         }
       } else {
         debug2("no pr");
@@ -9050,8 +9086,8 @@ function requireRange() {
   const replaceXRange = (comp, options) => {
     comp = comp.trim();
     const r = options.loose ? re2[t2.XRANGELOOSE] : re2[t2.XRANGE];
-    return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
-      debug2("xRange", comp, ret, gtlt, M, m, p, pr);
+    return comp.replace(r, (ret, gtlt, M, m, p, pr2) => {
+      debug2("xRange", comp, ret, gtlt, M, m, p, pr2);
       const xM = isX(M);
       const xm = xM || isX(m);
       const xp = xm || isX(p);
@@ -9059,7 +9095,7 @@ function requireRange() {
       if (gtlt === "=" && anyX) {
         gtlt = "";
       }
-      pr = options.includePrerelease ? "-0" : "";
+      pr2 = options.includePrerelease ? "-0" : "";
       if (xM) {
         if (gtlt === ">" || gtlt === "<") {
           ret = "<0.0.0-0";
@@ -9090,13 +9126,13 @@ function requireRange() {
           }
         }
         if (gtlt === "<") {
-          pr = "-0";
+          pr2 = "-0";
         }
-        ret = `${gtlt + M}.${m}.${p}${pr}`;
+        ret = `${gtlt + M}.${m}.${p}${pr2}`;
       } else if (xm) {
-        ret = `>=${M}.0.0${pr} <${+M + 1}.0.0-0`;
+        ret = `>=${M}.0.0${pr2} <${+M + 1}.0.0-0`;
       } else if (xp) {
-        ret = `>=${M}.${m}.0${pr} <${M}.${+m + 1}.0-0`;
+        ret = `>=${M}.${m}.0${pr2} <${M}.${+m + 1}.0-0`;
       }
       debug2("xRange return", ret);
       return ret;
@@ -9220,7 +9256,7 @@ function requireComparator() {
       if (typeof version === "string") {
         try {
           version = new SemVer3(version, this.options);
-        } catch (er) {
+        } catch (er2) {
           return false;
         }
       }
@@ -9279,7 +9315,7 @@ const Range$9 = requireRange();
 const satisfies$4 = (version, range2, options) => {
   try {
     range2 = new Range$9(range2, options);
-  } catch (er) {
+  } catch (er2) {
     return false;
   }
   return range2.test(version);
@@ -9296,7 +9332,7 @@ const maxSatisfying$1 = (versions, range2, options) => {
   let rangeObj = null;
   try {
     rangeObj = new Range$7(range2, options);
-  } catch (er) {
+  } catch (er2) {
     return null;
   }
   versions.forEach((v) => {
@@ -9318,7 +9354,7 @@ const minSatisfying$1 = (versions, range2, options) => {
   let rangeObj = null;
   try {
     rangeObj = new Range$6(range2, options);
-  } catch (er) {
+  } catch (er2) {
     return null;
   }
   versions.forEach((v) => {
@@ -9386,7 +9422,7 @@ const Range$4 = requireRange();
 const validRange$1 = (range2, options) => {
   try {
     return new Range$4(range2, options).range || "*";
-  } catch (er) {
+  } catch (er2) {
     return null;
   }
 };
@@ -10505,26 +10541,26 @@ class ElectronStore extends Conf {
 }
 var fs$j = {};
 var universalify$1 = {};
-universalify$1.fromCallback = function(fn) {
+universalify$1.fromCallback = function(fn2) {
   return Object.defineProperty(function(...args) {
-    if (typeof args[args.length - 1] === "function") fn.apply(this, args);
+    if (typeof args[args.length - 1] === "function") fn2.apply(this, args);
     else {
       return new Promise((resolve2, reject) => {
         args.push((err, res) => err != null ? reject(err) : resolve2(res));
-        fn.apply(this, args);
+        fn2.apply(this, args);
       });
     }
-  }, "name", { value: fn.name });
+  }, "name", { value: fn2.name });
 };
-universalify$1.fromPromise = function(fn) {
+universalify$1.fromPromise = function(fn2) {
   return Object.defineProperty(function(...args) {
     const cb = args[args.length - 1];
-    if (typeof cb !== "function") return fn.apply(this, args);
+    if (typeof cb !== "function") return fn2.apply(this, args);
     else {
       args.pop();
-      fn.apply(this, args).then((r) => cb(null, r), cb);
+      fn2.apply(this, args).then((r) => cb(null, r), cb);
     }
-  }, "name", { value: fn.name });
+  }, "name", { value: fn2.name });
 };
 var constants = require$$0$1;
 var origCwd = process.cwd;
@@ -10537,7 +10573,7 @@ process.cwd = function() {
 };
 try {
   process.cwd();
-} catch (er) {
+} catch (er2) {
 }
 if (typeof process.chdir === "function") {
   var chdir = process.chdir;
@@ -10592,21 +10628,21 @@ function patch$1(fs2) {
       function rename2(from, to, cb) {
         var start = Date.now();
         var backoff = 0;
-        fs$rename(from, to, function CB(er) {
-          if (er && (er.code === "EACCES" || er.code === "EPERM" || er.code === "EBUSY") && Date.now() - start < 6e4) {
+        fs$rename(from, to, function CB(er2) {
+          if (er2 && (er2.code === "EACCES" || er2.code === "EPERM" || er2.code === "EBUSY") && Date.now() - start < 6e4) {
             setTimeout(function() {
               fs2.stat(to, function(stater, st) {
                 if (stater && stater.code === "ENOENT")
                   fs$rename(from, to, CB);
                 else
-                  cb(er);
+                  cb(er2);
               });
             }, backoff);
             if (backoff < 100)
               backoff += 10;
             return;
           }
-          if (cb) cb(er);
+          if (cb) cb(er2);
         });
       }
       if (Object.setPrototypeOf) Object.setPrototypeOf(rename2, fs$rename);
@@ -10618,8 +10654,8 @@ function patch$1(fs2) {
       var callback;
       if (callback_ && typeof callback_ === "function") {
         var eagCounter = 0;
-        callback = function(er, _, __) {
-          if (er && er.code === "EAGAIN" && eagCounter < 10) {
+        callback = function(er2, _, __) {
+          if (er2 && er2.code === "EAGAIN" && eagCounter < 10) {
             eagCounter++;
             return fs$read.call(fs2, fd, buffer, offset, length, position, callback);
           }
@@ -10637,12 +10673,12 @@ function patch$1(fs2) {
       while (true) {
         try {
           return fs$readSync.call(fs2, fd, buffer, offset, length, position);
-        } catch (er) {
-          if (er.code === "EAGAIN" && eagCounter < 10) {
+        } catch (er2) {
+          if (er2.code === "EAGAIN" && eagCounter < 10) {
             eagCounter++;
             continue;
           }
-          throw er;
+          throw er2;
         }
       }
     };
@@ -10677,7 +10713,7 @@ function patch$1(fs2) {
         if (threw) {
           try {
             fs22.closeSync(fd);
-          } catch (er) {
+          } catch (er2) {
           }
         } else {
           fs22.closeSync(fd);
@@ -10689,14 +10725,14 @@ function patch$1(fs2) {
   function patchLutimes(fs22) {
     if (constants.hasOwnProperty("O_SYMLINK") && fs22.futimes) {
       fs22.lutimes = function(path2, at2, mt2, cb) {
-        fs22.open(path2, constants.O_SYMLINK, function(er, fd) {
-          if (er) {
-            if (cb) cb(er);
+        fs22.open(path2, constants.O_SYMLINK, function(er2, fd) {
+          if (er2) {
+            if (cb) cb(er2);
             return;
           }
-          fs22.futimes(fd, at2, mt2, function(er2) {
-            fs22.close(fd, function(er22) {
-              if (cb) cb(er2 || er22);
+          fs22.futimes(fd, at2, mt2, function(er22) {
+            fs22.close(fd, function(er222) {
+              if (cb) cb(er22 || er222);
             });
           });
         });
@@ -10712,7 +10748,7 @@ function patch$1(fs2) {
           if (threw) {
             try {
               fs22.closeSync(fd);
-            } catch (er) {
+            } catch (er2) {
             }
           } else {
             fs22.closeSync(fd);
@@ -10731,8 +10767,8 @@ function patch$1(fs2) {
   function chmodFix(orig) {
     if (!orig) return orig;
     return function(target, mode, cb) {
-      return orig.call(fs2, target, mode, function(er) {
-        if (chownErOk(er)) er = null;
+      return orig.call(fs2, target, mode, function(er2) {
+        if (chownErOk(er2)) er2 = null;
         if (cb) cb.apply(this, arguments);
       });
     };
@@ -10742,16 +10778,16 @@ function patch$1(fs2) {
     return function(target, mode) {
       try {
         return orig.call(fs2, target, mode);
-      } catch (er) {
-        if (!chownErOk(er)) throw er;
+      } catch (er2) {
+        if (!chownErOk(er2)) throw er2;
       }
     };
   }
   function chownFix(orig) {
     if (!orig) return orig;
     return function(target, uid2, gid, cb) {
-      return orig.call(fs2, target, uid2, gid, function(er) {
-        if (chownErOk(er)) er = null;
+      return orig.call(fs2, target, uid2, gid, function(er2) {
+        if (chownErOk(er2)) er2 = null;
         if (cb) cb.apply(this, arguments);
       });
     };
@@ -10761,8 +10797,8 @@ function patch$1(fs2) {
     return function(target, uid2, gid) {
       try {
         return orig.call(fs2, target, uid2, gid);
-      } catch (er) {
-        if (!chownErOk(er)) throw er;
+      } catch (er2) {
+        if (!chownErOk(er2)) throw er2;
       }
     };
   }
@@ -10773,7 +10809,7 @@ function patch$1(fs2) {
         cb = options;
         options = null;
       }
-      function callback(er, stats) {
+      function callback(er2, stats) {
         if (stats) {
           if (stats.uid < 0) stats.uid += 4294967296;
           if (stats.gid < 0) stats.gid += 4294967296;
@@ -10794,14 +10830,14 @@ function patch$1(fs2) {
       return stats;
     };
   }
-  function chownErOk(er) {
-    if (!er)
+  function chownErOk(er2) {
+    if (!er2)
       return true;
-    if (er.code === "ENOSYS")
+    if (er2.code === "ENOSYS")
       return true;
     var nonroot = !process.getuid || process.getuid() !== 0;
     if (nonroot) {
-      if (er.code === "EINVAL" || er.code === "EPERM")
+      if (er2.code === "EINVAL" || er2.code === "EPERM")
         return true;
     }
     return false;
@@ -11248,16 +11284,16 @@ function retry() {
   if (fs$i[gracefulQueue].length === 0)
     return;
   var elem = fs$i[gracefulQueue].shift();
-  var fn = elem[0];
+  var fn2 = elem[0];
   var args = elem[1];
   var err = elem[2];
   var startTime = elem[3];
   var lastTime = elem[4];
   if (startTime === void 0) {
-    debug("RETRY", fn.name, args);
-    fn.apply(null, args);
+    debug("RETRY", fn2.name, args);
+    fn2.apply(null, args);
   } else if (Date.now() - startTime >= 6e4) {
-    debug("TIMEOUT", fn.name, args);
+    debug("TIMEOUT", fn2.name, args);
     var cb = args.pop();
     if (typeof cb === "function")
       cb.call(null, err);
@@ -11266,8 +11302,8 @@ function retry() {
     var sinceStart = Math.max(lastTime - startTime, 1);
     var desiredDelay = Math.min(sinceStart * 1.2, 100);
     if (sinceAttempt >= desiredDelay) {
-      debug("RETRY", fn.name, args);
-      fn.apply(null, args.concat([startTime]));
+      debug("RETRY", fn2.name, args);
+      fn2.apply(null, args.concat([startTime]));
     } else {
       fs$i[gracefulQueue].push(elem);
     }
@@ -11594,11 +11630,11 @@ var stat$4 = {
   isSrcSubdir,
   areIdentical: areIdentical$2
 };
-async function asyncIteratorConcurrentProcess$1(iterator, fn) {
+async function asyncIteratorConcurrentProcess$1(iterator, fn2) {
   const promises = [];
   for await (const item of iterator) {
     promises.push(
-      fn(item).then(
+      fn2(item).then(
         () => null,
         (err) => err ?? new Error("unknown error")
       )
@@ -14839,9 +14875,9 @@ const logicalOperators = {
    * @param {whereCallback} fn
    * @return {boolean}
    */
-  $where: (obj, fn) => {
-    if (typeof fn !== "function") throw new Error("$where operator used without a function");
-    const result = fn.call(obj);
+  $where: (obj, fn2) => {
+    if (typeof fn2 !== "function") throw new Error("$where operator used without a function");
+    const result = fn2.call(obj);
     if (typeof result !== "boolean") throw new Error("$where function must return boolean");
     return result;
   }
@@ -15506,10 +15542,10 @@ let BinarySearchTree$2 = class BinarySearchTree {
    * Execute a function on every node of the tree, in key order
    * @param {Function} fn Signature: node. Most useful will probably be node.key and node.data
    */
-  executeOnEveryNode(fn) {
-    if (this.left) this.left.executeOnEveryNode(fn);
-    fn(this);
-    if (this.right) this.right.executeOnEveryNode(fn);
+  executeOnEveryNode(fn2) {
+    if (this.left) this.left.executeOnEveryNode(fn2);
+    fn2(this);
+    if (this.right) this.right.executeOnEveryNode(fn2);
   }
   /**
    * Pretty print a tree
@@ -15877,9 +15913,9 @@ class _AVLTree extends BinarySearchTree$1 {
   }
 }
 AVLTree._AVLTree = _AVLTree;
-["getNumberOfKeys", "search", "betweenBounds", "prettyPrint", "executeOnEveryNode"].forEach(function(fn) {
-  AVLTree.prototype[fn] = function() {
-    return this.tree[fn].apply(this.tree, arguments);
+["getNumberOfKeys", "search", "betweenBounds", "prettyPrint", "executeOnEveryNode"].forEach(function(fn2) {
+  AVLTree.prototype[fn2] = function() {
+    return this.tree[fn2].apply(this.tree, arguments);
   };
 });
 var avltree = AVLTree;
@@ -17495,8 +17531,8 @@ function ht(t2, e) {
 function Y(t2) {
   return new Float64Array(t2);
 }
-const gt = (3 + 16 * R) * R, lt = (2 + 12 * R) * R, yt = (9 + 64 * R) * R * R, U = Y(4), G = Y(8), j = Y(12), J = Y(16), S = Y(4);
-function bt(t2, e, r, n, c, i, f) {
+const gt = (3 + 16 * R) * R, lt = (2 + 12 * R) * R, yt = (9 + 64 * R) * R * R, U = Y(4), G = Y(8), j$1 = Y(12), J = Y(16), S = Y(4);
+function bt$1(t2, e, r, n, c, i, f) {
   let g, h, l, y, o, u2, b, p, d, a, s, m, v, M, _, w, A, P;
   const k = t2 - c, I = r - c, T = e - i, N = n - i;
   M = k * N, u2 = O * k, b = u2 - (u2 - k), p = k - b, u2 = O * N, d = u2 - (u2 - N), a = N - d, _ = p * a - (M - b * d - p * d - b * a), w = T * I, u2 = O * T, b = u2 - (u2 - T), p = T - b, u2 = O * I, d = u2 - (u2 - I), a = I - d, A = p * a - (w - b * d - p * d - b * a), s = _ - A, o = _ - s, U[0] = _ - (s + o) + (o - A), m = M + s, o = m - M, v = M - (m - o) + (s - o), s = v - w, o = v - s, U[1] = v - (s + o) + (o - w), P = m + s, o = P - m, U[2] = m - (P - o) + (s - o), U[3] = P;
@@ -17505,14 +17541,14 @@ function bt(t2, e, r, n, c, i, f) {
   M = g * N, u2 = O * g, b = u2 - (u2 - g), p = g - b, u2 = O * N, d = u2 - (u2 - N), a = N - d, _ = p * a - (M - b * d - p * d - b * a), w = h * I, u2 = O * h, b = u2 - (u2 - h), p = h - b, u2 = O * I, d = u2 - (u2 - I), a = I - d, A = p * a - (w - b * d - p * d - b * a), s = _ - A, o = _ - s, S[0] = _ - (s + o) + (o - A), m = M + s, o = m - M, v = M - (m - o) + (s - o), s = v - w, o = v - s, S[1] = v - (s + o) + (o - w), P = m + s, o = P - m, S[2] = m - (P - o) + (s - o), S[3] = P;
   const it = V(4, U, 4, S, G);
   M = k * y, u2 = O * k, b = u2 - (u2 - k), p = k - b, u2 = O * y, d = u2 - (u2 - y), a = y - d, _ = p * a - (M - b * d - p * d - b * a), w = T * l, u2 = O * T, b = u2 - (u2 - T), p = T - b, u2 = O * l, d = u2 - (u2 - l), a = l - d, A = p * a - (w - b * d - p * d - b * a), s = _ - A, o = _ - s, S[0] = _ - (s + o) + (o - A), m = M + s, o = m - M, v = M - (m - o) + (s - o), s = v - w, o = v - s, S[1] = v - (s + o) + (o - w), P = m + s, o = P - m, S[2] = m - (P - o) + (s - o), S[3] = P;
-  const st = V(it, G, 4, S, j);
+  const st = V(it, G, 4, S, j$1);
   M = g * y, u2 = O * g, b = u2 - (u2 - g), p = g - b, u2 = O * y, d = u2 - (u2 - y), a = y - d, _ = p * a - (M - b * d - p * d - b * a), w = h * l, u2 = O * h, b = u2 - (u2 - h), p = h - b, u2 = O * l, d = u2 - (u2 - l), a = l - d, A = p * a - (w - b * d - p * d - b * a), s = _ - A, o = _ - s, S[0] = _ - (s + o) + (o - A), m = M + s, o = m - M, v = M - (m - o) + (s - o), s = v - w, o = v - s, S[1] = v - (s + o) + (o - w), P = m + s, o = P - m, S[2] = m - (P - o) + (s - o), S[3] = P;
-  const ot = V(st, j, 4, S, J);
-  return J[ot - 1];
+  const ot2 = V(st, j$1, 4, S, J);
+  return J[ot2 - 1];
 }
 function mt(t2, e, r, n, c, i) {
   const f = (e - i) * (r - c), g = (t2 - c) * (n - i), h = f - g, l = Math.abs(f + g);
-  return Math.abs(h) >= gt * l ? h : -bt(t2, e, r, n, c, i, l);
+  return Math.abs(h) >= gt * l ? h : -bt$1(t2, e, r, n, c, i, l);
 }
 function wt(t2, e) {
   var r, n, c = 0, i, f, g, h, l, y, o, u2 = t2[0], b = t2[1], p = e.length;
@@ -17561,7 +17597,7 @@ function K(t2, e) {
     if (L(t2, e.features[r]))
       return e.features[r];
 }
-function rt(t2, e, r) {
+function rt$1(t2, e, r) {
   const n = e.geometry.coordinates[0][0], c = e.geometry.coordinates[0][1], i = e.geometry.coordinates[0][2], f = t2.geometry.coordinates, g = e.properties.a.geom, h = e.properties.b.geom, l = e.properties.c.geom, y = [c[0] - n[0], c[1] - n[1]], o = [i[0] - n[0], i[1] - n[1]], u2 = [f[0] - n[0], f[1] - n[1]], b = [h[0] - g[0], h[1] - g[1]], p = [l[0] - g[0], l[1] - g[1]];
   let d = (o[1] * u2[0] - o[0] * u2[1]) / (y[0] * o[1] - y[1] * o[0]), a = (y[0] * u2[1] - y[1] * u2[0]) / (y[0] * o[1] - y[1] * o[0]);
   if (r) {
@@ -17579,14 +17615,14 @@ function rt(t2, e, r) {
     d * b[1] + a * p[1] + g[1]
   ];
 }
-function pt(t2, e, r, n) {
+function pt$1(t2, e, r, n) {
   const c = t2.geometry.coordinates, i = r.geometry.coordinates, f = Math.atan2(c[0] - i[0], c[1] - i[1]), g = Mt(f, e[0]);
   if (g === void 0)
     throw new Error("Unable to determine vertex index");
   const h = e[1][g];
-  return rt(t2, h.features[0], n);
+  return rt$1(t2, h.features[0], n);
 }
-function vt(t2, e, r, n, c, i, f, g) {
+function vt$1(t2, e, r, n, c, i, f, g) {
   let h;
   if (f && (h = K(t2, F([f]))), !h) {
     if (r) {
@@ -17595,7 +17631,7 @@ function vt(t2, e, r, n, c, i, f, g) {
     }
     h = K(t2, e);
   }
-  return g && g(h), h ? rt(t2, h, i) : pt(t2, n, c, i);
+  return g && g(h), h ? rt$1(t2, h, i) : pt$1(t2, n, c, i);
 }
 function B(t2, e, r, n) {
   let c = Math.floor((t2 - e) / r);
@@ -17626,7 +17662,7 @@ function At(t2, e) {
     r.startEnd
   ]);
 }
-function _t(t2) {
+function _t$1(t2) {
   const e = [0, 1, 2, 0].map((n) => t2[n][0][0]), r = {
     a: { geom: t2[0][0][1], index: t2[0][1] },
     b: { geom: t2[1][0][1], index: t2[1][1] },
@@ -17649,22 +17685,22 @@ function $(t2, e, r, n, c, i = false, f) {
       return i ? [[l[1], l[0]], h] : [[l[0], l[1]], h];
     }
   );
-  return _t(g);
+  return _t$1(g);
 }
 function nt(t2) {
   return typeof t2 == "number" ? t2 : t2.replace(/^(c|e|b)(?:ent|dgeNode|box)(\d+)?$/, "$1$2");
 }
 const D = 2.00703;
-function Et(t2) {
+function Et$1(t2) {
   return !!(t2.version || !t2.tins && t2.points && t2.tins_points);
 }
 function Pt(t2) {
   return {
     points: t2.points,
     pointsWeightBuffer: St(t2),
-    strictStatus: kt(t2),
-    verticesParams: It(t2),
-    centroid: Tt(t2),
+    strictStatus: kt$1(t2),
+    verticesParams: It$1(t2),
+    centroid: Tt$1(t2),
     edges: At(t2.edges || []),
     edgeNodes: t2.edgeNodes || [],
     tins: Nt(t2),
@@ -17683,7 +17719,7 @@ function Ot(t2) {
   return {
     compiled: e,
     tins: r,
-    points: Rt(r),
+    points: Rt$1(r),
     strictStatus: e.strict_status,
     pointsWeightBuffer: e.weight_buffer,
     verticesParams: e.vertices_params,
@@ -17700,10 +17736,10 @@ function St(t2) {
     }, {})), e;
   }, {}) : t2.weight_buffer;
 }
-function kt(t2) {
+function kt$1(t2) {
   return t2.strict_status ? t2.strict_status : t2.kinks_points ? "strict_error" : t2.tins_points.length === 2 ? "loose" : "strict";
 }
-function It(t2) {
+function It$1(t2) {
   const e = {
     forw: [t2.vertices_params[0]],
     bakw: [t2.vertices_params[1]]
@@ -17724,7 +17760,7 @@ function H(t2, e) {
     return F([c]);
   });
 }
-function Tt(t2) {
+function Tt$1(t2) {
   return {
     forw: W(t2.centroid_point[0], {
       target: {
@@ -17784,7 +17820,7 @@ function Ct(t2) {
     JSON.stringify(t2).replace('"cent"', '"c"').replace(/"bbox(\d+)"/g, '"b$1"')
   );
 }
-function Rt(t2) {
+function Rt$1(t2) {
   const e = [], r = t2.forw.features;
   for (let n = 0; n < r.length; n++) {
     const c = r[n];
@@ -17835,7 +17871,7 @@ const E = class E2 {
    * 4. インデックスの作成
    */
   setCompiled(e) {
-    if (Et(e)) {
+    if (Et$1(e)) {
       this.applyModernState(Pt(e));
       return;
     }
@@ -17975,7 +18011,7 @@ const E = class E2 {
     this.stateFull && (this.stateBackward == r ? y = this.stateTriangle : (this.stateBackward = r, this.stateTriangle = void 0), o = (b) => {
       this.stateTriangle = b;
     });
-    let u2 = vt(
+    let u2 = vt$1(
       c,
       i,
       f,
@@ -18050,7 +18086,7 @@ async function store2HistMap_internal(store, byCompiled, coreLogic) {
     ret.height = store.height;
     ret.gcps = store.gcps;
     ret.edges = store.edges;
-    let tin = await createTinFromGcpsAsync(
+    let tin = await createTinFromGcpsAsync$1(
       store.strictMode,
       store.vertexMode,
       store.yaxisMode,
@@ -18083,7 +18119,7 @@ async function store2HistMap_internal(store, byCompiled, coreLogic) {
         sub.bounds = sub_map.bounds;
         sub.gcps = sub_map.gcps;
         sub.edges = sub_map.edges;
-        let tin = await createTinFromGcpsAsync(
+        let tin = await createTinFromGcpsAsync$1(
           store.strictMode,
           store.vertexMode,
           store.yaxisMode,
@@ -18138,7 +18174,7 @@ async function histMap2Store(histmap, tins) {
   }) : [];
   return ret;
 }
-async function createTinFromGcpsAsync(_strict, _vertex, _yaxis, gcps = [], _edges = [], _wh, _bounds) {
+async function createTinFromGcpsAsync$1(_strict, _vertex, _yaxis, gcps = [], _edges = [], _wh, _bounds) {
   if (gcps.length < 3) return "tooLessGcps";
   console.error("@maplat/transform requires pre-compiled data. Cannot create from GCPs.");
   console.error("Please use @maplat/editor or a separate tool to generate compiled data.");
@@ -18406,12 +18442,3256 @@ class MapEditService {
   }
 }
 const MapEditService$1 = new MapEditService();
+var tr = Object.defineProperty;
+var er = (s, e, t2) => e in s ? tr(s, e, { enumerable: true, configurable: true, writable: true, value: t2 }) : s[e] = t2;
+var bt = (s, e, t2) => er(s, typeof e != "symbol" ? e + "" : e, t2);
+function Ae(s, e, t2 = {}) {
+  const r = { type: "Feature" };
+  return (t2.id === 0 || t2.id) && (r.id = t2.id), t2.bbox && (r.bbox = t2.bbox), r.properties = e || {}, r.geometry = s, r;
+}
+function ge(s, e, t2 = {}) {
+  if (!s)
+    throw new Error("coordinates is required");
+  if (!Array.isArray(s))
+    throw new Error("coordinates must be an Array");
+  if (s.length < 2)
+    throw new Error("coordinates must be at least 2 numbers long");
+  if (!dn(s[0]) || !dn(s[1]))
+    throw new Error("coordinates must contain numbers");
+  return Ae({
+    type: "Point",
+    coordinates: s
+  }, e, t2);
+}
+function Be(s, e, t2 = {}) {
+  for (const i of s) {
+    if (i.length < 4)
+      throw new Error(
+        "Each LinearRing of a Polygon must have 4 or more Positions."
+      );
+    if (i[i.length - 1].length !== i[0].length)
+      throw new Error("First and last Position are not equivalent.");
+    for (let n = 0; n < i[i.length - 1].length; n++)
+      if (i[i.length - 1][n] !== i[0][n])
+        throw new Error("First and last Position are not equivalent.");
+  }
+  return Ae({
+    type: "Polygon",
+    coordinates: s
+  }, e, t2);
+}
+function pn(s, e, t2 = {}) {
+  if (s.length < 2)
+    throw new Error("coordinates must be an array of two or more positions");
+  return Ae({
+    type: "LineString",
+    coordinates: s
+  }, e, t2);
+}
+function Gt(s, e = {}) {
+  const t2 = { type: "FeatureCollection" };
+  return e.id && (t2.id = e.id), e.bbox && (t2.bbox = e.bbox), t2.features = s, t2;
+}
+function dn(s) {
+  return !isNaN(s) && s !== null && !Array.isArray(s);
+}
+function nr(s) {
+  if (!s)
+    throw new Error("coord is required");
+  if (!Array.isArray(s)) {
+    if (s.type === "Feature" && s.geometry !== null && s.geometry.type === "Point")
+      return [...s.geometry.coordinates];
+    if (s.type === "Point")
+      return [...s.coordinates];
+  }
+  if (Array.isArray(s) && s.length >= 2 && !Array.isArray(s[0]) && !Array.isArray(s[1]))
+    return [...s];
+  throw new Error("coord must be GeoJSON Point or an Array of numbers");
+}
+function rr(s) {
+  return s.type === "Feature" ? s.geometry : s;
+}
+function hn(s, e, t2) {
+  if (s !== null)
+    for (var r, i, n, o, a, c, h, u2 = 0, f = 0, g, m = s.type, x2 = m === "FeatureCollection", b = m === "Feature", Y2 = x2 ? s.features.length : 1, R2 = 0; R2 < Y2; R2++) {
+      h = x2 ? s.features[R2].geometry : b ? s.geometry : s, g = h ? h.type === "GeometryCollection" : false, a = g ? h.geometries.length : 1;
+      for (var d = 0; d < a; d++) {
+        var y = 0, l = 0;
+        if (o = g ? h.geometries[d] : h, o !== null) {
+          c = o.coordinates;
+          var v = o.type;
+          switch (u2 = t2 && (v === "Polygon" || v === "MultiPolygon") ? 1 : 0, v) {
+            case null:
+              break;
+            case "Point":
+              if (e(
+                c,
+                f,
+                R2,
+                y,
+                l
+              ) === false)
+                return false;
+              f++, y++;
+              break;
+            case "LineString":
+            case "MultiPoint":
+              for (r = 0; r < c.length; r++) {
+                if (e(
+                  c[r],
+                  f,
+                  R2,
+                  y,
+                  l
+                ) === false)
+                  return false;
+                f++, v === "MultiPoint" && y++;
+              }
+              v === "LineString" && y++;
+              break;
+            case "Polygon":
+            case "MultiLineString":
+              for (r = 0; r < c.length; r++) {
+                for (i = 0; i < c[r].length - u2; i++) {
+                  if (e(
+                    c[r][i],
+                    f,
+                    R2,
+                    y,
+                    l
+                  ) === false)
+                    return false;
+                  f++;
+                }
+                v === "MultiLineString" && y++, v === "Polygon" && l++;
+              }
+              v === "Polygon" && y++;
+              break;
+            case "MultiPolygon":
+              for (r = 0; r < c.length; r++) {
+                for (l = 0, i = 0; i < c[r].length; i++) {
+                  for (n = 0; n < c[r][i].length - u2; n++) {
+                    if (e(
+                      c[r][i][n],
+                      f,
+                      R2,
+                      y,
+                      l
+                    ) === false)
+                      return false;
+                    f++;
+                  }
+                  l++;
+                }
+                y++;
+              }
+              break;
+            case "GeometryCollection":
+              for (r = 0; r < o.geometries.length; r++)
+                if (hn(o.geometries[r], e, t2) === false)
+                  return false;
+              break;
+            default:
+              throw new Error("Unknown Geometry Type");
+          }
+        }
+      }
+    }
+}
+const Ft = 11102230246251565e-32, rt = 134217729, Ln = (3 + 8 * Ft) * Ft;
+function Rt(s, e, t2, r, i) {
+  let n, o, a, c, h = e[0], u2 = r[0], f = 0, g = 0;
+  u2 > h == u2 > -h ? (n = h, h = e[++f]) : (n = u2, u2 = r[++g]);
+  let m = 0;
+  if (f < s && g < t2)
+    for (u2 > h == u2 > -h ? (o = h + n, a = n - (o - h), h = e[++f]) : (o = u2 + n, a = n - (o - u2), u2 = r[++g]), n = o, a !== 0 && (i[m++] = a); f < s && g < t2; )
+      u2 > h == u2 > -h ? (o = n + h, c = o - n, a = n - (o - c) + (h - c), h = e[++f]) : (o = n + u2, c = o - n, a = n - (o - c) + (u2 - c), u2 = r[++g]), n = o, a !== 0 && (i[m++] = a);
+  for (; f < s; )
+    o = n + h, c = o - n, a = n - (o - c) + (h - c), h = e[++f], n = o, a !== 0 && (i[m++] = a);
+  for (; g < t2; )
+    o = n + u2, c = o - n, a = n - (o - c) + (u2 - c), u2 = r[++g], n = o, a !== 0 && (i[m++] = a);
+  return (n !== 0 || m === 0) && (i[m++] = n), m;
+}
+function Ut(s, e, t2, r, i, n, o, a) {
+  return Rt(Rt(s, e, t2, r, o), o, i, n, a);
+}
+function j(s, e, t2, r) {
+  let i, n, o, a, c, h, u2, f, g, m, x2;
+  u2 = rt * t2, m = u2 - (u2 - t2), x2 = t2 - m;
+  let b = e[0];
+  i = b * t2, u2 = rt * b, f = u2 - (u2 - b), g = b - f, o = g * x2 - (i - f * m - g * m - f * x2);
+  let Y2 = 0;
+  o !== 0 && (r[Y2++] = o);
+  for (let R2 = 1; R2 < s; R2++)
+    b = e[R2], a = b * t2, u2 = rt * b, f = u2 - (u2 - b), g = b - f, c = g * x2 - (a - f * m - g * m - f * x2), n = i + c, h = n - i, o = i - (n - h) + (c - h), o !== 0 && (r[Y2++] = o), i = a + n, o = n - (i - a), o !== 0 && (r[Y2++] = o);
+  return (i !== 0 || Y2 === 0) && (r[Y2++] = i), Y2;
+}
+function Dn(s, e) {
+  let t2 = e[0];
+  for (let r = 1; r < s; r++) t2 += e[r];
+  return t2;
+}
+function vt(s) {
+  return new Float64Array(s);
+}
+const ir = (3 + 16 * Ft) * Ft, sr = (2 + 12 * Ft) * Ft, or = (9 + 64 * Ft) * Ft * Ft, we = vt(4), mn = vt(8), gn = vt(12), wn = vt(16), Lt = vt(4);
+function ar(s, e, t2, r, i, n, o) {
+  let a, c, h, u2, f, g, m, x2, b, Y2, R2, d, y, l, v, M, A, T;
+  const S2 = s - i, O2 = t2 - i, X = e - n, L2 = r - n;
+  l = S2 * L2, g = rt * S2, m = g - (g - S2), x2 = S2 - m, g = rt * L2, b = g - (g - L2), Y2 = L2 - b, v = x2 * Y2 - (l - m * b - x2 * b - m * Y2), M = X * O2, g = rt * X, m = g - (g - X), x2 = X - m, g = rt * O2, b = g - (g - O2), Y2 = O2 - b, A = x2 * Y2 - (M - m * b - x2 * b - m * Y2), R2 = v - A, f = v - R2, we[0] = v - (R2 + f) + (f - A), d = l + R2, f = d - l, y = l - (d - f) + (R2 - f), R2 = y - M, f = y - R2, we[1] = y - (R2 + f) + (f - M), T = d + R2, f = T - d, we[2] = d - (T - f) + (R2 - f), we[3] = T;
+  let K2 = Dn(4, we), p = sr * o;
+  if (K2 >= p || -K2 >= p || (f = s - S2, a = s - (S2 + f) + (f - i), f = t2 - O2, h = t2 - (O2 + f) + (f - i), f = e - X, c = e - (X + f) + (f - n), f = r - L2, u2 = r - (L2 + f) + (f - n), a === 0 && c === 0 && h === 0 && u2 === 0) || (p = or * o + Ln * Math.abs(K2), K2 += S2 * u2 + L2 * a - (X * h + O2 * c), K2 >= p || -K2 >= p)) return K2;
+  l = a * L2, g = rt * a, m = g - (g - a), x2 = a - m, g = rt * L2, b = g - (g - L2), Y2 = L2 - b, v = x2 * Y2 - (l - m * b - x2 * b - m * Y2), M = c * O2, g = rt * c, m = g - (g - c), x2 = c - m, g = rt * O2, b = g - (g - O2), Y2 = O2 - b, A = x2 * Y2 - (M - m * b - x2 * b - m * Y2), R2 = v - A, f = v - R2, Lt[0] = v - (R2 + f) + (f - A), d = l + R2, f = d - l, y = l - (d - f) + (R2 - f), R2 = y - M, f = y - R2, Lt[1] = y - (R2 + f) + (f - M), T = d + R2, f = T - d, Lt[2] = d - (T - f) + (R2 - f), Lt[3] = T;
+  const E3 = Rt(4, we, 4, Lt, mn);
+  l = S2 * u2, g = rt * S2, m = g - (g - S2), x2 = S2 - m, g = rt * u2, b = g - (g - u2), Y2 = u2 - b, v = x2 * Y2 - (l - m * b - x2 * b - m * Y2), M = X * h, g = rt * X, m = g - (g - X), x2 = X - m, g = rt * h, b = g - (g - h), Y2 = h - b, A = x2 * Y2 - (M - m * b - x2 * b - m * Y2), R2 = v - A, f = v - R2, Lt[0] = v - (R2 + f) + (f - A), d = l + R2, f = d - l, y = l - (d - f) + (R2 - f), R2 = y - M, f = y - R2, Lt[1] = y - (R2 + f) + (f - M), T = d + R2, f = T - d, Lt[2] = d - (T - f) + (R2 - f), Lt[3] = T;
+  const _ = Rt(E3, mn, 4, Lt, gn);
+  l = a * u2, g = rt * a, m = g - (g - a), x2 = a - m, g = rt * u2, b = g - (g - u2), Y2 = u2 - b, v = x2 * Y2 - (l - m * b - x2 * b - m * Y2), M = c * h, g = rt * c, m = g - (g - c), x2 = c - m, g = rt * h, b = g - (g - h), Y2 = h - b, A = x2 * Y2 - (M - m * b - x2 * b - m * Y2), R2 = v - A, f = v - R2, Lt[0] = v - (R2 + f) + (f - A), d = l + R2, f = d - l, y = l - (d - f) + (R2 - f), R2 = y - M, f = y - R2, Lt[1] = y - (R2 + f) + (f - M), T = d + R2, f = T - d, Lt[2] = d - (T - f) + (R2 - f), Lt[3] = T;
+  const I = Rt(_, gn, 4, Lt, wn);
+  return wn[I - 1];
+}
+function ne(s, e, t2, r, i, n) {
+  const o = (e - n) * (t2 - i), a = (s - i) * (r - n), c = o - a, h = Math.abs(o + a);
+  return Math.abs(c) >= ir * h ? c : -ar(s, e, t2, r, i, n, h);
+}
+const cr = (10 + 96 * Ft) * Ft, hr = (4 + 48 * Ft) * Ft, fr = (44 + 576 * Ft) * Ft * Ft, se = vt(4), oe = vt(4), ae = vt(4), Ht = vt(4), Zt = vt(4), te = vt(4), Dt = vt(4), $t = vt(4), Qe = vt(8), He = vt(8), Ze = vt(8), tn = vt(8), en = vt(8), nn = vt(8), Ie = vt(8), Te = vt(8), Ne = vt(8), le = vt(4), pe = vt(4), de = vt(4), ot = vt(8), pt = vt(16), kt = vt(16), Et = vt(16), _t = vt(32), ce = vt(32), It = vt(48), jt = vt(64);
+let be = vt(1152), rn = vt(1152);
+function Tt(s, e, t2) {
+  s = Rt(s, be, e, t2, rn);
+  const r = be;
+  return be = rn, rn = r, s;
+}
+function ur(s, e, t2, r, i, n, o, a, c) {
+  let h, u2, f, g, m, x2, b, Y2, R2, d, y, l, v, M, A, T, S2, O2, X, L2, K2, p, E3, _, I, N, D2, w, B2, F2, q2, U2, z2, Q2, V2;
+  const ht2 = s - o, ct2 = t2 - o, ut2 = i - o, dt2 = e - a, gt2 = r - a, mt2 = n - a;
+  q2 = ct2 * mt2, E3 = rt * ct2, _ = E3 - (E3 - ct2), I = ct2 - _, E3 = rt * mt2, N = E3 - (E3 - mt2), D2 = mt2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ut2 * gt2, E3 = rt * ut2, _ = E3 - (E3 - ut2), I = ut2 - _, E3 = rt * gt2, N = E3 - (E3 - gt2), D2 = gt2 - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 - Q2, p = U2 - w, se[0] = U2 - (w + p) + (p - Q2), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 - z2, p = F2 - w, se[1] = F2 - (w + p) + (p - z2), V2 = B2 + w, p = V2 - B2, se[2] = B2 - (V2 - p) + (w - p), se[3] = V2, q2 = ut2 * dt2, E3 = rt * ut2, _ = E3 - (E3 - ut2), I = ut2 - _, E3 = rt * dt2, N = E3 - (E3 - dt2), D2 = dt2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ht2 * mt2, E3 = rt * ht2, _ = E3 - (E3 - ht2), I = ht2 - _, E3 = rt * mt2, N = E3 - (E3 - mt2), D2 = mt2 - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 - Q2, p = U2 - w, oe[0] = U2 - (w + p) + (p - Q2), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 - z2, p = F2 - w, oe[1] = F2 - (w + p) + (p - z2), V2 = B2 + w, p = V2 - B2, oe[2] = B2 - (V2 - p) + (w - p), oe[3] = V2, q2 = ht2 * gt2, E3 = rt * ht2, _ = E3 - (E3 - ht2), I = ht2 - _, E3 = rt * gt2, N = E3 - (E3 - gt2), D2 = gt2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ct2 * dt2, E3 = rt * ct2, _ = E3 - (E3 - ct2), I = ct2 - _, E3 = rt * dt2, N = E3 - (E3 - dt2), D2 = dt2 - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 - Q2, p = U2 - w, ae[0] = U2 - (w + p) + (p - Q2), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 - z2, p = F2 - w, ae[1] = F2 - (w + p) + (p - z2), V2 = B2 + w, p = V2 - B2, ae[2] = B2 - (V2 - p) + (w - p), ae[3] = V2, h = Rt(
+    Rt(
+      Rt(
+        j(j(4, se, ht2, ot), ot, ht2, pt),
+        pt,
+        j(j(4, se, dt2, ot), ot, dt2, kt),
+        kt,
+        _t
+      ),
+      _t,
+      Rt(
+        j(j(4, oe, ct2, ot), ot, ct2, pt),
+        pt,
+        j(j(4, oe, gt2, ot), ot, gt2, kt),
+        kt,
+        ce
+      ),
+      ce,
+      jt
+    ),
+    jt,
+    Rt(
+      j(j(4, ae, ut2, ot), ot, ut2, pt),
+      pt,
+      j(j(4, ae, mt2, ot), ot, mt2, kt),
+      kt,
+      _t
+    ),
+    _t,
+    be
+  );
+  let Bt2 = Dn(h, be), Xt = hr * c;
+  if (Bt2 >= Xt || -Bt2 >= Xt || (p = s - ht2, u2 = s - (ht2 + p) + (p - o), p = e - dt2, m = e - (dt2 + p) + (p - a), p = t2 - ct2, f = t2 - (ct2 + p) + (p - o), p = r - gt2, x2 = r - (gt2 + p) + (p - a), p = i - ut2, g = i - (ut2 + p) + (p - o), p = n - mt2, b = n - (mt2 + p) + (p - a), u2 === 0 && f === 0 && g === 0 && m === 0 && x2 === 0 && b === 0) || (Xt = fr * c + Ln * Math.abs(Bt2), Bt2 += (ht2 * ht2 + dt2 * dt2) * (ct2 * b + mt2 * f - (gt2 * g + ut2 * x2)) + 2 * (ht2 * u2 + dt2 * m) * (ct2 * mt2 - gt2 * ut2) + ((ct2 * ct2 + gt2 * gt2) * (ut2 * m + dt2 * g - (mt2 * u2 + ht2 * b)) + 2 * (ct2 * f + gt2 * x2) * (ut2 * dt2 - mt2 * ht2)) + ((ut2 * ut2 + mt2 * mt2) * (ht2 * x2 + gt2 * u2 - (dt2 * f + ct2 * m)) + 2 * (ut2 * g + mt2 * b) * (ht2 * gt2 - dt2 * ct2)), Bt2 >= Xt || -Bt2 >= Xt))
+    return Bt2;
+  if ((f !== 0 || x2 !== 0 || g !== 0 || b !== 0) && (q2 = ht2 * ht2, E3 = rt * ht2, _ = E3 - (E3 - ht2), I = ht2 - _, U2 = I * I - (q2 - _ * _ - (_ + _) * I), z2 = dt2 * dt2, E3 = rt * dt2, _ = E3 - (E3 - dt2), I = dt2 - _, Q2 = I * I - (z2 - _ * _ - (_ + _) * I), w = U2 + Q2, p = w - U2, Ht[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, Ht[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, Ht[2] = B2 - (V2 - p) + (w - p), Ht[3] = V2), (g !== 0 || b !== 0 || u2 !== 0 || m !== 0) && (q2 = ct2 * ct2, E3 = rt * ct2, _ = E3 - (E3 - ct2), I = ct2 - _, U2 = I * I - (q2 - _ * _ - (_ + _) * I), z2 = gt2 * gt2, E3 = rt * gt2, _ = E3 - (E3 - gt2), I = gt2 - _, Q2 = I * I - (z2 - _ * _ - (_ + _) * I), w = U2 + Q2, p = w - U2, Zt[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, Zt[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, Zt[2] = B2 - (V2 - p) + (w - p), Zt[3] = V2), (u2 !== 0 || m !== 0 || f !== 0 || x2 !== 0) && (q2 = ut2 * ut2, E3 = rt * ut2, _ = E3 - (E3 - ut2), I = ut2 - _, U2 = I * I - (q2 - _ * _ - (_ + _) * I), z2 = mt2 * mt2, E3 = rt * mt2, _ = E3 - (E3 - mt2), I = mt2 - _, Q2 = I * I - (z2 - _ * _ - (_ + _) * I), w = U2 + Q2, p = w - U2, te[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, te[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, te[2] = B2 - (V2 - p) + (w - p), te[3] = V2), u2 !== 0 && (Y2 = j(4, se, u2, Qe), h = Tt(h, Ut(
+    j(Y2, Qe, 2 * ht2, pt),
+    pt,
+    j(j(4, te, u2, ot), ot, gt2, kt),
+    kt,
+    j(j(4, Zt, u2, ot), ot, -mt2, Et),
+    Et,
+    _t,
+    It
+  ), It)), m !== 0 && (R2 = j(4, se, m, He), h = Tt(h, Ut(
+    j(R2, He, 2 * dt2, pt),
+    pt,
+    j(j(4, Zt, m, ot), ot, ut2, kt),
+    kt,
+    j(j(4, te, m, ot), ot, -ct2, Et),
+    Et,
+    _t,
+    It
+  ), It)), f !== 0 && (d = j(4, oe, f, Ze), h = Tt(h, Ut(
+    j(d, Ze, 2 * ct2, pt),
+    pt,
+    j(j(4, Ht, f, ot), ot, mt2, kt),
+    kt,
+    j(j(4, te, f, ot), ot, -dt2, Et),
+    Et,
+    _t,
+    It
+  ), It)), x2 !== 0 && (y = j(4, oe, x2, tn), h = Tt(h, Ut(
+    j(y, tn, 2 * gt2, pt),
+    pt,
+    j(j(4, te, x2, ot), ot, ht2, kt),
+    kt,
+    j(j(4, Ht, x2, ot), ot, -ut2, Et),
+    Et,
+    _t,
+    It
+  ), It)), g !== 0 && (l = j(4, ae, g, en), h = Tt(h, Ut(
+    j(l, en, 2 * ut2, pt),
+    pt,
+    j(j(4, Zt, g, ot), ot, dt2, kt),
+    kt,
+    j(j(4, Ht, g, ot), ot, -gt2, Et),
+    Et,
+    _t,
+    It
+  ), It)), b !== 0 && (v = j(4, ae, b, nn), h = Tt(h, Ut(
+    j(v, nn, 2 * mt2, pt),
+    pt,
+    j(j(4, Ht, b, ot), ot, ct2, kt),
+    kt,
+    j(j(4, Zt, b, ot), ot, -ht2, Et),
+    Et,
+    _t,
+    It
+  ), It)), u2 !== 0 || m !== 0) {
+    if (f !== 0 || x2 !== 0 || g !== 0 || b !== 0 ? (q2 = f * mt2, E3 = rt * f, _ = E3 - (E3 - f), I = f - _, E3 = rt * mt2, N = E3 - (E3 - mt2), D2 = mt2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ct2 * b, E3 = rt * ct2, _ = E3 - (E3 - ct2), I = ct2 - _, E3 = rt * b, N = E3 - (E3 - b), D2 = b - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 + Q2, p = w - U2, Dt[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, Dt[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, Dt[2] = B2 - (V2 - p) + (w - p), Dt[3] = V2, q2 = g * -gt2, E3 = rt * g, _ = E3 - (E3 - g), I = g - _, E3 = rt * -gt2, N = E3 - (E3 - -gt2), D2 = -gt2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ut2 * -x2, E3 = rt * ut2, _ = E3 - (E3 - ut2), I = ut2 - _, E3 = rt * -x2, N = E3 - (E3 - -x2), D2 = -x2 - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 + Q2, p = w - U2, $t[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, $t[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, $t[2] = B2 - (V2 - p) + (w - p), $t[3] = V2, A = Rt(4, Dt, 4, $t, Te), q2 = f * b, E3 = rt * f, _ = E3 - (E3 - f), I = f - _, E3 = rt * b, N = E3 - (E3 - b), D2 = b - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = g * x2, E3 = rt * g, _ = E3 - (E3 - g), I = g - _, E3 = rt * x2, N = E3 - (E3 - x2), D2 = x2 - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 - Q2, p = U2 - w, pe[0] = U2 - (w + p) + (p - Q2), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 - z2, p = F2 - w, pe[1] = F2 - (w + p) + (p - z2), V2 = B2 + w, p = V2 - B2, pe[2] = B2 - (V2 - p) + (w - p), pe[3] = V2, O2 = 4) : (Te[0] = 0, A = 1, pe[0] = 0, O2 = 1), u2 !== 0) {
+      const St2 = j(A, Te, u2, Et);
+      h = Tt(h, Rt(
+        j(Y2, Qe, u2, pt),
+        pt,
+        j(St2, Et, 2 * ht2, _t),
+        _t,
+        It
+      ), It);
+      const Mt2 = j(O2, pe, u2, ot);
+      h = Tt(h, Ut(
+        j(Mt2, ot, 2 * ht2, pt),
+        pt,
+        j(Mt2, ot, u2, kt),
+        kt,
+        j(St2, Et, u2, _t),
+        _t,
+        ce,
+        jt
+      ), jt), x2 !== 0 && (h = Tt(h, j(j(4, te, u2, ot), ot, x2, pt), pt)), b !== 0 && (h = Tt(h, j(j(4, Zt, -u2, ot), ot, b, pt), pt));
+    }
+    if (m !== 0) {
+      const St2 = j(A, Te, m, Et);
+      h = Tt(h, Rt(
+        j(R2, He, m, pt),
+        pt,
+        j(St2, Et, 2 * dt2, _t),
+        _t,
+        It
+      ), It);
+      const Mt2 = j(O2, pe, m, ot);
+      h = Tt(h, Ut(
+        j(Mt2, ot, 2 * dt2, pt),
+        pt,
+        j(Mt2, ot, m, kt),
+        kt,
+        j(St2, Et, m, _t),
+        _t,
+        ce,
+        jt
+      ), jt);
+    }
+  }
+  if (f !== 0 || x2 !== 0) {
+    if (g !== 0 || b !== 0 || u2 !== 0 || m !== 0 ? (q2 = g * dt2, E3 = rt * g, _ = E3 - (E3 - g), I = g - _, E3 = rt * dt2, N = E3 - (E3 - dt2), D2 = dt2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ut2 * m, E3 = rt * ut2, _ = E3 - (E3 - ut2), I = ut2 - _, E3 = rt * m, N = E3 - (E3 - m), D2 = m - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 + Q2, p = w - U2, Dt[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, Dt[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, Dt[2] = B2 - (V2 - p) + (w - p), Dt[3] = V2, L2 = -mt2, K2 = -b, q2 = u2 * L2, E3 = rt * u2, _ = E3 - (E3 - u2), I = u2 - _, E3 = rt * L2, N = E3 - (E3 - L2), D2 = L2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ht2 * K2, E3 = rt * ht2, _ = E3 - (E3 - ht2), I = ht2 - _, E3 = rt * K2, N = E3 - (E3 - K2), D2 = K2 - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 + Q2, p = w - U2, $t[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, $t[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, $t[2] = B2 - (V2 - p) + (w - p), $t[3] = V2, T = Rt(4, Dt, 4, $t, Ne), q2 = g * m, E3 = rt * g, _ = E3 - (E3 - g), I = g - _, E3 = rt * m, N = E3 - (E3 - m), D2 = m - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = u2 * b, E3 = rt * u2, _ = E3 - (E3 - u2), I = u2 - _, E3 = rt * b, N = E3 - (E3 - b), D2 = b - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 - Q2, p = U2 - w, de[0] = U2 - (w + p) + (p - Q2), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 - z2, p = F2 - w, de[1] = F2 - (w + p) + (p - z2), V2 = B2 + w, p = V2 - B2, de[2] = B2 - (V2 - p) + (w - p), de[3] = V2, X = 4) : (Ne[0] = 0, T = 1, de[0] = 0, X = 1), f !== 0) {
+      const St2 = j(T, Ne, f, Et);
+      h = Tt(h, Rt(
+        j(d, Ze, f, pt),
+        pt,
+        j(St2, Et, 2 * ct2, _t),
+        _t,
+        It
+      ), It);
+      const Mt2 = j(X, de, f, ot);
+      h = Tt(h, Ut(
+        j(Mt2, ot, 2 * ct2, pt),
+        pt,
+        j(Mt2, ot, f, kt),
+        kt,
+        j(St2, Et, f, _t),
+        _t,
+        ce,
+        jt
+      ), jt), b !== 0 && (h = Tt(h, j(j(4, Ht, f, ot), ot, b, pt), pt)), m !== 0 && (h = Tt(h, j(j(4, te, -f, ot), ot, m, pt), pt));
+    }
+    if (x2 !== 0) {
+      const St2 = j(T, Ne, x2, Et);
+      h = Tt(h, Rt(
+        j(y, tn, x2, pt),
+        pt,
+        j(St2, Et, 2 * gt2, _t),
+        _t,
+        It
+      ), It);
+      const Mt2 = j(X, de, x2, ot);
+      h = Tt(h, Ut(
+        j(Mt2, ot, 2 * gt2, pt),
+        pt,
+        j(Mt2, ot, x2, kt),
+        kt,
+        j(St2, Et, x2, _t),
+        _t,
+        ce,
+        jt
+      ), jt);
+    }
+  }
+  if (g !== 0 || b !== 0) {
+    if (u2 !== 0 || m !== 0 || f !== 0 || x2 !== 0 ? (q2 = u2 * gt2, E3 = rt * u2, _ = E3 - (E3 - u2), I = u2 - _, E3 = rt * gt2, N = E3 - (E3 - gt2), D2 = gt2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ht2 * x2, E3 = rt * ht2, _ = E3 - (E3 - ht2), I = ht2 - _, E3 = rt * x2, N = E3 - (E3 - x2), D2 = x2 - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 + Q2, p = w - U2, Dt[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, Dt[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, Dt[2] = B2 - (V2 - p) + (w - p), Dt[3] = V2, L2 = -dt2, K2 = -m, q2 = f * L2, E3 = rt * f, _ = E3 - (E3 - f), I = f - _, E3 = rt * L2, N = E3 - (E3 - L2), D2 = L2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = ct2 * K2, E3 = rt * ct2, _ = E3 - (E3 - ct2), I = ct2 - _, E3 = rt * K2, N = E3 - (E3 - K2), D2 = K2 - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 + Q2, p = w - U2, $t[0] = U2 - (w - p) + (Q2 - p), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 + z2, p = w - F2, $t[1] = F2 - (w - p) + (z2 - p), V2 = B2 + w, p = V2 - B2, $t[2] = B2 - (V2 - p) + (w - p), $t[3] = V2, M = Rt(4, Dt, 4, $t, Ie), q2 = u2 * x2, E3 = rt * u2, _ = E3 - (E3 - u2), I = u2 - _, E3 = rt * x2, N = E3 - (E3 - x2), D2 = x2 - N, U2 = I * D2 - (q2 - _ * N - I * N - _ * D2), z2 = f * m, E3 = rt * f, _ = E3 - (E3 - f), I = f - _, E3 = rt * m, N = E3 - (E3 - m), D2 = m - N, Q2 = I * D2 - (z2 - _ * N - I * N - _ * D2), w = U2 - Q2, p = U2 - w, le[0] = U2 - (w + p) + (p - Q2), B2 = q2 + w, p = B2 - q2, F2 = q2 - (B2 - p) + (w - p), w = F2 - z2, p = F2 - w, le[1] = F2 - (w + p) + (p - z2), V2 = B2 + w, p = V2 - B2, le[2] = B2 - (V2 - p) + (w - p), le[3] = V2, S2 = 4) : (Ie[0] = 0, M = 1, le[0] = 0, S2 = 1), g !== 0) {
+      const St2 = j(M, Ie, g, Et);
+      h = Tt(h, Rt(
+        j(l, en, g, pt),
+        pt,
+        j(St2, Et, 2 * ut2, _t),
+        _t,
+        It
+      ), It);
+      const Mt2 = j(S2, le, g, ot);
+      h = Tt(h, Ut(
+        j(Mt2, ot, 2 * ut2, pt),
+        pt,
+        j(Mt2, ot, g, kt),
+        kt,
+        j(St2, Et, g, _t),
+        _t,
+        ce,
+        jt
+      ), jt), m !== 0 && (h = Tt(h, j(j(4, Zt, g, ot), ot, m, pt), pt)), x2 !== 0 && (h = Tt(h, j(j(4, Ht, -g, ot), ot, x2, pt), pt));
+    }
+    if (b !== 0) {
+      const St2 = j(M, Ie, b, Et);
+      h = Tt(h, Rt(
+        j(v, nn, b, pt),
+        pt,
+        j(St2, Et, 2 * mt2, _t),
+        _t,
+        It
+      ), It);
+      const Mt2 = j(S2, le, b, ot);
+      h = Tt(h, Ut(
+        j(Mt2, ot, 2 * mt2, pt),
+        pt,
+        j(Mt2, ot, b, kt),
+        kt,
+        j(St2, Et, b, _t),
+        _t,
+        ce,
+        jt
+      ), jt);
+    }
+  }
+  return be[h - 1];
+}
+function lr(s, e, t2, r, i, n, o, a) {
+  const c = s - o, h = t2 - o, u2 = i - o, f = e - a, g = r - a, m = n - a, x2 = h * m, b = u2 * g, Y2 = c * c + f * f, R2 = u2 * f, d = c * m, y = h * h + g * g, l = c * g, v = h * f, M = u2 * u2 + m * m, A = Y2 * (x2 - b) + y * (R2 - d) + M * (l - v), T = (Math.abs(x2) + Math.abs(b)) * Y2 + (Math.abs(R2) + Math.abs(d)) * y + (Math.abs(l) + Math.abs(v)) * M, S2 = cr * T;
+  return A > S2 || -A > S2 ? A : ur(s, e, t2, r, i, n, o, a, T);
+}
+function pr(s, e) {
+  var t2, r, i = 0, n, o, a, c, h, u2, f, g = s[0], m = s[1], x2 = e.length;
+  for (t2 = 0; t2 < x2; t2++) {
+    r = 0;
+    var b = e[t2], Y2 = b.length - 1;
+    if (u2 = b[0], u2[0] !== b[Y2][0] && u2[1] !== b[Y2][1])
+      throw new Error("First and last coordinates in a ring must be the same");
+    for (o = u2[0] - g, a = u2[1] - m, r; r < Y2; r++) {
+      if (f = b[r + 1], c = f[0] - g, h = f[1] - m, a === 0 && h === 0) {
+        if (c <= 0 && o >= 0 || o <= 0 && c >= 0)
+          return 0;
+      } else if (h >= 0 && a <= 0 || h <= 0 && a >= 0) {
+        if (n = ne(o, c, a, h, 0, 0), n === 0)
+          return 0;
+        (n > 0 && h > 0 && a <= 0 || n < 0 && h <= 0 && a > 0) && i++;
+      }
+      u2 = f, a = h, o = c;
+    }
+  }
+  return i % 2 !== 0;
+}
+function dr(s, e, t2 = {}) {
+  if (!s)
+    throw new Error("point is required");
+  if (!e)
+    throw new Error("polygon is required");
+  const r = nr(s), i = rr(e), n = i.type, o = e.bbox;
+  let a = i.coordinates;
+  if (o && mr(r, o) === false)
+    return false;
+  n === "Polygon" && (a = [a]);
+  let c = false;
+  for (var h = 0; h < a.length; ++h) {
+    const u2 = pr(r, a[h]);
+    if (u2 === 0) return !t2.ignoreBoundary;
+    u2 && (c = true);
+  }
+  return c;
+}
+function mr(s, e) {
+  return e[0] <= s[0] && e[1] <= s[1] && e[2] >= s[0] && e[3] >= s[1];
+}
+let $n = class {
+  constructor(e = [], t2 = gr) {
+    if (this.data = e, this.length = this.data.length, this.compare = t2, this.length > 0)
+      for (let r = (this.length >> 1) - 1; r >= 0; r--) this._down(r);
+  }
+  push(e) {
+    this.data.push(e), this.length++, this._up(this.length - 1);
+  }
+  pop() {
+    if (this.length === 0) return;
+    const e = this.data[0], t2 = this.data.pop();
+    return this.length--, this.length > 0 && (this.data[0] = t2, this._down(0)), e;
+  }
+  peek() {
+    return this.data[0];
+  }
+  _up(e) {
+    const { data: t2, compare: r } = this, i = t2[e];
+    for (; e > 0; ) {
+      const n = e - 1 >> 1, o = t2[n];
+      if (r(i, o) >= 0) break;
+      t2[e] = o, e = n;
+    }
+    t2[e] = i;
+  }
+  _down(e) {
+    const { data: t2, compare: r } = this, i = this.length >> 1, n = t2[e];
+    for (; e < i; ) {
+      let o = (e << 1) + 1, a = t2[o];
+      const c = o + 1;
+      if (c < this.length && r(t2[c], a) < 0 && (o = c, a = t2[c]), r(a, n) >= 0) break;
+      t2[e] = a, e = o;
+    }
+    t2[e] = n;
+  }
+};
+function gr(s, e) {
+  return s < e ? -1 : s > e ? 1 : 0;
+}
+function qn(s, e) {
+  return s.p.x > e.p.x ? 1 : s.p.x < e.p.x ? -1 : s.p.y !== e.p.y ? s.p.y > e.p.y ? 1 : -1 : 1;
+}
+function wr(s, e) {
+  return s.rightSweepEvent.p.x > e.rightSweepEvent.p.x ? 1 : s.rightSweepEvent.p.x < e.rightSweepEvent.p.x ? -1 : s.rightSweepEvent.p.y !== e.rightSweepEvent.p.y ? s.rightSweepEvent.p.y < e.rightSweepEvent.p.y ? 1 : -1 : 1;
+}
+class yn {
+  constructor(e, t2, r, i) {
+    this.p = {
+      x: e[0],
+      y: e[1]
+    }, this.featureId = t2, this.ringId = r, this.eventId = i, this.otherEvent = null, this.isLeftEndpoint = null;
+  }
+  isSamePoint(e) {
+    return this.p.x === e.p.x && this.p.y === e.p.y;
+  }
+}
+function yr(s, e) {
+  if (s.type === "FeatureCollection") {
+    const t2 = s.features;
+    for (let r = 0; r < t2.length; r++)
+      vn(t2[r], e);
+  } else
+    vn(s, e);
+}
+let Xe = 0, Ye = 0, Re = 0;
+function vn(s, e) {
+  const t2 = s.type === "Feature" ? s.geometry : s;
+  let r = t2.coordinates;
+  (t2.type === "Polygon" || t2.type === "MultiLineString") && (r = [r]), t2.type === "LineString" && (r = [[r]]);
+  for (let i = 0; i < r.length; i++)
+    for (let n = 0; n < r[i].length; n++) {
+      let o = r[i][n][0], a = null;
+      Ye = Ye + 1;
+      for (let c = 0; c < r[i][n].length - 1; c++) {
+        a = r[i][n][c + 1];
+        const h = new yn(o, Xe, Ye, Re), u2 = new yn(a, Xe, Ye, Re + 1);
+        h.otherEvent = u2, u2.otherEvent = h, qn(h, u2) > 0 ? (u2.isLeftEndpoint = true, h.isLeftEndpoint = false) : (h.isLeftEndpoint = true, u2.isLeftEndpoint = false), e.push(h), e.push(u2), o = a, Re = Re + 1;
+      }
+    }
+  Xe = Xe + 1;
+}
+class vr {
+  constructor(e) {
+    this.leftSweepEvent = e, this.rightSweepEvent = e.otherEvent;
+  }
+}
+function br(s, e) {
+  if (s === null || e === null || s.leftSweepEvent.ringId === e.leftSweepEvent.ringId && (s.rightSweepEvent.isSamePoint(e.leftSweepEvent) || s.rightSweepEvent.isSamePoint(e.leftSweepEvent) || s.rightSweepEvent.isSamePoint(e.rightSweepEvent) || s.leftSweepEvent.isSamePoint(e.leftSweepEvent) || s.leftSweepEvent.isSamePoint(e.rightSweepEvent))) return false;
+  const t2 = s.leftSweepEvent.p.x, r = s.leftSweepEvent.p.y, i = s.rightSweepEvent.p.x, n = s.rightSweepEvent.p.y, o = e.leftSweepEvent.p.x, a = e.leftSweepEvent.p.y, c = e.rightSweepEvent.p.x, h = e.rightSweepEvent.p.y, u2 = (h - a) * (i - t2) - (c - o) * (n - r), f = (c - o) * (r - a) - (h - a) * (t2 - o), g = (i - t2) * (r - a) - (n - r) * (t2 - o);
+  if (u2 === 0)
+    return false;
+  const m = f / u2, x2 = g / u2;
+  if (m >= 0 && m <= 1 && x2 >= 0 && x2 <= 1) {
+    const b = t2 + m * (i - t2), Y2 = r + m * (n - r);
+    return [b, Y2];
+  }
+  return false;
+}
+function _r(s, e) {
+  e = e || false;
+  const t2 = [], r = new $n([], wr);
+  for (; s.length; ) {
+    const i = s.pop();
+    if (i.isLeftEndpoint) {
+      const n = new vr(i);
+      for (let o = 0; o < r.data.length; o++) {
+        const a = r.data[o];
+        if (e && a.leftSweepEvent.featureId === i.featureId)
+          continue;
+        const c = br(n, a);
+        c !== false && t2.push(c);
+      }
+      r.push(n);
+    } else i.isLeftEndpoint === false && r.pop();
+  }
+  return t2;
+}
+function xr(s, e) {
+  const t2 = new $n([], qn);
+  return yr(s, t2), _r(t2, e);
+}
+var Mr = xr;
+function Sr(s, e, t2 = {}) {
+  const { removeDuplicates: r = true, ignoreSelfIntersections: i = true } = t2;
+  let n = [];
+  s.type === "FeatureCollection" ? n = n.concat(s.features) : s.type === "Feature" ? n.push(s) : (s.type === "LineString" || s.type === "Polygon" || s.type === "MultiLineString" || s.type === "MultiPolygon") && n.push(Ae(s)), e.type === "FeatureCollection" ? n = n.concat(e.features) : e.type === "Feature" ? n.push(e) : (e.type === "LineString" || e.type === "Polygon" || e.type === "MultiLineString" || e.type === "MultiPolygon") && n.push(Ae(e));
+  const o = Mr(
+    Gt(n),
+    i
+  );
+  let a = [];
+  if (r) {
+    const c = {};
+    o.forEach((h) => {
+      const u2 = h.join(",");
+      c[u2] || (c[u2] = true, a.push(h));
+    });
+  } else
+    a = o;
+  return Gt(a.map((c) => ge(c)));
+}
+function kr(s) {
+  return s && s.__esModule && Object.prototype.hasOwnProperty.call(s, "default") ? s.default : s;
+}
+function Er(s) {
+  if (Object.prototype.hasOwnProperty.call(s, "__esModule")) return s;
+  var e = s.default;
+  if (typeof e == "function") {
+    var t2 = function r() {
+      return this instanceof r ? Reflect.construct(e, arguments, this.constructor) : e.apply(this, arguments);
+    };
+    t2.prototype = e.prototype;
+  } else t2 = {};
+  return Object.defineProperty(t2, "__esModule", { value: true }), Object.keys(s).forEach(function(r) {
+    var i = Object.getOwnPropertyDescriptor(s, r);
+    Object.defineProperty(t2, r, i.get ? i : {
+      enumerable: true,
+      get: function() {
+        return s[r];
+      }
+    });
+  }), t2;
+}
+function Ar(s, e = {}) {
+  let t2 = 0, r = 0, i = 0;
+  return hn(
+    s,
+    function(n) {
+      t2 += n[0], r += n[1], i++;
+    },
+    true
+  ), ge([t2 / i, r / i], e.properties);
+}
+var Ce = { exports: {} }, ze = { exports: {} }, Or = ze.exports, bn;
+function Br() {
+  return bn || (bn = 1, function(s, e) {
+    (function(t2, r) {
+      s.exports = r();
+    })(Or, function() {
+      function t2(d, y, l, v, M) {
+        (function A(T, S2, O2, X, L2) {
+          for (; X > O2; ) {
+            if (X - O2 > 600) {
+              var K2 = X - O2 + 1, p = S2 - O2 + 1, E3 = Math.log(K2), _ = 0.5 * Math.exp(2 * E3 / 3), I = 0.5 * Math.sqrt(E3 * _ * (K2 - _) / K2) * (p - K2 / 2 < 0 ? -1 : 1), N = Math.max(O2, Math.floor(S2 - p * _ / K2 + I)), D2 = Math.min(X, Math.floor(S2 + (K2 - p) * _ / K2 + I));
+              A(T, S2, N, D2, L2);
+            }
+            var w = T[S2], B2 = O2, F2 = X;
+            for (r(T, O2, S2), L2(T[X], w) > 0 && r(T, O2, X); B2 < F2; ) {
+              for (r(T, B2, F2), B2++, F2--; L2(T[B2], w) < 0; ) B2++;
+              for (; L2(T[F2], w) > 0; ) F2--;
+            }
+            L2(T[O2], w) === 0 ? r(T, O2, F2) : r(T, ++F2, X), F2 <= S2 && (O2 = F2 + 1), S2 <= F2 && (X = F2 - 1);
+          }
+        })(d, y, l || 0, v || d.length - 1, M || i);
+      }
+      function r(d, y, l) {
+        var v = d[y];
+        d[y] = d[l], d[l] = v;
+      }
+      function i(d, y) {
+        return d < y ? -1 : d > y ? 1 : 0;
+      }
+      var n = function(d) {
+        d === void 0 && (d = 9), this._maxEntries = Math.max(4, d), this._minEntries = Math.max(2, Math.ceil(0.4 * this._maxEntries)), this.clear();
+      };
+      function o(d, y, l) {
+        if (!l) return y.indexOf(d);
+        for (var v = 0; v < y.length; v++) if (l(d, y[v])) return v;
+        return -1;
+      }
+      function a(d, y) {
+        c(d, 0, d.children.length, y, d);
+      }
+      function c(d, y, l, v, M) {
+        M || (M = Y2(null)), M.minX = 1 / 0, M.minY = 1 / 0, M.maxX = -1 / 0, M.maxY = -1 / 0;
+        for (var A = y; A < l; A++) {
+          var T = d.children[A];
+          h(M, d.leaf ? v(T) : T);
+        }
+        return M;
+      }
+      function h(d, y) {
+        return d.minX = Math.min(d.minX, y.minX), d.minY = Math.min(d.minY, y.minY), d.maxX = Math.max(d.maxX, y.maxX), d.maxY = Math.max(d.maxY, y.maxY), d;
+      }
+      function u2(d, y) {
+        return d.minX - y.minX;
+      }
+      function f(d, y) {
+        return d.minY - y.minY;
+      }
+      function g(d) {
+        return (d.maxX - d.minX) * (d.maxY - d.minY);
+      }
+      function m(d) {
+        return d.maxX - d.minX + (d.maxY - d.minY);
+      }
+      function x2(d, y) {
+        return d.minX <= y.minX && d.minY <= y.minY && y.maxX <= d.maxX && y.maxY <= d.maxY;
+      }
+      function b(d, y) {
+        return y.minX <= d.maxX && y.minY <= d.maxY && y.maxX >= d.minX && y.maxY >= d.minY;
+      }
+      function Y2(d) {
+        return { children: d, height: 1, leaf: true, minX: 1 / 0, minY: 1 / 0, maxX: -1 / 0, maxY: -1 / 0 };
+      }
+      function R2(d, y, l, v, M) {
+        for (var A = [y, l]; A.length; ) if (!((l = A.pop()) - (y = A.pop()) <= v)) {
+          var T = y + Math.ceil((l - y) / v / 2) * v;
+          t2(d, T, y, l, M), A.push(y, T, T, l);
+        }
+      }
+      return n.prototype.all = function() {
+        return this._all(this.data, []);
+      }, n.prototype.search = function(d) {
+        var y = this.data, l = [];
+        if (!b(d, y)) return l;
+        for (var v = this.toBBox, M = []; y; ) {
+          for (var A = 0; A < y.children.length; A++) {
+            var T = y.children[A], S2 = y.leaf ? v(T) : T;
+            b(d, S2) && (y.leaf ? l.push(T) : x2(d, S2) ? this._all(T, l) : M.push(T));
+          }
+          y = M.pop();
+        }
+        return l;
+      }, n.prototype.collides = function(d) {
+        var y = this.data;
+        if (!b(d, y)) return false;
+        for (var l = []; y; ) {
+          for (var v = 0; v < y.children.length; v++) {
+            var M = y.children[v], A = y.leaf ? this.toBBox(M) : M;
+            if (b(d, A)) {
+              if (y.leaf || x2(d, A)) return true;
+              l.push(M);
+            }
+          }
+          y = l.pop();
+        }
+        return false;
+      }, n.prototype.load = function(d) {
+        if (!d || !d.length) return this;
+        if (d.length < this._minEntries) {
+          for (var y = 0; y < d.length; y++) this.insert(d[y]);
+          return this;
+        }
+        var l = this._build(d.slice(), 0, d.length - 1, 0);
+        if (this.data.children.length) if (this.data.height === l.height) this._splitRoot(this.data, l);
+        else {
+          if (this.data.height < l.height) {
+            var v = this.data;
+            this.data = l, l = v;
+          }
+          this._insert(l, this.data.height - l.height - 1, true);
+        }
+        else this.data = l;
+        return this;
+      }, n.prototype.insert = function(d) {
+        return d && this._insert(d, this.data.height - 1), this;
+      }, n.prototype.clear = function() {
+        return this.data = Y2([]), this;
+      }, n.prototype.remove = function(d, y) {
+        if (!d) return this;
+        for (var l, v, M, A = this.data, T = this.toBBox(d), S2 = [], O2 = []; A || S2.length; ) {
+          if (A || (A = S2.pop(), v = S2[S2.length - 1], l = O2.pop(), M = true), A.leaf) {
+            var X = o(d, A.children, y);
+            if (X !== -1) return A.children.splice(X, 1), S2.push(A), this._condense(S2), this;
+          }
+          M || A.leaf || !x2(A, T) ? v ? (l++, A = v.children[l], M = false) : A = null : (S2.push(A), O2.push(l), l = 0, v = A, A = A.children[0]);
+        }
+        return this;
+      }, n.prototype.toBBox = function(d) {
+        return d;
+      }, n.prototype.compareMinX = function(d, y) {
+        return d.minX - y.minX;
+      }, n.prototype.compareMinY = function(d, y) {
+        return d.minY - y.minY;
+      }, n.prototype.toJSON = function() {
+        return this.data;
+      }, n.prototype.fromJSON = function(d) {
+        return this.data = d, this;
+      }, n.prototype._all = function(d, y) {
+        for (var l = []; d; ) d.leaf ? y.push.apply(y, d.children) : l.push.apply(l, d.children), d = l.pop();
+        return y;
+      }, n.prototype._build = function(d, y, l, v) {
+        var M, A = l - y + 1, T = this._maxEntries;
+        if (A <= T) return a(M = Y2(d.slice(y, l + 1)), this.toBBox), M;
+        v || (v = Math.ceil(Math.log(A) / Math.log(T)), T = Math.ceil(A / Math.pow(T, v - 1))), (M = Y2([])).leaf = false, M.height = v;
+        var S2 = Math.ceil(A / T), O2 = S2 * Math.ceil(Math.sqrt(T));
+        R2(d, y, l, O2, this.compareMinX);
+        for (var X = y; X <= l; X += O2) {
+          var L2 = Math.min(X + O2 - 1, l);
+          R2(d, X, L2, S2, this.compareMinY);
+          for (var K2 = X; K2 <= L2; K2 += S2) {
+            var p = Math.min(K2 + S2 - 1, L2);
+            M.children.push(this._build(d, K2, p, v - 1));
+          }
+        }
+        return a(M, this.toBBox), M;
+      }, n.prototype._chooseSubtree = function(d, y, l, v) {
+        for (; v.push(y), !y.leaf && v.length - 1 !== l; ) {
+          for (var M = 1 / 0, A = 1 / 0, T = void 0, S2 = 0; S2 < y.children.length; S2++) {
+            var O2 = y.children[S2], X = g(O2), L2 = (K2 = d, p = O2, (Math.max(p.maxX, K2.maxX) - Math.min(p.minX, K2.minX)) * (Math.max(p.maxY, K2.maxY) - Math.min(p.minY, K2.minY)) - X);
+            L2 < A ? (A = L2, M = X < M ? X : M, T = O2) : L2 === A && X < M && (M = X, T = O2);
+          }
+          y = T || y.children[0];
+        }
+        var K2, p;
+        return y;
+      }, n.prototype._insert = function(d, y, l) {
+        var v = l ? d : this.toBBox(d), M = [], A = this._chooseSubtree(v, this.data, y, M);
+        for (A.children.push(d), h(A, v); y >= 0 && M[y].children.length > this._maxEntries; ) this._split(M, y), y--;
+        this._adjustParentBBoxes(v, M, y);
+      }, n.prototype._split = function(d, y) {
+        var l = d[y], v = l.children.length, M = this._minEntries;
+        this._chooseSplitAxis(l, M, v);
+        var A = this._chooseSplitIndex(l, M, v), T = Y2(l.children.splice(A, l.children.length - A));
+        T.height = l.height, T.leaf = l.leaf, a(l, this.toBBox), a(T, this.toBBox), y ? d[y - 1].children.push(T) : this._splitRoot(l, T);
+      }, n.prototype._splitRoot = function(d, y) {
+        this.data = Y2([d, y]), this.data.height = d.height + 1, this.data.leaf = false, a(this.data, this.toBBox);
+      }, n.prototype._chooseSplitIndex = function(d, y, l) {
+        for (var v, M, A, T, S2, O2, X, L2 = 1 / 0, K2 = 1 / 0, p = y; p <= l - y; p++) {
+          var E3 = c(d, 0, p, this.toBBox), _ = c(d, p, l, this.toBBox), I = (M = E3, A = _, T = void 0, S2 = void 0, O2 = void 0, X = void 0, T = Math.max(M.minX, A.minX), S2 = Math.max(M.minY, A.minY), O2 = Math.min(M.maxX, A.maxX), X = Math.min(M.maxY, A.maxY), Math.max(0, O2 - T) * Math.max(0, X - S2)), N = g(E3) + g(_);
+          I < L2 ? (L2 = I, v = p, K2 = N < K2 ? N : K2) : I === L2 && N < K2 && (K2 = N, v = p);
+        }
+        return v || l - y;
+      }, n.prototype._chooseSplitAxis = function(d, y, l) {
+        var v = d.leaf ? this.compareMinX : u2, M = d.leaf ? this.compareMinY : f;
+        this._allDistMargin(d, y, l, v) < this._allDistMargin(d, y, l, M) && d.children.sort(v);
+      }, n.prototype._allDistMargin = function(d, y, l, v) {
+        d.children.sort(v);
+        for (var M = this.toBBox, A = c(d, 0, y, M), T = c(d, l - y, l, M), S2 = m(A) + m(T), O2 = y; O2 < l - y; O2++) {
+          var X = d.children[O2];
+          h(A, d.leaf ? M(X) : X), S2 += m(A);
+        }
+        for (var L2 = l - y - 1; L2 >= y; L2--) {
+          var K2 = d.children[L2];
+          h(T, d.leaf ? M(K2) : K2), S2 += m(T);
+        }
+        return S2;
+      }, n.prototype._adjustParentBBoxes = function(d, y, l) {
+        for (var v = l; v >= 0; v--) h(y[v], d);
+      }, n.prototype._condense = function(d) {
+        for (var y = d.length - 1, l = void 0; y >= 0; y--) d[y].children.length === 0 ? y > 0 ? (l = d[y - 1].children).splice(l.indexOf(d[y]), 1) : this.clear() : a(d[y], this.toBBox);
+      }, n;
+    });
+  }(ze)), ze.exports;
+}
+class Pr {
+  constructor(e = [], t2 = Ir) {
+    if (this.data = e, this.length = this.data.length, this.compare = t2, this.length > 0)
+      for (let r = (this.length >> 1) - 1; r >= 0; r--) this._down(r);
+  }
+  push(e) {
+    this.data.push(e), this.length++, this._up(this.length - 1);
+  }
+  pop() {
+    if (this.length === 0) return;
+    const e = this.data[0], t2 = this.data.pop();
+    return this.length--, this.length > 0 && (this.data[0] = t2, this._down(0)), e;
+  }
+  peek() {
+    return this.data[0];
+  }
+  _up(e) {
+    const { data: t2, compare: r } = this, i = t2[e];
+    for (; e > 0; ) {
+      const n = e - 1 >> 1, o = t2[n];
+      if (r(i, o) >= 0) break;
+      t2[e] = o, e = n;
+    }
+    t2[e] = i;
+  }
+  _down(e) {
+    const { data: t2, compare: r } = this, i = this.length >> 1, n = t2[e];
+    for (; e < i; ) {
+      let o = (e << 1) + 1, a = t2[o];
+      const c = o + 1;
+      if (c < this.length && r(t2[c], a) < 0 && (o = c, a = t2[c]), r(a, n) >= 0) break;
+      t2[e] = a, e = o;
+    }
+    t2[e] = n;
+  }
+}
+function Ir(s, e) {
+  return s < e ? -1 : s > e ? 1 : 0;
+}
+const Tr = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Pr
+}, Symbol.toStringTag, { value: "Module" })), Nr = /* @__PURE__ */ Er(Tr);
+var xe = { exports: {} }, sn, _n;
+function Xr() {
+  return _n || (_n = 1, sn = function(e, t2, r, i) {
+    var n = e[0], o = e[1], a = false;
+    r === void 0 && (r = 0), i === void 0 && (i = t2.length);
+    for (var c = (i - r) / 2, h = 0, u2 = c - 1; h < c; u2 = h++) {
+      var f = t2[r + h * 2 + 0], g = t2[r + h * 2 + 1], m = t2[r + u2 * 2 + 0], x2 = t2[r + u2 * 2 + 1], b = g > o != x2 > o && n < (m - f) * (o - g) / (x2 - g) + f;
+      b && (a = !a);
+    }
+    return a;
+  }), sn;
+}
+var on, xn;
+function Yr() {
+  return xn || (xn = 1, on = function(e, t2, r, i) {
+    var n = e[0], o = e[1], a = false;
+    r === void 0 && (r = 0), i === void 0 && (i = t2.length);
+    for (var c = i - r, h = 0, u2 = c - 1; h < c; u2 = h++) {
+      var f = t2[h + r][0], g = t2[h + r][1], m = t2[u2 + r][0], x2 = t2[u2 + r][1], b = g > o != x2 > o && n < (m - f) * (o - g) / (x2 - g) + f;
+      b && (a = !a);
+    }
+    return a;
+  }), on;
+}
+var Mn;
+function Rr() {
+  if (Mn) return xe.exports;
+  Mn = 1;
+  var s = Xr(), e = Yr();
+  return xe.exports = function(r, i, n, o) {
+    return i.length > 0 && Array.isArray(i[0]) ? e(r, i, n, o) : s(r, i, n, o);
+  }, xe.exports.nested = e, xe.exports.flat = s, xe.exports;
+}
+var Se = { exports: {} }, Cr = Se.exports, Sn;
+function Fr() {
+  return Sn || (Sn = 1, function(s, e) {
+    (function(t2, r) {
+      r(e);
+    })(Cr, function(t2) {
+      const i = 33306690738754706e-32;
+      function n(b, Y2, R2, d, y) {
+        let l, v, M, A, T = Y2[0], S2 = d[0], O2 = 0, X = 0;
+        S2 > T == S2 > -T ? (l = T, T = Y2[++O2]) : (l = S2, S2 = d[++X]);
+        let L2 = 0;
+        if (O2 < b && X < R2) for (S2 > T == S2 > -T ? (M = l - ((v = T + l) - T), T = Y2[++O2]) : (M = l - ((v = S2 + l) - S2), S2 = d[++X]), l = v, M !== 0 && (y[L2++] = M); O2 < b && X < R2; ) S2 > T == S2 > -T ? (M = l - ((v = l + T) - (A = v - l)) + (T - A), T = Y2[++O2]) : (M = l - ((v = l + S2) - (A = v - l)) + (S2 - A), S2 = d[++X]), l = v, M !== 0 && (y[L2++] = M);
+        for (; O2 < b; ) M = l - ((v = l + T) - (A = v - l)) + (T - A), T = Y2[++O2], l = v, M !== 0 && (y[L2++] = M);
+        for (; X < R2; ) M = l - ((v = l + S2) - (A = v - l)) + (S2 - A), S2 = d[++X], l = v, M !== 0 && (y[L2++] = M);
+        return l === 0 && L2 !== 0 || (y[L2++] = l), L2;
+      }
+      function o(b) {
+        return new Float64Array(b);
+      }
+      const a = 33306690738754716e-32, c = 22204460492503146e-32, h = 11093356479670487e-47, u2 = o(4), f = o(8), g = o(12), m = o(16), x2 = o(4);
+      t2.orient2d = function(b, Y2, R2, d, y, l) {
+        const v = (Y2 - l) * (R2 - y), M = (b - y) * (d - l), A = v - M;
+        if (v === 0 || M === 0 || v > 0 != M > 0) return A;
+        const T = Math.abs(v + M);
+        return Math.abs(A) >= a * T ? A : -function(S2, O2, X, L2, K2, p, E3) {
+          let _, I, N, D2, w, B2, F2, q2, U2, z2, Q2, V2, ht2, ct2, ut2, dt2, gt2, mt2;
+          const Bt2 = S2 - K2, Xt = X - K2, St2 = O2 - p, Mt2 = L2 - p;
+          w = (ut2 = (q2 = Bt2 - (F2 = (B2 = 134217729 * Bt2) - (B2 - Bt2))) * (z2 = Mt2 - (U2 = (B2 = 134217729 * Mt2) - (B2 - Mt2))) - ((ct2 = Bt2 * Mt2) - F2 * U2 - q2 * U2 - F2 * z2)) - (Q2 = ut2 - (gt2 = (q2 = St2 - (F2 = (B2 = 134217729 * St2) - (B2 - St2))) * (z2 = Xt - (U2 = (B2 = 134217729 * Xt) - (B2 - Xt))) - ((dt2 = St2 * Xt) - F2 * U2 - q2 * U2 - F2 * z2))), u2[0] = ut2 - (Q2 + w) + (w - gt2), w = (ht2 = ct2 - ((V2 = ct2 + Q2) - (w = V2 - ct2)) + (Q2 - w)) - (Q2 = ht2 - dt2), u2[1] = ht2 - (Q2 + w) + (w - dt2), w = (mt2 = V2 + Q2) - V2, u2[2] = V2 - (mt2 - w) + (Q2 - w), u2[3] = mt2;
+          let Qt = function(Ge, qt) {
+            let Pe = qt[0];
+            for (let k = 1; k < Ge; k++) Pe += qt[k];
+            return Pe;
+          }(4, u2), fe = c * E3;
+          if (Qt >= fe || -Qt >= fe || (_ = S2 - (Bt2 + (w = S2 - Bt2)) + (w - K2), N = X - (Xt + (w = X - Xt)) + (w - K2), I = O2 - (St2 + (w = O2 - St2)) + (w - p), D2 = L2 - (Mt2 + (w = L2 - Mt2)) + (w - p), _ === 0 && I === 0 && N === 0 && D2 === 0) || (fe = h * E3 + i * Math.abs(Qt), (Qt += Bt2 * D2 + Mt2 * _ - (St2 * N + Xt * I)) >= fe || -Qt >= fe)) return Qt;
+          w = (ut2 = (q2 = _ - (F2 = (B2 = 134217729 * _) - (B2 - _))) * (z2 = Mt2 - (U2 = (B2 = 134217729 * Mt2) - (B2 - Mt2))) - ((ct2 = _ * Mt2) - F2 * U2 - q2 * U2 - F2 * z2)) - (Q2 = ut2 - (gt2 = (q2 = I - (F2 = (B2 = 134217729 * I) - (B2 - I))) * (z2 = Xt - (U2 = (B2 = 134217729 * Xt) - (B2 - Xt))) - ((dt2 = I * Xt) - F2 * U2 - q2 * U2 - F2 * z2))), x2[0] = ut2 - (Q2 + w) + (w - gt2), w = (ht2 = ct2 - ((V2 = ct2 + Q2) - (w = V2 - ct2)) + (Q2 - w)) - (Q2 = ht2 - dt2), x2[1] = ht2 - (Q2 + w) + (w - dt2), w = (mt2 = V2 + Q2) - V2, x2[2] = V2 - (mt2 - w) + (Q2 - w), x2[3] = mt2;
+          const We = n(4, u2, 4, x2, f);
+          w = (ut2 = (q2 = Bt2 - (F2 = (B2 = 134217729 * Bt2) - (B2 - Bt2))) * (z2 = D2 - (U2 = (B2 = 134217729 * D2) - (B2 - D2))) - ((ct2 = Bt2 * D2) - F2 * U2 - q2 * U2 - F2 * z2)) - (Q2 = ut2 - (gt2 = (q2 = St2 - (F2 = (B2 = 134217729 * St2) - (B2 - St2))) * (z2 = N - (U2 = (B2 = 134217729 * N) - (B2 - N))) - ((dt2 = St2 * N) - F2 * U2 - q2 * U2 - F2 * z2))), x2[0] = ut2 - (Q2 + w) + (w - gt2), w = (ht2 = ct2 - ((V2 = ct2 + Q2) - (w = V2 - ct2)) + (Q2 - w)) - (Q2 = ht2 - dt2), x2[1] = ht2 - (Q2 + w) + (w - dt2), w = (mt2 = V2 + Q2) - V2, x2[2] = V2 - (mt2 - w) + (Q2 - w), x2[3] = mt2;
+          const Je = n(We, f, 4, x2, g);
+          w = (ut2 = (q2 = _ - (F2 = (B2 = 134217729 * _) - (B2 - _))) * (z2 = D2 - (U2 = (B2 = 134217729 * D2) - (B2 - D2))) - ((ct2 = _ * D2) - F2 * U2 - q2 * U2 - F2 * z2)) - (Q2 = ut2 - (gt2 = (q2 = I - (F2 = (B2 = 134217729 * I) - (B2 - I))) * (z2 = N - (U2 = (B2 = 134217729 * N) - (B2 - N))) - ((dt2 = I * N) - F2 * U2 - q2 * U2 - F2 * z2))), x2[0] = ut2 - (Q2 + w) + (w - gt2), w = (ht2 = ct2 - ((V2 = ct2 + Q2) - (w = V2 - ct2)) + (Q2 - w)) - (Q2 = ht2 - dt2), x2[1] = ht2 - (Q2 + w) + (w - dt2), w = (mt2 = V2 + Q2) - V2, x2[2] = V2 - (mt2 - w) + (Q2 - w), x2[3] = mt2;
+          const Ke = n(Je, g, 4, x2, m);
+          return m[Ke - 1];
+        }(b, Y2, R2, d, y, l, T);
+      }, t2.orient2dfast = function(b, Y2, R2, d, y, l) {
+        return (Y2 - l) * (R2 - y) - (b - y) * (d - l);
+      }, Object.defineProperty(t2, "__esModule", { value: true });
+    });
+  }(Se, Se.exports)), Se.exports;
+}
+var kn;
+function Lr() {
+  if (kn) return Ce.exports;
+  kn = 1;
+  var s = Br(), e = Nr, t2 = Rr(), r = Fr().orient2d;
+  e.default && (e = e.default), Ce.exports = i, Ce.exports.default = i;
+  function i(l, v, M) {
+    v = Math.max(0, v === void 0 ? 2 : v), M = M || 0;
+    var A = m(l), T = new s(16);
+    T.toBBox = function(F2) {
+      return {
+        minX: F2[0],
+        minY: F2[1],
+        maxX: F2[0],
+        maxY: F2[1]
+      };
+    }, T.compareMinX = function(F2, q2) {
+      return F2[0] - q2[0];
+    }, T.compareMinY = function(F2, q2) {
+      return F2[1] - q2[1];
+    }, T.load(l);
+    for (var S2 = [], O2 = 0, X; O2 < A.length; O2++) {
+      var L2 = A[O2];
+      T.remove(L2), X = x2(L2, X), S2.push(X);
+    }
+    var K2 = new s(16);
+    for (O2 = 0; O2 < S2.length; O2++) K2.insert(g(S2[O2]));
+    for (var p = v * v, E3 = M * M; S2.length; ) {
+      var _ = S2.shift(), I = _.p, N = _.next.p, D2 = b(I, N);
+      if (!(D2 < E3)) {
+        var w = D2 / p;
+        L2 = n(T, _.prev.p, I, N, _.next.next.p, w, K2), L2 && Math.min(b(L2, I), b(L2, N)) <= w && (S2.push(_), S2.push(x2(L2, _)), T.remove(L2), K2.remove(_), K2.insert(g(_)), K2.insert(g(_.next)));
+      }
+    }
+    _ = X;
+    var B2 = [];
+    do
+      B2.push(_.p), _ = _.next;
+    while (_ !== X);
+    return B2.push(_.p), B2;
+  }
+  function n(l, v, M, A, T, S2, O2) {
+    for (var X = new e([], o), L2 = l.data; L2; ) {
+      for (var K2 = 0; K2 < L2.children.length; K2++) {
+        var p = L2.children[K2], E3 = L2.leaf ? Y2(p, M, A) : a(M, A, p);
+        E3 > S2 || X.push({
+          node: p,
+          dist: E3
+        });
+      }
+      for (; X.length && !X.peek().node.children; ) {
+        var _ = X.pop(), I = _.node, N = Y2(I, v, M), D2 = Y2(I, A, T);
+        if (_.dist < N && _.dist < D2 && h(M, I, O2) && h(A, I, O2)) return I;
+      }
+      L2 = X.pop(), L2 && (L2 = L2.node);
+    }
+    return null;
+  }
+  function o(l, v) {
+    return l.dist - v.dist;
+  }
+  function a(l, v, M) {
+    if (c(l, M) || c(v, M)) return 0;
+    var A = R2(l[0], l[1], v[0], v[1], M.minX, M.minY, M.maxX, M.minY);
+    if (A === 0) return 0;
+    var T = R2(l[0], l[1], v[0], v[1], M.minX, M.minY, M.minX, M.maxY);
+    if (T === 0) return 0;
+    var S2 = R2(l[0], l[1], v[0], v[1], M.maxX, M.minY, M.maxX, M.maxY);
+    if (S2 === 0) return 0;
+    var O2 = R2(l[0], l[1], v[0], v[1], M.minX, M.maxY, M.maxX, M.maxY);
+    return O2 === 0 ? 0 : Math.min(A, T, S2, O2);
+  }
+  function c(l, v) {
+    return l[0] >= v.minX && l[0] <= v.maxX && l[1] >= v.minY && l[1] <= v.maxY;
+  }
+  function h(l, v, M) {
+    for (var A = Math.min(l[0], v[0]), T = Math.min(l[1], v[1]), S2 = Math.max(l[0], v[0]), O2 = Math.max(l[1], v[1]), X = M.search({ minX: A, minY: T, maxX: S2, maxY: O2 }), L2 = 0; L2 < X.length; L2++)
+      if (f(X[L2].p, X[L2].next.p, l, v)) return false;
+    return true;
+  }
+  function u2(l, v, M) {
+    return r(l[0], l[1], v[0], v[1], M[0], M[1]);
+  }
+  function f(l, v, M, A) {
+    return l !== A && v !== M && u2(l, v, M) > 0 != u2(l, v, A) > 0 && u2(M, A, l) > 0 != u2(M, A, v) > 0;
+  }
+  function g(l) {
+    var v = l.p, M = l.next.p;
+    return l.minX = Math.min(v[0], M[0]), l.minY = Math.min(v[1], M[1]), l.maxX = Math.max(v[0], M[0]), l.maxY = Math.max(v[1], M[1]), l;
+  }
+  function m(l) {
+    for (var v = l[0], M = l[0], A = l[0], T = l[0], S2 = 0; S2 < l.length; S2++) {
+      var O2 = l[S2];
+      O2[0] < v[0] && (v = O2), O2[0] > A[0] && (A = O2), O2[1] < M[1] && (M = O2), O2[1] > T[1] && (T = O2);
+    }
+    var X = [v, M, A, T], L2 = X.slice();
+    for (S2 = 0; S2 < l.length; S2++)
+      t2(l[S2], X) || L2.push(l[S2]);
+    return y(L2);
+  }
+  function x2(l, v) {
+    var M = {
+      p: l,
+      prev: null,
+      next: null,
+      minX: 0,
+      minY: 0,
+      maxX: 0,
+      maxY: 0
+    };
+    return v ? (M.next = v.next, M.prev = v, v.next.prev = M, v.next = M) : (M.prev = M, M.next = M), M;
+  }
+  function b(l, v) {
+    var M = l[0] - v[0], A = l[1] - v[1];
+    return M * M + A * A;
+  }
+  function Y2(l, v, M) {
+    var A = v[0], T = v[1], S2 = M[0] - A, O2 = M[1] - T;
+    if (S2 !== 0 || O2 !== 0) {
+      var X = ((l[0] - A) * S2 + (l[1] - T) * O2) / (S2 * S2 + O2 * O2);
+      X > 1 ? (A = M[0], T = M[1]) : X > 0 && (A += S2 * X, T += O2 * X);
+    }
+    return S2 = l[0] - A, O2 = l[1] - T, S2 * S2 + O2 * O2;
+  }
+  function R2(l, v, M, A, T, S2, O2, X) {
+    var L2 = M - l, K2 = A - v, p = O2 - T, E3 = X - S2, _ = l - T, I = v - S2, N = L2 * L2 + K2 * K2, D2 = L2 * p + K2 * E3, w = p * p + E3 * E3, B2 = L2 * _ + K2 * I, F2 = p * _ + E3 * I, q2 = N * w - D2 * D2, U2, z2, Q2, V2, ht2 = q2, ct2 = q2;
+    q2 === 0 ? (z2 = 0, ht2 = 1, V2 = F2, ct2 = w) : (z2 = D2 * F2 - w * B2, V2 = N * F2 - D2 * B2, z2 < 0 ? (z2 = 0, V2 = F2, ct2 = w) : z2 > ht2 && (z2 = ht2, V2 = F2 + D2, ct2 = w)), V2 < 0 ? (V2 = 0, -B2 < 0 ? z2 = 0 : -B2 > N ? z2 = ht2 : (z2 = -B2, ht2 = N)) : V2 > ct2 && (V2 = ct2, -B2 + D2 < 0 ? z2 = 0 : -B2 + D2 > N ? z2 = ht2 : (z2 = -B2 + D2, ht2 = N)), U2 = z2 === 0 ? 0 : z2 / ht2, Q2 = V2 === 0 ? 0 : V2 / ct2;
+    var ut2 = (1 - U2) * l + U2 * M, dt2 = (1 - U2) * v + U2 * A, gt2 = (1 - Q2) * T + Q2 * O2, mt2 = (1 - Q2) * S2 + Q2 * X, Bt2 = gt2 - ut2, Xt = mt2 - dt2;
+    return Bt2 * Bt2 + Xt * Xt;
+  }
+  function d(l, v) {
+    return l[0] === v[0] ? l[1] - v[1] : l[0] - v[0];
+  }
+  function y(l) {
+    l.sort(d);
+    for (var v = [], M = 0; M < l.length; M++) {
+      for (; v.length >= 2 && u2(v[v.length - 2], v[v.length - 1], l[M]) <= 0; )
+        v.pop();
+      v.push(l[M]);
+    }
+    for (var A = [], T = l.length - 1; T >= 0; T--) {
+      for (; A.length >= 2 && u2(A[A.length - 2], A[A.length - 1], l[T]) <= 0; )
+        A.pop();
+      A.push(l[T]);
+    }
+    return A.pop(), v.pop(), v.concat(A);
+  }
+  return Ce.exports;
+}
+var Dr = Lr();
+const $r = /* @__PURE__ */ kr(Dr);
+function En(s, e = {}) {
+  e.concavity = e.concavity || 1 / 0;
+  const t2 = [];
+  if (hn(s, (i) => {
+    t2.push([i[0], i[1]]);
+  }), !t2.length)
+    return null;
+  const r = $r(t2, e.concavity);
+  return r.length > 3 ? Be([r]) : null;
+}
+var ke = { exports: {} }, qr = ke.exports, An;
+function jr() {
+  return An || (An = 1, function(s, e) {
+    (function(t2, r) {
+      r(e);
+    })(qr, function(t2) {
+      var r = Object.defineProperty, i = (k, P, C) => P in k ? r(k, P, { enumerable: true, configurable: true, writable: true, value: C }) : k[P] = C, n = (k, P, C) => i(k, typeof P != "symbol" ? P + "" : P, C);
+      function o(k, P, C = {}) {
+        const $2 = { type: "Feature" };
+        return (C.id === 0 || C.id) && ($2.id = C.id), C.bbox && ($2.bbox = C.bbox), $2.properties = P || {}, $2.geometry = k, $2;
+      }
+      function a(k, P, C = {}) {
+        if (!k) throw new Error("coordinates is required");
+        if (!Array.isArray(k)) throw new Error("coordinates must be an Array");
+        if (k.length < 2) throw new Error("coordinates must be at least 2 numbers long");
+        if (!u2(k[0]) || !u2(k[1])) throw new Error("coordinates must contain numbers");
+        return o({ type: "Point", coordinates: k }, P, C);
+      }
+      function c(k, P, C = {}) {
+        for (const $2 of k) {
+          if ($2.length < 4) throw new Error("Each LinearRing of a Polygon must have 4 or more Positions.");
+          if ($2[$2.length - 1].length !== $2[0].length) throw new Error("First and last Position are not equivalent.");
+          for (let tt2 = 0; tt2 < $2[$2.length - 1].length; tt2++) if ($2[$2.length - 1][tt2] !== $2[0][tt2]) throw new Error("First and last Position are not equivalent.");
+        }
+        return o({ type: "Polygon", coordinates: k }, P, C);
+      }
+      function h(k, P = {}) {
+        const C = { type: "FeatureCollection" };
+        return P.id && (C.id = P.id), P.bbox && (C.bbox = P.bbox), C.features = k, C;
+      }
+      function u2(k) {
+        return !isNaN(k) && k !== null && !Array.isArray(k);
+      }
+      function f(k) {
+        if (!k) throw new Error("coord is required");
+        if (!Array.isArray(k)) {
+          if (k.type === "Feature" && k.geometry !== null && k.geometry.type === "Point") return [...k.geometry.coordinates];
+          if (k.type === "Point") return [...k.coordinates];
+        }
+        if (Array.isArray(k) && k.length >= 2 && !Array.isArray(k[0]) && !Array.isArray(k[1])) return [...k];
+        throw new Error("coord must be GeoJSON Point or an Array of numbers");
+      }
+      function g(k) {
+        if (Array.isArray(k)) return k;
+        if (k.type === "Feature") {
+          if (k.geometry !== null) return k.geometry.coordinates;
+        } else if (k.coordinates) return k.coordinates;
+        throw new Error("coords must be GeoJSON Feature, Geometry Object or an Array");
+      }
+      function m(k) {
+        return k.type === "Feature" ? k.geometry : k;
+      }
+      const x2 = 11102230246251565e-32, b = 134217729, Y2 = (3 + 8 * x2) * x2;
+      function R2(k, P, C, $2, tt2) {
+        let G2, et2, st, it, at2 = P[0], ft2 = $2[0], J2 = 0, Z2 = 0;
+        ft2 > at2 == ft2 > -at2 ? (G2 = at2, at2 = P[++J2]) : (G2 = ft2, ft2 = $2[++Z2]);
+        let lt2 = 0;
+        if (J2 < k && Z2 < C) for (ft2 > at2 == ft2 > -at2 ? (et2 = at2 + G2, st = G2 - (et2 - at2), at2 = P[++J2]) : (et2 = ft2 + G2, st = G2 - (et2 - ft2), ft2 = $2[++Z2]), G2 = et2, st !== 0 && (tt2[lt2++] = st); J2 < k && Z2 < C; ) ft2 > at2 == ft2 > -at2 ? (et2 = G2 + at2, it = et2 - G2, st = G2 - (et2 - it) + (at2 - it), at2 = P[++J2]) : (et2 = G2 + ft2, it = et2 - G2, st = G2 - (et2 - it) + (ft2 - it), ft2 = $2[++Z2]), G2 = et2, st !== 0 && (tt2[lt2++] = st);
+        for (; J2 < k; ) et2 = G2 + at2, it = et2 - G2, st = G2 - (et2 - it) + (at2 - it), at2 = P[++J2], G2 = et2, st !== 0 && (tt2[lt2++] = st);
+        for (; Z2 < C; ) et2 = G2 + ft2, it = et2 - G2, st = G2 - (et2 - it) + (ft2 - it), ft2 = $2[++Z2], G2 = et2, st !== 0 && (tt2[lt2++] = st);
+        return (G2 !== 0 || lt2 === 0) && (tt2[lt2++] = G2), lt2;
+      }
+      function d(k, P) {
+        let C = P[0];
+        for (let $2 = 1; $2 < k; $2++) C += P[$2];
+        return C;
+      }
+      function y(k) {
+        return new Float64Array(k);
+      }
+      const l = (3 + 16 * x2) * x2, v = (2 + 12 * x2) * x2, M = (9 + 64 * x2) * x2 * x2, A = y(4), T = y(8), S2 = y(12), O2 = y(16), X = y(4);
+      function L2(k, P, C, $2, tt2, G2, et2) {
+        let st, it, at2, ft2, J2, Z2, lt2, xt2, nt2, H2, W2, wt2, At2, Ot2, Nt2, yt2, Pt2, Ct2;
+        const Vt = k - tt2, Wt = C - tt2, Jt = P - G2, Kt = $2 - G2;
+        Ot2 = Vt * Kt, Z2 = b * Vt, lt2 = Z2 - (Z2 - Vt), xt2 = Vt - lt2, Z2 = b * Kt, nt2 = Z2 - (Z2 - Kt), H2 = Kt - nt2, Nt2 = xt2 * H2 - (Ot2 - lt2 * nt2 - xt2 * nt2 - lt2 * H2), yt2 = Jt * Wt, Z2 = b * Jt, lt2 = Z2 - (Z2 - Jt), xt2 = Jt - lt2, Z2 = b * Wt, nt2 = Z2 - (Z2 - Wt), H2 = Wt - nt2, Pt2 = xt2 * H2 - (yt2 - lt2 * nt2 - xt2 * nt2 - lt2 * H2), W2 = Nt2 - Pt2, J2 = Nt2 - W2, A[0] = Nt2 - (W2 + J2) + (J2 - Pt2), wt2 = Ot2 + W2, J2 = wt2 - Ot2, At2 = Ot2 - (wt2 - J2) + (W2 - J2), W2 = At2 - yt2, J2 = At2 - W2, A[1] = At2 - (W2 + J2) + (J2 - yt2), Ct2 = wt2 + W2, J2 = Ct2 - wt2, A[2] = wt2 - (Ct2 - J2) + (W2 - J2), A[3] = Ct2;
+        let ue = d(4, A), _e = v * et2;
+        if (ue >= _e || -ue >= _e || (J2 = k - Vt, st = k - (Vt + J2) + (J2 - tt2), J2 = C - Wt, at2 = C - (Wt + J2) + (J2 - tt2), J2 = P - Jt, it = P - (Jt + J2) + (J2 - G2), J2 = $2 - Kt, ft2 = $2 - (Kt + J2) + (J2 - G2), st === 0 && it === 0 && at2 === 0 && ft2 === 0) || (_e = M * et2 + Y2 * Math.abs(ue), ue += Vt * ft2 + Kt * st - (Jt * at2 + Wt * it), ue >= _e || -ue >= _e)) return ue;
+        Ot2 = st * Kt, Z2 = b * st, lt2 = Z2 - (Z2 - st), xt2 = st - lt2, Z2 = b * Kt, nt2 = Z2 - (Z2 - Kt), H2 = Kt - nt2, Nt2 = xt2 * H2 - (Ot2 - lt2 * nt2 - xt2 * nt2 - lt2 * H2), yt2 = it * Wt, Z2 = b * it, lt2 = Z2 - (Z2 - it), xt2 = it - lt2, Z2 = b * Wt, nt2 = Z2 - (Z2 - Wt), H2 = Wt - nt2, Pt2 = xt2 * H2 - (yt2 - lt2 * nt2 - xt2 * nt2 - lt2 * H2), W2 = Nt2 - Pt2, J2 = Nt2 - W2, X[0] = Nt2 - (W2 + J2) + (J2 - Pt2), wt2 = Ot2 + W2, J2 = wt2 - Ot2, At2 = Ot2 - (wt2 - J2) + (W2 - J2), W2 = At2 - yt2, J2 = At2 - W2, X[1] = At2 - (W2 + J2) + (J2 - yt2), Ct2 = wt2 + W2, J2 = Ct2 - wt2, X[2] = wt2 - (Ct2 - J2) + (W2 - J2), X[3] = Ct2;
+        const Qn = R2(4, A, 4, X, T);
+        Ot2 = Vt * ft2, Z2 = b * Vt, lt2 = Z2 - (Z2 - Vt), xt2 = Vt - lt2, Z2 = b * ft2, nt2 = Z2 - (Z2 - ft2), H2 = ft2 - nt2, Nt2 = xt2 * H2 - (Ot2 - lt2 * nt2 - xt2 * nt2 - lt2 * H2), yt2 = Jt * at2, Z2 = b * Jt, lt2 = Z2 - (Z2 - Jt), xt2 = Jt - lt2, Z2 = b * at2, nt2 = Z2 - (Z2 - at2), H2 = at2 - nt2, Pt2 = xt2 * H2 - (yt2 - lt2 * nt2 - xt2 * nt2 - lt2 * H2), W2 = Nt2 - Pt2, J2 = Nt2 - W2, X[0] = Nt2 - (W2 + J2) + (J2 - Pt2), wt2 = Ot2 + W2, J2 = wt2 - Ot2, At2 = Ot2 - (wt2 - J2) + (W2 - J2), W2 = At2 - yt2, J2 = At2 - W2, X[1] = At2 - (W2 + J2) + (J2 - yt2), Ct2 = wt2 + W2, J2 = Ct2 - wt2, X[2] = wt2 - (Ct2 - J2) + (W2 - J2), X[3] = Ct2;
+        const Hn = R2(Qn, T, 4, X, S2);
+        Ot2 = st * ft2, Z2 = b * st, lt2 = Z2 - (Z2 - st), xt2 = st - lt2, Z2 = b * ft2, nt2 = Z2 - (Z2 - ft2), H2 = ft2 - nt2, Nt2 = xt2 * H2 - (Ot2 - lt2 * nt2 - xt2 * nt2 - lt2 * H2), yt2 = it * at2, Z2 = b * it, lt2 = Z2 - (Z2 - it), xt2 = it - lt2, Z2 = b * at2, nt2 = Z2 - (Z2 - at2), H2 = at2 - nt2, Pt2 = xt2 * H2 - (yt2 - lt2 * nt2 - xt2 * nt2 - lt2 * H2), W2 = Nt2 - Pt2, J2 = Nt2 - W2, X[0] = Nt2 - (W2 + J2) + (J2 - Pt2), wt2 = Ot2 + W2, J2 = wt2 - Ot2, At2 = Ot2 - (wt2 - J2) + (W2 - J2), W2 = At2 - yt2, J2 = At2 - W2, X[1] = At2 - (W2 + J2) + (J2 - yt2), Ct2 = wt2 + W2, J2 = Ct2 - wt2, X[2] = wt2 - (Ct2 - J2) + (W2 - J2), X[3] = Ct2;
+        const Zn = R2(Hn, S2, 4, X, O2);
+        return O2[Zn - 1];
+      }
+      function K2(k, P, C, $2, tt2, G2) {
+        const et2 = (P - G2) * (C - tt2), st = (k - tt2) * ($2 - G2), it = et2 - st, at2 = Math.abs(et2 + st);
+        return Math.abs(it) >= l * at2 ? it : -L2(k, P, C, $2, tt2, G2, at2);
+      }
+      function p(k, P) {
+        var C, $2, tt2 = 0, G2, et2, st, it, at2, ft2, J2, Z2 = k[0], lt2 = k[1], xt2 = P.length;
+        for (C = 0; C < xt2; C++) {
+          $2 = 0;
+          var nt2 = P[C], H2 = nt2.length - 1;
+          if (ft2 = nt2[0], ft2[0] !== nt2[H2][0] && ft2[1] !== nt2[H2][1]) throw new Error("First and last coordinates in a ring must be the same");
+          for (et2 = ft2[0] - Z2, st = ft2[1] - lt2, $2; $2 < H2; $2++) {
+            if (J2 = nt2[$2 + 1], it = J2[0] - Z2, at2 = J2[1] - lt2, st === 0 && at2 === 0) {
+              if (it <= 0 && et2 >= 0 || et2 <= 0 && it >= 0) return 0;
+            } else if (at2 >= 0 && st <= 0 || at2 <= 0 && st >= 0) {
+              if (G2 = K2(et2, it, st, at2, 0, 0), G2 === 0) return 0;
+              (G2 > 0 && at2 > 0 && st <= 0 || G2 < 0 && at2 <= 0 && st > 0) && tt2++;
+            }
+            ft2 = J2, st = at2, et2 = it;
+          }
+        }
+        return tt2 % 2 !== 0;
+      }
+      function E3(k, P, C = {}) {
+        if (!k) throw new Error("point is required");
+        if (!P) throw new Error("polygon is required");
+        const $2 = f(k), tt2 = m(P), G2 = tt2.type, et2 = P.bbox;
+        let st = tt2.coordinates;
+        if (et2 && _($2, et2) === false) return false;
+        G2 === "Polygon" && (st = [st]);
+        let it = false;
+        for (var at2 = 0; at2 < st.length; ++at2) {
+          const ft2 = p($2, st[at2]);
+          if (ft2 === 0) return !C.ignoreBoundary;
+          ft2 && (it = true);
+        }
+        return it;
+      }
+      function _(k, P) {
+        return P[0] <= k[0] && P[1] <= k[1] && P[2] >= k[0] && P[3] >= k[1];
+      }
+      function I(k, P) {
+        for (let C = 0; C < P.features.length; C++) if (E3(k, P.features[C])) return P.features[C];
+      }
+      function N(k, P, C) {
+        const $2 = P.geometry.coordinates[0][0], tt2 = P.geometry.coordinates[0][1], G2 = P.geometry.coordinates[0][2], et2 = k.geometry.coordinates, st = P.properties.a.geom, it = P.properties.b.geom, at2 = P.properties.c.geom, ft2 = [tt2[0] - $2[0], tt2[1] - $2[1]], J2 = [G2[0] - $2[0], G2[1] - $2[1]], Z2 = [et2[0] - $2[0], et2[1] - $2[1]], lt2 = [it[0] - st[0], it[1] - st[1]], xt2 = [at2[0] - st[0], at2[1] - st[1]];
+        let nt2 = (J2[1] * Z2[0] - J2[0] * Z2[1]) / (ft2[0] * J2[1] - ft2[1] * J2[0]), H2 = (ft2[0] * Z2[1] - ft2[1] * Z2[0]) / (ft2[0] * J2[1] - ft2[1] * J2[0]);
+        if (C) {
+          const W2 = C[P.properties.a.index], wt2 = C[P.properties.b.index], At2 = C[P.properties.c.index];
+          let Ot2;
+          if (nt2 < 0 || H2 < 0 || 1 - nt2 - H2 < 0) {
+            const Nt2 = nt2 / (nt2 + H2), yt2 = H2 / (nt2 + H2);
+            Ot2 = nt2 / wt2 / (Nt2 / wt2 + yt2 / At2), H2 = H2 / At2 / (Nt2 / wt2 + yt2 / At2);
+          } else Ot2 = nt2 / wt2 / (nt2 / wt2 + H2 / At2 + (1 - nt2 - H2) / W2), H2 = H2 / At2 / (nt2 / wt2 + H2 / At2 + (1 - nt2 - H2) / W2);
+          nt2 = Ot2;
+        }
+        return [nt2 * lt2[0] + H2 * xt2[0] + st[0], nt2 * lt2[1] + H2 * xt2[1] + st[1]];
+      }
+      function D2(k, P, C, $2) {
+        const tt2 = k.geometry.coordinates, G2 = C.geometry.coordinates, et2 = Math.atan2(tt2[0] - G2[0], tt2[1] - G2[1]), st = F2(et2, P[0]);
+        if (st === void 0) throw new Error("Unable to determine vertex index");
+        const it = P[1][st];
+        return N(k, it.features[0], $2);
+      }
+      function w(k, P, C, $2, tt2, G2, et2, st) {
+        let it;
+        if (et2 && (it = I(k, h([et2]))), !it) {
+          if (C) {
+            const at2 = k.geometry.coordinates, ft2 = C.gridNum, J2 = C.xOrigin, Z2 = C.yOrigin, lt2 = C.xUnit, xt2 = C.yUnit, nt2 = C.gridCache, H2 = B2(at2[0], J2, lt2, ft2), W2 = B2(at2[1], Z2, xt2, ft2), wt2 = nt2[H2] ? nt2[H2][W2] ? nt2[H2][W2] : [] : [];
+            P = h(wt2.map((At2) => P.features[At2]));
+          }
+          it = I(k, P);
+        }
+        return st && st(it), it ? N(k, it, G2) : D2(k, $2, tt2, G2);
+      }
+      function B2(k, P, C, $2) {
+        let tt2 = Math.floor((k - P) / C);
+        return tt2 >= $2 && (tt2 = $2 - 1), tt2;
+      }
+      function F2(k, P) {
+        let C = q2(k - P[0]), $2 = Math.PI * 2, tt2;
+        for (let G2 = 0; G2 < P.length; G2++) {
+          const et2 = (G2 + 1) % P.length, st = q2(k - P[et2]), it = Math.min(Math.abs(C), Math.abs(st));
+          C * st <= 0 && it < $2 && ($2 = it, tt2 = G2), C = st;
+        }
+        return tt2;
+      }
+      function q2(k, P = false) {
+        const C = P ? function($2) {
+          return !($2 >= 0 && $2 < Math.PI * 2);
+        } : function($2) {
+          return !($2 > -1 * Math.PI && $2 <= Math.PI);
+        };
+        for (; C(k); ) k = k + 2 * Math.PI * (k > 0 ? -1 : 1);
+        return k;
+      }
+      function U2(k, P) {
+        return P && P >= 2.00703 || Array.isArray(k[0]) ? k : k.map((C) => [C.illstNodes, C.mercNodes, C.startEnd]);
+      }
+      function z2(k) {
+        const P = k.features;
+        for (let C = 0; C < P.length; C++) {
+          const $2 = P[C];
+          `${$2.properties.a.index}`.substring(0, 1) === "b" && `${$2.properties.b.index}`.substring(0, 1) === "b" ? P[C] = { geometry: { type: "Polygon", coordinates: [[$2.geometry.coordinates[0][2], $2.geometry.coordinates[0][0], $2.geometry.coordinates[0][1], $2.geometry.coordinates[0][2]]] }, properties: { a: { geom: $2.properties.c.geom, index: $2.properties.c.index }, b: { geom: $2.properties.a.geom, index: $2.properties.a.index }, c: { geom: $2.properties.b.geom, index: $2.properties.b.index } }, type: "Feature" } : `${$2.properties.c.index}`.substring(0, 1) === "b" && `${$2.properties.a.index}`.substring(0, 1) === "b" && (P[C] = { geometry: { type: "Polygon", coordinates: [[$2.geometry.coordinates[0][1], $2.geometry.coordinates[0][2], $2.geometry.coordinates[0][0], $2.geometry.coordinates[0][1]]] }, properties: { a: { geom: $2.properties.b.geom, index: $2.properties.b.index }, b: { geom: $2.properties.c.geom, index: $2.properties.c.index }, c: { geom: $2.properties.a.geom, index: $2.properties.a.index } }, type: "Feature" });
+        }
+        return k;
+      }
+      function Q2(k) {
+        const P = ["a", "b", "c", "a"].map((G2) => k.properties[G2].geom), C = k.geometry.coordinates[0], $2 = k.properties, tt2 = { a: { geom: C[0], index: $2.a.index }, b: { geom: C[1], index: $2.b.index }, c: { geom: C[2], index: $2.c.index } };
+        return c([P], tt2);
+      }
+      function V2(k) {
+        const P = [0, 1, 2, 0].map(($2) => k[$2][0][0]), C = { a: { geom: k[0][0][1], index: k[0][1] }, b: { geom: k[1][0][1], index: k[1][1] }, c: { geom: k[2][0][1], index: k[2][1] } };
+        return c([P], C);
+      }
+      function ht2(k, P, C, $2, tt2, G2 = false, et2) {
+        const st = k.map((it) => {
+          (!et2 || et2 < 2.00703) && (it = ct2(it));
+          const at2 = isFinite(it) ? P[it] : it === "c" ? $2 : it === "b0" ? tt2[0] : it === "b1" ? tt2[1] : it === "b2" ? tt2[2] : it === "b3" ? tt2[3] : function() {
+            const ft2 = it.match(/e(\d+)/);
+            if (ft2) {
+              const J2 = parseInt(ft2[1]);
+              return C[J2];
+            }
+            throw "Bad index value for indexesToTri";
+          }();
+          return G2 ? [[at2[1], at2[0]], it] : [[at2[0], at2[1]], it];
+        });
+        return V2(st);
+      }
+      function ct2(k) {
+        return typeof k == "number" ? k : k.replace(/^(c|e|b)(?:ent|dgeNode|box)(\d+)?$/, "$1$2");
+      }
+      const ut2 = 2.00703;
+      function dt2(k) {
+        return !!(k.version || !k.tins && k.points && k.tins_points);
+      }
+      function gt2(k) {
+        return { points: k.points, pointsWeightBuffer: Bt2(k), strictStatus: Xt(k), verticesParams: St2(k), centroid: Qt(k), edges: U2(k.edges || []), edgeNodes: k.edgeNodes || [], tins: fe(k), kinks: We(k.kinks_points), yaxisMode: k.yaxisMode ?? "invert", strictMode: k.strictMode ?? "auto", vertexMode: k.vertexMode, bounds: k.bounds, boundsPolygon: k.boundsPolygon, wh: k.wh, xy: k.bounds ? k.xy : [0, 0] };
+      }
+      function mt2(k) {
+        const P = Je(k), C = P.tins;
+        return { compiled: P, tins: C, points: Ke(C), strictStatus: P.strict_status, pointsWeightBuffer: P.weight_buffer, verticesParams: P.vertices_params, centroid: P.centroid, kinks: P.kinks };
+      }
+      function Bt2(k) {
+        return !k.version || k.version < ut2 ? ["forw", "bakw"].reduce((P, C) => {
+          const $2 = k.weight_buffer[C];
+          return $2 && (P[C] = Object.keys($2).reduce((tt2, G2) => {
+            const et2 = ct2(G2);
+            return tt2[et2] = $2[G2], tt2;
+          }, {})), P;
+        }, {}) : k.weight_buffer;
+      }
+      function Xt(k) {
+        return k.strict_status ? k.strict_status : k.kinks_points ? "strict_error" : k.tins_points.length === 2 ? "loose" : "strict";
+      }
+      function St2(k) {
+        const P = { forw: [k.vertices_params[0]], bakw: [k.vertices_params[1]] };
+        return P.forw[1] = Mt2(k, false), P.bakw[1] = Mt2(k, true), P;
+      }
+      function Mt2(k, P) {
+        return [0, 1, 2, 3].map((C) => {
+          const $2 = (C + 1) % 4, tt2 = ht2(["c", `b${C}`, `b${$2}`], k.points, k.edgeNodes || [], k.centroid_point, k.vertices_points, P, ut2);
+          return h([tt2]);
+        });
+      }
+      function Qt(k) {
+        return { forw: a(k.centroid_point[0], { target: { geom: k.centroid_point[1], index: "c" } }), bakw: a(k.centroid_point[1], { target: { geom: k.centroid_point[0], index: "c" } }) };
+      }
+      function fe(k) {
+        const P = k.tins_points.length === 1 ? 0 : 1;
+        return { forw: h(k.tins_points[0].map((C) => ht2(C, k.points, k.edgeNodes || [], k.centroid_point, k.vertices_points, false, k.version))), bakw: h(k.tins_points[P].map((C) => ht2(C, k.points, k.edgeNodes || [], k.centroid_point, k.vertices_points, true, k.version))) };
+      }
+      function We(k) {
+        if (k) return { bakw: h(k.map((P) => a(P))) };
+      }
+      function Je(k) {
+        return JSON.parse(JSON.stringify(k).replace('"cent"', '"c"').replace(/"bbox(\d+)"/g, '"b$1"'));
+      }
+      function Ke(k) {
+        const P = [], C = k.forw.features;
+        for (let $2 = 0; $2 < C.length; $2++) {
+          const tt2 = C[$2];
+          ["a", "b", "c"].map((G2, et2) => {
+            const st = tt2.geometry.coordinates[0][et2], it = tt2.properties[G2].geom, at2 = tt2.properties[G2].index;
+            typeof at2 == "number" && (P[at2] = [st, it]);
+          });
+        }
+        return P;
+      }
+      const Ge = ut2, qt = class ee {
+        constructor() {
+          n(this, "points", []), n(this, "pointsWeightBuffer"), n(this, "strict_status"), n(this, "vertices_params"), n(this, "centroid"), n(this, "edgeNodes"), n(this, "edges"), n(this, "tins"), n(this, "kinks"), n(this, "yaxisMode", ee.YAXIS_INVERT), n(this, "strictMode", ee.MODE_AUTO), n(this, "vertexMode", ee.VERTEX_PLAIN), n(this, "bounds"), n(this, "boundsPolygon"), n(this, "wh"), n(this, "xy"), n(this, "indexedTins"), n(this, "stateFull", false), n(this, "stateTriangle"), n(this, "stateBackward"), n(this, "priority"), n(this, "importance"), n(this, "xyBounds"), n(this, "mercBounds");
+        }
+        setCompiled(P) {
+          if (dt2(P)) {
+            this.applyModernState(gt2(P));
+            return;
+          }
+          this.applyLegacyState(mt2(P));
+        }
+        applyModernState(P) {
+          this.points = P.points, this.pointsWeightBuffer = P.pointsWeightBuffer, this.strict_status = P.strictStatus, this.vertices_params = P.verticesParams, this.centroid = P.centroid, this.edges = P.edges, this.edgeNodes = P.edgeNodes || [], this.tins = P.tins, this.addIndexedTin(), this.kinks = P.kinks, this.yaxisMode = P.yaxisMode ?? ee.YAXIS_INVERT, this.vertexMode = P.vertexMode ?? ee.VERTEX_PLAIN, this.strictMode = P.strictMode ?? ee.MODE_AUTO, P.bounds ? (this.bounds = P.bounds, this.boundsPolygon = P.boundsPolygon, this.xy = P.xy, this.wh = P.wh) : (this.bounds = void 0, this.boundsPolygon = void 0, this.xy = P.xy ?? [0, 0], P.wh && (this.wh = P.wh));
+        }
+        applyLegacyState(P) {
+          this.tins = P.tins, this.addIndexedTin(), this.strict_status = P.strictStatus, this.pointsWeightBuffer = P.pointsWeightBuffer, this.vertices_params = P.verticesParams, this.centroid = P.centroid, this.kinks = P.kinks, this.points = P.points;
+        }
+        addIndexedTin() {
+          const P = this.tins, C = P.forw, $2 = P.bakw, tt2 = Math.ceil(Math.sqrt(C.features.length));
+          if (tt2 < 3) {
+            this.indexedTins = void 0;
+            return;
+          }
+          let G2 = [], et2 = [];
+          const st = C.features.map((nt2) => {
+            let H2 = [];
+            return g(nt2)[0].map((W2) => {
+              G2.length === 0 ? G2 = [Array.from(W2), Array.from(W2)] : (W2[0] < G2[0][0] && (G2[0][0] = W2[0]), W2[0] > G2[1][0] && (G2[1][0] = W2[0]), W2[1] < G2[0][1] && (G2[0][1] = W2[1]), W2[1] > G2[1][1] && (G2[1][1] = W2[1])), H2.length === 0 ? H2 = [Array.from(W2), Array.from(W2)] : (W2[0] < H2[0][0] && (H2[0][0] = W2[0]), W2[0] > H2[1][0] && (H2[1][0] = W2[0]), W2[1] < H2[0][1] && (H2[0][1] = W2[1]), W2[1] > H2[1][1] && (H2[1][1] = W2[1]));
+            }), H2;
+          }), it = (G2[1][0] - G2[0][0]) / tt2, at2 = (G2[1][1] - G2[0][1]) / tt2, ft2 = st.reduce((nt2, H2, W2) => {
+            const wt2 = B2(H2[0][0], G2[0][0], it, tt2), At2 = B2(H2[1][0], G2[0][0], it, tt2), Ot2 = B2(H2[0][1], G2[0][1], at2, tt2), Nt2 = B2(H2[1][1], G2[0][1], at2, tt2);
+            for (let yt2 = wt2; yt2 <= At2; yt2++) {
+              nt2[yt2] || (nt2[yt2] = []);
+              for (let Pt2 = Ot2; Pt2 <= Nt2; Pt2++) nt2[yt2][Pt2] || (nt2[yt2][Pt2] = []), nt2[yt2][Pt2].push(W2);
+            }
+            return nt2;
+          }, []), J2 = $2.features.map((nt2) => {
+            let H2 = [];
+            return g(nt2)[0].map((W2) => {
+              et2.length === 0 ? et2 = [Array.from(W2), Array.from(W2)] : (W2[0] < et2[0][0] && (et2[0][0] = W2[0]), W2[0] > et2[1][0] && (et2[1][0] = W2[0]), W2[1] < et2[0][1] && (et2[0][1] = W2[1]), W2[1] > et2[1][1] && (et2[1][1] = W2[1])), H2.length === 0 ? H2 = [Array.from(W2), Array.from(W2)] : (W2[0] < H2[0][0] && (H2[0][0] = W2[0]), W2[0] > H2[1][0] && (H2[1][0] = W2[0]), W2[1] < H2[0][1] && (H2[0][1] = W2[1]), W2[1] > H2[1][1] && (H2[1][1] = W2[1]));
+            }), H2;
+          }), Z2 = (et2[1][0] - et2[0][0]) / tt2, lt2 = (et2[1][1] - et2[0][1]) / tt2, xt2 = J2.reduce((nt2, H2, W2) => {
+            const wt2 = B2(H2[0][0], et2[0][0], Z2, tt2), At2 = B2(H2[1][0], et2[0][0], Z2, tt2), Ot2 = B2(H2[0][1], et2[0][1], lt2, tt2), Nt2 = B2(H2[1][1], et2[0][1], lt2, tt2);
+            for (let yt2 = wt2; yt2 <= At2; yt2++) {
+              nt2[yt2] || (nt2[yt2] = []);
+              for (let Pt2 = Ot2; Pt2 <= Nt2; Pt2++) nt2[yt2][Pt2] || (nt2[yt2][Pt2] = []), nt2[yt2][Pt2].push(W2);
+            }
+            return nt2;
+          }, []);
+          this.indexedTins = { forw: { gridNum: tt2, xOrigin: G2[0][0], yOrigin: G2[0][1], xUnit: it, yUnit: at2, gridCache: ft2 }, bakw: { gridNum: tt2, xOrigin: et2[0][0], yOrigin: et2[0][1], xUnit: Z2, yUnit: lt2, gridCache: xt2 } };
+        }
+        transform(P, C, $2) {
+          if (C && this.strict_status == ee.STATUS_ERROR) throw 'Backward transform is not allowed if strict_status == "strict_error"';
+          this.yaxisMode == ee.YAXIS_FOLLOW && C && (P = [P[0], -1 * P[1]]);
+          const tt2 = a(P);
+          if (this.bounds && !C && !$2 && !E3(tt2, this.boundsPolygon)) return false;
+          const G2 = C ? this.tins.bakw : this.tins.forw, et2 = C ? this.indexedTins.bakw : this.indexedTins.forw, st = C ? this.vertices_params.bakw : this.vertices_params.forw, it = C ? this.centroid.bakw : this.centroid.forw, at2 = C ? this.pointsWeightBuffer.bakw : this.pointsWeightBuffer.forw;
+          let ft2, J2;
+          this.stateFull && (this.stateBackward == C ? ft2 = this.stateTriangle : (this.stateBackward = C, this.stateTriangle = void 0), J2 = (lt2) => {
+            this.stateTriangle = lt2;
+          });
+          let Z2 = w(tt2, G2, et2, st, it, at2, ft2, J2);
+          if (this.bounds && C && !$2) {
+            const lt2 = a(Z2);
+            if (!E3(lt2, this.boundsPolygon)) return false;
+          } else this.yaxisMode == ee.YAXIS_FOLLOW && !C && (Z2 = [Z2[0], -1 * Z2[1]]);
+          return Z2;
+        }
+      };
+      n(qt, "VERTEX_PLAIN", "plain"), n(qt, "VERTEX_BIRDEYE", "birdeye"), n(qt, "MODE_STRICT", "strict"), n(qt, "MODE_AUTO", "auto"), n(qt, "MODE_LOOSE", "loose"), n(qt, "STATUS_STRICT", "strict"), n(qt, "STATUS_ERROR", "strict_error"), n(qt, "STATUS_LOOSE", "loose"), n(qt, "YAXIS_FOLLOW", "follow"), n(qt, "YAXIS_INVERT", "invert");
+      let Pe = qt;
+      t2.Transform = Pe, t2.counterTri = Q2, t2.format_version = Ge, t2.normalizeEdges = U2, t2.rotateVerticesTriangle = z2, t2.transformArr = w, Object.defineProperty(t2, Symbol.toStringTag, { value: "Module" });
+    });
+  }(ke, ke.exports)), ke.exports;
+}
+var zt = jr();
+const On = Math.pow(2, -52), Fe = new Uint32Array(512);
+class fn {
+  static from(e, t2 = Jr, r = Kr) {
+    const i = e.length, n = new Float64Array(i * 2);
+    for (let o = 0; o < i; o++) {
+      const a = e[o];
+      n[2 * o] = t2(a), n[2 * o + 1] = r(a);
+    }
+    return new fn(n);
+  }
+  constructor(e) {
+    const t2 = e.length >> 1;
+    if (t2 > 0 && typeof e[0] != "number") throw new Error("Expected coords to contain numbers.");
+    this.coords = e;
+    const r = Math.max(2 * t2 - 5, 0);
+    this._triangles = new Uint32Array(r * 3), this._halfedges = new Int32Array(r * 3), this._hashSize = Math.ceil(Math.sqrt(t2)), this._hullPrev = new Uint32Array(t2), this._hullNext = new Uint32Array(t2), this._hullTri = new Uint32Array(t2), this._hullHash = new Int32Array(this._hashSize), this._ids = new Uint32Array(t2), this._dists = new Float64Array(t2), this.update();
+  }
+  update() {
+    const { coords: e, _hullPrev: t2, _hullNext: r, _hullTri: i, _hullHash: n } = this, o = e.length >> 1;
+    let a = 1 / 0, c = 1 / 0, h = -1 / 0, u2 = -1 / 0;
+    for (let S2 = 0; S2 < o; S2++) {
+      const O2 = e[2 * S2], X = e[2 * S2 + 1];
+      O2 < a && (a = O2), X < c && (c = X), O2 > h && (h = O2), X > u2 && (u2 = X), this._ids[S2] = S2;
+    }
+    const f = (a + h) / 2, g = (c + u2) / 2;
+    let m, x2, b;
+    for (let S2 = 0, O2 = 1 / 0; S2 < o; S2++) {
+      const X = an(f, g, e[2 * S2], e[2 * S2 + 1]);
+      X < O2 && (m = S2, O2 = X);
+    }
+    const Y2 = e[2 * m], R2 = e[2 * m + 1];
+    for (let S2 = 0, O2 = 1 / 0; S2 < o; S2++) {
+      if (S2 === m) continue;
+      const X = an(Y2, R2, e[2 * S2], e[2 * S2 + 1]);
+      X < O2 && X > 0 && (x2 = S2, O2 = X);
+    }
+    let d = e[2 * x2], y = e[2 * x2 + 1], l = 1 / 0;
+    for (let S2 = 0; S2 < o; S2++) {
+      if (S2 === m || S2 === x2) continue;
+      const O2 = Vr(Y2, R2, d, y, e[2 * S2], e[2 * S2 + 1]);
+      O2 < l && (b = S2, l = O2);
+    }
+    let v = e[2 * b], M = e[2 * b + 1];
+    if (l === 1 / 0) {
+      for (let X = 0; X < o; X++)
+        this._dists[X] = e[2 * X] - e[0] || e[2 * X + 1] - e[1];
+      ve(this._ids, this._dists, 0, o - 1);
+      const S2 = new Uint32Array(o);
+      let O2 = 0;
+      for (let X = 0, L2 = -1 / 0; X < o; X++) {
+        const K2 = this._ids[X], p = this._dists[K2];
+        p > L2 && (S2[O2++] = K2, L2 = p);
+      }
+      this.hull = S2.subarray(0, O2), this.triangles = new Uint32Array(0), this.halfedges = new Uint32Array(0);
+      return;
+    }
+    if (ne(Y2, R2, d, y, v, M) < 0) {
+      const S2 = x2, O2 = d, X = y;
+      x2 = b, d = v, y = M, b = S2, v = O2, M = X;
+    }
+    const A = Wr(Y2, R2, d, y, v, M);
+    this._cx = A.x, this._cy = A.y;
+    for (let S2 = 0; S2 < o; S2++)
+      this._dists[S2] = an(e[2 * S2], e[2 * S2 + 1], A.x, A.y);
+    ve(this._ids, this._dists, 0, o - 1), this._hullStart = m;
+    let T = 3;
+    r[m] = t2[b] = x2, r[x2] = t2[m] = b, r[b] = t2[x2] = m, i[m] = 0, i[x2] = 1, i[b] = 2, n.fill(-1), n[this._hashKey(Y2, R2)] = m, n[this._hashKey(d, y)] = x2, n[this._hashKey(v, M)] = b, this.trianglesLen = 0, this._addTriangle(m, x2, b, -1, -1, -1);
+    for (let S2 = 0, O2, X; S2 < this._ids.length; S2++) {
+      const L2 = this._ids[S2], K2 = e[2 * L2], p = e[2 * L2 + 1];
+      if (S2 > 0 && Math.abs(K2 - O2) <= On && Math.abs(p - X) <= On || (O2 = K2, X = p, L2 === m || L2 === x2 || L2 === b)) continue;
+      let E3 = 0;
+      for (let w = 0, B2 = this._hashKey(K2, p); w < this._hashSize && (E3 = n[(B2 + w) % this._hashSize], !(E3 !== -1 && E3 !== r[E3])); w++)
+        ;
+      E3 = t2[E3];
+      let _ = E3, I;
+      for (; I = r[_], ne(K2, p, e[2 * _], e[2 * _ + 1], e[2 * I], e[2 * I + 1]) >= 0; )
+        if (_ = I, _ === E3) {
+          _ = -1;
+          break;
+        }
+      if (_ === -1) continue;
+      let N = this._addTriangle(_, L2, r[_], -1, -1, i[_]);
+      i[L2] = this._legalize(N + 2), i[_] = N, T++;
+      let D2 = r[_];
+      for (; I = r[D2], ne(K2, p, e[2 * D2], e[2 * D2 + 1], e[2 * I], e[2 * I + 1]) < 0; )
+        N = this._addTriangle(D2, L2, I, i[L2], -1, i[D2]), i[L2] = this._legalize(N + 2), r[D2] = D2, T--, D2 = I;
+      if (_ === E3)
+        for (; I = t2[_], ne(K2, p, e[2 * I], e[2 * I + 1], e[2 * _], e[2 * _ + 1]) < 0; )
+          N = this._addTriangle(I, L2, _, -1, i[_], i[I]), this._legalize(N + 2), i[I] = N, r[_] = _, T--, _ = I;
+      this._hullStart = t2[L2] = _, r[_] = t2[D2] = L2, r[L2] = D2, n[this._hashKey(K2, p)] = L2, n[this._hashKey(e[2 * _], e[2 * _ + 1])] = _;
+    }
+    this.hull = new Uint32Array(T);
+    for (let S2 = 0, O2 = this._hullStart; S2 < T; S2++)
+      this.hull[S2] = O2, O2 = r[O2];
+    this.triangles = this._triangles.subarray(0, this.trianglesLen), this.halfedges = this._halfedges.subarray(0, this.trianglesLen);
+  }
+  _hashKey(e, t2) {
+    return Math.floor(Ur(e - this._cx, t2 - this._cy) * this._hashSize) % this._hashSize;
+  }
+  _legalize(e) {
+    const { _triangles: t2, _halfedges: r, coords: i } = this;
+    let n = 0, o = 0;
+    for (; ; ) {
+      const a = r[e], c = e - e % 3;
+      if (o = c + (e + 2) % 3, a === -1) {
+        if (n === 0) break;
+        e = Fe[--n];
+        continue;
+      }
+      const h = a - a % 3, u2 = c + (e + 1) % 3, f = h + (a + 2) % 3, g = t2[o], m = t2[e], x2 = t2[u2], b = t2[f];
+      if (zr(
+        i[2 * g],
+        i[2 * g + 1],
+        i[2 * m],
+        i[2 * m + 1],
+        i[2 * x2],
+        i[2 * x2 + 1],
+        i[2 * b],
+        i[2 * b + 1]
+      )) {
+        t2[e] = b, t2[a] = g;
+        const R2 = r[f];
+        if (R2 === -1) {
+          let y = this._hullStart;
+          do {
+            if (this._hullTri[y] === f) {
+              this._hullTri[y] = e;
+              break;
+            }
+            y = this._hullPrev[y];
+          } while (y !== this._hullStart);
+        }
+        this._link(e, R2), this._link(a, r[o]), this._link(o, f);
+        const d = h + (a + 1) % 3;
+        n < Fe.length && (Fe[n++] = d);
+      } else {
+        if (n === 0) break;
+        e = Fe[--n];
+      }
+    }
+    return o;
+  }
+  _link(e, t2) {
+    this._halfedges[e] = t2, t2 !== -1 && (this._halfedges[t2] = e);
+  }
+  // add a new triangle given vertex indices and adjacent half-edge ids
+  _addTriangle(e, t2, r, i, n, o) {
+    const a = this.trianglesLen;
+    return this._triangles[a] = e, this._triangles[a + 1] = t2, this._triangles[a + 2] = r, this._link(a, i), this._link(a + 1, n), this._link(a + 2, o), this.trianglesLen += 3, a;
+  }
+}
+function Ur(s, e) {
+  const t2 = s / (Math.abs(s) + Math.abs(e));
+  return (e > 0 ? 3 - t2 : 1 + t2) / 4;
+}
+function an(s, e, t2, r) {
+  const i = s - t2, n = e - r;
+  return i * i + n * n;
+}
+function zr(s, e, t2, r, i, n, o, a) {
+  const c = s - o, h = e - a, u2 = t2 - o, f = r - a, g = i - o, m = n - a, x2 = c * c + h * h, b = u2 * u2 + f * f, Y2 = g * g + m * m;
+  return c * (f * Y2 - b * m) - h * (u2 * Y2 - b * g) + x2 * (u2 * m - f * g) < 0;
+}
+function Vr(s, e, t2, r, i, n) {
+  const o = t2 - s, a = r - e, c = i - s, h = n - e, u2 = o * o + a * a, f = c * c + h * h, g = 0.5 / (o * h - a * c), m = (h * u2 - a * f) * g, x2 = (o * f - c * u2) * g;
+  return m * m + x2 * x2;
+}
+function Wr(s, e, t2, r, i, n) {
+  const o = t2 - s, a = r - e, c = i - s, h = n - e, u2 = o * o + a * a, f = c * c + h * h, g = 0.5 / (o * h - a * c), m = s + (h * u2 - a * f) * g, x2 = e + (o * f - c * u2) * g;
+  return { x: m, y: x2 };
+}
+function ve(s, e, t2, r) {
+  if (r - t2 <= 20)
+    for (let i = t2 + 1; i <= r; i++) {
+      const n = s[i], o = e[n];
+      let a = i - 1;
+      for (; a >= t2 && e[s[a]] > o; ) s[a + 1] = s[a--];
+      s[a + 1] = n;
+    }
+  else {
+    const i = t2 + r >> 1;
+    let n = t2 + 1, o = r;
+    Me(s, i, n), e[s[t2]] > e[s[r]] && Me(s, t2, r), e[s[n]] > e[s[r]] && Me(s, n, r), e[s[t2]] > e[s[n]] && Me(s, t2, n);
+    const a = s[n], c = e[a];
+    for (; ; ) {
+      do
+        n++;
+      while (e[s[n]] < c);
+      do
+        o--;
+      while (e[s[o]] > c);
+      if (o < n) break;
+      Me(s, n, o);
+    }
+    s[t2 + 1] = s[o], s[o] = a, r - n + 1 >= o - t2 ? (ve(s, e, n, r), ve(s, e, t2, o - 1)) : (ve(s, e, t2, o - 1), ve(s, e, n, r));
+  }
+}
+function Me(s, e, t2) {
+  const r = s[e];
+  s[e] = s[t2], s[t2] = r;
+}
+function Jr(s) {
+  return s[0];
+}
+function Kr(s) {
+  return s[1];
+}
+class Gr {
+  constructor(e, t2) {
+    bt(this, "bs");
+    bt(this, "width");
+    this.width = e, this.bs = t2;
+  }
+  /**
+   * Add a number to the set.
+   *
+   * @param idx The number to add. Must be 0 <= idx < len.
+   */
+  add(e) {
+    const t2 = Math.floor(e / this.width), r = e % this.width;
+    return this.bs[t2] |= 1 << r, this;
+  }
+  /**
+   * Delete a number from the set.
+   *
+   * @param idx The number to delete. Must be 0 <= idx < len.
+   */
+  delete(e) {
+    const t2 = Math.floor(e / this.width), r = e % this.width;
+    return this.bs[t2] &= ~(1 << r), this;
+  }
+  /**
+   * Add or delete a number in the set, depending on the second argument.
+   *
+   * @param idx The number to add or delete. Must be 0 <= idx < len.
+   * @param val If true, add the number, otherwise delete.
+   */
+  set(e, t2) {
+    const r = Math.floor(e / this.width), n = 1 << e % this.width;
+    return this.bs[r] ^= (-Number(t2) ^ this.bs[r]) & n, t2;
+  }
+  /**
+   * Whether the number is in the set.
+   *
+   * @param idx The number to test. Must be 0 <= idx < len.
+   */
+  has(e) {
+    const t2 = Math.floor(e / this.width), r = e % this.width;
+    return (this.bs[t2] & 1 << r) !== 0;
+  }
+  /**
+   * Iterate over the numbers that are in the set.
+   */
+  forEach(e) {
+    const t2 = this.bs.length;
+    for (let r = 0; r < t2; r++) {
+      let i = 0;
+      for (; this.bs[r] && i < this.width; )
+        this.bs[r] & 1 << i && e(r * this.width + i), i++;
+    }
+    return this;
+  }
+}
+class Bn extends Gr {
+  constructor(e) {
+    super(8, new Uint8Array(Math.ceil(e / 8)).fill(0));
+  }
+}
+function me(s) {
+  return s % 3 === 2 ? s - 2 : s + 1;
+}
+function re(s) {
+  return s % 3 === 0 ? s + 2 : s - 1;
+}
+function Pn(s, e, t2, r, i, n, o, a) {
+  const c = ne(s, e, i, n, o, a), h = ne(t2, r, i, n, o, a);
+  if (c > 0 && h > 0 || c < 0 && h < 0)
+    return false;
+  const u2 = ne(i, n, s, e, t2, r), f = ne(o, a, s, e, t2, r);
+  return u2 > 0 && f > 0 || u2 < 0 && f < 0 ? false : c === 0 && h === 0 && u2 === 0 && f === 0 ? !(Math.max(i, o) < Math.min(s, t2) || Math.max(s, t2) < Math.min(i, o) || Math.max(n, a) < Math.min(e, r) || Math.max(e, r) < Math.min(n, a)) : true;
+}
+class Qr {
+  constructor(e) {
+    bt(this, "del");
+    this.del = e;
+  }
+}
+class jn extends Qr {
+  /**
+   * Create a Constrain instance.
+   *
+   * @param del The triangulation output from Delaunator.
+   * @param edges If provided, constrain these edges via constrainAll.
+   */
+  constructor(t2, r) {
+    if (!t2 || typeof t2 != "object" || !t2.triangles || !t2.halfedges || !t2.coords)
+      throw new Error("Expected an object with Delaunator output");
+    if (t2.triangles.length % 3 || t2.halfedges.length !== t2.triangles.length || t2.coords.length % 2)
+      throw new Error("Delaunator output appears inconsistent");
+    if (t2.triangles.length < 3)
+      throw new Error("No edges in triangulation");
+    super(t2);
+    bt(this, "vertMap");
+    bt(this, "flips");
+    bt(this, "consd");
+    const i = 2 ** 32 - 1, n = t2.coords.length >> 1, o = t2.triangles.length;
+    this.vertMap = new Uint32Array(n).fill(i), this.flips = new Bn(o), this.consd = new Bn(o);
+    for (let a = 0; a < o; a++) {
+      const c = t2.triangles[a];
+      this.vertMap[c] === i && this.updateVert(a);
+    }
+    r && this.constrainAll(r);
+  }
+  /**
+   * Constrain the triangulation such that there is an edge between p1 and p2.
+   */
+  constrainOne(t2, r) {
+    const { triangles: i, halfedges: n } = this.del, o = this.vertMap[t2];
+    let a = o;
+    do {
+      const u2 = i[a], f = me(a);
+      if (u2 === r)
+        return this.protect(a);
+      const g = re(a), m = i[g];
+      if (m === r)
+        return this.protect(f), f;
+      if (this.intersectSegments(t2, r, m, u2)) {
+        a = g;
+        break;
+      }
+      a = n[f];
+    } while (a !== -1 && a !== o);
+    let c = a, h = -1;
+    for (; a !== -1; ) {
+      const u2 = n[a], f = re(a), g = re(u2), m = me(u2);
+      if (u2 === -1)
+        throw new Error("Constraining edge exited the hull");
+      if (this.consd.has(a))
+        throw new Error("Edge intersects already constrained edge");
+      if (this.isCollinear(t2, r, i[a]) || this.isCollinear(t2, r, i[u2]))
+        throw new Error("Constraining edge intersects point");
+      if (!this.intersectSegments(
+        i[a],
+        i[u2],
+        i[f],
+        i[g]
+      )) {
+        if (h === -1 && (h = a), i[g] === r) {
+          if (a === h)
+            throw new Error("Infinite loop: non-convex quadrilateral");
+          a = h, h = -1;
+          continue;
+        }
+        if (this.intersectSegments(
+          t2,
+          r,
+          i[g],
+          i[u2]
+        ))
+          a = g;
+        else if (this.intersectSegments(
+          t2,
+          r,
+          i[m],
+          i[g]
+        ))
+          a = m;
+        else if (h === a)
+          throw new Error("Infinite loop: no further intersect after non-convex");
+        continue;
+      }
+      if (this.flipDiagonal(a), this.intersectSegments(
+        t2,
+        r,
+        i[f],
+        i[g]
+      ) && (h === -1 && (h = f), h === f))
+        throw new Error("Infinite loop: flipped diagonal still intersects");
+      i[g] === r ? (c = g, a = h, h = -1) : this.intersectSegments(
+        t2,
+        r,
+        i[m],
+        i[g]
+      ) && (a = m);
+    }
+    return this.protect(c), this.delaunify(true), this.findEdge(t2, r);
+  }
+  /**
+   * Fix the Delaunay condition.
+   */
+  delaunify(t2 = false) {
+    const { halfedges: r } = this.del, i = this.flips, n = this.consd, o = r.length;
+    let a;
+    do {
+      a = 0;
+      for (let c = 0; c < o; c++) {
+        if (n.has(c))
+          continue;
+        i.delete(c);
+        const h = r[c];
+        h !== -1 && (i.delete(h), this.isDelaunay(c) || (this.flipDiagonal(c), a++));
+      }
+    } while (t2 && a > 0);
+    return this;
+  }
+  /**
+   * Call constrainOne on each edge.
+   */
+  constrainAll(t2) {
+    const r = t2.length;
+    for (let i = 0; i < r; i++) {
+      const n = t2[i];
+      this.constrainOne(n[0], n[1]);
+    }
+    return this;
+  }
+  /**
+   * Whether an edge is constrained.
+   */
+  isConstrained(t2) {
+    return this.consd.has(t2);
+  }
+  /**
+   * Find the edge that points from p1 -> p2. If there is only an edge from
+   * p2 -> p1 (i.e. it is on the hull), returns the negative id of it.
+   */
+  findEdge(t2, r) {
+    const i = this.vertMap[r], { triangles: n, halfedges: o } = this.del;
+    let a = i, c = -1;
+    do {
+      if (n[a] === t2)
+        return a;
+      c = me(a), a = o[c];
+    } while (a !== -1 && a !== i);
+    return n[me(c)] === t2 ? -c : 1 / 0;
+  }
+  /**
+   * Mark an edge as constrained, i.e. should not be touched by `delaunify`.
+   */
+  protect(t2) {
+    const r = this.del.halfedges[t2], i = this.flips, n = this.consd;
+    return i.delete(t2), n.add(t2), r !== -1 ? (i.delete(r), n.add(r), r) : -t2;
+  }
+  /**
+   * Mark an edge as flipped unless constrained.
+   */
+  markFlip(t2) {
+    const r = this.del.halfedges, i = this.flips;
+    if (this.consd.has(t2))
+      return false;
+    const o = r[t2];
+    return o !== -1 && (i.add(t2), i.add(o)), true;
+  }
+  /**
+   * Flip the edge shared by two triangles.
+   */
+  flipDiagonal(t2) {
+    const { triangles: r, halfedges: i } = this.del, n = this.flips, o = this.consd, a = i[t2], c = re(t2), h = me(t2), u2 = re(a), f = me(a), g = i[c], m = i[u2];
+    if (o.has(t2))
+      throw new Error("Trying to flip a constrained edge");
+    return r[t2] = r[u2], i[t2] = m, n.set(t2, n.has(u2)) || o.set(t2, o.has(u2)), m !== -1 && (i[m] = t2), i[c] = u2, r[a] = r[c], i[a] = g, n.set(a, n.has(c)) || o.set(a, o.has(c)), g !== -1 && (i[g] = a), i[u2] = c, this.markFlip(t2), this.markFlip(h), this.markFlip(a), this.markFlip(f), n.add(c), o.delete(c), n.add(u2), o.delete(u2), this.updateVert(t2), this.updateVert(h), this.updateVert(a), this.updateVert(f), c;
+  }
+  /**
+   * Whether point p1, p2, and p are collinear.
+   */
+  isCollinear(t2, r, i) {
+    const n = this.del.coords;
+    return ne(
+      n[t2 * 2],
+      n[t2 * 2 + 1],
+      n[r * 2],
+      n[r * 2 + 1],
+      n[i * 2],
+      n[i * 2 + 1]
+    ) === 0;
+  }
+  /**
+   * Whether the triangle formed by p1, p2, p3 keeps px outside the circumcircle.
+   */
+  inCircle(t2, r, i, n) {
+    const o = this.del.coords;
+    return lr(
+      o[t2 * 2],
+      o[t2 * 2 + 1],
+      o[r * 2],
+      o[r * 2 + 1],
+      o[i * 2],
+      o[i * 2 + 1],
+      o[n * 2],
+      o[n * 2 + 1]
+    ) < 0;
+  }
+  /**
+   * Whether the triangles sharing edg conform to the Delaunay condition.
+   */
+  isDelaunay(t2) {
+    const { triangles: r, halfedges: i } = this.del, n = i[t2];
+    if (n === -1)
+      return true;
+    const o = r[re(t2)], a = r[t2], c = r[me(t2)], h = r[re(n)];
+    return !this.inCircle(o, a, c, h);
+  }
+  /**
+   * Update the vertex -> incoming edge map.
+   */
+  updateVert(t2) {
+    const { triangles: r, halfedges: i } = this.del, n = this.vertMap, o = r[t2];
+    let a = re(t2), c = i[a];
+    for (; c !== -1 && c !== t2; )
+      a = re(c), c = i[a];
+    return n[o] = a, a;
+  }
+  /**
+   * Whether the segments between vertices intersect.
+   */
+  intersectSegments(t2, r, i, n) {
+    const o = this.del.coords;
+    return t2 === i || t2 === n || r === i || r === n ? false : Pn(
+      o[t2 * 2],
+      o[t2 * 2 + 1],
+      o[r * 2],
+      o[r * 2 + 1],
+      o[i * 2],
+      o[i * 2 + 1],
+      o[n * 2],
+      o[n * 2 + 1]
+    );
+  }
+}
+bt(jn, "intersectSegments", Pn);
+function Le(s, e, t2) {
+  if (e || (e = []), typeof s != "object" || s.type !== "FeatureCollection")
+    throw "Argument points must be FeatureCollection";
+  if (!Array.isArray(e)) throw "Argument points must be Array of Array";
+  const r = s.features.map(
+    (c) => c.geometry.coordinates
+  ), i = fn.from(r);
+  let n;
+  const o = [];
+  i.triangles.length !== 0 && e.length !== 0 && (n = new jn(i), n.constrainAll(e));
+  for (let c = 0; c < i.triangles.length; c += 3)
+    o.push([i.triangles[c], i.triangles[c + 1], i.triangles[c + 2]]);
+  const a = ["a", "b", "c"];
+  return Gt(
+    o.map((c) => {
+      const h = {}, u2 = c.map((f, g) => {
+        const m = s.features[f], x2 = m.geometry.coordinates, b = [x2[0], x2[1]];
+        return x2.length === 3 ? b[2] = x2[2] : h[a[g]] = m.properties[t2], b;
+      });
+      return u2[3] = u2[0], Be([u2], h);
+    })
+  );
+}
+function Un(s, e, t2, r, i, n) {
+  return Object.keys(s).reduce((o, a) => {
+    const c = s[a], h = c.forw, u2 = c.bakw, f = {
+      forw: [h[0] - e.forw[0], h[1] - e.forw[1]],
+      bakw: [u2[0] - e.bakw[0], u2[1] - e.bakw[1]]
+    }, g = f.forw[0] === 0 ? 1 / 0 : ((f.forw[0] < 0 ? t2 : r) - e.forw[0]) / f.forw[0], m = f.forw[1] === 0 ? 1 / 0 : ((f.forw[1] < 0 ? i : n) - e.forw[1]) / f.forw[1];
+    if (Math.abs(g) / Math.abs(m) < 1.1) {
+      const x2 = {
+        forw: [
+          f.forw[0] * g + e.forw[0],
+          f.forw[1] * g + e.forw[1]
+        ],
+        bakw: [
+          f.bakw[0] * g + e.bakw[0],
+          f.bakw[1] * g + e.bakw[1]
+        ]
+      };
+      f.forw[0] < 0 ? o[3].push(x2) : o[1].push(x2);
+    }
+    if (Math.abs(m) / Math.abs(g) < 1.1) {
+      const x2 = {
+        forw: [
+          f.forw[0] * m + e.forw[0],
+          f.forw[1] * m + e.forw[1]
+        ],
+        bakw: [
+          f.bakw[0] * m + e.bakw[0],
+          f.bakw[1] * m + e.bakw[1]
+        ]
+      };
+      f.forw[1] < 0 ? o[0].push(x2) : o[2].push(x2);
+    }
+    return o;
+  }, [[], [], [], []]);
+}
+function Hr(s, e) {
+  const t2 = [[], [], [], []], r = [];
+  return Object.keys(s).forEach((i) => {
+    const n = s[i], o = n.forw, a = n.bakw, c = [
+      o[0] - e.forw[0],
+      o[1] - e.forw[1]
+    ], h = [
+      a[0] - e.bakw[0],
+      e.bakw[1] - a[1]
+    ], u2 = { forw: c, bakw: h };
+    if (r.push(u2), c[0] === 0 || c[1] === 0)
+      return;
+    let f = 0;
+    c[0] > 0 && (f += 1), c[1] > 0 && (f += 2), t2[f].push(u2);
+  }), { perQuad: t2, aggregate: r };
+}
+function Zr(s) {
+  let e = 1 / 0, t2 = 0, r = 0;
+  return s.forEach((i) => {
+    const { forw: n, bakw: o } = i, a = Math.hypot(n[0], n[1]), c = Math.hypot(o[0], o[1]);
+    if (c === 0) return;
+    const h = a / c, u2 = Math.atan2(n[0], n[1]) - Math.atan2(o[0], o[1]);
+    e = Math.min(e, h), t2 += Math.cos(u2), r += Math.sin(u2);
+  }), isFinite(e) ? [e, Math.atan2(r, t2)] : [1, 0];
+}
+function zn(s, e, t2) {
+  const { perQuad: r, aggregate: i } = Hr(s, e), n = r.every((c) => c.length > 0), a = (t2 === "birdeye" ? n ? r : [i] : [i]).map((c) => Zr(c));
+  return a.length === 1 ? [a[0], a[0], a[0], a[0]] : a;
+}
+function ti(s, e, t2) {
+  const r = [1, 1, 1, 1];
+  for (let i = 0; i < 4; i++) {
+    const n = (i + 1) % 4, o = pn([s[i].bakw, s[n].bakw]);
+    e[i].map((a) => {
+      const c = pn([t2.bakw, a.bakw]), h = Sr(o, c);
+      if (h.features.length > 0 && h.features[0].geometry) {
+        const u2 = h.features[0], f = Math.sqrt(
+          Math.pow(a.bakw[0] - t2.bakw[0], 2) + Math.pow(a.bakw[1] - t2.bakw[1], 2)
+        ), g = Math.sqrt(
+          Math.pow(
+            u2.geometry.coordinates[0] - t2.bakw[0],
+            2
+          ) + Math.pow(
+            u2.geometry.coordinates[1] - t2.bakw[1],
+            2
+          )
+        ), m = f / g;
+        m > r[i] && (r[i] = m), m > r[n] && (r[n] = m);
+      }
+    });
+  }
+  s.forEach((i, n) => {
+    const o = r[n], a = [
+      (i.bakw[0] - t2.bakw[0]) * o + t2.bakw[0],
+      (i.bakw[1] - t2.bakw[1]) * o + t2.bakw[1]
+    ];
+    i.bakw = a;
+  });
+}
+function Vn(s, e, t2, r) {
+  const i = s.map((o, a) => {
+    const c = e[a], h = [
+      c[0] - t2.forw[0],
+      c[1] - t2.forw[1]
+    ], f = Math.sqrt(
+      Math.pow(h[0], 2) + Math.pow(h[1], 2)
+    ) / o[0], g = Math.atan2(h[0], h[1]) - o[1], m = [
+      t2.bakw[0] + f * Math.sin(g),
+      t2.bakw[1] - f * Math.cos(g)
+    ];
+    return { forw: c, bakw: m };
+  }), n = i[2];
+  return i[2] = i[3], i[3] = n, ti(i, r, t2), i;
+}
+function ei(s) {
+  const { convexBuf: e, centroid: t2, bbox: r, minx: i, maxx: n, miny: o, maxy: a } = s, c = Un(e, t2, i, n, o, a), h = zn(e, t2, "plain");
+  return Vn(h, r, t2, c);
+}
+function ni(s) {
+  const { convexBuf: e, centroid: t2, bbox: r, minx: i, maxx: n, miny: o, maxy: a } = s, c = Un(e, t2, i, n, o, a), h = zn(e, t2, "birdeye");
+  return Vn(h, r, t2, c);
+}
+function ri(s) {
+  const t2 = new ii(s).findSegmentIntersections(), r = Kn(t2), i = /* @__PURE__ */ new Map();
+  return r.forEach((n) => {
+    i.set(`${n.x}:${n.y}`, n);
+  }), Array.from(i.values()).map(
+    (n) => ge([n.x, n.y])
+  );
+}
+class ii {
+  /**
+   * 線分群からArcCollectionを初期化
+   * @param coords - 線分群の座標配列
+   */
+  constructor(e) {
+    bt(this, "_xx");
+    bt(this, "_yy");
+    bt(this, "_ii");
+    bt(this, "_nn");
+    bt(this, "_zz", null);
+    bt(this, "_zlimit", 0);
+    bt(this, "_bb", null);
+    bt(this, "_allBounds", null);
+    bt(this, "_arcIter", null);
+    bt(this, "_filteredArcIter", null);
+    bt(this, "buf");
+    this.initArcs(e);
+  }
+  initArcs(e) {
+    const t2 = [], r = [], i = e.map((n) => {
+      const o = n ? n.length : 0;
+      for (let a = 0; a < o; a++)
+        t2.push(n[a][0]), r.push(n[a][1]);
+      return o;
+    });
+    this.initXYData(i, t2, r);
+  }
+  initXYData(e, t2, r) {
+    const i = e.length;
+    this._xx = new Float64Array(t2), this._yy = new Float64Array(r), this._nn = new Uint32Array(e), this._zz = null, this._zlimit = 0, this._filteredArcIter = null, this._ii = new Uint32Array(i);
+    let n = 0;
+    for (let o = 0; o < i; o++)
+      this._ii[o] = n, n += e[o];
+    (n != this._xx.length || this._xx.length != this._yy.length) && un("ArcCollection#initXYData() Counting error"), this.initBounds(), this._arcIter = new Si(this._xx, this._yy);
+  }
+  initBounds() {
+    const e = this.calcArcBounds_(this._xx, this._yy, this._nn);
+    this._bb = e.bb, this._allBounds = e.bounds;
+  }
+  /**
+   * データの境界を計算
+   * @returns バウンディングボックス情報
+   */
+  calcArcBounds_(e, t2, r) {
+    const i = r.length, n = new Float64Array(i * 4), o = new Oe();
+    let a = 0, c, h, u2;
+    for (let f = 0; f < i; f++)
+      c = r[f], c > 0 && (h = f * 4, u2 = ki(e, t2, a, c), n[h++] = u2[0], n[h++] = u2[1], n[h++] = u2[2], n[h] = u2[3], a += c, o.mergeBounds(u2));
+    return {
+      bb: n,
+      bounds: o
+    };
+  }
+  getBounds() {
+    return this._allBounds ? this._allBounds.clone() : new Oe();
+  }
+  // @cb function(i, j, xx, yy)
+  forEachSegment(e) {
+    let t2 = 0;
+    for (let r = 0, i = this.size(); r < i; r++)
+      t2 += this.forEachArcSegment(r, e);
+    return t2;
+  }
+  size() {
+    return this._ii && this._ii.length || 0;
+  }
+  // @cb function(i, j, xx, yy)
+  forEachArcSegment(e, t2) {
+    const r = e >= 0, i = r ? e : ~e, n = this.getRetainedInterval(), o = this._nn[i], a = r ? 1 : -1;
+    let c = r ? this._ii[i] : this._ii[i] + o - 1, h = c, u2 = 0;
+    for (let f = 1; f < o; f++)
+      h += a, (n === 0 || this._zz[h] >= n) && (t2(c, h, this._xx, this._yy), c = h, u2++);
+    return u2;
+  }
+  getRetainedInterval() {
+    return this._zlimit;
+  }
+  // Give access to raw data arrays...
+  getVertexData() {
+    return {
+      xx: this._xx,
+      yy: this._yy,
+      zz: this._zz,
+      bb: this._bb,
+      nn: this._nn,
+      ii: this._ii
+    };
+  }
+  getUint32Array(e) {
+    const t2 = e * 4;
+    return (!this.buf || this.buf.byteLength < t2) && (this.buf = new ArrayBuffer(t2)), new Uint32Array(this.buf, 0, e);
+  }
+  // Return average magnitudes of dx, dy (with simplification)
+  getAvgSegment2() {
+    let e = 0, t2 = 0;
+    const r = this.forEachSegment(
+      (i, n, o, a) => {
+        e += Math.abs(o[i] - o[n]), t2 += Math.abs(a[i] - a[n]);
+      }
+    );
+    return [e / r || 0, t2 / r || 0];
+  }
+  /**
+   * 交差判定のためのストライプ数を計算
+   * 線分の平均長さに基づいて最適な分割数を決定
+   */
+  calcSegmentIntersectionStripeCount() {
+    const e = this.getBounds().height(), t2 = this.getAvgSegment2()[1];
+    let r = 1;
+    return t2 > 0 && e > 0 && (r = Math.ceil(e / t2 / 20)), r || 1;
+  }
+  /**
+   * 線分の交差を検出
+   * ストライプ分割による効率的な判定を実装
+   *
+   * @returns 検出された交差点の配列
+   */
+  findSegmentIntersections() {
+    const e = this.getBounds(), t2 = e.ymin || 0, r = (e.ymax || 0) - t2, i = this.calcSegmentIntersectionStripeCount(), n = new Uint32Array(i), o = i > 1 ? (b) => Math.floor((i - 1) * (b - t2) / r) : () => 0;
+    let a, c;
+    this.forEachSegment(
+      (b, Y2, R2, d) => {
+        let y = o(d[b]);
+        const l = o(d[Y2]);
+        for (; n[y] = n[y] + 2, y != l; )
+          y += l > y ? 1 : -1;
+      }
+    );
+    const h = this.getUint32Array(ai(n));
+    let u2 = 0;
+    const f = [];
+    ci(n, (b) => {
+      const Y2 = u2;
+      u2 += b, f.push(h.subarray(Y2, u2));
+    }), hi(n, 0), this.forEachSegment(
+      (b, Y2, R2, d) => {
+        let y = o(d[b]);
+        const l = o(d[Y2]);
+        let v, M;
+        for (; v = n[y], n[y] = v + 2, M = f[y], M[v] = b, M[v + 1] = Y2, y != l; )
+          y += l > y ? 1 : -1;
+      }
+    );
+    const g = this.getVertexData(), m = [];
+    let x2;
+    for (a = 0; a < i; a++)
+      if (g.xx && g.yy)
+        for (x2 = fi(f[a], g.xx, g.yy), c = 0; c < x2.length; c++)
+          m.push(x2[c]);
+    return Kn(m);
+  }
+}
+function un(...s) {
+  const e = s.join(" ");
+  throw new Error(e);
+}
+function ln(s) {
+  return s ? oi(s) ? true : si(s) ? false : s.length === 0 ? true : s.length > 0 : false;
+}
+function si(s) {
+  return s != null && s.toString === String.prototype.toString;
+}
+function oi(s) {
+  return Array.isArray(s);
+}
+function ai(s, e) {
+  ln(s) || un("utils.sum() expects an array, received:", s);
+  let t2 = 0, r;
+  for (let i = 0, n = s.length; i < n; i++)
+    r = s[i], r && (t2 += r);
+  return t2;
+}
+function ci(s, e, t2) {
+  if (!ln(s))
+    throw new Error(`#forEach() takes an array-like argument. ${s}`);
+  for (let r = 0, i = s.length; r < i; r++)
+    e.call(t2, s[r], r);
+}
+function hi(s, e) {
+  for (let t2 = 0, r = s.length; t2 < r; t2++)
+    s[t2] = e;
+  return s;
+}
+function fi(s, e, t2) {
+  const r = s.length - 2, i = [];
+  let n, o, a, c, h, u2, f, g, m, x2, b, Y2, R2, d, y, l, v;
+  for (bi(e, s), l = 0; l < r; ) {
+    for (n = s[l], o = s[l + 1], h = e[n], u2 = e[o], m = t2[n], x2 = t2[o], v = l; v < r && (v += 2, a = s[v], f = e[a], !(u2 < f)); ) {
+      if (b = t2[a], c = s[v + 1], g = e[c], Y2 = t2[c], m >= b) {
+        if (m > Y2 && x2 > b && x2 > Y2) continue;
+      } else if (m < Y2 && x2 < b && x2 < Y2) continue;
+      n == a || n == c || o == a || o == c || (R2 = ui(
+        h,
+        m,
+        u2,
+        x2,
+        f,
+        b,
+        g,
+        Y2
+      ), R2 && (d = [n, o], y = [a, c], i.push(Tn(R2, d, y, e, t2)), R2.length == 4 && i.push(
+        Tn(R2.slice(2), d, y, e, t2)
+      )));
+    }
+    l += 2;
+  }
+  return i;
+}
+function ui(s, e, t2, r, i, n, o, a) {
+  const c = li(s, e, t2, r, i, n, o, a);
+  let h = null;
+  return c && (h = pi(s, e, t2, r, i, n, o, a), h ? vi(s, e, t2, r, i, n, o, a) && (h = null) : h = yi(s, e, t2, r, i, n, o, a)), h;
+}
+function li(s, e, t2, r, i, n, o, a) {
+  return Ee(s, e, t2, r, i, n) * Ee(s, e, t2, r, o, a) <= 0 && Ee(i, n, o, a, s, e) * Ee(i, n, o, a, t2, r) <= 0;
+}
+function Ee(s, e, t2, r, i, n) {
+  return Wn(s - i, e - n, t2 - i, r - n);
+}
+function Wn(s, e, t2, r) {
+  return s * r - e * t2;
+}
+function pi(s, e, t2, r, i, n, o, a) {
+  let c = De(s, e, t2, r, i, n, o, a), h;
+  return c && (h = mi(c[0], c[1], s, e, t2, r, i, n, o, a), h == 1 ? c = De(t2, r, s, e, i, n, o, a) : h == 2 ? c = De(i, n, o, a, s, e, t2, r) : h == 3 && (c = De(o, a, i, n, s, e, t2, r))), c && wi(c, s, e, t2, r, i, n, o, a), c;
+}
+function De(s, e, t2, r, i, n, o, a) {
+  const c = Wn(t2 - s, r - e, o - i, a - n), h = 1e-18;
+  let u2;
+  if (c === 0) return null;
+  const f = Ee(i, n, o, a, s, e) / c;
+  return c <= h && c >= -h ? u2 = di(s, e, t2, r, i, n, o, a) : u2 = [s + f * (t2 - s), e + f * (r - e)], u2;
+}
+function di(s, e, t2, r, i, n, o, a) {
+  let c = null;
+  return !ie(s, i, o) && !ie(e, n, a) ? c = [s, e] : !ie(t2, i, o) && !ie(r, n, a) ? c = [t2, r] : !ie(i, s, t2) && !ie(n, e, r) ? c = [i, n] : !ie(o, s, t2) && !ie(a, e, r) && (c = [o, a]), c;
+}
+function ie(s, e, t2) {
+  let r;
+  return e < t2 ? r = s < e || s > t2 : e > t2 ? r = s > e || s < t2 : r = s != e, r;
+}
+function mi(s, e, ...t2) {
+  let r = -1, i = 1 / 0, n;
+  for (let o = 0, a = 0, c = t2.length; a < c; o++, a += 2)
+    n = gi(s, e, t2[a], t2[a + 1]), n < i && (i = n, r = o);
+  return r;
+}
+function gi(s, e, t2, r) {
+  const i = s - t2, n = e - r;
+  return i * i + n * n;
+}
+function wi(s, e, t2, r, i, n, o, a, c) {
+  let h = s[0], u2 = s[1];
+  h = $e(h, e, r), h = $e(h, n, a), u2 = $e(u2, t2, i), u2 = $e(u2, o, c), s[0] = h, s[1] = u2;
+}
+function $e(s, e, t2) {
+  let r;
+  return ie(s, e, t2) && (r = Math.abs(s - e) < Math.abs(s - t2) ? e : t2, s = r), s;
+}
+function yi(s, e, t2, r, i, n, o, a) {
+  const c = Math.min(s, t2, i, o), h = Math.max(s, t2, i, o), u2 = Math.min(e, r, n, a), f = Math.max(e, r, n, a), g = f - u2 > h - c;
+  let m = [];
+  return (g ? he(e, u2, f) : he(s, c, h)) && m.push(s, e), (g ? he(r, u2, f) : he(t2, c, h)) && m.push(t2, r), (g ? he(n, u2, f) : he(i, c, h)) && m.push(i, n), (g ? he(a, u2, f) : he(o, c, h)) && m.push(o, a), (m.length != 2 && m.length != 4 || m.length == 4 && m[0] == m[2] && m[1] == m[3]) && (m = null), m;
+}
+function vi(s, e, t2, r, i, n, o, a) {
+  return s == i && e == n || s == o && e == a || t2 == i && r == n || t2 == o && r == a;
+}
+function he(s, e, t2) {
+  return s > e && s < t2;
+}
+function bi(s, e) {
+  _i(s, e), Jn(s, e, 0, e.length - 2);
+}
+function _i(s, e) {
+  for (let t2 = 0, r = e.length; t2 < r; t2 += 2)
+    s[e[t2]] > s[e[t2 + 1]] && xi(e, t2, t2 + 1);
+}
+function xi(s, e, t2) {
+  const r = s[e];
+  s[e] = s[t2], s[t2] = r;
+}
+function Jn(s, e, t2, r) {
+  let i = t2, n = r, o, a;
+  for (; i < r; ) {
+    for (o = s[e[t2 + r >> 2 << 1]]; i <= n; ) {
+      for (; s[e[i]] < o; ) i += 2;
+      for (; s[e[n]] > o; ) n -= 2;
+      i <= n && (a = e[i], e[i] = e[n], e[n] = a, a = e[i + 1], e[i + 1] = e[n + 1], e[n + 1] = a, i += 2, n -= 2);
+    }
+    if (n - t2 < 40 ? In(s, e, t2, n) : Jn(s, e, t2, n), r - i < 40) {
+      In(s, e, i, r);
+      return;
+    }
+    t2 = i, n = r;
+  }
+}
+function In(s, e, t2, r) {
+  let i, n;
+  for (let o = t2 + 2; o <= r; o += 2) {
+    i = e[o], n = e[o + 1];
+    let a;
+    for (a = o - 2; a >= t2 && s[i] < s[e[a]]; a -= 2)
+      e[a + 2] = e[a], e[a + 3] = e[a + 1];
+    e[a + 2] = i, e[a + 3] = n;
+  }
+}
+function Tn(s, e, t2, r, i) {
+  const n = s[0], o = s[1];
+  e = Nn(n, o, e[0], e[1], r, i), t2 = Nn(n, o, t2[0], t2[1], r, i);
+  const a = e[0] < t2[0] ? e : t2, c = a == e ? t2 : e;
+  return { x: n, y: o, a, b: c };
+}
+function Nn(s, e, t2, r, i, n) {
+  let o = t2 < r ? t2 : r, a = o === t2 ? r : t2;
+  return i[o] == s && n[o] == e ? a = o : i[a] == s && n[a] == e && (o = a), [o, a];
+}
+function Kn(s) {
+  const e = {};
+  return s.filter((t2) => {
+    const r = Mi(t2);
+    return r in e ? false : (e[r] = true, true);
+  });
+}
+function Mi(s) {
+  return `${s.a.join(",")};${s.b.join(",")}`;
+}
+class Si {
+  constructor(e, t2) {
+    bt(this, "_i", 0);
+    bt(this, "_n", 0);
+    bt(this, "_inc", 1);
+    bt(this, "_xx");
+    bt(this, "_yy");
+    bt(this, "i", 0);
+    bt(this, "x", 0);
+    bt(this, "y", 0);
+    this._xx = e, this._yy = t2;
+  }
+}
+function ki(s, e, t2, r) {
+  let i = t2 | 0;
+  const n = isNaN(r) ? s.length - i : r + i;
+  let o, a, c, h, u2, f;
+  if (n > 0)
+    c = u2 = s[i], h = f = e[i];
+  else return [void 0, void 0, void 0, void 0];
+  for (i++; i < n; i++)
+    o = s[i], a = e[i], o < c && (c = o), o > u2 && (u2 = o), a < h && (h = a), a > f && (f = a);
+  return [c, h, u2, f];
+}
+class Oe {
+  constructor(...e) {
+    bt(this, "xmin");
+    bt(this, "ymin");
+    bt(this, "xmax");
+    bt(this, "ymax");
+    e.length > 0 && this.setBounds(e);
+  }
+  // Return a bounding box with the same extent as this one.
+  cloneBounds() {
+    return this.clone();
+  }
+  clone() {
+    return new Oe(
+      this.xmin,
+      this.ymin,
+      this.xmax,
+      this.ymax
+    );
+  }
+  width() {
+    return this.xmax - this.xmin || 0;
+  }
+  height() {
+    return this.ymax - this.ymin || 0;
+  }
+  setBounds(e, t2, r, i) {
+    let n, o, a, c;
+    if (arguments.length == 1)
+      if (ln(e)) {
+        const h = e;
+        n = h[0], o = h[1], a = h[2], c = h[3];
+      } else {
+        const h = e;
+        n = h.xmin, o = h.ymin, a = h.xmax, c = h.ymax;
+      }
+    else
+      n = e, o = t2, a = r, c = i;
+    return this.xmin = n, this.ymin = o, this.xmax = a, this.ymax = c, (n > a || o > c) && this.update(), this;
+  }
+  update() {
+    let e;
+    this.xmin > this.xmax && (e = this.xmin, this.xmin = this.xmax, this.xmax = e), this.ymin > this.ymax && (e = this.ymin, this.ymin = this.ymax, this.ymax = e);
+  }
+  mergeBounds(e, ...t2) {
+    let r, i, n, o;
+    return e instanceof Oe ? (r = e.xmin, i = e.ymin, n = e.xmax, o = e.ymax) : t2.length == 3 ? (r = e, i = t2[0], n = t2[1], o = t2[2]) : e.length == 4 ? (r = e[0], i = e[1], n = e[2], o = e[3]) : un("Bounds#mergeBounds() invalid argument:", e), this.xmin === void 0 ? this.setBounds(r, i, n, o) : (r < this.xmin && (this.xmin = r), i < this.ymin && (this.ymin = i), n > this.xmax && (this.xmax = n), o > this.ymax && (this.ymax = o)), this;
+  }
+}
+function Ve(s) {
+  const e = ["a", "b", "c"].map(
+    (t2) => s.properties[t2].index
+  );
+  return [
+    [0, 1],
+    [0, 2],
+    [1, 2],
+    [0, 1, 2]
+  ].map(
+    (t2) => t2.map((r) => e[r]).sort().join("-")
+  ).sort();
+}
+function Gn(s, e, t2) {
+  const r = Ve(e.forw), i = Ve(e.bakw);
+  if (JSON.stringify(r) != JSON.stringify(i))
+    throw `${JSON.stringify(e, null, 2)}
+${JSON.stringify(
+      r
+    )}
+${JSON.stringify(i)}`;
+  for (let n = 0; n < r.length; n++) {
+    const o = r[n];
+    s[o] || (s[o] = []), s[o].push(e);
+  }
+  t2 && (t2.forw.features.push(e.forw), t2.bakw.features.push(e.bakw));
+}
+function Xn(s, e, t2) {
+  const r = Ve(e.forw), i = Ve(e.bakw);
+  if (JSON.stringify(r) != JSON.stringify(i))
+    throw `${JSON.stringify(e, null, 2)}
+${JSON.stringify(r)}
+${JSON.stringify(i)}`;
+  if (r.forEach((n) => {
+    const o = s[n];
+    if (!o) return;
+    const a = o.filter((c) => c !== e);
+    a.length === 0 ? delete s[n] : s[n] = a;
+  }), t2) {
+    const n = (o, a) => {
+      !o || !a || (o.features = o.features.filter((c) => c !== a));
+    };
+    n(t2.forw, e.forw), n(t2.bakw, e.bakw);
+  }
+}
+function qe(s, e, t2) {
+  return ge(s, { target: { geom: e, index: t2 } });
+}
+function je(s) {
+  return ge(s.properties.target.geom, {
+    target: {
+      geom: s.geometry.coordinates,
+      index: s.properties.target.index
+    }
+  });
+}
+function Yn(s, e) {
+  const t2 = e.geometry.coordinates;
+  return [0, 1, 2, 3].map((r) => {
+    const i = (r + 1) % 4, n = s[r], o = s[i], a = n.geometry.coordinates, c = Math.atan2(
+      a[0] - t2[0],
+      a[1] - t2[1]
+    ), h = [e, n, o, e].map(
+      (g) => g.geometry.coordinates
+    ), u2 = {
+      a: {
+        geom: e.properties.target.geom,
+        index: e.properties.target.index
+      },
+      b: {
+        geom: n.properties.target.geom,
+        index: n.properties.target.index
+      },
+      c: {
+        geom: o.properties.target.geom,
+        index: o.properties.target.index
+      }
+    }, f = Gt([
+      Be([h], u2)
+    ]);
+    return [c, f];
+  }).reduce(
+    (r, i) => (r[0].push(i[0]), r[1].push(i[1]), r),
+    [[], []]
+  );
+}
+function Ei(s) {
+  const { tins: e, targets: t2, includeReciprocals: r } = s, i = {};
+  t2.forEach((o) => {
+    const a = e[o];
+    if (!a || !a.features) return;
+    i[o] = {};
+    const c = {};
+    a.features.forEach((h) => {
+      const u2 = ["a", "b", "c"];
+      for (let f = 0; f < 3; f++) {
+        const g = (f + 1) % 3, m = u2[f], x2 = u2[g], b = h.properties[m].index, Y2 = h.properties[x2].index, R2 = [b, Y2].sort().join("-");
+        if (c[R2]) continue;
+        c[R2] = true;
+        const d = h.geometry.coordinates[0][f], y = h.geometry.coordinates[0][g], l = h.properties[m].geom, v = h.properties[x2].geom, M = Math.sqrt(
+          Math.pow(l[0] - v[0], 2) + Math.pow(l[1] - v[1], 2)
+        ) / Math.sqrt(
+          Math.pow(d[0] - y[0], 2) + Math.pow(d[1] - y[1], 2)
+        ), A = i[o];
+        A[`${b}:${R2}`] = M, A[`${Y2}:${R2}`] = M;
+      }
+    });
+  });
+  const n = {};
+  return r && (n.bakw = {}), t2.forEach((o) => {
+    const a = i[o];
+    if (n[o] = {}, !a)
+      return;
+    const c = {};
+    Object.keys(a).forEach((u2) => {
+      const [f] = u2.split(":");
+      c[f] || (c[f] = []), c[f].push(a[u2]);
+    }), Object.keys(c).forEach((u2) => {
+      const f = c[u2], g = f.reduce((m, x2) => m + x2, 0) / f.length;
+      n[o][u2] = g, r && n.bakw && (n.bakw[u2] = 1 / g);
+    });
+    let h = 0;
+    for (let u2 = 0; u2 < 4; u2++) {
+      const f = `b${u2}`, g = n[o][f] || 0;
+      h += g;
+    }
+    n[o].c = h / 4, r && n.bakw && (n.bakw.c = 1 / n[o].c);
+  }), n;
+}
+function Ai(s, e) {
+  const t2 = s.split("-");
+  if (t2.length !== 2 || !t2.every((n) => /^-?\d+$/.test(n))) return false;
+  const [r, i] = t2.map((n) => parseInt(n, 10)).sort((n, o) => n - o);
+  return e.some((n) => {
+    if (n.length !== 2) return false;
+    const o = n.map((c) => parseInt(`${c}`, 10));
+    if (o.some((c) => Number.isNaN(c))) return false;
+    const a = o.sort((c, h) => c - h);
+    return a[0] === r && a[1] === i;
+  });
+}
+function Ue(s) {
+  return ["a", "b", "c"].map((e, t2) => ({
+    prop: s.properties[e],
+    geom: s.geometry.coordinates[0][t2]
+  }));
+}
+function Oi(s, e, t2) {
+  const r = /* @__PURE__ */ new Set();
+  let i = false;
+  const n = Object.keys(e);
+  for (const o of n) {
+    if (r.has(o)) continue;
+    r.add(o);
+    const a = e[o];
+    if (!a || a.length < 2) continue;
+    const c = o.split("-");
+    if (c.length !== 2 || Ai(o, t2)) continue;
+    const h = Ue(a[0].bakw), u2 = Ue(a[1].bakw), f = Ue(a[0].forw), g = Ue(a[1].forw), m = c.map(
+      (S2) => h.find((O2) => `${O2.prop.index}` === S2) || u2.find((O2) => `${O2.prop.index}` === S2)
+    ), x2 = c.map(
+      (S2) => f.find((O2) => `${O2.prop.index}` === S2) || g.find((O2) => `${O2.prop.index}` === S2)
+    );
+    if (m.some((S2) => !S2) || x2.some((S2) => !S2))
+      continue;
+    const b = [h, u2].map(
+      (S2) => S2.find((O2) => !c.includes(`${O2.prop.index}`))
+    ), Y2 = [f, g].map(
+      (S2) => S2.find((O2) => !c.includes(`${O2.prop.index}`))
+    );
+    if (b.some((S2) => !S2) || Y2.some((S2) => !S2))
+      continue;
+    const R2 = a[0].bakw.geometry.coordinates[0].slice(0, 3).map((S2) => ye(S2)), d = a[1].bakw.geometry.coordinates[0].slice(0, 3).map((S2) => ye(S2));
+    if (!(Rn(
+      ye(b[0].geom),
+      d
+    ) || Rn(
+      ye(b[1].geom),
+      R2
+    )))
+      continue;
+    const l = x2.map(
+      (S2) => ye(S2.geom)
+    ), v = Y2.map(
+      (S2) => ye(S2.geom)
+    ), M = Bi([
+      ...l,
+      ...v
+    ]), A = Pi(M), T = Cn(
+      l[0],
+      l[1],
+      v[0]
+    ) + Cn(
+      l[0],
+      l[1],
+      v[1]
+    );
+    cn(A, T) && (Xn(e, a[0], s), Xn(e, a[1], s), m.forEach((S2) => {
+      if (!S2) return;
+      const O2 = [
+        S2.geom,
+        b[0].geom,
+        b[1].geom,
+        S2.geom
+      ], X = {
+        a: S2.prop,
+        b: b[0].prop,
+        c: b[1].prop
+      }, L2 = Be([O2], X), K2 = zt.counterTri(L2);
+      Gn(e, {
+        forw: K2,
+        bakw: L2
+      }, s);
+    }), i = true);
+  }
+  return i;
+}
+function ye(s) {
+  return [s[0], s[1]];
+}
+function Rn(s, e) {
+  const [t2, r] = e[0], [i, n] = e[1], [o, a] = e[2], c = o - t2, h = a - r, u2 = i - t2, f = n - r, g = s[0] - t2, m = s[1] - r, x2 = c * c + h * h, b = c * u2 + h * f, Y2 = c * g + h * m, R2 = u2 * u2 + f * f, d = u2 * g + f * m, y = x2 * R2 - b * b;
+  if (y === 0) return false;
+  const l = 1 / y, v = (R2 * Y2 - b * d) * l, M = (x2 * d - b * Y2) * l, A = 1e-9;
+  return v >= -A && M >= -A && v + M <= 1 + A;
+}
+function Bi(s) {
+  const e = s.map((o) => o.slice()).filter(
+    (o, a, c) => c.findIndex(
+      (h) => cn(h[0], o[0]) && cn(h[1], o[1])
+    ) === a
+  );
+  if (e.length <= 1) return e;
+  const t2 = e.sort(
+    (o, a) => o[0] === a[0] ? o[1] - a[1] : o[0] - a[0]
+  ), r = (o, a, c) => (a[0] - o[0]) * (c[1] - o[1]) - (a[1] - o[1]) * (c[0] - o[0]), i = [];
+  for (const o of t2) {
+    for (; i.length >= 2 && r(
+      i[i.length - 2],
+      i[i.length - 1],
+      o
+    ) <= 0; )
+      i.pop();
+    i.push(o);
+  }
+  const n = [];
+  for (let o = t2.length - 1; o >= 0; o--) {
+    const a = t2[o];
+    for (; n.length >= 2 && r(
+      n[n.length - 2],
+      n[n.length - 1],
+      a
+    ) <= 0; )
+      n.pop();
+    n.push(a);
+  }
+  return n.pop(), i.pop(), i.concat(n);
+}
+function Pi(s) {
+  if (s.length < 3) return 0;
+  let e = 0;
+  for (let t2 = 0; t2 < s.length; t2++) {
+    const [r, i] = s[t2], [n, o] = s[(t2 + 1) % s.length];
+    e += r * o - n * i;
+  }
+  return Math.abs(e) / 2;
+}
+function Cn(s, e, t2) {
+  return Math.abs(
+    (s[0] * (e[1] - t2[1]) + e[0] * (t2[1] - s[1]) + t2[0] * (s[1] - e[1])) / 2
+  );
+}
+function cn(s, e, t2 = 1e-9) {
+  return Math.abs(s - e) <= t2;
+}
+const Ii = 2.00703, Fn = typeof zt.format_version < "u" ? zt.format_version : Ii;
+class Yt extends zt.Transform {
+  /**
+   * Tinクラスのインスタンスを生成します
+   * @param options - 初期化オプション
+   */
+  constructor(t2 = {}) {
+    super();
+    bt(this, "importance");
+    bt(this, "priority");
+    bt(this, "pointsSet");
+    t2.bounds ? this.setBounds(t2.bounds) : (this.setWh(t2.wh), this.vertexMode = t2.vertexMode || Yt.VERTEX_PLAIN), this.strictMode = t2.strictMode || Yt.MODE_AUTO, this.yaxisMode = t2.yaxisMode || Yt.YAXIS_INVERT, this.importance = t2.importance || 0, this.priority = t2.priority || 0, this.stateFull = t2.stateFull || false, t2.points && this.setPoints(t2.points), t2.edges && this.setEdges(t2.edges);
+  }
+  /**
+   * フォーマットバージョンを取得します
+   */
+  getFormatVersion() {
+    return Fn;
+  }
+  /**
+   * 制御点（GCP: Ground Control Points）を設定します。
+   * 指定した点群に合わせて内部のTINキャッシュをリセットします。
+   */
+  setPoints(t2) {
+    this.yaxisMode === Yt.YAXIS_FOLLOW && (t2 = t2.map((r) => [
+      r[0],
+      [r[1][0], -1 * r[1][1]]
+    ])), this.points = t2, this.tins = void 0, this.indexedTins = void 0;
+  }
+  /**
+   * エッジ（制約線）を設定します。
+   * 制約線を正規化した上で、依存するキャッシュをリセットします。
+   */
+  setEdges(t2 = []) {
+    this.edges = zt.normalizeEdges(t2), this.edgeNodes = void 0, this.tins = void 0, this.indexedTins = void 0;
+  }
+  /**
+   * 境界ポリゴンを設定します
+   */
+  setBounds(t2) {
+    this.bounds = t2;
+    let r = t2[0][0], i = r, n = t2[0][1], o = n;
+    const a = [t2[0]];
+    for (let c = 1; c < t2.length; c++) {
+      const h = t2[c];
+      h[0] < r && (r = h[0]), h[0] > i && (i = h[0]), h[1] < n && (n = h[1]), h[1] > o && (o = h[1]), a.push(h);
+    }
+    a.push(t2[0]), this.boundsPolygon = Be([a]), this.xy = [r, n], this.wh = [i - r, o - n], this.vertexMode = Yt.VERTEX_PLAIN, this.tins = void 0, this.indexedTins = void 0;
+  }
+  /**
+   * 現在の設定を永続化可能な形式にコンパイルします
+   */
+  getCompiled() {
+    var i;
+    const t2 = {};
+    t2.version = Fn, t2.points = this.points, t2.weight_buffer = this.pointsWeightBuffer ?? {}, t2.centroid_point = [
+      this.centroid.forw.geometry.coordinates,
+      this.centroid.forw.properties.target.geom
+    ], t2.vertices_params = [
+      this.vertices_params.forw[0],
+      this.vertices_params.bakw[0]
+    ], t2.vertices_points = [];
+    const r = this.vertices_params.forw[1];
+    return r && [0, 1, 2, 3].map((n) => {
+      const o = r[n].features[0], a = o.geometry.coordinates[0][1], c = o.properties.b.geom;
+      t2.vertices_points[n] = [a, c];
+    }), t2.strict_status = this.strict_status, t2.tins_points = [[]], this.tins.forw.features.map((n) => {
+      t2.tins_points[0].push(
+        ["a", "b", "c"].map(
+          (o) => n.properties[o].index
+        )
+      );
+    }), this.strict_status === Yt.STATUS_LOOSE ? (t2.tins_points[1] = [], this.tins.bakw.features.map((n) => {
+      t2.tins_points[1].push(
+        ["a", "b", "c"].map(
+          (o) => n.properties[o].index
+        )
+      );
+    })) : this.strict_status === Yt.STATUS_ERROR && ((i = this.kinks) != null && i.bakw) && (t2.kinks_points = this.kinks.bakw.features.map(
+      (n) => n.geometry.coordinates
+    )), t2.yaxisMode = this.yaxisMode, t2.vertexMode = this.vertexMode, t2.strictMode = this.strictMode, this.bounds ? (t2.bounds = this.bounds, t2.boundsPolygon = this.boundsPolygon, t2.xy = this.xy, t2.wh = this.wh) : t2.wh = this.wh, t2.edges = this.edges ?? [], t2.edgeNodes = this.edgeNodes ?? [], t2;
+  }
+  /**
+   * 幅と高さを設定します
+   */
+  setWh(t2) {
+    this.wh = t2 || [100, 100], this.xy = [0, 0], this.bounds = void 0, this.boundsPolygon = void 0, this.tins = void 0, this.indexedTins = void 0;
+  }
+  /**
+   * 頂点モードを設定します
+   */
+  setVertexMode(t2) {
+    this.vertexMode = t2, this.tins = void 0, this.indexedTins = void 0;
+  }
+  /**
+   * 厳密性モードを設定します
+   */
+  setStrictMode(t2) {
+    this.strictMode = t2, this.tins = void 0, this.indexedTins = void 0;
+  }
+  /**
+   * 厳密なTINを計算します
+   */
+  calcurateStrictTin() {
+    var n;
+    const t2 = this.tins.forw.features.map(
+      (o) => zt.counterTri(o)
+    );
+    this.tins.bakw = Gt(t2);
+    const r = {};
+    this.tins.forw.features.forEach((o, a) => {
+      const c = this.tins.bakw.features[a];
+      Gn(r, { forw: o, bakw: c });
+    }), Oi(
+      this.tins,
+      r,
+      ((n = this.pointsSet) == null ? void 0 : n.edges) || []
+    );
+    const i = ["forw", "bakw"].map((o) => {
+      const a = this.tins[o].features.map(
+        (c) => c.geometry.coordinates[0]
+      );
+      return ri(a);
+    });
+    i[0].length === 0 && i[1].length === 0 ? (this.strict_status = Yt.STATUS_STRICT, delete this.kinks) : (this.strict_status = Yt.STATUS_ERROR, this.kinks = {
+      forw: Gt(i[0]),
+      bakw: Gt(i[1])
+    });
+  }
+  /**
+   * 点群セットを生成します。
+  * GCP と中間エッジノードを GeoJSON Point に変換し、後続の三角分割に備えます。
+   */
+  generatePointsSet() {
+    const t2 = {
+      forw: [],
+      bakw: []
+    };
+    for (let n = 0; n < this.points.length; n++) {
+      const o = this.points[n][0], a = this.points[n][1], c = qe(o, a, n);
+      t2.forw.push(c), t2.bakw.push(je(c));
+    }
+    const r = [];
+    let i = 0;
+    this.edgeNodes = [], this.edges || (this.edges = []);
+    for (let n = 0; n < this.edges.length; n++) {
+      const o = this.edges[n][2], a = Object.assign([], this.edges[n][0]), c = Object.assign([], this.edges[n][1]);
+      if (a.length === 0 && c.length === 0) {
+        r.push(o);
+        continue;
+      }
+      a.unshift(this.points[o[0]][0]), a.push(this.points[o[1]][0]), c.unshift(this.points[o[0]][1]), c.push(this.points[o[1]][1]);
+      const h = [a, c].map((u2) => {
+        const f = u2.map((m, x2, b) => {
+          if (x2 === 0) return 0;
+          const Y2 = b[x2 - 1];
+          return Math.sqrt(
+            Math.pow(m[0] - Y2[0], 2) + Math.pow(m[1] - Y2[1], 2)
+          );
+        }), g = f.reduce((m, x2, b) => b === 0 ? [0] : (m.push(m[b - 1] + x2), m), []);
+        return g.map((m, x2, b) => {
+          const Y2 = m / b[b.length - 1];
+          return [u2[x2], f[x2], g[x2], Y2];
+        });
+      });
+      h.map((u2, f) => {
+        const g = h[f ? 0 : 1];
+        return u2.filter((m, x2) => !(x2 === 0 || x2 === u2.length - 1 || m[4] === "handled")).flatMap((m) => {
+          const x2 = m[0], b = m[3], Y2 = g.reduce(
+            (R2, d, y, l) => {
+              if (R2) return R2;
+              const v = l[y + 1];
+              if (d[3] === b)
+                return d[4] = "handled", [d];
+              if (d[3] < b && v && v[3] > b)
+                return [d, v];
+            },
+            void 0
+          );
+          if (Y2 && Y2.length === 1)
+            return f === 0 ? [[x2, Y2[0][0], b]] : [[Y2[0][0], x2, b]];
+          if (Y2 && Y2.length === 2) {
+            const R2 = Y2[0], d = Y2[1], y = (b - R2[3]) / (d[3] - R2[3]), l = [
+              (d[0][0] - R2[0][0]) * y + R2[0][0],
+              (d[0][1] - R2[0][1]) * y + R2[0][1]
+            ];
+            return f === 0 ? [[x2, l, b]] : [[l, x2, b]];
+          }
+          return [];
+        });
+      }).reduce((u2, f) => u2.concat(f), []).sort((u2, f) => u2[2] < f[2] ? -1 : 1).map((u2, f, g) => {
+        this.edgeNodes[i] = [
+          u2[0],
+          u2[1]
+        ];
+        const m = qe(
+          u2[0],
+          u2[1],
+          `e${i}`
+        );
+        i++, t2.forw.push(m), t2.bakw.push(je(m)), f === 0 ? r.push([o[0], t2.forw.length - 1]) : r.push([
+          t2.forw.length - 2,
+          t2.forw.length - 1
+        ]), f === g.length - 1 && r.push([t2.forw.length - 1, o[1]]);
+      });
+    }
+    return {
+      forw: t2.forw,
+      bakw: t2.bakw,
+      edges: r
+    };
+  }
+  /**
+   * 入力データの検証と初期データの準備
+   */
+  validateAndPrepareInputs() {
+    const t2 = this.xy[0] - 0.05 * this.wh[0], r = this.xy[0] + 1.05 * this.wh[0], i = this.xy[1] - 0.05 * this.wh[1], n = this.xy[1] + 1.05 * this.wh[1];
+    if (!this.points.reduce((c, h) => c && (this.bounds ? dr(h[0], this.boundsPolygon) : h[0][0] >= t2 && h[0][0] <= r && h[0][1] >= i && h[0][1] <= n), true))
+      throw "SOME POINTS OUTSIDE";
+    let a = [];
+    return this.wh && (a = [[t2, i], [r, i], [t2, n], [r, n]]), {
+      pointsSet: this.generatePointsSet(),
+      bbox: a,
+      minx: t2,
+      maxx: r,
+      miny: i,
+      maxy: n
+    };
+  }
+  /**
+   * TINネットワークを同期的に更新し、座標変換の準備を行います。
+   * 重めの計算を伴うため、呼び出し側が非同期制御を行いたい場合は
+   * {@link updateTinAsync} を利用してください。
+   */
+  updateTin() {
+    let t2 = this.strictMode;
+    t2 !== Yt.MODE_STRICT && t2 !== Yt.MODE_LOOSE && (t2 = Yt.MODE_AUTO);
+    const { pointsSet: r, bbox: i, minx: n, maxx: o, miny: a, maxy: c } = this.validateAndPrepareInputs(), h = {
+      forw: Gt(r.forw),
+      bakw: Gt(r.bakw)
+    }, u2 = Le(
+      h.forw,
+      r.edges,
+      "target"
+    ), f = Le(
+      h.bakw,
+      r.edges,
+      "target"
+    );
+    if (u2.features.length === 0 || f.features.length === 0)
+      throw "TOO LINEAR1";
+    const g = Ar(h.forw), m = En(h.forw);
+    if (!m) throw "TOO LINEAR2";
+    const x2 = {}, b = m.geometry.coordinates[0];
+    let Y2;
+    try {
+      Y2 = b.map((O2) => ({
+        forw: O2,
+        bakw: zt.transformArr(ge(O2), u2)
+      })), Y2.forEach((O2) => {
+        x2[`${O2.forw[0]}:${O2.forw[1]}`] = O2;
+      });
+    } catch {
+      throw "TOO LINEAR2";
+    }
+    const R2 = En(h.bakw);
+    if (!R2) throw "TOO LINEAR2";
+    const d = R2.geometry.coordinates[0];
+    try {
+      Y2 = d.map((O2) => ({
+        bakw: O2,
+        forw: zt.transformArr(ge(O2), f)
+      })), Y2.forEach((O2) => {
+        x2[`${O2.forw[0]}:${O2.forw[1]}`] = O2;
+      });
+    } catch {
+      throw "TOO LINEAR2";
+    }
+    const y = {
+      forw: g.geometry.coordinates,
+      bakw: zt.transformArr(g, u2)
+    }, l = qe(y.forw, y.bakw, "c");
+    this.centroid = {
+      forw: l,
+      bakw: je(l)
+    };
+    const v = {
+      convexBuf: x2,
+      centroid: y,
+      bbox: i,
+      minx: n,
+      maxx: o,
+      miny: a,
+      maxy: c
+    }, M = this.vertexMode === Yt.VERTEX_BIRDEYE ? ni(v) : ei(v), A = {
+      forw: [],
+      bakw: []
+    };
+    for (let O2 = 0; O2 < M.length; O2++) {
+      const X = M[O2].forw, L2 = M[O2].bakw, K2 = qe(X, L2, `b${O2}`), p = je(K2);
+      r.forw.push(K2), r.bakw.push(p), A.forw.push(K2), A.bakw.push(p);
+    }
+    this.pointsSet = {
+      forw: Gt(r.forw),
+      bakw: Gt(r.bakw),
+      edges: r.edges
+    }, this.tins = {
+      forw: zt.rotateVerticesTriangle(
+        Le(
+          this.pointsSet.forw,
+          r.edges,
+          "target"
+        )
+      )
+    }, (t2 === Yt.MODE_STRICT || t2 === Yt.MODE_AUTO) && this.calcurateStrictTin(), (t2 === Yt.MODE_LOOSE || t2 === Yt.MODE_AUTO && this.strict_status === Yt.STATUS_ERROR) && (this.tins.bakw = zt.rotateVerticesTriangle(
+      Le(
+        this.pointsSet.bakw,
+        r.edges,
+        "target"
+      )
+    ), delete this.kinks, this.strict_status = Yt.STATUS_LOOSE), this.vertices_params = {
+      forw: Yn(A.forw, this.centroid.forw),
+      bakw: Yn(A.bakw, this.centroid.bakw)
+    }, this.addIndexedTin();
+    const T = ["forw"];
+    this.strict_status === Yt.STATUS_LOOSE && T.push("bakw");
+    const S2 = this.strict_status === Yt.STATUS_STRICT;
+    this.pointsWeightBuffer = Ei({
+      tins: this.tins,
+      targets: T,
+      includeReciprocals: S2
+    });
+  }
+  /**
+   * 非同期ラッパーを提供します。
+   * 互換性のために Promise ベースの API を維持しますが、内部処理は同期的です。
+   */
+  async updateTinAsync() {
+    this.updateTin();
+  }
+}
+zt.format_version;
+async function createTinFromGcpsAsync(gcps, edges, wh, bounds, strict, vertex) {
+  if (gcps.length < 3) return "tooLessGcps";
+  return new Promise((resolve2, reject) => {
+    const tin = new Yt({});
+    if (wh) {
+      tin.setWh(wh);
+    } else if (bounds) {
+      tin.setBounds(bounds);
+    } else {
+      reject("Both wh and bounds are missing");
+      return;
+    }
+    tin.setStrictMode(strict);
+    tin.setVertexMode(vertex);
+    tin.setPoints(gcps);
+    tin.setEdges(edges);
+    tin.updateTinAsync().then(() => {
+      resolve2(tin.getCompiled());
+    }).catch((err) => {
+      const e = String(err);
+      console.log("[mapedit:updateTin] TIN error:", e);
+      if (e.includes("SOME POINTS OUTSIDE")) resolve2("pointsOutside");
+      else if (e.indexOf("TOO LINEAR") === 0) resolve2("tooLinear");
+      else if (e.includes("Vertex indices") || e.includes("is degenerate!") || e.includes("already exists or intersects with an existing edge!")) resolve2("edgeError");
+      else reject(err);
+    });
+  });
+}
 const registerMapEditHandlers = () => {
-  ipcMain$1.handle("mapedit:request", async (event, mapID) => {
+  ipcMain$1.handle("mapedit:request", async (_event, mapID) => {
     try {
       return await MapEditService$1.request(mapID);
     } catch (e) {
       console.error("Failed to handle mapedit:request", e);
+      throw e;
+    }
+  });
+  ipcMain$1.handle("mapedit:updateTin", async (_event, gcps, edges, index, bounds, strict, vertex) => {
+    try {
+      const wh = index === 0 ? bounds : null;
+      const bd = index !== 0 ? bounds : null;
+      const compiled = await createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex);
+      return [index, compiled];
+    } catch (e) {
+      console.error("Failed to handle mapedit:updateTin", e);
       throw e;
     }
   });
@@ -18467,6 +21747,7 @@ app$1.whenReady().then(() => {
   ipcMain$1.removeHandler("mapedit:request");
   ipcMain$1.removeHandler("mapedit:request");
   ipcMain$1.removeHandler("mapedit:get-tms-list");
+  ipcMain$1.removeHandler("mapedit:updateTin");
   ipcMain$1.removeHandler("dialog:showMessageBox");
   ipcMain$1.handle("dialog:showMessageBox", async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender), options);

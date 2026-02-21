@@ -13,6 +13,8 @@ import ContextMenu from 'ol-contextmenu';
 import { MaplatMap } from '@maplat/core/src/map_ex';
 // @ts-ignore
 import { mapSourceFactory } from '@maplat/core/src/source_ex';
+import Tin from '@maplat/tin';
+import { GeoJSON } from 'ol/format';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
 import { defaults as controlDefaults } from 'ol/control';
@@ -115,6 +117,19 @@ const homePosition = ref<any>(undefined);
 const mercZoom = ref<number | undefined>(undefined);
 const edges = ref<any[]>([]);
 const newlyAddEdge = ref<number | undefined>(undefined);
+const tinObject = ref<any>(undefined);
+const errorNumber = ref<number | null>(null);
+// Computed error status string consumed by the template
+const errorStatus = computed(() => {
+    const tin = tinObject.value;
+    if (!tin || typeof tin !== 'object') return tin as string | undefined;
+    // Real Tin object: get strict_status from compiled
+    try {
+        const c = tin.getCompiled?.();
+        return c?.strict_status as string | undefined;
+    } catch { return undefined; }
+});
+
 
 const editingID_ = ref('');
 const strictMode = ref('auto');
@@ -428,13 +443,16 @@ const canDownImportance = computed(() => false); // Placeholder
 const canUpPriority = computed(() => false); // Placeholder
 const canDownPriority = computed(() => false);
 
-const errorNumber = ref(0); // Placeholder
-const errorStatus = ref(''); // Placeholder for error status
-
 let illstMap: any = null;
 let illstSource: any = null;
 let mercMap: any = null;
 let mercSource: any = null;
+
+// Cached VectorSource references for json/bounds layers (not exposed via MaplatMap.getSource)
+let illstJsonSource: VectorSource | null = null;
+let illstBoundsSource: VectorSource | null = null;
+let mercJsonSource: VectorSource | null = null;
+let mercBoundsSource: VectorSource | null = null;
 
 const labelFontStyle = "Normal 12px Arial";
 
@@ -864,6 +882,123 @@ const edgeModifyCondition = (e: any) => {
     return false;
 };
 
+const tinStyle = (feature: any) => {
+    const type = feature.getGeometry()?.getType();
+    if (type === 'Polygon') {
+        return new Style({
+            stroke: new Stroke({ color: 'blue', width: 1 }),
+            fill: new Fill({ color: 'rgba(0, 0, 255, 0.05)' })
+        });
+    } else if (type === 'LineString') {
+        return new Style({
+            stroke: new Stroke({ color: 'red', width: 2 })
+        });
+    }
+    return undefined;
+};
+
+const jsonClear = () => {
+    illstJsonSource?.clear();
+    mercJsonSource?.clear();
+};
+
+const boundsClear = () => {
+    illstBoundsSource?.clear();
+    mercBoundsSource?.clear();
+};
+
+const tinResultUpdate = () => {
+    if (!illstMap || !mercMap || !illstSource) return;
+
+    jsonClear();
+    boundsClear();
+
+    const forProj = `ZOOM:${illstSource.maxZoom}`;
+    const jsonReader = new GeoJSON();
+
+    // Render bounds (valid domain) on illstMap
+    let bboxPoints: number[][];
+    if (currentEditingLayer.value === 0) {
+        bboxPoints = [
+            [0, 0], [mapData.value.width, 0],
+            [mapData.value.width, mapData.value.height],
+            [0, mapData.value.height], [0, 0]
+        ];
+    } else {
+        // For sub-layers: use bounds polygon (Phase 5)
+        const bd = mapData.value.bounds || [];
+        bboxPoints = [...bd, bd[0]];
+    }
+    if (bboxPoints && bboxPoints.length > 1) {
+        const bboxGeoJson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [bboxPoints] }, properties: {} };
+        const bboxFeatures = jsonReader.readFeatures(bboxGeoJson, { dataProjection: forProj, featureProjection: 'EPSG:3857' });
+        if (illstBoundsSource) illstBoundsSource.addFeatures(bboxFeatures);
+    }
+
+    const tin = tinObject.value;
+    if (!tin || typeof tin === 'string') return;
+
+    // Render TIN mesh on both maps
+    // NOTE: tins is a direct property on the Tin instance, NOT inside getCompiled()
+    // Original mapedit.js: tinObject.tins.forw / tinObject.tins.bakw
+    try {
+        const forTin = tin.tins?.forw;
+        const bakTin = tin.tins?.bakw;
+        if (forTin) {
+            const forFeatures = jsonReader.readFeatures(forTin, { dataProjection: forProj, featureProjection: 'EPSG:3857' });
+            forFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
+            if (illstJsonSource) illstJsonSource.addFeatures(forFeatures);
+        }
+        if (bakTin) {
+            const bakFeatures = jsonReader.readFeatures(bakTin, { dataProjection: 'EPSG:3857' });
+            bakFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
+            if (mercJsonSource) mercJsonSource.addFeatures(bakFeatures);
+        }
+    } catch (e) {
+        console.error('[tinResultUpdate] Failed to render TIN:', e);
+    }
+};
+
+const updateTin = async () => {
+    if (!illstSource) return;
+    const gcpList = gcps.value;
+    if (!gcpList || gcpList.length < 3) {
+        tinObject.value = 'tooLessGcps';
+        tinResultUpdate();
+        return;
+    }
+    // bounds / wh を IPC に渡すための変換（オリジナルの backend/mapedit.js と同じ引数）
+    const index = currentEditingLayer.value;
+    const wh = index === 0 ? [mapData.value.width, mapData.value.height] : null;
+    const bounds = index !== 0 ? (mapData.value.bounds || null) : wh; // index=0 は wh として使う
+    try {
+        // Vue の Proxy は IPC の Structured Clone に対応しないため、JSON でプレーンオブジェクトに変換する
+        const plainGcps = JSON.parse(JSON.stringify(gcpList.map((g: any[]) => [g[0], g[1]])));
+        const plainEdges = JSON.parse(JSON.stringify(edges.value));
+        const [, compiled] = await (window as any).mapedit.updateTin(
+            plainGcps,
+            plainEdges,
+            index,
+            bounds,
+            strictMode.value,
+            vertexMode.value
+        );
+        if (typeof compiled === 'string') {
+            // エラー文字列が返ってきた場合
+            tinObject.value = compiled;
+        } else {
+            // コンパイル済みデータをフロントで Tin に復元して tins プロパティを使えるようにする
+            const tin = new Tin({});
+            tin.setCompiled(compiled);
+            tinObject.value = tin;
+        }
+    } catch (err: any) {
+        console.error('[updateTin] IPC error:', err);
+        tinObject.value = 'unknownError';
+    }
+    tinResultUpdate();
+};
+
 const initMaps = async () => {
     // 1. Initialize Illustrated Map (LEFT side)
     illstMap = new MaplatMap({
@@ -878,20 +1013,43 @@ const initMaps = async () => {
     });
     illstMap.addControl(createContextMenu(illstMap));
 
+    // bounds display layer (red polygon for valid domain)
+    const illstBoundsVSrc = new VectorSource({ wrapX: false });
+    illstBoundsSource = illstBoundsVSrc;
+    const illstBoundsLayer = new VectorLayer({
+        source: illstBoundsVSrc,
+        style: new Style({
+            stroke: new Stroke({ color: 'red', width: 2 }),
+            fill: new Fill({ color: 'rgba(0,0,0,0)' })
+        })
+    });
+    illstBoundsLayer.set('name', 'bounds');
+    // json layer (TIN triangulation mesh)
+    const illstJsonVSrc = new VectorSource({ wrapX: false });
+    illstJsonSource = illstJsonVSrc;
+    const illstJsonLayer = new VectorLayer({
+        source: illstJsonVSrc
+    });
+    illstJsonLayer.set('name', 'json');
+    const illstEdgesVSrc = new VectorSource({ wrapX: false });
     const illstEdgesLayer = new VectorLayer({
-        source: new VectorSource({ wrapX: false })
+        source: illstEdgesVSrc
     });
     illstEdgesLayer.set('name', 'edges');
     const illstOverlay = illstMap.getLayer('overlay');
-    if (illstOverlay && illstOverlay.getLayers) illstOverlay.getLayers().push(illstEdgesLayer);
+    if (illstOverlay && illstOverlay.getLayers) {
+        illstOverlay.getLayers().push(illstBoundsLayer);
+        illstOverlay.getLayers().push(illstJsonLayer);
+        illstOverlay.getLayers().push(illstEdgesLayer);
+    }
 
     const illstEdgeModify = new Modify({
-        source: illstEdgesLayer.getSource() as VectorSource,
+        source: illstEdgesVSrc as VectorSource,
         condition: edgeModifyCondition
     });
     illstEdgeModify.on('modifystart', edgeModifyStart);
     illstEdgeModify.on('modifyend', edgeModifyEnd);
-    const illstEdgeSnap = new Snap({ source: illstEdgesLayer.getSource() as VectorSource });
+    const illstEdgeSnap = new Snap({ source: illstEdgesVSrc as VectorSource });
     illstMap.addInteraction(illstEdgeModify);
     illstMap.addInteraction(illstEdgeSnap);
 
@@ -910,20 +1068,43 @@ const initMaps = async () => {
     });
     mercMap.addControl(createContextMenu(mercMap));
 
+    // bounds display layer
+    const mercBoundsVSrc = new VectorSource({ wrapX: false });
+    mercBoundsSource = mercBoundsVSrc;
+    const mercBoundsLayer = new VectorLayer({
+        source: mercBoundsVSrc,
+        style: new Style({
+            stroke: new Stroke({ color: 'red', width: 2 }),
+            fill: new Fill({ color: 'rgba(0,0,0,0)' })
+        })
+    });
+    mercBoundsLayer.set('name', 'bounds');
+    // json layer (TIN mesh)
+    const mercJsonVSrc = new VectorSource({ wrapX: false });
+    mercJsonSource = mercJsonVSrc;
+    const mercJsonLayer = new VectorLayer({
+        source: mercJsonVSrc
+    });
+    mercJsonLayer.set('name', 'json');
+    const mercEdgesVSrc = new VectorSource({ wrapX: false });
     const mercEdgesLayer = new VectorLayer({
-        source: new VectorSource({ wrapX: false })
+        source: mercEdgesVSrc
     });
     mercEdgesLayer.set('name', 'edges');
     const mercOverlay = mercMap.getLayer('overlay');
-    if (mercOverlay && mercOverlay.getLayers) mercOverlay.getLayers().push(mercEdgesLayer);
+    if (mercOverlay && mercOverlay.getLayers) {
+        mercOverlay.getLayers().push(mercBoundsLayer);
+        mercOverlay.getLayers().push(mercJsonLayer);
+        mercOverlay.getLayers().push(mercEdgesLayer);
+    }
     
     const mercEdgeModify = new Modify({
-        source: mercEdgesLayer.getSource() as VectorSource,
+        source: mercEdgesVSrc as VectorSource,
         condition: edgeModifyCondition
     });
     mercEdgeModify.on('modifystart', edgeModifyStart);
     mercEdgeModify.on('modifyend', edgeModifyEnd);
-    const mercEdgeSnap = new Snap({ source: mercEdgesLayer.getSource() as VectorSource });
+    const mercEdgeSnap = new Snap({ source: mercEdgesVSrc as VectorSource });
     mercMap.addInteraction(mercEdgeModify);
     mercMap.addInteraction(mercEdgeSnap);
     
@@ -1027,13 +1208,20 @@ const loadMapTiles = async () => {
             if (mercZoom.value) mercMap.getView().setZoom(mercZoom.value);
         }
 
-        // Draw markers (equivalent to legacy gcpsToMarkers() call after reflectIllstMap())
+        // Draw markers, then compute & render TIN (equivalent to legacy gcpsToMarkers() + tinResultUpdate())
         gcpsToMarkers();
+        updateTin();
 
     } catch (e) {
         console.error("Failed to load map tiles via factory:", e);
     }
 };
+
+// Mirror original vueMap watchers: gcps/edges/strictMode/vertexMode → updateTin()
+watch(gcps, () => { if (illstSource) updateTin(); }, { deep: true });
+watch(edges, () => { if (illstSource) updateTin(); }, { deep: true });
+watch(strictMode, () => { if (illstSource) updateTin(); });
+watch(vertexMode, () => { if (illstSource) updateTin(); });
 
 const setupBaseMaps = async () => {
     if (!mercMap) return;

@@ -86,6 +86,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('mapedit:request')
   ipcMain.removeHandler('mapedit:request')
   ipcMain.removeHandler('mapedit:get-tms-list')
+  ipcMain.removeHandler('mapedit:updateTin')
   ipcMain.removeHandler('dialog:showMessageBox')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {

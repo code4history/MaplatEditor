@@ -36,7 +36,8 @@ electron.contextBridge.exposeInMainWorld("maplist", {
 });
 electron.contextBridge.exposeInMainWorld("mapedit", {
   request: (mapID) => electron.ipcRenderer.invoke("mapedit:request", mapID),
-  getTmsListOfMapID: (mapID) => electron.ipcRenderer.invoke("mapedit:get-tms-list", mapID)
+  getTmsListOfMapID: (mapID) => electron.ipcRenderer.invoke("mapedit:get-tms-list", mapID),
+  updateTin: (gcps, edges, index, bounds, strict, vertex) => electron.ipcRenderer.invoke("mapedit:updateTin", gcps, edges, index, bounds, strict, vertex)
 });
 electron.contextBridge.exposeInMainWorld("versions", {
   node: process.versions.node,

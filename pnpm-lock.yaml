@@ -11,6 +11,9 @@ importers:
       '@maplat/core':
         specifier: ^0.13.0
         version: 0.13.0(ol@10.7.0)(workbox-routing@7.4.0)
+      '@maplat/tin':
+        specifier: ^0.13.1
+        version: 0.13.1
       '@maplat/transform':
         specifier: ^0.4.1
         version: 0.4.1
@@ -450,6 +453,10 @@ packages:
         optional: true
       maplibre-gl:
         optional: true
+
+  '@maplat/tin@0.13.1':
+    resolution: {integrity: sha512-IuPRQjnhGfwgyqv0KBweI7dcP6uyjn7YW3tM9zHfY6BRpmi8ROVrtz9ZZFfe4bCj+9UFlp2gsKuH7u5Zh/1wFQ==}
+    engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
 
   '@maplat/transform@0.4.1':
     resolution: {integrity: sha512-w4tji9RS6Ngvo8QIUt1/HDHLaYBjcMJWtdJb0ER19Eebv2cxPGpwTovQkapmy9psiLeJ+xTbYrZCUqfrCF651A==}
@@ -1601,6 +1608,9 @@ packages:
   define-properties@1.2.1:
     resolution: {integrity: sha512-8QmQKqEASLd5nx0U1B1okLElbUuuttJ/AnYmRXbbbGDWh6uS208EjD4Xqq/I9wK7u0v6O08XhTWnt5XtEbR6Dg==}
     engines: {node: '>= 0.4'}
+
+  delaunator@5.0.1:
+    resolution: {integrity: sha512-8nvh+XBe96aCESrGOqMp/84b13H9cdKbG5P2ejQCh4d4sK9RL4371qou9drQjMhvnPmhWl5hnmqbEE0fXr9Xnw==}
 
   delayed-stream@1.0.0:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
@@ -3503,6 +3513,13 @@ snapshots:
       whatwg-fetch: 3.6.20
     transitivePeerDependencies:
       - workbox-routing
+
+  '@maplat/tin@0.13.1':
+    dependencies:
+      '@maplat/transform': 0.4.1
+      '@turf/turf': 7.3.4
+      delaunator: 5.0.1
+      robust-predicates: 3.0.2
 
   '@maplat/transform@0.4.1':
     dependencies:
@@ -5522,6 +5539,10 @@ snapshots:
       define-data-property: 1.1.4
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
+
+  delaunator@5.0.1:
+    dependencies:
+      robust-predicates: 3.0.2
 
   delayed-stream@1.0.0: {}
 
