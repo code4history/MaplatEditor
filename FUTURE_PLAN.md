@@ -19,4 +19,8 @@ This document outlines potential future enhancements, features, and UI/UX improv
 - State management: Use Pinia for complex state sharing across components instead of heavy prop drilling or global window variables.
 - Componentization: Break down monolithic files like `MapEdit.vue` into smaller, reusable components (e.g., `LayerSettings.vue`, `CoordinateEditor.vue`, `MapToolbar.vue`).
 
+## 4. TIN計算の高速化（WASM化）
+**現状**: TIN計算（Delaunay三角分割）は Electron のメインプロセス（Node.js）経由で `@maplat/tin` を実行しており、2000点超の大規模データで約7秒を要する。オリジナル実装と同等の速度ではあるが、実用的にはまだ遅い。  
+**提案**: `@maplat/tin` のコア計算ロジックを WASM 化、あるいは高性能な Delaunay 実装（`d3-delaunay` + WASM ラッパー等）へ差し替えることで、大幅な高速化が見込まれる。
+
 _Note: This document should be updated continuously as more areas for improvement are discovered during the porting process._

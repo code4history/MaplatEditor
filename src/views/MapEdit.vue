@@ -119,7 +119,10 @@ const edges = ref<any[]>([]);
 const newlyAddEdge = ref<number | undefined>(undefined);
 const tinObject = ref<any>(undefined);
 const errorNumber = ref<number | null>(null);
-// Computed error status string consumed by the template
+// Module-level VectorSource references for check (coordinate test) layers
+let illstCheckSource: VectorSource | null = null;
+let mercCheckSource: VectorSource | null = null;
+// errorStatus: TIN strict_status string
 const errorStatus = computed(() => {
     const tin = tinObject.value;
     if (!tin || typeof tin !== 'object') return tin as string | undefined;
@@ -130,6 +133,12 @@ const errorStatus = computed(() => {
     } catch { return undefined; }
 });
 
+// kinksCount: kinks のエラー点数（strict_error 時に使用）
+const kinksCount = computed(() => {
+    const tin = tinObject.value;
+    if (!tin || typeof tin !== 'object') return 0;
+    return tin.kinks?.bakw?.features?.length ?? 0;
+});
 
 const editingID_ = ref('');
 const strictMode = ref('auto');
@@ -894,7 +903,17 @@ const tinStyle = (feature: any) => {
             stroke: new Stroke({ color: 'red', width: 2 })
         });
     }
-    return undefined;
+    // Point: kinks（交差エラー点）を黄色ダイヤ型アイコンで表示
+    // Original mapedit.js L.731-743
+    const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+x="0px" y="0px" width="6px" height="6px" viewBox="0 0 6 6" enable-background="new 0 0 6 6" xml:space="preserve">
+<polygon x="0" y="0" points="3,0 6,3 3,6 0,3 3,0" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon></svg>`;
+    return new Style({
+        image: new Icon({
+            src: `data:image/svg+xml,${encodeURIComponent(iconSVG)}`,
+            anchor: [0.5, 0.5]
+        })
+    });
 };
 
 const jsonClear = () => {
@@ -907,11 +926,18 @@ const boundsClear = () => {
     mercBoundsSource?.clear();
 };
 
+const checkClear = () => {
+    illstCheckSource?.clear();
+    mercCheckSource?.clear();
+};
+
 const tinResultUpdate = () => {
     if (!illstMap || !mercMap || !illstSource) return;
 
     jsonClear();
     boundsClear();
+    checkClear();
+    errorNumber.value = null;
 
     const forProj = `ZOOM:${illstSource.maxZoom}`;
     const jsonReader = new GeoJSON();
@@ -953,6 +979,13 @@ const tinResultUpdate = () => {
             const bakFeatures = jsonReader.readFeatures(bakTin, { dataProjection: 'EPSG:3857' });
             bakFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
             if (mercJsonSource) mercJsonSource.addFeatures(bakFeatures);
+        }
+        // A-2: kinks（交差エラー点）の表示 - strict_errorの場合のみ
+        // Original mapedit.js L.706-709
+        if (tin.strict_status === 'strict_error' && tin.kinks?.bakw) {
+            const kinkFeatures = jsonReader.readFeatures(tin.kinks.bakw, { dataProjection: 'EPSG:3857' });
+            kinkFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
+            if (mercJsonSource) mercJsonSource.addFeatures(kinkFeatures);
         }
     } catch (e) {
         console.error('[tinResultUpdate] Failed to render TIN:', e);
@@ -999,7 +1032,81 @@ const updateTin = async () => {
     tinResultUpdate();
 };
 
+// A-1: 座標変換テスト（クリックした地点を相手地図に対応点で表示）
+// Original mapedit.js onClick (L.581-649)
+const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
+    if (evt.originalEvent.altKey) return;
+    if (!illstMap || !mercMap || !illstSource) return;
+
+    const isIllst = (evt.map ?? (evt as any).target) === illstMap;
+    const distMap = isIllst ? mercMap : illstMap;
+    const srcMarkerLoc = evt.coordinate;
+
+    // Clear previous test pins
+    illstCheckSource?.clear();
+    mercCheckSource?.clear();
+
+    const tin = tinObject.value;
+    if (typeof tin === 'string' || !tin) {
+        // TIN error state
+        const msg =
+            tin === 'tooLessGcps' ? t('mapedit.testerror_too_short') :
+            tin === 'tooLinear'   ? t('mapedit.testerror_too_linear') :
+            tin === 'pointsOutside' ? t('mapedit.testerror_outside') :
+            tin === 'edgeError'   ? t('mapedit.testerror_line') :
+                                    t('mapedit.testerror_unknown');
+        await (window as any).dialog.showMessageBox({ type: 'info', buttons: ['OK'], message: msg });
+        return;
+    }
+    if (tin.strict_status === 'strict_error' && !isIllst) {
+        await (window as any).dialog.showMessageBox({
+            type: 'info', buttons: ['OK'],
+            message: t('mapedit.testerror_valid_error')
+        });
+        return;
+    }
+
+    // srcXy: TIN coordinate space ([illst_x, illst_y] or [merc_x, merc_y])
+    const srcXy = isIllst
+        ? illstSource.sysCoord2Xy(srcMarkerLoc)
+        : srcMarkerLoc;
+
+    // transform: isIllst=true → forwardTransform (illst→merc), false → backwardTransform (merc→illst)
+    const distXy = tin.transform(srcXy, !isIllst);
+
+    if (!distXy) {
+        await (window as any).dialog.showMessageBox({
+            type: 'info', buttons: ['OK'],
+            message: t('mapedit.testerror_outside_map')
+        });
+        return;
+    }
+
+    const distMarkerLoc = isIllst ? distXy : illstSource.xy2SysCoord(distXy);
+    distMap.getView().setCenter(distMarkerLoc);
+
+    const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+x="0px" y="0px" width="10px" height="15px" viewBox="0 0 10 15" enable-background="new 0 0 10 15" xml:space="preserve">
+<polygon x="0" y="0" points="5,1 9,5 5,14 1,5 5,1" stroke="#FF0000" fill="#FFFF00" stroke-width="2"></polygon></svg>`;
+    const style = new Style({
+        image: new Icon({
+            src: `data:image/svg+xml,${encodeURIComponent(iconSVG)}`,
+            anchor: [0.5, 1]
+        })
+    });
+
+    const { Feature } = await import('ol');
+    const { Point: OlPoint } = await import('ol/geom');
+    const srcFeature = new Feature({ geometry: new OlPoint(srcMarkerLoc) });
+    const distFeature = new Feature({ geometry: new OlPoint(distMarkerLoc) });
+    srcFeature.setStyle(style);
+    distFeature.setStyle(style);
+    (isIllst ? illstCheckSource : mercCheckSource)?.addFeature(srcFeature);
+    (isIllst ? mercCheckSource : illstCheckSource)?.addFeature(distFeature);
+};
+
 const initMaps = async () => {
+
     // 1. Initialize Illustrated Map (LEFT side)
     illstMap = new MaplatMap({
         div: 'illstMap',
@@ -1031,6 +1138,11 @@ const initMaps = async () => {
         source: illstJsonVSrc
     });
     illstJsonLayer.set('name', 'json');
+    // check layer (coordinate transform test pins)
+    const illstCheckVSrc = new VectorSource({ wrapX: false });
+    illstCheckSource = illstCheckVSrc;
+    const illstCheckLayer = new VectorLayer({ source: illstCheckVSrc });
+    illstCheckLayer.set('name', 'check');
     const illstEdgesVSrc = new VectorSource({ wrapX: false });
     const illstEdgesLayer = new VectorLayer({
         source: illstEdgesVSrc
@@ -1042,6 +1154,10 @@ const initMaps = async () => {
         illstOverlay.getLayers().push(illstJsonLayer);
         illstOverlay.getLayers().push(illstEdgesLayer);
     }
+    // check layer is added at top level (not overlay)
+    illstMap.getLayers().push(illstCheckLayer);
+    // onClick: coordinate transform test
+    illstMap.on('click', onMapClick);
 
     const illstEdgeModify = new Modify({
         source: illstEdgesVSrc as VectorSource,
@@ -1086,6 +1202,11 @@ const initMaps = async () => {
         source: mercJsonVSrc
     });
     mercJsonLayer.set('name', 'json');
+    // check layer
+    const mercCheckVSrc = new VectorSource({ wrapX: false });
+    mercCheckSource = mercCheckVSrc;
+    const mercCheckLayer = new VectorLayer({ source: mercCheckVSrc });
+    mercCheckLayer.set('name', 'check');
     const mercEdgesVSrc = new VectorSource({ wrapX: false });
     const mercEdgesLayer = new VectorLayer({
         source: mercEdgesVSrc
@@ -1097,6 +1218,10 @@ const initMaps = async () => {
         mercOverlay.getLayers().push(mercJsonLayer);
         mercOverlay.getLayers().push(mercEdgesLayer);
     }
+    // check layer at top level
+    mercMap.getLayers().push(mercCheckLayer);
+    // onClick: coordinate transform test
+    mercMap.on('click', onMapClick);
     
     const mercEdgeModify = new Modify({
         source: mercEdgesVSrc as VectorSource,
@@ -1327,6 +1452,24 @@ const saveMap = () => {
     console.log("Saving map...", mapData.value);
     // TODO: Actually save data
     originalMapData.value = cloneDeep(mapData.value);
+};
+
+// A-3: エラー点の順送り表示
+// Original mapedit.js L.1686-1700
+const viewError = () => {
+    const tin = tinObject.value;
+    if (!tin || typeof tin !== 'object') return;
+    const kinks = tin.kinks?.bakw?.features;
+    if (!kinks || kinks.length === 0) return;
+    if (errorNumber.value === null) {
+        errorNumber.value = 0;
+    } else {
+        errorNumber.value = (errorNumber.value + 1) % kinks.length;
+    }
+    const errorPoint = kinks[errorNumber.value].geometry.coordinates;
+    const view = mercMap.getView();
+    view.setCenter(errorPoint);
+    view.setZoom(17);
 };
 
 // Placeholder functions for new UI elements
@@ -1711,13 +1854,13 @@ const goBack = async () => {
                                  <span v-else-if="errorStatus === 'pointsOutside'">{{ t('mapedit.map_error_outside') }}</span>
                                  <span v-else-if="errorStatus === 'edgeError'">{{ t('mapedit.map_error_crossing') }}</span>
                                  <span v-else-if="errorStatus === 'strict'">{{ t('mapedit.map_no_error') }}</span>
-                                 <span v-else-if="errorStatus === 'strict_error'">{{ t('mapedit.map_error_number', {num: errorNumber}) }}</span>
+                                 <span v-else-if="errorStatus === 'strict_error'">{{ t('mapedit.map_error_number', {num: kinksCount}) }}</span>
                                  <span v-else-if="errorStatus === 'loose'">{{ t('mapedit.map_loose_by_error') }}</span>
                              </div>
 
                              <!-- Column 4: View Error Button -->
                              <div class="col-md-3 text-end">
-                                 <button class="btn btn-sm btn-outline-danger" :class="{ 'd-none': errorNumber === 0 }" @click="$emit('viewError')">
+                                 <button class="btn btn-sm btn-outline-danger" v-show="errorStatus === 'strict_error'" @click="viewError">
                                      {{ t('mapedit.map_error_next') }}
                                  </button>
                              </div>
