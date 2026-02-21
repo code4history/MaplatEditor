@@ -95,7 +95,7 @@ const hasNext = ref(true);
 const loadMaps = async (page: number = 1) => {
   try {
     console.log(`Loading maps page ${page}`);
-    const results = await window.maplist.request(searchQuery.value, page);
+    const results = await (window as any).maplist.request(searchQuery.value, page);
     console.log("Maps loaded:", results);
     maplist.value = results;
     currentPage.value = page;

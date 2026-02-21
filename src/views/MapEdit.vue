@@ -427,9 +427,6 @@ const canDownImportance = computed(() => false); // Placeholder
 const canUpPriority = computed(() => false); // Placeholder
 const canDownPriority = computed(() => false);
 
-const enableSetHomeIllst = computed(() => true); // Temporary enable for UI test
-const enableSetHomeMerc = computed(() => true);
-
 const errorNumber = ref(0); // Placeholder
 const errorStatus = ref(''); // Placeholder for error status
 
@@ -449,31 +446,6 @@ const getTextWidth = ( _text: string | number, _fontStyle: string ) => {
   return metrics.width;
 }
 
-const homeToMarkers = () => {
-  if (homePosition.value && mercMap && illstMap) {
-    const homeSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve">
-<polygon x="0" y="0" points="10,0 20,10 17,10 17,20 3,20 3,10 0,10 10,0" stroke="#FF0000" fill="#FF0000" stroke-width="2"></polygon></svg>`;
-    const homeStyle = new Style({
-      image: new Icon({
-        "src": `data:image/svg+xml,${encodeURIComponent(homeSVG)}`,
-        "anchor": [0.5, 1.0]
-      })
-    });
-    const merc = transform(homePosition.value, 'EPSG:4326', 'EPSG:3857');
-    mercMap.setMarker(merc, {gcpIndex: 'home'}, homeStyle);
-    if (errorStatus.value === 'strict' || errorStatus.value === 'loose') {
-      // Assuming mapData.value.tinObjects exist from backend load
-      const tinObjects = mapData.value.tinObjects || [];
-      if (tinObjects[0] && illstSource) {
-         const xy = tinObjects[0].transform(merc, true);
-         const histCoord = illstSource.xy2SysCoord(xy);
-         illstMap.setMarker(histCoord, {gcpIndex: 'home'}, homeStyle);
-      }
-    }
-  }
-};
-
 const edgesClear = () => {
     if (illstMap && illstMap.getSource('edges')) {
         illstMap.getSource('edges').clear();
@@ -483,49 +455,96 @@ const edgesClear = () => {
     }
 };
 
-const gcpsToMarkers = (targetIndex?: number) => {
-  console.log('[gcpsToMarkers] gcps[0]:', JSON.stringify(gcps.value[0]));
-  if (gcps.value.length > 0) {
-    const g0 = gcps.value[0];
-    const testCoord = illstSource.xy2SysCoord(g0[0]);
-    console.log('[gcpsToMarkers] xy2SysCoord(gcp[0]):', JSON.stringify(testCoord), 'illstView center:', JSON.stringify(illstMap.getView().getCenter()), 'maxZoom:', illstSource.maxZoom, '_maxxy:', illstSource._maxxy);
-  }
-  if (!illstMap || !mercMap || !illstSource) return;
+const gcpsToMarkers = () => {
+    // Clear existing markers
+    const illstSourceMarker = illstMap?.getSource('marker') as VectorSource;
+    const mercSourceMarker = mercMap?.getSource('marker') as VectorSource;
 
-  illstMap.resetMarker();
-  mercMap.resetMarker();
-  edgesClear();
+    if (illstSourceMarker) illstSourceMarker.clear();
+    if (mercSourceMarker) mercSourceMarker.clear();
 
-  homeToMarkers();
-
-  for (let i=0; i<gcps.value.length; i++) {
-    const gcp = gcps.value[i];
-    const mapXyIllst = illstSource.xy2SysCoord(gcp[0]);
-
-    const labelWidth = getTextWidth( (i + 1), labelFontStyle ) + 10;
-
-    const iconSVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+    const addMarkerToMap = (pt1: number[], pt2: number[], index: number | string, isCurrentEditing: boolean) => {
+        const isEditing = typeof index === 'number' && currentEditingLayer.value !== 0 && currentEditingLayer.value !== (gcps.value[index] ? gcps.value[index][2] : 0);
+        
+        let iconSrc;
+        if (index === 'home') {
+             // Home Marker (Red House)
+             const homeSVG = `<svg version="1.1" id="Layer_2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve">
+<polygon x="0" y="0" points="10,0 20,10 17,10 17,20 3,20 3,10 0,10 10,0" stroke="#FF0000" fill="#FF0000" stroke-width="2"></polygon></svg>`;
+             iconSrc = `data:image/svg+xml,${encodeURIComponent(homeSVG)}`;
+        } else {
+             // Regular GCP Marker (original label shape)
+             const fillColor = isCurrentEditing ? '#AAAAFF' : (isEditing ? '#CCCCCC' : '#DEEFAE');
+             const label = index === 'new' ? 'New' : String((index as number) + 1);
+             const labelWidth = getTextWidth(label, labelFontStyle) + 10;
+             const svg = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
 x="0px" y="0px" width="${labelWidth}px" height="20px"
 viewBox="0 0 ${labelWidth} 20" enable-background="new 0 0 ${labelWidth} 20" xml:space="preserve">
 <polygon x="0" y="0" points="0,0 ${labelWidth},0 ${labelWidth},16 ${(labelWidth / 2 + 4)},16
-${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="${(i === targetIndex ? '#FF0000' : '#DEEFAE')}"
-stroke-width="2"></polygon>
-<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${(i + 1)}</text></svg>`;
+${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fill="${fillColor}" stroke-width="2"></polygon>
+<text x="5" y="13" fill="#000000" font-family="Arial" font-size="12" font-weight="normal">${label}</text></svg>`;
+             iconSrc = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+        }
 
-    const iconSrc = `data:image/svg+xml,${encodeURIComponent(iconSVG)}`;
+        const iconStyle = new Style({
+            image: new Icon({
+                src: iconSrc,
+                anchor: [0.5, 1]
+            })
+        });
 
-    const iconStyle = new Style({
-      "image": new Icon({
-        "src": iconSrc,
-        "anchor": [0.5, 1]
-      })
+        if (illstSourceMarker && pt1 && illstMap && illstSource) {
+            illstMap.setMarker(illstSource.xy2SysCoord(pt1), { gcpIndex: index }, iconStyle, 'marker');
+        }
+
+        if (mercSourceMarker && pt2 && mercMap) {
+            mercMap.setMarker(pt2, { gcpIndex: index }, iconStyle, 'marker');
+        }
+    };
+
+    // Add all existing GCPs
+    gcps.value.forEach((gcp, index) => {
+        addMarkerToMap(gcp[0], gcp[1], index, currentEditingLayer.value === gcp[2]);
     });
 
-    illstMap.setMarker(mapXyIllst, { gcpIndex: i }, iconStyle);
-    mercMap.setMarker(gcp[1], { gcpIndex: i }, iconStyle);
-  }
-  
-  // NOTE: LineString rendering for 'edges' will be implemented here when Error Check Phase is reached
+    // Add new GCP if it exists
+    if (newGcp.value) {
+        addMarkerToMap(newGcp.value[0], newGcp.value[1], 'new', true);
+    }
+    
+    // Add home position marker if it exists
+    if (homePosition.value) {
+        const merc = transform(homePosition.value, 'EPSG:4326', 'EPSG:3857');
+        // We only add to Mercator map right now, IllstMap requires TIN object to translate Mercator back to Pixels
+        addMarkerToMap(undefined as any, merc, 'home', false);
+    }
+};
+
+const enableSetHomeIllst = computed(() => {
+    return strictMode.value === 'strict' || strictMode.value === 'loose'; // Depends on TIN feature
+});
+
+const enableSetHomeMerc = computed(() => {
+    return true; // Always allowed
+});
+
+const setHomeIllst = () => {
+    console.warn("setHomeIllst visually requires TIN feature to translate illustrated map bounds to Mercator bounds.");
+};
+
+const setHomeMerc = () => {
+    const view = mercMap.getView();
+    const longlat = transform(view.getCenter(), 'EPSG:3857', 'EPSG:4326');
+    const zoom = view.getZoom();
+    
+    homePosition.value = longlat;
+    mercZoom.value = zoom;
+    
+    // Explicitly update mapData so isDirty triggers
+    mapData.value.homePosition = cloneDeep(longlat);
+    mapData.value.mercZoom = zoom;
+    
+    gcpsToMarkers();
 };
 
 
@@ -915,8 +934,6 @@ const upImportance = () => { console.log("Up importance"); };
 const downImportance = () => { console.log("Down importance"); };
 const upPriority = () => { console.log("Up priority"); };
 const downPriority = () => { console.log("Down priority"); };
-const setHomeIllst = () => { console.log("Set home illst"); };
-const setHomeMerc = () => { console.log("Set home merc"); };
 const goBack = async () => {
     if (isDirty.value) {
         const response = await (window as any).dialog.showMessageBox({
