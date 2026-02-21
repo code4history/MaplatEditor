@@ -114,6 +114,7 @@ const newGcp = ref<any>(undefined);
 const homePosition = ref<any>(undefined);
 const mercZoom = ref<number | undefined>(undefined);
 const edges = ref<any[]>([]);
+const newlyAddEdge = ref<number | undefined>(undefined);
 
 const editingID_ = ref('');
 const strictMode = ref('auto');
@@ -456,6 +457,8 @@ const edgesClear = () => {
 };
 
 const gcpsToMarkers = () => {
+    edgesClear();
+
     // Clear existing markers
     const illstSourceMarker = illstMap?.getSource('marker') as VectorSource;
     const mercSourceMarker = mercMap?.getSource('marker') as VectorSource;
@@ -474,8 +477,9 @@ const gcpsToMarkers = () => {
              iconSrc = `data:image/svg+xml,${encodeURIComponent(homeSVG)}`;
         } else {
              // Regular GCP Marker (original label shape)
-             const fillColor = isCurrentEditing ? '#AAAAFF' : (isEditing ? '#CCCCCC' : '#DEEFAE');
-             const label = index === 'new' ? 'New' : String((index as number) + 1);
+             const isEdgeStart = index === newlyAddEdge.value;
+             const fillColor = isEdgeStart ? '#FF0000' : '#DEEFAE';
+             const label = String(typeof index === 'number' ? index + 1 : (newGcp.value ? newGcp.value[2] : 'New'));
              const labelWidth = getTextWidth(label, labelFontStyle) + 10;
              const svg = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
 x="0px" y="0px" width="${labelWidth}px" height="20px"
@@ -518,6 +522,41 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
         // We only add to Mercator map right now, IllstMap requires TIN object to translate Mercator back to Pixels
         addMarkerToMap(undefined as any, merc, 'home', false);
     }
+
+    // Draw Edges (Delaunay Borders)
+    edges.value.forEach((edge, i) => {
+        const gcp1 = gcps.value[edge[2][0]];
+        const gcp2 = gcps.value[edge[2][1]];
+        if (!gcp1 || !gcp2) return;
+        
+        const illst1 = illstSource.xy2SysCoord(gcp1[0]);
+        const illst2 = illstSource.xy2SysCoord(gcp2[0]);
+        const style = new Style({
+            stroke: new Stroke({
+                color: 'red',
+                width: 2
+            })
+        });
+
+        const mercCoords = [gcp1[1]];
+        edge[1].forEach((node: any) => mercCoords.push(node));
+        mercCoords.push(gcp2[1]);
+        const mercLine = {
+            geometry: new LineString(mercCoords),
+            startEnd: edge[2]
+        };
+
+        const illstCoords = [illst1];
+        edge[0].forEach((node: any) => illstCoords.push(illstSource.xy2SysCoord(node)));
+        illstCoords.push(illst2);
+        const illstLine = {
+            geometry: new LineString(illstCoords),
+            startEnd: edge[2]
+        };
+
+        if (illstMap && illstMap.setFeature) illstMap.setFeature(illstLine, style, 'edges');
+        if (mercMap && mercMap.setFeature) mercMap.setFeature(mercLine, style, 'edges');
+    });
 };
 
 const enableSetHomeIllst = computed(() => {
@@ -579,11 +618,14 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
     }
   } else if ((isIllst && !newGcp.value[0]) || (!isIllst && !newGcp.value[1])) {
     if (isIllst) { newGcp.value[0] = xy; } else { newGcp.value[1] = xy; }
-    const newPoint = [newGcp.value[0], newGcp.value[1]];
+    const newPoint = [newGcp.value[0], newGcp.value[1], currentEditingLayer.value];
     gcps.value.push(newPoint);
-    gcpsToMarkers();
+    
+    // Clear the pending marker BEFORE redrawing
     newGcp.value = undefined;
     editingID.value = String(gcps.value.length);
+    gcpsToMarkers();
+    mapData.value.gcps = cloneDeep(gcps.value);
   }
 };
 
@@ -594,13 +636,62 @@ const removeMarker = (arg: any, map: any) => {
     newGcp.value = undefined;
     map.getSource('marker').removeFeature(marker);
   } else {
+    // Delete connected edges and cascade indices
+    for (let i = edges.value.length - 1; i >= 0; i--) {
+       const edge = edges.value[i];
+       if (edge[2][0] === Number(gcpIndex) || edge[2][1] === Number(gcpIndex)) {
+           edges.value.splice(i, 1);
+       } else {
+           if (edge[2][0] > Number(gcpIndex)) edge[2][0]--;
+           if (edge[2][1] > Number(gcpIndex)) edge[2][1]--;
+       }
+    }
     gcps.value.splice(Number(gcpIndex), 1);
     
-    // Line string Edge removal omitted for now as edges are phase 4
-    
     gcpsToMarkers();
+    mapData.value.edges = cloneDeep(edges.value);
+    mapData.value.gcps = cloneDeep(gcps.value);
   }
   editingID.value = '';
+  newlyAddEdge.value = undefined;
+};
+
+const edgeStartMarker = (arg: any) => {
+    const marker = arg.data.marker;
+    const gcpIndex = marker.get('gcpIndex');
+    if (gcpIndex !== 'new') {
+        newlyAddEdge.value = Number(gcpIndex);
+        gcpsToMarkers();
+    }
+};
+
+const edgeEndMarker = (arg: any) => {
+    const marker = arg.data.marker;
+    const gcpIndex = Number(marker.get('gcpIndex'));
+    if (newlyAddEdge.value !== undefined) {
+        const edgeIndices = [newlyAddEdge.value, gcpIndex].sort((a, b) => a - b);
+        newlyAddEdge.value = undefined;
+        // Check if edge already exists
+        const exists = edges.value.some(e => e[2][0] === edgeIndices[0] && e[2][1] === edgeIndices[1]);
+        if (!exists) {
+            edges.value.push([[], [], edgeIndices]);
+            gcpsToMarkers();
+            mapData.value.edges = cloneDeep(edges.value);
+        } else {
+            console.warn("Edge already exists");
+        }
+    }
+};
+
+const removeEdge = (arg: any) => {
+    const startEnd = arg.data.startEnd;
+    if (!startEnd) return;
+    const idx = edges.value.findIndex(e => e[2][0] === startEnd[0] && e[2][1] === startEnd[1]);
+    if (idx >= 0) {
+        edges.value.splice(idx, 1);
+        gcpsToMarkers();
+        mapData.value.edges = cloneDeep(edges.value);
+    }
 };
 
 const createContextMenu = (map: any) => {
@@ -622,17 +713,41 @@ const createContextMenu = (map: any) => {
     });
     
     contextmenu.clear();
+    
     if (feature) {
-      const gcpIndex = feature.get('gcpIndex');
-      if (gcpIndex !== 'home' && gcpIndex !== 'new') {
-         editingID.value = String(Number(gcpIndex) + 1);
+      if (feature.getGeometry()?.getType() === 'LineString') {
+         // Feature is an Edge
+         const edgeStartEnd = feature.get('startEnd');
+         contextmenu.push({ 
+             text: t('mapedit.context_correspond_line_remove') || 'Remove Edge', 
+             data: { startEnd: edgeStartEnd }, 
+             callback: (e: any) => removeEdge(e) 
+         });
+      } else {
+        // Feature is a Marker
+        const gcpIndex = feature.get('gcpIndex');
+        if (gcpIndex !== 'home' && gcpIndex !== 'new') {
+           editingID.value = String(Number(gcpIndex) + 1);
+           
+           if (newlyAddEdge.value === undefined) {
+               contextmenu.push({ text: t('mapedit.context_correspond_line_start') || 'Add Edge', data: { marker: feature }, callback: (e: any) => edgeStartMarker(e) });
+           } else if (newlyAddEdge.value !== Number(gcpIndex)) {
+               contextmenu.push({ text: t('mapedit.context_correspond_line_end') || 'Set End Point', data: { marker: feature }, callback: (e: any) => edgeEndMarker(e) });
+           } else {
+               contextmenu.push({ text: t('mapedit.context_correspond_line_cancel') || 'Cancel Edge', callback: () => { newlyAddEdge.value = undefined; gcpsToMarkers(); } });
+           }
+           
+           contextmenu.push({ text: t('mapedit.context_remove_marker'), data: { marker: feature }, callback: (e: any) => removeMarker(e, map) });
+        }
       }
-      contextmenu.push({ text: t('mapedit.context_remove_marker'), data: { marker: feature }, callback: (e: any) => removeMarker(e, map) });
     } else if (newGcp.value !== undefined && newGcp.value[map === illstMap ? 0 : 1] !== undefined) {
-      // Pending marker adding logic - omit for simplified baseline
+      // Pending marker adding logic
       contextmenu.push({ text: t('mapedit.context_cancel_add_marker'), callback: () => removeMarker({data: {marker: map.getSource('marker').getFeatures().find((f:any)=>f.get('gcpIndex')==='new')}}, map) });
     } else {
       contextmenu.push({ text: t('mapedit.context_add_marker'), callback: (e: any) => addNewMarker(e, map) });
+      if (newlyAddEdge.value !== undefined) {
+          contextmenu.push({ text: t('mapedit.context_correspond_line_cancel') || 'Cancel Edge', callback: () => { newlyAddEdge.value = undefined; gcpsToMarkers(); } });
+      }
     }
   });
   
@@ -685,6 +800,70 @@ onMounted(async () => {
     });
 });
 
+let edgeRevisionBuffer: number[] = [];
+
+const edgeModifyStart = (evt: any) => {
+    edgeRevisionBuffer = [];
+    evt.features.forEach((f: any) => {
+        edgeRevisionBuffer.push(f.getRevision());
+    });
+};
+
+const edgeModifyEnd = (evt: any) => {
+    const isIllust = evt.target.getMap() === illstMap;
+    let feature: any = null;
+    evt.features.forEach((f: any, i: number) => {
+        if (f.getRevision() !== edgeRevisionBuffer[i]) feature = f;
+    });
+    if (!feature) return;
+
+    const startEnd = feature.get('startEnd');
+    if (!startEnd) return;
+
+    const edgeIndex = edges.value.findIndex(e => e[2][0] === startEnd[0] && e[2][1] === startEnd[1]);
+    if (edgeIndex < 0) return;
+
+    const edge = edges.value[edgeIndex];
+    const rawCoords = feature.getGeometry().getCoordinates();
+    const rawPoints = rawCoords.filter((_item: any, index: number, array: any[]) => !(index === 0 || index === array.length - 1));
+
+    if (isIllust) {
+        edge[0] = rawPoints.map((pt: number[]) => arrayRoundTo(illstSource.sysCoord2Xy(pt), 2));
+    } else {
+        edge[1] = rawPoints.map((pt: number[]) => arrayRoundTo(pt, 6));
+    }
+    
+    edges.value.splice(edgeIndex, 1, edge);
+    mapData.value.edges = cloneDeep(edges.value);
+};
+
+const edgeModifyCondition = (e: any) => {
+    if (e.originalEvent.button === 2) return false;
+    const map = e.map;
+    const f = map.getFeaturesAtPixel(e.pixel, {
+        layerFilter(layer: any) {
+            const name = layer.get('name');
+            return name === 'edges' || name === 'marker';
+        }
+    });
+    if (f && f.length > 0 && f[0].getGeometry()?.getType() === 'LineString') {
+        const coordinates = f[0].getGeometry().getCoordinates();
+        const p0 = e.pixel;
+        let p1 = map.getPixelFromCoordinate(coordinates[0]);
+        let dx = p0[0] - p1[0];
+        let dy = p0[1] - p1[1];
+        if (Math.sqrt(dx * dx + dy * dy) <= 10) return false;
+        
+        p1 = map.getPixelFromCoordinate(coordinates.slice(-1)[0]);
+        dx = p0[0] - p1[0];
+        dy = p0[1] - p1[1];
+        if (Math.sqrt(dx * dx + dy * dy) <= 10) return false;
+        
+        return true;
+    }
+    return false;
+};
+
 const initMaps = async () => {
     // 1. Initialize Illustrated Map (LEFT side)
     illstMap = new MaplatMap({
@@ -698,6 +877,23 @@ const initMaps = async () => {
         controls: controlDefaults()
     });
     illstMap.addControl(createContextMenu(illstMap));
+
+    const illstEdgesLayer = new VectorLayer({
+        source: new VectorSource({ wrapX: false })
+    });
+    illstEdgesLayer.set('name', 'edges');
+    const illstOverlay = illstMap.getLayer('overlay');
+    if (illstOverlay && illstOverlay.getLayers) illstOverlay.getLayers().push(illstEdgesLayer);
+
+    const illstEdgeModify = new Modify({
+        source: illstEdgesLayer.getSource() as VectorSource,
+        condition: edgeModifyCondition
+    });
+    illstEdgeModify.on('modifystart', edgeModifyStart);
+    illstEdgeModify.on('modifyend', edgeModifyEnd);
+    const illstEdgeSnap = new Snap({ source: illstEdgesLayer.getSource() as VectorSource });
+    illstMap.addInteraction(illstEdgeModify);
+    illstMap.addInteraction(illstEdgeSnap);
 
     // 2. Initialize Mercator Map (RIGHT side)
     mercMap = new MaplatMap({
@@ -713,6 +909,23 @@ const initMaps = async () => {
         ])
     });
     mercMap.addControl(createContextMenu(mercMap));
+
+    const mercEdgesLayer = new VectorLayer({
+        source: new VectorSource({ wrapX: false })
+    });
+    mercEdgesLayer.set('name', 'edges');
+    const mercOverlay = mercMap.getLayer('overlay');
+    if (mercOverlay && mercOverlay.getLayers) mercOverlay.getLayers().push(mercEdgesLayer);
+    
+    const mercEdgeModify = new Modify({
+        source: mercEdgesLayer.getSource() as VectorSource,
+        condition: edgeModifyCondition
+    });
+    mercEdgeModify.on('modifystart', edgeModifyStart);
+    mercEdgeModify.on('modifyend', edgeModifyEnd);
+    const mercEdgeSnap = new Snap({ source: mercEdgesLayer.getSource() as VectorSource });
+    mercMap.addInteraction(mercEdgeModify);
+    mercMap.addInteraction(mercEdgeSnap);
     
     const geocoder = new Geocoder('nominatim', {
         provider: 'osm',
