@@ -163,7 +163,10 @@ watch(currentEditingLayer, (newLayer) => {
     }
     editingID.value = '';
     newGcp.value = undefined;
-    nextTick(() => gcpsToMarkers());
+    nextTick(() => {
+        gcpsToMarkers();
+        updateTin(); // Refresh TIN and bounds rendering for the new layer
+    });
 });
 
 // const editingID_ = ref('');
@@ -302,6 +305,7 @@ class Drag extends Pointer {
                 gcp[isIllst ? 0 : 1] = xy;
                 gcps.value.splice(index, 1, gcp);
                 gcpsToMarkers();
+                syncLayerData();
             }
         } else {
             if (newGcp.value) {
@@ -695,11 +699,36 @@ const setHomeMerc = () => {
     gcpsToMarkers();
 };
 
+const syncLayerData = () => {
+    const layer = currentEditingLayer.value;
+    if (layer === 0) {
+        mapData.value.gcps = cloneDeep(gcps.value);
+        mapData.value.edges = cloneDeep(edges.value);
+    } else {
+        const subMap = sub_maps.value[layer - 1];
+        if (subMap) {
+            subMap.gcps = cloneDeep(gcps.value);
+            subMap.edges = cloneDeep(edges.value);
+        }
+    }
+};
+
 
 const addNewMarker = (arg: any, map: any) => {
   const number = gcps.value.length + 1;
-  const isIllst = map === illstMap;
   const coord = arg.coordinate;
+  const isIllst = map === illstMap;
+
+  if (isIllst) {
+    const boundsFeature = illstBoundsSource?.getFeatures()[0];
+    if (boundsFeature) {
+        const geom = boundsFeature.getGeometry();
+        if (geom && !geom.intersectsCoordinate(coord)) {
+            return;
+        }
+    }
+  }
+
   const xy = isIllst ? arrayRoundTo(illstSource.sysCoord2Xy(coord), 2) : arrayRoundTo(coord, 6);
 
   if (!newGcp.value) {
@@ -734,7 +763,7 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
     newGcp.value = undefined;
     editingID.value = String(gcps.value.length);
     gcpsToMarkers();
-    mapData.value.gcps = cloneDeep(gcps.value);
+    syncLayerData();
   }
 };
 
@@ -758,8 +787,7 @@ const removeMarker = (arg: any, map: any) => {
     gcps.value.splice(Number(gcpIndex), 1);
     
     gcpsToMarkers();
-    mapData.value.edges = cloneDeep(edges.value);
-    mapData.value.gcps = cloneDeep(gcps.value);
+    syncLayerData();
   }
   editingID.value = '';
   newlyAddEdge.value = undefined;
@@ -785,7 +813,7 @@ const edgeEndMarker = (arg: any) => {
         if (!exists) {
             edges.value.push([[], [], edgeIndices]);
             gcpsToMarkers();
-            mapData.value.edges = cloneDeep(edges.value);
+            syncLayerData();
         } else {
             console.warn("Edge already exists");
         }
@@ -799,7 +827,7 @@ const removeEdge = (arg: any) => {
     if (idx >= 0) {
         edges.value.splice(idx, 1);
         gcpsToMarkers();
-        mapData.value.edges = cloneDeep(edges.value);
+        syncLayerData();
     }
 };
 
@@ -807,11 +835,22 @@ const createContextMenu = (map: any) => {
   const contextmenu = new ContextMenu({
     width: 170,
     defaultItems: false,
-    items: [
-      { text: t('mapedit.context_add_marker'), callback: (e: any) => addNewMarker(e, map) }
-    ]
+    items: []
   });
   
+  contextmenu.on('beforeopen', (evt: any) => {
+    // 領域外でのコンテキストメニュー抑制 (オリジナルの動作)
+    if (map === illstMap) {
+        const boundsFeature = illstBoundsSource?.getFeatures()[0];
+        if (boundsFeature) {
+            const geom = boundsFeature.getGeometry();
+            if (geom && !geom.intersectsCoordinate(evt.coordinate)) {
+                return false; 
+            }
+        }
+    }
+  });
+
   contextmenu.on('open', (evt: any) => {
     // Typecast map element correctly below (contextmenu instance doesn't strictly type map property, so we use map arg directly)
     const feature = map.forEachFeatureAtPixel(evt.pixel, (ft: any) => ft as Feature, {
@@ -893,6 +932,13 @@ onMounted(async () => {
     }
 
     sub_maps.value = cloneDeep(mapData.value.sub_maps || []);
+    gcps.value = cloneDeep(mapData.value.gcps || []);
+    edges.value = cloneDeep(mapData.value.edges || []);
+    homePosition.value = mapData.value.homePosition;
+    mercZoom.value = mapData.value.mercZoom;
+    strictMode.value = mapData.value.strictMode || 'auto';
+    vertexMode.value = mapData.value.vertexMode || 'plain';
+
     initMaps();
     if (mapData.value.url_) {
         setTimeout(() => loadMapTiles(), 100);
@@ -944,7 +990,7 @@ const edgeModifyEnd = (evt: any) => {
     }
     
     edges.value.splice(edgeIndex, 1, edge);
-    mapData.value.edges = cloneDeep(edges.value);
+    syncLayerData();
 };
 
 const edgeModifyCondition = (e: any) => {
