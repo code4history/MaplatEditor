@@ -48,14 +48,19 @@ jobs:
         run: pnpm install
 
       # Developer ID 証明書のインポート
-      # master プッシュかつ APPLE_CERT_BASE64 が設定されている場合のみ実行
+      # master プッシュ時のみ実行（Secret 未設定の場合はスクリプト内でスキップ）
+      # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する
       - name: Import Apple Developer certificate
-        if: github.ref == 'refs/heads/master' && secrets.APPLE_CERT_BASE64 != ''
+        if: github.ref == 'refs/heads/master'
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ github.run_id }}-mac
         run: |
+          if [ -z "$APPLE_CERT_BASE64" ]; then
+            echo "APPLE_CERT_BASE64 が未設定のため証明書インポートをスキップします。"
+            exit 0
+          fi
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
