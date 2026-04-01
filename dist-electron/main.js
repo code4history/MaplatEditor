@@ -2499,14 +2499,17 @@ function getData(e, { dataLevel: r, dataNames: i, dataPathArr: n }) {
   }
 }
 validate.getData = getData;
-var validation_error = {};
-Object.defineProperty(validation_error, "__esModule", { value: !0 });
-class ValidationError extends Error {
-  constructor(r) {
-    super("validation failed"), this.errors = r, this.ajv = this.validation = !0;
+var validation_error = {}, hasRequiredValidation_error;
+function requireValidation_error() {
+  if (hasRequiredValidation_error) return validation_error;
+  hasRequiredValidation_error = 1, Object.defineProperty(validation_error, "__esModule", { value: !0 });
+  class e extends Error {
+    constructor(i) {
+      super("validation failed"), this.errors = i, this.ajv = this.validation = !0;
+    }
   }
+  return validation_error.default = e, validation_error;
 }
-validation_error.default = ValidationError;
 var ref_error = {};
 Object.defineProperty(ref_error, "__esModule", { value: !0 });
 const resolve_1$1 = resolve$2;
@@ -2519,7 +2522,7 @@ ref_error.default = MissingRefError;
 var compile = {};
 Object.defineProperty(compile, "__esModule", { value: !0 });
 compile.resolveSchema = compile.getCompilingSchema = compile.resolveRef = compile.compileSchema = compile.SchemaEnv = void 0;
-const codegen_1$q = codegen, validation_error_1 = validation_error, names_1$5 = names$z, resolve_1 = resolve$2, util_1$o = util$9, validate_1$1 = validate;
+const codegen_1$q = codegen, validation_error_1 = requireValidation_error(), names_1$5 = names$z, resolve_1 = resolve$2, util_1$o = util$9, validate_1$1 = validate;
 class SchemaEnv {
   constructor(r) {
     var i;
@@ -3089,7 +3092,7 @@ uri$1.default = uri;
   } }), Object.defineProperty(e, "CodeGen", { enumerable: !0, get: function() {
     return i.CodeGen;
   } });
-  const n = validation_error, a = ref_error, s = rules, o = compile, l = codegen, h = resolve$2, f = dataType, d = util$9, m = require$$9, p = uri$1, _ = (it, Qt) => new RegExp(it, Qt);
+  const n = requireValidation_error(), a = ref_error, s = rules, o = compile, l = codegen, h = resolve$2, f = dataType, d = util$9, m = require$$9, p = uri$1, _ = (it, Qt) => new RegExp(it, Qt);
   _.code = "new RegExp";
   const g = ["removeAdditional", "useDefaults", "coerceTypes"], v = /* @__PURE__ */ new Set([
     "validate",
@@ -5339,7 +5342,7 @@ jsonSchema202012.default = addMetaSchema2020;
   } }), Object.defineProperty(r, "CodeGen", { enumerable: !0, get: function() {
     return f.CodeGen;
   } });
-  var d = validation_error;
+  var d = requireValidation_error();
   Object.defineProperty(r, "ValidationError", { enumerable: !0, get: function() {
     return d.default;
   } });
@@ -5798,7 +5801,7 @@ const $schema = "http://json-schema.org/draft-07/schema#", $id = "http://json-sc
   } }), Object.defineProperty(r, "CodeGen", { enumerable: !0, get: function() {
     return d.CodeGen;
   } });
-  var m = validation_error;
+  var m = requireValidation_error();
   Object.defineProperty(r, "ValidationError", { enumerable: !0, get: function() {
     return m.default;
   } });

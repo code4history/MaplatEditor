@@ -33,4 +33,5 @@ dist-ssr
 tsconfig.node.tsbuildinfo
 
 # Electron ビルド成果物
+dist-electron/
 release/

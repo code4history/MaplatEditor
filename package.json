@@ -1,12 +1,25 @@
 {
-  "name": "maplat-editor-next",
+  "name": "maplat-editor",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.7.0",
+  "description": "Maplat Editor - Historical Map Georeferencing Tool",
+  "author": "Maplat Project",
   "type": "module",
   "scripts": {
     "dev": "node -e \"process.platform==='win32'&&require('child_process').execSync('chcp 65001')\" && vite",
-    "build": "vue-tsc && vite build && electron-builder",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build": "vue-tsc && vite build",
+    "dist": "pnpm run build && electron-builder --config electron-builder.config.cjs",
+    "dist:mac": "pnpm run build && electron-builder --config electron-builder.config.cjs --mac",
+    "dist:mac:x64": "pnpm run build && electron-builder --config electron-builder.config.cjs --mac --x64",
+    "dist:mac:arm64": "pnpm run build && electron-builder --config electron-builder.config.cjs --mac --arm64",
+    "dist:mac:universal": "pnpm run build && electron-builder --config electron-builder.config.cjs --mac --universal",
+    "dist:win": "pnpm run build && electron-builder --config electron-builder.config.cjs --win",
+    "dist:win:x64": "pnpm run build && electron-builder --config electron-builder.config.cjs --win --x64",
+    "dist:win:arm64": "pnpm run build && electron-builder --config electron-builder.config.cjs --win --arm64",
+    "dist:linux": "pnpm run build && electron-builder --config electron-builder.config.cjs --linux",
+    "dist:linux:x64": "pnpm run build && electron-builder --config electron-builder.config.cjs --linux --x64",
+    "dist:linux:arm64": "pnpm run build && electron-builder --config electron-builder.config.cjs --linux --arm64"
   },
   "dependencies": {
     "@maplat/core": "^0.13.0",
@@ -34,10 +47,12 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.5.0",
     "@types/file-url": "^3.0.4",
     "@types/fs-extra": "^11.0.4",
     "@types/nedb": "^1.8.16",
     "@vitejs/plugin-vue": "^5.0.4",
+    "dotenv": "^16.0.1",
     "electron": "^30.0.1",
     "electron-builder": "^24.13.3",
     "sass": "^1.97.3",

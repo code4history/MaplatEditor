@@ -1,0 +1,187 @@
+name: Build and Release
+
+on:
+  # master プッシュ時に自動実行
+  push:
+    branches: [master]
+  # 手動実行（ブランチ問わず起動可能、署名は行わない）
+  workflow_dispatch:
+
+permissions:
+  contents: write  # GitHub Release 作成に必要
+
+jobs:
+  # ─────────────────────────────────────────────
+  # バージョン番号取得（全ジョブで共有）
+  # ─────────────────────────────────────────────
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get version from package.json
+        id: ver
+        run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
+  # ─────────────────────────────────────────────
+  # macOS ビルド（x64 + arm64 DMG）
+  # ─────────────────────────────────────────────
+  build-mac:
+    needs: prepare
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Developer ID 証明書のインポート
+      # master プッシュかつ APPLE_CERT_BASE64 が設定されている場合のみ実行
+      - name: Import Apple Developer certificate
+        if: github.ref == 'refs/heads/master' && secrets.APPLE_CERT_BASE64 != ''
+        env:
+          APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}-mac
+        run: |
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          echo "$APPLE_CERT_BASE64" | base64 --decode > certificate.p12
+          security import certificate.p12 \
+            -k build.keychain \
+            -P "$APPLE_CERT_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          rm certificate.p12
+
+      - name: Build macOS
+        env:
+          # master かつ Secrets 設定済みの場合のみ公証環境変数を渡す
+          # 未設定（空文字）の場合は electron-builder.config.cjs 内で署名スキップ
+          APPLE_ID: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_TEAM_ID || '' }}
+        run: pnpm run dist:mac
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-artifacts
+          path: |
+            release/${{ env.VERSION }}/*.dmg
+            release/${{ env.VERSION }}/*.dmg.blockmap
+            release/${{ env.VERSION }}/latest-mac.yml
+
+  # ─────────────────────────────────────────────
+  # Windows ビルド（x64 + arm64 NSIS インストーラ）
+  # ─────────────────────────────────────────────
+  build-win:
+    needs: prepare
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Windows
+        env:
+          # master かつ Secrets 設定済みの場合のみ署名
+          # WIN_CSC_LINK には base64 エンコードした .pfx ファイルの内容を設定
+          WIN_CSC_LINK: ${{ github.ref == 'refs/heads/master' && secrets.WIN_CSC_LINK || '' }}
+          WIN_CSC_KEY_PASSWORD: ${{ github.ref == 'refs/heads/master' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+        run: pnpm run dist:win
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-artifacts
+          path: |
+            release/${{ env.VERSION }}/*.exe
+            release/${{ env.VERSION }}/latest.yml
+
+  # ─────────────────────────────────────────────
+  # Linux ビルド（x64 + arm64 AppImage）
+  # ─────────────────────────────────────────────
+  build-linux:
+    needs: prepare
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Linux build dependencies
+        run: sudo apt-get install -y rpm
+
+      - name: Build Linux
+        run: pnpm run dist:linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: |
+            release/${{ env.VERSION }}/*.AppImage
+            release/${{ env.VERSION }}/latest-linux.yml
+
+  # ─────────────────────────────────────────────
+  # GitHub Release 作成（master プッシュ時のみ）
+  # ─────────────────────────────────────────────
+  release:
+    needs: [prepare, build-mac, build-win, build-linux]
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release (draft)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.prepare.outputs.version }}
+          name: MaplatEditor v${{ needs.prepare.outputs.version }}
+          draft: true
+          generate_release_notes: true
+          files: artifacts/**/*
