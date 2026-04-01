@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@maplat/core": "^0.13.0",
+    "adm-zip": "^0.5.9",
     "@maplat/tin": "^0.13.1",
     "@maplat/transform": "^0.4.1",
     "@popperjs/core": "^2.11.8",

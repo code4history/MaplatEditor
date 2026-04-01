@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import path$e from "node:path";
 import process$1 from "node:process";
 import { promisify as promisify$1, isDeepStrictEqual } from "node:util";
-import fs$p from "node:fs";
+import fs$o from "node:fs";
 import crypto$1 from "node:crypto";
 import assert from "node:assert";
 import os from "node:os";
@@ -269,7 +269,7 @@ const attemptifyAsync = (e, r) => {
         if (!i(d) || Date.now() >= l)
           throw d;
         const m = Math.round(o * Math.random());
-        return m > 0 ? new Promise((_) => setTimeout(_, m)).then(() => h.apply(void 0, f)) : h.apply(void 0, f);
+        return m > 0 ? new Promise((p) => setTimeout(p, m)).then(() => h.apply(void 0, f)) : h.apply(void 0, f);
       });
     };
   };
@@ -319,44 +319,44 @@ const attemptifyAsync = (e, r) => {
 }, FS = {
   attempt: {
     /* ASYNC */
-    chmod: attemptifyAsync(promisify$1(fs$p.chmod), ATTEMPTIFY_CHANGE_ERROR_OPTIONS),
-    chown: attemptifyAsync(promisify$1(fs$p.chown), ATTEMPTIFY_CHANGE_ERROR_OPTIONS),
-    close: attemptifyAsync(promisify$1(fs$p.close), ATTEMPTIFY_NOOP_OPTIONS),
-    fsync: attemptifyAsync(promisify$1(fs$p.fsync), ATTEMPTIFY_NOOP_OPTIONS),
-    mkdir: attemptifyAsync(promisify$1(fs$p.mkdir), ATTEMPTIFY_NOOP_OPTIONS),
-    realpath: attemptifyAsync(promisify$1(fs$p.realpath), ATTEMPTIFY_NOOP_OPTIONS),
-    stat: attemptifyAsync(promisify$1(fs$p.stat), ATTEMPTIFY_NOOP_OPTIONS),
-    unlink: attemptifyAsync(promisify$1(fs$p.unlink), ATTEMPTIFY_NOOP_OPTIONS),
+    chmod: attemptifyAsync(promisify$1(fs$o.chmod), ATTEMPTIFY_CHANGE_ERROR_OPTIONS),
+    chown: attemptifyAsync(promisify$1(fs$o.chown), ATTEMPTIFY_CHANGE_ERROR_OPTIONS),
+    close: attemptifyAsync(promisify$1(fs$o.close), ATTEMPTIFY_NOOP_OPTIONS),
+    fsync: attemptifyAsync(promisify$1(fs$o.fsync), ATTEMPTIFY_NOOP_OPTIONS),
+    mkdir: attemptifyAsync(promisify$1(fs$o.mkdir), ATTEMPTIFY_NOOP_OPTIONS),
+    realpath: attemptifyAsync(promisify$1(fs$o.realpath), ATTEMPTIFY_NOOP_OPTIONS),
+    stat: attemptifyAsync(promisify$1(fs$o.stat), ATTEMPTIFY_NOOP_OPTIONS),
+    unlink: attemptifyAsync(promisify$1(fs$o.unlink), ATTEMPTIFY_NOOP_OPTIONS),
     /* SYNC */
-    chmodSync: attemptifySync(fs$p.chmodSync, ATTEMPTIFY_CHANGE_ERROR_OPTIONS),
-    chownSync: attemptifySync(fs$p.chownSync, ATTEMPTIFY_CHANGE_ERROR_OPTIONS),
-    closeSync: attemptifySync(fs$p.closeSync, ATTEMPTIFY_NOOP_OPTIONS),
-    existsSync: attemptifySync(fs$p.existsSync, ATTEMPTIFY_NOOP_OPTIONS),
-    fsyncSync: attemptifySync(fs$p.fsync, ATTEMPTIFY_NOOP_OPTIONS),
-    mkdirSync: attemptifySync(fs$p.mkdirSync, ATTEMPTIFY_NOOP_OPTIONS),
-    realpathSync: attemptifySync(fs$p.realpathSync, ATTEMPTIFY_NOOP_OPTIONS),
-    statSync: attemptifySync(fs$p.statSync, ATTEMPTIFY_NOOP_OPTIONS),
-    unlinkSync: attemptifySync(fs$p.unlinkSync, ATTEMPTIFY_NOOP_OPTIONS)
+    chmodSync: attemptifySync(fs$o.chmodSync, ATTEMPTIFY_CHANGE_ERROR_OPTIONS),
+    chownSync: attemptifySync(fs$o.chownSync, ATTEMPTIFY_CHANGE_ERROR_OPTIONS),
+    closeSync: attemptifySync(fs$o.closeSync, ATTEMPTIFY_NOOP_OPTIONS),
+    existsSync: attemptifySync(fs$o.existsSync, ATTEMPTIFY_NOOP_OPTIONS),
+    fsyncSync: attemptifySync(fs$o.fsync, ATTEMPTIFY_NOOP_OPTIONS),
+    mkdirSync: attemptifySync(fs$o.mkdirSync, ATTEMPTIFY_NOOP_OPTIONS),
+    realpathSync: attemptifySync(fs$o.realpathSync, ATTEMPTIFY_NOOP_OPTIONS),
+    statSync: attemptifySync(fs$o.statSync, ATTEMPTIFY_NOOP_OPTIONS),
+    unlinkSync: attemptifySync(fs$o.unlinkSync, ATTEMPTIFY_NOOP_OPTIONS)
   },
   retry: {
     /* ASYNC */
-    close: retryifyAsync(promisify$1(fs$p.close), RETRYIFY_OPTIONS),
-    fsync: retryifyAsync(promisify$1(fs$p.fsync), RETRYIFY_OPTIONS),
-    open: retryifyAsync(promisify$1(fs$p.open), RETRYIFY_OPTIONS),
-    readFile: retryifyAsync(promisify$1(fs$p.readFile), RETRYIFY_OPTIONS),
-    rename: retryifyAsync(promisify$1(fs$p.rename), RETRYIFY_OPTIONS),
-    stat: retryifyAsync(promisify$1(fs$p.stat), RETRYIFY_OPTIONS),
-    write: retryifyAsync(promisify$1(fs$p.write), RETRYIFY_OPTIONS),
-    writeFile: retryifyAsync(promisify$1(fs$p.writeFile), RETRYIFY_OPTIONS),
+    close: retryifyAsync(promisify$1(fs$o.close), RETRYIFY_OPTIONS),
+    fsync: retryifyAsync(promisify$1(fs$o.fsync), RETRYIFY_OPTIONS),
+    open: retryifyAsync(promisify$1(fs$o.open), RETRYIFY_OPTIONS),
+    readFile: retryifyAsync(promisify$1(fs$o.readFile), RETRYIFY_OPTIONS),
+    rename: retryifyAsync(promisify$1(fs$o.rename), RETRYIFY_OPTIONS),
+    stat: retryifyAsync(promisify$1(fs$o.stat), RETRYIFY_OPTIONS),
+    write: retryifyAsync(promisify$1(fs$o.write), RETRYIFY_OPTIONS),
+    writeFile: retryifyAsync(promisify$1(fs$o.writeFile), RETRYIFY_OPTIONS),
     /* SYNC */
-    closeSync: retryifySync(fs$p.closeSync, RETRYIFY_OPTIONS),
-    fsyncSync: retryifySync(fs$p.fsyncSync, RETRYIFY_OPTIONS),
-    openSync: retryifySync(fs$p.openSync, RETRYIFY_OPTIONS),
-    readFileSync: retryifySync(fs$p.readFileSync, RETRYIFY_OPTIONS),
-    renameSync: retryifySync(fs$p.renameSync, RETRYIFY_OPTIONS),
-    statSync: retryifySync(fs$p.statSync, RETRYIFY_OPTIONS),
-    writeSync: retryifySync(fs$p.writeSync, RETRYIFY_OPTIONS),
-    writeFileSync: retryifySync(fs$p.writeFileSync, RETRYIFY_OPTIONS)
+    closeSync: retryifySync(fs$o.closeSync, RETRYIFY_OPTIONS),
+    fsyncSync: retryifySync(fs$o.fsyncSync, RETRYIFY_OPTIONS),
+    openSync: retryifySync(fs$o.openSync, RETRYIFY_OPTIONS),
+    readFileSync: retryifySync(fs$o.readFileSync, RETRYIFY_OPTIONS),
+    renameSync: retryifySync(fs$o.renameSync, RETRYIFY_OPTIONS),
+    statSync: retryifySync(fs$o.statSync, RETRYIFY_OPTIONS),
+    writeSync: retryifySync(fs$o.writeSync, RETRYIFY_OPTIONS),
+    writeFileSync: retryifySync(fs$o.writeFileSync, RETRYIFY_OPTIONS)
   }
 }, DEFAULT_ENCODING = "utf8", DEFAULT_FILE_MODE$2 = 438, DEFAULT_FOLDER_MODE = 511, DEFAULT_WRITE_OPTIONS = {}, DEFAULT_USER_UID = process$1.geteuid ? process$1.geteuid() : -1, DEFAULT_USER_GID = process$1.getegid ? process$1.getegid() : -1, DEFAULT_TIMEOUT_SYNC = 1e3, IS_POSIX = !!process$1.getuid;
 process$1.getuid && process$1.getuid();
@@ -430,12 +430,12 @@ function writeFileSync$1(e, r, i = DEFAULT_WRITE_OPTIONS) {
     e = h || e, [o, s] = Temp.get(e, i.tmpCreate || Temp.create, i.tmpPurge !== !1);
     const d = IS_POSIX && isUndefined(i.chown), m = isUndefined(i.mode);
     if (f && (d || m)) {
-      const p = FS.attempt.statSync(e);
-      p && (i = { ...i }, d && (i.chown = { uid: p.uid, gid: p.gid }), m && (i.mode = p.mode));
+      const _ = FS.attempt.statSync(e);
+      _ && (i = { ...i }, d && (i.chown = { uid: _.uid, gid: _.gid }), m && (i.mode = _.mode));
     }
     if (!f) {
-      const p = path$e.dirname(e);
-      FS.attempt.mkdirSync(p, {
+      const _ = path$e.dirname(e);
+      FS.attempt.mkdirSync(_, {
         mode: DEFAULT_FOLDER_MODE,
         recursive: !0
       });
@@ -443,9 +443,9 @@ function writeFileSync$1(e, r, i = DEFAULT_WRITE_OPTIONS) {
     l = FS.retry.openSync(a)(o, "w", i.mode || DEFAULT_FILE_MODE$2), i.tmpCreated && i.tmpCreated(o), isString(r) ? FS.retry.writeSync(a)(l, r, 0, i.encoding || DEFAULT_ENCODING) : isUndefined(r) || FS.retry.writeSync(a)(l, r, 0, r.length, 0), i.fsync !== !1 && (i.fsyncWait !== !1 ? FS.retry.fsyncSync(a)(l) : FS.attempt.fsync(l)), FS.retry.closeSync(a)(l), l = null, i.chown && (i.chown.uid !== DEFAULT_USER_UID || i.chown.gid !== DEFAULT_USER_GID) && FS.attempt.chownSync(o, i.chown.uid, i.chown.gid), i.mode && i.mode !== DEFAULT_FILE_MODE$2 && FS.attempt.chmodSync(o, i.mode);
     try {
       FS.retry.renameSync(a)(o, e);
-    } catch (p) {
-      if (!isException(p) || p.code !== "ENAMETOOLONG")
-        throw p;
+    } catch (_) {
+      if (!isException(_) || _.code !== "ENAMETOOLONG")
+        throw _;
       FS.retry.renameSync(a)(o, Temp.truncate(e));
     }
     s(), o = null;
@@ -464,10 +464,10 @@ var _2020 = { exports: {} }, core$5 = {}, validate = {}, boolSchema = {}, errors
   }
   e._CodeOrName = r, e.IDENTIFIER = /^[a-z$_][a-z$_0-9]*$/i;
   class i extends r {
-    constructor(k) {
-      if (super(), !e.IDENTIFIER.test(k))
+    constructor(w) {
+      if (super(), !e.IDENTIFIER.test(w))
         throw new Error("CodeGen: name must be a valid identifier");
-      this.str = k;
+      this.str = w;
     }
     toString() {
       return this.str;
@@ -481,8 +481,8 @@ var _2020 = { exports: {} }, core$5 = {}, validate = {}, boolSchema = {}, errors
   }
   e.Name = i;
   class n extends r {
-    constructor(k) {
-      super(), this._items = typeof k == "string" ? [k] : k;
+    constructor(w) {
+      super(), this._items = typeof w == "string" ? [w] : w;
     }
     toString() {
       return this.str;
@@ -490,93 +490,93 @@ var _2020 = { exports: {} }, core$5 = {}, validate = {}, boolSchema = {}, errors
     emptyStr() {
       if (this._items.length > 1)
         return !1;
-      const k = this._items[0];
-      return k === "" || k === '""';
+      const w = this._items[0];
+      return w === "" || w === '""';
     }
     get str() {
-      var k;
-      return (k = this._str) !== null && k !== void 0 ? k : this._str = this._items.reduce((M, N) => `${M}${N}`, "");
+      var w;
+      return (w = this._str) !== null && w !== void 0 ? w : this._str = this._items.reduce((M, C) => `${M}${C}`, "");
     }
     get names() {
-      var k;
-      return (k = this._names) !== null && k !== void 0 ? k : this._names = this._items.reduce((M, N) => (N instanceof i && (M[N.str] = (M[N.str] || 0) + 1), M), {});
+      var w;
+      return (w = this._names) !== null && w !== void 0 ? w : this._names = this._items.reduce((M, C) => (C instanceof i && (M[C.str] = (M[C.str] || 0) + 1), M), {});
     }
   }
   e._Code = n, e.nil = new n("");
-  function a(w, ...k) {
-    const M = [w[0]];
-    let N = 0;
-    for (; N < k.length; )
-      l(M, k[N]), M.push(w[++N]);
+  function a(b, ...w) {
+    const M = [b[0]];
+    let C = 0;
+    for (; C < w.length; )
+      l(M, w[C]), M.push(b[++C]);
     return new n(M);
   }
   e._ = a;
   const s = new n("+");
-  function o(w, ...k) {
-    const M = [_(w[0])];
-    let N = 0;
-    for (; N < k.length; )
-      M.push(s), l(M, k[N]), M.push(s, _(w[++N]));
+  function o(b, ...w) {
+    const M = [p(b[0])];
+    let C = 0;
+    for (; C < w.length; )
+      M.push(s), l(M, w[C]), M.push(s, p(b[++C]));
     return h(M), new n(M);
   }
   e.str = o;
-  function l(w, k) {
-    k instanceof n ? w.push(...k._items) : k instanceof i ? w.push(k) : w.push(m(k));
+  function l(b, w) {
+    w instanceof n ? b.push(...w._items) : w instanceof i ? b.push(w) : b.push(m(w));
   }
   e.addCodeArg = l;
-  function h(w) {
-    let k = 1;
-    for (; k < w.length - 1; ) {
-      if (w[k] === s) {
-        const M = f(w[k - 1], w[k + 1]);
+  function h(b) {
+    let w = 1;
+    for (; w < b.length - 1; ) {
+      if (b[w] === s) {
+        const M = f(b[w - 1], b[w + 1]);
         if (M !== void 0) {
-          w.splice(k - 1, 3, M);
+          b.splice(w - 1, 3, M);
           continue;
         }
-        w[k++] = "+";
+        b[w++] = "+";
       }
-      k++;
+      w++;
     }
   }
-  function f(w, k) {
-    if (k === '""')
-      return w;
+  function f(b, w) {
     if (w === '""')
-      return k;
-    if (typeof w == "string")
-      return k instanceof i || w[w.length - 1] !== '"' ? void 0 : typeof k != "string" ? `${w.slice(0, -1)}${k}"` : k[0] === '"' ? w.slice(0, -1) + k.slice(1) : void 0;
-    if (typeof k == "string" && k[0] === '"' && !(w instanceof i))
-      return `"${w}${k.slice(1)}`;
+      return b;
+    if (b === '""')
+      return w;
+    if (typeof b == "string")
+      return w instanceof i || b[b.length - 1] !== '"' ? void 0 : typeof w != "string" ? `${b.slice(0, -1)}${w}"` : w[0] === '"' ? b.slice(0, -1) + w.slice(1) : void 0;
+    if (typeof w == "string" && w[0] === '"' && !(b instanceof i))
+      return `"${b}${w.slice(1)}`;
   }
-  function d(w, k) {
-    return k.emptyStr() ? w : w.emptyStr() ? k : o`${w}${k}`;
+  function d(b, w) {
+    return w.emptyStr() ? b : b.emptyStr() ? w : o`${b}${w}`;
   }
   e.strConcat = d;
-  function m(w) {
-    return typeof w == "number" || typeof w == "boolean" || w === null ? w : _(Array.isArray(w) ? w.join(",") : w);
+  function m(b) {
+    return typeof b == "number" || typeof b == "boolean" || b === null ? b : p(Array.isArray(b) ? b.join(",") : b);
   }
-  function p(w) {
-    return new n(_(w));
+  function _(b) {
+    return new n(p(b));
   }
-  e.stringify = p;
-  function _(w) {
-    return JSON.stringify(w).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+  e.stringify = _;
+  function p(b) {
+    return JSON.stringify(b).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
   }
-  e.safeStringify = _;
-  function g(w) {
-    return typeof w == "string" && e.IDENTIFIER.test(w) ? new n(`.${w}`) : a`[${w}]`;
+  e.safeStringify = p;
+  function v(b) {
+    return typeof b == "string" && e.IDENTIFIER.test(b) ? new n(`.${b}`) : a`[${b}]`;
   }
-  e.getProperty = g;
-  function v(w) {
-    if (typeof w == "string" && e.IDENTIFIER.test(w))
-      return new n(`${w}`);
-    throw new Error(`CodeGen: invalid export name: ${w}, use explicit $id name mapping`);
+  e.getProperty = v;
+  function g(b) {
+    if (typeof b == "string" && e.IDENTIFIER.test(b))
+      return new n(`${b}`);
+    throw new Error(`CodeGen: invalid export name: ${b}, use explicit $id name mapping`);
   }
-  e.getEsmExportName = v;
-  function b(w) {
-    return new n(w.toString());
+  e.getEsmExportName = g;
+  function k(b) {
+    return new n(b.toString());
   }
-  e.regexpCode = b;
+  e.regexpCode = k;
 })(code$1);
 var scope = {};
 (function(e) {
@@ -641,17 +641,17 @@ var scope = {};
       var m;
       if (d.ref === void 0)
         throw new Error("CodeGen: ref must be passed in value");
-      const p = this.toName(f), { prefix: _ } = p, g = (m = d.key) !== null && m !== void 0 ? m : d.ref;
-      let v = this._values[_];
-      if (v) {
-        const k = v.get(g);
-        if (k)
-          return k;
+      const _ = this.toName(f), { prefix: p } = _, v = (m = d.key) !== null && m !== void 0 ? m : d.ref;
+      let g = this._values[p];
+      if (g) {
+        const w = g.get(v);
+        if (w)
+          return w;
       } else
-        v = this._values[_] = /* @__PURE__ */ new Map();
-      v.set(g, p);
-      const b = this._scope[_] || (this._scope[_] = []), w = b.length;
-      return b[w] = d.ref, p.setValue(d, { property: _, itemIndex: w }), p;
+        g = this._values[p] = /* @__PURE__ */ new Map();
+      g.set(v, _);
+      const k = this._scope[p] || (this._scope[p] = []), b = k.length;
+      return k[b] = d.ref, _.setValue(d, { property: p, itemIndex: b }), _;
     }
     getValue(f, d) {
       const m = this._values[f];
@@ -666,35 +666,35 @@ var scope = {};
       });
     }
     scopeCode(f = this._values, d, m) {
-      return this._reduceValues(f, (p) => {
-        if (p.value === void 0)
-          throw new Error(`CodeGen: name "${p}" has no value`);
-        return p.value.code;
+      return this._reduceValues(f, (_) => {
+        if (_.value === void 0)
+          throw new Error(`CodeGen: name "${_}" has no value`);
+        return _.value.code;
       }, d, m);
     }
-    _reduceValues(f, d, m = {}, p) {
-      let _ = r.nil;
-      for (const g in f) {
-        const v = f[g];
-        if (!v)
+    _reduceValues(f, d, m = {}, _) {
+      let p = r.nil;
+      for (const v in f) {
+        const g = f[v];
+        if (!g)
           continue;
-        const b = m[g] = m[g] || /* @__PURE__ */ new Map();
-        v.forEach((w) => {
-          if (b.has(w))
+        const k = m[v] = m[v] || /* @__PURE__ */ new Map();
+        g.forEach((b) => {
+          if (k.has(b))
             return;
-          b.set(w, n.Started);
-          let k = d(w);
-          if (k) {
+          k.set(b, n.Started);
+          let w = d(b);
+          if (w) {
             const M = this.opts.es5 ? e.varKinds.var : e.varKinds.const;
-            _ = (0, r._)`${_}${M} ${w} = ${k};${this.opts._n}`;
-          } else if (k = p == null ? void 0 : p(w))
-            _ = (0, r._)`${_}${k}${this.opts._n}`;
+            p = (0, r._)`${p}${M} ${b} = ${w};${this.opts._n}`;
+          } else if (w = _ == null ? void 0 : _(b))
+            p = (0, r._)`${p}${w}${this.opts._n}`;
           else
-            throw new i(w);
-          b.set(w, n.Completed);
+            throw new i(b);
+          k.set(b, n.Completed);
         });
       }
-      return _;
+      return p;
     }
   }
   e.ValueScope = l;
@@ -745,331 +745,331 @@ var scope = {};
     optimizeNodes() {
       return this;
     }
-    optimizeNames(fe, Ge) {
+    optimizeNames(_e, Ge) {
       return this;
     }
   }
   class o extends s {
-    constructor(fe, Ge, Kt) {
-      super(), this.varKind = fe, this.name = Ge, this.rhs = Kt;
+    constructor(_e, Ge, Kt) {
+      super(), this.varKind = _e, this.name = Ge, this.rhs = Kt;
     }
-    render({ es5: fe, _n: Ge }) {
-      const Kt = fe ? i.varKinds.var : this.varKind, Ni = this.rhs === void 0 ? "" : ` = ${this.rhs}`;
+    render({ es5: _e, _n: Ge }) {
+      const Kt = _e ? i.varKinds.var : this.varKind, Ni = this.rhs === void 0 ? "" : ` = ${this.rhs}`;
       return `${Kt} ${this.name}${Ni};` + Ge;
     }
-    optimizeNames(fe, Ge) {
-      if (fe[this.name.str])
-        return this.rhs && (this.rhs = ee(this.rhs, fe, Ge)), this;
+    optimizeNames(_e, Ge) {
+      if (_e[this.name.str])
+        return this.rhs && (this.rhs = ee(this.rhs, _e, Ge)), this;
     }
     get names() {
       return this.rhs instanceof r._CodeOrName ? this.rhs.names : {};
     }
   }
   class l extends s {
-    constructor(fe, Ge, Kt) {
-      super(), this.lhs = fe, this.rhs = Ge, this.sideEffects = Kt;
+    constructor(_e, Ge, Kt) {
+      super(), this.lhs = _e, this.rhs = Ge, this.sideEffects = Kt;
     }
-    render({ _n: fe }) {
-      return `${this.lhs} = ${this.rhs};` + fe;
+    render({ _n: _e }) {
+      return `${this.lhs} = ${this.rhs};` + _e;
     }
-    optimizeNames(fe, Ge) {
-      if (!(this.lhs instanceof r.Name && !fe[this.lhs.str] && !this.sideEffects))
-        return this.rhs = ee(this.rhs, fe, Ge), this;
+    optimizeNames(_e, Ge) {
+      if (!(this.lhs instanceof r.Name && !_e[this.lhs.str] && !this.sideEffects))
+        return this.rhs = ee(this.rhs, _e, Ge), this;
     }
     get names() {
-      const fe = this.lhs instanceof r.Name ? {} : { ...this.lhs.names };
-      return Wt(fe, this.rhs);
+      const _e = this.lhs instanceof r.Name ? {} : { ...this.lhs.names };
+      return Wt(_e, this.rhs);
     }
   }
   class h extends l {
-    constructor(fe, Ge, Kt, Ni) {
-      super(fe, Kt, Ni), this.op = Ge;
+    constructor(_e, Ge, Kt, Ni) {
+      super(_e, Kt, Ni), this.op = Ge;
     }
-    render({ _n: fe }) {
-      return `${this.lhs} ${this.op}= ${this.rhs};` + fe;
+    render({ _n: _e }) {
+      return `${this.lhs} ${this.op}= ${this.rhs};` + _e;
     }
   }
   class f extends s {
-    constructor(fe) {
-      super(), this.label = fe, this.names = {};
+    constructor(_e) {
+      super(), this.label = _e, this.names = {};
     }
-    render({ _n: fe }) {
-      return `${this.label}:` + fe;
+    render({ _n: _e }) {
+      return `${this.label}:` + _e;
     }
   }
   class d extends s {
-    constructor(fe) {
-      super(), this.label = fe, this.names = {};
+    constructor(_e) {
+      super(), this.label = _e, this.names = {};
     }
-    render({ _n: fe }) {
-      return `break${this.label ? ` ${this.label}` : ""};` + fe;
+    render({ _n: _e }) {
+      return `break${this.label ? ` ${this.label}` : ""};` + _e;
     }
   }
   class m extends s {
-    constructor(fe) {
-      super(), this.error = fe;
+    constructor(_e) {
+      super(), this.error = _e;
     }
-    render({ _n: fe }) {
-      return `throw ${this.error};` + fe;
+    render({ _n: _e }) {
+      return `throw ${this.error};` + _e;
     }
     get names() {
       return this.error.names;
     }
   }
-  class p extends s {
-    constructor(fe) {
-      super(), this.code = fe;
+  class _ extends s {
+    constructor(_e) {
+      super(), this.code = _e;
     }
-    render({ _n: fe }) {
-      return `${this.code};` + fe;
+    render({ _n: _e }) {
+      return `${this.code};` + _e;
     }
     optimizeNodes() {
       return `${this.code}` ? this : void 0;
     }
-    optimizeNames(fe, Ge) {
-      return this.code = ee(this.code, fe, Ge), this;
+    optimizeNames(_e, Ge) {
+      return this.code = ee(this.code, _e, Ge), this;
     }
     get names() {
       return this.code instanceof r._CodeOrName ? this.code.names : {};
     }
   }
-  class _ extends s {
-    constructor(fe = []) {
-      super(), this.nodes = fe;
+  class p extends s {
+    constructor(_e = []) {
+      super(), this.nodes = _e;
     }
-    render(fe) {
-      return this.nodes.reduce((Ge, Kt) => Ge + Kt.render(fe), "");
+    render(_e) {
+      return this.nodes.reduce((Ge, Kt) => Ge + Kt.render(_e), "");
     }
     optimizeNodes() {
-      const { nodes: fe } = this;
-      let Ge = fe.length;
+      const { nodes: _e } = this;
+      let Ge = _e.length;
       for (; Ge--; ) {
-        const Kt = fe[Ge].optimizeNodes();
-        Array.isArray(Kt) ? fe.splice(Ge, 1, ...Kt) : Kt ? fe[Ge] = Kt : fe.splice(Ge, 1);
+        const Kt = _e[Ge].optimizeNodes();
+        Array.isArray(Kt) ? _e.splice(Ge, 1, ...Kt) : Kt ? _e[Ge] = Kt : _e.splice(Ge, 1);
       }
-      return fe.length > 0 ? this : void 0;
+      return _e.length > 0 ? this : void 0;
     }
-    optimizeNames(fe, Ge) {
+    optimizeNames(_e, Ge) {
       const { nodes: Kt } = this;
       let Ni = Kt.length;
       for (; Ni--; ) {
         const Di = Kt[Ni];
-        Di.optimizeNames(fe, Ge) || (We(fe, Di.names), Kt.splice(Ni, 1));
+        Di.optimizeNames(_e, Ge) || (We(_e, Di.names), Kt.splice(Ni, 1));
       }
       return Kt.length > 0 ? this : void 0;
     }
     get names() {
-      return this.nodes.reduce((fe, Ge) => Ke(fe, Ge.names), {});
+      return this.nodes.reduce((_e, Ge) => Je(_e, Ge.names), {});
     }
   }
-  class g extends _ {
-    render(fe) {
-      return "{" + fe._n + super.render(fe) + "}" + fe._n;
+  class v extends p {
+    render(_e) {
+      return "{" + _e._n + super.render(_e) + "}" + _e._n;
     }
   }
-  class v extends _ {
+  class g extends p {
   }
-  class b extends g {
+  class k extends v {
   }
-  b.kind = "else";
-  class w extends g {
-    constructor(fe, Ge) {
-      super(Ge), this.condition = fe;
+  k.kind = "else";
+  class b extends v {
+    constructor(_e, Ge) {
+      super(Ge), this.condition = _e;
     }
-    render(fe) {
-      let Ge = `if(${this.condition})` + super.render(fe);
-      return this.else && (Ge += "else " + this.else.render(fe)), Ge;
+    render(_e) {
+      let Ge = `if(${this.condition})` + super.render(_e);
+      return this.else && (Ge += "else " + this.else.render(_e)), Ge;
     }
     optimizeNodes() {
       super.optimizeNodes();
-      const fe = this.condition;
-      if (fe === !0)
+      const _e = this.condition;
+      if (_e === !0)
         return this.nodes;
       let Ge = this.else;
       if (Ge) {
         const Kt = Ge.optimizeNodes();
-        Ge = this.else = Array.isArray(Kt) ? new b(Kt) : Kt;
+        Ge = this.else = Array.isArray(Kt) ? new k(Kt) : Kt;
       }
       if (Ge)
-        return fe === !1 ? Ge instanceof w ? Ge : Ge.nodes : this.nodes.length ? this : new w(st(fe), Ge instanceof w ? [Ge] : Ge.nodes);
-      if (!(fe === !1 || !this.nodes.length))
+        return _e === !1 ? Ge instanceof b ? Ge : Ge.nodes : this.nodes.length ? this : new b(st(_e), Ge instanceof b ? [Ge] : Ge.nodes);
+      if (!(_e === !1 || !this.nodes.length))
         return this;
     }
-    optimizeNames(fe, Ge) {
+    optimizeNames(_e, Ge) {
       var Kt;
-      if (this.else = (Kt = this.else) === null || Kt === void 0 ? void 0 : Kt.optimizeNames(fe, Ge), !!(super.optimizeNames(fe, Ge) || this.else))
-        return this.condition = ee(this.condition, fe, Ge), this;
+      if (this.else = (Kt = this.else) === null || Kt === void 0 ? void 0 : Kt.optimizeNames(_e, Ge), !!(super.optimizeNames(_e, Ge) || this.else))
+        return this.condition = ee(this.condition, _e, Ge), this;
     }
     get names() {
-      const fe = super.names;
-      return Wt(fe, this.condition), this.else && Ke(fe, this.else.names), fe;
+      const _e = super.names;
+      return Wt(_e, this.condition), this.else && Je(_e, this.else.names), _e;
     }
   }
-  w.kind = "if";
-  class k extends g {
+  b.kind = "if";
+  class w extends v {
   }
-  k.kind = "for";
-  class M extends k {
-    constructor(fe) {
-      super(), this.iteration = fe;
+  w.kind = "for";
+  class M extends w {
+    constructor(_e) {
+      super(), this.iteration = _e;
     }
-    render(fe) {
-      return `for(${this.iteration})` + super.render(fe);
+    render(_e) {
+      return `for(${this.iteration})` + super.render(_e);
     }
-    optimizeNames(fe, Ge) {
-      if (super.optimizeNames(fe, Ge))
-        return this.iteration = ee(this.iteration, fe, Ge), this;
+    optimizeNames(_e, Ge) {
+      if (super.optimizeNames(_e, Ge))
+        return this.iteration = ee(this.iteration, _e, Ge), this;
     }
     get names() {
-      return Ke(super.names, this.iteration.names);
+      return Je(super.names, this.iteration.names);
     }
   }
-  class N extends k {
-    constructor(fe, Ge, Kt, Ni) {
-      super(), this.varKind = fe, this.name = Ge, this.from = Kt, this.to = Ni;
+  class C extends w {
+    constructor(_e, Ge, Kt, Ni) {
+      super(), this.varKind = _e, this.name = Ge, this.from = Kt, this.to = Ni;
     }
-    render(fe) {
-      const Ge = fe.es5 ? i.varKinds.var : this.varKind, { name: Kt, from: Ni, to: Di } = this;
-      return `for(${Ge} ${Kt}=${Ni}; ${Kt}<${Di}; ${Kt}++)` + super.render(fe);
+    render(_e) {
+      const Ge = _e.es5 ? i.varKinds.var : this.varKind, { name: Kt, from: Ni, to: Di } = this;
+      return `for(${Ge} ${Kt}=${Ni}; ${Kt}<${Di}; ${Kt}++)` + super.render(_e);
     }
     get names() {
-      const fe = Wt(super.names, this.from);
-      return Wt(fe, this.to);
+      const _e = Wt(super.names, this.from);
+      return Wt(_e, this.to);
     }
   }
-  class P extends k {
-    constructor(fe, Ge, Kt, Ni) {
-      super(), this.loop = fe, this.varKind = Ge, this.name = Kt, this.iterable = Ni;
+  class T extends w {
+    constructor(_e, Ge, Kt, Ni) {
+      super(), this.loop = _e, this.varKind = Ge, this.name = Kt, this.iterable = Ni;
     }
-    render(fe) {
-      return `for(${this.varKind} ${this.name} ${this.loop} ${this.iterable})` + super.render(fe);
+    render(_e) {
+      return `for(${this.varKind} ${this.name} ${this.loop} ${this.iterable})` + super.render(_e);
     }
-    optimizeNames(fe, Ge) {
-      if (super.optimizeNames(fe, Ge))
-        return this.iterable = ee(this.iterable, fe, Ge), this;
+    optimizeNames(_e, Ge) {
+      if (super.optimizeNames(_e, Ge))
+        return this.iterable = ee(this.iterable, _e, Ge), this;
     }
     get names() {
-      return Ke(super.names, this.iterable.names);
+      return Je(super.names, this.iterable.names);
     }
   }
-  class T extends g {
-    constructor(fe, Ge, Kt) {
-      super(), this.name = fe, this.args = Ge, this.async = Kt;
+  class P extends v {
+    constructor(_e, Ge, Kt) {
+      super(), this.name = _e, this.args = Ge, this.async = Kt;
     }
-    render(fe) {
-      return `${this.async ? "async " : ""}function ${this.name}(${this.args})` + super.render(fe);
-    }
-  }
-  T.kind = "func";
-  class C extends _ {
-    render(fe) {
-      return "return " + super.render(fe);
+    render(_e) {
+      return `${this.async ? "async " : ""}function ${this.name}(${this.args})` + super.render(_e);
     }
   }
-  C.kind = "return";
-  class X extends g {
-    render(fe) {
-      let Ge = "try" + super.render(fe);
-      return this.catch && (Ge += this.catch.render(fe)), this.finally && (Ge += this.finally.render(fe)), Ge;
+  P.kind = "func";
+  class N extends p {
+    render(_e) {
+      return "return " + super.render(_e);
+    }
+  }
+  N.kind = "return";
+  class X extends v {
+    render(_e) {
+      let Ge = "try" + super.render(_e);
+      return this.catch && (Ge += this.catch.render(_e)), this.finally && (Ge += this.finally.render(_e)), Ge;
     }
     optimizeNodes() {
-      var fe, Ge;
-      return super.optimizeNodes(), (fe = this.catch) === null || fe === void 0 || fe.optimizeNodes(), (Ge = this.finally) === null || Ge === void 0 || Ge.optimizeNodes(), this;
+      var _e, Ge;
+      return super.optimizeNodes(), (_e = this.catch) === null || _e === void 0 || _e.optimizeNodes(), (Ge = this.finally) === null || Ge === void 0 || Ge.optimizeNodes(), this;
     }
-    optimizeNames(fe, Ge) {
+    optimizeNames(_e, Ge) {
       var Kt, Ni;
-      return super.optimizeNames(fe, Ge), (Kt = this.catch) === null || Kt === void 0 || Kt.optimizeNames(fe, Ge), (Ni = this.finally) === null || Ni === void 0 || Ni.optimizeNames(fe, Ge), this;
+      return super.optimizeNames(_e, Ge), (Kt = this.catch) === null || Kt === void 0 || Kt.optimizeNames(_e, Ge), (Ni = this.finally) === null || Ni === void 0 || Ni.optimizeNames(_e, Ge), this;
     }
     get names() {
-      const fe = super.names;
-      return this.catch && Ke(fe, this.catch.names), this.finally && Ke(fe, this.finally.names), fe;
+      const _e = super.names;
+      return this.catch && Je(_e, this.catch.names), this.finally && Je(_e, this.finally.names), _e;
     }
   }
-  class _e extends g {
-    constructor(fe) {
-      super(), this.error = fe;
+  class fe extends v {
+    constructor(_e) {
+      super(), this.error = _e;
     }
-    render(fe) {
-      return `catch(${this.error})` + super.render(fe);
-    }
-  }
-  _e.kind = "catch";
-  class Je extends g {
-    render(fe) {
-      return "finally" + super.render(fe);
+    render(_e) {
+      return `catch(${this.error})` + super.render(_e);
     }
   }
-  Je.kind = "finally";
+  fe.kind = "catch";
+  class Ke extends v {
+    render(_e) {
+      return "finally" + super.render(_e);
+    }
+  }
+  Ke.kind = "finally";
   class Pe {
-    constructor(fe, Ge = {}) {
+    constructor(_e, Ge = {}) {
       this._values = {}, this._blockStarts = [], this._constants = {}, this.opts = { ...Ge, _n: Ge.lines ? `
-` : "" }, this._extScope = fe, this._scope = new i.Scope({ parent: fe }), this._nodes = [new v()];
+` : "" }, this._extScope = _e, this._scope = new i.Scope({ parent: _e }), this._nodes = [new g()];
     }
     toString() {
       return this._root.render(this.opts);
     }
     // returns unique name in the internal scope
-    name(fe) {
-      return this._scope.name(fe);
+    name(_e) {
+      return this._scope.name(_e);
     }
     // reserves unique name in the external scope
-    scopeName(fe) {
-      return this._extScope.name(fe);
+    scopeName(_e) {
+      return this._extScope.name(_e);
     }
     // reserves unique name in the external scope and assigns value to it
-    scopeValue(fe, Ge) {
-      const Kt = this._extScope.value(fe, Ge);
+    scopeValue(_e, Ge) {
+      const Kt = this._extScope.value(_e, Ge);
       return (this._values[Kt.prefix] || (this._values[Kt.prefix] = /* @__PURE__ */ new Set())).add(Kt), Kt;
     }
-    getScopeValue(fe, Ge) {
-      return this._extScope.getValue(fe, Ge);
+    getScopeValue(_e, Ge) {
+      return this._extScope.getValue(_e, Ge);
     }
     // return code that assigns values in the external scope to the names that are used internally
     // (same names that were returned by gen.scopeName or gen.scopeValue)
-    scopeRefs(fe) {
-      return this._extScope.scopeRefs(fe, this._values);
+    scopeRefs(_e) {
+      return this._extScope.scopeRefs(_e, this._values);
     }
     scopeCode() {
       return this._extScope.scopeCode(this._values);
     }
-    _def(fe, Ge, Kt, Ni) {
+    _def(_e, Ge, Kt, Ni) {
       const Di = this._scope.toName(Ge);
-      return Kt !== void 0 && Ni && (this._constants[Di.str] = Kt), this._leafNode(new o(fe, Di, Kt)), Di;
+      return Kt !== void 0 && Ni && (this._constants[Di.str] = Kt), this._leafNode(new o(_e, Di, Kt)), Di;
     }
     // `const` declaration (`var` in es5 mode)
-    const(fe, Ge, Kt) {
-      return this._def(i.varKinds.const, fe, Ge, Kt);
+    const(_e, Ge, Kt) {
+      return this._def(i.varKinds.const, _e, Ge, Kt);
     }
     // `let` declaration with optional assignment (`var` in es5 mode)
-    let(fe, Ge, Kt) {
-      return this._def(i.varKinds.let, fe, Ge, Kt);
+    let(_e, Ge, Kt) {
+      return this._def(i.varKinds.let, _e, Ge, Kt);
     }
     // `var` declaration with optional assignment
-    var(fe, Ge, Kt) {
-      return this._def(i.varKinds.var, fe, Ge, Kt);
+    var(_e, Ge, Kt) {
+      return this._def(i.varKinds.var, _e, Ge, Kt);
     }
     // assignment code
-    assign(fe, Ge, Kt) {
-      return this._leafNode(new l(fe, Ge, Kt));
+    assign(_e, Ge, Kt) {
+      return this._leafNode(new l(_e, Ge, Kt));
     }
     // `+=` code
-    add(fe, Ge) {
-      return this._leafNode(new h(fe, e.operators.ADD, Ge));
+    add(_e, Ge) {
+      return this._leafNode(new h(_e, e.operators.ADD, Ge));
     }
     // appends passed SafeExpr to code or executes Block
-    code(fe) {
-      return typeof fe == "function" ? fe() : fe !== r.nil && this._leafNode(new p(fe)), this;
+    code(_e) {
+      return typeof _e == "function" ? _e() : _e !== r.nil && this._leafNode(new _(_e)), this;
     }
     // returns code for object literal for the passed argument list of key-value pairs
-    object(...fe) {
+    object(..._e) {
       const Ge = ["{"];
-      for (const [Kt, Ni] of fe)
+      for (const [Kt, Ni] of _e)
         Ge.length > 1 && Ge.push(","), Ge.push(Kt), (Kt !== Ni || this.opts.es5) && (Ge.push(":"), (0, r.addCodeArg)(Ge, Ni));
       return Ge.push("}"), new r._Code(Ge);
     }
     // `if` clause (or statement if `thenBody` and, optionally, `elseBody` are passed)
-    if(fe, Ge, Kt) {
-      if (this._blockNode(new w(fe)), Ge && Kt)
+    if(_e, Ge, Kt) {
+      if (this._blockNode(new b(_e)), Ge && Kt)
         this.code(Ge).else().code(Kt).endIf();
       else if (Ge)
         this.code(Ge).endIf();
@@ -1078,148 +1078,148 @@ var scope = {};
       return this;
     }
     // `else if` clause - invalid without `if` or after `else` clauses
-    elseIf(fe) {
-      return this._elseNode(new w(fe));
+    elseIf(_e) {
+      return this._elseNode(new b(_e));
     }
     // `else` clause - only valid after `if` or `else if` clauses
     else() {
-      return this._elseNode(new b());
+      return this._elseNode(new k());
     }
     // end `if` statement (needed if gen.if was used only with condition)
     endIf() {
-      return this._endBlockNode(w, b);
+      return this._endBlockNode(b, k);
     }
-    _for(fe, Ge) {
-      return this._blockNode(fe), Ge && this.code(Ge).endFor(), this;
+    _for(_e, Ge) {
+      return this._blockNode(_e), Ge && this.code(Ge).endFor(), this;
     }
     // a generic `for` clause (or statement if `forBody` is passed)
-    for(fe, Ge) {
-      return this._for(new M(fe), Ge);
+    for(_e, Ge) {
+      return this._for(new M(_e), Ge);
     }
     // `for` statement for a range of values
-    forRange(fe, Ge, Kt, Ni, Di = this.opts.es5 ? i.varKinds.var : i.varKinds.let) {
-      const Gi = this._scope.toName(fe);
-      return this._for(new N(Di, Gi, Ge, Kt), () => Ni(Gi));
+    forRange(_e, Ge, Kt, Ni, Di = this.opts.es5 ? i.varKinds.var : i.varKinds.let) {
+      const Gi = this._scope.toName(_e);
+      return this._for(new C(Di, Gi, Ge, Kt), () => Ni(Gi));
     }
     // `for-of` statement (in es5 mode replace with a normal for loop)
-    forOf(fe, Ge, Kt, Ni = i.varKinds.const) {
-      const Di = this._scope.toName(fe);
+    forOf(_e, Ge, Kt, Ni = i.varKinds.const) {
+      const Di = this._scope.toName(_e);
       if (this.opts.es5) {
         const Gi = Ge instanceof r.Name ? Ge : this.var("_arr", Ge);
         return this.forRange("_i", 0, (0, r._)`${Gi}.length`, (Ki) => {
           this.var(Di, (0, r._)`${Gi}[${Ki}]`), Kt(Di);
         });
       }
-      return this._for(new P("of", Ni, Di, Ge), () => Kt(Di));
+      return this._for(new T("of", Ni, Di, Ge), () => Kt(Di));
     }
     // `for-in` statement.
     // With option `ownProperties` replaced with a `for-of` loop for object keys
-    forIn(fe, Ge, Kt, Ni = this.opts.es5 ? i.varKinds.var : i.varKinds.const) {
+    forIn(_e, Ge, Kt, Ni = this.opts.es5 ? i.varKinds.var : i.varKinds.const) {
       if (this.opts.ownProperties)
-        return this.forOf(fe, (0, r._)`Object.keys(${Ge})`, Kt);
-      const Di = this._scope.toName(fe);
-      return this._for(new P("in", Ni, Di, Ge), () => Kt(Di));
+        return this.forOf(_e, (0, r._)`Object.keys(${Ge})`, Kt);
+      const Di = this._scope.toName(_e);
+      return this._for(new T("in", Ni, Di, Ge), () => Kt(Di));
     }
     // end `for` loop
     endFor() {
-      return this._endBlockNode(k);
+      return this._endBlockNode(w);
     }
     // `label` statement
-    label(fe) {
-      return this._leafNode(new f(fe));
+    label(_e) {
+      return this._leafNode(new f(_e));
     }
     // `break` statement
-    break(fe) {
-      return this._leafNode(new d(fe));
+    break(_e) {
+      return this._leafNode(new d(_e));
     }
     // `return` statement
-    return(fe) {
-      const Ge = new C();
-      if (this._blockNode(Ge), this.code(fe), Ge.nodes.length !== 1)
+    return(_e) {
+      const Ge = new N();
+      if (this._blockNode(Ge), this.code(_e), Ge.nodes.length !== 1)
         throw new Error('CodeGen: "return" should have one node');
-      return this._endBlockNode(C);
+      return this._endBlockNode(N);
     }
     // `try` statement
-    try(fe, Ge, Kt) {
+    try(_e, Ge, Kt) {
       if (!Ge && !Kt)
         throw new Error('CodeGen: "try" without "catch" and "finally"');
       const Ni = new X();
-      if (this._blockNode(Ni), this.code(fe), Ge) {
+      if (this._blockNode(Ni), this.code(_e), Ge) {
         const Di = this.name("e");
-        this._currNode = Ni.catch = new _e(Di), Ge(Di);
+        this._currNode = Ni.catch = new fe(Di), Ge(Di);
       }
-      return Kt && (this._currNode = Ni.finally = new Je(), this.code(Kt)), this._endBlockNode(_e, Je);
+      return Kt && (this._currNode = Ni.finally = new Ke(), this.code(Kt)), this._endBlockNode(fe, Ke);
     }
     // `throw` statement
-    throw(fe) {
-      return this._leafNode(new m(fe));
+    throw(_e) {
+      return this._leafNode(new m(_e));
     }
     // start self-balancing block
-    block(fe, Ge) {
-      return this._blockStarts.push(this._nodes.length), fe && this.code(fe).endBlock(Ge), this;
+    block(_e, Ge) {
+      return this._blockStarts.push(this._nodes.length), _e && this.code(_e).endBlock(Ge), this;
     }
     // end the current self-balancing block
-    endBlock(fe) {
+    endBlock(_e) {
       const Ge = this._blockStarts.pop();
       if (Ge === void 0)
         throw new Error("CodeGen: not in self-balancing block");
       const Kt = this._nodes.length - Ge;
-      if (Kt < 0 || fe !== void 0 && Kt !== fe)
-        throw new Error(`CodeGen: wrong number of nodes: ${Kt} vs ${fe} expected`);
+      if (Kt < 0 || _e !== void 0 && Kt !== _e)
+        throw new Error(`CodeGen: wrong number of nodes: ${Kt} vs ${_e} expected`);
       return this._nodes.length = Ge, this;
     }
     // `function` heading (or definition if funcBody is passed)
-    func(fe, Ge = r.nil, Kt, Ni) {
-      return this._blockNode(new T(fe, Ge, Kt)), Ni && this.code(Ni).endFunc(), this;
+    func(_e, Ge = r.nil, Kt, Ni) {
+      return this._blockNode(new P(_e, Ge, Kt)), Ni && this.code(Ni).endFunc(), this;
     }
     // end function definition
     endFunc() {
-      return this._endBlockNode(T);
+      return this._endBlockNode(P);
     }
-    optimize(fe = 1) {
-      for (; fe-- > 0; )
+    optimize(_e = 1) {
+      for (; _e-- > 0; )
         this._root.optimizeNodes(), this._root.optimizeNames(this._root.names, this._constants);
     }
-    _leafNode(fe) {
-      return this._currNode.nodes.push(fe), this;
+    _leafNode(_e) {
+      return this._currNode.nodes.push(_e), this;
     }
-    _blockNode(fe) {
-      this._currNode.nodes.push(fe), this._nodes.push(fe);
+    _blockNode(_e) {
+      this._currNode.nodes.push(_e), this._nodes.push(_e);
     }
-    _endBlockNode(fe, Ge) {
+    _endBlockNode(_e, Ge) {
       const Kt = this._currNode;
-      if (Kt instanceof fe || Ge && Kt instanceof Ge)
+      if (Kt instanceof _e || Ge && Kt instanceof Ge)
         return this._nodes.pop(), this;
-      throw new Error(`CodeGen: not in block "${Ge ? `${fe.kind}/${Ge.kind}` : fe.kind}"`);
+      throw new Error(`CodeGen: not in block "${Ge ? `${_e.kind}/${Ge.kind}` : _e.kind}"`);
     }
-    _elseNode(fe) {
+    _elseNode(_e) {
       const Ge = this._currNode;
-      if (!(Ge instanceof w))
+      if (!(Ge instanceof b))
         throw new Error('CodeGen: "else" without "if"');
-      return this._currNode = Ge.else = fe, this;
+      return this._currNode = Ge.else = _e, this;
     }
     get _root() {
       return this._nodes[0];
     }
     get _currNode() {
-      const fe = this._nodes;
-      return fe[fe.length - 1];
+      const _e = this._nodes;
+      return _e[_e.length - 1];
     }
-    set _currNode(fe) {
+    set _currNode(_e) {
       const Ge = this._nodes;
-      Ge[Ge.length - 1] = fe;
+      Ge[Ge.length - 1] = _e;
     }
   }
   e.CodeGen = Pe;
-  function Ke(Ci, fe) {
-    for (const Ge in fe)
-      Ci[Ge] = (Ci[Ge] || 0) + (fe[Ge] || 0);
+  function Je(Ci, _e) {
+    for (const Ge in _e)
+      Ci[Ge] = (Ci[Ge] || 0) + (_e[Ge] || 0);
     return Ci;
   }
-  function Wt(Ci, fe) {
-    return fe instanceof r._CodeOrName ? Ke(Ci, fe.names) : Ci;
+  function Wt(Ci, _e) {
+    return _e instanceof r._CodeOrName ? Je(Ci, _e.names) : Ci;
   }
-  function ee(Ci, fe, Ge) {
+  function ee(Ci, _e, Ge) {
     if (Ci instanceof r.Name)
       return Kt(Ci);
     if (!Ni(Ci))
@@ -1227,15 +1227,15 @@ var scope = {};
     return new r._Code(Ci._items.reduce((Di, Gi) => (Gi instanceof r.Name && (Gi = Kt(Gi)), Gi instanceof r._Code ? Di.push(...Gi._items) : Di.push(Gi), Di), []));
     function Kt(Di) {
       const Gi = Ge[Di.str];
-      return Gi === void 0 || fe[Di.str] !== 1 ? Di : (delete fe[Di.str], Gi);
+      return Gi === void 0 || _e[Di.str] !== 1 ? Di : (delete _e[Di.str], Gi);
     }
     function Ni(Di) {
-      return Di instanceof r._Code && Di._items.some((Gi) => Gi instanceof r.Name && fe[Gi.str] === 1 && Ge[Gi.str] !== void 0);
+      return Di instanceof r._Code && Di._items.some((Gi) => Gi instanceof r.Name && _e[Gi.str] === 1 && Ge[Gi.str] !== void 0);
     }
   }
-  function We(Ci, fe) {
-    for (const Ge in fe)
-      Ci[Ge] = (Ci[Ge] || 0) - (fe[Ge] || 0);
+  function We(Ci, _e) {
+    for (const Ge in _e)
+      Ci[Ge] = (Ci[Ge] || 0) - (_e[Ge] || 0);
   }
   function st(Ci) {
     return typeof Ci == "boolean" || typeof Ci == "number" || Ci === null ? !Ci : (0, r._)`!${Ri(Ci)}`;
@@ -1252,7 +1252,7 @@ var scope = {};
   }
   e.or = it;
   function Qt(Ci) {
-    return (fe, Ge) => fe === r.nil ? Ge : Ge === r.nil ? fe : (0, r._)`${Ri(fe)} ${Ci} ${Ri(Ge)}`;
+    return (_e, Ge) => _e === r.nil ? Ge : Ge === r.nil ? _e : (0, r._)`${Ri(_e)} ${Ci} ${Ri(Ge)}`;
   }
   function Ri(Ci) {
     return Ci instanceof r.Name ? Ci : (0, r._)`(${Ci})`;
@@ -1433,40 +1433,40 @@ names$z.default = names$y;
   Object.defineProperty(e, "__esModule", { value: !0 }), e.extendErrors = e.resetErrorsCount = e.reportExtraError = e.reportError = e.keyword$DataError = e.keywordError = void 0;
   const r = codegen, i = util$9, n = names$z;
   e.keywordError = {
-    message: ({ keyword: b }) => (0, r.str)`must pass "${b}" keyword validation`
+    message: ({ keyword: k }) => (0, r.str)`must pass "${k}" keyword validation`
   }, e.keyword$DataError = {
-    message: ({ keyword: b, schemaType: w }) => w ? (0, r.str)`"${b}" keyword must be ${w} ($data)` : (0, r.str)`"${b}" keyword is invalid ($data)`
+    message: ({ keyword: k, schemaType: b }) => b ? (0, r.str)`"${k}" keyword must be ${b} ($data)` : (0, r.str)`"${k}" keyword is invalid ($data)`
   };
-  function a(b, w = e.keywordError, k, M) {
-    const { it: N } = b, { gen: P, compositeRule: T, allErrors: C } = N, X = m(b, w, k);
-    M ?? (T || C) ? h(P, X) : f(N, (0, r._)`[${X}]`);
+  function a(k, b = e.keywordError, w, M) {
+    const { it: C } = k, { gen: T, compositeRule: P, allErrors: N } = C, X = m(k, b, w);
+    M ?? (P || N) ? h(T, X) : f(C, (0, r._)`[${X}]`);
   }
   e.reportError = a;
-  function s(b, w = e.keywordError, k) {
-    const { it: M } = b, { gen: N, compositeRule: P, allErrors: T } = M, C = m(b, w, k);
-    h(N, C), P || T || f(M, n.default.vErrors);
+  function s(k, b = e.keywordError, w) {
+    const { it: M } = k, { gen: C, compositeRule: T, allErrors: P } = M, N = m(k, b, w);
+    h(C, N), T || P || f(M, n.default.vErrors);
   }
   e.reportExtraError = s;
-  function o(b, w) {
-    b.assign(n.default.errors, w), b.if((0, r._)`${n.default.vErrors} !== null`, () => b.if(w, () => b.assign((0, r._)`${n.default.vErrors}.length`, w), () => b.assign(n.default.vErrors, null)));
+  function o(k, b) {
+    k.assign(n.default.errors, b), k.if((0, r._)`${n.default.vErrors} !== null`, () => k.if(b, () => k.assign((0, r._)`${n.default.vErrors}.length`, b), () => k.assign(n.default.vErrors, null)));
   }
   e.resetErrorsCount = o;
-  function l({ gen: b, keyword: w, schemaValue: k, data: M, errsCount: N, it: P }) {
-    if (N === void 0)
+  function l({ gen: k, keyword: b, schemaValue: w, data: M, errsCount: C, it: T }) {
+    if (C === void 0)
       throw new Error("ajv implementation error");
-    const T = b.name("err");
-    b.forRange("i", N, n.default.errors, (C) => {
-      b.const(T, (0, r._)`${n.default.vErrors}[${C}]`), b.if((0, r._)`${T}.instancePath === undefined`, () => b.assign((0, r._)`${T}.instancePath`, (0, r.strConcat)(n.default.instancePath, P.errorPath))), b.assign((0, r._)`${T}.schemaPath`, (0, r.str)`${P.errSchemaPath}/${w}`), P.opts.verbose && (b.assign((0, r._)`${T}.schema`, k), b.assign((0, r._)`${T}.data`, M));
+    const P = k.name("err");
+    k.forRange("i", C, n.default.errors, (N) => {
+      k.const(P, (0, r._)`${n.default.vErrors}[${N}]`), k.if((0, r._)`${P}.instancePath === undefined`, () => k.assign((0, r._)`${P}.instancePath`, (0, r.strConcat)(n.default.instancePath, T.errorPath))), k.assign((0, r._)`${P}.schemaPath`, (0, r.str)`${T.errSchemaPath}/${b}`), T.opts.verbose && (k.assign((0, r._)`${P}.schema`, w), k.assign((0, r._)`${P}.data`, M));
     });
   }
   e.extendErrors = l;
-  function h(b, w) {
-    const k = b.const("err", w);
-    b.if((0, r._)`${n.default.vErrors} === null`, () => b.assign(n.default.vErrors, (0, r._)`[${k}]`), (0, r._)`${n.default.vErrors}.push(${k})`), b.code((0, r._)`${n.default.errors}++`);
+  function h(k, b) {
+    const w = k.const("err", b);
+    k.if((0, r._)`${n.default.vErrors} === null`, () => k.assign(n.default.vErrors, (0, r._)`[${w}]`), (0, r._)`${n.default.vErrors}.push(${w})`), k.code((0, r._)`${n.default.errors}++`);
   }
-  function f(b, w) {
-    const { gen: k, validateName: M, schemaEnv: N } = b;
-    N.$async ? k.throw((0, r._)`new ${b.ValidationError}(${w})`) : (k.assign((0, r._)`${M}.errors`, w), k.return(!1));
+  function f(k, b) {
+    const { gen: w, validateName: M, schemaEnv: C } = k;
+    C.$async ? w.throw((0, r._)`new ${k.ValidationError}(${b})`) : (w.assign((0, r._)`${M}.errors`, b), w.return(!1));
   }
   const d = {
     keyword: new r.Name("keyword"),
@@ -1478,28 +1478,28 @@ names$z.default = names$y;
     schema: new r.Name("schema"),
     parentSchema: new r.Name("parentSchema")
   };
-  function m(b, w, k) {
-    const { createErrors: M } = b.it;
-    return M === !1 ? (0, r._)`{}` : p(b, w, k);
+  function m(k, b, w) {
+    const { createErrors: M } = k.it;
+    return M === !1 ? (0, r._)`{}` : _(k, b, w);
   }
-  function p(b, w, k = {}) {
-    const { gen: M, it: N } = b, P = [
-      _(N, k),
-      g(b, k)
+  function _(k, b, w = {}) {
+    const { gen: M, it: C } = k, T = [
+      p(C, w),
+      v(k, w)
     ];
-    return v(b, w, P), M.object(...P);
+    return g(k, b, T), M.object(...T);
   }
-  function _({ errorPath: b }, { instancePath: w }) {
-    const k = w ? (0, r.str)`${b}${(0, i.getErrorPath)(w, i.Type.Str)}` : b;
-    return [n.default.instancePath, (0, r.strConcat)(n.default.instancePath, k)];
+  function p({ errorPath: k }, { instancePath: b }) {
+    const w = b ? (0, r.str)`${k}${(0, i.getErrorPath)(b, i.Type.Str)}` : k;
+    return [n.default.instancePath, (0, r.strConcat)(n.default.instancePath, w)];
   }
-  function g({ keyword: b, it: { errSchemaPath: w } }, { schemaPath: k, parentSchema: M }) {
-    let N = M ? w : (0, r.str)`${w}/${b}`;
-    return k && (N = (0, r.str)`${N}${(0, i.getErrorPath)(k, i.Type.Str)}`), [d.schemaPath, N];
+  function v({ keyword: k, it: { errSchemaPath: b } }, { schemaPath: w, parentSchema: M }) {
+    let C = M ? b : (0, r.str)`${b}/${k}`;
+    return w && (C = (0, r.str)`${C}${(0, i.getErrorPath)(w, i.Type.Str)}`), [d.schemaPath, C];
   }
-  function v(b, { params: w, message: k }, M) {
-    const { keyword: N, data: P, schemaValue: T, it: C } = b, { opts: X, propertyName: _e, topSchemaRef: Je, schemaPath: Pe } = C;
-    M.push([d.keyword, N], [d.params, typeof w == "function" ? w(b) : w || (0, r._)`{}`]), X.messages && M.push([d.message, typeof k == "function" ? k(b) : k]), X.verbose && M.push([d.schema, T], [d.parentSchema, (0, r._)`${Je}${Pe}`], [n.default.data, P]), _e && M.push([d.propertyName, _e]);
+  function g(k, { params: b, message: w }, M) {
+    const { keyword: C, data: T, schemaValue: P, it: N } = k, { opts: X, propertyName: fe, topSchemaRef: Ke, schemaPath: Pe } = N;
+    M.push([d.keyword, C], [d.params, typeof b == "function" ? b(k) : b || (0, r._)`{}`]), X.messages && M.push([d.message, typeof w == "function" ? w(k) : w]), X.verbose && M.push([d.schema, P], [d.parentSchema, (0, r._)`${Ke}${Pe}`], [n.default.data, T]), fe && M.push([d.propertyName, fe]);
   }
 })(errors$1);
 Object.defineProperty(boolSchema, "__esModule", { value: !0 });
@@ -1796,8 +1796,8 @@ function callValidateCode({ schemaCode: e, data: r, it: { gen: i, topSchemaRef: 
     [names_1$8.default.rootData, names_1$8.default.rootData]
   ];
   o.opts.dynamicRef && m.push([names_1$8.default.dynamicAnchors, names_1$8.default.dynamicAnchors]);
-  const p = (0, codegen_1$u._)`${d}, ${i.object(...m)}`;
-  return h !== codegen_1$u.nil ? (0, codegen_1$u._)`${l}.call(${h}, ${p})` : (0, codegen_1$u._)`${l}(${p})`;
+  const _ = (0, codegen_1$u._)`${d}, ${i.object(...m)}`;
+  return h !== codegen_1$u.nil ? (0, codegen_1$u._)`${l}.call(${h}, ${_})` : (0, codegen_1$u._)`${l}(${_})`;
 }
 code.callValidateCode = callValidateCode;
 const newRegExp = (0, codegen_1$u._)`new RegExp`;
@@ -1867,30 +1867,30 @@ function funcKeywordCode(e, r) {
   const { gen: n, keyword: a, schema: s, parentSchema: o, $data: l, it: h } = e;
   checkAsyncKeyword(h, r);
   const f = !l && r.compile ? r.compile.call(h.self, s, o, h) : r.validate, d = useKeyword(n, a, f), m = n.let("valid");
-  e.block$data(m, p), e.ok((i = r.valid) !== null && i !== void 0 ? i : m);
-  function p() {
+  e.block$data(m, _), e.ok((i = r.valid) !== null && i !== void 0 ? i : m);
+  function _() {
     if (r.errors === !1)
-      v(), r.modifying && modifyData(e), b(() => e.error());
+      g(), r.modifying && modifyData(e), k(() => e.error());
     else {
-      const w = r.async ? _() : g();
-      r.modifying && modifyData(e), b(() => addErrs(e, w));
+      const b = r.async ? p() : v();
+      r.modifying && modifyData(e), k(() => addErrs(e, b));
     }
   }
-  function _() {
-    const w = n.let("ruleErrs", null);
-    return n.try(() => v((0, codegen_1$t._)`await `), (k) => n.assign(m, !1).if((0, codegen_1$t._)`${k} instanceof ${h.ValidationError}`, () => n.assign(w, (0, codegen_1$t._)`${k}.errors`), () => n.throw(k))), w;
+  function p() {
+    const b = n.let("ruleErrs", null);
+    return n.try(() => g((0, codegen_1$t._)`await `), (w) => n.assign(m, !1).if((0, codegen_1$t._)`${w} instanceof ${h.ValidationError}`, () => n.assign(b, (0, codegen_1$t._)`${w}.errors`), () => n.throw(w))), b;
   }
-  function g() {
-    const w = (0, codegen_1$t._)`${d}.errors`;
-    return n.assign(w, null), v(codegen_1$t.nil), w;
+  function v() {
+    const b = (0, codegen_1$t._)`${d}.errors`;
+    return n.assign(b, null), g(codegen_1$t.nil), b;
   }
-  function v(w = r.async ? (0, codegen_1$t._)`await ` : codegen_1$t.nil) {
-    const k = h.opts.passContext ? names_1$7.default.this : names_1$7.default.self, M = !("compile" in r && !l || r.schema === !1);
-    n.assign(m, (0, codegen_1$t._)`${w}${(0, code_1$9.callValidateCode)(e, d, k, M)}`, r.modifying);
+  function g(b = r.async ? (0, codegen_1$t._)`await ` : codegen_1$t.nil) {
+    const w = h.opts.passContext ? names_1$7.default.this : names_1$7.default.self, M = !("compile" in r && !l || r.schema === !1);
+    n.assign(m, (0, codegen_1$t._)`${b}${(0, code_1$9.callValidateCode)(e, d, w, M)}`, r.modifying);
   }
-  function b(w) {
-    var k;
-    n.if((0, codegen_1$t.not)((k = r.valid) !== null && k !== void 0 ? k : m), w);
+  function k(b) {
+    var w;
+    n.if((0, codegen_1$t.not)((w = r.valid) !== null && w !== void 0 ? w : m), b);
   }
 }
 keyword$1.funcKeywordCode = funcKeywordCode;
@@ -1969,8 +1969,8 @@ function extendSubschemaData(e, r, { dataProp: i, dataPropType: n, data: a, data
     throw new Error('both "data" and "dataProp" passed, only one allowed');
   const { gen: l } = r;
   if (i !== void 0) {
-    const { errorPath: f, dataPathArr: d, opts: m } = r, p = l.let("data", (0, codegen_1$s._)`${r.data}${(0, codegen_1$s.getProperty)(i)}`, !0);
-    h(p), e.errorPath = (0, codegen_1$s.str)`${f}${(0, util_1$r.getErrorPath)(i, n, m.jsPropertySyntax)}`, e.parentDataProperty = (0, codegen_1$s._)`${i}`, e.dataPathArr = [...d, e.parentDataProperty];
+    const { errorPath: f, dataPathArr: d, opts: m } = r, _ = l.let("data", (0, codegen_1$s._)`${r.data}${(0, codegen_1$s.getProperty)(i)}`, !0);
+    h(_), e.errorPath = (0, codegen_1$s.str)`${f}${(0, util_1$r.getErrorPath)(i, n, m.jsPropertySyntax)}`, e.parentDataProperty = (0, codegen_1$s._)`${i}`, e.dataPathArr = [...d, e.parentDataProperty];
   }
   if (a !== void 0) {
     const f = a instanceof codegen_1$s.Name ? a : l.let("data", a, !0);
@@ -2068,12 +2068,12 @@ function _traverse(e, r, i, n, a, s, o, l, h, f) {
       var m = n[d];
       if (Array.isArray(m)) {
         if (d in traverse$1.arrayKeywords)
-          for (var p = 0; p < m.length; p++)
-            _traverse(e, r, i, m[p], a + "/" + d + "/" + p, s, a, d, n, p);
+          for (var _ = 0; _ < m.length; _++)
+            _traverse(e, r, i, m[_], a + "/" + d + "/" + _, s, a, d, n, _);
       } else if (d in traverse$1.propsKeywords) {
         if (m && typeof m == "object")
-          for (var _ in m)
-            _traverse(e, r, i, m[_], a + "/" + d + "/" + escapeJsonPtr(_), s, a, d, n, _);
+          for (var p in m)
+            _traverse(e, r, i, m[p], a + "/" + d + "/" + escapeJsonPtr(p), s, a, d, n, p);
       } else (d in traverse$1.keywords || e.allKeys && !(d in traverse$1.skipKeywords)) && _traverse(e, r, i, m, a + "/" + d, s, a, d, n);
     }
     i(n, a, s, o, l, h, f);
@@ -2158,31 +2158,31 @@ function getSchemaRefs(e, r) {
   if (typeof e == "boolean")
     return {};
   const { schemaId: i, uriResolver: n } = this.opts, a = normalizeId(e[i] || r), s = { "": a }, o = getFullPath(n, a, !1), l = {}, h = /* @__PURE__ */ new Set();
-  return traverse(e, { allKeys: !0 }, (m, p, _, g) => {
-    if (g === void 0)
+  return traverse(e, { allKeys: !0 }, (m, _, p, v) => {
+    if (v === void 0)
       return;
-    const v = o + p;
-    let b = s[g];
-    typeof m[i] == "string" && (b = w.call(this, m[i])), k.call(this, m.$anchor), k.call(this, m.$dynamicAnchor), s[p] = b;
-    function w(M) {
-      const N = this.opts.uriResolver.resolve;
-      if (M = normalizeId(b ? N(b, M) : M), h.has(M))
+    const g = o + _;
+    let k = s[v];
+    typeof m[i] == "string" && (k = b.call(this, m[i])), w.call(this, m.$anchor), w.call(this, m.$dynamicAnchor), s[_] = k;
+    function b(M) {
+      const C = this.opts.uriResolver.resolve;
+      if (M = normalizeId(k ? C(k, M) : M), h.has(M))
         throw d(M);
       h.add(M);
-      let P = this.refs[M];
-      return typeof P == "string" && (P = this.refs[P]), typeof P == "object" ? f(m, P.schema, M) : M !== normalizeId(v) && (M[0] === "#" ? (f(m, l[M], M), l[M] = m) : this.refs[M] = v), M;
+      let T = this.refs[M];
+      return typeof T == "string" && (T = this.refs[T]), typeof T == "object" ? f(m, T.schema, M) : M !== normalizeId(g) && (M[0] === "#" ? (f(m, l[M], M), l[M] = m) : this.refs[M] = g), M;
     }
-    function k(M) {
+    function w(M) {
       if (typeof M == "string") {
         if (!ANCHOR.test(M))
           throw new Error(`invalid anchor "${M}"`);
-        w.call(this, `#${M}`);
+        b.call(this, `#${M}`);
       }
     }
   }), l;
-  function f(m, p, _) {
-    if (p !== void 0 && !equal$3(m, p))
-      throw d(_);
+  function f(m, _, p) {
+    if (_ !== void 0 && !equal$3(m, _))
+      throw d(p);
   }
   function d(m) {
     return new Error(`reference "${m}" resolves to more than one schema`);
@@ -2301,12 +2301,12 @@ function schemaKeywords(e, r, i, n) {
     return;
   }
   h.jtd || checkStrictTypes(e, r), a.block(() => {
-    for (const p of d.rules)
-      m(p);
+    for (const _ of d.rules)
+      m(_);
     m(d.post);
   });
-  function m(p) {
-    (0, applicability_1.shouldUseGroup)(s, p) && (p.type ? (a.if((0, dataType_2.checkDataType)(p.type, o, h.strictNumbers)), iterateKeywords(e, p), r.length === 1 && r[0] === p.type && i && (a.else(), (0, dataType_2.reportTypeError)(e)), a.endIf()) : iterateKeywords(e, p), l || a.if((0, codegen_1$r._)`${names_1$6.default.errors} === ${n || 0}`));
+  function m(_) {
+    (0, applicability_1.shouldUseGroup)(s, _) && (_.type ? (a.if((0, dataType_2.checkDataType)(_.type, o, h.strictNumbers)), iterateKeywords(e, _), r.length === 1 && r[0] === _.type && i && (a.else(), (0, dataType_2.reportTypeError)(e)), a.endIf()) : iterateKeywords(e, _), l || a.if((0, codegen_1$r._)`${names_1$6.default.errors} === ${n || 0}`));
   }
 }
 function iterateKeywords(e, r) {
@@ -2574,17 +2574,17 @@ function compileSchema(e) {
     this._compilations.add(e), (0, validate_1$1.validateFunctionCode)(f), o.optimize(this.opts.code.optimize);
     const m = o.toString();
     d = `${o.scopeRefs(names_1$5.default.scope)}return ${m}`, this.opts.code.process && (d = this.opts.code.process(d, e));
-    const _ = new Function(`${names_1$5.default.self}`, `${names_1$5.default.scope}`, d)(this, this.scope.get());
-    if (this.scope.value(h, { ref: _ }), _.errors = null, _.schema = e.schema, _.schemaEnv = e, e.$async && (_.$async = !0), this.opts.code.source === !0 && (_.source = { validateName: h, validateCode: m, scopeValues: o._values }), this.opts.unevaluated) {
-      const { props: g, items: v } = f;
-      _.evaluated = {
-        props: g instanceof codegen_1$q.Name ? void 0 : g,
-        items: v instanceof codegen_1$q.Name ? void 0 : v,
-        dynamicProps: g instanceof codegen_1$q.Name,
-        dynamicItems: v instanceof codegen_1$q.Name
-      }, _.source && (_.source.evaluated = (0, codegen_1$q.stringify)(_.evaluated));
+    const p = new Function(`${names_1$5.default.self}`, `${names_1$5.default.scope}`, d)(this, this.scope.get());
+    if (this.scope.value(h, { ref: p }), p.errors = null, p.schema = e.schema, p.schemaEnv = e, e.$async && (p.$async = !0), this.opts.code.source === !0 && (p.source = { validateName: h, validateCode: m, scopeValues: o._values }), this.opts.unevaluated) {
+      const { props: v, items: g } = f;
+      p.evaluated = {
+        props: v instanceof codegen_1$q.Name ? void 0 : v,
+        items: g instanceof codegen_1$q.Name ? void 0 : g,
+        dynamicProps: v instanceof codegen_1$q.Name,
+        dynamicItems: g instanceof codegen_1$q.Name
+      }, p.source && (p.source.evaluated = (0, codegen_1$q.stringify)(p.evaluated));
     }
-    return e.validate = _, e;
+    return e.validate = p, e;
   } catch (m) {
     throw delete e.validate, delete e.validateName, d && this.logger.error("Error compiling schema, function code:", d), m;
   } finally {
@@ -3092,9 +3092,9 @@ uri$1.default = uri;
   } }), Object.defineProperty(e, "CodeGen", { enumerable: !0, get: function() {
     return i.CodeGen;
   } });
-  const n = requireValidation_error(), a = ref_error, s = rules, o = compile, l = codegen, h = resolve$2, f = dataType, d = util$9, m = require$$9, p = uri$1, _ = (it, Qt) => new RegExp(it, Qt);
-  _.code = "new RegExp";
-  const g = ["removeAdditional", "useDefaults", "coerceTypes"], v = /* @__PURE__ */ new Set([
+  const n = requireValidation_error(), a = ref_error, s = rules, o = compile, l = codegen, h = resolve$2, f = dataType, d = util$9, m = require$$9, _ = uri$1, p = (it, Qt) => new RegExp(it, Qt);
+  p.code = "new RegExp";
+  const v = ["removeAdditional", "useDefaults", "coerceTypes"], g = /* @__PURE__ */ new Set([
     "validate",
     "serialize",
     "parse",
@@ -3108,7 +3108,7 @@ uri$1.default = uri;
     "func",
     "obj",
     "Error"
-  ]), b = {
+  ]), k = {
     errorDataPath: "",
     format: "`validateFormats: false` can be used instead.",
     nullable: '"nullable" keyword is supported by default.',
@@ -3124,14 +3124,14 @@ uri$1.default = uri;
     cache: "Map is used as cache, schema object as key.",
     serialize: "Map is used as cache, schema object as key.",
     ajvErrors: "It is default now."
-  }, w = {
+  }, b = {
     ignoreKeywordsWithRef: "",
     jsPropertySyntax: "",
     unicode: '"minLength"/"maxLength" account for unicode characters by default.'
-  }, k = 200;
+  }, w = 200;
   function M(it) {
-    var Qt, Ri, Ci, fe, Ge, Kt, Ni, Di, Gi, Ki, Zn, Wi, Vi, ta, ra, ia, na, oa, Qn, ha, ca, la, ua, pa, _a;
-    const ji = it.strict, Zi = (Qt = it.code) === null || Qt === void 0 ? void 0 : Qt.optimize, Qi = Zi === !0 || Zi === void 0 ? 1 : Zi || 0, Ji = (Ci = (Ri = it.code) === null || Ri === void 0 ? void 0 : Ri.regExp) !== null && Ci !== void 0 ? Ci : _, aa = (fe = it.uriResolver) !== null && fe !== void 0 ? fe : p.default;
+    var Qt, Ri, Ci, _e, Ge, Kt, Ni, Di, Gi, Ki, Zn, Wi, Vi, ta, ra, ia, na, oa, Qn, ha, ca, la, ua, pa, _a;
+    const ji = it.strict, Zi = (Qt = it.code) === null || Qt === void 0 ? void 0 : Qt.optimize, Qi = Zi === !0 || Zi === void 0 ? 1 : Zi || 0, Ji = (Ci = (Ri = it.code) === null || Ri === void 0 ? void 0 : Ri.regExp) !== null && Ci !== void 0 ? Ci : p, aa = (_e = it.uriResolver) !== null && _e !== void 0 ? _e : _.default;
     return {
       strictSchema: (Kt = (Ge = it.strictSchema) !== null && Ge !== void 0 ? Ge : ji) !== null && Kt !== void 0 ? Kt : !0,
       strictNumbers: (Di = (Ni = it.strictNumbers) !== null && Ni !== void 0 ? Ni : ji) !== null && Di !== void 0 ? Di : !0,
@@ -3139,8 +3139,8 @@ uri$1.default = uri;
       strictTuples: (Wi = (Zn = it.strictTuples) !== null && Zn !== void 0 ? Zn : ji) !== null && Wi !== void 0 ? Wi : "log",
       strictRequired: (ta = (Vi = it.strictRequired) !== null && Vi !== void 0 ? Vi : ji) !== null && ta !== void 0 ? ta : !1,
       code: it.code ? { ...it.code, optimize: Qi, regExp: Ji } : { optimize: Qi, regExp: Ji },
-      loopRequired: (ra = it.loopRequired) !== null && ra !== void 0 ? ra : k,
-      loopEnum: (ia = it.loopEnum) !== null && ia !== void 0 ? ia : k,
+      loopRequired: (ra = it.loopRequired) !== null && ra !== void 0 ? ra : w,
+      loopEnum: (ia = it.loopEnum) !== null && ia !== void 0 ? ia : w,
       meta: (na = it.meta) !== null && na !== void 0 ? na : !0,
       messages: (oa = it.messages) !== null && oa !== void 0 ? oa : !0,
       inlineRefs: (Qn = it.inlineRefs) !== null && Qn !== void 0 ? Qn : !0,
@@ -3153,21 +3153,21 @@ uri$1.default = uri;
       uriResolver: aa
     };
   }
-  class N {
+  class C {
     constructor(Qt = {}) {
       this.schemas = {}, this.refs = {}, this.formats = {}, this._compilations = /* @__PURE__ */ new Set(), this._loading = {}, this._cache = /* @__PURE__ */ new Map(), Qt = this.opts = { ...Qt, ...M(Qt) };
       const { es5: Ri, lines: Ci } = this.opts.code;
-      this.scope = new l.ValueScope({ scope: {}, prefixes: v, es5: Ri, lines: Ci }), this.logger = Ke(Qt.logger);
-      const fe = Qt.validateFormats;
-      Qt.validateFormats = !1, this.RULES = (0, s.getRules)(), P.call(this, b, Qt, "NOT SUPPORTED"), P.call(this, w, Qt, "DEPRECATED", "warn"), this._metaOpts = Je.call(this), Qt.formats && X.call(this), this._addVocabularies(), this._addDefaultMetaSchema(), Qt.keywords && _e.call(this, Qt.keywords), typeof Qt.meta == "object" && this.addMetaSchema(Qt.meta), C.call(this), Qt.validateFormats = fe;
+      this.scope = new l.ValueScope({ scope: {}, prefixes: g, es5: Ri, lines: Ci }), this.logger = Je(Qt.logger);
+      const _e = Qt.validateFormats;
+      Qt.validateFormats = !1, this.RULES = (0, s.getRules)(), T.call(this, k, Qt, "NOT SUPPORTED"), T.call(this, b, Qt, "DEPRECATED", "warn"), this._metaOpts = Ke.call(this), Qt.formats && X.call(this), this._addVocabularies(), this._addDefaultMetaSchema(), Qt.keywords && fe.call(this, Qt.keywords), typeof Qt.meta == "object" && this.addMetaSchema(Qt.meta), N.call(this), Qt.validateFormats = _e;
     }
     _addVocabularies() {
       this.addKeyword("$async");
     }
     _addDefaultMetaSchema() {
       const { $data: Qt, meta: Ri, schemaId: Ci } = this.opts;
-      let fe = m;
-      Ci === "id" && (fe = { ...m }, fe.id = fe.$id, delete fe.$id), Ri && Qt && this.addMetaSchema(fe, fe[Ci], !1);
+      let _e = m;
+      Ci === "id" && (_e = { ...m }, _e.id = _e.$id, delete _e.$id), Ri && Qt && this.addMetaSchema(_e, _e[Ci], !1);
     }
     defaultMeta() {
       const { meta: Qt, schemaId: Ri } = this.opts;
@@ -3180,8 +3180,8 @@ uri$1.default = uri;
           throw new Error(`no schema with key or ref "${Qt}"`);
       } else
         Ci = this.compile(Qt);
-      const fe = Ci(Ri);
-      return "$async" in Ci || (this.errors = Ci.errors), fe;
+      const _e = Ci(Ri);
+      return "$async" in Ci || (this.errors = Ci.errors), _e;
     }
     compile(Qt, Ri) {
       const Ci = this._addSchema(Qt, Ri);
@@ -3191,14 +3191,14 @@ uri$1.default = uri;
       if (typeof this.opts.loadSchema != "function")
         throw new Error("options.loadSchema should be a function");
       const { loadSchema: Ci } = this.opts;
-      return fe.call(this, Qt, Ri);
-      async function fe(Ki, Zn) {
+      return _e.call(this, Qt, Ri);
+      async function _e(Ki, Zn) {
         await Ge.call(this, Ki.$schema);
         const Wi = this._addSchema(Ki, Zn);
         return Wi.validate || Kt.call(this, Wi);
       }
       async function Ge(Ki) {
-        Ki && !this.getSchema(Ki) && await fe.call(this, { $ref: Ki }, !0);
+        Ki && !this.getSchema(Ki) && await _e.call(this, { $ref: Ki }, !0);
       }
       async function Kt(Ki) {
         try {
@@ -3229,10 +3229,10 @@ uri$1.default = uri;
       }
     }
     // Adds schema to the instance
-    addSchema(Qt, Ri, Ci, fe = this.opts.validateSchema) {
+    addSchema(Qt, Ri, Ci, _e = this.opts.validateSchema) {
       if (Array.isArray(Qt)) {
         for (const Kt of Qt)
-          this.addSchema(Kt, void 0, Ci, fe);
+          this.addSchema(Kt, void 0, Ci, _e);
         return this;
       }
       let Ge;
@@ -3241,7 +3241,7 @@ uri$1.default = uri;
         if (Ge = Qt[Kt], Ge !== void 0 && typeof Ge != "string")
           throw new Error(`schema ${Kt} must be string`);
       }
-      return Ri = (0, h.normalizeId)(Ri || Ge), this._checkUnique(Ri), this.schemas[Ri] = this._addSchema(Qt, Ci, Ri, fe, !0), this;
+      return Ri = (0, h.normalizeId)(Ri || Ge), this._checkUnique(Ri), this.schemas[Ri] = this._addSchema(Qt, Ci, Ri, _e, !0), this;
     }
     // Add schema that will be used to validate other schemas
     // options in META_IGNORE_OPTIONS are alway set to false
@@ -3257,25 +3257,25 @@ uri$1.default = uri;
         throw new Error("$schema must be a string");
       if (Ci = Ci || this.opts.defaultMeta || this.defaultMeta(), !Ci)
         return this.logger.warn("meta-schema not available"), this.errors = null, !0;
-      const fe = this.validate(Ci, Qt);
-      if (!fe && Ri) {
+      const _e = this.validate(Ci, Qt);
+      if (!_e && Ri) {
         const Ge = "schema is invalid: " + this.errorsText();
         if (this.opts.validateSchema === "log")
           this.logger.error(Ge);
         else
           throw new Error(Ge);
       }
-      return fe;
+      return _e;
     }
     // Get compiled schema by `key` or `ref`.
     // (`key` that was passed to `addSchema` or full schema reference - `schema.$id` or resolved id)
     getSchema(Qt) {
       let Ri;
-      for (; typeof (Ri = T.call(this, Qt)) == "string"; )
+      for (; typeof (Ri = P.call(this, Qt)) == "string"; )
         Qt = Ri;
       if (Ri === void 0) {
-        const { schemaId: Ci } = this.opts, fe = new o.SchemaEnv({ schema: {}, schemaId: Ci });
-        if (Ri = o.resolveSchema.call(this, fe, Qt), !Ri)
+        const { schemaId: Ci } = this.opts, _e = new o.SchemaEnv({ schema: {}, schemaId: Ci });
+        if (Ri = o.resolveSchema.call(this, _e, Qt), !Ri)
           return;
         this.refs[Qt] = Ri;
       }
@@ -3292,7 +3292,7 @@ uri$1.default = uri;
         case "undefined":
           return this._removeAllSchemas(this.schemas), this._removeAllSchemas(this.refs), this._cache.clear(), this;
         case "string": {
-          const Ri = T.call(this, Qt);
+          const Ri = P.call(this, Qt);
           return typeof Ri == "object" && this._cache.delete(Ri.schema), delete this.schemas[Qt], delete this.refs[Qt], this;
         }
         case "object": {
@@ -3323,12 +3323,12 @@ uri$1.default = uri;
       if (ee.call(this, Ci, Ri), !Ri)
         return (0, d.eachItem)(Ci, (Ge) => We.call(this, Ge)), this;
       Xt.call(this, Ri);
-      const fe = {
+      const _e = {
         ...Ri,
         type: (0, f.getJSONTypes)(Ri.type),
         schemaType: (0, f.getJSONTypes)(Ri.schemaType)
       };
-      return (0, d.eachItem)(Ci, fe.type.length === 0 ? (Ge) => We.call(this, Ge, fe) : (Ge) => fe.type.forEach((Kt) => We.call(this, Ge, fe, Kt))), this;
+      return (0, d.eachItem)(Ci, _e.type.length === 0 ? (Ge) => We.call(this, Ge, _e) : (Ge) => _e.type.forEach((Kt) => We.call(this, Ge, _e, Kt))), this;
     }
     getKeyword(Qt) {
       const Ri = this.RULES.all[Qt];
@@ -3339,8 +3339,8 @@ uri$1.default = uri;
       const { RULES: Ri } = this;
       delete Ri.keywords[Qt], delete Ri.all[Qt];
       for (const Ci of Ri.rules) {
-        const fe = Ci.rules.findIndex((Ge) => Ge.keyword === Qt);
-        fe >= 0 && Ci.rules.splice(fe, 1);
+        const _e = Ci.rules.findIndex((Ge) => Ge.keyword === Qt);
+        _e >= 0 && Ci.rules.splice(_e, 1);
       }
       return this;
     }
@@ -3349,13 +3349,13 @@ uri$1.default = uri;
       return typeof Ri == "string" && (Ri = new RegExp(Ri)), this.formats[Qt] = Ri, this;
     }
     errorsText(Qt = this.errors, { separator: Ri = ", ", dataVar: Ci = "data" } = {}) {
-      return !Qt || Qt.length === 0 ? "No errors" : Qt.map((fe) => `${Ci}${fe.instancePath} ${fe.message}`).reduce((fe, Ge) => fe + Ri + Ge);
+      return !Qt || Qt.length === 0 ? "No errors" : Qt.map((_e) => `${Ci}${_e.instancePath} ${_e.message}`).reduce((_e, Ge) => _e + Ri + Ge);
     }
     $dataMetaSchema(Qt, Ri) {
       const Ci = this.RULES.all;
       Qt = JSON.parse(JSON.stringify(Qt));
-      for (const fe of Ri) {
-        const Ge = fe.split("/").slice(1);
+      for (const _e of Ri) {
+        const Ge = _e.split("/").slice(1);
         let Kt = Qt;
         for (const Ni of Ge)
           Kt = Kt[Ni];
@@ -3371,11 +3371,11 @@ uri$1.default = uri;
     }
     _removeAllSchemas(Qt, Ri) {
       for (const Ci in Qt) {
-        const fe = Qt[Ci];
-        (!Ri || Ri.test(Ci)) && (typeof fe == "string" ? delete Qt[Ci] : fe && !fe.meta && (this._cache.delete(fe.schema), delete Qt[Ci]));
+        const _e = Qt[Ci];
+        (!Ri || Ri.test(Ci)) && (typeof _e == "string" ? delete Qt[Ci] : _e && !_e.meta && (this._cache.delete(_e.schema), delete Qt[Ci]));
       }
     }
-    _addSchema(Qt, Ri, Ci, fe = this.opts.validateSchema, Ge = this.opts.addUsedSchema) {
+    _addSchema(Qt, Ri, Ci, _e = this.opts.validateSchema, Ge = this.opts.addUsedSchema) {
       let Kt;
       const { schemaId: Ni } = this.opts;
       if (typeof Qt == "object")
@@ -3391,7 +3391,7 @@ uri$1.default = uri;
         return Di;
       Ci = (0, h.normalizeId)(Kt || Ci);
       const Gi = h.getSchemaRefs.call(this, Qt, Ci);
-      return Di = new o.SchemaEnv({ schema: Qt, schemaId: Ni, meta: Ri, baseId: Ci, localRefs: Gi }), this._cache.set(Di.schema, Di), Ge && !Ci.startsWith("#") && (Ci && this._checkUnique(Ci), this.refs[Ci] = Di), fe && this.validateSchema(Qt, !0), Di;
+      return Di = new o.SchemaEnv({ schema: Qt, schemaId: Ni, meta: Ri, baseId: Ci, localRefs: Gi }), this._cache.set(Di.schema, Di), Ge && !Ci.startsWith("#") && (Ci && this._checkUnique(Ci), this.refs[Ci] = Di), _e && this.validateSchema(Qt, !0), Di;
     }
     _checkUnique(Qt) {
       if (this.schemas[Qt] || this.refs[Qt])
@@ -3412,17 +3412,17 @@ uri$1.default = uri;
       }
     }
   }
-  N.ValidationError = n.default, N.MissingRefError = a.default, e.default = N;
-  function P(it, Qt, Ri, Ci = "error") {
-    for (const fe in it) {
-      const Ge = fe;
-      Ge in Qt && this.logger[Ci](`${Ri}: option ${fe}. ${it[Ge]}`);
+  C.ValidationError = n.default, C.MissingRefError = a.default, e.default = C;
+  function T(it, Qt, Ri, Ci = "error") {
+    for (const _e in it) {
+      const Ge = _e;
+      Ge in Qt && this.logger[Ci](`${Ri}: option ${_e}. ${it[Ge]}`);
     }
   }
-  function T(it) {
+  function P(it) {
     return it = (0, h.normalizeId)(it), this.schemas[it] || this.refs[it];
   }
-  function C() {
+  function N() {
     const it = this.opts.schemas;
     if (it)
       if (Array.isArray(it))
@@ -3437,7 +3437,7 @@ uri$1.default = uri;
       Qt && this.addFormat(it, Qt);
     }
   }
-  function _e(it) {
+  function fe(it) {
     if (Array.isArray(it)) {
       this.addVocabulary(it);
       return;
@@ -3448,9 +3448,9 @@ uri$1.default = uri;
       Ri.keyword || (Ri.keyword = Qt), this.addKeyword(Ri);
     }
   }
-  function Je() {
+  function Ke() {
     const it = { ...this.opts };
-    for (const Qt of g)
+    for (const Qt of v)
       delete it[Qt];
     return it;
   }
@@ -3458,7 +3458,7 @@ uri$1.default = uri;
   }, warn() {
   }, error() {
   } };
-  function Ke(it) {
+  function Je(it) {
     if (it === !1)
       return Pe;
     if (it === void 0)
@@ -3480,11 +3480,11 @@ uri$1.default = uri;
   }
   function We(it, Qt, Ri) {
     var Ci;
-    const fe = Qt == null ? void 0 : Qt.post;
-    if (Ri && fe)
+    const _e = Qt == null ? void 0 : Qt.post;
+    if (Ri && _e)
       throw new Error('keyword with "post" flag cannot have "type"');
     const { RULES: Ge } = this;
-    let Kt = fe ? Ge.post : Ge.rules.find(({ type: Di }) => Di === Ri);
+    let Kt = _e ? Ge.post : Ge.rules.find(({ type: Di }) => Di === Ri);
     if (Kt || (Kt = { type: Ri, rules: [] }, Ge.rules.push(Kt)), Ge.keywords[it] = !0, !Qt)
       return;
     const Ni = {
@@ -3498,7 +3498,7 @@ uri$1.default = uri;
     Qt.before ? st.call(this, Kt, Ni, Qt.before) : Kt.rules.push(Ni), Ge.all[it] = Ni, (Ci = Qt.implements) === null || Ci === void 0 || Ci.forEach((Di) => this.addKeyword(Di));
   }
   function st(it, Qt, Ri) {
-    const Ci = it.rules.findIndex((fe) => fe.keyword === Ri);
+    const Ci = it.rules.findIndex((_e) => _e.keyword === Ri);
     Ci >= 0 ? it.rules.splice(Ci, 0, Qt) : (it.rules.push(Qt), this.logger.warn(`rule ${Ri} is not defined`));
   }
   function Xt(it) {
@@ -3535,27 +3535,27 @@ const ref_error_1$1 = ref_error, code_1$8 = code, codegen_1$p = codegen, names_1
     if (d === void 0)
       throw new ref_error_1$1.default(n.opts.uriResolver, a, i);
     if (d instanceof compile_1$2.SchemaEnv)
-      return p(d);
-    return _(d);
+      return _(d);
+    return p(d);
     function m() {
       if (s === f)
         return callRef(e, o, s, s.$async);
-      const g = r.scopeValue("root", { ref: f });
-      return callRef(e, (0, codegen_1$p._)`${g}.validate`, f, f.$async);
+      const v = r.scopeValue("root", { ref: f });
+      return callRef(e, (0, codegen_1$p._)`${v}.validate`, f, f.$async);
     }
-    function p(g) {
-      const v = getValidate(e, g);
-      callRef(e, v, g, g.$async);
+    function _(v) {
+      const g = getValidate(e, v);
+      callRef(e, g, v, v.$async);
     }
-    function _(g) {
-      const v = r.scopeValue("schema", l.code.source === !0 ? { ref: g, code: (0, codegen_1$p.stringify)(g) } : { ref: g }), b = r.name("valid"), w = e.subschema({
-        schema: g,
+    function p(v) {
+      const g = r.scopeValue("schema", l.code.source === !0 ? { ref: v, code: (0, codegen_1$p.stringify)(v) } : { ref: v }), k = r.name("valid"), b = e.subschema({
+        schema: v,
         dataTypes: [],
         schemaPath: codegen_1$p.nil,
-        topSchemaRef: v,
+        topSchemaRef: g,
         errSchemaPath: i
-      }, b);
-      e.mergeEvaluated(w), e.ok(b);
+      }, k);
+      e.mergeEvaluated(b), e.ok(k);
     }
   }
 };
@@ -3570,38 +3570,38 @@ function callRef(e, r, i, n) {
   function d() {
     if (!l.$async)
       throw new Error("async schema referenced by sync schema");
-    const g = a.let("valid");
+    const v = a.let("valid");
     a.try(() => {
-      a.code((0, codegen_1$p._)`await ${(0, code_1$8.callValidateCode)(e, r, f)}`), _(r), o || a.assign(g, !0);
-    }, (v) => {
-      a.if((0, codegen_1$p._)`!(${v} instanceof ${s.ValidationError})`, () => a.throw(v)), p(v), o || a.assign(g, !1);
-    }), e.ok(g);
+      a.code((0, codegen_1$p._)`await ${(0, code_1$8.callValidateCode)(e, r, f)}`), p(r), o || a.assign(v, !0);
+    }, (g) => {
+      a.if((0, codegen_1$p._)`!(${g} instanceof ${s.ValidationError})`, () => a.throw(g)), _(g), o || a.assign(v, !1);
+    }), e.ok(v);
   }
   function m() {
-    e.result((0, code_1$8.callValidateCode)(e, r, f), () => _(r), () => p(r));
+    e.result((0, code_1$8.callValidateCode)(e, r, f), () => p(r), () => _(r));
   }
-  function p(g) {
-    const v = (0, codegen_1$p._)`${g}.errors`;
-    a.assign(names_1$4.default.vErrors, (0, codegen_1$p._)`${names_1$4.default.vErrors} === null ? ${v} : ${names_1$4.default.vErrors}.concat(${v})`), a.assign(names_1$4.default.errors, (0, codegen_1$p._)`${names_1$4.default.vErrors}.length`);
+  function _(v) {
+    const g = (0, codegen_1$p._)`${v}.errors`;
+    a.assign(names_1$4.default.vErrors, (0, codegen_1$p._)`${names_1$4.default.vErrors} === null ? ${g} : ${names_1$4.default.vErrors}.concat(${g})`), a.assign(names_1$4.default.errors, (0, codegen_1$p._)`${names_1$4.default.vErrors}.length`);
   }
-  function _(g) {
-    var v;
+  function p(v) {
+    var g;
     if (!s.opts.unevaluated)
       return;
-    const b = (v = i == null ? void 0 : i.validate) === null || v === void 0 ? void 0 : v.evaluated;
+    const k = (g = i == null ? void 0 : i.validate) === null || g === void 0 ? void 0 : g.evaluated;
     if (s.props !== !0)
-      if (b && !b.dynamicProps)
-        b.props !== void 0 && (s.props = util_1$n.mergeEvaluated.props(a, b.props, s.props));
+      if (k && !k.dynamicProps)
+        k.props !== void 0 && (s.props = util_1$n.mergeEvaluated.props(a, k.props, s.props));
       else {
-        const w = a.var("props", (0, codegen_1$p._)`${g}.evaluated.props`);
-        s.props = util_1$n.mergeEvaluated.props(a, w, s.props, codegen_1$p.Name);
+        const b = a.var("props", (0, codegen_1$p._)`${v}.evaluated.props`);
+        s.props = util_1$n.mergeEvaluated.props(a, b, s.props, codegen_1$p.Name);
       }
     if (s.items !== !0)
-      if (b && !b.dynamicItems)
-        b.items !== void 0 && (s.items = util_1$n.mergeEvaluated.items(a, b.items, s.items));
+      if (k && !k.dynamicItems)
+        k.items !== void 0 && (s.items = util_1$n.mergeEvaluated.items(a, k.items, s.items));
       else {
-        const w = a.var("items", (0, codegen_1$p._)`${g}.evaluated.items`);
-        s.items = util_1$n.mergeEvaluated.items(a, w, s.items, codegen_1$p.Name);
+        const b = a.var("items", (0, codegen_1$p._)`${v}.evaluated.items`);
+        s.items = util_1$n.mergeEvaluated.items(a, b, s.items, codegen_1$p.Name);
       }
   }
 }
@@ -3742,36 +3742,36 @@ const code_1$6 = code, codegen_1$j = codegen, util_1$l = util$9, error$f = {
       return;
     const h = i.length >= l.loopRequired;
     if (o.allErrors ? f() : d(), l.strictRequired) {
-      const _ = e.parentSchema.properties, { definedProperties: g } = e.it;
-      for (const v of i)
-        if ((_ == null ? void 0 : _[v]) === void 0 && !g.has(v)) {
-          const b = o.schemaEnv.baseId + o.errSchemaPath, w = `required property "${v}" is not defined at "${b}" (strictRequired)`;
-          (0, util_1$l.checkStrictMode)(o, w, o.opts.strictRequired);
+      const p = e.parentSchema.properties, { definedProperties: v } = e.it;
+      for (const g of i)
+        if ((p == null ? void 0 : p[g]) === void 0 && !v.has(g)) {
+          const k = o.schemaEnv.baseId + o.errSchemaPath, b = `required property "${g}" is not defined at "${k}" (strictRequired)`;
+          (0, util_1$l.checkStrictMode)(o, b, o.opts.strictRequired);
         }
     }
     function f() {
       if (h || s)
         e.block$data(codegen_1$j.nil, m);
       else
-        for (const _ of i)
-          (0, code_1$6.checkReportMissingProp)(e, _);
+        for (const p of i)
+          (0, code_1$6.checkReportMissingProp)(e, p);
     }
     function d() {
-      const _ = r.let("missing");
+      const p = r.let("missing");
       if (h || s) {
-        const g = r.let("valid", !0);
-        e.block$data(g, () => p(_, g)), e.ok(g);
+        const v = r.let("valid", !0);
+        e.block$data(v, () => _(p, v)), e.ok(v);
       } else
-        r.if((0, code_1$6.checkMissingProp)(e, i, _)), (0, code_1$6.reportMissingProp)(e, _), r.else();
+        r.if((0, code_1$6.checkMissingProp)(e, i, p)), (0, code_1$6.reportMissingProp)(e, p), r.else();
     }
     function m() {
-      r.forOf("prop", n, (_) => {
-        e.setParams({ missingProperty: _ }), r.if((0, code_1$6.noPropertyInData)(r, a, _, l.ownProperties), () => e.error());
+      r.forOf("prop", n, (p) => {
+        e.setParams({ missingProperty: p }), r.if((0, code_1$6.noPropertyInData)(r, a, p, l.ownProperties), () => e.error());
       });
     }
-    function p(_, g) {
-      e.setParams({ missingProperty: _ }), r.forOf(_, n, () => {
-        r.assign(g, (0, code_1$6.propertyInData)(r, a, _, l.ownProperties)), r.if((0, codegen_1$j.not)(g), () => {
+    function _(p, v) {
+      e.setParams({ missingProperty: p }), r.forOf(p, n, () => {
+        r.assign(v, (0, code_1$6.propertyInData)(r, a, p, l.ownProperties)), r.if((0, codegen_1$j.not)(v), () => {
           e.error(), r.break();
         });
       }, codegen_1$j.nil);
@@ -3821,24 +3821,24 @@ const dataType_1 = dataType, codegen_1$h = codegen, util_1$k = util$9, equal_1$2
     const h = r.let("valid"), f = s.items ? (0, dataType_1.getSchemaTypes)(s.items) : [];
     e.block$data(h, d, (0, codegen_1$h._)`${o} === false`), e.ok(h);
     function d() {
-      const g = r.let("i", (0, codegen_1$h._)`${i}.length`), v = r.let("j");
-      e.setParams({ i: g, j: v }), r.assign(h, !0), r.if((0, codegen_1$h._)`${g} > 1`, () => (m() ? p : _)(g, v));
+      const v = r.let("i", (0, codegen_1$h._)`${i}.length`), g = r.let("j");
+      e.setParams({ i: v, j: g }), r.assign(h, !0), r.if((0, codegen_1$h._)`${v} > 1`, () => (m() ? _ : p)(v, g));
     }
     function m() {
-      return f.length > 0 && !f.some((g) => g === "object" || g === "array");
+      return f.length > 0 && !f.some((v) => v === "object" || v === "array");
     }
-    function p(g, v) {
-      const b = r.name("item"), w = (0, dataType_1.checkDataTypes)(f, b, l.opts.strictNumbers, dataType_1.DataType.Wrong), k = r.const("indices", (0, codegen_1$h._)`{}`);
-      r.for((0, codegen_1$h._)`;${g}--;`, () => {
-        r.let(b, (0, codegen_1$h._)`${i}[${g}]`), r.if(w, (0, codegen_1$h._)`continue`), f.length > 1 && r.if((0, codegen_1$h._)`typeof ${b} == "string"`, (0, codegen_1$h._)`${b} += "_"`), r.if((0, codegen_1$h._)`typeof ${k}[${b}] == "number"`, () => {
-          r.assign(v, (0, codegen_1$h._)`${k}[${b}]`), e.error(), r.assign(h, !1).break();
-        }).code((0, codegen_1$h._)`${k}[${b}] = ${g}`);
+    function _(v, g) {
+      const k = r.name("item"), b = (0, dataType_1.checkDataTypes)(f, k, l.opts.strictNumbers, dataType_1.DataType.Wrong), w = r.const("indices", (0, codegen_1$h._)`{}`);
+      r.for((0, codegen_1$h._)`;${v}--;`, () => {
+        r.let(k, (0, codegen_1$h._)`${i}[${v}]`), r.if(b, (0, codegen_1$h._)`continue`), f.length > 1 && r.if((0, codegen_1$h._)`typeof ${k} == "string"`, (0, codegen_1$h._)`${k} += "_"`), r.if((0, codegen_1$h._)`typeof ${w}[${k}] == "number"`, () => {
+          r.assign(g, (0, codegen_1$h._)`${w}[${k}]`), e.error(), r.assign(h, !1).break();
+        }).code((0, codegen_1$h._)`${w}[${k}] = ${v}`);
       });
     }
-    function _(g, v) {
-      const b = (0, util_1$k.useFunc)(r, equal_1$2.default), w = r.name("outer");
-      r.label(w).for((0, codegen_1$h._)`;${g}--;`, () => r.for((0, codegen_1$h._)`${v} = ${g}; ${v}--;`, () => r.if((0, codegen_1$h._)`${b}(${i}[${g}], ${i}[${v}])`, () => {
-        e.error(), r.assign(h, !1).break(w);
+    function p(v, g) {
+      const k = (0, util_1$k.useFunc)(r, equal_1$2.default), b = r.name("outer");
+      r.label(b).for((0, codegen_1$h._)`;${v}--;`, () => r.for((0, codegen_1$h._)`${g} = ${v}; ${g}--;`, () => r.if((0, codegen_1$h._)`${k}(${i}[${v}], ${i}[${g}])`, () => {
+        e.error(), r.assign(h, !1).break(b);
       })));
     }
   }
@@ -3882,16 +3882,16 @@ const codegen_1$f = codegen, util_1$i = util$9, equal_1 = equal$1, error$b = {
     else {
       if (!Array.isArray(a))
         throw new Error("ajv implementation error");
-      const _ = r.const("vSchema", s);
-      d = (0, codegen_1$f.or)(...a.map((g, v) => p(_, v)));
+      const p = r.const("vSchema", s);
+      d = (0, codegen_1$f.or)(...a.map((v, g) => _(p, g)));
     }
     e.pass(d);
     function m() {
-      r.assign(d, !1), r.forOf("v", s, (_) => r.if((0, codegen_1$f._)`${f()}(${i}, ${_})`, () => r.assign(d, !0).break()));
+      r.assign(d, !1), r.forOf("v", s, (p) => r.if((0, codegen_1$f._)`${f()}(${i}, ${p})`, () => r.assign(d, !0).break()));
     }
-    function p(_, g) {
-      const v = a[g];
-      return typeof v == "object" && v !== null ? (0, codegen_1$f._)`${f()}(${i}, ${_}[${g}])` : (0, codegen_1$f._)`${i} === ${v}`;
+    function _(p, v) {
+      const g = a[v];
+      return typeof g == "object" && g !== null ? (0, codegen_1$f._)`${f()}(${i}, ${p}[${v}])` : (0, codegen_1$f._)`${i} === ${g}`;
     }
   }
 };
@@ -3975,18 +3975,18 @@ function validateTuple(e, r, i = e.schema) {
   const { gen: n, parentSchema: a, data: s, keyword: o, it: l } = e;
   d(a), l.opts.unevaluated && i.length && l.items !== !0 && (l.items = util_1$g.mergeEvaluated.items(n, i.length, l.items));
   const h = n.name("valid"), f = n.const("len", (0, codegen_1$d._)`${s}.length`);
-  i.forEach((m, p) => {
-    (0, util_1$g.alwaysValidSchema)(l, m) || (n.if((0, codegen_1$d._)`${f} > ${p}`, () => e.subschema({
+  i.forEach((m, _) => {
+    (0, util_1$g.alwaysValidSchema)(l, m) || (n.if((0, codegen_1$d._)`${f} > ${_}`, () => e.subschema({
       keyword: o,
-      schemaProp: p,
-      dataProp: p
+      schemaProp: _,
+      dataProp: _
     }, h)), e.ok(h));
   });
   function d(m) {
-    const { opts: p, errSchemaPath: _ } = l, g = i.length, v = g === m.minItems && (g === m.maxItems || m[r] === !1);
-    if (p.strictTuples && !v) {
-      const b = `"${o}" is ${g}-tuple, but minItems or maxItems/${r} are not specified or different at path "${_}"`;
-      (0, util_1$g.checkStrictMode)(l, b, p.strictTuples);
+    const { opts: _, errSchemaPath: p } = l, v = i.length, g = v === m.minItems && (v === m.maxItems || m[r] === !1);
+    if (_.strictTuples && !g) {
+      const k = `"${o}" is ${v}-tuple, but minItems or maxItems/${r} are not specified or different at path "${p}"`;
+      (0, util_1$g.checkStrictMode)(l, k, _.strictTuples);
     }
   }
 }
@@ -4045,29 +4045,29 @@ const codegen_1$b = codegen, util_1$e = util$9, error$8 = {
       return;
     }
     if ((0, util_1$e.alwaysValidSchema)(s, i)) {
-      let v = (0, codegen_1$b._)`${d} >= ${o}`;
-      l !== void 0 && (v = (0, codegen_1$b._)`${v} && ${d} <= ${l}`), e.pass(v);
+      let g = (0, codegen_1$b._)`${d} >= ${o}`;
+      l !== void 0 && (g = (0, codegen_1$b._)`${g} && ${d} <= ${l}`), e.pass(g);
       return;
     }
     s.items = !0;
     const m = r.name("valid");
-    l === void 0 && o === 1 ? _(m, () => r.if(m, () => r.break())) : o === 0 ? (r.let(m, !0), l !== void 0 && r.if((0, codegen_1$b._)`${a}.length > 0`, p)) : (r.let(m, !1), p()), e.result(m, () => e.reset());
-    function p() {
-      const v = r.name("_valid"), b = r.let("count", 0);
-      _(v, () => r.if(v, () => g(b)));
+    l === void 0 && o === 1 ? p(m, () => r.if(m, () => r.break())) : o === 0 ? (r.let(m, !0), l !== void 0 && r.if((0, codegen_1$b._)`${a}.length > 0`, _)) : (r.let(m, !1), _()), e.result(m, () => e.reset());
+    function _() {
+      const g = r.name("_valid"), k = r.let("count", 0);
+      p(g, () => r.if(g, () => v(k)));
     }
-    function _(v, b) {
-      r.forRange("i", 0, d, (w) => {
+    function p(g, k) {
+      r.forRange("i", 0, d, (b) => {
         e.subschema({
           keyword: "contains",
-          dataProp: w,
+          dataProp: b,
           dataPropType: util_1$e.Type.Num,
           compositeRule: !0
-        }, v), b();
+        }, g), k();
       });
     }
-    function g(v) {
-      r.code((0, codegen_1$b._)`${v}++`), l === void 0 ? r.if((0, codegen_1$b._)`${v} >= ${o}`, () => r.assign(m, !0).break()) : (r.if((0, codegen_1$b._)`${v} > ${l}`, () => r.assign(m, !1).break()), o === 1 ? r.assign(m, !0) : r.if((0, codegen_1$b._)`${v} >= ${o}`, () => r.assign(m, !0)));
+    function v(g) {
+      r.code((0, codegen_1$b._)`${g}++`), l === void 0 ? r.if((0, codegen_1$b._)`${g} >= ${o}`, () => r.assign(m, !0).break()) : (r.if((0, codegen_1$b._)`${g} > ${l}`, () => r.assign(m, !1).break()), o === 1 ? r.assign(m, !0) : r.if((0, codegen_1$b._)`${g} >= ${o}`, () => r.assign(m, !0)));
     }
   }
 };
@@ -4102,44 +4102,44 @@ var dependencies = {};
     for (const m in h) {
       if (m === "__proto__")
         continue;
-      const p = Array.isArray(h[m]) ? f : d;
-      p[m] = h[m];
+      const _ = Array.isArray(h[m]) ? f : d;
+      _[m] = h[m];
     }
     return [f, d];
   }
   function o(h, f = h.schema) {
-    const { gen: d, data: m, it: p } = h;
+    const { gen: d, data: m, it: _ } = h;
     if (Object.keys(f).length === 0)
       return;
-    const _ = d.let("missing");
-    for (const g in f) {
-      const v = f[g];
-      if (v.length === 0)
+    const p = d.let("missing");
+    for (const v in f) {
+      const g = f[v];
+      if (g.length === 0)
         continue;
-      const b = (0, n.propertyInData)(d, m, g, p.opts.ownProperties);
+      const k = (0, n.propertyInData)(d, m, v, _.opts.ownProperties);
       h.setParams({
-        property: g,
-        depsCount: v.length,
-        deps: v.join(", ")
-      }), p.allErrors ? d.if(b, () => {
-        for (const w of v)
-          (0, n.checkReportMissingProp)(h, w);
-      }) : (d.if((0, r._)`${b} && (${(0, n.checkMissingProp)(h, v, _)})`), (0, n.reportMissingProp)(h, _), d.else());
+        property: v,
+        depsCount: g.length,
+        deps: g.join(", ")
+      }), _.allErrors ? d.if(k, () => {
+        for (const b of g)
+          (0, n.checkReportMissingProp)(h, b);
+      }) : (d.if((0, r._)`${k} && (${(0, n.checkMissingProp)(h, g, p)})`), (0, n.reportMissingProp)(h, p), d.else());
     }
   }
   e.validatePropertyDeps = o;
   function l(h, f = h.schema) {
-    const { gen: d, data: m, keyword: p, it: _ } = h, g = d.name("valid");
-    for (const v in f)
-      (0, i.alwaysValidSchema)(_, f[v]) || (d.if(
-        (0, n.propertyInData)(d, m, v, _.opts.ownProperties),
+    const { gen: d, data: m, keyword: _, it: p } = h, v = d.name("valid");
+    for (const g in f)
+      (0, i.alwaysValidSchema)(p, f[g]) || (d.if(
+        (0, n.propertyInData)(d, m, g, p.opts.ownProperties),
         () => {
-          const b = h.subschema({ keyword: p, schemaProp: v }, g);
-          h.mergeValidEvaluated(b, g);
+          const k = h.subschema({ keyword: _, schemaProp: g }, v);
+          h.mergeValidEvaluated(k, v);
         },
-        () => d.var(g, !0)
+        () => d.var(v, !0)
         // TODO var
-      ), h.ok(g));
+      ), h.ok(v));
   }
   e.validateSchemaDeps = l, e.default = a;
 })(dependencies);
@@ -4194,48 +4194,48 @@ const code_1$3 = code, codegen_1$9 = codegen, names_1$3 = names$z, util_1$c = ut
     const f = (0, code_1$3.allSchemaProperties)(n.properties), d = (0, code_1$3.allSchemaProperties)(n.patternProperties);
     m(), e.ok((0, codegen_1$9._)`${s} === ${names_1$3.default.errors}`);
     function m() {
-      r.forIn("key", a, (b) => {
-        !f.length && !d.length ? g(b) : r.if(p(b), () => g(b));
+      r.forIn("key", a, (k) => {
+        !f.length && !d.length ? v(k) : r.if(_(k), () => v(k));
       });
     }
-    function p(b) {
-      let w;
+    function _(k) {
+      let b;
       if (f.length > 8) {
-        const k = (0, util_1$c.schemaRefOrVal)(o, n.properties, "properties");
-        w = (0, code_1$3.isOwnProperty)(r, k, b);
-      } else f.length ? w = (0, codegen_1$9.or)(...f.map((k) => (0, codegen_1$9._)`${b} === ${k}`)) : w = codegen_1$9.nil;
-      return d.length && (w = (0, codegen_1$9.or)(w, ...d.map((k) => (0, codegen_1$9._)`${(0, code_1$3.usePattern)(e, k)}.test(${b})`))), (0, codegen_1$9.not)(w);
+        const w = (0, util_1$c.schemaRefOrVal)(o, n.properties, "properties");
+        b = (0, code_1$3.isOwnProperty)(r, w, k);
+      } else f.length ? b = (0, codegen_1$9.or)(...f.map((w) => (0, codegen_1$9._)`${k} === ${w}`)) : b = codegen_1$9.nil;
+      return d.length && (b = (0, codegen_1$9.or)(b, ...d.map((w) => (0, codegen_1$9._)`${(0, code_1$3.usePattern)(e, w)}.test(${k})`))), (0, codegen_1$9.not)(b);
     }
-    function _(b) {
-      r.code((0, codegen_1$9._)`delete ${a}[${b}]`);
+    function p(k) {
+      r.code((0, codegen_1$9._)`delete ${a}[${k}]`);
     }
-    function g(b) {
+    function v(k) {
       if (h.removeAdditional === "all" || h.removeAdditional && i === !1) {
-        _(b);
+        p(k);
         return;
       }
       if (i === !1) {
-        e.setParams({ additionalProperty: b }), e.error(), l || r.break();
+        e.setParams({ additionalProperty: k }), e.error(), l || r.break();
         return;
       }
       if (typeof i == "object" && !(0, util_1$c.alwaysValidSchema)(o, i)) {
-        const w = r.name("valid");
-        h.removeAdditional === "failing" ? (v(b, w, !1), r.if((0, codegen_1$9.not)(w), () => {
-          e.reset(), _(b);
-        })) : (v(b, w), l || r.if((0, codegen_1$9.not)(w), () => r.break()));
+        const b = r.name("valid");
+        h.removeAdditional === "failing" ? (g(k, b, !1), r.if((0, codegen_1$9.not)(b), () => {
+          e.reset(), p(k);
+        })) : (g(k, b), l || r.if((0, codegen_1$9.not)(b), () => r.break()));
       }
     }
-    function v(b, w, k) {
+    function g(k, b, w) {
       const M = {
         keyword: "additionalProperties",
-        dataProp: b,
+        dataProp: k,
         dataPropType: util_1$c.Type.Str
       };
-      k === !1 && Object.assign(M, {
+      w === !1 && Object.assign(M, {
         compositeRule: !0,
         createErrors: !1,
         allErrors: !1
-      }), e.subschema(M, w);
+      }), e.subschema(M, b);
     }
   }
 };
@@ -4279,31 +4279,31 @@ const code_1$1 = code, codegen_1$8 = codegen, util_1$a = util$9, util_2 = util$9
   type: "object",
   schemaType: "object",
   code(e) {
-    const { gen: r, schema: i, data: n, parentSchema: a, it: s } = e, { opts: o } = s, l = (0, code_1$1.allSchemaProperties)(i), h = l.filter((v) => (0, util_1$a.alwaysValidSchema)(s, i[v]));
+    const { gen: r, schema: i, data: n, parentSchema: a, it: s } = e, { opts: o } = s, l = (0, code_1$1.allSchemaProperties)(i), h = l.filter((g) => (0, util_1$a.alwaysValidSchema)(s, i[g]));
     if (l.length === 0 || h.length === l.length && (!s.opts.unevaluated || s.props === !0))
       return;
     const f = o.strictSchema && !o.allowMatchingProperties && a.properties, d = r.name("valid");
     s.props !== !0 && !(s.props instanceof codegen_1$8.Name) && (s.props = (0, util_2.evaluatedPropsToName)(r, s.props));
     const { props: m } = s;
-    p();
-    function p() {
-      for (const v of l)
-        f && _(v), s.allErrors ? g(v) : (r.var(d, !0), g(v), r.if(d));
+    _();
+    function _() {
+      for (const g of l)
+        f && p(g), s.allErrors ? v(g) : (r.var(d, !0), v(g), r.if(d));
     }
-    function _(v) {
-      for (const b in f)
-        new RegExp(v).test(b) && (0, util_1$a.checkStrictMode)(s, `property ${b} matches pattern ${v} (use allowMatchingProperties)`);
+    function p(g) {
+      for (const k in f)
+        new RegExp(g).test(k) && (0, util_1$a.checkStrictMode)(s, `property ${k} matches pattern ${g} (use allowMatchingProperties)`);
     }
-    function g(v) {
-      r.forIn("key", n, (b) => {
-        r.if((0, codegen_1$8._)`${(0, code_1$1.usePattern)(e, v)}.test(${b})`, () => {
-          const w = h.includes(v);
-          w || e.subschema({
+    function v(g) {
+      r.forIn("key", n, (k) => {
+        r.if((0, codegen_1$8._)`${(0, code_1$1.usePattern)(e, g)}.test(${k})`, () => {
+          const b = h.includes(g);
+          b || e.subschema({
             keyword: "patternProperties",
-            schemaProp: v,
-            dataProp: b,
+            schemaProp: g,
+            dataProp: k,
             dataPropType: util_2.Type.Str
-          }, d), s.opts.unevaluated && m !== !0 ? r.assign((0, codegen_1$8._)`${m}[${b}]`, !0) : !w && !s.allErrors && r.if((0, codegen_1$8.not)(d), () => r.break());
+          }, d), s.opts.unevaluated && m !== !0 ? r.assign((0, codegen_1$8._)`${m}[${k}]`, !0) : !b && !s.allErrors && r.if((0, codegen_1$8.not)(d), () => r.break());
         });
       });
     }
@@ -4363,13 +4363,13 @@ const codegen_1$7 = codegen, util_1$8 = util$9, error$5 = {
     e.setParams({ passing: l }), r.block(f), e.result(o, () => e.reset(), () => e.error(!0));
     function f() {
       s.forEach((d, m) => {
-        let p;
-        (0, util_1$8.alwaysValidSchema)(a, d) ? r.var(h, !0) : p = e.subschema({
+        let _;
+        (0, util_1$8.alwaysValidSchema)(a, d) ? r.var(h, !0) : _ = e.subschema({
           keyword: "oneOf",
           schemaProp: m,
           compositeRule: !0
         }, h), m > 0 && r.if((0, codegen_1$7._)`${h} && ${o}`).assign(o, !1).assign(l, (0, codegen_1$7._)`[${l}, ${m}]`).else(), r.if(h, () => {
-          r.assign(o, !0), r.assign(l, m), p && e.mergeEvaluated(p, codegen_1$7.Name);
+          r.assign(o, !0), r.assign(l, m), _ && e.mergeEvaluated(_, codegen_1$7.Name);
         });
       });
     }
@@ -4428,8 +4428,8 @@ const codegen_1$6 = codegen, util_1$6 = util$9, error$4 = {
     }
     function f(d, m) {
       return () => {
-        const p = e.subschema({ keyword: d }, l);
-        r.assign(o, l), e.mergeValidEvaluated(p, o), m ? r.assign(m, (0, codegen_1$6._)`${d}`) : e.setParams({ ifClause: d });
+        const _ = e.subschema({ keyword: d }, l);
+        r.assign(o, l), e.mergeValidEvaluated(_, o), m ? r.assign(m, (0, codegen_1$6._)`${d}`) : e.setParams({ ifClause: d });
       };
     }
   }
@@ -4601,22 +4601,22 @@ const codegen_1$3 = codegen, util_1$2 = util$9, names_1 = names$z, error$3 = {
         return;
       }
       if (!(0, util_1$2.alwaysValidSchema)(s, i)) {
-        const p = r.name("valid");
+        const _ = r.name("valid");
         e.subschema({
           keyword: "unevaluatedProperties",
           dataProp: m,
           dataPropType: util_1$2.Type.Str
-        }, p), o || r.if((0, codegen_1$3.not)(p), () => r.break());
+        }, _), o || r.if((0, codegen_1$3.not)(_), () => r.break());
       }
     }
-    function f(m, p) {
-      return (0, codegen_1$3._)`!${m} || !${m}[${p}]`;
+    function f(m, _) {
+      return (0, codegen_1$3._)`!${m} || !${m}[${_}]`;
     }
-    function d(m, p) {
-      const _ = [];
-      for (const g in m)
-        m[g] === !0 && _.push((0, codegen_1$3._)`${p} !== ${g}`);
-      return (0, codegen_1$3.and)(..._);
+    function d(m, _) {
+      const p = [];
+      for (const v in m)
+        m[v] === !0 && p.push((0, codegen_1$3._)`${_} !== ${v}`);
+      return (0, codegen_1$3.and)(...p);
     }
   }
 };
@@ -4669,52 +4669,52 @@ const codegen_1$1 = codegen, error$1 = {
     const { gen: i, data: n, $data: a, schema: s, schemaCode: o, it: l } = e, { opts: h, errSchemaPath: f, schemaEnv: d, self: m } = l;
     if (!h.validateFormats)
       return;
-    a ? p() : _();
-    function p() {
-      const g = i.scopeValue("formats", {
+    a ? _() : p();
+    function _() {
+      const v = i.scopeValue("formats", {
         ref: m.formats,
         code: h.code.formats
-      }), v = i.const("fDef", (0, codegen_1$1._)`${g}[${o}]`), b = i.let("fType"), w = i.let("format");
-      i.if((0, codegen_1$1._)`typeof ${v} == "object" && !(${v} instanceof RegExp)`, () => i.assign(b, (0, codegen_1$1._)`${v}.type || "string"`).assign(w, (0, codegen_1$1._)`${v}.validate`), () => i.assign(b, (0, codegen_1$1._)`"string"`).assign(w, v)), e.fail$data((0, codegen_1$1.or)(k(), M()));
-      function k() {
-        return h.strictSchema === !1 ? codegen_1$1.nil : (0, codegen_1$1._)`${o} && !${w}`;
+      }), g = i.const("fDef", (0, codegen_1$1._)`${v}[${o}]`), k = i.let("fType"), b = i.let("format");
+      i.if((0, codegen_1$1._)`typeof ${g} == "object" && !(${g} instanceof RegExp)`, () => i.assign(k, (0, codegen_1$1._)`${g}.type || "string"`).assign(b, (0, codegen_1$1._)`${g}.validate`), () => i.assign(k, (0, codegen_1$1._)`"string"`).assign(b, g)), e.fail$data((0, codegen_1$1.or)(w(), M()));
+      function w() {
+        return h.strictSchema === !1 ? codegen_1$1.nil : (0, codegen_1$1._)`${o} && !${b}`;
       }
       function M() {
-        const N = d.$async ? (0, codegen_1$1._)`(${v}.async ? await ${w}(${n}) : ${w}(${n}))` : (0, codegen_1$1._)`${w}(${n})`, P = (0, codegen_1$1._)`(typeof ${w} == "function" ? ${N} : ${w}.test(${n}))`;
-        return (0, codegen_1$1._)`${w} && ${w} !== true && ${b} === ${r} && !${P}`;
+        const C = d.$async ? (0, codegen_1$1._)`(${g}.async ? await ${b}(${n}) : ${b}(${n}))` : (0, codegen_1$1._)`${b}(${n})`, T = (0, codegen_1$1._)`(typeof ${b} == "function" ? ${C} : ${b}.test(${n}))`;
+        return (0, codegen_1$1._)`${b} && ${b} !== true && ${k} === ${r} && !${T}`;
       }
     }
-    function _() {
-      const g = m.formats[s];
-      if (!g) {
-        k();
+    function p() {
+      const v = m.formats[s];
+      if (!v) {
+        w();
         return;
       }
-      if (g === !0)
+      if (v === !0)
         return;
-      const [v, b, w] = M(g);
-      v === r && e.pass(N());
-      function k() {
+      const [g, k, b] = M(v);
+      g === r && e.pass(C());
+      function w() {
         if (h.strictSchema === !1) {
-          m.logger.warn(P());
+          m.logger.warn(T());
           return;
         }
-        throw new Error(P());
-        function P() {
+        throw new Error(T());
+        function T() {
           return `unknown format "${s}" ignored in schema at path "${f}"`;
         }
       }
-      function M(P) {
-        const T = P instanceof RegExp ? (0, codegen_1$1.regexpCode)(P) : h.code.formats ? (0, codegen_1$1._)`${h.code.formats}${(0, codegen_1$1.getProperty)(s)}` : void 0, C = i.scopeValue("formats", { key: s, ref: P, code: T });
-        return typeof P == "object" && !(P instanceof RegExp) ? [P.type || "string", P.validate, (0, codegen_1$1._)`${C}.validate`] : ["string", P, C];
+      function M(T) {
+        const P = T instanceof RegExp ? (0, codegen_1$1.regexpCode)(T) : h.code.formats ? (0, codegen_1$1._)`${h.code.formats}${(0, codegen_1$1.getProperty)(s)}` : void 0, N = i.scopeValue("formats", { key: s, ref: T, code: P });
+        return typeof T == "object" && !(T instanceof RegExp) ? [T.type || "string", T.validate, (0, codegen_1$1._)`${N}.validate`] : ["string", T, N];
       }
-      function N() {
-        if (typeof g == "object" && !(g instanceof RegExp) && g.async) {
+      function C() {
+        if (typeof v == "object" && !(v instanceof RegExp) && v.async) {
           if (!d.$async)
             throw new Error("async format in sync schema");
-          return (0, codegen_1$1._)`await ${w}(${n})`;
+          return (0, codegen_1$1._)`await ${b}(${n})`;
         }
-        return typeof b == "function" ? (0, codegen_1$1._)`${w}(${n})` : (0, codegen_1$1._)`${w}.test(${n})`;
+        return typeof k == "function" ? (0, codegen_1$1._)`${b}(${n})` : (0, codegen_1$1._)`${b}.test(${n})`;
       }
     }
   }
@@ -4783,51 +4783,51 @@ const codegen_1 = codegen, types_1 = types, compile_1 = compile, ref_error_1 = r
     const h = r.let("valid", !1), f = r.const("tag", (0, codegen_1._)`${i}${(0, codegen_1.getProperty)(l)}`);
     r.if((0, codegen_1._)`typeof ${f} == "string"`, () => d(), () => e.error(!1, { discrError: types_1.DiscrError.Tag, tag: f, tagName: l })), e.ok(h);
     function d() {
-      const _ = p();
+      const p = _();
       r.if(!1);
-      for (const g in _)
-        r.elseIf((0, codegen_1._)`${f} === ${g}`), r.assign(h, m(_[g]));
+      for (const v in p)
+        r.elseIf((0, codegen_1._)`${f} === ${v}`), r.assign(h, m(p[v]));
       r.else(), e.error(!1, { discrError: types_1.DiscrError.Mapping, tag: f, tagName: l }), r.endIf();
     }
-    function m(_) {
-      const g = r.name("valid"), v = e.subschema({ keyword: "oneOf", schemaProp: _ }, g);
-      return e.mergeEvaluated(v, codegen_1.Name), g;
+    function m(p) {
+      const v = r.name("valid"), g = e.subschema({ keyword: "oneOf", schemaProp: p }, v);
+      return e.mergeEvaluated(g, codegen_1.Name), v;
     }
-    function p() {
-      var _;
-      const g = {}, v = w(a);
-      let b = !0;
-      for (let N = 0; N < o.length; N++) {
-        let P = o[N];
-        if (P != null && P.$ref && !(0, util_1.schemaHasRulesButRef)(P, s.self.RULES)) {
-          const C = P.$ref;
-          if (P = compile_1.resolveRef.call(s.self, s.schemaEnv.root, s.baseId, C), P instanceof compile_1.SchemaEnv && (P = P.schema), P === void 0)
-            throw new ref_error_1.default(s.opts.uriResolver, s.baseId, C);
+    function _() {
+      var p;
+      const v = {}, g = b(a);
+      let k = !0;
+      for (let C = 0; C < o.length; C++) {
+        let T = o[C];
+        if (T != null && T.$ref && !(0, util_1.schemaHasRulesButRef)(T, s.self.RULES)) {
+          const N = T.$ref;
+          if (T = compile_1.resolveRef.call(s.self, s.schemaEnv.root, s.baseId, N), T instanceof compile_1.SchemaEnv && (T = T.schema), T === void 0)
+            throw new ref_error_1.default(s.opts.uriResolver, s.baseId, N);
         }
-        const T = (_ = P == null ? void 0 : P.properties) === null || _ === void 0 ? void 0 : _[l];
-        if (typeof T != "object")
+        const P = (p = T == null ? void 0 : T.properties) === null || p === void 0 ? void 0 : p[l];
+        if (typeof P != "object")
           throw new Error(`discriminator: oneOf subschemas (or referenced schemas) must have "properties/${l}"`);
-        b = b && (v || w(P)), k(T, N);
+        k = k && (g || b(T)), w(P, C);
       }
-      if (!b)
+      if (!k)
         throw new Error(`discriminator: "${l}" must be required`);
-      return g;
-      function w({ required: N }) {
-        return Array.isArray(N) && N.includes(l);
+      return v;
+      function b({ required: C }) {
+        return Array.isArray(C) && C.includes(l);
       }
-      function k(N, P) {
-        if (N.const)
-          M(N.const, P);
-        else if (N.enum)
-          for (const T of N.enum)
-            M(T, P);
+      function w(C, T) {
+        if (C.const)
+          M(C.const, T);
+        else if (C.enum)
+          for (const P of C.enum)
+            M(P, T);
         else
           throw new Error(`discriminator: "properties/${l}" must have "const" or "enum"`);
       }
-      function M(N, P) {
-        if (typeof N != "string" || N in g)
+      function M(C, T) {
+        if (typeof C != "string" || C in v)
           throw new Error(`discriminator: "${l}" values must be unique strings`);
-        g[N] = P;
+        v[C] = T;
       }
     }
   }
@@ -5303,21 +5303,21 @@ jsonSchema202012.default = addMetaSchema2020;
   Object.defineProperty(r, "__esModule", { value: !0 }), r.MissingRefError = r.ValidationError = r.CodeGen = r.Name = r.nil = r.stringify = r.str = r._ = r.KeywordCxt = r.Ajv2020 = void 0;
   const i = core$5, n = draft2020, a = discriminator, s = jsonSchema202012, o = "https://json-schema.org/draft/2020-12/schema";
   class l extends i.default {
-    constructor(_ = {}) {
+    constructor(p = {}) {
       super({
-        ..._,
+        ...p,
         dynamicRef: !0,
         next: !0,
         unevaluated: !0
       });
     }
     _addVocabularies() {
-      super._addVocabularies(), n.default.forEach((_) => this.addVocabulary(_)), this.opts.discriminator && this.addKeyword(a.default);
+      super._addVocabularies(), n.default.forEach((p) => this.addVocabulary(p)), this.opts.discriminator && this.addKeyword(a.default);
     }
     _addDefaultMetaSchema() {
       super._addDefaultMetaSchema();
-      const { $data: _, meta: g } = this.opts;
-      g && (s.default.call(this, _), this.refs["http://json-schema.org/schema"] = o);
+      const { $data: p, meta: v } = this.opts;
+      v && (s.default.call(this, p), this.refs["http://json-schema.org/schema"] = o);
     }
     defaultMeta() {
       return this.opts.defaultMeta = super.defaultMeta() || (this.getSchema(o) ? o : void 0);
@@ -5354,20 +5354,20 @@ jsonSchema202012.default = addMetaSchema2020;
 var _2020Exports = _2020.exports, dist = { exports: {} }, formats = {};
 (function(e) {
   Object.defineProperty(e, "__esModule", { value: !0 }), e.formatNames = e.fastFormats = e.fullFormats = void 0;
-  function r(Pe, Ke) {
-    return { validate: Pe, compare: Ke };
+  function r(Pe, Je) {
+    return { validate: Pe, compare: Je };
   }
   e.fullFormats = {
     // date: http://tools.ietf.org/html/rfc3339#section-5.6
     date: r(s, o),
     // date-time: http://tools.ietf.org/html/rfc3339#section-5.6
     time: r(h(!0), f),
-    "date-time": r(p(!0), _),
+    "date-time": r(_(!0), p),
     "iso-time": r(h(), d),
-    "iso-date-time": r(p(), g),
+    "iso-date-time": r(_(), v),
     // duration: https://tools.ietf.org/html/rfc3339#appendix-A
     duration: /^P(?!$)((\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?|(\d+W)?)$/,
-    uri: w,
+    uri: b,
     "uri-reference": /^(?:[a-z][a-z0-9+\-.]*:)?(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'"()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*)?(?:\?(?:[a-z0-9\-._~!$&'"()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'"()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i,
     // uri-template: https://tools.ietf.org/html/rfc6570
     "uri-template": /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i,
@@ -5379,7 +5379,7 @@ var _2020Exports = _2020.exports, dist = { exports: {} }, formats = {};
     // optimized https://www.safaribooksonline.com/library/view/regular-expressions-cookbook/9780596802837/ch07s16.html
     ipv4: /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/,
     ipv6: /^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))$/i,
-    regex: Je,
+    regex: Ke,
     // uuid: http://tools.ietf.org/html/rfc4122
     uuid: /^(?:urn:uuid:)?[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i,
     // JSON-pointer: https://tools.ietf.org/html/rfc6901
@@ -5392,9 +5392,9 @@ var _2020Exports = _2020.exports, dist = { exports: {} }, formats = {};
     // byte: https://github.com/miguelmota/is-base64
     byte: M,
     // signed 32 bit integer
-    int32: { type: "number", validate: T },
+    int32: { type: "number", validate: P },
     // signed 64 bit integer
-    int64: { type: "number", validate: C },
+    int64: { type: "number", validate: N },
     // C-type float
     float: { type: "number", validate: X },
     // C-type double
@@ -5407,9 +5407,9 @@ var _2020Exports = _2020.exports, dist = { exports: {} }, formats = {};
     ...e.fullFormats,
     date: r(/^\d\d\d\d-[0-1]\d-[0-3]\d$/, o),
     time: r(/^(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)$/i, f),
-    "date-time": r(/^\d\d\d\d-[0-1]\d-[0-3]\dt(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)$/i, _),
+    "date-time": r(/^\d\d\d\d-[0-1]\d-[0-3]\dt(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)$/i, p),
     "iso-time": r(/^(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)?$/i, d),
-    "iso-date-time": r(/^\d\d\d\d-[0-1]\d-[0-3]\d[t\s](?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)?$/i, g),
+    "iso-date-time": r(/^\d\d\d\d-[0-1]\d-[0-3]\d[t\s](?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)?$/i, v),
     // uri: https://github.com/mafintosh/is-my-json-valid/blob/master/formats.js
     uri: /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/)?[^\s]*$/i,
     "uri-reference": /^(?:(?:[a-z][a-z0-9+\-.]*:)?\/?\/)?(?:[^\\\s#][^\s#]*)?(?:#[^\\\s]*)?$/i,
@@ -5423,15 +5423,15 @@ var _2020Exports = _2020.exports, dist = { exports: {} }, formats = {};
   }
   const n = /^(\d\d\d\d)-(\d\d)-(\d\d)$/, a = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   function s(Pe) {
-    const Ke = n.exec(Pe);
-    if (!Ke)
+    const Je = n.exec(Pe);
+    if (!Je)
       return !1;
-    const Wt = +Ke[1], ee = +Ke[2], We = +Ke[3];
+    const Wt = +Je[1], ee = +Je[2], We = +Je[3];
     return ee >= 1 && ee <= 12 && We >= 1 && We <= (ee === 2 && i(Wt) ? 29 : a[ee]);
   }
-  function o(Pe, Ke) {
-    if (Pe && Ke)
-      return Pe > Ke ? 1 : Pe < Ke ? -1 : 0;
+  function o(Pe, Je) {
+    if (Pe && Je)
+      return Pe > Je ? 1 : Pe < Je ? -1 : 0;
   }
   const l = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)?$/i;
   function h(Pe) {
@@ -5448,63 +5448,63 @@ var _2020Exports = _2020.exports, dist = { exports: {} }, formats = {};
       return (Ci === 23 || Ci === -1) && (Ri === 59 || Ri === -1) && Xt < 61;
     };
   }
-  function f(Pe, Ke) {
-    if (!(Pe && Ke))
+  function f(Pe, Je) {
+    if (!(Pe && Je))
       return;
-    const Wt = (/* @__PURE__ */ new Date("2020-01-01T" + Pe)).valueOf(), ee = (/* @__PURE__ */ new Date("2020-01-01T" + Ke)).valueOf();
+    const Wt = (/* @__PURE__ */ new Date("2020-01-01T" + Pe)).valueOf(), ee = (/* @__PURE__ */ new Date("2020-01-01T" + Je)).valueOf();
     if (Wt && ee)
       return Wt - ee;
   }
-  function d(Pe, Ke) {
-    if (!(Pe && Ke))
+  function d(Pe, Je) {
+    if (!(Pe && Je))
       return;
-    const Wt = l.exec(Pe), ee = l.exec(Ke);
+    const Wt = l.exec(Pe), ee = l.exec(Je);
     if (Wt && ee)
-      return Pe = Wt[1] + Wt[2] + Wt[3], Ke = ee[1] + ee[2] + ee[3], Pe > Ke ? 1 : Pe < Ke ? -1 : 0;
+      return Pe = Wt[1] + Wt[2] + Wt[3], Je = ee[1] + ee[2] + ee[3], Pe > Je ? 1 : Pe < Je ? -1 : 0;
   }
   const m = /t|\s/i;
-  function p(Pe) {
-    const Ke = h(Pe);
+  function _(Pe) {
+    const Je = h(Pe);
     return function(ee) {
       const We = ee.split(m);
-      return We.length === 2 && s(We[0]) && Ke(We[1]);
+      return We.length === 2 && s(We[0]) && Je(We[1]);
     };
   }
-  function _(Pe, Ke) {
-    if (!(Pe && Ke))
+  function p(Pe, Je) {
+    if (!(Pe && Je))
       return;
-    const Wt = new Date(Pe).valueOf(), ee = new Date(Ke).valueOf();
+    const Wt = new Date(Pe).valueOf(), ee = new Date(Je).valueOf();
     if (Wt && ee)
       return Wt - ee;
   }
-  function g(Pe, Ke) {
-    if (!(Pe && Ke))
+  function v(Pe, Je) {
+    if (!(Pe && Je))
       return;
-    const [Wt, ee] = Pe.split(m), [We, st] = Ke.split(m), Xt = o(Wt, We);
+    const [Wt, ee] = Pe.split(m), [We, st] = Je.split(m), Xt = o(Wt, We);
     if (Xt !== void 0)
       return Xt || f(ee, st);
   }
-  const v = /\/|:/, b = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
-  function w(Pe) {
-    return v.test(Pe) && b.test(Pe);
+  const g = /\/|:/, k = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
+  function b(Pe) {
+    return g.test(Pe) && k.test(Pe);
   }
-  const k = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/gm;
+  const w = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/gm;
   function M(Pe) {
-    return k.lastIndex = 0, k.test(Pe);
+    return w.lastIndex = 0, w.test(Pe);
   }
-  const N = -2147483648, P = 2 ** 31 - 1;
-  function T(Pe) {
-    return Number.isInteger(Pe) && Pe <= P && Pe >= N;
+  const C = -2147483648, T = 2 ** 31 - 1;
+  function P(Pe) {
+    return Number.isInteger(Pe) && Pe <= T && Pe >= C;
   }
-  function C(Pe) {
+  function N(Pe) {
     return Number.isInteger(Pe);
   }
   function X() {
     return !0;
   }
-  const _e = /[^\\]\\Z/;
-  function Je(Pe) {
-    if (_e.test(Pe))
+  const fe = /[^\\]\\Z/;
+  function Ke(Pe) {
+    if (fe.test(Pe))
       return !1;
     try {
       return new RegExp(Pe), !0;
@@ -5770,13 +5770,13 @@ const $schema = "http://json-schema.org/draft-07/schema#", $id = "http://json-sc
   const i = core$5, n = draft7, a = discriminator, s = require$$3, o = ["/properties"], l = "http://json-schema.org/draft-07/schema";
   class h extends i.default {
     _addVocabularies() {
-      super._addVocabularies(), n.default.forEach((g) => this.addVocabulary(g)), this.opts.discriminator && this.addKeyword(a.default);
+      super._addVocabularies(), n.default.forEach((v) => this.addVocabulary(v)), this.opts.discriminator && this.addKeyword(a.default);
     }
     _addDefaultMetaSchema() {
       if (super._addDefaultMetaSchema(), !this.opts.meta)
         return;
-      const g = this.opts.$data ? this.$dataMetaSchema(s, o) : s;
-      this.addMetaSchema(g, l, !1), this.refs["http://json-schema.org/schema"] = l;
+      const v = this.opts.$data ? this.$dataMetaSchema(s, o) : s;
+      this.addMetaSchema(v, l, !1), this.refs["http://json-schema.org/schema"] = l;
     }
     defaultMeta() {
       return this.opts.defaultMeta = super.defaultMeta() || (this.getSchema(l) ? l : void 0);
@@ -5805,9 +5805,9 @@ const $schema = "http://json-schema.org/draft-07/schema#", $id = "http://json-sc
   Object.defineProperty(r, "ValidationError", { enumerable: !0, get: function() {
     return m.default;
   } });
-  var p = ref_error;
+  var _ = ref_error;
   Object.defineProperty(r, "MissingRefError", { enumerable: !0, get: function() {
-    return p.default;
+    return _.default;
   } });
 })(ajv, ajv.exports);
 var ajvExports = ajv.exports;
@@ -5829,32 +5829,32 @@ var ajvExports = ajv.exports;
     $data: !0,
     error: s,
     code(l) {
-      const { gen: h, data: f, schemaCode: d, keyword: m, it: p } = l, { opts: _, self: g } = p;
-      if (!_.validateFormats)
+      const { gen: h, data: f, schemaCode: d, keyword: m, it: _ } = l, { opts: p, self: v } = _;
+      if (!p.validateFormats)
         return;
-      const v = new r.KeywordCxt(p, g.RULES.all.format.definition, "format");
-      v.$data ? b() : w();
-      function b() {
+      const g = new r.KeywordCxt(_, v.RULES.all.format.definition, "format");
+      g.$data ? k() : b();
+      function k() {
         const M = h.scopeValue("formats", {
-          ref: g.formats,
-          code: _.code.formats
-        }), N = h.const("fmt", (0, i._)`${M}[${v.schemaCode}]`);
-        l.fail$data((0, i.or)((0, i._)`typeof ${N} != "object"`, (0, i._)`${N} instanceof RegExp`, (0, i._)`typeof ${N}.compare != "function"`, k(N)));
+          ref: v.formats,
+          code: p.code.formats
+        }), C = h.const("fmt", (0, i._)`${M}[${g.schemaCode}]`);
+        l.fail$data((0, i.or)((0, i._)`typeof ${C} != "object"`, (0, i._)`${C} instanceof RegExp`, (0, i._)`typeof ${C}.compare != "function"`, w(C)));
       }
-      function w() {
-        const M = v.schema, N = g.formats[M];
-        if (!N || N === !0)
+      function b() {
+        const M = g.schema, C = v.formats[M];
+        if (!C || C === !0)
           return;
-        if (typeof N != "object" || N instanceof RegExp || typeof N.compare != "function")
+        if (typeof C != "object" || C instanceof RegExp || typeof C.compare != "function")
           throw new Error(`"${m}": format "${M}" does not define "compare" function`);
-        const P = h.scopeValue("formats", {
+        const T = h.scopeValue("formats", {
           key: M,
-          ref: N,
-          code: _.code.formats ? (0, i._)`${_.code.formats}${(0, i.getProperty)(M)}` : void 0
+          ref: C,
+          code: p.code.formats ? (0, i._)`${p.code.formats}${(0, i.getProperty)(M)}` : void 0
         });
-        l.fail$data(k(P));
+        l.fail$data(w(T));
       }
-      function k(M) {
+      function w(M) {
         return (0, i._)`${M}.compare(${f}, ${d}) ${a[m].fail} 0`;
       }
     },
@@ -5868,20 +5868,20 @@ var ajvExports = ajv.exports;
   const i = formats, n = limit, a = codegen, s = new a.Name("fullFormats"), o = new a.Name("fastFormats"), l = (f, d = { keywords: !0 }) => {
     if (Array.isArray(d))
       return h(f, d, i.fullFormats, s), f;
-    const [m, p] = d.mode === "fast" ? [i.fastFormats, o] : [i.fullFormats, s], _ = d.formats || i.formatNames;
-    return h(f, _, m, p), d.keywords && (0, n.default)(f), f;
+    const [m, _] = d.mode === "fast" ? [i.fastFormats, o] : [i.fullFormats, s], p = d.formats || i.formatNames;
+    return h(f, p, m, _), d.keywords && (0, n.default)(f), f;
   };
   l.get = (f, d = "full") => {
-    const p = (d === "fast" ? i.fastFormats : i.fullFormats)[f];
-    if (!p)
+    const _ = (d === "fast" ? i.fastFormats : i.fullFormats)[f];
+    if (!_)
       throw new Error(`Unknown format "${f}"`);
-    return p;
+    return _;
   };
-  function h(f, d, m, p) {
-    var _, g;
-    (_ = (g = f.opts.code).formats) !== null && _ !== void 0 || (g.formats = (0, a._)`require("ajv-formats/dist/formats").${p}`);
-    for (const v of d)
-      f.addFormat(v, m[v]);
+  function h(f, d, m, _) {
+    var p, v;
+    (p = (v = f.opts.code).formats) !== null && p !== void 0 || (v.formats = (0, a._)`require("ajv-formats/dist/formats").${_}`);
+    for (const g of d)
+      f.addFormat(g, m[g]);
   }
   e.exports = r = l, Object.defineProperty(r, "__esModule", { value: !0 }), r.default = l;
 })(dist, dist.exports);
@@ -5924,12 +5924,12 @@ const debounceFunction = (e, r = {}) => {
     throw new Error("Both `before` and `after` are false, function wouldn't be called.");
   let o, l, h;
   const f = function(...d) {
-    const m = this, p = () => {
+    const m = this, _ = () => {
       o = void 0, l && (clearTimeout(l), l = void 0), s && (h = e.apply(m, d));
-    }, _ = () => {
+    }, p = () => {
       l = void 0, o && (clearTimeout(o), o = void 0), s && (h = e.apply(m, d));
-    }, g = a && !o;
-    return clearTimeout(o), o = setTimeout(p, i), n > 0 && n !== Number.POSITIVE_INFINITY && !l && (l = setTimeout(_, n)), g && (h = e.apply(m, d)), h;
+    }, v = a && !o;
+    return clearTimeout(o), o = setTimeout(_, i), n > 0 && n !== Number.POSITIVE_INFINITY && !l && (l = setTimeout(p, n)), v && (h = e.apply(m, d)), h;
   };
   return mimicFunction(f, e), f.cancel = () => {
     o && (clearTimeout(o), o = void 0), l && (clearTimeout(l), l = void 0);
@@ -5968,19 +5968,19 @@ var debug_1 = debug$2;
   r = e.exports = {};
   const o = r.re = [], l = r.safeRe = [], h = r.src = [], f = r.safeSrc = [], d = r.t = {};
   let m = 0;
-  const p = "[a-zA-Z0-9-]", _ = [
+  const _ = "[a-zA-Z0-9-]", p = [
     ["\\s", 1],
     ["\\d", a],
-    [p, n]
-  ], g = (b) => {
-    for (const [w, k] of _)
-      b = b.split(`${w}*`).join(`${w}{0,${k}}`).split(`${w}+`).join(`${w}{1,${k}}`);
-    return b;
-  }, v = (b, w, k) => {
-    const M = g(w), N = m++;
-    s(b, N, w), d[b] = N, h[N] = w, f[N] = M, o[N] = new RegExp(w, k ? "g" : void 0), l[N] = new RegExp(M, k ? "g" : void 0);
+    [_, n]
+  ], v = (k) => {
+    for (const [b, w] of p)
+      k = k.split(`${b}*`).join(`${b}{0,${w}}`).split(`${b}+`).join(`${b}{1,${w}}`);
+    return k;
+  }, g = (k, b, w) => {
+    const M = v(b), C = m++;
+    s(k, C, b), d[k] = C, h[C] = b, f[C] = M, o[C] = new RegExp(b, w ? "g" : void 0), l[C] = new RegExp(M, w ? "g" : void 0);
   };
-  v("NUMERICIDENTIFIER", "0|[1-9]\\d*"), v("NUMERICIDENTIFIERLOOSE", "\\d+"), v("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${p}*`), v("MAINVERSION", `(${h[d.NUMERICIDENTIFIER]})\\.(${h[d.NUMERICIDENTIFIER]})\\.(${h[d.NUMERICIDENTIFIER]})`), v("MAINVERSIONLOOSE", `(${h[d.NUMERICIDENTIFIERLOOSE]})\\.(${h[d.NUMERICIDENTIFIERLOOSE]})\\.(${h[d.NUMERICIDENTIFIERLOOSE]})`), v("PRERELEASEIDENTIFIER", `(?:${h[d.NONNUMERICIDENTIFIER]}|${h[d.NUMERICIDENTIFIER]})`), v("PRERELEASEIDENTIFIERLOOSE", `(?:${h[d.NONNUMERICIDENTIFIER]}|${h[d.NUMERICIDENTIFIERLOOSE]})`), v("PRERELEASE", `(?:-(${h[d.PRERELEASEIDENTIFIER]}(?:\\.${h[d.PRERELEASEIDENTIFIER]})*))`), v("PRERELEASELOOSE", `(?:-?(${h[d.PRERELEASEIDENTIFIERLOOSE]}(?:\\.${h[d.PRERELEASEIDENTIFIERLOOSE]})*))`), v("BUILDIDENTIFIER", `${p}+`), v("BUILD", `(?:\\+(${h[d.BUILDIDENTIFIER]}(?:\\.${h[d.BUILDIDENTIFIER]})*))`), v("FULLPLAIN", `v?${h[d.MAINVERSION]}${h[d.PRERELEASE]}?${h[d.BUILD]}?`), v("FULL", `^${h[d.FULLPLAIN]}$`), v("LOOSEPLAIN", `[v=\\s]*${h[d.MAINVERSIONLOOSE]}${h[d.PRERELEASELOOSE]}?${h[d.BUILD]}?`), v("LOOSE", `^${h[d.LOOSEPLAIN]}$`), v("GTLT", "((?:<|>)?=?)"), v("XRANGEIDENTIFIERLOOSE", `${h[d.NUMERICIDENTIFIERLOOSE]}|x|X|\\*`), v("XRANGEIDENTIFIER", `${h[d.NUMERICIDENTIFIER]}|x|X|\\*`), v("XRANGEPLAIN", `[v=\\s]*(${h[d.XRANGEIDENTIFIER]})(?:\\.(${h[d.XRANGEIDENTIFIER]})(?:\\.(${h[d.XRANGEIDENTIFIER]})(?:${h[d.PRERELEASE]})?${h[d.BUILD]}?)?)?`), v("XRANGEPLAINLOOSE", `[v=\\s]*(${h[d.XRANGEIDENTIFIERLOOSE]})(?:\\.(${h[d.XRANGEIDENTIFIERLOOSE]})(?:\\.(${h[d.XRANGEIDENTIFIERLOOSE]})(?:${h[d.PRERELEASELOOSE]})?${h[d.BUILD]}?)?)?`), v("XRANGE", `^${h[d.GTLT]}\\s*${h[d.XRANGEPLAIN]}$`), v("XRANGELOOSE", `^${h[d.GTLT]}\\s*${h[d.XRANGEPLAINLOOSE]}$`), v("COERCEPLAIN", `(^|[^\\d])(\\d{1,${i}})(?:\\.(\\d{1,${i}}))?(?:\\.(\\d{1,${i}}))?`), v("COERCE", `${h[d.COERCEPLAIN]}(?:$|[^\\d])`), v("COERCEFULL", h[d.COERCEPLAIN] + `(?:${h[d.PRERELEASE]})?(?:${h[d.BUILD]})?(?:$|[^\\d])`), v("COERCERTL", h[d.COERCE], !0), v("COERCERTLFULL", h[d.COERCEFULL], !0), v("LONETILDE", "(?:~>?)"), v("TILDETRIM", `(\\s*)${h[d.LONETILDE]}\\s+`, !0), r.tildeTrimReplace = "$1~", v("TILDE", `^${h[d.LONETILDE]}${h[d.XRANGEPLAIN]}$`), v("TILDELOOSE", `^${h[d.LONETILDE]}${h[d.XRANGEPLAINLOOSE]}$`), v("LONECARET", "(?:\\^)"), v("CARETTRIM", `(\\s*)${h[d.LONECARET]}\\s+`, !0), r.caretTrimReplace = "$1^", v("CARET", `^${h[d.LONECARET]}${h[d.XRANGEPLAIN]}$`), v("CARETLOOSE", `^${h[d.LONECARET]}${h[d.XRANGEPLAINLOOSE]}$`), v("COMPARATORLOOSE", `^${h[d.GTLT]}\\s*(${h[d.LOOSEPLAIN]})$|^$`), v("COMPARATOR", `^${h[d.GTLT]}\\s*(${h[d.FULLPLAIN]})$|^$`), v("COMPARATORTRIM", `(\\s*)${h[d.GTLT]}\\s*(${h[d.LOOSEPLAIN]}|${h[d.XRANGEPLAIN]})`, !0), r.comparatorTrimReplace = "$1$2$3", v("HYPHENRANGE", `^\\s*(${h[d.XRANGEPLAIN]})\\s+-\\s+(${h[d.XRANGEPLAIN]})\\s*$`), v("HYPHENRANGELOOSE", `^\\s*(${h[d.XRANGEPLAINLOOSE]})\\s+-\\s+(${h[d.XRANGEPLAINLOOSE]})\\s*$`), v("STAR", "(<|>)?=?\\s*\\*"), v("GTE0", "^\\s*>=\\s*0\\.0\\.0\\s*$"), v("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
+  g("NUMERICIDENTIFIER", "0|[1-9]\\d*"), g("NUMERICIDENTIFIERLOOSE", "\\d+"), g("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${_}*`), g("MAINVERSION", `(${h[d.NUMERICIDENTIFIER]})\\.(${h[d.NUMERICIDENTIFIER]})\\.(${h[d.NUMERICIDENTIFIER]})`), g("MAINVERSIONLOOSE", `(${h[d.NUMERICIDENTIFIERLOOSE]})\\.(${h[d.NUMERICIDENTIFIERLOOSE]})\\.(${h[d.NUMERICIDENTIFIERLOOSE]})`), g("PRERELEASEIDENTIFIER", `(?:${h[d.NONNUMERICIDENTIFIER]}|${h[d.NUMERICIDENTIFIER]})`), g("PRERELEASEIDENTIFIERLOOSE", `(?:${h[d.NONNUMERICIDENTIFIER]}|${h[d.NUMERICIDENTIFIERLOOSE]})`), g("PRERELEASE", `(?:-(${h[d.PRERELEASEIDENTIFIER]}(?:\\.${h[d.PRERELEASEIDENTIFIER]})*))`), g("PRERELEASELOOSE", `(?:-?(${h[d.PRERELEASEIDENTIFIERLOOSE]}(?:\\.${h[d.PRERELEASEIDENTIFIERLOOSE]})*))`), g("BUILDIDENTIFIER", `${_}+`), g("BUILD", `(?:\\+(${h[d.BUILDIDENTIFIER]}(?:\\.${h[d.BUILDIDENTIFIER]})*))`), g("FULLPLAIN", `v?${h[d.MAINVERSION]}${h[d.PRERELEASE]}?${h[d.BUILD]}?`), g("FULL", `^${h[d.FULLPLAIN]}$`), g("LOOSEPLAIN", `[v=\\s]*${h[d.MAINVERSIONLOOSE]}${h[d.PRERELEASELOOSE]}?${h[d.BUILD]}?`), g("LOOSE", `^${h[d.LOOSEPLAIN]}$`), g("GTLT", "((?:<|>)?=?)"), g("XRANGEIDENTIFIERLOOSE", `${h[d.NUMERICIDENTIFIERLOOSE]}|x|X|\\*`), g("XRANGEIDENTIFIER", `${h[d.NUMERICIDENTIFIER]}|x|X|\\*`), g("XRANGEPLAIN", `[v=\\s]*(${h[d.XRANGEIDENTIFIER]})(?:\\.(${h[d.XRANGEIDENTIFIER]})(?:\\.(${h[d.XRANGEIDENTIFIER]})(?:${h[d.PRERELEASE]})?${h[d.BUILD]}?)?)?`), g("XRANGEPLAINLOOSE", `[v=\\s]*(${h[d.XRANGEIDENTIFIERLOOSE]})(?:\\.(${h[d.XRANGEIDENTIFIERLOOSE]})(?:\\.(${h[d.XRANGEIDENTIFIERLOOSE]})(?:${h[d.PRERELEASELOOSE]})?${h[d.BUILD]}?)?)?`), g("XRANGE", `^${h[d.GTLT]}\\s*${h[d.XRANGEPLAIN]}$`), g("XRANGELOOSE", `^${h[d.GTLT]}\\s*${h[d.XRANGEPLAINLOOSE]}$`), g("COERCEPLAIN", `(^|[^\\d])(\\d{1,${i}})(?:\\.(\\d{1,${i}}))?(?:\\.(\\d{1,${i}}))?`), g("COERCE", `${h[d.COERCEPLAIN]}(?:$|[^\\d])`), g("COERCEFULL", h[d.COERCEPLAIN] + `(?:${h[d.PRERELEASE]})?(?:${h[d.BUILD]})?(?:$|[^\\d])`), g("COERCERTL", h[d.COERCE], !0), g("COERCERTLFULL", h[d.COERCEFULL], !0), g("LONETILDE", "(?:~>?)"), g("TILDETRIM", `(\\s*)${h[d.LONETILDE]}\\s+`, !0), r.tildeTrimReplace = "$1~", g("TILDE", `^${h[d.LONETILDE]}${h[d.XRANGEPLAIN]}$`), g("TILDELOOSE", `^${h[d.LONETILDE]}${h[d.XRANGEPLAINLOOSE]}$`), g("LONECARET", "(?:\\^)"), g("CARETTRIM", `(\\s*)${h[d.LONECARET]}\\s+`, !0), r.caretTrimReplace = "$1^", g("CARET", `^${h[d.LONECARET]}${h[d.XRANGEPLAIN]}$`), g("CARETLOOSE", `^${h[d.LONECARET]}${h[d.XRANGEPLAINLOOSE]}$`), g("COMPARATORLOOSE", `^${h[d.GTLT]}\\s*(${h[d.LOOSEPLAIN]})$|^$`), g("COMPARATOR", `^${h[d.GTLT]}\\s*(${h[d.FULLPLAIN]})$|^$`), g("COMPARATORTRIM", `(\\s*)${h[d.GTLT]}\\s*(${h[d.LOOSEPLAIN]}|${h[d.XRANGEPLAIN]})`, !0), r.comparatorTrimReplace = "$1$2$3", g("HYPHENRANGE", `^\\s*(${h[d.XRANGEPLAIN]})\\s+-\\s+(${h[d.XRANGEPLAIN]})\\s*$`), g("HYPHENRANGELOOSE", `^\\s*(${h[d.XRANGEPLAINLOOSE]})\\s+-\\s+(${h[d.XRANGEPLAINLOOSE]})\\s*$`), g("STAR", "(<|>)?=?\\s*\\*"), g("GTE0", "^\\s*>=\\s*0\\.0\\.0\\s*$"), g("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
 })(re$3, re$3.exports);
 var reExports = re$3.exports;
 const looseOption = Object.freeze({ loose: !0 }), emptyOpts = Object.freeze({}), parseOptions$1 = (e) => e ? typeof e != "object" ? looseOption : e : emptyOpts;
@@ -6319,11 +6319,11 @@ function requireRange() {
         throw new TypeError(`Invalid SemVer Range: ${this.raw}`);
       if (this.set.length > 1) {
         const Xt = this.set[0];
-        if (this.set = this.set.filter((Jt) => !v(Jt[0])), this.set.length === 0)
+        if (this.set = this.set.filter((Jt) => !g(Jt[0])), this.set.length === 0)
           this.set = [Xt];
         else if (this.set.length > 1) {
           for (const Jt of this.set)
-            if (Jt.length === 1 && b(Jt[0])) {
+            if (Jt.length === 1 && k(Jt[0])) {
               this.set = [Jt];
               break;
             }
@@ -6350,27 +6350,27 @@ function requireRange() {
       return this.range;
     }
     parseRange(We) {
-      const Xt = ((this.options.includePrerelease && _) | (this.options.loose && g)) + ":" + We, Jt = n.get(Xt);
+      const Xt = ((this.options.includePrerelease && p) | (this.options.loose && v)) + ":" + We, Jt = n.get(Xt);
       if (Jt)
         return Jt;
       const Vt = this.options.loose, it = Vt ? h[f.HYPHENRANGELOOSE] : h[f.HYPHENRANGE];
-      We = We.replace(it, Ke(this.options.includePrerelease)), o("hyphen replace", We), We = We.replace(h[f.COMPARATORTRIM], d), o("comparator trim", We), We = We.replace(h[f.TILDETRIM], m), o("tilde trim", We), We = We.replace(h[f.CARETTRIM], p), o("caret trim", We);
-      let Qt = We.split(" ").map((Ge) => k(Ge, this.options)).join(" ").split(/\s+/).map((Ge) => Pe(Ge, this.options));
+      We = We.replace(it, Je(this.options.includePrerelease)), o("hyphen replace", We), We = We.replace(h[f.COMPARATORTRIM], d), o("comparator trim", We), We = We.replace(h[f.TILDETRIM], m), o("tilde trim", We), We = We.replace(h[f.CARETTRIM], _), o("caret trim", We);
+      let Qt = We.split(" ").map((Ge) => w(Ge, this.options)).join(" ").split(/\s+/).map((Ge) => Pe(Ge, this.options));
       Vt && (Qt = Qt.filter((Ge) => (o("loose invalid filter", Ge, this.options), !!Ge.match(h[f.COMPARATORLOOSE])))), o("range list", Qt);
       const Ri = /* @__PURE__ */ new Map(), Ci = Qt.map((Ge) => new s(Ge, this.options));
       for (const Ge of Ci) {
-        if (v(Ge))
+        if (g(Ge))
           return [Ge];
         Ri.set(Ge.value, Ge);
       }
       Ri.size > 1 && Ri.has("") && Ri.delete("");
-      const fe = [...Ri.values()];
-      return n.set(Xt, fe), fe;
+      const _e = [...Ri.values()];
+      return n.set(Xt, _e), _e;
     }
     intersects(We, st) {
       if (!(We instanceof r))
         throw new TypeError("a Range is required");
-      return this.set.some((Xt) => w(Xt, st) && We.set.some((Jt) => w(Jt, st) && Xt.every((Vt) => Jt.every((it) => Vt.intersects(it, st)))));
+      return this.set.some((Xt) => b(Xt, st) && We.set.some((Jt) => b(Jt, st) && Xt.every((Vt) => Jt.every((it) => Vt.intersects(it, st)))));
     }
     // if ANY of the sets match ALL of its comparators, then pass
     test(We) {
@@ -6394,22 +6394,22 @@ function requireRange() {
     t: f,
     comparatorTrimReplace: d,
     tildeTrimReplace: m,
-    caretTrimReplace: p
-  } = reExports, { FLAG_INCLUDE_PRERELEASE: _, FLAG_LOOSE: g } = constants$a, v = (ee) => ee.value === "<0.0.0-0", b = (ee) => ee.value === "", w = (ee, We) => {
+    caretTrimReplace: _
+  } = reExports, { FLAG_INCLUDE_PRERELEASE: p, FLAG_LOOSE: v } = constants$a, g = (ee) => ee.value === "<0.0.0-0", k = (ee) => ee.value === "", b = (ee, We) => {
     let st = !0;
     const Xt = ee.slice();
     let Jt = Xt.pop();
     for (; st && Xt.length; )
       st = Xt.every((Vt) => Jt.intersects(Vt, We)), Jt = Xt.pop();
     return st;
-  }, k = (ee, We) => (ee = ee.replace(h[f.BUILD], ""), o("comp", ee, We), ee = T(ee, We), o("caret", ee), ee = N(ee, We), o("tildes", ee), ee = X(ee, We), o("xrange", ee), ee = Je(ee, We), o("stars", ee), ee), M = (ee) => !ee || ee.toLowerCase() === "x" || ee === "*", N = (ee, We) => ee.trim().split(/\s+/).map((st) => P(st, We)).join(" "), P = (ee, We) => {
+  }, w = (ee, We) => (ee = ee.replace(h[f.BUILD], ""), o("comp", ee, We), ee = P(ee, We), o("caret", ee), ee = C(ee, We), o("tildes", ee), ee = X(ee, We), o("xrange", ee), ee = Ke(ee, We), o("stars", ee), ee), M = (ee) => !ee || ee.toLowerCase() === "x" || ee === "*", C = (ee, We) => ee.trim().split(/\s+/).map((st) => T(st, We)).join(" "), T = (ee, We) => {
     const st = We.loose ? h[f.TILDELOOSE] : h[f.TILDE];
     return ee.replace(st, (Xt, Jt, Vt, it, Qt) => {
       o("tilde", ee, Xt, Jt, Vt, it, Qt);
       let Ri;
       return M(Jt) ? Ri = "" : M(Vt) ? Ri = `>=${Jt}.0.0 <${+Jt + 1}.0.0-0` : M(it) ? Ri = `>=${Jt}.${Vt}.0 <${Jt}.${+Vt + 1}.0-0` : Qt ? (o("replaceTilde pr", Qt), Ri = `>=${Jt}.${Vt}.${it}-${Qt} <${Jt}.${+Vt + 1}.0-0`) : Ri = `>=${Jt}.${Vt}.${it} <${Jt}.${+Vt + 1}.0-0`, o("tilde return", Ri), Ri;
     });
-  }, T = (ee, We) => ee.trim().split(/\s+/).map((st) => C(st, We)).join(" "), C = (ee, We) => {
+  }, P = (ee, We) => ee.trim().split(/\s+/).map((st) => N(st, We)).join(" "), N = (ee, We) => {
     o("caret", ee, We);
     const st = We.loose ? h[f.CARETLOOSE] : h[f.CARET], Xt = We.includePrerelease ? "-0" : "";
     return ee.replace(st, (Jt, Vt, it, Qt, Ri) => {
@@ -6417,15 +6417,15 @@ function requireRange() {
       let Ci;
       return M(Vt) ? Ci = "" : M(it) ? Ci = `>=${Vt}.0.0${Xt} <${+Vt + 1}.0.0-0` : M(Qt) ? Vt === "0" ? Ci = `>=${Vt}.${it}.0${Xt} <${Vt}.${+it + 1}.0-0` : Ci = `>=${Vt}.${it}.0${Xt} <${+Vt + 1}.0.0-0` : Ri ? (o("replaceCaret pr", Ri), Vt === "0" ? it === "0" ? Ci = `>=${Vt}.${it}.${Qt}-${Ri} <${Vt}.${it}.${+Qt + 1}-0` : Ci = `>=${Vt}.${it}.${Qt}-${Ri} <${Vt}.${+it + 1}.0-0` : Ci = `>=${Vt}.${it}.${Qt}-${Ri} <${+Vt + 1}.0.0-0`) : (o("no pr"), Vt === "0" ? it === "0" ? Ci = `>=${Vt}.${it}.${Qt}${Xt} <${Vt}.${it}.${+Qt + 1}-0` : Ci = `>=${Vt}.${it}.${Qt}${Xt} <${Vt}.${+it + 1}.0-0` : Ci = `>=${Vt}.${it}.${Qt} <${+Vt + 1}.0.0-0`), o("caret return", Ci), Ci;
     });
-  }, X = (ee, We) => (o("replaceXRanges", ee, We), ee.split(/\s+/).map((st) => _e(st, We)).join(" ")), _e = (ee, We) => {
+  }, X = (ee, We) => (o("replaceXRanges", ee, We), ee.split(/\s+/).map((st) => fe(st, We)).join(" ")), fe = (ee, We) => {
     ee = ee.trim();
     const st = We.loose ? h[f.XRANGELOOSE] : h[f.XRANGE];
     return ee.replace(st, (Xt, Jt, Vt, it, Qt, Ri) => {
       o("xRange", ee, Xt, Jt, Vt, it, Qt, Ri);
-      const Ci = M(Vt), fe = Ci || M(it), Ge = fe || M(Qt), Kt = Ge;
-      return Jt === "=" && Kt && (Jt = ""), Ri = We.includePrerelease ? "-0" : "", Ci ? Jt === ">" || Jt === "<" ? Xt = "<0.0.0-0" : Xt = "*" : Jt && Kt ? (fe && (it = 0), Qt = 0, Jt === ">" ? (Jt = ">=", fe ? (Vt = +Vt + 1, it = 0, Qt = 0) : (it = +it + 1, Qt = 0)) : Jt === "<=" && (Jt = "<", fe ? Vt = +Vt + 1 : it = +it + 1), Jt === "<" && (Ri = "-0"), Xt = `${Jt + Vt}.${it}.${Qt}${Ri}`) : fe ? Xt = `>=${Vt}.0.0${Ri} <${+Vt + 1}.0.0-0` : Ge && (Xt = `>=${Vt}.${it}.0${Ri} <${Vt}.${+it + 1}.0-0`), o("xRange return", Xt), Xt;
+      const Ci = M(Vt), _e = Ci || M(it), Ge = _e || M(Qt), Kt = Ge;
+      return Jt === "=" && Kt && (Jt = ""), Ri = We.includePrerelease ? "-0" : "", Ci ? Jt === ">" || Jt === "<" ? Xt = "<0.0.0-0" : Xt = "*" : Jt && Kt ? (_e && (it = 0), Qt = 0, Jt === ">" ? (Jt = ">=", _e ? (Vt = +Vt + 1, it = 0, Qt = 0) : (it = +it + 1, Qt = 0)) : Jt === "<=" && (Jt = "<", _e ? Vt = +Vt + 1 : it = +it + 1), Jt === "<" && (Ri = "-0"), Xt = `${Jt + Vt}.${it}.${Qt}${Ri}`) : _e ? Xt = `>=${Vt}.0.0${Ri} <${+Vt + 1}.0.0-0` : Ge && (Xt = `>=${Vt}.${it}.0${Ri} <${Vt}.${+it + 1}.0-0`), o("xRange return", Xt), Xt;
     });
-  }, Je = (ee, We) => (o("replaceStars", ee, We), ee.trim().replace(h[f.STAR], "")), Pe = (ee, We) => (o("replaceGTE0", ee, We), ee.trim().replace(h[We.includePrerelease ? f.GTE0PRE : f.GTE0], "")), Ke = (ee) => (We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, fe, Ge, Kt) => (M(Xt) ? st = "" : M(Jt) ? st = `>=${Xt}.0.0${ee ? "-0" : ""}` : M(Vt) ? st = `>=${Xt}.${Jt}.0${ee ? "-0" : ""}` : it ? st = `>=${st}` : st = `>=${st}${ee ? "-0" : ""}`, M(Ci) ? Ri = "" : M(fe) ? Ri = `<${+Ci + 1}.0.0-0` : M(Ge) ? Ri = `<${Ci}.${+fe + 1}.0-0` : Kt ? Ri = `<=${Ci}.${fe}.${Ge}-${Kt}` : ee ? Ri = `<${Ci}.${fe}.${+Ge + 1}-0` : Ri = `<=${Ri}`, `${st} ${Ri}`.trim()), Wt = (ee, We, st) => {
+  }, Ke = (ee, We) => (o("replaceStars", ee, We), ee.trim().replace(h[f.STAR], "")), Pe = (ee, We) => (o("replaceGTE0", ee, We), ee.trim().replace(h[We.includePrerelease ? f.GTE0PRE : f.GTE0], "")), Je = (ee) => (We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, _e, Ge, Kt) => (M(Xt) ? st = "" : M(Jt) ? st = `>=${Xt}.0.0${ee ? "-0" : ""}` : M(Vt) ? st = `>=${Xt}.${Jt}.0${ee ? "-0" : ""}` : it ? st = `>=${st}` : st = `>=${st}${ee ? "-0" : ""}`, M(Ci) ? Ri = "" : M(_e) ? Ri = `<${+Ci + 1}.0.0-0` : M(Ge) ? Ri = `<${Ci}.${+_e + 1}.0-0` : Kt ? Ri = `<=${Ci}.${_e}.${Ge}-${Kt}` : ee ? Ri = `<${Ci}.${_e}.${+Ge + 1}-0` : Ri = `<=${Ri}`, `${st} ${Ri}`.trim()), Wt = (ee, We, st) => {
     for (let Xt = 0; Xt < ee.length; Xt++)
       if (!ee[Xt].test(We))
         return !1;
@@ -6460,10 +6460,10 @@ function requireComparator() {
       d = d.trim().split(/\s+/).join(" "), o("comparator", d, m), this.options = m, this.loose = !!m.loose, this.parse(d), this.semver === e ? this.value = "" : this.value = this.operator + this.semver.version, o("comp", this);
     }
     parse(d) {
-      const m = this.options.loose ? n[a.COMPARATORLOOSE] : n[a.COMPARATOR], p = d.match(m);
-      if (!p)
+      const m = this.options.loose ? n[a.COMPARATORLOOSE] : n[a.COMPARATOR], _ = d.match(m);
+      if (!_)
         throw new TypeError(`Invalid comparator: ${d}`);
-      this.operator = p[1] !== void 0 ? p[1] : "", this.operator === "=" && (this.operator = ""), p[2] ? this.semver = new l(p[2], this.options.loose) : this.semver = e;
+      this.operator = _[1] !== void 0 ? _[1] : "", this.operator === "=" && (this.operator = ""), _[2] ? this.semver = new l(_[2], this.options.loose) : this.semver = e;
     }
     toString() {
       return this.value;
@@ -6578,12 +6578,12 @@ const SemVer$1 = semver$2, Comparator$2 = requireComparator(), { ANY: ANY$1 } = 
     return !1;
   for (let f = 0; f < r.set.length; ++f) {
     const d = r.set[f];
-    let m = null, p = null;
-    if (d.forEach((_) => {
-      _.semver === ANY$1 && (_ = new Comparator$2(">=0.0.0")), m = m || _, p = p || _, a(_.semver, m.semver, n) ? m = _ : o(_.semver, p.semver, n) && (p = _);
-    }), m.operator === l || m.operator === h || (!p.operator || p.operator === l) && s(e, p.semver))
+    let m = null, _ = null;
+    if (d.forEach((p) => {
+      p.semver === ANY$1 && (p = new Comparator$2(">=0.0.0")), m = m || p, _ = _ || p, a(p.semver, m.semver, n) ? m = p : o(p.semver, _.semver, n) && (_ = p);
+    }), m.operator === l || m.operator === h || (!_.operator || _.operator === l) && s(e, _.semver))
       return !1;
-    if (p.operator === h && o(e, p.semver))
+    if (_.operator === h && o(e, _.semver))
       return !1;
   }
   return !0;
@@ -6639,8 +6639,8 @@ const Range$1 = requireRange(), Comparator$1 = requireComparator(), { ANY } = Co
   }
   const n = /* @__PURE__ */ new Set();
   let a, s;
-  for (const _ of e)
-    _.operator === ">" || _.operator === ">=" ? a = higherGT(a, _, i) : _.operator === "<" || _.operator === "<=" ? s = lowerLT(s, _, i) : n.add(_.semver);
+  for (const p of e)
+    p.operator === ">" || p.operator === ">=" ? a = higherGT(a, p, i) : p.operator === "<" || p.operator === "<=" ? s = lowerLT(s, p, i) : n.add(p.semver);
   if (n.size > 1)
     return null;
   let o;
@@ -6650,35 +6650,35 @@ const Range$1 = requireRange(), Comparator$1 = requireComparator(), { ANY } = Co
     if (o === 0 && (a.operator !== ">=" || s.operator !== "<="))
       return null;
   }
-  for (const _ of n) {
-    if (a && !satisfies$1(_, String(a), i) || s && !satisfies$1(_, String(s), i))
+  for (const p of n) {
+    if (a && !satisfies$1(p, String(a), i) || s && !satisfies$1(p, String(s), i))
       return null;
-    for (const g of r)
-      if (!satisfies$1(_, String(g), i))
+    for (const v of r)
+      if (!satisfies$1(p, String(v), i))
         return !1;
     return !0;
   }
-  let l, h, f, d, m = s && !i.includePrerelease && s.semver.prerelease.length ? s.semver : !1, p = a && !i.includePrerelease && a.semver.prerelease.length ? a.semver : !1;
+  let l, h, f, d, m = s && !i.includePrerelease && s.semver.prerelease.length ? s.semver : !1, _ = a && !i.includePrerelease && a.semver.prerelease.length ? a.semver : !1;
   m && m.prerelease.length === 1 && s.operator === "<" && m.prerelease[0] === 0 && (m = !1);
-  for (const _ of r) {
-    if (d = d || _.operator === ">" || _.operator === ">=", f = f || _.operator === "<" || _.operator === "<=", a) {
-      if (p && _.semver.prerelease && _.semver.prerelease.length && _.semver.major === p.major && _.semver.minor === p.minor && _.semver.patch === p.patch && (p = !1), _.operator === ">" || _.operator === ">=") {
-        if (l = higherGT(a, _, i), l === _ && l !== a)
+  for (const p of r) {
+    if (d = d || p.operator === ">" || p.operator === ">=", f = f || p.operator === "<" || p.operator === "<=", a) {
+      if (_ && p.semver.prerelease && p.semver.prerelease.length && p.semver.major === _.major && p.semver.minor === _.minor && p.semver.patch === _.patch && (_ = !1), p.operator === ">" || p.operator === ">=") {
+        if (l = higherGT(a, p, i), l === p && l !== a)
           return !1;
-      } else if (a.operator === ">=" && !satisfies$1(a.semver, String(_), i))
+      } else if (a.operator === ">=" && !satisfies$1(a.semver, String(p), i))
         return !1;
     }
     if (s) {
-      if (m && _.semver.prerelease && _.semver.prerelease.length && _.semver.major === m.major && _.semver.minor === m.minor && _.semver.patch === m.patch && (m = !1), _.operator === "<" || _.operator === "<=") {
-        if (h = lowerLT(s, _, i), h === _ && h !== s)
+      if (m && p.semver.prerelease && p.semver.prerelease.length && p.semver.major === m.major && p.semver.minor === m.minor && p.semver.patch === m.patch && (m = !1), p.operator === "<" || p.operator === "<=") {
+        if (h = lowerLT(s, p, i), h === p && h !== s)
           return !1;
-      } else if (s.operator === "<=" && !satisfies$1(s.semver, String(_), i))
+      } else if (s.operator === "<=" && !satisfies$1(s.semver, String(p), i))
         return !1;
     }
-    if (!_.operator && (s || a) && o !== 0)
+    if (!p.operator && (s || a) && o !== 0)
       return !1;
   }
-  return !(a && f && !s && o !== 0 || s && d && !a && o !== 0 || p || m);
+  return !(a && f && !s && o !== 0 || s && d && !a && o !== 0 || _ || m);
 }, higherGT = (e, r, i) => {
   if (!e)
     return r;
@@ -6924,7 +6924,7 @@ class Conf {
   get store() {
     var r;
     try {
-      const i = fs$p.readFileSync(this.path, xa(this, Ga) ? null : "utf8"), n = this._decryptData(i);
+      const i = fs$o.readFileSync(this.path, xa(this, Ga) ? null : "utf8"), n = this._decryptData(i);
       return ((s) => {
         const o = this._deserialize(s);
         return xa(this, Wa) || this._validate(o), Object.assign(createPlainObject(), o);
@@ -6943,7 +6943,7 @@ class Conf {
   set store(r) {
     if (this._ensureDirectory(), !hasProperty(r, INTERNAL_KEY))
       try {
-        const i = fs$p.readFileSync(this.path, xa(this, Ga) ? null : "utf8"), n = this._decryptData(i), a = this._deserialize(n);
+        const i = fs$o.readFileSync(this.path, xa(this, Ga) ? null : "utf8"), n = this._decryptData(i), a = this._deserialize(n);
         hasProperty(a, INTERNAL_KEY) && setProperty(r, INTERNAL_KEY, getProperty(a, INTERNAL_KEY));
       } catch {
       }
@@ -6957,7 +6957,7 @@ class Conf {
   Close the file watcher if one exists. This is useful in tests to prevent the process from hanging.
   */
   _closeWatcher() {
-    xa(this, Va) && (xa(this, Va).close(), Ca(this, Va, void 0)), xa(this, Qa) && (fs$p.unwatchFile(this.path), Ca(this, Qa, !1)), Ca(this, za, void 0);
+    xa(this, Va) && (xa(this, Va).close(), Ca(this, Va, void 0)), xa(this, Qa) && (fs$o.unwatchFile(this.path), Ca(this, Qa, !1)), Ca(this, za, void 0);
   }
   _decryptData(r) {
     const i = xa(this, Ga);
@@ -6969,25 +6969,25 @@ class Conf {
         return typeof r == "string" ? r : uint8ArrayToString(r);
       throw new Error("Failed to decrypt config data.");
     }
-    const h = (_) => {
+    const h = (p) => {
       if (a === 0)
-        return { ciphertext: _ };
-      const g = _.length - a;
-      if (g < 0)
+        return { ciphertext: p };
+      const v = p.length - a;
+      if (v < 0)
         throw new Error("Invalid authentication tag length.");
       return {
-        ciphertext: _.slice(0, g),
-        authenticationTag: _.slice(g)
+        ciphertext: p.slice(0, v),
+        authenticationTag: p.slice(v)
       };
-    }, f = r.slice(0, 16), d = r.slice(17), m = typeof d == "string" ? stringToUint8Array(d) : d, p = (_) => {
-      const { ciphertext: g, authenticationTag: v } = h(m), b = crypto$1.pbkdf2Sync(i, _, 1e4, 32, "sha512"), w = crypto$1.createDecipheriv(n, b, f);
-      return v && w.setAuthTag(v), uint8ArrayToString(concatUint8Arrays([w.update(g), w.final()]));
+    }, f = r.slice(0, 16), d = r.slice(17), m = typeof d == "string" ? stringToUint8Array(d) : d, _ = (p) => {
+      const { ciphertext: v, authenticationTag: g } = h(m), k = crypto$1.pbkdf2Sync(i, p, 1e4, 32, "sha512"), b = crypto$1.createDecipheriv(n, k, f);
+      return g && b.setAuthTag(g), uint8ArrayToString(concatUint8Arrays([b.update(v), b.final()]));
     };
     try {
-      return p(f);
+      return _(f);
     } catch {
       try {
-        return p(f.toString());
+        return _(f.toString());
       } catch {
       }
     }
@@ -7022,7 +7022,7 @@ class Conf {
     throw new Error("Config schema violation: " + n.join("; "));
   }
   _ensureDirectory() {
-    fs$p.mkdirSync(path$e.dirname(this.path), { recursive: !0 });
+    fs$o.mkdirSync(path$e.dirname(this.path), { recursive: !0 });
   }
   _write(r) {
     let i = this._serialize(r);
@@ -7032,31 +7032,31 @@ class Conf {
       xa(this, qa) === "aes-256-gcm" && h.push(o.getAuthTag()), i = concatUint8Arrays(h);
     }
     if (process$1.env.SNAP)
-      fs$p.writeFileSync(this.path, i, { mode: xa(this, Ra).configFileMode });
+      fs$o.writeFileSync(this.path, i, { mode: xa(this, Ra).configFileMode });
     else
       try {
         writeFileSync$1(this.path, i, { mode: xa(this, Ra).configFileMode });
       } catch (a) {
         if ((a == null ? void 0 : a.code) === "EXDEV") {
-          fs$p.writeFileSync(this.path, i, { mode: xa(this, Ra).configFileMode });
+          fs$o.writeFileSync(this.path, i, { mode: xa(this, Ra).configFileMode });
           return;
         }
         throw a;
       }
   }
   _watch() {
-    if (this._ensureDirectory(), fs$p.existsSync(this.path) || this._write(createPlainObject()), process$1.platform === "win32" || process$1.platform === "darwin") {
+    if (this._ensureDirectory(), fs$o.existsSync(this.path) || this._write(createPlainObject()), process$1.platform === "win32" || process$1.platform === "darwin") {
       xa(this, za) ?? Ca(this, za, debounceFunction(() => {
         this.events.dispatchEvent(new Event("change"));
       }, { wait: 100 }));
       const r = path$e.dirname(this.path), i = path$e.basename(this.path);
-      Ca(this, Va, fs$p.watch(r, { persistent: !1, encoding: "utf8" }, (n, a) => {
+      Ca(this, Va, fs$o.watch(r, { persistent: !1, encoding: "utf8" }, (n, a) => {
         a && a !== i || typeof xa(this, za) == "function" && xa(this, za).call(this);
       }));
     } else
       xa(this, za) ?? Ca(this, za, debounceFunction(() => {
         this.events.dispatchEvent(new Event("change"));
-      }, { wait: 1e3 })), fs$p.watchFile(this.path, { persistent: !1 }, (r, i) => {
+      }, { wait: 1e3 })), fs$o.watchFile(this.path, { persistent: !1 }, (r, i) => {
         typeof xa(this, za) == "function" && xa(this, za).call(this);
       }), Ca(this, Qa, !0);
   }
@@ -7226,7 +7226,7 @@ class ElectronStore extends Conf {
       throw new Error(r);
   }
 }
-var fs$o = {}, universalify$1 = {};
+var fs$n = {}, universalify$1 = {};
 universalify$1.fromCallback = function(e) {
   return Object.defineProperty(function(...r) {
     if (typeof r[r.length - 1] == "function") e.apply(this, r);
@@ -7259,167 +7259,167 @@ if (typeof process.chdir == "function") {
 }
 var polyfills$1 = patch$1;
 function patch$1(e) {
-  constants$8.hasOwnProperty("O_SYMLINK") && process.version.match(/^v0\.6\.[0-2]|^v0\.5\./) && r(e), e.lutimes || i(e), e.chown = s(e.chown), e.fchown = s(e.fchown), e.lchown = s(e.lchown), e.chmod = n(e.chmod), e.fchmod = n(e.fchmod), e.lchmod = n(e.lchmod), e.chownSync = o(e.chownSync), e.fchownSync = o(e.fchownSync), e.lchownSync = o(e.lchownSync), e.chmodSync = a(e.chmodSync), e.fchmodSync = a(e.fchmodSync), e.lchmodSync = a(e.lchmodSync), e.stat = l(e.stat), e.fstat = l(e.fstat), e.lstat = l(e.lstat), e.statSync = h(e.statSync), e.fstatSync = h(e.fstatSync), e.lstatSync = h(e.lstatSync), e.chmod && !e.lchmod && (e.lchmod = function(d, m, p) {
-    p && process.nextTick(p);
-  }, e.lchmodSync = function() {
-  }), e.chown && !e.lchown && (e.lchown = function(d, m, p, _) {
+  constants$8.hasOwnProperty("O_SYMLINK") && process.version.match(/^v0\.6\.[0-2]|^v0\.5\./) && r(e), e.lutimes || i(e), e.chown = s(e.chown), e.fchown = s(e.fchown), e.lchown = s(e.lchown), e.chmod = n(e.chmod), e.fchmod = n(e.fchmod), e.lchmod = n(e.lchmod), e.chownSync = o(e.chownSync), e.fchownSync = o(e.fchownSync), e.lchownSync = o(e.lchownSync), e.chmodSync = a(e.chmodSync), e.fchmodSync = a(e.fchmodSync), e.lchmodSync = a(e.lchmodSync), e.stat = l(e.stat), e.fstat = l(e.fstat), e.lstat = l(e.lstat), e.statSync = h(e.statSync), e.fstatSync = h(e.fstatSync), e.lstatSync = h(e.lstatSync), e.chmod && !e.lchmod && (e.lchmod = function(d, m, _) {
     _ && process.nextTick(_);
+  }, e.lchmodSync = function() {
+  }), e.chown && !e.lchown && (e.lchown = function(d, m, _, p) {
+    p && process.nextTick(p);
   }, e.lchownSync = function() {
   }), platform === "win32" && (e.rename = typeof e.rename != "function" ? e.rename : function(d) {
-    function m(p, _, g) {
-      var v = Date.now(), b = 0;
-      d(p, _, function w(k) {
-        if (k && (k.code === "EACCES" || k.code === "EPERM" || k.code === "EBUSY") && Date.now() - v < 6e4) {
+    function m(_, p, v) {
+      var g = Date.now(), k = 0;
+      d(_, p, function b(w) {
+        if (w && (w.code === "EACCES" || w.code === "EPERM" || w.code === "EBUSY") && Date.now() - g < 6e4) {
           setTimeout(function() {
-            e.stat(_, function(M, N) {
-              M && M.code === "ENOENT" ? d(p, _, w) : g(k);
+            e.stat(p, function(M, C) {
+              M && M.code === "ENOENT" ? d(_, p, b) : v(w);
             });
-          }, b), b < 100 && (b += 10);
+          }, k), k < 100 && (k += 10);
           return;
         }
-        g && g(k);
+        v && v(w);
       });
     }
     return Object.setPrototypeOf && Object.setPrototypeOf(m, d), m;
   }(e.rename)), e.read = typeof e.read != "function" ? e.read : function(d) {
-    function m(p, _, g, v, b, w) {
-      var k;
-      if (w && typeof w == "function") {
+    function m(_, p, v, g, k, b) {
+      var w;
+      if (b && typeof b == "function") {
         var M = 0;
-        k = function(N, P, T) {
-          if (N && N.code === "EAGAIN" && M < 10)
-            return M++, d.call(e, p, _, g, v, b, k);
-          w.apply(this, arguments);
+        w = function(C, T, P) {
+          if (C && C.code === "EAGAIN" && M < 10)
+            return M++, d.call(e, _, p, v, g, k, w);
+          b.apply(this, arguments);
         };
       }
-      return d.call(e, p, _, g, v, b, k);
+      return d.call(e, _, p, v, g, k, w);
     }
     return Object.setPrototypeOf && Object.setPrototypeOf(m, d), m;
   }(e.read), e.readSync = typeof e.readSync != "function" ? e.readSync : /* @__PURE__ */ function(d) {
-    return function(m, p, _, g, v) {
-      for (var b = 0; ; )
+    return function(m, _, p, v, g) {
+      for (var k = 0; ; )
         try {
-          return d.call(e, m, p, _, g, v);
-        } catch (w) {
-          if (w.code === "EAGAIN" && b < 10) {
-            b++;
+          return d.call(e, m, _, p, v, g);
+        } catch (b) {
+          if (b.code === "EAGAIN" && k < 10) {
+            k++;
             continue;
           }
-          throw w;
+          throw b;
         }
     };
   }(e.readSync);
   function r(d) {
-    d.lchmod = function(m, p, _) {
+    d.lchmod = function(m, _, p) {
       d.open(
         m,
         constants$8.O_WRONLY | constants$8.O_SYMLINK,
-        p,
-        function(g, v) {
-          if (g) {
-            _ && _(g);
+        _,
+        function(v, g) {
+          if (v) {
+            p && p(v);
             return;
           }
-          d.fchmod(v, p, function(b) {
-            d.close(v, function(w) {
-              _ && _(b || w);
+          d.fchmod(g, _, function(k) {
+            d.close(g, function(b) {
+              p && p(k || b);
             });
           });
         }
       );
-    }, d.lchmodSync = function(m, p) {
-      var _ = d.openSync(m, constants$8.O_WRONLY | constants$8.O_SYMLINK, p), g = !0, v;
+    }, d.lchmodSync = function(m, _) {
+      var p = d.openSync(m, constants$8.O_WRONLY | constants$8.O_SYMLINK, _), v = !0, g;
       try {
-        v = d.fchmodSync(_, p), g = !1;
+        g = d.fchmodSync(p, _), v = !1;
       } finally {
-        if (g)
+        if (v)
           try {
-            d.closeSync(_);
+            d.closeSync(p);
           } catch {
           }
         else
-          d.closeSync(_);
+          d.closeSync(p);
       }
-      return v;
+      return g;
     };
   }
   function i(d) {
-    constants$8.hasOwnProperty("O_SYMLINK") && d.futimes ? (d.lutimes = function(m, p, _, g) {
-      d.open(m, constants$8.O_SYMLINK, function(v, b) {
-        if (v) {
-          g && g(v);
+    constants$8.hasOwnProperty("O_SYMLINK") && d.futimes ? (d.lutimes = function(m, _, p, v) {
+      d.open(m, constants$8.O_SYMLINK, function(g, k) {
+        if (g) {
+          v && v(g);
           return;
         }
-        d.futimes(b, p, _, function(w) {
-          d.close(b, function(k) {
-            g && g(w || k);
+        d.futimes(k, _, p, function(b) {
+          d.close(k, function(w) {
+            v && v(b || w);
           });
         });
       });
-    }, d.lutimesSync = function(m, p, _) {
-      var g = d.openSync(m, constants$8.O_SYMLINK), v, b = !0;
+    }, d.lutimesSync = function(m, _, p) {
+      var v = d.openSync(m, constants$8.O_SYMLINK), g, k = !0;
       try {
-        v = d.futimesSync(g, p, _), b = !1;
+        g = d.futimesSync(v, _, p), k = !1;
       } finally {
-        if (b)
+        if (k)
           try {
-            d.closeSync(g);
+            d.closeSync(v);
           } catch {
           }
         else
-          d.closeSync(g);
+          d.closeSync(v);
       }
-      return v;
-    }) : d.futimes && (d.lutimes = function(m, p, _, g) {
-      g && process.nextTick(g);
+      return g;
+    }) : d.futimes && (d.lutimes = function(m, _, p, v) {
+      v && process.nextTick(v);
     }, d.lutimesSync = function() {
     });
   }
   function n(d) {
-    return d && function(m, p, _) {
-      return d.call(e, m, p, function(g) {
-        f(g) && (g = null), _ && _.apply(this, arguments);
+    return d && function(m, _, p) {
+      return d.call(e, m, _, function(v) {
+        f(v) && (v = null), p && p.apply(this, arguments);
       });
     };
   }
   function a(d) {
-    return d && function(m, p) {
+    return d && function(m, _) {
       try {
-        return d.call(e, m, p);
-      } catch (_) {
-        if (!f(_)) throw _;
+        return d.call(e, m, _);
+      } catch (p) {
+        if (!f(p)) throw p;
       }
     };
   }
   function s(d) {
-    return d && function(m, p, _, g) {
-      return d.call(e, m, p, _, function(v) {
-        f(v) && (v = null), g && g.apply(this, arguments);
+    return d && function(m, _, p, v) {
+      return d.call(e, m, _, p, function(g) {
+        f(g) && (g = null), v && v.apply(this, arguments);
       });
     };
   }
   function o(d) {
-    return d && function(m, p, _) {
+    return d && function(m, _, p) {
       try {
-        return d.call(e, m, p, _);
-      } catch (g) {
-        if (!f(g)) throw g;
+        return d.call(e, m, _, p);
+      } catch (v) {
+        if (!f(v)) throw v;
       }
     };
   }
   function l(d) {
-    return d && function(m, p, _) {
-      typeof p == "function" && (_ = p, p = null);
-      function g(v, b) {
-        b && (b.uid < 0 && (b.uid += 4294967296), b.gid < 0 && (b.gid += 4294967296)), _ && _.apply(this, arguments);
+    return d && function(m, _, p) {
+      typeof _ == "function" && (p = _, _ = null);
+      function v(g, k) {
+        k && (k.uid < 0 && (k.uid += 4294967296), k.gid < 0 && (k.gid += 4294967296)), p && p.apply(this, arguments);
       }
-      return p ? d.call(e, m, p, g) : d.call(e, m, g);
+      return _ ? d.call(e, m, _, v) : d.call(e, m, v);
     };
   }
   function h(d) {
-    return d && function(m, p) {
-      var _ = p ? d.call(e, m, p) : d.call(e, m);
-      return _ && (_.uid < 0 && (_.uid += 4294967296), _.gid < 0 && (_.gid += 4294967296)), _;
+    return d && function(m, _) {
+      var p = _ ? d.call(e, m, _) : d.call(e, m);
+      return p && (p.uid < 0 && (p.uid += 4294967296), p.gid < 0 && (p.gid += 4294967296)), p;
     };
   }
   function f(d) {
@@ -7500,7 +7500,7 @@ function clone$2(e) {
     Object.defineProperty(r, i, Object.getOwnPropertyDescriptor(e, i));
   }), r;
 }
-var fs$n = require$$0$3, polyfills = polyfills$1, legacy = legacyStreams, clone$1 = clone_1, util$8 = require$$0$4, gracefulQueue, previousSymbol;
+var fs$m = require$$0$3, polyfills = polyfills$1, legacy = legacyStreams, clone$1 = clone_1, util$8 = require$$0$4, gracefulQueue, previousSymbol;
 typeof Symbol == "function" && typeof Symbol.for == "function" ? (gracefulQueue = Symbol.for("graceful-fs.queue"), previousSymbol = Symbol.for("graceful-fs.previous")) : (gracefulQueue = "___graceful-fs.queue", previousSymbol = "___graceful-fs.previous");
 function noop() {
 }
@@ -7517,47 +7517,47 @@ util$8.debuglog ? debug = util$8.debuglog("gfs4") : /\bgfs4\b/i.test(process.env
   e = "GFS4: " + e.split(/\n/).join(`
 GFS4: `), console.error(e);
 });
-if (!fs$n[gracefulQueue]) {
+if (!fs$m[gracefulQueue]) {
   var queue = commonjsGlobal[gracefulQueue] || [];
-  publishQueue(fs$n, queue), fs$n.close = function(e) {
+  publishQueue(fs$m, queue), fs$m.close = function(e) {
     function r(i, n) {
-      return e.call(fs$n, i, function(a) {
+      return e.call(fs$m, i, function(a) {
         a || resetQueue(), typeof n == "function" && n.apply(this, arguments);
       });
     }
     return Object.defineProperty(r, previousSymbol, {
       value: e
     }), r;
-  }(fs$n.close), fs$n.closeSync = function(e) {
+  }(fs$m.close), fs$m.closeSync = function(e) {
     function r(i) {
-      e.apply(fs$n, arguments), resetQueue();
+      e.apply(fs$m, arguments), resetQueue();
     }
     return Object.defineProperty(r, previousSymbol, {
       value: e
     }), r;
-  }(fs$n.closeSync), /\bgfs4\b/i.test(process.env.NODE_DEBUG || "") && process.on("exit", function() {
-    debug(fs$n[gracefulQueue]), require$$5$1.equal(fs$n[gracefulQueue].length, 0);
+  }(fs$m.closeSync), /\bgfs4\b/i.test(process.env.NODE_DEBUG || "") && process.on("exit", function() {
+    debug(fs$m[gracefulQueue]), require$$5$1.equal(fs$m[gracefulQueue].length, 0);
   });
 }
-commonjsGlobal[gracefulQueue] || publishQueue(commonjsGlobal, fs$n[gracefulQueue]);
-var gracefulFs = patch(clone$1(fs$n));
-process.env.TEST_GRACEFUL_FS_GLOBAL_PATCH && !fs$n.__patched && (gracefulFs = patch(fs$n), fs$n.__patched = !0);
+commonjsGlobal[gracefulQueue] || publishQueue(commonjsGlobal, fs$m[gracefulQueue]);
+var gracefulFs = patch(clone$1(fs$m));
+process.env.TEST_GRACEFUL_FS_GLOBAL_PATCH && !fs$m.__patched && (gracefulFs = patch(fs$m), fs$m.__patched = !0);
 function patch(e) {
-  polyfills(e), e.gracefulify = patch, e.createReadStream = P, e.createWriteStream = T;
+  polyfills(e), e.gracefulify = patch, e.createReadStream = T, e.createWriteStream = P;
   var r = e.readFile;
   e.readFile = i;
-  function i(_e, Je, Pe) {
-    return typeof Je == "function" && (Pe = Je, Je = null), Ke(_e, Je, Pe);
-    function Ke(Wt, ee, We, st) {
+  function i(fe, Ke, Pe) {
+    return typeof Ke == "function" && (Pe = Ke, Ke = null), Je(fe, Ke, Pe);
+    function Je(Wt, ee, We, st) {
       return r(Wt, ee, function(Xt) {
-        Xt && (Xt.code === "EMFILE" || Xt.code === "ENFILE") ? enqueue([Ke, [Wt, ee, We], Xt, st || Date.now(), Date.now()]) : typeof We == "function" && We.apply(this, arguments);
+        Xt && (Xt.code === "EMFILE" || Xt.code === "ENFILE") ? enqueue([Je, [Wt, ee, We], Xt, st || Date.now(), Date.now()]) : typeof We == "function" && We.apply(this, arguments);
       });
     }
   }
   var n = e.writeFile;
   e.writeFile = a;
-  function a(_e, Je, Pe, Ke) {
-    return typeof Pe == "function" && (Ke = Pe, Pe = null), Wt(_e, Je, Pe, Ke);
+  function a(fe, Ke, Pe, Je) {
+    return typeof Pe == "function" && (Je = Pe, Pe = null), Wt(fe, Ke, Pe, Je);
     function Wt(ee, We, st, Xt, Jt) {
       return n(ee, We, st, function(Vt) {
         Vt && (Vt.code === "EMFILE" || Vt.code === "ENFILE") ? enqueue([Wt, [ee, We, st, Xt], Vt, Jt || Date.now(), Date.now()]) : typeof Xt == "function" && Xt.apply(this, arguments);
@@ -7566,8 +7566,8 @@ function patch(e) {
   }
   var s = e.appendFile;
   s && (e.appendFile = o);
-  function o(_e, Je, Pe, Ke) {
-    return typeof Pe == "function" && (Ke = Pe, Pe = null), Wt(_e, Je, Pe, Ke);
+  function o(fe, Ke, Pe, Je) {
+    return typeof Pe == "function" && (Je = Pe, Pe = null), Wt(fe, Ke, Pe, Je);
     function Wt(ee, We, st, Xt, Jt) {
       return s(ee, We, st, function(Vt) {
         Vt && (Vt.code === "EMFILE" || Vt.code === "ENFILE") ? enqueue([Wt, [ee, We, st, Xt], Vt, Jt || Date.now(), Date.now()]) : typeof Xt == "function" && Xt.apply(this, arguments);
@@ -7576,8 +7576,8 @@ function patch(e) {
   }
   var l = e.copyFile;
   l && (e.copyFile = h);
-  function h(_e, Je, Pe, Ke) {
-    return typeof Pe == "function" && (Ke = Pe, Pe = 0), Wt(_e, Je, Pe, Ke);
+  function h(fe, Ke, Pe, Je) {
+    return typeof Pe == "function" && (Je = Pe, Pe = 0), Wt(fe, Ke, Pe, Je);
     function Wt(ee, We, st, Xt, Jt) {
       return l(ee, We, st, function(Vt) {
         Vt && (Vt.code === "EMFILE" || Vt.code === "ENFILE") ? enqueue([Wt, [ee, We, st, Xt], Vt, Jt || Date.now(), Date.now()]) : typeof Xt == "function" && Xt.apply(this, arguments);
@@ -7587,9 +7587,9 @@ function patch(e) {
   var f = e.readdir;
   e.readdir = m;
   var d = /^v[0-5]\./;
-  function m(_e, Je, Pe) {
-    typeof Je == "function" && (Pe = Je, Je = null);
-    var Ke = d.test(process.version) ? function(We, st, Xt, Jt) {
+  function m(fe, Ke, Pe) {
+    typeof Ke == "function" && (Pe = Ke, Ke = null);
+    var Je = d.test(process.version) ? function(We, st, Xt, Jt) {
       return f(We, Wt(
         We,
         st,
@@ -7604,11 +7604,11 @@ function patch(e) {
         Jt
       ));
     };
-    return Ke(_e, Je, Pe);
+    return Je(fe, Ke, Pe);
     function Wt(ee, We, st, Xt) {
       return function(Jt, Vt) {
         Jt && (Jt.code === "EMFILE" || Jt.code === "ENFILE") ? enqueue([
-          Ke,
+          Je,
           [ee, We, st],
           Jt,
           Xt || Date.now(),
@@ -7618,18 +7618,18 @@ function patch(e) {
     }
   }
   if (process.version.substr(0, 4) === "v0.8") {
-    var p = legacy(e);
-    w = p.ReadStream, M = p.WriteStream;
+    var _ = legacy(e);
+    b = _.ReadStream, M = _.WriteStream;
   }
-  var _ = e.ReadStream;
-  _ && (w.prototype = Object.create(_.prototype), w.prototype.open = k);
-  var g = e.WriteStream;
-  g && (M.prototype = Object.create(g.prototype), M.prototype.open = N), Object.defineProperty(e, "ReadStream", {
+  var p = e.ReadStream;
+  p && (b.prototype = Object.create(p.prototype), b.prototype.open = w);
+  var v = e.WriteStream;
+  v && (M.prototype = Object.create(v.prototype), M.prototype.open = C), Object.defineProperty(e, "ReadStream", {
     get: function() {
-      return w;
+      return b;
     },
-    set: function(_e) {
-      w = _e;
+    set: function(fe) {
+      b = fe;
     },
     enumerable: !0,
     configurable: !0
@@ -7637,64 +7637,64 @@ function patch(e) {
     get: function() {
       return M;
     },
-    set: function(_e) {
-      M = _e;
+    set: function(fe) {
+      M = fe;
     },
     enumerable: !0,
     configurable: !0
   });
-  var v = w;
+  var g = b;
   Object.defineProperty(e, "FileReadStream", {
     get: function() {
-      return v;
+      return g;
     },
-    set: function(_e) {
-      v = _e;
+    set: function(fe) {
+      g = fe;
     },
     enumerable: !0,
     configurable: !0
   });
-  var b = M;
+  var k = M;
   Object.defineProperty(e, "FileWriteStream", {
     get: function() {
-      return b;
+      return k;
     },
-    set: function(_e) {
-      b = _e;
+    set: function(fe) {
+      k = fe;
     },
     enumerable: !0,
     configurable: !0
   });
-  function w(_e, Je) {
-    return this instanceof w ? (_.apply(this, arguments), this) : w.apply(Object.create(w.prototype), arguments);
+  function b(fe, Ke) {
+    return this instanceof b ? (p.apply(this, arguments), this) : b.apply(Object.create(b.prototype), arguments);
   }
-  function k() {
-    var _e = this;
-    X(_e.path, _e.flags, _e.mode, function(Je, Pe) {
-      Je ? (_e.autoClose && _e.destroy(), _e.emit("error", Je)) : (_e.fd = Pe, _e.emit("open", Pe), _e.read());
+  function w() {
+    var fe = this;
+    X(fe.path, fe.flags, fe.mode, function(Ke, Pe) {
+      Ke ? (fe.autoClose && fe.destroy(), fe.emit("error", Ke)) : (fe.fd = Pe, fe.emit("open", Pe), fe.read());
     });
   }
-  function M(_e, Je) {
-    return this instanceof M ? (g.apply(this, arguments), this) : M.apply(Object.create(M.prototype), arguments);
+  function M(fe, Ke) {
+    return this instanceof M ? (v.apply(this, arguments), this) : M.apply(Object.create(M.prototype), arguments);
   }
-  function N() {
-    var _e = this;
-    X(_e.path, _e.flags, _e.mode, function(Je, Pe) {
-      Je ? (_e.destroy(), _e.emit("error", Je)) : (_e.fd = Pe, _e.emit("open", Pe));
+  function C() {
+    var fe = this;
+    X(fe.path, fe.flags, fe.mode, function(Ke, Pe) {
+      Ke ? (fe.destroy(), fe.emit("error", Ke)) : (fe.fd = Pe, fe.emit("open", Pe));
     });
   }
-  function P(_e, Je) {
-    return new e.ReadStream(_e, Je);
+  function T(fe, Ke) {
+    return new e.ReadStream(fe, Ke);
   }
-  function T(_e, Je) {
-    return new e.WriteStream(_e, Je);
+  function P(fe, Ke) {
+    return new e.WriteStream(fe, Ke);
   }
-  var C = e.open;
+  var N = e.open;
   e.open = X;
-  function X(_e, Je, Pe, Ke) {
-    return typeof Pe == "function" && (Ke = Pe, Pe = null), Wt(_e, Je, Pe, Ke);
+  function X(fe, Ke, Pe, Je) {
+    return typeof Pe == "function" && (Je = Pe, Pe = null), Wt(fe, Ke, Pe, Je);
     function Wt(ee, We, st, Xt, Jt) {
-      return C(ee, We, st, function(Vt, it) {
+      return N(ee, We, st, function(Vt, it) {
         Vt && (Vt.code === "EMFILE" || Vt.code === "ENFILE") ? enqueue([Wt, [ee, We, st, Xt], Vt, Jt || Date.now(), Date.now()]) : typeof Xt == "function" && Xt.apply(this, arguments);
       });
     }
@@ -7702,17 +7702,17 @@ function patch(e) {
   return e;
 }
 function enqueue(e) {
-  debug("ENQUEUE", e[0].name, e[1]), fs$n[gracefulQueue].push(e), retry();
+  debug("ENQUEUE", e[0].name, e[1]), fs$m[gracefulQueue].push(e), retry();
 }
 var retryTimer;
 function resetQueue() {
-  for (var e = Date.now(), r = 0; r < fs$n[gracefulQueue].length; ++r)
-    fs$n[gracefulQueue][r].length > 2 && (fs$n[gracefulQueue][r][3] = e, fs$n[gracefulQueue][r][4] = e);
+  for (var e = Date.now(), r = 0; r < fs$m[gracefulQueue].length; ++r)
+    fs$m[gracefulQueue][r].length > 2 && (fs$m[gracefulQueue][r][3] = e, fs$m[gracefulQueue][r][4] = e);
   retry();
 }
 function retry() {
-  if (clearTimeout(retryTimer), retryTimer = void 0, fs$n[gracefulQueue].length !== 0) {
-    var e = fs$n[gracefulQueue].shift(), r = e[0], i = e[1], n = e[2], a = e[3], s = e[4];
+  if (clearTimeout(retryTimer), retryTimer = void 0, fs$m[gracefulQueue].length !== 0) {
+    var e = fs$m[gracefulQueue].shift(), r = e[0], i = e[1], n = e[2], a = e[3], s = e[4];
     if (a === void 0)
       debug("RETRY", r.name, i), r.apply(null, i);
     else if (Date.now() - a >= 6e4) {
@@ -7721,7 +7721,7 @@ function retry() {
       typeof o == "function" && o.call(null, n);
     } else {
       var l = Date.now() - s, h = Math.max(s - a, 1), f = Math.min(h * 1.2, 100);
-      l >= f ? (debug("RETRY", r.name, i), r.apply(null, i.concat([a]))) : fs$n[gracefulQueue].push(e);
+      l >= f ? (debug("RETRY", r.name, i), r.apply(null, i.concat([a]))) : fs$m[gracefulQueue].push(e);
     }
     retryTimer === void 0 && (retryTimer = setTimeout(retry, 0));
   }
@@ -7773,9 +7773,9 @@ function retry() {
     return typeof s == "function" ? i.exists(a, s) : new Promise((o) => i.exists(a, o));
   }, e.read = function(a, s, o, l, h, f) {
     return typeof f == "function" ? i.read(a, s, o, l, h, f) : new Promise((d, m) => {
-      i.read(a, s, o, l, h, (p, _, g) => {
-        if (p) return m(p);
-        d({ bytesRead: _, buffer: g });
+      i.read(a, s, o, l, h, (_, p, v) => {
+        if (_) return m(_);
+        d({ bytesRead: p, buffer: v });
       });
     });
   }, e.write = function(a, s, ...o) {
@@ -7804,7 +7804,7 @@ function retry() {
     "Warning",
     "fs-extra-WARN0003"
   );
-})(fs$o);
+})(fs$n);
 var makeDir$1 = {}, utils$3 = {};
 const path$d = path$f;
 utils$3.checkPath = function(r) {
@@ -7813,15 +7813,15 @@ utils$3.checkPath = function(r) {
     throw n.code = "EINVAL", n;
   }
 };
-const fs$m = fs$o, { checkPath } = utils$3, getMode = (e) => {
+const fs$l = fs$n, { checkPath } = utils$3, getMode = (e) => {
   const r = { mode: 511 };
   return typeof e == "number" ? e : { ...r, ...e }.mode;
 };
-makeDir$1.makeDir = async (e, r) => (checkPath(e), fs$m.mkdir(e, {
+makeDir$1.makeDir = async (e, r) => (checkPath(e), fs$l.mkdir(e, {
   mode: getMode(r),
   recursive: !0
 }));
-makeDir$1.makeDirSync = (e, r) => (checkPath(e), fs$m.mkdirSync(e, {
+makeDir$1.makeDirSync = (e, r) => (checkPath(e), fs$l.mkdirSync(e, {
   mode: getMode(r),
   recursive: !0
 }));
@@ -7835,23 +7835,23 @@ var mkdirs$2 = {
   ensureDir: makeDir,
   ensureDirSync: makeDirSync
 };
-const u$d = universalify$1.fromPromise, fs$l = fs$o;
+const u$d = universalify$1.fromPromise, fs$k = fs$n;
 function pathExists$6(e) {
-  return fs$l.access(e).then(() => !0).catch(() => !1);
+  return fs$k.access(e).then(() => !0).catch(() => !1);
 }
 var pathExists_1 = {
   pathExists: u$d(pathExists$6),
-  pathExistsSync: fs$l.existsSync
+  pathExistsSync: fs$k.existsSync
 };
-const fs$k = fs$o, u$c = universalify$1.fromPromise;
+const fs$j = fs$n, u$c = universalify$1.fromPromise;
 async function utimesMillis$1(e, r, i) {
-  const n = await fs$k.open(e, "r+");
+  const n = await fs$j.open(e, "r+");
   let a = null;
   try {
-    await fs$k.futimes(n, r, i);
+    await fs$j.futimes(n, r, i);
   } finally {
     try {
-      await fs$k.close(n);
+      await fs$j.close(n);
     } catch (s) {
       a = s;
     }
@@ -7860,16 +7860,16 @@ async function utimesMillis$1(e, r, i) {
     throw a;
 }
 function utimesMillisSync$1(e, r, i) {
-  const n = fs$k.openSync(e, "r+");
-  return fs$k.futimesSync(n, r, i), fs$k.closeSync(n);
+  const n = fs$j.openSync(e, "r+");
+  return fs$j.futimesSync(n, r, i), fs$j.closeSync(n);
 }
 var utimes = {
   utimesMillis: u$c(utimesMillis$1),
   utimesMillisSync: utimesMillisSync$1
 };
-const fs$j = fs$o, path$c = path$f, u$b = universalify$1.fromPromise;
+const fs$i = fs$n, path$c = path$f, u$b = universalify$1.fromPromise;
 function getStats$1(e, r, i) {
-  const n = i.dereference ? (a) => fs$j.stat(a, { bigint: !0 }) : (a) => fs$j.lstat(a, { bigint: !0 });
+  const n = i.dereference ? (a) => fs$i.stat(a, { bigint: !0 }) : (a) => fs$i.lstat(a, { bigint: !0 });
   return Promise.all([
     n(e),
     n(r).catch((a) => {
@@ -7880,7 +7880,7 @@ function getStats$1(e, r, i) {
 }
 function getStatsSync(e, r, i) {
   let n;
-  const a = i.dereference ? (o) => fs$j.statSync(o, { bigint: !0 }) : (o) => fs$j.lstatSync(o, { bigint: !0 }), s = a(e);
+  const a = i.dereference ? (o) => fs$i.statSync(o, { bigint: !0 }) : (o) => fs$i.lstatSync(o, { bigint: !0 }), s = a(e);
   try {
     n = a(r);
   } catch (o) {
@@ -7930,7 +7930,7 @@ async function checkParentPaths(e, r, i, n) {
   if (s === a || s === path$c.parse(s).root) return;
   let o;
   try {
-    o = await fs$j.stat(s, { bigint: !0 });
+    o = await fs$i.stat(s, { bigint: !0 });
   } catch (l) {
     if (l.code === "ENOENT") return;
     throw l;
@@ -7944,7 +7944,7 @@ function checkParentPathsSync(e, r, i, n) {
   if (s === a || s === path$c.parse(s).root) return;
   let o;
   try {
-    o = fs$j.statSync(s, { bigint: !0 });
+    o = fs$i.statSync(s, { bigint: !0 });
   } catch (l) {
     if (l.code === "ENOENT") return;
     throw l;
@@ -7994,7 +7994,7 @@ async function asyncIteratorConcurrentProcess$1(e, r) {
 var async$4 = {
   asyncIteratorConcurrentProcess: asyncIteratorConcurrentProcess$1
 };
-const fs$i = fs$o, path$b = path$f, { mkdirs: mkdirs$1 } = mkdirs$2, { pathExists: pathExists$5 } = pathExists_1, { utimesMillis } = utimes, stat$3 = stat$4, { asyncIteratorConcurrentProcess } = async$4;
+const fs$h = fs$n, path$b = path$f, { mkdirs: mkdirs$1 } = mkdirs$2, { pathExists: pathExists$5 } = pathExists_1, { utimesMillis } = utimes, stat$3 = stat$4, { asyncIteratorConcurrentProcess } = async$4;
 async function copy$3(e, r, i = {}) {
   typeof i == "function" && (i = { filter: i }), i.clobber = "clobber" in i ? !!i.clobber : !0, i.overwrite = "overwrite" in i ? !!i.overwrite : i.clobber, i.preserveTimestamps && process.arch === "ia32" && process.emitWarning(
     `Using the preserveTimestamps option in 32-bit node is not recommended;
@@ -8012,7 +8012,7 @@ async function runFilter(e, r, i) {
   return i.filter ? i.filter(e, r) : !0;
 }
 async function getStatsAndPerformCopy(e, r, i, n) {
-  const s = await (n.dereference ? fs$i.stat : fs$i.lstat)(r);
+  const s = await (n.dereference ? fs$h.stat : fs$h.lstat)(r);
   if (s.isDirectory()) return onDir$1(s, e, r, i, n);
   if (s.isFile() || s.isCharacterDevice() || s.isBlockDevice()) return onFile$1(s, e, r, i, n);
   if (s.isSymbolicLink()) return onLink$1(e, r, i, n);
@@ -8021,42 +8021,42 @@ async function getStatsAndPerformCopy(e, r, i, n) {
 async function onFile$1(e, r, i, n, a) {
   if (!r) return copyFile$1(e, i, n, a);
   if (a.overwrite)
-    return await fs$i.unlink(n), copyFile$1(e, i, n, a);
+    return await fs$h.unlink(n), copyFile$1(e, i, n, a);
   if (a.errorOnExist)
     throw new Error(`'${n}' already exists`);
 }
 async function copyFile$1(e, r, i, n) {
-  if (await fs$i.copyFile(r, i), n.preserveTimestamps) {
+  if (await fs$h.copyFile(r, i), n.preserveTimestamps) {
     fileIsNotWritable$1(e.mode) && await makeFileWritable$1(i, e.mode);
-    const a = await fs$i.stat(r);
+    const a = await fs$h.stat(r);
     await utimesMillis(i, a.atime, a.mtime);
   }
-  return fs$i.chmod(i, e.mode);
+  return fs$h.chmod(i, e.mode);
 }
 function fileIsNotWritable$1(e) {
   return (e & 128) === 0;
 }
 function makeFileWritable$1(e, r) {
-  return fs$i.chmod(e, r | 128);
+  return fs$h.chmod(e, r | 128);
 }
 async function onDir$1(e, r, i, n, a) {
-  r || await fs$i.mkdir(n), await asyncIteratorConcurrentProcess(await fs$i.opendir(i), async (s) => {
+  r || await fs$h.mkdir(n), await asyncIteratorConcurrentProcess(await fs$h.opendir(i), async (s) => {
     const o = path$b.join(i, s.name), l = path$b.join(n, s.name);
     if (await runFilter(o, l, a)) {
       const { destStat: f } = await stat$3.checkPaths(o, l, "copy", a);
       await getStatsAndPerformCopy(f, o, l, a);
     }
-  }), r || await fs$i.chmod(n, e.mode);
+  }), r || await fs$h.chmod(n, e.mode);
 }
 async function onLink$1(e, r, i, n) {
-  let a = await fs$i.readlink(r);
+  let a = await fs$h.readlink(r);
   if (n.dereference && (a = path$b.resolve(process.cwd(), a)), !e)
-    return fs$i.symlink(a, i);
+    return fs$h.symlink(a, i);
   let s = null;
   try {
-    s = await fs$i.readlink(i);
+    s = await fs$h.readlink(i);
   } catch (o) {
-    if (o.code === "EINVAL" || o.code === "UNKNOWN") return fs$i.symlink(a, i);
+    if (o.code === "EINVAL" || o.code === "UNKNOWN") return fs$h.symlink(a, i);
     throw o;
   }
   if (n.dereference && (s = path$b.resolve(process.cwd(), s)), a !== s) {
@@ -8065,10 +8065,10 @@ async function onLink$1(e, r, i, n) {
     if (stat$3.isSrcSubdir(s, a))
       throw new Error(`Cannot overwrite '${s}' with '${a}'.`);
   }
-  return await fs$i.unlink(i), fs$i.symlink(a, i);
+  return await fs$h.unlink(i), fs$h.symlink(a, i);
 }
 var copy_1 = copy$3;
-const fs$h = gracefulFs, path$a = path$f, mkdirsSync$1 = mkdirs$2.mkdirsSync, utimesMillisSync = utimes.utimesMillisSync, stat$2 = stat$4;
+const fs$g = gracefulFs, path$a = path$f, mkdirsSync$1 = mkdirs$2.mkdirsSync, utimesMillisSync = utimes.utimesMillisSync, stat$2 = stat$4;
 function copySync$1(e, r, i) {
   typeof i == "function" && (i = { filter: i }), i = i || {}, i.clobber = "clobber" in i ? !!i.clobber : !0, i.overwrite = "overwrite" in i ? !!i.overwrite : i.clobber, i.preserveTimestamps && process.arch === "ia32" && process.emitWarning(
     `Using the preserveTimestamps option in 32-bit node is not recommended;
@@ -8080,10 +8080,10 @@ function copySync$1(e, r, i) {
   const { srcStat: n, destStat: a } = stat$2.checkPathsSync(e, r, "copy", i);
   if (stat$2.checkParentPathsSync(e, n, r, "copy"), i.filter && !i.filter(e, r)) return;
   const s = path$a.dirname(r);
-  return fs$h.existsSync(s) || mkdirsSync$1(s), getStats(a, e, r, i);
+  return fs$g.existsSync(s) || mkdirsSync$1(s), getStats(a, e, r, i);
 }
 function getStats(e, r, i, n) {
-  const s = (n.dereference ? fs$h.statSync : fs$h.lstatSync)(r);
+  const s = (n.dereference ? fs$g.statSync : fs$g.lstatSync)(r);
   if (s.isDirectory()) return onDir(s, e, r, i, n);
   if (s.isFile() || s.isCharacterDevice() || s.isBlockDevice()) return onFile(s, e, r, i, n);
   if (s.isSymbolicLink()) return onLink(e, r, i, n);
@@ -8094,12 +8094,12 @@ function onFile(e, r, i, n, a) {
 }
 function mayCopyFile(e, r, i, n) {
   if (n.overwrite)
-    return fs$h.unlinkSync(i), copyFile(e, r, i, n);
+    return fs$g.unlinkSync(i), copyFile(e, r, i, n);
   if (n.errorOnExist)
     throw new Error(`'${i}' already exists`);
 }
 function copyFile(e, r, i, n) {
-  return fs$h.copyFileSync(r, i), n.preserveTimestamps && handleTimestamps(e.mode, r, i), setDestMode(i, e.mode);
+  return fs$g.copyFileSync(r, i), n.preserveTimestamps && handleTimestamps(e.mode, r, i), setDestMode(i, e.mode);
 }
 function handleTimestamps(e, r, i) {
   return fileIsNotWritable(e) && makeFileWritable(i, e), setDestTimestamps(r, i);
@@ -8111,20 +8111,20 @@ function makeFileWritable(e, r) {
   return setDestMode(e, r | 128);
 }
 function setDestMode(e, r) {
-  return fs$h.chmodSync(e, r);
+  return fs$g.chmodSync(e, r);
 }
 function setDestTimestamps(e, r) {
-  const i = fs$h.statSync(e);
+  const i = fs$g.statSync(e);
   return utimesMillisSync(r, i.atime, i.mtime);
 }
 function onDir(e, r, i, n, a) {
   return r ? copyDir(i, n, a) : mkDirAndCopy(e.mode, i, n, a);
 }
 function mkDirAndCopy(e, r, i, n) {
-  return fs$h.mkdirSync(i), copyDir(r, i, n), setDestMode(i, e);
+  return fs$g.mkdirSync(i), copyDir(r, i, n), setDestMode(i, e);
 }
 function copyDir(e, r, i) {
-  const n = fs$h.opendirSync(e);
+  const n = fs$g.opendirSync(e);
   try {
     let a;
     for (; (a = n.readSync()) !== null; )
@@ -8140,13 +8140,13 @@ function copyDirItem(e, r, i, n) {
   return getStats(o, a, s, n);
 }
 function onLink(e, r, i, n) {
-  let a = fs$h.readlinkSync(r);
+  let a = fs$g.readlinkSync(r);
   if (n.dereference && (a = path$a.resolve(process.cwd(), a)), e) {
     let s;
     try {
-      s = fs$h.readlinkSync(i);
+      s = fs$g.readlinkSync(i);
     } catch (o) {
-      if (o.code === "EINVAL" || o.code === "UNKNOWN") return fs$h.symlinkSync(a, i);
+      if (o.code === "EINVAL" || o.code === "UNKNOWN") return fs$g.symlinkSync(a, i);
       throw o;
     }
     if (n.dereference && (s = path$a.resolve(process.cwd(), s)), a !== s) {
@@ -8157,10 +8157,10 @@ function onLink(e, r, i, n) {
     }
     return copyLink(a, i);
   } else
-    return fs$h.symlinkSync(a, i);
+    return fs$g.symlinkSync(a, i);
 }
 function copyLink(e, r) {
-  return fs$h.unlinkSync(r), fs$h.symlinkSync(e, r);
+  return fs$g.unlinkSync(r), fs$g.symlinkSync(e, r);
 }
 var copySync_1 = copySync$1;
 const u$a = universalify$1.fromPromise;
@@ -8168,21 +8168,21 @@ var copy$2 = {
   copy: u$a(copy_1),
   copySync: copySync_1
 };
-const fs$g = gracefulFs, u$9 = universalify$1.fromCallback;
+const fs$f = gracefulFs, u$9 = universalify$1.fromCallback;
 function remove$3(e, r) {
-  fs$g.rm(e, { recursive: !0, force: !0 }, r);
+  fs$f.rm(e, { recursive: !0, force: !0 }, r);
 }
 function removeSync$1(e) {
-  fs$g.rmSync(e, { recursive: !0, force: !0 });
+  fs$f.rmSync(e, { recursive: !0, force: !0 });
 }
 var remove_1 = {
   remove: u$9(remove$3),
   removeSync: removeSync$1
 };
-const u$8 = universalify$1.fromPromise, fs$f = fs$o, path$9 = path$f, mkdir$3 = mkdirs$2, remove$2 = remove_1, emptyDir = u$8(async function(r) {
+const u$8 = universalify$1.fromPromise, fs$e = fs$n, path$9 = path$f, mkdir$3 = mkdirs$2, remove$2 = remove_1, emptyDir = u$8(async function(r) {
   let i;
   try {
-    i = await fs$f.readdir(r);
+    i = await fs$e.readdir(r);
   } catch {
     return mkdir$3.mkdirs(r);
   }
@@ -8191,7 +8191,7 @@ const u$8 = universalify$1.fromPromise, fs$f = fs$o, path$9 = path$f, mkdir$3 = 
 function emptyDirSync(e) {
   let r;
   try {
-    r = fs$f.readdirSync(e);
+    r = fs$e.readdirSync(e);
   } catch {
     return mkdir$3.mkdirsSync(e);
   }
@@ -8205,88 +8205,88 @@ var empty = {
   emptyDir,
   emptydir: emptyDir
 };
-const u$7 = universalify$1.fromPromise, path$8 = path$f, fs$e = fs$o, mkdir$2 = mkdirs$2;
+const u$7 = universalify$1.fromPromise, path$8 = path$f, fs$d = fs$n, mkdir$2 = mkdirs$2;
 async function createFile$1(e) {
   let r;
   try {
-    r = await fs$e.stat(e);
+    r = await fs$d.stat(e);
   } catch {
   }
   if (r && r.isFile()) return;
   const i = path$8.dirname(e);
   let n = null;
   try {
-    n = await fs$e.stat(i);
+    n = await fs$d.stat(i);
   } catch (a) {
     if (a.code === "ENOENT") {
-      await mkdir$2.mkdirs(i), await fs$e.writeFile(e, "");
+      await mkdir$2.mkdirs(i), await fs$d.writeFile(e, "");
       return;
     } else
       throw a;
   }
-  n.isDirectory() ? await fs$e.writeFile(e, "") : await fs$e.readdir(i);
+  n.isDirectory() ? await fs$d.writeFile(e, "") : await fs$d.readdir(i);
 }
 function createFileSync$1(e) {
   let r;
   try {
-    r = fs$e.statSync(e);
+    r = fs$d.statSync(e);
   } catch {
   }
   if (r && r.isFile()) return;
   const i = path$8.dirname(e);
   try {
-    fs$e.statSync(i).isDirectory() || fs$e.readdirSync(i);
+    fs$d.statSync(i).isDirectory() || fs$d.readdirSync(i);
   } catch (n) {
     if (n && n.code === "ENOENT") mkdir$2.mkdirsSync(i);
     else throw n;
   }
-  fs$e.writeFileSync(e, "");
+  fs$d.writeFileSync(e, "");
 }
 var file = {
   createFile: u$7(createFile$1),
   createFileSync: createFileSync$1
 };
-const u$6 = universalify$1.fromPromise, path$7 = path$f, fs$d = fs$o, mkdir$1 = mkdirs$2, { pathExists: pathExists$4 } = pathExists_1, { areIdentical: areIdentical$1 } = stat$4;
+const u$6 = universalify$1.fromPromise, path$7 = path$f, fs$c = fs$n, mkdir$1 = mkdirs$2, { pathExists: pathExists$4 } = pathExists_1, { areIdentical: areIdentical$1 } = stat$4;
 async function createLink$1(e, r) {
   let i;
   try {
-    i = await fs$d.lstat(r);
+    i = await fs$c.lstat(r);
   } catch {
   }
   let n;
   try {
-    n = await fs$d.lstat(e);
+    n = await fs$c.lstat(e);
   } catch (o) {
     throw o.message = o.message.replace("lstat", "ensureLink"), o;
   }
   if (i && areIdentical$1(n, i)) return;
   const a = path$7.dirname(r);
-  await pathExists$4(a) || await mkdir$1.mkdirs(a), await fs$d.link(e, r);
+  await pathExists$4(a) || await mkdir$1.mkdirs(a), await fs$c.link(e, r);
 }
 function createLinkSync$1(e, r) {
   let i;
   try {
-    i = fs$d.lstatSync(r);
+    i = fs$c.lstatSync(r);
   } catch {
   }
   try {
-    const s = fs$d.lstatSync(e);
+    const s = fs$c.lstatSync(e);
     if (i && areIdentical$1(s, i)) return;
   } catch (s) {
     throw s.message = s.message.replace("lstat", "ensureLink"), s;
   }
   const n = path$7.dirname(r);
-  return fs$d.existsSync(n) || mkdir$1.mkdirsSync(n), fs$d.linkSync(e, r);
+  return fs$c.existsSync(n) || mkdir$1.mkdirsSync(n), fs$c.linkSync(e, r);
 }
 var link = {
   createLink: u$6(createLink$1),
   createLinkSync: createLinkSync$1
 };
-const path$6 = path$f, fs$c = fs$o, { pathExists: pathExists$3 } = pathExists_1, u$5 = universalify$1.fromPromise;
+const path$6 = path$f, fs$b = fs$n, { pathExists: pathExists$3 } = pathExists_1, u$5 = universalify$1.fromPromise;
 async function symlinkPaths$1(e, r) {
   if (path$6.isAbsolute(e)) {
     try {
-      await fs$c.lstat(e);
+      await fs$b.lstat(e);
     } catch (s) {
       throw s.message = s.message.replace("lstat", "ensureSymlink"), s;
     }
@@ -8302,7 +8302,7 @@ async function symlinkPaths$1(e, r) {
       toDst: e
     };
   try {
-    await fs$c.lstat(e);
+    await fs$b.lstat(e);
   } catch (s) {
     throw s.message = s.message.replace("lstat", "ensureSymlink"), s;
   }
@@ -8313,19 +8313,19 @@ async function symlinkPaths$1(e, r) {
 }
 function symlinkPathsSync$1(e, r) {
   if (path$6.isAbsolute(e)) {
-    if (!fs$c.existsSync(e)) throw new Error("absolute srcpath does not exist");
+    if (!fs$b.existsSync(e)) throw new Error("absolute srcpath does not exist");
     return {
       toCwd: e,
       toDst: e
     };
   }
   const i = path$6.dirname(r), n = path$6.join(i, e);
-  if (fs$c.existsSync(n))
+  if (fs$b.existsSync(n))
     return {
       toCwd: n,
       toDst: e
     };
-  if (!fs$c.existsSync(e)) throw new Error("relative srcpath does not exist");
+  if (!fs$b.existsSync(e)) throw new Error("relative srcpath does not exist");
   return {
     toCwd: e,
     toDst: path$6.relative(i, e)
@@ -8335,12 +8335,12 @@ var symlinkPaths_1 = {
   symlinkPaths: u$5(symlinkPaths$1),
   symlinkPathsSync: symlinkPathsSync$1
 };
-const fs$b = fs$o, u$4 = universalify$1.fromPromise;
+const fs$a = fs$n, u$4 = universalify$1.fromPromise;
 async function symlinkType$1(e, r) {
   if (r) return r;
   let i;
   try {
-    i = await fs$b.lstat(e);
+    i = await fs$a.lstat(e);
   } catch {
     return "file";
   }
@@ -8350,7 +8350,7 @@ function symlinkTypeSync$1(e, r) {
   if (r) return r;
   let i;
   try {
-    i = fs$b.lstatSync(e);
+    i = fs$a.lstatSync(e);
   } catch {
     return "file";
   }
@@ -8360,39 +8360,39 @@ var symlinkType_1 = {
   symlinkType: u$4(symlinkType$1),
   symlinkTypeSync: symlinkTypeSync$1
 };
-const u$3 = universalify$1.fromPromise, path$5 = path$f, fs$a = fs$o, { mkdirs, mkdirsSync } = mkdirs$2, { symlinkPaths, symlinkPathsSync } = symlinkPaths_1, { symlinkType, symlinkTypeSync } = symlinkType_1, { pathExists: pathExists$2 } = pathExists_1, { areIdentical } = stat$4;
+const u$3 = universalify$1.fromPromise, path$5 = path$f, fs$9 = fs$n, { mkdirs, mkdirsSync } = mkdirs$2, { symlinkPaths, symlinkPathsSync } = symlinkPaths_1, { symlinkType, symlinkTypeSync } = symlinkType_1, { pathExists: pathExists$2 } = pathExists_1, { areIdentical } = stat$4;
 async function createSymlink$1(e, r, i) {
   let n;
   try {
-    n = await fs$a.lstat(r);
+    n = await fs$9.lstat(r);
   } catch {
   }
   if (n && n.isSymbolicLink()) {
     const [l, h] = await Promise.all([
-      fs$a.stat(e),
-      fs$a.stat(r)
+      fs$9.stat(e),
+      fs$9.stat(r)
     ]);
     if (areIdentical(l, h)) return;
   }
   const a = await symlinkPaths(e, r);
   e = a.toDst;
   const s = await symlinkType(a.toCwd, i), o = path$5.dirname(r);
-  return await pathExists$2(o) || await mkdirs(o), fs$a.symlink(e, r, s);
+  return await pathExists$2(o) || await mkdirs(o), fs$9.symlink(e, r, s);
 }
 function createSymlinkSync$1(e, r, i) {
   let n;
   try {
-    n = fs$a.lstatSync(r);
+    n = fs$9.lstatSync(r);
   } catch {
   }
   if (n && n.isSymbolicLink()) {
-    const l = fs$a.statSync(e), h = fs$a.statSync(r);
+    const l = fs$9.statSync(e), h = fs$9.statSync(r);
     if (areIdentical(l, h)) return;
   }
   const a = symlinkPathsSync(e, r);
   e = a.toDst, i = symlinkTypeSync(a.toCwd, i);
   const s = path$5.dirname(r);
-  return fs$a.existsSync(s) || mkdirsSync(s), fs$a.symlinkSync(e, r, i);
+  return fs$9.existsSync(s) || mkdirsSync(s), fs$9.symlinkSync(e, r, i);
 }
 var symlink = {
   createSymlink: u$3(createSymlink$1),
@@ -8483,14 +8483,14 @@ var jsonfile = {
   writeJson: jsonFile$1.writeFile,
   writeJsonSync: jsonFile$1.writeFileSync
 };
-const u$2 = universalify$1.fromPromise, fs$9 = fs$o, path$4 = path$f, mkdir = mkdirs$2, pathExists$1 = pathExists_1.pathExists;
+const u$2 = universalify$1.fromPromise, fs$8 = fs$n, path$4 = path$f, mkdir = mkdirs$2, pathExists$1 = pathExists_1.pathExists;
 async function outputFile$1(e, r, i = "utf-8") {
   const n = path$4.dirname(e);
-  return await pathExists$1(n) || await mkdir.mkdirs(n), fs$9.writeFile(e, r, i);
+  return await pathExists$1(n) || await mkdir.mkdirs(n), fs$8.writeFile(e, r, i);
 }
 function outputFileSync$1(e, ...r) {
   const i = path$4.dirname(e);
-  fs$9.existsSync(i) || mkdir.mkdirsSync(i), fs$9.writeFileSync(e, ...r);
+  fs$8.existsSync(i) || mkdir.mkdirsSync(i), fs$8.writeFileSync(e, ...r);
 }
 var outputFile_1 = {
   outputFile: u$2(outputFile$1),
@@ -8518,7 +8518,7 @@ jsonFile.writeJSONSync = jsonFile.writeJsonSync;
 jsonFile.readJSON = jsonFile.readJson;
 jsonFile.readJSONSync = jsonFile.readJsonSync;
 var json = jsonFile;
-const fs$8 = fs$o, path$3 = path$f, { copy: copy$1 } = copy$2, { remove: remove$1 } = remove_1, { mkdirp } = mkdirs$2, { pathExists } = pathExists_1, stat$1 = stat$4;
+const fs$7 = fs$n, path$3 = path$f, { copy: copy$1 } = copy$2, { remove: remove$1 } = remove_1, { mkdirp } = mkdirs$2, { pathExists } = pathExists_1, stat$1 = stat$4;
 async function move$1(e, r, i = {}) {
   const n = i.overwrite || i.clobber || !1, { srcStat: a, isChangingCase: s = !1 } = await stat$1.checkPaths(e, r, "move", i);
   await stat$1.checkParentPaths(e, a, r, "move");
@@ -8533,7 +8533,7 @@ async function doRename$1(e, r, i, n) {
       throw new Error("dest already exists.");
   }
   try {
-    await fs$8.rename(e, r);
+    await fs$7.rename(e, r);
   } catch (a) {
     if (a.code !== "EXDEV")
       throw a;
@@ -8548,7 +8548,7 @@ async function moveAcrossDevice$1(e, r, i) {
   }), remove$1(e);
 }
 var move_1 = move$1;
-const fs$7 = gracefulFs, path$2 = path$f, copySync = copy$2.copySync, removeSync = remove_1.removeSync, mkdirpSync = mkdirs$2.mkdirpSync, stat = stat$4;
+const fs$6 = gracefulFs, path$2 = path$f, copySync = copy$2.copySync, removeSync = remove_1.removeSync, mkdirpSync = mkdirs$2.mkdirpSync, stat = stat$4;
 function moveSync(e, r, i) {
   i = i || {};
   const n = i.overwrite || i.clobber || !1, { srcStat: a, isChangingCase: s = !1 } = stat.checkPathsSync(e, r, "move", i);
@@ -8562,12 +8562,12 @@ function doRename(e, r, i, n) {
   if (n) return rename$1(e, r, i);
   if (i)
     return removeSync(r), rename$1(e, r, i);
-  if (fs$7.existsSync(r)) throw new Error("dest already exists.");
+  if (fs$6.existsSync(r)) throw new Error("dest already exists.");
   return rename$1(e, r, i);
 }
 function rename$1(e, r, i) {
   try {
-    fs$7.renameSync(e, r);
+    fs$6.renameSync(e, r);
   } catch (n) {
     if (n.code !== "EXDEV") throw n;
     return moveAcrossDevice(e, r, i);
@@ -8587,7 +8587,7 @@ var move = {
   moveSync: moveSync_1
 }, lib$2 = {
   // Export promiseified graceful-fs:
-  ...fs$o,
+  ...fs$n,
   // Export extra methods:
   ...copy$2,
   ...empty,
@@ -8599,7 +8599,7 @@ var move = {
   ...pathExists_1,
   ...remove_1
 };
-const fs$6 = /* @__PURE__ */ getDefaultExportFromCjs(lib$2), defaultTmsList = [
+const fs$5 = /* @__PURE__ */ getDefaultExportFromCjs(lib$2), defaultTmsList = [
   {
     always: !0,
     mapID: "osm",
@@ -10479,18 +10479,18 @@ class SettingsService extends EventEmitter$1 {
     if (!this.store.has("migratedFromLegacy"))
       try {
         const i = app$1.getPath("appData"), n = path$f.join(i, "MaplatEditor", "storage");
-        if (fs$6.existsSync(n)) {
+        if (fs$5.existsSync(n)) {
           const a = path$f.join(n, "saveFolder.json");
-          if (fs$6.existsSync(a))
+          if (fs$5.existsSync(a))
             try {
-              const o = fs$6.readJsonSync(a);
+              const o = fs$5.readJsonSync(a);
               o && this.store.set("saveFolder", o);
             } catch {
             }
           const s = path$f.join(n, "lang.json");
-          if (fs$6.existsSync(s))
+          if (fs$5.existsSync(s))
             try {
-              const o = fs$6.readJsonSync(s);
+              const o = fs$5.readJsonSync(s);
               o && this.store.set("lang", o);
             } catch {
             }
@@ -10503,7 +10503,7 @@ class SettingsService extends EventEmitter$1 {
   ensureDataDirectories() {
     const i = this.store.get("saveFolder");
     try {
-      fs$6.ensureDirSync(i);
+      fs$5.ensureDirSync(i);
     } catch (n) {
       console.error(`Could not create/access saveFolder: ${i}`, n);
     }
@@ -10532,38 +10532,38 @@ class SettingsService extends EventEmitter$1 {
       Array.isArray(l) || (l = []);
       let h = a.concat(l);
       try {
-        const _ = path$f.join(o, "tmsList.json");
-        if (fs$6.existsSync(_)) {
-          const g = fs$6.readJsonSync(_);
-          Array.isArray(g) && (h = a.concat(g));
+        const p = path$f.join(o, "tmsList.json");
+        if (fs$5.existsSync(p)) {
+          const v = fs$5.readJsonSync(p);
+          Array.isArray(v) && (h = a.concat(v));
         }
-      } catch (_) {
-        console.error("Failed to read user tmsList.json", _);
+      } catch (p) {
+        console.error("Failed to read user tmsList.json", p);
       }
       let f = {};
       const d = path$f.join(o, `tmsList.${i}.json`);
       let m = !1;
       try {
-        fs$6.existsSync(d) && (f = fs$6.readJsonSync(d) || {});
-      } catch (_) {
-        console.error(`Failed to read ${d}`, _);
+        fs$5.existsSync(d) && (f = fs$5.readJsonSync(d) || {});
+      } catch (p) {
+        console.error(`Failed to read ${d}`, p);
       }
-      const p = [];
-      if (h.forEach((_) => {
-        if (_.always) {
-          p.push(_);
+      const _ = [];
+      if (h.forEach((p) => {
+        if (p.always) {
+          _.push(p);
           return;
         }
-        const g = _.mapID;
-        let v = f[g];
-        v == null && (v = f[g] = !0, m = !0), v && p.push(_);
+        const v = p.mapID;
+        let g = f[v];
+        g == null && (g = f[v] = !0, m = !0), g && _.push(p);
       }), m)
         try {
-          fs$6.ensureDirSync(o), fs$6.writeJsonSync(d, f, { spaces: 2 });
-        } catch (_) {
-          console.error(`Failed to write to ${d}`, _);
+          fs$5.ensureDirSync(o), fs$5.writeJsonSync(d, f, { spaces: 2 });
+        } catch (p) {
+          console.error(`Failed to write to ${d}`, p);
         }
-      n(p);
+      n(_);
     });
   }
 }
@@ -11789,7 +11789,7 @@ class LineStream extends stream$1.Transform {
   }
 }
 var byline$1 = createLineStream, storage$1 = {};
-const fs$5 = require$$0$3, fsPromises = fs$5.promises, path$1 = path$f, { Readable } = require$$0$2, DEFAULT_DIR_MODE$1 = 493, DEFAULT_FILE_MODE$1 = 420, existsAsync = (e) => fsPromises.access(e, fs$5.constants.F_OK).then(() => !0, () => !1), renameAsync = fsPromises.rename, writeFileAsync = fsPromises.writeFile, writeFileStream = fs$5.createWriteStream, unlinkAsync = fsPromises.unlink, appendFileAsync = fsPromises.appendFile, readFileAsync = fsPromises.readFile, readFileStream = fs$5.createReadStream, mkdirAsync = fsPromises.mkdir, ensureFileDoesntExistAsync = async (e) => {
+const fs$4 = require$$0$3, fsPromises = fs$4.promises, path$1 = path$f, { Readable } = require$$0$2, DEFAULT_DIR_MODE$1 = 493, DEFAULT_FILE_MODE$1 = 420, existsAsync = (e) => fsPromises.access(e, fs$4.constants.F_OK).then(() => !0, () => !1), renameAsync = fsPromises.rename, writeFileAsync = fsPromises.writeFile, writeFileStream = fs$4.createWriteStream, unlinkAsync = fsPromises.unlink, appendFileAsync = fsPromises.appendFile, readFileAsync = fsPromises.readFile, readFileStream = fs$4.createReadStream, mkdirAsync = fsPromises.mkdir, ensureFileDoesntExistAsync = async (e) => {
   await existsAsync(e) && await unlinkAsync(e);
 }, flushToStorageAsync = async (e) => {
   let r, i, n;
@@ -12005,8 +12005,8 @@ let Persistence$1 = class ys {
         return f.waterfall(async () => {
           if (d !== "") {
             try {
-              const p = model$1.deserialize(await m);
-              p._id ? p.$$deleted === !0 ? delete a[p._id] : a[p._id] = p : p.$$indexCreated && p.$$indexCreated.fieldName != null ? s[p.$$indexCreated.fieldName] = p.$$indexCreated : typeof p.$$indexRemoved == "string" && delete s[p.$$indexRemoved];
+              const _ = model$1.deserialize(await m);
+              _._id ? _.$$deleted === !0 ? delete a[_._id] : a[_._id] = _ : _.$$indexCreated && _.$$indexCreated.fieldName != null ? s[_.$$indexCreated.fieldName] = _.$$indexCreated : typeof _.$$indexRemoved == "string" && delete s[_.$$indexRemoved];
             } catch {
               o += 1;
             }
@@ -12017,8 +12017,8 @@ let Persistence$1 = class ys {
         if (await f.guardian, h > 0) {
           const m = o / h;
           if (m > this.corruptAlertThreshold) {
-            const p = new Error(`${Math.floor(100 * m)}% of the data file is corrupt, more than given corruptAlertThreshold (${Math.floor(100 * this.corruptAlertThreshold)}%). Cautiously refusing to start NeDB to prevent dataloss.`);
-            p.corruptionRate = m, p.corruptItems = o, p.dataLength = h, n(p, null);
+            const _ = new Error(`${Math.floor(100 * m)}% of the data file is corrupt, more than given corruptAlertThreshold (${Math.floor(100 * this.corruptAlertThreshold)}%). Cautiously refusing to start NeDB to prevent dataloss.`);
+            _.corruptionRate = m, _.corruptItems = o, _.dataLength = h, n(_, null);
             return;
           }
         }
@@ -12639,27 +12639,27 @@ let Datastore$2 = class extends EventEmitter {
   async _updateAsync(r, i, n) {
     const a = n.multi !== void 0 ? n.multi : !1;
     if ((n.upsert !== void 0 ? n.upsert : !1) && (await new Cursor(this, r).limit(1)._execAsync()).length !== 1) {
-      let g;
+      let v;
       try {
-        model.checkObject(i), g = i;
+        model.checkObject(i), v = i;
       } catch {
-        g = model.modify(model.deepCopy(r, !0), i);
+        v = model.modify(model.deepCopy(r, !0), i);
       }
-      return { numAffected: 1, affectedDocuments: await this._insertAsync(g), upsert: !0 };
+      return { numAffected: 1, affectedDocuments: await this._insertAsync(v), upsert: !0 };
     }
     let o = 0, l;
     const h = [];
     let f;
     const d = await this._getCandidatesAsync(r);
-    for (const p of d)
-      model.match(p, r) && (a || o === 0) && (o += 1, this.timestampData && (f = p.createdAt), l = model.modify(p, i), this.timestampData && (l.createdAt = f, l.updatedAt = /* @__PURE__ */ new Date()), h.push({ oldDoc: p, newDoc: l }));
+    for (const _ of d)
+      model.match(_, r) && (a || o === 0) && (o += 1, this.timestampData && (f = _.createdAt), l = model.modify(_, i), this.timestampData && (l.createdAt = f, l.updatedAt = /* @__PURE__ */ new Date()), h.push({ oldDoc: _, newDoc: l }));
     this._updateIndexes(h);
-    const m = h.map((p) => p.newDoc);
+    const m = h.map((_) => _.newDoc);
     if (await this.persistence.persistNewStateAsync(m), n.returnUpdatedDocs) {
-      let p = [];
-      return m.forEach((_) => {
-        p.push(model.deepCopy(_));
-      }), a || (p = p[0]), { numAffected: o, affectedDocuments: p, upsert: !1 };
+      let _ = [];
+      return m.forEach((p) => {
+        _.push(model.deepCopy(p));
+      }), a || (_ = _[0]), { numAffected: o, affectedDocuments: _, upsert: !1 };
     } else
       return { numAffected: o, upsert: !1, affectedDocuments: null };
   }
@@ -12799,58 +12799,58 @@ class MapDataService {
   async requestMaps(r = "", i = 1, n = 20) {
     const a = await this.getDB(), s = {};
     if (r && r.trim()) {
-      const _ = r;
+      const p = r;
       s.$where = function() {
         return ["title", "officialTitle", "description"].some(
-          (g) => checkLocaleAttr(this[g], _)
+          (v) => checkLocaleAttr(this[v], p)
         );
       };
     }
     let o = i, l, h = [], f, d;
     for (; ; ) {
-      const _ = (o - 1) * n;
-      console.log(`[MapDataService] Requesting maps: query='${r}', page=${o}, skip=${_}`);
-      const g = await new Promise((v, b) => {
-        a.find(s).sort({ _id: 1 }).skip(_).limit(n + 1).exec((w, k) => {
-          w ? b(w) : v(k);
+      const p = (o - 1) * n;
+      console.log(`[MapDataService] Requesting maps: query='${r}', page=${o}, skip=${p}`);
+      const v = await new Promise((g, k) => {
+        a.find(s).sort({ _id: 1 }).skip(p).limit(n + 1).exec((b, w) => {
+          b ? k(b) : g(w);
         });
       });
-      if (d = g.length > n, d && g.pop(), f = o > 1, g.length === 0 && o > 1)
+      if (d = v.length > n, d && v.pop(), f = o > 1, v.length === 0 && o > 1)
         o--, l = o;
       else {
-        h = g;
+        h = v;
         break;
       }
     }
-    const p = { docs: await Promise.all(h.map(async (_) => {
-      const g = _._id || _.mapID;
-      let v = _.title;
-      if (typeof v == "object" && v !== null) {
-        const P = _.lang || "ja";
-        v = v[P] || Object.values(v)[0];
+    const _ = { docs: await Promise.all(h.map(async (p) => {
+      const v = p._id || p.mapID;
+      let g = p.title;
+      if (typeof g == "object" && g !== null) {
+        const T = p.lang || "ja";
+        g = g[T] || Object.values(g)[0];
       }
-      const b = _.width || _.compiled && _.compiled.wh && _.compiled.wh[0], w = _.height || _.compiled && _.compiled.wh && _.compiled.wh[1], k = {
-        mapID: g,
-        title: v || g,
-        width: b,
-        height: w,
+      const k = p.width || p.compiled && p.compiled.wh && p.compiled.wh[0], b = p.height || p.compiled && p.compiled.wh && p.compiled.wh[1], w = {
+        mapID: v,
+        title: g || v,
+        width: k,
+        height: b,
         image: null
       };
-      k.width && k.height ? k.width > k.height ? (k.height = Math.round(k.height * 190 / k.width), k.width = 190) : (k.width = Math.round(k.width * 190 / k.height), k.height = 190) : (k.width = 190, k.height = 190);
-      const { tileFolder: M } = this.folders, N = path$f.join(M, g, "0", "0");
-      if (fs$6.existsSync(N))
+      w.width && w.height ? w.width > w.height ? (w.height = Math.round(w.height * 190 / w.width), w.width = 190) : (w.width = Math.round(w.width * 190 / w.height), w.height = 190) : (w.width = 190, w.height = 190);
+      const { tileFolder: M } = this.folders, C = path$f.join(M, v, "0", "0");
+      if (fs$5.existsSync(C))
         try {
-          const T = (await fs$6.readdir(N)).find((C) => /^0\.(jpg|jpeg|png)$/.test(C));
-          if (T) {
-            const C = path$f.join(N, T);
-            k.image = `file://${C.split(path$f.sep).join("/")}`;
+          const P = (await fs$5.readdir(C)).find((N) => /^0\.(jpg|jpeg|png)$/.test(N));
+          if (P) {
+            const N = path$f.join(C, P);
+            w.image = `file://${N.split(path$f.sep).join("/")}`;
           }
-        } catch (P) {
-          console.error(`[MapDataService] ${g} のサムネイル読み込みエラー`, P);
+        } catch (T) {
+          console.error(`[MapDataService] ${v} のサムネイル読み込みエラー`, T);
         }
-      return k;
+      return w;
     })), prev: f, next: d };
-    return l !== void 0 && (p.pageUpdate = l), p;
+    return l !== void 0 && (_.pageUpdate = l), _;
   }
   // 旧実装 nedb_accessor.js searchExtent に準拠:
   // メルカトル extent と重なる地図の mapID 一覧を返す
@@ -12880,22 +12880,22 @@ class MapDataService {
     const i = await this.getDB(), { tileFolder: n, uiThumbnailFolder: a, originalFolder: s } = this.folders;
     await i.removeAsync({ _id: r }, {});
     const o = path$f.join(n, r);
-    fs$6.existsSync(o) && await fs$6.remove(o);
+    fs$5.existsSync(o) && await fs$5.remove(o);
     const l = path$f.join(a, `${r}.jpg`);
-    if (fs$6.existsSync(l) && await fs$6.remove(l), fs$6.existsSync(s)) {
-      const h = await fs$6.readdir(s);
+    if (fs$5.existsSync(l) && await fs$5.remove(l), fs$5.existsSync(s)) {
+      const h = await fs$5.readdir(s);
       for (const f of h)
-        new RegExp(`^${r}\\.`).test(f) && await fs$6.remove(path$f.join(s, f));
+        new RegExp(`^${r}\\.`).test(f) && await fs$5.remove(path$f.join(s, f));
     }
   }
   async generateThumbnail(r, i) {
-    fs$6.existsSync(path$f.dirname(i)) || await fs$6.ensureDir(path$f.dirname(i)), await fs$6.copy(r, i, { overwrite: !0 });
+    fs$5.existsSync(path$f.dirname(i)) || await fs$5.ensureDir(path$f.dirname(i)), await fs$5.copy(r, i, { overwrite: !0 });
   }
   async switchDataFolder() {
     this.db = null;
     const { tileFolder: r, originalFolder: i, uiThumbnailFolder: n } = this.folders;
     try {
-      await fs$6.ensureDir(r), await fs$6.ensureDir(i), await fs$6.ensureDir(n), console.log(`[MapDataService] Data folder switched and initialized: ${SettingsService$1.get("saveFolder")}`);
+      await fs$5.ensureDir(r), await fs$5.ensureDir(i), await fs$5.ensureDir(n), console.log(`[MapDataService] Data folder switched and initialized: ${SettingsService$1.get("saveFolder")}`);
     } catch (a) {
       console.error("[MapDataService] Failed to initialize new data folders", a);
     }
@@ -12915,16 +12915,7 @@ function registerSettingsHandlers() {
 function registerMapHandlers() {
   ipcMain$1.handle("maplist:request", async (e, r, i, n) => await MapDataService$1.requestMaps(r, i, n)), ipcMain$1.handle("maplist:delete", async (e, r, i, n) => (await MapDataService$1.deleteMap(r), await MapDataService$1.requestMaps(i, n)));
 }
-var util$7 = { exports: {} }, fileSystem = {}, require$1 = fileSystem.require = function() {
-  if (typeof process == "object" && process.versions && process.versions.electron)
-    try {
-      const e = require$1("original-fs");
-      if (Object.keys(e).length > 0)
-        return e;
-    } catch {
-    }
-  return require$$0$3;
-}, constants$7 = {
+var util$7 = { exports: {} }, constants$7 = {
   /* The local file header */
   LOCHDR: 30,
   // LOC header size
@@ -13136,8 +13127,60 @@ var util$7 = { exports: {} }, fileSystem = {}, require$1 = fileSystem.require = 
   EF_ZIP64_SCOMP: 8,
   EF_ZIP64_RHO: 16,
   EF_ZIP64_DSN: 24
-};
-const fsystem = fileSystem.require(), pth$2 = path$f, Constants$3 = constants$7, isWin = typeof process == "object" && process.platform === "win32", is_Obj = (e) => e && typeof e == "object", crcTable$1 = new Uint32Array(256).map((e, r) => {
+}, errors = {};
+(function(e) {
+  const r = {
+    /* Header error messages */
+    INVALID_LOC: "Invalid LOC header (bad signature)",
+    INVALID_CEN: "Invalid CEN header (bad signature)",
+    INVALID_END: "Invalid END header (bad signature)",
+    /* Descriptor */
+    DESCRIPTOR_NOT_EXIST: "No descriptor present",
+    DESCRIPTOR_UNKNOWN: "Unknown descriptor format",
+    DESCRIPTOR_FAULTY: "Descriptor data is malformed",
+    /* ZipEntry error messages*/
+    NO_DATA: "Nothing to decompress",
+    BAD_CRC: "CRC32 checksum failed {0}",
+    FILE_IN_THE_WAY: "There is a file in the way: {0}",
+    UNKNOWN_METHOD: "Invalid/unsupported compression method",
+    /* Inflater error messages */
+    AVAIL_DATA: "inflate::Available inflate data did not terminate",
+    INVALID_DISTANCE: "inflate::Invalid literal/length or distance code in fixed or dynamic block",
+    TO_MANY_CODES: "inflate::Dynamic block code description: too many length or distance codes",
+    INVALID_REPEAT_LEN: "inflate::Dynamic block code description: repeat more than specified lengths",
+    INVALID_REPEAT_FIRST: "inflate::Dynamic block code description: repeat lengths with no first length",
+    INCOMPLETE_CODES: "inflate::Dynamic block code description: code lengths codes incomplete",
+    INVALID_DYN_DISTANCE: "inflate::Dynamic block code description: invalid distance code lengths",
+    INVALID_CODES_LEN: "inflate::Dynamic block code description: invalid literal/length code lengths",
+    INVALID_STORE_BLOCK: "inflate::Stored block length did not match one's complement",
+    INVALID_BLOCK_TYPE: "inflate::Invalid block type (type == 3)",
+    /* ADM-ZIP error messages */
+    CANT_EXTRACT_FILE: "Could not extract the file",
+    CANT_OVERRIDE: "Target file already exists",
+    DISK_ENTRY_TOO_LARGE: "Number of disk entries is too large",
+    NO_ZIP: "No zip file was loaded",
+    NO_ENTRY: "Entry doesn't exist",
+    DIRECTORY_CONTENT_ERROR: "A directory cannot have content",
+    FILE_NOT_FOUND: 'File not found: "{0}"',
+    NOT_IMPLEMENTED: "Not implemented",
+    INVALID_FILENAME: "Invalid filename",
+    INVALID_FORMAT: "Invalid or unsupported zip format. No END header found",
+    INVALID_PASS_PARAM: "Incompatible password parameter",
+    WRONG_PASSWORD: "Wrong Password",
+    /* ADM-ZIP */
+    COMMENT_TOO_LONG: "Comment is too long",
+    // Comment can be max 65535 bytes long (NOTE: some non-US characters may take more space)
+    EXTRA_FIELD_PARSE_ERROR: "Extra field parsing error"
+  };
+  function i(n) {
+    return function(...a) {
+      return a.length && (n = n.replace(/\{(\d)\}/g, (s, o) => a[o] || "")), new Error("ADM-ZIP: " + n);
+    };
+  }
+  for (const n of Object.keys(r))
+    e[n] = i(r[n]);
+})(errors);
+const fsystem = require$$0$3, pth$2 = path$f, Constants$3 = constants$7, Errors$1 = errors, isWin = typeof process == "object" && process.platform === "win32", is_Obj = (e) => typeof e == "object" && e !== null, crcTable$1 = new Uint32Array(256).map((e, r) => {
   for (let i = 0; i < 8; i++)
     r & 1 ? r = 3988292384 ^ r >>> 1 : r >>>= 1;
   return r >>> 0;
@@ -13156,10 +13199,13 @@ Utils$5.prototype.makeDir = function(e) {
         var o;
         try {
           o = r.fs.statSync(a);
-        } catch {
-          r.fs.mkdirSync(a);
+        } catch (l) {
+          if (l.message && l.message.startsWith("ENOENT"))
+            r.fs.mkdirSync(a);
+          else
+            throw l;
         }
-        if (o && o.isFile()) throw Errors.FILE_IN_THE_WAY.replace("%s", a);
+        if (o && o.isFile()) throw Errors$1.FILE_IN_THE_WAY(`"${a}"`);
       }
     });
   }
@@ -13199,19 +13245,19 @@ Utils$5.prototype.writeFileToAsync = function(e, r, i, n, a) {
         return a(!1);
       var f = pth$2.dirname(e);
       s.fs.exists(f, function(d) {
-        d || s.makeDir(f), s.fs.open(e, "w", 438, function(m, p) {
+        d || s.makeDir(f), s.fs.open(e, "w", 438, function(m, _) {
           m ? s.fs.chmod(e, 438, function() {
-            s.fs.open(e, "w", 438, function(_, g) {
-              s.fs.write(g, r, 0, r.length, 0, function() {
-                s.fs.close(g, function() {
+            s.fs.open(e, "w", 438, function(p, v) {
+              s.fs.write(v, r, 0, r.length, 0, function() {
+                s.fs.close(v, function() {
                   s.fs.chmod(e, n || 438, function() {
                     a(!0);
                   });
                 });
               });
             });
-          }) : p ? s.fs.write(p, r, 0, r.length, 0, function() {
-            s.fs.close(p, function() {
+          }) : _ ? s.fs.write(_, r, 0, r.length, 0, function() {
+            s.fs.close(_, function() {
               s.fs.chmod(e, n || 438, function() {
                 a(!0);
               });
@@ -13229,11 +13275,29 @@ Utils$5.prototype.findFiles = function(e) {
   function i(n, a, s) {
     let o = [];
     return r.fs.readdirSync(n).forEach(function(l) {
-      var h = pth$2.join(n, l);
-      r.fs.statSync(h).isDirectory() && s && (o = o.concat(i(h, a, s))), o.push(pth$2.normalize(h) + (r.fs.statSync(h).isDirectory() ? r.sep : ""));
+      const h = pth$2.join(n, l), f = r.fs.statSync(h);
+      o.push(pth$2.normalize(h) + (f.isDirectory() ? r.sep : "")), f.isDirectory() && s && (o = o.concat(i(h, a, s)));
     }), o;
   }
   return i(e, void 0, !0);
+};
+Utils$5.prototype.findFilesAsync = function(e, r) {
+  const i = this;
+  let n = [];
+  i.fs.readdir(e, function(a, s) {
+    if (a) return r(a);
+    let o = s.length;
+    if (!o) return r(null, n);
+    s.forEach(function(l) {
+      l = pth$2.join(e, l), i.fs.stat(l, function(h, f) {
+        if (h) return r(h);
+        f && (n.push(pth$2.normalize(l) + (f.isDirectory() ? i.sep : "")), f.isDirectory() ? i.findFilesAsync(l, function(d, m) {
+          if (d) return r(d);
+          n = n.concat(m), --o || r(null, n);
+        }) : --o || r(null, n));
+      });
+    });
+  });
 };
 Utils$5.prototype.getAttributes = function() {
 };
@@ -13243,7 +13307,7 @@ Utils$5.crc32update = function(e, r) {
   return crcTable$1[(e ^ r) & 255] ^ e >>> 8;
 };
 Utils$5.crc32 = function(e) {
-  typeof e == "string" && (e = Buffer.from(e, "utf8")), crcTable$1.length || genCRCTable();
+  typeof e == "string" && (e = Buffer.from(e, "utf8"));
   let r = e.length, i = -1;
   for (let n = 0; n < r; ) i = Utils$5.crc32update(i, e[n++]);
   return ~i >>> 0;
@@ -13260,8 +13324,20 @@ Utils$5.methodToString = function(e) {
 };
 Utils$5.canonical = function(e) {
   if (!e) return "";
-  var r = pth$2.posix.normalize("/" + e.split("\\").join("/"));
+  const r = pth$2.posix.normalize("/" + e.split("\\").join("/"));
   return pth$2.join(".", r);
+};
+Utils$5.zipnamefix = function(e) {
+  if (!e) return "";
+  const r = pth$2.posix.normalize("/" + e.split("\\").join("/"));
+  return pth$2.posix.join(".", r);
+};
+Utils$5.findLast = function(e, r) {
+  if (!Array.isArray(e)) throw new TypeError("arr is not array");
+  const i = e.length >>> 0;
+  for (let n = i - 1; n >= 0; n--)
+    if (r(e[n], n, e))
+      return e[n];
 };
 Utils$5.sanitize = function(e, r) {
   e = pth$2.resolve(pth$2.normalize(e));
@@ -13272,52 +13348,26 @@ Utils$5.sanitize = function(e, r) {
   }
   return pth$2.normalize(pth$2.join(e, pth$2.basename(r)));
 };
-Utils$5.toBuffer = function(r) {
-  return Buffer.isBuffer(r) ? r : r instanceof Uint8Array ? Buffer.from(r) : typeof r == "string" ? Buffer.from(r, "utf8") : Buffer.alloc(0);
+Utils$5.toBuffer = function(r, i) {
+  return Buffer.isBuffer(r) ? r : r instanceof Uint8Array ? Buffer.from(r) : typeof r == "string" ? i(r) : Buffer.alloc(0);
 };
 Utils$5.readBigUInt64LE = function(e, r) {
-  var i = Buffer.from(e.slice(r, r + 8));
-  return i.swap64(), parseInt(`0x${i.toString("hex")}`);
+  const i = e.readUInt32LE(r);
+  return e.readUInt32LE(r + 4) * 4294967296 + i;
+};
+Utils$5.fromDOS2Date = function(e) {
+  return new Date((e >> 25 & 127) + 1980, Math.max((e >> 21 & 15) - 1, 0), Math.max(e >> 16 & 31, 1), e >> 11 & 31, e >> 5 & 63, (e & 31) << 1);
+};
+Utils$5.fromDate2DOS = function(e) {
+  let r = 0, i = 0;
+  return e.getFullYear() > 1979 && (r = (e.getFullYear() - 1980 & 127) << 9 | e.getMonth() + 1 << 5 | e.getDate(), i = e.getHours() << 11 | e.getMinutes() << 5 | e.getSeconds() >> 1), r << 16 | i;
 };
 Utils$5.isWin = isWin;
 Utils$5.crcTable = crcTable$1;
-var errors = {
-  /* Header error messages */
-  INVALID_LOC: "Invalid LOC header (bad signature)",
-  INVALID_CEN: "Invalid CEN header (bad signature)",
-  INVALID_END: "Invalid END header (bad signature)",
-  /* ZipEntry error messages*/
-  NO_DATA: "Nothing to decompress",
-  BAD_CRC: "CRC32 checksum failed",
-  FILE_IN_THE_WAY: "There is a file in the way: %s",
-  UNKNOWN_METHOD: "Invalid/unsupported compression method",
-  /* Inflater error messages */
-  AVAIL_DATA: "inflate::Available inflate data did not terminate",
-  INVALID_DISTANCE: "inflate::Invalid literal/length or distance code in fixed or dynamic block",
-  TO_MANY_CODES: "inflate::Dynamic block code description: too many length or distance codes",
-  INVALID_REPEAT_LEN: "inflate::Dynamic block code description: repeat more than specified lengths",
-  INVALID_REPEAT_FIRST: "inflate::Dynamic block code description: repeat lengths with no first length",
-  INCOMPLETE_CODES: "inflate::Dynamic block code description: code lengths codes incomplete",
-  INVALID_DYN_DISTANCE: "inflate::Dynamic block code description: invalid distance code lengths",
-  INVALID_CODES_LEN: "inflate::Dynamic block code description: invalid literal/length code lengths",
-  INVALID_STORE_BLOCK: "inflate::Stored block length did not match one's complement",
-  INVALID_BLOCK_TYPE: "inflate::Invalid block type (type == 3)",
-  /* ADM-ZIP error messages */
-  CANT_EXTRACT_FILE: "Could not extract the file",
-  CANT_OVERRIDE: "Target file already exists",
-  NO_ZIP: "No zip file was loaded",
-  NO_ENTRY: "Entry doesn't exist",
-  DIRECTORY_CONTENT_ERROR: "A directory cannot have content",
-  FILE_NOT_FOUND: "File not found: %s",
-  NOT_IMPLEMENTED: "Not implemented",
-  INVALID_FILENAME: "Invalid filename",
-  INVALID_FORMAT: "Invalid or unsupported zip format. No END header found"
-};
-const fs$4 = fileSystem.require(), pth$1 = path$f;
-fs$4.existsSync = fs$4.existsSync || pth$1.existsSync;
-var fattr = function(e) {
-  var r = e || "", i = a(), n = null;
-  function a() {
+const pth$1 = path$f;
+var fattr = function(e, { fs: r }) {
+  var i = e || "", n = s(), a = null;
+  function s() {
     return {
       directory: !1,
       readonly: !1,
@@ -13327,24 +13377,24 @@ var fattr = function(e) {
       atime: 0
     };
   }
-  return r && fs$4.existsSync(r) ? (n = fs$4.statSync(r), i.directory = n.isDirectory(), i.mtime = n.mtime, i.atime = n.atime, i.executable = (73 & n.mode) !== 0, i.readonly = (128 & n.mode) === 0, i.hidden = pth$1.basename(r)[0] === ".") : console.warn("Invalid path: " + r), {
+  return i && r.existsSync(i) ? (a = r.statSync(i), n.directory = a.isDirectory(), n.mtime = a.mtime, n.atime = a.atime, n.executable = (73 & a.mode) !== 0, n.readonly = (128 & a.mode) === 0, n.hidden = pth$1.basename(i)[0] === ".") : console.warn("Invalid path: " + i), {
     get directory() {
-      return i.directory;
+      return n.directory;
     },
     get readOnly() {
-      return i.readonly;
+      return n.readonly;
     },
     get hidden() {
-      return i.hidden;
+      return n.hidden;
     },
     get mtime() {
-      return i.mtime;
+      return n.mtime;
     },
     get atime() {
-      return i.atime;
+      return n.atime;
     },
     get executable() {
-      return i.executable;
+      return n.executable;
     },
     decodeAttributes: function() {
     },
@@ -13352,38 +13402,36 @@ var fattr = function(e) {
     },
     toJSON: function() {
       return {
-        path: r,
-        isDirectory: i.directory,
-        isReadOnly: i.readonly,
-        isHidden: i.hidden,
-        isExecutable: i.executable,
-        mTime: i.mtime,
-        aTime: i.atime
+        path: i,
+        isDirectory: n.directory,
+        isReadOnly: n.readonly,
+        isHidden: n.hidden,
+        isExecutable: n.executable,
+        mTime: n.mtime,
+        aTime: n.atime
       };
     },
     toString: function() {
       return JSON.stringify(this.toJSON(), null, "	");
     }
   };
+}, decoder$1 = {
+  efs: !0,
+  encode: (e) => Buffer.from(e, "utf8"),
+  decode: (e) => e.toString("utf8")
 };
 util$7.exports = utils;
 util$7.exports.Constants = constants$7;
 util$7.exports.Errors = errors;
 util$7.exports.FileAttr = fattr;
+util$7.exports.decoder = decoder$1;
 var utilExports = util$7.exports, headers = {}, Utils$4 = utilExports, Constants$2 = Utils$4.Constants, entryHeader = function() {
-  var e = 20, r = 10, i = 0, n = 0, a = 0, s = 0, o = 0, l = 0, h = 0, f = 0, d = 0, m = 0, p = 0, _ = 0, g = 0;
+  var e = 20, r = 10, i = 0, n = 0, a = 0, s = 0, o = 0, l = 0, h = 0, f = 0, d = 0, m = 0, _ = 0, p = 0, v = 0;
   e |= Utils$4.isWin ? 2560 : 768, i |= Constants$2.FLG_EFS;
-  var v = {};
-  function b(w) {
-    w = new Date(w), a = (w.getFullYear() - 1980 & 127) << 25 | // b09-16 years from 1980
-    w.getMonth() + 1 << 21 | // b05-08 month
-    w.getDate() << 16 | // b00-04 hour
-    // 2 bytes time
-    w.getHours() << 11 | // b11-15 hour
-    w.getMinutes() << 5 | // b05-10 minute
-    w.getSeconds() >> 1;
-  }
-  return b(+/* @__PURE__ */ new Date()), {
+  const g = {
+    extraLen: 0
+  }, k = (w) => Math.max(0, w) >>> 0, b = (w) => Math.max(0, w) & 255;
+  return a = Utils$4.fromDate2DOS(/* @__PURE__ */ new Date()), {
     get made() {
       return e;
     },
@@ -13402,6 +13450,18 @@ var utilExports = util$7.exports, headers = {}, Utils$4 = utilExports, Constants
     set flags(w) {
       i = w;
     },
+    get flags_efs() {
+      return (i & Constants$2.FLG_EFS) > 0;
+    },
+    set flags_efs(w) {
+      w ? i |= Constants$2.FLG_EFS : i &= ~Constants$2.FLG_EFS;
+    },
+    get flags_desc() {
+      return (i & Constants$2.FLG_DESC) > 0;
+    },
+    set flags_desc(w) {
+      w ? i |= Constants$2.FLG_DESC : i &= ~Constants$2.FLG_DESC;
+    },
     get method() {
       return n;
     },
@@ -13416,28 +13476,37 @@ var utilExports = util$7.exports, headers = {}, Utils$4 = utilExports, Constants
       n = w;
     },
     get time() {
-      return new Date((a >> 25 & 127) + 1980, (a >> 21 & 15) - 1, a >> 16 & 31, a >> 11 & 31, a >> 5 & 63, (a & 31) << 1);
+      return Utils$4.fromDOS2Date(this.timeval);
     },
     set time(w) {
-      b(w);
+      w = new Date(w), this.timeval = Utils$4.fromDate2DOS(w);
+    },
+    get timeval() {
+      return a;
+    },
+    set timeval(w) {
+      a = k(w);
+    },
+    get timeHighByte() {
+      return b(a >>> 8);
     },
     get crc() {
       return s;
     },
     set crc(w) {
-      s = Math.max(0, w) >>> 0;
+      s = k(w);
     },
     get compressedSize() {
       return o;
     },
     set compressedSize(w) {
-      o = Math.max(0, w) >>> 0;
+      o = k(w);
     },
     get size() {
       return l;
     },
     set size(w) {
-      l = Math.max(0, w) >>> 0;
+      l = k(w);
     },
     get fileNameLength() {
       return h;
@@ -13451,6 +13520,12 @@ var utilExports = util$7.exports, headers = {}, Utils$4 = utilExports, Constants
     set extraLength(w) {
       f = w;
     },
+    get extraLocalLength() {
+      return g.extraLen;
+    },
+    set extraLocalLength(w) {
+      g.extraLen = w;
+    },
     get commentLength() {
       return d;
     },
@@ -13461,83 +13536,66 @@ var utilExports = util$7.exports, headers = {}, Utils$4 = utilExports, Constants
       return m;
     },
     set diskNumStart(w) {
-      m = Math.max(0, w) >>> 0;
+      m = k(w);
     },
     get inAttr() {
-      return p;
-    },
-    set inAttr(w) {
-      p = Math.max(0, w) >>> 0;
-    },
-    get attr() {
       return _;
     },
+    set inAttr(w) {
+      _ = k(w);
+    },
+    get attr() {
+      return p;
+    },
     set attr(w) {
-      _ = Math.max(0, w) >>> 0;
+      p = k(w);
     },
     // get Unix file permissions
     get fileAttr() {
-      return _ ? (_ >>> 0 | 0) >> 16 & 4095 : 0;
+      return (p || 0) >> 16 & 4095;
     },
     get offset() {
-      return g;
+      return v;
     },
     set offset(w) {
-      g = Math.max(0, w) >>> 0;
+      v = k(w);
     },
-    get encripted() {
-      return (i & 1) === 1;
+    get encrypted() {
+      return (i & Constants$2.FLG_ENC) === Constants$2.FLG_ENC;
     },
-    get entryHeaderSize() {
+    get centralHeaderSize() {
       return Constants$2.CENHDR + h + f + d;
     },
     get realDataOffset() {
-      return g + Constants$2.LOCHDR + v.fnameLen + v.extraLen;
+      return v + Constants$2.LOCHDR + g.fnameLen + g.extraLen;
     },
-    get dataHeader() {
-      return v;
+    get localHeader() {
+      return g;
     },
-    loadDataHeaderFromBinary: function(w) {
-      var k = w.slice(g, g + Constants$2.LOCHDR);
-      if (k.readUInt32LE(0) !== Constants$2.LOCSIG)
-        throw new Error(Utils$4.Errors.INVALID_LOC);
-      v = {
-        // version needed to extract
-        version: k.readUInt16LE(Constants$2.LOCVER),
-        // general purpose bit flag
-        flags: k.readUInt16LE(Constants$2.LOCFLG),
-        // compression method
-        method: k.readUInt16LE(Constants$2.LOCHOW),
-        // modification time (2 bytes time, 2 bytes date)
-        time: k.readUInt32LE(Constants$2.LOCTIM),
-        // uncompressed file crc-32 value
-        crc: k.readUInt32LE(Constants$2.LOCCRC),
-        // compressed size
-        compressedSize: k.readUInt32LE(Constants$2.LOCSIZ),
-        // uncompressed size
-        size: k.readUInt32LE(Constants$2.LOCLEN),
-        // filename length
-        fnameLen: k.readUInt16LE(Constants$2.LOCNAM),
-        // extra field length
-        extraLen: k.readUInt16LE(Constants$2.LOCEXT)
-      };
+    loadLocalHeaderFromBinary: function(w) {
+      var M = w.slice(v, v + Constants$2.LOCHDR);
+      if (M.readUInt32LE(0) !== Constants$2.LOCSIG)
+        throw Utils$4.Errors.INVALID_LOC();
+      g.version = M.readUInt16LE(Constants$2.LOCVER), g.flags = M.readUInt16LE(Constants$2.LOCFLG), g.flags_desc = (g.flags & Constants$2.FLG_DESC) > 0, g.method = M.readUInt16LE(Constants$2.LOCHOW), g.time = M.readUInt32LE(Constants$2.LOCTIM), g.crc = M.readUInt32LE(Constants$2.LOCCRC), g.compressedSize = M.readUInt32LE(Constants$2.LOCSIZ), g.size = M.readUInt32LE(Constants$2.LOCLEN), g.fnameLen = M.readUInt16LE(Constants$2.LOCNAM), g.extraLen = M.readUInt16LE(Constants$2.LOCEXT);
+      const C = v + Constants$2.LOCHDR + g.fnameLen, T = C + g.extraLen;
+      return w.slice(C, T);
     },
     loadFromBinary: function(w) {
       if (w.length !== Constants$2.CENHDR || w.readUInt32LE(0) !== Constants$2.CENSIG)
-        throw new Error(Utils$4.Errors.INVALID_CEN);
-      e = w.readUInt16LE(Constants$2.CENVEM), r = w.readUInt16LE(Constants$2.CENVER), i = w.readUInt16LE(Constants$2.CENFLG), n = w.readUInt16LE(Constants$2.CENHOW), a = w.readUInt32LE(Constants$2.CENTIM), s = w.readUInt32LE(Constants$2.CENCRC), o = w.readUInt32LE(Constants$2.CENSIZ), l = w.readUInt32LE(Constants$2.CENLEN), h = w.readUInt16LE(Constants$2.CENNAM), f = w.readUInt16LE(Constants$2.CENEXT), d = w.readUInt16LE(Constants$2.CENCOM), m = w.readUInt16LE(Constants$2.CENDSK), p = w.readUInt16LE(Constants$2.CENATT), _ = w.readUInt32LE(Constants$2.CENATX), g = w.readUInt32LE(Constants$2.CENOFF);
+        throw Utils$4.Errors.INVALID_CEN();
+      e = w.readUInt16LE(Constants$2.CENVEM), r = w.readUInt16LE(Constants$2.CENVER), i = w.readUInt16LE(Constants$2.CENFLG), n = w.readUInt16LE(Constants$2.CENHOW), a = w.readUInt32LE(Constants$2.CENTIM), s = w.readUInt32LE(Constants$2.CENCRC), o = w.readUInt32LE(Constants$2.CENSIZ), l = w.readUInt32LE(Constants$2.CENLEN), h = w.readUInt16LE(Constants$2.CENNAM), f = w.readUInt16LE(Constants$2.CENEXT), d = w.readUInt16LE(Constants$2.CENCOM), m = w.readUInt16LE(Constants$2.CENDSK), _ = w.readUInt16LE(Constants$2.CENATT), p = w.readUInt32LE(Constants$2.CENATX), v = w.readUInt32LE(Constants$2.CENOFF);
     },
-    dataHeaderToBinary: function() {
+    localHeaderToBinary: function() {
       var w = Buffer.alloc(Constants$2.LOCHDR);
-      return w.writeUInt32LE(Constants$2.LOCSIG, 0), w.writeUInt16LE(r, Constants$2.LOCVER), w.writeUInt16LE(i, Constants$2.LOCFLG), w.writeUInt16LE(n, Constants$2.LOCHOW), w.writeUInt32LE(a, Constants$2.LOCTIM), w.writeUInt32LE(s, Constants$2.LOCCRC), w.writeUInt32LE(o, Constants$2.LOCSIZ), w.writeUInt32LE(l, Constants$2.LOCLEN), w.writeUInt16LE(h, Constants$2.LOCNAM), w.writeUInt16LE(f, Constants$2.LOCEXT), w;
+      return w.writeUInt32LE(Constants$2.LOCSIG, 0), w.writeUInt16LE(r, Constants$2.LOCVER), w.writeUInt16LE(i, Constants$2.LOCFLG), w.writeUInt16LE(n, Constants$2.LOCHOW), w.writeUInt32LE(a, Constants$2.LOCTIM), w.writeUInt32LE(s, Constants$2.LOCCRC), w.writeUInt32LE(o, Constants$2.LOCSIZ), w.writeUInt32LE(l, Constants$2.LOCLEN), w.writeUInt16LE(h, Constants$2.LOCNAM), w.writeUInt16LE(g.extraLen, Constants$2.LOCEXT), w;
     },
-    entryHeaderToBinary: function() {
+    centralHeaderToBinary: function() {
       var w = Buffer.alloc(Constants$2.CENHDR + h + f + d);
-      return w.writeUInt32LE(Constants$2.CENSIG, 0), w.writeUInt16LE(e, Constants$2.CENVEM), w.writeUInt16LE(r, Constants$2.CENVER), w.writeUInt16LE(i, Constants$2.CENFLG), w.writeUInt16LE(n, Constants$2.CENHOW), w.writeUInt32LE(a, Constants$2.CENTIM), w.writeUInt32LE(s, Constants$2.CENCRC), w.writeUInt32LE(o, Constants$2.CENSIZ), w.writeUInt32LE(l, Constants$2.CENLEN), w.writeUInt16LE(h, Constants$2.CENNAM), w.writeUInt16LE(f, Constants$2.CENEXT), w.writeUInt16LE(d, Constants$2.CENCOM), w.writeUInt16LE(m, Constants$2.CENDSK), w.writeUInt16LE(p, Constants$2.CENATT), w.writeUInt32LE(_, Constants$2.CENATX), w.writeUInt32LE(g, Constants$2.CENOFF), w.fill(0, Constants$2.CENHDR), w;
+      return w.writeUInt32LE(Constants$2.CENSIG, 0), w.writeUInt16LE(e, Constants$2.CENVEM), w.writeUInt16LE(r, Constants$2.CENVER), w.writeUInt16LE(i, Constants$2.CENFLG), w.writeUInt16LE(n, Constants$2.CENHOW), w.writeUInt32LE(a, Constants$2.CENTIM), w.writeUInt32LE(s, Constants$2.CENCRC), w.writeUInt32LE(o, Constants$2.CENSIZ), w.writeUInt32LE(l, Constants$2.CENLEN), w.writeUInt16LE(h, Constants$2.CENNAM), w.writeUInt16LE(f, Constants$2.CENEXT), w.writeUInt16LE(d, Constants$2.CENCOM), w.writeUInt16LE(m, Constants$2.CENDSK), w.writeUInt16LE(_, Constants$2.CENATT), w.writeUInt32LE(p, Constants$2.CENATX), w.writeUInt32LE(v, Constants$2.CENOFF), w;
     },
     toJSON: function() {
-      const w = function(k) {
-        return k + " bytes";
+      const w = function(M) {
+        return M + " bytes";
       };
       return {
         made: e,
@@ -13552,10 +13610,10 @@ var utilExports = util$7.exports, headers = {}, Utils$4 = utilExports, Constants
         extraLength: w(f),
         commentLength: w(d),
         diskNumStart: m,
-        inAttr: p,
-        attr: _,
-        offset: g,
-        entryHeaderSize: w(Constants$2.CENHDR + h + f + d)
+        inAttr: _,
+        attr: p,
+        offset: v,
+        centralHeaderSize: w(Constants$2.CENHDR + h + f + d)
       };
     },
     toString: function() {
@@ -13600,8 +13658,8 @@ var utilExports = util$7.exports, headers = {}, Utils$4 = utilExports, Constants
     },
     loadFromBinary: function(s) {
       if ((s.length !== Constants$1.ENDHDR || s.readUInt32LE(0) !== Constants$1.ENDSIG) && (s.length < Constants$1.ZIP64HDR || s.readUInt32LE(0) !== Constants$1.ZIP64SIG))
-        throw new Error(Utils$3.Errors.INVALID_END);
-      s.readUInt32LE(0) === Constants$1.ENDSIG ? (e = s.readUInt16LE(Constants$1.ENDSUB), r = s.readUInt16LE(Constants$1.ENDTOT), i = s.readUInt32LE(Constants$1.ENDSIZ), n = s.readUInt32LE(Constants$1.ENDOFF), a = s.readUInt16LE(Constants$1.ENDCOM)) : (e = Utils$3.readBigUInt64LE(s, Constants$1.ZIP64SUB), r = Utils$3.readBigUInt64LE(s, Constants$1.ZIP64TOT), i = Utils$3.readBigUInt64LE(s, Constants$1.ZIP64SIZ), n = Utils$3.readBigUInt64LE(s, Constants$1.ZIP64OFF), a = 0);
+        throw Utils$3.Errors.INVALID_END();
+      s.readUInt32LE(0) === Constants$1.ENDSIG ? (e = s.readUInt16LE(Constants$1.ENDSUB), r = s.readUInt16LE(Constants$1.ENDTOT), i = s.readUInt32LE(Constants$1.ENDSIZ), n = s.readUInt32LE(Constants$1.ENDOFF), a = s.readUInt16LE(Constants$1.ENDCOM)) : (e = Utils$3.readBigUInt64LE(s, Constants$1.ZIP64SUB), r = Utils$3.readBigUInt64LE(s, Constants$1.ZIP64TOT), i = Utils$3.readBigUInt64LE(s, Constants$1.ZIP64SIZE), n = Utils$3.readBigUInt64LE(s, Constants$1.ZIP64OFF), a = 0);
     },
     toBinary: function() {
       var s = Buffer.alloc(Constants$1.ENDHDR + a);
@@ -13649,29 +13707,32 @@ var methods$i = {}, deflater = function(e) {
       }), a.end(e);
     }
   };
-}, inflater = function(e) {
-  var r = require$$0$7;
+};
+const version = +(process.versions ? process.versions.node : "").split(".")[0] || 0;
+var inflater = function(e, r) {
+  var i = require$$0$7;
+  const n = version >= 15 && r > 0 ? { maxOutputLength: r } : {};
   return {
     inflate: function() {
-      return r.inflateRawSync(e);
+      return i.inflateRawSync(e, n);
     },
-    inflateAsync: function(i) {
-      var n = r.createInflateRaw(), a = [], s = 0;
-      n.on("data", function(o) {
-        a.push(o), s += o.length;
-      }), n.on("end", function() {
-        var o = Buffer.alloc(s), l = 0;
-        o.fill(0);
-        for (var h = 0; h < a.length; h++) {
-          var f = a[h];
-          f.copy(o, l), l += f.length;
+    inflateAsync: function(a) {
+      var s = i.createInflateRaw(n), o = [], l = 0;
+      s.on("data", function(h) {
+        o.push(h), l += h.length;
+      }), s.on("end", function() {
+        var h = Buffer.alloc(l), f = 0;
+        h.fill(0);
+        for (var d = 0; d < o.length; d++) {
+          var m = o[d];
+          m.copy(h, f), f += m.length;
         }
-        i && i(o);
-      }), n.end(e);
+        a && a(h);
+      }), s.end(e);
     }
   };
 };
-const { randomFillSync } = require$$0$5, crctable = new Uint32Array(256).map((e, r) => {
+const { randomFillSync } = require$$0$5, Errors = errors, crctable = new Uint32Array(256).map((e, r) => {
   for (let i = 0; i < 8; i++)
     r & 1 ? r = r >>> 1 ^ 3988292384 : r >>>= 1;
   return r >>> 0;
@@ -13722,9 +13783,9 @@ function make_encrypter(e) {
 function decrypt(e, r, i) {
   if (!e || !Buffer.isBuffer(e) || e.length < 12)
     return Buffer.alloc(0);
-  const n = make_decrypter(i);
-  if (n(e.slice(0, 12))[11] !== r.crc >>> 24)
-    throw "ADM-ZIP: Wrong Password";
+  const n = make_decrypter(i), a = n(e.slice(0, 12)), s = (r.flags & 8) === 8 ? r.timeHighByte : r.crc >>> 24;
+  if (a[11] !== s)
+    throw Errors.WRONG_PASSWORD();
   return n(e.slice(12));
 }
 function _salter(e) {
@@ -13743,159 +13804,193 @@ var zipcrypto = { decrypt, encrypt, _salter };
 methods$i.Deflater = deflater;
 methods$i.Inflater = inflater;
 methods$i.ZipCrypto = zipcrypto;
-var Utils$2 = utilExports, Headers$1 = headers, Constants = Utils$2.Constants, Methods = methods$i, zipEntry = function(e) {
-  var r = new Headers$1.EntryHeader(), i = Buffer.alloc(0), n = Buffer.alloc(0), a = !1, s = null, o = Buffer.alloc(0);
-  function l() {
-    return !e || !Buffer.isBuffer(e) ? Buffer.alloc(0) : (r.loadDataHeaderFromBinary(e), e.slice(r.realDataOffset, r.realDataOffset + r.compressedSize));
+var Utils$2 = utilExports, Headers$1 = headers, Constants = Utils$2.Constants, Methods = methods$i, zipEntry = function(e, r) {
+  var i = new Headers$1.EntryHeader(), n = Buffer.alloc(0), a = Buffer.alloc(0), s = !1, o = null, l = Buffer.alloc(0), h = Buffer.alloc(0), f = !0;
+  const d = e, m = typeof d.decoder == "object" ? d.decoder : Utils$2.decoder;
+  f = m.hasOwnProperty("efs") ? m.efs : !1;
+  function _() {
+    return !r || !(r instanceof Uint8Array) ? Buffer.alloc(0) : (h = i.loadLocalHeaderFromBinary(r), r.slice(i.realDataOffset, i.realDataOffset + i.compressedSize));
   }
-  function h(g) {
-    return !((r.flags & 8) !== 8 && Utils$2.crc32(g) !== r.dataHeader.crc);
-  }
-  function f(g, v, b) {
-    if (typeof v > "u" && typeof g == "string" && (b = g, g = void 0), a)
-      return g && v && v(Buffer.alloc(0), Utils$2.Errors.DIRECTORY_CONTENT_ERROR), Buffer.alloc(0);
-    var w = l();
-    if (w.length === 0)
-      return g && v && v(w), w;
-    if (r.encripted) {
-      if (typeof b != "string" && !Buffer.isBuffer(b))
-        throw new Error("ADM-ZIP: Incompatible password parameter");
-      w = Methods.ZipCrypto.decrypt(w, r, b);
+  function p(M) {
+    if (!i.flags_desc && !i.localHeader.flags_desc) {
+      if (Utils$2.crc32(M) !== i.localHeader.crc)
+        return !1;
+    } else {
+      const C = {}, T = i.realDataOffset + i.compressedSize;
+      if (r.readUInt32LE(T) == Constants.LOCSIG || r.readUInt32LE(T) == Constants.CENSIG)
+        throw Utils$2.Errors.DESCRIPTOR_NOT_EXIST();
+      if (r.readUInt32LE(T) == Constants.EXTSIG)
+        C.crc = r.readUInt32LE(T + Constants.EXTCRC), C.compressedSize = r.readUInt32LE(T + Constants.EXTSIZ), C.size = r.readUInt32LE(T + Constants.EXTLEN);
+      else if (r.readUInt16LE(T + 12) === 19280)
+        C.crc = r.readUInt32LE(T + Constants.EXTCRC - 4), C.compressedSize = r.readUInt32LE(T + Constants.EXTSIZ - 4), C.size = r.readUInt32LE(T + Constants.EXTLEN - 4);
+      else
+        throw Utils$2.Errors.DESCRIPTOR_UNKNOWN();
+      if (C.compressedSize !== i.compressedSize || C.size !== i.size || C.crc !== i.crc)
+        throw Utils$2.Errors.DESCRIPTOR_FAULTY();
+      if (Utils$2.crc32(M) !== C.crc)
+        return !1;
     }
-    var k = Buffer.alloc(r.size);
-    switch (r.method) {
+    return !0;
+  }
+  function v(M, C, T) {
+    if (typeof C > "u" && typeof M == "string" && (T = M, M = void 0), s)
+      return M && C && C(Buffer.alloc(0), Utils$2.Errors.DIRECTORY_CONTENT_ERROR()), Buffer.alloc(0);
+    var P = _();
+    if (P.length === 0)
+      return M && C && C(P), P;
+    if (i.encrypted) {
+      if (typeof T != "string" && !Buffer.isBuffer(T))
+        throw Utils$2.Errors.INVALID_PASS_PARAM();
+      P = Methods.ZipCrypto.decrypt(P, i, T);
+    }
+    var N = Buffer.alloc(i.size);
+    switch (i.method) {
       case Utils$2.Constants.STORED:
-        if (w.copy(k), h(k))
-          return g && v && v(k), k;
-        throw g && v && v(k, Utils$2.Errors.BAD_CRC), new Error(Utils$2.Errors.BAD_CRC);
+        if (P.copy(N), p(N))
+          return M && C && C(N), N;
+        throw M && C && C(N, Utils$2.Errors.BAD_CRC()), Utils$2.Errors.BAD_CRC();
       case Utils$2.Constants.DEFLATED:
-        var M = new Methods.Inflater(w);
-        if (g)
-          M.inflateAsync(function(N) {
-            N.copy(N, 0), v && (h(N) ? v(N) : v(N, Utils$2.Errors.BAD_CRC));
+        var X = new Methods.Inflater(P, i.size);
+        if (M)
+          X.inflateAsync(function(fe) {
+            fe.copy(fe, 0), C && (p(fe) ? C(fe) : C(fe, Utils$2.Errors.BAD_CRC()));
           });
         else {
-          if (M.inflate(k).copy(k, 0), !h(k))
-            throw new Error(Utils$2.Errors.BAD_CRC + " " + i.toString());
-          return k;
+          if (X.inflate(N).copy(N, 0), !p(N))
+            throw Utils$2.Errors.BAD_CRC(`"${m.decode(n)}"`);
+          return N;
         }
         break;
       default:
-        throw g && v && v(Buffer.alloc(0), Utils$2.Errors.UNKNOWN_METHOD), new Error(Utils$2.Errors.UNKNOWN_METHOD);
+        throw M && C && C(Buffer.alloc(0), Utils$2.Errors.UNKNOWN_METHOD()), Utils$2.Errors.UNKNOWN_METHOD();
     }
   }
-  function d(g, v) {
-    if ((!s || !s.length) && Buffer.isBuffer(e))
-      return g && v && v(l()), l();
-    if (s.length && !a) {
-      var b;
-      switch (r.method) {
+  function g(M, C) {
+    if ((!o || !o.length) && Buffer.isBuffer(r))
+      return M && C && C(_()), _();
+    if (o.length && !s) {
+      var T;
+      switch (i.method) {
         case Utils$2.Constants.STORED:
-          return r.compressedSize = r.size, b = Buffer.alloc(s.length), s.copy(b), g && v && v(b), b;
+          return i.compressedSize = i.size, T = Buffer.alloc(o.length), o.copy(T), M && C && C(T), T;
         default:
         case Utils$2.Constants.DEFLATED:
-          var w = new Methods.Deflater(s);
-          if (g)
-            w.deflateAsync(function(M) {
-              b = Buffer.alloc(M.length), r.compressedSize = M.length, M.copy(b), v && v(b);
+          var P = new Methods.Deflater(o);
+          if (M)
+            P.deflateAsync(function(X) {
+              T = Buffer.alloc(X.length), i.compressedSize = X.length, X.copy(T), C && C(T);
             });
           else {
-            var k = w.deflate();
-            return r.compressedSize = k.length, k;
+            var N = P.deflate();
+            return i.compressedSize = N.length, N;
           }
-          w = null;
+          P = null;
           break;
       }
-    } else if (g && v)
-      v(Buffer.alloc(0));
+    } else if (M && C)
+      C(Buffer.alloc(0));
     else
       return Buffer.alloc(0);
   }
-  function m(g, v) {
-    return (g.readUInt32LE(v + 4) << 4) + g.readUInt32LE(v);
+  function k(M, C) {
+    return Utils$2.readBigUInt64LE(M, C);
   }
-  function p(g) {
-    for (var v = 0, b, w, k; v < g.length; )
-      b = g.readUInt16LE(v), v += 2, w = g.readUInt16LE(v), v += 2, k = g.slice(v, v + w), v += w, Constants.ID_ZIP64 === b && _(k);
+  function b(M) {
+    try {
+      for (var C = 0, T, P, N; C + 4 < M.length; )
+        T = M.readUInt16LE(C), C += 2, P = M.readUInt16LE(C), C += 2, N = M.slice(C, C + P), C += P, Constants.ID_ZIP64 === T && w(N);
+    } catch {
+      throw Utils$2.Errors.EXTRA_FIELD_PARSE_ERROR();
+    }
   }
-  function _(g) {
-    var v, b, w, k;
-    g.length >= Constants.EF_ZIP64_SCOMP && (v = m(g, Constants.EF_ZIP64_SUNCOMP), r.size === Constants.EF_ZIP64_OR_32 && (r.size = v)), g.length >= Constants.EF_ZIP64_RHO && (b = m(g, Constants.EF_ZIP64_SCOMP), r.compressedSize === Constants.EF_ZIP64_OR_32 && (r.compressedSize = b)), g.length >= Constants.EF_ZIP64_DSN && (w = m(g, Constants.EF_ZIP64_RHO), r.offset === Constants.EF_ZIP64_OR_32 && (r.offset = w)), g.length >= Constants.EF_ZIP64_DSN + 4 && (k = g.readUInt32LE(Constants.EF_ZIP64_DSN), r.diskNumStart === Constants.EF_ZIP64_OR_16 && (r.diskNumStart = k));
+  function w(M) {
+    var C, T, P, N;
+    M.length >= Constants.EF_ZIP64_SCOMP && (C = k(M, Constants.EF_ZIP64_SUNCOMP), i.size === Constants.EF_ZIP64_OR_32 && (i.size = C)), M.length >= Constants.EF_ZIP64_RHO && (T = k(M, Constants.EF_ZIP64_SCOMP), i.compressedSize === Constants.EF_ZIP64_OR_32 && (i.compressedSize = T)), M.length >= Constants.EF_ZIP64_DSN && (P = k(M, Constants.EF_ZIP64_RHO), i.offset === Constants.EF_ZIP64_OR_32 && (i.offset = P)), M.length >= Constants.EF_ZIP64_DSN + 4 && (N = M.readUInt32LE(Constants.EF_ZIP64_DSN), i.diskNumStart === Constants.EF_ZIP64_OR_16 && (i.diskNumStart = N));
   }
   return {
     get entryName() {
-      return i.toString();
+      return m.decode(n);
     },
     get rawEntryName() {
-      return i;
+      return n;
     },
-    set entryName(g) {
-      i = Utils$2.toBuffer(g);
-      var v = i[i.length - 1];
-      a = v === 47 || v === 92, r.fileNameLength = i.length;
+    set entryName(M) {
+      n = Utils$2.toBuffer(M, m.encode);
+      var C = n[n.length - 1];
+      s = C === 47 || C === 92, i.fileNameLength = n.length;
+    },
+    get efs() {
+      return typeof f == "function" ? f(this.entryName) : f;
     },
     get extra() {
-      return o;
+      return l;
     },
-    set extra(g) {
-      o = g, r.extraLength = g.length, p(g);
+    set extra(M) {
+      l = M, i.extraLength = M.length, b(M);
     },
     get comment() {
-      return n.toString();
+      return m.decode(a);
     },
-    set comment(g) {
-      n = Utils$2.toBuffer(g), r.commentLength = n.length;
+    set comment(M) {
+      if (a = Utils$2.toBuffer(M, m.encode), i.commentLength = a.length, a.length > 65535) throw Utils$2.Errors.COMMENT_TOO_LONG();
     },
     get name() {
-      var g = i.toString();
-      return a ? g.substr(g.length - 1).split("/").pop() : g.split("/").pop();
+      var M = m.decode(n);
+      return s ? M.substr(M.length - 1).split("/").pop() : M.split("/").pop();
     },
     get isDirectory() {
-      return a;
+      return s;
     },
     getCompressedData: function() {
-      return d(!1, null);
+      return g(!1, null);
     },
-    getCompressedDataAsync: function(g) {
-      d(!0, g);
+    getCompressedDataAsync: function(M) {
+      g(!0, M);
     },
-    setData: function(g) {
-      s = Utils$2.toBuffer(g), !a && s.length ? (r.size = s.length, r.method = Utils$2.Constants.DEFLATED, r.crc = Utils$2.crc32(g), r.changed = !0) : r.method = Utils$2.Constants.STORED;
+    setData: function(M) {
+      o = Utils$2.toBuffer(M, Utils$2.decoder.encode), !s && o.length ? (i.size = o.length, i.method = Utils$2.Constants.DEFLATED, i.crc = Utils$2.crc32(M), i.changed = !0) : i.method = Utils$2.Constants.STORED;
     },
-    getData: function(g) {
-      return r.changed ? s : f(!1, null, g);
+    getData: function(M) {
+      return i.changed ? o : v(!1, null, M);
     },
-    getDataAsync: function(g, v) {
-      r.changed ? g(s) : f(!0, g, v);
+    getDataAsync: function(M, C) {
+      i.changed ? M(o) : v(!0, M, C);
     },
-    set attr(g) {
-      r.attr = g;
+    set attr(M) {
+      i.attr = M;
     },
     get attr() {
-      return r.attr;
+      return i.attr;
     },
-    set header(g) {
-      r.loadFromBinary(g);
+    set header(M) {
+      i.loadFromBinary(M);
     },
     get header() {
-      return r;
+      return i;
     },
-    packHeader: function() {
-      var g = r.entryHeaderToBinary(), v = Utils$2.Constants.CENHDR;
-      return i.copy(g, v), v += i.length, r.extraLength && (o.copy(g, v), v += r.extraLength), r.commentLength && n.copy(g, v), g;
+    packCentralHeader: function() {
+      i.flags_efs = this.efs, i.extraLength = l.length;
+      var M = i.centralHeaderToBinary(), C = Utils$2.Constants.CENHDR;
+      return n.copy(M, C), C += n.length, l.copy(M, C), C += i.extraLength, a.copy(M, C), M;
+    },
+    packLocalHeader: function() {
+      let M = 0;
+      i.flags_efs = this.efs, i.extraLocalLength = h.length;
+      const C = i.localHeaderToBinary(), T = Buffer.alloc(C.length + n.length + i.extraLocalLength);
+      return C.copy(T, M), M += C.length, n.copy(T, M), M += n.length, h.copy(T, M), M += h.length, T;
     },
     toJSON: function() {
-      const g = function(v) {
-        return "<" + (v && v.length + " bytes buffer" || "null") + ">";
+      const M = function(C) {
+        return "<" + (C && C.length + " bytes buffer" || "null") + ">";
       };
       return {
         entryName: this.entryName,
         name: this.name,
         comment: this.comment,
         isDirectory: this.isDirectory,
-        header: r.toJSON(),
-        compressedData: g(e),
-        data: g(s)
+        header: i.toJSON(),
+        compressedData: M(r),
+        data: M(o)
       };
     },
     toString: function() {
@@ -13906,46 +14001,56 @@ var Utils$2 = utilExports, Headers$1 = headers, Constants = Utils$2.Constants, M
 const ZipEntry$1 = zipEntry, Headers = headers, Utils$1 = utilExports;
 var zipFile = function(e, r) {
   var i = [], n = {}, a = Buffer.alloc(0), s = new Headers.MainHeader(), o = !1;
-  const l = Object.assign(/* @__PURE__ */ Object.create(null), r), { noSort: h } = l;
-  e ? m(l.readEntries) : o = !0;
-  function f(_) {
-    const g = s.diskEntries;
-    let v = s.offset;
-    for (let b = 0; b < g; b++) {
-      let w = v;
-      const k = new ZipEntry$1(e);
-      k.header = e.slice(w, w += Utils$1.Constants.CENHDR), k.entryName = e.slice(w, w += k.header.fileNameLength), v += k.header.entryHeaderSize, _(k);
+  const l = /* @__PURE__ */ new Set(), h = r, { noSort: f, decoder: d } = h;
+  e ? p(h.readEntries) : o = !0;
+  function m() {
+    const g = /* @__PURE__ */ new Set();
+    for (const k of Object.keys(n)) {
+      const b = k.split("/");
+      if (b.pop(), !!b.length)
+        for (let w = 0; w < b.length; w++) {
+          const M = b.slice(0, w + 1).join("/") + "/";
+          g.add(M);
+        }
     }
+    for (const k of g)
+      if (!(k in n)) {
+        const b = new ZipEntry$1(h);
+        b.entryName = k, b.attr = 16, b.temporary = !0, i.push(b), n[b.entryName] = b, l.add(b);
+      }
   }
-  function d() {
-    o = !0, n = {}, i = new Array(s.diskEntries);
-    for (var _ = s.offset, g = 0; g < i.length; g++) {
-      var v = _, b = new ZipEntry$1(e);
-      b.header = e.slice(v, v += Utils$1.Constants.CENHDR), b.entryName = e.slice(v, v += b.header.fileNameLength), b.header.extraLength && (b.extra = e.slice(v, v += b.header.extraLength)), b.header.commentLength && (b.comment = e.slice(v, v + b.header.commentLength)), _ += b.header.entryHeaderSize, i[g] = b, n[b.entryName] = b;
+  function _() {
+    if (o = !0, n = {}, s.diskEntries > (e.length - s.offset) / Utils$1.Constants.CENHDR)
+      throw Utils$1.Errors.DISK_ENTRY_TOO_LARGE();
+    i = new Array(s.diskEntries);
+    for (var g = s.offset, k = 0; k < i.length; k++) {
+      var b = g, w = new ZipEntry$1(h, e);
+      w.header = e.slice(b, b += Utils$1.Constants.CENHDR), w.entryName = e.slice(b, b += w.header.fileNameLength), w.header.extraLength && (w.extra = e.slice(b, b += w.header.extraLength)), w.header.commentLength && (w.comment = e.slice(b, b + w.header.commentLength)), g += w.header.centralHeaderSize, i[k] = w, n[w.entryName] = w;
     }
+    l.clear(), m();
   }
-  function m(_) {
-    var g = e.length - Utils$1.Constants.ENDHDR, v = Math.max(0, g - 65535), b = v, w = e.length, k = -1, M = 0;
-    for (g; g >= b; g--)
-      if (e[g] === 80) {
-        if (e.readUInt32LE(g) === Utils$1.Constants.ENDSIG) {
-          k = g, M = g, w = g + Utils$1.Constants.ENDHDR, b = g - Utils$1.Constants.END64HDR;
+  function p(g) {
+    var k = e.length - Utils$1.Constants.ENDHDR, b = Math.max(0, k - 65535), w = b, M = e.length, C = -1, T = 0;
+    for ((typeof h.trailingSpace == "boolean" ? h.trailingSpace : !1) && (b = 0), k; k >= w; k--)
+      if (e[k] === 80) {
+        if (e.readUInt32LE(k) === Utils$1.Constants.ENDSIG) {
+          C = k, T = k, M = k + Utils$1.Constants.ENDHDR, w = k - Utils$1.Constants.END64HDR;
           continue;
         }
-        if (e.readUInt32LE(g) === Utils$1.Constants.END64SIG) {
-          b = v;
+        if (e.readUInt32LE(k) === Utils$1.Constants.END64SIG) {
+          w = b;
           continue;
         }
-        if (e.readUInt32LE(g) === Utils$1.Constants.ZIP64SIG) {
-          k = g, w = g + Utils$1.readBigUInt64LE(e, g + Utils$1.Constants.ZIP64SIZE) + Utils$1.Constants.ZIP64LEAD;
+        if (e.readUInt32LE(k) === Utils$1.Constants.ZIP64SIG) {
+          C = k, M = k + Utils$1.readBigUInt64LE(e, k + Utils$1.Constants.ZIP64SIZE) + Utils$1.Constants.ZIP64LEAD;
           break;
         }
       }
-    if (!~k) throw new Error(Utils$1.Errors.INVALID_FORMAT);
-    s.loadFromBinary(e.slice(k, w)), s.commentLength && (a = e.slice(M + Utils$1.Constants.ENDHDR)), _ && d();
+    if (C == -1) throw Utils$1.Errors.INVALID_FORMAT();
+    s.loadFromBinary(e.slice(C, M)), s.commentLength && (a = e.slice(T + Utils$1.Constants.ENDHDR)), g && _();
   }
-  function p() {
-    i.length > 1 && !h && i.sort((_, g) => _.entryName.toLowerCase().localeCompare(g.entryName.toLowerCase()));
+  function v() {
+    i.length > 1 && !f && i.sort((g, k) => g.entryName.toLowerCase().localeCompare(k.entryName.toLowerCase()));
   }
   return {
     /**
@@ -13953,27 +14058,23 @@ var zipFile = function(e, r) {
      * @return Array
      */
     get entries() {
-      return o || d(), i;
+      return o || _(), i.filter((g) => !l.has(g));
     },
     /**
      * Archive comment
      * @return {String}
      */
     get comment() {
-      return a.toString();
+      return d.decode(a);
     },
-    set comment(_) {
-      a = Utils$1.toBuffer(_), s.commentLength = a.length;
+    set comment(g) {
+      a = Utils$1.toBuffer(g, d.encode), s.commentLength = a.length;
     },
     getEntryCount: function() {
       return o ? i.length : s.diskEntries;
     },
-    forEach: function(_) {
-      if (!o) {
-        f(_);
-        return;
-      }
-      i.forEach(_);
+    forEach: function(g) {
+      this.entries.forEach(g);
     },
     /**
      * Returns a reference to the entry with the given name or null if entry is inexistent
@@ -13981,33 +14082,39 @@ var zipFile = function(e, r) {
      * @param entryName
      * @return ZipEntry
      */
-    getEntry: function(_) {
-      return o || d(), n[_] || null;
+    getEntry: function(g) {
+      return o || _(), n[g] || null;
     },
     /**
      * Adds the given entry to the entry list
      *
      * @param entry
      */
-    setEntry: function(_) {
-      o || d(), i.push(_), n[_.entryName] = _, s.totalEntries = i.length;
+    setEntry: function(g) {
+      o || _(), i.push(g), n[g.entryName] = g, s.totalEntries = i.length;
+    },
+    /**
+     * Removes the file with the given name from the entry list.
+     *
+     * If the entry is a directory, then all nested files and directories will be removed
+     * @param entryName
+     * @returns {void}
+     */
+    deleteFile: function(g, k = !0) {
+      o || _();
+      const b = n[g];
+      this.getEntryChildren(b, k).map((M) => M.entryName).forEach(this.deleteEntry);
     },
     /**
      * Removes the entry with the given name from the entry list.
      *
-     * If the entry is a directory, then all nested files and directories will be removed
-     * @param entryName
+     * @param {string} entryName
+     * @returns {void}
      */
-    deleteEntry: function(_) {
-      o || d();
-      var g = n[_];
-      if (g && g.isDirectory) {
-        var v = this;
-        this.getEntryChildren(g).forEach(function(b) {
-          b.entryName !== _ && v.deleteEntry(b.entryName);
-        });
-      }
-      i.splice(i.indexOf(g), 1), delete n[_], s.totalEntries = i.length;
+    deleteEntry: function(g) {
+      o || _();
+      const k = n[g], b = i.indexOf(k);
+      b >= 0 && (i.splice(b, 1), delete n[g], s.totalEntries = i.length);
     },
     /**
      *  Iterates and returns all nested files and directories of the given entry
@@ -14015,14 +14122,29 @@ var zipFile = function(e, r) {
      * @param entry
      * @return Array
      */
-    getEntryChildren: function(_) {
-      if (o || d(), _ && _.isDirectory) {
-        const g = [], v = _.entryName, b = v.length;
-        return i.forEach(function(w) {
-          w.entryName.substr(0, b) === v && g.push(w);
-        }), g;
-      }
+    getEntryChildren: function(g, k = !0) {
+      if (o || _(), typeof g == "object")
+        if (g.isDirectory && k) {
+          const b = [], w = g.entryName;
+          for (const M of i)
+            M.entryName.startsWith(w) && b.push(M);
+          return b;
+        } else
+          return [g];
       return [];
+    },
+    /**
+     *  How many child elements entry has
+     *
+     * @param {ZipEntry} entry
+     * @return {integer}
+     */
+    getChildCount: function(g) {
+      if (g && g.isDirectory) {
+        const k = this.getEntryChildren(g);
+        return k.includes(g) ? k.length - 1 : k.length;
+      }
+      return 0;
     },
     /**
      * Returns the zip file
@@ -14030,65 +14152,64 @@ var zipFile = function(e, r) {
      * @return Buffer
      */
     compressToBuffer: function() {
-      o || d(), p();
-      const _ = [], g = [];
-      let v = 0, b = 0;
+      o || _(), v();
+      const g = [], k = [];
+      let b = 0, w = 0;
       s.size = 0, s.offset = 0;
-      for (const M of i) {
-        const N = M.getCompressedData();
-        M.header.offset = b;
-        const P = M.header.dataHeaderToBinary(), T = M.rawEntryName.length, C = Buffer.alloc(T + M.extra.length);
-        M.rawEntryName.copy(C, 0), C.copy(M.extra, T);
-        const X = P.length + C.length + N.length;
-        b += X, _.push(P), _.push(C), _.push(N);
-        const _e = M.packHeader();
-        g.push(_e), s.size += _e.length, v += X + _e.length;
+      let M = 0;
+      for (const P of this.entries) {
+        const N = P.getCompressedData();
+        P.header.offset = w;
+        const X = P.packLocalHeader(), fe = X.length + N.length;
+        w += fe, g.push(X), g.push(N);
+        const Ke = P.packCentralHeader();
+        k.push(Ke), s.size += Ke.length, b += fe + Ke.length, M++;
       }
-      v += s.mainHeaderSize, s.offset = b, b = 0;
-      const w = Buffer.alloc(v);
-      for (const M of _)
-        M.copy(w, b), b += M.length;
-      for (const M of g)
-        M.copy(w, b), b += M.length;
-      const k = s.toBinary();
-      return a && a.copy(k, Utils$1.Constants.ENDHDR), k.copy(w, b), w;
+      b += s.mainHeaderSize, s.offset = w, s.totalEntries = M, w = 0;
+      const C = Buffer.alloc(b);
+      for (const P of g)
+        P.copy(C, w), w += P.length;
+      for (const P of k)
+        P.copy(C, w), w += P.length;
+      const T = s.toBinary();
+      return a && a.copy(T, Utils$1.Constants.ENDHDR), T.copy(C, w), e = C, o = !1, C;
     },
-    toAsyncBuffer: function(_, g, v, b) {
+    toAsyncBuffer: function(g, k, b, w) {
       try {
-        o || d(), p();
-        const w = [], k = [];
-        let M = 0, N = 0;
+        o || _(), v();
+        const M = [], C = [];
+        let T = 0, P = 0, N = 0;
         s.size = 0, s.offset = 0;
-        const P = function(T) {
-          if (T.length) {
-            const C = T.pop(), X = C.entryName + C.extra.toString();
-            v && v(X), C.getCompressedDataAsync(function(_e) {
-              b && b(X), C.header.offset = N;
-              const Je = C.header.dataHeaderToBinary(), Pe = Buffer.alloc(X.length, X), Ke = Je.length + Pe.length + _e.length;
-              N += Ke, w.push(Je), w.push(Pe), w.push(_e);
-              const Wt = C.packHeader();
-              k.push(Wt), s.size += Wt.length, M += Ke + Wt.length, P(T);
+        const X = function(fe) {
+          if (fe.length > 0) {
+            const Ke = fe.shift(), Pe = Ke.entryName + Ke.extra.toString();
+            b && b(Pe), Ke.getCompressedDataAsync(function(Je) {
+              w && w(Pe), Ke.header.offset = P;
+              const Wt = Ke.packLocalHeader(), ee = Wt.length + Je.length;
+              P += ee, M.push(Wt), M.push(Je);
+              const We = Ke.packCentralHeader();
+              C.push(We), s.size += We.length, T += ee + We.length, N++, X(fe);
             });
           } else {
-            M += s.mainHeaderSize, s.offset = N, N = 0;
-            const C = Buffer.alloc(M);
-            w.forEach(function(_e) {
-              _e.copy(C, N), N += _e.length;
-            }), k.forEach(function(_e) {
-              _e.copy(C, N), N += _e.length;
+            T += s.mainHeaderSize, s.offset = P, s.totalEntries = N, P = 0;
+            const Ke = Buffer.alloc(T);
+            M.forEach(function(Je) {
+              Je.copy(Ke, P), P += Je.length;
+            }), C.forEach(function(Je) {
+              Je.copy(Ke, P), P += Je.length;
             });
-            const X = s.toBinary();
-            a && a.copy(X, Utils$1.Constants.ENDHDR), X.copy(C, N), _(C);
+            const Pe = s.toBinary();
+            a && a.copy(Pe, Utils$1.Constants.ENDHDR), Pe.copy(Ke, P), e = Ke, o = !1, g(Ke);
           }
         };
-        P(i);
-      } catch (w) {
-        g(w);
+        X(Array.from(this.entries));
+      } catch (M) {
+        k(M);
       }
     }
   };
 };
-const Utils = utilExports, pth = path$f, ZipEntry = zipEntry, ZipFile = zipFile, get_Bool = (e, r) => typeof e == "boolean" ? e : r, get_Str = (e, r) => typeof e == "string" ? e : r, defaultOptions = {
+const Utils = utilExports, pth = path$f, ZipEntry = zipEntry, ZipFile = zipFile, get_Bool = (...e) => Utils.findLast(e, (r) => typeof r == "boolean"), get_Str = (...e) => Utils.findLast(e, (r) => typeof r == "string"), get_Fun = (...e) => Utils.findLast(e, (r) => typeof r == "function"), defaultOptions = {
   // option "noSort" : if true it disables files sorting
   noSort: !1,
   // read entries during load (initial loading may be slower)
@@ -14103,96 +14224,128 @@ var admZip = function(e, r) {
   const n = Object.assign(/* @__PURE__ */ Object.create(null), defaultOptions);
   e && typeof e == "object" && (e instanceof Uint8Array || (Object.assign(n, e), e = n.input ? n.input : void 0, n.input && delete n.input), Buffer.isBuffer(e) && (i = e, n.method = Utils.Constants.BUFFER, e = void 0)), Object.assign(n, r);
   const a = new Utils(n);
-  if (e && typeof e == "string")
+  if ((typeof n.decoder != "object" || typeof n.decoder.encode != "function" || typeof n.decoder.decode != "function") && (n.decoder = Utils.decoder), e && typeof e == "string")
     if (a.fs.existsSync(e))
       n.method = Utils.Constants.FILE, n.filename = e, i = a.fs.readFileSync(e);
     else
-      throw new Error(Utils.Errors.INVALID_FILENAME);
-  const s = new ZipFile(i, n), { canonical: o, sanitize: l } = Utils;
-  function h(d) {
-    if (d && s) {
-      var m;
-      if (typeof d == "string" && (m = s.getEntry(d)), typeof d == "object" && typeof d.entryName < "u" && typeof d.header < "u" && (m = s.getEntry(d.entryName)), m)
-        return m;
+      throw Utils.Errors.INVALID_FILENAME();
+  const s = new ZipFile(i, n), { canonical: o, sanitize: l, zipnamefix: h } = Utils;
+  function f(p) {
+    if (p && s) {
+      var v;
+      if (typeof p == "string" && (v = s.getEntry(pth.posix.normalize(p))), typeof p == "object" && typeof p.entryName < "u" && typeof p.header < "u" && (v = s.getEntry(p.entryName)), v)
+        return v;
     }
     return null;
   }
-  function f(d) {
-    const { join: m, normalize: p, sep: _ } = pth.posix;
-    return m(".", p(_ + d.split("\\").join(_) + _));
+  function d(p) {
+    const { join: v, normalize: g, sep: k } = pth.posix;
+    return v(pth.isAbsolute(p) ? "/" : ".", g(k + p.split("\\").join(k) + k));
   }
+  function m(p) {
+    return p instanceof RegExp ? /* @__PURE__ */ function(v) {
+      return function(g) {
+        return v.test(g);
+      };
+    }(p) : typeof p != "function" ? () => !0 : p;
+  }
+  const _ = (p, v) => {
+    let g = v.slice(-1);
+    return g = g === a.sep ? a.sep : "", pth.relative(p, v) + g;
+  };
   return {
     /**
      * Extracts the given entry from the archive and returns the content as a Buffer object
-     * @param entry ZipEntry object or String with the full path of the entry
-     *
+     * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
+     * @param {Buffer|string} [pass] - password
      * @return Buffer or Null in case of error
      */
-    readFile: function(d, m) {
-      var p = h(d);
-      return p && p.getData(m) || null;
+    readFile: function(p, v) {
+      var g = f(p);
+      return g && g.getData(v) || null;
+    },
+    /**
+     * Returns how many child elements has on entry (directories) on files it is always 0
+     * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
+     * @returns {integer}
+     */
+    childCount: function(p) {
+      const v = f(p);
+      if (v)
+        return s.getChildCount(v);
     },
     /**
      * Asynchronous readFile
-     * @param entry ZipEntry object or String with the full path of the entry
-     * @param callback
+     * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
+     * @param {callback} callback
      *
      * @return Buffer or Null in case of error
      */
-    readFileAsync: function(d, m) {
-      var p = h(d);
-      p ? p.getDataAsync(m) : m(null, "getEntry failed for:" + d);
+    readFileAsync: function(p, v) {
+      var g = f(p);
+      g ? g.getDataAsync(v) : v(null, "getEntry failed for:" + p);
     },
     /**
      * Extracts the given entry from the archive and returns the content as plain text in the given encoding
-     * @param entry ZipEntry object or String with the full path of the entry
-     * @param encoding Optional. If no encoding is specified utf8 is used
+     * @param {ZipEntry|string} entry - ZipEntry object or String with the full path of the entry
+     * @param {string} encoding - Optional. If no encoding is specified utf8 is used
      *
      * @return String
      */
-    readAsText: function(d, m) {
-      var p = h(d);
-      if (p) {
-        var _ = p.getData();
-        if (_ && _.length)
-          return _.toString(m || "utf8");
+    readAsText: function(p, v) {
+      var g = f(p);
+      if (g) {
+        var k = g.getData();
+        if (k && k.length)
+          return k.toString(v || "utf8");
       }
       return "";
     },
     /**
      * Asynchronous readAsText
-     * @param entry ZipEntry object or String with the full path of the entry
-     * @param callback
-     * @param encoding Optional. If no encoding is specified utf8 is used
+     * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
+     * @param {callback} callback
+     * @param {string} [encoding] - Optional. If no encoding is specified utf8 is used
      *
      * @return String
      */
-    readAsTextAsync: function(d, m, p) {
-      var _ = h(d);
-      _ ? _.getDataAsync(function(g, v) {
-        if (v) {
-          m(g, v);
+    readAsTextAsync: function(p, v, g) {
+      var k = f(p);
+      k ? k.getDataAsync(function(b, w) {
+        if (w) {
+          v(b, w);
           return;
         }
-        g && g.length ? m(g.toString(p || "utf8")) : m("");
-      }) : m("");
+        b && b.length ? v(b.toString(g || "utf8")) : v("");
+      }) : v("");
     },
     /**
      * Remove the entry from the file or the entry and all it's nested directories and files if the given entry is a directory
      *
-     * @param entry
+     * @param {ZipEntry|string} entry
+     * @returns {void}
      */
-    deleteFile: function(d) {
-      var m = h(d);
-      m && s.deleteEntry(m.entryName);
+    deleteFile: function(p, v = !0) {
+      var g = f(p);
+      g && s.deleteFile(g.entryName, v);
+    },
+    /**
+     * Remove the entry from the file or directory without affecting any nested entries
+     *
+     * @param {ZipEntry|string} entry
+     * @returns {void}
+     */
+    deleteEntry: function(p) {
+      var v = f(p);
+      v && s.deleteEntry(v.entryName);
     },
     /**
      * Adds a comment to the zip. The zip must be rewritten after adding the comment.
      *
-     * @param comment
+     * @param {string} comment
      */
-    addZipComment: function(d) {
-      s.comment = d;
+    addZipComment: function(p) {
+      s.comment = p;
     },
     /**
      * Returns the zip comment
@@ -14206,133 +14359,195 @@ var admZip = function(e, r) {
      * Adds a comment to a specified zipEntry. The zip must be rewritten after adding the comment
      * The comment cannot exceed 65535 characters in length
      *
-     * @param entry
-     * @param comment
+     * @param {ZipEntry} entry
+     * @param {string} comment
      */
-    addZipEntryComment: function(d, m) {
-      var p = h(d);
-      p && (p.comment = m);
+    addZipEntryComment: function(p, v) {
+      var g = f(p);
+      g && (g.comment = v);
     },
     /**
      * Returns the comment of the specified entry
      *
-     * @param entry
+     * @param {ZipEntry} entry
      * @return String
      */
-    getZipEntryComment: function(d) {
-      var m = h(d);
-      return m && m.comment || "";
+    getZipEntryComment: function(p) {
+      var v = f(p);
+      return v && v.comment || "";
     },
     /**
      * Updates the content of an existing entry inside the archive. The zip must be rewritten after updating the content
      *
-     * @param entry
-     * @param content
+     * @param {ZipEntry} entry
+     * @param {Buffer} content
      */
-    updateFile: function(d, m) {
-      var p = h(d);
-      p && p.setData(m);
+    updateFile: function(p, v) {
+      var g = f(p);
+      g && g.setData(v);
     },
     /**
      * Adds a file from the disk to the archive
      *
-     * @param localPath File to add to zip
-     * @param zipPath Optional path inside the zip
-     * @param zipName Optional name for the file
+     * @param {string} localPath File to add to zip
+     * @param {string} [zipPath] Optional path inside the zip
+     * @param {string} [zipName] Optional name for the file
+     * @param {string} [comment] Optional file comment
      */
-    addLocalFile: function(d, m, p, _) {
-      if (a.fs.existsSync(d)) {
-        m = m ? f(m) : "";
-        var g = d.split("\\").join("/").split("/").pop();
-        m += p || g;
-        const v = a.fs.statSync(d);
-        this.addFile(m, a.fs.readFileSync(d), _, v);
+    addLocalFile: function(p, v, g, k) {
+      if (a.fs.existsSync(p)) {
+        v = v ? d(v) : "";
+        const b = pth.win32.basename(pth.win32.normalize(p));
+        v += g || b;
+        const w = a.fs.statSync(p), M = w.isFile() ? a.fs.readFileSync(p) : Buffer.alloc(0);
+        w.isDirectory() && (v += a.sep), this.addFile(v, M, k, w);
       } else
-        throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", d));
+        throw Utils.Errors.FILE_NOT_FOUND(p);
+    },
+    /**
+     * Callback for showing if everything was done.
+     *
+     * @callback doneCallback
+     * @param {Error} err - Error object
+     * @param {boolean} done - was request fully completed
+     */
+    /**
+     * Adds a file from the disk to the archive
+     *
+     * @param {(object|string)} options - options object, if it is string it us used as localPath.
+     * @param {string} options.localPath - Local path to the file.
+     * @param {string} [options.comment] - Optional file comment.
+     * @param {string} [options.zipPath] - Optional path inside the zip
+     * @param {string} [options.zipName] - Optional name for the file
+     * @param {doneCallback} callback - The callback that handles the response.
+     */
+    addLocalFileAsync: function(p, v) {
+      p = typeof p == "object" ? p : { localPath: p };
+      const g = pth.resolve(p.localPath), { comment: k } = p;
+      let { zipPath: b, zipName: w } = p;
+      const M = this;
+      a.fs.stat(g, function(C, T) {
+        if (C) return v(C, !1);
+        b = b ? d(b) : "";
+        const P = pth.win32.basename(pth.win32.normalize(g));
+        if (b += w || P, T.isFile())
+          a.fs.readFile(g, function(N, X) {
+            return N ? v(N, !1) : (M.addFile(b, X, k, T), setImmediate(v, void 0, !0));
+          });
+        else if (T.isDirectory())
+          return b += a.sep, M.addFile(b, Buffer.alloc(0), k, T), setImmediate(v, void 0, !0);
+      });
     },
     /**
      * Adds a local directory and all its nested files and directories to the archive
      *
-     * @param localPath
-     * @param zipPath optional path inside zip
-     * @param filter optional RegExp or Function if files match will
-     *               be included.
+     * @param {string} localPath - local path to the folder
+     * @param {string} [zipPath] - optional path inside zip
+     * @param {(RegExp|function)} [filter] - optional RegExp or Function if files match will be included.
      */
-    addLocalFolder: function(d, m, p) {
-      if (p instanceof RegExp ? p = /* @__PURE__ */ function(_) {
-        return function(g) {
-          return _.test(g);
-        };
-      }(p) : typeof p != "function" && (p = function() {
-        return !0;
-      }), m = m ? f(m) : "", d = pth.normalize(d), a.fs.existsSync(d)) {
-        const _ = a.findFiles(d), g = this;
-        _.length && _.forEach(function(v) {
-          var b = pth.relative(d, v).split("\\").join("/");
-          if (p(b)) {
-            var w = a.fs.statSync(v);
-            w.isFile() ? g.addFile(m + b, a.fs.readFileSync(v), "", w) : g.addFile(m + b + "/", Buffer.alloc(0), "", w);
+    addLocalFolder: function(p, v, g) {
+      if (g = m(g), v = v ? d(v) : "", p = pth.normalize(p), a.fs.existsSync(p)) {
+        const k = a.findFiles(p), b = this;
+        if (k.length)
+          for (const w of k) {
+            const M = pth.join(v, _(p, w));
+            g(M) && b.addLocalFile(w, pth.dirname(M));
           }
-        });
       } else
-        throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", d));
+        throw Utils.Errors.FILE_NOT_FOUND(p);
     },
     /**
-     * Asynchronous addLocalFile
-     * @param localPath
-     * @param callback
-     * @param zipPath optional path inside zip
-     * @param filter optional RegExp or Function if files match will
+     * Asynchronous addLocalFolder
+     * @param {string} localPath
+     * @param {callback} callback
+     * @param {string} [zipPath] optional path inside zip
+     * @param {RegExp|function} [filter] optional RegExp or Function if files match will
      *               be included.
      */
-    addLocalFolderAsync: function(d, m, p, _) {
-      _ instanceof RegExp ? _ = /* @__PURE__ */ function(v) {
-        return function(b) {
-          return v.test(b);
-        };
-      }(_) : typeof _ != "function" && (_ = function() {
-        return !0;
-      }), p = p ? f(p) : "", d = pth.normalize(d);
-      var g = this;
-      a.fs.open(d, "r", function(v) {
-        if (v && v.code === "ENOENT")
-          m(void 0, Utils.Errors.FILE_NOT_FOUND.replace("%s", d));
-        else if (v)
-          m(void 0, v);
+    addLocalFolderAsync: function(p, v, g, k) {
+      k = m(k), g = g ? d(g) : "", p = pth.normalize(p);
+      var b = this;
+      a.fs.open(p, "r", function(w) {
+        if (w && w.code === "ENOENT")
+          v(void 0, Utils.Errors.FILE_NOT_FOUND(p));
+        else if (w)
+          v(void 0, w);
         else {
-          var b = a.findFiles(d), w = -1, k = function() {
-            if (w += 1, w < b.length) {
-              var M = b[w], N = pth.relative(d, M).split("\\").join("/");
-              N = N.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, ""), _(N) ? a.fs.stat(M, function(P, T) {
-                P && m(void 0, P), T.isFile() ? a.fs.readFile(M, function(C, X) {
-                  C ? m(void 0, C) : (g.addFile(p + N, X, "", T), k());
-                }) : (g.addFile(p + N + "/", Buffer.alloc(0), "", T), k());
-              }) : k();
+          var M = a.findFiles(p), C = -1, T = function() {
+            if (C += 1, C < M.length) {
+              var P = M[C], N = _(p, P).split("\\").join("/");
+              N = N.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, ""), k(N) ? a.fs.stat(P, function(X, fe) {
+                X && v(void 0, X), fe.isFile() ? a.fs.readFile(P, function(Ke, Pe) {
+                  Ke ? v(void 0, Ke) : (b.addFile(g + N, Pe, "", fe), T());
+                }) : (b.addFile(g + N + "/", Buffer.alloc(0), "", fe), T());
+              }) : process.nextTick(() => {
+                T();
+              });
             } else
-              m(!0, void 0);
+              v(!0, void 0);
           };
-          k();
+          T();
         }
       });
     },
     /**
+     * Adds a local directory and all its nested files and directories to the archive
+     *
+     * @param {object | string} options - options object, if it is string it us used as localPath.
+     * @param {string} options.localPath - Local path to the folder.
+     * @param {string} [options.zipPath] - optional path inside zip.
+     * @param {RegExp|function} [options.filter] - optional RegExp or Function if files match will be included.
+     * @param {function|string} [options.namefix] - optional function to help fix filename
+     * @param {doneCallback} callback - The callback that handles the response.
+     *
+     */
+    addLocalFolderAsync2: function(p, v) {
+      const g = this;
+      p = typeof p == "object" ? p : { localPath: p }, localPath = pth.resolve(d(p.localPath));
+      let { zipPath: k, filter: b, namefix: w } = p;
+      b instanceof RegExp ? b = /* @__PURE__ */ function(T) {
+        return function(P) {
+          return T.test(P);
+        };
+      }(b) : typeof b != "function" && (b = function() {
+        return !0;
+      }), k = k ? d(k) : "", w == "latin1" && (w = (T) => T.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "")), typeof w != "function" && (w = (T) => T);
+      const M = (T) => pth.join(k, w(_(localPath, T))), C = (T) => pth.win32.basename(pth.win32.normalize(w(T)));
+      a.fs.open(localPath, "r", function(T) {
+        T && T.code === "ENOENT" ? v(void 0, Utils.Errors.FILE_NOT_FOUND(localPath)) : T ? v(void 0, T) : a.findFilesAsync(localPath, function(P, N) {
+          if (P) return v(P);
+          N = N.filter((X) => b(M(X))), N.length || v(void 0, !1), setImmediate(
+            N.reverse().reduce(function(X, fe) {
+              return function(Ke, Pe) {
+                if (Ke || Pe === !1) return setImmediate(X, Ke, !1);
+                g.addLocalFileAsync(
+                  {
+                    localPath: fe,
+                    zipPath: pth.dirname(M(fe)),
+                    zipName: C(fe)
+                  },
+                  X
+                );
+              };
+            }, v)
+          );
+        });
+      });
+    },
+    /**
+     * Adds a local directory and all its nested files and directories to the archive
      *
      * @param {string} localPath - path where files will be extracted
      * @param {object} props - optional properties
-     * @param {string} props.zipPath - optional path inside zip
-     * @param {regexp, function} props.filter - RegExp or Function if files match will be included.
+     * @param {string} [props.zipPath] - optional path inside zip
+     * @param {RegExp|function} [props.filter] - optional RegExp or Function if files match will be included.
+     * @param {function|string} [props.namefix] - optional function to help fix filename
      */
-    addLocalFolderPromise: function(d, m) {
-      return new Promise((p, _) => {
-        const { filter: g, zipPath: v } = Object.assign({}, m);
-        this.addLocalFolderAsync(
-          d,
-          (b, w) => {
-            w && _(w), b && p(this);
-          },
-          v,
-          g
-        );
+    addLocalFolderPromise: function(p, v) {
+      return new Promise((g, k) => {
+        this.addLocalFolderAsync2(Object.assign({ localPath: p }, v), (b, w) => {
+          b && k(b), w && g(this);
+        });
       });
     },
     /**
@@ -14342,99 +14557,95 @@ var admZip = function(e, r) {
      *
      * @param {string} entryName
      * @param {Buffer | string} content - file content as buffer or utf8 coded string
-     * @param {string} comment - file comment
-     * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
+     * @param {string} [comment] - file comment
+     * @param {number | object} [attr] - number as unix file permissions, object as filesystem Stats object
      */
-    addFile: function(d, m, p, _) {
-      let g = h(d);
-      const v = g != null;
-      v || (g = new ZipEntry(), g.entryName = d), g.comment = p || "";
-      const b = typeof _ == "object" && _ instanceof a.fs.Stats;
-      b && (g.header.time = _.mtime);
-      var w = g.isDirectory ? 16 : 0;
-      if (!Utils.isWin) {
-        let k = g.isDirectory ? 16384 : 32768;
-        b ? k |= 4095 & _.mode : typeof _ == "number" ? k |= 4095 & _ : k |= g.isDirectory ? 493 : 420, w = (w | k << 16) >>> 0;
-      }
-      g.attr = w, g.setData(m), v || s.setEntry(g);
+    addFile: function(p, v, g, k) {
+      p = h(p);
+      let b = f(p);
+      const w = b != null;
+      w || (b = new ZipEntry(n), b.entryName = p), b.comment = g || "";
+      const M = typeof k == "object" && k instanceof a.fs.Stats;
+      M && (b.header.time = k.mtime);
+      var C = b.isDirectory ? 16 : 0;
+      let T = b.isDirectory ? 16384 : 32768;
+      return M ? T |= 4095 & k.mode : typeof k == "number" ? T |= 4095 & k : T |= b.isDirectory ? 493 : 420, C = (C | T << 16) >>> 0, b.attr = C, b.setData(v), w || s.setEntry(b), b;
     },
     /**
      * Returns an array of ZipEntry objects representing the files and folders inside the archive
      *
-     * @return Array
+     * @param {string} [password]
+     * @returns Array
      */
-    getEntries: function() {
-      return s ? s.entries : [];
+    getEntries: function(p) {
+      return s.password = p, s ? s.entries : [];
     },
     /**
      * Returns a ZipEntry object representing the file or folder specified by ``name``.
      *
-     * @param name
+     * @param {string} name
      * @return ZipEntry
      */
-    getEntry: function(d) {
-      return h(d);
+    getEntry: function(p) {
+      return f(p);
     },
     getEntryCount: function() {
       return s.getEntryCount();
     },
-    forEach: function(d) {
-      return s.forEach(d);
+    forEach: function(p) {
+      return s.forEach(p);
     },
     /**
      * Extracts the given entry to the given targetPath
      * If the entry is a directory inside the archive, the entire directory and it's subdirectories will be extracted
      *
-     * @param entry ZipEntry object or String with the full path of the entry
-     * @param targetPath Target folder where to write the file
-     * @param maintainEntryPath If maintainEntryPath is true and the entry is inside a folder, the entry folder
-     *                          will be created in targetPath as well. Default is TRUE
-     * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
-     *                  Default is FALSE
-     * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
-     *                  Default is FALSE
-     * @param outFileName String If set will override the filename of the extracted file (Only works if the entry is a file)
+     * @param {string|ZipEntry} entry - ZipEntry object or String with the full path of the entry
+     * @param {string} targetPath - Target folder where to write the file
+     * @param {boolean} [maintainEntryPath=true] - If maintainEntryPath is true and the entry is inside a folder, the entry folder will be created in targetPath as well. Default is TRUE
+     * @param {boolean} [overwrite=false] - If the file already exists at the target path, the file will be overwriten if this is true.
+     * @param {boolean} [keepOriginalPermission=false] - The file will be set as the permission from the entry if this is true.
+     * @param {string} [outFileName] - String If set will override the filename of the extracted file (Only works if the entry is a file)
      *
      * @return Boolean
      */
-    extractEntryTo: function(d, m, p, _, g, v) {
-      _ = get_Bool(_, !1), g = get_Bool(g, !1), p = get_Bool(p, !0), v = get_Str(v, get_Str(g, void 0));
-      var b = h(d);
-      if (!b)
-        throw new Error(Utils.Errors.NO_ENTRY);
-      var w = o(b.entryName), k = l(m, v && !b.isDirectory ? v : p ? w : pth.basename(w));
-      if (b.isDirectory) {
-        var M = s.getEntryChildren(b);
-        return M.forEach(function(T) {
-          if (T.isDirectory) return;
-          var C = T.getData();
-          if (!C)
-            throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
-          var X = o(T.entryName), _e = l(m, p ? X : pth.basename(X));
-          const Je = g ? T.header.fileAttr : void 0;
-          a.writeFileTo(_e, C, _, Je);
+    extractEntryTo: function(p, v, g, k, b, w) {
+      k = get_Bool(!1, k), b = get_Bool(!1, b), g = get_Bool(!0, g), w = get_Str(b, w);
+      var M = f(p);
+      if (!M)
+        throw Utils.Errors.NO_ENTRY();
+      var C = o(M.entryName), T = l(v, w && !M.isDirectory ? w : g ? C : pth.basename(C));
+      if (M.isDirectory) {
+        var P = s.getEntryChildren(M);
+        return P.forEach(function(fe) {
+          if (fe.isDirectory) return;
+          var Ke = fe.getData();
+          if (!Ke)
+            throw Utils.Errors.CANT_EXTRACT_FILE();
+          var Pe = o(fe.entryName), Je = l(v, g ? Pe : pth.basename(Pe));
+          const Wt = b ? fe.header.fileAttr : void 0;
+          a.writeFileTo(Je, Ke, k, Wt);
         }), !0;
       }
-      var N = b.getData();
-      if (!N) throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
-      if (a.fs.existsSync(k) && !_)
-        throw new Error(Utils.Errors.CANT_OVERRIDE);
-      const P = g ? d.header.fileAttr : void 0;
-      return a.writeFileTo(k, N, _, P), !0;
+      var N = M.getData(s.password);
+      if (!N) throw Utils.Errors.CANT_EXTRACT_FILE();
+      if (a.fs.existsSync(T) && !k)
+        throw Utils.Errors.CANT_OVERRIDE();
+      const X = b ? p.header.fileAttr : void 0;
+      return a.writeFileTo(T, N, k, X), !0;
     },
     /**
      * Test the archive
-     *
+     * @param {string} [pass]
      */
-    test: function(d) {
+    test: function(p) {
       if (!s)
         return !1;
-      for (var m in s.entries)
+      for (var v in s.entries)
         try {
-          if (m.isDirectory)
+          if (v.isDirectory)
             continue;
-          var p = s.entries[m].getData(d);
-          if (!p)
+          var g = s.entries[v].getData(p);
+          if (!g)
             return !1;
         } catch {
           return !1;
@@ -14444,130 +14655,143 @@ var admZip = function(e, r) {
     /**
      * Extracts the entire archive to the given location
      *
-     * @param targetPath Target location
-     * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
+     * @param {string} targetPath Target location
+     * @param {boolean} [overwrite=false] If the file already exists at the target path, the file will be overwriten if this is true.
      *                  Default is FALSE
-     * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
+     * @param {boolean} [keepOriginalPermission=false] The file will be set as the permission from the entry if this is true.
      *                  Default is FALSE
+     * @param {string|Buffer} [pass] password
      */
-    extractAllTo: function(d, m, p, _) {
-      if (m = get_Bool(m, !1), _ = get_Str(p, _), p = get_Bool(p, !1), !s)
-        throw new Error(Utils.Errors.NO_ZIP);
-      s.entries.forEach(function(g) {
-        var v = l(d, o(g.entryName.toString()));
-        if (g.isDirectory) {
-          a.makeDir(v);
+    extractAllTo: function(p, v, g, k) {
+      if (g = get_Bool(!1, g), k = get_Str(g, k), v = get_Bool(!1, v), !s) throw Utils.Errors.NO_ZIP();
+      s.entries.forEach(function(b) {
+        var w = l(p, o(b.entryName));
+        if (b.isDirectory) {
+          a.makeDir(w);
           return;
         }
-        var b = g.getData(_);
-        if (!b)
-          throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
-        const w = p ? g.header.fileAttr : void 0;
-        a.writeFileTo(v, b, m, w);
+        var M = b.getData(k);
+        if (!M)
+          throw Utils.Errors.CANT_EXTRACT_FILE();
+        const C = g ? b.header.fileAttr : void 0;
+        a.writeFileTo(w, M, v, C);
         try {
-          a.fs.utimesSync(v, g.header.time, g.header.time);
+          a.fs.utimesSync(w, b.header.time, b.header.time);
         } catch {
-          throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
+          throw Utils.Errors.CANT_EXTRACT_FILE();
         }
       });
     },
     /**
      * Asynchronous extractAllTo
      *
-     * @param targetPath Target location
-     * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
+     * @param {string} targetPath Target location
+     * @param {boolean} [overwrite=false] If the file already exists at the target path, the file will be overwriten if this is true.
      *                  Default is FALSE
-     * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
+     * @param {boolean} [keepOriginalPermission=false] The file will be set as the permission from the entry if this is true.
      *                  Default is FALSE
-     * @param callback The callback will be executed when all entries are extracted successfully or any error is thrown.
+     * @param {function} callback The callback will be executed when all entries are extracted successfully or any error is thrown.
      */
-    extractAllToAsync: function(d, m, p, _) {
-      if (_ || (_ = function() {
-      }), m = get_Bool(m, !1), typeof p == "function" && !_ && (_ = p), p = get_Bool(p, !1), !s) {
-        _(new Error(Utils.Errors.NO_ZIP));
+    extractAllToAsync: function(p, v, g, k) {
+      if (k = get_Fun(v, g, k), g = get_Bool(!1, g), v = get_Bool(!1, v), !k)
+        return new Promise((T, P) => {
+          this.extractAllToAsync(p, v, g, function(N) {
+            N ? P(N) : T(this);
+          });
+        });
+      if (!s) {
+        k(Utils.Errors.NO_ZIP());
         return;
       }
-      d = pth.resolve(d);
-      const g = (M) => l(d, pth.normalize(o(M.entryName.toString()))), v = (M, N) => new Error(M + ': "' + N + '"'), b = [], w = /* @__PURE__ */ new Set();
-      s.entries.forEach((M) => {
-        M.isDirectory ? b.push(M) : w.add(M);
+      p = pth.resolve(p);
+      const b = (T) => l(p, pth.normalize(o(T.entryName))), w = (T, P) => new Error(T + ': "' + P + '"'), M = [], C = [];
+      s.entries.forEach((T) => {
+        T.isDirectory ? M.push(T) : C.push(T);
       });
-      for (const M of b) {
-        const N = g(M), P = p ? M.header.fileAttr : void 0;
+      for (const T of M) {
+        const P = b(T), N = g ? T.header.fileAttr : void 0;
         try {
-          a.makeDir(N), P && a.fs.chmodSync(N, P), a.fs.utimesSync(N, M.header.time, M.header.time);
+          a.makeDir(P), N && a.fs.chmodSync(P, N), a.fs.utimesSync(P, T.header.time, T.header.time);
         } catch {
-          _(v("Unable to create folder", N));
+          k(w("Unable to create folder", P));
         }
       }
-      const k = () => {
-        w.size === 0 && _();
-      };
-      for (const M of w.values()) {
-        const N = pth.normalize(o(M.entryName.toString())), P = l(d, N);
-        M.getDataAsync(function(T, C) {
-          if (C) {
-            _(new Error(C));
-            return;
-          }
-          if (!T)
-            _(new Error(Utils.Errors.CANT_EXTRACT_FILE));
+      C.reverse().reduce(function(T, P) {
+        return function(N) {
+          if (N)
+            T(N);
           else {
-            const X = p ? M.header.fileAttr : void 0;
-            a.writeFileToAsync(P, T, m, X, function(_e) {
-              if (!_e) {
-                _(v("Unable to write file", P));
-                return;
+            const X = pth.normalize(o(P.entryName)), fe = l(p, X);
+            P.getDataAsync(function(Ke, Pe) {
+              if (Pe)
+                T(Pe);
+              else if (!Ke)
+                T(Utils.Errors.CANT_EXTRACT_FILE());
+              else {
+                const Je = g ? P.header.fileAttr : void 0;
+                a.writeFileToAsync(fe, Ke, v, Je, function(Wt) {
+                  Wt || T(w("Unable to write file", fe)), a.fs.utimes(fe, P.header.time, P.header.time, function(ee) {
+                    ee ? T(w("Unable to set times", fe)) : T();
+                  });
+                });
               }
-              a.fs.utimes(P, M.header.time, M.header.time, function(Je) {
-                if (Je) {
-                  _(v("Unable to set times", P));
-                  return;
-                }
-                w.delete(M), k();
-              });
             });
           }
-        });
-      }
-      k();
+        };
+      }, k)();
     },
     /**
      * Writes the newly created zip file to disk at the specified location or if a zip was opened and no ``targetFileName`` is provided, it will overwrite the opened zip
      *
-     * @param targetFileName
-     * @param callback
+     * @param {string} targetFileName
+     * @param {function} callback
      */
-    writeZip: function(d, m) {
-      if (arguments.length === 1 && typeof d == "function" && (m = d, d = ""), !d && n.filename && (d = n.filename), !!d) {
-        var p = s.compressToBuffer();
-        if (p) {
-          var _ = a.writeFileTo(d, p, !0);
-          typeof m == "function" && m(_ ? null : new Error("failed"), "");
+    writeZip: function(p, v) {
+      if (arguments.length === 1 && typeof p == "function" && (v = p, p = ""), !p && n.filename && (p = n.filename), !!p) {
+        var g = s.compressToBuffer();
+        if (g) {
+          var k = a.writeFileTo(p, g, !0);
+          typeof v == "function" && v(k ? null : new Error("failed"), "");
         }
       }
     },
-    writeZipPromise: function(d, m) {
-      const { overwrite: p, perm: _ } = Object.assign({ overwrite: !0 }, m);
-      return new Promise((g, v) => {
-        !d && n.filename && (d = n.filename), d || v("ADM-ZIP: ZIP File Name Missing"), this.toBufferPromise().then((b) => {
-          const w = (k) => k ? g(k) : v("ADM-ZIP: Wasn't able to write zip file");
-          a.writeFileToAsync(d, b, p, _, w);
-        }, v);
+    /**
+             *
+             * @param {string} targetFileName
+             * @param {object} [props]
+             * @param {boolean} [props.overwrite=true] If the file already exists at the target path, the file will be overwriten if this is true.
+             * @param {boolean} [props.perm] The file will be set as the permission from the entry if this is true.
+    
+             * @returns {Promise<void>}
+             */
+    writeZipPromise: function(p, v) {
+      const { overwrite: g, perm: k } = Object.assign({ overwrite: !0 }, v);
+      return new Promise((b, w) => {
+        !p && n.filename && (p = n.filename), p || w("ADM-ZIP: ZIP File Name Missing"), this.toBufferPromise().then((M) => {
+          const C = (T) => T ? b(T) : w("ADM-ZIP: Wasn't able to write zip file");
+          a.writeFileToAsync(p, M, g, k, C);
+        }, w);
       });
     },
+    /**
+     * @returns {Promise<Buffer>} A promise to the Buffer.
+     */
     toBufferPromise: function() {
-      return new Promise((d, m) => {
-        s.toAsyncBuffer(d, m);
+      return new Promise((p, v) => {
+        s.toAsyncBuffer(p, v);
       });
     },
     /**
      * Returns the content of the entire zip file as a Buffer object
      *
-     * @return Buffer
+     * @prop {function} [onSuccess]
+     * @prop {function} [onFail]
+     * @prop {function} [onItemStart]
+     * @prop {function} [onItemEnd]
+     * @returns {Buffer}
      */
-    toBuffer: function(d, m, p, _) {
-      return this.valueOf = 2, typeof d == "function" ? (s.toAsyncBuffer(d, m, p, _), null) : s.compressToBuffer();
+    toBuffer: function(p, v, g, k) {
+      return typeof p == "function" ? (s.toAsyncBuffer(p, v, g, k), null) : s.compressToBuffer();
     }
   };
 };
@@ -14582,8 +14806,8 @@ function async$3(e, r) {
       fs$3.readdir(h, { withFileTypes: !0 }, function(f, d) {
         if (f) return r(f);
         for (var m of d) {
-          var p = `${h}/${m.name}`;
-          m.isDirectory() ? (l.push(p), i.push(p)) : n.push(p);
+          var _ = `${h}/${m.name}`;
+          m.isDirectory() ? (l.push(_), i.push(_)) : n.push(_);
         }
         ++o === s.length && a(l);
       });
@@ -14766,48 +14990,48 @@ class CsvParser extends Transform {
   parseLine(r, i, n) {
     const { customNewline: a, escape: s, mapHeaders: o, mapValues: l, quote: h, separator: f, skipComments: d, skipLines: m } = this.options;
     n--, !a && r.length && r[n - 1] === cr$1 && n--;
-    const p = f, _ = [];
-    let g = !1, v = i;
+    const _ = f, p = [];
+    let v = !1, g = i;
     if (d) {
-      const k = typeof d == "string" ? d : "#";
-      if (r[i] === Buffer.from(k)[0])
+      const w = typeof d == "string" ? d : "#";
+      if (r[i] === Buffer.from(w)[0])
         return;
     }
-    const b = (k) => {
+    const k = (w) => {
       if (this.state.first)
-        return k;
-      const M = _.length, N = this.headers[M];
-      return l({ header: N, index: M, value: k });
+        return w;
+      const M = p.length, C = this.headers[M];
+      return l({ header: C, index: M, value: w });
     };
-    for (let k = i; k < n; k++) {
-      const M = !g && r[k] === h, N = g && r[k] === h && k + 1 <= n && r[k + 1] === p, P = g && r[k] === s && k + 1 < n && r[k + 1] === h;
-      if (M || N) {
-        g = !g;
+    for (let w = i; w < n; w++) {
+      const M = !v && r[w] === h, C = v && r[w] === h && w + 1 <= n && r[w + 1] === _, T = v && r[w] === s && w + 1 < n && r[w + 1] === h;
+      if (M || C) {
+        v = !v;
         continue;
-      } else if (P) {
-        k++;
+      } else if (T) {
+        w++;
         continue;
       }
-      if (r[k] === p && !g) {
-        let T = this.parseCell(r, v, k);
-        T = b(T), _.push(T), v = k + 1;
+      if (r[w] === _ && !v) {
+        let P = this.parseCell(r, g, w);
+        P = k(P), p.push(P), g = w + 1;
       }
     }
-    if (v < n) {
-      let k = this.parseCell(r, v, n);
-      k = b(k), _.push(k);
+    if (g < n) {
+      let w = this.parseCell(r, g, n);
+      w = k(w), p.push(w);
     }
-    r[n - 1] === p && _.push(b(this.state.empty));
-    const w = m && m > this.state.lineNumber;
-    if (this.state.lineNumber++, this.state.first && !w) {
-      this.state.first = !1, this.headers = _.map((k, M) => o({ header: k, index: M })), this.emit("headers", this.headers);
+    r[n - 1] === _ && p.push(k(this.state.empty));
+    const b = m && m > this.state.lineNumber;
+    if (this.state.lineNumber++, this.state.first && !b) {
+      this.state.first = !1, this.headers = p.map((w, M) => o({ header: w, index: M })), this.emit("headers", this.headers);
       return;
     }
-    if (!w && this.options.strict && _.length !== this.headers.length) {
-      const k = new RangeError("Row length does not match headers");
-      this.emit("error", k);
+    if (!b && this.options.strict && p.length !== this.headers.length) {
+      const w = new RangeError("Row length does not match headers");
+      this.emit("error", w);
     } else
-      w || this.writeRow(_);
+      b || this.writeRow(p);
   }
   parseValue(r, i, n) {
     return this.options.raw ? r.slice(i, n) : r.toString("utf-8", i, n);
@@ -15892,24 +16116,24 @@ function geodeticToGeocentric(e, r, i) {
   };
 }
 function geocentricToGeodetic(e, r, i, n) {
-  var a = 1e-12, s = a * a, o = 30, l, h, f, d, m, p, _, g, v, b, w, k, M, N = e.x, P = e.y, T = e.z ? e.z : 0, C, X, _e;
-  if (l = Math.sqrt(N * N + P * P), h = Math.sqrt(N * N + P * P + T * T), l / i < a) {
-    if (C = 0, h / i < a)
-      return X = HALF_PI, _e = -n, {
+  var a = 1e-12, s = a * a, o = 30, l, h, f, d, m, _, p, v, g, k, b, w, M, C = e.x, T = e.y, P = e.z ? e.z : 0, N, X, fe;
+  if (l = Math.sqrt(C * C + T * T), h = Math.sqrt(C * C + T * T + P * P), l / i < a) {
+    if (N = 0, h / i < a)
+      return X = HALF_PI, fe = -n, {
         x: e.x,
         y: e.y,
         z: e.z
       };
   } else
-    C = Math.atan2(P, N);
-  f = T / h, d = l / h, m = 1 / Math.sqrt(1 - r * (2 - r) * d * d), g = d * (1 - r) * m, v = f * m, M = 0;
+    N = Math.atan2(T, C);
+  f = P / h, d = l / h, m = 1 / Math.sqrt(1 - r * (2 - r) * d * d), v = d * (1 - r) * m, g = f * m, M = 0;
   do
-    M++, _ = i / Math.sqrt(1 - r * v * v), _e = l * g + T * v - _ * (1 - r * v * v), p = r * _ / (_ + _e), m = 1 / Math.sqrt(1 - p * (2 - p) * d * d), b = d * (1 - p) * m, w = f * m, k = w * g - b * v, g = b, v = w;
-  while (k * k > s && M < o);
-  return X = Math.atan(w / Math.abs(b)), {
-    x: C,
+    M++, p = i / Math.sqrt(1 - r * g * g), fe = l * v + P * g - p * (1 - r * g * g), _ = r * p / (p + fe), m = 1 / Math.sqrt(1 - _ * (2 - _) * d * d), k = d * (1 - _) * m, b = f * m, w = b * v - k * g, v = k, g = b;
+  while (w * w > s && M < o);
+  return X = Math.atan(b / Math.abs(k)), {
+    x: N,
     y: X,
-    z: _e
+    z: fe
   };
 }
 function geocentricToWgs84(e, r, i) {
@@ -15936,11 +16160,11 @@ function geocentricFromWgs84(e, r, i) {
       z: e.z - i[2]
     };
   if (r === PJD_7PARAM) {
-    var n = i[0], a = i[1], s = i[2], o = i[3], l = i[4], h = i[5], f = i[6], d = (e.x - n) / f, m = (e.y - a) / f, p = (e.z - s) / f;
+    var n = i[0], a = i[1], s = i[2], o = i[3], l = i[4], h = i[5], f = i[6], d = (e.x - n) / f, m = (e.y - a) / f, _ = (e.z - s) / f;
     return {
-      x: d + h * m - l * p,
-      y: -h * d + m + o * p,
-      z: l * d - o * m + p
+      x: d + h * m - l * _,
+      y: -h * d + m + o * _,
+      z: l * d - o * m + _
     };
   }
 }
@@ -15981,8 +16205,8 @@ function applyGridShift(e, r, i) {
         return console.log("Unable to find mandatory grid '" + l.name + "'"), -1;
       continue;
     }
-    var h = l.grid.subgrids[0], f = (Math.abs(h.del[1]) + Math.abs(h.del[0])) / 1e4, d = h.ll[0] - f, m = h.ll[1] - f, p = h.ll[0] + (h.lim[0] - 1) * h.del[0] + f, _ = h.ll[1] + (h.lim[1] - 1) * h.del[1] + f;
-    if (!(m > n.y || d > n.x || _ < n.y || p < n.x) && (a = applySubgridShift(n, r, h), !isNaN(a.x)))
+    var h = l.grid.subgrids[0], f = (Math.abs(h.del[1]) + Math.abs(h.del[0])) / 1e4, d = h.ll[0] - f, m = h.ll[1] - f, _ = h.ll[0] + (h.lim[0] - 1) * h.del[0] + f, p = h.ll[1] + (h.lim[1] - 1) * h.del[1] + f;
+    if (!(m > n.y || d > n.x || p < n.y || _ < n.x) && (a = applySubgridShift(n, r, h), !isNaN(a.x)))
       break;
   }
   return isNaN(a.x) ? (console.log("Failed to find a grid shift table for location '" + -n.x * R2D + " " + n.y * R2D + " tried: '" + s + "'"), -1) : (i.x = -a.x, i.y = a.y, 0);
@@ -16024,8 +16248,8 @@ function nadInterpolate(e, r) {
   o += r.lim[0];
   var f = { x: r.cvs[o][0], y: r.cvs[o][1] };
   o--;
-  var d = { x: r.cvs[o][0], y: r.cvs[o][1] }, m = a.x * a.y, p = a.x * (1 - a.y), _ = (1 - a.x) * (1 - a.y), g = (1 - a.x) * a.y;
-  return s.x = _ * l.x + p * h.x + g * d.x + m * f.x, s.y = _ * l.y + p * h.y + g * d.y + m * f.y, s;
+  var d = { x: r.cvs[o][0], y: r.cvs[o][1] }, m = a.x * a.y, _ = a.x * (1 - a.y), p = (1 - a.x) * (1 - a.y), v = (1 - a.x) * a.y;
+  return s.x = p * l.x + _ * h.x + v * d.x + m * f.x, s.y = p * l.y + _ * h.y + v * d.y + m * f.y, s;
 }
 function adjust_axis(e, r, i) {
   var n = i.x, a = i.y, s = i.z || 0, o, l, h, f = {};
@@ -16160,13 +16384,13 @@ function radToDeg(e) {
   return 180 * (e / Math.PI);
 }
 function LLtoUTM(e) {
-  var r = e.lat, i = e.lon, n = 6378137, a = 669438e-8, s = 0.9996, o, l, h, f, d, m, p, _ = degToRad(r), g = degToRad(i), v, b;
-  b = Math.floor((i + 180) / 6) + 1, i === 180 && (b = 60), r >= 56 && r < 64 && i >= 3 && i < 12 && (b = 32), r >= 72 && r < 84 && (i >= 0 && i < 9 ? b = 31 : i >= 9 && i < 21 ? b = 33 : i >= 21 && i < 33 ? b = 35 : i >= 33 && i < 42 && (b = 37)), o = (b - 1) * 6 - 180 + 3, v = degToRad(o), l = a / (1 - a), h = n / Math.sqrt(1 - a * Math.sin(_) * Math.sin(_)), f = Math.tan(_) * Math.tan(_), d = l * Math.cos(_) * Math.cos(_), m = Math.cos(_) * (g - v), p = n * ((1 - a / 4 - 3 * a * a / 64 - 5 * a * a * a / 256) * _ - (3 * a / 8 + 3 * a * a / 32 + 45 * a * a * a / 1024) * Math.sin(2 * _) + (15 * a * a / 256 + 45 * a * a * a / 1024) * Math.sin(4 * _) - 35 * a * a * a / 3072 * Math.sin(6 * _));
-  var w = s * h * (m + (1 - f + d) * m * m * m / 6 + (5 - 18 * f + f * f + 72 * d - 58 * l) * m * m * m * m * m / 120) + 5e5, k = s * (p + h * Math.tan(_) * (m * m / 2 + (5 - f + 9 * d + 4 * d * d) * m * m * m * m / 24 + (61 - 58 * f + f * f + 600 * d - 330 * l) * m * m * m * m * m * m / 720));
-  return r < 0 && (k += 1e7), {
-    northing: Math.round(k),
-    easting: Math.round(w),
-    zoneNumber: b,
+  var r = e.lat, i = e.lon, n = 6378137, a = 669438e-8, s = 0.9996, o, l, h, f, d, m, _, p = degToRad(r), v = degToRad(i), g, k;
+  k = Math.floor((i + 180) / 6) + 1, i === 180 && (k = 60), r >= 56 && r < 64 && i >= 3 && i < 12 && (k = 32), r >= 72 && r < 84 && (i >= 0 && i < 9 ? k = 31 : i >= 9 && i < 21 ? k = 33 : i >= 21 && i < 33 ? k = 35 : i >= 33 && i < 42 && (k = 37)), o = (k - 1) * 6 - 180 + 3, g = degToRad(o), l = a / (1 - a), h = n / Math.sqrt(1 - a * Math.sin(p) * Math.sin(p)), f = Math.tan(p) * Math.tan(p), d = l * Math.cos(p) * Math.cos(p), m = Math.cos(p) * (v - g), _ = n * ((1 - a / 4 - 3 * a * a / 64 - 5 * a * a * a / 256) * p - (3 * a / 8 + 3 * a * a / 32 + 45 * a * a * a / 1024) * Math.sin(2 * p) + (15 * a * a / 256 + 45 * a * a * a / 1024) * Math.sin(4 * p) - 35 * a * a * a / 3072 * Math.sin(6 * p));
+  var b = s * h * (m + (1 - f + d) * m * m * m / 6 + (5 - 18 * f + f * f + 72 * d - 58 * l) * m * m * m * m * m / 120) + 5e5, w = s * (_ + h * Math.tan(p) * (m * m / 2 + (5 - f + 9 * d + 4 * d * d) * m * m * m * m / 24 + (61 - 58 * f + f * f + 600 * d - 330 * l) * m * m * m * m * m * m / 720));
+  return r < 0 && (w += 1e7), {
+    northing: Math.round(w),
+    easting: Math.round(b),
+    zoneNumber: k,
     zoneLetter: getLetterDesignator(r)
   };
 }
@@ -16174,13 +16398,13 @@ function UTMtoLL(e) {
   var r = e.northing, i = e.easting, n = e.zoneLetter, a = e.zoneNumber;
   if (a < 0 || a > 60)
     return null;
-  var s = 0.9996, o = 6378137, l = 669438e-8, h, f = (1 - Math.sqrt(1 - l)) / (1 + Math.sqrt(1 - l)), d, m, p, _, g, v, b, w, k, M = i - 5e5, N = r;
-  n < "N" && (N -= 1e7), b = (a - 1) * 6 - 180 + 3, h = l / (1 - l), v = N / s, w = v / (o * (1 - l / 4 - 3 * l * l / 64 - 5 * l * l * l / 256)), k = w + (3 * f / 2 - 27 * f * f * f / 32) * Math.sin(2 * w) + (21 * f * f / 16 - 55 * f * f * f * f / 32) * Math.sin(4 * w) + 151 * f * f * f / 96 * Math.sin(6 * w), d = o / Math.sqrt(1 - l * Math.sin(k) * Math.sin(k)), m = Math.tan(k) * Math.tan(k), p = h * Math.cos(k) * Math.cos(k), _ = o * (1 - l) / Math.pow(1 - l * Math.sin(k) * Math.sin(k), 1.5), g = M / (d * s);
-  var P = k - d * Math.tan(k) / _ * (g * g / 2 - (5 + 3 * m + 10 * p - 4 * p * p - 9 * h) * g * g * g * g / 24 + (61 + 90 * m + 298 * p + 45 * m * m - 252 * h - 3 * p * p) * g * g * g * g * g * g / 720);
-  P = radToDeg(P);
-  var T = (g - (1 + 2 * m + p) * g * g * g / 6 + (5 - 2 * p + 28 * m - 3 * p * p + 8 * h + 24 * m * m) * g * g * g * g * g / 120) / Math.cos(k);
-  T = b + radToDeg(T);
-  var C;
+  var s = 0.9996, o = 6378137, l = 669438e-8, h, f = (1 - Math.sqrt(1 - l)) / (1 + Math.sqrt(1 - l)), d, m, _, p, v, g, k, b, w, M = i - 5e5, C = r;
+  n < "N" && (C -= 1e7), k = (a - 1) * 6 - 180 + 3, h = l / (1 - l), g = C / s, b = g / (o * (1 - l / 4 - 3 * l * l / 64 - 5 * l * l * l / 256)), w = b + (3 * f / 2 - 27 * f * f * f / 32) * Math.sin(2 * b) + (21 * f * f / 16 - 55 * f * f * f * f / 32) * Math.sin(4 * b) + 151 * f * f * f / 96 * Math.sin(6 * b), d = o / Math.sqrt(1 - l * Math.sin(w) * Math.sin(w)), m = Math.tan(w) * Math.tan(w), _ = h * Math.cos(w) * Math.cos(w), p = o * (1 - l) / Math.pow(1 - l * Math.sin(w) * Math.sin(w), 1.5), v = M / (d * s);
+  var T = w - d * Math.tan(w) / p * (v * v / 2 - (5 + 3 * m + 10 * _ - 4 * _ * _ - 9 * h) * v * v * v * v / 24 + (61 + 90 * m + 298 * _ + 45 * m * m - 252 * h - 3 * _ * _) * v * v * v * v * v * v / 720);
+  T = radToDeg(T);
+  var P = (v - (1 + 2 * m + _) * v * v * v / 6 + (5 - 2 * _ + 28 * m - 3 * _ * _ + 8 * h + 24 * m * m) * v * v * v * v * v / 120) / Math.cos(w);
+  P = k + radToDeg(P);
+  var N;
   if (e.accuracy) {
     var X = UTMtoLL({
       northing: e.northing + e.accuracy,
@@ -16188,18 +16412,18 @@ function UTMtoLL(e) {
       zoneLetter: e.zoneLetter,
       zoneNumber: e.zoneNumber
     });
-    C = {
+    N = {
       top: X.lat,
       right: X.lon,
-      bottom: P,
-      left: T
+      bottom: T,
+      left: P
     };
   } else
-    C = {
-      lat: P,
-      lon: T
+    N = {
+      lat: T,
+      lon: P
     };
-  return C;
+  return N;
 }
 function getLetterDesignator(e) {
   var r = "Z";
@@ -16246,13 +16470,13 @@ function decode$3(e) {
 of digits after the zone letter and two 100km letters - front 
 half for easting meters, second half for 
 northing meters` + e;
-  var p = m / 2, _ = 0, g = 0, v, b, w, k, M;
-  return p > 0 && (v = 1e5 / Math.pow(10, p), b = e.substring(s, s + p), _ = parseFloat(b) * v, w = e.substring(s + p), g = parseFloat(w) * v), k = _ + f, M = g + d, {
-    easting: k,
+  var _ = m / 2, p = 0, v = 0, g, k, b, w, M;
+  return _ > 0 && (g = 1e5 / Math.pow(10, _), k = e.substring(s, s + _), p = parseFloat(k) * g, b = e.substring(s + _), v = parseFloat(b) * g), w = p + f, M = v + d, {
+    easting: w,
     northing: M,
     zoneLetter: l,
     zoneNumber: o,
-    accuracy: v
+    accuracy: g
   };
 }
 function getEastingFromChar(e, r) {
@@ -16394,10 +16618,10 @@ function init$t() {
 function forward$s(e) {
   var r = e.x, i = e.y, n = adjust_lon(r - this.long0), a, s, o, l = Math.sin(i), h = Math.cos(i);
   if (this.es) {
-    var d = h * n, m = Math.pow(d, 2), p = this.ep2 * Math.pow(h, 2), _ = Math.pow(p, 2), g = Math.abs(h) > EPSLN ? Math.tan(i) : 0, v = Math.pow(g, 2), b = Math.pow(v, 2);
+    var d = h * n, m = Math.pow(d, 2), _ = this.ep2 * Math.pow(h, 2), p = Math.pow(_, 2), v = Math.abs(h) > EPSLN ? Math.tan(i) : 0, g = Math.pow(v, 2), k = Math.pow(g, 2);
     a = 1 - this.es * Math.pow(l, 2), d = d / Math.sqrt(a);
-    var w = pj_mlfn(i, l, h, this.en);
-    s = this.a * (this.k0 * d * (1 + m / 6 * (1 - v + p + m / 20 * (5 - 18 * v + b + 14 * p - 58 * v * p + m / 42 * (61 + 179 * b - b * v - 479 * v))))) + this.x0, o = this.a * (this.k0 * (w - this.ml0 + l * n * d / 2 * (1 + m / 12 * (5 - v + 9 * p + 4 * _ + m / 30 * (61 + b - 58 * v + 270 * p - 330 * v * p + m / 56 * (1385 + 543 * b - b * v - 3111 * v)))))) + this.y0;
+    var b = pj_mlfn(i, l, h, this.en);
+    s = this.a * (this.k0 * d * (1 + m / 6 * (1 - g + _ + m / 20 * (5 - 18 * g + k + 14 * _ - 58 * g * _ + m / 42 * (61 + 179 * k - k * g - 479 * g))))) + this.x0, o = this.a * (this.k0 * (b - this.ml0 + l * n * d / 2 * (1 + m / 12 * (5 - g + 9 * _ + 4 * p + m / 30 * (61 + k - 58 * g + 270 * _ - 330 * g * _ + m / 56 * (1385 + 543 * k - k * g - 3111 * g)))))) + this.y0;
   } else {
     var f = h * Math.sin(n);
     if (Math.abs(Math.abs(f) - 1) < EPSLN)
@@ -16416,10 +16640,10 @@ function inverse$s(e) {
   var r, i, n, a, s = (e.x - this.x0) * (1 / this.a), o = (e.y - this.y0) * (1 / this.a);
   if (this.es)
     if (r = this.ml0 + o / this.k0, i = pj_inv_mlfn(r, this.es, this.en), Math.abs(i) < HALF_PI) {
-      var m = Math.sin(i), p = Math.cos(i), _ = Math.abs(p) > EPSLN ? Math.tan(i) : 0, g = this.ep2 * Math.pow(p, 2), v = Math.pow(g, 2), b = Math.pow(_, 2), w = Math.pow(b, 2);
+      var m = Math.sin(i), _ = Math.cos(i), p = Math.abs(_) > EPSLN ? Math.tan(i) : 0, v = this.ep2 * Math.pow(_, 2), g = Math.pow(v, 2), k = Math.pow(p, 2), b = Math.pow(k, 2);
       r = 1 - this.es * Math.pow(m, 2);
-      var k = s * Math.sqrt(r) / this.k0, M = Math.pow(k, 2);
-      r = r * _, n = i - r * M / (1 - this.es) * 0.5 * (1 - M / 12 * (5 + 3 * b - 9 * g * b + g - 4 * v - M / 30 * (61 + 90 * b - 252 * g * b + 45 * w + 46 * g - M / 56 * (1385 + 3633 * b + 4095 * w + 1574 * w * b)))), a = adjust_lon(this.long0 + k * (1 - M / 6 * (1 + 2 * b + g - M / 20 * (5 + 28 * b + 24 * w + 8 * g * b + 6 * g - M / 42 * (61 + 662 * b + 1320 * w + 720 * w * b)))) / p);
+      var w = s * Math.sqrt(r) / this.k0, M = Math.pow(w, 2);
+      r = r * p, n = i - r * M / (1 - this.es) * 0.5 * (1 - M / 12 * (5 + 3 * k - 9 * v * k + v - 4 * g - M / 30 * (61 + 90 * k - 252 * v * k + 45 * b + 46 * v - M / 56 * (1385 + 3633 * k + 4095 * b + 1574 * b * k)))), a = adjust_lon(this.long0 + w * (1 - M / 6 * (1 + 2 * k + v - M / 20 * (5 + 28 * k + 24 * b + 8 * v * k + 6 * v - M / 42 * (61 + 662 * k + 1320 * b + 720 * b * k)))) / _);
     } else
       n = HALF_PI * sign(o), a = 0;
   else {
@@ -16467,9 +16691,9 @@ function cosh(e) {
   return r = (r + 1 / r) / 2, r;
 }
 function clens_cmplx(e, r, i) {
-  for (var n = Math.sin(r), a = Math.cos(r), s = sinh(i), o = cosh(i), l = 2 * a * o, h = -2 * n * s, f = e.length - 1, d = e[f], m = 0, p = 0, _ = 0, g, v; --f >= 0; )
-    g = p, v = m, p = d, m = _, d = -g + l * p - h * m + e[f], _ = -v + h * p + l * m;
-  return l = n * o, h = a * s, [l * d - h * _, l * _ + h * d];
+  for (var n = Math.sin(r), a = Math.cos(r), s = sinh(i), o = cosh(i), l = 2 * a * o, h = -2 * n * s, f = e.length - 1, d = e[f], m = 0, _ = 0, p = 0, v, g; --f >= 0; )
+    v = _, g = m, _ = d, m = p, d = -v + l * _ - h * m + e[f], p = -g + h * _ + l * m;
+  return l = n * o, h = a * s, [l * d - h * p, l * p + h * d];
 }
 function init$s() {
   if (!this.approx && (isNaN(this.es) || this.es <= 0))
@@ -16642,17 +16866,17 @@ function isTypeA(e) {
   return "no_uoff" in e || "no_off" in e || r.indexOf(i) !== -1;
 }
 function init$m() {
-  var e, r, i, n, a, s, o, l, h, f, d = 0, m, p = 0, _ = 0, g = 0, v = 0, b = 0, w = 0;
+  var e, r, i, n, a, s, o, l, h, f, d = 0, m, _ = 0, p = 0, v = 0, g = 0, k = 0, b = 0;
   this.no_off = isTypeA(this), this.no_rot = "no_rot" in this;
-  var k = !1;
-  "alpha" in this && (k = !0);
+  var w = !1;
+  "alpha" in this && (w = !0);
   var M = !1;
-  if ("rectified_grid_angle" in this && (M = !0), k && (w = this.alpha), M && (d = this.rectified_grid_angle * D2R$1), k || M)
-    p = this.longc;
-  else if (_ = this.long1, v = this.lat1, g = this.long2, b = this.lat2, Math.abs(v - b) <= TOL || (e = Math.abs(v)) <= TOL || Math.abs(e - HALF_PI) <= TOL || Math.abs(Math.abs(this.lat0) - HALF_PI) <= TOL || Math.abs(Math.abs(b) - HALF_PI) <= TOL)
+  if ("rectified_grid_angle" in this && (M = !0), w && (b = this.alpha), M && (d = this.rectified_grid_angle * D2R$1), w || M)
+    _ = this.longc;
+  else if (p = this.long1, g = this.lat1, v = this.long2, k = this.lat2, Math.abs(g - k) <= TOL || (e = Math.abs(g)) <= TOL || Math.abs(e - HALF_PI) <= TOL || Math.abs(Math.abs(this.lat0) - HALF_PI) <= TOL || Math.abs(Math.abs(k) - HALF_PI) <= TOL)
     throw new Error();
-  var N = 1 - this.es;
-  r = Math.sqrt(N), Math.abs(this.lat0) > EPSLN ? (l = Math.sin(this.lat0), i = Math.cos(this.lat0), e = 1 - this.es * l * l, this.B = i * i, this.B = Math.sqrt(1 + this.es * this.B * this.B / N), this.A = this.B * this.k0 * r / e, n = this.B * r / (i * Math.sqrt(e)), a = n * n - 1, a <= 0 ? a = 0 : (a = Math.sqrt(a), this.lat0 < 0 && (a = -a)), this.E = a += n, this.E *= Math.pow(tsfnz(this.e, this.lat0, l), this.B)) : (this.B = 1 / r, this.A = this.k0, this.E = n = a = 1), k || M ? (k ? (m = Math.asin(Math.sin(w) / n), M || (d = w)) : (m = d, w = Math.asin(n * Math.sin(m))), this.lam0 = p - Math.asin(0.5 * (a - 1 / a) * Math.tan(m)) / this.B) : (s = Math.pow(tsfnz(this.e, v, Math.sin(v)), this.B), o = Math.pow(tsfnz(this.e, b, Math.sin(b)), this.B), a = this.E / s, h = (o - s) / (o + s), f = this.E * this.E, f = (f - o * s) / (f + o * s), e = _ - g, e < -Math.pi ? g -= TWO_PI : e > Math.pi && (g += TWO_PI), this.lam0 = adjust_lon(0.5 * (_ + g) - Math.atan(f * Math.tan(0.5 * this.B * (_ - g)) / h) / this.B), m = Math.atan(2 * Math.sin(this.B * adjust_lon(_ - this.lam0)) / (a - 1 / a)), d = w = Math.asin(n * Math.sin(m))), this.singam = Math.sin(m), this.cosgam = Math.cos(m), this.sinrot = Math.sin(d), this.cosrot = Math.cos(d), this.rB = 1 / this.B, this.ArB = this.A * this.rB, this.BrA = 1 / this.ArB, this.A * this.B, this.no_off ? this.u_0 = 0 : (this.u_0 = Math.abs(this.ArB * Math.atan(Math.sqrt(n * n - 1) / Math.cos(w))), this.lat0 < 0 && (this.u_0 = -this.u_0)), a = 0.5 * m, this.v_pole_n = this.ArB * Math.log(Math.tan(FORTPI - a)), this.v_pole_s = this.ArB * Math.log(Math.tan(FORTPI + a));
+  var C = 1 - this.es;
+  r = Math.sqrt(C), Math.abs(this.lat0) > EPSLN ? (l = Math.sin(this.lat0), i = Math.cos(this.lat0), e = 1 - this.es * l * l, this.B = i * i, this.B = Math.sqrt(1 + this.es * this.B * this.B / C), this.A = this.B * this.k0 * r / e, n = this.B * r / (i * Math.sqrt(e)), a = n * n - 1, a <= 0 ? a = 0 : (a = Math.sqrt(a), this.lat0 < 0 && (a = -a)), this.E = a += n, this.E *= Math.pow(tsfnz(this.e, this.lat0, l), this.B)) : (this.B = 1 / r, this.A = this.k0, this.E = n = a = 1), w || M ? (w ? (m = Math.asin(Math.sin(b) / n), M || (d = b)) : (m = d, b = Math.asin(n * Math.sin(m))), this.lam0 = _ - Math.asin(0.5 * (a - 1 / a) * Math.tan(m)) / this.B) : (s = Math.pow(tsfnz(this.e, g, Math.sin(g)), this.B), o = Math.pow(tsfnz(this.e, k, Math.sin(k)), this.B), a = this.E / s, h = (o - s) / (o + s), f = this.E * this.E, f = (f - o * s) / (f + o * s), e = p - v, e < -Math.pi ? v -= TWO_PI : e > Math.pi && (v += TWO_PI), this.lam0 = adjust_lon(0.5 * (p + v) - Math.atan(f * Math.tan(0.5 * this.B * (p - v)) / h) / this.B), m = Math.atan(2 * Math.sin(this.B * adjust_lon(p - this.lam0)) / (a - 1 / a)), d = b = Math.asin(n * Math.sin(m))), this.singam = Math.sin(m), this.cosgam = Math.cos(m), this.sinrot = Math.sin(d), this.cosrot = Math.cos(d), this.rB = 1 / this.B, this.ArB = this.A * this.rB, this.BrA = 1 / this.ArB, this.A * this.B, this.no_off ? this.u_0 = 0 : (this.u_0 = Math.abs(this.ArB * Math.atan(Math.sqrt(n * n - 1) / Math.cos(b))), this.lat0 < 0 && (this.u_0 = -this.u_0)), a = 0.5 * m, this.v_pole_n = this.ArB * Math.log(Math.tan(FORTPI - a)), this.v_pole_s = this.ArB * Math.log(Math.tan(FORTPI + a));
 }
 function forward$m(e) {
   var r = {}, i, n, a, s, o, l, h, f;
@@ -16791,8 +17015,8 @@ function forward$j(e) {
   if (n = adjust_lon(n - this.long0), this.sphere)
     r = this.a * Math.asin(Math.cos(a) * Math.sin(n)), i = this.a * (Math.atan2(Math.tan(a), Math.cos(n)) - this.lat0);
   else {
-    var s = Math.sin(a), o = Math.cos(a), l = gN(this.a, this.e, s), h = Math.tan(a) * Math.tan(a), f = n * Math.cos(a), d = f * f, m = this.es * o * o / (1 - this.es), p = this.a * mlfn(this.e0, this.e1, this.e2, this.e3, a);
-    r = l * f * (1 - d * h * (1 / 6 - (8 - h + 8 * m) * d / 120)), i = p - this.ml0 + l * s / o * d * (0.5 + (5 - h + 6 * m) * d / 24);
+    var s = Math.sin(a), o = Math.cos(a), l = gN(this.a, this.e, s), h = Math.tan(a) * Math.tan(a), f = n * Math.cos(a), d = f * f, m = this.es * o * o / (1 - this.es), _ = this.a * mlfn(this.e0, this.e1, this.e2, this.e3, a);
+    r = l * f * (1 - d * h * (1 / 6 - (8 - h + 8 * m) * d / 120)), i = _ - this.ml0 + l * s / o * d * (0.5 + (5 - h + 6 * m) * d / 24);
   }
   return e.x = r + this.x0, e.y = i + this.y0, e;
 }
@@ -16806,8 +17030,8 @@ function inverse$j(e) {
     var o = this.ml0 / this.a + i, l = imlfn(o, this.e0, this.e1, this.e2, this.e3);
     if (Math.abs(Math.abs(l) - HALF_PI) <= EPSLN)
       return e.x = this.long0, e.y = HALF_PI, i < 0 && (e.y *= -1), e;
-    var h = gN(this.a, this.e, Math.sin(l)), f = h * h * h / this.a / this.a * (1 - this.es), d = Math.pow(Math.tan(l), 2), m = r * this.a / h, p = m * m;
-    n = l - h * Math.tan(l) / f * m * m * (0.5 - (1 + 3 * d) * m * m / 24), a = m * (1 - p * (d / 3 + (1 + 3 * d) * d * p / 15)) / Math.cos(l);
+    var h = gN(this.a, this.e, Math.sin(l)), f = h * h * h / this.a / this.a * (1 - this.es), d = Math.pow(Math.tan(l), 2), m = r * this.a / h, _ = m * m;
+    n = l - h * Math.tan(l) / f * m * m * (0.5 - (1 + 3 * d) * m * m / 24), a = m * (1 - _ * (d / 3 + (1 + 3 * d) * d * _ / 15)) / Math.cos(l);
   }
   return e.x = adjust_lon(a + this.long0), e.y = adjust_lat(n), e;
 }
@@ -16845,19 +17069,19 @@ function init$i() {
     this.mode === this.OBLIQ && (this.sinph0 = Math.sin(this.lat0), this.cosph0 = Math.cos(this.lat0));
 }
 function forward$i(e) {
-  var r, i, n, a, s, o, l, h, f, d, m = e.x, p = e.y;
+  var r, i, n, a, s, o, l, h, f, d, m = e.x, _ = e.y;
   if (m = adjust_lon(m - this.long0), this.sphere) {
-    if (s = Math.sin(p), d = Math.cos(p), n = Math.cos(m), this.mode === this.OBLIQ || this.mode === this.EQUIT) {
+    if (s = Math.sin(_), d = Math.cos(_), n = Math.cos(m), this.mode === this.OBLIQ || this.mode === this.EQUIT) {
       if (i = this.mode === this.EQUIT ? 1 + d * n : 1 + this.sinph0 * s + this.cosph0 * d * n, i <= EPSLN)
         return null;
       i = Math.sqrt(2 / i), r = i * d * Math.sin(m), i *= this.mode === this.EQUIT ? s : this.cosph0 * s - this.sinph0 * d * n;
     } else if (this.mode === this.N_POLE || this.mode === this.S_POLE) {
-      if (this.mode === this.N_POLE && (n = -n), Math.abs(p + this.lat0) < EPSLN)
+      if (this.mode === this.N_POLE && (n = -n), Math.abs(_ + this.lat0) < EPSLN)
         return null;
-      i = FORTPI - p * 0.5, i = 2 * (this.mode === this.S_POLE ? Math.cos(i) : Math.sin(i)), r = i * Math.sin(m), i *= n;
+      i = FORTPI - _ * 0.5, i = 2 * (this.mode === this.S_POLE ? Math.cos(i) : Math.sin(i)), r = i * Math.sin(m), i *= n;
     }
   } else {
-    switch (l = 0, h = 0, f = 0, n = Math.cos(m), a = Math.sin(m), s = Math.sin(p), o = qsfnz(this.e, s), (this.mode === this.OBLIQ || this.mode === this.EQUIT) && (l = o / this.qp, h = Math.sqrt(1 - l * l)), this.mode) {
+    switch (l = 0, h = 0, f = 0, n = Math.cos(m), a = Math.sin(m), s = Math.sin(_), o = qsfnz(this.e, s), (this.mode === this.OBLIQ || this.mode === this.EQUIT) && (l = o / this.qp, h = Math.sqrt(1 - l * l)), this.mode) {
       case this.OBLIQ:
         f = 1 + this.sinb1 * l + this.cosb1 * h * n;
         break;
@@ -16865,10 +17089,10 @@ function forward$i(e) {
         f = 1 + h * n;
         break;
       case this.N_POLE:
-        f = HALF_PI + p, o = this.qp - o;
+        f = HALF_PI + _, o = this.qp - o;
         break;
       case this.S_POLE:
-        f = p - HALF_PI, o = this.qp + o;
+        f = _ - HALF_PI, o = this.qp + o;
         break;
     }
     if (Math.abs(f) < EPSLN)
@@ -16890,15 +17114,15 @@ function inverse$i(e) {
   e.x -= this.x0, e.y -= this.y0;
   var r = e.x / this.a, i = e.y / this.a, n, a, s, o, l, h, f;
   if (this.sphere) {
-    var d = 0, m, p = 0;
+    var d = 0, m, _ = 0;
     if (m = Math.sqrt(r * r + i * i), a = m * 0.5, a > 1)
       return null;
-    switch (a = 2 * Math.asin(a), (this.mode === this.OBLIQ || this.mode === this.EQUIT) && (p = Math.sin(a), d = Math.cos(a)), this.mode) {
+    switch (a = 2 * Math.asin(a), (this.mode === this.OBLIQ || this.mode === this.EQUIT) && (_ = Math.sin(a), d = Math.cos(a)), this.mode) {
       case this.EQUIT:
-        a = Math.abs(m) <= EPSLN ? 0 : Math.asin(i * p / m), r *= p, i = d * m;
+        a = Math.abs(m) <= EPSLN ? 0 : Math.asin(i * _ / m), r *= _, i = d * m;
         break;
       case this.OBLIQ:
-        a = Math.abs(m) <= EPSLN ? this.lat0 : Math.asin(d * this.sinph0 + i * p * this.cosph0 / m), r *= p * this.cosph0, i = (d - Math.sin(a) * this.sinph0) * m;
+        a = Math.abs(m) <= EPSLN ? this.lat0 : Math.asin(d * this.sinph0 + i * _ * this.cosph0 / m), r *= _ * this.cosph0, i = (d - Math.sin(a) * this.sinph0) * m;
         break;
       case this.N_POLE:
         i = -i, a = HALF_PI - a;
@@ -17080,9 +17304,9 @@ function inverse$d(e) {
     i = 0, r = adjust_lon(this.long0 + n / this.a);
   else {
     o = (this.ml0 + a) / this.a, l = n * n / this.a / this.a + o * o, h = o;
-    var m, p, _, g, v;
+    var m, _, p, v, g;
     for (s = MAX_ITER$1; s; --s)
-      if (v = this.e * Math.sin(h), m = Math.sqrt(1 - v * v) * Math.tan(h), p = this.a * mlfn(this.e0, this.e1, this.e2, this.e3, h), _ = this.e0 - 2 * this.e1 * Math.cos(2 * h) + 4 * this.e2 * Math.cos(4 * h) - 6 * this.e3 * Math.cos(6 * h), g = p / this.a, f = (o * (m * g + 1) - g - 0.5 * m * (g * g + l)) / (this.es * Math.sin(2 * h) * (g * g + l - 2 * o * g) / (4 * m) + (o - g) * (m * _ - 2 / Math.sin(2 * h)) - _), h -= f, Math.abs(f) <= EPSLN) {
+      if (g = this.e * Math.sin(h), m = Math.sqrt(1 - g * g) * Math.tan(h), _ = this.a * mlfn(this.e0, this.e1, this.e2, this.e3, h), p = this.e0 - 2 * this.e1 * Math.cos(2 * h) + 4 * this.e2 * Math.cos(4 * h) - 6 * this.e3 * Math.cos(6 * h), v = _ / this.a, f = (o * (m * v + 1) - v - 0.5 * m * (v * v + l)) / (this.es * Math.sin(2 * h) * (v * v + l - 2 * o * v) / (4 * m) + (o - v) * (m * p - 2 / Math.sin(2 * h)) - p), h -= f, Math.abs(f) <= EPSLN) {
         i = h;
         break;
       }
@@ -17104,31 +17328,31 @@ function forward$c(e) {
   var r, i = e.x, n = e.y, a = n - this.lat0, s = i - this.long0, o = a / SEC_TO_RAD * 1e-5, l = s, h = 1, f = 0;
   for (r = 1; r <= 10; r++)
     h = h * o, f = f + this.A[r] * h;
-  var d = f, m = l, p = 1, _ = 0, g, v, b = 0, w = 0;
+  var d = f, m = l, _ = 1, p = 0, v, g, k = 0, b = 0;
   for (r = 1; r <= 6; r++)
-    g = p * d - _ * m, v = _ * d + p * m, p = g, _ = v, b = b + this.B_re[r] * p - this.B_im[r] * _, w = w + this.B_im[r] * p + this.B_re[r] * _;
-  return e.x = w * this.a + this.x0, e.y = b * this.a + this.y0, e;
+    v = _ * d - p * m, g = p * d + _ * m, _ = v, p = g, k = k + this.B_re[r] * _ - this.B_im[r] * p, b = b + this.B_im[r] * _ + this.B_re[r] * p;
+  return e.x = b * this.a + this.x0, e.y = k * this.a + this.y0, e;
 }
 function inverse$c(e) {
-  var r, i = e.x, n = e.y, a = i - this.x0, s = n - this.y0, o = s / this.a, l = a / this.a, h = 1, f = 0, d, m, p = 0, _ = 0;
+  var r, i = e.x, n = e.y, a = i - this.x0, s = n - this.y0, o = s / this.a, l = a / this.a, h = 1, f = 0, d, m, _ = 0, p = 0;
   for (r = 1; r <= 6; r++)
-    d = h * o - f * l, m = f * o + h * l, h = d, f = m, p = p + this.C_re[r] * h - this.C_im[r] * f, _ = _ + this.C_im[r] * h + this.C_re[r] * f;
-  for (var g = 0; g < this.iterations; g++) {
-    var v = p, b = _, w, k, M = o, N = l;
+    d = h * o - f * l, m = f * o + h * l, h = d, f = m, _ = _ + this.C_re[r] * h - this.C_im[r] * f, p = p + this.C_im[r] * h + this.C_re[r] * f;
+  for (var v = 0; v < this.iterations; v++) {
+    var g = _, k = p, b, w, M = o, C = l;
     for (r = 2; r <= 6; r++)
-      w = v * p - b * _, k = b * p + v * _, v = w, b = k, M = M + (r - 1) * (this.B_re[r] * v - this.B_im[r] * b), N = N + (r - 1) * (this.B_im[r] * v + this.B_re[r] * b);
-    v = 1, b = 0;
-    var P = this.B_re[1], T = this.B_im[1];
+      b = g * _ - k * p, w = k * _ + g * p, g = b, k = w, M = M + (r - 1) * (this.B_re[r] * g - this.B_im[r] * k), C = C + (r - 1) * (this.B_im[r] * g + this.B_re[r] * k);
+    g = 1, k = 0;
+    var T = this.B_re[1], P = this.B_im[1];
     for (r = 2; r <= 6; r++)
-      w = v * p - b * _, k = b * p + v * _, v = w, b = k, P = P + r * (this.B_re[r] * v - this.B_im[r] * b), T = T + r * (this.B_im[r] * v + this.B_re[r] * b);
-    var C = P * P + T * T;
-    p = (M * P + N * T) / C, _ = (N * P - M * T) / C;
+      b = g * _ - k * p, w = k * _ + g * p, g = b, k = w, T = T + r * (this.B_re[r] * g - this.B_im[r] * k), P = P + r * (this.B_im[r] * g + this.B_re[r] * k);
+    var N = T * T + P * P;
+    _ = (M * T + C * P) / N, p = (C * T - M * P) / N;
   }
-  var X = p, _e = _, Je = 1, Pe = 0;
+  var X = _, fe = p, Ke = 1, Pe = 0;
   for (r = 1; r <= 9; r++)
-    Je = Je * X, Pe = Pe + this.D[r] * Je;
-  var Ke = this.lat0 + Pe * SEC_TO_RAD * 1e5, Wt = this.long0 + _e;
-  return e.x = Wt, e.y = Ke, e;
+    Ke = Ke * X, Pe = Pe + this.D[r] * Ke;
+  var Je = this.lat0 + Pe * SEC_TO_RAD * 1e5, Wt = this.long0 + fe;
+  return e.x = Wt, e.y = Je, e;
 }
 var names$e = ["New_Zealand_Map_Grid", "nzmg"];
 const nzmg = {
@@ -17254,14 +17478,14 @@ function forward$7(e) {
   Math.abs(i) <= EPSLN && (a = this.x0 + this.R * n, s = this.y0);
   var o = asinz(2 * Math.abs(i / Math.PI));
   (Math.abs(n) <= EPSLN || Math.abs(Math.abs(i) - HALF_PI) <= EPSLN) && (a = this.x0, i >= 0 ? s = this.y0 + Math.PI * this.R * Math.tan(0.5 * o) : s = this.y0 + Math.PI * this.R * -Math.tan(0.5 * o));
-  var l = 0.5 * Math.abs(Math.PI / n - n / Math.PI), h = l * l, f = Math.sin(o), d = Math.cos(o), m = d / (f + d - 1), p = m * m, _ = m * (2 / f - 1), g = _ * _, v = Math.PI * this.R * (l * (m - g) + Math.sqrt(h * (m - g) * (m - g) - (g + h) * (p - g))) / (g + h);
-  n < 0 && (v = -v), a = this.x0 + v;
-  var b = h + m;
-  return v = Math.PI * this.R * (_ * b - l * Math.sqrt((g + h) * (h + 1) - b * b)) / (g + h), i >= 0 ? s = this.y0 + v : s = this.y0 - v, e.x = a, e.y = s, e;
+  var l = 0.5 * Math.abs(Math.PI / n - n / Math.PI), h = l * l, f = Math.sin(o), d = Math.cos(o), m = d / (f + d - 1), _ = m * m, p = m * (2 / f - 1), v = p * p, g = Math.PI * this.R * (l * (m - v) + Math.sqrt(h * (m - v) * (m - v) - (v + h) * (_ - v))) / (v + h);
+  n < 0 && (g = -g), a = this.x0 + g;
+  var k = h + m;
+  return g = Math.PI * this.R * (p * k - l * Math.sqrt((v + h) * (h + 1) - k * k)) / (v + h), i >= 0 ? s = this.y0 + g : s = this.y0 - g, e.x = a, e.y = s, e;
 }
 function inverse$7(e) {
-  var r, i, n, a, s, o, l, h, f, d, m, p, _;
-  return e.x -= this.x0, e.y -= this.y0, m = Math.PI * this.R, n = e.x / m, a = e.y / m, s = n * n + a * a, o = -Math.abs(a) * (1 + s), l = o - 2 * a * a + n * n, h = -2 * o + 1 + 2 * a * a + s * s, _ = a * a / h + (2 * l * l * l / h / h / h - 9 * o * l / h / h) / 27, f = (o - l * l / 3 / h) / h, d = 2 * Math.sqrt(-f / 3), m = 3 * _ / f / d, Math.abs(m) > 1 && (m >= 0 ? m = 1 : m = -1), p = Math.acos(m) / 3, e.y >= 0 ? i = (-d * Math.cos(p + Math.PI / 3) - l / 3 / h) * Math.PI : i = -(-d * Math.cos(p + Math.PI / 3) - l / 3 / h) * Math.PI, Math.abs(n) < EPSLN ? r = this.long0 : r = adjust_lon(this.long0 + Math.PI * (s - 1 + Math.sqrt(1 + 2 * (n * n - a * a) + s * s)) / 2 / n), e.x = r, e.y = i, e;
+  var r, i, n, a, s, o, l, h, f, d, m, _, p;
+  return e.x -= this.x0, e.y -= this.y0, m = Math.PI * this.R, n = e.x / m, a = e.y / m, s = n * n + a * a, o = -Math.abs(a) * (1 + s), l = o - 2 * a * a + n * n, h = -2 * o + 1 + 2 * a * a + s * s, p = a * a / h + (2 * l * l * l / h / h / h - 9 * o * l / h / h) / 27, f = (o - l * l / 3 / h) / h, d = 2 * Math.sqrt(-f / 3), m = 3 * p / f / d, Math.abs(m) > 1 && (m >= 0 ? m = 1 : m = -1), _ = Math.acos(m) / 3, e.y >= 0 ? i = (-d * Math.cos(_ + Math.PI / 3) - l / 3 / h) * Math.PI : i = -(-d * Math.cos(_ + Math.PI / 3) - l / 3 / h) * Math.PI, Math.abs(n) < EPSLN ? r = this.long0 : r = adjust_lon(this.long0 + Math.PI * (s - 1 + Math.sqrt(1 + 2 * (n * n - a * a) + s * s)) / 2 / n), e.x = r, e.y = i, e;
 }
 var names$9 = ["Van_der_Grinten_I", "VanDerGrinten", "vandg"];
 const vandg = {
@@ -17274,13 +17498,13 @@ function init$6() {
   this.sin_p12 = Math.sin(this.lat0), this.cos_p12 = Math.cos(this.lat0);
 }
 function forward$6(e) {
-  var r = e.x, i = e.y, n = Math.sin(e.y), a = Math.cos(e.y), s = adjust_lon(r - this.long0), o, l, h, f, d, m, p, _, g, v, b, w, k, M, N, P, T, C, X, _e, Je, Pe, Ke;
-  return this.sphere ? Math.abs(this.sin_p12 - 1) <= EPSLN ? (e.x = this.x0 + this.a * (HALF_PI - i) * Math.sin(s), e.y = this.y0 - this.a * (HALF_PI - i) * Math.cos(s), e) : Math.abs(this.sin_p12 + 1) <= EPSLN ? (e.x = this.x0 + this.a * (HALF_PI + i) * Math.sin(s), e.y = this.y0 + this.a * (HALF_PI + i) * Math.cos(s), e) : (C = this.sin_p12 * n + this.cos_p12 * a * Math.cos(s), P = Math.acos(C), T = P ? P / Math.sin(P) : 1, e.x = this.x0 + this.a * T * a * Math.sin(s), e.y = this.y0 + this.a * T * (this.cos_p12 * n - this.sin_p12 * a * Math.cos(s)), e) : (o = e0fn(this.es), l = e1fn(this.es), h = e2fn(this.es), f = e3fn(this.es), Math.abs(this.sin_p12 - 1) <= EPSLN ? (d = this.a * mlfn(o, l, h, f, HALF_PI), m = this.a * mlfn(o, l, h, f, i), e.x = this.x0 + (d - m) * Math.sin(s), e.y = this.y0 - (d - m) * Math.cos(s), e) : Math.abs(this.sin_p12 + 1) <= EPSLN ? (d = this.a * mlfn(o, l, h, f, HALF_PI), m = this.a * mlfn(o, l, h, f, i), e.x = this.x0 + (d + m) * Math.sin(s), e.y = this.y0 + (d + m) * Math.cos(s), e) : (p = n / a, _ = gN(this.a, this.e, this.sin_p12), g = gN(this.a, this.e, n), v = Math.atan((1 - this.es) * p + this.es * _ * this.sin_p12 / (g * a)), b = Math.atan2(Math.sin(s), this.cos_p12 * Math.tan(v) - this.sin_p12 * Math.cos(s)), b === 0 ? X = Math.asin(this.cos_p12 * Math.sin(v) - this.sin_p12 * Math.cos(v)) : Math.abs(Math.abs(b) - Math.PI) <= EPSLN ? X = -Math.asin(this.cos_p12 * Math.sin(v) - this.sin_p12 * Math.cos(v)) : X = Math.asin(Math.sin(s) * Math.cos(v) / Math.sin(b)), w = this.e * this.sin_p12 / Math.sqrt(1 - this.es), k = this.e * this.cos_p12 * Math.cos(b) / Math.sqrt(1 - this.es), M = w * k, N = k * k, _e = X * X, Je = _e * X, Pe = Je * X, Ke = Pe * X, P = _ * X * (1 - _e * N * (1 - N) / 6 + Je / 8 * M * (1 - 2 * N) + Pe / 120 * (N * (4 - 7 * N) - 3 * w * w * (1 - 7 * N)) - Ke / 48 * M), e.x = this.x0 + P * Math.sin(b), e.y = this.y0 + P * Math.cos(b), e));
+  var r = e.x, i = e.y, n = Math.sin(e.y), a = Math.cos(e.y), s = adjust_lon(r - this.long0), o, l, h, f, d, m, _, p, v, g, k, b, w, M, C, T, P, N, X, fe, Ke, Pe, Je;
+  return this.sphere ? Math.abs(this.sin_p12 - 1) <= EPSLN ? (e.x = this.x0 + this.a * (HALF_PI - i) * Math.sin(s), e.y = this.y0 - this.a * (HALF_PI - i) * Math.cos(s), e) : Math.abs(this.sin_p12 + 1) <= EPSLN ? (e.x = this.x0 + this.a * (HALF_PI + i) * Math.sin(s), e.y = this.y0 + this.a * (HALF_PI + i) * Math.cos(s), e) : (N = this.sin_p12 * n + this.cos_p12 * a * Math.cos(s), T = Math.acos(N), P = T ? T / Math.sin(T) : 1, e.x = this.x0 + this.a * P * a * Math.sin(s), e.y = this.y0 + this.a * P * (this.cos_p12 * n - this.sin_p12 * a * Math.cos(s)), e) : (o = e0fn(this.es), l = e1fn(this.es), h = e2fn(this.es), f = e3fn(this.es), Math.abs(this.sin_p12 - 1) <= EPSLN ? (d = this.a * mlfn(o, l, h, f, HALF_PI), m = this.a * mlfn(o, l, h, f, i), e.x = this.x0 + (d - m) * Math.sin(s), e.y = this.y0 - (d - m) * Math.cos(s), e) : Math.abs(this.sin_p12 + 1) <= EPSLN ? (d = this.a * mlfn(o, l, h, f, HALF_PI), m = this.a * mlfn(o, l, h, f, i), e.x = this.x0 + (d + m) * Math.sin(s), e.y = this.y0 + (d + m) * Math.cos(s), e) : (_ = n / a, p = gN(this.a, this.e, this.sin_p12), v = gN(this.a, this.e, n), g = Math.atan((1 - this.es) * _ + this.es * p * this.sin_p12 / (v * a)), k = Math.atan2(Math.sin(s), this.cos_p12 * Math.tan(g) - this.sin_p12 * Math.cos(s)), k === 0 ? X = Math.asin(this.cos_p12 * Math.sin(g) - this.sin_p12 * Math.cos(g)) : Math.abs(Math.abs(k) - Math.PI) <= EPSLN ? X = -Math.asin(this.cos_p12 * Math.sin(g) - this.sin_p12 * Math.cos(g)) : X = Math.asin(Math.sin(s) * Math.cos(g) / Math.sin(k)), b = this.e * this.sin_p12 / Math.sqrt(1 - this.es), w = this.e * this.cos_p12 * Math.cos(k) / Math.sqrt(1 - this.es), M = b * w, C = w * w, fe = X * X, Ke = fe * X, Pe = Ke * X, Je = Pe * X, T = p * X * (1 - fe * C * (1 - C) / 6 + Ke / 8 * M * (1 - 2 * C) + Pe / 120 * (C * (4 - 7 * C) - 3 * b * b * (1 - 7 * C)) - Je / 48 * M), e.x = this.x0 + T * Math.sin(k), e.y = this.y0 + T * Math.cos(k), e));
 }
 function inverse$6(e) {
   e.x -= this.x0, e.y -= this.y0;
-  var r, i, n, a, s, o, l, h, f, d, m, p, _, g, v, b, w, k, M, N, P, T, C, X;
-  return this.sphere ? (r = Math.sqrt(e.x * e.x + e.y * e.y), r > 2 * HALF_PI * this.a ? void 0 : (i = r / this.a, n = Math.sin(i), a = Math.cos(i), s = this.long0, Math.abs(r) <= EPSLN ? o = this.lat0 : (o = asinz(a * this.sin_p12 + e.y * n * this.cos_p12 / r), l = Math.abs(this.lat0) - HALF_PI, Math.abs(l) <= EPSLN ? this.lat0 >= 0 ? s = adjust_lon(this.long0 + Math.atan2(e.x, -e.y)) : s = adjust_lon(this.long0 - Math.atan2(-e.x, e.y)) : s = adjust_lon(this.long0 + Math.atan2(e.x * n, r * this.cos_p12 * a - e.y * this.sin_p12 * n))), e.x = s, e.y = o, e)) : (h = e0fn(this.es), f = e1fn(this.es), d = e2fn(this.es), m = e3fn(this.es), Math.abs(this.sin_p12 - 1) <= EPSLN ? (p = this.a * mlfn(h, f, d, m, HALF_PI), r = Math.sqrt(e.x * e.x + e.y * e.y), _ = p - r, o = imlfn(_ / this.a, h, f, d, m), s = adjust_lon(this.long0 + Math.atan2(e.x, -1 * e.y)), e.x = s, e.y = o, e) : Math.abs(this.sin_p12 + 1) <= EPSLN ? (p = this.a * mlfn(h, f, d, m, HALF_PI), r = Math.sqrt(e.x * e.x + e.y * e.y), _ = r - p, o = imlfn(_ / this.a, h, f, d, m), s = adjust_lon(this.long0 + Math.atan2(e.x, e.y)), e.x = s, e.y = o, e) : (r = Math.sqrt(e.x * e.x + e.y * e.y), b = Math.atan2(e.x, e.y), g = gN(this.a, this.e, this.sin_p12), w = Math.cos(b), k = this.e * this.cos_p12 * w, M = -k * k / (1 - this.es), N = 3 * this.es * (1 - M) * this.sin_p12 * this.cos_p12 * w / (1 - this.es), P = r / g, T = P - M * (1 + M) * Math.pow(P, 3) / 6 - N * (1 + 3 * M) * Math.pow(P, 4) / 24, C = 1 - M * T * T / 2 - P * T * T * T / 6, v = Math.asin(this.sin_p12 * Math.cos(T) + this.cos_p12 * Math.sin(T) * w), s = adjust_lon(this.long0 + Math.asin(Math.sin(b) * Math.sin(T) / Math.cos(v))), X = Math.sin(v), o = Math.atan2((X - this.es * C * this.sin_p12) * Math.tan(v), X * (1 - this.es)), e.x = s, e.y = o, e));
+  var r, i, n, a, s, o, l, h, f, d, m, _, p, v, g, k, b, w, M, C, T, P, N, X;
+  return this.sphere ? (r = Math.sqrt(e.x * e.x + e.y * e.y), r > 2 * HALF_PI * this.a ? void 0 : (i = r / this.a, n = Math.sin(i), a = Math.cos(i), s = this.long0, Math.abs(r) <= EPSLN ? o = this.lat0 : (o = asinz(a * this.sin_p12 + e.y * n * this.cos_p12 / r), l = Math.abs(this.lat0) - HALF_PI, Math.abs(l) <= EPSLN ? this.lat0 >= 0 ? s = adjust_lon(this.long0 + Math.atan2(e.x, -e.y)) : s = adjust_lon(this.long0 - Math.atan2(-e.x, e.y)) : s = adjust_lon(this.long0 + Math.atan2(e.x * n, r * this.cos_p12 * a - e.y * this.sin_p12 * n))), e.x = s, e.y = o, e)) : (h = e0fn(this.es), f = e1fn(this.es), d = e2fn(this.es), m = e3fn(this.es), Math.abs(this.sin_p12 - 1) <= EPSLN ? (_ = this.a * mlfn(h, f, d, m, HALF_PI), r = Math.sqrt(e.x * e.x + e.y * e.y), p = _ - r, o = imlfn(p / this.a, h, f, d, m), s = adjust_lon(this.long0 + Math.atan2(e.x, -1 * e.y)), e.x = s, e.y = o, e) : Math.abs(this.sin_p12 + 1) <= EPSLN ? (_ = this.a * mlfn(h, f, d, m, HALF_PI), r = Math.sqrt(e.x * e.x + e.y * e.y), p = r - _, o = imlfn(p / this.a, h, f, d, m), s = adjust_lon(this.long0 + Math.atan2(e.x, e.y)), e.x = s, e.y = o, e) : (r = Math.sqrt(e.x * e.x + e.y * e.y), k = Math.atan2(e.x, e.y), v = gN(this.a, this.e, this.sin_p12), b = Math.cos(k), w = this.e * this.cos_p12 * b, M = -w * w / (1 - this.es), C = 3 * this.es * (1 - M) * this.sin_p12 * this.cos_p12 * b / (1 - this.es), T = r / v, P = T - M * (1 + M) * Math.pow(T, 3) / 6 - C * (1 + 3 * M) * Math.pow(T, 4) / 24, N = 1 - M * P * P / 2 - T * P * P * P / 6, g = Math.asin(this.sin_p12 * Math.cos(P) + this.cos_p12 * Math.sin(P) * b), s = adjust_lon(this.long0 + Math.asin(Math.sin(k) * Math.sin(P) / Math.cos(g))), X = Math.sin(g), o = Math.atan2((X - this.es * N * this.sin_p12) * Math.tan(g), X * (1 - this.es)), e.x = s, e.y = o, e));
 }
 var names$8 = ["Azimuthal_Equidistant", "aeqd"];
 const aeqd = {
@@ -17330,8 +17554,8 @@ function forward$4(e) {
   else if (this.face === FACE_ENUM.BOTTOM)
     s = HALF_PI + i, n >= FORTPI && n <= HALF_PI + FORTPI ? (h.value = AREA_ENUM.AREA_0, a = -n + HALF_PI) : n < FORTPI && n >= -FORTPI ? (h.value = AREA_ENUM.AREA_1, a = -n) : n < -FORTPI && n >= -(HALF_PI + FORTPI) ? (h.value = AREA_ENUM.AREA_2, a = -n - HALF_PI) : (h.value = AREA_ENUM.AREA_3, a = n > 0 ? -n + SPI : -n - SPI);
   else {
-    var f, d, m, p, _, g, v;
-    this.face === FACE_ENUM.RIGHT ? n = qsc_shift_lon_origin(n, +HALF_PI) : this.face === FACE_ENUM.BACK ? n = qsc_shift_lon_origin(n, +SPI) : this.face === FACE_ENUM.LEFT && (n = qsc_shift_lon_origin(n, -HALF_PI)), p = Math.sin(i), _ = Math.cos(i), g = Math.sin(n), v = Math.cos(n), f = _ * v, d = _ * g, m = p, this.face === FACE_ENUM.FRONT ? (s = Math.acos(f), a = qsc_fwd_equat_face_theta(s, m, d, h)) : this.face === FACE_ENUM.RIGHT ? (s = Math.acos(d), a = qsc_fwd_equat_face_theta(s, m, -f, h)) : this.face === FACE_ENUM.BACK ? (s = Math.acos(-f), a = qsc_fwd_equat_face_theta(s, m, -d, h)) : this.face === FACE_ENUM.LEFT ? (s = Math.acos(-d), a = qsc_fwd_equat_face_theta(s, m, f, h)) : (s = a = 0, h.value = AREA_ENUM.AREA_0);
+    var f, d, m, _, p, v, g;
+    this.face === FACE_ENUM.RIGHT ? n = qsc_shift_lon_origin(n, +HALF_PI) : this.face === FACE_ENUM.BACK ? n = qsc_shift_lon_origin(n, +SPI) : this.face === FACE_ENUM.LEFT && (n = qsc_shift_lon_origin(n, -HALF_PI)), _ = Math.sin(i), p = Math.cos(i), v = Math.sin(n), g = Math.cos(n), f = p * g, d = p * v, m = _, this.face === FACE_ENUM.FRONT ? (s = Math.acos(f), a = qsc_fwd_equat_face_theta(s, m, d, h)) : this.face === FACE_ENUM.RIGHT ? (s = Math.acos(d), a = qsc_fwd_equat_face_theta(s, m, -f, h)) : this.face === FACE_ENUM.BACK ? (s = Math.acos(-f), a = qsc_fwd_equat_face_theta(s, m, -d, h)) : this.face === FACE_ENUM.LEFT ? (s = Math.acos(-d), a = qsc_fwd_equat_face_theta(s, m, f, h)) : (s = a = 0, h.value = AREA_ENUM.AREA_0);
   }
   return l = Math.atan(12 / SPI * (a + Math.acos(Math.sin(a) * Math.cos(FORTPI)) - HALF_PI)), o = Math.sqrt((1 - Math.cos(s)) / (Math.cos(l) * Math.cos(l)) / (1 - Math.cos(Math.atan(1 / Math.cos(a))))), h.value === AREA_ENUM.AREA_1 ? l += HALF_PI : h.value === AREA_ENUM.AREA_2 ? l += SPI : h.value === AREA_ENUM.AREA_3 && (l += 1.5 * SPI), r.x = o * Math.cos(l), r.y = o * Math.sin(l), r.x = r.x * this.a + this.x0, r.y = r.y * this.a + this.y0, e.x = r.x, e.y = r.y, e;
 }
@@ -17342,12 +17566,12 @@ function inverse$4(e) {
   else if (this.face === FACE_ENUM.BOTTOM)
     f = Math.acos(h), r.phi = f - HALF_PI, m.value === AREA_ENUM.AREA_0 ? r.lam = -l + HALF_PI : m.value === AREA_ENUM.AREA_1 ? r.lam = -l : m.value === AREA_ENUM.AREA_2 ? r.lam = -l - HALF_PI : r.lam = l < 0 ? -l - SPI : -l + SPI;
   else {
-    var p, _, g;
-    p = h, d = p * p, d >= 1 ? g = 0 : g = Math.sqrt(1 - d) * Math.sin(l), d += g * g, d >= 1 ? _ = 0 : _ = Math.sqrt(1 - d), m.value === AREA_ENUM.AREA_1 ? (d = _, _ = -g, g = d) : m.value === AREA_ENUM.AREA_2 ? (_ = -_, g = -g) : m.value === AREA_ENUM.AREA_3 && (d = _, _ = g, g = -d), this.face === FACE_ENUM.RIGHT ? (d = p, p = -_, _ = d) : this.face === FACE_ENUM.BACK ? (p = -p, _ = -_) : this.face === FACE_ENUM.LEFT && (d = p, p = _, _ = -d), r.phi = Math.acos(-g) - HALF_PI, r.lam = Math.atan2(_, p), this.face === FACE_ENUM.RIGHT ? r.lam = qsc_shift_lon_origin(r.lam, -HALF_PI) : this.face === FACE_ENUM.BACK ? r.lam = qsc_shift_lon_origin(r.lam, -SPI) : this.face === FACE_ENUM.LEFT && (r.lam = qsc_shift_lon_origin(r.lam, +HALF_PI));
+    var _, p, v;
+    _ = h, d = _ * _, d >= 1 ? v = 0 : v = Math.sqrt(1 - d) * Math.sin(l), d += v * v, d >= 1 ? p = 0 : p = Math.sqrt(1 - d), m.value === AREA_ENUM.AREA_1 ? (d = p, p = -v, v = d) : m.value === AREA_ENUM.AREA_2 ? (p = -p, v = -v) : m.value === AREA_ENUM.AREA_3 && (d = p, p = v, v = -d), this.face === FACE_ENUM.RIGHT ? (d = _, _ = -p, p = d) : this.face === FACE_ENUM.BACK ? (_ = -_, p = -p) : this.face === FACE_ENUM.LEFT && (d = _, _ = p, p = -d), r.phi = Math.acos(-v) - HALF_PI, r.lam = Math.atan2(p, _), this.face === FACE_ENUM.RIGHT ? r.lam = qsc_shift_lon_origin(r.lam, -HALF_PI) : this.face === FACE_ENUM.BACK ? r.lam = qsc_shift_lon_origin(r.lam, -SPI) : this.face === FACE_ENUM.LEFT && (r.lam = qsc_shift_lon_origin(r.lam, +HALF_PI));
   }
   if (this.es !== 0) {
-    var v, b, w;
-    v = r.phi < 0 ? 1 : 0, b = Math.tan(r.phi), w = this.b / Math.sqrt(b * b + this.one_minus_f_squared), r.phi = Math.atan(Math.sqrt(this.a * this.a - w * w) / (this.one_minus_f * w)), v && (r.phi = -r.phi);
+    var g, k, b;
+    g = r.phi < 0 ? 1 : 0, k = Math.tan(r.phi), b = this.b / Math.sqrt(k * k + this.one_minus_f_squared), r.phi = Math.atan(Math.sqrt(this.a * this.a - b * b) / (this.one_minus_f * b)), g && (r.phi = -r.phi);
   }
   return r.lam += this.long0, e.x = r.lam, e.y = r.phi, e;
 }
@@ -17717,17 +17941,17 @@ function ft(e) {
 }
 const R = 11102230246251565e-32, O = 134217729, dt = (3 + 8 * R) * R;
 function V(e, r, i, n, a) {
-  let s, o, l, h, f = r[0], d = n[0], m = 0, p = 0;
-  d > f == d > -f ? (s = f, f = r[++m]) : (s = d, d = n[++p]);
-  let _ = 0;
-  if (m < e && p < i)
-    for (d > f == d > -f ? (o = f + s, l = s - (o - f), f = r[++m]) : (o = d + s, l = s - (o - d), d = n[++p]), s = o, l !== 0 && (a[_++] = l); m < e && p < i; )
-      d > f == d > -f ? (o = s + f, h = o - s, l = s - (o - h) + (f - h), f = r[++m]) : (o = s + d, h = o - s, l = s - (o - h) + (d - h), d = n[++p]), s = o, l !== 0 && (a[_++] = l);
+  let s, o, l, h, f = r[0], d = n[0], m = 0, _ = 0;
+  d > f == d > -f ? (s = f, f = r[++m]) : (s = d, d = n[++_]);
+  let p = 0;
+  if (m < e && _ < i)
+    for (d > f == d > -f ? (o = f + s, l = s - (o - f), f = r[++m]) : (o = d + s, l = s - (o - d), d = n[++_]), s = o, l !== 0 && (a[p++] = l); m < e && _ < i; )
+      d > f == d > -f ? (o = s + f, h = o - s, l = s - (o - h) + (f - h), f = r[++m]) : (o = s + d, h = o - s, l = s - (o - h) + (d - h), d = n[++_]), s = o, l !== 0 && (a[p++] = l);
   for (; m < e; )
-    o = s + f, h = o - s, l = s - (o - h) + (f - h), f = r[++m], s = o, l !== 0 && (a[_++] = l);
-  for (; p < i; )
-    o = s + d, h = o - s, l = s - (o - h) + (d - h), d = n[++p], s = o, l !== 0 && (a[_++] = l);
-  return (s !== 0 || _ === 0) && (a[_++] = s), _;
+    o = s + f, h = o - s, l = s - (o - h) + (f - h), f = r[++m], s = o, l !== 0 && (a[p++] = l);
+  for (; _ < i; )
+    o = s + d, h = o - s, l = s - (o - h) + (d - h), d = n[++_], s = o, l !== 0 && (a[p++] = l);
+  return (s !== 0 || p === 0) && (a[p++] = s), p;
 }
 function ht(e, r) {
   let i = r[0];
@@ -17739,16 +17963,16 @@ function Y$2(e) {
 }
 const gt = (3 + 16 * R) * R, lt = (2 + 12 * R) * R, yt = (9 + 64 * R) * R * R, U = Y$2(4), G = Y$2(8), j$1 = Y$2(12), J = Y$2(16), S = Y$2(4);
 function bt$1(e, r, i, n, a, s, o) {
-  let l, h, f, d, m, p, _, g, v, b, w, k, M, N, P, T, C, X;
-  const _e = e - a, Je = i - a, Pe = r - s, Ke = n - s;
-  N = _e * Ke, p = O * _e, _ = p - (p - _e), g = _e - _, p = O * Ke, v = p - (p - Ke), b = Ke - v, P = g * b - (N - _ * v - g * v - _ * b), T = Pe * Je, p = O * Pe, _ = p - (p - Pe), g = Pe - _, p = O * Je, v = p - (p - Je), b = Je - v, C = g * b - (T - _ * v - g * v - _ * b), w = P - C, m = P - w, U[0] = P - (w + m) + (m - C), k = N + w, m = k - N, M = N - (k - m) + (w - m), w = M - T, m = M - w, U[1] = M - (w + m) + (m - T), X = k + w, m = X - k, U[2] = k - (X - m) + (w - m), U[3] = X;
+  let l, h, f, d, m, _, p, v, g, k, b, w, M, C, T, P, N, X;
+  const fe = e - a, Ke = i - a, Pe = r - s, Je = n - s;
+  C = fe * Je, _ = O * fe, p = _ - (_ - fe), v = fe - p, _ = O * Je, g = _ - (_ - Je), k = Je - g, T = v * k - (C - p * g - v * g - p * k), P = Pe * Ke, _ = O * Pe, p = _ - (_ - Pe), v = Pe - p, _ = O * Ke, g = _ - (_ - Ke), k = Ke - g, N = v * k - (P - p * g - v * g - p * k), b = T - N, m = T - b, U[0] = T - (b + m) + (m - N), w = C + b, m = w - C, M = C - (w - m) + (b - m), b = M - P, m = M - b, U[1] = M - (b + m) + (m - P), X = w + b, m = X - w, U[2] = w - (X - m) + (b - m), U[3] = X;
   let Wt = ht(4, U), ee = lt * o;
-  if (Wt >= ee || -Wt >= ee || (m = e - _e, l = e - (_e + m) + (m - a), m = i - Je, f = i - (Je + m) + (m - a), m = r - Pe, h = r - (Pe + m) + (m - s), m = n - Ke, d = n - (Ke + m) + (m - s), l === 0 && h === 0 && f === 0 && d === 0) || (ee = yt * o + dt * Math.abs(Wt), Wt += _e * d + Ke * l - (Pe * f + Je * h), Wt >= ee || -Wt >= ee)) return Wt;
-  N = l * Ke, p = O * l, _ = p - (p - l), g = l - _, p = O * Ke, v = p - (p - Ke), b = Ke - v, P = g * b - (N - _ * v - g * v - _ * b), T = h * Je, p = O * h, _ = p - (p - h), g = h - _, p = O * Je, v = p - (p - Je), b = Je - v, C = g * b - (T - _ * v - g * v - _ * b), w = P - C, m = P - w, S[0] = P - (w + m) + (m - C), k = N + w, m = k - N, M = N - (k - m) + (w - m), w = M - T, m = M - w, S[1] = M - (w + m) + (m - T), X = k + w, m = X - k, S[2] = k - (X - m) + (w - m), S[3] = X;
+  if (Wt >= ee || -Wt >= ee || (m = e - fe, l = e - (fe + m) + (m - a), m = i - Ke, f = i - (Ke + m) + (m - a), m = r - Pe, h = r - (Pe + m) + (m - s), m = n - Je, d = n - (Je + m) + (m - s), l === 0 && h === 0 && f === 0 && d === 0) || (ee = yt * o + dt * Math.abs(Wt), Wt += fe * d + Je * l - (Pe * f + Ke * h), Wt >= ee || -Wt >= ee)) return Wt;
+  C = l * Je, _ = O * l, p = _ - (_ - l), v = l - p, _ = O * Je, g = _ - (_ - Je), k = Je - g, T = v * k - (C - p * g - v * g - p * k), P = h * Ke, _ = O * h, p = _ - (_ - h), v = h - p, _ = O * Ke, g = _ - (_ - Ke), k = Ke - g, N = v * k - (P - p * g - v * g - p * k), b = T - N, m = T - b, S[0] = T - (b + m) + (m - N), w = C + b, m = w - C, M = C - (w - m) + (b - m), b = M - P, m = M - b, S[1] = M - (b + m) + (m - P), X = w + b, m = X - w, S[2] = w - (X - m) + (b - m), S[3] = X;
   const We = V(4, U, 4, S, G);
-  N = _e * d, p = O * _e, _ = p - (p - _e), g = _e - _, p = O * d, v = p - (p - d), b = d - v, P = g * b - (N - _ * v - g * v - _ * b), T = Pe * f, p = O * Pe, _ = p - (p - Pe), g = Pe - _, p = O * f, v = p - (p - f), b = f - v, C = g * b - (T - _ * v - g * v - _ * b), w = P - C, m = P - w, S[0] = P - (w + m) + (m - C), k = N + w, m = k - N, M = N - (k - m) + (w - m), w = M - T, m = M - w, S[1] = M - (w + m) + (m - T), X = k + w, m = X - k, S[2] = k - (X - m) + (w - m), S[3] = X;
+  C = fe * d, _ = O * fe, p = _ - (_ - fe), v = fe - p, _ = O * d, g = _ - (_ - d), k = d - g, T = v * k - (C - p * g - v * g - p * k), P = Pe * f, _ = O * Pe, p = _ - (_ - Pe), v = Pe - p, _ = O * f, g = _ - (_ - f), k = f - g, N = v * k - (P - p * g - v * g - p * k), b = T - N, m = T - b, S[0] = T - (b + m) + (m - N), w = C + b, m = w - C, M = C - (w - m) + (b - m), b = M - P, m = M - b, S[1] = M - (b + m) + (m - P), X = w + b, m = X - w, S[2] = w - (X - m) + (b - m), S[3] = X;
   const st = V(We, G, 4, S, j$1);
-  N = l * d, p = O * l, _ = p - (p - l), g = l - _, p = O * d, v = p - (p - d), b = d - v, P = g * b - (N - _ * v - g * v - _ * b), T = h * f, p = O * h, _ = p - (p - h), g = h - _, p = O * f, v = p - (p - f), b = f - v, C = g * b - (T - _ * v - g * v - _ * b), w = P - C, m = P - w, S[0] = P - (w + m) + (m - C), k = N + w, m = k - N, M = N - (k - m) + (w - m), w = M - T, m = M - w, S[1] = M - (w + m) + (m - T), X = k + w, m = X - k, S[2] = k - (X - m) + (w - m), S[3] = X;
+  C = l * d, _ = O * l, p = _ - (_ - l), v = l - p, _ = O * d, g = _ - (_ - d), k = d - g, T = v * k - (C - p * g - v * g - p * k), P = h * f, _ = O * h, p = _ - (_ - h), v = h - p, _ = O * f, g = _ - (_ - f), k = f - g, N = v * k - (P - p * g - v * g - p * k), b = T - N, m = T - b, S[0] = T - (b + m) + (m - N), w = C + b, m = w - C, M = C - (w - m) + (b - m), b = M - P, m = M - b, S[1] = M - (b + m) + (m - P), X = w + b, m = X - w, S[2] = w - (X - m) + (b - m), S[3] = X;
   const Xt = V(st, j$1, 4, S, J);
   return J[Xt - 1];
 }
@@ -17757,14 +17981,14 @@ function mt(e, r, i, n, a, s) {
   return Math.abs(h) >= gt * f ? h : -bt$1(e, r, i, n, a, s, f);
 }
 function wt(e, r) {
-  var i, n, a = 0, s, o, l, h, f, d, m, p = e[0], _ = e[1], g = r.length;
-  for (i = 0; i < g; i++) {
+  var i, n, a = 0, s, o, l, h, f, d, m, _ = e[0], p = e[1], v = r.length;
+  for (i = 0; i < v; i++) {
     n = 0;
-    var v = r[i], b = v.length - 1;
-    if (d = v[0], d[0] !== v[b][0] && d[1] !== v[b][1])
+    var g = r[i], k = g.length - 1;
+    if (d = g[0], d[0] !== g[k][0] && d[1] !== g[k][1])
       throw new Error("First and last coordinates in a ring must be the same");
-    for (o = d[0] - p, l = d[1] - _, n; n < b; n++) {
-      if (m = v[n + 1], h = m[0] - p, f = m[1] - _, l === 0 && f === 0) {
+    for (o = d[0] - _, l = d[1] - p, n; n < k; n++) {
+      if (m = g[n + 1], h = m[0] - _, f = m[1] - p, l === 0 && f === 0) {
         if (h <= 0 && o >= 0 || o <= 0 && h >= 0)
           return 0;
       } else if (f >= 0 && l <= 0 || f <= 0 && l >= 0) {
@@ -17804,21 +18028,21 @@ function K(e, r) {
       return r.features[i];
 }
 function rt$1(e, r, i) {
-  const n = r.geometry.coordinates[0][0], a = r.geometry.coordinates[0][1], s = r.geometry.coordinates[0][2], o = e.geometry.coordinates, l = r.properties.a.geom, h = r.properties.b.geom, f = r.properties.c.geom, d = [a[0] - n[0], a[1] - n[1]], m = [s[0] - n[0], s[1] - n[1]], p = [o[0] - n[0], o[1] - n[1]], _ = [h[0] - l[0], h[1] - l[1]], g = [f[0] - l[0], f[1] - l[1]];
-  let v = (m[1] * p[0] - m[0] * p[1]) / (d[0] * m[1] - d[1] * m[0]), b = (d[0] * p[1] - d[1] * p[0]) / (d[0] * m[1] - d[1] * m[0]);
+  const n = r.geometry.coordinates[0][0], a = r.geometry.coordinates[0][1], s = r.geometry.coordinates[0][2], o = e.geometry.coordinates, l = r.properties.a.geom, h = r.properties.b.geom, f = r.properties.c.geom, d = [a[0] - n[0], a[1] - n[1]], m = [s[0] - n[0], s[1] - n[1]], _ = [o[0] - n[0], o[1] - n[1]], p = [h[0] - l[0], h[1] - l[1]], v = [f[0] - l[0], f[1] - l[1]];
+  let g = (m[1] * _[0] - m[0] * _[1]) / (d[0] * m[1] - d[1] * m[0]), k = (d[0] * _[1] - d[1] * _[0]) / (d[0] * m[1] - d[1] * m[0]);
   if (i) {
-    const w = i[r.properties.a.index], k = i[r.properties.b.index], M = i[r.properties.c.index];
-    let N;
-    if (v < 0 || b < 0 || 1 - v - b < 0) {
-      const P = v / (v + b), T = b / (v + b);
-      N = v / k / (P / k + T / M), b = b / M / (P / k + T / M);
+    const b = i[r.properties.a.index], w = i[r.properties.b.index], M = i[r.properties.c.index];
+    let C;
+    if (g < 0 || k < 0 || 1 - g - k < 0) {
+      const T = g / (g + k), P = k / (g + k);
+      C = g / w / (T / w + P / M), k = k / M / (T / w + P / M);
     } else
-      N = v / k / (v / k + b / M + (1 - v - b) / w), b = b / M / (v / k + b / M + (1 - v - b) / w);
-    v = N;
+      C = g / w / (g / w + k / M + (1 - g - k) / b), k = k / M / (g / w + k / M + (1 - g - k) / b);
+    g = C;
   }
   return [
-    v * _[0] + b * g[0] + l[0],
-    v * _[1] + b * g[1] + l[1]
+    g * p[0] + k * v[0] + l[0],
+    g * p[1] + k * v[1] + l[1]
   ];
 }
 function pt$1(e, r, i, n) {
@@ -17832,8 +18056,8 @@ function vt$1(e, r, i, n, a, s, o, l) {
   let h;
   if (o && (h = K(e, F([o]))), !h) {
     if (i) {
-      const f = e.geometry.coordinates, d = i.gridNum, m = i.xOrigin, p = i.yOrigin, _ = i.xUnit, g = i.yUnit, v = i.gridCache, b = B(f[0], m, _, d), w = B(f[1], p, g, d), k = v[b] ? v[b][w] ? v[b][w] : [] : [];
-      r = F(k.map((M) => r.features[M]));
+      const f = e.geometry.coordinates, d = i.gridNum, m = i.xOrigin, _ = i.yOrigin, p = i.xUnit, v = i.yUnit, g = i.gridCache, k = B(f[0], m, p, d), b = B(f[1], _, v, d), w = g[k] ? g[k][b] ? g[k][b] : [] : [];
+      r = F(w.map((M) => r.features[M]));
     }
     h = K(e, r);
   }
@@ -18080,76 +18304,76 @@ const E = class La {
       return;
     }
     let s = [], o = [];
-    const l = i.features.map((v) => {
-      let b = [];
-      return z$1(v)[0].map((w) => {
-        s.length === 0 ? s = [Array.from(w), Array.from(w)] : (w[0] < s[0][0] && (s[0][0] = w[0]), w[0] > s[1][0] && (s[1][0] = w[0]), w[1] < s[0][1] && (s[0][1] = w[1]), w[1] > s[1][1] && (s[1][1] = w[1])), b.length === 0 ? b = [Array.from(w), Array.from(w)] : (w[0] < b[0][0] && (b[0][0] = w[0]), w[0] > b[1][0] && (b[1][0] = w[0]), w[1] < b[0][1] && (b[0][1] = w[1]), w[1] > b[1][1] && (b[1][1] = w[1]));
-      }), b;
+    const l = i.features.map((g) => {
+      let k = [];
+      return z$1(g)[0].map((b) => {
+        s.length === 0 ? s = [Array.from(b), Array.from(b)] : (b[0] < s[0][0] && (s[0][0] = b[0]), b[0] > s[1][0] && (s[1][0] = b[0]), b[1] < s[0][1] && (s[0][1] = b[1]), b[1] > s[1][1] && (s[1][1] = b[1])), k.length === 0 ? k = [Array.from(b), Array.from(b)] : (b[0] < k[0][0] && (k[0][0] = b[0]), b[0] > k[1][0] && (k[1][0] = b[0]), b[1] < k[0][1] && (k[0][1] = b[1]), b[1] > k[1][1] && (k[1][1] = b[1]));
+      }), k;
     }), h = (s[1][0] - s[0][0]) / a, f = (s[1][1] - s[0][1]) / a, d = l.reduce(
-      (v, b, w) => {
-        const k = B(
-          b[0][0],
+      (g, k, b) => {
+        const w = B(
+          k[0][0],
           s[0][0],
           h,
           a
         ), M = B(
-          b[1][0],
+          k[1][0],
           s[0][0],
           h,
           a
-        ), N = B(
-          b[0][1],
+        ), C = B(
+          k[0][1],
           s[0][1],
           f,
           a
-        ), P = B(
-          b[1][1],
+        ), T = B(
+          k[1][1],
           s[0][1],
           f,
           a
         );
-        for (let T = k; T <= M; T++) {
-          v[T] || (v[T] = []);
-          for (let C = N; C <= P; C++)
-            v[T][C] || (v[T][C] = []), v[T][C].push(w);
+        for (let P = w; P <= M; P++) {
+          g[P] || (g[P] = []);
+          for (let N = C; N <= T; N++)
+            g[P][N] || (g[P][N] = []), g[P][N].push(b);
         }
-        return v;
+        return g;
       },
       []
-    ), m = n.features.map((v) => {
-      let b = [];
-      return z$1(v)[0].map((w) => {
-        o.length === 0 ? o = [Array.from(w), Array.from(w)] : (w[0] < o[0][0] && (o[0][0] = w[0]), w[0] > o[1][0] && (o[1][0] = w[0]), w[1] < o[0][1] && (o[0][1] = w[1]), w[1] > o[1][1] && (o[1][1] = w[1])), b.length === 0 ? b = [Array.from(w), Array.from(w)] : (w[0] < b[0][0] && (b[0][0] = w[0]), w[0] > b[1][0] && (b[1][0] = w[0]), w[1] < b[0][1] && (b[0][1] = w[1]), w[1] > b[1][1] && (b[1][1] = w[1]));
-      }), b;
-    }), p = (o[1][0] - o[0][0]) / a, _ = (o[1][1] - o[0][1]) / a, g = m.reduce(
-      (v, b, w) => {
-        const k = B(
-          b[0][0],
+    ), m = n.features.map((g) => {
+      let k = [];
+      return z$1(g)[0].map((b) => {
+        o.length === 0 ? o = [Array.from(b), Array.from(b)] : (b[0] < o[0][0] && (o[0][0] = b[0]), b[0] > o[1][0] && (o[1][0] = b[0]), b[1] < o[0][1] && (o[0][1] = b[1]), b[1] > o[1][1] && (o[1][1] = b[1])), k.length === 0 ? k = [Array.from(b), Array.from(b)] : (b[0] < k[0][0] && (k[0][0] = b[0]), b[0] > k[1][0] && (k[1][0] = b[0]), b[1] < k[0][1] && (k[0][1] = b[1]), b[1] > k[1][1] && (k[1][1] = b[1]));
+      }), k;
+    }), _ = (o[1][0] - o[0][0]) / a, p = (o[1][1] - o[0][1]) / a, v = m.reduce(
+      (g, k, b) => {
+        const w = B(
+          k[0][0],
           o[0][0],
-          p,
+          _,
           a
         ), M = B(
-          b[1][0],
+          k[1][0],
           o[0][0],
+          _,
+          a
+        ), C = B(
+          k[0][1],
+          o[0][1],
           p,
           a
-        ), N = B(
-          b[0][1],
+        ), T = B(
+          k[1][1],
           o[0][1],
-          _,
-          a
-        ), P = B(
-          b[1][1],
-          o[0][1],
-          _,
+          p,
           a
         );
-        for (let T = k; T <= M; T++) {
-          v[T] || (v[T] = []);
-          for (let C = N; C <= P; C++)
-            v[T][C] || (v[T][C] = []), v[T][C].push(w);
+        for (let P = w; P <= M; P++) {
+          g[P] || (g[P] = []);
+          for (let N = C; N <= T; N++)
+            g[P][N] || (g[P][N] = []), g[P][N].push(b);
         }
-        return v;
+        return g;
       },
       []
     );
@@ -18166,9 +18390,9 @@ const E = class La {
         gridNum: a,
         xOrigin: o[0][0],
         yOrigin: o[0][1],
-        xUnit: p,
-        yUnit: _,
-        gridCache: g
+        xUnit: _,
+        yUnit: p,
+        gridCache: v
       }
     };
   }
@@ -18191,10 +18415,10 @@ const E = class La {
       return !1;
     const s = i ? this.tins.bakw : this.tins.forw, o = i ? this.indexedTins.bakw : this.indexedTins.forw, l = i ? this.vertices_params.bakw : this.vertices_params.forw, h = i ? this.centroid.bakw : this.centroid.forw, f = i ? this.pointsWeightBuffer.bakw : this.pointsWeightBuffer.forw;
     let d, m;
-    this.stateFull && (this.stateBackward == i ? d = this.stateTriangle : (this.stateBackward = i, this.stateTriangle = void 0), m = (_) => {
-      this.stateTriangle = _;
+    this.stateFull && (this.stateBackward == i ? d = this.stateTriangle : (this.stateBackward = i, this.stateTriangle = void 0), m = (p) => {
+      this.stateTriangle = p;
     });
-    let p = vt$1(
+    let _ = vt$1(
       a,
       s,
       o,
@@ -18205,10 +18429,10 @@ const E = class La {
       m
     );
     if (this.bounds && i && !n) {
-      const _ = W(p);
-      if (!L(_, this.boundsPolygon)) return !1;
-    } else this.yaxisMode == La.YAXIS_FOLLOW && !i && (p = [p[0], -1 * p[1]]);
-    return p;
+      const p = W(_);
+      if (!L(p, this.boundsPolygon)) return !1;
+    } else this.yaxisMode == La.YAXIS_FOLLOW && !i && (_ = [_[0], -1 * _[1]]);
+    return _;
   }
 };
 x$2(E, "VERTEX_PLAIN", "plain"), x$2(E, "VERTEX_BIRDEYE", "birdeye"), x$2(E, "MODE_STRICT", "strict"), x$2(E, "MODE_AUTO", "auto"), x$2(E, "MODE_LOOSE", "loose"), x$2(E, "STATUS_STRICT", "strict"), x$2(E, "STATUS_ERROR", "strict_error"), x$2(E, "STATUS_LOOSE", "loose"), x$2(E, "YAXIS_FOLLOW", "follow"), x$2(E, "YAXIS_INVERT", "invert");
@@ -18316,8 +18540,8 @@ class MapEditService {
       n = r.url;
     else
       try {
-        if (await fs$6.pathExists(i)) {
-          const f = (await fs$6.readdir(i)).find((d) => /^0\.(jpg|jpeg|png)$/.test(d));
+        if (await fs$5.pathExists(i)) {
+          const f = (await fs$5.readdir(i)).find((d) => /^0\.(jpg|jpeg|png)$/.test(d));
           if (f) {
             let d = fileUrl(path$f.join(i, f));
             const m = /\/0\/0\/0\.(jpg|jpeg|png)$/;
@@ -18340,68 +18564,68 @@ class MapEditService {
   async save(r, i) {
     const n = r.status, a = r.mapID, s = r.url_, o = r.imageExtension || r.imageExtention || "jpg";
     i.length === 0 && (i = ["tooLessGcps"]);
-    const l = await histMap2Store(r, i), h = SettingsService$1.get("saveFolder"), f = path$f.join(h, "tiles"), d = path$f.join(h, "originals"), m = path$f.join(h, "tmbs"), p = SettingsService$1.get("tmpFolder"), _ = path$f.join(p, "tiles"), g = fileUrl(_), v = path$f.join(f, a), b = path$f.join(d, `${a}.${o}`), w = path$f.join(m, `${a}.jpg`), k = new RegExp(`^${g}`), M = s && s.match(k);
-    await fs$6.ensureDir(f), await fs$6.ensureDir(d), await fs$6.ensureDir(m);
-    const N = await MapDataService$1.getDBInstance();
+    const l = await histMap2Store(r, i), h = SettingsService$1.get("saveFolder"), f = path$f.join(h, "tiles"), d = path$f.join(h, "originals"), m = path$f.join(h, "tmbs"), _ = SettingsService$1.get("tmpFolder"), p = path$f.join(_, "tiles"), v = fileUrl(p), g = path$f.join(f, a), k = path$f.join(d, `${a}.${o}`), b = path$f.join(m, `${a}.jpg`), w = new RegExp(`^${v}`), M = s && s.match(w);
+    await fs$5.ensureDir(f), await fs$5.ensureDir(d), await fs$5.ensureDir(m);
+    const C = await MapDataService$1.getDBInstance();
     try {
       return await Promise.all([
         // --- DBとファイル変名/コピー操作 ---
         (async () => {
           if (n !== "Update") {
-            if (await N.findOneAsync({ _id: a }))
+            if (await C.findOneAsync({ _id: a }))
               throw new Error("Exist");
-            const T = n.match(/^(Change|Copy):(.+)$/);
-            if (T) {
-              const C = T[1] === "Copy", X = T[2], _e = path$f.join(f, X), Je = path$f.join(d, `${X}.${o}`), Pe = path$f.join(m, `${X}.jpg`);
-              if (await N.updateAsync({ _id: a }, { $set: l }, { upsert: !0 }), C || await N.removeAsync({ _id: X }, {}), M) {
-                if (!C) {
+            const P = n.match(/^(Change|Copy):(.+)$/);
+            if (P) {
+              const N = P[1] === "Copy", X = P[2], fe = path$f.join(f, X), Ke = path$f.join(d, `${X}.${o}`), Pe = path$f.join(m, `${X}.jpg`);
+              if (await C.updateAsync({ _id: a }, { $set: l }, { upsert: !0 }), N || await C.removeAsync({ _id: X }, {}), M) {
+                if (!N) {
                   try {
-                    await fs$6.remove(_e);
+                    await fs$5.remove(fe);
                   } catch {
                   }
                   try {
-                    await fs$6.remove(Je);
+                    await fs$5.remove(Ke);
                   } catch {
                   }
                   try {
-                    await fs$6.remove(Pe);
+                    await fs$5.remove(Pe);
                   } catch {
                   }
                 }
               } else {
-                const Ke = C ? fs$6.copy.bind(fs$6) : fs$6.move.bind(fs$6);
-                await fs$6.pathExists(_e) && await Ke(_e, v), await fs$6.pathExists(Je) && await Ke(Je, b), await fs$6.pathExists(Pe) && await Ke(Pe, w);
+                const Je = N ? fs$5.copy.bind(fs$5) : fs$5.move.bind(fs$5);
+                await fs$5.pathExists(fe) && await Je(fe, g), await fs$5.pathExists(Ke) && await Je(Ke, k), await fs$5.pathExists(Pe) && await Je(Pe, b);
               }
             } else
-              await N.updateAsync({ _id: a }, { $set: l }, { upsert: !0 });
+              await C.updateAsync({ _id: a }, { $set: l }, { upsert: !0 });
           } else
-            await N.updateAsync({ _id: a }, { $set: l }, { upsert: !0 });
+            await C.updateAsync({ _id: a }, { $set: l }, { upsert: !0 });
         })(),
         // --- tmpフォルダからの永続フォルダへの移動 ---
         (async () => {
           if (M) {
             try {
-              await fs$6.remove(v);
+              await fs$5.remove(g);
             } catch {
             }
-            await fs$6.move(_, v);
-            const P = path$f.join(v, `original.${o}`);
+            await fs$5.move(p, g);
+            const T = path$f.join(g, `original.${o}`);
             try {
-              await fs$6.remove(b);
+              await fs$5.remove(k);
             } catch {
             }
-            await fs$6.pathExists(P) && await fs$6.move(P, b);
-            const T = path$f.join(v, "thumbnail.jpg");
+            await fs$5.pathExists(T) && await fs$5.move(T, k);
+            const P = path$f.join(g, "thumbnail.jpg");
             try {
-              await fs$6.remove(w);
+              await fs$5.remove(b);
             } catch {
             }
-            await fs$6.pathExists(T) && await fs$6.move(T, w);
+            await fs$5.pathExists(P) && await fs$5.move(P, b);
           }
         })()
       ]), "Success";
-    } catch (P) {
-      return P && P.message === "Exist" ? "Exist" : (console.error("[MapEditService.save] Error:", P), "Error");
+    } catch (T) {
+      return T && T.message === "Exist" ? "Exist" : (console.error("[MapEditService.save] Error:", T), "Error");
     }
   }
 }
@@ -18504,23 +18728,23 @@ function rr(e) {
 }
 function hn(e, r, i) {
   if (e !== null)
-    for (var n, a, s, o, l, h, f, d = 0, m = 0, p, _ = e.type, g = _ === "FeatureCollection", v = _ === "Feature", b = g ? e.features.length : 1, w = 0; w < b; w++) {
-      f = g ? e.features[w].geometry : v ? e.geometry : e, p = f ? f.type === "GeometryCollection" : !1, l = p ? f.geometries.length : 1;
-      for (var k = 0; k < l; k++) {
-        var M = 0, N = 0;
-        if (o = p ? f.geometries[k] : f, o !== null) {
+    for (var n, a, s, o, l, h, f, d = 0, m = 0, _, p = e.type, v = p === "FeatureCollection", g = p === "Feature", k = v ? e.features.length : 1, b = 0; b < k; b++) {
+      f = v ? e.features[b].geometry : g ? e.geometry : e, _ = f ? f.type === "GeometryCollection" : !1, l = _ ? f.geometries.length : 1;
+      for (var w = 0; w < l; w++) {
+        var M = 0, C = 0;
+        if (o = _ ? f.geometries[w] : f, o !== null) {
           h = o.coordinates;
-          var P = o.type;
-          switch (d = i && (P === "Polygon" || P === "MultiPolygon") ? 1 : 0, P) {
+          var T = o.type;
+          switch (d = i && (T === "Polygon" || T === "MultiPolygon") ? 1 : 0, T) {
             case null:
               break;
             case "Point":
               if (r(
                 h,
                 m,
-                w,
+                b,
                 M,
-                N
+                C
               ) === !1)
                 return !1;
               m++, M++;
@@ -18531,14 +18755,14 @@ function hn(e, r, i) {
                 if (r(
                   h[n],
                   m,
-                  w,
+                  b,
                   M,
-                  N
+                  C
                 ) === !1)
                   return !1;
-                m++, P === "MultiPoint" && M++;
+                m++, T === "MultiPoint" && M++;
               }
-              P === "LineString" && M++;
+              T === "LineString" && M++;
               break;
             case "Polygon":
             case "MultiLineString":
@@ -18547,32 +18771,32 @@ function hn(e, r, i) {
                   if (r(
                     h[n][a],
                     m,
-                    w,
+                    b,
                     M,
-                    N
+                    C
                   ) === !1)
                     return !1;
                   m++;
                 }
-                P === "MultiLineString" && M++, P === "Polygon" && N++;
+                T === "MultiLineString" && M++, T === "Polygon" && C++;
               }
-              P === "Polygon" && M++;
+              T === "Polygon" && M++;
               break;
             case "MultiPolygon":
               for (n = 0; n < h.length; n++) {
-                for (N = 0, a = 0; a < h[n].length; a++) {
+                for (C = 0, a = 0; a < h[n].length; a++) {
                   for (s = 0; s < h[n][a].length - d; s++) {
                     if (r(
                       h[n][a][s],
                       m,
-                      w,
+                      b,
                       M,
-                      N
+                      C
                     ) === !1)
                       return !1;
                     m++;
                   }
-                  N++;
+                  C++;
                 }
                 M++;
               }
@@ -18591,31 +18815,31 @@ function hn(e, r, i) {
 }
 const Ft = 11102230246251565e-32, rt = 134217729, Ln = (3 + 8 * Ft) * Ft;
 function Rt(e, r, i, n, a) {
-  let s, o, l, h, f = r[0], d = n[0], m = 0, p = 0;
-  d > f == d > -f ? (s = f, f = r[++m]) : (s = d, d = n[++p]);
-  let _ = 0;
-  if (m < e && p < i)
-    for (d > f == d > -f ? (o = f + s, l = s - (o - f), f = r[++m]) : (o = d + s, l = s - (o - d), d = n[++p]), s = o, l !== 0 && (a[_++] = l); m < e && p < i; )
-      d > f == d > -f ? (o = s + f, h = o - s, l = s - (o - h) + (f - h), f = r[++m]) : (o = s + d, h = o - s, l = s - (o - h) + (d - h), d = n[++p]), s = o, l !== 0 && (a[_++] = l);
+  let s, o, l, h, f = r[0], d = n[0], m = 0, _ = 0;
+  d > f == d > -f ? (s = f, f = r[++m]) : (s = d, d = n[++_]);
+  let p = 0;
+  if (m < e && _ < i)
+    for (d > f == d > -f ? (o = f + s, l = s - (o - f), f = r[++m]) : (o = d + s, l = s - (o - d), d = n[++_]), s = o, l !== 0 && (a[p++] = l); m < e && _ < i; )
+      d > f == d > -f ? (o = s + f, h = o - s, l = s - (o - h) + (f - h), f = r[++m]) : (o = s + d, h = o - s, l = s - (o - h) + (d - h), d = n[++_]), s = o, l !== 0 && (a[p++] = l);
   for (; m < e; )
-    o = s + f, h = o - s, l = s - (o - h) + (f - h), f = r[++m], s = o, l !== 0 && (a[_++] = l);
-  for (; p < i; )
-    o = s + d, h = o - s, l = s - (o - h) + (d - h), d = n[++p], s = o, l !== 0 && (a[_++] = l);
-  return (s !== 0 || _ === 0) && (a[_++] = s), _;
+    o = s + f, h = o - s, l = s - (o - h) + (f - h), f = r[++m], s = o, l !== 0 && (a[p++] = l);
+  for (; _ < i; )
+    o = s + d, h = o - s, l = s - (o - h) + (d - h), d = n[++_], s = o, l !== 0 && (a[p++] = l);
+  return (s !== 0 || p === 0) && (a[p++] = s), p;
 }
 function Ut(e, r, i, n, a, s, o, l) {
   return Rt(Rt(e, r, i, n, o), o, a, s, l);
 }
 function j(e, r, i, n) {
-  let a, s, o, l, h, f, d, m, p, _, g;
-  d = rt * i, _ = d - (d - i), g = i - _;
-  let v = r[0];
-  a = v * i, d = rt * v, m = d - (d - v), p = v - m, o = p * g - (a - m * _ - p * _ - m * g);
-  let b = 0;
-  o !== 0 && (n[b++] = o);
-  for (let w = 1; w < e; w++)
-    v = r[w], l = v * i, d = rt * v, m = d - (d - v), p = v - m, h = p * g - (l - m * _ - p * _ - m * g), s = a + h, f = s - a, o = a - (s - f) + (h - f), o !== 0 && (n[b++] = o), a = l + s, o = s - (a - l), o !== 0 && (n[b++] = o);
-  return (a !== 0 || b === 0) && (n[b++] = a), b;
+  let a, s, o, l, h, f, d, m, _, p, v;
+  d = rt * i, p = d - (d - i), v = i - p;
+  let g = r[0];
+  a = g * i, d = rt * g, m = d - (d - g), _ = g - m, o = _ * v - (a - m * p - _ * p - m * v);
+  let k = 0;
+  o !== 0 && (n[k++] = o);
+  for (let b = 1; b < e; b++)
+    g = r[b], l = g * i, d = rt * g, m = d - (d - g), _ = g - m, h = _ * v - (l - m * p - _ * p - m * v), s = a + h, f = s - a, o = a - (s - f) + (h - f), o !== 0 && (n[k++] = o), a = l + s, o = s - (a - l), o !== 0 && (n[k++] = o);
+  return (a !== 0 || k === 0) && (n[k++] = a), k;
 }
 function Dn(e, r) {
   let i = r[0];
@@ -18627,16 +18851,16 @@ function vt(e) {
 }
 const ir = (3 + 16 * Ft) * Ft, sr = (2 + 12 * Ft) * Ft, or = (9 + 64 * Ft) * Ft * Ft, we = vt(4), mn = vt(8), gn = vt(12), wn = vt(16), Lt = vt(4);
 function ar(e, r, i, n, a, s, o) {
-  let l, h, f, d, m, p, _, g, v, b, w, k, M, N, P, T, C, X;
-  const _e = e - a, Je = i - a, Pe = r - s, Ke = n - s;
-  N = _e * Ke, p = rt * _e, _ = p - (p - _e), g = _e - _, p = rt * Ke, v = p - (p - Ke), b = Ke - v, P = g * b - (N - _ * v - g * v - _ * b), T = Pe * Je, p = rt * Pe, _ = p - (p - Pe), g = Pe - _, p = rt * Je, v = p - (p - Je), b = Je - v, C = g * b - (T - _ * v - g * v - _ * b), w = P - C, m = P - w, we[0] = P - (w + m) + (m - C), k = N + w, m = k - N, M = N - (k - m) + (w - m), w = M - T, m = M - w, we[1] = M - (w + m) + (m - T), X = k + w, m = X - k, we[2] = k - (X - m) + (w - m), we[3] = X;
+  let l, h, f, d, m, _, p, v, g, k, b, w, M, C, T, P, N, X;
+  const fe = e - a, Ke = i - a, Pe = r - s, Je = n - s;
+  C = fe * Je, _ = rt * fe, p = _ - (_ - fe), v = fe - p, _ = rt * Je, g = _ - (_ - Je), k = Je - g, T = v * k - (C - p * g - v * g - p * k), P = Pe * Ke, _ = rt * Pe, p = _ - (_ - Pe), v = Pe - p, _ = rt * Ke, g = _ - (_ - Ke), k = Ke - g, N = v * k - (P - p * g - v * g - p * k), b = T - N, m = T - b, we[0] = T - (b + m) + (m - N), w = C + b, m = w - C, M = C - (w - m) + (b - m), b = M - P, m = M - b, we[1] = M - (b + m) + (m - P), X = w + b, m = X - w, we[2] = w - (X - m) + (b - m), we[3] = X;
   let Wt = Dn(4, we), ee = sr * o;
-  if (Wt >= ee || -Wt >= ee || (m = e - _e, l = e - (_e + m) + (m - a), m = i - Je, f = i - (Je + m) + (m - a), m = r - Pe, h = r - (Pe + m) + (m - s), m = n - Ke, d = n - (Ke + m) + (m - s), l === 0 && h === 0 && f === 0 && d === 0) || (ee = or * o + Ln * Math.abs(Wt), Wt += _e * d + Ke * l - (Pe * f + Je * h), Wt >= ee || -Wt >= ee)) return Wt;
-  N = l * Ke, p = rt * l, _ = p - (p - l), g = l - _, p = rt * Ke, v = p - (p - Ke), b = Ke - v, P = g * b - (N - _ * v - g * v - _ * b), T = h * Je, p = rt * h, _ = p - (p - h), g = h - _, p = rt * Je, v = p - (p - Je), b = Je - v, C = g * b - (T - _ * v - g * v - _ * b), w = P - C, m = P - w, Lt[0] = P - (w + m) + (m - C), k = N + w, m = k - N, M = N - (k - m) + (w - m), w = M - T, m = M - w, Lt[1] = M - (w + m) + (m - T), X = k + w, m = X - k, Lt[2] = k - (X - m) + (w - m), Lt[3] = X;
+  if (Wt >= ee || -Wt >= ee || (m = e - fe, l = e - (fe + m) + (m - a), m = i - Ke, f = i - (Ke + m) + (m - a), m = r - Pe, h = r - (Pe + m) + (m - s), m = n - Je, d = n - (Je + m) + (m - s), l === 0 && h === 0 && f === 0 && d === 0) || (ee = or * o + Ln * Math.abs(Wt), Wt += fe * d + Je * l - (Pe * f + Ke * h), Wt >= ee || -Wt >= ee)) return Wt;
+  C = l * Je, _ = rt * l, p = _ - (_ - l), v = l - p, _ = rt * Je, g = _ - (_ - Je), k = Je - g, T = v * k - (C - p * g - v * g - p * k), P = h * Ke, _ = rt * h, p = _ - (_ - h), v = h - p, _ = rt * Ke, g = _ - (_ - Ke), k = Ke - g, N = v * k - (P - p * g - v * g - p * k), b = T - N, m = T - b, Lt[0] = T - (b + m) + (m - N), w = C + b, m = w - C, M = C - (w - m) + (b - m), b = M - P, m = M - b, Lt[1] = M - (b + m) + (m - P), X = w + b, m = X - w, Lt[2] = w - (X - m) + (b - m), Lt[3] = X;
   const We = Rt(4, we, 4, Lt, mn);
-  N = _e * d, p = rt * _e, _ = p - (p - _e), g = _e - _, p = rt * d, v = p - (p - d), b = d - v, P = g * b - (N - _ * v - g * v - _ * b), T = Pe * f, p = rt * Pe, _ = p - (p - Pe), g = Pe - _, p = rt * f, v = p - (p - f), b = f - v, C = g * b - (T - _ * v - g * v - _ * b), w = P - C, m = P - w, Lt[0] = P - (w + m) + (m - C), k = N + w, m = k - N, M = N - (k - m) + (w - m), w = M - T, m = M - w, Lt[1] = M - (w + m) + (m - T), X = k + w, m = X - k, Lt[2] = k - (X - m) + (w - m), Lt[3] = X;
+  C = fe * d, _ = rt * fe, p = _ - (_ - fe), v = fe - p, _ = rt * d, g = _ - (_ - d), k = d - g, T = v * k - (C - p * g - v * g - p * k), P = Pe * f, _ = rt * Pe, p = _ - (_ - Pe), v = Pe - p, _ = rt * f, g = _ - (_ - f), k = f - g, N = v * k - (P - p * g - v * g - p * k), b = T - N, m = T - b, Lt[0] = T - (b + m) + (m - N), w = C + b, m = w - C, M = C - (w - m) + (b - m), b = M - P, m = M - b, Lt[1] = M - (b + m) + (m - P), X = w + b, m = X - w, Lt[2] = w - (X - m) + (b - m), Lt[3] = X;
   const st = Rt(We, mn, 4, Lt, gn);
-  N = l * d, p = rt * l, _ = p - (p - l), g = l - _, p = rt * d, v = p - (p - d), b = d - v, P = g * b - (N - _ * v - g * v - _ * b), T = h * f, p = rt * h, _ = p - (p - h), g = h - _, p = rt * f, v = p - (p - f), b = f - v, C = g * b - (T - _ * v - g * v - _ * b), w = P - C, m = P - w, Lt[0] = P - (w + m) + (m - C), k = N + w, m = k - N, M = N - (k - m) + (w - m), w = M - T, m = M - w, Lt[1] = M - (w + m) + (m - T), X = k + w, m = X - k, Lt[2] = k - (X - m) + (w - m), Lt[3] = X;
+  C = l * d, _ = rt * l, p = _ - (_ - l), v = l - p, _ = rt * d, g = _ - (_ - d), k = d - g, T = v * k - (C - p * g - v * g - p * k), P = h * f, _ = rt * h, p = _ - (_ - h), v = h - p, _ = rt * f, g = _ - (_ - f), k = f - g, N = v * k - (P - p * g - v * g - p * k), b = T - N, m = T - b, Lt[0] = T - (b + m) + (m - N), w = C + b, m = w - C, M = C - (w - m) + (b - m), b = M - P, m = M - b, Lt[1] = M - (b + m) + (m - P), X = w + b, m = X - w, Lt[2] = w - (X - m) + (b - m), Lt[3] = X;
   const Xt = Rt(st, gn, 4, Lt, wn);
   return wn[Xt - 1];
 }
@@ -18652,9 +18876,9 @@ function Tt(e, r, i) {
   return be = rn, rn = n, e;
 }
 function ur(e, r, i, n, a, s, o, l, h) {
-  let f, d, m, p, _, g, v, b, w, k, M, N, P, T, C, X, _e, Je, Pe, Ke, Wt, ee, We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, fe, Ge, Kt, Ni;
+  let f, d, m, _, p, v, g, k, b, w, M, C, T, P, N, X, fe, Ke, Pe, Je, Wt, ee, We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, _e, Ge, Kt, Ni;
   const Di = e - o, Gi = i - o, Ki = a - o, Zn = r - l, Wi = n - l, Vi = s - l;
-  Ci = Gi * Vi, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, We = rt * Vi, Jt = We - (We - Vi), Vt = Vi - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Ki * Wi, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, We = rt * Wi, Jt = We - (We - Wi), Vt = Wi - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe - Kt, ee = fe - it, se[0] = fe - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, se[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, se[2] = Qt - (Ni - ee) + (it - ee), se[3] = Ni, Ci = Ki * Zn, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, We = rt * Zn, Jt = We - (We - Zn), Vt = Zn - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Di * Vi, We = rt * Di, st = We - (We - Di), Xt = Di - st, We = rt * Vi, Jt = We - (We - Vi), Vt = Vi - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe - Kt, ee = fe - it, oe[0] = fe - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, oe[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, oe[2] = Qt - (Ni - ee) + (it - ee), oe[3] = Ni, Ci = Di * Wi, We = rt * Di, st = We - (We - Di), Xt = Di - st, We = rt * Wi, Jt = We - (We - Wi), Vt = Wi - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Gi * Zn, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, We = rt * Zn, Jt = We - (We - Zn), Vt = Zn - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe - Kt, ee = fe - it, ae[0] = fe - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, ae[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, ae[2] = Qt - (Ni - ee) + (it - ee), ae[3] = Ni, f = Rt(
+  Ci = Gi * Vi, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, We = rt * Vi, Jt = We - (We - Vi), Vt = Vi - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Ki * Wi, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, We = rt * Wi, Jt = We - (We - Wi), Vt = Wi - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e - Kt, ee = _e - it, se[0] = _e - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, se[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, se[2] = Qt - (Ni - ee) + (it - ee), se[3] = Ni, Ci = Ki * Zn, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, We = rt * Zn, Jt = We - (We - Zn), Vt = Zn - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Di * Vi, We = rt * Di, st = We - (We - Di), Xt = Di - st, We = rt * Vi, Jt = We - (We - Vi), Vt = Vi - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e - Kt, ee = _e - it, oe[0] = _e - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, oe[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, oe[2] = Qt - (Ni - ee) + (it - ee), oe[3] = Ni, Ci = Di * Wi, We = rt * Di, st = We - (We - Di), Xt = Di - st, We = rt * Wi, Jt = We - (We - Wi), Vt = Wi - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Gi * Zn, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, We = rt * Zn, Jt = We - (We - Zn), Vt = Zn - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e - Kt, ee = _e - it, ae[0] = _e - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, ae[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, ae[2] = Qt - (Ni - ee) + (it - ee), ae[3] = Ni, f = Rt(
     Rt(
       Rt(
         j(j(4, se, Di, ot), ot, Di, pt),
@@ -18686,10 +18910,10 @@ function ur(e, r, i, n, a, s, o, l, h) {
     be
   );
   let ta = Dn(f, be), ra = hr * h;
-  if (ta >= ra || -ta >= ra || (ee = e - Di, d = e - (Di + ee) + (ee - o), ee = r - Zn, _ = r - (Zn + ee) + (ee - l), ee = i - Gi, m = i - (Gi + ee) + (ee - o), ee = n - Wi, g = n - (Wi + ee) + (ee - l), ee = a - Ki, p = a - (Ki + ee) + (ee - o), ee = s - Vi, v = s - (Vi + ee) + (ee - l), d === 0 && m === 0 && p === 0 && _ === 0 && g === 0 && v === 0) || (ra = fr * h + Ln * Math.abs(ta), ta += (Di * Di + Zn * Zn) * (Gi * v + Vi * m - (Wi * p + Ki * g)) + 2 * (Di * d + Zn * _) * (Gi * Vi - Wi * Ki) + ((Gi * Gi + Wi * Wi) * (Ki * _ + Zn * p - (Vi * d + Di * v)) + 2 * (Gi * m + Wi * g) * (Ki * Zn - Vi * Di)) + ((Ki * Ki + Vi * Vi) * (Di * g + Wi * d - (Zn * m + Gi * _)) + 2 * (Ki * p + Vi * v) * (Di * Wi - Zn * Gi)), ta >= ra || -ta >= ra))
+  if (ta >= ra || -ta >= ra || (ee = e - Di, d = e - (Di + ee) + (ee - o), ee = r - Zn, p = r - (Zn + ee) + (ee - l), ee = i - Gi, m = i - (Gi + ee) + (ee - o), ee = n - Wi, v = n - (Wi + ee) + (ee - l), ee = a - Ki, _ = a - (Ki + ee) + (ee - o), ee = s - Vi, g = s - (Vi + ee) + (ee - l), d === 0 && m === 0 && _ === 0 && p === 0 && v === 0 && g === 0) || (ra = fr * h + Ln * Math.abs(ta), ta += (Di * Di + Zn * Zn) * (Gi * g + Vi * m - (Wi * _ + Ki * v)) + 2 * (Di * d + Zn * p) * (Gi * Vi - Wi * Ki) + ((Gi * Gi + Wi * Wi) * (Ki * p + Zn * _ - (Vi * d + Di * g)) + 2 * (Gi * m + Wi * v) * (Ki * Zn - Vi * Di)) + ((Ki * Ki + Vi * Vi) * (Di * v + Wi * d - (Zn * m + Gi * p)) + 2 * (Ki * _ + Vi * g) * (Di * Wi - Zn * Gi)), ta >= ra || -ta >= ra))
     return ta;
-  if ((m !== 0 || g !== 0 || p !== 0 || v !== 0) && (Ci = Di * Di, We = rt * Di, st = We - (We - Di), Xt = Di - st, fe = Xt * Xt - (Ci - st * st - (st + st) * Xt), Ge = Zn * Zn, We = rt * Zn, st = We - (We - Zn), Xt = Zn - st, Kt = Xt * Xt - (Ge - st * st - (st + st) * Xt), it = fe + Kt, ee = it - fe, Ht[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Ht[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Ht[2] = Qt - (Ni - ee) + (it - ee), Ht[3] = Ni), (p !== 0 || v !== 0 || d !== 0 || _ !== 0) && (Ci = Gi * Gi, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, fe = Xt * Xt - (Ci - st * st - (st + st) * Xt), Ge = Wi * Wi, We = rt * Wi, st = We - (We - Wi), Xt = Wi - st, Kt = Xt * Xt - (Ge - st * st - (st + st) * Xt), it = fe + Kt, ee = it - fe, Zt[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Zt[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Zt[2] = Qt - (Ni - ee) + (it - ee), Zt[3] = Ni), (d !== 0 || _ !== 0 || m !== 0 || g !== 0) && (Ci = Ki * Ki, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, fe = Xt * Xt - (Ci - st * st - (st + st) * Xt), Ge = Vi * Vi, We = rt * Vi, st = We - (We - Vi), Xt = Vi - st, Kt = Xt * Xt - (Ge - st * st - (st + st) * Xt), it = fe + Kt, ee = it - fe, te[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, te[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, te[2] = Qt - (Ni - ee) + (it - ee), te[3] = Ni), d !== 0 && (b = j(4, se, d, Qe), f = Tt(f, Ut(
-    j(b, Qe, 2 * Di, pt),
+  if ((m !== 0 || v !== 0 || _ !== 0 || g !== 0) && (Ci = Di * Di, We = rt * Di, st = We - (We - Di), Xt = Di - st, _e = Xt * Xt - (Ci - st * st - (st + st) * Xt), Ge = Zn * Zn, We = rt * Zn, st = We - (We - Zn), Xt = Zn - st, Kt = Xt * Xt - (Ge - st * st - (st + st) * Xt), it = _e + Kt, ee = it - _e, Ht[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Ht[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Ht[2] = Qt - (Ni - ee) + (it - ee), Ht[3] = Ni), (_ !== 0 || g !== 0 || d !== 0 || p !== 0) && (Ci = Gi * Gi, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, _e = Xt * Xt - (Ci - st * st - (st + st) * Xt), Ge = Wi * Wi, We = rt * Wi, st = We - (We - Wi), Xt = Wi - st, Kt = Xt * Xt - (Ge - st * st - (st + st) * Xt), it = _e + Kt, ee = it - _e, Zt[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Zt[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Zt[2] = Qt - (Ni - ee) + (it - ee), Zt[3] = Ni), (d !== 0 || p !== 0 || m !== 0 || v !== 0) && (Ci = Ki * Ki, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, _e = Xt * Xt - (Ci - st * st - (st + st) * Xt), Ge = Vi * Vi, We = rt * Vi, st = We - (We - Vi), Xt = Vi - st, Kt = Xt * Xt - (Ge - st * st - (st + st) * Xt), it = _e + Kt, ee = it - _e, te[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, te[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, te[2] = Qt - (Ni - ee) + (it - ee), te[3] = Ni), d !== 0 && (k = j(4, se, d, Qe), f = Tt(f, Ut(
+    j(k, Qe, 2 * Di, pt),
     pt,
     j(j(4, te, d, ot), ot, Wi, kt),
     kt,
@@ -18697,17 +18921,17 @@ function ur(e, r, i, n, a, s, o, l, h) {
     Et,
     _t,
     It
-  ), It)), _ !== 0 && (w = j(4, se, _, He), f = Tt(f, Ut(
-    j(w, He, 2 * Zn, pt),
+  ), It)), p !== 0 && (b = j(4, se, p, He), f = Tt(f, Ut(
+    j(b, He, 2 * Zn, pt),
     pt,
-    j(j(4, Zt, _, ot), ot, Ki, kt),
+    j(j(4, Zt, p, ot), ot, Ki, kt),
     kt,
-    j(j(4, te, _, ot), ot, -Gi, Et),
+    j(j(4, te, p, ot), ot, -Gi, Et),
     Et,
     _t,
     It
-  ), It)), m !== 0 && (k = j(4, oe, m, Ze), f = Tt(f, Ut(
-    j(k, Ze, 2 * Gi, pt),
+  ), It)), m !== 0 && (w = j(4, oe, m, Ze), f = Tt(f, Ut(
+    j(w, Ze, 2 * Gi, pt),
     pt,
     j(j(4, Ht, m, ot), ot, Vi, kt),
     kt,
@@ -18715,44 +18939,44 @@ function ur(e, r, i, n, a, s, o, l, h) {
     Et,
     _t,
     It
-  ), It)), g !== 0 && (M = j(4, oe, g, tn), f = Tt(f, Ut(
+  ), It)), v !== 0 && (M = j(4, oe, v, tn), f = Tt(f, Ut(
     j(M, tn, 2 * Wi, pt),
     pt,
-    j(j(4, te, g, ot), ot, Di, kt),
+    j(j(4, te, v, ot), ot, Di, kt),
     kt,
-    j(j(4, Ht, g, ot), ot, -Ki, Et),
+    j(j(4, Ht, v, ot), ot, -Ki, Et),
     Et,
     _t,
     It
-  ), It)), p !== 0 && (N = j(4, ae, p, en), f = Tt(f, Ut(
-    j(N, en, 2 * Ki, pt),
+  ), It)), _ !== 0 && (C = j(4, ae, _, en), f = Tt(f, Ut(
+    j(C, en, 2 * Ki, pt),
     pt,
-    j(j(4, Zt, p, ot), ot, Zn, kt),
+    j(j(4, Zt, _, ot), ot, Zn, kt),
     kt,
-    j(j(4, Ht, p, ot), ot, -Wi, Et),
+    j(j(4, Ht, _, ot), ot, -Wi, Et),
     Et,
     _t,
     It
-  ), It)), v !== 0 && (P = j(4, ae, v, nn), f = Tt(f, Ut(
-    j(P, nn, 2 * Vi, pt),
+  ), It)), g !== 0 && (T = j(4, ae, g, nn), f = Tt(f, Ut(
+    j(T, nn, 2 * Vi, pt),
     pt,
-    j(j(4, Ht, v, ot), ot, Gi, kt),
+    j(j(4, Ht, g, ot), ot, Gi, kt),
     kt,
-    j(j(4, Zt, v, ot), ot, -Di, Et),
+    j(j(4, Zt, g, ot), ot, -Di, Et),
     Et,
     _t,
     It
-  ), It)), d !== 0 || _ !== 0) {
-    if (m !== 0 || g !== 0 || p !== 0 || v !== 0 ? (Ci = m * Vi, We = rt * m, st = We - (We - m), Xt = m - st, We = rt * Vi, Jt = We - (We - Vi), Vt = Vi - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Gi * v, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, We = rt * v, Jt = We - (We - v), Vt = v - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe + Kt, ee = it - fe, Dt[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Dt[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Dt[2] = Qt - (Ni - ee) + (it - ee), Dt[3] = Ni, Ci = p * -Wi, We = rt * p, st = We - (We - p), Xt = p - st, We = rt * -Wi, Jt = We - (We - -Wi), Vt = -Wi - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Ki * -g, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, We = rt * -g, Jt = We - (We - -g), Vt = -g - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe + Kt, ee = it - fe, $t[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, $t[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, $t[2] = Qt - (Ni - ee) + (it - ee), $t[3] = Ni, C = Rt(4, Dt, 4, $t, Te), Ci = m * v, We = rt * m, st = We - (We - m), Xt = m - st, We = rt * v, Jt = We - (We - v), Vt = v - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = p * g, We = rt * p, st = We - (We - p), Xt = p - st, We = rt * g, Jt = We - (We - g), Vt = g - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe - Kt, ee = fe - it, pe[0] = fe - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, pe[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, pe[2] = Qt - (Ni - ee) + (it - ee), pe[3] = Ni, Je = 4) : (Te[0] = 0, C = 1, pe[0] = 0, Je = 1), d !== 0) {
-      const ia = j(C, Te, d, Et);
+  ), It)), d !== 0 || p !== 0) {
+    if (m !== 0 || v !== 0 || _ !== 0 || g !== 0 ? (Ci = m * Vi, We = rt * m, st = We - (We - m), Xt = m - st, We = rt * Vi, Jt = We - (We - Vi), Vt = Vi - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Gi * g, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, We = rt * g, Jt = We - (We - g), Vt = g - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e + Kt, ee = it - _e, Dt[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Dt[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Dt[2] = Qt - (Ni - ee) + (it - ee), Dt[3] = Ni, Ci = _ * -Wi, We = rt * _, st = We - (We - _), Xt = _ - st, We = rt * -Wi, Jt = We - (We - -Wi), Vt = -Wi - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Ki * -v, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, We = rt * -v, Jt = We - (We - -v), Vt = -v - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e + Kt, ee = it - _e, $t[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, $t[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, $t[2] = Qt - (Ni - ee) + (it - ee), $t[3] = Ni, N = Rt(4, Dt, 4, $t, Te), Ci = m * g, We = rt * m, st = We - (We - m), Xt = m - st, We = rt * g, Jt = We - (We - g), Vt = g - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = _ * v, We = rt * _, st = We - (We - _), Xt = _ - st, We = rt * v, Jt = We - (We - v), Vt = v - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e - Kt, ee = _e - it, pe[0] = _e - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, pe[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, pe[2] = Qt - (Ni - ee) + (it - ee), pe[3] = Ni, Ke = 4) : (Te[0] = 0, N = 1, pe[0] = 0, Ke = 1), d !== 0) {
+      const ia = j(N, Te, d, Et);
       f = Tt(f, Rt(
-        j(b, Qe, d, pt),
+        j(k, Qe, d, pt),
         pt,
         j(ia, Et, 2 * Di, _t),
         _t,
         It
       ), It);
-      const na = j(Je, pe, d, ot);
+      const na = j(Ke, pe, d, ot);
       f = Tt(f, Ut(
         j(na, ot, 2 * Di, pt),
         pt,
@@ -18762,35 +18986,35 @@ function ur(e, r, i, n, a, s, o, l, h) {
         _t,
         ce,
         jt
-      ), jt), g !== 0 && (f = Tt(f, j(j(4, te, d, ot), ot, g, pt), pt)), v !== 0 && (f = Tt(f, j(j(4, Zt, -d, ot), ot, v, pt), pt));
+      ), jt), v !== 0 && (f = Tt(f, j(j(4, te, d, ot), ot, v, pt), pt)), g !== 0 && (f = Tt(f, j(j(4, Zt, -d, ot), ot, g, pt), pt));
     }
-    if (_ !== 0) {
-      const ia = j(C, Te, _, Et);
+    if (p !== 0) {
+      const ia = j(N, Te, p, Et);
       f = Tt(f, Rt(
-        j(w, He, _, pt),
+        j(b, He, p, pt),
         pt,
         j(ia, Et, 2 * Zn, _t),
         _t,
         It
       ), It);
-      const na = j(Je, pe, _, ot);
+      const na = j(Ke, pe, p, ot);
       f = Tt(f, Ut(
         j(na, ot, 2 * Zn, pt),
         pt,
-        j(na, ot, _, kt),
+        j(na, ot, p, kt),
         kt,
-        j(ia, Et, _, _t),
+        j(ia, Et, p, _t),
         _t,
         ce,
         jt
       ), jt);
     }
   }
-  if (m !== 0 || g !== 0) {
-    if (p !== 0 || v !== 0 || d !== 0 || _ !== 0 ? (Ci = p * Zn, We = rt * p, st = We - (We - p), Xt = p - st, We = rt * Zn, Jt = We - (We - Zn), Vt = Zn - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Ki * _, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, We = rt * _, Jt = We - (We - _), Vt = _ - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe + Kt, ee = it - fe, Dt[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Dt[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Dt[2] = Qt - (Ni - ee) + (it - ee), Dt[3] = Ni, Ke = -Vi, Wt = -v, Ci = d * Ke, We = rt * d, st = We - (We - d), Xt = d - st, We = rt * Ke, Jt = We - (We - Ke), Vt = Ke - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Di * Wt, We = rt * Di, st = We - (We - Di), Xt = Di - st, We = rt * Wt, Jt = We - (We - Wt), Vt = Wt - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe + Kt, ee = it - fe, $t[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, $t[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, $t[2] = Qt - (Ni - ee) + (it - ee), $t[3] = Ni, X = Rt(4, Dt, 4, $t, Ne), Ci = p * _, We = rt * p, st = We - (We - p), Xt = p - st, We = rt * _, Jt = We - (We - _), Vt = _ - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = d * v, We = rt * d, st = We - (We - d), Xt = d - st, We = rt * v, Jt = We - (We - v), Vt = v - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe - Kt, ee = fe - it, de[0] = fe - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, de[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, de[2] = Qt - (Ni - ee) + (it - ee), de[3] = Ni, Pe = 4) : (Ne[0] = 0, X = 1, de[0] = 0, Pe = 1), m !== 0) {
+  if (m !== 0 || v !== 0) {
+    if (_ !== 0 || g !== 0 || d !== 0 || p !== 0 ? (Ci = _ * Zn, We = rt * _, st = We - (We - _), Xt = _ - st, We = rt * Zn, Jt = We - (We - Zn), Vt = Zn - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Ki * p, We = rt * Ki, st = We - (We - Ki), Xt = Ki - st, We = rt * p, Jt = We - (We - p), Vt = p - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e + Kt, ee = it - _e, Dt[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Dt[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Dt[2] = Qt - (Ni - ee) + (it - ee), Dt[3] = Ni, Je = -Vi, Wt = -g, Ci = d * Je, We = rt * d, st = We - (We - d), Xt = d - st, We = rt * Je, Jt = We - (We - Je), Vt = Je - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Di * Wt, We = rt * Di, st = We - (We - Di), Xt = Di - st, We = rt * Wt, Jt = We - (We - Wt), Vt = Wt - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e + Kt, ee = it - _e, $t[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, $t[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, $t[2] = Qt - (Ni - ee) + (it - ee), $t[3] = Ni, X = Rt(4, Dt, 4, $t, Ne), Ci = _ * p, We = rt * _, st = We - (We - _), Xt = _ - st, We = rt * p, Jt = We - (We - p), Vt = p - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = d * g, We = rt * d, st = We - (We - d), Xt = d - st, We = rt * g, Jt = We - (We - g), Vt = g - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e - Kt, ee = _e - it, de[0] = _e - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, de[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, de[2] = Qt - (Ni - ee) + (it - ee), de[3] = Ni, Pe = 4) : (Ne[0] = 0, X = 1, de[0] = 0, Pe = 1), m !== 0) {
       const ia = j(X, Ne, m, Et);
       f = Tt(f, Rt(
-        j(k, Ze, m, pt),
+        j(w, Ze, m, pt),
         pt,
         j(ia, Et, 2 * Gi, _t),
         _t,
@@ -18806,64 +19030,20 @@ function ur(e, r, i, n, a, s, o, l, h) {
         _t,
         ce,
         jt
-      ), jt), v !== 0 && (f = Tt(f, j(j(4, Ht, m, ot), ot, v, pt), pt)), _ !== 0 && (f = Tt(f, j(j(4, te, -m, ot), ot, _, pt), pt));
+      ), jt), g !== 0 && (f = Tt(f, j(j(4, Ht, m, ot), ot, g, pt), pt)), p !== 0 && (f = Tt(f, j(j(4, te, -m, ot), ot, p, pt), pt));
     }
-    if (g !== 0) {
-      const ia = j(X, Ne, g, Et);
+    if (v !== 0) {
+      const ia = j(X, Ne, v, Et);
       f = Tt(f, Rt(
-        j(M, tn, g, pt),
+        j(M, tn, v, pt),
         pt,
         j(ia, Et, 2 * Wi, _t),
         _t,
         It
       ), It);
-      const na = j(Pe, de, g, ot);
+      const na = j(Pe, de, v, ot);
       f = Tt(f, Ut(
         j(na, ot, 2 * Wi, pt),
-        pt,
-        j(na, ot, g, kt),
-        kt,
-        j(ia, Et, g, _t),
-        _t,
-        ce,
-        jt
-      ), jt);
-    }
-  }
-  if (p !== 0 || v !== 0) {
-    if (d !== 0 || _ !== 0 || m !== 0 || g !== 0 ? (Ci = d * Wi, We = rt * d, st = We - (We - d), Xt = d - st, We = rt * Wi, Jt = We - (We - Wi), Vt = Wi - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Di * g, We = rt * Di, st = We - (We - Di), Xt = Di - st, We = rt * g, Jt = We - (We - g), Vt = g - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe + Kt, ee = it - fe, Dt[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Dt[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Dt[2] = Qt - (Ni - ee) + (it - ee), Dt[3] = Ni, Ke = -Zn, Wt = -_, Ci = m * Ke, We = rt * m, st = We - (We - m), Xt = m - st, We = rt * Ke, Jt = We - (We - Ke), Vt = Ke - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Gi * Wt, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, We = rt * Wt, Jt = We - (We - Wt), Vt = Wt - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe + Kt, ee = it - fe, $t[0] = fe - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, $t[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, $t[2] = Qt - (Ni - ee) + (it - ee), $t[3] = Ni, T = Rt(4, Dt, 4, $t, Ie), Ci = d * g, We = rt * d, st = We - (We - d), Xt = d - st, We = rt * g, Jt = We - (We - g), Vt = g - Jt, fe = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = m * _, We = rt * m, st = We - (We - m), Xt = m - st, We = rt * _, Jt = We - (We - _), Vt = _ - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = fe - Kt, ee = fe - it, le[0] = fe - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, le[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, le[2] = Qt - (Ni - ee) + (it - ee), le[3] = Ni, _e = 4) : (Ie[0] = 0, T = 1, le[0] = 0, _e = 1), p !== 0) {
-      const ia = j(T, Ie, p, Et);
-      f = Tt(f, Rt(
-        j(N, en, p, pt),
-        pt,
-        j(ia, Et, 2 * Ki, _t),
-        _t,
-        It
-      ), It);
-      const na = j(_e, le, p, ot);
-      f = Tt(f, Ut(
-        j(na, ot, 2 * Ki, pt),
-        pt,
-        j(na, ot, p, kt),
-        kt,
-        j(ia, Et, p, _t),
-        _t,
-        ce,
-        jt
-      ), jt), _ !== 0 && (f = Tt(f, j(j(4, Zt, p, ot), ot, _, pt), pt)), g !== 0 && (f = Tt(f, j(j(4, Ht, -p, ot), ot, g, pt), pt));
-    }
-    if (v !== 0) {
-      const ia = j(T, Ie, v, Et);
-      f = Tt(f, Rt(
-        j(P, nn, v, pt),
-        pt,
-        j(ia, Et, 2 * Vi, _t),
-        _t,
-        It
-      ), It);
-      const na = j(_e, le, v, ot);
-      f = Tt(f, Ut(
-        j(na, ot, 2 * Vi, pt),
         pt,
         j(na, ot, v, kt),
         kt,
@@ -18874,21 +19054,65 @@ function ur(e, r, i, n, a, s, o, l, h) {
       ), jt);
     }
   }
+  if (_ !== 0 || g !== 0) {
+    if (d !== 0 || p !== 0 || m !== 0 || v !== 0 ? (Ci = d * Wi, We = rt * d, st = We - (We - d), Xt = d - st, We = rt * Wi, Jt = We - (We - Wi), Vt = Wi - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Di * v, We = rt * Di, st = We - (We - Di), Xt = Di - st, We = rt * v, Jt = We - (We - v), Vt = v - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e + Kt, ee = it - _e, Dt[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, Dt[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, Dt[2] = Qt - (Ni - ee) + (it - ee), Dt[3] = Ni, Je = -Zn, Wt = -p, Ci = m * Je, We = rt * m, st = We - (We - m), Xt = m - st, We = rt * Je, Jt = We - (We - Je), Vt = Je - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = Gi * Wt, We = rt * Gi, st = We - (We - Gi), Xt = Gi - st, We = rt * Wt, Jt = We - (We - Wt), Vt = Wt - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e + Kt, ee = it - _e, $t[0] = _e - (it - ee) + (Kt - ee), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri + Ge, ee = it - Ri, $t[1] = Ri - (it - ee) + (Ge - ee), Ni = Qt + it, ee = Ni - Qt, $t[2] = Qt - (Ni - ee) + (it - ee), $t[3] = Ni, P = Rt(4, Dt, 4, $t, Ie), Ci = d * v, We = rt * d, st = We - (We - d), Xt = d - st, We = rt * v, Jt = We - (We - v), Vt = v - Jt, _e = Xt * Vt - (Ci - st * Jt - Xt * Jt - st * Vt), Ge = m * p, We = rt * m, st = We - (We - m), Xt = m - st, We = rt * p, Jt = We - (We - p), Vt = p - Jt, Kt = Xt * Vt - (Ge - st * Jt - Xt * Jt - st * Vt), it = _e - Kt, ee = _e - it, le[0] = _e - (it + ee) + (ee - Kt), Qt = Ci + it, ee = Qt - Ci, Ri = Ci - (Qt - ee) + (it - ee), it = Ri - Ge, ee = Ri - it, le[1] = Ri - (it + ee) + (ee - Ge), Ni = Qt + it, ee = Ni - Qt, le[2] = Qt - (Ni - ee) + (it - ee), le[3] = Ni, fe = 4) : (Ie[0] = 0, P = 1, le[0] = 0, fe = 1), _ !== 0) {
+      const ia = j(P, Ie, _, Et);
+      f = Tt(f, Rt(
+        j(C, en, _, pt),
+        pt,
+        j(ia, Et, 2 * Ki, _t),
+        _t,
+        It
+      ), It);
+      const na = j(fe, le, _, ot);
+      f = Tt(f, Ut(
+        j(na, ot, 2 * Ki, pt),
+        pt,
+        j(na, ot, _, kt),
+        kt,
+        j(ia, Et, _, _t),
+        _t,
+        ce,
+        jt
+      ), jt), p !== 0 && (f = Tt(f, j(j(4, Zt, _, ot), ot, p, pt), pt)), v !== 0 && (f = Tt(f, j(j(4, Ht, -_, ot), ot, v, pt), pt));
+    }
+    if (g !== 0) {
+      const ia = j(P, Ie, g, Et);
+      f = Tt(f, Rt(
+        j(T, nn, g, pt),
+        pt,
+        j(ia, Et, 2 * Vi, _t),
+        _t,
+        It
+      ), It);
+      const na = j(fe, le, g, ot);
+      f = Tt(f, Ut(
+        j(na, ot, 2 * Vi, pt),
+        pt,
+        j(na, ot, g, kt),
+        kt,
+        j(ia, Et, g, _t),
+        _t,
+        ce,
+        jt
+      ), jt);
+    }
+  }
   return be[f - 1];
 }
 function lr(e, r, i, n, a, s, o, l) {
-  const h = e - o, f = i - o, d = a - o, m = r - l, p = n - l, _ = s - l, g = f * _, v = d * p, b = h * h + m * m, w = d * m, k = h * _, M = f * f + p * p, N = h * p, P = f * m, T = d * d + _ * _, C = b * (g - v) + M * (w - k) + T * (N - P), X = (Math.abs(g) + Math.abs(v)) * b + (Math.abs(w) + Math.abs(k)) * M + (Math.abs(N) + Math.abs(P)) * T, _e = cr * X;
-  return C > _e || -C > _e ? C : ur(e, r, i, n, a, s, o, l, X);
+  const h = e - o, f = i - o, d = a - o, m = r - l, _ = n - l, p = s - l, v = f * p, g = d * _, k = h * h + m * m, b = d * m, w = h * p, M = f * f + _ * _, C = h * _, T = f * m, P = d * d + p * p, N = k * (v - g) + M * (b - w) + P * (C - T), X = (Math.abs(v) + Math.abs(g)) * k + (Math.abs(b) + Math.abs(w)) * M + (Math.abs(C) + Math.abs(T)) * P, fe = cr * X;
+  return N > fe || -N > fe ? N : ur(e, r, i, n, a, s, o, l, X);
 }
 function pr(e, r) {
-  var i, n, a = 0, s, o, l, h, f, d, m, p = e[0], _ = e[1], g = r.length;
-  for (i = 0; i < g; i++) {
+  var i, n, a = 0, s, o, l, h, f, d, m, _ = e[0], p = e[1], v = r.length;
+  for (i = 0; i < v; i++) {
     n = 0;
-    var v = r[i], b = v.length - 1;
-    if (d = v[0], d[0] !== v[b][0] && d[1] !== v[b][1])
+    var g = r[i], k = g.length - 1;
+    if (d = g[0], d[0] !== g[k][0] && d[1] !== g[k][1])
       throw new Error("First and last coordinates in a ring must be the same");
-    for (o = d[0] - p, l = d[1] - _, n; n < b; n++) {
-      if (m = v[n + 1], h = m[0] - p, f = m[1] - _, l === 0 && f === 0) {
+    for (o = d[0] - _, l = d[1] - p, n; n < k; n++) {
+      if (m = g[n + 1], h = m[0] - _, f = m[1] - p, l === 0 && f === 0) {
         if (h <= 0 && o >= 0 || o <= 0 && h >= 0)
           return 0;
       } else if (f >= 0 && l <= 0 || f <= 0 && l >= 0) {
@@ -19010,13 +19234,13 @@ class vr {
 }
 function br(e, r) {
   if (e === null || r === null || e.leftSweepEvent.ringId === r.leftSweepEvent.ringId && (e.rightSweepEvent.isSamePoint(r.leftSweepEvent) || e.rightSweepEvent.isSamePoint(r.leftSweepEvent) || e.rightSweepEvent.isSamePoint(r.rightSweepEvent) || e.leftSweepEvent.isSamePoint(r.leftSweepEvent) || e.leftSweepEvent.isSamePoint(r.rightSweepEvent))) return !1;
-  const i = e.leftSweepEvent.p.x, n = e.leftSweepEvent.p.y, a = e.rightSweepEvent.p.x, s = e.rightSweepEvent.p.y, o = r.leftSweepEvent.p.x, l = r.leftSweepEvent.p.y, h = r.rightSweepEvent.p.x, f = r.rightSweepEvent.p.y, d = (f - l) * (a - i) - (h - o) * (s - n), m = (h - o) * (n - l) - (f - l) * (i - o), p = (a - i) * (n - l) - (s - n) * (i - o);
+  const i = e.leftSweepEvent.p.x, n = e.leftSweepEvent.p.y, a = e.rightSweepEvent.p.x, s = e.rightSweepEvent.p.y, o = r.leftSweepEvent.p.x, l = r.leftSweepEvent.p.y, h = r.rightSweepEvent.p.x, f = r.rightSweepEvent.p.y, d = (f - l) * (a - i) - (h - o) * (s - n), m = (h - o) * (n - l) - (f - l) * (i - o), _ = (a - i) * (n - l) - (s - n) * (i - o);
   if (d === 0)
     return !1;
-  const _ = m / d, g = p / d;
-  if (_ >= 0 && _ <= 1 && g >= 0 && g <= 1) {
-    const v = i + _ * (a - i), b = n + _ * (s - n);
-    return [v, b];
+  const p = m / d, v = _ / d;
+  if (p >= 0 && p <= 1 && v >= 0 && v <= 1) {
+    const g = i + p * (a - i), k = n + p * (s - n);
+    return [g, k];
   }
   return !1;
 }
@@ -19101,209 +19325,209 @@ function Br() {
     (function(i, n) {
       e.exports = n();
     })(Or, function() {
-      function i(k, M, N, P, T) {
-        (function C(X, _e, Je, Pe, Ke) {
-          for (; Pe > Je; ) {
-            if (Pe - Je > 600) {
-              var Wt = Pe - Je + 1, ee = _e - Je + 1, We = Math.log(Wt), st = 0.5 * Math.exp(2 * We / 3), Xt = 0.5 * Math.sqrt(We * st * (Wt - st) / Wt) * (ee - Wt / 2 < 0 ? -1 : 1), Jt = Math.max(Je, Math.floor(_e - ee * st / Wt + Xt)), Vt = Math.min(Pe, Math.floor(_e + (Wt - ee) * st / Wt + Xt));
-              C(X, _e, Jt, Vt, Ke);
+      function i(w, M, C, T, P) {
+        (function N(X, fe, Ke, Pe, Je) {
+          for (; Pe > Ke; ) {
+            if (Pe - Ke > 600) {
+              var Wt = Pe - Ke + 1, ee = fe - Ke + 1, We = Math.log(Wt), st = 0.5 * Math.exp(2 * We / 3), Xt = 0.5 * Math.sqrt(We * st * (Wt - st) / Wt) * (ee - Wt / 2 < 0 ? -1 : 1), Jt = Math.max(Ke, Math.floor(fe - ee * st / Wt + Xt)), Vt = Math.min(Pe, Math.floor(fe + (Wt - ee) * st / Wt + Xt));
+              N(X, fe, Jt, Vt, Je);
             }
-            var it = X[_e], Qt = Je, Ri = Pe;
-            for (n(X, Je, _e), Ke(X[Pe], it) > 0 && n(X, Je, Pe); Qt < Ri; ) {
-              for (n(X, Qt, Ri), Qt++, Ri--; Ke(X[Qt], it) < 0; ) Qt++;
-              for (; Ke(X[Ri], it) > 0; ) Ri--;
+            var it = X[fe], Qt = Ke, Ri = Pe;
+            for (n(X, Ke, fe), Je(X[Pe], it) > 0 && n(X, Ke, Pe); Qt < Ri; ) {
+              for (n(X, Qt, Ri), Qt++, Ri--; Je(X[Qt], it) < 0; ) Qt++;
+              for (; Je(X[Ri], it) > 0; ) Ri--;
             }
-            Ke(X[Je], it) === 0 ? n(X, Je, Ri) : n(X, ++Ri, Pe), Ri <= _e && (Je = Ri + 1), _e <= Ri && (Pe = Ri - 1);
+            Je(X[Ke], it) === 0 ? n(X, Ke, Ri) : n(X, ++Ri, Pe), Ri <= fe && (Ke = Ri + 1), fe <= Ri && (Pe = Ri - 1);
           }
-        })(k, M, N || 0, P || k.length - 1, T || a);
+        })(w, M, C || 0, T || w.length - 1, P || a);
       }
-      function n(k, M, N) {
-        var P = k[M];
-        k[M] = k[N], k[N] = P;
+      function n(w, M, C) {
+        var T = w[M];
+        w[M] = w[C], w[C] = T;
       }
-      function a(k, M) {
-        return k < M ? -1 : k > M ? 1 : 0;
+      function a(w, M) {
+        return w < M ? -1 : w > M ? 1 : 0;
       }
-      var s = function(k) {
-        k === void 0 && (k = 9), this._maxEntries = Math.max(4, k), this._minEntries = Math.max(2, Math.ceil(0.4 * this._maxEntries)), this.clear();
+      var s = function(w) {
+        w === void 0 && (w = 9), this._maxEntries = Math.max(4, w), this._minEntries = Math.max(2, Math.ceil(0.4 * this._maxEntries)), this.clear();
       };
-      function o(k, M, N) {
-        if (!N) return M.indexOf(k);
-        for (var P = 0; P < M.length; P++) if (N(k, M[P])) return P;
+      function o(w, M, C) {
+        if (!C) return M.indexOf(w);
+        for (var T = 0; T < M.length; T++) if (C(w, M[T])) return T;
         return -1;
       }
-      function l(k, M) {
-        h(k, 0, k.children.length, M, k);
+      function l(w, M) {
+        h(w, 0, w.children.length, M, w);
       }
-      function h(k, M, N, P, T) {
-        T || (T = b(null)), T.minX = 1 / 0, T.minY = 1 / 0, T.maxX = -1 / 0, T.maxY = -1 / 0;
-        for (var C = M; C < N; C++) {
-          var X = k.children[C];
-          f(T, k.leaf ? P(X) : X);
+      function h(w, M, C, T, P) {
+        P || (P = k(null)), P.minX = 1 / 0, P.minY = 1 / 0, P.maxX = -1 / 0, P.maxY = -1 / 0;
+        for (var N = M; N < C; N++) {
+          var X = w.children[N];
+          f(P, w.leaf ? T(X) : X);
         }
-        return T;
+        return P;
       }
-      function f(k, M) {
-        return k.minX = Math.min(k.minX, M.minX), k.minY = Math.min(k.minY, M.minY), k.maxX = Math.max(k.maxX, M.maxX), k.maxY = Math.max(k.maxY, M.maxY), k;
+      function f(w, M) {
+        return w.minX = Math.min(w.minX, M.minX), w.minY = Math.min(w.minY, M.minY), w.maxX = Math.max(w.maxX, M.maxX), w.maxY = Math.max(w.maxY, M.maxY), w;
       }
-      function d(k, M) {
-        return k.minX - M.minX;
+      function d(w, M) {
+        return w.minX - M.minX;
       }
-      function m(k, M) {
-        return k.minY - M.minY;
+      function m(w, M) {
+        return w.minY - M.minY;
       }
-      function p(k) {
-        return (k.maxX - k.minX) * (k.maxY - k.minY);
+      function _(w) {
+        return (w.maxX - w.minX) * (w.maxY - w.minY);
       }
-      function _(k) {
-        return k.maxX - k.minX + (k.maxY - k.minY);
+      function p(w) {
+        return w.maxX - w.minX + (w.maxY - w.minY);
       }
-      function g(k, M) {
-        return k.minX <= M.minX && k.minY <= M.minY && M.maxX <= k.maxX && M.maxY <= k.maxY;
+      function v(w, M) {
+        return w.minX <= M.minX && w.minY <= M.minY && M.maxX <= w.maxX && M.maxY <= w.maxY;
       }
-      function v(k, M) {
-        return M.minX <= k.maxX && M.minY <= k.maxY && M.maxX >= k.minX && M.maxY >= k.minY;
+      function g(w, M) {
+        return M.minX <= w.maxX && M.minY <= w.maxY && M.maxX >= w.minX && M.maxY >= w.minY;
       }
-      function b(k) {
-        return { children: k, height: 1, leaf: !0, minX: 1 / 0, minY: 1 / 0, maxX: -1 / 0, maxY: -1 / 0 };
+      function k(w) {
+        return { children: w, height: 1, leaf: !0, minX: 1 / 0, minY: 1 / 0, maxX: -1 / 0, maxY: -1 / 0 };
       }
-      function w(k, M, N, P, T) {
-        for (var C = [M, N]; C.length; ) if (!((N = C.pop()) - (M = C.pop()) <= P)) {
-          var X = M + Math.ceil((N - M) / P / 2) * P;
-          i(k, X, M, N, T), C.push(M, X, X, N);
+      function b(w, M, C, T, P) {
+        for (var N = [M, C]; N.length; ) if (!((C = N.pop()) - (M = N.pop()) <= T)) {
+          var X = M + Math.ceil((C - M) / T / 2) * T;
+          i(w, X, M, C, P), N.push(M, X, X, C);
         }
       }
       return s.prototype.all = function() {
         return this._all(this.data, []);
-      }, s.prototype.search = function(k) {
-        var M = this.data, N = [];
-        if (!v(k, M)) return N;
-        for (var P = this.toBBox, T = []; M; ) {
-          for (var C = 0; C < M.children.length; C++) {
-            var X = M.children[C], _e = M.leaf ? P(X) : X;
-            v(k, _e) && (M.leaf ? N.push(X) : g(k, _e) ? this._all(X, N) : T.push(X));
+      }, s.prototype.search = function(w) {
+        var M = this.data, C = [];
+        if (!g(w, M)) return C;
+        for (var T = this.toBBox, P = []; M; ) {
+          for (var N = 0; N < M.children.length; N++) {
+            var X = M.children[N], fe = M.leaf ? T(X) : X;
+            g(w, fe) && (M.leaf ? C.push(X) : v(w, fe) ? this._all(X, C) : P.push(X));
           }
-          M = T.pop();
+          M = P.pop();
         }
-        return N;
-      }, s.prototype.collides = function(k) {
+        return C;
+      }, s.prototype.collides = function(w) {
         var M = this.data;
-        if (!v(k, M)) return !1;
-        for (var N = []; M; ) {
-          for (var P = 0; P < M.children.length; P++) {
-            var T = M.children[P], C = M.leaf ? this.toBBox(T) : T;
-            if (v(k, C)) {
-              if (M.leaf || g(k, C)) return !0;
-              N.push(T);
+        if (!g(w, M)) return !1;
+        for (var C = []; M; ) {
+          for (var T = 0; T < M.children.length; T++) {
+            var P = M.children[T], N = M.leaf ? this.toBBox(P) : P;
+            if (g(w, N)) {
+              if (M.leaf || v(w, N)) return !0;
+              C.push(P);
             }
           }
-          M = N.pop();
+          M = C.pop();
         }
         return !1;
-      }, s.prototype.load = function(k) {
-        if (!k || !k.length) return this;
-        if (k.length < this._minEntries) {
-          for (var M = 0; M < k.length; M++) this.insert(k[M]);
+      }, s.prototype.load = function(w) {
+        if (!w || !w.length) return this;
+        if (w.length < this._minEntries) {
+          for (var M = 0; M < w.length; M++) this.insert(w[M]);
           return this;
         }
-        var N = this._build(k.slice(), 0, k.length - 1, 0);
-        if (this.data.children.length) if (this.data.height === N.height) this._splitRoot(this.data, N);
+        var C = this._build(w.slice(), 0, w.length - 1, 0);
+        if (this.data.children.length) if (this.data.height === C.height) this._splitRoot(this.data, C);
         else {
-          if (this.data.height < N.height) {
-            var P = this.data;
-            this.data = N, N = P;
+          if (this.data.height < C.height) {
+            var T = this.data;
+            this.data = C, C = T;
           }
-          this._insert(N, this.data.height - N.height - 1, !0);
+          this._insert(C, this.data.height - C.height - 1, !0);
         }
-        else this.data = N;
+        else this.data = C;
         return this;
-      }, s.prototype.insert = function(k) {
-        return k && this._insert(k, this.data.height - 1), this;
+      }, s.prototype.insert = function(w) {
+        return w && this._insert(w, this.data.height - 1), this;
       }, s.prototype.clear = function() {
-        return this.data = b([]), this;
-      }, s.prototype.remove = function(k, M) {
-        if (!k) return this;
-        for (var N, P, T, C = this.data, X = this.toBBox(k), _e = [], Je = []; C || _e.length; ) {
-          if (C || (C = _e.pop(), P = _e[_e.length - 1], N = Je.pop(), T = !0), C.leaf) {
-            var Pe = o(k, C.children, M);
-            if (Pe !== -1) return C.children.splice(Pe, 1), _e.push(C), this._condense(_e), this;
+        return this.data = k([]), this;
+      }, s.prototype.remove = function(w, M) {
+        if (!w) return this;
+        for (var C, T, P, N = this.data, X = this.toBBox(w), fe = [], Ke = []; N || fe.length; ) {
+          if (N || (N = fe.pop(), T = fe[fe.length - 1], C = Ke.pop(), P = !0), N.leaf) {
+            var Pe = o(w, N.children, M);
+            if (Pe !== -1) return N.children.splice(Pe, 1), fe.push(N), this._condense(fe), this;
           }
-          T || C.leaf || !g(C, X) ? P ? (N++, C = P.children[N], T = !1) : C = null : (_e.push(C), Je.push(N), N = 0, P = C, C = C.children[0]);
+          P || N.leaf || !v(N, X) ? T ? (C++, N = T.children[C], P = !1) : N = null : (fe.push(N), Ke.push(C), C = 0, T = N, N = N.children[0]);
         }
         return this;
-      }, s.prototype.toBBox = function(k) {
-        return k;
-      }, s.prototype.compareMinX = function(k, M) {
-        return k.minX - M.minX;
-      }, s.prototype.compareMinY = function(k, M) {
-        return k.minY - M.minY;
+      }, s.prototype.toBBox = function(w) {
+        return w;
+      }, s.prototype.compareMinX = function(w, M) {
+        return w.minX - M.minX;
+      }, s.prototype.compareMinY = function(w, M) {
+        return w.minY - M.minY;
       }, s.prototype.toJSON = function() {
         return this.data;
-      }, s.prototype.fromJSON = function(k) {
-        return this.data = k, this;
-      }, s.prototype._all = function(k, M) {
-        for (var N = []; k; ) k.leaf ? M.push.apply(M, k.children) : N.push.apply(N, k.children), k = N.pop();
+      }, s.prototype.fromJSON = function(w) {
+        return this.data = w, this;
+      }, s.prototype._all = function(w, M) {
+        for (var C = []; w; ) w.leaf ? M.push.apply(M, w.children) : C.push.apply(C, w.children), w = C.pop();
         return M;
-      }, s.prototype._build = function(k, M, N, P) {
-        var T, C = N - M + 1, X = this._maxEntries;
-        if (C <= X) return l(T = b(k.slice(M, N + 1)), this.toBBox), T;
-        P || (P = Math.ceil(Math.log(C) / Math.log(X)), X = Math.ceil(C / Math.pow(X, P - 1))), (T = b([])).leaf = !1, T.height = P;
-        var _e = Math.ceil(C / X), Je = _e * Math.ceil(Math.sqrt(X));
-        w(k, M, N, Je, this.compareMinX);
-        for (var Pe = M; Pe <= N; Pe += Je) {
-          var Ke = Math.min(Pe + Je - 1, N);
-          w(k, Pe, Ke, _e, this.compareMinY);
-          for (var Wt = Pe; Wt <= Ke; Wt += _e) {
-            var ee = Math.min(Wt + _e - 1, Ke);
-            T.children.push(this._build(k, Wt, ee, P - 1));
+      }, s.prototype._build = function(w, M, C, T) {
+        var P, N = C - M + 1, X = this._maxEntries;
+        if (N <= X) return l(P = k(w.slice(M, C + 1)), this.toBBox), P;
+        T || (T = Math.ceil(Math.log(N) / Math.log(X)), X = Math.ceil(N / Math.pow(X, T - 1))), (P = k([])).leaf = !1, P.height = T;
+        var fe = Math.ceil(N / X), Ke = fe * Math.ceil(Math.sqrt(X));
+        b(w, M, C, Ke, this.compareMinX);
+        for (var Pe = M; Pe <= C; Pe += Ke) {
+          var Je = Math.min(Pe + Ke - 1, C);
+          b(w, Pe, Je, fe, this.compareMinY);
+          for (var Wt = Pe; Wt <= Je; Wt += fe) {
+            var ee = Math.min(Wt + fe - 1, Je);
+            P.children.push(this._build(w, Wt, ee, T - 1));
           }
         }
-        return l(T, this.toBBox), T;
-      }, s.prototype._chooseSubtree = function(k, M, N, P) {
-        for (; P.push(M), !M.leaf && P.length - 1 !== N; ) {
-          for (var T = 1 / 0, C = 1 / 0, X = void 0, _e = 0; _e < M.children.length; _e++) {
-            var Je = M.children[_e], Pe = p(Je), Ke = (Wt = k, ee = Je, (Math.max(ee.maxX, Wt.maxX) - Math.min(ee.minX, Wt.minX)) * (Math.max(ee.maxY, Wt.maxY) - Math.min(ee.minY, Wt.minY)) - Pe);
-            Ke < C ? (C = Ke, T = Pe < T ? Pe : T, X = Je) : Ke === C && Pe < T && (T = Pe, X = Je);
+        return l(P, this.toBBox), P;
+      }, s.prototype._chooseSubtree = function(w, M, C, T) {
+        for (; T.push(M), !M.leaf && T.length - 1 !== C; ) {
+          for (var P = 1 / 0, N = 1 / 0, X = void 0, fe = 0; fe < M.children.length; fe++) {
+            var Ke = M.children[fe], Pe = _(Ke), Je = (Wt = w, ee = Ke, (Math.max(ee.maxX, Wt.maxX) - Math.min(ee.minX, Wt.minX)) * (Math.max(ee.maxY, Wt.maxY) - Math.min(ee.minY, Wt.minY)) - Pe);
+            Je < N ? (N = Je, P = Pe < P ? Pe : P, X = Ke) : Je === N && Pe < P && (P = Pe, X = Ke);
           }
           M = X || M.children[0];
         }
         var Wt, ee;
         return M;
-      }, s.prototype._insert = function(k, M, N) {
-        var P = N ? k : this.toBBox(k), T = [], C = this._chooseSubtree(P, this.data, M, T);
-        for (C.children.push(k), f(C, P); M >= 0 && T[M].children.length > this._maxEntries; ) this._split(T, M), M--;
-        this._adjustParentBBoxes(P, T, M);
-      }, s.prototype._split = function(k, M) {
-        var N = k[M], P = N.children.length, T = this._minEntries;
-        this._chooseSplitAxis(N, T, P);
-        var C = this._chooseSplitIndex(N, T, P), X = b(N.children.splice(C, N.children.length - C));
-        X.height = N.height, X.leaf = N.leaf, l(N, this.toBBox), l(X, this.toBBox), M ? k[M - 1].children.push(X) : this._splitRoot(N, X);
-      }, s.prototype._splitRoot = function(k, M) {
-        this.data = b([k, M]), this.data.height = k.height + 1, this.data.leaf = !1, l(this.data, this.toBBox);
-      }, s.prototype._chooseSplitIndex = function(k, M, N) {
-        for (var P, T, C, X, _e, Je, Pe, Ke = 1 / 0, Wt = 1 / 0, ee = M; ee <= N - M; ee++) {
-          var We = h(k, 0, ee, this.toBBox), st = h(k, ee, N, this.toBBox), Xt = (T = We, C = st, X = void 0, _e = void 0, Je = void 0, Pe = void 0, X = Math.max(T.minX, C.minX), _e = Math.max(T.minY, C.minY), Je = Math.min(T.maxX, C.maxX), Pe = Math.min(T.maxY, C.maxY), Math.max(0, Je - X) * Math.max(0, Pe - _e)), Jt = p(We) + p(st);
-          Xt < Ke ? (Ke = Xt, P = ee, Wt = Jt < Wt ? Jt : Wt) : Xt === Ke && Jt < Wt && (Wt = Jt, P = ee);
+      }, s.prototype._insert = function(w, M, C) {
+        var T = C ? w : this.toBBox(w), P = [], N = this._chooseSubtree(T, this.data, M, P);
+        for (N.children.push(w), f(N, T); M >= 0 && P[M].children.length > this._maxEntries; ) this._split(P, M), M--;
+        this._adjustParentBBoxes(T, P, M);
+      }, s.prototype._split = function(w, M) {
+        var C = w[M], T = C.children.length, P = this._minEntries;
+        this._chooseSplitAxis(C, P, T);
+        var N = this._chooseSplitIndex(C, P, T), X = k(C.children.splice(N, C.children.length - N));
+        X.height = C.height, X.leaf = C.leaf, l(C, this.toBBox), l(X, this.toBBox), M ? w[M - 1].children.push(X) : this._splitRoot(C, X);
+      }, s.prototype._splitRoot = function(w, M) {
+        this.data = k([w, M]), this.data.height = w.height + 1, this.data.leaf = !1, l(this.data, this.toBBox);
+      }, s.prototype._chooseSplitIndex = function(w, M, C) {
+        for (var T, P, N, X, fe, Ke, Pe, Je = 1 / 0, Wt = 1 / 0, ee = M; ee <= C - M; ee++) {
+          var We = h(w, 0, ee, this.toBBox), st = h(w, ee, C, this.toBBox), Xt = (P = We, N = st, X = void 0, fe = void 0, Ke = void 0, Pe = void 0, X = Math.max(P.minX, N.minX), fe = Math.max(P.minY, N.minY), Ke = Math.min(P.maxX, N.maxX), Pe = Math.min(P.maxY, N.maxY), Math.max(0, Ke - X) * Math.max(0, Pe - fe)), Jt = _(We) + _(st);
+          Xt < Je ? (Je = Xt, T = ee, Wt = Jt < Wt ? Jt : Wt) : Xt === Je && Jt < Wt && (Wt = Jt, T = ee);
         }
-        return P || N - M;
-      }, s.prototype._chooseSplitAxis = function(k, M, N) {
-        var P = k.leaf ? this.compareMinX : d, T = k.leaf ? this.compareMinY : m;
-        this._allDistMargin(k, M, N, P) < this._allDistMargin(k, M, N, T) && k.children.sort(P);
-      }, s.prototype._allDistMargin = function(k, M, N, P) {
-        k.children.sort(P);
-        for (var T = this.toBBox, C = h(k, 0, M, T), X = h(k, N - M, N, T), _e = _(C) + _(X), Je = M; Je < N - M; Je++) {
-          var Pe = k.children[Je];
-          f(C, k.leaf ? T(Pe) : Pe), _e += _(C);
+        return T || C - M;
+      }, s.prototype._chooseSplitAxis = function(w, M, C) {
+        var T = w.leaf ? this.compareMinX : d, P = w.leaf ? this.compareMinY : m;
+        this._allDistMargin(w, M, C, T) < this._allDistMargin(w, M, C, P) && w.children.sort(T);
+      }, s.prototype._allDistMargin = function(w, M, C, T) {
+        w.children.sort(T);
+        for (var P = this.toBBox, N = h(w, 0, M, P), X = h(w, C - M, C, P), fe = p(N) + p(X), Ke = M; Ke < C - M; Ke++) {
+          var Pe = w.children[Ke];
+          f(N, w.leaf ? P(Pe) : Pe), fe += p(N);
         }
-        for (var Ke = N - M - 1; Ke >= M; Ke--) {
-          var Wt = k.children[Ke];
-          f(X, k.leaf ? T(Wt) : Wt), _e += _(X);
+        for (var Je = C - M - 1; Je >= M; Je--) {
+          var Wt = w.children[Je];
+          f(X, w.leaf ? P(Wt) : Wt), fe += p(X);
         }
-        return _e;
-      }, s.prototype._adjustParentBBoxes = function(k, M, N) {
-        for (var P = N; P >= 0; P--) f(M[P], k);
-      }, s.prototype._condense = function(k) {
-        for (var M = k.length - 1, N = void 0; M >= 0; M--) k[M].children.length === 0 ? M > 0 ? (N = k[M - 1].children).splice(N.indexOf(k[M]), 1) : this.clear() : l(k[M], this.toBBox);
+        return fe;
+      }, s.prototype._adjustParentBBoxes = function(w, M, C) {
+        for (var T = C; T >= 0; T--) f(M[T], w);
+      }, s.prototype._condense = function(w) {
+        for (var M = w.length - 1, C = void 0; M >= 0; M--) w[M].children.length === 0 ? M > 0 ? (C = w[M - 1].children).splice(C.indexOf(w[M]), 1) : this.clear() : l(w[M], this.toBBox);
       }, s;
     });
   }(ze)), ze.exports;
@@ -19357,8 +19581,8 @@ function Xr() {
     var a = e[0], s = e[1], o = !1;
     i === void 0 && (i = 0), n === void 0 && (n = r.length);
     for (var l = (n - i) / 2, h = 0, f = l - 1; h < l; f = h++) {
-      var d = r[i + h * 2 + 0], m = r[i + h * 2 + 1], p = r[i + f * 2 + 0], _ = r[i + f * 2 + 1], g = m > s != _ > s && a < (p - d) * (s - m) / (_ - m) + d;
-      g && (o = !o);
+      var d = r[i + h * 2 + 0], m = r[i + h * 2 + 1], _ = r[i + f * 2 + 0], p = r[i + f * 2 + 1], v = m > s != p > s && a < (_ - d) * (s - m) / (p - m) + d;
+      v && (o = !o);
     }
     return o;
   }), sn;
@@ -19369,8 +19593,8 @@ function Yr() {
     var a = e[0], s = e[1], o = !1;
     i === void 0 && (i = 0), n === void 0 && (n = r.length);
     for (var l = n - i, h = 0, f = l - 1; h < l; f = h++) {
-      var d = r[h + i][0], m = r[h + i][1], p = r[f + i][0], _ = r[f + i][1], g = m > s != _ > s && a < (p - d) * (s - m) / (_ - m) + d;
-      g && (o = !o);
+      var d = r[h + i][0], m = r[h + i][1], _ = r[f + i][0], p = r[f + i][1], v = m > s != p > s && a < (_ - d) * (s - m) / (p - m) + d;
+      v && (o = !o);
     }
     return o;
   }), on;
@@ -19391,43 +19615,43 @@ function Fr() {
       n(r);
     })(Cr, function(i) {
       const n = 33306690738754706e-32;
-      function a(g, v, b, w, k) {
-        let M, N, P, T, C = v[0], X = w[0], _e = 0, Je = 0;
-        X > C == X > -C ? (M = C, C = v[++_e]) : (M = X, X = w[++Je]);
+      function a(v, g, k, b, w) {
+        let M, C, T, P, N = g[0], X = b[0], fe = 0, Ke = 0;
+        X > N == X > -N ? (M = N, N = g[++fe]) : (M = X, X = b[++Ke]);
         let Pe = 0;
-        if (_e < g && Je < b) for (X > C == X > -C ? (P = M - ((N = C + M) - C), C = v[++_e]) : (P = M - ((N = X + M) - X), X = w[++Je]), M = N, P !== 0 && (k[Pe++] = P); _e < g && Je < b; ) X > C == X > -C ? (P = M - ((N = M + C) - (T = N - M)) + (C - T), C = v[++_e]) : (P = M - ((N = M + X) - (T = N - M)) + (X - T), X = w[++Je]), M = N, P !== 0 && (k[Pe++] = P);
-        for (; _e < g; ) P = M - ((N = M + C) - (T = N - M)) + (C - T), C = v[++_e], M = N, P !== 0 && (k[Pe++] = P);
-        for (; Je < b; ) P = M - ((N = M + X) - (T = N - M)) + (X - T), X = w[++Je], M = N, P !== 0 && (k[Pe++] = P);
-        return M === 0 && Pe !== 0 || (k[Pe++] = M), Pe;
+        if (fe < v && Ke < k) for (X > N == X > -N ? (T = M - ((C = N + M) - N), N = g[++fe]) : (T = M - ((C = X + M) - X), X = b[++Ke]), M = C, T !== 0 && (w[Pe++] = T); fe < v && Ke < k; ) X > N == X > -N ? (T = M - ((C = M + N) - (P = C - M)) + (N - P), N = g[++fe]) : (T = M - ((C = M + X) - (P = C - M)) + (X - P), X = b[++Ke]), M = C, T !== 0 && (w[Pe++] = T);
+        for (; fe < v; ) T = M - ((C = M + N) - (P = C - M)) + (N - P), N = g[++fe], M = C, T !== 0 && (w[Pe++] = T);
+        for (; Ke < k; ) T = M - ((C = M + X) - (P = C - M)) + (X - P), X = b[++Ke], M = C, T !== 0 && (w[Pe++] = T);
+        return M === 0 && Pe !== 0 || (w[Pe++] = M), Pe;
       }
-      function s(g) {
-        return new Float64Array(g);
+      function s(v) {
+        return new Float64Array(v);
       }
-      const o = 33306690738754716e-32, l = 22204460492503146e-32, h = 11093356479670487e-47, f = s(4), d = s(8), m = s(12), p = s(16), _ = s(4);
-      i.orient2d = function(g, v, b, w, k, M) {
-        const N = (v - M) * (b - k), P = (g - k) * (w - M), T = N - P;
-        if (N === 0 || P === 0 || N > 0 != P > 0) return T;
-        const C = Math.abs(N + P);
-        return Math.abs(T) >= o * C ? T : -function(X, _e, Je, Pe, Ke, Wt, ee) {
-          let We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, fe, Ge, Kt, Ni, Di, Gi, Ki, Zn, Wi;
-          const Vi = X - Ke, ta = Je - Ke, ra = _e - Wt, ia = Pe - Wt;
-          Vt = (Gi = (Ri = Vi - (Qt = (it = 134217729 * Vi) - (it - Vi))) * (fe = ia - (Ci = (it = 134217729 * ia) - (it - ia))) - ((Di = Vi * ia) - Qt * Ci - Ri * Ci - Qt * fe)) - (Ge = Gi - (Zn = (Ri = ra - (Qt = (it = 134217729 * ra) - (it - ra))) * (fe = ta - (Ci = (it = 134217729 * ta) - (it - ta))) - ((Ki = ra * ta) - Qt * Ci - Ri * Ci - Qt * fe))), f[0] = Gi - (Ge + Vt) + (Vt - Zn), Vt = (Ni = Di - ((Kt = Di + Ge) - (Vt = Kt - Di)) + (Ge - Vt)) - (Ge = Ni - Ki), f[1] = Ni - (Ge + Vt) + (Vt - Ki), Vt = (Wi = Kt + Ge) - Kt, f[2] = Kt - (Wi - Vt) + (Ge - Vt), f[3] = Wi;
+      const o = 33306690738754716e-32, l = 22204460492503146e-32, h = 11093356479670487e-47, f = s(4), d = s(8), m = s(12), _ = s(16), p = s(4);
+      i.orient2d = function(v, g, k, b, w, M) {
+        const C = (g - M) * (k - w), T = (v - w) * (b - M), P = C - T;
+        if (C === 0 || T === 0 || C > 0 != T > 0) return P;
+        const N = Math.abs(C + T);
+        return Math.abs(P) >= o * N ? P : -function(X, fe, Ke, Pe, Je, Wt, ee) {
+          let We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, _e, Ge, Kt, Ni, Di, Gi, Ki, Zn, Wi;
+          const Vi = X - Je, ta = Ke - Je, ra = fe - Wt, ia = Pe - Wt;
+          Vt = (Gi = (Ri = Vi - (Qt = (it = 134217729 * Vi) - (it - Vi))) * (_e = ia - (Ci = (it = 134217729 * ia) - (it - ia))) - ((Di = Vi * ia) - Qt * Ci - Ri * Ci - Qt * _e)) - (Ge = Gi - (Zn = (Ri = ra - (Qt = (it = 134217729 * ra) - (it - ra))) * (_e = ta - (Ci = (it = 134217729 * ta) - (it - ta))) - ((Ki = ra * ta) - Qt * Ci - Ri * Ci - Qt * _e))), f[0] = Gi - (Ge + Vt) + (Vt - Zn), Vt = (Ni = Di - ((Kt = Di + Ge) - (Vt = Kt - Di)) + (Ge - Vt)) - (Ge = Ni - Ki), f[1] = Ni - (Ge + Vt) + (Vt - Ki), Vt = (Wi = Kt + Ge) - Kt, f[2] = Kt - (Wi - Vt) + (Ge - Vt), f[3] = Wi;
           let na = function(la, ua) {
             let pa = ua[0];
             for (let _a = 1; _a < la; _a++) pa += ua[_a];
             return pa;
           }(4, f), oa = l * ee;
-          if (na >= oa || -na >= oa || (We = X - (Vi + (Vt = X - Vi)) + (Vt - Ke), Xt = Je - (ta + (Vt = Je - ta)) + (Vt - Ke), st = _e - (ra + (Vt = _e - ra)) + (Vt - Wt), Jt = Pe - (ia + (Vt = Pe - ia)) + (Vt - Wt), We === 0 && st === 0 && Xt === 0 && Jt === 0) || (oa = h * ee + n * Math.abs(na), (na += Vi * Jt + ia * We - (ra * Xt + ta * st)) >= oa || -na >= oa)) return na;
-          Vt = (Gi = (Ri = We - (Qt = (it = 134217729 * We) - (it - We))) * (fe = ia - (Ci = (it = 134217729 * ia) - (it - ia))) - ((Di = We * ia) - Qt * Ci - Ri * Ci - Qt * fe)) - (Ge = Gi - (Zn = (Ri = st - (Qt = (it = 134217729 * st) - (it - st))) * (fe = ta - (Ci = (it = 134217729 * ta) - (it - ta))) - ((Ki = st * ta) - Qt * Ci - Ri * Ci - Qt * fe))), _[0] = Gi - (Ge + Vt) + (Vt - Zn), Vt = (Ni = Di - ((Kt = Di + Ge) - (Vt = Kt - Di)) + (Ge - Vt)) - (Ge = Ni - Ki), _[1] = Ni - (Ge + Vt) + (Vt - Ki), Vt = (Wi = Kt + Ge) - Kt, _[2] = Kt - (Wi - Vt) + (Ge - Vt), _[3] = Wi;
-          const Qn = a(4, f, 4, _, d);
-          Vt = (Gi = (Ri = Vi - (Qt = (it = 134217729 * Vi) - (it - Vi))) * (fe = Jt - (Ci = (it = 134217729 * Jt) - (it - Jt))) - ((Di = Vi * Jt) - Qt * Ci - Ri * Ci - Qt * fe)) - (Ge = Gi - (Zn = (Ri = ra - (Qt = (it = 134217729 * ra) - (it - ra))) * (fe = Xt - (Ci = (it = 134217729 * Xt) - (it - Xt))) - ((Ki = ra * Xt) - Qt * Ci - Ri * Ci - Qt * fe))), _[0] = Gi - (Ge + Vt) + (Vt - Zn), Vt = (Ni = Di - ((Kt = Di + Ge) - (Vt = Kt - Di)) + (Ge - Vt)) - (Ge = Ni - Ki), _[1] = Ni - (Ge + Vt) + (Vt - Ki), Vt = (Wi = Kt + Ge) - Kt, _[2] = Kt - (Wi - Vt) + (Ge - Vt), _[3] = Wi;
-          const ha = a(Qn, d, 4, _, m);
-          Vt = (Gi = (Ri = We - (Qt = (it = 134217729 * We) - (it - We))) * (fe = Jt - (Ci = (it = 134217729 * Jt) - (it - Jt))) - ((Di = We * Jt) - Qt * Ci - Ri * Ci - Qt * fe)) - (Ge = Gi - (Zn = (Ri = st - (Qt = (it = 134217729 * st) - (it - st))) * (fe = Xt - (Ci = (it = 134217729 * Xt) - (it - Xt))) - ((Ki = st * Xt) - Qt * Ci - Ri * Ci - Qt * fe))), _[0] = Gi - (Ge + Vt) + (Vt - Zn), Vt = (Ni = Di - ((Kt = Di + Ge) - (Vt = Kt - Di)) + (Ge - Vt)) - (Ge = Ni - Ki), _[1] = Ni - (Ge + Vt) + (Vt - Ki), Vt = (Wi = Kt + Ge) - Kt, _[2] = Kt - (Wi - Vt) + (Ge - Vt), _[3] = Wi;
-          const ca = a(ha, m, 4, _, p);
-          return p[ca - 1];
-        }(g, v, b, w, k, M, C);
-      }, i.orient2dfast = function(g, v, b, w, k, M) {
-        return (v - M) * (b - k) - (g - k) * (w - M);
+          if (na >= oa || -na >= oa || (We = X - (Vi + (Vt = X - Vi)) + (Vt - Je), Xt = Ke - (ta + (Vt = Ke - ta)) + (Vt - Je), st = fe - (ra + (Vt = fe - ra)) + (Vt - Wt), Jt = Pe - (ia + (Vt = Pe - ia)) + (Vt - Wt), We === 0 && st === 0 && Xt === 0 && Jt === 0) || (oa = h * ee + n * Math.abs(na), (na += Vi * Jt + ia * We - (ra * Xt + ta * st)) >= oa || -na >= oa)) return na;
+          Vt = (Gi = (Ri = We - (Qt = (it = 134217729 * We) - (it - We))) * (_e = ia - (Ci = (it = 134217729 * ia) - (it - ia))) - ((Di = We * ia) - Qt * Ci - Ri * Ci - Qt * _e)) - (Ge = Gi - (Zn = (Ri = st - (Qt = (it = 134217729 * st) - (it - st))) * (_e = ta - (Ci = (it = 134217729 * ta) - (it - ta))) - ((Ki = st * ta) - Qt * Ci - Ri * Ci - Qt * _e))), p[0] = Gi - (Ge + Vt) + (Vt - Zn), Vt = (Ni = Di - ((Kt = Di + Ge) - (Vt = Kt - Di)) + (Ge - Vt)) - (Ge = Ni - Ki), p[1] = Ni - (Ge + Vt) + (Vt - Ki), Vt = (Wi = Kt + Ge) - Kt, p[2] = Kt - (Wi - Vt) + (Ge - Vt), p[3] = Wi;
+          const Qn = a(4, f, 4, p, d);
+          Vt = (Gi = (Ri = Vi - (Qt = (it = 134217729 * Vi) - (it - Vi))) * (_e = Jt - (Ci = (it = 134217729 * Jt) - (it - Jt))) - ((Di = Vi * Jt) - Qt * Ci - Ri * Ci - Qt * _e)) - (Ge = Gi - (Zn = (Ri = ra - (Qt = (it = 134217729 * ra) - (it - ra))) * (_e = Xt - (Ci = (it = 134217729 * Xt) - (it - Xt))) - ((Ki = ra * Xt) - Qt * Ci - Ri * Ci - Qt * _e))), p[0] = Gi - (Ge + Vt) + (Vt - Zn), Vt = (Ni = Di - ((Kt = Di + Ge) - (Vt = Kt - Di)) + (Ge - Vt)) - (Ge = Ni - Ki), p[1] = Ni - (Ge + Vt) + (Vt - Ki), Vt = (Wi = Kt + Ge) - Kt, p[2] = Kt - (Wi - Vt) + (Ge - Vt), p[3] = Wi;
+          const ha = a(Qn, d, 4, p, m);
+          Vt = (Gi = (Ri = We - (Qt = (it = 134217729 * We) - (it - We))) * (_e = Jt - (Ci = (it = 134217729 * Jt) - (it - Jt))) - ((Di = We * Jt) - Qt * Ci - Ri * Ci - Qt * _e)) - (Ge = Gi - (Zn = (Ri = st - (Qt = (it = 134217729 * st) - (it - st))) * (_e = Xt - (Ci = (it = 134217729 * Xt) - (it - Xt))) - ((Ki = st * Xt) - Qt * Ci - Ri * Ci - Qt * _e))), p[0] = Gi - (Ge + Vt) + (Vt - Zn), Vt = (Ni = Di - ((Kt = Di + Ge) - (Vt = Kt - Di)) + (Ge - Vt)) - (Ge = Ni - Ki), p[1] = Ni - (Ge + Vt) + (Vt - Ki), Vt = (Wi = Kt + Ge) - Kt, p[2] = Kt - (Wi - Vt) + (Ge - Vt), p[3] = Wi;
+          const ca = a(ha, m, 4, p, _);
+          return _[ca - 1];
+        }(v, g, k, b, w, M, N);
+      }, i.orient2dfast = function(v, g, k, b, w, M) {
+        return (g - M) * (k - w) - (v - w) * (b - M);
       }, Object.defineProperty(i, "__esModule", { value: !0 });
     });
   }(Se, Se.exports)), Se.exports;
@@ -19438,9 +19662,9 @@ function Lr() {
   kn = 1;
   var e = Br(), r = Nr, i = Rr(), n = Fr().orient2d;
   r.default && (r = r.default), Ce.exports = a, Ce.exports.default = a;
-  function a(N, P, T) {
-    P = Math.max(0, P === void 0 ? 2 : P), T = T || 0;
-    var C = _(N), X = new e(16);
+  function a(C, T, P) {
+    T = Math.max(0, T === void 0 ? 2 : T), P = P || 0;
+    var N = p(C), X = new e(16);
     X.toBBox = function(Ri) {
       return {
         minX: Ri[0],
@@ -19452,18 +19676,18 @@ function Lr() {
       return Ri[0] - Ci[0];
     }, X.compareMinY = function(Ri, Ci) {
       return Ri[1] - Ci[1];
-    }, X.load(N);
-    for (var _e = [], Je = 0, Pe; Je < C.length; Je++) {
-      var Ke = C[Je];
-      X.remove(Ke), Pe = g(Ke, Pe), _e.push(Pe);
+    }, X.load(C);
+    for (var fe = [], Ke = 0, Pe; Ke < N.length; Ke++) {
+      var Je = N[Ke];
+      X.remove(Je), Pe = v(Je, Pe), fe.push(Pe);
     }
     var Wt = new e(16);
-    for (Je = 0; Je < _e.length; Je++) Wt.insert(p(_e[Je]));
-    for (var ee = P * P, We = T * T; _e.length; ) {
-      var st = _e.shift(), Xt = st.p, Jt = st.next.p, Vt = v(Xt, Jt);
+    for (Ke = 0; Ke < fe.length; Ke++) Wt.insert(_(fe[Ke]));
+    for (var ee = T * T, We = P * P; fe.length; ) {
+      var st = fe.shift(), Xt = st.p, Jt = st.next.p, Vt = g(Xt, Jt);
       if (!(Vt < We)) {
         var it = Vt / ee;
-        Ke = s(X, st.prev.p, Xt, Jt, st.next.next.p, it, Wt), Ke && Math.min(v(Ke, Xt), v(Ke, Jt)) <= it && (_e.push(st), _e.push(g(Ke, st)), X.remove(Ke), Wt.remove(st), Wt.insert(p(st)), Wt.insert(p(st.next)));
+        Je = s(X, st.prev.p, Xt, Jt, st.next.next.p, it, Wt), Je && Math.min(g(Je, Xt), g(Je, Jt)) <= it && (fe.push(st), fe.push(v(Je, st)), X.remove(Je), Wt.remove(st), Wt.insert(_(st)), Wt.insert(_(st.next)));
       }
     }
     st = Pe;
@@ -19473,68 +19697,68 @@ function Lr() {
     while (st !== Pe);
     return Qt.push(st.p), Qt;
   }
-  function s(N, P, T, C, X, _e, Je) {
-    for (var Pe = new r([], o), Ke = N.data; Ke; ) {
-      for (var Wt = 0; Wt < Ke.children.length; Wt++) {
-        var ee = Ke.children[Wt], We = Ke.leaf ? b(ee, T, C) : l(T, C, ee);
-        We > _e || Pe.push({
+  function s(C, T, P, N, X, fe, Ke) {
+    for (var Pe = new r([], o), Je = C.data; Je; ) {
+      for (var Wt = 0; Wt < Je.children.length; Wt++) {
+        var ee = Je.children[Wt], We = Je.leaf ? k(ee, P, N) : l(P, N, ee);
+        We > fe || Pe.push({
           node: ee,
           dist: We
         });
       }
       for (; Pe.length && !Pe.peek().node.children; ) {
-        var st = Pe.pop(), Xt = st.node, Jt = b(Xt, P, T), Vt = b(Xt, C, X);
-        if (st.dist < Jt && st.dist < Vt && f(T, Xt, Je) && f(C, Xt, Je)) return Xt;
+        var st = Pe.pop(), Xt = st.node, Jt = k(Xt, T, P), Vt = k(Xt, N, X);
+        if (st.dist < Jt && st.dist < Vt && f(P, Xt, Ke) && f(N, Xt, Ke)) return Xt;
       }
-      Ke = Pe.pop(), Ke && (Ke = Ke.node);
+      Je = Pe.pop(), Je && (Je = Je.node);
     }
     return null;
   }
-  function o(N, P) {
-    return N.dist - P.dist;
+  function o(C, T) {
+    return C.dist - T.dist;
   }
-  function l(N, P, T) {
-    if (h(N, T) || h(P, T)) return 0;
-    var C = w(N[0], N[1], P[0], P[1], T.minX, T.minY, T.maxX, T.minY);
-    if (C === 0) return 0;
-    var X = w(N[0], N[1], P[0], P[1], T.minX, T.minY, T.minX, T.maxY);
+  function l(C, T, P) {
+    if (h(C, P) || h(T, P)) return 0;
+    var N = b(C[0], C[1], T[0], T[1], P.minX, P.minY, P.maxX, P.minY);
+    if (N === 0) return 0;
+    var X = b(C[0], C[1], T[0], T[1], P.minX, P.minY, P.minX, P.maxY);
     if (X === 0) return 0;
-    var _e = w(N[0], N[1], P[0], P[1], T.maxX, T.minY, T.maxX, T.maxY);
-    if (_e === 0) return 0;
-    var Je = w(N[0], N[1], P[0], P[1], T.minX, T.maxY, T.maxX, T.maxY);
-    return Je === 0 ? 0 : Math.min(C, X, _e, Je);
+    var fe = b(C[0], C[1], T[0], T[1], P.maxX, P.minY, P.maxX, P.maxY);
+    if (fe === 0) return 0;
+    var Ke = b(C[0], C[1], T[0], T[1], P.minX, P.maxY, P.maxX, P.maxY);
+    return Ke === 0 ? 0 : Math.min(N, X, fe, Ke);
   }
-  function h(N, P) {
-    return N[0] >= P.minX && N[0] <= P.maxX && N[1] >= P.minY && N[1] <= P.maxY;
+  function h(C, T) {
+    return C[0] >= T.minX && C[0] <= T.maxX && C[1] >= T.minY && C[1] <= T.maxY;
   }
-  function f(N, P, T) {
-    for (var C = Math.min(N[0], P[0]), X = Math.min(N[1], P[1]), _e = Math.max(N[0], P[0]), Je = Math.max(N[1], P[1]), Pe = T.search({ minX: C, minY: X, maxX: _e, maxY: Je }), Ke = 0; Ke < Pe.length; Ke++)
-      if (m(Pe[Ke].p, Pe[Ke].next.p, N, P)) return !1;
+  function f(C, T, P) {
+    for (var N = Math.min(C[0], T[0]), X = Math.min(C[1], T[1]), fe = Math.max(C[0], T[0]), Ke = Math.max(C[1], T[1]), Pe = P.search({ minX: N, minY: X, maxX: fe, maxY: Ke }), Je = 0; Je < Pe.length; Je++)
+      if (m(Pe[Je].p, Pe[Je].next.p, C, T)) return !1;
     return !0;
   }
-  function d(N, P, T) {
-    return n(N[0], N[1], P[0], P[1], T[0], T[1]);
+  function d(C, T, P) {
+    return n(C[0], C[1], T[0], T[1], P[0], P[1]);
   }
-  function m(N, P, T, C) {
-    return N !== C && P !== T && d(N, P, T) > 0 != d(N, P, C) > 0 && d(T, C, N) > 0 != d(T, C, P) > 0;
+  function m(C, T, P, N) {
+    return C !== N && T !== P && d(C, T, P) > 0 != d(C, T, N) > 0 && d(P, N, C) > 0 != d(P, N, T) > 0;
   }
-  function p(N) {
-    var P = N.p, T = N.next.p;
-    return N.minX = Math.min(P[0], T[0]), N.minY = Math.min(P[1], T[1]), N.maxX = Math.max(P[0], T[0]), N.maxY = Math.max(P[1], T[1]), N;
+  function _(C) {
+    var T = C.p, P = C.next.p;
+    return C.minX = Math.min(T[0], P[0]), C.minY = Math.min(T[1], P[1]), C.maxX = Math.max(T[0], P[0]), C.maxY = Math.max(T[1], P[1]), C;
   }
-  function _(N) {
-    for (var P = N[0], T = N[0], C = N[0], X = N[0], _e = 0; _e < N.length; _e++) {
-      var Je = N[_e];
-      Je[0] < P[0] && (P = Je), Je[0] > C[0] && (C = Je), Je[1] < T[1] && (T = Je), Je[1] > X[1] && (X = Je);
+  function p(C) {
+    for (var T = C[0], P = C[0], N = C[0], X = C[0], fe = 0; fe < C.length; fe++) {
+      var Ke = C[fe];
+      Ke[0] < T[0] && (T = Ke), Ke[0] > N[0] && (N = Ke), Ke[1] < P[1] && (P = Ke), Ke[1] > X[1] && (X = Ke);
     }
-    var Pe = [P, T, C, X], Ke = Pe.slice();
-    for (_e = 0; _e < N.length; _e++)
-      i(N[_e], Pe) || Ke.push(N[_e]);
-    return M(Ke);
+    var Pe = [T, P, N, X], Je = Pe.slice();
+    for (fe = 0; fe < C.length; fe++)
+      i(C[fe], Pe) || Je.push(C[fe]);
+    return M(Je);
   }
-  function g(N, P) {
-    var T = {
-      p: N,
+  function v(C, T) {
+    var P = {
+      p: C,
       prev: null,
       next: null,
       minX: 0,
@@ -19542,42 +19766,42 @@ function Lr() {
       maxX: 0,
       maxY: 0
     };
-    return P ? (T.next = P.next, T.prev = P, P.next.prev = T, P.next = T) : (T.prev = T, T.next = T), T;
+    return T ? (P.next = T.next, P.prev = T, T.next.prev = P, T.next = P) : (P.prev = P, P.next = P), P;
   }
-  function v(N, P) {
-    var T = N[0] - P[0], C = N[1] - P[1];
-    return T * T + C * C;
+  function g(C, T) {
+    var P = C[0] - T[0], N = C[1] - T[1];
+    return P * P + N * N;
   }
-  function b(N, P, T) {
-    var C = P[0], X = P[1], _e = T[0] - C, Je = T[1] - X;
-    if (_e !== 0 || Je !== 0) {
-      var Pe = ((N[0] - C) * _e + (N[1] - X) * Je) / (_e * _e + Je * Je);
-      Pe > 1 ? (C = T[0], X = T[1]) : Pe > 0 && (C += _e * Pe, X += Je * Pe);
+  function k(C, T, P) {
+    var N = T[0], X = T[1], fe = P[0] - N, Ke = P[1] - X;
+    if (fe !== 0 || Ke !== 0) {
+      var Pe = ((C[0] - N) * fe + (C[1] - X) * Ke) / (fe * fe + Ke * Ke);
+      Pe > 1 ? (N = P[0], X = P[1]) : Pe > 0 && (N += fe * Pe, X += Ke * Pe);
     }
-    return _e = N[0] - C, Je = N[1] - X, _e * _e + Je * Je;
+    return fe = C[0] - N, Ke = C[1] - X, fe * fe + Ke * Ke;
   }
-  function w(N, P, T, C, X, _e, Je, Pe) {
-    var Ke = T - N, Wt = C - P, ee = Je - X, We = Pe - _e, st = N - X, Xt = P - _e, Jt = Ke * Ke + Wt * Wt, Vt = Ke * ee + Wt * We, it = ee * ee + We * We, Qt = Ke * st + Wt * Xt, Ri = ee * st + We * Xt, Ci = Jt * it - Vt * Vt, fe, Ge, Kt, Ni, Di = Ci, Gi = Ci;
-    Ci === 0 ? (Ge = 0, Di = 1, Ni = Ri, Gi = it) : (Ge = Vt * Ri - it * Qt, Ni = Jt * Ri - Vt * Qt, Ge < 0 ? (Ge = 0, Ni = Ri, Gi = it) : Ge > Di && (Ge = Di, Ni = Ri + Vt, Gi = it)), Ni < 0 ? (Ni = 0, -Qt < 0 ? Ge = 0 : -Qt > Jt ? Ge = Di : (Ge = -Qt, Di = Jt)) : Ni > Gi && (Ni = Gi, -Qt + Vt < 0 ? Ge = 0 : -Qt + Vt > Jt ? Ge = Di : (Ge = -Qt + Vt, Di = Jt)), fe = Ge === 0 ? 0 : Ge / Di, Kt = Ni === 0 ? 0 : Ni / Gi;
-    var Ki = (1 - fe) * N + fe * T, Zn = (1 - fe) * P + fe * C, Wi = (1 - Kt) * X + Kt * Je, Vi = (1 - Kt) * _e + Kt * Pe, ta = Wi - Ki, ra = Vi - Zn;
+  function b(C, T, P, N, X, fe, Ke, Pe) {
+    var Je = P - C, Wt = N - T, ee = Ke - X, We = Pe - fe, st = C - X, Xt = T - fe, Jt = Je * Je + Wt * Wt, Vt = Je * ee + Wt * We, it = ee * ee + We * We, Qt = Je * st + Wt * Xt, Ri = ee * st + We * Xt, Ci = Jt * it - Vt * Vt, _e, Ge, Kt, Ni, Di = Ci, Gi = Ci;
+    Ci === 0 ? (Ge = 0, Di = 1, Ni = Ri, Gi = it) : (Ge = Vt * Ri - it * Qt, Ni = Jt * Ri - Vt * Qt, Ge < 0 ? (Ge = 0, Ni = Ri, Gi = it) : Ge > Di && (Ge = Di, Ni = Ri + Vt, Gi = it)), Ni < 0 ? (Ni = 0, -Qt < 0 ? Ge = 0 : -Qt > Jt ? Ge = Di : (Ge = -Qt, Di = Jt)) : Ni > Gi && (Ni = Gi, -Qt + Vt < 0 ? Ge = 0 : -Qt + Vt > Jt ? Ge = Di : (Ge = -Qt + Vt, Di = Jt)), _e = Ge === 0 ? 0 : Ge / Di, Kt = Ni === 0 ? 0 : Ni / Gi;
+    var Ki = (1 - _e) * C + _e * P, Zn = (1 - _e) * T + _e * N, Wi = (1 - Kt) * X + Kt * Ke, Vi = (1 - Kt) * fe + Kt * Pe, ta = Wi - Ki, ra = Vi - Zn;
     return ta * ta + ra * ra;
   }
-  function k(N, P) {
-    return N[0] === P[0] ? N[1] - P[1] : N[0] - P[0];
+  function w(C, T) {
+    return C[0] === T[0] ? C[1] - T[1] : C[0] - T[0];
   }
-  function M(N) {
-    N.sort(k);
-    for (var P = [], T = 0; T < N.length; T++) {
-      for (; P.length >= 2 && d(P[P.length - 2], P[P.length - 1], N[T]) <= 0; )
-        P.pop();
-      P.push(N[T]);
+  function M(C) {
+    C.sort(w);
+    for (var T = [], P = 0; P < C.length; P++) {
+      for (; T.length >= 2 && d(T[T.length - 2], T[T.length - 1], C[P]) <= 0; )
+        T.pop();
+      T.push(C[P]);
     }
-    for (var C = [], X = N.length - 1; X >= 0; X--) {
-      for (; C.length >= 2 && d(C[C.length - 2], C[C.length - 1], N[X]) <= 0; )
-        C.pop();
-      C.push(N[X]);
+    for (var N = [], X = C.length - 1; X >= 0; X--) {
+      for (; N.length >= 2 && d(N[N.length - 2], N[N.length - 1], C[X]) <= 0; )
+        N.pop();
+      N.push(C[X]);
     }
-    return C.pop(), P.pop(), P.concat(C);
+    return N.pop(), T.pop(), T.concat(N);
   }
   return Ce.exports;
 }
@@ -19635,18 +19859,18 @@ function jr() {
         if (Array.isArray(ji) && ji.length >= 2 && !Array.isArray(ji[0]) && !Array.isArray(ji[1])) return [...ji];
         throw new Error("coord must be GeoJSON Point or an Array of numbers");
       }
-      function p(ji) {
+      function _(ji) {
         if (Array.isArray(ji)) return ji;
         if (ji.type === "Feature") {
           if (ji.geometry !== null) return ji.geometry.coordinates;
         } else if (ji.coordinates) return ji.coordinates;
         throw new Error("coords must be GeoJSON Feature, Geometry Object or an Array");
       }
-      function _(ji) {
+      function p(ji) {
         return ji.type === "Feature" ? ji.geometry : ji;
       }
-      const g = 11102230246251565e-32, v = 134217729, b = (3 + 8 * g) * g;
-      function w(ji, Zi, Qi, Ji, aa) {
+      const v = 11102230246251565e-32, g = 134217729, k = (3 + 8 * v) * v;
+      function b(ji, Zi, Qi, Ji, aa) {
         let Ti, qi, zi, Hn, Fi = Zi[0], Yi = Ji[0], qt = 0, Xi = 0;
         Yi > Fi == Yi > -Fi ? (Ti = Fi, Fi = Zi[++qt]) : (Ti = Yi, Yi = Ji[++Xi]);
         let sa = 0;
@@ -19655,7 +19879,7 @@ function jr() {
         for (; Xi < Qi; ) qi = Ti + Yi, Hn = qi - Ti, zi = Ti - (qi - Hn) + (Yi - Hn), Yi = Ji[++Xi], Ti = qi, zi !== 0 && (aa[sa++] = zi);
         return (Ti !== 0 || sa === 0) && (aa[sa++] = Ti), sa;
       }
-      function k(ji, Zi) {
+      function w(ji, Zi) {
         let Qi = Zi[0];
         for (let Ji = 1; Ji < ji; Ji++) Qi += Zi[Ji];
         return Qi;
@@ -19663,24 +19887,24 @@ function jr() {
       function M(ji) {
         return new Float64Array(ji);
       }
-      const N = (3 + 16 * g) * g, P = (2 + 12 * g) * g, T = (9 + 64 * g) * g * g, C = M(4), X = M(8), _e = M(12), Je = M(16), Pe = M(4);
-      function Ke(ji, Zi, Qi, Ji, aa, Ti, qi) {
+      const C = (3 + 16 * v) * v, T = (2 + 12 * v) * v, P = (9 + 64 * v) * v * v, N = M(4), X = M(8), fe = M(12), Ke = M(16), Pe = M(4);
+      function Je(ji, Zi, Qi, Ji, aa, Ti, qi) {
         let zi, Hn, Fi, Yi, qt, Xi, sa, ue, Ui, Hi, $i, Li, ea, ma, da, fa, ya, ba;
-        const wa = ji - aa, va = Qi - aa, $a = Zi - Ti, Ea = Ji - Ti;
-        ma = wa * Ea, Xi = v * wa, sa = Xi - (Xi - wa), ue = wa - sa, Xi = v * Ea, Ui = Xi - (Xi - Ea), Hi = Ea - Ui, da = ue * Hi - (ma - sa * Ui - ue * Ui - sa * Hi), fa = $a * va, Xi = v * $a, sa = Xi - (Xi - $a), ue = $a - sa, Xi = v * va, Ui = Xi - (Xi - va), Hi = va - Ui, ya = ue * Hi - (fa - sa * Ui - ue * Ui - sa * Hi), $i = da - ya, qt = da - $i, C[0] = da - ($i + qt) + (qt - ya), Li = ma + $i, qt = Li - ma, ea = ma - (Li - qt) + ($i - qt), $i = ea - fa, qt = ea - $i, C[1] = ea - ($i + qt) + (qt - fa), ba = Li + $i, qt = ba - Li, C[2] = Li - (ba - qt) + ($i - qt), C[3] = ba;
-        let Sa = k(4, C), Aa = P * qi;
-        if (Sa >= Aa || -Sa >= Aa || (qt = ji - wa, zi = ji - (wa + qt) + (qt - aa), qt = Qi - va, Fi = Qi - (va + qt) + (qt - aa), qt = Zi - $a, Hn = Zi - ($a + qt) + (qt - Ti), qt = Ji - Ea, Yi = Ji - (Ea + qt) + (qt - Ti), zi === 0 && Hn === 0 && Fi === 0 && Yi === 0) || (Aa = T * qi + b * Math.abs(Sa), Sa += wa * Yi + Ea * zi - ($a * Fi + va * Hn), Sa >= Aa || -Sa >= Aa)) return Sa;
-        ma = zi * Ea, Xi = v * zi, sa = Xi - (Xi - zi), ue = zi - sa, Xi = v * Ea, Ui = Xi - (Xi - Ea), Hi = Ea - Ui, da = ue * Hi - (ma - sa * Ui - ue * Ui - sa * Hi), fa = Hn * va, Xi = v * Hn, sa = Xi - (Xi - Hn), ue = Hn - sa, Xi = v * va, Ui = Xi - (Xi - va), Hi = va - Ui, ya = ue * Hi - (fa - sa * Ui - ue * Ui - sa * Hi), $i = da - ya, qt = da - $i, Pe[0] = da - ($i + qt) + (qt - ya), Li = ma + $i, qt = Li - ma, ea = ma - (Li - qt) + ($i - qt), $i = ea - fa, qt = ea - $i, Pe[1] = ea - ($i + qt) + (qt - fa), ba = Li + $i, qt = ba - Li, Pe[2] = Li - (ba - qt) + ($i - qt), Pe[3] = ba;
-        const Da = w(4, C, 4, Pe, X);
-        ma = wa * Yi, Xi = v * wa, sa = Xi - (Xi - wa), ue = wa - sa, Xi = v * Yi, Ui = Xi - (Xi - Yi), Hi = Yi - Ui, da = ue * Hi - (ma - sa * Ui - ue * Ui - sa * Hi), fa = $a * Fi, Xi = v * $a, sa = Xi - (Xi - $a), ue = $a - sa, Xi = v * Fi, Ui = Xi - (Xi - Fi), Hi = Fi - Ui, ya = ue * Hi - (fa - sa * Ui - ue * Ui - sa * Hi), $i = da - ya, qt = da - $i, Pe[0] = da - ($i + qt) + (qt - ya), Li = ma + $i, qt = Li - ma, ea = ma - (Li - qt) + ($i - qt), $i = ea - fa, qt = ea - $i, Pe[1] = ea - ($i + qt) + (qt - fa), ba = Li + $i, qt = ba - Li, Pe[2] = Li - (ba - qt) + ($i - qt), Pe[3] = ba;
-        const ka = w(Da, X, 4, Pe, _e);
-        ma = zi * Yi, Xi = v * zi, sa = Xi - (Xi - zi), ue = zi - sa, Xi = v * Yi, Ui = Xi - (Xi - Yi), Hi = Yi - Ui, da = ue * Hi - (ma - sa * Ui - ue * Ui - sa * Hi), fa = Hn * Fi, Xi = v * Hn, sa = Xi - (Xi - Hn), ue = Hn - sa, Xi = v * Fi, Ui = Xi - (Xi - Fi), Hi = Fi - Ui, ya = ue * Hi - (fa - sa * Ui - ue * Ui - sa * Hi), $i = da - ya, qt = da - $i, Pe[0] = da - ($i + qt) + (qt - ya), Li = ma + $i, qt = Li - ma, ea = ma - (Li - qt) + ($i - qt), $i = ea - fa, qt = ea - $i, Pe[1] = ea - ($i + qt) + (qt - fa), ba = Li + $i, qt = ba - Li, Pe[2] = Li - (ba - qt) + ($i - qt), Pe[3] = ba;
-        const Ta = w(ka, _e, 4, Pe, Je);
-        return Je[Ta - 1];
+        const $a = ji - aa, va = Qi - aa, wa = Zi - Ti, Ea = Ji - Ti;
+        ma = $a * Ea, Xi = g * $a, sa = Xi - (Xi - $a), ue = $a - sa, Xi = g * Ea, Ui = Xi - (Xi - Ea), Hi = Ea - Ui, da = ue * Hi - (ma - sa * Ui - ue * Ui - sa * Hi), fa = wa * va, Xi = g * wa, sa = Xi - (Xi - wa), ue = wa - sa, Xi = g * va, Ui = Xi - (Xi - va), Hi = va - Ui, ya = ue * Hi - (fa - sa * Ui - ue * Ui - sa * Hi), $i = da - ya, qt = da - $i, N[0] = da - ($i + qt) + (qt - ya), Li = ma + $i, qt = Li - ma, ea = ma - (Li - qt) + ($i - qt), $i = ea - fa, qt = ea - $i, N[1] = ea - ($i + qt) + (qt - fa), ba = Li + $i, qt = ba - Li, N[2] = Li - (ba - qt) + ($i - qt), N[3] = ba;
+        let Sa = w(4, N), Aa = T * qi;
+        if (Sa >= Aa || -Sa >= Aa || (qt = ji - $a, zi = ji - ($a + qt) + (qt - aa), qt = Qi - va, Fi = Qi - (va + qt) + (qt - aa), qt = Zi - wa, Hn = Zi - (wa + qt) + (qt - Ti), qt = Ji - Ea, Yi = Ji - (Ea + qt) + (qt - Ti), zi === 0 && Hn === 0 && Fi === 0 && Yi === 0) || (Aa = P * qi + k * Math.abs(Sa), Sa += $a * Yi + Ea * zi - (wa * Fi + va * Hn), Sa >= Aa || -Sa >= Aa)) return Sa;
+        ma = zi * Ea, Xi = g * zi, sa = Xi - (Xi - zi), ue = zi - sa, Xi = g * Ea, Ui = Xi - (Xi - Ea), Hi = Ea - Ui, da = ue * Hi - (ma - sa * Ui - ue * Ui - sa * Hi), fa = Hn * va, Xi = g * Hn, sa = Xi - (Xi - Hn), ue = Hn - sa, Xi = g * va, Ui = Xi - (Xi - va), Hi = va - Ui, ya = ue * Hi - (fa - sa * Ui - ue * Ui - sa * Hi), $i = da - ya, qt = da - $i, Pe[0] = da - ($i + qt) + (qt - ya), Li = ma + $i, qt = Li - ma, ea = ma - (Li - qt) + ($i - qt), $i = ea - fa, qt = ea - $i, Pe[1] = ea - ($i + qt) + (qt - fa), ba = Li + $i, qt = ba - Li, Pe[2] = Li - (ba - qt) + ($i - qt), Pe[3] = ba;
+        const Da = b(4, N, 4, Pe, X);
+        ma = $a * Yi, Xi = g * $a, sa = Xi - (Xi - $a), ue = $a - sa, Xi = g * Yi, Ui = Xi - (Xi - Yi), Hi = Yi - Ui, da = ue * Hi - (ma - sa * Ui - ue * Ui - sa * Hi), fa = wa * Fi, Xi = g * wa, sa = Xi - (Xi - wa), ue = wa - sa, Xi = g * Fi, Ui = Xi - (Xi - Fi), Hi = Fi - Ui, ya = ue * Hi - (fa - sa * Ui - ue * Ui - sa * Hi), $i = da - ya, qt = da - $i, Pe[0] = da - ($i + qt) + (qt - ya), Li = ma + $i, qt = Li - ma, ea = ma - (Li - qt) + ($i - qt), $i = ea - fa, qt = ea - $i, Pe[1] = ea - ($i + qt) + (qt - fa), ba = Li + $i, qt = ba - Li, Pe[2] = Li - (ba - qt) + ($i - qt), Pe[3] = ba;
+        const ka = b(Da, X, 4, Pe, fe);
+        ma = zi * Yi, Xi = g * zi, sa = Xi - (Xi - zi), ue = zi - sa, Xi = g * Yi, Ui = Xi - (Xi - Yi), Hi = Yi - Ui, da = ue * Hi - (ma - sa * Ui - ue * Ui - sa * Hi), fa = Hn * Fi, Xi = g * Hn, sa = Xi - (Xi - Hn), ue = Hn - sa, Xi = g * Fi, Ui = Xi - (Xi - Fi), Hi = Fi - Ui, ya = ue * Hi - (fa - sa * Ui - ue * Ui - sa * Hi), $i = da - ya, qt = da - $i, Pe[0] = da - ($i + qt) + (qt - ya), Li = ma + $i, qt = Li - ma, ea = ma - (Li - qt) + ($i - qt), $i = ea - fa, qt = ea - $i, Pe[1] = ea - ($i + qt) + (qt - fa), ba = Li + $i, qt = ba - Li, Pe[2] = Li - (ba - qt) + ($i - qt), Pe[3] = ba;
+        const Ta = b(ka, fe, 4, Pe, Ke);
+        return Ke[Ta - 1];
       }
       function Wt(ji, Zi, Qi, Ji, aa, Ti) {
         const qi = (Zi - Ti) * (Qi - aa), zi = (ji - aa) * (Ji - Ti), Hn = qi - zi, Fi = Math.abs(qi + zi);
-        return Math.abs(Hn) >= N * Fi ? Hn : -Ke(ji, Zi, Qi, Ji, aa, Ti, Fi);
+        return Math.abs(Hn) >= C * Fi ? Hn : -Je(ji, Zi, Qi, Ji, aa, Ti, Fi);
       }
       function ee(ji, Zi) {
         var Qi, Ji, aa = 0, Ti, qi, zi, Hn, Fi, Yi, qt, Xi = ji[0], sa = ji[1], ue = Zi.length;
@@ -19703,7 +19927,7 @@ function jr() {
       function We(ji, Zi, Qi = {}) {
         if (!ji) throw new Error("point is required");
         if (!Zi) throw new Error("polygon is required");
-        const Ji = m(ji), aa = _(Zi), Ti = aa.type, qi = Zi.bbox;
+        const Ji = m(ji), aa = p(Zi), Ti = aa.type, qi = Zi.bbox;
         let zi = aa.coordinates;
         if (qi && st(Ji, qi) === !1) return !1;
         Ti === "Polygon" && (zi = [zi]);
@@ -19773,7 +19997,7 @@ function jr() {
         for (; Qi(ji); ) ji = ji + 2 * Math.PI * (ji > 0 ? -1 : 1);
         return ji;
       }
-      function fe(ji, Zi) {
+      function _e(ji, Zi) {
         return Zi && Zi >= 2.00703 || Array.isArray(ji[0]) ? ji : ji.map((Qi) => [Qi.illstNodes, Qi.mercNodes, Qi.startEnd]);
       }
       function Ge(ji) {
@@ -19815,7 +20039,7 @@ function jr() {
         return !!(ji.version || !ji.tins && ji.points && ji.tins_points);
       }
       function Wi(ji) {
-        return { points: ji.points, pointsWeightBuffer: ta(ji), strictStatus: ra(ji), verticesParams: ia(ji), centroid: oa(ji), edges: fe(ji.edges || []), edgeNodes: ji.edgeNodes || [], tins: Qn(ji), kinks: ha(ji.kinks_points), yaxisMode: ji.yaxisMode ?? "invert", strictMode: ji.strictMode ?? "auto", vertexMode: ji.vertexMode, bounds: ji.bounds, boundsPolygon: ji.boundsPolygon, wh: ji.wh, xy: ji.bounds ? ji.xy : [0, 0] };
+        return { points: ji.points, pointsWeightBuffer: ta(ji), strictStatus: ra(ji), verticesParams: ia(ji), centroid: oa(ji), edges: _e(ji.edges || []), edgeNodes: ji.edgeNodes || [], tins: Qn(ji), kinks: ha(ji.kinks_points), yaxisMode: ji.yaxisMode ?? "invert", strictMode: ji.strictMode ?? "auto", vertexMode: ji.vertexMode, bounds: ji.bounds, boundsPolygon: ji.boundsPolygon, wh: ji.wh, xy: ji.bounds ? ji.xy : [0, 0] };
       }
       function Vi(ji) {
         const Zi = ca(ji), Qi = Zi.tins;
@@ -19893,7 +20117,7 @@ function jr() {
           let Ti = [], qi = [];
           const zi = Qi.features.map((Ui) => {
             let Hi = [];
-            return p(Ui)[0].map(($i) => {
+            return _(Ui)[0].map(($i) => {
               Ti.length === 0 ? Ti = [Array.from($i), Array.from($i)] : ($i[0] < Ti[0][0] && (Ti[0][0] = $i[0]), $i[0] > Ti[1][0] && (Ti[1][0] = $i[0]), $i[1] < Ti[0][1] && (Ti[0][1] = $i[1]), $i[1] > Ti[1][1] && (Ti[1][1] = $i[1])), Hi.length === 0 ? Hi = [Array.from($i), Array.from($i)] : ($i[0] < Hi[0][0] && (Hi[0][0] = $i[0]), $i[0] > Hi[1][0] && (Hi[1][0] = $i[0]), $i[1] < Hi[0][1] && (Hi[0][1] = $i[1]), $i[1] > Hi[1][1] && (Hi[1][1] = $i[1]));
             }), Hi;
           }), Hn = (Ti[1][0] - Ti[0][0]) / aa, Fi = (Ti[1][1] - Ti[0][1]) / aa, Yi = zi.reduce((Ui, Hi, $i) => {
@@ -19905,7 +20129,7 @@ function jr() {
             return Ui;
           }, []), qt = Ji.features.map((Ui) => {
             let Hi = [];
-            return p(Ui)[0].map(($i) => {
+            return _(Ui)[0].map(($i) => {
               qi.length === 0 ? qi = [Array.from($i), Array.from($i)] : ($i[0] < qi[0][0] && (qi[0][0] = $i[0]), $i[0] > qi[1][0] && (qi[1][0] = $i[0]), $i[1] < qi[0][1] && (qi[0][1] = $i[1]), $i[1] > qi[1][1] && (qi[1][1] = $i[1])), Hi.length === 0 ? Hi = [Array.from($i), Array.from($i)] : ($i[0] < Hi[0][0] && (Hi[0][0] = $i[0]), $i[0] > Hi[1][0] && (Hi[1][0] = $i[0]), $i[1] < Hi[0][1] && (Hi[0][1] = $i[1]), $i[1] > Hi[1][1] && (Hi[1][1] = $i[1]));
             }), Hi;
           }), Xi = (qi[1][0] - qi[0][0]) / aa, sa = (qi[1][1] - qi[0][1]) / aa, ue = qt.reduce((Ui, Hi, $i) => {
@@ -19938,7 +20162,7 @@ function jr() {
       };
       s(pa, "VERTEX_PLAIN", "plain"), s(pa, "VERTEX_BIRDEYE", "birdeye"), s(pa, "MODE_STRICT", "strict"), s(pa, "MODE_AUTO", "auto"), s(pa, "MODE_LOOSE", "loose"), s(pa, "STATUS_STRICT", "strict"), s(pa, "STATUS_ERROR", "strict_error"), s(pa, "STATUS_LOOSE", "loose"), s(pa, "YAXIS_FOLLOW", "follow"), s(pa, "YAXIS_INVERT", "invert");
       let _a = pa;
-      i.Transform = _a, i.counterTri = Kt, i.format_version = ua, i.normalizeEdges = fe, i.rotateVerticesTriangle = Ge, i.transformArr = it, Object.defineProperty(i, Symbol.toStringTag, { value: "Module" });
+      i.Transform = _a, i.counterTri = Kt, i.format_version = ua, i.normalizeEdges = _e, i.rotateVerticesTriangle = Ge, i.transformArr = it, Object.defineProperty(i, Symbol.toStringTag, { value: "Module" });
     });
   }(ke, ke.exports)), ke.exports;
 }
@@ -19963,56 +20187,56 @@ class fn {
   update() {
     const { coords: r, _hullPrev: i, _hullNext: n, _hullTri: a, _hullHash: s } = this, o = r.length >> 1;
     let l = 1 / 0, h = 1 / 0, f = -1 / 0, d = -1 / 0;
-    for (let _e = 0; _e < o; _e++) {
-      const Je = r[2 * _e], Pe = r[2 * _e + 1];
-      Je < l && (l = Je), Pe < h && (h = Pe), Je > f && (f = Je), Pe > d && (d = Pe), this._ids[_e] = _e;
+    for (let fe = 0; fe < o; fe++) {
+      const Ke = r[2 * fe], Pe = r[2 * fe + 1];
+      Ke < l && (l = Ke), Pe < h && (h = Pe), Ke > f && (f = Ke), Pe > d && (d = Pe), this._ids[fe] = fe;
     }
-    const m = (l + f) / 2, p = (h + d) / 2;
-    let _, g, v;
-    for (let _e = 0, Je = 1 / 0; _e < o; _e++) {
-      const Pe = an(m, p, r[2 * _e], r[2 * _e + 1]);
-      Pe < Je && (_ = _e, Je = Pe);
+    const m = (l + f) / 2, _ = (h + d) / 2;
+    let p, v, g;
+    for (let fe = 0, Ke = 1 / 0; fe < o; fe++) {
+      const Pe = an(m, _, r[2 * fe], r[2 * fe + 1]);
+      Pe < Ke && (p = fe, Ke = Pe);
     }
-    const b = r[2 * _], w = r[2 * _ + 1];
-    for (let _e = 0, Je = 1 / 0; _e < o; _e++) {
-      if (_e === _) continue;
-      const Pe = an(b, w, r[2 * _e], r[2 * _e + 1]);
-      Pe < Je && Pe > 0 && (g = _e, Je = Pe);
+    const k = r[2 * p], b = r[2 * p + 1];
+    for (let fe = 0, Ke = 1 / 0; fe < o; fe++) {
+      if (fe === p) continue;
+      const Pe = an(k, b, r[2 * fe], r[2 * fe + 1]);
+      Pe < Ke && Pe > 0 && (v = fe, Ke = Pe);
     }
-    let k = r[2 * g], M = r[2 * g + 1], N = 1 / 0;
-    for (let _e = 0; _e < o; _e++) {
-      if (_e === _ || _e === g) continue;
-      const Je = Vr(b, w, k, M, r[2 * _e], r[2 * _e + 1]);
-      Je < N && (v = _e, N = Je);
+    let w = r[2 * v], M = r[2 * v + 1], C = 1 / 0;
+    for (let fe = 0; fe < o; fe++) {
+      if (fe === p || fe === v) continue;
+      const Ke = Vr(k, b, w, M, r[2 * fe], r[2 * fe + 1]);
+      Ke < C && (g = fe, C = Ke);
     }
-    let P = r[2 * v], T = r[2 * v + 1];
-    if (N === 1 / 0) {
+    let T = r[2 * g], P = r[2 * g + 1];
+    if (C === 1 / 0) {
       for (let Pe = 0; Pe < o; Pe++)
         this._dists[Pe] = r[2 * Pe] - r[0] || r[2 * Pe + 1] - r[1];
       ve(this._ids, this._dists, 0, o - 1);
-      const _e = new Uint32Array(o);
-      let Je = 0;
-      for (let Pe = 0, Ke = -1 / 0; Pe < o; Pe++) {
+      const fe = new Uint32Array(o);
+      let Ke = 0;
+      for (let Pe = 0, Je = -1 / 0; Pe < o; Pe++) {
         const Wt = this._ids[Pe], ee = this._dists[Wt];
-        ee > Ke && (_e[Je++] = Wt, Ke = ee);
+        ee > Je && (fe[Ke++] = Wt, Je = ee);
       }
-      this.hull = _e.subarray(0, Je), this.triangles = new Uint32Array(0), this.halfedges = new Uint32Array(0);
+      this.hull = fe.subarray(0, Ke), this.triangles = new Uint32Array(0), this.halfedges = new Uint32Array(0);
       return;
     }
-    if (ne(b, w, k, M, P, T) < 0) {
-      const _e = g, Je = k, Pe = M;
-      g = v, k = P, M = T, v = _e, P = Je, T = Pe;
+    if (ne(k, b, w, M, T, P) < 0) {
+      const fe = v, Ke = w, Pe = M;
+      v = g, w = T, M = P, g = fe, T = Ke, P = Pe;
     }
-    const C = Wr(b, w, k, M, P, T);
-    this._cx = C.x, this._cy = C.y;
-    for (let _e = 0; _e < o; _e++)
-      this._dists[_e] = an(r[2 * _e], r[2 * _e + 1], C.x, C.y);
-    ve(this._ids, this._dists, 0, o - 1), this._hullStart = _;
+    const N = Wr(k, b, w, M, T, P);
+    this._cx = N.x, this._cy = N.y;
+    for (let fe = 0; fe < o; fe++)
+      this._dists[fe] = an(r[2 * fe], r[2 * fe + 1], N.x, N.y);
+    ve(this._ids, this._dists, 0, o - 1), this._hullStart = p;
     let X = 3;
-    n[_] = i[v] = g, n[g] = i[_] = v, n[v] = i[g] = _, a[_] = 0, a[g] = 1, a[v] = 2, s.fill(-1), s[this._hashKey(b, w)] = _, s[this._hashKey(k, M)] = g, s[this._hashKey(P, T)] = v, this.trianglesLen = 0, this._addTriangle(_, g, v, -1, -1, -1);
-    for (let _e = 0, Je, Pe; _e < this._ids.length; _e++) {
-      const Ke = this._ids[_e], Wt = r[2 * Ke], ee = r[2 * Ke + 1];
-      if (_e > 0 && Math.abs(Wt - Je) <= On && Math.abs(ee - Pe) <= On || (Je = Wt, Pe = ee, Ke === _ || Ke === g || Ke === v)) continue;
+    n[p] = i[g] = v, n[v] = i[p] = g, n[g] = i[v] = p, a[p] = 0, a[v] = 1, a[g] = 2, s.fill(-1), s[this._hashKey(k, b)] = p, s[this._hashKey(w, M)] = v, s[this._hashKey(T, P)] = g, this.trianglesLen = 0, this._addTriangle(p, v, g, -1, -1, -1);
+    for (let fe = 0, Ke, Pe; fe < this._ids.length; fe++) {
+      const Je = this._ids[fe], Wt = r[2 * Je], ee = r[2 * Je + 1];
+      if (fe > 0 && Math.abs(Wt - Ke) <= On && Math.abs(ee - Pe) <= On || (Ke = Wt, Pe = ee, Je === p || Je === v || Je === g)) continue;
       let We = 0;
       for (let it = 0, Qt = this._hashKey(Wt, ee); it < this._hashSize && (We = s[(Qt + it) % this._hashSize], !(We !== -1 && We !== n[We])); it++)
         ;
@@ -20024,19 +20248,19 @@ class fn {
           break;
         }
       if (st === -1) continue;
-      let Jt = this._addTriangle(st, Ke, n[st], -1, -1, a[st]);
-      a[Ke] = this._legalize(Jt + 2), a[st] = Jt, X++;
+      let Jt = this._addTriangle(st, Je, n[st], -1, -1, a[st]);
+      a[Je] = this._legalize(Jt + 2), a[st] = Jt, X++;
       let Vt = n[st];
       for (; Xt = n[Vt], ne(Wt, ee, r[2 * Vt], r[2 * Vt + 1], r[2 * Xt], r[2 * Xt + 1]) < 0; )
-        Jt = this._addTriangle(Vt, Ke, Xt, a[Ke], -1, a[Vt]), a[Ke] = this._legalize(Jt + 2), n[Vt] = Vt, X--, Vt = Xt;
+        Jt = this._addTriangle(Vt, Je, Xt, a[Je], -1, a[Vt]), a[Je] = this._legalize(Jt + 2), n[Vt] = Vt, X--, Vt = Xt;
       if (st === We)
         for (; Xt = i[st], ne(Wt, ee, r[2 * Xt], r[2 * Xt + 1], r[2 * st], r[2 * st + 1]) < 0; )
-          Jt = this._addTriangle(Xt, Ke, st, -1, a[st], a[Xt]), this._legalize(Jt + 2), a[Xt] = Jt, n[st] = st, X--, st = Xt;
-      this._hullStart = i[Ke] = st, n[st] = i[Vt] = Ke, n[Ke] = Vt, s[this._hashKey(Wt, ee)] = Ke, s[this._hashKey(r[2 * st], r[2 * st + 1])] = st;
+          Jt = this._addTriangle(Xt, Je, st, -1, a[st], a[Xt]), this._legalize(Jt + 2), a[Xt] = Jt, n[st] = st, X--, st = Xt;
+      this._hullStart = i[Je] = st, n[st] = i[Vt] = Je, n[Je] = Vt, s[this._hashKey(Wt, ee)] = Je, s[this._hashKey(r[2 * st], r[2 * st + 1])] = st;
     }
     this.hull = new Uint32Array(X);
-    for (let _e = 0, Je = this._hullStart; _e < X; _e++)
-      this.hull[_e] = Je, Je = n[Je];
+    for (let fe = 0, Ke = this._hullStart; fe < X; fe++)
+      this.hull[fe] = Ke, Ke = n[Ke];
     this.triangles = this._triangles.subarray(0, this.trianglesLen), this.halfedges = this._halfedges.subarray(0, this.trianglesLen);
   }
   _hashKey(r, i) {
@@ -20052,32 +20276,32 @@ class fn {
         r = Fe[--s];
         continue;
       }
-      const f = l - l % 3, d = h + (r + 1) % 3, m = f + (l + 2) % 3, p = i[o], _ = i[r], g = i[d], v = i[m];
+      const f = l - l % 3, d = h + (r + 1) % 3, m = f + (l + 2) % 3, _ = i[o], p = i[r], v = i[d], g = i[m];
       if (zr(
-        a[2 * p],
-        a[2 * p + 1],
         a[2 * _],
         a[2 * _ + 1],
-        a[2 * g],
-        a[2 * g + 1],
+        a[2 * p],
+        a[2 * p + 1],
         a[2 * v],
-        a[2 * v + 1]
+        a[2 * v + 1],
+        a[2 * g],
+        a[2 * g + 1]
       )) {
-        i[r] = v, i[l] = p;
-        const b = n[m];
-        if (b === -1) {
-          let k = this._hullStart;
+        i[r] = g, i[l] = _;
+        const k = n[m];
+        if (k === -1) {
+          let w = this._hullStart;
           do {
-            if (this._hullTri[k] === m) {
-              this._hullTri[k] = r;
+            if (this._hullTri[w] === m) {
+              this._hullTri[w] = r;
               break;
             }
-            k = this._hullPrev[k];
-          } while (k !== this._hullStart);
+            w = this._hullPrev[w];
+          } while (w !== this._hullStart);
         }
-        this._link(r, b), this._link(l, n[o]), this._link(o, m);
-        const w = f + (l + 1) % 3;
-        s < Fe.length && (Fe[s++] = w);
+        this._link(r, k), this._link(l, n[o]), this._link(o, m);
+        const b = f + (l + 1) % 3;
+        s < Fe.length && (Fe[s++] = b);
       } else {
         if (s === 0) break;
         r = Fe[--s];
@@ -20103,16 +20327,16 @@ function an(e, r, i, n) {
   return a * a + s * s;
 }
 function zr(e, r, i, n, a, s, o, l) {
-  const h = e - o, f = r - l, d = i - o, m = n - l, p = a - o, _ = s - l, g = h * h + f * f, v = d * d + m * m, b = p * p + _ * _;
-  return h * (m * b - v * _) - f * (d * b - v * p) + g * (d * _ - m * p) < 0;
+  const h = e - o, f = r - l, d = i - o, m = n - l, _ = a - o, p = s - l, v = h * h + f * f, g = d * d + m * m, k = _ * _ + p * p;
+  return h * (m * k - g * p) - f * (d * k - g * _) + v * (d * p - m * _) < 0;
 }
 function Vr(e, r, i, n, a, s) {
-  const o = i - e, l = n - r, h = a - e, f = s - r, d = o * o + l * l, m = h * h + f * f, p = 0.5 / (o * f - l * h), _ = (f * d - l * m) * p, g = (o * m - h * d) * p;
-  return _ * _ + g * g;
+  const o = i - e, l = n - r, h = a - e, f = s - r, d = o * o + l * l, m = h * h + f * f, _ = 0.5 / (o * f - l * h), p = (f * d - l * m) * _, v = (o * m - h * d) * _;
+  return p * p + v * v;
 }
 function Wr(e, r, i, n, a, s) {
-  const o = i - e, l = n - r, h = a - e, f = s - r, d = o * o + l * l, m = h * h + f * f, p = 0.5 / (o * f - l * h), _ = e + (f * d - l * m) * p, g = r + (o * m - h * d) * p;
-  return { x: _, y: g };
+  const o = i - e, l = n - r, h = a - e, f = s - r, d = o * o + l * l, m = h * h + f * f, _ = 0.5 / (o * f - l * h), p = e + (f * d - l * m) * _, v = r + (o * m - h * d) * _;
+  return { x: p, y: v };
 }
 function ve(e, r, i, n) {
   if (n - i <= 20)
@@ -20260,10 +20484,10 @@ class jn extends Qr {
       const f = n[o], d = me(o);
       if (f === i)
         return this.protect(o);
-      const m = re(o), p = n[m];
-      if (p === i)
+      const m = re(o), _ = n[m];
+      if (_ === i)
         return this.protect(d), d;
-      if (this.intersectSegments(r, i, p, f)) {
+      if (this.intersectSegments(r, i, _, f)) {
         o = m;
         break;
       }
@@ -20271,7 +20495,7 @@ class jn extends Qr {
     } while (o !== -1 && o !== s);
     let l = o, h = -1;
     for (; o !== -1; ) {
-      const f = a[o], d = re(o), m = re(f), p = me(f);
+      const f = a[o], d = re(o), m = re(f), _ = me(f);
       if (f === -1)
         throw new Error("Constraining edge exited the hull");
       if (this.consd.has(o))
@@ -20300,10 +20524,10 @@ class jn extends Qr {
         else if (this.intersectSegments(
           r,
           i,
-          n[p],
+          n[_],
           n[m]
         ))
-          o = p;
+          o = _;
         else if (h === o)
           throw new Error("Infinite loop: no further intersect after non-convex");
         continue;
@@ -20318,9 +20542,9 @@ class jn extends Qr {
       n[m] === i ? (l = m, o = h, h = -1) : this.intersectSegments(
         r,
         i,
-        n[p],
+        n[_],
         n[m]
-      ) && (o = p);
+      ) && (o = _);
     }
     return this.protect(l), this.delaunify(!0), this.findEdge(r, i);
   }
@@ -20394,10 +20618,10 @@ class jn extends Qr {
    * Flip the edge shared by two triangles.
    */
   flipDiagonal(r) {
-    const { triangles: i, halfedges: n } = this.del, a = this.flips, s = this.consd, o = n[r], l = re(r), h = me(r), f = re(o), d = me(o), m = n[l], p = n[f];
+    const { triangles: i, halfedges: n } = this.del, a = this.flips, s = this.consd, o = n[r], l = re(r), h = me(r), f = re(o), d = me(o), m = n[l], _ = n[f];
     if (s.has(r))
       throw new Error("Trying to flip a constrained edge");
-    return i[r] = i[f], n[r] = p, a.set(r, a.has(f)) || s.set(r, s.has(f)), p !== -1 && (n[p] = r), n[l] = f, i[o] = i[l], n[o] = m, a.set(o, a.has(l)) || s.set(o, s.has(l)), m !== -1 && (n[m] = o), n[f] = l, this.markFlip(r), this.markFlip(h), this.markFlip(o), this.markFlip(d), a.add(l), s.delete(l), a.add(f), s.delete(f), this.updateVert(r), this.updateVert(h), this.updateVert(o), this.updateVert(d), l;
+    return i[r] = i[f], n[r] = _, a.set(r, a.has(f)) || s.set(r, s.has(f)), _ !== -1 && (n[_] = r), n[l] = f, i[o] = i[l], n[o] = m, a.set(o, a.has(l)) || s.set(o, s.has(l)), m !== -1 && (n[m] = o), n[f] = l, this.markFlip(r), this.markFlip(h), this.markFlip(o), this.markFlip(d), a.add(l), s.delete(l), a.add(f), s.delete(f), this.updateVert(r), this.updateVert(h), this.updateVert(o), this.updateVert(d), l;
   }
   /**
    * Whether point p1, p2, and p are collinear.
@@ -20482,9 +20706,9 @@ function Le(e, r, i) {
   const l = ["a", "b", "c"];
   return Gt(
     o.map((h) => {
-      const f = {}, d = h.map((m, p) => {
-        const _ = e.features[m], g = _.geometry.coordinates, v = [g[0], g[1]];
-        return g.length === 3 ? v[2] = g[2] : f[l[p]] = _.properties[i], v;
+      const f = {}, d = h.map((m, _) => {
+        const p = e.features[m], v = p.geometry.coordinates, g = [v[0], v[1]];
+        return v.length === 3 ? g[2] = v[2] : f[l[_]] = p.properties[i], g;
       });
       return d[3] = d[0], Be([d], f);
     })
@@ -20495,22 +20719,9 @@ function Un(e, r, i, n, a, s) {
     const h = e[l], f = h.forw, d = h.bakw, m = {
       forw: [f[0] - r.forw[0], f[1] - r.forw[1]],
       bakw: [d[0] - r.bakw[0], d[1] - r.bakw[1]]
-    }, p = m.forw[0] === 0 ? 1 / 0 : ((m.forw[0] < 0 ? i : n) - r.forw[0]) / m.forw[0], _ = m.forw[1] === 0 ? 1 / 0 : ((m.forw[1] < 0 ? a : s) - r.forw[1]) / m.forw[1];
-    if (Math.abs(p) / Math.abs(_) < 1.1) {
-      const g = {
-        forw: [
-          m.forw[0] * p + r.forw[0],
-          m.forw[1] * p + r.forw[1]
-        ],
-        bakw: [
-          m.bakw[0] * p + r.bakw[0],
-          m.bakw[1] * p + r.bakw[1]
-        ]
-      };
-      m.forw[0] < 0 ? o[3].push(g) : o[1].push(g);
-    }
+    }, _ = m.forw[0] === 0 ? 1 / 0 : ((m.forw[0] < 0 ? i : n) - r.forw[0]) / m.forw[0], p = m.forw[1] === 0 ? 1 / 0 : ((m.forw[1] < 0 ? a : s) - r.forw[1]) / m.forw[1];
     if (Math.abs(_) / Math.abs(p) < 1.1) {
-      const g = {
+      const v = {
         forw: [
           m.forw[0] * _ + r.forw[0],
           m.forw[1] * _ + r.forw[1]
@@ -20520,7 +20731,20 @@ function Un(e, r, i, n, a, s) {
           m.bakw[1] * _ + r.bakw[1]
         ]
       };
-      m.forw[1] < 0 ? o[0].push(g) : o[2].push(g);
+      m.forw[0] < 0 ? o[3].push(v) : o[1].push(v);
+    }
+    if (Math.abs(p) / Math.abs(_) < 1.1) {
+      const v = {
+        forw: [
+          m.forw[0] * p + r.forw[0],
+          m.forw[1] * p + r.forw[1]
+        ],
+        bakw: [
+          m.bakw[0] * p + r.bakw[0],
+          m.bakw[1] * p + r.bakw[1]
+        ]
+      };
+      m.forw[1] < 0 ? o[0].push(v) : o[2].push(v);
     }
     return o;
   }, [[], [], [], []]);
@@ -20563,7 +20787,7 @@ function ti(e, r, i) {
       if (f.features.length > 0 && f.features[0].geometry) {
         const d = f.features[0], m = Math.sqrt(
           Math.pow(l.bakw[0] - i.bakw[0], 2) + Math.pow(l.bakw[1] - i.bakw[1], 2)
-        ), p = Math.sqrt(
+        ), _ = Math.sqrt(
           Math.pow(
             d.geometry.coordinates[0] - i.bakw[0],
             2
@@ -20571,8 +20795,8 @@ function ti(e, r, i) {
             d.geometry.coordinates[1] - i.bakw[1],
             2
           )
-        ), _ = m / p;
-        _ > n[a] && (n[a] = _), _ > n[s] && (n[s] = _);
+        ), p = m / _;
+        p > n[a] && (n[a] = p), p > n[s] && (n[s] = p);
       }
     });
   }
@@ -20591,11 +20815,11 @@ function Vn(e, r, i, n) {
       h[1] - i.forw[1]
     ], d = Math.sqrt(
       Math.pow(f[0], 2) + Math.pow(f[1], 2)
-    ) / o[0], m = Math.atan2(f[0], f[1]) - o[1], p = [
+    ) / o[0], m = Math.atan2(f[0], f[1]) - o[1], _ = [
       i.bakw[0] + d * Math.sin(m),
       i.bakw[1] - d * Math.cos(m)
     ];
-    return { forw: h, bakw: p };
+    return { forw: h, bakw: _ };
   }), s = a[2];
   return a[2] = a[3], a[3] = s, ti(a, n, i), a;
 }
@@ -20723,38 +20947,38 @@ class ii {
    * @returns 検出された交差点の配列
    */
   findSegmentIntersections() {
-    const r = this.getBounds(), i = r.ymin || 0, n = (r.ymax || 0) - i, a = this.calcSegmentIntersectionStripeCount(), s = new Uint32Array(a), o = a > 1 ? (v) => Math.floor((a - 1) * (v - i) / n) : () => 0;
+    const r = this.getBounds(), i = r.ymin || 0, n = (r.ymax || 0) - i, a = this.calcSegmentIntersectionStripeCount(), s = new Uint32Array(a), o = a > 1 ? (g) => Math.floor((a - 1) * (g - i) / n) : () => 0;
     let l, h;
     this.forEachSegment(
-      (v, b, w, k) => {
-        let M = o(k[v]);
-        const N = o(k[b]);
-        for (; s[M] = s[M] + 2, M != N; )
-          M += N > M ? 1 : -1;
+      (g, k, b, w) => {
+        let M = o(w[g]);
+        const C = o(w[k]);
+        for (; s[M] = s[M] + 2, M != C; )
+          M += C > M ? 1 : -1;
       }
     );
     const f = this.getUint32Array(ai(s));
     let d = 0;
     const m = [];
-    ci(s, (v) => {
-      const b = d;
-      d += v, m.push(f.subarray(b, d));
+    ci(s, (g) => {
+      const k = d;
+      d += g, m.push(f.subarray(k, d));
     }), hi(s, 0), this.forEachSegment(
-      (v, b, w, k) => {
-        let M = o(k[v]);
-        const N = o(k[b]);
-        let P, T;
-        for (; P = s[M], s[M] = P + 2, T = m[M], T[P] = v, T[P + 1] = b, M != N; )
-          M += N > M ? 1 : -1;
+      (g, k, b, w) => {
+        let M = o(w[g]);
+        const C = o(w[k]);
+        let T, P;
+        for (; T = s[M], s[M] = T + 2, P = m[M], P[T] = g, P[T + 1] = k, M != C; )
+          M += C > M ? 1 : -1;
       }
     );
-    const p = this.getVertexData(), _ = [];
-    let g;
+    const _ = this.getVertexData(), p = [];
+    let v;
     for (l = 0; l < a; l++)
-      if (p.xx && p.yy)
-        for (g = fi(m[l], p.xx, p.yy), h = 0; h < g.length; h++)
-          _.push(g[h]);
-    return Kn(_);
+      if (_.xx && _.yy)
+        for (v = fi(m[l], _.xx, _.yy), h = 0; h < v.length; h++)
+          p.push(v[h]);
+    return Kn(p);
   }
 }
 function un(...e) {
@@ -20790,26 +21014,26 @@ function hi(e, r) {
 }
 function fi(e, r, i) {
   const n = e.length - 2, a = [];
-  let s, o, l, h, f, d, m, p, _, g, v, b, w, k, M, N, P;
-  for (bi(r, e), N = 0; N < n; ) {
-    for (s = e[N], o = e[N + 1], f = r[s], d = r[o], _ = i[s], g = i[o], P = N; P < n && (P += 2, l = e[P], m = r[l], !(d < m)); ) {
-      if (v = i[l], h = e[P + 1], p = r[h], b = i[h], _ >= v) {
-        if (_ > b && g > v && g > b) continue;
-      } else if (_ < b && g < v && g < b) continue;
-      s == l || s == h || o == l || o == h || (w = ui(
+  let s, o, l, h, f, d, m, _, p, v, g, k, b, w, M, C, T;
+  for (bi(r, e), C = 0; C < n; ) {
+    for (s = e[C], o = e[C + 1], f = r[s], d = r[o], p = i[s], v = i[o], T = C; T < n && (T += 2, l = e[T], m = r[l], !(d < m)); ) {
+      if (g = i[l], h = e[T + 1], _ = r[h], k = i[h], p >= g) {
+        if (p > k && v > g && v > k) continue;
+      } else if (p < k && v < g && v < k) continue;
+      s == l || s == h || o == l || o == h || (b = ui(
         f,
-        _,
-        d,
-        g,
-        m,
-        v,
         p,
-        b
-      ), w && (k = [s, o], M = [l, h], a.push(Tn(w, k, M, r, i)), w.length == 4 && a.push(
-        Tn(w.slice(2), k, M, r, i)
+        d,
+        v,
+        m,
+        g,
+        _,
+        k
+      ), b && (w = [s, o], M = [l, h], a.push(Tn(b, w, M, r, i)), b.length == 4 && a.push(
+        Tn(b.slice(2), w, M, r, i)
       )));
     }
-    N += 2;
+    C += 2;
   }
   return a;
 }
@@ -20865,9 +21089,9 @@ function $e(e, r, i) {
   return ie(e, r, i) && (n = Math.abs(e - r) < Math.abs(e - i) ? r : i, e = n), e;
 }
 function yi(e, r, i, n, a, s, o, l) {
-  const h = Math.min(e, i, a, o), f = Math.max(e, i, a, o), d = Math.min(r, n, s, l), m = Math.max(r, n, s, l), p = m - d > f - h;
-  let _ = [];
-  return (p ? he(r, d, m) : he(e, h, f)) && _.push(e, r), (p ? he(n, d, m) : he(i, h, f)) && _.push(i, n), (p ? he(s, d, m) : he(a, h, f)) && _.push(a, s), (p ? he(l, d, m) : he(o, h, f)) && _.push(o, l), (_.length != 2 && _.length != 4 || _.length == 4 && _[0] == _[2] && _[1] == _[3]) && (_ = null), _;
+  const h = Math.min(e, i, a, o), f = Math.max(e, i, a, o), d = Math.min(r, n, s, l), m = Math.max(r, n, s, l), _ = m - d > f - h;
+  let p = [];
+  return (_ ? he(r, d, m) : he(e, h, f)) && p.push(e, r), (_ ? he(n, d, m) : he(i, h, f)) && p.push(i, n), (_ ? he(s, d, m) : he(a, h, f)) && p.push(a, s), (_ ? he(l, d, m) : he(o, h, f)) && p.push(o, l), (p.length != 2 && p.length != 4 || p.length == 4 && p[0] == p[2] && p[1] == p[3]) && (p = null), p;
 }
 function vi(e, r, i, n, a, s, o, l) {
   return e == a && r == s || e == o && r == l || i == a && n == s || i == o && n == l;
@@ -21055,7 +21279,7 @@ function Yn(e, r) {
       l[0] - i[0],
       l[1] - i[1]
     ), f = [r, s, o, r].map(
-      (p) => p.geometry.coordinates
+      (_) => _.geometry.coordinates
     ), d = {
       a: {
         geom: r.properties.target.geom,
@@ -21088,15 +21312,15 @@ function Ei(e) {
     l.features.forEach((f) => {
       const d = ["a", "b", "c"];
       for (let m = 0; m < 3; m++) {
-        const p = (m + 1) % 3, _ = d[m], g = d[p], v = f.properties[_].index, b = f.properties[g].index, w = [v, b].sort().join("-");
-        if (h[w]) continue;
-        h[w] = !0;
-        const k = f.geometry.coordinates[0][m], M = f.geometry.coordinates[0][p], N = f.properties[_].geom, P = f.properties[g].geom, T = Math.sqrt(
-          Math.pow(N[0] - P[0], 2) + Math.pow(N[1] - P[1], 2)
+        const _ = (m + 1) % 3, p = d[m], v = d[_], g = f.properties[p].index, k = f.properties[v].index, b = [g, k].sort().join("-");
+        if (h[b]) continue;
+        h[b] = !0;
+        const w = f.geometry.coordinates[0][m], M = f.geometry.coordinates[0][_], C = f.properties[p].geom, T = f.properties[v].geom, P = Math.sqrt(
+          Math.pow(C[0] - T[0], 2) + Math.pow(C[1] - T[1], 2)
         ) / Math.sqrt(
-          Math.pow(k[0] - M[0], 2) + Math.pow(k[1] - M[1], 2)
-        ), C = a[o];
-        C[`${v}:${w}`] = T, C[`${b}:${w}`] = T;
+          Math.pow(w[0] - M[0], 2) + Math.pow(w[1] - M[1], 2)
+        ), N = a[o];
+        N[`${g}:${b}`] = P, N[`${k}:${b}`] = P;
       }
     });
   });
@@ -21110,13 +21334,13 @@ function Ei(e) {
       const [m] = d.split(":");
       h[m] || (h[m] = []), h[m].push(l[d]);
     }), Object.keys(h).forEach((d) => {
-      const m = h[d], p = m.reduce((_, g) => _ + g, 0) / m.length;
-      s[o][d] = p, n && s.bakw && (s.bakw[d] = 1 / p);
+      const m = h[d], _ = m.reduce((p, v) => p + v, 0) / m.length;
+      s[o][d] = _, n && s.bakw && (s.bakw[d] = 1 / _);
     });
     let f = 0;
     for (let d = 0; d < 4; d++) {
-      const m = `b${d}`, p = s[o][m] || 0;
-      f += p;
+      const m = `b${d}`, _ = s[o][m] || 0;
+      f += _;
     }
     s[o].c = f / 4, n && s.bakw && (s.bakw.c = 1 / s[o].c);
   }), s;
@@ -21150,59 +21374,59 @@ function Oi(e, r, i) {
     if (!l || l.length < 2) continue;
     const h = o.split("-");
     if (h.length !== 2 || Ai(o, i)) continue;
-    const f = Ue(l[0].bakw), d = Ue(l[1].bakw), m = Ue(l[0].forw), p = Ue(l[1].forw), _ = h.map(
-      (X) => f.find((_e) => `${_e.prop.index}` === X) || d.find((_e) => `${_e.prop.index}` === X)
-    ), g = h.map(
-      (X) => m.find((_e) => `${_e.prop.index}` === X) || p.find((_e) => `${_e.prop.index}` === X)
+    const f = Ue(l[0].bakw), d = Ue(l[1].bakw), m = Ue(l[0].forw), _ = Ue(l[1].forw), p = h.map(
+      (X) => f.find((fe) => `${fe.prop.index}` === X) || d.find((fe) => `${fe.prop.index}` === X)
+    ), v = h.map(
+      (X) => m.find((fe) => `${fe.prop.index}` === X) || _.find((fe) => `${fe.prop.index}` === X)
     );
-    if (_.some((X) => !X) || g.some((X) => !X))
+    if (p.some((X) => !X) || v.some((X) => !X))
       continue;
-    const v = [f, d].map(
-      (X) => X.find((_e) => !h.includes(`${_e.prop.index}`))
-    ), b = [m, p].map(
-      (X) => X.find((_e) => !h.includes(`${_e.prop.index}`))
+    const g = [f, d].map(
+      (X) => X.find((fe) => !h.includes(`${fe.prop.index}`))
+    ), k = [m, _].map(
+      (X) => X.find((fe) => !h.includes(`${fe.prop.index}`))
     );
-    if (v.some((X) => !X) || b.some((X) => !X))
+    if (g.some((X) => !X) || k.some((X) => !X))
       continue;
-    const w = l[0].bakw.geometry.coordinates[0].slice(0, 3).map((X) => ye(X)), k = l[1].bakw.geometry.coordinates[0].slice(0, 3).map((X) => ye(X));
+    const b = l[0].bakw.geometry.coordinates[0].slice(0, 3).map((X) => ye(X)), w = l[1].bakw.geometry.coordinates[0].slice(0, 3).map((X) => ye(X));
     if (!(Rn(
-      ye(v[0].geom),
-      k
-    ) || Rn(
-      ye(v[1].geom),
+      ye(g[0].geom),
       w
+    ) || Rn(
+      ye(g[1].geom),
+      b
     )))
       continue;
-    const M = g.map(
+    const M = v.map(
       (X) => ye(X.geom)
-    ), N = b.map(
+    ), C = k.map(
       (X) => ye(X.geom)
-    ), P = Bi([
+    ), T = Bi([
       ...M,
-      ...N
-    ]), T = Pi(P), C = Cn(
+      ...C
+    ]), P = Pi(T), N = Cn(
       M[0],
       M[1],
-      N[0]
+      C[0]
     ) + Cn(
       M[0],
       M[1],
-      N[1]
+      C[1]
     );
-    cn(T, C) && (Xn(r, l[0], e), Xn(r, l[1], e), _.forEach((X) => {
+    cn(P, N) && (Xn(r, l[0], e), Xn(r, l[1], e), p.forEach((X) => {
       if (!X) return;
-      const _e = [
+      const fe = [
         X.geom,
-        v[0].geom,
-        v[1].geom,
+        g[0].geom,
+        g[1].geom,
         X.geom
-      ], Je = {
+      ], Ke = {
         a: X.prop,
-        b: v[0].prop,
-        c: v[1].prop
-      }, Pe = Be([_e], Je), Ke = zt.counterTri(Pe);
+        b: g[0].prop,
+        c: g[1].prop
+      }, Pe = Be([fe], Ke), Je = zt.counterTri(Pe);
       Gn(r, {
-        forw: Ke,
+        forw: Je,
         bakw: Pe
       }, e);
     }), a = !0);
@@ -21213,10 +21437,10 @@ function ye(e) {
   return [e[0], e[1]];
 }
 function Rn(e, r) {
-  const [i, n] = r[0], [a, s] = r[1], [o, l] = r[2], h = o - i, f = l - n, d = a - i, m = s - n, p = e[0] - i, _ = e[1] - n, g = h * h + f * f, v = h * d + f * m, b = h * p + f * _, w = d * d + m * m, k = d * p + m * _, M = g * w - v * v;
+  const [i, n] = r[0], [a, s] = r[1], [o, l] = r[2], h = o - i, f = l - n, d = a - i, m = s - n, _ = e[0] - i, p = e[1] - n, v = h * h + f * f, g = h * d + f * m, k = h * _ + f * p, b = d * d + m * m, w = d * _ + m * p, M = v * b - g * g;
   if (M === 0) return !1;
-  const N = 1 / M, P = (w * b - v * k) * N, T = (g * k - v * b) * N, C = 1e-9;
-  return P >= -C && T >= -C && P + T <= 1 + C;
+  const C = 1 / M, T = (b * k - g * w) * C, P = (v * w - g * k) * C, N = 1e-9;
+  return T >= -N && P >= -N && T + P <= 1 + N;
 }
 function Bi(e) {
   const r = e.map((o) => o.slice()).filter(
@@ -21416,40 +21640,40 @@ class Yt extends zt.Transform {
       }
       o.unshift(this.points[s[0]][0]), o.push(this.points[s[1]][0]), l.unshift(this.points[s[0]][1]), l.push(this.points[s[1]][1]);
       const h = [o, l].map((f) => {
-        const d = f.map((p, _, g) => {
-          if (_ === 0) return 0;
-          const v = g[_ - 1];
+        const d = f.map((_, p, v) => {
+          if (p === 0) return 0;
+          const g = v[p - 1];
           return Math.sqrt(
-            Math.pow(p[0] - v[0], 2) + Math.pow(p[1] - v[1], 2)
+            Math.pow(_[0] - g[0], 2) + Math.pow(_[1] - g[1], 2)
           );
-        }), m = d.reduce((p, _, g) => g === 0 ? [0] : (p.push(p[g - 1] + _), p), []);
-        return m.map((p, _, g) => {
-          const v = p / g[g.length - 1];
-          return [f[_], d[_], m[_], v];
+        }), m = d.reduce((_, p, v) => v === 0 ? [0] : (_.push(_[v - 1] + p), _), []);
+        return m.map((_, p, v) => {
+          const g = _ / v[v.length - 1];
+          return [f[p], d[p], m[p], g];
         });
       });
       h.map((f, d) => {
         const m = h[d ? 0 : 1];
-        return f.filter((p, _) => !(_ === 0 || _ === f.length - 1 || p[4] === "handled")).flatMap((p) => {
-          const _ = p[0], g = p[3], v = m.reduce(
-            (b, w, k, M) => {
-              if (b) return b;
-              const N = M[k + 1];
-              if (w[3] === g)
-                return w[4] = "handled", [w];
-              if (w[3] < g && N && N[3] > g)
-                return [w, N];
+        return f.filter((_, p) => !(p === 0 || p === f.length - 1 || _[4] === "handled")).flatMap((_) => {
+          const p = _[0], v = _[3], g = m.reduce(
+            (k, b, w, M) => {
+              if (k) return k;
+              const C = M[w + 1];
+              if (b[3] === v)
+                return b[4] = "handled", [b];
+              if (b[3] < v && C && C[3] > v)
+                return [b, C];
             },
             void 0
           );
-          if (v && v.length === 1)
-            return d === 0 ? [[_, v[0][0], g]] : [[v[0][0], _, g]];
-          if (v && v.length === 2) {
-            const b = v[0], w = v[1], k = (g - b[3]) / (w[3] - b[3]), M = [
-              (w[0][0] - b[0][0]) * k + b[0][0],
-              (w[0][1] - b[0][1]) * k + b[0][1]
+          if (g && g.length === 1)
+            return d === 0 ? [[p, g[0][0], v]] : [[g[0][0], p, v]];
+          if (g && g.length === 2) {
+            const k = g[0], b = g[1], w = (v - k[3]) / (b[3] - k[3]), M = [
+              (b[0][0] - k[0][0]) * w + k[0][0],
+              (b[0][1] - k[0][1]) * w + k[0][1]
             ];
-            return d === 0 ? [[_, M, g]] : [[M, _, g]];
+            return d === 0 ? [[p, M, v]] : [[M, p, v]];
           }
           return [];
         });
@@ -21458,12 +21682,12 @@ class Yt extends zt.Transform {
           f[0],
           f[1]
         ];
-        const p = qe(
+        const _ = qe(
           f[0],
           f[1],
           `e${n}`
         );
-        n++, r.forw.push(p), r.bakw.push(je(p)), d === 0 ? i.push([s[0], r.forw.length - 1]) : i.push([
+        n++, r.forw.push(_), r.bakw.push(je(_)), d === 0 ? i.push([s[0], r.forw.length - 1]) : i.push([
           r.forw.length - 2,
           r.forw.length - 1
         ]), d === m.length - 1 && i.push([r.forw.length - 1, s[1]]);
@@ -21514,56 +21738,56 @@ class Yt extends zt.Transform {
     );
     if (f.features.length === 0 || d.features.length === 0)
       throw "TOO LINEAR1";
-    const m = Ar(h.forw), p = En(h.forw);
-    if (!p) throw "TOO LINEAR2";
-    const _ = {}, g = p.geometry.coordinates[0];
-    let v;
+    const m = Ar(h.forw), _ = En(h.forw);
+    if (!_) throw "TOO LINEAR2";
+    const p = {}, v = _.geometry.coordinates[0];
+    let g;
     try {
-      v = g.map((_e) => ({
-        forw: _e,
-        bakw: zt.transformArr(ge(_e), f)
-      })), v.forEach((_e) => {
-        _[`${_e.forw[0]}:${_e.forw[1]}`] = _e;
+      g = v.map((fe) => ({
+        forw: fe,
+        bakw: zt.transformArr(ge(fe), f)
+      })), g.forEach((fe) => {
+        p[`${fe.forw[0]}:${fe.forw[1]}`] = fe;
       });
     } catch {
       throw "TOO LINEAR2";
     }
-    const b = En(h.bakw);
-    if (!b) throw "TOO LINEAR2";
-    const w = b.geometry.coordinates[0];
+    const k = En(h.bakw);
+    if (!k) throw "TOO LINEAR2";
+    const b = k.geometry.coordinates[0];
     try {
-      v = w.map((_e) => ({
-        bakw: _e,
-        forw: zt.transformArr(ge(_e), d)
-      })), v.forEach((_e) => {
-        _[`${_e.forw[0]}:${_e.forw[1]}`] = _e;
+      g = b.map((fe) => ({
+        bakw: fe,
+        forw: zt.transformArr(ge(fe), d)
+      })), g.forEach((fe) => {
+        p[`${fe.forw[0]}:${fe.forw[1]}`] = fe;
       });
     } catch {
       throw "TOO LINEAR2";
     }
-    const k = {
+    const w = {
       forw: m.geometry.coordinates,
       bakw: zt.transformArr(m, f)
-    }, M = qe(k.forw, k.bakw, "c");
+    }, M = qe(w.forw, w.bakw, "c");
     this.centroid = {
       forw: M,
       bakw: je(M)
     };
-    const N = {
-      convexBuf: _,
-      centroid: k,
+    const C = {
+      convexBuf: p,
+      centroid: w,
       bbox: n,
       minx: a,
       maxx: s,
       miny: o,
       maxy: l
-    }, P = this.vertexMode === Yt.VERTEX_BIRDEYE ? ni(N) : ei(N), T = {
+    }, T = this.vertexMode === Yt.VERTEX_BIRDEYE ? ni(C) : ei(C), P = {
       forw: [],
       bakw: []
     };
-    for (let _e = 0; _e < P.length; _e++) {
-      const Je = P[_e].forw, Pe = P[_e].bakw, Ke = qe(Je, Pe, `b${_e}`), Wt = je(Ke);
-      i.forw.push(Ke), i.bakw.push(Wt), T.forw.push(Ke), T.bakw.push(Wt);
+    for (let fe = 0; fe < T.length; fe++) {
+      const Ke = T[fe].forw, Pe = T[fe].bakw, Je = qe(Ke, Pe, `b${fe}`), Wt = je(Je);
+      i.forw.push(Je), i.bakw.push(Wt), P.forw.push(Je), P.bakw.push(Wt);
     }
     this.pointsSet = {
       forw: Gt(i.forw),
@@ -21584,15 +21808,15 @@ class Yt extends zt.Transform {
         "target"
       )
     ), delete this.kinks, this.strict_status = Yt.STATUS_LOOSE), this.vertices_params = {
-      forw: Yn(T.forw, this.centroid.forw),
-      bakw: Yn(T.bakw, this.centroid.bakw)
+      forw: Yn(P.forw, this.centroid.forw),
+      bakw: Yn(P.bakw, this.centroid.bakw)
     }, this.addIndexedTin();
-    const C = ["forw"];
-    this.strict_status === Yt.STATUS_LOOSE && C.push("bakw");
+    const N = ["forw"];
+    this.strict_status === Yt.STATUS_LOOSE && N.push("bakw");
     const X = this.strict_status === Yt.STATUS_STRICT;
     this.pointsWeightBuffer = Ei({
       tins: this.tins,
-      targets: C,
+      targets: N,
       includeReciprocals: X
     });
   }
@@ -21654,39 +21878,39 @@ const registerMapEditHandlers = () => {
     const i = SettingsService$1.get("saveFolder");
     return path$f.join(i, "wmts");
   }), ipcMain$1.handle("mapedit:download", async (i, n, a) => {
-    var k;
-    const s = BrowserWindow.fromWebContents(i.sender), o = n.mapID, l = SettingsService$1.get("tmpFolder"), h = SettingsService$1.get("saveFolder"), f = path$f.join(h, "tiles"), d = path$f.join(h, "tmbs"), m = await histMap2Store(n, a), p = path$f.join(l, `${o}.json`);
-    await fs$6.ensureDir(l), await fs$6.writeFile(p, JSON.stringify(m));
-    const _ = [
-      [p, "maps", `${o}.json`],
+    var w;
+    const s = BrowserWindow.fromWebContents(i.sender), o = n.mapID, l = SettingsService$1.get("tmpFolder"), h = SettingsService$1.get("saveFolder"), f = path$f.join(h, "tiles"), d = path$f.join(h, "tmbs"), m = await histMap2Store(n, a), _ = path$f.join(l, `${o}.json`);
+    await fs$5.ensureDir(l), await fs$5.writeFile(_, JSON.stringify(m));
+    const p = [
+      [_, "maps", `${o}.json`],
       [path$f.join(d, `${o}.jpg`), "tmbs", `${o}.jpg`]
     ];
     try {
       const { files: M } = await recursiveFs$1.read(path$f.join(f, o));
-      for (const N of M) {
-        const P = path$f.resolve(N), T = path$f.basename(P), C = (k = path$f.dirname(P).match(/[/\\](tiles[/\\].+$)/)) == null ? void 0 : k[1];
-        C && _.push([P, C, T]);
+      for (const C of M) {
+        const T = path$f.resolve(C), P = path$f.basename(T), N = (w = path$f.dirname(T).match(/[/\\](tiles[/\\].+$)/)) == null ? void 0 : w[1];
+        N && p.push([T, N, P]);
       }
     } catch {
     }
-    const g = new ProgressReporter(
+    const v = new ProgressReporter(
       "mapedit:taskProgress",
-      _.length,
+      p.length,
       "mapdownload.adding_zip",
       "mapdownload.creating_zip"
     );
-    g.setWindow(s), g.update(0);
-    const v = path$f.join(l, `${o}.zip`), b = new AdmZip();
-    for (let M = 0; M < _.length; M++) {
-      const [N, P, T] = _[M];
-      fs$6.existsSync(N) && b.addLocalFile(N, P, T), g.update(M + 1);
+    v.setWindow(s), v.update(0);
+    const g = path$f.join(l, `${o}.zip`), k = new AdmZip();
+    for (let M = 0; M < p.length; M++) {
+      const [C, T, P] = p[M];
+      fs$5.existsSync(C) && k.addLocalFile(C, T, P), v.update(M + 1);
     }
-    b.writeZip(v);
-    const w = await dialog.showSaveDialog(s, {
+    k.writeZip(g);
+    const b = await dialog.showSaveDialog(s, {
       defaultPath: path$f.join(app$1.getPath("documents"), `${o}.zip`),
       filters: [{ name: "Output file", extensions: ["zip"] }]
     });
-    return await fs$6.remove(p), !w.canceled && w.filePath ? (await fs$6.move(v, w.filePath, { overwrite: !0 }), "Success") : (await fs$6.remove(v), "Canceled");
+    return await fs$5.remove(_), !b.canceled && b.filePath ? (await fs$5.move(g, b.filePath, { overwrite: !0 }), "Success") : (await fs$5.remove(g), "Canceled");
   }), ipcMain$1.handle("mapedit:uploadCsv", async (i, n, a) => {
     const s = BrowserWindow.fromWebContents(i.sender), o = await dialog.showOpenDialog(s, {
       defaultPath: app$1.getPath("documents"),
@@ -21701,20 +21925,20 @@ const registerMapEditHandlers = () => {
       skipLines: a.ignoreHeader ? 1 : 0
     };
     return new Promise((d) => {
-      fs$6.createReadStream(l).pipe(csvParser$1(f)).on("data", (m) => h.push(m)).on("end", () => {
+      fs$5.createReadStream(l).pipe(csvParser$1(f)).on("data", (m) => h.push(m)).on("end", () => {
         let m = null;
-        const p = [];
-        h.length === 0 && (m = "csv_format_error"), h.forEach((_) => {
+        const _ = [];
+        h.length === 0 && (m = "csv_format_error"), h.forEach((p) => {
           if (!m)
             try {
-              const g = [], v = [];
-              g[0] = parseFloat(_[a.pixXColumn - 1]), g[1] = parseFloat(_[a.pixYColumn - 1]), a.reverseMapY && (g[1] = -1 * g[1]), v[0] = parseFloat(_[a.lngColumn - 1]), v[1] = parseFloat(_[a.latColumn - 1]);
-              const b = proj4(a.projText, "EPSG:3857", v);
-              p.push([g, b]);
+              const v = [], g = [];
+              v[0] = parseFloat(p[a.pixXColumn - 1]), v[1] = parseFloat(p[a.pixYColumn - 1]), a.reverseMapY && (v[1] = -1 * v[1]), g[0] = parseFloat(p[a.lngColumn - 1]), g[1] = parseFloat(p[a.latColumn - 1]);
+              const k = proj4(a.projText, "EPSG:3857", g);
+              _.push([v, k]);
             } catch {
               m = "csv_format_error";
             }
-        }), d(m ? { err: m } : { gcps: p });
+        }), d(m ? { err: m } : { gcps: _ });
       }).on("error", (m) => d({ err: String(m) }));
     });
   });
@@ -21742,10 +21966,10 @@ var HeaderTypes;
 function maskColor(e, r, i, n) {
   const a = ~e + 1 & e, s = ~r + 1 & r, o = ~i + 1 & i, l = ~n + 1 & n, h = e / a + 1, f = r / s + 1, d = i / o + 1, m = n / l + 1;
   return {
-    shiftRed: (p) => (p & e) / a * 256 / h,
-    shiftGreen: (p) => (p & r) / s * 256 / f,
-    shiftBlue: (p) => (p & i) / o * 256 / d,
-    shiftAlpha: n !== 0 ? (p) => (p & n) / l * 256 / m : () => 255
+    shiftRed: (_) => (_ & e) / a * 256 / h,
+    shiftGreen: (_) => (_ & r) / s * 256 / f,
+    shiftBlue: (_) => (_ & i) / o * 256 / d,
+    shiftAlpha: n !== 0 ? (_) => (_ & n) / l * 256 / m : () => 255
   };
 }
 var BmpCompression;
@@ -22854,10 +23078,10 @@ function scan(e, r, i, n, a, s) {
   }
   o = Math.round(o), l = Math.round(l), h = Math.round(h), f = Math.round(f);
   const m = d.bind(e);
-  for (let p = l; p < l + f; p++)
-    for (let _ = o; _ < o + h; _++) {
-      const g = e.bitmap.width * p + _ << 2;
-      m(_, p, g);
+  for (let _ = l; _ < l + f; _++)
+    for (let p = o; p < o + h; p++) {
+      const v = e.bitmap.width * _ + p << 2;
+      m(p, _, v);
     }
   return e;
 }
@@ -22922,13 +23146,13 @@ function GifWriter(e, r, i, s) {
   var a = 0, s = s === void 0 ? {} : s, o = s.loop === void 0 ? null : s.loop, l = s.palette === void 0 ? null : s.palette;
   if (r <= 0 || i <= 0 || r > 65535 || i > 65535)
     throw new Error("Width/Height invalid.");
-  function h(b) {
-    var w = b.length;
-    if (w < 2 || w > 256 || w & w - 1)
+  function h(k) {
+    var b = k.length;
+    if (b < 2 || b > 256 || b & b - 1)
       throw new Error(
         "Invalid code/color length, must be power of 2 and 2 .. 256."
       );
-    return w;
+    return b;
   }
   e[a++] = 71, e[a++] = 73, e[a++] = 70, e[a++] = 56, e[a++] = 57, e[a++] = 97;
   var f = 0, d = 0;
@@ -22943,79 +23167,79 @@ function GifWriter(e, r, i, s) {
   }
   if (e[a++] = r & 255, e[a++] = r >> 8 & 255, e[a++] = i & 255, e[a++] = i >> 8 & 255, e[a++] = (l !== null ? 128 : 0) | // Global Color Table Flag.
   f, e[a++] = d, e[a++] = 0, l !== null)
-    for (var p = 0, _ = l.length; p < _; ++p) {
-      var g = l[p];
-      e[a++] = g >> 16 & 255, e[a++] = g >> 8 & 255, e[a++] = g & 255;
+    for (var _ = 0, p = l.length; _ < p; ++_) {
+      var v = l[_];
+      e[a++] = v >> 16 & 255, e[a++] = v >> 8 & 255, e[a++] = v & 255;
     }
   if (o !== null) {
     if (o < 0 || o > 65535)
       throw new Error("Loop count invalid.");
     e[a++] = 33, e[a++] = 255, e[a++] = 11, e[a++] = 78, e[a++] = 69, e[a++] = 84, e[a++] = 83, e[a++] = 67, e[a++] = 65, e[a++] = 80, e[a++] = 69, e[a++] = 50, e[a++] = 46, e[a++] = 48, e[a++] = 3, e[a++] = 1, e[a++] = o & 255, e[a++] = o >> 8 & 255, e[a++] = 0;
   }
-  var v = !1;
-  this.addFrame = function(b, w, k, M, N, P) {
-    if (v === !0 && (--a, v = !1), P = P === void 0 ? {} : P, b < 0 || w < 0 || b > 65535 || w > 65535)
+  var g = !1;
+  this.addFrame = function(k, b, w, M, C, T) {
+    if (g === !0 && (--a, g = !1), T = T === void 0 ? {} : T, k < 0 || b < 0 || k > 65535 || b > 65535)
       throw new Error("x/y invalid.");
-    if (k <= 0 || M <= 0 || k > 65535 || M > 65535)
+    if (w <= 0 || M <= 0 || w > 65535 || M > 65535)
       throw new Error("Width/Height invalid.");
-    if (N.length < k * M)
+    if (C.length < w * M)
       throw new Error("Not enough pixels for the frame size.");
-    var T = !0, C = P.palette;
-    if (C == null && (T = !1, C = l), C == null)
+    var P = !0, N = T.palette;
+    if (N == null && (P = !1, N = l), N == null)
       throw new Error("Must supply either a local or global palette.");
-    for (var X = h(C), _e = 0; X >>= 1; ) ++_e;
-    X = 1 << _e;
-    var Je = P.delay === void 0 ? 0 : P.delay, Pe = P.disposal === void 0 ? 0 : P.disposal;
+    for (var X = h(N), fe = 0; X >>= 1; ) ++fe;
+    X = 1 << fe;
+    var Ke = T.delay === void 0 ? 0 : T.delay, Pe = T.disposal === void 0 ? 0 : T.disposal;
     if (Pe < 0 || Pe > 3)
       throw new Error("Disposal out of range.");
-    var Ke = !1, Wt = 0;
-    if (P.transparent !== void 0 && P.transparent !== null && (Ke = !0, Wt = P.transparent, Wt < 0 || Wt >= X))
+    var Je = !1, Wt = 0;
+    if (T.transparent !== void 0 && T.transparent !== null && (Je = !0, Wt = T.transparent, Wt < 0 || Wt >= X))
       throw new Error("Transparent color index.");
-    if ((Pe !== 0 || Ke || Je !== 0) && (e[a++] = 33, e[a++] = 249, e[a++] = 4, e[a++] = Pe << 2 | (Ke === !0 ? 1 : 0), e[a++] = Je & 255, e[a++] = Je >> 8 & 255, e[a++] = Wt, e[a++] = 0), e[a++] = 44, e[a++] = b & 255, e[a++] = b >> 8 & 255, e[a++] = w & 255, e[a++] = w >> 8 & 255, e[a++] = k & 255, e[a++] = k >> 8 & 255, e[a++] = M & 255, e[a++] = M >> 8 & 255, e[a++] = T === !0 ? 128 | _e - 1 : 0, T === !0)
-      for (var ee = 0, We = C.length; ee < We; ++ee) {
-        var st = C[ee];
+    if ((Pe !== 0 || Je || Ke !== 0) && (e[a++] = 33, e[a++] = 249, e[a++] = 4, e[a++] = Pe << 2 | (Je === !0 ? 1 : 0), e[a++] = Ke & 255, e[a++] = Ke >> 8 & 255, e[a++] = Wt, e[a++] = 0), e[a++] = 44, e[a++] = k & 255, e[a++] = k >> 8 & 255, e[a++] = b & 255, e[a++] = b >> 8 & 255, e[a++] = w & 255, e[a++] = w >> 8 & 255, e[a++] = M & 255, e[a++] = M >> 8 & 255, e[a++] = P === !0 ? 128 | fe - 1 : 0, P === !0)
+      for (var ee = 0, We = N.length; ee < We; ++ee) {
+        var st = N[ee];
         e[a++] = st >> 16 & 255, e[a++] = st >> 8 & 255, e[a++] = st & 255;
       }
     return a = GifWriterOutputLZWCodeStream(
       e,
       a,
-      _e < 2 ? 2 : _e,
-      N
+      fe < 2 ? 2 : fe,
+      C
     ), a;
   }, this.end = function() {
-    return v === !1 && (e[a++] = 59, v = !0), a;
+    return g === !1 && (e[a++] = 59, g = !0), a;
   }, this.getOutputBuffer = function() {
     return e;
-  }, this.setOutputBuffer = function(b) {
-    e = b;
+  }, this.setOutputBuffer = function(k) {
+    e = k;
   }, this.getOutputBufferPosition = function() {
     return a;
-  }, this.setOutputBufferPosition = function(b) {
-    a = b;
+  }, this.setOutputBufferPosition = function(k) {
+    a = k;
   };
 }
 function GifWriterOutputLZWCodeStream(e, r, i, n) {
   e[r++] = i;
   var a = r++, s = 1 << i, o = s - 1, l = s + 1, h = l + 1, f = i + 1, d = 0, m = 0;
-  function p(P) {
-    for (; d >= P; )
+  function _(T) {
+    for (; d >= T; )
       e[r++] = m & 255, m >>= 8, d -= 8, r === a + 256 && (e[a] = 255, a = r++);
   }
-  function _(P) {
-    m |= P << d, d += f, p(8);
+  function p(T) {
+    m |= T << d, d += f, _(8);
   }
-  var g = n[0] & o, v = {};
-  _(s);
-  for (var b = 1, w = n.length; b < w; ++b) {
-    var k = n[b] & o, M = g << 8 | k, N = v[M];
-    if (N === void 0) {
-      for (m |= g << d, d += f; d >= 8; )
+  var v = n[0] & o, g = {};
+  p(s);
+  for (var k = 1, b = n.length; k < b; ++k) {
+    var w = n[k] & o, M = v << 8 | w, C = g[M];
+    if (C === void 0) {
+      for (m |= v << d, d += f; d >= 8; )
         e[r++] = m & 255, m >>= 8, d -= 8, r === a + 256 && (e[a] = 255, a = r++);
-      h === 4096 ? (_(s), h = l + 1, f = i + 1, v = {}) : (h >= 1 << f && ++f, v[M] = h++), g = k;
+      h === 4096 ? (p(s), h = l + 1, f = i + 1, g = {}) : (h >= 1 << f && ++f, g[M] = h++), v = w;
     } else
-      g = N;
+      v = C;
   }
-  return _(g), _(l), p(1), a + 1 === r ? e[a] = 0 : (e[a] = r - a - 1, e[r++] = 0), r;
+  return p(v), p(l), _(1), a + 1 === r ? e[a] = 0 : (e[a] = r - a - 1, e[r++] = 0), r;
 }
 function GifReader(e) {
   var r = 0;
@@ -23025,7 +23249,7 @@ function GifReader(e) {
   e[r++], e[r++];
   var h = null, f = null;
   s && (h = r, f = l, r += l * 3);
-  var d = !0, m = [], p = 0, _ = null, g = 0, v = null;
+  var d = !0, m = [], _ = 0, p = null, v = 0, g = null;
   for (this.width = i, this.height = n; d && r < e.length; )
     switch (e[r++]) {
       case 33:
@@ -23035,27 +23259,27 @@ function GifReader(e) {
             // NETSCAPE2.0
             e[r + 1] == 78 && e[r + 2] == 69 && e[r + 3] == 84 && e[r + 4] == 83 && e[r + 5] == 67 && e[r + 6] == 65 && e[r + 7] == 80 && e[r + 8] == 69 && e[r + 9] == 50 && e[r + 10] == 46 && e[r + 11] == 48 && // Sub-block
             e[r + 12] == 3 && e[r + 13] == 1 && e[r + 16] == 0)
-              r += 14, v = e[r++] | e[r++] << 8, r++;
+              r += 14, g = e[r++] | e[r++] << 8, r++;
             else
               for (r += 12; ; ) {
-                var b = e[r++];
-                if (!(b >= 0)) throw Error("Invalid block size");
-                if (b === 0) break;
-                r += b;
+                var k = e[r++];
+                if (!(k >= 0)) throw Error("Invalid block size");
+                if (k === 0) break;
+                r += k;
               }
             break;
           case 249:
             if (e[r++] !== 4 || e[r + 4] !== 0)
               throw new Error("Invalid graphics extension block.");
-            var w = e[r++];
-            p = e[r++] | e[r++] << 8, _ = e[r++], w & 1 || (_ = null), g = w >> 2 & 7, r++;
+            var b = e[r++];
+            _ = e[r++] | e[r++] << 8, p = e[r++], b & 1 || (p = null), v = b >> 2 & 7, r++;
             break;
           case 254:
             for (; ; ) {
-              var b = e[r++];
-              if (!(b >= 0)) throw Error("Invalid block size");
-              if (b === 0) break;
-              r += b;
+              var k = e[r++];
+              if (!(k >= 0)) throw Error("Invalid block size");
+              if (k === 0) break;
+              r += k;
             }
             break;
           default:
@@ -23065,32 +23289,32 @@ function GifReader(e) {
         }
         break;
       case 44:
-        var k = e[r++] | e[r++] << 8, M = e[r++] | e[r++] << 8, N = e[r++] | e[r++] << 8, P = e[r++] | e[r++] << 8, T = e[r++], C = T >> 7, X = T >> 6 & 1, _e = T & 7, Je = 1 << _e + 1, Pe = h, Ke = f, Wt = !1;
-        if (C) {
+        var w = e[r++] | e[r++] << 8, M = e[r++] | e[r++] << 8, C = e[r++] | e[r++] << 8, T = e[r++] | e[r++] << 8, P = e[r++], N = P >> 7, X = P >> 6 & 1, fe = P & 7, Ke = 1 << fe + 1, Pe = h, Je = f, Wt = !1;
+        if (N) {
           var Wt = !0;
-          Pe = r, Ke = Je, r += Je * 3;
+          Pe = r, Je = Ke, r += Ke * 3;
         }
         var ee = r;
         for (r++; ; ) {
-          var b = e[r++];
-          if (!(b >= 0)) throw Error("Invalid block size");
-          if (b === 0) break;
-          r += b;
+          var k = e[r++];
+          if (!(k >= 0)) throw Error("Invalid block size");
+          if (k === 0) break;
+          r += k;
         }
         m.push({
-          x: k,
+          x: w,
           y: M,
-          width: N,
-          height: P,
+          width: C,
+          height: T,
           has_local_palette: Wt,
           palette_offset: Pe,
-          palette_size: Ke,
+          palette_size: Je,
           data_offset: ee,
           data_length: r - ee,
-          transparent_index: _,
+          transparent_index: p,
           interlaced: !!X,
-          delay: p,
-          disposal: g
+          delay: _,
+          disposal: v
         });
         break;
       case 59:
@@ -23102,7 +23326,7 @@ function GifReader(e) {
   this.numFrames = function() {
     return m.length;
   }, this.loopCount = function() {
-    return v;
+    return g;
   }, this.frameInfo = function(We) {
     if (We < 0 || We >= m.length)
       throw new Error("Frame index out of range.");
@@ -23117,17 +23341,17 @@ function GifReader(e) {
     );
     var it = Xt.palette_offset, Qt = Xt.transparent_index;
     Qt === null && (Qt = 256);
-    var Ri = Xt.width, Ci = i - Ri, fe = Ri, Ge = (Xt.y * i + Xt.x) * 4, Kt = ((Xt.y + Xt.height) * i + Xt.x) * 4, Ni = Ge, Di = Ci * 4;
+    var Ri = Xt.width, Ci = i - Ri, _e = Ri, Ge = (Xt.y * i + Xt.x) * 4, Kt = ((Xt.y + Xt.height) * i + Xt.x) * 4, Ni = Ge, Di = Ci * 4;
     Xt.interlaced === !0 && (Di += i * 4 * 7);
     for (var Gi = 8, Ki = 0, Zn = Vt.length; Ki < Zn; ++Ki) {
       var Wi = Vt[Ki];
-      if (fe === 0 && (Ni += Di, fe = Ri, Ni >= Kt && (Di = Ci * 4 + i * 4 * (Gi - 1), Ni = Ge + (Ri + Ci) * (Gi << 1), Gi >>= 1)), Wi === Qt)
+      if (_e === 0 && (Ni += Di, _e = Ri, Ni >= Kt && (Di = Ci * 4 + i * 4 * (Gi - 1), Ni = Ge + (Ri + Ci) * (Gi << 1), Gi >>= 1)), Wi === Qt)
         Ni += 4;
       else {
         var Vi = e[it + Wi * 3], ta = e[it + Wi * 3 + 1], ra = e[it + Wi * 3 + 2];
         st[Ni++] = ra, st[Ni++] = ta, st[Ni++] = Vi, st[Ni++] = 255;
       }
-      --fe;
+      --_e;
     }
   }, this.decodeAndBlitFrameRGBA = function(We, st) {
     var Xt = this.frameInfo(We), Jt = Xt.width * Xt.height, Vt = new Uint8Array(Jt);
@@ -23139,46 +23363,46 @@ function GifReader(e) {
     );
     var it = Xt.palette_offset, Qt = Xt.transparent_index;
     Qt === null && (Qt = 256);
-    var Ri = Xt.width, Ci = i - Ri, fe = Ri, Ge = (Xt.y * i + Xt.x) * 4, Kt = ((Xt.y + Xt.height) * i + Xt.x) * 4, Ni = Ge, Di = Ci * 4;
+    var Ri = Xt.width, Ci = i - Ri, _e = Ri, Ge = (Xt.y * i + Xt.x) * 4, Kt = ((Xt.y + Xt.height) * i + Xt.x) * 4, Ni = Ge, Di = Ci * 4;
     Xt.interlaced === !0 && (Di += i * 4 * 7);
     for (var Gi = 8, Ki = 0, Zn = Vt.length; Ki < Zn; ++Ki) {
       var Wi = Vt[Ki];
-      if (fe === 0 && (Ni += Di, fe = Ri, Ni >= Kt && (Di = Ci * 4 + i * 4 * (Gi - 1), Ni = Ge + (Ri + Ci) * (Gi << 1), Gi >>= 1)), Wi === Qt)
+      if (_e === 0 && (Ni += Di, _e = Ri, Ni >= Kt && (Di = Ci * 4 + i * 4 * (Gi - 1), Ni = Ge + (Ri + Ci) * (Gi << 1), Gi >>= 1)), Wi === Qt)
         Ni += 4;
       else {
         var Vi = e[it + Wi * 3], ta = e[it + Wi * 3 + 1], ra = e[it + Wi * 3 + 2];
         st[Ni++] = Vi, st[Ni++] = ta, st[Ni++] = ra, st[Ni++] = 255;
       }
-      --fe;
+      --_e;
     }
   };
 }
 function GifReaderLZWOutputIndexStream(e, r, i, n) {
-  for (var a = e[r++], s = 1 << a, o = s + 1, l = o + 1, h = a + 1, f = (1 << h) - 1, d = 0, m = 0, p = 0, _ = e[r++], g = new Int32Array(4096), v = null; ; ) {
-    for (; d < 16 && _ !== 0; )
-      m |= e[r++] << d, d += 8, _ === 1 ? _ = e[r++] : --_;
+  for (var a = e[r++], s = 1 << a, o = s + 1, l = o + 1, h = a + 1, f = (1 << h) - 1, d = 0, m = 0, _ = 0, p = e[r++], v = new Int32Array(4096), g = null; ; ) {
+    for (; d < 16 && p !== 0; )
+      m |= e[r++] << d, d += 8, p === 1 ? p = e[r++] : --p;
     if (d < h)
       break;
-    var b = m & f;
-    if (m >>= h, d -= h, b === s) {
-      l = o + 1, h = a + 1, f = (1 << h) - 1, v = null;
+    var k = m & f;
+    if (m >>= h, d -= h, k === s) {
+      l = o + 1, h = a + 1, f = (1 << h) - 1, g = null;
       continue;
-    } else if (b === o)
+    } else if (k === o)
       break;
-    for (var w = b < l ? b : v, k = 0, M = w; M > s; )
-      M = g[M] >> 8, ++k;
-    var N = M, P = p + k + (w !== b ? 1 : 0);
-    if (P > n) {
+    for (var b = k < l ? k : g, w = 0, M = b; M > s; )
+      M = v[M] >> 8, ++w;
+    var C = M, T = _ + w + (b !== k ? 1 : 0);
+    if (T > n) {
       console.log("Warning, gif stream longer than expected.");
       return;
     }
-    i[p++] = N, p += k;
-    var T = p;
-    for (w !== b && (i[p++] = N), M = w; k--; )
-      M = g[M], i[--T] = M & 255, M >>= 8;
-    v !== null && l < 4096 && (g[l++] = v << 8 | N, l >= f + 1 && h < 12 && (++h, f = f << 1 | 1)), v = b;
+    i[_++] = C, _ += w;
+    var P = _;
+    for (b !== k && (i[_++] = C), M = b; w--; )
+      M = v[M], i[--P] = M & 255, M >>= 8;
+    g !== null && l < 4096 && (v[l++] = g << 8 | C, l >= f + 1 && h < 12 && (++h, f = f << 1 | 1)), g = k;
   }
-  return p !== n && console.log("Warning, gif stream shorter than expected."), i;
+  return _ !== n && console.log("Warning, gif stream shorter than expected."), i;
 }
 try {
   GifWriter_1 = omggif.GifWriter = GifWriter, GifReader_1 = omggif.GifReader = GifReader;
@@ -23246,10 +23470,10 @@ let BitmapImage$2 = class Ya {
       throw new Error("copy exceeds height of source bitmap");
     if (n + l > r.bitmap.height)
       throw new Erro("copy exceeds height of target bitmap");
-    const h = this.bitmap.data, f = r.bitmap.data, d = this.bitmap.width * 4, m = r.bitmap.width * 4, p = o * 4;
-    let _ = s * d + a * 4, g = n * m + i * 4;
+    const h = this.bitmap.data, f = r.bitmap.data, d = this.bitmap.width * 4, m = r.bitmap.width * 4, _ = o * 4;
+    let p = s * d + a * 4, v = n * m + i * 4;
     for (; --l >= 0; )
-      h.copy(f, g, _, _ + p), _ += d, g += m;
+      h.copy(f, v, p, p + _), p += d, v += m;
     return this;
   }
   /**
@@ -23315,14 +23539,14 @@ let BitmapImage$2 = class Ya {
    */
   reframe(r, i, n, a, s) {
     const o = r < 0 ? 0 : r, l = i < 0 ? 0 : i, h = n + o > this.bitmap.width ? this.bitmap.width - o : n, f = a + l > this.bitmap.height ? this.bitmap.height - l : a, d = r < 0 ? -r : 0, m = i < 0 ? -i : 0;
-    let p;
+    let _;
     if (s === void 0) {
       if (o !== r || l != i || h !== n || f !== a)
         throw new GifError("fillRGBA required for this reframing");
-      p = new Ya(n, a);
+      _ = new Ya(n, a);
     } else
-      p = new Ya(n, a, s);
-    return this.blit(p, d, m, o, l, h, f), this.bitmap = p.bitmap, this;
+      _ = new Ya(n, a, s);
+    return this.blit(_, d, m, o, l, h, f), this.bitmap = _.bitmap, this;
   }
   /**
    * Scales the image size up by an integer factor. Each pixel of the original image becomes a square of the same color in the new image having a size of `factor` x `factor` pixels.
@@ -23340,9 +23564,9 @@ let BitmapImage$2 = class Ya {
     for (let d = 0; d < n; ++d) {
       h = f;
       for (let m = 0; m < i; ++m) {
-        const p = s.readUInt32BE(l, !0);
-        for (let _ = 0; _ < r; ++_)
-          o.writeUInt32BE(p, f), f += 4;
+        const _ = s.readUInt32BE(l, !0);
+        for (let p = 0; p < r; ++p)
+          o.writeUInt32BE(_, f), f += 4;
         l += 4;
       }
       for (let m = 1; m < r; ++m)
@@ -23608,11 +23832,11 @@ var AbstractDistanceCalculator$1 = class {
   }
 }, AbstractCIE94$1 = class extends AbstractDistanceCalculator$1 {
   calculateRaw(r, i, n, a, s, o, l, h) {
-    const f = rgb2lab$1(inRange0to255$1(r * this._whitePoint.r), inRange0to255$1(i * this._whitePoint.g), inRange0to255$1(n * this._whitePoint.b)), d = rgb2lab$1(inRange0to255$1(s * this._whitePoint.r), inRange0to255$1(o * this._whitePoint.g), inRange0to255$1(l * this._whitePoint.b)), m = f.L - d.L, p = f.a - d.a, _ = f.b - d.b, g = Math.sqrt(f.a * f.a + f.b * f.b), v = Math.sqrt(d.a * d.a + d.b * d.b), b = g - v;
-    let w = p * p + _ * _ - b * b;
-    w = w < 0 ? 0 : Math.sqrt(w);
-    const k = (h - a) * this._whitePoint.a * this._kA;
-    return Math.sqrt((m / this._Kl) ** 2 + (b / (1 + this._K1 * g)) ** 2 + (w / (1 + this._K2 * g)) ** 2 + k ** 2);
+    const f = rgb2lab$1(inRange0to255$1(r * this._whitePoint.r), inRange0to255$1(i * this._whitePoint.g), inRange0to255$1(n * this._whitePoint.b)), d = rgb2lab$1(inRange0to255$1(s * this._whitePoint.r), inRange0to255$1(o * this._whitePoint.g), inRange0to255$1(l * this._whitePoint.b)), m = f.L - d.L, _ = f.a - d.a, p = f.b - d.b, v = Math.sqrt(f.a * f.a + f.b * f.b), g = Math.sqrt(d.a * d.a + d.b * d.b), k = v - g;
+    let b = _ * _ + p * p - k * k;
+    b = b < 0 ? 0 : Math.sqrt(b);
+    const w = (h - a) * this._whitePoint.a * this._kA;
+    return Math.sqrt((m / this._Kl) ** 2 + (k / (1 + this._K1 * v)) ** 2 + (b / (1 + this._K2 * v)) ** 2 + w ** 2);
   }
 }, CIE94Textiles$1 = class extends AbstractCIE94$1 {
   _setDefaults() {
@@ -23645,11 +23869,11 @@ var AbstractDistanceCalculator$1 = class {
     return r === 0 ? s = 0 : i <= _CIEDE2000$1._deg180InRad ? s = n - a : n <= a ? s = n - a + _CIEDE2000$1._deg360InRad : s = n - a - _CIEDE2000$1._deg360InRad, 2 * Math.sqrt(r) * Math.sin(s / 2);
   }
   calculateRaw(r, i, n, a, s, o, l, h) {
-    const f = rgb2lab$1(inRange0to255$1(r * this._whitePoint.r), inRange0to255$1(i * this._whitePoint.g), inRange0to255$1(n * this._whitePoint.b)), d = rgb2lab$1(inRange0to255$1(s * this._whitePoint.r), inRange0to255$1(o * this._whitePoint.g), inRange0to255$1(l * this._whitePoint.b)), m = (h - a) * this._whitePoint.a * _CIEDE2000$1._kA, p = this.calculateRawInLab(f, d);
-    return Math.sqrt(p + m * m);
+    const f = rgb2lab$1(inRange0to255$1(r * this._whitePoint.r), inRange0to255$1(i * this._whitePoint.g), inRange0to255$1(n * this._whitePoint.b)), d = rgb2lab$1(inRange0to255$1(s * this._whitePoint.r), inRange0to255$1(o * this._whitePoint.g), inRange0to255$1(l * this._whitePoint.b)), m = (h - a) * this._whitePoint.a * _CIEDE2000$1._kA, _ = this.calculateRawInLab(f, d);
+    return Math.sqrt(_ + m * m);
   }
   calculateRawInLab(r, i) {
-    const n = r.L, a = r.a, s = r.b, o = i.L, l = i.a, h = i.b, f = Math.sqrt(a * a + s * s), d = Math.sqrt(l * l + h * h), m = ((f + d) / 2) ** 7, p = 0.5 * (1 - Math.sqrt(m / (m + _CIEDE2000$1._pow25to7))), _ = (1 + p) * a, g = (1 + p) * l, v = Math.sqrt(_ * _ + s * s), b = Math.sqrt(g * g + h * h), w = v * b, k = _CIEDE2000$1._calculatehp(s, _), M = _CIEDE2000$1._calculatehp(h, g), N = Math.abs(k - M), P = o - n, T = b - v, C = _CIEDE2000$1._calculate_dHp(w, N, M, k), X = _CIEDE2000$1._calculate_ahp(w, N, k, M), _e = _CIEDE2000$1._calculateT(X), Je = (v + b) / 2, Pe = ((n + o) / 2 - 50) ** 2, Ke = 1 + 0.015 * Pe / Math.sqrt(20 + Pe), Wt = 1 + 0.045 * Je, ee = 1 + 0.015 * _e * Je, We = _CIEDE2000$1._calculateRT(X, Je), st = P / Ke, Xt = T / Wt, Jt = C / ee;
+    const n = r.L, a = r.a, s = r.b, o = i.L, l = i.a, h = i.b, f = Math.sqrt(a * a + s * s), d = Math.sqrt(l * l + h * h), m = ((f + d) / 2) ** 7, _ = 0.5 * (1 - Math.sqrt(m / (m + _CIEDE2000$1._pow25to7))), p = (1 + _) * a, v = (1 + _) * l, g = Math.sqrt(p * p + s * s), k = Math.sqrt(v * v + h * h), b = g * k, w = _CIEDE2000$1._calculatehp(s, p), M = _CIEDE2000$1._calculatehp(h, v), C = Math.abs(w - M), T = o - n, P = k - g, N = _CIEDE2000$1._calculate_dHp(b, C, M, w), X = _CIEDE2000$1._calculate_ahp(b, C, w, M), fe = _CIEDE2000$1._calculateT(X), Ke = (g + k) / 2, Pe = ((n + o) / 2 - 50) ** 2, Je = 1 + 0.015 * Pe / Math.sqrt(20 + Pe), Wt = 1 + 0.045 * Ke, ee = 1 + 0.015 * fe * Ke, We = _CIEDE2000$1._calculateRT(X, Ke), st = T / Je, Xt = P / Wt, Jt = N / ee;
     return st ** 2 + Xt ** 2 + Jt ** 2 + We * Xt * Jt;
   }
 }, CIEDE2000$1 = _CIEDE2000$1;
@@ -23664,15 +23888,15 @@ __publicField$1(CIEDE2000$1, "_deg275InRad", degrees2radians$1(275));
 __publicField$1(CIEDE2000$1, "_deg25InRad", degrees2radians$1(25));
 var CMetric$1 = class extends AbstractDistanceCalculator$1 {
   calculateRaw(r, i, n, a, s, o, l, h) {
-    const f = (r + s) / 2 * this._whitePoint.r, d = (r - s) * this._whitePoint.r, m = (i - o) * this._whitePoint.g, p = (n - l) * this._whitePoint.b, _ = ((512 + f) * d * d >> 8) + 4 * m * m + ((767 - f) * p * p >> 8), g = (h - a) * this._whitePoint.a;
-    return Math.sqrt(_ + g * g);
+    const f = (r + s) / 2 * this._whitePoint.r, d = (r - s) * this._whitePoint.r, m = (i - o) * this._whitePoint.g, _ = (n - l) * this._whitePoint.b, p = ((512 + f) * d * d >> 8) + 4 * m * m + ((767 - f) * _ * _ >> 8), v = (h - a) * this._whitePoint.a;
+    return Math.sqrt(p + v * v);
   }
   _setDefaults() {
   }
 }, AbstractEuclidean$1 = class extends AbstractDistanceCalculator$1 {
   calculateRaw(r, i, n, a, s, o, l, h) {
-    const f = s - r, d = o - i, m = l - n, p = h - a;
-    return Math.sqrt(this._kR * f * f + this._kG * d * d + this._kB * m * m + this._kA * p * p);
+    const f = s - r, d = o - i, m = l - n, _ = h - a;
+    return Math.sqrt(this._kR * f * f + this._kG * d * d + this._kB * m * m + this._kA * _ * _);
   }
 }, Euclidean$1 = class extends AbstractEuclidean$1 {
   _setDefaults() {
@@ -23688,8 +23912,8 @@ var CMetric$1 = class extends AbstractDistanceCalculator$1 {
   }
 }, AbstractManhattan$1 = class extends AbstractDistanceCalculator$1 {
   calculateRaw(r, i, n, a, s, o, l, h) {
-    let f = s - r, d = o - i, m = l - n, p = h - a;
-    return f < 0 && (f = 0 - f), d < 0 && (d = 0 - d), m < 0 && (m = 0 - m), p < 0 && (p = 0 - p), this._kR * f + this._kG * d + this._kB * m + this._kA * p;
+    let f = s - r, d = o - i, m = l - n, _ = h - a;
+    return f < 0 && (f = 0 - f), d < 0 && (d = 0 - d), m < 0 && (m = 0 - m), _ < 0 && (_ = 0 - _), this._kR * f + this._kG * d + this._kB * m + this._kA * _;
   }
 }, Manhattan$1 = class extends AbstractManhattan$1 {
   _setDefaults() {
@@ -23973,12 +24197,12 @@ var networkBiasShift$1 = 3, Neuron$1 = class {
     let f;
     i < _NeuQuant$1._minpicturebytes ? f = 1 : i % _NeuQuant$1._prime1 !== 0 ? f = _NeuQuant$1._prime1 : i % _NeuQuant$1._prime2 !== 0 ? f = _NeuQuant$1._prime2 : i % _NeuQuant$1._prime3 !== 0 ? f = _NeuQuant$1._prime3 : f = _NeuQuant$1._prime4;
     const d = new ProgressTracker$1(a, 99);
-    for (let m = 0, p = 0; m < a; ) {
+    for (let m = 0, _ = 0; m < a; ) {
       d.shouldNotify(m) && (yield {
         progress: d.progress
       });
-      const _ = this._pointArray[p], g = _.b << networkBiasShift$1, v = _.g << networkBiasShift$1, b = _.r << networkBiasShift$1, w = _.a << networkBiasShift$1, k = this._contest(g, v, b, w);
-      if (this._alterSingle(o, k, g, v, b, w), h !== 0 && this._alterNeighbour(h, k, g, v, b, w), p += f, p >= i && (p -= i), m++, s === 0 && (s = 1), m % s === 0) {
+      const p = this._pointArray[_], v = p.b << networkBiasShift$1, g = p.g << networkBiasShift$1, k = p.r << networkBiasShift$1, b = p.a << networkBiasShift$1, w = this._contest(v, g, k, b);
+      if (this._alterSingle(o, w, v, g, k, b), h !== 0 && this._alterNeighbour(h, w, v, g, k, b), _ += f, _ >= i && (_ -= i), m++, s === 0 && (s = 1), m % s === 0) {
         o -= o / n | 0, l -= l / _NeuQuant$1._radiusDecrease | 0, h = l >> _NeuQuant$1._radiusBiasShift, h <= 1 && (h = 0);
         for (let M = 0; M < h; M++)
           this._radPower[M] = o * ((h * h - M * M) * _NeuQuant$1._radBias / (h * h)) >>> 0;
@@ -23998,14 +24222,14 @@ var networkBiasShift$1 = 3, Neuron$1 = class {
     h > this._networkSize && (h = this._networkSize);
     let f = i + 1, d = i - 1, m = 1;
     for (; f < h || d > l; ) {
-      const p = this._radPower[m++] / _NeuQuant$1._alphaRadBias;
+      const _ = this._radPower[m++] / _NeuQuant$1._alphaRadBias;
       if (f < h) {
-        const _ = this._network[f++];
-        _.subtract(p * (_.r - s), p * (_.g - a), p * (_.b - n), p * (_.a - o));
+        const p = this._network[f++];
+        p.subtract(_ * (p.r - s), _ * (p.g - a), _ * (p.b - n), _ * (p.a - o));
       }
       if (d > l) {
-        const _ = this._network[d--];
-        _.subtract(p * (_.r - s), p * (_.g - a), p * (_.b - n), p * (_.a - o));
+        const p = this._network[d--];
+        p.subtract(_ * (p.r - s), _ * (p.g - a), _ * (p.b - n), _ * (p.a - o));
       }
     }
   }
@@ -24018,12 +24242,12 @@ var networkBiasShift$1 = 3, Neuron$1 = class {
     const s = 1020 << networkBiasShift$1;
     let o = 2147483647, l = o, h = -1, f = h;
     for (let d = 0; d < this._networkSize; d++) {
-      const m = this._network[d], p = this._distance.calculateNormalized(m, { r: n, g: i, b: r, a }) * s | 0;
-      p < o && (o = p, h = d);
-      const _ = p - (this._bias[d] >> _NeuQuant$1._initialBiasShift - networkBiasShift$1);
-      _ < l && (l = _, f = d);
-      const g = this._freq[d] >> _NeuQuant$1._betaShift;
-      this._freq[d] -= g, this._bias[d] += g << _NeuQuant$1._gammaShift;
+      const m = this._network[d], _ = this._distance.calculateNormalized(m, { r: n, g: i, b: r, a }) * s | 0;
+      _ < o && (o = _, h = d);
+      const p = _ - (this._bias[d] >> _NeuQuant$1._initialBiasShift - networkBiasShift$1);
+      p < l && (l = p, f = d);
+      const v = this._freq[d] >> _NeuQuant$1._betaShift;
+      this._freq[d] -= v, this._bias[d] += v << _NeuQuant$1._gammaShift;
     }
     return this._freq[h] += _NeuQuant$1._beta, this._bias[h] -= _NeuQuant$1._betaGamma, f;
   }
@@ -24089,12 +24313,12 @@ var networkBiasShift2$1 = 3, NeuronFloat$1 = class {
     let f;
     i < _NeuQuantFloat$1._minpicturebytes ? f = 1 : i % _NeuQuantFloat$1._prime1 !== 0 ? f = _NeuQuantFloat$1._prime1 : i % _NeuQuantFloat$1._prime2 !== 0 ? f = _NeuQuantFloat$1._prime2 : i % _NeuQuantFloat$1._prime3 !== 0 ? f = _NeuQuantFloat$1._prime3 : f = _NeuQuantFloat$1._prime4;
     const d = new ProgressTracker$1(a, 99);
-    for (let m = 0, p = 0; m < a; ) {
+    for (let m = 0, _ = 0; m < a; ) {
       d.shouldNotify(m) && (yield {
         progress: d.progress
       });
-      const _ = this._pointArray[p], g = _.b << networkBiasShift2$1, v = _.g << networkBiasShift2$1, b = _.r << networkBiasShift2$1, w = _.a << networkBiasShift2$1, k = this._contest(g, v, b, w);
-      if (this._alterSingle(o, k, g, v, b, w), h !== 0 && this._alterNeighbour(h, k, g, v, b, w), p += f, p >= i && (p -= i), m++, s === 0 && (s = 1), m % s === 0) {
+      const p = this._pointArray[_], v = p.b << networkBiasShift2$1, g = p.g << networkBiasShift2$1, k = p.r << networkBiasShift2$1, b = p.a << networkBiasShift2$1, w = this._contest(v, g, k, b);
+      if (this._alterSingle(o, w, v, g, k, b), h !== 0 && this._alterNeighbour(h, w, v, g, k, b), _ += f, _ >= i && (_ -= i), m++, s === 0 && (s = 1), m % s === 0) {
         o -= o / n, l -= l / _NeuQuantFloat$1._radiusDecrease, h = l >> _NeuQuantFloat$1._radiusBiasShift, h <= 1 && (h = 0);
         for (let M = 0; M < h; M++)
           this._radPower[M] = o * ((h * h - M * M) * _NeuQuantFloat$1._radBias / (h * h));
@@ -24114,14 +24338,14 @@ var networkBiasShift2$1 = 3, NeuronFloat$1 = class {
     h > this._networkSize && (h = this._networkSize);
     let f = i + 1, d = i - 1, m = 1;
     for (; f < h || d > l; ) {
-      const p = this._radPower[m++] / _NeuQuantFloat$1._alphaRadBias;
+      const _ = this._radPower[m++] / _NeuQuantFloat$1._alphaRadBias;
       if (f < h) {
-        const _ = this._network[f++];
-        _.subtract(p * (_.r - s), p * (_.g - a), p * (_.b - n), p * (_.a - o));
+        const p = this._network[f++];
+        p.subtract(_ * (p.r - s), _ * (p.g - a), _ * (p.b - n), _ * (p.a - o));
       }
       if (d > l) {
-        const _ = this._network[d--];
-        _.subtract(p * (_.r - s), p * (_.g - a), p * (_.b - n), p * (_.a - o));
+        const p = this._network[d--];
+        p.subtract(_ * (p.r - s), _ * (p.g - a), _ * (p.b - n), _ * (p.a - o));
       }
     }
   }
@@ -24134,12 +24358,12 @@ var networkBiasShift2$1 = 3, NeuronFloat$1 = class {
     const s = 1020 << networkBiasShift2$1;
     let o = 2147483647, l = o, h = -1, f = h;
     for (let d = 0; d < this._networkSize; d++) {
-      const m = this._network[d], p = this._distance.calculateNormalized(m, { r: n, g: i, b: r, a }) * s;
-      p < o && (o = p, h = d);
-      const _ = p - (this._bias[d] >> _NeuQuantFloat$1._initialBiasShift - networkBiasShift2$1);
-      _ < l && (l = _, f = d);
-      const g = this._freq[d] >> _NeuQuantFloat$1._betaShift;
-      this._freq[d] -= g, this._bias[d] += g << _NeuQuantFloat$1._gammaShift;
+      const m = this._network[d], _ = this._distance.calculateNormalized(m, { r: n, g: i, b: r, a }) * s;
+      _ < o && (o = _, h = d);
+      const p = _ - (this._bias[d] >> _NeuQuantFloat$1._initialBiasShift - networkBiasShift2$1);
+      p < l && (l = p, f = d);
+      const v = this._freq[d] >> _NeuQuantFloat$1._betaShift;
+      this._freq[d] -= v, this._bias[d] += v << _NeuQuantFloat$1._gammaShift;
     }
     return this._freq[h] += _NeuQuantFloat$1._beta, this._bias[h] -= _NeuQuantFloat$1._betaGamma, f;
   }
@@ -24214,10 +24438,10 @@ var _ColorHistogram$1 = class {
     h.forEach((d) => {
       let m = Math.round(d.w * d.h / l) * _ColorHistogram$1._boxPixels;
       m < 2 && (m = 2);
-      const p = {};
-      this._iterateBox(d, i, (_) => {
-        const g = a[_].uint32;
-        this._hueStats.check(g), g in f ? f[g]++ : g in p ? ++p[g] >= m && (f[g] = p[g]) : p[g] = 1;
+      const _ = {};
+      this._iterateBox(d, i, (p) => {
+        const v = a[p].uint32;
+        this._hueStats.check(v), v in f ? f[v]++ : v in _ ? ++_[v] >= m && (f[v] = _[v]) : _[v] = 1;
       });
     }), this._hueStats.injectIntoDictionary(f);
   }
@@ -24275,22 +24499,22 @@ var RemovedColor$1 = class {
           progress: f.progress
         }), a[m] === 0)
           continue;
-        const p = n[m];
-        for (let _ = m + 1; _ < s; _++) {
-          if (a[_] === 0)
+        const _ = n[m];
+        for (let p = m + 1; p < s; p++) {
+          if (a[p] === 0)
             continue;
-          const g = n[_], v = this._distance.calculateNormalized(p, g);
-          v < h && (o.push(new RemovedColor$1(_, g, v)), a[_] = 0, l--);
+          const v = n[p], g = this._distance.calculateNormalized(_, v);
+          g < h && (o.push(new RemovedColor$1(p, v, g)), a[p] = 0, l--);
         }
       }
       h += l > this._colors * 3 ? this._initialDistance : this._distanceIncrement;
     }
     if (l < this._colors) {
-      stableSort$1(o, (p, _) => _.distance - p.distance);
+      stableSort$1(o, (_, p) => p.distance - _.distance);
       let m = 0;
       for (; l < this._colors && m < o.length; ) {
-        const p = o[m];
-        a[p.index] = 1, l++, m++;
+        const _ = o[m];
+        a[_.index] = 1, l++, m++;
       }
     }
     let d = n.length;
@@ -24398,10 +24622,10 @@ var WuColorCube$1 = class {
     this._reds = createArray1D$1(this._colors + 1), this._greens = createArray1D$1(this._colors + 1), this._blues = createArray1D$1(this._colors + 1), this._alphas = createArray1D$1(this._colors + 1), this._sums = createArray1D$1(this._colors + 1);
     for (let l = 0, h = this._pixels.length; l < h; l++) {
       const f = this._pixels[l];
-      let m = -1, p = Number.MAX_VALUE;
-      for (let _ = 0; _ < this._colors; _++) {
-        const g = n[_], v = a[_], b = s[_], w = o[_], k = this._distance.calculateRaw(g, v, b, w, f.r, f.g, f.b, f.a);
-        k < p && (p = k, m = _);
+      let m = -1, _ = Number.MAX_VALUE;
+      for (let p = 0; p < this._colors; p++) {
+        const v = n[p], g = a[p], k = s[p], b = o[p], w = this._distance.calculateRaw(v, g, k, b, f.r, f.g, f.b, f.a);
+        w < _ && (_ = w, m = p);
       }
       this._reds[m] += f.r, this._greens[m] += f.g, this._blues[m] += f.b, this._alphas[m] += f.a, this._sums[m]++;
     }
@@ -24411,19 +24635,19 @@ var WuColorCube$1 = class {
     this._weights[o][n][a][s]++, this._momentsRed[o][n][a][s] += r.r, this._momentsGreen[o][n][a][s] += r.g, this._momentsBlue[o][n][a][s] += r.b, this._momentsAlpha[o][n][a][s] += r.a, this._moments[o][n][a][s] += this._table[r.r] + this._table[r.g] + this._table[r.b] + this._table[r.a];
   }
   *_calculateMoments() {
-    const r = [], i = [], n = [], a = [], s = [], o = [], l = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), h = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), f = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), d = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), m = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), p = createArray3D$1(this._sideSize, this._sideSize, this._sideSize);
-    let _ = 0;
-    const g = new ProgressTracker$1(this._alphaMaxSideIndex * this._maxSideIndex, 99);
-    for (let v = 1; v <= this._alphaMaxSideIndex; ++v) {
-      fillArray3D$1(l, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(h, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(f, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(d, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(m, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(p, this._sideSize, this._sideSize, this._sideSize, 0);
-      for (let b = 1; b <= this._maxSideIndex; ++b, ++_) {
-        g.shouldNotify(_) && (yield {
-          progress: g.progress
+    const r = [], i = [], n = [], a = [], s = [], o = [], l = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), h = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), f = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), d = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), m = createArray3D$1(this._sideSize, this._sideSize, this._sideSize), _ = createArray3D$1(this._sideSize, this._sideSize, this._sideSize);
+    let p = 0;
+    const v = new ProgressTracker$1(this._alphaMaxSideIndex * this._maxSideIndex, 99);
+    for (let g = 1; g <= this._alphaMaxSideIndex; ++g) {
+      fillArray3D$1(l, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(h, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(f, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(d, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(m, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D$1(_, this._sideSize, this._sideSize, this._sideSize, 0);
+      for (let k = 1; k <= this._maxSideIndex; ++k, ++p) {
+        v.shouldNotify(p) && (yield {
+          progress: v.progress
         }), fillArray1D$1(r, this._sideSize, 0), fillArray1D$1(i, this._sideSize, 0), fillArray1D$1(n, this._sideSize, 0), fillArray1D$1(a, this._sideSize, 0), fillArray1D$1(s, this._sideSize, 0), fillArray1D$1(o, this._sideSize, 0);
-        for (let w = 1; w <= this._maxSideIndex; ++w) {
-          let k = 0, M = 0, N = 0, P = 0, T = 0, C = 0;
+        for (let b = 1; b <= this._maxSideIndex; ++b) {
+          let w = 0, M = 0, C = 0, T = 0, P = 0, N = 0;
           for (let X = 1; X <= this._maxSideIndex; ++X)
-            k += this._weights[v][b][w][X], M += this._momentsRed[v][b][w][X], N += this._momentsGreen[v][b][w][X], P += this._momentsBlue[v][b][w][X], T += this._momentsAlpha[v][b][w][X], C += this._moments[v][b][w][X], r[X] += k, i[X] += M, n[X] += N, a[X] += P, s[X] += T, o[X] += C, l[b][w][X] = l[b - 1][w][X] + r[X], h[b][w][X] = h[b - 1][w][X] + i[X], f[b][w][X] = f[b - 1][w][X] + n[X], d[b][w][X] = d[b - 1][w][X] + a[X], m[b][w][X] = m[b - 1][w][X] + s[X], p[b][w][X] = p[b - 1][w][X] + o[X], this._weights[v][b][w][X] = this._weights[v - 1][b][w][X] + l[b][w][X], this._momentsRed[v][b][w][X] = this._momentsRed[v - 1][b][w][X] + h[b][w][X], this._momentsGreen[v][b][w][X] = this._momentsGreen[v - 1][b][w][X] + f[b][w][X], this._momentsBlue[v][b][w][X] = this._momentsBlue[v - 1][b][w][X] + d[b][w][X], this._momentsAlpha[v][b][w][X] = this._momentsAlpha[v - 1][b][w][X] + m[b][w][X], this._moments[v][b][w][X] = this._moments[v - 1][b][w][X] + p[b][w][X];
+            w += this._weights[g][k][b][X], M += this._momentsRed[g][k][b][X], C += this._momentsGreen[g][k][b][X], T += this._momentsBlue[g][k][b][X], P += this._momentsAlpha[g][k][b][X], N += this._moments[g][k][b][X], r[X] += w, i[X] += M, n[X] += C, a[X] += T, s[X] += P, o[X] += N, l[k][b][X] = l[k - 1][b][X] + r[X], h[k][b][X] = h[k - 1][b][X] + i[X], f[k][b][X] = f[k - 1][b][X] + n[X], d[k][b][X] = d[k - 1][b][X] + a[X], m[k][b][X] = m[k - 1][b][X] + s[X], _[k][b][X] = _[k - 1][b][X] + o[X], this._weights[g][k][b][X] = this._weights[g - 1][k][b][X] + l[k][b][X], this._momentsRed[g][k][b][X] = this._momentsRed[g - 1][k][b][X] + h[k][b][X], this._momentsGreen[g][k][b][X] = this._momentsGreen[g - 1][k][b][X] + f[k][b][X], this._momentsBlue[g][k][b][X] = this._momentsBlue[g - 1][k][b][X] + d[k][b][X], this._momentsAlpha[g][k][b][X] = this._momentsAlpha[g - 1][k][b][X] + m[k][b][X], this._moments[g][k][b][X] = this._moments[g - 1][k][b][X] + _[k][b][X];
         }
       }
     }
@@ -24473,24 +24697,24 @@ var WuColorCube$1 = class {
     return o - h / l;
   }
   _maximize(r, i, n, a, s, o, l, h, f) {
-    const d = _WuQuant$1._bottom(r, i, this._momentsRed) | 0, m = _WuQuant$1._bottom(r, i, this._momentsGreen) | 0, p = _WuQuant$1._bottom(r, i, this._momentsBlue) | 0, _ = _WuQuant$1._bottom(r, i, this._momentsAlpha) | 0, g = _WuQuant$1._bottom(r, i, this._weights) | 0;
-    let v = 0, b = -1;
-    for (let w = n; w < a; ++w) {
-      let k = d + _WuQuant$1._top(r, i, w, this._momentsRed), M = m + _WuQuant$1._top(r, i, w, this._momentsGreen), N = p + _WuQuant$1._top(r, i, w, this._momentsBlue), P = _ + _WuQuant$1._top(r, i, w, this._momentsAlpha), T = g + _WuQuant$1._top(r, i, w, this._weights);
-      if (T !== 0) {
-        let C = k * k + M * M + N * N + P * P, X = C / T;
-        k = s - k, M = o - M, N = l - N, P = h - P, T = f - T, T !== 0 && (C = k * k + M * M + N * N + P * P, X += C / T, X > v && (v = X, b = w));
+    const d = _WuQuant$1._bottom(r, i, this._momentsRed) | 0, m = _WuQuant$1._bottom(r, i, this._momentsGreen) | 0, _ = _WuQuant$1._bottom(r, i, this._momentsBlue) | 0, p = _WuQuant$1._bottom(r, i, this._momentsAlpha) | 0, v = _WuQuant$1._bottom(r, i, this._weights) | 0;
+    let g = 0, k = -1;
+    for (let b = n; b < a; ++b) {
+      let w = d + _WuQuant$1._top(r, i, b, this._momentsRed), M = m + _WuQuant$1._top(r, i, b, this._momentsGreen), C = _ + _WuQuant$1._top(r, i, b, this._momentsBlue), T = p + _WuQuant$1._top(r, i, b, this._momentsAlpha), P = v + _WuQuant$1._top(r, i, b, this._weights);
+      if (P !== 0) {
+        let N = w * w + M * M + C * C + T * T, X = N / P;
+        w = s - w, M = o - M, C = l - C, T = h - T, P = f - P, P !== 0 && (N = w * w + M * M + C * C + T * T, X += N / P, X > g && (g = X, k = b));
       }
     }
-    return { max: v, position: b };
+    return { max: g, position: k };
   }
   _cut(r, i) {
     let n;
-    const a = _WuQuant$1._volume(r, this._momentsRed), s = _WuQuant$1._volume(r, this._momentsGreen), o = _WuQuant$1._volume(r, this._momentsBlue), l = _WuQuant$1._volume(r, this._momentsAlpha), h = _WuQuant$1._volume(r, this._weights), f = this._maximize(r, _WuQuant$1._red, r.redMinimum + 1, r.redMaximum, a, s, o, l, h), d = this._maximize(r, _WuQuant$1._green, r.greenMinimum + 1, r.greenMaximum, a, s, o, l, h), m = this._maximize(r, _WuQuant$1._blue, r.blueMinimum + 1, r.blueMaximum, a, s, o, l, h), p = this._maximize(r, _WuQuant$1._alpha, r.alphaMinimum + 1, r.alphaMaximum, a, s, o, l, h);
-    if (p.max >= f.max && p.max >= d.max && p.max >= m.max) {
-      if (n = _WuQuant$1._alpha, p.position < 0)
+    const a = _WuQuant$1._volume(r, this._momentsRed), s = _WuQuant$1._volume(r, this._momentsGreen), o = _WuQuant$1._volume(r, this._momentsBlue), l = _WuQuant$1._volume(r, this._momentsAlpha), h = _WuQuant$1._volume(r, this._weights), f = this._maximize(r, _WuQuant$1._red, r.redMinimum + 1, r.redMaximum, a, s, o, l, h), d = this._maximize(r, _WuQuant$1._green, r.greenMinimum + 1, r.greenMaximum, a, s, o, l, h), m = this._maximize(r, _WuQuant$1._blue, r.blueMinimum + 1, r.blueMaximum, a, s, o, l, h), _ = this._maximize(r, _WuQuant$1._alpha, r.alphaMinimum + 1, r.alphaMaximum, a, s, o, l, h);
+    if (_.max >= f.max && _.max >= d.max && _.max >= m.max) {
+      if (n = _WuQuant$1._alpha, _.position < 0)
         return !1;
-    } else f.max >= p.max && f.max >= d.max && f.max >= m.max ? n = _WuQuant$1._red : d.max >= p.max && d.max >= f.max && d.max >= m.max ? n = _WuQuant$1._green : n = _WuQuant$1._blue;
+    } else f.max >= _.max && f.max >= d.max && f.max >= m.max ? n = _WuQuant$1._red : d.max >= _.max && d.max >= f.max && d.max >= m.max ? n = _WuQuant$1._green : n = _WuQuant$1._blue;
     switch (i.redMaximum = r.redMaximum, i.greenMaximum = r.greenMaximum, i.blueMaximum = r.blueMaximum, i.alphaMaximum = r.alphaMaximum, n) {
       case _WuQuant$1._red:
         i.redMinimum = r.redMaximum = f.position, i.greenMinimum = r.greenMinimum, i.blueMinimum = r.blueMinimum, i.alphaMinimum = r.alphaMinimum;
@@ -24502,7 +24726,7 @@ var WuColorCube$1 = class {
         i.blueMinimum = r.blueMaximum = m.position, i.redMinimum = r.redMinimum, i.greenMinimum = r.greenMinimum, i.alphaMinimum = r.alphaMinimum;
         break;
       case _WuQuant$1._alpha:
-        i.alphaMinimum = r.alphaMaximum = p.position, i.blueMinimum = r.blueMinimum, i.redMinimum = r.redMinimum, i.greenMinimum = r.greenMinimum;
+        i.alphaMinimum = r.alphaMaximum = _.position, i.blueMinimum = r.blueMinimum, i.redMinimum = r.redMinimum, i.greenMinimum = r.greenMinimum;
         break;
     }
     return r.volume = (r.redMaximum - r.redMinimum) * (r.greenMaximum - r.greenMinimum) * (r.blueMaximum - r.blueMinimum) * (r.alphaMaximum - r.alphaMinimum), i.volume = (i.redMaximum - i.redMinimum) * (i.greenMaximum - i.greenMinimum) * (i.blueMaximum - i.blueMinimum) * (i.alphaMaximum - i.alphaMinimum), !0;
@@ -24567,8 +24791,8 @@ var AbstractImageQuantizer$1 = class {
     const n = r.getPointArray(), a = new Point$1(), s = r.getWidth(), o = r.getHeight(), l = [];
     let h = 1, f = 1;
     for (const m of this._kernel) {
-      const p = m[2] + 1;
-      f < p && (f = p);
+      const _ = m[2] + 1;
+      f < _ && (f = _);
     }
     for (let m = 0; m < f; m++)
       this._fillErrorLine(l[m] = [], s);
@@ -24577,23 +24801,23 @@ var AbstractImageQuantizer$1 = class {
       d.shouldNotify(m) && (yield {
         progress: d.progress
       }), this._serpentine && (h *= -1);
-      const p = m * s, _ = h === 1 ? 0 : s - 1, g = h === 1 ? s : -1;
+      const _ = m * s, p = h === 1 ? 0 : s - 1, v = h === 1 ? s : -1;
       this._fillErrorLine(l[0], s), l.push(l.shift());
-      const v = l[0];
-      for (let b = _, w = p + _; b !== g; b += h, w += h) {
-        const k = n[w], M = v[b];
-        a.from(k);
-        const N = Point$1.createByRGBA(inRange0to255Rounded$1(k.r + M[0]), inRange0to255Rounded$1(k.g + M[1]), inRange0to255Rounded$1(k.b + M[2]), inRange0to255Rounded$1(k.a + M[3])), P = i.getNearestColor(this._distance, N);
-        if (k.from(P), this._minColorDistance && this._distance.calculateNormalized(a, P) < this._minColorDistance)
+      const g = l[0];
+      for (let k = p, b = _ + p; k !== v; k += h, b += h) {
+        const w = n[b], M = g[k];
+        a.from(w);
+        const C = Point$1.createByRGBA(inRange0to255Rounded$1(w.r + M[0]), inRange0to255Rounded$1(w.g + M[1]), inRange0to255Rounded$1(w.b + M[2]), inRange0to255Rounded$1(w.a + M[3])), T = i.getNearestColor(this._distance, C);
+        if (w.from(T), this._minColorDistance && this._distance.calculateNormalized(a, T) < this._minColorDistance)
           continue;
-        let T, C, X, _e;
-        this._calculateErrorLikeGIMP ? (T = N.r - P.r, C = N.g - P.g, X = N.b - P.b, _e = N.a - P.a) : (T = a.r - P.r, C = a.g - P.g, X = a.b - P.b, _e = a.a - P.a);
-        const Je = h === 1 ? 0 : this._kernel.length - 1, Pe = h === 1 ? this._kernel.length : -1;
-        for (let Ke = Je; Ke !== Pe; Ke += h) {
-          const Wt = this._kernel[Ke][1] * h, ee = this._kernel[Ke][2];
-          if (Wt + b >= 0 && Wt + b < s && ee + m >= 0 && ee + m < o) {
-            const We = this._kernel[Ke][0], st = l[ee][Wt + b];
-            st[0] += T * We, st[1] += C * We, st[2] += X * We, st[3] += _e * We;
+        let P, N, X, fe;
+        this._calculateErrorLikeGIMP ? (P = C.r - T.r, N = C.g - T.g, X = C.b - T.b, fe = C.a - T.a) : (P = a.r - T.r, N = a.g - T.g, X = a.b - T.b, fe = a.a - T.a);
+        const Ke = h === 1 ? 0 : this._kernel.length - 1, Pe = h === 1 ? this._kernel.length : -1;
+        for (let Je = Ke; Je !== Pe; Je += h) {
+          const Wt = this._kernel[Je][1] * h, ee = this._kernel[Je][2];
+          if (Wt + k >= 0 && Wt + k < s && ee + m >= 0 && ee + m < o) {
+            const We = this._kernel[Je][0], st = l[ee][Wt + k];
+            st[0] += P * We, st[1] += N * We, st[2] += X * We, st[3] += fe * We;
           }
         }
       }
@@ -24899,15 +25123,15 @@ var ErrorDiffusionRiemersma$1 = class extends AbstractImageQuantizer$1 {
       o[h] = { r: 0, g: 0, b: 0, a: 0 };
     yield* hilbertCurve$1(a, s, (h, f) => {
       const d = n[h + f * a];
-      let { r: m, g: p, b: _, a: g } = d;
-      for (let k = 0; k < this._errorQueueSize; k++) {
-        const M = this._weights[k], N = o[(k + l) % this._errorQueueSize];
-        m += N.r * M, p += N.g * M, _ += N.b * M, g += N.a * M;
+      let { r: m, g: _, b: p, a: v } = d;
+      for (let w = 0; w < this._errorQueueSize; w++) {
+        const M = this._weights[w], C = o[(w + l) % this._errorQueueSize];
+        m += C.r * M, _ += C.g * M, p += C.b * M, v += C.a * M;
       }
-      const v = Point$1.createByRGBA(inRange0to255Rounded$1(m), inRange0to255Rounded$1(p), inRange0to255Rounded$1(_), inRange0to255Rounded$1(g)), b = i.getNearestColor(this._distance, v);
+      const g = Point$1.createByRGBA(inRange0to255Rounded$1(m), inRange0to255Rounded$1(_), inRange0to255Rounded$1(p), inRange0to255Rounded$1(v)), k = i.getNearestColor(this._distance, g);
       l = (l + 1) % this._errorQueueSize;
-      const w = (l + this._errorQueueSize - 1) % this._errorQueueSize;
-      o[w].r = d.r - b.r, o[w].g = d.g - b.g, o[w].b = d.b - b.b, o[w].a = d.a - b.a, d.from(b);
+      const b = (l + this._errorQueueSize - 1) % this._errorQueueSize;
+      o[b].r = d.r - k.r, o[b].g = d.g - k.g, o[b].b = d.b - k.b, o[b].a = d.a - k.a, d.from(k);
     }), yield {
       pointContainer: r,
       progress: 100
@@ -24930,21 +25154,21 @@ function ssim$1(e, r) {
   const n = (1 << 8) - 1, a = (K1$1 * n) ** 2, s = (K2$1 * n) ** 2;
   let o = 0, l = 0;
   return iterate$1(e, r, (h, f, d, m) => {
-    let p = 0, _ = 0, g = 0;
+    let _ = 0, p = 0, v = 0;
     for (let M = 0; M < h.length; M++)
-      _ += (h[M] - d) ** 2, g += (f[M] - m) ** 2, p += (h[M] - d) * (f[M] - m);
-    const v = h.length - 1;
-    _ /= v, g /= v, p /= v;
-    const b = (2 * d * m + a) * (2 * p + s), w = (d ** 2 + m ** 2 + a) * (_ + g + s), k = b / w;
-    l += k, o++;
+      p += (h[M] - d) ** 2, v += (f[M] - m) ** 2, _ += (h[M] - d) * (f[M] - m);
+    const g = h.length - 1;
+    p /= g, v /= g, _ /= g;
+    const k = (2 * d * m + a) * (2 * _ + s), b = (d ** 2 + m ** 2 + a) * (p + v + s), w = k / b;
+    l += w, o++;
   }), l / o;
 }
 function iterate$1(e, r, i) {
   const a = e.getWidth(), s = e.getHeight();
   for (let o = 0; o < s; o += 8)
     for (let l = 0; l < a; l += 8) {
-      const h = Math.min(8, a - l), f = Math.min(8, s - o), d = calculateLumaValuesForWindow$1(e, l, o, h, f), m = calculateLumaValuesForWindow$1(r, l, o, h, f), p = calculateAverageLuma$1(d), _ = calculateAverageLuma$1(m);
-      i(d, m, p, _);
+      const h = Math.min(8, a - l), f = Math.min(8, s - o), d = calculateLumaValuesForWindow$1(e, l, o, h, f), m = calculateLumaValuesForWindow$1(r, l, o, h, f), _ = calculateAverageLuma$1(d), p = calculateAverageLuma$1(m);
+      i(d, m, _, p);
     }
 }
 function calculateLumaValuesForWindow$1(e, r, i, n, a) {
@@ -24982,14 +25206,14 @@ async function buildPalette(e, {
 } = {}) {
   return new Promise((s, o) => {
     const l = colorDistanceFormulaToColorDistance$1(r), h = paletteQuantizationToPaletteQuantizer$1(l, i, n);
-    e.forEach((p) => h.sample(p));
+    e.forEach((_) => h.sample(_));
     let f;
     const d = h.quantize(), m = () => {
       try {
-        const p = d.next();
-        p.done ? s(f) : (p.value.palette && (f = p.value.palette), a && a(p.value.progress), setImmediateImpl(m));
-      } catch (p) {
-        o(p);
+        const _ = d.next();
+        _.done ? s(f) : (_.value.palette && (f = _.value.palette), a && a(_.value.progress), setImmediateImpl(m));
+      } catch (_) {
+        o(_);
       }
     };
     setImmediateImpl(m);
@@ -25009,10 +25233,10 @@ async function applyPalette(e, r, {
     let f;
     const d = h.quantize(e, r), m = () => {
       try {
-        const p = d.next();
-        p.done ? s(f) : (p.value.pointContainer && (f = p.value.pointContainer), a && a(p.value.progress), setImmediateImpl(m));
-      } catch (p) {
-        o(p);
+        const _ = d.next();
+        _.done ? s(f) : (_.value.pointContainer && (f = _.value.pointContainer), a && a(_.value.progress), setImmediateImpl(m));
+      } catch (_) {
+        o(_);
       }
     };
     setImmediateImpl(m);
@@ -25205,83 +25429,83 @@ var hasRequiredGifutil;
 function requireGifutil() {
   return hasRequiredGifutil || (hasRequiredGifutil = 1, function(e) {
     const r = require$$0$3, i = imageQ, n = bitmapimage, { GifFrame: a } = gifframe, { GifError: s } = gif$1, { GifCodec: o } = requireGifcodec(), l = [".jpg", ".jpeg", ".png", ".bmp"], h = new o();
-    e.cloneFrames = function(p) {
-      let _ = [];
-      return p.forEach((g) => {
-        _.push(new a(g));
-      }), _;
-    }, e.getColorInfo = function(p, _) {
-      let g = !1;
-      const v = [];
-      for (let N = 0; N < p.length; ++N) {
-        let P = p[N].getPalette();
-        if (P.usesTransparency && (g = !0), P.indexCount > 256)
-          throw new s(`Frame ${N} uses more than 256 color indexes`);
-        v.push(P);
+    e.cloneFrames = function(_) {
+      let p = [];
+      return _.forEach((v) => {
+        p.push(new a(v));
+      }), p;
+    }, e.getColorInfo = function(_, p) {
+      let v = !1;
+      const g = [];
+      for (let C = 0; C < _.length; ++C) {
+        let T = _[C].getPalette();
+        if (T.usesTransparency && (v = !0), T.indexCount > 256)
+          throw new s(`Frame ${C} uses more than 256 color indexes`);
+        g.push(T);
       }
-      if (_ === 0)
-        return { usesTransparency: g, palettes: v };
-      const b = /* @__PURE__ */ new Set();
-      v.forEach((N) => {
-        N.colors.forEach((P) => {
-          b.add(P);
+      if (p === 0)
+        return { usesTransparency: v, palettes: g };
+      const k = /* @__PURE__ */ new Set();
+      g.forEach((C) => {
+        C.colors.forEach((T) => {
+          k.add(T);
         });
       });
-      let w = b.size;
-      if (g && ++w, _ && w > _)
-        return { usesTransparency: g, palettes: v };
-      const k = new Array(b.size), M = b.values();
-      for (let N = 0; N < k.length; ++N)
-        k[N] = M.next().value;
-      return k.sort((N, P) => N - P), { colors: k, indexCount: w, usesTransparency: g, palettes: v };
-    }, e.copyAsJimp = function(p, _) {
-      return e.shareAsJimp(p, new n(_));
-    }, e.getMaxDimensions = function(p) {
-      let _ = 0, g = 0;
-      return p.forEach((v) => {
-        const b = v.xOffset + v.bitmap.width;
-        b > _ && (_ = b);
-        const w = v.yOffset + v.bitmap.height;
-        w > g && (g = w);
-      }), { maxWidth: _, maxHeight: g };
-    }, e.quantizeDekker = function(p, _, g) {
-      _ = _ || 256, f(p, "NeuQuantFloat", _, 0, g);
-    }, e.quantizeSorokin = function(p, _, g, v) {
-      _ = _ || 256, g = g || "min-pop";
-      let b;
-      switch (g) {
+      let b = k.size;
+      if (v && ++b, p && b > p)
+        return { usesTransparency: v, palettes: g };
+      const w = new Array(k.size), M = k.values();
+      for (let C = 0; C < w.length; ++C)
+        w[C] = M.next().value;
+      return w.sort((C, T) => C - T), { colors: w, indexCount: b, usesTransparency: v, palettes: g };
+    }, e.copyAsJimp = function(_, p) {
+      return e.shareAsJimp(_, new n(p));
+    }, e.getMaxDimensions = function(_) {
+      let p = 0, v = 0;
+      return _.forEach((g) => {
+        const k = g.xOffset + g.bitmap.width;
+        k > p && (p = k);
+        const b = g.yOffset + g.bitmap.height;
+        b > v && (v = b);
+      }), { maxWidth: p, maxHeight: v };
+    }, e.quantizeDekker = function(_, p, v) {
+      p = p || 256, f(_, "NeuQuantFloat", p, 0, v);
+    }, e.quantizeSorokin = function(_, p, v, g) {
+      p = p || 256, v = v || "min-pop";
+      let k;
+      switch (v) {
         case "min-pop":
-          b = 2;
+          k = 2;
           break;
         case "top-pop":
-          b = 1;
+          k = 1;
           break;
         default:
-          throw new Error(`Invalid quantizeSorokin histogram '${g}'`);
+          throw new Error(`Invalid quantizeSorokin histogram '${v}'`);
       }
-      f(p, "RGBQuant", _, b, v);
-    }, e.quantizeWu = function(p, _, g, v) {
-      if (_ = _ || 256, g = g || 5, g < 1 || g > 8)
+      f(_, "RGBQuant", p, k, g);
+    }, e.quantizeWu = function(_, p, v, g) {
+      if (p = p || 256, v = v || 5, v < 1 || v > 8)
         throw new Error("Invalid quantization quality");
-      f(p, "WuQuant", _, g, v);
-    }, e.read = function(p, _) {
-      return _ = _ || h, Buffer.isBuffer(p) ? _.decodeGif(p) : d(p).then((g) => _.decodeGif(g));
-    }, e.shareAsJimp = function(p, _) {
-      const g = new p(
-        _.bitmap.width,
-        _.bitmap.height,
+      f(_, "WuQuant", p, v, g);
+    }, e.read = function(_, p) {
+      return p = p || h, Buffer.isBuffer(_) ? p.decodeGif(_) : d(_).then((v) => p.decodeGif(v));
+    }, e.shareAsJimp = function(_, p) {
+      const v = new _(
+        p.bitmap.width,
+        p.bitmap.height,
         0
       );
-      return g.bitmap.data = _.bitmap.data, g;
-    }, e.write = function(p, _, g, v) {
-      v = v || h;
-      const b = p.match(/\.[a-zA-Z]+$/);
-      if (b !== null && l.includes(b[0].toLowerCase()))
-        throw new Error(`GIF '${p}' has an unexpected suffix`);
-      return v.encodeGif(_, g).then((w) => m(p, w.buffer).then(() => w));
+      return v.bitmap.data = p.bitmap.data, v;
+    }, e.write = function(_, p, v, g) {
+      g = g || h;
+      const k = _.match(/\.[a-zA-Z]+$/);
+      if (k !== null && l.includes(k[0].toLowerCase()))
+        throw new Error(`GIF '${_}' has an unexpected suffix`);
+      return g.encodeGif(p, v).then((b) => m(_, b.buffer).then(() => b));
     };
-    function f(p, _, g, v, b) {
-      const w = Array.isArray(p) ? p : [p], k = [
+    function f(_, p, v, g, k) {
+      const b = Array.isArray(_) ? _ : [_], w = [
         "FloydSteinberg",
         "FalseFloydSteinberg",
         "Stucki",
@@ -25292,47 +25516,47 @@ function requireGifutil() {
         "TwoSierra",
         "SierraLite"
       ];
-      if (b) {
-        if (k.indexOf(b.ditherAlgorithm) < 0)
-          throw new Error(`Invalid ditherAlgorithm '${b.ditherAlgorithm}'`);
-        b.serpentine === void 0 && (b.serpentine = !0), b.minimumColorDistanceToDither === void 0 && (b.minimumColorDistanceToDither = 0), b.calculateErrorLikeGIMP === void 0 && (b.calculateErrorLikeGIMP = !1);
+      if (k) {
+        if (w.indexOf(k.ditherAlgorithm) < 0)
+          throw new Error(`Invalid ditherAlgorithm '${k.ditherAlgorithm}'`);
+        k.serpentine === void 0 && (k.serpentine = !0), k.minimumColorDistanceToDither === void 0 && (k.minimumColorDistanceToDither = 0), k.calculateErrorLikeGIMP === void 0 && (k.calculateErrorLikeGIMP = !1);
       }
-      const M = new i.distance.Euclidean(), N = new i.palette[_](M, g, v);
-      let P;
-      b ? P = new i.image.ErrorDiffusionArray(
+      const M = new i.distance.Euclidean(), C = new i.palette[p](M, v, g);
+      let T;
+      k ? T = new i.image.ErrorDiffusionArray(
         M,
-        i.image.ErrorDiffusionArrayKernel[b.ditherAlgorithm],
-        b.serpentine,
-        b.minimumColorDistanceToDither,
-        b.calculateErrorLikeGIMP
-      ) : P = new i.image.NearestColor(M);
-      const T = [];
-      w.forEach((X) => {
-        const _e = X.bitmap.data, Je = new ArrayBuffer(_e.length), Pe = new Uint32Array(Je);
-        for (let Wt = 0, ee = 0; Wt < _e.length; Wt += 4, ++ee)
-          Pe[ee] = _e.readUInt32LE(Wt, !0);
-        const Ke = i.utils.PointContainer.fromUint32Array(
+        i.image.ErrorDiffusionArrayKernel[k.ditherAlgorithm],
+        k.serpentine,
+        k.minimumColorDistanceToDither,
+        k.calculateErrorLikeGIMP
+      ) : T = new i.image.NearestColor(M);
+      const P = [];
+      b.forEach((X) => {
+        const fe = X.bitmap.data, Ke = new ArrayBuffer(fe.length), Pe = new Uint32Array(Ke);
+        for (let Wt = 0, ee = 0; Wt < fe.length; Wt += 4, ++ee)
+          Pe[ee] = fe.readUInt32LE(Wt, !0);
+        const Je = i.utils.PointContainer.fromUint32Array(
           Pe,
           X.bitmap.width,
           X.bitmap.height
         );
-        N.sample(Ke), T.push(Ke);
+        C.sample(Je), P.push(Je);
       });
-      const C = N.quantizeSync();
-      for (let X = 0; X < w.length; ++X) {
-        const _e = w[X].bitmap.data, Pe = P.quantizeSync(T[X], C).toUint32Array();
-        for (let Ke = 0, Wt = 0; Ke < _e.length; Ke += 4, ++Wt)
-          _e.writeUInt32LE(Pe[Wt], Ke);
+      const N = C.quantizeSync();
+      for (let X = 0; X < b.length; ++X) {
+        const fe = b[X].bitmap.data, Pe = T.quantizeSync(P[X], N).toUint32Array();
+        for (let Je = 0, Wt = 0; Je < fe.length; Je += 4, ++Wt)
+          fe.writeUInt32LE(Pe[Wt], Je);
       }
     }
-    function d(p) {
-      return new Promise((_, g) => {
-        r.readFile(p, (v, b) => v ? g(v) : _(b));
+    function d(_) {
+      return new Promise((p, v) => {
+        r.readFile(_, (g, k) => g ? v(g) : p(k));
       });
     }
-    function m(p, _) {
-      return new Promise((g, v) => {
-        r.writeFile(p, _, (b) => b ? v(b) : g());
+    function m(_, p) {
+      return new Promise((v, g) => {
+        r.writeFile(_, p, (k) => k ? g(k) : v());
       });
     }
   }(gifutil)), gifutil;
@@ -25343,10 +25567,10 @@ function requireGifcodec() {
   hasRequiredGifcodec = 1;
   const e = omggif, { Gif: r, GifError: i } = gif$1;
   function n() {
-    const w = requireGifutil();
+    const b = requireGifutil();
     return n = function() {
-      return w;
-    }, w;
+      return b;
+    }, b;
   }
   const { GifFrame: a } = gifframe, s = 200, o = 100;
   class l {
@@ -25360,8 +25584,8 @@ function requireGifcodec() {
      * 
      * @param {object} options Optionally takes an objection whose only possible property is `transparentRGB`. Images are internally represented in RGBA format, where A is the alpha value of a pixel. When `transparentRGB` is provided, this RGB value (excluding alpha) is assigned to transparent pixels, which are also given alpha value 0x00. (All opaque pixels are given alpha value 0xFF). The RGB color of transparent pixels shouldn't matter for most applications. Defaults to 0x000000.
      */
-    constructor(k = {}) {
-      this._transparentRGB = null, typeof k.transparentRGB == "number" && k.transparentRGB !== 0 && (this._transparentRGBA = k.transparentRGB * 256), this._testInitialBufferSize = 0;
+    constructor(w = {}) {
+      this._transparentRGB = null, typeof w.transparentRGB == "number" && w.transparentRGB !== 0 && (this._transparentRGBA = w.transparentRGB * 256), this._testInitialBufferSize = 0;
     }
     /**
      * Decodes a GIF from a Buffer to yield an instance of Gif. Transparent pixels of the GIF are given alpha values of 0x00, and opaque pixels are given alpha values of 0xFF. The RGB values of transparent pixels default to 0x000000 but can be overridden by the constructor's `transparentRGB` option.
@@ -25370,25 +25594,25 @@ function requireGifcodec() {
      * @return {Promise} A Promise that resolves to an instance of the Gif class, representing the encoded GIF.
      * @throws {GifError} Error upon encountered an encoding-related problem with a GIF, so that the caller can distinguish between software errors and problems with GIFs.
      */
-    decodeGif(k) {
+    decodeGif(w) {
       try {
         let M;
         try {
-          M = new e.GifReader(k);
-        } catch (C) {
-          throw new i(C);
+          M = new e.GifReader(w);
+        } catch (N) {
+          throw new i(N);
         }
-        const N = M.numFrames(), P = [], T = {
+        const C = M.numFrames(), T = [], P = {
           width: M.width,
           height: M.height,
           loops: M.loopCount()
         };
-        T.usesTransparency = !1;
-        for (let C = 0; C < N; ++C) {
-          const X = this._decodeFrame(M, C, T.usesTransparency);
-          P.push(X.frame), X.usesTransparency && (T.usesTransparency = !0);
+        P.usesTransparency = !1;
+        for (let N = 0; N < C; ++N) {
+          const X = this._decodeFrame(M, N, P.usesTransparency);
+          T.push(X.frame), X.usesTransparency && (P.usesTransparency = !0);
         }
-        return Promise.resolve(new r(k, P, T));
+        return Promise.resolve(new r(w, T, P));
       } catch (M) {
         return Promise.reject(M);
       }
@@ -25401,205 +25625,205 @@ function requireGifcodec() {
      * @return {Promise} A Promise that resolves to an instance of the Gif class, representing the encoded GIF.
      * @throws {GifError} Error upon encountered an encoding-related problem with a GIF, so that the caller can distinguish between software errors and problems with GIFs.
      */
-    encodeGif(k, M = {}) {
+    encodeGif(w, M = {}) {
       try {
-        if (k === null || k.length === 0)
+        if (w === null || w.length === 0)
           throw new i("there are no frames");
-        const N = n().getMaxDimensions(k);
-        return M = Object.assign({}, M), M.width = N.maxWidth, M.height = N.maxHeight, M.loops === void 0 && (M.loops = 0), M.colorScope = M.colorScope || r.GlobalColorsPreferred, Promise.resolve(this._encodeGif(k, M));
-      } catch (N) {
-        return Promise.reject(N);
+        const C = n().getMaxDimensions(w);
+        return M = Object.assign({}, M), M.width = C.maxWidth, M.height = C.maxHeight, M.loops === void 0 && (M.loops = 0), M.colorScope = M.colorScope || r.GlobalColorsPreferred, Promise.resolve(this._encodeGif(w, M));
+      } catch (C) {
+        return Promise.reject(C);
       }
     }
-    _decodeFrame(k, M, N) {
-      let P, T;
+    _decodeFrame(w, M, C) {
+      let T, P;
       try {
-        if (P = k.frameInfo(M), T = new Buffer(k.width * k.height * 4), k.decodeAndBlitFrameRGBA(M, T), P.width !== k.width || P.height !== k.height) {
-          if (P.y && (T = T.slice(P.y * k.width * 4)), k.width > P.width)
-            for (let _e = 0; _e < P.height; ++_e)
-              T.copy(
-                T,
-                _e * P.width * 4,
-                (P.x + _e * k.width) * 4,
-                (P.x + _e * k.width) * 4 + P.width * 4
+        if (T = w.frameInfo(M), P = new Buffer(w.width * w.height * 4), w.decodeAndBlitFrameRGBA(M, P), T.width !== w.width || T.height !== w.height) {
+          if (T.y && (P = P.slice(T.y * w.width * 4)), w.width > T.width)
+            for (let fe = 0; fe < T.height; ++fe)
+              P.copy(
+                P,
+                fe * T.width * 4,
+                (T.x + fe * w.width) * 4,
+                (T.x + fe * w.width) * 4 + T.width * 4
               );
-          T = T.slice(0, P.width * P.height * 4);
+          P = P.slice(0, T.width * T.height * 4);
         }
-      } catch (_e) {
-        throw new i(_e);
+      } catch (fe) {
+        throw new i(fe);
       }
-      let C = !1;
+      let N = !1;
       if (this._transparentRGBA === null) {
-        if (!N)
-          for (let _e = 3; _e < T.length; _e += 4)
-            T[_e] === 0 && (C = !0, _e = T.length);
+        if (!C)
+          for (let fe = 3; fe < P.length; fe += 4)
+            P[fe] === 0 && (N = !0, fe = P.length);
       } else
-        for (let _e = 3; _e < T.length; _e += 4)
-          T[_e] === 0 && (T.writeUInt32BE(this._transparentRGBA, _e - 3), C = !0);
-      return { frame: new a(P.width, P.height, T, {
-        xOffset: P.x,
-        yOffset: P.y,
-        disposalMethod: P.disposal,
-        interlaced: P.interlaced,
-        delayCentisecs: P.delay
-      }), usesTransparency: C };
+        for (let fe = 3; fe < P.length; fe += 4)
+          P[fe] === 0 && (P.writeUInt32BE(this._transparentRGBA, fe - 3), N = !0);
+      return { frame: new a(T.width, T.height, P, {
+        xOffset: T.x,
+        yOffset: T.y,
+        disposalMethod: T.disposal,
+        interlaced: T.interlaced,
+        delayCentisecs: T.delay
+      }), usesTransparency: N };
     }
-    _encodeGif(k, M) {
-      let N;
+    _encodeGif(w, M) {
+      let C;
       if (M.colorScope === r.LocalColorsOnly)
-        N = n().getColorInfo(k, 0);
-      else if (N = n().getColorInfo(k, 256), !N.colors) {
+        C = n().getColorInfo(w, 0);
+      else if (C = n().getColorInfo(w, 256), !C.colors) {
         if (M.colorScope === r.GlobalColorsOnly)
           throw new i(
             "Too many color indexes for global color table"
           );
         M.colorScope = r.LocalColorsOnly;
       }
-      M.usesTransparency = N.usesTransparency;
-      const P = N.palettes;
-      return M.colorScope === r.LocalColorsOnly ? m(k, M, 2e3, P) : d(k, M, 2e3, N);
+      M.usesTransparency = C.usesTransparency;
+      const T = C.palettes;
+      return M.colorScope === r.LocalColorsOnly ? m(w, M, 2e3, T) : d(w, M, 2e3, C);
     }
-    _getSizeEstimateGlobal(k, M) {
+    _getSizeEstimateGlobal(w, M) {
       if (this._testInitialBufferSize > 0)
         return this._testInitialBufferSize;
-      let N = s + 3 * 256;
-      const P = v(k);
-      return M.forEach((T) => {
-        N += _(T, P);
-      }), N;
+      let C = s + 3 * 256;
+      const T = g(w);
+      return M.forEach((P) => {
+        C += p(P, T);
+      }), C;
     }
-    _getSizeEstimateLocal(k, M) {
+    _getSizeEstimateLocal(w, M) {
       if (this._testInitialBufferSize > 0)
         return this._testInitialBufferSize;
-      let N = s;
-      for (let P = 0; P < M.length; ++P) {
-        const T = k[P], C = v(T);
-        N += _(M[P], C);
+      let C = s;
+      for (let T = 0; T < M.length; ++T) {
+        const P = w[T], N = g(P);
+        C += p(M[T], N);
       }
-      return N;
+      return C;
     }
   }
   gifcodec.GifCodec = l;
-  function h(w, k) {
-    const M = w.indexOf(k);
+  function h(b, w) {
+    const M = b.indexOf(w);
     return M === -1 ? null : M;
   }
-  function f(w, k) {
-    for (var M = 0, N = w.length - 1, P; M <= N; )
-      if (P = Math.floor((M + N) / 2), w[P] > k)
-        N = P - 1;
-      else if (w[P] < k)
-        M = P + 1;
+  function f(b, w) {
+    for (var M = 0, C = b.length - 1, T; M <= C; )
+      if (T = Math.floor((M + C) / 2), b[T] > w)
+        C = T - 1;
+      else if (b[T] < w)
+        M = T + 1;
       else
-        return P;
+        return T;
     return null;
   }
-  function d(w, k, M, N) {
-    const P = {
-      colors: N.colors.slice(),
-      usesTransparency: N.usesTransparency
-    };
-    p(P);
+  function d(b, w, M, C) {
     const T = {
-      palette: P.colors,
-      loop: k.loops
+      colors: C.colors.slice(),
+      usesTransparency: C.usesTransparency
     };
-    let C = new Buffer(M), X;
+    _(T);
+    const P = {
+      palette: T.colors,
+      loop: w.loops
+    };
+    let N = new Buffer(M), X;
     try {
       X = new e.GifWriter(
-        C,
-        k.width,
-        k.height,
-        T
-      );
-    } catch (_e) {
-      throw new i(_e);
-    }
-    for (let _e = 0; _e < w.length; ++_e)
-      C = b(X, _e, w[_e], N, !1);
-    return new r(C.slice(0, X.end()), w, k);
-  }
-  function m(w, k, M, N) {
-    const P = {
-      loop: k.loops
-    };
-    let T = new Buffer(M), C;
-    try {
-      C = new e.GifWriter(
-        T,
-        k.width,
-        k.height,
+        N,
+        w.width,
+        w.height,
         P
+      );
+    } catch (fe) {
+      throw new i(fe);
+    }
+    for (let fe = 0; fe < b.length; ++fe)
+      N = k(X, fe, b[fe], C, !1);
+    return new r(N.slice(0, X.end()), b, w);
+  }
+  function m(b, w, M, C) {
+    const T = {
+      loop: w.loops
+    };
+    let P = new Buffer(M), N;
+    try {
+      N = new e.GifWriter(
+        P,
+        w.width,
+        w.height,
+        T
       );
     } catch (X) {
       throw new i(X);
     }
-    for (let X = 0; X < w.length; ++X)
-      T = b(C, X, w[X], N[X], !0);
-    return new r(T.slice(0, C.end()), w, k);
+    for (let X = 0; X < b.length; ++X)
+      P = k(N, X, b[X], C[X], !0);
+    return new r(P.slice(0, N.end()), b, w);
   }
-  function p(w) {
-    const k = w.colors;
-    w.usesTransparency && k.push(0);
-    const M = k.length;
-    let N = 2;
-    for (; M > N; )
-      N <<= 1;
-    k.length = N, k.fill(0, M);
+  function _(b) {
+    const w = b.colors;
+    b.usesTransparency && w.push(0);
+    const M = w.length;
+    let C = 2;
+    for (; M > C; )
+      C <<= 1;
+    w.length = C, w.fill(0, M);
   }
-  function _(w, k) {
-    let M = w.bitmap.width * w.bitmap.height;
-    return M = Math.ceil(M * k / 8), M += Math.ceil(M / 255), o + M + 3 * 256;
+  function p(b, w) {
+    let M = b.bitmap.width * b.bitmap.height;
+    return M = Math.ceil(M * w / 8), M += Math.ceil(M / 255), o + M + 3 * 256;
   }
-  function g(w, k, M) {
-    const N = M.colors, P = N.length <= 8 ? (
+  function v(b, w, M) {
+    const C = M.colors, T = C.length <= 8 ? (
       // guess at the break-even
       h
-    ) : f, T = k.bitmap.data, C = new Buffer(T.length / 4);
-    let X = N.length, _e = 0, Je = 0;
-    for (; _e < T.length; ) {
-      if (T[_e + 3] !== 0) {
-        const Pe = T.readUInt32BE(_e, !0) >> 8 & 16777215;
-        C[Je] = P(N, Pe);
+    ) : f, P = w.bitmap.data, N = new Buffer(P.length / 4);
+    let X = C.length, fe = 0, Ke = 0;
+    for (; fe < P.length; ) {
+      if (P[fe + 3] !== 0) {
+        const Pe = P.readUInt32BE(fe, !0) >> 8 & 16777215;
+        N[Ke] = T(C, Pe);
       } else
-        C[Je] = X;
-      _e += 4, ++Je;
+        N[Ke] = X;
+      fe += 4, ++Ke;
     }
     if (M.usesTransparency) {
       if (X === 256)
-        throw new i(`Frame ${w} already has 256 colorsand so can't use transparency`);
+        throw new i(`Frame ${b} already has 256 colorsand so can't use transparency`);
     } else
       X = null;
-    return { buffer: C, transparentIndex: X };
+    return { buffer: N, transparentIndex: X };
   }
-  function v(w) {
-    let k = w.indexCount, M = 0;
-    for (--k; k; )
-      ++M, k >>= 1;
+  function g(b) {
+    let w = b.indexCount, M = 0;
+    for (--w; w; )
+      ++M, w >>= 1;
     return M > 0 ? M : 1;
   }
-  function b(w, k, M, N, P) {
+  function k(b, w, M, C, T) {
     if (M.interlaced)
       throw new i("writing interlaced GIFs is not supported");
-    const T = g(k, M, N), C = {
+    const P = v(w, M, C), N = {
       delay: M.delayCentisecs,
       disposal: M.disposalMethod,
-      transparent: T.transparentIndex
+      transparent: P.transparentIndex
     };
-    P && (p(N), C.palette = N.colors);
+    T && (_(C), N.palette = C.colors);
     try {
-      let X = w.getOutputBuffer(), _e = w.getOutputBufferPosition(), Je, Pe = !0;
+      let X = b.getOutputBuffer(), fe = b.getOutputBufferPosition(), Ke, Pe = !0;
       for (; Pe; )
-        if (Je = w.addFrame(
+        if (Ke = b.addFrame(
           M.xOffset,
           M.yOffset,
           M.bitmap.width,
           M.bitmap.height,
-          T.buffer,
-          C
-        ), Pe = !1, Je >= X.length - 1) {
-          const Ke = new Buffer(X.length * 1.5);
-          X.copy(Ke), w.setOutputBuffer(Ke), w.setOutputBufferPosition(_e), X = Ke, Pe = !0;
+          P.buffer,
+          N
+        ), Pe = !1, Ke >= X.length - 1) {
+          const Je = new Buffer(X.length * 1.5);
+          X.copy(Je), b.setOutputBuffer(Je), b.setOutputBufferPosition(fe), X = Je, Pe = !0;
         }
       return X;
     } catch (X) {
@@ -25637,7 +25861,7 @@ function gif() {
 var encoder = { exports: {} };
 (function(e) {
   function r(n) {
-    var a = Math.floor, s = new Array(64), o = new Array(64), l = new Array(64), h = new Array(64), f, d, m, p, _ = new Array(65535), g = new Array(65535), v = new Array(64), b = new Array(64), w = [], k = 0, M = 7, N = new Array(64), P = new Array(64), T = new Array(64), C = new Array(256), X = new Array(2048), _e, Je = [
+    var a = Math.floor, s = new Array(64), o = new Array(64), l = new Array(64), h = new Array(64), f, d, m, _, p = new Array(65535), v = new Array(65535), g = new Array(64), k = new Array(64), b = [], w = 0, M = 7, C = new Array(64), T = new Array(64), P = new Array(64), N = new Array(256), X = new Array(2048), fe, Ke = [
       0,
       1,
       5,
@@ -25702,7 +25926,7 @@ var encoder = { exports: {} };
       58,
       62,
       63
-    ], Pe = [0, 0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0], Ke = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], Wt = [0, 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 125], ee = [
+    ], Pe = [0, 0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0], Je = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], Wt = [0, 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 125], ee = [
       1,
       2,
       3,
@@ -26097,7 +26321,7 @@ var encoder = { exports: {} };
         99
       ], ca = 0; ca < 64; ca++) {
         var la = a((ha[ca] * Qn + 50) / 100);
-        la < 1 ? la = 1 : la > 255 && (la = 255), s[Je[ca]] = la;
+        la < 1 ? la = 1 : la > 255 && (la = 255), s[Ke[ca]] = la;
       }
       for (var ua = [
         17,
@@ -26166,7 +26390,7 @@ var encoder = { exports: {} };
         99
       ], pa = 0; pa < 64; pa++) {
         var _a = a((ua[pa] * Qn + 50) / 100);
-        _a < 1 ? _a = 1 : _a > 255 && (_a = 255), o[Je[pa]] = _a;
+        _a < 1 ? _a = 1 : _a > 255 && (_a = 255), o[Ke[pa]] = _a;
       }
       for (var ji = [
         1,
@@ -26179,7 +26403,7 @@ var encoder = { exports: {} };
         0.275899379
       ], Zi = 0, Qi = 0; Qi < 8; Qi++)
         for (var Ji = 0; Ji < 8; Ji++)
-          l[Zi] = 1 / (s[Je[Zi]] * ji[Qi] * ji[Ji] * 8), h[Zi] = 1 / (o[Je[Zi]] * ji[Qi] * ji[Ji] * 8), Zi++;
+          l[Zi] = 1 / (s[Ke[Zi]] * ji[Qi] * ji[Ji] * 8), h[Zi] = 1 / (o[Ke[Zi]] * ji[Qi] * ji[Ji] * 8), Zi++;
     }
     function it(Qn, ha) {
       for (var ca = 0, la = 0, ua = new Array(), pa = 1; pa <= 16; pa++) {
@@ -26190,14 +26414,14 @@ var encoder = { exports: {} };
       return ua;
     }
     function Qt() {
-      f = it(Pe, Ke), d = it(We, st), m = it(Wt, ee), p = it(Xt, Jt);
+      f = it(Pe, Je), d = it(We, st), m = it(Wt, ee), _ = it(Xt, Jt);
     }
     function Ri() {
       for (var Qn = 1, ha = 2, ca = 1; ca <= 15; ca++) {
         for (var la = Qn; la < ha; la++)
-          g[32767 + la] = ca, _[32767 + la] = [], _[32767 + la][1] = ca, _[32767 + la][0] = la;
+          v[32767 + la] = ca, p[32767 + la] = [], p[32767 + la][1] = ca, p[32767 + la][0] = la;
         for (var ua = -(ha - 1); ua <= -Qn; ua++)
-          g[32767 + ua] = ca, _[32767 + ua] = [], _[32767 + ua][1] = ca, _[32767 + ua][0] = ha - 1 + ua;
+          v[32767 + ua] = ca, p[32767 + ua] = [], p[32767 + ua][1] = ca, p[32767 + ua][0] = ha - 1 + ua;
         Qn <<= 1, ha <<= 1;
       }
     }
@@ -26205,12 +26429,12 @@ var encoder = { exports: {} };
       for (var Qn = 0; Qn < 256; Qn++)
         X[Qn] = 19595 * Qn, X[Qn + 256 >> 0] = 38470 * Qn, X[Qn + 512 >> 0] = 7471 * Qn + 32768, X[Qn + 768 >> 0] = -11059 * Qn, X[Qn + 1024 >> 0] = -21709 * Qn, X[Qn + 1280 >> 0] = 32768 * Qn + 8421375, X[Qn + 1536 >> 0] = -27439 * Qn, X[Qn + 1792 >> 0] = -5329 * Qn;
     }
-    function fe(Qn) {
+    function _e(Qn) {
       for (var ha = Qn[0], ca = Qn[1] - 1; ca >= 0; )
-        ha & 1 << ca && (k |= 1 << M), ca--, M--, M < 0 && (k == 255 ? (Ge(255), Ge(0)) : Ge(k), M = 7, k = 0);
+        ha & 1 << ca && (w |= 1 << M), ca--, M--, M < 0 && (w == 255 ? (Ge(255), Ge(0)) : Ge(w), M = 7, w = 0);
     }
     function Ge(Qn) {
-      w.push(Qn);
+      b.push(Qn);
     }
     function Kt(Qn) {
       Ge(Qn >> 8 & 255), Ge(Qn & 255);
@@ -26223,22 +26447,22 @@ var encoder = { exports: {} };
         Qn[Ji] = Ui + $i, Qn[Ji + 4] = Ui - $i;
         var ea = (Li + Hi) * 0.707106781;
         Qn[Ji + 2] = Hi + ea, Qn[Ji + 6] = Hi - ea, Ui = ue + Xi, $i = Xi + Yi, Li = Yi + Hn;
-        var ma = (Ui - Li) * 0.382683433, da = 0.5411961 * Ui + ma, fa = 1.306562965 * Li + ma, ya = $i * 0.707106781, ba = Hn + ya, wa = Hn - ya;
-        Qn[Ji + 5] = wa + da, Qn[Ji + 3] = wa - da, Qn[Ji + 1] = ba + fa, Qn[Ji + 7] = ba - fa, Ji += 8;
+        var ma = (Ui - Li) * 0.382683433, da = 0.5411961 * Ui + ma, fa = 1.306562965 * Li + ma, ya = $i * 0.707106781, ba = Hn + ya, $a = Hn - ya;
+        Qn[Ji + 5] = $a + da, Qn[Ji + 3] = $a - da, Qn[Ji + 1] = ba + fa, Qn[Ji + 7] = ba - fa, Ji += 8;
       }
       for (Ji = 0, aa = 0; aa < Ti; ++aa) {
         ca = Qn[Ji], la = Qn[Ji + 8], ua = Qn[Ji + 16], pa = Qn[Ji + 24], _a = Qn[Ji + 32], ji = Qn[Ji + 40], Zi = Qn[Ji + 48], Qi = Qn[Ji + 56];
-        var va = ca + Qi, $a = ca - Qi, Ea = la + Zi, Sa = la - Zi, Aa = ua + ji, Da = ua - ji, ka = pa + _a, Ta = pa - _a, Ma = va + ka, Na = va - ka, Pa = Ea + Aa, Ha = Ea - Aa;
+        var va = ca + Qi, wa = ca - Qi, Ea = la + Zi, Sa = la - Zi, Aa = ua + ji, Da = ua - ji, ka = pa + _a, Ta = pa - _a, Ma = va + ka, Na = va - ka, Pa = Ea + Aa, Ha = Ea - Aa;
         Qn[Ji] = Ma + Pa, Qn[Ji + 32] = Ma - Pa;
         var es = (Ha + Na) * 0.707106781;
-        Qn[Ji + 16] = Na + es, Qn[Ji + 48] = Na - es, Ma = Ta + Da, Pa = Da + Sa, Ha = Sa + $a;
-        var ts = (Ma - Ha) * 0.382683433, rs = 0.5411961 * Ma + ts, is = 1.306562965 * Ha + ts, ns = Pa * 0.707106781, as = $a + ns, ss = $a - ns;
+        Qn[Ji + 16] = Na + es, Qn[Ji + 48] = Na - es, Ma = Ta + Da, Pa = Da + Sa, Ha = Sa + wa;
+        var ts = (Ma - Ha) * 0.382683433, rs = 0.5411961 * Ma + ts, is = 1.306562965 * Ha + ts, ns = Pa * 0.707106781, as = wa + ns, ss = wa - ns;
         Qn[Ji + 40] = ss + rs, Qn[Ji + 24] = ss - rs, Qn[Ji + 8] = as + is, Qn[Ji + 56] = as - is, Ji++;
       }
       var Ka;
       for (aa = 0; aa < qi; ++aa)
-        Ka = Qn[aa] * ha[aa], v[aa] = Ka > 0 ? Ka + 0.5 | 0 : Ka - 0.5 | 0;
-      return v;
+        Ka = Qn[aa] * ha[aa], g[aa] = Ka > 0 ? Ka + 0.5 | 0 : Ka - 0.5 | 0;
+      return g;
     }
     function Di() {
       Kt(65504), Kt(16), Ge(74), Ge(70), Ge(73), Ge(70), Ge(0), Ge(1), Ge(1), Ge(0), Kt(1), Kt(1), Ge(0), Ge(0);
@@ -26266,7 +26490,7 @@ var encoder = { exports: {} };
       for (var Qn = 0; Qn < 16; Qn++)
         Ge(Pe[Qn + 1]);
       for (var ha = 0; ha <= 11; ha++)
-        Ge(Ke[ha]);
+        Ge(Je[ha]);
       Ge(16);
       for (var ca = 0; ca < 16; ca++)
         Ge(Wt[ca + 1]);
@@ -26300,53 +26524,53 @@ var encoder = { exports: {} };
     }
     function ra(Qn, ha, ca, la, ua) {
       for (var pa = ua[0], _a = ua[240], ji, Zi = 16, Qi = 63, Ji = 64, aa = Ni(Qn, ha), Ti = 0; Ti < Ji; ++Ti)
-        b[Je[Ti]] = aa[Ti];
-      var qi = b[0] - ca;
-      ca = b[0], qi == 0 ? fe(la[0]) : (ji = 32767 + qi, fe(la[g[ji]]), fe(_[ji]));
-      for (var zi = 63; zi > 0 && b[zi] == 0; zi--)
+        k[Ke[Ti]] = aa[Ti];
+      var qi = k[0] - ca;
+      ca = k[0], qi == 0 ? _e(la[0]) : (ji = 32767 + qi, _e(la[v[ji]]), _e(p[ji]));
+      for (var zi = 63; zi > 0 && k[zi] == 0; zi--)
         ;
       if (zi == 0)
-        return fe(pa), ca;
+        return _e(pa), ca;
       for (var Hn = 1, Fi; Hn <= zi; ) {
-        for (var Yi = Hn; b[Hn] == 0 && Hn <= zi; ++Hn)
+        for (var Yi = Hn; k[Hn] == 0 && Hn <= zi; ++Hn)
           ;
         var qt = Hn - Yi;
         if (qt >= Zi) {
           Fi = qt >> 4;
           for (var Xi = 1; Xi <= Fi; ++Xi)
-            fe(_a);
+            _e(_a);
           qt = qt & 15;
         }
-        ji = 32767 + b[Hn], fe(ua[(qt << 4) + g[ji]]), fe(_[ji]), Hn++;
+        ji = 32767 + k[Hn], _e(ua[(qt << 4) + v[ji]]), _e(p[ji]), Hn++;
       }
-      return zi != Qi && fe(pa), ca;
+      return zi != Qi && _e(pa), ca;
     }
     function ia() {
       for (var Qn = String.fromCharCode, ha = 0; ha < 256; ha++)
-        C[ha] = Qn(ha);
+        N[ha] = Qn(ha);
     }
     this.encode = function(Qn, ha) {
-      (/* @__PURE__ */ new Date()).getTime(), ha && na(ha), w = new Array(), k = 0, M = 7, Kt(65496), Di(), Vi(Qn.comments), Gi(Qn.exifBuffer), Zn(), Ki(Qn.width, Qn.height), Wi(), ta();
+      (/* @__PURE__ */ new Date()).getTime(), ha && na(ha), b = new Array(), w = 0, M = 7, Kt(65496), Di(), Vi(Qn.comments), Gi(Qn.exifBuffer), Zn(), Ki(Qn.width, Qn.height), Wi(), ta();
       var ca = 0, la = 0, ua = 0;
-      k = 0, M = 7, this.encode.displayName = "_encode_";
+      w = 0, M = 7, this.encode.displayName = "_encode_";
       for (var pa = Qn.data, _a = Qn.width, ji = Qn.height, Zi = _a * 4, Qi, Ji = 0, aa, Ti, qi, zi, Hn, Fi, Yi, qt; Ji < ji; ) {
         for (Qi = 0; Qi < Zi; ) {
           for (zi = Zi * Ji + Qi, Hn = zi, Fi = -1, Yi = 0, qt = 0; qt < 64; qt++)
-            Yi = qt >> 3, Fi = (qt & 7) * 4, Hn = zi + Yi * Zi + Fi, Ji + Yi >= ji && (Hn -= Zi * (Ji + 1 + Yi - ji)), Qi + Fi >= Zi && (Hn -= Qi + Fi - Zi + 4), aa = pa[Hn++], Ti = pa[Hn++], qi = pa[Hn++], N[qt] = (X[aa] + X[Ti + 256 >> 0] + X[qi + 512 >> 0] >> 16) - 128, P[qt] = (X[aa + 768 >> 0] + X[Ti + 1024 >> 0] + X[qi + 1280 >> 0] >> 16) - 128, T[qt] = (X[aa + 1280 >> 0] + X[Ti + 1536 >> 0] + X[qi + 1792 >> 0] >> 16) - 128;
-          ca = ra(N, l, ca, f, m), la = ra(P, h, la, d, p), ua = ra(T, h, ua, d, p), Qi += 32;
+            Yi = qt >> 3, Fi = (qt & 7) * 4, Hn = zi + Yi * Zi + Fi, Ji + Yi >= ji && (Hn -= Zi * (Ji + 1 + Yi - ji)), Qi + Fi >= Zi && (Hn -= Qi + Fi - Zi + 4), aa = pa[Hn++], Ti = pa[Hn++], qi = pa[Hn++], C[qt] = (X[aa] + X[Ti + 256 >> 0] + X[qi + 512 >> 0] >> 16) - 128, T[qt] = (X[aa + 768 >> 0] + X[Ti + 1024 >> 0] + X[qi + 1280 >> 0] >> 16) - 128, P[qt] = (X[aa + 1280 >> 0] + X[Ti + 1536 >> 0] + X[qi + 1792 >> 0] >> 16) - 128;
+          ca = ra(C, l, ca, f, m), la = ra(T, h, la, d, _), ua = ra(P, h, ua, d, _), Qi += 32;
         }
         Ji += 8;
       }
       if (M >= 0) {
         var Xi = [];
-        Xi[1] = M + 1, Xi[0] = (1 << M + 1) - 1, fe(Xi);
+        Xi[1] = M + 1, Xi[0] = (1 << M + 1) - 1, _e(Xi);
       }
-      return Kt(65497), Buffer.from(w);
+      return Kt(65497), Buffer.from(b);
     };
     function na(Qn) {
-      if (Qn <= 0 && (Qn = 1), Qn > 100 && (Qn = 100), _e != Qn) {
+      if (Qn <= 0 && (Qn = 1), Qn > 100 && (Qn = 100), fe != Qn) {
         var ha = 0;
-        Qn < 50 ? ha = Math.floor(5e3 / Qn) : ha = Math.floor(200 - Qn * 2), Vt(ha), _e = Qn;
+        Qn < 50 ? ha = Math.floor(5e3 / Qn) : ha = Math.floor(200 - Qn * 2), Vt(ha), fe = Qn;
       }
     }
     function oa() {
@@ -26434,39 +26658,39 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
       55,
       62,
       63
-    ]), s = 4017, o = 799, l = 3406, h = 2276, f = 1567, d = 3784, m = 5793, p = 2896;
-    function _() {
+    ]), s = 4017, o = 799, l = 3406, h = 2276, f = 1567, d = 3784, m = 5793, _ = 2896;
+    function p() {
     }
-    function g(P, T) {
-      for (var C = 0, X = [], _e, Je, Pe = 16; Pe > 0 && !P[Pe - 1]; )
+    function v(T, P) {
+      for (var N = 0, X = [], fe, Ke, Pe = 16; Pe > 0 && !T[Pe - 1]; )
         Pe--;
       X.push({ children: [], index: 0 });
-      var Ke = X[0], Wt;
-      for (_e = 0; _e < Pe; _e++) {
-        for (Je = 0; Je < P[_e]; Je++) {
-          for (Ke = X.pop(), Ke.children[Ke.index] = T[C]; Ke.index > 0; ) {
+      var Je = X[0], Wt;
+      for (fe = 0; fe < Pe; fe++) {
+        for (Ke = 0; Ke < T[fe]; Ke++) {
+          for (Je = X.pop(), Je.children[Je.index] = P[N]; Je.index > 0; ) {
             if (X.length === 0)
               throw new Error("Could not recreate Huffman Table");
-            Ke = X.pop();
+            Je = X.pop();
           }
-          for (Ke.index++, X.push(Ke); X.length <= _e; )
-            X.push(Wt = { children: [], index: 0 }), Ke.children[Ke.index] = Wt.children, Ke = Wt;
-          C++;
+          for (Je.index++, X.push(Je); X.length <= fe; )
+            X.push(Wt = { children: [], index: 0 }), Je.children[Je.index] = Wt.children, Je = Wt;
+          N++;
         }
-        _e + 1 < Pe && (X.push(Wt = { children: [], index: 0 }), Ke.children[Ke.index] = Wt.children, Ke = Wt);
+        fe + 1 < Pe && (X.push(Wt = { children: [], index: 0 }), Je.children[Je.index] = Wt.children, Je = Wt);
       }
       return X[0].children;
     }
-    function v(P, T, C, X, _e, Je, Pe, Ke, Wt, ee) {
-      C.precision, C.samplesPerLine, C.scanLines;
-      var We = C.mcusPerLine, st = C.progressive;
-      C.maxH, C.maxV;
-      var Xt = T, Jt = 0, Vt = 0;
+    function g(T, P, N, X, fe, Ke, Pe, Je, Wt, ee) {
+      N.precision, N.samplesPerLine, N.scanLines;
+      var We = N.mcusPerLine, st = N.progressive;
+      N.maxH, N.maxV;
+      var Xt = P, Jt = 0, Vt = 0;
       function it() {
         if (Vt > 0)
           return Vt--, Jt >> Vt & 1;
-        if (Jt = P[T++], Jt == 255) {
-          var ji = P[T++];
+        if (Jt = T[P++], Jt == 255) {
+          var ji = T[P++];
           if (ji)
             throw new Error("unexpected marker: " + (Jt << 8 | ji).toString(16));
         }
@@ -26493,7 +26717,7 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
         var Zi = Ri(ji);
         return Zi >= 1 << ji - 1 ? Zi : Zi + (-1 << ji) + 1;
       }
-      function fe(ji, Zi) {
+      function _e(ji, Zi) {
         var Qi = Qt(ji.huffmanTableDC), Ji = Qi === 0 ? 0 : Ci(Qi);
         Zi[0] = ji.pred += Ji;
         for (var aa = 1; aa < 64; ) {
@@ -26522,7 +26746,7 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
           Ni--;
           return;
         }
-        for (var Qi = Je, Ji = Pe; Qi <= Ji; ) {
+        for (var Qi = Ke, Ji = Pe; Qi <= Ji; ) {
           var aa = Qt(ji.huffmanTableAC), Ti = aa & 15, qi = aa >> 4;
           if (Ti === 0) {
             if (qi < 15) {
@@ -26539,7 +26763,7 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
       }
       var Gi = 0, Ki;
       function Zn(ji, Zi) {
-        for (var Qi = Je, Ji = Pe, aa = 0; Qi <= Ji; ) {
+        for (var Qi = Ke, Ji = Pe, aa = 0; Qi <= Ji; ) {
           var Ti = a[Qi], qi = Zi[Ti] < 0 ? -1 : 1;
           switch (Gi) {
             case 0:
@@ -26576,17 +26800,17 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
         ji.blocks[Ji] === void 0 && ee.tolerantDecoding || Zi(ji, ji.blocks[Ji][aa]);
       }
       var ta = X.length, ra, ia, na, oa, Qn, ha;
-      st ? Je === 0 ? ha = Ke === 0 ? Ge : Kt : ha = Ke === 0 ? Di : Zn : ha = fe;
+      st ? Ke === 0 ? ha = Je === 0 ? Ge : Kt : ha = Je === 0 ? Di : Zn : ha = _e;
       var ca = 0, la, ua;
-      ta == 1 ? ua = X[0].blocksPerLine * X[0].blocksPerColumn : ua = We * C.mcusPerColumn, _e || (_e = ua);
+      ta == 1 ? ua = X[0].blocksPerLine * X[0].blocksPerColumn : ua = We * N.mcusPerColumn, fe || (fe = ua);
       for (var pa, _a; ca < ua; ) {
         for (ia = 0; ia < ta; ia++)
           X[ia].pred = 0;
         if (Ni = 0, ta == 1)
-          for (ra = X[0], Qn = 0; Qn < _e; Qn++)
+          for (ra = X[0], Qn = 0; Qn < fe; Qn++)
             Vi(ra, ha, ca), ca++;
         else
-          for (Qn = 0; Qn < _e; Qn++) {
+          for (Qn = 0; Qn < fe; Qn++) {
             for (ia = 0; ia < ta; ia++)
               for (ra = X[ia], pa = ra.h, _a = ra.v, na = 0; na < _a; na++)
                 for (oa = 0; oa < pa; oa++)
@@ -26595,23 +26819,23 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
           }
         if (ca === ua)
           do {
-            if (P[T] === 255 && P[T + 1] !== 0)
+            if (T[P] === 255 && T[P + 1] !== 0)
               break;
-            T += 1;
-          } while (T < P.length - 2);
-        if (Vt = 0, la = P[T] << 8 | P[T + 1], la < 65280)
+            P += 1;
+          } while (P < T.length - 2);
+        if (Vt = 0, la = T[P] << 8 | T[P + 1], la < 65280)
           throw new Error("marker was not found");
         if (la >= 65488 && la <= 65495)
-          T += 2;
+          P += 2;
         else
           break;
       }
-      return T - Xt;
+      return P - Xt;
     }
-    function b(P, T) {
-      var C = [], X = T.blocksPerLine, _e = T.blocksPerColumn, Je = X << 3, Pe = new Int32Array(64), Ke = new Uint8Array(64);
-      function Wt(Ri, Ci, fe) {
-        var Ge = T.quantizationTable, Kt, Ni, Di, Gi, Ki, Zn, Wi, Vi, ta, ra = fe, ia;
+    function k(T, P) {
+      var N = [], X = P.blocksPerLine, fe = P.blocksPerColumn, Ke = X << 3, Pe = new Int32Array(64), Je = new Uint8Array(64);
+      function Wt(Ri, Ci, _e) {
+        var Ge = P.quantizationTable, Kt, Ni, Di, Gi, Ki, Zn, Wi, Vi, ta, ra = _e, ia;
         for (ia = 0; ia < 64; ia++)
           ra[ia] = Ri[ia] * Ge[ia];
         for (ia = 0; ia < 8; ++ia) {
@@ -26620,58 +26844,58 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
             ta = m * ra[0 + na] + 512 >> 10, ra[0 + na] = ta, ra[1 + na] = ta, ra[2 + na] = ta, ra[3 + na] = ta, ra[4 + na] = ta, ra[5 + na] = ta, ra[6 + na] = ta, ra[7 + na] = ta;
             continue;
           }
-          Kt = m * ra[0 + na] + 128 >> 8, Ni = m * ra[4 + na] + 128 >> 8, Di = ra[2 + na], Gi = ra[6 + na], Ki = p * (ra[1 + na] - ra[7 + na]) + 128 >> 8, Vi = p * (ra[1 + na] + ra[7 + na]) + 128 >> 8, Zn = ra[3 + na] << 4, Wi = ra[5 + na] << 4, ta = Kt - Ni + 1 >> 1, Kt = Kt + Ni + 1 >> 1, Ni = ta, ta = Di * d + Gi * f + 128 >> 8, Di = Di * f - Gi * d + 128 >> 8, Gi = ta, ta = Ki - Wi + 1 >> 1, Ki = Ki + Wi + 1 >> 1, Wi = ta, ta = Vi + Zn + 1 >> 1, Zn = Vi - Zn + 1 >> 1, Vi = ta, ta = Kt - Gi + 1 >> 1, Kt = Kt + Gi + 1 >> 1, Gi = ta, ta = Ni - Di + 1 >> 1, Ni = Ni + Di + 1 >> 1, Di = ta, ta = Ki * h + Vi * l + 2048 >> 12, Ki = Ki * l - Vi * h + 2048 >> 12, Vi = ta, ta = Zn * o + Wi * s + 2048 >> 12, Zn = Zn * s - Wi * o + 2048 >> 12, Wi = ta, ra[0 + na] = Kt + Vi, ra[7 + na] = Kt - Vi, ra[1 + na] = Ni + Wi, ra[6 + na] = Ni - Wi, ra[2 + na] = Di + Zn, ra[5 + na] = Di - Zn, ra[3 + na] = Gi + Ki, ra[4 + na] = Gi - Ki;
+          Kt = m * ra[0 + na] + 128 >> 8, Ni = m * ra[4 + na] + 128 >> 8, Di = ra[2 + na], Gi = ra[6 + na], Ki = _ * (ra[1 + na] - ra[7 + na]) + 128 >> 8, Vi = _ * (ra[1 + na] + ra[7 + na]) + 128 >> 8, Zn = ra[3 + na] << 4, Wi = ra[5 + na] << 4, ta = Kt - Ni + 1 >> 1, Kt = Kt + Ni + 1 >> 1, Ni = ta, ta = Di * d + Gi * f + 128 >> 8, Di = Di * f - Gi * d + 128 >> 8, Gi = ta, ta = Ki - Wi + 1 >> 1, Ki = Ki + Wi + 1 >> 1, Wi = ta, ta = Vi + Zn + 1 >> 1, Zn = Vi - Zn + 1 >> 1, Vi = ta, ta = Kt - Gi + 1 >> 1, Kt = Kt + Gi + 1 >> 1, Gi = ta, ta = Ni - Di + 1 >> 1, Ni = Ni + Di + 1 >> 1, Di = ta, ta = Ki * h + Vi * l + 2048 >> 12, Ki = Ki * l - Vi * h + 2048 >> 12, Vi = ta, ta = Zn * o + Wi * s + 2048 >> 12, Zn = Zn * s - Wi * o + 2048 >> 12, Wi = ta, ra[0 + na] = Kt + Vi, ra[7 + na] = Kt - Vi, ra[1 + na] = Ni + Wi, ra[6 + na] = Ni - Wi, ra[2 + na] = Di + Zn, ra[5 + na] = Di - Zn, ra[3 + na] = Gi + Ki, ra[4 + na] = Gi - Ki;
         }
         for (ia = 0; ia < 8; ++ia) {
           var oa = ia;
           if (ra[8 + oa] == 0 && ra[16 + oa] == 0 && ra[24 + oa] == 0 && ra[32 + oa] == 0 && ra[40 + oa] == 0 && ra[48 + oa] == 0 && ra[56 + oa] == 0) {
-            ta = m * fe[ia + 0] + 8192 >> 14, ra[0 + oa] = ta, ra[8 + oa] = ta, ra[16 + oa] = ta, ra[24 + oa] = ta, ra[32 + oa] = ta, ra[40 + oa] = ta, ra[48 + oa] = ta, ra[56 + oa] = ta;
+            ta = m * _e[ia + 0] + 8192 >> 14, ra[0 + oa] = ta, ra[8 + oa] = ta, ra[16 + oa] = ta, ra[24 + oa] = ta, ra[32 + oa] = ta, ra[40 + oa] = ta, ra[48 + oa] = ta, ra[56 + oa] = ta;
             continue;
           }
-          Kt = m * ra[0 + oa] + 2048 >> 12, Ni = m * ra[32 + oa] + 2048 >> 12, Di = ra[16 + oa], Gi = ra[48 + oa], Ki = p * (ra[8 + oa] - ra[56 + oa]) + 2048 >> 12, Vi = p * (ra[8 + oa] + ra[56 + oa]) + 2048 >> 12, Zn = ra[24 + oa], Wi = ra[40 + oa], ta = Kt - Ni + 1 >> 1, Kt = Kt + Ni + 1 >> 1, Ni = ta, ta = Di * d + Gi * f + 2048 >> 12, Di = Di * f - Gi * d + 2048 >> 12, Gi = ta, ta = Ki - Wi + 1 >> 1, Ki = Ki + Wi + 1 >> 1, Wi = ta, ta = Vi + Zn + 1 >> 1, Zn = Vi - Zn + 1 >> 1, Vi = ta, ta = Kt - Gi + 1 >> 1, Kt = Kt + Gi + 1 >> 1, Gi = ta, ta = Ni - Di + 1 >> 1, Ni = Ni + Di + 1 >> 1, Di = ta, ta = Ki * h + Vi * l + 2048 >> 12, Ki = Ki * l - Vi * h + 2048 >> 12, Vi = ta, ta = Zn * o + Wi * s + 2048 >> 12, Zn = Zn * s - Wi * o + 2048 >> 12, Wi = ta, ra[0 + oa] = Kt + Vi, ra[56 + oa] = Kt - Vi, ra[8 + oa] = Ni + Wi, ra[48 + oa] = Ni - Wi, ra[16 + oa] = Di + Zn, ra[40 + oa] = Di - Zn, ra[24 + oa] = Gi + Ki, ra[32 + oa] = Gi - Ki;
+          Kt = m * ra[0 + oa] + 2048 >> 12, Ni = m * ra[32 + oa] + 2048 >> 12, Di = ra[16 + oa], Gi = ra[48 + oa], Ki = _ * (ra[8 + oa] - ra[56 + oa]) + 2048 >> 12, Vi = _ * (ra[8 + oa] + ra[56 + oa]) + 2048 >> 12, Zn = ra[24 + oa], Wi = ra[40 + oa], ta = Kt - Ni + 1 >> 1, Kt = Kt + Ni + 1 >> 1, Ni = ta, ta = Di * d + Gi * f + 2048 >> 12, Di = Di * f - Gi * d + 2048 >> 12, Gi = ta, ta = Ki - Wi + 1 >> 1, Ki = Ki + Wi + 1 >> 1, Wi = ta, ta = Vi + Zn + 1 >> 1, Zn = Vi - Zn + 1 >> 1, Vi = ta, ta = Kt - Gi + 1 >> 1, Kt = Kt + Gi + 1 >> 1, Gi = ta, ta = Ni - Di + 1 >> 1, Ni = Ni + Di + 1 >> 1, Di = ta, ta = Ki * h + Vi * l + 2048 >> 12, Ki = Ki * l - Vi * h + 2048 >> 12, Vi = ta, ta = Zn * o + Wi * s + 2048 >> 12, Zn = Zn * s - Wi * o + 2048 >> 12, Wi = ta, ra[0 + oa] = Kt + Vi, ra[56 + oa] = Kt - Vi, ra[8 + oa] = Ni + Wi, ra[48 + oa] = Ni - Wi, ra[16 + oa] = Di + Zn, ra[40 + oa] = Di - Zn, ra[24 + oa] = Gi + Ki, ra[32 + oa] = Gi - Ki;
         }
         for (ia = 0; ia < 64; ++ia) {
           var Qn = 128 + (ra[ia] + 8 >> 4);
           Ci[ia] = Qn < 0 ? 0 : Qn > 255 ? 255 : Qn;
         }
       }
-      N(Je * _e * 8);
-      for (var ee, We, st = 0; st < _e; st++) {
+      C(Ke * fe * 8);
+      for (var ee, We, st = 0; st < fe; st++) {
         var Xt = st << 3;
         for (ee = 0; ee < 8; ee++)
-          C.push(new Uint8Array(Je));
+          N.push(new Uint8Array(Ke));
         for (var Jt = 0; Jt < X; Jt++) {
-          Wt(T.blocks[st][Jt], Ke, Pe);
+          Wt(P.blocks[st][Jt], Je, Pe);
           var Vt = 0, it = Jt << 3;
           for (We = 0; We < 8; We++) {
-            var Qt = C[Xt + We];
+            var Qt = N[Xt + We];
             for (ee = 0; ee < 8; ee++)
-              Qt[it + ee] = Ke[Vt++];
+              Qt[it + ee] = Je[Vt++];
           }
         }
       }
-      return C;
+      return N;
     }
-    function w(P) {
-      return P < 0 ? 0 : P > 255 ? 255 : P;
+    function b(T) {
+      return T < 0 ? 0 : T > 255 ? 255 : T;
     }
-    _.prototype = {
-      load: function(T) {
-        var C = new XMLHttpRequest();
-        C.open("GET", T, !0), C.responseType = "arraybuffer", C.onload = (function() {
-          var X = new Uint8Array(C.response || C.mozResponseArrayBuffer);
+    p.prototype = {
+      load: function(P) {
+        var N = new XMLHttpRequest();
+        N.open("GET", P, !0), N.responseType = "arraybuffer", N.onload = (function() {
+          var X = new Uint8Array(N.response || N.mozResponseArrayBuffer);
           this.parse(X), this.onload && this.onload();
-        }).bind(this), C.send(null);
+        }).bind(this), N.send(null);
       },
-      parse: function(T) {
-        var C = this.opts.maxResolutionInMP * 1e3 * 1e3, X = 0;
-        T.length;
-        function _e() {
-          var qi = T[X] << 8 | T[X + 1];
+      parse: function(P) {
+        var N = this.opts.maxResolutionInMP * 1e3 * 1e3, X = 0;
+        P.length;
+        function fe() {
+          var qi = P[X] << 8 | P[X + 1];
           return X += 2, qi;
         }
-        function Je() {
-          var qi = _e(), zi = T.subarray(X, X + qi - 2);
+        function Ke() {
+          var qi = fe(), zi = P.subarray(X, X + qi - 2);
           return X += zi.length, zi;
         }
         function Pe(qi) {
@@ -26683,7 +26907,7 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
             if (qi.components.hasOwnProperty(Yi)) {
               Fi = qi.components[Yi];
               var sa = Math.ceil(Math.ceil(qi.samplesPerLine / 8) * Fi.h / zi), ue = Math.ceil(Math.ceil(qi.scanLines / 8) * Fi.v / Hn), Ui = qt * Fi.h, Hi = Xi * Fi.v, $i = Hi * Ui, Li = [];
-              N($i * 256);
+              C($i * 256);
               for (var ea = 0; ea < Hi; ea++) {
                 for (var ma = [], da = 0; da < Ui; da++)
                   ma.push(new Int32Array(64));
@@ -26693,10 +26917,10 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
             }
           qi.maxH = zi, qi.maxV = Hn, qi.mcusPerLine = qt, qi.mcusPerColumn = Xi;
         }
-        var Ke = null, Wt = null, ee, We, st = [], Xt = [], Jt = [], Vt = [], it = _e(), Qt = -1;
+        var Je = null, Wt = null, ee, We, st = [], Xt = [], Jt = [], Vt = [], it = fe(), Qt = -1;
         if (this.comments = [], it != 65496)
           throw new Error("SOI not found");
-        for (it = _e(); it != 65497; ) {
+        for (it = fe(); it != 65497; ) {
           var Ri, Ci;
           switch (it) {
             case 65280:
@@ -26718,42 +26942,42 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
             case 65518:
             case 65519:
             case 65534:
-              var fe = Je();
+              var _e = Ke();
               if (it === 65534) {
-                var Ge = String.fromCharCode.apply(null, fe);
+                var Ge = String.fromCharCode.apply(null, _e);
                 this.comments.push(Ge);
               }
-              it === 65504 && fe[0] === 74 && fe[1] === 70 && fe[2] === 73 && fe[3] === 70 && fe[4] === 0 && (Ke = {
-                version: { major: fe[5], minor: fe[6] },
-                densityUnits: fe[7],
-                xDensity: fe[8] << 8 | fe[9],
-                yDensity: fe[10] << 8 | fe[11],
-                thumbWidth: fe[12],
-                thumbHeight: fe[13],
-                thumbData: fe.subarray(14, 14 + 3 * fe[12] * fe[13])
-              }), it === 65505 && fe[0] === 69 && fe[1] === 120 && fe[2] === 105 && fe[3] === 102 && fe[4] === 0 && (this.exifBuffer = fe.subarray(5, fe.length)), it === 65518 && fe[0] === 65 && fe[1] === 100 && fe[2] === 111 && fe[3] === 98 && fe[4] === 101 && fe[5] === 0 && (Wt = {
-                version: fe[6],
-                flags0: fe[7] << 8 | fe[8],
-                flags1: fe[9] << 8 | fe[10],
-                transformCode: fe[11]
+              it === 65504 && _e[0] === 74 && _e[1] === 70 && _e[2] === 73 && _e[3] === 70 && _e[4] === 0 && (Je = {
+                version: { major: _e[5], minor: _e[6] },
+                densityUnits: _e[7],
+                xDensity: _e[8] << 8 | _e[9],
+                yDensity: _e[10] << 8 | _e[11],
+                thumbWidth: _e[12],
+                thumbHeight: _e[13],
+                thumbData: _e.subarray(14, 14 + 3 * _e[12] * _e[13])
+              }), it === 65505 && _e[0] === 69 && _e[1] === 120 && _e[2] === 105 && _e[3] === 102 && _e[4] === 0 && (this.exifBuffer = _e.subarray(5, _e.length)), it === 65518 && _e[0] === 65 && _e[1] === 100 && _e[2] === 111 && _e[3] === 98 && _e[4] === 101 && _e[5] === 0 && (Wt = {
+                version: _e[6],
+                flags0: _e[7] << 8 | _e[8],
+                flags1: _e[9] << 8 | _e[10],
+                transformCode: _e[11]
               });
               break;
             case 65499:
-              for (var Kt = _e(), Ni = Kt + X - 2; X < Ni; ) {
-                var Di = T[X++];
-                N(256);
+              for (var Kt = fe(), Ni = Kt + X - 2; X < Ni; ) {
+                var Di = P[X++];
+                C(256);
                 var Gi = new Int32Array(64);
                 if (Di >> 4)
                   if (Di >> 4 === 1)
                     for (Ci = 0; Ci < 64; Ci++) {
                       var Ki = a[Ci];
-                      Gi[Ki] = _e();
+                      Gi[Ki] = fe();
                     }
                   else
                     throw new Error("DQT: invalid table spec");
                 else for (Ci = 0; Ci < 64; Ci++) {
                   var Ki = a[Ci];
-                  Gi[Ki] = T[X++];
+                  Gi[Ki] = P[X++];
                 }
                 st[Di & 15] = Gi;
               }
@@ -26761,16 +26985,16 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
             case 65472:
             case 65473:
             case 65474:
-              _e(), ee = {}, ee.extended = it === 65473, ee.progressive = it === 65474, ee.precision = T[X++], ee.scanLines = _e(), ee.samplesPerLine = _e(), ee.components = {}, ee.componentsOrder = [];
+              fe(), ee = {}, ee.extended = it === 65473, ee.progressive = it === 65474, ee.precision = P[X++], ee.scanLines = fe(), ee.samplesPerLine = fe(), ee.components = {}, ee.componentsOrder = [];
               var Zn = ee.scanLines * ee.samplesPerLine;
-              if (Zn > C) {
-                var Wi = Math.ceil((Zn - C) / 1e6);
+              if (Zn > N) {
+                var Wi = Math.ceil((Zn - N) / 1e6);
                 throw new Error(`maxResolutionInMP limit exceeded by ${Wi}MP`);
               }
-              var Vi = T[X++], ta;
+              var Vi = P[X++], ta;
               for (Ri = 0; Ri < Vi; Ri++) {
-                ta = T[X];
-                var ra = T[X + 1] >> 4, ia = T[X + 1] & 15, na = T[X + 2];
+                ta = P[X];
+                var ra = P[X + 1] >> 4, ia = P[X + 1] & 15, na = P[X + 2];
                 if (ra <= 0 || ia <= 0)
                   throw new Error("Invalid sampling factor, expected values above 0");
                 ee.componentsOrder.push(ta), ee.components[ta] = {
@@ -26782,34 +27006,34 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
               Pe(ee), Xt.push(ee);
               break;
             case 65476:
-              var oa = _e();
+              var oa = fe();
               for (Ri = 2; Ri < oa; ) {
-                var Qn = T[X++], ha = new Uint8Array(16), ca = 0;
+                var Qn = P[X++], ha = new Uint8Array(16), ca = 0;
                 for (Ci = 0; Ci < 16; Ci++, X++)
-                  ca += ha[Ci] = T[X];
-                N(16 + ca);
+                  ca += ha[Ci] = P[X];
+                C(16 + ca);
                 var la = new Uint8Array(ca);
                 for (Ci = 0; Ci < ca; Ci++, X++)
-                  la[Ci] = T[X];
-                Ri += 17 + ca, (Qn >> 4 ? Jt : Vt)[Qn & 15] = g(ha, la);
+                  la[Ci] = P[X];
+                Ri += 17 + ca, (Qn >> 4 ? Jt : Vt)[Qn & 15] = v(ha, la);
               }
               break;
             case 65501:
-              _e(), We = _e();
+              fe(), We = fe();
               break;
             case 65500:
-              _e(), _e();
+              fe(), fe();
               break;
             case 65498:
-              _e();
-              var ua = T[X++], pa = [], _a;
+              fe();
+              var ua = P[X++], pa = [], _a;
               for (Ri = 0; Ri < ua; Ri++) {
-                _a = ee.components[T[X++]];
-                var ji = T[X++];
+                _a = ee.components[P[X++]];
+                var ji = P[X++];
                 _a.huffmanTableDC = Vt[ji >> 4], _a.huffmanTableAC = Jt[ji & 15], pa.push(_a);
               }
-              var Zi = T[X++], Qi = T[X++], Ji = T[X++], aa = v(
-                T,
+              var Zi = P[X++], Qi = P[X++], Ji = P[X++], aa = g(
+                P,
                 X,
                 ee,
                 pa,
@@ -26823,25 +27047,25 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
               X += aa;
               break;
             case 65535:
-              T[X] !== 255 && X--;
+              P[X] !== 255 && X--;
               break;
             default:
-              if (T[X - 3] == 255 && T[X - 2] >= 192 && T[X - 2] <= 254) {
+              if (P[X - 3] == 255 && P[X - 2] >= 192 && P[X - 2] <= 254) {
                 X -= 3;
                 break;
               } else if (it === 224 || it == 225) {
                 if (Qt !== -1)
                   throw new Error(`first unknown JPEG marker at offset ${Qt.toString(16)}, second unknown JPEG marker ${it.toString(16)} at offset ${(X - 1).toString(16)}`);
                 Qt = X - 1;
-                const qi = _e();
-                if (T[X + qi - 2] === 255) {
+                const qi = fe();
+                if (P[X + qi - 2] === 255) {
                   X += qi - 2;
                   break;
                 }
               }
               throw new Error("unknown JPEG marker " + it.toString(16));
           }
-          it = _e();
+          it = fe();
         }
         if (Xt.length != 1)
           throw new Error("only single frame JPEGs supported");
@@ -26850,85 +27074,85 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
           for (var Ci in Ti)
             Ti[Ci].quantizationTable = st[Ti[Ci].quantizationIdx], delete Ti[Ci].quantizationIdx;
         }
-        this.width = ee.samplesPerLine, this.height = ee.scanLines, this.jfif = Ke, this.adobe = Wt, this.components = [];
+        this.width = ee.samplesPerLine, this.height = ee.scanLines, this.jfif = Je, this.adobe = Wt, this.components = [];
         for (var Ri = 0; Ri < ee.componentsOrder.length; Ri++) {
           var _a = ee.components[ee.componentsOrder[Ri]];
           this.components.push({
-            lines: b(ee, _a),
+            lines: k(ee, _a),
             scaleX: _a.h / ee.maxH,
             scaleY: _a.v / ee.maxV
           });
         }
       },
-      getData: function(T, C) {
-        var X = this.width / T, _e = this.height / C, Je, Pe, Ke, Wt, ee, We, st, Xt, Jt, Vt, it = 0, Qt, Ri, Ci, fe, Ge, Kt, Ni, Di, Gi, Ki, Zn, Wi = T * C * this.components.length;
-        N(Wi);
+      getData: function(P, N) {
+        var X = this.width / P, fe = this.height / N, Ke, Pe, Je, Wt, ee, We, st, Xt, Jt, Vt, it = 0, Qt, Ri, Ci, _e, Ge, Kt, Ni, Di, Gi, Ki, Zn, Wi = P * N * this.components.length;
+        C(Wi);
         var Vi = new Uint8Array(Wi);
         switch (this.components.length) {
           case 1:
-            for (Je = this.components[0], Vt = 0; Vt < C; Vt++)
-              for (ee = Je.lines[0 | Vt * Je.scaleY * _e], Jt = 0; Jt < T; Jt++)
-                Qt = ee[0 | Jt * Je.scaleX * X], Vi[it++] = Qt;
+            for (Ke = this.components[0], Vt = 0; Vt < N; Vt++)
+              for (ee = Ke.lines[0 | Vt * Ke.scaleY * fe], Jt = 0; Jt < P; Jt++)
+                Qt = ee[0 | Jt * Ke.scaleX * X], Vi[it++] = Qt;
             break;
           case 2:
-            for (Je = this.components[0], Pe = this.components[1], Vt = 0; Vt < C; Vt++)
-              for (ee = Je.lines[0 | Vt * Je.scaleY * _e], We = Pe.lines[0 | Vt * Pe.scaleY * _e], Jt = 0; Jt < T; Jt++)
-                Qt = ee[0 | Jt * Je.scaleX * X], Vi[it++] = Qt, Qt = We[0 | Jt * Pe.scaleX * X], Vi[it++] = Qt;
+            for (Ke = this.components[0], Pe = this.components[1], Vt = 0; Vt < N; Vt++)
+              for (ee = Ke.lines[0 | Vt * Ke.scaleY * fe], We = Pe.lines[0 | Vt * Pe.scaleY * fe], Jt = 0; Jt < P; Jt++)
+                Qt = ee[0 | Jt * Ke.scaleX * X], Vi[it++] = Qt, Qt = We[0 | Jt * Pe.scaleX * X], Vi[it++] = Qt;
             break;
           case 3:
-            for (Zn = !0, this.adobe && this.adobe.transformCode ? Zn = !0 : typeof this.opts.colorTransform < "u" && (Zn = !!this.opts.colorTransform), Je = this.components[0], Pe = this.components[1], Ke = this.components[2], Vt = 0; Vt < C; Vt++)
-              for (ee = Je.lines[0 | Vt * Je.scaleY * _e], We = Pe.lines[0 | Vt * Pe.scaleY * _e], st = Ke.lines[0 | Vt * Ke.scaleY * _e], Jt = 0; Jt < T; Jt++)
-                Zn ? (Qt = ee[0 | Jt * Je.scaleX * X], Ri = We[0 | Jt * Pe.scaleX * X], Ci = st[0 | Jt * Ke.scaleX * X], Di = w(Qt + 1.402 * (Ci - 128)), Gi = w(Qt - 0.3441363 * (Ri - 128) - 0.71413636 * (Ci - 128)), Ki = w(Qt + 1.772 * (Ri - 128))) : (Di = ee[0 | Jt * Je.scaleX * X], Gi = We[0 | Jt * Pe.scaleX * X], Ki = st[0 | Jt * Ke.scaleX * X]), Vi[it++] = Di, Vi[it++] = Gi, Vi[it++] = Ki;
+            for (Zn = !0, this.adobe && this.adobe.transformCode ? Zn = !0 : typeof this.opts.colorTransform < "u" && (Zn = !!this.opts.colorTransform), Ke = this.components[0], Pe = this.components[1], Je = this.components[2], Vt = 0; Vt < N; Vt++)
+              for (ee = Ke.lines[0 | Vt * Ke.scaleY * fe], We = Pe.lines[0 | Vt * Pe.scaleY * fe], st = Je.lines[0 | Vt * Je.scaleY * fe], Jt = 0; Jt < P; Jt++)
+                Zn ? (Qt = ee[0 | Jt * Ke.scaleX * X], Ri = We[0 | Jt * Pe.scaleX * X], Ci = st[0 | Jt * Je.scaleX * X], Di = b(Qt + 1.402 * (Ci - 128)), Gi = b(Qt - 0.3441363 * (Ri - 128) - 0.71413636 * (Ci - 128)), Ki = b(Qt + 1.772 * (Ri - 128))) : (Di = ee[0 | Jt * Ke.scaleX * X], Gi = We[0 | Jt * Pe.scaleX * X], Ki = st[0 | Jt * Je.scaleX * X]), Vi[it++] = Di, Vi[it++] = Gi, Vi[it++] = Ki;
             break;
           case 4:
             if (!this.adobe)
               throw new Error("Unsupported color mode (4 components)");
-            for (Zn = !1, this.adobe && this.adobe.transformCode ? Zn = !0 : typeof this.opts.colorTransform < "u" && (Zn = !!this.opts.colorTransform), Je = this.components[0], Pe = this.components[1], Ke = this.components[2], Wt = this.components[3], Vt = 0; Vt < C; Vt++)
-              for (ee = Je.lines[0 | Vt * Je.scaleY * _e], We = Pe.lines[0 | Vt * Pe.scaleY * _e], st = Ke.lines[0 | Vt * Ke.scaleY * _e], Xt = Wt.lines[0 | Vt * Wt.scaleY * _e], Jt = 0; Jt < T; Jt++)
-                Zn ? (Qt = ee[0 | Jt * Je.scaleX * X], Ri = We[0 | Jt * Pe.scaleX * X], Ci = st[0 | Jt * Ke.scaleX * X], fe = Xt[0 | Jt * Wt.scaleX * X], Ge = 255 - w(Qt + 1.402 * (Ci - 128)), Kt = 255 - w(Qt - 0.3441363 * (Ri - 128) - 0.71413636 * (Ci - 128)), Ni = 255 - w(Qt + 1.772 * (Ri - 128))) : (Ge = ee[0 | Jt * Je.scaleX * X], Kt = We[0 | Jt * Pe.scaleX * X], Ni = st[0 | Jt * Ke.scaleX * X], fe = Xt[0 | Jt * Wt.scaleX * X]), Vi[it++] = 255 - Ge, Vi[it++] = 255 - Kt, Vi[it++] = 255 - Ni, Vi[it++] = 255 - fe;
+            for (Zn = !1, this.adobe && this.adobe.transformCode ? Zn = !0 : typeof this.opts.colorTransform < "u" && (Zn = !!this.opts.colorTransform), Ke = this.components[0], Pe = this.components[1], Je = this.components[2], Wt = this.components[3], Vt = 0; Vt < N; Vt++)
+              for (ee = Ke.lines[0 | Vt * Ke.scaleY * fe], We = Pe.lines[0 | Vt * Pe.scaleY * fe], st = Je.lines[0 | Vt * Je.scaleY * fe], Xt = Wt.lines[0 | Vt * Wt.scaleY * fe], Jt = 0; Jt < P; Jt++)
+                Zn ? (Qt = ee[0 | Jt * Ke.scaleX * X], Ri = We[0 | Jt * Pe.scaleX * X], Ci = st[0 | Jt * Je.scaleX * X], _e = Xt[0 | Jt * Wt.scaleX * X], Ge = 255 - b(Qt + 1.402 * (Ci - 128)), Kt = 255 - b(Qt - 0.3441363 * (Ri - 128) - 0.71413636 * (Ci - 128)), Ni = 255 - b(Qt + 1.772 * (Ri - 128))) : (Ge = ee[0 | Jt * Ke.scaleX * X], Kt = We[0 | Jt * Pe.scaleX * X], Ni = st[0 | Jt * Je.scaleX * X], _e = Xt[0 | Jt * Wt.scaleX * X]), Vi[it++] = 255 - Ge, Vi[it++] = 255 - Kt, Vi[it++] = 255 - Ni, Vi[it++] = 255 - _e;
             break;
           default:
             throw new Error("Unsupported color mode");
         }
         return Vi;
       },
-      copyToImageData: function(T, C) {
-        var X = T.width, _e = T.height, Je = T.data, Pe = this.getData(X, _e), Ke = 0, Wt = 0, ee, We, st, Xt, Jt, Vt, it, Qt, Ri;
+      copyToImageData: function(P, N) {
+        var X = P.width, fe = P.height, Ke = P.data, Pe = this.getData(X, fe), Je = 0, Wt = 0, ee, We, st, Xt, Jt, Vt, it, Qt, Ri;
         switch (this.components.length) {
           case 1:
-            for (We = 0; We < _e; We++)
+            for (We = 0; We < fe; We++)
               for (ee = 0; ee < X; ee++)
-                st = Pe[Ke++], Je[Wt++] = st, Je[Wt++] = st, Je[Wt++] = st, C && (Je[Wt++] = 255);
+                st = Pe[Je++], Ke[Wt++] = st, Ke[Wt++] = st, Ke[Wt++] = st, N && (Ke[Wt++] = 255);
             break;
           case 3:
-            for (We = 0; We < _e; We++)
+            for (We = 0; We < fe; We++)
               for (ee = 0; ee < X; ee++)
-                it = Pe[Ke++], Qt = Pe[Ke++], Ri = Pe[Ke++], Je[Wt++] = it, Je[Wt++] = Qt, Je[Wt++] = Ri, C && (Je[Wt++] = 255);
+                it = Pe[Je++], Qt = Pe[Je++], Ri = Pe[Je++], Ke[Wt++] = it, Ke[Wt++] = Qt, Ke[Wt++] = Ri, N && (Ke[Wt++] = 255);
             break;
           case 4:
-            for (We = 0; We < _e; We++)
+            for (We = 0; We < fe; We++)
               for (ee = 0; ee < X; ee++)
-                Jt = Pe[Ke++], Vt = Pe[Ke++], st = Pe[Ke++], Xt = Pe[Ke++], it = 255 - w(Jt * (1 - Xt / 255) + Xt), Qt = 255 - w(Vt * (1 - Xt / 255) + Xt), Ri = 255 - w(st * (1 - Xt / 255) + Xt), Je[Wt++] = it, Je[Wt++] = Qt, Je[Wt++] = Ri, C && (Je[Wt++] = 255);
+                Jt = Pe[Je++], Vt = Pe[Je++], st = Pe[Je++], Xt = Pe[Je++], it = 255 - b(Jt * (1 - Xt / 255) + Xt), Qt = 255 - b(Vt * (1 - Xt / 255) + Xt), Ri = 255 - b(st * (1 - Xt / 255) + Xt), Ke[Wt++] = it, Ke[Wt++] = Qt, Ke[Wt++] = Ri, N && (Ke[Wt++] = 255);
             break;
           default:
             throw new Error("Unsupported color mode");
         }
       }
     };
-    var k = 0, M = 0;
-    function N(P = 0) {
-      var T = k + P;
-      if (T > M) {
-        var C = Math.ceil((T - M) / 1024 / 1024);
-        throw new Error(`maxMemoryUsageInMB limit exceeded by at least ${C}MB`);
+    var w = 0, M = 0;
+    function C(T = 0) {
+      var P = w + T;
+      if (P > M) {
+        var N = Math.ceil((P - M) / 1024 / 1024);
+        throw new Error(`maxMemoryUsageInMB limit exceeded by at least ${N}MB`);
       }
-      k = T;
+      w = P;
     }
-    return _.resetMaxMemoryUsage = function(P) {
-      k = 0, M = P;
-    }, _.getBytesAllocated = function() {
-      return k;
-    }, _.requestMemoryAllocation = N, _;
+    return p.resetMaxMemoryUsage = function(T) {
+      w = 0, M = T;
+    }, p.getBytesAllocated = function() {
+      return w;
+    }, p.requestMemoryAllocation = C, p;
   }();
   e.exports = i;
   function i(n, a = {}) {
@@ -26954,8 +27178,8 @@ var encoderExports = encoder.exports, decoder = { exports: {} };
         data: o.useTArray ? new Uint8Array(d) : Buffer.alloc(d)
       };
       h.comments.length > 0 && (m.comments = h.comments);
-    } catch (p) {
-      throw p instanceof RangeError ? new Error("Could not allocate enough memory for the image. Required: " + d) : p instanceof ReferenceError && p.message === "Buffer is not defined" ? new Error("Buffer is not globally defined in this environment. Consider setting useTArray to true") : p;
+    } catch (_) {
+      throw _ instanceof RangeError ? new Error("Could not allocate enough memory for the image. Required: " + d) : _ instanceof ReferenceError && _.message === "Buffer is not defined" ? new Error("Buffer is not globally defined in this environment. Consider setting useTArray to true") : _;
     }
     return h.copyToImageData(m, o.formatAsRGBA), m;
   }
@@ -27456,21 +27680,21 @@ function bitRetriever(e, r) {
       throw new Error("Ran out of data");
     let s = e[n];
     n++;
-    let o, l, h, f, d, m, p, _;
+    let o, l, h, f, d, m, _, p;
     switch (r) {
       default:
         throw new Error("unrecognised depth");
       case 16:
-        p = e[n], n++, i.push((s << 8) + p);
+        _ = e[n], n++, i.push((s << 8) + _);
         break;
       case 4:
-        p = s & 15, _ = s >> 4, i.push(_, p);
+        _ = s & 15, p = s >> 4, i.push(p, _);
         break;
       case 2:
-        d = s & 3, m = s >> 2 & 3, p = s >> 4 & 3, _ = s >> 6 & 3, i.push(_, p, m, d);
+        d = s & 3, m = s >> 2 & 3, _ = s >> 4 & 3, p = s >> 6 & 3, i.push(p, _, m, d);
         break;
       case 1:
-        o = s & 1, l = s >> 1 & 1, h = s >> 2 & 1, f = s >> 3 & 1, d = s >> 4 & 1, m = s >> 5 & 1, p = s >> 6 & 1, _ = s >> 7 & 1, i.push(_, p, m, d, f, h, l, o);
+        o = s & 1, l = s >> 1 & 1, h = s >> 2 & 1, f = s >> 3 & 1, d = s >> 4 & 1, m = s >> 5 & 1, _ = s >> 6 & 1, p = s >> 7 & 1, i.push(p, _, m, d, f, h, l, o);
         break;
     }
   }
@@ -27503,8 +27727,8 @@ function mapImageCustomBit(e, r, i, n, a, s) {
   let o = e.width, l = e.height, h = e.index;
   for (let f = 0; f < l; f++) {
     for (let d = 0; d < o; d++) {
-      let m = a.get(n), p = i(d, f, h);
-      pixelBppCustomMapper[n](r, m, p, s);
+      let m = a.get(n), _ = i(d, f, h);
+      pixelBppCustomMapper[n](r, m, _, s);
     }
     a.resetAfterLine();
   }
@@ -27514,28 +27738,28 @@ bitmapper$2.dataToBitMap = function(e, r) {
   a !== 8 && (l = bitRetriever(e, a));
   let h;
   a <= 8 ? h = Buffer.alloc(i * n * 4) : h = new Uint16Array(i * n * 4);
-  let f = Math.pow(2, a) - 1, d = 0, m, p;
+  let f = Math.pow(2, a) - 1, d = 0, m, _;
   if (o)
-    m = interlaceUtils.getImagePasses(i, n), p = interlaceUtils.getInterlaceIterator(i, n);
+    m = interlaceUtils.getImagePasses(i, n), _ = interlaceUtils.getInterlaceIterator(i, n);
   else {
-    let _ = 0;
-    p = function() {
-      let g = _;
-      return _ += 4, g;
+    let p = 0;
+    _ = function() {
+      let v = p;
+      return p += 4, v;
     }, m = [{ width: i, height: n }];
   }
-  for (let _ = 0; _ < m.length; _++)
+  for (let p = 0; p < m.length; p++)
     a === 8 ? d = mapImage8Bit(
-      m[_],
+      m[p],
       h,
-      p,
+      _,
       s,
       e,
       d
     ) : mapImageCustomBit(
-      m[_],
+      m[p],
       h,
-      p,
+      _,
       s,
       l,
       f
@@ -27664,67 +27888,67 @@ var bitpacker = function(e, r, i, n) {
     n.colorType
   ) !== -1;
   if (n.colorType === n.inputColorType) {
-    let g = function() {
-      let v = new ArrayBuffer(2);
-      return new DataView(v).setInt16(
+    let v = function() {
+      let g = new ArrayBuffer(2);
+      return new DataView(g).setInt16(
         0,
         256,
         !0
         /* littleEndian */
-      ), new Int16Array(v)[0] !== 256;
+      ), new Int16Array(g)[0] !== 256;
     }();
-    if (n.bitDepth === 8 || n.bitDepth === 16 && g)
+    if (n.bitDepth === 8 || n.bitDepth === 16 && v)
       return e;
   }
   let s = n.bitDepth !== 16 ? e : new Uint16Array(e.buffer), o = 255, l = constants$4.COLORTYPE_TO_BPP_MAP[n.inputColorType];
   l === 4 && !n.inputHasAlpha && (l = 3);
   let h = constants$4.COLORTYPE_TO_BPP_MAP[n.colorType];
   n.bitDepth === 16 && (o = 65535, h *= 2);
-  let f = Buffer.alloc(r * i * h), d = 0, m = 0, p = n.bgColor || {};
-  p.red === void 0 && (p.red = o), p.green === void 0 && (p.green = o), p.blue === void 0 && (p.blue = o);
-  function _() {
-    let g, v, b, w = o;
+  let f = Buffer.alloc(r * i * h), d = 0, m = 0, _ = n.bgColor || {};
+  _.red === void 0 && (_.red = o), _.green === void 0 && (_.green = o), _.blue === void 0 && (_.blue = o);
+  function p() {
+    let v, g, k, b = o;
     switch (n.inputColorType) {
       case constants$4.COLORTYPE_COLOR_ALPHA:
-        w = s[d + 3], g = s[d], v = s[d + 1], b = s[d + 2];
+        b = s[d + 3], v = s[d], g = s[d + 1], k = s[d + 2];
         break;
       case constants$4.COLORTYPE_COLOR:
-        g = s[d], v = s[d + 1], b = s[d + 2];
+        v = s[d], g = s[d + 1], k = s[d + 2];
         break;
       case constants$4.COLORTYPE_ALPHA:
-        w = s[d + 1], g = s[d], v = g, b = g;
+        b = s[d + 1], v = s[d], g = v, k = v;
         break;
       case constants$4.COLORTYPE_GRAYSCALE:
-        g = s[d], v = g, b = g;
+        v = s[d], g = v, k = v;
         break;
       default:
         throw new Error(
           "input color type:" + n.inputColorType + " is not supported at present"
         );
     }
-    return n.inputHasAlpha && (a || (w /= o, g = Math.min(
-      Math.max(Math.round((1 - w) * p.red + w * g), 0),
+    return n.inputHasAlpha && (a || (b /= o, v = Math.min(
+      Math.max(Math.round((1 - b) * _.red + b * v), 0),
       o
-    ), v = Math.min(
-      Math.max(Math.round((1 - w) * p.green + w * v), 0),
+    ), g = Math.min(
+      Math.max(Math.round((1 - b) * _.green + b * g), 0),
       o
-    ), b = Math.min(
-      Math.max(Math.round((1 - w) * p.blue + w * b), 0),
+    ), k = Math.min(
+      Math.max(Math.round((1 - b) * _.blue + b * k), 0),
       o
-    ))), { red: g, green: v, blue: b, alpha: w };
+    ))), { red: v, green: g, blue: k, alpha: b };
   }
-  for (let g = 0; g < i; g++)
-    for (let v = 0; v < r; v++) {
-      let b = _();
+  for (let v = 0; v < i; v++)
+    for (let g = 0; g < r; g++) {
+      let k = p();
       switch (n.colorType) {
         case constants$4.COLORTYPE_COLOR_ALPHA:
         case constants$4.COLORTYPE_COLOR:
-          n.bitDepth === 8 ? (f[m] = b.red, f[m + 1] = b.green, f[m + 2] = b.blue, a && (f[m + 3] = b.alpha)) : (f.writeUInt16BE(b.red, m), f.writeUInt16BE(b.green, m + 2), f.writeUInt16BE(b.blue, m + 4), a && f.writeUInt16BE(b.alpha, m + 6));
+          n.bitDepth === 8 ? (f[m] = k.red, f[m + 1] = k.green, f[m + 2] = k.blue, a && (f[m + 3] = k.alpha)) : (f.writeUInt16BE(k.red, m), f.writeUInt16BE(k.green, m + 2), f.writeUInt16BE(k.blue, m + 4), a && f.writeUInt16BE(k.alpha, m + 6));
           break;
         case constants$4.COLORTYPE_ALPHA:
         case constants$4.COLORTYPE_GRAYSCALE: {
-          let w = (b.red + b.green + b.blue) / 3;
-          n.bitDepth === 8 ? (f[m] = w, a && (f[m + 1] = b.alpha)) : (f.writeUInt16BE(w, m), a && f.writeUInt16BE(b.alpha, m + 2));
+          let b = (k.red + k.green + k.blue) / 3;
+          n.bitDepth === 8 ? (f[m] = b, a && (f[m + 1] = k.alpha)) : (f.writeUInt16BE(b, m), a && f.writeUInt16BE(k.alpha, m + 2));
           break;
         }
         default:
@@ -27826,10 +28050,10 @@ var filterPack = function(e, r, i, n, a) {
   let o = r * a, l = 0, h = 0, f = Buffer.alloc((o + 1) * i), d = s[0];
   for (let m = 0; m < i; m++) {
     if (s.length > 1) {
-      let p = 1 / 0;
-      for (let _ = 0; _ < s.length; _++) {
-        let g = filterSums[s[_]](e, h, o, a);
-        g < p && (d = s[_], p = g);
+      let _ = 1 / 0;
+      for (let p = 0; p < s.length; p++) {
+        let v = filterSums[s[p]](e, h, o, a);
+        v < _ && (d = s[p], _ = v);
       }
     }
     f[l] = d, l++, filters[d](e, h, o, f, l, a), l += o, h += o;
@@ -27928,62 +28152,62 @@ var packerAsyncExports = packerAsync.exports, pngSync = {}, syncInflate = { expo
   function l(m) {
     return new o(m);
   }
-  function h(m, p) {
+  function h(m, _) {
     m._handle && (m._handle.close(), m._handle = null);
   }
-  o.prototype._processChunk = function(m, p, _) {
-    if (typeof _ == "function")
-      return n.Inflate._processChunk.call(this, m, p, _);
-    let g = this, v = m && m.length, b = this._chunkSize - this._offset, w = this._maxLength, k = 0, M = [], N = 0, P;
-    this.on("error", function(_e) {
-      P = _e;
+  o.prototype._processChunk = function(m, _, p) {
+    if (typeof p == "function")
+      return n.Inflate._processChunk.call(this, m, _, p);
+    let v = this, g = m && m.length, k = this._chunkSize - this._offset, b = this._maxLength, w = 0, M = [], C = 0, T;
+    this.on("error", function(fe) {
+      T = fe;
     });
-    function T(_e, Je) {
-      if (g._hadError)
+    function P(fe, Ke) {
+      if (v._hadError)
         return;
-      let Pe = b - Je;
+      let Pe = k - Ke;
       if (i(Pe >= 0, "have should not go down"), Pe > 0) {
-        let Ke = g._buffer.slice(g._offset, g._offset + Pe);
-        if (g._offset += Pe, Ke.length > w && (Ke = Ke.slice(0, w)), M.push(Ke), N += Ke.length, w -= Ke.length, w === 0)
+        let Je = v._buffer.slice(v._offset, v._offset + Pe);
+        if (v._offset += Pe, Je.length > b && (Je = Je.slice(0, b)), M.push(Je), C += Je.length, b -= Je.length, b === 0)
           return !1;
       }
-      return (Je === 0 || g._offset >= g._chunkSize) && (b = g._chunkSize, g._offset = 0, g._buffer = Buffer.allocUnsafe(g._chunkSize)), Je === 0 ? (k += v - _e, v = _e, !0) : !1;
+      return (Ke === 0 || v._offset >= v._chunkSize) && (k = v._chunkSize, v._offset = 0, v._buffer = Buffer.allocUnsafe(v._chunkSize)), Ke === 0 ? (w += g - fe, g = fe, !0) : !1;
     }
     i(this._handle, "zlib binding closed");
-    let C;
+    let N;
     do
-      C = this._handle.writeSync(
-        p,
+      N = this._handle.writeSync(
+        _,
         m,
         // in
-        k,
+        w,
         // in_off
-        v,
+        g,
         // in_len
         this._buffer,
         // out
         this._offset,
         //out_off
-        b
-      ), C = C || this._writeState;
-    while (!this._hadError && T(C[0], C[1]));
+        k
+      ), N = N || this._writeState;
+    while (!this._hadError && P(N[0], N[1]));
     if (this._hadError)
-      throw P;
-    if (N >= s)
+      throw T;
+    if (C >= s)
       throw h(this), new RangeError(
         "Cannot create final Buffer. It would be larger than 0x" + s.toString(16) + " bytes"
       );
-    let X = Buffer.concat(M, N);
+    let X = Buffer.concat(M, C);
     return h(this), X;
   }, a.inherits(o, n.Inflate);
-  function f(m, p) {
-    if (typeof p == "string" && (p = Buffer.from(p)), !(p instanceof Buffer))
+  function f(m, _) {
+    if (typeof _ == "string" && (_ = Buffer.from(_)), !(_ instanceof Buffer))
       throw new TypeError("Not a string or buffer");
-    let _ = m._finishFlushFlag;
-    return _ == null && (_ = n.Z_FINISH), m._processChunk(p, _);
+    let p = m._finishFlushFlag;
+    return p == null && (p = n.Z_FINISH), m._processChunk(_, p);
   }
-  function d(m, p) {
-    return f(new o(p), m);
+  function d(m, _) {
+    return f(new o(_), m);
   }
   e.exports = r = d, r.Inflate = o, r.createInflate = l, r.inflateSync = d;
 })(syncInflate, syncInflate.exports);
@@ -28036,62 +28260,62 @@ var parserSync = function(e, r) {
       "To use the sync capability of this library in old node versions, please pin pngjs to v2.3.0"
     );
   let i;
-  function n(N) {
-    i = N;
+  function n(C) {
+    i = C;
   }
   let a;
-  function s(N) {
-    a = N;
+  function s(C) {
+    a = C;
   }
-  function o(N) {
-    a.transColor = N;
+  function o(C) {
+    a.transColor = C;
   }
-  function l(N) {
-    a.palette = N;
+  function l(C) {
+    a.palette = C;
   }
   function h() {
     a.alpha = !0;
   }
   let f;
-  function d(N) {
-    f = N;
+  function d(C) {
+    f = C;
   }
   let m = [];
-  function p(N) {
-    m.push(N);
+  function _(C) {
+    m.push(C);
   }
-  let _ = new SyncReader(e);
+  let p = new SyncReader(e);
   if (new Parser$3(r, {
-    read: _.read.bind(_),
+    read: p.read.bind(p),
     error: n,
     metadata: s,
     gamma: d,
     palette: l,
     transColor: o,
-    inflateData: p,
+    inflateData: _,
     simpleTransparency: h
-  }).start(), _.process(), i)
+  }).start(), p.process(), i)
     throw i;
-  let v = Buffer.concat(m);
+  let g = Buffer.concat(m);
   m.length = 0;
-  let b;
+  let k;
   if (a.interlace)
-    b = zlib$1.inflateSync(v);
+    k = zlib$1.inflateSync(g);
   else {
-    let P = ((a.width * a.bpp * a.depth + 7 >> 3) + 1) * a.height;
-    b = inflateSync(v, {
-      chunkSize: P,
-      maxLength: P
+    let T = ((a.width * a.bpp * a.depth + 7 >> 3) + 1) * a.height;
+    k = inflateSync(g, {
+      chunkSize: T,
+      maxLength: T
     });
   }
-  if (v = null, !b || !b.length)
+  if (g = null, !k || !k.length)
     throw new Error("bad png - invalid inflate data response");
-  let w = FilterSync.process(b, a);
-  v = null;
-  let k = bitmapper.dataToBitMap(w, a);
-  w = null;
+  let b = FilterSync.process(k, a);
+  g = null;
+  let w = bitmapper.dataToBitMap(b, a);
+  b = null;
   let M = formatNormaliser(
-    k,
+    w,
     a,
     r.skipRescale
   );
@@ -28304,26 +28528,26 @@ function requireTrees() {
     for (var qi = Ti.length; --qi >= 0; )
       Ti[qi] = 0;
   }
-  var o = 0, l = 1, h = 2, f = 3, d = 258, m = 29, p = 256, _ = p + 1 + m, g = 30, v = 19, b = 2 * _ + 1, w = 15, k = 16, M = 7, N = 256, P = 16, T = 17, C = 18, X = (
+  var o = 0, l = 1, h = 2, f = 3, d = 258, m = 29, _ = 256, p = _ + 1 + m, v = 30, g = 19, k = 2 * p + 1, b = 15, w = 16, M = 7, C = 256, T = 16, P = 17, N = 18, X = (
     /* extra bits for each length code */
     [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0]
-  ), _e = (
+  ), fe = (
     /* extra bits for each distance code */
     [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13]
-  ), Je = (
+  ), Ke = (
     /* extra bits for each bit length code */
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7]
-  ), Pe = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], Ke = 512, Wt = new Array((_ + 2) * 2);
+  ), Pe = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], Je = 512, Wt = new Array((p + 2) * 2);
   s(Wt);
-  var ee = new Array(g * 2);
+  var ee = new Array(v * 2);
   s(ee);
-  var We = new Array(Ke);
+  var We = new Array(Je);
   s(We);
   var st = new Array(d - f + 1);
   s(st);
   var Xt = new Array(m);
   s(Xt);
-  var Jt = new Array(g);
+  var Jt = new Array(v);
   s(Jt);
   function Vt(Ti, qi, zi, Hn, Fi) {
     this.static_tree = Ti, this.extra_bits = qi, this.extra_base = zi, this.elems = Hn, this.max_length = Fi, this.has_stree = Ti && Ti.length;
@@ -28332,14 +28556,14 @@ function requireTrees() {
   function Ci(Ti, qi) {
     this.dyn_tree = Ti, this.max_code = 0, this.stat_desc = qi;
   }
-  function fe(Ti) {
+  function _e(Ti) {
     return Ti < 256 ? We[Ti] : We[256 + (Ti >>> 7)];
   }
   function Ge(Ti, qi) {
     Ti.pending_buf[Ti.pending++] = qi & 255, Ti.pending_buf[Ti.pending++] = qi >>> 8 & 255;
   }
   function Kt(Ti, qi, zi) {
-    Ti.bi_valid > k - zi ? (Ti.bi_buf |= qi << Ti.bi_valid & 65535, Ge(Ti, Ti.bi_buf), Ti.bi_buf = qi >> k - Ti.bi_valid, Ti.bi_valid += zi - k) : (Ti.bi_buf |= qi << Ti.bi_valid & 65535, Ti.bi_valid += zi);
+    Ti.bi_valid > w - zi ? (Ti.bi_buf |= qi << Ti.bi_valid & 65535, Ge(Ti, Ti.bi_buf), Ti.bi_buf = qi >> w - Ti.bi_valid, Ti.bi_valid += zi - w) : (Ti.bi_buf |= qi << Ti.bi_valid & 65535, Ti.bi_valid += zi);
   }
   function Ni(Ti, qi, zi) {
     Kt(
@@ -28361,9 +28585,9 @@ function requireTrees() {
   }
   function Ki(Ti, qi) {
     var zi = qi.dyn_tree, Hn = qi.max_code, Fi = qi.stat_desc.static_tree, Yi = qi.stat_desc.has_stree, qt = qi.stat_desc.extra_bits, Xi = qi.stat_desc.extra_base, sa = qi.stat_desc.max_length, ue, Ui, Hi, $i, Li, ea, ma = 0;
-    for ($i = 0; $i <= w; $i++)
+    for ($i = 0; $i <= b; $i++)
       Ti.bl_count[$i] = 0;
-    for (zi[Ti.heap[Ti.heap_max] * 2 + 1] = 0, ue = Ti.heap_max + 1; ue < b; ue++)
+    for (zi[Ti.heap[Ti.heap_max] * 2 + 1] = 0, ue = Ti.heap_max + 1; ue < k; ue++)
       Ui = Ti.heap[ue], $i = zi[zi[Ui * 2 + 1] * 2 + 1] + 1, $i > sa && ($i = sa, ma++), zi[Ui * 2 + 1] = $i, !(Ui > Hn) && (Ti.bl_count[$i]++, Li = 0, Ui >= Xi && (Li = qt[Ui - Xi]), ea = zi[Ui * 2], Ti.opt_len += ea * ($i + Li), Yi && (Ti.static_len += ea * (Fi[Ui * 2 + 1] + Li)));
     if (ma !== 0) {
       do {
@@ -28377,8 +28601,8 @@ function requireTrees() {
     }
   }
   function Zn(Ti, qi, zi) {
-    var Hn = new Array(w + 1), Fi = 0, Yi, qt;
-    for (Yi = 1; Yi <= w; Yi++)
+    var Hn = new Array(b + 1), Fi = 0, Yi, qt;
+    for (Yi = 1; Yi <= b; Yi++)
       Hn[Yi] = Fi = Fi + zi[Yi - 1] << 1;
     for (qt = 0; qt <= qi; qt++) {
       var Xi = Ti[qt * 2 + 1];
@@ -28386,17 +28610,17 @@ function requireTrees() {
     }
   }
   function Wi() {
-    var Ti, qi, zi, Hn, Fi, Yi = new Array(w + 1);
+    var Ti, qi, zi, Hn, Fi, Yi = new Array(b + 1);
     for (zi = 0, Hn = 0; Hn < m - 1; Hn++)
       for (Xt[Hn] = zi, Ti = 0; Ti < 1 << X[Hn]; Ti++)
         st[zi++] = Hn;
     for (st[zi - 1] = Hn, Fi = 0, Hn = 0; Hn < 16; Hn++)
-      for (Jt[Hn] = Fi, Ti = 0; Ti < 1 << _e[Hn]; Ti++)
+      for (Jt[Hn] = Fi, Ti = 0; Ti < 1 << fe[Hn]; Ti++)
         We[Fi++] = Hn;
-    for (Fi >>= 7; Hn < g; Hn++)
-      for (Jt[Hn] = Fi << 7, Ti = 0; Ti < 1 << _e[Hn] - 7; Ti++)
+    for (Fi >>= 7; Hn < v; Hn++)
+      for (Jt[Hn] = Fi << 7, Ti = 0; Ti < 1 << fe[Hn] - 7; Ti++)
         We[256 + Fi++] = Hn;
-    for (qi = 0; qi <= w; qi++)
+    for (qi = 0; qi <= b; qi++)
       Yi[qi] = 0;
     for (Ti = 0; Ti <= 143; )
       Wt[Ti * 2 + 1] = 8, Ti++, Yi[8]++;
@@ -28406,19 +28630,19 @@ function requireTrees() {
       Wt[Ti * 2 + 1] = 7, Ti++, Yi[7]++;
     for (; Ti <= 287; )
       Wt[Ti * 2 + 1] = 8, Ti++, Yi[8]++;
-    for (Zn(Wt, _ + 1, Yi), Ti = 0; Ti < g; Ti++)
+    for (Zn(Wt, p + 1, Yi), Ti = 0; Ti < v; Ti++)
       ee[Ti * 2 + 1] = 5, ee[Ti * 2] = Di(Ti, 5);
-    it = new Vt(Wt, X, p + 1, _, w), Qt = new Vt(ee, _e, 0, g, w), Ri = new Vt(new Array(0), Je, 0, v, M);
+    it = new Vt(Wt, X, _ + 1, p, b), Qt = new Vt(ee, fe, 0, v, b), Ri = new Vt(new Array(0), Ke, 0, g, M);
   }
   function Vi(Ti) {
     var qi;
-    for (qi = 0; qi < _; qi++)
+    for (qi = 0; qi < p; qi++)
       Ti.dyn_ltree[qi * 2] = 0;
-    for (qi = 0; qi < g; qi++)
-      Ti.dyn_dtree[qi * 2] = 0;
     for (qi = 0; qi < v; qi++)
+      Ti.dyn_dtree[qi * 2] = 0;
+    for (qi = 0; qi < g; qi++)
       Ti.bl_tree[qi * 2] = 0;
-    Ti.dyn_ltree[N * 2] = 1, Ti.opt_len = Ti.static_len = 0, Ti.last_lit = Ti.matches = 0;
+    Ti.dyn_ltree[C * 2] = 1, Ti.opt_len = Ti.static_len = 0, Ti.last_lit = Ti.matches = 0;
   }
   function ta(Ti) {
     Ti.bi_valid > 8 ? Ge(Ti, Ti.bi_buf) : Ti.bi_valid > 0 && (Ti.pending_buf[Ti.pending++] = Ti.bi_buf), Ti.bi_buf = 0, Ti.bi_valid = 0;
@@ -28439,13 +28663,13 @@ function requireTrees() {
     var Hn, Fi, Yi = 0, qt, Xi;
     if (Ti.last_lit !== 0)
       do
-        Hn = Ti.pending_buf[Ti.d_buf + Yi * 2] << 8 | Ti.pending_buf[Ti.d_buf + Yi * 2 + 1], Fi = Ti.pending_buf[Ti.l_buf + Yi], Yi++, Hn === 0 ? Ni(Ti, Fi, qi) : (qt = st[Fi], Ni(Ti, qt + p + 1, qi), Xi = X[qt], Xi !== 0 && (Fi -= Xt[qt], Kt(Ti, Fi, Xi)), Hn--, qt = fe(Hn), Ni(Ti, qt, zi), Xi = _e[qt], Xi !== 0 && (Hn -= Jt[qt], Kt(Ti, Hn, Xi)));
+        Hn = Ti.pending_buf[Ti.d_buf + Yi * 2] << 8 | Ti.pending_buf[Ti.d_buf + Yi * 2 + 1], Fi = Ti.pending_buf[Ti.l_buf + Yi], Yi++, Hn === 0 ? Ni(Ti, Fi, qi) : (qt = st[Fi], Ni(Ti, qt + _ + 1, qi), Xi = X[qt], Xi !== 0 && (Fi -= Xt[qt], Kt(Ti, Fi, Xi)), Hn--, qt = _e(Hn), Ni(Ti, qt, zi), Xi = fe[qt], Xi !== 0 && (Hn -= Jt[qt], Kt(Ti, Hn, Xi)));
       while (Yi < Ti.last_lit);
-    Ni(Ti, N, qi);
+    Ni(Ti, C, qi);
   }
   function Qn(Ti, qi) {
     var zi = qi.dyn_tree, Hn = qi.stat_desc.static_tree, Fi = qi.stat_desc.has_stree, Yi = qi.stat_desc.elems, qt, Xi, sa = -1, ue;
-    for (Ti.heap_len = 0, Ti.heap_max = b, qt = 0; qt < Yi; qt++)
+    for (Ti.heap_len = 0, Ti.heap_max = k, qt = 0; qt < Yi; qt++)
       zi[qt * 2] !== 0 ? (Ti.heap[++Ti.heap_len] = sa = qt, Ti.depth[qt] = 0) : zi[qt * 2 + 1] = 0;
     for (; Ti.heap_len < 2; )
       ue = Ti.heap[++Ti.heap_len] = sa < 2 ? ++sa : 0, zi[ue * 2] = 1, Ti.depth[ue] = 0, Ti.opt_len--, Fi && (Ti.static_len -= Hn[ue * 2 + 1]);
@@ -28485,7 +28709,7 @@ function requireTrees() {
   function ha(Ti, qi, zi) {
     var Hn, Fi = -1, Yi, qt = qi[0 * 2 + 1], Xi = 0, sa = 7, ue = 4;
     for (qt === 0 && (sa = 138, ue = 3), qi[(zi + 1) * 2 + 1] = 65535, Hn = 0; Hn <= zi; Hn++)
-      Yi = qt, qt = qi[(Hn + 1) * 2 + 1], !(++Xi < sa && Yi === qt) && (Xi < ue ? Ti.bl_tree[Yi * 2] += Xi : Yi !== 0 ? (Yi !== Fi && Ti.bl_tree[Yi * 2]++, Ti.bl_tree[P * 2]++) : Xi <= 10 ? Ti.bl_tree[T * 2]++ : Ti.bl_tree[C * 2]++, Xi = 0, Fi = Yi, qt === 0 ? (sa = 138, ue = 3) : Yi === qt ? (sa = 6, ue = 3) : (sa = 7, ue = 4));
+      Yi = qt, qt = qi[(Hn + 1) * 2 + 1], !(++Xi < sa && Yi === qt) && (Xi < ue ? Ti.bl_tree[Yi * 2] += Xi : Yi !== 0 ? (Yi !== Fi && Ti.bl_tree[Yi * 2]++, Ti.bl_tree[T * 2]++) : Xi <= 10 ? Ti.bl_tree[P * 2]++ : Ti.bl_tree[N * 2]++, Xi = 0, Fi = Yi, qt === 0 ? (sa = 138, ue = 3) : Yi === qt ? (sa = 6, ue = 3) : (sa = 7, ue = 4));
   }
   function ca(Ti, qi, zi) {
     var Hn, Fi = -1, Yi, qt = qi[0 * 2 + 1], Xi = 0, sa = 7, ue = 4;
@@ -28495,13 +28719,13 @@ function requireTrees() {
           do
             Ni(Ti, Yi, Ti.bl_tree);
           while (--Xi !== 0);
-        else Yi !== 0 ? (Yi !== Fi && (Ni(Ti, Yi, Ti.bl_tree), Xi--), Ni(Ti, P, Ti.bl_tree), Kt(Ti, Xi - 3, 2)) : Xi <= 10 ? (Ni(Ti, T, Ti.bl_tree), Kt(Ti, Xi - 3, 3)) : (Ni(Ti, C, Ti.bl_tree), Kt(Ti, Xi - 11, 7));
+        else Yi !== 0 ? (Yi !== Fi && (Ni(Ti, Yi, Ti.bl_tree), Xi--), Ni(Ti, T, Ti.bl_tree), Kt(Ti, Xi - 3, 2)) : Xi <= 10 ? (Ni(Ti, P, Ti.bl_tree), Kt(Ti, Xi - 3, 3)) : (Ni(Ti, N, Ti.bl_tree), Kt(Ti, Xi - 11, 7));
         Xi = 0, Fi = Yi, qt === 0 ? (sa = 138, ue = 3) : Yi === qt ? (sa = 6, ue = 3) : (sa = 7, ue = 4);
       }
   }
   function la(Ti) {
     var qi;
-    for (ha(Ti, Ti.dyn_ltree, Ti.l_desc.max_code), ha(Ti, Ti.dyn_dtree, Ti.d_desc.max_code), Qn(Ti, Ti.bl_desc), qi = v - 1; qi >= 3 && Ti.bl_tree[Pe[qi] * 2 + 1] === 0; qi--)
+    for (ha(Ti, Ti.dyn_ltree, Ti.l_desc.max_code), ha(Ti, Ti.dyn_dtree, Ti.d_desc.max_code), Qn(Ti, Ti.bl_desc), qi = g - 1; qi >= 3 && Ti.bl_tree[Pe[qi] * 2 + 1] === 0; qi--)
       ;
     return Ti.opt_len += 3 * (qi + 1) + 5 + 5 + 4, qi;
   }
@@ -28518,7 +28742,7 @@ function requireTrees() {
         return i;
     if (Ti.dyn_ltree[9 * 2] !== 0 || Ti.dyn_ltree[10 * 2] !== 0 || Ti.dyn_ltree[13 * 2] !== 0)
       return n;
-    for (zi = 32; zi < p; zi++)
+    for (zi = 32; zi < _; zi++)
       if (Ti.dyn_ltree[zi * 2] !== 0)
         return n;
     return i;
@@ -28531,14 +28755,14 @@ function requireTrees() {
     Kt(Ti, (o << 1) + (Hn ? 1 : 0), 3), ra(Ti, qi, zi);
   }
   function Qi(Ti) {
-    Kt(Ti, l << 1, 3), Ni(Ti, N, Wt), Gi(Ti);
+    Kt(Ti, l << 1, 3), Ni(Ti, C, Wt), Gi(Ti);
   }
   function Ji(Ti, qi, zi, Hn) {
     var Fi, Yi, qt = 0;
     Ti.level > 0 ? (Ti.strm.data_type === a && (Ti.strm.data_type = pa(Ti)), Qn(Ti, Ti.l_desc), Qn(Ti, Ti.d_desc), qt = la(Ti), Fi = Ti.opt_len + 3 + 7 >>> 3, Yi = Ti.static_len + 3 + 7 >>> 3, Yi <= Fi && (Fi = Yi)) : Fi = Yi = zi + 5, zi + 4 <= Fi && qi !== -1 ? Zi(Ti, qi, zi, Hn) : Ti.strategy === r || Yi === Fi ? (Kt(Ti, (l << 1) + (Hn ? 1 : 0), 3), oa(Ti, Wt, ee)) : (Kt(Ti, (h << 1) + (Hn ? 1 : 0), 3), ua(Ti, Ti.l_desc.max_code + 1, Ti.d_desc.max_code + 1, qt + 1), oa(Ti, Ti.dyn_ltree, Ti.dyn_dtree)), Vi(Ti), Hn && ta(Ti);
   }
   function aa(Ti, qi, zi) {
-    return Ti.pending_buf[Ti.d_buf + Ti.last_lit * 2] = qi >>> 8 & 255, Ti.pending_buf[Ti.d_buf + Ti.last_lit * 2 + 1] = qi & 255, Ti.pending_buf[Ti.l_buf + Ti.last_lit] = zi & 255, Ti.last_lit++, qi === 0 ? Ti.dyn_ltree[zi * 2]++ : (Ti.matches++, qi--, Ti.dyn_ltree[(st[zi] + p + 1) * 2]++, Ti.dyn_dtree[fe(qi) * 2]++), Ti.last_lit === Ti.lit_bufsize - 1;
+    return Ti.pending_buf[Ti.d_buf + Ti.last_lit * 2] = qi >>> 8 & 255, Ti.pending_buf[Ti.d_buf + Ti.last_lit * 2 + 1] = qi & 255, Ti.pending_buf[Ti.l_buf + Ti.last_lit] = zi & 255, Ti.last_lit++, qi === 0 ? Ti.dyn_ltree[zi * 2]++ : (Ti.matches++, qi--, Ti.dyn_ltree[(st[zi] + _ + 1) * 2]++, Ti.dyn_dtree[_e(qi) * 2]++), Ti.last_lit === Ti.lit_bufsize - 1;
   }
   return trees._tr_init = ji, trees._tr_stored_block = Zi, trees._tr_flush_block = Ji, trees._tr_tally = aa, trees._tr_align = Qi, trees;
 }
@@ -28608,7 +28832,7 @@ var hasRequiredDeflate$1;
 function requireDeflate$1() {
   if (hasRequiredDeflate$1) return deflate;
   hasRequiredDeflate$1 = 1;
-  var e = requireCommon(), r = requireTrees(), i = requireAdler32(), n = requireCrc32(), a = requireMessages(), s = 0, o = 1, l = 3, h = 4, f = 5, d = 0, m = 1, p = -2, _ = -3, g = -5, v = -1, b = 1, w = 2, k = 3, M = 4, N = 0, P = 2, T = 8, C = 9, X = 15, _e = 8, Je = 29, Pe = 256, Ke = Pe + 1 + Je, Wt = 30, ee = 19, We = 2 * Ke + 1, st = 15, Xt = 3, Jt = 258, Vt = Jt + Xt + 1, it = 32, Qt = 42, Ri = 69, Ci = 73, fe = 91, Ge = 103, Kt = 113, Ni = 666, Di = 1, Gi = 2, Ki = 3, Zn = 4, Wi = 3;
+  var e = requireCommon(), r = requireTrees(), i = requireAdler32(), n = requireCrc32(), a = requireMessages(), s = 0, o = 1, l = 3, h = 4, f = 5, d = 0, m = 1, _ = -2, p = -3, v = -5, g = -1, k = 1, b = 2, w = 3, M = 4, C = 0, T = 2, P = 8, N = 9, X = 15, fe = 8, Ke = 29, Pe = 256, Je = Pe + 1 + Ke, Wt = 30, ee = 19, We = 2 * Je + 1, st = 15, Xt = 3, Jt = 258, Vt = Jt + Xt + 1, it = 32, Qt = 42, Ri = 69, Ci = 73, _e = 91, Ge = 103, Kt = 113, Ni = 666, Di = 1, Gi = 2, Ki = 3, Zn = 4, Wi = 3;
   function Vi(ue, Ui) {
     return ue.msg = a[Ui], Ui;
   }
@@ -28637,10 +28861,10 @@ function requireDeflate$1() {
     return Li > $i && (Li = $i), Li === 0 ? 0 : (ue.avail_in -= Li, e.arraySet(Ui, ue.input, ue.next_in, Li, Hi), ue.state.wrap === 1 ? ue.adler = i(ue.adler, Ui, Li, Hi) : ue.state.wrap === 2 && (ue.adler = n(ue.adler, Ui, Li, Hi)), ue.next_in += Li, ue.total_in += Li, Li);
   }
   function ca(ue, Ui) {
-    var Hi = ue.max_chain_length, $i = ue.strstart, Li, ea, ma = ue.prev_length, da = ue.nice_match, fa = ue.strstart > ue.w_size - Vt ? ue.strstart - (ue.w_size - Vt) : 0, ya = ue.window, ba = ue.w_mask, wa = ue.prev, va = ue.strstart + Jt, $a = ya[$i + ma - 1], Ea = ya[$i + ma];
+    var Hi = ue.max_chain_length, $i = ue.strstart, Li, ea, ma = ue.prev_length, da = ue.nice_match, fa = ue.strstart > ue.w_size - Vt ? ue.strstart - (ue.w_size - Vt) : 0, ya = ue.window, ba = ue.w_mask, $a = ue.prev, va = ue.strstart + Jt, wa = ya[$i + ma - 1], Ea = ya[$i + ma];
     ue.prev_length >= ue.good_match && (Hi >>= 2), da > ue.lookahead && (da = ue.lookahead);
     do
-      if (Li = Ui, !(ya[Li + ma] !== Ea || ya[Li + ma - 1] !== $a || ya[Li] !== ya[$i] || ya[++Li] !== ya[$i + 1])) {
+      if (Li = Ui, !(ya[Li + ma] !== Ea || ya[Li + ma - 1] !== wa || ya[Li] !== ya[$i] || ya[++Li] !== ya[$i + 1])) {
         $i += 2, Li++;
         do
           ;
@@ -28648,10 +28872,10 @@ function requireDeflate$1() {
         if (ea = Jt - (va - $i), $i = va - Jt, ea > ma) {
           if (ue.match_start = Ui, ma = ea, ea >= da)
             break;
-          $a = ya[$i + ma - 1], Ea = ya[$i + ma];
+          wa = ya[$i + ma - 1], Ea = ya[$i + ma];
         }
       }
-    while ((Ui = wa[Ui & ba]) > fa && --Hi !== 0);
+    while ((Ui = $a[Ui & ba]) > fa && --Hi !== 0);
     return ma <= ue.lookahead ? ma : ue.lookahead;
   }
   function la(ue) {
@@ -28723,7 +28947,7 @@ function requireDeflate$1() {
         if (ue.lookahead === 0)
           break;
       }
-      if (Hi = 0, ue.lookahead >= Xt && (ue.ins_h = (ue.ins_h << ue.hash_shift ^ ue.window[ue.strstart + Xt - 1]) & ue.hash_mask, Hi = ue.prev[ue.strstart & ue.w_mask] = ue.head[ue.ins_h], ue.head[ue.ins_h] = ue.strstart), ue.prev_length = ue.match_length, ue.prev_match = ue.match_start, ue.match_length = Xt - 1, Hi !== 0 && ue.prev_length < ue.max_lazy_match && ue.strstart - Hi <= ue.w_size - Vt && (ue.match_length = ca(ue, Hi), ue.match_length <= 5 && (ue.strategy === b || ue.match_length === Xt && ue.strstart - ue.match_start > 4096) && (ue.match_length = Xt - 1)), ue.prev_length >= Xt && ue.match_length <= ue.prev_length) {
+      if (Hi = 0, ue.lookahead >= Xt && (ue.ins_h = (ue.ins_h << ue.hash_shift ^ ue.window[ue.strstart + Xt - 1]) & ue.hash_mask, Hi = ue.prev[ue.strstart & ue.w_mask] = ue.head[ue.ins_h], ue.head[ue.ins_h] = ue.strstart), ue.prev_length = ue.match_length, ue.prev_match = ue.match_start, ue.match_length = Xt - 1, Hi !== 0 && ue.prev_length < ue.max_lazy_match && ue.strstart - Hi <= ue.w_size - Vt && (ue.match_length = ca(ue, Hi), ue.match_length <= 5 && (ue.strategy === k || ue.match_length === Xt && ue.strstart - ue.match_start > 4096) && (ue.match_length = Xt - 1)), ue.prev_length >= Xt && ue.match_length <= ue.prev_length) {
         Li = ue.strstart + ue.lookahead - Xt, $i = r._tr_tally(ue, ue.strstart - 1 - ue.prev_match, ue.prev_length - Xt), ue.lookahead -= ue.prev_length - 1, ue.prev_length -= 2;
         do
           ++ue.strstart <= Li && (ue.ins_h = (ue.ins_h << ue.hash_shift ^ ue.window[ue.strstart + Xt - 1]) & ue.hash_mask, Hi = ue.prev[ue.strstart & ue.w_mask] = ue.head[ue.ins_h], ue.head[ue.ins_h] = ue.strstart);
@@ -28801,47 +29025,47 @@ function requireDeflate$1() {
     ue.window_size = 2 * ue.w_size, ra(ue.head), ue.max_lazy_match = Ji[ue.level].max_lazy, ue.good_match = Ji[ue.level].good_length, ue.nice_match = Ji[ue.level].nice_length, ue.max_chain_length = Ji[ue.level].max_chain, ue.strstart = 0, ue.block_start = 0, ue.lookahead = 0, ue.insert = 0, ue.match_length = ue.prev_length = Xt - 1, ue.match_available = 0, ue.ins_h = 0;
   }
   function Ti() {
-    this.strm = null, this.status = 0, this.pending_buf = null, this.pending_buf_size = 0, this.pending_out = 0, this.pending = 0, this.wrap = 0, this.gzhead = null, this.gzindex = 0, this.method = T, this.last_flush = -1, this.w_size = 0, this.w_bits = 0, this.w_mask = 0, this.window = null, this.window_size = 0, this.prev = null, this.head = null, this.ins_h = 0, this.hash_size = 0, this.hash_bits = 0, this.hash_mask = 0, this.hash_shift = 0, this.block_start = 0, this.match_length = 0, this.prev_match = 0, this.match_available = 0, this.strstart = 0, this.match_start = 0, this.lookahead = 0, this.prev_length = 0, this.max_chain_length = 0, this.max_lazy_match = 0, this.level = 0, this.strategy = 0, this.good_match = 0, this.nice_match = 0, this.dyn_ltree = new e.Buf16(We * 2), this.dyn_dtree = new e.Buf16((2 * Wt + 1) * 2), this.bl_tree = new e.Buf16((2 * ee + 1) * 2), ra(this.dyn_ltree), ra(this.dyn_dtree), ra(this.bl_tree), this.l_desc = null, this.d_desc = null, this.bl_desc = null, this.bl_count = new e.Buf16(st + 1), this.heap = new e.Buf16(2 * Ke + 1), ra(this.heap), this.heap_len = 0, this.heap_max = 0, this.depth = new e.Buf16(2 * Ke + 1), ra(this.depth), this.l_buf = 0, this.lit_bufsize = 0, this.last_lit = 0, this.d_buf = 0, this.opt_len = 0, this.static_len = 0, this.matches = 0, this.insert = 0, this.bi_buf = 0, this.bi_valid = 0;
+    this.strm = null, this.status = 0, this.pending_buf = null, this.pending_buf_size = 0, this.pending_out = 0, this.pending = 0, this.wrap = 0, this.gzhead = null, this.gzindex = 0, this.method = P, this.last_flush = -1, this.w_size = 0, this.w_bits = 0, this.w_mask = 0, this.window = null, this.window_size = 0, this.prev = null, this.head = null, this.ins_h = 0, this.hash_size = 0, this.hash_bits = 0, this.hash_mask = 0, this.hash_shift = 0, this.block_start = 0, this.match_length = 0, this.prev_match = 0, this.match_available = 0, this.strstart = 0, this.match_start = 0, this.lookahead = 0, this.prev_length = 0, this.max_chain_length = 0, this.max_lazy_match = 0, this.level = 0, this.strategy = 0, this.good_match = 0, this.nice_match = 0, this.dyn_ltree = new e.Buf16(We * 2), this.dyn_dtree = new e.Buf16((2 * Wt + 1) * 2), this.bl_tree = new e.Buf16((2 * ee + 1) * 2), ra(this.dyn_ltree), ra(this.dyn_dtree), ra(this.bl_tree), this.l_desc = null, this.d_desc = null, this.bl_desc = null, this.bl_count = new e.Buf16(st + 1), this.heap = new e.Buf16(2 * Je + 1), ra(this.heap), this.heap_len = 0, this.heap_max = 0, this.depth = new e.Buf16(2 * Je + 1), ra(this.depth), this.l_buf = 0, this.lit_bufsize = 0, this.last_lit = 0, this.d_buf = 0, this.opt_len = 0, this.static_len = 0, this.matches = 0, this.insert = 0, this.bi_buf = 0, this.bi_valid = 0;
   }
   function qi(ue) {
     var Ui;
-    return !ue || !ue.state ? Vi(ue, p) : (ue.total_in = ue.total_out = 0, ue.data_type = P, Ui = ue.state, Ui.pending = 0, Ui.pending_out = 0, Ui.wrap < 0 && (Ui.wrap = -Ui.wrap), Ui.status = Ui.wrap ? Qt : Kt, ue.adler = Ui.wrap === 2 ? 0 : 1, Ui.last_flush = s, r._tr_init(Ui), d);
+    return !ue || !ue.state ? Vi(ue, _) : (ue.total_in = ue.total_out = 0, ue.data_type = T, Ui = ue.state, Ui.pending = 0, Ui.pending_out = 0, Ui.wrap < 0 && (Ui.wrap = -Ui.wrap), Ui.status = Ui.wrap ? Qt : Kt, ue.adler = Ui.wrap === 2 ? 0 : 1, Ui.last_flush = s, r._tr_init(Ui), d);
   }
   function zi(ue) {
     var Ui = qi(ue);
     return Ui === d && aa(ue.state), Ui;
   }
   function Hn(ue, Ui) {
-    return !ue || !ue.state || ue.state.wrap !== 2 ? p : (ue.state.gzhead = Ui, d);
+    return !ue || !ue.state || ue.state.wrap !== 2 ? _ : (ue.state.gzhead = Ui, d);
   }
   function Fi(ue, Ui, Hi, $i, Li, ea) {
     if (!ue)
-      return p;
+      return _;
     var ma = 1;
-    if (Ui === v && (Ui = 6), $i < 0 ? (ma = 0, $i = -$i) : $i > 15 && (ma = 2, $i -= 16), Li < 1 || Li > C || Hi !== T || $i < 8 || $i > 15 || Ui < 0 || Ui > 9 || ea < 0 || ea > M)
-      return Vi(ue, p);
+    if (Ui === g && (Ui = 6), $i < 0 ? (ma = 0, $i = -$i) : $i > 15 && (ma = 2, $i -= 16), Li < 1 || Li > N || Hi !== P || $i < 8 || $i > 15 || Ui < 0 || Ui > 9 || ea < 0 || ea > M)
+      return Vi(ue, _);
     $i === 8 && ($i = 9);
     var da = new Ti();
     return ue.state = da, da.strm = ue, da.wrap = ma, da.gzhead = null, da.w_bits = $i, da.w_size = 1 << da.w_bits, da.w_mask = da.w_size - 1, da.hash_bits = Li + 7, da.hash_size = 1 << da.hash_bits, da.hash_mask = da.hash_size - 1, da.hash_shift = ~~((da.hash_bits + Xt - 1) / Xt), da.window = new e.Buf8(da.w_size * 2), da.head = new e.Buf16(da.hash_size), da.prev = new e.Buf16(da.w_size), da.lit_bufsize = 1 << Li + 6, da.pending_buf_size = da.lit_bufsize * 4, da.pending_buf = new e.Buf8(da.pending_buf_size), da.d_buf = 1 * da.lit_bufsize, da.l_buf = 3 * da.lit_bufsize, da.level = Ui, da.strategy = ea, da.method = Hi, zi(ue);
   }
   function Yi(ue, Ui) {
-    return Fi(ue, Ui, T, X, _e, N);
+    return Fi(ue, Ui, P, X, fe, C);
   }
   function qt(ue, Ui) {
     var Hi, $i, Li, ea;
     if (!ue || !ue.state || Ui > f || Ui < 0)
-      return ue ? Vi(ue, p) : p;
+      return ue ? Vi(ue, _) : _;
     if ($i = ue.state, !ue.output || !ue.input && ue.avail_in !== 0 || $i.status === Ni && Ui !== h)
-      return Vi(ue, ue.avail_out === 0 ? g : p);
+      return Vi(ue, ue.avail_out === 0 ? v : _);
     if ($i.strm = ue, Hi = $i.last_flush, $i.last_flush = Ui, $i.status === Qt)
       if ($i.wrap === 2)
         ue.adler = 0, oa($i, 31), oa($i, 139), oa($i, 8), $i.gzhead ? (oa(
           $i,
           ($i.gzhead.text ? 1 : 0) + ($i.gzhead.hcrc ? 2 : 0) + ($i.gzhead.extra ? 4 : 0) + ($i.gzhead.name ? 8 : 0) + ($i.gzhead.comment ? 16 : 0)
-        ), oa($i, $i.gzhead.time & 255), oa($i, $i.gzhead.time >> 8 & 255), oa($i, $i.gzhead.time >> 16 & 255), oa($i, $i.gzhead.time >> 24 & 255), oa($i, $i.level === 9 ? 2 : $i.strategy >= w || $i.level < 2 ? 4 : 0), oa($i, $i.gzhead.os & 255), $i.gzhead.extra && $i.gzhead.extra.length && (oa($i, $i.gzhead.extra.length & 255), oa($i, $i.gzhead.extra.length >> 8 & 255)), $i.gzhead.hcrc && (ue.adler = n(ue.adler, $i.pending_buf, $i.pending, 0)), $i.gzindex = 0, $i.status = Ri) : (oa($i, 0), oa($i, 0), oa($i, 0), oa($i, 0), oa($i, 0), oa($i, $i.level === 9 ? 2 : $i.strategy >= w || $i.level < 2 ? 4 : 0), oa($i, Wi), $i.status = Kt);
+        ), oa($i, $i.gzhead.time & 255), oa($i, $i.gzhead.time >> 8 & 255), oa($i, $i.gzhead.time >> 16 & 255), oa($i, $i.gzhead.time >> 24 & 255), oa($i, $i.level === 9 ? 2 : $i.strategy >= b || $i.level < 2 ? 4 : 0), oa($i, $i.gzhead.os & 255), $i.gzhead.extra && $i.gzhead.extra.length && (oa($i, $i.gzhead.extra.length & 255), oa($i, $i.gzhead.extra.length >> 8 & 255)), $i.gzhead.hcrc && (ue.adler = n(ue.adler, $i.pending_buf, $i.pending, 0)), $i.gzindex = 0, $i.status = Ri) : (oa($i, 0), oa($i, 0), oa($i, 0), oa($i, 0), oa($i, 0), oa($i, $i.level === 9 ? 2 : $i.strategy >= b || $i.level < 2 ? 4 : 0), oa($i, Wi), $i.status = Kt);
       else {
-        var ma = T + ($i.w_bits - 8 << 4) << 8, da = -1;
-        $i.strategy >= w || $i.level < 2 ? da = 0 : $i.level < 6 ? da = 1 : $i.level === 6 ? da = 2 : da = 3, ma |= da << 6, $i.strstart !== 0 && (ma |= it), ma += 31 - ma % 31, $i.status = Kt, Qn($i, ma), $i.strstart !== 0 && (Qn($i, ue.adler >>> 16), Qn($i, ue.adler & 65535)), ue.adler = 1;
+        var ma = P + ($i.w_bits - 8 << 4) << 8, da = -1;
+        $i.strategy >= b || $i.level < 2 ? da = 0 : $i.level < 6 ? da = 1 : $i.level === 6 ? da = 2 : da = 3, ma |= da << 6, $i.strstart !== 0 && (ma |= it), ma += 31 - ma % 31, $i.status = Kt, Qn($i, ma), $i.strstart !== 0 && (Qn($i, ue.adler >>> 16), Qn($i, ue.adler & 65535)), ue.adler = 1;
       }
     if ($i.status === Ri)
       if ($i.gzhead.extra) {
@@ -28860,10 +29084,10 @@ function requireDeflate$1() {
           }
           $i.gzindex < $i.gzhead.name.length ? ea = $i.gzhead.name.charCodeAt($i.gzindex++) & 255 : ea = 0, oa($i, ea);
         } while (ea !== 0);
-        $i.gzhead.hcrc && $i.pending > Li && (ue.adler = n(ue.adler, $i.pending_buf, $i.pending - Li, Li)), ea === 0 && ($i.gzindex = 0, $i.status = fe);
+        $i.gzhead.hcrc && $i.pending > Li && (ue.adler = n(ue.adler, $i.pending_buf, $i.pending - Li, Li)), ea === 0 && ($i.gzindex = 0, $i.status = _e);
       } else
-        $i.status = fe;
-    if ($i.status === fe)
+        $i.status = _e;
+    if ($i.status === _e)
       if ($i.gzhead.comment) {
         Li = $i.pending;
         do {
@@ -28880,11 +29104,11 @@ function requireDeflate$1() {
       if (ia(ue), ue.avail_out === 0)
         return $i.last_flush = -1, d;
     } else if (ue.avail_in === 0 && ta(Ui) <= ta(Hi) && Ui !== h)
-      return Vi(ue, g);
+      return Vi(ue, v);
     if ($i.status === Ni && ue.avail_in !== 0)
-      return Vi(ue, g);
+      return Vi(ue, v);
     if (ue.avail_in !== 0 || $i.lookahead !== 0 || Ui !== s && $i.status !== Ni) {
-      var fa = $i.strategy === w ? Zi($i, Ui) : $i.strategy === k ? ji($i, Ui) : Ji[$i.level].func($i, Ui);
+      var fa = $i.strategy === b ? Zi($i, Ui) : $i.strategy === w ? ji($i, Ui) : Ji[$i.level].func($i, Ui);
       if ((fa === Ki || fa === Zn) && ($i.status = Ni), fa === Di || fa === Ki)
         return ue.avail_out === 0 && ($i.last_flush = -1), d;
       if (fa === Gi && (Ui === o ? r._tr_align($i) : Ui !== f && (r._tr_stored_block($i, 0, 0, !1), Ui === l && (ra($i.head), $i.lookahead === 0 && ($i.strstart = 0, $i.block_start = 0, $i.insert = 0))), ia(ue), ue.avail_out === 0))
@@ -28894,12 +29118,12 @@ function requireDeflate$1() {
   }
   function Xi(ue) {
     var Ui;
-    return !ue || !ue.state ? p : (Ui = ue.state.status, Ui !== Qt && Ui !== Ri && Ui !== Ci && Ui !== fe && Ui !== Ge && Ui !== Kt && Ui !== Ni ? Vi(ue, p) : (ue.state = null, Ui === Kt ? Vi(ue, _) : d));
+    return !ue || !ue.state ? _ : (Ui = ue.state.status, Ui !== Qt && Ui !== Ri && Ui !== Ci && Ui !== _e && Ui !== Ge && Ui !== Kt && Ui !== Ni ? Vi(ue, _) : (ue.state = null, Ui === Kt ? Vi(ue, p) : d));
   }
   function sa(ue, Ui) {
     var Hi = Ui.length, $i, Li, ea, ma, da, fa, ya, ba;
     if (!ue || !ue.state || ($i = ue.state, ma = $i.wrap, ma === 2 || ma === 1 && $i.status !== Qt || $i.lookahead))
-      return p;
+      return _;
     for (ma === 1 && (ue.adler = i(ue.adler, Ui, Hi, 0)), $i.wrap = 0, Hi >= $i.w_size && (ma === 0 && (ra($i.head), $i.strstart = 0, $i.block_start = 0, $i.insert = 0), ba = new e.Buf8($i.w_size), e.arraySet(ba, Ui, Hi - $i.w_size, $i.w_size, 0), Ui = ba, Hi = $i.w_size), da = ue.avail_in, fa = ue.next_in, ya = ue.input, ue.avail_in = Hi, ue.next_in = 0, ue.input = Ui, la($i); $i.lookahead >= Xt; ) {
       Li = $i.strstart, ea = $i.lookahead - (Xt - 1);
       do
@@ -28929,11 +29153,11 @@ function requireStrings() {
   for (var n = new e.Buf8(256), a = 0; a < 256; a++)
     n[a] = a >= 252 ? 6 : a >= 248 ? 5 : a >= 240 ? 4 : a >= 224 ? 3 : a >= 192 ? 2 : 1;
   n[254] = n[254] = 1, strings.string2buf = function(o) {
-    var l, h, f, d, m, p = o.length, _ = 0;
-    for (d = 0; d < p; d++)
-      h = o.charCodeAt(d), (h & 64512) === 55296 && d + 1 < p && (f = o.charCodeAt(d + 1), (f & 64512) === 56320 && (h = 65536 + (h - 55296 << 10) + (f - 56320), d++)), _ += h < 128 ? 1 : h < 2048 ? 2 : h < 65536 ? 3 : 4;
-    for (l = new e.Buf8(_), m = 0, d = 0; m < _; d++)
-      h = o.charCodeAt(d), (h & 64512) === 55296 && d + 1 < p && (f = o.charCodeAt(d + 1), (f & 64512) === 56320 && (h = 65536 + (h - 55296 << 10) + (f - 56320), d++)), h < 128 ? l[m++] = h : h < 2048 ? (l[m++] = 192 | h >>> 6, l[m++] = 128 | h & 63) : h < 65536 ? (l[m++] = 224 | h >>> 12, l[m++] = 128 | h >>> 6 & 63, l[m++] = 128 | h & 63) : (l[m++] = 240 | h >>> 18, l[m++] = 128 | h >>> 12 & 63, l[m++] = 128 | h >>> 6 & 63, l[m++] = 128 | h & 63);
+    var l, h, f, d, m, _ = o.length, p = 0;
+    for (d = 0; d < _; d++)
+      h = o.charCodeAt(d), (h & 64512) === 55296 && d + 1 < _ && (f = o.charCodeAt(d + 1), (f & 64512) === 56320 && (h = 65536 + (h - 55296 << 10) + (f - 56320), d++)), p += h < 128 ? 1 : h < 2048 ? 2 : h < 65536 ? 3 : 4;
+    for (l = new e.Buf8(p), m = 0, d = 0; m < p; d++)
+      h = o.charCodeAt(d), (h & 64512) === 55296 && d + 1 < _ && (f = o.charCodeAt(d + 1), (f & 64512) === 56320 && (h = 65536 + (h - 55296 << 10) + (f - 56320), d++)), h < 128 ? l[m++] = h : h < 2048 ? (l[m++] = 192 | h >>> 6, l[m++] = 128 | h & 63) : h < 65536 ? (l[m++] = 224 | h >>> 12, l[m++] = 128 | h >>> 6 & 63, l[m++] = 128 | h & 63) : (l[m++] = 240 | h >>> 18, l[m++] = 128 | h >>> 12 & 63, l[m++] = 128 | h >>> 6 & 63, l[m++] = 128 | h & 63);
     return l;
   };
   function s(o, l) {
@@ -28950,25 +29174,25 @@ function requireStrings() {
       l[h] = o.charCodeAt(h);
     return l;
   }, strings.buf2string = function(o, l) {
-    var h, f, d, m, p = l || o.length, _ = new Array(p * 2);
-    for (f = 0, h = 0; h < p; ) {
+    var h, f, d, m, _ = l || o.length, p = new Array(_ * 2);
+    for (f = 0, h = 0; h < _; ) {
       if (d = o[h++], d < 128) {
-        _[f++] = d;
+        p[f++] = d;
         continue;
       }
       if (m = n[d], m > 4) {
-        _[f++] = 65533, h += m - 1;
+        p[f++] = 65533, h += m - 1;
         continue;
       }
-      for (d &= m === 2 ? 31 : m === 3 ? 15 : 7; m > 1 && h < p; )
+      for (d &= m === 2 ? 31 : m === 3 ? 15 : 7; m > 1 && h < _; )
         d = d << 6 | o[h++] & 63, m--;
       if (m > 1) {
-        _[f++] = 65533;
+        p[f++] = 65533;
         continue;
       }
-      d < 65536 ? _[f++] = d : (d -= 65536, _[f++] = 55296 | d >> 10 & 1023, _[f++] = 56320 | d & 1023);
+      d < 65536 ? p[f++] = d : (d -= 65536, p[f++] = 55296 | d >> 10 & 1023, p[f++] = 56320 | d & 1023);
     }
-    return s(_, f);
+    return s(p, f);
   }, strings.utf8border = function(o, l) {
     var h;
     for (l = l || o.length, l > o.length && (l = o.length), h = l - 1; h >= 0 && (o[h] & 192) === 128; )
@@ -28989,21 +29213,21 @@ var hasRequiredDeflate;
 function requireDeflate() {
   if (hasRequiredDeflate) return deflate$1;
   hasRequiredDeflate = 1;
-  var e = requireDeflate$1(), r = requireCommon(), i = requireStrings(), n = requireMessages(), a = requireZstream(), s = Object.prototype.toString, o = 0, l = 4, h = 0, f = 1, d = 2, m = -1, p = 0, _ = 8;
-  function g(k) {
-    if (!(this instanceof g)) return new g(k);
+  var e = requireDeflate$1(), r = requireCommon(), i = requireStrings(), n = requireMessages(), a = requireZstream(), s = Object.prototype.toString, o = 0, l = 4, h = 0, f = 1, d = 2, m = -1, _ = 0, p = 8;
+  function v(w) {
+    if (!(this instanceof v)) return new v(w);
     this.options = r.assign({
       level: m,
-      method: _,
+      method: p,
       chunkSize: 16384,
       windowBits: 15,
       memLevel: 8,
-      strategy: p,
+      strategy: _,
       to: ""
-    }, k || {});
+    }, w || {});
     var M = this.options;
     M.raw && M.windowBits > 0 ? M.windowBits = -M.windowBits : M.gzip && M.windowBits > 0 && M.windowBits < 16 && (M.windowBits += 16), this.err = 0, this.msg = "", this.ended = !1, this.chunks = [], this.strm = new a(), this.strm.avail_out = 0;
-    var N = e.deflateInit2(
+    var C = e.deflateInit2(
       this.strm,
       M.level,
       M.method,
@@ -29011,44 +29235,44 @@ function requireDeflate() {
       M.memLevel,
       M.strategy
     );
-    if (N !== h)
-      throw new Error(n[N]);
+    if (C !== h)
+      throw new Error(n[C]);
     if (M.header && e.deflateSetHeader(this.strm, M.header), M.dictionary) {
-      var P;
-      if (typeof M.dictionary == "string" ? P = i.string2buf(M.dictionary) : s.call(M.dictionary) === "[object ArrayBuffer]" ? P = new Uint8Array(M.dictionary) : P = M.dictionary, N = e.deflateSetDictionary(this.strm, P), N !== h)
-        throw new Error(n[N]);
+      var T;
+      if (typeof M.dictionary == "string" ? T = i.string2buf(M.dictionary) : s.call(M.dictionary) === "[object ArrayBuffer]" ? T = new Uint8Array(M.dictionary) : T = M.dictionary, C = e.deflateSetDictionary(this.strm, T), C !== h)
+        throw new Error(n[C]);
       this._dict_set = !0;
     }
   }
-  g.prototype.push = function(k, M) {
-    var N = this.strm, P = this.options.chunkSize, T, C;
+  v.prototype.push = function(w, M) {
+    var C = this.strm, T = this.options.chunkSize, P, N;
     if (this.ended)
       return !1;
-    C = M === ~~M ? M : M === !0 ? l : o, typeof k == "string" ? N.input = i.string2buf(k) : s.call(k) === "[object ArrayBuffer]" ? N.input = new Uint8Array(k) : N.input = k, N.next_in = 0, N.avail_in = N.input.length;
+    N = M === ~~M ? M : M === !0 ? l : o, typeof w == "string" ? C.input = i.string2buf(w) : s.call(w) === "[object ArrayBuffer]" ? C.input = new Uint8Array(w) : C.input = w, C.next_in = 0, C.avail_in = C.input.length;
     do {
-      if (N.avail_out === 0 && (N.output = new r.Buf8(P), N.next_out = 0, N.avail_out = P), T = e.deflate(N, C), T !== f && T !== h)
-        return this.onEnd(T), this.ended = !0, !1;
-      (N.avail_out === 0 || N.avail_in === 0 && (C === l || C === d)) && (this.options.to === "string" ? this.onData(i.buf2binstring(r.shrinkBuf(N.output, N.next_out))) : this.onData(r.shrinkBuf(N.output, N.next_out)));
-    } while ((N.avail_in > 0 || N.avail_out === 0) && T !== f);
-    return C === l ? (T = e.deflateEnd(this.strm), this.onEnd(T), this.ended = !0, T === h) : (C === d && (this.onEnd(h), N.avail_out = 0), !0);
-  }, g.prototype.onData = function(k) {
-    this.chunks.push(k);
-  }, g.prototype.onEnd = function(k) {
-    k === h && (this.options.to === "string" ? this.result = this.chunks.join("") : this.result = r.flattenChunks(this.chunks)), this.chunks = [], this.err = k, this.msg = this.strm.msg;
+      if (C.avail_out === 0 && (C.output = new r.Buf8(T), C.next_out = 0, C.avail_out = T), P = e.deflate(C, N), P !== f && P !== h)
+        return this.onEnd(P), this.ended = !0, !1;
+      (C.avail_out === 0 || C.avail_in === 0 && (N === l || N === d)) && (this.options.to === "string" ? this.onData(i.buf2binstring(r.shrinkBuf(C.output, C.next_out))) : this.onData(r.shrinkBuf(C.output, C.next_out)));
+    } while ((C.avail_in > 0 || C.avail_out === 0) && P !== f);
+    return N === l ? (P = e.deflateEnd(this.strm), this.onEnd(P), this.ended = !0, P === h) : (N === d && (this.onEnd(h), C.avail_out = 0), !0);
+  }, v.prototype.onData = function(w) {
+    this.chunks.push(w);
+  }, v.prototype.onEnd = function(w) {
+    w === h && (this.options.to === "string" ? this.result = this.chunks.join("") : this.result = r.flattenChunks(this.chunks)), this.chunks = [], this.err = w, this.msg = this.strm.msg;
   };
-  function v(k, M) {
-    var N = new g(M);
-    if (N.push(k, !0), N.err)
-      throw N.msg || n[N.err];
-    return N.result;
+  function g(w, M) {
+    var C = new v(M);
+    if (C.push(w, !0), C.err)
+      throw C.msg || n[C.err];
+    return C.result;
   }
-  function b(k, M) {
-    return M = M || {}, M.raw = !0, v(k, M);
+  function k(w, M) {
+    return M = M || {}, M.raw = !0, g(w, M);
   }
-  function w(k, M) {
-    return M = M || {}, M.gzip = !0, v(k, M);
+  function b(w, M) {
+    return M = M || {}, M.gzip = !0, g(w, M);
   }
-  return deflate$1.Deflate = g, deflate$1.deflate = v, deflate$1.deflateRaw = b, deflate$1.gzip = w, deflate$1;
+  return deflate$1.Deflate = v, deflate$1.deflate = g, deflate$1.deflateRaw = k, deflate$1.gzip = b, deflate$1;
 }
 var inflate$1 = {}, inflate = {}, inffast, hasRequiredInffast;
 function requireInffast() {
@@ -29056,79 +29280,79 @@ function requireInffast() {
   hasRequiredInffast = 1;
   var e = 30, r = 12;
   return inffast = function(n, a) {
-    var s, o, l, h, f, d, m, p, _, g, v, b, w, k, M, N, P, T, C, X, _e, Je, Pe, Ke, Wt;
-    s = n.state, o = n.next_in, Ke = n.input, l = o + (n.avail_in - 5), h = n.next_out, Wt = n.output, f = h - (a - n.avail_out), d = h + (n.avail_out - 257), m = s.dmax, p = s.wsize, _ = s.whave, g = s.wnext, v = s.window, b = s.hold, w = s.bits, k = s.lencode, M = s.distcode, N = (1 << s.lenbits) - 1, P = (1 << s.distbits) - 1;
+    var s, o, l, h, f, d, m, _, p, v, g, k, b, w, M, C, T, P, N, X, fe, Ke, Pe, Je, Wt;
+    s = n.state, o = n.next_in, Je = n.input, l = o + (n.avail_in - 5), h = n.next_out, Wt = n.output, f = h - (a - n.avail_out), d = h + (n.avail_out - 257), m = s.dmax, _ = s.wsize, p = s.whave, v = s.wnext, g = s.window, k = s.hold, b = s.bits, w = s.lencode, M = s.distcode, C = (1 << s.lenbits) - 1, T = (1 << s.distbits) - 1;
     e:
       do {
-        w < 15 && (b += Ke[o++] << w, w += 8, b += Ke[o++] << w, w += 8), T = k[b & N];
+        b < 15 && (k += Je[o++] << b, b += 8, k += Je[o++] << b, b += 8), P = w[k & C];
         t:
           for (; ; ) {
-            if (C = T >>> 24, b >>>= C, w -= C, C = T >>> 16 & 255, C === 0)
-              Wt[h++] = T & 65535;
-            else if (C & 16) {
-              X = T & 65535, C &= 15, C && (w < C && (b += Ke[o++] << w, w += 8), X += b & (1 << C) - 1, b >>>= C, w -= C), w < 15 && (b += Ke[o++] << w, w += 8, b += Ke[o++] << w, w += 8), T = M[b & P];
+            if (N = P >>> 24, k >>>= N, b -= N, N = P >>> 16 & 255, N === 0)
+              Wt[h++] = P & 65535;
+            else if (N & 16) {
+              X = P & 65535, N &= 15, N && (b < N && (k += Je[o++] << b, b += 8), X += k & (1 << N) - 1, k >>>= N, b -= N), b < 15 && (k += Je[o++] << b, b += 8, k += Je[o++] << b, b += 8), P = M[k & T];
               r:
                 for (; ; ) {
-                  if (C = T >>> 24, b >>>= C, w -= C, C = T >>> 16 & 255, C & 16) {
-                    if (_e = T & 65535, C &= 15, w < C && (b += Ke[o++] << w, w += 8, w < C && (b += Ke[o++] << w, w += 8)), _e += b & (1 << C) - 1, _e > m) {
+                  if (N = P >>> 24, k >>>= N, b -= N, N = P >>> 16 & 255, N & 16) {
+                    if (fe = P & 65535, N &= 15, b < N && (k += Je[o++] << b, b += 8, b < N && (k += Je[o++] << b, b += 8)), fe += k & (1 << N) - 1, fe > m) {
                       n.msg = "invalid distance too far back", s.mode = e;
                       break e;
                     }
-                    if (b >>>= C, w -= C, C = h - f, _e > C) {
-                      if (C = _e - C, C > _ && s.sane) {
+                    if (k >>>= N, b -= N, N = h - f, fe > N) {
+                      if (N = fe - N, N > p && s.sane) {
                         n.msg = "invalid distance too far back", s.mode = e;
                         break e;
                       }
-                      if (Je = 0, Pe = v, g === 0) {
-                        if (Je += p - C, C < X) {
-                          X -= C;
+                      if (Ke = 0, Pe = g, v === 0) {
+                        if (Ke += _ - N, N < X) {
+                          X -= N;
                           do
-                            Wt[h++] = v[Je++];
-                          while (--C);
-                          Je = h - _e, Pe = Wt;
+                            Wt[h++] = g[Ke++];
+                          while (--N);
+                          Ke = h - fe, Pe = Wt;
                         }
-                      } else if (g < C) {
-                        if (Je += p + g - C, C -= g, C < X) {
-                          X -= C;
+                      } else if (v < N) {
+                        if (Ke += _ + v - N, N -= v, N < X) {
+                          X -= N;
                           do
-                            Wt[h++] = v[Je++];
-                          while (--C);
-                          if (Je = 0, g < X) {
-                            C = g, X -= C;
+                            Wt[h++] = g[Ke++];
+                          while (--N);
+                          if (Ke = 0, v < X) {
+                            N = v, X -= N;
                             do
-                              Wt[h++] = v[Je++];
-                            while (--C);
-                            Je = h - _e, Pe = Wt;
+                              Wt[h++] = g[Ke++];
+                            while (--N);
+                            Ke = h - fe, Pe = Wt;
                           }
                         }
-                      } else if (Je += g - C, C < X) {
-                        X -= C;
+                      } else if (Ke += v - N, N < X) {
+                        X -= N;
                         do
-                          Wt[h++] = v[Je++];
-                        while (--C);
-                        Je = h - _e, Pe = Wt;
+                          Wt[h++] = g[Ke++];
+                        while (--N);
+                        Ke = h - fe, Pe = Wt;
                       }
                       for (; X > 2; )
-                        Wt[h++] = Pe[Je++], Wt[h++] = Pe[Je++], Wt[h++] = Pe[Je++], X -= 3;
-                      X && (Wt[h++] = Pe[Je++], X > 1 && (Wt[h++] = Pe[Je++]));
+                        Wt[h++] = Pe[Ke++], Wt[h++] = Pe[Ke++], Wt[h++] = Pe[Ke++], X -= 3;
+                      X && (Wt[h++] = Pe[Ke++], X > 1 && (Wt[h++] = Pe[Ke++]));
                     } else {
-                      Je = h - _e;
+                      Ke = h - fe;
                       do
-                        Wt[h++] = Wt[Je++], Wt[h++] = Wt[Je++], Wt[h++] = Wt[Je++], X -= 3;
+                        Wt[h++] = Wt[Ke++], Wt[h++] = Wt[Ke++], Wt[h++] = Wt[Ke++], X -= 3;
                       while (X > 2);
-                      X && (Wt[h++] = Wt[Je++], X > 1 && (Wt[h++] = Wt[Je++]));
+                      X && (Wt[h++] = Wt[Ke++], X > 1 && (Wt[h++] = Wt[Ke++]));
                     }
-                  } else if (C & 64) {
+                  } else if (N & 64) {
                     n.msg = "invalid distance code", s.mode = e;
                     break e;
                   } else {
-                    T = M[(T & 65535) + (b & (1 << C) - 1)];
+                    P = M[(P & 65535) + (k & (1 << N) - 1)];
                     continue r;
                   }
                   break;
                 }
-            } else if (C & 64)
-              if (C & 32) {
+            } else if (N & 64)
+              if (N & 32) {
                 s.mode = r;
                 break e;
               } else {
@@ -29136,13 +29360,13 @@ function requireInffast() {
                 break e;
               }
             else {
-              T = k[(T & 65535) + (b & (1 << C) - 1)];
+              P = w[(P & 65535) + (k & (1 << N) - 1)];
               continue t;
             }
             break;
           }
       } while (o < l && h < d);
-    X = w >> 3, o -= X, w -= X << 3, b &= (1 << w) - 1, n.next_in = o, n.next_out = h, n.avail_in = o < l ? 5 + (l - o) : 5 - (o - l), n.avail_out = h < d ? 257 + (d - h) : 257 - (h - d), s.hold = b, s.bits = w;
+    X = b >> 3, o -= X, b -= X << 3, k &= (1 << b) - 1, n.next_in = o, n.next_out = h, n.avail_in = o < l ? 5 + (l - o) : 5 - (o - l), n.avail_out = h < d ? 257 + (d - h) : 257 - (h - d), s.hold = k, s.bits = b;
   }, inffast;
 }
 var inftrees, hasRequiredInftrees;
@@ -29284,57 +29508,57 @@ function requireInftrees() {
     64,
     64
   ];
-  return inftrees = function(p, _, g, v, b, w, k, M) {
-    var N = M.bits, P = 0, T = 0, C = 0, X = 0, _e = 0, Je = 0, Pe = 0, Ke = 0, Wt = 0, ee = 0, We, st, Xt, Jt, Vt, it = null, Qt = 0, Ri, Ci = new e.Buf16(r + 1), fe = new e.Buf16(r + 1), Ge = null, Kt = 0, Ni, Di, Gi;
-    for (P = 0; P <= r; P++)
-      Ci[P] = 0;
-    for (T = 0; T < v; T++)
-      Ci[_[g + T]]++;
-    for (_e = N, X = r; X >= 1 && Ci[X] === 0; X--)
+  return inftrees = function(_, p, v, g, k, b, w, M) {
+    var C = M.bits, T = 0, P = 0, N = 0, X = 0, fe = 0, Ke = 0, Pe = 0, Je = 0, Wt = 0, ee = 0, We, st, Xt, Jt, Vt, it = null, Qt = 0, Ri, Ci = new e.Buf16(r + 1), _e = new e.Buf16(r + 1), Ge = null, Kt = 0, Ni, Di, Gi;
+    for (T = 0; T <= r; T++)
+      Ci[T] = 0;
+    for (P = 0; P < g; P++)
+      Ci[p[v + P]]++;
+    for (fe = C, X = r; X >= 1 && Ci[X] === 0; X--)
       ;
-    if (_e > X && (_e = X), X === 0)
-      return b[w++] = 1 << 24 | 64 << 16 | 0, b[w++] = 1 << 24 | 64 << 16 | 0, M.bits = 1, 0;
-    for (C = 1; C < X && Ci[C] === 0; C++)
+    if (fe > X && (fe = X), X === 0)
+      return k[b++] = 1 << 24 | 64 << 16 | 0, k[b++] = 1 << 24 | 64 << 16 | 0, M.bits = 1, 0;
+    for (N = 1; N < X && Ci[N] === 0; N++)
       ;
-    for (_e < C && (_e = C), Ke = 1, P = 1; P <= r; P++)
-      if (Ke <<= 1, Ke -= Ci[P], Ke < 0)
+    for (fe < N && (fe = N), Je = 1, T = 1; T <= r; T++)
+      if (Je <<= 1, Je -= Ci[T], Je < 0)
         return -1;
-    if (Ke > 0 && (p === a || X !== 1))
+    if (Je > 0 && (_ === a || X !== 1))
       return -1;
-    for (fe[1] = 0, P = 1; P < r; P++)
-      fe[P + 1] = fe[P] + Ci[P];
-    for (T = 0; T < v; T++)
-      _[g + T] !== 0 && (k[fe[_[g + T]]++] = T);
-    if (p === a ? (it = Ge = k, Ri = 19) : p === s ? (it = l, Qt -= 257, Ge = h, Kt -= 257, Ri = 256) : (it = f, Ge = d, Ri = -1), ee = 0, T = 0, P = C, Vt = w, Je = _e, Pe = 0, Xt = -1, Wt = 1 << _e, Jt = Wt - 1, p === s && Wt > i || p === o && Wt > n)
+    for (_e[1] = 0, T = 1; T < r; T++)
+      _e[T + 1] = _e[T] + Ci[T];
+    for (P = 0; P < g; P++)
+      p[v + P] !== 0 && (w[_e[p[v + P]]++] = P);
+    if (_ === a ? (it = Ge = w, Ri = 19) : _ === s ? (it = l, Qt -= 257, Ge = h, Kt -= 257, Ri = 256) : (it = f, Ge = d, Ri = -1), ee = 0, P = 0, T = N, Vt = b, Ke = fe, Pe = 0, Xt = -1, Wt = 1 << fe, Jt = Wt - 1, _ === s && Wt > i || _ === o && Wt > n)
       return 1;
     for (; ; ) {
-      Ni = P - Pe, k[T] < Ri ? (Di = 0, Gi = k[T]) : k[T] > Ri ? (Di = Ge[Kt + k[T]], Gi = it[Qt + k[T]]) : (Di = 96, Gi = 0), We = 1 << P - Pe, st = 1 << Je, C = st;
+      Ni = T - Pe, w[P] < Ri ? (Di = 0, Gi = w[P]) : w[P] > Ri ? (Di = Ge[Kt + w[P]], Gi = it[Qt + w[P]]) : (Di = 96, Gi = 0), We = 1 << T - Pe, st = 1 << Ke, N = st;
       do
-        st -= We, b[Vt + (ee >> Pe) + st] = Ni << 24 | Di << 16 | Gi | 0;
+        st -= We, k[Vt + (ee >> Pe) + st] = Ni << 24 | Di << 16 | Gi | 0;
       while (st !== 0);
-      for (We = 1 << P - 1; ee & We; )
+      for (We = 1 << T - 1; ee & We; )
         We >>= 1;
-      if (We !== 0 ? (ee &= We - 1, ee += We) : ee = 0, T++, --Ci[P] === 0) {
-        if (P === X)
+      if (We !== 0 ? (ee &= We - 1, ee += We) : ee = 0, P++, --Ci[T] === 0) {
+        if (T === X)
           break;
-        P = _[g + k[T]];
+        T = p[v + w[P]];
       }
-      if (P > _e && (ee & Jt) !== Xt) {
-        for (Pe === 0 && (Pe = _e), Vt += C, Je = P - Pe, Ke = 1 << Je; Je + Pe < X && (Ke -= Ci[Je + Pe], !(Ke <= 0)); )
-          Je++, Ke <<= 1;
-        if (Wt += 1 << Je, p === s && Wt > i || p === o && Wt > n)
+      if (T > fe && (ee & Jt) !== Xt) {
+        for (Pe === 0 && (Pe = fe), Vt += N, Ke = T - Pe, Je = 1 << Ke; Ke + Pe < X && (Je -= Ci[Ke + Pe], !(Je <= 0)); )
+          Ke++, Je <<= 1;
+        if (Wt += 1 << Ke, _ === s && Wt > i || _ === o && Wt > n)
           return 1;
-        Xt = ee & Jt, b[Xt] = _e << 24 | Je << 16 | Vt - w | 0;
+        Xt = ee & Jt, k[Xt] = fe << 24 | Ke << 16 | Vt - b | 0;
       }
     }
-    return ee !== 0 && (b[Vt + ee] = P - Pe << 24 | 64 << 16 | 0), M.bits = _e, 0;
+    return ee !== 0 && (k[Vt + ee] = T - Pe << 24 | 64 << 16 | 0), M.bits = fe, 0;
   }, inftrees;
 }
 var hasRequiredInflate$1;
 function requireInflate$1() {
   if (hasRequiredInflate$1) return inflate;
   hasRequiredInflate$1 = 1;
-  var e = requireCommon(), r = requireAdler32(), i = requireCrc32(), n = requireInffast(), a = requireInftrees(), s = 0, o = 1, l = 2, h = 4, f = 5, d = 6, m = 0, p = 1, _ = 2, g = -2, v = -3, b = -4, w = -5, k = 8, M = 1, N = 2, P = 3, T = 4, C = 5, X = 6, _e = 7, Je = 8, Pe = 9, Ke = 10, Wt = 11, ee = 12, We = 13, st = 14, Xt = 15, Jt = 16, Vt = 17, it = 18, Qt = 19, Ri = 20, Ci = 21, fe = 22, Ge = 23, Kt = 24, Ni = 25, Di = 26, Gi = 27, Ki = 28, Zn = 29, Wi = 30, Vi = 31, ta = 32, ra = 852, ia = 592, na = 15, oa = na;
+  var e = requireCommon(), r = requireAdler32(), i = requireCrc32(), n = requireInffast(), a = requireInftrees(), s = 0, o = 1, l = 2, h = 4, f = 5, d = 6, m = 0, _ = 1, p = 2, v = -2, g = -3, k = -4, b = -5, w = 8, M = 1, C = 2, T = 3, P = 4, N = 5, X = 6, fe = 7, Ke = 8, Pe = 9, Je = 10, Wt = 11, ee = 12, We = 13, st = 14, Xt = 15, Jt = 16, Vt = 17, it = 18, Qt = 19, Ri = 20, Ci = 21, _e = 22, Ge = 23, Kt = 24, Ni = 25, Di = 26, Gi = 27, Ki = 28, Zn = 29, Wi = 30, Vi = 31, ta = 32, ra = 852, ia = 592, na = 15, oa = na;
   function Qn(Fi) {
     return (Fi >>> 24 & 255) + (Fi >>> 8 & 65280) + ((Fi & 65280) << 8) + ((Fi & 255) << 24);
   }
@@ -29343,19 +29567,19 @@ function requireInflate$1() {
   }
   function ca(Fi) {
     var Yi;
-    return !Fi || !Fi.state ? g : (Yi = Fi.state, Fi.total_in = Fi.total_out = Yi.total = 0, Fi.msg = "", Yi.wrap && (Fi.adler = Yi.wrap & 1), Yi.mode = M, Yi.last = 0, Yi.havedict = 0, Yi.dmax = 32768, Yi.head = null, Yi.hold = 0, Yi.bits = 0, Yi.lencode = Yi.lendyn = new e.Buf32(ra), Yi.distcode = Yi.distdyn = new e.Buf32(ia), Yi.sane = 1, Yi.back = -1, m);
+    return !Fi || !Fi.state ? v : (Yi = Fi.state, Fi.total_in = Fi.total_out = Yi.total = 0, Fi.msg = "", Yi.wrap && (Fi.adler = Yi.wrap & 1), Yi.mode = M, Yi.last = 0, Yi.havedict = 0, Yi.dmax = 32768, Yi.head = null, Yi.hold = 0, Yi.bits = 0, Yi.lencode = Yi.lendyn = new e.Buf32(ra), Yi.distcode = Yi.distdyn = new e.Buf32(ia), Yi.sane = 1, Yi.back = -1, m);
   }
   function la(Fi) {
     var Yi;
-    return !Fi || !Fi.state ? g : (Yi = Fi.state, Yi.wsize = 0, Yi.whave = 0, Yi.wnext = 0, ca(Fi));
+    return !Fi || !Fi.state ? v : (Yi = Fi.state, Yi.wsize = 0, Yi.whave = 0, Yi.wnext = 0, ca(Fi));
   }
   function ua(Fi, Yi) {
     var qt, Xi;
-    return !Fi || !Fi.state || (Xi = Fi.state, Yi < 0 ? (qt = 0, Yi = -Yi) : (qt = (Yi >> 4) + 1, Yi < 48 && (Yi &= 15)), Yi && (Yi < 8 || Yi > 15)) ? g : (Xi.window !== null && Xi.wbits !== Yi && (Xi.window = null), Xi.wrap = qt, Xi.wbits = Yi, la(Fi));
+    return !Fi || !Fi.state || (Xi = Fi.state, Yi < 0 ? (qt = 0, Yi = -Yi) : (qt = (Yi >> 4) + 1, Yi < 48 && (Yi &= 15)), Yi && (Yi < 8 || Yi > 15)) ? v : (Xi.window !== null && Xi.wbits !== Yi && (Xi.window = null), Xi.wrap = qt, Xi.wbits = Yi, la(Fi));
   }
   function pa(Fi, Yi) {
     var qt, Xi;
-    return Fi ? (Xi = new ha(), Fi.state = Xi, Xi.window = null, qt = ua(Fi, Yi), qt !== m && (Fi.state = null), qt) : g;
+    return Fi ? (Xi = new ha(), Fi.state = Xi, Xi.window = null, qt = ua(Fi, Yi), qt !== m && (Fi.state = null), qt) : v;
   }
   function _a(Fi) {
     return pa(Fi, oa);
@@ -29383,12 +29607,12 @@ function requireInflate$1() {
     return ue.window === null && (ue.wsize = 1 << ue.wbits, ue.wnext = 0, ue.whave = 0, ue.window = new e.Buf8(ue.wsize)), Xi >= ue.wsize ? (e.arraySet(ue.window, Yi, qt - ue.wsize, ue.wsize, 0), ue.wnext = 0, ue.whave = ue.wsize) : (sa = ue.wsize - ue.wnext, sa > Xi && (sa = Xi), e.arraySet(ue.window, Yi, qt - Xi, sa, ue.wnext), Xi -= sa, Xi ? (e.arraySet(ue.window, Yi, qt - Xi, Xi, 0), ue.wnext = Xi, ue.whave = ue.wsize) : (ue.wnext += sa, ue.wnext === ue.wsize && (ue.wnext = 0), ue.whave < ue.wsize && (ue.whave += sa))), 0;
   }
   function Ti(Fi, Yi) {
-    var qt, Xi, sa, ue, Ui, Hi, $i, Li, ea, ma, da, fa, ya, ba, wa = 0, va, $a, Ea, Sa, Aa, Da, ka, Ta, Ma = new e.Buf8(4), Na, Pa, Ha = (
+    var qt, Xi, sa, ue, Ui, Hi, $i, Li, ea, ma, da, fa, ya, ba, $a = 0, va, wa, Ea, Sa, Aa, Da, ka, Ta, Ma = new e.Buf8(4), Na, Pa, Ha = (
       /* permutation of code lengths */
       [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]
     );
     if (!Fi || !Fi.state || !Fi.output || !Fi.input && Fi.avail_in !== 0)
-      return g;
+      return v;
     qt = Fi.state, qt.mode === ee && (qt.mode = We), Ui = Fi.next_out, sa = Fi.output, $i = Fi.avail_out, ue = Fi.next_in, Xi = Fi.input, Hi = Fi.avail_in, Li = qt.hold, ea = qt.bits, ma = Hi, da = $i, Ta = m;
     e:
       for (; ; )
@@ -29404,7 +29628,7 @@ function requireInflate$1() {
               Hi--, Li += Xi[ue++] << ea, ea += 8;
             }
             if (qt.wrap & 2 && Li === 35615) {
-              qt.check = 0, Ma[0] = Li & 255, Ma[1] = Li >>> 8 & 255, qt.check = i(qt.check, Ma, 2, 0), Li = 0, ea = 0, qt.mode = N;
+              qt.check = 0, Ma[0] = Li & 255, Ma[1] = Li >>> 8 & 255, qt.check = i(qt.check, Ma, 2, 0), Li = 0, ea = 0, qt.mode = C;
               break;
             }
             if (qt.flags = 0, qt.head && (qt.head.done = !1), !(qt.wrap & 1) || /* check if zlib header allowed */
@@ -29412,7 +29636,7 @@ function requireInflate$1() {
               Fi.msg = "incorrect header check", qt.mode = Wi;
               break;
             }
-            if ((Li & 15) !== k) {
+            if ((Li & 15) !== w) {
               Fi.msg = "unknown compression method", qt.mode = Wi;
               break;
             }
@@ -29422,15 +29646,15 @@ function requireInflate$1() {
               Fi.msg = "invalid window size", qt.mode = Wi;
               break;
             }
-            qt.dmax = 1 << ka, Fi.adler = qt.check = 1, qt.mode = Li & 512 ? Ke : ee, Li = 0, ea = 0;
+            qt.dmax = 1 << ka, Fi.adler = qt.check = 1, qt.mode = Li & 512 ? Je : ee, Li = 0, ea = 0;
             break;
-          case N:
+          case C:
             for (; ea < 16; ) {
               if (Hi === 0)
                 break e;
               Hi--, Li += Xi[ue++] << ea, ea += 8;
             }
-            if (qt.flags = Li, (qt.flags & 255) !== k) {
+            if (qt.flags = Li, (qt.flags & 255) !== w) {
               Fi.msg = "unknown compression method", qt.mode = Wi;
               break;
             }
@@ -29438,22 +29662,22 @@ function requireInflate$1() {
               Fi.msg = "unknown header flags set", qt.mode = Wi;
               break;
             }
-            qt.head && (qt.head.text = Li >> 8 & 1), qt.flags & 512 && (Ma[0] = Li & 255, Ma[1] = Li >>> 8 & 255, qt.check = i(qt.check, Ma, 2, 0)), Li = 0, ea = 0, qt.mode = P;
-          case P:
+            qt.head && (qt.head.text = Li >> 8 & 1), qt.flags & 512 && (Ma[0] = Li & 255, Ma[1] = Li >>> 8 & 255, qt.check = i(qt.check, Ma, 2, 0)), Li = 0, ea = 0, qt.mode = T;
+          case T:
             for (; ea < 32; ) {
               if (Hi === 0)
                 break e;
               Hi--, Li += Xi[ue++] << ea, ea += 8;
             }
-            qt.head && (qt.head.time = Li), qt.flags & 512 && (Ma[0] = Li & 255, Ma[1] = Li >>> 8 & 255, Ma[2] = Li >>> 16 & 255, Ma[3] = Li >>> 24 & 255, qt.check = i(qt.check, Ma, 4, 0)), Li = 0, ea = 0, qt.mode = T;
-          case T:
+            qt.head && (qt.head.time = Li), qt.flags & 512 && (Ma[0] = Li & 255, Ma[1] = Li >>> 8 & 255, Ma[2] = Li >>> 16 & 255, Ma[3] = Li >>> 24 & 255, qt.check = i(qt.check, Ma, 4, 0)), Li = 0, ea = 0, qt.mode = P;
+          case P:
             for (; ea < 16; ) {
               if (Hi === 0)
                 break e;
               Hi--, Li += Xi[ue++] << ea, ea += 8;
             }
-            qt.head && (qt.head.xflags = Li & 255, qt.head.os = Li >> 8), qt.flags & 512 && (Ma[0] = Li & 255, Ma[1] = Li >>> 8 & 255, qt.check = i(qt.check, Ma, 2, 0)), Li = 0, ea = 0, qt.mode = C;
-          case C:
+            qt.head && (qt.head.xflags = Li & 255, qt.head.os = Li >> 8), qt.flags & 512 && (Ma[0] = Li & 255, Ma[1] = Li >>> 8 & 255, qt.check = i(qt.check, Ma, 2, 0)), Li = 0, ea = 0, qt.mode = N;
+          case N:
             if (qt.flags & 1024) {
               for (; ea < 16; ) {
                 if (Hi === 0)
@@ -29475,8 +29699,8 @@ function requireInflate$1() {
               ka
             )), qt.flags & 512 && (qt.check = i(qt.check, Xi, fa, ue)), Hi -= fa, ue += fa, qt.length -= fa), qt.length))
               break e;
-            qt.length = 0, qt.mode = _e;
-          case _e:
+            qt.length = 0, qt.mode = fe;
+          case fe:
             if (qt.flags & 2048) {
               if (Hi === 0)
                 break e;
@@ -29487,8 +29711,8 @@ function requireInflate$1() {
               if (qt.flags & 512 && (qt.check = i(qt.check, Xi, fa, ue)), Hi -= fa, ue += fa, ka)
                 break e;
             } else qt.head && (qt.head.name = null);
-            qt.length = 0, qt.mode = Je;
-          case Je:
+            qt.length = 0, qt.mode = Ke;
+          case Ke:
             if (qt.flags & 4096) {
               if (Hi === 0)
                 break e;
@@ -29515,7 +29739,7 @@ function requireInflate$1() {
             }
             qt.head && (qt.head.hcrc = qt.flags >> 9 & 1, qt.head.done = !0), Fi.adler = qt.check = 0, qt.mode = ee;
             break;
-          case Ke:
+          case Je:
             for (; ea < 32; ) {
               if (Hi === 0)
                 break e;
@@ -29524,7 +29748,7 @@ function requireInflate$1() {
             Fi.adler = qt.check = Qn(Li), Li = 0, ea = 0, qt.mode = Wt;
           case Wt:
             if (qt.havedict === 0)
-              return Fi.next_out = Ui, Fi.avail_out = $i, Fi.next_in = ue, Fi.avail_in = Hi, qt.hold = Li, qt.bits = ea, _;
+              return Fi.next_out = Ui, Fi.avail_out = $i, Fi.next_in = ue, Fi.avail_in = Hi, qt.hold = Li, qt.bits = ea, p;
             Fi.adler = qt.check = 1, qt.mode = ee;
           case ee:
             if (Yi === f || Yi === d)
@@ -29609,7 +29833,7 @@ function requireInflate$1() {
             qt.have = 0, qt.mode = Qt;
           case Qt:
             for (; qt.have < qt.nlen + qt.ndist; ) {
-              for (; wa = qt.lencode[Li & (1 << qt.lenbits) - 1], va = wa >>> 24, $a = wa >>> 16 & 255, Ea = wa & 65535, !(va <= ea); ) {
+              for (; $a = qt.lencode[Li & (1 << qt.lenbits) - 1], va = $a >>> 24, wa = $a >>> 16 & 255, Ea = $a & 65535, !(va <= ea); ) {
                 if (Hi === 0)
                   break e;
                 Hi--, Li += Xi[ue++] << ea, ea += 8;
@@ -29674,33 +29898,33 @@ function requireInflate$1() {
               Fi.next_out = Ui, Fi.avail_out = $i, Fi.next_in = ue, Fi.avail_in = Hi, qt.hold = Li, qt.bits = ea, n(Fi, da), Ui = Fi.next_out, sa = Fi.output, $i = Fi.avail_out, ue = Fi.next_in, Xi = Fi.input, Hi = Fi.avail_in, Li = qt.hold, ea = qt.bits, qt.mode === ee && (qt.back = -1);
               break;
             }
-            for (qt.back = 0; wa = qt.lencode[Li & (1 << qt.lenbits) - 1], va = wa >>> 24, $a = wa >>> 16 & 255, Ea = wa & 65535, !(va <= ea); ) {
+            for (qt.back = 0; $a = qt.lencode[Li & (1 << qt.lenbits) - 1], va = $a >>> 24, wa = $a >>> 16 & 255, Ea = $a & 65535, !(va <= ea); ) {
               if (Hi === 0)
                 break e;
               Hi--, Li += Xi[ue++] << ea, ea += 8;
             }
-            if ($a && !($a & 240)) {
-              for (Sa = va, Aa = $a, Da = Ea; wa = qt.lencode[Da + ((Li & (1 << Sa + Aa) - 1) >> Sa)], va = wa >>> 24, $a = wa >>> 16 & 255, Ea = wa & 65535, !(Sa + va <= ea); ) {
+            if (wa && !(wa & 240)) {
+              for (Sa = va, Aa = wa, Da = Ea; $a = qt.lencode[Da + ((Li & (1 << Sa + Aa) - 1) >> Sa)], va = $a >>> 24, wa = $a >>> 16 & 255, Ea = $a & 65535, !(Sa + va <= ea); ) {
                 if (Hi === 0)
                   break e;
                 Hi--, Li += Xi[ue++] << ea, ea += 8;
               }
               Li >>>= Sa, ea -= Sa, qt.back += Sa;
             }
-            if (Li >>>= va, ea -= va, qt.back += va, qt.length = Ea, $a === 0) {
+            if (Li >>>= va, ea -= va, qt.back += va, qt.length = Ea, wa === 0) {
               qt.mode = Di;
               break;
             }
-            if ($a & 32) {
+            if (wa & 32) {
               qt.back = -1, qt.mode = ee;
               break;
             }
-            if ($a & 64) {
+            if (wa & 64) {
               Fi.msg = "invalid literal/length code", qt.mode = Wi;
               break;
             }
-            qt.extra = $a & 15, qt.mode = fe;
-          case fe:
+            qt.extra = wa & 15, qt.mode = _e;
+          case _e:
             if (qt.extra) {
               for (Pa = qt.extra; ea < Pa; ) {
                 if (Hi === 0)
@@ -29711,24 +29935,24 @@ function requireInflate$1() {
             }
             qt.was = qt.length, qt.mode = Ge;
           case Ge:
-            for (; wa = qt.distcode[Li & (1 << qt.distbits) - 1], va = wa >>> 24, $a = wa >>> 16 & 255, Ea = wa & 65535, !(va <= ea); ) {
+            for (; $a = qt.distcode[Li & (1 << qt.distbits) - 1], va = $a >>> 24, wa = $a >>> 16 & 255, Ea = $a & 65535, !(va <= ea); ) {
               if (Hi === 0)
                 break e;
               Hi--, Li += Xi[ue++] << ea, ea += 8;
             }
-            if (!($a & 240)) {
-              for (Sa = va, Aa = $a, Da = Ea; wa = qt.distcode[Da + ((Li & (1 << Sa + Aa) - 1) >> Sa)], va = wa >>> 24, $a = wa >>> 16 & 255, Ea = wa & 65535, !(Sa + va <= ea); ) {
+            if (!(wa & 240)) {
+              for (Sa = va, Aa = wa, Da = Ea; $a = qt.distcode[Da + ((Li & (1 << Sa + Aa) - 1) >> Sa)], va = $a >>> 24, wa = $a >>> 16 & 255, Ea = $a & 65535, !(Sa + va <= ea); ) {
                 if (Hi === 0)
                   break e;
                 Hi--, Li += Xi[ue++] << ea, ea += 8;
               }
               Li >>>= Sa, ea -= Sa, qt.back += Sa;
             }
-            if (Li >>>= va, ea -= va, qt.back += va, $a & 64) {
+            if (Li >>>= va, ea -= va, qt.back += va, wa & 64) {
               Fi.msg = "invalid distance code", qt.mode = Wi;
               break;
             }
-            qt.offset = Ea, qt.extra = $a & 15, qt.mode = Kt;
+            qt.offset = Ea, qt.extra = wa & 15, qt.mode = Kt;
           case Kt:
             if (qt.extra) {
               for (Pa = qt.extra; ea < Pa; ) {
@@ -29795,33 +30019,33 @@ function requireInflate$1() {
             }
             qt.mode = Zn;
           case Zn:
-            Ta = p;
+            Ta = _;
             break e;
           case Wi:
-            Ta = v;
+            Ta = g;
             break e;
           case Vi:
-            return b;
+            return k;
           case ta:
           default:
-            return g;
+            return v;
         }
     return Fi.next_out = Ui, Fi.avail_out = $i, Fi.next_in = ue, Fi.avail_in = Hi, qt.hold = Li, qt.bits = ea, (qt.wsize || da !== Fi.avail_out && qt.mode < Wi && (qt.mode < Gi || Yi !== h)) && aa(Fi, Fi.output, Fi.next_out, da - Fi.avail_out), ma -= Fi.avail_in, da -= Fi.avail_out, Fi.total_in += ma, Fi.total_out += da, qt.total += da, qt.wrap && da && (Fi.adler = qt.check = /*UPDATE(state.check, strm.next_out - _out, _out);*/
-    qt.flags ? i(qt.check, sa, da, Fi.next_out - da) : r(qt.check, sa, da, Fi.next_out - da)), Fi.data_type = qt.bits + (qt.last ? 64 : 0) + (qt.mode === ee ? 128 : 0) + (qt.mode === Ri || qt.mode === Xt ? 256 : 0), (ma === 0 && da === 0 || Yi === h) && Ta === m && (Ta = w), Ta;
+    qt.flags ? i(qt.check, sa, da, Fi.next_out - da) : r(qt.check, sa, da, Fi.next_out - da)), Fi.data_type = qt.bits + (qt.last ? 64 : 0) + (qt.mode === ee ? 128 : 0) + (qt.mode === Ri || qt.mode === Xt ? 256 : 0), (ma === 0 && da === 0 || Yi === h) && Ta === m && (Ta = b), Ta;
   }
   function qi(Fi) {
     if (!Fi || !Fi.state)
-      return g;
+      return v;
     var Yi = Fi.state;
     return Yi.window && (Yi.window = null), Fi.state = null, m;
   }
   function zi(Fi, Yi) {
     var qt;
-    return !Fi || !Fi.state || (qt = Fi.state, !(qt.wrap & 2)) ? g : (qt.head = Yi, Yi.done = !1, m);
+    return !Fi || !Fi.state || (qt = Fi.state, !(qt.wrap & 2)) ? v : (qt.head = Yi, Yi.done = !1, m);
   }
   function Hn(Fi, Yi) {
     var qt = Yi.length, Xi, sa, ue;
-    return !Fi || !Fi.state || (Xi = Fi.state, Xi.wrap !== 0 && Xi.mode !== Wt) ? g : Xi.mode === Wt && (sa = 1, sa = r(sa, Yi, qt, 0), sa !== Xi.check) ? v : (ue = aa(Fi, Yi, qt, qt), ue ? (Xi.mode = Vi, b) : (Xi.havedict = 1, m));
+    return !Fi || !Fi.state || (Xi = Fi.state, Xi.wrap !== 0 && Xi.mode !== Wt) ? v : Xi.mode === Wt && (sa = 1, sa = r(sa, Yi, qt, 0), sa !== Xi.check) ? g : (ue = aa(Fi, Yi, qt, qt), ue ? (Xi.mode = Vi, k) : (Xi.havedict = 1, m));
   }
   return inflate.inflateReset = la, inflate.inflateReset2 = ua, inflate.inflateResetKeep = ca, inflate.inflateInit = _a, inflate.inflateInit2 = pa, inflate.inflate = Ti, inflate.inflateEnd = qi, inflate.inflateGetHeader = zi, inflate.inflateSetDictionary = Hn, inflate.inflateInfo = "pako inflate (from Nodeca project)", inflate;
 }
@@ -29889,41 +30113,41 @@ function requireInflate() {
       windowBits: 0,
       to: ""
     }, m || {});
-    var p = this.options;
-    p.raw && p.windowBits >= 0 && p.windowBits < 16 && (p.windowBits = -p.windowBits, p.windowBits === 0 && (p.windowBits = -15)), p.windowBits >= 0 && p.windowBits < 16 && !(m && m.windowBits) && (p.windowBits += 32), p.windowBits > 15 && p.windowBits < 48 && (p.windowBits & 15 || (p.windowBits |= 15)), this.err = 0, this.msg = "", this.ended = !1, this.chunks = [], this.strm = new s(), this.strm.avail_out = 0;
-    var _ = e.inflateInit2(
+    var _ = this.options;
+    _.raw && _.windowBits >= 0 && _.windowBits < 16 && (_.windowBits = -_.windowBits, _.windowBits === 0 && (_.windowBits = -15)), _.windowBits >= 0 && _.windowBits < 16 && !(m && m.windowBits) && (_.windowBits += 32), _.windowBits > 15 && _.windowBits < 48 && (_.windowBits & 15 || (_.windowBits |= 15)), this.err = 0, this.msg = "", this.ended = !1, this.chunks = [], this.strm = new s(), this.strm.avail_out = 0;
+    var p = e.inflateInit2(
       this.strm,
-      p.windowBits
+      _.windowBits
     );
-    if (_ !== n.Z_OK)
-      throw new Error(a[_]);
-    if (this.header = new o(), e.inflateGetHeader(this.strm, this.header), p.dictionary && (typeof p.dictionary == "string" ? p.dictionary = i.string2buf(p.dictionary) : l.call(p.dictionary) === "[object ArrayBuffer]" && (p.dictionary = new Uint8Array(p.dictionary)), p.raw && (_ = e.inflateSetDictionary(this.strm, p.dictionary), _ !== n.Z_OK)))
-      throw new Error(a[_]);
+    if (p !== n.Z_OK)
+      throw new Error(a[p]);
+    if (this.header = new o(), e.inflateGetHeader(this.strm, this.header), _.dictionary && (typeof _.dictionary == "string" ? _.dictionary = i.string2buf(_.dictionary) : l.call(_.dictionary) === "[object ArrayBuffer]" && (_.dictionary = new Uint8Array(_.dictionary)), _.raw && (p = e.inflateSetDictionary(this.strm, _.dictionary), p !== n.Z_OK)))
+      throw new Error(a[p]);
   }
-  h.prototype.push = function(m, p) {
-    var _ = this.strm, g = this.options.chunkSize, v = this.options.dictionary, b, w, k, M, N, P = !1;
+  h.prototype.push = function(m, _) {
+    var p = this.strm, v = this.options.chunkSize, g = this.options.dictionary, k, b, w, M, C, T = !1;
     if (this.ended)
       return !1;
-    w = p === ~~p ? p : p === !0 ? n.Z_FINISH : n.Z_NO_FLUSH, typeof m == "string" ? _.input = i.binstring2buf(m) : l.call(m) === "[object ArrayBuffer]" ? _.input = new Uint8Array(m) : _.input = m, _.next_in = 0, _.avail_in = _.input.length;
+    b = _ === ~~_ ? _ : _ === !0 ? n.Z_FINISH : n.Z_NO_FLUSH, typeof m == "string" ? p.input = i.binstring2buf(m) : l.call(m) === "[object ArrayBuffer]" ? p.input = new Uint8Array(m) : p.input = m, p.next_in = 0, p.avail_in = p.input.length;
     do {
-      if (_.avail_out === 0 && (_.output = new r.Buf8(g), _.next_out = 0, _.avail_out = g), b = e.inflate(_, n.Z_NO_FLUSH), b === n.Z_NEED_DICT && v && (b = e.inflateSetDictionary(this.strm, v)), b === n.Z_BUF_ERROR && P === !0 && (b = n.Z_OK, P = !1), b !== n.Z_STREAM_END && b !== n.Z_OK)
-        return this.onEnd(b), this.ended = !0, !1;
-      _.next_out && (_.avail_out === 0 || b === n.Z_STREAM_END || _.avail_in === 0 && (w === n.Z_FINISH || w === n.Z_SYNC_FLUSH)) && (this.options.to === "string" ? (k = i.utf8border(_.output, _.next_out), M = _.next_out - k, N = i.buf2string(_.output, k), _.next_out = M, _.avail_out = g - M, M && r.arraySet(_.output, _.output, k, M, 0), this.onData(N)) : this.onData(r.shrinkBuf(_.output, _.next_out))), _.avail_in === 0 && _.avail_out === 0 && (P = !0);
-    } while ((_.avail_in > 0 || _.avail_out === 0) && b !== n.Z_STREAM_END);
-    return b === n.Z_STREAM_END && (w = n.Z_FINISH), w === n.Z_FINISH ? (b = e.inflateEnd(this.strm), this.onEnd(b), this.ended = !0, b === n.Z_OK) : (w === n.Z_SYNC_FLUSH && (this.onEnd(n.Z_OK), _.avail_out = 0), !0);
+      if (p.avail_out === 0 && (p.output = new r.Buf8(v), p.next_out = 0, p.avail_out = v), k = e.inflate(p, n.Z_NO_FLUSH), k === n.Z_NEED_DICT && g && (k = e.inflateSetDictionary(this.strm, g)), k === n.Z_BUF_ERROR && T === !0 && (k = n.Z_OK, T = !1), k !== n.Z_STREAM_END && k !== n.Z_OK)
+        return this.onEnd(k), this.ended = !0, !1;
+      p.next_out && (p.avail_out === 0 || k === n.Z_STREAM_END || p.avail_in === 0 && (b === n.Z_FINISH || b === n.Z_SYNC_FLUSH)) && (this.options.to === "string" ? (w = i.utf8border(p.output, p.next_out), M = p.next_out - w, C = i.buf2string(p.output, w), p.next_out = M, p.avail_out = v - M, M && r.arraySet(p.output, p.output, w, M, 0), this.onData(C)) : this.onData(r.shrinkBuf(p.output, p.next_out))), p.avail_in === 0 && p.avail_out === 0 && (T = !0);
+    } while ((p.avail_in > 0 || p.avail_out === 0) && k !== n.Z_STREAM_END);
+    return k === n.Z_STREAM_END && (b = n.Z_FINISH), b === n.Z_FINISH ? (k = e.inflateEnd(this.strm), this.onEnd(k), this.ended = !0, k === n.Z_OK) : (b === n.Z_SYNC_FLUSH && (this.onEnd(n.Z_OK), p.avail_out = 0), !0);
   }, h.prototype.onData = function(m) {
     this.chunks.push(m);
   }, h.prototype.onEnd = function(m) {
     m === n.Z_OK && (this.options.to === "string" ? this.result = this.chunks.join("") : this.result = r.flattenChunks(this.chunks)), this.chunks = [], this.err = m, this.msg = this.strm.msg;
   };
-  function f(m, p) {
-    var _ = new h(p);
-    if (_.push(m, !0), _.err)
-      throw _.msg || a[_.err];
-    return _.result;
+  function f(m, _) {
+    var p = new h(_);
+    if (p.push(m, !0), p.err)
+      throw p.msg || a[p.err];
+    return p.result;
   }
-  function d(m, p) {
-    return p = p || {}, p.raw = !0, f(m, p);
+  function d(m, _) {
+    return _ = _ || {}, _.raw = !0, f(m, _);
   }
   return inflate$1.Inflate = h, inflate$1.inflate = f, inflate$1.inflateRaw = d, inflate$1.ungzip = f, inflate$1;
 }
@@ -29950,48 +30174,48 @@ function requirePako() {
           }
           return d.prototype = new Error(), d.prototype.name = "JpegError", d.constructor = d, d;
         }(), l = function() {
-          var d = new Uint8Array([0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63]), m = 4017, p = 799, _ = 3406, g = 2276, v = 1567, b = 3784, w = 5793, k = 2896;
-          function M(Je) {
-            Je == null && (Je = {}), Je.w == null && (Je.w = -1), this.V = Je.n, this.N = Je.w;
+          var d = new Uint8Array([0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63]), m = 4017, _ = 799, p = 3406, v = 2276, g = 1567, k = 3784, b = 5793, w = 2896;
+          function M(Ke) {
+            Ke == null && (Ke = {}), Ke.w == null && (Ke.w = -1), this.V = Ke.n, this.N = Ke.w;
           }
-          function N(Je, Pe) {
-            for (var Ke = 0, Wt = [], ee, We, st = 16, Xt; st > 0 && !Je[st - 1]; )
+          function C(Ke, Pe) {
+            for (var Je = 0, Wt = [], ee, We, st = 16, Xt; st > 0 && !Ke[st - 1]; )
               st--;
             Wt.push({ children: [], index: 0 });
             var Jt = Wt[0];
             for (ee = 0; ee < st; ee++) {
-              for (We = 0; We < Je[ee]; We++) {
-                for (Jt = Wt.pop(), Jt.children[Jt.index] = Pe[Ke]; Jt.index > 0; )
+              for (We = 0; We < Ke[ee]; We++) {
+                for (Jt = Wt.pop(), Jt.children[Jt.index] = Pe[Je]; Jt.index > 0; )
                   Jt = Wt.pop();
                 for (Jt.index++, Wt.push(Jt); Wt.length <= ee; )
                   Wt.push(Xt = { children: [], index: 0 }), Jt.children[Jt.index] = Xt.children, Jt = Xt;
-                Ke++;
+                Je++;
               }
               ee + 1 < st && (Wt.push(Xt = { children: [], index: 0 }), Jt.children[Jt.index] = Xt.children, Jt = Xt);
             }
             return Wt[0].children;
           }
-          function P(Je, Pe, Ke) {
-            return 64 * ((Je.P + 1) * Pe + Ke);
+          function T(Ke, Pe, Je) {
+            return 64 * ((Ke.P + 1) * Pe + Je);
           }
-          function T(Je, Pe, Ke, Wt, ee, We, st, Xt, Jt, Vt) {
+          function P(Ke, Pe, Je, Wt, ee, We, st, Xt, Jt, Vt) {
             Vt == null && (Vt = !1);
-            var it = Ke.m, Qt = Ke.Z, Ri = Pe, Ci = 0, fe = 0, Ge = 0, Kt = 0, Ni, Di = 0, Gi, Ki, Zn, Wi, Vi, ta, ra = 0, ia, na, oa, Qn;
+            var it = Je.m, Qt = Je.Z, Ri = Pe, Ci = 0, _e = 0, Ge = 0, Kt = 0, Ni, Di = 0, Gi, Ki, Zn, Wi, Vi, ta, ra = 0, ia, na, oa, Qn;
             function ha() {
-              if (fe > 0)
-                return fe--, Ci >> fe & 1;
-              if (Ci = Je[Pe++], Ci === 255) {
-                var zi = Je[Pe++];
+              if (_e > 0)
+                return _e--, Ci >> _e & 1;
+              if (Ci = Ke[Pe++], Ci === 255) {
+                var zi = Ke[Pe++];
                 if (zi) {
                   if (zi === 220 && Vt) {
                     Pe += 2;
-                    var Hn = h(Je, Pe);
-                    if (Pe += 2, Hn > 0 && Hn !== Ke.s)
+                    var Hn = h(Ke, Pe);
+                    if (Pe += 2, Hn > 0 && Hn !== Je.s)
                       throw new DNLMarkerError("Found DNL marker (0xFFDC) while parsing scan data", Hn);
                   } else if (zi === 217) {
                     if (Vt) {
                       var Fi = Di * 8;
-                      if (Fi > 0 && Fi < Ke.s / 10)
+                      if (Fi > 0 && Fi < Je.s / 10)
                         throw new DNLMarkerError("Found EOI marker (0xFFD9) while parsing scan data, possibly caused by incorrect `scanLines` parameter", Fi);
                     }
                     throw new EOIMarkerError("Found EOI marker (0xFFD9) while parsing scan data");
@@ -29999,7 +30223,7 @@ function requirePako() {
                   throw new o("unexpected marker");
                 }
               }
-              return fe = 7, Ci >>> 7;
+              return _e = 7, Ci >>> 7;
             }
             function ca(zi) {
               for (var Hn = zi; ; ) {
@@ -30096,16 +30320,16 @@ function requirePako() {
             function Ji(zi, Hn, Fi, Yi, qt) {
               var Xi = Fi / it | 0, sa = Fi % it;
               Di = Xi * zi.A + Yi;
-              var ue = sa * zi.h + qt, Ui = P(zi, Di, ue);
+              var ue = sa * zi.h + qt, Ui = T(zi, Di, ue);
               Hn(zi, Ui);
             }
             function aa(zi, Hn, Fi) {
               Di = Fi / zi.P | 0;
-              var Yi = Fi % zi.P, qt = P(zi, Di, Yi);
+              var Yi = Fi % zi.P, qt = T(zi, Di, Yi);
               Hn(zi, qt);
             }
             var Ti = Wt.length;
-            for (Qt ? We === 0 ? ta = Xt === 0 ? _a : ji : ta = Xt === 0 ? Zi : Qi : ta = pa, Ti === 1 ? na = Wt[0].P * Wt[0].c : na = it * Ke.R; ra <= na; ) {
+            for (Qt ? We === 0 ? ta = Xt === 0 ? _a : ji : ta = Xt === 0 ? Zi : Qi : ta = pa, Ti === 1 ? na = Wt[0].P * Wt[0].c : na = it * Je.R; ra <= na; ) {
               var qi = ee ? Math.min(na - ra, ee) : na;
               if (qi > 0) {
                 for (Ki = 0; Ki < Ti; Ki++)
@@ -30122,7 +30346,7 @@ function requirePako() {
                     ra++;
                   }
               }
-              if (fe = 0, ia = _e(Je, Pe), !ia)
+              if (_e = 0, ia = fe(Ke, Pe), !ia)
                 break;
               if (ia.u && (Pe = ia.offset), ia.M >= 65488 && ia.M <= 65495)
                 Pe += 2;
@@ -30131,57 +30355,57 @@ function requirePako() {
             }
             return Pe - Ri;
           }
-          function C(Je, Pe, Ke) {
-            var Wt = Je.$, ee = Je.D, We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, fe, Ge, Kt, Ni, Di, Gi, Ki, Zn;
+          function N(Ke, Pe, Je) {
+            var Wt = Ke.$, ee = Ke.D, We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, _e, Ge, Kt, Ni, Di, Gi, Ki, Zn;
             if (!Wt)
               throw new o("missing required Quantization Table.");
             for (var Wi = 0; Wi < 64; Wi += 8) {
-              if (Ci = ee[Pe + Wi], fe = ee[Pe + Wi + 1], Ge = ee[Pe + Wi + 2], Kt = ee[Pe + Wi + 3], Ni = ee[Pe + Wi + 4], Di = ee[Pe + Wi + 5], Gi = ee[Pe + Wi + 6], Ki = ee[Pe + Wi + 7], Ci *= Wt[Wi], !(fe | Ge | Kt | Ni | Di | Gi | Ki)) {
-                Zn = w * Ci + 512 >> 10, Ke[Wi] = Zn, Ke[Wi + 1] = Zn, Ke[Wi + 2] = Zn, Ke[Wi + 3] = Zn, Ke[Wi + 4] = Zn, Ke[Wi + 5] = Zn, Ke[Wi + 6] = Zn, Ke[Wi + 7] = Zn;
+              if (Ci = ee[Pe + Wi], _e = ee[Pe + Wi + 1], Ge = ee[Pe + Wi + 2], Kt = ee[Pe + Wi + 3], Ni = ee[Pe + Wi + 4], Di = ee[Pe + Wi + 5], Gi = ee[Pe + Wi + 6], Ki = ee[Pe + Wi + 7], Ci *= Wt[Wi], !(_e | Ge | Kt | Ni | Di | Gi | Ki)) {
+                Zn = b * Ci + 512 >> 10, Je[Wi] = Zn, Je[Wi + 1] = Zn, Je[Wi + 2] = Zn, Je[Wi + 3] = Zn, Je[Wi + 4] = Zn, Je[Wi + 5] = Zn, Je[Wi + 6] = Zn, Je[Wi + 7] = Zn;
                 continue;
               }
-              fe *= Wt[Wi + 1], Ge *= Wt[Wi + 2], Kt *= Wt[Wi + 3], Ni *= Wt[Wi + 4], Di *= Wt[Wi + 5], Gi *= Wt[Wi + 6], Ki *= Wt[Wi + 7], We = w * Ci + 128 >> 8, st = w * Ni + 128 >> 8, Xt = Ge, Jt = Gi, Vt = k * (fe - Ki) + 128 >> 8, Ri = k * (fe + Ki) + 128 >> 8, it = Kt << 4, Qt = Di << 4, We = We + st + 1 >> 1, st = We - st, Zn = Xt * b + Jt * v + 128 >> 8, Xt = Xt * v - Jt * b + 128 >> 8, Jt = Zn, Vt = Vt + Qt + 1 >> 1, Qt = Vt - Qt, Ri = Ri + it + 1 >> 1, it = Ri - it, We = We + Jt + 1 >> 1, Jt = We - Jt, st = st + Xt + 1 >> 1, Xt = st - Xt, Zn = Vt * g + Ri * _ + 2048 >> 12, Vt = Vt * _ - Ri * g + 2048 >> 12, Ri = Zn, Zn = it * p + Qt * m + 2048 >> 12, it = it * m - Qt * p + 2048 >> 12, Qt = Zn, Ke[Wi] = We + Ri, Ke[Wi + 7] = We - Ri, Ke[Wi + 1] = st + Qt, Ke[Wi + 6] = st - Qt, Ke[Wi + 2] = Xt + it, Ke[Wi + 5] = Xt - it, Ke[Wi + 3] = Jt + Vt, Ke[Wi + 4] = Jt - Vt;
+              _e *= Wt[Wi + 1], Ge *= Wt[Wi + 2], Kt *= Wt[Wi + 3], Ni *= Wt[Wi + 4], Di *= Wt[Wi + 5], Gi *= Wt[Wi + 6], Ki *= Wt[Wi + 7], We = b * Ci + 128 >> 8, st = b * Ni + 128 >> 8, Xt = Ge, Jt = Gi, Vt = w * (_e - Ki) + 128 >> 8, Ri = w * (_e + Ki) + 128 >> 8, it = Kt << 4, Qt = Di << 4, We = We + st + 1 >> 1, st = We - st, Zn = Xt * k + Jt * g + 128 >> 8, Xt = Xt * g - Jt * k + 128 >> 8, Jt = Zn, Vt = Vt + Qt + 1 >> 1, Qt = Vt - Qt, Ri = Ri + it + 1 >> 1, it = Ri - it, We = We + Jt + 1 >> 1, Jt = We - Jt, st = st + Xt + 1 >> 1, Xt = st - Xt, Zn = Vt * v + Ri * p + 2048 >> 12, Vt = Vt * p - Ri * v + 2048 >> 12, Ri = Zn, Zn = it * _ + Qt * m + 2048 >> 12, it = it * m - Qt * _ + 2048 >> 12, Qt = Zn, Je[Wi] = We + Ri, Je[Wi + 7] = We - Ri, Je[Wi + 1] = st + Qt, Je[Wi + 6] = st - Qt, Je[Wi + 2] = Xt + it, Je[Wi + 5] = Xt - it, Je[Wi + 3] = Jt + Vt, Je[Wi + 4] = Jt - Vt;
             }
             for (var Vi = 0; Vi < 8; ++Vi) {
-              if (Ci = Ke[Vi], fe = Ke[Vi + 8], Ge = Ke[Vi + 16], Kt = Ke[Vi + 24], Ni = Ke[Vi + 32], Di = Ke[Vi + 40], Gi = Ke[Vi + 48], Ki = Ke[Vi + 56], !(fe | Ge | Kt | Ni | Di | Gi | Ki)) {
-                Zn = w * Ci + 8192 >> 14, Zn < -2040 ? Zn = 0 : Zn >= 2024 ? Zn = 255 : Zn = Zn + 2056 >> 4, ee[Pe + Vi] = Zn, ee[Pe + Vi + 8] = Zn, ee[Pe + Vi + 16] = Zn, ee[Pe + Vi + 24] = Zn, ee[Pe + Vi + 32] = Zn, ee[Pe + Vi + 40] = Zn, ee[Pe + Vi + 48] = Zn, ee[Pe + Vi + 56] = Zn;
+              if (Ci = Je[Vi], _e = Je[Vi + 8], Ge = Je[Vi + 16], Kt = Je[Vi + 24], Ni = Je[Vi + 32], Di = Je[Vi + 40], Gi = Je[Vi + 48], Ki = Je[Vi + 56], !(_e | Ge | Kt | Ni | Di | Gi | Ki)) {
+                Zn = b * Ci + 8192 >> 14, Zn < -2040 ? Zn = 0 : Zn >= 2024 ? Zn = 255 : Zn = Zn + 2056 >> 4, ee[Pe + Vi] = Zn, ee[Pe + Vi + 8] = Zn, ee[Pe + Vi + 16] = Zn, ee[Pe + Vi + 24] = Zn, ee[Pe + Vi + 32] = Zn, ee[Pe + Vi + 40] = Zn, ee[Pe + Vi + 48] = Zn, ee[Pe + Vi + 56] = Zn;
                 continue;
               }
-              We = w * Ci + 2048 >> 12, st = w * Ni + 2048 >> 12, Xt = Ge, Jt = Gi, Vt = k * (fe - Ki) + 2048 >> 12, Ri = k * (fe + Ki) + 2048 >> 12, it = Kt, Qt = Di, We = (We + st + 1 >> 1) + 4112, st = We - st, Zn = Xt * b + Jt * v + 2048 >> 12, Xt = Xt * v - Jt * b + 2048 >> 12, Jt = Zn, Vt = Vt + Qt + 1 >> 1, Qt = Vt - Qt, Ri = Ri + it + 1 >> 1, it = Ri - it, We = We + Jt + 1 >> 1, Jt = We - Jt, st = st + Xt + 1 >> 1, Xt = st - Xt, Zn = Vt * g + Ri * _ + 2048 >> 12, Vt = Vt * _ - Ri * g + 2048 >> 12, Ri = Zn, Zn = it * p + Qt * m + 2048 >> 12, it = it * m - Qt * p + 2048 >> 12, Qt = Zn, Ci = We + Ri, Ki = We - Ri, fe = st + Qt, Gi = st - Qt, Ge = Xt + it, Di = Xt - it, Kt = Jt + Vt, Ni = Jt - Vt, Ci < 16 ? Ci = 0 : Ci >= 4080 ? Ci = 255 : Ci >>= 4, fe < 16 ? fe = 0 : fe >= 4080 ? fe = 255 : fe >>= 4, Ge < 16 ? Ge = 0 : Ge >= 4080 ? Ge = 255 : Ge >>= 4, Kt < 16 ? Kt = 0 : Kt >= 4080 ? Kt = 255 : Kt >>= 4, Ni < 16 ? Ni = 0 : Ni >= 4080 ? Ni = 255 : Ni >>= 4, Di < 16 ? Di = 0 : Di >= 4080 ? Di = 255 : Di >>= 4, Gi < 16 ? Gi = 0 : Gi >= 4080 ? Gi = 255 : Gi >>= 4, Ki < 16 ? Ki = 0 : Ki >= 4080 ? Ki = 255 : Ki >>= 4, ee[Pe + Vi] = Ci, ee[Pe + Vi + 8] = fe, ee[Pe + Vi + 16] = Ge, ee[Pe + Vi + 24] = Kt, ee[Pe + Vi + 32] = Ni, ee[Pe + Vi + 40] = Di, ee[Pe + Vi + 48] = Gi, ee[Pe + Vi + 56] = Ki;
+              We = b * Ci + 2048 >> 12, st = b * Ni + 2048 >> 12, Xt = Ge, Jt = Gi, Vt = w * (_e - Ki) + 2048 >> 12, Ri = w * (_e + Ki) + 2048 >> 12, it = Kt, Qt = Di, We = (We + st + 1 >> 1) + 4112, st = We - st, Zn = Xt * k + Jt * g + 2048 >> 12, Xt = Xt * g - Jt * k + 2048 >> 12, Jt = Zn, Vt = Vt + Qt + 1 >> 1, Qt = Vt - Qt, Ri = Ri + it + 1 >> 1, it = Ri - it, We = We + Jt + 1 >> 1, Jt = We - Jt, st = st + Xt + 1 >> 1, Xt = st - Xt, Zn = Vt * v + Ri * p + 2048 >> 12, Vt = Vt * p - Ri * v + 2048 >> 12, Ri = Zn, Zn = it * _ + Qt * m + 2048 >> 12, it = it * m - Qt * _ + 2048 >> 12, Qt = Zn, Ci = We + Ri, Ki = We - Ri, _e = st + Qt, Gi = st - Qt, Ge = Xt + it, Di = Xt - it, Kt = Jt + Vt, Ni = Jt - Vt, Ci < 16 ? Ci = 0 : Ci >= 4080 ? Ci = 255 : Ci >>= 4, _e < 16 ? _e = 0 : _e >= 4080 ? _e = 255 : _e >>= 4, Ge < 16 ? Ge = 0 : Ge >= 4080 ? Ge = 255 : Ge >>= 4, Kt < 16 ? Kt = 0 : Kt >= 4080 ? Kt = 255 : Kt >>= 4, Ni < 16 ? Ni = 0 : Ni >= 4080 ? Ni = 255 : Ni >>= 4, Di < 16 ? Di = 0 : Di >= 4080 ? Di = 255 : Di >>= 4, Gi < 16 ? Gi = 0 : Gi >= 4080 ? Gi = 255 : Gi >>= 4, Ki < 16 ? Ki = 0 : Ki >= 4080 ? Ki = 255 : Ki >>= 4, ee[Pe + Vi] = Ci, ee[Pe + Vi + 8] = _e, ee[Pe + Vi + 16] = Ge, ee[Pe + Vi + 24] = Kt, ee[Pe + Vi + 32] = Ni, ee[Pe + Vi + 40] = Di, ee[Pe + Vi + 48] = Gi, ee[Pe + Vi + 56] = Ki;
             }
           }
-          function X(Je, Pe) {
-            for (var Ke = Pe.P, Wt = Pe.c, ee = new Int16Array(64), We = 0; We < Wt; We++)
-              for (var st = 0; st < Ke; st++) {
-                var Xt = P(Pe, We, st);
-                C(Pe, Xt, ee);
+          function X(Ke, Pe) {
+            for (var Je = Pe.P, Wt = Pe.c, ee = new Int16Array(64), We = 0; We < Wt; We++)
+              for (var st = 0; st < Je; st++) {
+                var Xt = T(Pe, We, st);
+                N(Pe, Xt, ee);
               }
             return Pe.D;
           }
-          function _e(Je, Pe, Ke) {
-            Ke == null && (Ke = Pe);
-            var Wt = Je.length - 1, ee = Ke < Pe ? Ke : Pe;
+          function fe(Ke, Pe, Je) {
+            Je == null && (Je = Pe);
+            var Wt = Ke.length - 1, ee = Je < Pe ? Je : Pe;
             if (Pe >= Wt)
               return null;
-            var We = h(Je, Pe);
+            var We = h(Ke, Pe);
             if (We >= 65472 && We <= 65534)
               return { u: null, M: We, offset: Pe };
-            for (var st = h(Je, ee); !(st >= 65472 && st <= 65534); ) {
+            for (var st = h(Ke, ee); !(st >= 65472 && st <= 65534); ) {
               if (++ee >= Wt)
                 return null;
-              st = h(Je, ee);
+              st = h(Ke, ee);
             }
             return { u: We.toString(16), M: st, offset: ee };
           }
-          return M.prototype = { parse(Je, Pe) {
+          return M.prototype = { parse(Ke, Pe) {
             Pe == null && (Pe = {});
-            var Ke = Pe.F, Wt = 0, ee = null, We = null, st, Xt, Jt = 0;
+            var Je = Pe.F, Wt = 0, ee = null, We = null, st, Xt, Jt = 0;
             function Vt() {
-              var ue = h(Je, Wt);
+              var ue = h(Ke, Wt);
               Wt += 2;
-              var Ui = Wt + ue - 2, Hi = _e(Je, Ui, Wt);
+              var Ui = Wt + ue - 2, Hi = fe(Ke, Ui, Wt);
               Hi && Hi.u && (Ui = Hi.offset);
-              var $i = Je.subarray(Wt, Ui);
+              var $i = Ke.subarray(Wt, Ui);
               return Wt += $i.length, $i;
             }
             function it(ue) {
@@ -30192,13 +30416,13 @@ function requirePako() {
               }
               ue.m = Ui, ue.R = Hi;
             }
-            var Qt = [], Ri = [], Ci = [], fe = h(Je, Wt);
-            if (Wt += 2, fe !== 65496)
+            var Qt = [], Ri = [], Ci = [], _e = h(Ke, Wt);
+            if (Wt += 2, _e !== 65496)
               throw new o("SOI not found");
-            fe = h(Je, Wt), Wt += 2;
-            e: for (; fe !== 65497; ) {
+            _e = h(Ke, Wt), Wt += 2;
+            e: for (; _e !== 65497; ) {
               var Ge, Kt, Ni;
-              switch (fe) {
+              switch (_e) {
                 case 65504:
                 case 65505:
                 case 65506:
@@ -30217,21 +30441,21 @@ function requirePako() {
                 case 65519:
                 case 65534:
                   var Di = Vt();
-                  fe === 65504 && Di[0] === 74 && Di[1] === 70 && Di[2] === 73 && Di[3] === 70 && Di[4] === 0 && (ee = { version: { d: Di[5], T: Di[6] }, K: Di[7], j: Di[8] << 8 | Di[9], H: Di[10] << 8 | Di[11], S: Di[12], I: Di[13], C: Di.subarray(14, 14 + 3 * Di[12] * Di[13]) }), fe === 65518 && Di[0] === 65 && Di[1] === 100 && Di[2] === 111 && Di[3] === 98 && Di[4] === 101 && (We = { version: Di[5] << 8 | Di[6], k: Di[7] << 8 | Di[8], q: Di[9] << 8 | Di[10], a: Di[11] });
+                  _e === 65504 && Di[0] === 74 && Di[1] === 70 && Di[2] === 73 && Di[3] === 70 && Di[4] === 0 && (ee = { version: { d: Di[5], T: Di[6] }, K: Di[7], j: Di[8] << 8 | Di[9], H: Di[10] << 8 | Di[11], S: Di[12], I: Di[13], C: Di.subarray(14, 14 + 3 * Di[12] * Di[13]) }), _e === 65518 && Di[0] === 65 && Di[1] === 100 && Di[2] === 111 && Di[3] === 98 && Di[4] === 101 && (We = { version: Di[5] << 8 | Di[6], k: Di[7] << 8 | Di[8], q: Di[9] << 8 | Di[10], a: Di[11] });
                   break;
                 case 65499:
-                  var Gi = h(Je, Wt), Ki;
+                  var Gi = h(Ke, Wt), Ki;
                   Wt += 2;
                   for (var Zn = Gi + Wt - 2; Wt < Zn; ) {
-                    var Wi = Je[Wt++], Vi = new Uint16Array(64);
+                    var Wi = Ke[Wt++], Vi = new Uint16Array(64);
                     if (Wi >> 4)
                       if (Wi >> 4 === 1)
                         for (Kt = 0; Kt < 64; Kt++)
-                          Ki = d[Kt], Vi[Ki] = h(Je, Wt), Wt += 2;
+                          Ki = d[Kt], Vi[Ki] = h(Ke, Wt), Wt += 2;
                       else
                         throw new o("DQT - invalid table spec");
                     else for (Kt = 0; Kt < 64; Kt++)
-                      Ki = d[Kt], Vi[Ki] = Je[Wt++];
+                      Ki = d[Kt], Vi[Ki] = Ke[Wt++];
                     Qt[Wi & 15] = Vi;
                   }
                   break;
@@ -30240,51 +30464,51 @@ function requirePako() {
                 case 65474:
                   if (st)
                     throw new o("Only single frame JPEGs supported");
-                  Wt += 2, st = {}, st.G = fe === 65473, st.Z = fe === 65474, st.precision = Je[Wt++];
-                  var ta = h(Je, Wt), ra, ia = 0, na = 0;
-                  Wt += 2, st.s = Ke || ta, st.o = h(Je, Wt), Wt += 2, st.W = [], st._ = {};
-                  var oa = Je[Wt++];
+                  Wt += 2, st = {}, st.G = _e === 65473, st.Z = _e === 65474, st.precision = Ke[Wt++];
+                  var ta = h(Ke, Wt), ra, ia = 0, na = 0;
+                  Wt += 2, st.s = Je || ta, st.o = h(Ke, Wt), Wt += 2, st.W = [], st._ = {};
+                  var oa = Ke[Wt++];
                   for (Ge = 0; Ge < oa; Ge++) {
-                    ra = Je[Wt];
-                    var Qn = Je[Wt + 1] >> 4, ha = Je[Wt + 1] & 15;
+                    ra = Ke[Wt];
+                    var Qn = Ke[Wt + 1] >> 4, ha = Ke[Wt + 1] & 15;
                     ia < Qn && (ia = Qn), na < ha && (na = ha);
-                    var ca = Je[Wt + 2];
+                    var ca = Ke[Wt + 2];
                     Ni = st.W.push({ h: Qn, A: ha, L: ca, $: null }), st._[ra] = Ni - 1, Wt += 3;
                   }
                   st.X = ia, st.B = na, it(st);
                   break;
                 case 65476:
-                  var la = h(Je, Wt);
+                  var la = h(Ke, Wt);
                   for (Wt += 2, Ge = 2; Ge < la; ) {
-                    var ua = Je[Wt++], pa = new Uint8Array(16), _a = 0;
+                    var ua = Ke[Wt++], pa = new Uint8Array(16), _a = 0;
                     for (Kt = 0; Kt < 16; Kt++, Wt++)
-                      _a += pa[Kt] = Je[Wt];
+                      _a += pa[Kt] = Ke[Wt];
                     var ji = new Uint8Array(_a);
                     for (Kt = 0; Kt < _a; Kt++, Wt++)
-                      ji[Kt] = Je[Wt];
-                    Ge += 17 + _a, (ua >> 4 ? Ri : Ci)[ua & 15] = N(pa, ji);
+                      ji[Kt] = Ke[Wt];
+                    Ge += 17 + _a, (ua >> 4 ? Ri : Ci)[ua & 15] = C(pa, ji);
                   }
                   break;
                 case 65501:
-                  Wt += 2, Xt = h(Je, Wt), Wt += 2;
+                  Wt += 2, Xt = h(Ke, Wt), Wt += 2;
                   break;
                 case 65498:
-                  var Zi = ++Jt === 1 && !Ke, Qi;
+                  var Zi = ++Jt === 1 && !Je, Qi;
                   Wt += 2;
-                  var Ji = Je[Wt++], aa = [];
+                  var Ji = Ke[Wt++], aa = [];
                   for (Ge = 0; Ge < Ji; Ge++) {
-                    var Ti = Je[Wt++], qi = st._[Ti];
+                    var Ti = Ke[Wt++], qi = st._[Ti];
                     Qi = st.W[qi], Qi.index = Ti;
-                    var zi = Je[Wt++];
+                    var zi = Ke[Wt++];
                     Qi.J = Ci[zi >> 4], Qi.i = Ri[zi & 15], aa.push(Qi);
                   }
-                  var Hn = Je[Wt++], Fi = Je[Wt++], Yi = Je[Wt++];
+                  var Hn = Ke[Wt++], Fi = Ke[Wt++], Yi = Ke[Wt++];
                   try {
-                    var qt = T(Je, Wt, st, aa, Xt, Hn, Fi, Yi >> 4, Yi & 15, Zi);
+                    var qt = P(Ke, Wt, st, aa, Xt, Hn, Fi, Yi >> 4, Yi & 15, Zi);
                     Wt += qt;
                   } catch (ue) {
                     if (ue instanceof DNLMarkerError)
-                      return this.parse(Je, { F: ue.s });
+                      return this.parse(Ke, { F: ue.s });
                     if (ue instanceof EOIMarkerError)
                       break e;
                     throw ue;
@@ -30294,19 +30518,19 @@ function requirePako() {
                   Wt += 4;
                   break;
                 case 65535:
-                  Je[Wt] !== 255 && Wt--;
+                  Ke[Wt] !== 255 && Wt--;
                   break;
                 default:
-                  var Xi = _e(Je, Wt - 2, Wt - 3);
+                  var Xi = fe(Ke, Wt - 2, Wt - 3);
                   if (Xi && Xi.u) {
                     Wt = Xi.offset;
                     break;
                   }
-                  if (Wt >= Je.length - 1)
+                  if (Wt >= Ke.length - 1)
                     break e;
-                  throw new o("JpegImage.parse - unknown marker: " + fe.toString(16));
+                  throw new o("JpegImage.parse - unknown marker: " + _e.toString(16));
               }
-              fe = h(Je, Wt), Wt += 2;
+              _e = h(Ke, Wt), Wt += 2;
             }
             for (this.width = st.o, this.height = st.s, this.g = ee, this.b = We, this.W = [], Ge = 0; Ge < st.W.length; Ge++) {
               Qi = st.W[Ge];
@@ -30314,21 +30538,21 @@ function requirePako() {
               sa && (Qi.$ = sa), this.W.push({ index: Qi.index, e: X(st, Qi), l: Qi.h / st.X, t: Qi.A / st.B, P: Qi.P, c: Qi.c });
             }
             this.p = this.W.length;
-          }, Y(Je, Pe, Ke) {
-            Ke == null && (Ke = !1);
-            var Wt = this.width / Je, ee = this.height / Pe, We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, fe, Ge = 0, Kt, Ni = this.W.length, Di = Je * Pe * Ni, Gi = new Uint8ClampedArray(Di), Ki = new Uint32Array(Je), Zn = 4294967288, Wi;
+          }, Y(Ke, Pe, Je) {
+            Je == null && (Je = !1);
+            var Wt = this.width / Ke, ee = this.height / Pe, We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, _e, Ge = 0, Kt, Ni = this.W.length, Di = Ke * Pe * Ni, Gi = new Uint8ClampedArray(Di), Ki = new Uint32Array(Ke), Zn = 4294967288, Wi;
             for (Qt = 0; Qt < Ni; Qt++) {
               if (We = this.W[Qt], st = We.l * Wt, Xt = We.t * ee, Ge = Qt, Kt = We.e, Jt = We.P + 1 << 3, st !== Wi) {
-                for (Vt = 0; Vt < Je; Vt++)
+                for (Vt = 0; Vt < Ke; Vt++)
                   Ri = 0 | Vt * st, Ki[Vt] = (Ri & Zn) << 3 | Ri & 7;
                 Wi = st;
               }
               for (it = 0; it < Pe; it++)
-                for (Ri = 0 | it * Xt, fe = Jt * (Ri & Zn) | (Ri & 7) << 3, Vt = 0; Vt < Je; Vt++)
-                  Gi[Ge] = Kt[fe + Ki[Vt]], Ge += Ni;
+                for (Ri = 0 | it * Xt, _e = Jt * (Ri & Zn) | (Ri & 7) << 3, Vt = 0; Vt < Ke; Vt++)
+                  Gi[Ge] = Kt[_e + Ki[Vt]], Ge += Ni;
             }
             var Vi = this.V;
-            if (!Ke && Ni === 4 && !Vi && (Vi = new Int32Array([-256, 255, -256, 255, -256, 255, -256, 255])), Vi)
+            if (!Je && Ni === 4 && !Vi && (Vi = new Int32Array([-256, 255, -256, 255, -256, 255, -256, 255])), Vi)
               for (Qt = 0; Qt < Di; )
                 for (Ri = 0, Ci = 0; Ri < Ni; Ri++, Qt++, Ci += 2)
                   Gi[Qt] = (Gi[Qt] * Vi[Ci] >> 8) + Vi[Ci + 1];
@@ -30336,26 +30560,26 @@ function requirePako() {
           }, get f() {
             return this.b ? !!this.b.a : this.p === 3 ? this.N === 0 ? !1 : !(this.W[0].index === 82 && this.W[1].index === 71 && this.W[2].index === 66) : this.N === 1;
           }, z: function(Pe) {
-            for (var Ke, Wt, ee, We = 0, st = Pe.length; We < st; We += 3)
-              Ke = Pe[We], Wt = Pe[We + 1], ee = Pe[We + 2], Pe[We] = Ke - 179.456 + 1.402 * ee, Pe[We + 1] = Ke + 135.459 - 0.344 * Wt - 0.714 * ee, Pe[We + 2] = Ke - 226.816 + 1.772 * Wt;
+            for (var Je, Wt, ee, We = 0, st = Pe.length; We < st; We += 3)
+              Je = Pe[We], Wt = Pe[We + 1], ee = Pe[We + 2], Pe[We] = Je - 179.456 + 1.402 * ee, Pe[We + 1] = Je + 135.459 - 0.344 * Wt - 0.714 * ee, Pe[We + 2] = Je - 226.816 + 1.772 * Wt;
             return Pe;
           }, O: function(Pe) {
-            for (var Ke, Wt, ee, We, st = 0, Xt = 0, Jt = Pe.length; Xt < Jt; Xt += 4)
-              Ke = Pe[Xt], Wt = Pe[Xt + 1], ee = Pe[Xt + 2], We = Pe[Xt + 3], Pe[st++] = -122.67195406894 + Wt * (-660635669420364e-19 * Wt + 437130475926232e-18 * ee - 54080610064599e-18 * Ke + 48449797120281e-17 * We - 0.154362151871126) + ee * (-957964378445773e-18 * ee + 817076911346625e-18 * Ke - 0.00477271405408747 * We + 1.53380253221734) + Ke * (961250184130688e-18 * Ke - 0.00266257332283933 * We + 0.48357088451265) + We * (-336197177618394e-18 * We + 0.484791561490776), Pe[st++] = 107.268039397724 + Wt * (219927104525741e-19 * Wt - 640992018297945e-18 * ee + 659397001245577e-18 * Ke + 426105652938837e-18 * We - 0.176491792462875) + ee * (-778269941513683e-18 * ee + 0.00130872261408275 * Ke + 770482631801132e-18 * We - 0.151051492775562) + Ke * (0.00126935368114843 * Ke - 0.00265090189010898 * We + 0.25802910206845) + We * (-318913117588328e-18 * We - 0.213742400323665), Pe[st++] = -20.810012546947 + Wt * (-570115196973677e-18 * Wt - 263409051004589e-19 * ee + 0.0020741088115012 * Ke - 0.00288260236853442 * We + 0.814272968359295) + ee * (-153496057440975e-19 * ee - 132689043961446e-18 * Ke + 560833691242812e-18 * We - 0.195152027534049) + Ke * (0.00174418132927582 * Ke - 0.00255243321439347 * We + 0.116935020465145) + We * (-343531996510555e-18 * We + 0.24165260232407);
+            for (var Je, Wt, ee, We, st = 0, Xt = 0, Jt = Pe.length; Xt < Jt; Xt += 4)
+              Je = Pe[Xt], Wt = Pe[Xt + 1], ee = Pe[Xt + 2], We = Pe[Xt + 3], Pe[st++] = -122.67195406894 + Wt * (-660635669420364e-19 * Wt + 437130475926232e-18 * ee - 54080610064599e-18 * Je + 48449797120281e-17 * We - 0.154362151871126) + ee * (-957964378445773e-18 * ee + 817076911346625e-18 * Je - 0.00477271405408747 * We + 1.53380253221734) + Je * (961250184130688e-18 * Je - 0.00266257332283933 * We + 0.48357088451265) + We * (-336197177618394e-18 * We + 0.484791561490776), Pe[st++] = 107.268039397724 + Wt * (219927104525741e-19 * Wt - 640992018297945e-18 * ee + 659397001245577e-18 * Je + 426105652938837e-18 * We - 0.176491792462875) + ee * (-778269941513683e-18 * ee + 0.00130872261408275 * Je + 770482631801132e-18 * We - 0.151051492775562) + Je * (0.00126935368114843 * Je - 0.00265090189010898 * We + 0.25802910206845) + We * (-318913117588328e-18 * We - 0.213742400323665), Pe[st++] = -20.810012546947 + Wt * (-570115196973677e-18 * Wt - 263409051004589e-19 * ee + 0.0020741088115012 * Je - 0.00288260236853442 * We + 0.814272968359295) + ee * (-153496057440975e-19 * ee - 132689043961446e-18 * Je + 560833691242812e-18 * We - 0.195152027534049) + Je * (0.00174418132927582 * Je - 0.00255243321439347 * We + 0.116935020465145) + We * (-343531996510555e-18 * We + 0.24165260232407);
             return Pe.subarray(0, st);
           }, r: function(Pe) {
-            for (var Ke, Wt, ee, We = 0, st = Pe.length; We < st; We += 4)
-              Ke = Pe[We], Wt = Pe[We + 1], ee = Pe[We + 2], Pe[We] = 434.456 - Ke - 1.402 * ee, Pe[We + 1] = 119.541 - Ke + 0.344 * Wt + 0.714 * ee, Pe[We + 2] = 481.816 - Ke - 1.772 * Wt;
+            for (var Je, Wt, ee, We = 0, st = Pe.length; We < st; We += 4)
+              Je = Pe[We], Wt = Pe[We + 1], ee = Pe[We + 2], Pe[We] = 434.456 - Je - 1.402 * ee, Pe[We + 1] = 119.541 - Je + 0.344 * Wt + 0.714 * ee, Pe[We + 2] = 481.816 - Je - 1.772 * Wt;
             return Pe;
           }, U: function(Pe) {
-            for (var Ke, Wt, ee, We, st = 0, Xt = 0, Jt = Pe.length; Xt < Jt; Xt += 4)
-              Ke = Pe[Xt], Wt = Pe[Xt + 1], ee = Pe[Xt + 2], We = Pe[Xt + 3], Pe[st++] = 255 + Ke * (-6747147073602441e-20 * Ke + 8379262121013727e-19 * Wt + 2894718188643294e-19 * ee + 0.003264231057537806 * We - 1.1185611867203937) + Wt * (26374107616089405e-21 * Wt - 8626949158638572e-20 * ee - 2748769067499491e-19 * We - 0.02155688794978967) + ee * (-3878099212869363e-20 * ee - 3267808279485286e-19 * We + 0.0686742238595345) - We * (3361971776183937e-19 * We + 0.7430659151342254), Pe[st++] = 255 + Ke * (13596372813588848e-20 * Ke + 924537132573585e-18 * Wt + 10567359618683593e-20 * ee + 4791864687436512e-19 * We - 0.3109689587515875) + Wt * (-23545346108370344e-20 * Wt + 2702845253534714e-19 * ee + 0.0020200308977307156 * We - 0.7488052167015494) + ee * (6834815998235662e-20 * ee + 15168452363460973e-20 * We - 0.09751927774728933) - We * (3189131175883281e-19 * We + 0.7364883807733168), Pe[st++] = 255 + Ke * (13598650411385307e-21 * Ke + 12423956175490851e-20 * Wt + 4751985097583589e-19 * ee - 36729317476630422e-22 * We - 0.05562186980264034) + Wt * (16141380598724676e-20 * Wt + 9692239130725186e-19 * ee + 7782692450036253e-19 * We - 0.44015232367526463) + ee * (5068882914068769e-22 * ee + 0.0017778369011375071 * We - 0.7591454649749609) - We * (3435319965105553e-19 * We + 0.7063770186160144);
+            for (var Je, Wt, ee, We, st = 0, Xt = 0, Jt = Pe.length; Xt < Jt; Xt += 4)
+              Je = Pe[Xt], Wt = Pe[Xt + 1], ee = Pe[Xt + 2], We = Pe[Xt + 3], Pe[st++] = 255 + Je * (-6747147073602441e-20 * Je + 8379262121013727e-19 * Wt + 2894718188643294e-19 * ee + 0.003264231057537806 * We - 1.1185611867203937) + Wt * (26374107616089405e-21 * Wt - 8626949158638572e-20 * ee - 2748769067499491e-19 * We - 0.02155688794978967) + ee * (-3878099212869363e-20 * ee - 3267808279485286e-19 * We + 0.0686742238595345) - We * (3361971776183937e-19 * We + 0.7430659151342254), Pe[st++] = 255 + Je * (13596372813588848e-20 * Je + 924537132573585e-18 * Wt + 10567359618683593e-20 * ee + 4791864687436512e-19 * We - 0.3109689587515875) + Wt * (-23545346108370344e-20 * Wt + 2702845253534714e-19 * ee + 0.0020200308977307156 * We - 0.7488052167015494) + ee * (6834815998235662e-20 * ee + 15168452363460973e-20 * We - 0.09751927774728933) - We * (3189131175883281e-19 * We + 0.7364883807733168), Pe[st++] = 255 + Je * (13598650411385307e-21 * Je + 12423956175490851e-20 * Wt + 4751985097583589e-19 * ee - 36729317476630422e-22 * We - 0.05562186980264034) + Wt * (16141380598724676e-20 * Wt + 9692239130725186e-19 * ee + 7782692450036253e-19 * We - 0.44015232367526463) + ee * (5068882914068769e-22 * ee + 0.0017778369011375071 * We - 0.7591454649749609) - We * (3435319965105553e-19 * We + 0.7063770186160144);
             return Pe.subarray(0, st);
-          }, getData: function(Je) {
-            var Pe = Je.width, Ke = Je.height, Wt = Je.forceRGB, ee = Je.isSourcePDF;
+          }, getData: function(Ke) {
+            var Pe = Ke.width, Je = Ke.height, Wt = Ke.forceRGB, ee = Ke.isSourcePDF;
             if (this.p > 4)
               throw new o("Unsupported color mode");
-            var We = this.Y(Pe, Ke, ee);
+            var We = this.Y(Pe, Je, ee);
             if (this.p === 1 && Wt) {
               for (var st = We.length, Xt = new Uint8ClampedArray(st * 3), Jt = 0, Vt = 0; Vt < st; Vt++) {
                 var it = We[Vt];
@@ -30403,17 +30627,17 @@ function requirePako() {
           t338: [1]
         };
         if (f) for (var m in f) d[m] = f[m];
-        for (var p = new Uint8Array(a.encode([d])), _ = new Uint8Array(o), g = new Uint8Array(1e3 + l * h * 4), m = 0; m < p.length; m++) g[m] = p[m];
-        for (var m = 0; m < _.length; m++) g[1e3 + m] = _[m];
-        return g.buffer;
+        for (var _ = new Uint8Array(a.encode([d])), p = new Uint8Array(o), v = new Uint8Array(1e3 + l * h * 4), m = 0; m < _.length; m++) v[m] = _[m];
+        for (var m = 0; m < p.length; m++) v[1e3 + m] = p[m];
+        return v.buffer;
       }, a.encode = function(o) {
         var l = new Uint8Array(2e4), h = 4, f = a._binBE;
         l[0] = l[1] = 77, f.writeUshort(l, 2, 42);
         var d = 8;
         f.writeUint(l, h, d), h += 4;
         for (var m = 0; m < o.length; m++) {
-          var p = a._writeIFD(f, a._types.basic, l, d, o[m]);
-          d = p[1], m < o.length - 1 && (d & 3 && (d += 4 - (d & 3)), f.writeUint(l, p[0], d));
+          var _ = a._writeIFD(f, a._types.basic, l, d, o[m]);
+          d = _[1], m < o.length - 1 && (d & 3 && (d += 4 - (d & 3)), f.writeUint(l, _[0], d));
         }
         return l.slice(0, d).buffer;
       }, a.decode = function(o, l) {
@@ -30422,179 +30646,179 @@ function requirePako() {
         f += 2;
         var m = d == "II" ? a._binLE : a._binBE;
         m.readUshort(h, f), f += 2;
-        var p = m.readUint(h, f);
+        var _ = m.readUint(h, f);
         f += 4;
-        for (var _ = []; ; ) {
-          var g = m.readUshort(h, p), v = m.readUshort(h, p + 4);
-          if (g != 0 && (v < 1 || 13 < v)) {
+        for (var p = []; ; ) {
+          var v = m.readUshort(h, _), g = m.readUshort(h, _ + 4);
+          if (v != 0 && (g < 1 || 13 < g)) {
             n("error in TIFF");
             break;
           }
-          if (a._readIFD(m, h, p, _, 0, l), p = m.readUint(h, p + 2 + g * 12), p == 0) break;
+          if (a._readIFD(m, h, _, p, 0, l), _ = m.readUint(h, _ + 2 + v * 12), _ == 0) break;
         }
-        return _;
+        return p;
       }, a.decodeImage = function(o, l, h) {
         if (!l.data) {
           var f = new Uint8Array(o), d = a._binBE.readASCII(f, 0, 2);
           if (l.t256 != null) {
             l.isLE = d == "II", l.width = l.t256[0], l.height = l.t257[0];
-            var m = l.t259 ? l.t259[0] : 1, p = l.t266 ? l.t266[0] : 1;
+            var m = l.t259 ? l.t259[0] : 1, _ = l.t266 ? l.t266[0] : 1;
             l.t284 && l.t284[0] == 2 && n("PlanarConfiguration 2 should not be used!"), m == 7 && l.t258 && l.t258.length > 3 && (l.t258 = l.t258.slice(0, 3));
-            var _ = l.t277 ? l.t277[0] : 1, g = l.t258 ? l.t258[0] : 1, v = g * _;
-            m == 1 && l.t279 != null && l.t278 && l.t262[0] == 32803 && (v = Math.round(l.t279[0] * 8 / (l.width * l.t278[0]))), l.t50885 && l.t50885[0] == 4 && (v = l.t258[0] * 3);
-            var b = Math.ceil(l.width * v / 8) * 8, w = l.t273;
-            (w == null || l.t322) && (w = l.t324);
-            var k = l.t279;
-            m == 1 && w.length == 1 && (k = [l.height * (b >>> 3)]), (k == null || l.t322) && (k = l.t325);
-            var M = new Uint8Array(l.height * (b >>> 3)), N = 0;
+            var p = l.t277 ? l.t277[0] : 1, v = l.t258 ? l.t258[0] : 1, g = v * p;
+            m == 1 && l.t279 != null && l.t278 && l.t262[0] == 32803 && (g = Math.round(l.t279[0] * 8 / (l.width * l.t278[0]))), l.t50885 && l.t50885[0] == 4 && (g = l.t258[0] * 3);
+            var k = Math.ceil(l.width * g / 8) * 8, b = l.t273;
+            (b == null || l.t322) && (b = l.t324);
+            var w = l.t279;
+            m == 1 && b.length == 1 && (w = [l.height * (k >>> 3)]), (w == null || l.t322) && (w = l.t325);
+            var M = new Uint8Array(l.height * (k >>> 3)), C = 0;
             if (l.t322 != null) {
-              var P = l.t322[0], T = l.t323[0], C = Math.floor((l.width + P - 1) / P), X = Math.floor((l.height + T - 1) / T), _e = new Uint8Array(Math.ceil(P * T * v / 8) | 0);
-              console.log("====", C, X);
-              for (var Je = 0; Je < X; Je++)
-                for (var Pe = 0; Pe < C; Pe++) {
-                  var Ke = Je * C + Pe;
-                  _e.fill(0), a.decode._decompress(l, h, f, w[Ke], k[Ke], m, _e, 0, p, P, T), m == 6 ? M = _e : a._copyTile(_e, Math.ceil(P * v / 8) | 0, T, M, Math.ceil(l.width * v / 8) | 0, l.height, Math.ceil(Pe * P * v / 8) | 0, Je * T);
+              var T = l.t322[0], P = l.t323[0], N = Math.floor((l.width + T - 1) / T), X = Math.floor((l.height + P - 1) / P), fe = new Uint8Array(Math.ceil(T * P * g / 8) | 0);
+              console.log("====", N, X);
+              for (var Ke = 0; Ke < X; Ke++)
+                for (var Pe = 0; Pe < N; Pe++) {
+                  var Je = Ke * N + Pe;
+                  fe.fill(0), a.decode._decompress(l, h, f, b[Je], w[Je], m, fe, 0, _, T, P), m == 6 ? M = fe : a._copyTile(fe, Math.ceil(T * g / 8) | 0, P, M, Math.ceil(l.width * g / 8) | 0, l.height, Math.ceil(Pe * T * g / 8) | 0, Ke * P);
                 }
-              N = M.length * 8;
+              C = M.length * 8;
             } else {
-              if (w == null) return;
+              if (b == null) return;
               var Wt = l.t278 ? l.t278[0] : l.height;
               Wt = Math.min(Wt, l.height);
-              for (var Ke = 0; Ke < w.length; Ke++)
-                a.decode._decompress(l, h, f, w[Ke], k[Ke], m, M, Math.ceil(N / 8) | 0, p, l.width, Wt), N += b * Wt;
-              N = Math.min(N, M.length * 8);
+              for (var Je = 0; Je < b.length; Je++)
+                a.decode._decompress(l, h, f, b[Je], w[Je], m, M, Math.ceil(C / 8) | 0, _, l.width, Wt), C += k * Wt;
+              C = Math.min(C, M.length * 8);
             }
-            l.data = new Uint8Array(M.buffer, 0, Math.ceil(N / 8) | 0);
+            l.data = new Uint8Array(M.buffer, 0, Math.ceil(C / 8) | 0);
           }
         }
-      }, a.decode._decompress = function(o, l, h, f, d, m, p, _, g, v, b) {
-        if (o.t271 && o.t271[0] == "Panasonic" && o.t45 && o.t45[0] == 6 && (m = 34316), m == 1) for (var w = 0; w < d; w++) p[_ + w] = h[f + w];
-        else if (m == 2) a.decode._decodeG2(h, f, d, p, _, v, g);
-        else if (m == 3) a.decode._decodeG3(h, f, d, p, _, v, g, o.t292 ? (o.t292[0] & 1) == 1 : !1);
-        else if (m == 4) a.decode._decodeG4(h, f, d, p, _, v, g);
-        else if (m == 5) a.decode._decodeLZW(h, f, d, p, _, 8);
-        else if (m == 6) a.decode._decodeOldJPEG(o, h, f, d, p, _);
-        else if (m == 7 || m == 34892) a.decode._decodeNewJPEG(o, h, f, d, p, _);
+      }, a.decode._decompress = function(o, l, h, f, d, m, _, p, v, g, k) {
+        if (o.t271 && o.t271[0] == "Panasonic" && o.t45 && o.t45[0] == 6 && (m = 34316), m == 1) for (var b = 0; b < d; b++) _[p + b] = h[f + b];
+        else if (m == 2) a.decode._decodeG2(h, f, d, _, p, g, v);
+        else if (m == 3) a.decode._decodeG3(h, f, d, _, p, g, v, o.t292 ? (o.t292[0] & 1) == 1 : !1);
+        else if (m == 4) a.decode._decodeG4(h, f, d, _, p, g, v);
+        else if (m == 5) a.decode._decodeLZW(h, f, d, _, p, 8);
+        else if (m == 6) a.decode._decodeOldJPEG(o, h, f, d, _, p);
+        else if (m == 7 || m == 34892) a.decode._decodeNewJPEG(o, h, f, d, _, p);
         else if (m == 8 || m == 32946) {
-          var k = new Uint8Array(h.buffer, f + 2, d - 6), M = s.inflateRaw(k);
-          _ + M.length <= p.length && p.set(M, _);
-        } else m == 9 ? a.decode._decodeVC5(h, f, d, p, _, o.t33422) : m == 32767 ? a.decode._decodeARW(o, h, f, d, p, _) : m == 32773 ? a.decode._decodePackBits(h, f, d, p, _) : m == 32809 ? a.decode._decodeThunder(h, f, d, p, _) : m == 34316 ? a.decode._decodePanasonic(o, h, f, d, p, _) : m == 34713 ? a.decode._decodeNikon(o, l, h, f, d, p, _) : m == 34676 ? a.decode._decodeLogLuv32(o, h, f, d, p, _) : n("Unknown compression", m);
-        var N = o.t258 ? Math.min(32, o.t258[0]) : 1, P = o.t277 ? o.t277[0] : 1, T = N * P >>> 3, C = Math.ceil(N * P * v / 8);
-        if (N == 16 && !o.isLE && o.t33422 == null)
-          for (var X = 0; X < b; X++)
-            for (var _e = _ + X * C, Je = 1; Je < C; Je += 2) {
-              var Pe = p[_e + Je];
-              p[_e + Je] = p[_e + Je - 1], p[_e + Je - 1] = Pe;
+          var w = new Uint8Array(h.buffer, f + 2, d - 6), M = s.inflateRaw(w);
+          p + M.length <= _.length && _.set(M, p);
+        } else m == 9 ? a.decode._decodeVC5(h, f, d, _, p, o.t33422) : m == 32767 ? a.decode._decodeARW(o, h, f, d, _, p) : m == 32773 ? a.decode._decodePackBits(h, f, d, _, p) : m == 32809 ? a.decode._decodeThunder(h, f, d, _, p) : m == 34316 ? a.decode._decodePanasonic(o, h, f, d, _, p) : m == 34713 ? a.decode._decodeNikon(o, l, h, f, d, _, p) : m == 34676 ? a.decode._decodeLogLuv32(o, h, f, d, _, p) : n("Unknown compression", m);
+        var C = o.t258 ? Math.min(32, o.t258[0]) : 1, T = o.t277 ? o.t277[0] : 1, P = C * T >>> 3, N = Math.ceil(C * T * g / 8);
+        if (C == 16 && !o.isLE && o.t33422 == null)
+          for (var X = 0; X < k; X++)
+            for (var fe = p + X * N, Ke = 1; Ke < N; Ke += 2) {
+              var Pe = _[fe + Ke];
+              _[fe + Ke] = _[fe + Ke - 1], _[fe + Ke - 1] = Pe;
             }
         if (o.t317 && o.t317[0] == 2)
-          for (var X = 0; X < b; X++) {
-            var Ke = _ + X * C;
-            if (N == 16) for (var w = T; w < C; w += 2) {
-              var Wt = (p[Ke + w + 1] << 8 | p[Ke + w]) + (p[Ke + w - T + 1] << 8 | p[Ke + w - T]);
-              p[Ke + w] = Wt & 255, p[Ke + w + 1] = Wt >>> 8 & 255;
+          for (var X = 0; X < k; X++) {
+            var Je = p + X * N;
+            if (C == 16) for (var b = P; b < N; b += 2) {
+              var Wt = (_[Je + b + 1] << 8 | _[Je + b]) + (_[Je + b - P + 1] << 8 | _[Je + b - P]);
+              _[Je + b] = Wt & 255, _[Je + b + 1] = Wt >>> 8 & 255;
             }
-            else if (P == 3) for (var w = 3; w < C; w += 3)
-              p[Ke + w] = p[Ke + w] + p[Ke + w - 3] & 255, p[Ke + w + 1] = p[Ke + w + 1] + p[Ke + w - 2] & 255, p[Ke + w + 2] = p[Ke + w + 2] + p[Ke + w - 1] & 255;
-            else for (var w = T; w < C; w++) p[Ke + w] = p[Ke + w] + p[Ke + w - T] & 255;
+            else if (T == 3) for (var b = 3; b < N; b += 3)
+              _[Je + b] = _[Je + b] + _[Je + b - 3] & 255, _[Je + b + 1] = _[Je + b + 1] + _[Je + b - 2] & 255, _[Je + b + 2] = _[Je + b + 2] + _[Je + b - 1] & 255;
+            else for (var b = P; b < N; b++) _[Je + b] = _[Je + b] + _[Je + b - P] & 255;
           }
       }, a.decode._decodePanasonic = function(o, l, h, f, d, m) {
-        var p = l.buffer, _ = o.t2[0], g = o.t3[0], v = o.t10[0], b = o.t45[0], w = 0, k = 0, M = 0, N = 0, P = b == 6 ? new Uint32Array(18) : new Uint8Array(16), T, C, X, _e = [0, 0], Je = [0, 0], Pe, Ke = 0, Wt, ee, We, st, Xt = new Uint8Array(16384), Jt = new Uint16Array(d.buffer);
+        var _ = l.buffer, p = o.t2[0], v = o.t3[0], g = o.t10[0], k = o.t45[0], b = 0, w = 0, M = 0, C = 0, T = k == 6 ? new Uint32Array(18) : new Uint8Array(16), P, N, X, fe = [0, 0], Ke = [0, 0], Pe, Je = 0, Wt, ee, We, st, Xt = new Uint8Array(16384), Jt = new Uint16Array(d.buffer);
         function Vt(ha) {
           if (M == 0) {
-            var ca = new Uint8Array(p, h + k + 8184, 8200), la = new Uint8Array(p, h + k, 8184);
-            Xt.set(ca), Xt.set(la, ca.length), k += 16384;
+            var ca = new Uint8Array(_, h + w + 8184, 8200), la = new Uint8Array(_, h + w, 8184);
+            Xt.set(ca), Xt.set(la, ca.length), w += 16384;
           }
-          if (b == 5)
-            for (T = 0; T < 16; T++)
-              P[T] = Xt[M++], M &= 16383;
+          if (k == 5)
+            for (P = 0; P < 16; P++)
+              T[P] = Xt[M++], M &= 16383;
           else
-            return M = M - ha & 131071, N = M >> 3 ^ 16368, (Xt[N] | Xt[N + 1] << 8) >> (M & 7) & ~(-1 << ha);
+            return M = M - ha & 131071, C = M >> 3 ^ 16368, (Xt[C] | Xt[C + 1] << 8) >> (M & 7) & ~(-1 << ha);
         }
         function it(ha) {
           return Xt[M + 15 - ha];
         }
         function Qt() {
-          P[0] = it(0) << 6 | it(1) >> 2, P[1] = ((it(1) & 3) << 12 | it(2) << 4 | it(3) >> 4) & 16383, P[2] = it(3) >> 2 & 3, P[3] = (it(3) & 3) << 8 | it(4), P[4] = it(5) << 2 | it(6) >> 6, P[5] = (it(6) & 63) << 4 | it(7) >> 4, P[6] = it(7) >> 2 & 3, P[7] = (it(7) & 3) << 8 | it(8), P[8] = it(9) << 2 & 1020 | it(10) >> 6, P[9] = (it(10) << 4 | it(11) >> 4) & 1023, P[10] = it(11) >> 2 & 3, P[11] = (it(11) & 3) << 8 | it(12), P[12] = (it(13) << 2 & 1020 | it(14) >> 6) & 1023, P[13] = (it(14) << 4 | it(15) >> 4) & 1023, M += 16, N = 0;
+          T[0] = it(0) << 6 | it(1) >> 2, T[1] = ((it(1) & 3) << 12 | it(2) << 4 | it(3) >> 4) & 16383, T[2] = it(3) >> 2 & 3, T[3] = (it(3) & 3) << 8 | it(4), T[4] = it(5) << 2 | it(6) >> 6, T[5] = (it(6) & 63) << 4 | it(7) >> 4, T[6] = it(7) >> 2 & 3, T[7] = (it(7) & 3) << 8 | it(8), T[8] = it(9) << 2 & 1020 | it(10) >> 6, T[9] = (it(10) << 4 | it(11) >> 4) & 1023, T[10] = it(11) >> 2 & 3, T[11] = (it(11) & 3) << 8 | it(12), T[12] = (it(13) << 2 & 1020 | it(14) >> 6) & 1023, T[13] = (it(14) << 4 | it(15) >> 4) & 1023, M += 16, C = 0;
         }
         function Ri() {
-          P[0] = it(0) << 4 | it(1) >> 4, P[1] = ((it(1) & 15) << 8 | it(2)) & 4095, P[2] = it(3) >> 6 & 3, P[3] = (it(3) & 63) << 2 | it(4) >> 6, P[4] = (it(4) & 63) << 2 | it(5) >> 6, P[5] = (it(5) & 63) << 2 | it(6) >> 6, P[6] = it(6) >> 4 & 3, P[7] = (it(6) & 15) << 4 | it(7) >> 4, P[8] = (it(7) & 15) << 4 | it(8) >> 4, P[9] = (it(8) & 15) << 4 | it(9) >> 4, P[10] = it(9) >> 2 & 3, P[11] = (it(9) & 3) << 6 | it(10) >> 2, P[12] = (it(10) & 3) << 6 | it(11) >> 2, P[13] = (it(11) & 3) << 6 | it(12) >> 2, P[14] = it(12) & 3, P[15] = it(13), P[16] = it(14), P[17] = it(15), M += 16, N = 0;
+          T[0] = it(0) << 4 | it(1) >> 4, T[1] = ((it(1) & 15) << 8 | it(2)) & 4095, T[2] = it(3) >> 6 & 3, T[3] = (it(3) & 63) << 2 | it(4) >> 6, T[4] = (it(4) & 63) << 2 | it(5) >> 6, T[5] = (it(5) & 63) << 2 | it(6) >> 6, T[6] = it(6) >> 4 & 3, T[7] = (it(6) & 15) << 4 | it(7) >> 4, T[8] = (it(7) & 15) << 4 | it(8) >> 4, T[9] = (it(8) & 15) << 4 | it(9) >> 4, T[10] = it(9) >> 2 & 3, T[11] = (it(9) & 3) << 6 | it(10) >> 2, T[12] = (it(10) & 3) << 6 | it(11) >> 2, T[13] = (it(11) & 3) << 6 | it(12) >> 2, T[14] = it(12) & 3, T[15] = it(13), T[16] = it(14), T[17] = it(15), M += 16, C = 0;
         }
         function Ci() {
-          _e[0] = 0, _e[1] = 0, Je[0] = 0, Je[1] = 0;
+          fe[0] = 0, fe[1] = 0, Ke[0] = 0, Ke[1] = 0;
         }
-        if (b == 7)
-          throw b;
-        if (b == 6) {
-          var fe = v == 12, Ge = fe ? Ri : Qt, Kt = fe ? 14 : 11, Ni = fe ? 128 : 512, Di = fe ? 2048 : 8192, Gi = fe ? 16383 : 65535, Ki = fe ? 4095 : 16383, Zn = _ / Kt, Wi = Zn * 16, Vi = fe ? 18 : 14;
-          for (ee = 0; ee < g - 15; ee += 16) {
-            var ta = Math.min(16, g - ee), ra = Wi * ta;
-            for (Xt = new Uint8Array(p, h + w, ra), M = 0, w += ra, st = 0, We = 0; st < ta; st++, We = 0) {
-              Ke = (ee + st) * _;
+        if (k == 7)
+          throw k;
+        if (k == 6) {
+          var _e = g == 12, Ge = _e ? Ri : Qt, Kt = _e ? 14 : 11, Ni = _e ? 128 : 512, Di = _e ? 2048 : 8192, Gi = _e ? 16383 : 65535, Ki = _e ? 4095 : 16383, Zn = p / Kt, Wi = Zn * 16, Vi = _e ? 18 : 14;
+          for (ee = 0; ee < v - 15; ee += 16) {
+            var ta = Math.min(16, v - ee), ra = Wi * ta;
+            for (Xt = new Uint8Array(_, h + b, ra), M = 0, b += ra, st = 0, We = 0; st < ta; st++, We = 0) {
+              Je = (ee + st) * p;
               for (var ia = 0; ia < Zn; ia++)
-                for (Ge(), Ci(), X = 0, Wt = 0, T = 0; T < Kt; T++) {
-                  if (Pe = T & 1, T % 3 == 2) {
-                    var na = N < Vi ? P[N++] : 0;
+                for (Ge(), Ci(), X = 0, Wt = 0, P = 0; P < Kt; P++) {
+                  if (Pe = P & 1, P % 3 == 2) {
+                    var na = C < Vi ? T[C++] : 0;
                     na == 3 && (na = 4), Wt = Ni << na, X = 1 << na;
                   }
-                  var oa = N < Vi ? P[N++] : 0;
-                  _e[Pe] ? (oa *= X, Wt < Di && Je[Pe] > Wt && (oa += Je[Pe] - Wt), Je[Pe] = oa) : (_e[Pe] = oa, oa ? Je[Pe] = oa : oa = Je[Pe]), Jt[Ke + We++] = oa - 15 <= Gi ? oa - 15 & Gi : oa + 2147483633 >> 31 & Ki;
+                  var oa = C < Vi ? T[C++] : 0;
+                  fe[Pe] ? (oa *= X, Wt < Di && Ke[Pe] > Wt && (oa += Ke[Pe] - Wt), Ke[Pe] = oa) : (fe[Pe] = oa, oa ? Ke[Pe] = oa : oa = Ke[Pe]), Jt[Je + We++] = oa - 15 <= Gi ? oa - 15 & Gi : oa + 2147483633 >> 31 & Ki;
                 }
             }
           }
-        } else if (b == 5) {
-          var Qn = v == 12 ? 10 : 9;
-          for (ee = 0; ee < g; ee++)
-            for (We = 0; We < _; We += Qn)
-              Vt(0), v == 12 ? (Jt[Ke++] = ((P[1] & 15) << 8) + P[0], Jt[Ke++] = 16 * P[2] + (P[1] >> 4), Jt[Ke++] = ((P[4] & 15) << 8) + P[3], Jt[Ke++] = 16 * P[5] + (P[4] >> 4), Jt[Ke++] = ((P[7] & 15) << 8) + P[6], Jt[Ke++] = 16 * P[8] + (P[7] >> 4), Jt[Ke++] = ((P[10] & 15) << 8) + P[9], Jt[Ke++] = 16 * P[11] + (P[10] >> 4), Jt[Ke++] = ((P[13] & 15) << 8) + P[12], Jt[Ke++] = 16 * P[14] + (P[13] >> 4)) : v == 14 && (Jt[Ke++] = P[0] + ((P[1] & 63) << 8), Jt[Ke++] = (P[1] >> 6) + 4 * P[2] + ((P[3] & 15) << 10), Jt[Ke++] = (P[3] >> 4) + 16 * P[4] + ((P[5] & 3) << 12), Jt[Ke++] = ((P[5] & 252) >> 2) + (P[6] << 6), Jt[Ke++] = P[7] + ((P[8] & 63) << 8), Jt[Ke++] = (P[8] >> 6) + 4 * P[9] + ((P[10] & 15) << 10), Jt[Ke++] = (P[10] >> 4) + 16 * P[11] + ((P[12] & 3) << 12), Jt[Ke++] = ((P[12] & 252) >> 2) + (P[13] << 6), Jt[Ke++] = P[14] + ((P[15] & 63) << 8));
-        } else if (b == 4)
-          for (ee = 0; ee < g; ee++)
-            for (We = 0; We < _; We++)
-              T = We % 14, Pe = T & 1, T == 0 && Ci(), T % 3 == 2 && (X = 4 >> 3 - Vt(2)), Je[Pe] ? (C = Vt(8), C != 0 && (_e[Pe] -= 128 << X, (_e[Pe] < 0 || X == 4) && (_e[Pe] &= ~(-1 << X)), _e[Pe] += C << X)) : (Je[Pe] = Vt(8), (Je[Pe] || T > 11) && (_e[Pe] = Je[Pe] << 4 | Vt(4))), Jt[Ke++] = _e[We & 1];
-        else throw b;
+        } else if (k == 5) {
+          var Qn = g == 12 ? 10 : 9;
+          for (ee = 0; ee < v; ee++)
+            for (We = 0; We < p; We += Qn)
+              Vt(0), g == 12 ? (Jt[Je++] = ((T[1] & 15) << 8) + T[0], Jt[Je++] = 16 * T[2] + (T[1] >> 4), Jt[Je++] = ((T[4] & 15) << 8) + T[3], Jt[Je++] = 16 * T[5] + (T[4] >> 4), Jt[Je++] = ((T[7] & 15) << 8) + T[6], Jt[Je++] = 16 * T[8] + (T[7] >> 4), Jt[Je++] = ((T[10] & 15) << 8) + T[9], Jt[Je++] = 16 * T[11] + (T[10] >> 4), Jt[Je++] = ((T[13] & 15) << 8) + T[12], Jt[Je++] = 16 * T[14] + (T[13] >> 4)) : g == 14 && (Jt[Je++] = T[0] + ((T[1] & 63) << 8), Jt[Je++] = (T[1] >> 6) + 4 * T[2] + ((T[3] & 15) << 10), Jt[Je++] = (T[3] >> 4) + 16 * T[4] + ((T[5] & 3) << 12), Jt[Je++] = ((T[5] & 252) >> 2) + (T[6] << 6), Jt[Je++] = T[7] + ((T[8] & 63) << 8), Jt[Je++] = (T[8] >> 6) + 4 * T[9] + ((T[10] & 15) << 10), Jt[Je++] = (T[10] >> 4) + 16 * T[11] + ((T[12] & 3) << 12), Jt[Je++] = ((T[12] & 252) >> 2) + (T[13] << 6), Jt[Je++] = T[14] + ((T[15] & 63) << 8));
+        } else if (k == 4)
+          for (ee = 0; ee < v; ee++)
+            for (We = 0; We < p; We++)
+              P = We % 14, Pe = P & 1, P == 0 && Ci(), P % 3 == 2 && (X = 4 >> 3 - Vt(2)), Ke[Pe] ? (N = Vt(8), N != 0 && (fe[Pe] -= 128 << X, (fe[Pe] < 0 || X == 4) && (fe[Pe] &= ~(-1 << X)), fe[Pe] += N << X)) : (Ke[Pe] = Vt(8), (Ke[Pe] || P > 11) && (fe[Pe] = Ke[Pe] << 4 | Vt(4))), Jt[Je++] = fe[We & 1];
+        else throw k;
       }, a.decode._decodeVC5 = function() {
-        var o = [1, 0, 1, 0, 2, 2, 1, 1, 3, 7, 1, 2, 5, 25, 1, 3, 6, 48, 1, 4, 6, 54, 1, 5, 7, 111, 1, 8, 7, 99, 1, 6, 7, 105, 12, 0, 7, 107, 1, 7, 8, 209, 20, 0, 8, 212, 1, 9, 8, 220, 1, 10, 9, 393, 1, 11, 9, 394, 32, 0, 9, 416, 1, 12, 9, 427, 1, 13, 10, 887, 1, 18, 10, 784, 1, 14, 10, 790, 1, 15, 10, 835, 60, 0, 10, 852, 1, 16, 10, 885, 1, 17, 11, 1571, 1, 19, 11, 1668, 1, 20, 11, 1669, 100, 0, 11, 1707, 1, 21, 11, 1772, 1, 22, 12, 3547, 1, 29, 12, 3164, 1, 24, 12, 3166, 1, 25, 12, 3140, 1, 23, 12, 3413, 1, 26, 12, 3537, 1, 27, 12, 3539, 1, 28, 13, 7093, 1, 35, 13, 6283, 1, 30, 13, 6331, 1, 31, 13, 6335, 180, 0, 13, 6824, 1, 32, 13, 7072, 1, 33, 13, 7077, 320, 0, 13, 7076, 1, 34, 14, 12565, 1, 36, 14, 12661, 1, 37, 14, 12669, 1, 38, 14, 13651, 1, 39, 14, 14184, 1, 40, 15, 28295, 1, 46, 15, 28371, 1, 47, 15, 25320, 1, 42, 15, 25336, 1, 43, 15, 25128, 1, 41, 15, 27300, 1, 44, 15, 28293, 1, 45, 16, 50259, 1, 48, 16, 50643, 1, 49, 16, 50675, 1, 50, 16, 56740, 1, 53, 16, 56584, 1, 51, 16, 56588, 1, 52, 17, 113483, 1, 61, 17, 113482, 1, 60, 17, 101285, 1, 55, 17, 101349, 1, 56, 17, 109205, 1, 57, 17, 109207, 1, 58, 17, 100516, 1, 54, 17, 113171, 1, 59, 18, 202568, 1, 62, 18, 202696, 1, 63, 18, 218408, 1, 64, 18, 218412, 1, 65, 18, 226340, 1, 66, 18, 226356, 1, 67, 18, 226358, 1, 68, 19, 402068, 1, 69, 19, 405138, 1, 70, 19, 405394, 1, 71, 19, 436818, 1, 72, 19, 436826, 1, 73, 19, 452714, 1, 75, 19, 452718, 1, 76, 19, 452682, 1, 74, 20, 804138, 1, 77, 20, 810279, 1, 78, 20, 810790, 1, 79, 20, 873638, 1, 80, 20, 873654, 1, 81, 20, 905366, 1, 82, 20, 905430, 1, 83, 20, 905438, 1, 84, 21, 1608278, 1, 85, 21, 1620557, 1, 86, 21, 1621582, 1, 87, 21, 1621583, 1, 88, 21, 1747310, 1, 89, 21, 1810734, 1, 90, 21, 1810735, 1, 91, 21, 1810863, 1, 92, 21, 1810879, 1, 93, 22, 3621725, 1, 99, 22, 3621757, 1, 100, 22, 3241112, 1, 94, 22, 3494556, 1, 95, 22, 3494557, 1, 96, 22, 3494622, 1, 97, 22, 3494623, 1, 98, 23, 6482227, 1, 102, 23, 6433117, 1, 101, 23, 6989117, 1, 103, 23, 6989119, 1, 105, 23, 6989118, 1, 104, 23, 7243449, 1, 106, 23, 7243512, 1, 107, 24, 13978233, 1, 111, 24, 12964453, 1, 109, 24, 12866232, 1, 108, 24, 14486897, 1, 113, 24, 13978232, 1, 110, 24, 14486896, 1, 112, 24, 14487026, 1, 114, 24, 14487027, 1, 115, 25, 25732598, 1, 225, 25, 25732597, 1, 189, 25, 25732596, 1, 188, 25, 25732595, 1, 203, 25, 25732594, 1, 202, 25, 25732593, 1, 197, 25, 25732592, 1, 207, 25, 25732591, 1, 169, 25, 25732590, 1, 223, 25, 25732589, 1, 159, 25, 25732522, 1, 235, 25, 25732579, 1, 152, 25, 25732575, 1, 192, 25, 25732489, 1, 179, 25, 25732573, 1, 201, 25, 25732472, 1, 172, 25, 25732576, 1, 149, 25, 25732488, 1, 178, 25, 25732566, 1, 120, 25, 25732571, 1, 219, 25, 25732577, 1, 150, 25, 25732487, 1, 127, 25, 25732506, 1, 211, 25, 25732548, 1, 125, 25, 25732588, 1, 158, 25, 25732486, 1, 247, 25, 25732467, 1, 238, 25, 25732508, 1, 163, 25, 25732552, 1, 228, 25, 25732603, 1, 183, 25, 25732513, 1, 217, 25, 25732587, 1, 168, 25, 25732520, 1, 122, 25, 25732484, 1, 128, 25, 25732562, 1, 249, 25, 25732505, 1, 187, 25, 25732504, 1, 186, 25, 25732483, 1, 136, 25, 25928905, 1, 181, 25, 25732560, 1, 255, 25, 25732500, 1, 230, 25, 25732482, 1, 135, 25, 25732555, 1, 233, 25, 25732568, 1, 222, 25, 25732583, 1, 145, 25, 25732481, 1, 134, 25, 25732586, 1, 167, 25, 25732521, 1, 248, 25, 25732518, 1, 209, 25, 25732480, 1, 243, 25, 25732512, 1, 216, 25, 25732509, 1, 164, 25, 25732547, 1, 140, 25, 25732479, 1, 157, 25, 25732544, 1, 239, 25, 25732574, 1, 191, 25, 25732564, 1, 251, 25, 25732478, 1, 156, 25, 25732546, 1, 139, 25, 25732498, 1, 242, 25, 25732557, 1, 133, 25, 25732477, 1, 162, 25, 25732515, 1, 213, 25, 25732584, 1, 165, 25, 25732514, 1, 212, 25, 25732476, 1, 227, 25, 25732494, 1, 198, 25, 25732531, 1, 236, 25, 25732530, 1, 234, 25, 25732529, 1, 117, 25, 25732528, 1, 215, 25, 25732527, 1, 124, 25, 25732526, 1, 123, 25, 25732525, 1, 254, 25, 25732524, 1, 253, 25, 25732523, 1, 148, 25, 25732570, 1, 218, 25, 25732580, 1, 146, 25, 25732581, 1, 147, 25, 25732569, 1, 224, 25, 25732533, 1, 143, 25, 25732540, 1, 184, 25, 25732541, 1, 185, 25, 25732585, 1, 166, 25, 25732556, 1, 132, 25, 25732485, 1, 129, 25, 25732563, 1, 250, 25, 25732578, 1, 151, 25, 25732501, 1, 119, 25, 25732502, 1, 193, 25, 25732536, 1, 176, 25, 25732496, 1, 245, 25, 25732553, 1, 229, 25, 25732516, 1, 206, 25, 25732582, 1, 144, 25, 25732517, 1, 208, 25, 25732558, 1, 137, 25, 25732543, 1, 241, 25, 25732466, 1, 237, 25, 25732507, 1, 190, 25, 25732542, 1, 240, 25, 25732551, 1, 131, 25, 25732554, 1, 232, 25, 25732565, 1, 252, 25, 25732475, 1, 171, 25, 25732493, 1, 205, 25, 25732492, 1, 204, 25, 25732491, 1, 118, 25, 25732490, 1, 214, 25, 25928904, 1, 180, 25, 25732549, 1, 126, 25, 25732602, 1, 182, 25, 25732539, 1, 175, 25, 25732545, 1, 141, 25, 25732559, 1, 138, 25, 25732537, 1, 177, 25, 25732534, 1, 153, 25, 25732503, 1, 194, 25, 25732606, 1, 160, 25, 25732567, 1, 121, 25, 25732538, 1, 174, 25, 25732497, 1, 246, 25, 25732550, 1, 130, 25, 25732572, 1, 200, 25, 25732474, 1, 170, 25, 25732511, 1, 221, 25, 25732601, 1, 196, 25, 25732532, 1, 142, 25, 25732519, 1, 210, 25, 25732495, 1, 199, 25, 25732605, 1, 155, 25, 25732535, 1, 154, 25, 25732499, 1, 244, 25, 25732510, 1, 220, 25, 25732600, 1, 195, 25, 25732607, 1, 161, 25, 25732604, 1, 231, 25, 25732473, 1, 173, 25, 25732599, 1, 226, 26, 51465122, 1, 116, 26, 51465123, 0, 1], l, h, f, d = [3, 3, 3, 3, 2, 2, 2, 1, 1, 1], m = 24576, p = 16384, _ = 8192, g = p | _;
-        function v(X) {
-          var _e = X[1], Je = X[0][_e >>> 3] >>> 7 - (_e & 7) & 1;
-          return X[1]++, Je;
+        var o = [1, 0, 1, 0, 2, 2, 1, 1, 3, 7, 1, 2, 5, 25, 1, 3, 6, 48, 1, 4, 6, 54, 1, 5, 7, 111, 1, 8, 7, 99, 1, 6, 7, 105, 12, 0, 7, 107, 1, 7, 8, 209, 20, 0, 8, 212, 1, 9, 8, 220, 1, 10, 9, 393, 1, 11, 9, 394, 32, 0, 9, 416, 1, 12, 9, 427, 1, 13, 10, 887, 1, 18, 10, 784, 1, 14, 10, 790, 1, 15, 10, 835, 60, 0, 10, 852, 1, 16, 10, 885, 1, 17, 11, 1571, 1, 19, 11, 1668, 1, 20, 11, 1669, 100, 0, 11, 1707, 1, 21, 11, 1772, 1, 22, 12, 3547, 1, 29, 12, 3164, 1, 24, 12, 3166, 1, 25, 12, 3140, 1, 23, 12, 3413, 1, 26, 12, 3537, 1, 27, 12, 3539, 1, 28, 13, 7093, 1, 35, 13, 6283, 1, 30, 13, 6331, 1, 31, 13, 6335, 180, 0, 13, 6824, 1, 32, 13, 7072, 1, 33, 13, 7077, 320, 0, 13, 7076, 1, 34, 14, 12565, 1, 36, 14, 12661, 1, 37, 14, 12669, 1, 38, 14, 13651, 1, 39, 14, 14184, 1, 40, 15, 28295, 1, 46, 15, 28371, 1, 47, 15, 25320, 1, 42, 15, 25336, 1, 43, 15, 25128, 1, 41, 15, 27300, 1, 44, 15, 28293, 1, 45, 16, 50259, 1, 48, 16, 50643, 1, 49, 16, 50675, 1, 50, 16, 56740, 1, 53, 16, 56584, 1, 51, 16, 56588, 1, 52, 17, 113483, 1, 61, 17, 113482, 1, 60, 17, 101285, 1, 55, 17, 101349, 1, 56, 17, 109205, 1, 57, 17, 109207, 1, 58, 17, 100516, 1, 54, 17, 113171, 1, 59, 18, 202568, 1, 62, 18, 202696, 1, 63, 18, 218408, 1, 64, 18, 218412, 1, 65, 18, 226340, 1, 66, 18, 226356, 1, 67, 18, 226358, 1, 68, 19, 402068, 1, 69, 19, 405138, 1, 70, 19, 405394, 1, 71, 19, 436818, 1, 72, 19, 436826, 1, 73, 19, 452714, 1, 75, 19, 452718, 1, 76, 19, 452682, 1, 74, 20, 804138, 1, 77, 20, 810279, 1, 78, 20, 810790, 1, 79, 20, 873638, 1, 80, 20, 873654, 1, 81, 20, 905366, 1, 82, 20, 905430, 1, 83, 20, 905438, 1, 84, 21, 1608278, 1, 85, 21, 1620557, 1, 86, 21, 1621582, 1, 87, 21, 1621583, 1, 88, 21, 1747310, 1, 89, 21, 1810734, 1, 90, 21, 1810735, 1, 91, 21, 1810863, 1, 92, 21, 1810879, 1, 93, 22, 3621725, 1, 99, 22, 3621757, 1, 100, 22, 3241112, 1, 94, 22, 3494556, 1, 95, 22, 3494557, 1, 96, 22, 3494622, 1, 97, 22, 3494623, 1, 98, 23, 6482227, 1, 102, 23, 6433117, 1, 101, 23, 6989117, 1, 103, 23, 6989119, 1, 105, 23, 6989118, 1, 104, 23, 7243449, 1, 106, 23, 7243512, 1, 107, 24, 13978233, 1, 111, 24, 12964453, 1, 109, 24, 12866232, 1, 108, 24, 14486897, 1, 113, 24, 13978232, 1, 110, 24, 14486896, 1, 112, 24, 14487026, 1, 114, 24, 14487027, 1, 115, 25, 25732598, 1, 225, 25, 25732597, 1, 189, 25, 25732596, 1, 188, 25, 25732595, 1, 203, 25, 25732594, 1, 202, 25, 25732593, 1, 197, 25, 25732592, 1, 207, 25, 25732591, 1, 169, 25, 25732590, 1, 223, 25, 25732589, 1, 159, 25, 25732522, 1, 235, 25, 25732579, 1, 152, 25, 25732575, 1, 192, 25, 25732489, 1, 179, 25, 25732573, 1, 201, 25, 25732472, 1, 172, 25, 25732576, 1, 149, 25, 25732488, 1, 178, 25, 25732566, 1, 120, 25, 25732571, 1, 219, 25, 25732577, 1, 150, 25, 25732487, 1, 127, 25, 25732506, 1, 211, 25, 25732548, 1, 125, 25, 25732588, 1, 158, 25, 25732486, 1, 247, 25, 25732467, 1, 238, 25, 25732508, 1, 163, 25, 25732552, 1, 228, 25, 25732603, 1, 183, 25, 25732513, 1, 217, 25, 25732587, 1, 168, 25, 25732520, 1, 122, 25, 25732484, 1, 128, 25, 25732562, 1, 249, 25, 25732505, 1, 187, 25, 25732504, 1, 186, 25, 25732483, 1, 136, 25, 25928905, 1, 181, 25, 25732560, 1, 255, 25, 25732500, 1, 230, 25, 25732482, 1, 135, 25, 25732555, 1, 233, 25, 25732568, 1, 222, 25, 25732583, 1, 145, 25, 25732481, 1, 134, 25, 25732586, 1, 167, 25, 25732521, 1, 248, 25, 25732518, 1, 209, 25, 25732480, 1, 243, 25, 25732512, 1, 216, 25, 25732509, 1, 164, 25, 25732547, 1, 140, 25, 25732479, 1, 157, 25, 25732544, 1, 239, 25, 25732574, 1, 191, 25, 25732564, 1, 251, 25, 25732478, 1, 156, 25, 25732546, 1, 139, 25, 25732498, 1, 242, 25, 25732557, 1, 133, 25, 25732477, 1, 162, 25, 25732515, 1, 213, 25, 25732584, 1, 165, 25, 25732514, 1, 212, 25, 25732476, 1, 227, 25, 25732494, 1, 198, 25, 25732531, 1, 236, 25, 25732530, 1, 234, 25, 25732529, 1, 117, 25, 25732528, 1, 215, 25, 25732527, 1, 124, 25, 25732526, 1, 123, 25, 25732525, 1, 254, 25, 25732524, 1, 253, 25, 25732523, 1, 148, 25, 25732570, 1, 218, 25, 25732580, 1, 146, 25, 25732581, 1, 147, 25, 25732569, 1, 224, 25, 25732533, 1, 143, 25, 25732540, 1, 184, 25, 25732541, 1, 185, 25, 25732585, 1, 166, 25, 25732556, 1, 132, 25, 25732485, 1, 129, 25, 25732563, 1, 250, 25, 25732578, 1, 151, 25, 25732501, 1, 119, 25, 25732502, 1, 193, 25, 25732536, 1, 176, 25, 25732496, 1, 245, 25, 25732553, 1, 229, 25, 25732516, 1, 206, 25, 25732582, 1, 144, 25, 25732517, 1, 208, 25, 25732558, 1, 137, 25, 25732543, 1, 241, 25, 25732466, 1, 237, 25, 25732507, 1, 190, 25, 25732542, 1, 240, 25, 25732551, 1, 131, 25, 25732554, 1, 232, 25, 25732565, 1, 252, 25, 25732475, 1, 171, 25, 25732493, 1, 205, 25, 25732492, 1, 204, 25, 25732491, 1, 118, 25, 25732490, 1, 214, 25, 25928904, 1, 180, 25, 25732549, 1, 126, 25, 25732602, 1, 182, 25, 25732539, 1, 175, 25, 25732545, 1, 141, 25, 25732559, 1, 138, 25, 25732537, 1, 177, 25, 25732534, 1, 153, 25, 25732503, 1, 194, 25, 25732606, 1, 160, 25, 25732567, 1, 121, 25, 25732538, 1, 174, 25, 25732497, 1, 246, 25, 25732550, 1, 130, 25, 25732572, 1, 200, 25, 25732474, 1, 170, 25, 25732511, 1, 221, 25, 25732601, 1, 196, 25, 25732532, 1, 142, 25, 25732519, 1, 210, 25, 25732495, 1, 199, 25, 25732605, 1, 155, 25, 25732535, 1, 154, 25, 25732499, 1, 244, 25, 25732510, 1, 220, 25, 25732600, 1, 195, 25, 25732607, 1, 161, 25, 25732604, 1, 231, 25, 25732473, 1, 173, 25, 25732599, 1, 226, 26, 51465122, 1, 116, 26, 51465123, 0, 1], l, h, f, d = [3, 3, 3, 3, 2, 2, 2, 1, 1, 1], m = 24576, _ = 16384, p = 8192, v = _ | p;
+        function g(X) {
+          var fe = X[1], Ke = X[0][fe >>> 3] >>> 7 - (fe & 7) & 1;
+          return X[1]++, Ke;
         }
-        function b(X, _e) {
+        function k(X, fe) {
           if (l == null) {
             l = {};
-            for (var Je = 0; Je < o.length; Je += 4) l[o[Je + 1]] = o.slice(Je, Je + 4);
+            for (var Ke = 0; Ke < o.length; Ke += 4) l[o[Ke + 1]] = o.slice(Ke, Ke + 4);
           }
-          for (var Pe = v(X), Ke = l[Pe]; Ke == null; )
-            Pe = Pe << 1 | v(X), Ke = l[Pe];
-          var Wt = Ke[3];
-          Wt != 0 && (Wt = v(X) == 0 ? Wt : -Wt), _e[0] = Ke[2], _e[1] = Wt;
+          for (var Pe = g(X), Je = l[Pe]; Je == null; )
+            Pe = Pe << 1 | g(X), Je = l[Pe];
+          var Wt = Je[3];
+          Wt != 0 && (Wt = g(X) == 0 ? Wt : -Wt), fe[0] = Je[2], fe[1] = Wt;
         }
-        function w(X, _e) {
-          for (var Je = 0; Je < _e; Je++)
+        function b(X, fe) {
+          for (var Ke = 0; Ke < fe; Ke++)
             (X & 1) == 1 && X++, X = X >>> 1;
           return X;
         }
-        function k(X, _e) {
-          return X >> _e;
+        function w(X, fe) {
+          return X >> fe;
         }
-        function M(X, _e, Je, Pe, Ke, Wt) {
-          _e[Je] = k(k(11 * X[Ke] - 4 * X[Ke + Wt] + X[Ke + Wt + Wt] + 4, 3) + X[Pe], 1), _e[Je + Wt] = k(k(5 * X[Ke] + 4 * X[Ke + Wt] - X[Ke + Wt + Wt] + 4, 3) - X[Pe], 1);
+        function M(X, fe, Ke, Pe, Je, Wt) {
+          fe[Ke] = w(w(11 * X[Je] - 4 * X[Je + Wt] + X[Je + Wt + Wt] + 4, 3) + X[Pe], 1), fe[Ke + Wt] = w(w(5 * X[Je] + 4 * X[Je + Wt] - X[Je + Wt + Wt] + 4, 3) - X[Pe], 1);
         }
-        function N(X, _e, Je, Pe, Ke, Wt) {
-          var ee = X[Ke - Wt] - X[Ke + Wt], We = X[Ke], st = X[Pe];
-          _e[Je] = k(k(ee + 4, 3) + We + st, 1), _e[Je + Wt] = k(k(-ee + 4, 3) + We - st, 1);
+        function C(X, fe, Ke, Pe, Je, Wt) {
+          var ee = X[Je - Wt] - X[Je + Wt], We = X[Je], st = X[Pe];
+          fe[Ke] = w(w(ee + 4, 3) + We + st, 1), fe[Ke + Wt] = w(w(-ee + 4, 3) + We - st, 1);
         }
-        function P(X, _e, Je, Pe, Ke, Wt) {
-          _e[Je] = k(k(5 * X[Ke] + 4 * X[Ke - Wt] - X[Ke - Wt - Wt] + 4, 3) + X[Pe], 1), _e[Je + Wt] = k(k(11 * X[Ke] - 4 * X[Ke - Wt] + X[Ke - Wt - Wt] + 4, 3) - X[Pe], 1);
+        function T(X, fe, Ke, Pe, Je, Wt) {
+          fe[Ke] = w(w(5 * X[Je] + 4 * X[Je - Wt] - X[Je - Wt - Wt] + 4, 3) + X[Pe], 1), fe[Ke + Wt] = w(w(11 * X[Je] - 4 * X[Je - Wt] + X[Je - Wt - Wt] + 4, 3) - X[Pe], 1);
         }
-        function T(X) {
+        function P(X) {
           return X = X < 0 ? 0 : X > 4095 ? 4095 : X, X = f[X] >>> 2, X;
         }
-        function C(X, _e, Je, Pe, Ke, Wt) {
+        function N(X, fe, Ke, Pe, Je, Wt) {
           Pe = new Uint16Array(Pe.buffer);
-          var ee = Date.now(), We = a._binBE, st = _e + Je, Xt, Jt, Vt, it, Qt, Ri, Ci, fe, Ge, Kt;
-          _e += 4;
-          for (var Ni = Wt[0] == 1; _e < st; ) {
-            var Di = We.readShort(X, _e), Gi = We.readUshort(X, _e + 2);
-            if (_e += 4, Di == 12) Xt = Gi;
+          var ee = Date.now(), We = a._binBE, st = fe + Ke, Xt, Jt, Vt, it, Qt, Ri, Ci, _e, Ge, Kt;
+          fe += 4;
+          for (var Ni = Wt[0] == 1; fe < st; ) {
+            var Di = We.readShort(X, fe), Gi = We.readUshort(X, fe + 2);
+            if (fe += 4, Di == 12) Xt = Gi;
             else if (Di == 20) Jt = Gi;
             else if (Di == 21) Vt = Gi;
             else if (Di == 48) it = Gi;
@@ -30608,10 +30832,10 @@ function requirePako() {
                     if (Di != 107) {
                       if (Di != 108) {
                         if (Di != 102) {
-                          if (Di == 104) fe = Gi;
+                          if (Di == 104) _e = Gi;
                           else if (Di != 105) {
                             var Ki = Di < 0 ? -Di : Di, Zn = Ki & 65280, Wi = 0;
-                            if (Ki & g && (Ki & _ ? (Wi = Gi & 65535, Wi += (Ki & 255) << 16) : Wi = Gi & 65535), (Ki & m) == m) {
+                            if (Ki & v && (Ki & p ? (Wi = Gi & 65535, Wi += (Ki & 255) << 16) : Wi = Gi & 65535), (Ki & m) == m) {
                               if (Ge == null) {
                                 Ge = [];
                                 for (var Vi = 0; Vi < 4; Vi++) Ge[Vi] = new Int16Array((Jt >>> 1) * (Vt >>> 1));
@@ -30626,49 +30850,49 @@ function requirePako() {
                                   f[Vi] = Math.min(oa, ia);
                                 }
                               }
-                              var Qn = Ge[Ri], ha = w(Jt, 1 + d[it]), ca = w(Vt, 1 + d[it]);
+                              var Qn = Ge[Ri], ha = b(Jt, 1 + d[it]), ca = b(Vt, 1 + d[it]);
                               if (it == 0)
                                 for (var la = 0; la < ca; la++) for (var ua = 0; ua < ha; ua++) {
-                                  var pa = _e + (la * ha + ua) * 2;
+                                  var pa = fe + (la * ha + ua) * 2;
                                   Qn[la * (Jt >>> 1) + ua] = X[pa] << 8 | X[pa + 1];
                                 }
                               else {
-                                for (var _a = [X, _e * 8], ji = [], Zi = 0, Qi = ha * ca, Ji = [0, 0], aa = 0, Gi = 0; Zi < Qi; )
-                                  for (b(_a, Ji), aa = Ji[0], Gi = Ji[1]; aa > 0; )
+                                for (var _a = [X, fe * 8], ji = [], Zi = 0, Qi = ha * ca, Ji = [0, 0], aa = 0, Gi = 0; Zi < Qi; )
+                                  for (k(_a, Ji), aa = Ji[0], Gi = Ji[1]; aa > 0; )
                                     ji[Zi++] = Gi, aa--;
                                 for (var Ti = (it - 1) % 3, qi = Ti != 1 ? ha : 0, zi = Ti != 0 ? ca : 0, la = 0; la < ca; la++)
                                   for (var Hn = (la + zi) * (Jt >>> 1) + qi, Fi = la * ha, ua = 0; ua < ha; ua++) Qn[Hn + ua] = h[ji[Fi + ua] + 512] * Qt;
                                 if (Ti == 2) {
-                                  for (var fe = Jt >>> 1, Yi = ha * 2, qt = ca * 2, la = 0; la < ca; la++)
+                                  for (var _e = Jt >>> 1, Yi = ha * 2, qt = ca * 2, la = 0; la < ca; la++)
                                     for (var ua = 0; ua < Yi; ua++) {
-                                      var Vi = la * 2 * fe + ua, Xi = la * fe + ua, sa = ca * fe + Xi;
-                                      la == 0 ? M(Qn, Kt, Vi, sa, Xi, fe) : la == ca - 1 ? P(Qn, Kt, Vi, sa, Xi, fe) : N(Qn, Kt, Vi, sa, Xi, fe);
+                                      var Vi = la * 2 * _e + ua, Xi = la * _e + ua, sa = ca * _e + Xi;
+                                      la == 0 ? M(Qn, Kt, Vi, sa, Xi, _e) : la == ca - 1 ? T(Qn, Kt, Vi, sa, Xi, _e) : C(Qn, Kt, Vi, sa, Xi, _e);
                                     }
                                   var ue = Qn;
                                   Qn = Kt, Kt = ue;
                                   for (var la = 0; la < qt; la++)
                                     for (var ua = 0; ua < ha; ua++) {
-                                      var Vi = la * fe + 2 * ua, Xi = la * fe + ua, sa = ha + Xi;
-                                      ua == 0 ? M(Qn, Kt, Vi, sa, Xi, 1) : ua == ha - 1 ? P(Qn, Kt, Vi, sa, Xi, 1) : N(Qn, Kt, Vi, sa, Xi, 1);
+                                      var Vi = la * _e + 2 * ua, Xi = la * _e + ua, sa = ha + Xi;
+                                      ua == 0 ? M(Qn, Kt, Vi, sa, Xi, 1) : ua == ha - 1 ? T(Qn, Kt, Vi, sa, Xi, 1) : C(Qn, Kt, Vi, sa, Xi, 1);
                                     }
                                   var ue = Qn;
                                   Qn = Kt, Kt = ue;
                                   for (var Ui = [], Hi = 2 - ~~((it - 1) / 3), $i = 0; $i < 3; $i++) Ui[$i] = Ci >> 14 - $i * 2 & 3;
                                   var Li = Ui[Hi];
                                   if (Li != 0) for (var la = 0; la < qt; la++) for (var ua = 0; ua < Yi; ua++) {
-                                    var Vi = la * fe + ua;
+                                    var Vi = la * _e + ua;
                                     Qn[Vi] = Qn[Vi] << Li;
                                   }
                                 }
                               }
                               if (it == 9 && Ri == 3)
                                 for (var ea = Ge[0], ma = Ge[1], da = Ge[2], fa = Ge[3], la = 0; la < Vt; la += 2) for (var ua = 0; ua < Jt; ua += 2) {
-                                  var ya = la * Jt + ua, pa = (la >>> 1) * (Jt >>> 1) + (ua >>> 1), ba = ea[pa], wa = ma[pa] - 2048, va = da[pa] - 2048, $a = fa[pa] - 2048, Ea = (wa << 1) + ba, Sa = (va << 1) + ba, Aa = ba + $a, Da = ba - $a;
-                                  Ni ? (Pe[ya] = T(Aa), Pe[ya + 1] = T(Sa), Pe[ya + Jt] = T(Ea), Pe[ya + Jt + 1] = T(Da)) : (Pe[ya] = T(Ea), Pe[ya + 1] = T(Aa), Pe[ya + Jt] = T(Da), Pe[ya + Jt + 1] = T(Sa));
+                                  var ya = la * Jt + ua, pa = (la >>> 1) * (Jt >>> 1) + (ua >>> 1), ba = ea[pa], $a = ma[pa] - 2048, va = da[pa] - 2048, wa = fa[pa] - 2048, Ea = ($a << 1) + ba, Sa = (va << 1) + ba, Aa = ba + wa, Da = ba - wa;
+                                  Ni ? (Pe[ya] = P(Aa), Pe[ya + 1] = P(Sa), Pe[ya + Jt] = P(Ea), Pe[ya + Jt + 1] = P(Da)) : (Pe[ya] = P(Ea), Pe[ya + 1] = P(Aa), Pe[ya + Jt] = P(Da), Pe[ya + Jt + 1] = P(Sa));
                                 }
-                              _e += Wi * 4;
+                              fe += Wi * 4;
                             } else if (Ki == 16388)
-                              _e += Wi * 4;
+                              fe += Wi * 4;
                             else if (!(Zn == 8192 || Zn == 8448 || Zn == 9216)) throw Ki.toString(16);
                           }
                         }
@@ -30681,31 +30905,31 @@ function requirePako() {
           }
           console.log(Date.now() - ee);
         }
-        return C;
+        return N;
       }(), a.decode._decodeLogLuv32 = function(o, l, h, f, d, m) {
-        for (var p = o.width, _ = p * 4, g = 0, v = new Uint8Array(_); g < f; ) {
-          for (var b = 0; b < _; ) {
-            var w = l[h + g];
-            if (g++, w < 128) {
-              for (var k = 0; k < w; k++) v[b + k] = l[h + g + k];
-              b += w, g += w;
+        for (var _ = o.width, p = _ * 4, v = 0, g = new Uint8Array(p); v < f; ) {
+          for (var k = 0; k < p; ) {
+            var b = l[h + v];
+            if (v++, b < 128) {
+              for (var w = 0; w < b; w++) g[k + w] = l[h + v + w];
+              k += b, v += b;
             } else {
-              w = w - 126;
-              for (var k = 0; k < w; k++) v[b + k] = l[h + g];
-              b += w, g++;
+              b = b - 126;
+              for (var w = 0; w < b; w++) g[k + w] = l[h + v];
+              k += b, v++;
             }
           }
-          for (var M = 0; M < p; M++)
-            d[m + 0] = v[M], d[m + 1] = v[M + p], d[m + 2] = v[M + p * 2], d[m + 4] = v[M + p * 3], m += 6;
+          for (var M = 0; M < _; M++)
+            d[m + 0] = g[M], d[m + 1] = g[M + _], d[m + 2] = g[M + _ * 2], d[m + 4] = g[M + _ * 3], m += 6;
         }
       }, a.decode._ljpeg_diff = function(o, l, h) {
         var f = a.decode._getbithuff, d, m;
         return d = f(o, l, h[0], h), m = f(o, l, d, 0), m & 1 << d - 1 || (m -= (1 << d) - 1), m;
       }, a.decode._decodeARW = function(o, l, h, f, d, m) {
-        var p = o.t256[0], _ = o.t257[0], g = o.t258[0], v = o.isLE ? a._binLE : a._binBE, b = p * _ == f || p * _ * 1.5 == f;
-        if (!b) {
-          _ += 8;
-          var w = [h, 0, 0, 0], k = new Uint16Array(32770), M = [
+        var _ = o.t256[0], p = o.t257[0], v = o.t258[0], g = o.isLE ? a._binLE : a._binBE, k = _ * p == f || _ * p * 1.5 == f;
+        if (!k) {
+          p += 8;
+          var b = [h, 0, 0, 0], w = new Uint16Array(32770), M = [
             3857,
             3856,
             3599,
@@ -30724,40 +30948,40 @@ function requirePako() {
             768,
             514,
             513
-          ], Ci, N, P, We, ee, T = 0, C = a.decode._ljpeg_diff;
-          for (k[0] = 15, P = Ci = 0; Ci < 18; Ci++)
-            for (var X = 32768 >>> (M[Ci] >>> 8), N = 0; N < X; N++) k[++P] = M[Ci];
-          for (We = p; We--; )
-            for (ee = 0; ee < _ + 1; ee += 2)
-              if (ee == _ && (ee = 1), T += C(l, w, k), ee < _) {
-                var _e = T & 4095;
-                a.decode._putsF(d, (ee * p + We) * g, _e << 16 - g);
+          ], Ci, C, T, We, ee, P = 0, N = a.decode._ljpeg_diff;
+          for (w[0] = 15, T = Ci = 0; Ci < 18; Ci++)
+            for (var X = 32768 >>> (M[Ci] >>> 8), C = 0; C < X; C++) w[++T] = M[Ci];
+          for (We = _; We--; )
+            for (ee = 0; ee < p + 1; ee += 2)
+              if (ee == p && (ee = 1), P += N(l, b, w), ee < p) {
+                var fe = P & 4095;
+                a.decode._putsF(d, (ee * _ + We) * v, fe << 16 - v);
               }
           return;
         }
-        if (p * _ * 1.5 == f) {
+        if (_ * p * 1.5 == f) {
           for (var Ci = 0; Ci < f; Ci += 3) {
-            var Je = l[h + Ci + 0], Pe = l[h + Ci + 1], Ke = l[h + Ci + 2];
-            d[m + Ci] = Pe << 4 | Je >>> 4, d[m + Ci + 1] = Je << 4 | Ke >>> 4, d[m + Ci + 2] = Ke << 4 | Pe >>> 4;
+            var Ke = l[h + Ci + 0], Pe = l[h + Ci + 1], Je = l[h + Ci + 2];
+            d[m + Ci] = Pe << 4 | Ke >>> 4, d[m + Ci + 1] = Ke << 4 | Je >>> 4, d[m + Ci + 2] = Je << 4 | Pe >>> 4;
           }
           return;
         }
-        var Wt = new Uint16Array(16), ee, We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, fe, Ge = new Uint8Array(p + 1);
-        for (ee = 0; ee < _; ee++) {
-          for (var Kt = 0; Kt < p; Kt++) Ge[Kt] = l[h++];
-          for (fe = 0, We = 0; We < p - 30; fe += 16) {
-            for (Xt = 2047 & (st = v.readUint(Ge, fe)), Jt = 2047 & st >>> 11, Vt = 15 & st >>> 22, it = 15 & st >>> 26, Qt = 0; Qt < 4 && 128 << Qt <= Xt - Jt; Qt++) ;
+        var Wt = new Uint16Array(16), ee, We, st, Xt, Jt, Vt, it, Qt, Ri, Ci, _e, Ge = new Uint8Array(_ + 1);
+        for (ee = 0; ee < p; ee++) {
+          for (var Kt = 0; Kt < _; Kt++) Ge[Kt] = l[h++];
+          for (_e = 0, We = 0; We < _ - 30; _e += 16) {
+            for (Xt = 2047 & (st = g.readUint(Ge, _e)), Jt = 2047 & st >>> 11, Vt = 15 & st >>> 22, it = 15 & st >>> 26, Qt = 0; Qt < 4 && 128 << Qt <= Xt - Jt; Qt++) ;
             for (Ri = 30, Ci = 0; Ci < 16; Ci++)
-              Ci == Vt ? Wt[Ci] = Xt : Ci == it ? Wt[Ci] = Jt : (Wt[Ci] = ((v.readUshort(Ge, fe + (Ri >> 3)) >>> (Ri & 7) & 127) << Qt) + Jt, Wt[Ci] > 2047 && (Wt[Ci] = 2047), Ri += 7);
+              Ci == Vt ? Wt[Ci] = Xt : Ci == it ? Wt[Ci] = Jt : (Wt[Ci] = ((g.readUshort(Ge, _e + (Ri >> 3)) >>> (Ri & 7) & 127) << Qt) + Jt, Wt[Ci] > 2047 && (Wt[Ci] = 2047), Ri += 7);
             for (Ci = 0; Ci < 16; Ci++, We += 2) {
-              var _e = Wt[Ci] << 1;
-              a.decode._putsF(d, (ee * p + We) * g, _e << 16 - g);
+              var fe = Wt[Ci] << 1;
+              a.decode._putsF(d, (ee * _ + We) * v, fe << 16 - v);
             }
             We -= We & 1 ? 1 : 31;
           }
         }
-      }, a.decode._decodeNikon = function(o, l, h, f, d, m, p) {
-        var _ = [
+      }, a.decode._decodeNikon = function(o, l, h, f, d, m, _) {
+        var p = [
           [
             0,
             0,
@@ -30963,18 +31187,18 @@ function requirePako() {
             13,
             14
           ]
-        ], g = o.t256[0], v = o.t257[0], b = o.t258[0], w = 0, k = 0, M = a.decode._make_decoder, N = a.decode._getbithuff, P = l[0].exifIFD.makerNote, T = P.t150 ? P.t150 : P.t140, C = 0, X = T[C++], _e = T[C++];
-        (X == 73 || _e == 88) && (C += 2110), X == 70 && (w = 2), b == 14 && (w += 3);
-        for (var Je = [[0, 0], [0, 0]], Pe = o.isLE ? a._binLE : a._binBE, st = 0; st < 2; st++) for (var Ke = 0; Ke < 2; Ke++)
-          Je[st][Ke] = Pe.readShort(T, C), C += 2;
-        var Wt = 1 << b & 32767, ee = 0, We = Pe.readShort(T, C);
-        C += 2, We > 1 && (ee = Math.floor(Wt / (We - 1))), X == 68 && _e == 32 && ee > 0 && (k = Pe.readShort(T, 562));
-        var st, Xt, Jt, Vt, it, Qt, Ri = [0, 0], Ci = M(_[w]), fe = [f, 0, 0, 0];
-        for (Xt = 0; Xt < v; Xt++)
-          for (k && Xt == k && (Ci = M(_[w + 1])), Jt = 0; Jt < g; Jt++) {
-            st = N(h, fe, Ci[0], Ci), Vt = st & 15, it = st >>> 4, Qt = (N(h, fe, Vt - it, 0) << 1) + 1 << it >>> 1, Qt & 1 << Vt - 1 || (Qt -= (1 << Vt) - (it == 0 ? 1 : 0)), Jt < 2 ? Ri[Jt] = Je[Xt & 1][Jt] += Qt : Ri[Jt & 1] += Qt;
-            var Ge = Math.min(Math.max(Ri[Jt & 1], 0), (1 << b) - 1), Kt = (Xt * g + Jt) * b;
-            a.decode._putsF(m, Kt, Ge << 16 - b);
+        ], v = o.t256[0], g = o.t257[0], k = o.t258[0], b = 0, w = 0, M = a.decode._make_decoder, C = a.decode._getbithuff, T = l[0].exifIFD.makerNote, P = T.t150 ? T.t150 : T.t140, N = 0, X = P[N++], fe = P[N++];
+        (X == 73 || fe == 88) && (N += 2110), X == 70 && (b = 2), k == 14 && (b += 3);
+        for (var Ke = [[0, 0], [0, 0]], Pe = o.isLE ? a._binLE : a._binBE, st = 0; st < 2; st++) for (var Je = 0; Je < 2; Je++)
+          Ke[st][Je] = Pe.readShort(P, N), N += 2;
+        var Wt = 1 << k & 32767, ee = 0, We = Pe.readShort(P, N);
+        N += 2, We > 1 && (ee = Math.floor(Wt / (We - 1))), X == 68 && fe == 32 && ee > 0 && (w = Pe.readShort(P, 562));
+        var st, Xt, Jt, Vt, it, Qt, Ri = [0, 0], Ci = M(p[b]), _e = [f, 0, 0, 0];
+        for (Xt = 0; Xt < g; Xt++)
+          for (w && Xt == w && (Ci = M(p[b + 1])), Jt = 0; Jt < v; Jt++) {
+            st = C(h, _e, Ci[0], Ci), Vt = st & 15, it = st >>> 4, Qt = (C(h, _e, Vt - it, 0) << 1) + 1 << it >>> 1, Qt & 1 << Vt - 1 || (Qt -= (1 << Vt) - (it == 0 ? 1 : 0)), Jt < 2 ? Ri[Jt] = Ke[Xt & 1][Jt] += Qt : Ri[Jt & 1] += Qt;
+            var Ge = Math.min(Math.max(Ri[Jt & 1], 0), (1 << k) - 1), Kt = (Xt * v + Jt) * k;
+            a.decode._putsF(m, Kt, Ge << 16 - k);
           }
       }, a.decode._putsF = function(o, l, h) {
         h = h << 8 - (l & 7);
@@ -30983,174 +31207,174 @@ function requirePako() {
       }, a.decode._getbithuff = function(o, l, h, f) {
         var d = 0;
         a.decode._get_byte;
-        var m, p = l[0], _ = l[1], g = l[2], v = l[3];
-        if (h == 0 || g < 0) return 0;
-        for (; !v && g < h && (m = o[p++]) != -1 && !(v = d); )
-          _ = (_ << 8) + m, g += 8;
-        if (m = _ << 32 - g >>> 32 - h, f ? (g -= f[m + 1] >>> 8, m = f[m + 1] & 255) : g -= h, g < 0) throw "e";
-        return l[0] = p, l[1] = _, l[2] = g, l[3] = v, m;
+        var m, _ = l[0], p = l[1], v = l[2], g = l[3];
+        if (h == 0 || v < 0) return 0;
+        for (; !g && v < h && (m = o[_++]) != -1 && !(g = d); )
+          p = (p << 8) + m, v += 8;
+        if (m = p << 32 - v >>> 32 - h, f ? (v -= f[m + 1] >>> 8, m = f[m + 1] & 255) : v -= h, v < 0) throw "e";
+        return l[0] = _, l[1] = p, l[2] = v, l[3] = g, m;
       }, a.decode._make_decoder = function(o) {
-        var l, h, f, d, m, p = [];
+        var l, h, f, d, m, _ = [];
         for (l = 16; l != 0 && !o[l]; l--) ;
-        var _ = 17;
-        for (p[0] = l, f = h = 1; h <= l; h++)
-          for (d = 0; d < o[h]; d++, ++_)
+        var p = 17;
+        for (_[0] = l, f = h = 1; h <= l; h++)
+          for (d = 0; d < o[h]; d++, ++p)
             for (m = 0; m < 1 << l - h; m++)
-              f <= 1 << l && (p[f++] = h << 8 | o[_]);
-        return p;
+              f <= 1 << l && (_[f++] = h << 8 | o[p]);
+        return _;
       }, a.decode._decodeNewJPEG = function(o, l, h, f, d, m) {
         f = Math.min(f, l.length - h);
-        var p = o.t347, _ = p ? p.length : 0, g = new Uint8Array(_ + f);
-        if (p) {
-          for (var v = 216, b = 217, w = 0, k = 0; k < _ - 1 && !(p[k] == 255 && p[k + 1] == b); k++)
-            g[w++] = p[k];
-          var M = l[h], N = l[h + 1];
-          (M != 255 || N != v) && (g[w++] = M, g[w++] = N);
-          for (var k = 2; k < f; k++) g[w++] = l[h + k];
-        } else for (var k = 0; k < f; k++) g[k] = l[h + k];
+        var _ = o.t347, p = _ ? _.length : 0, v = new Uint8Array(p + f);
+        if (_) {
+          for (var g = 216, k = 217, b = 0, w = 0; w < p - 1 && !(_[w] == 255 && _[w + 1] == k); w++)
+            v[b++] = _[w];
+          var M = l[h], C = l[h + 1];
+          (M != 255 || C != g) && (v[b++] = M, v[b++] = C);
+          for (var w = 2; w < f; w++) v[b++] = l[h + w];
+        } else for (var w = 0; w < f; w++) v[w] = l[h + w];
         if (o.t262[0] == 32803 || o.t259[0] == 7 && o.t262[0] == 34892) {
-          var P = o.t258[0], T = a.LosslessJpegDecode(g), C = T.length;
-          if (P == 16)
-            if (o.isLE) for (var k = 0; k < C; k++)
-              d[m + (k << 1)] = T[k] & 255, d[m + (k << 1) + 1] = T[k] >>> 8;
-            else for (var k = 0; k < C; k++)
-              d[m + (k << 1)] = T[k] >>> 8, d[m + (k << 1) + 1] = T[k] & 255;
-          else if (P == 14 || P == 12 || P == 10)
-            for (var X = 16 - P, k = 0; k < C; k++) a.decode._putsF(d, k * P, T[k] << X);
-          else if (P == 8)
-            for (var k = 0; k < C; k++) d[m + k] = T[k];
-          else throw new Error("unsupported bit depth " + P);
+          var T = o.t258[0], P = a.LosslessJpegDecode(v), N = P.length;
+          if (T == 16)
+            if (o.isLE) for (var w = 0; w < N; w++)
+              d[m + (w << 1)] = P[w] & 255, d[m + (w << 1) + 1] = P[w] >>> 8;
+            else for (var w = 0; w < N; w++)
+              d[m + (w << 1)] = P[w] >>> 8, d[m + (w << 1) + 1] = P[w] & 255;
+          else if (T == 14 || T == 12 || T == 10)
+            for (var X = 16 - T, w = 0; w < N; w++) a.decode._putsF(d, w * T, P[w] << X);
+          else if (T == 8)
+            for (var w = 0; w < N; w++) d[m + w] = P[w];
+          else throw new Error("unsupported bit depth " + T);
         } else {
-          var _e = new a.JpegDecoder();
-          _e.parse(g);
-          for (var Je = _e.getData({ width: _e.width, height: _e.height, forceRGB: !0, isSourcePDF: !1 }), k = 0; k < Je.length; k++) d[m + k] = Je[k];
+          var fe = new a.JpegDecoder();
+          fe.parse(v);
+          for (var Ke = fe.getData({ width: fe.width, height: fe.height, forceRGB: !0, isSourcePDF: !1 }), w = 0; w < Ke.length; w++) d[m + w] = Ke[w];
         }
         o.t262[0] == 6 && (o.t262[0] = 2);
       }, a.decode._decodeOldJPEGInit = function(o, l, h, f) {
-        var d = 216, m = 219, p = 196, _ = 221, g = 192, v = 218, b = 0, w = 0, k, M, N = !1, P, T, C, X = o.t513, _e = X ? X[0] : 0, Je = o.t514, Pe = Je ? Je[0] : 0, Ke = o.t324 || o.t273 || X, Wt = o.t530, ee = 0, We = 0, st = o.t277 ? o.t277[0] : 1, Xt = o.t515;
-        if (Ke && (w = Ke[0], N = Ke.length > 1), !N) {
+        var d = 216, m = 219, _ = 196, p = 221, v = 192, g = 218, k = 0, b = 0, w, M, C = !1, T, P, N, X = o.t513, fe = X ? X[0] : 0, Ke = o.t514, Pe = Ke ? Ke[0] : 0, Je = o.t324 || o.t273 || X, Wt = o.t530, ee = 0, We = 0, st = o.t277 ? o.t277[0] : 1, Xt = o.t515;
+        if (Je && (b = Je[0], C = Je.length > 1), !C) {
           if (l[h] == 255 && l[h + 1] == d) return { jpegOffset: h };
-          if (X != null && (l[h + _e] == 255 && l[h + _e + 1] == d ? b = h + _e : n("JPEGInterchangeFormat does not point to SOI"), Je == null ? n("JPEGInterchangeFormatLength field is missing") : (_e >= w || _e + Pe <= w) && n("JPEGInterchangeFormatLength field value is invalid"), b != null))
-            return { jpegOffset: b };
+          if (X != null && (l[h + fe] == 255 && l[h + fe + 1] == d ? k = h + fe : n("JPEGInterchangeFormat does not point to SOI"), Ke == null ? n("JPEGInterchangeFormatLength field is missing") : (fe >= b || fe + Pe <= b) && n("JPEGInterchangeFormatLength field value is invalid"), k != null))
+            return { jpegOffset: k };
         }
-        if (Wt != null && (ee = Wt[0], We = Wt[1]), X != null && Je != null)
-          if (Pe >= 2 && _e + Pe <= w) {
-            for (l[h + _e + Pe - 2] == 255 && l[h + _e + Pe - 1] == d ? k = new Uint8Array(Pe - 2) : k = new Uint8Array(Pe), P = 0; P < k.length; P++) k[P] = l[h + _e + P];
+        if (Wt != null && (ee = Wt[0], We = Wt[1]), X != null && Ke != null)
+          if (Pe >= 2 && fe + Pe <= b) {
+            for (l[h + fe + Pe - 2] == 255 && l[h + fe + Pe - 1] == d ? w = new Uint8Array(Pe - 2) : w = new Uint8Array(Pe), T = 0; T < w.length; T++) w[T] = l[h + fe + T];
             n("Incorrect JPEG interchange format: using JPEGInterchangeFormat offset to derive tables");
           } else n("JPEGInterchangeFormat+JPEGInterchangeFormatLength > offset to first strip or tile");
-        if (k == null) {
+        if (w == null) {
           var Jt = 0, Vt = [];
           Vt[Jt++] = 255, Vt[Jt++] = d;
           var it = o.t519;
           if (it == null) throw new Error("JPEGQTables tag is missing");
-          for (P = 0; P < it.length; P++)
-            for (Vt[Jt++] = 255, Vt[Jt++] = m, Vt[Jt++] = 0, Vt[Jt++] = 67, Vt[Jt++] = P, T = 0; T < 64; T++) Vt[Jt++] = l[h + it[P] + T];
-          for (C = 0; C < 2; C++) {
-            var Qt = o[C == 0 ? "t520" : "t521"];
-            if (Qt == null) throw new Error((C == 0 ? "JPEGDCTables" : "JPEGACTables") + " tag is missing");
-            for (P = 0; P < Qt.length; P++) {
-              Vt[Jt++] = 255, Vt[Jt++] = p;
+          for (T = 0; T < it.length; T++)
+            for (Vt[Jt++] = 255, Vt[Jt++] = m, Vt[Jt++] = 0, Vt[Jt++] = 67, Vt[Jt++] = T, P = 0; P < 64; P++) Vt[Jt++] = l[h + it[T] + P];
+          for (N = 0; N < 2; N++) {
+            var Qt = o[N == 0 ? "t520" : "t521"];
+            if (Qt == null) throw new Error((N == 0 ? "JPEGDCTables" : "JPEGACTables") + " tag is missing");
+            for (T = 0; T < Qt.length; T++) {
+              Vt[Jt++] = 255, Vt[Jt++] = _;
               var Ri = 19;
-              for (T = 0; T < 16; T++) Ri += l[h + Qt[P] + T];
-              for (Vt[Jt++] = Ri >>> 8, Vt[Jt++] = Ri & 255, Vt[Jt++] = P | C << 4, T = 0; T < 16; T++) Vt[Jt++] = l[h + Qt[P] + T];
-              for (T = 0; T < Ri; T++) Vt[Jt++] = l[h + Qt[P] + 16 + T];
+              for (P = 0; P < 16; P++) Ri += l[h + Qt[T] + P];
+              for (Vt[Jt++] = Ri >>> 8, Vt[Jt++] = Ri & 255, Vt[Jt++] = T | N << 4, P = 0; P < 16; P++) Vt[Jt++] = l[h + Qt[T] + P];
+              for (P = 0; P < Ri; P++) Vt[Jt++] = l[h + Qt[T] + 16 + P];
             }
           }
-          if (Vt[Jt++] = 255, Vt[Jt++] = g, Vt[Jt++] = 0, Vt[Jt++] = 8 + 3 * st, Vt[Jt++] = 8, Vt[Jt++] = o.height >>> 8 & 255, Vt[Jt++] = o.height & 255, Vt[Jt++] = o.width >>> 8 & 255, Vt[Jt++] = o.width & 255, Vt[Jt++] = st, st == 1)
+          if (Vt[Jt++] = 255, Vt[Jt++] = v, Vt[Jt++] = 0, Vt[Jt++] = 8 + 3 * st, Vt[Jt++] = 8, Vt[Jt++] = o.height >>> 8 & 255, Vt[Jt++] = o.height & 255, Vt[Jt++] = o.width >>> 8 & 255, Vt[Jt++] = o.width & 255, Vt[Jt++] = st, st == 1)
             Vt[Jt++] = 1, Vt[Jt++] = 17, Vt[Jt++] = 0;
-          else for (P = 0; P < 3; P++)
-            Vt[Jt++] = P + 1, Vt[Jt++] = P != 0 ? 17 : (ee & 15) << 4 | We & 15, Vt[Jt++] = P;
-          Xt != null && Xt[0] != 0 && (Vt[Jt++] = 255, Vt[Jt++] = _, Vt[Jt++] = 0, Vt[Jt++] = 4, Vt[Jt++] = Xt[0] >>> 8 & 255, Vt[Jt++] = Xt[0] & 255), k = new Uint8Array(Vt);
+          else for (T = 0; T < 3; T++)
+            Vt[Jt++] = T + 1, Vt[Jt++] = T != 0 ? 17 : (ee & 15) << 4 | We & 15, Vt[Jt++] = T;
+          Xt != null && Xt[0] != 0 && (Vt[Jt++] = 255, Vt[Jt++] = p, Vt[Jt++] = 0, Vt[Jt++] = 4, Vt[Jt++] = Xt[0] >>> 8 & 255, Vt[Jt++] = Xt[0] & 255), w = new Uint8Array(Vt);
         }
         var Ci = -1;
-        for (P = 0; P < k.length - 1; ) {
-          if (k[P] == 255 && k[P + 1] == g) {
-            Ci = P;
+        for (T = 0; T < w.length - 1; ) {
+          if (w[T] == 255 && w[T + 1] == v) {
+            Ci = T;
             break;
           }
-          P++;
+          T++;
         }
         if (Ci == -1) {
-          var fe = new Uint8Array(k.length + 10 + 3 * st);
-          fe.set(k);
-          var Ge = k.length;
-          if (Ci = k.length, k = fe, k[Ge++] = 255, k[Ge++] = g, k[Ge++] = 0, k[Ge++] = 8 + 3 * st, k[Ge++] = 8, k[Ge++] = o.height >>> 8 & 255, k[Ge++] = o.height & 255, k[Ge++] = o.width >>> 8 & 255, k[Ge++] = o.width & 255, k[Ge++] = st, st == 1)
-            k[Ge++] = 1, k[Ge++] = 17, k[Ge++] = 0;
-          else for (P = 0; P < 3; P++)
-            k[Ge++] = P + 1, k[Ge++] = P != 0 ? 17 : (ee & 15) << 4 | We & 15, k[Ge++] = P;
+          var _e = new Uint8Array(w.length + 10 + 3 * st);
+          _e.set(w);
+          var Ge = w.length;
+          if (Ci = w.length, w = _e, w[Ge++] = 255, w[Ge++] = v, w[Ge++] = 0, w[Ge++] = 8 + 3 * st, w[Ge++] = 8, w[Ge++] = o.height >>> 8 & 255, w[Ge++] = o.height & 255, w[Ge++] = o.width >>> 8 & 255, w[Ge++] = o.width & 255, w[Ge++] = st, st == 1)
+            w[Ge++] = 1, w[Ge++] = 17, w[Ge++] = 0;
+          else for (T = 0; T < 3; T++)
+            w[Ge++] = T + 1, w[Ge++] = T != 0 ? 17 : (ee & 15) << 4 | We & 15, w[Ge++] = T;
         }
-        if (l[w] == 255 && l[w + 1] == v) {
-          var Kt = l[w + 2] << 8 | l[w + 3];
-          for (M = new Uint8Array(Kt + 2), M[0] = l[w], M[1] = l[w + 1], M[2] = l[w + 2], M[3] = l[w + 3], P = 0; P < Kt - 2; P++) M[P + 4] = l[w + P + 4];
+        if (l[b] == 255 && l[b + 1] == g) {
+          var Kt = l[b + 2] << 8 | l[b + 3];
+          for (M = new Uint8Array(Kt + 2), M[0] = l[b], M[1] = l[b + 1], M[2] = l[b + 2], M[3] = l[b + 3], T = 0; T < Kt - 2; T++) M[T + 4] = l[b + T + 4];
         } else {
           M = new Uint8Array(8 + 2 * st);
           var Ni = 0;
-          if (M[Ni++] = 255, M[Ni++] = v, M[Ni++] = 0, M[Ni++] = 6 + 2 * st, M[Ni++] = st, st == 1)
+          if (M[Ni++] = 255, M[Ni++] = g, M[Ni++] = 0, M[Ni++] = 6 + 2 * st, M[Ni++] = st, st == 1)
             M[Ni++] = 1, M[Ni++] = 0;
-          else for (P = 0; P < 3; P++)
-            M[Ni++] = P + 1, M[Ni++] = P << 4 | P;
+          else for (T = 0; T < 3; T++)
+            M[Ni++] = T + 1, M[Ni++] = T << 4 | T;
           M[Ni++] = 0, M[Ni++] = 63, M[Ni++] = 0;
         }
-        return { jpegOffset: h, tables: k, sosMarker: M, sofPosition: Ci };
+        return { jpegOffset: h, tables: w, sosMarker: M, sofPosition: Ci };
       }, a.decode._decodeOldJPEG = function(o, l, h, f, d, m) {
-        var p, _, g, v, b, w = a.decode._decodeOldJPEGInit(o, l, h, f);
-        if (w.jpegOffset != null)
-          for (_ = h + f - w.jpegOffset, v = new Uint8Array(_), p = 0; p < _; p++) v[p] = l[w.jpegOffset + p];
+        var _, p, v, g, k, b = a.decode._decodeOldJPEGInit(o, l, h, f);
+        if (b.jpegOffset != null)
+          for (p = h + f - b.jpegOffset, g = new Uint8Array(p), _ = 0; _ < p; _++) g[_] = l[b.jpegOffset + _];
         else {
-          for (g = w.tables.length, v = new Uint8Array(g + w.sosMarker.length + f + 2), v.set(w.tables), b = g, v[w.sofPosition + 5] = o.height >>> 8 & 255, v[w.sofPosition + 6] = o.height & 255, v[w.sofPosition + 7] = o.width >>> 8 & 255, v[w.sofPosition + 8] = o.width & 255, (l[h] != 255 || l[h + 1] != SOS) && (v.set(w.sosMarker, b), b += sosMarker.length), p = 0; p < f; p++) v[b++] = l[h + p];
-          v[b++] = 255, v[b++] = EOI;
+          for (v = b.tables.length, g = new Uint8Array(v + b.sosMarker.length + f + 2), g.set(b.tables), k = v, g[b.sofPosition + 5] = o.height >>> 8 & 255, g[b.sofPosition + 6] = o.height & 255, g[b.sofPosition + 7] = o.width >>> 8 & 255, g[b.sofPosition + 8] = o.width & 255, (l[h] != 255 || l[h + 1] != SOS) && (g.set(b.sosMarker, k), k += sosMarker.length), _ = 0; _ < f; _++) g[k++] = l[h + _];
+          g[k++] = 255, g[k++] = EOI;
         }
-        var k = new a.JpegDecoder();
-        k.parse(v);
-        for (var M = k.getData({ width: k.width, height: k.height, forceRGB: !0, isSourcePDF: !1 }), p = 0; p < M.length; p++) d[m + p] = M[p];
+        var w = new a.JpegDecoder();
+        w.parse(g);
+        for (var M = w.getData({ width: w.width, height: w.height, forceRGB: !0, isSourcePDF: !1 }), _ = 0; _ < M.length; _++) d[m + _] = M[_];
         o.t262 && o.t262[0] == 6 && (o.t262[0] = 2);
       }, a.decode._decodePackBits = function(o, l, h, f, d) {
-        for (var m = new Int8Array(o.buffer), p = new Int8Array(f.buffer), _ = l + h; l < _; ) {
-          var g = m[l];
-          if (l++, g >= 0 && g < 128) for (var v = 0; v < g + 1; v++)
-            p[d] = m[l], d++, l++;
-          if (g >= -127 && g < 0) {
-            for (var v = 0; v < -g + 1; v++)
-              p[d] = m[l], d++;
+        for (var m = new Int8Array(o.buffer), _ = new Int8Array(f.buffer), p = l + h; l < p; ) {
+          var v = m[l];
+          if (l++, v >= 0 && v < 128) for (var g = 0; g < v + 1; g++)
+            _[d] = m[l], d++, l++;
+          if (v >= -127 && v < 0) {
+            for (var g = 0; g < -v + 1; g++)
+              _[d] = m[l], d++;
             l++;
           }
         }
         return d;
       }, a.decode._decodeThunder = function(o, l, h, f, d) {
-        for (var m = [0, 1, 0, -1], p = [0, 1, 2, 3, 0, -3, -2, -1], _ = l + h, g = d * 2, v = 0; l < _; ) {
-          var b = o[l], w = b >>> 6, k = b & 63;
-          if (l++, w == 3 && (v = k & 15, f[g >>> 1] |= v << 4 * (1 - g & 1), g++), w == 0) for (var M = 0; M < k; M++)
-            f[g >>> 1] |= v << 4 * (1 - g & 1), g++;
-          if (w == 2) for (var M = 0; M < 2; M++) {
-            var N = k >>> 3 * (1 - M) & 7;
-            N != 4 && (v += p[N], f[g >>> 1] |= v << 4 * (1 - g & 1), g++);
+        for (var m = [0, 1, 0, -1], _ = [0, 1, 2, 3, 0, -3, -2, -1], p = l + h, v = d * 2, g = 0; l < p; ) {
+          var k = o[l], b = k >>> 6, w = k & 63;
+          if (l++, b == 3 && (g = w & 15, f[v >>> 1] |= g << 4 * (1 - v & 1), v++), b == 0) for (var M = 0; M < w; M++)
+            f[v >>> 1] |= g << 4 * (1 - v & 1), v++;
+          if (b == 2) for (var M = 0; M < 2; M++) {
+            var C = w >>> 3 * (1 - M) & 7;
+            C != 4 && (g += _[C], f[v >>> 1] |= g << 4 * (1 - v & 1), v++);
           }
-          if (w == 1) for (var M = 0; M < 3; M++) {
-            var N = k >>> 2 * (2 - M) & 3;
-            N != 2 && (v += m[N], f[g >>> 1] |= v << 4 * (1 - g & 1), g++);
+          if (b == 1) for (var M = 0; M < 3; M++) {
+            var C = w >>> 2 * (2 - M) & 3;
+            C != 2 && (g += m[C], f[v >>> 1] |= g << 4 * (1 - v & 1), v++);
           }
         }
       }, a.decode._dmap = { 1: 0, "011": 1, "000011": 2, "0000011": 3, "010": -1, "000010": -2, "0000010": -3 }, a.decode._lens = function() {
-        var o = function(g, v, b, w) {
-          for (var k = 0; k < v.length; k++) g[v[k]] = b + k * w;
+        var o = function(v, g, k, b) {
+          for (var w = 0; w < g.length; w++) v[g[w]] = k + w * b;
         }, l = "00110101,000111,0111,1000,1011,1100,1110,1111,10011,10100,00111,01000,001000,000011,110100,110101,101010,101011,0100111,0001100,0001000,0010111,0000011,0000100,0101000,0101011,0010011,0100100,0011000,00000010,00000011,00011010,00011011,00010010,00010011,00010100,00010101,00010110,00010111,00101000,00101001,00101010,00101011,00101100,00101101,00000100,00000101,00001010,00001011,01010010,01010011,01010100,01010101,00100100,00100101,01011000,01011001,01011010,01011011,01001010,01001011,00110010,00110011,00110100", h = "0000110111,010,11,10,011,0011,0010,00011,000101,000100,0000100,0000101,0000111,00000100,00000111,000011000,0000010111,0000011000,0000001000,00001100111,00001101000,00001101100,00000110111,00000101000,00000010111,00000011000,000011001010,000011001011,000011001100,000011001101,000001101000,000001101001,000001101010,000001101011,000011010010,000011010011,000011010100,000011010101,000011010110,000011010111,000001101100,000001101101,000011011010,000011011011,000001010100,000001010101,000001010110,000001010111,000001100100,000001100101,000001010010,000001010011,000000100100,000000110111,000000111000,000000100111,000000101000,000001011000,000001011001,000000101011,000000101100,000001011010,000001100110,000001100111", f = "11011,10010,010111,0110111,00110110,00110111,01100100,01100101,01101000,01100111,011001100,011001101,011010010,011010011,011010100,011010101,011010110,011010111,011011000,011011001,011011010,011011011,010011000,010011001,010011010,011000,010011011", d = "0000001111,000011001000,000011001001,000001011011,000000110011,000000110100,000000110101,0000001101100,0000001101101,0000001001010,0000001001011,0000001001100,0000001001101,0000001110010,0000001110011,0000001110100,0000001110101,0000001110110,0000001110111,0000001010010,0000001010011,0000001010100,0000001010101,0000001011010,0000001011011,0000001100100,0000001100101", m = "00000001000,00000001100,00000001101,000000010010,000000010011,000000010100,000000010101,000000010110,000000010111,000000011100,000000011101,000000011110,000000011111";
         l = l.split(","), h = h.split(","), f = f.split(","), d = d.split(","), m = m.split(",");
-        var p = {}, _ = {};
-        return o(p, l, 0, 1), o(p, f, 64, 64), o(p, m, 1792, 64), o(_, h, 0, 1), o(_, d, 64, 64), o(_, m, 1792, 64), [p, _];
-      }(), a.decode._decodeG4 = function(o, l, h, f, d, m, p) {
-        for (var _ = a.decode, g = l << 3, v = 0, b = "", w = [], k = [], M = 0; M < m; M++) k.push(0);
-        k = _._makeDiff(k);
-        for (var N = 0, P = 0, T = 0, C = 0, X = 0, _e = 0, Je = "", Pe = 0, Ke = Math.ceil(m / 8) * 8; g >>> 3 < l + h; ) {
-          T = _._findDiff(k, N + (N == 0 ? 0 : 1), 1 - X), C = _._findDiff(k, T, X);
+        var _ = {}, p = {};
+        return o(_, l, 0, 1), o(_, f, 64, 64), o(_, m, 1792, 64), o(p, h, 0, 1), o(p, d, 64, 64), o(p, m, 1792, 64), [_, p];
+      }(), a.decode._decodeG4 = function(o, l, h, f, d, m, _) {
+        for (var p = a.decode, v = l << 3, g = 0, k = "", b = [], w = [], M = 0; M < m; M++) w.push(0);
+        w = p._makeDiff(w);
+        for (var C = 0, T = 0, P = 0, N = 0, X = 0, fe = 0, Ke = "", Pe = 0, Je = Math.ceil(m / 8) * 8; v >>> 3 < l + h; ) {
+          P = p._findDiff(w, C + (C == 0 ? 0 : 1), 1 - X), N = p._findDiff(w, P, X);
           var Wt = 0;
-          if (p == 1 && (Wt = o[g >>> 3] >>> 7 - (g & 7) & 1), p == 2 && (Wt = o[g >>> 3] >>> (g & 7) & 1), g++, b += Wt, Je == "H") {
-            if (_._lens[X][b] != null) {
-              var ee = _._lens[X][b];
-              b = "", v += ee, ee < 64 && (_._addNtimes(w, v, X), N += v, X = 1 - X, v = 0, Pe--, Pe == 0 && (Je = ""));
+          if (_ == 1 && (Wt = o[v >>> 3] >>> 7 - (v & 7) & 1), _ == 2 && (Wt = o[v >>> 3] >>> (v & 7) & 1), v++, k += Wt, Ke == "H") {
+            if (p._lens[X][k] != null) {
+              var ee = p._lens[X][k];
+              k = "", g += ee, ee < 64 && (p._addNtimes(b, g, X), C += g, X = 1 - X, g = 0, Pe--, Pe == 0 && (Ke = ""));
             }
           } else
-            b == "0001" && (b = "", _._addNtimes(w, C - N, X), N = C), b == "001" && (b = "", Je = "H", Pe = 2), _._dmap[b] != null && (P = T + _._dmap[b], _._addNtimes(w, P - N, X), N = P, b = "", X = 1 - X);
-          w.length == m && Je == "" && (_._writeBits(w, f, d * 8 + _e * Ke), X = 0, _e++, N = 0, k = _._makeDiff(w), w = []);
+            k == "0001" && (k = "", p._addNtimes(b, N - C, X), C = N), k == "001" && (k = "", Ke = "H", Pe = 2), p._dmap[k] != null && (T = P + p._dmap[k], p._addNtimes(b, T - C, X), C = T, k = "", X = 1 - X);
+          b.length == m && Ke == "" && (p._writeBits(b, f, d * 8 + fe * Je), X = 0, fe++, C = 0, w = p._makeDiff(b), b = []);
         }
       }, a.decode._findDiff = function(o, l, h) {
         for (var f = 0; f < o.length; f += 2) if (o[f] >= l && o[f + 1] == h) return o[f];
@@ -31159,68 +31383,68 @@ function requirePako() {
         o[0] == 1 && l.push(0, 1);
         for (var h = 1; h < o.length; h++) o[h - 1] != o[h] && l.push(h, o[h]);
         return l.push(o.length, 0, o.length, 1), l;
-      }, a.decode._decodeG2 = function(o, l, h, f, d, m, p) {
-        for (var _ = a.decode, g = l << 3, v = 0, b = "", w = [], k = 0, M = 0, N = Math.ceil(m / 8) * 8; g >>> 3 < l + h; ) {
-          var P = 0;
-          p == 1 && (P = o[g >>> 3] >>> 7 - (g & 7) & 1), p == 2 && (P = o[g >>> 3] >>> (g & 7) & 1), g++, b += P, v = _._lens[k][b], v != null && (_._addNtimes(w, v, k), b = "", v < 64 && (k = 1 - k), w.length == m && (_._writeBits(w, f, d * 8 + M * N), w = [], M++, k = 0, g & 7 && (g += 8 - (g & 7)), v >= 64 && (g += 8)));
+      }, a.decode._decodeG2 = function(o, l, h, f, d, m, _) {
+        for (var p = a.decode, v = l << 3, g = 0, k = "", b = [], w = 0, M = 0, C = Math.ceil(m / 8) * 8; v >>> 3 < l + h; ) {
+          var T = 0;
+          _ == 1 && (T = o[v >>> 3] >>> 7 - (v & 7) & 1), _ == 2 && (T = o[v >>> 3] >>> (v & 7) & 1), v++, k += T, g = p._lens[w][k], g != null && (p._addNtimes(b, g, w), k = "", g < 64 && (w = 1 - w), b.length == m && (p._writeBits(b, f, d * 8 + M * C), b = [], M++, w = 0, v & 7 && (v += 8 - (v & 7)), g >= 64 && (v += 8)));
         }
-      }, a.decode._decodeG3 = function(o, l, h, f, d, m, p, _) {
-        for (var g = a.decode, v = l << 3, b = 0, w = "", k = [], M = [], N = 0; N < m; N++) k.push(0);
-        for (var P = 0, T = 0, C = 0, X = 0, _e = 0, Je = -1, Pe = "", Ke = 0, Wt = !0, ee = Math.ceil(m / 8) * 8; v >>> 3 < l + h; ) {
-          C = g._findDiff(M, P + (P == 0 ? 0 : 1), 1 - _e), X = g._findDiff(M, C, _e);
+      }, a.decode._decodeG3 = function(o, l, h, f, d, m, _, p) {
+        for (var v = a.decode, g = l << 3, k = 0, b = "", w = [], M = [], C = 0; C < m; C++) w.push(0);
+        for (var T = 0, P = 0, N = 0, X = 0, fe = 0, Ke = -1, Pe = "", Je = 0, Wt = !0, ee = Math.ceil(m / 8) * 8; g >>> 3 < l + h; ) {
+          N = v._findDiff(M, T + (T == 0 ? 0 : 1), 1 - fe), X = v._findDiff(M, N, fe);
           var We = 0;
-          if (p == 1 && (We = o[v >>> 3] >>> 7 - (v & 7) & 1), p == 2 && (We = o[v >>> 3] >>> (v & 7) & 1), v++, w += We, Wt) {
-            if (g._lens[_e][w] != null) {
-              var st = g._lens[_e][w];
-              w = "", b += st, st < 64 && (g._addNtimes(k, b, _e), _e = 1 - _e, b = 0);
+          if (_ == 1 && (We = o[g >>> 3] >>> 7 - (g & 7) & 1), _ == 2 && (We = o[g >>> 3] >>> (g & 7) & 1), g++, b += We, Wt) {
+            if (v._lens[fe][b] != null) {
+              var st = v._lens[fe][b];
+              b = "", k += st, st < 64 && (v._addNtimes(w, k, fe), fe = 1 - fe, k = 0);
             }
           } else if (Pe == "H") {
-            if (g._lens[_e][w] != null) {
-              var st = g._lens[_e][w];
-              w = "", b += st, st < 64 && (g._addNtimes(k, b, _e), P += b, _e = 1 - _e, b = 0, Ke--, Ke == 0 && (Pe = ""));
+            if (v._lens[fe][b] != null) {
+              var st = v._lens[fe][b];
+              b = "", k += st, st < 64 && (v._addNtimes(w, k, fe), T += k, fe = 1 - fe, k = 0, Je--, Je == 0 && (Pe = ""));
             }
           } else
-            w == "0001" && (w = "", g._addNtimes(k, X - P, _e), P = X), w == "001" && (w = "", Pe = "H", Ke = 2), g._dmap[w] != null && (T = C + g._dmap[w], g._addNtimes(k, T - P, _e), P = T, w = "", _e = 1 - _e);
-          w.endsWith("000000000001") && (Je >= 0 && g._writeBits(k, f, d * 8 + Je * ee), _ && (p == 1 && (Wt = (o[v >>> 3] >>> 7 - (v & 7) & 1) == 1), p == 2 && (Wt = (o[v >>> 3] >>> (v & 7) & 1) == 1), v++), w = "", _e = 0, Je++, P = 0, M = g._makeDiff(k), k = []);
+            b == "0001" && (b = "", v._addNtimes(w, X - T, fe), T = X), b == "001" && (b = "", Pe = "H", Je = 2), v._dmap[b] != null && (P = N + v._dmap[b], v._addNtimes(w, P - T, fe), T = P, b = "", fe = 1 - fe);
+          b.endsWith("000000000001") && (Ke >= 0 && v._writeBits(w, f, d * 8 + Ke * ee), p && (_ == 1 && (Wt = (o[g >>> 3] >>> 7 - (g & 7) & 1) == 1), _ == 2 && (Wt = (o[g >>> 3] >>> (g & 7) & 1) == 1), g++), b = "", fe = 0, Ke++, T = 0, M = v._makeDiff(w), w = []);
         }
-        k.length == m && g._writeBits(k, f, d * 8 + Je * ee);
+        w.length == m && v._writeBits(w, f, d * 8 + Ke * ee);
       }, a.decode._addNtimes = function(o, l, h) {
         for (var f = 0; f < l; f++) o.push(h);
       }, a.decode._writeBits = function(o, l, h) {
         for (var f = 0; f < o.length; f++) l[h + f >>> 3] |= o[f] << 7 - (h + f & 7);
       }, a.decode._decodeLZW = a.decode._decodeLZW = function() {
-        var o, l, h, f, d = 0, m = 0, p = 0, _ = 0, g = function() {
-          var T = o >>> 3, C = l[T] << 16 | l[T + 1] << 8 | l[T + 2], X = C >>> 24 - (o & 7) - m & (1 << m) - 1;
+        var o, l, h, f, d = 0, m = 0, _ = 0, p = 0, v = function() {
+          var P = o >>> 3, N = l[P] << 16 | l[P + 1] << 8 | l[P + 2], X = N >>> 24 - (o & 7) - m & (1 << m) - 1;
           return o += m, X;
-        }, v = new Uint32Array(4096 * 4), b = 0, w = function(T) {
-          if (T != b) {
-            b = T, p = 1 << T, _ = p + 1;
-            for (var C = 0; C < _ + 1; C++)
-              v[4 * C] = v[4 * C + 3] = C, v[4 * C + 1] = 65535, v[4 * C + 2] = 1;
+        }, g = new Uint32Array(4096 * 4), k = 0, b = function(P) {
+          if (P != k) {
+            k = P, _ = 1 << P, p = _ + 1;
+            for (var N = 0; N < p + 1; N++)
+              g[4 * N] = g[4 * N + 3] = N, g[4 * N + 1] = 65535, g[4 * N + 2] = 1;
           }
-        }, k = function(T) {
-          m = T + 1, d = _ + 1;
-        }, M = function(T) {
-          for (var C = T << 2, X = v[C + 2], _e = f + X - 1; C != 65535; )
-            h[_e--] = v[C], C = v[C + 1];
+        }, w = function(P) {
+          m = P + 1, d = p + 1;
+        }, M = function(P) {
+          for (var N = P << 2, X = g[N + 2], fe = f + X - 1; N != 65535; )
+            h[fe--] = g[N], N = g[N + 1];
           f += X;
-        }, N = function(T, C) {
-          var X = d << 2, _e = T << 2;
-          v[X] = v[(C << 2) + 3], v[X + 1] = _e, v[X + 2] = v[_e + 2] + 1, v[X + 3] = v[_e + 3], d++, d + 1 == 1 << m && m != 12 && m++;
-        }, P = function(T, C, X, _e, Je, Pe) {
-          o = C << 3, l = T, h = _e, f = Je;
-          var Ke = C + X << 3, Wt = 0, ee = 0;
-          for (w(Pe), k(Pe); o < Ke && (Wt = g()) != _; ) {
-            if (Wt == p) {
-              if (k(Pe), Wt = g(), Wt == _) break;
+        }, C = function(P, N) {
+          var X = d << 2, fe = P << 2;
+          g[X] = g[(N << 2) + 3], g[X + 1] = fe, g[X + 2] = g[fe + 2] + 1, g[X + 3] = g[fe + 3], d++, d + 1 == 1 << m && m != 12 && m++;
+        }, T = function(P, N, X, fe, Ke, Pe) {
+          o = N << 3, l = P, h = fe, f = Ke;
+          var Je = N + X << 3, Wt = 0, ee = 0;
+          for (b(Pe), w(Pe); o < Je && (Wt = v()) != p; ) {
+            if (Wt == _) {
+              if (w(Pe), Wt = v(), Wt == p) break;
               M(Wt);
             } else
-              Wt < d ? (M(Wt), N(ee, Wt)) : (N(ee, ee), M(d - 1));
+              Wt < d ? (M(Wt), C(ee, Wt)) : (C(ee, ee), M(d - 1));
             ee = Wt;
           }
           return f;
         };
-        return P;
+        return T;
       }(), a.tags = {}, a._types = function() {
         var o = new Array(250);
         o.fill(0), o = o.concat([0, 0, 0, 0, 4, 3, 3, 3, 3, 3, 0, 0, 3, 0, 0, 0, 3, 0, 0, 2, 2, 2, 2, 4, 3, 0, 0, 3, 4, 4, 3, 3, 5, 5, 3, 2, 5, 5, 0, 0, 0, 0, 4, 4, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 5, 5, 3, 0, 3, 3, 4, 4, 4, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -31236,249 +31460,249 @@ function requirePako() {
           }
         };
       }(), a._readIFD = function(o, l, h, f, d, m) {
-        var p = o.readUshort(l, h);
+        var _ = o.readUshort(l, h);
         h += 2;
-        var _ = {};
+        var p = {};
         m.debug && n("   ".repeat(d), f.length - 1, ">>>----------------");
-        for (var g = 0; g < p; g++) {
-          var v = o.readUshort(l, h);
+        for (var v = 0; v < _; v++) {
+          var g = o.readUshort(l, h);
           h += 2;
-          var b = o.readUshort(l, h);
+          var k = o.readUshort(l, h);
           h += 2;
+          var b = o.readUint(l, h);
+          h += 4;
           var w = o.readUint(l, h);
           h += 4;
-          var k = o.readUint(l, h);
-          h += 4;
           var M = [];
-          if (b == 1 || b == 7) {
-            var N = w < 5 ? h - 4 : k;
-            N + w > l.buffer.byteLength && (w = l.buffer.byteLength - N), M = new Uint8Array(l.buffer, N, w);
+          if (k == 1 || k == 7) {
+            var C = b < 5 ? h - 4 : w;
+            C + b > l.buffer.byteLength && (b = l.buffer.byteLength - C), M = new Uint8Array(l.buffer, C, b);
           }
-          if (b == 2) {
-            var P = w < 5 ? h - 4 : k, T = l[P], C = Math.max(0, Math.min(w - 1, l.length - P));
-            T < 128 || C == 0 ? M.push(o.readASCII(l, P, C)) : M = new Uint8Array(l.buffer, P, C);
+          if (k == 2) {
+            var T = b < 5 ? h - 4 : w, P = l[T], N = Math.max(0, Math.min(b - 1, l.length - T));
+            P < 128 || N == 0 ? M.push(o.readASCII(l, T, N)) : M = new Uint8Array(l.buffer, T, N);
           }
-          if (b == 3)
-            for (var X = 0; X < w; X++) M.push(o.readUshort(l, (w < 3 ? h - 4 : k) + 2 * X));
-          if (b == 4 || b == 13)
-            for (var X = 0; X < w; X++) M.push(o.readUint(l, (w < 2 ? h - 4 : k) + 4 * X));
-          if (b == 5 || b == 10)
-            for (var _e = b == 5 ? o.readUint : o.readInt, X = 0; X < w; X++) M.push([_e(l, k + X * 8), _e(l, k + X * 8 + 4)]);
-          if (b == 8)
-            for (var X = 0; X < w; X++) M.push(o.readShort(l, (w < 3 ? h - 4 : k) + 2 * X));
-          if (b == 9)
-            for (var X = 0; X < w; X++) M.push(o.readInt(l, (w < 2 ? h - 4 : k) + 4 * X));
-          if (b == 11)
-            for (var X = 0; X < w; X++) M.push(o.readFloat(l, k + X * 4));
-          if (b == 12)
-            for (var X = 0; X < w; X++) M.push(o.readDouble(l, k + X * 8));
-          if (w != 0 && M.length == 0) {
-            if (n(v, "unknown TIFF tag type: ", b, "num:", w), g == 0) return;
+          if (k == 3)
+            for (var X = 0; X < b; X++) M.push(o.readUshort(l, (b < 3 ? h - 4 : w) + 2 * X));
+          if (k == 4 || k == 13)
+            for (var X = 0; X < b; X++) M.push(o.readUint(l, (b < 2 ? h - 4 : w) + 4 * X));
+          if (k == 5 || k == 10)
+            for (var fe = k == 5 ? o.readUint : o.readInt, X = 0; X < b; X++) M.push([fe(l, w + X * 8), fe(l, w + X * 8 + 4)]);
+          if (k == 8)
+            for (var X = 0; X < b; X++) M.push(o.readShort(l, (b < 3 ? h - 4 : w) + 2 * X));
+          if (k == 9)
+            for (var X = 0; X < b; X++) M.push(o.readInt(l, (b < 2 ? h - 4 : w) + 4 * X));
+          if (k == 11)
+            for (var X = 0; X < b; X++) M.push(o.readFloat(l, w + X * 4));
+          if (k == 12)
+            for (var X = 0; X < b; X++) M.push(o.readDouble(l, w + X * 8));
+          if (b != 0 && M.length == 0) {
+            if (n(g, "unknown TIFF tag type: ", k, "num:", b), v == 0) return;
             continue;
           }
-          if (m.debug && n("   ".repeat(d), v, b, a.tags[v], M), _["t" + v] = M, !(v == 330 && _.t272 && _.t272[0] == "DSLR-A100")) {
-            if (v == 330 || v == 34665 || v == 34853 || v == 50740 && o.readUshort(l, o.readUint(M, 0)) < 300 || v == 61440) {
-              for (var Je = v == 50740 ? [o.readUint(M, 0)] : M, Pe = [], X = 0; X < Je.length; X++) a._readIFD(o, l, Je[X], Pe, d + 1, m);
-              v == 330 && (_.subIFD = Pe), v == 34665 && (_.exifIFD = Pe[0]), v == 34853 && (_.gpsiIFD = Pe[0]), v == 50740 && (_.dngPrvt = Pe[0]), v == 61440 && (_.fujiIFD = Pe[0]);
+          if (m.debug && n("   ".repeat(d), g, k, a.tags[g], M), p["t" + g] = M, !(g == 330 && p.t272 && p.t272[0] == "DSLR-A100")) {
+            if (g == 330 || g == 34665 || g == 34853 || g == 50740 && o.readUshort(l, o.readUint(M, 0)) < 300 || g == 61440) {
+              for (var Ke = g == 50740 ? [o.readUint(M, 0)] : M, Pe = [], X = 0; X < Ke.length; X++) a._readIFD(o, l, Ke[X], Pe, d + 1, m);
+              g == 330 && (p.subIFD = Pe), g == 34665 && (p.exifIFD = Pe[0]), g == 34853 && (p.gpsiIFD = Pe[0]), g == 50740 && (p.dngPrvt = Pe[0]), g == 61440 && (p.fujiIFD = Pe[0]);
             }
           }
-          if (v == 37500 && m.parseMN) {
-            var Ke = M;
-            if (o.readASCII(Ke, 0, 5) == "Nikon") _.makerNote = a.decode(Ke.slice(10).buffer)[0];
-            else if (o.readASCII(Ke, 0, 5) == "OLYMP" || o.readASCII(Ke, 0, 9) == "OM SYSTEM") {
+          if (g == 37500 && m.parseMN) {
+            var Je = M;
+            if (o.readASCII(Je, 0, 5) == "Nikon") p.makerNote = a.decode(Je.slice(10).buffer)[0];
+            else if (o.readASCII(Je, 0, 5) == "OLYMP" || o.readASCII(Je, 0, 9) == "OM SYSTEM") {
               var Wt = [8208, 8224, 8240, 8256, 8272], ee = [];
-              a._readIFD(o, Ke, Ke[1] == 77 ? 16 : Ke[5] == 85 ? 12 : 8, ee, d + 1, m);
-              for (var We = _.makerNote = ee.pop(), X = 0; X < Wt.length; X++) {
+              a._readIFD(o, Je, Je[1] == 77 ? 16 : Je[5] == 85 ? 12 : 8, ee, d + 1, m);
+              for (var We = p.makerNote = ee.pop(), X = 0; X < Wt.length; X++) {
                 var st = "t" + Wt[X];
-                We[st] != null && (a._readIFD(o, Ke, We[st][0], ee, d + 1, m), We[st] = ee.pop());
+                We[st] != null && (a._readIFD(o, Je, We[st][0], ee, d + 1, m), We[st] = ee.pop());
               }
               We.t12288 && (a._readIFD(o, We.t12288, 0, ee, d + 1, m), We.t12288 = ee.pop());
-            } else if (o.readUshort(l, k) < 300 && o.readUshort(l, k + 4) <= 12) {
+            } else if (o.readUshort(l, w) < 300 && o.readUshort(l, w + 4) <= 12) {
               var ee = [];
-              a._readIFD(o, l, k, ee, d + 1, m), _.makerNote = ee[0];
+              a._readIFD(o, l, w, ee, d + 1, m), p.makerNote = ee[0];
             }
           }
         }
-        return f.push(_), m.debug && n("   ".repeat(d), "<<<---------------"), h;
+        return f.push(p), m.debug && n("   ".repeat(d), "<<<---------------"), h;
       }, a._writeIFD = function(o, l, h, f, d) {
-        var m = Object.keys(d), p = m.length;
-        d.exifIFD && p--, d.gpsiIFD && p--, o.writeUshort(h, f, p), f += 2;
-        for (var _ = f + p * 12 + 4, g = 0; g < m.length; g++) {
-          var v = m[g];
-          if (!(v == "t34665" || v == "t34853")) {
-            v == "exifIFD" && (v = "t34665"), v == "gpsiIFD" && (v = "t34853");
-            var b = parseInt(v.slice(1)), w = l.main[b];
-            if (w == null && (w = l.rest[b]), w == null || w == 0) throw new Error("unknown type of tag: " + b);
-            var k = d[v];
-            if (b == 34665) {
-              var M = a._writeIFD(o, l, h, _, d.exifIFD);
-              k = [_], _ = M[1];
+        var m = Object.keys(d), _ = m.length;
+        d.exifIFD && _--, d.gpsiIFD && _--, o.writeUshort(h, f, _), f += 2;
+        for (var p = f + _ * 12 + 4, v = 0; v < m.length; v++) {
+          var g = m[v];
+          if (!(g == "t34665" || g == "t34853")) {
+            g == "exifIFD" && (g = "t34665"), g == "gpsiIFD" && (g = "t34853");
+            var k = parseInt(g.slice(1)), b = l.main[k];
+            if (b == null && (b = l.rest[k]), b == null || b == 0) throw new Error("unknown type of tag: " + k);
+            var w = d[g];
+            if (k == 34665) {
+              var M = a._writeIFD(o, l, h, p, d.exifIFD);
+              w = [p], p = M[1];
             }
-            if (b == 34853) {
-              var M = a._writeIFD(o, a._types.gps, h, _, d.gpsiIFD);
-              k = [_], _ = M[1];
+            if (k == 34853) {
+              var M = a._writeIFD(o, a._types.gps, h, p, d.gpsiIFD);
+              w = [p], p = M[1];
             }
-            w == 2 && (k = k[0] + "\0");
-            var N = k.length;
-            o.writeUshort(h, f, b), f += 2, o.writeUshort(h, f, w), f += 2, o.writeUint(h, f, N), f += 4;
-            var P = [-1, 1, 1, 2, 4, 8, 0, 1, 0, 4, 8, 0, 8][w] * N, T = f;
-            if (P > 4 && (o.writeUint(h, f, _), T = _), w == 1 || w == 7)
-              for (var C = 0; C < N; C++) h[T + C] = k[C];
-            else if (w == 2)
-              o.writeASCII(h, T, k);
-            else if (w == 3)
-              for (var C = 0; C < N; C++) o.writeUshort(h, T + 2 * C, k[C]);
-            else if (w == 4)
-              for (var C = 0; C < N; C++) o.writeUint(h, T + 4 * C, k[C]);
-            else if (w == 5 || w == 10)
-              for (var X = w == 5 ? o.writeUint : o.writeInt, C = 0; C < N; C++) {
-                var _e = k[C], Je = _e[0], Pe = _e[1];
-                if (Je == null) throw "e";
-                X(h, T + 8 * C, Je), X(h, T + 8 * C + 4, Pe);
+            b == 2 && (w = w[0] + "\0");
+            var C = w.length;
+            o.writeUshort(h, f, k), f += 2, o.writeUshort(h, f, b), f += 2, o.writeUint(h, f, C), f += 4;
+            var T = [-1, 1, 1, 2, 4, 8, 0, 1, 0, 4, 8, 0, 8][b] * C, P = f;
+            if (T > 4 && (o.writeUint(h, f, p), P = p), b == 1 || b == 7)
+              for (var N = 0; N < C; N++) h[P + N] = w[N];
+            else if (b == 2)
+              o.writeASCII(h, P, w);
+            else if (b == 3)
+              for (var N = 0; N < C; N++) o.writeUshort(h, P + 2 * N, w[N]);
+            else if (b == 4)
+              for (var N = 0; N < C; N++) o.writeUint(h, P + 4 * N, w[N]);
+            else if (b == 5 || b == 10)
+              for (var X = b == 5 ? o.writeUint : o.writeInt, N = 0; N < C; N++) {
+                var fe = w[N], Ke = fe[0], Pe = fe[1];
+                if (Ke == null) throw "e";
+                X(h, P + 8 * N, Ke), X(h, P + 8 * N + 4, Pe);
               }
-            else if (w == 9)
-              for (var C = 0; C < N; C++) o.writeInt(h, T + 4 * C, k[C]);
-            else if (w == 12)
-              for (var C = 0; C < N; C++) o.writeDouble(h, T + 8 * C, k[C]);
-            else throw w;
-            P > 4 && (P += P & 1, _ += P), f += 4;
+            else if (b == 9)
+              for (var N = 0; N < C; N++) o.writeInt(h, P + 4 * N, w[N]);
+            else if (b == 12)
+              for (var N = 0; N < C; N++) o.writeDouble(h, P + 8 * N, w[N]);
+            else throw b;
+            T > 4 && (T += T & 1, p += T), f += 4;
           }
         }
-        return [f, _];
+        return [f, p];
       }, a.toRGBA8 = function(o, l) {
         function h(ji) {
           return ji < 31308e-7 ? 12.92 * ji : 1.055 * Math.pow(ji, 1 / 2.4) - 0.055;
         }
-        var f = o.width, d = o.height, m = f * d, p = o.data, _ = new Uint8Array(m * 4), g = o.t262 ? o.t262[0] : 2, v = o.t258 ? Math.min(32, o.t258[0]) : 1;
-        o.t262 == null && v == 1 && (g = 0);
-        var b = o.t277 ? o.t277[0] : o.t258 ? o.t258.length : [1, 1, 3, 1, 1, 4, 3][g], w = o.t339 ? o.t339[0] : null;
-        if (g == 1 && v == 32 && w != 3) throw "e";
-        var k = Math.ceil(b * v * f / 8);
-        if (g == 0) {
+        var f = o.width, d = o.height, m = f * d, _ = o.data, p = new Uint8Array(m * 4), v = o.t262 ? o.t262[0] : 2, g = o.t258 ? Math.min(32, o.t258[0]) : 1;
+        o.t262 == null && g == 1 && (v = 0);
+        var k = o.t277 ? o.t277[0] : o.t258 ? o.t258.length : [1, 1, 3, 1, 1, 4, 3][v], b = o.t339 ? o.t339[0] : null;
+        if (v == 1 && g == 32 && b != 3) throw "e";
+        var w = Math.ceil(k * g * f / 8);
+        if (v == 0) {
           l = 1 / 256;
           for (var M = 0; M < d; M++) {
-            var N = M * k, P = M * f;
-            if (v == 1) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, X = p[N + (T >> 3)] >> 7 - (T & 7) & 1;
-              _[C] = _[C + 1] = _[C + 2] = (1 - X) * 255, _[C + 3] = 255;
+            var C = M * w, T = M * f;
+            if (g == 1) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, X = _[C + (P >> 3)] >> 7 - (P & 7) & 1;
+              p[N] = p[N + 1] = p[N + 2] = (1 - X) * 255, p[N + 3] = 255;
             }
-            if (v == 4) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, X = p[N + (T >> 1)] >> 4 - 4 * (T & 1) & 15;
-              _[C] = _[C + 1] = _[C + 2] = (15 - X) * 17, _[C + 3] = 255;
+            if (g == 4) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, X = _[C + (P >> 1)] >> 4 - 4 * (P & 1) & 15;
+              p[N] = p[N + 1] = p[N + 2] = (15 - X) * 17, p[N + 3] = 255;
             }
-            if (v == 8) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, X = p[N + T];
-              _[C] = _[C + 1] = _[C + 2] = 255 - X, _[C + 3] = 255;
+            if (g == 8) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, X = _[C + P];
+              p[N] = p[N + 1] = p[N + 2] = 255 - X, p[N + 3] = 255;
             }
-            if (v == 16) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, _e = N + 2 * T, X = p[_e + 1] << 8 | p[_e];
-              _[C] = _[C + 1] = _[C + 2] = Math.min(255, 255 - ~~(X * l)), _[C + 3] = 255;
+            if (g == 16) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, fe = C + 2 * P, X = _[fe + 1] << 8 | _[fe];
+              p[N] = p[N + 1] = p[N + 2] = Math.min(255, 255 - ~~(X * l)), p[N + 3] = 255;
             }
           }
-        } else if (g == 1) {
+        } else if (v == 1) {
           l == null && (l = 1 / 256);
-          for (var Je = p.length & 3 ? null : new Float32Array(p.buffer), M = 0; M < d; M++) {
-            var N = M * k, P = M * f;
-            if (v == 1) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, X = p[N + (T >> 3)] >> 7 - (T & 7) & 1;
-              _[C] = _[C + 1] = _[C + 2] = X * 255, _[C + 3] = 255;
+          for (var Ke = _.length & 3 ? null : new Float32Array(_.buffer), M = 0; M < d; M++) {
+            var C = M * w, T = M * f;
+            if (g == 1) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, X = _[C + (P >> 3)] >> 7 - (P & 7) & 1;
+              p[N] = p[N + 1] = p[N + 2] = X * 255, p[N + 3] = 255;
             }
-            if (v == 2) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, X = p[N + (T >> 2)] >> 6 - 2 * (T & 3) & 3;
-              _[C] = _[C + 1] = _[C + 2] = X * 85, _[C + 3] = 255;
+            if (g == 2) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, X = _[C + (P >> 2)] >> 6 - 2 * (P & 3) & 3;
+              p[N] = p[N + 1] = p[N + 2] = X * 85, p[N + 3] = 255;
             }
-            if (v == 8) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, X = p[N + T * b];
-              _[C] = _[C + 1] = _[C + 2] = X, _[C + 3] = 255;
+            if (g == 8) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, X = _[C + P * k];
+              p[N] = p[N + 1] = p[N + 2] = X, p[N + 3] = 255;
             }
-            if (v == 16) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, _e = N + 2 * T, X = p[_e + 1] << 8 | p[_e];
-              _[C] = _[C + 1] = _[C + 2] = Math.min(255, ~~(X * l)), _[C + 3] = 255;
+            if (g == 16) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, fe = C + 2 * P, X = _[fe + 1] << 8 | _[fe];
+              p[N] = p[N + 1] = p[N + 2] = Math.min(255, ~~(X * l)), p[N + 3] = 255;
             }
-            if (v == 32) for (var T = 0; T < f; T++) {
-              var C = P + T << 2, _e = (N >>> 2) + T, X = Je[_e];
-              _[C] = _[C + 1] = _[C + 2] = ~~(0.5 + 255 * X), _[C + 3] = 255;
+            if (g == 32) for (var P = 0; P < f; P++) {
+              var N = T + P << 2, fe = (C >>> 2) + P, X = Ke[fe];
+              p[N] = p[N + 1] = p[N + 2] = ~~(0.5 + 255 * X), p[N + 3] = 255;
             }
           }
-        } else if (g == 2)
-          if (v == 8) {
-            if (b == 1) for (var T = 0; T < m; T++)
-              _[4 * T] = _[4 * T + 1] = _[4 * T + 2] = p[T], _[4 * T + 3] = 255;
-            if (b == 3) for (var T = 0; T < m; T++) {
-              var C = T << 2, Pe = T * 3;
-              _[C] = p[Pe], _[C + 1] = p[Pe + 1], _[C + 2] = p[Pe + 2], _[C + 3] = 255;
+        } else if (v == 2)
+          if (g == 8) {
+            if (k == 1) for (var P = 0; P < m; P++)
+              p[4 * P] = p[4 * P + 1] = p[4 * P + 2] = _[P], p[4 * P + 3] = 255;
+            if (k == 3) for (var P = 0; P < m; P++) {
+              var N = P << 2, Pe = P * 3;
+              p[N] = _[Pe], p[N + 1] = _[Pe + 1], p[N + 2] = _[Pe + 2], p[N + 3] = 255;
             }
-            if (b >= 4) for (var T = 0; T < m; T++) {
-              var C = T << 2, Pe = T * b;
-              _[C] = p[Pe], _[C + 1] = p[Pe + 1], _[C + 2] = p[Pe + 2], _[C + 3] = p[Pe + 3];
+            if (k >= 4) for (var P = 0; P < m; P++) {
+              var N = P << 2, Pe = P * k;
+              p[N] = _[Pe], p[N + 1] = _[Pe + 1], p[N + 2] = _[Pe + 2], p[N + 3] = _[Pe + 3];
             }
-          } else if (v == 16) {
-            if (b == 4) for (var T = 0; T < m; T++) {
-              var C = T << 2, Pe = T * 8 + 1;
-              _[C] = p[Pe], _[C + 1] = p[Pe + 2], _[C + 2] = p[Pe + 4], _[C + 3] = p[Pe + 6];
+          } else if (g == 16) {
+            if (k == 4) for (var P = 0; P < m; P++) {
+              var N = P << 2, Pe = P * 8 + 1;
+              p[N] = _[Pe], p[N + 1] = _[Pe + 2], p[N + 2] = _[Pe + 4], p[N + 3] = _[Pe + 6];
             }
-            if (b == 3) for (var T = 0; T < m; T++) {
-              var C = T << 2, Pe = T * 6 + 1;
-              _[C] = p[Pe], _[C + 1] = p[Pe + 2], _[C + 2] = p[Pe + 4], _[C + 3] = 255;
+            if (k == 3) for (var P = 0; P < m; P++) {
+              var N = P << 2, Pe = P * 6 + 1;
+              p[N] = _[Pe], p[N + 1] = _[Pe + 2], p[N + 2] = _[Pe + 4], p[N + 3] = 255;
             }
-          } else if (v == 32) {
-            for (var Ke = new Float32Array(p.buffer), Wt = 0, T = 0; T < Ke.length; T++) Wt = Math.min(Wt, Ke[T]);
-            if (Wt < 0) for (var T = 0; T < p.length; T += 4) {
-              var ee = p[T];
-              p[T] = p[T + 3], p[T + 3] = ee, ee = p[T + 1], p[T + 1] = p[T + 2], p[T + 2] = ee;
+          } else if (g == 32) {
+            for (var Je = new Float32Array(_.buffer), Wt = 0, P = 0; P < Je.length; P++) Wt = Math.min(Wt, Je[P]);
+            if (Wt < 0) for (var P = 0; P < _.length; P += 4) {
+              var ee = _[P];
+              _[P] = _[P + 3], _[P + 3] = ee, ee = _[P + 1], _[P + 1] = _[P + 2], _[P + 2] = ee;
             }
-            for (var We = [], T = 0; T < 65536; T++) We.push(h(T / 65535));
-            for (var T = 0; T < Ke.length; T++) {
-              var st = Math.max(0, Math.min(1, Ke[T]));
-              Ke[T] = We[~~(0.5 + st * 65535)];
+            for (var We = [], P = 0; P < 65536; P++) We.push(h(P / 65535));
+            for (var P = 0; P < Je.length; P++) {
+              var st = Math.max(0, Math.min(1, Je[P]));
+              Je[P] = We[~~(0.5 + st * 65535)];
             }
-            if (b == 3) for (var T = 0; T < m; T++) {
-              var C = T << 2, Pe = T * 3;
-              _[C] = ~~(0.5 + Ke[Pe] * 255), _[C + 1] = ~~(0.5 + Ke[Pe + 1] * 255), _[C + 2] = ~~(0.5 + Ke[Pe + 2] * 255), _[C + 3] = 255;
+            if (k == 3) for (var P = 0; P < m; P++) {
+              var N = P << 2, Pe = P * 3;
+              p[N] = ~~(0.5 + Je[Pe] * 255), p[N + 1] = ~~(0.5 + Je[Pe + 1] * 255), p[N + 2] = ~~(0.5 + Je[Pe + 2] * 255), p[N + 3] = 255;
             }
-            else if (b == 4) for (var T = 0; T < m; T++) {
-              var C = T << 2, Pe = T * 4;
-              _[C] = ~~(0.5 + Ke[Pe] * 255), _[C + 1] = ~~(0.5 + Ke[Pe + 1] * 255), _[C + 2] = ~~(0.5 + Ke[Pe + 2] * 255), _[C + 3] = ~~(0.5 + Ke[Pe + 3] * 255);
+            else if (k == 4) for (var P = 0; P < m; P++) {
+              var N = P << 2, Pe = P * 4;
+              p[N] = ~~(0.5 + Je[Pe] * 255), p[N + 1] = ~~(0.5 + Je[Pe + 1] * 255), p[N + 2] = ~~(0.5 + Je[Pe + 2] * 255), p[N + 3] = ~~(0.5 + Je[Pe + 3] * 255);
             }
-            else throw b;
-          } else throw v;
-        else if (g == 3)
-          for (var Xt = o.t320, Jt = 1 << v, Vt = v == 8 && b > 1 && o.t338 && o.t338[0] != 0, M = 0; M < d; M++)
+            else throw k;
+          } else throw g;
+        else if (v == 3)
+          for (var Xt = o.t320, Jt = 1 << g, Vt = g == 8 && k > 1 && o.t338 && o.t338[0] != 0, M = 0; M < d; M++)
             for (var it = 0; it < f; it++) {
-              var T = M * f + it, C = T << 2, Qt = 0, Ri = M * k;
-              if (v == 1) Qt = p[Ri + (it >>> 3)] >>> 7 - (it & 7) & 1;
-              else if (v == 2) Qt = p[Ri + (it >>> 2)] >>> 6 - 2 * (it & 3) & 3;
-              else if (v == 4) Qt = p[Ri + (it >>> 1)] >>> 4 - 4 * (it & 1) & 15;
-              else if (v == 8) Qt = p[Ri + it * b];
-              else throw v;
-              _[C] = Xt[Qt] >> 8, _[C + 1] = Xt[Jt + Qt] >> 8, _[C + 2] = Xt[Jt + Jt + Qt] >> 8, _[C + 3] = Vt ? p[Ri + it * b + 1] : 255;
+              var P = M * f + it, N = P << 2, Qt = 0, Ri = M * w;
+              if (g == 1) Qt = _[Ri + (it >>> 3)] >>> 7 - (it & 7) & 1;
+              else if (g == 2) Qt = _[Ri + (it >>> 2)] >>> 6 - 2 * (it & 3) & 3;
+              else if (g == 4) Qt = _[Ri + (it >>> 1)] >>> 4 - 4 * (it & 1) & 15;
+              else if (g == 8) Qt = _[Ri + it * k];
+              else throw g;
+              p[N] = Xt[Qt] >> 8, p[N + 1] = Xt[Jt + Qt] >> 8, p[N + 2] = Xt[Jt + Jt + Qt] >> 8, p[N + 3] = Vt ? _[Ri + it * k + 1] : 255;
             }
-        else if (g == 5)
-          for (var Ci = b > 4 ? 1 : 0, T = 0; T < m; T++) {
-            var C = T << 2, fe = T * b;
+        else if (v == 5)
+          for (var Ci = k > 4 ? 1 : 0, P = 0; P < m; P++) {
+            var N = P << 2, _e = P * k;
             if (window.UDOC) {
-              var Ge = p[fe], Kt = p[fe + 1], Ni = p[fe + 2], Di = p[fe + 3], Gi = UDOC.C.cmykToRgb([Ge * (1 / 255), Kt * (1 / 255), Ni * (1 / 255), Di * (1 / 255)]);
-              _[C] = ~~(0.5 + 255 * Gi[0]), _[C + 1] = ~~(0.5 + 255 * Gi[1]), _[C + 2] = ~~(0.5 + 255 * Gi[2]);
+              var Ge = _[_e], Kt = _[_e + 1], Ni = _[_e + 2], Di = _[_e + 3], Gi = UDOC.C.cmykToRgb([Ge * (1 / 255), Kt * (1 / 255), Ni * (1 / 255), Di * (1 / 255)]);
+              p[N] = ~~(0.5 + 255 * Gi[0]), p[N + 1] = ~~(0.5 + 255 * Gi[1]), p[N + 2] = ~~(0.5 + 255 * Gi[2]);
             } else {
-              var Ge = 255 - p[fe], Kt = 255 - p[fe + 1], Ni = 255 - p[fe + 2], Di = (255 - p[fe + 3]) * (1 / 255);
-              _[C] = ~~(Ge * Di + 0.5), _[C + 1] = ~~(Kt * Di + 0.5), _[C + 2] = ~~(Ni * Di + 0.5);
+              var Ge = 255 - _[_e], Kt = 255 - _[_e + 1], Ni = 255 - _[_e + 2], Di = (255 - _[_e + 3]) * (1 / 255);
+              p[N] = ~~(Ge * Di + 0.5), p[N + 1] = ~~(Kt * Di + 0.5), p[N + 2] = ~~(Ni * Di + 0.5);
             }
-            _[C + 3] = 255 * (1 - Ci) + p[fe + 4] * Ci;
+            p[N + 3] = 255 * (1 - Ci) + _[_e + 4] * Ci;
           }
-        else if (g == 6 && o.t278)
+        else if (v == 6 && o.t278)
           for (var Ki = o.t278[0], M = 0; M < d; M += Ki)
-            for (var T = M * f, Zn = Ki * f, Wi = 0; Wi < Zn; Wi++) {
-              var C = 4 * (T + Wi), fe = 3 * T + 4 * (Wi >>> 1), Ni = p[fe + (Wi & 1)], Vi = p[fe + 2] - 128, ta = p[fe + 3] - 128, ra = Ni + ((ta >> 2) + (ta >> 3) + (ta >> 5)), ia = Ni - ((Vi >> 2) + (Vi >> 4) + (Vi >> 5)) - ((ta >> 1) + (ta >> 3) + (ta >> 4) + (ta >> 5)), na = Ni + (Vi + (Vi >> 1) + (Vi >> 2) + (Vi >> 6));
-              _[C] = Math.max(0, Math.min(255, ra)), _[C + 1] = Math.max(0, Math.min(255, ia)), _[C + 2] = Math.max(0, Math.min(255, na)), _[C + 3] = 255;
+            for (var P = M * f, Zn = Ki * f, Wi = 0; Wi < Zn; Wi++) {
+              var N = 4 * (P + Wi), _e = 3 * P + 4 * (Wi >>> 1), Ni = _[_e + (Wi & 1)], Vi = _[_e + 2] - 128, ta = _[_e + 3] - 128, ra = Ni + ((ta >> 2) + (ta >> 3) + (ta >> 5)), ia = Ni - ((Vi >> 2) + (Vi >> 4) + (Vi >> 5)) - ((ta >> 1) + (ta >> 3) + (ta >> 4) + (ta >> 5)), na = Ni + (Vi + (Vi >> 1) + (Vi >> 2) + (Vi >> 6));
+              p[N] = Math.max(0, Math.min(255, ra)), p[N + 1] = Math.max(0, Math.min(255, ia)), p[N + 2] = Math.max(0, Math.min(255, na)), p[N + 3] = 255;
             }
-        else if (g == 32845)
+        else if (v == 32845)
           for (var M = 0; M < d; M++)
             for (var it = 0; it < f; it++) {
-              var fe = (M * f + it) * 6, C = (M * f + it) * 4, oa = p[fe + 1] << 8 | p[fe], oa = Math.pow(2, (oa + 0.5) / 256 - 64), Qn = (p[fe + 3] + 0.5) / 410, ha = (p[fe + 5] + 0.5) / 410, ca = 9 * Qn / (6 * Qn - 16 * ha + 12), la = 4 * ha / (6 * Qn - 16 * ha + 12), ua = oa, pa = ca * ua / la, Ni = ua, _a = (1 - ca - la) * ua / la, ra = 2.69 * pa - 1.276 * Ni - 0.414 * _a, ia = -1.022 * pa + 1.978 * Ni + 0.044 * _a, na = 0.061 * pa - 0.224 * Ni + 1.163 * _a;
-              _[C] = h(Math.min(ra, 1)) * 255, _[C + 1] = h(Math.min(ia, 1)) * 255, _[C + 2] = h(Math.min(na, 1)) * 255, _[C + 3] = 255;
+              var _e = (M * f + it) * 6, N = (M * f + it) * 4, oa = _[_e + 1] << 8 | _[_e], oa = Math.pow(2, (oa + 0.5) / 256 - 64), Qn = (_[_e + 3] + 0.5) / 410, ha = (_[_e + 5] + 0.5) / 410, ca = 9 * Qn / (6 * Qn - 16 * ha + 12), la = 4 * ha / (6 * Qn - 16 * ha + 12), ua = oa, pa = ca * ua / la, Ni = ua, _a = (1 - ca - la) * ua / la, ra = 2.69 * pa - 1.276 * Ni - 0.414 * _a, ia = -1.022 * pa + 1.978 * Ni + 0.044 * _a, na = 0.061 * pa - 0.224 * Ni + 1.163 * _a;
+              p[N] = h(Math.min(ra, 1)) * 255, p[N + 1] = h(Math.min(ia, 1)) * 255, p[N + 2] = h(Math.min(na, 1)) * 255, p[N + 3] = 255;
             }
-        else n("Unknown Photometric interpretation: " + g);
-        return _;
+        else n("Unknown Photometric interpretation: " + v);
+        return p;
       }, a.replaceIMG = function(o) {
         o == null && (o = document.getElementsByTagName("img"));
         for (var l = ["tif", "tiff", "dng", "cr2", "nef"], h = 0; h < o.length; h++) {
@@ -31486,8 +31710,8 @@ function requirePako() {
           if (d != null) {
             var m = d.split(".").pop().toLowerCase();
             if (l.indexOf(m) != -1) {
-              var p = new XMLHttpRequest();
-              a._xhrs.push(p), a._imgs.push(f), p.open("GET", d), p.responseType = "arraybuffer", p.onload = a._imgLoaded, p.send();
+              var _ = new XMLHttpRequest();
+              a._xhrs.push(_), a._imgs.push(f), _.open("GET", d), _.responseType = "arraybuffer", _.onload = a._imgLoaded, _.send();
             }
           }
         }
@@ -31498,17 +31722,17 @@ function requirePako() {
         var l = a.decode(o), h = l, f = 0, d = h[0];
         l[0].subIFD && (h = h.concat(l[0].subIFD));
         for (var m = 0; m < h.length; m++) {
-          var p = h[m];
-          if (!(p.t258 == null || p.t258.length < 3)) {
-            var _ = p.t256 * p.t257;
-            _ > f && (f = _, d = p);
+          var _ = h[m];
+          if (!(_.t258 == null || _.t258.length < 3)) {
+            var p = _.t256 * _.t257;
+            p > f && (f = p, d = _);
           }
         }
         a.decodeImage(o, d, l);
-        var g = a.toRGBA8(d), v = d.width, b = d.height, w = document.createElement("canvas");
-        w.width = v, w.height = b;
-        var k = w.getContext("2d"), M = new ImageData(new Uint8ClampedArray(g.buffer), v, b);
-        return k.putImageData(M, 0, 0), w.toDataURL();
+        var v = a.toRGBA8(d), g = d.width, k = d.height, b = document.createElement("canvas");
+        b.width = g, b.height = k;
+        var w = b.getContext("2d"), M = new ImageData(new Uint8ClampedArray(v.buffer), g, k);
+        return w.putImageData(M, 0, 0), b.toDataURL();
       }, a._binBE = {
         nextZero: function(o, l) {
           for (; o[l] != 0; ) l++;
@@ -31595,9 +31819,9 @@ function requirePako() {
           o[l] = h >>> 0 & 255, o[l + 1] = h >>> 8 & 255, o[l + 2] = h >>> 16 & 255, o[l + 3] = h >>> 24 & 255;
         },
         writeASCII: a._binBE.writeASCII
-      }, a._copyTile = function(o, l, h, f, d, m, p, _) {
-        for (var g = Math.min(l, d - p), v = Math.min(h, m - _), b = 0; b < v; b++)
-          for (var w = (_ + b) * d + p, k = b * l, M = 0; M < g; M++) f[w + M] = o[k + M];
+      }, a._copyTile = function(o, l, h, f, d, m, _, p) {
+        for (var v = Math.min(l, d - _), g = Math.min(h, m - p), k = 0; k < g; k++)
+          for (var b = (p + k) * d + _, w = k * l, M = 0; M < v; M++) f[b + M] = o[w + M];
       }, a.LosslessJpegDecode = /* @__PURE__ */ function() {
         var o, l;
         function h() {
@@ -31606,91 +31830,91 @@ function requirePako() {
         function f() {
           return o[l++] << 8 | o[l++];
         }
-        function d(T) {
-          for (var C = h(), X = [0, 0, 0, 255], _e = [], Je = 8, Pe = 0; Pe < 16; Pe++) _e[Pe] = h();
+        function d(P) {
+          for (var N = h(), X = [0, 0, 0, 255], fe = [], Ke = 8, Pe = 0; Pe < 16; Pe++) fe[Pe] = h();
           for (var Pe = 0; Pe < 16; Pe++)
-            for (var Ke = 0; Ke < _e[Pe]; Ke++) {
+            for (var Je = 0; Je < fe[Pe]; Je++) {
               var Wt = m(X, 0, Pe + 1, 1);
               X[Wt + 3] = h();
             }
-          var ee = new Uint8Array(1 << Je);
-          T[C] = [new Uint8Array(X), ee];
-          for (var Pe = 0; Pe < 1 << Je; Pe++) {
-            for (var We = Je, st = Pe, Xt = 0, Jt = 0; X[Xt + 3] == 255 && We != 0; )
+          var ee = new Uint8Array(1 << Ke);
+          P[N] = [new Uint8Array(X), ee];
+          for (var Pe = 0; Pe < 1 << Ke; Pe++) {
+            for (var We = Ke, st = Pe, Xt = 0, Jt = 0; X[Xt + 3] == 255 && We != 0; )
               Jt = st >> --We & 1, Xt = X[Xt + Jt];
             ee[Pe] = Xt;
           }
         }
-        function m(T, C, X, _e) {
-          if (T[C + 3] != 255) return 0;
-          if (X == 0) return C;
-          for (var Je = 0; Je < 2; Je++) {
-            T[C + Je] == 0 && (T[C + Je] = T.length, T.push(0, 0, _e, 255));
-            var Pe = m(T, T[C + Je], X - 1, _e + 1);
+        function m(P, N, X, fe) {
+          if (P[N + 3] != 255) return 0;
+          if (X == 0) return N;
+          for (var Ke = 0; Ke < 2; Ke++) {
+            P[N + Ke] == 0 && (P[N + Ke] = P.length, P.push(0, 0, fe, 255));
+            var Pe = m(P, P[N + Ke], X - 1, fe + 1);
             if (Pe != 0) return Pe;
           }
           return 0;
         }
-        function p(T) {
-          for (var C = T.b, X = T.f; C < 25 && T.a < T.d; ) {
-            var _e = T.data[T.a++];
-            _e == 255 && !T.c && T.a++, X = X << 8 | _e, C += 8;
+        function _(P) {
+          for (var N = P.b, X = P.f; N < 25 && P.a < P.d; ) {
+            var fe = P.data[P.a++];
+            fe == 255 && !P.c && P.a++, X = X << 8 | fe, N += 8;
           }
-          if (C < 0) throw "e";
-          T.b = C, T.f = X;
+          if (N < 0) throw "e";
+          P.b = N, P.f = X;
         }
-        function _(T, C) {
-          return C.b < T && p(C), C.f >> (C.b -= T) & 65535 >> 16 - T;
+        function p(P, N) {
+          return N.b < P && _(N), N.f >> (N.b -= P) & 65535 >> 16 - P;
         }
-        function g(T, C) {
-          var X = T[0], _e = 0, Je = 255, Pe = 0;
-          C.b < 16 && p(C);
-          var Ke = C.f >> C.b - 8 & 255;
-          for (_e = T[1][Ke], Je = X[_e + 3], C.b -= X[_e + 2]; Je == 255; )
-            Pe = C.f >> --C.b & 1, _e = X[_e + Pe], Je = X[_e + 3];
-          return Je;
+        function v(P, N) {
+          var X = P[0], fe = 0, Ke = 255, Pe = 0;
+          N.b < 16 && _(N);
+          var Je = N.f >> N.b - 8 & 255;
+          for (fe = P[1][Je], Ke = X[fe + 3], N.b -= X[fe + 2]; Ke == 255; )
+            Pe = N.f >> --N.b & 1, fe = X[fe + Pe], Ke = X[fe + 3];
+          return Ke;
         }
-        function v(T, C) {
-          return T < 32768 >> 16 - C && (T += -(1 << C) + 1), T;
+        function g(P, N) {
+          return P < 32768 >> 16 - N && (P += -(1 << N) + 1), P;
         }
-        function b(T, C) {
-          var X = g(T, C);
+        function k(P, N) {
+          var X = v(P, N);
           if (X == 0) return 0;
           if (X == 16) return -32768;
-          var _e = _(X, C);
-          return v(_e, X);
+          var fe = p(X, N);
+          return g(fe, X);
         }
-        function w(T, C, X, _e, Je, Pe) {
-          for (var Ke = 0, Wt = 0; Wt < Pe; Wt++) {
-            for (var ee = Wt * C, We = 0; We < C; We += Je) {
-              Ke++;
-              for (var st = 0; st < Je; st++) T[ee + We + st] = b(_e[st], X);
+        function b(P, N, X, fe, Ke, Pe) {
+          for (var Je = 0, Wt = 0; Wt < Pe; Wt++) {
+            for (var ee = Wt * N, We = 0; We < N; We += Ke) {
+              Je++;
+              for (var st = 0; st < Ke; st++) P[ee + We + st] = k(fe[st], X);
             }
-            if (X.e != 0 && Ke % X.e == 0 && Wt != 0) {
+            if (X.e != 0 && Je % X.e == 0 && Wt != 0) {
               for (var Xt = X.a, Jt = X.data; Jt[Xt] != 255 || !(208 <= Jt[Xt + 1] && Jt[Xt + 1] <= 215); ) Xt--;
               X.a = Xt + 2, X.f = 0, X.b = 0;
             }
           }
         }
-        function k(T, C) {
-          return v(_(T, C), T);
+        function w(P, N) {
+          return g(p(P, N), P);
         }
-        function M(T, C, X, _e, Je) {
-          for (var Pe = o.length - l, Ke = 0; Ke < Pe; Ke += 4) {
-            var Wt = o[l + Ke];
-            o[l + Ke] = o[l + Ke + 3], o[l + Ke + 3] = Wt;
-            var Wt = o[l + Ke + 1];
-            o[l + Ke + 1] = o[l + Ke + 2], o[l + Ke + 2] = Wt;
+        function M(P, N, X, fe, Ke) {
+          for (var Pe = o.length - l, Je = 0; Je < Pe; Je += 4) {
+            var Wt = o[l + Je];
+            o[l + Je] = o[l + Je + 3], o[l + Je + 3] = Wt;
+            var Wt = o[l + Je + 1];
+            o[l + Je + 1] = o[l + Je + 2], o[l + Je + 2] = Wt;
           }
-          for (var ee = 0; ee < Je; ee++)
-            for (var We = 32768, st = 32768, Xt = 0; Xt < C; Xt += 2) {
-              var Jt = g(_e, X), Vt = g(_e, X);
-              Jt != 0 && (We += k(Jt, X)), Vt != 0 && (st += k(Vt, X)), T[ee * C + Xt] = We & 65535, T[ee * C + Xt + 1] = st & 65535;
+          for (var ee = 0; ee < Ke; ee++)
+            for (var We = 32768, st = 32768, Xt = 0; Xt < N; Xt += 2) {
+              var Jt = v(fe, X), Vt = v(fe, X);
+              Jt != 0 && (We += w(Jt, X)), Vt != 0 && (st += w(Vt, X)), P[ee * N + Xt] = We & 65535, P[ee * N + Xt + 1] = st & 65535;
             }
         }
-        function N(T) {
-          if (o = T, l = 0, f() != 65496) throw "e";
-          for (var C = [], X = 0, _e = 0, Je = 0, Pe = [], Ke = [], Wt = [], ee = 0, We = 0, st = 0; ; ) {
+        function C(P) {
+          if (o = P, l = 0, f() != 65496) throw "e";
+          for (var N = [], X = 0, fe = 0, Ke = 0, Pe = [], Je = [], Wt = [], ee = 0, We = 0, st = 0; ; ) {
             var Xt = f();
             if (Xt == 65535) {
               l--;
@@ -31698,25 +31922,25 @@ function requirePako() {
             }
             var Jt = f();
             if (Xt == 65475) {
-              _e = h(), We = f(), st = f(), ee = h();
+              fe = h(), We = f(), st = f(), ee = h();
               for (var Vt = 0; Vt < ee; Vt++) {
                 var it = h(), Qt = h(), Ri = h();
                 if (Ri != 0) throw "e";
-                C[it] = [Vt, Qt >> 4, Qt & 15];
+                N[it] = [Vt, Qt >> 4, Qt & 15];
               }
             } else if (Xt == 65476)
-              for (var Ci = l + Jt - 2; l < Ci; ) d(Ke);
+              for (var Ci = l + Jt - 2; l < Ci; ) d(Je);
             else if (Xt == 65498) {
               l++;
               for (var Vt = 0; Vt < ee; Vt++) {
-                var fe = h(), Ge = C[fe];
-                Wt[Ge[0]] = Ke[h() >>> 4], Pe[Ge[0]] = Ge.slice(1);
+                var _e = h(), Ge = N[_e];
+                Wt[Ge[0]] = Je[h() >>> 4], Pe[Ge[0]] = Ge.slice(1);
               }
               X = h(), l += 2;
               break;
-            } else Xt == 65501 ? Je = f() : l += Jt - 2;
+            } else Xt == 65501 ? Ke = f() : l += Jt - 2;
           }
-          var Kt = _e > 8 ? Uint16Array : Uint8Array, Ni = new Kt(We * st * ee), Di = { b: 0, f: 0, c: X == 8, a: l, data: o, d: o.length, e: Je };
+          var Kt = fe > 8 ? Uint16Array : Uint8Array, Ni = new Kt(We * st * ee), Di = { b: 0, f: 0, c: X == 8, a: l, data: o, d: o.length, e: Ke };
           if (Di.c) M(Ni, st * ee, Di, Wt[0], We);
           else {
             for (var Gi = [], Ki = 0, Zn = 0, Vt = 0; Vt < ee; Vt++) {
@@ -31730,19 +31954,19 @@ function requirePako() {
                 ia += Gi[Vt];
               }
               var oa = st / Ki, Qn = We / Zn, ha = oa * Qn;
-              w(Ni, oa * ia, Di, ra, ia, Qn), P(Ni, X, oa, Qn, ia - 2, ia, ia, _e);
+              b(Ni, oa * ia, Di, ra, ia, Qn), T(Ni, X, oa, Qn, ia - 2, ia, ia, fe);
               var ca = new Uint16Array(ha * Gi[0]);
               if (Ki == 2 && Zn == 2) {
                 for (var Vt = 0; Vt < ha; Vt++)
                   ca[4 * Vt] = Ni[6 * Vt], ca[4 * Vt + 1] = Ni[6 * Vt + 1], ca[4 * Vt + 2] = Ni[6 * Vt + 2], ca[4 * Vt + 3] = Ni[6 * Vt + 3];
-                P(ca, X, oa * 4, Qn, 0, 1, 1, _e);
+                T(ca, X, oa * 4, Qn, 0, 1, 1, fe);
                 for (var Vt = 0; Vt < ha; Vt++)
                   Ni[6 * Vt] = ca[4 * Vt], Ni[6 * Vt + 1] = ca[4 * Vt + 1], Ni[6 * Vt + 2] = ca[4 * Vt + 2], Ni[6 * Vt + 3] = ca[4 * Vt + 3];
               }
               if (Ki == 2 && Zn == 1) {
                 for (var Vt = 0; Vt < ha; Vt++)
                   ca[2 * Vt] = Ni[4 * Vt], ca[2 * Vt + 1] = Ni[4 * Vt + 1];
-                P(ca, X, oa * 2, Qn, 0, 1, 1, _e);
+                T(ca, X, oa * 2, Qn, 0, 1, 1, fe);
                 for (var Vt = 0; Vt < ha; Vt++)
                   Ni[4 * Vt] = ca[2 * Vt], Ni[4 * Vt + 1] = ca[2 * Vt + 1];
               }
@@ -31755,98 +31979,98 @@ function requirePako() {
                   var ua = (ta * st + Vi) * ee, pa = (ta * oa + (Vi >>> 1)) * ia, _a = Vi & 1;
                   Ni[ua] = la[pa + _a], Ni[ua + 1] = la[pa + 2], Ni[ua + 2] = la[pa + 3];
                 }
-            } else if (w(Ni, st * ee, Di, Wt, ee, We), Je == 0) P(Ni, X, st, We, 0, ee, ee, _e);
+            } else if (b(Ni, st * ee, Di, Wt, ee, We), Ke == 0) T(Ni, X, st, We, 0, ee, ee, fe);
             else
-              for (var ji = Math.floor(Je / st), ta = 0; ta < We; ta += ji) {
+              for (var ji = Math.floor(Ke / st), ta = 0; ta < We; ta += ji) {
                 var Zi = Ni.slice(ta * st * ee, (ta + ji) * st * ee);
-                P(Zi, X, st, ji, 0, ee, ee, _e), Ni.set(Zi, ta * st * ee);
+                T(Zi, X, st, ji, 0, ee, ee, fe), Ni.set(Zi, ta * st * ee);
               }
           }
           return Ni;
         }
-        function P(T, C, X, _e, Je, Pe, Ke, Wt) {
-          for (var ee = X * Ke, We = Je; We < Pe; We++) T[We] += 1 << Wt - 1;
-          for (var st = Ke; st < ee; st += Ke) for (var We = Je; We < Pe; We++) T[st + We] += T[st + We - Ke];
-          for (var Xt = 1; Xt < _e; Xt++) {
-            for (var Jt = Xt * ee, We = Je; We < Pe; We++) T[Jt + We] += T[Jt + We - ee];
-            for (var st = Ke; st < ee; st += Ke)
-              for (var We = Je; We < Pe; We++) {
-                var Vt = Jt + st + We, it = Vt - ee, Qt = T[Vt - Ke], Ri = 0;
-                if (C == 0) Ri = 0;
-                else if (C == 1) Ri = Qt;
-                else if (C == 2) Ri = T[it];
-                else if (C == 3) Ri = T[it - Ke];
-                else if (C == 4) Ri = Qt + (T[it] - T[it - Ke]);
-                else if (C == 5) Ri = Qt + (T[it] - T[it - Ke] >>> 1);
-                else if (C == 6) Ri = T[it] + (Qt - T[it - Ke] >>> 1);
-                else if (C == 7) Ri = Qt + T[it] >>> 1;
-                else throw C;
-                T[Vt] += Ri;
+        function T(P, N, X, fe, Ke, Pe, Je, Wt) {
+          for (var ee = X * Je, We = Ke; We < Pe; We++) P[We] += 1 << Wt - 1;
+          for (var st = Je; st < ee; st += Je) for (var We = Ke; We < Pe; We++) P[st + We] += P[st + We - Je];
+          for (var Xt = 1; Xt < fe; Xt++) {
+            for (var Jt = Xt * ee, We = Ke; We < Pe; We++) P[Jt + We] += P[Jt + We - ee];
+            for (var st = Je; st < ee; st += Je)
+              for (var We = Ke; We < Pe; We++) {
+                var Vt = Jt + st + We, it = Vt - ee, Qt = P[Vt - Je], Ri = 0;
+                if (N == 0) Ri = 0;
+                else if (N == 1) Ri = Qt;
+                else if (N == 2) Ri = P[it];
+                else if (N == 3) Ri = P[it - Je];
+                else if (N == 4) Ri = Qt + (P[it] - P[it - Je]);
+                else if (N == 5) Ri = Qt + (P[it] - P[it - Je] >>> 1);
+                else if (N == 6) Ri = P[it] + (Qt - P[it - Je] >>> 1);
+                else if (N == 7) Ri = Qt + P[it] >>> 1;
+                else throw N;
+                P[Vt] += Ri;
               }
           }
         }
-        return N;
+        return C;
       }(), function() {
-        var o = 0, l = 1, h = 2, f = 3, d = 4, m = 5, p = 6, _ = 7, g = 8, v = 9, b = 10, w = 11, k = 12, M = 13, N = 14, P = 15, T = 16, C = 17, X = 18;
-        function _e(fe) {
-          var Ge = a._binBE.readUshort, Kt = { b: Ge(fe, 0), i: fe[2], C: fe[3], u: fe[4], q: Ge(fe, 5), k: Ge(fe, 7), e: Ge(fe, 9), l: Ge(fe, 11), s: fe[13], d: Ge(fe, 14) };
+        var o = 0, l = 1, h = 2, f = 3, d = 4, m = 5, _ = 6, p = 7, v = 8, g = 9, k = 10, b = 11, w = 12, M = 13, C = 14, T = 15, P = 16, N = 17, X = 18;
+        function fe(_e) {
+          var Ge = a._binBE.readUshort, Kt = { b: Ge(_e, 0), i: _e[2], C: _e[3], u: _e[4], q: Ge(_e, 5), k: Ge(_e, 7), e: Ge(_e, 9), l: Ge(_e, 11), s: _e[13], d: Ge(_e, 14) };
           if (Kt.b != 18771 || Kt.i > 1 || Kt.q < 6 || Kt.q % 6 || Kt.e < 768 || Kt.e % 24 || Kt.l != 768 || Kt.k < Kt.l || Kt.k % Kt.l || Kt.k - Kt.e >= Kt.l || Kt.s > 16 || Kt.s != Kt.k / Kt.l || Kt.s != Math.ceil(Kt.e / Kt.l) || Kt.d != Kt.q / 6 || Kt.u != 12 && Kt.u != 14 && Kt.u != 16 || Kt.C != 16 && Kt.C != 0)
             throw "Invalid data";
           if (Kt.i == 0)
             throw "Not implemented. We need this file!";
           return Kt.h = Kt.C == 16, Kt.m = (Kt.h ? Kt.l * 2 / 3 : Kt.l >>> 1) | 0, Kt.A = Kt.m + 2, Kt.f = 64, Kt.g = (1 << Kt.u) - 1, Kt.n = 4 * Kt.u, Kt;
         }
-        function Je(fe, Ge) {
+        function Ke(_e, Ge) {
           var Kt = new Array(Ge.s), Ni = 4 * Ge.s, Di = 16 + Ni;
           Ni & 12 && (Di += 16 - (Ni & 12));
           for (var Gi = 0, Ki = 16; Gi < Ge.s; Ki += 4) {
-            var Zn = a._binBE.readUint(fe, Ki);
-            Kt[Gi] = fe.slice(Di, Di + Zn), Kt[Gi].j = 0, Kt[Gi].a = 0, Di += Zn, Gi++;
+            var Zn = a._binBE.readUint(_e, Ki);
+            Kt[Gi] = _e.slice(Di, Di + Zn), Kt[Gi].j = 0, Kt[Gi].a = 0, Di += Zn, Gi++;
           }
-          if (Di != fe.length) throw "Invalid data";
+          if (Di != _e.length) throw "Invalid data";
           return Kt;
         }
-        function Pe(fe, Ge) {
+        function Pe(_e, Ge) {
           for (var Kt = -Ge[4], Ni = 0; Kt <= Ge[4]; Ni++, Kt++)
-            fe[Ni] = Kt <= -276 ? -4 : Kt <= -67 ? -3 : Kt <= -18 ? -2 : Kt < -0 ? -1 : Kt <= Ge[0] ? 0 : Kt < Ge[1] ? 1 : Kt < Ge[2] ? 2 : Kt < Ge[3] ? 3 : 4;
+            _e[Ni] = Kt <= -276 ? -4 : Kt <= -67 ? -3 : Kt <= -18 ? -2 : Kt < -0 ? -1 : Kt <= Ge[0] ? 0 : Kt < Ge[1] ? 1 : Kt < Ge[2] ? 2 : Kt < Ge[3] ? 3 : 4;
         }
-        function Ke(fe, Ge, Kt) {
+        function Je(_e, Ge, Kt) {
           var Ni = [Ge, 3 * Ge + 18, 5 * Ge + 67, 7 * Ge + 276, Kt];
-          fe.o = Ge, fe.w = (Ni[4] + 2 * Ge) / (2 * Ge + 1) + 1 | 0, fe.v = Math.ceil(Math.log2(fe.w)), fe.t = 9, Pe(fe.c, Ni);
+          _e.o = Ge, _e.w = (Ni[4] + 2 * Ge) / (2 * Ge + 1) + 1 | 0, _e.v = Math.ceil(Math.log2(_e.w)), _e.t = 9, Pe(_e.c, Ni);
         }
-        function Wt(fe) {
-          var Ge = { c: new Int8Array(2 << fe.u) };
-          return Ke(Ge, 0, fe.g), Ge;
+        function Wt(_e) {
+          var Ge = { c: new Int8Array(2 << _e.u) };
+          return Je(Ge, 0, _e.g), Ge;
         }
-        function ee(fe) {
-          for (var Ge = [[], [], []], Kt = Math.max(2, fe.w + 32 >>> 6), Ni = 0; Ni < 3; Ni++)
+        function ee(_e) {
+          for (var Ge = [[], [], []], Kt = Math.max(2, _e.w + 32 >>> 6), Ni = 0; Ni < 3; Ni++)
             for (var Di = 0; Di < 41; Di++)
               Ge[Ni][Di] = [Kt, 1];
           return Ge;
         }
-        function We(fe) {
+        function We(_e) {
           for (var Ge = -1, Kt = 0; !Kt; Ge++)
-            Kt = fe[fe.j] >>> 7 - fe.a & 1, fe.a++, fe.a &= 7, fe.a || fe.j++;
+            Kt = _e[_e.j] >>> 7 - _e.a & 1, _e.a++, _e.a &= 7, _e.a || _e.j++;
           return Ge;
         }
-        function st(fe, Ge) {
-          var Kt = 0, Ni = 8 - fe.a;
-          if (fe.j, fe.a, Ge) {
+        function st(_e, Ge) {
+          var Kt = 0, Ni = 8 - _e.a;
+          if (_e.j, _e.a, Ge) {
             if (Ge >= Ni)
               do
-                Kt <<= Ni, Ge -= Ni, Kt |= fe[fe.j] & (1 << Ni) - 1, fe.j++, Ni = 8;
+                Kt <<= Ni, Ge -= Ni, Kt |= _e[_e.j] & (1 << Ni) - 1, _e.j++, Ni = 8;
               while (Ge >= 8);
-            Ge && (Kt <<= Ge, Ni -= Ge, Kt |= fe[fe.j] >>> Ni & (1 << Ge) - 1), fe.a = 8 - Ni;
+            Ge && (Kt <<= Ge, Ni -= Ge, Kt |= _e[_e.j] >>> Ni & (1 << Ge) - 1), _e.a = 8 - Ni;
           }
           return Kt;
         }
-        function Xt(fe, Ge) {
+        function Xt(_e, Ge) {
           var Kt = 0;
-          if (Ge < fe)
-            for (; Kt <= 14 && Ge << ++Kt < fe; ) ;
+          if (Ge < _e)
+            for (; Kt <= 14 && Ge << ++Kt < _e; ) ;
           return Kt;
         }
-        function Jt(fe, Ge, Kt, Ni, Di, Gi, Ki, Zn) {
+        function Jt(_e, Ge, Kt, Ni, Di, Gi, Ki, Zn) {
           Zn == null && (Zn = 0);
           var Wi = Gi + 1, Vi = Wi % 2, ta = 0, ra, ia, na = Ni[Di], oa = Ni[Di - 1], Qn = Ni[Di - 2][Wi], ha = oa[Wi - 1], ca = oa[Wi], la = oa[Wi + 1], ua = na[Wi - 1], pa = na[Wi + 1], _a = Math.abs, ji, Zi, Qi, Ji;
           if (Vi && (ji = _a(la - ca), Zi = _a(Qn - ca), Qi = _a(ha - ca)), Vi) {
@@ -31854,50 +32078,50 @@ function requirePako() {
               na[Wi] = Ji;
               return;
             }
-            ra = Ge.t * Ge.c[fe.g + ca - Qn] + Ge.c[fe.g + ha - ca];
+            ra = Ge.t * Ge.c[_e.g + ca - Qn] + Ge.c[_e.g + ha - ca];
           } else
-            Ji = ca > ha && ca > la || ca < ha && ca < la ? pa + ua + 2 * ca >>> 2 : ua + pa >>> 1, ra = Ge.t * Ge.c[fe.g + ca - ha] + Ge.c[fe.g + ha - ua];
+            Ji = ca > ha && ca > la || ca < ha && ca < la ? pa + ua + 2 * ca >>> 2 : ua + pa >>> 1, ra = Ge.t * Ge.c[_e.g + ca - ha] + Ge.c[_e.g + ha - ua];
           ia = _a(ra);
           var aa = We(Kt);
-          if (aa < fe.n - Ge.v - 1) {
+          if (aa < _e.n - Ge.v - 1) {
             var Ti = Xt(Ki[ia][0], Ki[ia][1]);
             ta = st(Kt, Ti) + (aa << Ti);
           } else
             ta = st(Kt, Ge.v) + 1;
-          ta = ta & 1 ? -1 - (ta >>> 1) : ta >>> 1, Ki[ia][0] += _a(ta), Ki[ia][1] == fe.f && (Ki[ia][0] >>>= 1, Ki[ia][1] >>>= 1), Ki[ia][1]++, Ji = ra < 0 ? Ji - ta : Ji + ta, fe.i && (Ji < 0 ? Ji += Ge.w : Ji > fe.g && (Ji -= Ge.w)), na[Wi] = Ji >= 0 ? Math.min(Ji, fe.g) : 0;
+          ta = ta & 1 ? -1 - (ta >>> 1) : ta >>> 1, Ki[ia][0] += _a(ta), Ki[ia][1] == _e.f && (Ki[ia][0] >>>= 1, Ki[ia][1] >>>= 1), Ki[ia][1]++, Ji = ra < 0 ? Ji - ta : Ji + ta, _e.i && (Ji < 0 ? Ji += Ge.w : Ji > _e.g && (Ji -= Ge.w)), na[Wi] = Ji >= 0 ? Math.min(Ji, _e.g) : 0;
         }
-        function Vt(fe, Ge, Kt) {
-          for (var Ni = fe[0].length, Di = Ge; Di <= Kt; Di++)
-            fe[Di][0] = fe[Di - 1][1], fe[Di][Ni - 1] = fe[Di - 1][Ni - 2];
+        function Vt(_e, Ge, Kt) {
+          for (var Ni = _e[0].length, Di = Ge; Di <= Kt; Di++)
+            _e[Di][0] = _e[Di - 1][1], _e[Di][Ni - 1] = _e[Di - 1][Ni - 2];
         }
-        function it(fe) {
-          Vt(fe, _, k), Vt(fe, h, d), Vt(fe, P, C);
+        function it(_e) {
+          Vt(_e, p, w), Vt(_e, h, d), Vt(_e, T, N);
         }
-        function Qt(fe, Ge, Kt, Ni, Di, Gi, Ki, Zn, Wi, Vi, ta, ra, ia) {
-          for (var na = 0, oa = 1, Qn = Di < M && Di > d; oa < fe.m; )
-            na < fe.m && (Jt(fe, Ge, Kt, Ni, Di, na, Ki[Wi], fe.h && (Qn && Vi || !Qn && (ta || (na & ra) == ia))), Jt(fe, Ge, Kt, Ni, Gi, na, Ki[Wi], fe.h && (!Qn && Vi || Qn && (ta || (na & ra) == ia))), na += 2), na > 8 && (Jt(fe, Ge, Kt, Ni, Di, oa, Zn[Wi]), Jt(fe, Ge, Kt, Ni, Gi, oa, Zn[Wi]), oa += 2);
+        function Qt(_e, Ge, Kt, Ni, Di, Gi, Ki, Zn, Wi, Vi, ta, ra, ia) {
+          for (var na = 0, oa = 1, Qn = Di < M && Di > d; oa < _e.m; )
+            na < _e.m && (Jt(_e, Ge, Kt, Ni, Di, na, Ki[Wi], _e.h && (Qn && Vi || !Qn && (ta || (na & ra) == ia))), Jt(_e, Ge, Kt, Ni, Gi, na, Ki[Wi], _e.h && (!Qn && Vi || Qn && (ta || (na & ra) == ia))), na += 2), na > 8 && (Jt(_e, Ge, Kt, Ni, Di, oa, Zn[Wi]), Jt(_e, Ge, Kt, Ni, Gi, oa, Zn[Wi]), oa += 2);
           it(Ni);
         }
-        function Ri(fe, Ge, Kt, Ni, Di, Gi) {
-          Qt(fe, Ge, Kt, Ni, h, _, Di, Gi, 0, 0, 1, 0, 8), Qt(fe, Ge, Kt, Ni, g, P, Di, Gi, 1, 0, 1, 0, 8), Qt(fe, Ge, Kt, Ni, f, v, Di, Gi, 2, 1, 0, 3, 0), Qt(fe, Ge, Kt, Ni, b, T, Di, Gi, 0, 0, 0, 3, 2), Qt(fe, Ge, Kt, Ni, d, w, Di, Gi, 1, 0, 0, 3, 2), Qt(fe, Ge, Kt, Ni, k, C, Di, Gi, 2, 1, 0, 3, 0);
+        function Ri(_e, Ge, Kt, Ni, Di, Gi) {
+          Qt(_e, Ge, Kt, Ni, h, p, Di, Gi, 0, 0, 1, 0, 8), Qt(_e, Ge, Kt, Ni, v, T, Di, Gi, 1, 0, 1, 0, 8), Qt(_e, Ge, Kt, Ni, f, g, Di, Gi, 2, 1, 0, 3, 0), Qt(_e, Ge, Kt, Ni, k, P, Di, Gi, 0, 0, 0, 3, 2), Qt(_e, Ge, Kt, Ni, d, b, Di, Gi, 1, 0, 0, 3, 2), Qt(_e, Ge, Kt, Ni, w, N, Di, Gi, 2, 1, 0, 3, 0);
         }
-        function Ci(fe, Ge, Kt, Ni, Di, Gi) {
-          var Ki = Gi.length, Zn = fe.l;
-          Di + 1 == fe.s && (Zn = fe.e - Di * fe.l);
-          for (var Wi = 6 * fe.e * Ni + Di * fe.l, Vi = 0; Vi < 6; Vi++) {
+        function Ci(_e, Ge, Kt, Ni, Di, Gi) {
+          var Ki = Gi.length, Zn = _e.l;
+          Di + 1 == _e.s && (Zn = _e.e - Di * _e.l);
+          for (var Wi = 6 * _e.e * Ni + Di * _e.l, Vi = 0; Vi < 6; Vi++) {
             for (var ta = 0; ta < Zn; ta++) {
               var ra = Gi[Vi % Ki][ta % Ki], ia;
-              ra == 0 ? ia = h + (Vi >>> 1) : ra == 2 ? ia = P + (Vi >>> 1) : ia = _ + Vi;
-              var na = fe.h ? (ta * 2 / 3 & 2147483646 | ta % 3 & 1) + (ta % 3 >>> 1) : ta >>> 1;
+              ra == 0 ? ia = h + (Vi >>> 1) : ra == 2 ? ia = T + (Vi >>> 1) : ia = p + Vi;
+              var na = _e.h ? (ta * 2 / 3 & 2147483646 | ta % 3 & 1) + (ta % 3 >>> 1) : ta >>> 1;
               Ge[Wi + ta] = Kt[ia][na + 1];
             }
-            Wi += fe.e;
+            Wi += _e.e;
           }
         }
-        a._decompressRAF = function(fe, Ge) {
-          var Kt = _e(fe), Ni = Je(fe, Kt), Di = Wt(Kt), Gi = new Int16Array(Kt.e * Kt.q);
+        a._decompressRAF = function(_e, Ge) {
+          var Kt = fe(_e), Ni = Ke(_e, Kt), Di = Wt(Kt), Gi = new Int16Array(Kt.e * Kt.q);
           Ge == null && (Ge = Kt.h ? [[1, 1, 0, 1, 1, 2], [1, 1, 2, 1, 1, 0], [2, 0, 1, 0, 2, 1], [1, 1, 2, 1, 1, 0], [1, 1, 0, 1, 1, 2], [0, 2, 1, 2, 0, 1]] : [[0, 1], [3, 2]]);
-          for (var Ki = [[o, f], [l, d], [m, w], [p, k], [M, T], [N, C]], Zn = [], Wi = 0; Wi < X; Wi++)
+          for (var Ki = [[o, f], [l, d], [m, b], [_, w], [M, P], [C, N]], Zn = [], Wi = 0; Wi < X; Wi++)
             Zn[Wi] = new Uint16Array(Kt.A);
           for (var Vi = 0; Vi < Kt.s; Vi++) {
             for (var ta = ee(Di), ra = ee(Di), Wi = 0; Wi < X; Wi++)
@@ -31910,7 +32134,7 @@ function requirePako() {
                   Zn[Ki[Wi][0]][ia] = Zn[Ki[Wi][1]][ia];
               Ci(Kt, Gi, Zn, na, Vi, Ge);
               for (var Wi = h; Wi < X; Wi++)
-                if ([m, p, M, N].indexOf(Wi) == -1)
+                if ([m, _, M, C].indexOf(Wi) == -1)
                   for (var ia = 0; ia < Kt.A; ia++)
                     Zn[Wi][ia] = 0;
               it(Zn);
@@ -33608,10 +33832,10 @@ class ZodObject extends ZodType {
     return a.common.async ? Promise.resolve().then(async () => {
       const f = [];
       for (const d of h) {
-        const m = await d.key, p = await d.value;
+        const m = await d.key, _ = await d.value;
         f.push({
           key: m,
-          value: p,
+          value: _,
           alwaysSet: d.alwaysSet
         });
       }
@@ -34274,11 +34498,11 @@ class ZodFunction extends ZodType {
     if (this._def.returns instanceof ZodPromise) {
       const l = this;
       return OK(async function(...h) {
-        const f = new ZodError([]), d = await l._def.args.parseAsync(h, s).catch((_) => {
-          throw f.addIssue(n(h, _)), f;
+        const f = new ZodError([]), d = await l._def.args.parseAsync(h, s).catch((p) => {
+          throw f.addIssue(n(h, p)), f;
         }), m = await Reflect.apply(o, this, d);
-        return await l._def.returns._def.type.parseAsync(m, s).catch((_) => {
-          throw f.addIssue(a(m, _)), f;
+        return await l._def.returns._def.type.parseAsync(m, s).catch((p) => {
+          throw f.addIssue(a(m, p)), f;
         });
       });
     } else {
@@ -34956,21 +35180,21 @@ const JimpClassSchema = objectType({
       throw new Error("x and y must be numbers");
     a = Math.round(a), s = Math.round(s), o = Math.round(o), l = Math.round(l), h = Math.round(h), f = Math.round(f);
     const d = e.bitmap.width, m = e.bitmap.height;
-    return scan(n, o, l, h, f, function(p, _, g) {
-      const v = a + p - o, b = s + _ - l;
-      if (v >= 0 && b >= 0 && d - v > 0 && m - b > 0) {
-        const w = e.getPixelIndex(v, b), k = {
-          r: n.bitmap.data[g] || 0,
-          g: n.bitmap.data[g + 1] || 0,
-          b: n.bitmap.data[g + 2] || 0,
-          a: n.bitmap.data[g + 3] || 0
+    return scan(n, o, l, h, f, function(_, p, v) {
+      const g = a + _ - o, k = s + p - l;
+      if (g >= 0 && k >= 0 && d - g > 0 && m - k > 0) {
+        const b = e.getPixelIndex(g, k), w = {
+          r: n.bitmap.data[v] || 0,
+          g: n.bitmap.data[v + 1] || 0,
+          b: n.bitmap.data[v + 2] || 0,
+          a: n.bitmap.data[v + 3] || 0
         }, M = {
-          r: e.bitmap.data[w] || 0,
-          g: e.bitmap.data[w + 1] || 0,
-          b: e.bitmap.data[w + 2] || 0,
-          a: e.bitmap.data[w + 3] || 0
+          r: e.bitmap.data[b] || 0,
+          g: e.bitmap.data[b + 1] || 0,
+          b: e.bitmap.data[b + 2] || 0,
+          a: e.bitmap.data[b + 3] || 0
         };
-        e.bitmap.data[w] = (k.a * (k.r - M.r) - M.r + 255 >> 8) + M.r, e.bitmap.data[w + 1] = (k.a * (k.g - M.g) - M.g + 255 >> 8) + M.g, e.bitmap.data[w + 2] = (k.a * (k.b - M.b) - M.b + 255 >> 8) + M.b, e.bitmap.data[w + 3] = limit255(M.a + k.a);
+        e.bitmap.data[b] = (w.a * (w.r - M.r) - M.r + 255 >> 8) + M.r, e.bitmap.data[b + 1] = (w.a * (w.g - M.g) - M.g + 255 >> 8) + M.g, e.bitmap.data[b + 2] = (w.a * (w.b - M.b) - M.b + 255 >> 8) + M.b, e.bitmap.data[b + 3] = limit255(M.a + w.a);
       }
     }), e;
   }
@@ -35508,22 +35732,22 @@ const JimpClassSchema = objectType({
       throw new Error("r must be a number");
     if (r < 1)
       throw new Error("r must be greater than 0");
-    let i, n, a, s, o, l, h, f, d, m, p, _, g;
-    const v = e.bitmap.width - 1, b = e.bitmap.height - 1, w = r + 1, k = mulTable[r], M = shgTable[r], N = [], P = [], T = [], C = [], X = [], _e = [];
-    let Je = 2;
-    for (; Je-- > 0; ) {
-      for (_ = 0, g = 0, l = 0; l < e.bitmap.height; l++) {
-        for (i = e.bitmap.data[g] * w, n = e.bitmap.data[g + 1] * w, a = e.bitmap.data[g + 2] * w, s = e.bitmap.data[g + 3] * w, h = 1; h <= r; h++)
-          f = g + ((h > v ? v : h) << 2), i += e.bitmap.data[f++], n += e.bitmap.data[f++], a += e.bitmap.data[f++], s += e.bitmap.data[f];
+    let i, n, a, s, o, l, h, f, d, m, _, p, v;
+    const g = e.bitmap.width - 1, k = e.bitmap.height - 1, b = r + 1, w = mulTable[r], M = shgTable[r], C = [], T = [], P = [], N = [], X = [], fe = [];
+    let Ke = 2;
+    for (; Ke-- > 0; ) {
+      for (p = 0, v = 0, l = 0; l < e.bitmap.height; l++) {
+        for (i = e.bitmap.data[v] * b, n = e.bitmap.data[v + 1] * b, a = e.bitmap.data[v + 2] * b, s = e.bitmap.data[v + 3] * b, h = 1; h <= r; h++)
+          f = v + ((h > g ? g : h) << 2), i += e.bitmap.data[f++], n += e.bitmap.data[f++], a += e.bitmap.data[f++], s += e.bitmap.data[f];
         for (o = 0; o < e.bitmap.width; o++)
-          N[_] = i, P[_] = n, T[_] = a, C[_] = s, l === 0 && (X[o] = ((f = o + w) < v ? f : v) << 2, _e[o] = (f = o - r) > 0 ? f << 2 : 0), d = g + X[o], m = g + _e[o], i += e.bitmap.data[d++] - e.bitmap.data[m++], n += e.bitmap.data[d++] - e.bitmap.data[m++], a += e.bitmap.data[d++] - e.bitmap.data[m++], s += e.bitmap.data[d] - e.bitmap.data[m++], _++;
-        g += e.bitmap.width << 2;
+          C[p] = i, T[p] = n, P[p] = a, N[p] = s, l === 0 && (X[o] = ((f = o + b) < g ? f : g) << 2, fe[o] = (f = o - r) > 0 ? f << 2 : 0), d = v + X[o], m = v + fe[o], i += e.bitmap.data[d++] - e.bitmap.data[m++], n += e.bitmap.data[d++] - e.bitmap.data[m++], a += e.bitmap.data[d++] - e.bitmap.data[m++], s += e.bitmap.data[d] - e.bitmap.data[m++], p++;
+        v += e.bitmap.width << 2;
       }
       for (o = 0; o < e.bitmap.width; o++) {
-        for (p = o, i = N[p] * w, n = P[p] * w, a = T[p] * w, s = C[p] * w, h = 1; h <= r; h++)
-          p += h > b ? 0 : e.bitmap.width, i += N[p], n += P[p], a += T[p], s += C[p];
-        for (_ = o << 2, l = 0; l < e.bitmap.height; l++)
-          e.bitmap.data[_] = limit255(i * k >>> M), e.bitmap.data[_ + 1] = limit255(n * k >>> M), e.bitmap.data[_ + 2] = limit255(a * k >>> M), e.bitmap.data[_ + 3] = limit255(s * k >>> M), o === 0 && (X[l] = ((f = l + w) < b ? f : b) * e.bitmap.width, _e[l] = (f = l - r) > 0 ? f * e.bitmap.width : 0), d = o + X[l], m = o + _e[l], i += N[d] - N[m], n += P[d] - P[m], a += T[d] - T[m], s += C[d] - C[m], _ += e.bitmap.width << 2;
+        for (_ = o, i = C[_] * b, n = T[_] * b, a = P[_] * b, s = N[_] * b, h = 1; h <= r; h++)
+          _ += h > k ? 0 : e.bitmap.width, i += C[_], n += T[_], a += P[_], s += N[_];
+        for (p = o << 2, l = 0; l < e.bitmap.height; l++)
+          e.bitmap.data[p] = limit255(i * w >>> M), e.bitmap.data[p + 1] = limit255(n * w >>> M), e.bitmap.data[p + 2] = limit255(a * w >>> M), e.bitmap.data[p + 3] = limit255(s * w >>> M), o === 0 && (X[l] = ((f = l + b) < k ? f : k) * e.bitmap.width, fe[l] = (f = l - r) > 0 ? f * e.bitmap.width : 0), d = o + X[l], m = o + fe[l], i += C[d] - C[m], n += T[d] - T[m], a += P[d] - P[m], s += N[d] - N[m], p += e.bitmap.width << 2;
       }
     }
     return e;
@@ -35557,14 +35781,14 @@ const JimpClassSchema = objectType({
     }
     for (let l = 0; l < e.bitmap.height; l++)
       for (let h = 0; h < e.bitmap.width; h++) {
-        let f = 0, d = 0, m = 0, p = 0, _ = 0;
-        for (let g = 0; g < n; g++) {
-          for (let b = 0; b < n; b++) {
-            const w = Math.min(e.bitmap.width - 1, Math.max(0, b + h - i)), k = Math.min(e.bitmap.height - 1, Math.max(0, g + l - i)), M = o[g][b], N = k * e.bitmap.width + w << 2;
-            f += e.bitmap.data[N] * M, d += e.bitmap.data[N + 1] * M, m += e.bitmap.data[N + 2] * M, p += e.bitmap.data[N + 3] * M, _ += M;
+        let f = 0, d = 0, m = 0, _ = 0, p = 0;
+        for (let v = 0; v < n; v++) {
+          for (let k = 0; k < n; k++) {
+            const b = Math.min(e.bitmap.width - 1, Math.max(0, k + h - i)), w = Math.min(e.bitmap.height - 1, Math.max(0, v + l - i)), M = o[v][k], C = w * e.bitmap.width + b << 2;
+            f += e.bitmap.data[C] * M, d += e.bitmap.data[C + 1] * M, m += e.bitmap.data[C + 2] * M, _ += e.bitmap.data[C + 3] * M, p += M;
           }
-          const v = l * e.bitmap.width + h << 2;
-          e.bitmap.data[v] = Math.round(f / _), e.bitmap.data[v + 1] = Math.round(d / _), e.bitmap.data[v + 2] = Math.round(m / _), e.bitmap.data[v + 3] = Math.round(p / _);
+          const g = l * e.bitmap.width + h << 2;
+          e.bitmap.data[g] = Math.round(f / p), e.bitmap.data[g + 1] = Math.round(d / p), e.bitmap.data[g + 2] = Math.round(m / p), e.bitmap.data[g + 3] = Math.round(_ / p);
         }
       }
     return e;
@@ -35937,13 +36161,13 @@ const normalizeValue = function(e, r, i) {
     if (!n[0])
       throw new Error("kernel must be a matrix");
     const s = Buffer.from(e.bitmap.data), o = n.length, l = n[0].length, h = Math.floor(o / 2), f = Math.floor(l / 2), d = -h, m = -f;
-    let p, _, g, v, b, w, k, M, N, P;
-    return e.scan((T, C, X) => {
-      v = 0, g = 0, _ = 0;
-      for (let _e = d; _e <= h; _e++)
-        for (let Je = m; Je <= f; Je++)
-          M = T + Je, N = C + _e, p = n[_e + h][Je + f], P = e.getPixelIndex(M, N, a), P === -1 ? (k = 0, w = 0, b = 0) : (b = e.bitmap.data[P + 0], w = e.bitmap.data[P + 1], k = e.bitmap.data[P + 2]), _ += p * b, g += p * w, v += p * k;
-      _ < 0 && (_ = 0), g < 0 && (g = 0), v < 0 && (v = 0), _ > 255 && (_ = 255), g > 255 && (g = 255), v > 255 && (v = 255), s[X + 0] = _, s[X + 1] = g, s[X + 2] = v;
+    let _, p, v, g, k, b, w, M, C, T;
+    return e.scan((P, N, X) => {
+      g = 0, v = 0, p = 0;
+      for (let fe = d; fe <= h; fe++)
+        for (let Ke = m; Ke <= f; Ke++)
+          M = P + Ke, C = N + fe, _ = n[fe + h][Ke + f], T = e.getPixelIndex(M, C, a), T === -1 ? (w = 0, b = 0, k = 0) : (k = e.bitmap.data[T + 0], b = e.bitmap.data[T + 1], w = e.bitmap.data[T + 2]), p += _ * k, v += _ * b, g += _ * w;
+      p < 0 && (p = 0), v < 0 && (v = 0), g < 0 && (g = 0), p > 255 && (p = 255), v > 255 && (v = 255), g > 255 && (g = 255), s[X + 0] = p, s[X + 1] = v, s[X + 2] = g;
     }), e.bitmap.data = s, e;
   },
   /**
@@ -35983,10 +36207,10 @@ const normalizeValue = function(e, r, i) {
       [2 / 16, 4 / 16, 2 / 16],
       [1 / 16, 2 / 16, 1 / 16]
     ], f = clone(e);
-    return scan(f, a, s, o, l, (d, m, p) => {
+    return scan(f, a, s, o, l, (d, m, _) => {
       d = n * Math.floor(d / n), m = n * Math.floor(m / n);
-      const _ = applyKernel(f, h, d, m);
-      e.bitmap.data[p] = _[0], e.bitmap.data[p + 1] = _[1], e.bitmap.data[p + 2] = _[2], e.bitmap.data[p + 3] = _[3];
+      const p = applyKernel(f, h, d, m);
+      e.bitmap.data[_] = p[0], e.bitmap.data[_ + 1] = p[1], e.bitmap.data[_ + 2] = p[2], e.bitmap.data[_ + 3] = p[3];
     }), e;
   },
   /**
@@ -36015,8 +36239,8 @@ const normalizeValue = function(e, r, i) {
   convolute(e, r) {
     const i = ConvoluteOptionsSchema.parse(r), { kernel: n, x: a = 0, y: s = 0, w: o = e.bitmap.width - a, h: l = e.bitmap.height - s } = "kernel" in i ? i : { kernel: i }, h = clone(e);
     return scan(h, a, s, o, l, (f, d, m) => {
-      const p = applyKernel(h, n, f, d);
-      e.bitmap.data[m] = limit255(p[0]), e.bitmap.data[m + 1] = limit255(p[1]), e.bitmap.data[m + 2] = limit255(p[2]), e.bitmap.data[m + 3] = limit255(p[3]);
+      const _ = applyKernel(h, n, f, d);
+      e.bitmap.data[m] = limit255(_[0]), e.bitmap.data[m + 1] = limit255(_[1]), e.bitmap.data[m + 2] = limit255(_[2]), e.bitmap.data[m + 3] = limit255(_[3]);
     }), e;
   },
   /**
@@ -36079,27 +36303,27 @@ const normalizeValue = function(e, r, i) {
 var lib$1 = {}, ieee754 = {};
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 ieee754.read = function(e, r, i, n, a) {
-  var s, o, l = a * 8 - n - 1, h = (1 << l) - 1, f = h >> 1, d = -7, m = i ? a - 1 : 0, p = i ? -1 : 1, _ = e[r + m];
-  for (m += p, s = _ & (1 << -d) - 1, _ >>= -d, d += l; d > 0; s = s * 256 + e[r + m], m += p, d -= 8)
+  var s, o, l = a * 8 - n - 1, h = (1 << l) - 1, f = h >> 1, d = -7, m = i ? a - 1 : 0, _ = i ? -1 : 1, p = e[r + m];
+  for (m += _, s = p & (1 << -d) - 1, p >>= -d, d += l; d > 0; s = s * 256 + e[r + m], m += _, d -= 8)
     ;
-  for (o = s & (1 << -d) - 1, s >>= -d, d += n; d > 0; o = o * 256 + e[r + m], m += p, d -= 8)
+  for (o = s & (1 << -d) - 1, s >>= -d, d += n; d > 0; o = o * 256 + e[r + m], m += _, d -= 8)
     ;
   if (s === 0)
     s = 1 - f;
   else {
     if (s === h)
-      return o ? NaN : (_ ? -1 : 1) * (1 / 0);
+      return o ? NaN : (p ? -1 : 1) * (1 / 0);
     o = o + Math.pow(2, n), s = s - f;
   }
-  return (_ ? -1 : 1) * o * Math.pow(2, s - n);
+  return (p ? -1 : 1) * o * Math.pow(2, s - n);
 };
 ieee754.write = function(e, r, i, n, a, s) {
-  var o, l, h, f = s * 8 - a - 1, d = (1 << f) - 1, m = d >> 1, p = a === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0, _ = n ? 0 : s - 1, g = n ? 1 : -1, v = r < 0 || r === 0 && 1 / r < 0 ? 1 : 0;
-  for (r = Math.abs(r), isNaN(r) || r === 1 / 0 ? (l = isNaN(r) ? 1 : 0, o = d) : (o = Math.floor(Math.log(r) / Math.LN2), r * (h = Math.pow(2, -o)) < 1 && (o--, h *= 2), o + m >= 1 ? r += p / h : r += p * Math.pow(2, 1 - m), r * h >= 2 && (o++, h /= 2), o + m >= d ? (l = 0, o = d) : o + m >= 1 ? (l = (r * h - 1) * Math.pow(2, a), o = o + m) : (l = r * Math.pow(2, m - 1) * Math.pow(2, a), o = 0)); a >= 8; e[i + _] = l & 255, _ += g, l /= 256, a -= 8)
+  var o, l, h, f = s * 8 - a - 1, d = (1 << f) - 1, m = d >> 1, _ = a === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0, p = n ? 0 : s - 1, v = n ? 1 : -1, g = r < 0 || r === 0 && 1 / r < 0 ? 1 : 0;
+  for (r = Math.abs(r), isNaN(r) || r === 1 / 0 ? (l = isNaN(r) ? 1 : 0, o = d) : (o = Math.floor(Math.log(r) / Math.LN2), r * (h = Math.pow(2, -o)) < 1 && (o--, h *= 2), o + m >= 1 ? r += _ / h : r += _ * Math.pow(2, 1 - m), r * h >= 2 && (o++, h /= 2), o + m >= d ? (l = 0, o = d) : o + m >= 1 ? (l = (r * h - 1) * Math.pow(2, a), o = o + m) : (l = r * Math.pow(2, m - 1) * Math.pow(2, a), o = 0)); a >= 8; e[i + p] = l & 255, p += v, l /= 256, a -= 8)
     ;
-  for (o = o << a | l, f += a; f > 0; e[i + _] = o & 255, _ += g, o /= 256, f -= 8)
+  for (o = o << a | l, f += a; f > 0; e[i + p] = o & 255, p += v, o /= 256, f -= 8)
     ;
-  e[i + _ - g] |= v * 128;
+  e[i + p - v] |= g * 128;
 };
 (function(e) {
   Object.defineProperty(e, "__esModule", { value: !0 }), e.AnsiStringType = e.StringType = e.BufferType = e.Uint8ArrayType = e.IgnoreType = e.Float80_LE = e.Float80_BE = e.Float64_LE = e.Float64_BE = e.Float32_LE = e.Float32_BE = e.Float16_LE = e.Float16_BE = e.INT64_BE = e.UINT64_BE = e.INT64_LE = e.UINT64_LE = e.INT32_LE = e.INT32_BE = e.INT24_BE = e.INT24_LE = e.INT16_LE = e.INT16_BE = e.INT8 = e.UINT32_BE = e.UINT32_LE = e.UINT24_BE = e.UINT24_LE = e.UINT16_BE = e.UINT16_LE = e.UINT8 = void 0;
@@ -36368,10 +36592,10 @@ ieee754.write = function(e, r, i, n, a, s) {
       this.len = f;
     }
     static decode(f, d, m) {
-      let p = "";
-      for (let _ = d; _ < m; ++_)
-        p += l.codePointToString(l.singleByteDecoder(f[_]));
-      return p;
+      let _ = "";
+      for (let p = d; p < m; ++p)
+        _ += l.codePointToString(l.singleByteDecoder(f[p]));
+      return _;
     }
     static inRange(f, d, m) {
       return d <= f && f <= m;
@@ -36582,17 +36806,17 @@ Deferred$1.Deferred = Deferred;
         throw new r.EndOfStreamError();
       let d = f, m = 0;
       for (; this.peekQueue.length > 0 && d > 0; ) {
-        const p = this.peekQueue.pop();
-        if (!p)
+        const _ = this.peekQueue.pop();
+        if (!_)
           throw new Error("peekData should be defined");
-        const _ = Math.min(p.length, d);
-        l.set(p.subarray(0, _), h + m), m += _, d -= _, _ < p.length && this.peekQueue.push(p.subarray(_));
+        const p = Math.min(_.length, d);
+        l.set(_.subarray(0, p), h + m), m += p, d -= p, p < _.length && this.peekQueue.push(_.subarray(p));
       }
       for (; d > 0 && !this.endOfStream; ) {
-        const p = Math.min(d, a), _ = await this.readFromStream(l, h + m, p);
-        if (m += _, _ < p)
+        const _ = Math.min(d, a), p = await this.readFromStream(l, h + m, _);
+        if (m += p, p < _)
           break;
-        d -= _;
+        d -= p;
       }
       return m;
     }
@@ -37567,27 +37791,27 @@ async function _fromTokenizer(e) {
   if (n([26, 69, 223, 163])) {
     async function s() {
       const d = await e.peekNumber(Token.UINT8);
-      let m = 128, p = 0;
+      let m = 128, _ = 0;
       for (; !(d & m) && m !== 0; )
-        ++p, m >>= 1;
-      const _ = Buffer.alloc(p + 1);
-      return await e.readBuffer(_), _;
+        ++_, m >>= 1;
+      const p = Buffer.alloc(_ + 1);
+      return await e.readBuffer(p), p;
     }
     async function o() {
       const d = await s(), m = await s();
       m[0] ^= 128 >> m.length - 1;
-      const p = Math.min(6, m.length);
+      const _ = Math.min(6, m.length);
       return {
         id: d.readUIntBE(0, d.length),
-        len: m.readUIntBE(m.length - p, p)
+        len: m.readUIntBE(m.length - _, _)
       };
     }
     async function l(d, m) {
       for (; m > 0; ) {
-        const p = await o();
-        if (p.id === 17026)
-          return e.readToken(new Token.StringType(p.len, "utf-8"));
-        await e.ignore(p.len), --m;
+        const _ = await o();
+        if (_.id === 17026)
+          return e.readToken(new Token.StringType(_.len, "utf-8"));
+        await e.ignore(_.len), --m;
       }
     }
     const h = await o();
@@ -38146,48 +38370,48 @@ function dstOver(e, r, i = 1) {
 }
 function multiply(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a * l + a * (1 - r.a) + l * (1 - e.a)) / n, m = (s * h + s * (1 - r.a) + h * (1 - e.a)) / n, p = (o * f + o * (1 - r.a) + f * (1 - e.a)) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a * l + a * (1 - r.a) + l * (1 - e.a)) / n, m = (s * h + s * (1 - r.a) + h * (1 - e.a)) / n, _ = (o * f + o * (1 - r.a) + f * (1 - e.a)) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 function add(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a + l) / n, m = (s + h) / n, p = (o + f) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a + l) / n, m = (s + h) / n, _ = (o + f) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 function screen(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a * r.a + l * e.a - a * l + a * (1 - r.a) + l * (1 - e.a)) / n, m = (s * r.a + h * e.a - s * h + s * (1 - r.a) + h * (1 - e.a)) / n, p = (o * r.a + f * e.a - o * f + o * (1 - r.a) + f * (1 - e.a)) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a * r.a + l * e.a - a * l + a * (1 - r.a) + l * (1 - e.a)) / n, m = (s * r.a + h * e.a - s * h + s * (1 - r.a) + h * (1 - e.a)) / n, _ = (o * r.a + f * e.a - o * f + o * (1 - r.a) + f * (1 - e.a)) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 function overlay(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (2 * l <= r.a ? 2 * a * l + a * (1 - r.a) + l * (1 - e.a) : a * (1 + r.a) + l * (1 + e.a) - 2 * l * a - r.a * e.a) / n, m = (2 * h <= r.a ? 2 * s * h + s * (1 - r.a) + h * (1 - e.a) : s * (1 + r.a) + h * (1 + e.a) - 2 * h * s - r.a * e.a) / n, p = (2 * f <= r.a ? 2 * o * f + o * (1 - r.a) + f * (1 - e.a) : o * (1 + r.a) + f * (1 + e.a) - 2 * f * o - r.a * e.a) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (2 * l <= r.a ? 2 * a * l + a * (1 - r.a) + l * (1 - e.a) : a * (1 + r.a) + l * (1 + e.a) - 2 * l * a - r.a * e.a) / n, m = (2 * h <= r.a ? 2 * s * h + s * (1 - r.a) + h * (1 - e.a) : s * (1 + r.a) + h * (1 + e.a) - 2 * h * s - r.a * e.a) / n, _ = (2 * f <= r.a ? 2 * o * f + o * (1 - r.a) + f * (1 - e.a) : o * (1 + r.a) + f * (1 + e.a) - 2 * f * o - r.a * e.a) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 function darken(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (Math.min(a * r.a, l * e.a) + a * (1 - r.a) + l * (1 - e.a)) / n, m = (Math.min(s * r.a, h * e.a) + s * (1 - r.a) + h * (1 - e.a)) / n, p = (Math.min(o * r.a, f * e.a) + o * (1 - r.a) + f * (1 - e.a)) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (Math.min(a * r.a, l * e.a) + a * (1 - r.a) + l * (1 - e.a)) / n, m = (Math.min(s * r.a, h * e.a) + s * (1 - r.a) + h * (1 - e.a)) / n, _ = (Math.min(o * r.a, f * e.a) + o * (1 - r.a) + f * (1 - e.a)) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 function lighten(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (Math.max(a * r.a, l * e.a) + a * (1 - r.a) + l * (1 - e.a)) / n, m = (Math.max(s * r.a, h * e.a) + s * (1 - r.a) + h * (1 - e.a)) / n, p = (Math.max(o * r.a, f * e.a) + o * (1 - r.a) + f * (1 - e.a)) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (Math.max(a * r.a, l * e.a) + a * (1 - r.a) + l * (1 - e.a)) / n, m = (Math.max(s * r.a, h * e.a) + s * (1 - r.a) + h * (1 - e.a)) / n, _ = (Math.max(o * r.a, f * e.a) + o * (1 - r.a) + f * (1 - e.a)) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 function hardLight(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (2 * a <= e.a ? 2 * a * l + a * (1 - r.a) + l * (1 - e.a) : a * (1 + r.a) + l * (1 + e.a) - 2 * l * a - r.a * e.a) / n, m = (2 * s <= e.a ? 2 * s * h + s * (1 - r.a) + h * (1 - e.a) : s * (1 + r.a) + h * (1 + e.a) - 2 * h * s - r.a * e.a) / n, p = (2 * o <= e.a ? 2 * o * f + o * (1 - r.a) + f * (1 - e.a) : o * (1 + r.a) + f * (1 + e.a) - 2 * f * o - r.a * e.a) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (2 * a <= e.a ? 2 * a * l + a * (1 - r.a) + l * (1 - e.a) : a * (1 + r.a) + l * (1 + e.a) - 2 * l * a - r.a * e.a) / n, m = (2 * s <= e.a ? 2 * s * h + s * (1 - r.a) + h * (1 - e.a) : s * (1 + r.a) + h * (1 + e.a) - 2 * h * s - r.a * e.a) / n, _ = (2 * o <= e.a ? 2 * o * f + o * (1 - r.a) + f * (1 - e.a) : o * (1 + r.a) + f * (1 + e.a) - 2 * f * o - r.a * e.a) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 function difference(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a + l - 2 * Math.min(a * r.a, l * e.a)) / n, m = (s + h - 2 * Math.min(s * r.a, h * e.a)) / n, p = (o + f - 2 * Math.min(o * r.a, f * e.a)) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a + l - 2 * Math.min(a * r.a, l * e.a)) / n, m = (s + h - 2 * Math.min(s * r.a, h * e.a)) / n, _ = (o + f - 2 * Math.min(o * r.a, f * e.a)) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 function exclusion(e, r, i = 1) {
   e.a *= i;
-  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a * r.a + l * e.a - 2 * a * l + a * (1 - r.a) + l * (1 - e.a)) / n, m = (s * r.a + h * e.a - 2 * s * h + s * (1 - r.a) + h * (1 - e.a)) / n, p = (o * r.a + f * e.a - 2 * o * f + o * (1 - r.a) + f * (1 - e.a)) / n;
-  return { r: d, g: m, b: p, a: n };
+  const n = r.a + e.a - r.a * e.a, a = e.r * e.a, s = e.g * e.a, o = e.b * e.a, l = r.r * r.a, h = r.g * r.a, f = r.b * r.a, d = (a * r.a + l * e.a - 2 * a * l + a * (1 - r.a) + l * (1 - e.a)) / n, m = (s * r.a + h * e.a - 2 * s * h + s * (1 - r.a) + h * (1 - e.a)) / n, _ = (o * r.a + f * e.a - 2 * o * f + o * (1 - r.a) + f * (1 - e.a)) / n;
+  return { r: d, g: m, b: _, a: n };
 }
 const names = [
   srcOver,
@@ -38226,24 +38450,24 @@ function composite(e, r, i = 0, n = 0, a = {}) {
   (typeof o != "number" || o < 0 || o > 1) && (o = 1), (typeof l != "number" || l < 0 || l > 1) && (l = 1);
   const h = compositeModes[s];
   return i = Math.round(i), n = Math.round(n), l !== 1 && e.scan((f, d, m) => {
-    const p = e.bitmap.data[m + 3] * l;
-    e.bitmap.data[m + 3] = p;
+    const _ = e.bitmap.data[m + 3] * l;
+    e.bitmap.data[m + 3] = _;
   }), r.scan((f, d, m) => {
-    const p = e.getPixelIndex(i + f, n + d, Edge.CROP);
-    if (p === -1)
+    const _ = e.getPixelIndex(i + f, n + d, Edge.CROP);
+    if (_ === -1)
       return;
-    const _ = h({
+    const p = h({
       r: r.bitmap.data[m + 0] / 255,
       g: r.bitmap.data[m + 1] / 255,
       b: r.bitmap.data[m + 2] / 255,
       a: r.bitmap.data[m + 3] / 255
     }, {
-      r: e.bitmap.data[p + 0] / 255,
-      g: e.bitmap.data[p + 1] / 255,
-      b: e.bitmap.data[p + 2] / 255,
-      a: e.bitmap.data[p + 3] / 255
+      r: e.bitmap.data[_ + 0] / 255,
+      g: e.bitmap.data[_ + 1] / 255,
+      b: e.bitmap.data[_ + 2] / 255,
+      a: e.bitmap.data[_ + 3] / 255
     }, o);
-    e.bitmap.data[p + 0] = limit255(_.r * 255), e.bitmap.data[p + 1] = limit255(_.g * 255), e.bitmap.data[p + 2] = limit255(_.b * 255), e.bitmap.data[p + 3] = limit255(_.a * 255);
+    e.bitmap.data[_ + 0] = limit255(p.r * 255), e.bitmap.data[_ + 1] = limit255(p.g * 255), e.bitmap.data[_ + 2] = limit255(p.b * 255), e.bitmap.data[_ + 3] = limit255(p.a * 255);
   }), e;
 }
 var jpeg$1 = {
@@ -38391,16 +38615,16 @@ var exif$2 = {
       return !1;
     }
     var n, a, s, o = i.openWithOffset(e.nextUInt32()), l = this.IFD0;
-    readIFDSection(i, o, function(g, v, b) {
-      switch (g) {
+    readIFDSection(i, o, function(v, g, k) {
+      switch (v) {
         case 34853:
-          a = v[0];
+          a = g[0];
           break;
         case 34665:
-          n = v[0];
+          n = g[0];
           break;
         default:
-          r(l, g, v, b);
+          r(l, v, g, k);
           break;
       }
     });
@@ -38414,14 +38638,14 @@ var exif$2 = {
       readIFDSection(i, d, r.bind(null, this.GPSIFD));
     }
     if (n) {
-      var m = i.openWithOffset(n), p = this.InteropIFD;
-      readIFDSection(i, m, function(g, v, b) {
-        g === 40965 ? s = v[0] : r(p, g, v, b);
+      var m = i.openWithOffset(n), _ = this.InteropIFD;
+      readIFDSection(i, m, function(v, g, k) {
+        v === 40965 ? s = g[0] : r(_, v, g, k);
       });
     }
     if (s) {
-      var _ = i.openWithOffset(s);
-      readIFDSection(i, _, r.bind(null, this.InteropIFD));
+      var p = i.openWithOffset(s);
+      readIFDSection(i, p, r.bind(null, this.InteropIFD));
     }
     return !0;
   }
@@ -39049,46 +39273,46 @@ Parser$1.prototype = {
   },
   parse: function() {
     var e = this.stream.mark(), r = e.openWithOffset(0), i = this.flags, n, a, s, o, l, h, f, d, m;
-    return i.resolveTagNames && (f = requireExifTags()), i.resolveTagNames ? (n = {}, d = function(p) {
-      return n[p.name];
-    }, m = function(p, _) {
-      n[p.name] = _;
-    }) : (n = [], d = function(p) {
-      var _;
-      for (_ = 0; _ < n.length; ++_)
-        if (n[_].type === p.type && n[_].section === p.section)
+    return i.resolveTagNames && (f = requireExifTags()), i.resolveTagNames ? (n = {}, d = function(_) {
+      return n[_.name];
+    }, m = function(_, p) {
+      n[_.name] = p;
+    }) : (n = [], d = function(_) {
+      var p;
+      for (p = 0; p < n.length; ++p)
+        if (n[p].type === _.type && n[p].section === _.section)
           return n.value;
-    }, m = function(p, _) {
-      var g;
-      for (g = 0; g < n.length; ++g)
-        if (n[g].type === p.type && n[g].section === p.section) {
-          n.value = _;
+    }, m = function(_, p) {
+      var v;
+      for (v = 0; v < n.length; ++v)
+        if (n[v].type === _.type && n[v].section === _.section) {
+          n.value = p;
           return;
         }
-    }), jpeg.parseSections(r, function(p, _) {
-      var g, v = _.offsetFrom(e);
-      p === 225 ? (g = exif.parseTags(_, function(b, w, k, M) {
+    }), jpeg.parseSections(r, function(_, p) {
+      var v, g = p.offsetFrom(e);
+      _ === 225 ? (v = exif.parseTags(p, function(k, b, w, M) {
         if (!(!i.readBinaryTags && M === 7)) {
-          if (w === 513) {
-            if (s = k[0], i.hidePointers)
+          if (b === 513) {
+            if (s = w[0], i.hidePointers)
               return;
-          } else if (w === 514) {
-            if (o = k[0], i.hidePointers)
+          } else if (b === 514) {
+            if (o = w[0], i.hidePointers)
               return;
-          } else if (w === 259 && (l = k[0], i.hidePointers))
+          } else if (b === 259 && (l = w[0], i.hidePointers))
             return;
           if (i.returnTags)
-            if (i.simplifyValues && (k = simplify.simplifyValue(k, M)), i.resolveTagNames) {
-              var N = b === exif.GPSIFD ? f.gps : f.exif, P = N[w];
-              P || (P = f.exif[w]), n.hasOwnProperty(P) || (n[P] = k);
+            if (i.simplifyValues && (w = simplify.simplifyValue(w, M)), i.resolveTagNames) {
+              var C = k === exif.GPSIFD ? f.gps : f.exif, T = C[b];
+              T || (T = f.exif[b]), n.hasOwnProperty(T) || (n[T] = w);
             } else
               n.push({
-                section: b,
-                type: w,
-                value: k
+                section: k,
+                type: b,
+                value: w
               });
         }
-      }), g && (h = v)) : i.imageSize && jpeg.getSectionName(p).name === "SOF" && (a = jpeg.getSizeFromSOFSection(_));
+      }), v && (h = g)) : i.imageSize && jpeg.getSectionName(_).name === "SOF" && (a = jpeg.getSizeFromSOFSection(p));
     }), i.simplifyValues && (simplify.castDegreeValues(d, m), simplify.castDateValues(d, m)), new ExifResult(e, n, a, s, o, l, h);
   }
 };
@@ -39304,8 +39528,8 @@ function transformBitmap(e, r, i, n) {
   const a = e.bitmap.data, s = e.bitmap.width, o = Buffer.alloc(a.length);
   for (let l = 0; l < r; l++)
     for (let h = 0; h < i; h++) {
-      const [f, d] = n(l, h), m = r * h + l << 2, p = s * d + f << 2, _ = a.readUInt32BE(p);
-      o.writeUInt32BE(_, m);
+      const [f, d] = n(l, h), m = r * h + l << 2, _ = s * d + f << 2, p = a.readUInt32BE(_);
+      o.writeUInt32BE(p, m);
     }
   e.bitmap.data = o, e.bitmap.width = r, e.bitmap.height = i, e._exif.tags.Orientation = 1;
 }
@@ -39390,8 +39614,8 @@ function createJimp({ plugins: e, formats: r } = {}) {
       const [d, m] = await to(f.arrayBuffer());
       if (d)
         throw new Error(`Could not load Buffer from ${o}`);
-      const p = bufferFromArrayBuffer(m);
-      return this.fromBuffer(p, l);
+      const _ = bufferFromArrayBuffer(m);
+      return this.fromBuffer(_, l);
     }
     /**
      * Create a Jimp instance from a bitmap.
@@ -39441,7 +39665,7 @@ function createJimp({ plugins: e, formats: r } = {}) {
       const h = o instanceof ArrayBuffer ? bufferFromArrayBuffer(o) : o, f = await fileType$1.fromBuffer(h);
       if (!f || !f.mime)
         throw new Error("Could not find MIME for Buffer");
-      const d = n.find((p) => p.mime === f.mime);
+      const d = n.find((_) => _.mime === f.mime);
       if (!d || !d.decode)
         throw new Error(`Mime type ${f.mime} does not support decoding`);
       const m = new a(await d.decode(h, l == null ? void 0 : l[d.mime]));
@@ -39738,47 +39962,47 @@ Resize.prototype._resizeWidthInterpolatedRGBChannels = function(e, r) {
 };
 Resize.prototype._resizeWidthRGBChannels = function(e, r) {
   const i = r ? 4 : 3, n = this.ratioWeightWidthPass, a = 1 / n, s = this.originalWidthMultipliedByChannels - i + 1, o = this.targetWidthMultipliedByChannels - i + 1, l = this.outputWidthWorkBench, h = this.widthBuffer, f = this.outputWidthWorkBenchOpaquePixelsCount;
-  let d = 0, m = 0, p = 0, _ = 0, g = 0, v = 0, b = 0, w = 1, k = 0, M = 0, N = 0, P = 0;
+  let d = 0, m = 0, _ = 0, p = 0, v = 0, g = 0, k = 0, b = 1, w = 0, M = 0, C = 0, T = 0;
   do {
-    for (g = 0; g < this.originalHeightMultipliedByChannels; )
-      l[g++] = 0, l[g++] = 0, l[g++] = 0, r && (l[g++] = 0, f[g / i - 1] = 0);
+    for (v = 0; v < this.originalHeightMultipliedByChannels; )
+      l[v++] = 0, l[v++] = 0, l[v++] = 0, r && (l[v++] = 0, f[v / i - 1] = 0);
     d = n;
     do {
-      for (m = 1 + p - _, w = Math.min(d, m), g = 0, v = p; g < this.originalHeightMultipliedByChannels; v += s)
-        k = e[v], M = e[++v], N = e[++v], P = r ? e[++v] : 255, l[g++] += (P ? k : 0) * w, l[g++] += (P ? M : 0) * w, l[g++] += (P ? N : 0) * w, r && (l[g++] += P * w, f[g / i - 1] += P ? w : 0);
+      for (m = 1 + _ - p, b = Math.min(d, m), v = 0, g = _; v < this.originalHeightMultipliedByChannels; g += s)
+        w = e[g], M = e[++g], C = e[++g], T = r ? e[++g] : 255, l[v++] += (T ? w : 0) * b, l[v++] += (T ? M : 0) * b, l[v++] += (T ? C : 0) * b, r && (l[v++] += T * b, f[v / i - 1] += T ? b : 0);
       if (d >= m)
-        p += i, _ = p, d -= m;
+        _ += i, p = _, d -= m;
       else {
-        _ += d;
+        p += d;
         break;
       }
-    } while (d > 0 && p < this.originalWidthMultipliedByChannels);
-    for (g = 0, v = b; g < this.originalHeightMultipliedByChannels; v += o)
-      d = r ? f[g / i] : 1, w = r ? d ? 1 / d : 0 : a, h[v] = l[g++] * w, h[++v] = l[g++] * w, h[++v] = l[g++] * w, r && (h[++v] = l[g++] * a);
-    b += i;
-  } while (b < this.targetWidthMultipliedByChannels);
+    } while (d > 0 && _ < this.originalWidthMultipliedByChannels);
+    for (v = 0, g = k; v < this.originalHeightMultipliedByChannels; g += o)
+      d = r ? f[v / i] : 1, b = r ? d ? 1 / d : 0 : a, h[g] = l[v++] * b, h[++g] = l[v++] * b, h[++g] = l[v++] * b, r && (h[++g] = l[v++] * a);
+    k += i;
+  } while (k < this.targetWidthMultipliedByChannels);
   return h;
 };
 Resize.prototype._resizeHeightRGBChannels = function(e, r) {
   const i = this.ratioWeightHeightPass, n = 1 / i, a = this.outputHeightWorkBench, s = this.heightBuffer, o = this.outputHeightWorkBenchOpaquePixelsCount;
-  let l = 0, h = 0, f = 0, d = 0, m = 0, p = 0, _ = 0, g = 1, v = 0, b = 0, w = 0, k = 0;
+  let l = 0, h = 0, f = 0, d = 0, m = 0, _ = 0, p = 0, v = 1, g = 0, k = 0, b = 0, w = 0;
   do {
     for (m = 0; m < this.targetWidthMultipliedByChannels; )
       a[m++] = 0, a[m++] = 0, a[m++] = 0, r && (a[m++] = 0, o[m / 4 - 1] = 0);
     l = i;
     do {
-      for (h = 1 + f - d, g = Math.min(l, h), _ = f, m = 0; m < this.targetWidthMultipliedByChannels; )
-        v = e[_++], b = e[_++], w = e[_++], k = r ? e[_++] : 255, a[m++] += (k ? v : 0) * g, a[m++] += (k ? b : 0) * g, a[m++] += (k ? w : 0) * g, r && (a[m++] += k * g, o[m / 4 - 1] += k ? g : 0);
+      for (h = 1 + f - d, v = Math.min(l, h), p = f, m = 0; m < this.targetWidthMultipliedByChannels; )
+        g = e[p++], k = e[p++], b = e[p++], w = r ? e[p++] : 255, a[m++] += (w ? g : 0) * v, a[m++] += (w ? k : 0) * v, a[m++] += (w ? b : 0) * v, r && (a[m++] += w * v, o[m / 4 - 1] += w ? v : 0);
       if (l >= h)
-        f = _, d = f, l -= h;
+        f = p, d = f, l -= h;
       else {
         d += l;
         break;
       }
     } while (l > 0 && f < this.widthPassResultSize);
     for (m = 0; m < this.targetWidthMultipliedByChannels; )
-      l = r ? o[m / 4] : 1, g = r ? l ? 1 / l : 0 : n, s[p++] = Math.round(a[m++] * g), s[p++] = Math.round(a[m++] * g), s[p++] = Math.round(a[m++] * g), r && (s[p++] = Math.round(a[m++] * n));
-  } while (p < this.finalResultSize);
+      l = r ? o[m / 4] : 1, v = r ? l ? 1 / l : 0 : n, s[_++] = Math.round(a[m++] * v), s[_++] = Math.round(a[m++] * v), s[_++] = Math.round(a[m++] * v), r && (s[_++] = Math.round(a[m++] * n));
+  } while (_ < this.finalResultSize);
   return s;
 };
 Resize.prototype.resizeWidthInterpolatedRGB = function(e) {
@@ -39852,86 +40076,86 @@ const operations = {
     for (let h = 0; h < s; h++)
       for (let f = 0; f < a; f++) {
         let d = (h * a + f) * 4;
-        const m = Math.floor(h * n / s), p = Math.floor(f * i / a);
-        let _ = (m * i + p) * 4;
-        l[d++] = o[_++], l[d++] = o[_++], l[d++] = o[_++], l[d++] = o[_++];
+        const m = Math.floor(h * n / s), _ = Math.floor(f * i / a);
+        let p = (m * i + _) * 4;
+        l[d++] = o[p++], l[d++] = o[p++], l[d++] = o[p++], l[d++] = o[p++];
       }
   },
   bilinearInterpolation(e, r) {
-    const i = e.width, n = e.height, a = r.width, s = r.height, o = e.data, l = r.data, h = function(d, m, p, _, g) {
-      return m === _ ? p : Math.round((d - m) * g + (_ - d) * p);
-    }, f = function(d, m, p, _, g, v, b, w) {
-      let k = (b * i + _) * 4 + m, M = (b * i + g) * 4 + m;
-      const N = h(p, _, o[k], g, o[M]);
-      if (w === b)
-        l[d + m] = N;
+    const i = e.width, n = e.height, a = r.width, s = r.height, o = e.data, l = r.data, h = function(d, m, _, p, v) {
+      return m === p ? _ : Math.round((d - m) * v + (p - d) * _);
+    }, f = function(d, m, _, p, v, g, k, b) {
+      let w = (k * i + p) * 4 + m, M = (k * i + v) * 4 + m;
+      const C = h(_, p, o[w], v, o[M]);
+      if (b === k)
+        l[d + m] = C;
       else {
-        k = (w * i + _) * 4 + m, M = (w * i + g) * 4 + m;
-        const P = h(p, _, o[k], g, o[M]);
-        l[d + m] = h(v, b, N, w, P);
+        w = (b * i + p) * 4 + m, M = (b * i + v) * 4 + m;
+        const T = h(_, p, o[w], v, o[M]);
+        l[d + m] = h(g, k, C, b, T);
       }
     };
     for (let d = 0; d < s; d++)
       for (let m = 0; m < a; m++) {
-        const p = (d * a + m) * 4, _ = m * i / a, g = Math.floor(_), v = Math.min(Math.ceil(_), i - 1), b = d * n / s, w = Math.floor(b), k = Math.min(Math.ceil(b), n - 1);
-        f(p, 0, _, g, v, b, w, k), f(p, 1, _, g, v, b, w, k), f(p, 2, _, g, v, b, w, k), f(p, 3, _, g, v, b, w, k);
+        const _ = (d * a + m) * 4, p = m * i / a, v = Math.floor(p), g = Math.min(Math.ceil(p), i - 1), k = d * n / s, b = Math.floor(k), w = Math.min(Math.ceil(k), n - 1);
+        f(_, 0, p, v, g, k, b, w), f(_, 1, p, v, g, k, b, w), f(_, 2, p, v, g, k, b, w), f(_, 3, p, v, g, k, b, w);
       }
   },
   _interpolate2D(e, r, i, n) {
-    const a = e.data, s = r.data, o = e.width, l = e.height, h = r.width, f = r.height, d = Math.max(1, Math.floor(o / h)), m = h * d, p = Math.max(1, Math.floor(l / f)), _ = f * p, g = Buffer.alloc(m * l * 4);
-    for (let w = 0; w < l; w++)
-      for (let k = 0; k < m; k++) {
-        const M = k * (o - 1) / m, N = Math.floor(M), P = M - N, T = (w * o + N) * 4, C = (w * m + k) * 4;
+    const a = e.data, s = r.data, o = e.width, l = e.height, h = r.width, f = r.height, d = Math.max(1, Math.floor(o / h)), m = h * d, _ = Math.max(1, Math.floor(l / f)), p = f * _, v = Buffer.alloc(m * l * 4);
+    for (let b = 0; b < l; b++)
+      for (let w = 0; w < m; w++) {
+        const M = w * (o - 1) / m, C = Math.floor(M), T = M - C, P = (b * o + C) * 4, N = (b * m + w) * 4;
         for (let X = 0; X < 4; X++) {
-          const _e = T + X, Je = N > 0 ? a[_e - 4] : 2 * a[_e] - a[_e + 4], Pe = a[_e], Ke = a[_e + 4], Wt = N < o - 2 ? a[_e + 8] : 2 * a[_e + 4] - a[_e];
-          g[C + X] = n(Je, Pe, Ke, Wt, P);
+          const fe = P + X, Ke = C > 0 ? a[fe - 4] : 2 * a[fe] - a[fe + 4], Pe = a[fe], Je = a[fe + 4], Wt = C < o - 2 ? a[fe + 8] : 2 * a[fe + 4] - a[fe];
+          v[N + X] = n(Ke, Pe, Je, Wt, T);
         }
       }
-    const v = Buffer.alloc(m * _ * 4);
-    for (let w = 0; w < _; w++)
-      for (let k = 0; k < m; k++) {
-        const M = w * (l - 1) / _, N = Math.floor(M), P = M - N, T = (N * m + k) * 4, C = (w * m + k) * 4;
+    const g = Buffer.alloc(m * p * 4);
+    for (let b = 0; b < p; b++)
+      for (let w = 0; w < m; w++) {
+        const M = b * (l - 1) / p, C = Math.floor(M), T = M - C, P = (C * m + w) * 4, N = (b * m + w) * 4;
         for (let X = 0; X < 4; X++) {
-          const _e = T + X, Je = N > 0 ? g[_e - m * 4] : 2 * g[_e] - g[_e + m * 4], Pe = g[_e], Ke = g[_e + m * 4], Wt = N < l - 2 ? g[_e + m * 8] : 2 * g[_e + m * 4] - g[_e];
-          v[C + X] = n(Je, Pe, Ke, Wt, P);
+          const fe = P + X, Ke = C > 0 ? v[fe - m * 4] : 2 * v[fe] - v[fe + m * 4], Pe = v[fe], Je = v[fe + m * 4], Wt = C < l - 2 ? v[fe + m * 8] : 2 * v[fe + m * 4] - v[fe];
+          g[N + X] = n(Ke, Pe, Je, Wt, T);
         }
       }
-    const b = d * p;
-    if (b > 1)
-      for (let w = 0; w < f; w++)
-        for (let k = 0; k < h; k++) {
-          let M = 0, N = 0, P = 0, T = 0, C = 0;
-          for (let _e = 0; _e < p; _e++) {
-            const Je = w * p + _e;
+    const k = d * _;
+    if (k > 1)
+      for (let b = 0; b < f; b++)
+        for (let w = 0; w < h; w++) {
+          let M = 0, C = 0, T = 0, P = 0, N = 0;
+          for (let fe = 0; fe < _; fe++) {
+            const Ke = b * _ + fe;
             for (let Pe = 0; Pe < d; Pe++) {
-              const Ke = k * d + Pe, Wt = (Je * m + Ke) * 4, ee = v[Wt + 3];
-              ee && (M += v[Wt], N += v[Wt + 1], P += v[Wt + 2], C++), T += ee;
+              const Je = w * d + Pe, Wt = (Ke * m + Je) * 4, ee = g[Wt + 3];
+              ee && (M += g[Wt], C += g[Wt + 1], T += g[Wt + 2], N++), P += ee;
             }
           }
-          const X = (w * h + k) * 4;
-          s[X] = C ? Math.round(M / C) : 0, s[X + 1] = C ? Math.round(N / C) : 0, s[X + 2] = C ? Math.round(P / C) : 0, s[X + 3] = Math.round(T / b);
+          const X = (b * h + w) * 4;
+          s[X] = N ? Math.round(M / N) : 0, s[X + 1] = N ? Math.round(C / N) : 0, s[X + 2] = N ? Math.round(T / N) : 0, s[X + 3] = Math.round(P / k);
         }
     else
-      r.data = v;
+      r.data = g;
   },
   bicubicInterpolation(e, r, i) {
     const n = function(a, s, o, l, h) {
-      const f = l - o - a + s, d = a - s - f, m = o - a, p = s;
-      return Math.max(0, Math.min(255, f * (h * h * h) + d * (h * h) + m * h + p));
+      const f = l - o - a + s, d = a - s - f, m = o - a, _ = s;
+      return Math.max(0, Math.min(255, f * (h * h * h) + d * (h * h) + m * h + _));
     };
     return this._interpolate2D(e, r, i, n);
   },
   hermiteInterpolation(e, r, i) {
     const n = function(a, s, o, l, h) {
-      const f = s, d = 0.5 * (o - a), m = a - 2.5 * s + 2 * o - 0.5 * l, p = 0.5 * (l - a) + 1.5 * (s - o);
-      return Math.max(0, Math.min(255, Math.round(((p * h + m) * h + d) * h + f)));
+      const f = s, d = 0.5 * (o - a), m = a - 2.5 * s + 2 * o - 0.5 * l, _ = 0.5 * (l - a) + 1.5 * (s - o);
+      return Math.max(0, Math.min(255, Math.round(((_ * h + m) * h + d) * h + f)));
     };
     return this._interpolate2D(e, r, i, n);
   },
   bezierInterpolation(e, r, i) {
     const n = function(a, s, o, l, h) {
-      const f = s + (o - a) / 4, d = o - (l - s) / 4, m = 1 - h, p = s * m * m * m, _ = 3 * f * m * m * h, g = 3 * d * m * h * h, v = o * h * h * h;
-      return Math.max(0, Math.min(255, Math.round(p + _ + g + v)));
+      const f = s + (o - a) / 4, d = o - (l - s) / 4, m = 1 - h, _ = s * m * m * m, p = 3 * f * m * m * h, v = 3 * d * m * h * h, g = o * h * h * h;
+      return Math.max(0, Math.min(255, Math.round(_ + p + v + g)));
     };
     return this._interpolate2D(e, r, i, n);
   }
@@ -40063,8 +40287,8 @@ const operations = {
     if (!(o !== 0 && !(o & o - 1) || l !== 0 && !(l & l - 1)))
       throw new Error("only use one flag per alignment direction");
     const h = o >> 1, f = l >> 1, d = i / n > e.bitmap.width / e.bitmap.height ? n / e.bitmap.height : i / e.bitmap.width, m = methods$d.scale(clone(e), { f: d, mode: s });
-    return e = methods$d.resize(e, { w: i, h: n, mode: s }), e.scan((p, _, g) => {
-      e.bitmap.data.writeUInt32BE(e.background, g);
+    return e = methods$d.resize(e, { w: i, h: n, mode: s }), e.scan((_, p, v) => {
+      e.bitmap.data.writeUInt32BE(e.background, v);
     }), e = methods$h.blit(e, {
       src: m,
       x: (e.bitmap.width - m.bitmap.width) / 2 * h,
@@ -40143,55 +40367,55 @@ const operations = {
       ...o
     };
     let m = e.getPixelColor(0, 0);
-    const p = intToRGBA$1(m);
-    let _ = 0, g = 0, v = 0, b = 0;
+    const _ = intToRGBA$1(m);
+    let p = 0, v = 0, g = 0, k = 0;
     if (m = e.getPixelColor(0, 0), !d.north)
-      e: for (let N = 0; N < h - f; N++) {
-        for (let P = 0; P < l; P++) {
-          const T = e.getPixelColor(P, N), C = intToRGBA$1(T);
-          if (colorDiff(p, C) > i)
+      e: for (let C = 0; C < h - f; C++) {
+        for (let T = 0; T < l; T++) {
+          const P = e.getPixelColor(T, C), N = intToRGBA$1(P);
+          if (colorDiff(_, N) > i)
             break e;
         }
-        _++;
+        p++;
       }
     if (m = e.getPixelColor(l, 0), !d.west)
-      e: for (let N = 0; N < l - f; N++) {
-        for (let P = 0 + _; P < h; P++) {
-          const T = e.getPixelColor(N, P), C = intToRGBA$1(T);
-          if (colorDiff(p, C) > i)
+      e: for (let C = 0; C < l - f; C++) {
+        for (let T = 0 + p; T < h; T++) {
+          const P = e.getPixelColor(C, T), N = intToRGBA$1(P);
+          if (colorDiff(_, N) > i)
             break e;
         }
-        b++;
+        k++;
       }
     if (m = e.getPixelColor(0, h), !d.south)
-      e: for (let N = h - 1; N >= _ + f; N--) {
-        for (let P = l - g - 1; P >= 0; P--) {
-          const T = e.getPixelColor(P, N), C = intToRGBA$1(T);
-          if (colorDiff(p, C) > i)
-            break e;
-        }
-        v++;
-      }
-    if (m = e.getPixelColor(l, h), !d.east)
-      e: for (let N = l - 1; N >= 0 + b + f; N--) {
-        for (let P = h - 1; P >= 0 + _; P--) {
-          const T = e.getPixelColor(N, P), C = intToRGBA$1(T);
-          if (colorDiff(p, C) > i)
+      e: for (let C = h - 1; C >= p + f; C--) {
+        for (let T = l - v - 1; T >= 0; T--) {
+          const P = e.getPixelColor(T, C), N = intToRGBA$1(P);
+          if (colorDiff(_, N) > i)
             break e;
         }
         g++;
       }
-    let w = !1;
-    if (b -= s, g -= s, _ -= s, v -= s, a) {
-      const N = Math.min(g, b), P = Math.min(_, v);
-      b = N, g = N, _ = P, v = P;
+    if (m = e.getPixelColor(l, h), !d.east)
+      e: for (let C = l - 1; C >= 0 + k + f; C--) {
+        for (let T = h - 1; T >= 0 + p; T--) {
+          const P = e.getPixelColor(C, T), N = intToRGBA$1(P);
+          if (colorDiff(_, N) > i)
+            break e;
+        }
+        v++;
+      }
+    let b = !1;
+    if (k -= s, v -= s, p -= s, g -= s, a) {
+      const C = Math.min(v, k), T = Math.min(p, g);
+      k = C, v = C, p = T, g = T;
     }
-    b = b >= 0 ? b : 0, g = g >= 0 ? g : 0, _ = _ >= 0 ? _ : 0, v = v >= 0 ? v : 0;
-    const k = l - (b + g), M = h - (v + _);
-    return n ? w = g !== 0 && _ !== 0 && b !== 0 && v !== 0 : w = g !== 0 || _ !== 0 || b !== 0 || v !== 0, w && this.crop(e, {
-      x: b,
-      y: _,
-      w: k,
+    k = k >= 0 ? k : 0, v = v >= 0 ? v : 0, p = p >= 0 ? p : 0, g = g >= 0 ? g : 0;
+    const w = l - (k + v), M = h - (g + p);
+    return n ? b = v !== 0 && p !== 0 && k !== 0 && g !== 0 : b = v !== 0 || p !== 0 || k !== 0 || g !== 0, b && this.crop(e, {
+      x: k,
+      y: p,
+      w,
       h: M
     }), e;
   }
@@ -40314,8 +40538,8 @@ const operations = {
   fisheye(e, r = {}) {
     const { radius: i = 2.5 } = FisheyeOptionsSchema.parse(r), n = clone(e), { width: a, height: s } = n.bitmap;
     return n.scan((o, l) => {
-      const h = o / a, f = l / s, d = Math.sqrt(Math.pow(h - 0.5, 2) + Math.pow(f - 0.5, 2)), m = 2 * Math.pow(d, i), p = (h - 0.5) / d, _ = (f - 0.5) / d, g = Math.round((m * p + 0.5) * a), v = Math.round((m * _ + 0.5) * s), b = n.getPixelColor(g, v);
-      e.setPixelColor(b, o, l);
+      const h = o / a, f = l / s, d = Math.sqrt(Math.pow(h - 0.5, 2) + Math.pow(f - 0.5, 2)), m = 2 * Math.pow(d, i), _ = (h - 0.5) / d, p = (f - 0.5) / d, v = Math.round((m * _ + 0.5) * a), g = Math.round((m * p + 0.5) * s), k = n.getPixelColor(v, g);
+      e.setPixelColor(k, o, l);
     }), e.setPixelColor(n.getPixelColor(a / 2, s / 2), a / 2, s / 2), e;
   }
 }, FlipOptionsSchema = objectType({
@@ -40536,8 +40760,8 @@ const methods$5 = {
     return i.scan(function(l, h, f) {
       const d = n + l, m = a + h;
       if (d >= 0 && m >= 0 && d < s && m < o) {
-        const p = e.getPixelIndex(d, m), { data: _ } = i.bitmap, g = (_[f + 0] + _[f + 1] + _[f + 2]) / 3;
-        e.bitmap.data[p + 3] *= g / 255;
+        const _ = e.getPixelIndex(d, m), { data: p } = i.bitmap, v = (p[f + 0] + p[f + 1] + p[f + 2]) / 3;
+        e.bitmap.data[_ + 3] *= v / 255;
       }
     }), e;
   }
@@ -40560,10 +40784,10 @@ function splitLines(e, r, i) {
   return n.forEach((l) => {
     if (measureText(e, l + (n.length > 1 ? " " : "")) > i) {
       const m = l[Symbol.iterator]();
-      let p = "";
-      for (const _ of m) {
-        const g = [...s, p + _].join(" "), v = measureText(e, g);
-        v < i ? p += _ : v > i ? (a.push([...s, p]), s = [], p = _) : (a.push([...s, p + _]), s = [], p = "");
+      let _ = "";
+      for (const p of m) {
+        const v = [...s, _ + p].join(" "), g = measureText(e, v);
+        g < i ? _ += p : g > i ? (a.push([...s, _]), s = [], _ = p) : (a.push([...s, _ + p]), s = [], _ = "");
       }
       return;
     }
@@ -40626,8 +40850,8 @@ function printText(e, r, i, n, a, s) {
     r.chars[l] ? h = l : /\s/.test(l) ? h = "" : h = "?";
     const f = r.chars[h] || { xadvance: void 0 }, d = r.kernings[h];
     f && drawCharacter(e, r, i, n, f);
-    const m = a[o + 1], p = d && m && d[m] && d[m] || 0;
-    i += p + (f.xadvance || s);
+    const m = a[o + 1], _ = d && m && d[m] && d[m] || 0;
+    i += _ + (f.xadvance || s);
   }
 }
 const methods$3 = {
@@ -40648,7 +40872,7 @@ const methods$3 = {
    * ```
    */
   print(e, { font: r, ...i }) {
-    var g;
+    var v;
     let {
       // eslint-disable-next-line prefer-const
       x: n,
@@ -40663,14 +40887,14 @@ const methods$3 = {
       }
     } = PrintOptionsSchema.parse(i), f, d;
     typeof s == "object" && s.text !== null && s.text !== void 0 ? (f = s.alignmentX || HorizontalAlign.LEFT, d = s.alignmentY || VerticalAlign.TOP, { text: s } = s) : (f = HorizontalAlign.LEFT, d = VerticalAlign.TOP, s = s.toString()), typeof s == "number" && (s = s.toString()), l !== 1 / 0 && d === VerticalAlign.BOTTOM ? a += l - measureTextHeight(r, s, o) : l !== 1 / 0 && d === VerticalAlign.MIDDLE && (a += l / 2 - measureTextHeight(r, s, o) / 2);
-    const m = (g = Object.entries(r.chars).find((v) => v[1].xadvance)) == null ? void 0 : g[1].xadvance;
+    const m = (v = Object.entries(r.chars).find((g) => g[1].xadvance)) == null ? void 0 : v[1].xadvance;
     if (typeof m != "number")
       throw new Error("Could not find default character width");
-    const { lines: p, longestLine: _ } = splitLines(r, s, o);
-    return p.forEach((v) => {
-      const b = v.join(" "), w = xOffsetBasedOnAlignment(r, b, o, f);
-      printText(e, r, n + w, a, b, m), a += r.common.lineHeight;
-    }), h.bind(e)({ x: n + _, y: a }), e;
+    const { lines: _, longestLine: p } = splitLines(r, s, o);
+    return _.forEach((g) => {
+      const k = g.join(" "), b = xOffsetBasedOnAlignment(r, k, o, f);
+      printText(e, r, n + b, a, k, m), a += r.common.lineHeight;
+    }), h.bind(e)({ x: n + p, y: a }), e;
   }
 }, RotateOptionsSchema = unionType([
   numberType(),
@@ -40710,22 +40934,22 @@ function matrixRotate(e, r) {
   const s = a === 180 ? i : n, o = a === 180 ? n : i, l = Buffer.alloc(e.bitmap.data.length), h = createIdxTranslationFunction(i), f = createIdxTranslationFunction(s);
   for (let d = 0; d < i; d++)
     for (let m = 0; m < n; m++) {
-      const p = h(d, m), _ = e.bitmap.data.readUInt32BE(p);
-      let g;
+      const _ = h(d, m), p = e.bitmap.data.readUInt32BE(_);
+      let v;
       switch (a) {
         case 90:
-          g = f(m, i - d - 1);
+          v = f(m, i - d - 1);
           break;
         case -90:
-          g = f(n - m - 1, d);
+          v = f(n - m - 1, d);
           break;
         case 180:
-          g = f(i - d - 1, n - m - 1);
+          v = f(i - d - 1, n - m - 1);
           break;
         default:
           throw new Error("Unsupported matrix rotation angle");
       }
-      l.writeUInt32BE(_, g);
+      l.writeUInt32BE(p, v);
     }
   e.bitmap.data = l, e.bitmap.width = s, e.bitmap.height = o;
 }
@@ -40742,30 +40966,30 @@ function advancedRotate(e, r, i) {
   let o = e.bitmap.width, l = e.bitmap.height;
   if (i === !0 || typeof i == "string") {
     o = Math.ceil(Math.abs(e.bitmap.width * a) + Math.abs(e.bitmap.height * s)) + 1, l = Math.ceil(Math.abs(e.bitmap.width * s) + Math.abs(e.bitmap.height * a)) + 1, o % 2 !== 0 && o++, l % 2 !== 0 && l++;
-    const _ = clone(e);
-    e.scan((v, b, w) => {
-      e.bitmap.data.writeUInt32BE(e.background, w);
+    const p = clone(e);
+    e.scan((g, k, b) => {
+      e.bitmap.data.writeUInt32BE(e.background, b);
     });
-    const g = Math.max(o, l, e.bitmap.width, e.bitmap.height);
+    const v = Math.max(o, l, e.bitmap.width, e.bitmap.height);
     e = methods$d.resize(e, {
-      h: g,
-      w: g,
+      h: v,
+      w: v,
       mode: i === !0 ? void 0 : i
-    }), e = composite(e, _, e.bitmap.width / 2 - _.bitmap.width / 2, e.bitmap.height / 2 - _.bitmap.height / 2);
+    }), e = composite(e, p, e.bitmap.width / 2 - p.bitmap.width / 2, e.bitmap.height / 2 - p.bitmap.height / 2);
   }
-  const h = e.bitmap.width, f = e.bitmap.height, d = Buffer.alloc(e.bitmap.data.length), m = createTranslationFunction(-(h / 2), -(f / 2)), p = createTranslationFunction(h / 2 + 0.5, f / 2 + 0.5);
-  for (let _ = 1; _ <= f; _++)
-    for (let g = 1; g <= h; g++) {
-      const v = m(g, _), b = p(a * v.x - s * v.y, a * v.y + s * v.x), w = h * (_ - 1) + g - 1 << 2;
-      if (b.x >= 0 && b.x < h && b.y >= 0 && b.y < f) {
-        const k = (h * (b.y | 0) + b.x | 0) << 2, M = e.bitmap.data.readUInt32BE(k);
-        d.writeUInt32BE(M, w);
+  const h = e.bitmap.width, f = e.bitmap.height, d = Buffer.alloc(e.bitmap.data.length), m = createTranslationFunction(-(h / 2), -(f / 2)), _ = createTranslationFunction(h / 2 + 0.5, f / 2 + 0.5);
+  for (let p = 1; p <= f; p++)
+    for (let v = 1; v <= h; v++) {
+      const g = m(v, p), k = _(a * g.x - s * g.y, a * g.y + s * g.x), b = h * (p - 1) + v - 1 << 2;
+      if (k.x >= 0 && k.x < h && k.y >= 0 && k.y < f) {
+        const w = (h * (k.y | 0) + k.x | 0) << 2, M = e.bitmap.data.readUInt32BE(w);
+        d.writeUInt32BE(M, b);
       } else
-        d.writeUInt32BE(e.background, w);
+        d.writeUInt32BE(e.background, b);
     }
   if (e.bitmap.data = d, i === !0 || typeof i == "string") {
-    const _ = Math.max(h / 2 - o / 2, 0), g = Math.max(f / 2 - l / 2, 0);
-    e = methods$b.crop(e, { x: _, y: g, w: o, h: l });
+    const p = Math.max(h / 2 - o / 2, 0), v = Math.max(f / 2 - l / 2, 0);
+    e = methods$b.crop(e, { x: p, y: v, w: o, h: l });
   }
 }
 const methods$2 = {
@@ -40982,11 +41206,11 @@ var AbstractDistanceCalculator = class {
   }
 }, AbstractCIE94 = class extends AbstractDistanceCalculator {
   calculateRaw(e, r, i, n, a, s, o, l) {
-    const h = rgb2lab(inRange0to255(e * this._whitePoint.r), inRange0to255(r * this._whitePoint.g), inRange0to255(i * this._whitePoint.b)), f = rgb2lab(inRange0to255(a * this._whitePoint.r), inRange0to255(s * this._whitePoint.g), inRange0to255(o * this._whitePoint.b)), d = h.L - f.L, m = h.a - f.a, p = h.b - f.b, _ = Math.sqrt(h.a * h.a + h.b * h.b), g = Math.sqrt(f.a * f.a + f.b * f.b), v = _ - g;
-    let b = m * m + p * p - v * v;
-    b = b < 0 ? 0 : Math.sqrt(b);
-    const w = (l - n) * this._whitePoint.a * this._kA;
-    return Math.sqrt((d / this._Kl) ** 2 + (v / (1 + this._K1 * _)) ** 2 + (b / (1 + this._K2 * _)) ** 2 + w ** 2);
+    const h = rgb2lab(inRange0to255(e * this._whitePoint.r), inRange0to255(r * this._whitePoint.g), inRange0to255(i * this._whitePoint.b)), f = rgb2lab(inRange0to255(a * this._whitePoint.r), inRange0to255(s * this._whitePoint.g), inRange0to255(o * this._whitePoint.b)), d = h.L - f.L, m = h.a - f.a, _ = h.b - f.b, p = Math.sqrt(h.a * h.a + h.b * h.b), v = Math.sqrt(f.a * f.a + f.b * f.b), g = p - v;
+    let k = m * m + _ * _ - g * g;
+    k = k < 0 ? 0 : Math.sqrt(k);
+    const b = (l - n) * this._whitePoint.a * this._kA;
+    return Math.sqrt((d / this._Kl) ** 2 + (g / (1 + this._K1 * p)) ** 2 + (k / (1 + this._K2 * p)) ** 2 + b ** 2);
   }
 }, CIE94Textiles = class extends AbstractCIE94 {
   _setDefaults() {
@@ -41023,7 +41247,7 @@ var AbstractDistanceCalculator = class {
     return Math.sqrt(m + d * d);
   }
   calculateRawInLab(e, r) {
-    const i = e.L, n = e.a, a = e.b, s = r.L, o = r.a, l = r.b, h = Math.sqrt(n * n + a * a), f = Math.sqrt(o * o + l * l), d = ((h + f) / 2) ** 7, m = 0.5 * (1 - Math.sqrt(d / (d + _CIEDE2000._pow25to7))), p = (1 + m) * n, _ = (1 + m) * o, g = Math.sqrt(p * p + a * a), v = Math.sqrt(_ * _ + l * l), b = g * v, w = _CIEDE2000._calculatehp(a, p), k = _CIEDE2000._calculatehp(l, _), M = Math.abs(w - k), N = s - i, P = v - g, T = _CIEDE2000._calculate_dHp(b, M, k, w), C = _CIEDE2000._calculate_ahp(b, M, w, k), X = _CIEDE2000._calculateT(C), _e = (g + v) / 2, Je = ((i + s) / 2 - 50) ** 2, Pe = 1 + 0.015 * Je / Math.sqrt(20 + Je), Ke = 1 + 0.045 * _e, Wt = 1 + 0.015 * X * _e, ee = _CIEDE2000._calculateRT(C, _e), We = N / Pe, st = P / Ke, Xt = T / Wt;
+    const i = e.L, n = e.a, a = e.b, s = r.L, o = r.a, l = r.b, h = Math.sqrt(n * n + a * a), f = Math.sqrt(o * o + l * l), d = ((h + f) / 2) ** 7, m = 0.5 * (1 - Math.sqrt(d / (d + _CIEDE2000._pow25to7))), _ = (1 + m) * n, p = (1 + m) * o, v = Math.sqrt(_ * _ + a * a), g = Math.sqrt(p * p + l * l), k = v * g, b = _CIEDE2000._calculatehp(a, _), w = _CIEDE2000._calculatehp(l, p), M = Math.abs(b - w), C = s - i, T = g - v, P = _CIEDE2000._calculate_dHp(k, M, w, b), N = _CIEDE2000._calculate_ahp(k, M, b, w), X = _CIEDE2000._calculateT(N), fe = (v + g) / 2, Ke = ((i + s) / 2 - 50) ** 2, Pe = 1 + 0.015 * Ke / Math.sqrt(20 + Ke), Je = 1 + 0.045 * fe, Wt = 1 + 0.015 * X * fe, ee = _CIEDE2000._calculateRT(N, fe), We = C / Pe, st = T / Je, Xt = P / Wt;
     return We ** 2 + st ** 2 + Xt ** 2 + ee * st * Xt;
   }
 }, CIEDE2000 = _CIEDE2000;
@@ -41038,8 +41262,8 @@ __publicField(CIEDE2000, "_deg275InRad", degrees2radians(275));
 __publicField(CIEDE2000, "_deg25InRad", degrees2radians(25));
 var CMetric = class extends AbstractDistanceCalculator {
   calculateRaw(e, r, i, n, a, s, o, l) {
-    const h = (e + a) / 2 * this._whitePoint.r, f = (e - a) * this._whitePoint.r, d = (r - s) * this._whitePoint.g, m = (i - o) * this._whitePoint.b, p = ((512 + h) * f * f >> 8) + 4 * d * d + ((767 - h) * m * m >> 8), _ = (l - n) * this._whitePoint.a;
-    return Math.sqrt(p + _ * _);
+    const h = (e + a) / 2 * this._whitePoint.r, f = (e - a) * this._whitePoint.r, d = (r - s) * this._whitePoint.g, m = (i - o) * this._whitePoint.b, _ = ((512 + h) * f * f >> 8) + 4 * d * d + ((767 - h) * m * m >> 8), p = (l - n) * this._whitePoint.a;
+    return Math.sqrt(_ + p * p);
   }
   _setDefaults() {
   }
@@ -41351,11 +41575,11 @@ var networkBiasShift = 3, Neuron = class {
       f.shouldNotify(d) && (yield {
         progress: f.progress
       });
-      const p = this._pointArray[m], _ = p.b << networkBiasShift, g = p.g << networkBiasShift, v = p.r << networkBiasShift, b = p.a << networkBiasShift, w = this._contest(_, g, v, b);
-      if (this._alterSingle(s, w, _, g, v, b), l !== 0 && this._alterNeighbour(l, w, _, g, v, b), m += h, m >= r && (m -= r), d++, a === 0 && (a = 1), d % a === 0) {
+      const _ = this._pointArray[m], p = _.b << networkBiasShift, v = _.g << networkBiasShift, g = _.r << networkBiasShift, k = _.a << networkBiasShift, b = this._contest(p, v, g, k);
+      if (this._alterSingle(s, b, p, v, g, k), l !== 0 && this._alterNeighbour(l, b, p, v, g, k), m += h, m >= r && (m -= r), d++, a === 0 && (a = 1), d % a === 0) {
         s -= s / i | 0, o -= o / _NeuQuant._radiusDecrease | 0, l = o >> _NeuQuant._radiusBiasShift, l <= 1 && (l = 0);
-        for (let k = 0; k < l; k++)
-          this._radPower[k] = s * ((l * l - k * k) * _NeuQuant._radBias / (l * l)) >>> 0;
+        for (let w = 0; w < l; w++)
+          this._radPower[w] = s * ((l * l - w * w) * _NeuQuant._radBias / (l * l)) >>> 0;
       }
     }
   }
@@ -41374,12 +41598,12 @@ var networkBiasShift = 3, Neuron = class {
     for (; h < l || f > o; ) {
       const m = this._radPower[d++] / _NeuQuant._alphaRadBias;
       if (h < l) {
-        const p = this._network[h++];
-        p.subtract(m * (p.r - a), m * (p.g - n), m * (p.b - i), m * (p.a - s));
+        const _ = this._network[h++];
+        _.subtract(m * (_.r - a), m * (_.g - n), m * (_.b - i), m * (_.a - s));
       }
       if (f > o) {
-        const p = this._network[f--];
-        p.subtract(m * (p.r - a), m * (p.g - n), m * (p.b - i), m * (p.a - s));
+        const _ = this._network[f--];
+        _.subtract(m * (_.r - a), m * (_.g - n), m * (_.b - i), m * (_.a - s));
       }
     }
   }
@@ -41394,10 +41618,10 @@ var networkBiasShift = 3, Neuron = class {
     for (let f = 0; f < this._networkSize; f++) {
       const d = this._network[f], m = this._distance.calculateNormalized(d, { r: i, g: r, b: e, a: n }) * a | 0;
       m < s && (s = m, l = f);
-      const p = m - (this._bias[f] >> _NeuQuant._initialBiasShift - networkBiasShift);
-      p < o && (o = p, h = f);
-      const _ = this._freq[f] >> _NeuQuant._betaShift;
-      this._freq[f] -= _, this._bias[f] += _ << _NeuQuant._gammaShift;
+      const _ = m - (this._bias[f] >> _NeuQuant._initialBiasShift - networkBiasShift);
+      _ < o && (o = _, h = f);
+      const p = this._freq[f] >> _NeuQuant._betaShift;
+      this._freq[f] -= p, this._bias[f] += p << _NeuQuant._gammaShift;
     }
     return this._freq[l] += _NeuQuant._beta, this._bias[l] -= _NeuQuant._betaGamma, h;
   }
@@ -41467,11 +41691,11 @@ var networkBiasShift2 = 3, NeuronFloat = class {
       f.shouldNotify(d) && (yield {
         progress: f.progress
       });
-      const p = this._pointArray[m], _ = p.b << networkBiasShift2, g = p.g << networkBiasShift2, v = p.r << networkBiasShift2, b = p.a << networkBiasShift2, w = this._contest(_, g, v, b);
-      if (this._alterSingle(s, w, _, g, v, b), l !== 0 && this._alterNeighbour(l, w, _, g, v, b), m += h, m >= r && (m -= r), d++, a === 0 && (a = 1), d % a === 0) {
+      const _ = this._pointArray[m], p = _.b << networkBiasShift2, v = _.g << networkBiasShift2, g = _.r << networkBiasShift2, k = _.a << networkBiasShift2, b = this._contest(p, v, g, k);
+      if (this._alterSingle(s, b, p, v, g, k), l !== 0 && this._alterNeighbour(l, b, p, v, g, k), m += h, m >= r && (m -= r), d++, a === 0 && (a = 1), d % a === 0) {
         s -= s / i, o -= o / _NeuQuantFloat._radiusDecrease, l = o >> _NeuQuantFloat._radiusBiasShift, l <= 1 && (l = 0);
-        for (let k = 0; k < l; k++)
-          this._radPower[k] = s * ((l * l - k * k) * _NeuQuantFloat._radBias / (l * l));
+        for (let w = 0; w < l; w++)
+          this._radPower[w] = s * ((l * l - w * w) * _NeuQuantFloat._radBias / (l * l));
       }
     }
   }
@@ -41490,12 +41714,12 @@ var networkBiasShift2 = 3, NeuronFloat = class {
     for (; h < l || f > o; ) {
       const m = this._radPower[d++] / _NeuQuantFloat._alphaRadBias;
       if (h < l) {
-        const p = this._network[h++];
-        p.subtract(m * (p.r - a), m * (p.g - n), m * (p.b - i), m * (p.a - s));
+        const _ = this._network[h++];
+        _.subtract(m * (_.r - a), m * (_.g - n), m * (_.b - i), m * (_.a - s));
       }
       if (f > o) {
-        const p = this._network[f--];
-        p.subtract(m * (p.r - a), m * (p.g - n), m * (p.b - i), m * (p.a - s));
+        const _ = this._network[f--];
+        _.subtract(m * (_.r - a), m * (_.g - n), m * (_.b - i), m * (_.a - s));
       }
     }
   }
@@ -41510,10 +41734,10 @@ var networkBiasShift2 = 3, NeuronFloat = class {
     for (let f = 0; f < this._networkSize; f++) {
       const d = this._network[f], m = this._distance.calculateNormalized(d, { r: i, g: r, b: e, a: n }) * a;
       m < s && (s = m, l = f);
-      const p = m - (this._bias[f] >> _NeuQuantFloat._initialBiasShift - networkBiasShift2);
-      p < o && (o = p, h = f);
-      const _ = this._freq[f] >> _NeuQuantFloat._betaShift;
-      this._freq[f] -= _, this._bias[f] += _ << _NeuQuantFloat._gammaShift;
+      const _ = m - (this._bias[f] >> _NeuQuantFloat._initialBiasShift - networkBiasShift2);
+      _ < o && (o = _, h = f);
+      const p = this._freq[f] >> _NeuQuantFloat._betaShift;
+      this._freq[f] -= p, this._bias[f] += p << _NeuQuantFloat._gammaShift;
     }
     return this._freq[l] += _NeuQuantFloat._beta, this._bias[l] -= _NeuQuantFloat._betaGamma, h;
   }
@@ -41589,9 +41813,9 @@ var _ColorHistogram = class {
       let d = Math.round(f.w * f.h / o) * _ColorHistogram._boxPixels;
       d < 2 && (d = 2);
       const m = {};
-      this._iterateBox(f, r, (p) => {
-        const _ = n[p].uint32;
-        this._hueStats.check(_), _ in h ? h[_]++ : _ in m ? ++m[_] >= d && (h[_] = m[_]) : m[_] = 1;
+      this._iterateBox(f, r, (_) => {
+        const p = n[_].uint32;
+        this._hueStats.check(p), p in h ? h[p]++ : p in m ? ++m[p] >= d && (h[p] = m[p]) : m[p] = 1;
       });
     }), this._hueStats.injectIntoDictionary(h);
   }
@@ -41650,17 +41874,17 @@ var RemovedColor = class {
         }), n[d] === 0)
           continue;
         const m = i[d];
-        for (let p = d + 1; p < a; p++) {
-          if (n[p] === 0)
+        for (let _ = d + 1; _ < a; _++) {
+          if (n[_] === 0)
             continue;
-          const _ = i[p], g = this._distance.calculateNormalized(m, _);
-          g < l && (s.push(new RemovedColor(p, _, g)), n[p] = 0, o--);
+          const p = i[_], v = this._distance.calculateNormalized(m, p);
+          v < l && (s.push(new RemovedColor(_, p, v)), n[_] = 0, o--);
         }
       }
       l += o > this._colors * 3 ? this._initialDistance : this._distanceIncrement;
     }
     if (o < this._colors) {
-      stableSort(s, (m, p) => p.distance - m.distance);
+      stableSort(s, (m, _) => _.distance - m.distance);
       let d = 0;
       for (; o < this._colors && d < s.length; ) {
         const m = s[d];
@@ -41773,9 +41997,9 @@ var WuColorCube = class {
     for (let o = 0, l = this._pixels.length; o < l; o++) {
       const h = this._pixels[o];
       let d = -1, m = Number.MAX_VALUE;
-      for (let p = 0; p < this._colors; p++) {
-        const _ = i[p], g = n[p], v = a[p], b = s[p], w = this._distance.calculateRaw(_, g, v, b, h.r, h.g, h.b, h.a);
-        w < m && (m = w, d = p);
+      for (let _ = 0; _ < this._colors; _++) {
+        const p = i[_], v = n[_], g = a[_], k = s[_], b = this._distance.calculateRaw(p, v, g, k, h.r, h.g, h.b, h.a);
+        b < m && (m = b, d = _);
       }
       this._reds[d] += h.r, this._greens[d] += h.g, this._blues[d] += h.b, this._alphas[d] += h.a, this._sums[d]++;
     }
@@ -41786,18 +42010,18 @@ var WuColorCube = class {
   }
   *_calculateMoments() {
     const e = [], r = [], i = [], n = [], a = [], s = [], o = createArray3D(this._sideSize, this._sideSize, this._sideSize), l = createArray3D(this._sideSize, this._sideSize, this._sideSize), h = createArray3D(this._sideSize, this._sideSize, this._sideSize), f = createArray3D(this._sideSize, this._sideSize, this._sideSize), d = createArray3D(this._sideSize, this._sideSize, this._sideSize), m = createArray3D(this._sideSize, this._sideSize, this._sideSize);
-    let p = 0;
-    const _ = new ProgressTracker(this._alphaMaxSideIndex * this._maxSideIndex, 99);
-    for (let g = 1; g <= this._alphaMaxSideIndex; ++g) {
+    let _ = 0;
+    const p = new ProgressTracker(this._alphaMaxSideIndex * this._maxSideIndex, 99);
+    for (let v = 1; v <= this._alphaMaxSideIndex; ++v) {
       fillArray3D(o, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D(l, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D(h, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D(f, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D(d, this._sideSize, this._sideSize, this._sideSize, 0), fillArray3D(m, this._sideSize, this._sideSize, this._sideSize, 0);
-      for (let v = 1; v <= this._maxSideIndex; ++v, ++p) {
-        _.shouldNotify(p) && (yield {
-          progress: _.progress
+      for (let g = 1; g <= this._maxSideIndex; ++g, ++_) {
+        p.shouldNotify(_) && (yield {
+          progress: p.progress
         }), fillArray1D(e, this._sideSize, 0), fillArray1D(r, this._sideSize, 0), fillArray1D(i, this._sideSize, 0), fillArray1D(n, this._sideSize, 0), fillArray1D(a, this._sideSize, 0), fillArray1D(s, this._sideSize, 0);
-        for (let b = 1; b <= this._maxSideIndex; ++b) {
-          let w = 0, k = 0, M = 0, N = 0, P = 0, T = 0;
-          for (let C = 1; C <= this._maxSideIndex; ++C)
-            w += this._weights[g][v][b][C], k += this._momentsRed[g][v][b][C], M += this._momentsGreen[g][v][b][C], N += this._momentsBlue[g][v][b][C], P += this._momentsAlpha[g][v][b][C], T += this._moments[g][v][b][C], e[C] += w, r[C] += k, i[C] += M, n[C] += N, a[C] += P, s[C] += T, o[v][b][C] = o[v - 1][b][C] + e[C], l[v][b][C] = l[v - 1][b][C] + r[C], h[v][b][C] = h[v - 1][b][C] + i[C], f[v][b][C] = f[v - 1][b][C] + n[C], d[v][b][C] = d[v - 1][b][C] + a[C], m[v][b][C] = m[v - 1][b][C] + s[C], this._weights[g][v][b][C] = this._weights[g - 1][v][b][C] + o[v][b][C], this._momentsRed[g][v][b][C] = this._momentsRed[g - 1][v][b][C] + l[v][b][C], this._momentsGreen[g][v][b][C] = this._momentsGreen[g - 1][v][b][C] + h[v][b][C], this._momentsBlue[g][v][b][C] = this._momentsBlue[g - 1][v][b][C] + f[v][b][C], this._momentsAlpha[g][v][b][C] = this._momentsAlpha[g - 1][v][b][C] + d[v][b][C], this._moments[g][v][b][C] = this._moments[g - 1][v][b][C] + m[v][b][C];
+        for (let k = 1; k <= this._maxSideIndex; ++k) {
+          let b = 0, w = 0, M = 0, C = 0, T = 0, P = 0;
+          for (let N = 1; N <= this._maxSideIndex; ++N)
+            b += this._weights[v][g][k][N], w += this._momentsRed[v][g][k][N], M += this._momentsGreen[v][g][k][N], C += this._momentsBlue[v][g][k][N], T += this._momentsAlpha[v][g][k][N], P += this._moments[v][g][k][N], e[N] += b, r[N] += w, i[N] += M, n[N] += C, a[N] += T, s[N] += P, o[g][k][N] = o[g - 1][k][N] + e[N], l[g][k][N] = l[g - 1][k][N] + r[N], h[g][k][N] = h[g - 1][k][N] + i[N], f[g][k][N] = f[g - 1][k][N] + n[N], d[g][k][N] = d[g - 1][k][N] + a[N], m[g][k][N] = m[g - 1][k][N] + s[N], this._weights[v][g][k][N] = this._weights[v - 1][g][k][N] + o[g][k][N], this._momentsRed[v][g][k][N] = this._momentsRed[v - 1][g][k][N] + l[g][k][N], this._momentsGreen[v][g][k][N] = this._momentsGreen[v - 1][g][k][N] + h[g][k][N], this._momentsBlue[v][g][k][N] = this._momentsBlue[v - 1][g][k][N] + f[g][k][N], this._momentsAlpha[v][g][k][N] = this._momentsAlpha[v - 1][g][k][N] + d[g][k][N], this._moments[v][g][k][N] = this._moments[v - 1][g][k][N] + m[g][k][N];
         }
       }
     }
@@ -41847,16 +42071,16 @@ var WuColorCube = class {
     return s - l / o;
   }
   _maximize(e, r, i, n, a, s, o, l, h) {
-    const f = _WuQuant._bottom(e, r, this._momentsRed) | 0, d = _WuQuant._bottom(e, r, this._momentsGreen) | 0, m = _WuQuant._bottom(e, r, this._momentsBlue) | 0, p = _WuQuant._bottom(e, r, this._momentsAlpha) | 0, _ = _WuQuant._bottom(e, r, this._weights) | 0;
-    let g = 0, v = -1;
-    for (let b = i; b < n; ++b) {
-      let w = f + _WuQuant._top(e, r, b, this._momentsRed), k = d + _WuQuant._top(e, r, b, this._momentsGreen), M = m + _WuQuant._top(e, r, b, this._momentsBlue), N = p + _WuQuant._top(e, r, b, this._momentsAlpha), P = _ + _WuQuant._top(e, r, b, this._weights);
-      if (P !== 0) {
-        let T = w * w + k * k + M * M + N * N, C = T / P;
-        w = a - w, k = s - k, M = o - M, N = l - N, P = h - P, P !== 0 && (T = w * w + k * k + M * M + N * N, C += T / P, C > g && (g = C, v = b));
+    const f = _WuQuant._bottom(e, r, this._momentsRed) | 0, d = _WuQuant._bottom(e, r, this._momentsGreen) | 0, m = _WuQuant._bottom(e, r, this._momentsBlue) | 0, _ = _WuQuant._bottom(e, r, this._momentsAlpha) | 0, p = _WuQuant._bottom(e, r, this._weights) | 0;
+    let v = 0, g = -1;
+    for (let k = i; k < n; ++k) {
+      let b = f + _WuQuant._top(e, r, k, this._momentsRed), w = d + _WuQuant._top(e, r, k, this._momentsGreen), M = m + _WuQuant._top(e, r, k, this._momentsBlue), C = _ + _WuQuant._top(e, r, k, this._momentsAlpha), T = p + _WuQuant._top(e, r, k, this._weights);
+      if (T !== 0) {
+        let P = b * b + w * w + M * M + C * C, N = P / T;
+        b = a - b, w = s - w, M = o - M, C = l - C, T = h - T, T !== 0 && (P = b * b + w * w + M * M + C * C, N += P / T, N > v && (v = N, g = k));
       }
     }
-    return { max: g, position: v };
+    return { max: v, position: g };
   }
   _cut(e, r) {
     let i;
@@ -41951,23 +42175,23 @@ var AbstractImageQuantizer = class {
       f.shouldNotify(d) && (yield {
         progress: f.progress
       }), this._serpentine && (l *= -1);
-      const m = d * a, p = l === 1 ? 0 : a - 1, _ = l === 1 ? a : -1;
+      const m = d * a, _ = l === 1 ? 0 : a - 1, p = l === 1 ? a : -1;
       this._fillErrorLine(o[0], a), o.push(o.shift());
-      const g = o[0];
-      for (let v = p, b = m + p; v !== _; v += l, b += l) {
-        const w = i[b], k = g[v];
-        n.from(w);
-        const M = Point.createByRGBA(inRange0to255Rounded(w.r + k[0]), inRange0to255Rounded(w.g + k[1]), inRange0to255Rounded(w.b + k[2]), inRange0to255Rounded(w.a + k[3])), N = r.getNearestColor(this._distance, M);
-        if (w.from(N), this._minColorDistance && this._distance.calculateNormalized(n, N) < this._minColorDistance)
+      const v = o[0];
+      for (let g = _, k = m + _; g !== p; g += l, k += l) {
+        const b = i[k], w = v[g];
+        n.from(b);
+        const M = Point.createByRGBA(inRange0to255Rounded(b.r + w[0]), inRange0to255Rounded(b.g + w[1]), inRange0to255Rounded(b.b + w[2]), inRange0to255Rounded(b.a + w[3])), C = r.getNearestColor(this._distance, M);
+        if (b.from(C), this._minColorDistance && this._distance.calculateNormalized(n, C) < this._minColorDistance)
           continue;
-        let P, T, C, X;
-        this._calculateErrorLikeGIMP ? (P = M.r - N.r, T = M.g - N.g, C = M.b - N.b, X = M.a - N.a) : (P = n.r - N.r, T = n.g - N.g, C = n.b - N.b, X = n.a - N.a);
-        const _e = l === 1 ? 0 : this._kernel.length - 1, Je = l === 1 ? this._kernel.length : -1;
-        for (let Pe = _e; Pe !== Je; Pe += l) {
-          const Ke = this._kernel[Pe][1] * l, Wt = this._kernel[Pe][2];
-          if (Ke + v >= 0 && Ke + v < a && Wt + d >= 0 && Wt + d < s) {
-            const ee = this._kernel[Pe][0], We = o[Wt][Ke + v];
-            We[0] += P * ee, We[1] += T * ee, We[2] += C * ee, We[3] += X * ee;
+        let T, P, N, X;
+        this._calculateErrorLikeGIMP ? (T = M.r - C.r, P = M.g - C.g, N = M.b - C.b, X = M.a - C.a) : (T = n.r - C.r, P = n.g - C.g, N = n.b - C.b, X = n.a - C.a);
+        const fe = l === 1 ? 0 : this._kernel.length - 1, Ke = l === 1 ? this._kernel.length : -1;
+        for (let Pe = fe; Pe !== Ke; Pe += l) {
+          const Je = this._kernel[Pe][1] * l, Wt = this._kernel[Pe][2];
+          if (Je + g >= 0 && Je + g < a && Wt + d >= 0 && Wt + d < s) {
+            const ee = this._kernel[Pe][0], We = o[Wt][Je + g];
+            We[0] += T * ee, We[1] += P * ee, We[2] += N * ee, We[3] += X * ee;
           }
         }
       }
@@ -42273,15 +42497,15 @@ var ErrorDiffusionRiemersma = class extends AbstractImageQuantizer {
       s[l] = { r: 0, g: 0, b: 0, a: 0 };
     yield* hilbertCurve(n, a, (l, h) => {
       const f = i[l + h * n];
-      let { r: d, g: m, b: p, a: _ } = f;
-      for (let w = 0; w < this._errorQueueSize; w++) {
-        const k = this._weights[w], M = s[(w + o) % this._errorQueueSize];
-        d += M.r * k, m += M.g * k, p += M.b * k, _ += M.a * k;
+      let { r: d, g: m, b: _, a: p } = f;
+      for (let b = 0; b < this._errorQueueSize; b++) {
+        const w = this._weights[b], M = s[(b + o) % this._errorQueueSize];
+        d += M.r * w, m += M.g * w, _ += M.b * w, p += M.a * w;
       }
-      const g = Point.createByRGBA(inRange0to255Rounded(d), inRange0to255Rounded(m), inRange0to255Rounded(p), inRange0to255Rounded(_)), v = r.getNearestColor(this._distance, g);
+      const v = Point.createByRGBA(inRange0to255Rounded(d), inRange0to255Rounded(m), inRange0to255Rounded(_), inRange0to255Rounded(p)), g = r.getNearestColor(this._distance, v);
       o = (o + 1) % this._errorQueueSize;
-      const b = (o + this._errorQueueSize - 1) % this._errorQueueSize;
-      s[b].r = f.r - v.r, s[b].g = f.g - v.g, s[b].b = f.b - v.b, s[b].a = f.a - v.a, f.from(v);
+      const k = (o + this._errorQueueSize - 1) % this._errorQueueSize;
+      s[k].r = f.r - g.r, s[k].g = f.g - g.g, s[k].b = f.b - g.b, s[k].a = f.a - g.a, f.from(g);
     }), yield {
       pointContainer: e,
       progress: 100
@@ -42304,21 +42528,21 @@ function ssim(e, r) {
   const n = (1 << 8) - 1, a = (K1 * n) ** 2, s = (K2 * n) ** 2;
   let o = 0, l = 0;
   return iterate(e, r, (h, f, d, m) => {
-    let p = 0, _ = 0, g = 0;
+    let _ = 0, p = 0, v = 0;
     for (let M = 0; M < h.length; M++)
-      _ += (h[M] - d) ** 2, g += (f[M] - m) ** 2, p += (h[M] - d) * (f[M] - m);
-    const v = h.length - 1;
-    _ /= v, g /= v, p /= v;
-    const b = (2 * d * m + a) * (2 * p + s), w = (d ** 2 + m ** 2 + a) * (_ + g + s), k = b / w;
-    l += k, o++;
+      p += (h[M] - d) ** 2, v += (f[M] - m) ** 2, _ += (h[M] - d) * (f[M] - m);
+    const g = h.length - 1;
+    p /= g, v /= g, _ /= g;
+    const k = (2 * d * m + a) * (2 * _ + s), b = (d ** 2 + m ** 2 + a) * (p + v + s), w = k / b;
+    l += w, o++;
   }), l / o;
 }
 function iterate(e, r, i) {
   const a = e.getWidth(), s = e.getHeight();
   for (let o = 0; o < s; o += 8)
     for (let l = 0; l < a; l += 8) {
-      const h = Math.min(8, a - l), f = Math.min(8, s - o), d = calculateLumaValuesForWindow(e, l, o, h, f), m = calculateLumaValuesForWindow(r, l, o, h, f), p = calculateAverageLuma(d), _ = calculateAverageLuma(m);
-      i(d, m, p, _);
+      const h = Math.min(8, a - l), f = Math.min(8, s - o), d = calculateLumaValuesForWindow(e, l, o, h, f), m = calculateLumaValuesForWindow(r, l, o, h, f), _ = calculateAverageLuma(d), p = calculateAverageLuma(m);
+      i(d, m, _, p);
     }
 }
 function calculateLumaValuesForWindow(e, r, i, n, a) {
@@ -42766,19 +42990,19 @@ async function imageCutter(e, r, i) {
     let s = a[2].toLowerCase();
     s === "jpeg" && (s = "jpg"), outFolder = path$f.resolve(i, "tiles");
     try {
-      await fs$6.stat(outFolder), await fs$6.remove(outFolder);
+      await fs$5.stat(outFolder), await fs$5.remove(outFolder);
     } catch {
     }
-    await fs$6.ensureDir(outFolder);
+    await fs$5.ensureDir(outFolder);
     const o = await Jimp.read(r), l = o.width, h = o.height, f = Math.ceil(Math.log(Math.max(l, h) / 256) / Math.log(2)), d = [];
-    for (let v = f; v >= 0; v--) {
-      const b = Math.round(l / Math.pow(2, f - v)), w = Math.round(h / Math.pow(2, f - v));
-      for (let k = 0; k * 256 < b; k++) {
-        const M = (k + 1) * 256 > b ? b - k * 256 : 256, N = k * 256 * Math.pow(2, f - v), P = (k + 1) * 256 * Math.pow(2, f - v) > l ? l - N : 256 * Math.pow(2, f - v), T = path$f.resolve(outFolder, `${v}`, `${k}`);
-        await fs$6.ensureDir(T);
-        for (let C = 0; C * 256 < w; C++) {
-          const X = (C + 1) * 256 > w ? w - C * 256 : 256, _e = C * 256 * Math.pow(2, f - v), Je = (C + 1) * 256 * Math.pow(2, f - v) > h ? h - _e : 256 * Math.pow(2, f - v), Pe = path$f.resolve(T, `${C}.${s}`);
-          d.push([Pe, N, _e, P, Je, M, X]);
+    for (let g = f; g >= 0; g--) {
+      const k = Math.round(l / Math.pow(2, f - g)), b = Math.round(h / Math.pow(2, f - g));
+      for (let w = 0; w * 256 < k; w++) {
+        const M = (w + 1) * 256 > k ? k - w * 256 : 256, C = w * 256 * Math.pow(2, f - g), T = (w + 1) * 256 * Math.pow(2, f - g) > l ? l - C : 256 * Math.pow(2, f - g), P = path$f.resolve(outFolder, `${g}`, `${w}`);
+        await fs$5.ensureDir(P);
+        for (let N = 0; N * 256 < b; N++) {
+          const X = (N + 1) * 256 > b ? b - N * 256 : 256, fe = N * 256 * Math.pow(2, f - g), Ke = (N + 1) * 256 * Math.pow(2, f - g) > h ? h - fe : 256 * Math.pow(2, f - g), Pe = path$f.resolve(P, `${N}.${s}`);
+          d.push([Pe, C, fe, T, Ke, M, X]);
         }
       }
     }
@@ -42789,15 +43013,15 @@ async function imageCutter(e, r, i) {
       "mapupload.next_thumbnail"
     );
     m.setWindow(e), m.update(0);
-    for (let v = 0; v < d.length; v++) {
-      const b = d[v];
-      await o.clone().crop({ x: b[1], y: b[2], w: b[3], h: b[4] }).resize({ w: b[5], h: b[6] }).write(b[0]), m.update(v + 1), await new Promise((k) => setTimeout(k, 1));
+    for (let g = 0; g < d.length; g++) {
+      const k = d[g];
+      await o.clone().crop({ x: k[1], y: k[2], w: k[3], h: k[4] }).resize({ w: k[5], h: k[6] }).write(k[0]), m.update(g + 1), await new Promise((w) => setTimeout(w, 1));
     }
-    await fs$6.copy(r, path$f.resolve(outFolder, `original.${s}`));
-    const p = path$f.resolve(outFolder, "0", "0", `0.${s}`), _ = path$f.resolve(outFolder, "thumbnail.jpg");
-    await makeThumbnail(p, _);
-    const g = `${fileUrl(outFolder)}/{z}/{x}/{y}.${s}`;
-    return { width: l, height: h, url: g, imageExtension: s };
+    await fs$5.copy(r, path$f.resolve(outFolder, `original.${s}`));
+    const _ = path$f.resolve(outFolder, "0", "0", `0.${s}`), p = path$f.resolve(outFolder, "thumbnail.jpg");
+    await makeThumbnail(_, p);
+    const v = `${fileUrl(outFolder)}/{z}/{x}/{y}.${s}`;
+    return { width: l, height: h, url: v, imageExtension: s };
   } catch (n) {
     return { err: n };
   }
@@ -42839,23 +43063,23 @@ class DataUploadService {
   async extractZip(r) {
     const { tileFolder: i, uiThumbnailFolder: n, tmpFolder: a } = this.folders, s = path$f.join(a, "zip");
     try {
-      await fs$6.remove(s), await fs$6.ensureDir(s), new AdmZip(r).extractAllTo(s, !0);
-      const l = path$f.join(s, "maps"), h = path$f.join(s, "tiles"), f = path$f.join(s, "tmbs"), d = (await fs$6.readdir(l))[0], m = d.split(".")[0], p = path$f.join(l, d), _ = await fs$6.readJson(p), g = path$f.join(h, m), v = path$f.join(f, `${m}.jpg`), b = path$f.join(i, m), w = path$f.join(n, `${m}.jpg`), k = await MapDataService$1.getDBInstance();
-      if (await k.findOneAsync({ _id: m })) throw "Exist";
-      if (!fs$6.existsSync(g)) throw "NoTile";
-      if (!fs$6.existsSync(v)) throw "NoTmb";
-      await k.updateAsync({ _id: m }, { $set: _ }, { upsert: !0 }), await fs$6.remove(b), await fs$6.move(g, b), await fs$6.remove(w), await fs$6.move(v, w);
-      const [N, P] = await store2HistMap(_);
-      N.mapID = m, N.status = "Update";
-      const T = path$f.join(b, "0", "0");
-      if (fs$6.existsSync(T)) {
-        const X = (await fs$6.readdir(T)).find((_e) => /^0\.(jpg|jpeg|png)$/.test(_e));
+      await fs$5.remove(s), await fs$5.ensureDir(s), new AdmZip(r).extractAllTo(s, !0);
+      const l = path$f.join(s, "maps"), h = path$f.join(s, "tiles"), f = path$f.join(s, "tmbs"), d = (await fs$5.readdir(l))[0], m = d.split(".")[0], _ = path$f.join(l, d), p = await fs$5.readJson(_), v = path$f.join(h, m), g = path$f.join(f, `${m}.jpg`), k = path$f.join(i, m), b = path$f.join(n, `${m}.jpg`), w = await MapDataService$1.getDBInstance();
+      if (await w.findOneAsync({ _id: m })) throw "Exist";
+      if (!fs$5.existsSync(v)) throw "NoTile";
+      if (!fs$5.existsSync(g)) throw "NoTmb";
+      await w.updateAsync({ _id: m }, { $set: p }, { upsert: !0 }), await fs$5.remove(k), await fs$5.move(v, k), await fs$5.remove(b), await fs$5.move(g, b);
+      const [C, T] = await store2HistMap(p);
+      C.mapID = m, C.status = "Update";
+      const P = path$f.join(k, "0", "0");
+      if (fs$5.existsSync(P)) {
+        const X = (await fs$5.readdir(P)).find((fe) => /^0\.(jpg|jpeg|png)$/.test(fe));
         if (X) {
-          let _e = `file://${path$f.join(b, "0", "0", X).split(path$f.sep).join("/")}`;
-          _e = _e.replace(/\/0\/0\/0\./, "/{z}/{x}/{y}."), N.url_ = _e;
+          let fe = `file://${path$f.join(k, "0", "0", X).split(path$f.sep).join("/")}`;
+          fe = fe.replace(/\/0\/0\/0\./, "/{z}/{x}/{y}."), C.url_ = fe;
         }
       }
-      return { mapData: N, tins: P };
+      return { mapData: C, tins: T };
     } catch (o) {
       return console.error("[DataUploadService] extractZip error", o), { err: typeof o == "string" ? o : o.message || "Unknown" };
     }
@@ -42881,14 +43105,14 @@ class WmtsGeneratorService {
     try {
       const h = new Yt({});
       h.setCompiled(s), o = o || "jpg";
-      const { originalFolder: f, wmtsFolder: d } = this.folders, m = path$f.join(f, `${i}.${o}`), p = path$f.join(d, i), _ = h.transform([0, 0], !1, !0), g = h.transform([n, 0], !1, !0), v = h.transform([n, a], !1, !0), b = h.transform([0, a], !1, !0), w = Math.sqrt(Math.pow(n, 2) + Math.pow(a, 2)), k = Math.sqrt(Math.pow(_[0] - v[0], 2) + Math.pow(_[1] - v[1], 2)), M = Math.sqrt(Math.pow(g[0] - b[0], 2) + Math.pow(g[1] - b[1], 2)), N = MERC_MAX * 2 / 256, P = Math.min(k / w, M / w), T = Math.ceil(Math.log2(N / P)), C = Math.min(n, a), X = Math.ceil(Math.log2(C / 256)), _e = T - X, Je = [_, b, g, v];
+      const { originalFolder: f, wmtsFolder: d } = this.folders, m = path$f.join(f, `${i}.${o}`), _ = path$f.join(d, i), p = h.transform([0, 0], !1, !0), v = h.transform([n, 0], !1, !0), g = h.transform([n, a], !1, !0), k = h.transform([0, a], !1, !0), b = Math.sqrt(Math.pow(n, 2) + Math.pow(a, 2)), w = Math.sqrt(Math.pow(p[0] - g[0], 2) + Math.pow(p[1] - g[1], 2)), M = Math.sqrt(Math.pow(v[0] - k[0], 2) + Math.pow(v[1] - k[1], 2)), C = MERC_MAX * 2 / 256, T = Math.min(w / b, M / b), P = Math.ceil(Math.log2(C / T)), N = Math.min(n, a), X = Math.ceil(Math.log2(N / 256)), fe = P - X, Ke = [p, k, v, g];
       for (let Ge = 1; Ge < n; Ge++)
-        Je.push(h.transform([Ge, 0], !1, !0)), Je.push(h.transform([Ge, a], !1, !0));
+        Ke.push(h.transform([Ge, 0], !1, !0)), Ke.push(h.transform([Ge, a], !1, !0));
       for (let Ge = 1; Ge < a; Ge++)
-        Je.push(h.transform([0, Ge], !1, !0)), Je.push(h.transform([n, Ge], !1, !0));
-      const Pe = Je.map((Ge) => Ge[0]), Ke = Je.map((Ge) => Ge[1]), Wt = (Math.min(...Pe) + MERC_MAX) / (2 * MERC_MAX) * 256 * Math.pow(2, T), ee = (Math.max(...Pe) + MERC_MAX) / (2 * MERC_MAX) * 256 * Math.pow(2, T), We = (MERC_MAX - Math.max(...Ke)) / (2 * MERC_MAX) * 256 * Math.pow(2, T), st = (MERC_MAX - Math.min(...Ke)) / (2 * MERC_MAX) * 256 * Math.pow(2, T), Xt = Math.floor(Wt / 256), Jt = Math.floor(ee / 256), Vt = Math.floor(We / 256), it = Math.floor(st / 256), Qt = [];
-      for (let Ge = T; Ge >= _e; Ge--) {
-        const Kt = Math.floor(Xt / Math.pow(2, T - Ge)), Ni = Math.floor(Jt / Math.pow(2, T - Ge)), Di = Math.floor(Vt / Math.pow(2, T - Ge)), Gi = Math.floor(it / Math.pow(2, T - Ge));
+        Ke.push(h.transform([0, Ge], !1, !0)), Ke.push(h.transform([n, Ge], !1, !0));
+      const Pe = Ke.map((Ge) => Ge[0]), Je = Ke.map((Ge) => Ge[1]), Wt = (Math.min(...Pe) + MERC_MAX) / (2 * MERC_MAX) * 256 * Math.pow(2, P), ee = (Math.max(...Pe) + MERC_MAX) / (2 * MERC_MAX) * 256 * Math.pow(2, P), We = (MERC_MAX - Math.max(...Je)) / (2 * MERC_MAX) * 256 * Math.pow(2, P), st = (MERC_MAX - Math.min(...Je)) / (2 * MERC_MAX) * 256 * Math.pow(2, P), Xt = Math.floor(Wt / 256), Jt = Math.floor(ee / 256), Vt = Math.floor(We / 256), it = Math.floor(st / 256), Qt = [];
+      for (let Ge = P; Ge >= fe; Ge--) {
+        const Kt = Math.floor(Xt / Math.pow(2, P - Ge)), Ni = Math.floor(Jt / Math.pow(2, P - Ge)), Di = Math.floor(Vt / Math.pow(2, P - Ge)), Gi = Math.floor(it / Math.pow(2, P - Ge));
         for (let Ki = Kt; Ki <= Ni; Ki++)
           for (let Zn = Di; Zn <= Gi; Zn++)
             Qt.push([Ge, Ki, Zn]);
@@ -42900,10 +43124,10 @@ class WmtsGeneratorService {
         ""
       );
       Ri.setWindow(r), Ri.update(0);
-      const fe = (await Jimp.read(m)).bitmap.data;
+      const _e = (await Jimp.read(m)).bitmap.data;
       for (let Ge = 0; Ge < Qt.length; Ge++) {
         const [Kt, Ni, Di] = Qt[Ge];
-        Kt === T ? await this.maxZoomTileLoop(h, Kt, Ni, Di, fe, n, a, p) : await this.upperZoomTileLoop(Kt, Ni, Di, p), await new Promise((Gi) => setTimeout(Gi, 1)), Ri.update(Ge + 1);
+        Kt === P ? await this.maxZoomTileLoop(h, Kt, Ni, Di, _e, n, a, _) : await this.upperZoomTileLoop(Kt, Ni, Di, _), await new Promise((Gi) => setTimeout(Gi, 1)), Ri.update(Ge + 1);
       }
       return { hash: l };
     } catch (h) {
@@ -42912,39 +43136,39 @@ class WmtsGeneratorService {
   }
   // 原版 wmts_generator.js maxZoomTileLoop を忠実移植
   async maxZoomTileLoop(r, i, n, a, s, o, l, h) {
-    const f = 2 * MERC_MAX / (256 * Math.pow(2, i)), d = n * 256, m = a * 256, p = new Jimp({ width: 256, height: 256 }), _ = p.bitmap.data, g = [-1, 0, 1, 2];
-    let v = 0;
-    for (let k = 0; k < 256; k++) {
-      const M = MERC_MAX - (k + m) * f;
-      for (let N = 0; N < 256; N++) {
-        const P = (N + d) * f - MERC_MAX;
-        let T;
+    const f = 2 * MERC_MAX / (256 * Math.pow(2, i)), d = n * 256, m = a * 256, _ = new Jimp({ width: 256, height: 256 }), p = _.bitmap.data, v = [-1, 0, 1, 2];
+    let g = 0;
+    for (let w = 0; w < 256; w++) {
+      const M = MERC_MAX - (w + m) * f;
+      for (let C = 0; C < 256; C++) {
+        const T = (C + d) * f - MERC_MAX;
+        let P;
         try {
-          T = r.transform([P, M], !0, !0);
+          P = r.transform([T, M], !0, !0);
         } catch {
-          T = null;
+          P = null;
         }
-        if (!T) {
-          _[v] = _[v + 1] = _[v + 2] = _[v + 3] = 0, v += 4;
+        if (!P) {
+          p[g] = p[g + 1] = p[g + 2] = p[g + 3] = 0, g += 4;
           continue;
         }
-        const C = g.map((Wt) => Wt + ~~T[0]), X = g.map((Wt) => Wt + ~~T[1]);
-        let _e = 0, Je = 0, Pe = 0, Ke = 0;
+        const N = v.map((Wt) => Wt + ~~P[0]), X = v.map((Wt) => Wt + ~~P[1]);
+        let fe = 0, Ke = 0, Pe = 0, Je = 0;
         for (const Wt of X) {
-          const ee = this.getWeight(Wt, T[1]);
-          for (const We of C) {
-            const st = ee * this.getWeight(We, T[0]);
+          const ee = this.getWeight(Wt, P[1]);
+          for (const We of N) {
+            const st = ee * this.getWeight(We, P[0]);
             if (st === 0) continue;
             const Xt = this.rgba(s, o, l, We, Wt);
-            _e += Xt.r * st, Je += Xt.g * st, Pe += Xt.b * st, Ke += Xt.a * st;
+            fe += Xt.r * st, Ke += Xt.g * st, Pe += Xt.b * st, Je += Xt.a * st;
           }
         }
-        _[v] = ~~_e, _[v + 1] = ~~Je, _[v + 2] = ~~Pe, _[v + 3] = ~~Ke, v += 4;
+        p[g] = ~~fe, p[g + 1] = ~~Ke, p[g + 2] = ~~Pe, p[g + 3] = ~~Je, g += 4;
       }
     }
-    p.bitmap.data = _;
-    const b = path$f.join(h, `${i}`, `${n}`), w = path$f.join(b, `${a}.png`);
-    await fs$6.ensureDir(b), await p.write(w);
+    _.bitmap.data = p;
+    const k = path$f.join(h, `${i}`, `${n}`), b = path$f.join(k, `${a}.png`);
+    await fs$5.ensureDir(k), await _.write(b);
   }
   // 原版 wmts_generator.js upperZoomTileLoop を忠実移植
   // 256x256 キャンバスに 128x128 にリサイズした 4 つの子タイルを合成
@@ -42952,17 +43176,17 @@ class WmtsGeneratorService {
     const s = r + 1, o = new Jimp({ width: 256, height: 256 });
     for (let f = 0; f < 2; f++) {
       const d = i * 2 + f, m = f * 128;
-      for (let p = 0; p < 2; p++) {
-        const _ = n * 2 + p, g = p * 128, v = path$f.join(a, `${s}`, `${d}`, `${_}.png`);
+      for (let _ = 0; _ < 2; _++) {
+        const p = n * 2 + _, v = _ * 128, g = path$f.join(a, `${s}`, `${d}`, `${p}.png`);
         try {
-          const b = await Jimp.read(v);
-          b.resize({ w: 128, h: 128 }), o.composite(b, m, g);
+          const k = await Jimp.read(g);
+          k.resize({ w: 128, h: 128 }), o.composite(k, m, v);
         } catch {
         }
       }
     }
     const l = path$f.join(a, `${r}`, `${i}`), h = path$f.join(l, `${n}.png`);
-    await fs$6.ensureDir(l), await o.write(h);
+    await fs$5.ensureDir(l), await o.write(h);
   }
   // 原版と同じ bicubic weight 関数 (a = -1)
   getWeight(r, i) {
