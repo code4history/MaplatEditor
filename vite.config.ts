@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [
     vue(),
     nodePolyfills({
-      include: ['path', 'stream', 'util', 'url', 'http', 'https', 'zlib', 'events', 'string_decoder', 'punycode', 'buffer', 'assert', 'process', 'timers', 'fs', 'net', 'tls', 'child_process'],
+      include: ['path', 'stream', 'util', 'url', 'http', 'https', 'zlib', 'events', 'string_decoder', 'punycode', 'buffer', 'assert', 'process', 'timers', 'fs', 'net', 'tls', 'child_process', 'crypto'],
       globals: {
         process: true,
         Buffer: true,

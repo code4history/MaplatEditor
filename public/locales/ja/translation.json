@@ -253,7 +253,12 @@
     "creating_zip": "ZIPファイルを作成中"
   },
   "dataupload": {
-    "data_zip": "地図データ"
+    "data_zip": "地図データ",
+    "error_exist": "存在する地図IDです。処理を停止します。",
+    "error_no_tile": "データにタイル画像が含まれていません。処理を停止します。",
+    "error_no_tmb": "データにサムネイルが含まれていません。処理を停止します。",
+    "error_upload": "地図データ登録でエラーが発生しました。",
+    "success_upload": "正常に地図データが登録できました。"
   },
   "applist": {
     "not_implement": "未実装"

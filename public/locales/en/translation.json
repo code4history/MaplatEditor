@@ -221,7 +221,12 @@
     "creating_zip": "Generating zip file"
   },
   "dataupload": {
-    "data_zip": "Map Data"
+    "data_zip": "Map Data",
+    "error_exist": "A map with that ID already exists. Stopping process.",
+    "error_no_tile": "The data does not contain tile images. Stopping process.",
+    "error_no_tmb": "The data does not contain a thumbnail. Stopping process.",
+    "error_upload": "An error occurred during map data import.",
+    "success_upload": "Map data was successfully imported."
   },
   "applist": {
     "not_implement": "Not implemented yet"

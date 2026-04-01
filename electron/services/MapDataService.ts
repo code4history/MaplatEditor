@@ -87,7 +87,7 @@ class MapDataService {
     const skip = (page - 1) * pageSize;
     console.log(`[MapDataService] Requesting maps: query='${query}', page=${page}, skip=${skip}, limit=${pageSize}`);
     
-    // Use manual Promise wrapper for exec() to ensure compatibility specific NeDB versions
+    // exec() の互換性確保のため Promise ラッパーを使用
     const docs = await new Promise<any[]>((resolve, reject) => {
         db.find(queryObj).sort({ _id: 1 }).skip(skip).limit(pageSize).exec((err: any, documents: any[]) => {
             if (err) reject(err);
@@ -113,8 +113,7 @@ class MapDataService {
             image: null
         };
 
-        // Legacy Aspect Ratio Logic (from backend/src/maplist.js)
-        // Adjust width/height to fit within 190x190 while preserving aspect ratio
+        // 旧実装 backend/src/maplist.js に準拠: アスペクト比を保ちつつ190x190以内に収める
         if (res.width && res.height) {
             if (res.width > res.height) {
                 res.height = Math.round(res.height * 190 / res.width);
@@ -124,46 +123,71 @@ class MapDataService {
                 res.height = 190;
             }
         } else {
-            // Fallback if dimensions missing: assume square or standard ratio
-            // Better to default to *showing* the image at max 190x190 via CSS if we don't know dimensions, 
-            // but for now let's set a default 190x140 as a guess if it's landscape, or 190x190 if unknown.
+            // サイズ情報なし: 190x190 をデフォルト値とする
             res.width = 190;
             res.height = 190;
         }
 
         const { tileFolder } = this.folders;
-        // Search for level 0 tile directly in tiles directory
+        // タイルディレクトリ内のレベル0タイルを検索
         const thumbFolder = path.join(tileFolder, mapID, "0", "0");
         let foundTile = false;
 
         if (fs.existsSync(thumbFolder)) {
              try {
                  const files = await fs.readdir(thumbFolder);
-                 // Look for 0.jpg, 0.jpeg, 0.png
+                 // 0.jpg, 0.jpeg, 0.png を探す
                  const tileFile = files.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
                  if (tileFile) {
                      const tilePath = path.join(thumbFolder, tileFile);
-                     // Replace backslashes with slashes for file:// URL
+                     // バックスラッシュをスラッシュに変換してfile:// URLを構築
                      res.image = `file://${tilePath.split(path.sep).join('/')}`;
                      foundTile = true;
                  }
              } catch (e) {
-                 console.error(`Error reading existing search result tile for ${mapID}`, e);
+                 console.error(`[MapDataService] ${mapID} のサムネイル読み込みエラー`, e);
              }
         }
         
         if (!foundTile) {
-            // Fallback to no image or legacy check if needed, but primarily rely on tiles
-             res.image = null; 
+            res.image = null;
         }
         return res;
     }));
     return results;
   }
 
+  async deleteMap(mapID: string): Promise<void> {
+    const db = await this.getDB();
+    const { tileFolder, uiThumbnailFolder, originalFolder } = this.folders;
+
+    await db.removeAsync({ _id: mapID }, {});
+
+    // タイルフォルダ削除
+    const tileDir = path.join(tileFolder, mapID);
+    if (fs.existsSync(tileDir)) {
+      await fs.remove(tileDir);
+    }
+
+    // サムネイル削除
+    const thumbFile = path.join(uiThumbnailFolder, `${mapID}.jpg`);
+    if (fs.existsSync(thumbFile)) {
+      await fs.remove(thumbFile);
+    }
+
+    // オリジナル画像ファイル（mapID.*）を削除
+    if (fs.existsSync(originalFolder)) {
+      const files = await fs.readdir(originalFolder);
+      for (const file of files) {
+        if (new RegExp(`^${mapID}\\.`).test(file)) {
+          await fs.remove(path.join(originalFolder, file));
+        }
+      }
+    }
+  }
+
   async generateThumbnail(from: string, to: string) {
-      // Legacy behavior: Copy raw level 0 tile (256x256) directly without resizing
-      // This ensures the image is "crisp" and not "sleepy"
+      // 旧実装に準拠: リサイズせずレベル0タイル(256x256)をそのままコピー
       if (!fs.existsSync(path.dirname(to))) {
           await fs.ensureDir(path.dirname(to));
       }
@@ -171,12 +195,12 @@ class MapDataService {
   }
 
   async switchDataFolder() {
-      // Clear existing DB connection
+      // 既存DBコネクションをクリア
       this.db = null;
-      
+
       const { tileFolder, originalFolder, uiThumbnailFolder, mapFolder, compFolder } = this.folders;
-      
-      // Ensure all necessary folders exist
+
+      // 必要なフォルダを全て作成
       try {
           await fs.ensureDir(tileFolder);
           await fs.ensureDir(originalFolder);

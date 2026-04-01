@@ -12,7 +12,7 @@ const routes = [
     component: MapList
   },
   {
-    path: '/mapedit/:id?', // Use :id? for optional param if creating new
+    path: '/mapedit', // mapid is passed as query param (?mapid=xxx)
     name: 'MapEdit',
     component: () => import('../views/MapEdit.vue')
   },

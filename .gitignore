@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Serena MCP セッション・メモリファイル
+.serena/
+
+# 環境変数
+.env
+
+# TypeScript インクリメンタルビルドキャッシュ
+tsconfig.node.tsbuildinfo
+
+# Electron ビルド成果物
+release/

@@ -6,7 +6,7 @@ import path from 'node:path'
 // const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// The built directory structure
+// ビルド後のディレクトリ構造:
 //
 // ├─┬─┬ dist
 // │ │ └── index.html
@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // │
 process.env.APP_ROOT = path.join(__dirname, '..')
 
-// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
+// 🚧 ['ENV_NAME'] 形式で参照: vite:define プラグインの誤変換を回避（Vite@2.x 起因）
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
@@ -30,16 +30,16 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 1200, // Enforce minimum size like legacy
+    minWidth: 1200, // 旧実装に合わせた最小サイズ
     minHeight: 800,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
-      webSecurity: false // Allow loading local resources like file://
+      webSecurity: false // file:// などローカルリソース読み込みを許可
     },
   })
 
-  // Test active push message to Renderer-process.
+  // レンダラープロセスへのメッセージ送信テスト
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
   })
@@ -52,9 +52,9 @@ function createWindow() {
   }
 }
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// 全ウィンドウが閉じられたときにアプリを終了する（macOSを除く）
+// macOSではウィンドウを閉じてもアプリがメニューバーに残るのが一般的であり、
+// Cmd+Qで明示的に終了するまでアクティブな状態を維持する
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -63,8 +63,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
+  // macOSではDockアイコンクリック時にウィンドウがなければ再生成するのが一般的
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
@@ -73,20 +72,30 @@ app.on('activate', () => {
 import { registerSettingsHandlers } from './ipc/settings'
 import { registerMapHandlers } from './ipc/maps'
 import { registerMapEditHandlers } from './ipc/mapedit'
+import { registerMapUploadHandlers } from './ipc/mapupload'
+import { registerDataUploadHandlers } from './ipc/dataupload'
+import { registerWmtsHandlers } from './ipc/wmts'
 
 import { ipcMain } from 'electron'
 
 app.whenReady().then(() => {
-  // Remove existing handlers to avoid "Attempted to register a second handler" error during HMR
+  // HMR時の「2重登録」エラーを防ぐため、既存ハンドラを事前に解除する
   ipcMain.removeHandler('settings:get')
   ipcMain.removeHandler('settings:set')
-  ipcMain.removeHandler('settings:select-data-folder')
-  ipcMain.removeHandler('map:list')
-  ipcMain.removeHandler('map:get')
-  ipcMain.removeHandler('mapedit:request')
+  ipcMain.removeHandler('settings:select-folder')
+  ipcMain.removeHandler('maplist:request')
+  ipcMain.removeHandler('maplist:delete')
   ipcMain.removeHandler('mapedit:request')
   ipcMain.removeHandler('mapedit:get-tms-list')
   ipcMain.removeHandler('mapedit:updateTin')
+  ipcMain.removeHandler('mapedit:save')
+  ipcMain.removeHandler('mapedit:checkID')
+  ipcMain.removeHandler('mapupload:showMapSelectDialog')
+  ipcMain.removeHandler('mapedit:getWmtsFolder')
+  ipcMain.removeHandler('mapedit:download')
+  ipcMain.removeHandler('mapedit:uploadCsv')
+  ipcMain.removeHandler('dataupload:showDataSelectDialog')
+  ipcMain.removeHandler('wmtsGen:generate')
   ipcMain.removeHandler('dialog:showMessageBox')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
@@ -96,13 +105,21 @@ app.whenReady().then(() => {
   registerSettingsHandlers()
   registerMapHandlers()
   registerMapEditHandlers()
+  registerMapUploadHandlers()
+  registerDataUploadHandlers()
+  registerWmtsHandlers()
   createWindow()
   setupMenu()
+
+  // 言語変更時にメニューを再構築する
+  SettingsService.on('changeLang', () => {
+    setupMenu();
+  });
 })
 
 import SettingsService from './services/SettingsService'
 
-// Menu Translations
+// メニュー翻訳定義
 const messages: Record<string, Record<string, string>> = {
   en: {
     'menu.maplateditor': 'MaplatEditor',
@@ -144,8 +161,8 @@ function createAboutWindow() {
   }
   aboutWin = new BrowserWindow({
     width: 400,
-    height: 450, // Increased height to ensure all content fits
-    resizable: true, // Allow resizing to debug layout issues if they persist
+    height: 450,
+    resizable: true,
     minimizable: false,
     maximizable: false,
     title: 'About MaplatEditor',
@@ -158,11 +175,11 @@ function createAboutWindow() {
   });
   aboutWin.setMenu(null);
   
-  // Load about.html from public folder
+  // publicフォルダからabout.htmlを読み込む
   const aboutPath = path.join(process.env.VITE_PUBLIC as string, 'about.html');
   aboutWin.loadFile(aboutPath);
   
-  // aboutWin.webContents.openDevTools({ mode: 'detach' }); // Uncomment to debug if needed
+  // aboutWin.webContents.openDevTools({ mode: 'detach' }); // デバッグ時はコメント解除
   aboutWin.on('closed', () => { aboutWin = null; });
 }
 
@@ -200,7 +217,7 @@ function setupMenu() {
     }
   ]
   
-  // Add Dev menu
+  // 開発メニューを追加
   template.push({
     label: t('menu.development'),
     submenu: [
@@ -213,14 +230,3 @@ function setupMenu() {
   Menu.setApplicationMenu(menu)
 }
 
-app.whenReady().then(() => {
-  registerSettingsHandlers()
-  registerMapHandlers()
-  createWindow()
-  setupMenu()
-  
-  // Rebuild menu on language change
-  SettingsService.on('changeLang', () => {
-      setupMenu();
-  });
-})

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "chcp 65001 && vite",
+    "dev": "node -e \"process.platform==='win32'&&require('child_process').execSync('chcp 65001')\" && vite",
     "build": "vue-tsc && vite build && electron-builder",
     "preview": "vite preview"
   },

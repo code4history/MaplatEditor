@@ -3,7 +3,6 @@ import SettingsService from '../services/SettingsService';
 import MapDataService from '../services/MapDataService';
 
 export function registerSettingsHandlers() {
-  ipcMain.removeHandler('settings:get'); // Remove if exists (idempotent)
   ipcMain.handle('settings:get', (_, key: string) => {
     return SettingsService.get(key);
   });
@@ -12,7 +11,7 @@ export function registerSettingsHandlers() {
     SettingsService.set(key, value);
     if (key === 'saveFolder') {
         await MapDataService.switchDataFolder();
-        // Notify all windows that map list needs refresh
+        // saveFolder変更時、全ウィンドウにマップリストの更新を通知する
         BrowserWindow.getAllWindows().forEach(win => {
             win.webContents.send('maplist:refresh');
         });

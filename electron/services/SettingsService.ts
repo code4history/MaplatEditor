@@ -34,22 +34,17 @@ class SettingsService extends EventEmitter {
   // ... (migrateLegacySettings remains same)
 
   private migrateLegacySettings() {
-    // Check if we already have settings, if so skip
+    // 既に移行済みの場合はスキップ
     if (this.store.has('migratedFromLegacy')) return;
     try {
       const appData = app.getPath('appData');
       const legacyStoragePath = path.join(appData, 'MaplatEditor', 'storage');
-      
+
       if (fs.existsSync(legacyStoragePath)) {
-          // Try to read saveFolder.json
-          // Note: In legacy implementation, simple-storage might have been used or specific keys
-          // We will attempt to read key-based files if they exist, or 'storage.json'
-          // For now, minimal migration logic as previously implemented
-          
+          // 旧実装のsimple-storageはキーごとにJSONファイルを保存していた
+          // saveFolder.json, lang.json を読み込んで新形式に移行する
           const saveFolderFile = path.join(legacyStoragePath, 'saveFolder.json');
           if (fs.existsSync(saveFolderFile)) {
-              // Legacy often stored just the JSON string primitive in the file for simple keys
-              // or a full JSON object. We try to read it.
               try {
                   const saveFolderVal = fs.readJsonSync(saveFolderFile);
                   if (saveFolderVal) this.store.set('saveFolder', saveFolderVal);
@@ -82,6 +77,10 @@ class SettingsService extends EventEmitter {
   }
 
   public get(key: string): any {
+    // tmpFolder は OS の一時ディレクトリから動的に算出（旧実装: settings.getSetting('tmpFolder') 相当）
+    if (key === 'tmpFolder') {
+      return path.join(app.getPath('temp'), app.getName());
+    }
     return this.store.get(key);
   }
 
@@ -116,22 +115,19 @@ class SettingsService extends EventEmitter {
 
   public async getTmsListOfMapID(mapID: string): Promise<any[]> {
     return new Promise((resolve) => {
-      // 1. Get base tmsList (from default settings which is tms_list.json)
-      // The `tmsList` store could be empty due to earlier bugs overwriting it persistently in electron-store.
-      // We will ALWAYS load default maps from our constant source `defaultTmsList`, then fetch store's tmsList, then concat user's file.
-      // Let's re-read config from original file just in case store is polluted
+      // 1. デフォルトTMSリスト（tms_list.json）を基底として読み込む
       const tmsListBase: any[] = [...defaultTmsList];
-      
+
       const saveFolder = this.store.get('saveFolder');
       const settingsDir = path.join(saveFolder, 'settings');
-      
-      // Legacy behavior: `data` was loaded from editorStorage('tmsList.json')
+
+      // 旧実装: editorStorage('tmsList.json') から読み込んでいたユーザー設定
       let userListFromStore: any[] = this.store.get('tmsList') || [];
       if (!Array.isArray(userListFromStore)) {
           userListFromStore = [];
       }
-      
-      // Let's concat user's explicitly loaded list on top of defaults
+
+      // デフォルト＋ユーザー設定を結合
       let mergedTmsList = tmsListBase.concat(userListFromStore);
 
       try {
@@ -146,12 +142,8 @@ class SettingsService extends EventEmitter {
           console.error("Failed to read user tmsList.json", e);
       }
 
-      // 2. Map-specific visible status (tmsList.mapID.json equivalent)
-      // Legacy code used `editorStorage().get('tmsList.' + mapID)`
-      // In the new system, we'll store this in a file specific to the map ID under settings/tmsList_[mapID].json
-      // or using electron-store if it was migrated.
-      
-      // For compatibility with manual edits, we look for settings/tmsList.[mapID].json
+      // 2. 地図ごとのTMS表示設定（旧実装: editorStorage().get('tmsList.' + mapID) 相当）
+      // settings/tmsList.[mapID].json に保存する
       let fileData: Record<string, boolean> = {};
       const mapSpecificConfigPath = path.join(settingsDir, `tmsList.${mapID}.json`);
       let saveFlag = false;
@@ -186,7 +178,7 @@ class SettingsService extends EventEmitter {
       });
 
       if (saveFlag) {
-        // Save back the defaults if it was missing keys
+        // 新規キーが追加された場合、設定ファイルに書き戻す
         try {
             fs.ensureDirSync(settingsDir);
             fs.writeJsonSync(mapSpecificConfigPath, fileData, { spaces: 2 });

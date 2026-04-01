@@ -3,7 +3,7 @@
 declare namespace NodeJS {
   interface ProcessEnv {
     /**
-     * The built directory structure
+     * ビルド後のディレクトリ構成
      *
      * ```tree
      * ├─┬─┬ dist
@@ -16,12 +16,12 @@ declare namespace NodeJS {
      * ```
      */
     APP_ROOT: string
-    /** /dist/ or /public/ */
+    /** /dist/ または /public/ */
     VITE_PUBLIC: string
   }
 }
 
-// Used in Renderer process, expose in `preload.ts`
+// レンダラープロセスで使用: preload.ts で expose する
 interface Window {
   ipcRenderer: import('electron').IpcRenderer
 }
