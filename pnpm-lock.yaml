@@ -71,9 +71,6 @@ importers:
       ol-contextmenu:
         specifier: ^6.0.0
         version: 6.0.0(ol@10.7.0)
-      ol-geocoder:
-        specifier: ^4.3.3
-        version: 4.3.3(ol@10.7.0)
       ol-layerswitcher:
         specifier: ^4.1.2
         version: 4.1.2(ol@10.7.0)
@@ -2438,11 +2435,6 @@ packages:
     engines: {node: '>=24', npm: '>=11'}
     peerDependencies:
       ol: '> 7.x <= 10.x'
-
-  ol-geocoder@4.3.3:
-    resolution: {integrity: sha512-uCXygiNVldMNGgi7H0pLMMMnEey8Nlx/k3brq4knCnmtapC9P1lbel7NydMNGgdymUgm1jq4T5ENvIngTJW44A==}
-    peerDependencies:
-      ol: '>=6.0.0'
 
   ol-layerswitcher@4.1.2:
     resolution: {integrity: sha512-yF1iNqPKWr7AcsIWnr5He+T/J4X3qdce7qr8QUi/5Xyjo6uFjVvVijdAhMwiNfJrBNh9JhrXeDSl+1/cTT58KA==}
@@ -6535,10 +6527,6 @@ snapshots:
     dependencies:
       ol: 10.7.0
       tiny-emitter: 2.1.0
-
-  ol-geocoder@4.3.3(ol@10.7.0):
-    dependencies:
-      ol: 10.7.0
 
   ol-layerswitcher@4.1.2(ol@10.7.0):
     dependencies:

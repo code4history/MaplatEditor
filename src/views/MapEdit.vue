@@ -8,8 +8,7 @@ import { useTranslation } from 'i18next-vue';
 // @ts-ignore
 import crypto from 'crypto';
 // @ts-ignore
-import Geocoder from 'ol-geocoder';
-import 'ol-geocoder/dist/ol-geocoder.min.css';
+import Geocoder from '../libs/ol-geocoder/base';
 // @ts-ignore
 import ContextMenu from 'ol-contextmenu';
 // @ts-ignore
