@@ -44,12 +44,12 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: {
-      '@maplat/core/src': path.resolve(__dirname, 'node_modules/@maplat/core/src'),
-      'i18next-http-backend': path.resolve(__dirname, 'node_modules/i18next-http-backend/esm/index.js'),
-      'cross-fetch': path.resolve(__dirname, 'src/utils/cross-fetch-sham.ts'),
-      'ol-geocoder': path.resolve(__dirname, 'node_modules/ol-geocoder/dist/ol-geocoder.js')
-    }
+    alias: [
+      { find: '@maplat/core/src', replacement: path.resolve(__dirname, 'node_modules/@maplat/core/src') },
+      { find: 'i18next-http-backend', replacement: path.resolve(__dirname, 'node_modules/i18next-http-backend/esm/index.js') },
+      { find: 'cross-fetch', replacement: path.resolve(__dirname, 'src/utils/cross-fetch-sham.ts') },
+      { find: /^ol-geocoder$/, replacement: path.resolve(__dirname, 'node_modules/ol-geocoder/dist/ol-geocoder.js') }
+    ]
   },
   // ol-geocoder は UMD のみ提供（ESM なし）のため、CJS → ESM 変換を明示的に有効化
   build: {
