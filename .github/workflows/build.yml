@@ -74,13 +74,23 @@ jobs:
             -s -k "$KEYCHAIN_PASSWORD" build.keychain
           rm certificate.p12
 
-      - name: Build macOS
+      # 公証環境変数のセット（master かつ APPLE_ID が設定されている場合のみ）
+      # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
+      - name: Set macOS notarization environment
+        if: github.ref == 'refs/heads/master'
+        shell: bash
         env:
-          # master かつ Secrets 設定済みの場合のみ公証環境変数を渡す
-          # 未設定（空文字）の場合は electron-builder.config.cjs 内で署名スキップ
-          APPLE_ID: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_ID || '' }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_TEAM_ID || '' }}
+          _APPLE_ID: ${{ secrets.APPLE_ID }}
+          _APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          _APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$_APPLE_ID" ]; then
+            echo "APPLE_ID=$_APPLE_ID" >> $GITHUB_ENV
+            echo "APPLE_APP_SPECIFIC_PASSWORD=$_APPLE_APP_SPECIFIC_PASSWORD" >> $GITHUB_ENV
+            echo "APPLE_TEAM_ID=$_APPLE_TEAM_ID" >> $GITHUB_ENV
+          fi
+
+      - name: Build macOS
         run: pnpm run dist:mac
 
       - name: Upload macOS artifacts
@@ -115,12 +125,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build Windows
+      # 署名環境変数のセット（master かつ WIN_CSC_LINK が設定されている場合のみ）
+      # ※ 空文字を env: に渡すと electron-builder がパスとして解釈して誤動作するため $GITHUB_ENV 経由で設定
+      - name: Set Windows code signing environment
+        if: github.ref == 'refs/heads/master'
+        shell: bash
         env:
-          # master かつ Secrets 設定済みの場合のみ署名
-          # WIN_CSC_LINK には base64 エンコードした .pfx ファイルの内容を設定
-          WIN_CSC_LINK: ${{ github.ref == 'refs/heads/master' && secrets.WIN_CSC_LINK || '' }}
-          WIN_CSC_KEY_PASSWORD: ${{ github.ref == 'refs/heads/master' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+          _WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          _WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          if [ -n "$_WIN_CSC_LINK" ]; then
+            echo "WIN_CSC_LINK=$_WIN_CSC_LINK" >> $GITHUB_ENV
+            echo "WIN_CSC_KEY_PASSWORD=$_WIN_CSC_KEY_PASSWORD" >> $GITHUB_ENV
+          fi
+
+      - name: Build Windows
         run: pnpm run dist:win
 
       - name: Upload Windows artifacts
