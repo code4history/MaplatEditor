@@ -1,11 +1,8 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain } from 'electron';
 import MapDataService from '../services/MapDataService';
 
 export function registerMapHandlers() {
-  ipcMain.handle('maplist:request', async (event, query, page, pageSize) => {
-    // 必要に応じてマイグレーション処理を実行
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (win) await MapDataService.migrateIfNeeded(win);
+  ipcMain.handle('maplist:request', async (_event, query, page, pageSize) => {
     return await MapDataService.requestMaps(query, page, pageSize);
   });
 

@@ -1,10 +1,21 @@
 import fs from 'fs-extra';
 import path from 'path';
 import Datastore from '@seald-io/nedb';
-import { BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
-import * as storeHandler from '../utils/store_handler';
-import { ProgressReporter } from '../utils/ProgressReporter';
+
+// 旧実装 nedb_accessor.js checkLocaleAttr 相当:
+// 空白区切りの全単語が attr（文字列 or 多言語オブジェクト）にマッチするか確認
+function checkLocaleAttr(attr: any, condition: string): boolean {
+  if (!attr) return false;
+  const conds = condition.trim().split(/\s+/);
+  if (typeof attr === 'string') {
+    return conds.every(cond => new RegExp(cond, 'i').test(attr));
+  }
+  // 多言語オブジェクト: 各単語について、いずれかの言語でマッチすれば OK
+  return conds.every(cond =>
+    Object.values(attr as Record<string, string>).some(v => new RegExp(cond, 'i').test(v))
+  );
+}
 
 class MapDataService {
   private db: Datastore | null = null;
@@ -16,8 +27,6 @@ class MapDataService {
       tileFolder: path.join(saveFolder, "tiles"),
       originalFolder: path.join(saveFolder, "originals"),
       uiThumbnailFolder: path.join(saveFolder, "tmbs"),
-      mapFolder: path.join(saveFolder, "maps"),
-      compFolder: path.join(saveFolder, "compiled"),
       dbFile: path.join(saveFolder, "nedb.db")
     };
   }
@@ -33,83 +42,71 @@ class MapDataService {
     return this.db;
   }
 
-  async migrateIfNeeded(window: BrowserWindow) {
-    const { compFolder } = this.folders;
-    try {
-      if (!fs.existsSync(compFolder)) return;
-      if (fs.existsSync(path.join(compFolder, ".updated"))) return;
-
-      await this.runMigration(window);
-    } catch (e) {
-      console.error("Migration check failed", e);
-    }
-  }
-
-  async runMigration(window: BrowserWindow) {
-    const { compFolder } = this.folders;
-    const mapFiles = await fs.readdir(compFolder);
+  async requestMaps(query: string = '', page: number = 1, pageSize: number = 20): Promise<{docs: any[], prev: boolean, next: boolean, pageUpdate?: number}> {
     const db = await this.getDB();
-    
-    const jsonFiles = mapFiles.filter(f => f.endsWith('.json'));
-    const reporter = new ProgressReporter("taskProgress", jsonFiles.length, 'maplist.migrating', 'maplist.migrated');
-    reporter.setWindow(window);
 
-    let count = 0;
-    reporter.update(0);
-
-    for (const file of jsonFiles) {
-      const mapID = file.replace('.json', '');
-      try {
-        const jsonLoad = await fs.readJson(path.join(compFolder, file));
-        const [store, tins] = await storeHandler.store2HistMap(jsonLoad as any);
-        const finalStore = await storeHandler.histMap2Store(store, tins);
-        
-        await db.updateAsync({ _id: mapID }, { $set: finalStore }, { upsert: true });
-      } catch (e) {
-        console.error(`Failed to migrate ${file}`, e);
-      }
-      count++;
-      reporter.update(count);
-      await new Promise(r => setTimeout(r, 50));
+    // 旧実装 nedb_accessor.js に準拠:
+    // title・officialTitle・description の3フィールドを空白区切り AND 検索
+    // 文字列・多言語オブジェクトの両方に対応
+    const where: any = {};
+    if (query && query.trim()) {
+      const condition = query;
+      where['$where'] = function(this: any) {
+        return ['title', 'officialTitle', 'description'].some(attr =>
+          checkLocaleAttr(this[attr], condition)
+        );
+      };
     }
 
-    await fs.writeFile(path.join(compFolder, ".updated"), "done");
-  }
+    let currentPage = page;
+    let pageUpdate: number | undefined;
+    let rawDocs: any[] = [];
+    let prev: boolean;
+    let next: boolean;
 
-  async requestMaps(query: string = '', page: number = 1, pageSize: number = 20): Promise<any> {
-    const db = await this.getDB();
-    let queryObj: any = {};
-    if (query) {
-       const regex = new RegExp(query, 'i');
-       queryObj = { $or: [{ 'title.ja': regex }, { 'title.en': regex }, { title: regex }, { name: regex }] };
-    }
+    // 旧実装に準拠: 空ページなら自動的に前ページに巻き戻す
+    while (true) {
+      const skip = (currentPage - 1) * pageSize;
+      console.log(`[MapDataService] Requesting maps: query='${query}', page=${currentPage}, skip=${skip}`);
 
-    const skip = (page - 1) * pageSize;
-    console.log(`[MapDataService] Requesting maps: query='${query}', page=${page}, skip=${skip}, limit=${pageSize}`);
-    
-    // exec() の互換性確保のため Promise ラッパーを使用
-    const docs = await new Promise<any[]>((resolve, reject) => {
-        db.find(queryObj).sort({ _id: 1 }).skip(skip).limit(pageSize).exec((err: any, documents: any[]) => {
-            if (err) reject(err);
-            else resolve(documents);
+      // 旧実装に準拠: limit+1 取得して pop する方式で次ページ有無を判定
+      const fetched = await new Promise<any[]>((resolve, reject) => {
+        db.find(where).sort({ _id: 1 }).skip(skip).limit(pageSize + 1).exec((err: any, documents: any[]) => {
+          if (err) reject(err);
+          else resolve(documents);
         });
-    });
+      });
 
-    const results = await Promise.all(docs.map(async (doc: any) => {
+      next = fetched.length > pageSize;
+      if (next) fetched.pop();
+      prev = currentPage > 1;
+
+      if (fetched.length === 0 && currentPage > 1) {
+        currentPage--;
+        pageUpdate = currentPage;
+      } else {
+        rawDocs = fetched;
+        break;
+      }
+    }
+
+    const docs = await Promise.all(rawDocs.map(async (doc: any) => {
         const mapID = doc._id || doc.mapID;
         let title = doc.title;
-        if (typeof title === 'object') {
-            title = title.ja || title.en || Object.values(title)[0];
+        if (typeof title === 'object' && title !== null) {
+            // 旧実装に準拠: doc.lang を優先し、なければ 'ja' にフォールバック
+            const lang = doc.lang || 'ja';
+            title = title[lang] || Object.values(title as Record<string, string>)[0];
         }
 
         const width = doc.width || (doc.compiled && doc.compiled.wh && doc.compiled.wh[0]);
         const height = doc.height || (doc.compiled && doc.compiled.wh && doc.compiled.wh[1]);
 
         const res: any = {
-            mapID: mapID,
+            mapID,
             title: title || mapID,
-            width: width,
-            height: height,
+            width,
+            height,
             image: null
         };
 
@@ -123,38 +120,57 @@ class MapDataService {
                 res.height = 190;
             }
         } else {
-            // サイズ情報なし: 190x190 をデフォルト値とする
             res.width = 190;
             res.height = 190;
         }
 
         const { tileFolder } = this.folders;
-        // タイルディレクトリ内のレベル0タイルを検索
         const thumbFolder = path.join(tileFolder, mapID, "0", "0");
-        let foundTile = false;
 
         if (fs.existsSync(thumbFolder)) {
-             try {
-                 const files = await fs.readdir(thumbFolder);
-                 // 0.jpg, 0.jpeg, 0.png を探す
-                 const tileFile = files.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
-                 if (tileFile) {
-                     const tilePath = path.join(thumbFolder, tileFile);
-                     // バックスラッシュをスラッシュに変換してfile:// URLを構築
-                     res.image = `file://${tilePath.split(path.sep).join('/')}`;
-                     foundTile = true;
-                 }
-             } catch (e) {
-                 console.error(`[MapDataService] ${mapID} のサムネイル読み込みエラー`, e);
-             }
-        }
-        
-        if (!foundTile) {
-            res.image = null;
+            try {
+                const files = await fs.readdir(thumbFolder);
+                const tileFile = files.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
+                if (tileFile) {
+                    const tilePath = path.join(thumbFolder, tileFile);
+                    res.image = `file://${tilePath.split(path.sep).join('/')}`;
+                }
+            } catch (e) {
+                console.error(`[MapDataService] ${mapID} のサムネイル読み込みエラー`, e);
+            }
         }
         return res;
     }));
-    return results;
+
+    const result: {docs: any[], prev: boolean, next: boolean, pageUpdate?: number} = { docs, prev: prev!, next };
+    if (pageUpdate !== undefined) result.pageUpdate = pageUpdate;
+    return result;
+  }
+
+  // 旧実装 nedb_accessor.js searchExtent に準拠:
+  // メルカトル extent と重なる地図の mapID 一覧を返す
+  async searchExtent(extent: number[]): Promise<string[]> {
+    const db = await this.getDB();
+    const where: any = {};
+    where['$where'] = function(this: any) {
+      if (!this.compiled) return false;
+      const pts = this.compiled.vertices_points;
+      if (!pts || pts.length === 0) return false;
+      const ext: number[] = pts.reduce((ret: number[], vertex: any) => {
+        const merc = vertex[1];
+        if (ret.length === 0) return [merc[0], merc[1], merc[0], merc[1]];
+        return [Math.min(ret[0], merc[0]), Math.min(ret[1], merc[1]),
+                Math.max(ret[2], merc[0]), Math.max(ret[3], merc[1])];
+      }, []);
+      return extent[0] <= ext[2] && ext[0] <= extent[2] &&
+             extent[1] <= ext[3] && ext[1] <= extent[3];
+    };
+    const docs = await new Promise<any[]>((resolve, reject) => {
+      db.find(where).sort({ _id: 1 }).exec((err: any, documents: any[]) => {
+        if (err) reject(err); else resolve(documents);
+      });
+    });
+    return docs.map((d: any) => d._id);
   }
 
   async deleteMap(mapID: string): Promise<void> {
@@ -198,15 +214,13 @@ class MapDataService {
       // 既存DBコネクションをクリア
       this.db = null;
 
-      const { tileFolder, originalFolder, uiThumbnailFolder, mapFolder, compFolder } = this.folders;
+      const { tileFolder, originalFolder, uiThumbnailFolder } = this.folders;
 
       // 必要なフォルダを全て作成
       try {
           await fs.ensureDir(tileFolder);
           await fs.ensureDir(originalFolder);
           await fs.ensureDir(uiThumbnailFolder);
-          await fs.ensureDir(mapFolder);
-          await fs.ensureDir(compFolder);
           console.log(`[MapDataService] Data folder switched and initialized: ${SettingsService.get('saveFolder')}`);
       } catch (e) {
           console.error("[MapDataService] Failed to initialize new data folders", e);

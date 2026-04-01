@@ -48,6 +48,8 @@ contextBridge.exposeInMainWorld('mapedit', {
     ipcRenderer.invoke('mapedit:save', mapObject, tins),
   checkID: (mapID: string) =>
     ipcRenderer.invoke('mapedit:checkID', mapID),
+  checkExtentMap: (extent: number[]) =>
+    ipcRenderer.invoke('mapedit:checkExtentMap', extent),
   download: (mapObject: any, tins: any[]) =>
     ipcRenderer.invoke('mapedit:download', mapObject, tins),
   uploadCsv: (csvRepl: string, csvUpSettings: any) =>

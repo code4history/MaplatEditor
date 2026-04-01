@@ -106,9 +106,8 @@ class SettingsService extends EventEmitter {
     });
 
     if (!result.canceled && result.filePaths.length > 0) {
-      const newPath = result.filePaths[0];
-      this.set('saveFolder', newPath);
-      return newPath;
+      // 選択されたパスを返すだけ。保存は Settings.vue の saveSettings() に委ねる
+      return result.filePaths[0];
     }
     return null;
   }

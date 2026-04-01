@@ -26,6 +26,9 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 
 let win: BrowserWindow | null
 
+// 旧実装 main.js L.88-93 に準拠: macOS で Cmd+Q が押されるまで force_quit を false に保つ
+let forceQuit = false
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1200,
@@ -47,14 +50,25 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
+
+  // 旧実装 main.js L.79-85 に準拠:
+  // macOS では×ボタンでウィンドウを隠すだけにする（アプリ状態を保持）
+  win.on('close', (e) => {
+    if (process.platform === 'darwin' && !forceQuit) {
+      e.preventDefault()
+      win?.hide()
+    }
+  })
 }
 
+// 旧実装 main.js L.88-93 に準拠: Cmd+Q 等でアプリ終了する場合のみ force_quit を立てる
+app.on('before-quit', () => {
+  forceQuit = true
+})
+
 // 全ウィンドウが閉じられたときにアプリを終了する（macOSを除く）
-// macOSではウィンドウを閉じてもアプリがメニューバーに残るのが一般的であり、
-// Cmd+Qで明示的に終了するまでアクティブな状態を維持する
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -63,8 +77,10 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  // macOSではDockアイコンクリック時にウィンドウがなければ再生成するのが一般的
-  if (BrowserWindow.getAllWindows().length === 0) {
+  // 旧実装 main.js L.95-97 に準拠: macOS で Dock クリック時は既存ウィンドウを表示
+  if (win) {
+    win.show()
+  } else {
     createWindow()
   }
 })
@@ -90,6 +106,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('mapedit:updateTin')
   ipcMain.removeHandler('mapedit:save')
   ipcMain.removeHandler('mapedit:checkID')
+  ipcMain.removeHandler('mapedit:checkExtentMap')
   ipcMain.removeHandler('mapupload:showMapSelectDialog')
   ipcMain.removeHandler('mapedit:getWmtsFolder')
   ipcMain.removeHandler('mapedit:download')

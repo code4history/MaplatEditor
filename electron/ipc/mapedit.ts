@@ -228,5 +228,35 @@ export const registerMapEditHandlers = () => {
                 .on('error', (e: any) => resolve({ err: String(e) }));
         });
     });
+
+    // 旧実装 mapedit.js L.50-52 に準拠:
+    // mercMap の表示範囲に重なる地図リストを検索して送信する（デバウンス付き）
+    let extentCheckInProgress: boolean = false;
+    let extentPending: number[] | null = null;
+    ipcMain.handle('mapedit:checkExtentMap', async (event, extent: number[]) => {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        if (!win) return;
+
+        if (!extentCheckInProgress) {
+            if (!(extentPending && extentPending.every((v, i) => v === extent[i]))) {
+                extentCheckInProgress = true;
+                extentPending = extent;
+                const mapIDs = await MapDataService.searchExtent(extent);
+                win.webContents.send('mapedit:extentMapList', mapIDs);
+                setTimeout(() => {
+                    const queued = extentPending;
+                    extentCheckInProgress = false;
+                    extentPending = null;
+                    if (queued && !queued.every((v, i) => v === extent[i])) {
+                        // 1秒以内に新しい extent が来ていた場合、改めて処理
+                        win.webContents.send('mapedit:checkExtentMapRetry', queued);
+                    }
+                }, 1000);
+            }
+        } else {
+            // 処理中は最新 extent を保留
+            extentPending = extent;
+        }
+    });
 };
 

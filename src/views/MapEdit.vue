@@ -1768,7 +1768,25 @@ const initMaps = async () => {
     const mercEdgeSnap = new Snap({ source: mercEdgesVSrc as VectorSource });
     mercMap.addInteraction(mercEdgeModify);
     mercMap.addInteraction(mercEdgeSnap);
-    
+
+    // 旧実装 mapedit.js L.1283-1296 相当: 未移植のため一時コメントアウト
+    // 地図の描画ごとにextentを送信し、表示範囲に重なる地図リストを取得する機能
+    //
+    // mercMap.on('postrender', () => {
+    //     // 地図の描画ごとにextentを送信
+    //     const extent = mercMap.getView().calculateExtent();
+    //     (window as any).mapedit.checkExtentMap(extent);
+    // });
+    // // 表示範囲に重なる地図リストをVueに格納
+    // (window as any).ipcRenderer.on('mapedit:extentMapList', (_event: any, mapIDs: string[]) => {
+    //     // templateMaps に相当する ref を定義し、UIに反映する
+    //     console.log('[checkExtentMap] overlapping mapIDs:', mapIDs);
+    // });
+    // // 1秒以内に新しいextentが来ていた場合のリトライ処理
+    // (window as any).ipcRenderer.on('mapedit:checkExtentMapRetry', (_event: any, extent: number[]) => {
+    //     (window as any).mapedit.checkExtentMap(extent);
+    // });
+
     const geocoder = new Geocoder('nominatim', {
         provider: 'osm',
         lang: 'en-US',

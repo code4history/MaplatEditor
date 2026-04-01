@@ -119,10 +119,11 @@ const contextMenu = ref({
 
 const loadMaps = async (page: number = 1) => {
   try {
-    const results = await (window as any).maplist.request(searchQuery.value, page);
-    maplist.value = results;
-    currentPage.value = page;
-    hasNext.value = results.length === 20;
+    const result = await (window as any).maplist.request(searchQuery.value, page);
+    maplist.value = result.docs;
+    // pageUpdate: 最終ページ全削除時にバックエンドが調整したページ番号
+    currentPage.value = result.pageUpdate ?? page;
+    hasNext.value = result.next;
   } catch (e) {
     console.error("Failed to fetch map list", e);
   }
@@ -176,9 +177,10 @@ const deleteMap = async () => {
   hideContextMenu();
   if (!confirm(t('maplist.delete_confirm', { name }))) return;
   try {
-    const results = await (window as any).maplist.delete(mapID, searchQuery.value, currentPage.value);
-    maplist.value = results;
-    hasNext.value = results.length === 20;
+    const result = await (window as any).maplist.delete(mapID, searchQuery.value, currentPage.value);
+    maplist.value = result.docs;
+    currentPage.value = result.pageUpdate ?? currentPage.value;
+    hasNext.value = result.next;
   } catch (e) {
     console.error("Failed to delete map", e);
     alert(t('maplist.delete_error'));
