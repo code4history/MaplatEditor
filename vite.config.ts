@@ -35,14 +35,20 @@ export default defineConfig({
       renderer: process.env.NODE_ENV === 'test'
         // https://github.com/electron-vite/vite-plugin-electron-renderer/issues/78#issuecomment-2053600808
         ? undefined
-        : {},
+        : {
+            resolve: {
+              // ol-geocoder を外出し（external）にせず、Viteでビルド・変換するように強制
+              'ol-geocoder': { type: 'esm' }
+            }
+          },
     }),
   ],
   resolve: {
     alias: {
       '@maplat/core/src': path.resolve(__dirname, 'node_modules/@maplat/core/src'),
       'i18next-http-backend': path.resolve(__dirname, 'node_modules/i18next-http-backend/esm/index.js'),
-      'cross-fetch': path.resolve(__dirname, 'src/utils/cross-fetch-sham.ts')
+      'cross-fetch': path.resolve(__dirname, 'src/utils/cross-fetch-sham.ts'),
+      'ol-geocoder': path.resolve(__dirname, 'node_modules/ol-geocoder/dist/ol-geocoder.js')
     }
   },
   // ol-geocoder は UMD のみ提供（ESM なし）のため、CJS → ESM 変換を明示的に有効化
