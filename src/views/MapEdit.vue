@@ -5,12 +5,11 @@ import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
 // @ts-ignore
 import { useTranslation } from 'i18next-vue';
-// @ts-ignore
-import crypto from 'crypto';
+import { sha1 } from 'js-sha1';
 // @ts-ignore
 import Geocoder from '../libs/ol-geocoder/base';
 // @ts-ignore
-import ContextMenu from 'ol-contextmenu';
+import ContextMenu from '../libs/ol-contextmenu/main';
 // @ts-ignore
 import { MaplatMap } from '@maplat/core/src/map_ex';
 // @ts-ignore
@@ -642,9 +641,7 @@ const mainLayerHash = computed(() => {
     const tin = tinObjects.value[0];
     if (!tin || typeof tin === 'string') return undefined;
     try {
-        const hashsum = crypto.createHash('sha1');
-        hashsum.update(JSON.stringify(tin.getCompiled()));
-        return hashsum.digest('hex');
+        return sha1(JSON.stringify(tin.getCompiled()));
     } catch {
         return undefined;
     }
