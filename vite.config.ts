@@ -7,6 +7,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: './',
   plugins: [
     vue(),
     nodePolyfills({
@@ -43,5 +44,15 @@ export default defineConfig({
       'i18next-http-backend': path.resolve(__dirname, 'node_modules/i18next-http-backend/esm/index.js'),
       'cross-fetch': path.resolve(__dirname, 'src/utils/cross-fetch-sham.ts')
     }
+  },
+  // ol-geocoder は UMD のみ提供（ESM なし）のため、CJS → ESM 変換を明示的に有効化
+  build: {
+    commonjsOptions: {
+      include: [/ol-geocoder/, /node_modules/],
+      transformMixedEsModules: true,
+    }
+  },
+  optimizeDeps: {
+    include: ['ol-geocoder']
   }
 })
