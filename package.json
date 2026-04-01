@@ -24,6 +24,7 @@
   "dependencies": {
     "@maplat/core": "^0.13.0",
     "adm-zip": "^0.5.9",
+    "csv-parser": "^3.0.0",
     "@maplat/tin": "^0.13.1",
     "@maplat/transform": "^0.4.1",
     "@popperjs/core": "^2.11.8",
@@ -41,10 +42,12 @@
     "jimp": "^1.6.0",
     "lodash-es": "^4.17.23",
     "ol": "^10.7.0",
+    "proj4": "^2.8.0",
     "ol-contextmenu": "^6.0.0",
     "ol-geocoder": "^4.3.3",
     "ol-layerswitcher": "^4.1.2",
     "vue": "^3.4.21",
+    "recursive-fs": "^2.1.0",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
