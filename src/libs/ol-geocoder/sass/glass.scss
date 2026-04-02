@@ -1,0 +1,140 @@
+@use "sass:math";
+
+$control-height: em(35px);
+$control-expand-width: em(250px);
+$control-expand-height: em(35px);
+$input-left: em(40px);
+$input-top: em(4px);
+$btn-search-width: em(25px);
+$btn-search-top: em(2px);
+$input-width: $control-expand-width - math.div($btn-search-width, 2);
+$result-width: em(260px);
+$result-max-height: em(300px);
+$result-left: em(32px);
+$container-top: .5em + ($control-height * 2);
+$result-top: $control-height;
+
+&.#{map-get($glass, container)} {
+  position: absolute;
+  top: $container-top;
+  left: .5em;
+  box-sizing: border-box;
+  font-size: 0.9em;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: inherit;
+  }
+}
+.#{map-get($glass, control)} {
+  width: $control-height;
+  height: $control-height;
+  overflow: hidden;
+  transition: width 200ms, height 200ms;
+}
+.#{map-get($glass, expanded)} {
+  width: $control-expand-width;
+  height: $control-expand-height;
+}
+.#{map-get($glass, input)} {
+  position: absolute;
+  z-index: $z-index;
+  top: $input-top;
+  left: $input-left;
+  width: $input-width;
+  padding: 5px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+  font-size: $font-medium;
+  background-color: #fff;
+  color: #222;
+
+  &:focus {
+    border: none;
+    outline: none;
+    box-shadow: inset 0 0 0 1px #4d90fe, inset 0 0 5px #4d90fe;
+  }
+}
+.#{map-get($glass, reset)} {
+  position: absolute;
+  z-index: $z-index + 1;
+  top: 0;
+  right: 0;
+  width: $btn-search-width;
+  height: 100%;
+  line-height: strip-unit($font-big * 1.5) - .1;
+  border: none;
+  background-color: transparent;
+  display: inline-block;
+  outline: 0;
+  cursor: pointer;
+
+  &::after {
+    content: "\d7";
+    display: inline-block;
+    color: #333;
+    font-size: $font-big * 1.5;
+    cursor: pointer;
+  }
+}
+.#{map-get($glass, button)} {
+  position: absolute;
+  width: $btn-search-width;
+  height: $btn-search-width;
+  top: $btn-search-top;
+  left: $btn-search-top;
+  background-image: url('data:image/png;base64,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');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 20px;
+}
+
+ul.#{map-get($glass, result)} {
+  position: absolute;
+  top: $result-top;
+  left: $result-left;
+  width: $result-width;
+  max-height: $result-max-height;
+  white-space: normal;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  background-color: white;
+  border-radius: 4px;
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.8);
+
+  transition: max-height 300ms ease-in;
+
+  > li {
+    width: 100%;
+    overflow: hidden;
+    border-bottom: 1px solid #eee;
+    padding: 0;
+    @include line-height(14);
+
+    > a {
+      display: block;
+      text-decoration: none;
+      padding: 3px 5px;
+
+      &:hover {
+        background-color: rgb(212, 212, 212);
+      }
+    }
+  }
+
+  > li:nth-child(odd) {
+    background-color: rgb(224, 255, 224);
+  }
+}
+
+ul.#{map-get($glass, result)}:empty {
+    display: none;
+}

@@ -1,0 +1,24 @@
+@use "sass:math";
+
+@mixin clearfix {
+	&::before,
+	&::after {
+		content: "";
+		display: table;
+	}
+	&::after {
+		clear: both;
+	}
+}
+
+@mixin font-size($size: 12, $base: 16) {
+	font-size: math.div(strip-unit($size), strip-unit($base)) * 1rem;
+}
+
+@mixin line-height($height: 16, $base: 16) {
+	line-height: math.div(strip-unit($height), strip-unit($base)) * 1rem;
+}
+
+@mixin background-linear-gradient($color1, $color2) {
+	background: linear-gradient($color1, $color2);
+}

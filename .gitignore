@@ -1,29 +1,37 @@
-.idea
-.env
-node_modules
-test*
-.serverless
+# Logs
+logs
 *.log
-warperpass.json
-s3bucket.json
-EXGW/s3
-local.properties
-mobile_android.iml
-.gradle
-app.iml
-build
-project.xcworkspace
-xcuserdata
-*.qgs
-*Backward*.json
-*Forward*.json
-*-darwin-x64
-*-win32-x64
-*-darwin.zip
-*-win32.zip
-out
-dist
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Open/Keep
-.git.keep
-.git.open
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Serena MCP セッション・メモリファイル
+.serena/
+
+# 環境変数
+.env
+
+# TypeScript インクリメンタルビルドキャッシュ
+tsconfig.node.tsbuildinfo
+
+# Electron ビルド成果物
+dist-electron/
+release/
