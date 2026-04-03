@@ -57,7 +57,7 @@
     "@types/nedb": "^1.8.16",
     "@vitejs/plugin-vue": "^5.0.4",
     "dotenv": "^16.0.1",
-    "electron": "^30.0.1",
+    "electron": "^38.8.6",
     "electron-builder": "^24.13.3",
     "sass": "^1.97.3",
     "typescript": "^5.2.2",
