@@ -37,7 +37,7 @@
     "file-url": "^4.0.0",
     "fs-extra": "^11.3.3",
     "i18next": "^25.8.5",
-    "i18next-http-backend": "^3.0.2",
+    "i18next-http-backend": "^3.0.5",
     "i18next-vue": "^5.4.0",
     "jimp": "^1.6.0",
     "js-sha1": "^0.7.0",
