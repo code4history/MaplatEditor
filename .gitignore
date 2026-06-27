@@ -35,3 +35,8 @@ tsconfig.node.tsbuildinfo
 # Electron ビルド成果物
 dist-electron/
 release/
+
+# Electrobun M2 PoC ビルド成果物
+build-electrobun/
+artifacts-electrobun/
+.tmp/
