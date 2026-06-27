@@ -8,9 +8,9 @@ import recursiveFs from 'recursive-fs';
 import csvParser from 'csv-parser';
 // @ts-ignore
 import proj from 'proj4';
-import MapEditService from '../services/MapEditService';
 import MapDataService from '../services/MapDataService';
 import SettingsService from '../services/SettingsService';
+import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import { ProgressReporter } from '../utils/ProgressReporter';
 // @ts-ignore
@@ -53,7 +53,7 @@ async function createTinFromGcpsAsync(
 export const registerMapEditHandlers = () => {
     ipcMain.handle('mapedit:request', async (_event, mapID: string) => {
         try {
-            return await MapEditService.request(mapID);
+            return await StorageAdapter.readMapForEdit(mapID);
         } catch (e) {
             console.error('Failed to handle mapedit:request', e);
             throw e;
@@ -62,7 +62,7 @@ export const registerMapEditHandlers = () => {
 
     ipcMain.handle('mapedit:save', async (_event, mapObject: any, tins: any[]) => {
         try {
-            return await MapEditService.save(mapObject, tins);
+            return await StorageAdapter.saveMapForEdit({ mapObject, tins });
         } catch (e) {
             console.error('Failed to handle mapedit:save', e);
             return 'Error';
@@ -71,10 +71,7 @@ export const registerMapEditHandlers = () => {
 
     ipcMain.handle('mapedit:checkID', async (_event, mapID: string) => {
         try {
-            const db = await MapDataService.getDBInstance();
-            const found = await db.findOneAsync({ _id: mapID });
-            // 旧実装: found がない場合 true (使用可能), ある場合 false
-            return !found;
+            return await StorageAdapter.isMapIdAvailable(mapID);
         } catch (e) {
             console.error('Failed to handle mapedit:checkID', e);
             return false;
@@ -259,4 +256,3 @@ export const registerMapEditHandlers = () => {
         }
     });
 };
-

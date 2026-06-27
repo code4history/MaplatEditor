@@ -9,6 +9,8 @@
     "dev": "node -e \"process.platform==='win32'&&require('child_process').execSync('chcp 65001')\" && vite",
     "preview": "vite preview",
     "build": "vue-tsc && vite build",
+    "smoke:m1-storage-adapter": "node scripts/m1-storage-adapter-smoke.mjs",
+    "smoke:m1-electron-storage-adapter": "node scripts/m1-electron-storage-adapter-smoke.mjs",
     "dist": "pnpm run build && electron-builder --config electron-builder.config.cjs --publish never",
     "dist:mac": "pnpm run build && electron-builder --config electron-builder.config.cjs --publish never --mac",
     "dist:mac:x64": "pnpm run build && electron-builder --config electron-builder.config.cjs --publish never --mac --x64",
