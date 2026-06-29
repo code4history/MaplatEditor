@@ -107,6 +107,20 @@ try {
     'prevPage が async でない'
   );
 
+  // nextPage に hasNext guard があることを確認
+  assert.match(
+    selectorSource,
+    /if\s*\(\s*!hasNext\.value\s*\)\s*return/,
+    'nextPage に hasNext guard がない'
+  );
+
+  // loadMaps に catch があることを確認
+  assert.match(
+    selectorSource,
+    /catch\s*\(\s*e\s*\)/,
+    'loadMaps に catch 経路がない'
+  );
+
   console.log('  [1/6] useRegisteredMapSelector 型チェック: PASS');
 
   // --- Part 2: useAppSourceHost 型チェック ---
@@ -299,6 +313,41 @@ try {
   // 5g: deselect で selectedKey が null に
   selector.deselect();
   assert.equal(selector.selectedKey.value, null, 'deselect で selectedKey が null');
+
+  // 5h: hasNext=false で nextPage が no-op
+  const stubNoNext = async (query, page, pageSize) => {
+    receivedArgs = { query, page, pageSize };
+    return {
+      docs: [
+        { mapID: 'test', title: 'Test', image: null, width: null, height: null },
+      ],
+      prev: true,
+      next: false,
+    };
+  };
+  const catalogNoNext = createDesktopRegisteredMapCatalogFromBackend(stubNoNext);
+  const selectorNoNext = useRegisteredMapSelector(catalogNoNext, { pageSize: 20 });
+  await selectorNoNext.loadMaps(); // page 1, hasNext=false
+  assert.equal(selectorNoNext.hasNext.value, false, 'hasNext が false');
+
+  receivedArgs = null;
+  await selectorNoNext.nextPage(); // hasNext=false なので no-op
+  assert.equal(receivedArgs, null, 'hasNext=false で nextPage は backend を呼ばない');
+  assert.equal(selectorNoNext.currentPage.value, 1, 'hasNext=false で page が変わらない');
+
+  // 5i: backend throw 時に error.value が設定され loading が false に戻る
+  const stubError = async () => {
+    throw new Error('backend error');
+  };
+  const catalogError = createDesktopRegisteredMapCatalogFromBackend(stubError);
+  const selectorError = useRegisteredMapSelector(catalogError, { pageSize: 20 });
+
+  assert.equal(selectorError.loading.value, false, '初期 loading が false');
+  assert.equal(selectorError.error.value, null, '初期 error が null');
+
+  await selectorError.loadMaps();
+  assert.equal(selectorError.error.value, 'backend error', 'loadMaps throw 後に error.value が設定された');
+  assert.equal(selectorError.loading.value, false, 'loadMaps throw 後に loading.value が false に戻った');
 
   console.log('  [5/6] ユニット smoke: PASS');
 
