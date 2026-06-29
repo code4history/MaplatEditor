@@ -11,6 +11,7 @@
     "build": "vue-tsc && vite build",
     "typecheck:m2-electrobun": "tsc -p tsconfig.electrobun.json --noEmit",
     "smoke:m1-storage-adapter": "node scripts/m1-storage-adapter-smoke.mjs",
+    "smoke:m1-t2-registered-map-catalog": "node scripts/m1-t2-registered-map-catalog-smoke.mjs",
     "smoke:m1-electron-storage-adapter": "node scripts/m1-electron-storage-adapter-smoke.mjs",
     "smoke:m2-electrobun-poc": "node scripts/m2-electrobun-poc-smoke.mjs",
     "electrobun:dev": "electrobun dev",
