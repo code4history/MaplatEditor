@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "build": "vue-tsc && vite build",
     "smoke:m1-storage-adapter": "node scripts/m1-storage-adapter-smoke.mjs",
+    "smoke:m1-t2-registered-map-catalog": "node scripts/m1-t2-registered-map-catalog-smoke.mjs",
     "smoke:m1-electron-storage-adapter": "node scripts/m1-electron-storage-adapter-smoke.mjs",
     "dist": "pnpm run build && electron-builder --config electron-builder.config.cjs --publish never",
     "dist:mac": "pnpm run build && electron-builder --config electron-builder.config.cjs --publish never --mac",

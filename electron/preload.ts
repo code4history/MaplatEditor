@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('settings', {
 })
 
 contextBridge.exposeInMainWorld('maplist', {
-  request: (query: string, page: number) => ipcRenderer.invoke('maplist:request', query, page),
+  request: (query: string, page: number, pageSize?: number) => ipcRenderer.invoke('maplist:request', query, page, pageSize),
   delete: (mapID: string, condition: string, page: number) => ipcRenderer.invoke('maplist:delete', mapID, condition, page),
   on: (channel: string, listener: (event: any, ...args: any[]) => void) => {
       ipcRenderer.on(channel, (event, ...args) => listener(event, ...args));
