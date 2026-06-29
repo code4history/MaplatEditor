@@ -57,6 +57,7 @@ export function useRegisteredMapSelector(
   }
 
   async function nextPage(): Promise<void> {
+    if (!hasNext.value) return;
     currentPage.value++;
     await loadMaps();
   }
