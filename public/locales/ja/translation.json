@@ -261,7 +261,24 @@
     "success_upload": "正常に地図データが登録できました。"
   },
   "applist": {
-    "not_implement": "未実装"
+    "not_implement": "未実装",
+    "title": "アプリ編集",
+    "selected_map": "選択中の地図",
+    "selected_title": "タイトル:",
+    "selected_status": "ステータス:",
+    "selected_map_id": "地図ID:",
+    "search_placeholder": "地図を検索...",
+    "loading": "読み込み中...",
+    "no_maps_found": "地図が見つかりません",
+    "page": "ページ {{page}}",
+    "deselect": "選択解除",
+    "prev_page": "前ページ",
+    "next_page": "次ページ",
+    "status": {
+      "ready": "準備完了",
+      "processing": "処理中...",
+      "failed": "失敗"
+    }
   },
   "mapmodel": {
     "untitled": "タイトル未設定",

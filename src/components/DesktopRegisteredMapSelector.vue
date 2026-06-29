@@ -5,7 +5,10 @@ import type {
 } from "../services/registeredMapCatalog";
 import type { SelectedRegisteredMapHostState } from "../composables/useRegisteredMapSelector";
 import { onMounted } from "vue";
+import { useTranslation } from "i18next-vue";
 import { useRegisteredMapSelector } from "../composables/useRegisteredMapSelector";
+
+const { t } = useTranslation();
 
 const props = withDefaults(
   defineProps<{
@@ -60,14 +63,14 @@ function onPrevPage() {
       <input
         type="text"
         class="form-control form-control-sm"
-        placeholder="Search maps..."
+        :placeholder="t('applist.search_placeholder')"
         :value="selector.searchQuery.value"
         @input="onSearchInput"
       />
     </div>
 
     <div v-if="selector.loading.value" class="text-muted text-center py-3">
-      Loading...
+      {{ t("applist.loading") }}
     </div>
 
     <div v-else-if="selector.error.value" class="alert alert-danger">
@@ -75,7 +78,7 @@ function onPrevPage() {
     </div>
 
     <div v-else-if="selector.items.value.length === 0" class="text-muted text-center py-3">
-      No maps found.
+      {{ t("applist.no_maps_found") }}
     </div>
 
     <div v-else class="map-list">
@@ -108,7 +111,7 @@ function onPrevPage() {
                     'text-danger': item.status === 'failed',
                   }"
                 >
-                  {{ item.status === "ready" ? "Ready" : item.status === "processing" ? "Processing..." : "Failed" }}
+                  {{ item.status === "ready" ? t("applist.status.ready") : item.status === "processing" ? t("applist.status.processing") : t("applist.status.failed") }}
                 </span>
               </small>
             </div>
@@ -121,14 +124,16 @@ function onPrevPage() {
       <button
         class="btn btn-sm btn-outline-secondary"
         :disabled="!selector.hasPrev.value"
+        :aria-label="t('applist.prev_page')"
         @click="onPrevPage"
       >
         &lt;
       </button>
-      <span class="text-muted small">Page {{ selector.currentPage.value }}</span>
+      <span class="text-muted small">{{ t("applist.page", { page: selector.currentPage.value }) }}</span>
       <button
         class="btn btn-sm btn-outline-secondary"
         :disabled="!selector.hasNext.value"
+        :aria-label="t('applist.next_page')"
         @click="onNextPage"
       >
         &gt;
@@ -137,7 +142,7 @@ function onPrevPage() {
 
     <div v-if="selector.selectedKey.value" class="text-center mt-3">
       <button class="btn btn-sm btn-outline-danger" @click="onDeselect">
-        Deselect
+        {{ t("applist.deselect") }}
       </button>
     </div>
   </div>

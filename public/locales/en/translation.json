@@ -229,7 +229,24 @@
     "success_upload": "Map data was successfully imported."
   },
   "applist": {
-    "not_implement": "Not implemented yet"
+    "not_implement": "Not implemented yet",
+    "title": "Edit App",
+    "selected_map": "Selected Map",
+    "selected_title": "Title:",
+    "selected_status": "Status:",
+    "selected_map_id": "Map ID:",
+    "search_placeholder": "Search maps...",
+    "loading": "Loading...",
+    "no_maps_found": "No maps found",
+    "page": "Page {{page}}",
+    "deselect": "Deselect",
+    "prev_page": "Previous page",
+    "next_page": "Next page",
+    "status": {
+      "ready": "Ready",
+      "processing": "Processing...",
+      "failed": "Failed"
+    }
   },
   "mapmodel": {
     "untitled": "Untitled",
