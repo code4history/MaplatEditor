@@ -12,8 +12,7 @@ app.use(router)
 i18n(app)
 app.mount('#app')
 .$nextTick(() => {
-  // Use contextBridge
-  window.ipcRenderer.on('main-process-message', (_event, message) => {
+  window.appEvents.onMainProcessMessage((message) => {
     console.log(message)
   })
 })

@@ -90,3 +90,13 @@ contextBridge.exposeInMainWorld('appdraft', {
 contextBridge.exposeInMainWorld('dialog', {
   showMessageBox: (options: any) => ipcRenderer.invoke('dialog:showMessageBox', options),
 })
+
+contextBridge.exposeInMainWorld('appEvents', {
+  onMainProcessMessage(listener: (message: string) => void): () => void {
+    const wrapper = (_event: any, message: string) => listener(message);
+    ipcRenderer.on('main-process-message', wrapper);
+    return () => {
+      ipcRenderer.removeListener('main-process-message', wrapper);
+    };
+  },
+})

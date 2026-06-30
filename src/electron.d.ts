@@ -15,10 +15,15 @@ export interface AppDraftAPI {
     load(): Promise<any>;
 }
 
+export interface AppEventsAPI {
+    onMainProcessMessage(listener: (message: string) => void): () => void;
+}
+
 declare global {
   interface Window {
     settings: SettingsAPI;
     maplist: MapListAPI;
     appdraft: AppDraftAPI;
+    appEvents: AppEventsAPI;
   }
 }
