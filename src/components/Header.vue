@@ -31,6 +31,16 @@
             <a
               href="#"
               class="nav-link h-100 d-flex align-items-center px-4"
+              :class="{ active: isPoiSection }"
+              @click.prevent="navigate('PoiSourceList')"
+            >
+              {{ t("navbar.edit_poi") }}
+            </a>
+          </li>
+          <li class="nav-item h-100">
+            <a
+              href="#"
+              class="nav-link h-100 d-flex align-items-center px-4"
               :class="{ active: currentRoute === 'Settings' }"
               @click.prevent="navigate('Settings')"
             >
@@ -57,6 +67,10 @@ const isMapSection = computed(() => {
     return currentRoute.value === 'MapList' || currentRoute.value === 'MapEdit';
 });
 
+const isPoiSection = computed(() => {
+    return currentRoute.value === 'PoiSourceList' || currentRoute.value === 'PoiSourceDetail';
+});
+
 const navigate = (targetName: string) => {
     // Sticky Logic:
     // If we are in MapEdit, clicking "Edit Map" (targetName='MapList') does nothing.
@@ -71,6 +85,7 @@ const navigate = (targetName: string) => {
     // Map 'MapList' target to root path for router
     if (targetName === 'MapList') router.push('/');
     else if (targetName === 'AppList') router.push('/applist');
+    else if (targetName === 'PoiSourceList') router.push('/poisources');
     else if (targetName === 'Settings') router.push('/settings');
 };
 </script>

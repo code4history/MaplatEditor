@@ -17,6 +17,7 @@
   "navbar": {
     "edit_map": "Edit Map",
     "edit_app": "Edit Application",
+    "edit_poi": "Edit POI",
     "settings": "Settings"
   },
   "settings": {
@@ -274,5 +275,64 @@
     "copy": "Copy",
     "paste": "Paste",
     "select_all": "Select All"
+  },
+  "poisource": {
+    "title": "POI Sources",
+    "search_placeholder": "Search POI sources...",
+    "create_local": "Create Local",
+    "register_remote": "Register Remote",
+    "no_sources_found": "No POI sources found",
+    "loading": "Loading...",
+    "local": "Local",
+    "remote": "Remote",
+    "features": "features",
+    "status": {
+      "ready": "Ready",
+      "invalid": "Invalid",
+      "unreachable": "Unreachable",
+      "unknown": "Unknown"
+    },
+    "detail": {
+      "back": "Back to list",
+      "title_label": "Title",
+      "mode_label": "Mode",
+      "status_label": "Status",
+      "url_label": "URL",
+      "feature_count": "Feature Count",
+      "updated_at": "Updated At",
+      "save": "Save",
+      "delete": "Delete",
+      "read_only": "Read Only",
+      "validate": "Validate"
+    },
+    "feature_table": {
+      "name": "Name",
+      "longitude": "Longitude",
+      "latitude": "Latitude",
+      "actions": "Actions",
+      "add_feature": "Add Feature",
+      "delete": "Delete",
+      "no_features": "No features",
+      "confirm_delete": "Are you sure you want to delete this feature?"
+    },
+    "create_local_modal": {
+      "title": "Create Local POI Source",
+      "name_label": "Title",
+      "name_placeholder": "Enter POI source title",
+      "create": "Create",
+      "cancel": "Cancel"
+    },
+    "register_remote_modal": {
+      "title": "Register Remote POI Source",
+      "name_label": "Title",
+      "name_placeholder": "Enter POI source title",
+      "url_label": "URL",
+      "url_placeholder": "https://example.com/pois.geojson",
+      "register": "Register",
+      "cancel": "Cancel"
+    },
+    "error": {
+      "unknown": "An error occurred while saving"
+    }
   }
 }

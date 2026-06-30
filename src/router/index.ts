@@ -25,6 +25,16 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: () => import('../views/Settings.vue')
+  },
+  {
+    path: '/poisources',
+    name: 'PoiSourceList',
+    component: () => import('../views/PoiSourceList.vue')
+  },
+  {
+    path: '/poisources/:sourceId',
+    name: 'PoiSourceDetail',
+    component: () => import('../views/PoiSourceDetail.vue')
   }
 ]
 
