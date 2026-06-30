@@ -20,6 +20,7 @@
     "smoke:m2-t3-prohibit-raw-ipc": "node scripts/m2-t3-prohibit-raw-ipc-smoke.mjs",
     "smoke:m3-t1-poi-source-contract": "node scripts/m3-t1-poi-source-contract-smoke.mjs",
     "smoke:m3-t2-poi-source-api": "node scripts/m3-t2-poi-source-api-smoke.mjs",
+    "smoke:m3-t3-poi-source-manager": "node scripts/m3-t3-poi-source-manager-smoke.mjs",
     "smoke:m2-electrobun-poc": "node scripts/m2-electrobun-poc-smoke.mjs",
     "electrobun:dev": "electrobun dev",
     "electrobun:build": "electrobun build",
