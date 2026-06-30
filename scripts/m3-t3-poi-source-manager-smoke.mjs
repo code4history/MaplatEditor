@@ -76,11 +76,11 @@ try {
     'utf8'
   );
 
-  // window.poiSources.list を呼ぶこと
+  // usePoiSourceList composable を使用すること
   assert.match(
     poiSourceList,
-    /poiSources\.list/,
-    'PoiSourceList が window.poiSources.list を呼んでいない'
+    /usePoiSourceList/,
+    'PoiSourceList が usePoiSourceList を使っていない'
   );
 
   // window.poiSources.createLocal を呼ぶこと
@@ -104,6 +104,19 @@ try {
     'PoiSourceList が window.poiSources.delete を呼んでいない'
   );
 
+  // --- Part 3b: usePoiSourceList composable shape ---
+  const usePoiSourceList = await readFile(
+    path.join(projectRoot, 'src/composables/usePoiSourceList.ts'),
+    'utf8'
+  );
+
+  // window.poiSources.list を呼ぶこと
+  assert.match(
+    usePoiSourceList,
+    /poiSources\.list/,
+    'usePoiSourceList が window.poiSources.list を呼んでいない'
+  );
+
   console.log('  [3/5] PoiSourceList.vue shape: PASS');
 
   // --- Part 4: PoiSourceDetail.vue shape ---
@@ -112,39 +125,73 @@ try {
     'utf8'
   );
 
-  // window.poiSources.get を呼ぶこと
+  // usePoiSourceDetail composable を使用すること
   assert.match(
     poiSourceDetail,
-    /poiSources\.get/,
-    'PoiSourceDetail が window.poiSources.get を呼んでいない'
+    /usePoiSourceDetail/,
+    'PoiSourceDetail が usePoiSourceDetail を使っていない'
   );
 
-  // window.poiSources.saveLocal を呼ぶこと
+  // PoiFeatureTable コンポーネントを使用すること
   assert.match(
     poiSourceDetail,
-    /poiSources\.saveLocal/,
-    'PoiSourceDetail が window.poiSources.saveLocal を呼んでいない'
+    /PoiFeatureTable/,
+    'PoiSourceDetail が PoiFeatureTable を使っていない'
   );
 
-  // window.poiSources.validateRemote を呼ぶこと
+  // v-model:features が使用されていること
   assert.match(
     poiSourceDetail,
-    /poiSources\.validateRemote/,
-    'PoiSourceDetail が window.poiSources.validateRemote を呼んでいない'
-  );
-
-  // window.poiSources.delete を呼ぶこと
-  assert.match(
-    poiSourceDetail,
-    /poiSources\.delete/,
-    'PoiSourceDetail が window.poiSources.delete を呼んでいない'
+    /v-model:features/,
+    'PoiSourceDetail に v-model:features がない'
   );
 
   // remote source で read-only flag が設定されること
   assert.match(
     poiSourceDetail,
-    /readOnly.*summary\.readOnly/,
+    /document\.summary\.readOnly/,
     'PoiSourceDetail に readOnly flag がない'
+  );
+
+  // --- Part 4b: usePoiSourceDetail composable shape ---
+  const usePoiSourceDetail = await readFile(
+    path.join(projectRoot, 'src/composables/usePoiSourceDetail.ts'),
+    'utf8'
+  );
+
+  // window.poiSources.get を呼ぶこと
+  assert.match(
+    usePoiSourceDetail,
+    /poiSources\.get/,
+    'usePoiSourceDetail が window.poiSources.get を呼んでいない'
+  );
+
+  // window.poiSources.saveLocal を呼ぶこと
+  assert.match(
+    usePoiSourceDetail,
+    /poiSources\.saveLocal/,
+    'usePoiSourceDetail が window.poiSources.saveLocal を呼んでいない'
+  );
+
+  // window.poiSources.validateRemote を呼ぶこと
+  assert.match(
+    usePoiSourceDetail,
+    /poiSources\.validateRemote/,
+    'usePoiSourceDetail が window.poiSources.validateRemote を呼んでいない'
+  );
+
+  // window.poiSources.delete を呼ぶこと
+  assert.match(
+    usePoiSourceDetail,
+    /poiSources\.delete/,
+    'usePoiSourceDetail が window.poiSources.delete を呼んでいない'
+  );
+
+  // save エラーハンドリングが try/catch であること
+  assert.match(
+    usePoiSourceDetail,
+    /catch\s*\(/,
+    'usePoiSourceDetail の save に try/catch がない'
   );
 
   console.log('  [4/5] PoiSourceDetail.vue shape: PASS');
@@ -172,14 +219,14 @@ try {
   // inline input が存在すること（name）
   assert.match(
     poiFeatureTable,
-    /type\s*=\s*['"]text['"].*form-control/,
+    /type\s*=\s*["']text["'].*form-control/s,
     'PoiFeatureTable に name input がない'
   );
 
   // inline input が存在すること（longitude）
   assert.match(
     poiFeatureTable,
-    /type\s*=\s*['"]number['"].*form-control/,
+    /type\s*=\s*["']number["'].*form-control/s,
     'PoiFeatureTable に longitude input がない'
   );
 

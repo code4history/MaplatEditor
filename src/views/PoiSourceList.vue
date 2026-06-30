@@ -51,6 +51,7 @@
           <router-link
             :to="`/poisources/${source.sourceId}`"
             class="text-decoration-none text-dark d-block"
+            @contextmenu.prevent="openContextMenu($event, source)"
           >
             <div class="card-body py-2 px-3">
               <div class="d-flex align-items-center gap-2 mb-1">
@@ -163,12 +164,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import { usePoiSourceList } from "../composables/usePoiSourceList";
 
 const { t } = useTranslation();
-const router = useRouter();
 
 const {
   items,
@@ -177,7 +176,6 @@ const {
   searchQuery,
   currentPage,
   hasNext,
-  hasPrev,
   loadSources,
   search,
   nextPage,

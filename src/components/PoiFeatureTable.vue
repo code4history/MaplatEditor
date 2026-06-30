@@ -18,7 +18,7 @@
             <input
               type="text"
               class="form-control form-control-sm"
-              :class="{ 'is-invalid': !feature.properties?.name?.trim() }"
+              :class="{ 'is-invalid': !isNameInvalid(feature) }"
               :value="feature.properties?.name ?? ''"
               :disabled="readOnly"
               @input="onNameChange(index, ($event.target as HTMLInputElement).value)"
@@ -134,6 +134,11 @@ function removeFeature(index: number) {
   if (!confirm(t("poisource.feature_table.confirm_delete"))) return;
   localFeatures.value.splice(index, 1);
   emitChange();
+}
+
+function isNameInvalid(feature: any): boolean {
+  const name = feature.properties?.name;
+  return !name || typeof name !== "string" || !name.trim();
 }
 
 function isValidLongitude(value: unknown): boolean {
