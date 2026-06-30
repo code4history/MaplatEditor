@@ -17,6 +17,7 @@
     "smoke:m1-t4-save-reload": "node scripts/m1-t4-save-reload-smoke.mjs",
     "smoke:m2-t1-main-message": "node scripts/m2-t1-main-message-smoke.mjs",
     "smoke:m2-t2-task-progress": "node scripts/m2-t2-task-progress-smoke.mjs",
+    "smoke:m2-t3-prohibit-raw-ipc": "node scripts/m2-t3-prohibit-raw-ipc-smoke.mjs",
     "smoke:m2-electrobun-poc": "node scripts/m2-electrobun-poc-smoke.mjs",
     "electrobun:dev": "electrobun dev",
     "electrobun:build": "electrobun build",

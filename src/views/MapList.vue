@@ -131,9 +131,11 @@ const loadMaps = async (page: number = 1) => {
 
 onMounted(() => {
   loadMaps(1);
-  //@ts-ignore
-  window.maplist.on('maplist:refresh', () => {
+  const unsubscribe = window.maplist.onRefresh(() => {
     loadMaps(1);
+  });
+  onBeforeUnmount(() => {
+    unsubscribe();
   });
 });
 

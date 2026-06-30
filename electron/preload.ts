@@ -1,26 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
 
 // --------- Expose some API to the Renderer process ---------
-contextBridge.exposeInMainWorld('ipcRenderer', {
-  on(...args: Parameters<typeof ipcRenderer.on>) {
-    const [channel, listener] = args
-    return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
-  },
-  off(...args: Parameters<typeof ipcRenderer.off>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.off(channel, ...omit)
-  },
-  send(...args: Parameters<typeof ipcRenderer.send>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.send(channel, ...omit)
-  },
-  invoke(...args: Parameters<typeof ipcRenderer.invoke>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.invoke(channel, ...omit)
-  },
-
-  // 必要に応じて他のAPIをここに追加する
-})
 
 contextBridge.exposeInMainWorld('settings', {
   get: (key: string) => ipcRenderer.invoke('settings:get', key),
@@ -31,12 +11,13 @@ contextBridge.exposeInMainWorld('settings', {
 contextBridge.exposeInMainWorld('maplist', {
   request: (query: string, page: number, pageSize?: number) => ipcRenderer.invoke('maplist:request', query, page, pageSize),
   delete: (mapID: string, condition: string, page: number) => ipcRenderer.invoke('maplist:delete', mapID, condition, page),
-  on: (channel: string, listener: (event: any, ...args: any[]) => void) => {
-      ipcRenderer.on(channel, (event, ...args) => listener(event, ...args));
+  onRefresh(listener: () => void): () => void {
+    const wrapper = () => listener();
+    ipcRenderer.on('maplist:refresh', wrapper);
+    return () => {
+      ipcRenderer.removeListener('maplist:refresh', wrapper);
+    };
   },
-  off: (channel: string, listener: (...args: any[]) => void) => {
-      ipcRenderer.removeListener(channel, listener);
-  }
 })
 
 contextBridge.exposeInMainWorld('mapedit', {

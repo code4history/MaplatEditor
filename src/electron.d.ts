@@ -6,8 +6,7 @@ export interface SettingsAPI {
 
 export interface MapListAPI {
     request(query?: string, page?: number, pageSize?: number): Promise<any[]>;
-    on(channel: string, listener: (event: any, ...args: any[]) => void): void;
-    off(channel: string, listener: (...args: any[]) => void): void;
+    onRefresh(listener: () => void): () => void;
 }
 
 export interface AppDraftAPI {
