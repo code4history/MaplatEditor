@@ -88,3 +88,13 @@ contextBridge.exposeInMainWorld('appEvents', {
     };
   },
 })
+
+contextBridge.exposeInMainWorld('poiSources', {
+  list: (request: any) => ipcRenderer.invoke('poisource:list', request),
+  get: (sourceId: string) => ipcRenderer.invoke('poisource:get', sourceId),
+  createLocal: (input: any) => ipcRenderer.invoke('poisource:createLocal', input),
+  registerRemote: (input: any) => ipcRenderer.invoke('poisource:registerRemote', input),
+  validateRemote: (input: any) => ipcRenderer.invoke('poisource:validateRemote', input),
+  saveLocal: (sourceId: string, geojson: any) => ipcRenderer.invoke('poisource:saveLocal', sourceId, geojson),
+  delete: (sourceId: string) => ipcRenderer.invoke('poisource:delete', sourceId),
+})

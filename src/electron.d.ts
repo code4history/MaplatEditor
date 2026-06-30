@@ -18,6 +18,16 @@ export interface AppEventsAPI {
     onMainProcessMessage(listener: (message: string) => void): () => void;
 }
 
+export interface PoiSourcesAPI {
+    list(request: { query: string; page: number; pageSize: number }): Promise<any>;
+    get(sourceId: string): Promise<any>;
+    createLocal(input: { title: string; geojson?: any }): Promise<any>;
+    registerRemote(input: { title: string; url: string }): Promise<any>;
+    validateRemote(input: { kind: "source"; sourceId: string } | { kind: "url"; url: string }): Promise<any>;
+    saveLocal(sourceId: string, geojson: any): Promise<any>;
+    delete(sourceId: string): Promise<any>;
+}
+
 export interface MapEditAPI {
     request(mapID: string): Promise<any>;
     getTmsListOfMapID(mapID: string): Promise<any>;
@@ -38,5 +48,6 @@ declare global {
     mapedit: MapEditAPI;
     appdraft: AppDraftAPI;
     appEvents: AppEventsAPI;
+    poiSources: PoiSourcesAPI;
   }
 }
