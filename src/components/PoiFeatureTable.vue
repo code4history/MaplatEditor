@@ -18,7 +18,7 @@
             <input
               type="text"
               class="form-control form-control-sm"
-              :class="{ 'is-invalid': !isNameInvalid(feature) }"
+              :class="{ 'is-invalid': isNameInvalid(feature) }"
               :value="feature.properties?.name ?? ''"
               :disabled="readOnly"
               @input="onNameChange(index, ($event.target as HTMLInputElement).value)"
