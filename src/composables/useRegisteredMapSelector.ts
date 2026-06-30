@@ -16,14 +16,14 @@ export interface SelectedRegisteredMapHostState {
 
 export function useRegisteredMapSelector(
   catalog: RegisteredMapCatalog,
-  options?: { pageSize?: number },
+  options?: { pageSize?: number; initialCatalogKey?: RegisteredMapCatalogKey },
 ) {
   const pageSize = options?.pageSize ?? 20;
 
   const items: Ref<RegisteredMapSummary[]> = ref([]);
   const loading: Ref<boolean> = ref(false);
   const error: Ref<string | null> = ref(null);
-  const selectedKey: Ref<RegisteredMapCatalogKey | null> = ref(null);
+  const selectedKey: Ref<RegisteredMapCatalogKey | null> = ref(options?.initialCatalogKey ?? null);
   const searchQuery: Ref<string> = ref("");
   const currentPage: Ref<number> = ref(1);
   const hasNext: Ref<boolean> = ref(false);

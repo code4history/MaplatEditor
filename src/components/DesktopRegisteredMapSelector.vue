@@ -14,6 +14,7 @@ const props = withDefaults(
   defineProps<{
     catalog: RegisteredMapCatalog;
     pageSize?: number;
+    initialCatalogKey?: string;
   }>(),
   {
     pageSize: 20,
@@ -27,6 +28,7 @@ const emit = defineEmits<{
 
 const selector = useRegisteredMapSelector(props.catalog, {
   pageSize: props.pageSize,
+  initialCatalogKey: props.initialCatalogKey,
 });
 
 onMounted(async () => {

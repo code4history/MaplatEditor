@@ -91,6 +91,7 @@ import { registerMapEditHandlers } from './ipc/mapedit'
 import { registerMapUploadHandlers } from './ipc/mapupload'
 import { registerDataUploadHandlers } from './ipc/dataupload'
 import { registerWmtsHandlers } from './ipc/wmts'
+import { registerAppDraftHandlers } from './ipc/appdraft'
 
 import { ipcMain } from 'electron'
 
@@ -114,6 +115,8 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('dataupload:showDataSelectDialog')
   ipcMain.removeHandler('wmtsGen:generate')
   ipcMain.removeHandler('dialog:showMessageBox')
+  ipcMain.removeHandler('appdraft:save')
+  ipcMain.removeHandler('appdraft:load')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
@@ -125,6 +128,7 @@ app.whenReady().then(() => {
   registerMapUploadHandlers()
   registerDataUploadHandlers()
   registerWmtsHandlers()
+  registerAppDraftHandlers()
   createWindow()
   setupMenu()
 

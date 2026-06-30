@@ -82,6 +82,11 @@ contextBridge.exposeInMainWorld('versions', {
   v8: process.versions.v8
 })
 
+contextBridge.exposeInMainWorld('appdraft', {
+  save: (draft: any) => ipcRenderer.invoke('appdraft:save', draft),
+  load: () => ipcRenderer.invoke('appdraft:load'),
+})
+
 contextBridge.exposeInMainWorld('dialog', {
   showMessageBox: (options: any) => ipcRenderer.invoke('dialog:showMessageBox', options),
 })

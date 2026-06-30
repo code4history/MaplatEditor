@@ -10,9 +10,15 @@ export interface MapListAPI {
     off(channel: string, listener: (...args: any[]) => void): void;
 }
 
+export interface AppDraftAPI {
+    save(draft: any): Promise<void>;
+    load(): Promise<any>;
+}
+
 declare global {
   interface Window {
     settings: SettingsAPI;
     maplist: MapListAPI;
+    appdraft: AppDraftAPI;
   }
 }
