@@ -56,6 +56,13 @@ contextBridge.exposeInMainWorld('mapedit', {
     ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings),
   getWmtsFolder: () =>
     ipcRenderer.invoke('mapedit:getWmtsFolder'),
+  onProgress(listener: (progress: any) => void): () => void {
+    const wrapper = (_event: any, arg: any) => listener(arg);
+    ipcRenderer.on('mapedit:taskProgress', wrapper);
+    return () => {
+      ipcRenderer.removeListener('mapedit:taskProgress', wrapper);
+    };
+  },
 })
 
 contextBridge.exposeInMainWorld('dataupload', {

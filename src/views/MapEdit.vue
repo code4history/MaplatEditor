@@ -2080,11 +2080,10 @@ const mapUpload = async () => {
     // プログレスモーダル表示
     modalShow('mapedit.image_uploading');
 
-    // taskProgress リスナー登録（旧実装: window.mapedit.on('taskProgress', ...)）
-    const progressHandler = (_event: any, arg: any) => {
-        modalProgress(arg.text, arg.percent, arg.progress);
-    };
-    (window as any).ipcRenderer.on('mapedit:taskProgress', progressHandler);
+    // taskProgress リスナー登録
+    const unsubscribe = window.mapedit.onProgress((progress) => {
+        modalProgress(progress.text, progress.percent, progress.progress);
+    });
 
     try {
         // 旧実装: window.mapupload.showMapSelectDialog(t('mapupload.map_image'))
@@ -2116,7 +2115,7 @@ const mapUpload = async () => {
             updateTin();
         }
     } finally {
-        (window as any).ipcRenderer.off('mapedit:taskProgress', progressHandler);
+        unsubscribe();
     }
 };
 
@@ -2372,10 +2371,9 @@ const updateWholeGcps = (newGcps: any[]) => {
 // 有効条件: !dirty && status === 'New'
 const importMap = async () => {
     modalShow('mapedit.image_uploading');
-    const progressHandler = (_event: any, arg: any) => {
-        modalProgress(arg.text, arg.percent, arg.progress);
-    };
-    (window as any).ipcRenderer.on('mapedit:taskProgress', progressHandler);
+    const unsubscribe = window.mapedit.onProgress((progress) => {
+        modalProgress(progress.text, progress.percent, progress.progress);
+    });
     try {
         const arg = await (window as any).dataupload.showDataSelectDialog();
 
@@ -2422,7 +2420,7 @@ const importMap = async () => {
             gcpsToMarkers();
         }
     } finally {
-        (window as any).ipcRenderer.off('mapedit:taskProgress', progressHandler);
+        unsubscribe();
     }
 };
 
@@ -2430,10 +2428,9 @@ const importMap = async () => {
 // 有効条件: !error && !dirty
 const exportMap = async () => {
     modalShow('mapedit.message_export');
-    const progressHandler = (_event: any, arg: any) => {
-        modalProgress(arg.text, arg.percent, arg.progress);
-    };
-    (window as any).ipcRenderer.on('mapedit:taskProgress', progressHandler);
+    const unsubscribe = window.mapedit.onProgress((progress) => {
+        modalProgress(progress.text, progress.percent, progress.progress);
+    });
     try {
         // 旧実装: window.mapedit.download(vueMap.map, vueMap.tinObjects.map(...))
         const tins = tinObjects.value.map((tin: any) => {
@@ -2453,7 +2450,7 @@ const exportMap = async () => {
             modalFinish(t('mapedit.export_error'));
         }
     } finally {
-        (window as any).ipcRenderer.off('mapedit:taskProgress', progressHandler);
+        unsubscribe();
     }
 };
 
@@ -2462,10 +2459,9 @@ const exportMap = async () => {
 const wmtsGenerate = async () => {
     if (!tinObjects.value[0] || typeof tinObjects.value[0] === 'string') return;
     modalShow(t('wmtsgenerate.generating_tile'));
-    const progressHandler = (_event: any, arg: any) => {
-        modalProgress(arg.text, arg.percent, arg.progress);
-    };
-    (window as any).ipcRenderer.on('mapedit:taskProgress', progressHandler);
+    const unsubscribe = window.mapedit.onProgress((progress) => {
+        modalProgress(progress.text, progress.percent, progress.progress);
+    });
     try {
         // 旧実装: window.wmtsGen.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtension, vueMap.mainLayerHash)
         const arg = await (window as any).wmtsGen.generate(
@@ -2485,7 +2481,7 @@ const wmtsGenerate = async () => {
             modalFinish(t('wmtsgenerate.success_generation'));
         }
     } finally {
-        (window as any).ipcRenderer.off('mapedit:taskProgress', progressHandler);
+        unsubscribe();
     }
 };
 
