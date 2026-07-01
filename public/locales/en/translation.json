@@ -247,7 +247,11 @@
       "ready": "Ready",
       "processing": "Processing...",
       "failed": "Failed"
-    }
+    },
+    "select_poi_sources": "Select POI Sources",
+    "no_poi_sources": "No POI sources available",
+    "selected_poi_sources": "Selected POI Sources",
+    "poi_search_placeholder": "Search POI sources..."
   },
   "mapmodel": {
     "untitled": "Untitled",

@@ -1,27 +1,24 @@
 import type { SelectedRegisteredMapRef, RegisteredMapStatus } from "../services/registeredMapCatalog";
+import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 
-interface MinimalAppDraft {
-  selectedMap: SelectedRegisteredMapRef;
+export interface MinimalAppDraft {
+  selectedMap?: SelectedRegisteredMapRef;
   cachedTitle?: string;
   cachedStatus?: RegisteredMapStatus;
+  selectedPoiSources?: SelectedPoiSourceRef[];
 }
 
-async function saveDraft(
-  ref: SelectedRegisteredMapRef,
-  title?: string,
-  status?: RegisteredMapStatus,
-): Promise<void> {
-  const draft: MinimalAppDraft = {
-    selectedMap: ref,
-    ...(title !== undefined && { cachedTitle: title }),
-    ...(status !== undefined && { cachedStatus: status }),
-  };
+async function saveDraft(draft: MinimalAppDraft): Promise<void> {
   await (window as any).appdraft.save(draft);
 }
 
 async function loadDraft(): Promise<MinimalAppDraft | null> {
   try {
-    return await (window as any).appdraft.load();
+    const draft = await (window as any).appdraft.load();
+    if (draft && !draft.selectedPoiSources) {
+      draft.selectedPoiSources = [];
+    }
+    return draft;
   } catch (e) {
     console.warn("[useAppDraft] Failed to load draft, starting fresh:", e);
     return null;

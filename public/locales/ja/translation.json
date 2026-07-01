@@ -279,7 +279,11 @@
       "ready": "準備完了",
       "processing": "処理中...",
       "failed": "失敗"
-    }
+    },
+    "select_poi_sources": "POIソースを選択",
+    "no_poi_sources": "利用可能なPOIソースがありません",
+    "selected_poi_sources": "選択中のPOIソース",
+    "poi_search_placeholder": "POIソースを検索..."
   },
   "mapmodel": {
     "untitled": "タイトル未設定",

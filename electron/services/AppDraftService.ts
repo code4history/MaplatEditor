@@ -1,13 +1,20 @@
 import Store from 'electron-store';
 
 interface MinimalAppDraft {
-  selectedMap: {
+  selectedMap?: {
     kind: "registered-map";
     runtimeMapId: string;
     catalogKey: string;
   };
   cachedTitle?: string;
   cachedStatus?: string;
+  selectedPoiSources?: Array<{
+    kind: "registered-poi-source";
+    sourceId: string;
+    catalogKey: string;
+    mode: string;
+    cachedTitle?: string;
+  }>;
 }
 
 interface AppDraftStore {
