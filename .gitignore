@@ -40,3 +40,4 @@ release/
 build-electrobun/
 artifacts-electrobun/
 .tmp/
+.tmp-smoke/

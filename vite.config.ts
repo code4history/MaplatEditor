@@ -23,7 +23,7 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['jimp'],
+              external: ['jimp', '@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
             },
           },
         },

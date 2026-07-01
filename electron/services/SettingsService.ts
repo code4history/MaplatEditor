@@ -113,81 +113,8 @@ class SettingsService extends EventEmitter {
   }
 
   public async getTmsListOfMapID(mapID: string): Promise<any[]> {
-    return new Promise((resolve) => {
-      // 1. デフォルトTMSリスト（tms_list.json）を基底として読み込む
-      const tmsListBase: any[] = [...defaultTmsList];
-
-      const saveFolder = this.store.get('saveFolder');
-      const settingsDir = path.join(saveFolder, 'settings');
-
-      // 旧実装: editorStorage('tmsList.json') から読み込んでいたユーザー設定
-      let userListFromStore: any[] = this.store.get('tmsList') || [];
-      if (!Array.isArray(userListFromStore)) {
-          userListFromStore = [];
-      }
-
-      // デフォルト＋ユーザー設定を結合
-      let mergedTmsList = tmsListBase.concat(userListFromStore);
-
-      try {
-          const userTmsListPath = path.join(settingsDir, 'tmsList.json');
-          if (fs.existsSync(userTmsListPath)) {
-              const userTmsList = fs.readJsonSync(userTmsListPath);
-              if (Array.isArray(userTmsList)) {
-                  mergedTmsList = tmsListBase.concat(userTmsList);
-              }
-          }
-      } catch(e) {
-          console.error("Failed to read user tmsList.json", e);
-      }
-
-      // 2. 地図ごとのTMS表示設定（旧実装: editorStorage().get('tmsList.' + mapID) 相当）
-      // settings/tmsList.[mapID].json に保存する
-      let fileData: Record<string, boolean> = {};
-      const mapSpecificConfigPath = path.join(settingsDir, `tmsList.${mapID}.json`);
-      let saveFlag = false;
-
-      try {
-          if (fs.existsSync(mapSpecificConfigPath)) {
-              fileData = fs.readJsonSync(mapSpecificConfigPath) || {};
-          }
-      } catch (e) {
-          console.error(`Failed to read ${mapSpecificConfigPath}`, e);
-      }
-
-      const tmsList: any[] = [];
-      
-      mergedTmsList.forEach((tms) => {
-        if (tms.always) {
-          tmsList.push(tms);
-          return;
-        }
-        
-        const tmsMapID = tms.mapID;
-        let flag = fileData[tmsMapID];
-        
-        if (flag == null) {
-          flag = fileData[tmsMapID] = true;
-          saveFlag = true;
-        }
-        
-        if (flag) {
-          tmsList.push(tms);
-        }
-      });
-
-      if (saveFlag) {
-        // 新規キーが追加された場合、設定ファイルに書き戻す
-        try {
-            fs.ensureDirSync(settingsDir);
-            fs.writeJsonSync(mapSpecificConfigPath, fileData, { spaces: 2 });
-        } catch (e) {
-            console.error(`Failed to write to ${mapSpecificConfigPath}`, e);
-        }
-      }
-      
-      resolve(tmsList);
-    });
+    const { default: DuckDbDataService } = await import('./DuckDbDataService');
+    return DuckDbDataService.getTmsListOfMapID(mapID);
   }
 }
 
