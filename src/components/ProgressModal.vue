@@ -10,9 +10,9 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-body">
-          <!-- テキスト行: 旧実装 col-xs-9 相当 -->
+          <!-- テキスト行 -->
           <div class="row mb-2">
-            <div class="col-9">{{ localText }}</div>
+            <div class="col-12">{{ localText }}</div>
           </div>
           <!-- プログレスバー行: 旧実装 progress-bar-info 相当 -->
           <div class="row mb-2">
