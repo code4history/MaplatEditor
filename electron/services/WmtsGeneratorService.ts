@@ -8,6 +8,7 @@ import SettingsService from './SettingsService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 
 const MERC_MAX = 20037508.342789244;
+const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 interface PixelColor { r: number; g: number; b: number; a: number; }
 
@@ -30,7 +31,7 @@ class WmtsGeneratorService {
         hash: string
     ): Promise<{ hash: string; err?: any }> {
         try {
-            const tin = new Tin({});
+            const tin = new Tin(TIN_V2_OPTIONS);
             tin.setCompiled(tinSerial);
 
             extKey = extKey || 'jpg';

@@ -16,12 +16,14 @@ import { ProgressReporter } from '../utils/ProgressReporter';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
+const TIN_V2_OPTIONS = { useV2Algorithm: true };
+
 async function createTinFromGcpsAsync(
     gcps: any[], edges: any[], wh: any, bounds: any, strict: any, vertex: any
 ): Promise<any> {
     if (gcps.length < 3) return 'tooLessGcps';
     return new Promise((resolve, reject) => {
-        const tin = new Tin({});
+        const tin = new Tin(TIN_V2_OPTIONS);
         if (wh) {
             tin.setWh(wh);
         } else if (bounds) {

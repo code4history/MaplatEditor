@@ -38,6 +38,7 @@ import type Feature from 'ol/Feature';
 import type { SimpleGeometry } from 'ol/geom';
 
 const { t } = useTranslation();
+const TIN_V2_OPTIONS = { useV2Algorithm: true };
 const router = useRouter();
 const route = useRoute();
 
@@ -1663,7 +1664,7 @@ const updateTin = async () => {
             tinObject.value = compiled;
         } else {
             // コンパイル済みデータをフロントで Tin に復元して tins プロパティを使えるようにする
-            const tin = new Tin({});
+            const tin = new Tin(TIN_V2_OPTIONS);
             tin.setCompiled(compiled);
             tinObject.value = tin;
         }
@@ -2532,7 +2533,7 @@ const importMap = async () => {
             if (compiledTins && compiledTins.length > 0) {
                 tinObjects.value = compiledTins.map((compiled: any) => {
                     if (typeof compiled === 'string') return compiled;
-                    const tin = new Tin({});
+                    const tin = new Tin(TIN_V2_OPTIONS);
                     tin.setCompiled(compiled);
                     return tin;
                 });

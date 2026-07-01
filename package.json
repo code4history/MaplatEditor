@@ -23,6 +23,7 @@
     "smoke:m3-t3-poi-source-manager": "node scripts/m3-t3-poi-source-manager-smoke.mjs",
     "smoke:m3-t4-app-poi-selector": "node scripts/m3-t4-app-poi-selector-smoke.mjs",
     "smoke:m4-undo-redo": "node scripts/m4-undo-redo-smoke.mjs",
+    "smoke:m4-tin-v2-mode": "node scripts/m4-tin-v2-mode-smoke.mjs",
     "smoke:m2-electrobun-poc": "node scripts/m2-electrobun-poc-smoke.mjs",
     "electrobun:dev": "electrobun dev",
     "electrobun:build": "electrobun build",
