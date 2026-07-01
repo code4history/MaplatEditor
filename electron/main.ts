@@ -236,8 +236,16 @@ function setupMenu() {
     {
       label: t('menu.edit'),
       submenu: [
-        { role: 'undo', label: t('menu.undo') },
-        { role: 'redo', label: t('menu.redo') },
+        {
+          label: t('menu.undo'),
+          accelerator: 'CmdOrCtrl+Z',
+          click: () => win?.webContents.send('main-process-message', 'menu:undo')
+        },
+        {
+          label: t('menu.redo'),
+          accelerator: process.platform === 'darwin' ? 'Shift+Cmd+Z' : 'Ctrl+Y',
+          click: () => win?.webContents.send('main-process-message', 'menu:redo')
+        },
         { type: 'separator' },
         { role: 'cut', label: t('menu.cut') },
         { role: 'copy', label: t('menu.copy') },
@@ -259,4 +267,3 @@ function setupMenu() {
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
 }
-

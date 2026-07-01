@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
+import { UndoStack } from '../services/editorUndoStack';
 // @ts-ignore
 import { useTranslation } from 'i18next-vue';
 import { sha1 } from 'js-sha1';
@@ -259,6 +260,91 @@ const vertexMode = ref<'plain' | 'birdeye'>('plain');
 
 const currentLang = ref('ja');
 
+type MapEditHistoryState = {
+    mapData: any;
+    sub_maps: any[];
+    gcps: any[];
+    edges: any[];
+    homePosition: any;
+    mercZoom: number | undefined;
+    strictMode: string;
+    vertexMode: 'plain' | 'birdeye';
+    currentEditingLayer: number;
+};
+
+const historyStack = ref<UndoStack<MapEditHistoryState> | null>(null);
+const historyRestoring = ref(false);
+const historyReady = ref(false);
+let historyTimer: ReturnType<typeof setTimeout> | undefined;
+
+const captureHistoryState = (): MapEditHistoryState => ({
+    mapData: cloneDeep(mapData.value),
+    sub_maps: cloneDeep(sub_maps.value),
+    gcps: cloneDeep(gcps.value),
+    edges: cloneDeep(edges.value),
+    homePosition: cloneDeep(homePosition.value),
+    mercZoom: mercZoom.value,
+    strictMode: strictMode.value,
+    vertexMode: vertexMode.value,
+    currentEditingLayer: currentEditingLayer.value,
+});
+
+const restoreHistoryState = async (state: MapEditHistoryState) => {
+    historyRestoring.value = true;
+    mapData.value = cloneDeep(state.mapData);
+    sub_maps.value = cloneDeep(state.sub_maps);
+    currentEditingLayer.value = Math.min(
+        state.currentEditingLayer,
+        state.sub_maps.length
+    );
+    gcps.value = cloneDeep(state.gcps);
+    edges.value = cloneDeep(state.edges);
+    homePosition.value = cloneDeep(state.homePosition);
+    mercZoom.value = state.mercZoom;
+    strictMode.value = state.strictMode || 'strict';
+    vertexMode.value = state.vertexMode || 'plain';
+    tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
+    editingID.value = '';
+    newGcp.value = undefined;
+    newlyAddEdge.value = undefined;
+    await nextTick();
+    gcpsToMarkers();
+    updateTin();
+    historyRestoring.value = false;
+};
+
+const initializeHistoryStack = () => {
+    historyStack.value = new UndoStack<MapEditHistoryState>(captureHistoryState());
+    historyReady.value = true;
+};
+
+const resetHistoryBase = () => {
+    if (historyTimer) {
+        clearTimeout(historyTimer);
+        historyTimer = undefined;
+    }
+    initializeHistoryStack();
+    if (historyStack.value) historyStack.value.save();
+};
+
+const recordHistorySnapshot = () => {
+    if (!historyReady.value || historyRestoring.value || !historyStack.value) return;
+    const nextState = captureHistoryState();
+    if (isEqual(historyStack.value.current(), nextState)) return;
+    historyStack.value.push(nextState);
+};
+
+const scheduleHistorySnapshot = () => {
+    if (historyTimer) clearTimeout(historyTimer);
+    historyTimer = setTimeout(() => {
+        historyTimer = undefined;
+        recordHistorySnapshot();
+    }, 0);
+};
+
+const canUndo = computed(() => historyStack.value?.canUndo() ?? false);
+const canRedo = computed(() => historyStack.value?.canRedo() ?? false);
+
 // const onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
 const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
   'mapper', 'attr', 'dataAttr', 'description'];
@@ -502,8 +588,55 @@ const isDefaultLang = computed({
     }
 });
 const isDirty = computed(() => {
+    if (historyStack.value) return historyStack.value.isDirty();
     return !isEqual(mapData.value, originalMapData.value);
 });
+
+watch(
+    [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer],
+    scheduleHistorySnapshot,
+    { deep: true }
+);
+
+const performUndo = async () => {
+    if (!historyStack.value || !historyStack.value.canUndo()) return;
+    historyStack.value.undo();
+    await restoreHistoryState(historyStack.value.current());
+};
+
+const performRedo = async () => {
+    if (!historyStack.value || !historyStack.value.canRedo()) return;
+    historyStack.value.redo();
+    await restoreHistoryState(historyStack.value.current());
+};
+
+const onHistoryKeydown = (event: KeyboardEvent) => {
+    const target = event.target as HTMLElement | null;
+    const isInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+    if (isInput) return;
+    if (!(event.metaKey || event.ctrlKey)) return;
+    const key = event.key.toLowerCase();
+    if (key === 'z' && event.shiftKey) {
+        event.preventDefault();
+        performRedo();
+    } else if (key === 'z') {
+        event.preventDefault();
+        performUndo();
+    } else if (key === 'y') {
+        event.preventDefault();
+        performRedo();
+    }
+};
+
+let removeMainProcessListener: (() => void) | undefined;
+
+const onMainProcessMessage = (message: string) => {
+    if (message === 'menu:undo') {
+        performUndo();
+    } else if (message === 'menu:redo') {
+        performRedo();
+    }
+};
 
 /**
  * 旧実装 computed.error の mapID 部分を再実装
@@ -1291,6 +1424,9 @@ onMounted(async () => {
     vertexMode.value = mapData.value.vertexMode || 'plain';
     // tinObjects: メインレイヤー + サブマップ分 の undefined で初期化（旧実装: vueMap.tinObjects = [...]）
     tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
+    initializeHistoryStack();
+    window.addEventListener('keydown', onHistoryKeydown);
+    removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
 
     initMaps();
     if (mapData.value.url_) {
@@ -1307,6 +1443,13 @@ onMounted(async () => {
             });
         }
     });
+});
+
+onBeforeUnmount(() => {
+    if (historyTimer) clearTimeout(historyTimer);
+    window.removeEventListener('keydown', onHistoryKeydown);
+    removeMainProcessListener?.();
+    removeMainProcessListener = undefined;
 });
 
 let edgeRevisionBuffer: number[] = [];
@@ -2209,29 +2352,10 @@ const saveMap = async () => {
         });
         // mapID が変わっている場合は更新（旧実装: mapID = vueMap.mapID）
         mapID.value = saveValue.mapID;
-        // 旧実装: window.mapedit.request(mapID) で再ロード
-        try {
-            const reloadedData = await (window as any).mapedit.request(mapID.value);
-            if (reloadedData) {
-                if (!reloadedData.mapID) reloadedData.mapID = mapID.value;
-                if (!reloadedData.status) reloadedData.status = 'Update';
-                mapData.value = reloadedData;
-                originalMapData.value = cloneDeep(reloadedData);
-                sub_maps.value = cloneDeep(reloadedData.sub_maps || []);
-                gcps.value = cloneDeep(reloadedData.gcps || []);
-                edges.value = cloneDeep(reloadedData.edges || []);
-                homePosition.value = reloadedData.homePosition;
-                mercZoom.value = reloadedData.mercZoom;
-                strictMode.value = reloadedData.strictMode || 'strict';
-                vertexMode.value = reloadedData.vertexMode || 'plain';
-                // TINsリセット（再ロード後は全レイヤー未計算状態）
-                tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
-            }
-        } catch (e) {
-            console.error('[saveMap] Failed to reload after save:', e);
-            // 最低限 isDirty をリセット
-            originalMapData.value = cloneDeep(mapData.value);
-        }
+        if (!mapData.value.mapID) mapData.value.mapID = saveValue.mapID;
+        mapData.value.status = 'Update';
+        originalMapData.value = cloneDeep(mapData.value);
+        resetHistoryBase();
         onlyOne.value = true;
     } else if (result === 'Exist') {
         await (window as any).dialog.showMessageBox({
@@ -2577,6 +2701,19 @@ const goBack = async () => {
                         <input class="form-check-input" type="checkbox" id="langDefault" v-model="isDefaultLang" :disabled="isDefaultLang">
                         <label class="form-check-label fw-bold" for="langDefault">{{ t("mapedit.set_default") }}</label>
                     </div>
+                </div>
+
+                <div class="col-2 d-flex gap-1">
+                    <button type="button" class="btn btn-outline-secondary w-50"
+                            @click="performUndo"
+                            :disabled="!canUndo">
+                        {{ t("menu.undo") }}
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary w-50"
+                            @click="performRedo"
+                            :disabled="!canRedo">
+                        {{ t("menu.redo") }}
+                    </button>
                 </div>
 
                 <!-- Save Button: 旧実装 v-bind:disabled="error || !dirty" 相当 -->
