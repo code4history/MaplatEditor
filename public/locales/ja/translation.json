@@ -261,6 +261,15 @@
     "error_upload": "地図データ登録でエラーが発生しました。",
     "success_upload": "正常に地図データが登録できました。"
   },
+  "database": {
+    "migrating": "新型DB形式に移行中です。",
+    "migrating_builtin_basemaps": "標準ベースマップを新型DBに登録しています。",
+    "migrating_legacy_maps": "旧地図データを新型DBへ移行しています。",
+    "migrating_legacy_basemaps": "旧ベースマップ設定を新型DBへ移行しています。",
+    "archiving_legacy_files": "旧DBファイルを退避しています。",
+    "migrated": "新型DB形式への移行が完了しました。",
+    "migration_failed": "新型DB形式への移行に失敗しました。"
+  },
   "applist": {
     "not_implement": "未実装",
     "title": "アプリ編集",

@@ -43,7 +43,17 @@ try {
         showMessageBox() { return Promise.resolve({ response: 0 }); },
       };
       export const ipcMain = { handle() {} };
-      export const BrowserWindow = class {};
+      globalThis.__appProgressEvents = [];
+      const fakeWindow = {
+        webContents: {
+          send(channel: string, payload: any) {
+            globalThis.__appProgressEvents.push({ channel, payload });
+          },
+        },
+      };
+      export const BrowserWindow = class {
+        static getAllWindows() { return [fakeWindow]; }
+      };
     `
   );
   await writeFile(
@@ -119,6 +129,9 @@ try {
       const { default: StorageAdapter } = await import(${JSON.stringify(storageAdapterPath)});
 
       const db = await MapDataService.getDBInstance();
+      assert.ok(globalThis.__appProgressEvents.some((event) =>
+        event.channel === 'app:taskProgress' && event.payload.text === 'database.migrating'
+      ));
       assert.equal(await StorageAdapter.isMapIdAvailable('legacy-map'), false);
       const listed = await StorageAdapter.listMaps({ query: 'Legacy', page: 1, pageSize: 20 });
       assert.equal(listed.docs.length, 1);
@@ -136,6 +149,10 @@ try {
       assert.equal(reloaded.title, 'Updated Legacy Map');
 
       await access(${JSON.stringify(path.join(dataDir, 'maplat.duckdb'))});
+      await access(${JSON.stringify(path.join(dataDir, '_nedb.db'))});
+      await access(${JSON.stringify(path.join(dataDir, '_settings'))});
+      await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'nedb.db'))}));
+      await assert.rejects(() => access(${JSON.stringify(settingsDir)}));
 
       const mapA = await SettingsService.getTmsListOfMapID('mapA');
       assert.ok(mapA.some((tms) => tms.mapID === 'gsi_ort_USA10'));
@@ -164,6 +181,9 @@ try {
         "SELECT scope, map_id, count(*)::INTEGER AS count FROM base_maps GROUP BY scope, map_id HAVING count(*) > 1"
       );
       assert.equal(duplicateCheck.getRowObjectsJson().length, 0);
+      assert.ok(globalThis.__appProgressEvents.some((event) =>
+        event.channel === 'app:taskProgress' && event.payload.text === 'database.migrated'
+      ));
 
       console.log('M4 DuckDB migration smoke passed');
     `

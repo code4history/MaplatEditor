@@ -1,5 +1,6 @@
 import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
 import Datastore from '@seald-io/nedb';
+import { BrowserWindow } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
 import defaultTmsList from '../tms_list.json';
@@ -61,6 +62,12 @@ function safeMapIDFromSpecificFile(fileName: string): string | null {
   return null;
 }
 
+function sendMigrationProgress(text: string, percent: number, progress: string = ''): void {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send('app:taskProgress', { text, percent, progress });
+  });
+}
+
 class DuckDbDataService {
   private connection: DuckDBConnection | null = null;
   private activeDbFile: string | null = null;
@@ -99,40 +106,53 @@ class DuckDbDataService {
   async migrate(): Promise<void> {
     const connection = this.connection;
     if (!connection) throw new Error('DuckDB connection is not initialized');
+    const notifyProgress = await this.hasLegacyMigrationInputs();
 
-    await connection.run(`
-      CREATE TABLE IF NOT EXISTS schema_migrations (
-        id VARCHAR PRIMARY KEY,
-        applied_at TIMESTAMP DEFAULT current_timestamp
-      );
-      CREATE TABLE IF NOT EXISTS maps (
-        map_id VARCHAR PRIMARY KEY,
-        data_json JSON NOT NULL,
-        updated_at TIMESTAMP DEFAULT current_timestamp
-      );
-      CREATE TABLE IF NOT EXISTS base_maps (
-        map_id VARCHAR NOT NULL,
-        scope VARCHAR NOT NULL,
-        sort_order INTEGER NOT NULL,
-        data_json JSON NOT NULL,
-        updated_at TIMESTAMP DEFAULT current_timestamp,
-        PRIMARY KEY (scope, map_id)
-      );
-      CREATE TABLE IF NOT EXISTS map_base_map_visibility (
-        map_id VARCHAR NOT NULL,
-        base_map_id VARCHAR NOT NULL,
-        enabled BOOLEAN NOT NULL,
-        updated_at TIMESTAMP DEFAULT current_timestamp,
-        PRIMARY KEY (map_id, base_map_id)
-      );
-    `);
+    try {
+      if (notifyProgress) sendMigrationProgress('database.migrating', 0);
+      await connection.run(`
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+          id VARCHAR PRIMARY KEY,
+          applied_at TIMESTAMP DEFAULT current_timestamp
+        );
+        CREATE TABLE IF NOT EXISTS maps (
+          map_id VARCHAR PRIMARY KEY,
+          data_json JSON NOT NULL,
+          updated_at TIMESTAMP DEFAULT current_timestamp
+        );
+        CREATE TABLE IF NOT EXISTS base_maps (
+          map_id VARCHAR NOT NULL,
+          scope VARCHAR NOT NULL,
+          sort_order INTEGER NOT NULL,
+          data_json JSON NOT NULL,
+          updated_at TIMESTAMP DEFAULT current_timestamp,
+          PRIMARY KEY (scope, map_id)
+        );
+        CREATE TABLE IF NOT EXISTS map_base_map_visibility (
+          map_id VARCHAR NOT NULL,
+          base_map_id VARCHAR NOT NULL,
+          enabled BOOLEAN NOT NULL,
+          updated_at TIMESTAMP DEFAULT current_timestamp,
+          PRIMARY KEY (map_id, base_map_id)
+        );
+      `);
 
-    await this.applyBuiltinBaseMapMigration(connection);
-    await this.migrateNeDB(connection);
-    await this.migrateUserBaseMaps(connection);
-    await connection.run(
-      `INSERT OR REPLACE INTO schema_migrations (id, applied_at) VALUES ('2026-07-02-duckdb-map-and-basemap-source', current_timestamp)`
-    );
+      if (notifyProgress) sendMigrationProgress('database.migrating_builtin_basemaps', 25, '(1/4)');
+      await this.applyBuiltinBaseMapMigration(connection);
+      if (notifyProgress) sendMigrationProgress('database.migrating_legacy_maps', 50, '(2/4)');
+      await this.migrateNeDB(connection);
+      if (notifyProgress) sendMigrationProgress('database.migrating_legacy_basemaps', 75, '(3/4)');
+      await this.migrateUserBaseMaps(connection);
+      await connection.run(
+        `INSERT OR REPLACE INTO schema_migrations (id, applied_at) VALUES ('2026-07-02-duckdb-map-and-basemap-source', current_timestamp)`
+      );
+      if (notifyProgress) sendMigrationProgress('database.archiving_legacy_files', 90, '(4/4)');
+      await this.retireLegacyDataFiles();
+      if (notifyProgress) sendMigrationProgress('database.migrated', 100, '(4/4)');
+    } catch (e) {
+      if (notifyProgress) sendMigrationProgress('database.migration_failed', 100);
+      throw e;
+    }
   }
 
   async findMap(mapID: string): Promise<any | null> {
@@ -337,6 +357,34 @@ class DuckDbDataService {
         }
       );
     }
+  }
+
+  private async hasLegacyMigrationInputs(): Promise<boolean> {
+    const { nedbFile, settingsDir } = this.folders;
+    if (await fs.pathExists(nedbFile)) return true;
+    if (!(await fs.pathExists(settingsDir))) return false;
+    const files = await fs.readdir(settingsDir);
+    return files.some((file) => file === 'tmsList.json' || safeMapIDFromSpecificFile(file) != null);
+  }
+
+  // Temporary retirement policy while the DuckDB path stabilizes. Replace this
+  // body with destructive deletion only after migrated data has been validated.
+  private async retireLegacyDataFiles(): Promise<void> {
+    const { nedbFile, settingsDir } = this.folders;
+    await this.renameIfExists(nedbFile, path.join(path.dirname(nedbFile), '_nedb.db'));
+    await this.renameIfExists(settingsDir, path.join(path.dirname(settingsDir), '_settings'));
+  }
+
+  private async renameIfExists(from: string, preferredTo: string): Promise<void> {
+    if (!(await fs.pathExists(from))) return;
+    let to = preferredTo;
+    let suffix = 1;
+    while (await fs.pathExists(to)) {
+      const parsed = path.parse(preferredTo);
+      to = path.join(parsed.dir, `${parsed.name}.${suffix}${parsed.ext}`);
+      suffix++;
+    }
+    await fs.move(from, to, { overwrite: false });
   }
 }
 

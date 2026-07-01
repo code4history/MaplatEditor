@@ -16,6 +16,7 @@ export interface AppDraftAPI {
 
 export interface AppEventsAPI {
     onMainProcessMessage(listener: (message: string) => void): () => void;
+    onTaskProgress(listener: (progress: any) => void): () => void;
 }
 
 export interface PoiSourcesAPI {

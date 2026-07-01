@@ -229,6 +229,15 @@
     "error_upload": "An error occurred during map data import.",
     "success_upload": "Map data was successfully imported."
   },
+  "database": {
+    "migrating": "Migrating to the new database format.",
+    "migrating_builtin_basemaps": "Registering built-in base maps in the new database.",
+    "migrating_legacy_maps": "Migrating legacy map data to the new database.",
+    "migrating_legacy_basemaps": "Migrating legacy base map settings to the new database.",
+    "archiving_legacy_files": "Archiving legacy database files.",
+    "migrated": "Migration to the new database format is complete.",
+    "migration_failed": "Migration to the new database format failed."
+  },
   "applist": {
     "not_implement": "Not implemented yet",
     "title": "Edit App",

@@ -87,6 +87,13 @@ contextBridge.exposeInMainWorld('appEvents', {
       ipcRenderer.removeListener('main-process-message', wrapper);
     };
   },
+  onTaskProgress(listener: (progress: any) => void): () => void {
+    const wrapper = (_event: any, progress: any) => listener(progress);
+    ipcRenderer.on('app:taskProgress', wrapper);
+    return () => {
+      ipcRenderer.removeListener('app:taskProgress', wrapper);
+    };
+  },
 })
 
 contextBridge.exposeInMainWorld('poiSources', {
