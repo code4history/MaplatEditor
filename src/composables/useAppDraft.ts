@@ -9,7 +9,10 @@ export interface MinimalAppDraft {
 }
 
 async function saveDraft(draft: MinimalAppDraft): Promise<void> {
-  await (window as any).appdraft.save(draft);
+  // Vue の reactive proxy は Electron IPC で正しくシリアライズされないため、
+  // プレーンオブジェクトに変換してから送信する
+  const plain = JSON.parse(JSON.stringify(draft));
+  await (window as any).appdraft.save(plain);
 }
 
 async function loadDraft(): Promise<MinimalAppDraft | null> {
