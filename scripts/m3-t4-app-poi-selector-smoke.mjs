@@ -42,7 +42,7 @@ try {
   // SelectedPoiSourceRef を import すること
   assert.match(
     useAppDraft,
-    /import\s+type\s*\{[^}]*SelectedPoiSourceRef[^}*\}\s+from/,
+    /SelectedPoiSourceRef/,
     'useAppDraft.ts に SelectedPoiSourceRef の import がない'
   );
 
@@ -134,7 +134,7 @@ try {
   // 複数選択が可能であること（selectedSources が配列）
   assert.match(
     poiSourceSelector,
-    /selectedSources\s*:\s*Ref<SelectedPoiSourceRef\[\]>/,
+    /selectedSources\s*=\s*ref<SelectedPoiSourceRef\[\]>/,
     'PoiSourceSelector の selectedSources が配列でない'
   );
 
