@@ -17,6 +17,14 @@
         <p class="mb-0"><strong>{{ t("applist.selected_map_id") }}</strong> {{ host.state.value.ref.runtimeMapId }}</p>
       </div>
     </div>
+
+    <div class="mt-4">
+      <h5>{{ t("applist.select_poi_sources") }}</h5>
+      <PoiSourceSelector
+        :initial-selected="initialPoiSources"
+        @update:selected="onPoiSourcesUpdate"
+      />
+    </div>
   </div>
 </template>
 
@@ -27,34 +35,62 @@ import { createDesktopRegisteredMapCatalog } from "../services/registeredMapCata
 import { useAppSourceHost } from "../composables/useAppSourceHost";
 import { useAppDraft } from "../composables/useAppDraft";
 import type { SelectedRegisteredMapHostState } from "../composables/useRegisteredMapSelector";
+import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import DesktopRegisteredMapSelector from "../components/DesktopRegisteredMapSelector.vue";
+import PoiSourceSelector from "../components/PoiSourceSelector.vue";
 
 const { t } = useTranslation();
 const catalog = createDesktopRegisteredMapCatalog();
 const host = useAppSourceHost();
-const { saveDraft, loadDraft, clearDraft } = useAppDraft();
+const { saveDraft, loadDraft } = useAppDraft();
 
 const initialCatalogKey = ref<string | undefined>(undefined);
+const initialPoiSources = ref<SelectedPoiSourceRef[]>([]);
+const currentDraft = ref<Parameters<typeof saveDraft>[0]>({});
 
 onMounted(async () => {
   const draft = await loadDraft();
-  if (draft?.selectedMap) {
-    host.selectMap({
-      ref: draft.selectedMap,
-      title: draft.cachedTitle ?? "",
-      status: draft.cachedStatus ?? "unknown",
-    });
-    initialCatalogKey.value = draft.selectedMap.catalogKey;
+  if (draft) {
+    currentDraft.value = draft;
+    if (draft.selectedMap) {
+      host.selectMap({
+        ref: draft.selectedMap,
+        title: draft.cachedTitle ?? "",
+        status: draft.cachedStatus ?? "unknown",
+      });
+      initialCatalogKey.value = draft.selectedMap.catalogKey;
+    }
+    initialPoiSources.value = draft.selectedPoiSources ?? [];
   }
 });
 
 function onSelect(state: SelectedRegisteredMapHostState) {
   host.selectMap(state);
-  void saveDraft(state.ref, state.title, state.status);
+  currentDraft.value = {
+    ...currentDraft.value,
+    selectedMap: state.ref,
+    cachedTitle: state.title,
+    cachedStatus: state.status,
+  };
+  void saveDraft(currentDraft.value);
 }
 
 function onDeselect() {
   host.clearMap();
-  void clearDraft();
+  currentDraft.value = {
+    ...currentDraft.value,
+    selectedMap: undefined,
+    cachedTitle: undefined,
+    cachedStatus: undefined,
+  };
+  void saveDraft(currentDraft.value);
+}
+
+function onPoiSourcesUpdate(sources: SelectedPoiSourceRef[]) {
+  currentDraft.value = {
+    ...currentDraft.value,
+    selectedPoiSources: sources,
+  };
+  void saveDraft(currentDraft.value);
 }
 </script>
