@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
+import { composeViewerSource, normalizeAppSource } from '../../src/utils/appSourceModel';
 
 type PreviewSession = {
   token: string;
@@ -91,13 +92,12 @@ class AppPreviewService {
 
   private async createSession(token: string, document: any): Promise<PreviewSession> {
     const maps: Record<string, any> = {};
-    const sources = await Promise.all((document.sources || []).map(async (source: any) => {
-      const data = { ...(source.data || source) };
-      data.mapID = source.mapID;
-      if (source.sourceType === 'maplat' || data.maptype === 'maplat') {
+    const sources = await Promise.all((document.sources || []).map(async (raw: any) => {
+      const source = normalizeAppSource(raw);
+      if (source.sourceType === 'maplat') {
         const preview = await MapEditService.requestPreviewSource(source.mapID);
-        const label = source.label || source.title || data.label || data.title || source.mapID;
-        const thumbnail = source.thumbnail || data.thumbnail || preview.thumbnail || 'Maplat.png';
+        const label = source.label || preview.title || source.mapID;
+        const thumbnail = `tmbs/${source.mapID}.jpg`;
         maps[source.mapID] = this.toHttpAsset(normalizeRuntimeKeys({
           ...preview,
           mapID: source.mapID,
@@ -108,24 +108,12 @@ class AppPreviewService {
           url: preview.url || preview.url_,
           pois: preview.pois,
         }));
-        return {
-          mapID: source.mapID,
-          maptype: 'maplat',
-          settingFile: `maps/${source.mapID}.json`,
-          label,
-          title: label,
-          thumbnail: this.toHttpUrl(thumbnail),
-        };
+        const composed = composeViewerSource(source, { settingFilePrefix: 'maps/' }) as Record<string, unknown>;
+        composed.thumbnail = thumbnail;
+        return composed;
       }
-      const role = source.role || (data.maptype === 'overlay' ? 'overlay' : 'base');
-      return this.toHttpAsset(normalizeRuntimeKeys({
-        ...data,
-        mapID: source.mapID,
-        maptype: role === 'overlay' ? 'overlay' : (data.maptype || 'base'),
-        label: data.label || source.title || source.mapID,
-        title: data.title || source.title || source.mapID,
-        thumbnail: data.thumbnail || source.thumbnail || (role === 'overlay' ? 'overlay.png' : 'basemap.png'),
-      }));
+      // builtin → 素の文字列 / tms → Editor専用キー除去済みオブジェクト
+      return composeViewerSource(source);
     }));
     const app = this.toHttpAsset(normalizeRuntimeKeys({
       appName: document.appName || document.title,
@@ -182,6 +170,8 @@ class AppPreviewService {
     if (rest.length === 0) return this.sendHtml(res, this.renderHtml(session));
     if (rest[0] === 'service-worker.js') return this.servePackageAsset('service-worker.js', res);
     if (rest[0] === 'tiles') return this.servePreviewTile(rest.slice(1), res);
+    if (rest[0] === 'tmbs') return this.serveDataFile('tmbs', rest.slice(1), res);
+    if (rest[0] === 'img') return this.serveDataFile('img', rest.slice(1), res);
     if (rest[0] === 'apps' && rest[1] === `${token}.json`) return this.sendJson(res, session.app);
     if (rest[0] === 'maps' && rest[1]) return this.sendJson(res, session.maps[rest[1].replace(/\.json$/, '')] || {});
     if (rest[0] === 'pwa' && rest[1] === `${token}_manifest.json`) return this.sendJson(res, session.manifest);
@@ -253,6 +243,14 @@ ${manifestLink}
     const filePath = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
     if (!filePath) return this.sendText(res, 404, 'Asset not found');
     this.sendFile(res, filePath);
+  }
+
+  private serveDataFile(folder: 'tmbs' | 'img', segments: string[], res: http.ServerResponse) {
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const baseFolder = path.resolve(path.join(saveFolder, folder));
+    const resolved = path.resolve(path.join(baseFolder, ...segments.map(segment => decodeURIComponent(segment))));
+    if (!resolved.startsWith(baseFolder)) return this.sendText(res, 403, 'Forbidden');
+    this.sendFile(res, resolved);
   }
 
   private servePreviewTile(tileSegments: string[], res: http.ServerResponse) {

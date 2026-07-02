@@ -4,21 +4,16 @@ import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
 import { UndoStack } from "../services/editorUndoStack";
+import {
+  isViewerBuiltin,
+  normalizeAppSource,
+  type AppSource as SharedAppSource,
+} from "../utils/appSourceModel";
 
 type LangCode = "ja" | "en" | "de" | "fr" | "es" | "ko" | "zh" | "zh-TW";
-type SourceKind = "maplat" | "base-map";
-type SourceRole = "maplat" | "base" | "overlay";
 
-interface AppSource {
-  sourceType: SourceKind;
-  mapID: string;
-  title: string;
-  label: Record<string, string>;
-  role: SourceRole;
-  startFrom?: boolean;
-  opacity?: number;
+interface AppSource extends SharedAppSource {
   thumbnail?: string;
-  data: any;
 }
 
 interface HttpSettings {
@@ -265,21 +260,16 @@ function normalizeLangObject(value: any): Record<string, string> {
 }
 
 function normalizeSource(value: any): AppSource {
-  const sourceType: SourceKind = value.sourceType || (value.maptype === "maplat" || value.noload ? "maplat" : "base-map");
-  const role: SourceRole = value.role || (sourceType === "maplat" ? "maplat" : value.maptype === "overlay" ? "overlay" : "base");
-  const data = value.data || value;
-  const title = value.title || value.label || data?.title || data?.label || value.mapID;
-  return {
-    sourceType,
-    mapID: value.mapID,
-    title: typeof title === "string" ? title : localizedWithLang(title, "ja") || value.mapID,
-    label: normalizeLangObject(value.label || data?.label || title),
-    role,
-    startFrom: Boolean(value.startFrom),
-    opacity: value.opacity ?? 1,
-    thumbnail: value.thumbnail || data?.thumbnail,
-    data,
-  };
+  const source = normalizeAppSource(value) as AppSource;
+  if (!source.title) {
+    const title = source.label || (source.data as any)?.title || source.mapID;
+    source.title = typeof title === "string" ? title : localizedWithLang(title, "ja") || source.mapID;
+  }
+  if (source.sourceType !== "builtin") {
+    source.label = { ...normalizeLangObject(source.label || source.title) };
+  }
+  source.thumbnail = typeof value === "object" && value !== null ? value.thumbnail : undefined;
+  return source;
 }
 
 function normalizeHttpSettings(value: any): HttpSettings {
@@ -439,13 +429,6 @@ async function addMapSource(item: MapListItem) {
     return;
   }
   if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType === "maplat")) return;
-  let mapObject: any;
-  try {
-    mapObject = await window.mapedit.previewSource(item.mapID);
-  } catch (e) {
-    previewError.value = translatePreviewError(e);
-    return;
-  }
   appData.value.sources.push({
     sourceType: "maplat",
     mapID: item.mapID,
@@ -453,35 +436,33 @@ async function addMapSource(item: MapListItem) {
     label: { ...normalizeLangObject(item.title) },
     role: "maplat",
     startFrom: appData.value.sources.length === 0,
-    thumbnail: item.image || "Maplat.png",
-    data: { ...mapObject, mapID: item.mapID, maptype: "maplat" },
+    thumbnail: item.image || undefined,
   });
   ensureSingleStartFrom();
   recordHistory();
 }
 
 function addBaseMapSource(item: BaseMapItem) {
-  if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType === "base-map")) return;
-  const role: SourceRole = item.data?.maptype === "overlay" || item.data?.overlay ? "overlay" : "base";
+  if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType !== "maplat")) return;
   const title = baseMapTitle(item);
-  const thumbnail = item.data?.thumbnail || (role === "overlay" ? "overlay.png" : "basemap.png");
-  appData.value.sources.push({
-    sourceType: "base-map",
-    mapID: item.mapID,
-    title,
-    label: { ...normalizeLangObject(title) },
-    role,
-    opacity: 1,
-    thumbnail,
-    data: {
-      ...item.data,
+  if (isViewerBuiltin(item.mapID)) {
+    appData.value.sources.push({
+      sourceType: "builtin",
       mapID: item.mapID,
-      maptype: role === "overlay" ? "overlay" : (item.data?.maptype || "base"),
-      label: item.data?.label || title,
-      title: item.data?.title || title,
-      thumbnail,
-    },
-  });
+      title,
+      role: "base",
+    });
+  } else {
+    const source = normalizeAppSource({
+      mapID: item.mapID,
+      maptype: item.data?.maptype,
+      data: item.data,
+    }) as AppSource;
+    source.title = title;
+    source.label = { ...normalizeLangObject(title) };
+    appData.value.sources.push(source);
+  }
+  ensureSingleStartFrom();
   recordHistory();
 }
 
@@ -562,17 +543,7 @@ function createPreviewDocument(): AppDocument {
   document.manifestSettings.iconsJson = normalizeJsonText(document.manifestSettings.iconsJson, []);
   (document.manifestSettings as any).icons = JSON.parse(document.manifestSettings.iconsJson);
   (document as any).pois = JSON.parse(document.poiSources || "[]");
-  document.sources = document.sources.map((source) => {
-    const data = { ...source.data };
-    data.mapID = source.mapID;
-    data.label = source.label;
-    data.title = data.title || source.title;
-    data.thumbnail = data.thumbnail || source.thumbnail;
-    if (source.sourceType === "base-map") {
-      data.maptype = source.role === "overlay" ? "overlay" : (data.maptype || "base");
-    }
-    return { ...source, data };
-  });
+  // sourcesはAppSource形のままmainプロセスへ渡し、composeViewerSourceで正規化する
   return document;
 }
 
@@ -881,7 +852,7 @@ function normalizeJsonText(value: string, fallback: any) {
                 </div>
               </div>
               <div class="row g-2 mt-2 align-items-center">
-                <div class="col-md-5">
+                <div v-if="source.sourceType !== 'builtin' && source.label" class="col-md-5">
                   <label class="form-label small mb-0">{{ t("appedit.source_label") }}</label>
                   <input v-model="source.label[currentLang]" type="text" class="form-control form-control-sm" @input="recordHistory">
                 </div>
@@ -891,20 +862,17 @@ function normalizeJsonText(value: string, fallback: any) {
                     <label class="form-check-label" :for="`start-${index}`">{{ t("appedit.start_from") }}</label>
                   </div>
                 </div>
-                <div v-if="source.sourceType === 'base-map'" class="col-auto">
+                <div v-if="source.sourceType === 'tms'" class="col-auto">
                   <select v-model="source.role" class="form-select form-select-sm" @change="recordHistory">
                     <option value="base">{{ t("appedit.roles.base") }}</option>
                     <option value="overlay">{{ t("appedit.roles.overlay") }}</option>
                   </select>
                 </div>
-                <div v-if="source.role === 'overlay'" class="col-auto">
-                  <input v-model.number="source.opacity" type="number" min="0" max="1" step="0.05" class="form-control form-control-sm opacity-input" @change="recordHistory">
-                </div>
               </div>
-              <details class="mt-2">
+              <details v-if="source.sourceType === 'tms'" class="mt-2">
                 <summary class="small text-primary">{{ t("appedit.source_advanced") }}</summary>
                 <textarea
-                  :value="JSON.stringify(source.data, null, 2)"
+                  :value="JSON.stringify(source.data ?? {}, null, 2)"
                   class="form-control form-control-sm font-monospace mt-1"
                   rows="5"
                   @change="updateSourceData(source, ($event.target as HTMLTextAreaElement).value)"
