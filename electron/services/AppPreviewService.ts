@@ -28,6 +28,8 @@ const olPackageRoot = findExistingPath([
 const previewAssetRoot = findExistingPath([
   path.resolve(appRoot, 'public/preview'),
   path.resolve(appRoot, 'dist/preview'),
+  path.resolve(__dirname, '..', 'public/preview'),
+  path.resolve(__dirname, '..', 'dist/preview'),
   path.resolve(__dirname, '..', 'preview'),
 ]);
 const mimeTypes: Record<string, string> = {
