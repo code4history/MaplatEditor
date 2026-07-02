@@ -44,6 +44,9 @@ importers:
       bootstrap-icons:
         specifier: ^1.13.1
         version: 1.13.1
+      bootstrap-sass:
+        specifier: ^3.4.3
+        version: 3.4.3
       csv-parser:
         specifier: ^3.0.0
         version: 3.2.0
@@ -1631,6 +1634,9 @@ packages:
 
   bootstrap-icons@1.13.1:
     resolution: {integrity: sha512-ijombt4v6bv5CLeXvRWKy7CuM3TRTuPEuGaGKvTV5cz65rQSY8RQ2JcHt6b90cBBAC7s8fsf2EkQDldzCoXUjw==}
+
+  bootstrap-sass@3.4.3:
+    resolution: {integrity: sha512-vPgFnGMp1jWZZupOND65WS6mkR8rxhJxndT/AcMbqcq1hHMdkcH4sMPhznLzzoHOHkSCrd6J9F8pWBriPCKP2Q==}
 
   bootstrap.native@5.1.10:
     resolution: {integrity: sha512-JwJnMWx/zJirvwEPuvmKve4JoSh6upA5qNWdWj78nJmBCmVhBGXdYHxQIldkIRIReZjCiXntZBLFd3TYoGfgxw==}
@@ -6085,6 +6091,8 @@ snapshots:
     optional: true
 
   bootstrap-icons@1.13.1: {}
+
+  bootstrap-sass@3.4.3: {}
 
   bootstrap.native@5.1.10:
     dependencies:

@@ -55,6 +55,7 @@
     "adm-zip": "^0.5.9",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "bootstrap-sass": "^3.4.3",
     "csv-parser": "^3.0.0",
     "electron-store": "^11.0.2",
     "file-url": "^4.0.0",

@@ -18,6 +18,7 @@ interface AppSource {
   role: SourceRole;
   startFrom?: boolean;
   opacity?: number;
+  thumbnail?: string;
   data: any;
 }
 
@@ -192,14 +193,16 @@ function normalizeLangObject(value: any): Record<string, string> {
 function normalizeSource(value: any): AppSource {
   const sourceType: SourceKind = value.sourceType || (value.maptype === "maplat" || value.noload ? "maplat" : "base-map");
   const role: SourceRole = value.role || (sourceType === "maplat" ? "maplat" : value.maptype === "overlay" ? "overlay" : "base");
+  const data = value.data || value;
   return {
     sourceType,
     mapID: value.mapID,
-    title: value.title || value.label || value.mapID,
+    title: value.title || value.label || data?.title || data?.label || value.mapID,
     role,
     startFrom: Boolean(value.startFrom),
     opacity: value.opacity ?? 1,
-    data: value.data || value,
+    thumbnail: value.thumbnail || data?.thumbnail,
+    data,
   };
 }
 
@@ -314,6 +317,7 @@ async function addMapSource(item: MapListItem) {
     title: item.title,
     role: "maplat",
     startFrom: appData.value.sources.length === 0,
+    thumbnail: item.image || "Maplat.png",
     data: { ...mapObject, mapID: item.mapID, maptype: "maplat" },
   });
   ensureSingleStartFrom();
@@ -323,13 +327,23 @@ async function addMapSource(item: MapListItem) {
 function addBaseMapSource(item: BaseMapItem) {
   if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType === "base-map")) return;
   const role: SourceRole = item.data?.maptype === "overlay" || item.data?.overlay ? "overlay" : "base";
+  const title = baseMapTitle(item);
+  const thumbnail = item.data?.thumbnail || (role === "overlay" ? "overlay.png" : "basemap.png");
   appData.value.sources.push({
     sourceType: "base-map",
     mapID: item.mapID,
-    title: baseMapTitle(item),
+    title,
     role,
     opacity: 1,
-    data: { ...item.data, mapID: item.mapID, maptype: role === "overlay" ? "overlay" : (item.data?.maptype || "base") },
+    thumbnail,
+    data: {
+      ...item.data,
+      mapID: item.mapID,
+      maptype: role === "overlay" ? "overlay" : (item.data?.maptype || "base"),
+      label: item.data?.label || title,
+      title: item.data?.title || title,
+      thumbnail,
+    },
   });
   recordHistory();
 }
@@ -390,16 +404,23 @@ function buildPreviewSetting() {
     if (source.sourceType === "maplat") {
       delete data.noload;
       data.url = data.url || data.url_;
-      const settingFile = createPreviewSettingUrl({ ...data, maptype: "maplat" });
+      const label = source.title || data.title || data.label || source.mapID;
+      const thumbnail = source.thumbnail || data.thumbnail || "Maplat.png";
+      const settingFile = createPreviewSettingUrl({ ...data, maptype: "maplat", label, title: data.title || label, thumbnail });
       return {
         mapID: source.mapID,
         maptype: "maplat",
         settingFile,
-        label: source.title,
+        label,
+        title: label,
+        thumbnail,
       };
     }
     if (source.sourceType === "base-map") {
       data.maptype = source.role === "overlay" ? "overlay" : (data.maptype || "base");
+      data.label = data.label || source.title || source.mapID;
+      data.title = data.title || source.title || source.mapID;
+      data.thumbnail = data.thumbnail || source.thumbnail || (source.role === "overlay" ? "overlay.png" : "basemap.png");
     }
     return data;
   });
