@@ -150,6 +150,8 @@ try {
   const appPreviewService = await readFile(path.join(projectRoot, 'electron/services/AppPreviewService.ts'), 'utf8');
   const appEditView = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
   assert.match(appPreviewService, /http\.createServer/, 'AppPreviewService が HTTP server を作成していない');
+  assert.match(appPreviewService, /assets\/ol\.js/, 'AppPreviewService が OpenLayers UMD を preview HTML で読み込んでいない');
+  assert.match(appPreviewService, /olPackageRoot/, 'AppPreviewService が OpenLayers bundle を配信していない');
   assert.match(appPreviewService, /local-file/, 'AppPreviewService がローカルファイル proxy を持っていない');
   assert.match(appPreviewService, /rest\[0\]\s*===\s*'apps'/, 'AppPreviewService が app json を HTTP 配信していない');
   assert.match(appEditView, /httpSettings/, 'AppEdit.vue に HTTP 設定がない');

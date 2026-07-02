@@ -20,6 +20,10 @@ const uiPackageRoot = findExistingPath([
   path.resolve(appRoot, 'node_modules/@maplat/ui'),
   path.resolve(__dirname, '..', 'node_modules/@maplat/ui'),
 ]);
+const olPackageRoot = findExistingPath([
+  path.resolve(appRoot, 'node_modules/ol'),
+  path.resolve(__dirname, '..', 'node_modules/ol'),
+]);
 const mimeTypes: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
   '.eot': 'application/vnd.ms-fontobject',
@@ -192,10 +196,16 @@ ${manifestLink}
 </head>
 <body>
   <div class="mainview"><div id="map_div"></div></div>
+  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
   <script>
     const option = ${JSON.stringify(session.viewerOption)};
-    window.MaplatUi.createObject(option).catch((e) => {
+    const MaplatPreview = window.MaplatUi && window.MaplatUi.createObject
+      ? window.MaplatUi
+      : window.MaplatUi && window.MaplatUi.MaplatUi
+        ? window.MaplatUi.MaplatUi
+        : window.Maplat;
+    MaplatPreview.createObject(option).catch((e) => {
       document.body.innerHTML = '<pre style="padding:12px;color:#842029;background:#f8d7da;">' + (e && e.stack || e) + '</pre>';
     });
   </script>
@@ -225,6 +235,7 @@ ${manifestLink}
     const candidates = [
       path.join(uiPackageRoot, 'dist', assetPath),
       path.join(uiPackageRoot, 'assets', assetPath),
+      assetPath === 'ol.js' ? path.join(olPackageRoot, 'dist', 'ol.js') : '',
     ];
     const filePath = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
     if (!filePath) return this.sendText(res, 404, 'Asset not found');
