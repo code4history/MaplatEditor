@@ -23,3 +23,9 @@ This document outlines potential future enhancements, features, and UI/UX improv
 **提案**: `@maplat/tin` のコア計算ロジックを WASM 化、あるいは高性能な Delaunay 実装（`d3-delaunay` + WASM ラッパー等）へ差し替えることで、大幅な高速化が見込まれる。
 
 _Note: This document should be updated continuously as more areas for improvement are discovered during the porting process._
+
+## 5. アプリ編集: ソース設定UIの拡張候補（2026-07-03のAppEdit改善時のスコープ外）
+- mapbox / maplibre / google 系ソースタイプの専用編集UI（現状は既存データをパススルー保持するのみで、新規追加UIはない）
+- 非矩形 envelope の編集（現状は矩形bbox近似のみ）
+- エクスポートのZIP出力オプション、および出力後の簡易ローカルサーバでの動作確認機能
+- pwa-asset-generator のダークモードスプラッシュ（appleLaunchImageDarkMode）対応
