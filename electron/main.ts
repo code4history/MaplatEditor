@@ -127,6 +127,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('appedit:request')
   ipcMain.removeHandler('appedit:save')
   ipcMain.removeHandler('appedit:checkID')
+  ipcMain.removeHandler('appedit:prepare-preview')
   ipcMain.removeHandler('poisource:list')
   ipcMain.removeHandler('poisource:get')
   ipcMain.removeHandler('poisource:createLocal')

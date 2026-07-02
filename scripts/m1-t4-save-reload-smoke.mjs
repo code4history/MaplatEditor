@@ -273,8 +273,8 @@ try {
 
   assert.match(
     appEditView,
-    /MaplatUi\.createObject/,
-    'AppEdit.vue が Maplat UI プレビューを作成していない'
+    /window\.appedit\.preparePreview/,
+    'AppEdit.vue が HTTP プレビュー作成 API を呼んでいない'
   );
 
   console.log('  [5/7] App list/edit integration: PASS');

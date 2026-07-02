@@ -1,4 +1,5 @@
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -79,6 +80,9 @@ try {
           { sourceType: 'base-map', mapID: 'osm', role: 'base', title: 'OpenStreetMap', data: { mapID: 'osm', maptype: 'base' } },
           { sourceType: 'maplat', mapID: 'histmap', role: 'maplat', title: 'Hist Map', startFrom: true, data: { mapID: 'histmap', maptype: 'maplat', noload: true } },
         ],
+        httpSettings: { previewPort: 41781, pwaManifest: true, enableShare: true, enableBorder: true },
+        appSettings: { splash: 'demo_splash.png', homeLng: 139, homeLat: 35, defaultZoom: 17 },
+        manifestSettings: { name: 'Demo', shortName: 'Demo', backgroundColor: '#f6f0d3', themeColor: '#f6f0d3' },
         startFrom: 'histmap',
       };
 
@@ -91,6 +95,9 @@ try {
       assert.equal(loaded.title.ja, 'デモアプリ');
       assert.equal(loaded.sources.length, 2);
       assert.equal(loaded.startFrom, 'histmap');
+      assert.equal(loaded.httpSettings.enableShare, true);
+      assert.equal(loaded.appSettings.splash, 'demo_splash.png');
+      assert.equal(loaded.manifestSettings.name, 'Demo');
 
       const listed = await AppDataService.requestApps('デモ', 1, 20);
       assert.equal(listed.docs.length, 1);
@@ -139,6 +146,15 @@ try {
     timeout: 30000,
     maxBuffer: 1024 * 1024 * 8,
   });
+
+  const appPreviewService = await readFile(path.join(projectRoot, 'electron/services/AppPreviewService.ts'), 'utf8');
+  const appEditView = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
+  assert.match(appPreviewService, /http\.createServer/, 'AppPreviewService が HTTP server を作成していない');
+  assert.match(appPreviewService, /local-file/, 'AppPreviewService がローカルファイル proxy を持っていない');
+  assert.match(appPreviewService, /rest\[0\]\s*===\s*'apps'/, 'AppPreviewService が app json を HTTP 配信していない');
+  assert.match(appEditView, /httpSettings/, 'AppEdit.vue に HTTP 設定がない');
+  assert.match(appEditView, /manifestSettings/, 'AppEdit.vue に manifest 設定がない');
+  assert.match(appEditView, /preparePreview/, 'AppEdit.vue が HTTP preview API を呼んでいない');
   console.log('M5 app editor smoke passed');
 } finally {
   await rm(workDir, { recursive: true, force: true });

@@ -2,8 +2,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
-import { MaplatUi } from "@maplat/ui";
-import "../assets/scss/maplat-ui-preview.scss";
 import noImage from "../assets/img/no_image.png";
 import { UndoStack } from "../services/editorUndoStack";
 
@@ -15,11 +13,47 @@ interface AppSource {
   sourceType: SourceKind;
   mapID: string;
   title: string;
+  label: Record<string, string>;
   role: SourceRole;
   startFrom?: boolean;
   opacity?: number;
   thumbnail?: string;
   data: any;
+}
+
+interface HttpSettings {
+  previewPort: number;
+  pwaManifest: boolean;
+  overlay: boolean;
+  enableHideMarker: boolean;
+  enableBorder: boolean;
+  enableCache: boolean;
+  stateUrl: boolean;
+  enableShare: boolean;
+  iconSource: string;
+  mapboxToken: string;
+  googleApiKey: string;
+}
+
+interface AppRuntimeSettings {
+  splash: string;
+  fakeGps: boolean;
+  fakeCenter: string;
+  fakeRadius: number;
+  homeLng: number;
+  homeLat: number;
+  defaultZoom: number;
+}
+
+interface ManifestSettings {
+  name: string;
+  shortName: string;
+  backgroundColor: string;
+  themeColor: string;
+  display: string;
+  startUrl: string;
+  scope: string;
+  iconsJson: string;
 }
 
 interface AppDocument {
@@ -30,6 +64,10 @@ interface AppDocument {
   description: Record<string, string>;
   lang: LangCode;
   sources: AppSource[];
+  httpSettings: HttpSettings;
+  appSettings: AppRuntimeSettings;
+  manifestSettings: ManifestSettings;
+  poiSources: string;
   startFrom?: string;
   status?: string;
   extraInfo?: string;
@@ -71,6 +109,39 @@ const defaultApp = (): AppDocument => ({
   description: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
   lang: "ja",
   sources: [],
+  httpSettings: {
+    previewPort: 41781,
+    pwaManifest: true,
+    overlay: true,
+    enableHideMarker: true,
+    enableBorder: true,
+    enableCache: true,
+    stateUrl: true,
+    enableShare: true,
+    iconSource: "",
+    mapboxToken: "",
+    googleApiKey: "",
+  },
+  appSettings: {
+    splash: "",
+    fakeGps: false,
+    fakeCenter: "",
+    fakeRadius: 10,
+    homeLng: 139.767,
+    homeLat: 35.681,
+    defaultZoom: 17,
+  },
+  manifestSettings: {
+    name: "",
+    shortName: "",
+    backgroundColor: "#f6f0d3",
+    themeColor: "#f6f0d3",
+    display: "standalone",
+    startUrl: "./",
+    scope: "./",
+    iconsJson: "[]",
+  },
+  poiSources: "[]",
   status: "New",
   extraInfo: "",
 });
@@ -90,10 +161,9 @@ const mapHasNext = ref(true);
 const baseMapItems = ref<BaseMapItem[]>([]);
 const baseMapSearchQuery = ref("");
 const previewError = ref<string | null>(null);
+const previewUrl = ref("");
 const historyStack = ref<UndoStack<AppDocument> | null>(null);
 const historyApplying = ref(false);
-let previewApp: MaplatUi | null = null;
-let previewSettingUrls: string[] = [];
 
 const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName) || appData.value.appID);
 const isDirty = computed(() => historyStack.value?.isDirty() ?? false);
@@ -170,6 +240,10 @@ function normalizeAppDocument(value: any): AppDocument {
   normalized.title = normalizeLangObject(value.title || value.appName);
   normalized.description = normalizeLangObject(value.description);
   normalized.sources = Array.isArray(value.sources) ? value.sources.map(normalizeSource) : [];
+  normalized.httpSettings = normalizeHttpSettings(value.httpSettings || value.http || value);
+  normalized.appSettings = normalizeAppSettings(value.appSettings || value);
+  normalized.manifestSettings = normalizeManifestSettings(value.manifestSettings || value.manifest || {});
+  normalized.poiSources = JSON.stringify(value.poiSources || value.pois || [], null, 2);
   normalized.startFrom = value.startFrom || value.start_from;
   normalized.extraInfo = typeof value.extraInfo === "string" ? value.extraInfo : "";
   normalized.status = "Update";
@@ -194,10 +268,12 @@ function normalizeSource(value: any): AppSource {
   const sourceType: SourceKind = value.sourceType || (value.maptype === "maplat" || value.noload ? "maplat" : "base-map");
   const role: SourceRole = value.role || (sourceType === "maplat" ? "maplat" : value.maptype === "overlay" ? "overlay" : "base");
   const data = value.data || value;
+  const title = value.title || value.label || data?.title || data?.label || value.mapID;
   return {
     sourceType,
     mapID: value.mapID,
-    title: value.title || value.label || data?.title || data?.label || value.mapID,
+    title: typeof title === "string" ? title : localizedWithLang(title, "ja") || value.mapID,
+    label: normalizeLangObject(value.label || data?.label || title),
     role,
     startFrom: Boolean(value.startFrom),
     opacity: value.opacity ?? 1,
@@ -206,9 +282,61 @@ function normalizeSource(value: any): AppSource {
   };
 }
 
+function normalizeHttpSettings(value: any): HttpSettings {
+  const defaults = defaultApp().httpSettings;
+  return {
+    ...defaults,
+    previewPort: Number(value.previewPort || defaults.previewPort),
+    pwaManifest: value.pwaManifest ?? defaults.pwaManifest,
+    overlay: value.overlay ?? defaults.overlay,
+    enableHideMarker: value.enableHideMarker ?? defaults.enableHideMarker,
+    enableBorder: value.enableBorder ?? defaults.enableBorder,
+    enableCache: value.enableCache ?? defaults.enableCache,
+    stateUrl: value.stateUrl ?? defaults.stateUrl,
+    enableShare: value.enableShare ?? defaults.enableShare,
+    iconSource: value.iconSource || "",
+    mapboxToken: value.mapboxToken || "",
+    googleApiKey: value.googleApiKey || "",
+  };
+}
+
+function normalizeAppSettings(value: any): AppRuntimeSettings {
+  const defaults = defaultApp().appSettings;
+  const home = value.home_position || value.homePosition;
+  return {
+    splash: value.splash || defaults.splash,
+    fakeGps: value.fakeGps ?? value.fake_gps ?? defaults.fakeGps,
+    fakeCenter: value.fakeCenter || value.fake_center || defaults.fakeCenter,
+    fakeRadius: Number(value.fakeRadius ?? value.fake_radius ?? defaults.fakeRadius),
+    homeLng: Number(value.homeLng ?? home?.[0] ?? defaults.homeLng),
+    homeLat: Number(value.homeLat ?? home?.[1] ?? defaults.homeLat),
+    defaultZoom: Number(value.defaultZoom ?? value.default_zoom ?? defaults.defaultZoom),
+  };
+}
+
+function normalizeManifestSettings(value: any): ManifestSettings {
+  const defaults = defaultApp().manifestSettings;
+  return {
+    ...defaults,
+    name: value.name || "",
+    shortName: value.shortName || value.short_name || "",
+    backgroundColor: value.backgroundColor || value.background_color || defaults.backgroundColor,
+    themeColor: value.themeColor || value.theme_color || defaults.themeColor,
+    display: value.display || defaults.display,
+    startUrl: value.startUrl || value.start_url || defaults.startUrl,
+    scope: value.scope || defaults.scope,
+    iconsJson: typeof value.iconsJson === "string" ? value.iconsJson : JSON.stringify(value.icons || [], null, 2),
+  };
+}
+
 function localized(value: any): string {
   if (typeof value === "string") return value;
   return value?.[currentLang.value] || value?.[appData.value.lang] || value?.ja || value?.en || "";
+}
+
+function localizedWithLang(value: any, lang: string): string {
+  if (typeof value === "string") return value;
+  return value?.[lang] || value?.ja || value?.en || "";
 }
 
 function goBack() {
@@ -271,6 +399,13 @@ async function saveApp() {
     return;
   }
   const document = cloneDocument(appData.value);
+  try {
+    (document.manifestSettings as any).icons = JSON.parse(document.manifestSettings.iconsJson || "[]");
+    (document as any).pois = JSON.parse(document.poiSources || "[]");
+  } catch {
+    saveError.value = t("appedit.invalid_json");
+    return;
+  }
   document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapID || appData.value.startFrom;
   document.status = "Update";
   const result = await window.appedit.save(document.appID, document);
@@ -315,6 +450,7 @@ async function addMapSource(item: MapListItem) {
     sourceType: "maplat",
     mapID: item.mapID,
     title: item.title,
+    label: { ...normalizeLangObject(item.title) },
     role: "maplat",
     startFrom: appData.value.sources.length === 0,
     thumbnail: item.image || "Maplat.png",
@@ -333,6 +469,7 @@ function addBaseMapSource(item: BaseMapItem) {
     sourceType: "base-map",
     mapID: item.mapID,
     title,
+    label: { ...normalizeLangObject(title) },
     role,
     opacity: 1,
     thumbnail,
@@ -380,60 +517,22 @@ function sourceTitle(source: AppSource): string {
   return source.title || source.data?.title || source.mapID;
 }
 
-function baseMapTitle(item: BaseMapItem): string {
-  return String(item.data?.title ?? item.data?.label ?? item.mapID);
+function updateSourceData(source: AppSource, value: string) {
+  try {
+    source.data = JSON.parse(value);
+    recordHistory();
+  } catch {
+    previewError.value = t("appedit.invalid_json");
+  }
 }
 
-function createPreviewSettingUrl(data: any) {
-  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  previewSettingUrls.push(url);
-  return url;
+function baseMapTitle(item: BaseMapItem): string {
+  return String(item.data?.title ?? item.data?.label ?? item.mapID);
 }
 
 function translatePreviewError(e: unknown): string {
   const message = e instanceof Error ? e.message : String(e);
   return message.startsWith("appedit.") ? t(message) : message;
-}
-
-function buildPreviewSetting() {
-  revokePreviewSettingUrls();
-  const sources = appData.value.sources.map((source) => {
-    const data = { ...source.data };
-    data.mapID = source.mapID;
-    if (source.sourceType === "maplat") {
-      delete data.noload;
-      data.url = data.url || data.url_;
-      const label = source.title || data.title || data.label || source.mapID;
-      const thumbnail = source.thumbnail || data.thumbnail || "Maplat.png";
-      const settingFile = createPreviewSettingUrl({ ...data, maptype: "maplat", label, title: data.title || label, thumbnail });
-      return {
-        mapID: source.mapID,
-        maptype: "maplat",
-        settingFile,
-        label,
-        title: label,
-        thumbnail,
-      };
-    }
-    if (source.sourceType === "base-map") {
-      data.maptype = source.role === "overlay" ? "overlay" : (data.maptype || "base");
-      data.label = data.label || source.title || source.mapID;
-      data.title = data.title || source.title || source.mapID;
-      data.thumbnail = data.thumbnail || source.thumbnail || (source.role === "overlay" ? "overlay.png" : "basemap.png");
-    }
-    return data;
-  });
-  return {
-    appName: appData.value.appName,
-    lang: appData.value.lang,
-    title: appData.value.title,
-    description: appData.value.description,
-    homePosition: [139.767, 35.681],
-    defaultZoom: 10,
-    sources,
-    startFrom: appData.value.startFrom || appData.value.sources.find((source) => source.startFrom)?.mapID,
-  };
 }
 
 async function renderPreview() {
@@ -445,12 +544,8 @@ async function renderPreview() {
   }
   await nextTick();
   try {
-    previewApp = await MaplatUi.createObject({
-      div: "appPreviewMap",
-      setting: buildPreviewSetting(),
-      restoreSession: false,
-      enableCache: false,
-    } as any);
+    const result = await window.appedit.preparePreview(createPreviewDocument());
+    previewUrl.value = result.url;
   } catch (e) {
     console.error("[AppEdit] Preview failed:", e);
     previewError.value = translatePreviewError(e);
@@ -459,16 +554,35 @@ async function renderPreview() {
 }
 
 function destroyPreview() {
-  if (previewApp) {
-    previewApp.remove();
-    previewApp = null;
-  }
-  revokePreviewSettingUrls();
+  previewUrl.value = "";
 }
 
-function revokePreviewSettingUrls() {
-  previewSettingUrls.forEach((url) => URL.revokeObjectURL(url));
-  previewSettingUrls = [];
+function createPreviewDocument(): AppDocument {
+  const document = cloneDocument(appData.value);
+  document.manifestSettings.iconsJson = normalizeJsonText(document.manifestSettings.iconsJson, []);
+  (document.manifestSettings as any).icons = JSON.parse(document.manifestSettings.iconsJson);
+  (document as any).pois = JSON.parse(document.poiSources || "[]");
+  document.sources = document.sources.map((source) => {
+    const data = { ...source.data };
+    data.mapID = source.mapID;
+    data.label = source.label;
+    data.title = data.title || source.title;
+    data.thumbnail = data.thumbnail || source.thumbnail;
+    if (source.sourceType === "base-map") {
+      data.maptype = source.role === "overlay" ? "overlay" : (data.maptype || "base");
+    }
+    return { ...source, data };
+  });
+  return document;
+}
+
+function normalizeJsonText(value: string, fallback: any) {
+  try {
+    JSON.parse(value);
+    return value;
+  } catch {
+    return JSON.stringify(fallback, null, 2);
+  }
 }
 </script>
 
@@ -571,6 +685,119 @@ function revokePreviewSettingUrls() {
               <textarea v-model="appData.extraInfo" class="form-control form-control-sm font-monospace" rows="8" @input="recordHistory" />
             </div>
           </div>
+          <section class="settings-section mt-3">
+            <h5>{{ t("appedit.http_settings") }}</h5>
+            <div class="row g-2">
+              <div class="col-md-2">
+                <label class="form-label small fw-bold">{{ t("appedit.preview_port") }}</label>
+                <input v-model.number="appData.httpSettings.previewPort" type="number" min="1" max="65535" class="form-control form-control-sm" @change="recordHistory">
+              </div>
+              <div class="col-md-10">
+                <label class="form-label small fw-bold">{{ t("appedit.http_toggles") }}</label>
+                <div class="toggle-grid">
+                  <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.pwa_manifest") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.overlay" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.overlay_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableHideMarker" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.hide_marker_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableBorder" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.border_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableCache" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.cache_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.stateUrl" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.state_url") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableShare" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.share_ui") }}</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">{{ t("appedit.icon_source") }}</label>
+                <input v-model="appData.httpSettings.iconSource" type="text" class="form-control form-control-sm" :placeholder="t('appedit.icon_source_placeholder')" @input="recordHistory">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">{{ t("appedit.mapbox_token") }}</label>
+                <input v-model="appData.httpSettings.mapboxToken" type="text" class="form-control form-control-sm" @input="recordHistory">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">{{ t("appedit.google_api_key") }}</label>
+                <input v-model="appData.httpSettings.googleApiKey" type="text" class="form-control form-control-sm" @input="recordHistory">
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-section mt-3">
+            <h5>{{ t("appedit.app_settings") }}</h5>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">{{ t("appedit.splash") }}</label>
+                <input v-model="appData.appSettings.splash" type="text" class="form-control form-control-sm" @input="recordHistory">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-bold">{{ t("appedit.home_lng") }}</label>
+                <input v-model.number="appData.appSettings.homeLng" type="number" step="0.000001" class="form-control form-control-sm" @change="recordHistory">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-bold">{{ t("appedit.home_lat") }}</label>
+                <input v-model.number="appData.appSettings.homeLat" type="number" step="0.000001" class="form-control form-control-sm" @change="recordHistory">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-bold">{{ t("appedit.default_zoom") }}</label>
+                <input v-model.number="appData.appSettings.defaultZoom" type="number" min="0" max="28" class="form-control form-control-sm" @change="recordHistory">
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <label class="form-check mb-1"><input v-model="appData.appSettings.fakeGps" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.fake_gps") }}</label>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">{{ t("appedit.fake_center") }}</label>
+                <input v-model="appData.appSettings.fakeCenter" type="text" class="form-control form-control-sm" @input="recordHistory">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-bold">{{ t("appedit.fake_radius") }}</label>
+                <input v-model.number="appData.appSettings.fakeRadius" type="number" min="0" class="form-control form-control-sm" @change="recordHistory">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">{{ t("appedit.poi_sources_json") }}</label>
+                <textarea v-model="appData.poiSources" class="form-control form-control-sm font-monospace" rows="3" @input="recordHistory" />
+              </div>
+            </div>
+          </section>
+
+          <section v-if="appData.httpSettings.pwaManifest" class="settings-section mt-3">
+            <h5>{{ t("appedit.manifest_settings") }}</h5>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_name") }}</label>
+                <input v-model="appData.manifestSettings.name" type="text" class="form-control form-control-sm" @input="recordHistory">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_short_name") }}</label>
+                <input v-model="appData.manifestSettings.shortName" type="text" class="form-control form-control-sm" @input="recordHistory">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_background_color") }}</label>
+                <input v-model="appData.manifestSettings.backgroundColor" type="color" class="form-control form-control-sm form-control-color" @input="recordHistory">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_theme_color") }}</label>
+                <input v-model="appData.manifestSettings.themeColor" type="color" class="form-control form-control-sm form-control-color" @input="recordHistory">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_display") }}</label>
+                <select v-model="appData.manifestSettings.display" class="form-select form-select-sm" @change="recordHistory">
+                  <option value="standalone">standalone</option>
+                  <option value="fullscreen">fullscreen</option>
+                  <option value="minimal-ui">minimal-ui</option>
+                  <option value="browser">browser</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_start_url") }}</label>
+                <input v-model="appData.manifestSettings.startUrl" type="text" class="form-control form-control-sm" @input="recordHistory">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_scope") }}</label>
+                <input v-model="appData.manifestSettings.scope" type="text" class="form-control form-control-sm" @input="recordHistory">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_icons") }}</label>
+                <textarea v-model="appData.manifestSettings.iconsJson" class="form-control form-control-sm font-monospace" rows="4" @input="recordHistory" />
+              </div>
+            </div>
+          </section>
           <div v-if="saveError" class="alert alert-danger mt-3">{{ saveError }}</div>
         </form>
       </div>
@@ -654,6 +881,10 @@ function revokePreviewSettingUrls() {
                 </div>
               </div>
               <div class="row g-2 mt-2 align-items-center">
+                <div class="col-md-5">
+                  <label class="form-label small mb-0">{{ t("appedit.source_label") }}</label>
+                  <input v-model="source.label[currentLang]" type="text" class="form-control form-control-sm" @input="recordHistory">
+                </div>
                 <div class="col-auto">
                   <div class="form-check">
                     <input :id="`start-${index}`" class="form-check-input" type="radio" name="startFrom" :checked="source.startFrom" @change="setStartFrom(source)">
@@ -670,13 +901,22 @@ function revokePreviewSettingUrls() {
                   <input v-model.number="source.opacity" type="number" min="0" max="1" step="0.05" class="form-control form-control-sm opacity-input" @change="recordHistory">
                 </div>
               </div>
+              <details class="mt-2">
+                <summary class="small text-primary">{{ t("appedit.source_advanced") }}</summary>
+                <textarea
+                  :value="JSON.stringify(source.data, null, 2)"
+                  class="form-control form-control-sm font-monospace mt-1"
+                  rows="5"
+                  @change="updateSourceData(source, ($event.target as HTMLTextAreaElement).value)"
+                />
+              </details>
             </div>
           </div>
         </div>
       </div>
 
       <div v-show="activeTab === 'preview'" class="h-100 position-relative">
-        <div id="appPreviewMap" class="preview-map"></div>
+        <iframe v-if="previewUrl" class="preview-map" :src="previewUrl" />
         <div v-if="previewError" class="alert alert-warning preview-error">{{ previewError }}</div>
       </div>
     </div>
@@ -744,9 +984,26 @@ function revokePreviewSettingUrls() {
 .opacity-input {
   width: 6rem;
 }
+.settings-section {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 4px;
+  padding: 12px;
+}
+.settings-section h5 {
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+.toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 4px 12px;
+}
 .preview-map {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 .preview-error {
   position: absolute;

@@ -1,5 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import AppDataService from '../services/AppDataService';
+import AppPreviewService from '../services/AppPreviewService';
 
 export function registerAppHandlers() {
   ipcMain.handle('applist:request', async (_event, query, page, pageSize) => {
@@ -36,6 +37,15 @@ export function registerAppHandlers() {
     } catch (e) {
       console.error('Failed to handle appedit:checkID', e);
       return false;
+    }
+  });
+
+  ipcMain.handle('appedit:prepare-preview', async (_event, document: any) => {
+    try {
+      return await AppPreviewService.prepare(document);
+    } catch (e) {
+      console.error('Failed to handle appedit:prepare-preview', e);
+      throw e;
     }
   });
 }

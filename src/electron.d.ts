@@ -24,6 +24,7 @@ export interface AppEditAPI {
     request(appID: string): Promise<any>;
     save(appID: string, document: any): Promise<any>;
     checkID(appID: string): Promise<boolean>;
+    preparePreview(document: any): Promise<{ url: string; port: number }>;
 }
 
 export interface AppEventsAPI {

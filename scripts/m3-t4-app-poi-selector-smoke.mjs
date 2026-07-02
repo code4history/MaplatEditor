@@ -119,8 +119,8 @@ try {
 
   assert.match(
     appEdit,
-    /MaplatUi\.createObject/,
-    'AppEdit.vue が Maplat UI プレビューを作成していない'
+    /window\.appedit\.preparePreview/,
+    'AppEdit.vue が HTTP プレビュー作成 API を呼んでいない'
   );
 
   console.log('  [2/3] AppList.vue app editor shape: PASS');
