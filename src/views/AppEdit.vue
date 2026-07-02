@@ -6,7 +6,7 @@ import { MaplatApp } from "@maplat/core";
 import noImage from "../assets/img/no_image.png";
 import { UndoStack } from "../services/editorUndoStack";
 
-type LangCode = "ja" | "en";
+type LangCode = "ja" | "en" | "de" | "fr" | "es" | "ko" | "zh" | "zh-TW";
 type SourceKind = "maplat" | "base-map";
 type SourceRole = "maplat" | "base" | "overlay";
 
@@ -52,13 +52,19 @@ const router = useRouter();
 const langsMap: Record<LangCode, string> = {
   ja: "japanese",
   en: "english",
+  de: "germany",
+  fr: "french",
+  es: "spanish",
+  ko: "korean",
+  zh: "simplified",
+  "zh-TW": "traditional",
 };
 
 const defaultApp = (): AppDocument => ({
   appID: "",
-  appName: { ja: "", en: "" },
-  title: { ja: "", en: "" },
-  description: { ja: "", en: "" },
+  appName: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
+  title: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
+  description: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
   lang: "ja",
   sources: [],
   status: "New",
@@ -167,7 +173,16 @@ function normalizeAppDocument(value: any): AppDocument {
 
 function normalizeLangObject(value: any): Record<string, string> {
   if (typeof value === "string") return { ja: value, en: value };
-  return { ja: value?.ja || "", en: value?.en || "" };
+  return {
+    ja: value?.ja || "",
+    en: value?.en || "",
+    de: value?.de || "",
+    fr: value?.fr || "",
+    es: value?.es || "",
+    ko: value?.ko || "",
+    zh: value?.zh || "",
+    "zh-TW": value?.["zh-TW"] || "",
+  };
 }
 
 function normalizeSource(value: any): AppSource {
@@ -279,6 +294,9 @@ async function loadBaseMaps() {
 async function addMapSource(item: MapListItem) {
   if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType === "maplat")) return;
   const mapObject = await window.mapedit.request(item.mapID);
+  if (!mapObject.compiled) {
+    previewError.value = t("appedit.preview.compiled_required");
+  }
   appData.value.sources.push({
     sourceType: "maplat",
     mapID: item.mapID,
@@ -346,8 +364,12 @@ function buildPreviewSetting() {
     const data = { ...source.data };
     data.mapID = source.mapID;
     if (source.sourceType === "maplat") {
+      if (!data.compiled) {
+        throw new Error(t("appedit.preview.compiled_required", { mapID: source.mapID }));
+      }
       data.maptype = "maplat";
       data.noload = true;
+      data.url = data.url || data.url_;
     }
     if (source.sourceType === "base-map") {
       data.maptype = source.role === "overlay" ? "overlay" : (data.maptype || "base");
@@ -502,17 +524,32 @@ function destroyPreview() {
 
       <div v-show="activeTab === 'sources'" class="h-100 p-3 source-editor">
         <div class="source-pane border-end pe-3">
-          <div class="btn-group w-100 mb-2" role="group">
-            <button class="btn btn-sm" :class="sourceListMode === 'maps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'maps'">
-              {{ t("appedit.map_list") }}
-            </button>
-            <button class="btn btn-sm" :class="sourceListMode === 'baseMaps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'baseMaps'">
-              {{ t("appedit.base_map_list") }}
-            </button>
+          <div class="source-pane-toolbar pb-2">
+            <div class="btn-group w-100 mb-2" role="group">
+              <button class="btn btn-sm" :class="sourceListMode === 'maps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'maps'">
+                {{ t("appedit.map_list") }}
+              </button>
+              <button class="btn btn-sm" :class="sourceListMode === 'baseMaps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'baseMaps'">
+                {{ t("appedit.base_map_list") }}
+              </button>
+            </div>
+
+            <input
+              v-if="sourceListMode === 'maps'"
+              v-model="mapSearchQuery"
+              class="form-control form-control-sm"
+              :placeholder="t('maplist.search_placeholder')"
+              @input="loadMaps(1)"
+            >
+            <input
+              v-else
+              v-model="baseMapSearchQuery"
+              class="form-control form-control-sm"
+              :placeholder="t('appedit.search_base_maps')"
+            >
           </div>
 
           <div v-if="sourceListMode === 'maps'">
-            <input v-model="mapSearchQuery" class="form-control form-control-sm mb-2" :placeholder="t('maplist.search_placeholder')" @input="loadMaps(1)">
             <div class="source-list">
               <button v-for="item in mapItems" :key="item.mapID" type="button" class="source-row" @click="addMapSource(item)">
                 <img :src="item.image || noImage" :alt="item.title">
@@ -526,7 +563,6 @@ function destroyPreview() {
           </div>
 
           <div v-else>
-            <input v-model="baseMapSearchQuery" class="form-control form-control-sm mb-2" :placeholder="t('appedit.search_base_maps')">
             <div class="source-list">
               <button v-for="item in filteredBaseMapItems" :key="`${item.scope}:${item.mapID}`" type="button" class="source-row" @click="addBaseMapSource(item)">
                 <span class="base-map-thumb">{{ item.scope === "builtin" ? "B" : "U" }}</span>
@@ -594,10 +630,21 @@ function destroyPreview() {
   min-height: 0;
   overflow: auto;
 }
+.source-pane {
+  display: flex;
+  flex-direction: column;
+}
+.source-pane-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+}
 .source-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 0;
 }
 .source-row {
   display: grid;

@@ -424,7 +424,8 @@
       "overlay": "オーバーレイ"
     },
     "preview": {
-      "no_sources": "プレビューする地図が選択されていません。"
+      "no_sources": "プレビューする地図が選択されていません。",
+      "compiled_required": "プレビューにはコンパイル済みTINを持つMaplat地図が必要です。{{mapID}}"
     }
   },
   "mapmodel": {

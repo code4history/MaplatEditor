@@ -392,7 +392,8 @@
       "overlay": "Overlay"
     },
     "preview": {
-      "no_sources": "No maps selected for preview."
+      "no_sources": "No maps selected for preview.",
+      "compiled_required": "Preview requires a Maplat map with compiled TIN data. {{mapID}}"
     }
   },
   "mapmodel": {
