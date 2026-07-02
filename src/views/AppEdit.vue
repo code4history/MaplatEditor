@@ -2,7 +2,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
-import { MaplatApp } from "@maplat/core";
+import { MaplatUi } from "@maplat/ui";
+import "../assets/scss/maplat-ui-preview.scss";
 import noImage from "../assets/img/no_image.png";
 import { UndoStack } from "../services/editorUndoStack";
 
@@ -90,7 +91,7 @@ const baseMapSearchQuery = ref("");
 const previewError = ref<string | null>(null);
 const historyStack = ref<UndoStack<AppDocument> | null>(null);
 const historyApplying = ref(false);
-let previewApp: MaplatApp | null = null;
+let previewApp: MaplatUi | null = null;
 let previewSettingUrls: string[] = [];
 
 const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName) || appData.value.appID);
@@ -423,13 +424,12 @@ async function renderPreview() {
   }
   await nextTick();
   try {
-    previewApp = new MaplatApp({
+    previewApp = await MaplatUi.createObject({
       div: "appPreviewMap",
       setting: buildPreviewSetting(),
       restoreSession: false,
       enableCache: false,
-    });
-    await previewApp.waitReady;
+    } as any);
   } catch (e) {
     console.error("[AppEdit] Preview failed:", e);
     previewError.value = translatePreviewError(e);

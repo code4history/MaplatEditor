@@ -47,6 +47,7 @@
     "@maplat/core": "^0.13.1",
     "@maplat/tin": "^0.14.1",
     "@maplat/transform": "^0.5.2",
+    "@maplat/ui": "^0.12.1",
     "@popperjs/core": "^2.11.8",
     "@seald-io/nedb": "^4.1.2",
     "@types/geojson": "^7946.0.16",

@@ -119,8 +119,8 @@ try {
 
   assert.match(
     appEdit,
-    /new\s+MaplatApp/,
-    'AppEdit.vue が MaplatApp プレビューを作成していない'
+    /MaplatUi\.createObject/,
+    'AppEdit.vue が Maplat UI プレビューを作成していない'
   );
 
   console.log('  [2/3] AppList.vue app editor shape: PASS');

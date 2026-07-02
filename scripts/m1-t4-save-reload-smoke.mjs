@@ -273,8 +273,8 @@ try {
 
   assert.match(
     appEditView,
-    /new\s+MaplatApp/,
-    'AppEdit.vue が MaplatApp プレビューを作成していない'
+    /MaplatUi\.createObject/,
+    'AppEdit.vue が Maplat UI プレビューを作成していない'
   );
 
   console.log('  [5/7] App list/edit integration: PASS');
