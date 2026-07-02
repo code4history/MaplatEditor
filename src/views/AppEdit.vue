@@ -7,6 +7,7 @@ import osmThumb from "../assets/img/osm.jpg";
 import gsiThumb from "../assets/img/gsi.jpg";
 import gsiOrthoThumb from "../assets/img/gsi_ortho.jpg";
 import { UndoStack } from "../services/editorUndoStack";
+import AppSourceEditor from "../components/AppSourceEditor.vue";
 import {
   isViewerBuiltin,
   normalizeAppSource,
@@ -216,9 +217,22 @@ onMounted(async () => {
     }
   }
   currentLang.value = appData.value.lang;
+  await hydrateSourceThumbnails();
   resetHistoryBase();
   await Promise.all([loadMaps(1), loadBaseMaps()]);
 });
+
+// 保存済みアプリのソースにUI表示用サムネイルURLを補完する
+async function hydrateSourceThumbnails() {
+  for (const source of appData.value.sources) {
+    if (source.thumbnail || source.sourceType === "builtin") continue;
+    const rel = source.sourceType === "maplat"
+      ? `tmbs/${source.mapID}.jpg`
+      : String((source.data as any)?.thumbnail || `tmbs/${source.mapID}_menu.jpg`);
+    const url = await window.appAssets.fileUrl(rel);
+    if (url) source.thumbnail = url;
+  }
+}
 
 onBeforeUnmount(() => {
   destroyPreview();
@@ -408,11 +422,16 @@ async function saveApp() {
   }
   document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapID || appData.value.startFrom;
   document.status = "Update";
+  // 表示専用のサムネイルURL(file://)は保存しない
+  document.sources.forEach((source) => {
+    delete (source as any).thumbnail;
+  });
   const result = await window.appedit.save(document.appID, document);
   if (result === "Success") {
     appData.value = normalizeAppDocument(document);
     appData.value.originalAppID = document.appID;
     onlyOne.value = true;
+    await hydrateSourceThumbnails();
     resetHistoryBase();
     await (window as any).dialog.showMessageBox({ type: "info", buttons: ["OK"], message: t("appedit.success_save") });
   } else if (result === "Exist") {
@@ -511,15 +530,6 @@ function ensureSingleStartFrom() {
 
 function sourceTitle(source: AppSource): string {
   return source.title || source.data?.title || source.mapID;
-}
-
-function updateSourceData(source: AppSource, value: string) {
-  try {
-    source.data = JSON.parse(value);
-    recordHistory();
-  } catch {
-    previewError.value = t("appedit.invalid_json");
-  }
 }
 
 function baseMapTitle(item: BaseMapItem): string {
@@ -896,15 +906,12 @@ function normalizeJsonText(value: string, fallback: any) {
                   </select>
                 </div>
               </div>
-              <details v-if="source.sourceType === 'tms'" class="mt-2">
-                <summary class="small text-primary">{{ t("appedit.source_advanced") }}</summary>
-                <textarea
-                  :value="JSON.stringify(source.data ?? {}, null, 2)"
-                  class="form-control form-control-sm font-monospace mt-1"
-                  rows="5"
-                  @change="updateSourceData(source, ($event.target as HTMLTextAreaElement).value)"
-                />
-              </details>
+              <AppSourceEditor
+                :source="source"
+                :current-lang="currentLang"
+                :fallback-center="[appData.appSettings.homeLng, appData.appSettings.homeLat]"
+                @change="recordHistory"
+              />
             </div>
           </div>
         </div>
