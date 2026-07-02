@@ -26,4 +26,12 @@ export function registerSettingsHandlers() {
   ipcMain.handle('mapedit:get-tms-list', async (_, mapID: string) => {
     return await SettingsService.getTmsListOfMapID(mapID);
   });
+
+  ipcMain.handle('mapedit:get-base-map-visibility', async (_, mapID: string) => {
+    return await SettingsService.getBaseMapVisibilityOfMapID(mapID);
+  });
+
+  ipcMain.handle('mapedit:set-base-map-visibility', async (_, mapID: string, baseMapId: string, enabled: boolean) => {
+    await SettingsService.setBaseMapVisibilityForMapID(mapID, baseMapId, enabled);
+  });
 }

@@ -15,6 +15,14 @@ export interface MapListResult {
   pageUpdate?: number;
 }
 
+export interface BaseMapVisibilityItem {
+  mapID: string;
+  scope: BaseMapScope;
+  enabled: boolean;
+  locked: boolean;
+  data: any;
+}
+
 interface Folders {
   saveFolder: string;
   settingsDir: string;
@@ -238,6 +246,11 @@ class DuckDbDataService {
   }
 
   async getTmsListOfMapID(mapID: string): Promise<any[]> {
+    const items = await this.getBaseMapVisibilityOfMapID(mapID);
+    return items.filter((item) => item.enabled).map((item) => item.data);
+  }
+
+  async getBaseMapVisibilityOfMapID(mapID: string): Promise<BaseMapVisibilityItem[]> {
     const connection = await this.getConnection();
     const baseMapsReader = await connection.runAndReadAll(`
       SELECT map_id, scope, sort_order, data_json::VARCHAR AS data_json
@@ -252,20 +265,23 @@ class DuckDbDataService {
       (visibilityReader.getRowObjectsJson() as any[]).map((row) => [row.base_map_id, row.enabled])
     );
     const missingDefaults: Array<{ baseMapId: string; enabled: boolean }> = [];
-    const tmsList: any[] = [];
+    const items: BaseMapVisibilityItem[] = [];
 
     for (const row of baseMapsReader.getRowObjectsJson() as any[]) {
       const tms = JSON.parse(row.data_json);
-      if (tms.always) {
-        tmsList.push(tms);
-        continue;
-      }
+      const locked = Boolean(tms.always);
       let enabled = visibility.get(row.map_id);
       if (enabled == null) {
         enabled = true;
-        missingDefaults.push({ baseMapId: row.map_id, enabled });
+        if (!locked) missingDefaults.push({ baseMapId: row.map_id, enabled });
       }
-      if (enabled) tmsList.push(tms);
+      items.push({
+        mapID: row.map_id,
+        scope: row.scope,
+        enabled: locked ? true : Boolean(enabled),
+        locked,
+        data: tms,
+      });
     }
 
     for (const item of missingDefaults) {
@@ -275,7 +291,25 @@ class DuckDbDataService {
         { mapID, baseMapId: item.baseMapId, enabled: item.enabled }
       );
     }
-    return tmsList;
+    return items;
+  }
+
+  async setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void> {
+    const connection = await this.getConnection();
+    const baseMapReader = await connection.runAndReadAll(
+      'SELECT data_json::VARCHAR AS data_json FROM base_maps WHERE map_id = $baseMapId ORDER BY CASE scope WHEN \'builtin\' THEN 0 ELSE 1 END LIMIT 1',
+      { baseMapId }
+    );
+    const baseMapRows = baseMapReader.getRowObjectsJson() as any[];
+    if (baseMapRows.length > 0) {
+      const tms = JSON.parse(baseMapRows[0].data_json);
+      if (tms.always) return;
+    }
+    await connection.run(
+      `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
+       VALUES ($mapID, $baseMapId, $enabled, current_timestamp)`,
+      { mapID, baseMapId, enabled }
+    );
   }
 
   private async applyBuiltinBaseMapMigration(connection: DuckDBConnection): Promise<void> {

@@ -32,6 +32,8 @@ export interface PoiSourcesAPI {
 export interface MapEditAPI {
     request(mapID: string): Promise<any>;
     getTmsListOfMapID(mapID: string): Promise<any>;
+    getBaseMapVisibilityOfMapID(mapID: string): Promise<any>;
+    setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void>;
     updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any): Promise<any>;
     save(mapObject: any, tins: any[]): Promise<any>;
     checkID(mapID: string): Promise<any>;

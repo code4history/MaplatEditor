@@ -23,6 +23,9 @@ contextBridge.exposeInMainWorld('maplist', {
 contextBridge.exposeInMainWorld('mapedit', {
   request: (mapID: string) => ipcRenderer.invoke('mapedit:request', mapID),
   getTmsListOfMapID: (mapID: string) => ipcRenderer.invoke('mapedit:get-tms-list', mapID),
+  getBaseMapVisibilityOfMapID: (mapID: string) => ipcRenderer.invoke('mapedit:get-base-map-visibility', mapID),
+  setBaseMapVisibilityForMapID: (mapID: string, baseMapId: string, enabled: boolean) =>
+    ipcRenderer.invoke('mapedit:set-base-map-visibility', mapID, baseMapId, enabled),
   updateTin: (gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any) =>
     ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex),
   save: (mapObject: any, tins: any[]) =>

@@ -173,6 +173,9 @@ const priority = computed(() => {
 });
 const baseMapList = ref<any[]>([]);
 const currentBaseMapID = ref('osm');
+const baseMapVisibilityList = ref<any[]>([]);
+const baseMapVisibilityLoading = ref(false);
+const baseMapVisibilityError = ref('');
 
 const activeTab = ref('metadata');
 
@@ -1443,6 +1446,8 @@ onMounted(async () => {
                 illstMap?.updateSize();
                 mercMap?.updateSize();
             });
+        } else if (newTab === 'settings') {
+            loadBaseMapVisibility();
         }
     });
 });
@@ -2050,8 +2055,80 @@ watch(vertexMode, (newVal) => {
     if (illstSource) updateTin(); 
 });
 
+const baseMapTitle = (item: any) => {
+    const title = item?.data?.title ?? item?.title ?? item?.mapID ?? '';
+    if (typeof title === 'object' && title !== null) {
+        const titleValues = Object.values(title as Record<string, string>);
+        return title[mapData.value.lang || 'ja'] || title.ja || title.en || titleValues[0] || item.mapID;
+    }
+    return title;
+};
+
+const getVisibleBaseMapID = (): string | null => {
+    if (!mercMap) return null;
+    const rootLayer = mercMap.getLayers().item(0);
+    const layers = rootLayer?.get?.('layers') || rootLayer?.getLayers?.();
+    if (!layers?.getArray) return null;
+    const visibleLayer = layers.getArray().find((layer: any) => layer.getVisible?.());
+    return visibleLayer?.get?.('mapID') || null;
+};
+
+const loadBaseMapVisibility = async () => {
+    if (!mapID.value || !(window as any).mapedit?.getBaseMapVisibilityOfMapID) return;
+    baseMapVisibilityLoading.value = true;
+    baseMapVisibilityError.value = '';
+    try {
+        const list = await (window as any).mapedit.getBaseMapVisibilityOfMapID(mapID.value);
+        baseMapVisibilityList.value = Array.isArray(list) ? list : [];
+    } catch (e: any) {
+        console.error('[loadBaseMapVisibility] Failed:', e);
+        baseMapVisibilityError.value = e?.message || String(e);
+    } finally {
+        baseMapVisibilityLoading.value = false;
+    }
+};
+
+const enabledBaseMapData = () => baseMapVisibilityList.value
+    .filter((item) => item.enabled)
+    .map((item) => item.data);
+
+const refreshBaseMapLayers = async () => {
+    baseMapList.value = enabledBaseMapData();
+    await setupBaseMaps();
+};
+
+const setBaseMapVisible = async (item: any, event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const enabled = input.checked;
+    if (item.locked || !mapID.value) return;
+    item.enabled = enabled;
+    try {
+        await (window as any).mapedit.setBaseMapVisibilityForMapID(mapID.value, item.mapID, enabled);
+        await refreshBaseMapLayers();
+    } catch (e: any) {
+        item.enabled = !enabled;
+        baseMapVisibilityError.value = e?.message || String(e);
+        console.error('[setBaseMapVisible] Failed:', e);
+    }
+};
+
 const setupBaseMaps = async () => {
     if (!mercMap) return;
+
+    const existingVisibleBaseMapID = getVisibleBaseMapID();
+    if (existingVisibleBaseMapID) currentBaseMapID.value = existingVisibleBaseMapID;
+
+    if (baseMapVisibilityList.value.length === 0 && mapID.value) {
+        await loadBaseMapVisibility();
+    }
+
+    if (baseMapVisibilityList.value.length > 0) {
+        baseMapList.value = enabledBaseMapData();
+    }
+
+    if (!baseMapList.value.some((tms) => tms.mapID === currentBaseMapID.value)) {
+        currentBaseMapID.value = baseMapList.value[0]?.mapID || 'osm';
+    }
 
     // baseMapList が空の場合に取得する
     if (baseMapList.value.length === 0) {
@@ -2063,7 +2140,7 @@ const setupBaseMaps = async () => {
                 const list = await (window as any).mapedit.getTmsListOfMapID(mapID.value);
                 console.log("MapEdit.vue: Received tms list from IPC", list);
                 if (list && list.length > 0) {
-                    baseMapList.value = list.reverse();
+                    baseMapList.value = list;
                     console.log("MapEdit.vue: set baseMapList to", baseMapList.value);
                 }
             } catch (e) {
@@ -2078,7 +2155,7 @@ const setupBaseMaps = async () => {
                 if (response.ok) {
                     const json = await response.json();
                     if (Array.isArray(json)) {
-                        baseMapList.value = json.reverse();
+                        baseMapList.value = json;
                     }
                 }
             } catch (e) {
@@ -2092,11 +2169,11 @@ const setupBaseMaps = async () => {
                 { mapID: 'osm', title: 'OpenStreetMap', maxZoom: 18 },
                 { mapID: 'gsi', title: 'GSI Maps', maxZoom: 18 },
                 { mapID: 'gsi_ortho', title: 'GSI Ortho', maxZoom: 18 }
-            ].reverse();
+            ];
         }
     }
 
-    const layers = await Promise.all(baseMapList.value.map(async (tms) => {
+    const layers = await Promise.all([...baseMapList.value].reverse().map(async (tms) => {
         let source;
         try {
             if (['osm', 'gsi', 'gsi_ortho'].includes(tms.mapID)) {
@@ -2124,6 +2201,7 @@ const setupBaseMaps = async () => {
             source: source,
             properties: {
                 title: tms.title,
+                mapID: tms.mapID,
                 type: 'base'
             },
             visible: tms.mapID === (currentBaseMapID.value || 'osm')
@@ -2752,8 +2830,8 @@ const goBack = async () => {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
-                        {{ t("mapedit.configure_map") }}
+                    <a class="nav-link" :class="{ active: activeTab === 'settings' }" @click.prevent="activeTab = 'settings'" href="#">
+                        {{ t("mapedit.edit_base_map") }}
                     </a>
                 </li>
             </ul>
@@ -3237,10 +3315,44 @@ const goBack = async () => {
                 </div>
             </div>
 
-            <!-- Tab: Settings (Placeholder) -->
-            <div v-show="activeTab === 'settings'" class="p-4">
-                <h4>{{ t("mapedit.configure_map") }}</h4>
-                <p>Map specific settings here...</p>
+            <!-- Tab: Base map settings -->
+            <div v-show="activeTab === 'settings'" class="h-100 overflow-auto p-4">
+                <h4 class="mb-3">{{ t("mapedit.edit_base_map") }}</h4>
+                <div class="card">
+                    <div class="card-header bg-light fw-bold">{{ t("mapedit.base_map_visibility") }}</div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">{{ t("mapedit.base_map_visibility_desc") }}</p>
+                        <div v-if="baseMapVisibilityLoading" class="small text-muted">
+                            {{ t("applist.loading") }}
+                        </div>
+                        <div v-else-if="baseMapVisibilityError" class="alert alert-danger py-2">
+                            {{ baseMapVisibilityError }}
+                        </div>
+                        <div v-else class="list-group">
+                            <label
+                                v-for="item in baseMapVisibilityList"
+                                :key="`${item.scope}:${item.mapID}`"
+                                class="list-group-item d-flex align-items-center gap-3"
+                                :class="{ 'text-muted': item.locked }"
+                            >
+                                <input
+                                    class="form-check-input flex-shrink-0"
+                                    type="checkbox"
+                                    :checked="item.enabled"
+                                    :disabled="item.locked"
+                                    @change="setBaseMapVisible(item, $event)"
+                                >
+                                <div class="flex-grow-1 min-width-0">
+                                    <div class="fw-semibold text-truncate">{{ baseMapTitle(item) }}</div>
+                                    <div class="small text-muted text-truncate">
+                                        {{ item.mapID }} / {{ item.scope }}
+                                        <span v-if="item.locked"> / {{ t("mapedit.base_map_always_visible") }}</span>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>

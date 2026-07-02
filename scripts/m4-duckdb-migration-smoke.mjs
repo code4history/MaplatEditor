@@ -155,8 +155,24 @@ try {
       await assert.rejects(() => access(${JSON.stringify(settingsDir)}));
 
       const mapA = await SettingsService.getTmsListOfMapID('mapA');
+      assert.ok(mapA.some((tms) => tms.mapID === 'osm'));
       assert.ok(mapA.some((tms) => tms.mapID === 'gsi_ort_USA10'));
       assert.ok(!mapA.some((tms) => tms.mapID === 'user-base'));
+      const mapAVisibility = await SettingsService.getBaseMapVisibilityOfMapID('mapA');
+      const mapAOsm = mapAVisibility.find((item) => item.mapID === 'osm');
+      const mapAUser = mapAVisibility.find((item) => item.mapID === 'user-base');
+      assert.equal(mapAOsm.locked, true);
+      assert.equal(mapAOsm.enabled, true);
+      assert.equal(mapAUser.enabled, false);
+
+      await SettingsService.setBaseMapVisibilityForMapID('mapA', 'osm', false);
+      await SettingsService.setBaseMapVisibilityForMapID('mapA', 'user-base', true);
+      const mapAUpdated = await SettingsService.getTmsListOfMapID('mapA');
+      assert.ok(mapAUpdated.some((tms) => tms.mapID === 'osm'));
+      assert.ok(mapAUpdated.some((tms) => tms.mapID === 'user-base'));
+      const mapAUpdatedVisibility = await SettingsService.getBaseMapVisibilityOfMapID('mapA');
+      assert.equal(mapAUpdatedVisibility.find((item) => item.mapID === 'osm').enabled, true);
+      assert.equal(mapAUpdatedVisibility.find((item) => item.mapID === 'user-base').enabled, true);
 
       const mapB = await SettingsService.getTmsListOfMapID('mapB');
       assert.ok(!mapB.some((tms) => tms.mapID === 'gsi_ort_USA10'));
