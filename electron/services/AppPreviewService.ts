@@ -25,6 +25,15 @@ const olPackageRoot = findExistingPath([
   path.resolve(appRoot, 'node_modules/ol'),
   path.resolve(__dirname, '..', 'node_modules/ol'),
 ]);
+const bootstrapPackageRoot = findExistingPath([
+  path.resolve(appRoot, 'node_modules/bootstrap-sass'),
+  path.resolve(__dirname, '..', 'node_modules/bootstrap-sass'),
+]);
+const previewAssetRoot = findExistingPath([
+  path.resolve(appRoot, 'public/preview'),
+  path.resolve(appRoot, 'dist/preview'),
+  path.resolve(__dirname, '..', 'preview'),
+]);
 const mimeTypes: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
   '.eot': 'application/vnd.ms-fontobject',
@@ -173,6 +182,8 @@ class AppPreviewService {
     const session = this.sessions.get(token);
     if (!session) return this.sendText(res, 404, 'Preview session not found');
     if (rest.length === 0) return this.sendHtml(res, this.renderHtml(session));
+    if (rest[0] === 'service-worker.js') return this.servePackageAsset('service-worker.js', res);
+    if (rest[0] === 'tiles') return this.servePreviewTile(rest.slice(1), res);
     if (rest[0] === 'apps' && rest[1] === `${token}.json`) return this.sendJson(res, session.app);
     if (rest[0] === 'maps' && rest[1]) return this.sendJson(res, session.maps[rest[1].replace(/\.json$/, '')] || {});
     if (rest[0] === 'pwa' && rest[1] === `${token}_manifest.json`) return this.sendJson(res, session.manifest);
@@ -191,6 +202,8 @@ class AppPreviewService {
   <title>${title}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 ${manifestLink}
+  <link rel="stylesheet" href="assets/ol.css">
+  <link rel="stylesheet" href="assets/maplat-preview.css">
   <style>
     html, body, .mainview, #map_div { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; overflow: hidden; }
   </style>
@@ -234,13 +247,21 @@ ${manifestLink}
 
   private servePackageAsset(assetPath: string, res: http.ServerResponse) {
     const candidates = [
+      path.join(previewAssetRoot, assetPath),
       path.join(uiPackageRoot, 'dist', assetPath),
       path.join(uiPackageRoot, 'assets', assetPath),
+      assetPath === 'ol.css' ? path.join(olPackageRoot, 'ol.css') : '',
       assetPath === 'ol.js' ? path.join(olPackageRoot, 'dist', 'ol.js') : '',
+      assetPath.startsWith('bootstrap/') ? path.join(bootstrapPackageRoot, 'assets/fonts/bootstrap', assetPath.replace(/^bootstrap\//, '')) : '',
     ];
     const filePath = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
     if (!filePath) return this.sendText(res, 404, 'Asset not found');
     this.sendFile(res, filePath);
+  }
+
+  private servePreviewTile(tileSegments: string[], res: http.ServerResponse) {
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    this.serveLocalFile(path.join(saveFolder, 'tiles', ...tileSegments), res);
   }
 
   private serveLocalFile(filePath: string, res: http.ServerResponse) {
