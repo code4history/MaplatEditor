@@ -5,13 +5,25 @@ export interface SettingsAPI {
 }
 
 export interface MapListAPI {
-    request(query?: string, page?: number, pageSize?: number): Promise<any[]>;
+    request(query?: string, page?: number, pageSize?: number): Promise<any>;
     onRefresh(listener: () => void): () => void;
 }
 
 export interface AppDraftAPI {
     save(draft: any): Promise<void>;
     load(): Promise<any>;
+}
+
+export interface AppListAPI {
+    request(query?: string, page?: number, pageSize?: number): Promise<any>;
+    delete(appID: string, condition: string, page: number): Promise<any>;
+    onRefresh(listener: () => void): () => void;
+}
+
+export interface AppEditAPI {
+    request(appID: string): Promise<any>;
+    save(appID: string, document: any): Promise<any>;
+    checkID(appID: string): Promise<boolean>;
 }
 
 export interface AppEventsAPI {
@@ -56,6 +68,8 @@ declare global {
     maplist: MapListAPI;
     mapedit: MapEditAPI;
     appdraft: AppDraftAPI;
+    applist: AppListAPI;
+    appedit: AppEditAPI;
     appEvents: AppEventsAPI;
     poiSources: PoiSourcesAPI;
     baseMaps: BaseMapsAPI;

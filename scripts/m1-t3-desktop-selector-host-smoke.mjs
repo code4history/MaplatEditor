@@ -172,24 +172,28 @@ try {
 
   console.log('  [3/6] DesktopRegisteredMapSelector.vue 存在チェック: PASS');
 
-  // --- Part 4: AppList.vue 整合性 ---
+  // --- Part 4: AppList/AppEdit.vue 整合性 ---
   const appListView = await readFile(
     path.join(projectRoot, 'src/views/AppList.vue'),
     'utf8'
   );
-
-  // createDesktopRegisteredMapCatalog を使っていることを確認
-  assert.match(
-    appListView,
-    /createDesktopRegisteredMapCatalog\(\)/,
-    'AppList.vue が createDesktopRegisteredMapCatalog() を使っていない'
+  const appEditView = await readFile(
+    path.join(projectRoot, 'src/views/AppEdit.vue'),
+    'utf8'
   );
 
-  // useAppSourceHost を使っていることを確認
+  // AppList は app list API を使って一覧を表示することを確認
   assert.match(
     appListView,
-    /useAppSourceHost\(\)/,
-    'AppList.vue が useAppSourceHost() を使っていない'
+    /window\.applist\.request/,
+    'AppList.vue が window.applist.request を使っていない'
+  );
+
+  // AppEdit は maplist API を使って地図一覧を表示することを確認
+  assert.match(
+    appEditView,
+    /window\.maplist\.request/,
+    'AppEdit.vue が window.maplist.request を使っていない'
   );
 
   // applist.not_implement が消えていることを確認
@@ -199,14 +203,14 @@ try {
     'AppList.vue に applist.not_implement が残存している'
   );
 
-  // DesktopRegisteredMapSelector を使っていることを確認
+  // AppEdit は選択された map を source に追加することを確認
   assert.match(
-    appListView,
-    /DesktopRegisteredMapSelector/,
-    'AppList.vue が DesktopRegisteredMapSelector を使っていない'
+    appEditView,
+    /addMapSource/,
+    'AppEdit.vue に addMapSource がない'
   );
 
-  console.log('  [4/6] AppList.vue 整合性: PASS');
+  console.log('  [4/6] AppList/AppEdit.vue 整合性: PASS');
 
   // --- Part 5: ユニット smoke (composable 動作確認 via dynamic import) ---
   const selectorSourceForTranspile = await readFile(

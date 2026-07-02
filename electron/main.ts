@@ -92,6 +92,7 @@ import { registerMapUploadHandlers } from './ipc/mapupload'
 import { registerDataUploadHandlers } from './ipc/dataupload'
 import { registerWmtsHandlers } from './ipc/wmts'
 import { registerAppDraftHandlers } from './ipc/appdraft'
+import { registerAppHandlers } from './ipc/apps'
 import { registerPoisourceHandlers } from './ipc/poisource'
 
 import { ipcMain } from 'electron'
@@ -120,6 +121,11 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('dialog:showMessageBox')
   ipcMain.removeHandler('appdraft:save')
   ipcMain.removeHandler('appdraft:load')
+  ipcMain.removeHandler('applist:request')
+  ipcMain.removeHandler('applist:delete')
+  ipcMain.removeHandler('appedit:request')
+  ipcMain.removeHandler('appedit:save')
+  ipcMain.removeHandler('appedit:checkID')
   ipcMain.removeHandler('poisource:list')
   ipcMain.removeHandler('poisource:get')
   ipcMain.removeHandler('poisource:createLocal')
@@ -139,6 +145,7 @@ app.whenReady().then(() => {
   registerDataUploadHandlers()
   registerWmtsHandlers()
   registerAppDraftHandlers()
+  registerAppHandlers()
   registerPoisourceHandlers()
   createWindow()
   setupMenu()

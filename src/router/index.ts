@@ -22,6 +22,11 @@ const routes = [
     component: () => import('../views/AppList.vue')
   },
   {
+    path: '/appedit',
+    name: 'AppEdit',
+    component: () => import('../views/AppEdit.vue')
+  },
+  {
     path: '/basemaps',
     name: 'BaseMapList',
     component: () => import('../views/BaseMapList.vue')

@@ -235,48 +235,49 @@ try {
 
   console.log('  [4/7] useAppDraft composable: PASS');
 
-  // --- Part 5: AppList.vue integration ---
+  // --- Part 5: App list/edit integration ---
   const appListView = await readFile(
     path.join(projectRoot, 'src/views/AppList.vue'),
     'utf8'
   );
-
-  // useAppDraft を import することを確認
-  assert.match(
-    appListView,
-    /import\s*\{[^}]*useAppDraft[^}]*\}\s*from\s*['"][^'"]*useAppDraft['"]/,
-    'AppList.vue が useAppDraft を import していない'
+  const appEditView = await readFile(
+    path.join(projectRoot, 'src/views/AppEdit.vue'),
+    'utf8'
   );
 
-  // onMounted で loadDraft() を呼ぶことを確認
+  // AppList は複数アプリ一覧として applist API を使うこと
   assert.match(
     appListView,
-    /onMounted\s*\(\s*async\s*\(\)\s*=>\s*\{[\s\S]*?loadDraft\s*\(\)/,
-    'AppList.vue の onMounted で loadDraft() が呼ばれていない'
+    /window\.applist\.request/,
+    'AppList.vue が window.applist.request を呼んでいない'
   );
 
-  // onSelect で draft を保存することを確認
   assert.match(
     appListView,
-    /function\s+onSelect\s*\([\s\S]*?persistDraft\s*\(\s*\)/,
-    'AppList.vue の onSelect で saveDraft が呼ばれていない'
+    /\/appedit\?appid=/,
+    'AppList.vue が AppEdit へのタイルリンクを持っていない'
   );
 
-  // onDeselect で draft を保存することを確認
+  // AppEdit は DuckDB-backed appedit API で load/save すること
   assert.match(
-    appListView,
-    /function\s+onDeselect\s*\([\s\S]*?persistDraft\s*\(\s*\)/,
-    'AppList.vue の onDeselect で saveDraft が呼ばれていない'
+    appEditView,
+    /window\.appedit\.request/,
+    'AppEdit.vue が window.appedit.request を呼んでいない'
   );
 
-  // host.selectMap で draft の復元を行っていることを確認
   assert.match(
-    appListView,
-    /host\.selectMap\s*\(\s*\{[\s\S]*?ref:\s*draft\.selectedMap/,
-    'AppList.vue が draft から host.selectMap を呼んでいない'
+    appEditView,
+    /window\.appedit\.save/,
+    'AppEdit.vue が window.appedit.save を呼んでいない'
   );
 
-  console.log('  [5/7] AppList.vue integration: PASS');
+  assert.match(
+    appEditView,
+    /new\s+MaplatApp/,
+    'AppEdit.vue が MaplatApp プレビューを作成していない'
+  );
+
+  console.log('  [5/7] App list/edit integration: PASS');
 
   // --- Part 6: DesktopRegisteredMapSelector initialCatalogKey ---
   const selectorComponent = await readFile(

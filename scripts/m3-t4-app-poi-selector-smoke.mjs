@@ -68,59 +68,59 @@ try {
 
   console.log('  [1/3] useAppDraft + AppDraftService 型拡張: PASS');
 
-  // --- Part 2: AppList.vue app editor shape ---
+  // --- Part 2: AppList/AppEdit app editor shape ---
   const appList = await readFile(
     path.join(projectRoot, 'src/views/AppList.vue'),
     'utf8'
   );
+  const appEdit = await readFile(
+    path.join(projectRoot, 'src/views/AppEdit.vue'),
+    'utf8'
+  );
 
-  // POI は後続タスクに戻すため、AppList では地図/ベースマップ編集に集中すること
+  // POI は後続タスクに戻すため、AppList/AppEdit では地図/ベースマップ編集に集中すること
   assert.doesNotMatch(
-    appList,
+    `${appList}\n${appEdit}`,
     /PoiSourceSelector/,
-    'AppList.vue に POI selector が残っている'
+    'AppList/AppEdit に POI selector が残っている'
   );
 
-  // タブ構成が存在すること
+  // AppList は複数アプリ一覧であること
   assert.match(
     appList,
-    /activeTab\s*=\s*ref<"metadata"\s*\|\s*"maps"\s*\|\s*"preview">/,
-    'AppList.vue に metadata/maps/preview タブ状態がない'
+    /window\.applist\.request/,
+    'AppList.vue が window.applist.request を呼んでいない'
   );
 
-  // currentDraft ref が存在すること
   assert.match(
     appList,
-    /currentDraft/,
-    'AppList.vue に currentDraft がない'
+    /router\.push\("\/appedit"\)/,
+    'AppList.vue が新規 AppEdit へ遷移しない'
   );
 
-  // saveDraft を currentDraft で呼ぶこと
+  // AppEdit は metadata/sources/preview タブ構成であること
   assert.match(
-    appList,
-    /saveDraft\s*\(\s*currentDraft\.value\s*\)/,
-    'AppList.vue で saveDraft を currentDraft で呼んでいない'
+    appEdit,
+    /activeTab\s*=\s*ref<"metadata"\s*\|\s*"sources"\s*\|\s*"preview">/,
+    'AppEdit.vue に metadata/sources/preview タブ状態がない'
   );
 
-  // ベースマップ一覧を読み込むこと
   assert.match(
-    appList,
+    appEdit,
     /window\.baseMaps\.list\s*\(\s*\)/,
-    'AppList.vue が window.baseMaps.list() を呼んでいない'
+    'AppEdit.vue が window.baseMaps.list() を呼んでいない'
   );
 
-  // ベースマップ/オーバーレイ選択を draft に保存すること
   assert.match(
-    appList,
-    /selectedBaseMaps/,
-    'AppList.vue に selectedBaseMaps がない'
+    appEdit,
+    /window\.maplist\.request/,
+    'AppEdit.vue が window.maplist.request を呼んでいない'
   );
 
-  // clearDraft を使っていないこと（死蔵）
-  assert.doesNotMatch(
-    appList,
-    /clearDraft\s*\(\s*\)/,
-    'AppList.vue に clearDraft が残存している'
+  assert.match(
+    appEdit,
+    /new\s+MaplatApp/,
+    'AppEdit.vue が MaplatApp プレビューを作成していない'
   );
 
   console.log('  [2/3] AppList.vue app editor shape: PASS');

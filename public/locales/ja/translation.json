@@ -326,6 +326,11 @@
   "applist": {
     "not_implement": "未実装",
     "title": "アプリ編集",
+    "new_create": "新規作成",
+    "delete_menu": "アプリ削除",
+    "delete_item": "{{name}}を削除",
+    "delete_confirm": "{{name}}を削除しますか？",
+    "delete_error": "アプリ削除に失敗しました。",
     "save": "保存",
     "saving": "保存中...",
     "saved": "保存済み",
@@ -388,6 +393,39 @@
     "no_poi_sources": "利用可能なPOIソースがありません",
     "selected_poi_sources": "選択中のPOIソース",
     "poi_search_placeholder": "POIソースを検索..."
+  },
+  "appedit": {
+    "new_app": "新規アプリ",
+    "edit_metadata": "メタデータ編集",
+    "edit_sources": "地図選択",
+    "preview_tab": "プレビュー",
+    "appid": "アプリID",
+    "input_appid": "アプリIDを入力",
+    "no_appid": "アプリIDを指定してください。",
+    "unique_appid": "一意なアプリIDです。",
+    "check_uniqueness": "アプリIDの一意性を確認してください。",
+    "duplicate_appid": "同じアプリIDが既に存在します。",
+    "change_appid": "アプリID変更",
+    "uniqueness_button": "一意性確認",
+    "app_name": "アプリ名",
+    "description": "説明",
+    "extra_info": "他情報",
+    "map_list": "地図一覧",
+    "base_map_list": "ベースマップ一覧",
+    "search_base_maps": "ベースマップを検索...",
+    "selected_sources": "このアプリの地図一覧",
+    "no_selected_sources": "地図が選択されていません",
+    "start_from": "start_from",
+    "success_save": "アプリ設定を保存しました。",
+    "error_saving": "アプリ設定の保存に失敗しました。",
+    "roles": {
+      "maplat": "Maplat",
+      "base": "ベースマップ",
+      "overlay": "オーバーレイ"
+    },
+    "preview": {
+      "no_sources": "プレビューする地図が選択されていません。"
+    }
   },
   "mapmodel": {
     "untitled": "タイトル未設定",

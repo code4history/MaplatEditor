@@ -78,6 +78,24 @@ contextBridge.exposeInMainWorld('appdraft', {
   load: () => ipcRenderer.invoke('appdraft:load'),
 })
 
+contextBridge.exposeInMainWorld('applist', {
+  request: (query: string, page: number, pageSize?: number) => ipcRenderer.invoke('applist:request', query, page, pageSize),
+  delete: (appID: string, condition: string, page: number) => ipcRenderer.invoke('applist:delete', appID, condition, page),
+  onRefresh(listener: () => void): () => void {
+    const wrapper = () => listener();
+    ipcRenderer.on('applist:refresh', wrapper);
+    return () => {
+      ipcRenderer.removeListener('applist:refresh', wrapper);
+    };
+  },
+})
+
+contextBridge.exposeInMainWorld('appedit', {
+  request: (appID: string) => ipcRenderer.invoke('appedit:request', appID),
+  save: (appID: string, document: any) => ipcRenderer.invoke('appedit:save', appID, document),
+  checkID: (appID: string) => ipcRenderer.invoke('appedit:checkID', appID),
+})
+
 contextBridge.exposeInMainWorld('dialog', {
   showMessageBox: (options: any) => ipcRenderer.invoke('dialog:showMessageBox', options),
 })

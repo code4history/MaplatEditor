@@ -15,6 +15,13 @@ export interface MapListResult {
   pageUpdate?: number;
 }
 
+export interface AppListResult {
+  docs: any[];
+  prev: boolean;
+  next: boolean;
+  pageUpdate?: number;
+}
+
 export interface BaseMapVisibilityItem {
   mapID: string;
   scope: BaseMapScope;
@@ -53,10 +60,24 @@ function mapRowToDocument(row: any): any {
   return data;
 }
 
+function appRowToDocument(row: any): any {
+  const data = JSON.parse(row.data_json);
+  data._id = row.app_id;
+  data.appID = row.app_id;
+  return data;
+}
+
 function normalizeMapDocument(document: any): any {
   const normalized = { ...document };
   delete normalized._id;
   delete normalized.mapID;
+  return normalized;
+}
+
+function normalizeAppDocument(document: any): any {
+  const normalized = { ...document };
+  delete normalized._id;
+  delete normalized.appID;
   return normalized;
 }
 
@@ -131,6 +152,11 @@ class DuckDbDataService {
         );
         CREATE TABLE IF NOT EXISTS maps (
           map_id VARCHAR PRIMARY KEY,
+          data_json JSON NOT NULL,
+          updated_at TIMESTAMP DEFAULT current_timestamp
+        );
+        CREATE TABLE IF NOT EXISTS apps (
+          app_id VARCHAR PRIMARY KEY,
           data_json JSON NOT NULL,
           updated_at TIMESTAMP DEFAULT current_timestamp
         );
@@ -220,6 +246,67 @@ class DuckDbDataService {
     const start = (currentPage - 1) * pageSize;
     const pageDocs = rawDocs.slice(start, start + pageSize);
     const result: MapListResult = {
+      docs: pageDocs,
+      prev: currentPage > 1,
+      next: rawDocs.length > start + pageSize,
+    };
+    if (pageUpdate !== undefined) result.pageUpdate = pageUpdate;
+    return result;
+  }
+
+  async findApp(appID: string): Promise<any | null> {
+    const connection = await this.getConnection();
+    const reader = await connection.runAndReadAll(
+      'SELECT app_id, data_json::VARCHAR AS data_json FROM apps WHERE app_id = $appID',
+      { appID }
+    );
+    const rows = reader.getRowObjectsJson() as any[];
+    if (rows.length === 0) return null;
+    return appRowToDocument(rows[0]);
+  }
+
+  async upsertApp(appID: string, document: any): Promise<void> {
+    const connection = await this.getConnection();
+    await connection.run(
+      `INSERT OR REPLACE INTO apps (app_id, data_json, updated_at)
+       VALUES ($appID, CAST($dataJson AS JSON), current_timestamp)`,
+      { appID, dataJson: JSON.stringify(normalizeAppDocument(document)) }
+    );
+  }
+
+  async deleteApp(appID: string): Promise<void> {
+    const connection = await this.getConnection();
+    await connection.run('DELETE FROM apps WHERE app_id = $appID', { appID });
+  }
+
+  async isAppIdAvailable(appID: string): Promise<boolean> {
+    return (await this.findApp(appID)) === null;
+  }
+
+  async listApps(query: string = '', page: number = 1, pageSize: number = 20): Promise<AppListResult> {
+    const connection = await this.getConnection();
+    const reader = await connection.runAndReadAll(
+      'SELECT app_id, data_json::VARCHAR AS data_json FROM apps ORDER BY app_id'
+    );
+    let rawDocs = (reader.getRowObjectsJson() as any[]).map(appRowToDocument);
+    if (query && query.trim()) {
+      rawDocs = rawDocs.filter((doc) =>
+        ['title', 'description'].some(attr => checkLocaleAttr(doc[attr], query)) ||
+        checkLocaleAttr(doc.appName, query) ||
+        new RegExp(query.trim(), 'i').test(doc.appID || doc._id || '')
+      );
+    }
+
+    let currentPage = page;
+    let pageUpdate: number | undefined;
+    while (currentPage > 1 && rawDocs.slice((currentPage - 1) * pageSize, currentPage * pageSize).length === 0) {
+      currentPage--;
+      pageUpdate = currentPage;
+    }
+
+    const start = (currentPage - 1) * pageSize;
+    const pageDocs = rawDocs.slice(start, start + pageSize);
+    const result: AppListResult = {
       docs: pageDocs,
       prev: currentPage > 1,
       next: rawDocs.length > start + pageSize,

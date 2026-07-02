@@ -294,6 +294,11 @@
   "applist": {
     "not_implement": "Not implemented yet",
     "title": "Edit App",
+    "new_create": "New Creation",
+    "delete_menu": "Delete App",
+    "delete_item": "Delete {{name}}",
+    "delete_confirm": "Delete {{name}}?",
+    "delete_error": "Failed to delete app.",
     "save": "Save",
     "saving": "Saving...",
     "saved": "Saved",
@@ -356,6 +361,39 @@
     "no_poi_sources": "No POI sources available",
     "selected_poi_sources": "Selected POI Sources",
     "poi_search_placeholder": "Search POI sources..."
+  },
+  "appedit": {
+    "new_app": "New App",
+    "edit_metadata": "Edit Metadata",
+    "edit_sources": "Select Maps",
+    "preview_tab": "Preview",
+    "appid": "App ID",
+    "input_appid": "Enter app ID",
+    "no_appid": "Enter app ID.",
+    "unique_appid": "App ID is unique.",
+    "check_uniqueness": "Check App ID uniqueness.",
+    "duplicate_appid": "The same App ID already exists.",
+    "change_appid": "Change App ID",
+    "uniqueness_button": "Check Uniqueness",
+    "app_name": "App Name",
+    "description": "Description",
+    "extra_info": "Other Info",
+    "map_list": "Map List",
+    "base_map_list": "Base Map List",
+    "search_base_maps": "Search base maps...",
+    "selected_sources": "Selected Maps",
+    "no_selected_sources": "No maps selected",
+    "start_from": "start_from",
+    "success_save": "App settings saved.",
+    "error_saving": "Failed to save app settings.",
+    "roles": {
+      "maplat": "Maplat",
+      "base": "Base Map",
+      "overlay": "Overlay"
+    },
+    "preview": {
+      "no_sources": "No maps selected for preview."
+    }
   },
   "mapmodel": {
     "untitled": "Untitled",
