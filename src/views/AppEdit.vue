@@ -29,7 +29,6 @@ interface HttpSettings {
   enableCache: boolean;
   stateUrl: boolean;
   enableShare: boolean;
-  iconSource: string;
   mapboxToken: string;
   googleApiKey: string;
 }
@@ -52,7 +51,7 @@ interface ManifestSettings {
   display: string;
   startUrl: string;
   scope: string;
-  iconsJson: string;
+  iconSource: string;
 }
 
 interface AppDocument {
@@ -61,6 +60,8 @@ interface AppDocument {
   appName: Record<string, string>;
   title: Record<string, string>;
   description: Record<string, string>;
+  keywords: string;
+  siteUrl: string;
   lang: LangCode;
   sources: AppSource[];
   httpSettings: HttpSettings;
@@ -113,6 +114,8 @@ const defaultApp = (): AppDocument => ({
   appName: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
   title: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
   description: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
+  keywords: "",
+  siteUrl: "",
   lang: "ja",
   sources: [],
   httpSettings: {
@@ -124,7 +127,6 @@ const defaultApp = (): AppDocument => ({
     enableCache: true,
     stateUrl: true,
     enableShare: true,
-    iconSource: "",
     mapboxToken: "",
     googleApiKey: "",
   },
@@ -145,7 +147,7 @@ const defaultApp = (): AppDocument => ({
     display: "standalone",
     startUrl: "./",
     scope: "./",
-    iconsJson: "[]",
+    iconSource: "",
   },
   poiSources: "[]",
   status: "New",
@@ -217,10 +219,62 @@ onMounted(async () => {
     }
   }
   currentLang.value = appData.value.lang;
-  await hydrateSourceThumbnails();
+  await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   resetHistoryBase();
   await Promise.all([loadMaps(1), loadBaseMaps()]);
 });
+
+const splashPreviewUrl = ref<string | null>(null);
+const iconPreviewUrl = ref<string | null>(null);
+const assetUploadError = ref<string | null>(null);
+
+// splash/PWAアイコンのプレビュー画像URLを解決する
+async function hydrateAssetPreviews() {
+  splashPreviewUrl.value = appData.value.appSettings.splash
+    ? await window.appAssets.fileUrl(`img/${appData.value.appSettings.splash}`)
+    : null;
+  iconPreviewUrl.value = appData.value.manifestSettings.iconSource
+    ? await window.appAssets.fileUrl(appData.value.manifestSettings.iconSource)
+    : null;
+}
+
+async function uploadSplash() {
+  assetUploadError.value = null;
+  const result = await window.appAssets.uploadSplash();
+  if (result.err === "Canceled") return;
+  if (result.err) {
+    assetUploadError.value = t("appedit.error_invalid_image");
+    return;
+  }
+  appData.value.appSettings.splash = result.splash || "";
+  splashPreviewUrl.value = result.fileUrl || null;
+  recordHistory();
+}
+
+async function uploadPwaIcon() {
+  assetUploadError.value = null;
+  if (!appData.value.appID.trim()) {
+    assetUploadError.value = t("appedit.no_appid");
+    return;
+  }
+  const result = await window.appAssets.uploadPwaIcon(appData.value.appID.trim());
+  if (result.err === "Canceled") return;
+  if (result.err === "NotSquare") {
+    assetUploadError.value = t("appedit.error_not_square");
+    return;
+  }
+  if (result.err === "TooSmall") {
+    assetUploadError.value = t("appedit.error_too_small");
+    return;
+  }
+  if (result.err) {
+    assetUploadError.value = t("appedit.error_invalid_image");
+    return;
+  }
+  appData.value.manifestSettings.iconSource = result.path || "";
+  iconPreviewUrl.value = result.fileUrl || null;
+  recordHistory();
+}
 
 // 保存済みアプリのソースにUI表示用サムネイルURLを補完する
 async function hydrateSourceThumbnails() {
@@ -258,10 +312,16 @@ function normalizeAppDocument(value: any): AppDocument {
   normalized.appName = normalizeLangObject(value.appName || value.title);
   normalized.title = normalizeLangObject(value.title || value.appName);
   normalized.description = normalizeLangObject(value.description);
+  normalized.keywords = typeof value.keywords === "string" ? value.keywords : "";
+  normalized.siteUrl = typeof value.siteUrl === "string" ? value.siteUrl : "";
   normalized.sources = Array.isArray(value.sources) ? value.sources.map(normalizeSource) : [];
   normalized.httpSettings = normalizeHttpSettings(value.httpSettings || value.http || value);
   normalized.appSettings = normalizeAppSettings(value.appSettings || value);
   normalized.manifestSettings = normalizeManifestSettings(value.manifestSettings || value.manifest || {});
+  // 旧配置(httpSettings.iconSource)からの移行
+  if (!normalized.manifestSettings.iconSource && typeof value.httpSettings?.iconSource === "string") {
+    normalized.manifestSettings.iconSource = value.httpSettings.iconSource;
+  }
   normalized.poiSources = JSON.stringify(value.poiSources || value.pois || [], null, 2);
   normalized.startFrom = value.startFrom || value.start_from;
   normalized.extraInfo = typeof value.extraInfo === "string" ? value.extraInfo : "";
@@ -308,7 +368,6 @@ function normalizeHttpSettings(value: any): HttpSettings {
     enableCache: value.enableCache ?? defaults.enableCache,
     stateUrl: value.stateUrl ?? defaults.stateUrl,
     enableShare: value.enableShare ?? defaults.enableShare,
-    iconSource: value.iconSource || "",
     mapboxToken: value.mapboxToken || "",
     googleApiKey: value.googleApiKey || "",
   };
@@ -339,7 +398,7 @@ function normalizeManifestSettings(value: any): ManifestSettings {
     display: value.display || defaults.display,
     startUrl: value.startUrl || value.start_url || defaults.startUrl,
     scope: value.scope || defaults.scope,
-    iconsJson: typeof value.iconsJson === "string" ? value.iconsJson : JSON.stringify(value.icons || [], null, 2),
+    iconSource: typeof value.iconSource === "string" ? value.iconSource : "",
   };
 }
 
@@ -414,7 +473,6 @@ async function saveApp() {
   }
   const document = cloneDocument(appData.value);
   try {
-    (document.manifestSettings as any).icons = JSON.parse(document.manifestSettings.iconsJson || "[]");
     (document as any).pois = JSON.parse(document.poiSources || "[]");
   } catch {
     saveError.value = t("appedit.invalid_json");
@@ -574,9 +632,7 @@ function destroyPreview() {
 
 function createPreviewDocument(): AppDocument {
   const document = cloneDocument(appData.value);
-  document.manifestSettings.iconsJson = normalizeJsonText(document.manifestSettings.iconsJson, []);
-  (document.manifestSettings as any).icons = JSON.parse(document.manifestSettings.iconsJson);
-  (document as any).pois = JSON.parse(document.poiSources || "[]");
+  (document as any).pois = JSON.parse(normalizeJsonText(document.poiSources || "[]", []));
   // sourcesはAppSource形のままmainプロセスへ渡し、composeViewerSourceで正規化する
   return document;
 }
@@ -684,6 +740,17 @@ function normalizeJsonText(value: string, fallback: any) {
               <textarea v-model="descriptionText" class="form-control form-control-sm" rows="5" @input="recordHistory" />
             </div>
           </div>
+          <div class="row g-1 mb-2">
+            <div class="col-md-7">
+              <label class="form-label fw-bold small mb-0">{{ t("appedit.keywords") }}</label>
+              <input v-model="appData.keywords" type="text" class="form-control form-control-sm" @input="recordHistory">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-bold small mb-0">{{ t("appedit.site_url") }}</label>
+              <input v-model="appData.siteUrl" type="url" class="form-control form-control-sm" placeholder="https://example.com/myapp/" @input="recordHistory">
+              <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.site_url_note") }}</div>
+            </div>
+          </div>
           <div class="row g-1">
             <div class="col-12">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.extra_info") }}</label>
@@ -710,10 +777,6 @@ function normalizeJsonText(value: string, fallback: any) {
                 </div>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">{{ t("appedit.icon_source") }}</label>
-                <input v-model="appData.httpSettings.iconSource" type="text" class="form-control form-control-sm" :placeholder="t('appedit.icon_source_placeholder')" @input="recordHistory">
-              </div>
-              <div class="col-md-4">
                 <label class="form-label small fw-bold">{{ t("appedit.mapbox_token") }}</label>
                 <input v-model="appData.httpSettings.mapboxToken" type="text" class="form-control form-control-sm" @input="recordHistory">
               </div>
@@ -729,7 +792,11 @@ function normalizeJsonText(value: string, fallback: any) {
             <div class="row g-2">
               <div class="col-md-4">
                 <label class="form-label small fw-bold">{{ t("appedit.splash") }}</label>
-                <input v-model="appData.appSettings.splash" type="text" class="form-control form-control-sm" @input="recordHistory">
+                <div class="d-flex align-items-center gap-2">
+                  <input v-model="appData.appSettings.splash" type="text" class="form-control form-control-sm" readonly>
+                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" @click="uploadSplash">{{ t("appedit.upload") }}</button>
+                </div>
+                <img v-if="splashPreviewUrl" :src="splashPreviewUrl" class="asset-preview mt-1" alt="splash">
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.home_lng") }}</label>
@@ -797,9 +864,15 @@ function normalizeJsonText(value: string, fallback: any) {
                 <label class="form-label small fw-bold">{{ t("appedit.manifest_scope") }}</label>
                 <input v-model="appData.manifestSettings.scope" type="text" class="form-control form-control-sm" @input="recordHistory">
               </div>
-              <div class="col-12">
-                <label class="form-label small fw-bold">{{ t("appedit.manifest_icons") }}</label>
-                <textarea v-model="appData.manifestSettings.iconsJson" class="form-control form-control-sm font-monospace" rows="4" @input="recordHistory" />
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">{{ t("appedit.manifest_icon_source") }}</label>
+                <div class="d-flex align-items-center gap-2">
+                  <input v-model="appData.manifestSettings.iconSource" type="text" class="form-control form-control-sm" readonly>
+                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" @click="uploadPwaIcon">{{ t("appedit.upload") }}</button>
+                </div>
+                <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.manifest_icon_note") }}</div>
+                <div v-if="assetUploadError" class="text-danger small">{{ assetUploadError }}</div>
+                <img v-if="iconPreviewUrl" :src="iconPreviewUrl" class="asset-preview mt-1" alt="icon">
               </div>
             </div>
           </section>
@@ -999,6 +1072,13 @@ function normalizeJsonText(value: string, fallback: any) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 4px 12px;
+}
+.asset-preview {
+  max-width: 120px;
+  max-height: 120px;
+  border: 1px solid var(--bs-border-color);
+  background: #f8f9fa;
+  object-fit: contain;
 }
 .preview-map {
   position: absolute;

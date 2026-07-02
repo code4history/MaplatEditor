@@ -394,8 +394,6 @@
     "cache_ui": "Cache",
     "state_url": "State URL",
     "share_ui": "Share",
-    "icon_source": "ICO source image (520x520)",
-    "icon_source_placeholder": "Image path or URL",
     "mapbox_token": "Mapbox token",
     "google_api_key": "Google API key",
     "app_settings": "App Settings",
@@ -415,7 +413,6 @@
     "manifest_display": "display",
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
-    "manifest_icons": "icons (JSON)",
     "source_label": "Map Label",
     "source_advanced": "Advanced Settings (JSON)",
     "invalid_json": "Invalid JSON.",
@@ -457,7 +454,12 @@
     "envelope_clear": "Clear",
     "envelope_modal_title": "Specify coverage area",
     "envelope_modal_help": "Drag on the map to draw a rectangle.",
-    "confirm": "OK"
+    "confirm": "OK",
+    "keywords": "Keywords (comma separated)",
+    "site_url": "Public URL",
+    "site_url_note": "Used for canonical/manifest URLs at export.",
+    "manifest_icon_source": "PWA icon source (512x512)",
+    "manifest_icon_note": "Square PNG of 512x512 or larger. All sizes are generated at export."
   },
   "mapmodel": {
     "untitled": "Untitled",

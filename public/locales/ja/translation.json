@@ -426,8 +426,6 @@
     "cache_ui": "キャッシュ",
     "state_url": "状態URL",
     "share_ui": "シェア機能",
-    "icon_source": "ico元画像(520x520)",
-    "icon_source_placeholder": "画像パスまたはURL",
     "mapbox_token": "Mapbox token",
     "google_api_key": "Google API key",
     "app_settings": "アプリ設定",
@@ -447,7 +445,6 @@
     "manifest_display": "display",
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
-    "manifest_icons": "icons(JSON)",
     "source_label": "地図ラベル",
     "source_advanced": "詳細設定(JSON)",
     "invalid_json": "JSONの形式が正しくありません。",
@@ -489,7 +486,12 @@
     "envelope_clear": "クリア",
     "envelope_modal_title": "表示領域を指定",
     "envelope_modal_help": "ドラッグで矩形を描画してください。",
-    "confirm": "確定"
+    "confirm": "確定",
+    "keywords": "キーワード(カンマ区切り)",
+    "site_url": "公開URL",
+    "site_url_note": "エクスポート時のcanonical/manifestに使用します。",
+    "manifest_icon_source": "PWAアイコン元画像(512x512)",
+    "manifest_icon_note": "512x512以上の正方形PNG。エクスポート時に各サイズを自動生成します。"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",
