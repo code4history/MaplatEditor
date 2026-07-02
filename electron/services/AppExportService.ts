@@ -293,6 +293,14 @@ class AppExportService {
     const entries = await fs.readdir(previewAssetRoot);
     for (const entry of entries) {
       if (entry === 'service-worker.js') continue;
+      if (entry === 'assets') {
+        // public/preview/assets/* (locales等) はViewerが assets/ 直下として参照する
+        const subEntries = await fs.readdir(path.join(previewAssetRoot, entry));
+        for (const subEntry of subEntries) {
+          await fs.copy(path.join(previewAssetRoot, entry, subEntry), path.join(assetsDir, subEntry));
+        }
+        continue;
+      }
       await fs.copy(path.join(previewAssetRoot, entry), path.join(assetsDir, entry));
     }
     const olJs = path.join(olPackageRoot, 'dist', 'ol.js');
