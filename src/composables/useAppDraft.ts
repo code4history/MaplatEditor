@@ -1,10 +1,36 @@
 import type { SelectedRegisteredMapRef, RegisteredMapStatus } from "../services/registeredMapCatalog";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 
+export interface AppMetadata {
+  appId?: string;
+  title?: string;
+  description?: string;
+  lang?: string;
+}
+
+export interface BaseMapCatalogItem {
+  mapID: string;
+  scope: "builtin" | "user";
+  data: any;
+}
+
+export interface SelectedBaseMapRef {
+  kind: "registered-base-map";
+  mapID: string;
+  scope: "builtin" | "user";
+  role: "base" | "overlay";
+  title?: string;
+  opacity?: number;
+  visible?: boolean;
+  data?: any;
+}
+
 export interface MinimalAppDraft {
+  metadata?: AppMetadata;
   selectedMap?: SelectedRegisteredMapRef;
   cachedTitle?: string;
   cachedStatus?: RegisteredMapStatus;
+  selectedBaseMaps?: SelectedBaseMapRef[];
   selectedPoiSources?: SelectedPoiSourceRef[];
 }
 
@@ -20,6 +46,12 @@ async function loadDraft(): Promise<MinimalAppDraft | null> {
     const draft = await (window as any).appdraft.load();
     if (draft && !draft.selectedPoiSources) {
       draft.selectedPoiSources = [];
+    }
+    if (draft && !draft.selectedBaseMaps) {
+      draft.selectedBaseMaps = [];
+    }
+    if (draft && !draft.metadata) {
+      draft.metadata = {};
     }
     return draft;
   } catch (e) {

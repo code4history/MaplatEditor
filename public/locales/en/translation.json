@@ -294,6 +294,23 @@
   "applist": {
     "not_implement": "Not implemented yet",
     "title": "Edit App",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "save_failed": "Save failed",
+    "tabs": {
+      "metadata": "Metadata",
+      "maps": "Maps",
+      "preview": "Preview"
+    },
+    "metadata": {
+      "app_id": "App ID",
+      "title": "Title",
+      "description": "Description",
+      "lang": "Language",
+      "lang_auto": "Auto"
+    },
+    "maplat_map": "Maplat Map",
     "selected_map": "Selected Map",
     "selected_title": "Title:",
     "selected_status": "Status:",
@@ -305,6 +322,31 @@
     "deselect": "Deselect",
     "prev_page": "Previous page",
     "next_page": "Next page",
+    "base_maps": "Base Maps / Overlays",
+    "no_base_maps": "No base maps found",
+    "use": "Use",
+    "base_map_title": "Name",
+    "base_map_scope": "Scope",
+    "base_map_role": "Role",
+    "opacity": "Opacity",
+    "base_map_scopes": {
+      "builtin": "Built-in",
+      "user": "User"
+    },
+    "roles": {
+      "base": "Base Map",
+      "overlay": "Overlay"
+    },
+    "preview": {
+      "untitled": "Untitled App",
+      "no_app_id": "No app ID",
+      "no_description": "No description",
+      "no_maplat_map": "No Maplat map selected",
+      "base_layers": "Base Maps",
+      "overlays": "Overlays",
+      "no_base_layers": "No base maps selected",
+      "no_overlays": "No overlays selected"
+    },
     "status": {
       "ready": "Ready",
       "processing": "Processing...",

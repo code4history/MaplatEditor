@@ -68,17 +68,24 @@ try {
 
   console.log('  [1/3] useAppDraft + AppDraftService 型拡張: PASS');
 
-  // --- Part 2: AppList.vue shape ---
+  // --- Part 2: AppList.vue app editor shape ---
   const appList = await readFile(
     path.join(projectRoot, 'src/views/AppList.vue'),
     'utf8'
   );
 
-  // PoiSourceSelector コンポーネントを使用すること
-  assert.match(
+  // POI は後続タスクに戻すため、AppList では地図/ベースマップ編集に集中すること
+  assert.doesNotMatch(
     appList,
     /PoiSourceSelector/,
-    'AppList.vue に PoiSourceSelector がない'
+    'AppList.vue に POI selector が残っている'
+  );
+
+  // タブ構成が存在すること
+  assert.match(
+    appList,
+    /activeTab\s*=\s*ref<"metadata"\s*\|\s*"maps"\s*\|\s*"preview">/,
+    'AppList.vue に metadata/maps/preview タブ状態がない'
   );
 
   // currentDraft ref が存在すること
@@ -95,11 +102,18 @@ try {
     'AppList.vue で saveDraft を currentDraft で呼んでいない'
   );
 
-  // onPoiSourcesUpdate 関数が存在すること
+  // ベースマップ一覧を読み込むこと
   assert.match(
     appList,
-    /function\s+onPoiSourcesUpdate/,
-    'AppList.vue に onPoiSourcesUpdate がない'
+    /window\.baseMaps\.list\s*\(\s*\)/,
+    'AppList.vue が window.baseMaps.list() を呼んでいない'
+  );
+
+  // ベースマップ/オーバーレイ選択を draft に保存すること
+  assert.match(
+    appList,
+    /selectedBaseMaps/,
+    'AppList.vue に selectedBaseMaps がない'
   );
 
   // clearDraft を使っていないこと（死蔵）
@@ -109,7 +123,7 @@ try {
     'AppList.vue に clearDraft が残存している'
   );
 
-  console.log('  [2/3] AppList.vue shape: PASS');
+  console.log('  [2/3] AppList.vue app editor shape: PASS');
 
   // --- Part 3: PoiSourceSelector.vue shape ---
   const poiSourceSelector = await readFile(

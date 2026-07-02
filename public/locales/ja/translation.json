@@ -326,6 +326,23 @@
   "applist": {
     "not_implement": "未実装",
     "title": "アプリ編集",
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "保存済み",
+    "save_failed": "保存に失敗しました",
+    "tabs": {
+      "metadata": "メタデータ",
+      "maps": "地図選択",
+      "preview": "プレビュー"
+    },
+    "metadata": {
+      "app_id": "アプリID",
+      "title": "タイトル",
+      "description": "説明",
+      "lang": "言語",
+      "lang_auto": "自動"
+    },
+    "maplat_map": "Maplat地図",
     "selected_map": "選択中の地図",
     "selected_title": "タイトル:",
     "selected_status": "ステータス:",
@@ -337,6 +354,31 @@
     "deselect": "選択解除",
     "prev_page": "前ページ",
     "next_page": "次ページ",
+    "base_maps": "ベースマップ/オーバーレイ",
+    "no_base_maps": "ベースマップが見つかりません",
+    "use": "使用",
+    "base_map_title": "名称",
+    "base_map_scope": "種別",
+    "base_map_role": "用途",
+    "opacity": "不透明度",
+    "base_map_scopes": {
+      "builtin": "標準",
+      "user": "ユーザ"
+    },
+    "roles": {
+      "base": "ベースマップ",
+      "overlay": "オーバーレイ"
+    },
+    "preview": {
+      "untitled": "無題のアプリ",
+      "no_app_id": "アプリID未設定",
+      "no_description": "説明未設定",
+      "no_maplat_map": "Maplat地図未選択",
+      "base_layers": "ベースマップ",
+      "overlays": "オーバーレイ",
+      "no_base_layers": "ベースマップ未選択",
+      "no_overlays": "オーバーレイ未選択"
+    },
     "status": {
       "ready": "準備完了",
       "processing": "処理中...",

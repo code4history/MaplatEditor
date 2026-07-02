@@ -93,7 +93,7 @@ try {
     'AppDraftService.ts に load メソッドがない'
   );
 
-  // MinimalAppDraft 型が selectedMap のみを持つことを確認
+  // MinimalAppDraft 型が selectedMap を持つことを確認
   assert.match(
     serviceSource,
     /interface\s+MinimalAppDraft/,
@@ -101,7 +101,7 @@ try {
   );
   assert.match(
     serviceSource,
-    /selectedMap\s*:\s*\{/,
+    /selectedMap\s*\?\s*:\s*\{/,
     'MinimalAppDraft に selectedMap プロパティがない'
   );
   // home_position 等が含まれていないことを確認
@@ -255,18 +255,18 @@ try {
     'AppList.vue の onMounted で loadDraft() が呼ばれていない'
   );
 
-  // onSelect で saveDraft を呼ぶことを確認
+  // onSelect で draft を保存することを確認
   assert.match(
     appListView,
-    /saveDraft\s*\(\s*state\.ref/,
+    /function\s+onSelect\s*\([\s\S]*?persistDraft\s*\(\s*\)/,
     'AppList.vue の onSelect で saveDraft が呼ばれていない'
   );
 
-  // onDeselect で clearDraft を呼ぶことを確認
+  // onDeselect で draft を保存することを確認
   assert.match(
     appListView,
-    /clearDraft\s*\(\)/,
-    'AppList.vue の onDeselect で clearDraft が呼ばれていない'
+    /function\s+onDeselect\s*\([\s\S]*?persistDraft\s*\(\s*\)/,
+    'AppList.vue の onDeselect で saveDraft が呼ばれていない'
   );
 
   // host.selectMap で draft の復元を行っていることを確認
