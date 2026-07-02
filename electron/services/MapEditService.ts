@@ -28,6 +28,31 @@ class MapEditService {
         return res[0];
     }
 
+    async requestPreviewSource(mapID: string) {
+        const db = await MapDataService.getDBInstance();
+        const json = await db.findOneAsync({ _id: mapID });
+
+        if (!json) throw new Error(`Map with ID ${mapID} not found`);
+
+        const saveFolder = SettingsService.get('saveFolder');
+        const tileFolder = path.join(saveFolder, "tiles");
+        const thumbFolder = path.join(tileFolder, mapID, "0", "0");
+        const [store] = await this.normalizeRequestData(json, thumbFolder);
+
+        return {
+            ...json,
+            ...store,
+            mapID,
+            maptype: 'maplat',
+            noload: true,
+            compiled: json.compiled,
+            sub_maps: json.sub_maps ?? store.sub_maps ?? [],
+            width: store.width ?? json.width ?? json.compiled?.wh?.[0],
+            height: store.height ?? json.height ?? json.compiled?.wh?.[1],
+            url: store.url_ ?? json.url,
+        };
+    }
+
     private async normalizeRequestData(json: any, thumbFolder: string) {
         let url_: string | undefined;
         // 地図画像サイズが確定しているか確認
