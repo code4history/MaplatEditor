@@ -53,12 +53,15 @@ class MapDataService {
         const width = doc.width || (doc.compiled && doc.compiled.wh && doc.compiled.wh[0]);
         const height = doc.height || (doc.compiled && doc.compiled.wh && doc.compiled.wh[1]);
 
+        const previewDisabled = this.isPreviewDisabled(doc);
         const res: any = {
             mapID,
             title: title || mapID,
             width,
             height,
-            image: null
+            image: null,
+            previewDisabled,
+            previewDisabledReason: previewDisabled ? 'appedit.preview.strict_error' : undefined
         };
 
         if (res.width && res.height) {
@@ -93,6 +96,15 @@ class MapDataService {
     }));
 
     return { ...rawResult, docs };
+  }
+
+  private isPreviewDisabled(doc: any): boolean {
+    if (this.isStrictErrorCompiled(doc.compiled)) return true;
+    return Array.isArray(doc.sub_maps) && doc.sub_maps.some((subMap: any) => this.isStrictErrorCompiled(subMap.compiled));
+  }
+
+  private isStrictErrorCompiled(compiled: any): boolean {
+    return compiled?.strict_status === 'strict_error' || Boolean(compiled?.kinks_points);
   }
 
   async searchExtent(extent: number[]): Promise<string[]> {

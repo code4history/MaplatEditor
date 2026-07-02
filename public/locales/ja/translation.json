@@ -425,7 +425,11 @@
     },
     "preview": {
       "no_sources": "プレビューする地図が選択されていません。",
-      "compiled_required": "プレビューにはコンパイル済みTINを持つMaplat地図が必要です。{{mapID}}"
+      "compiled_required": "プレビューにはコンパイル済みTINを持つMaplat地図が必要です。{{mapID}}",
+      "strict_error": "strict_error の地図はビューアで表示できないため選択できません。",
+      "too_less_gcps": "GCPが3点未満のためプレビューできません。",
+      "missing_bounds": "地図サイズまたはサブ地図範囲が未設定のためプレビューできません。",
+      "unavailable": "この地図はプレビューで使用できません。"
     }
   },
   "mapmodel": {

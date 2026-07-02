@@ -393,7 +393,11 @@
     },
     "preview": {
       "no_sources": "No maps selected for preview.",
-      "compiled_required": "Preview requires a Maplat map with compiled TIN data. {{mapID}}"
+      "compiled_required": "Preview requires a Maplat map with compiled TIN data. {{mapID}}",
+      "strict_error": "Maps with strict_error cannot be selected because the viewer cannot display them.",
+      "too_less_gcps": "Preview requires at least three GCPs.",
+      "missing_bounds": "Preview requires map size or sub-map bounds.",
+      "unavailable": "This map cannot be used in preview."
     }
   },
   "mapmodel": {

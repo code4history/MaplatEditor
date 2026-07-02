@@ -5,6 +5,10 @@ import fileUrl from 'file-url';
 import MapDataService from './MapDataService';
 import * as storeHandler from '../utils/store_handler';
 import SettingsService from './SettingsService';
+// @ts-ignore
+import Tin from '@maplat/tin';
+
+const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 class MapEditService {
     async request(mapID: string) {
@@ -34,23 +38,90 @@ class MapEditService {
 
         if (!json) throw new Error(`Map with ID ${mapID} not found`);
 
+        const previewJson = await this.ensurePreviewCompiled({ ...json });
+        if (this.hasStrictError(previewJson)) {
+            throw new Error('appedit.preview.strict_error');
+        }
+
         const saveFolder = SettingsService.get('saveFolder');
         const tileFolder = path.join(saveFolder, "tiles");
         const thumbFolder = path.join(tileFolder, mapID, "0", "0");
-        const [store] = await this.normalizeRequestData(json, thumbFolder);
+        const [store] = await this.normalizeRequestData(previewJson, thumbFolder);
 
         return {
-            ...json,
+            ...previewJson,
             ...store,
             mapID,
             maptype: 'maplat',
-            noload: true,
-            compiled: json.compiled,
-            sub_maps: json.sub_maps ?? store.sub_maps ?? [],
-            width: store.width ?? json.width ?? json.compiled?.wh?.[0],
-            height: store.height ?? json.height ?? json.compiled?.wh?.[1],
-            url: store.url_ ?? json.url,
+            compiled: previewJson.compiled,
+            sub_maps: previewJson.sub_maps ?? store.sub_maps ?? [],
+            width: store.width ?? previewJson.width ?? previewJson.compiled?.wh?.[0],
+            height: store.height ?? previewJson.height ?? previewJson.compiled?.wh?.[1],
+            url: store.url_ ?? previewJson.url,
         };
+    }
+
+    private async ensurePreviewCompiled(json: any) {
+        if (!json.compiled) {
+            json.compiled = await this.createCompiledFromGcps(
+                json.gcps,
+                json.edges,
+                [json.width, json.height],
+                null,
+                json.strictMode,
+                json.vertexMode,
+            );
+        }
+
+        if (Array.isArray(json.sub_maps)) {
+            json.sub_maps = await Promise.all(json.sub_maps.map(async (subMap: any) => {
+                if (subMap.compiled) return subMap;
+                return {
+                    ...subMap,
+                    compiled: await this.createCompiledFromGcps(
+                        subMap.gcps,
+                        subMap.edges,
+                        null,
+                        subMap.bounds,
+                        json.strictMode,
+                        json.vertexMode,
+                    ),
+                };
+            }));
+        }
+
+        return json;
+    }
+
+    private async createCompiledFromGcps(gcps: any[] = [], edges: any[] = [], wh: any, bounds: any, strict: any, vertex: any) {
+        if (gcps.length < 3) throw new Error('appedit.preview.too_less_gcps');
+        const tin = new Tin(TIN_V2_OPTIONS);
+        if (wh?.[0] && wh?.[1]) {
+            tin.setWh(wh);
+        } else if (bounds) {
+            tin.setBounds(bounds);
+        } else {
+            throw new Error('appedit.preview.missing_bounds');
+        }
+        tin.setStrictMode(strict || 'strict');
+        tin.setVertexMode(vertex || 'plain');
+        tin.setPoints(gcps);
+        tin.setEdges(edges || []);
+        await tin.updateTinAsync();
+        const compiled = tin.getCompiled();
+        if (this.isStrictErrorCompiled(compiled)) {
+            throw new Error('appedit.preview.strict_error');
+        }
+        return compiled;
+    }
+
+    private hasStrictError(json: any) {
+        if (this.isStrictErrorCompiled(json.compiled)) return true;
+        return Array.isArray(json.sub_maps) && json.sub_maps.some((subMap: any) => this.isStrictErrorCompiled(subMap.compiled));
+    }
+
+    private isStrictErrorCompiled(compiled: any) {
+        return compiled?.strict_status === 'strict_error' || Boolean(compiled?.kinks_points);
     }
 
     private async normalizeRequestData(json: any, thumbFolder: string) {

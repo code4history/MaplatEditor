@@ -37,6 +37,8 @@ interface MapListItem {
   mapID: string;
   title: string;
   image: string | null;
+  previewDisabled?: boolean;
+  previewDisabledReason?: string;
 }
 
 interface BaseMapItem {
@@ -89,6 +91,7 @@ const previewError = ref<string | null>(null);
 const historyStack = ref<UndoStack<AppDocument> | null>(null);
 const historyApplying = ref(false);
 let previewApp: MaplatApp | null = null;
+let previewSettingUrls: string[] = [];
 
 const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName) || appData.value.appID);
 const isDirty = computed(() => historyStack.value?.isDirty() ?? false);
@@ -292,10 +295,17 @@ async function loadBaseMaps() {
 }
 
 async function addMapSource(item: MapListItem) {
+  if (item.previewDisabled) {
+    previewError.value = t(item.previewDisabledReason || "appedit.preview.unavailable");
+    return;
+  }
   if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType === "maplat")) return;
-  const mapObject = await window.mapedit.previewSource(item.mapID);
-  if (!mapObject.compiled) {
-    previewError.value = t("appedit.preview.compiled_required");
+  let mapObject: any;
+  try {
+    mapObject = await window.mapedit.previewSource(item.mapID);
+  } catch (e) {
+    previewError.value = translatePreviewError(e);
+    return;
   }
   appData.value.sources.push({
     sourceType: "maplat",
@@ -303,7 +313,7 @@ async function addMapSource(item: MapListItem) {
     title: item.title,
     role: "maplat",
     startFrom: appData.value.sources.length === 0,
-    data: { ...mapObject, mapID: item.mapID, maptype: "maplat", noload: true },
+    data: { ...mapObject, mapID: item.mapID, maptype: "maplat" },
   });
   ensureSingleStartFrom();
   recordHistory();
@@ -359,17 +369,33 @@ function baseMapTitle(item: BaseMapItem): string {
   return String(item.data?.title ?? item.data?.label ?? item.mapID);
 }
 
+function createPreviewSettingUrl(data: any) {
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  previewSettingUrls.push(url);
+  return url;
+}
+
+function translatePreviewError(e: unknown): string {
+  const message = e instanceof Error ? e.message : String(e);
+  return message.startsWith("appedit.") ? t(message) : message;
+}
+
 function buildPreviewSetting() {
+  revokePreviewSettingUrls();
   const sources = appData.value.sources.map((source) => {
     const data = { ...source.data };
     data.mapID = source.mapID;
     if (source.sourceType === "maplat") {
-      if (!data.compiled) {
-        throw new Error(t("appedit.preview.compiled_required", { mapID: source.mapID }));
-      }
-      data.maptype = "maplat";
-      data.noload = true;
+      delete data.noload;
       data.url = data.url || data.url_;
+      const settingFile = createPreviewSettingUrl({ ...data, maptype: "maplat" });
+      return {
+        mapID: source.mapID,
+        maptype: "maplat",
+        settingFile,
+        label: source.title,
+      };
     }
     if (source.sourceType === "base-map") {
       data.maptype = source.role === "overlay" ? "overlay" : (data.maptype || "base");
@@ -406,7 +432,7 @@ async function renderPreview() {
     await previewApp.waitReady;
   } catch (e) {
     console.error("[AppEdit] Preview failed:", e);
-    previewError.value = e instanceof Error ? e.message : String(e);
+    previewError.value = translatePreviewError(e);
     destroyPreview();
   }
 }
@@ -416,6 +442,12 @@ function destroyPreview() {
     previewApp.remove();
     previewApp = null;
   }
+  revokePreviewSettingUrls();
+}
+
+function revokePreviewSettingUrls() {
+  previewSettingUrls.forEach((url) => URL.revokeObjectURL(url));
+  previewSettingUrls = [];
 }
 </script>
 
@@ -551,9 +583,21 @@ function destroyPreview() {
 
           <div v-if="sourceListMode === 'maps'">
             <div class="source-list">
-              <button v-for="item in mapItems" :key="item.mapID" type="button" class="source-row" @click="addMapSource(item)">
+              <button
+                v-for="item in mapItems"
+                :key="item.mapID"
+                type="button"
+                class="source-row"
+                :class="{ 'source-row-disabled': item.previewDisabled }"
+                :disabled="item.previewDisabled"
+                :title="item.previewDisabled ? t(item.previewDisabledReason || 'appedit.preview.unavailable') : item.title"
+                @click="addMapSource(item)"
+              >
                 <img :src="item.image || noImage" :alt="item.title">
-                <span>{{ item.title }}</span>
+                <span>
+                  {{ item.title }}
+                  <small v-if="item.previewDisabled" class="d-block text-danger">{{ t(item.previewDisabledReason || "appedit.preview.unavailable") }}</small>
+                </span>
               </button>
             </div>
             <div class="d-flex justify-content-center gap-2 mt-2">
@@ -665,6 +709,10 @@ function destroyPreview() {
   object-fit: contain;
   background: #f8f9fa;
   border: 1px solid var(--bs-border-color);
+}
+.source-row-disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
 }
 .base-map-thumb {
   display: grid;
