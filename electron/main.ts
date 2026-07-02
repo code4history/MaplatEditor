@@ -94,6 +94,7 @@ import { registerWmtsHandlers } from './ipc/wmts'
 import { registerAppDraftHandlers } from './ipc/appdraft'
 import { registerAppHandlers } from './ipc/apps'
 import { registerPoisourceHandlers } from './ipc/poisource'
+import { registerAppAssetHandlers } from './ipc/appassets'
 
 import { ipcMain } from 'electron'
 
@@ -149,6 +150,7 @@ app.whenReady().then(() => {
   registerAppDraftHandlers()
   registerAppHandlers()
   registerPoisourceHandlers()
+  registerAppAssetHandlers()
   createWindow()
   setupMenu()
 

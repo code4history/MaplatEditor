@@ -125,6 +125,13 @@ contextBridge.exposeInMainWorld('baseMaps', {
   deleteUser: (baseMapId: string) => ipcRenderer.invoke('basemaps:delete-user', baseMapId),
 })
 
+contextBridge.exposeInMainWorld('appAssets', {
+  uploadTmsThumbnail: (mapID: string) => ipcRenderer.invoke('appassets:upload-tms-thumbnail', mapID),
+  uploadSplash: () => ipcRenderer.invoke('appassets:upload-splash'),
+  uploadPwaIcon: (appID: string) => ipcRenderer.invoke('appassets:upload-pwa-icon', appID),
+  fileUrl: (relPath: string) => ipcRenderer.invoke('appassets:file-url', relPath),
+})
+
 contextBridge.exposeInMainWorld('poiSources', {
   list: (request: any) => ipcRenderer.invoke('poisource:list', request),
   get: (sourceId: string) => ipcRenderer.invoke('poisource:get', sourceId),

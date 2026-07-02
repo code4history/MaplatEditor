@@ -42,8 +42,15 @@ export interface PoiSourcesAPI {
     delete(sourceId: string): Promise<any>;
 }
 
+export interface AppAssetsAPI {
+    uploadTmsThumbnail(mapID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
+    uploadSplash(): Promise<{ err?: string; splash?: string; fileUrl?: string }>;
+    uploadPwaIcon(appID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
+    fileUrl(relPath: string): Promise<string | null>;
+}
+
 export interface BaseMapsAPI {
-    list(): Promise<Array<{ mapID: string; scope: "builtin" | "user"; data: any }>>;
+    list(): Promise<Array<{ mapID: string; scope: "builtin" | "user"; data: any; thumbnailUrl?: string | null }>>;
     saveUser(tms: any): Promise<void>;
     deleteUser(baseMapId: string): Promise<void>;
 }
@@ -75,5 +82,6 @@ declare global {
     appEvents: AppEventsAPI;
     poiSources: PoiSourcesAPI;
     baseMaps: BaseMapsAPI;
+    appAssets: AppAssetsAPI;
   }
 }
