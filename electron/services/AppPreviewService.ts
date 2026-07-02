@@ -25,10 +25,6 @@ const olPackageRoot = findExistingPath([
   path.resolve(appRoot, 'node_modules/ol'),
   path.resolve(__dirname, '..', 'node_modules/ol'),
 ]);
-const bootstrapPackageRoot = findExistingPath([
-  path.resolve(appRoot, 'node_modules/bootstrap-sass'),
-  path.resolve(__dirname, '..', 'node_modules/bootstrap-sass'),
-]);
 const previewAssetRoot = findExistingPath([
   path.resolve(appRoot, 'public/preview'),
   path.resolve(appRoot, 'dist/preview'),
@@ -202,8 +198,7 @@ class AppPreviewService {
   <title>${title}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 ${manifestLink}
-  <link rel="stylesheet" href="assets/ol.css">
-  <link rel="stylesheet" href="assets/maplat-preview.css">
+  <link rel="stylesheet" href="assets/maplat_ui.css">
   <style>
     html, body, .mainview, #map_div { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; overflow: hidden; }
   </style>
@@ -252,7 +247,6 @@ ${manifestLink}
       path.join(uiPackageRoot, 'assets', assetPath),
       assetPath === 'ol.css' ? path.join(olPackageRoot, 'ol.css') : '',
       assetPath === 'ol.js' ? path.join(olPackageRoot, 'dist', 'ol.js') : '',
-      assetPath.startsWith('bootstrap/') ? path.join(bootstrapPackageRoot, 'assets/fonts/bootstrap', assetPath.replace(/^bootstrap\//, '')) : '',
     ];
     const filePath = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
     if (!filePath) return this.sendText(res, 404, 'Asset not found');
