@@ -5,6 +5,7 @@ import { AddressInfo } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
+import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 
 type PreviewSession = {
   token: string;
@@ -90,7 +91,7 @@ class AppPreviewService {
         const preview = await MapEditService.requestPreviewSource(source.mapID);
         const label = source.label || source.title || data.label || data.title || source.mapID;
         const thumbnail = source.thumbnail || data.thumbnail || preview.thumbnail || 'Maplat.png';
-        maps[source.mapID] = this.toHttpAsset({
+        maps[source.mapID] = this.toHttpAsset(normalizeRuntimeKeys({
           ...preview,
           mapID: source.mapID,
           maptype: 'maplat',
@@ -99,7 +100,7 @@ class AppPreviewService {
           thumbnail,
           url: preview.url || preview.url_,
           pois: preview.pois,
-        });
+        }));
         return {
           mapID: source.mapID,
           maptype: 'maplat',
@@ -110,33 +111,33 @@ class AppPreviewService {
         };
       }
       const role = source.role || (data.maptype === 'overlay' ? 'overlay' : 'base');
-      return this.toHttpAsset({
+      return this.toHttpAsset(normalizeRuntimeKeys({
         ...data,
         mapID: source.mapID,
         maptype: role === 'overlay' ? 'overlay' : (data.maptype || 'base'),
         label: data.label || source.title || source.mapID,
         title: data.title || source.title || source.mapID,
         thumbnail: data.thumbnail || source.thumbnail || (role === 'overlay' ? 'overlay.png' : 'basemap.png'),
-      });
+      }));
     }));
-    const app = this.toHttpAsset({
-      app_name: document.appName || document.title,
+    const app = this.toHttpAsset(normalizeRuntimeKeys({
+      appName: document.appName || document.title,
       title: document.title || document.appName,
       description: document.description,
       lang: document.lang || 'ja',
       splash: document.appSettings?.splash || document.splash || '',
-      fake_gps: Boolean(document.appSettings?.fakeGps),
-      fake_center: document.appSettings?.fakeCenter || '',
-      fake_radius: Number(document.appSettings?.fakeRadius || 0),
-      home_position: [
+      fakeGps: Boolean(document.appSettings?.fakeGps),
+      fakeCenter: document.appSettings?.fakeCenter || '',
+      fakeRadius: Number(document.appSettings?.fakeRadius || 0),
+      homePosition: [
         Number(document.appSettings?.homeLng || 139.767),
         Number(document.appSettings?.homeLat || 35.681),
       ],
-      default_zoom: Number(document.appSettings?.defaultZoom || 10),
-      start_from: document.startFrom || document.sources?.find((source: any) => source.startFrom)?.mapID,
+      defaultZoom: Number(document.appSettings?.defaultZoom || 10),
+      startFrom: document.startFrom || document.sources?.find((source: any) => source.startFrom)?.mapID,
       sources,
       pois: normalizeJsonArray(document.pois || document.poiSources),
-    });
+    }));
     return { token, app, maps, manifest: this.createManifest(document), viewerOption: this.createViewerOption(token, document) };
   }
 
@@ -181,7 +182,7 @@ class AppPreviewService {
 
   private renderHtml(session: PreviewSession) {
     const { token, app } = session;
-    const title = escapeHtml(localize(app.title || app.app_name, app.lang) || token);
+    const title = escapeHtml(localize(app.title || app.appName || app.app_name, app.lang) || token);
     const manifestLink = session.viewerOption.pwaManifest ? `  <link rel="manifest" href="pwa/${token}_manifest.json">\n` : '';
     return `<!DOCTYPE html>
 <html>

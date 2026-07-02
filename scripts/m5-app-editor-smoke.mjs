@@ -98,11 +98,33 @@ try {
       assert.equal(loaded.httpSettings.enableShare, true);
       assert.equal(loaded.appSettings.splash, 'demo_splash.png');
       assert.equal(loaded.manifestSettings.name, 'Demo');
+      assert.doesNotMatch(JSON.stringify(loaded), /default_zoom|home_position|app_name|start_from|fake_gps/);
 
       const listed = await AppDataService.requestApps('デモ', 1, 20);
       assert.equal(listed.docs.length, 1);
       assert.equal(listed.docs[0].appID, 'demo_app');
       assert.equal(listed.docs[0].title, 'デモアプリ');
+
+      await AppDataService.saveApp('legacy_app', {
+        appID: 'legacy_app',
+        app_name: { ja: '旧アプリ', en: 'Legacy App' },
+        title: { ja: '旧アプリ', en: 'Legacy App' },
+        default_zoom: 16,
+        home_position: [140, 36],
+        start_from: 'legacy_map',
+        fake_gps: true,
+        fake_radius: 20,
+        sources: [{ mapID: 'legacy_map', maptype: 'maplat', setting_file: 'maps/legacy_map.json' }],
+      });
+      const legacyLoaded = await AppDataService.getApp('legacy_app');
+      assert.equal(legacyLoaded.appName.ja, '旧アプリ');
+      assert.equal(legacyLoaded.defaultZoom, 16);
+      assert.deepEqual(legacyLoaded.homePosition, [140, 36]);
+      assert.equal(legacyLoaded.startFrom, 'legacy_map');
+      assert.equal(legacyLoaded.fakeGps, true);
+      assert.equal(legacyLoaded.fakeRadius, 20);
+      assert.equal(legacyLoaded.sources[0].settingFile, 'maps/legacy_map.json');
+      assert.doesNotMatch(JSON.stringify(legacyLoaded), /default_zoom|home_position|app_name|start_from|fake_gps|fake_radius|setting_file/);
 
       assert.equal(await AppDataService.saveApp('other_app', { ...doc, appID: 'other_app', originalAppID: 'demo_app' }), 'Success');
       assert.equal(await AppDataService.getApp('demo_app'), null);

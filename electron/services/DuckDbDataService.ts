@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import defaultTmsList from '../tms_list.json';
 import SettingsService from './SettingsService';
+import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -75,7 +76,7 @@ function normalizeMapDocument(document: any): any {
 }
 
 function normalizeAppDocument(document: any): any {
-  const normalized = { ...document };
+  const normalized = normalizeRuntimeKeys(document);
   delete normalized._id;
   delete normalized.appID;
   return normalized;
