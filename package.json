@@ -70,6 +70,7 @@
     "ol": "^10.8.0",
     "ol-layerswitcher": "^4.1.2",
     "proj4": "^2.8.0",
+    "pwa-asset-generator": "^8.1.5",
     "recursive-fs": "^2.1.0",
     "tiny-emitter": "^2.1.0",
     "vue": "^3.5.32",

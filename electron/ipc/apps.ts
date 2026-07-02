@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import AppDataService from '../services/AppDataService';
 import AppPreviewService from '../services/AppPreviewService';
+import AppExportService from '../services/AppExportService';
 
 export function registerAppHandlers() {
   ipcMain.handle('applist:request', async (_event, query, page, pageSize) => {
@@ -38,6 +39,11 @@ export function registerAppHandlers() {
       console.error('Failed to handle appedit:checkID', e);
       return false;
     }
+  });
+
+  ipcMain.handle('appedit:export', async (event, document: any) => {
+    const win = BrowserWindow.fromWebContents(event.sender)!;
+    return await AppExportService.exportApp(win, document);
   });
 
   ipcMain.handle('appedit:prepare-preview', async (_event, document: any) => {

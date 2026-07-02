@@ -491,7 +491,18 @@
     "site_url": "公開URL",
     "site_url_note": "エクスポート時のcanonical/manifestに使用します。",
     "manifest_icon_source": "PWAアイコン元画像(512x512)",
-    "manifest_icon_note": "512x512以上の正方形PNG。エクスポート時に各サイズを自動生成します。"
+    "manifest_icon_note": "512x512以上の正方形PNG。エクスポート時に各サイズを自動生成します。",
+    "export_button": "エクスポート",
+    "export_success": "エクスポートが完了しました: {{outDir}}",
+    "export_failed": "エクスポートに失敗しました。",
+    "export": {
+      "progress": "エクスポート中...",
+      "done": "エクスポート完了",
+      "pwa_fallback": "PWA画像生成(pwa-asset-generator)に失敗したため、基本アイコンのみ生成しました。Chrome/Chromiumのインストールを確認してください。",
+      "no_icon_source": "PWAアイコン元画像が未設定のため、アイコンを生成しませんでした。",
+      "missing_thumbnail": "一部のベースマップ/オーバーレイのサムネイル画像が見つかりませんでした。",
+      "missing_splash": "スプラッシュ画像が見つかりませんでした。"
+    }
   },
   "mapmodel": {
     "untitled": "タイトル未設定",

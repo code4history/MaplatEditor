@@ -499,6 +499,38 @@ async function saveApp() {
   }
 }
 
+const exporting = ref(false);
+
+async function exportApp() {
+  if (exporting.value) return;
+  exporting.value = true;
+  try {
+    const document = cloneDocument(appData.value);
+    document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapID || appData.value.startFrom;
+    (document as any).pois = JSON.parse(normalizeJsonText(document.poiSources || "[]", []));
+    const result = await window.appedit.export(document);
+    if (result.result === "Canceled") return;
+    if (result.result === "Error") {
+      await (window as any).dialog.showMessageBox({
+        type: "error",
+        buttons: ["OK"],
+        message: t("appedit.export_failed"),
+        detail: result.message || "",
+      });
+      return;
+    }
+    const warnings = (result.warnings || []).map((key) => t(key)).join("\n");
+    await (window as any).dialog.showMessageBox({
+      type: warnings ? "warning" : "info",
+      buttons: ["OK"],
+      message: t("appedit.export_success", { outDir: result.outDir }),
+      detail: warnings,
+    });
+  } finally {
+    exporting.value = false;
+  }
+}
+
 async function loadMaps(page: number = 1) {
   const result = await window.maplist.request(mapSearchQuery.value, page);
   mapItems.value = result.docs;
@@ -675,8 +707,9 @@ function normalizeJsonText(value: string, fallback: any) {
           <button type="button" class="btn btn-outline-secondary w-50" :disabled="!canUndo" @click="performUndo">{{ t("menu.undo") }}</button>
           <button type="button" class="btn btn-outline-secondary w-50" :disabled="!canRedo" @click="performRedo">{{ t("menu.redo") }}</button>
         </div>
-        <div class="col-2 text-end">
-          <button type="button" class="btn btn-primary w-100" :disabled="!!saveError || !isDirty" @click="saveApp">{{ t("common.save") }}</button>
+        <div class="col-2 d-flex gap-1">
+          <button type="button" class="btn btn-primary w-50" :disabled="!!saveError || !isDirty" @click="saveApp">{{ t("common.save") }}</button>
+          <button type="button" class="btn btn-success w-50" :disabled="isDirty || !onlyOne || exporting" @click="exportApp">{{ t("appedit.export_button") }}</button>
         </div>
       </div>
     </div>

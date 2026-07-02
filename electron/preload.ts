@@ -96,6 +96,7 @@ contextBridge.exposeInMainWorld('appedit', {
   save: (appID: string, document: any) => ipcRenderer.invoke('appedit:save', appID, document),
   checkID: (appID: string) => ipcRenderer.invoke('appedit:checkID', appID),
   preparePreview: (document: any) => ipcRenderer.invoke('appedit:prepare-preview', document),
+  export: (document: any) => ipcRenderer.invoke('appedit:export', document),
 })
 
 contextBridge.exposeInMainWorld('dialog', {

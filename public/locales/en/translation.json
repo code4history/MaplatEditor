@@ -459,7 +459,18 @@
     "site_url": "Public URL",
     "site_url_note": "Used for canonical/manifest URLs at export.",
     "manifest_icon_source": "PWA icon source (512x512)",
-    "manifest_icon_note": "Square PNG of 512x512 or larger. All sizes are generated at export."
+    "manifest_icon_note": "Square PNG of 512x512 or larger. All sizes are generated at export.",
+    "export_button": "Export",
+    "export_success": "Export completed: {{outDir}}",
+    "export_failed": "Export failed.",
+    "export": {
+      "progress": "Exporting...",
+      "done": "Export completed",
+      "pwa_fallback": "PWA image generation (pwa-asset-generator) failed; only basic icons were generated. Please check that Chrome/Chromium is installed.",
+      "no_icon_source": "PWA icon source is not set, so no icons were generated.",
+      "missing_thumbnail": "Some base map/overlay thumbnails were not found.",
+      "missing_splash": "The splash image was not found."
+    }
   },
   "mapmodel": {
     "untitled": "Untitled",
