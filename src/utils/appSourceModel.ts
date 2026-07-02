@@ -1,0 +1,247 @@
+// アプリ設定のソース(sources)モデル共有ロジック。
+// renderer(AppEdit)とelectron main(AppPreviewService/AppExportService)の両方から使う。
+// Viewer(@maplat/core)仕様: sources要素が文字列 "osm"|"gsi"|"gsi_ortho" のときだけ
+// ビルトイン定義が解決されるため、ビルトインは必ず素の文字列で出力する。
+
+export type SourceRole = "maplat" | "base" | "overlay";
+export type SourceKind = "maplat" | "builtin" | "tms";
+
+export const VIEWER_BUILTIN_IDS = ["osm", "gsi", "gsi_ortho"] as const;
+
+export function isViewerBuiltin(mapID: string): boolean {
+  return (VIEWER_BUILTIN_IDS as readonly string[]).includes(mapID);
+}
+
+// Editor管理用キー: Viewer向け出力(アプリJSON/プレビュー)に含めてはならない
+const EDITOR_ONLY_KEYS = new Set([
+  "always",
+  "scope",
+  "sortOrder",
+  "sort_order",
+  "sourceType",
+  "role",
+  "startFrom",
+  "previewDisabled",
+  "previewDisabledReason",
+  "_id",
+  "status",
+]);
+
+// core側 normalizeArg はsnake_case等の旧キーを例外送出で拒否するため、
+// Viewerへ渡す前に必ずcamelCaseへ正規化する。
+export const runtimeKeyMap: Record<string, string> = {
+  max_zoom: "maxZoom",
+  min_zoom: "minZoom",
+  envelope_lnglats: "envelopeLngLats",
+  envelopLngLats: "envelopeLngLats",
+  image_extention: "imageExtension",
+  image_extension: "imageExtension",
+  imageExtention: "imageExtension",
+  map_id: "mapID",
+  sourceID: "mapID",
+  source_id: "mapID",
+  merc_max_zoom: "mercMaxZoom",
+  merc_min_zoom: "mercMinZoom",
+  zoom_restriction: "zoomRestriction",
+  enable_cache: "enableCache",
+  default_zoom: "defaultZoom",
+  start_from: "startFrom",
+  home_position: "homePosition",
+  fake_radius: "fakeRadius",
+  fake_center: "fakeCenter",
+  fake_gps: "fakeGps",
+  app_name: "appName",
+  setting_file: "settingFile",
+  merc_zoom: "mercZoom",
+  mapbox_token: "mapboxToken",
+  translate_ui: "translateUI",
+  restore_session: "restoreSession",
+  no_rotate: "noRotate",
+  poi_template: "poiTemplate",
+  poi_style: "poiStyle",
+  icon_template: "iconTemplate",
+  default_center: "defaultCenter",
+  default_rotation: "defaultRotation",
+  selected_icon: "selectedIcon",
+  namespace_id: "namespaceID",
+  mercator_x_shift: "mercatorXShift",
+  mercator_y_shift: "mercatorYShift",
+  state_url: "stateUrl",
+  enable_share: "enableShare",
+  mobile_if: "mobileIF",
+  pwa_manifest: "pwaManifest",
+  pwa_worker: "pwaWorker",
+  pwa_scope: "pwaScope",
+  presentation_mode: "presentationMode",
+};
+
+export function normalizeRuntimeKeys<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(item => normalizeRuntimeKeys(item)) as T;
+  if (!value || typeof value !== "object") return value;
+  return Object.entries(value as Record<string, any>).reduce((acc, [key, item]) => {
+    const normalizedKey = runtimeKeyMap[key] || key;
+    acc[normalizedKey] = normalizeRuntimeKeys(item);
+    return acc;
+  }, {} as Record<string, any>) as T;
+}
+
+export function stripEditorKeys(data: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(data).filter(([key]) => !EDITOR_ONLY_KEYS.has(key)));
+}
+
+export interface AppSource {
+  sourceType: SourceKind;
+  mapID: string;
+  role: SourceRole;
+  startFrom?: boolean;
+  label?: Record<string, string>;
+  data?: Record<string, any>; // tmsのみ: Viewerに渡る設定(camelCase)
+  title?: string; // Editor表示専用(出力しない)
+}
+
+export function compactLangObject(
+  value?: Record<string, string> | string,
+): Record<string, string> | string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "string") return value.trim() ? value : undefined;
+  const entries = Object.entries(value).filter(([, text]) => typeof text === "string" && text.trim() !== "");
+  if (entries.length === 0) return undefined;
+  return Object.fromEntries(entries);
+}
+
+function isBaseLikeMaptype(maptype: unknown): boolean {
+  return maptype === undefined || maptype === null || maptype === "" || maptype === "base";
+}
+
+function pickLabel(raw: any, data: Record<string, any>): Record<string, string> | undefined {
+  const candidate = raw?.label ?? data?.label;
+  if (candidate === undefined || candidate === null) return undefined;
+  if (typeof candidate === "string") return { ja: candidate };
+  return { ...candidate };
+}
+
+// 任意の保存形(レガシー文字列 / 旧AppEdit形 / 新形) → AppSource
+export function normalizeAppSource(raw: any): AppSource {
+  if (typeof raw === "string") {
+    if (isViewerBuiltin(raw)) {
+      return { sourceType: "builtin", mapID: raw, role: "base" };
+    }
+    return { sourceType: "tms", mapID: raw, role: "base", data: {} };
+  }
+
+  const rawData = raw?.data && typeof raw.data === "object" ? raw.data : raw;
+  const data = stripEditorKeys(normalizeRuntimeKeys({ ...(rawData || {}) })) as Record<string, any>;
+  const mapID = raw?.mapID || data.mapID || "";
+  const maptype = raw?.maptype ?? data.maptype;
+
+  const isMaplat =
+    raw?.sourceType === "maplat" ||
+    maptype === "maplat" ||
+    Boolean(raw?.noload) ||
+    Boolean(data.noload);
+
+  if (isMaplat) {
+    return {
+      sourceType: "maplat",
+      mapID,
+      role: "maplat",
+      startFrom: Boolean(raw?.startFrom),
+      label: pickLabel(raw, data),
+      title: typeof raw?.title === "string" ? raw.title : undefined,
+    };
+  }
+
+  if (isViewerBuiltin(mapID) && isBaseLikeMaptype(maptype)) {
+    return {
+      sourceType: "builtin",
+      mapID,
+      role: "base",
+      startFrom: Boolean(raw?.startFrom),
+    };
+  }
+
+  const role: SourceRole =
+    raw?.role === "overlay" || maptype === "overlay" ? "overlay" : "base";
+  const label = pickLabel(raw, data);
+  delete data.label;
+  delete data.mapID;
+  delete data.maptype;
+  return {
+    sourceType: "tms",
+    mapID,
+    role,
+    startFrom: Boolean(raw?.startFrom),
+    label,
+    data,
+    title: typeof raw?.title === "string" ? raw.title : undefined,
+  };
+}
+
+function pruneEmpty(data: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined && value !== null && value !== ""),
+  );
+}
+
+// AppSource → Viewer出力(アプリJSON sources要素)
+// builtin=文字列 / maplat={mapID,label(+settingFile)} / tms=data展開+maptype
+export function composeViewerSource(
+  source: AppSource,
+  options: { settingFilePrefix?: string } = {},
+): string | Record<string, unknown> {
+  if (source.sourceType === "builtin") return source.mapID;
+
+  if (source.sourceType === "maplat") {
+    const out: Record<string, unknown> = { mapID: source.mapID };
+    const label = compactLangObject(source.label);
+    if (label) out.label = label;
+    if (options.settingFilePrefix !== undefined) {
+      out.maptype = "maplat";
+      out.settingFile = `${options.settingFilePrefix}${source.mapID}.json`;
+    }
+    return out;
+  }
+
+  const data = pruneEmpty(stripEditorKeys(normalizeRuntimeKeys({ ...(source.data || {}) })));
+  delete data.label;
+  const out: Record<string, unknown> = {
+    ...data,
+    mapID: source.mapID,
+    maptype: source.role === "overlay" ? "overlay" : "base",
+  };
+  const label = compactLangObject(source.label);
+  if (label) out.label = label;
+  return out;
+}
+
+// bbox [w,s,e,n] → envelopeLngLats 4隅 [[w,s],[e,s],[e,n],[w,n]]
+export function bboxToEnvelope(bbox: [number, number, number, number]): [number, number][] {
+  const [west, south, east, north] = bbox;
+  return [
+    [west, south],
+    [east, south],
+    [east, north],
+    [west, north],
+  ];
+}
+
+// envelopeLngLats(非矩形含む) → bbox [w,s,e,n]（近似）
+export function envelopeToBbox(
+  lngLats?: [number, number][] | null,
+): [number, number, number, number] | null {
+  if (!Array.isArray(lngLats) || lngLats.length === 0) return null;
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  for (const point of lngLats) {
+    if (!Array.isArray(point) || point.length < 2) return null;
+    const [lng, lat] = point;
+    if (typeof lng !== "number" || typeof lat !== "number" || Number.isNaN(lng) || Number.isNaN(lat)) return null;
+    west = Math.min(west, lng);
+    east = Math.max(east, lng);
+    south = Math.min(south, lat);
+    north = Math.max(north, lat);
+  }
+  return [west, south, east, north];
+}
