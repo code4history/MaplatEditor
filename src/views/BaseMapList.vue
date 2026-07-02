@@ -36,6 +36,7 @@
               <th style="width: 220px;">{{ t("basemap.map_title") }}</th>
               <th>{{ t("basemap.url") }}</th>
               <th style="width: 180px;">{{ t("basemap.attribution") }}</th>
+              <th style="width: 90px;">{{ t("basemap.min_zoom") }}</th>
               <th style="width: 90px;">{{ t("basemap.max_zoom") }}</th>
               <th style="width: 140px;">{{ t("basemap.actions") }}</th>
             </tr>
@@ -46,6 +47,7 @@
               <td class="text-break">{{ item.data.title }}</td>
               <td class="text-break"><small>{{ item.data.url }}</small></td>
               <td class="text-break"><small>{{ item.data.attr || '-' }}</small></td>
+              <td>{{ item.data.minZoom ?? '-' }}</td>
               <td>{{ item.data.maxZoom ?? '-' }}</td>
               <td>
                 <button class="btn btn-sm btn-outline-secondary me-1" @click="openEditModal(item)">
@@ -129,14 +131,28 @@
               v-model="form.attr"
               :placeholder="t('basemap.modal.attr_placeholder')"
             />
-            <label class="form-label mt-2">{{ t("basemap.modal.max_zoom_label") }}</label>
-            <input
-              type="number"
-              class="form-control"
-              v-model="form.maxZoom"
-              min="1"
-              max="25"
-            />
+            <div class="row">
+              <div class="col">
+                <label class="form-label mt-2">{{ t("basemap.modal.min_zoom_label") }}</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  v-model="form.minZoom"
+                  min="0"
+                  max="25"
+                />
+              </div>
+              <div class="col">
+                <label class="form-label mt-2">{{ t("basemap.modal.max_zoom_label") }}</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  v-model="form.maxZoom"
+                  min="1"
+                  max="25"
+                />
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeModal">
@@ -181,6 +197,7 @@ const form = ref({
   title: "",
   url: "",
   attr: "",
+  minZoom: "" as string | number,
   maxZoom: "" as string | number,
 });
 
@@ -203,7 +220,7 @@ onMounted(() => {
 
 const openAddModal = () => {
   editing.value = false;
-  form.value = { mapID: "", title: "", url: "", attr: "", maxZoom: "" };
+  form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "" };
   formError.value = "";
   showModal.value = true;
 };
@@ -215,6 +232,7 @@ const openEditModal = (item: BaseMapCatalogItem) => {
     title: item.data.title || "",
     url: item.data.url || "",
     attr: item.data.attr || "",
+    minZoom: item.data.minZoom ?? "",
     maxZoom: item.data.maxZoom ?? "",
   };
   formError.value = "";
@@ -239,11 +257,22 @@ const validateForm = (): string | null => {
   if (!(url.includes("{z}") && url.includes("{x}") && (url.includes("{y}") || url.includes("{-y}")))) {
     return t("basemap.errors.url_invalid");
   }
-  if (form.value.maxZoom !== "" && form.value.maxZoom !== null) {
+  const hasMinZoom = form.value.minZoom !== "" && form.value.minZoom !== null;
+  const hasMaxZoom = form.value.maxZoom !== "" && form.value.maxZoom !== null;
+  if (hasMinZoom) {
+    const zoom = Number(form.value.minZoom);
+    if (!Number.isInteger(zoom) || zoom < 0 || zoom > 25) {
+      return t("basemap.errors.min_zoom_invalid");
+    }
+  }
+  if (hasMaxZoom) {
     const zoom = Number(form.value.maxZoom);
     if (!Number.isInteger(zoom) || zoom < 1 || zoom > 25) {
       return t("basemap.errors.max_zoom_invalid");
     }
+  }
+  if (hasMinZoom && hasMaxZoom && Number(form.value.minZoom) > Number(form.value.maxZoom)) {
+    return t("basemap.errors.zoom_order_invalid");
   }
   return null;
 };
@@ -261,6 +290,9 @@ const saveBaseMap = async () => {
   };
   const attr = form.value.attr.trim();
   if (attr) tms.attr = attr;
+  if (form.value.minZoom !== "" && form.value.minZoom !== null) {
+    tms.minZoom = Number(form.value.minZoom);
+  }
   if (form.value.maxZoom !== "" && form.value.maxZoom !== null) {
     tms.maxZoom = Number(form.value.maxZoom);
   }

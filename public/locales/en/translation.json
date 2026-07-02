@@ -32,6 +32,7 @@
     "map_title": "Title",
     "url": "Tile URL",
     "attribution": "Attribution",
+    "min_zoom": "Min zoom",
     "max_zoom": "Max zoom",
     "actions": "Actions",
     "edit": "Edit",
@@ -48,6 +49,7 @@
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
       "attr_label": "Attribution (optional)",
       "attr_placeholder": "e.g. © Example Provider",
+      "min_zoom_label": "Min zoom level (optional)",
       "max_zoom_label": "Max zoom level (optional)",
       "cancel": "Cancel",
       "save": "Save"
@@ -59,7 +61,9 @@
       "title_required": "Please input a title.",
       "url_required": "Please input a tile URL.",
       "url_invalid": "The URL must contain {z}, {x}, and {y} (or {-y}).",
+      "min_zoom_invalid": "Min zoom must be an integer between 0 and 25.",
       "max_zoom_invalid": "Max zoom must be an integer between 1 and 25.",
+      "zoom_order_invalid": "Min zoom must be less than or equal to max zoom.",
       "save_failed": "Failed to save the base map.",
       "delete_failed": "Failed to delete the base map.",
       "load_failed": "Failed to load the base map list."

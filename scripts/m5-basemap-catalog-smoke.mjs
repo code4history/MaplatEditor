@@ -81,6 +81,7 @@ try {
         title: 'My Base Map',
         url: 'https://example.test/tiles/{z}/{x}/{y}.png',
         attr: 'Example Provider',
+        minZoom: 5,
         maxZoom: 18,
       });
       const afterAdd = await SettingsService.listBaseMaps();
@@ -88,6 +89,7 @@ try {
       assert.ok(added);
       assert.equal(added.scope, 'user');
       assert.equal(added.data.title, 'My Base Map');
+      assert.equal(added.data.minZoom, 5);
       assert.equal(added.data.maxZoom, 18);
 
       // The new user base map is picked up by per-map TMS list

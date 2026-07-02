@@ -37,6 +37,7 @@
     "map_title": "タイトル",
     "url": "タイルURL",
     "attribution": "帰属表示",
+    "min_zoom": "最小ズーム",
     "max_zoom": "最大ズーム",
     "actions": "操作",
     "edit": "編集",
@@ -53,6 +54,7 @@
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
       "attr_label": "帰属表示 (任意)",
       "attr_placeholder": "例: © Example Provider",
+      "min_zoom_label": "最小ズームレベル (任意)",
       "max_zoom_label": "最大ズームレベル (任意)",
       "cancel": "キャンセル",
       "save": "保存"
@@ -64,7 +66,9 @@
       "title_required": "タイトルを入力してください。",
       "url_required": "タイルURLを入力してください。",
       "url_invalid": "URLには {z}, {x}, {y} (または {-y}) を含めてください。",
+      "min_zoom_invalid": "最小ズームは0〜25の整数で指定してください。",
       "max_zoom_invalid": "最大ズームは1〜25の整数で指定してください。",
+      "zoom_order_invalid": "最小ズームは最大ズーム以下で指定してください。",
       "save_failed": "保存に失敗しました。",
       "delete_failed": "削除に失敗しました。",
       "load_failed": "ベースマップ一覧の取得に失敗しました。"
