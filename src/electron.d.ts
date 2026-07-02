@@ -49,6 +49,7 @@ export interface BaseMapsAPI {
 
 export interface MapEditAPI {
     request(mapID: string): Promise<any>;
+    previewSource(mapID: string): Promise<any>;
     getTmsListOfMapID(mapID: string): Promise<any>;
     getBaseMapVisibilityOfMapID(mapID: string): Promise<any>;
     setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void>;

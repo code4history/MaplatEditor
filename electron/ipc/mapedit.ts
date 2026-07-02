@@ -62,6 +62,15 @@ export const registerMapEditHandlers = () => {
         }
     });
 
+    ipcMain.handle('mapedit:preview-source', async (_event, mapID: string) => {
+        try {
+            return await StorageAdapter.readMapForPreview(mapID);
+        } catch (e) {
+            console.error('Failed to handle mapedit:preview-source', e);
+            throw e;
+        }
+    });
+
     ipcMain.handle('mapedit:save', async (_event, mapObject: any, tins: any[]) => {
         try {
             return await StorageAdapter.saveMapForEdit({ mapObject, tins });

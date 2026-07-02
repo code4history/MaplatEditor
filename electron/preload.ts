@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('maplist', {
 
 contextBridge.exposeInMainWorld('mapedit', {
   request: (mapID: string) => ipcRenderer.invoke('mapedit:request', mapID),
+  previewSource: (mapID: string) => ipcRenderer.invoke('mapedit:preview-source', mapID),
   getTmsListOfMapID: (mapID: string) => ipcRenderer.invoke('mapedit:get-tms-list', mapID),
   getBaseMapVisibilityOfMapID: (mapID: string) => ipcRenderer.invoke('mapedit:get-base-map-visibility', mapID),
   setBaseMapVisibilityForMapID: (mapID: string, baseMapId: string, enabled: boolean) =>

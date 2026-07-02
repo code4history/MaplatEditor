@@ -293,7 +293,7 @@ async function loadBaseMaps() {
 
 async function addMapSource(item: MapListItem) {
   if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType === "maplat")) return;
-  const mapObject = await window.mapedit.request(item.mapID);
+  const mapObject = await window.mapedit.previewSource(item.mapID);
   if (!mapObject.compiled) {
     previewError.value = t("appedit.preview.compiled_required");
   }

@@ -105,6 +105,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('maplist:request')
   ipcMain.removeHandler('maplist:delete')
   ipcMain.removeHandler('mapedit:request')
+  ipcMain.removeHandler('mapedit:preview-source')
   ipcMain.removeHandler('mapedit:get-tms-list')
   ipcMain.removeHandler('mapedit:get-base-map-visibility')
   ipcMain.removeHandler('mapedit:set-base-map-visibility')

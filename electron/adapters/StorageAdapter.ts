@@ -22,6 +22,7 @@ export interface StorageAdapter {
   listMaps(request: MapListRequest): Promise<MapListResult>;
   deleteMap(mapID: string): Promise<void>;
   readMapForEdit(mapID: string): Promise<any>;
+  readMapForPreview(mapID: string): Promise<any>;
   saveMapForEdit(request: MapSaveRequest): Promise<MapSaveResult>;
   isMapIdAvailable(mapID: string): Promise<boolean>;
 }
@@ -30,6 +31,7 @@ export interface StorageAdapterDependencies {
   listMaps(query: string, page: number, pageSize: number): Promise<MapListResult>;
   deleteMap(mapID: string): Promise<void>;
   readMapForEdit(mapID: string): Promise<any>;
+  readMapForPreview?(mapID: string): Promise<any>;
   saveMapForEdit(mapObject: any, tins: any[]): Promise<string>;
   isMapIdAvailable(mapID: string): Promise<boolean>;
 }
@@ -51,6 +53,14 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
     assertMapID(mapID);
     const result = await this.dependencies.readMapForEdit(mapID);
     assertJsonSerializable(result, 'map edit read result');
+    return result;
+  }
+
+  async readMapForPreview(mapID: string): Promise<any> {
+    assertMapID(mapID);
+    const reader = this.dependencies.readMapForPreview ?? this.dependencies.readMapForEdit;
+    const result = await reader(mapID);
+    assertJsonSerializable(result, 'map preview read result');
     return result;
   }
 
