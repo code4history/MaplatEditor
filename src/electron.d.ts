@@ -29,6 +29,12 @@ export interface PoiSourcesAPI {
     delete(sourceId: string): Promise<any>;
 }
 
+export interface BaseMapsAPI {
+    list(): Promise<Array<{ mapID: string; scope: "builtin" | "user"; data: any }>>;
+    saveUser(tms: any): Promise<void>;
+    deleteUser(baseMapId: string): Promise<void>;
+}
+
 export interface MapEditAPI {
     request(mapID: string): Promise<any>;
     getTmsListOfMapID(mapID: string): Promise<any>;
@@ -52,5 +58,6 @@ declare global {
     appdraft: AppDraftAPI;
     appEvents: AppEventsAPI;
     poiSources: PoiSourcesAPI;
+    baseMaps: BaseMapsAPI;
   }
 }

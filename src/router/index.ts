@@ -22,6 +22,11 @@ const routes = [
     component: () => import('../views/AppList.vue')
   },
   {
+    path: '/basemaps',
+    name: 'BaseMapList',
+    component: () => import('../views/BaseMapList.vue')
+  },
+  {
     path: '/settings',
     name: 'Settings',
     component: () => import('../views/Settings.vue')

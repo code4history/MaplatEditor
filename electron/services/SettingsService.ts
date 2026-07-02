@@ -126,6 +126,21 @@ class SettingsService extends EventEmitter {
     const { default: DuckDbDataService } = await import('./DuckDbDataService');
     await DuckDbDataService.setBaseMapVisibilityForMapID(mapID, baseMapId, enabled);
   }
+
+  public async listBaseMaps(): Promise<any[]> {
+    const { default: DuckDbDataService } = await import('./DuckDbDataService');
+    return DuckDbDataService.listBaseMaps();
+  }
+
+  public async saveUserBaseMap(tms: any): Promise<void> {
+    const { default: DuckDbDataService } = await import('./DuckDbDataService');
+    await DuckDbDataService.saveUserBaseMap(tms);
+  }
+
+  public async deleteUserBaseMap(baseMapId: string): Promise<void> {
+    const { default: DuckDbDataService } = await import('./DuckDbDataService');
+    await DuckDbDataService.deleteUserBaseMap(baseMapId);
+  }
 }
 
 export default new SettingsService();

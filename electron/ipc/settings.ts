@@ -34,4 +34,16 @@ export function registerSettingsHandlers() {
   ipcMain.handle('mapedit:set-base-map-visibility', async (_, mapID: string, baseMapId: string, enabled: boolean) => {
     await SettingsService.setBaseMapVisibilityForMapID(mapID, baseMapId, enabled);
   });
+
+  ipcMain.handle('basemaps:list', async () => {
+    return await SettingsService.listBaseMaps();
+  });
+
+  ipcMain.handle('basemaps:save-user', async (_, tms: any) => {
+    await SettingsService.saveUserBaseMap(tms);
+  });
+
+  ipcMain.handle('basemaps:delete-user', async (_, baseMapId: string) => {
+    await SettingsService.deleteUserBaseMap(baseMapId);
+  });
 }

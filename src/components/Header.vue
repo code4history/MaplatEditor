@@ -21,20 +21,30 @@
             <a
               href="#"
               class="nav-link h-100 d-flex align-items-center px-4"
-              :class="{ active: currentRoute === 'AppList' }"
-              @click.prevent="navigate('AppList')"
+              :class="{ active: isPoiSection }"
+              @click.prevent="navigate('PoiSourceList')"
             >
-              {{ t("navbar.edit_app") }}
+              {{ t("navbar.edit_poi") }}
             </a>
           </li>
           <li class="nav-item h-100">
             <a
               href="#"
               class="nav-link h-100 d-flex align-items-center px-4"
-              :class="{ active: isPoiSection }"
-              @click.prevent="navigate('PoiSourceList')"
+              :class="{ active: currentRoute === 'BaseMapList' }"
+              @click.prevent="navigate('BaseMapList')"
             >
-              {{ t("navbar.edit_poi") }}
+              {{ t("navbar.add_basemap") }}
+            </a>
+          </li>
+          <li class="nav-item h-100">
+            <a
+              href="#"
+              class="nav-link h-100 d-flex align-items-center px-4"
+              :class="{ active: currentRoute === 'AppList' }"
+              @click.prevent="navigate('AppList')"
+            >
+              {{ t("navbar.edit_app") }}
             </a>
           </li>
           <li class="nav-item h-100">
@@ -86,6 +96,7 @@ const navigate = (targetName: string) => {
     if (targetName === 'MapList') router.push('/');
     else if (targetName === 'AppList') router.push('/applist');
     else if (targetName === 'PoiSourceList') router.push('/poisources');
+    else if (targetName === 'BaseMapList') router.push('/basemaps');
     else if (targetName === 'Settings') router.push('/settings');
 };
 </script>

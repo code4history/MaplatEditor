@@ -9,9 +9,8 @@ This document outlines potential future enhancements, features, and UI/UX improv
 - Migrate this configuration storage from standalone JSON files to the main database (e.g., NeDB or its successor) to ensure data integrity and easier querying.
 
 ## 2. Global Base Map Management UI
-**Current state**: The global list of custom base maps (`tms_list.json` in project root or `tmsList.json` in settings) is managed by manual file edits.
-**Proposed improvement**:
-- Build a "Base Map Manager" interface allowing users to Add/Edit/Delete custom TMS endpoints, complete with preview functionality and attribution fields.
+**Status**: Implemented (2026-07-02). The "ベースマップ追加" (Add Base Map) header tab opens `BaseMapList.vue`, which lets users Add/Edit/Delete user-defined TMS endpoints (stored in the DuckDB `base_maps` table with `scope = 'user'`) with attribution and max-zoom fields. Preview functionality remains a future enhancement.
+**Previous state**: The global list of custom base maps (`tms_list.json` in project root or `tmsList.json` in settings) was managed by manual file edits.
 
 ## 3. General UI/UX Modernization
 **Current state**: The UI is being ported from a legacy Bootstrap 3/jQuery design to Vue 3/Bootstrap 5.

@@ -99,6 +99,12 @@ contextBridge.exposeInMainWorld('appEvents', {
   },
 })
 
+contextBridge.exposeInMainWorld('baseMaps', {
+  list: () => ipcRenderer.invoke('basemaps:list'),
+  saveUser: (tms: any) => ipcRenderer.invoke('basemaps:save-user', tms),
+  deleteUser: (baseMapId: string) => ipcRenderer.invoke('basemaps:delete-user', baseMapId),
+})
+
 contextBridge.exposeInMainWorld('poiSources', {
   list: (request: any) => ipcRenderer.invoke('poisource:list', request),
   get: (sourceId: string) => ipcRenderer.invoke('poisource:get', sourceId),

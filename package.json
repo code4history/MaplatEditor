@@ -25,6 +25,7 @@
     "smoke:m4-undo-redo": "node scripts/m4-undo-redo-smoke.mjs",
     "smoke:m4-tin-v2-mode": "node scripts/m4-tin-v2-mode-smoke.mjs",
     "smoke:m4-duckdb-migration": "node scripts/m4-duckdb-migration-smoke.mjs",
+    "smoke:m5-basemap-catalog": "node scripts/m5-basemap-catalog-smoke.mjs",
     "smoke:m2-electrobun-poc": "node scripts/m2-electrobun-poc-smoke.mjs",
     "electrobun:dev": "electrobun dev",
     "electrobun:build": "electrobun build",

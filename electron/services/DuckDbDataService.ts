@@ -23,6 +23,12 @@ export interface BaseMapVisibilityItem {
   data: any;
 }
 
+export interface BaseMapCatalogItem {
+  mapID: string;
+  scope: BaseMapScope;
+  data: any;
+}
+
 interface Folders {
   saveFolder: string;
   settingsDir: string;
@@ -310,6 +316,71 @@ class DuckDbDataService {
        VALUES ($mapID, $baseMapId, $enabled, current_timestamp)`,
       { mapID, baseMapId, enabled }
     );
+  }
+
+  async listBaseMaps(): Promise<BaseMapCatalogItem[]> {
+    const connection = await this.getConnection();
+    const reader = await connection.runAndReadAll(`
+      SELECT map_id, scope, data_json::VARCHAR AS data_json
+      FROM base_maps
+      ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END, sort_order, map_id
+    `);
+    return (reader.getRowObjectsJson() as any[]).map((row) => ({
+      mapID: row.map_id,
+      scope: row.scope,
+      data: JSON.parse(row.data_json),
+    }));
+  }
+
+  async saveUserBaseMap(tms: any): Promise<void> {
+    const mapID = String(tms?.mapID ?? '').trim();
+    if (!mapID) throw new Error('mapID is required');
+    const connection = await this.getConnection();
+    const builtinReader = await connection.runAndReadAll(
+      `SELECT 1 FROM base_maps WHERE scope = 'builtin' AND map_id = $mapID`,
+      { mapID }
+    );
+    if ((builtinReader.getRowObjectsJson() as any[]).length > 0) {
+      throw new Error(`Base map ID conflicts with a builtin base map: ${mapID}`);
+    }
+
+    const existingReader = await connection.runAndReadAll(
+      `SELECT sort_order FROM base_maps WHERE scope = 'user' AND map_id = $mapID`,
+      { mapID }
+    );
+    const existingRows = existingReader.getRowObjectsJson() as any[];
+    let sortOrder: number;
+    if (existingRows.length > 0) {
+      sortOrder = Number(existingRows[0].sort_order);
+    } else {
+      const nextReader = await connection.runAndReadAll(
+        `SELECT COALESCE(MAX(sort_order) + 1, 0)::INTEGER AS next_order FROM base_maps WHERE scope = 'user'`
+      );
+      sortOrder = Number((nextReader.getRowObjectsJson() as any[])[0].next_order);
+    }
+    await connection.run(
+      `INSERT OR REPLACE INTO base_maps (map_id, scope, sort_order, data_json, updated_at)
+       VALUES ($mapID, 'user', $sortOrder, CAST($dataJson AS JSON), current_timestamp)`,
+      { mapID, sortOrder, dataJson: JSON.stringify({ ...tms, mapID }) }
+    );
+  }
+
+  async deleteUserBaseMap(baseMapId: string): Promise<void> {
+    const connection = await this.getConnection();
+    await connection.run(
+      `DELETE FROM base_maps WHERE scope = 'user' AND map_id = $baseMapId`,
+      { baseMapId }
+    );
+    const remainsReader = await connection.runAndReadAll(
+      'SELECT 1 FROM base_maps WHERE map_id = $baseMapId',
+      { baseMapId }
+    );
+    if ((remainsReader.getRowObjectsJson() as any[]).length === 0) {
+      await connection.run(
+        'DELETE FROM map_base_map_visibility WHERE base_map_id = $baseMapId',
+        { baseMapId }
+      );
+    }
   }
 
   private async applyBuiltinBaseMapMigration(connection: DuckDBConnection): Promise<void> {
