@@ -1,4 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron';
+import fs from 'fs-extra';
+import path from 'path';
 import SettingsService from '../services/SettingsService';
 import MapDataService from '../services/MapDataService';
 
@@ -36,7 +38,16 @@ export function registerSettingsHandlers() {
   });
 
   ipcMain.handle('basemaps:list', async () => {
-    return await SettingsService.listBaseMaps();
+    const items = await SettingsService.listBaseMaps();
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    // 非ビルトインのTMSはtmbs/{mapID}_menu.jpgのサムネイルをUI表示用に付与する
+    return items.map((item: any) => {
+      const thumbPath = path.join(saveFolder, 'tmbs', `${item.mapID}_menu.jpg`);
+      return {
+        ...item,
+        thumbnailUrl: fs.existsSync(thumbPath) ? `file://${thumbPath.split(path.sep).join('/')}` : null,
+      };
+    });
   });
 
   ipcMain.handle('basemaps:save-user', async (_, tms: any) => {

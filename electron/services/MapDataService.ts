@@ -77,7 +77,13 @@ class MapDataService {
             res.height = 190;
         }
 
-        const { tileFolder } = this.folders;
+        const { tileFolder, uiThumbnailFolder } = this.folders;
+        // 正式なサムネイルはデータフォルダのtmbs/{mapID}.jpg。無い場合のみズーム0タイルへフォールバック
+        const uiThumbnail = path.join(uiThumbnailFolder, `${mapID}.jpg`);
+        if (fs.existsSync(uiThumbnail)) {
+            res.image = `file://${uiThumbnail.split(path.sep).join('/')}`;
+            return res;
+        }
         const thumbFolder = path.join(tileFolder, mapID, "0", "0");
 
         if (fs.existsSync(thumbFolder)) {

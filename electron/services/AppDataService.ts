@@ -8,6 +8,7 @@ class AppDataService {
     const saveFolder = SettingsService.get('saveFolder');
     return {
       tileFolder: path.join(saveFolder, "tiles"),
+      uiThumbnailFolder: path.join(saveFolder, "tmbs"),
     };
   }
 
@@ -20,6 +21,11 @@ class AppDataService {
   }
 
   private async getMapThumbnail(mapID: string): Promise<string | null> {
+    // 正式なサムネイルはデータフォルダのtmbs/{mapID}.jpg。無い場合のみズーム0タイルへフォールバック
+    const uiThumbnail = path.join(this.folders.uiThumbnailFolder, `${mapID}.jpg`);
+    if (fs.existsSync(uiThumbnail)) {
+      return `file://${uiThumbnail.split(path.sep).join('/')}`;
+    }
     const thumbFolder = path.join(this.folders.tileFolder, mapID, "0", "0");
     if (!fs.existsSync(thumbFolder)) return null;
     try {

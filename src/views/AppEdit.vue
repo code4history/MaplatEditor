@@ -3,6 +3,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
+import osmThumb from "../assets/img/osm.jpg";
+import gsiThumb from "../assets/img/gsi.jpg";
+import gsiOrthoThumb from "../assets/img/gsi_ortho.jpg";
 import { UndoStack } from "../services/editorUndoStack";
 import {
   isViewerBuiltin,
@@ -80,7 +83,14 @@ interface BaseMapItem {
   mapID: string;
   scope: "builtin" | "user";
   data: any;
+  thumbnailUrl?: string | null;
 }
+
+const builtinThumbnails: Record<string, string> = {
+  osm: osmThumb,
+  gsi: gsiThumb,
+  gsi_ortho: gsiOrthoThumb,
+};
 
 const { t } = useTranslation();
 const route = useRoute();
@@ -460,6 +470,11 @@ function addBaseMapSource(item: BaseMapItem) {
     }) as AppSource;
     source.title = title;
     source.label = { ...normalizeLangObject(title) };
+    source.thumbnail = item.thumbnailUrl || undefined;
+    if (item.thumbnailUrl && source.data) {
+      // Viewer規約: 非ビルトインTMSのサムネイルはtmbs/{mapID}_menu.jpg
+      source.data.thumbnail = `tmbs/${item.mapID}_menu.jpg`;
+    }
     appData.value.sources.push(source);
   }
   ensureSingleStartFrom();
@@ -509,6 +524,15 @@ function updateSourceData(source: AppSource, value: string) {
 
 function baseMapTitle(item: BaseMapItem): string {
   return String(item.data?.title ?? item.data?.label ?? item.mapID);
+}
+
+function baseMapThumbnail(item: BaseMapItem): string {
+  return builtinThumbnails[item.mapID] || item.thumbnailUrl || noImage;
+}
+
+function sourceThumbnail(source: AppSource): string {
+  if (source.sourceType === "builtin") return builtinThumbnails[source.mapID] || noImage;
+  return source.thumbnail || noImage;
 }
 
 function translatePreviewError(e: unknown): string {
@@ -828,7 +852,7 @@ function normalizeJsonText(value: string, fallback: any) {
           <div v-else>
             <div class="source-list">
               <button v-for="item in filteredBaseMapItems" :key="`${item.scope}:${item.mapID}`" type="button" class="source-row" @click="addBaseMapSource(item)">
-                <span class="base-map-thumb">{{ item.scope === "builtin" ? "B" : "U" }}</span>
+                <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)">
                 <span>{{ baseMapTitle(item) }}</span>
               </button>
             </div>
@@ -841,9 +865,12 @@ function normalizeJsonText(value: string, fallback: any) {
           <div v-else class="selected-list">
             <div v-for="(source, index) in appData.sources" :key="`${source.sourceType}:${source.mapID}`" class="selected-source border rounded p-2 mb-2">
               <div class="d-flex align-items-center justify-content-between gap-2">
-                <div>
-                  <div class="fw-bold">{{ sourceTitle(source) }}</div>
-                  <small class="text-muted">{{ source.mapID }} / {{ t(`appedit.roles.${source.role}`) }}</small>
+                <div class="d-flex align-items-center gap-2">
+                  <img :src="sourceThumbnail(source)" :alt="sourceTitle(source)" class="selected-source-thumb">
+                  <div>
+                    <div class="fw-bold">{{ sourceTitle(source) }}</div>
+                    <small class="text-muted">{{ source.mapID }} / {{ t(`appedit.roles.${source.role}`) }}</small>
+                  </div>
                 </div>
                 <div class="btn-group btn-group-sm">
                   <button class="btn btn-outline-secondary" :disabled="index === 0" @click="moveSource(index, -1)">↑</button>
@@ -931,8 +958,7 @@ function normalizeJsonText(value: string, fallback: any) {
   padding: 6px;
   text-align: left;
 }
-.source-row img,
-.base-map-thumb {
+.source-row img {
   width: 48px;
   height: 48px;
   object-fit: contain;
@@ -943,11 +969,12 @@ function normalizeJsonText(value: string, fallback: any) {
   opacity: 0.58;
   cursor: not-allowed;
 }
-.base-map-thumb {
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  color: #6c757d;
+.selected-source-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  background: #f8f9fa;
+  border: 1px solid var(--bs-border-color);
 }
 .opacity-input {
   width: 6rem;
