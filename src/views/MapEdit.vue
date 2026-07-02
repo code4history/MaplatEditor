@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
 import { UndoStack } from '../services/editorUndoStack';
+import { editorComputeBackend } from '../services/editorComputeBackend';
 // @ts-ignore
 import { useTranslation } from 'i18next-vue';
 import { sha1 } from 'js-sha1';
@@ -1451,6 +1452,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('keydown', onHistoryKeydown);
     removeMainProcessListener?.();
     removeMainProcessListener = undefined;
+    editorComputeBackend.dispose();
 });
 
 let edgeRevisionBuffer: number[] = [];
@@ -1651,14 +1653,14 @@ const updateTin = async () => {
         const plainGcps = JSON.parse(JSON.stringify(gcpList.map((g: any[]) => [g[0], g[1]])));
         const plainEdges = JSON.parse(JSON.stringify(edges.value));
         const plainBounds = bounds ? JSON.parse(JSON.stringify(bounds)) : null;
-        const [, compiled] = await (window as any).mapedit.updateTin(
-            plainGcps,
-            plainEdges,
+        const [, compiled] = await editorComputeBackend.updateTin({
+            gcps: plainGcps,
+            edges: plainEdges,
             index,
-            plainBounds,
-            strictMode.value,
-            vertexMode.value
-        );
+            bounds: plainBounds,
+            strict: strictMode.value,
+            vertex: vertexMode.value
+        });
         if (typeof compiled === 'string') {
             // エラー文字列が返ってきた場合
             tinObject.value = compiled;

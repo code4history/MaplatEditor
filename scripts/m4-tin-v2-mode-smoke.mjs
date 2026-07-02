@@ -8,6 +8,7 @@ const files = [
   'electron/ipc/mapedit.ts',
   'electron/services/WmtsGeneratorService.ts',
   'src/views/MapEdit.vue',
+  'src/workers/tinComputeWorker.ts',
 ];
 
 try {
@@ -40,10 +41,32 @@ try {
   );
 
   const mapEdit = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
+  const computeBackend = await readFile(path.join(projectRoot, 'src/services/editorComputeBackend.ts'), 'utf8');
+  const tinWorker = await readFile(path.join(projectRoot, 'src/workers/tinComputeWorker.ts'), 'utf8');
   const rendererTinRestores = mapEdit.match(/new\s+Tin\s*\(\s*TIN_V2_OPTIONS\s*\)/g) ?? [];
   assert.ok(
     rendererTinRestores.length >= 2,
     'MapEdit renderer must restore both updateTin and imported compiled TINs with V2 Tin options'
+  );
+  assert.match(
+    mapEdit,
+    /editorComputeBackend\.updateTin\s*\(/,
+    'MapEdit TIN update must go through the shared compute backend'
+  );
+  assert.doesNotMatch(
+    mapEdit,
+    /mapedit\.updateTin\s*\(/,
+    'MapEdit must not call the Electron updateTin IPC directly'
+  );
+  assert.match(
+    computeBackend,
+    /new\s+Worker\s*\(\s*new\s+URL\s*\(\s*['"]\.\.\/workers\/tinComputeWorker\.ts['"]/,
+    'Editor compute backend must run TIN updates through a Web Worker'
+  );
+  assert.match(
+    tinWorker,
+    /new\s+Tin\s*\(\s*TIN_V2_OPTIONS\s*\)/,
+    'TIN worker must use explicit V2 Tin options'
   );
   assert.match(
     mapEdit,
