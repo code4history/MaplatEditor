@@ -8,6 +8,7 @@ import gsiThumb from "../assets/img/gsi.jpg";
 import gsiOrthoThumb from "../assets/img/gsi_ortho.jpg";
 import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
+import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import {
   isViewerBuiltin,
   normalizeAppSource,
@@ -35,11 +36,8 @@ interface HttpSettings {
 
 interface AppRuntimeSettings {
   splash: string;
-  fakeGps: boolean;
-  fakeCenter: string;
-  fakeRadius: number;
-  homeLng: number;
-  homeLat: number;
+  homeLng: number | null;
+  homeLat: number | null;
   defaultZoom: number;
 }
 
@@ -132,11 +130,8 @@ const defaultApp = (): AppDocument => ({
   },
   appSettings: {
     splash: "",
-    fakeGps: false,
-    fakeCenter: "",
-    fakeRadius: 10,
-    homeLng: 139.767,
-    homeLat: 35.681,
+    homeLng: null,
+    homeLat: null,
     defaultZoom: 17,
   },
   manifestSettings: {
@@ -276,6 +271,44 @@ async function uploadPwaIcon() {
   recordHistory();
 }
 
+const homePosition = computed<[number, number] | null>(() => {
+  const { homeLng, homeLat } = appData.value.appSettings;
+  return homeLng !== null && homeLat !== null ? [homeLng, homeLat] : null;
+});
+const homeModalVisible = ref(false);
+const homeModalFallback = ref<[number, number] | undefined>(undefined);
+
+async function openHomePositionModal() {
+  // 未設定時のみ、登録済みMaplat地図の代表点(homePosition)を初期表示の目安にする
+  homeModalFallback.value = homePosition.value ? undefined : await resolveMaplatFallbackCenter();
+  homeModalVisible.value = true;
+}
+
+// 代表点はあくまで目安なので、取得失敗は無視してベストエフォートで返す
+async function resolveMaplatFallbackCenter(): Promise<[number, number] | undefined> {
+  const maplatSources = appData.value.sources
+    .filter((source) => source.sourceType === "maplat")
+    .sort((a, b) => Number(b.startFrom || false) - Number(a.startFrom || false));
+  for (const source of maplatSources) {
+    try {
+      const mapDoc = await window.mapedit.request(source.mapID);
+      const home = mapDoc?.homePosition;
+      if (Array.isArray(home) && Number.isFinite(home[0]) && Number.isFinite(home[1])) {
+        return [home[0], home[1]];
+      }
+    } catch {
+      // noop
+    }
+  }
+  return undefined;
+}
+
+function applyHomePosition(value: [number, number] | null) {
+  appData.value.appSettings.homeLng = value ? value[0] : null;
+  appData.value.appSettings.homeLat = value ? value[1] : null;
+  recordHistory();
+}
+
 // 保存済みアプリのソースにUI表示用サムネイルURLを補完する
 async function hydrateSourceThumbnails() {
   for (const source of appData.value.sources) {
@@ -378,13 +411,17 @@ function normalizeAppSettings(value: any): AppRuntimeSettings {
   const home = value.home_position || value.homePosition;
   return {
     splash: value.splash || defaults.splash,
-    fakeGps: value.fakeGps ?? value.fake_gps ?? defaults.fakeGps,
-    fakeCenter: value.fakeCenter || value.fake_center || defaults.fakeCenter,
-    fakeRadius: Number(value.fakeRadius ?? value.fake_radius ?? defaults.fakeRadius),
-    homeLng: Number(value.homeLng ?? home?.[0] ?? defaults.homeLng),
-    homeLat: Number(value.homeLat ?? home?.[1] ?? defaults.homeLat),
+    homeLng: finiteOrNull(value.homeLng ?? home?.[0]),
+    homeLat: finiteOrNull(value.homeLat ?? home?.[1]),
     defaultZoom: Number(value.defaultZoom ?? value.default_zoom ?? defaults.defaultZoom),
   };
+}
+
+// v-model.numberの空入力("")や不正値はnull(未設定)として扱う
+function finiteOrNull(value: any): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
 }
 
 function normalizeManifestSettings(value: any): ManifestSettings {
@@ -833,26 +870,18 @@ function normalizeJsonText(value: string, fallback: any) {
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.home_lng") }}</label>
-                <input v-model.number="appData.appSettings.homeLng" type="number" step="0.000001" class="form-control form-control-sm" @change="recordHistory">
+                <input :value="appData.appSettings.homeLng ?? ''" type="number" step="0.000001" class="form-control form-control-sm" @change="appData.appSettings.homeLng = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.home_lat") }}</label>
-                <input v-model.number="appData.appSettings.homeLat" type="number" step="0.000001" class="form-control form-control-sm" @change="recordHistory">
+                <input :value="appData.appSettings.homeLat ?? ''" type="number" step="0.000001" class="form-control form-control-sm" @change="appData.appSettings.homeLat = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap mb-1" @click="openHomePositionModal">{{ t("appedit.home_pick") }}</button>
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.default_zoom") }}</label>
                 <input v-model.number="appData.appSettings.defaultZoom" type="number" min="0" max="28" class="form-control form-control-sm" @change="recordHistory">
-              </div>
-              <div class="col-md-2 d-flex align-items-end">
-                <label class="form-check mb-1"><input v-model="appData.appSettings.fakeGps" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.fake_gps") }}</label>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label small fw-bold">{{ t("appedit.fake_center") }}</label>
-                <input v-model="appData.appSettings.fakeCenter" type="text" class="form-control form-control-sm" @input="recordHistory">
-              </div>
-              <div class="col-md-2">
-                <label class="form-label small fw-bold">{{ t("appedit.fake_radius") }}</label>
-                <input v-model.number="appData.appSettings.fakeRadius" type="number" min="0" class="form-control form-control-sm" @change="recordHistory">
               </div>
               <div class="col-md-6">
                 <label class="form-label small fw-bold">{{ t("appedit.poi_sources_json") }}</label>
@@ -1015,7 +1044,7 @@ function normalizeJsonText(value: string, fallback: any) {
               <AppSourceEditor
                 :source="source"
                 :current-lang="currentLang"
-                :fallback-center="[appData.appSettings.homeLng, appData.appSettings.homeLat]"
+                :fallback-center="homePosition ?? undefined"
                 @change="recordHistory"
               />
             </div>
@@ -1028,6 +1057,14 @@ function normalizeJsonText(value: string, fallback: any) {
         <div v-if="previewError" class="alert alert-warning preview-error">{{ previewError }}</div>
       </div>
     </div>
+
+    <HomePositionEditorModal
+      v-if="homeModalVisible"
+      :model-value="homePosition"
+      :fallback-center="homeModalFallback"
+      @update:model-value="applyHomePosition"
+      @close="homeModalVisible = false"
+    />
   </div>
 </template>
 

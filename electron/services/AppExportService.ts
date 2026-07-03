@@ -166,14 +166,9 @@ class AppExportService {
     if (description) out.description = description;
     const splash = String(document.appSettings?.splash || '');
     if (splash) out.splash = splash;
-    if (document.appSettings?.fakeGps) {
-      out.fakeGps = true;
-      if (document.appSettings.fakeCenter) out.fakeCenter = document.appSettings.fakeCenter;
-      if (document.appSettings.fakeRadius) out.fakeRadius = Number(document.appSettings.fakeRadius);
-    }
     out.homePosition = [
-      Number(document.appSettings?.homeLng ?? 139.767),
-      Number(document.appSettings?.homeLat ?? 35.681),
+      finiteOr(document.appSettings?.homeLng, 139.767),
+      finiteOr(document.appSettings?.homeLat, 35.681),
     ];
     out.defaultZoom = Number(document.appSettings?.defaultZoom ?? 17);
     const startFrom = document.startFrom || sources.find(source => source.startFrom)?.mapID;
@@ -415,6 +410,13 @@ ${headLines.join('\n')}
 </html>
 `;
   }
+}
+
+// null/空文字/非数はfallback(ホームポジション未設定時に使用)
+function finiteOr(value: any, fallback: number): number {
+  if (value === null || value === undefined || value === '') return fallback;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
 }
 
 function parseJsonArray(value: any): any[] {

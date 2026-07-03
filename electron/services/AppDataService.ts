@@ -1,14 +1,15 @@
 import fs from 'fs-extra';
 import path from 'path';
 import SettingsService from './SettingsService';
+import AppAssetService from './AppAssetService';
 import DuckDbDataService, { type AppListResult } from './DuckDbDataService';
+import { normalizeAppSource, type AppSource } from '../../src/utils/appSourceModel';
 
 class AppDataService {
   private get folders() {
     const saveFolder = SettingsService.get('saveFolder');
     return {
       tileFolder: path.join(saveFolder, "tiles"),
-      uiThumbnailFolder: path.join(saveFolder, "tmbs"),
     };
   }
 
@@ -20,12 +21,7 @@ class AppDataService {
     return fallback;
   }
 
-  private async getMapThumbnail(mapID: string): Promise<string | null> {
-    // 正式なサムネイルはデータフォルダのtmbs/{mapID}.jpg。無い場合のみズーム0タイルへフォールバック
-    const uiThumbnail = path.join(this.folders.uiThumbnailFolder, `${mapID}.jpg`);
-    if (fs.existsSync(uiThumbnail)) {
-      return `file://${uiThumbnail.split(path.sep).join('/')}`;
-    }
+  private async getMapTile(mapID: string): Promise<string | null> {
     const thumbFolder = path.join(this.folders.tileFolder, mapID, "0", "0");
     if (!fs.existsSync(thumbFolder)) return null;
     try {
@@ -37,18 +33,37 @@ class AppDataService {
     }
   }
 
+  // アプリの代表ビジュアル: アイコン → スプラッシュ → startFromがMaplat地図なら0/0/0タイル → null(NO IMAGE)
+  private async resolveAppImage(doc: any): Promise<string | null> {
+    const iconSource = doc.manifestSettings?.iconSource || doc.httpSettings?.iconSource;
+    if (typeof iconSource === 'string' && iconSource.trim()) {
+      const url = AppAssetService.fileUrlFor(iconSource);
+      if (url) return url;
+    }
+    const splash = doc.appSettings?.splash || doc.splash;
+    if (typeof splash === 'string' && splash.trim()) {
+      const url = AppAssetService.fileUrlFor(`img/${splash}`);
+      if (url) return url;
+    }
+    const sources: AppSource[] = (Array.isArray(doc.sources) ? doc.sources : []).map((raw: any) => normalizeAppSource(raw));
+    const startFromID = doc.startFrom || doc.start_from || sources.find((source) => source.startFrom)?.mapID;
+    const startSource = sources.find((source) => source.mapID === startFromID);
+    if (startSource?.sourceType === 'maplat') {
+      return await this.getMapTile(startSource.mapID);
+    }
+    return null;
+  }
+
   async requestApps(query: string = '', page: number = 1, pageSize: number = 20): Promise<AppListResult> {
     const rawResult = await DuckDbDataService.listApps(query, page, pageSize);
     const docs = await Promise.all(rawResult.docs.map(async (doc: any) => {
       const appID = doc._id || doc.appID;
       const lang = doc.lang || 'ja';
-      const sources = Array.isArray(doc.sources) ? doc.sources : [];
-      const firstMap = sources.find((source: any) => source?.sourceType === 'maplat' || source?.maptype === 'maplat');
       return {
         appID,
         title: this.getLocalizedTitle(doc.title || doc.appName, lang, appID),
         description: this.getLocalizedTitle(doc.description, lang, ''),
-        image: firstMap?.mapID ? await this.getMapThumbnail(firstMap.mapID) : null,
+        image: await this.resolveAppImage(doc),
       };
     }));
     return { ...rawResult, docs };

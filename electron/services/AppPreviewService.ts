@@ -121,12 +121,9 @@ class AppPreviewService {
       description: document.description,
       lang: document.lang || 'ja',
       splash: document.appSettings?.splash || document.splash || '',
-      fakeGps: Boolean(document.appSettings?.fakeGps),
-      fakeCenter: document.appSettings?.fakeCenter || '',
-      fakeRadius: Number(document.appSettings?.fakeRadius || 0),
       homePosition: [
-        Number(document.appSettings?.homeLng || 139.767),
-        Number(document.appSettings?.homeLat || 35.681),
+        finiteOr(document.appSettings?.homeLng, 139.767),
+        finiteOr(document.appSettings?.homeLat, 35.681),
       ],
       defaultZoom: Number(document.appSettings?.defaultZoom || 10),
       startFrom: document.startFrom || document.sources?.find((source: any) => source.startFrom)?.mapID,
@@ -308,6 +305,13 @@ ${manifestLink}
 
 function sanitizeId(value: string) {
   return String(value || 'preview').replace(/[^\w-]/g, '_');
+}
+
+// null/空文字/非数はfallback(ホームポジション未設定時に使用)
+function finiteOr(value: any, fallback: number): number {
+  if (value === null || value === undefined || value === '') return fallback;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
 }
 
 function localize(value: any, lang = 'ja') {
