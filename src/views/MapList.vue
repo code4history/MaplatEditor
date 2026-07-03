@@ -45,6 +45,8 @@
               <img
                 v-if="map.image"
                 :src="map.image"
+                loading="lazy"
+                decoding="async"
                 style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto;"
                 :style="{ width: (map.width || 190) + 'px', height: (map.height || 190) + 'px' }"
                 :alt="map.title"

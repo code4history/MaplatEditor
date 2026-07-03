@@ -111,10 +111,12 @@ try {
     'AppEdit.vue が window.baseMaps.list() を呼んでいない'
   );
 
+  // raw window.maplist.* の直呼びは m1-t2 smoke の allowlist で禁止されているため、
+  // サービス層 fetchAllRegisteredMaps の利用を検証する
   assert.match(
     appEdit,
-    /window\.maplist\.request/,
-    'AppEdit.vue が window.maplist.request を呼んでいない'
+    /fetchAllRegisteredMaps/,
+    'AppEdit.vue が desktopMapList サービス(fetchAllRegisteredMaps)を使っていない'
   );
 
   assert.match(

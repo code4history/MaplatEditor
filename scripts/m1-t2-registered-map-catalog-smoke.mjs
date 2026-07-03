@@ -143,6 +143,7 @@ try {
   const ALLOWLIST = new Set([
     'src/views/MapList.vue',
     'src/services/registeredMapCatalog.ts',
+    'src/services/desktopMapList.ts',
   ]);
 
   async function walk(dir, acc = []) {

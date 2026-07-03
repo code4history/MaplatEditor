@@ -451,6 +451,7 @@
     "invalid_json": "JSONの形式が正しくありません。",
     "success_save": "アプリ設定を保存しました。",
     "error_saving": "アプリ設定の保存に失敗しました。",
+    "confirm_no_save": "アプリ設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?",
     "roles": {
       "maplat": "Maplat",
       "base": "ベースマップ",

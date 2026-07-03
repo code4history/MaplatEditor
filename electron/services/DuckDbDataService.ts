@@ -237,6 +237,11 @@ class DuckDbDataService {
       );
     }
 
+    // pageSize<=0 は全件取得(ページネーションなし)
+    if (pageSize <= 0) {
+      return { docs: rawDocs, prev: false, next: false };
+    }
+
     let currentPage = page;
     let pageUpdate: number | undefined;
     while (currentPage > 1 && rawDocs.slice((currentPage - 1) * pageSize, currentPage * pageSize).length === 0) {

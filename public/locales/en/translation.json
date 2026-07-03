@@ -419,6 +419,7 @@
     "invalid_json": "Invalid JSON.",
     "success_save": "App settings saved.",
     "error_saving": "Failed to save app settings.",
+    "confirm_no_save": "The app settings have unsaved changes.\nClose without saving?",
     "roles": {
       "maplat": "Maplat",
       "base": "Base Map",

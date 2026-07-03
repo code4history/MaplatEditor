@@ -79,22 +79,23 @@ class MapDataService {
 
         const { tileFolder, uiThumbnailFolder } = this.folders;
         // 正式なサムネイルはデータフォルダのtmbs/{mapID}.jpg。無い場合のみズーム0タイルへフォールバック
+        // 同期I/Oはイベントループを直列にブロックするため非同期で確認する(OneDrive等の遅いストレージ対策)
         const uiThumbnail = path.join(uiThumbnailFolder, `${mapID}.jpg`);
-        if (fs.existsSync(uiThumbnail)) {
+        if (await fs.pathExists(uiThumbnail)) {
             res.image = `file://${uiThumbnail.split(path.sep).join('/')}`;
             return res;
         }
         const thumbFolder = path.join(tileFolder, mapID, "0", "0");
 
-        if (fs.existsSync(thumbFolder)) {
-            try {
-                const files = await fs.readdir(thumbFolder);
-                const tileFile = files.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
-                if (tileFile) {
-                    const tilePath = path.join(thumbFolder, tileFile);
-                    res.image = `file://${tilePath.split(path.sep).join('/')}`;
-                }
-            } catch (e) {
+        try {
+            const files = await fs.readdir(thumbFolder);
+            const tileFile = files.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
+            if (tileFile) {
+                const tilePath = path.join(thumbFolder, tileFile);
+                res.image = `file://${tilePath.split(path.sep).join('/')}`;
+            }
+        } catch (e: any) {
+            if (e?.code !== 'ENOENT') {
                 console.error(`[MapDataService] ${mapID} のサムネイル読み込みエラー`, e);
             }
         }

@@ -9,6 +9,7 @@ import gsiOrthoThumb from "../assets/img/gsi_ortho.jpg";
 import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
+import { fetchAllRegisteredMaps } from "../services/desktopMapList";
 import {
   isViewerBuiltin,
   normalizeAppSource,
@@ -159,8 +160,6 @@ const appIDError = ref("appedit.check_uniqueness");
 const saveError = ref<string | null>(null);
 const mapItems = ref<MapListItem[]>([]);
 const mapSearchQuery = ref("");
-const mapCurrentPage = ref(1);
-const mapHasNext = ref(true);
 const baseMapItems = ref<BaseMapItem[]>([]);
 const baseMapSearchQuery = ref("");
 const previewError = ref<string | null>(null);
@@ -201,6 +200,13 @@ const filteredBaseMapItems = computed(() => {
     item.mapID.toLowerCase().includes(query) || baseMapTitle(item).toLowerCase().includes(query),
   );
 });
+const filteredMapItems = computed(() => {
+  const query = mapSearchQuery.value.trim().toLowerCase();
+  if (!query) return mapItems.value;
+  return mapItems.value.filter((item) =>
+    item.mapID.toLowerCase().includes(query) || item.title.toLowerCase().includes(query),
+  );
+});
 
 onMounted(async () => {
   const appID = typeof route.query.appid === "string" ? route.query.appid : "";
@@ -216,7 +222,7 @@ onMounted(async () => {
   currentLang.value = appData.value.lang;
   await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   resetHistoryBase();
-  await Promise.all([loadMaps(1), loadBaseMaps()]);
+  await Promise.all([loadMaps(), loadBaseMaps()]);
 });
 
 const splashPreviewUrl = ref<string | null>(null);
@@ -449,7 +455,17 @@ function localizedWithLang(value: any, lang: string): string {
   return value?.[lang] || value?.ja || value?.en || "";
 }
 
-function goBack() {
+async function goBack() {
+  // 地図編集と同様、未保存の変更があれば確認ダイアログを出す
+  if (isDirty.value) {
+    const response = await (window as any).dialog.showMessageBox({
+      type: "info",
+      buttons: ["OK", "Cancel"],
+      cancelId: 1,
+      message: t("appedit.confirm_no_save"),
+    });
+    if (response.response !== 0) return;
+  }
   router.push("/applist");
 }
 
@@ -568,11 +584,9 @@ async function exportApp() {
   }
 }
 
-async function loadMaps(page: number = 1) {
-  const result = await window.maplist.request(mapSearchQuery.value, page);
-  mapItems.value = result.docs;
-  mapCurrentPage.value = result.pageUpdate ?? page;
-  mapHasNext.value = result.next;
+// 全件を一度に取得し、検索はクライアント側で絞り込む(ベース地図リストと同様)
+async function loadMaps() {
+  mapItems.value = await fetchAllRegisteredMaps();
 }
 
 async function loadBaseMaps() {
@@ -959,7 +973,6 @@ function normalizeJsonText(value: string, fallback: any) {
               v-model="mapSearchQuery"
               class="form-control form-control-sm"
               :placeholder="t('maplist.search_placeholder')"
-              @input="loadMaps(1)"
             >
             <input
               v-else
@@ -972,7 +985,7 @@ function normalizeJsonText(value: string, fallback: any) {
           <div v-if="sourceListMode === 'maps'">
             <div class="source-list">
               <button
-                v-for="item in mapItems"
+                v-for="item in filteredMapItems"
                 :key="item.mapID"
                 type="button"
                 class="source-row"
@@ -981,23 +994,19 @@ function normalizeJsonText(value: string, fallback: any) {
                 :title="item.previewDisabled ? t(item.previewDisabledReason || 'appedit.preview.unavailable') : item.title"
                 @click="addMapSource(item)"
               >
-                <img :src="item.image || noImage" :alt="item.title">
+                <img :src="item.image || noImage" :alt="item.title" loading="lazy" decoding="async">
                 <span>
                   {{ item.title }}
                   <small v-if="item.previewDisabled" class="d-block text-danger">{{ t(item.previewDisabledReason || "appedit.preview.unavailable") }}</small>
                 </span>
               </button>
             </div>
-            <div class="d-flex justify-content-center gap-2 mt-2">
-              <button class="btn btn-sm btn-outline-secondary" :disabled="mapCurrentPage <= 1" @click="loadMaps(mapCurrentPage - 1)">&lt;</button>
-              <button class="btn btn-sm btn-outline-secondary" :disabled="!mapHasNext" @click="loadMaps(mapCurrentPage + 1)">&gt;</button>
-            </div>
           </div>
 
           <div v-else>
             <div class="source-list">
               <button v-for="item in filteredBaseMapItems" :key="`${item.scope}:${item.mapID}`" type="button" class="source-row" @click="addBaseMapSource(item)">
-                <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)">
+                <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)" loading="lazy" decoding="async">
                 <span>{{ baseMapTitle(item) }}</span>
               </button>
             </div>

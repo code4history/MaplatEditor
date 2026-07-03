@@ -94,7 +94,8 @@ export function assertMapID(mapID: unknown): asserts mapID is string {
 export function normalizeMapListRequest(request: MapListRequest): Required<MapListRequest> {
   const query = typeof request.query === 'string' ? request.query : '';
   const page = normalizePositiveInteger(request.page, 1, 'page');
-  const pageSize = normalizePositiveInteger(request.pageSize, 20, 'pageSize');
+  // pageSize=0 は全件取得(ページネーションなし)
+  const pageSize = normalizeNonNegativeInteger(request.pageSize, 20, 'pageSize');
   return { query, page, pageSize };
 }
 
@@ -110,6 +111,14 @@ function normalizePositiveInteger(value: unknown, fallback: number, label: strin
   if (value === undefined || value === null) return fallback;
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
     throw new TypeError(`${label} must be a positive integer`);
+  }
+  return value;
+}
+
+function normalizeNonNegativeInteger(value: unknown, fallback: number, label: string): number {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw new TypeError(`${label} must be a non-negative integer`);
   }
   return value;
 }

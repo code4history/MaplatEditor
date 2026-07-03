@@ -189,11 +189,13 @@ try {
     'AppList.vue が window.applist.request を使っていない'
   );
 
-  // AppEdit は maplist API を使って地図一覧を表示することを確認
+  // AppEdit は maplist API(desktopMapListサービス経由)で地図一覧を表示することを確認
+  // raw window.maplist.* の直呼びは m1-t2 smoke の allowlist で禁止されているため、
+  // サービス層 fetchAllRegisteredMaps の利用を検証する
   assert.match(
     appEditView,
-    /window\.maplist\.request/,
-    'AppEdit.vue が window.maplist.request を使っていない'
+    /fetchAllRegisteredMaps/,
+    'AppEdit.vue が desktopMapList サービス(fetchAllRegisteredMaps)を使っていない'
   );
 
   // applist.not_implement が消えていることを確認

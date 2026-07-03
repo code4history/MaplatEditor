@@ -31,6 +31,8 @@
               <img
                 :src="app.image || noImage"
                 :alt="app.title"
+                loading="lazy"
+                decoding="async"
                 class="position-absolute top-50 start-50 translate-middle"
                 style="max-width: 100%; max-height: 100%; width: auto; height: auto;"
                 @contextmenu.prevent="openContextMenu($event, app)"
