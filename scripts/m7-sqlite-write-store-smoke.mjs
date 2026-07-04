@@ -207,6 +207,26 @@ try {
       assert.ok(mapC.some((tms) => tms.mapID === 'gsi_ort_USA10'));
       assert.ok(mapC.some((tms) => tms.mapID === 'user-base'));
 
+      // FTS5(日本語分かち書き)とR-Tree(bbox)の索引がトリガで同期されること
+      await SqliteDataService.upsertMap('ryukyu-map', {
+        title: '正保琉球国絵図写',
+        compiled: { vertices_points: [[[0, 0], [15550000, 3070000]], [[1, 1], [15650000, 3170000]]] },
+      });
+      await SqliteDataService.upsertMap('kuma-map', { title: '球磨川流域地図' });
+      // 「琉球」: 単語一致のみヒット(「球」を含むだけの球磨川へは誤ヒットしない)
+      const jaHits = await SearchDataService.listMaps('琉球', 1, 0);
+      assert.deepEqual(jaHits.docs.map((doc) => doc._id), ['ryukyu-map']);
+      // トークン境界を跨ぐ部分文字列は raw LIKE フォールバックで従来同様ヒット
+      const substrHits = await SearchDataService.listMaps('図写', 1, 0);
+      assert.deepEqual(substrHits.docs.map((doc) => doc._id), ['ryukyu-map']);
+      // R-Tree: bbox交差検索(メルカトル座標)。削除でトリガが索引を掃除すること
+      assert.deepEqual(await SearchDataService.searchExtent([15500000, 3000000, 15700000, 3200000]), ['ryukyu-map']);
+      assert.deepEqual(await SearchDataService.searchExtent([0, 0, 100, 100]), []);
+      await SqliteDataService.deleteMap('ryukyu-map');
+      assert.deepEqual(await SearchDataService.searchExtent([15500000, 3000000, 15700000, 3200000]), []);
+      assert.equal((await SearchDataService.listMaps('琉球', 1, 0)).docs.length, 0);
+      await SqliteDataService.deleteMap('kuma-map');
+
       // ビルトインベースマップはKTGISカタログ由来(重複なし・再シード安全)
       const baseMaps = await SettingsService.listBaseMaps();
       assert.ok(baseMaps.some((item) => item.scope === 'builtin' && item.mapID === 'osm'));

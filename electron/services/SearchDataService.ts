@@ -1,9 +1,11 @@
-// Search Layer (ADR-0001): 一覧・全文・位置情報検索を担当する。
-// 既定はWrite Store(SQLite)直読み。DuckDB経路(インメモリDuckDB + sqlite拡張の
-// READ_ONLYライブATTACH)も温存しているが、node:sqliteとsqlite拡張の2つの独立した
-// SQLite実装が同じWAL共有メモリ(-shm)をmmapする構成となり、クラウド同期フォルダ上で
-// SIGBUSクラッシュの実績があるため既定では使用しない(ADR-0001の追記参照)。
-// 現状の検索はいずれも全行取得+JSフィルタなので両経路は機能的に等価。
+// Search Layer (ADR-0001/0003): 一覧・全文・位置情報検索を担当する。
+// 既定はWrite Store(SQLite)のFTS5(日本語はIntl.Segmenterで分かち書き)+R-Tree索引。
+// 索引はmaps/appsへの書き込みトリガで同一トランザクション更新されるため、
+// 書き込み直後の検索反映(read-your-writes)が構造的に保証される。
+// DuckDB経路(インメモリDuckDB + sqlite拡張のREAD_ONLYライブATTACH + JSフィルタ)も
+// 温存しているが、node:sqliteとsqlite拡張の2つの独立したSQLite実装が同じ
+// WAL共有メモリ(-shm)をmmapする構成となり、クラウド同期フォルダ上でSIGBUS
+// クラッシュの実績があるため既定では使用しない(ADR-0001の追記参照)。
 // DuckDB経路の再有効化: 環境変数 MAPLAT_SEARCH_ENGINE=duckdb
 import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
 import SqliteDataService, {
@@ -119,6 +121,10 @@ class SearchDataService {
   }
 
   async listMaps(query: string = '', page: number = 1, pageSize: number = 20): Promise<MapListResult> {
+    if (activeSearchEngine() !== 'duckdb') {
+      const rawDocs = await SqliteDataService.searchMaps(query);
+      return paginate(rawDocs, page, pageSize);
+    }
     let rawDocs = await this.readAllMapDocs();
     if (query && query.trim()) {
       rawDocs = rawDocs.filter((doc) =>
@@ -129,6 +135,10 @@ class SearchDataService {
   }
 
   async listApps(query: string = '', page: number = 1, pageSize: number = 20): Promise<AppListResult> {
+    if (activeSearchEngine() !== 'duckdb') {
+      const rawDocs = await SqliteDataService.searchApps(query);
+      return paginate(rawDocs, page, pageSize);
+    }
     let rawDocs = await this.readAllAppDocs();
     if (query && query.trim()) {
       rawDocs = rawDocs.filter((doc) =>
@@ -141,6 +151,9 @@ class SearchDataService {
   }
 
   async searchExtent(extent: number[]): Promise<string[]> {
+    if (activeSearchEngine() !== 'duckdb') {
+      return SqliteDataService.searchExtent(extent);
+    }
     const docs = await this.readAllMapDocs();
     return docs
       .filter((doc) => {

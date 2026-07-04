@@ -52,6 +52,68 @@ interface Folders {
 }
 
 const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
+const SEARCH_INDEX_BACKFILL_ID = '2026-07-04-search-index-backfill';
+
+// --- 全文検索(FTS5)/位置情報検索(R-Tree)用ヘルパー ---
+// トークナイザはICU(Intl.Segmenter)の日本語単語分割。追加依存なしで全プラットフォーム同一動作。
+const jaSegmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+
+export function tokenizeForSearch(text: string): string {
+  if (!text) return '';
+  return [...jaSegmenter.segment(text)]
+    .filter((seg) => seg.isWordLike)
+    .map((seg) => seg.segment)
+    .join(' ');
+}
+
+// 文字列またはロケール別オブジェクト({ja:...,en:...})から検索対象文字列を集める
+function collectSearchStrings(value: any): string[] {
+  if (typeof value === 'string') return value.trim() ? [value] : [];
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return Object.values(value).filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+  }
+  return [];
+}
+
+function ftsRawFromJson(dataJson: string, fields: string[]): string {
+  try {
+    const doc = JSON.parse(dataJson);
+    return fields.flatMap((field) => collectSearchStrings(doc?.[field])).join('\n');
+  } catch {
+    return '';
+  }
+}
+
+// 地図のbbox(メルカトル座標)。compiled.vertices_points から算出(従来のsearchExtentと同一定義)
+function mapBboxFromJson(dataJson: string): string | null {
+  try {
+    const doc = JSON.parse(dataJson);
+    const pts = doc?.compiled?.vertices_points;
+    if (!Array.isArray(pts) || pts.length === 0) return null;
+    let bbox: number[] | null = null;
+    for (const vertex of pts) {
+      const merc = vertex?.[1];
+      if (!Array.isArray(merc) || typeof merc[0] !== 'number' || typeof merc[1] !== 'number') continue;
+      bbox = bbox
+        ? [Math.min(bbox[0], merc[0]), Math.min(bbox[1], merc[1]), Math.max(bbox[2], merc[0]), Math.max(bbox[3], merc[1])]
+        : [merc[0], merc[1], merc[0], merc[1]];
+    }
+    return bbox ? JSON.stringify(bbox) : null;
+  } catch {
+    return null;
+  }
+}
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+// FTS5 MATCH式: 各トークンをダブルクォートで包んだ暗黙AND
+function ftsMatchExpression(term: string): string | null {
+  const tokens = tokenizeForSearch(term).split(' ').filter(Boolean);
+  if (tokens.length === 0) return null;
+  return tokens.map((token) => `"${token.replace(/"/g, '""')}"`).join(' ');
+}
 
 export function mapRowToDocument(row: any): any {
   const data = JSON.parse(row.data_json);
@@ -143,10 +205,31 @@ class SqliteDataService {
     const db = new DatabaseSync(sqliteFile);
     db.exec('PRAGMA journal_mode=WAL');
     db.exec('PRAGMA busy_timeout=5000');
+    // INSERT OR REPLACE時の内部DELETEでもトリガを発火させる(検索索引の同期漏れ防止)
+    db.exec('PRAGMA recursive_triggers=ON');
+    this.registerSearchFunctions(db);
     this.db = db;
     this.activeDbFile = sqliteFile;
     await this.migrate();
     return db;
+  }
+
+  // 検索索引トリガから呼ぶSQL関数(JS実装)を登録する。
+  // 注意: SQL関数は接続ごとの登録のため、この関数を登録しない外部ツールで
+  // maps/appsに書き込むとトリガが失敗する(=索引が黙って古くなることはない)。
+  private registerSearchFunctions(db: DatabaseSync): void {
+    db.function('maplat_tokenize', { deterministic: true }, (text: unknown) =>
+      tokenizeForSearch(String(text ?? ''))
+    );
+    db.function('maplat_map_fts_raw', { deterministic: true }, (dataJson: unknown) =>
+      ftsRawFromJson(String(dataJson ?? ''), ['title', 'officialTitle', 'description'])
+    );
+    db.function('maplat_app_fts_raw', { deterministic: true }, (dataJson: unknown) =>
+      ftsRawFromJson(String(dataJson ?? ''), ['title', 'appName', 'description'])
+    );
+    db.function('maplat_map_bbox', { deterministic: true }, (dataJson: unknown) =>
+      mapBboxFromJson(String(dataJson ?? ''))
+    );
   }
 
   private async migrate(): Promise<void> {
@@ -184,6 +267,7 @@ class SqliteDataService {
         PRIMARY KEY (map_id, base_map_id)
       );
     `);
+    this.applySearchIndexSchema(db);
     this.applyBuiltinBaseMapSeed(db);
 
     // レガシー移行は初回のみ。退避アーカイブ(_nedb.db/_settings)は残り続けるため、
@@ -207,6 +291,120 @@ class SqliteDataService {
     } catch (e) {
       if (notifyProgress) sendMigrationProgress('database.migration_failed', 100);
       throw e;
+    }
+  }
+
+  // 全文検索(FTS5)/位置情報検索(R-Tree)の索引スキーマとトリガ。
+  // maps/appsへの書き込み(経路を問わず)でトリガが発火し、JSトークナイザで
+  // 分かち書きした全文索引とbbox索引が同一トランザクション内で更新される。
+  private applySearchIndexSchema(db: DatabaseSync): void {
+    db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS maps_fts USING fts5(map_id UNINDEXED, raw UNINDEXED, words);
+      CREATE VIRTUAL TABLE IF NOT EXISTS apps_fts USING fts5(app_id UNINDEXED, raw UNINDEXED, words);
+      CREATE VIRTUAL TABLE IF NOT EXISTS maps_rtree USING rtree(id, min_x, max_x, min_y, max_y);
+      CREATE TABLE IF NOT EXISTS maps_rtree_key (
+        map_id TEXT PRIMARY KEY,
+        rid INTEGER NOT NULL UNIQUE
+      );
+    `);
+    // トリガ本体は将来変更しうるため、毎回DROP&CREATEで最新定義に揃える
+    db.exec(`
+      DROP TRIGGER IF EXISTS maps_search_ai;
+      DROP TRIGGER IF EXISTS maps_search_au;
+      DROP TRIGGER IF EXISTS maps_search_ad;
+      DROP TRIGGER IF EXISTS apps_search_ai;
+      DROP TRIGGER IF EXISTS apps_search_au;
+      DROP TRIGGER IF EXISTS apps_search_ad;
+
+      CREATE TRIGGER maps_search_ai AFTER INSERT ON maps BEGIN
+        DELETE FROM maps_fts WHERE map_id = new.map_id;
+        INSERT INTO maps_fts(map_id, raw, words)
+          VALUES (new.map_id, maplat_map_fts_raw(new.data_json), maplat_tokenize(maplat_map_fts_raw(new.data_json)));
+        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE map_id = new.map_id);
+        DELETE FROM maps_rtree_key WHERE map_id = new.map_id;
+        INSERT INTO maps_rtree_key(map_id, rid)
+          SELECT new.map_id, new.rowid WHERE maplat_map_bbox(new.data_json) IS NOT NULL;
+        INSERT INTO maps_rtree(id, min_x, max_x, min_y, max_y)
+          SELECT new.rowid,
+                 json_extract(maplat_map_bbox(new.data_json), '$[0]'),
+                 json_extract(maplat_map_bbox(new.data_json), '$[2]'),
+                 json_extract(maplat_map_bbox(new.data_json), '$[1]'),
+                 json_extract(maplat_map_bbox(new.data_json), '$[3]')
+          WHERE maplat_map_bbox(new.data_json) IS NOT NULL;
+      END;
+
+      CREATE TRIGGER maps_search_au AFTER UPDATE ON maps BEGIN
+        DELETE FROM maps_fts WHERE map_id IN (old.map_id, new.map_id);
+        INSERT INTO maps_fts(map_id, raw, words)
+          VALUES (new.map_id, maplat_map_fts_raw(new.data_json), maplat_tokenize(maplat_map_fts_raw(new.data_json)));
+        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE map_id IN (old.map_id, new.map_id));
+        DELETE FROM maps_rtree_key WHERE map_id IN (old.map_id, new.map_id);
+        INSERT INTO maps_rtree_key(map_id, rid)
+          SELECT new.map_id, new.rowid WHERE maplat_map_bbox(new.data_json) IS NOT NULL;
+        INSERT INTO maps_rtree(id, min_x, max_x, min_y, max_y)
+          SELECT new.rowid,
+                 json_extract(maplat_map_bbox(new.data_json), '$[0]'),
+                 json_extract(maplat_map_bbox(new.data_json), '$[2]'),
+                 json_extract(maplat_map_bbox(new.data_json), '$[1]'),
+                 json_extract(maplat_map_bbox(new.data_json), '$[3]')
+          WHERE maplat_map_bbox(new.data_json) IS NOT NULL;
+      END;
+
+      CREATE TRIGGER maps_search_ad AFTER DELETE ON maps BEGIN
+        DELETE FROM maps_fts WHERE map_id = old.map_id;
+        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE map_id = old.map_id);
+        DELETE FROM maps_rtree_key WHERE map_id = old.map_id;
+      END;
+
+      CREATE TRIGGER apps_search_ai AFTER INSERT ON apps BEGIN
+        DELETE FROM apps_fts WHERE app_id = new.app_id;
+        INSERT INTO apps_fts(app_id, raw, words)
+          VALUES (new.app_id,
+                  new.app_id || char(10) || maplat_app_fts_raw(new.data_json),
+                  maplat_tokenize(new.app_id || ' ' || maplat_app_fts_raw(new.data_json)));
+      END;
+
+      CREATE TRIGGER apps_search_au AFTER UPDATE ON apps BEGIN
+        DELETE FROM apps_fts WHERE app_id IN (old.app_id, new.app_id);
+        INSERT INTO apps_fts(app_id, raw, words)
+          VALUES (new.app_id,
+                  new.app_id || char(10) || maplat_app_fts_raw(new.data_json),
+                  maplat_tokenize(new.app_id || ' ' || maplat_app_fts_raw(new.data_json)));
+      END;
+
+      CREATE TRIGGER apps_search_ad AFTER DELETE ON apps BEGIN
+        DELETE FROM apps_fts WHERE app_id = old.app_id;
+      END;
+    `);
+
+    // トリガ導入以前に書き込まれた既存行の索引を一度だけ再構築する
+    const backfilled = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(SEARCH_INDEX_BACKFILL_ID);
+    if (!backfilled) {
+      db.exec(`
+        DELETE FROM maps_fts;
+        DELETE FROM maps_rtree;
+        DELETE FROM maps_rtree_key;
+        DELETE FROM apps_fts;
+        INSERT INTO maps_fts(map_id, raw, words)
+          SELECT map_id, maplat_map_fts_raw(data_json), maplat_tokenize(maplat_map_fts_raw(data_json)) FROM maps;
+        INSERT INTO maps_rtree_key(map_id, rid)
+          SELECT map_id, rowid FROM maps WHERE maplat_map_bbox(data_json) IS NOT NULL;
+        INSERT INTO maps_rtree(id, min_x, max_x, min_y, max_y)
+          SELECT rowid,
+                 json_extract(maplat_map_bbox(data_json), '$[0]'),
+                 json_extract(maplat_map_bbox(data_json), '$[2]'),
+                 json_extract(maplat_map_bbox(data_json), '$[1]'),
+                 json_extract(maplat_map_bbox(data_json), '$[3]')
+          FROM maps WHERE maplat_map_bbox(data_json) IS NOT NULL;
+        INSERT INTO apps_fts(app_id, raw, words)
+          SELECT app_id,
+                 app_id || char(10) || maplat_app_fts_raw(data_json),
+                 maplat_tokenize(app_id || ' ' || maplat_app_fts_raw(data_json))
+          FROM apps;
+      `);
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(SEARCH_INDEX_BACKFILL_ID);
     }
   }
 
@@ -278,6 +476,90 @@ class SqliteDataService {
       .prepare('SELECT app_id, data_json FROM apps ORDER BY app_id')
       .all() as any[];
     return rows.map(appRowToDocument);
+  }
+
+  // --- search (FTS5 / R-Tree) ---
+
+  // 各検索語: FTS5トークン一致(分かち書き後の単語AND) ∪ raw部分一致(従来の部分文字列検索の互換)。
+  // 複数語はAND(積集合)。戻り値 null は「検索語なし=絞り込みなし」。
+  private searchIDs(
+    db: DatabaseSync,
+    table: 'maps_fts' | 'apps_fts',
+    idColumn: 'map_id' | 'app_id',
+    query: string,
+  ): string[] | null {
+    const terms = query.trim().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return null;
+    let result: Set<string> | null = null;
+    for (const term of terms) {
+      const ids = new Set<string>();
+      const match = ftsMatchExpression(term);
+      if (match) {
+        const rows = db.prepare(`SELECT ${idColumn} AS id FROM ${table} WHERE ${table} MATCH ?`).all(match) as any[];
+        for (const row of rows) ids.add(String(row.id));
+      }
+      const rows = db
+        .prepare(`SELECT ${idColumn} AS id FROM ${table} WHERE raw LIKE ? ESCAPE '\\'`)
+        .all(`%${escapeLike(term)}%`) as any[];
+      for (const row of rows) ids.add(String(row.id));
+      if (result === null) {
+        result = ids;
+      } else {
+        const previous: Set<string> = result;
+        result = new Set([...previous].filter((id) => ids.has(id)));
+      }
+      if (result.size === 0) return [];
+    }
+    return [...(result as Set<string>)].sort();
+  }
+
+  private readDocsByIDs(
+    db: DatabaseSync,
+    table: 'maps' | 'apps',
+    idColumn: 'map_id' | 'app_id',
+    ids: string[],
+    rowToDocument: (row: any) => any,
+  ): any[] {
+    const docs: any[] = [];
+    for (let i = 0; i < ids.length; i += 500) {
+      const chunk = ids.slice(i, i + 500);
+      const placeholders = chunk.map(() => '?').join(',');
+      const rows = db
+        .prepare(`SELECT ${idColumn}, data_json FROM ${table} WHERE ${idColumn} IN (${placeholders}) ORDER BY ${idColumn}`)
+        .all(...chunk) as any[];
+      docs.push(...rows.map(rowToDocument));
+    }
+    return docs;
+  }
+
+  async searchMaps(query: string): Promise<any[]> {
+    const db = await this.getDb();
+    const ids = this.searchIDs(db, 'maps_fts', 'map_id', query);
+    if (ids === null) return this.readAllMaps();
+    if (ids.length === 0) return [];
+    return this.readDocsByIDs(db, 'maps', 'map_id', ids, mapRowToDocument);
+  }
+
+  async searchApps(query: string): Promise<any[]> {
+    const db = await this.getDb();
+    const ids = this.searchIDs(db, 'apps_fts', 'app_id', query);
+    if (ids === null) return this.readAllApps();
+    if (ids.length === 0) return [];
+    return this.readDocsByIDs(db, 'apps', 'app_id', ids, appRowToDocument);
+  }
+
+  // extent = [minX, minY, maxX, maxY](メルカトル座標)。bbox交差する地図IDを返す
+  async searchExtent(extent: number[]): Promise<string[]> {
+    const db = await this.getDb();
+    const rows = db
+      .prepare(`
+        SELECT k.map_id AS id
+        FROM maps_rtree r JOIN maps_rtree_key k ON k.rid = r.id
+        WHERE r.max_x >= ? AND r.min_x <= ? AND r.max_y >= ? AND r.min_y <= ?
+        ORDER BY k.map_id
+      `)
+      .all(extent[0], extent[2], extent[1], extent[3]) as any[];
+    return rows.map((row) => String(row.id));
   }
 
   // --- base maps ---

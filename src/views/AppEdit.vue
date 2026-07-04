@@ -3,9 +3,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
-import osmThumb from "../assets/img/osm.jpg";
-import gsiThumb from "../assets/img/gsi.jpg";
-import gsiOrthoThumb from "../assets/img/gsi_ortho.jpg";
+import osmThumb from "../assets/img/osm.png";
+import gsiThumb from "../assets/img/gsi.png";
+import gsiOrthoThumb from "../assets/img/gsi_ortho.png";
 import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";

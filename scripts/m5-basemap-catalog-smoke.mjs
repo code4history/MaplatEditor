@@ -79,7 +79,7 @@ try {
       // osm carries a 52px icon, KTGIS maps carry icon + coverage, and the
       // catalog includes newly imported maps such as muroran00
       const osm = initial.find((item) => item.scope === 'builtin' && item.mapID === 'osm');
-      assert.equal(osm.data.thumbnail, 'basemap_icons/osm.jpg');
+      assert.equal(osm.data.thumbnail, 'basemap_icons/osm.png');
       assert.ok(!osm.data.envelopeLngLats, 'osm coverage must stay undefined (global)');
       const gsi = initial.find((item) => item.scope === 'builtin' && item.mapID === 'gsi');
       assert.ok(Array.isArray(gsi.data.envelopeLngLats));

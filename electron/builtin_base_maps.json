@@ -1,15 +1,20 @@
 [
  {
-  "always": true,
   "mapID": "osm",
   "title": "OpenStreetMap",
-  "thumbnail": "basemap_icons/osm.jpg"
+  "always": true,
+  "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  "minZoom": 0,
+  "maxZoom": 19,
+  "thumbnail": "basemap_icons/osm.png"
  },
  {
-  "always": true,
   "mapID": "gsi",
   "title": "地理院地図",
-  "thumbnail": "basemap_icons/gsi.jpg",
+  "always": true,
+  "url": "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+  "minZoom": 0,
+  "maxZoom": 18,
   "envelopeLngLats": [
    [
     122.78,
@@ -27,13 +32,16 @@
     122.78,
     45.71
    ]
-  ]
+  ],
+  "thumbnail": "basemap_icons/gsi.png"
  },
  {
-  "always": true,
   "mapID": "gsi_ortho",
   "title": "地理院航空写真",
-  "thumbnail": "basemap_icons/gsi_ortho.jpg",
+  "always": true,
+  "url": "https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg",
+  "minZoom": 0,
+  "maxZoom": 18,
   "envelopeLngLats": [
    [
     122.78,
@@ -51,63 +59,224 @@
     122.78,
     45.71
    ]
-  ]
+  ],
+  "thumbnail": "basemap_icons/gsi_ortho.png"
  },
  {
   "mapID": "gsi_ort_USA10",
-  "attr": "The Geospatial Information Authority of Japan",
+  "title": "地理院航空写真1945-50",
   "url": "https://cyberjapandata.gsi.go.jp/xyz/ort_USA10/{z}/{x}/{y}.png",
+  "minZoom": 2,
   "maxZoom": 17,
-  "title": "地理院航空写真1945-50"
+  "attr": "The Geospatial Information Authority of Japan",
+  "envelopeLngLats": [
+   [
+    122.78,
+    20.3
+   ],
+   [
+    154.78,
+    20.3
+   ],
+   [
+    154.78,
+    45.71
+   ],
+   [
+    122.78,
+    45.71
+   ]
+  ],
+  "thumbnail": "basemap_icons/gsi_ort_USA10.png"
  },
  {
   "mapID": "gsi_ort_old10",
-  "attr": "The Geospatial Information Authority of Japan",
+  "title": "地理院航空写真1961-64",
   "url": "https://cyberjapandata.gsi.go.jp/xyz/ort_old10/{z}/{x}/{y}.png",
+  "minZoom": 2,
   "maxZoom": 17,
-  "title": "地理院航空写真1961-64"
+  "attr": "The Geospatial Information Authority of Japan",
+  "envelopeLngLats": [
+   [
+    122.78,
+    20.3
+   ],
+   [
+    154.78,
+    20.3
+   ],
+   [
+    154.78,
+    45.71
+   ],
+   [
+    122.78,
+    45.71
+   ]
+  ],
+  "thumbnail": "basemap_icons/gsi_ort_old10.png"
  },
  {
   "mapID": "gsi_gazo1",
-  "attr": "The Geospatial Information Authority of Japan",
+  "title": "地理院航空写真1974-78",
   "url": "https://cyberjapandata.gsi.go.jp/xyz/gazo1/{z}/{x}/{y}.jpg",
+  "minZoom": 10,
   "maxZoom": 17,
-  "title": "地理院航空写真1974-78"
+  "attr": "The Geospatial Information Authority of Japan",
+  "envelopeLngLats": [
+   [
+    122.78,
+    20.3
+   ],
+   [
+    154.78,
+    20.3
+   ],
+   [
+    154.78,
+    45.71
+   ],
+   [
+    122.78,
+    45.71
+   ]
+  ],
+  "thumbnail": "basemap_icons/gsi_gazo1.png"
  },
  {
   "mapID": "gsi_gazo2",
-  "attr": "The Geospatial Information Authority of Japan",
+  "title": "地理院航空写真1979-83",
   "url": "https://cyberjapandata.gsi.go.jp/xyz/gazo2/{z}/{x}/{y}.jpg",
+  "minZoom": 10,
   "maxZoom": 17,
-  "title": "地理院航空写真1979-83"
+  "attr": "The Geospatial Information Authority of Japan",
+  "envelopeLngLats": [
+   [
+    122.78,
+    20.3
+   ],
+   [
+    154.78,
+    20.3
+   ],
+   [
+    154.78,
+    45.71
+   ],
+   [
+    122.78,
+    45.71
+   ]
+  ],
+  "thumbnail": "basemap_icons/gsi_gazo2.png"
  },
  {
   "mapID": "gsi_gazo3",
-  "attr": "The Geospatial Information Authority of Japan",
+  "title": "地理院航空写真1984-86",
   "url": "https://cyberjapandata.gsi.go.jp/xyz/gazo3/{z}/{x}/{y}.jpg",
+  "minZoom": 10,
   "maxZoom": 17,
-  "title": "地理院航空写真1984-86"
+  "attr": "The Geospatial Information Authority of Japan",
+  "envelopeLngLats": [
+   [
+    122.78,
+    20.3
+   ],
+   [
+    154.78,
+    20.3
+   ],
+   [
+    154.78,
+    45.71
+   ],
+   [
+    122.78,
+    45.71
+   ]
+  ],
+  "thumbnail": "basemap_icons/gsi_gazo3.png"
  },
  {
   "mapID": "gsi_gazo4",
-  "attr": "The Geospatial Information Authority of Japan",
+  "title": "地理院航空写真1988-90",
   "url": "https://cyberjapandata.gsi.go.jp/xyz/gazo4/{z}/{x}/{y}.jpg",
+  "minZoom": 10,
   "maxZoom": 17,
-  "title": "地理院航空写真1988-90"
+  "attr": "The Geospatial Information Authority of Japan",
+  "envelopeLngLats": [
+   [
+    122.78,
+    20.3
+   ],
+   [
+    154.78,
+    20.3
+   ],
+   [
+    154.78,
+    45.71
+   ],
+   [
+    122.78,
+    45.71
+   ]
+  ],
+  "thumbnail": "basemap_icons/gsi_gazo4.png"
  },
  {
   "mapID": "affrc_rapid16",
-  "attr": "（独）農業環境技術研究所",
-  "url": "https://aginfo.cgk.affrc.go.jp/ws/tmc/1.0.0/Kanto_Rapid-900913-L/{z}/{x}/{y}.png",
+  "title": "1/2万 迅速測図原図",
+  "url": "https://boiledorange73.sakura.ne.jp/ws/tile/Kanto_Rapid-900913/{z}/{x}/{y}.png",
+  "minZoom": 0,
   "maxZoom": 17,
-  "title": "1/2万　迅速測図原図"
+  "attr": "農研機構農業環境研究部門",
+  "envelopeLngLats": [
+   [
+    138.8672,
+    34.8138
+   ],
+   [
+    140.8887,
+    34.8138
+   ],
+   [
+    140.8887,
+    36.5273
+   ],
+   [
+    138.8672,
+    36.5273
+   ]
+  ],
+  "thumbnail": "basemap_icons/affrc_rapid16.png"
  },
  {
   "mapID": "affrc_tokyo5k",
-  "attr": "（独）農業環境技術研究所",
-  "url": "https://aginfo.cgk.affrc.go.jp/ws/tmc/1.0.0/Tokyo5000-900913-L/{z}/{x}/{y}.png",
+  "title": "1/5千 東京測量図原図",
+  "url": "https://boiledorange73.sakura.ne.jp/ws/tile/Tokyo5000-900913/{z}/{x}/{y}.png",
+  "minZoom": 0,
   "maxZoom": 18,
-  "title": "1/5千　東京測量図原図"
+  "attr": "農研機構農業環境研究部門",
+  "envelopeLngLats": [
+   [
+    139.7021,
+    35.6394
+   ],
+   [
+    139.834,
+    35.6394
+   ],
+   [
+    139.834,
+    35.7465
+   ],
+   [
+    139.7021,
+    35.7465
+   ]
+  ],
+  "thumbnail": "basemap_icons/affrc_tokyo5k.png"
  },
  {
   "mapID": "tokyo502man",
