@@ -205,6 +205,8 @@ class SqliteDataService {
     const db = new DatabaseSync(sqliteFile);
     db.exec('PRAGMA journal_mode=WAL');
     db.exec('PRAGMA busy_timeout=5000');
+    // WAL時の標準設定: コミット毎のfsyncを削減(電源断で直近コミットが巻き戻る可能性はあるがDB破損はしない)
+    db.exec('PRAGMA synchronous=NORMAL');
     // INSERT OR REPLACE時の内部DELETEでもトリガを発火させる(検索索引の同期漏れ防止)
     db.exec('PRAGMA recursive_triggers=ON');
     this.registerSearchFunctions(db);
@@ -212,6 +214,24 @@ class SqliteDataService {
     this.activeDbFile = sqliteFile;
     await this.migrate();
     return db;
+  }
+
+  // 複数書き込みを1コミットに束ねる。node:sqliteは同期実行のため、コミット(fsync)を
+  // 行数分繰り返すとメインプロセスのイベントループ(=プレビューHTTPサーバ等)が長時間停止する
+  private withTransaction<T>(db: DatabaseSync, fn: () => T): T {
+    db.exec('BEGIN');
+    try {
+      const result = fn();
+      db.exec('COMMIT');
+      return result;
+    } catch (e) {
+      try {
+        db.exec('ROLLBACK');
+      } catch {
+        // noop
+      }
+      throw e;
+    }
   }
 
   // 検索索引トリガから呼ぶSQL関数(JS実装)を登録する。
@@ -383,6 +403,7 @@ class SqliteDataService {
       .get(SEARCH_INDEX_BACKFILL_ID);
     if (!backfilled) {
       db.exec(`
+        BEGIN;
         DELETE FROM maps_fts;
         DELETE FROM maps_rtree;
         DELETE FROM maps_rtree_key;
@@ -403,8 +424,9 @@ class SqliteDataService {
                  app_id || char(10) || maplat_app_fts_raw(data_json),
                  maplat_tokenize(app_id || ' ' || maplat_app_fts_raw(data_json))
           FROM apps;
+        INSERT OR REPLACE INTO schema_migrations (id) VALUES ('${SEARCH_INDEX_BACKFILL_ID}');
+        COMMIT;
       `);
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(SEARCH_INDEX_BACKFILL_ID);
     }
   }
 
@@ -583,18 +605,15 @@ class SqliteDataService {
       .all(mapID) as any[];
     const visibility = new Map(visibilityRows.map((row) => [row.base_map_id, Boolean(row.enabled)]));
 
-    const insertDefault = db.prepare(
-      `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
-       VALUES (?, ?, ?, datetime('now'))`
-    );
     const items: BaseMapVisibilityItem[] = [];
+    const missingDefaults: string[] = [];
     for (const row of baseMapRows) {
       const tms = JSON.parse(row.data_json);
       const locked = Boolean(tms.always);
       let enabled = visibility.get(row.map_id);
       if (enabled == null) {
         enabled = true;
-        if (!locked) insertDefault.run(mapID, row.map_id, 1);
+        if (!locked) missingDefaults.push(row.map_id);
       }
       items.push({
         mapID: row.map_id,
@@ -602,6 +621,18 @@ class SqliteDataService {
         enabled: locked ? true : Boolean(enabled),
         locked,
         data: tms,
+      });
+    }
+    if (missingDefaults.length > 0) {
+      // 初期表示設定の一括書き込み。1件ずつのautocommitはコミット数分fsyncが走り遅い
+      this.withTransaction(db, () => {
+        const insertDefault = db.prepare(
+          `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
+           VALUES (?, ?, 1, datetime('now'))`
+        );
+        for (const baseMapId of missingDefaults) {
+          insertDefault.run(mapID, baseMapId);
+        }
       });
     }
     return items;
@@ -683,14 +714,16 @@ class SqliteDataService {
 
   // ビルトインベースマップは起動ごとに builtin_base_maps.json(正本: KTGISカタログ)から再シードする
   private applyBuiltinBaseMapSeed(db: DatabaseSync): void {
-    const list = maybeJsonArray(builtinBaseMaps);
-    this.upsertBaseMaps(db, 'builtin', list);
-    const builtinIDs = list.map((tms) => String(tms.mapID)).filter(Boolean);
-    if (builtinIDs.length > 0) {
-      const placeholders = builtinIDs.map(() => '?').join(', ');
-      db.prepare(`DELETE FROM base_maps WHERE scope = 'builtin' AND map_id NOT IN (${placeholders})`)
-        .run(...builtinIDs);
-    }
+    this.withTransaction(db, () => {
+      const list = maybeJsonArray(builtinBaseMaps);
+      this.upsertBaseMaps(db, 'builtin', list);
+      const builtinIDs = list.map((tms) => String(tms.mapID)).filter(Boolean);
+      if (builtinIDs.length > 0) {
+        const placeholders = builtinIDs.map(() => '?').join(', ');
+        db.prepare(`DELETE FROM base_maps WHERE scope = 'builtin' AND map_id NOT IN (${placeholders})`)
+          .run(...builtinIDs);
+      }
+    });
   }
 
   // nedb.db(または退避済み _nedb.db)からのMaplat地図マイグレーション
@@ -704,15 +737,17 @@ class SqliteDataService {
         else resolve(documents);
       });
     });
-    const insert = db.prepare(
-      `INSERT INTO maps (map_id, data_json, updated_at)
-       SELECT ?, ?, datetime('now')
-       WHERE NOT EXISTS (SELECT 1 FROM maps WHERE map_id = ?)`
-    );
-    for (const doc of docs) {
-      if (!doc?._id) continue;
-      insert.run(doc._id, JSON.stringify(normalizeMapDocument(doc)), doc._id);
-    }
+    this.withTransaction(db, () => {
+      const insert = db.prepare(
+        `INSERT INTO maps (map_id, data_json, updated_at)
+         SELECT ?, ?, datetime('now')
+         WHERE NOT EXISTS (SELECT 1 FROM maps WHERE map_id = ?)`
+      );
+      for (const doc of docs) {
+        if (!doc?._id) continue;
+        insert.run(doc._id, JSON.stringify(normalizeMapDocument(doc)), doc._id);
+      }
+    });
   }
 
   // settings(または退避済み _settings)配下のユーザーベースマップ/個別地図の表示設定マイグレーション
@@ -722,28 +757,41 @@ class SqliteDataService {
     if (isDefaultTmsList(storeList)) {
       storeList.length = 0;
     }
-    if (storeList.length > 0) this.upsertBaseMaps(db, 'user', storeList);
 
-    if (!settingsDir) return;
-    const userTmsListPath = path.join(settingsDir, 'tmsList.json');
-    if (await fs.pathExists(userTmsListPath)) {
-      this.upsertBaseMaps(db, 'user', maybeJsonArray(await fs.readJson(userTmsListPath)));
-    }
-
-    const files = await fs.readdir(settingsDir);
-    const insertVisibility = db.prepare(
-      `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
-       VALUES (?, ?, ?, datetime('now'))`
-    );
-    for (const file of files) {
-      const mapID = safeMapIDFromSpecificFile(file);
-      if (!mapID) continue;
-      const fileData = await fs.readJson(path.join(settingsDir, file));
-      if (!fileData || typeof fileData !== 'object' || Array.isArray(fileData)) continue;
-      for (const [baseMapId, enabled] of Object.entries(fileData)) {
-        insertVisibility.run(mapID, baseMapId, enabled ? 1 : 0);
+    // ファイル読み込み(非同期)を済ませてから、DB書き込みは1トランザクションで行う
+    const userLists: any[][] = [];
+    if (storeList.length > 0) userLists.push(storeList);
+    const visibilityEntries: Array<{ mapID: string; baseMapId: string; enabled: boolean }> = [];
+    if (settingsDir) {
+      const userTmsListPath = path.join(settingsDir, 'tmsList.json');
+      if (await fs.pathExists(userTmsListPath)) {
+        userLists.push(maybeJsonArray(await fs.readJson(userTmsListPath)));
+      }
+      const files = await fs.readdir(settingsDir);
+      for (const file of files) {
+        const mapID = safeMapIDFromSpecificFile(file);
+        if (!mapID) continue;
+        const fileData = await fs.readJson(path.join(settingsDir, file));
+        if (!fileData || typeof fileData !== 'object' || Array.isArray(fileData)) continue;
+        for (const [baseMapId, enabled] of Object.entries(fileData)) {
+          visibilityEntries.push({ mapID, baseMapId, enabled: Boolean(enabled) });
+        }
       }
     }
+    if (userLists.length === 0 && visibilityEntries.length === 0) return;
+
+    this.withTransaction(db, () => {
+      for (const list of userLists) {
+        this.upsertBaseMaps(db, 'user', list);
+      }
+      const insertVisibility = db.prepare(
+        `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
+         VALUES (?, ?, ?, datetime('now'))`
+      );
+      for (const entry of visibilityEntries) {
+        insertVisibility.run(entry.mapID, entry.baseMapId, entry.enabled ? 1 : 0);
+      }
+    });
   }
 
   private upsertBaseMaps(db: DatabaseSync, scope: BaseMapScope, list: any[]): void {
