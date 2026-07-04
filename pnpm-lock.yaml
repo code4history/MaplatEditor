@@ -22,7 +22,7 @@ importers:
         version: 0.5.2
       '@maplat/ui':
         specifier: github:code4history/Maplat#foss4g-hiroshima
-        version: https://codeload.github.com/code4history/Maplat/tar.gz/cdc03daa87dd5d72ea17d072d4aa43520d75affa(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)
+        version: https://codeload.github.com/code4history/Maplat/tar.gz/6503813e8cb4e450fbcb90d146d13cb5a6e412d4(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)
       '@popperjs/core':
         specifier: ^2.11.8
         version: 2.11.8
@@ -623,6 +623,20 @@ packages:
       maplibre-gl:
         optional: true
 
+  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/90bfec90ab7e4b69e85adb66ec00e2b69ace9081':
+    resolution: {gitHosted: true, integrity: sha512-EJa4iLU728pbp40XWEkwgYncGRKsTe0SB/MXxANUMSjmkCjsCF7s9mKRDW2KHqVI+zxn4j0bCOzcSUF8cvjGWg==, tarball: https://codeload.github.com/code4history/MaplatCore/tar.gz/90bfec90ab7e4b69e85adb66ec00e2b69ace9081}
+    version: 0.13.1
+    engines: {pnpm: '>=9'}
+    peerDependencies:
+      mapbox-gl: ^1.0.0 || ^2.0.0 || ^3.0.0
+      maplibre-gl: ^3.0.0 || ^4.0.0
+      ol: ^9.0.0 || ^10.0.0
+    peerDependenciesMeta:
+      mapbox-gl:
+        optional: true
+      maplibre-gl:
+        optional: true
+
   '@maplat/tin@0.14.1':
     resolution: {integrity: sha512-b1PZjJEMHYcMa/RelMpD+Y8HFwIRPcYWtoXvVc8C1Mwd9oeJTHdDnpz5OUHeSJzr7H/NAExLCSesfx02bDn+EA==}
     engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
@@ -631,8 +645,8 @@ packages:
     resolution: {integrity: sha512-iDn0t3wRxXsgkSwBdbPUFcN/A/syRZgk4O5TcKf/kqyTgHuPnKNWL5PUbo4u9dXOoB/W8RvIdCJAIwk2MUZO8Q==}
     engines: {node: '>=20', pnpm: '>=9'}
 
-  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/cdc03daa87dd5d72ea17d072d4aa43520d75affa':
-    resolution: {gitHosted: true, integrity: sha512-SSxVJaG1tJ1+101Oc/eWG4gHcF+KT5A2K9ubbFAwsjGdTG6FLjbbmQe0Oszpps9I3ml2uuqvjzuGfwGTCkFMMA==, tarball: https://codeload.github.com/code4history/Maplat/tar.gz/cdc03daa87dd5d72ea17d072d4aa43520d75affa}
+  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/6503813e8cb4e450fbcb90d146d13cb5a6e412d4':
+    resolution: {gitHosted: true, integrity: sha512-/7e2uGvMQ7D/sdXcHzsL+UFGwooVEiKVrV1k7ktT39qjMOqcbVuWi15hSM6FC2/wzN9/2U6Py1tyHw4BY/z3Ig==, tarball: https://codeload.github.com/code4history/Maplat/tar.gz/6503813e8cb4e450fbcb90d146d13cb5a6e412d4}
     version: 0.12.1
     engines: {npm: use-pnpm-please, pnpm: '>=9.0.0'}
     peerDependencies:
@@ -2848,6 +2862,10 @@ packages:
   lodash.isplainobject@4.0.6:
     resolution: {integrity: sha512-oSXzaWypCMHkPC3NvBEaPHf0KsA5mvPrOPgQWDsbg8n7orZ290M0BmC/jgRZ4vcJ6DTAhjrsSYgdsW/F+MFOBA==}
 
+  lodash.template@4.18.1:
+    resolution: {integrity: sha512-5urZrLnV/VD6zHK5KsVtZgt7H19v51mIzoS0aBNH8yp3I8tbswrEjOABOPY8m8uB7NuibubLrMX+Y0PXsU9X+w==}
+    deprecated: This package is deprecated. Use https://socket.dev/npm/package/eta instead.
+
   lodash.template@4.5.0:
     resolution: {integrity: sha512-84vYFxIkmidUiFxidA/KjjH9pAycqW+h980j7Fuz5qxRtO9pgB7MDFTdys1N7A5mcucRiDyEq4fusljItR1T/A==}
     deprecated: This package is deprecated. Use https://socket.dev/npm/package/eta instead.
@@ -4594,6 +4612,20 @@ snapshots:
     transitivePeerDependencies:
       - workbox-routing
 
+  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/90bfec90ab7e4b69e85adb66ec00e2b69ace9081(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)':
+    dependencies:
+      '@c4h/weiwudi': https://codeload.github.com/code4history/Weiwudi/tar.gz/04f4b4011487db0526b9478f28271fd7b2e3c8b4(workbox-routing@7.4.1)
+      '@maplat/transform': 0.5.2
+      '@turf/turf': 7.3.4
+      lodash.template: 4.18.1
+      ol: 10.8.0
+      whatwg-fetch: 3.6.20
+    optionalDependencies:
+      mapbox-gl: 3.25.0
+      maplibre-gl: 4.7.1
+    transitivePeerDependencies:
+      - workbox-routing
+
   '@maplat/tin@0.14.1':
     dependencies:
       '@maplat/transform': 0.5.2
@@ -4605,11 +4637,11 @@ snapshots:
     dependencies:
       '@turf/turf': 7.3.4
 
-  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/cdc03daa87dd5d72ea17d072d4aa43520d75affa(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)':
+  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/6503813e8cb4e450fbcb90d146d13cb5a6e412d4(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)':
     dependencies:
       '@c4h/chuci': 0.2.6
       '@c4h/weiwudi': https://codeload.github.com/code4history/Weiwudi/tar.gz/04f4b4011487db0526b9478f28271fd7b2e3c8b4(workbox-routing@7.4.1)
-      '@maplat/core': https://codeload.github.com/code4history/MaplatCore/tar.gz/84c09697d212d82f5d8c0af228a0f39d6f58b395(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
+      '@maplat/core': https://codeload.github.com/code4history/MaplatCore/tar.gz/90bfec90ab7e4b69e85adb66ec00e2b69ace9081(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
       '@turf/turf': 7.3.4
       '@types/page': 1.11.9
       bootstrap.native: 5.1.10
@@ -7855,6 +7887,11 @@ snapshots:
   lodash.flatten@4.4.0: {}
 
   lodash.isplainobject@4.0.6: {}
+
+  lodash.template@4.18.1:
+    dependencies:
+      lodash._reinterpolate: 3.0.0
+      lodash.templatesettings: 4.2.0
 
   lodash.template@4.5.0:
     dependencies:
