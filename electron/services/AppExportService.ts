@@ -13,6 +13,7 @@ import {
   normalizeAppSource,
   type AppSource,
 } from '../../src/utils/appSourceModel';
+import { compactMapLangFields } from '../../src/utils/langResource';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
@@ -87,7 +88,8 @@ class AppExportService {
       for (const source of maplatSources) {
         const mapDoc = await db.findOneAsync({ _id: source.mapID });
         if (!mapDoc) throw new Error(`Map not found: ${source.mapID}`);
-        const mapJson = { ...mapDoc };
+        // 交換形: デフォルト言語のみの言語別フィールドはプレーン文字列に畳み込む (ADR-0005)
+        const mapJson = compactMapLangFields({ ...mapDoc });
         delete (mapJson as any)._id;
         delete (mapJson as any).status;
         delete (mapJson as any).onlyOne;
@@ -167,12 +169,14 @@ class AppExportService {
 
   // Viewer形式の正規アプリJSON（camelCase・ビルトイン=文字列）
   private composeAppJson(document: any, sources: AppSource[]) {
+    const lang = document.lang || 'ja';
     const out: Record<string, unknown> = {
-      appName: compactLangObject(document.appName || document.title),
-      lang: document.lang || 'ja',
-      sources: sources.map(source => composeViewerSource(source)),
+      // 交換形: デフォルト言語のみの多言語フィールドはプレーン文字列に畳み込む (ADR-0005)
+      appName: compactLangObject(document.appName || document.title, lang),
+      lang,
+      sources: sources.map(source => composeViewerSource(source, { lang })),
     };
-    const description = compactLangObject(document.description);
+    const description = compactLangObject(document.description, lang);
     if (description) out.description = description;
     const splash = String(document.appSettings?.splash || '');
     if (splash) out.splash = splash;

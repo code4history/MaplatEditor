@@ -112,6 +112,7 @@ class AppPreviewService {
 
   private async createSession(token: string, document: any): Promise<PreviewSession> {
     const maps: Record<string, any> = {};
+    const documentLang = document.lang || 'ja';
     const sources = await Promise.all((document.sources || []).map(async (raw: any) => {
       const source = normalizeAppSource(raw);
       if (source.sourceType === 'maplat') {
@@ -128,12 +129,12 @@ class AppPreviewService {
           url: preview.url || preview.url_,
           pois: preview.pois,
         }));
-        const composed = composeViewerSource(source, { settingFilePrefix: 'maps/' }) as Record<string, unknown>;
+        const composed = composeViewerSource(source, { settingFilePrefix: 'maps/', lang: documentLang }) as Record<string, unknown>;
         composed.thumbnail = thumbnail;
         return composed;
       }
       // builtin → 素の文字列 / tms → Editor専用キー除去済みオブジェクト
-      return composeViewerSource(source);
+      return composeViewerSource(source, { lang: documentLang });
     }));
     const app = this.toHttpAsset(normalizeRuntimeKeys({
       appName: document.appName || document.title,

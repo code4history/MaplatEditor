@@ -12,6 +12,7 @@ import MapDataService from '../services/MapDataService';
 import SettingsService from '../services/SettingsService';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import * as storeHandler from '../utils/store_handler';
+import { compactMapLangFields } from '../../src/utils/langResource';
 import { ProgressReporter } from '../utils/ProgressReporter';
 // @ts-ignore
 import Tin from '@maplat/tin';
@@ -120,8 +121,10 @@ export const registerMapEditHandlers = () => {
         const tileFolder = path.join(saveFolder, 'tiles');
         const thumbFolder = path.join(saveFolder, 'tmbs');
 
-        // histMap2Store で store 形式に変換してから JSON 保存
-        const compiled = await storeHandler.histMap2Store(mapObject, tins);
+        // histMap2Store で store 形式に変換してから JSON 保存。
+        // エクスポート(交換形)ではデフォルト言語のみの言語別フィールドを
+        // プレーン文字列に畳み込む (ADR-0005)
+        const compiled = compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins));
         const tmpFile = path.join(tmpFolder, `${mapID}.json`);
         await fs.ensureDir(tmpFolder);
         await fs.writeFile(tmpFile, JSON.stringify(compiled));

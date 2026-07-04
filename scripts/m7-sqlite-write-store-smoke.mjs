@@ -55,6 +55,7 @@ try {
   const settingsDir = path.join(dataDir, 'settings');
   const retiredDataDir = path.join(workDir, 'data-retired');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const langResourcePath = path.join(projectRoot, 'src/utils/langResource.ts');
   const mapDataPath = path.join(projectRoot, 'electron/services/MapDataService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const searchPath = path.join(projectRoot, 'electron/services/SearchDataService.ts');
@@ -162,6 +163,11 @@ try {
       const loaded = await StorageAdapter.readMapForEdit('legacy-map');
       assert.equal(loaded.mapID, 'legacy-map');
       assert.equal(loaded.status, 'Update');
+      // 言語別フィールドの内部形は常にオブジェクト (ADR-0005)。
+      // nedb由来のプレーン文字列(=デフォルト言語の値)はマイグレーション/ロードで正規化される
+      const migrated = await db.findOneAsync({ _id: 'legacy-map' });
+      assert.deepEqual(migrated.title, { ja: 'Legacy Map' });
+      assert.deepEqual(migrated.officialTitle, {});
 
       // 書き込み直後の読み取り(read-your-writes): 単一レコードはWrite Store、一覧はSearch Layer
       await StorageAdapter.saveMapForEdit({
@@ -169,9 +175,24 @@ try {
         tins: ['tooLessGcps'],
       });
       const reloaded = await db.findOneAsync({ _id: 'legacy-map' });
-      assert.equal(reloaded.title, 'Updated Legacy Map');
+      // 保存経路でもプレーン文字列はオブジェクト形へ正規化される (ADR-0005)
+      assert.deepEqual(reloaded.title, { ja: 'Updated Legacy Map' });
       const relisted = await StorageAdapter.listMaps({ query: 'Updated', page: 1, pageSize: 20 });
       assert.equal(relisted.docs.length, 1);
+
+      // ADR-0005: 交換形(エクスポート)はデフォルト言語のみ→プレーン文字列、複数言語→オブジェクト
+      const langResource = await import(${JSON.stringify(langResourcePath)});
+      assert.deepEqual(langResource.normalizeLangResource('日本地図', 'ja'), { ja: '日本地図' });
+      assert.deepEqual(langResource.normalizeLangResource({ ja: '日本地図', en: '' }, 'ja'), { ja: '日本地図' });
+      assert.equal(langResource.compactLangResource({ ja: '日本地図' }, 'ja'), '日本地図');
+      assert.deepEqual(langResource.compactLangResource({ ja: '日本地図', en: 'Japan Map' }, 'ja'), { ja: '日本地図', en: 'Japan Map' });
+      // デフォルト言語以外の単一言語はオブジェクトのまま(言語情報を失わない)
+      assert.deepEqual(langResource.compactLangResource({ en: 'Japan Map' }, 'ja'), { en: 'Japan Map' });
+      assert.equal(langResource.compactLangResource({ ja: '' }, 'ja'), undefined);
+      const compactedDoc = langResource.compactMapLangFields({ lang: 'ja', title: { ja: '日本地図' }, description: { ja: '説明', en: 'Desc' }, attr: {} });
+      assert.equal(compactedDoc.title, '日本地図');
+      assert.deepEqual(compactedDoc.description, { ja: '説明', en: 'Desc' });
+      assert.ok(!('attr' in compactedDoc));
 
       // Write StoreはSQLiteファイル。DuckDBファイルは作られない
       await access(${JSON.stringify(path.join(dataDir, 'maplat.sqlite'))});

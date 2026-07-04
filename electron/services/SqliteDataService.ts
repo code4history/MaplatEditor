@@ -11,6 +11,7 @@ import builtinBaseMaps from '../builtin_base_maps.json';
 import defaultTmsList from '../tms_list.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
+import { normalizeMapLangFields } from '../../src/utils/langResource';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -116,7 +117,10 @@ function ftsMatchExpression(term: string): string | null {
 }
 
 export function mapRowToDocument(row: any): any {
-  const data = JSON.parse(row.data_json);
+  // 正規化導入(ADR-0005)前に保存された行はプレーン文字列の言語別フィールドを
+  // 含みうるため、読み出し時にもオブジェクト形へ正規化する(再マイグレーション不要。
+  // 次回保存時にupsertMap経由で正規化済みの形が永続化される)
+  const data = normalizeMapLangFields(JSON.parse(row.data_json));
   data._id = row.map_id;
   return data;
 }
@@ -129,7 +133,9 @@ export function appRowToDocument(row: any): any {
 }
 
 function normalizeMapDocument(document: any): any {
-  const normalized = { ...document };
+  // 言語別フィールドはDB内では常にオブジェクト形 (ADR-0005)。
+  // nedb移行やインポート由来のプレーン文字列(=デフォルト言語の値)もここで正規化される
+  const normalized = normalizeMapLangFields({ ...document });
   delete normalized._id;
   delete normalized.mapID;
   return normalized;

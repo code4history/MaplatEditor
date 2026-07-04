@@ -480,45 +480,34 @@ class Drag extends Pointer {
     }
 }
 
+// 言語別フィールドの内部表現は常にオブジェクト {lang: text} (ADR-0005)。
+// ロード/保存側(SqliteDataService)で正規化されるが、新規作成直後の初期値や
+// 旧形式データに備えてプレーン文字列(=デフォルト言語の値)も防御的に受容する
 const localedGet = (key: string) => {
     const lang = mapData.value.lang || 'ja';
     const locale = currentLang.value;
     const val = mapData.value[key];
     if (typeof val !== 'object' || val === null) {
         return lang === locale ? (val || '') : '';
-    } else {
-        return val[locale] != null ? val[locale] : '';
     }
+    return val[locale] != null ? val[locale] : '';
 };
 
 const localedSet = (key: string, value: string) => {
     const lang = mapData.value.lang || 'ja';
     const locale = currentLang.value;
-    let val = mapData.value[key];
+    const current = mapData.value[key];
     if (value == null) value = '';
-    
-    if (typeof val !== 'object' || val === null) {
-        if (lang === locale) {
-            val = value;
-        } else if (value !== '') {
-            const val_: any = {};
-            val_[lang] = val || ''; // 旧値を保持する
-            val_[locale] = value;
-            val = val_;
-        }
+
+    // プレーン文字列だった場合もオブジェクト形へ正規化してから編集する
+    const val: any =
+        typeof current === 'object' && current !== null
+            ? current
+            : current ? { [lang]: current } : {};
+    if (value === '') {
+        delete val[locale];
     } else {
-        if (value === '' && lang !== locale) {
-            delete val[locale];
-            const keys = Object.keys(val);
-            if (keys.length === 0) {
-                val = '';
-            } else if (keys.length === 1 && keys[0] === lang) {
-                val = val[lang];
-            }
-        } else {
-            // val = cloneDeep(val); // リアクティブオブジェクトの直接変更で問題が出る場合はクローンを使用
-            val[locale] = value;
-        }
+        val[locale] = value;
     }
     mapData.value[key] = val;
 };
@@ -548,53 +537,22 @@ const description = createLangComputed('description');
 const isDefaultLang = computed({
     get: () => (mapData.value.lang || 'ja') === currentLang.value,
     set: (newValue: boolean) => {
-        if (newValue) {
-            const oldLang = mapData.value.lang || 'ja';
-            const newLang = currentLang.value;
-            if (oldLang === newLang) return;
+        if (!newValue) return;
+        const oldLang = mapData.value.lang || 'ja';
+        const newLang = currentLang.value;
+        if (oldLang === newLang) return;
 
-            const buffer: any = {};
-            const bufferNew: any = {};
-            // 1. 旧言語・新言語の各フィールド値を「切替前に」退避する。
-            //    切替後にlocaledGetで取るとプレーン文字列(=旧デフォルト言語の値)が
-            //    新デフォルト言語の値として誤解釈され、旧値がコピーされる (#56)
-            for (const attr of langAttr) {
-                const val = mapData.value[attr];
-                if (typeof val !== 'object' || val === null) {
-                    buffer[attr] = val || '';
-                    bufferNew[attr] = '';
-                } else {
-                    buffer[attr] = val[oldLang] || '';
-                    bufferNew[attr] = val[newLang] || '';
-                }
-            }
-
-            // 2. 言語を切り替え
-            mapData.value.lang = newLang;
-
-            // 3. 各フィールドを新言語構造に再構築
-            for (const attr of langAttr) {
-                const newVal = bufferNew[attr]; // 退避した新言語の値(未入力なら空)
-                const oldVal = buffer[attr];    // 退避した旧言語の値
-
-                // 既存オブジェクトに oldLang と newLang の両方をセット
-                let combined: any = mapData.value[attr];
-                if (typeof combined !== 'object' || combined === null) {
-                    combined = {};
-                }
-
-                combined[oldLang] = oldVal;
-                combined[newLang] = newVal;
-
-                mapData.value[attr] = combined;
-
-                // 単一言語のみの場合はプレーン文字列に最適化
-                const keys = Object.keys(combined);
-                if (keys.length === 1 && keys[0] === newLang) {
-                     mapData.value[attr] = combined[newLang];
-                }
+        // 内部表現はオブジェクト常態(ADR-0005)なので、各言語の値は言語キーの下に
+        // 保持されたまま。プレーン文字列(=旧デフォルト言語の値)だけオブジェクト形へ
+        // 正規化してから、デフォルト言語の切替はlangの付け替えのみで完結する。
+        // (切替後にプレーン文字列を新言語値として誤解釈して旧値コピーが起きていた #56)
+        for (const attr of langAttr) {
+            const val = mapData.value[attr];
+            if (typeof val !== 'object' || val === null) {
+                mapData.value[attr] = val ? { [oldLang]: val } : {};
             }
         }
+        mapData.value.lang = newLang;
     }
 });
 const isDirty = computed(() => {

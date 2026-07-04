@@ -102,11 +102,16 @@ export interface AppSource {
 
 export function compactLangObject(
   value?: Record<string, string> | string,
+  defaultLang?: string,
 ): Record<string, string> | string | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value === "string") return value.trim() ? value : undefined;
   const entries = Object.entries(value).filter(([, text]) => typeof text === "string" && text.trim() !== "");
   if (entries.length === 0) return undefined;
+  // デフォルト言語のみの場合はプレーン文字列に畳み込む(交換形、ADR-0005)
+  if (defaultLang && entries.length === 1 && entries[0][0] === defaultLang) {
+    return entries[0][1];
+  }
   return Object.fromEntries(entries);
 }
 
@@ -188,13 +193,13 @@ function pruneEmpty(data: Record<string, unknown>): Record<string, unknown> {
 // builtin=文字列 / maplat={mapID,label(+settingFile)} / tms=data展開+maptype
 export function composeViewerSource(
   source: AppSource,
-  options: { settingFilePrefix?: string } = {},
+  options: { settingFilePrefix?: string; lang?: string } = {},
 ): string | Record<string, unknown> {
   if (source.sourceType === "builtin") return source.mapID;
 
   if (source.sourceType === "maplat") {
     const out: Record<string, unknown> = { mapID: source.mapID };
-    const label = compactLangObject(source.label);
+    const label = compactLangObject(source.label, options.lang);
     if (label) out.label = label;
     if (options.settingFilePrefix !== undefined) {
       out.maptype = "maplat";
@@ -214,7 +219,7 @@ export function composeViewerSource(
     mapID: source.mapID,
     maptype: source.role === "overlay" ? "overlay" : "base",
   };
-  const label = compactLangObject(source.label);
+  const label = compactLangObject(source.label, options.lang);
   if (label) out.label = label;
   return out;
 }
