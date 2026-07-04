@@ -152,58 +152,58 @@ class SqliteDataService {
   private async migrate(): Promise<void> {
     const db = this.db;
     if (!db) throw new Error('SQLite connection is not initialized');
-    const notifyProgress = await this.hasLegacyMigrationInputs();
 
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        id TEXT PRIMARY KEY,
+        applied_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS maps (
+        map_id TEXT PRIMARY KEY,
+        data_json TEXT NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS apps (
+        app_id TEXT PRIMARY KEY,
+        data_json TEXT NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS base_maps (
+        map_id TEXT NOT NULL,
+        scope TEXT NOT NULL,
+        sort_order INTEGER NOT NULL,
+        data_json TEXT NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now')),
+        PRIMARY KEY (scope, map_id)
+      );
+      CREATE TABLE IF NOT EXISTS map_base_map_visibility (
+        map_id TEXT NOT NULL,
+        base_map_id TEXT NOT NULL,
+        enabled INTEGER NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now')),
+        PRIMARY KEY (map_id, base_map_id)
+      );
+    `);
+    this.applyBuiltinBaseMapSeed(db);
+
+    // レガシー移行は初回のみ。退避アーカイブ(_nedb.db/_settings)は残り続けるため、
+    // 「入力ファイルの有無」ではなく「移行を実際に実行するか」で進捗通知を判定する
+    const alreadyMigrated = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(LEGACY_MIGRATION_ID);
+    if (alreadyMigrated) return;
+
+    const notifyProgress = await this.hasLegacyMigrationInputs();
     try {
       if (notifyProgress) sendMigrationProgress('database.migrating', 0);
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS schema_migrations (
-          id TEXT PRIMARY KEY,
-          applied_at TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS maps (
-          map_id TEXT PRIMARY KEY,
-          data_json TEXT NOT NULL,
-          updated_at TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS apps (
-          app_id TEXT PRIMARY KEY,
-          data_json TEXT NOT NULL,
-          updated_at TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS base_maps (
-          map_id TEXT NOT NULL,
-          scope TEXT NOT NULL,
-          sort_order INTEGER NOT NULL,
-          data_json TEXT NOT NULL,
-          updated_at TEXT DEFAULT (datetime('now')),
-          PRIMARY KEY (scope, map_id)
-        );
-        CREATE TABLE IF NOT EXISTS map_base_map_visibility (
-          map_id TEXT NOT NULL,
-          base_map_id TEXT NOT NULL,
-          enabled INTEGER NOT NULL,
-          updated_at TEXT DEFAULT (datetime('now')),
-          PRIMARY KEY (map_id, base_map_id)
-        );
-      `);
-
-      if (notifyProgress) sendMigrationProgress('database.migrating_builtin_basemaps', 25, '(1/4)');
-      this.applyBuiltinBaseMapSeed(db);
-
-      const alreadyMigrated = db
-        .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
-        .get(LEGACY_MIGRATION_ID);
-      if (!alreadyMigrated) {
-        if (notifyProgress) sendMigrationProgress('database.migrating_legacy_maps', 50, '(2/4)');
-        await this.migrateNeDB(db);
-        if (notifyProgress) sendMigrationProgress('database.migrating_legacy_basemaps', 75, '(3/4)');
-        await this.migrateUserBaseMaps(db);
-        db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(LEGACY_MIGRATION_ID);
-        if (notifyProgress) sendMigrationProgress('database.archiving_legacy_files', 90, '(4/4)');
-        await this.retireLegacyDataFiles();
-      }
-      if (notifyProgress) sendMigrationProgress('database.migrated', 100, '(4/4)');
+      if (notifyProgress) sendMigrationProgress('database.migrating_legacy_maps', 25, '(1/3)');
+      await this.migrateNeDB(db);
+      if (notifyProgress) sendMigrationProgress('database.migrating_legacy_basemaps', 50, '(2/3)');
+      await this.migrateUserBaseMaps(db);
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(LEGACY_MIGRATION_ID);
+      if (notifyProgress) sendMigrationProgress('database.archiving_legacy_files', 75, '(3/3)');
+      await this.retireLegacyDataFiles();
+      if (notifyProgress) sendMigrationProgress('database.migrated', 100, '(3/3)');
     } catch (e) {
       if (notifyProgress) sendMigrationProgress('database.migration_failed', 100);
       throw e;

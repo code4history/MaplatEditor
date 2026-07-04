@@ -214,7 +214,11 @@ try {
       assert.ok(baseMaps.some((item) => item.scope === 'user' && item.mapID === 'user-base'));
       await SearchDataService.reset();
       await SqliteDataService.reset();
+      // 2回目以降の起動では移行済みのため、退避アーカイブが残っていても進捗通知(移行ダイアログ)は出ない
+      const progressCountBeforeReopen = globalThis.__appProgressEvents.length;
       const rawDb = await SqliteDataService.getDb();
+      assert.equal(globalThis.__appProgressEvents.length, progressCountBeforeReopen,
+        'reopening an already-migrated DB must not emit migration progress events');
       const duplicateCheck = rawDb
         .prepare('SELECT scope, map_id, count(*) AS count FROM base_maps GROUP BY scope, map_id HAVING count(*) > 1')
         .all();
