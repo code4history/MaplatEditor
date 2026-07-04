@@ -152,17 +152,24 @@ class AppPreviewService {
   private handle(req: http.IncomingMessage, res: http.ServerResponse) {
     const requestUrl = new URL(req.url || '/', `http://127.0.0.1:${this.port || 0}`);
     const segments = requestUrl.pathname.split('/').filter(Boolean);
-    try {
-      if (segments[0] === 'preview' && segments[1]) return this.handlePreview(segments[1], segments.slice(2), res);
-      if (segments[0] === 'local-file') return this.serveLocalFile('/' + segments.slice(1).join('/'), res);
-      this.sendText(res, 404, 'Not Found');
-    } catch (e) {
-      console.error('[AppPreviewService] request failed', e);
-      this.sendText(res, 500, 'Internal Server Error');
-    }
+    // 配信は完全非同期で行い、失敗時も必ずレスポンスを閉じる(接続リーク防止)
+    Promise.resolve()
+      .then(() => {
+        if (segments[0] === 'preview' && segments[1]) return this.handlePreview(segments[1], segments.slice(2), res);
+        if (segments[0] === 'local-file') return this.serveLocalFile('/' + segments.slice(1).join('/'), res);
+        this.sendText(res, 404, 'Not Found');
+      })
+      .catch((e) => {
+        console.error('[AppPreviewService] request failed', e);
+        if (!res.headersSent) {
+          this.sendText(res, 500, 'Internal Server Error');
+        } else {
+          res.destroy();
+        }
+      });
   }
 
-  private handlePreview(token: string, rest: string[], res: http.ServerResponse) {
+  private async handlePreview(token: string, rest: string[], res: http.ServerResponse): Promise<void> {
     const session = this.sessions.get(token);
     if (!session) return this.sendText(res, 404, 'Preview session not found');
     if (rest.length === 0) return this.sendHtml(res, this.renderHtml(session));
@@ -231,52 +238,80 @@ ${manifestLink}
     };
   }
 
-  private servePackageAsset(assetPath: string, res: http.ServerResponse) {
+  private async servePackageAsset(assetPath: string, res: http.ServerResponse): Promise<void> {
     const candidates = [
       path.join(previewAssetRoot, assetPath),
       path.join(uiPackageRoot, 'dist', assetPath),
       path.join(uiPackageRoot, 'assets', assetPath),
       assetPath === 'ol.css' ? path.join(olPackageRoot, 'ol.css') : '',
       assetPath === 'ol.js' ? path.join(olPackageRoot, 'dist', 'ol.js') : '',
-    ];
-    const filePath = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
-    if (!filePath) return this.sendText(res, 404, 'Asset not found');
-    this.sendFile(res, filePath);
+    ].filter(Boolean);
+    for (const candidate of candidates) {
+      if (await this.sendFileIfExists(res, candidate)) return;
+    }
+    this.sendText(res, 404, 'Asset not found');
   }
 
   // ビルトインベースマップのアイコン等、アプリ同梱リソースを配信する
-  private serveResourceAsset(segments: string[], res: http.ServerResponse) {
+  private async serveResourceAsset(segments: string[], res: http.ServerResponse): Promise<void> {
     const relPath = segments.map(segment => decodeURIComponent(segment)).join('/');
     const resolved = resolveResourceAsset(relPath);
     if (!resolved) return this.sendText(res, 404, 'Asset not found');
-    this.sendFile(res, resolved);
+    await this.sendFile(res, resolved);
   }
 
-  private serveDataFile(folder: 'tmbs' | 'img', segments: string[], res: http.ServerResponse) {
+  private async serveDataFile(folder: 'tmbs' | 'img', segments: string[], res: http.ServerResponse): Promise<void> {
     const saveFolder = SettingsService.get('saveFolder') as string;
     const baseFolder = path.resolve(path.join(saveFolder, folder));
     const resolved = path.resolve(path.join(baseFolder, ...segments.map(segment => decodeURIComponent(segment))));
     if (!resolved.startsWith(baseFolder)) return this.sendText(res, 403, 'Forbidden');
-    this.sendFile(res, resolved);
+    await this.sendFile(res, resolved);
   }
 
-  private servePreviewTile(tileSegments: string[], res: http.ServerResponse) {
+  private async servePreviewTile(tileSegments: string[], res: http.ServerResponse): Promise<void> {
     const saveFolder = SettingsService.get('saveFolder') as string;
-    this.serveLocalFile(path.join(saveFolder, 'tiles', ...tileSegments), res);
+    await this.serveLocalFile(path.join(saveFolder, 'tiles', ...tileSegments), res);
   }
 
-  private serveLocalFile(filePath: string, res: http.ServerResponse) {
+  private async serveLocalFile(filePath: string, res: http.ServerResponse): Promise<void> {
     const decoded = decodeURIComponent(filePath);
     const saveFolder = SettingsService.get('saveFolder') as string;
     const resolved = path.resolve(decoded);
     if (!resolved.startsWith(path.resolve(saveFolder))) return this.sendText(res, 403, 'Forbidden');
-    this.sendFile(res, resolved);
+    await this.sendFile(res, resolved);
   }
 
-  private sendFile(res: http.ServerResponse, filePath: string) {
-    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return this.sendText(res, 404, 'File not found');
-    res.writeHead(200, { 'content-type': mimeTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream' });
-    fs.createReadStream(filePath).pipe(res);
+  private async sendFile(res: http.ServerResponse, filePath: string): Promise<void> {
+    if (!(await this.sendFileIfExists(res, filePath))) {
+      this.sendText(res, 404, 'File not found');
+    }
+  }
+
+  // ファイルが存在すれば配信してtrue。stat/読み込みは非同期で行い、メインスレッドを
+  // ブロックしない(遅いストレージ上のタイルburst読み込みで全接続が詰まるのを防ぐ)。
+  // ストリーム失敗・クライアント切断時は双方を確実に破棄し、接続リークを防ぐ。
+  private async sendFileIfExists(res: http.ServerResponse, filePath: string): Promise<boolean> {
+    let stats;
+    try {
+      stats = await fs.stat(filePath);
+    } catch {
+      return false;
+    }
+    if (!stats.isFile()) return false;
+    res.writeHead(200, {
+      'content-type': mimeTypes[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
+      'content-length': stats.size,
+    });
+    const stream = fs.createReadStream(filePath);
+    stream.on('error', (e) => {
+      console.error('[AppPreviewService] file stream failed', filePath, e);
+      res.destroy();
+    });
+    res.on('close', () => {
+      stream.destroy();
+    });
+    stream.pipe(res);
+    return true;
   }
 
   private sendJson(res: http.ServerResponse, data: any) {
