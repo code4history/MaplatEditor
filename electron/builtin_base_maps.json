@@ -1,0 +1,8698 @@
+[
+ {
+  "always": true,
+  "mapID": "osm",
+  "title": "OpenStreetMap",
+  "thumbnail": "basemap_icons/osm.jpg"
+ },
+ {
+  "always": true,
+  "mapID": "gsi",
+  "title": "地理院地図",
+  "thumbnail": "basemap_icons/gsi.jpg",
+  "envelopeLngLats": [
+   [
+    122.78,
+    20.3
+   ],
+   [
+    154.78,
+    20.3
+   ],
+   [
+    154.78,
+    45.71
+   ],
+   [
+    122.78,
+    45.71
+   ]
+  ]
+ },
+ {
+  "always": true,
+  "mapID": "gsi_ortho",
+  "title": "地理院航空写真",
+  "thumbnail": "basemap_icons/gsi_ortho.jpg",
+  "envelopeLngLats": [
+   [
+    122.78,
+    20.3
+   ],
+   [
+    154.78,
+    20.3
+   ],
+   [
+    154.78,
+    45.71
+   ],
+   [
+    122.78,
+    45.71
+   ]
+  ]
+ },
+ {
+  "mapID": "gsi_ort_USA10",
+  "attr": "The Geospatial Information Authority of Japan",
+  "url": "https://cyberjapandata.gsi.go.jp/xyz/ort_USA10/{z}/{x}/{y}.png",
+  "maxZoom": 17,
+  "title": "地理院航空写真1945-50"
+ },
+ {
+  "mapID": "gsi_ort_old10",
+  "attr": "The Geospatial Information Authority of Japan",
+  "url": "https://cyberjapandata.gsi.go.jp/xyz/ort_old10/{z}/{x}/{y}.png",
+  "maxZoom": 17,
+  "title": "地理院航空写真1961-64"
+ },
+ {
+  "mapID": "gsi_gazo1",
+  "attr": "The Geospatial Information Authority of Japan",
+  "url": "https://cyberjapandata.gsi.go.jp/xyz/gazo1/{z}/{x}/{y}.jpg",
+  "maxZoom": 17,
+  "title": "地理院航空写真1974-78"
+ },
+ {
+  "mapID": "gsi_gazo2",
+  "attr": "The Geospatial Information Authority of Japan",
+  "url": "https://cyberjapandata.gsi.go.jp/xyz/gazo2/{z}/{x}/{y}.jpg",
+  "maxZoom": 17,
+  "title": "地理院航空写真1979-83"
+ },
+ {
+  "mapID": "gsi_gazo3",
+  "attr": "The Geospatial Information Authority of Japan",
+  "url": "https://cyberjapandata.gsi.go.jp/xyz/gazo3/{z}/{x}/{y}.jpg",
+  "maxZoom": 17,
+  "title": "地理院航空写真1984-86"
+ },
+ {
+  "mapID": "gsi_gazo4",
+  "attr": "The Geospatial Information Authority of Japan",
+  "url": "https://cyberjapandata.gsi.go.jp/xyz/gazo4/{z}/{x}/{y}.jpg",
+  "maxZoom": 17,
+  "title": "地理院航空写真1988-90"
+ },
+ {
+  "mapID": "affrc_rapid16",
+  "attr": "（独）農業環境技術研究所",
+  "url": "https://aginfo.cgk.affrc.go.jp/ws/tmc/1.0.0/Kanto_Rapid-900913-L/{z}/{x}/{y}.png",
+  "maxZoom": 17,
+  "title": "1/2万　迅速測図原図"
+ },
+ {
+  "mapID": "affrc_tokyo5k",
+  "attr": "（独）農業環境技術研究所",
+  "url": "https://aginfo.cgk.affrc.go.jp/ws/tmc/1.0.0/Tokyo5000-900913-L/{z}/{x}/{y}.png",
+  "maxZoom": 18,
+  "title": "1/5千　東京測量図原図"
+ },
+ {
+  "mapID": "tokyo502man",
+  "title": "今昔マップ 首都圏 1896-1909年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.29969229,
+    35.26994238
+   ],
+   [
+    140.19962411,
+    35.26994238
+   ],
+   [
+    140.19962411,
+    35.86989378
+   ],
+   [
+    139.29969229,
+    35.86989378
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo502man.png"
+ },
+ {
+  "mapID": "tokyo5000",
+  "title": "今昔マップ 首都圏 1917-1924年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.24968919,
+    35.25327692
+   ],
+   [
+    140.24962124,
+    35.25327692
+   ],
+   [
+    140.24962124,
+    35.93097
+   ],
+   [
+    139.24968919,
+    35.93097
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo5000.png"
+ },
+ {
+  "mapID": "tokyo5001",
+  "title": "今昔マップ 首都圏 1927-1939年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.24968919,
+    35.25327692
+   ],
+   [
+    140.24961786,
+    35.25327692
+   ],
+   [
+    140.24961786,
+    35.93097
+   ],
+   [
+    139.24968919,
+    35.93097
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo5001.png"
+ },
+ {
+  "mapID": "tokyo5002",
+  "title": "今昔マップ 首都圏 1944-1954年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.24968919,
+    35.25327692
+   ],
+   [
+    140.24961786,
+    35.25327692
+   ],
+   [
+    140.24961786,
+    36.00321279
+   ],
+   [
+    139.24968919,
+    36.00321279
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo5002.png"
+ },
+ {
+  "mapID": "tokyo5003",
+  "title": "今昔マップ 首都圏 1965-1968年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.24679719,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    36.00321271
+   ],
+   [
+    139.24679719,
+    36.00321271
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo5003.png"
+ },
+ {
+  "mapID": "tokyo5004",
+  "title": "今昔マップ 首都圏 1975-1978年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.24679719,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    36.00321271
+   ],
+   [
+    139.24679719,
+    36.00321271
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo5004.png"
+ },
+ {
+  "mapID": "tokyo5005",
+  "title": "今昔マップ 首都圏 1983-1987年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/05/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.24679719,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    36.00321271
+   ],
+   [
+    139.24679719,
+    36.00321271
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo5005.png"
+ },
+ {
+  "mapID": "tokyo5006",
+  "title": "今昔マップ 首都圏 1992-1995年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/06/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.24679719,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    36.00321271
+   ],
+   [
+    139.24679719,
+    36.00321271
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo5006.png"
+ },
+ {
+  "mapID": "tokyo5007",
+  "title": "今昔マップ 首都圏 1998-2005年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/07/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.24679719,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    35.25327684
+   ],
+   [
+    140.2467326,
+    36.00321271
+   ],
+   [
+    139.24679719,
+    36.00321271
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokyo5007.png"
+ },
+ {
+  "mapID": "chukyo2man",
+  "title": "今昔マップ 中京圏 1888-1898年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49994448,
+    34.80325767
+   ],
+   [
+    137.19990779,
+    34.80325767
+   ],
+   [
+    137.19990779,
+    35.469856
+   ],
+   [
+    136.49994448,
+    35.469856
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo2man.png"
+ },
+ {
+  "mapID": "chukyo00",
+  "title": "今昔マップ 中京圏 1920年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49994325,
+    34.83658783
+   ],
+   [
+    137.24990227,
+    34.83658783
+   ],
+   [
+    137.24990227,
+    35.50318492
+   ],
+   [
+    136.49994325,
+    35.50318492
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo00.png"
+ },
+ {
+  "mapID": "chukyo01",
+  "title": "今昔マップ 中京圏 1932年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49994325,
+    35.00323563
+   ],
+   [
+    136.99991785,
+    35.00323563
+   ],
+   [
+    136.99991785,
+    35.50318492
+   ],
+   [
+    136.49994325,
+    35.50318492
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo01.png"
+ },
+ {
+  "mapID": "chukyo02",
+  "title": "今昔マップ 中京圏 1937-1938年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49995831,
+    34.83658783
+   ],
+   [
+    136.99991785,
+    34.83658783
+   ],
+   [
+    136.99991785,
+    35.33653722
+   ],
+   [
+    136.49995831,
+    35.33653722
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo02.png"
+ },
+ {
+  "mapID": "chukyo03",
+  "title": "今昔マップ 中京圏 1947年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49994325,
+    35.00323866
+   ],
+   [
+    136.99991484,
+    35.00323866
+   ],
+   [
+    136.99991484,
+    35.50318492
+   ],
+   [
+    136.49994325,
+    35.50318492
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo03.png"
+ },
+ {
+  "mapID": "chukyo04",
+  "title": "今昔マップ 中京圏 1959-1960年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49706067,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    35.33653103
+   ],
+   [
+    136.49706067,
+    35.33653103
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo04.png"
+ },
+ {
+  "mapID": "chukyo05",
+  "title": "今昔マップ 中京圏 1968-1973年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/05/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49705461,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    35.50319104
+   ],
+   [
+    136.49705461,
+    35.50319104
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo05.png"
+ },
+ {
+  "mapID": "chukyo06",
+  "title": "今昔マップ 中京圏 1976-1980年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/06/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49705461,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    35.50319104
+   ],
+   [
+    136.49705461,
+    35.50319104
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo06.png"
+ },
+ {
+  "mapID": "chukyo07",
+  "title": "今昔マップ 中京圏 1984-1989年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/07/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49705461,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    35.50319104
+   ],
+   [
+    136.49705461,
+    35.50319104
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo07.png"
+ },
+ {
+  "mapID": "chukyo08",
+  "title": "今昔マップ 中京圏 1992-1996年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/08/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.49705461,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    34.83658776
+   ],
+   [
+    137.24701363,
+    35.50319104
+   ],
+   [
+    136.49705461,
+    35.50319104
+   ]
+  ],
+  "thumbnail": "basemap_icons/chukyo08.png"
+ },
+ {
+  "mapID": "keihansin2man",
+  "title": "今昔マップ 京阪神圏 1892-1910年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.0001019,
+    34.33661328
+   ],
+   [
+    136.00000728,
+    34.33661328
+   ],
+   [
+    136.00000728,
+    35.06987735
+   ],
+   [
+    135.0001019,
+    35.06987735
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin2man.png"
+ },
+ {
+  "mapID": "keihansin00",
+  "title": "今昔マップ 京阪神圏 1922-1923年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.00010133,
+    34.33658036
+   ],
+   [
+    136.00000785,
+    34.33658036
+   ],
+   [
+    136.00000785,
+    35.08650974
+   ],
+   [
+    135.00010133,
+    35.08650974
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin00.png"
+ },
+ {
+  "mapID": "keihansin01",
+  "title": "今昔マップ 京阪神圏 1927-1935年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.00010133,
+    34.33658036
+   ],
+   [
+    136.00000785,
+    34.33658036
+   ],
+   [
+    136.00000785,
+    35.08650974
+   ],
+   [
+    135.00010133,
+    35.08650974
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin01.png"
+ },
+ {
+  "mapID": "keihansin02",
+  "title": "今昔マップ 京阪神圏 1947-1950年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.00010133,
+    34.33658321
+   ],
+   [
+    135.75004403,
+    34.33658321
+   ],
+   [
+    135.75004403,
+    34.91984453
+   ],
+   [
+    135.00010133,
+    34.91984453
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin02.png"
+ },
+ {
+  "mapID": "keihansin03",
+  "title": "今昔マップ 京阪神圏 1954-1956年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.00010413,
+    34.33658036
+   ],
+   [
+    136.00000785,
+    34.33658036
+   ],
+   [
+    136.00000785,
+    35.08650974
+   ],
+   [
+    135.00010413,
+    35.08650974
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin03.png"
+ },
+ {
+  "mapID": "keihansin03x",
+  "title": "今昔マップ 京阪神圏 1961-1964年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/03x/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.37217403,
+    34.83652932
+   ],
+   [
+    135.87213304,
+    34.83652932
+   ],
+   [
+    135.87213304,
+    35.08650671
+   ],
+   [
+    135.37217403,
+    35.08650671
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin03x.png"
+ },
+ {
+  "mapID": "keihansin04",
+  "title": "今昔マップ 京阪神圏 1967-1970年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.9972127,
+    34.33658029
+   ],
+   [
+    135.99711921,
+    34.33658029
+   ],
+   [
+    135.99711921,
+    35.08650967
+   ],
+   [
+    134.9972127,
+    35.08650967
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin04.png"
+ },
+ {
+  "mapID": "keihansin05",
+  "title": "今昔マップ 京阪神圏 1975-1979年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/05/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.9972127,
+    34.33658029
+   ],
+   [
+    135.99711921,
+    34.33658029
+   ],
+   [
+    135.99711921,
+    35.08650967
+   ],
+   [
+    134.9972127,
+    35.08650967
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin05.png"
+ },
+ {
+  "mapID": "keihansin06",
+  "title": "今昔マップ 京阪神圏 1983-1988年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/06/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.9972127,
+    34.33658029
+   ],
+   [
+    135.99711921,
+    34.33658029
+   ],
+   [
+    135.99711921,
+    35.08650967
+   ],
+   [
+    134.9972127,
+    35.08650967
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin06.png"
+ },
+ {
+  "mapID": "keihansin07",
+  "title": "今昔マップ 京阪神圏 1993-1997年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/07/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.9972127,
+    34.33658029
+   ],
+   [
+    135.99711921,
+    34.33658029
+   ],
+   [
+    135.99711921,
+    35.08650967
+   ],
+   [
+    134.9972127,
+    35.08650967
+   ]
+  ],
+  "thumbnail": "basemap_icons/keihansin07.png"
+ },
+ {
+  "mapID": "tohoku_pacific_coast00",
+  "title": "今昔マップ 東北地方太平洋岸 1901-1913年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tohoku_pacific_coast/00/{z}/{x}/{-y}.png",
+  "minZoom": 9,
+  "maxZoom": 15,
+  "envelopeLngLats": [
+   [
+    140.74944669,
+    36.83647769
+   ],
+   [
+    142.2492755,
+    36.83647769
+   ],
+   [
+    142.2492755,
+    40.66938206
+   ],
+   [
+    140.74944669,
+    40.66938206
+   ]
+  ],
+  "thumbnail": "basemap_icons/tohoku_pacific_coast00.png"
+ },
+ {
+  "mapID": "tohoku_pacific_coast01",
+  "title": "今昔マップ 東北地方太平洋岸 1949-1953年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tohoku_pacific_coast/01/{z}/{x}/{-y}.png",
+  "minZoom": 9,
+  "maxZoom": 15,
+  "envelopeLngLats": [
+   [
+    140.74944669,
+    36.83647769
+   ],
+   [
+    142.2492755,
+    36.83647769
+   ],
+   [
+    142.2492755,
+    40.66938206
+   ],
+   [
+    140.74944669,
+    40.66938206
+   ]
+  ],
+  "thumbnail": "basemap_icons/tohoku_pacific_coast01.png"
+ },
+ {
+  "mapID": "tohoku_pacific_coast02",
+  "title": "今昔マップ 東北地方太平洋岸 1969-1982年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tohoku_pacific_coast/02/{z}/{x}/{-y}.png",
+  "minZoom": 9,
+  "maxZoom": 15,
+  "envelopeLngLats": [
+   [
+    140.74655805,
+    36.8364776
+   ],
+   [
+    142.24638686,
+    36.8364776
+   ],
+   [
+    142.24638686,
+    40.66938197
+   ],
+   [
+    140.74655805,
+    40.66938197
+   ]
+  ],
+  "thumbnail": "basemap_icons/tohoku_pacific_coast02.png"
+ },
+ {
+  "mapID": "tohoku_pacific_coast03",
+  "title": "今昔マップ 東北地方太平洋岸 1990-2008年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tohoku_pacific_coast/03/{z}/{x}/{-y}.png",
+  "minZoom": 9,
+  "maxZoom": 15,
+  "envelopeLngLats": [
+   [
+    140.74655805,
+    36.8364776
+   ],
+   [
+    142.24638686,
+    36.8364776
+   ],
+   [
+    142.24638686,
+    40.66938197
+   ],
+   [
+    140.74655805,
+    40.66938197
+   ]
+  ],
+  "thumbnail": "basemap_icons/tohoku_pacific_coast03.png"
+ },
+ {
+  "mapID": "kanto00",
+  "title": "今昔マップ 関東 1894-1915年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanto/00/{z}/{x}/{-y}.png",
+  "minZoom": 9,
+  "maxZoom": 15,
+  "envelopeLngLats": [
+   [
+    138.24972463,
+    34.83663427
+   ],
+   [
+    140.99955157,
+    34.83663427
+   ],
+   [
+    140.99955157,
+    37.16975765
+   ],
+   [
+    138.24972463,
+    37.16975765
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanto00.png"
+ },
+ {
+  "mapID": "kanto01",
+  "title": "今昔マップ 関東 1928-1945年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanto/01/{z}/{x}/{-y}.png",
+  "minZoom": 9,
+  "maxZoom": 15,
+  "envelopeLngLats": [
+   [
+    138.24972463,
+    34.83663427
+   ],
+   [
+    140.99955157,
+    34.83663427
+   ],
+   [
+    140.99955157,
+    37.16975765
+   ],
+   [
+    138.24972463,
+    37.16975765
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanto01.png"
+ },
+ {
+  "mapID": "kanto02",
+  "title": "今昔マップ 関東 1972-1982年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanto/02/{z}/{x}/{-y}.png",
+  "minZoom": 9,
+  "maxZoom": 15,
+  "envelopeLngLats": [
+   [
+    138.246836,
+    34.8366342
+   ],
+   [
+    140.99666292,
+    34.8366342
+   ],
+   [
+    140.99666292,
+    37.16975757
+   ],
+   [
+    138.246836,
+    37.16975757
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanto02.png"
+ },
+ {
+  "mapID": "kanto03",
+  "title": "今昔マップ 関東 1988-2008年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanto/03/{z}/{x}/{-y}.png",
+  "minZoom": 9,
+  "maxZoom": 15,
+  "envelopeLngLats": [
+   [
+    138.246836,
+    34.8366342
+   ],
+   [
+    140.99666292,
+    34.8366342
+   ],
+   [
+    140.99666292,
+    37.16975757
+   ],
+   [
+    138.246836,
+    37.16975757
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanto03.png"
+ },
+ {
+  "mapID": "sapporo00",
+  "title": "今昔マップ 札幌 1916年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.87417974,
+    42.91910731
+   ],
+   [
+    141.62413058,
+    42.91910731
+   ],
+   [
+    141.62413058,
+    43.25238791
+   ],
+   [
+    140.87417974,
+    43.25238791
+   ]
+  ],
+  "thumbnail": "basemap_icons/sapporo00.png"
+ },
+ {
+  "mapID": "sapporo01",
+  "title": "今昔マップ 札幌 1935年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.87417974,
+    42.91910731
+   ],
+   [
+    141.62413058,
+    42.91910731
+   ],
+   [
+    141.62413058,
+    43.25238791
+   ],
+   [
+    140.87417974,
+    43.25238791
+   ]
+  ],
+  "thumbnail": "basemap_icons/sapporo01.png"
+ },
+ {
+  "mapID": "sapporo02",
+  "title": "今昔マップ 札幌 1950-1952年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.87129112,
+    42.91910722
+   ],
+   [
+    141.62124196,
+    42.91910722
+   ],
+   [
+    141.62124196,
+    43.25240418
+   ],
+   [
+    140.87129112,
+    43.25240418
+   ]
+  ],
+  "thumbnail": "basemap_icons/sapporo02.png"
+ },
+ {
+  "mapID": "sapporo03",
+  "title": "今昔マップ 札幌 1975-1976年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.87129112,
+    42.91910722
+   ],
+   [
+    141.62124196,
+    42.91910722
+   ],
+   [
+    141.62124196,
+    43.25240418
+   ],
+   [
+    140.87129112,
+    43.25240418
+   ]
+  ],
+  "thumbnail": "basemap_icons/sapporo03.png"
+ },
+ {
+  "mapID": "sapporo04",
+  "title": "今昔マップ 札幌 1995-1998年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.87129112,
+    42.91910722
+   ],
+   [
+    141.62124196,
+    42.91910722
+   ],
+   [
+    141.62124196,
+    43.25240418
+   ],
+   [
+    140.87129112,
+    43.25240418
+   ]
+  ],
+  "thumbnail": "basemap_icons/sapporo04.png"
+ },
+ {
+  "mapID": "asahikawa00",
+  "title": "今昔マップ 旭川 1916-1917年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.2490101,
+    43.66904952
+   ],
+   [
+    142.4990032,
+    43.66904952
+   ],
+   [
+    142.4990032,
+    43.91901909
+   ],
+   [
+    142.2490101,
+    43.91901909
+   ]
+  ],
+  "thumbnail": "basemap_icons/asahikawa00.png"
+ },
+ {
+  "mapID": "asahikawa01",
+  "title": "今昔マップ 旭川 1950-1952年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.2490101,
+    43.66904952
+   ],
+   [
+    142.4990032,
+    43.66904952
+   ],
+   [
+    142.4990032,
+    43.91901909
+   ],
+   [
+    142.2490101,
+    43.91901909
+   ]
+  ],
+  "thumbnail": "basemap_icons/asahikawa01.png"
+ },
+ {
+  "mapID": "asahikawa02",
+  "title": "今昔マップ 旭川 1972-1974年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.24612146,
+    43.66904942
+   ],
+   [
+    142.49611457,
+    43.66904942
+   ],
+   [
+    142.49611457,
+    43.91901899
+   ],
+   [
+    142.24612146,
+    43.91901899
+   ]
+  ],
+  "thumbnail": "basemap_icons/asahikawa02.png"
+ },
+ {
+  "mapID": "asahikawa03",
+  "title": "今昔マップ 旭川 1986年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.24612146,
+    43.66904942
+   ],
+   [
+    142.49611457,
+    43.66904942
+   ],
+   [
+    142.49611457,
+    43.91901899
+   ],
+   [
+    142.24612146,
+    43.91901899
+   ]
+  ],
+  "thumbnail": "basemap_icons/asahikawa03.png"
+ },
+ {
+  "mapID": "asahikawa04",
+  "title": "今昔マップ 旭川 1999-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.24612146,
+    43.66904942
+   ],
+   [
+    142.49611457,
+    43.66904942
+   ],
+   [
+    142.49611457,
+    43.91901899
+   ],
+   [
+    142.24612146,
+    43.91901899
+   ]
+  ],
+  "thumbnail": "basemap_icons/asahikawa04.png"
+ },
+ {
+  "mapID": "kushiro00",
+  "title": "今昔マップ 釧路 1897年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    144.25192662,
+    42.84100924
+   ],
+   [
+    144.50192613,
+    42.84100924
+   ],
+   [
+    144.50192613,
+    43.17429399
+   ],
+   [
+    144.25192662,
+    43.17429399
+   ]
+  ],
+  "thumbnail": "basemap_icons/kushiro00.png"
+ },
+ {
+  "mapID": "kushiro01",
+  "title": "今昔マップ 釧路 1922年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    144.24642746,
+    42.8355597
+   ],
+   [
+    144.49642696,
+    42.8355597
+   ],
+   [
+    144.49642696,
+    43.16884445
+   ],
+   [
+    144.24642746,
+    43.16884445
+   ]
+  ],
+  "thumbnail": "basemap_icons/kushiro01.png"
+ },
+ {
+  "mapID": "kushiro02",
+  "title": "今昔マップ 釧路 1958年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    144.24599402,
+    42.91920867
+   ],
+   [
+    144.49598268,
+    42.91920867
+   ],
+   [
+    144.49598268,
+    43.08585542
+   ],
+   [
+    144.24599402,
+    43.08585542
+   ]
+  ],
+  "thumbnail": "basemap_icons/kushiro02.png"
+ },
+ {
+  "mapID": "kushiro03",
+  "title": "今昔マップ 釧路 1981年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    144.24599402,
+    42.91920867
+   ],
+   [
+    144.49598268,
+    42.91920867
+   ],
+   [
+    144.49598268,
+    43.08585542
+   ],
+   [
+    144.24599402,
+    43.08585542
+   ]
+  ],
+  "thumbnail": "basemap_icons/kushiro03.png"
+ },
+ {
+  "mapID": "kushiro04",
+  "title": "今昔マップ 釧路 2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    144.24599402,
+    42.91920867
+   ],
+   [
+    144.49598268,
+    42.91920867
+   ],
+   [
+    144.49598268,
+    43.08585542
+   ],
+   [
+    144.24599402,
+    43.08585542
+   ]
+  ],
+  "thumbnail": "basemap_icons/kushiro04.png"
+ },
+ {
+  "mapID": "obihiro00",
+  "title": "今昔マップ 帯広 1896年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    143.00943885,
+    42.84124626
+   ],
+   [
+    143.25942682,
+    42.84124626
+   ],
+   [
+    143.25942682,
+    43.0078844
+   ],
+   [
+    143.00943885,
+    43.0078844
+   ]
+  ],
+  "thumbnail": "basemap_icons/obihiro00.png"
+ },
+ {
+  "mapID": "obihiro01",
+  "title": "今昔マップ 帯広 1930年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.99639041,
+    42.83509656
+   ],
+   [
+    143.24637838,
+    42.83509656
+   ],
+   [
+    143.24637838,
+    43.0017347
+   ],
+   [
+    142.99639041,
+    43.0017347
+   ]
+  ],
+  "thumbnail": "basemap_icons/obihiro01.png"
+ },
+ {
+  "mapID": "obihiro02",
+  "title": "今昔マップ 帯広 1956-1957年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.99611149,
+    42.8358422
+   ],
+   [
+    143.24609946,
+    42.8358422
+   ],
+   [
+    143.24609946,
+    43.00248885
+   ],
+   [
+    142.99611149,
+    43.00248885
+   ]
+  ],
+  "thumbnail": "basemap_icons/obihiro02.png"
+ },
+ {
+  "mapID": "obihiro03",
+  "title": "今昔マップ 帯広 1985年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.99611149,
+    42.8358422
+   ],
+   [
+    143.24609946,
+    42.8358422
+   ],
+   [
+    143.24609946,
+    43.00248885
+   ],
+   [
+    142.99611149,
+    43.00248885
+   ]
+  ],
+  "thumbnail": "basemap_icons/obihiro03.png"
+ },
+ {
+  "mapID": "obihiro04",
+  "title": "今昔マップ 帯広 1998-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    142.99611149,
+    42.8358422
+   ],
+   [
+    143.24609946,
+    42.8358422
+   ],
+   [
+    143.24609946,
+    43.00248885
+   ],
+   [
+    142.99611149,
+    43.00248885
+   ]
+  ],
+  "thumbnail": "basemap_icons/obihiro04.png"
+ },
+ {
+  "mapID": "tomakomai00",
+  "title": "今昔マップ 苫小牧 1896年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    141.49213803,
+    42.49650374
+   ],
+   [
+    141.74214524,
+    42.49650374
+   ],
+   [
+    141.74214524,
+    42.99643513
+   ],
+   [
+    141.49213803,
+    42.99643513
+   ]
+  ],
+  "thumbnail": "basemap_icons/tomakomai00.png"
+ },
+ {
+  "mapID": "tomakomai01",
+  "title": "今昔マップ 苫小牧 1935年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    141.49913702,
+    42.50250325
+   ],
+   [
+    141.74914424,
+    42.50250325
+   ],
+   [
+    141.74914424,
+    43.00243463
+   ],
+   [
+    141.49913702,
+    43.00243463
+   ]
+  ],
+  "thumbnail": "basemap_icons/tomakomai01.png"
+ },
+ {
+  "mapID": "tomakomai02",
+  "title": "今昔マップ 苫小牧 1954-1955年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    141.49625345,
+    42.58582236
+   ],
+   [
+    141.74625062,
+    42.58582236
+   ],
+   [
+    141.74625062,
+    43.00243864
+   ],
+   [
+    141.49625345,
+    43.00243864
+   ]
+  ],
+  "thumbnail": "basemap_icons/tomakomai02.png"
+ },
+ {
+  "mapID": "tomakomai03",
+  "title": "今昔マップ 苫小牧 1983-1984年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    141.49625345,
+    42.58582236
+   ],
+   [
+    141.74625062,
+    42.58582236
+   ],
+   [
+    141.74625062,
+    43.00243864
+   ],
+   [
+    141.49625345,
+    43.00243864
+   ]
+  ],
+  "thumbnail": "basemap_icons/tomakomai03.png"
+ },
+ {
+  "mapID": "tomakomai04",
+  "title": "今昔マップ 苫小牧 1993-999年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/04/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    141.49625345,
+    42.58582236
+   ],
+   [
+    141.74625062,
+    42.58582236
+   ],
+   [
+    141.74625062,
+    43.00243864
+   ],
+   [
+    141.49625345,
+    43.00243864
+   ]
+  ],
+  "thumbnail": "basemap_icons/tomakomai04.png"
+ },
+ {
+  "mapID": "muroran00",
+  "title": "今昔マップ 室蘭 1896年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.7468415,
+    42.16546737
+   ],
+   [
+    141.30346298,
+    42.16546737
+   ],
+   [
+    141.30346298,
+    42.66740769
+   ],
+   [
+    140.7468415,
+    42.66740769
+   ]
+  ],
+  "thumbnail": "basemap_icons/muroran00.png"
+ },
+ {
+  "mapID": "muroran01",
+  "title": "今昔マップ 室蘭 1917年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.74922618,
+    42.16918702
+   ],
+   [
+    141.28958383,
+    42.16918702
+   ],
+   [
+    141.28958383,
+    42.66911745
+   ],
+   [
+    140.74922618,
+    42.66911745
+   ]
+  ],
+  "thumbnail": "basemap_icons/muroran01.png"
+ },
+ {
+  "mapID": "muroran02",
+  "title": "今昔マップ 室蘭 1955年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.74634242,
+    42.25251107
+   ],
+   [
+    141.28203212,
+    42.25251107
+   ],
+   [
+    141.28203212,
+    42.58579812
+   ],
+   [
+    140.74634242,
+    42.58579812
+   ]
+  ],
+  "thumbnail": "basemap_icons/muroran02.png"
+ },
+ {
+  "mapID": "muroran03",
+  "title": "今昔マップ 室蘭 1986-1987年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.74634242,
+    42.25251107
+   ],
+   [
+    141.28442666,
+    42.25251107
+   ],
+   [
+    141.28442666,
+    42.58579812
+   ],
+   [
+    140.74634242,
+    42.58579812
+   ]
+  ],
+  "thumbnail": "basemap_icons/muroran03.png"
+ },
+ {
+  "mapID": "muroran04",
+  "title": "今昔マップ 室蘭 1998-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/04/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.70056375,
+    42.25251107
+   ],
+   [
+    141.28463836,
+    42.25251107
+   ],
+   [
+    141.28463836,
+    42.58579812
+   ],
+   [
+    140.70056375,
+    42.58579812
+   ]
+  ],
+  "thumbnail": "basemap_icons/muroran04.png"
+ },
+ {
+  "mapID": "hakodate00",
+  "title": "今昔マップ 函館 19159年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.49929225,
+    41.66923812
+   ],
+   [
+    140.87426267,
+    41.66923812
+   ],
+   [
+    140.87426267,
+    41.91920807
+   ],
+   [
+    140.49929225,
+    41.91920807
+   ]
+  ],
+  "thumbnail": "basemap_icons/hakodate00.png"
+ },
+ {
+  "mapID": "hakodate01",
+  "title": "今昔マップ 函館 1951-1955年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.49929225,
+    41.66923812
+   ],
+   [
+    140.87426736,
+    41.66923812
+   ],
+   [
+    140.87426736,
+    41.91920798
+   ],
+   [
+    140.49929225,
+    41.91920798
+   ]
+  ],
+  "thumbnail": "basemap_icons/hakodate01.png"
+ },
+ {
+  "mapID": "hakodate02",
+  "title": "今昔マップ 函館 1968年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.49640362,
+    41.66923803
+   ],
+   [
+    140.87137872,
+    41.66923803
+   ],
+   [
+    140.87137872,
+    41.91920798
+   ],
+   [
+    140.49640362,
+    41.91920798
+   ]
+  ],
+  "thumbnail": "basemap_icons/hakodate02.png"
+ },
+ {
+  "mapID": "hakodate03",
+  "title": "今昔マップ 函館 1986-1989年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.49640362,
+    41.66923803
+   ],
+   [
+    140.87137872,
+    41.66923803
+   ],
+   [
+    140.87137872,
+    41.91920798
+   ],
+   [
+    140.49640362,
+    41.91920798
+   ]
+  ],
+  "thumbnail": "basemap_icons/hakodate03.png"
+ },
+ {
+  "mapID": "hakodate04",
+  "title": "今昔マップ 函館 1996-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.49640362,
+    41.73790439
+   ],
+   [
+    140.87137872,
+    41.73790439
+   ],
+   [
+    140.87137872,
+    41.91920798
+   ],
+   [
+    140.49640362,
+    41.91920798
+   ]
+  ],
+  "thumbnail": "basemap_icons/hakodate04.png"
+ },
+ {
+  "mapID": "aomori00",
+  "title": "今昔マップ 青森 1912年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.62433572,
+    40.75268095
+   ],
+   [
+    140.87432216,
+    40.75268095
+   ],
+   [
+    140.87432216,
+    40.91932779
+   ],
+   [
+    140.62433572,
+    40.91932779
+   ]
+  ],
+  "thumbnail": "basemap_icons/aomori00.png"
+ },
+ {
+  "mapID": "aomori01",
+  "title": "今昔マップ 青森 1939-1955年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.62433572,
+    40.75268095
+   ],
+   [
+    140.87432216,
+    40.75268095
+   ],
+   [
+    140.87432216,
+    40.91932779
+   ],
+   [
+    140.62433572,
+    40.91932779
+   ]
+  ],
+  "thumbnail": "basemap_icons/aomori01.png"
+ },
+ {
+  "mapID": "aomori02",
+  "title": "今昔マップ 青森 1970年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.62144708,
+    40.75268086
+   ],
+   [
+    140.87143352,
+    40.75268086
+   ],
+   [
+    140.87143352,
+    40.9193277
+   ],
+   [
+    140.62144708,
+    40.9193277
+   ]
+  ],
+  "thumbnail": "basemap_icons/aomori02.png"
+ },
+ {
+  "mapID": "aomori03",
+  "title": "今昔マップ 青森 1984-1989年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.62144708,
+    40.75268086
+   ],
+   [
+    140.87143352,
+    40.75268086
+   ],
+   [
+    140.87143352,
+    40.9193277
+   ],
+   [
+    140.62144708,
+    40.9193277
+   ]
+  ],
+  "thumbnail": "basemap_icons/aomori03.png"
+ },
+ {
+  "mapID": "aomori04",
+  "title": "今昔マップ 青森 2003-2011年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.62144708,
+    40.75268086
+   ],
+   [
+    140.87143352,
+    40.75268086
+   ],
+   [
+    140.87143352,
+    40.9193277
+   ],
+   [
+    140.62144708,
+    40.9193277
+   ]
+  ],
+  "thumbnail": "basemap_icons/aomori04.png"
+ },
+ {
+  "mapID": "hirosaki00",
+  "title": "今昔マップ 弘前 1912年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.37436271,
+    40.50270298
+   ],
+   [
+    140.6243578,
+    40.50270298
+   ],
+   [
+    140.6243578,
+    40.83599285
+   ],
+   [
+    140.37436271,
+    40.83599285
+   ]
+  ],
+  "thumbnail": "basemap_icons/hirosaki00.png"
+ },
+ {
+  "mapID": "hirosaki01",
+  "title": "今昔マップ 弘前 1939年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.37436271,
+    40.50270298
+   ],
+   [
+    140.6243578,
+    40.50270298
+   ],
+   [
+    140.6243578,
+    40.83599285
+   ],
+   [
+    140.37436271,
+    40.83599285
+   ]
+  ],
+  "thumbnail": "basemap_icons/hirosaki01.png"
+ },
+ {
+  "mapID": "hirosaki02",
+  "title": "今昔マップ 弘前 1970-1971年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.37147407,
+    40.50270289
+   ],
+   [
+    140.62146915,
+    40.50270289
+   ],
+   [
+    140.62146915,
+    40.83599276
+   ],
+   [
+    140.37147407,
+    40.83599276
+   ]
+  ],
+  "thumbnail": "basemap_icons/hirosaki02.png"
+ },
+ {
+  "mapID": "hirosaki03",
+  "title": "今昔マップ 弘前 1980-1986年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.37147407,
+    40.50270289
+   ],
+   [
+    140.62146915,
+    40.50270289
+   ],
+   [
+    140.62146915,
+    40.83599276
+   ],
+   [
+    140.37147407,
+    40.83599276
+   ]
+  ],
+  "thumbnail": "basemap_icons/hirosaki03.png"
+ },
+ {
+  "mapID": "hirosaki04",
+  "title": "今昔マップ 弘前 1994-1997年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.37147407,
+    40.50270289
+   ],
+   [
+    140.62146915,
+    40.50270289
+   ],
+   [
+    140.62146915,
+    40.83599276
+   ],
+   [
+    140.37147407,
+    40.83599276
+   ]
+  ],
+  "thumbnail": "basemap_icons/hirosaki04.png"
+ },
+ {
+  "mapID": "morioka00",
+  "title": "今昔マップ 盛岡 1811-1912年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.99935898,
+    39.50283977
+   ],
+   [
+    141.24935396,
+    39.50283977
+   ],
+   [
+    141.24935396,
+    39.83613405
+   ],
+   [
+    140.99935898,
+    39.83613405
+   ]
+  ],
+  "thumbnail": "basemap_icons/morioka00.png"
+ },
+ {
+  "mapID": "morioka01",
+  "title": "今昔マップ 盛岡 1939年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.99935898,
+    39.50283977
+   ],
+   [
+    141.24935396,
+    39.50283977
+   ],
+   [
+    141.24935396,
+    39.83613405
+   ],
+   [
+    140.99935898,
+    39.83613405
+   ]
+  ],
+  "thumbnail": "basemap_icons/morioka01.png"
+ },
+ {
+  "mapID": "morioka02",
+  "title": "今昔マップ 盛岡 1968-1969年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.99647034,
+    39.50283969
+   ],
+   [
+    141.24646532,
+    39.50283969
+   ],
+   [
+    141.24646532,
+    39.83613396
+   ],
+   [
+    140.99647034,
+    39.83613396
+   ]
+  ],
+  "thumbnail": "basemap_icons/morioka02.png"
+ },
+ {
+  "mapID": "morioka03",
+  "title": "今昔マップ 盛岡 1983-1988年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.99647034,
+    39.50283969
+   ],
+   [
+    141.24646532,
+    39.50283969
+   ],
+   [
+    141.24646532,
+    39.83613396
+   ],
+   [
+    140.99647034,
+    39.83613396
+   ]
+  ],
+  "thumbnail": "basemap_icons/morioka03.png"
+ },
+ {
+  "mapID": "morioka04",
+  "title": "今昔マップ 盛岡 1999-2002年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.99647034,
+    39.50283969
+   ],
+   [
+    141.24646532,
+    39.50283969
+   ],
+   [
+    141.24646532,
+    39.83613396
+   ],
+   [
+    140.99647034,
+    39.83613396
+   ]
+  ],
+  "thumbnail": "basemap_icons/morioka04.png"
+ },
+ {
+  "mapID": "iwatekennan00",
+  "title": "今昔マップ 岩手県南 1913年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.9993759,
+    38.8362545
+   ],
+   [
+    141.24938718,
+    38.8362545
+   ],
+   [
+    141.24938718,
+    39.50283599
+   ],
+   [
+    140.9993759,
+    39.50283599
+   ]
+  ],
+  "thumbnail": "basemap_icons/iwatekennan00.png"
+ },
+ {
+  "mapID": "iwatekennan01",
+  "title": "今昔マップ 岩手県南 1951年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.9993759,
+    38.8362545
+   ],
+   [
+    141.24938718,
+    38.8362545
+   ],
+   [
+    141.24938718,
+    39.50283599
+   ],
+   [
+    140.9993759,
+    39.50283599
+   ]
+  ],
+  "thumbnail": "basemap_icons/iwatekennan01.png"
+ },
+ {
+  "mapID": "iwatekennan02",
+  "title": "今昔マップ 岩手県南 1968年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.99648725,
+    38.83625067
+   ],
+   [
+    141.24649853,
+    38.83625067
+   ],
+   [
+    141.24649853,
+    39.50283969
+   ],
+   [
+    140.99648725,
+    39.50283969
+   ]
+  ],
+  "thumbnail": "basemap_icons/iwatekennan02.png"
+ },
+ {
+  "mapID": "iwatekennan03",
+  "title": "今昔マップ 岩手県南 1985-1986年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.99648725,
+    38.83625067
+   ],
+   [
+    141.24649853,
+    38.83625067
+   ],
+   [
+    141.24649853,
+    39.50283969
+   ],
+   [
+    140.99648725,
+    39.50283969
+   ]
+  ],
+  "thumbnail": "basemap_icons/iwatekennan03.png"
+ },
+ {
+  "mapID": "iwatekennan04",
+  "title": "今昔マップ 岩手県南 1996-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/04/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.99648725,
+    38.83625441
+   ],
+   [
+    141.24649853,
+    38.83625441
+   ],
+   [
+    141.24649853,
+    39.50283969
+   ],
+   [
+    140.99648725,
+    39.50283969
+   ]
+  ],
+  "thumbnail": "basemap_icons/iwatekennan04.png"
+ },
+ {
+  "mapID": "sendai00",
+  "title": "今昔マップ 仙台 1928-1933年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.74945064,
+    38.08633133
+   ],
+   [
+    141.24941533,
+    38.08633133
+   ],
+   [
+    141.24941533,
+    38.41963358
+   ],
+   [
+    140.74945064,
+    38.41963358
+   ]
+  ],
+  "thumbnail": "basemap_icons/sendai00.png"
+ },
+ {
+  "mapID": "sendai01",
+  "title": "今昔マップ 仙台 1946年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.74945458,
+    38.16965506
+   ],
+   [
+    141.12443005,
+    38.16965506
+   ],
+   [
+    141.12443005,
+    38.33630618
+   ],
+   [
+    140.74945458,
+    38.33630618
+   ]
+  ],
+  "thumbnail": "basemap_icons/sendai01.png"
+ },
+ {
+  "mapID": "sendai02",
+  "title": "今昔マップ 仙台 1963-1967年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.746562,
+    38.08633124
+   ],
+   [
+    141.24652669,
+    38.08633124
+   ],
+   [
+    141.24652669,
+    38.4196335
+   ],
+   [
+    140.746562,
+    38.4196335
+   ]
+  ],
+  "thumbnail": "basemap_icons/sendai02.png"
+ },
+ {
+  "mapID": "sendai03",
+  "title": "今昔マップ 仙台 1977-1978年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.746562,
+    38.08633124
+   ],
+   [
+    141.24652669,
+    38.08633124
+   ],
+   [
+    141.24652669,
+    38.4196335
+   ],
+   [
+    140.746562,
+    38.4196335
+   ]
+  ],
+  "thumbnail": "basemap_icons/sendai03.png"
+ },
+ {
+  "mapID": "sendai04",
+  "title": "今昔マップ 仙台 1995-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.746562,
+    38.08633124
+   ],
+   [
+    141.24652669,
+    38.08633124
+   ],
+   [
+    141.24652669,
+    38.4196335
+   ],
+   [
+    140.746562,
+    38.4196335
+   ]
+  ],
+  "thumbnail": "basemap_icons/sendai04.png"
+ },
+ {
+  "mapID": "akita00",
+  "title": "今昔マップ 秋田 1912年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/akita/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99944365,
+    39.58613337
+   ],
+   [
+    140.24943798,
+    39.58613337
+   ],
+   [
+    140.24943798,
+    39.91942369
+   ],
+   [
+    139.99944365,
+    39.91942369
+   ]
+  ],
+  "thumbnail": "basemap_icons/akita00.png"
+ },
+ {
+  "mapID": "akita01",
+  "title": "今昔マップ 秋田 1971-1972年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/akita/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99655501,
+    39.58613329
+   ],
+   [
+    140.24654934,
+    39.58613329
+   ],
+   [
+    140.24654934,
+    39.91942361
+   ],
+   [
+    139.99655501,
+    39.91942361
+   ]
+  ],
+  "thumbnail": "basemap_icons/akita01.png"
+ },
+ {
+  "mapID": "akita02",
+  "title": "今昔マップ 秋田 1985-1990年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/akita/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99655501,
+    39.58613329
+   ],
+   [
+    140.24654934,
+    39.58613329
+   ],
+   [
+    140.24654934,
+    39.91942361
+   ],
+   [
+    139.99655501,
+    39.91942361
+   ]
+  ],
+  "thumbnail": "basemap_icons/akita02.png"
+ },
+ {
+  "mapID": "akita03",
+  "title": "今昔マップ 秋田 2006-2007年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/akita/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99655501,
+    39.58613329
+   ],
+   [
+    140.24654934,
+    39.58613329
+   ],
+   [
+    140.24654934,
+    39.91942361
+   ],
+   [
+    139.99655501,
+    39.91942361
+   ]
+  ],
+  "thumbnail": "basemap_icons/akita03.png"
+ },
+ {
+  "mapID": "yamagata2man",
+  "title": "今昔マップ 山形 1901-1903年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.19949934,
+    38.1363076
+   ],
+   [
+    140.49947943,
+    38.1363076
+   ],
+   [
+    140.49947943,
+    38.53626126
+   ],
+   [
+    140.19949934,
+    38.53626126
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamagata2man.png"
+ },
+ {
+  "mapID": "yamagata00",
+  "title": "今昔マップ 山形 1931年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24949028,
+    38.08631554
+   ],
+   [
+    140.49948021,
+    38.08631554
+   ],
+   [
+    140.49948021,
+    38.50293398
+   ],
+   [
+    140.24949028,
+    38.50293398
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamagata00.png"
+ },
+ {
+  "mapID": "yamagata01",
+  "title": "今昔マップ 山形 1970年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24660164,
+    38.08631545
+   ],
+   [
+    140.49659156,
+    38.08631545
+   ],
+   [
+    140.49659156,
+    38.5029339
+   ],
+   [
+    140.24660164,
+    38.5029339
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamagata01.png"
+ },
+ {
+  "mapID": "yamagata02",
+  "title": "今昔マップ 山形 1980-1989年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24660164,
+    38.08631545
+   ],
+   [
+    140.49659156,
+    38.08631545
+   ],
+   [
+    140.49659156,
+    38.5029339
+   ],
+   [
+    140.24660164,
+    38.5029339
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamagata02.png"
+ },
+ {
+  "mapID": "yamagata03",
+  "title": "今昔マップ 山形 1999-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24660164,
+    38.08631545
+   ],
+   [
+    140.49659156,
+    38.08631545
+   ],
+   [
+    140.49659156,
+    38.5029339
+   ],
+   [
+    140.24660164,
+    38.5029339
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamagata03.png"
+ },
+ {
+  "mapID": "yonezawa00",
+  "title": "今昔マップ 米沢 1908-1910年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/00/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99952761,
+    37.83634078
+   ],
+   [
+    140.24952109,
+    37.83634078
+   ],
+   [
+    140.24952109,
+    38.16962847
+   ],
+   [
+    139.99952761,
+    38.16962847
+   ]
+  ],
+  "thumbnail": "basemap_icons/yonezawa00.png"
+ },
+ {
+  "mapID": "yonezawa01",
+  "title": "今昔マップ 米沢 1952-1953年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/01/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99952761,
+    37.83634078
+   ],
+   [
+    140.24952109,
+    37.83634078
+   ],
+   [
+    140.24952109,
+    38.16962847
+   ],
+   [
+    139.99952761,
+    38.16962847
+   ]
+  ],
+  "thumbnail": "basemap_icons/yonezawa01.png"
+ },
+ {
+  "mapID": "yonezawa02",
+  "title": "今昔マップ 米沢 1970-1973年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/02/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99663896,
+    37.83633713
+   ],
+   [
+    140.24663244,
+    37.83633713
+   ],
+   [
+    140.24663244,
+    38.16963197
+   ],
+   [
+    139.99663896,
+    38.16963197
+   ]
+  ],
+  "thumbnail": "basemap_icons/yonezawa02.png"
+ },
+ {
+  "mapID": "yonezawa03",
+  "title": "今昔マップ 米沢 1984年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/03/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99663896,
+    37.83633713
+   ],
+   [
+    140.24663244,
+    37.83633713
+   ],
+   [
+    140.24663244,
+    38.16963197
+   ],
+   [
+    139.99663896,
+    38.16963197
+   ]
+  ],
+  "thumbnail": "basemap_icons/yonezawa03.png"
+ },
+ {
+  "mapID": "yonezawa04",
+  "title": "今昔マップ 米沢 1999-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/04/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.99663896,
+    37.83633713
+   ],
+   [
+    140.24663244,
+    37.83633713
+   ],
+   [
+    140.24663244,
+    38.16963197
+   ],
+   [
+    139.99663896,
+    38.16963197
+   ]
+  ],
+  "thumbnail": "basemap_icons/yonezawa04.png"
+ },
+ {
+  "mapID": "syonai00",
+  "title": "今昔マップ 庄内 1913年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.74951065,
+    38.66957039
+   ],
+   [
+    139.99950436,
+    38.66957039
+   ],
+   [
+    139.99950436,
+    39.00285755
+   ],
+   [
+    139.74951065,
+    39.00285755
+   ]
+  ],
+  "thumbnail": "basemap_icons/syonai00.png"
+ },
+ {
+  "mapID": "syonai01",
+  "title": "今昔マップ 庄内 1934年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.74951065,
+    38.66957039
+   ],
+   [
+    139.99950436,
+    38.66957039
+   ],
+   [
+    139.99950436,
+    39.00285755
+   ],
+   [
+    139.74951065,
+    39.00285755
+   ]
+  ],
+  "thumbnail": "basemap_icons/syonai01.png"
+ },
+ {
+  "mapID": "syonai02",
+  "title": "今昔マップ 庄内 1974年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.746622,
+    38.6695667
+   ],
+   [
+    139.99661571,
+    38.6695667
+   ],
+   [
+    139.99661571,
+    39.00286109
+   ],
+   [
+    139.746622,
+    39.00286109
+   ]
+  ],
+  "thumbnail": "basemap_icons/syonai02.png"
+ },
+ {
+  "mapID": "syonai03",
+  "title": "今昔マップ 庄内 1987年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.746622,
+    38.6695667
+   ],
+   [
+    139.99661571,
+    38.6695667
+   ],
+   [
+    139.99661571,
+    39.00286109
+   ],
+   [
+    139.746622,
+    39.00286109
+   ]
+  ],
+  "thumbnail": "basemap_icons/syonai03.png"
+ },
+ {
+  "mapID": "syonai04",
+  "title": "今昔マップ 庄内 1997-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/04/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.70912751,
+    38.6695667
+   ],
+   [
+    139.99661571,
+    38.6695667
+   ],
+   [
+    139.99661571,
+    39.00286109
+   ],
+   [
+    139.70912751,
+    39.00286109
+   ]
+  ],
+  "thumbnail": "basemap_icons/syonai04.png"
+ },
+ {
+  "mapID": "fukushima00",
+  "title": "今昔マップ 福島 1908年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24952109,
+    37.16975765
+   ],
+   [
+    140.49952946,
+    37.16975765
+   ],
+   [
+    140.49952946,
+    37.83634078
+   ],
+   [
+    140.24952109,
+    37.83634078
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukushima00.png"
+ },
+ {
+  "mapID": "fukushima01",
+  "title": "今昔マップ 福島 1931年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24952109,
+    37.16975765
+   ],
+   [
+    140.49952946,
+    37.16975765
+   ],
+   [
+    140.49952946,
+    37.83634078
+   ],
+   [
+    140.24952109,
+    37.83634078
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukushima01.png"
+ },
+ {
+  "mapID": "fukushima02",
+  "title": "今昔マップ 福島 1972-1973年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24663244,
+    37.16975403
+   ],
+   [
+    140.49664081,
+    37.16975403
+   ],
+   [
+    140.49664081,
+    37.83634427
+   ],
+   [
+    140.24663244,
+    37.83634427
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukushima02.png"
+ },
+ {
+  "mapID": "fukushima03",
+  "title": "今昔マップ 福島 1983年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24663244,
+    37.16975403
+   ],
+   [
+    140.49664081,
+    37.16975403
+   ],
+   [
+    140.49664081,
+    37.83634427
+   ],
+   [
+    140.24663244,
+    37.83634427
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukushima03.png"
+ },
+ {
+  "mapID": "fukushima04",
+  "title": "今昔マップ 福島 1996-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    140.24663244,
+    37.16975403
+   ],
+   [
+    140.49664081,
+    37.16975403
+   ],
+   [
+    140.49664081,
+    37.83634427
+   ],
+   [
+    140.24663244,
+    37.83634427
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukushima04.png"
+ },
+ {
+  "mapID": "aizu00",
+  "title": "今昔マップ 会津 1908-1910年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.74957199,
+    37.41971141
+   ],
+   [
+    140.12454691,
+    37.41971141
+   ],
+   [
+    140.12454691,
+    37.66968266
+   ],
+   [
+    139.74957199,
+    37.66968266
+   ]
+  ],
+  "thumbnail": "basemap_icons/aizu00.png"
+ },
+ {
+  "mapID": "aizu01",
+  "title": "今昔マップ 会津 1931年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.74957199,
+    37.41971141
+   ],
+   [
+    140.12454691,
+    37.41971141
+   ],
+   [
+    140.12454691,
+    37.66968266
+   ],
+   [
+    139.74957199,
+    37.66968266
+   ]
+  ],
+  "thumbnail": "basemap_icons/aizu01.png"
+ },
+ {
+  "mapID": "aizu02",
+  "title": "今昔マップ 会津 1972-1975年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.74668334,
+    37.41971133
+   ],
+   [
+    140.12165826,
+    37.41971133
+   ],
+   [
+    140.12165826,
+    37.66968258
+   ],
+   [
+    139.74668334,
+    37.66968258
+   ]
+  ],
+  "thumbnail": "basemap_icons/aizu02.png"
+ },
+ {
+  "mapID": "aizu03",
+  "title": "今昔マップ 会津 1988-1991年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.74668334,
+    37.41971133
+   ],
+   [
+    140.12165826,
+    37.41971133
+   ],
+   [
+    140.12165826,
+    37.66968258
+   ],
+   [
+    139.74668334,
+    37.66968258
+   ]
+  ],
+  "thumbnail": "basemap_icons/aizu03.png"
+ },
+ {
+  "mapID": "aizu04",
+  "title": "今昔マップ 会津 1997-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    139.74668334,
+    37.41971133
+   ],
+   [
+    140.12165826,
+    37.41971133
+   ],
+   [
+    140.12165826,
+    37.66968258
+   ],
+   [
+    139.74668334,
+    37.66968258
+   ]
+  ],
+  "thumbnail": "basemap_icons/aizu04.png"
+ },
+ {
+  "mapID": "niigata00",
+  "title": "今昔マップ 新潟 1911年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    138.12473217,
+    37.00304828
+   ],
+   [
+    139.37459729,
+    37.00304828
+   ],
+   [
+    139.37459729,
+    38.0029599
+   ],
+   [
+    138.12473217,
+    38.0029599
+   ]
+  ],
+  "thumbnail": "basemap_icons/niigata00.png"
+ },
+ {
+  "mapID": "niigata01",
+  "title": "今昔マップ 新潟 1931年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    138.12473217,
+    37.00304828
+   ],
+   [
+    139.37459729,
+    37.00304828
+   ],
+   [
+    139.37459729,
+    38.0029599
+   ],
+   [
+    138.12473217,
+    38.0029599
+   ]
+  ],
+  "thumbnail": "basemap_icons/niigata01.png"
+ },
+ {
+  "mapID": "niigata02",
+  "title": "今昔マップ 新潟 1967-1968年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    138.12184352,
+    37.0030482
+   ],
+   [
+    139.37170865,
+    37.0030482
+   ],
+   [
+    139.37170865,
+    38.00295982
+   ],
+   [
+    138.12184352,
+    38.00295982
+   ]
+  ],
+  "thumbnail": "basemap_icons/niigata02.png"
+ },
+ {
+  "mapID": "niigata03",
+  "title": "今昔マップ 新潟 1983-1985年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    138.12184352,
+    37.0030482
+   ],
+   [
+    139.37170865,
+    37.0030482
+   ],
+   [
+    139.37170865,
+    38.00295982
+   ],
+   [
+    138.12184352,
+    38.00295982
+   ]
+  ],
+  "thumbnail": "basemap_icons/niigata03.png"
+ },
+ {
+  "mapID": "niigata04",
+  "title": "今昔マップ 新潟 2000-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    138.12184656,
+    37.0030482
+   ],
+   [
+    139.37170865,
+    37.0030482
+   ],
+   [
+    139.37170865,
+    38.00295982
+   ],
+   [
+    138.12184656,
+    38.00295982
+   ]
+  ],
+  "thumbnail": "basemap_icons/niigata04.png"
+ },
+ {
+  "mapID": "kanazawa2man",
+  "title": "今昔マップ 金沢・富山 1909-1910年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/2man/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.39991344,
+    36.40307239
+   ],
+   [
+    137.4998083,
+    36.40307239
+   ],
+   [
+    137.4998083,
+    36.86970803
+   ],
+   [
+    136.39991344,
+    36.86970803
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanazawa2man.png"
+ },
+ {
+  "mapID": "kanazawa00",
+  "title": "今昔マップ 金沢・富山 1930年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/00/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.3749167,
+    36.33641341
+   ],
+   [
+    137.49980764,
+    36.33641341
+   ],
+   [
+    137.49980764,
+    36.83637789
+   ],
+   [
+    136.3749167,
+    36.83637789
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanazawa00.png"
+ },
+ {
+  "mapID": "kanazawa01",
+  "title": "今昔マップ 金沢・富山 1968-1969年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/01/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.37202829,
+    36.33641334
+   ],
+   [
+    137.49691899,
+    36.33641334
+   ],
+   [
+    137.49691899,
+    36.83637782
+   ],
+   [
+    136.37202829,
+    36.83637782
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanazawa01.png"
+ },
+ {
+  "mapID": "kanazawa02",
+  "title": "今昔マップ 金沢・富山 1981-1985年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/02/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.37202829,
+    36.33641334
+   ],
+   [
+    137.49691899,
+    36.33641334
+   ],
+   [
+    137.49691899,
+    36.83637782
+   ],
+   [
+    136.37202829,
+    36.83637782
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanazawa02.png"
+ },
+ {
+  "mapID": "kanazawa03",
+  "title": "今昔マップ 金沢・富山 1994-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/03/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.37202829,
+    36.33641334
+   ],
+   [
+    137.49691899,
+    36.33641334
+   ],
+   [
+    137.49691899,
+    36.83637782
+   ],
+   [
+    136.37202829,
+    36.83637782
+   ]
+  ],
+  "thumbnail": "basemap_icons/kanazawa03.png"
+ },
+ {
+  "mapID": "fukui2man",
+  "title": "今昔マップ 福井 1909年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.09995517,
+    35.86979307
+   ],
+   [
+    136.3999336,
+    35.86979307
+   ],
+   [
+    136.3999336,
+    36.13643151
+   ],
+   [
+    136.09995517,
+    36.13643151
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukui2man.png"
+ },
+ {
+  "mapID": "fukui00",
+  "title": "今昔マップ 福井 1930年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.12495171,
+    35.83646478
+   ],
+   [
+    136.37493581,
+    35.83646478
+   ],
+   [
+    136.37493581,
+    36.16975978
+   ],
+   [
+    136.12495171,
+    36.16975978
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukui00.png"
+ },
+ {
+  "mapID": "fukui01",
+  "title": "今昔マップ 福井 1969-1973年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.12206307,
+    35.83646471
+   ],
+   [
+    136.37204716,
+    35.83646471
+   ],
+   [
+    136.37204716,
+    36.16975971
+   ],
+   [
+    136.12206307,
+    36.16975971
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukui01.png"
+ },
+ {
+  "mapID": "fukui02",
+  "title": "今昔マップ 福井 1988-1990年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.12206307,
+    35.83646471
+   ],
+   [
+    136.37204716,
+    35.83646471
+   ],
+   [
+    136.37204716,
+    36.16975971
+   ],
+   [
+    136.12206307,
+    36.16975971
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukui02.png"
+ },
+ {
+  "mapID": "fukui03",
+  "title": "今昔マップ 福井 1996-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.12206307,
+    35.83646471
+   ],
+   [
+    136.37204716,
+    35.83646471
+   ],
+   [
+    136.37204716,
+    36.16975971
+   ],
+   [
+    136.12206307,
+    36.16975971
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukui03.png"
+ },
+ {
+  "mapID": "nagano00",
+  "title": "今昔マップ 長野 1912年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.99976708,
+    36.50310572
+   ],
+   [
+    138.24975198,
+    36.50310572
+   ],
+   [
+    138.24975198,
+    36.66974671
+   ],
+   [
+    137.99976708,
+    36.66974671
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagano00.png"
+ },
+ {
+  "mapID": "nagano01",
+  "title": "今昔マップ 長野 1937年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.99976708,
+    36.50310572
+   ],
+   [
+    138.24975198,
+    36.50310572
+   ],
+   [
+    138.24975198,
+    36.66974671
+   ],
+   [
+    137.99976708,
+    36.66974671
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagano01.png"
+ },
+ {
+  "mapID": "nagano02",
+  "title": "今昔マップ 長野 1960年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.99687844,
+    36.50310565
+   ],
+   [
+    138.24686334,
+    36.50310565
+   ],
+   [
+    138.24686334,
+    36.66974663
+   ],
+   [
+    137.99687844,
+    36.66974663
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagano02.png"
+ },
+ {
+  "mapID": "nagano03",
+  "title": "今昔マップ 長野 1972-1973年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.99687844,
+    36.50310237
+   ],
+   [
+    138.24686334,
+    36.50310237
+   ],
+   [
+    138.24686334,
+    36.66974992
+   ],
+   [
+    137.99687844,
+    36.66974992
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagano03.png"
+ },
+ {
+  "mapID": "nagano04",
+  "title": "今昔マップ 長野 1985年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.99687844,
+    36.50310237
+   ],
+   [
+    138.24686334,
+    36.50310237
+   ],
+   [
+    138.24686334,
+    36.66974992
+   ],
+   [
+    137.99687844,
+    36.66974992
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagano04.png"
+ },
+ {
+  "mapID": "nagano05",
+  "title": "今昔マップ 長野 2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/05/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.99687844,
+    36.50310237
+   ],
+   [
+    138.24686334,
+    36.50310237
+   ],
+   [
+    138.24686334,
+    36.66974992
+   ],
+   [
+    137.99687844,
+    36.66974992
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagano05.png"
+ },
+ {
+  "mapID": "matsumoto00",
+  "title": "今昔マップ 松本 1910年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74979896,
+    36.00315634
+   ],
+   [
+    138.12478273,
+    36.00315634
+   ],
+   [
+    138.12478273,
+    36.41977215
+   ],
+   [
+    137.74979896,
+    36.41977215
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsumoto00.png"
+ },
+ {
+  "mapID": "matsumoto01",
+  "title": "今昔マップ 松本 1931年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74979896,
+    36.00315634
+   ],
+   [
+    138.12918765,
+    36.00315634
+   ],
+   [
+    138.12918765,
+    36.41977215
+   ],
+   [
+    137.74979896,
+    36.41977215
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsumoto01.png"
+ },
+ {
+  "mapID": "matsumoto02",
+  "title": "今昔マップ 松本 1974-1975年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74691031,
+    36.00315627
+   ],
+   [
+    138.12189408,
+    36.00315627
+   ],
+   [
+    138.12189408,
+    36.41977207
+   ],
+   [
+    137.74691031,
+    36.41977207
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsumoto02.png"
+ },
+ {
+  "mapID": "matsumoto03",
+  "title": "今昔マップ 松本 1987-1992年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74691031,
+    36.00315627
+   ],
+   [
+    138.12189408,
+    36.00315627
+   ],
+   [
+    138.12189408,
+    36.41977207
+   ],
+   [
+    137.74691031,
+    36.41977207
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsumoto03.png"
+ },
+ {
+  "mapID": "matsumoto04",
+  "title": "今昔マップ 松本 1996-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74691031,
+    36.0031595
+   ],
+   [
+    138.12189408,
+    36.0031595
+   ],
+   [
+    138.12189408,
+    36.41977207
+   ],
+   [
+    137.74691031,
+    36.41977207
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsumoto04.png"
+ },
+ {
+  "mapID": "ina00",
+  "title": "今昔マップ 伊那 1911年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/ina/00/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74981529,
+    35.33656533
+   ],
+   [
+    137.99981919,
+    35.33656533
+   ],
+   [
+    137.99981919,
+    36.00314991
+   ],
+   [
+    137.74981529,
+    36.00314991
+   ]
+  ],
+  "thumbnail": "basemap_icons/ina00.png"
+ },
+ {
+  "mapID": "ina01",
+  "title": "今昔マップ 伊那 1951-1952年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/ina/01/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74981529,
+    35.33656533
+   ],
+   [
+    137.99981919,
+    35.33656533
+   ],
+   [
+    137.99981919,
+    36.00314991
+   ],
+   [
+    137.74981529,
+    36.00314991
+   ]
+  ],
+  "thumbnail": "basemap_icons/ina01.png"
+ },
+ {
+  "mapID": "ina02",
+  "title": "今昔マップ 伊那 1976年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/ina/02/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74694264,
+    35.33656209
+   ],
+   [
+    137.99692422,
+    35.33656209
+   ],
+   [
+    137.99692422,
+    36.00315305
+   ],
+   [
+    137.74694264,
+    36.00315305
+   ]
+  ],
+  "thumbnail": "basemap_icons/ina02.png"
+ },
+ {
+  "mapID": "ina03",
+  "title": "今昔マップ 伊那 1987-1990年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/ina/03/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74694264,
+    35.33656209
+   ],
+   [
+    137.99692422,
+    35.33656209
+   ],
+   [
+    137.99692422,
+    36.00315305
+   ],
+   [
+    137.74694264,
+    36.00315305
+   ]
+  ],
+  "thumbnail": "basemap_icons/ina03.png"
+ },
+ {
+  "mapID": "ina04",
+  "title": "今昔マップ 伊那 1998-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/ina/04/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.74694264,
+    35.33656209
+   ],
+   [
+    137.99692422,
+    35.33656209
+   ],
+   [
+    137.99692422,
+    36.00315305
+   ],
+   [
+    137.74694264,
+    36.00315305
+   ]
+  ],
+  "thumbnail": "basemap_icons/ina04.png"
+ },
+ {
+  "mapID": "hamamatsu2man",
+  "title": "今昔マップ 浜松・豊橋 1889-1890年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/2man/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.19990539,
+    34.6033095
+   ],
+   [
+    138.0998379,
+    34.6033095
+   ],
+   [
+    138.0998379,
+    34.86995124
+   ],
+   [
+    137.19990539,
+    34.86995124
+   ]
+  ],
+  "thumbnail": "basemap_icons/hamamatsu2man.png"
+ },
+ {
+  "mapID": "hamamatsu00",
+  "title": "今昔マップ 浜松・豊橋 1916-1918年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/00/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.12491306,
+    34.58663729
+   ],
+   [
+    138.12483638,
+    34.58663729
+   ],
+   [
+    138.12483638,
+    34.91994562
+   ],
+   [
+    137.12491306,
+    34.91994562
+   ]
+  ],
+  "thumbnail": "basemap_icons/hamamatsu00.png"
+ },
+ {
+  "mapID": "hamamatsu01",
+  "title": "今昔マップ 浜松・豊橋 1938-1950年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/01/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.12491606,
+    34.58663729
+   ],
+   [
+    138.12483638,
+    34.58663729
+   ],
+   [
+    138.12483638,
+    34.91994562
+   ],
+   [
+    137.12491606,
+    34.91994562
+   ]
+  ],
+  "thumbnail": "basemap_icons/hamamatsu01.png"
+ },
+ {
+  "mapID": "hamamatsu02",
+  "title": "今昔マップ 浜松・豊橋 1956-1959年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/02/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.12202441,
+    34.58663722
+   ],
+   [
+    138.12483638,
+    34.58663722
+   ],
+   [
+    138.12483638,
+    34.91994562
+   ],
+   [
+    137.12202441,
+    34.91994562
+   ]
+  ],
+  "thumbnail": "basemap_icons/hamamatsu02.png"
+ },
+ {
+  "mapID": "hamamatsu03",
+  "title": "今昔マップ 浜松・豊橋 1975-1988年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/03/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.12202441,
+    34.58663722
+   ],
+   [
+    138.12194772,
+    34.58663722
+   ],
+   [
+    138.12194772,
+    34.91994555
+   ],
+   [
+    137.12202441,
+    34.91994555
+   ]
+  ],
+  "thumbnail": "basemap_icons/hamamatsu03.png"
+ },
+ {
+  "mapID": "hamamatsu04",
+  "title": "今昔マップ 浜松・豊橋 1988-1995年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/04/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.12202441,
+    34.58664648
+   ],
+   [
+    138.12194772,
+    34.58664648
+   ],
+   [
+    138.12194772,
+    34.91994555
+   ],
+   [
+    137.12202441,
+    34.91994555
+   ]
+  ],
+  "thumbnail": "basemap_icons/hamamatsu04.png"
+ },
+ {
+  "mapID": "hamamatsu05",
+  "title": "今昔マップ 浜松・豊橋 1996-2010年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/05/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    137.12202441,
+    34.58664648
+   ],
+   [
+    138.12194772,
+    34.58664648
+   ],
+   [
+    138.12194772,
+    34.91994555
+   ],
+   [
+    137.12202441,
+    34.91994555
+   ]
+  ],
+  "thumbnail": "basemap_icons/hamamatsu05.png"
+ },
+ {
+  "mapID": "tsu2man",
+  "title": "今昔マップ 津 1892-1898年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/2man/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.39997472,
+    34.40330756
+   ],
+   [
+    136.79995645,
+    34.40330756
+   ],
+   [
+    136.79995645,
+    34.86991199
+   ],
+   [
+    136.39997472,
+    34.86991199
+   ]
+  ],
+  "thumbnail": "basemap_icons/tsu2man.png"
+ },
+ {
+  "mapID": "tsu00",
+  "title": "今昔マップ 津 1920年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.37497513,
+    34.41997116
+   ],
+   [
+    136.74996018,
+    34.41997116
+   ],
+   [
+    136.74996018,
+    34.91990572
+   ],
+   [
+    136.37497513,
+    34.91990572
+   ]
+  ],
+  "thumbnail": "basemap_icons/tsu00.png"
+ },
+ {
+  "mapID": "tsu01",
+  "title": "今昔マップ 津 1937年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.37497513,
+    34.41997116
+   ],
+   [
+    136.74996018,
+    34.41997116
+   ],
+   [
+    136.74996018,
+    34.91990572
+   ],
+   [
+    136.37497513,
+    34.91990572
+   ]
+  ],
+  "thumbnail": "basemap_icons/tsu01.png"
+ },
+ {
+  "mapID": "tsu02",
+  "title": "今昔マップ 津 1959年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.37208648,
+    34.41997109
+   ],
+   [
+    136.74707153,
+    34.41997109
+   ],
+   [
+    136.74707153,
+    34.91990565
+   ],
+   [
+    136.37208648,
+    34.91990565
+   ]
+  ],
+  "thumbnail": "basemap_icons/tsu02.png"
+ },
+ {
+  "mapID": "tsu03",
+  "title": "今昔マップ 津 1980-1982年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.37208648,
+    34.41997109
+   ],
+   [
+    136.74707153,
+    34.41997109
+   ],
+   [
+    136.74707153,
+    34.91990565
+   ],
+   [
+    136.37208648,
+    34.91990565
+   ]
+  ],
+  "thumbnail": "basemap_icons/tsu03.png"
+ },
+ {
+  "mapID": "tsu04",
+  "title": "今昔マップ 津 1991-1999年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/04/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.37208648,
+    34.41997109
+   ],
+   [
+    136.74707153,
+    34.41997109
+   ],
+   [
+    136.74707153,
+    34.91990565
+   ],
+   [
+    136.37208648,
+    34.91990565
+   ]
+  ],
+  "thumbnail": "basemap_icons/tsu04.png"
+ },
+ {
+  "mapID": "iga00",
+  "title": "今昔マップ 伊賀 1892年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iga/00/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.00001076,
+    34.50328321
+   ],
+   [
+    136.25000055,
+    34.50328321
+   ],
+   [
+    136.25000055,
+    34.8365729
+   ],
+   [
+    136.00001076,
+    34.8365729
+   ]
+  ],
+  "thumbnail": "basemap_icons/iga00.png"
+ },
+ {
+  "mapID": "iga01",
+  "title": "今昔マップ 伊賀 1937年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iga/01/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    136.00001076,
+    34.50328321
+   ],
+   [
+    136.25000055,
+    34.50328321
+   ],
+   [
+    136.25000055,
+    34.8365729
+   ],
+   [
+    136.00001076,
+    34.8365729
+   ]
+  ],
+  "thumbnail": "basemap_icons/iga01.png"
+ },
+ {
+  "mapID": "iga02",
+  "title": "今昔マップ 伊賀 1968年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iga/02/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.99712212,
+    34.50328019
+   ],
+   [
+    136.2471119,
+    34.50328019
+   ],
+   [
+    136.2471119,
+    34.8365758
+   ],
+   [
+    135.99712212,
+    34.8365758
+   ]
+  ],
+  "thumbnail": "basemap_icons/iga02.png"
+ },
+ {
+  "mapID": "iga03",
+  "title": "今昔マップ 伊賀 1980-1986年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iga/03/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.99712212,
+    34.50328019
+   ],
+   [
+    136.2471119,
+    34.50328019
+   ],
+   [
+    136.2471119,
+    34.8365758
+   ],
+   [
+    135.99712212,
+    34.8365758
+   ]
+  ],
+  "thumbnail": "basemap_icons/iga03.png"
+ },
+ {
+  "mapID": "iga04",
+  "title": "今昔マップ 伊賀 1996-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/iga/04/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.99712212,
+    34.50328019
+   ],
+   [
+    136.2471119,
+    34.50328019
+   ],
+   [
+    136.2471119,
+    34.8365758
+   ],
+   [
+    135.99712212,
+    34.8365758
+   ]
+  ],
+  "thumbnail": "basemap_icons/iga04.png"
+ },
+ {
+  "mapID": "omi2man",
+  "title": "今昔マップ 近江 1891-1909年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omi/2man/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.8000131,
+    34.93656392
+   ],
+   [
+    136.49994932,
+    34.93656392
+   ],
+   [
+    136.49994932,
+    35.46984132
+   ],
+   [
+    135.8000131,
+    35.46984132
+   ]
+  ],
+  "thumbnail": "basemap_icons/omi2man.png"
+ },
+ {
+  "mapID": "omi00",
+  "title": "今昔マップ 近江 1920-1922年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omi/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.87501004,
+    34.91989975
+   ],
+   [
+    136.49994932,
+    34.91989975
+   ],
+   [
+    136.49994932,
+    35.50316963
+   ],
+   [
+    135.87501004,
+    35.50316963
+   ]
+  ],
+  "thumbnail": "basemap_icons/omi00.png"
+ },
+ {
+  "mapID": "omi01",
+  "title": "今昔マップ 近江 1954年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omi/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.87501004,
+    34.91989975
+   ],
+   [
+    136.49994932,
+    34.91989975
+   ],
+   [
+    136.49994932,
+    35.41984885
+   ],
+   [
+    135.87501004,
+    35.41984885
+   ]
+  ],
+  "thumbnail": "basemap_icons/omi01.png"
+ },
+ {
+  "mapID": "omi02",
+  "title": "今昔マップ 近江 1967-1971年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omi/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.87211845,
+    34.91989968
+   ],
+   [
+    136.49706067,
+    34.91989968
+   ],
+   [
+    136.49706067,
+    35.50316956
+   ],
+   [
+    135.87211845,
+    35.50316956
+   ]
+  ],
+  "thumbnail": "basemap_icons/omi02.png"
+ },
+ {
+  "mapID": "omi03",
+  "title": "今昔マップ 近江 1979-1986年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omi/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.87211845,
+    34.91989968
+   ],
+   [
+    136.49706067,
+    34.91989968
+   ],
+   [
+    136.49706067,
+    35.50316956
+   ],
+   [
+    135.87211845,
+    35.50316956
+   ]
+  ],
+  "thumbnail": "basemap_icons/omi03.png"
+ },
+ {
+  "mapID": "omi04",
+  "title": "今昔マップ 近江 1992-1999年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omi/04/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.87211845,
+    34.91989968
+   ],
+   [
+    136.49706067,
+    34.91989968
+   ],
+   [
+    136.49706067,
+    35.50316956
+   ],
+   [
+    135.87211845,
+    35.50316956
+   ]
+  ],
+  "thumbnail": "basemap_icons/omi04.png"
+ },
+ {
+  "mapID": "himeji2man",
+  "title": "今昔マップ 姫路 1903-1910年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.50013942,
+    34.60324285
+   ],
+   [
+    135.10009534,
+    34.60324285
+   ],
+   [
+    135.10009534,
+    34.9365359
+   ],
+   [
+    134.50013942,
+    34.9365359
+   ]
+  ],
+  "thumbnail": "basemap_icons/himeji2man.png"
+ },
+ {
+  "mapID": "himeji00",
+  "title": "今昔マップ 姫路 1923年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.50013998,
+    34.58657808
+   ],
+   [
+    135.12510144,
+    34.58657808
+   ],
+   [
+    135.12510144,
+    34.91987344
+   ],
+   [
+    134.50013998,
+    34.91987344
+   ]
+  ],
+  "thumbnail": "basemap_icons/himeji00.png"
+ },
+ {
+  "mapID": "himeji01",
+  "title": "今昔マップ 姫路 1967年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.49725133,
+    34.58657801
+   ],
+   [
+    135.12220169,
+    34.58657801
+   ],
+   [
+    135.12220169,
+    34.91987337
+   ],
+   [
+    134.49725133,
+    34.91987337
+   ]
+  ],
+  "thumbnail": "basemap_icons/himeji01.png"
+ },
+ {
+  "mapID": "himeji02",
+  "title": "今昔マップ 姫路 1981-1985年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.49725133,
+    34.58657801
+   ],
+   [
+    135.12220169,
+    34.58657801
+   ],
+   [
+    135.12220169,
+    34.91987337
+   ],
+   [
+    134.49725133,
+    34.91987337
+   ]
+  ],
+  "thumbnail": "basemap_icons/himeji02.png"
+ },
+ {
+  "mapID": "himeji03",
+  "title": "今昔マップ 姫路 1997-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.49725133,
+    34.58657801
+   ],
+   [
+    135.12220169,
+    34.58657801
+   ],
+   [
+    135.12220169,
+    34.91987337
+   ],
+   [
+    134.49725133,
+    34.91987337
+   ]
+  ],
+  "thumbnail": "basemap_icons/himeji03.png"
+ },
+ {
+  "mapID": "wakayama2man",
+  "title": "今昔マップ 和歌山 1908-1912年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.0001152,
+    34.13284001
+   ],
+   [
+    135.50007591,
+    34.13284001
+   ],
+   [
+    135.50007591,
+    34.34083016
+   ],
+   [
+    135.0001152,
+    34.34083016
+   ]
+  ],
+  "thumbnail": "basemap_icons/wakayama2man.png"
+ },
+ {
+  "mapID": "wakayama00",
+  "title": "今昔マップ 和歌山 1934年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.99718976,
+    34.08664039
+   ],
+   [
+    135.50007702,
+    34.08664039
+   ],
+   [
+    135.50007702,
+    34.33931066
+   ],
+   [
+    134.99718976,
+    34.33931066
+   ]
+  ],
+  "thumbnail": "basemap_icons/wakayama00.png"
+ },
+ {
+  "mapID": "wakayama01",
+  "title": "今昔マップ 和歌山 1947年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    135.10615735,
+    34.16996432
+   ],
+   [
+    135.25009881,
+    34.16996432
+   ],
+   [
+    135.25009881,
+    34.25328496
+   ],
+   [
+    135.10615735,
+    34.25328496
+   ]
+  ],
+  "thumbnail": "basemap_icons/wakayama01.png"
+ },
+ {
+  "mapID": "wakayama02",
+  "title": "今昔マップ 和歌山 1966-1967年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.99722655,
+    34.08664032
+   ],
+   [
+    135.49718837,
+    34.08664032
+   ],
+   [
+    135.49718837,
+    34.33661493
+   ],
+   [
+    134.99722655,
+    34.33661493
+   ]
+  ],
+  "thumbnail": "basemap_icons/wakayama02.png"
+ },
+ {
+  "mapID": "wakayama03",
+  "title": "今昔マップ 和歌山 1984-1985年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.99722655,
+    34.08664032
+   ],
+   [
+    135.49718837,
+    34.08664032
+   ],
+   [
+    135.49718837,
+    34.33661493
+   ],
+   [
+    134.99722655,
+    34.33661493
+   ]
+  ],
+  "thumbnail": "basemap_icons/wakayama03.png"
+ },
+ {
+  "mapID": "wakayama04",
+  "title": "今昔マップ 和歌山 1998-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.99722655,
+    34.08664032
+   ],
+   [
+    135.49718837,
+    34.08664032
+   ],
+   [
+    135.49718837,
+    34.33661493
+   ],
+   [
+    134.99722655,
+    34.33661493
+   ]
+  ],
+  "thumbnail": "basemap_icons/wakayama04.png"
+ },
+ {
+  "mapID": "tottori2man",
+  "title": "今昔マップ 鳥取 1897年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.10015466,
+    35.40313531
+   ],
+   [
+    134.30014153,
+    35.40313531
+   ],
+   [
+    134.30014153,
+    35.60310995
+   ],
+   [
+    134.10015466,
+    35.60310995
+   ]
+  ],
+  "thumbnail": "basemap_icons/tottori2man.png"
+ },
+ {
+  "mapID": "tottori00",
+  "title": "今昔マップ 鳥取 1932年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.12515098,
+    35.41979892
+   ],
+   [
+    134.25014544,
+    35.41979892
+   ],
+   [
+    134.25014544,
+    35.5864435
+   ],
+   [
+    134.12515098,
+    35.5864435
+   ]
+  ],
+  "thumbnail": "basemap_icons/tottori00.png"
+ },
+ {
+  "mapID": "tottori01",
+  "title": "今昔マップ 鳥取 1973年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.12226234,
+    35.41979886
+   ],
+   [
+    134.2472568,
+    35.41979886
+   ],
+   [
+    134.2472568,
+    35.58644343
+   ],
+   [
+    134.12226234,
+    35.58644343
+   ]
+  ],
+  "thumbnail": "basemap_icons/tottori01.png"
+ },
+ {
+  "mapID": "tottori02",
+  "title": "今昔マップ 鳥取 1988年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.12226234,
+    35.41979886
+   ],
+   [
+    134.2472568,
+    35.41979886
+   ],
+   [
+    134.2472568,
+    35.58644343
+   ],
+   [
+    134.12226234,
+    35.58644343
+   ]
+  ],
+  "thumbnail": "basemap_icons/tottori02.png"
+ },
+ {
+  "mapID": "tottori03",
+  "title": "今昔マップ 鳥取 1999-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.12226234,
+    35.41979886
+   ],
+   [
+    134.2472568,
+    35.41979886
+   ],
+   [
+    134.2472568,
+    35.58644343
+   ],
+   [
+    134.12226234,
+    35.58644343
+   ]
+  ],
+  "thumbnail": "basemap_icons/tottori03.png"
+ },
+ {
+  "mapID": "matsue00",
+  "title": "今昔マップ 松江・米子 1915年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.6199515,
+    35.33644202
+   ],
+   [
+    133.37522404,
+    35.33644202
+   ],
+   [
+    133.37522404,
+    35.58642391
+   ],
+   [
+    132.6199515,
+    35.58642391
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsue00.png"
+ },
+ {
+  "mapID": "matsue01",
+  "title": "今昔マップ 松江・米子 1934年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.62052285,
+    35.33644202
+   ],
+   [
+    133.37522404,
+    35.33644202
+   ],
+   [
+    133.37522404,
+    35.58642391
+   ],
+   [
+    132.62052285,
+    35.58642391
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsue01.png"
+ },
+ {
+  "mapID": "matsue02",
+  "title": "今昔マップ 松江・米子 1975年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.6209998,
+    35.33644196
+   ],
+   [
+    133.37233541,
+    35.33644196
+   ],
+   [
+    133.37233541,
+    35.58642385
+   ],
+   [
+    132.6209998,
+    35.58642385
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsue02.png"
+ },
+ {
+  "mapID": "matsue03",
+  "title": "今昔マップ 松江・米子 1989-1990年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.62097331,
+    35.33644196
+   ],
+   [
+    133.37233541,
+    35.33644196
+   ],
+   [
+    133.37233541,
+    35.58642385
+   ],
+   [
+    132.62097331,
+    35.58642385
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsue03.png"
+ },
+ {
+  "mapID": "matsue04",
+  "title": "今昔マップ 松江・米子 1997-2003年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.62116849,
+    35.33644196
+   ],
+   [
+    133.37233541,
+    35.33644196
+   ],
+   [
+    133.37233541,
+    35.58642385
+   ],
+   [
+    132.62116849,
+    35.58642385
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsue04.png"
+ },
+ {
+  "mapID": "okayama2man",
+  "title": "今昔マップ 岡山・福山 1895-1898年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/2man/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.00029015,
+    34.33656472
+   ],
+   [
+    134.10018802,
+    34.33656472
+   ],
+   [
+    134.10018802,
+    34.73653849
+   ],
+   [
+    133.00029015,
+    34.73653849
+   ]
+  ],
+  "thumbnail": "basemap_icons/okayama2man.png"
+ },
+ {
+  "mapID": "okayama00",
+  "title": "今昔マップ 岡山・福山 1925年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.00028964,
+    34.33656525
+   ],
+   [
+    134.12518419,
+    34.33656525
+   ],
+   [
+    134.12518419,
+    34.75320325
+   ],
+   [
+    133.00028964,
+    34.75320325
+   ]
+  ],
+  "thumbnail": "basemap_icons/okayama00.png"
+ },
+ {
+  "mapID": "okayama01",
+  "title": "今昔マップ 岡山・福山 1965-1970年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.997401,
+    34.33656519
+   ],
+   [
+    134.12229555,
+    34.33656519
+   ],
+   [
+    134.12229555,
+    34.75320319
+   ],
+   [
+    132.997401,
+    34.75320319
+   ]
+  ],
+  "thumbnail": "basemap_icons/okayama01.png"
+ },
+ {
+  "mapID": "okayama02",
+  "title": "今昔マップ 岡山・福山 1978-1988年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.997401,
+    34.33656519
+   ],
+   [
+    134.12229555,
+    34.33656519
+   ],
+   [
+    134.12229555,
+    34.75320319
+   ],
+   [
+    132.997401,
+    34.75320319
+   ]
+  ],
+  "thumbnail": "basemap_icons/okayama02.png"
+ },
+ {
+  "mapID": "okayama03",
+  "title": "今昔マップ 岡山・福山 1990-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.997401,
+    34.33656519
+   ],
+   [
+    134.12229555,
+    34.33656519
+   ],
+   [
+    134.12229555,
+    34.75320319
+   ],
+   [
+    132.997401,
+    34.75320319
+   ]
+  ],
+  "thumbnail": "basemap_icons/okayama03.png"
+ },
+ {
+  "mapID": "hiroshima2man",
+  "title": "今昔マップ 広島 1894-1899年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.10037688,
+    34.06990978
+   ],
+   [
+    133.00029426,
+    34.06990978
+   ],
+   [
+    133.00029426,
+    34.53652911
+   ],
+   [
+    132.10037688,
+    34.53652911
+   ]
+  ],
+  "thumbnail": "basemap_icons/hiroshima2man.png"
+ },
+ {
+  "mapID": "hiroshima00",
+  "title": "今昔マップ 広島 1925-1932年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.12537066,
+    34.08657556
+   ],
+   [
+    133.00029477,
+    34.08657556
+   ],
+   [
+    133.00029477,
+    34.58652336
+   ],
+   [
+    132.12537066,
+    34.58652336
+   ]
+  ],
+  "thumbnail": "basemap_icons/hiroshima00.png"
+ },
+ {
+  "mapID": "hiroshima01",
+  "title": "今昔マップ 広島 1950-1954年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.12537066,
+    34.08657556
+   ],
+   [
+    133.00029477,
+    34.08657556
+   ],
+   [
+    133.00029477,
+    34.58652336
+   ],
+   [
+    132.12537066,
+    34.58652336
+   ]
+  ],
+  "thumbnail": "basemap_icons/hiroshima01.png"
+ },
+ {
+  "mapID": "hiroshima02",
+  "title": "今昔マップ 広島 1967-1969年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.12248202,
+    34.0865755
+   ],
+   [
+    132.99740613,
+    34.0865755
+   ],
+   [
+    132.99740613,
+    34.5865233
+   ],
+   [
+    132.12248202,
+    34.5865233
+   ]
+  ],
+  "thumbnail": "basemap_icons/hiroshima02.png"
+ },
+ {
+  "mapID": "hiroshima03",
+  "title": "今昔マップ 広島 1984-1990年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.12248202,
+    34.0865755
+   ],
+   [
+    132.99740613,
+    34.0865755
+   ],
+   [
+    132.99740613,
+    34.5865233
+   ],
+   [
+    132.12248202,
+    34.5865233
+   ]
+  ],
+  "thumbnail": "basemap_icons/hiroshima03.png"
+ },
+ {
+  "mapID": "hiroshima04",
+  "title": "今昔マップ 広島 1992-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.12248202,
+    34.0865755
+   ],
+   [
+    132.99740613,
+    34.0865755
+   ],
+   [
+    132.99740613,
+    34.5865233
+   ],
+   [
+    132.12248202,
+    34.5865233
+   ]
+  ],
+  "thumbnail": "basemap_icons/hiroshima04.png"
+ },
+ {
+  "mapID": "shunan00",
+  "title": "今昔マップ 周南 1899年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/00/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.50043191,
+    33.83659906
+   ],
+   [
+    132.00039661,
+    33.83659906
+   ],
+   [
+    132.00039661,
+    34.16988916
+   ],
+   [
+    131.50043191,
+    34.16988916
+   ]
+  ],
+  "thumbnail": "basemap_icons/shunan00.png"
+ },
+ {
+  "mapID": "shunan01",
+  "title": "今昔マップ 周南 1949年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/01/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.50043191,
+    33.83659906
+   ],
+   [
+    132.00039661,
+    33.83659906
+   ],
+   [
+    132.00039661,
+    34.16988916
+   ],
+   [
+    131.50043191,
+    34.16988916
+   ]
+  ],
+  "thumbnail": "basemap_icons/shunan01.png"
+ },
+ {
+  "mapID": "shunan02",
+  "title": "今昔マップ 周南 1968-1969年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/02/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.62253199,
+    33.91494542
+   ],
+   [
+    131.99750569,
+    33.91494542
+   ],
+   [
+    131.99750569,
+    34.16989164
+   ],
+   [
+    131.62253199,
+    34.16989164
+   ]
+  ],
+  "thumbnail": "basemap_icons/shunan02.png"
+ },
+ {
+  "mapID": "shunan03",
+  "title": "今昔マップ 周南 1985年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/03/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.62253199,
+    33.91493439
+   ],
+   [
+    131.99750569,
+    33.91493439
+   ],
+   [
+    131.99750569,
+    34.16989164
+   ],
+   [
+    131.62253199,
+    34.16989164
+   ]
+  ],
+  "thumbnail": "basemap_icons/shunan03.png"
+ },
+ {
+  "mapID": "shunan04",
+  "title": "今昔マップ 周南 1994-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/04/{z}/{x}/{-y}.png",
+  "minZoom": 13,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.62253199,
+    33.91503811
+   ],
+   [
+    131.99750568,
+    33.91503811
+   ],
+   [
+    131.99750568,
+    34.16989164
+   ],
+   [
+    131.62253199,
+    34.16989164
+   ]
+  ],
+  "thumbnail": "basemap_icons/shunan04.png"
+ },
+ {
+  "mapID": "yamaguchi2man",
+  "title": "今昔マップ 山口 1897-1909年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/2man/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.10047093,
+    33.92910078
+   ],
+   [
+    131.60042771,
+    33.92910078
+   ],
+   [
+    131.60042771,
+    34.20321363
+   ],
+   [
+    131.10047093,
+    34.20321363
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamaguchi2man.png"
+ },
+ {
+  "mapID": "yamaguchi00",
+  "title": "今昔マップ 山口 1922-1927年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.12546819,
+    33.91990789
+   ],
+   [
+    131.62542546,
+    33.91990789
+   ],
+   [
+    131.62542546,
+    34.25320788
+   ],
+   [
+    131.12546819,
+    34.25320788
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamaguchi00.png"
+ },
+ {
+  "mapID": "yamaguchi01",
+  "title": "今昔マップ 山口 1936-1951年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.12546819,
+    33.91990789
+   ],
+   [
+    131.62542546,
+    33.91990789
+   ],
+   [
+    131.62542546,
+    34.25320788
+   ],
+   [
+    131.12546819,
+    34.25320788
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamaguchi01.png"
+ },
+ {
+  "mapID": "yamaguchi02",
+  "title": "今昔マップ 山口 1969年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.12257955,
+    33.91990783
+   ],
+   [
+    131.62253682,
+    33.91990783
+   ],
+   [
+    131.62253682,
+    34.25320782
+   ],
+   [
+    131.12257955,
+    34.25320782
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamaguchi02.png"
+ },
+ {
+  "mapID": "yamaguchi03",
+  "title": "今昔マップ 山口 1983-1989年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.12257955,
+    33.91990783
+   ],
+   [
+    131.62253682,
+    33.91990783
+   ],
+   [
+    131.62253682,
+    34.25320782
+   ],
+   [
+    131.12257955,
+    34.25320782
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamaguchi03.png"
+ },
+ {
+  "mapID": "yamaguchi04",
+  "title": "今昔マップ 山口 2000-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/04/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.12257955,
+    33.91990783
+   ],
+   [
+    131.62253682,
+    33.91990783
+   ],
+   [
+    131.62253682,
+    34.25320782
+   ],
+   [
+    131.12257955,
+    34.25320782
+   ]
+  ],
+  "thumbnail": "basemap_icons/yamaguchi04.png"
+ },
+ {
+  "mapID": "tokushima2man",
+  "title": "今昔マップ 徳島 1896-1909年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.40017225,
+    34.00329968
+   ],
+   [
+    134.70015018,
+    34.00329968
+   ],
+   [
+    134.70015018,
+    34.26993836
+   ],
+   [
+    134.40017225,
+    34.26993836
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokushima2man.png"
+ },
+ {
+  "mapID": "tokushima00",
+  "title": "今昔マップ 徳島 1917年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.25018653,
+    33.83665736
+   ],
+   [
+    134.75015327,
+    33.83665736
+   ],
+   [
+    134.75015327,
+    34.16994747
+   ],
+   [
+    134.25018653,
+    34.16994747
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokushima00.png"
+ },
+ {
+  "mapID": "tokushima01",
+  "title": "今昔マップ 徳島 1928-1934年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.25018653,
+    33.83665736
+   ],
+   [
+    134.75015327,
+    33.83665736
+   ],
+   [
+    134.75015327,
+    34.25327414
+   ],
+   [
+    134.25018653,
+    34.25327414
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokushima01.png"
+ },
+ {
+  "mapID": "tokushima02",
+  "title": "今昔マップ 徳島 1969-1970年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.24729788,
+    33.8366573
+   ],
+   [
+    134.74726462,
+    33.8366573
+   ],
+   [
+    134.74726462,
+    34.25327407
+   ],
+   [
+    134.24729788,
+    34.25327407
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokushima02.png"
+ },
+ {
+  "mapID": "tokushima03",
+  "title": "今昔マップ 徳島 1981-1987年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.24729788,
+    33.8366573
+   ],
+   [
+    134.74726462,
+    33.8366573
+   ],
+   [
+    134.74726462,
+    34.25327407
+   ],
+   [
+    134.24729788,
+    34.25327407
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokushima03.png"
+ },
+ {
+  "mapID": "tokushima04",
+  "title": "今昔マップ 徳島 1997-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    134.24729788,
+    33.8366573
+   ],
+   [
+    134.74726462,
+    33.8366573
+   ],
+   [
+    134.74726462,
+    34.25327407
+   ],
+   [
+    134.24729788,
+    34.25327407
+   ]
+  ],
+  "thumbnail": "basemap_icons/tokushima04.png"
+ },
+ {
+  "mapID": "takamatsu2man",
+  "title": "今昔マップ 高松 1896-1910年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.70022989,
+    34.12923337
+   ],
+   [
+    134.20018775,
+    34.12923337
+   ],
+   [
+    134.20018775,
+    34.40324544
+   ],
+   [
+    133.70022989,
+    34.40324544
+   ]
+  ],
+  "thumbnail": "basemap_icons/takamatsu2man.png"
+ },
+ {
+  "mapID": "takamatsu00",
+  "title": "今昔マップ 高松 1928年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.73709419,
+    34.16993374
+   ],
+   [
+    134.2591321,
+    34.16993374
+   ],
+   [
+    134.2591321,
+    34.41991076
+   ],
+   [
+    133.73709419,
+    34.41991076
+   ]
+  ],
+  "thumbnail": "basemap_icons/takamatsu00.png"
+ },
+ {
+  "mapID": "takamatsu01",
+  "title": "今昔マップ 高松 1969年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.74733417,
+    34.16993368
+   ],
+   [
+    134.26132101,
+    34.16993368
+   ],
+   [
+    134.26132101,
+    34.4199107
+   ],
+   [
+    133.74733417,
+    34.4199107
+   ]
+  ],
+  "thumbnail": "basemap_icons/takamatsu01.png"
+ },
+ {
+  "mapID": "takamatsu02",
+  "title": "今昔マップ 高松 1983-1984年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.74733417,
+    34.16993368
+   ],
+   [
+    134.26126462,
+    34.16993368
+   ],
+   [
+    134.26126462,
+    34.4199107
+   ],
+   [
+    133.74733417,
+    34.4199107
+   ]
+  ],
+  "thumbnail": "basemap_icons/takamatsu02.png"
+ },
+ {
+  "mapID": "takamatsu03",
+  "title": "今昔マップ 高松 1990-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.74733417,
+    34.16993368
+   ],
+   [
+    134.26127202,
+    34.16993368
+   ],
+   [
+    134.26127202,
+    34.4199107
+   ],
+   [
+    133.74733417,
+    34.4199107
+   ]
+  ],
+  "thumbnail": "basemap_icons/takamatsu03.png"
+ },
+ {
+  "mapID": "matsuyama2man",
+  "title": "今昔マップ 松山 1903年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.60034202,
+    33.73662476
+   ],
+   [
+    133.00031043,
+    33.73662476
+   ],
+   [
+    133.00031043,
+    33.93660188
+   ],
+   [
+    132.60034202,
+    33.93660188
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsuyama2man.png"
+ },
+ {
+  "mapID": "matsuyama00",
+  "title": "今昔マップ 松山 1928-1955年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.6253383,
+    33.75329057
+   ],
+   [
+    133.00030993,
+    33.75329057
+   ],
+   [
+    133.00030993,
+    33.91993827
+   ],
+   [
+    132.6253383,
+    33.91993827
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsuyama00.png"
+ },
+ {
+  "mapID": "matsuyama01",
+  "title": "今昔マップ 松山 1968年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.62244966,
+    33.75329051
+   ],
+   [
+    132.99742128,
+    33.75329051
+   ],
+   [
+    132.99742128,
+    33.91993821
+   ],
+   [
+    132.62244966,
+    33.91993821
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsuyama01.png"
+ },
+ {
+  "mapID": "matsuyama02",
+  "title": "今昔マップ 松山 1985年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.62244966,
+    33.75329051
+   ],
+   [
+    132.99742128,
+    33.75329051
+   ],
+   [
+    132.99742128,
+    33.91993821
+   ],
+   [
+    132.62244966,
+    33.91993821
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsuyama02.png"
+ },
+ {
+  "mapID": "matsuyama03",
+  "title": "今昔マップ 松山 1998-1999年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.62244966,
+    33.75329051
+   ],
+   [
+    132.99742128,
+    33.75329051
+   ],
+   [
+    132.99742128,
+    33.91993821
+   ],
+   [
+    132.62244966,
+    33.91993821
+   ]
+  ],
+  "thumbnail": "basemap_icons/matsuyama03.png"
+ },
+ {
+  "mapID": "toyo00",
+  "title": "今昔マップ 東予 1898-1906年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/00/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.75031963,
+    33.83662489
+   ],
+   [
+    133.75024106,
+    33.83662489
+   ],
+   [
+    133.75024106,
+    34.16992564
+   ],
+   [
+    132.75031963,
+    34.16992564
+   ]
+  ],
+  "thumbnail": "basemap_icons/toyo00.png"
+ },
+ {
+  "mapID": "toyo01",
+  "title": "今昔マップ 東予 1928年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/01/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.75031963,
+    33.83662489
+   ],
+   [
+    133.75024106,
+    33.83662489
+   ],
+   [
+    133.75024106,
+    34.16992564
+   ],
+   [
+    132.75031963,
+    34.16992564
+   ]
+  ],
+  "thumbnail": "basemap_icons/toyo01.png"
+ },
+ {
+  "mapID": "toyo02",
+  "title": "今昔マップ 東予 1966-1969年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/02/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.74743351,
+    33.83662219
+   ],
+   [
+    133.74734725,
+    33.83662219
+   ],
+   [
+    133.74734725,
+    34.16992826
+   ],
+   [
+    132.74743351,
+    34.16992826
+   ]
+  ],
+  "thumbnail": "basemap_icons/toyo02.png"
+ },
+ {
+  "mapID": "toyo03",
+  "title": "今昔マップ 東予 1984-1989年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/03/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.74743351,
+    33.83662219
+   ],
+   [
+    133.74734725,
+    33.83662219
+   ],
+   [
+    133.74734725,
+    34.16992826
+   ],
+   [
+    132.74743351,
+    34.16992826
+   ]
+  ],
+  "thumbnail": "basemap_icons/toyo03.png"
+ },
+ {
+  "mapID": "toyo04",
+  "title": "今昔マップ 東予 1994-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/04/{z}/{x}/{-y}.png",
+  "minZoom": 11,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    132.74743351,
+    33.83662219
+   ],
+   [
+    133.74734725,
+    33.83662219
+   ],
+   [
+    133.74734725,
+    34.16992826
+   ],
+   [
+    132.74743351,
+    34.16992826
+   ]
+  ],
+  "thumbnail": "basemap_icons/toyo04.png"
+ },
+ {
+  "mapID": "kochi2man",
+  "title": "今昔マップ 高知 1906-1907年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.40027904,
+    33.39468181
+   ],
+   [
+    133.80024787,
+    33.39468181
+   ],
+   [
+    133.80024787,
+    33.66998454
+   ],
+   [
+    133.40027904,
+    33.66998454
+   ]
+  ],
+  "thumbnail": "basemap_icons/kochi2man.png"
+ },
+ {
+  "mapID": "kochi00",
+  "title": "今昔マップ 高知 1933年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.37528175,
+    33.42001066
+   ],
+   [
+    133.87524027,
+    33.42001066
+   ],
+   [
+    133.87524027,
+    33.66998507
+   ],
+   [
+    133.37528175,
+    33.66998507
+   ]
+  ],
+  "thumbnail": "basemap_icons/kochi00.png"
+ },
+ {
+  "mapID": "kochi01",
+  "title": "今昔マップ 高知 1965年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.37239311,
+    33.4200106
+   ],
+   [
+    133.87235172,
+    33.4200106
+   ],
+   [
+    133.87235172,
+    33.66998501
+   ],
+   [
+    133.37239311,
+    33.66998501
+   ]
+  ],
+  "thumbnail": "basemap_icons/kochi01.png"
+ },
+ {
+  "mapID": "kochi02",
+  "title": "今昔マップ 高知 1982年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.37239311,
+    33.4200106
+   ],
+   [
+    133.87235171,
+    33.4200106
+   ],
+   [
+    133.87235171,
+    33.66998501
+   ],
+   [
+    133.37239311,
+    33.66998501
+   ]
+  ],
+  "thumbnail": "basemap_icons/kochi02.png"
+ },
+ {
+  "mapID": "kochi03",
+  "title": "今昔マップ 高知 1998-2003年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    133.37239311,
+    33.4200106
+   ],
+   [
+    133.87235171,
+    33.4200106
+   ],
+   [
+    133.87235171,
+    33.66998501
+   ],
+   [
+    133.37239311,
+    33.66998501
+   ]
+  ],
+  "thumbnail": "basemap_icons/kochi03.png"
+ },
+ {
+  "mapID": "fukuoka00",
+  "title": "今昔マップ 福岡・北九州 1922-1926年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/00/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12556808,
+    33.41995069
+   ],
+   [
+    131.12547525,
+    33.41995069
+   ],
+   [
+    131.12547525,
+    34.00322674
+   ],
+   [
+    130.12556808,
+    34.00322674
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukuoka00.png"
+ },
+ {
+  "mapID": "fukuoka01",
+  "title": "今昔マップ 福岡・北九州 1936-1938年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/01/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12556808,
+    33.41995069
+   ],
+   [
+    131.12547759,
+    33.41995069
+   ],
+   [
+    131.12547759,
+    34.00322674
+   ],
+   [
+    130.12556808,
+    34.00322674
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukuoka01.png"
+ },
+ {
+  "mapID": "fukuoka02",
+  "title": "今昔マップ 福岡・北九州 1948-1956年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/02/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12557032,
+    33.41995069
+   ],
+   [
+    131.12547759,
+    33.41995069
+   ],
+   [
+    131.12547759,
+    34.00322674
+   ],
+   [
+    130.12557032,
+    34.00322674
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukuoka02.png"
+ },
+ {
+  "mapID": "fukuoka03",
+  "title": "今昔マップ 福岡・北九州 1967-1972年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/03/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12267945,
+    33.41995063
+   ],
+   [
+    131.12259129,
+    33.41995063
+   ],
+   [
+    131.12259129,
+    34.00322668
+   ],
+   [
+    130.12267945,
+    34.00322668
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukuoka03.png"
+ },
+ {
+  "mapID": "fukuoka04",
+  "title": "今昔マップ 福岡・北九州 1982-1986年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/04/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12267945,
+    33.41995063
+   ],
+   [
+    131.12259129,
+    33.41995063
+   ],
+   [
+    131.12259129,
+    34.00322668
+   ],
+   [
+    130.12267945,
+    34.00322668
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukuoka04.png"
+ },
+ {
+  "mapID": "fukuoka05",
+  "title": "今昔マップ 福岡・北九州 1991-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/05/{z}/{x}/{-y}.png",
+  "minZoom": 10,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12267945,
+    33.41995063
+   ],
+   [
+    131.12259129,
+    33.41995063
+   ],
+   [
+    131.12259129,
+    34.00322424
+   ],
+   [
+    130.12267945,
+    34.00322424
+   ]
+  ],
+  "thumbnail": "basemap_icons/fukuoka05.png"
+ },
+ {
+  "mapID": "saga2man",
+  "title": "今昔マップ 佐賀・久留米 1900-1911年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/saga/2man/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.20057418,
+    33.13664783
+   ],
+   [
+    130.60054168,
+    33.13664783
+   ],
+   [
+    130.60054168,
+    33.40328593
+   ],
+   [
+    130.20057418,
+    33.40328593
+   ]
+  ],
+  "thumbnail": "basemap_icons/saga2man.png"
+ },
+ {
+  "mapID": "saga00",
+  "title": "今昔マップ 佐賀・久留米 1914-1926年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/saga/00/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.1255792,
+    33.08665306
+   ],
+   [
+    130.62553855,
+    33.08665306
+   ],
+   [
+    130.62553855,
+    33.41995069
+   ],
+   [
+    130.1255792,
+    33.41995069
+   ]
+  ],
+  "thumbnail": "basemap_icons/saga00.png"
+ },
+ {
+  "mapID": "saga01",
+  "title": "今昔マップ 佐賀・久留米 1931-1940年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/saga/01/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.1255792,
+    33.08665306
+   ],
+   [
+    130.62553632,
+    33.08665306
+   ],
+   [
+    130.62553632,
+    33.41995069
+   ],
+   [
+    130.1255792,
+    33.41995069
+   ]
+  ],
+  "thumbnail": "basemap_icons/saga01.png"
+ },
+ {
+  "mapID": "saga02",
+  "title": "今昔マップ 佐賀・久留米 1958-1964年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/saga/02/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12269056,
+    33.08665301
+   ],
+   [
+    130.62553855,
+    33.08665301
+   ],
+   [
+    130.62553855,
+    33.41995064
+   ],
+   [
+    130.12269056,
+    33.41995064
+   ]
+  ],
+  "thumbnail": "basemap_icons/saga02.png"
+ },
+ {
+  "mapID": "saga03",
+  "title": "今昔マップ 佐賀・久留米 1977-1982年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/saga/03/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12269056,
+    33.08665301
+   ],
+   [
+    130.62264991,
+    33.08665301
+   ],
+   [
+    130.62264991,
+    33.41995064
+   ],
+   [
+    130.12269056,
+    33.41995064
+   ]
+  ],
+  "thumbnail": "basemap_icons/saga03.png"
+ },
+ {
+  "mapID": "saga04",
+  "title": "今昔マップ 佐賀・久留米 1998-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/saga/04/{z}/{x}/{-y}.png",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.12269056,
+    33.08665301
+   ],
+   [
+    130.62264991,
+    33.08665301
+   ],
+   [
+    130.62264991,
+    33.41995064
+   ],
+   [
+    130.12269056,
+    33.41995064
+   ]
+  ],
+  "thumbnail": "basemap_icons/saga04.png"
+ },
+ {
+  "mapID": "nagasaki2man",
+  "title": "今昔マップ 長崎 1900-1901年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.80062064,
+    32.67002507
+   ],
+   [
+    130.10059534,
+    32.67002507
+   ],
+   [
+    130.10059534,
+    33.00332046
+   ],
+   [
+    129.80062064,
+    33.00332046
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagasaki2man.png"
+ },
+ {
+  "mapID": "nagasaki00",
+  "title": "今昔マップ 長崎 1924-1926年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.75062388,
+    32.67002462
+   ],
+   [
+    130.12559223,
+    32.67002462
+   ],
+   [
+    130.12559223,
+    33.00332001
+   ],
+   [
+    129.75062388,
+    33.00332001
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagasaki00.png"
+ },
+ {
+  "mapID": "nagasaki01",
+  "title": "今昔マップ 長崎 1954年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.75062388,
+    32.67002462
+   ],
+   [
+    130.12559223,
+    32.67002462
+   ],
+   [
+    130.12559223,
+    33.00332001
+   ],
+   [
+    129.75062388,
+    33.00332001
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagasaki01.png"
+ },
+ {
+  "mapID": "nagasaki02",
+  "title": "今昔マップ 長崎 1970-1970年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.74773524,
+    32.67002457
+   ],
+   [
+    130.12270359,
+    32.67002457
+   ],
+   [
+    130.12270359,
+    33.00331996
+   ],
+   [
+    129.74773524,
+    33.00331996
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagasaki02.png"
+ },
+ {
+  "mapID": "nagasaki03",
+  "title": "今昔マップ 長崎 1996-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.74773524,
+    32.67002457
+   ],
+   [
+    130.12270359,
+    32.67002457
+   ],
+   [
+    130.12270359,
+    33.00331996
+   ],
+   [
+    129.74773524,
+    33.00331996
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagasaki03.png"
+ },
+ {
+  "mapID": "nagasaki04",
+  "title": "今昔マップ 長崎 1996-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.74773524,
+    32.67002457
+   ],
+   [
+    130.12270359,
+    32.67002457
+   ],
+   [
+    130.12270359,
+    33.00331996
+   ],
+   [
+    129.74773524,
+    33.00331996
+   ]
+  ],
+  "thumbnail": "basemap_icons/nagasaki04.png"
+ },
+ {
+  "mapID": "sasebo2man",
+  "title": "今昔マップ 佐世保 1900-1901年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.59661927,
+    33.06997588
+   ],
+   [
+    129.80061552,
+    33.06997588
+   ],
+   [
+    129.80061552,
+    33.269953
+   ],
+   [
+    129.59661927,
+    33.269953
+   ]
+  ],
+  "thumbnail": "basemap_icons/sasebo2man.png"
+ },
+ {
+  "mapID": "sasebo00",
+  "title": "今昔マップ 佐世保 1924年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.62562665,
+    33.08664155
+   ],
+   [
+    129.87560616,
+    33.08664155
+   ],
+   [
+    129.87560616,
+    33.25328915
+   ],
+   [
+    129.62562665,
+    33.25328915
+   ]
+  ],
+  "thumbnail": "basemap_icons/sasebo00.png"
+ },
+ {
+  "mapID": "sasebo01",
+  "title": "今昔マップ 佐世保 1971年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.62273801,
+    33.08664149
+   ],
+   [
+    129.87271968,
+    33.08664149
+   ],
+   [
+    129.87271968,
+    33.2532891
+   ],
+   [
+    129.62273801,
+    33.2532891
+   ]
+  ],
+  "thumbnail": "basemap_icons/sasebo01.png"
+ },
+ {
+  "mapID": "sasebo02",
+  "title": "今昔マップ 佐世保 1985-1987年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.62273801,
+    33.08664149
+   ],
+   [
+    129.87271968,
+    33.08664149
+   ],
+   [
+    129.87271968,
+    33.2532891
+   ],
+   [
+    129.62273801,
+    33.2532891
+   ]
+  ],
+  "thumbnail": "basemap_icons/sasebo02.png"
+ },
+ {
+  "mapID": "sasebo03",
+  "title": "今昔マップ 佐世保 1997-1998年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    129.62273801,
+    33.08664149
+   ],
+   [
+    129.87271968,
+    33.08664149
+   ],
+   [
+    129.87271968,
+    33.2532891
+   ],
+   [
+    129.62273801,
+    33.2532891
+   ]
+  ],
+  "thumbnail": "basemap_icons/sasebo03.png"
+ },
+ {
+  "mapID": "omuta00",
+  "title": "今昔マップ 大牟田・島原 1900年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.25057231,
+    32.67003607
+   ],
+   [
+    130.5005629,
+    32.67003607
+   ],
+   [
+    130.5005629,
+    33.16997457
+   ],
+   [
+    130.25057231,
+    33.16997457
+   ]
+  ],
+  "thumbnail": "basemap_icons/omuta00.png"
+ },
+ {
+  "mapID": "omuta01",
+  "title": "今昔マップ 大牟田・島原 1941-1942年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.25057231,
+    32.67003607
+   ],
+   [
+    130.5005629,
+    32.67003607
+   ],
+   [
+    130.5005629,
+    33.16997457
+   ],
+   [
+    130.25057231,
+    33.16997457
+   ]
+  ],
+  "thumbnail": "basemap_icons/omuta01.png"
+ },
+ {
+  "mapID": "omuta02",
+  "title": "今昔マップ 大牟田・島原 1970年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.2476902,
+    32.67003383
+   ],
+   [
+    130.49766993,
+    32.67003383
+   ],
+   [
+    130.49766993,
+    33.08665301
+   ],
+   [
+    130.2476902,
+    33.08665301
+   ]
+  ],
+  "thumbnail": "basemap_icons/omuta02.png"
+ },
+ {
+  "mapID": "omuta03",
+  "title": "今昔マップ 大牟田・島原 1983-1987年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.2476902,
+    32.67003387
+   ],
+   [
+    130.49766993,
+    32.67003387
+   ],
+   [
+    130.49766993,
+    33.08665301
+   ],
+   [
+    130.2476902,
+    33.08665301
+   ]
+  ],
+  "thumbnail": "basemap_icons/omuta03.png"
+ },
+ {
+  "mapID": "omuta04",
+  "title": "今昔マップ 大牟田・島原 1993-1994年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.24769236,
+    32.67003387
+   ],
+   [
+    130.49766556,
+    32.67003387
+   ],
+   [
+    130.49766556,
+    33.08665301
+   ],
+   [
+    130.24769236,
+    33.08665301
+   ]
+  ],
+  "thumbnail": "basemap_icons/omuta04.png"
+ },
+ {
+  "mapID": "omuta05",
+  "title": "今昔マップ 大牟田・島原 1999-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/05/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.2476902,
+    32.67003387
+   ],
+   [
+    130.49766993,
+    32.67003387
+   ],
+   [
+    130.49766993,
+    33.08665301
+   ],
+   [
+    130.2476902,
+    33.08665301
+   ]
+  ],
+  "thumbnail": "basemap_icons/omuta05.png"
+ },
+ {
+  "mapID": "kumamoto2man",
+  "title": "今昔マップ 熊本 1900-1901年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.50055595,
+    32.67007311
+   ],
+   [
+    130.90052717,
+    32.67007311
+   ],
+   [
+    130.90052717,
+    32.9366781
+   ],
+   [
+    130.50055595,
+    32.9366781
+   ]
+  ],
+  "thumbnail": "basemap_icons/kumamoto2man.png"
+ },
+ {
+  "mapID": "kumamoto00",
+  "title": "今昔マップ 熊本 1926年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.50055639,
+    32.67003839
+   ],
+   [
+    130.8755405,
+    32.67003839
+   ],
+   [
+    130.8755405,
+    32.92001239
+   ],
+   [
+    130.50055639,
+    32.92001239
+   ]
+  ],
+  "thumbnail": "basemap_icons/kumamoto00.png"
+ },
+ {
+  "mapID": "kumamoto01",
+  "title": "今昔マップ 熊本 1965-1971年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.49766775,
+    32.67003833
+   ],
+   [
+    130.87264076,
+    32.67003833
+   ],
+   [
+    130.87264076,
+    32.92001233
+   ],
+   [
+    130.49766775,
+    32.92001233
+   ]
+  ],
+  "thumbnail": "basemap_icons/kumamoto01.png"
+ },
+ {
+  "mapID": "kumamoto02",
+  "title": "今昔マップ 熊本 1983年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.49766775,
+    32.67003833
+   ],
+   [
+    130.87264076,
+    32.67003833
+   ],
+   [
+    130.87264076,
+    32.92001233
+   ],
+   [
+    130.49766775,
+    32.92001233
+   ]
+  ],
+  "thumbnail": "basemap_icons/kumamoto02.png"
+ },
+ {
+  "mapID": "kumamoto03",
+  "title": "今昔マップ 熊本 1998-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.49766775,
+    32.67003833
+   ],
+   [
+    130.87264076,
+    32.67003833
+   ],
+   [
+    130.87264076,
+    32.92001233
+   ],
+   [
+    130.49766775,
+    32.92001233
+   ]
+  ],
+  "thumbnail": "basemap_icons/kumamoto03.png"
+ },
+ {
+  "mapID": "yatsushiro00",
+  "title": "今昔マップ 八代 1901年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.5005629,
+    32.33674502
+   ],
+   [
+    130.7505492,
+    32.33674502
+   ],
+   [
+    130.7505492,
+    32.67003607
+   ],
+   [
+    130.5005629,
+    32.67003607
+   ]
+  ],
+  "thumbnail": "basemap_icons/yatsushiro00.png"
+ },
+ {
+  "mapID": "yatsushiro01",
+  "title": "今昔マップ 八代 1932-1942年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.5005629,
+    32.33674502
+   ],
+   [
+    130.7505492,
+    32.33674502
+   ],
+   [
+    130.7505492,
+    32.67003607
+   ],
+   [
+    130.5005629,
+    32.67003607
+   ]
+  ],
+  "thumbnail": "basemap_icons/yatsushiro01.png"
+ },
+ {
+  "mapID": "yatsushiro02",
+  "title": "今昔マップ 八代 1965年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.49767426,
+    32.33674265
+   ],
+   [
+    130.74766056,
+    32.33674265
+   ],
+   [
+    130.74766056,
+    32.67003833
+   ],
+   [
+    130.49767426,
+    32.67003833
+   ]
+  ],
+  "thumbnail": "basemap_icons/yatsushiro02.png"
+ },
+ {
+  "mapID": "yatsushiro03",
+  "title": "今昔マップ 八代 1983-1986年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.49767426,
+    32.33674265
+   ],
+   [
+    130.74766056,
+    32.33674265
+   ],
+   [
+    130.74766056,
+    32.67003833
+   ],
+   [
+    130.49767426,
+    32.67003833
+   ]
+  ],
+  "thumbnail": "basemap_icons/yatsushiro03.png"
+ },
+ {
+  "mapID": "yatsushiro04",
+  "title": "今昔マップ 八代 1997-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.49767426,
+    32.33674265
+   ],
+   [
+    130.74766056,
+    32.33674265
+   ],
+   [
+    130.74766056,
+    32.67003833
+   ],
+   [
+    130.49767426,
+    32.67003833
+   ]
+  ],
+  "thumbnail": "basemap_icons/yatsushiro04.png"
+ },
+ {
+  "mapID": "oita00",
+  "title": "今昔マップ 大分 1914年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/oita/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.50045556,
+    33.17000083
+   ],
+   [
+    131.87542675,
+    33.17000083
+   ],
+   [
+    131.87542675,
+    33.33664856
+   ],
+   [
+    131.50045556,
+    33.33664856
+   ]
+  ],
+  "thumbnail": "basemap_icons/oita00.png"
+ },
+ {
+  "mapID": "oita01",
+  "title": "今昔マップ 大分 1973年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/oita/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.49756691,
+    33.17000077
+   ],
+   [
+    131.87253811,
+    33.17000077
+   ],
+   [
+    131.87253811,
+    33.3366485
+   ],
+   [
+    131.49756691,
+    33.3366485
+   ]
+  ],
+  "thumbnail": "basemap_icons/oita01.png"
+ },
+ {
+  "mapID": "oita02",
+  "title": "今昔マップ 大分 1984-1986年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/oita/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.49756691,
+    33.17000077
+   ],
+   [
+    131.87253811,
+    33.17000077
+   ],
+   [
+    131.87253811,
+    33.3366485
+   ],
+   [
+    131.49756691,
+    33.3366485
+   ]
+  ],
+  "thumbnail": "basemap_icons/oita02.png"
+ },
+ {
+  "mapID": "oita03",
+  "title": "今昔マップ 大分 1997-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/oita/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.49756691,
+    33.17000077
+   ],
+   [
+    131.87253811,
+    33.17000077
+   ],
+   [
+    131.87253811,
+    33.3366485
+   ],
+   [
+    131.49756691,
+    33.3366485
+   ]
+  ],
+  "thumbnail": "basemap_icons/oita03.png"
+ },
+ {
+  "mapID": "nobeoka00",
+  "title": "今昔マップ 延岡 1903年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.50047379,
+    32.33676391
+   ],
+   [
+    131.75046059,
+    32.33676391
+   ],
+   [
+    131.75046059,
+    32.67005496
+   ],
+   [
+    131.50047379,
+    32.67005496
+   ]
+  ],
+  "thumbnail": "basemap_icons/nobeoka00.png"
+ },
+ {
+  "mapID": "nobeoka01",
+  "title": "今昔マップ 延岡 1932年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.50047379,
+    32.33676391
+   ],
+   [
+    131.75046059,
+    32.33676391
+   ],
+   [
+    131.75046059,
+    32.67005496
+   ],
+   [
+    131.50047379,
+    32.67005496
+   ]
+  ],
+  "thumbnail": "basemap_icons/nobeoka01.png"
+ },
+ {
+  "mapID": "nobeoka02",
+  "title": "今昔マップ 延岡 1964年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.49758514,
+    32.33676145
+   ],
+   [
+    131.74757195,
+    32.33676145
+   ],
+   [
+    131.74757195,
+    32.67005731
+   ],
+   [
+    131.49758514,
+    32.67005731
+   ]
+  ],
+  "thumbnail": "basemap_icons/nobeoka02.png"
+ },
+ {
+  "mapID": "nobeoka03",
+  "title": "今昔マップ 延岡 1978年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.49758514,
+    32.33676145
+   ],
+   [
+    131.74757195,
+    32.33676145
+   ],
+   [
+    131.74757195,
+    32.67005731
+   ],
+   [
+    131.49758514,
+    32.67005731
+   ]
+  ],
+  "thumbnail": "basemap_icons/nobeoka03.png"
+ },
+ {
+  "mapID": "nobeoka04",
+  "title": "今昔マップ 延岡 1999-2000年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.49758514,
+    32.33676192
+   ],
+   [
+    131.74757004,
+    32.33676192
+   ],
+   [
+    131.74757004,
+    32.67005731
+   ],
+   [
+    131.49758514,
+    32.67005731
+   ]
+  ],
+  "thumbnail": "basemap_icons/nobeoka04.png"
+ },
+ {
+  "mapID": "miyazaki00",
+  "title": "今昔マップ 宮崎 1902年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.25051347,
+    31.83681506
+   ],
+   [
+    131.50049574,
+    31.83681506
+   ],
+   [
+    131.50049574,
+    32.00345842
+   ],
+   [
+    131.25051347,
+    32.00345842
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyazaki00.png"
+ },
+ {
+  "mapID": "miyazaki01",
+  "title": "今昔マップ 宮崎 1935年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.25051347,
+    31.83681506
+   ],
+   [
+    131.50049574,
+    31.83681506
+   ],
+   [
+    131.50049574,
+    32.00345842
+   ],
+   [
+    131.25051347,
+    32.00345842
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyazaki01.png"
+ },
+ {
+  "mapID": "miyazaki02",
+  "title": "今昔マップ 宮崎 1962年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.24762483,
+    31.83681266
+   ],
+   [
+    131.4976071,
+    31.83681266
+   ],
+   [
+    131.4976071,
+    32.00346072
+   ],
+   [
+    131.24762483,
+    32.00346072
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyazaki02.png"
+ },
+ {
+  "mapID": "miyazaki03",
+  "title": "今昔マップ 宮崎 1979年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.24762483,
+    31.83681266
+   ],
+   [
+    131.4976071,
+    31.83681266
+   ],
+   [
+    131.4976071,
+    32.00346072
+   ],
+   [
+    131.24762483,
+    32.00346072
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyazaki03.png"
+ },
+ {
+  "mapID": "miyazaki04",
+  "title": "今昔マップ 宮崎 1999-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.24762483,
+    31.83681266
+   ],
+   [
+    131.4976071,
+    31.83681266
+   ],
+   [
+    131.4976071,
+    32.00346072
+   ],
+   [
+    131.24762483,
+    32.00346072
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyazaki04.png"
+ },
+ {
+  "mapID": "miyakonojyou00",
+  "title": "今昔マップ 都城 1902年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.00053981,
+    31.67016231
+   ],
+   [
+    131.25052199,
+    31.67016231
+   ],
+   [
+    131.25052199,
+    31.83680575
+   ],
+   [
+    131.00053981,
+    31.83680575
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyakonojyou00.png"
+ },
+ {
+  "mapID": "miyakonojyou01",
+  "title": "今昔マップ 都城 1932年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    131.00053981,
+    31.67015999
+   ],
+   [
+    131.25052199,
+    31.67015999
+   ],
+   [
+    131.25052199,
+    31.83680806
+   ],
+   [
+    131.00053981,
+    31.83680806
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyakonojyou01.png"
+ },
+ {
+  "mapID": "miyakonojyou02",
+  "title": "今昔マップ 都城 1966年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.99765116,
+    31.67015994
+   ],
+   [
+    131.24763335,
+    31.67015994
+   ],
+   [
+    131.24763335,
+    31.836808
+   ],
+   [
+    130.99765116,
+    31.836808
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyakonojyou02.png"
+ },
+ {
+  "mapID": "miyakonojyou03",
+  "title": "今昔マップ 都城 1979-1980年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.99765116,
+    31.67015994
+   ],
+   [
+    131.24763335,
+    31.67015994
+   ],
+   [
+    131.24763335,
+    31.836808
+   ],
+   [
+    130.99765116,
+    31.836808
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyakonojyou03.png"
+ },
+ {
+  "mapID": "miyakonojyou04",
+  "title": "今昔マップ 都城 1998-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/04/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.99765116,
+    31.67015994
+   ],
+   [
+    131.24763335,
+    31.67015994
+   ],
+   [
+    131.24763335,
+    31.836808
+   ],
+   [
+    130.99765116,
+    31.836808
+   ]
+  ],
+  "thumbnail": "basemap_icons/miyakonojyou04.png"
+ },
+ {
+  "mapID": "kagoshima5man",
+  "title": "今昔マップ 鹿児島 1902年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/5man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.50058817,
+    31.50350504
+   ],
+   [
+    130.7505702,
+    31.50350504
+   ],
+   [
+    130.7505702,
+    31.67014859
+   ],
+   [
+    130.50058817,
+    31.67014859
+   ]
+  ],
+  "thumbnail": "basemap_icons/kagoshima5man.png"
+ },
+ {
+  "mapID": "kagoshima2man",
+  "title": "今昔マップ 鹿児島 1902年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/2man/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.40059539,
+    31.47017091
+   ],
+   [
+    130.70057379,
+    31.47017091
+   ],
+   [
+    130.70057379,
+    31.80346882
+   ],
+   [
+    130.40059539,
+    31.80346882
+   ]
+  ],
+  "thumbnail": "basemap_icons/kagoshima2man.png"
+ },
+ {
+  "mapID": "kagoshima00",
+  "title": "今昔マップ 鹿児島 1932年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.37559719,
+    31.50350053
+   ],
+   [
+    130.7505702,
+    31.50350053
+   ],
+   [
+    130.7505702,
+    31.83679887
+   ],
+   [
+    130.37559719,
+    31.83679887
+   ]
+  ],
+  "thumbnail": "basemap_icons/kagoshima00.png"
+ },
+ {
+  "mapID": "kagoshima01",
+  "title": "今昔マップ 鹿児島 1966年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.37270855,
+    31.50350048
+   ],
+   [
+    130.74768155,
+    31.50350048
+   ],
+   [
+    130.74768155,
+    31.83679882
+   ],
+   [
+    130.37270855,
+    31.83679882
+   ]
+  ],
+  "thumbnail": "basemap_icons/kagoshima01.png"
+ },
+ {
+  "mapID": "kagoshima02",
+  "title": "今昔マップ 鹿児島 1982-1983年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.37270855,
+    31.50350048
+   ],
+   [
+    130.74768155,
+    31.50350048
+   ],
+   [
+    130.74768155,
+    31.83679882
+   ],
+   [
+    130.37270855,
+    31.83679882
+   ]
+  ],
+  "thumbnail": "basemap_icons/kagoshima02.png"
+ },
+ {
+  "mapID": "kagoshima03",
+  "title": "今昔マップ 鹿児島 1996-2001年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    130.37270855,
+    31.50350048
+   ],
+   [
+    130.74768155,
+    31.50350048
+   ],
+   [
+    130.74768155,
+    31.83679882
+   ],
+   [
+    130.37270855,
+    31.83679882
+   ]
+  ],
+  "thumbnail": "basemap_icons/kagoshima03.png"
+ },
+ {
+  "mapID": "okinawas00",
+  "title": "今昔マップ 沖縄本島南部 1919年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okinawas/00/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    127.6230577,
+    26.0040508
+   ],
+   [
+    127.87304183,
+    26.0040508
+   ],
+   [
+    127.87304183,
+    26.42067393
+   ],
+   [
+    127.6230577,
+    26.42067393
+   ]
+  ],
+  "thumbnail": "basemap_icons/okinawas00.png"
+ },
+ {
+  "mapID": "okinawas01",
+  "title": "今昔マップ 沖縄本島南部 1973-1975年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okinawas/01/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    127.6230577,
+    26.0040508
+   ],
+   [
+    127.87304183,
+    26.0040508
+   ],
+   [
+    127.87304183,
+    26.42067393
+   ],
+   [
+    127.6230577,
+    26.42067393
+   ]
+  ],
+  "thumbnail": "basemap_icons/okinawas01.png"
+ },
+ {
+  "mapID": "okinawas02",
+  "title": "今昔マップ 沖縄本島南部 1992-1994年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okinawas/02/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    127.6230577,
+    26.0040508
+   ],
+   [
+    127.87304183,
+    26.0040508
+   ],
+   [
+    127.87304183,
+    26.42067393
+   ],
+   [
+    127.6230577,
+    26.42067393
+   ]
+  ],
+  "thumbnail": "basemap_icons/okinawas02.png"
+ },
+ {
+  "mapID": "okinawas03",
+  "title": "今昔マップ 沖縄本島南部 2005-2008年",
+  "attr": "今昔マップ on the web",
+  "url": "https://ktgis.net/kjmapw/kjtilemap/okinawas/03/{z}/{x}/{-y}.png",
+  "minZoom": 14,
+  "maxZoom": 16,
+  "envelopeLngLats": [
+   [
+    127.625,
+    26
+   ],
+   [
+    127.875,
+    26
+   ],
+   [
+    127.875,
+    26.41666667
+   ],
+   [
+    127.625,
+    26.41666667
+   ]
+  ],
+  "thumbnail": "basemap_icons/okinawas03.png"
+ }
+]

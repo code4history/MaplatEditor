@@ -3,6 +3,7 @@ import path from 'path';
 import { dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
+import { resourceAssetFileUrl } from '../utils/resourceAssets';
 
 const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
 
@@ -91,8 +92,12 @@ class AppAssetService {
   }
 
   // saveFolder相対パス → file:// URL（存在しない場合はnull）
+  // ビルトインベースマップのアイコン(basemap_icons/)はアプリ同梱リソースから解決する
   fileUrlFor(relPath: string): string | null {
     if (typeof relPath !== 'string' || !relPath.trim()) return null;
+    if (relPath.startsWith('basemap_icons/')) {
+      return resourceAssetFileUrl(relPath);
+    }
     const baseFolder = path.resolve(this.saveFolder);
     const resolved = path.resolve(path.join(baseFolder, relPath));
     if (!resolved.startsWith(baseFolder)) return null;

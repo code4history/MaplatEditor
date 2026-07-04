@@ -113,33 +113,33 @@ class SettingsService extends EventEmitter {
   }
 
   public async getTmsListOfMapID(mapID: string): Promise<any[]> {
-    const { default: DuckDbDataService } = await import('./DuckDbDataService');
-    return DuckDbDataService.getTmsListOfMapID(mapID);
+    const { default: SqliteDataService } = await import('./SqliteDataService');
+    return SqliteDataService.getTmsListOfMapID(mapID);
   }
 
   public async getBaseMapVisibilityOfMapID(mapID: string): Promise<any[]> {
-    const { default: DuckDbDataService } = await import('./DuckDbDataService');
-    return DuckDbDataService.getBaseMapVisibilityOfMapID(mapID);
+    const { default: SqliteDataService } = await import('./SqliteDataService');
+    return SqliteDataService.getBaseMapVisibilityOfMapID(mapID);
   }
 
   public async setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void> {
-    const { default: DuckDbDataService } = await import('./DuckDbDataService');
-    await DuckDbDataService.setBaseMapVisibilityForMapID(mapID, baseMapId, enabled);
+    const { default: SqliteDataService } = await import('./SqliteDataService');
+    await SqliteDataService.setBaseMapVisibilityForMapID(mapID, baseMapId, enabled);
   }
 
   public async listBaseMaps(): Promise<any[]> {
-    const { default: DuckDbDataService } = await import('./DuckDbDataService');
-    return DuckDbDataService.listBaseMaps();
+    const { default: SqliteDataService } = await import('./SqliteDataService');
+    return SqliteDataService.listBaseMaps();
   }
 
   public async saveUserBaseMap(tms: any): Promise<void> {
-    const { default: DuckDbDataService } = await import('./DuckDbDataService');
-    await DuckDbDataService.saveUserBaseMap(tms);
+    const { default: SqliteDataService } = await import('./SqliteDataService');
+    await SqliteDataService.saveUserBaseMap(tms);
   }
 
   public async deleteUserBaseMap(baseMapId: string): Promise<void> {
-    const { default: DuckDbDataService } = await import('./DuckDbDataService');
-    await DuckDbDataService.deleteUserBaseMap(baseMapId);
+    const { default: SqliteDataService } = await import('./SqliteDataService');
+    await SqliteDataService.deleteUserBaseMap(baseMapId);
   }
 }
 

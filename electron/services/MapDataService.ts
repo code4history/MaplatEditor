@@ -1,16 +1,17 @@
 import fs from 'fs-extra';
 import path from 'path';
 import SettingsService from './SettingsService';
-import DuckDbDataService, { type MapListResult } from './DuckDbDataService';
+import SqliteDataService from './SqliteDataService';
+import SearchDataService, { type MapListResult } from './SearchDataService';
 
-type DuckDbCompatStore = {
+type CompatStore = {
   findOneAsync(query: { _id: string }): Promise<any | null>;
   updateAsync(query: { _id: string }, update: { $set?: any } | any, options?: { upsert?: boolean }): Promise<void>;
   removeAsync(query: { _id: string }, options?: any): Promise<void>;
 };
 
 class MapDataService {
-  private compatStore: DuckDbCompatStore | null = null;
+  private compatStore: CompatStore | null = null;
 
   private get folders() {
     const saveFolder = SettingsService.get('saveFolder');
@@ -19,29 +20,28 @@ class MapDataService {
       tileFolder: path.join(saveFolder, "tiles"),
       originalFolder: path.join(saveFolder, "originals"),
       uiThumbnailFolder: path.join(saveFolder, "tmbs"),
-      duckDbFile: path.join(saveFolder, "maplat.duckdb")
     };
   }
 
-  async getDBInstance(): Promise<DuckDbCompatStore> {
+  async getDBInstance(): Promise<CompatStore> {
     if (this.compatStore) return this.compatStore;
-    await DuckDbDataService.getConnection();
+    await SqliteDataService.getDb();
     this.compatStore = {
-      findOneAsync: async (query) => DuckDbDataService.findMap(query._id),
+      findOneAsync: async (query) => SqliteDataService.findMap(query._id),
       updateAsync: async (query, update) => {
         const mapID = query._id;
         const document = update?.$set ? update.$set : update;
-        await DuckDbDataService.upsertMap(mapID, document);
+        await SqliteDataService.upsertMap(mapID, document);
       },
       removeAsync: async (query) => {
-        await DuckDbDataService.deleteMap(query._id);
+        await SqliteDataService.deleteMap(query._id);
       },
     };
     return this.compatStore;
   }
 
   async requestMaps(query: string = '', page: number = 1, pageSize: number = 20): Promise<MapListResult> {
-    const rawResult = await DuckDbDataService.listMaps(query, page, pageSize);
+    const rawResult = await SearchDataService.listMaps(query, page, pageSize);
     const docs = await Promise.all(rawResult.docs.map(async (doc: any) => {
         const mapID = doc._id || doc.mapID;
         let title = doc.title;
@@ -115,11 +115,11 @@ class MapDataService {
   }
 
   async searchExtent(extent: number[]): Promise<string[]> {
-    return DuckDbDataService.searchExtent(extent);
+    return SearchDataService.searchExtent(extent);
   }
 
   async deleteMap(mapID: string): Promise<void> {
-    await DuckDbDataService.deleteMap(mapID);
+    await SqliteDataService.deleteMap(mapID);
     const { tileFolder, uiThumbnailFolder, originalFolder } = this.folders;
 
     const tileDir = path.join(tileFolder, mapID);
@@ -151,7 +151,8 @@ class MapDataService {
 
   async switchDataFolder() {
       this.compatStore = null;
-      await DuckDbDataService.reset();
+      await SearchDataService.reset();
+      await SqliteDataService.reset();
 
       const { tileFolder, originalFolder, uiThumbnailFolder } = this.folders;
 
@@ -159,7 +160,7 @@ class MapDataService {
           await fs.ensureDir(tileFolder);
           await fs.ensureDir(originalFolder);
           await fs.ensureDir(uiThumbnailFolder);
-          await DuckDbDataService.getConnection();
+          await SqliteDataService.getDb();
           console.log(`[MapDataService] Data folder switched and initialized: ${SettingsService.get('saveFolder')}`);
       } catch (e) {
           console.error("[MapDataService] Failed to initialize new data folders", e);

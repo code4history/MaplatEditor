@@ -24,7 +24,7 @@
     "smoke:m3-t4-app-poi-selector": "node scripts/m3-t4-app-poi-selector-smoke.mjs",
     "smoke:m4-undo-redo": "node scripts/m4-undo-redo-smoke.mjs",
     "smoke:m4-tin-v2-mode": "node scripts/m4-tin-v2-mode-smoke.mjs",
-    "smoke:m4-duckdb-migration": "node scripts/m4-duckdb-migration-smoke.mjs",
+    "smoke:m7-sqlite-write-store": "node scripts/m7-sqlite-write-store-smoke.mjs",
     "smoke:m5-basemap-catalog": "node scripts/m5-basemap-catalog-smoke.mjs",
     "smoke:m6-app-source-model": "node scripts/m6-app-source-model-smoke.mjs",
     "smoke:m5-app-editor": "node scripts/m5-app-editor-smoke.mjs",

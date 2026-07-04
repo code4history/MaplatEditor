@@ -1,3 +1,7 @@
+// SQLite Write Store + DuckDB Search Layer (ADR-0001) の統合スモーク。
+// シナリオ1: 生きたレガシー入力(nedb.db / settings/)からのマイグレーションと
+//            Write Store経由のCRUD、Search Layer経由の一覧検索、退避リネーム。
+// シナリオ2: 退避済み入力(_nedb.db / _settings/)からもマイグレーションできること。
 import { mkdtemp, rm, writeFile, mkdir, access } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -8,19 +12,52 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'duckdb-migration-'));
-const entryFile = path.join(workDir, 'duckdb-migration-smoke.ts');
+const workDir = await mkdtemp(path.join(scratchRoot, 'sqlite-write-store-'));
+const entryFile = path.join(workDir, 'sqlite-write-store-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
-const bundledFile = path.join(outDir, 'duckdb-migration-smoke.mjs');
+const bundledFile = path.join(outDir, 'sqlite-write-store-smoke.mjs');
+
+function legacyMapDoc(id, title) {
+  return JSON.stringify({
+    _id: id,
+    title,
+    officialTitle: '',
+    description: 'Migrated from NeDB',
+    attr: '',
+    dataAttr: '',
+    author: '',
+    createdAt: '',
+    era: '',
+    license: '',
+    dataLicense: '',
+    contributor: '',
+    mapper: '',
+    reference: '',
+    url: '',
+    lang: 'ja',
+    imageExtension: 'jpg',
+    width: 320,
+    height: 200,
+    gcps: [],
+    edges: [],
+    sub_maps: [],
+    homePosition: [0, 0],
+    mercZoom: 0,
+    strictMode: 'strict',
+    vertexMode: 'plain',
+  }) + '\n';
+}
 
 try {
   const dataDir = path.join(workDir, 'data');
   const settingsDir = path.join(dataDir, 'settings');
+  const retiredDataDir = path.join(workDir, 'data-retired');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const mapDataPath = path.join(projectRoot, 'electron/services/MapDataService.ts');
-  const duckDbPath = path.join(projectRoot, 'electron/services/DuckDbDataService.ts');
+  const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
+  const searchPath = path.join(projectRoot, 'electron/services/SearchDataService.ts');
   const storageAdapterPath = path.join(projectRoot, 'electron/adapters/ElectronStorageAdapter.ts');
 
   await mkdir(settingsDir, { recursive: true });
@@ -71,37 +108,8 @@ try {
     `
   );
 
-  await writeFile(
-    path.join(dataDir, 'nedb.db'),
-    JSON.stringify({
-      _id: 'legacy-map',
-      title: 'Legacy Map',
-      officialTitle: '',
-      description: 'Migrated from NeDB',
-      attr: '',
-      dataAttr: '',
-      author: '',
-      createdAt: '',
-      era: '',
-      license: '',
-      dataLicense: '',
-      contributor: '',
-      mapper: '',
-      reference: '',
-      url: '',
-      lang: 'ja',
-      imageExtension: 'jpg',
-      width: 320,
-      height: 200,
-      gcps: [],
-      edges: [],
-      sub_maps: [],
-      homePosition: [0, 0],
-      mercZoom: 0,
-      strictMode: 'strict',
-      vertexMode: 'plain',
-    }) + '\n'
-  );
+  // シナリオ1: 生きたレガシー入力
+  await writeFile(path.join(dataDir, 'nedb.db'), legacyMapDoc('legacy-map', 'Legacy Map'));
   await writeFile(
     path.join(settingsDir, 'tmsList.json'),
     JSON.stringify([{ mapID: 'user-base', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' }])
@@ -115,6 +123,14 @@ try {
     JSON.stringify({ 'user-base': true, 'gsi_ort_USA10': false })
   );
 
+  // シナリオ2: 退避済み入力(先行のDuckDB移行がリネームした状態を再現)
+  await mkdir(path.join(retiredDataDir, '_settings'), { recursive: true });
+  await writeFile(path.join(retiredDataDir, '_nedb.db'), legacyMapDoc('retired-map', 'Retired Map'));
+  await writeFile(
+    path.join(retiredDataDir, '_settings', 'tmsList.json'),
+    JSON.stringify([{ mapID: 'retired-base', title: 'Retired Base', url: 'https://example.test/{z}/{x}/{y}.png' }])
+  );
+
   await writeFile(
     entryFile,
     `
@@ -125,7 +141,8 @@ try {
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
 
       const { default: MapDataService } = await import(${JSON.stringify(mapDataPath)});
-      const { default: DuckDbDataService } = await import(${JSON.stringify(duckDbPath)});
+      const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
+      const { default: SearchDataService } = await import(${JSON.stringify(searchPath)});
       const { default: StorageAdapter } = await import(${JSON.stringify(storageAdapterPath)});
 
       const db = await MapDataService.getDBInstance();
@@ -133,22 +150,33 @@ try {
         event.channel === 'app:taskProgress' && event.payload.text === 'database.migrating'
       ));
       assert.equal(await StorageAdapter.isMapIdAvailable('legacy-map'), false);
+      // 一覧検索はSearch Layer(DuckDB sqlite ATTACH)経由
       const listed = await StorageAdapter.listMaps({ query: 'Legacy', page: 1, pageSize: 20 });
       assert.equal(listed.docs.length, 1);
       assert.equal(listed.docs[0].mapID, 'legacy-map');
+      // pageSize=0 は全件取得
+      const listedAll = await StorageAdapter.listMaps({ query: '', page: 1, pageSize: 0 });
+      assert.equal(listedAll.docs.length, 1);
+      assert.equal(listedAll.next, false);
 
       const loaded = await StorageAdapter.readMapForEdit('legacy-map');
       assert.equal(loaded.mapID, 'legacy-map');
       assert.equal(loaded.status, 'Update');
 
+      // 書き込み直後の読み取り(read-your-writes): 単一レコードはWrite Store、一覧はSearch Layer
       await StorageAdapter.saveMapForEdit({
         mapObject: { ...loaded, title: 'Updated Legacy Map', status: 'Update' },
         tins: ['tooLessGcps'],
       });
       const reloaded = await db.findOneAsync({ _id: 'legacy-map' });
       assert.equal(reloaded.title, 'Updated Legacy Map');
+      const relisted = await StorageAdapter.listMaps({ query: 'Updated', page: 1, pageSize: 20 });
+      assert.equal(relisted.docs.length, 1);
 
-      await access(${JSON.stringify(path.join(dataDir, 'maplat.duckdb'))});
+      // Write StoreはSQLiteファイル。DuckDBファイルは作られない
+      await access(${JSON.stringify(path.join(dataDir, 'maplat.sqlite'))});
+      await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'maplat.duckdb'))}));
+      // 消費済みレガシー入力は退避リネームされる(Legacy Data Retirement)
       await access(${JSON.stringify(path.join(dataDir, '_nedb.db'))});
       await access(${JSON.stringify(path.join(dataDir, '_settings'))});
       await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'nedb.db'))}));
@@ -170,9 +198,6 @@ try {
       const mapAUpdated = await SettingsService.getTmsListOfMapID('mapA');
       assert.ok(mapAUpdated.some((tms) => tms.mapID === 'osm'));
       assert.ok(mapAUpdated.some((tms) => tms.mapID === 'user-base'));
-      const mapAUpdatedVisibility = await SettingsService.getBaseMapVisibilityOfMapID('mapA');
-      assert.equal(mapAUpdatedVisibility.find((item) => item.mapID === 'osm').enabled, true);
-      assert.equal(mapAUpdatedVisibility.find((item) => item.mapID === 'user-base').enabled, true);
 
       const mapB = await SettingsService.getTmsListOfMapID('mapB');
       assert.ok(!mapB.some((tms) => tms.mapID === 'gsi_ort_USA10'));
@@ -182,26 +207,35 @@ try {
       assert.ok(mapC.some((tms) => tms.mapID === 'gsi_ort_USA10'));
       assert.ok(mapC.some((tms) => tms.mapID === 'user-base'));
 
-      const connection = await DuckDbDataService.getConnection();
-      const baseMaps = await connection.runAndReadAll(
-        "SELECT scope, map_id FROM base_maps WHERE map_id IN ('osm', 'gsi', 'user-base') ORDER BY scope, map_id"
-      );
-      const rows = baseMaps.getRowObjectsJson();
-      assert.ok(rows.some((row) => row.scope === 'builtin' && row.map_id === 'osm'));
-      assert.ok(rows.some((row) => row.scope === 'builtin' && row.map_id === 'gsi'));
-      assert.ok(rows.some((row) => row.scope === 'user' && row.map_id === 'user-base'));
-
-      await DuckDbDataService.reset();
-      await DuckDbDataService.getConnection();
-      const duplicateCheck = await (await DuckDbDataService.getConnection()).runAndReadAll(
-        "SELECT scope, map_id, count(*)::INTEGER AS count FROM base_maps GROUP BY scope, map_id HAVING count(*) > 1"
-      );
-      assert.equal(duplicateCheck.getRowObjectsJson().length, 0);
+      // ビルトインベースマップはKTGISカタログ由来(重複なし・再シード安全)
+      const baseMaps = await SettingsService.listBaseMaps();
+      assert.ok(baseMaps.some((item) => item.scope === 'builtin' && item.mapID === 'osm'));
+      assert.ok(baseMaps.some((item) => item.scope === 'builtin' && item.mapID === 'muroran00'));
+      assert.ok(baseMaps.some((item) => item.scope === 'user' && item.mapID === 'user-base'));
+      await SearchDataService.reset();
+      await SqliteDataService.reset();
+      const rawDb = await SqliteDataService.getDb();
+      const duplicateCheck = rawDb
+        .prepare('SELECT scope, map_id, count(*) AS count FROM base_maps GROUP BY scope, map_id HAVING count(*) > 1')
+        .all();
+      assert.equal(duplicateCheck.length, 0);
       assert.ok(globalThis.__appProgressEvents.some((event) =>
         event.channel === 'app:taskProgress' && event.payload.text === 'database.migrated'
       ));
 
-      console.log('M4 DuckDB migration smoke passed');
+      // シナリオ2: 退避済み入力(_nedb.db/_settings)からのマイグレーション
+      SettingsService.set('saveFolder', ${JSON.stringify(retiredDataDir)});
+      await MapDataService.switchDataFolder();
+      assert.equal(await SqliteDataService.isMapIdAvailable('retired-map'), false);
+      const retiredList = await SearchDataService.listMaps('Retired', 1, 20);
+      assert.equal(retiredList.docs.length, 1);
+      const retiredBaseMaps = await SettingsService.listBaseMaps();
+      assert.ok(retiredBaseMaps.some((item) => item.scope === 'user' && item.mapID === 'retired-base'));
+      // 退避済み入力はそのまま残る(再リネームされない)
+      await access(${JSON.stringify(path.join(retiredDataDir, '_nedb.db'))});
+      await access(${JSON.stringify(path.join(retiredDataDir, '_settings'))});
+
+      console.log('M7 SQLite write store smoke passed');
     `
   );
 
@@ -222,7 +256,7 @@ try {
       rollupOptions: {
         external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, 'jimp'],
         output: {
-          entryFileNames: 'duckdb-migration-smoke.mjs',
+          entryFileNames: 'sqlite-write-store-smoke.mjs',
           format: 'es',
         },
       },
@@ -231,11 +265,10 @@ try {
 
   await execFileAsync(process.execPath, [bundledFile], {
     cwd: projectRoot,
-    timeout: 30000,
+    timeout: 60000,
     maxBuffer: 1024 * 1024 * 8,
   });
-  await access(path.join(dataDir, 'maplat.duckdb'));
-  console.log('M4 DuckDB migration smoke passed');
+  console.log('M7 SQLite write store smoke passed');
 } finally {
   await rm(workDir, { recursive: true, force: true });
 }

@@ -2,7 +2,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import SettingsService from './SettingsService';
 import AppAssetService from './AppAssetService';
-import DuckDbDataService, { type AppListResult } from './DuckDbDataService';
+import SqliteDataService from './SqliteDataService';
+import SearchDataService, { type AppListResult } from './SearchDataService';
 import { normalizeAppSource, type AppSource } from '../../src/utils/appSourceModel';
 
 class AppDataService {
@@ -55,7 +56,7 @@ class AppDataService {
   }
 
   async requestApps(query: string = '', page: number = 1, pageSize: number = 20): Promise<AppListResult> {
-    const rawResult = await DuckDbDataService.listApps(query, page, pageSize);
+    const rawResult = await SearchDataService.listApps(query, page, pageSize);
     const docs = await Promise.all(rawResult.docs.map(async (doc: any) => {
       const appID = doc._id || doc.appID;
       const lang = doc.lang || 'ja';
@@ -70,28 +71,28 @@ class AppDataService {
   }
 
   async getApp(appID: string): Promise<any | null> {
-    return DuckDbDataService.findApp(appID);
+    return SqliteDataService.findApp(appID);
   }
 
   async saveApp(appID: string, document: any): Promise<'Success' | 'Exist' | 'Error'> {
-    const current = await DuckDbDataService.findApp(appID);
+    const current = await SqliteDataService.findApp(appID);
     const originalAppID = document?.originalAppID;
     if (current && originalAppID !== appID) {
       return 'Exist';
     }
-    await DuckDbDataService.upsertApp(appID, document);
+    await SqliteDataService.upsertApp(appID, document);
     if (originalAppID && originalAppID !== appID) {
-      await DuckDbDataService.deleteApp(originalAppID);
+      await SqliteDataService.deleteApp(originalAppID);
     }
     return 'Success';
   }
 
   async deleteApp(appID: string): Promise<void> {
-    await DuckDbDataService.deleteApp(appID);
+    await SqliteDataService.deleteApp(appID);
   }
 
   async isAppIdAvailable(appID: string): Promise<boolean> {
-    return DuckDbDataService.isAppIdAvailable(appID);
+    return SqliteDataService.isAppIdAvailable(appID);
   }
 }
 

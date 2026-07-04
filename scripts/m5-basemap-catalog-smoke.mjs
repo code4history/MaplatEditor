@@ -18,7 +18,7 @@ const bundledFile = path.join(outDir, 'basemap-catalog-smoke.mjs');
 try {
   const dataDir = path.join(workDir, 'data');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
-  const duckDbPath = path.join(projectRoot, 'electron/services/DuckDbDataService.ts');
+  const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
 
   await mkdir(dataDir, { recursive: true });
   await writeFile(
@@ -68,12 +68,26 @@ try {
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
 
-      const { default: DuckDbDataService } = await import(${JSON.stringify(duckDbPath)});
+      const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
 
       // Initial catalog exposes builtin base maps only
       const initial = await SettingsService.listBaseMaps();
       assert.ok(initial.some((item) => item.scope === 'builtin' && item.mapID === 'osm'));
       assert.equal(initial.filter((item) => item.scope === 'user').length, 0);
+
+      // Builtin masters are seeded from the KTGIS catalog (ADR-0002):
+      // osm carries a 52px icon, KTGIS maps carry icon + coverage, and the
+      // catalog includes newly imported maps such as muroran00
+      const osm = initial.find((item) => item.scope === 'builtin' && item.mapID === 'osm');
+      assert.equal(osm.data.thumbnail, 'basemap_icons/osm.jpg');
+      assert.ok(!osm.data.envelopeLngLats, 'osm coverage must stay undefined (global)');
+      const gsi = initial.find((item) => item.scope === 'builtin' && item.mapID === 'gsi');
+      assert.ok(Array.isArray(gsi.data.envelopeLngLats));
+      const muroran = initial.find((item) => item.scope === 'builtin' && item.mapID === 'muroran00');
+      assert.ok(muroran, 'newly imported KTGIS map muroran00 must exist');
+      assert.equal(muroran.data.thumbnail, 'basemap_icons/muroran00.png');
+      assert.equal(muroran.data.envelopeLngLats.length, 4);
+      assert.ok(initial.filter((item) => item.scope === 'builtin').length >= 329);
 
       // Add a user base map
       await SettingsService.saveUserBaseMap({
@@ -96,15 +110,20 @@ try {
       const tmsList = await SettingsService.getTmsListOfMapID('some-map');
       assert.ok(tmsList.some((tms) => tms.mapID === 'my_basemap'));
 
-      // Update preserves scope and updates content
+      // Update preserves scope and updates content; user masters can carry
+      // icon (thumbnail) and coverage (envelopeLngLats) as app-selection defaults
       await SettingsService.saveUserBaseMap({
         mapID: 'my_basemap',
         title: 'My Base Map v2',
         url: 'https://example.test/tiles/{z}/{x}/{-y}.png',
+        thumbnail: 'tmbs/my_basemap_menu.jpg',
+        envelopeLngLats: [[139, 35], [140, 35], [140, 36], [139, 36]],
       });
       const afterUpdate = await SettingsService.listBaseMaps();
       const updated = afterUpdate.find((item) => item.mapID === 'my_basemap');
       assert.equal(updated.data.title, 'My Base Map v2');
+      assert.equal(updated.data.thumbnail, 'tmbs/my_basemap_menu.jpg');
+      assert.equal(updated.data.envelopeLngLats.length, 4);
       assert.equal(afterUpdate.filter((item) => item.mapID === 'my_basemap').length, 1);
 
       // Builtin ID conflicts are rejected
@@ -120,11 +139,11 @@ try {
       await SettingsService.deleteUserBaseMap('my_basemap');
       const afterDelete = await SettingsService.listBaseMaps();
       assert.ok(!afterDelete.some((item) => item.mapID === 'my_basemap'));
-      const connection = await DuckDbDataService.getConnection();
-      const visibilityRows = await connection.runAndReadAll(
-        "SELECT 1 FROM map_base_map_visibility WHERE base_map_id = 'my_basemap'"
-      );
-      assert.equal(visibilityRows.getRowObjectsJson().length, 0);
+      const db = await SqliteDataService.getDb();
+      const visibilityRows = db
+        .prepare("SELECT 1 FROM map_base_map_visibility WHERE base_map_id = 'my_basemap'")
+        .all();
+      assert.equal(visibilityRows.length, 0);
 
       // Re-adding the same ID starts with default (enabled) visibility again
       await SettingsService.saveUserBaseMap({

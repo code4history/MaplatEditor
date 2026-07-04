@@ -32,10 +32,11 @@
         <table class="table table-hover table-sm align-middle bg-white shadow-sm">
           <thead class="table-light">
             <tr>
+              <th style="width: 60px;">{{ t("basemap.icon") }}</th>
               <th style="width: 160px;">{{ t("basemap.id") }}</th>
               <th style="width: 220px;">{{ t("basemap.map_title") }}</th>
               <th>{{ t("basemap.url") }}</th>
-              <th style="width: 180px;">{{ t("basemap.attribution") }}</th>
+              <th style="width: 180px;">{{ t("basemap.coverage") }}</th>
               <th style="width: 90px;">{{ t("basemap.min_zoom") }}</th>
               <th style="width: 90px;">{{ t("basemap.max_zoom") }}</th>
               <th style="width: 140px;">{{ t("basemap.actions") }}</th>
@@ -43,10 +44,14 @@
           </thead>
           <tbody>
             <tr v-for="item in userBaseMaps" :key="item.mapID">
+              <td>
+                <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="basemap-icon" loading="lazy" decoding="async" :alt="item.mapID">
+                <span v-else class="text-muted">-</span>
+              </td>
               <td class="text-break">{{ item.mapID }}</td>
               <td class="text-break">{{ item.data.title }}</td>
               <td class="text-break"><small>{{ item.data.url }}</small></td>
-              <td class="text-break"><small>{{ item.data.attr || '-' }}</small></td>
+              <td><small>{{ coverageLabel(item.data) }}</small></td>
               <td>{{ item.data.minZoom ?? '-' }}</td>
               <td>{{ item.data.maxZoom ?? '-' }}</td>
               <td>
@@ -71,17 +76,24 @@
           <table class="table table-sm align-middle bg-white shadow-sm">
             <thead class="table-light">
               <tr>
+                <th style="width: 60px;">{{ t("basemap.icon") }}</th>
                 <th style="width: 160px;">{{ t("basemap.id") }}</th>
                 <th style="width: 220px;">{{ t("basemap.map_title") }}</th>
                 <th>{{ t("basemap.url") }}</th>
+                <th style="width: 180px;">{{ t("basemap.coverage") }}</th>
                 <th style="width: 90px;">{{ t("basemap.max_zoom") }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in builtinBaseMaps" :key="item.mapID">
+                <td>
+                  <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="basemap-icon" loading="lazy" decoding="async" :alt="item.mapID">
+                  <span v-else class="text-muted">-</span>
+                </td>
                 <td class="text-break text-muted">{{ item.mapID }}</td>
                 <td class="text-break text-muted">{{ item.data.title }}</td>
                 <td class="text-break text-muted"><small>{{ item.data.url || '-' }}</small></td>
+                <td class="text-muted"><small>{{ coverageLabel(item.data) }}</small></td>
                 <td class="text-muted">{{ item.data.maxZoom ?? '-' }}</td>
               </tr>
             </tbody>
@@ -153,6 +165,26 @@
                 />
               </div>
             </div>
+            <!-- アイコン(52px正方形)。アプリ登録時のデフォルトとして継承される -->
+            <label class="form-label mt-2">{{ t("basemap.icon") }}</label>
+            <div class="d-flex align-items-center gap-2">
+              <img v-if="formThumbnailUrl" :src="formThumbnailUrl" class="basemap-icon" :alt="form.mapID">
+              <button type="button" class="btn btn-sm btn-outline-secondary" @click="uploadIcon">
+                {{ t("appedit.upload") }}
+              </button>
+              <small class="text-muted">{{ t("appedit.thumbnail_note") }}</small>
+            </div>
+            <!-- 提供範囲(経緯度)。アプリ登録時のデフォルトとして継承される -->
+            <label class="form-label mt-2">{{ t("basemap.coverage") }}</label>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="small font-monospace">{{ coverageLabel({ envelopeLngLats: form.envelopeLngLats }) }}</span>
+              <button type="button" class="btn btn-sm btn-outline-primary" @click="showEnvelopeModal = true">
+                {{ t("appedit.envelope_pick") }}
+              </button>
+              <button v-if="form.envelopeLngLats" type="button" class="btn btn-sm btn-outline-danger" @click="form.envelopeLngLats = null">
+                {{ t("appedit.envelope_clear") }}
+              </button>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeModal">
@@ -165,17 +197,27 @@
         </div>
       </div>
     </div>
+
+    <EnvelopeEditorModal
+      v-if="showEnvelopeModal"
+      :model-value="form.envelopeLngLats"
+      @update:model-value="form.envelopeLngLats = $event"
+      @close="showEnvelopeModal = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useTranslation } from "i18next-vue";
+import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
+import { envelopeToBbox } from "../utils/appSourceModel";
 
 interface BaseMapCatalogItem {
   mapID: string;
   scope: "builtin" | "user";
   data: any;
+  thumbnailUrl?: string | null;
 }
 
 const { t } = useTranslation();
@@ -189,6 +231,7 @@ const builtinBaseMaps = computed(() => items.value.filter((item) => item.scope =
 
 // Modal state
 const showModal = ref(false);
+const showEnvelopeModal = ref(false);
 const editing = ref(false);
 const saving = ref(false);
 const formError = ref("");
@@ -199,7 +242,16 @@ const form = ref({
   attr: "",
   minZoom: "" as string | number,
   maxZoom: "" as string | number,
+  thumbnail: "" as string,
+  envelopeLngLats: null as [number, number][] | null,
 });
+const formThumbnailUrl = ref<string | null>(null);
+
+function coverageLabel(data: any): string {
+  const bbox = envelopeToBbox(data?.envelopeLngLats);
+  if (!bbox) return "-";
+  return `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}`;
+}
 
 const loadBaseMaps = async () => {
   loading.value = true;
@@ -220,7 +272,8 @@ onMounted(() => {
 
 const openAddModal = () => {
   editing.value = false;
-  form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "" };
+  form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", envelopeLngLats: null };
+  formThumbnailUrl.value = null;
   formError.value = "";
   showModal.value = true;
 };
@@ -234,13 +287,39 @@ const openEditModal = (item: BaseMapCatalogItem) => {
     attr: item.data.attr || "",
     minZoom: item.data.minZoom ?? "",
     maxZoom: item.data.maxZoom ?? "",
+    thumbnail: typeof item.data.thumbnail === "string" ? item.data.thumbnail : "",
+    envelopeLngLats: Array.isArray(item.data.envelopeLngLats)
+      ? JSON.parse(JSON.stringify(item.data.envelopeLngLats))
+      : null,
   };
+  formThumbnailUrl.value = item.thumbnailUrl || null;
   formError.value = "";
   showModal.value = true;
 };
 
 const closeModal = () => {
   showModal.value = false;
+};
+
+const uploadIcon = async () => {
+  const mapID = form.value.mapID.trim();
+  if (!mapID) {
+    formError.value = t("basemap.errors.id_required");
+    return;
+  }
+  formError.value = "";
+  const result = await window.appAssets.uploadTmsThumbnail(mapID);
+  if (result.err === "Canceled") return;
+  if (result.err === "NotSquare") {
+    formError.value = t("appedit.error_not_square");
+    return;
+  }
+  if (result.err) {
+    formError.value = t("appedit.error_invalid_image");
+    return;
+  }
+  form.value.thumbnail = result.path || "";
+  formThumbnailUrl.value = result.fileUrl || null;
 };
 
 const validateForm = (): string | null => {
@@ -296,6 +375,8 @@ const saveBaseMap = async () => {
   if (form.value.maxZoom !== "" && form.value.maxZoom !== null) {
     tms.maxZoom = Number(form.value.maxZoom);
   }
+  if (form.value.thumbnail) tms.thumbnail = form.value.thumbnail;
+  if (form.value.envelopeLngLats) tms.envelopeLngLats = form.value.envelopeLngLats;
   saving.value = true;
   try {
     await window.baseMaps.saveUser(tms);
@@ -325,5 +406,12 @@ const deleteBaseMap = async (item: BaseMapCatalogItem) => {
 <style scoped>
 .table {
     font-size: 13px;
+}
+.basemap-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    background: #f8f9fa;
+    border: 1px solid var(--bs-border-color);
 }
 </style>

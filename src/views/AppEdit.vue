@@ -623,16 +623,18 @@ function addBaseMapSource(item: BaseMapItem) {
       role: "base",
     });
   } else {
+    // マスタのアイコン/提供範囲等は「選択時のデフォルト」としてディープコピーで継承する。
+    // 以後の編集はコピーにのみ反映し、マスタ側は変更しない(Inherited Source Defaults)
     const source = normalizeAppSource({
       mapID: item.mapID,
       maptype: item.data?.maptype,
-      data: item.data,
+      data: JSON.parse(JSON.stringify(item.data || {})),
     }) as AppSource;
     source.title = title;
     source.label = { ...normalizeLangObject(title) };
     source.thumbnail = item.thumbnailUrl || undefined;
-    if (item.thumbnailUrl && source.data) {
-      // Viewer規約: 非ビルトインTMSのサムネイルはtmbs/{mapID}_menu.jpg
+    if (source.data && !source.data.thumbnail && item.thumbnailUrl) {
+      // マスタにthumbnail未設定の旧ユーザーベースマップ: Viewer規約のtmbs/{mapID}_menu.jpgを補完
       source.data.thumbnail = `tmbs/${item.mapID}_menu.jpg`;
     }
     appData.value.sources.push(source);

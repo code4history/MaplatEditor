@@ -6,6 +6,7 @@ import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import MapDataService from './MapDataService';
 import { ProgressReporter } from '../utils/ProgressReporter';
+import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
   compactLangObject,
   composeViewerSource,
@@ -104,13 +105,22 @@ class AppExportService {
         reporter.update(++step);
       }
 
-      // 3) TMSソースのサムネイル(tmbs/{mapID}_menu.jpg)
+      // 3) TMSソースのサムネイル
+      //    tmbs/… はデータフォルダから、basemap_icons/… はアプリ同梱リソースからコピーする
       for (const source of sources) {
         if (source.sourceType !== 'tms') continue;
         const thumbnail = source.data?.thumbnail;
-        if (typeof thumbnail === 'string' && thumbnail.startsWith('tmbs/')) {
+        if (typeof thumbnail !== 'string') continue;
+        if (thumbnail.startsWith('tmbs/')) {
           const from = path.join(this.saveFolder, thumbnail);
           if (fs.existsSync(from)) {
+            await fs.copy(from, path.join(outDir, thumbnail));
+          } else {
+            warnings.push('appedit.export.missing_thumbnail');
+          }
+        } else if (thumbnail.startsWith('basemap_icons/')) {
+          const from = resolveResourceAsset(thumbnail);
+          if (from) {
             await fs.copy(from, path.join(outDir, thumbnail));
           } else {
             warnings.push('appedit.export.missing_thumbnail');

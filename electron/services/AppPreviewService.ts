@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
+import { resolveResourceAsset } from '../utils/resourceAssets';
 import { composeViewerSource, normalizeAppSource } from '../../src/utils/appSourceModel';
 
 type PreviewSession = {
@@ -169,6 +170,7 @@ class AppPreviewService {
     if (rest[0] === 'tiles') return this.servePreviewTile(rest.slice(1), res);
     if (rest[0] === 'tmbs') return this.serveDataFile('tmbs', rest.slice(1), res);
     if (rest[0] === 'img') return this.serveDataFile('img', rest.slice(1), res);
+    if (rest[0] === 'basemap_icons') return this.serveResourceAsset(rest, res);
     if (rest[0] === 'apps' && rest[1] === `${token}.json`) return this.sendJson(res, session.app);
     if (rest[0] === 'maps' && rest[1]) return this.sendJson(res, session.maps[rest[1].replace(/\.json$/, '')] || {});
     if (rest[0] === 'pwa' && rest[1] === `${token}_manifest.json`) return this.sendJson(res, session.manifest);
@@ -240,6 +242,14 @@ ${manifestLink}
     const filePath = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
     if (!filePath) return this.sendText(res, 404, 'Asset not found');
     this.sendFile(res, filePath);
+  }
+
+  // ビルトインベースマップのアイコン等、アプリ同梱リソースを配信する
+  private serveResourceAsset(segments: string[], res: http.ServerResponse) {
+    const relPath = segments.map(segment => decodeURIComponent(segment)).join('/');
+    const resolved = resolveResourceAsset(relPath);
+    if (!resolved) return this.sendText(res, 404, 'Asset not found');
+    this.sendFile(res, resolved);
   }
 
   private serveDataFile(folder: 'tmbs' | 'img', segments: string[], res: http.ServerResponse) {

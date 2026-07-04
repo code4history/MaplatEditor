@@ -34,6 +34,8 @@
     "attribution": "Attribution",
     "min_zoom": "Min zoom",
     "max_zoom": "Max zoom",
+    "icon": "Icon",
+    "coverage": "Coverage",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete",

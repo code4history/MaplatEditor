@@ -39,6 +39,8 @@
     "attribution": "帰属表示",
     "min_zoom": "最小ズーム",
     "max_zoom": "最大ズーム",
+    "icon": "アイコン",
+    "coverage": "提供範囲",
     "actions": "操作",
     "edit": "編集",
     "delete": "削除",
