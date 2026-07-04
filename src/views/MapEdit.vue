@@ -554,13 +554,18 @@ const isDefaultLang = computed({
             if (oldLang === newLang) return;
 
             const buffer: any = {};
-            // 1. 旧言語の各フィールド値を退避
+            const bufferNew: any = {};
+            // 1. 旧言語・新言語の各フィールド値を「切替前に」退避する。
+            //    切替後にlocaledGetで取るとプレーン文字列(=旧デフォルト言語の値)が
+            //    新デフォルト言語の値として誤解釈され、旧値がコピーされる (#56)
             for (const attr of langAttr) {
-                let val = mapData.value[attr];
+                const val = mapData.value[attr];
                 if (typeof val !== 'object' || val === null) {
                     buffer[attr] = val || '';
+                    bufferNew[attr] = '';
                 } else {
                     buffer[attr] = val[oldLang] || '';
+                    bufferNew[attr] = val[newLang] || '';
                 }
             }
 
@@ -569,8 +574,8 @@ const isDefaultLang = computed({
 
             // 3. 各フィールドを新言語構造に再構築
             for (const attr of langAttr) {
-                const newVal = localedGet(attr); // 新言語の値（currentLang で取得）
-                const oldVal = buffer[attr];     // 退避した旧言語の値
+                const newVal = bufferNew[attr]; // 退避した新言語の値(未入力なら空)
+                const oldVal = buffer[attr];    // 退避した旧言語の値
 
                 // 既存オブジェクトに oldLang と newLang の両方をセット
                 let combined: any = mapData.value[attr];

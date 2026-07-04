@@ -1,5 +1,12 @@
 import { ipcRenderer, contextBridge } from 'electron'
 
+// バックエンド(メインプロセス)から転送されたエラー/警告をDevToolsコンソールに出す (#18)
+ipcRenderer.on('backend:log', (_event, payload: { level: 'error' | 'warn'; message: string; timestamp: string }) => {
+  const line = `[Main process ${payload.timestamp}] ${payload.message}`
+  if (payload.level === 'warn') console.warn(line)
+  else console.error(line)
+})
+
 // --------- Expose some API to the Renderer process ---------
 
 contextBridge.exposeInMainWorld('settings', {

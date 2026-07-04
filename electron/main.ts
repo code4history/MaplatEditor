@@ -17,6 +17,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // │
 process.env.APP_ROOT = path.join(__dirname, '..')
 
+// バックエンドのエラー/警告をレンダラのコンソールへ転送する (#18)
+import { installBackendErrorForwarding } from './utils/backendErrorForwarder'
+installBackendErrorForwarding()
+
 // 🚧 ['ENV_NAME'] 形式で参照: vite:define プラグインの誤変換を回避（Vite@2.x 起因）
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
