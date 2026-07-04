@@ -1,8 +1,10 @@
-// Search Layer (ADR-0001): 一覧・全文・位置情報検索はインメモリDuckDBが
-// Write Store(maplat.sqlite)をsqlite拡張でREAD_ONLYアタッチして担当する。
-// 永続ファイルを持たないためプロセス間ロック競合が発生せず、
-// 各クエリはSQLiteのコミット済み最新状態を読む(read-your-writes)。
-// sqlite拡張が利用できない環境(オフライン初回起動等)ではWrite Store直読みへフォールバックする。
+// Search Layer (ADR-0001): 一覧・全文・位置情報検索を担当する。
+// 既定はWrite Store(SQLite)直読み。DuckDB経路(インメモリDuckDB + sqlite拡張の
+// READ_ONLYライブATTACH)も温存しているが、node:sqliteとsqlite拡張の2つの独立した
+// SQLite実装が同じWAL共有メモリ(-shm)をmmapする構成となり、クラウド同期フォルダ上で
+// SIGBUSクラッシュの実績があるため既定では使用しない(ADR-0001の追記参照)。
+// 現状の検索はいずれも全行取得+JSフィルタなので両経路は機能的に等価。
+// DuckDB経路の再有効化: 環境変数 MAPLAT_SEARCH_ENGINE=duckdb
 import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
 import SqliteDataService, {
   appRowToDocument,
@@ -14,6 +16,11 @@ import SqliteDataService, {
 export type { AppListResult, MapListResult } from './SqliteDataService';
 
 const ATTACH_ALIAS = 'write_store';
+
+// 遅延評価(呼び出しごと)にして、テストや再起動なしの切り替え検証を可能にする
+function activeSearchEngine(): 'sqlite' | 'duckdb' {
+  return process.env.MAPLAT_SEARCH_ENGINE === 'duckdb' ? 'duckdb' : 'sqlite';
+}
 
 function checkLocaleAttr(attr: any, condition: string): boolean {
   if (!attr) return false;
@@ -66,8 +73,10 @@ class SearchDataService {
     this.extensionUnavailable = false;
   }
 
-  // Write Storeをアタッチ済みのDuckDB接続を返す。拡張が使えない場合はnull(フォールバック)。
+  // DuckDB経路が有効な場合のみ、Write Storeをアタッチ済みのDuckDB接続を返す。
+  // それ以外(既定のsqliteモード、拡張が使えない環境)はnullを返しWrite Store直読みになる。
   private async getConnection(): Promise<DuckDBConnection | null> {
+    if (activeSearchEngine() !== 'duckdb') return null;
     if (this.extensionUnavailable) return null;
     const sqliteFile = SqliteDataService.databaseFile;
     // Write Store側のファイル作成/マイグレーションを先に済ませる
