@@ -13,7 +13,7 @@ importers:
         version: 1.5.4-r.1
       '@maplat/core':
         specifier: github:code4history/MaplatCore#foss4g-hiroshima
-        version: https://codeload.github.com/code4history/MaplatCore/tar.gz/895cb129142776cde4abe22bc215c03cbe664b9e(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
+        version: https://codeload.github.com/code4history/MaplatCore/tar.gz/84c09697d212d82f5d8c0af228a0f39d6f58b395(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
       '@maplat/tin':
         specifier: ^0.14.1
         version: 0.14.1
@@ -22,7 +22,7 @@ importers:
         version: 0.5.2
       '@maplat/ui':
         specifier: github:code4history/Maplat#foss4g-hiroshima
-        version: https://codeload.github.com/code4history/Maplat/tar.gz/bb537ec6540031f6dbfc1379f09fbad817278292(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)
+        version: https://codeload.github.com/code4history/Maplat/tar.gz/cdc03daa87dd5d72ea17d072d4aa43520d75affa(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)
       '@popperjs/core':
         specifier: ^2.11.8
         version: 2.11.8
@@ -182,6 +182,10 @@ packages:
 
   '@babel/runtime@7.28.6':
     resolution: {integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.29.7':
+    resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/types@7.29.0':
@@ -605,8 +609,8 @@ packages:
     resolution: {integrity: sha512-Es6WcD0nO5l+2BOQS4uLfNPYQaNDfbot3X1XUoloz+x0mPDS3eeORZJl06HXjwBG1fOGwCRnzK88LMdxKRrd6Q==}
     engines: {node: '>=6.0.0'}
 
-  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/895cb129142776cde4abe22bc215c03cbe664b9e':
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/code4history/MaplatCore/tar.gz/895cb129142776cde4abe22bc215c03cbe664b9e}
+  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/84c09697d212d82f5d8c0af228a0f39d6f58b395':
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/code4history/MaplatCore/tar.gz/84c09697d212d82f5d8c0af228a0f39d6f58b395}
     version: 0.13.1
     engines: {pnpm: '>=9'}
     peerDependencies:
@@ -627,8 +631,8 @@ packages:
     resolution: {integrity: sha512-iDn0t3wRxXsgkSwBdbPUFcN/A/syRZgk4O5TcKf/kqyTgHuPnKNWL5PUbo4u9dXOoB/W8RvIdCJAIwk2MUZO8Q==}
     engines: {node: '>=20', pnpm: '>=9'}
 
-  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/bb537ec6540031f6dbfc1379f09fbad817278292':
-    resolution: {gitHosted: true, integrity: sha512-cMsjIiKwunyMXT5vtK7FeuRr/AxxKbBFocGnCZeHCnhvf81cd8hHkCFBLotgkuhjYr6m5v3jva6RUoT+c8eYNQ==, tarball: https://codeload.github.com/code4history/Maplat/tar.gz/bb537ec6540031f6dbfc1379f09fbad817278292}
+  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/cdc03daa87dd5d72ea17d072d4aa43520d75affa':
+    resolution: {gitHosted: true, integrity: sha512-SSxVJaG1tJ1+101Oc/eWG4gHcF+KT5A2K9ubbFAwsjGdTG6FLjbbmQe0Oszpps9I3ml2uuqvjzuGfwGTCkFMMA==, tarball: https://codeload.github.com/code4history/Maplat/tar.gz/cdc03daa87dd5d72ea17d072d4aa43520d75affa}
     version: 0.12.1
     engines: {npm: use-pnpm-please, pnpm: '>=9.0.0'}
     peerDependencies:
@@ -1960,6 +1964,9 @@ packages:
   cross-fetch@4.0.0:
     resolution: {integrity: sha512-e4a5N8lVvuLgAWgnCrLr2PP0YyDOTHa9H/Rj54dirp61qXnNq46m82bRhNqIA5VccJtWBvPTFRV3TtvHUKPB1g==}
 
+  cross-fetch@4.1.0:
+    resolution: {integrity: sha512-uKm5PU+MHTootlWEY+mZ4vvXoCn4fLQxT9dSc1sXVMSFkINTJVN8cAQROpwcKm8bJ/c7rgZVIBWzH5T78sNZZw==}
+
   cross-spawn-windows-exe@1.2.0:
     resolution: {integrity: sha512-mkLtJJcYbDCxEG7Js6eUnUNndWjyUZwJ3H7bErmmtOYU/Zb99DyUkpamuIZE0b3bhmJyZ7D90uS6f+CGxRRjOw==}
     engines: {node: '>= 10'}
@@ -2543,11 +2550,22 @@ packages:
   i18next-http-backend@3.0.2:
     resolution: {integrity: sha512-PdlvPnvIp4E1sYi46Ik4tBYh/v/NbYfFFgTjkwFl0is8A18s7/bx9aXqsrOax9WUbeNS6mD2oix7Z0yGGf6m5g==}
 
+  i18next-http-backend@3.0.6:
+    resolution: {integrity: sha512-mBOqy8993jtqAoj6XaI1XeC/8/9v6EPS+681ziegrPvTB0DoaCY7PpTS0SpY56qLMoS4OI1TZEM2Zf59zNh05w==}
+
   i18next-vue@5.4.0:
     resolution: {integrity: sha512-GDj0Xvmis5Xgcvo9gMBJMgJCtewYMLZP6gAEPDDGCMjA+QeB4uS4qUf1MK79mkz/FukhaJdC+nlj0y1qk6NO2Q==}
     peerDependencies:
       i18next: '>=23'
       vue: ^3.4.38
+
+  i18next@25.10.10:
+    resolution: {integrity: sha512-cqUW2Z3EkRx7NqSyywjkgCLK7KLCL6IFVFcONG7nVYIJ3ekZ1/N5jUsihHV6Bq37NfhgtczxJcxduELtjTwkuQ==}
+    peerDependencies:
+      typescript: ^5 || ^6
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   i18next@25.8.5:
     resolution: {integrity: sha512-TApjhgqQU6P7BQlpCTv6zQuXrYAP9rjYWgx2Nm8dsq+Zg9yJlAz+iR16/w7uVtTlSoULbqPTfqYjMK/DAQI+Ng==}
@@ -4110,6 +4128,8 @@ snapshots:
 
   '@babel/runtime@7.28.6': {}
 
+  '@babel/runtime@7.29.7': {}
+
   '@babel/types@7.29.0':
     dependencies:
       '@babel/helper-string-parser': 7.27.1
@@ -4566,7 +4586,7 @@ snapshots:
 
   '@mapbox/whoots-js@3.1.0': {}
 
-  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/895cb129142776cde4abe22bc215c03cbe664b9e(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)':
+  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/84c09697d212d82f5d8c0af228a0f39d6f58b395(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)':
     dependencies:
       '@c4h/weiwudi': https://codeload.github.com/code4history/Weiwudi/tar.gz/04f4b4011487db0526b9478f28271fd7b2e3c8b4(workbox-routing@7.4.1)
       '@maplat/transform': 0.5.2
@@ -4591,16 +4611,16 @@ snapshots:
     dependencies:
       '@turf/turf': 7.3.4
 
-  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/bb537ec6540031f6dbfc1379f09fbad817278292(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)':
+  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/cdc03daa87dd5d72ea17d072d4aa43520d75affa(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)':
     dependencies:
       '@c4h/chuci': 0.2.6
       '@c4h/weiwudi': https://codeload.github.com/code4history/Weiwudi/tar.gz/04f4b4011487db0526b9478f28271fd7b2e3c8b4(workbox-routing@7.4.1)
-      '@maplat/core': https://codeload.github.com/code4history/MaplatCore/tar.gz/895cb129142776cde4abe22bc215c03cbe664b9e(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
+      '@maplat/core': https://codeload.github.com/code4history/MaplatCore/tar.gz/84c09697d212d82f5d8c0af228a0f39d6f58b395(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
       '@turf/turf': 7.3.4
       '@types/page': 1.11.9
       bootstrap.native: 5.1.10
-      i18next: 25.8.5(typescript@5.9.3)
-      i18next-http-backend: 3.0.2
+      i18next: 25.10.10(typescript@5.9.3)
+      i18next-http-backend: 3.0.6
       mapbox-gl: 3.25.0
       maplibre-gl: 4.7.1
       ol: 10.8.0
@@ -6806,6 +6826,12 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  cross-fetch@4.1.0:
+    dependencies:
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+
   cross-spawn-windows-exe@1.2.0:
     dependencies:
       '@malept/cross-spawn-promise': 1.1.1
@@ -7538,10 +7564,22 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  i18next-http-backend@3.0.6:
+    dependencies:
+      cross-fetch: 4.1.0
+    transitivePeerDependencies:
+      - encoding
+
   i18next-vue@5.4.0(i18next@25.8.5(typescript@5.9.3))(vue@3.5.32(typescript@5.9.3)):
     dependencies:
       i18next: 25.8.5(typescript@5.9.3)
       vue: 3.5.32(typescript@5.9.3)
+
+  i18next@25.10.10(typescript@5.9.3):
+    dependencies:
+      '@babel/runtime': 7.29.7
+    optionalDependencies:
+      typescript: 5.9.3
 
   i18next@25.8.5(typescript@5.9.3):
     dependencies:
