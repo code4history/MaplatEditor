@@ -34,6 +34,7 @@ export const runtimeKeyMap: Record<string, string> = {
   min_zoom: "minZoom",
   envelope_lnglats: "envelopeLngLats",
   envelopLngLats: "envelopeLngLats",
+  coverage_lnglats: "coverageLngLats",
   image_extention: "imageExtension",
   image_extension: "imageExtension",
   imageExtention: "imageExtension",
@@ -204,6 +205,10 @@ export function composeViewerSource(
 
   const data = pruneEmpty(stripEditorKeys(normalizeRuntimeKeys({ ...(source.data || {}) })));
   delete data.label;
+  // 存在範囲(coverageLngLats)はEditor内の検索/ピッカー用メタデータであり、Viewerへは渡さない。
+  // Viewerに渡る範囲は利用範囲(envelopeLngLats)のみ(ユーザー明示設定、既定は空)。
+  // 広域の存在範囲をenvelopeとして渡すとWeiwudi(SWタイルキャッシュ)の対象範囲が暴発する(ADR-0004)
+  delete data.coverageLngLats;
   const out: Record<string, unknown> = {
     ...data,
     mapID: source.mapID,

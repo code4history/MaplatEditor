@@ -15,7 +15,7 @@
   "url": "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
   "minZoom": 0,
   "maxZoom": 18,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     122.78,
     20.3
@@ -42,7 +42,7 @@
   "url": "https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg",
   "minZoom": 0,
   "maxZoom": 18,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     122.78,
     20.3
@@ -69,7 +69,7 @@
   "minZoom": 2,
   "maxZoom": 17,
   "attr": "The Geospatial Information Authority of Japan",
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     122.78,
     20.3
@@ -96,7 +96,7 @@
   "minZoom": 2,
   "maxZoom": 17,
   "attr": "The Geospatial Information Authority of Japan",
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     122.78,
     20.3
@@ -123,7 +123,7 @@
   "minZoom": 10,
   "maxZoom": 17,
   "attr": "The Geospatial Information Authority of Japan",
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     122.78,
     20.3
@@ -150,7 +150,7 @@
   "minZoom": 10,
   "maxZoom": 17,
   "attr": "The Geospatial Information Authority of Japan",
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     122.78,
     20.3
@@ -177,7 +177,7 @@
   "minZoom": 10,
   "maxZoom": 17,
   "attr": "The Geospatial Information Authority of Japan",
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     122.78,
     20.3
@@ -204,7 +204,7 @@
   "minZoom": 10,
   "maxZoom": 17,
   "attr": "The Geospatial Information Authority of Japan",
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     122.78,
     20.3
@@ -231,7 +231,7 @@
   "minZoom": 0,
   "maxZoom": 17,
   "attr": "農研機構農業環境研究部門",
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.8672,
     34.8138
@@ -258,7 +258,7 @@
   "minZoom": 0,
   "maxZoom": 18,
   "attr": "農研機構農業環境研究部門",
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.7021,
     35.6394
@@ -285,7 +285,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.29969229,
     35.26994238
@@ -312,7 +312,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.24968919,
     35.25327692
@@ -339,7 +339,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.24968919,
     35.25327692
@@ -366,7 +366,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.24968919,
     35.25327692
@@ -393,7 +393,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.24679719,
     35.25327684
@@ -420,7 +420,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.24679719,
     35.25327684
@@ -447,7 +447,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/05/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.24679719,
     35.25327684
@@ -474,7 +474,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/06/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.24679719,
     35.25327684
@@ -501,7 +501,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokyo50/07/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.24679719,
     35.25327684
@@ -528,7 +528,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49994448,
     34.80325767
@@ -555,7 +555,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49994325,
     34.83658783
@@ -582,7 +582,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49994325,
     35.00323563
@@ -609,7 +609,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49995831,
     34.83658783
@@ -636,7 +636,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49994325,
     35.00323866
@@ -663,7 +663,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49706067,
     34.83658776
@@ -690,7 +690,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/05/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49705461,
     34.83658776
@@ -717,7 +717,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/06/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49705461,
     34.83658776
@@ -744,7 +744,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/07/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49705461,
     34.83658776
@@ -771,7 +771,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/chukyo/08/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.49705461,
     34.83658776
@@ -798,7 +798,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.0001019,
     34.33661328
@@ -825,7 +825,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.00010133,
     34.33658036
@@ -852,7 +852,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.00010133,
     34.33658036
@@ -879,7 +879,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.00010133,
     34.33658321
@@ -906,7 +906,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.00010413,
     34.33658036
@@ -933,7 +933,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/03x/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.37217403,
     34.83652932
@@ -960,7 +960,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.9972127,
     34.33658029
@@ -987,7 +987,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/05/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.9972127,
     34.33658029
@@ -1014,7 +1014,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/06/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.9972127,
     34.33658029
@@ -1041,7 +1041,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/keihansin/07/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.9972127,
     34.33658029
@@ -1068,7 +1068,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tohoku_pacific_coast/00/{z}/{x}/{-y}.png",
   "minZoom": 9,
   "maxZoom": 15,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74944669,
     36.83647769
@@ -1095,7 +1095,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tohoku_pacific_coast/01/{z}/{x}/{-y}.png",
   "minZoom": 9,
   "maxZoom": 15,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74944669,
     36.83647769
@@ -1122,7 +1122,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tohoku_pacific_coast/02/{z}/{x}/{-y}.png",
   "minZoom": 9,
   "maxZoom": 15,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74655805,
     36.8364776
@@ -1149,7 +1149,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tohoku_pacific_coast/03/{z}/{x}/{-y}.png",
   "minZoom": 9,
   "maxZoom": 15,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74655805,
     36.8364776
@@ -1176,7 +1176,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanto/00/{z}/{x}/{-y}.png",
   "minZoom": 9,
   "maxZoom": 15,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.24972463,
     34.83663427
@@ -1203,7 +1203,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanto/01/{z}/{x}/{-y}.png",
   "minZoom": 9,
   "maxZoom": 15,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.24972463,
     34.83663427
@@ -1230,7 +1230,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanto/02/{z}/{x}/{-y}.png",
   "minZoom": 9,
   "maxZoom": 15,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.246836,
     34.8366342
@@ -1257,7 +1257,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanto/03/{z}/{x}/{-y}.png",
   "minZoom": 9,
   "maxZoom": 15,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.246836,
     34.8366342
@@ -1284,7 +1284,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.87417974,
     42.91910731
@@ -1311,7 +1311,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.87417974,
     42.91910731
@@ -1338,7 +1338,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.87129112,
     42.91910722
@@ -1365,7 +1365,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.87129112,
     42.91910722
@@ -1392,7 +1392,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sapporo/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.87129112,
     42.91910722
@@ -1419,7 +1419,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.2490101,
     43.66904952
@@ -1446,7 +1446,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.2490101,
     43.66904952
@@ -1473,7 +1473,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.24612146,
     43.66904942
@@ -1500,7 +1500,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.24612146,
     43.66904942
@@ -1527,7 +1527,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/asahikawa/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.24612146,
     43.66904942
@@ -1554,7 +1554,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     144.25192662,
     42.84100924
@@ -1581,7 +1581,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     144.24642746,
     42.8355597
@@ -1608,7 +1608,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     144.24599402,
     42.91920867
@@ -1635,7 +1635,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     144.24599402,
     42.91920867
@@ -1662,7 +1662,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kushiro/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     144.24599402,
     42.91920867
@@ -1689,7 +1689,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     143.00943885,
     42.84124626
@@ -1716,7 +1716,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.99639041,
     42.83509656
@@ -1743,7 +1743,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.99611149,
     42.8358422
@@ -1770,7 +1770,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.99611149,
     42.8358422
@@ -1797,7 +1797,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/obihiro/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     142.99611149,
     42.8358422
@@ -1824,7 +1824,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     141.49213803,
     42.49650374
@@ -1851,7 +1851,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     141.49913702,
     42.50250325
@@ -1878,7 +1878,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     141.49625345,
     42.58582236
@@ -1905,7 +1905,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     141.49625345,
     42.58582236
@@ -1932,7 +1932,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tomakomai/04/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     141.49625345,
     42.58582236
@@ -1959,7 +1959,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.7468415,
     42.16546737
@@ -1986,7 +1986,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74922618,
     42.16918702
@@ -2013,7 +2013,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74634242,
     42.25251107
@@ -2040,7 +2040,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74634242,
     42.25251107
@@ -2067,7 +2067,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/muroran/04/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.70056375,
     42.25251107
@@ -2094,7 +2094,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.49929225,
     41.66923812
@@ -2121,7 +2121,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.49929225,
     41.66923812
@@ -2148,7 +2148,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.49640362,
     41.66923803
@@ -2175,7 +2175,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.49640362,
     41.66923803
@@ -2202,7 +2202,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hakodate/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.49640362,
     41.73790439
@@ -2229,7 +2229,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.62433572,
     40.75268095
@@ -2256,7 +2256,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.62433572,
     40.75268095
@@ -2283,7 +2283,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.62144708,
     40.75268086
@@ -2310,7 +2310,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.62144708,
     40.75268086
@@ -2337,7 +2337,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aomori/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.62144708,
     40.75268086
@@ -2364,7 +2364,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.37436271,
     40.50270298
@@ -2391,7 +2391,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.37436271,
     40.50270298
@@ -2418,7 +2418,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.37147407,
     40.50270289
@@ -2445,7 +2445,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.37147407,
     40.50270289
@@ -2472,7 +2472,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hirosaki/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.37147407,
     40.50270289
@@ -2499,7 +2499,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.99935898,
     39.50283977
@@ -2526,7 +2526,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.99935898,
     39.50283977
@@ -2553,7 +2553,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.99647034,
     39.50283969
@@ -2580,7 +2580,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.99647034,
     39.50283969
@@ -2607,7 +2607,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/morioka/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.99647034,
     39.50283969
@@ -2634,7 +2634,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.9993759,
     38.8362545
@@ -2661,7 +2661,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.9993759,
     38.8362545
@@ -2688,7 +2688,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.99648725,
     38.83625067
@@ -2715,7 +2715,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.99648725,
     38.83625067
@@ -2742,7 +2742,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iwatekennan/04/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.99648725,
     38.83625441
@@ -2769,7 +2769,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74945064,
     38.08633133
@@ -2796,7 +2796,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.74945458,
     38.16965506
@@ -2823,7 +2823,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.746562,
     38.08633124
@@ -2850,7 +2850,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.746562,
     38.08633124
@@ -2877,7 +2877,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sendai/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.746562,
     38.08633124
@@ -2904,7 +2904,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/akita/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99944365,
     39.58613337
@@ -2931,7 +2931,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/akita/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99655501,
     39.58613329
@@ -2958,7 +2958,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/akita/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99655501,
     39.58613329
@@ -2985,7 +2985,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/akita/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99655501,
     39.58613329
@@ -3012,7 +3012,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.19949934,
     38.1363076
@@ -3039,7 +3039,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24949028,
     38.08631554
@@ -3066,7 +3066,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24660164,
     38.08631545
@@ -3093,7 +3093,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24660164,
     38.08631545
@@ -3120,7 +3120,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamagata/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24660164,
     38.08631545
@@ -3147,7 +3147,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/00/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99952761,
     37.83634078
@@ -3174,7 +3174,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/01/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99952761,
     37.83634078
@@ -3201,7 +3201,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/02/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99663896,
     37.83633713
@@ -3228,7 +3228,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/03/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99663896,
     37.83633713
@@ -3255,7 +3255,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yonezawa/04/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.99663896,
     37.83633713
@@ -3282,7 +3282,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.74951065,
     38.66957039
@@ -3309,7 +3309,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.74951065,
     38.66957039
@@ -3336,7 +3336,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.746622,
     38.6695667
@@ -3363,7 +3363,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.746622,
     38.6695667
@@ -3390,7 +3390,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/syonai/04/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.70912751,
     38.6695667
@@ -3417,7 +3417,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24952109,
     37.16975765
@@ -3444,7 +3444,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24952109,
     37.16975765
@@ -3471,7 +3471,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24663244,
     37.16975403
@@ -3498,7 +3498,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24663244,
     37.16975403
@@ -3525,7 +3525,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukushima/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     140.24663244,
     37.16975403
@@ -3552,7 +3552,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.74957199,
     37.41971141
@@ -3579,7 +3579,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.74957199,
     37.41971141
@@ -3606,7 +3606,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.74668334,
     37.41971133
@@ -3633,7 +3633,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.74668334,
     37.41971133
@@ -3660,7 +3660,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/aizu/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     139.74668334,
     37.41971133
@@ -3687,7 +3687,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.12473217,
     37.00304828
@@ -3714,7 +3714,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.12473217,
     37.00304828
@@ -3741,7 +3741,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.12184352,
     37.0030482
@@ -3768,7 +3768,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.12184352,
     37.0030482
@@ -3795,7 +3795,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/niigata/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     138.12184656,
     37.0030482
@@ -3822,7 +3822,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/2man/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.39991344,
     36.40307239
@@ -3849,7 +3849,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/00/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.3749167,
     36.33641341
@@ -3876,7 +3876,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/01/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.37202829,
     36.33641334
@@ -3903,7 +3903,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/02/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.37202829,
     36.33641334
@@ -3930,7 +3930,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kanazawa/03/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.37202829,
     36.33641334
@@ -3957,7 +3957,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.09995517,
     35.86979307
@@ -3984,7 +3984,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.12495171,
     35.83646478
@@ -4011,7 +4011,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.12206307,
     35.83646471
@@ -4038,7 +4038,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.12206307,
     35.83646471
@@ -4065,7 +4065,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukui/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.12206307,
     35.83646471
@@ -4092,7 +4092,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.99976708,
     36.50310572
@@ -4119,7 +4119,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.99976708,
     36.50310572
@@ -4146,7 +4146,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.99687844,
     36.50310565
@@ -4173,7 +4173,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.99687844,
     36.50310237
@@ -4200,7 +4200,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.99687844,
     36.50310237
@@ -4227,7 +4227,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagano/05/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.99687844,
     36.50310237
@@ -4254,7 +4254,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74979896,
     36.00315634
@@ -4281,7 +4281,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74979896,
     36.00315634
@@ -4308,7 +4308,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74691031,
     36.00315627
@@ -4335,7 +4335,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74691031,
     36.00315627
@@ -4362,7 +4362,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsumoto/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74691031,
     36.0031595
@@ -4389,7 +4389,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/ina/00/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74981529,
     35.33656533
@@ -4416,7 +4416,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/ina/01/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74981529,
     35.33656533
@@ -4443,7 +4443,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/ina/02/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74694264,
     35.33656209
@@ -4470,7 +4470,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/ina/03/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74694264,
     35.33656209
@@ -4497,7 +4497,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/ina/04/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.74694264,
     35.33656209
@@ -4524,7 +4524,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/2man/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.19990539,
     34.6033095
@@ -4551,7 +4551,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/00/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.12491306,
     34.58663729
@@ -4578,7 +4578,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/01/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.12491606,
     34.58663729
@@ -4605,7 +4605,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/02/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.12202441,
     34.58663722
@@ -4632,7 +4632,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/03/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.12202441,
     34.58663722
@@ -4659,7 +4659,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/04/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.12202441,
     34.58664648
@@ -4686,7 +4686,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hamamatsu/05/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     137.12202441,
     34.58664648
@@ -4713,7 +4713,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/2man/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.39997472,
     34.40330756
@@ -4740,7 +4740,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.37497513,
     34.41997116
@@ -4767,7 +4767,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.37497513,
     34.41997116
@@ -4794,7 +4794,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.37208648,
     34.41997109
@@ -4821,7 +4821,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.37208648,
     34.41997109
@@ -4848,7 +4848,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tsu/04/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.37208648,
     34.41997109
@@ -4875,7 +4875,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iga/00/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.00001076,
     34.50328321
@@ -4902,7 +4902,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iga/01/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     136.00001076,
     34.50328321
@@ -4929,7 +4929,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iga/02/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.99712212,
     34.50328019
@@ -4956,7 +4956,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iga/03/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.99712212,
     34.50328019
@@ -4983,7 +4983,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/iga/04/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.99712212,
     34.50328019
@@ -5010,7 +5010,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omi/2man/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.8000131,
     34.93656392
@@ -5037,7 +5037,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omi/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.87501004,
     34.91989975
@@ -5064,7 +5064,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omi/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.87501004,
     34.91989975
@@ -5091,7 +5091,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omi/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.87211845,
     34.91989968
@@ -5118,7 +5118,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omi/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.87211845,
     34.91989968
@@ -5145,7 +5145,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omi/04/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.87211845,
     34.91989968
@@ -5172,7 +5172,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.50013942,
     34.60324285
@@ -5199,7 +5199,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.50013998,
     34.58657808
@@ -5226,7 +5226,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.49725133,
     34.58657801
@@ -5253,7 +5253,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.49725133,
     34.58657801
@@ -5280,7 +5280,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/himeji/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.49725133,
     34.58657801
@@ -5307,7 +5307,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.0001152,
     34.13284001
@@ -5334,7 +5334,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.99718976,
     34.08664039
@@ -5361,7 +5361,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     135.10615735,
     34.16996432
@@ -5388,7 +5388,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.99722655,
     34.08664032
@@ -5415,7 +5415,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.99722655,
     34.08664032
@@ -5442,7 +5442,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/wakayama/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.99722655,
     34.08664032
@@ -5469,7 +5469,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.10015466,
     35.40313531
@@ -5496,7 +5496,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.12515098,
     35.41979892
@@ -5523,7 +5523,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.12226234,
     35.41979886
@@ -5550,7 +5550,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.12226234,
     35.41979886
@@ -5577,7 +5577,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tottori/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.12226234,
     35.41979886
@@ -5604,7 +5604,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.6199515,
     35.33644202
@@ -5631,7 +5631,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.62052285,
     35.33644202
@@ -5658,7 +5658,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.6209998,
     35.33644196
@@ -5685,7 +5685,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.62097331,
     35.33644196
@@ -5712,7 +5712,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsue/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.62116849,
     35.33644196
@@ -5739,7 +5739,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/2man/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.00029015,
     34.33656472
@@ -5766,7 +5766,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.00028964,
     34.33656525
@@ -5793,7 +5793,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.997401,
     34.33656519
@@ -5820,7 +5820,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.997401,
     34.33656519
@@ -5847,7 +5847,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okayama/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.997401,
     34.33656519
@@ -5874,7 +5874,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.10037688,
     34.06990978
@@ -5901,7 +5901,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.12537066,
     34.08657556
@@ -5928,7 +5928,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.12537066,
     34.08657556
@@ -5955,7 +5955,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.12248202,
     34.0865755
@@ -5982,7 +5982,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.12248202,
     34.0865755
@@ -6009,7 +6009,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/hiroshima/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.12248202,
     34.0865755
@@ -6036,7 +6036,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/00/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.50043191,
     33.83659906
@@ -6063,7 +6063,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/01/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.50043191,
     33.83659906
@@ -6090,7 +6090,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/02/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.62253199,
     33.91494542
@@ -6117,7 +6117,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/03/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.62253199,
     33.91493439
@@ -6144,7 +6144,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/shunan/04/{z}/{x}/{-y}.png",
   "minZoom": 13,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.62253199,
     33.91503811
@@ -6171,7 +6171,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/2man/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.10047093,
     33.92910078
@@ -6198,7 +6198,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.12546819,
     33.91990789
@@ -6225,7 +6225,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.12546819,
     33.91990789
@@ -6252,7 +6252,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.12257955,
     33.91990783
@@ -6279,7 +6279,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.12257955,
     33.91990783
@@ -6306,7 +6306,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yamaguchi/04/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.12257955,
     33.91990783
@@ -6333,7 +6333,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.40017225,
     34.00329968
@@ -6360,7 +6360,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.25018653,
     33.83665736
@@ -6387,7 +6387,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.25018653,
     33.83665736
@@ -6414,7 +6414,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.24729788,
     33.8366573
@@ -6441,7 +6441,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.24729788,
     33.8366573
@@ -6468,7 +6468,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/tokushima/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     134.24729788,
     33.8366573
@@ -6495,7 +6495,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.70022989,
     34.12923337
@@ -6522,7 +6522,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.73709419,
     34.16993374
@@ -6549,7 +6549,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.74733417,
     34.16993368
@@ -6576,7 +6576,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.74733417,
     34.16993368
@@ -6603,7 +6603,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/takamatsu/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.74733417,
     34.16993368
@@ -6630,7 +6630,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.60034202,
     33.73662476
@@ -6657,7 +6657,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.6253383,
     33.75329057
@@ -6684,7 +6684,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.62244966,
     33.75329051
@@ -6711,7 +6711,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.62244966,
     33.75329051
@@ -6738,7 +6738,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/matsuyama/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.62244966,
     33.75329051
@@ -6765,7 +6765,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/00/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.75031963,
     33.83662489
@@ -6792,7 +6792,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/01/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.75031963,
     33.83662489
@@ -6819,7 +6819,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/02/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.74743351,
     33.83662219
@@ -6846,7 +6846,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/03/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.74743351,
     33.83662219
@@ -6873,7 +6873,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/toyo/04/{z}/{x}/{-y}.png",
   "minZoom": 11,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     132.74743351,
     33.83662219
@@ -6900,7 +6900,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.40027904,
     33.39468181
@@ -6927,7 +6927,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.37528175,
     33.42001066
@@ -6954,7 +6954,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.37239311,
     33.4200106
@@ -6981,7 +6981,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.37239311,
     33.4200106
@@ -7008,7 +7008,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kochi/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     133.37239311,
     33.4200106
@@ -7035,7 +7035,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/00/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12556808,
     33.41995069
@@ -7062,7 +7062,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/01/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12556808,
     33.41995069
@@ -7089,7 +7089,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/02/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12557032,
     33.41995069
@@ -7116,7 +7116,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/03/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12267945,
     33.41995063
@@ -7143,7 +7143,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/04/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12267945,
     33.41995063
@@ -7170,7 +7170,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/fukuoka/05/{z}/{x}/{-y}.png",
   "minZoom": 10,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12267945,
     33.41995063
@@ -7197,7 +7197,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/saga/2man/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.20057418,
     33.13664783
@@ -7224,7 +7224,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/saga/00/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.1255792,
     33.08665306
@@ -7251,7 +7251,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/saga/01/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.1255792,
     33.08665306
@@ -7278,7 +7278,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/saga/02/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12269056,
     33.08665301
@@ -7305,7 +7305,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/saga/03/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12269056,
     33.08665301
@@ -7332,7 +7332,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/saga/04/{z}/{x}/{-y}.png",
   "minZoom": 12,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.12269056,
     33.08665301
@@ -7359,7 +7359,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.80062064,
     32.67002507
@@ -7386,7 +7386,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.75062388,
     32.67002462
@@ -7413,7 +7413,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.75062388,
     32.67002462
@@ -7440,7 +7440,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.74773524,
     32.67002457
@@ -7467,7 +7467,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.74773524,
     32.67002457
@@ -7494,7 +7494,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nagasaki/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.74773524,
     32.67002457
@@ -7521,7 +7521,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.59661927,
     33.06997588
@@ -7548,7 +7548,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.62562665,
     33.08664155
@@ -7575,7 +7575,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.62273801,
     33.08664149
@@ -7602,7 +7602,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.62273801,
     33.08664149
@@ -7629,7 +7629,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/sasebo/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     129.62273801,
     33.08664149
@@ -7656,7 +7656,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.25057231,
     32.67003607
@@ -7683,7 +7683,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.25057231,
     32.67003607
@@ -7710,7 +7710,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.2476902,
     32.67003383
@@ -7737,7 +7737,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.2476902,
     32.67003387
@@ -7764,7 +7764,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.24769236,
     32.67003387
@@ -7791,7 +7791,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/omuta/05/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.2476902,
     32.67003387
@@ -7818,7 +7818,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.50055595,
     32.67007311
@@ -7845,7 +7845,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.50055639,
     32.67003839
@@ -7872,7 +7872,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.49766775,
     32.67003833
@@ -7899,7 +7899,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.49766775,
     32.67003833
@@ -7926,7 +7926,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kumamoto/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.49766775,
     32.67003833
@@ -7953,7 +7953,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.5005629,
     32.33674502
@@ -7980,7 +7980,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.5005629,
     32.33674502
@@ -8007,7 +8007,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.49767426,
     32.33674265
@@ -8034,7 +8034,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.49767426,
     32.33674265
@@ -8061,7 +8061,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/yatsushiro/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.49767426,
     32.33674265
@@ -8088,7 +8088,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/oita/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.50045556,
     33.17000083
@@ -8115,7 +8115,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/oita/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.49756691,
     33.17000077
@@ -8142,7 +8142,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/oita/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.49756691,
     33.17000077
@@ -8169,7 +8169,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/oita/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.49756691,
     33.17000077
@@ -8196,7 +8196,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.50047379,
     32.33676391
@@ -8223,7 +8223,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.50047379,
     32.33676391
@@ -8250,7 +8250,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.49758514,
     32.33676145
@@ -8277,7 +8277,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.49758514,
     32.33676145
@@ -8304,7 +8304,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/nobeoka/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.49758514,
     32.33676192
@@ -8331,7 +8331,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.25051347,
     31.83681506
@@ -8358,7 +8358,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.25051347,
     31.83681506
@@ -8385,7 +8385,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.24762483,
     31.83681266
@@ -8412,7 +8412,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.24762483,
     31.83681266
@@ -8439,7 +8439,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyazaki/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.24762483,
     31.83681266
@@ -8466,7 +8466,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.00053981,
     31.67016231
@@ -8493,7 +8493,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     131.00053981,
     31.67015999
@@ -8520,7 +8520,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.99765116,
     31.67015994
@@ -8547,7 +8547,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.99765116,
     31.67015994
@@ -8574,7 +8574,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/miyakonojyou/04/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.99765116,
     31.67015994
@@ -8601,7 +8601,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/5man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.50058817,
     31.50350504
@@ -8628,7 +8628,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/2man/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.40059539,
     31.47017091
@@ -8655,7 +8655,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.37559719,
     31.50350053
@@ -8682,7 +8682,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.37270855,
     31.50350048
@@ -8709,7 +8709,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.37270855,
     31.50350048
@@ -8736,7 +8736,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/kagoshima/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     130.37270855,
     31.50350048
@@ -8763,7 +8763,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okinawas/00/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     127.6230577,
     26.0040508
@@ -8790,7 +8790,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okinawas/01/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     127.6230577,
     26.0040508
@@ -8817,7 +8817,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okinawas/02/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     127.6230577,
     26.0040508
@@ -8844,7 +8844,7 @@
   "url": "https://ktgis.net/kjmapw/kjtilemap/okinawas/03/{z}/{x}/{-y}.png",
   "minZoom": 14,
   "maxZoom": 16,
-  "envelopeLngLats": [
+  "coverageLngLats": [
    [
     127.625,
     26

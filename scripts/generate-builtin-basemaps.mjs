@@ -71,7 +71,8 @@ for (const row of catalog.baseMapRows) {
   const attr = BASE_MAP_ATTRS[mapID] || legacyByID.get(mapID)?.attr;
   if (attr) entry.attr = attr;
   if (row.bboxWest != null) {
-    entry.envelopeLngLats = bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]);
+    // 存在範囲(検索/ピッカー用メタデータ)。利用範囲(envelopeLngLats)は既定で空(ADR-0004)
+    entry.coverageLngLats = bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]);
   }
   if (row.icon52NoYear) {
     entry.thumbnail = `basemap_icons/${mapID}.png`;
@@ -99,7 +100,7 @@ for (const row of catalog.rows) {
     url: row.tileUrl,
     minZoom: row.minZoom,
     maxZoom: row.maxZoom,
-    envelopeLngLats: bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]),
+    coverageLngLats: bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]),
     thumbnail: `basemap_icons/${mapID}.png`,
   };
   output.push(entry);

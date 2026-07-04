@@ -80,13 +80,14 @@ try {
       // catalog includes newly imported maps such as muroran00
       const osm = initial.find((item) => item.scope === 'builtin' && item.mapID === 'osm');
       assert.equal(osm.data.thumbnail, 'basemap_icons/osm.png');
-      assert.ok(!osm.data.envelopeLngLats, 'osm coverage must stay undefined (global)');
+      assert.ok(!osm.data.coverageLngLats, 'osm coverage must stay undefined (global)');
       const gsi = initial.find((item) => item.scope === 'builtin' && item.mapID === 'gsi');
-      assert.ok(Array.isArray(gsi.data.envelopeLngLats));
+      assert.ok(Array.isArray(gsi.data.coverageLngLats));
+      assert.ok(!gsi.data.envelopeLngLats, 'usage envelope must stay empty by default (ADR-0004)');
       const muroran = initial.find((item) => item.scope === 'builtin' && item.mapID === 'muroran00');
       assert.ok(muroran, 'newly imported KTGIS map muroran00 must exist');
       assert.equal(muroran.data.thumbnail, 'basemap_icons/muroran00.png');
-      assert.equal(muroran.data.envelopeLngLats.length, 4);
+      assert.equal(muroran.data.coverageLngLats.length, 4);
       assert.ok(initial.filter((item) => item.scope === 'builtin').length >= 329);
 
       // Add a user base map
@@ -111,19 +112,19 @@ try {
       assert.ok(tmsList.some((tms) => tms.mapID === 'my_basemap'));
 
       // Update preserves scope and updates content; user masters can carry
-      // icon (thumbnail) and coverage (envelopeLngLats) as app-selection defaults
+      // icon (thumbnail) and coverage (coverageLngLats) as app-selection defaults
       await SettingsService.saveUserBaseMap({
         mapID: 'my_basemap',
         title: 'My Base Map v2',
         url: 'https://example.test/tiles/{z}/{x}/{-y}.png',
         thumbnail: 'tmbs/my_basemap_menu.jpg',
-        envelopeLngLats: [[139, 35], [140, 35], [140, 36], [139, 36]],
+        coverageLngLats: [[139, 35], [140, 35], [140, 36], [139, 36]],
       });
       const afterUpdate = await SettingsService.listBaseMaps();
       const updated = afterUpdate.find((item) => item.mapID === 'my_basemap');
       assert.equal(updated.data.title, 'My Base Map v2');
       assert.equal(updated.data.thumbnail, 'tmbs/my_basemap_menu.jpg');
-      assert.equal(updated.data.envelopeLngLats.length, 4);
+      assert.equal(updated.data.coverageLngLats.length, 4);
       assert.equal(afterUpdate.filter((item) => item.mapID === 'my_basemap').length, 1);
 
       // Builtin ID conflicts are rejected

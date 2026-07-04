@@ -1,6 +1,8 @@
 <script setup lang="ts">
-// overlayソースの表示領域(envelopeLngLats)を地図上の矩形描画で指定するモーダル。
+// 経緯度範囲(利用範囲/存在範囲)を地図上の矩形描画で指定するモーダル。
 // 矩形(bbox)のみ扱う。非矩形の既存値はbboxに近似して表示する。
+// coverageLngLats(存在範囲)が渡された場合は薄色ポリゴンで表示し、
+// 描画した矩形は存在範囲の内側に自動クロップする(ADR-0004)。
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import Map from "ol/Map";
@@ -17,8 +19,13 @@ import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
 
 const props = defineProps<{
   modelValue: [number, number][] | null;
-  // 初期表示中心（envelope未設定時に使用）
+  // 初期表示中心（範囲未設定時に使用）
   fallbackCenter?: [number, number];
+  // 存在範囲(薄色表示 + 描画クロップの境界)。未指定なら自由描画
+  coverageLngLats?: [number, number][] | null;
+  // モーダルの文言(翻訳キー)。未指定なら利用範囲(envelope)用の既定文言
+  titleKey?: string;
+  helpKey?: string;
 }>();
 const emit = defineEmits<{
   (e: "update:modelValue", value: [number, number][] | null): void;
@@ -30,12 +37,23 @@ const mapElement = ref<HTMLDivElement | null>(null);
 let map: Map | null = null;
 let draw: Draw | null = null;
 const vectorSource = new VectorSource();
+const coverageSource = new VectorSource();
 const currentBbox = ref<[number, number, number, number] | null>(null);
 
 const boxStyle = new Style({
   stroke: new Stroke({ color: "#dc3545", width: 2, lineDash: [6, 6] }),
   fill: new Fill({ color: "rgba(220, 53, 69, 0.08)" }),
 });
+
+// 存在範囲: 別色(青系)の薄いポリゴン
+const coverageStyle = new Style({
+  stroke: new Stroke({ color: "#0d6efd", width: 1 }),
+  fill: new Fill({ color: "rgba(13, 110, 253, 0.08)" }),
+});
+
+function coverageBbox(): [number, number, number, number] | null {
+  return envelopeToBbox(props.coverageLngLats ?? null);
+}
 
 function renderBbox(bbox: [number, number, number, number] | null) {
   vectorSource.clear();
@@ -50,13 +68,20 @@ onMounted(() => {
     target: mapElement.value!,
     layers: [
       new TileLayer({ source: new OSM() }),
+      new VectorLayer({ source: coverageSource, style: coverageStyle }),
       new VectorLayer({ source: vectorSource, style: boxStyle }),
     ],
     view: new View({ center: [0, 0], zoom: 2 }),
   });
+  const coverage = coverageBbox();
+  if (coverage) {
+    const extent = transformExtent(coverage, "EPSG:4326", "EPSG:3857");
+    coverageSource.addFeature(new Feature({ geometry: fromExtent(extent) }));
+  }
   renderBbox(currentBbox.value);
-  if (currentBbox.value) {
-    const extent = transformExtent(currentBbox.value, "EPSG:4326", "EPSG:3857");
+  const fitTarget = currentBbox.value || coverage;
+  if (fitTarget) {
+    const extent = transformExtent(fitTarget, "EPSG:4326", "EPSG:3857");
     map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 });
   } else if (props.fallbackCenter) {
     const extent = transformExtent(
@@ -78,15 +103,30 @@ onMounted(() => {
     const geometry = event.feature.getGeometry();
     if (!geometry) return;
     const extent = transformExtent(geometry.getExtent(), "EPSG:3857", "EPSG:4326");
-    currentBbox.value = [
+    const cropped = cropToCoverage([
       round6(extent[0]),
       round6(extent[1]),
       round6(extent[2]),
       round6(extent[3]),
-    ];
+    ]);
+    currentBbox.value = cropped;
+    // クロップ結果を正として矩形を描き直す
+    renderBbox(cropped);
   });
   map.addInteraction(draw);
 });
+
+// 存在範囲の内側へ頂点をクロップ。交差しない場合はnull(選択なし)
+function cropToCoverage(bbox: [number, number, number, number]): [number, number, number, number] | null {
+  const coverage = coverageBbox();
+  if (!coverage) return bbox;
+  const west = Math.max(bbox[0], coverage[0]);
+  const south = Math.max(bbox[1], coverage[1]);
+  const east = Math.min(bbox[2], coverage[2]);
+  const north = Math.min(bbox[3], coverage[3]);
+  if (west >= east || south >= north) return null;
+  return [round6(west), round6(south), round6(east), round6(north)];
+}
 
 onBeforeUnmount(() => {
   map?.setTarget(undefined);
@@ -118,11 +158,13 @@ function confirm() {
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">{{ t("appedit.envelope_modal_title") }}</h5>
+          <h5 class="modal-title">{{ t(titleKey || "appedit.envelope_modal_title") }}</h5>
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
         <div class="modal-body">
-          <p class="small text-muted mb-2">{{ t("appedit.envelope_modal_help") }}</p>
+          <p class="small text-muted mb-2">
+            {{ t(helpKey || (coverageLngLats ? "appedit.envelope_modal_help_with_coverage" : "appedit.envelope_modal_help")) }}
+          </p>
           <div ref="mapElement" class="envelope-map"></div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentBbox">

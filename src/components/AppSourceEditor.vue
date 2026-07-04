@@ -2,8 +2,9 @@
 // アプリ内ソースのrole別ピンポイント設定フォーム。
 // - maplat: labelのみ（他はmap.json側で設定する想定）
 // - builtin(osm/gsi/gsi_ortho): 設定項目なし（Viewer内蔵定義を使用）
-// - tms base/overlay: label/title/attr/url/zoom/サムネイル、overlayはさらに
-//   mercatorシフトとenvelope(経緯度範囲 + 地図ポップアップ指定)
+// - tms base/overlay: label/title/attr/url/zoom/サムネイル/利用範囲(envelopeLngLats)、
+//   overlayはさらにmercatorシフト。利用範囲は存在範囲(coverageLngLats)を
+//   薄色ガイドにした地図ポップアップで指定し、存在範囲内へクロップされる
 import { computed, ref } from "vue";
 import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "./EnvelopeEditorModal.vue";
@@ -151,33 +152,36 @@ async function uploadThumbnail() {
           <label class="form-label small mb-0">{{ t("appedit.mercator_y_shift") }}</label>
           <input :value="data.mercatorYShift ?? ''" type="number" step="0.01" class="form-control form-control-sm" @change="setNumber('mercatorYShift', ($event.target as HTMLInputElement).value)">
         </div>
-        <div class="col-12">
-          <label class="form-label small mb-0">{{ t("appedit.envelope") }}</label>
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <div v-for="(labelKey, index) in ['envelope_west', 'envelope_south', 'envelope_east', 'envelope_north']" :key="labelKey" class="envelope-input">
-              <span class="small text-muted">{{ t(`appedit.${labelKey}`) }}</span>
-              <input
-                :value="bbox ? bbox[index] : ''"
-                type="number"
-                step="0.000001"
-                class="form-control form-control-sm"
-                @change="setBboxPart(index, ($event.target as HTMLInputElement).value)"
-              >
-            </div>
-            <button type="button" class="btn btn-sm btn-outline-primary" @click="showEnvelopeModal = true">
-              {{ t("appedit.envelope_pick") }}
-            </button>
-            <button v-if="bbox" type="button" class="btn btn-sm btn-outline-danger" @click="clearEnvelope">
-              {{ t("appedit.envelope_clear") }}
-            </button>
-          </div>
-        </div>
       </template>
+
+      <!-- 利用範囲(envelopeLngLats): base/overlay共通。既定は空で、設定時のみViewerへ渡る(ADR-0004) -->
+      <div class="col-12">
+        <label class="form-label small mb-0">{{ t("appedit.envelope") }}</label>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div v-for="(labelKey, index) in ['envelope_west', 'envelope_south', 'envelope_east', 'envelope_north']" :key="labelKey" class="envelope-input">
+            <span class="small text-muted">{{ t(`appedit.${labelKey}`) }}</span>
+            <input
+              :value="bbox ? bbox[index] : ''"
+              type="number"
+              step="0.000001"
+              class="form-control form-control-sm"
+              @change="setBboxPart(index, ($event.target as HTMLInputElement).value)"
+            >
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary" @click="showEnvelopeModal = true">
+            {{ t("appedit.envelope_pick") }}
+          </button>
+          <button v-if="bbox" type="button" class="btn btn-sm btn-outline-danger" @click="clearEnvelope">
+            {{ t("appedit.envelope_clear") }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <EnvelopeEditorModal
       v-if="showEnvelopeModal"
       :model-value="data.envelopeLngLats ?? null"
+      :coverage-lng-lats="data.coverageLngLats ?? null"
       :fallback-center="fallbackCenter"
       @update:model-value="onEnvelopeUpdate"
       @close="showEnvelopeModal = false"

@@ -177,11 +177,11 @@
             <!-- 提供範囲(経緯度)。アプリ登録時のデフォルトとして継承される -->
             <label class="form-label mt-2">{{ t("basemap.coverage") }}</label>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <span class="small font-monospace">{{ coverageLabel({ envelopeLngLats: form.envelopeLngLats }) }}</span>
+              <span class="small font-monospace">{{ coverageLabel({ coverageLngLats: form.coverageLngLats }) }}</span>
               <button type="button" class="btn btn-sm btn-outline-primary" @click="showEnvelopeModal = true">
                 {{ t("appedit.envelope_pick") }}
               </button>
-              <button v-if="form.envelopeLngLats" type="button" class="btn btn-sm btn-outline-danger" @click="form.envelopeLngLats = null">
+              <button v-if="form.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" @click="form.coverageLngLats = null">
                 {{ t("appedit.envelope_clear") }}
               </button>
             </div>
@@ -200,8 +200,10 @@
 
     <EnvelopeEditorModal
       v-if="showEnvelopeModal"
-      :model-value="form.envelopeLngLats"
-      @update:model-value="form.envelopeLngLats = $event"
+      :model-value="form.coverageLngLats"
+      title-key="basemap.coverage_modal_title"
+      help-key="basemap.coverage_modal_help"
+      @update:model-value="form.coverageLngLats = $event"
       @close="showEnvelopeModal = false"
     />
   </div>
@@ -243,12 +245,12 @@ const form = ref({
   minZoom: "" as string | number,
   maxZoom: "" as string | number,
   thumbnail: "" as string,
-  envelopeLngLats: null as [number, number][] | null,
+  coverageLngLats: null as [number, number][] | null,
 });
 const formThumbnailUrl = ref<string | null>(null);
 
 function coverageLabel(data: any): string {
-  const bbox = envelopeToBbox(data?.envelopeLngLats);
+  const bbox = envelopeToBbox(data?.coverageLngLats);
   if (!bbox) return "-";
   return `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}`;
 }
@@ -272,7 +274,7 @@ onMounted(() => {
 
 const openAddModal = () => {
   editing.value = false;
-  form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", envelopeLngLats: null };
+  form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", coverageLngLats: null };
   formThumbnailUrl.value = null;
   formError.value = "";
   showModal.value = true;
@@ -288,8 +290,8 @@ const openEditModal = (item: BaseMapCatalogItem) => {
     minZoom: item.data.minZoom ?? "",
     maxZoom: item.data.maxZoom ?? "",
     thumbnail: typeof item.data.thumbnail === "string" ? item.data.thumbnail : "",
-    envelopeLngLats: Array.isArray(item.data.envelopeLngLats)
-      ? JSON.parse(JSON.stringify(item.data.envelopeLngLats))
+    coverageLngLats: Array.isArray(item.data.coverageLngLats)
+      ? JSON.parse(JSON.stringify(item.data.coverageLngLats))
       : null,
   };
   formThumbnailUrl.value = item.thumbnailUrl || null;
@@ -376,7 +378,7 @@ const saveBaseMap = async () => {
     tms.maxZoom = Number(form.value.maxZoom);
   }
   if (form.value.thumbnail) tms.thumbnail = form.value.thumbnail;
-  if (form.value.envelopeLngLats) tms.envelopeLngLats = form.value.envelopeLngLats;
+  if (form.value.coverageLngLats) tms.coverageLngLats = form.value.coverageLngLats;
   saving.value = true;
   try {
     await window.baseMaps.saveUser(tms);
