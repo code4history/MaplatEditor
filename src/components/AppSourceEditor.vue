@@ -18,6 +18,8 @@ const props = defineProps<{
   source: AppSource & { thumbnail?: string };
   currentLang: string;
   fallbackCenter?: [number, number];
+  // アプリ提供範囲(参考)。利用範囲ピッカーの薄緑ガイド+スナップ対象
+  appCoverageLngLats?: [number, number][] | null;
 }>();
 const emit = defineEmits<{ (e: "change"): void }>();
 
@@ -182,6 +184,7 @@ async function uploadThumbnail() {
       v-if="showEnvelopeModal"
       :model-value="data.envelopeLngLats ?? null"
       :coverage-lng-lats="data.coverageLngLats ?? null"
+      :app-coverage-lng-lats="appCoverageLngLats ?? null"
       :fallback-center="fallbackCenter"
       @update:model-value="onEnvelopeUpdate"
       @close="showEnvelopeModal = false"

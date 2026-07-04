@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // 経緯度範囲(利用範囲/存在範囲)を地図上の矩形描画で指定するモーダル。
 // 矩形(bbox)のみ扱う。非矩形の既存値はbboxに近似して表示する。
-// coverageLngLats(存在範囲)が渡された場合は薄色ポリゴンで表示し、
-// 描画した矩形は存在範囲の内側に自動クロップする(ADR-0004)。
+// coverageLngLats(地図の存在範囲)は薄青、appCoverageLngLats(アプリ提供範囲)は薄緑で表示。
+// 描画はどちらの境界にもスナップし、確定値は存在範囲の内側に自動クロップされる
+// (アプリ提供範囲は目安であり、はみ出し可)(ADR-0004)。
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import Map from "ol/Map";
@@ -10,7 +11,7 @@ import View from "ol/View";
 import Feature from "ol/Feature";
 import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
 import { OSM, Vector as VectorSource } from "ol/source";
-import { Draw } from "ol/interaction";
+import { Draw, Snap } from "ol/interaction";
 import { createBox } from "ol/interaction/Draw";
 import { Style, Stroke, Fill } from "ol/style";
 import { fromExtent } from "ol/geom/Polygon";
@@ -21,8 +22,10 @@ const props = defineProps<{
   modelValue: [number, number][] | null;
   // 初期表示中心（範囲未設定時に使用）
   fallbackCenter?: [number, number];
-  // 存在範囲(薄色表示 + 描画クロップの境界)。未指定なら自由描画
+  // 存在範囲(薄青表示 + スナップ + 描画クロップの境界)。未指定なら自由描画
   coverageLngLats?: [number, number][] | null;
+  // アプリ提供範囲(薄緑表示 + スナップのみ。クロップはしない)
+  appCoverageLngLats?: [number, number][] | null;
   // モーダルの文言(翻訳キー)。未指定なら利用範囲(envelope)用の既定文言
   titleKey?: string;
   helpKey?: string;
@@ -38,6 +41,7 @@ let map: Map | null = null;
 let draw: Draw | null = null;
 const vectorSource = new VectorSource();
 const coverageSource = new VectorSource();
+const appCoverageSource = new VectorSource();
 const currentBbox = ref<[number, number, number, number] | null>(null);
 
 const boxStyle = new Style({
@@ -45,14 +49,24 @@ const boxStyle = new Style({
   fill: new Fill({ color: "rgba(220, 53, 69, 0.08)" }),
 });
 
-// 存在範囲: 別色(青系)の薄いポリゴン
+// 存在範囲: 薄い青のポリゴン
 const coverageStyle = new Style({
   stroke: new Stroke({ color: "#0d6efd", width: 1 }),
   fill: new Fill({ color: "rgba(13, 110, 253, 0.08)" }),
 });
 
+// アプリ提供範囲: 薄い緑のポリゴン
+const appCoverageStyle = new Style({
+  stroke: new Stroke({ color: "#198754", width: 1 }),
+  fill: new Fill({ color: "rgba(25, 135, 84, 0.08)" }),
+});
+
 function coverageBbox(): [number, number, number, number] | null {
   return envelopeToBbox(props.coverageLngLats ?? null);
+}
+
+function appCoverageBbox(): [number, number, number, number] | null {
+  return envelopeToBbox(props.appCoverageLngLats ?? null);
 }
 
 function renderBbox(bbox: [number, number, number, number] | null) {
@@ -68,6 +82,7 @@ onMounted(() => {
     target: mapElement.value!,
     layers: [
       new TileLayer({ source: new OSM() }),
+      new VectorLayer({ source: appCoverageSource, style: appCoverageStyle }),
       new VectorLayer({ source: coverageSource, style: coverageStyle }),
       new VectorLayer({ source: vectorSource, style: boxStyle }),
     ],
@@ -78,8 +93,13 @@ onMounted(() => {
     const extent = transformExtent(coverage, "EPSG:4326", "EPSG:3857");
     coverageSource.addFeature(new Feature({ geometry: fromExtent(extent) }));
   }
+  const appCoverage = appCoverageBbox();
+  if (appCoverage) {
+    const extent = transformExtent(appCoverage, "EPSG:4326", "EPSG:3857");
+    appCoverageSource.addFeature(new Feature({ geometry: fromExtent(extent) }));
+  }
   renderBbox(currentBbox.value);
-  const fitTarget = currentBbox.value || coverage;
+  const fitTarget = currentBbox.value || coverage || appCoverage;
   if (fitTarget) {
     const extent = transformExtent(fitTarget, "EPSG:4326", "EPSG:3857");
     map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 });
@@ -114,6 +134,9 @@ onMounted(() => {
     renderBbox(cropped);
   });
   map.addInteraction(draw);
+  // 存在範囲/アプリ提供範囲の辺・頂点へポインタをスナップさせる(Drawより後に追加)
+  if (coverage) map.addInteraction(new Snap({ source: coverageSource }));
+  if (appCoverage) map.addInteraction(new Snap({ source: appCoverageSource }));
 });
 
 // 存在範囲の内側へ頂点をクロップ。交差しない場合はnull(選択なし)
@@ -163,7 +186,7 @@ function confirm() {
         </div>
         <div class="modal-body">
           <p class="small text-muted mb-2">
-            {{ t(helpKey || (coverageLngLats ? "appedit.envelope_modal_help_with_coverage" : "appedit.envelope_modal_help")) }}
+            {{ t(helpKey || (coverageLngLats || appCoverageLngLats ? "appedit.envelope_modal_help_with_coverage" : "appedit.envelope_modal_help")) }}
           </p>
           <div ref="mapElement" class="envelope-map"></div>
           <div class="small mt-2 font-monospace">

@@ -3,6 +3,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { AddressInfo } from 'node:net';
 import { fileURLToPath } from 'node:url';
+import { session } from 'electron';
 import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
@@ -57,10 +58,28 @@ class AppPreviewService {
 
   async prepare(document: any): Promise<{ url: string; port: number }> {
     await this.ensureServer(Number(document.httpSettings?.previewPort || 0) || undefined);
+    await this.purgePreviewStorage();
     const token = `${sanitizeId(document.appID || 'preview')}-${Date.now().toString(36)}`;
-    const session = await this.createSession(token, document);
-    this.sessions.set(token, session);
+    const previewSession = await this.createSession(token, document);
+    this.sessions.set(token, previewSession);
     return { url: `http://127.0.0.1:${this.port}/preview/${token}/`, port: this.port! };
+  }
+
+  // プレビューごとにWeiwudi(SWタイルキャッシュ)の地図登録とキャッシュを完全に消す。
+  // Weiwudiの登録(IndexedDB「Weiwudi」のmapSetting)とタイル実体(Weiwudi_{mapID})、
+  // ServiceWorker登録、CacheStorageをオリジン単位で削除する。
+  // レンダラのDevToolsからは旧トークンのSWがIndexedDBを掴んだままで消せないため、
+  // Electronメイン側のclearStorageDataで行う
+  private async purgePreviewStorage(): Promise<void> {
+    if (!this.port) return;
+    try {
+      await session.defaultSession.clearStorageData({
+        origin: `http://127.0.0.1:${this.port}`,
+        storages: ['indexdb', 'serviceworkers', 'cachestorage'],
+      });
+    } catch (e) {
+      console.error('[AppPreviewService] failed to purge preview storage', e);
+    }
   }
 
   private async ensureServer(preferredPort?: number) {

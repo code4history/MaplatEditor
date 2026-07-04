@@ -9,8 +9,10 @@ import gsiOrthoThumb from "../assets/img/gsi_ortho.png";
 import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
+import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { fetchAllRegisteredMaps } from "../services/desktopMapList";
 import {
+  envelopeToBbox,
   isViewerBuiltin,
   normalizeAppSource,
   type AppSource as SharedAppSource,
@@ -70,6 +72,8 @@ interface AppDocument {
   startFrom?: string;
   status?: string;
   extraInfo?: string;
+  // アプリ提供範囲(参考情報)。Editor内でのみ使用し、Viewer出力には含めない
+  coverageLngLats?: [number, number][] | null;
 }
 
 interface MapListItem {
@@ -148,6 +152,7 @@ const defaultApp = (): AppDocument => ({
   poiSources: "[]",
   status: "New",
   extraInfo: "",
+  coverageLngLats: null,
 });
 
 const appData = ref<AppDocument>(defaultApp());
@@ -283,6 +288,19 @@ const homePosition = computed<[number, number] | null>(() => {
 });
 const homeModalVisible = ref(false);
 const homeModalFallback = ref<[number, number] | undefined>(undefined);
+const appCoverageModalVisible = ref(false);
+
+// アプリ提供範囲(参考)の設定。Viewer出力には含めない
+function applyAppCoverage(value: [number, number][] | null) {
+  appData.value.coverageLngLats = value;
+  recordHistory();
+}
+
+function bboxLabel(lngLats?: [number, number][] | null): string {
+  const bbox = envelopeToBbox(lngLats ?? null);
+  if (!bbox) return "-";
+  return `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}`;
+}
 
 async function openHomePositionModal() {
   // 未設定時のみ、登録済みMaplat地図の代表点(homePosition)を初期表示の目安にする
@@ -364,6 +382,7 @@ function normalizeAppDocument(value: any): AppDocument {
   normalized.poiSources = JSON.stringify(value.poiSources || value.pois || [], null, 2);
   normalized.startFrom = value.startFrom || value.start_from;
   normalized.extraInfo = typeof value.extraInfo === "string" ? value.extraInfo : "";
+  normalized.coverageLngLats = Array.isArray(value.coverageLngLats) ? value.coverageLngLats : null;
   normalized.status = "Update";
   return normalized;
 }
@@ -693,6 +712,14 @@ function translatePreviewError(e: unknown): string {
   return message.startsWith("appedit.") ? t(message) : message;
 }
 
+// プレビュー表示言語(空=アプリ既定)。切替時はセッションを作り直す
+const previewLang = ref<"" | LangCode>("");
+
+async function changePreviewLang(lang: string) {
+  previewLang.value = lang as "" | LangCode;
+  await renderPreview();
+}
+
 async function renderPreview() {
   destroyPreview();
   previewError.value = null;
@@ -718,6 +745,7 @@ function destroyPreview() {
 function createPreviewDocument(): AppDocument {
   const document = cloneDocument(appData.value);
   (document as any).pois = JSON.parse(normalizeJsonText(document.poiSources || "[]", []));
+  if (previewLang.value) document.lang = previewLang.value;
   // sourcesはAppSource形のままmainプロセスへ渡し、composeViewerSourceで正規化する
   return document;
 }
@@ -841,6 +869,21 @@ function normalizeJsonText(value: string, fallback: any) {
             <div class="col-12">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.extra_info") }}</label>
               <textarea v-model="appData.extraInfo" class="form-control form-control-sm font-monospace" rows="8" @input="recordHistory" />
+            </div>
+          </div>
+          <div class="row g-1 mb-2">
+            <div class="col-12">
+              <label class="form-label fw-bold small mb-0">{{ t("appedit.app_coverage") }}</label>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="small font-monospace">{{ bboxLabel(appData.coverageLngLats) }}</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" @click="appCoverageModalVisible = true">
+                  {{ t("appedit.envelope_pick") }}
+                </button>
+                <button v-if="appData.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" @click="applyAppCoverage(null)">
+                  {{ t("appedit.envelope_clear") }}
+                </button>
+              </div>
+              <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.app_coverage_note") }}</div>
             </div>
           </div>
           <section class="settings-section mt-3">
@@ -1056,6 +1099,7 @@ function normalizeJsonText(value: string, fallback: any) {
                 :source="source"
                 :current-lang="currentLang"
                 :fallback-center="homePosition ?? undefined"
+                :app-coverage-lng-lats="appData.coverageLngLats ?? null"
                 @change="recordHistory"
               />
             </div>
@@ -1065,6 +1109,18 @@ function normalizeJsonText(value: string, fallback: any) {
 
       <div v-show="activeTab === 'preview'" class="h-100 position-relative">
         <iframe v-if="previewUrl" class="preview-map" :src="previewUrl" />
+        <div class="preview-lang bg-white border rounded shadow-sm px-2 py-1 d-flex align-items-center gap-1">
+          <label class="small fw-bold mb-0" for="previewLang">{{ t("appedit.preview_lang") }}</label>
+          <select
+            id="previewLang"
+            class="form-select form-select-sm w-auto"
+            :value="previewLang"
+            @change="changePreviewLang(($event.target as HTMLSelectElement).value)"
+          >
+            <option value="">{{ t("appedit.preview_lang_default") }}</option>
+            <option v-for="(v, k) in langsMap" :key="k" :value="k">{{ t("common." + v) }}</option>
+          </select>
+        </div>
         <div v-if="previewError" class="alert alert-warning preview-error">{{ previewError }}</div>
       </div>
     </div>
@@ -1075,6 +1131,16 @@ function normalizeJsonText(value: string, fallback: any) {
       :fallback-center="homeModalFallback"
       @update:model-value="applyHomePosition"
       @close="homeModalVisible = false"
+    />
+
+    <EnvelopeEditorModal
+      v-if="appCoverageModalVisible"
+      :model-value="appData.coverageLngLats ?? null"
+      :fallback-center="homePosition ?? undefined"
+      title-key="appedit.app_coverage_modal_title"
+      help-key="appedit.app_coverage_modal_help"
+      @update:model-value="applyAppCoverage"
+      @close="appCoverageModalVisible = false"
     />
   </div>
 </template>
@@ -1174,5 +1240,11 @@ function normalizeJsonText(value: string, fallback: any) {
   left: 12px;
   right: 12px;
   z-index: 5;
+}
+.preview-lang {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
 }
 </style>
