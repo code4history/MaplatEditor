@@ -486,7 +486,11 @@ class SqliteDataService {
   }
 
   async isMapIdAvailable(mapID: string): Promise<boolean> {
-    return (await this.findMap(mapID)) === null;
+    if ((await this.findMap(mapID)) !== null) return false;
+    // Maplat地図とベースマップ(ビルトイン含む)はID空間を共有する:
+    // サムネイル等が tmbs/{mapID}.* を共有するため、両者横断で一意でなければならない
+    const db = await this.getDb();
+    return db.prepare('SELECT 1 FROM base_maps WHERE map_id = ?').get(mapID) == null;
   }
 
   async readAllMaps(): Promise<any[]> {
@@ -731,6 +735,11 @@ class SqliteDataService {
       .get(mapID);
     if (builtinRow) {
       throw new Error(`Base map ID conflicts with a builtin base map: ${mapID}`);
+    }
+    // ID空間はMaplat地図と共有(tmbs/{mapID}.* を共有するため)。既存地図のIDは拒否する
+    const mapRow = db.prepare('SELECT 1 FROM maps WHERE map_id = ?').get(mapID);
+    if (mapRow) {
+      throw new Error(`Base map ID conflicts with a Maplat map: ${mapID}`);
     }
 
     const existing = db

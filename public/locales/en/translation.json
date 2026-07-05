@@ -490,7 +490,7 @@
     "builtin_source_note": "Built-in base map of the viewer. Its settings come from the viewer definition.",
     "thumbnail": "Thumbnail",
     "upload": "Upload",
-    "thumbnail_note": "Provide a 52x52 square image.",
+    "thumbnail_note": "Provide an image with a 52px long side (the aspect ratio is kept; larger images are scaled down).",
     "error_not_square": "Please provide a square image.",
     "error_too_small": "Please provide an image of at least 512x512.",
     "error_invalid_image": "Please provide an image file.",

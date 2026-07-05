@@ -493,7 +493,7 @@
     "builtin_source_note": "ビューア内蔵のベースマップです。設定はビューア側定義を使用します。",
     "thumbnail": "サムネイル",
     "upload": "アップロード",
-    "thumbnail_note": "52x52の正方形画像を指定してください。",
+    "thumbnail_note": "長辺52pxの画像を指定してください(縦横比は保持され、自動で縮小されます)。",
     "error_not_square": "正方形の画像を指定してください。",
     "error_too_small": "512x512以上の画像を指定してください。",
     "error_invalid_image": "画像ファイルを指定してください。",

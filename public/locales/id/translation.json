@@ -493,7 +493,7 @@
     "builtin_source_note": "Ini adalah peta dasar bawaan dari penampil. Pengaturan menggunakan definisi dari sisi penampil.",
     "thumbnail": "Thumbnail",
     "upload": "Unggah",
-    "thumbnail_note": "Silakan tentukan gambar persegi berukuran 52x52.",
+    "thumbnail_note": "Sediakan gambar dengan sisi panjang 52px (rasio aspek dipertahankan; gambar yang lebih besar akan diperkecil otomatis).",
     "error_not_square": "Silakan tentukan gambar persegi.",
     "error_too_small": "Silakan tentukan gambar berukuran 512x512 atau lebih besar.",
     "error_invalid_image": "Silakan tentukan berkas gambar.",

@@ -493,7 +493,7 @@
     "builtin_source_note": "Fond de carte intégré à la visionneuse. Ses paramètres proviennent de la définition de la visionneuse.",
     "thumbnail": "Miniature",
     "upload": "Téléverser",
-    "thumbnail_note": "Veuillez fournir une image carrée de 52 x 52 pixels.",
+    "thumbnail_note": "Fournissez une image dont le grand côté fait 52px (les proportions sont conservées ; les images plus grandes sont réduites).",
     "error_not_square": "Veuillez fournir une image carrée.",
     "error_too_small": "Veuillez fournir une image d'au moins 512 x 512 pixels.",
     "error_invalid_image": "Veuillez fournir un fichier image.",

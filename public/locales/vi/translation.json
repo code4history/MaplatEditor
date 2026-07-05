@@ -493,7 +493,7 @@
     "builtin_source_note": "Đây là bản đồ nền tích hợp sẵn của trình xem. Cài đặt sẽ dùng theo định nghĩa phía trình xem.",
     "thumbnail": "Ảnh thu nhỏ",
     "upload": "Tải lên",
-    "thumbnail_note": "Vui lòng chỉ định ảnh vuông 52x52.",
+    "thumbnail_note": "Vui lòng chọn ảnh có cạnh dài 52px (tỷ lệ khung hình được giữ nguyên; ảnh lớn hơn sẽ được thu nhỏ tự động).",
     "error_not_square": "Vui lòng chỉ định ảnh vuông.",
     "error_too_small": "Vui lòng chỉ định ảnh từ 512x512 trở lên.",
     "error_invalid_image": "Vui lòng chỉ định tệp ảnh.",

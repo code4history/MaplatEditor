@@ -493,7 +493,7 @@
     "builtin_source_note": "檢視器內建的底圖。設定使用檢視器端的定義。",
     "thumbnail": "縮圖",
     "upload": "上傳",
-    "thumbnail_note": "請指定52x52的正方形圖像。",
+    "thumbnail_note": "請指定長邊為52px的圖片(維持長寬比,較大的圖片會自動縮小)。",
     "error_not_square": "請指定正方形圖像。",
     "error_too_small": "請指定512x512以上的圖像。",
     "error_invalid_image": "請指定圖像檔案。",

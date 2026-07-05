@@ -90,10 +90,6 @@ async function uploadThumbnail() {
   uploadError.value = null;
   const result = await window.appAssets.uploadTmsThumbnail(props.source.mapID);
   if (result.err === "Canceled") return;
-  if (result.err === "NotSquare") {
-    uploadError.value = t("appedit.error_not_square");
-    return;
-  }
   if (result.err) {
     uploadError.value = t("appedit.error_invalid_image");
     return;

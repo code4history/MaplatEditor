@@ -493,7 +493,7 @@
     "builtin_source_note": "뷰어에 내장된 베이스맵입니다. 설정은 뷰어 측 정의를 사용합니다.",
     "thumbnail": "썸네일",
     "upload": "업로드",
-    "thumbnail_note": "52x52 정사각형 이미지를 지정하세요.",
+    "thumbnail_note": "긴 변이 52px인 이미지를 지정해 주세요(가로세로 비율은 유지되며, 큰 이미지는 자동으로 축소됩니다).",
     "error_not_square": "정사각형 이미지를 지정하세요.",
     "error_too_small": "512x512 이상의 이미지를 지정하세요.",
     "error_invalid_image": "이미지 파일을 지정하세요.",

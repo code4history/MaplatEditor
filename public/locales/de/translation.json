@@ -493,7 +493,7 @@
     "builtin_source_note": "Im Viewer integrierte Basiskarte. Die Einstellungen werden aus der Viewer-Definition übernommen.",
     "thumbnail": "Miniaturansicht",
     "upload": "Hochladen",
-    "thumbnail_note": "Bitte geben Sie ein quadratisches Bild mit 52 x 52 Pixeln an.",
+    "thumbnail_note": "Geben Sie ein Bild mit einer langen Seite von 52px an (Seitenverhältnis bleibt erhalten; größere Bilder werden verkleinert).",
     "error_not_square": "Bitte geben Sie ein quadratisches Bild an.",
     "error_too_small": "Bitte geben Sie ein Bild mit mindestens 512 x 512 Pixeln an.",
     "error_invalid_image": "Bitte geben Sie eine Bilddatei an.",

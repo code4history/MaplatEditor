@@ -346,10 +346,6 @@ const uploadIcon = async () => {
   formError.value = "";
   const result = await window.appAssets.uploadTmsThumbnail(mapID);
   if (result.err === "Canceled") return;
-  if (result.err === "NotSquare") {
-    formError.value = t("appedit.error_not_square");
-    return;
-  }
   if (result.err) {
     formError.value = t("appedit.error_invalid_image");
     return;
@@ -439,6 +435,19 @@ const saveBaseMap = async () => {
   if (validationError) {
     formError.value = validationError;
     return;
+  }
+  // IDはMaplat地図・ビルトイン含む全ベースマップと共通の空間で一意
+  // (サムネイルが tmbs/{mapID}.* を共有するため)。新規作成時はWrite Store横断で確認する
+  if (!editing.value) {
+    try {
+      const available = await window.mapedit.checkID(form.value.mapID.trim());
+      if (!available) {
+        formError.value = t("basemap.errors.id_duplicate");
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to check base map ID availability", e);
+    }
   }
   const tms: any = {
     mapID: form.value.mapID.trim(),

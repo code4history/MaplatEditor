@@ -493,7 +493,7 @@
     "builtin_source_note": "Mapa base integrado en el visor. Su configuración proviene de la definición del visor.",
     "thumbnail": "Miniatura",
     "upload": "Subir",
-    "thumbnail_note": "Proporcione una imagen cuadrada de 52 x 52 píxeles.",
+    "thumbnail_note": "Proporcione una imagen con el lado mayor de 52px (se conserva la proporción; las imágenes mayores se reducen).",
     "error_not_square": "Proporcione una imagen cuadrada.",
     "error_too_small": "Proporcione una imagen de al menos 512 x 512 píxeles.",
     "error_invalid_image": "Proporcione un archivo de imagen.",

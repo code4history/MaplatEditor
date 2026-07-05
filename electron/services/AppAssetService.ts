@@ -32,7 +32,7 @@ class AppAssetService {
     return ret.filePaths[0];
   }
 
-  // 非ビルトインTMSのサムネイル: 52x52正方形必須(縮小は許容)
+  // 非ビルトインTMSのサムネイル: 長辺52pxの長方形規約(縦横比は保持し、正方形は要求しない)
   async uploadTmsThumbnail(win: BrowserWindow, mapID: string): Promise<UploadResult> {
     const file = await this.pickImage(win);
     if (!file) return { err: 'Canceled' };
@@ -42,13 +42,13 @@ class AppAssetService {
     } catch {
       return { err: 'InvalidImage' };
     }
-    if (image.width !== image.height) return { err: 'NotSquare' };
-    const dest = path.join(this.saveFolder, 'tmbs', `${sanitizeId(mapID)}_menu.jpg`);
+    resizeToIconLongSide(image);
+    const relPath = `tmbs/${sanitizeId(mapID)}.png`;
+    const dest = path.join(this.saveFolder, relPath);
     await fs.ensureDir(path.dirname(dest));
-    if (image.width !== 52) image.resize({ w: 52, h: 52 });
     await image.write(dest as `${string}.${string}`);
     return {
-      path: `tmbs/${sanitizeId(mapID)}_menu.jpg`,
+      path: relPath,
       fileUrl: this.toFileUrl(dest),
     };
   }
@@ -92,8 +92,9 @@ class AppAssetService {
   }
 
   // ユーザー定義ベースマップのアイコン自動生成:
-  // 存在範囲(coverageLngLats)を中心固定で正方形化し、その領域のタイルを取得・合成して
-  // 52x52のPNGに縮小保存する。タイルURLテンプレートと範囲の両方が設定済みの場合のみ有効
+  // 存在範囲(coverageLngLats)の矩形をそのまま切り出し、長辺52pxに縮小して保存する
+  // (アイコンは長辺52pxの長方形規約。正方形への引き伸ばしはしない)。
+  // タイルURLテンプレートと範囲の両方が設定済みの場合のみ有効
   async generateTmsThumbnail(
     mapID: string,
     tms: { url?: string; minZoom?: number; maxZoom?: number },
@@ -105,7 +106,7 @@ class AppAssetService {
     }
     if (!Array.isArray(coverageLngLats) || coverageLngLats.length === 0) return { err: 'NoCoverage' };
 
-    // 存在範囲のメルカトルbbox → 中心固定の正方形(アイコンは正方形のため)
+    // 存在範囲のメルカトルbbox
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const point of coverageLngLats) {
       if (!Array.isArray(point) || typeof point[0] !== 'number' || typeof point[1] !== 'number') continue;
@@ -115,11 +116,9 @@ class AppAssetService {
     }
     const side = Math.max(maxX - minX, maxY - minY);
     if (!Number.isFinite(side) || side <= 0) return { err: 'NoCoverage' };
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-    const square = { minX: centerX - side / 2, maxX: centerX + side / 2, minY: centerY - side / 2, maxY: centerY + side / 2 };
+    const square = { minX, maxX, minY, maxY };
 
-    // 正方形領域が約256pxになるズームを選ぶ(52pxへの縮小に十分な解像度、タイル数は高々3x3程度)
+    // 長辺が約256pxになるズームを選ぶ(52pxへの縮小に十分な解像度、タイル数は高々3x3程度)
     const worldSize = MERC_MAX * 2;
     let zoom = Math.round(Math.log2(worldSize / side));
     const minZoom = Number.isFinite(tms.minZoom) ? Number(tms.minZoom) : 0;
@@ -179,18 +178,22 @@ class AppAssetService {
       canvas.composite(image, (tile.tx - range.x0) * 256, (tile.ty - range.y0) * 256);
     }
 
-    // 正方形領域をキャンバスのピクセル座標へ変換して切り出し → 52pxへ縮小
+    // 存在範囲の矩形をキャンバスのピクセル座標へ変換して切り出し → 長辺52pxへ縮小
     const pixelsPerMeter = (range.n * 256) / worldSize;
     const cropX = Math.round((square.minX + MERC_MAX) * pixelsPerMeter - range.x0 * 256);
     const cropY = Math.round((MERC_MAX - square.maxY) * pixelsPerMeter - range.y0 * 256);
-    const cropSize = Math.round(side * pixelsPerMeter);
+    const cropW = Math.round((square.maxX - square.minX) * pixelsPerMeter);
+    const cropH = Math.round((square.maxY - square.minY) * pixelsPerMeter);
     const safeX = Math.max(0, Math.min(canvas.width - 1, cropX));
     const safeY = Math.max(0, Math.min(canvas.height - 1, cropY));
-    const safeSize = Math.max(1, Math.min(cropSize, canvas.width - safeX, canvas.height - safeY));
-    canvas.crop({ x: safeX, y: safeY, w: safeSize, h: safeSize });
-    canvas.resize({ w: 52, h: 52 });
+    const safeW = Math.max(1, Math.min(cropW, canvas.width - safeX));
+    const safeH = Math.max(1, Math.min(cropH, canvas.height - safeY));
+    canvas.crop({ x: safeX, y: safeY, w: safeW, h: safeH });
+    resizeToIconLongSide(canvas);
 
-    const relPath = `tmbs/${sanitizeId(mapID)}_menu.png`;
+    // Maplat地図のサムネイル(tmbs/{mapID}.jpg)と同じ規約のパスに置く。
+    // このためベースマップのIDはMaplat地図とID空間を共有し一意である必要がある
+    const relPath = `tmbs/${sanitizeId(mapID)}.png`;
     const dest = path.join(this.saveFolder, relPath);
     await fs.ensureDir(path.dirname(dest));
     await canvas.write(dest as `${string}.${string}`);
@@ -213,6 +216,17 @@ class AppAssetService {
 }
 
 const MERC_MAX = 20037508.342789244;
+
+// アイコン規約: 長辺52pxの長方形(縦横比保持)。正方形への引き伸ばしはしない
+function resizeToIconLongSide(image: { width: number; height: number; resize: (size: { w: number; h: number }) => unknown }): void {
+  const longSide = Math.max(image.width, image.height);
+  if (longSide === 52) return;
+  const scale = 52 / longSide;
+  image.resize({
+    w: Math.max(1, Math.round(image.width * scale)),
+    h: Math.max(1, Math.round(image.height * scale)),
+  });
+}
 
 function lngLatToMerc(lng: number, lat: number): [number, number] {
   const clampedLat = Math.max(-85.05112878, Math.min(85.05112878, lat));

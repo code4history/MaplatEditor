@@ -275,6 +275,14 @@ try {
       assert.ok(baseMaps.some((item) => item.scope === 'builtin' && item.mapID === 'osm'));
       assert.ok(baseMaps.some((item) => item.scope === 'builtin' && item.mapID === 'muroran00'));
       assert.ok(baseMaps.some((item) => item.scope === 'user' && item.mapID === 'user-base'));
+      // ID空間はMaplat地図とベースマップ(ビルトイン含む)で共有・一意
+      // (サムネイルが tmbs/{mapID}.* を共有するため)
+      assert.equal(await StorageAdapter.isMapIdAvailable('osm'), false);
+      assert.equal(await StorageAdapter.isMapIdAvailable('user-base'), false);
+      assert.equal(await StorageAdapter.isMapIdAvailable('brand-new-id'), true);
+      await assert.rejects(() =>
+        SqliteDataService.saveUserBaseMap({ mapID: 'legacy-map', title: 'x', url: 'https://example.test/{z}/{x}/{y}.png' })
+      );
       await SearchDataService.reset();
       await SqliteDataService.reset();
       // 2回目以降の起動では移行済みのため、退避アーカイブが残っていても進捗通知(移行ダイアログ)は出ない

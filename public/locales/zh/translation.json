@@ -493,7 +493,7 @@
     "builtin_source_note": "查看器内置的底图。设置使用查看器端的定义。",
     "thumbnail": "缩略图",
     "upload": "上传",
-    "thumbnail_note": "请指定52x52的正方形图像。",
+    "thumbnail_note": "请指定长边为52px的图像(保持纵横比,较大的图像会自动缩小)。",
     "error_not_square": "请指定正方形图像。",
     "error_too_small": "请指定512x512以上的图像。",
     "error_invalid_image": "请指定图像文件。",
