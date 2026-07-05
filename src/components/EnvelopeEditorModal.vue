@@ -85,20 +85,32 @@ onMounted(() => {
   currentBbox.value = envelopeToBbox(props.modelValue);
   // 対象タイルのオーバーレイ(OSMの上、ガイド/描画レイヤの下)。
   // タイルが無い場所は404で透過し、下のOSMが見える=タイル実在範囲がそのまま視認できる。
+  // 注意: XYZソースのminZoom(タイルグリッド最小ズーム)は絶対に設定しないこと。
+  // 広域表示時にそのズームのタイルで全域を敷き詰めようとして(例: z15なら約10億枚)
+  // レンダラーがフリーズ→クラッシュする。低ズームは404の透過に任せ、
+  // 無駄なリクエストはレイヤ側のminZoom(表示ズーム閾値)で抑える。
   // 定義不備で失敗してもモーダル自体は使えるように、失敗時はオーバーレイなしで続行する
   let overlayLayers: TileLayer<XYZ>[] = [];
   try {
-    overlayLayers = props.overlayTms?.url
-      ? [
-          new TileLayer({
-            source: new XYZ({
-              url: props.overlayTms.url,
-              minZoom: props.overlayTms.minZoom ?? 0,
-              maxZoom: props.overlayTms.maxZoom ?? 18,
-            }),
+    if (props.overlayTms?.url) {
+      const tmsMinZoom = props.overlayTms.minZoom ?? 0;
+      overlayLayers = [
+        new TileLayer({
+          // レイヤminZoom(「viewズーム > minZoom で表示」の排他的閾値)で描画をゲートする。
+          // このゲートがあることで、下のグリッドminZoomは高々1段階のアップスケール
+          // (viewport比≤4倍のタイル数)にしかならず安全
+          ...(tmsMinZoom > 0 ? { minZoom: tmsMinZoom - 1 } : {}),
+          source: new XYZ({
+            url: props.overlayTms.url,
+            maxZoom: props.overlayTms.maxZoom ?? 18,
+            // グリッドminZoom: minZoom未満のviewでもz=minZoomのタイルを拡大表示する。
+            // レイヤゲートなしで設定すると広域表示時に全域分のタイル列挙
+            // (z15なら約10億枚)でレンダラーがクラッシュするため、必ず上のゲートとセットで使う
+            ...(tmsMinZoom > 0 ? { minZoom: tmsMinZoom } : {}),
           }),
-        ]
-      : [];
+        }),
+      ];
+    }
   } catch (e) {
     console.error("Failed to create overlay tile layer:", e);
   }
