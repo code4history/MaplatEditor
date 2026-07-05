@@ -84,18 +84,24 @@ function renderBbox(bbox: [number, number, number, number] | null) {
 onMounted(() => {
   currentBbox.value = envelopeToBbox(props.modelValue);
   // 対象タイルのオーバーレイ(OSMの上、ガイド/描画レイヤの下)。
-  // タイルが無い場所は404で透過し、下のOSMが見える=タイル実在範囲がそのまま視認できる
-  const overlayLayers = props.overlayTms?.url
-    ? [
-        new TileLayer({
-          source: new XYZ({
-            url: props.overlayTms.url,
-            minZoom: props.overlayTms.minZoom ?? 0,
-            maxZoom: props.overlayTms.maxZoom ?? 18,
+  // タイルが無い場所は404で透過し、下のOSMが見える=タイル実在範囲がそのまま視認できる。
+  // 定義不備で失敗してもモーダル自体は使えるように、失敗時はオーバーレイなしで続行する
+  let overlayLayers: TileLayer<XYZ>[] = [];
+  try {
+    overlayLayers = props.overlayTms?.url
+      ? [
+          new TileLayer({
+            source: new XYZ({
+              url: props.overlayTms.url,
+              minZoom: props.overlayTms.minZoom ?? 0,
+              maxZoom: props.overlayTms.maxZoom ?? 18,
+            }),
           }),
-        }),
-      ]
-    : [];
+        ]
+      : [];
+  } catch (e) {
+    console.error("Failed to create overlay tile layer:", e);
+  }
   map = new Map({
     target: mapElement.value!,
     layers: [
@@ -118,17 +124,22 @@ onMounted(() => {
     appCoverageSource.addFeature(new Feature({ geometry: fromExtent(extent) }));
   }
   renderBbox(currentBbox.value);
-  const fitTarget = currentBbox.value || coverage || appCoverage;
-  if (fitTarget) {
-    const extent = transformExtent(fitTarget, "EPSG:4326", "EPSG:3857");
-    map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 });
-  } else if (props.fallbackCenter) {
-    const extent = transformExtent(
-      [props.fallbackCenter[0] - 0.05, props.fallbackCenter[1] - 0.05, props.fallbackCenter[0] + 0.05, props.fallbackCenter[1] + 0.05],
-      "EPSG:4326",
-      "EPSG:3857",
-    );
-    map.getView().fit(extent, { maxZoom: 14 });
+  // 既存データが退化した範囲(空/一点)でもモーダルの初期化を止めない
+  try {
+    const fitTarget = currentBbox.value || coverage || appCoverage;
+    if (fitTarget) {
+      const extent = transformExtent(fitTarget, "EPSG:4326", "EPSG:3857");
+      map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 });
+    } else if (props.fallbackCenter) {
+      const extent = transformExtent(
+        [props.fallbackCenter[0] - 0.05, props.fallbackCenter[1] - 0.05, props.fallbackCenter[0] + 0.05, props.fallbackCenter[1] + 0.05],
+        "EPSG:4326",
+        "EPSG:3857",
+      );
+      map.getView().fit(extent, { maxZoom: 14 });
+    }
+  } catch (e) {
+    console.error("Failed to fit initial extent:", e);
   }
   draw = new Draw({
     source: vectorSource,
@@ -172,6 +183,10 @@ onMounted(() => {
     }
   });
   map.addControl(geocoder);
+
+  // モーダル挿入直後はレイアウト確定前でOpenLayersがサイズ0を掴むことがあるため、
+  // 描画フレーム後にサイズを再計測する(モーダル内地図の定番対策)
+  requestAnimationFrame(() => map?.updateSize());
 });
 
 // 存在範囲の内側へ頂点をクロップ。交差しない場合はnull(選択なし)
@@ -212,6 +227,9 @@ function confirm() {
 </script>
 
 <template>
+  <!-- 親がモーダル(ベースマップ編集等)でも確実に前面へ出るよう、body直下へテレポートし
+       z-indexをBootstrapモーダル既定(1055)より上げる。親のスタッキング文脈の影響も受けない -->
+  <Teleport to="body">
   <div class="modal show d-block envelope-modal" tabindex="-1">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
@@ -245,11 +263,13 @@ function confirm() {
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>
 .envelope-modal {
   background: rgba(0, 0, 0, 0.4);
+  z-index: 1080;
 }
 .envelope-map {
   width: 100%;
