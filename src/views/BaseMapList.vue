@@ -381,7 +381,10 @@ const generateIcon = async () => {
   formError.value = "";
   generatingIcon.value = true;
   try {
-    const result = await window.appAssets.generateTmsThumbnail(mapID, overlayTms.value, form.value.coverageLngLats);
+    // IPCの構造化クローンはVueのreactiveプロキシを受け付けない("An object could not be cloned")
+    // ため、プレーンなデータに落としてから渡す
+    const coverage = JSON.parse(JSON.stringify(form.value.coverageLngLats));
+    const result = await window.appAssets.generateTmsThumbnail(mapID, { ...overlayTms.value }, coverage);
     if (result.err || !result.path) {
       formError.value = t("basemap.errors.icon_generate_failed");
       return;
@@ -463,7 +466,8 @@ const saveBaseMap = async () => {
     tms.maxZoom = Number(form.value.maxZoom);
   }
   if (form.value.thumbnail) tms.thumbnail = form.value.thumbnail;
-  if (form.value.coverageLngLats) tms.coverageLngLats = form.value.coverageLngLats;
+  // IPCの構造化クローン対策: reactiveプロキシの配列はプレーンに落としてから渡す
+  if (form.value.coverageLngLats) tms.coverageLngLats = JSON.parse(JSON.stringify(form.value.coverageLngLats));
   saving.value = true;
   try {
     await window.baseMaps.saveUser(tms);

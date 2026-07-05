@@ -153,7 +153,11 @@ class AppAssetService {
           .replace('{y}', String(ty))
           .replace('{-y}', String(range.n - 1 - ty));
         fetches.push(
-          fetch(url, { signal: AbortSignal.timeout(10000) })
+          fetch(url, {
+            signal: AbortSignal.timeout(10000),
+            // 識別可能なUAを明示する(既定のnode UAを拒否するタイルサーバー対策も兼ねる)
+            headers: { 'User-Agent': 'MaplatEditor (https://github.com/code4history/MaplatEditor)' },
+          })
             .then(async (res) => (res.ok ? { tx, ty, buffer: Buffer.from(await res.arrayBuffer()) } : null))
             .catch(() => null)
         );
