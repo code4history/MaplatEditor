@@ -92,13 +92,14 @@
                 >
                   {{ t("common.reset") }}
                 </button>
+                <!-- UIが読めない言語のままでも保存操作が判別できるよう、言語非依存のアイコンを併記 -->
                 <button
                   type="button"
                   class="btn btn-primary"
                   :disabled="!isDirty"
                   @click="saveSettings"
                 >
-                  {{ t("common.save_with_english") }}
+                  <i class="bi bi-save me-1"></i>{{ t("common.save") }}
                 </button>
               </div>
             </div>

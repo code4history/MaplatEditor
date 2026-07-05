@@ -7,7 +7,6 @@
     "settings": "Pengaturan",
     "reset": "Atur ulang",
     "save": "Simpan",
-    "save_with_english": "Simpan",
     "download": "Unduh",
     "language": "Bahasa",
     "japanese": "Bahasa Jepang",
@@ -27,7 +26,7 @@
     "edit_app": "Edit Aplikasi",
     "edit_poi": "Edit POI",
     "add_basemap": "Tambah Peta Dasar",
-    "settings": "Pengaturan (Settings)"
+    "settings": "Pengaturan"
   },
   "basemap": {
     "description": "Kelola peta dasar yang ditentukan pengguna (tile XYZ/TMS) yang dapat digunakan sebagai latar saat mengedit peta.",
@@ -89,7 +88,7 @@
     "basic_settings": "Pengaturan dasar",
     "base_map": "Pengaturan peta dasar",
     "original_map": "Pengaturan peta asli",
-    "switch_lang": "Ganti Bahasa (Switch Language)",
+    "switch_lang": "Ganti Bahasa",
     "data_folder": "Folder Data",
     "specify_data_folder": "Silakan tentukan folder data.",
     "confirm_close_no_save": "Pengaturan telah diubah tetapi belum disimpan.\nApakah Anda ingin menutup tanpa menyimpan?",

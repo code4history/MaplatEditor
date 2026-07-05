@@ -54,7 +54,8 @@
               :class="{ active: currentRoute === 'Settings' }"
               @click.prevent="navigate('Settings')"
             >
-              {{ t("navbar.settings") }}
+              <!-- UIが読めない言語になっても設定へ辿り着けるよう、言語非依存のギアアイコンを併記 -->
+              <i class="bi bi-gear me-1"></i>{{ t("navbar.settings") }}
             </a>
           </li>
         </ul>

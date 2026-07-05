@@ -7,7 +7,6 @@
     "settings": "Cài đặt",
     "reset": "Đặt lại",
     "save": "Lưu",
-    "save_with_english": "Lưu",
     "download": "Tải xuống",
     "language": "Ngôn ngữ",
     "japanese": "Tiếng Nhật",
@@ -27,7 +26,7 @@
     "edit_app": "Chỉnh sửa ứng dụng",
     "edit_poi": "Chỉnh sửa POI",
     "add_basemap": "Thêm bản đồ nền",
-    "settings": "Cài đặt (Settings)"
+    "settings": "Cài đặt"
   },
   "basemap": {
     "description": "Quản lý các bản đồ nền do người dùng định nghĩa (tile XYZ/TMS) dùng làm lớp nền khi chỉnh sửa bản đồ.",
@@ -89,7 +88,7 @@
     "basic_settings": "Cài đặt cơ bản",
     "base_map": "Cài đặt bản đồ nền",
     "original_map": "Cài đặt bản đồ gốc",
-    "switch_lang": "Chuyển đổi ngôn ngữ (Switch Language)",
+    "switch_lang": "Chuyển đổi ngôn ngữ",
     "data_folder": "Thư mục dữ liệu",
     "specify_data_folder": "Vui lòng chỉ định thư mục dữ liệu.",
     "confirm_close_no_save": "Cài đặt đã bị thay đổi nhưng chưa được lưu.\nBạn có muốn đóng mà không lưu không?",

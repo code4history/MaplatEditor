@@ -7,7 +7,6 @@
     "settings": "設定",
     "reset": "重設",
     "save": "儲存",
-    "save_with_english": "儲存",
     "download": "下載",
     "language": "語言",
     "japanese": "日文",
@@ -27,7 +26,7 @@
     "edit_app": "應用程式編輯",
     "edit_poi": "POI編輯",
     "add_basemap": "新增底圖",
-    "settings": "設定(Settings)"
+    "settings": "設定"
   },
   "basemap": {
     "description": "管理可作為地圖編輯背景使用的使用者自訂底圖(XYZ/TMS圖磚)。",
@@ -89,7 +88,7 @@
     "basic_settings": "基本設定",
     "base_map": "底圖設定",
     "original_map": "原始地圖設定",
-    "switch_lang": "切換語言(Switch Language)",
+    "switch_lang": "切換語言",
     "data_folder": "資料夾",
     "specify_data_folder": "請指定資料夾。",
     "confirm_close_no_save": "設定已變更但尚未儲存。\n確定不儲存就關閉嗎?",

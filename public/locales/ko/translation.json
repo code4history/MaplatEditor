@@ -7,7 +7,6 @@
     "settings": "설정",
     "reset": "초기화",
     "save": "저장",
-    "save_with_english": "저장",
     "download": "다운로드",
     "language": "언어",
     "japanese": "일본어",
@@ -27,7 +26,7 @@
     "edit_app": "앱 편집",
     "edit_poi": "POI 편집",
     "add_basemap": "베이스맵 추가",
-    "settings": "설정(Settings)"
+    "settings": "설정"
   },
   "basemap": {
     "description": "지도 편집의 배경으로 사용할 수 있는 사용자 정의 베이스맵(XYZ/TMS 타일)을 관리합니다.",
@@ -89,7 +88,7 @@
     "basic_settings": "기본 설정",
     "base_map": "베이스맵 설정",
     "original_map": "원본 지도 설정",
-    "switch_lang": "언어 전환(Switch Language)",
+    "switch_lang": "언어 전환",
     "data_folder": "데이터 폴더",
     "specify_data_folder": "데이터 폴더를 지정하세요.",
     "confirm_close_no_save": "설정이 변경되었지만 저장되지 않았습니다.\n저장하지 않고 닫으시겠습니까?",
