@@ -138,13 +138,24 @@ class AppAssetService {
       };
     };
     let range = tileRange(zoom);
-    while (zoom > 0 && (range.x1 - range.x0 + 1) * (range.y1 - range.y0 + 1) > 36) {
+    const tilesInRange = () => (range.x1 - range.x0 + 1) * (range.y1 - range.y0 + 1);
+    // タイル数が多すぎる場合はズームを下げる。ただしタイルが存在しないminZoom未満へは
+    // 下げない(下げても403/404で1枚も取れず、必ずNoTilesになるだけのため)
+    const zoomFloor = Math.max(0, Math.min(zoom, minZoom));
+    while (zoom > zoomFloor && tilesInRange() > 64) {
       zoom--;
       range = tileRange(zoom);
+    }
+    // minZoomの制約で下げられない場合はそのまま取得する(市街地規模×z15で数十枚程度)。
+    // 誤って広大な範囲×高minZoomを組んだ場合の暴走だけ止める
+    if (tilesInRange() > 400) {
+      console.warn(`[generateTmsThumbnail] too many tiles (${tilesInRange()}) at z${zoom} for ${mapID}`);
+      return { err: 'TooManyTiles' };
     }
 
     // タイル取得({-y}はTMS方式の南起点Y)。欠損タイルは白背景のまま残す
     const fetches: Promise<{ tx: number; ty: number; buffer: Buffer } | null>[] = [];
+    const failures: string[] = [];
     for (let tx = range.x0; tx <= range.x1; tx++) {
       for (let ty = range.y0; ty <= range.y1; ty++) {
         const url = template
@@ -158,13 +169,27 @@ class AppAssetService {
             // 識別可能なUAを明示する(既定のnode UAを拒否するタイルサーバー対策も兼ねる)
             headers: { 'User-Agent': 'MaplatEditor (https://github.com/code4history/MaplatEditor)' },
           })
-            .then(async (res) => (res.ok ? { tx, ty, buffer: Buffer.from(await res.arrayBuffer()) } : null))
-            .catch(() => null)
+            .then(async (res) => {
+              if (res.ok) return { tx, ty, buffer: Buffer.from(await res.arrayBuffer()) };
+              failures.push(`${res.status} ${url}`);
+              return null;
+            })
+            .catch((e) => {
+              failures.push(`${e?.name || 'fetch error'} ${url}`);
+              return null;
+            })
         );
       }
     }
     const tiles = (await Promise.all(fetches)).filter((tile): tile is { tx: number; ty: number; buffer: Buffer } => tile != null);
-    if (tiles.length === 0) return { err: 'NoTiles' };
+    if (tiles.length === 0) {
+      // 原因調査用: 失敗理由(ステータス/例外)の代表例をDevToolsコンソールへ転送する
+      console.warn(
+        `[generateTmsThumbnail] no tiles fetched for ${mapID} at z${zoom} (${failures.length} failures). ` +
+          `samples: ${failures.slice(0, 3).join(' | ')}`
+      );
+      return { err: 'NoTiles' };
+    }
 
     const canvas = new Jimp({
       width: (range.x1 - range.x0 + 1) * 256,
