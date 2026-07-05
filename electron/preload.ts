@@ -131,6 +131,7 @@ contextBridge.exposeInMainWorld('baseMaps', {
   list: () => ipcRenderer.invoke('basemaps:list'),
   saveUser: (tms: any) => ipcRenderer.invoke('basemaps:save-user', tms),
   deleteUser: (baseMapId: string) => ipcRenderer.invoke('basemaps:delete-user', baseMapId),
+  setAlways: (baseMapId: string, always: boolean) => ipcRenderer.invoke('basemaps:set-always', baseMapId, always),
 })
 
 contextBridge.exposeInMainWorld('appAssets', {

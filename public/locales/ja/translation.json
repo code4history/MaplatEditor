@@ -43,6 +43,8 @@
     "coverage": "存在範囲",
     "coverage_modal_title": "存在範囲を指定",
     "coverage_modal_help": "この地図のタイルが存在するおおよその範囲をドラッグで指定してください。地域からベースマップを探す際に使われます。",
+    "always_visible": "常時表示",
+    "always_note": "常時表示に設定したベースマップは、すべての地図の編集画面で選択に関わらず表示されます(地図ごとの設定では外せません)。OSMは常時表示から外せません。",
     "actions": "操作",
     "edit": "編集",
     "delete": "削除",
@@ -75,7 +77,8 @@
       "zoom_order_invalid": "最小ズームは最大ズーム以下で指定してください。",
       "save_failed": "保存に失敗しました。",
       "delete_failed": "削除に失敗しました。",
-      "load_failed": "ベースマップ一覧の取得に失敗しました。"
+      "load_failed": "ベースマップ一覧の取得に失敗しました。",
+      "always_failed": "常時表示設定の保存に失敗しました。"
     }
   },
   "settings": {
@@ -225,7 +228,7 @@
     "map_tile_desc": "外部の地図タイルを用いる場合、http://...{z}/{x}/{y}.{png|jpg}の形で指定してください。標準の配置位置を使う場合は設定不要です。",
     "edit_base_map": "ベースマップ編集",
     "base_map_visibility": "表示するベースマップ",
-    "base_map_visibility_desc": "この地図の編集画面で使うベースマップを選択します。未設定のベースマップは表示されます。",
+    "base_map_visibility_desc": "この地図の編集画面で使うベースマップを選択します。チェックしたベースマップだけが表示されます。常時表示のベースマップは選択に関わらず常に表示されます。",
     "base_map_always_visible": "常時表示",
     "map_description": "説明",
     "map_description_pf": "地図の説明文を入力してください",

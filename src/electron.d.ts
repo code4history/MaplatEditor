@@ -51,9 +51,10 @@ export interface AppAssetsAPI {
 }
 
 export interface BaseMapsAPI {
-    list(): Promise<Array<{ mapID: string; scope: "builtin" | "user"; data: any; thumbnailUrl?: string | null }>>;
+    list(): Promise<Array<{ mapID: string; scope: "builtin" | "user"; data: any; thumbnailUrl?: string | null; alwaysVisible: boolean; alwaysLocked: boolean }>>;
     saveUser(tms: any): Promise<void>;
     deleteUser(baseMapId: string): Promise<void>;
+    setAlways(baseMapId: string, always: boolean): Promise<void>;
 }
 
 export interface MapEditAPI {

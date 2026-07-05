@@ -41,6 +41,8 @@ export interface BaseMapCatalogItem {
   mapID: string;
   scope: BaseMapScope;
   data: any;
+  alwaysVisible: boolean;
+  alwaysLocked: boolean;
 }
 
 interface Folders {
@@ -54,6 +56,12 @@ interface Folders {
 
 const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
 const SEARCH_INDEX_BACKFILL_ID = '2026-07-04-search-index-backfill';
+// 表示設定オプトイン化(ADR-0006): これ以前の map_base_map_visibility 行は
+// オプトアウト時代の意味(未設定=表示)で書かれているため一括破棄する
+const OPT_IN_VISIBILITY_FLIP_ID = '2026-07-05-opt-in-base-map-visibility';
+
+// 常時表示から外せないベースマップ(ビューア/エディタの最終フォールバック基盤)
+const FORCED_ALWAYS_BASE_MAP_IDS = new Set(['osm']);
 
 // --- 全文検索(FTS5)/位置情報検索(R-Tree)用ヘルパー ---
 // トークナイザはICU(Intl.Segmenter)の日本語単語分割。追加依存なしで全プラットフォーム同一動作。
@@ -292,9 +300,27 @@ class SqliteDataService {
         updated_at TEXT DEFAULT (datetime('now')),
         PRIMARY KEY (map_id, base_map_id)
       );
+      CREATE TABLE IF NOT EXISTS base_map_always (
+        base_map_id TEXT PRIMARY KEY,
+        always_visible INTEGER NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
     `);
     this.applySearchIndexSchema(db);
     this.applyBuiltinBaseMapSeed(db);
+
+    // オプトイン化以前に書かれた表示設定は意味が反転しているため一度だけ全破棄する。
+    // レガシー(nedb/settings)取込より前に行うことで、取込直後の設定は破棄されない。
+    // ユーザー定義ベースマップの定義(base_maps)はここでは触らない
+    const visibilityFlipped = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(OPT_IN_VISIBILITY_FLIP_ID);
+    if (!visibilityFlipped) {
+      this.withTransaction(db, () => {
+        db.exec('DELETE FROM map_base_map_visibility');
+        db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(OPT_IN_VISIBILITY_FLIP_ID);
+      });
+    }
 
     // レガシー移行は初回のみ。退避アーカイブ(_nedb.db/_settings)は残り続けるため、
     // 「入力ファイルの有無」ではなく「移行を実際に実行するか」で進捗通知を判定する
@@ -597,6 +623,20 @@ class SqliteDataService {
     return items.filter((item) => item.enabled).map((item) => item.data);
   }
 
+  // 常時表示のユーザー上書き(base_map_always)。ビルトイン再シードの影響を受けない
+  private alwaysOverrides(db: DatabaseSync): Map<string, boolean> {
+    const rows = db.prepare('SELECT base_map_id, always_visible FROM base_map_always').all() as any[];
+    return new Map(rows.map((row) => [String(row.base_map_id), Boolean(row.always_visible)]));
+  }
+
+  // 実効の常時表示: OSMは強制true、他は上書きがあればそれ、なければ定義のalways
+  // (ビルトインではgsi/gsi_orthoのみtrue)
+  private effectiveAlways(baseMapId: string, tms: any, overrides: Map<string, boolean>): boolean {
+    if (FORCED_ALWAYS_BASE_MAP_IDS.has(baseMapId)) return true;
+    const override = overrides.get(baseMapId);
+    return override != null ? override : Boolean(tms?.always);
+  }
+
   async getBaseMapVisibilityOfMapID(mapID: string): Promise<BaseMapVisibilityItem[]> {
     const db = await this.getDb();
     const baseMapRows = db
@@ -610,35 +650,20 @@ class SqliteDataService {
       .prepare('SELECT base_map_id, enabled FROM map_base_map_visibility WHERE map_id = ?')
       .all(mapID) as any[];
     const visibility = new Map(visibilityRows.map((row) => [row.base_map_id, Boolean(row.enabled)]));
+    const overrides = this.alwaysOverrides(db);
 
+    // オプトイン方式(ADR-0006): 明示的に選択したものだけ表示(未設定=非表示)。
+    // 常時表示のベースマップは選択に依らず表示され、地図単位では外せない
     const items: BaseMapVisibilityItem[] = [];
-    const missingDefaults: string[] = [];
     for (const row of baseMapRows) {
       const tms = JSON.parse(row.data_json);
-      const locked = Boolean(tms.always);
-      let enabled = visibility.get(row.map_id);
-      if (enabled == null) {
-        enabled = true;
-        if (!locked) missingDefaults.push(row.map_id);
-      }
+      const locked = this.effectiveAlways(row.map_id, tms, overrides);
       items.push({
         mapID: row.map_id,
         scope: row.scope,
-        enabled: locked ? true : Boolean(enabled),
+        enabled: locked ? true : Boolean(visibility.get(row.map_id) ?? false),
         locked,
         data: tms,
-      });
-    }
-    if (missingDefaults.length > 0) {
-      // 初期表示設定の一括書き込み。1件ずつのautocommitはコミット数分fsyncが走り遅い
-      this.withTransaction(db, () => {
-        const insertDefault = db.prepare(
-          `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
-           VALUES (?, ?, 1, datetime('now'))`
-        );
-        for (const baseMapId of missingDefaults) {
-          insertDefault.run(mapID, baseMapId);
-        }
       });
     }
     return items;
@@ -654,7 +679,7 @@ class SqliteDataService {
       .get(baseMapId) as any;
     if (row) {
       const tms = JSON.parse(row.data_json);
-      if (tms.always) return;
+      if (this.effectiveAlways(baseMapId, tms, this.alwaysOverrides(db))) return;
     }
     db.prepare(
       `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
@@ -664,6 +689,7 @@ class SqliteDataService {
 
   async listBaseMaps(): Promise<BaseMapCatalogItem[]> {
     const db = await this.getDb();
+    const overrides = this.alwaysOverrides(db);
     const rows = db
       .prepare(`
         SELECT map_id, scope, data_json
@@ -671,11 +697,29 @@ class SqliteDataService {
         ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END, sort_order, map_id
       `)
       .all() as any[];
-    return rows.map((row: any) => ({
-      mapID: row.map_id,
-      scope: row.scope,
-      data: JSON.parse(row.data_json),
-    }));
+    return rows.map((row: any) => {
+      const data = JSON.parse(row.data_json);
+      return {
+        mapID: row.map_id,
+        scope: row.scope,
+        data,
+        alwaysVisible: this.effectiveAlways(row.map_id, data, overrides),
+        alwaysLocked: FORCED_ALWAYS_BASE_MAP_IDS.has(row.map_id),
+      };
+    });
+  }
+
+  async setBaseMapAlways(baseMapId: string, always: boolean): Promise<void> {
+    if (FORCED_ALWAYS_BASE_MAP_IDS.has(baseMapId)) {
+      throw new Error(`Base map cannot be removed from always-visible: ${baseMapId}`);
+    }
+    const db = await this.getDb();
+    const exists = db.prepare('SELECT 1 FROM base_maps WHERE map_id = ?').get(baseMapId);
+    if (!exists) throw new Error(`Unknown base map: ${baseMapId}`);
+    db.prepare(
+      `INSERT OR REPLACE INTO base_map_always (base_map_id, always_visible, updated_at)
+       VALUES (?, ?, datetime('now'))`
+    ).run(baseMapId, always ? 1 : 0);
   }
 
   async saveUserBaseMap(tms: any): Promise<void> {
@@ -713,6 +757,7 @@ class SqliteDataService {
     const remains = db.prepare('SELECT 1 FROM base_maps WHERE map_id = ?').get(baseMapId);
     if (!remains) {
       db.prepare('DELETE FROM map_base_map_visibility WHERE base_map_id = ?').run(baseMapId);
+      db.prepare('DELETE FROM base_map_always WHERE base_map_id = ?').run(baseMapId);
     }
   }
 

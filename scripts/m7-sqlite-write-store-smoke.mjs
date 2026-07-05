@@ -224,9 +224,31 @@ try {
       assert.ok(!mapB.some((tms) => tms.mapID === 'gsi_ort_USA10'));
       assert.ok(mapB.some((tms) => tms.mapID === 'user-base'));
 
+      // オプトイン方式(ADR-0006): 設定のない地図には常時表示ベースマップのみが表示される
       const mapC = await SettingsService.getTmsListOfMapID('mapC');
-      assert.ok(mapC.some((tms) => tms.mapID === 'gsi_ort_USA10'));
-      assert.ok(mapC.some((tms) => tms.mapID === 'user-base'));
+      assert.deepEqual(mapC.map((tms) => tms.mapID).sort(), ['gsi', 'gsi_ortho', 'osm']);
+
+      // 常時表示の再編(ADR-0006): OSMは外せない/GSI系は外せる/任意のベースマップを常時表示にできる
+      const catalog = await SettingsService.listBaseMaps();
+      const catalogOsm = catalog.find((item) => item.mapID === 'osm');
+      const catalogGsi = catalog.find((item) => item.mapID === 'gsi');
+      const catalogUser = catalog.find((item) => item.mapID === 'user-base');
+      assert.equal(catalogOsm.alwaysVisible, true);
+      assert.equal(catalogOsm.alwaysLocked, true);
+      assert.equal(catalogGsi.alwaysVisible, true);
+      assert.equal(catalogGsi.alwaysLocked, false);
+      assert.equal(catalogUser.alwaysVisible, false);
+      await assert.rejects(() => SettingsService.setBaseMapAlways('osm', false));
+      await SettingsService.setBaseMapAlways('gsi', false);
+      await SettingsService.setBaseMapAlways('user-base', true);
+      const mapCUpdated = await SettingsService.getTmsListOfMapID('mapC');
+      assert.deepEqual(mapCUpdated.map((tms) => tms.mapID).sort(), ['gsi_ortho', 'osm', 'user-base']);
+      // 常時表示のベースマップは地図単位の設定ではロックされる
+      const mapCVisibility = await SettingsService.getBaseMapVisibilityOfMapID('mapC');
+      assert.equal(mapCVisibility.find((item) => item.mapID === 'user-base').locked, true);
+      // 後続アサーションに影響させないため常時表示設定を既定へ戻す
+      await SettingsService.setBaseMapAlways('gsi', true);
+      await SettingsService.setBaseMapAlways('user-base', false);
 
       // FTS5(日本語分かち書き)とR-Tree(bbox)の索引がトリガで同期されること
       await SqliteDataService.upsertMap('ryukyu-map', {
@@ -267,6 +289,9 @@ try {
       assert.ok(globalThis.__appProgressEvents.some((event) =>
         event.channel === 'app:taskProgress' && event.payload.text === 'database.migrated'
       ));
+      // 再オープンでオプトイン化の一括破棄(スキーマ移行)が再実行されないこと(明示選択が保持される)
+      const mapAAfterReopen = await SettingsService.getTmsListOfMapID('mapA');
+      assert.ok(mapAAfterReopen.some((tms) => tms.mapID === 'user-base'));
 
       // シナリオ2: 退避済み入力(_nedb.db/_settings)からのマイグレーション
       SettingsService.set('saveFolder', ${JSON.stringify(retiredDataDir)});

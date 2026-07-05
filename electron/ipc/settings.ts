@@ -71,4 +71,8 @@ export function registerSettingsHandlers() {
   ipcMain.handle('basemaps:delete-user', async (_, baseMapId: string) => {
     await SettingsService.deleteUserBaseMap(baseMapId);
   });
+
+  ipcMain.handle('basemaps:set-always', async (_, baseMapId: string, always: boolean) => {
+    await SettingsService.setBaseMapAlways(baseMapId, always);
+  });
 }

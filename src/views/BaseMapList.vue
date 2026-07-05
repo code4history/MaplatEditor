@@ -8,7 +8,8 @@
         </button>
       </div>
       <div class="col">
-        <span class="text-muted" style="font-size: 13px;">{{ t("basemap.description") }}</span>
+        <div><span class="text-muted" style="font-size: 13px;">{{ t("basemap.description") }}</span></div>
+        <div><span class="text-muted" style="font-size: 13px;">{{ t("basemap.always_note") }}</span></div>
       </div>
     </div>
 
@@ -37,6 +38,7 @@
               <th style="width: 220px;">{{ t("basemap.map_title") }}</th>
               <th>{{ t("basemap.url") }}</th>
               <th style="width: 180px;">{{ t("basemap.coverage") }}</th>
+              <th style="width: 90px;">{{ t("basemap.always_visible") }}</th>
               <th style="width: 90px;">{{ t("basemap.min_zoom") }}</th>
               <th style="width: 90px;">{{ t("basemap.max_zoom") }}</th>
               <th style="width: 140px;">{{ t("basemap.actions") }}</th>
@@ -52,6 +54,15 @@
               <td class="text-break">{{ item.data.title }}</td>
               <td class="text-break"><small>{{ item.data.url }}</small></td>
               <td><small>{{ coverageLabel(item.data) }}</small></td>
+              <td class="text-center">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  :checked="item.alwaysVisible"
+                  :disabled="item.alwaysLocked"
+                  @change="toggleAlways(item, $event)"
+                >
+              </td>
               <td>{{ item.data.minZoom ?? '-' }}</td>
               <td>{{ item.data.maxZoom ?? '-' }}</td>
               <td>
@@ -81,6 +92,7 @@
                 <th style="width: 220px;">{{ t("basemap.map_title") }}</th>
                 <th>{{ t("basemap.url") }}</th>
                 <th style="width: 180px;">{{ t("basemap.coverage") }}</th>
+                <th style="width: 90px;">{{ t("basemap.always_visible") }}</th>
                 <th style="width: 90px;">{{ t("basemap.max_zoom") }}</th>
               </tr>
             </thead>
@@ -94,6 +106,15 @@
                 <td class="text-break text-muted">{{ item.data.title }}</td>
                 <td class="text-break text-muted"><small>{{ item.data.url || '-' }}</small></td>
                 <td class="text-muted"><small>{{ coverageLabel(item.data) }}</small></td>
+                <td class="text-center">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    :checked="item.alwaysVisible"
+                    :disabled="item.alwaysLocked"
+                    @change="toggleAlways(item, $event)"
+                  >
+                </td>
                 <td class="text-muted">{{ item.data.maxZoom ?? '-' }}</td>
               </tr>
             </tbody>
@@ -220,6 +241,8 @@ interface BaseMapCatalogItem {
   scope: "builtin" | "user";
   data: any;
   thumbnailUrl?: string | null;
+  alwaysVisible: boolean;
+  alwaysLocked: boolean;
 }
 
 const { t } = useTranslation();
@@ -401,6 +424,19 @@ const deleteBaseMap = async (item: BaseMapCatalogItem) => {
   } catch (e) {
     console.error("Failed to delete base map", e);
     error.value = t("basemap.errors.delete_failed");
+  }
+};
+
+const toggleAlways = async (item: BaseMapCatalogItem, event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const always = input.checked;
+  try {
+    await window.baseMaps.setAlways(item.mapID, always);
+    item.alwaysVisible = always;
+  } catch (e) {
+    console.error("Failed to update always-visible setting", e);
+    input.checked = !always;
+    error.value = t("basemap.errors.always_failed");
   }
 };
 </script>

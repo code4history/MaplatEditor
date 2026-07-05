@@ -38,6 +38,8 @@
     "coverage": "Coverage",
     "coverage_modal_title": "Specify coverage",
     "coverage_modal_help": "Draw the approximate area where this map's tiles exist. Used when searching base maps by region.",
+    "always_visible": "Always visible",
+    "always_note": "Base maps set to always visible appear in every map's editor regardless of per-map selection (and cannot be turned off per map). OSM cannot be removed from always visible.",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete",
@@ -70,7 +72,8 @@
       "zoom_order_invalid": "Min zoom must be less than or equal to max zoom.",
       "save_failed": "Failed to save the base map.",
       "delete_failed": "Failed to delete the base map.",
-      "load_failed": "Failed to load the base map list."
+      "load_failed": "Failed to load the base map list.",
+      "always_failed": "Failed to update the always-visible setting."
     }
   },
   "settings": {
@@ -194,7 +197,7 @@
     "map_tile_desc": "If you use an external map tile, enter the format http://...{z}/{x}/{y}.{png|jpg}. No setting is required when using the standard placement position.",
     "edit_base_map": "Edit Base Maps",
     "base_map_visibility": "Visible base maps",
-    "base_map_visibility_desc": "Select base maps available in this map editor. Base maps without explicit settings are shown by default.",
+    "base_map_visibility_desc": "Select base maps to use in this map editor. Only checked base maps are shown. Always-visible base maps are always included regardless of selection.",
     "base_map_always_visible": "Always visible",
     "map_description": "Description",
     "map_description_pf": "Enter the description of the map.",
