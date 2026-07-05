@@ -3,6 +3,8 @@ import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router';
 import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
+import EnvelopeEditorModal from '../components/EnvelopeEditorModal.vue';
+import { envelopeToBbox } from '../utils/appSourceModel';
 import { UndoStack } from '../services/editorUndoStack';
 import { editorComputeBackend } from '../services/editorComputeBackend';
 // @ts-ignore
@@ -176,6 +178,11 @@ const currentBaseMapID = ref('osm');
 const baseMapVisibilityList = ref<any[]>([]);
 const baseMapVisibilityLoading = ref(false);
 const baseMapVisibilityError = ref('');
+// ベースマップ表示選択の検索/絞り込み(文字列・GCP範囲・地域指定)
+const baseMapSearchText = ref('');
+const baseMapFilterByGcps = ref(false);
+const baseMapFilterRegion = ref<[number, number][] | null>(null);
+const showBaseMapRegionModal = ref(false);
 
 const activeTab = ref('metadata');
 
@@ -2027,6 +2034,59 @@ const baseMapTitle = (item: any) => {
     return title;
 };
 
+// 文字列検索の対象: mapID + タイトルの全言語値(表示言語に依らずヒットさせる)
+const baseMapSearchHaystack = (item: any): string => {
+    const title = item?.data?.title;
+    const titleValues = typeof title === 'object' && title !== null ? Object.values(title) : [title];
+    return [item?.mapID, ...titleValues]
+        .filter((value): value is string => typeof value === 'string')
+        .join('\n')
+        .toLowerCase();
+};
+
+// 現在のGCP(メルカトル座標)の存在範囲を経緯度bboxで返す。GCPがなければnull
+const gcpLngLatBbox = (): [number, number, number, number] | null => {
+    let bbox: [number, number, number, number] | null = null;
+    for (const gcp of gcps.value) {
+        const merc = gcp?.[1];
+        if (!Array.isArray(merc) || typeof merc[0] !== 'number' || typeof merc[1] !== 'number') continue;
+        const [lng, lat] = transform(merc, 'EPSG:3857', 'EPSG:4326');
+        bbox = bbox
+            ? [Math.min(bbox[0], lng), Math.min(bbox[1], lat), Math.max(bbox[2], lng), Math.max(bbox[3], lat)]
+            : [lng, lat, lng, lat];
+    }
+    return bbox;
+};
+
+const bboxContains = (outer: number[], inner: number[]): boolean =>
+    outer[0] <= inner[0] && outer[1] <= inner[1] && outer[2] >= inner[2] && outer[3] >= inner[3];
+
+const bboxIntersects = (a: number[], b: number[]): boolean =>
+    a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3];
+
+// 検索/絞り込み適用後の一覧。存在範囲(coverageLngLats)未設定のベースマップは
+// OSM同様に全球扱いとし、GCP範囲/地域指定の絞り込みに常にマッチする
+const filteredBaseMapVisibilityList = computed(() => {
+    const text = baseMapSearchText.value.trim().toLowerCase();
+    const gcpBbox = baseMapFilterByGcps.value ? gcpLngLatBbox() : null;
+    const regionBbox = envelopeToBbox(baseMapFilterRegion.value);
+    return baseMapVisibilityList.value.filter((item) => {
+        if (text && !baseMapSearchHaystack(item).includes(text)) return false;
+        const coverage = envelopeToBbox(item?.data?.coverageLngLats ?? null);
+        if (coverage) {
+            // GCP範囲: GCPの存在範囲を「含む」地図のみ / 地域指定: 領域と「重なる」地図のみ
+            if (gcpBbox && !bboxContains(coverage, gcpBbox)) return false;
+            if (regionBbox && !bboxIntersects(coverage, regionBbox)) return false;
+        }
+        return true;
+    });
+});
+
+const baseMapFilterRegionLabel = computed(() => {
+    const bbox = envelopeToBbox(baseMapFilterRegion.value);
+    return bbox ? `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}` : '';
+});
+
 const getVisibleBaseMapID = (): string | null => {
     if (!mercMap) return null;
     const rootLayer = mercMap.getLayers().item(0);
@@ -3279,43 +3339,87 @@ const goBack = async () => {
             </div>
 
             <!-- Tab: Base map settings -->
-            <div v-show="activeTab === 'settings'" class="h-100 overflow-auto p-4">
+            <div v-show="activeTab === 'settings'" class="h-100 p-4 d-flex flex-column">
                 <h4 class="mb-3">{{ t("mapedit.edit_base_map") }}</h4>
-                <div class="card">
+                <div class="card flex-grow-1 overflow-hidden d-flex flex-column">
                     <div class="card-header bg-light fw-bold">{{ t("mapedit.base_map_visibility") }}</div>
-                    <div class="card-body">
-                        <p class="small text-muted mb-3">{{ t("mapedit.base_map_visibility_desc") }}</p>
+                    <div class="card-body d-flex flex-column overflow-hidden">
+                        <p class="small text-muted mb-2">{{ t("mapedit.base_map_visibility_desc") }}</p>
+                        <!-- 検索/絞り込み: 一覧スクロールの対象外(固定表示) -->
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                            <input
+                                type="search"
+                                class="form-control form-control-sm"
+                                style="max-width: 260px;"
+                                v-model="baseMapSearchText"
+                                :placeholder="t('mapedit.base_map_search_placeholder')"
+                            >
+                            <div v-if="gcps.length > 0" class="form-check m-0">
+                                <input
+                                    id="baseMapGcpFilter"
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    v-model="baseMapFilterByGcps"
+                                >
+                                <label class="form-check-label small" for="baseMapGcpFilter">
+                                    {{ t("mapedit.base_map_filter_gcp") }}
+                                </label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" @click="showBaseMapRegionModal = true">
+                                {{ t("mapedit.base_map_filter_region") }}
+                            </button>
+                            <template v-if="baseMapFilterRegion">
+                                <span class="small font-monospace">{{ baseMapFilterRegionLabel }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @click="baseMapFilterRegion = null">
+                                    {{ t("appedit.envelope_clear") }}
+                                </button>
+                            </template>
+                        </div>
                         <div v-if="baseMapVisibilityLoading" class="small text-muted">
                             {{ t("applist.loading") }}
                         </div>
                         <div v-else-if="baseMapVisibilityError" class="alert alert-danger py-2">
                             {{ baseMapVisibilityError }}
                         </div>
-                        <div v-else class="list-group">
-                            <label
-                                v-for="item in baseMapVisibilityList"
-                                :key="`${item.scope}:${item.mapID}`"
-                                class="list-group-item d-flex align-items-center gap-3"
-                                :class="{ 'text-muted': item.locked }"
-                            >
-                                <input
-                                    class="form-check-input flex-shrink-0"
-                                    type="checkbox"
-                                    :checked="item.enabled"
-                                    :disabled="item.locked"
-                                    @change="setBaseMapVisible(item, $event)"
+                        <div v-else class="overflow-auto flex-grow-1">
+                            <div v-if="filteredBaseMapVisibilityList.length === 0" class="small text-muted">
+                                {{ t("mapedit.base_map_search_no_results") }}
+                            </div>
+                            <div v-else class="list-group">
+                                <label
+                                    v-for="item in filteredBaseMapVisibilityList"
+                                    :key="`${item.scope}:${item.mapID}`"
+                                    class="list-group-item d-flex align-items-center gap-3"
+                                    :class="{ 'text-muted': item.locked }"
                                 >
-                                <div class="flex-grow-1 min-width-0">
-                                    <div class="fw-semibold text-truncate">{{ baseMapTitle(item) }}</div>
-                                    <div class="small text-muted text-truncate">
-                                        {{ item.mapID }} / {{ item.scope }}
-                                        <span v-if="item.locked"> / {{ t("mapedit.base_map_always_visible") }}</span>
+                                    <input
+                                        class="form-check-input flex-shrink-0"
+                                        type="checkbox"
+                                        :checked="item.enabled"
+                                        :disabled="item.locked"
+                                        @change="setBaseMapVisible(item, $event)"
+                                    >
+                                    <div class="flex-grow-1 min-width-0">
+                                        <div class="fw-semibold text-truncate">{{ baseMapTitle(item) }}</div>
+                                        <div class="small text-muted text-truncate">
+                                            {{ item.mapID }} / {{ item.scope }}
+                                            <span v-if="item.locked"> / {{ t("mapedit.base_map_always_visible") }}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </label>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <!-- 地域指定モーダル(Geocoder内蔵)。指定領域と存在範囲が重なるベースマップに絞り込む -->
+                <EnvelopeEditorModal
+                    v-if="showBaseMapRegionModal"
+                    :model-value="baseMapFilterRegion"
+                    title-key="mapedit.base_map_region_modal_title"
+                    help-key="mapedit.base_map_region_modal_help"
+                    @update:model-value="baseMapFilterRegion = $event"
+                    @close="showBaseMapRegionModal = false"
+                />
             </div>
 
         </div>
