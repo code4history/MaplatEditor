@@ -94,12 +94,15 @@ onMounted(() => {
   try {
     if (props.overlayTms?.url) {
       const tmsMinZoom = props.overlayTms.minZoom ?? 0;
+      // 提供域全域を一望して囲めるよう、minZoomの4段下のズームからオーバーレイを表示する
+      // (それより下ではz=minZoomタイルの列挙がviewport比256倍を超えて危険なため描画しない)
+      const overlayGateZoom = Math.max(0, tmsMinZoom - 4);
       overlayLayers = [
         new TileLayer({
           // レイヤminZoom(「viewズーム > minZoom で表示」の排他的閾値)で描画をゲートする。
-          // このゲートがあることで、下のグリッドminZoomは高々1段階のアップスケール
-          // (viewport比≤4倍のタイル数)にしかならず安全
-          ...(tmsMinZoom > 0 ? { minZoom: tmsMinZoom - 1 } : {}),
+          // このゲートがあることで、下のグリッドminZoomは高々4段階のアップスケール
+          // (タイル列挙はviewport比≤256倍、実フェッチは提供域内+キャッシュされる404のみ)に収まる
+          ...(overlayGateZoom > 0 ? { minZoom: overlayGateZoom } : {}),
           source: new XYZ({
             url: props.overlayTms.url,
             maxZoom: props.overlayTms.maxZoom ?? 18,
