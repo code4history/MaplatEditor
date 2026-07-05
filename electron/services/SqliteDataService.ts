@@ -726,25 +726,40 @@ class SqliteDataService {
     ).run(baseMapId, always ? 1 : 0);
   }
 
-  async saveUserBaseMap(tms: any): Promise<void> {
+  // originalMapID: 既存ユーザーベースマップの改名時に旧IDを渡す。
+  // 改名時は地図単位の表示設定(map_base_map_visibility)と常時表示設定(base_map_always)を
+  // 新IDへ引き継ぐ(レガシーデータのID重複はこの改名で解消できる)
+  async saveUserBaseMap(tms: any, originalMapID?: string): Promise<void> {
     const mapID = String(tms?.mapID ?? '').trim();
     if (!mapID) throw new Error('mapID is required');
     const db = await this.getDb();
+    const sourceID = String(originalMapID ?? '').trim() || mapID;
     const builtinRow = db
       .prepare(`SELECT 1 FROM base_maps WHERE scope = 'builtin' AND map_id = ?`)
       .get(mapID);
     if (builtinRow) {
       throw new Error(`Base map ID conflicts with a builtin base map: ${mapID}`);
     }
-    // ID空間はMaplat地図と共有(tmbs/{mapID}.* を共有するため)。既存地図のIDは拒否する
-    const mapRow = db.prepare('SELECT 1 FROM maps WHERE map_id = ?').get(mapID);
-    if (mapRow) {
-      throw new Error(`Base map ID conflicts with a Maplat map: ${mapID}`);
+
+    const findUserRow = (id: string) =>
+      db.prepare(`SELECT sort_order FROM base_maps WHERE scope = 'user' AND map_id = ?`).get(id) as any;
+    const existing = findUserRow(sourceID);
+    const renaming = sourceID !== mapID && existing != null;
+
+    // 「新しくIDを名乗る」場合(新規作成・改名)のみ共有ID空間の衝突を検査する。
+    // レガシーデータで既にMaplat地図とIDが重複している行の同一IDでの上書き更新は
+    // 許容する(grandfather: これを拒否すると改名操作自体もできなくなるため)
+    if (!existing || renaming) {
+      if (renaming && findUserRow(mapID)) {
+        throw new Error(`Base map ID already exists: ${mapID}`);
+      }
+      // ID空間はMaplat地図と共有(tmbs/{mapID}.* を共有するため)。既存地図のIDは拒否する
+      const mapRow = db.prepare('SELECT 1 FROM maps WHERE map_id = ?').get(mapID);
+      if (mapRow) {
+        throw new Error(`Base map ID conflicts with a Maplat map: ${mapID}`);
+      }
     }
 
-    const existing = db
-      .prepare(`SELECT sort_order FROM base_maps WHERE scope = 'user' AND map_id = ?`)
-      .get(mapID) as any;
     let sortOrder: number;
     if (existing) {
       sortOrder = Number(existing.sort_order);
@@ -754,10 +769,20 @@ class SqliteDataService {
         .get() as any;
       sortOrder = Number(next.next_order);
     }
-    db.prepare(
-      `INSERT OR REPLACE INTO base_maps (map_id, scope, sort_order, data_json, updated_at)
-       VALUES (?, 'user', ?, ?, datetime('now'))`
-    ).run(mapID, sortOrder, JSON.stringify({ ...tms, mapID }));
+    this.withTransaction(db, () => {
+      if (renaming) {
+        db.prepare(`DELETE FROM base_maps WHERE scope = 'user' AND map_id = ?`).run(sourceID);
+        // 新ID側の残骸を掃除してから、旧IDの設定を付け替える
+        db.prepare('DELETE FROM map_base_map_visibility WHERE base_map_id = ?').run(mapID);
+        db.prepare('UPDATE map_base_map_visibility SET base_map_id = ? WHERE base_map_id = ?').run(mapID, sourceID);
+        db.prepare('DELETE FROM base_map_always WHERE base_map_id = ?').run(mapID);
+        db.prepare('UPDATE base_map_always SET base_map_id = ? WHERE base_map_id = ?').run(mapID, sourceID);
+      }
+      db.prepare(
+        `INSERT OR REPLACE INTO base_maps (map_id, scope, sort_order, data_json, updated_at)
+         VALUES (?, 'user', ?, ?, datetime('now'))`
+      ).run(mapID, sortOrder, JSON.stringify({ ...tms, mapID }));
+    });
   }
 
   async deleteUserBaseMap(baseMapId: string): Promise<void> {

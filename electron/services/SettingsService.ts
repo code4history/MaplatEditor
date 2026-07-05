@@ -147,9 +147,9 @@ class SettingsService extends EventEmitter {
     return SqliteDataService.listBaseMaps();
   }
 
-  public async saveUserBaseMap(tms: any): Promise<void> {
+  public async saveUserBaseMap(tms: any, originalMapID?: string): Promise<void> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
-    await SqliteDataService.saveUserBaseMap(tms);
+    await SqliteDataService.saveUserBaseMap(tms, originalMapID);
   }
 
   public async deleteUserBaseMap(baseMapId: string): Promise<void> {

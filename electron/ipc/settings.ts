@@ -64,8 +64,8 @@ export function registerSettingsHandlers() {
     });
   });
 
-  ipcMain.handle('basemaps:save-user', async (_, tms: any) => {
-    await SettingsService.saveUserBaseMap(tms);
+  ipcMain.handle('basemaps:save-user', async (_, tms: any, originalMapID?: string) => {
+    await SettingsService.saveUserBaseMap(tms, originalMapID);
   });
 
   ipcMain.handle('basemaps:delete-user', async (_, baseMapId: string) => {

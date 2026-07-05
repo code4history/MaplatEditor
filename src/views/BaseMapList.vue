@@ -135,12 +135,13 @@
           </div>
           <div class="modal-body">
             <div v-if="formError" class="alert alert-danger py-2">{{ formError }}</div>
+            <!-- IDは編集時も変更可能(改名)。表示設定・常時表示設定は新IDへ引き継がれる。
+                 レガシーデータでMaplat地図とIDが重複している場合の解消手段でもある -->
             <label class="form-label">{{ t("basemap.modal.id_label") }}</label>
             <input
               type="text"
               class="form-control"
               v-model="form.mapID"
-              :disabled="editing"
               :placeholder="t('basemap.modal.id_placeholder')"
             />
             <label class="form-label mt-2">{{ t("basemap.modal.title_label") }}</label>
@@ -269,6 +270,8 @@ const builtinBaseMaps = computed(() => items.value.filter((item) => item.scope =
 const showModal = ref(false);
 const showEnvelopeModal = ref(false);
 const editing = ref(false);
+// 編集対象の元ID(改名判定用)。新規作成時は空
+const originalMapID = ref("");
 const saving = ref(false);
 const formError = ref("");
 const form = ref({
@@ -308,6 +311,7 @@ onMounted(() => {
 
 const openAddModal = () => {
   editing.value = false;
+  originalMapID.value = "";
   form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", coverageLngLats: null };
   formThumbnailUrl.value = null;
   formError.value = "";
@@ -316,6 +320,7 @@ const openAddModal = () => {
 
 const openEditModal = (item: BaseMapCatalogItem) => {
   editing.value = true;
+  originalMapID.value = item.mapID;
   form.value = {
     mapID: item.mapID,
     title: item.data.title || "",
@@ -405,7 +410,8 @@ const validateForm = (): string | null => {
   const url = form.value.url.trim();
   if (!mapID) return t("basemap.errors.id_required");
   if (!/^[a-zA-Z0-9_-]+$/.test(mapID)) return t("basemap.errors.id_invalid");
-  if (!editing.value && items.value.some((item) => item.mapID === mapID)) {
+  // ID変更(新規または改名)時のみ重複を検査する(同一IDでの上書き更新は対象外)
+  if (mapID !== originalMapID.value && items.value.some((item) => item.mapID === mapID)) {
     return t("basemap.errors.id_duplicate");
   }
   if (!title) return t("basemap.errors.title_required");
@@ -440,8 +446,10 @@ const saveBaseMap = async () => {
     return;
   }
   // IDはMaplat地図・ビルトイン含む全ベースマップと共通の空間で一意
-  // (サムネイルが tmbs/{mapID}.* を共有するため)。新規作成時はWrite Store横断で確認する
-  if (!editing.value) {
+  // (サムネイルが tmbs/{mapID}.* を共有するため)。新しいIDを名乗る場合
+  // (新規作成・改名)のみWrite Store横断で確認する。同一IDでの上書き更新は
+  // レガシー重複があっても許容される(改名による解消手段を塞がないため)
+  if (form.value.mapID.trim() !== originalMapID.value) {
     try {
       const available = await window.mapedit.checkID(form.value.mapID.trim());
       if (!available) {
@@ -470,7 +478,7 @@ const saveBaseMap = async () => {
   if (form.value.coverageLngLats) tms.coverageLngLats = JSON.parse(JSON.stringify(form.value.coverageLngLats));
   saving.value = true;
   try {
-    await window.baseMaps.saveUser(tms);
+    await window.baseMaps.saveUser(tms, editing.value ? originalMapID.value : undefined);
     showModal.value = false;
     await loadBaseMaps();
   } catch (e) {

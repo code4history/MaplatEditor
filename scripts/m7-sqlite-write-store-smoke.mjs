@@ -283,6 +283,36 @@ try {
       await assert.rejects(() =>
         SqliteDataService.saveUserBaseMap({ mapID: 'legacy-map', title: 'x', url: 'https://example.test/{z}/{x}/{y}.png' })
       );
+
+      // レガシー重複のgrandfather: Maplat地図とIDが重複している既存ユーザーベースマップは、
+      // 同一IDでの上書き更新は許容され、改名(originalMapID指定)で重複を解消できる
+      const rawForDup = await SqliteDataService.getDb();
+      rawForDup
+        .prepare("INSERT OR REPLACE INTO base_maps (map_id, scope, sort_order, data_json) VALUES ('legacy-map', 'user', 99, ?)")
+        .run(JSON.stringify({ mapID: 'legacy-map', title: 'Dup', url: 'https://example.test/{z}/{x}/{y}.png' }));
+      // 同一IDでの上書き更新はOK(grandfather)
+      await SqliteDataService.saveUserBaseMap({ mapID: 'legacy-map', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' });
+      // 改名先が地図IDと衝突する場合は拒否
+      await SqliteDataService.upsertMap('another-map', { title: '別の地図' });
+      await assert.rejects(() =>
+        SqliteDataService.saveUserBaseMap({ mapID: 'another-map', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' }, 'legacy-map')
+      );
+      await SqliteDataService.deleteMap('another-map');
+      // 未使用IDへの改名で解消できる
+      await SqliteDataService.saveUserBaseMap({ mapID: 'legacy-map-renamed', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' }, 'legacy-map');
+      const afterRename = await SettingsService.listBaseMaps();
+      assert.ok(afterRename.some((item) => item.scope === 'user' && item.mapID === 'legacy-map-renamed'));
+      assert.ok(!afterRename.some((item) => item.scope === 'user' && item.mapID === 'legacy-map'));
+      await SqliteDataService.deleteUserBaseMap('legacy-map-renamed');
+
+      // 改名で地図単位の表示設定が引き継がれること(mapAでuser-baseをオプトイン済み)
+      await SqliteDataService.saveUserBaseMap({ mapID: 'user-base-renamed', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' }, 'user-base');
+      const mapARenamed = await SettingsService.getTmsListOfMapID('mapA');
+      assert.ok(mapARenamed.some((tms) => tms.mapID === 'user-base-renamed'));
+      assert.ok(!mapARenamed.some((tms) => tms.mapID === 'user-base'));
+      // 後続アサーションのため元のIDへ戻す(設定も戻る)
+      await SqliteDataService.saveUserBaseMap({ mapID: 'user-base', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' }, 'user-base-renamed');
+      assert.ok((await SettingsService.getTmsListOfMapID('mapA')).some((tms) => tms.mapID === 'user-base'));
       await SearchDataService.reset();
       await SqliteDataService.reset();
       // 2回目以降の起動では移行済みのため、退避アーカイブが残っていても進捗通知(移行ダイアログ)は出ない
