@@ -42,6 +42,8 @@
     "min_zoom": "Zoom mín.",
     "max_zoom": "Zoom máx.",
     "icon": "Icono",
+    "generate_icon": "Generar desde el área de cobertura",
+    "generating_icon": "Generando...",
     "coverage": "Área de cobertura",
     "coverage_modal_title": "Especificar área de cobertura",
     "coverage_modal_help": "Arrastre para indicar el área aproximada donde existen las teselas de este mapa. Se usa al buscar mapas base por región.",
@@ -80,7 +82,8 @@
       "save_failed": "Error al guardar el mapa base.",
       "delete_failed": "Error al eliminar el mapa base.",
       "load_failed": "Error al cargar la lista de mapas base.",
-      "always_failed": "Error al guardar la configuración de visibilidad permanente."
+      "always_failed": "Error al guardar la configuración de visibilidad permanente.",
+      "icon_generate_failed": "No se pudo generar el icono. Compruebe la URL de teselas y el área de cobertura."
     }
   },
   "settings": {

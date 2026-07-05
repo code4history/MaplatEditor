@@ -42,6 +42,8 @@
     "min_zoom": "最小ズーム",
     "max_zoom": "最大ズーム",
     "icon": "アイコン",
+    "generate_icon": "存在範囲から生成",
+    "generating_icon": "生成中...",
     "coverage": "存在範囲",
     "coverage_modal_title": "存在範囲を指定",
     "coverage_modal_help": "この地図のタイルが存在するおおよその範囲をドラッグで指定してください。地域からベースマップを探す際に使われます。",
@@ -80,7 +82,8 @@
       "save_failed": "保存に失敗しました。",
       "delete_failed": "削除に失敗しました。",
       "load_failed": "ベースマップ一覧の取得に失敗しました。",
-      "always_failed": "常時表示設定の保存に失敗しました。"
+      "always_failed": "常時表示設定の保存に失敗しました。",
+      "icon_generate_failed": "アイコンの生成に失敗しました。タイルURLと存在範囲を確認してください。"
     }
   },
   "settings": {

@@ -17,6 +17,13 @@ export function registerAppAssetHandlers() {
     return await AppAssetService.uploadPwaIcon(win, appID);
   });
 
+  ipcMain.handle(
+    'appassets:generate-tms-thumbnail',
+    async (_event, mapID: string, tms: { url?: string; minZoom?: number; maxZoom?: number }, coverageLngLats: [number, number][]) => {
+      return await AppAssetService.generateTmsThumbnail(mapID, tms, coverageLngLats);
+    }
+  );
+
   ipcMain.handle('appassets:file-url', (_event, relPath: string) => {
     return AppAssetService.fileUrlFor(relPath);
   });

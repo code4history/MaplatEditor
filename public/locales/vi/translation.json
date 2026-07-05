@@ -42,6 +42,8 @@
     "min_zoom": "Zoom tối thiểu",
     "max_zoom": "Zoom tối đa",
     "icon": "Biểu tượng",
+    "generate_icon": "Tạo từ phạm vi tồn tại",
+    "generating_icon": "Đang tạo...",
     "coverage": "Phạm vi tồn tại",
     "coverage_modal_title": "Chỉ định phạm vi tồn tại",
     "coverage_modal_help": "Vui lòng kéo để chỉ định phạm vi gần đúng nơi tồn tại tile của bản đồ này. Được dùng khi tìm bản đồ nền theo khu vực.",
@@ -80,7 +82,8 @@
       "save_failed": "Lưu thất bại.",
       "delete_failed": "Xóa thất bại.",
       "load_failed": "Không lấy được danh sách bản đồ nền.",
-      "always_failed": "Lưu cài đặt luôn hiển thị thất bại."
+      "always_failed": "Lưu cài đặt luôn hiển thị thất bại.",
+      "icon_generate_failed": "Không thể tạo biểu tượng. Vui lòng kiểm tra URL tile và phạm vi tồn tại."
     }
   },
   "settings": {

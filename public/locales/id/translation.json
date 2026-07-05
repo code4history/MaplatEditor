@@ -42,6 +42,8 @@
     "min_zoom": "Zoom minimum",
     "max_zoom": "Zoom maksimum",
     "icon": "Ikon",
+    "generate_icon": "Buat dari cakupan wilayah",
+    "generating_icon": "Sedang membuat...",
     "coverage": "Cakupan wilayah",
     "coverage_modal_title": "Tentukan cakupan wilayah",
     "coverage_modal_help": "Silakan seret untuk menentukan area perkiraan tempat tile peta ini berada. Digunakan saat mencari peta dasar berdasarkan wilayah.",
@@ -80,7 +82,8 @@
       "save_failed": "Gagal menyimpan.",
       "delete_failed": "Gagal menghapus.",
       "load_failed": "Gagal mengambil daftar peta dasar.",
-      "always_failed": "Gagal menyimpan pengaturan selalu tampil."
+      "always_failed": "Gagal menyimpan pengaturan selalu tampil.",
+      "icon_generate_failed": "Gagal membuat ikon. Periksa URL tile dan cakupan wilayah."
     }
   },
   "settings": {

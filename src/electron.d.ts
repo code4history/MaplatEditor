@@ -45,6 +45,11 @@ export interface PoiSourcesAPI {
 
 export interface AppAssetsAPI {
     uploadTmsThumbnail(mapID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
+    generateTmsThumbnail(
+        mapID: string,
+        tms: { url?: string; minZoom?: number; maxZoom?: number },
+        coverageLngLats: [number, number][]
+    ): Promise<{ err?: string; path?: string; fileUrl?: string }>;
     uploadSplash(): Promise<{ err?: string; splash?: string; fileUrl?: string }>;
     uploadPwaIcon(appID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
     fileUrl(relPath: string): Promise<string | null>;

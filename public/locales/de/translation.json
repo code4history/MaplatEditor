@@ -42,6 +42,8 @@
     "min_zoom": "Min. Zoom",
     "max_zoom": "Max. Zoom",
     "icon": "Symbol",
+    "generate_icon": "Aus Abdeckungsbereich erzeugen",
+    "generating_icon": "Wird erzeugt...",
     "coverage": "Abdeckungsbereich",
     "coverage_modal_title": "Abdeckungsbereich festlegen",
     "coverage_modal_help": "Ziehen Sie den ungefähren Bereich, in dem die Kacheln dieser Karte vorhanden sind. Dies wird bei der Suche nach Basiskarten nach Region verwendet.",
@@ -80,7 +82,8 @@
       "save_failed": "Speichern der Basiskarte fehlgeschlagen.",
       "delete_failed": "Löschen der Basiskarte fehlgeschlagen.",
       "load_failed": "Laden der Basiskartenliste fehlgeschlagen.",
-      "always_failed": "Speichern der Einstellung für dauerhafte Sichtbarkeit fehlgeschlagen."
+      "always_failed": "Speichern der Einstellung für dauerhafte Sichtbarkeit fehlgeschlagen.",
+      "icon_generate_failed": "Das Symbol konnte nicht erzeugt werden. Prüfen Sie Kachel-URL und Abdeckungsbereich."
     }
   },
   "settings": {

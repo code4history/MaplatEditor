@@ -39,6 +39,8 @@
     "min_zoom": "Min zoom",
     "max_zoom": "Max zoom",
     "icon": "Icon",
+    "generate_icon": "Generate from coverage",
+    "generating_icon": "Generating...",
     "coverage": "Coverage",
     "coverage_modal_title": "Specify coverage",
     "coverage_modal_help": "Draw the approximate area where this map's tiles exist. Used when searching base maps by region.",
@@ -77,7 +79,8 @@
       "save_failed": "Failed to save the base map.",
       "delete_failed": "Failed to delete the base map.",
       "load_failed": "Failed to load the base map list.",
-      "always_failed": "Failed to update the always-visible setting."
+      "always_failed": "Failed to update the always-visible setting.",
+      "icon_generate_failed": "Failed to generate the icon. Check the tile URL and coverage."
     }
   },
   "settings": {

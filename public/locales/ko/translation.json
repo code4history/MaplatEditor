@@ -42,6 +42,8 @@
     "min_zoom": "최소 줌",
     "max_zoom": "최대 줌",
     "icon": "아이콘",
+    "generate_icon": "존재 범위에서 생성",
+    "generating_icon": "생성 중...",
     "coverage": "존재 범위",
     "coverage_modal_title": "존재 범위 지정",
     "coverage_modal_help": "이 지도의 타일이 존재하는 대략적인 범위를 드래그로 지정하세요. 지역별로 베이스맵을 찾을 때 사용됩니다.",
@@ -80,7 +82,8 @@
       "save_failed": "저장에 실패했습니다.",
       "delete_failed": "삭제에 실패했습니다.",
       "load_failed": "베이스맵 목록을 가져오는 데 실패했습니다.",
-      "always_failed": "항상 표시 설정 저장에 실패했습니다."
+      "always_failed": "항상 표시 설정 저장에 실패했습니다.",
+      "icon_generate_failed": "아이콘 생성에 실패했습니다. 타일 URL과 존재 범위를 확인해 주세요."
     }
   },
   "settings": {

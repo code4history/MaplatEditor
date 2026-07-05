@@ -188,10 +188,19 @@
             </div>
             <!-- アイコン(52px正方形)。アプリ登録時のデフォルトとして継承される -->
             <label class="form-label mt-2">{{ t("basemap.icon") }}</label>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
               <img v-if="formThumbnailUrl" :src="formThumbnailUrl" class="basemap-icon" :alt="form.mapID">
               <button type="button" class="btn btn-sm btn-outline-secondary" @click="uploadIcon">
                 {{ t("appedit.upload") }}
+              </button>
+              <!-- タイルURLと存在範囲が揃っている場合、範囲の画像から52pxアイコンを自動生成できる -->
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                :disabled="!canGenerateIcon || generatingIcon"
+                @click="generateIcon"
+              >
+                {{ generatingIcon ? t("basemap.generating_icon") : t("basemap.generate_icon") }}
               </button>
               <small class="text-muted">{{ t("appedit.thumbnail_note") }}</small>
             </div>
@@ -219,9 +228,11 @@
       </div>
     </div>
 
+    <!-- タイルURL定義済みなら当該タイルをオーバーレイし、実在範囲を見ながら指定できる -->
     <EnvelopeEditorModal
       v-if="showEnvelopeModal"
       :model-value="form.coverageLngLats"
+      :overlay-tms="overlayTms"
       title-key="basemap.coverage_modal_title"
       help-key="basemap.coverage_modal_help"
       @update:model-value="form.coverageLngLats = $event"
@@ -345,6 +356,48 @@ const uploadIcon = async () => {
   }
   form.value.thumbnail = result.path || "";
   formThumbnailUrl.value = result.fileUrl || null;
+};
+
+// タイルURLテンプレートが有効な形なら、範囲指定モーダルへのオーバーレイ用定義を返す
+const overlayTms = computed(() => {
+  const url = String(form.value.url || "").trim();
+  if (!(url.includes("{z}") && url.includes("{x}") && (url.includes("{y}") || url.includes("{-y}")))) {
+    return null;
+  }
+  return {
+    url,
+    minZoom: form.value.minZoom !== "" && form.value.minZoom !== null ? Number(form.value.minZoom) : undefined,
+    maxZoom: form.value.maxZoom !== "" && form.value.maxZoom !== null ? Number(form.value.maxZoom) : undefined,
+  };
+});
+
+// アイコン自動生成はタイルURLと存在範囲の両方が設定済みの場合のみ
+const canGenerateIcon = computed(() => overlayTms.value != null && form.value.coverageLngLats != null);
+const generatingIcon = ref(false);
+
+const generateIcon = async () => {
+  const mapID = form.value.mapID.trim();
+  if (!mapID) {
+    formError.value = t("basemap.errors.id_required");
+    return;
+  }
+  if (!overlayTms.value || !form.value.coverageLngLats) return;
+  formError.value = "";
+  generatingIcon.value = true;
+  try {
+    const result = await window.appAssets.generateTmsThumbnail(mapID, overlayTms.value, form.value.coverageLngLats);
+    if (result.err || !result.path) {
+      formError.value = t("basemap.errors.icon_generate_failed");
+      return;
+    }
+    form.value.thumbnail = result.path;
+    formThumbnailUrl.value = result.fileUrl ? `${result.fileUrl}?t=${Date.now()}` : null;
+  } catch (e) {
+    console.error("Failed to generate base map icon", e);
+    formError.value = t("basemap.errors.icon_generate_failed");
+  } finally {
+    generatingIcon.value = false;
+  }
 };
 
 const validateForm = (): string | null => {

@@ -10,7 +10,7 @@ import Map from "ol/Map";
 import View from "ol/View";
 import Feature from "ol/Feature";
 import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
-import { OSM, Vector as VectorSource } from "ol/source";
+import { OSM, XYZ, Vector as VectorSource } from "ol/source";
 import { Draw, Snap } from "ol/interaction";
 import { createBox } from "ol/interaction/Draw";
 import { Style, Stroke, Fill } from "ol/style";
@@ -31,6 +31,9 @@ const props = defineProps<{
   // モーダルの文言(翻訳キー)。未指定なら利用範囲(envelope)用の既定文言
   titleKey?: string;
   helpKey?: string;
+  // 対象ベースマップのタイルをOSMの上に重ねて表示する(URLテンプレート定義済みの場合)。
+  // タイルが実在する範囲を目視しながら正確に範囲指定できるようにするため
+  overlayTms?: { url: string; minZoom?: number; maxZoom?: number } | null;
 }>();
 const emit = defineEmits<{
   (e: "update:modelValue", value: [number, number][] | null): void;
@@ -80,10 +83,24 @@ function renderBbox(bbox: [number, number, number, number] | null) {
 
 onMounted(() => {
   currentBbox.value = envelopeToBbox(props.modelValue);
+  // 対象タイルのオーバーレイ(OSMの上、ガイド/描画レイヤの下)。
+  // タイルが無い場所は404で透過し、下のOSMが見える=タイル実在範囲がそのまま視認できる
+  const overlayLayers = props.overlayTms?.url
+    ? [
+        new TileLayer({
+          source: new XYZ({
+            url: props.overlayTms.url,
+            minZoom: props.overlayTms.minZoom ?? 0,
+            maxZoom: props.overlayTms.maxZoom ?? 18,
+          }),
+        }),
+      ]
+    : [];
   map = new Map({
     target: mapElement.value!,
     layers: [
       new TileLayer({ source: new OSM() }),
+      ...overlayLayers,
       new VectorLayer({ source: appCoverageSource, style: appCoverageStyle }),
       new VectorLayer({ source: coverageSource, style: coverageStyle }),
       new VectorLayer({ source: vectorSource, style: boxStyle }),

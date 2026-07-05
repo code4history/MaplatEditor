@@ -42,6 +42,8 @@
     "min_zoom": "Zoom min.",
     "max_zoom": "Zoom max.",
     "icon": "Icône",
+    "generate_icon": "Générer depuis la zone de couverture",
+    "generating_icon": "Génération...",
     "coverage": "Zone de couverture",
     "coverage_modal_title": "Définir la zone de couverture",
     "coverage_modal_help": "Faites glisser pour indiquer la zone approximative où les tuiles de cette carte existent. Utilisé lors de la recherche de fonds de carte par région.",
@@ -80,7 +82,8 @@
       "save_failed": "Échec de l'enregistrement du fond de carte.",
       "delete_failed": "Échec de la suppression du fond de carte.",
       "load_failed": "Échec du chargement de la liste des fonds de carte.",
-      "always_failed": "Échec de l'enregistrement du paramètre d'affichage permanent."
+      "always_failed": "Échec de l'enregistrement du paramètre d'affichage permanent.",
+      "icon_generate_failed": "Échec de la génération de l'icône. Vérifiez l'URL des tuiles et la zone de couverture."
     }
   },
   "settings": {

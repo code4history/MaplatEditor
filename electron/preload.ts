@@ -136,6 +136,8 @@ contextBridge.exposeInMainWorld('baseMaps', {
 
 contextBridge.exposeInMainWorld('appAssets', {
   uploadTmsThumbnail: (mapID: string) => ipcRenderer.invoke('appassets:upload-tms-thumbnail', mapID),
+  generateTmsThumbnail: (mapID: string, tms: any, coverageLngLats: [number, number][]) =>
+    ipcRenderer.invoke('appassets:generate-tms-thumbnail', mapID, tms, coverageLngLats),
   uploadSplash: () => ipcRenderer.invoke('appassets:upload-splash'),
   uploadPwaIcon: (appID: string) => ipcRenderer.invoke('appassets:upload-pwa-icon', appID),
   fileUrl: (relPath: string) => ipcRenderer.invoke('appassets:file-url', relPath),

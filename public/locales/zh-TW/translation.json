@@ -42,6 +42,8 @@
     "min_zoom": "最小縮放等級",
     "max_zoom": "最大縮放等級",
     "icon": "圖示",
+    "generate_icon": "從涵蓋範圍產生",
+    "generating_icon": "產生中...",
     "coverage": "涵蓋範圍",
     "coverage_modal_title": "指定涵蓋範圍",
     "coverage_modal_help": "請以拖曳方式指定此地圖圖磚存在的大致範圍。用於依地區搜尋底圖時使用。",
@@ -80,7 +82,8 @@
       "save_failed": "儲存失敗。",
       "delete_failed": "刪除失敗。",
       "load_failed": "取得底圖清單失敗。",
-      "always_failed": "儲存永遠顯示設定失敗。"
+      "always_failed": "儲存永遠顯示設定失敗。",
+      "icon_generate_failed": "圖示產生失敗。請檢查圖磚URL與涵蓋範圍。"
     }
   },
   "settings": {

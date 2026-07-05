@@ -42,6 +42,8 @@
     "min_zoom": "最小缩放级别",
     "max_zoom": "最大缩放级别",
     "icon": "图标",
+    "generate_icon": "从覆盖范围生成",
+    "generating_icon": "生成中...",
     "coverage": "覆盖范围",
     "coverage_modal_title": "指定覆盖范围",
     "coverage_modal_help": "请通过拖动指定此地图瓦片存在的大致范围。用于按区域搜索底图时使用。",
@@ -80,7 +82,8 @@
       "save_failed": "保存失败。",
       "delete_failed": "删除失败。",
       "load_failed": "获取底图列表失败。",
-      "always_failed": "保存始终显示设置失败。"
+      "always_failed": "保存始终显示设置失败。",
+      "icon_generate_failed": "图标生成失败。请检查瓦片URL和覆盖范围。"
     }
   },
   "settings": {
