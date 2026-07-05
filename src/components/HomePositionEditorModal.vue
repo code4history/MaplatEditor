@@ -11,6 +11,8 @@ import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
 import { OSM, Vector as VectorSource } from "ol/source";
 import { Style, Circle as CircleStyle, Stroke, Fill } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
+// @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
+import Geocoder from "../libs/ol-geocoder/base";
 
 const props = defineProps<{
   modelValue: [number, number] | null;
@@ -62,6 +64,22 @@ onMounted(() => {
     currentPosition.value = [round6(lng), round6(lat)];
     renderMarker(currentPosition.value);
   });
+
+  // 住所検索(ジオコーディング)で希望地域へ一気に移動できるようにする。
+  // MapEditのベースマップ側と同じ設定・挙動(選択時にビューをfit、ピンは表示しない)
+  const geocoder = new Geocoder("nominatim", {
+    provider: "osm",
+    lang: "en-US",
+    placeholder: t("mapedit.control_put_address"),
+    limit: 5,
+    keepOpen: false,
+  });
+  geocoder.on("addresschosen", () => {
+    if (geocoder.getLayer && geocoder.getLayer()) {
+      geocoder.getLayer().getSource().clear();
+    }
+  });
+  map.addControl(geocoder);
 });
 
 onBeforeUnmount(() => {
