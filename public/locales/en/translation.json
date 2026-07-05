@@ -1,5 +1,7 @@
 {
   "common": {
+    "back": "Back",
+    "settings": "Settings",
     "reset": "Reset",
     "save": "Save",
     "save_with_english": "Save",
@@ -12,7 +14,10 @@
     "spanish": "Spanish",
     "korean": "Korean",
     "simplified": "Simplified Chinese",
-    "traditional": "Traditional Chinese"
+    "traditional": "Traditional Chinese",
+    "vietnamese": "Vietnamese",
+    "thai": "Thai",
+    "indonesian": "Indonesian"
   },
   "navbar": {
     "edit_map": "Edit Map",
@@ -77,18 +82,25 @@
     }
   },
   "settings": {
+    "title": "Settings",
     "basic_settings": "Basic settings",
     "base_map": "Base map settings",
     "original_map": "Original map settings",
     "switch_lang": "Switch Language",
     "data_folder": "Data Folder",
     "specify_data_folder": "Please specify data folder.",
-    "confirm_close_no_save": "The settings have been changed but not saved.\nDo you want to close without saving?"
+    "confirm_close_no_save": "The settings have been changed but not saved.\nDo you want to close without saving?",
+    "select": "Select",
+    "language": "Language",
+    "theme": "Theme"
   },
   "maplist": {
+    "title": "Map list",
+    "create_new": "Create new",
     "new_create": "Create new map",
     "delete_error": "Deletion failed.",
     "delete_confirm": "Do you want to delete {{name}}?\n(This process is irreversible.)",
+    "confirm_delete": "Are you sure you want to delete this?",
     "delete_menu": "Delete menu",
     "delete_item": "Delete {{name}}",
     "migrating": "Migrating database...",
@@ -97,7 +109,15 @@
     "deleted_old": "Removing old data is finished",
     "migration_confirm": "There are map data files with old specifications.\nDo you want to migrate them to the database?",
     "delete_old_confirm": "The data migration to the new specification is completed.\nDo you want to delete the old data files?",
-    "search_placeholder": "Input search condition"
+    "search_placeholder": "Input search condition",
+    "id": "ID",
+    "name": "Map name",
+    "era": "Era",
+    "description": "Description",
+    "last_modified": "Last modified",
+    "action": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "dataio": {
     "import_map_data": "Import map data",
@@ -130,6 +150,17 @@
     "csv_override_confirm": "GCP was already registered.Importing the CSV will reset the GCP, is this OK?"
   },
   "mapedit": {
+    "title": "Map editing",
+    "metadata": "Metadata",
+    "gcp": "GCP editing",
+    "data_io": "Data import/export",
+    "base_map": "Base map",
+    "illustrated_map": "Illustrated map",
+    "map_title": "Map title",
+    "map_official_title": "Official title",
+    "map_license": "License",
+    "map_note": "Notes",
+    "save": "Save",
     "line_selected_already": "This corresponding line is already specified.",
     "edit_metadata": "Edit Metadata",
     "edit_gcp": "Edit GCP",
@@ -262,6 +293,7 @@
     "confirm_save": "Save your changes. \nAre you sure?",
     "copy_or_move": "Map ID has been changed. Do you want to make a copy?\nSelect OK to copy, Cancel to move.",
     "success_save": "Save succeeded.",
+    "error_duplicate_id": "The map ID is already in use.\nPlease change the map ID.",
     "error_saving": "Error occurred during save.",
     "confirm_layer_delete": "Are you sure you want to delete this sublayer?",
     "confirm_no_save": "The map data has been changed but not saved.\nAre you sure you want to close without saving?",
@@ -579,5 +611,8 @@
     "error": {
       "unknown": "An error occurred while saving"
     }
+  },
+  "app": {
+    "title": "Maplat Editor"
   }
 }

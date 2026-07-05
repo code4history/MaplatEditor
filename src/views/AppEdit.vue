@@ -18,7 +18,7 @@ import {
   type AppSource as SharedAppSource,
 } from "../utils/appSourceModel";
 
-type LangCode = "ja" | "en" | "de" | "fr" | "es" | "ko" | "zh" | "zh-TW";
+import { LANGS_MAP, LANG_CODES, resolveEditorLanguage, type LangCode } from "../utils/editorLanguages";
 
 interface AppSource extends SharedAppSource {
   thumbnail?: string;
@@ -97,29 +97,25 @@ const builtinThumbnails: Record<string, string> = {
   gsi_ortho: gsiOrthoThumb,
 };
 
-const { t } = useTranslation();
+const { t, i18next } = useTranslation();
 const route = useRoute();
 const router = useRouter();
 
-const langsMap: Record<LangCode, string> = {
-  ja: "japanese",
-  en: "english",
-  de: "germany",
-  fr: "french",
-  es: "spanish",
-  ko: "korean",
-  zh: "simplified",
-  "zh-TW": "traditional",
-};
+// 対応言語(ビューア対応言語と同一)は共有定義から導出。langコード → common.* i18nキー名
+const langsMap: Record<LangCode, string> = LANGS_MAP;
+
+const emptyLangRecord = (): Record<string, string> =>
+  Object.fromEntries(LANG_CODES.map((code) => [code, ""]));
 
 const defaultApp = (): AppDocument => ({
   appID: "",
-  appName: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
-  title: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
-  description: { ja: "", en: "", de: "", fr: "", es: "", ko: "", zh: "", "zh-TW": "" },
+  appName: emptyLangRecord(),
+  title: emptyLangRecord(),
+  description: emptyLangRecord(),
   keywords: "",
   siteUrl: "",
-  lang: "ja",
+  // 新規アプリのデフォルト言語は編集者のエディタUI言語(設定言語)に合わせる
+  lang: resolveEditorLanguage(i18next.language),
   sources: [],
   httpSettings: {
     previewPort: 41781,
@@ -366,12 +362,14 @@ function normalizeAppDocument(value: any): AppDocument {
   normalized.appID = value.appID || value._id || "";
   normalized.originalAppID = value.originalAppID || normalized.appID;
   normalized.lang = value.lang || "ja";
-  normalized.appName = normalizeLangObject(value.appName || value.title);
-  normalized.title = normalizeLangObject(value.title || value.appName);
-  normalized.description = normalizeLangObject(value.description);
+  normalized.appName = normalizeLangObject(value.appName || value.title, normalized.lang);
+  normalized.title = normalizeLangObject(value.title || value.appName, normalized.lang);
+  normalized.description = normalizeLangObject(value.description, normalized.lang);
   normalized.keywords = typeof value.keywords === "string" ? value.keywords : "";
   normalized.siteUrl = typeof value.siteUrl === "string" ? value.siteUrl : "";
-  normalized.sources = Array.isArray(value.sources) ? value.sources.map(normalizeSource) : [];
+  normalized.sources = Array.isArray(value.sources)
+    ? value.sources.map((source: any) => normalizeSource(source, normalized.lang))
+    : [];
   normalized.httpSettings = normalizeHttpSettings(value.httpSettings || value.http || value);
   normalized.appSettings = normalizeAppSettings(value.appSettings || value);
   normalized.manifestSettings = normalizeManifestSettings(value.manifestSettings || value.manifest || {});
@@ -387,28 +385,28 @@ function normalizeAppDocument(value: any): AppDocument {
   return normalized;
 }
 
-function normalizeLangObject(value: any): Record<string, string> {
-  if (typeof value === "string") return { ja: value, en: value };
-  return {
-    ja: value?.ja || "",
-    en: value?.en || "",
-    de: value?.de || "",
-    fr: value?.fr || "",
-    es: value?.es || "",
-    ko: value?.ko || "",
-    zh: value?.zh || "",
-    "zh-TW": value?.["zh-TW"] || "",
-  };
+// 対応全言語のキーを持つレコードへ正規化する。プレーン文字列は
+// デフォルト言語の値として受容する(ADR-0005の交換形)
+function normalizeLangObject(value: any, defaultLang?: string): Record<string, string> {
+  const record = emptyLangRecord();
+  if (typeof value === "string") {
+    if (value) record[defaultLang || appData.value.lang || "ja"] = value;
+    return record;
+  }
+  for (const code of LANG_CODES) {
+    record[code] = value?.[code] || "";
+  }
+  return record;
 }
 
-function normalizeSource(value: any): AppSource {
+function normalizeSource(value: any, defaultLang?: string): AppSource {
   const source = normalizeAppSource(value) as AppSource;
   if (!source.title) {
     const title = source.label || (source.data as any)?.title || source.mapID;
     source.title = typeof title === "string" ? title : localizedWithLang(title, "ja") || source.mapID;
   }
   if (source.sourceType !== "builtin") {
-    source.label = { ...normalizeLangObject(source.label || source.title) };
+    source.label = { ...normalizeLangObject(source.label || source.title, defaultLang) };
   }
   source.thumbnail = typeof value === "object" && value !== null ? value.thumbnail : undefined;
   return source;

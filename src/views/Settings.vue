@@ -48,13 +48,15 @@
                 t("settings.switch_lang")
               }}</label>
               <div class="col-sm-9">
+                <!-- UI言語の選択肢は自言語表記(autonym): 現在のUI言語が読めなくても自分の言語を探せる -->
                 <select
                   class="form-select"
                   id="langSwitcher"
                   v-model="state.lang"
                 >
-                  <option value="ja">日本語</option>
-                  <option value="en">English</option>
+                  <option v-for="entry in SUPPORTED_LANGUAGES" :key="entry.code" :value="entry.code">
+                    {{ entry.nativeName }}
+                  </option>
                 </select>
               </div>
             </div>
@@ -127,6 +129,7 @@
 import { reactive, onMounted, ref, computed } from "vue";
 import { useTranslation } from "i18next-vue";
 import Header from "../components/Header.vue";
+import { SUPPORTED_LANGUAGES } from "../utils/editorLanguages";
 
 const { t, i18next } = useTranslation();
 const activeTab = ref("basic");

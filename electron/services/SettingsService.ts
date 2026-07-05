@@ -12,12 +12,14 @@ interface AppSettings {
 
 // @ts-ignore
 import defaultTmsList from '../tms_list.json';
+import { resolveEditorLanguage } from '../../src/utils/editorLanguages';
 
+// lang はデフォルト値を持たせない: 未設定(初回起動)の場合はOSの言語から解決し
+// (非対応言語は en へフォールバック)、その結果を設定として永続化する
 const defaultSettings: AppSettings = {
-  lang: 'ja',
   saveFolder: path.join(app.getPath('documents'), app.getName()),
   tmsList: defaultTmsList
-};
+} as AppSettings;
 
 import { EventEmitter } from 'events';
 
@@ -81,7 +83,20 @@ class SettingsService extends EventEmitter {
     if (key === 'tmpFolder') {
       return path.join(app.getPath('temp'), app.getName());
     }
+    if (key === 'lang') {
+      return this.ensureLang();
+    }
     return this.store.get(key);
+  }
+
+  // 初回起動(lang未設定)時のみOSの言語から解決して永続化する。
+  // 一度Settingsで保存された値(または本メソッドで検出された値)は以後そのまま使われる
+  private ensureLang(): string {
+    const stored = this.store.get('lang');
+    if (stored) return stored;
+    const detected = resolveEditorLanguage(typeof app.getLocale === 'function' ? app.getLocale() : '');
+    this.store.set('lang', detected);
+    return detected;
   }
 
   public getAll(): AppSettings {

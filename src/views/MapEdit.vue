@@ -5,6 +5,7 @@ import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
 import EnvelopeEditorModal from '../components/EnvelopeEditorModal.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
+import { LANGS_MAP, resolveEditorLanguage } from '../utils/editorLanguages';
 import { UndoStack } from '../services/editorUndoStack';
 import { editorComputeBackend } from '../services/editorComputeBackend';
 // @ts-ignore
@@ -40,7 +41,7 @@ import type { MapBrowserEvent } from 'ol';
 import type Feature from 'ol/Feature';
 import type { SimpleGeometry } from 'ol/geom';
 
-const { t } = useTranslation();
+const { t, i18next } = useTranslation();
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 const router = useRouter();
 const route = useRoute();
@@ -658,20 +659,8 @@ function zenHankakuLength(text: string): number {
     return len;
 }
 
-/**
- * 旧実装 langs マップ相当（map.js L.44）
- * lang コード → common.* i18n キー名
- */
-const langsMap: Record<string, string> = {
-    'ja': 'japanese',
-    'en': 'english',
-    'de': 'germany',
-    'fr': 'french',
-    'es': 'spanish',
-    'ko': 'korean',
-    'zh': 'simplified',
-    'zh-TW': 'traditional'
-};
+// 対応言語(ビューア対応言語と同一)は共有定義から導出。langコード → common.* i18nキー名
+const langsMap: Record<string, string> = LANGS_MAP;
 
 /**
  * 旧実装 computed.blockingGcpsError 相当（map.js L.289）
@@ -1358,7 +1347,9 @@ onMounted(async () => {
 
     if (isNew) {
         // 新規地図: defaultMap で初期化、onlyOne = false（mapID編集可）
-        const fresh = defaultMapData();
+        // デフォルト言語は編集者のエディタUI言語(設定言語)に合わせる
+        const fresh: any = defaultMapData();
+        fresh.lang = resolveEditorLanguage(i18next.language);
         mapData.value = fresh;
         originalMapData.value = cloneDeep(fresh);
         onlyOne.value = false;
@@ -1380,6 +1371,9 @@ onMounted(async () => {
         }
         onlyOne.value = true;
     }
+
+    // 編集言語の初期値は地図のデフォルト言語(未設定の旧データはja)
+    currentLang.value = mapData.value.lang || 'ja';
 
     // wmtsフォルダパスをバックエンドから取得
     // NOTE: mapData と originalMapData 両方に設定しないと isDirty が常に true になる

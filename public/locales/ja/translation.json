@@ -17,7 +17,10 @@
     "spanish": "スペイン語",
     "korean": "韓国語",
     "simplified": "中国語簡体字",
-    "traditional": "中国語繁体字"
+    "traditional": "中国語繁体字",
+    "vietnamese": "ベトナム語",
+    "thai": "タイ語",
+    "indonesian": "インドネシア語"
   },
   "navbar": {
     "edit_map": "地図編集",
