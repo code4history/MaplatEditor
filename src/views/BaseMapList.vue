@@ -451,7 +451,7 @@ const saveBaseMap = async () => {
   // レガシー重複があっても許容される(改名による解消手段を塞がないため)
   if (form.value.mapID.trim() !== originalMapID.value) {
     try {
-      const available = await window.mapedit.checkID(form.value.mapID.trim());
+      const available = await window.assets.checkSlug({ slug: form.value.mapID.trim() });
       if (!available) {
         formError.value = t("basemap.errors.id_duplicate");
         return;

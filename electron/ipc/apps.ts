@@ -32,15 +32,6 @@ export function registerAppHandlers() {
     }
   });
 
-  ipcMain.handle('appedit:checkID', async (_event, appID: string) => {
-    try {
-      return await AppDataService.isAppIdAvailable(appID);
-    } catch (e) {
-      console.error('Failed to handle appedit:checkID', e);
-      return false;
-    }
-  });
-
   ipcMain.handle('appedit:export', async (event, document: any) => {
     const win = BrowserWindow.fromWebContents(event.sender)!;
     return await AppExportService.exportApp(win, document);

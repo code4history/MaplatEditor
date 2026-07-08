@@ -23,7 +23,6 @@ export interface AppListAPI {
 export interface AppEditAPI {
     request(appID: string): Promise<any>;
     save(appID: string, document: any): Promise<any>;
-    checkID(appID: string): Promise<boolean>;
     preparePreview(document: any): Promise<{ url: string; port: number }>;
     export(document: any): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
 }
@@ -31,6 +30,10 @@ export interface AppEditAPI {
 export interface AppEventsAPI {
     onMainProcessMessage(listener: (message: string) => void): () => void;
     onTaskProgress(listener: (progress: any) => void): () => void;
+}
+
+export interface AssetsAPI {
+    checkSlug(payload: { slug: string; excludeUid?: string }): Promise<boolean>;
 }
 
 export interface PoiSourcesAPI {
@@ -70,7 +73,6 @@ export interface MapEditAPI {
     setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void>;
     updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any): Promise<any>;
     save(mapObject: any, tins: any[]): Promise<any>;
-    checkID(mapID: string): Promise<any>;
     checkExtentMap(extent: number[]): Promise<any>;
     download(mapObject: any, tins: any[]): Promise<any>;
     uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
@@ -90,5 +92,6 @@ declare global {
     poiSources: PoiSourcesAPI;
     baseMaps: BaseMapsAPI;
     appAssets: AppAssetsAPI;
+    assets: AssetsAPI;
   }
 }

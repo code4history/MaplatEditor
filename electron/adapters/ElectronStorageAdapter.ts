@@ -14,4 +14,6 @@ export default new ServiceBackedStorageAdapter({
   // IDの可用性判定はWrite Storeに一本化する。Maplat地図とベースマップ(ビルトイン含む)は
   // ID空間を共有するため(tmbs/{mapID}.* を共有)、maps/base_maps横断で判定される
   isMapIdAvailable: (mapID) => SqliteDataService.isMapIdAvailable(mapID),
+  // slugの可用性判定はasset_registry横断(map/app/base_map全kind)で一意性を見る (ADR-0007)
+  isSlugAvailable: (slug, excludeUid) => SqliteDataService.isSlugAvailable(slug, excludeUid),
 });

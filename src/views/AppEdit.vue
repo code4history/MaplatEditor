@@ -521,7 +521,7 @@ async function checkOnlyOne() {
     appIDError.value = "appedit.no_appid";
     return;
   }
-  const available = await window.appedit.checkID(appID);
+  const available = await window.assets.checkSlug({ slug: appID });
   appIDError.value = available || appID === appData.value.originalAppID ? "" : "appedit.duplicate_appid";
   if (!appIDError.value) onlyOne.value = true;
 }

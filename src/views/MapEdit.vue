@@ -2363,12 +2363,11 @@ const mapUpload = async () => {
 /**
  * 旧実装: vueMap.$on('checkOnlyOne') 相当
  * mapID 一意性チェック（新規 or Change:... 時）
- * 旧実装: window.mapedit.checkID → once('checkIDResult')
- * 新実装: await window.mapedit.checkID(mapID)
+ * 新実装: await window.assets.checkSlug({ slug: mapID })
  */
 const checkOnlyOne = async () => {
     const currentMapID = mapData.value.mapID as string;
-    const isUnique = await (window as any).mapedit.checkID(currentMapID);
+    const isUnique = await (window as any).assets.checkSlug({ slug: currentMapID });
     if (isUnique) {
         await (window as any).dialog.showMessageBox({
             type: 'info',

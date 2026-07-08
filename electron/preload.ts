@@ -38,8 +38,6 @@ contextBridge.exposeInMainWorld('mapedit', {
     ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex),
   save: (mapObject: any, tins: any[]) =>
     ipcRenderer.invoke('mapedit:save', mapObject, tins),
-  checkID: (mapID: string) =>
-    ipcRenderer.invoke('mapedit:checkID', mapID),
   checkExtentMap: (extent: number[]) =>
     ipcRenderer.invoke('mapedit:checkExtentMap', extent),
   download: (mapObject: any, tins: any[]) =>
@@ -101,7 +99,6 @@ contextBridge.exposeInMainWorld('applist', {
 contextBridge.exposeInMainWorld('appedit', {
   request: (appID: string) => ipcRenderer.invoke('appedit:request', appID),
   save: (appID: string, document: any) => ipcRenderer.invoke('appedit:save', appID, document),
-  checkID: (appID: string) => ipcRenderer.invoke('appedit:checkID', appID),
   preparePreview: (document: any) => ipcRenderer.invoke('appedit:prepare-preview', document),
   export: (document: any) => ipcRenderer.invoke('appedit:export', document),
 })
@@ -151,4 +148,9 @@ contextBridge.exposeInMainWorld('poiSources', {
   validateRemote: (input: any) => ipcRenderer.invoke('poisource:validateRemote', input),
   saveLocal: (sourceId: string, geojson: any) => ipcRenderer.invoke('poisource:saveLocal', sourceId, geojson),
   delete: (sourceId: string) => ipcRenderer.invoke('poisource:delete', sourceId),
+})
+
+contextBridge.exposeInMainWorld('assets', {
+  checkSlug: (payload: { slug: string; excludeUid?: string }) =>
+    ipcRenderer.invoke('asset:checkSlug', payload),
 })

@@ -25,6 +25,7 @@ export interface StorageAdapter {
   readMapForPreview(mapID: string): Promise<any>;
   saveMapForEdit(request: MapSaveRequest): Promise<MapSaveResult>;
   isMapIdAvailable(mapID: string): Promise<boolean>;
+  isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean>;
 }
 
 export interface StorageAdapterDependencies {
@@ -34,6 +35,7 @@ export interface StorageAdapterDependencies {
   readMapForPreview?(mapID: string): Promise<any>;
   saveMapForEdit(mapObject: any, tins: any[]): Promise<string>;
   isMapIdAvailable(mapID: string): Promise<boolean>;
+  isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean>;
 }
 
 export class ServiceBackedStorageAdapter implements StorageAdapter {
@@ -82,6 +84,11 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
   async isMapIdAvailable(mapID: string): Promise<boolean> {
     assertMapID(mapID);
     return await this.dependencies.isMapIdAvailable(mapID);
+  }
+
+  async isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean> {
+    assertMapID(slug);
+    return await this.dependencies.isSlugAvailable(slug, excludeUid);
   }
 }
 

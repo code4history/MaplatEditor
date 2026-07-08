@@ -99,6 +99,7 @@ import { registerAppDraftHandlers } from './ipc/appdraft'
 import { registerAppHandlers } from './ipc/apps'
 import { registerPoisourceHandlers } from './ipc/poisource'
 import { registerAppAssetHandlers } from './ipc/appassets'
+import { registerAssetHandlers } from './ipc/assets'
 
 import { ipcMain } from 'electron'
 
@@ -116,7 +117,6 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('mapedit:set-base-map-visibility')
   ipcMain.removeHandler('mapedit:updateTin')
   ipcMain.removeHandler('mapedit:save')
-  ipcMain.removeHandler('mapedit:checkID')
   ipcMain.removeHandler('mapedit:checkExtentMap')
   ipcMain.removeHandler('mapupload:showMapSelectDialog')
   ipcMain.removeHandler('mapedit:getWmtsFolder')
@@ -131,7 +131,6 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('applist:delete')
   ipcMain.removeHandler('appedit:request')
   ipcMain.removeHandler('appedit:save')
-  ipcMain.removeHandler('appedit:checkID')
   ipcMain.removeHandler('appedit:prepare-preview')
   ipcMain.removeHandler('poisource:list')
   ipcMain.removeHandler('poisource:get')
@@ -140,6 +139,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('poisource:validateRemote')
   ipcMain.removeHandler('poisource:saveLocal')
   ipcMain.removeHandler('poisource:delete')
+  ipcMain.removeHandler('asset:checkSlug')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
@@ -155,6 +155,7 @@ app.whenReady().then(() => {
   registerAppHandlers()
   registerPoisourceHandlers()
   registerAppAssetHandlers()
+  registerAssetHandlers()
   createWindow()
   setupMenu()
 

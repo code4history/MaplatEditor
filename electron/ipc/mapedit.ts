@@ -82,15 +82,6 @@ export const registerMapEditHandlers = () => {
         }
     });
 
-    ipcMain.handle('mapedit:checkID', async (_event, mapID: string) => {
-        try {
-            return await StorageAdapter.isMapIdAvailable(mapID);
-        } catch (e) {
-            console.error('Failed to handle mapedit:checkID', e);
-            return false;
-        }
-    });
-
     // TIN計算をNode.jsプロセスで実行してコンパイル済みデータを返す
     ipcMain.handle('mapedit:updateTin', async (
         _event,
