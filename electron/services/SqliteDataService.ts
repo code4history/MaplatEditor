@@ -74,6 +74,16 @@ interface Folders {
   retiredNedbFile: string;
 }
 
+// レガシー移行の実行結果(slugサフィックス改名・ファイルリネーム・警告)。
+// {saveFolder}/migration-report-v2.json に書かれ、後続タスクでレンダラに一覧表示される
+export interface MigrationReport {
+  renamedSlugs: Array<{ kind: AssetKind; from: string; to: string }>;
+  renamedFiles: Array<{ from: string; to: string }>;
+  warnings: string[];
+}
+
+const MIGRATION_REPORT_FILE = 'migration-report-v2.json';
+
 const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
 const SEARCH_INDEX_BACKFILL_ID = '2026-07-04-search-index-backfill';
 // 表示設定オプトイン化(ADR-0006)のv1向け一括破棄。schema v2 の新規DBには
@@ -410,6 +420,7 @@ class SqliteDataService {
     if (alreadyMigrated) return;
 
     const notifyProgress = await this.hasLegacyMigrationInputs();
+    const report: MigrationReport = { renamedSlugs: [], renamedFiles: [], warnings: [] };
     try {
       if (notifyProgress) sendMigrationProgress('database.migrating', 0);
       if (notifyProgress) sendMigrationProgress('database.migrating_legacy_maps', 25, '(1/3)');
@@ -417,13 +428,20 @@ class SqliteDataService {
       if (notifyProgress) sendMigrationProgress('database.migrating_legacy_basemaps', 50, '(2/3)');
       const baseMapInputs = await this.loadLegacyBaseMapInputs();
       // DB書き込みは marker まで含めて1トランザクション(途中失敗時の部分取込を防ぐ)
-      this.withTransaction(db, () => {
-        const mapIdToUid = this.importLegacyMaps(db, nedbDocs);
-        this.importLegacyBaseMaps(db, baseMapInputs, mapIdToUid);
+      const mapIdToUid = this.withTransaction(db, () => {
+        const imported = this.importLegacyMaps(db, nedbDocs, report);
+        this.importLegacyBaseMaps(db, baseMapInputs, imported, report);
         db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(LEGACY_MIGRATION_ID);
+        return imported;
       });
+      // ファイルリネームはDBコミット後に行う。失敗しても移行自体は失敗させず warning に留める
+      await this.renameLegacyMapFiles(mapIdToUid, report);
       if (notifyProgress) sendMigrationProgress('database.archiving_legacy_files', 75, '(3/3)');
       await this.retireLegacyDataFiles();
+      // report は移行を実際に実行した時のみ書く(退避アーカイブだけが残る2回目以降の起動では書かない)
+      if (notifyProgress) {
+        await fs.writeJson(path.join(this.folders.saveFolder, MIGRATION_REPORT_FILE), report, { spaces: 2 });
+      }
       if (notifyProgress) sendMigrationProgress('database.migrated', 100, '(3/3)');
     } catch (e) {
       if (notifyProgress) sendMigrationProgress('database.migration_failed', 100);
@@ -1138,9 +1156,9 @@ class SqliteDataService {
     });
   }
 
-  // レガシー地図の取込(ADR-0007): uid採番 + slug=旧_id(衝突時サフィックス)。
+  // レガシー地図の取込(ADR-0007): uid採番 + slug=旧_id(衝突時サフィックス→report記録)。
   // 戻り値は 旧ID→uid の対応(表示設定の解決とtiles/tmbsリネームに使う)
-  private importLegacyMaps(db: DatabaseSync, docs: any[]): Map<string, string> {
+  private importLegacyMaps(db: DatabaseSync, docs: any[], report: MigrationReport): Map<string, string> {
     const mapIdToUid = new Map<string, string>();
     const insert = db.prepare(
       `INSERT INTO maps (uid, slug, data_json, revision, updated_at)
@@ -1151,12 +1169,41 @@ class SqliteDataService {
       const oldId = String(doc._id);
       if (mapIdToUid.has(oldId)) continue;
       const slug = resolveSlugCollision(oldId, (s) => this.slugTaken(db, s));
+      if (slug !== oldId) report.renamedSlugs.push({ kind: 'map', from: oldId, to: slug });
       const uid = generateUid();
       this.registerAsset(db, 'map', uid, slug);
       insert.run(uid, slug, JSON.stringify(normalizeMapDocument(doc)));
       mapIdToUid.set(oldId, uid);
     }
     return mapIdToUid;
+  }
+
+  // tiles/tmbs の内部ファイル名を uid へ揃える(ADR-0007)。DBコミット後に実行し、
+  // 個々の失敗は移行を止めず report.warnings に記録する
+  private async renameLegacyMapFiles(mapIdToUid: Map<string, string>, report: MigrationReport): Promise<void> {
+    const { saveFolder } = this.folders;
+    const moveIfExists = async (fromRel: string, toRel: string) => {
+      const from = path.join(saveFolder, fromRel);
+      const to = path.join(saveFolder, toRel);
+      try {
+        if (!(await fs.pathExists(from))) return;
+        if (await fs.pathExists(to)) {
+          report.warnings.push(`rename skipped (destination exists): ${fromRel} -> ${toRel}`);
+          return;
+        }
+        await fs.move(from, to, { overwrite: false });
+        report.renamedFiles.push({ from: fromRel, to: toRel });
+      } catch (e: any) {
+        report.warnings.push(`rename failed: ${fromRel} -> ${toRel} (${e?.message ?? e})`);
+      }
+    };
+    for (const [oldId, uid] of mapIdToUid) {
+      // サムネイル正本は tmbs/{id}.jpg だが、取り込み元によっては png/jpeg もありうる
+      for (const ext of ['jpg', 'jpeg', 'png']) {
+        await moveIfExists(`tmbs/${oldId}.${ext}`, `tmbs/${uid}.${ext}`);
+      }
+      await moveIfExists(`tiles/${oldId}`, `tiles/${uid}`);
+    }
   }
 
   // settings(または退避済み _settings)配下のユーザーベースマップ/個別地図の表示設定を読み込む
@@ -1193,12 +1240,13 @@ class SqliteDataService {
   }
 
   // レガシーのユーザーベースマップ/表示設定の取込(ADR-0007):
-  // ベースマップはuid採番 + slug=旧ID(衝突時サフィックス)。
-  // 表示設定は旧IDを地図uid/ベースマップuidへ解決し、どちらかが不明なら読み飛ばす
+  // ベースマップはuid採番 + slug=旧ID(衝突時サフィックス→report記録)。
+  // 表示設定は旧IDを地図uid/ベースマップuidへ解決し、どちらかが不明なら警告して読み飛ばす
   private importLegacyBaseMaps(
     db: DatabaseSync,
     inputs: { userLists: any[][]; visibilityEntries: Array<{ mapID: string; baseMapId: string; enabled: boolean }> },
     mapIdToUid: Map<string, string>,
+    report: MigrationReport,
   ): void {
     const { userLists, visibilityEntries } = inputs;
     if (userLists.length === 0 && visibilityEntries.length === 0) return;
@@ -1227,6 +1275,7 @@ class SqliteDataService {
           continue;
         }
         const slug = resolveSlugCollision(oldId, (s) => this.slugTaken(db, s));
+        if (slug !== oldId) report.renamedSlugs.push({ kind: 'base_map', from: oldId, to: slug });
         const uid = generateUid();
         this.registerAsset(db, 'base_map', uid, slug);
         insert.run(uid, slug, sortOrder++, JSON.stringify({ ...tms, mapID: slug }));
@@ -1245,10 +1294,11 @@ class SqliteDataService {
       const baseUid = baseIdToUid.get(entry.baseMapId)
         ?? (this.findBaseMapBySlug(db, entry.baseMapId)?.uid as string | undefined);
       if (!mapUid || !baseUid) {
-        console.warn(
-          `[SqliteDataService] legacy visibility skipped (unknown ${!mapUid ? 'map' : 'base map'}): ` +
-          `${entry.mapID} / ${entry.baseMapId}`
-        );
+        const warning =
+          `legacy visibility skipped (unknown ${!mapUid ? 'map' : 'base map'}): ` +
+          `${entry.mapID} / ${entry.baseMapId}`;
+        report.warnings.push(warning);
+        console.warn(`[SqliteDataService] ${warning}`);
         continue;
       }
       insertVisibility.run(String(mapUid), String(baseUid), entry.enabled ? 1 : 0);

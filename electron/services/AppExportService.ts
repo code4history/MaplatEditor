@@ -94,13 +94,18 @@ class AppExportService {
         delete (mapJson as any).status;
         delete (mapJson as any).onlyOne;
         delete (mapJson as any).url_;
+        // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (ADR-0007)
+        delete (mapJson as any).uid;
+        delete (mapJson as any).slug;
+        delete (mapJson as any).revision;
         await fs.outputJson(path.join(outDir, 'maps', `${source.mapID}.json`), mapJson, { spaces: 4 });
 
-        const tileDir = path.join(this.saveFolder, 'tiles', source.mapID);
+        // 読み込みは内部のuidパス、出力はslug(=source.mapID)名 (ADR-0007: viewer互換)
+        const tileDir = path.join(this.saveFolder, 'tiles', mapDoc.uid);
         if (fs.existsSync(tileDir)) {
           await fs.copy(tileDir, path.join(outDir, 'tiles', source.mapID));
         }
-        const thumb = path.join(this.saveFolder, 'tmbs', `${source.mapID}.jpg`);
+        const thumb = path.join(this.saveFolder, 'tmbs', `${mapDoc.uid}.jpg`);
         if (fs.existsSync(thumb)) {
           await fs.copy(thumb, path.join(outDir, 'tmbs', `${source.mapID}.jpg`));
         }

@@ -46,6 +46,8 @@ class MapDataService {
     const rawResult = await SearchDataService.listMaps(query, page, pageSize);
     const docs = await Promise.all(rawResult.docs.map(async (doc: any) => {
         const mapID = doc._id || doc.mapID;
+        // 内部ファイル(tiles/tmbs)はuidキー (ADR-0007)。uid欠落時は旧slugパスへフォールバック
+        const fileKey = doc.uid || mapID;
         let title = doc.title;
         if (typeof title === 'object' && title !== null) {
             const lang = doc.lang || 'ja';
@@ -80,14 +82,14 @@ class MapDataService {
         }
 
         const { tileFolder, uiThumbnailFolder } = this.folders;
-        // 正式なサムネイルはデータフォルダのtmbs/{mapID}.jpg。無い場合のみズーム0タイルへフォールバック
+        // 正式なサムネイルはデータフォルダのtmbs/{uid}.jpg。無い場合のみズーム0タイルへフォールバック
         // 同期I/Oはイベントループを直列にブロックするため非同期で確認する(OneDrive等の遅いストレージ対策)
-        const uiThumbnail = path.join(uiThumbnailFolder, `${mapID}.jpg`);
+        const uiThumbnail = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
         if (await fs.pathExists(uiThumbnail)) {
             res.image = `file://${uiThumbnail.split(path.sep).join('/')}`;
             return res;
         }
-        const thumbFolder = path.join(tileFolder, mapID, "0", "0");
+        const thumbFolder = path.join(tileFolder, fileKey, "0", "0");
 
         try {
             const files = await fs.readdir(thumbFolder);
@@ -121,15 +123,18 @@ class MapDataService {
   }
 
   async deleteMap(mapID: string): Promise<void> {
+    // 内部ファイル(tiles/tmbs)はuidキーのため、DB行を消す前にuidを解決する (ADR-0007)
+    const doc = await SqliteDataService.findMapBySlug(mapID);
+    const fileKey = doc?.uid || mapID;
     await SqliteDataService.deleteMapBySlug(mapID);
     const { tileFolder, uiThumbnailFolder, originalFolder } = this.folders;
 
-    const tileDir = path.join(tileFolder, mapID);
+    const tileDir = path.join(tileFolder, fileKey);
     if (fs.existsSync(tileDir)) {
       await fs.remove(tileDir);
     }
 
-    const thumbFile = path.join(uiThumbnailFolder, `${mapID}.jpg`);
+    const thumbFile = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
     if (fs.existsSync(thumbFile)) {
       await fs.remove(thumbFile);
     }

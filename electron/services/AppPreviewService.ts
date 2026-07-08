@@ -118,7 +118,8 @@ class AppPreviewService {
       if (source.sourceType === 'maplat') {
         const preview = await MapEditService.requestPreviewSource(source.mapID);
         const label = source.label || preview.title || source.mapID;
-        const thumbnail = `tmbs/${source.mapID}.jpg`;
+        // サムネイル実体はuidパス (ADR-0007)。preview serverの tmbs/ 経路で配信される
+        const thumbnail = `tmbs/${preview.uid || source.mapID}.jpg`;
         maps[source.mapID] = this.toHttpAsset(normalizeRuntimeKeys({
           ...preview,
           mapID: source.mapID,

@@ -9,6 +9,7 @@ import csvParser from 'csv-parser';
 // @ts-ignore
 import proj from 'proj4';
 import MapDataService from '../services/MapDataService';
+import SqliteDataService from '../services/SqliteDataService';
 import SettingsService from '../services/SettingsService';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import * as storeHandler from '../utils/store_handler';
@@ -125,24 +126,34 @@ export const registerMapEditHandlers = () => {
         // エクスポート(交換形)ではデフォルト言語のみの言語別フィールドを
         // プレーン文字列に畳み込む (ADR-0005)
         const compiled = compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins));
+        // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (ADR-0007)
+        delete (compiled as any).uid;
+        delete (compiled as any).slug;
+        delete (compiled as any).revision;
         const tmpFile = path.join(tmpFolder, `${mapID}.json`);
         await fs.ensureDir(tmpFolder);
         await fs.writeFile(tmpFile, JSON.stringify(compiled));
 
+        // 内部ファイル(tiles/tmbs)はuidキー、zip内の出力名はslug (ADR-0007: viewer互換)
+        const mapDoc = await SqliteDataService.findMapBySlug(mapID);
+        const fileKey = mapDoc?.uid || mapID;
+
         // ZIP に追加するファイルリスト: [localPath, zipDir, zipName]
         const targets: [string, string, string][] = [
             [tmpFile, 'maps', `${mapID}.json`],
-            [path.join(thumbFolder, `${mapID}.jpg`), 'tmbs', `${mapID}.jpg`],
+            [path.join(thumbFolder, `${fileKey}.jpg`), 'tmbs', `${mapID}.jpg`],
         ];
 
-        // タイルファイルを再帰的に収集
+        // タイルファイルを再帰的に収集(読み込みはtiles/{uid}、zip内はtiles/{slug})
+        const tileRoot = path.join(tileFolder, fileKey);
         try {
-            const { files } = await recursiveFs.read(path.join(tileFolder, mapID));
+            const { files } = await recursiveFs.read(tileRoot);
             for (const file of files) {
                 const localPath = path.resolve(file);
                 const zipName   = path.basename(localPath);
-                const zipPath   = path.dirname(localPath).match(/[/\\](tiles[/\\].+$)/)?.[1];
-                if (zipPath) targets.push([localPath, zipPath, zipName]);
+                const relDir    = path.relative(tileRoot, path.dirname(localPath));
+                const zipPath   = ['tiles', mapID, ...relDir.split(path.sep).filter(Boolean)].join('/');
+                targets.push([localPath, zipPath, zipName]);
             }
         } catch (_e) { /* タイルなし */ }
 

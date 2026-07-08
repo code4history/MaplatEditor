@@ -23,7 +23,10 @@ class AppDataService {
   }
 
   private async getMapTile(mapID: string): Promise<string | null> {
-    const thumbFolder = path.join(this.folders.tileFolder, mapID, "0", "0");
+    // 内部タイルはuidパス (ADR-0007)。mapIDはレンダラ互換のslug
+    const mapDoc = await SqliteDataService.findMapBySlug(mapID);
+    if (!mapDoc?.uid) return null;
+    const thumbFolder = path.join(this.folders.tileFolder, mapDoc.uid, "0", "0");
     if (!fs.existsSync(thumbFolder)) return null;
     try {
       const files = await fs.readdir(thumbFolder);

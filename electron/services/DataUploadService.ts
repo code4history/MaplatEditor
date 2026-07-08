@@ -52,8 +52,6 @@ class DataUploadService {
 
             const tilePath  = path.join(tileTmpFolder, mapID);
             const tmbPath   = path.join(tmbTmpFolder, `${mapID}.jpg`);
-            const tileToPath = path.join(tileFolder, mapID);
-            const tmbToPath  = path.join(uiThumbnailFolder, `${mapID}.jpg`);
 
             // --- 原版と同じバリデーション ---
             const db = await MapDataService.getDBInstance();
@@ -62,8 +60,14 @@ class DataUploadService {
             if (!fs.existsSync(tilePath)) throw 'NoTile';
             if (!fs.existsSync(tmbPath))  throw 'NoTmb';
 
-            // --- 原版と同じ: raw mapData をそのまま upsert ---
+            // --- 原版と同じ: raw mapData をそのまま upsert (uidが採番される) ---
             await db.updateAsync({ _id: mapID }, { $set: mapData }, { upsert: true });
+
+            // 内部ファイル(tiles/tmbs)はuidキーに置く (ADR-0007)。zip内はslug名
+            const imported = await db.findOneAsync({ _id: mapID });
+            const fileKey = imported?.uid || mapID;
+            const tileToPath = path.join(tileFolder, fileKey);
+            const tmbToPath  = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
 
             // タイルとサムネイルを移動
             await fs.remove(tileToPath);
