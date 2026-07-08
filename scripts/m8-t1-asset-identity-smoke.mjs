@@ -79,6 +79,17 @@ try {
       );
       console.log('ok: resolveSlugCollision appends suffix to untitled when taken');
 
+      // 全候補が使用済みの場合は暴走せず上限(10000回)で打ち切りエラーになること
+      let exhaustionError: unknown = null;
+      try {
+        resolveSlugCollision('x', () => true);
+      } catch (e) {
+        exhaustionError = e;
+      }
+      assert.ok(exhaustionError instanceof Error, '全候補使用済みならErrorをthrowするはず');
+      assert.match((exhaustionError as Error).message, /10000/, 'エラーメッセージに試行上限(10000)が含まれるはず');
+      console.log('ok: resolveSlugCollision throws after 10000 exhausted attempts');
+
       console.log('M8-T1 asset identity smoke passed');
     `
   );
