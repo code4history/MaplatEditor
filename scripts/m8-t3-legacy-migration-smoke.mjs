@@ -186,12 +186,24 @@ try {
       // シナリオ1: 生きたレガシー入力(nedb.db / settings/)
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
       await SqliteDataService.getDb();
-      await verifyMigratedFolder(${JSON.stringify(dataDir)}, 'live');
+      const liveUid = await verifyMigratedFolder(${JSON.stringify(dataDir)}, 'live');
+      const liveReportPath = nodePath.join(${JSON.stringify(dataDir)}, 'migration-report-v2.json');
+      const liveReportBefore = await readFile(liveReportPath, 'utf8');
       console.log('ok: live legacy inputs migrated with uid/slug/report');
 
-      // 再オープンで report が再生成されないこと(移行は一度きり)
+      // 再オープンで移行が再実行されないこと(地図の重複取込なし・uid安定・reportも書き直されない)
       await SqliteDataService.reset();
       await SqliteDataService.getDb();
+      const reopenedMaps = await SqliteDataService.readAllMaps();
+      assert.equal(reopenedMaps.length, 2, '再オープンで地図が重複取込されてはいけない');
+      const reopenedTatebayashi = await SqliteDataService.findMapBySlug('tatebayashi');
+      assert.equal(reopenedTatebayashi.uid, liveUid, '再オープンで地図のuidが変わってはいけない');
+      const liveReportAfter = await readFile(liveReportPath, 'utf8');
+      assert.equal(liveReportAfter, liveReportBefore, '再オープンで report が書き直されてはいけない');
+      const reopenReport = JSON.parse(liveReportAfter);
+      assert.deepEqual(reopenReport.renamedSlugs, [
+        { kind: 'base_map', from: 'tatebayashi', to: 'tatebayashi_2' },
+      ]);
       console.log('ok: reopen does not re-run legacy migration');
 
       // シナリオ2: 退避済み入力(_nedb.db / _settings)

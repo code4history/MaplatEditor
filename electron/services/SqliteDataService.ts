@@ -315,9 +315,12 @@ class SqliteDataService {
   }
 
   // 複数書き込みを1コミットに束ねる。node:sqliteは同期実行のため、コミット(fsync)を
-  // 行数分繰り返すとメインプロセスのイベントループ(=プレビューHTTPサーバ等)が長時間停止する
+  // 行数分繰り返すとメインプロセスのイベントループ(=プレビューHTTPサーバ等)が長時間停止する。
+  // BEGIN IMMEDIATE で書き込みロックを先頭で取得する: 遅延BEGINだと read→write 昇格
+  // (registerAssetの事前SELECT→INSERT等)が複数インスタンス並走時にリトライ不能な
+  // SQLITE_BUSY_SNAPSHOT になりうるが、先頭取得なら busy_timeout=5000 で直列化できる
   private withTransaction<T>(db: DatabaseSync, fn: () => T): T {
-    db.exec('BEGIN');
+    db.exec('BEGIN IMMEDIATE');
     try {
       const result = fn();
       db.exec('COMMIT');
@@ -434,13 +437,26 @@ class SqliteDataService {
         db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(LEGACY_MIGRATION_ID);
         return imported;
       });
-      // ファイルリネームはDBコミット後に行う。失敗しても移行自体は失敗させず warning に留める
+      // 以降のファイル操作はDBコミット後のベストエフォート: marker はコミット済みのため、
+      // ここで throw すると一時的な失敗(OneDriveのファイルロック等)により退避もreportも
+      // 以後の起動で永久にスキップされてしまう。失敗は warning として report に残す
       await this.renameLegacyMapFiles(mapIdToUid, report);
       if (notifyProgress) sendMigrationProgress('database.archiving_legacy_files', 75, '(3/3)');
-      await this.retireLegacyDataFiles();
-      // report は移行を実際に実行した時のみ書く(退避アーカイブだけが残る2回目以降の起動では書かない)
+      try {
+        await this.retireLegacyDataFiles();
+      } catch (e: any) {
+        const warning = `legacy input retirement failed: ${e?.message ?? e}`;
+        report.warnings.push(warning);
+        console.warn(`[SqliteDataService] ${warning}`);
+      }
+      // report は移行を実際に実行した時のみ書く(退避アーカイブだけが残る2回目以降の起動では書かない)。
+      // report 自体の書き込み失敗も migrate() を失敗させない(移行本体はコミット済みのため)
       if (notifyProgress) {
-        await fs.writeJson(path.join(this.folders.saveFolder, MIGRATION_REPORT_FILE), report, { spaces: 2 });
+        try {
+          await fs.writeJson(path.join(this.folders.saveFolder, MIGRATION_REPORT_FILE), report, { spaces: 2 });
+        } catch (e) {
+          console.error('[SqliteDataService] failed to write migration report', e);
+        }
       }
       if (notifyProgress) sendMigrationProgress('database.migrated', 100, '(3/3)');
     } catch (e) {
@@ -587,7 +603,11 @@ class SqliteDataService {
     if (!isValidSlug(slug)) throw new Error(`Invalid slug: ${slug}`);
     const taken = db.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
     if (taken && taken.uid !== uid) throw new Error(`Slug already in use: ${slug}`);
-    db.prepare('UPDATE asset_registry SET slug = ? WHERE uid = ? AND kind = ?').run(slug, uid, kind);
+    const updated = db.prepare('UPDATE asset_registry SET slug = ? WHERE uid = ? AND kind = ?').run(slug, uid, kind);
+    // registry行が無い/kind不一致はアセット表とregistryのドリフト。黙って進めず失敗させる
+    if (Number(updated.changes) !== 1) {
+      throw new Error(`Asset registry drift: no ${kind} registry row for uid ${uid} (renaming to "${slug}")`);
+    }
     const table = ASSET_TABLES[kind];
     if (table) {
       db.prepare(`UPDATE ${table} SET slug = ?, updated_at = datetime('now') WHERE uid = ?`).run(slug, uid);
@@ -1098,8 +1118,9 @@ class SqliteDataService {
   // --- migration internals ---
 
   // ビルトインベースマップは起動ごとに builtin_base_maps.json(正本: KTGISカタログ)から再シードする。
-  // 既存行はビルトインID(data_json.mapID)でマッチしてuidを維持し、新規のみuid採番+registry登録する
-  // (シードはレガシー取込より先に走るため、ビルトインは常にclean slugを確保する)
+  // 既存行はビルトインID(通常 slug=data_json.mapID=カタログID)でマッチしてuidを維持し、
+  // 新規のみuid採番+registry登録する(シードはレガシー取込より先に走るため、
+  // ビルトインは常にclean slugを確保する)。data_json.mapID は常に slug と一致させる
   private applyBuiltinBaseMapSeed(db: DatabaseSync): void {
     this.withTransaction(db, () => {
       const list = maybeJsonArray(builtinBaseMaps);
@@ -1113,30 +1134,35 @@ class SqliteDataService {
         `INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at)
          VALUES (?, ?, 'builtin', ?, ?, 1, datetime('now'))`
       );
-      const builtinIDs: string[] = [];
+      // 今回のシードで維持/作成した行のuid。カタログから外れた行の判定に使う
+      // (data_json.mapID での判定は、slugサフィックス時に自分自身を消してしまうため不可)
+      const seededUids = new Set<string>();
       for (let index = 0; index < list.length; index++) {
         const tms = list[index];
         const builtinId = String(tms?.mapID ?? '');
         if (!builtinId) continue;
-        builtinIDs.push(builtinId);
         const existing = findByBuiltinId.get(builtinId) as any;
         if (existing) {
-          update.run(index, JSON.stringify(tms), existing.uid);
+          // 既存行は data_json.mapID = slug の不変条件を保って内容を更新する
+          update.run(index, JSON.stringify({ ...tms, mapID: String(existing.slug) }), existing.uid);
+          seededUids.add(String(existing.uid));
           continue;
         }
         const uid = generateUid();
         // 通常はclean slug=ビルトインID。万一先取りされていた場合のみサフィックスで回避する
+        // (サフィックスされた行は次回起動でカタログIDと再マッチできず作り直しになるが、
+        //  「新規ビルトイン追加より前にユーザーがそのIDを先取りしていた」場合のみの縮退)
         const slug = resolveSlugCollision(builtinId, (s) => this.slugTaken(db, s));
         this.registerAsset(db, 'base_map', uid, slug);
-        insert.run(uid, slug, index, JSON.stringify(tms));
+        insert.run(uid, slug, index, JSON.stringify({ ...tms, mapID: slug }));
+        seededUids.add(uid);
       }
       // カタログから外れたビルトインは行・registry・関連設定ごと削除する
       const staleRows = db
-        .prepare(`SELECT uid, json_extract(data_json, '$.mapID') AS builtin_id FROM base_maps WHERE scope = 'builtin'`)
+        .prepare(`SELECT uid FROM base_maps WHERE scope = 'builtin'`)
         .all() as any[];
-      const liveIDs = new Set(builtinIDs);
       for (const row of staleRows) {
-        if (!liveIDs.has(String(row.builtin_id))) {
+        if (!seededUids.has(String(row.uid))) {
           this.deleteBaseMapRow(db, String(row.uid));
         }
       }
