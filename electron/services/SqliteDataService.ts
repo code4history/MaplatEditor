@@ -2,6 +2,12 @@
 // WALモード+busy_timeoutにより、ロック保持は書き込みトランザクション中のみとなり、
 // 複数エディタインスタンスの同時利用が可能。一覧/全文/位置情報検索は
 // SearchDataService(インメモリDuckDBのsqlite ATTACH)が担当する。
+//
+// schema v2 (ADR-0007): 全アセット(map/app/base_map)の正本キーは不変の uid (UUIDv4)。
+// ユーザー編集可能な slug は asset_registry がグローバル一意性を強制する
+// (全ての slug 書込は registerAsset/renameAssetSlug を経由し、アセット表と同一Txで二重書きする)。
+// 全 upsert は revision による楽観ロック。旧schema(v1) の DB ファイルは起動時に
+// _maplat-v1.sqlite へ退避され、レガシー入力(nedb.db/settings)から再取込される。
 import { DatabaseSync } from 'node:sqlite';
 import Datastore from '@seald-io/nedb';
 import { BrowserWindow } from 'electron';
@@ -12,6 +18,7 @@ import defaultTmsList from '../tms_list.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeMapLangFields } from '../../src/utils/langResource';
+import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -30,6 +37,7 @@ export interface AppListResult {
 }
 
 export interface BaseMapVisibilityItem {
+  uid: string;
   mapID: string;
   scope: BaseMapScope;
   enabled: boolean;
@@ -38,11 +46,23 @@ export interface BaseMapVisibilityItem {
 }
 
 export interface BaseMapCatalogItem {
+  uid: string;
   mapID: string;
   scope: BaseMapScope;
   data: any;
   alwaysVisible: boolean;
   alwaysLocked: boolean;
+}
+
+// 楽観ロック(ADR-0007): expectedRevision 指定時に他の書き込みが先行していた場合に投げる
+export class RevisionConflictError extends Error {
+  readonly kind = 'revision-conflict';
+  readonly current: number;
+  constructor(current: number) {
+    super(`Revision conflict: current revision is ${current}`);
+    this.name = 'RevisionConflictError';
+    this.current = current;
+  }
 }
 
 interface Folders {
@@ -56,12 +76,19 @@ interface Folders {
 
 const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
 const SEARCH_INDEX_BACKFILL_ID = '2026-07-04-search-index-backfill';
-// 表示設定オプトイン化(ADR-0006): これ以前の map_base_map_visibility 行は
-// オプトアウト時代の意味(未設定=表示)で書かれているため一括破棄する
+// 表示設定オプトイン化(ADR-0006)のv1向け一括破棄。schema v2 の新規DBには
+// オプトアウト時代の行が存在し得ないため no-op だが、旧コード経路が再実行
+// されないよう marker のみ記録する
 const OPT_IN_VISIBILITY_FLIP_ID = '2026-07-05-opt-in-base-map-visibility';
 
-// 常時表示から外せないベースマップ(ビューア/エディタの最終フォールバック基盤)
+// 常時表示から外せないベースマップ(ビューア/エディタの最終フォールバック基盤)。slug で判定
 const FORCED_ALWAYS_BASE_MAP_IDS = new Set(['osm']);
+
+const ASSET_TABLES: Partial<Record<AssetKind, string>> = {
+  map: 'maps',
+  app: 'apps',
+  base_map: 'base_maps',
+};
 
 // --- 全文検索(FTS5)/位置情報検索(R-Tree)用ヘルパー ---
 // トークナイザはICU(Intl.Segmenter)の日本語単語分割。追加依存なしで全プラットフォーム同一動作。
@@ -129,14 +156,21 @@ export function mapRowToDocument(row: any): any {
   // 含みうるため、読み出し時にもオブジェクト形へ正規化する(再マイグレーション不要。
   // 次回保存時にupsertMap経由で正規化済みの形が永続化される)
   const data = normalizeMapLangFields(JSON.parse(row.data_json));
-  data._id = row.map_id;
+  // _id は旧API互換(slug)。uid/slug/revision は v2 の正本メタデータ
+  data._id = row.slug;
+  data.uid = row.uid;
+  data.slug = row.slug;
+  data.revision = Number(row.revision);
   return data;
 }
 
 export function appRowToDocument(row: any): any {
   const data = JSON.parse(row.data_json);
-  data._id = row.app_id;
-  data.appID = row.app_id;
+  data._id = row.slug;
+  data.appID = row.slug;
+  data.uid = row.uid;
+  data.slug = row.slug;
+  data.revision = Number(row.revision);
   return data;
 }
 
@@ -146,6 +180,10 @@ function normalizeMapDocument(document: any): any {
   const normalized = normalizeMapLangFields({ ...document });
   delete normalized._id;
   delete normalized.mapID;
+  // 行レベルのメタデータは data_json に持たせない (ADR-0007)
+  delete normalized.uid;
+  delete normalized.slug;
+  delete normalized.revision;
   return normalized;
 }
 
@@ -153,6 +191,9 @@ function normalizeAppDocument(document: any): any {
   const normalized = normalizeRuntimeKeys(document);
   delete normalized._id;
   delete normalized.appID;
+  delete normalized.uid;
+  delete normalized.slug;
+  delete normalized.revision;
   return normalized;
 }
 
@@ -216,7 +257,14 @@ class SqliteDataService {
 
     await this.reset();
     await fs.ensureDir(saveFolder);
-    const db = new DatabaseSync(sqliteFile);
+    let db = new DatabaseSync(sqliteFile);
+    // 旧schema(v1: maps.uid 列なし)のDBは書き換えずに退避し、新規v2 DBを作って
+    // レガシー入力から再取込する(DBは未公開のため in-place migration は行わない)
+    if (this.hasV1Schema(db)) {
+      db.close();
+      await this.retireV1Database(sqliteFile);
+      db = new DatabaseSync(sqliteFile);
+    }
     db.exec('PRAGMA journal_mode=WAL');
     db.exec('PRAGMA busy_timeout=5000');
     // WAL時の標準設定: コミット毎のfsyncを削減(電源断で直近コミットが巻き戻る可能性はあるがDB破損はしない)
@@ -228,6 +276,32 @@ class SqliteDataService {
     this.activeDbFile = sqliteFile;
     await this.migrate();
     return db;
+  }
+
+  private hasV1Schema(db: DatabaseSync): boolean {
+    const mapsTable = db
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'maps'")
+      .get();
+    if (!mapsTable) return false;
+    const uidColumn = db
+      .prepare("SELECT 1 FROM pragma_table_info('maps') WHERE name = 'uid'")
+      .get();
+    return uidColumn == null;
+  }
+
+  private async retireV1Database(sqliteFile: string): Promise<void> {
+    const dir = path.dirname(sqliteFile);
+    let to = path.join(dir, '_maplat-v1.sqlite');
+    let suffix = 2;
+    while (await fs.pathExists(to)) {
+      to = path.join(dir, `_maplat-v1.${suffix}.sqlite`);
+      suffix++;
+    }
+    await fs.move(sqliteFile, to, { overwrite: false });
+    // WAL/SHM は退避先のDBとは無関係になるため削除する(retire後に本体だけ読む分には不要)
+    await fs.remove(`${sqliteFile}-wal`);
+    await fs.remove(`${sqliteFile}-shm`);
+    console.log(`[SqliteDataService] Retired v1-schema database to ${to}`);
   }
 
   // 複数書き込みを1コミットに束ねる。node:sqliteは同期実行のため、コミット(fsync)を
@@ -275,51 +349,57 @@ class SqliteDataService {
         id TEXT PRIMARY KEY,
         applied_at TEXT DEFAULT (datetime('now'))
       );
+      CREATE TABLE IF NOT EXISTS asset_registry (
+        uid  TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE
+      );
       CREATE TABLE IF NOT EXISTS maps (
-        map_id TEXT PRIMARY KEY,
+        uid TEXT PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,
         data_json TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 1,
         updated_at TEXT DEFAULT (datetime('now'))
       );
       CREATE TABLE IF NOT EXISTS apps (
-        app_id TEXT PRIMARY KEY,
+        uid TEXT PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,
         data_json TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 1,
         updated_at TEXT DEFAULT (datetime('now'))
       );
       CREATE TABLE IF NOT EXISTS base_maps (
-        map_id TEXT NOT NULL,
+        uid TEXT PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,
         scope TEXT NOT NULL,
         sort_order INTEGER NOT NULL,
         data_json TEXT NOT NULL,
-        updated_at TEXT DEFAULT (datetime('now')),
-        PRIMARY KEY (scope, map_id)
+        revision INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT DEFAULT (datetime('now'))
       );
       CREATE TABLE IF NOT EXISTS map_base_map_visibility (
-        map_id TEXT NOT NULL,
-        base_map_id TEXT NOT NULL,
+        map_uid TEXT NOT NULL,
+        base_map_uid TEXT NOT NULL,
         enabled INTEGER NOT NULL,
         updated_at TEXT DEFAULT (datetime('now')),
-        PRIMARY KEY (map_id, base_map_id)
+        PRIMARY KEY (map_uid, base_map_uid)
       );
       CREATE TABLE IF NOT EXISTS base_map_always (
-        base_map_id TEXT PRIMARY KEY,
+        base_map_uid TEXT PRIMARY KEY,
         always_visible INTEGER NOT NULL,
         updated_at TEXT DEFAULT (datetime('now'))
       );
     `);
     this.applySearchIndexSchema(db);
+    // builtin base maps を最初に登録し、レガシー取込より先に clean slug を確保する (ADR-0007)
     this.applyBuiltinBaseMapSeed(db);
 
-    // オプトイン化以前に書かれた表示設定は意味が反転しているため一度だけ全破棄する。
-    // レガシー(nedb/settings)取込より前に行うことで、取込直後の設定は破棄されない。
-    // ユーザー定義ベースマップの定義(base_maps)はここでは触らない
+    // オプトイン化(ADR-0006)の一括破棄は v1 schema 向け。v2 新規DBでは no-op として marker のみ記録
     const visibilityFlipped = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
       .get(OPT_IN_VISIBILITY_FLIP_ID);
     if (!visibilityFlipped) {
-      this.withTransaction(db, () => {
-        db.exec('DELETE FROM map_base_map_visibility');
-        db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(OPT_IN_VISIBILITY_FLIP_ID);
-      });
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(OPT_IN_VISIBILITY_FLIP_ID);
     }
 
     // レガシー移行は初回のみ。退避アーカイブ(_nedb.db/_settings)は残り続けるため、
@@ -333,10 +413,15 @@ class SqliteDataService {
     try {
       if (notifyProgress) sendMigrationProgress('database.migrating', 0);
       if (notifyProgress) sendMigrationProgress('database.migrating_legacy_maps', 25, '(1/3)');
-      await this.migrateNeDB(db);
+      const nedbDocs = await this.loadLegacyMapDocs();
       if (notifyProgress) sendMigrationProgress('database.migrating_legacy_basemaps', 50, '(2/3)');
-      await this.migrateUserBaseMaps(db);
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(LEGACY_MIGRATION_ID);
+      const baseMapInputs = await this.loadLegacyBaseMapInputs();
+      // DB書き込みは marker まで含めて1トランザクション(途中失敗時の部分取込を防ぐ)
+      this.withTransaction(db, () => {
+        const mapIdToUid = this.importLegacyMaps(db, nedbDocs);
+        this.importLegacyBaseMaps(db, baseMapInputs, mapIdToUid);
+        db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(LEGACY_MIGRATION_ID);
+      });
       if (notifyProgress) sendMigrationProgress('database.archiving_legacy_files', 75, '(3/3)');
       await this.retireLegacyDataFiles();
       if (notifyProgress) sendMigrationProgress('database.migrated', 100, '(3/3)');
@@ -349,13 +434,14 @@ class SqliteDataService {
   // 全文検索(FTS5)/位置情報検索(R-Tree)の索引スキーマとトリガ。
   // maps/appsへの書き込み(経路を問わず)でトリガが発火し、JSトークナイザで
   // 分かち書きした全文索引とbbox索引が同一トランザクション内で更新される。
+  // raw には slug も含める(slug rename は行UPDATEなのでトリガで索引が追随する)。
   private applySearchIndexSchema(db: DatabaseSync): void {
     db.exec(`
-      CREATE VIRTUAL TABLE IF NOT EXISTS maps_fts USING fts5(map_id UNINDEXED, raw UNINDEXED, words);
-      CREATE VIRTUAL TABLE IF NOT EXISTS apps_fts USING fts5(app_id UNINDEXED, raw UNINDEXED, words);
+      CREATE VIRTUAL TABLE IF NOT EXISTS maps_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
+      CREATE VIRTUAL TABLE IF NOT EXISTS apps_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
       CREATE VIRTUAL TABLE IF NOT EXISTS maps_rtree USING rtree(id, min_x, max_x, min_y, max_y);
       CREATE TABLE IF NOT EXISTS maps_rtree_key (
-        map_id TEXT PRIMARY KEY,
+        uid TEXT PRIMARY KEY,
         rid INTEGER NOT NULL UNIQUE
       );
     `);
@@ -369,13 +455,15 @@ class SqliteDataService {
       DROP TRIGGER IF EXISTS apps_search_ad;
 
       CREATE TRIGGER maps_search_ai AFTER INSERT ON maps BEGIN
-        DELETE FROM maps_fts WHERE map_id = new.map_id;
-        INSERT INTO maps_fts(map_id, raw, words)
-          VALUES (new.map_id, maplat_map_fts_raw(new.data_json), maplat_tokenize(maplat_map_fts_raw(new.data_json)));
-        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE map_id = new.map_id);
-        DELETE FROM maps_rtree_key WHERE map_id = new.map_id;
-        INSERT INTO maps_rtree_key(map_id, rid)
-          SELECT new.map_id, new.rowid WHERE maplat_map_bbox(new.data_json) IS NOT NULL;
+        DELETE FROM maps_fts WHERE uid = new.uid;
+        INSERT INTO maps_fts(uid, raw, words)
+          VALUES (new.uid,
+                  new.slug || char(10) || maplat_map_fts_raw(new.data_json),
+                  maplat_tokenize(new.slug || ' ' || maplat_map_fts_raw(new.data_json)));
+        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE uid = new.uid);
+        DELETE FROM maps_rtree_key WHERE uid = new.uid;
+        INSERT INTO maps_rtree_key(uid, rid)
+          SELECT new.uid, new.rowid WHERE maplat_map_bbox(new.data_json) IS NOT NULL;
         INSERT INTO maps_rtree(id, min_x, max_x, min_y, max_y)
           SELECT new.rowid,
                  json_extract(maplat_map_bbox(new.data_json), '$[0]'),
@@ -386,13 +474,15 @@ class SqliteDataService {
       END;
 
       CREATE TRIGGER maps_search_au AFTER UPDATE ON maps BEGIN
-        DELETE FROM maps_fts WHERE map_id IN (old.map_id, new.map_id);
-        INSERT INTO maps_fts(map_id, raw, words)
-          VALUES (new.map_id, maplat_map_fts_raw(new.data_json), maplat_tokenize(maplat_map_fts_raw(new.data_json)));
-        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE map_id IN (old.map_id, new.map_id));
-        DELETE FROM maps_rtree_key WHERE map_id IN (old.map_id, new.map_id);
-        INSERT INTO maps_rtree_key(map_id, rid)
-          SELECT new.map_id, new.rowid WHERE maplat_map_bbox(new.data_json) IS NOT NULL;
+        DELETE FROM maps_fts WHERE uid IN (old.uid, new.uid);
+        INSERT INTO maps_fts(uid, raw, words)
+          VALUES (new.uid,
+                  new.slug || char(10) || maplat_map_fts_raw(new.data_json),
+                  maplat_tokenize(new.slug || ' ' || maplat_map_fts_raw(new.data_json)));
+        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE uid IN (old.uid, new.uid));
+        DELETE FROM maps_rtree_key WHERE uid IN (old.uid, new.uid);
+        INSERT INTO maps_rtree_key(uid, rid)
+          SELECT new.uid, new.rowid WHERE maplat_map_bbox(new.data_json) IS NOT NULL;
         INSERT INTO maps_rtree(id, min_x, max_x, min_y, max_y)
           SELECT new.rowid,
                  json_extract(maplat_map_bbox(new.data_json), '$[0]'),
@@ -403,29 +493,29 @@ class SqliteDataService {
       END;
 
       CREATE TRIGGER maps_search_ad AFTER DELETE ON maps BEGIN
-        DELETE FROM maps_fts WHERE map_id = old.map_id;
-        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE map_id = old.map_id);
-        DELETE FROM maps_rtree_key WHERE map_id = old.map_id;
+        DELETE FROM maps_fts WHERE uid = old.uid;
+        DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE uid = old.uid);
+        DELETE FROM maps_rtree_key WHERE uid = old.uid;
       END;
 
       CREATE TRIGGER apps_search_ai AFTER INSERT ON apps BEGIN
-        DELETE FROM apps_fts WHERE app_id = new.app_id;
-        INSERT INTO apps_fts(app_id, raw, words)
-          VALUES (new.app_id,
-                  new.app_id || char(10) || maplat_app_fts_raw(new.data_json),
-                  maplat_tokenize(new.app_id || ' ' || maplat_app_fts_raw(new.data_json)));
+        DELETE FROM apps_fts WHERE uid = new.uid;
+        INSERT INTO apps_fts(uid, raw, words)
+          VALUES (new.uid,
+                  new.slug || char(10) || maplat_app_fts_raw(new.data_json),
+                  maplat_tokenize(new.slug || ' ' || maplat_app_fts_raw(new.data_json)));
       END;
 
       CREATE TRIGGER apps_search_au AFTER UPDATE ON apps BEGIN
-        DELETE FROM apps_fts WHERE app_id IN (old.app_id, new.app_id);
-        INSERT INTO apps_fts(app_id, raw, words)
-          VALUES (new.app_id,
-                  new.app_id || char(10) || maplat_app_fts_raw(new.data_json),
-                  maplat_tokenize(new.app_id || ' ' || maplat_app_fts_raw(new.data_json)));
+        DELETE FROM apps_fts WHERE uid IN (old.uid, new.uid);
+        INSERT INTO apps_fts(uid, raw, words)
+          VALUES (new.uid,
+                  new.slug || char(10) || maplat_app_fts_raw(new.data_json),
+                  maplat_tokenize(new.slug || ' ' || maplat_app_fts_raw(new.data_json)));
       END;
 
       CREATE TRIGGER apps_search_ad AFTER DELETE ON apps BEGIN
-        DELETE FROM apps_fts WHERE app_id = old.app_id;
+        DELETE FROM apps_fts WHERE uid = old.uid;
       END;
     `);
 
@@ -440,10 +530,13 @@ class SqliteDataService {
         DELETE FROM maps_rtree;
         DELETE FROM maps_rtree_key;
         DELETE FROM apps_fts;
-        INSERT INTO maps_fts(map_id, raw, words)
-          SELECT map_id, maplat_map_fts_raw(data_json), maplat_tokenize(maplat_map_fts_raw(data_json)) FROM maps;
-        INSERT INTO maps_rtree_key(map_id, rid)
-          SELECT map_id, rowid FROM maps WHERE maplat_map_bbox(data_json) IS NOT NULL;
+        INSERT INTO maps_fts(uid, raw, words)
+          SELECT uid,
+                 slug || char(10) || maplat_map_fts_raw(data_json),
+                 maplat_tokenize(slug || ' ' || maplat_map_fts_raw(data_json))
+          FROM maps;
+        INSERT INTO maps_rtree_key(uid, rid)
+          SELECT uid, rowid FROM maps WHERE maplat_map_bbox(data_json) IS NOT NULL;
         INSERT INTO maps_rtree(id, min_x, max_x, min_y, max_y)
           SELECT rowid,
                  json_extract(maplat_map_bbox(data_json), '$[0]'),
@@ -451,10 +544,10 @@ class SqliteDataService {
                  json_extract(maplat_map_bbox(data_json), '$[1]'),
                  json_extract(maplat_map_bbox(data_json), '$[3]')
           FROM maps WHERE maplat_map_bbox(data_json) IS NOT NULL;
-        INSERT INTO apps_fts(app_id, raw, words)
-          SELECT app_id,
-                 app_id || char(10) || maplat_app_fts_raw(data_json),
-                 maplat_tokenize(app_id || ' ' || maplat_app_fts_raw(data_json))
+        INSERT INTO apps_fts(uid, raw, words)
+          SELECT uid,
+                 slug || char(10) || maplat_app_fts_raw(data_json),
+                 maplat_tokenize(slug || ' ' || maplat_app_fts_raw(data_json))
           FROM apps;
         INSERT OR REPLACE INTO schema_migrations (id) VALUES ('${SEARCH_INDEX_BACKFILL_ID}');
         COMMIT;
@@ -462,76 +555,248 @@ class SqliteDataService {
     }
   }
 
+  // --- asset registry (ADR-0007) ---
+  // 全ての slug 書込はこの2つを経由し、アセット表側の書込と同一トランザクションで行う
+
+  private registerAsset(db: DatabaseSync, kind: AssetKind, uid: string, slug: string): void {
+    if (!isValidSlug(slug)) throw new Error(`Invalid slug: ${slug}`);
+    const taken = db.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
+    if (taken) throw new Error(`Slug already in use: ${slug}`);
+    db.prepare('INSERT INTO asset_registry (uid, kind, slug) VALUES (?, ?, ?)').run(uid, kind, slug);
+  }
+
+  private renameAssetSlug(db: DatabaseSync, kind: AssetKind, uid: string, slug: string): void {
+    if (!isValidSlug(slug)) throw new Error(`Invalid slug: ${slug}`);
+    const taken = db.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
+    if (taken && taken.uid !== uid) throw new Error(`Slug already in use: ${slug}`);
+    db.prepare('UPDATE asset_registry SET slug = ? WHERE uid = ? AND kind = ?').run(slug, uid, kind);
+    const table = ASSET_TABLES[kind];
+    if (table) {
+      db.prepare(`UPDATE ${table} SET slug = ?, updated_at = datetime('now') WHERE uid = ?`).run(slug, uid);
+    }
+  }
+
+  private slugTaken(db: DatabaseSync, slug: string): boolean {
+    return db.prepare('SELECT 1 FROM asset_registry WHERE slug = ?').get(slug) != null;
+  }
+
+  private registryUid(db: DatabaseSync, kind: AssetKind, slug: string): string | null {
+    const row = db.prepare('SELECT uid FROM asset_registry WHERE slug = ? AND kind = ?').get(slug, kind) as any;
+    return row ? String(row.uid) : null;
+  }
+
+  async isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean> {
+    const db = await this.getDb();
+    const row = db.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
+    if (!row) return true;
+    return excludeUid != null && String(row.uid) === excludeUid;
+  }
+
+  // --- maps / apps 共通CRUD内部実装 ---
+
+  private createDocRow(db: DatabaseSync, kind: 'map' | 'app', slug: string, dataJson: string): string {
+    const table = ASSET_TABLES[kind]!;
+    const uid = generateUid();
+    this.withTransaction(db, () => {
+      this.registerAsset(db, kind, uid, slug);
+      db.prepare(
+        `INSERT INTO ${table} (uid, slug, data_json, revision, updated_at)
+         VALUES (?, ?, ?, 1, datetime('now'))`
+      ).run(uid, slug, dataJson);
+      if (kind === 'map') this.adoptProvisionalVisibility(db, uid, slug);
+    });
+    return uid;
+  }
+
+  private upsertDocRow(
+    db: DatabaseSync,
+    kind: 'map' | 'app',
+    uid: string,
+    slug: string,
+    dataJson: string,
+    expectedRevision?: number,
+  ): number {
+    const table = ASSET_TABLES[kind]!;
+    return this.withTransaction(db, () => {
+      const existing = db.prepare(`SELECT slug, revision FROM ${table} WHERE uid = ?`).get(uid) as any;
+      if (!existing) {
+        this.registerAsset(db, kind, uid, slug);
+        db.prepare(
+          `INSERT INTO ${table} (uid, slug, data_json, revision, updated_at)
+           VALUES (?, ?, ?, 1, datetime('now'))`
+        ).run(uid, slug, dataJson);
+        if (kind === 'map') this.adoptProvisionalVisibility(db, uid, slug);
+        return 1;
+      }
+      const currentRevision = Number(existing.revision);
+      if (expectedRevision != null && currentRevision !== expectedRevision) {
+        throw new RevisionConflictError(currentRevision);
+      }
+      if (String(existing.slug) !== slug) {
+        this.renameAssetSlug(db, kind, uid, slug);
+      }
+      const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
+      const params: any[] = expectedRevision != null ? [slug, dataJson, uid, expectedRevision] : [slug, dataJson, uid];
+      const result = db.prepare(
+        `UPDATE ${table}
+         SET slug = ?, data_json = ?, revision = revision + 1, updated_at = datetime('now')
+         ${where}`
+      ).run(...params);
+      if (Number(result.changes) === 0) {
+        const now = db.prepare(`SELECT revision FROM ${table} WHERE uid = ?`).get(uid) as any;
+        throw new RevisionConflictError(Number(now?.revision ?? 0));
+      }
+      return currentRevision + 1;
+    });
+  }
+
+  // 未保存の地図slug宛に置かれた暫定表示設定(map_uid=slug)を、地図作成時にuidキーへ引き継ぐ
+  private adoptProvisionalVisibility(db: DatabaseSync, uid: string, slug: string): void {
+    db.prepare(
+      `DELETE FROM map_base_map_visibility
+       WHERE map_uid = ? AND base_map_uid IN
+         (SELECT base_map_uid FROM map_base_map_visibility WHERE map_uid = ?)`
+    ).run(slug, uid);
+    db.prepare('UPDATE map_base_map_visibility SET map_uid = ? WHERE map_uid = ?').run(uid, slug);
+  }
+
   // --- maps ---
 
-  async findMap(mapID: string): Promise<any | null> {
+  async findMap(uid: string): Promise<any | null> {
     const db = await this.getDb();
     const row = db
-      .prepare('SELECT map_id, data_json FROM maps WHERE map_id = ?')
-      .get(mapID) as any;
+      .prepare('SELECT uid, slug, data_json, revision FROM maps WHERE uid = ?')
+      .get(uid) as any;
     return row ? mapRowToDocument(row) : null;
   }
 
-  async upsertMap(mapID: string, document: any): Promise<void> {
+  async findMapBySlug(slug: string): Promise<any | null> {
     const db = await this.getDb();
-    db.prepare(
-      `INSERT OR REPLACE INTO maps (map_id, data_json, updated_at)
-       VALUES (?, ?, datetime('now'))`
-    ).run(mapID, JSON.stringify(normalizeMapDocument(document)));
+    const row = db
+      .prepare('SELECT uid, slug, data_json, revision FROM maps WHERE slug = ?')
+      .get(slug) as any;
+    return row ? mapRowToDocument(row) : null;
   }
 
-  async deleteMap(mapID: string): Promise<void> {
+  async createMap(slug: string, document: any): Promise<{ uid: string }> {
     const db = await this.getDb();
-    db.prepare('DELETE FROM maps WHERE map_id = ?').run(mapID);
+    const uid = this.createDocRow(db, 'map', slug, JSON.stringify(normalizeMapDocument(document)));
+    return { uid };
   }
 
+  async upsertMap(uid: string, slug: string, document: any, expectedRevision?: number): Promise<{ revision: number }> {
+    const db = await this.getDb();
+    const revision = this.upsertDocRow(
+      db, 'map', uid, slug, JSON.stringify(normalizeMapDocument(document)), expectedRevision
+    );
+    return { revision };
+  }
+
+  async deleteMap(uid: string): Promise<void> {
+    const db = await this.getDb();
+    this.withTransaction(db, () => {
+      db.prepare('DELETE FROM maps WHERE uid = ?').run(uid);
+      db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
+      db.prepare('DELETE FROM map_base_map_visibility WHERE map_uid = ?').run(uid);
+    });
+  }
+
+  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
+  async upsertMapBySlug(slug: string, document: any): Promise<{ uid: string; revision: number }> {
+    const existing = await this.findMapBySlug(slug);
+    if (existing) {
+      const { revision } = await this.upsertMap(existing.uid, slug, document);
+      return { uid: existing.uid, revision };
+    }
+    const { uid } = await this.createMap(slug, document);
+    return { uid, revision: 1 };
+  }
+
+  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
+  async deleteMapBySlug(slug: string): Promise<void> {
+    const existing = await this.findMapBySlug(slug);
+    if (existing) await this.deleteMap(existing.uid);
+  }
+
+  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
   async isMapIdAvailable(mapID: string): Promise<boolean> {
-    if ((await this.findMap(mapID)) !== null) return false;
-    // Maplat地図とベースマップ(ビルトイン含む)はID空間を共有する:
-    // サムネイル等が tmbs/{mapID}.* を共有するため、両者横断で一意でなければならない
-    const db = await this.getDb();
-    return db.prepare('SELECT 1 FROM base_maps WHERE map_id = ?').get(mapID) == null;
+    return this.isSlugAvailable(mapID);
   }
 
   async readAllMaps(): Promise<any[]> {
     const db = await this.getDb();
     const rows = db
-      .prepare('SELECT map_id, data_json FROM maps ORDER BY map_id')
+      .prepare('SELECT uid, slug, data_json, revision FROM maps ORDER BY slug')
       .all() as any[];
     return rows.map(mapRowToDocument);
   }
 
   // --- apps ---
 
-  async findApp(appID: string): Promise<any | null> {
+  async findApp(uid: string): Promise<any | null> {
     const db = await this.getDb();
     const row = db
-      .prepare('SELECT app_id, data_json FROM apps WHERE app_id = ?')
-      .get(appID) as any;
+      .prepare('SELECT uid, slug, data_json, revision FROM apps WHERE uid = ?')
+      .get(uid) as any;
     return row ? appRowToDocument(row) : null;
   }
 
-  async upsertApp(appID: string, document: any): Promise<void> {
+  async findAppBySlug(slug: string): Promise<any | null> {
     const db = await this.getDb();
-    db.prepare(
-      `INSERT OR REPLACE INTO apps (app_id, data_json, updated_at)
-       VALUES (?, ?, datetime('now'))`
-    ).run(appID, JSON.stringify(normalizeAppDocument(document)));
+    const row = db
+      .prepare('SELECT uid, slug, data_json, revision FROM apps WHERE slug = ?')
+      .get(slug) as any;
+    return row ? appRowToDocument(row) : null;
   }
 
-  async deleteApp(appID: string): Promise<void> {
+  async createApp(slug: string, document: any): Promise<{ uid: string }> {
     const db = await this.getDb();
-    db.prepare('DELETE FROM apps WHERE app_id = ?').run(appID);
+    const uid = this.createDocRow(db, 'app', slug, JSON.stringify(normalizeAppDocument(document)));
+    return { uid };
   }
 
+  async upsertApp(uid: string, slug: string, document: any, expectedRevision?: number): Promise<{ revision: number }> {
+    const db = await this.getDb();
+    const revision = this.upsertDocRow(
+      db, 'app', uid, slug, JSON.stringify(normalizeAppDocument(document)), expectedRevision
+    );
+    return { revision };
+  }
+
+  async deleteApp(uid: string): Promise<void> {
+    const db = await this.getDb();
+    this.withTransaction(db, () => {
+      db.prepare('DELETE FROM apps WHERE uid = ?').run(uid);
+      db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
+    });
+  }
+
+  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
+  async upsertAppBySlug(slug: string, document: any): Promise<{ uid: string; revision: number }> {
+    const existing = await this.findAppBySlug(slug);
+    if (existing) {
+      const { revision } = await this.upsertApp(existing.uid, slug, document);
+      return { uid: existing.uid, revision };
+    }
+    const { uid } = await this.createApp(slug, document);
+    return { uid, revision: 1 };
+  }
+
+  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
+  async deleteAppBySlug(slug: string): Promise<void> {
+    const existing = await this.findAppBySlug(slug);
+    if (existing) await this.deleteApp(existing.uid);
+  }
+
+  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
   async isAppIdAvailable(appID: string): Promise<boolean> {
-    return (await this.findApp(appID)) === null;
+    return this.isSlugAvailable(appID);
   }
 
   async readAllApps(): Promise<any[]> {
     const db = await this.getDb();
     const rows = db
-      .prepare('SELECT app_id, data_json FROM apps ORDER BY app_id')
+      .prepare('SELECT uid, slug, data_json, revision FROM apps ORDER BY slug')
       .all() as any[];
     return rows.map(appRowToDocument);
   }
@@ -540,50 +805,48 @@ class SqliteDataService {
 
   // 各検索語: FTS5トークン一致(分かち書き後の単語AND) ∪ raw部分一致(従来の部分文字列検索の互換)。
   // 複数語はAND(積集合)。戻り値 null は「検索語なし=絞り込みなし」。
-  private searchIDs(
+  private searchUids(
     db: DatabaseSync,
     table: 'maps_fts' | 'apps_fts',
-    idColumn: 'map_id' | 'app_id',
     query: string,
   ): string[] | null {
     const terms = query.trim().split(/\s+/).filter(Boolean);
     if (terms.length === 0) return null;
     let result: Set<string> | null = null;
     for (const term of terms) {
-      const ids = new Set<string>();
+      const uids = new Set<string>();
       const match = ftsMatchExpression(term);
       if (match) {
-        const rows = db.prepare(`SELECT ${idColumn} AS id FROM ${table} WHERE ${table} MATCH ?`).all(match) as any[];
-        for (const row of rows) ids.add(String(row.id));
+        const rows = db.prepare(`SELECT uid AS id FROM ${table} WHERE ${table} MATCH ?`).all(match) as any[];
+        for (const row of rows) uids.add(String(row.id));
       }
       const rows = db
-        .prepare(`SELECT ${idColumn} AS id FROM ${table} WHERE raw LIKE ? ESCAPE '\\'`)
+        .prepare(`SELECT uid AS id FROM ${table} WHERE raw LIKE ? ESCAPE '\\'`)
         .all(`%${escapeLike(term)}%`) as any[];
-      for (const row of rows) ids.add(String(row.id));
+      for (const row of rows) uids.add(String(row.id));
       if (result === null) {
-        result = ids;
+        result = uids;
       } else {
         const previous: Set<string> = result;
-        result = new Set([...previous].filter((id) => ids.has(id)));
+        result = new Set([...previous].filter((id) => uids.has(id)));
       }
       if (result.size === 0) return [];
     }
     return [...(result as Set<string>)].sort();
   }
 
-  private readDocsByIDs(
+  private readDocsByUids(
     db: DatabaseSync,
     table: 'maps' | 'apps',
-    idColumn: 'map_id' | 'app_id',
-    ids: string[],
+    uids: string[],
     rowToDocument: (row: any) => any,
   ): any[] {
     const docs: any[] = [];
-    for (let i = 0; i < ids.length; i += 500) {
-      const chunk = ids.slice(i, i + 500);
+    for (let i = 0; i < uids.length; i += 500) {
+      const chunk = uids.slice(i, i + 500);
       const placeholders = chunk.map(() => '?').join(',');
       const rows = db
-        .prepare(`SELECT ${idColumn}, data_json FROM ${table} WHERE ${idColumn} IN (${placeholders}) ORDER BY ${idColumn}`)
+        .prepare(`SELECT uid, slug, data_json, revision FROM ${table} WHERE uid IN (${placeholders}) ORDER BY slug`)
         .all(...chunk) as any[];
       docs.push(...rows.map(rowToDocument));
     }
@@ -592,35 +855,40 @@ class SqliteDataService {
 
   async searchMaps(query: string): Promise<any[]> {
     const db = await this.getDb();
-    const ids = this.searchIDs(db, 'maps_fts', 'map_id', query);
-    if (ids === null) return this.readAllMaps();
-    if (ids.length === 0) return [];
-    return this.readDocsByIDs(db, 'maps', 'map_id', ids, mapRowToDocument);
+    const uids = this.searchUids(db, 'maps_fts', query);
+    if (uids === null) return this.readAllMaps();
+    if (uids.length === 0) return [];
+    return this.readDocsByUids(db, 'maps', uids, mapRowToDocument);
   }
 
   async searchApps(query: string): Promise<any[]> {
     const db = await this.getDb();
-    const ids = this.searchIDs(db, 'apps_fts', 'app_id', query);
-    if (ids === null) return this.readAllApps();
-    if (ids.length === 0) return [];
-    return this.readDocsByIDs(db, 'apps', 'app_id', ids, appRowToDocument);
+    const uids = this.searchUids(db, 'apps_fts', query);
+    if (uids === null) return this.readAllApps();
+    if (uids.length === 0) return [];
+    return this.readDocsByUids(db, 'apps', uids, appRowToDocument);
   }
 
-  // extent = [minX, minY, maxX, maxY](メルカトル座標)。bbox交差する地図IDを返す
+  // extent = [minX, minY, maxX, maxY](メルカトル座標)。bbox交差する地図のslugを返す
+  // (レンダラ互換: 呼び出し側のuid化はPhase1 Task5で行う)
   async searchExtent(extent: number[]): Promise<string[]> {
     const db = await this.getDb();
     const rows = db
       .prepare(`
-        SELECT k.map_id AS id
-        FROM maps_rtree r JOIN maps_rtree_key k ON k.rid = r.id
+        SELECT m.slug AS id
+        FROM maps_rtree r
+        JOIN maps_rtree_key k ON k.rid = r.id
+        JOIN maps m ON m.uid = k.uid
         WHERE r.max_x >= ? AND r.min_x <= ? AND r.max_y >= ? AND r.min_y <= ?
-        ORDER BY k.map_id
+        ORDER BY m.slug
       `)
       .all(extent[0], extent[2], extent[1], extent[3]) as any[];
     return rows.map((row) => String(row.id));
   }
 
   // --- base maps ---
+  // 内部キーはuid。公開APIはレンダラ互換のためslug(mapID)を受け取り、内部で解決する
+  // (呼び出し側のuid化はPhase1 Task7で行う)
 
   async getTmsListOfMapID(mapID: string): Promise<any[]> {
     const items = await this.getBaseMapVisibilityOfMapID(mapID);
@@ -629,31 +897,59 @@ class SqliteDataService {
 
   // 常時表示のユーザー上書き(base_map_always)。ビルトイン再シードの影響を受けない
   private alwaysOverrides(db: DatabaseSync): Map<string, boolean> {
-    const rows = db.prepare('SELECT base_map_id, always_visible FROM base_map_always').all() as any[];
-    return new Map(rows.map((row) => [String(row.base_map_id), Boolean(row.always_visible)]));
+    const rows = db.prepare('SELECT base_map_uid, always_visible FROM base_map_always').all() as any[];
+    return new Map(rows.map((row) => [String(row.base_map_uid), Boolean(row.always_visible)]));
   }
 
-  // 実効の常時表示: OSMは強制true、他は上書きがあればそれ、なければ定義のalways
+  // 実効の常時表示: OSM(slug判定)は強制true、他は上書き(uidキー)があればそれ、なければ定義のalways
   // (ビルトインではgsi/gsi_orthoのみtrue)
-  private effectiveAlways(baseMapId: string, tms: any, overrides: Map<string, boolean>): boolean {
-    if (FORCED_ALWAYS_BASE_MAP_IDS.has(baseMapId)) return true;
-    const override = overrides.get(baseMapId);
+  private effectiveAlways(slug: string, uid: string, tms: any, overrides: Map<string, boolean>): boolean {
+    if (FORCED_ALWAYS_BASE_MAP_IDS.has(slug)) return true;
+    const override = overrides.get(uid);
     return override != null ? override : Boolean(tms?.always);
+  }
+
+  private findBaseMapBySlug(db: DatabaseSync, slug: string, scope?: BaseMapScope): any | null {
+    if (scope) {
+      return db
+        .prepare('SELECT uid, slug, scope, sort_order, data_json FROM base_maps WHERE slug = ? AND scope = ?')
+        .get(slug, scope) as any;
+    }
+    return db
+      .prepare('SELECT uid, slug, scope, sort_order, data_json FROM base_maps WHERE slug = ?')
+      .get(slug) as any;
+  }
+
+  // 地図の表示設定キー: 保存済みの地図はuid、未保存の地図はslugを仮キーとして使う
+  // (地図の初回保存時に adoptProvisionalVisibility がuidキーへ引き継ぐ)
+  private visibilityRowsForMapSlug(db: DatabaseSync, mapSlug: string): Map<string, boolean> {
+    const mapUid = this.registryUid(db, 'map', mapSlug);
+    const rows = db
+      .prepare('SELECT map_uid, base_map_uid, enabled FROM map_base_map_visibility WHERE map_uid IN (?, ?)')
+      .all(mapSlug, mapUid ?? mapSlug) as any[];
+    const visibility = new Map<string, boolean>();
+    // slug仮キーの行 → uidキーの行の順で上書き(uidキー優先)
+    for (const row of rows.filter((r) => String(r.map_uid) === mapSlug)) {
+      visibility.set(String(row.base_map_uid), Boolean(row.enabled));
+    }
+    if (mapUid) {
+      for (const row of rows.filter((r) => String(r.map_uid) === mapUid)) {
+        visibility.set(String(row.base_map_uid), Boolean(row.enabled));
+      }
+    }
+    return visibility;
   }
 
   async getBaseMapVisibilityOfMapID(mapID: string): Promise<BaseMapVisibilityItem[]> {
     const db = await this.getDb();
     const baseMapRows = db
       .prepare(`
-        SELECT map_id, scope, sort_order, data_json
+        SELECT uid, slug, scope, sort_order, data_json
         FROM base_maps
-        ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END, sort_order, map_id
+        ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END, sort_order, slug
       `)
       .all() as any[];
-    const visibilityRows = db
-      .prepare('SELECT base_map_id, enabled FROM map_base_map_visibility WHERE map_id = ?')
-      .all(mapID) as any[];
-    const visibility = new Map(visibilityRows.map((row) => [row.base_map_id, Boolean(row.enabled)]));
+    const visibility = this.visibilityRowsForMapSlug(db, mapID);
     const overrides = this.alwaysOverrides(db);
 
     // オプトイン方式(ADR-0006): 明示的に選択したものだけ表示(未設定=非表示)。
@@ -661,11 +957,12 @@ class SqliteDataService {
     const items: BaseMapVisibilityItem[] = [];
     for (const row of baseMapRows) {
       const tms = JSON.parse(row.data_json);
-      const locked = this.effectiveAlways(row.map_id, tms, overrides);
+      const locked = this.effectiveAlways(String(row.slug), String(row.uid), tms, overrides);
       items.push({
-        mapID: row.map_id,
+        uid: String(row.uid),
+        mapID: String(row.slug),
         scope: row.scope,
-        enabled: locked ? true : Boolean(visibility.get(row.map_id) ?? false),
+        enabled: locked ? true : Boolean(visibility.get(String(row.uid)) ?? false),
         locked,
         data: tms,
       });
@@ -675,20 +972,19 @@ class SqliteDataService {
 
   async setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void> {
     const db = await this.getDb();
-    const row = db
-      .prepare(
-        `SELECT data_json FROM base_maps WHERE map_id = ?
-         ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END LIMIT 1`
-      )
-      .get(baseMapId) as any;
-    if (row) {
-      const tms = JSON.parse(row.data_json);
-      if (this.effectiveAlways(baseMapId, tms, this.alwaysOverrides(db))) return;
+    const base = this.findBaseMapBySlug(db, baseMapId);
+    if (!base) {
+      console.warn(`[SqliteDataService] setBaseMapVisibilityForMapID: unknown base map ${baseMapId}`);
+      return;
     }
+    const tms = JSON.parse(base.data_json);
+    if (this.effectiveAlways(String(base.slug), String(base.uid), tms, this.alwaysOverrides(db))) return;
+    // 未保存の地図はslugを仮キーに置く(初回保存時にuidキーへ引き継がれる)
+    const mapKey = this.registryUid(db, 'map', mapID) ?? mapID;
     db.prepare(
-      `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
+      `INSERT OR REPLACE INTO map_base_map_visibility (map_uid, base_map_uid, enabled, updated_at)
        VALUES (?, ?, ?, datetime('now'))`
-    ).run(mapID, baseMapId, enabled ? 1 : 0);
+    ).run(mapKey, base.uid, enabled ? 1 : 0);
   }
 
   async listBaseMaps(): Promise<BaseMapCatalogItem[]> {
@@ -696,19 +992,20 @@ class SqliteDataService {
     const overrides = this.alwaysOverrides(db);
     const rows = db
       .prepare(`
-        SELECT map_id, scope, data_json
+        SELECT uid, slug, scope, data_json
         FROM base_maps
-        ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END, sort_order, map_id
+        ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END, sort_order, slug
       `)
       .all() as any[];
     return rows.map((row: any) => {
       const data = JSON.parse(row.data_json);
       return {
-        mapID: row.map_id,
+        uid: String(row.uid),
+        mapID: String(row.slug),
         scope: row.scope,
         data,
-        alwaysVisible: this.effectiveAlways(row.map_id, data, overrides),
-        alwaysLocked: FORCED_ALWAYS_BASE_MAP_IDS.has(row.map_id),
+        alwaysVisible: this.effectiveAlways(String(row.slug), String(row.uid), data, overrides),
+        alwaysLocked: FORCED_ALWAYS_BASE_MAP_IDS.has(String(row.slug)),
       };
     });
   }
@@ -718,132 +1015,161 @@ class SqliteDataService {
       throw new Error(`Base map cannot be removed from always-visible: ${baseMapId}`);
     }
     const db = await this.getDb();
-    const exists = db.prepare('SELECT 1 FROM base_maps WHERE map_id = ?').get(baseMapId);
-    if (!exists) throw new Error(`Unknown base map: ${baseMapId}`);
+    const base = this.findBaseMapBySlug(db, baseMapId);
+    if (!base) throw new Error(`Unknown base map: ${baseMapId}`);
     db.prepare(
-      `INSERT OR REPLACE INTO base_map_always (base_map_id, always_visible, updated_at)
+      `INSERT OR REPLACE INTO base_map_always (base_map_uid, always_visible, updated_at)
        VALUES (?, ?, datetime('now'))`
-    ).run(baseMapId, always ? 1 : 0);
+    ).run(base.uid, always ? 1 : 0);
   }
 
-  // originalMapID: 既存ユーザーベースマップの改名時に旧IDを渡す。
-  // 改名時は地図単位の表示設定(map_base_map_visibility)と常時表示設定(base_map_always)を
-  // 新IDへ引き継ぐ(レガシーデータのID重複はこの改名で解消できる)
+  // originalMapID: 既存ユーザーベースマップの改名時に旧slugを渡す。
+  // uidが正本キーになったため、改名しても表示設定(map_base_map_visibility)と
+  // 常時表示設定(base_map_always)の付け替えは不要(旧v1のカスケードは撤去済み)。
+  // 衝突検査はasset_registryのグローバル一意性に一本化(旧grandfathering不要:
+  // レガシーのID重複はマイグレーション時にslugサフィックスで解消される)
   async saveUserBaseMap(tms: any, originalMapID?: string): Promise<void> {
-    const mapID = String(tms?.mapID ?? '').trim();
-    if (!mapID) throw new Error('mapID is required');
+    const slug = String(tms?.mapID ?? '').trim();
+    if (!slug) throw new Error('mapID is required');
     const db = await this.getDb();
-    const sourceID = String(originalMapID ?? '').trim() || mapID;
-    const builtinRow = db
-      .prepare(`SELECT 1 FROM base_maps WHERE scope = 'builtin' AND map_id = ?`)
-      .get(mapID);
-    if (builtinRow) {
-      throw new Error(`Base map ID conflicts with a builtin base map: ${mapID}`);
-    }
+    const sourceSlug = String(originalMapID ?? '').trim() || slug;
+    const existing = this.findBaseMapBySlug(db, sourceSlug, 'user');
 
-    const findUserRow = (id: string) =>
-      db.prepare(`SELECT sort_order FROM base_maps WHERE scope = 'user' AND map_id = ?`).get(id) as any;
-    const existing = findUserRow(sourceID);
-    const renaming = sourceID !== mapID && existing != null;
-
-    // 「新しくIDを名乗る」場合(新規作成・改名)のみ共有ID空間の衝突を検査する。
-    // レガシーデータで既にMaplat地図とIDが重複している行の同一IDでの上書き更新は
-    // 許容する(grandfather: これを拒否すると改名操作自体もできなくなるため)
-    if (!existing || renaming) {
-      if (renaming && findUserRow(mapID)) {
-        throw new Error(`Base map ID already exists: ${mapID}`);
-      }
-      // ID空間はMaplat地図と共有(tmbs/{mapID}.* を共有するため)。既存地図のIDは拒否する
-      const mapRow = db.prepare('SELECT 1 FROM maps WHERE map_id = ?').get(mapID);
-      if (mapRow) {
-        throw new Error(`Base map ID conflicts with a Maplat map: ${mapID}`);
-      }
-    }
-
-    let sortOrder: number;
     if (existing) {
-      sortOrder = Number(existing.sort_order);
-    } else {
-      const next = db
-        .prepare(`SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order FROM base_maps WHERE scope = 'user'`)
-        .get() as any;
-      sortOrder = Number(next.next_order);
+      const renaming = sourceSlug !== slug;
+      this.withTransaction(db, () => {
+        if (renaming) this.renameAssetSlug(db, 'base_map', String(existing.uid), slug);
+        db.prepare(
+          `UPDATE base_maps SET slug = ?, data_json = ?, updated_at = datetime('now') WHERE uid = ?`
+        ).run(slug, JSON.stringify({ ...tms, mapID: slug }), existing.uid);
+      });
+      return;
     }
+
+    const next = db
+      .prepare(`SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order FROM base_maps WHERE scope = 'user'`)
+      .get() as any;
+    const sortOrder = Number(next.next_order);
     this.withTransaction(db, () => {
-      if (renaming) {
-        db.prepare(`DELETE FROM base_maps WHERE scope = 'user' AND map_id = ?`).run(sourceID);
-        // 新ID側の残骸を掃除してから、旧IDの設定を付け替える
-        db.prepare('DELETE FROM map_base_map_visibility WHERE base_map_id = ?').run(mapID);
-        db.prepare('UPDATE map_base_map_visibility SET base_map_id = ? WHERE base_map_id = ?').run(mapID, sourceID);
-        db.prepare('DELETE FROM base_map_always WHERE base_map_id = ?').run(mapID);
-        db.prepare('UPDATE base_map_always SET base_map_id = ? WHERE base_map_id = ?').run(mapID, sourceID);
-      }
+      const uid = generateUid();
+      // slug衝突(ビルトイン/Maplat地図/アプリ含むグローバルnamespace)はregisterAssetが拒否する
+      this.registerAsset(db, 'base_map', uid, slug);
       db.prepare(
-        `INSERT OR REPLACE INTO base_maps (map_id, scope, sort_order, data_json, updated_at)
-         VALUES (?, 'user', ?, ?, datetime('now'))`
-      ).run(mapID, sortOrder, JSON.stringify({ ...tms, mapID }));
+        `INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at)
+         VALUES (?, ?, 'user', ?, ?, 1, datetime('now'))`
+      ).run(uid, slug, sortOrder, JSON.stringify({ ...tms, mapID: slug }));
     });
   }
 
   async deleteUserBaseMap(baseMapId: string): Promise<void> {
     const db = await this.getDb();
-    db.prepare(`DELETE FROM base_maps WHERE scope = 'user' AND map_id = ?`).run(baseMapId);
-    const remains = db.prepare('SELECT 1 FROM base_maps WHERE map_id = ?').get(baseMapId);
-    if (!remains) {
-      db.prepare('DELETE FROM map_base_map_visibility WHERE base_map_id = ?').run(baseMapId);
-      db.prepare('DELETE FROM base_map_always WHERE base_map_id = ?').run(baseMapId);
-    }
+    const existing = this.findBaseMapBySlug(db, baseMapId, 'user');
+    if (!existing) return;
+    this.withTransaction(db, () => {
+      this.deleteBaseMapRow(db, String(existing.uid));
+    });
+  }
+
+  private deleteBaseMapRow(db: DatabaseSync, uid: string): void {
+    db.prepare('DELETE FROM base_maps WHERE uid = ?').run(uid);
+    db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
+    db.prepare('DELETE FROM map_base_map_visibility WHERE base_map_uid = ?').run(uid);
+    db.prepare('DELETE FROM base_map_always WHERE base_map_uid = ?').run(uid);
   }
 
   // --- migration internals ---
 
-  // ビルトインベースマップは起動ごとに builtin_base_maps.json(正本: KTGISカタログ)から再シードする
+  // ビルトインベースマップは起動ごとに builtin_base_maps.json(正本: KTGISカタログ)から再シードする。
+  // 既存行はビルトインID(data_json.mapID)でマッチしてuidを維持し、新規のみuid採番+registry登録する
+  // (シードはレガシー取込より先に走るため、ビルトインは常にclean slugを確保する)
   private applyBuiltinBaseMapSeed(db: DatabaseSync): void {
     this.withTransaction(db, () => {
       const list = maybeJsonArray(builtinBaseMaps);
-      this.upsertBaseMaps(db, 'builtin', list);
-      const builtinIDs = list.map((tms) => String(tms.mapID)).filter(Boolean);
-      if (builtinIDs.length > 0) {
-        const placeholders = builtinIDs.map(() => '?').join(', ');
-        db.prepare(`DELETE FROM base_maps WHERE scope = 'builtin' AND map_id NOT IN (${placeholders})`)
-          .run(...builtinIDs);
+      const findByBuiltinId = db.prepare(
+        `SELECT uid, slug FROM base_maps WHERE scope = 'builtin' AND json_extract(data_json, '$.mapID') = ?`
+      );
+      const update = db.prepare(
+        `UPDATE base_maps SET sort_order = ?, data_json = ?, updated_at = datetime('now') WHERE uid = ?`
+      );
+      const insert = db.prepare(
+        `INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at)
+         VALUES (?, ?, 'builtin', ?, ?, 1, datetime('now'))`
+      );
+      const builtinIDs: string[] = [];
+      for (let index = 0; index < list.length; index++) {
+        const tms = list[index];
+        const builtinId = String(tms?.mapID ?? '');
+        if (!builtinId) continue;
+        builtinIDs.push(builtinId);
+        const existing = findByBuiltinId.get(builtinId) as any;
+        if (existing) {
+          update.run(index, JSON.stringify(tms), existing.uid);
+          continue;
+        }
+        const uid = generateUid();
+        // 通常はclean slug=ビルトインID。万一先取りされていた場合のみサフィックスで回避する
+        const slug = resolveSlugCollision(builtinId, (s) => this.slugTaken(db, s));
+        this.registerAsset(db, 'base_map', uid, slug);
+        insert.run(uid, slug, index, JSON.stringify(tms));
+      }
+      // カタログから外れたビルトインは行・registry・関連設定ごと削除する
+      const staleRows = db
+        .prepare(`SELECT uid, json_extract(data_json, '$.mapID') AS builtin_id FROM base_maps WHERE scope = 'builtin'`)
+        .all() as any[];
+      const liveIDs = new Set(builtinIDs);
+      for (const row of staleRows) {
+        if (!liveIDs.has(String(row.builtin_id))) {
+          this.deleteBaseMapRow(db, String(row.uid));
+        }
       }
     });
   }
 
-  // nedb.db(または退避済み _nedb.db)からのMaplat地図マイグレーション
-  private async migrateNeDB(db: DatabaseSync): Promise<void> {
+  // nedb.db(または退避済み _nedb.db)のMaplat地図ドキュメントを読み込む
+  private async loadLegacyMapDocs(): Promise<any[]> {
     const nedbFile = await this.resolveLegacyPath(this.folders.nedbFile, this.folders.retiredNedbFile);
-    if (!nedbFile) return;
+    if (!nedbFile) return [];
     const store = new Datastore({ filename: nedbFile, autoload: true });
-    const docs = await new Promise<any[]>((resolve, reject) => {
+    return await new Promise<any[]>((resolve, reject) => {
       store.find({}).sort({ _id: 1 }).exec((err: any, documents: any[]) => {
         if (err) reject(err);
         else resolve(documents);
       });
     });
-    this.withTransaction(db, () => {
-      const insert = db.prepare(
-        `INSERT INTO maps (map_id, data_json, updated_at)
-         SELECT ?, ?, datetime('now')
-         WHERE NOT EXISTS (SELECT 1 FROM maps WHERE map_id = ?)`
-      );
-      for (const doc of docs) {
-        if (!doc?._id) continue;
-        insert.run(doc._id, JSON.stringify(normalizeMapDocument(doc)), doc._id);
-      }
-    });
   }
 
-  // settings(または退避済み _settings)配下のユーザーベースマップ/個別地図の表示設定マイグレーション
-  private async migrateUserBaseMaps(db: DatabaseSync): Promise<void> {
+  // レガシー地図の取込(ADR-0007): uid採番 + slug=旧_id(衝突時サフィックス)。
+  // 戻り値は 旧ID→uid の対応(表示設定の解決とtiles/tmbsリネームに使う)
+  private importLegacyMaps(db: DatabaseSync, docs: any[]): Map<string, string> {
+    const mapIdToUid = new Map<string, string>();
+    const insert = db.prepare(
+      `INSERT INTO maps (uid, slug, data_json, revision, updated_at)
+       VALUES (?, ?, ?, 1, datetime('now'))`
+    );
+    for (const doc of docs) {
+      if (!doc?._id) continue;
+      const oldId = String(doc._id);
+      if (mapIdToUid.has(oldId)) continue;
+      const slug = resolveSlugCollision(oldId, (s) => this.slugTaken(db, s));
+      const uid = generateUid();
+      this.registerAsset(db, 'map', uid, slug);
+      insert.run(uid, slug, JSON.stringify(normalizeMapDocument(doc)));
+      mapIdToUid.set(oldId, uid);
+    }
+    return mapIdToUid;
+  }
+
+  // settings(または退避済み _settings)配下のユーザーベースマップ/個別地図の表示設定を読み込む
+  private async loadLegacyBaseMapInputs(): Promise<{
+    userLists: any[][];
+    visibilityEntries: Array<{ mapID: string; baseMapId: string; enabled: boolean }>;
+  }> {
     const settingsDir = await this.resolveLegacyPath(this.folders.settingsDir, this.folders.retiredSettingsDir);
     const storeList = maybeJsonArray(SettingsService.get('tmsList'));
     if (isDefaultTmsList(storeList)) {
       storeList.length = 0;
     }
 
-    // ファイル読み込み(非同期)を済ませてから、DB書き込みは1トランザクションで行う
     const userLists: any[][] = [];
     if (storeList.length > 0) userLists.push(storeList);
     const visibilityEntries: Array<{ mapID: string; baseMapId: string; enabled: boolean }> = [];
@@ -863,31 +1189,69 @@ class SqliteDataService {
         }
       }
     }
-    if (userLists.length === 0 && visibilityEntries.length === 0) return;
-
-    this.withTransaction(db, () => {
-      for (const list of userLists) {
-        this.upsertBaseMaps(db, 'user', list);
-      }
-      const insertVisibility = db.prepare(
-        `INSERT OR REPLACE INTO map_base_map_visibility (map_id, base_map_id, enabled, updated_at)
-         VALUES (?, ?, ?, datetime('now'))`
-      );
-      for (const entry of visibilityEntries) {
-        insertVisibility.run(entry.mapID, entry.baseMapId, entry.enabled ? 1 : 0);
-      }
-    });
+    return { userLists, visibilityEntries };
   }
 
-  private upsertBaseMaps(db: DatabaseSync, scope: BaseMapScope, list: any[]): void {
+  // レガシーのユーザーベースマップ/表示設定の取込(ADR-0007):
+  // ベースマップはuid採番 + slug=旧ID(衝突時サフィックス)。
+  // 表示設定は旧IDを地図uid/ベースマップuidへ解決し、どちらかが不明なら読み飛ばす
+  private importLegacyBaseMaps(
+    db: DatabaseSync,
+    inputs: { userLists: any[][]; visibilityEntries: Array<{ mapID: string; baseMapId: string; enabled: boolean }> },
+    mapIdToUid: Map<string, string>,
+  ): void {
+    const { userLists, visibilityEntries } = inputs;
+    if (userLists.length === 0 && visibilityEntries.length === 0) return;
+
+    const baseIdToUid = new Map<string, string>();
+    const next = db
+      .prepare(`SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order FROM base_maps WHERE scope = 'user'`)
+      .get() as any;
+    let sortOrder = Number(next.next_order);
     const insert = db.prepare(
-      `INSERT OR REPLACE INTO base_maps (map_id, scope, sort_order, data_json, updated_at)
-       VALUES (?, ?, ?, ?, datetime('now'))`
+      `INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at)
+       VALUES (?, ?, 'user', ?, ?, 1, datetime('now'))`
     );
-    for (let index = 0; index < list.length; index++) {
-      const tms = list[index];
-      if (!tms?.mapID) continue;
-      insert.run(String(tms.mapID), scope, index, JSON.stringify(tms));
+    const update = db.prepare(
+      `UPDATE base_maps SET data_json = ?, updated_at = datetime('now') WHERE uid = ?`
+    );
+    for (const list of userLists) {
+      for (const tms of list) {
+        const oldId = String(tms?.mapID ?? '');
+        if (!oldId) continue;
+        const known = baseIdToUid.get(oldId);
+        if (known) {
+          // 複数入力(electron-store設定とsettings/tmsList.json)に同一IDがある場合は後勝ちで内容更新
+          const knownSlug = (db.prepare('SELECT slug FROM base_maps WHERE uid = ?').get(known) as any)?.slug;
+          update.run(JSON.stringify({ ...tms, mapID: knownSlug }), known);
+          continue;
+        }
+        const slug = resolveSlugCollision(oldId, (s) => this.slugTaken(db, s));
+        const uid = generateUid();
+        this.registerAsset(db, 'base_map', uid, slug);
+        insert.run(uid, slug, sortOrder++, JSON.stringify({ ...tms, mapID: slug }));
+        baseIdToUid.set(oldId, uid);
+      }
+    }
+
+    const insertVisibility = db.prepare(
+      `INSERT OR REPLACE INTO map_base_map_visibility (map_uid, base_map_uid, enabled, updated_at)
+       VALUES (?, ?, ?, datetime('now'))`
+    );
+    for (const entry of visibilityEntries) {
+      const mapUid = mapIdToUid.get(entry.mapID)
+        ?? (db.prepare('SELECT uid FROM maps WHERE slug = ?').get(entry.mapID) as any)?.uid;
+      // ベースマップは旧ID優先(取込時サフィックスの影響を受けない)、次にslug(ビルトイン等)
+      const baseUid = baseIdToUid.get(entry.baseMapId)
+        ?? (this.findBaseMapBySlug(db, entry.baseMapId)?.uid as string | undefined);
+      if (!mapUid || !baseUid) {
+        console.warn(
+          `[SqliteDataService] legacy visibility skipped (unknown ${!mapUid ? 'map' : 'base map'}): ` +
+          `${entry.mapID} / ${entry.baseMapId}`
+        );
+        continue;
+      }
+      insertVisibility.run(String(mapUid), String(baseUid), entry.enabled ? 1 : 0);
     }
   }
 

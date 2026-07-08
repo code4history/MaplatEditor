@@ -110,7 +110,12 @@ try {
   );
 
   // シナリオ1: 生きたレガシー入力
-  await writeFile(path.join(dataDir, 'nedb.db'), legacyMapDoc('legacy-map', 'Legacy Map'));
+  // mapA/mapB は個別表示設定(tmsList_mapA.json等)の対象地図。schema v2 では表示設定が
+  // 地図uidへ解決されるため、設定対象の地図もnedbに存在させる (ADR-0007)
+  await writeFile(
+    path.join(dataDir, 'nedb.db'),
+    legacyMapDoc('legacy-map', 'Legacy Map') + legacyMapDoc('mapA', 'Map A') + legacyMapDoc('mapB', 'Map B')
+  );
   await writeFile(
     path.join(settingsDir, 'tmsList.json'),
     JSON.stringify([{ mapID: 'user-base', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' }])
@@ -155,10 +160,15 @@ try {
       const listed = await StorageAdapter.listMaps({ query: 'Legacy', page: 1, pageSize: 20 });
       assert.equal(listed.docs.length, 1);
       assert.equal(listed.docs[0].mapID, 'legacy-map');
-      // pageSize=0 は全件取得
+      // pageSize=0 は全件取得 (legacy-map / mapA / mapB の3件)
       const listedAll = await StorageAdapter.listMaps({ query: '', page: 1, pageSize: 0 });
-      assert.equal(listedAll.docs.length, 1);
+      assert.equal(listedAll.docs.length, 3);
       assert.equal(listedAll.next, false);
+      // schema v2: 移行された地図は uid(UUIDv4) と slug=旧ID を持つ (ADR-0007)
+      const migratedDoc = await SqliteDataService.findMapBySlug('legacy-map');
+      assert.match(migratedDoc.uid, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      assert.equal(migratedDoc.slug, 'legacy-map');
+      assert.equal(migratedDoc.revision, 1);
 
       const loaded = await StorageAdapter.readMapForEdit('legacy-map');
       assert.equal(loaded.mapID, 'legacy-map');
@@ -251,11 +261,11 @@ try {
       await SettingsService.setBaseMapAlways('user-base', false);
 
       // FTS5(日本語分かち書き)とR-Tree(bbox)の索引がトリガで同期されること
-      await SqliteDataService.upsertMap('ryukyu-map', {
+      await SqliteDataService.upsertMapBySlug('ryukyu-map', {
         title: '正保琉球国絵図写',
         compiled: { vertices_points: [[[0, 0], [15550000, 3070000]], [[1, 1], [15650000, 3170000]]] },
       });
-      await SqliteDataService.upsertMap('kuma-map', { title: '球磨川流域地図' });
+      await SqliteDataService.upsertMapBySlug('kuma-map', { title: '球磨川流域地図' });
       // 「琉球」: 単語一致のみヒット(「球」を含むだけの球磨川へは誤ヒットしない)
       const jaHits = await SearchDataService.listMaps('琉球', 1, 0);
       assert.deepEqual(jaHits.docs.map((doc) => doc._id), ['ryukyu-map']);
@@ -265,10 +275,10 @@ try {
       // R-Tree: bbox交差検索(メルカトル座標)。削除でトリガが索引を掃除すること
       assert.deepEqual(await SearchDataService.searchExtent([15500000, 3000000, 15700000, 3200000]), ['ryukyu-map']);
       assert.deepEqual(await SearchDataService.searchExtent([0, 0, 100, 100]), []);
-      await SqliteDataService.deleteMap('ryukyu-map');
+      await SqliteDataService.deleteMapBySlug('ryukyu-map');
       assert.deepEqual(await SearchDataService.searchExtent([15500000, 3000000, 15700000, 3200000]), []);
       assert.equal((await SearchDataService.listMaps('琉球', 1, 0)).docs.length, 0);
-      await SqliteDataService.deleteMap('kuma-map');
+      await SqliteDataService.deleteMapBySlug('kuma-map');
 
       // ビルトインベースマップはKTGISカタログ由来(重複なし・再シード安全)
       const baseMaps = await SettingsService.listBaseMaps();
@@ -284,26 +294,25 @@ try {
         SqliteDataService.saveUserBaseMap({ mapID: 'legacy-map', title: 'x', url: 'https://example.test/{z}/{x}/{y}.png' })
       );
 
-      // レガシー重複のgrandfather: Maplat地図とIDが重複している既存ユーザーベースマップは、
-      // 同一IDでの上書き更新は許容され、改名(originalMapID指定)で重複を解消できる
-      const rawForDup = await SqliteDataService.getDb();
-      rawForDup
-        .prepare("INSERT OR REPLACE INTO base_maps (map_id, scope, sort_order, data_json) VALUES ('legacy-map', 'user', 99, ?)")
-        .run(JSON.stringify({ mapID: 'legacy-map', title: 'Dup', url: 'https://example.test/{z}/{x}/{y}.png' }));
-      // 同一IDでの上書き更新はOK(grandfather)
-      await SqliteDataService.saveUserBaseMap({ mapID: 'legacy-map', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' });
-      // 改名先が地図IDと衝突する場合は拒否
-      await SqliteDataService.upsertMap('another-map', { title: '別の地図' });
+      // slug改名(ADR-0007): uidが正本キーのため、改名は同一uidのslug付け替えとして行われる。
+      // 改名先の衝突はasset_registryのグローバル一意性で拒否される(旧grandfatheringは
+      // マイグレーション時のslugサフィックス解消に置き換えられ不要になった)
+      await SqliteDataService.saveUserBaseMap({ mapID: 'dup-base', title: 'Dup', url: 'https://example.test/{z}/{x}/{y}.png' });
+      const dupUid = (await SettingsService.listBaseMaps()).find((item) => item.mapID === 'dup-base').uid;
+      // 改名先が地図slugと衝突する場合は拒否
+      await SqliteDataService.upsertMapBySlug('another-map', { title: '別の地図' });
       await assert.rejects(() =>
-        SqliteDataService.saveUserBaseMap({ mapID: 'another-map', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' }, 'legacy-map')
+        SqliteDataService.saveUserBaseMap({ mapID: 'another-map', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' }, 'dup-base')
       );
-      await SqliteDataService.deleteMap('another-map');
-      // 未使用IDへの改名で解消できる
-      await SqliteDataService.saveUserBaseMap({ mapID: 'legacy-map-renamed', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' }, 'legacy-map');
+      await SqliteDataService.deleteMapBySlug('another-map');
+      // 未使用slugへの改名は成功し、uidは変わらない
+      await SqliteDataService.saveUserBaseMap({ mapID: 'dup-base-renamed', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' }, 'dup-base');
       const afterRename = await SettingsService.listBaseMaps();
-      assert.ok(afterRename.some((item) => item.scope === 'user' && item.mapID === 'legacy-map-renamed'));
-      assert.ok(!afterRename.some((item) => item.scope === 'user' && item.mapID === 'legacy-map'));
-      await SqliteDataService.deleteUserBaseMap('legacy-map-renamed');
+      const renamedItem = afterRename.find((item) => item.scope === 'user' && item.mapID === 'dup-base-renamed');
+      assert.ok(renamedItem);
+      assert.equal(renamedItem.uid, dupUid, 'slug改名でuidが変わってはいけない');
+      assert.ok(!afterRename.some((item) => item.scope === 'user' && item.mapID === 'dup-base'));
+      await SqliteDataService.deleteUserBaseMap('dup-base-renamed');
 
       // 改名で地図単位の表示設定が引き継がれること(mapAでuser-baseをオプトイン済み)
       await SqliteDataService.saveUserBaseMap({ mapID: 'user-base-renamed', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' }, 'user-base');
@@ -321,7 +330,7 @@ try {
       assert.equal(globalThis.__appProgressEvents.length, progressCountBeforeReopen,
         'reopening an already-migrated DB must not emit migration progress events');
       const duplicateCheck = rawDb
-        .prepare('SELECT scope, map_id, count(*) AS count FROM base_maps GROUP BY scope, map_id HAVING count(*) > 1')
+        .prepare('SELECT scope, slug, count(*) AS count FROM base_maps GROUP BY scope, slug HAVING count(*) > 1')
         .all();
       assert.equal(duplicateCheck.length, 0);
       assert.ok(globalThis.__appProgressEvents.some((event) =>

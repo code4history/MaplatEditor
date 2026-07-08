@@ -23,18 +23,20 @@ class MapDataService {
     };
   }
 
+  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)。
+  // _id はレンダラ互換のslug。内部の正本キーはuid(SqliteDataService側で解決される)
   async getDBInstance(): Promise<CompatStore> {
     if (this.compatStore) return this.compatStore;
     await SqliteDataService.getDb();
     this.compatStore = {
-      findOneAsync: async (query) => SqliteDataService.findMap(query._id),
+      findOneAsync: async (query) => SqliteDataService.findMapBySlug(query._id),
       updateAsync: async (query, update) => {
         const mapID = query._id;
         const document = update?.$set ? update.$set : update;
-        await SqliteDataService.upsertMap(mapID, document);
+        await SqliteDataService.upsertMapBySlug(mapID, document);
       },
       removeAsync: async (query) => {
-        await SqliteDataService.deleteMap(query._id);
+        await SqliteDataService.deleteMapBySlug(query._id);
       },
     };
     return this.compatStore;
@@ -119,7 +121,7 @@ class MapDataService {
   }
 
   async deleteMap(mapID: string): Promise<void> {
-    await SqliteDataService.deleteMap(mapID);
+    await SqliteDataService.deleteMapBySlug(mapID);
     const { tileFolder, uiThumbnailFolder, originalFolder } = this.folders;
 
     const tileDir = path.join(tileFolder, mapID);

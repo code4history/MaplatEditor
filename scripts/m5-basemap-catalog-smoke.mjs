@@ -107,7 +107,10 @@ try {
       assert.equal(added.data.minZoom, 5);
       assert.equal(added.data.maxZoom, 18);
 
-      // The new user base map is picked up by per-map TMS list
+      // オプトイン方式(ADR-0006): 明示的に選択した地図のTMSリストにのみ現れる
+      const tmsListBefore = await SettingsService.getTmsListOfMapID('some-map');
+      assert.ok(!tmsListBefore.some((tms) => tms.mapID === 'my_basemap'));
+      await SettingsService.setBaseMapVisibilityForMapID('some-map', 'my_basemap', true);
       const tmsList = await SettingsService.getTmsListOfMapID('some-map');
       assert.ok(tmsList.some((tms) => tms.mapID === 'my_basemap'));
 
@@ -141,12 +144,13 @@ try {
       const afterDelete = await SettingsService.listBaseMaps();
       assert.ok(!afterDelete.some((item) => item.mapID === 'my_basemap'));
       const db = await SqliteDataService.getDb();
+      // schema v2 (ADR-0007): 表示設定はuidキー。削除で当該ベースマップの行が全て掃除される
       const visibilityRows = db
-        .prepare("SELECT 1 FROM map_base_map_visibility WHERE base_map_id = 'my_basemap'")
-        .all();
-      assert.equal(visibilityRows.length, 0);
+        .prepare('SELECT count(*) AS count FROM map_base_map_visibility')
+        .get();
+      assert.equal(Number(visibilityRows.count), 0);
 
-      // Re-adding the same ID starts with default (enabled) visibility again
+      // 同じslugで再追加すると新しいuidの別アセットになり、表示設定は既定(オプトイン=非表示)に戻る
       await SettingsService.saveUserBaseMap({
         mapID: 'my_basemap',
         title: 'My Base Map v3',
@@ -154,7 +158,7 @@ try {
       });
       const visibility = await SettingsService.getBaseMapVisibilityOfMapID('some-map');
       const readded = visibility.find((item) => item.mapID === 'my_basemap');
-      assert.equal(readded.enabled, true);
+      assert.equal(readded.enabled, false);
 
       console.log('M5 base map catalog smoke passed');
     `

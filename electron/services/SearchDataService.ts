@@ -106,7 +106,7 @@ class SearchDataService {
     const connection = await this.getConnection();
     if (!connection) return SqliteDataService.readAllMaps();
     const reader = await connection.runAndReadAll(
-      `SELECT map_id, data_json FROM ${ATTACH_ALIAS}.maps ORDER BY map_id`
+      `SELECT uid, slug, data_json, revision FROM ${ATTACH_ALIAS}.maps ORDER BY slug`
     );
     return (reader.getRowObjectsJson() as any[]).map(mapRowToDocument);
   }
@@ -115,7 +115,7 @@ class SearchDataService {
     const connection = await this.getConnection();
     if (!connection) return SqliteDataService.readAllApps();
     const reader = await connection.runAndReadAll(
-      `SELECT app_id, data_json FROM ${ATTACH_ALIAS}.apps ORDER BY app_id`
+      `SELECT uid, slug, data_json, revision FROM ${ATTACH_ALIAS}.apps ORDER BY slug`
     );
     return (reader.getRowObjectsJson() as any[]).map(appRowToDocument);
   }

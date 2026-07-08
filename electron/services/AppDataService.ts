@@ -70,25 +70,35 @@ class AppDataService {
     return { ...rawResult, docs };
   }
 
+  // 互換ラッパー経由: Phase1 Task6 で呼び出し側を uid 化した後に整理 (plan 2026-07-08)
   async getApp(appID: string): Promise<any | null> {
-    return SqliteDataService.findApp(appID);
+    return SqliteDataService.findAppBySlug(appID);
   }
 
   async saveApp(appID: string, document: any): Promise<'Success' | 'Exist' | 'Error'> {
-    const current = await SqliteDataService.findApp(appID);
+    const current = await SqliteDataService.findAppBySlug(appID);
     const originalAppID = document?.originalAppID;
     if (current && originalAppID !== appID) {
       return 'Exist';
     }
-    await SqliteDataService.upsertApp(appID, document);
-    if (originalAppID && originalAppID !== appID) {
-      await SqliteDataService.deleteApp(originalAppID);
+    // slugはグローバル一意(ADR-0007): 他種アセット(地図/ベースマップ)が保持している場合も拒否する
+    if (!current && !(await SqliteDataService.isSlugAvailable(appID))) {
+      return 'Exist';
     }
+    if (originalAppID && originalAppID !== appID) {
+      const original = await SqliteDataService.findAppBySlug(originalAppID);
+      if (original) {
+        // 改名: uidを維持したままslugを付け替える(旧実装のdelete+insertを置換)
+        await SqliteDataService.upsertApp(original.uid, appID, document);
+        return 'Success';
+      }
+    }
+    await SqliteDataService.upsertAppBySlug(appID, document);
     return 'Success';
   }
 
   async deleteApp(appID: string): Promise<void> {
-    await SqliteDataService.deleteApp(appID);
+    await SqliteDataService.deleteAppBySlug(appID);
   }
 
   async isAppIdAvailable(appID: string): Promise<boolean> {
