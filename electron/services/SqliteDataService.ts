@@ -1118,14 +1118,22 @@ class SqliteDataService {
   // --- migration internals ---
 
   // ビルトインベースマップは起動ごとに builtin_base_maps.json(正本: KTGISカタログ)から再シードする。
-  // 既存行はビルトインID(通常 slug=data_json.mapID=カタログID)でマッチしてuidを維持し、
+  // カタログとの同一性は data_json.builtinId(カタログID、slugとは独立)で判定して uid を維持し、
   // 新規のみuid採番+registry登録する(シードはレガシー取込より先に走るため、
-  // ビルトインは常にclean slugを確保する)。data_json.mapID は常に slug と一致させる
+  // ビルトインは常にclean slugを確保する)。data_json.mapID は常に slug と一致させる。
+  // slugがサフィックスされた行(カタログIDをユーザー資産が先取りしていた場合)も
+  // builtinId で再マッチできるため、再起動で uid/slug が揺れない
   private applyBuiltinBaseMapSeed(db: DatabaseSync): void {
     this.withTransaction(db, () => {
       const list = maybeJsonArray(builtinBaseMaps);
+      // 後方互換: builtinId キー導入前に書かれた行(mapID=カタログIDのまま)にもフォールバックで
+      // マッチさせる。マッチ後の update で builtinId が付与され、以後は正規経路になる
       const findByBuiltinId = db.prepare(
-        `SELECT uid, slug FROM base_maps WHERE scope = 'builtin' AND json_extract(data_json, '$.mapID') = ?`
+        `SELECT uid, slug FROM base_maps
+         WHERE scope = 'builtin'
+           AND (json_extract(data_json, '$.builtinId') = ?
+                OR (json_extract(data_json, '$.builtinId') IS NULL
+                    AND json_extract(data_json, '$.mapID') = ?))`
       );
       const update = db.prepare(
         `UPDATE base_maps SET sort_order = ?, data_json = ?, updated_at = datetime('now') WHERE uid = ?`
@@ -1135,26 +1143,24 @@ class SqliteDataService {
          VALUES (?, ?, 'builtin', ?, ?, 1, datetime('now'))`
       );
       // 今回のシードで維持/作成した行のuid。カタログから外れた行の判定に使う
-      // (data_json.mapID での判定は、slugサフィックス時に自分自身を消してしまうため不可)
       const seededUids = new Set<string>();
       for (let index = 0; index < list.length; index++) {
         const tms = list[index];
         const builtinId = String(tms?.mapID ?? '');
         if (!builtinId) continue;
-        const existing = findByBuiltinId.get(builtinId) as any;
+        const existing = findByBuiltinId.get(builtinId, builtinId) as any;
         if (existing) {
-          // 既存行は data_json.mapID = slug の不変条件を保って内容を更新する
-          update.run(index, JSON.stringify({ ...tms, mapID: String(existing.slug) }), existing.uid);
+          // 既存行は data_json.mapID = slug / builtinId = カタログID の不変条件を保って内容を更新する
+          update.run(index, JSON.stringify({ ...tms, mapID: String(existing.slug), builtinId }), existing.uid);
           seededUids.add(String(existing.uid));
           continue;
         }
         const uid = generateUid();
         // 通常はclean slug=ビルトインID。万一先取りされていた場合のみサフィックスで回避する
-        // (サフィックスされた行は次回起動でカタログIDと再マッチできず作り直しになるが、
-        //  「新規ビルトイン追加より前にユーザーがそのIDを先取りしていた」場合のみの縮退)
+        // (その場合も builtinId により次回以降の再シードで同一行に再マッチする)
         const slug = resolveSlugCollision(builtinId, (s) => this.slugTaken(db, s));
         this.registerAsset(db, 'base_map', uid, slug);
-        insert.run(uid, slug, index, JSON.stringify({ ...tms, mapID: slug }));
+        insert.run(uid, slug, index, JSON.stringify({ ...tms, mapID: slug, builtinId }));
         seededUids.add(uid);
       }
       // カタログから外れたビルトインは行・registry・関連設定ごと削除する
