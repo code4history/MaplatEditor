@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { app, dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
-import MapDataService from './MapDataService';
+import SqliteDataService from './SqliteDataService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
@@ -84,9 +84,9 @@ class AppExportService {
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
 
       // 2) Maplat地図: maps/{mapID}.json + tiles + tmbs
-      const db = await MapDataService.getDBInstance();
+      // (app sources のslug参照はTask 6でuid化予定。findMapBySlugは正当なslug照会)
       for (const source of maplatSources) {
-        const mapDoc = await db.findOneAsync({ _id: source.mapID });
+        const mapDoc = await SqliteDataService.findMapBySlug(source.mapID);
         if (!mapDoc) throw new Error(`Map not found: ${source.mapID}`);
         // 交換形: デフォルト言語のみの言語別フィールドはプレーン文字列に畳み込む (ADR-0005)
         const mapJson = compactMapLangFields({ ...mapDoc });

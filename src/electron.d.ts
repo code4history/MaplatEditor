@@ -30,7 +30,24 @@ export interface AppEditAPI {
 export interface AppEventsAPI {
     onMainProcessMessage(listener: (message: string) => void): () => void;
     onTaskProgress(listener: (progress: any) => void): () => void;
+    onMigrationReport(listener: (report: any) => void): () => void;
 }
+
+// uid正準の保存要求/結果 (ADR-0007)
+export interface MapSavePayload {
+    mapObject: any;
+    tins: any[];
+    uid?: string;
+    slug?: string;
+    expectedRevision?: number;
+    copyFromUid?: string;
+}
+
+export type MapSaveResult =
+    | { result: 'Success'; uid: string; slug: string; revision: number }
+    | { result: 'Exist' }
+    | { result: 'Error' }
+    | { error: 'revision-conflict'; current: number };
 
 export interface AssetsAPI {
     checkSlug(payload: { slug: string; excludeUid?: string }): Promise<boolean>;
@@ -66,13 +83,13 @@ export interface BaseMapsAPI {
 }
 
 export interface MapEditAPI {
-    request(mapID: string): Promise<any>;
-    previewSource(mapID: string): Promise<any>;
+    request(uidOrMapID: string): Promise<any>;
+    previewSource(uidOrMapID: string): Promise<any>;
     getTmsListOfMapID(mapID: string): Promise<any>;
     getBaseMapVisibilityOfMapID(mapID: string): Promise<any>;
     setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void>;
     updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any): Promise<any>;
-    save(mapObject: any, tins: any[]): Promise<any>;
+    save(payload: MapSavePayload): Promise<MapSaveResult>;
     checkExtentMap(extent: number[]): Promise<any>;
     download(mapObject: any, tins: any[]): Promise<any>;
     uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;

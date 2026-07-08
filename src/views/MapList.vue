@@ -30,10 +30,11 @@
 
     <!-- Map Grid -->
     <div class="d-flex flex-wrap justify-content-start align-items-start gap-4" style="padding-left: 5px;">
-      <div v-for="map in maplist" :key="map.mapID" class="map-card-wrapper">
+      <div v-for="map in maplist" :key="map.uid" class="map-card-wrapper">
         <div class="map-card-inner">
+          <!-- 地図編集はuid正準で開く (ADR-0007) -->
           <router-link
-            :to="`/mapedit?mapid=${map.mapID}`"
+            :to="`/mapedit?uid=${map.uid}`"
             class="text-decoration-none text-dark d-block"
           >
             <!-- Image container: 190x190 -->
@@ -98,6 +99,7 @@ const router = useRouter();
 
 interface MapItem {
   mapID: string;
+  uid: string;
   title: string;
   image: string | null;
   width?: number;
@@ -115,7 +117,7 @@ const contextMenu = ref({
   visible: false,
   x: 0,
   y: 0,
-  mapID: "",
+  uid: "",
   name: ""
 });
 
@@ -167,7 +169,7 @@ const openContextMenu = (event: MouseEvent, map: MapItem) => {
     visible: true,
     x: event.clientX,
     y: event.clientY,
-    mapID: map.mapID,
+    uid: map.uid,
     name: map.title
   };
 };
@@ -177,11 +179,12 @@ const hideContextMenu = () => {
 };
 
 const deleteMap = async () => {
-  const { mapID, name } = contextMenu.value;
+  const { uid, name } = contextMenu.value;
   hideContextMenu();
   if (!confirm(t('maplist.delete_confirm', { name }))) return;
   try {
-    const result = await (window as any).maplist.delete(mapID, searchQuery.value, currentPage.value);
+    // 削除もuid正準 (ADR-0007)
+    const result = await (window as any).maplist.delete(uid, searchQuery.value, currentPage.value);
     maplist.value = result.docs;
     currentPage.value = result.pageUpdate ?? currentPage.value;
     hasNext.value = result.next;

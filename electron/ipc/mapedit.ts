@@ -55,30 +55,32 @@ async function createTinFromGcpsAsync(
 }
 
 export const registerMapEditHandlers = () => {
-    ipcMain.handle('mapedit:request', async (_event, mapID: string) => {
+    // uid正準の読み出し (ADR-0007)。AppEdit等の旧経路がslugで呼ぶ間はslugでも解決される
+    ipcMain.handle('mapedit:request', async (_event, uidOrMapID: string) => {
         try {
-            return await StorageAdapter.readMapForEdit(mapID);
+            return await StorageAdapter.readMapForEdit(uidOrMapID);
         } catch (e) {
             console.error('Failed to handle mapedit:request', e);
             throw e;
         }
     });
 
-    ipcMain.handle('mapedit:preview-source', async (_event, mapID: string) => {
+    ipcMain.handle('mapedit:preview-source', async (_event, uidOrMapID: string) => {
         try {
-            return await StorageAdapter.readMapForPreview(mapID);
+            return await StorageAdapter.readMapForPreview(uidOrMapID);
         } catch (e) {
             console.error('Failed to handle mapedit:preview-source', e);
             throw e;
         }
     });
 
-    ipcMain.handle('mapedit:save', async (_event, mapObject: any, tins: any[]) => {
+    // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (ADR-0007)
+    ipcMain.handle('mapedit:save', async (_event, payload: any) => {
         try {
-            return await StorageAdapter.saveMapForEdit({ mapObject, tins });
+            return await StorageAdapter.saveMapForEdit(payload);
         } catch (e) {
             console.error('Failed to handle mapedit:save', e);
-            return 'Error';
+            return { result: 'Error' };
         }
     });
 
@@ -107,11 +109,18 @@ export const registerMapEditHandlers = () => {
     // 旧実装: mapedit_download 相当（ZIP エクスポート）
     ipcMain.handle('mapedit:download', async (event, mapObject: any, tins: any[]) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
-        const mapID = mapObject.mapID;
         const tmpFolder  = SettingsService.get('tmpFolder') as string;
         const saveFolder = SettingsService.get('saveFolder') as string;
         const tileFolder = path.join(saveFolder, 'tiles');
         const thumbFolder = path.join(saveFolder, 'tmbs');
+
+        // 内部ファイル(tiles/tmbs)はuidキー、zip内の出力名はslug (ADR-0007: viewer互換)。
+        // mapObject.uid が正本参照。uid欠落の旧経路にはslugフォールバックで解決する
+        const mapDoc = mapObject.uid
+            ? await SqliteDataService.findMap(mapObject.uid)
+            : await SqliteDataService.findMapBySlug(mapObject.mapID);
+        const slug = mapDoc?.slug || mapObject.mapID;
+        const fileKey = mapDoc?.uid || slug;
 
         // histMap2Store で store 形式に変換してから JSON 保存。
         // エクスポート(交換形)ではデフォルト言語のみの言語別フィールドを
@@ -121,18 +130,14 @@ export const registerMapEditHandlers = () => {
         delete (compiled as any).uid;
         delete (compiled as any).slug;
         delete (compiled as any).revision;
-        const tmpFile = path.join(tmpFolder, `${mapID}.json`);
+        const tmpFile = path.join(tmpFolder, `${slug}.json`);
         await fs.ensureDir(tmpFolder);
         await fs.writeFile(tmpFile, JSON.stringify(compiled));
 
-        // 内部ファイル(tiles/tmbs)はuidキー、zip内の出力名はslug (ADR-0007: viewer互換)
-        const mapDoc = await SqliteDataService.findMapBySlug(mapID);
-        const fileKey = mapDoc?.uid || mapID;
-
         // ZIP に追加するファイルリスト: [localPath, zipDir, zipName]
         const targets: [string, string, string][] = [
-            [tmpFile, 'maps', `${mapID}.json`],
-            [path.join(thumbFolder, `${fileKey}.jpg`), 'tmbs', `${mapID}.jpg`],
+            [tmpFile, 'maps', `${slug}.json`],
+            [path.join(thumbFolder, `${fileKey}.jpg`), 'tmbs', `${slug}.jpg`],
         ];
 
         // タイルファイルを再帰的に収集(読み込みはtiles/{uid}、zip内はtiles/{slug})
@@ -143,7 +148,7 @@ export const registerMapEditHandlers = () => {
                 const localPath = path.resolve(file);
                 const zipName   = path.basename(localPath);
                 const relDir    = path.relative(tileRoot, path.dirname(localPath));
-                const zipPath   = ['tiles', mapID, ...relDir.split(path.sep).filter(Boolean)].join('/');
+                const zipPath   = ['tiles', slug, ...relDir.split(path.sep).filter(Boolean)].join('/');
                 targets.push([localPath, zipPath, zipName]);
             }
         } catch (_e) { /* タイルなし */ }
@@ -157,7 +162,7 @@ export const registerMapEditHandlers = () => {
         reporter.setWindow(win);
         reporter.update(0);
 
-        const zipFilePath = path.join(tmpFolder, `${mapID}.zip`);
+        const zipFilePath = path.join(tmpFolder, `${slug}.zip`);
         const zip = new AdmZip();
         for (let i = 0; i < targets.length; i++) {
             const [localPath, zipDir, zipName] = targets[i];
@@ -169,7 +174,7 @@ export const registerMapEditHandlers = () => {
         zip.writeZip(zipFilePath);
 
         const ret = await dialog.showSaveDialog(win, {
-            defaultPath: path.join(app.getPath('documents'), `${mapID}.zip`),
+            defaultPath: path.join(app.getPath('documents'), `${slug}.zip`),
             filters: [{ name: 'Output file', extensions: ['zip'] }],
         });
 

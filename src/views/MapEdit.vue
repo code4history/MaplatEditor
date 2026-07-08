@@ -56,7 +56,14 @@ const MERC_CROSSMATRIX = [
     [-1.0, 0.0]
 ];
 
+// 保存済みslug (基盤設定など旧slugキーのIPCが参照する)。表示中のslug編集値は mapData.mapID
 const mapID = ref('');
+// uid: 不変の正本キー (ADR-0007)。null = 未保存の新規地図
+const mapUid = ref<string | null>(null);
+// revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
+const revision = ref<number | undefined>(undefined);
+// confirmedSlug: 現在DBに永続化されているslug。mapID欄がこの値に戻ったら再チェック不要
+const confirmedSlug = ref<string | undefined>(undefined);
 /**
  * 旧実装 defaultMap 相当: 新規作成時の初期値
  * map.js defaultMap に完全準拠
@@ -97,8 +104,9 @@ const mapData = ref<any>({});
 const originalMapData = ref<any>({}); // isDirty 比較用ディープクローン
 /**
  * onlyOne: 旧実装の vueMap.onlyOne 相当
- * true  = 既存地図（mapID 変更不可、"Change Map ID" ボタン表示）
- * false = 新規地図（mapID 入力可、一意性チェックボタン表示）
+ * true  = slugの一意性確認済み（保存可能）
+ * false = 一意性未確認（一意性チェックボタンでの確認が必要）
+ * ADR-0007: mapID欄は既存地図でも編集可能なslug欄になった。編集すると false に戻る
  */
 const onlyOne = ref(false);
 const mappingUIRow = ref('layer');
@@ -573,6 +581,21 @@ watch(
     scheduleHistorySnapshot,
     { deep: true }
 );
+
+// slug(mapID欄)の編集を検知して一意性再チェックを要求する (ADR-0007)。
+// 永続化済みslug(confirmedSlug)に戻った場合は自分自身のslugなので確認済み扱いに復帰する
+watch(() => mapData.value.mapID, (newVal, oldVal) => {
+    if (newVal === oldVal) return;
+    if (confirmedSlug.value && newVal === confirmedSlug.value) {
+        onlyOne.value = true;
+        // 改名を取り止めたので Change: ステータスを元に戻す
+        if (typeof mapData.value.status === 'string' && mapData.value.status.startsWith('Change:')) {
+            mapData.value.status = 'Update';
+        }
+    } else {
+        onlyOne.value = false;
+    }
+});
 
 const performUndo = async () => {
     if (!historyStack.value || !historyStack.value.canUndo()) return;
@@ -1338,12 +1361,9 @@ const createContextMenu = (map: any) => {
 };
 
 onMounted(async () => {
-    const id = route.query.mapid as string | undefined;
-
-    // 旧実装: mapIDが無い場合は initVueMap()/setVueMap() を呼んで空の地図を初期化
-    // 旧実装: mapIDが有る場合は mapedit.request(mapID) を呼んで既存地図を読み込む
-    // 新実装では mapid=new または mapid 未指定を「新規作成」として扱う
-    const isNew = !id || id === 'new';
+    // 地図編集はuid正準で開く (ADR-0007): /mapedit?uid=<uid>。uid未指定は新規作成
+    const uid = route.query.uid as string | undefined;
+    const isNew = !uid || uid === 'new';
 
     if (isNew) {
         // 新規地図: defaultMap で初期化、onlyOne = false（mapID編集可）
@@ -1354,15 +1374,16 @@ onMounted(async () => {
         originalMapData.value = cloneDeep(fresh);
         onlyOne.value = false;
     } else {
-        // 既存地図: バックエンドから読み込み
-        mapID.value = id;
+        // 既存地図: バックエンドからuidで読み込み
         try {
-            const data = await (window as any).mapedit.request(mapID.value);
+            const data = await (window as any).mapedit.request(uid);
             if (data) {
-                // 旧実装: res[0].mapID = mapID; res[0].status = 'Update'; res[0].onlyOne = true;
-                // バックエンドがすでに設定してくれているが、念のため確認
-                if (!data.mapID) data.mapID = mapID.value;
+                // バックエンドが mapID(=slug)/uid/revision/status/onlyOne を設定してくれている
                 if (!data.status) data.status = 'Update';
+                mapUid.value = data.uid ?? uid;
+                revision.value = data.revision;
+                confirmedSlug.value = data.mapID;
+                mapID.value = data.mapID;
                 mapData.value = data;
                 originalMapData.value = cloneDeep(data);
             }
@@ -2362,12 +2383,15 @@ const mapUpload = async () => {
 
 /**
  * 旧実装: vueMap.$on('checkOnlyOne') 相当
- * mapID 一意性チェック（新規 or Change:... 時）
- * 新実装: await window.assets.checkSlug({ slug: mapID })
+ * slug(mapID欄) 一意性チェック
+ * ADR-0007: 既存地図では excludeUid=自分 を渡し、自分の現slugは「空き」と判定される
  */
 const checkOnlyOne = async () => {
     const currentMapID = mapData.value.mapID as string;
-    const isUnique = await (window as any).assets.checkSlug({ slug: currentMapID });
+    const isUnique = await (window as any).assets.checkSlug({
+        slug: currentMapID,
+        excludeUid: mapUid.value ?? undefined,
+    });
     if (isUnique) {
         await (window as any).dialog.showMessageBox({
             type: 'info',
@@ -2375,10 +2399,17 @@ const checkOnlyOne = async () => {
             message: t('mapedit.alert_mapid_checked')
         });
         onlyOne.value = true;
-        // 旧実装: status が 'Update' の場合 Change:{oldMapID} に変更
-        const origMapID = originalMapData.value.mapID as string | undefined;
-        if (mapData.value.status === 'Update' && origMapID) {
-            mapData.value.status = `Change:${origMapID}`;
+        // 既存地図でslugが変わった場合は改名として Change:{旧slug} を立てる
+        // (保存時に「複製にするか」の確認に使う)。同じslugのままなら Update のまま
+        if (confirmedSlug.value && currentMapID !== confirmedSlug.value) {
+            if (mapData.value.status === 'Update') {
+                mapData.value.status = `Change:${confirmedSlug.value}`;
+            }
+        } else if (
+            typeof mapData.value.status === 'string' &&
+            mapData.value.status.startsWith('Change:')
+        ) {
+            mapData.value.status = 'Update';
         }
     } else {
         await (window as any).dialog.showMessageBox({
@@ -2391,11 +2422,12 @@ const checkOnlyOne = async () => {
 };
 
 /**
- * 旧実装: vueMap.$on('saveMap') 相当
+ * 旧実装: vueMap.$on('saveMap') 相当 (ADR-0007: uid正準 + revision楽観ロック)
  * 1. 確認ダイアログ
  * 2. Change: ステータスの場合、Copy に変えるかどうかの追加確認
- * 3. mapedit:save IPC を呼んで結果に応じてダイアログ表示
- * 4. 成功時: originalMapData を更新, 必要に応じて mapID 更新, request で再ロード
+ * 3. mapedit:save IPC を { mapObject, tins, uid?, slug, expectedRevision?, copyFromUid? } で呼ぶ
+ * 4. 成功時: uid/revision/confirmedSlug を保存結果から更新
+ * 5. revision-conflict 時: 「読み直す / 上書き」ダイアログ
  */
 const saveMap = async () => {
     // 1. 保存確認ダイアログ（旧実装: t('mapedit.confirm_save')）
@@ -2410,9 +2442,12 @@ const saveMap = async () => {
     // 保存する値を作成（mapDataのコピー）
     const saveValue = cloneDeep(mapData.value);
 
-    // 2. Change: ステータスの場合、Copy に変更するかの確認
+    // uid正準の宛先: 既存地図は uid 宛の upsert、新規は uid なしの create
+    let sendUid: string | undefined = mapUid.value ?? undefined;
+    let copyFromUid: string | undefined = undefined;
+
+    // 2. Change: ステータス(改名)の場合、Copy に変更するかの確認
     // 旧実装: response===0(OK) → Copy, response===1(Cancel) → Keep Change
-    // 新実装翻訳ファイルに copy_or_move キーがあるのでそちらを使用
     if (saveValue.status && saveValue.status.match(/^Change:(.+)$/)) {
         const copyResult = await (window as any).dialog.showMessageBox({
             type: 'info',
@@ -2421,11 +2456,12 @@ const saveMap = async () => {
             message: t('mapedit.copy_or_move')
         });
         if (copyResult.response === 0) {
-            // OK → Copy（旧 mapID を保持、新 mapID でコピー）
-            const origMapID = originalMapData.value.mapID as string;
-            saveValue.status = `Copy:${origMapID}`;
+            // OK → Copy（現在のuidを複製元に、新uidで新規作成）
+            copyFromUid = mapUid.value ?? undefined;
+            sendUid = undefined;
+            delete saveValue.uid;
         }
-        // キャンセル → そのまま Change（リネーム）
+        // キャンセル → そのまま Change（uid維持のslug改名）
     }
 
     // 3. tins 収集（旧実装: vueMap.tinObjects.map(tin => tin.getCompiled())）
@@ -2434,27 +2470,76 @@ const saveMap = async () => {
         return tin.getCompiled();
     });
 
-    // 4. IPC で保存（旧実装: window.mapedit.save + once('saveResult')）
-    // JSON ラウンドトリップで Vue リアクティブプロキシ・非シリアライズ可能値を除去してから送信
-    const result = await (window as any).mapedit.save(
-        JSON.parse(JSON.stringify(saveValue)),
-        JSON.parse(JSON.stringify(tins))
-    );
+    await performSave(saveValue, tins, sendUid, copyFromUid, sendUid ? revision.value : undefined);
+};
 
-    if (result === 'Success') {
+/**
+ * mapedit:save の実行と結果処理 (ADR-0007)
+ * revision-conflict の「上書き」は expectedRevision なしで再送する
+ */
+const performSave = async (
+    saveValue: any,
+    tins: any[],
+    uid: string | undefined,
+    copyFromUid: string | undefined,
+    expectedRevision: number | undefined
+) => {
+    // JSON ラウンドトリップで Vue リアクティブプロキシ・非シリアライズ可能値を除去してから送信
+    const result = await (window as any).mapedit.save({
+        mapObject: JSON.parse(JSON.stringify(saveValue)),
+        tins: JSON.parse(JSON.stringify(tins)),
+        uid,
+        slug: saveValue.mapID,
+        expectedRevision,
+        copyFromUid,
+    });
+
+    if (result && result.error === 'revision-conflict') {
+        // 他ウィンドウで先に更新されている: 読み直す or 上書き
+        const conflictResult = await (window as any).dialog.showMessageBox({
+            type: 'info',
+            buttons: [t('common.reload'), t('common.overwrite')],
+            cancelId: 0,
+            message: t('common.revision_conflict')
+        });
+        if (conflictResult.response === 1) {
+            // 上書き: expectedRevision なしで再送
+            await performSave(saveValue, tins, uid, copyFromUid, undefined);
+        } else {
+            // 読み直す: ローカルの編集内容を破棄して最新版を再読込
+            if (isDirty.value) {
+                const discard = await (window as any).dialog.showMessageBox({
+                    type: 'info',
+                    buttons: ['OK', 'Cancel'],
+                    cancelId: 1,
+                    message: t('mapedit.confirm_no_save')
+                });
+                if (discard.response !== 0) return;
+            }
+            await reloadFromStore();
+        }
+        return;
+    }
+
+    if (result && result.result === 'Success') {
         await (window as any).dialog.showMessageBox({
             type: 'info',
             buttons: ['OK'],
             message: t('mapedit.success_save')
         });
-        // mapID が変わっている場合は更新（旧実装: mapID = vueMap.mapID）
-        mapID.value = saveValue.mapID;
+        // 保存結果から uid/revision/slug を正本として反映
+        mapUid.value = result.uid;
+        revision.value = result.revision;
+        confirmedSlug.value = result.slug ?? saveValue.mapID;
+        mapID.value = confirmedSlug.value!;
         if (!mapData.value.mapID) mapData.value.mapID = saveValue.mapID;
+        mapData.value.uid = result.uid;
+        mapData.value.revision = result.revision;
         mapData.value.status = 'Update';
         originalMapData.value = cloneDeep(mapData.value);
         resetHistoryBase();
         onlyOne.value = true;
-    } else if (result === 'Exist') {
+    } else if (result && result.result === 'Exist') {
         await (window as any).dialog.showMessageBox({
             type: 'info',
             buttons: ['OK'],
@@ -2467,6 +2552,46 @@ const saveMap = async () => {
             buttons: ['OK'],
             message: t('mapedit.error_saving')
         });
+    }
+};
+
+/**
+ * revision-conflict 後の「読み直す」: 最新の保存済み状態をuidで再取得して編集状態を置き換える
+ */
+const reloadFromStore = async () => {
+    if (!mapUid.value) return;
+    try {
+        const data = await (window as any).mapedit.request(mapUid.value);
+        if (!data) return;
+        if (!data.status) data.status = 'Update';
+        // wmtsFolder は request 結果に含まれないため現在値を引き継ぐ
+        data.wmtsFolder = mapData.value.wmtsFolder;
+        mapUid.value = data.uid ?? mapUid.value;
+        revision.value = data.revision;
+        confirmedSlug.value = data.mapID;
+        mapID.value = data.mapID;
+        mapData.value = data;
+        originalMapData.value = cloneDeep(data);
+        sub_maps.value = cloneDeep(data.sub_maps || []);
+        currentEditingLayer.value = 0;
+        gcps.value = cloneDeep(data.gcps || []);
+        edges.value = cloneDeep(data.edges || []);
+        homePosition.value = data.homePosition;
+        mercZoom.value = data.mercZoom;
+        strictMode.value = data.strictMode || 'strict';
+        vertexMode.value = data.vertexMode || 'plain';
+        tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
+        editingID.value = '';
+        newGcp.value = undefined;
+        newlyAddEdge.value = undefined;
+        onlyOne.value = true;
+        resetHistoryBase();
+        await nextTick();
+        if (data.url_) await loadMapTiles();
+        gcpsToMarkers();
+        updateTin();
+    } catch (e) {
+        console.error('[reloadFromStore] Failed to reload map data:', e);
     }
 };
 
@@ -2615,6 +2740,11 @@ const importMap = async () => {
             modalFinish(t('dataupload.success_upload'));
             // 旧実装: mapDataCommon(arg[0], arg[1]) 相当
             const { mapData: histMap, tins: compiledTins } = arg;
+            // インポートで新規作成された地図のuid/revision/slugを正本として追跡 (ADR-0007)
+            mapUid.value = histMap.uid ?? null;
+            revision.value = histMap.revision;
+            confirmedSlug.value = histMap.mapID;
+            mapID.value = histMap.mapID;
             mapData.value = histMap;
             originalMapData.value = cloneDeep(histMap);
             sub_maps.value = cloneDeep(histMap.sub_maps || []);
@@ -2861,7 +2991,7 @@ const goBack = async () => {
                 <form class="container-fluid" @submit.prevent>
                     <!-- Row 1 -->
                     <div class="row g-1 mb-2">
-                        <!-- Map ID フィールド: 旧実装 v-bind:disabled="onlyOne" 相当 -->
+                        <!-- Map ID フィールド: slug編集欄 (ADR-0007: 既存地図でも編集可、変更時は一意性再チェック) -->
                         <div class="col-md-3" :class="mapIDError && mapIDError !== 'mapedit.check_uniqueness' ? 'has-error' : ''">
                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.mapid") }}</label>
                             <input
@@ -2869,7 +2999,6 @@ const goBack = async () => {
                                 class="form-control form-control-sm"
                                 :class="mapIDError && mapIDError !== 'mapedit.check_uniqueness' ? 'is-invalid' : ''"
                                 v-model="mapData.mapID"
-                                :disabled="onlyOne"
                                 :placeholder="t('mapedit.input_mapid')"
                             >
                             <!-- バリデーションエラーメッセージ（旧実装 small.text-danger 相当） -->

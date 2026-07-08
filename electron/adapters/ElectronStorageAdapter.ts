@@ -7,13 +7,10 @@ import {
 
 export default new ServiceBackedStorageAdapter({
   listMaps: (query, page, pageSize) => MapDataService.requestMaps(query, page, pageSize),
-  deleteMap: (mapID) => MapDataService.deleteMap(mapID),
-  readMapForEdit: (mapID) => MapEditService.request(mapID),
-  readMapForPreview: (mapID) => MapEditService.requestPreviewSource(mapID),
-  saveMapForEdit: (mapObject, tins) => MapEditService.save(mapObject, tins),
-  // IDの可用性判定はWrite Storeに一本化する。Maplat地図とベースマップ(ビルトイン含む)は
-  // ID空間を共有するため(tmbs/{mapID}.* を共有)、maps/base_maps横断で判定される
-  isMapIdAvailable: (mapID) => SqliteDataService.isMapIdAvailable(mapID),
+  deleteMap: (uidOrMapID) => MapDataService.deleteMap(uidOrMapID),
+  readMapForEdit: (uidOrMapID) => MapEditService.request(uidOrMapID),
+  readMapForPreview: (uidOrMapID) => MapEditService.requestPreviewSource(uidOrMapID),
+  saveMapForEdit: (request) => MapEditService.save(request),
   // slugの可用性判定はasset_registry横断(map/app/base_map全kind)で一意性を見る (ADR-0007)
   isSlugAvailable: (slug, excludeUid) => SqliteDataService.isSlugAvailable(slug, excludeUid),
 });

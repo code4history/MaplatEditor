@@ -83,7 +83,7 @@ try {
 
         const { default: StorageAdapter } = await import(${JSON.stringify(adapterPath)});
 
-        assert.equal(await StorageAdapter.isMapIdAvailable(existingMap._id), false);
+        assert.equal(await StorageAdapter.isSlugAvailable(existingMap._id), false);
 
         const listed = await StorageAdapter.listMaps({ query: 'Existing', page: 1, pageSize: 20 });
         assert.equal(listed.docs.length, 1);
@@ -95,7 +95,16 @@ try {
         assert.equal(loaded.onlyOne, true);
 
         const edited = { ...loaded, title: 'M1 Smoke Map Edited', status: 'Update' };
-        assert.equal(await StorageAdapter.saveMapForEdit({ mapObject: edited, tins: ['tooLessGcps'] }), 'Success');
+        const saveResult = await StorageAdapter.saveMapForEdit({
+          mapObject: edited,
+          tins: ['tooLessGcps'],
+          uid: loaded.uid,
+          slug: loaded.mapID,
+          expectedRevision: loaded.revision,
+        });
+        assert.equal(saveResult.result, 'Success');
+        assert.equal(saveResult.uid, loaded.uid);
+        assert.equal(saveResult.revision, loaded.revision + 1);
         const reloaded = await StorageAdapter.readMapForEdit(existingMap._id);
         assert.equal(reloaded.title, 'M1 Smoke Map Edited');
 

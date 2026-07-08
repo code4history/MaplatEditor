@@ -2,8 +2,8 @@ import path from 'path';
 import fs from 'fs-extra';
 // @ts-ignore
 import fileUrl from 'file-url';
-import MapDataService from './MapDataService';
-import SqliteDataService from './SqliteDataService';
+import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
+import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import SettingsService from './SettingsService';
 // @ts-ignore
@@ -12,11 +12,19 @@ import Tin from '@maplat/tin';
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 class MapEditService {
-    async request(mapID: string) {
-        const db = await MapDataService.getDBInstance();
-        const json = await db.findOneAsync({ _id: mapID });
+    // uid正準の読み出し (ADR-0007)。AppEdit等の旧経路がslugで呼ぶ間は
+    // slugフォールバックを残す (Task 6 でsources参照がuid化された後に撤去可)
+    private async findMapByUidOrSlug(uidOrMapID: string): Promise<any | null> {
+        return (
+            (await SqliteDataService.findMap(uidOrMapID)) ??
+            (await SqliteDataService.findMapBySlug(uidOrMapID))
+        );
+    }
 
-        if (!json) throw new Error(`Map with ID ${mapID} not found`);
+    async request(uidOrMapID: string) {
+        const json = await this.findMapByUidOrSlug(uidOrMapID);
+
+        if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
         const saveFolder = SettingsService.get('saveFolder');
         const tileFolder = path.join(saveFolder, "tiles");
@@ -25,20 +33,20 @@ class MapEditService {
 
         const res = await this.normalizeRequestData(json, thumbFolder);
 
-        // MapEdit専用フィールドを追加
-        res[0].mapID = mapID;
+        // MapEdit専用フィールドを追加 (mapID欄はslug編集欄になる)
+        res[0].mapID = json.slug;
         res[0].uid = json.uid;
+        res[0].revision = json.revision;
         res[0].status = 'Update';
         res[0].onlyOne = true; // DBに存在するので一意確認済み
 
         return res[0];
     }
 
-    async requestPreviewSource(mapID: string) {
-        const db = await MapDataService.getDBInstance();
-        const json = await db.findOneAsync({ _id: mapID });
+    async requestPreviewSource(uidOrMapID: string) {
+        const json = await this.findMapByUidOrSlug(uidOrMapID);
 
-        if (!json) throw new Error(`Map with ID ${mapID} not found`);
+        if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
         const previewJson = await this.ensurePreviewCompiled({ ...json });
         if (this.hasStrictError(previewJson)) {
@@ -53,7 +61,7 @@ class MapEditService {
         return {
             ...previewJson,
             ...store,
-            mapID,
+            mapID: json.slug,
             uid: json.uid,
             maptype: 'maplat',
             compiled: previewJson.compiled,
@@ -165,19 +173,25 @@ class MapEditService {
         return res;
     }
     /**
-     * 旧実装 mapedit.save() 相当
-     * mapObject: フロントエンドから渡される地図データ（status を含む）
-     * tins: 各レイヤーのコンパイル済みTINデータの配列（文字列またはオブジェクト）
-     *
-     * 返り値: 'Success' | 'Exist' | 'Error' 等の文字列
+     * 旧実装 mapedit.save() 相当 (ADR-0007: uid正準 + revision楽観ロック)
+     * request:
+     * - mapObject: フロントエンドから渡される地図データ (mapID = slug)
+     * - tins: 各レイヤーのコンパイル済みTINデータの配列（文字列またはオブジェクト）
+     * - uid: 既存地図の更新/改名時の正本キー。無指定なら新規作成
+     * - slug: 保存するslug (省略時は mapObject.mapID)
+     * - expectedRevision: 楽観ロック。不一致なら revision-conflict を返す
+     * - copyFromUid: 複製元uid (新規作成 + 複製元ファイルのコピー)
      */
-    async save(mapObject: any, tins: any[]): Promise<string> {
-        const status = mapObject.status as string;
-        const mapID = mapObject.mapID as string; // レンダラ互換: slug (ADR-0007)
+    async save(request: MapSaveRequest): Promise<MapSaveResult> {
+        const { mapObject } = request;
+        const tins = request.tins.length === 0 ? ['tooLessGcps'] : request.tins;
+        const slug = (request.slug ?? mapObject.mapID) as string;
+        // 互換フォールバック: 明示のuidが無い場合、複製でなければ読み出し時に付与された
+        // mapObject.uid を既存地図の更新とみなす (旧 status ベース呼び出しの救済)
+        const uid: string | undefined =
+            request.uid ?? (request.copyFromUid ? undefined : mapObject.uid ?? undefined);
         const url_ = mapObject.url_ as string | undefined;
         const imageExtension: string = mapObject.imageExtension || mapObject.imageExtention || 'jpg';
-
-        if (tins.length === 0) tins = ['tooLessGcps'];
 
         // histMap2Store でシリアライズ（旧実装: storeHandler.histMap2Store）
         const compiled = await storeHandler.histMap2Store(mapObject, tins);
@@ -200,46 +214,49 @@ class MapEditService {
         await fs.ensureDir(thumbFolder);
 
         try {
-            // --- DB操作: uid解決とslug/document書込 (ADR-0007) ---
-            // 改名(Change)はuid維持のslug付替えになり、tiles/tmbs(uidキー)の移動が不要になる。
-            // 複製(Copy)は新uidを採番し、旧uidのファイルをコピーする
-            let uid: string;
+            // --- DB操作: uid正準のslug/document書込 (ADR-0007) ---
+            // 改名はuid維持のslug付替えになり、tiles/tmbs(uidキー)の移動が不要になる。
+            // 複製(copyFromUid)は新uidを採番し、複製元uidのファイルをコピーする
+            let savedUid: string;
+            let savedRevision: number;
             let copySourceUid: string | null = null;
             let copySourceSlug: string | null = null;
             let renamedFromSlug: string | null = null;
-            if (status === 'Update') {
-                const saved = await SqliteDataService.upsertMapBySlug(mapID, compiled);
-                uid = saved.uid;
+            if (uid) {
+                const existing = await SqliteDataService.findMap(uid);
+                if (!existing) throw new Error(`Map with uid ${uid} not found`);
+                if (existing.slug !== slug) {
+                    // 改名先slugの空きを確認 (グローバル一意: 地図/アプリ/ベースマップ横断)
+                    if (!(await SqliteDataService.isSlugAvailable(slug, uid))) {
+                        throw new Error('Exist');
+                    }
+                    renamedFromSlug = existing.slug;
+                }
+                const { revision } = await SqliteDataService.upsertMap(
+                    uid, slug, compiled, request.expectedRevision ?? undefined
+                );
+                savedUid = uid;
+                savedRevision = revision;
             } else {
-                // New / Change:旧ID / Copy:旧ID — 新しくslugを名乗るので空きを確認
-                // (slugはグローバル一意: 地図/アプリ/ベースマップ横断で判定される)
-                if (!(await SqliteDataService.isSlugAvailable(mapID))) {
+                // 新規 / 複製 — 新しくslugを名乗るので空きを確認
+                if (!(await SqliteDataService.isSlugAvailable(slug))) {
                     throw new Error('Exist');
                 }
-                const changeOrCopyMatch = status.match(/^(Change|Copy):(.+)$/);
-                const old = changeOrCopyMatch
-                    ? await SqliteDataService.findMapBySlug(changeOrCopyMatch[2])
-                    : null;
-                if (changeOrCopyMatch && old) {
-                    if (changeOrCopyMatch[1] === 'Copy') {
-                        const created = await SqliteDataService.createMap(mapID, compiled);
-                        uid = created.uid;
-                        copySourceUid = old.uid;
-                        copySourceSlug = old.slug;
-                    } else {
-                        await SqliteDataService.upsertMap(old.uid, mapID, compiled);
-                        uid = old.uid;
-                        renamedFromSlug = old.slug;
+                if (request.copyFromUid) {
+                    const source = await SqliteDataService.findMap(request.copyFromUid);
+                    if (source) {
+                        copySourceUid = source.uid;
+                        copySourceSlug = source.slug;
                     }
-                } else {
-                    const created = await SqliteDataService.createMap(mapID, compiled);
-                    uid = created.uid;
                 }
+                const created = await SqliteDataService.createMap(slug, compiled);
+                savedUid = created.uid;
+                savedRevision = 1;
             }
 
-            const newTile = path.join(tileFolder, uid);
-            const newOriginal = path.join(originalFolder, `${mapID}.${imageExtension}`);
-            const newThumbnail = path.join(thumbFolder, `${uid}.jpg`);
+            const newTile = path.join(tileFolder, savedUid);
+            const newOriginal = path.join(originalFolder, `${slug}.${imageExtension}`);
+            const newThumbnail = path.join(thumbFolder, `${savedUid}.jpg`);
 
             // --- ファイル操作 ---
             if (tmpCheck) {
@@ -257,18 +274,18 @@ class MapEditService {
                     await fs.move(tmpThumb, newThumbnail);
                 }
                 // 改名時: 原本(slugキー)の旧ファイルを掃除(新ファイルはtmpから移動済み)
-                if (renamedFromSlug && renamedFromSlug !== mapID) {
+                if (renamedFromSlug && renamedFromSlug !== slug) {
                     try { await fs.remove(path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`)); } catch { /* noop */ }
                 }
             } else if (copySourceUid) {
-                // 複製: 旧uidのtiles/tmbsと旧slugの原本を新キーへコピー
+                // 複製: 複製元uidのtiles/tmbsと複製元slugの原本を新キーへコピー
                 const oldTile = path.join(tileFolder, copySourceUid);
                 const oldOriginal = path.join(originalFolder, `${copySourceSlug}.${imageExtension}`);
                 const oldThumbnail = path.join(thumbFolder, `${copySourceUid}.jpg`);
                 if (await fs.pathExists(oldTile)) await fs.copy(oldTile, newTile);
                 if (await fs.pathExists(oldOriginal)) await fs.copy(oldOriginal, newOriginal);
                 if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);
-            } else if (renamedFromSlug && renamedFromSlug !== mapID) {
+            } else if (renamedFromSlug && renamedFromSlug !== slug) {
                 // 改名: tiles/tmbsはuidキーのため移動不要。原本(slugキー)のみ改名
                 const oldOriginal = path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`);
                 if (await fs.pathExists(oldOriginal)) {
@@ -276,11 +293,14 @@ class MapEditService {
                     await fs.move(oldOriginal, newOriginal);
                 }
             }
-            return 'Success';
+            return { result: 'Success', uid: savedUid, slug, revision: savedRevision };
         } catch (e: any) {
-            if (e && e.message === 'Exist') return 'Exist';
+            if (e instanceof RevisionConflictError) {
+                return { error: 'revision-conflict', current: e.current };
+            }
+            if (e && e.message === 'Exist') return { result: 'Exist' };
             console.error('[MapEditService.save] Error:', e);
-            return 'Error';
+            return { result: 'Error' };
         }
     }
 }

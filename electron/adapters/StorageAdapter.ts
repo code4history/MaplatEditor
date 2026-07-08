@@ -11,30 +11,38 @@ export interface MapListResult {
   pageUpdate?: number;
 }
 
+// uid正準の保存要求 (ADR-0007)。uid無指定は新規作成、copyFromUid指定は複製。
+// expectedRevision は楽観ロック(不一致で revision-conflict を返す)
 export interface MapSaveRequest {
   mapObject: any;
   tins: any[];
+  uid?: string | null;
+  slug?: string;
+  expectedRevision?: number | null;
+  copyFromUid?: string | null;
 }
 
-export type MapSaveResult = 'Success' | 'Exist' | 'Error';
+export type MapSaveResult =
+  | { result: 'Success'; uid: string; slug: string; revision: number }
+  | { result: 'Exist' }
+  | { result: 'Error' }
+  | { error: 'revision-conflict'; current: number };
 
 export interface StorageAdapter {
   listMaps(request: MapListRequest): Promise<MapListResult>;
-  deleteMap(mapID: string): Promise<void>;
-  readMapForEdit(mapID: string): Promise<any>;
-  readMapForPreview(mapID: string): Promise<any>;
+  deleteMap(uidOrMapID: string): Promise<void>;
+  readMapForEdit(uidOrMapID: string): Promise<any>;
+  readMapForPreview(uidOrMapID: string): Promise<any>;
   saveMapForEdit(request: MapSaveRequest): Promise<MapSaveResult>;
-  isMapIdAvailable(mapID: string): Promise<boolean>;
   isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean>;
 }
 
 export interface StorageAdapterDependencies {
   listMaps(query: string, page: number, pageSize: number): Promise<MapListResult>;
-  deleteMap(mapID: string): Promise<void>;
-  readMapForEdit(mapID: string): Promise<any>;
-  readMapForPreview?(mapID: string): Promise<any>;
-  saveMapForEdit(mapObject: any, tins: any[]): Promise<string>;
-  isMapIdAvailable(mapID: string): Promise<boolean>;
+  deleteMap(uidOrMapID: string): Promise<void>;
+  readMapForEdit(uidOrMapID: string): Promise<any>;
+  readMapForPreview?(uidOrMapID: string): Promise<any>;
+  saveMapForEdit(request: MapSaveRequest): Promise<MapSaveResult>;
   isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean>;
 }
 
@@ -46,22 +54,22 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
     return await this.dependencies.listMaps(query, page, pageSize);
   }
 
-  async deleteMap(mapID: string): Promise<void> {
-    assertMapID(mapID);
-    await this.dependencies.deleteMap(mapID);
+  async deleteMap(uidOrMapID: string): Promise<void> {
+    assertMapID(uidOrMapID);
+    await this.dependencies.deleteMap(uidOrMapID);
   }
 
-  async readMapForEdit(mapID: string): Promise<any> {
-    assertMapID(mapID);
-    const result = await this.dependencies.readMapForEdit(mapID);
+  async readMapForEdit(uidOrMapID: string): Promise<any> {
+    assertMapID(uidOrMapID);
+    const result = await this.dependencies.readMapForEdit(uidOrMapID);
     assertJsonSerializable(result, 'map edit read result');
     return result;
   }
 
-  async readMapForPreview(mapID: string): Promise<any> {
-    assertMapID(mapID);
+  async readMapForPreview(uidOrMapID: string): Promise<any> {
+    assertMapID(uidOrMapID);
     const reader = this.dependencies.readMapForPreview ?? this.dependencies.readMapForEdit;
-    const result = await reader(mapID);
+    const result = await reader(uidOrMapID);
     assertJsonSerializable(result, 'map preview read result');
     return result;
   }
@@ -74,16 +82,15 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
       throw new TypeError('tins must be an array');
     }
 
-    const result = await this.dependencies.saveMapForEdit(mapObject, tins);
-    if (result === 'Success' || result === 'Exist' || result === 'Error') {
+    const result = await this.dependencies.saveMapForEdit(request);
+    if (
+      result && typeof result === 'object' &&
+      (('result' in result && ['Success', 'Exist', 'Error'].includes((result as any).result)) ||
+        ('error' in result && (result as any).error === 'revision-conflict'))
+    ) {
       return result;
     }
-    throw new TypeError(`unexpected map save result: ${result}`);
-  }
-
-  async isMapIdAvailable(mapID: string): Promise<boolean> {
-    assertMapID(mapID);
-    return await this.dependencies.isMapIdAvailable(mapID);
+    throw new TypeError(`unexpected map save result: ${JSON.stringify(result)}`);
   }
 
   async isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean> {

@@ -5,6 +5,9 @@
     "reset": "Reset",
     "save": "Save",
     "download": "Download",
+    "revision_conflict": "This asset was updated in another window.",
+    "reload": "Reload",
+    "overwrite": "Overwrite",
     "language": "Language",
     "japanese": "Japanese",
     "english": "English",
@@ -336,7 +339,10 @@
     "migrating_legacy_basemaps": "Migrating legacy base map settings to the new database.",
     "archiving_legacy_files": "Archiving legacy database files.",
     "migrated": "Migration to the new database format is complete.",
-    "migration_failed": "Migration to the new database format failed."
+    "migration_failed": "Migration to the new database format failed.",
+    "migration_report_title": "Data migration report",
+    "migration_report_renamed": "The following IDs were renamed to resolve ID conflicts.",
+    "migration_report_warnings": "There are {{count}} warning(s). See migration-report-v2.json in the data folder for details."
   },
   "applist": {
     "not_implement": "Not implemented yet",

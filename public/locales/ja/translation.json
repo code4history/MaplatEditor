@@ -8,6 +8,9 @@
     "reset": "リセット",
     "save": "保存",
     "download": "ダウンロード",
+    "revision_conflict": "他のウィンドウで更新されています。",
+    "reload": "読み直す",
+    "overwrite": "上書き",
     "language": "言語",
     "japanese": "日本語",
     "english": "英語",
@@ -339,7 +342,10 @@
     "migrating_legacy_basemaps": "旧ベースマップ設定を新型DBへ移行しています。",
     "archiving_legacy_files": "旧DBファイルを退避しています。",
     "migrated": "新型DB形式への移行が完了しました。",
-    "migration_failed": "新型DB形式への移行に失敗しました。"
+    "migration_failed": "新型DB形式への移行に失敗しました。",
+    "migration_report_title": "データ移行レポート",
+    "migration_report_renamed": "ID重複を解消するため、以下のIDを変更しました。",
+    "migration_report_warnings": "警告が{{count}}件あります。詳細はデータフォルダの migration-report-v2.json を確認してください。"
   },
   "applist": {
     "not_implement": "未実装",

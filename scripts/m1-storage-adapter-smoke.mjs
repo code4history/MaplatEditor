@@ -65,14 +65,15 @@ try {
       calls.push(['readMapForEdit', mapID]);
       return savedMaps.get(mapID);
     },
-    async saveMapForEdit(mapObject, tins) {
+    async saveMapForEdit(request) {
+      const { mapObject, tins } = request;
       calls.push(['saveMapForEdit', mapObject.mapID, tins.length]);
       savedMaps.set(mapObject.mapID, { ...mapObject, savedTinCount: tins.length });
-      return 'Success';
+      return { result: 'Success', uid: 'mock-uid', slug: mapObject.mapID, revision: 1 };
     },
-    async isMapIdAvailable(mapID) {
-      calls.push(['isMapIdAvailable', mapID]);
-      return !savedMaps.has(mapID);
+    async isSlugAvailable(slug) {
+      calls.push(['isSlugAvailable', slug]);
+      return !savedMaps.has(slug);
     },
   });
 
@@ -87,14 +88,15 @@ try {
     mapObject: { ...loaded, title: 'Edo edited' },
     tins: ['tooLessGcps'],
   });
-  assert.equal(saveResult, 'Success');
+  assert.equal(saveResult.result, 'Success');
+  assert.equal(saveResult.revision, 1);
 
   const reloaded = await adapter.readMapForEdit('edo');
   assert.equal(reloaded.title, 'Edo edited');
   assert.equal(reloaded.savedTinCount, 1);
 
-  assert.equal(await adapter.isMapIdAvailable('edo'), false);
-  assert.equal(await adapter.isMapIdAvailable('new-map'), true);
+  assert.equal(await adapter.isSlugAvailable('edo'), false);
+  assert.equal(await adapter.isSlugAvailable('new-map'), true);
 
   await adapter.deleteMap('edo');
   assert.equal((await adapter.listMaps({ page: 1 })).docs.length, 0);
@@ -111,8 +113,8 @@ try {
     'readMapForEdit',
     'saveMapForEdit',
     'readMapForEdit',
-    'isMapIdAvailable',
-    'isMapIdAvailable',
+    'isSlugAvailable',
+    'isSlugAvailable',
     'deleteMap',
     'listMaps',
   ]);

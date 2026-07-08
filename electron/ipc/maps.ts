@@ -6,8 +6,9 @@ export function registerMapHandlers() {
     return await StorageAdapter.listMaps({ query, page, pageSize });
   });
 
-  ipcMain.handle('maplist:delete', async (_event, mapID: string, condition: string, page: number) => {
-    await StorageAdapter.deleteMap(mapID);
+  // uid正準の削除 (ADR-0007)
+  ipcMain.handle('maplist:delete', async (_event, uid: string, condition: string, page: number) => {
+    await StorageAdapter.deleteMap(uid);
     return await StorageAdapter.listMaps({ query: condition, page });
   });
 }

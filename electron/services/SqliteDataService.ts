@@ -457,6 +457,11 @@ class SqliteDataService {
         } catch (e) {
           console.error('[SqliteDataService] failed to write migration report', e);
         }
+        // 移行を実際に実行した起動でのみレンダラへ通知する(App.vue の一覧モーダル)。
+        // ウィンドウ未生成なら送られないが、report ファイルが正本として残る
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('app:migrationReport', report);
+        });
       }
       if (notifyProgress) sendMigrationProgress('database.migrated', 100, '(3/3)');
     } catch (e) {
@@ -737,28 +742,6 @@ class SqliteDataService {
       db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
       db.prepare('DELETE FROM map_base_map_visibility WHERE map_uid = ?').run(uid);
     });
-  }
-
-  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
-  async upsertMapBySlug(slug: string, document: any): Promise<{ uid: string; revision: number }> {
-    const existing = await this.findMapBySlug(slug);
-    if (existing) {
-      const { revision } = await this.upsertMap(existing.uid, slug, document);
-      return { uid: existing.uid, revision };
-    }
-    const { uid } = await this.createMap(slug, document);
-    return { uid, revision: 1 };
-  }
-
-  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
-  async deleteMapBySlug(slug: string): Promise<void> {
-    const existing = await this.findMapBySlug(slug);
-    if (existing) await this.deleteMap(existing.uid);
-  }
-
-  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
-  async isMapIdAvailable(mapID: string): Promise<boolean> {
-    return this.isSlugAvailable(mapID);
   }
 
   async readAllMaps(): Promise<any[]> {

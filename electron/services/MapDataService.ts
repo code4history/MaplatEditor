@@ -4,15 +4,7 @@ import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import SearchDataService, { type MapListResult } from './SearchDataService';
 
-type CompatStore = {
-  findOneAsync(query: { _id: string }): Promise<any | null>;
-  updateAsync(query: { _id: string }, update: { $set?: any } | any, options?: { upsert?: boolean }): Promise<void>;
-  removeAsync(query: { _id: string }, options?: any): Promise<void>;
-};
-
 class MapDataService {
-  private compatStore: CompatStore | null = null;
-
   private get folders() {
     const saveFolder = SettingsService.get('saveFolder');
     return {
@@ -21,25 +13,6 @@ class MapDataService {
       originalFolder: path.join(saveFolder, "originals"),
       uiThumbnailFolder: path.join(saveFolder, "tmbs"),
     };
-  }
-
-  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)。
-  // _id はレンダラ互換のslug。内部の正本キーはuid(SqliteDataService側で解決される)
-  async getDBInstance(): Promise<CompatStore> {
-    if (this.compatStore) return this.compatStore;
-    await SqliteDataService.getDb();
-    this.compatStore = {
-      findOneAsync: async (query) => SqliteDataService.findMapBySlug(query._id),
-      updateAsync: async (query, update) => {
-        const mapID = query._id;
-        const document = update?.$set ? update.$set : update;
-        await SqliteDataService.upsertMapBySlug(mapID, document);
-      },
-      removeAsync: async (query) => {
-        await SqliteDataService.deleteMapBySlug(query._id);
-      },
-    };
-    return this.compatStore;
   }
 
   async requestMaps(query: string = '', page: number = 1, pageSize: number = 20): Promise<MapListResult> {
@@ -60,6 +33,7 @@ class MapDataService {
         const previewDisabled = this.isPreviewDisabled(doc);
         const res: any = {
             mapID,
+            uid: doc.uid,
             title: title || mapID,
             width,
             height,
@@ -122,11 +96,15 @@ class MapDataService {
     return SearchDataService.searchExtent(extent);
   }
 
-  async deleteMap(mapID: string): Promise<void> {
-    // 内部ファイル(tiles/tmbs)はuidキーのため、DB行を消す前にuidを解決する (ADR-0007)
-    const doc = await SqliteDataService.findMapBySlug(mapID);
-    const fileKey = doc?.uid || mapID;
-    await SqliteDataService.deleteMapBySlug(mapID);
+  // uid正準の削除 (ADR-0007)。旧slugリンク経由の呼び出しに備えて slug フォールバックを残す
+  // (Task 6/7 で app/basemap 経路が uid 化された後に撤去可)
+  async deleteMap(uidOrMapID: string): Promise<void> {
+    const doc =
+      (await SqliteDataService.findMap(uidOrMapID)) ??
+      (await SqliteDataService.findMapBySlug(uidOrMapID));
+    const fileKey = doc?.uid || uidOrMapID;
+    const slug = doc?.slug || uidOrMapID;
+    if (doc) await SqliteDataService.deleteMap(doc.uid);
     const { tileFolder, uiThumbnailFolder, originalFolder } = this.folders;
 
     const tileDir = path.join(tileFolder, fileKey);
@@ -139,10 +117,11 @@ class MapDataService {
       await fs.remove(thumbFile);
     }
 
+    // 原本(originals)はslugキーのファイル名 (ADR-0007)
     if (fs.existsSync(originalFolder)) {
       const files = await fs.readdir(originalFolder);
       for (const file of files) {
-        if (new RegExp(`^${mapID}\\.`).test(file)) {
+        if (new RegExp(`^${slug}\\.`).test(file)) {
           await fs.remove(path.join(originalFolder, file));
         }
       }
@@ -157,7 +136,6 @@ class MapDataService {
   }
 
   async switchDataFolder() {
-      this.compatStore = null;
       await SearchDataService.reset();
       await SqliteDataService.reset();
 

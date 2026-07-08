@@ -36,8 +36,9 @@ contextBridge.exposeInMainWorld('mapedit', {
     ipcRenderer.invoke('mapedit:set-base-map-visibility', mapID, baseMapId, enabled),
   updateTin: (gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any) =>
     ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex),
-  save: (mapObject: any, tins: any[]) =>
-    ipcRenderer.invoke('mapedit:save', mapObject, tins),
+  // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (ADR-0007)
+  save: (payload: any) =>
+    ipcRenderer.invoke('mapedit:save', payload),
   checkExtentMap: (extent: number[]) =>
     ipcRenderer.invoke('mapedit:checkExtentMap', extent),
   download: (mapObject: any, tins: any[]) =>
@@ -120,6 +121,14 @@ contextBridge.exposeInMainWorld('appEvents', {
     ipcRenderer.on('app:taskProgress', wrapper);
     return () => {
       ipcRenderer.removeListener('app:taskProgress', wrapper);
+    };
+  },
+  // レガシー移行が実行された起動でmainプロセスから届く移行レポート (ADR-0007)
+  onMigrationReport(listener: (report: any) => void): () => void {
+    const wrapper = (_event: any, report: any) => listener(report);
+    ipcRenderer.on('app:migrationReport', wrapper);
+    return () => {
+      ipcRenderer.removeListener('app:migrationReport', wrapper);
     };
   },
 })

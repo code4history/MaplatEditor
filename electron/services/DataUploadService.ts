@@ -4,7 +4,7 @@ import AdmZip from 'adm-zip';
 import { app, dialog, BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
 import * as storeHandler from '../utils/store_handler';
-import MapDataService from './MapDataService';
+import SqliteDataService from './SqliteDataService';
 
 class DataUploadService {
     private get folders() {
@@ -53,21 +53,17 @@ class DataUploadService {
             const tilePath  = path.join(tileTmpFolder, mapID);
             const tmbPath   = path.join(tmbTmpFolder, `${mapID}.jpg`);
 
-            // --- 原版と同じバリデーション ---
-            const db = await MapDataService.getDBInstance();
-            const existCheck = await db.findOneAsync({ _id: mapID });
-            if (existCheck) throw 'Exist';
+            // --- 原版と同じバリデーション (slugはグローバル一意: ADR-0007) ---
+            if (!(await SqliteDataService.isSlugAvailable(mapID))) throw 'Exist';
             if (!fs.existsSync(tilePath)) throw 'NoTile';
             if (!fs.existsSync(tmbPath))  throw 'NoTmb';
 
-            // --- 原版と同じ: raw mapData をそのまま upsert (uidが採番される) ---
-            await db.updateAsync({ _id: mapID }, { $set: mapData }, { upsert: true });
+            // --- 原版と同じ: raw mapData をそのまま新規作成 (uidが採番される) ---
+            const { uid } = await SqliteDataService.createMap(mapID, mapData);
 
             // 内部ファイル(tiles/tmbs)はuidキーに置く (ADR-0007)。zip内はslug名
-            const imported = await db.findOneAsync({ _id: mapID });
-            const fileKey = imported?.uid || mapID;
-            const tileToPath = path.join(tileFolder, fileKey);
-            const tmbToPath  = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
+            const tileToPath = path.join(tileFolder, uid);
+            const tmbToPath  = path.join(uiThumbnailFolder, `${uid}.jpg`);
 
             // タイルとサムネイルを移動
             await fs.remove(tileToPath);
@@ -79,6 +75,8 @@ class DataUploadService {
             // store2HistMap で store 形式 → histMap 形式に変換
             const [histMap, tins] = await storeHandler.store2HistMap(mapData as any);
             (histMap as any).mapID  = mapID;
+            (histMap as any).uid = uid;
+            (histMap as any).revision = 1;
             (histMap as any).status = 'Update';
 
             // タイル URL を発見して url_ にセット
