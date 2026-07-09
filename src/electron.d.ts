@@ -46,7 +46,9 @@ export interface MapSavePayload {
 export type MapSaveResult =
     | { result: 'Success'; uid: string; slug: string; revision: number }
     | { result: 'Exist' }
-    | { result: 'Error' }
+    // uid/slug/revision付きのErrorは「DBコミット済み・ファイル操作のみ失敗」。
+    // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)
+    | { result: 'Error'; uid?: string; slug?: string; revision?: number }
     | { error: 'revision-conflict'; current: number };
 
 export interface AssetsAPI {

@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 // @ts-ignore
 import fileUrl from 'file-url';
 import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
+import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import SettingsService from './SettingsService';
@@ -13,12 +14,15 @@ const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 class MapEditService {
     // uid正準の読み出し (ADR-0007)。AppEdit等の旧経路がslugで呼ぶ間は
-    // slugフォールバックを残す (Task 6 でsources参照がuid化された後に撤去可)
+    // slugフォールバックを残す (Task 6 でsources参照がuid化された後に撤去可)。
+    // uid検索はUUID形状の引数に限定し、UUID形状のslug(英数+ハイフンのため同形状に
+    // なり得る)が他地図のuidを誤って参照しないようにする
     private async findMapByUidOrSlug(uidOrMapID: string): Promise<any | null> {
-        return (
-            (await SqliteDataService.findMap(uidOrMapID)) ??
-            (await SqliteDataService.findMapBySlug(uidOrMapID))
-        );
+        if (UUID_PATTERN.test(uidOrMapID)) {
+            const byUid = await SqliteDataService.findMap(uidOrMapID);
+            if (byUid) return byUid;
+        }
+        return await SqliteDataService.findMapBySlug(uidOrMapID);
     }
 
     async request(uidOrMapID: string) {
@@ -213,15 +217,15 @@ class MapEditService {
         await fs.ensureDir(originalFolder);
         await fs.ensureDir(thumbFolder);
 
+        // --- DB操作: uid正準のslug/document書込 (ADR-0007) ---
+        // 改名はuid維持のslug付替えになり、tiles/tmbs(uidキー)の移動が不要になる。
+        // 複製(copyFromUid)は新uidを採番し、複製元uidのファイルをコピーする
+        let savedUid: string;
+        let savedRevision: number;
+        let copySourceUid: string | null = null;
+        let copySourceSlug: string | null = null;
+        let renamedFromSlug: string | null = null;
         try {
-            // --- DB操作: uid正準のslug/document書込 (ADR-0007) ---
-            // 改名はuid維持のslug付替えになり、tiles/tmbs(uidキー)の移動が不要になる。
-            // 複製(copyFromUid)は新uidを採番し、複製元uidのファイルをコピーする
-            let savedUid: string;
-            let savedRevision: number;
-            let copySourceUid: string | null = null;
-            let copySourceSlug: string | null = null;
-            let renamedFromSlug: string | null = null;
             if (uid) {
                 const existing = await SqliteDataService.findMap(uid);
                 if (!existing) throw new Error(`Map with uid ${uid} not found`);
@@ -231,6 +235,20 @@ class MapEditService {
                         throw new Error('Exist');
                     }
                     renamedFromSlug = existing.slug;
+                } else if (!request.copyFromUid) {
+                    // 再試行の救済: 前回の保存がDBコミット後のファイル操作で失敗した場合、
+                    // DB上のslugは既に改名済みで、この呼び出しでは existing.slug === slug となり
+                    // renamedFromSlug が立たない。レンダラが成功まで保持し続ける Change:{旧slug}
+                    // を手掛かりに、旧slugが孤児(どの地図にも属さない)であれば
+                    // 原本(originals)改名の残作業として引き継ぐ
+                    const changeMatch = typeof mapObject.status === 'string'
+                        ? mapObject.status.match(/^Change:(.+)$/)
+                        : null;
+                    const candidate = changeMatch?.[1];
+                    if (candidate && candidate !== slug &&
+                        !(await SqliteDataService.findMapBySlug(candidate))) {
+                        renamedFromSlug = candidate;
+                    }
                 }
                 const { revision } = await SqliteDataService.upsertMap(
                     uid, slug, compiled, request.expectedRevision ?? undefined
@@ -253,12 +271,21 @@ class MapEditService {
                 savedUid = created.uid;
                 savedRevision = 1;
             }
+        } catch (e: any) {
+            if (e instanceof RevisionConflictError) {
+                return { error: 'revision-conflict', current: e.current };
+            }
+            if (e && e.message === 'Exist') return { result: 'Exist' };
+            console.error('[MapEditService.save] Error:', e);
+            return { result: 'Error' };
+        }
 
-            const newTile = path.join(tileFolder, savedUid);
-            const newOriginal = path.join(originalFolder, `${slug}.${imageExtension}`);
-            const newThumbnail = path.join(thumbFolder, `${savedUid}.jpg`);
+        const newTile = path.join(tileFolder, savedUid);
+        const newOriginal = path.join(originalFolder, `${slug}.${imageExtension}`);
+        const newThumbnail = path.join(thumbFolder, `${savedUid}.jpg`);
 
-            // --- ファイル操作 ---
+        // --- ファイル操作 (DBコミット後・ここでの失敗はDBを巻き戻さない) ---
+        try {
             if (tmpCheck) {
                 // tmpフォルダからの永続フォルダへの移動 (uidパス)
                 try { await fs.remove(newTile); } catch { /* noop */ }
@@ -286,22 +313,21 @@ class MapEditService {
                 if (await fs.pathExists(oldOriginal)) await fs.copy(oldOriginal, newOriginal);
                 if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);
             } else if (renamedFromSlug && renamedFromSlug !== slug) {
-                // 改名: tiles/tmbsはuidキーのため移動不要。原本(slugキー)のみ改名
+                // 改名: tiles/tmbsはuidキーのため移動不要。原本(slugキー)のみ改名。
+                // 再試行でも安全なように「移動先が無く移動元がある」場合のみ移動する
+                // (移動先が既にあれば改名は完了済みか新しい原本が置かれている)
                 const oldOriginal = path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`);
-                if (await fs.pathExists(oldOriginal)) {
-                    try { await fs.remove(newOriginal); } catch { /* noop */ }
+                if (!(await fs.pathExists(newOriginal)) && (await fs.pathExists(oldOriginal))) {
                     await fs.move(oldOriginal, newOriginal);
                 }
             }
-            return { result: 'Success', uid: savedUid, slug, revision: savedRevision };
         } catch (e: any) {
-            if (e instanceof RevisionConflictError) {
-                return { error: 'revision-conflict', current: e.current };
-            }
-            if (e && e.message === 'Exist') return { result: 'Exist' };
-            console.error('[MapEditService.save] Error:', e);
-            return { result: 'Error' };
+            // DBは既にコミット済み: 確定したuid/slug/revisionを返してレンダラ側の
+            // 編集状態を補正し、再試行が偽のrevision-conflictや'Exist'にならないようにする
+            console.error('[MapEditService.save] post-commit file operation failed:', e);
+            return { result: 'Error', uid: savedUid, slug, revision: savedRevision };
         }
+        return { result: 'Success', uid: savedUid, slug, revision: savedRevision };
     }
 }
 

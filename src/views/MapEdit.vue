@@ -2302,21 +2302,6 @@ const modalHide = () => {
 };
 
 /**
- * 旧実装: vueMap.$on('updateMapID') 相当
- * "Change Map ID" ボタン: 確認ダイアログ後 onlyOne を false にして mapID 入力を解放
- */
-const changeMapID = async () => {
-    const result = await (window as any).dialog.showMessageBox({
-        type: 'info',
-        buttons: ['OK', 'Cancel'],
-        cancelId: 1,
-        message: t('mapedit.confirm_change_mapid')
-    });
-    if (result.response === 1) return; // キャンセル
-    onlyOne.value = false;
-};
-
-/**
  * 旧実装: $emit('mapUpload') → vueMap.$on('mapUpload') 相当
  * GCPが存在する場合は確認ダイアログを表示してからアップロード
  *
@@ -2539,6 +2524,11 @@ const performSave = async (
         originalMapData.value = cloneDeep(mapData.value);
         resetHistoryBase();
         onlyOne.value = true;
+        // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
+        // 再オープンできるようURLのクエリを追随させる (履歴は汚さない)
+        if (route.query.uid !== result.uid) {
+            router.replace({ query: { ...route.query, uid: result.uid } });
+        }
     } else if (result && result.result === 'Exist') {
         await (window as any).dialog.showMessageBox({
             type: 'info',
@@ -2546,6 +2536,14 @@ const performSave = async (
             message: t('mapedit.error_duplicate_id')
         });
     } else {
+        // DBコミット後のファイル操作失敗はuid/slug/revision付きで返る (ADR-0007)。
+        // 確定値へ補正し、再試行が偽のrevision-conflictや'Exist'にならないようにする。
+        // status(Change:{旧slug})は成功まで保持し、原本改名の残作業を再試行に引き継ぐ
+        if (result && result.result === 'Error' && result.revision != null) {
+            if (result.uid) mapUid.value = result.uid;
+            revision.value = result.revision;
+            if (result.slug) confirmedSlug.value = result.slug;
+        }
         console.error('[saveMap] Save error:', result);
         await (window as any).dialog.showMessageBox({
             type: 'info',
@@ -3013,18 +3011,11 @@ const goBack = async () => {
                             </div>
                             <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.unique_mapid") }}</div>
                         </div>
-                        <!-- ボタン: 旧実装 v-if="onlyOne"（Change）/ v-else（Check Uniqueness）相当 -->
+                        <!-- 一意性チェックボタン: mapID欄は常時編集可のslug欄 (ADR-0007)。
+                             確認済み(onlyOne)や形式エラーの間は無効化する -->
                         <div class="col-md-2 d-flex align-items-start pt-4">
-                            <!-- 既存地図: Change Map ID ボタン（フェーズ2.1で実装） -->
-                            <button v-if="onlyOne"
-                                    class="btn btn-danger btn-sm w-100 mt-1"
-                                    @click="changeMapID">
-                                {{ t("mapedit.change_mapid") }}
-                            </button>
-                            <!-- 新規地図: 一意性チェックボタン（フェーズ2.1で完全実装） -->
-                            <button v-else
-                                    class="btn btn-secondary btn-sm w-100 mt-1"
-                                    :disabled="!!(mapIDError && mapIDError !== 'mapedit.check_uniqueness')"
+                            <button class="btn btn-secondary btn-sm w-100 mt-1"
+                                    :disabled="onlyOne || !!(mapIDError && mapIDError !== 'mapedit.check_uniqueness')"
                                     @click="checkOnlyOne">
                                 {{ t("mapedit.uniqueness_button") }}
                             </button>

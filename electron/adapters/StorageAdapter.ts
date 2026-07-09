@@ -25,8 +25,15 @@ export interface MapSaveRequest {
 export type MapSaveResult =
   | { result: 'Success'; uid: string; slug: string; revision: number }
   | { result: 'Exist' }
-  | { result: 'Error' }
+  // uid/slug/revision付きのErrorは「DBコミット済み・ファイル操作のみ失敗」。
+  // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)
+  | { result: 'Error'; uid?: string; slug?: string; revision?: number }
   | { error: 'revision-conflict'; current: number };
+
+// Asset UID (UUIDv4) の形状 (ADR-0007)。slugは英数+ハイフンを許すためUUID形状と
+// 重なり得る — uid引数の検証と uid優先解決の分岐に使う。
+// (本モジュールは m1 smoke が単一ファイルでtranspileするため、importせずここに定義する)
+export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface StorageAdapter {
   listMaps(request: MapListRequest): Promise<MapListResult>;
@@ -81,6 +88,14 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
     if (!Array.isArray(tins)) {
       throw new TypeError('tins must be an array');
     }
+    // uid正準フィールドの境界検証 (ADR-0007)
+    if (request.slug != null) assertMapID(request.slug);
+    if (request.uid != null) assertUid(request.uid, 'uid');
+    if (request.copyFromUid != null) assertUid(request.copyFromUid, 'copyFromUid');
+    if (request.expectedRevision != null &&
+        (!Number.isInteger(request.expectedRevision) || request.expectedRevision < 1)) {
+      throw new TypeError('expectedRevision must be a positive integer');
+    }
 
     const result = await this.dependencies.saveMapForEdit(request);
     if (
@@ -102,6 +117,12 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
 export function assertMapID(mapID: unknown): asserts mapID is string {
   if (typeof mapID !== 'string' || mapID.trim().length === 0) {
     throw new TypeError('mapID must be a non-empty string');
+  }
+}
+
+export function assertUid(uid: unknown, label: string): asserts uid is string {
+  if (typeof uid !== 'string' || !UUID_PATTERN.test(uid)) {
+    throw new TypeError(`${label} must be a UUID`);
   }
 }
 

@@ -141,7 +141,8 @@ try {
     entryFile,
     `
       import assert from 'node:assert/strict';
-      import { access } from 'node:fs/promises';
+      import { access, mkdir, writeFile } from 'node:fs/promises';
+      import { default as fileUrl } from 'file-url';
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
@@ -189,6 +190,73 @@ try {
       assert.deepEqual(reloaded.title, { ja: 'Updated Legacy Map' });
       const relisted = await StorageAdapter.listMaps({ query: 'Updated', page: 1, pageSize: 20 });
       assert.equal(relisted.docs.length, 1);
+
+      // --- ADR-0007: uid経路の改名保存・楽観ロック・post-commitファイル操作失敗の再試行救済 ---
+      const originalsDir = ${JSON.stringify(path.join(dataDir, 'originals'))};
+      const tmpTilesDir = ${JSON.stringify(path.join(workDir, 'temp', 'MaplatEditor', 'tiles'))};
+      const origPath = (slug) => originalsDir + '/' + slug + '.jpg';
+      await mkdir(originalsDir, { recursive: true });
+      await writeFile(origPath('legacy-map'), 'original-image');
+      const beforeRename = await SqliteDataService.findMapBySlug('legacy-map');
+      const legacyUid = beforeRename.uid;
+
+      // (1) post-commit失敗: url_ が存在しないtmpタイルを指す改名保存 → DBコミット後の
+      //     fs.move が失敗し、確定した uid/slug/revision 付きの Error が返る
+      const poisoned = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Change:legacy-map',
+                     url_: fileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map-renamed',
+        expectedRevision: beforeRename.revision,
+      });
+      assert.equal(poisoned.result, 'Error');
+      assert.equal(poisoned.uid, legacyUid);
+      assert.equal(poisoned.slug, 'legacy-map-renamed');
+      assert.equal(poisoned.revision, beforeRename.revision + 1);
+      // DB上は改名コミット済み。原本(originals)の改名はまだ行われていない
+      assert.equal((await SqliteDataService.findMapBySlug('legacy-map-renamed')).revision, poisoned.revision);
+      await access(origPath('legacy-map'));
+
+      // (2) revisionを補正しない再試行は楽観ロックで弾かれる(コミット済みrevisionが返る)
+      const stale = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Change:legacy-map' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map-renamed',
+        expectedRevision: beforeRename.revision,
+      });
+      assert.equal(stale.error, 'revision-conflict');
+      assert.equal(stale.current, poisoned.revision);
+
+      // (3) Errorが返したrevisionで補正した再試行は成功し、孤児となった旧slugの原本改名を
+      //     引き継ぐ(レンダラは成功まで Change:{旧slug} を保持する)
+      const retried = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Change:legacy-map' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map-renamed',
+        expectedRevision: poisoned.revision,
+      });
+      assert.equal(retried.result, 'Success');
+      assert.equal(retried.revision, poisoned.revision + 1);
+      await access(origPath('legacy-map-renamed'));
+      await assert.rejects(() => access(origPath('legacy-map')));
+
+      // (4) 通常の改名(元のslugへ戻す): uid維持でslugが付け替わり、原本も追随する
+      const renamedBack = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map', status: 'Change:legacy-map-renamed' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map',
+        expectedRevision: retried.revision,
+      });
+      assert.equal(renamedBack.result, 'Success');
+      const backDoc = await SqliteDataService.findMapBySlug('legacy-map');
+      assert.equal(backDoc.uid, legacyUid, 'slug改名でuidが変わってはいけない');
+      assert.equal(backDoc.revision, retried.revision + 1);
+      await access(origPath('legacy-map'));
+      await assert.rejects(() => access(origPath('legacy-map-renamed')));
 
       // ADR-0005: 交換形(エクスポート)はデフォルト言語のみ→プレーン文字列、複数言語→オブジェクト
       const langResource = await import(${JSON.stringify(langResourcePath)});
