@@ -110,6 +110,7 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
 
   async isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean> {
     assertMapID(slug);
+    if (excludeUid != null) assertUid(excludeUid, 'excludeUid');
     return await this.dependencies.isSlugAvailable(slug, excludeUid);
   }
 }
