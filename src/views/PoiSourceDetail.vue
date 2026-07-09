@@ -142,8 +142,15 @@ const {
 
 const hasInvalidFeatures = computed(() => {
   return geojson.value.features.some((f) => {
+    // name は LangResource: 内部形 {lang: text} / 交換形 string の双方を許容 (ADR-0005)
     const name = f.properties?.name;
-    if (!name || typeof name !== "string" || !name.trim()) return true;
+    const nameOk =
+      typeof name === "string"
+        ? name.trim() !== ""
+        : !!name &&
+          typeof name === "object" &&
+          Object.values(name).some((t) => typeof t === "string" && t.trim() !== "");
+    if (!nameOk) return true;
     const coords = f.geometry?.coordinates;
     if (!Array.isArray(coords) || coords.length !== 2) return true;
     const [lon, lat] = coords;

@@ -166,18 +166,23 @@ try {
     'usePoiSourceDetail が window.poiSources.get を呼んでいない'
   );
 
-  // window.poiSources.saveLocal を呼ぶこと
+  // window.poiSources.save を呼ぶこと (v2: uid + {slug,title,fc,expectedRevision} 契約)
   assert.match(
+    usePoiSourceDetail,
+    /poiSources\.save/,
+    'usePoiSourceDetail が window.poiSources.save を呼んでいない'
+  );
+  assert.doesNotMatch(
     usePoiSourceDetail,
     /poiSources\.saveLocal/,
-    'usePoiSourceDetail が window.poiSources.saveLocal を呼んでいない'
+    'usePoiSourceDetail に旧 saveLocal 呼び出しが残存している'
   );
 
-  // window.poiSources.validateRemote を呼ぶこと
+  // window.poiSources.refreshRemote を呼ぶこと (旧 validateRemote は POI-118 の明示再取得へ刷新)
   assert.match(
     usePoiSourceDetail,
-    /poiSources\.validateRemote/,
-    'usePoiSourceDetail が window.poiSources.validateRemote を呼んでいない'
+    /poiSources\.refreshRemote/,
+    'usePoiSourceDetail が window.poiSources.refreshRemote を呼んでいない'
   );
 
   // window.poiSources.delete を呼ぶこと

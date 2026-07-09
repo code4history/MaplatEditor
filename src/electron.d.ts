@@ -69,14 +69,66 @@ export interface AssetsAPI {
     checkSlug(payload: { slug: string; excludeUid?: string }): Promise<boolean>;
 }
 
+// POI ソース (ADR-0007): uid正準 + slug契約。title は LangResource (内部形/交換形どちらも受容し
+// main 側で内部形へ正規化される)。fc は editor 内部形 FeatureCollection (_maplatUid 入り)
+export interface PoiSourceListRow {
+    uid: string;
+    slug: string;
+    title: Record<string, string>;
+    mode: 'local' | 'remote';
+    url: string | null;
+    featureCount: number;
+    revision: number;
+    updatedAt: string;
+}
+
+export interface PoiSourceListResult {
+    items: PoiSourceListRow[];
+    page: number;
+    hasPrev: boolean;
+    hasNext: boolean;
+    total: number;
+}
+
+export interface PoiSourceDetailResult extends PoiSourceListRow {
+    readOnly: boolean;
+    fc: any;
+}
+
+export interface PoiValidationIssue {
+    level: 'error' | 'warning';
+    code: string;
+    featureId?: string;
+    message?: string;
+}
+
+// maps/apps の保存結果 union と同形 (ファイルフェーズが無いため Error{uid,slug,revision} 拡張なし)。
+// 'Invalid' = 検証エラーで拒否 (issues 参照)、'ReadOnly' = remote ソースへの save 拒否
+export type PoiSourceSaveResult =
+    | { result: 'Success'; uid: string; slug: string; revision: number; issues: PoiValidationIssue[] }
+    | { result: 'Exist' }
+    | { result: 'Invalid'; issues: PoiValidationIssue[] }
+    | { result: 'ReadOnly' }
+    | { result: 'Error'; message?: string }
+    | { error: 'revision-conflict'; current: number };
+
+export interface PoiSourceReference {
+    kind: 'map' | 'app';
+    uid: string;
+    slug: string;
+}
+
 export interface PoiSourcesAPI {
-    list(request: { query: string; page: number; pageSize: number }): Promise<any>;
-    get(sourceId: string): Promise<any>;
-    createLocal(input: { title: string; geojson?: any }): Promise<any>;
-    registerRemote(input: { title: string; url: string }): Promise<any>;
-    validateRemote(input: { kind: "source"; sourceId: string } | { kind: "url"; url: string }): Promise<any>;
-    saveLocal(sourceId: string, geojson: any): Promise<any>;
-    delete(sourceId: string): Promise<any>;
+    list(request: { query: string; page: number; pageSize: number }): Promise<PoiSourceListResult>;
+    get(uid: string): Promise<PoiSourceDetailResult | null>;
+    createLocal(input: { slug: string; title: any }): Promise<PoiSourceSaveResult>;
+    save(uid: string, payload: { slug: string; title: any; fc: any; expectedRevision?: number }): Promise<PoiSourceSaveResult>;
+    importFile(input: { slug: string; title: any; filePath: string }): Promise<PoiSourceSaveResult>;
+    registerRemote(input: { slug: string; title: any; url: string }): Promise<PoiSourceSaveResult>;
+    refreshRemote(uid: string): Promise<PoiSourceSaveResult>;
+    cloneToLocal(uid: string, input: { slug: string; title?: any }): Promise<PoiSourceSaveResult>;
+    findReferences(uid: string): Promise<PoiSourceReference[]>;
+    delete(uid: string): Promise<{ ok: true; references: PoiSourceReference[] }>;
 }
 
 export interface AppAssetsAPI {

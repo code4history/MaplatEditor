@@ -1,10 +1,46 @@
 import { ref, type Ref } from "vue";
-import type {
-  PoiSourceSummary,
-  PoiSourceListRequest,
-} from "../services/registeredPoiSourceCatalog";
+import type { PoiSourceSummary } from "../services/registeredPoiSourceCatalog";
+
+// window.poiSources.list の行 (electron.d.ts PoiSourceListRow と同形)
+interface PoiSourceListRow {
+  uid: string;
+  slug: string;
+  title: Record<string, string>;
+  mode: "local" | "remote";
+  url: string | null;
+  featureCount: number;
+  revision: number;
+  updatedAt: string;
+}
 
 const PAGE_SIZE = 20;
+
+// LangResource 内部形 {lang: text} → 一覧表示用テキスト (Phase 3 で画面ごと再構築されるまでの暫定)
+function titleToText(title: Record<string, string>, fallback: string): string {
+  if (title && typeof title === "object") {
+    if (typeof title.ja === "string" && title.ja) return title.ja;
+    const first = Object.values(title).find((t) => typeof t === "string" && t !== "");
+    if (first) return first;
+  }
+  return fallback;
+}
+
+// Write Store backend (poisource:* v2, uid/slug契約) の行を旧 view model へ写像する薄い読替え。
+// 画面群は Phase 3 で全面再構築されるため、ここは最小のコンパイル維持 shim に留める
+function rowToSummary(row: PoiSourceListRow): PoiSourceSummary {
+  return {
+    catalogKey: `poi-source:${row.uid}`,
+    sourceId: row.uid,
+    title: titleToText(row.title, row.slug),
+    mode: row.mode,
+    featureCount: row.featureCount,
+    url: row.url ?? undefined,
+    status: "ready",
+    readOnly: row.mode === "remote",
+    updatedAt: row.updatedAt,
+    validation: { status: "ready" },
+  };
+}
 
 export function usePoiSourceList() {
   const items: Ref<PoiSourceSummary[]> = ref([]);
@@ -19,13 +55,12 @@ export function usePoiSourceList() {
     loading.value = true;
     error.value = null;
     try {
-      const request: PoiSourceListRequest = {
+      const response = await window.poiSources.list({
         query: searchQuery.value,
         page: currentPage.value,
         pageSize: PAGE_SIZE,
-      };
-      const response = await (window as any).poiSources.list(request);
-      items.value = response.items;
+      });
+      items.value = response.items.map(rowToSummary);
       currentPage.value = response.page;
       hasNext.value = response.hasNext;
       hasPrev.value = response.hasPrev;

@@ -135,6 +135,7 @@ export interface PoiSourceRecord {
   dataJson: string;
   featureCount: number;
   revision: number;
+  updatedAt: string;
 }
 
 // 一覧軽量化 (ADR-0007): data blob(dataJson)を含まない
@@ -146,6 +147,7 @@ export interface PoiSourceSummary {
   url: string | null;
   featureCount: number;
   revision: number;
+  updatedAt: string;
 }
 
 // 画像等アセット (ADR-0007): バイト実体は別管理(tiles/tmbs同様のファイル)で、本テーブルはメタデータのみ持つ。
@@ -300,6 +302,7 @@ function poiSourceRowToRecord(row: any): PoiSourceRecord {
     dataJson: String(row.data_json),
     featureCount: Number(row.feature_count),
     revision: Number(row.revision),
+    updatedAt: String(row.updated_at ?? ''),
   };
 }
 
@@ -312,6 +315,7 @@ function poiSourceRowToSummary(row: any): PoiSourceSummary {
     url: row.url == null ? null : String(row.url),
     featureCount: Number(row.feature_count),
     revision: Number(row.revision),
+    updatedAt: String(row.updated_at ?? ''),
   };
 }
 
@@ -1237,7 +1241,7 @@ class SqliteDataService {
   async findPoiSource(uid: string): Promise<PoiSourceRecord | null> {
     const db = await this.getDb();
     const row = db
-      .prepare('SELECT uid, slug, title_json, mode, url, data_json, feature_count, revision FROM poi_sources WHERE uid = ?')
+      .prepare('SELECT uid, slug, title_json, mode, url, data_json, feature_count, revision, updated_at FROM poi_sources WHERE uid = ?')
       .get(uid) as any;
     return row ? poiSourceRowToRecord(row) : null;
   }
@@ -1245,9 +1249,36 @@ class SqliteDataService {
   async findPoiSourceBySlug(slug: string): Promise<PoiSourceRecord | null> {
     const db = await this.getDb();
     const row = db
-      .prepare('SELECT uid, slug, title_json, mode, url, data_json, feature_count, revision FROM poi_sources WHERE slug = ?')
+      .prepare('SELECT uid, slug, title_json, mode, url, data_json, feature_count, revision, updated_at FROM poi_sources WHERE slug = ?')
       .get(slug) as any;
     return row ? poiSourceRowToRecord(row) : null;
+  }
+
+  // uid正準の参照解決 (ADR-0007)。findMapByRef と同じ解決規則の poi_source 版:
+  // UUID形状のみuid検索を許し(UUID形状のslugによる誤参照防止)、無ければslugフォールバック
+  async findPoiSourceByRef(ref: string): Promise<PoiSourceRecord | null> {
+    if (UUID_PATTERN.test(ref)) {
+      const byUid = await this.findPoiSource(ref);
+      if (byUid) return byUid;
+    }
+    return await this.findPoiSourceBySlug(ref);
+  }
+
+  // apps/maps の data_json 中の POI ソース参照 ("poiUid":"<uid>") を走査する (AID-006 の器)。
+  // 参照の書込は Phase 7 で始まるため、それまでは常に空配列。削除confirmフローが参照有無の
+  // 提示に使う(削除自体はブロックしない)
+  async findPoiSourceReferences(uid: string): Promise<Array<{ kind: 'map' | 'app'; uid: string; slug: string }>> {
+    const db = await this.getDb();
+    // uid は UUID 形状(英数+ハイフン)なので LIKE メタ文字を含まない
+    const needle = `%"poiUid":"${uid}"%`;
+    const refs: Array<{ kind: 'map' | 'app'; uid: string; slug: string }> = [];
+    for (const [kind, table] of [['app', 'apps'], ['map', 'maps']] as const) {
+      const rows = db.prepare(`SELECT uid, slug FROM ${table} WHERE data_json LIKE ?`).all(needle) as any[];
+      for (const row of rows) {
+        refs.push({ kind, uid: String(row.uid), slug: String(row.slug) });
+      }
+    }
+    return refs;
   }
 
   async upsertPoiSource(
@@ -1271,7 +1302,7 @@ class SqliteDataService {
   async listPoiSources(): Promise<PoiSourceSummary[]> {
     const db = await this.getDb();
     const rows = db
-      .prepare('SELECT uid, slug, title_json, mode, url, feature_count, revision FROM poi_sources ORDER BY slug')
+      .prepare('SELECT uid, slug, title_json, mode, url, feature_count, revision, updated_at FROM poi_sources ORDER BY slug')
       .all() as any[];
     return rows.map(poiSourceRowToSummary);
   }
@@ -1287,7 +1318,7 @@ class SqliteDataService {
       const placeholders = chunk.map(() => '?').join(',');
       const rows = db
         .prepare(
-          `SELECT uid, slug, title_json, mode, url, feature_count, revision
+          `SELECT uid, slug, title_json, mode, url, feature_count, revision, updated_at
            FROM poi_sources WHERE uid IN (${placeholders}) ORDER BY slug`
         )
         .all(...chunk) as any[];

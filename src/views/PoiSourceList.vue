@@ -226,18 +226,34 @@ const deleteSource = async () => {
   hideContextMenu();
   if (!confirm(t("poisource.feature_table.confirm_delete"))) return;
   try {
-    await (window as any).poiSources.delete(sourceId);
+    await window.poiSources.delete(sourceId);
     await loadSources();
   } catch (e) {
     console.error("Failed to delete POI source", e);
   }
 };
 
+// v2 backend は slug 必須 (グローバル一意)。本画面は Phase 3 で全面再構築されるため、
+// 暫定でタイトルから機械的に slug を生成する (文字種 [A-Za-z0-9_-]+、空なら乱数フォールバック)
+const suggestSlug = (title: string): string => {
+  const base = title
+    .normalize("NFKD")
+    .replace(/[^A-Za-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+  const random = Math.random().toString(36).slice(2, 8);
+  return base ? `${base}-${random}` : `poi-${random}`;
+};
+
 const createLocal = async () => {
   const title = newLocalTitle.value.trim();
   if (!title) return;
   try {
-    await (window as any).poiSources.createLocal({ title });
+    const result = await window.poiSources.createLocal({ slug: suggestSlug(title), title });
+    if ("error" in result || result.result !== "Success") {
+      console.error("Failed to create local POI source", result);
+      return;
+    }
     showCreateLocalModal.value = false;
     newLocalTitle.value = "";
     await loadSources();
@@ -251,7 +267,11 @@ const registerRemote = async () => {
   const url = newRemoteUrl.value.trim();
   if (!title || !url) return;
   try {
-    await (window as any).poiSources.registerRemote({ title, url });
+    const result = await window.poiSources.registerRemote({ slug: suggestSlug(title), title, url });
+    if ("error" in result || result.result !== "Success") {
+      console.error("Failed to register remote POI source", result);
+      return;
+    }
     showRegisterRemoteModal.value = false;
     newRemoteTitle.value = "";
     newRemoteUrl.value = "";

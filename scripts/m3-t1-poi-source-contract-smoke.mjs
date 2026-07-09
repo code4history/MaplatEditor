@@ -34,184 +34,68 @@ try {
 
   console.log('  [1/6] Contract export shape: PASS');
 
-  // --- Part 2: Storage backend shape ---
+  // --- Part 2: Storage backend shape (v2: Write Store 上の薄い domain layer) ---
   const serviceSource = await readFile(
     path.join(projectRoot, 'electron/services/PoiSourceService.ts'),
     'utf8'
   );
 
-  assert.match(serviceSource, /electron-store/, 'PoiSourceService に electron-store がない');
-  assert.match(serviceSource, /app\.getPath/, 'PoiSourceService に app.getPath がない');
-  assert.match(serviceSource, /fs-extra/, 'PoiSourceService に fs-extra がない');
-  assert.match(serviceSource, /from\s+['"]node:path['"]/, 'PoiSourceService に node:path がない');
-  assert.match(serviceSource, /randomUUID/, 'PoiSourceService に randomUUID がない');
-  assert.match(serviceSource, /storageRelativePath/, 'PoiSourceService に storageRelativePath がない');
+  // 正本は SqliteDataService (poi_sources テーブル)。旧 electron-store + poi-sources/ ファイル
+  // 実装の残滓が無いこと
+  assert.match(serviceSource, /from\s+['"]\.\/SqliteDataService['"]/, 'PoiSourceService が SqliteDataService を使っていない');
+  assert.doesNotMatch(serviceSource, /from\s+['"]electron-store['"]/, 'PoiSourceService に electron-store import が残存している');
+  assert.doesNotMatch(serviceSource, /from\s+['"]fs-extra['"]/, 'PoiSourceService に fs-extra import が残存している');
+  assert.doesNotMatch(serviceSource, /storageRelativePath/, 'PoiSourceService に storageRelativePath が残存している');
+  assert.doesNotMatch(serviceSource, /app\.getPath/, 'PoiSourceService に app.getPath が残存している (userData 直書きの旧実装)');
   assert.doesNotMatch(contractSource, /storageRelativePath/, 'renderer contract に storageRelativePath が残存している');
-  assert.match(serviceSource, /\.tmp/, 'PoiSourceService に .tmp cleanup がない');
 
   console.log('  [2/6] Storage backend shape: PASS');
 
-  // --- Part 3: Local validation unit ---
-  const { validateFeatureCollection } = await import('../electron/services/poiValidation.mjs');
+  // --- Part 3: Validation delegation ---
+  // GeoJSON 検証・正規化は src/utils/poiGeoJson.ts の純関数へ委譲し重複実装しない
+  // (検証ロジック自体の単体検証は m9-t1、service 経由の実挙動は m9-t3 が担う)
+  assert.match(
+    serviceSource,
+    /from\s+['"]\.\.\/\.\.\/src\/utils\/poiGeoJson['"]/,
+    'PoiSourceService が poiGeoJson 純関数を import していない'
+  );
+  assert.match(serviceSource, /validateFeatureCollection/, 'PoiSourceService が validateFeatureCollection を使っていない');
+  assert.match(serviceSource, /normalizeLegacyPoiList/, 'PoiSourceService が normalizeLegacyPoiList を使っていない');
+  assert.match(serviceSource, /ensureDisplayIds/, 'PoiSourceService が ensureDisplayIds を使っていない');
+  assert.match(serviceSource, /ensureFeatureUids/, 'PoiSourceService が ensureFeatureUids を使っていない');
+  // level='error' issue が 1 つでもあれば保存/取込を拒否する
+  assert.match(serviceSource, /level\s*===\s*['"]error['"]/, 'PoiSourceService に error-level 拒否ガードがない');
+  assert.match(serviceSource, /['"]Invalid['"]/, 'PoiSourceService に Invalid 結果がない');
 
-  // valid Point FeatureCollection
-  const validResult = validateFeatureCollection({
-    type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      id: "test-1",
-      geometry: { type: "Point", coordinates: [132.0, 34.0] },
-      properties: { name: "Test Point" }
-    }]
-  });
-  assert.equal(validResult.valid, true, 'valid FeatureCollection が reject された');
-  if (validResult.valid) {
-    assert.equal(validResult.features.length, 1);
-    assert.equal(validResult.features[0].id, 'test-1');
-  }
+  console.log('  [3/6] Validation delegation: PASS');
 
-  // properties.id から Feature.id が補完される
-  const propsIdResult = validateFeatureCollection({
-    type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [0, 0] },
-      properties: { id: "from-props", name: "Props ID" }
-    }]
-  });
-  assert.equal(propsIdResult.valid, true, 'properties.id が使えない');
-  if (propsIdResult.valid) {
-    assert.equal(propsIdResult.features[0].id, 'from-props', 'properties.id から Feature.id が補完されない');
-  }
+  // --- Part 4: Title normalization + save path ---
+  // title は保存/import/登録の全経路で normalizeLangResource を通し内部形を強制 (ADR-0005)
+  assert.match(serviceSource, /normalizeLangResource/, 'PoiSourceService が normalizeLangResource を使っていない');
+  // 保存は revision 楽観ロック付き upsert (maps/apps と同じ RevisionConflictError 写像)
+  assert.match(serviceSource, /upsertPoiSource/, 'PoiSourceService が upsertPoiSource を使っていない');
+  assert.match(serviceSource, /RevisionConflictError/, 'PoiSourceService が RevisionConflictError を扱っていない');
+  assert.match(serviceSource, /['"]revision-conflict['"]/, 'PoiSourceService が revision-conflict 結果を返していない');
 
-  // 両 missing で UUID が補成される
-  const uuidResult = validateFeatureCollection({
-    type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [0, 0] },
-      properties: { name: "No ID" }
-    }]
-  });
-  assert.equal(uuidResult.valid, true, 'UUID 補成が使えない');
-  if (uuidResult.valid) {
-    assert.ok(typeof uuidResult.features[0].id === 'string' && uuidResult.features[0].id.length > 0, 'UUID が生成されない');
-  }
+  console.log('  [4/6] Title normalization + save path: PASS');
 
-  // non-Point が reject
-  const nonPointResult = validateFeatureCollection({
-    type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      geometry: { type: "LineString", coordinates: [[0, 0], [1, 1]] },
-      properties: { name: "Line" }
-    }]
-  });
-  assert.equal(nonPointResult.valid, false, 'non-Point が reject されない');
-  if (!nonPointResult.valid) {
-    assert.equal(nonPointResult.errorCode, 'unsupported_geometry');
-  }
+  // --- Part 5: Remote fetch guard ---
+  // http/https のみ許可 + POI-121 の payload サイズガード (warn/max)
+  assert.match(serviceSource, /https?:/, 'PoiSourceService に scheme 検査がない');
+  assert.match(serviceSource, /payload-too-large/, 'PoiSourceService に payload-too-large ガードがない');
+  assert.match(serviceSource, /remoteWarnBytes|REMOTE_WARN_BYTES/, 'PoiSourceService に warn 閾値がない');
+  assert.match(serviceSource, /remoteMaxBytes|REMOTE_MAX_BYTES/, 'PoiSourceService に max 閾値がない');
+  // 明示再取得 (POI-118)
+  assert.match(serviceSource, /refreshRemote/, 'PoiSourceService に refreshRemote がない');
 
-  // missing name が reject
-  const missingNameResult = validateFeatureCollection({
-    type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [0, 0] },
-      properties: {}
-    }]
-  });
-  assert.equal(missingNameResult.valid, false, 'missing name が reject されない');
-  if (!missingNameResult.valid) {
-    assert.equal(missingNameResult.errorCode, 'missing_name');
-  }
-
-  // duplicate id が reject
-  const dupResult = validateFeatureCollection({
-    type: "FeatureCollection",
-    features: [
-      { type: "Feature", id: "dup", geometry: { type: "Point", coordinates: [0, 0] }, properties: { name: "A" } },
-      { type: "Feature", id: "dup", geometry: { type: "Point", coordinates: [1, 1] }, properties: { name: "B" } }
-    ]
-  });
-  assert.equal(dupResult.valid, false, 'duplicate id が reject されない');
-  if (!dupResult.valid) {
-    assert.equal(dupResult.errorCode, 'duplicate_feature_id');
-  }
-
-  // 5000+ Feature が reject
-  const manyFeatures = Array.from({ length: 5001 }, (_, i) => ({
-    type: "Feature",
-    geometry: { type: "Point", coordinates: [0, 0] },
-    properties: { name: `Feature ${i}` }
-  }));
-  const overResult = validateFeatureCollection({ type: "FeatureCollection", features: manyFeatures });
-  assert.equal(overResult.valid, false, '5000+ Feature が reject されない');
-  if (!overResult.valid) {
-    assert.equal(overResult.errorCode, 'payload_too_large');
-  }
-
-  // unknown properties が保持される
-  const unknownPropsResult = validateFeatureCollection({
-    type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [0, 0] },
-      properties: { name: "Unknown Props", customField: "keep-me", nested: { a: 1 } }
-    }]
-  });
-  assert.equal(unknownPropsResult.valid, true, 'unknown properties が使えない');
-  if (unknownPropsResult.valid) {
-    assert.equal(unknownPropsResult.features[0].properties.customField, 'keep-me');
-    assert.deepEqual(unknownPropsResult.features[0].properties.nested, { a: 1 });
-  }
-
-  console.log('  [3/6] Local validation unit: PASS');
-
-  // --- Part 4: Local save / load unit ---
-  // createLocal → get → saveLocal → get round-trip は electron依存のため
-  // validate の normal form が正しく適用されることを検証
-  const normalFormResult = validateFeatureCollection({
-    type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [139.7, 35.7] },
-      properties: { name: "Tokyo", custom: "value" }
-    }]
-  });
-  assert.equal(normalFormResult.valid, true);
-  if (normalFormResult.valid) {
-    const f = normalFormResult.features[0];
-    assert.equal(f.geometry.type, 'Point');
-    assert.deepEqual(f.geometry.coordinates, [139.7, 35.7]);
-    assert.equal(f.properties.name, 'Tokyo');
-    assert.equal(f.properties.custom, 'value');
-    assert.ok(f.id, 'Feature.id が生成されない');
-  }
-
-  console.log('  [4/6] Local save / load unit: PASS');
-
-  // --- Part 5: Remote validation unit ---
-  // URL scheme check
-  const ftpUrl = 'ftp://example.com/poi.geojson';
-  const httpUrl = 'http://example.com/poi.geojson';
-  const httpsUrl = 'https://example.com/poi.geojson';
-
-  assert.doesNotMatch(ftpUrl, /^https?:/, 'FTP URL が http/https として認識されている');
-  assert.match(httpUrl, /^http:/, 'HTTP URL が認識されていない');
-  assert.match(httpsUrl, /^https:/, 'HTTPS URL が認識されていない');
-
-  // fetchAndValidate は electron依存のため、scheme のみ検証
-  console.log('  [5/6] Remote validation unit: PASS');
+  console.log('  [5/6] Remote fetch guard: PASS');
 
   // --- Part 6: Remote read-only guard ---
-  // registerRemote は unsupported scheme で reject すること
-  // unreachable/invalid は source を登録し status を保持すること
-  // saveLocal(remoteSourceId) は reject されること
-  // これらは electron依存のため、型レベルでのみ検証
-
-  // PoiSourceService が export default されていることを確認
-  assert.match(serviceSource, /export\s+default\s+PoiSourceService/, 'PoiSourceService が export default されていない');
+  // remote ソースへの save は拒否 (read-only、cloneToLocal へ誘導)
+  assert.match(serviceSource, /['"]ReadOnly['"]/, 'PoiSourceService に ReadOnly 結果がない');
+  assert.match(serviceSource, /cloneToLocal/, 'PoiSourceService に cloneToLocal がない');
+  // singleton default export (AppDataService と同機構)
+  assert.match(serviceSource, /export\s+default\s+new\s+PoiSourceService/, 'PoiSourceService が singleton を export default していない');
 
   console.log('  [6/6] Remote read-only guard: PASS');
 

@@ -153,14 +153,19 @@ contextBridge.exposeInMainWorld('appAssets', {
   fileUrl: (relPath: string) => ipcRenderer.invoke('appassets:file-url', relPath),
 })
 
+// POI ソース (ADR-0007): uid正準 + slug契約。get は uid-or-slug 参照を受ける。
+// save の payload: { slug, title, fc, expectedRevision? }(結果 union は maps/apps と同形)
 contextBridge.exposeInMainWorld('poiSources', {
   list: (request: any) => ipcRenderer.invoke('poisource:list', request),
-  get: (sourceId: string) => ipcRenderer.invoke('poisource:get', sourceId),
+  get: (uid: string) => ipcRenderer.invoke('poisource:get', uid),
   createLocal: (input: any) => ipcRenderer.invoke('poisource:createLocal', input),
+  save: (uid: string, payload: any) => ipcRenderer.invoke('poisource:save', uid, payload),
+  importFile: (input: any) => ipcRenderer.invoke('poisource:importFile', input),
   registerRemote: (input: any) => ipcRenderer.invoke('poisource:registerRemote', input),
-  validateRemote: (input: any) => ipcRenderer.invoke('poisource:validateRemote', input),
-  saveLocal: (sourceId: string, geojson: any) => ipcRenderer.invoke('poisource:saveLocal', sourceId, geojson),
-  delete: (sourceId: string) => ipcRenderer.invoke('poisource:delete', sourceId),
+  refreshRemote: (uid: string) => ipcRenderer.invoke('poisource:refreshRemote', uid),
+  cloneToLocal: (uid: string, input: any) => ipcRenderer.invoke('poisource:cloneToLocal', uid, input),
+  findReferences: (uid: string) => ipcRenderer.invoke('poisource:findReferences', uid),
+  delete: (uid: string) => ipcRenderer.invoke('poisource:delete', uid),
 })
 
 contextBridge.exposeInMainWorld('assets', {
