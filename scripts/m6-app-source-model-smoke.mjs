@@ -69,7 +69,8 @@ try {
   });
   assert.equal(overlay.sourceType, 'tms');
   assert.equal(overlay.role, 'overlay');
-  // builtin/tmsの参照はIDをmapUidフィールドに保持する (base mapのuid化はTask 7)
+  // builtin/tmsソースは登録地図ではなく埋め込みコピー(Inherited Source Defaults)なので、
+  // mapUidフィールドにはビルトインID/TMS地図IDをそのまま保持する(uid解決対象外)
   assert.equal(overlay.mapUid, 'kanto_rapid-900913');
   assert.ok(overlay.data.envelopeLngLats);
   assert.equal(overlay.data.envelopLngLats, undefined);

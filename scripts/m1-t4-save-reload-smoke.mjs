@@ -252,7 +252,7 @@ try {
     'AppList.vue が window.applist.request を呼んでいない'
   );
 
-  // アプリ編集はuid正準で開く (ADR-0007, Phase1 Task6)
+  // アプリ編集はuid正準で開く (ADR-0007: ルーティング・IPCはuid、slugは表示/編集用)
   assert.match(
     appListView,
     /\/appedit\?uid=/,
