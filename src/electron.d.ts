@@ -102,6 +102,17 @@ export interface PoiValidationIssue {
     message?: string;
 }
 
+// Error 結果の機械可読コード: 'network' = fetch 到達不能/timeout (POI-118 degraded 表示対象)、
+// 'http-status' = HTTP 非 2xx (remote-gone 等)、'parse' = 応答/ファイルが JSON でない、
+// 'not-found' = 対象ソース不在 (並行 delete 含む)、'invalid-request' = 引数不正、'internal' = 内部エラー
+export type PoiSourceErrorCode =
+    | 'network'
+    | 'http-status'
+    | 'parse'
+    | 'not-found'
+    | 'invalid-request'
+    | 'internal';
+
 // maps/apps の保存結果 union と同形 (ファイルフェーズが無いため Error{uid,slug,revision} 拡張なし)。
 // 'Invalid' = 検証エラーで拒否 (issues 参照)、'ReadOnly' = remote ソースへの save 拒否
 export type PoiSourceSaveResult =
@@ -109,7 +120,7 @@ export type PoiSourceSaveResult =
     | { result: 'Exist' }
     | { result: 'Invalid'; issues: PoiValidationIssue[] }
     | { result: 'ReadOnly' }
-    | { result: 'Error'; message?: string }
+    | { result: 'Error'; code: PoiSourceErrorCode; message?: string }
     | { error: 'revision-conflict'; current: number };
 
 export interface PoiSourceReference {

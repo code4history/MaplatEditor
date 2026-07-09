@@ -14,6 +14,7 @@ import path from 'node:path';
 
 import SqliteDataService, {
   RevisionConflictError,
+  PoiSourceNotFoundError,
   type PoiSourceRecord,
   type PoiSourceSummary,
 } from './SqliteDataService';
@@ -67,6 +68,20 @@ export interface PoiSourceDetail {
   fc: PoiEditorFC;
 }
 
+// Error 結果の機械可読コード (Phase 3 UI が affordance を組み立てる):
+// 'network' = fetch 到達不能/timeout (POI-118 の degraded cache 表示対象)、
+// 'http-status' = HTTP 非 2xx (remote-gone 等)、'parse' = 応答/ファイルが JSON でない、
+// 'not-found' = 対象ソース不在 (並行 delete に負けた upsert 含む)、
+// 'invalid-request' = 引数不正 (slug 欠落・非 remote への refresh・拡張子不正)、
+// 'internal' = 予期しない内部エラー
+export type PoiSourceErrorCode =
+  | 'network'
+  | 'http-status'
+  | 'parse'
+  | 'not-found'
+  | 'invalid-request'
+  | 'internal';
+
 // 保存系の結果 union (MapSaveResult/AppSaveResult と同形。ファイルフェーズが無いため
 // Error{uid,slug,revision} 拡張は不要)。'Invalid' = 検証エラーで拒否 (issues 参照)、
 // 'ReadOnly' = remote ソースへの save 拒否。Success の issues は warning のみ
@@ -75,7 +90,7 @@ export type PoiSourceSaveResult =
   | { result: 'Exist' }
   | { result: 'Invalid'; issues: PoiValidationIssue[] }
   | { result: 'ReadOnly' }
-  | { result: 'Error'; message?: string }
+  | { result: 'Error'; code: PoiSourceErrorCode; message?: string }
   | { error: 'revision-conflict'; current: number };
 
 export interface PoiSourceReference {
@@ -93,7 +108,7 @@ interface PreparedFc {
 type RemoteFetchResult =
   | { ok: true; text: string }
   | { ok: false; tooLarge: true }
-  | { ok: false; tooLarge?: false; message: string };
+  | { ok: false; tooLarge?: false; code: 'network' | 'http-status'; message: string };
 
 export class PoiSourceService {
   private readonly remoteWarnBytes: number;
@@ -145,16 +160,20 @@ export class PoiSourceService {
     };
   }
 
-  // registerAsset/renameAssetSlug の slug 衝突(レースで先取り)を 'Exist' に写像 (AppDataService と同機構)
+  // registerAsset/renameAssetSlug の slug 衝突(レースで先取り)を 'Exist' に、並行 delete に負けた
+  // upsert (PoiSourceNotFoundError) を Error{code:'not-found'} に写像 (AppDataService と同機構)
   private mapWriteError(e: any): PoiSourceSaveResult {
     if (e instanceof RevisionConflictError) {
       return { error: 'revision-conflict', current: e.current };
+    }
+    if (e instanceof PoiSourceNotFoundError) {
+      return { result: 'Error', code: 'not-found', message: e.message };
     }
     if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
       return { result: 'Exist' };
     }
     console.error('[PoiSourceService] write error:', e);
-    return { result: 'Error', message: e instanceof Error ? e.message : String(e) };
+    return { result: 'Error', code: 'internal', message: e instanceof Error ? e.message : String(e) };
   }
 
   private async createSource(
@@ -166,7 +185,7 @@ export class PoiSourceService {
     url?: string,
   ): Promise<PoiSourceSaveResult> {
     const trimmed = String(slug ?? '').trim();
-    if (!trimmed) return { result: 'Error', message: 'slug is required' };
+    if (!trimmed) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
     if (!(await SqliteDataService.isSlugAvailable(trimmed))) return { result: 'Exist' };
     try {
       const { uid } = await SqliteDataService.createPoiSource(trimmed, {
@@ -182,7 +201,10 @@ export class PoiSourceService {
     }
   }
 
-  // scheme 検査は呼び出し元 (fetchSnapshot) が済ませている前提
+  // scheme 検査は呼び出し元 (fetchSnapshot) が済ませている前提。
+  // 本文は stream で逐次読みし、累積バイト数が remoteMaxBytes を超えた時点で abort する
+  // (POI-121)。content-length 事前チェックだけでは chunked 応答を捕捉できず、
+  // response.text() は判定前に全量バッファしてしまうため
   private async fetchRemote(url: string): Promise<RemoteFetchResult> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.fetchTimeoutMs);
@@ -192,18 +214,41 @@ export class PoiSourceService {
         headers: { Accept: 'application/json' },
       });
       if (!response.ok) {
-        return { ok: false, message: `HTTP ${response.status} ${response.statusText}` };
+        return { ok: false, code: 'http-status', message: `HTTP ${response.status} ${response.statusText}` };
       }
-      // content-length が明らかに上限超過なら本文を読まずに打ち切る (POI-121)
+      // content-length が明らかに上限超過なら本文を読まずに打ち切る
       const contentLength = response.headers.get('content-length');
       if (contentLength && Number.parseInt(contentLength, 10) > this.remoteMaxBytes) {
+        controller.abort();
         return { ok: false, tooLarge: true };
       }
-      const text = await response.text();
-      return { ok: true, text };
+      if (!response.body) {
+        // body stream 非対応環境の保険 (Node の fetch は常に body を持つ)
+        const text = await response.text();
+        if (Buffer.byteLength(text, 'utf8') > this.remoteMaxBytes) {
+          return { ok: false, tooLarge: true };
+        }
+        return { ok: true, text };
+      }
+      const reader = response.body.getReader();
+      const chunks: Buffer[] = [];
+      let total = 0;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value) continue;
+        total += value.byteLength;
+        if (total > this.remoteMaxBytes) {
+          controller.abort();
+          return { ok: false, tooLarge: true };
+        }
+        chunks.push(Buffer.from(value));
+      }
+      return { ok: true, text: Buffer.concat(chunks).toString('utf8') };
     } catch (e: any) {
       const message = e?.name === 'AbortError' ? 'Fetch timed out' : String(e);
-      return { ok: false, message };
+      return { ok: false, code: 'network', message };
     } finally {
       clearTimeout(timeout);
     }
@@ -229,7 +274,7 @@ export class PoiSourceService {
       if (fetched.tooLarge) {
         return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'payload-too-large' }] } };
       }
-      return { ok: false, failure: { result: 'Error', message: fetched.message } };
+      return { ok: false, failure: { result: 'Error', code: fetched.code, message: fetched.message } };
     }
     const byteSize = Buffer.byteLength(fetched.text, 'utf8');
     if (byteSize > this.remoteMaxBytes) {
@@ -239,7 +284,7 @@ export class PoiSourceService {
     try {
       parsed = JSON.parse(fetched.text);
     } catch {
-      return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'invalid-json' }] } };
+      return { ok: false, failure: { result: 'Error', code: 'parse', message: 'Response is not valid JSON' } };
     }
     const prepared = this.prepare(parsed);
     if (prepared.hasError) {
@@ -294,11 +339,11 @@ export class PoiSourceService {
     input: { slug: string; title: LangResource; fc: unknown; expectedRevision?: number },
   ): Promise<PoiSourceSaveResult> {
     const existing = await SqliteDataService.findPoiSource(uid);
-    if (!existing) return { result: 'Error', message: `POI source not found: ${uid}` };
+    if (!existing) return { result: 'Error', code: 'not-found', message: `POI source not found: ${uid}` };
     if (existing.mode === 'remote') return { result: 'ReadOnly' };
 
     const slug = String(input.slug ?? '').trim();
-    if (!slug) return { result: 'Error', message: 'slug is required' };
+    if (!slug) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
 
     const prepared = this.prepare(input.fc);
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
@@ -329,19 +374,19 @@ export class PoiSourceService {
   async importFile(input: { slug: string; title: LangResource; filePath: string }): Promise<PoiSourceSaveResult> {
     const ext = path.extname(String(input.filePath ?? '')).toLowerCase();
     if (ext !== '.geojson' && ext !== '.json') {
-      return { result: 'Error', message: `Unsupported file extension: ${ext || '(none)'}` };
+      return { result: 'Error', code: 'invalid-request', message: `Unsupported file extension: ${ext || '(none)'}` };
     }
     let text: string;
     try {
       text = await readFile(input.filePath, 'utf8');
     } catch (e: any) {
-      return { result: 'Error', message: `Failed to read file: ${e?.message ?? e}` };
+      return { result: 'Error', code: 'not-found', message: `Failed to read file: ${e?.message ?? e}` };
     }
     let parsed: unknown;
     try {
       parsed = JSON.parse(text);
     } catch {
-      return { result: 'Invalid', issues: [{ level: 'error', code: 'invalid-json' }] };
+      return { result: 'Error', code: 'parse', message: 'File is not valid JSON' };
     }
     const prepared = this.prepare(parsed);
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
@@ -357,12 +402,14 @@ export class PoiSourceService {
     return await this.createSource(input.slug, input.title, 'remote', snapshot.fc, snapshot.issues, url);
   }
 
-  // 明示再取得 (POI-118)。fetch 失敗時は既存 snapshot を無傷に保つ (degraded cache)
+  // 明示再取得 (POI-118)。fetch 失敗時は既存 snapshot を無傷に保つ (degraded cache)。
+  // fetch を跨いだ並行 delete は upsertPoiSource の not-found ガードが捕捉し、mapWriteError が
+  // Error{code:'not-found'} に写像する (削除済みソースを復活させない)
   async refreshRemote(uid: string): Promise<PoiSourceSaveResult> {
     const existing = await SqliteDataService.findPoiSource(uid);
-    if (!existing) return { result: 'Error', message: `POI source not found: ${uid}` };
+    if (!existing) return { result: 'Error', code: 'not-found', message: `POI source not found: ${uid}` };
     if (existing.mode !== 'remote' || !existing.url) {
-      return { result: 'Error', message: `POI source is not remote: ${uid}` };
+      return { result: 'Error', code: 'invalid-request', message: `POI source is not remote: ${uid}` };
     }
     const snapshot = await this.fetchSnapshot(existing.url);
     if (!snapshot.ok) return snapshot.failure;
@@ -383,7 +430,7 @@ export class PoiSourceService {
   // remote (または local) ソースを新規 local ソースへ複製。features (_maplatUid 含む) は維持
   async cloneToLocal(uid: string, input: { slug: string; title?: LangResource }): Promise<PoiSourceSaveResult> {
     const existing = await SqliteDataService.findPoiSource(uid);
-    if (!existing) return { result: 'Error', message: `POI source not found: ${uid}` };
+    if (!existing) return { result: 'Error', code: 'not-found', message: `POI source not found: ${uid}` };
     const prepared = this.prepare(JSON.parse(existing.dataJson));
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
     const title = input.title !== undefined && input.title !== null ? input.title : existing.title;

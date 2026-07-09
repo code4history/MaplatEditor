@@ -66,6 +66,16 @@ export class RevisionConflictError extends Error {
   }
 }
 
+// upsertPoiSource が対象行を見つけられなかった (並行 delete に負けた) 場合に投げる。
+// upsert-as-insert で削除済みソースを復活させないためのガード (delete-race resurrection 防止)
+export class PoiSourceNotFoundError extends Error {
+  readonly kind = 'poi-source-not-found';
+  constructor(uid: string) {
+    super(`POI source not found: ${uid}`);
+    this.name = 'PoiSourceNotFoundError';
+  }
+}
+
 interface Folders {
   saveFolder: string;
   settingsDir: string;
@@ -1201,12 +1211,11 @@ class SqliteDataService {
     return this.withTransaction(db, () => {
       const existing = db.prepare('SELECT slug, revision FROM poi_sources WHERE uid = ?').get(uid) as any;
       if (!existing) {
-        this.registerAsset(db, 'poi_source', uid, slug);
-        db.prepare(
-          `INSERT INTO poi_sources (uid, slug, title_json, mode, url, data_json, feature_count, revision, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))`
-        ).run(uid, slug, JSON.stringify(input.title), input.mode, input.url ?? null, input.dataJson, input.featureCount);
-        return 1;
+        // POI ソースの新規作成は createPoiSource 経由のみ。ここに来るのは read-then-write の間に
+        // 並行 delete が挟まった race だけなので、INSERT で復活させず not-found として失敗させる
+        // (refreshRemote は fetch を跨いで existing を保持するため、復活を許すと削除済みソースが
+        // revision=1 で再登場し registry slug も再占有される)
+        throw new PoiSourceNotFoundError(uid);
       }
       const currentRevision = Number(existing.revision);
       if (expectedRevision != null && currentRevision !== expectedRevision) {
@@ -1268,8 +1277,9 @@ class SqliteDataService {
   // 参照の書込は Phase 7 で始まるため、それまでは常に空配列。削除confirmフローが参照有無の
   // 提示に使う(削除自体はブロックしない)
   async findPoiSourceReferences(uid: string): Promise<Array<{ kind: 'map' | 'app'; uid: string; slug: string }>> {
+    // UUID 形状のみ許可: %/_ 等の LIKE メタ文字混入で偽参照を作らないためのガード
+    if (!UUID_PATTERN.test(uid)) return [];
     const db = await this.getDb();
-    // uid は UUID 形状(英数+ハイフン)なので LIKE メタ文字を含まない
     const needle = `%"poiUid":"${uid}"%`;
     const refs: Array<{ kind: 'map' | 'app'; uid: string; slug: string }> = [];
     for (const [kind, table] of [['app', 'apps'], ['map', 'maps']] as const) {

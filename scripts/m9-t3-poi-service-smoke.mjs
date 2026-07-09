@@ -15,6 +15,9 @@
 //   (j) refreshRemote: サーバ内容変更 → snapshot更新 + revision++ (POI-118)
 //   (k) refreshRemote: fetch失敗 → Error、既存 snapshot は無傷 (degraded cache)
 //   (l) POI-121 閾値: warn超え → warning issue付きで登録 / max超え → 登録拒否
+//   (l2) Error taxonomy: HTTP 非2xx → code 'http-status' / 非JSON応答 → code 'parse'
+//   (l3) chunked 応答 (content-length なし) が閾値超過 → stream 読みを abort し登録拒否
+//   (l4) delete-race: refreshRemote の fetch 中に並行 delete → 復活せず Error code 'not-found'、slug は解放のまま
 //   (m) cloneToLocal: remote → local 複製 (features維持、複製先は保存可能)
 //   (n) findReferences → [] (Phase 7 まで参照は書かれない)
 //   (o) delete: 本体・registry掃除 (slug解放)
@@ -268,9 +271,10 @@ try {
       assert.deepEqual(remoteDoc.title, { ja: '札幌リモート' }, 'registerRemote 経路でも title は内部形のはず');
       assert.equal(remoteDoc.featureCount, 1);
       assert.deepEqual(remoteDoc.fc.features[0].properties.name, { ja: '時計台' }, 'fetch snapshot が内部形で永続するはず');
-      // 登録失敗 (unreachable) では登録しない
+      // 登録失敗 (unreachable) では登録しない。Error は機械可読 code を持つ
       const unreachable = await poiSourceService.registerRemote({ slug: 'unreachable-remote', title: 'x', url: 'http://127.0.0.1:1/nope.geojson' });
       assert.equal(unreachable.result, 'Error', 'fetch 失敗時は登録しないはず');
+      assert.equal(unreachable.code, 'network', '到達不能は code network のはず');
       assert.equal(await SqliteDataService.findPoiSourceBySlug('unreachable-remote'), null);
       console.log('ok: (h) registerRemote persists fetched snapshot');
 
@@ -303,6 +307,7 @@ try {
       await new Promise((resolve) => server.on('close', resolve));
       const refreshFail = await poiSourceService.refreshRemote(registered.uid);
       assert.equal(refreshFail.result, 'Error', 'fetch 失敗時は Error のはず');
+      assert.equal(refreshFail.code, 'network', 'fetch 失敗は code network のはず');
       const afterFail = await poiSourceService.get(registered.uid);
       assert.equal(afterFail.featureCount, 2, 'fetch 失敗時は snapshot が無傷のはず');
       assert.equal(afterFail.revision, refreshedDoc.revision, 'fetch 失敗時は revision 不変のはず');
@@ -314,6 +319,16 @@ try {
         features: [{ type: 'Feature', id: 'big1', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { name: 'big' } }],
       });
       const server2 = createServer((req, res) => {
+        if (req.url === '/404') {
+          res.statusCode = 404;
+          res.end('not here');
+          return;
+        }
+        if (req.url === '/bad.json') {
+          res.setHeader('content-type', 'application/json');
+          res.end('this is not json');
+          return;
+        }
         res.setHeader('content-type', 'application/json');
         res.end(payload2);
       });
@@ -329,8 +344,82 @@ try {
       assert.equal(tooLarge.result, 'Invalid', 'max 閾値超えは登録拒否のはず');
       assert.ok(tooLarge.issues.some((i: any) => i.level === 'error' && i.code === 'payload-too-large'), 'payload-too-large issue を返すはず');
       assert.equal(await SqliteDataService.findPoiSourceBySlug('too-large-remote'), null, '拒否された remote は登録されないはず');
-      server2.close();
       console.log('ok: (l) POI-121 remote payload thresholds');
+
+      // (l2) Error taxonomy: http-status / parse
+      const httpStatus = await poiSourceService.registerRemote({
+        slug: 'status-remote', title: 'x', url: 'http://127.0.0.1:' + port2 + '/404',
+      });
+      assert.equal(httpStatus.result, 'Error', 'HTTP 非2xx は Error のはず');
+      assert.equal(httpStatus.code, 'http-status', 'HTTP 非2xx は code http-status のはず');
+      assert.equal(await SqliteDataService.findPoiSourceBySlug('status-remote'), null);
+      const parseFail = await poiSourceService.registerRemote({
+        slug: 'parse-remote', title: 'x', url: 'http://127.0.0.1:' + port2 + '/bad.json',
+      });
+      assert.equal(parseFail.result, 'Error', '非JSON応答は Error のはず');
+      assert.equal(parseFail.code, 'parse', '非JSON応答は code parse のはず');
+      assert.equal(await SqliteDataService.findPoiSourceBySlug('parse-remote'), null);
+      server2.close();
+      console.log('ok: (l2) error taxonomy (http-status / parse)');
+
+      // (l3) chunked 応答 (content-length なし) の閾値超過 → stream 読みを abort し登録拒否。
+      // content-length 事前チェックでは捕捉できない経路の検証
+      let chunkedFinished = false;
+      const chunkServer = createServer((req, res) => {
+        res.setHeader('content-type', 'application/json');
+        let count = 0;
+        const timer = setInterval(() => {
+          count += 1;
+          res.write('0123456789'); // 10 bytes/chunk、閾値 20 bytes 超過で client abort が起きるはず
+          if (count >= 50) {
+            clearInterval(timer);
+            chunkedFinished = true;
+            res.end();
+          }
+        }, 5);
+        res.on('close', () => clearInterval(timer));
+      });
+      await new Promise<void>((resolve) => chunkServer.listen(0, '127.0.0.1', () => resolve()));
+      const chunkPort = (chunkServer.address() as any).port;
+      const chunkedReject = await maxService.registerRemote({
+        slug: 'chunked-remote', title: 'chunk', url: 'http://127.0.0.1:' + chunkPort + '/drip.geojson',
+      });
+      assert.equal(chunkedReject.result, 'Invalid', 'chunked 閾値超過は登録拒否のはず');
+      assert.ok(chunkedReject.issues.some((i: any) => i.level === 'error' && i.code === 'payload-too-large'), 'payload-too-large issue を返すはず');
+      assert.equal(chunkedFinished, false, '全チャンク送信完了前に abort されるはず (全量バッファしていない)');
+      assert.equal(await SqliteDataService.findPoiSourceBySlug('chunked-remote'), null, '拒否された chunked remote は登録されないはず');
+      chunkServer.close();
+      console.log('ok: (l3) chunked over-threshold aborted mid-stream');
+
+      // (l4) delete-race: refreshRemote が fetch を跨いで existing を保持している間に並行 delete。
+      // upsert の not-found ガードが復活 (revision=1 再INSERT + registry slug 再占有) を防ぐこと
+      let raceDeleteUid: string | null = null;
+      const raceServer = createServer(async (req, res) => {
+        if (raceDeleteUid) {
+          // fetch 応答前に対象ソースを削除 → refreshRemote の後続 upsert が race に負ける状況を再現
+          await SqliteDataService.deletePoiSource(raceDeleteUid);
+          raceDeleteUid = null;
+        }
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({
+          type: 'FeatureCollection',
+          features: [{ type: 'Feature', id: 'x1', geometry: { type: 'Point', coordinates: [1, 1] }, properties: { name: 'レース' } }],
+        }));
+      });
+      await new Promise<void>((resolve) => raceServer.listen(0, '127.0.0.1', () => resolve()));
+      const racePort = (raceServer.address() as any).port;
+      const raceReg = await poiSourceService.registerRemote({
+        slug: 'race-remote', title: 'レース', url: 'http://127.0.0.1:' + racePort + '/race.geojson',
+      });
+      assert.equal(raceReg.result, 'Success');
+      raceDeleteUid = raceReg.uid;
+      const raceRefresh = await poiSourceService.refreshRemote(raceReg.uid);
+      assert.equal(raceRefresh.result, 'Error', '並行 delete 後の refresh は Error のはず');
+      assert.equal(raceRefresh.code, 'not-found', '並行 delete は code not-found のはず');
+      assert.equal(await SqliteDataService.findPoiSource(raceReg.uid), null, '削除済みソースが復活しないはず');
+      assert.equal(await SqliteDataService.isSlugAvailable('race-remote'), true, 'registry slug が再占有されないはず');
+      raceServer.close();
+      console.log('ok: (l4) delete during refreshRemote does not resurrect the source');
 
       // (m) cloneToLocal: remote → local 複製
       const cloned = await poiSourceService.cloneToLocal(registered.uid, { slug: 'sapporo-local', title: '札幌ローカル' });
