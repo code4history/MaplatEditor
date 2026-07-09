@@ -172,3 +172,17 @@ contextBridge.exposeInMainWorld('assets', {
   checkSlug: (payload: { slug: string; excludeUid?: string }) =>
     ipcRenderer.invoke('asset:checkSlug', payload),
 })
+
+// 画像アセット (ADR-0007): uid正準 + slug契約。get/getFilePath は uid-or-slug 参照を受ける。
+// channel prefix は imageassets:* (asset:checkSlug とは別名前空間)
+contextBridge.exposeInMainWorld('imageAssets', {
+  add: (input: { slug: string; title: any; sourcePath: string }) =>
+    ipcRenderer.invoke('imageassets:add', input),
+  list: () => ipcRenderer.invoke('imageassets:list'),
+  search: (query: string) => ipcRenderer.invoke('imageassets:search', query),
+  get: (ref: string) => ipcRenderer.invoke('imageassets:get', ref),
+  rename: (uid: string, input: { slug: string; title: any; expectedRevision?: number }) =>
+    ipcRenderer.invoke('imageassets:rename', uid, input),
+  delete: (uid: string) => ipcRenderer.invoke('imageassets:delete', uid),
+  getFilePath: (ref: string) => ipcRenderer.invoke('imageassets:getFilePath', ref),
+})

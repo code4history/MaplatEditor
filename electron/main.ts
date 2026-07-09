@@ -100,6 +100,7 @@ import { registerAppHandlers } from './ipc/apps'
 import { registerPoisourceHandlers } from './ipc/poisource'
 import { registerAppAssetHandlers } from './ipc/appassets'
 import { registerAssetHandlers } from './ipc/assets'
+import { registerImageAssetHandlers } from './ipc/assets-images'
 
 import { ipcMain } from 'electron'
 
@@ -143,6 +144,13 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('poisource:findReferences')
   ipcMain.removeHandler('poisource:delete')
   ipcMain.removeHandler('asset:checkSlug')
+  ipcMain.removeHandler('imageassets:add')
+  ipcMain.removeHandler('imageassets:list')
+  ipcMain.removeHandler('imageassets:search')
+  ipcMain.removeHandler('imageassets:get')
+  ipcMain.removeHandler('imageassets:rename')
+  ipcMain.removeHandler('imageassets:delete')
+  ipcMain.removeHandler('imageassets:getFilePath')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
@@ -159,6 +167,7 @@ app.whenReady().then(() => {
   registerPoisourceHandlers()
   registerAppAssetHandlers()
   registerAssetHandlers()
+  registerImageAssetHandlers()
   createWindow()
   setupMenu()
 

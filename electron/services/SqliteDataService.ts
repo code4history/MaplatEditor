@@ -180,6 +180,7 @@ export interface AssetRecord {
   height: number | null;
   byteSize: number;
   revision: number;
+  updatedAt: string;
 }
 
 const ASSET_TABLES: Partial<Record<AssetKind, string>> = {
@@ -340,6 +341,7 @@ function assetRowToRecord(row: any): AssetRecord {
     height: row.height == null ? null : Number(row.height),
     byteSize: Number(row.byte_size),
     revision: Number(row.revision),
+    updatedAt: String(row.updated_at ?? ''),
   };
 }
 
@@ -1403,7 +1405,7 @@ class SqliteDataService {
   async findAsset(uid: string): Promise<AssetRecord | null> {
     const db = await this.getDb();
     const row = db
-      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision FROM assets WHERE uid = ?')
+      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets WHERE uid = ?')
       .get(uid) as any;
     return row ? assetRowToRecord(row) : null;
   }
@@ -1411,9 +1413,19 @@ class SqliteDataService {
   async findAssetBySlug(slug: string): Promise<AssetRecord | null> {
     const db = await this.getDb();
     const row = db
-      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision FROM assets WHERE slug = ?')
+      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets WHERE slug = ?')
       .get(slug) as any;
     return row ? assetRowToRecord(row) : null;
+  }
+
+  // uid正準の参照解決 (ADR-0007)。findMapByRef/findPoiSourceByRef と同じ解決規則の asset 版:
+  // UUID形状のみuid検索を許し(UUID形状のslugによる誤参照防止)、無ければslugフォールバック
+  async findAssetByRef(ref: string): Promise<AssetRecord | null> {
+    if (UUID_PATTERN.test(ref)) {
+      const byUid = await this.findAsset(ref);
+      if (byUid) return byUid;
+    }
+    return await this.findAssetBySlug(ref);
   }
 
   async upsertAssetMeta(
@@ -1437,7 +1449,7 @@ class SqliteDataService {
   async listAssets(): Promise<AssetRecord[]> {
     const db = await this.getDb();
     const rows = db
-      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision FROM assets ORDER BY slug')
+      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets ORDER BY slug')
       .all() as any[];
     return rows.map(assetRowToRecord);
   }
@@ -1456,7 +1468,7 @@ class SqliteDataService {
     }
     const rows = db
       .prepare(
-        `SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision
+        `SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at
          FROM assets WHERE ${conditions} ORDER BY slug`
       )
       .all(...params) as any[];

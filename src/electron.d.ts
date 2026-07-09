@@ -142,6 +142,40 @@ export interface PoiSourcesAPI {
     delete(uid: string): Promise<{ ok: true; references: PoiSourceReference[] }>;
 }
 
+// 画像アセット (ADR-0007): uid正準 + slug契約。title は LangResource (内部形/交換形どちらも受容し
+// main 側で内部形へ正規化される)。バイト実体は main 側の {saveFolder}/assets/{uid}.{ext} に持ち、
+// renderer には file:// URL (getFilePath) またはメタデータ行のみが渡る
+export interface ImageAssetRow {
+    uid: string;
+    slug: string;
+    title: Record<string, string>;
+    mime: string;
+    ext: string;
+    width: number | null;
+    height: number | null;
+    byteSize: number;
+    revision: number;
+    updatedAt: string;
+}
+
+export type ImageAssetErrorCode = 'not-found' | 'invalid-request' | 'internal';
+
+export type ImageAssetSaveResult =
+    | { result: 'Success'; uid: string; slug: string; revision: number; mime: string; ext: string; width: number | null; height: number | null }
+    | { result: 'Exist' }
+    | { result: 'Error'; code: ImageAssetErrorCode; message?: string; uid?: string; slug?: string; revision?: number }
+    | { error: 'revision-conflict'; current: number };
+
+export interface ImageAssetsAPI {
+    add(input: { slug: string; title: any; sourcePath: string }): Promise<ImageAssetSaveResult>;
+    list(): Promise<ImageAssetRow[]>;
+    search(query: string): Promise<ImageAssetRow[]>;
+    get(ref: string): Promise<ImageAssetRow | null>;
+    rename(uid: string, input: { slug: string; title: any; expectedRevision?: number }): Promise<ImageAssetSaveResult>;
+    delete(uid: string): Promise<{ ok: true }>;
+    getFilePath(ref: string): Promise<string | null>;
+}
+
 export interface AppAssetsAPI {
     uploadTmsThumbnail(mapID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
     generateTmsThumbnail(
@@ -197,5 +231,6 @@ declare global {
     baseMaps: BaseMapsAPI;
     appAssets: AppAssetsAPI;
     assets: AssetsAPI;
+    imageAssets: ImageAssetsAPI;
   }
 }
