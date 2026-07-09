@@ -743,7 +743,8 @@ async function addMapSource(item: MapListItem) {
 }
 
 function addBaseMapSource(item: BaseMapItem) {
-  // builtin/tmsの参照はビルトインID/TMS地図IDのまま (base mapのuid化はTask 7)
+  // builtin/tmsソースは登録地図ではないためuid解決の対象外。ビルトインID/TMS地図IDを
+  // そのまま埋め込み値として保持する(app保存時の追加コピーであり、他エンティティへの参照ではない)
   if (appData.value.sources.some((source) => source.mapUid === item.mapID && source.sourceType !== "maplat")) return;
   const title = baseMapTitle(item);
   if (isViewerBuiltin(item.mapID)) {

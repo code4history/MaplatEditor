@@ -127,7 +127,7 @@ class SettingsService extends EventEmitter {
     return null;
   }
 
-  // ベースマップ系API (ADR-0007 / Phase1 Task7): 引数はuid正準。
+  // ベースマップ系API (ADR-0007): 引数はuid正準。
   // 参照引数(mapRef/baseMapRef)はUUID形状=uid優先・それ以外slugフォールバックで解決される
 
   public async getTmsListOfMapID(mapRef: string): Promise<any[]> {

@@ -26,7 +26,7 @@ export function registerSettingsHandlers() {
     return await SettingsService.showSaveFolderDialog(window);
   });
 
-  // ベースマップ表示設定 (ADR-0007 / Phase1 Task7): 引数はuid正準
+  // ベースマップ表示設定 (ADR-0007): 引数はuid正準
   // (mapRefは未保存地図のみslug。baseMapRefはlistBaseMapsが返すuid)
   ipcMain.handle('mapedit:get-tms-list', async (_, mapRef: string) => {
     return await SettingsService.getTmsListOfMapID(mapRef);

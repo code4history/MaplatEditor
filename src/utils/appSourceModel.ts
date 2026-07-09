@@ -98,7 +98,7 @@ export interface AppSource {
   sourceType: SourceKind;
   // 地図参照 (ADR-0007):
   // - maplat: 登録地図の Asset UID (旧保存形は slug。読込時に main 側で uid へ解決される)
-  // - builtin/tms: ビルトインID/TMS地図ID をそのまま保持 (base map の uid 化は Task 7)
+  // - builtin/tms: 登録地図ではないためuid解決対象外。ビルトインID/TMS地図IDをそのまま埋め込み保持
   mapUid: string;
   role: SourceRole;
   startFrom?: boolean;

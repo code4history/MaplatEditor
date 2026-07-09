@@ -49,7 +49,7 @@ try {
   assert.match(mapEdit, /historyStack\.value\.save\s*\(\)/, 'Save success must reset dirty history base');
   assert.match(mapEdit, /onMainProcessMessage/, 'MapEdit.vue must handle Electron menu undo/redo messages');
 
-  const saveSuccessBlock = mapEdit.match(/if\s*\(result\s*===\s*'Success'\)\s*\{[\s\S]*?\}\s*else\s+if\s*\(result\s*===\s*'Exist'\)/)?.[0] ?? '';
+  const saveSuccessBlock = mapEdit.match(/if\s*\(result\s*&&\s*result\.result\s*===\s*'Success'\)\s*\{[\s\S]*?\}\s*else\s+if\s*\(result\s*&&\s*result\.result\s*===\s*'Exist'\)/)?.[0] ?? '';
   assert.ok(saveSuccessBlock, 'MapEdit.vue save success branch could not be located');
   assert.doesNotMatch(saveSuccessBlock, /mapedit\.request/, 'Save success must not reload the map after saving');
 

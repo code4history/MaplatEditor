@@ -95,7 +95,7 @@ const OPT_IN_VISIBILITY_FLIP_ID = '2026-07-05-opt-in-base-map-visibility';
 // 常時表示から外せないベースマップ(ビューア/エディタの最終フォールバック基盤)。slug で判定
 const FORCED_ALWAYS_BASE_MAP_IDS = new Set(['osm']);
 
-// 未保存地図の暫定表示設定キーの接頭辞 (ADR-0007 / Phase1 Task7)。
+// 未保存地図の暫定表示設定キーの接頭辞 (ADR-0007)。
 // map_base_map_visibility.map_uid は保存済み地図では uid(UUID) だが、未保存の地図には
 // uid が無いため slug を仮キーとして使う。仮キーには必ずこの接頭辞を付け、uid と
 // 形状衝突し得ない sentinel にする(slug は英数+ハイフンを許すため UUID 形状になり得る)。
@@ -1064,7 +1064,7 @@ class SqliteDataService {
   }
 
   // extent = [minX, minY, maxX, maxY](メルカトル座標)。bbox交差する地図のslugを返す
-  // (レンダラ互換: 呼び出し側のuid化はPhase1 Task5で行う)
+  // (レンダラ互換: 呼び出し元(mapedit:extentMapList)は現状slug列で消費するため未uid化)
   async searchExtent(extent: number[]): Promise<string[]> {
     const db = await this.getDb();
     const rows = db
@@ -1081,7 +1081,7 @@ class SqliteDataService {
   }
 
   // --- base maps ---
-  // 内部キーも公開APIもuid正準 (ADR-0007 / Phase1 Task7)。
+  // 内部キーも公開APIもuid正準 (ADR-0007)。
   // 参照引数(mapRef/baseMapRef)は findMapByRef と同じ解決規則: UUID形状はuid優先、
   // それ以外はslugフォールバック(旧呼び出し形・smoke互換)。
   // 未保存の地図(uid未採番)はslugが暫定キー('slug:'接頭辞)として使われる
@@ -1242,7 +1242,7 @@ class SqliteDataService {
     ).run(base.uid, always ? 1 : 0);
   }
 
-  // uid正準のベースマップ保存 (ADR-0007 / Phase1 Task7):
+  // uid正準のベースマップ保存 (ADR-0007):
   // payload.uid あり=既存ユーザーベースマップの更新。slug変更は同一uidのslug付け替えで、
   // 表示設定(map_base_map_visibility)/常時表示設定(base_map_always)はuidキーのため付け替え不要。
   // payload.uid なし=新規作成(uid採番)。slug衝突(ビルトイン/Maplat地図/アプリ含む

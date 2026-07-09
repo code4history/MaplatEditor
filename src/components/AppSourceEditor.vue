@@ -88,7 +88,7 @@ function onEnvelopeUpdate(value: [number, number][] | null) {
 
 async function uploadThumbnail() {
   uploadError.value = null;
-  // tmsソースのmapUidはTMS地図ID(サムネイルはtmbs/{id}_menu.jpg命名、Task 7でuid化)
+  // tmsソースのmapUidはTMS地図ID(登録地図のuidとは別体系。サムネイルはtmbs/{id}_menu.jpg命名のまま)
   const result = await window.appAssets.uploadTmsThumbnail(props.source.mapUid);
   if (result.err === "Canceled") return;
   if (result.err) {
