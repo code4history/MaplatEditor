@@ -64,6 +64,7 @@ try {
     entryFile,
     `
       import assert from 'node:assert/strict';
+      import { access, mkdir, writeFile } from 'node:fs/promises';
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
@@ -90,75 +91,164 @@ try {
       assert.equal(muroran.data.coverageLngLats.length, 4);
       assert.ok(initial.filter((item) => item.scope === 'builtin').length >= 329);
 
-      // Add a user base map
-      await SettingsService.saveUserBaseMap({
-        mapID: 'my_basemap',
-        title: 'My Base Map',
-        url: 'https://example.test/tiles/{z}/{x}/{y}.png',
-        attr: 'Example Provider',
-        minZoom: 5,
-        maxZoom: 18,
+      // Add a user base map (uid正準 ADR-0007: payload = { uid?, slug, tms }, uidなし=新規)
+      const { uid: myBaseUid } = await SettingsService.saveUserBaseMap({
+        slug: 'my_basemap',
+        tms: {
+          title: 'My Base Map',
+          url: 'https://example.test/tiles/{z}/{x}/{y}.png',
+          attr: 'Example Provider',
+          minZoom: 5,
+          maxZoom: 18,
+        },
       });
       const afterAdd = await SettingsService.listBaseMaps();
       const added = afterAdd.find((item) => item.mapID === 'my_basemap');
       assert.ok(added);
+      assert.equal(added.uid, myBaseUid);
       assert.equal(added.scope, 'user');
       assert.equal(added.data.title, 'My Base Map');
       assert.equal(added.data.minZoom, 5);
       assert.equal(added.data.maxZoom, 18);
 
-      // オプトイン方式(ADR-0006): 明示的に選択した地図のTMSリストにのみ現れる
+      // オプトイン方式(ADR-0006): 明示的に選択した地図のTMSリストにのみ現れる。
+      // ベースマップの指定はuid正準
       const tmsListBefore = await SettingsService.getTmsListOfMapID('some-map');
       assert.ok(!tmsListBefore.some((tms) => tms.mapID === 'my_basemap'));
-      await SettingsService.setBaseMapVisibilityForMapID('some-map', 'my_basemap', true);
+      await SettingsService.setBaseMapVisibilityForMapID('some-map', added.uid, true);
       const tmsList = await SettingsService.getTmsListOfMapID('some-map');
       assert.ok(tmsList.some((tms) => tms.mapID === 'my_basemap'));
+
+      // 未保存地図('some-map'は地図として未登録)の表示設定は sentinel 付き暫定キー
+      // 'slug:{slug}' で置かれる(uidと混同され得ない)
+      const db = await SqliteDataService.getDb();
+      const provisionalRow = db
+        .prepare('SELECT map_uid FROM map_base_map_visibility WHERE base_map_uid = ?')
+        .get(added.uid);
+      assert.equal(provisionalRow.map_uid, 'slug:some-map');
 
       // Update preserves scope and updates content; user masters can carry
       // icon (thumbnail) and coverage (coverageLngLats) as app-selection defaults
       await SettingsService.saveUserBaseMap({
-        mapID: 'my_basemap',
-        title: 'My Base Map v2',
-        url: 'https://example.test/tiles/{z}/{x}/{-y}.png',
-        thumbnail: 'tmbs/my_basemap_menu.jpg',
-        coverageLngLats: [[139, 35], [140, 35], [140, 36], [139, 36]],
+        uid: added.uid,
+        slug: 'my_basemap',
+        tms: {
+          title: 'My Base Map v2',
+          url: 'https://example.test/tiles/{z}/{x}/{-y}.png',
+          thumbnail: 'tmbs/my_basemap_menu.jpg',
+          coverageLngLats: [[139, 35], [140, 35], [140, 36], [139, 36]],
+        },
       });
       const afterUpdate = await SettingsService.listBaseMaps();
       const updated = afterUpdate.find((item) => item.mapID === 'my_basemap');
+      assert.equal(updated.uid, added.uid, '更新でuidが変わってはいけない');
       assert.equal(updated.data.title, 'My Base Map v2');
       assert.equal(updated.data.thumbnail, 'tmbs/my_basemap_menu.jpg');
       assert.equal(updated.data.coverageLngLats.length, 4);
       assert.equal(afterUpdate.filter((item) => item.mapID === 'my_basemap').length, 1);
 
-      // Builtin ID conflicts are rejected
+      // Builtin ID conflicts are rejected (slugのグローバル一意性)
       await assert.rejects(() => SettingsService.saveUserBaseMap({
-        mapID: 'osm',
-        title: 'Fake OSM',
-        url: 'https://example.test/{z}/{x}/{y}.png',
+        slug: 'osm',
+        tms: { title: 'Fake OSM', url: 'https://example.test/{z}/{x}/{y}.png' },
       }));
-      await assert.rejects(() => SettingsService.saveUserBaseMap({ title: 'No ID' }));
+      await assert.rejects(() => SettingsService.saveUserBaseMap({ tms: { title: 'No ID' } }));
+      // 未知のuid指定の更新は拒否される
+      await assert.rejects(() => SettingsService.saveUserBaseMap({
+        uid: '00000000-0000-4000-8000-000000000000',
+        slug: 'ghost',
+        tms: { title: 'Ghost', url: 'https://example.test/{z}/{x}/{y}.png' },
+      }));
 
-      // Visibility rows of a deleted user base map are cleaned up
-      await SettingsService.setBaseMapVisibilityForMapID('some-map', 'my_basemap', false);
-      await SettingsService.deleteUserBaseMap('my_basemap');
+      // Visibility rows of a deleted user base map are cleaned up (削除はuid指定)
+      await SettingsService.setBaseMapVisibilityForMapID('some-map', added.uid, false);
+      await SettingsService.deleteUserBaseMap(added.uid);
       const afterDelete = await SettingsService.listBaseMaps();
       assert.ok(!afterDelete.some((item) => item.mapID === 'my_basemap'));
-      const db = await SqliteDataService.getDb();
-      // schema v2 (ADR-0007): 表示設定はuidキー。削除で当該ベースマップの行が全て掃除される
+      // schema v2 (ADR-0007): 表示設定はuidキー。削除で当該ベースマップの行(暫定キー含む)が全て掃除される
       const visibilityRows = db
         .prepare('SELECT count(*) AS count FROM map_base_map_visibility')
         .get();
       assert.equal(Number(visibilityRows.count), 0);
 
       // 同じslugで再追加すると新しいuidの別アセットになり、表示設定は既定(オプトイン=非表示)に戻る
-      await SettingsService.saveUserBaseMap({
-        mapID: 'my_basemap',
-        title: 'My Base Map v3',
-        url: 'https://example.test/tiles/{z}/{x}/{y}.png',
+      const { uid: readdedUid } = await SettingsService.saveUserBaseMap({
+        slug: 'my_basemap',
+        tms: { title: 'My Base Map v3', url: 'https://example.test/tiles/{z}/{x}/{y}.png' },
       });
+      assert.notEqual(readdedUid, added.uid, '再追加は別uidの新アセットになるはず');
       const visibility = await SettingsService.getBaseMapVisibilityOfMapID('some-map');
       const readded = visibility.find((item) => item.mapID === 'my_basemap');
+      assert.equal(readded.uid, readdedUid);
       assert.equal(readded.enabled, false);
+
+      // 新規作成時のアイコン付け替え: uid未採番のため暫定名でアップロードされたアイコンは
+      // 保存時に tmbs/{uid}.{ext} へ移動され、thumbnail参照も追随する
+      await mkdir(${JSON.stringify(path.join(dataDir, 'tmbs'))}, { recursive: true });
+      await writeFile(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/icon_new.png', 'png-bytes');
+      const { uid: iconNewUid } = await SettingsService.saveUserBaseMap({
+        slug: 'icon_new',
+        tms: { title: 'Icon New', url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: 'tmbs/icon_new.png' },
+      });
+      const iconNew = (await SettingsService.listBaseMaps()).find((item) => item.uid === iconNewUid);
+      assert.equal(iconNew.data.thumbnail, 'tmbs/' + iconNewUid + '.png');
+      await access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/' + iconNewUid + '.png');
+      await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/icon_new.png'));
+      await SettingsService.deleteUserBaseMap(iconNewUid);
+
+      // 暫定表示設定の採用: 未保存地図('draft-map')の設定は初回保存時にuidキーへ引き継がれる
+      await SettingsService.setBaseMapVisibilityForMapID('draft-map', readdedUid, true);
+      const { uid: draftMapUid } = await SqliteDataService.createMap('draft-map', { title: '下書き地図' });
+      const adoptedRows = db
+        .prepare('SELECT map_uid FROM map_base_map_visibility WHERE base_map_uid = ?')
+        .all(readdedUid)
+        .map((row) => row.map_uid);
+      assert.deepEqual(adoptedRows, [draftMapUid], '暫定行はuidキーへ移動し、slug:行は残らないはず');
+      assert.ok(
+        (await SettingsService.getTmsListOfMapID(draftMapUid)).some((tms) => tms.mapID === 'my_basemap')
+      );
+
+      // 放棄された暫定行のTTL掃除(7日): 古い暫定行は再起動(migrate)で削除され、新しい暫定行は残る
+      db.prepare(
+        "INSERT INTO map_base_map_visibility (map_uid, base_map_uid, enabled, updated_at) VALUES ('slug:abandoned-map', ?, 1, datetime('now', '-8 days'))"
+      ).run(readdedUid);
+      await SettingsService.setBaseMapVisibilityForMapID('fresh-draft', readdedUid, true);
+
+      // アイコンパスのuid化マイグレーション: レガシー状態(tmbs/{slug}.png参照)を捏造して
+      // マーカーを剥がし、再起動で ファイル改名 + base_maps/apps の参照書き換え が走ることを確認
+      const legacyIconRel = 'tmbs/my_basemap.png';
+      await mkdir(${JSON.stringify(path.join(dataDir, 'tmbs'))}, { recursive: true });
+      await writeFile(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/my_basemap.png', 'png-bytes');
+      const legacyData = JSON.parse(
+        db.prepare('SELECT data_json FROM base_maps WHERE uid = ?').get(readdedUid).data_json
+      );
+      legacyData.thumbnail = legacyIconRel;
+      db.prepare('UPDATE base_maps SET data_json = ? WHERE uid = ?').run(JSON.stringify(legacyData), readdedUid);
+      await SqliteDataService.createApp('icon-app', {
+        title: 'アイコン参照アプリ',
+        sources: [{ sourceType: 'tms', mapUid: 'my_basemap', data: { url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: legacyIconRel } }],
+      });
+      db.prepare("DELETE FROM schema_migrations WHERE id = '2026-07-09-base-map-icon-uid-paths'").run();
+
+      await SqliteDataService.reset();
+      const reopenedDb = await SqliteDataService.getDb();
+      const migratedThumb = JSON.parse(
+        reopenedDb.prepare('SELECT data_json FROM base_maps WHERE uid = ?').get(readdedUid).data_json
+      ).thumbnail;
+      assert.equal(migratedThumb, 'tmbs/' + readdedUid + '.png');
+      await access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/' + readdedUid + '.png');
+      await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/my_basemap.png'));
+      const migratedApp = await SqliteDataService.findAppBySlug('icon-app');
+      assert.equal(migratedApp.sources[0].data.thumbnail, 'tmbs/' + readdedUid + '.png',
+        'アプリ内のTMSソース参照もuidパスへ追随するはず');
+
+      // TTL掃除の検証(上の再起動で実行済み): 古い暫定行は消え、新しい暫定行は残る
+      const provisionalKeys = reopenedDb
+        .prepare("SELECT map_uid FROM map_base_map_visibility WHERE map_uid LIKE 'slug:%'")
+        .all()
+        .map((row) => row.map_uid);
+      assert.ok(!provisionalKeys.includes('slug:abandoned-map'), '7日超の暫定行は掃除されるはず');
+      assert.ok(provisionalKeys.includes('slug:fresh-draft'), '新しい暫定行は掃除されないはず');
 
       console.log('M5 base map catalog smoke passed');
     `

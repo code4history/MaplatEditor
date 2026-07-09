@@ -26,16 +26,18 @@ export function registerSettingsHandlers() {
     return await SettingsService.showSaveFolderDialog(window);
   });
 
-  ipcMain.handle('mapedit:get-tms-list', async (_, mapID: string) => {
-    return await SettingsService.getTmsListOfMapID(mapID);
+  // ベースマップ表示設定 (ADR-0007 / Phase1 Task7): 引数はuid正準
+  // (mapRefは未保存地図のみslug。baseMapRefはlistBaseMapsが返すuid)
+  ipcMain.handle('mapedit:get-tms-list', async (_, mapRef: string) => {
+    return await SettingsService.getTmsListOfMapID(mapRef);
   });
 
-  ipcMain.handle('mapedit:get-base-map-visibility', async (_, mapID: string) => {
-    return await SettingsService.getBaseMapVisibilityOfMapID(mapID);
+  ipcMain.handle('mapedit:get-base-map-visibility', async (_, mapRef: string) => {
+    return await SettingsService.getBaseMapVisibilityOfMapID(mapRef);
   });
 
-  ipcMain.handle('mapedit:set-base-map-visibility', async (_, mapID: string, baseMapId: string, enabled: boolean) => {
-    await SettingsService.setBaseMapVisibilityForMapID(mapID, baseMapId, enabled);
+  ipcMain.handle('mapedit:set-base-map-visibility', async (_, mapRef: string, baseMapRef: string, enabled: boolean) => {
+    await SettingsService.setBaseMapVisibilityForMapID(mapRef, baseMapRef, enabled);
   });
 
   ipcMain.handle('basemaps:list', async () => {
@@ -64,15 +66,16 @@ export function registerSettingsHandlers() {
     });
   });
 
-  ipcMain.handle('basemaps:save-user', async (_, tms: any, originalMapID?: string) => {
-    await SettingsService.saveUserBaseMap(tms, originalMapID);
+  // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)
+  ipcMain.handle('basemaps:save-user', async (_, payload: { uid?: string; slug: string; tms: any }) => {
+    return await SettingsService.saveUserBaseMap(payload);
   });
 
-  ipcMain.handle('basemaps:delete-user', async (_, baseMapId: string) => {
-    await SettingsService.deleteUserBaseMap(baseMapId);
+  ipcMain.handle('basemaps:delete-user', async (_, baseMapUid: string) => {
+    await SettingsService.deleteUserBaseMap(baseMapUid);
   });
 
-  ipcMain.handle('basemaps:set-always', async (_, baseMapId: string, always: boolean) => {
-    await SettingsService.setBaseMapAlways(baseMapId, always);
+  ipcMain.handle('basemaps:set-always', async (_, baseMapUid: string, always: boolean) => {
+    await SettingsService.setBaseMapAlways(baseMapUid, always);
   });
 }

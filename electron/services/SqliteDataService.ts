@@ -95,6 +95,26 @@ const OPT_IN_VISIBILITY_FLIP_ID = '2026-07-05-opt-in-base-map-visibility';
 // 常時表示から外せないベースマップ(ビューア/エディタの最終フォールバック基盤)。slug で判定
 const FORCED_ALWAYS_BASE_MAP_IDS = new Set(['osm']);
 
+// 未保存地図の暫定表示設定キーの接頭辞 (ADR-0007 / Phase1 Task7)。
+// map_base_map_visibility.map_uid は保存済み地図では uid(UUID) だが、未保存の地図には
+// uid が無いため slug を仮キーとして使う。仮キーには必ずこの接頭辞を付け、uid と
+// 形状衝突し得ない sentinel にする(slug は英数+ハイフンを許すため UUID 形状になり得る)。
+// 初回保存時に adoptProvisionalVisibility が uid キーへ引き継ぎ、放棄された行は
+// sweepStaleProvisionalVisibility が起動時に削除する
+const PROVISIONAL_MAP_KEY_PREFIX = 'slug:';
+// 暫定行の一括 slug: 接頭辞化(本接頭辞導入以前に書かれた行の一度きりの付け替え)
+const PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID = '2026-07-09-provisional-visibility-slug-prefix';
+// ユーザーベースマップのアイコンパス uid 化(tmbs/{slug}.png → tmbs/{uid}.png)
+const BASE_MAP_ICON_MIGRATION_ID = '2026-07-09-base-map-icon-uid-paths';
+
+// ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
+// uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる
+export interface BaseMapSavePayload {
+  uid?: string;
+  slug: string;
+  tms: any;
+}
+
 const ASSET_TABLES: Partial<Record<AssetKind, string>> = {
   map: 'maps',
   app: 'apps',
@@ -416,6 +436,14 @@ class SqliteDataService {
       db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(OPT_IN_VISIBILITY_FLIP_ID);
     }
 
+    await this.runLegacyMigrationIfNeeded(db);
+    // 以下はレガシー取込の後に走らせる(初回移行の直後でも取込済みの行が対象になるように)
+    this.applyProvisionalVisibilityKeyMigration(db);
+    this.sweepStaleProvisionalVisibility(db);
+    await this.migrateBaseMapIconPaths(db);
+  }
+
+  private async runLegacyMigrationIfNeeded(db: DatabaseSync): Promise<void> {
     // レガシー移行は初回のみ。退避アーカイブ(_nedb.db/_settings)は残り続けるため、
     // 「入力ファイルの有無」ではなく「移行を実際に実行するか」で進捗通知を判定する
     const alreadyMigrated = db
@@ -469,6 +497,137 @@ class SqliteDataService {
       if (notifyProgress) sendMigrationProgress('database.migration_failed', 100);
       throw e;
     }
+  }
+
+  // 暫定表示設定キーの sentinel 化(一度きり): PROVISIONAL_MAP_KEY_PREFIX 導入以前に
+  // 生slugで書かれた暫定行(未保存地図向け)へ接頭辞を付ける。保存済み地図の行は
+  // 全て uid(UUID形状) なので対象外
+  private applyProvisionalVisibilityKeyMigration(db: DatabaseSync): void {
+    const applied = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID);
+    if (applied) return;
+    this.withTransaction(db, () => {
+      const rows = db.prepare('SELECT DISTINCT map_uid FROM map_base_map_visibility').all() as any[];
+      const rename = db.prepare('UPDATE map_base_map_visibility SET map_uid = ? WHERE map_uid = ?');
+      for (const row of rows) {
+        const key = String(row.map_uid);
+        if (UUID_PATTERN.test(key) || key.startsWith(PROVISIONAL_MAP_KEY_PREFIX)) continue;
+        rename.run(`${PROVISIONAL_MAP_KEY_PREFIX}${key}`, key);
+      }
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)')
+        .run(PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID);
+    });
+  }
+
+  // 放棄された暫定表示設定の掃除(毎起動)。未保存の地図が保存されないまま放棄されると
+  // 暫定行(slug:キー)が残留し、slug は再利用可能なため同名の将来の地図に設定が
+  // 継承されてしまう。編集セッションを跨ぐには十分な猶予として7日より古い行を削除する
+  private sweepStaleProvisionalVisibility(db: DatabaseSync): void {
+    db.prepare(
+      `DELETE FROM map_base_map_visibility
+       WHERE map_uid LIKE '${PROVISIONAL_MAP_KEY_PREFIX}%'
+         AND updated_at < datetime('now', '-7 days')`
+    ).run();
+  }
+
+  // ユーザーベースマップのアイコンを tmbs/{slug}.png(レガシー) から tmbs/{uid}.{ext} へ揃える(一度きり)。
+  // schema v2 移行では地図の tiles/tmbs のみ uid 化され、ベースマップのアイコンは slug 名のまま
+  // 残っていた(slug rename で実体と名前がずれる)。アプリ(apps.data_json)内の TMS ソースが
+  // 同じ相対パスをスナップショットしているため、同時に書き換える。
+  // ファイル移動 → DB 書き換えの順で行い、途中失敗しても再実行で収束する
+  // (移動済み+DB未反映のケースは「移動先が既に存在」として DB のみ更新される)。
+  // ビルトインのアイコンは basemap_icons/ (同梱リソース) のためパターンに一致せず対象外
+  private async migrateBaseMapIconPaths(db: DatabaseSync): Promise<void> {
+    const applied = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(BASE_MAP_ICON_MIGRATION_ID);
+    if (applied) return;
+    const { saveFolder } = this.folders;
+    const rows = db
+      .prepare(`SELECT uid, data_json FROM base_maps WHERE scope = 'user'`)
+      .all() as any[];
+    const renames = new Map<string, string>(); // 旧相対パス → 新相対パス
+    const baseMapUpdates: Array<{ uid: string; data: any }> = [];
+    for (const row of rows) {
+      let data: any;
+      try {
+        data = JSON.parse(row.data_json);
+      } catch {
+        continue;
+      }
+      const thumbnail = typeof data?.thumbnail === 'string' ? data.thumbnail : '';
+      const match = thumbnail.match(/^tmbs\/([^/]+)\.([A-Za-z0-9]+)$/);
+      if (!match || match[1] === String(row.uid)) continue;
+      const newRel = `tmbs/${row.uid}.${match[2]}`;
+      const from = path.join(saveFolder, thumbnail);
+      const to = path.join(saveFolder, newRel);
+      try {
+        const fromExists = await fs.pathExists(from);
+        const toExists = await fs.pathExists(to);
+        if (fromExists && !toExists) {
+          await fs.move(from, to, { overwrite: false });
+        } else if (fromExists && toExists) {
+          // 想定外の先客: 実体を壊さないため参照もそのまま残す
+          console.warn(`[SqliteDataService] base map icon migration skipped (destination exists): ${thumbnail} -> ${newRel}`);
+          continue;
+        } else if (!fromExists && !toExists) {
+          // 実体なし(参照だけのレガシー): パスは触らない
+          continue;
+        }
+        // fromなし・toあり = 前回の部分実行で移動済み → DBのみ追随
+        renames.set(thumbnail, newRel);
+        data.thumbnail = newRel;
+        baseMapUpdates.push({ uid: String(row.uid), data });
+      } catch (e: any) {
+        console.warn(`[SqliteDataService] base map icon migration failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
+      }
+    }
+
+    // アプリの TMS ソースが旧パスを参照している場合は追随させる(旧保存形の
+    // フラット形(thumbnail直下)と新形(data.thumbnail)の両方を受容する)
+    const appUpdates: Array<{ uid: string; doc: any }> = [];
+    if (renames.size > 0) {
+      const appRows = db.prepare('SELECT uid, data_json FROM apps').all() as any[];
+      for (const appRow of appRows) {
+        let doc: any;
+        try {
+          doc = JSON.parse(appRow.data_json);
+        } catch {
+          continue;
+        }
+        let changed = false;
+        const sources = Array.isArray(doc?.sources) ? doc.sources : [];
+        for (const source of sources) {
+          if (!source || typeof source !== 'object') continue;
+          for (const holder of [source, source.data]) {
+            if (!holder || typeof holder !== 'object') continue;
+            const current = holder.thumbnail;
+            if (typeof current === 'string' && renames.has(current)) {
+              holder.thumbnail = renames.get(current);
+              changed = true;
+            }
+          }
+        }
+        if (changed) appUpdates.push({ uid: String(appRow.uid), doc });
+      }
+    }
+
+    this.withTransaction(db, () => {
+      const updateBaseMap = db.prepare(
+        `UPDATE base_maps SET data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
+      );
+      for (const update of baseMapUpdates) {
+        updateBaseMap.run(JSON.stringify(update.data), update.uid);
+      }
+      const updateApp = db.prepare(
+        `UPDATE apps SET data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
+      );
+      for (const update of appUpdates) {
+        updateApp.run(JSON.stringify(update.doc), update.uid);
+      }
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(BASE_MAP_ICON_MIGRATION_ID);
+    });
   }
 
   // 全文検索(FTS5)/位置情報検索(R-Tree)の索引スキーマとトリガ。
@@ -694,14 +853,16 @@ class SqliteDataService {
     });
   }
 
-  // 未保存の地図slug宛に置かれた暫定表示設定(map_uid=slug)を、地図作成時にuidキーへ引き継ぐ
+  // 未保存の地図slug宛に置かれた暫定表示設定(map_uid='slug:{slug}')を、地図作成時に
+  // uidキーへ引き継ぐ(引き継ぎはUPDATEによる移動なので暫定行は残らない)
   private adoptProvisionalVisibility(db: DatabaseSync, uid: string, slug: string): void {
+    const provisionalKey = `${PROVISIONAL_MAP_KEY_PREFIX}${slug}`;
     db.prepare(
       `DELETE FROM map_base_map_visibility
        WHERE map_uid = ? AND base_map_uid IN
          (SELECT base_map_uid FROM map_base_map_visibility WHERE map_uid = ?)`
-    ).run(slug, uid);
-    db.prepare('UPDATE map_base_map_visibility SET map_uid = ? WHERE map_uid = ?').run(uid, slug);
+    ).run(provisionalKey, uid);
+    db.prepare('UPDATE map_base_map_visibility SET map_uid = ? WHERE map_uid = ?').run(uid, provisionalKey);
   }
 
   // --- maps ---
@@ -907,11 +1068,13 @@ class SqliteDataService {
   }
 
   // --- base maps ---
-  // 内部キーはuid。公開APIはレンダラ互換のためslug(mapID)を受け取り、内部で解決する
-  // (呼び出し側のuid化はPhase1 Task7で行う)
+  // 内部キーも公開APIもuid正準 (ADR-0007 / Phase1 Task7)。
+  // 参照引数(mapRef/baseMapRef)は findMapByRef と同じ解決規則: UUID形状はuid優先、
+  // それ以外はslugフォールバック(旧呼び出し形・smoke互換)。
+  // 未保存の地図(uid未採番)はslugが暫定キー('slug:'接頭辞)として使われる
 
-  async getTmsListOfMapID(mapID: string): Promise<any[]> {
-    const items = await this.getBaseMapVisibilityOfMapID(mapID);
+  async getTmsListOfMapID(mapRef: string): Promise<any[]> {
+    const items = await this.getBaseMapVisibilityOfMapID(mapRef);
     return items.filter((item) => item.enabled).map((item) => item.data);
   }
 
@@ -940,27 +1103,35 @@ class SqliteDataService {
       .get(slug) as any;
   }
 
-  // 地図の表示設定キー: 保存済みの地図はuid、未保存の地図はslugを仮キーとして使う
-  // (地図の初回保存時に adoptProvisionalVisibility がuidキーへ引き継ぐ)
-  private visibilityRowsForMapSlug(db: DatabaseSync, mapSlug: string): Map<string, boolean> {
-    const mapUid = this.registryUid(db, 'map', mapSlug);
-    const rows = db
-      .prepare('SELECT map_uid, base_map_uid, enabled FROM map_base_map_visibility WHERE map_uid IN (?, ?)')
-      .all(mapSlug, mapUid ?? mapSlug) as any[];
-    const visibility = new Map<string, boolean>();
-    // slug仮キーの行 → uidキーの行の順で上書き(uidキー優先)
-    for (const row of rows.filter((r) => String(r.map_uid) === mapSlug)) {
-      visibility.set(String(row.base_map_uid), Boolean(row.enabled));
+  // uid正準のベースマップ参照解決 (ADR-0007)。findMapByRef と同じ規則:
+  // UUID形状はuid優先、それ以外(旧呼び出し形)はslugフォールバック
+  private findBaseMapByRef(db: DatabaseSync, ref: string, scope?: BaseMapScope): any | null {
+    if (UUID_PATTERN.test(ref)) {
+      const row = db
+        .prepare('SELECT uid, slug, scope, sort_order, data_json FROM base_maps WHERE uid = ?')
+        .get(ref) as any;
+      if (row && (!scope || row.scope === scope)) return row;
+      if (row) return null;
     }
-    if (mapUid) {
-      for (const row of rows.filter((r) => String(r.map_uid) === mapUid)) {
-        visibility.set(String(row.base_map_uid), Boolean(row.enabled));
-      }
-    }
-    return visibility;
+    return this.findBaseMapBySlug(db, ref, scope);
   }
 
-  async getBaseMapVisibilityOfMapID(mapID: string): Promise<BaseMapVisibilityItem[]> {
+  // 地図の表示設定キー解決: UUID形状=uid(保存済み地図)、それ以外はregistryでslug→uid解決、
+  // 未登録slugは未保存地図の暫定キー'slug:{slug}'(初回保存時にuidキーへ引き継がれる)
+  private resolveVisibilityMapKey(db: DatabaseSync, mapRef: string): string {
+    if (UUID_PATTERN.test(mapRef)) return mapRef;
+    const mapUid = this.registryUid(db, 'map', mapRef);
+    return mapUid ?? `${PROVISIONAL_MAP_KEY_PREFIX}${mapRef}`;
+  }
+
+  private visibilityRowsForMapKey(db: DatabaseSync, mapKey: string): Map<string, boolean> {
+    const rows = db
+      .prepare('SELECT base_map_uid, enabled FROM map_base_map_visibility WHERE map_uid = ?')
+      .all(mapKey) as any[];
+    return new Map(rows.map((row) => [String(row.base_map_uid), Boolean(row.enabled)]));
+  }
+
+  async getBaseMapVisibilityOfMapID(mapRef: string): Promise<BaseMapVisibilityItem[]> {
     const db = await this.getDb();
     const baseMapRows = db
       .prepare(`
@@ -969,7 +1140,7 @@ class SqliteDataService {
         ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END, sort_order, slug
       `)
       .all() as any[];
-    const visibility = this.visibilityRowsForMapSlug(db, mapID);
+    const visibility = this.visibilityRowsForMapKey(db, this.resolveVisibilityMapKey(db, mapRef));
     const overrides = this.alwaysOverrides(db);
 
     // オプトイン方式(ADR-0006): 明示的に選択したものだけ表示(未設定=非表示)。
@@ -990,17 +1161,17 @@ class SqliteDataService {
     return items;
   }
 
-  async setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void> {
+  async setBaseMapVisibilityForMapID(mapRef: string, baseMapRef: string, enabled: boolean): Promise<void> {
     const db = await this.getDb();
-    const base = this.findBaseMapBySlug(db, baseMapId);
+    const base = this.findBaseMapByRef(db, baseMapRef);
     if (!base) {
-      console.warn(`[SqliteDataService] setBaseMapVisibilityForMapID: unknown base map ${baseMapId}`);
+      console.warn(`[SqliteDataService] setBaseMapVisibilityForMapID: unknown base map ${baseMapRef}`);
       return;
     }
     const tms = JSON.parse(base.data_json);
     if (this.effectiveAlways(String(base.slug), String(base.uid), tms, this.alwaysOverrides(db))) return;
-    // 未保存の地図はslugを仮キーに置く(初回保存時にuidキーへ引き継がれる)
-    const mapKey = this.registryUid(db, 'map', mapID) ?? mapID;
+    // 未保存の地図は'slug:{slug}'を仮キーに置く(初回保存時にuidキーへ引き継がれる)
+    const mapKey = this.resolveVisibilityMapKey(db, mapRef);
     db.prepare(
       `INSERT OR REPLACE INTO map_base_map_visibility (map_uid, base_map_uid, enabled, updated_at)
        VALUES (?, ?, ?, datetime('now'))`
@@ -1030,60 +1201,105 @@ class SqliteDataService {
     });
   }
 
-  async setBaseMapAlways(baseMapId: string, always: boolean): Promise<void> {
-    if (FORCED_ALWAYS_BASE_MAP_IDS.has(baseMapId)) {
-      throw new Error(`Base map cannot be removed from always-visible: ${baseMapId}`);
-    }
+  // アプリのエクスポート等でuid→slugを解決するための単一読み (ADR-0007)
+  async findBaseMapByUid(uid: string): Promise<{ uid: string; slug: string; scope: BaseMapScope; data: any } | null> {
     const db = await this.getDb();
-    const base = this.findBaseMapBySlug(db, baseMapId);
-    if (!base) throw new Error(`Unknown base map: ${baseMapId}`);
+    const row = db
+      .prepare('SELECT uid, slug, scope, data_json FROM base_maps WHERE uid = ?')
+      .get(uid) as any;
+    if (!row) return null;
+    return { uid: String(row.uid), slug: String(row.slug), scope: row.scope, data: JSON.parse(row.data_json) };
+  }
+
+  async setBaseMapAlways(baseMapRef: string, always: boolean): Promise<void> {
+    const db = await this.getDb();
+    const base = this.findBaseMapByRef(db, baseMapRef);
+    if (!base) throw new Error(`Unknown base map: ${baseMapRef}`);
+    if (FORCED_ALWAYS_BASE_MAP_IDS.has(String(base.slug))) {
+      throw new Error(`Base map cannot be removed from always-visible: ${String(base.slug)}`);
+    }
     db.prepare(
       `INSERT OR REPLACE INTO base_map_always (base_map_uid, always_visible, updated_at)
        VALUES (?, ?, datetime('now'))`
     ).run(base.uid, always ? 1 : 0);
   }
 
-  // originalMapID: 既存ユーザーベースマップの改名時に旧slugを渡す。
-  // uidが正本キーになったため、改名しても表示設定(map_base_map_visibility)と
-  // 常時表示設定(base_map_always)の付け替えは不要(旧v1のカスケードは撤去済み)。
-  // 衝突検査はasset_registryのグローバル一意性に一本化(旧grandfathering不要:
-  // レガシーのID重複はマイグレーション時にslugサフィックスで解消される)
-  async saveUserBaseMap(tms: any, originalMapID?: string): Promise<void> {
-    const slug = String(tms?.mapID ?? '').trim();
-    if (!slug) throw new Error('mapID is required');
+  // uid正準のベースマップ保存 (ADR-0007 / Phase1 Task7):
+  // payload.uid あり=既存ユーザーベースマップの更新。slug変更は同一uidのslug付け替えで、
+  // 表示設定(map_base_map_visibility)/常時表示設定(base_map_always)はuidキーのため付け替え不要。
+  // payload.uid なし=新規作成(uid採番)。slug衝突(ビルトイン/Maplat地図/アプリ含む
+  // グローバルnamespace)はregisterAsset/renameAssetSlugが拒否する。
+  // 楽観ロック(expectedRevision)は導入しない: ベースマップは小さな設定オブジェクトで
+  // 編集UIも単一モーダルのため last-write-wins で足りる(revisionカウンタ自体は更新毎に
+  // 進めており、必要になれば maps/apps と同じ方式を後付けできる)
+  async saveUserBaseMap(payload: BaseMapSavePayload): Promise<{ uid: string; revision: number }> {
+    const slug = String(payload?.slug ?? '').trim();
+    if (!slug) throw new Error('slug is required');
+    const tms = payload?.tms ?? {};
     const db = await this.getDb();
-    const sourceSlug = String(originalMapID ?? '').trim() || slug;
-    const existing = this.findBaseMapBySlug(db, sourceSlug, 'user');
 
-    if (existing) {
-      const renaming = sourceSlug !== slug;
-      this.withTransaction(db, () => {
-        if (renaming) this.renameAssetSlug(db, 'base_map', String(existing.uid), slug);
+    if (payload?.uid != null && String(payload.uid).trim() !== '') {
+      const uid = String(payload.uid);
+      const existing = db
+        .prepare(`SELECT uid, slug, revision FROM base_maps WHERE uid = ? AND scope = 'user'`)
+        .get(uid) as any;
+      if (!existing) throw new Error(`Unknown user base map: ${uid}`);
+      return this.withTransaction(db, () => {
+        if (String(existing.slug) !== slug) this.renameAssetSlug(db, 'base_map', uid, slug);
         db.prepare(
-          `UPDATE base_maps SET slug = ?, data_json = ?, updated_at = datetime('now') WHERE uid = ?`
-        ).run(slug, JSON.stringify({ ...tms, mapID: slug }), existing.uid);
+          `UPDATE base_maps SET slug = ?, data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
+        ).run(slug, JSON.stringify({ ...tms, mapID: slug }), uid);
+        return { uid, revision: Number(existing.revision) + 1 };
       });
-      return;
     }
 
     const next = db
       .prepare(`SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order FROM base_maps WHERE scope = 'user'`)
       .get() as any;
     const sortOrder = Number(next.next_order);
+    const uid = generateUid();
+    const data: any = { ...tms, mapID: slug };
     this.withTransaction(db, () => {
-      const uid = generateUid();
-      // slug衝突(ビルトイン/Maplat地図/アプリ含むグローバルnamespace)はregisterAssetが拒否する
       this.registerAsset(db, 'base_map', uid, slug);
       db.prepare(
         `INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at)
          VALUES (?, ?, 'user', ?, ?, 1, datetime('now'))`
-      ).run(uid, slug, sortOrder, JSON.stringify({ ...tms, mapID: slug }));
+      ).run(uid, slug, sortOrder, JSON.stringify(data));
     });
+    // 新規作成時、アイコンが暫定名(uid未採番のため入力ID名でアップロードされる)なら
+    // uid名(tmbs/{uid}.{ext})へ付け替える。行コミット後に行う(slug衝突等で作成が
+    // 失敗した場合にアイコン実体だけ先に動かして再試行時に参照切れになるのを防ぐ)。
+    // 付け替え失敗時は暫定名のまま残る(参照は有効なまま)
+    const relocated = await this.relocateBaseMapIcon(uid, typeof tms?.thumbnail === 'string' ? tms.thumbnail : '');
+    if (relocated) {
+      data.thumbnail = relocated;
+      db.prepare(`UPDATE base_maps SET data_json = ?, updated_at = datetime('now') WHERE uid = ?`)
+        .run(JSON.stringify(data), uid);
+    }
+    return { uid, revision: 1 };
   }
 
-  async deleteUserBaseMap(baseMapId: string): Promise<void> {
+  // 新規ベースマップ作成時のアイコン付け替え: tmbs/{暫定名}.{ext} → tmbs/{uid}.{ext}。
+  // 実体が無い/移動に失敗した場合は null を返し、元のパスをそのまま保存する
+  private async relocateBaseMapIcon(uid: string, thumbnail: string): Promise<string | null> {
+    const match = thumbnail.match(/^tmbs\/([^/]+)\.([A-Za-z0-9]+)$/);
+    if (!match || match[1] === uid) return null;
+    const { saveFolder } = this.folders;
+    const newRel = `tmbs/${uid}.${match[2]}`;
+    try {
+      const from = path.join(saveFolder, thumbnail);
+      if (!(await fs.pathExists(from))) return null;
+      await fs.move(from, path.join(saveFolder, newRel), { overwrite: false });
+      return newRel;
+    } catch (e: any) {
+      console.warn(`[SqliteDataService] base map icon relocation failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
+      return null;
+    }
+  }
+
+  async deleteUserBaseMap(baseMapRef: string): Promise<void> {
     const db = await this.getDb();
-    const existing = this.findBaseMapBySlug(db, baseMapId, 'user');
+    const existing = this.findBaseMapByRef(db, baseMapRef, 'user');
     if (!existing) return;
     this.withTransaction(db, () => {
       this.deleteBaseMapRow(db, String(existing.uid));

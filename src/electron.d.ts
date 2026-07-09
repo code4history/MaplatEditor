@@ -91,19 +91,27 @@ export interface AppAssetsAPI {
     fileUrl(relPath: string): Promise<string | null>;
 }
 
+// uid正準のベースマップ保存要求 (ADR-0007)。uid無指定は新規作成
+export interface BaseMapSavePayload {
+    uid?: string;
+    slug: string;
+    tms: any;
+}
+
 export interface BaseMapsAPI {
-    list(): Promise<Array<{ mapID: string; scope: "builtin" | "user"; data: any; thumbnailUrl?: string | null; alwaysVisible: boolean; alwaysLocked: boolean }>>;
-    saveUser(tms: any, originalMapID?: string): Promise<void>;
-    deleteUser(baseMapId: string): Promise<void>;
-    setAlways(baseMapId: string, always: boolean): Promise<void>;
+    list(): Promise<Array<{ uid: string; mapID: string; scope: "builtin" | "user"; data: any; thumbnailUrl?: string | null; alwaysVisible: boolean; alwaysLocked: boolean }>>;
+    saveUser(payload: BaseMapSavePayload): Promise<{ uid: string; revision: number }>;
+    deleteUser(baseMapUid: string): Promise<void>;
+    setAlways(baseMapUid: string, always: boolean): Promise<void>;
 }
 
 export interface MapEditAPI {
     request(uidOrMapID: string): Promise<any>;
     previewSource(uidOrMapID: string): Promise<any>;
-    getTmsListOfMapID(mapID: string): Promise<any>;
-    getBaseMapVisibilityOfMapID(mapID: string): Promise<any>;
-    setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void>;
+    // ベースマップ表示設定はuid正準 (ADR-0007)。mapRefは保存済み地図=uid、未保存地図=slug
+    getTmsListOfMapID(mapRef: string): Promise<any>;
+    getBaseMapVisibilityOfMapID(mapRef: string): Promise<any>;
+    setBaseMapVisibilityForMapID(mapRef: string, baseMapUid: string, enabled: boolean): Promise<void>;
     updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any): Promise<any>;
     save(payload: MapSavePayload): Promise<MapSaveResult>;
     checkExtentMap(extent: number[]): Promise<any>;

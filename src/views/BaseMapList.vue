@@ -45,7 +45,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in userBaseMaps" :key="item.mapID">
+            <tr v-for="item in userBaseMaps" :key="item.uid">
               <td>
                 <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="basemap-icon" loading="lazy" decoding="async" :alt="item.mapID">
                 <span v-else class="text-muted">-</span>
@@ -97,7 +97,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in builtinBaseMaps" :key="item.mapID">
+              <tr v-for="item in builtinBaseMaps" :key="item.uid">
                 <td>
                   <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="basemap-icon" loading="lazy" decoding="async" :alt="item.mapID">
                   <span v-else class="text-muted">-</span>
@@ -135,8 +135,9 @@
           </div>
           <div class="modal-body">
             <div v-if="formError" class="alert alert-danger py-2">{{ formError }}</div>
-            <!-- IDは編集時も変更可能(改名)。表示設定・常時表示設定は新IDへ引き継がれる。
-                 レガシーデータでMaplat地図とIDが重複している場合の解消手段でもある -->
+            <!-- IDは編集時も変更可能(改名)。正本キーはuid(ADR-0007)のため、
+                 表示設定・常時表示設定・アイコンは改名の影響を受けない -->
+
             <label class="form-label">{{ t("basemap.modal.id_label") }}</label>
             <input
               type="text"
@@ -249,6 +250,7 @@ import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { envelopeToBbox } from "../utils/appSourceModel";
 
 interface BaseMapCatalogItem {
+  uid: string;
   mapID: string;
   scope: "builtin" | "user";
   data: any;
@@ -270,7 +272,9 @@ const builtinBaseMaps = computed(() => items.value.filter((item) => item.scope =
 const showModal = ref(false);
 const showEnvelopeModal = ref(false);
 const editing = ref(false);
-// 編集対象の元ID(改名判定用)。新規作成時は空
+// 編集対象のuid(正本キー、ADR-0007)。新規作成時はnull
+const editingUid = ref<string | null>(null);
+// 編集対象の元slug(改名判定用)。新規作成時は空
 const originalMapID = ref("");
 const saving = ref(false);
 const formError = ref("");
@@ -311,6 +315,7 @@ onMounted(() => {
 
 const openAddModal = () => {
   editing.value = false;
+  editingUid.value = null;
   originalMapID.value = "";
   form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", coverageLngLats: null };
   formThumbnailUrl.value = null;
@@ -320,6 +325,7 @@ const openAddModal = () => {
 
 const openEditModal = (item: BaseMapCatalogItem) => {
   editing.value = true;
+  editingUid.value = item.uid;
   originalMapID.value = item.mapID;
   form.value = {
     mapID: item.mapID,
@@ -342,14 +348,18 @@ const closeModal = () => {
   showModal.value = false;
 };
 
+// アイコンのファイルキー: 既存ベースマップはuid(tmbs/{uid}.png)、
+// 新規はuid未採番のため入力IDの暫定名(保存時にsaveUserBaseMapがuid名へ付け替える)
+const iconFileKey = (): string => editingUid.value || form.value.mapID.trim();
+
 const uploadIcon = async () => {
-  const mapID = form.value.mapID.trim();
-  if (!mapID) {
+  const fileKey = iconFileKey();
+  if (!fileKey) {
     formError.value = t("basemap.errors.id_required");
     return;
   }
   formError.value = "";
-  const result = await window.appAssets.uploadTmsThumbnail(mapID);
+  const result = await window.appAssets.uploadTmsThumbnail(fileKey);
   if (result.err === "Canceled") return;
   if (result.err) {
     formError.value = t("appedit.error_invalid_image");
@@ -377,8 +387,8 @@ const canGenerateIcon = computed(() => overlayTms.value != null && form.value.co
 const generatingIcon = ref(false);
 
 const generateIcon = async () => {
-  const mapID = form.value.mapID.trim();
-  if (!mapID) {
+  const fileKey = iconFileKey();
+  if (!fileKey) {
     formError.value = t("basemap.errors.id_required");
     return;
   }
@@ -389,7 +399,7 @@ const generateIcon = async () => {
     // IPCの構造化クローンはVueのreactiveプロキシを受け付けない("An object could not be cloned")
     // ため、プレーンなデータに落としてから渡す
     const coverage = JSON.parse(JSON.stringify(form.value.coverageLngLats));
-    const result = await window.appAssets.generateTmsThumbnail(mapID, { ...overlayTms.value }, coverage);
+    const result = await window.appAssets.generateTmsThumbnail(fileKey, { ...overlayTms.value }, coverage);
     if (result.err || !result.path) {
       formError.value = t("basemap.errors.icon_generate_failed");
       return;
@@ -410,8 +420,9 @@ const validateForm = (): string | null => {
   const url = form.value.url.trim();
   if (!mapID) return t("basemap.errors.id_required");
   if (!/^[a-zA-Z0-9_-]+$/.test(mapID)) return t("basemap.errors.id_invalid");
-  // ID変更(新規または改名)時のみ重複を検査する(同一IDでの上書き更新は対象外)
-  if (mapID !== originalMapID.value && items.value.some((item) => item.mapID === mapID)) {
+  // ID変更(新規または改名)時のみ重複を検査する(自分自身のuidは除外)
+  if (mapID !== originalMapID.value &&
+      items.value.some((item) => item.mapID === mapID && item.uid !== editingUid.value)) {
     return t("basemap.errors.id_duplicate");
   }
   if (!title) return t("basemap.errors.title_required");
@@ -445,13 +456,12 @@ const saveBaseMap = async () => {
     formError.value = validationError;
     return;
   }
-  // IDはMaplat地図・ビルトイン含む全ベースマップと共通の空間で一意
-  // (サムネイルが tmbs/{mapID}.* を共有するため)。新しいIDを名乗る場合
-  // (新規作成・改名)のみWrite Store横断で確認する。同一IDでの上書き更新は
-  // レガシー重複があっても許容される(改名による解消手段を塞がないため)
-  if (form.value.mapID.trim() !== originalMapID.value) {
+  // IDはMaplat地図・アプリ・ビルトイン含む全アセットと共通の空間で一意 (ADR-0007)。
+  // 自分自身のuidを除外して(excludeUid)Write Store横断で確認する
+  const slug = form.value.mapID.trim();
+  if (slug !== originalMapID.value) {
     try {
-      const available = await window.assets.checkSlug({ slug: form.value.mapID.trim() });
+      const available = await window.assets.checkSlug({ slug, excludeUid: editingUid.value ?? undefined });
       if (!available) {
         formError.value = t("basemap.errors.id_duplicate");
         return;
@@ -461,7 +471,7 @@ const saveBaseMap = async () => {
     }
   }
   const tms: any = {
-    mapID: form.value.mapID.trim(),
+    mapID: slug,
     title: form.value.title.trim(),
     url: form.value.url.trim(),
   };
@@ -478,7 +488,8 @@ const saveBaseMap = async () => {
   if (form.value.coverageLngLats) tms.coverageLngLats = JSON.parse(JSON.stringify(form.value.coverageLngLats));
   saving.value = true;
   try {
-    await window.baseMaps.saveUser(tms, editing.value ? originalMapID.value : undefined);
+    // uid正準の保存 (ADR-0007): 編集時はuid指定(slug変更=同一uidの付け替え)、新規はuid採番
+    await window.baseMaps.saveUser({ uid: editingUid.value ?? undefined, slug, tms });
     showModal.value = false;
     await loadBaseMaps();
   } catch (e) {
@@ -493,7 +504,7 @@ const deleteBaseMap = async (item: BaseMapCatalogItem) => {
   const name = item.data.title || item.mapID;
   if (!confirm(t("basemap.delete_confirm", { name }))) return;
   try {
-    await window.baseMaps.deleteUser(item.mapID);
+    await window.baseMaps.deleteUser(item.uid);
     await loadBaseMaps();
   } catch (e) {
     console.error("Failed to delete base map", e);
@@ -505,7 +516,7 @@ const toggleAlways = async (item: BaseMapCatalogItem, event: Event) => {
   const input = event.target as HTMLInputElement;
   const always = input.checked;
   try {
-    await window.baseMaps.setAlways(item.mapID, always);
+    await window.baseMaps.setAlways(item.uid, always);
     item.alwaysVisible = always;
   } catch (e) {
     console.error("Failed to update always-visible setting", e);

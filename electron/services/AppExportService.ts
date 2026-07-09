@@ -90,6 +90,23 @@ class AppExportService {
       const viewerMapID = (source: AppSource): string =>
         source.sourceType === 'maplat' ? String(maplatDocs.get(source)!.slug) : source.mapUid;
 
+      // 0b) TMSソースのアイコン: 内部はuid名(tmbs/{uid}.png)だが、出力(アプリJSON内の
+      //     thumbnailパスとコピー先ファイル名)はslug名に解決する (ADR-0007: viewer互換)。
+      //     uidが解決できない場合(ベースマップ削除済み等)は保存値のまま出力する
+      const thumbnailCopies = new Map<string, string>(); // 出力相対パス → コピー元相対パス
+      for (const source of sources) {
+        if (source.sourceType !== 'tms' || !source.data) continue;
+        const thumbnail = source.data.thumbnail;
+        if (typeof thumbnail !== 'string') continue;
+        const match = thumbnail.match(/^tmbs\/([0-9a-f-]{36})\.([A-Za-z0-9]+)$/i);
+        if (!match) continue;
+        const baseMap = await SqliteDataService.findBaseMapByUid(match[1]);
+        if (!baseMap) continue;
+        const outRel = `tmbs/${baseMap.slug}.${match[2]}`;
+        thumbnailCopies.set(outRel, thumbnail);
+        source.data.thumbnail = outRel;
+      }
+
       // 1) apps/{appID}.json
       const appJson = this.composeAppJson(document, sources, viewerMapID);
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
@@ -123,13 +140,14 @@ class AppExportService {
       }
 
       // 3) TMSソースのサムネイル
-      //    tmbs/… はデータフォルダから、basemap_icons/… はアプリ同梱リソースからコピーする
+      //    tmbs/… はデータフォルダから、basemap_icons/… はアプリ同梱リソースからコピーする。
+      //    uid名のアイコンはslug名の出力パスへ解決済み(thumbnailCopies)
       for (const source of sources) {
         if (source.sourceType !== 'tms') continue;
         const thumbnail = source.data?.thumbnail;
         if (typeof thumbnail !== 'string') continue;
         if (thumbnail.startsWith('tmbs/')) {
-          const from = path.join(this.saveFolder, thumbnail);
+          const from = path.join(this.saveFolder, thumbnailCopies.get(thumbnail) ?? thumbnail);
           if (fs.existsSync(from)) {
             await fs.copy(from, path.join(outDir, thumbnail));
           } else {

@@ -96,12 +96,10 @@ class MapDataService {
     return SearchDataService.searchExtent(extent);
   }
 
-  // uid正準の削除 (ADR-0007)。旧slugリンク経由の呼び出しに備えて slug フォールバックを残す
-  // (Task 6/7 で app/basemap 経路が uid 化された後に撤去可)
+  // uid正準の削除 (ADR-0007)。参照解決は findMapByRef に一本化
+  // (UUID形状はuid優先、旧slugリンク経由の呼び出しにはslugフォールバックで応える)
   async deleteMap(uidOrMapID: string): Promise<void> {
-    const doc =
-      (await SqliteDataService.findMap(uidOrMapID)) ??
-      (await SqliteDataService.findMapBySlug(uidOrMapID));
+    const doc = await SqliteDataService.findMapByRef(uidOrMapID);
     const fileKey = doc?.uid || uidOrMapID;
     const slug = doc?.slug || uidOrMapID;
     if (doc) await SqliteDataService.deleteMap(doc.uid);

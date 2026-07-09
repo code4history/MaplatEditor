@@ -2111,12 +2111,16 @@ const getVisibleBaseMapID = (): string | null => {
     return visibleLayer?.get?.('mapID') || null;
 };
 
+// 表示設定APIの地図参照 (ADR-0007): 保存済みならuid、未保存はslug(暫定キー。
+// 初回保存時にmain側がuidキーへ引き継ぐ)
+const baseMapVisibilityMapRef = (): string => mapUid.value || mapID.value;
+
 const loadBaseMapVisibility = async () => {
-    if (!mapID.value || !(window as any).mapedit?.getBaseMapVisibilityOfMapID) return;
+    if (!baseMapVisibilityMapRef() || !(window as any).mapedit?.getBaseMapVisibilityOfMapID) return;
     baseMapVisibilityLoading.value = true;
     baseMapVisibilityError.value = '';
     try {
-        const list = await (window as any).mapedit.getBaseMapVisibilityOfMapID(mapID.value);
+        const list = await (window as any).mapedit.getBaseMapVisibilityOfMapID(baseMapVisibilityMapRef());
         baseMapVisibilityList.value = Array.isArray(list) ? list : [];
     } catch (e: any) {
         console.error('[loadBaseMapVisibility] Failed:', e);
@@ -2138,10 +2142,11 @@ const refreshBaseMapLayers = async () => {
 const setBaseMapVisible = async (item: any, event: Event) => {
     const input = event.target as HTMLInputElement;
     const enabled = input.checked;
-    if (item.locked || !mapID.value) return;
+    if (item.locked || !baseMapVisibilityMapRef()) return;
     item.enabled = enabled;
     try {
-        await (window as any).mapedit.setBaseMapVisibilityForMapID(mapID.value, item.mapID, enabled);
+        // ベースマップ側はuid正準 (ADR-0007)
+        await (window as any).mapedit.setBaseMapVisibilityForMapID(baseMapVisibilityMapRef(), item.uid, enabled);
         await refreshBaseMapLayers();
     } catch (e: any) {
         item.enabled = !enabled;
@@ -2156,7 +2161,7 @@ const setupBaseMaps = async () => {
     const existingVisibleBaseMapID = getVisibleBaseMapID();
     if (existingVisibleBaseMapID) currentBaseMapID.value = existingVisibleBaseMapID;
 
-    if (baseMapVisibilityList.value.length === 0 && mapID.value) {
+    if (baseMapVisibilityList.value.length === 0 && baseMapVisibilityMapRef()) {
         await loadBaseMapVisibility();
     }
 
@@ -2172,10 +2177,10 @@ const setupBaseMaps = async () => {
     if (baseMapList.value.length === 0) {
 
         // 1. IPCを通じてTMSリストを取得（settings/tmsList.json と settings/tmsList.[mapID].json を参照）
-        if ((window as any).mapedit && (window as any).mapedit.getTmsListOfMapID && mapID.value) {
+        if ((window as any).mapedit && (window as any).mapedit.getTmsListOfMapID && baseMapVisibilityMapRef()) {
             try {
                 // @ts-ignore
-                const list = await (window as any).mapedit.getTmsListOfMapID(mapID.value);
+                const list = await (window as any).mapedit.getTmsListOfMapID(baseMapVisibilityMapRef());
                 console.log("MapEdit.vue: Received tms list from IPC", list);
                 if (list && list.length > 0) {
                     baseMapList.value = list;

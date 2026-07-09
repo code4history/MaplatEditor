@@ -30,10 +30,11 @@ contextBridge.exposeInMainWorld('maplist', {
 contextBridge.exposeInMainWorld('mapedit', {
   request: (mapID: string) => ipcRenderer.invoke('mapedit:request', mapID),
   previewSource: (mapID: string) => ipcRenderer.invoke('mapedit:preview-source', mapID),
-  getTmsListOfMapID: (mapID: string) => ipcRenderer.invoke('mapedit:get-tms-list', mapID),
-  getBaseMapVisibilityOfMapID: (mapID: string) => ipcRenderer.invoke('mapedit:get-base-map-visibility', mapID),
-  setBaseMapVisibilityForMapID: (mapID: string, baseMapId: string, enabled: boolean) =>
-    ipcRenderer.invoke('mapedit:set-base-map-visibility', mapID, baseMapId, enabled),
+  // ベースマップ表示設定はuid正準 (ADR-0007)。mapRefは保存済み地図=uid、未保存地図=slug
+  getTmsListOfMapID: (mapRef: string) => ipcRenderer.invoke('mapedit:get-tms-list', mapRef),
+  getBaseMapVisibilityOfMapID: (mapRef: string) => ipcRenderer.invoke('mapedit:get-base-map-visibility', mapRef),
+  setBaseMapVisibilityForMapID: (mapRef: string, baseMapUid: string, enabled: boolean) =>
+    ipcRenderer.invoke('mapedit:set-base-map-visibility', mapRef, baseMapUid, enabled),
   updateTin: (gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any) =>
     ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex),
   // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (ADR-0007)
@@ -137,9 +138,10 @@ contextBridge.exposeInMainWorld('appEvents', {
 
 contextBridge.exposeInMainWorld('baseMaps', {
   list: () => ipcRenderer.invoke('basemaps:list'),
-  saveUser: (tms: any, originalMapID?: string) => ipcRenderer.invoke('basemaps:save-user', tms, originalMapID),
-  deleteUser: (baseMapId: string) => ipcRenderer.invoke('basemaps:delete-user', baseMapId),
-  setAlways: (baseMapId: string, always: boolean) => ipcRenderer.invoke('basemaps:set-always', baseMapId, always),
+  // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)
+  saveUser: (payload: { uid?: string; slug: string; tms: any }) => ipcRenderer.invoke('basemaps:save-user', payload),
+  deleteUser: (baseMapUid: string) => ipcRenderer.invoke('basemaps:delete-user', baseMapUid),
+  setAlways: (baseMapUid: string, always: boolean) => ipcRenderer.invoke('basemaps:set-always', baseMapUid, always),
 })
 
 contextBridge.exposeInMainWorld('appAssets', {

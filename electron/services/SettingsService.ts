@@ -127,19 +127,22 @@ class SettingsService extends EventEmitter {
     return null;
   }
 
-  public async getTmsListOfMapID(mapID: string): Promise<any[]> {
+  // ベースマップ系API (ADR-0007 / Phase1 Task7): 引数はuid正準。
+  // 参照引数(mapRef/baseMapRef)はUUID形状=uid優先・それ以外slugフォールバックで解決される
+
+  public async getTmsListOfMapID(mapRef: string): Promise<any[]> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
-    return SqliteDataService.getTmsListOfMapID(mapID);
+    return SqliteDataService.getTmsListOfMapID(mapRef);
   }
 
-  public async getBaseMapVisibilityOfMapID(mapID: string): Promise<any[]> {
+  public async getBaseMapVisibilityOfMapID(mapRef: string): Promise<any[]> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
-    return SqliteDataService.getBaseMapVisibilityOfMapID(mapID);
+    return SqliteDataService.getBaseMapVisibilityOfMapID(mapRef);
   }
 
-  public async setBaseMapVisibilityForMapID(mapID: string, baseMapId: string, enabled: boolean): Promise<void> {
+  public async setBaseMapVisibilityForMapID(mapRef: string, baseMapRef: string, enabled: boolean): Promise<void> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
-    await SqliteDataService.setBaseMapVisibilityForMapID(mapID, baseMapId, enabled);
+    await SqliteDataService.setBaseMapVisibilityForMapID(mapRef, baseMapRef, enabled);
   }
 
   public async listBaseMaps(): Promise<any[]> {
@@ -147,19 +150,19 @@ class SettingsService extends EventEmitter {
     return SqliteDataService.listBaseMaps();
   }
 
-  public async saveUserBaseMap(tms: any, originalMapID?: string): Promise<void> {
+  public async saveUserBaseMap(payload: { uid?: string; slug: string; tms: any }): Promise<{ uid: string; revision: number }> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
-    await SqliteDataService.saveUserBaseMap(tms, originalMapID);
+    return await SqliteDataService.saveUserBaseMap(payload);
   }
 
-  public async deleteUserBaseMap(baseMapId: string): Promise<void> {
+  public async deleteUserBaseMap(baseMapRef: string): Promise<void> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
-    await SqliteDataService.deleteUserBaseMap(baseMapId);
+    await SqliteDataService.deleteUserBaseMap(baseMapRef);
   }
 
-  public async setBaseMapAlways(baseMapId: string, always: boolean): Promise<void> {
+  public async setBaseMapAlways(baseMapRef: string, always: boolean): Promise<void> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
-    await SqliteDataService.setBaseMapAlways(baseMapId, always);
+    await SqliteDataService.setBaseMapAlways(baseMapRef, always);
   }
 }
 

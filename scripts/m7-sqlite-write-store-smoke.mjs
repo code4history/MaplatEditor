@@ -359,36 +359,40 @@ try {
       assert.equal(await StorageAdapter.isSlugAvailable('user-base'), false);
       assert.equal(await StorageAdapter.isSlugAvailable('brand-new-id'), true);
       await assert.rejects(() =>
-        SqliteDataService.saveUserBaseMap({ mapID: 'legacy-map', title: 'x', url: 'https://example.test/{z}/{x}/{y}.png' })
+        SqliteDataService.saveUserBaseMap({ slug: 'legacy-map', tms: { title: 'x', url: 'https://example.test/{z}/{x}/{y}.png' } })
       );
 
-      // slug改名(ADR-0007): uidが正本キーのため、改名は同一uidのslug付け替えとして行われる。
+      // slug改名(ADR-0007): uidが正本キーのため、改名は同一uidのslug付け替えとして行われる
+      // (payload = { uid?, slug, tms }。uid指定=更新、uidなし=新規)。
       // 改名先の衝突はasset_registryのグローバル一意性で拒否される(旧grandfatheringは
       // マイグレーション時のslugサフィックス解消に置き換えられ不要になった)
-      await SqliteDataService.saveUserBaseMap({ mapID: 'dup-base', title: 'Dup', url: 'https://example.test/{z}/{x}/{y}.png' });
-      const dupUid = (await SettingsService.listBaseMaps()).find((item) => item.mapID === 'dup-base').uid;
+      const { uid: dupUid } = await SqliteDataService.saveUserBaseMap({
+        slug: 'dup-base',
+        tms: { title: 'Dup', url: 'https://example.test/{z}/{x}/{y}.png' },
+      });
       // 改名先が地図slugと衝突する場合は拒否
       const { uid: anotherUid } = await SqliteDataService.createMap('another-map', { title: '別の地図' });
       await assert.rejects(() =>
-        SqliteDataService.saveUserBaseMap({ mapID: 'another-map', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' }, 'dup-base')
+        SqliteDataService.saveUserBaseMap({ uid: dupUid, slug: 'another-map', tms: { title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' } })
       );
       await SqliteDataService.deleteMap(anotherUid);
       // 未使用slugへの改名は成功し、uidは変わらない
-      await SqliteDataService.saveUserBaseMap({ mapID: 'dup-base-renamed', title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' }, 'dup-base');
+      await SqliteDataService.saveUserBaseMap({ uid: dupUid, slug: 'dup-base-renamed', tms: { title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' } });
       const afterRename = await SettingsService.listBaseMaps();
       const renamedItem = afterRename.find((item) => item.scope === 'user' && item.mapID === 'dup-base-renamed');
       assert.ok(renamedItem);
       assert.equal(renamedItem.uid, dupUid, 'slug改名でuidが変わってはいけない');
       assert.ok(!afterRename.some((item) => item.scope === 'user' && item.mapID === 'dup-base'));
-      await SqliteDataService.deleteUserBaseMap('dup-base-renamed');
+      await SqliteDataService.deleteUserBaseMap(dupUid);
 
       // 改名で地図単位の表示設定が引き継がれること(mapAでuser-baseをオプトイン済み)
-      await SqliteDataService.saveUserBaseMap({ mapID: 'user-base-renamed', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' }, 'user-base');
+      const userBaseUid = (await SettingsService.listBaseMaps()).find((item) => item.mapID === 'user-base').uid;
+      await SqliteDataService.saveUserBaseMap({ uid: userBaseUid, slug: 'user-base-renamed', tms: { title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' } });
       const mapARenamed = await SettingsService.getTmsListOfMapID('mapA');
       assert.ok(mapARenamed.some((tms) => tms.mapID === 'user-base-renamed'));
       assert.ok(!mapARenamed.some((tms) => tms.mapID === 'user-base'));
       // 後続アサーションのため元のIDへ戻す(設定も戻る)
-      await SqliteDataService.saveUserBaseMap({ mapID: 'user-base', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' }, 'user-base-renamed');
+      await SqliteDataService.saveUserBaseMap({ uid: userBaseUid, slug: 'user-base', tms: { title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' } });
       assert.ok((await SettingsService.getTmsListOfMapID('mapA')).some((tms) => tms.mapID === 'user-base'));
       await SearchDataService.reset();
       await SqliteDataService.reset();
