@@ -271,9 +271,10 @@ const builtinBaseMaps = computed(() => items.value.filter((item) => item.scope =
 // Modal state
 const showModal = ref(false);
 const showEnvelopeModal = ref(false);
-const editing = ref(false);
 // 編集対象のuid(正本キー、ADR-0007)。新規作成時はnull
 const editingUid = ref<string | null>(null);
+// 編集モード判定はeditingUidから導出する(並行stateの不整合を作らない)
+const editing = computed(() => editingUid.value !== null);
 // 編集対象の元slug(改名判定用)。新規作成時は空
 const originalMapID = ref("");
 const saving = ref(false);
@@ -314,7 +315,6 @@ onMounted(() => {
 });
 
 const openAddModal = () => {
-  editing.value = false;
   editingUid.value = null;
   originalMapID.value = "";
   form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", coverageLngLats: null };
@@ -324,7 +324,6 @@ const openAddModal = () => {
 };
 
 const openEditModal = (item: BaseMapCatalogItem) => {
-  editing.value = true;
   editingUid.value = item.uid;
   originalMapID.value = item.mapID;
   form.value = {

@@ -537,6 +537,10 @@ class SqliteDataService {
   // 同じ相対パスをスナップショットしているため、同時に書き換える。
   // ファイル移動 → DB 書き換えの順で行い、途中失敗しても再実行で収束する
   // (移動済み+DB未反映のケースは「移動先が既に存在」として DB のみ更新される)。
+  // 一時的なファイル操作失敗(OneDriveのロック等はこのデータフォルダで既知の恒常ハザード)が
+  // あった場合はマーカーを書かず、次回起動で再試行する(成功済みの行はthumbnailがuid名になる
+  // ため自然に対象外となり、残った行だけが再処理される)。意図的なスキップ(移動先に先客/
+  // 実体なし)は解決済み扱いとし、マーカー記録を妨げない。
   // ビルトインのアイコンは basemap_icons/ (同梱リソース) のためパターンに一致せず対象外
   private async migrateBaseMapIconPaths(db: DatabaseSync): Promise<void> {
     const applied = db
@@ -549,6 +553,7 @@ class SqliteDataService {
       .all() as any[];
     const renames = new Map<string, string>(); // 旧相対パス → 新相対パス
     const baseMapUpdates: Array<{ uid: string; data: any }> = [];
+    let failedMoves = 0;
     for (const row of rows) {
       let data: any;
       try {
@@ -580,6 +585,7 @@ class SqliteDataService {
         data.thumbnail = newRel;
         baseMapUpdates.push({ uid: String(row.uid), data });
       } catch (e: any) {
+        failedMoves++;
         console.warn(`[SqliteDataService] base map icon migration failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
       }
     }
@@ -626,7 +632,14 @@ class SqliteDataService {
       for (const update of appUpdates) {
         updateApp.run(JSON.stringify(update.doc), update.uid);
       }
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(BASE_MAP_ICON_MIGRATION_ID);
+      // ファイル操作の失敗が1件でもあればマーカーを書かない(次回起動で残りを再試行)
+      if (failedMoves === 0) {
+        db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(BASE_MAP_ICON_MIGRATION_ID);
+      } else {
+        console.warn(
+          `[SqliteDataService] base map icon migration left ${failedMoves} icon(s) unmigrated; will retry on next startup`
+        );
+      }
     });
   }
 
@@ -1116,10 +1129,15 @@ class SqliteDataService {
     return this.findBaseMapBySlug(db, ref, scope);
   }
 
-  // 地図の表示設定キー解決: UUID形状=uid(保存済み地図)、それ以外はregistryでslug→uid解決、
+  // 地図の表示設定キー解決 (findMapByRef と同じ規則): UUID形状は実在する地図のuidに
+  // 限って採用し、実在しなければslug解決へフォールバックする。UUID形状のslugを持つ
+  // 未保存地図が偽uidキー(採用も掃除もされない行)を作らないようにするため。
   // 未登録slugは未保存地図の暫定キー'slug:{slug}'(初回保存時にuidキーへ引き継がれる)
   private resolveVisibilityMapKey(db: DatabaseSync, mapRef: string): string {
-    if (UUID_PATTERN.test(mapRef)) return mapRef;
+    if (UUID_PATTERN.test(mapRef)) {
+      const exists = db.prepare('SELECT 1 FROM maps WHERE uid = ?').get(mapRef);
+      if (exists) return mapRef;
+    }
     const mapUid = this.registryUid(db, 'map', mapRef);
     return mapUid ?? `${PROVISIONAL_MAP_KEY_PREFIX}${mapRef}`;
   }
@@ -1240,11 +1258,13 @@ class SqliteDataService {
 
     if (payload?.uid != null && String(payload.uid).trim() !== '') {
       const uid = String(payload.uid);
-      const existing = db
-        .prepare(`SELECT uid, slug, revision FROM base_maps WHERE uid = ? AND scope = 'user'`)
-        .get(uid) as any;
-      if (!existing) throw new Error(`Unknown user base map: ${uid}`);
+      // 現在値の読み取りも同一トランザクション内で行う(BEGIN IMMEDIATEで書き込みロックを
+      // 先頭取得するため、並走する書き込みと交錯して返却revisionがずれることがない)
       return this.withTransaction(db, () => {
+        const existing = db
+          .prepare(`SELECT uid, slug, revision FROM base_maps WHERE uid = ? AND scope = 'user'`)
+          .get(uid) as any;
+        if (!existing) throw new Error(`Unknown user base map: ${uid}`);
         if (String(existing.slug) !== slug) this.renameAssetSlug(db, 'base_map', uid, slug);
         db.prepare(
           `UPDATE base_maps SET slug = ?, data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
@@ -1271,12 +1291,15 @@ class SqliteDataService {
     // 失敗した場合にアイコン実体だけ先に動かして再試行時に参照切れになるのを防ぐ)。
     // 付け替え失敗時は暫定名のまま残る(参照は有効なまま)
     const relocated = await this.relocateBaseMapIcon(uid, typeof tms?.thumbnail === 'string' ? tms.thumbnail : '');
+    let revision = 1;
     if (relocated) {
       data.thumbnail = relocated;
-      db.prepare(`UPDATE base_maps SET data_json = ?, updated_at = datetime('now') WHERE uid = ?`)
+      // revisionカウンタは更新毎に進める、の不変条件を保つ(付け替えも1回の内容更新)
+      db.prepare(`UPDATE base_maps SET data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`)
         .run(JSON.stringify(data), uid);
+      revision = 2;
     }
-    return { uid, revision: 1 };
+    return { uid, revision };
   }
 
   // 新規ベースマップ作成時のアイコン付け替え: tmbs/{暫定名}.{ext} → tmbs/{uid}.{ext}。

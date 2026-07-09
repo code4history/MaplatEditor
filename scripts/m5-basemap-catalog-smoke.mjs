@@ -226,9 +226,20 @@ try {
       db.prepare('UPDATE base_maps SET data_json = ? WHERE uid = ?').run(JSON.stringify(legacyData), readdedUid);
       await SqliteDataService.createApp('icon-app', {
         title: 'アイコン参照アプリ',
-        sources: [{ sourceType: 'tms', mapUid: 'my_basemap', data: { url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: legacyIconRel } }],
+        sources: [
+          // 新形(data.thumbnail)と旧フラット保存形(thumbnail直下)の両方を混在させる
+          { sourceType: 'tms', mapUid: 'my_basemap', data: { url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: legacyIconRel } },
+          { mapID: 'my_basemap', url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: legacyIconRel },
+        ],
       });
       db.prepare("DELETE FROM schema_migrations WHERE id = '2026-07-09-base-map-icon-uid-paths'").run();
+
+      // 一括prefix移行: 本接頭辞導入以前の旧コードが生slugキーで書いた暫定行は、
+      // マーカー付き移行で slug: 接頭辞へ付け替えられる(その後の採用も機能する)
+      db.prepare(
+        "INSERT INTO map_base_map_visibility (map_uid, base_map_uid, enabled) VALUES ('rawdraft', ?, 1)"
+      ).run(readdedUid);
+      db.prepare("DELETE FROM schema_migrations WHERE id = '2026-07-09-provisional-visibility-slug-prefix'").run();
 
       await SqliteDataService.reset();
       const reopenedDb = await SqliteDataService.getDb();
@@ -241,6 +252,8 @@ try {
       const migratedApp = await SqliteDataService.findAppBySlug('icon-app');
       assert.equal(migratedApp.sources[0].data.thumbnail, 'tmbs/' + readdedUid + '.png',
         'アプリ内のTMSソース参照もuidパスへ追随するはず');
+      assert.equal(migratedApp.sources[1].thumbnail, 'tmbs/' + readdedUid + '.png',
+        '旧フラット保存形(thumbnail直下)の参照も追随するはず');
 
       // TTL掃除の検証(上の再起動で実行済み): 古い暫定行は消え、新しい暫定行は残る
       const provisionalKeys = reopenedDb
@@ -249,6 +262,42 @@ try {
         .map((row) => row.map_uid);
       assert.ok(!provisionalKeys.includes('slug:abandoned-map'), '7日超の暫定行は掃除されるはず');
       assert.ok(provisionalKeys.includes('slug:fresh-draft'), '新しい暫定行は掃除されないはず');
+
+      // 一括prefix移行の検証(上の再起動で実行済み): 生slug行は slug: 接頭辞へ付け替えられ、
+      // その後の初回保存でuidキーへ採用される
+      assert.ok(provisionalKeys.includes('slug:rawdraft'), '生slugの暫定行はslug:接頭辞へ付け替えられるはず');
+      assert.ok(
+        !reopenedDb.prepare("SELECT 1 FROM map_base_map_visibility WHERE map_uid = 'rawdraft'").get(),
+        '生slugキーの行は残らないはず'
+      );
+      const { uid: rawDraftUid } = await SqliteDataService.createMap('rawdraft', { title: '生slug下書き地図' });
+      assert.ok(
+        (await SettingsService.getTmsListOfMapID(rawDraftUid)).some((tms) => tms.mapID === 'my_basemap'),
+        '付け替え後の暫定行も初回保存でuidキーへ採用されるはず'
+      );
+
+      // UUID形状のslugを持つ未保存地図: 実在しないuid形状の参照は偽uidキーにならず
+      // sentinel(slug:)に置かれ、初回保存でuidキーへ採用される
+      const uuidShapedSlug = '99999999-9999-4999-8999-999999999999';
+      await SettingsService.setBaseMapVisibilityForMapID(uuidShapedSlug, readdedUid, true);
+      assert.ok(
+        reopenedDb.prepare('SELECT 1 FROM map_base_map_visibility WHERE map_uid = ?').get('slug:' + uuidShapedSlug),
+        'UUID形状の未保存slugは偽uidキーではなくslug:接頭辞で置かれるはず'
+      );
+      assert.ok(
+        !reopenedDb.prepare('SELECT 1 FROM map_base_map_visibility WHERE map_uid = ?').get(uuidShapedSlug),
+        'UUID形状の参照が実在しない地図uidとして保存されてはいけない'
+      );
+      // 保存前の読み出しも同じsentinelを見る
+      assert.ok(
+        (await SettingsService.getTmsListOfMapID(uuidShapedSlug)).some((tms) => tms.mapID === 'my_basemap')
+      );
+      const { uid: uuidSlugMapUid } = await SqliteDataService.createMap(uuidShapedSlug, { title: 'UUID形状slugの地図' });
+      assert.notEqual(uuidSlugMapUid, uuidShapedSlug);
+      assert.ok(
+        (await SettingsService.getTmsListOfMapID(uuidSlugMapUid)).some((tms) => tms.mapID === 'my_basemap'),
+        'UUID形状slugの暫定行も初回保存でuidキーへ採用されるはず'
+      );
 
       console.log('M5 base map catalog smoke passed');
     `
