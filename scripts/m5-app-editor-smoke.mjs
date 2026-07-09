@@ -221,7 +221,10 @@ try {
   await readFile(path.join(projectRoot, 'public/preview/maplat_ui.css'), 'utf8');
   await readFile(path.join(projectRoot, 'public/preview/maplat_ui.umd.js'), 'utf8');
   await readFile(path.join(projectRoot, 'public/preview/service-worker.js'), 'utf8');
-  await readFile(path.join(projectRoot, 'public/preview/assets/locales/ja/translation.json'), 'utf8');
+  // viewer ロケールは servePackageAsset の第一候補 public/preview/locales/ に置く
+  // (assets/locales/ 配下は配信解決に乗らない死に配置。11言語同梱: 3bc7219)
+  await readFile(path.join(projectRoot, 'public/preview/locales/ja/translation.json'), 'utf8');
+  await readFile(path.join(projectRoot, 'public/preview/locales/th/translation.json'), 'utf8');
   assert.match(appPreviewService, /http\.createServer/, 'AppPreviewService が HTTP server を作成していない');
   assert.match(appPreviewService, /assets\/maplat_ui\.css/, 'AppPreviewService が Maplat UI CSS を preview HTML で読み込んでいない');
   assert.match(appPreviewService, /__dirname,\s*'\.\.',\s*'public\/preview'/, 'AppPreviewService が開発実行時の preview asset 配置を探索していない');
