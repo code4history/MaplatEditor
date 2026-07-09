@@ -29,6 +29,7 @@
     "smoke:m8-t2-identity-store": "node scripts/m8-t2-identity-store-smoke.mjs",
     "smoke:m8-t3-legacy-migration": "node scripts/m8-t3-legacy-migration-smoke.mjs",
     "smoke:m9-t1-poi-geojson": "node scripts/m9-t1-poi-geojson-smoke.mjs",
+    "smoke:m9-t2-poi-store": "node scripts/m9-t2-poi-store-smoke.mjs",
     "smoke:m5-basemap-catalog": "node scripts/m5-basemap-catalog-smoke.mjs",
     "smoke:m6-app-source-model": "node scripts/m6-app-source-model-smoke.mjs",
     "smoke:m5-app-editor": "node scripts/m5-app-editor-smoke.mjs",

@@ -17,7 +17,7 @@ import builtinBaseMaps from '../builtin_base_maps.json';
 import defaultTmsList from '../tms_list.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
-import { normalizeMapLangFields } from '../../src/utils/langResource';
+import { normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
 import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
@@ -115,10 +115,67 @@ export interface BaseMapSavePayload {
   tms: any;
 }
 
+// POI ソース (ADR-0007): FeatureCollection の blob(editor内部形: _maplatUid 入り)を data_json に持つ。
+export type PoiSourceMode = 'local' | 'remote';
+
+export interface PoiSourceInput {
+  title: LangResource;
+  mode: PoiSourceMode;
+  url?: string;
+  dataJson: string;
+  featureCount: number;
+}
+
+export interface PoiSourceRecord {
+  uid: string;
+  slug: string;
+  title: LangResource;
+  mode: PoiSourceMode;
+  url: string | null;
+  dataJson: string;
+  featureCount: number;
+  revision: number;
+}
+
+// 一覧軽量化 (ADR-0007): data blob(dataJson)を含まない
+export interface PoiSourceSummary {
+  uid: string;
+  slug: string;
+  title: LangResource;
+  mode: PoiSourceMode;
+  url: string | null;
+  featureCount: number;
+  revision: number;
+}
+
+// 画像等アセット (ADR-0007): バイト実体は別管理(tiles/tmbs同様のファイル)で、本テーブルはメタデータのみ持つ。
+export interface AssetInput {
+  title: LangResource;
+  mime: string;
+  ext: string;
+  width?: number;
+  height?: number;
+  byteSize: number;
+}
+
+export interface AssetRecord {
+  uid: string;
+  slug: string;
+  title: LangResource;
+  mime: string;
+  ext: string;
+  width: number | null;
+  height: number | null;
+  byteSize: number;
+  revision: number;
+}
+
 const ASSET_TABLES: Partial<Record<AssetKind, string>> = {
   map: 'maps',
   app: 'apps',
   base_map: 'base_maps',
+  poi_source: 'poi_sources',
+  asset: 'assets',
 };
 
 // --- 全文検索(FTS5)/位置情報検索(R-Tree)用ヘルパー ---
@@ -149,6 +206,34 @@ function ftsRawFromJson(dataJson: string, fields: string[]): string {
   } catch {
     return '';
   }
+}
+
+// POIソースのFTS raw: slug + title 全言語 + 各 feature の 表示ID/name/desc テキスト。
+// name/desc は LangResource(内部形 object / 交換形 string)双方を受容する。
+// 引数は接続毎登録のSQL関数 maplat_poi_fts_raw(data_json, title_json, slug) から渡る。
+function poiFtsRawFromJson(dataJson: string, titleJson: string, slug: string): string {
+  const parts: string[] = [];
+  if (slug) parts.push(slug);
+  try {
+    parts.push(...collectSearchStrings(JSON.parse(titleJson)));
+  } catch {
+    // title_json 不正時は slug/feature のみで索引化する
+  }
+  try {
+    const fc = JSON.parse(dataJson);
+    const features = Array.isArray(fc?.features) ? fc.features : [];
+    for (const feature of features) {
+      if (feature?.id != null && feature.id !== '') parts.push(String(feature.id));
+      const props = feature?.properties;
+      if (props && typeof props === 'object') {
+        parts.push(...collectSearchStrings(props.name));
+        parts.push(...collectSearchStrings(props.desc));
+      }
+    }
+  } catch {
+    // data_json 不正時は slug/title のみで索引化する
+  }
+  return parts.join('\n');
 }
 
 // 地図のbbox(メルカトル座標)。compiled.vertices_points から算出(従来のsearchExtentと同一定義)
@@ -203,6 +288,45 @@ export function appRowToDocument(row: any): any {
   data.slug = row.slug;
   data.revision = Number(row.revision);
   return data;
+}
+
+function poiSourceRowToRecord(row: any): PoiSourceRecord {
+  return {
+    uid: String(row.uid),
+    slug: String(row.slug),
+    title: JSON.parse(row.title_json),
+    mode: row.mode as PoiSourceMode,
+    url: row.url == null ? null : String(row.url),
+    dataJson: String(row.data_json),
+    featureCount: Number(row.feature_count),
+    revision: Number(row.revision),
+  };
+}
+
+function poiSourceRowToSummary(row: any): PoiSourceSummary {
+  return {
+    uid: String(row.uid),
+    slug: String(row.slug),
+    title: JSON.parse(row.title_json),
+    mode: row.mode as PoiSourceMode,
+    url: row.url == null ? null : String(row.url),
+    featureCount: Number(row.feature_count),
+    revision: Number(row.revision),
+  };
+}
+
+function assetRowToRecord(row: any): AssetRecord {
+  return {
+    uid: String(row.uid),
+    slug: String(row.slug),
+    title: JSON.parse(row.title_json),
+    mime: String(row.mime),
+    ext: String(row.ext),
+    width: row.width == null ? null : Number(row.width),
+    height: row.height == null ? null : Number(row.height),
+    byteSize: Number(row.byte_size),
+    revision: Number(row.revision),
+  };
 }
 
 function normalizeMapDocument(document: any): any {
@@ -369,6 +493,9 @@ class SqliteDataService {
     db.function('maplat_app_fts_raw', { deterministic: true }, (dataJson: unknown) =>
       ftsRawFromJson(String(dataJson ?? ''), ['title', 'appName', 'description'])
     );
+    db.function('maplat_poi_fts_raw', { deterministic: true }, (dataJson: unknown, titleJson: unknown, slug: unknown) =>
+      poiFtsRawFromJson(String(dataJson ?? ''), String(titleJson ?? ''), String(slug ?? ''))
+    );
     db.function('maplat_map_bbox', { deterministic: true }, (dataJson: unknown) =>
       mapBboxFromJson(String(dataJson ?? ''))
     );
@@ -421,6 +548,29 @@ class SqliteDataService {
       CREATE TABLE IF NOT EXISTS base_map_always (
         base_map_uid TEXT PRIMARY KEY,
         always_visible INTEGER NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS poi_sources (
+        uid TEXT PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,
+        title_json TEXT NOT NULL,
+        mode TEXT NOT NULL,
+        url TEXT,
+        data_json TEXT NOT NULL,
+        feature_count INTEGER NOT NULL DEFAULT 0,
+        revision INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS assets (
+        uid TEXT PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,
+        title_json TEXT NOT NULL,
+        mime TEXT NOT NULL,
+        ext TEXT NOT NULL,
+        width INTEGER,
+        height INTEGER,
+        byte_size INTEGER NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 1,
         updated_at TEXT DEFAULT (datetime('now'))
       );
     `);
@@ -651,6 +801,7 @@ class SqliteDataService {
     db.exec(`
       CREATE VIRTUAL TABLE IF NOT EXISTS maps_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
       CREATE VIRTUAL TABLE IF NOT EXISTS apps_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
+      CREATE VIRTUAL TABLE IF NOT EXISTS poi_sources_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
       CREATE VIRTUAL TABLE IF NOT EXISTS maps_rtree USING rtree(id, min_x, max_x, min_y, max_y);
       CREATE TABLE IF NOT EXISTS maps_rtree_key (
         uid TEXT PRIMARY KEY,
@@ -665,6 +816,9 @@ class SqliteDataService {
       DROP TRIGGER IF EXISTS apps_search_ai;
       DROP TRIGGER IF EXISTS apps_search_au;
       DROP TRIGGER IF EXISTS apps_search_ad;
+      DROP TRIGGER IF EXISTS poi_sources_search_ai;
+      DROP TRIGGER IF EXISTS poi_sources_search_au;
+      DROP TRIGGER IF EXISTS poi_sources_search_ad;
 
       CREATE TRIGGER maps_search_ai AFTER INSERT ON maps BEGIN
         DELETE FROM maps_fts WHERE uid = new.uid;
@@ -728,6 +882,26 @@ class SqliteDataService {
 
       CREATE TRIGGER apps_search_ad AFTER DELETE ON apps BEGIN
         DELETE FROM apps_fts WHERE uid = old.uid;
+      END;
+
+      CREATE TRIGGER poi_sources_search_ai AFTER INSERT ON poi_sources BEGIN
+        DELETE FROM poi_sources_fts WHERE uid = new.uid;
+        INSERT INTO poi_sources_fts(uid, raw, words)
+          VALUES (new.uid,
+                  maplat_poi_fts_raw(new.data_json, new.title_json, new.slug),
+                  maplat_tokenize(maplat_poi_fts_raw(new.data_json, new.title_json, new.slug)));
+      END;
+
+      CREATE TRIGGER poi_sources_search_au AFTER UPDATE ON poi_sources BEGIN
+        DELETE FROM poi_sources_fts WHERE uid IN (old.uid, new.uid);
+        INSERT INTO poi_sources_fts(uid, raw, words)
+          VALUES (new.uid,
+                  maplat_poi_fts_raw(new.data_json, new.title_json, new.slug),
+                  maplat_tokenize(maplat_poi_fts_raw(new.data_json, new.title_json, new.slug)));
+      END;
+
+      CREATE TRIGGER poi_sources_search_ad AFTER DELETE ON poi_sources BEGIN
+        DELETE FROM poi_sources_fts WHERE uid = old.uid;
       END;
     `);
 
@@ -995,13 +1169,266 @@ class SqliteDataService {
     return rows.map(appRowToDocument);
   }
 
+  // --- poi sources (ADR-0007) ---
+  // maps/apps と対称: uid正準 + asset_registry によるグローバルslug一意性 + revision楽観ロック。
+  // 追加列(title_json/mode/url/data_json/feature_count)を持つため createDocRow/upsertDocRow の
+  // 汎用形ではなく、saveUserBaseMap と同じく registerAsset/renameAssetSlug/withTransaction を再利用した
+  // 専用の内部ヘルパーで実装する。
+
+  private createPoiSourceRow(db: DatabaseSync, slug: string, input: PoiSourceInput): string {
+    const uid = generateUid();
+    this.withTransaction(db, () => {
+      this.registerAsset(db, 'poi_source', uid, slug);
+      db.prepare(
+        `INSERT INTO poi_sources (uid, slug, title_json, mode, url, data_json, feature_count, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))`
+      ).run(uid, slug, JSON.stringify(input.title), input.mode, input.url ?? null, input.dataJson, input.featureCount);
+    });
+    return uid;
+  }
+
+  private upsertPoiSourceRow(
+    db: DatabaseSync,
+    uid: string,
+    slug: string,
+    input: PoiSourceInput,
+    expectedRevision?: number,
+  ): number {
+    return this.withTransaction(db, () => {
+      const existing = db.prepare('SELECT slug, revision FROM poi_sources WHERE uid = ?').get(uid) as any;
+      if (!existing) {
+        this.registerAsset(db, 'poi_source', uid, slug);
+        db.prepare(
+          `INSERT INTO poi_sources (uid, slug, title_json, mode, url, data_json, feature_count, revision, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))`
+        ).run(uid, slug, JSON.stringify(input.title), input.mode, input.url ?? null, input.dataJson, input.featureCount);
+        return 1;
+      }
+      const currentRevision = Number(existing.revision);
+      if (expectedRevision != null && currentRevision !== expectedRevision) {
+        throw new RevisionConflictError(currentRevision);
+      }
+      if (String(existing.slug) !== slug) {
+        this.renameAssetSlug(db, 'poi_source', uid, slug);
+      }
+      const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
+      const tail: any[] = expectedRevision != null ? [uid, expectedRevision] : [uid];
+      const result = db.prepare(
+        `UPDATE poi_sources
+         SET slug = ?, title_json = ?, mode = ?, url = ?, data_json = ?, feature_count = ?,
+             revision = revision + 1, updated_at = datetime('now')
+         ${where}`
+      ).run(
+        slug, JSON.stringify(input.title), input.mode, input.url ?? null, input.dataJson, input.featureCount, ...tail,
+      );
+      if (Number(result.changes) === 0) {
+        const now = db.prepare('SELECT revision FROM poi_sources WHERE uid = ?').get(uid) as any;
+        throw new RevisionConflictError(Number(now?.revision ?? 0));
+      }
+      return currentRevision + 1;
+    });
+  }
+
+  async createPoiSource(slug: string, input: PoiSourceInput): Promise<{ uid: string }> {
+    const db = await this.getDb();
+    return { uid: this.createPoiSourceRow(db, slug, input) };
+  }
+
+  async findPoiSource(uid: string): Promise<PoiSourceRecord | null> {
+    const db = await this.getDb();
+    const row = db
+      .prepare('SELECT uid, slug, title_json, mode, url, data_json, feature_count, revision FROM poi_sources WHERE uid = ?')
+      .get(uid) as any;
+    return row ? poiSourceRowToRecord(row) : null;
+  }
+
+  async findPoiSourceBySlug(slug: string): Promise<PoiSourceRecord | null> {
+    const db = await this.getDb();
+    const row = db
+      .prepare('SELECT uid, slug, title_json, mode, url, data_json, feature_count, revision FROM poi_sources WHERE slug = ?')
+      .get(slug) as any;
+    return row ? poiSourceRowToRecord(row) : null;
+  }
+
+  async upsertPoiSource(
+    uid: string,
+    slug: string,
+    input: PoiSourceInput,
+    expectedRevision?: number,
+  ): Promise<{ revision: number }> {
+    const db = await this.getDb();
+    return { revision: this.upsertPoiSourceRow(db, uid, slug, input, expectedRevision) };
+  }
+
+  async deletePoiSource(uid: string): Promise<void> {
+    const db = await this.getDb();
+    this.withTransaction(db, () => {
+      db.prepare('DELETE FROM poi_sources WHERE uid = ?').run(uid);
+      db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
+    });
+  }
+
+  async listPoiSources(): Promise<PoiSourceSummary[]> {
+    const db = await this.getDb();
+    const rows = db
+      .prepare('SELECT uid, slug, title_json, mode, url, feature_count, revision FROM poi_sources ORDER BY slug')
+      .all() as any[];
+    return rows.map(poiSourceRowToSummary);
+  }
+
+  async searchPoiSources(query: string): Promise<PoiSourceSummary[]> {
+    const db = await this.getDb();
+    const uids = this.searchUids(db, 'poi_sources_fts', query);
+    if (uids === null) return this.listPoiSources();
+    if (uids.length === 0) return [];
+    const summaries: PoiSourceSummary[] = [];
+    for (let i = 0; i < uids.length; i += 500) {
+      const chunk = uids.slice(i, i + 500);
+      const placeholders = chunk.map(() => '?').join(',');
+      const rows = db
+        .prepare(
+          `SELECT uid, slug, title_json, mode, url, feature_count, revision
+           FROM poi_sources WHERE uid IN (${placeholders}) ORDER BY slug`
+        )
+        .all(...chunk) as any[];
+      summaries.push(...rows.map(poiSourceRowToSummary));
+    }
+    return summaries;
+  }
+
+  // --- assets (ADR-0007) ---
+  // poi_sources と同型。バイト実体は別管理でメタデータのみ持つため FTS 専用表は設けず、
+  // searchAssets は slug/title の LIKE 一致で足りる(maps/apps の raw LIKE フォールバックと同機構)。
+
+  private createAssetRow(db: DatabaseSync, slug: string, input: AssetInput): string {
+    const uid = generateUid();
+    this.withTransaction(db, () => {
+      this.registerAsset(db, 'asset', uid, slug);
+      db.prepare(
+        `INSERT INTO assets (uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))`
+      ).run(uid, slug, JSON.stringify(input.title), input.mime, input.ext, input.width ?? null, input.height ?? null, input.byteSize);
+    });
+    return uid;
+  }
+
+  private upsertAssetRow(
+    db: DatabaseSync,
+    uid: string,
+    slug: string,
+    input: AssetInput,
+    expectedRevision?: number,
+  ): number {
+    return this.withTransaction(db, () => {
+      const existing = db.prepare('SELECT slug, revision FROM assets WHERE uid = ?').get(uid) as any;
+      if (!existing) {
+        this.registerAsset(db, 'asset', uid, slug);
+        db.prepare(
+          `INSERT INTO assets (uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))`
+        ).run(uid, slug, JSON.stringify(input.title), input.mime, input.ext, input.width ?? null, input.height ?? null, input.byteSize);
+        return 1;
+      }
+      const currentRevision = Number(existing.revision);
+      if (expectedRevision != null && currentRevision !== expectedRevision) {
+        throw new RevisionConflictError(currentRevision);
+      }
+      if (String(existing.slug) !== slug) {
+        this.renameAssetSlug(db, 'asset', uid, slug);
+      }
+      const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
+      const tail: any[] = expectedRevision != null ? [uid, expectedRevision] : [uid];
+      const result = db.prepare(
+        `UPDATE assets
+         SET slug = ?, title_json = ?, mime = ?, ext = ?, width = ?, height = ?, byte_size = ?,
+             revision = revision + 1, updated_at = datetime('now')
+         ${where}`
+      ).run(
+        slug, JSON.stringify(input.title), input.mime, input.ext, input.width ?? null, input.height ?? null, input.byteSize, ...tail,
+      );
+      if (Number(result.changes) === 0) {
+        const now = db.prepare('SELECT revision FROM assets WHERE uid = ?').get(uid) as any;
+        throw new RevisionConflictError(Number(now?.revision ?? 0));
+      }
+      return currentRevision + 1;
+    });
+  }
+
+  async createAsset(slug: string, input: AssetInput): Promise<{ uid: string }> {
+    const db = await this.getDb();
+    return { uid: this.createAssetRow(db, slug, input) };
+  }
+
+  async findAsset(uid: string): Promise<AssetRecord | null> {
+    const db = await this.getDb();
+    const row = db
+      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision FROM assets WHERE uid = ?')
+      .get(uid) as any;
+    return row ? assetRowToRecord(row) : null;
+  }
+
+  async findAssetBySlug(slug: string): Promise<AssetRecord | null> {
+    const db = await this.getDb();
+    const row = db
+      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision FROM assets WHERE slug = ?')
+      .get(slug) as any;
+    return row ? assetRowToRecord(row) : null;
+  }
+
+  async upsertAssetMeta(
+    uid: string,
+    slug: string,
+    input: AssetInput,
+    expectedRevision?: number,
+  ): Promise<{ revision: number }> {
+    const db = await this.getDb();
+    return { revision: this.upsertAssetRow(db, uid, slug, input, expectedRevision) };
+  }
+
+  async deleteAsset(uid: string): Promise<void> {
+    const db = await this.getDb();
+    this.withTransaction(db, () => {
+      db.prepare('DELETE FROM assets WHERE uid = ?').run(uid);
+      db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
+    });
+  }
+
+  async listAssets(): Promise<AssetRecord[]> {
+    const db = await this.getDb();
+    const rows = db
+      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision FROM assets ORDER BY slug')
+      .all() as any[];
+    return rows.map(assetRowToRecord);
+  }
+
+  // 各検索語につき slug または title_json の部分一致(LIKE)を要求する暗黙AND。
+  // 空クエリは絞り込みなし(全件)。専用FTS表は持たない(過剰実装しない)
+  async searchAssets(query: string): Promise<AssetRecord[]> {
+    const db = await this.getDb();
+    const terms = query.trim().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return this.listAssets();
+    const conditions = terms.map(() => `(slug LIKE ? ESCAPE '\\' OR title_json LIKE ? ESCAPE '\\')`).join(' AND ');
+    const params: string[] = [];
+    for (const term of terms) {
+      const like = `%${escapeLike(term)}%`;
+      params.push(like, like);
+    }
+    const rows = db
+      .prepare(
+        `SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision
+         FROM assets WHERE ${conditions} ORDER BY slug`
+      )
+      .all(...params) as any[];
+    return rows.map(assetRowToRecord);
+  }
+
   // --- search (FTS5 / R-Tree) ---
 
   // 各検索語: FTS5トークン一致(分かち書き後の単語AND) ∪ raw部分一致(従来の部分文字列検索の互換)。
   // 複数語はAND(積集合)。戻り値 null は「検索語なし=絞り込みなし」。
   private searchUids(
     db: DatabaseSync,
-    table: 'maps_fts' | 'apps_fts',
+    table: 'maps_fts' | 'apps_fts' | 'poi_sources_fts',
     query: string,
   ): string[] | null {
     const terms = query.trim().split(/\s+/).filter(Boolean);
