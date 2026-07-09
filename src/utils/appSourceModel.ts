@@ -12,6 +12,14 @@ export function isViewerBuiltin(mapID: string): boolean {
   return (VIEWER_BUILTIN_IDS as readonly string[]).includes(mapID);
 }
 
+export function isViewerBasemapSource(source: AppSource): boolean {
+  return source.sourceType === "builtin" || (source.sourceType === "tms" && source.role !== "overlay");
+}
+
+export function hasViewerBasemapSource(sources: readonly AppSource[]): boolean {
+  return sources.some((source) => isViewerBasemapSource(source));
+}
+
 // Editor管理用キー: Viewer向け出力(アプリJSON/プレビュー)に含めてはならない
 const EDITOR_ONLY_KEYS = new Set([
   "always",
@@ -147,6 +155,7 @@ export function normalizeAppSource(raw: any): AppSource {
   const data = stripEditorKeys(normalizeRuntimeKeys({ ...(rawData || {}) })) as Record<string, any>;
   // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (ADR-0007)
   const mapRef = raw?.mapUid || raw?.mapID || data.mapID || "";
+  const builtinRef = typeof data.builtinId === "string" ? data.builtinId : "";
   const maptype = raw?.maptype ?? data.maptype;
 
   const isMaplat =
@@ -167,10 +176,12 @@ export function normalizeAppSource(raw: any): AppSource {
     };
   }
 
-  if (isViewerBuiltin(mapRef) && isBaseLikeMaptype(maptype)) {
+  if (isBaseLikeMaptype(maptype) && isViewerBuiltin(builtinRef || mapRef)) {
     return {
       sourceType: "builtin",
-      mapUid: mapRef,
+      // asset_registry のグローバルslug衝突で builtin slug が suffix されても、
+      // Viewer には既知の builtin ID (osm/gsi/gsi_ortho) を渡す。
+      mapUid: builtinRef || mapRef,
       role: "base",
       startFrom: Boolean(raw?.startFrom),
     };

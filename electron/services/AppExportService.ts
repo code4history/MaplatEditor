@@ -10,6 +10,7 @@ import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
   compactLangObject,
   composeViewerSource,
+  hasViewerBasemapSource,
   normalizeAppSource,
   type AppSource,
 } from '../../src/utils/appSourceModel';
@@ -190,7 +191,10 @@ class AppExportService {
       reporter.update(++step);
 
       // 7) index.html
-      await fs.outputFile(path.join(outDir, 'index.html'), this.renderIndexHtml(document, appID, htmlMeta));
+      await fs.outputFile(
+        path.join(outDir, 'index.html'),
+        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources)),
+      );
       reporter.update(++step);
 
       return { result: 'Success', outDir, warnings };
@@ -363,7 +367,7 @@ class AppExportService {
     }
   }
 
-  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>): string {
+  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean): string {
     const lang = document.lang || 'ja';
     const title = escapeHtml(localize(document.appName || document.title, lang) || appID);
     const description = escapeHtml(localize(document.description, lang) || '');
@@ -406,7 +410,9 @@ class AppExportService {
     const viewerOption: Record<string, unknown> = {
       appid: appID,
       pwaManifest,
-      overlay: Boolean(httpSettings.overlay),
+      // @maplat/core の overlay=true は背景用 basemap が存在する前提。
+      // maplat/overlay だけのエクスポートでは backTo が null になり初期化時に落ちるため抑止する。
+      overlay: Boolean(httpSettings.overlay) && hasBasemap,
       enableHideMarker: Boolean(httpSettings.enableHideMarker),
       enableBorder: Boolean(httpSettings.enableBorder),
       enableCache: Boolean(httpSettings.enableCache),

@@ -8,7 +8,12 @@ import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset } from '../utils/resourceAssets';
-import { composeViewerSource, normalizeAppSource, type AppSource } from '../../src/utils/appSourceModel';
+import {
+  composeViewerSource,
+  hasViewerBasemapSource,
+  normalizeAppSource,
+  type AppSource,
+} from '../../src/utils/appSourceModel';
 
 type PreviewSession = {
   token: string;
@@ -165,7 +170,13 @@ class AppPreviewService {
       sources: entries.map((entry) => entry.composed),
       pois: normalizeJsonArray(document.pois || document.poiSources),
     }));
-    return { token, app, maps, manifest: this.createManifest(document), viewerOption: this.createViewerOption(token, document) };
+    return {
+      token,
+      app,
+      maps,
+      manifest: this.createManifest(document),
+      viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(normalizedSources)),
+    };
   }
 
   private createManifest(document: any) {
@@ -254,14 +265,16 @@ ${manifestLink}
 </html>`;
   }
 
-  private createViewerOption(token: string, document: any) {
+  private createViewerOption(token: string, document: any, hasBasemap: boolean) {
     const httpSettings = document.httpSettings || {};
     return {
       appid: token,
       div: 'map_div',
       pwaManifest: Boolean(httpSettings.pwaManifest),
       restoreSession: false,
-      overlay: Boolean(httpSettings.overlay),
+      // @maplat/core の overlay=true は背景用 basemap が存在する前提。
+      // maplat/overlay だけのプレビューでは backTo が null になり初期化時に落ちるため抑止する。
+      overlay: Boolean(httpSettings.overlay) && hasBasemap,
       enableHideMarker: Boolean(httpSettings.enableHideMarker),
       enableBorder: Boolean(httpSettings.enableBorder),
       enableCache: Boolean(httpSettings.enableCache),

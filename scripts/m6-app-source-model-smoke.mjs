@@ -33,6 +33,7 @@ try {
     composeViewerSource,
     bboxToEnvelope,
     envelopeToBbox,
+    hasViewerBasemapSource,
     isViewerBuiltin,
   } = mod;
 
@@ -119,6 +120,20 @@ try {
   // 内部参照キー(mapUid/mapSlug)はViewer出力に漏れない
   assert.equal(composedByUid.mapUid, undefined);
   assert.equal(composedByUid.mapSlug, undefined);
+  assert.equal(hasViewerBasemapSource([maplatByUid]), false);
+
+  // 4c. slug衝突で suffix された viewer builtin は builtinId で素の文字列に戻す。
+  // これを tms/base として出力すると Viewer が tiles/{slug}/... のローカルタイルを探し、
+  // 初期表示だけで存在しないタイル要求が大量発生する。
+  const suffixedBuiltin = normalizeAppSource({
+    sourceType: 'base-map',
+    mapID: 'osm_2',
+    data: { mapID: 'osm_2', builtinId: 'osm', always: true },
+  });
+  assert.equal(suffixedBuiltin.sourceType, 'builtin');
+  assert.equal(suffixedBuiltin.mapUid, 'osm');
+  assert.equal(composeViewerSource(suffixedBuiltin), 'osm');
+  assert.equal(hasViewerBasemapSource([suffixedBuiltin, maplatByUid]), true);
 
   // 5. bbox ⇄ envelope
   assert.deepEqual(bboxToEnvelope([139, 35, 140, 36]), [
