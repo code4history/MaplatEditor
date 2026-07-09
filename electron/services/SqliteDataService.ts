@@ -19,6 +19,7 @@ import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeMapLangFields } from '../../src/utils/langResource';
 import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
+import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -721,6 +722,17 @@ class SqliteDataService {
     return row ? mapRowToDocument(row) : null;
   }
 
+  // uid正準の参照解決 (ADR-0007)。旧保存形のslug参照にはslugフォールバックで応える。
+  // uid検索はUUID形状の引数に限定し、UUID形状のslug(英数+ハイフンのため同形状に
+  // なり得る)が他アセットのuidを誤って参照しないようにする
+  async findMapByRef(ref: string): Promise<any | null> {
+    if (UUID_PATTERN.test(ref)) {
+      const byUid = await this.findMap(ref);
+      if (byUid) return byUid;
+    }
+    return await this.findMapBySlug(ref);
+  }
+
   async createMap(slug: string, document: any): Promise<{ uid: string }> {
     const db = await this.getDb();
     const uid = this.createDocRow(db, 'map', slug, JSON.stringify(normalizeMapDocument(document)));
@@ -768,6 +780,15 @@ class SqliteDataService {
       .prepare('SELECT uid, slug, data_json, revision FROM apps WHERE slug = ?')
       .get(slug) as any;
     return row ? appRowToDocument(row) : null;
+  }
+
+  // uid正準の参照解決 (ADR-0007)。findMapByRef と同じ解決規則のapp版
+  async findAppByRef(ref: string): Promise<any | null> {
+    if (UUID_PATTERN.test(ref)) {
+      const byUid = await this.findApp(ref);
+      if (byUid) return byUid;
+    }
+    return await this.findAppBySlug(ref);
   }
 
   async createApp(slug: string, document: any): Promise<{ uid: string }> {

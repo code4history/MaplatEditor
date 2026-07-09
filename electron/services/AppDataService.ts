@@ -4,7 +4,6 @@ import SettingsService from './SettingsService';
 import AppAssetService from './AppAssetService';
 import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import SearchDataService, { type AppListResult } from './SearchDataService';
-import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { normalizeAppSource, type AppSource } from '../../src/utils/appSourceModel';
 
 // uid正準の保存要求/結果 (ADR-0007)。uid無指定は新規作成。
@@ -38,19 +37,9 @@ class AppDataService {
     return fallback;
   }
 
-  // uid正準の地図参照解決 (ADR-0007)。旧保存形のslug参照にはslugフォールバックで応える。
-  // uid検索はUUID形状の引数に限定し、UUID形状のslugが他地図のuidを誤参照しないようにする
-  private async findMapByRef(ref: string): Promise<any | null> {
-    if (UUID_PATTERN.test(ref)) {
-      const byUid = await SqliteDataService.findMap(ref);
-      if (byUid) return byUid;
-    }
-    return await SqliteDataService.findMapBySlug(ref);
-  }
-
   private async getMapTile(mapRef: string): Promise<string | null> {
-    // 内部タイルはuidパス (ADR-0007)
-    const mapDoc = await this.findMapByRef(mapRef);
+    // 内部タイルはuidパス (ADR-0007)。uid-or-slug解決はWrite Storeに集約
+    const mapDoc = await SqliteDataService.findMapByRef(mapRef);
     if (!mapDoc?.uid) return null;
     const thumbFolder = path.join(this.folders.tileFolder, mapDoc.uid, "0", "0");
     if (!fs.existsSync(thumbFolder)) return null;
@@ -103,9 +92,7 @@ class AppDataService {
 
   // uid正準の読み出し (ADR-0007)。旧経路への保険としてslugフォールバックを残す
   async getApp(uidOrSlug: string): Promise<any | null> {
-    const doc = UUID_PATTERN.test(uidOrSlug)
-      ? (await SqliteDataService.findApp(uidOrSlug)) ?? (await SqliteDataService.findAppBySlug(uidOrSlug))
-      : await SqliteDataService.findAppBySlug(uidOrSlug);
+    const doc = await SqliteDataService.findAppByRef(uidOrSlug);
     if (!doc) return null;
     await this.resolveMaplatSourceRefs(doc);
     return doc;
@@ -121,7 +108,7 @@ class AppDataService {
       if (!raw || typeof raw !== 'object') continue;
       const normalized = normalizeAppSource(raw);
       if (normalized.sourceType !== 'maplat' || !normalized.mapUid) continue;
-      const mapDoc = await this.findMapByRef(normalized.mapUid);
+      const mapDoc = await SqliteDataService.findMapByRef(normalized.mapUid);
       if (!mapDoc) continue;
       raw.mapUid = mapDoc.uid;
       raw.mapSlug = mapDoc.slug;

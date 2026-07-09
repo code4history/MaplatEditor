@@ -3,7 +3,6 @@ import fs from 'fs-extra';
 // @ts-ignore
 import fileUrl from 'file-url';
 import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
-import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import SettingsService from './SettingsService';
@@ -13,20 +12,10 @@ import Tin from '@maplat/tin';
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 class MapEditService {
-    // uid正準の読み出し (ADR-0007)。AppEdit等の旧経路がslugで呼ぶ間は
-    // slugフォールバックを残す (Task 6 でsources参照がuid化された後に撤去可)。
-    // uid検索はUUID形状の引数に限定し、UUID形状のslug(英数+ハイフンのため同形状に
-    // なり得る)が他地図のuidを誤って参照しないようにする
-    private async findMapByUidOrSlug(uidOrMapID: string): Promise<any | null> {
-        if (UUID_PATTERN.test(uidOrMapID)) {
-            const byUid = await SqliteDataService.findMap(uidOrMapID);
-            if (byUid) return byUid;
-        }
-        return await SqliteDataService.findMapBySlug(uidOrMapID);
-    }
-
+    // uid正準の読み出し (ADR-0007)。旧保存形のslug参照への保険として
+    // slugフォールバック付きの SqliteDataService.findMapByRef で解決する
     async request(uidOrMapID: string) {
-        const json = await this.findMapByUidOrSlug(uidOrMapID);
+        const json = await SqliteDataService.findMapByRef(uidOrMapID);
 
         if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
@@ -48,7 +37,7 @@ class MapEditService {
     }
 
     async requestPreviewSource(uidOrMapID: string) {
-        const json = await this.findMapByUidOrSlug(uidOrMapID);
+        const json = await SqliteDataService.findMapByRef(uidOrMapID);
 
         if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 

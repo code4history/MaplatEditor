@@ -252,10 +252,11 @@ try {
     'AppList.vue が window.applist.request を呼んでいない'
   );
 
+  // アプリ編集はuid正準で開く (ADR-0007, Phase1 Task6)
   assert.match(
     appListView,
-    /\/appedit\?appid=/,
-    'AppList.vue が AppEdit へのタイルリンクを持っていない'
+    /\/appedit\?uid=/,
+    'AppList.vue が AppEdit へのタイルリンク(uid正準)を持っていない'
   );
 
   // AppEdit は DuckDB-backed appedit API で load/save すること

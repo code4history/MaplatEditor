@@ -2530,6 +2530,8 @@ const performSave = async (
             router.replace({ query: { ...route.query, uid: result.uid } });
         }
     } else if (result && result.result === 'Exist') {
+        // 保存レースでslugを先取りされた: 一意性チェックボタンを再度有効化する
+        onlyOne.value = false;
         await (window as any).dialog.showMessageBox({
             type: 'info',
             buttons: ['OK'],

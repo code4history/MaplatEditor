@@ -5,7 +5,6 @@ import { app, dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
-import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
@@ -84,7 +83,7 @@ class AppExportService {
       //    出力(maps/tiles/tmbs/アプリJSON内mapID)はすべてslug名で行う(viewer互換)
       const maplatDocs = new Map<AppSource, any>();
       for (const source of maplatSources) {
-        const mapDoc = await this.findMapByRef(source.mapUid);
+        const mapDoc = await SqliteDataService.findMapByRef(source.mapUid);
         if (!mapDoc) throw new Error(`Map not found: ${source.mapUid}`);
         maplatDocs.set(source, mapDoc);
       }
@@ -181,15 +180,6 @@ class AppExportService {
       console.error('[AppExportService] export failed', e);
       return { result: 'Error', warnings, message: e?.message || String(e) };
     }
-  }
-
-  // uid正準の地図参照解決 (ADR-0007)。旧保存形のslug参照にはslugフォールバックで応える
-  private async findMapByRef(ref: string): Promise<any | null> {
-    if (UUID_PATTERN.test(ref)) {
-      const byUid = await SqliteDataService.findMap(ref);
-      if (byUid) return byUid;
-    }
-    return await SqliteDataService.findMapBySlug(ref);
   }
 
   // Viewer形式の正規アプリJSON（camelCase・ビルトイン=文字列）。

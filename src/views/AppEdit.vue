@@ -649,6 +649,9 @@ async function performSave(
     }
     await (window as any).dialog.showMessageBox({ type: "info", buttons: ["OK"], message: t("appedit.success_save") });
   } else if (result && "result" in result && result.result === "Exist") {
+    // 保存レースでslugを先取りされた: 一意性チェックボタンを再度有効化する
+    onlyOne.value = false;
+    appIDError.value = "appedit.duplicate_appid";
     saveError.value = t("appedit.duplicate_appid");
   } else {
     saveError.value = t("appedit.error_saving");
