@@ -5,6 +5,7 @@ import { app, dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
+import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
@@ -79,15 +80,25 @@ class AppExportService {
     reporter.update(step);
 
     try {
+      // 0) maplatソースのuid参照を地図docへ解決 (ADR-0007)。旧保存形のslug参照も受容する。
+      //    出力(maps/tiles/tmbs/アプリJSON内mapID)はすべてslug名で行う(viewer互換)
+      const maplatDocs = new Map<AppSource, any>();
+      for (const source of maplatSources) {
+        const mapDoc = await this.findMapByRef(source.mapUid);
+        if (!mapDoc) throw new Error(`Map not found: ${source.mapUid}`);
+        maplatDocs.set(source, mapDoc);
+      }
+      const viewerMapID = (source: AppSource): string =>
+        source.sourceType === 'maplat' ? String(maplatDocs.get(source)!.slug) : source.mapUid;
+
       // 1) apps/{appID}.json
-      const appJson = this.composeAppJson(document, sources);
+      const appJson = this.composeAppJson(document, sources, viewerMapID);
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
 
-      // 2) Maplat地図: maps/{mapID}.json + tiles + tmbs
-      // (app sources のslug参照はTask 6でuid化予定。findMapBySlugは正当なslug照会)
+      // 2) Maplat地図: maps/{slug}.json + tiles + tmbs
       for (const source of maplatSources) {
-        const mapDoc = await SqliteDataService.findMapBySlug(source.mapID);
-        if (!mapDoc) throw new Error(`Map not found: ${source.mapID}`);
+        const mapDoc = maplatDocs.get(source)!;
+        const slug = String(mapDoc.slug);
         // 交換形: デフォルト言語のみの言語別フィールドはプレーン文字列に畳み込む (ADR-0005)
         const mapJson = compactMapLangFields({ ...mapDoc });
         delete (mapJson as any)._id;
@@ -98,16 +109,16 @@ class AppExportService {
         delete (mapJson as any).uid;
         delete (mapJson as any).slug;
         delete (mapJson as any).revision;
-        await fs.outputJson(path.join(outDir, 'maps', `${source.mapID}.json`), mapJson, { spaces: 4 });
+        await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson, { spaces: 4 });
 
-        // 読み込みは内部のuidパス、出力はslug(=source.mapID)名 (ADR-0007: viewer互換)
+        // 読み込みは内部のuidパス、出力はslug名 (ADR-0007: viewer互換)
         const tileDir = path.join(this.saveFolder, 'tiles', mapDoc.uid);
         if (fs.existsSync(tileDir)) {
-          await fs.copy(tileDir, path.join(outDir, 'tiles', source.mapID));
+          await fs.copy(tileDir, path.join(outDir, 'tiles', slug));
         }
         const thumb = path.join(this.saveFolder, 'tmbs', `${mapDoc.uid}.jpg`);
         if (fs.existsSync(thumb)) {
-          await fs.copy(thumb, path.join(outDir, 'tmbs', `${source.mapID}.jpg`));
+          await fs.copy(thumb, path.join(outDir, 'tmbs', `${slug}.jpg`));
         }
         reporter.update(++step);
       }
@@ -172,14 +183,24 @@ class AppExportService {
     }
   }
 
-  // Viewer形式の正規アプリJSON（camelCase・ビルトイン=文字列）
-  private composeAppJson(document: any, sources: AppSource[]) {
+  // uid正準の地図参照解決 (ADR-0007)。旧保存形のslug参照にはslugフォールバックで応える
+  private async findMapByRef(ref: string): Promise<any | null> {
+    if (UUID_PATTERN.test(ref)) {
+      const byUid = await SqliteDataService.findMap(ref);
+      if (byUid) return byUid;
+    }
+    return await SqliteDataService.findMapBySlug(ref);
+  }
+
+  // Viewer形式の正規アプリJSON（camelCase・ビルトイン=文字列）。
+  // viewerMapID: ソースのViewer向けmapID解決(maplatはuid→slug) (ADR-0007)
+  private composeAppJson(document: any, sources: AppSource[], viewerMapID: (source: AppSource) => string) {
     const lang = document.lang || 'ja';
     const out: Record<string, unknown> = {
       // 交換形: デフォルト言語のみの多言語フィールドはプレーン文字列に畳み込む (ADR-0005)
       appName: compactLangObject(document.appName || document.title, lang),
       lang,
-      sources: sources.map(source => composeViewerSource(source, { lang })),
+      sources: sources.map(source => composeViewerSource(source, { lang, maplatMapID: viewerMapID(source) })),
     };
     const description = compactLangObject(document.description, lang);
     if (description) out.description = description;
@@ -190,7 +211,12 @@ class AppExportService {
       finiteOr(document.appSettings?.homeLat, 35.681),
     ];
     out.defaultZoom = Number(document.appSettings?.defaultZoom ?? 17);
-    const startFrom = document.startFrom || sources.find(source => source.startFrom)?.mapID;
+    // startFromはViewer向けmapID(slug)で出力する。document.startFromはuid(新形)/slug(旧形)
+    // のどちらもあり得るため、対応するソースを介して解決する
+    const startSource =
+      sources.find(source => source.startFrom) ??
+      sources.find(source => source.mapUid === document.startFrom || source.mapSlug === document.startFrom);
+    const startFrom = startSource ? viewerMapID(startSource) : document.startFrom;
     if (startFrom) out.startFrom = startFrom;
     const pois = document.pois ?? parseJsonArray(document.poiSources);
     if (Array.isArray(pois) && pois.length > 0) out.pois = pois;

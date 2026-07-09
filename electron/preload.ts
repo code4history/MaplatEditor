@@ -87,7 +87,8 @@ contextBridge.exposeInMainWorld('appdraft', {
 
 contextBridge.exposeInMainWorld('applist', {
   request: (query: string, page: number, pageSize?: number) => ipcRenderer.invoke('applist:request', query, page, pageSize),
-  delete: (appID: string, condition: string, page: number) => ipcRenderer.invoke('applist:delete', appID, condition, page),
+  // 削除はuid正準 (ADR-0007)
+  delete: (uid: string, condition: string, page: number) => ipcRenderer.invoke('applist:delete', uid, condition, page),
   onRefresh(listener: () => void): () => void {
     const wrapper = () => listener();
     ipcRenderer.on('applist:refresh', wrapper);
@@ -98,8 +99,9 @@ contextBridge.exposeInMainWorld('applist', {
 })
 
 contextBridge.exposeInMainWorld('appedit', {
-  request: (appID: string) => ipcRenderer.invoke('appedit:request', appID),
-  save: (appID: string, document: any) => ipcRenderer.invoke('appedit:save', appID, document),
+  // uid正準の読み出し/保存 (ADR-0007)。saveのpayload: { document, uid?, slug, expectedRevision? }
+  request: (uid: string) => ipcRenderer.invoke('appedit:request', uid),
+  save: (payload: any) => ipcRenderer.invoke('appedit:save', payload),
   preparePreview: (document: any) => ipcRenderer.invoke('appedit:prepare-preview', document),
   export: (document: any) => ipcRenderer.invoke('appedit:export', document),
 })

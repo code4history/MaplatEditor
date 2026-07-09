@@ -69,6 +69,8 @@ try {
   });
   assert.equal(overlay.sourceType, 'tms');
   assert.equal(overlay.role, 'overlay');
+  // builtin/tmsの参照はIDをmapUidフィールドに保持する (base mapのuid化はTask 7)
+  assert.equal(overlay.mapUid, 'kanto_rapid-900913');
   assert.ok(overlay.data.envelopeLngLats);
   assert.equal(overlay.data.envelopLngLats, undefined);
   assert.equal(overlay.data.always, undefined);
@@ -81,7 +83,7 @@ try {
   assert.equal(composedOverlay.role, undefined);
   assert.equal(composedOverlay.startFrom, undefined);
 
-  // 4. maplat: label最小出力 + settingFilePrefix
+  // 4. maplat(旧保存形 mapID=slug): mapUidへ受容 + label最小出力 + settingFilePrefix
   const maplat = normalizeAppSource({
     sourceType: 'maplat',
     mapID: 'naramachi_yasui_bunko',
@@ -89,12 +91,33 @@ try {
     data: { compiled: { wh: [100, 100] }, gcps: [] },
   });
   assert.equal(maplat.sourceType, 'maplat');
+  assert.equal(maplat.mapUid, 'naramachi_yasui_bunko');
   const composedMaplat = composeViewerSource(maplat);
   assert.deepEqual(Object.keys(composedMaplat).sort(), ['label', 'mapID']);
   assert.deepEqual(composedMaplat.label, { ja: '享保頃', en: '173X' });
   const composedPreview = composeViewerSource(maplat, { settingFilePrefix: 'maps/' });
   assert.equal(composedPreview.settingFile, 'maps/naramachi_yasui_bunko.json');
   assert.equal(composedPreview.maptype, 'maplat');
+
+  // 4b. maplat(新形 mapUid=uid参照): Viewer出力は解決済みslug(maplatMapID)で書かれる (ADR-0007)
+  const maplatByUid = normalizeAppSource({
+    sourceType: 'maplat',
+    mapUid: '9b2b6f6e-3c1d-4e5a-8f00-1234567890ab',
+    mapSlug: 'naramachi_yasui_bunko',
+    label: { ja: '享保頃' },
+    startFrom: true,
+  });
+  assert.equal(maplatByUid.mapUid, '9b2b6f6e-3c1d-4e5a-8f00-1234567890ab');
+  assert.equal(maplatByUid.mapSlug, 'naramachi_yasui_bunko');
+  const composedByUid = composeViewerSource(maplatByUid, {
+    settingFilePrefix: 'maps/',
+    maplatMapID: 'naramachi_yasui_bunko',
+  });
+  assert.equal(composedByUid.mapID, 'naramachi_yasui_bunko');
+  assert.equal(composedByUid.settingFile, 'maps/naramachi_yasui_bunko.json');
+  // 内部参照キー(mapUid/mapSlug)はViewer出力に漏れない
+  assert.equal(composedByUid.mapUid, undefined);
+  assert.equal(composedByUid.mapSlug, undefined);
 
   // 5. bbox ⇄ envelope
   assert.deepEqual(bboxToEnvelope([139, 35, 140, 36]), [

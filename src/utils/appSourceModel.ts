@@ -25,6 +25,10 @@ const EDITOR_ONLY_KEYS = new Set([
   "previewDisabledReason",
   "_id",
   "status",
+  // uid正準の内部参照/表示用slugはEditor管理 (ADR-0007)。Viewer出力のmapIDは
+  // composeViewerSourceが解決済みslug(または埋め込みid)で明示的に出力する
+  "mapUid",
+  "mapSlug",
 ]);
 
 // core側 normalizeArg はsnake_case等の旧キーを例外送出で拒否するため、
@@ -92,12 +96,16 @@ export function stripEditorKeys(data: Record<string, unknown>): Record<string, u
 
 export interface AppSource {
   sourceType: SourceKind;
-  mapID: string;
+  // 地図参照 (ADR-0007):
+  // - maplat: 登録地図の Asset UID (旧保存形は slug。読込時に main 側で uid へ解決される)
+  // - builtin/tms: ビルトインID/TMS地図ID をそのまま保持 (base map の uid 化は Task 7)
+  mapUid: string;
   role: SourceRole;
   startFrom?: boolean;
   label?: Record<string, string>;
   data?: Record<string, any>; // tmsのみ: Viewerに渡る設定(camelCase)
   title?: string; // Editor表示専用(出力しない)
+  mapSlug?: string; // maplatのみ: Editor表示用slug(読込時に解決。Viewer出力しない)
 }
 
 export function compactLangObject(
@@ -126,18 +134,19 @@ function pickLabel(raw: any, data: Record<string, any>): Record<string, string> 
   return { ...candidate };
 }
 
-// 任意の保存形(レガシー文字列 / 旧AppEdit形 / 新形) → AppSource
+// 任意の保存形(レガシー文字列 / 旧AppEdit形(mapID) / 新形(mapUid)) → AppSource
 export function normalizeAppSource(raw: any): AppSource {
   if (typeof raw === "string") {
     if (isViewerBuiltin(raw)) {
-      return { sourceType: "builtin", mapID: raw, role: "base" };
+      return { sourceType: "builtin", mapUid: raw, role: "base" };
     }
-    return { sourceType: "tms", mapID: raw, role: "base", data: {} };
+    return { sourceType: "tms", mapUid: raw, role: "base", data: {} };
   }
 
   const rawData = raw?.data && typeof raw.data === "object" ? raw.data : raw;
   const data = stripEditorKeys(normalizeRuntimeKeys({ ...(rawData || {}) })) as Record<string, any>;
-  const mapID = raw?.mapID || data.mapID || "";
+  // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (ADR-0007)
+  const mapRef = raw?.mapUid || raw?.mapID || data.mapID || "";
   const maptype = raw?.maptype ?? data.maptype;
 
   const isMaplat =
@@ -149,18 +158,19 @@ export function normalizeAppSource(raw: any): AppSource {
   if (isMaplat) {
     return {
       sourceType: "maplat",
-      mapID,
+      mapUid: mapRef,
       role: "maplat",
       startFrom: Boolean(raw?.startFrom),
       label: pickLabel(raw, data),
       title: typeof raw?.title === "string" ? raw.title : undefined,
+      mapSlug: typeof raw?.mapSlug === "string" ? raw.mapSlug : undefined,
     };
   }
 
-  if (isViewerBuiltin(mapID) && isBaseLikeMaptype(maptype)) {
+  if (isViewerBuiltin(mapRef) && isBaseLikeMaptype(maptype)) {
     return {
       sourceType: "builtin",
-      mapID,
+      mapUid: mapRef,
       role: "base",
       startFrom: Boolean(raw?.startFrom),
     };
@@ -174,7 +184,7 @@ export function normalizeAppSource(raw: any): AppSource {
   delete data.maptype;
   return {
     sourceType: "tms",
-    mapID,
+    mapUid: mapRef,
     role,
     startFrom: Boolean(raw?.startFrom),
     label,
@@ -191,19 +201,22 @@ function pruneEmpty(data: Record<string, unknown>): Record<string, unknown> {
 
 // AppSource → Viewer出力(アプリJSON sources要素)
 // builtin=文字列 / maplat={mapID,label(+settingFile)} / tms=data展開+maptype
+// maplatMapID: maplatソースのViewer向けmapID(=slug)。uid参照の呼び出し側が
+// uid→slug解決して渡す (ADR-0007: viewer互換)。未指定時はmapUid値をそのまま使う
 export function composeViewerSource(
   source: AppSource,
-  options: { settingFilePrefix?: string; lang?: string } = {},
+  options: { settingFilePrefix?: string; lang?: string; maplatMapID?: string } = {},
 ): string | Record<string, unknown> {
-  if (source.sourceType === "builtin") return source.mapID;
+  if (source.sourceType === "builtin") return source.mapUid;
 
   if (source.sourceType === "maplat") {
-    const out: Record<string, unknown> = { mapID: source.mapID };
+    const viewerMapID = options.maplatMapID ?? source.mapUid;
+    const out: Record<string, unknown> = { mapID: viewerMapID };
     const label = compactLangObject(source.label, options.lang);
     if (label) out.label = label;
     if (options.settingFilePrefix !== undefined) {
       out.maptype = "maplat";
-      out.settingFile = `${options.settingFilePrefix}${source.mapID}.json`;
+      out.settingFile = `${options.settingFilePrefix}${viewerMapID}.json`;
     }
     return out;
   }
@@ -216,7 +229,7 @@ export function composeViewerSource(
   delete data.coverageLngLats;
   const out: Record<string, unknown> = {
     ...data,
-    mapID: source.mapID,
+    mapID: source.mapUid,
     maptype: source.role === "overlay" ? "overlay" : "base",
   };
   const label = compactLangObject(source.label, options.lang);

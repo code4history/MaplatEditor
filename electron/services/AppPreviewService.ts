@@ -8,7 +8,7 @@ import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset } from '../utils/resourceAssets';
-import { composeViewerSource, normalizeAppSource } from '../../src/utils/appSourceModel';
+import { composeViewerSource, normalizeAppSource, type AppSource } from '../../src/utils/appSourceModel';
 
 type PreviewSession = {
   token: string;
@@ -113,16 +113,20 @@ class AppPreviewService {
   private async createSession(token: string, document: any): Promise<PreviewSession> {
     const maps: Record<string, any> = {};
     const documentLang = document.lang || 'ja';
-    const sources = await Promise.all((document.sources || []).map(async (raw: any) => {
-      const source = normalizeAppSource(raw);
+    const normalizedSources: AppSource[] = (Array.isArray(document.sources) ? document.sources : [])
+      .map((raw: any) => normalizeAppSource(raw));
+    const entries = await Promise.all(normalizedSources.map(async (source: AppSource) => {
       if (source.sourceType === 'maplat') {
-        const preview = await MapEditService.requestPreviewSource(source.mapID);
-        const label = source.label || preview.title || source.mapID;
+        // uid正準参照 (ADR-0007)。旧保存形のslug参照もrequestPreviewSourceが解決する。
+        // Viewer向けmapID(maps/{...}.json のキー)は解決済みslug
+        const preview = await MapEditService.requestPreviewSource(source.mapUid);
+        const viewerMapID = String(preview.mapID || source.mapUid);
+        const label = source.label || preview.title || viewerMapID;
         // サムネイル実体はuidパス (ADR-0007)。preview serverの tmbs/ 経路で配信される
-        const thumbnail = `tmbs/${preview.uid || source.mapID}.jpg`;
-        maps[source.mapID] = this.toHttpAsset(normalizeRuntimeKeys({
+        const thumbnail = `tmbs/${preview.uid || viewerMapID}.jpg`;
+        maps[viewerMapID] = this.toHttpAsset(normalizeRuntimeKeys({
           ...preview,
-          mapID: source.mapID,
+          mapID: viewerMapID,
           maptype: 'maplat',
           label,
           title: preview.title || label,
@@ -130,13 +134,22 @@ class AppPreviewService {
           url: preview.url || preview.url_,
           pois: preview.pois,
         }));
-        const composed = composeViewerSource(source, { settingFilePrefix: 'maps/', lang: documentLang }) as Record<string, unknown>;
+        const composed = composeViewerSource(source, {
+          settingFilePrefix: 'maps/',
+          lang: documentLang,
+          maplatMapID: viewerMapID,
+        }) as Record<string, unknown>;
         composed.thumbnail = thumbnail;
-        return composed;
+        return { source, viewerMapID, composed };
       }
       // builtin → 素の文字列 / tms → Editor専用キー除去済みオブジェクト
-      return composeViewerSource(source, { lang: documentLang });
+      return { source, viewerMapID: source.mapUid, composed: composeViewerSource(source, { lang: documentLang }) };
     }));
+    // startFromはViewer向けmapIDで渡す。document.startFromはuid(新形)/slug(旧形)のどちらもあり得る
+    const startEntry =
+      entries.find((entry) => entry.source.startFrom) ??
+      entries.find((entry) =>
+        entry.source.mapUid === document.startFrom || entry.source.mapSlug === document.startFrom);
     const app = this.toHttpAsset(normalizeRuntimeKeys({
       appName: document.appName || document.title,
       title: document.title || document.appName,
@@ -148,8 +161,8 @@ class AppPreviewService {
         finiteOr(document.appSettings?.homeLat, 35.681),
       ],
       defaultZoom: Number(document.appSettings?.defaultZoom || 10),
-      startFrom: document.startFrom || document.sources?.find((source: any) => source.startFrom)?.mapID,
-      sources,
+      startFrom: startEntry ? startEntry.viewerMapID : document.startFrom,
+      sources: entries.map((entry) => entry.composed),
       pois: normalizeJsonArray(document.pois || document.poiSources),
     }));
     return { token, app, maps, manifest: this.createManifest(document), viewerOption: this.createViewerOption(token, document) };

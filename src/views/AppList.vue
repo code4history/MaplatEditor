@@ -24,9 +24,10 @@
     </div>
 
     <div class="d-flex flex-wrap justify-content-start align-items-start gap-4" style="padding-left: 5px;">
-      <div v-for="app in applist" :key="app.appID" class="app-card-wrapper">
+      <div v-for="app in applist" :key="app.uid" class="app-card-wrapper">
         <div class="app-card-inner">
-          <router-link :to="`/appedit?appid=${app.appID}`" class="text-decoration-none text-dark d-block">
+          <!-- アプリ編集はuid正準で開く (ADR-0007) -->
+          <router-link :to="`/appedit?uid=${app.uid}`" class="text-decoration-none text-dark d-block">
             <div class="position-relative bg-white app-image">
               <img
                 :src="app.image || noImage"
@@ -72,6 +73,7 @@ const { t } = useTranslation();
 const router = useRouter();
 
 interface AppItem {
+  uid: string;
   appID: string;
   title: string;
   image: string | null;
@@ -81,7 +83,7 @@ const applist = ref<AppItem[]>([]);
 const searchQuery = ref("");
 const currentPage = ref(1);
 const hasNext = ref(true);
-const contextMenu = ref({ visible: false, x: 0, y: 0, appID: "", name: "" });
+const contextMenu = ref({ visible: false, x: 0, y: 0, uid: "", name: "" });
 
 const loadApps = async (page: number = 1) => {
   try {
@@ -106,17 +108,18 @@ const prevPage = () => currentPage.value > 1 && loadApps(currentPage.value - 1);
 const nextPage = () => hasNext.value && loadApps(currentPage.value + 1);
 
 const openContextMenu = (event: MouseEvent, app: AppItem) => {
-  contextMenu.value = { visible: true, x: event.clientX, y: event.clientY, appID: app.appID, name: app.title };
+  contextMenu.value = { visible: true, x: event.clientX, y: event.clientY, uid: app.uid, name: app.title };
 };
 const hideContextMenu = () => {
   contextMenu.value.visible = false;
 };
 const deleteApp = async () => {
-  const { appID, name } = contextMenu.value;
+  const { uid, name } = contextMenu.value;
   hideContextMenu();
   if (!confirm(t("applist.delete_confirm", { name }))) return;
   try {
-    const result = await window.applist.delete(appID, searchQuery.value, currentPage.value);
+    // 削除もuid正準 (ADR-0007)
+    const result = await window.applist.delete(uid, searchQuery.value, currentPage.value);
     applist.value = result.docs;
     currentPage.value = result.pageUpdate ?? currentPage.value;
     hasNext.value = result.next;

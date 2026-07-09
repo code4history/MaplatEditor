@@ -56,8 +56,7 @@ interface ManifestSettings {
 }
 
 interface AppDocument {
-  appID: string;
-  originalAppID?: string;
+  appID: string; // slug編集欄の値 (ADR-0007: 正本キーはappUid)
   appName: Record<string, string>;
   title: Record<string, string>;
   description: Record<string, string>;
@@ -77,7 +76,8 @@ interface AppDocument {
 }
 
 interface MapListItem {
-  mapID: string;
+  uid: string; // Asset UID: sources参照の正本キー (ADR-0007)
+  mapID: string; // slug (表示用)
   title: string;
   image: string | null;
   previewDisabled?: boolean;
@@ -156,6 +156,13 @@ const originalAppData = ref<AppDocument>(defaultApp());
 const activeTab = ref<"metadata" | "sources" | "preview">("metadata");
 const sourceListMode = ref<"maps" | "baseMaps">("maps");
 const currentLang = ref<LangCode>("ja");
+// uid: 不変の正本キー (ADR-0007)。null = 未保存の新規アプリ
+const appUid = ref<string | null>(null);
+// revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
+const revision = ref<number | undefined>(undefined);
+// confirmedSlug: 現在DBに永続化されているslug。appID欄がこの値に戻ったら再チェック不要
+const confirmedSlug = ref<string | undefined>(undefined);
+// onlyOne: slugの一意性確認済みか (ADR-0007: appID欄は既存アプリでも編集可のslug欄)
 const onlyOne = ref(false);
 const appIDError = ref("appedit.check_uniqueness");
 const saveError = ref<string | null>(null);
@@ -210,12 +217,15 @@ const filteredMapItems = computed(() => {
 });
 
 onMounted(async () => {
-  const appID = typeof route.query.appid === "string" ? route.query.appid : "";
-  if (appID) {
-    const loaded = await window.appedit.request(appID);
+  // アプリ編集はuid正準で開く (ADR-0007): /appedit?uid=<uid>。uid未指定は新規作成
+  const uid = typeof route.query.uid === "string" ? route.query.uid : "";
+  if (uid) {
+    const loaded = await window.appedit.request(uid);
     if (loaded) {
       appData.value = normalizeAppDocument(loaded);
-      appData.value.originalAppID = appID;
+      appUid.value = loaded.uid ?? uid;
+      revision.value = loaded.revision;
+      confirmedSlug.value = appData.value.appID;
       onlyOne.value = true;
       appIDError.value = "";
     }
@@ -311,7 +321,7 @@ async function resolveMaplatFallbackCenter(): Promise<[number, number] | undefin
     .sort((a, b) => Number(b.startFrom || false) - Number(a.startFrom || false));
   for (const source of maplatSources) {
     try {
-      const mapDoc = await window.mapedit.request(source.mapID);
+      const mapDoc = await window.mapedit.request(source.mapUid);
       const home = mapDoc?.homePosition;
       if (Array.isArray(home) && Number.isFinite(home[0]) && Number.isFinite(home[1])) {
         return [home[0], home[1]];
@@ -329,13 +339,14 @@ function applyHomePosition(value: [number, number] | null) {
   recordHistory();
 }
 
-// 保存済みアプリのソースにUI表示用サムネイルURLを補完する
+// 保存済みアプリのソースにUI表示用サムネイルURLを補完する。
+// maplatのサムネイル実体はuidパス tmbs/{uid}.jpg (ADR-0007)
 async function hydrateSourceThumbnails() {
   for (const source of appData.value.sources) {
     if (source.thumbnail || source.sourceType === "builtin") continue;
     const rel = source.sourceType === "maplat"
-      ? `tmbs/${source.mapID}.jpg`
-      : String((source.data as any)?.thumbnail || `tmbs/${source.mapID}_menu.jpg`);
+      ? `tmbs/${source.mapUid}.jpg`
+      : String((source.data as any)?.thumbnail || `tmbs/${source.mapUid}_menu.jpg`);
     const url = await window.appAssets.fileUrl(rel);
     if (url) source.thumbnail = url;
   }
@@ -359,8 +370,8 @@ function cloneDocument(value: AppDocument): AppDocument {
 
 function normalizeAppDocument(value: any): AppDocument {
   const normalized = defaultApp();
-  normalized.appID = value.appID || value._id || "";
-  normalized.originalAppID = value.originalAppID || normalized.appID;
+  // appID欄はslug編集欄 (ADR-0007)
+  normalized.appID = value.appID || value.slug || value._id || "";
   normalized.lang = value.lang || "ja";
   normalized.appName = normalizeLangObject(value.appName || value.title, normalized.lang);
   normalized.title = normalizeLangObject(value.title || value.appName, normalized.lang);
@@ -402,8 +413,9 @@ function normalizeLangObject(value: any, defaultLang?: string): Record<string, s
 function normalizeSource(value: any, defaultLang?: string): AppSource {
   const source = normalizeAppSource(value) as AppSource;
   if (!source.title) {
-    const title = source.label || (source.data as any)?.title || source.mapID;
-    source.title = typeof title === "string" ? title : localizedWithLang(title, "ja") || source.mapID;
+    const fallbackID = source.mapSlug || source.mapUid;
+    const title = source.label || (source.data as any)?.title || fallbackID;
+    source.title = typeof title === "string" ? title : localizedWithLang(title, "ja") || fallbackID;
   }
   if (source.sourceType !== "builtin") {
     source.label = { ...normalizeLangObject(source.label || source.title, defaultLang) };
@@ -515,22 +527,41 @@ function performRedo() {
   historyApplying.value = false;
 }
 
+/**
+ * slug(appID欄) 一意性チェック
+ * ADR-0007: 既存アプリでは excludeUid=自分 を渡し、自分の現slugは「空き」と判定される
+ */
 async function checkOnlyOne() {
   const appID = appData.value.appID.trim();
   if (!appID) {
     appIDError.value = "appedit.no_appid";
     return;
   }
-  const available = await window.assets.checkSlug({ slug: appID });
-  appIDError.value = available || appID === appData.value.originalAppID ? "" : "appedit.duplicate_appid";
+  const available = await window.assets.checkSlug({
+    slug: appID,
+    excludeUid: appUid.value ?? undefined,
+  });
+  appIDError.value = available ? "" : "appedit.duplicate_appid";
   if (!appIDError.value) onlyOne.value = true;
 }
 
-function changeAppID() {
-  onlyOne.value = false;
-  appIDError.value = "appedit.check_uniqueness";
+// slug(appID欄)の編集を検知して一意性再チェックを要求する (ADR-0007)。
+// 永続化済みslug(confirmedSlug)に戻った場合は自分自身のslugなので確認済み扱いに復帰する
+function onAppIDInput() {
+  if (confirmedSlug.value && appData.value.appID === confirmedSlug.value) {
+    onlyOne.value = true;
+    appIDError.value = "";
+  } else {
+    onlyOne.value = false;
+    appIDError.value = "appedit.check_uniqueness";
+  }
 }
 
+/**
+ * 保存 (ADR-0007: uid正準 + revision楽観ロック)
+ * 既存アプリは uid 宛の upsert、新規は uid なしの create。
+ * revision-conflict 時は「読み直す / 上書き」ダイアログ(上書きは expectedRevision なしで再送)
+ */
 async function saveApp() {
   saveError.value = null;
   if (!appData.value.appID.trim()) {
@@ -548,24 +579,101 @@ async function saveApp() {
     saveError.value = t("appedit.invalid_json");
     return;
   }
-  document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapID || appData.value.startFrom;
+  // sources参照はuid (maplat)なので startFrom もuidで永続化する
+  document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;
   document.status = "Update";
   // 表示専用のサムネイルURL(file://)は保存しない
   document.sources.forEach((source) => {
     delete (source as any).thumbnail;
   });
-  const result = await window.appedit.save(document.appID, document);
-  if (result === "Success") {
-    appData.value = normalizeAppDocument(document);
-    appData.value.originalAppID = document.appID;
+  await performSave(document, appUid.value ?? undefined, appUid.value ? revision.value : undefined);
+}
+
+/**
+ * appedit:save の実行と結果処理 (ADR-0007)
+ * revision-conflict の「上書き」は expectedRevision なしで再送する
+ */
+async function performSave(
+  document: AppDocument,
+  uid: string | undefined,
+  expectedRevision: number | undefined,
+) {
+  const result = await window.appedit.save({
+    document: JSON.parse(JSON.stringify(document)),
+    uid,
+    slug: document.appID.trim(),
+    expectedRevision,
+  });
+
+  if (result && "error" in result && result.error === "revision-conflict") {
+    // 他ウィンドウで先に更新されている: 読み直す or 上書き
+    const conflictResult = await (window as any).dialog.showMessageBox({
+      type: "info",
+      buttons: [t("common.reload"), t("common.overwrite")],
+      cancelId: 0,
+      message: t("common.revision_conflict"),
+    });
+    if (conflictResult.response === 1) {
+      // 上書き: expectedRevision なしで再送
+      await performSave(document, uid, undefined);
+    } else {
+      // 読み直す: ローカルの編集内容を破棄して最新版を再読込
+      if (isDirty.value) {
+        const discard = await (window as any).dialog.showMessageBox({
+          type: "info",
+          buttons: ["OK", "Cancel"],
+          cancelId: 1,
+          message: t("appedit.confirm_no_save"),
+        });
+        if (discard.response !== 0) return;
+      }
+      await reloadFromStore();
+    }
+    return;
+  }
+
+  if (result && "result" in result && result.result === "Success") {
+    // 保存結果から uid/revision/slug を正本として反映
+    appUid.value = result.uid;
+    revision.value = result.revision;
+    confirmedSlug.value = result.slug;
+    appData.value = normalizeAppDocument({ ...document, appID: result.slug });
     onlyOne.value = true;
+    appIDError.value = "";
     await hydrateSourceThumbnails();
     resetHistoryBase();
+    // 新規作成でuidが確定した場合、リロード時に正しいアプリを再オープンできるよう
+    // URLのクエリを追随させる (履歴は汚さない)
+    if (route.query.uid !== result.uid) {
+      router.replace({ query: { ...route.query, uid: result.uid } });
+    }
     await (window as any).dialog.showMessageBox({ type: "info", buttons: ["OK"], message: t("appedit.success_save") });
-  } else if (result === "Exist") {
+  } else if (result && "result" in result && result.result === "Exist") {
     saveError.value = t("appedit.duplicate_appid");
   } else {
     saveError.value = t("appedit.error_saving");
+  }
+}
+
+/**
+ * revision-conflict 後の「読み直す」: 最新の保存済み状態をuidで再取得して編集状態を置き換える
+ */
+async function reloadFromStore() {
+  if (!appUid.value) return;
+  try {
+    const loaded = await window.appedit.request(appUid.value);
+    if (!loaded) return;
+    appData.value = normalizeAppDocument(loaded);
+    appUid.value = loaded.uid ?? appUid.value;
+    revision.value = loaded.revision;
+    confirmedSlug.value = appData.value.appID;
+    onlyOne.value = true;
+    appIDError.value = "";
+    currentLang.value = appData.value.lang;
+    await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
+    resetHistoryBase();
+  } catch (e) {
+    console.error("[reloadFromStore] Failed to reload app data:", e);
   }
 }
 
@@ -576,7 +684,7 @@ async function exportApp() {
   exporting.value = true;
   try {
     const document = cloneDocument(appData.value);
-    document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapID || appData.value.startFrom;
+    document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;
     (document as any).pois = JSON.parse(normalizeJsonText(document.poiSources || "[]", []));
     const result = await window.appedit.export(document);
     if (result.result === "Canceled") return;
@@ -615,10 +723,12 @@ async function addMapSource(item: MapListItem) {
     previewError.value = t(item.previewDisabledReason || "appedit.preview.unavailable");
     return;
   }
-  if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType === "maplat")) return;
+  // sources参照はuid正準 (ADR-0007)。表示用にslug(mapSlug)/titleを併せて保持する
+  if (appData.value.sources.some((source) => source.mapUid === item.uid && source.sourceType === "maplat")) return;
   appData.value.sources.push({
     sourceType: "maplat",
-    mapID: item.mapID,
+    mapUid: item.uid,
+    mapSlug: item.mapID,
     title: item.title,
     label: { ...normalizeLangObject(item.title) },
     role: "maplat",
@@ -630,12 +740,13 @@ async function addMapSource(item: MapListItem) {
 }
 
 function addBaseMapSource(item: BaseMapItem) {
-  if (appData.value.sources.some((source) => source.mapID === item.mapID && source.sourceType !== "maplat")) return;
+  // builtin/tmsの参照はビルトインID/TMS地図IDのまま (base mapのuid化はTask 7)
+  if (appData.value.sources.some((source) => source.mapUid === item.mapID && source.sourceType !== "maplat")) return;
   const title = baseMapTitle(item);
   if (isViewerBuiltin(item.mapID)) {
     appData.value.sources.push({
       sourceType: "builtin",
-      mapID: item.mapID,
+      mapUid: item.mapID,
       title,
       role: "base",
     });
@@ -678,18 +789,23 @@ function setStartFrom(source: AppSource) {
   appData.value.sources.forEach((item) => {
     item.startFrom = item === source;
   });
-  appData.value.startFrom = source.mapID;
+  appData.value.startFrom = source.mapUid;
   recordHistory();
 }
 
 function ensureSingleStartFrom() {
   const selected = appData.value.sources.find((source) => source.startFrom);
   if (!selected && appData.value.sources[0]) appData.value.sources[0].startFrom = true;
-  appData.value.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapID;
+  appData.value.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid;
 }
 
 function sourceTitle(source: AppSource): string {
-  return source.title || source.data?.title || source.mapID;
+  return source.title || source.data?.title || sourceIdLabel(source);
+}
+
+// 選択済みソースのID表示: maplatはuidではなく表示用slugを出す (ADR-0007)
+function sourceIdLabel(source: AppSource): string {
+  return source.sourceType === "maplat" ? source.mapSlug || source.mapUid : source.mapUid;
 }
 
 function baseMapTitle(item: BaseMapItem): string {
@@ -701,7 +817,7 @@ function baseMapThumbnail(item: BaseMapItem): string {
 }
 
 function sourceThumbnail(source: AppSource): string {
-  if (source.sourceType === "builtin") return builtinThumbnails[source.mapID] || noImage;
+  if (source.sourceType === "builtin") return builtinThumbnails[source.mapUid] || noImage;
   return source.thumbnail || noImage;
 }
 
@@ -817,6 +933,7 @@ function normalizeJsonText(value: string, fallback: any) {
       <div v-show="activeTab === 'metadata'" class="h-100 overflow-auto p-3">
         <form class="container-fluid" @submit.prevent>
           <div class="row g-1 mb-2">
+            <!-- App ID フィールド: slug編集欄 (ADR-0007: 既存アプリでも編集可、変更時は一意性再チェック) -->
             <div class="col-md-3" :class="appIDError && appIDError !== 'appedit.check_uniqueness' ? 'has-error' : ''">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.appid") }}</label>
               <input
@@ -824,9 +941,8 @@ function normalizeJsonText(value: string, fallback: any) {
                 type="text"
                 class="form-control form-control-sm"
                 :class="appIDError && appIDError !== 'appedit.check_uniqueness' ? 'is-invalid' : ''"
-                :disabled="onlyOne"
                 :placeholder="t('appedit.input_appid')"
-                @input="appIDError = 'appedit.check_uniqueness'; recordHistory()"
+                @input="onAppIDInput(); recordHistory()"
               />
               <div v-if="appIDError" class="form-text small text-danger mb-0" style="font-size: 0.75rem;">
                 {{ t(appIDError) }}
@@ -834,10 +950,8 @@ function normalizeJsonText(value: string, fallback: any) {
               <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.unique_appid") }}</div>
             </div>
             <div class="col-md-2 d-flex align-items-start pt-4">
-              <button v-if="onlyOne" class="btn btn-danger btn-sm w-100 mt-1" @click="changeAppID">
-                {{ t("appedit.change_appid") }}
-              </button>
-              <button v-else class="btn btn-secondary btn-sm w-100 mt-1" @click="checkOnlyOne">
+              <!-- 一意性チェックボタン: 確認済み(onlyOne)の間は無効化 (ADR-0007) -->
+              <button class="btn btn-secondary btn-sm w-100 mt-1" :disabled="onlyOne" @click="checkOnlyOne">
                 {{ t("appedit.uniqueness_button") }}
               </button>
             </div>
@@ -1060,13 +1174,13 @@ function normalizeJsonText(value: string, fallback: any) {
           <h5>{{ t("appedit.selected_sources") }}</h5>
           <div v-if="appData.sources.length === 0" class="text-muted py-3">{{ t("appedit.no_selected_sources") }}</div>
           <div v-else class="selected-list">
-            <div v-for="(source, index) in appData.sources" :key="`${source.sourceType}:${source.mapID}`" class="selected-source border rounded p-2 mb-2">
+            <div v-for="(source, index) in appData.sources" :key="`${source.sourceType}:${source.mapUid}`" class="selected-source border rounded p-2 mb-2">
               <div class="d-flex align-items-center justify-content-between gap-2">
                 <div class="d-flex align-items-center gap-2">
                   <img :src="sourceThumbnail(source)" :alt="sourceTitle(source)" class="selected-source-thumb">
                   <div>
                     <div class="fw-bold">{{ sourceTitle(source) }}</div>
-                    <small class="text-muted">{{ source.mapID }} / {{ t(`appedit.roles.${source.role}`) }}</small>
+                    <small class="text-muted">{{ sourceIdLabel(source) }} / {{ t(`appedit.roles.${source.role}`) }}</small>
                   </div>
                 </div>
                 <div class="btn-group btn-group-sm">

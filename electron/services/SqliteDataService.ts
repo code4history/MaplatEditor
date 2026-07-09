@@ -792,28 +792,6 @@ class SqliteDataService {
     });
   }
 
-  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
-  async upsertAppBySlug(slug: string, document: any): Promise<{ uid: string; revision: number }> {
-    const existing = await this.findAppBySlug(slug);
-    if (existing) {
-      const { revision } = await this.upsertApp(existing.uid, slug, document);
-      return { uid: existing.uid, revision };
-    }
-    const { uid } = await this.createApp(slug, document);
-    return { uid, revision: 1 };
-  }
-
-  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
-  async deleteAppBySlug(slug: string): Promise<void> {
-    const existing = await this.findAppBySlug(slug);
-    if (existing) await this.deleteApp(existing.uid);
-  }
-
-  // 互換ラッパー: Phase1 Task5-7 で呼び出し側を uid 化した後に撤去 (plan 2026-07-08)
-  async isAppIdAvailable(appID: string): Promise<boolean> {
-    return this.isSlugAvailable(appID);
-  }
-
   async readAllApps(): Promise<any[]> {
     const db = await this.getDb();
     const rows = db

@@ -16,13 +16,27 @@ export interface AppDraftAPI {
 
 export interface AppListAPI {
     request(query?: string, page?: number, pageSize?: number): Promise<any>;
-    delete(appID: string, condition: string, page: number): Promise<any>;
+    delete(uid: string, condition: string, page: number): Promise<any>;
     onRefresh(listener: () => void): () => void;
 }
 
+// uid正準のアプリ保存要求/結果 (ADR-0007)。uid無指定は新規作成
+export interface AppSavePayload {
+    document: any;
+    uid?: string;
+    slug: string;
+    expectedRevision?: number;
+}
+
+export type AppSaveResult =
+    | { result: 'Success'; uid: string; slug: string; revision: number }
+    | { result: 'Exist' }
+    | { result: 'Error' }
+    | { error: 'revision-conflict'; current: number };
+
 export interface AppEditAPI {
-    request(appID: string): Promise<any>;
-    save(appID: string, document: any): Promise<any>;
+    request(uid: string): Promise<any>;
+    save(payload: AppSavePayload): Promise<AppSaveResult>;
     preparePreview(document: any): Promise<{ url: string; port: number }>;
     export(document: any): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
 }

@@ -8,19 +8,22 @@ export function registerAppHandlers() {
     return await AppDataService.requestApps(query, page, pageSize);
   });
 
-  ipcMain.handle('applist:delete', async (_event, appID: string, condition: string, page: number) => {
-    await AppDataService.deleteApp(appID);
+  // 削除はuid正準 (ADR-0007)
+  ipcMain.handle('applist:delete', async (_event, uid: string, condition: string, page: number) => {
+    await AppDataService.deleteApp(uid);
     return await AppDataService.requestApps(condition, page);
   });
 
-  ipcMain.handle('appedit:request', async (_event, appID: string) => {
-    return await AppDataService.getApp(appID);
+  // uid正準の読み出し (ADR-0007)。旧経路への保険としてslugでも解決される
+  ipcMain.handle('appedit:request', async (_event, uidOrSlug: string) => {
+    return await AppDataService.getApp(uidOrSlug);
   });
 
-  ipcMain.handle('appedit:save', async (_event, appID: string, document: any) => {
+  // payload: { document, uid?, slug, expectedRevision? } (ADR-0007)
+  ipcMain.handle('appedit:save', async (_event, payload: any) => {
     try {
-      const result = await AppDataService.saveApp(appID, document);
-      if (result === 'Success') {
+      const result = await AppDataService.saveApp(payload);
+      if (result && 'result' in result && result.result === 'Success') {
         BrowserWindow.getAllWindows().forEach(win => {
           win.webContents.send('applist:refresh');
         });
@@ -28,7 +31,7 @@ export function registerAppHandlers() {
       return result;
     } catch (e) {
       console.error('Failed to handle appedit:save', e);
-      return 'Error';
+      return { result: 'Error' };
     }
   });
 

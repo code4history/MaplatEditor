@@ -88,7 +88,8 @@ function onEnvelopeUpdate(value: [number, number][] | null) {
 
 async function uploadThumbnail() {
   uploadError.value = null;
-  const result = await window.appAssets.uploadTmsThumbnail(props.source.mapID);
+  // tmsソースのmapUidはTMS地図ID(サムネイルはtmbs/{id}_menu.jpg命名、Task 7でuid化)
+  const result = await window.appAssets.uploadTmsThumbnail(props.source.mapUid);
   if (result.err === "Canceled") return;
   if (result.err) {
     uploadError.value = t("appedit.error_invalid_image");
