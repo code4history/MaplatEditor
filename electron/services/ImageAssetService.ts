@@ -12,7 +12,7 @@
 import path from 'node:path';
 import fs from 'fs-extra';
 import { Jimp } from 'jimp';
-import SqliteDataService, { RevisionConflictError, type AssetRecord } from './SqliteDataService';
+import SqliteDataService, { RevisionConflictError, AssetNotFoundError, type AssetRecord } from './SqliteDataService';
 import SettingsService from './SettingsService';
 import { normalizeLangResource, type LangResource } from '../../src/utils/langResource';
 
@@ -85,12 +85,15 @@ export class ImageAssetService {
     };
   }
 
-  // registerAsset/renameAssetSlug の slug 衝突(レースで先取り)を 'Exist' に写像
-  // (PoiSourceService.mapWriteError と同機構)。asset は upsert-as-insert のみで
-  // not-found ガードを持たないため、ここでは revision-conflict / slug衝突 / internal のみ扱う
+  // registerAsset/renameAssetSlug の slug 衝突(レースで先取り)を 'Exist' に、rename の事前チェックと
+  // 書込の間に並行 delete が挟まった upsert (AssetNotFoundError) を Error{code:'not-found'} に写像
+  // (PoiSourceService.mapWriteError と同機構 — 削除済みアセットを復活させない)
   private mapWriteError(e: any): ImageAssetSaveResult {
     if (e instanceof RevisionConflictError) {
       return { error: 'revision-conflict', current: e.current };
+    }
+    if (e instanceof AssetNotFoundError) {
+      return { result: 'Error', code: 'not-found', message: e.message };
     }
     if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
       return { result: 'Exist' };

@@ -76,6 +76,16 @@ export class PoiSourceNotFoundError extends Error {
   }
 }
 
+// upsertAssetMeta の同型ガード: ImageAssetService.rename の事前チェックと書込の間に並行 delete が
+// 挟まった場合、INSERT で復活 (revision=1 + registry slug 再占有) させず not-found として失敗させる
+export class AssetNotFoundError extends Error {
+  readonly kind = 'asset-not-found';
+  constructor(uid: string) {
+    super(`Asset not found: ${uid}`);
+    this.name = 'AssetNotFoundError';
+  }
+}
+
 interface Folders {
   saveFolder: string;
   settingsDir: string;
@@ -1365,12 +1375,11 @@ class SqliteDataService {
     return this.withTransaction(db, () => {
       const existing = db.prepare('SELECT slug, revision FROM assets WHERE uid = ?').get(uid) as any;
       if (!existing) {
-        this.registerAsset(db, 'asset', uid, slug);
-        db.prepare(
-          `INSERT INTO assets (uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))`
-        ).run(uid, slug, JSON.stringify(input.title), input.mime, input.ext, input.width ?? null, input.height ?? null, input.byteSize);
-        return 1;
+        // アセットの新規作成は createAsset 経由のみ。ここに来るのは read-then-write の間に
+        // 並行 delete が挟まった race だけなので、INSERT で復活させず not-found として失敗させる
+        // (upsertPoiSourceRow と同じガード: 復活を許すと削除済みアセットが revision=1 で再登場し
+        // registry slug も再占有される)
+        throw new AssetNotFoundError(uid);
       }
       const currentRevision = Number(existing.revision);
       if (expectedRevision != null && currentRevision !== expectedRevision) {

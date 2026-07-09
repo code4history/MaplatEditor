@@ -13,6 +13,9 @@
 //   (g) rename: 正常系 → revision++ / registry 同期(旧slug解放・新slugで解決可能)
 //   (h) getFilePath: 実在ファイルは file:// URL を返す
 //   (i) delete: 本体・registry 掃除 / ファイルは削除でなく _trash へ退避 / 旧slugは再利用可能
+//   (j) delete-race: rename の事前チェック(findAsset/isSlugAvailable)と書込の間に並行 delete →
+//       復活 (revision=1 再INSERT + registry slug 再占有) せず Error{code:'not-found'}、slug は解放のまま
+//       (m9-t3 の l4 と同機構: upsertAssetRow の not-found ガード)
 import { mkdtemp, rm, writeFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -212,6 +215,34 @@ try {
       const reAdded = await imageAssetService.add({ slug: 'crimson-swatch', title: '再利用', sourcePath: pngPath });
       assert.equal(reAdded.result, 'Success', '解放された slug は再利用できるはず: ' + JSON.stringify(reAdded));
       console.log('ok: (i) delete moves the file to _trash and frees the slug');
+
+      // (j) delete-race: rename の事前チェック(findAsset → isSlugAvailable)が通過した後、
+      // 書込 (upsertAssetMeta) の前に並行 delete が挟まる状況を isSlugAvailable のフックで再現する。
+      // 旧実装 (upsertAssetRow の行不在時 INSERT) では削除済みアセットが revision=1 で復活し
+      // registry slug を再占有していた — not-found ガードがそれを封鎖することを確認する
+      const raceUid = reAdded.uid;
+      const origIsSlugAvailable = SqliteDataService.isSlugAvailable.bind(SqliteDataService);
+      let raceArmed = true;
+      (SqliteDataService as any).isSlugAvailable = async (slug: string, excludeUid?: string) => {
+        const available = await origIsSlugAvailable(slug, excludeUid);
+        if (raceArmed) {
+          raceArmed = false;
+          await imageAssetService.delete(raceUid);
+        }
+        return available;
+      };
+      let raceRename: any;
+      try {
+        raceRename = await imageAssetService.rename(raceUid, { slug: 'race-renamed', title: 'レース', expectedRevision: 1 });
+      } finally {
+        delete (SqliteDataService as any).isSlugAvailable;
+      }
+      assert.equal(raceRename.result, 'Error', '並行 delete 後の rename は Error のはず: ' + JSON.stringify(raceRename));
+      assert.equal(raceRename.code, 'not-found', '並行 delete は code not-found のはず');
+      assert.equal(await SqliteDataService.findAsset(raceUid), null, '削除済みアセットが復活しないはず');
+      assert.equal(await SqliteDataService.isSlugAvailable('race-renamed'), true, '改名先 slug が registry を再占有しないはず');
+      assert.equal(await SqliteDataService.isSlugAvailable('crimson-swatch'), true, '旧 slug も解放のままのはず');
+      console.log('ok: (j) delete during rename does not resurrect the asset');
 
       console.log('M9-T4 image asset smoke passed');
       process.exit(0);
