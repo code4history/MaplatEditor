@@ -7,10 +7,17 @@ import type { Feature, FeatureCollection, Point, Position } from "geojson";
 import {
   type LangResource,
   compactLangResource,
+  normalizeLangResource,
 } from "./langResource";
 
-// POI editor の default 言語。title は交換形へ collapse する際にこの言語のみなら string 化する。
+// POI editor の default 言語 (ADR-0005 既定)。title / feature の LangResource フィールドを
+// 交換形へ collapse する際にこの言語のみなら string 化する。各公開関数は optional な
+// defaultLang 引数でこの既定を上書きできる。
 const DEFAULT_LANG = "ja";
+
+// ADR-0005 の LangResource を適用する feature property (POI-135)。viewer が translate() を
+// 通すフィールド。image / icon は LangResource ではないので対象外。
+const LANG_FIELDS = ["name", "desc", "html", "address", "url"] as const;
 
 // 表示 ID (Feature.id) の文字種: slug と同じ (POI-140)。viewer の namespaceID が {mapID}#{id}
 // 結合のため # 等を許すと壊れる。
@@ -54,6 +61,59 @@ function mintUid(): string {
 // _maplat* プレフィックスの内部 property かどうか。
 function isInternalProp(key: string): boolean {
   return key.startsWith("_maplat");
+}
+
+// 表示 ID (Feature.id) の型正規化。GeoJSON は数値 id を許容し参照実装 (MaplatCore
+// normalize_pois) も型を問わずコピーするため、有限数値は String 化して尊重する (Important #3)。
+// 文字列・有限数値以外は欠落 ("") 扱い。
+function coerceDisplayId(id: unknown): string {
+  if (typeof id === "string") return id;
+  if (typeof id === "number" && Number.isFinite(id)) return String(id);
+  return "";
+}
+
+// LangResource フィールドを内部形 {lang: text} へ (POI-135)。数値は String 化してから正規化する
+// (name:5 が「欠落」でなく "5" になる)。normalizeLangResource は空エントリを除去する。
+function toInternalLang(
+  value: unknown,
+  defaultLang: string,
+): Record<string, string> {
+  const coerced =
+    typeof value === "number" && Number.isFinite(value) ? String(value) : value;
+  return normalizeLangResource(
+    coerced as LangResource | null | undefined,
+    defaultLang,
+  );
+}
+
+// props 内の LangResource フィールド (存在するもの) を内部形へ正規化する (in-place)。
+function internalizeLangFields(
+  props: Record<string, unknown>,
+  defaultLang: string,
+): void {
+  for (const key of LANG_FIELDS) {
+    if (props[key] !== undefined) {
+      props[key] = toInternalLang(props[key], defaultLang);
+    }
+  }
+}
+
+// props 内の LangResource フィールドを交換形へ collapse する (in-place)。
+// default 言語のみ→string / 複数言語→object / 空→フィールド削除 (ADR-0005)。
+function externalizeLangFields(
+  props: Record<string, unknown>,
+  defaultLang: string,
+): void {
+  for (const key of LANG_FIELDS) {
+    if (props[key] !== undefined) {
+      const compacted = compactLangResource(
+        props[key] as LangResource,
+        defaultLang,
+      );
+      if (compacted === undefined) delete props[key];
+      else props[key] = compacted;
+    }
+  }
 }
 
 // feature が「コンテンツ」(desc/html/address/url/image のいずれか非空) を持つか (POI-108)。
@@ -102,6 +162,7 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
 
   const seenIds = new Set<string>();
   const dupReported = new Set<string>();
+  const charsetReported = new Set<string>();
   let anyContent = false;
 
   for (const raw of features) {
@@ -109,7 +170,7 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
       issues.push({ level: "error", code: "geometry-not-point" });
       continue;
     }
-    const id = typeof raw.id === "string" ? raw.id : String(raw.id ?? "");
+    const id = coerceDisplayId(raw.id);
     const props = isRecord(raw.properties) ? raw.properties : {};
 
     // geometry: Point のみ (POI-104)
@@ -121,9 +182,11 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
       const coords = geometry.coordinates;
       if (Array.isArray(coords) && coords.length >= 2) {
         const [lon, lat] = coords as number[];
+        // Number.isFinite は非 number / NaN / ±Infinity を全て false にする。NaN は全比較が
+        // false になり範囲チェックを素通りするため、有限性ガードで捕捉する (Important #1)。
         if (
-          typeof lon !== "number" ||
-          typeof lat !== "number" ||
+          !Number.isFinite(lon) ||
+          !Number.isFinite(lat) ||
           lon < -180 ||
           lon > 180 ||
           lat < -90 ||
@@ -155,12 +218,13 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
       } else {
         seenIds.add(id);
       }
-      if (!DISPLAY_ID_PATTERN.test(id)) {
+      if (!DISPLAY_ID_PATTERN.test(id) && !charsetReported.has(id)) {
         issues.push({
           level: "error",
           code: "display-id-charset",
           featureId: id,
         });
+        charsetReported.add(id);
       }
     }
 
@@ -196,11 +260,13 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
 // ただし既に id を持つ旧オブジェクトはその id を維持する。
 export function normalizeLegacyPoi(
   obj: Record<string, unknown>,
+  defaultLang: string = DEFAULT_LANG,
 ): PoiEditorFeature {
   // 既に GeoJSON Feature ならほぼ pass-through (properties 保持)
   if (obj.type === "Feature" && isRecord(obj.geometry)) {
     const props = isRecord(obj.properties) ? { ...obj.properties } : {};
-    const id = typeof obj.id === "string" ? obj.id : "";
+    internalizeLangFields(props, defaultLang);
+    const id = coerceDisplayId(obj.id);
     return {
       type: "Feature",
       id,
@@ -222,8 +288,9 @@ export function normalizeLegacyPoi(
   for (const key of ["name", "desc", "html", "address", "url", "image", "icon"]) {
     if (obj[key] !== undefined) props[key] = obj[key];
   }
+  internalizeLangFields(props, defaultLang);
 
-  const id = typeof obj.id === "string" ? obj.id : "";
+  const id = coerceDisplayId(obj.id);
 
   return {
     type: "Feature",
@@ -235,7 +302,10 @@ export function normalizeLegacyPoi(
 
 // 配列 / FeatureCollection / 単体 (旧オブジェクト or Feature) を受容し内部形 Feature[] を返す。
 // FC の非 Point feature は drop せず geometry を保持したまま返す (caller が validate で拒否する)。
-export function normalizeLegacyPoiList(input: unknown): PoiEditorFeature[] {
+export function normalizeLegacyPoiList(
+  input: unknown,
+  defaultLang: string = DEFAULT_LANG,
+): PoiEditorFeature[] {
   if (input === null || input === undefined) return [];
 
   // FeatureCollection
@@ -247,7 +317,8 @@ export function normalizeLegacyPoiList(input: unknown): PoiEditorFeature[] {
     return input.features.map((f) => {
       if (isRecord(f)) {
         const props = isRecord(f.properties) ? { ...f.properties } : {};
-        const id = typeof f.id === "string" ? f.id : "";
+        internalizeLangFields(props, defaultLang);
+        const id = coerceDisplayId(f.id);
         return {
           type: "Feature",
           id,
@@ -271,7 +342,7 @@ export function normalizeLegacyPoiList(input: unknown): PoiEditorFeature[] {
   if (Array.isArray(input)) {
     return input.map((item) =>
       isRecord(item)
-        ? normalizeLegacyPoi(item)
+        ? normalizeLegacyPoi(item, defaultLang)
         : ({
             type: "Feature",
             id: "",
@@ -283,7 +354,7 @@ export function normalizeLegacyPoiList(input: unknown): PoiEditorFeature[] {
 
   // 単体
   if (isRecord(input)) {
-    return [normalizeLegacyPoi(input)];
+    return [normalizeLegacyPoi(input, defaultLang)];
   }
 
   return [];
@@ -297,7 +368,8 @@ export function ensureDisplayIds(features: PoiEditorFeature[]): {
 } {
   const taken = new Set<string>();
   for (const f of features) {
-    if (typeof f.id === "string" && f.id !== "") taken.add(f.id);
+    const id = coerceDisplayId(f.id);
+    if (id !== "") taken.add(id);
   }
 
   const assigned: string[] = [];
@@ -314,7 +386,11 @@ export function ensureDisplayIds(features: PoiEditorFeature[]): {
   };
 
   const out = features.map((f) => {
-    if (typeof f.id === "string" && f.id !== "") return f;
+    // 有限数値 id は String 化して尊重 (Important #3)。
+    const existing = coerceDisplayId(f.id);
+    if (existing !== "") {
+      return existing === f.id ? f : { ...f, id: existing };
+    }
     const id = nextId();
     assigned.push(id);
     return { ...f, id };
@@ -327,12 +403,23 @@ export function ensureDisplayIds(features: PoiEditorFeature[]): {
 export function ensureFeatureUids(
   features: PoiEditorFeature[],
 ): PoiEditorFeature[] {
+  // 同一 uid が 2 回以上現れた場合、最初の 1 件のみ維持し以降は再採番する (Minor: 衝突 dedup)。
+  const seen = new Set<string>();
   return features.map((f) => {
     const existing = f.properties?._maplatUid;
-    if (typeof existing === "string" && existing !== "") return f;
+    if (
+      typeof existing === "string" &&
+      existing !== "" &&
+      !seen.has(existing)
+    ) {
+      seen.add(existing);
+      return f;
+    }
+    const uid = mintUid();
+    seen.add(uid);
     return {
       ...f,
-      properties: { ...f.properties, _maplatUid: mintUid() },
+      properties: { ...f.properties, _maplatUid: uid },
     };
   });
 }
@@ -352,15 +439,18 @@ export function toExportForm(
   fc: PoiEditorFC,
   slug: string,
   titleInternal: LangResource,
-  options?: { roundCoordinates?: boolean },
+  options?: { roundCoordinates?: boolean; defaultLang?: string },
 ): FeatureCollection {
   const roundCoordinates = options?.roundCoordinates ?? false;
+  const defaultLang = options?.defaultLang ?? DEFAULT_LANG;
 
   const features: Feature[] = fc.features.map((f) => {
     const props: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(f.properties ?? {})) {
       if (!isInternalProp(key)) props[key] = value;
     }
+    // feature 単位 LangResource (name/desc/html/address/url) を交換形へ collapse (POI-135)。
+    externalizeLangFields(props, defaultLang);
 
     let geometry: Point = f.geometry;
     if (roundCoordinates && geometry && Array.isArray(geometry.coordinates)) {
@@ -386,7 +476,7 @@ export function toExportForm(
     id: slug,
     features,
   };
-  const name = compactLangResource(titleInternal, DEFAULT_LANG);
+  const name = compactLangResource(titleInternal, defaultLang);
   if (name !== undefined) {
     out.name = name;
   }
@@ -400,6 +490,7 @@ export function toExportForm(
 export function fromExportForm(
   parsed: unknown,
   previous: PoiEditorFeature[],
+  defaultLang: string = DEFAULT_LANG,
 ): { features: PoiEditorFeature[]; issues: PoiValidationIssue[] } {
   const issues = validateFeatureCollection(parsed);
   if (
@@ -418,12 +509,13 @@ export function fromExportForm(
   // previous を display id で索引化 (_maplatUid 引継ぎ用)
   const prevByDisplayId = new Map<string, PoiEditorFeature>();
   for (const p of previous) {
-    if (typeof p.id === "string" && p.id !== "") prevByDisplayId.set(p.id, p);
+    const pid = coerceDisplayId(p.id);
+    if (pid !== "") prevByDisplayId.set(pid, p);
   }
 
   const features: PoiEditorFeature[] = parsed.features.map((raw) => {
     const rec = isRecord(raw) ? raw : {};
-    const id = typeof rec.id === "string" ? rec.id : "";
+    const id = coerceDisplayId(rec.id);
     const props: Record<string, unknown> = isRecord(rec.properties)
       ? { ...rec.properties }
       : {};
@@ -432,6 +524,9 @@ export function fromExportForm(
     for (const key of Object.keys(props)) {
       if (isInternalProp(key)) delete props[key];
     }
+
+    // 交換形 (string) / 内部形 (object) 双方を受容し内部形へ正規化 (ADR-0005, POI-135)。
+    internalizeLangFields(props, defaultLang);
 
     const prev = id !== "" ? prevByDisplayId.get(id) : undefined;
     const prevUid = prev?.properties?._maplatUid;

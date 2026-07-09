@@ -128,10 +128,10 @@ try {
         assert.equal(f.type, 'Feature');
         assert.equal(f.geometry.type, 'Point');
         assert.deepEqual(f.geometry.coordinates, [135, 35], 'lnglat 優先');
-        assert.equal(f.properties.name, 'A');
-        assert.equal(f.properties.desc, 'd');
-        assert.equal(f.properties.url, 'http://u', 'url 透過');
-        assert.equal(f.properties.address, 'addr', 'address 透過');
+        assert.deepEqual(f.properties.name, { ja: 'A' }, 'name は内部形 {lang:text} に正規化');
+        assert.deepEqual(f.properties.desc, { ja: 'd' }, 'desc 内部形');
+        assert.deepEqual(f.properties.url, { ja: 'http://u' }, 'url 内部形');
+        assert.deepEqual(f.properties.address, { ja: 'addr' }, 'address 内部形');
         assert.equal(f.id, '', 'display id は未採番');
         assert.ok(!('_maplatUid' in f.properties), '_maplatUid は未採番');
         console.log('ok: normalizeLegacyPoi uses lnglat, passes through url/address');
@@ -177,7 +177,7 @@ try {
         assert.equal(single.length, 1, '単体オブジェクトを受容');
         const fromFc = normalizeLegacyPoiList(fc([feat('p1', [135, 35], { name: 'A', desc: 'd' })]));
         assert.equal(fromFc.length, 1, 'FC を受容');
-        assert.equal(fromFc[0].properties.name, 'A', 'FC feature の properties 保持');
+        assert.deepEqual(fromFc[0].properties.name, { ja: 'A' }, 'FC feature の name は内部形化');
         assert.deepEqual(fromFc[0].geometry.coordinates, [135, 35]);
         console.log('ok: normalizeLegacyPoiList accepts array/FC/single');
       }
@@ -306,6 +306,124 @@ try {
         const { issues } = fromExportForm(parsed, []);
         assert.ok(issues.some((i) => i.code === 'display-id-duplicate'), 'validate 由来の issue を収集: ' + JSON.stringify(issues));
         console.log('ok: fromExportForm surfaces validation issues');
+      }
+
+      // ---- validate: NaN / Infinity coords are errors (Important #1) ----
+      {
+        const nan = validateFeatureCollection(fc([feat('p1', [NaN, 35], { name: 'A', desc: 'x' })]));
+        const nanIssue = nan.find((i) => i.code === 'coord-range');
+        assert.ok(nanIssue, 'NaN 座標は coord-range error: ' + JSON.stringify(nan));
+        assert.equal(nanIssue.level, 'error', 'NaN は error レベル');
+        const inf = validateFeatureCollection(fc([feat('p1', [Infinity, 35], { name: 'A', desc: 'x' })]));
+        assert.ok(codesOf(inf).includes('coord-range'), 'Infinity 座標は coord-range error: ' + JSON.stringify(inf));
+        const negInf = validateFeatureCollection(fc([feat('p1', [135, -Infinity], { name: 'A', desc: 'x' })]));
+        assert.ok(codesOf(negInf).includes('coord-range'), '-Infinity 座標も coord-range error: ' + JSON.stringify(negInf));
+        // Number(undefined)=NaN 経由 (legacy 正規化) も検出できること
+        const legacyNan = normalizeLegacyPoi({ name: 'x' });
+        const viaValidate = validateFeatureCollection(fc([{ ...legacyNan, id: 'p1' }]));
+        assert.ok(codesOf(viaValidate).includes('coord-range'), 'legacy 由来 NaN 座標も検出: ' + JSON.stringify(viaValidate));
+        console.log('ok: validate flags non-finite (NaN/Infinity) coordinates as error');
+      }
+
+      // ---- toExportForm: feature-level LangResource collapse (Important #2 / POI-135) ----
+      {
+        const editorFc = { type: 'FeatureCollection', features: [
+          { type: 'Feature', id: 'p1', geometry: point(1,2), properties: { name: { ja: '名前' }, desc: { ja: '説明', en: 'desc' }, url: { en: 'http://e' }, html: { ja: '<b>x</b>' }, address: { ja: '住所' }, _maplatUid: 'u1' } },
+        ] };
+        const out = toExportForm(editorFc, 's', { ja: 't' });
+        assert.equal(out.features[0].properties.name, '名前', 'default単一言語 name は string に collapse');
+        assert.deepEqual(out.features[0].properties.desc, { ja: '説明', en: 'desc' }, '複数言語 desc は object のまま');
+        assert.deepEqual(out.features[0].properties.url, { en: 'http://e' }, 'default以外の単一言語 url は object のまま');
+        assert.equal(out.features[0].properties.html, '<b>x</b>', 'html も collapse 対象');
+        assert.equal(out.features[0].properties.address, '住所', 'address も collapse 対象');
+        console.log('ok: toExportForm collapses feature name/desc/html/address/url to exchange form');
+      }
+
+      // ---- toExportForm: image/icon are NOT LangResource (unchanged) ----
+      {
+        const editorFc = { type: 'FeatureCollection', features: [
+          { type: 'Feature', id: 'p1', geometry: point(1,2), properties: { name: { ja: 'n' }, image: { src: 'a.png', desc: 'cap' }, icon: 'builtin:pin' } },
+        ] };
+        const out = toExportForm(editorFc, 's', { ja: 't' });
+        assert.deepEqual(out.features[0].properties.image, { src: 'a.png', desc: 'cap' }, 'image は LangResource 扱いしない(素通し)');
+        assert.equal(out.features[0].properties.icon, 'builtin:pin', 'icon は LangResource 扱いしない(素通し)');
+        console.log('ok: toExportForm leaves image/icon untouched');
+      }
+
+      // ---- import side: feature LangResource fields internalized ----
+      {
+        const { features } = fromExportForm({ type: 'FeatureCollection', features: [
+          { type: 'Feature', id: 'p1', geometry: point(1,2), properties: { name: 'A', desc: { ja: 'あ', en: 'a' }, image: 'x.png' } },
+        ] }, []);
+        assert.deepEqual(features[0].properties.name, { ja: 'A' }, 'fromExportForm: string name を内部形化');
+        assert.deepEqual(features[0].properties.desc, { ja: 'あ', en: 'a' }, 'fromExportForm: object desc 保持');
+        assert.equal(features[0].properties.image, 'x.png', 'fromExportForm: image は内部形化しない');
+        const list = normalizeLegacyPoiList({ type: 'FeatureCollection', features: [ feat('p1', [1,2], { name: 'B' }) ] });
+        assert.deepEqual(list[0].properties.name, { ja: 'B' }, 'normalizeLegacyPoiList(FC): name 内部形化');
+        console.log('ok: import side internalizes feature LangResource fields');
+      }
+
+      // ---- defaultLang argument threading (Important #2) ----
+      {
+        const f = normalizeLegacyPoi({ lng: 1, lat: 2, name: 'hello' }, 'en');
+        assert.deepEqual(f.properties.name, { en: 'hello' }, 'normalizeLegacyPoi defaultLang=en');
+        const editorFc = { type: 'FeatureCollection', features: [ { type: 'Feature', id: 'p1', geometry: point(1,2), properties: { name: { en: 'hello' } } } ] };
+        const out = toExportForm(editorFc, 's', { en: 'T' }, { defaultLang: 'en' });
+        assert.equal(out.features[0].properties.name, 'hello', 'toExportForm defaultLang=en 単一言語 collapse');
+        assert.equal(out.name, 'T', 'FC.name も defaultLang=en で collapse');
+        const { features } = fromExportForm({ type: 'FeatureCollection', features: [ { type: 'Feature', id: 'p1', geometry: point(1,2), properties: { name: 'bonjour' } } ] }, [], 'fr');
+        assert.deepEqual(features[0].properties.name, { fr: 'bonjour' }, 'fromExportForm defaultLang=fr');
+        console.log('ok: defaultLang argument threads through normalize/export/import (default ja preserved elsewhere)');
+      }
+
+      // ---- numeric Feature.id respected (Important #3) ----
+      {
+        const f = normalizeLegacyPoi({ id: 5, lng: 1, lat: 2, name: 'n' });
+        assert.equal(f.id, '5', 'normalizeLegacyPoi: 数値 id を String 化して尊重');
+        const asFeature = normalizeLegacyPoi({ type: 'Feature', id: 8, geometry: point(1,2), properties: { name: 'n' } });
+        assert.equal(asFeature.id, '8', 'normalizeLegacyPoi(Feature 分岐): 数値 id を String 化');
+        const list = normalizeLegacyPoiList({ type: 'FeatureCollection', features: [ { type: 'Feature', id: 7, geometry: point(1,2), properties: { name: 'n' } } ] });
+        assert.equal(list[0].id, '7', 'normalizeLegacyPoiList(FC): 数値 id を String 化');
+        const { features } = ensureDisplayIds([ { type: 'Feature', id: 9, geometry: point(1,2), properties: { name: 'n' } } ]);
+        assert.equal(features[0].id, '9', 'ensureDisplayIds: 数値 id を String 化して維持');
+        const { features: imp } = fromExportForm(
+          { type: 'FeatureCollection', features: [ { type: 'Feature', id: 3, geometry: point(1,2), properties: { name: 'n' } } ] },
+          [ { type: 'Feature', id: '3', geometry: point(1,2), properties: { name: 'n', _maplatUid: 'carry' } } ],
+        );
+        assert.equal(imp[0].id, '3', 'fromExportForm: 数値 id を String 化');
+        assert.equal(imp[0].properties._maplatUid, 'carry', '数値 id が previous の文字列 id と照合され uid 引継ぎ');
+        console.log('ok: numeric Feature.id is stringified and respected across functions');
+      }
+
+      // ---- ensureFeatureUids: dedup duplicate _maplatUid (Minor) ----
+      {
+        const feats = [
+          { type: 'Feature', id: 'p1', geometry: point(1,2), properties: { name: 'a', _maplatUid: 'dup' } },
+          { type: 'Feature', id: 'p2', geometry: point(3,4), properties: { name: 'b', _maplatUid: 'dup' } },
+          { type: 'Feature', id: 'p3', geometry: point(5,6), properties: { name: 'c', _maplatUid: 'dup' } },
+        ];
+        const out = ensureFeatureUids(feats);
+        assert.equal(out[0].properties._maplatUid, 'dup', '1件目の uid は維持');
+        assert.notEqual(out[1].properties._maplatUid, 'dup', '2件目の重複 uid は再採番');
+        assert.notEqual(out[2].properties._maplatUid, 'dup', '3件目の重複 uid も再採番');
+        assert.notEqual(out[1].properties._maplatUid, out[2].properties._maplatUid, '再採番どうしも一意');
+        assert.ok(out[1].properties._maplatUid.length > 0 && out[2].properties._maplatUid.length > 0);
+        console.log('ok: ensureFeatureUids dedups duplicate _maplatUid (keeps first)');
+      }
+
+      // ---- validate: display-id-charset deduped per id (Minor) ----
+      {
+        const issues = validateFeatureCollection(fc([feat('bad#', [135, 35], { name: 'A', desc: 'x' }), feat('bad#', [136, 36], { name: 'B', desc: 'y' })]));
+        const cs = issues.filter((i) => i.code === 'display-id-charset');
+        assert.equal(cs.length, 1, '同一違反 id の display-id-charset 警告は 1 回に dedup: ' + JSON.stringify(issues));
+        console.log('ok: validate dedups display-id-charset per id');
+      }
+
+      // ---- normalizeLegacyPoi: numeric name coerced to string then internalized (Minor) ----
+      {
+        const f = normalizeLegacyPoi({ lng: 1, lat: 2, name: 5 });
+        assert.deepEqual(f.properties.name, { ja: '5' }, '数値 name は "5" として内部形化(欠落でない)');
+        console.log('ok: normalizeLegacyPoi coerces numeric name to "5"');
       }
 
       console.log('M9-T1 poi geojson smoke passed');
