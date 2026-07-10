@@ -17,6 +17,8 @@ import {
   normalizeAppSource,
   type AppSource as SharedAppSource,
 } from "../utils/appSourceModel";
+import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
+import type { AppSaveResult } from "../electron";
 
 import { LANGS_MAP, LANG_CODES, resolveEditorLanguage, type LangCode } from "../utils/editorLanguages";
 
@@ -156,12 +158,64 @@ const originalAppData = ref<AppDocument>(defaultApp());
 const activeTab = ref<"metadata" | "sources" | "preview">("metadata");
 const sourceListMode = ref<"maps" | "baseMaps">("maps");
 const currentLang = ref<LangCode>("ja");
-// uid: 不変の正本キー (ADR-0007)。null = 未保存の新規アプリ
-const appUid = ref<string | null>(null);
-// revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
-const revision = ref<number | undefined>(undefined);
-// confirmedSlug: 現在DBに永続化されているslug。appID欄がこの値に戻ったら再チェック不要
-const confirmedSlug = ref<string | undefined>(undefined);
+// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (ADR-0007, Phase 4 Task 3)。
+// 以下の3値の正本は handle の ref に一本化する:
+//   uid(=appUid): 不変の正本キー。undefined = 未保存の新規アプリ
+//   revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
+//   confirmedSlug: 現在DBに永続化されているslug。appID欄がこの値に戻ったら再チェック不要
+// saveApp が組み立てた送信内容を send クロージャへ渡す一時変数
+let pendingSave: { document: AppDocument } | null = null;
+const saveHandle = useRevisionedAssetSave<AppSaveResult>({
+  send: async ({ uid, expectedRevision }) => {
+    const { document } = pendingSave!;
+    const result = await window.appedit.save({
+      document: JSON.parse(JSON.stringify(document)),
+      uid,
+      slug: document.appID.trim(),
+      expectedRevision,
+    });
+    if (!result) {
+      // IPC が結果を返さなかった: 旧実装の最終elseと同じ処理(表示のみ、console.error/dialog無し)
+      saveError.value = t("appedit.error_saving");
+      return null;
+    }
+    return result;
+  },
+  applySuccess: async (result) => {
+    // uid/revision/confirmedSlug は composable が保存結果から反映済み。以下は画面固有処理
+    appData.value = normalizeAppDocument({ ...pendingSave!.document, appID: result.slug });
+    onlyOne.value = true;
+    appIDError.value = "";
+    await hydrateSourceThumbnails();
+    resetHistoryBase();
+    // 新規作成でuidが確定した場合、リロード時に正しいアプリを再オープンできるよう
+    // URLのクエリを追随させる (履歴は汚さない)
+    if (route.query.uid !== result.uid) {
+      router.replace({ query: { ...route.query, uid: result.uid } });
+    }
+    await (window as any).dialog.showMessageBox({ type: "info", buttons: ["OK"], message: t("appedit.success_save") });
+  },
+  reloadFromStore: () => reloadFromStore(),
+  isDirty: () => isDirty.value,
+  onFailure: async (result) => {
+    if (result.result === "Exist") {
+      // 保存レースでslugを先取りされた: 一意性チェックボタンを再度有効化する
+      onlyOne.value = false;
+      appIDError.value = "appedit.duplicate_appid";
+      saveError.value = t("appedit.duplicate_appid");
+    } else {
+      saveError.value = t("appedit.error_saving");
+    }
+  },
+  // ダイアログ表示時点の言語で t() されるよう getter で渡す (旧実装と同じタイミングで翻訳)
+  messages: {
+    get conflict() { return t("common.revision_conflict"); },
+    get discard() { return t("appedit.confirm_no_save"); },
+    get reload() { return t("common.reload"); },
+    get overwrite() { return t("common.overwrite"); },
+  },
+});
+const { uid: appUid, confirmedSlug, performSave } = saveHandle;
 // onlyOne: slugの一意性確認済みか (ADR-0007: appID欄は既存アプリでも編集可のslug欄)
 const onlyOne = ref(false);
 const appIDError = ref("appedit.check_uniqueness");
@@ -223,9 +277,7 @@ onMounted(async () => {
     const loaded = await window.appedit.request(uid);
     if (loaded) {
       appData.value = normalizeAppDocument(loaded);
-      appUid.value = loaded.uid ?? uid;
-      revision.value = loaded.revision;
-      confirmedSlug.value = appData.value.appID;
+      saveHandle.adoptLoaded({ uid: loaded.uid ?? uid, slug: appData.value.appID, revision: loaded.revision });
       onlyOne.value = true;
       appIDError.value = "";
     }
@@ -560,7 +612,8 @@ function onAppIDInput() {
 /**
  * 保存 (ADR-0007: uid正準 + revision楽観ロック)
  * 既存アプリは uid 宛の upsert、新規は uid なしの create。
- * revision-conflict 時は「読み直す / 上書き」ダイアログ(上書きは expectedRevision なしで再送)
+ * conflict(読み直す/上書き)・成功反映・Exist等の共通処理は
+ * useRevisionedAssetSave (saveHandle) が担う
  */
 async function saveApp() {
   saveError.value = null;
@@ -586,76 +639,9 @@ async function saveApp() {
   document.sources.forEach((source) => {
     delete (source as any).thumbnail;
   });
-  await performSave(document, appUid.value ?? undefined, appUid.value ? revision.value : undefined);
-}
-
-/**
- * appedit:save の実行と結果処理 (ADR-0007)
- * revision-conflict の「上書き」は expectedRevision なしで再送する
- */
-async function performSave(
-  document: AppDocument,
-  uid: string | undefined,
-  expectedRevision: number | undefined,
-) {
-  const result = await window.appedit.save({
-    document: JSON.parse(JSON.stringify(document)),
-    uid,
-    slug: document.appID.trim(),
-    expectedRevision,
-  });
-
-  if (result && "error" in result && result.error === "revision-conflict") {
-    // 他ウィンドウで先に更新されている: 読み直す or 上書き
-    const conflictResult = await (window as any).dialog.showMessageBox({
-      type: "info",
-      buttons: [t("common.reload"), t("common.overwrite")],
-      cancelId: 0,
-      message: t("common.revision_conflict"),
-    });
-    if (conflictResult.response === 1) {
-      // 上書き: expectedRevision なしで再送
-      await performSave(document, uid, undefined);
-    } else {
-      // 読み直す: ローカルの編集内容を破棄して最新版を再読込
-      if (isDirty.value) {
-        const discard = await (window as any).dialog.showMessageBox({
-          type: "info",
-          buttons: ["OK", "Cancel"],
-          cancelId: 1,
-          message: t("appedit.confirm_no_save"),
-        });
-        if (discard.response !== 0) return;
-      }
-      await reloadFromStore();
-    }
-    return;
-  }
-
-  if (result && "result" in result && result.result === "Success") {
-    // 保存結果から uid/revision/slug を正本として反映
-    appUid.value = result.uid;
-    revision.value = result.revision;
-    confirmedSlug.value = result.slug;
-    appData.value = normalizeAppDocument({ ...document, appID: result.slug });
-    onlyOne.value = true;
-    appIDError.value = "";
-    await hydrateSourceThumbnails();
-    resetHistoryBase();
-    // 新規作成でuidが確定した場合、リロード時に正しいアプリを再オープンできるよう
-    // URLのクエリを追随させる (履歴は汚さない)
-    if (route.query.uid !== result.uid) {
-      router.replace({ query: { ...route.query, uid: result.uid } });
-    }
-    await (window as any).dialog.showMessageBox({ type: "info", buttons: ["OK"], message: t("appedit.success_save") });
-  } else if (result && "result" in result && result.result === "Exist") {
-    // 保存レースでslugを先取りされた: 一意性チェックボタンを再度有効化する
-    onlyOne.value = false;
-    appIDError.value = "appedit.duplicate_appid";
-    saveError.value = t("appedit.duplicate_appid");
-  } else {
-    saveError.value = t("appedit.error_saving");
-  }
+  // conflict/成功反映/Exist等の共通処理は useRevisionedAssetSave (saveHandle) が担う
+  pendingSave = { document };
+  await performSave();
 }
 
 /**
@@ -667,9 +653,7 @@ async function reloadFromStore() {
     const loaded = await window.appedit.request(appUid.value);
     if (!loaded) return;
     appData.value = normalizeAppDocument(loaded);
-    appUid.value = loaded.uid ?? appUid.value;
-    revision.value = loaded.revision;
-    confirmedSlug.value = appData.value.appID;
+    saveHandle.adoptLoaded({ uid: loaded.uid ?? appUid.value, slug: appData.value.appID, revision: loaded.revision });
     onlyOne.value = true;
     appIDError.value = "";
     currentLang.value = appData.value.lang;
