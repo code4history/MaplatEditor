@@ -24,6 +24,7 @@
     "smoke:m3-t4-app-poi-selector": "node scripts/m3-t4-app-poi-selector-smoke.mjs",
     "smoke:m4-undo-redo": "node scripts/m4-undo-redo-smoke.mjs",
     "smoke:m4-t1-revisioned-save": "node scripts/m4-t1-revisioned-save-smoke.mjs",
+    "smoke:m4-t4-poi-edit-session": "node scripts/m4-t4-poi-edit-session-smoke.mjs",
     "smoke:m4-tin-v2-mode": "node scripts/m4-tin-v2-mode-smoke.mjs",
     "smoke:m7-sqlite-write-store": "node scripts/m7-sqlite-write-store-smoke.mjs",
     "smoke:m8-t1-asset-identity": "node scripts/m8-t1-asset-identity-smoke.mjs",
