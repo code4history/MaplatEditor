@@ -49,9 +49,12 @@ try {
   assert.match(mapEdit, /historyStack\.value\.save\s*\(\)/, 'Save success must reset dirty history base');
   assert.match(mapEdit, /onMainProcessMessage/, 'MapEdit.vue must handle Electron menu undo/redo messages');
 
-  const saveSuccessBlock = mapEdit.match(/if\s*\(result\s*&&\s*result\.result\s*===\s*'Success'\)\s*\{[\s\S]*?\}\s*else\s+if\s*\(result\s*&&\s*result\.result\s*===\s*'Exist'\)/)?.[0] ?? '';
-  assert.ok(saveSuccessBlock, 'MapEdit.vue save success branch could not be located');
+  // Phase 4 Task 2: 保存フローは useRevisionedAssetSave へ移行済み。
+  // 成功時の画面固有処理は applySuccess クロージャ (reloadFromStore オプションの直前) に残る
+  const saveSuccessBlock = mapEdit.match(/applySuccess:\s*async[\s\S]*?reloadFromStore:/)?.[0] ?? '';
+  assert.ok(saveSuccessBlock, 'MapEdit.vue save success branch (applySuccess closure) could not be located');
   assert.doesNotMatch(saveSuccessBlock, /mapedit\.request/, 'Save success must not reload the map after saving');
+  assert.match(saveSuccessBlock, /resetHistoryBase\s*\(\)/, 'Save success must reset dirty history base via resetHistoryBase');
 
   const electronMain = await readFile(
     path.join(projectRoot, 'electron/main.ts'),

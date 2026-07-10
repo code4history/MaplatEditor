@@ -8,6 +8,8 @@ import { envelopeToBbox } from '../utils/appSourceModel';
 import { LANGS_MAP, resolveEditorLanguage } from '../utils/editorLanguages';
 import { UndoStack } from '../services/editorUndoStack';
 import { editorComputeBackend } from '../services/editorComputeBackend';
+import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
+import type { MapSaveResult } from '../electron';
 // @ts-ignore
 import { useTranslation } from 'i18next-vue';
 import { sha1 } from 'js-sha1';
@@ -58,12 +60,104 @@ const MERC_CROSSMATRIX = [
 
 // 保存済みslug (基盤設定など旧slugキーのIPCが参照する)。表示中のslug編集値は mapData.mapID
 const mapID = ref('');
-// uid: 不変の正本キー (ADR-0007)。null = 未保存の新規地図
-const mapUid = ref<string | null>(null);
-// revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
-const revision = ref<number | undefined>(undefined);
-// confirmedSlug: 現在DBに永続化されているslug。mapID欄がこの値に戻ったら再チェック不要
-const confirmedSlug = ref<string | undefined>(undefined);
+// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (ADR-0007, Phase 4 Task 2)。
+// 以下の3値の正本は handle の ref に一本化する:
+//   uid(=mapUid): 不変の正本キー。undefined = 未保存の新規地図
+//   revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
+//   confirmedSlug: 現在DBに永続化されているslug。mapID欄がこの値に戻ったら再チェック不要
+// saveMap が組み立てた送信内容を send クロージャへ渡す一時変数。
+// copy 保存では handle.uid(旧uid) ではなく saveMap が決めた sendUid=undefined /
+// copyFromUid=旧uid を使う必要があるため、send は ctx.uid を参照しない
+let pendingSave: {
+    saveValue: any;
+    tins: any[];
+    sendUid: string | undefined;
+    copyFromUid: string | undefined;
+} | null = null;
+const saveHandle = useRevisionedAssetSave<MapSaveResult>({
+    send: async ({ expectedRevision }) => {
+        const { saveValue, tins, sendUid, copyFromUid } = pendingSave!;
+        // JSON ラウンドトリップで Vue リアクティブプロキシ・非シリアライズ可能値を除去してから送信
+        const result = await window.mapedit.save({
+            mapObject: JSON.parse(JSON.stringify(saveValue)),
+            tins: JSON.parse(JSON.stringify(tins)),
+            uid: sendUid,
+            slug: saveValue.mapID,
+            expectedRevision,
+            copyFromUid,
+        });
+        if (!result) {
+            // IPC が結果を返さなかった: 旧実装の最終elseと同じくエラー通知して終了
+            console.error('[saveMap] Save error:', result);
+            await (window as any).dialog.showMessageBox({
+                type: 'info',
+                buttons: ['OK'],
+                message: t('mapedit.error_saving')
+            });
+            return null;
+        }
+        // 旧実装の result.slug ?? saveValue.mapID フォールバックを維持
+        // (composable は Success の slug をそのまま confirmedSlug に採用するため)
+        if ('result' in result && result.result === 'Success' && result.slug == null) {
+            result.slug = saveValue.mapID;
+        }
+        return result;
+    },
+    applySuccess: async (result) => {
+        await (window as any).dialog.showMessageBox({
+            type: 'info',
+            buttons: ['OK'],
+            message: t('mapedit.success_save')
+        });
+        // uid/revision/confirmedSlug は composable が保存結果から反映済み。以下は画面固有処理
+        mapID.value = confirmedSlug.value!;
+        if (!mapData.value.mapID) mapData.value.mapID = pendingSave!.saveValue.mapID;
+        mapData.value.uid = result.uid;
+        mapData.value.revision = result.revision;
+        mapData.value.status = 'Update';
+        originalMapData.value = cloneDeep(mapData.value);
+        resetHistoryBase();
+        onlyOne.value = true;
+        // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
+        // 再オープンできるようURLのクエリを追随させる (履歴は汚さない)
+        if (route.query.uid !== result.uid) {
+            router.replace({ query: { ...route.query, uid: result.uid } });
+        }
+    },
+    reloadFromStore: () => reloadFromStore(),
+    isDirty: () => isDirty.value,
+    onFailure: async (result) => {
+        if (result.result === 'Exist') {
+            // 保存レースでslugを先取りされた: 一意性チェックボタンを再度有効化する
+            onlyOne.value = false;
+            await (window as any).dialog.showMessageBox({
+                type: 'info',
+                buttons: ['OK'],
+                message: t('mapedit.error_duplicate_id')
+            });
+        } else {
+            // DBコミット後のファイル操作失敗 (Error{revision付き}, ADR-0007) は composable が
+            // uid/revision/confirmedSlug を取り込み済み(偽のrevision-conflict防止)。ここでは通知のみ。
+            // status(Change:{旧slug})は成功まで保持し、原本改名の残作業を再試行に引き継ぐ
+            console.error('[saveMap] Save error:', result);
+            await (window as any).dialog.showMessageBox({
+                type: 'info',
+                buttons: ['OK'],
+                message: t('mapedit.error_saving')
+            });
+        }
+    },
+    // ダイアログ表示時点の言語で t() されるよう getter で渡す (旧実装と同じタイミングで翻訳)
+    messages: {
+        get conflict() { return t('common.revision_conflict'); },
+        get discard() { return t('mapedit.confirm_no_save'); },
+        get reload() { return t('common.reload'); },
+        get overwrite() { return t('common.overwrite'); },
+    },
+});
+// 既存の参照箇所を最小変更で handle 経由にするための別名
+// (revision は保存フロー移行後 MapEdit 内に直接の読み書きが残らないため別名不要)
+const { uid: mapUid, confirmedSlug, adoptLoaded, performSave } = saveHandle;
 /**
  * 旧実装 defaultMap 相当: 新規作成時の初期値
  * map.js defaultMap に完全準拠
@@ -1380,9 +1474,7 @@ onMounted(async () => {
             if (data) {
                 // バックエンドが mapID(=slug)/uid/revision/status/onlyOne を設定してくれている
                 if (!data.status) data.status = 'Update';
-                mapUid.value = data.uid ?? uid;
-                revision.value = data.revision;
-                confirmedSlug.value = data.mapID;
+                adoptLoaded({ uid: data.uid ?? uid, slug: data.mapID, revision: data.revision });
                 mapID.value = data.mapID;
                 mapData.value = data;
                 originalMapData.value = cloneDeep(data);
@@ -2416,8 +2508,8 @@ const checkOnlyOne = async () => {
  * 1. 確認ダイアログ
  * 2. Change: ステータスの場合、Copy に変えるかどうかの追加確認
  * 3. mapedit:save IPC を { mapObject, tins, uid?, slug, expectedRevision?, copyFromUid? } で呼ぶ
- * 4. 成功時: uid/revision/confirmedSlug を保存結果から更新
- * 5. revision-conflict 時: 「読み直す / 上書き」ダイアログ
+ * 4. 成功反映・revision-conflict(読み直す/上書き)・部分成功 Error{revision} の引き継ぎは
+ *    useRevisionedAssetSave (saveHandle) が共通処理する
  */
 const saveMap = async () => {
     // 1. 保存確認ダイアログ（旧実装: t('mapedit.confirm_save')）
@@ -2460,103 +2552,18 @@ const saveMap = async () => {
         return tin.getCompiled();
     });
 
-    await performSave(saveValue, tins, sendUid, copyFromUid, sendUid ? revision.value : undefined);
-};
-
-/**
- * mapedit:save の実行と結果処理 (ADR-0007)
- * revision-conflict の「上書き」は expectedRevision なしで再送する
- */
-const performSave = async (
-    saveValue: any,
-    tins: any[],
-    uid: string | undefined,
-    copyFromUid: string | undefined,
-    expectedRevision: number | undefined
-) => {
-    // JSON ラウンドトリップで Vue リアクティブプロキシ・非シリアライズ可能値を除去してから送信
-    const result = await (window as any).mapedit.save({
-        mapObject: JSON.parse(JSON.stringify(saveValue)),
-        tins: JSON.parse(JSON.stringify(tins)),
-        uid,
-        slug: saveValue.mapID,
-        expectedRevision,
-        copyFromUid,
-    });
-
-    if (result && result.error === 'revision-conflict') {
-        // 他ウィンドウで先に更新されている: 読み直す or 上書き
-        const conflictResult = await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: [t('common.reload'), t('common.overwrite')],
-            cancelId: 0,
-            message: t('common.revision_conflict')
-        });
-        if (conflictResult.response === 1) {
-            // 上書き: expectedRevision なしで再送
-            await performSave(saveValue, tins, uid, copyFromUid, undefined);
+    // 4. 送信内容を send クロージャへ渡し、共通保存フロー (useRevisionedAssetSave) を実行
+    pendingSave = { saveValue, tins, sendUid, copyFromUid };
+    try {
+        if (sendUid) {
+            await performSave(); // expectedRevision は handle.revision
         } else {
-            // 読み直す: ローカルの編集内容を破棄して最新版を再読込
-            if (isDirty.value) {
-                const discard = await (window as any).dialog.showMessageBox({
-                    type: 'info',
-                    buttons: ['OK', 'Cancel'],
-                    cancelId: 1,
-                    message: t('mapedit.confirm_no_save')
-                });
-                if (discard.response !== 0) return;
-            }
-            await reloadFromStore();
+            // 新規作成・copy 保存は revision チェック対象外
+            // (旧実装: sendUid ? revision.value : undefined)
+            await performSave({ expectedRevision: undefined });
         }
-        return;
-    }
-
-    if (result && result.result === 'Success') {
-        await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
-            message: t('mapedit.success_save')
-        });
-        // 保存結果から uid/revision/slug を正本として反映
-        mapUid.value = result.uid;
-        revision.value = result.revision;
-        confirmedSlug.value = result.slug ?? saveValue.mapID;
-        mapID.value = confirmedSlug.value!;
-        if (!mapData.value.mapID) mapData.value.mapID = saveValue.mapID;
-        mapData.value.uid = result.uid;
-        mapData.value.revision = result.revision;
-        mapData.value.status = 'Update';
-        originalMapData.value = cloneDeep(mapData.value);
-        resetHistoryBase();
-        onlyOne.value = true;
-        // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
-        // 再オープンできるようURLのクエリを追随させる (履歴は汚さない)
-        if (route.query.uid !== result.uid) {
-            router.replace({ query: { ...route.query, uid: result.uid } });
-        }
-    } else if (result && result.result === 'Exist') {
-        // 保存レースでslugを先取りされた: 一意性チェックボタンを再度有効化する
-        onlyOne.value = false;
-        await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
-            message: t('mapedit.error_duplicate_id')
-        });
-    } else {
-        // DBコミット後のファイル操作失敗はuid/slug/revision付きで返る (ADR-0007)。
-        // 確定値へ補正し、再試行が偽のrevision-conflictや'Exist'にならないようにする。
-        // status(Change:{旧slug})は成功まで保持し、原本改名の残作業を再試行に引き継ぐ
-        if (result && result.result === 'Error' && result.revision != null) {
-            if (result.uid) mapUid.value = result.uid;
-            revision.value = result.revision;
-            if (result.slug) confirmedSlug.value = result.slug;
-        }
-        console.error('[saveMap] Save error:', result);
-        await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
-            message: t('mapedit.error_saving')
-        });
+    } finally {
+        pendingSave = null;
     }
 };
 
@@ -2571,9 +2578,7 @@ const reloadFromStore = async () => {
         if (!data.status) data.status = 'Update';
         // wmtsFolder は request 結果に含まれないため現在値を引き継ぐ
         data.wmtsFolder = mapData.value.wmtsFolder;
-        mapUid.value = data.uid ?? mapUid.value;
-        revision.value = data.revision;
-        confirmedSlug.value = data.mapID;
+        adoptLoaded({ uid: data.uid ?? mapUid.value, slug: data.mapID, revision: data.revision });
         mapID.value = data.mapID;
         mapData.value = data;
         originalMapData.value = cloneDeep(data);
@@ -2746,9 +2751,7 @@ const importMap = async () => {
             // 旧実装: mapDataCommon(arg[0], arg[1]) 相当
             const { mapData: histMap, tins: compiledTins } = arg;
             // インポートで新規作成された地図のuid/revision/slugを正本として追跡 (ADR-0007)
-            mapUid.value = histMap.uid ?? null;
-            revision.value = histMap.revision;
-            confirmedSlug.value = histMap.mapID;
+            adoptLoaded({ uid: histMap.uid, slug: histMap.mapID, revision: histMap.revision });
             mapID.value = histMap.mapID;
             mapData.value = histMap;
             originalMapData.value = cloneDeep(histMap);
