@@ -604,6 +604,8 @@
     "clone_to_local": "Clonar en local",
     "clone_failed": "Error al clonar como fuente local.",
     "no_content_warning": "Ningún POI tiene contenido (descripción, HTML, dirección, URL o imagen).",
-    "size_warning": "Esta fuente de POI es grande y puede volverse lenta (más de 1000 entidades o 5 MB)."
+    "size_warning": "Esta fuente de POI es grande y puede volverse lenta (más de 1000 entidades o 5 MB).",
+    "context_add": "Añadir POI",
+    "context_delete": "Eliminar este POI"
   }
 }

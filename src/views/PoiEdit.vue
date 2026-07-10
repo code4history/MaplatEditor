@@ -95,8 +95,12 @@
         </div>
       </div>
 
-      <!-- 診断領域 -->
-      <div class="px-4 py-2 flex-grow-1 overflow-auto">
+      <!-- 診断領域 (内容があるときのみ表示) -->
+      <div
+        v-if="readOnly || saveError || saveIssues.length || liveWarnings.length"
+        class="px-4 py-2 flex-shrink-0 overflow-auto"
+        style="max-height: 40%;"
+      >
         <div v-if="readOnly" class="alert alert-info">
           {{ t("poiedit.read_only_notice") }}
         </div>
@@ -116,20 +120,27 @@
           {{ t(key) }}
         </div>
       </div>
+
+      <!-- 地図ペイン (主役、仕様 §3.3)。属性フォーム (Task 7) / feature 一覧 (Task 8) は未マウント -->
+      <div class="flex-grow-1 position-relative overflow-hidden">
+        <PoiEditMap ref="mapPane" :session="session" :read-only="readOnly" />
+      </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-// POI エディタ骨格 (Phase 4 Task 5, 仕様 43 §3.3/§5/§6)。
-// 地図ペイン (Task 6) / 属性フォーム (Task 7) / feature 一覧 (Task 8) はこの時点では未マウント。
+// POI エディタ (Phase 4 Task 5/6, 仕様 43 §3.3/§4/§5/§6)。
+// 地図ペインは PoiEditMap (base map selector + マーカー + contextmenu 追加/削除 +
+// Modify ドラッグ移動 + クリック選択)。属性フォーム (Task 7) / feature 一覧 (Task 8) は未マウント。
 // 保存は useRevisionedAssetSave (revision 楽観ロック、ADR-0007)、編集は usePoiEditSession
 // (明示 commit = 1 Undo 単位) に委譲する。
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import LangResourceInput from "../components/LangResourceInput.vue";
+import PoiEditMap from "../components/PoiEditMap.vue";
 import { usePoiEditSession } from "../composables/usePoiEditSession";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { localizeTitle } from "../utils/langResource";
@@ -143,6 +154,9 @@ const router = useRouter();
 
 const session = usePoiEditSession();
 const { state: editState, isDirty, canUndo, canRedo } = session;
+
+// 地図ペイン (panTo / fitInitialView を expose。Task 8 の一覧選択からも使う)
+const mapPane = ref<InstanceType<typeof PoiEditMap> | null>(null);
 
 const loading = ref(true);
 const loadError = ref<string | null>(null);
@@ -292,6 +306,13 @@ async function load(sourceId: string): Promise<void> {
   } finally {
     loading.value = false;
   }
+  if (!loadError.value) {
+    // 初期表示: features があれば全体が入る extent へ fit、無ければ日本付近デフォルト。
+    // 初回は PoiEditMap の onMounted が同じ処理を行うが、route 変化による再読込では
+    // マウント済みの地図に対して明示的に呼ぶ必要がある
+    await nextTick();
+    mapPane.value?.fitInitialView();
+  }
 }
 
 // クローン遷移等で :sourceId が変わったら読み直す (保存後の replace は uid 一致のため対象外)
@@ -419,11 +440,19 @@ function performRedo(): void {
   session.redo();
 }
 
-const onHistoryKeydown = (event: KeyboardEvent) => {
+// 入力要素 focus 中はグローバルキー操作 (undo/redo/Delete) を無視する。
+// onHistoryKeydown と Delete キー削除で同一の判定を共有する (Task 6 要件)
+const isInputTarget = (event: KeyboardEvent): boolean => {
   const target = event.target as HTMLElement | null;
-  const isInput =
-    target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
-  if (isInput) return;
+  return (
+    target?.tagName === "INPUT" ||
+    target?.tagName === "TEXTAREA" ||
+    !!target?.isContentEditable
+  );
+};
+
+const onHistoryKeydown = (event: KeyboardEvent) => {
+  if (isInputTarget(event)) return;
   if (!(event.metaKey || event.ctrlKey)) return;
   const key = event.key.toLowerCase();
   if (key === "z" && event.shiftKey) {
@@ -436,6 +465,17 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
     event.preventDefault();
     performRedo();
   }
+};
+
+// 選択中 feature の Delete キー削除 (仕様 §4)。ReadOnly では無効
+const onDeleteKeydown = (event: KeyboardEvent) => {
+  if (event.key !== "Delete") return;
+  if (isInputTarget(event)) return;
+  if (readOnly.value) return;
+  const uid = session.selectedUid.value;
+  if (!uid) return;
+  event.preventDefault();
+  session.removeFeature(uid);
 };
 
 let removeMainProcessListener: (() => void) | undefined;
@@ -464,12 +504,14 @@ async function goBack(): Promise<void> {
 
 onMounted(() => {
   window.addEventListener("keydown", onHistoryKeydown);
+  window.addEventListener("keydown", onDeleteKeydown);
   removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
   load(route.params.sourceId as string);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onHistoryKeydown);
+  window.removeEventListener("keydown", onDeleteKeydown);
   removeMainProcessListener?.();
   removeMainProcessListener = undefined;
 });

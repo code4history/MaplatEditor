@@ -604,6 +604,8 @@
     "clone_to_local": "Gandakan ke lokal",
     "clone_failed": "Gagal menggandakan menjadi sumber lokal.",
     "no_content_warning": "Tidak ada POI yang memiliki konten (deskripsi, HTML, alamat, URL, atau gambar).",
-    "size_warning": "Sumber POI ini besar dan dapat menjadi lambat (lebih dari 1000 fitur atau 5MB)."
+    "size_warning": "Sumber POI ini besar dan dapat menjadi lambat (lebih dari 1000 fitur atau 5MB).",
+    "context_add": "Tambahkan POI",
+    "context_delete": "Hapus POI ini"
   }
 }

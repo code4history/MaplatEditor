@@ -604,6 +604,8 @@
     "clone_to_local": "Nhân bản thành nguồn cục bộ",
     "clone_failed": "Nhân bản thành nguồn cục bộ thất bại.",
     "no_content_warning": "Không POI nào có nội dung (mô tả, HTML, địa chỉ, URL hoặc hình ảnh).",
-    "size_warning": "Nguồn POI này lớn và có thể chạy chậm (hơn 1000 đối tượng hoặc 5MB)."
+    "size_warning": "Nguồn POI này lớn và có thể chạy chậm (hơn 1000 đối tượng hoặc 5MB).",
+    "context_add": "Thêm POI",
+    "context_delete": "Xóa POI này"
   }
 }

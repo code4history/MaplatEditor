@@ -661,6 +661,8 @@
     "clone_to_local": "ローカルへ複製",
     "clone_failed": "ローカルへの複製に失敗しました。",
     "no_content_warning": "どのPOIにもコンテンツ（説明・HTML・住所・URL・画像）がありません。",
-    "size_warning": "POIソースの規模が大きいため、動作が遅くなる可能性があります（1000フィーチャーまたは5MB超）。"
+    "size_warning": "POIソースの規模が大きいため、動作が遅くなる可能性があります（1000フィーチャーまたは5MB超）。",
+    "context_add": "POIを追加",
+    "context_delete": "このPOIを削除"
   }
 }

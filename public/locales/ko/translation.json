@@ -604,6 +604,8 @@
     "clone_to_local": "로컬로 복제",
     "clone_failed": "로컬 소스로 복제하지 못했습니다.",
     "no_content_warning": "콘텐츠(설명·HTML·주소·URL·이미지)가 있는 POI가 없습니다.",
-    "size_warning": "POI 소스 규모가 커서 동작이 느려질 수 있습니다(1000개 피처 또는 5MB 초과)."
+    "size_warning": "POI 소스 규모가 커서 동작이 느려질 수 있습니다(1000개 피처 또는 5MB 초과).",
+    "context_add": "POI 추가",
+    "context_delete": "이 POI 삭제"
   }
 }

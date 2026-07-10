@@ -604,6 +604,8 @@
     "clone_to_local": "Lokal duplizieren",
     "clone_failed": "Duplizieren in eine lokale Quelle fehlgeschlagen.",
     "no_content_warning": "Kein POI enthält Inhalte (Beschreibung, HTML, Adresse, URL oder Bild).",
-    "size_warning": "Diese POI-Quelle ist groß und kann langsam werden (über 1000 Features oder 5 MB)."
+    "size_warning": "Diese POI-Quelle ist groß und kann langsam werden (über 1000 Features oder 5 MB).",
+    "context_add": "POI hinzufügen",
+    "context_delete": "Dieses POI löschen"
   }
 }

@@ -661,6 +661,8 @@
     "clone_to_local": "Clone to local",
     "clone_failed": "Failed to clone to a local source.",
     "no_content_warning": "No POI has any content (description, HTML, address, URL or image).",
-    "size_warning": "This POI source is large and may become slow (over 1000 features or 5 MB)."
+    "size_warning": "This POI source is large and may become slow (over 1000 features or 5 MB).",
+    "context_add": "Add POI",
+    "context_delete": "Delete this POI"
   }
 }

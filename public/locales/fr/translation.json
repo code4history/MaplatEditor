@@ -604,6 +604,8 @@
     "clone_to_local": "Dupliquer en local",
     "clone_failed": "Échec de la duplication en source locale.",
     "no_content_warning": "Aucun POI ne contient de contenu (description, HTML, adresse, URL ou image).",
-    "size_warning": "Cette source de POI est volumineuse et peut devenir lente (plus de 1000 entités ou 5 Mo)."
+    "size_warning": "Cette source de POI est volumineuse et peut devenir lente (plus de 1000 entités ou 5 Mo).",
+    "context_add": "Ajouter un POI",
+    "context_delete": "Supprimer ce POI"
   }
 }

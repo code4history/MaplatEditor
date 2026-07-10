@@ -604,6 +604,8 @@
     "clone_to_local": "複製到本地",
     "clone_failed": "複製到本地來源失敗。",
     "no_content_warning": "所有POI皆無內容（說明、HTML、地址、URL或圖片）。",
-    "size_warning": "此POI來源規模較大，可能導致執行緩慢（超過1000個要素或5MB）。"
+    "size_warning": "此POI來源規模較大，可能導致執行緩慢（超過1000個要素或5MB）。",
+    "context_add": "新增POI",
+    "context_delete": "刪除此POI"
   }
 }

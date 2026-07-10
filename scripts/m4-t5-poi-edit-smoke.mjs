@@ -1,7 +1,9 @@
-// Phase 4 Task 5: PoiEdit エディタ骨格のソースパターン smoke。
-// /poisources/:sourceId が PoiEdit へ置き換わり、保存 (useRevisionedAssetSave) と
+// Phase 4 Task 5/6: PoiEdit エディタのソースパターン smoke。
+// Task 5: /poisources/:sourceId が PoiEdit へ置き換わり、保存 (useRevisionedAssetSave) と
 // 編集セッション (usePoiEditSession)、slug 一意性 (checkSlug excludeUid)、ReadOnly 分岐
 // (cloneToLocal)、LangResourceInput が配線されていることを検証する。
+// Task 6: 地図ペイン (PoiEditMap) の contextmenu 追加/削除・Modify ドラッグ移動・
+// クリック選択・ReadOnly ガードの配線を検証する。
 import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -45,7 +47,7 @@ try {
     'router に旧 PoiSourceDetail が残存している'
   );
 
-  console.log('  [1/4] router PoiEdit route: PASS');
+  console.log('  [1/6] router PoiEdit route: PASS');
 
   // --- Part 2: PoiEdit.vue の配線 ---
   const poiEdit = await readFile(
@@ -143,7 +145,7 @@ try {
     'PoiEdit に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [2/4] PoiEdit.vue wiring: PASS');
+  console.log('  [2/6] PoiEdit.vue wiring: PASS');
 
   // --- Part 3: LangResourceInput.vue の形 ---
   const langResourceInput = await readFile(
@@ -200,7 +202,7 @@ try {
     'LangResourceInput に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [3/4] LangResourceInput.vue shape: PASS');
+  console.log('  [3/6] LangResourceInput.vue shape: PASS');
 
   // --- Part 4: 旧画面 3 ファイルが削除されていること ---
   for (const relPath of [
@@ -215,7 +217,182 @@ try {
     );
   }
 
-  console.log('  [4/4] legacy files removed: PASS');
+  console.log('  [4/6] legacy files removed: PASS');
+
+  // --- Part 5 (Task 6): PoiEdit 側の地図ペイン統合 ---
+  // 地図ペインは PoiEditMap コンポーネントとしてマウントされること
+  assert.match(
+    poiEdit,
+    /import PoiEditMap from ['"]\.\.\/components\/PoiEditMap\.vue['"]/,
+    'PoiEdit が PoiEditMap を import していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiEditMap[\s\S]*?:session=/,
+    'PoiEdit が PoiEditMap に session を渡していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiEditMap[\s\S]*?:read-only=/,
+    'PoiEdit が PoiEditMap に read-only を渡していない'
+  );
+
+  // Delete キー削除: isInput 判定は onHistoryKeydown と同一関数 (isInputTarget) を共有
+  assert.match(
+    poiEdit,
+    /const isInputTarget = /,
+    'PoiEdit に共有の isInputTarget 判定がない'
+  );
+  assert.ok(
+    (poiEdit.match(/isInputTarget\(event\)/g) || []).length >= 2,
+    'isInputTarget が undo/redo と Delete キーの両方で共有されていない'
+  );
+  assert.match(
+    poiEdit,
+    /['"]Delete['"]/,
+    'PoiEdit に Delete キーによる削除がない'
+  );
+  assert.match(
+    poiEdit,
+    /session\.removeFeature\(/,
+    'PoiEdit の Delete キーが session.removeFeature を呼んでいない'
+  );
+
+  console.log('  [5/6] PoiEdit map pane integration: PASS');
+
+  // --- Part 6 (Task 6): PoiEditMap.vue の配線 ---
+  const poiEditMap = await readFile(
+    path.join(projectRoot, 'src/components/PoiEditMap.vue'),
+    'utf8'
+  );
+
+  // ol-contextmenu: 同梱版を import し defaultItems:false で作成、open で動的 push
+  assert.match(
+    poiEditMap,
+    /import ContextMenu from ['"]\.\.\/libs\/ol-contextmenu\/main['"]/,
+    'PoiEditMap が同梱 ol-contextmenu を import していない'
+  );
+  assert.match(
+    poiEditMap,
+    /new ContextMenu\(\{[\s\S]*?defaultItems:\s*false/,
+    'PoiEditMap の ContextMenu が defaultItems:false で作成されていない'
+  );
+
+  // contextmenu 経由の追加/削除 (i18n キー + session API)
+  assert.match(
+    poiEditMap,
+    /poiedit\.context_add/,
+    'PoiEditMap に poiedit.context_add 項目がない'
+  );
+  assert.match(
+    poiEditMap,
+    /poiedit\.context_delete/,
+    'PoiEditMap に poiedit.context_delete 項目がない'
+  );
+  assert.match(
+    poiEditMap,
+    /session\.addFeature\(/,
+    'PoiEditMap の contextmenu が session.addFeature を呼んでいない'
+  );
+  assert.match(
+    poiEditMap,
+    /session\.removeFeature\(/,
+    'PoiEditMap の contextmenu が session.removeFeature を呼んでいない'
+  );
+
+  // ドラッグ移動: marker source への Modify + Snap、modifyend → moveFeature (=1 Undo)
+  assert.match(
+    poiEditMap,
+    /import \{[^}]*\bModify\b[^}]*\} from ['"]ol\/interaction['"]/,
+    'PoiEditMap が ol/interaction の Modify を import していない'
+  );
+  assert.match(
+    poiEditMap,
+    /import \{[^}]*\bSnap\b[^}]*\} from ['"]ol\/interaction['"]/,
+    'PoiEditMap が ol/interaction の Snap を import していない'
+  );
+  assert.match(
+    poiEditMap,
+    /modifystart/,
+    'PoiEditMap に modifystart ハンドラがない'
+  );
+  assert.match(
+    poiEditMap,
+    /modifyend/,
+    'PoiEditMap に modifyend ハンドラがない'
+  );
+  assert.match(
+    poiEditMap,
+    /session\.moveFeature\(/,
+    'PoiEditMap の modifyend が session.moveFeature を呼んでいない'
+  );
+
+  // クリック選択: forEachFeatureAtPixel (layerFilter 'marker'、hitTolerance 5)
+  assert.match(
+    poiEditMap,
+    /forEachFeatureAtPixel/,
+    'PoiEditMap がクリック選択に forEachFeatureAtPixel を使っていない'
+  );
+  assert.match(
+    poiEditMap,
+    /layer\.get\(['"]name['"]\)\s*===\s*['"]marker['"]/,
+    'PoiEditMap の layerFilter が marker レイヤーを対象にしていない'
+  );
+  assert.match(
+    poiEditMap,
+    /hitTolerance:\s*5/,
+    'PoiEditMap の hitTolerance が 5 でない'
+  );
+  assert.match(
+    poiEditMap,
+    /session\.selectedUid/,
+    'PoiEditMap が session.selectedUid を更新していない'
+  );
+
+  // base map selector: osm default + IPC 失敗時 /tms_list.json fallback (MapEdit 踏襲)
+  assert.match(
+    poiEditMap,
+    /baseMaps\.list/,
+    'PoiEditMap が window.baseMaps.list で base map 一覧を取っていない'
+  );
+  assert.match(
+    poiEditMap,
+    /tms_list\.json/,
+    'PoiEditMap に /tms_list.json fallback がない'
+  );
+  assert.match(
+    poiEditMap,
+    /['"]osm['"]/,
+    'PoiEditMap の base map default が osm でない'
+  );
+
+  // ReadOnly ガード: Modify の setActive(false) + contextmenu の disable()
+  assert.match(
+    poiEditMap,
+    /setActive\(!/,
+    'PoiEditMap が readOnly で Modify を無効化していない'
+  );
+  assert.match(
+    poiEditMap,
+    /contextmenu\.disable\(\)/,
+    'PoiEditMap が readOnly で contextmenu を無効化していない'
+  );
+
+  // 一覧からの地図同期 API (Task 8 で使用)
+  assert.match(
+    poiEditMap,
+    /defineExpose\(\{[\s\S]*?panTo/,
+    'PoiEditMap が panTo を expose していない'
+  );
+
+  // 生 ipcRenderer を使わないこと (House rule / m2-t3)
+  assert.doesNotMatch(
+    poiEditMap,
+    /ipcRenderer/,
+    'PoiEditMap に生 ipcRenderer 使用が残存している'
+  );
+
+  console.log('  [6/6] PoiEditMap.vue map pane wiring: PASS');
 
   console.log('M4-T5 PoiEdit editor skeleton smoke passed');
 } catch (err) {
