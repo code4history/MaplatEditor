@@ -4,6 +4,9 @@ import { useRouter, useRoute } from 'vue-router';
 import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
 import EnvelopeEditorModal from '../components/EnvelopeEditorModal.vue';
+import PoiSourceSelector from '../components/PoiSourceSelector.vue';
+import type { SelectedPoiSourceRef } from '../services/registeredPoiSourceCatalog';
+import { extractPoiRefs, applyPoiSelection, samePoiSelection } from '../utils/poiReferenceUi';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { LANGS_MAP, resolveEditorLanguage } from '../utils/editorLanguages';
 import { UndoStack } from '../services/editorUndoStack';
@@ -690,6 +693,34 @@ watch(() => mapData.value.mapID, (newVal, oldVal) => {
         onlyOne.value = false;
     }
 });
+
+// --- POI ソース selector 配線 (Phase 7 Task 3, POI-137, 43 §2.4) ---
+// 器は mapData.pois 配列 (無ければ undefined)。AppEdit と違い JSON 文字列層は無く、
+// 参照判定・差分反映は共有 util (utils/poiReferenceUi)。書き込みは mapData の deep-watch
+// (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
+// undo/redo/reload による mapData 差し替えは pois の watch が selector 表示に反映する
+// (書き戻し由来の変化は同値の選択集合になるため samePoiSelection でスキップし往復を止める)
+const selectedPoiSources = ref<SelectedPoiSourceRef[]>([]);
+
+watch(() => mapData.value.pois, syncPoiSelectionFromMapData, { immediate: true, deep: true });
+
+function syncPoiSelectionFromMapData() {
+    const pois = mapData.value.pois;
+    const restored = extractPoiRefs(Array.isArray(pois) ? pois : []);
+    if (samePoiSelection(selectedPoiSources.value, restored)) return;
+    selectedPoiSources.value = restored;
+}
+
+function onPoiSelectionChange(refs: SelectedPoiSourceRef[]) {
+    const current = Array.isArray(mapData.value.pois) ? mapData.value.pois : [];
+    const next = applyPoiSelection(current, refs);
+    if (next.length === 0) {
+        // 全解除で生要素も残らなければ pois キー自体を削除し、旧データの JSON をきれいに保つ
+        delete mapData.value.pois;
+    } else {
+        mapData.value.pois = next;
+    }
+}
 
 const performUndo = async () => {
     if (!historyStack.value || !historyStack.value.canUndo()) return;
@@ -3531,6 +3562,16 @@ const goBack = async () => {
                                 </label>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <!-- POI ソース参照 (Phase 7 Task 3, POI-137)。器は mapData.pois 配列 -->
+                <div class="card mt-3 flex-shrink-0 d-flex flex-column" style="max-height: 40%;">
+                    <div class="card-header bg-light fw-bold">{{ t("mapedit.poi_selector_label") }}</div>
+                    <div class="card-body overflow-auto">
+                        <PoiSourceSelector
+                            :initial-selected="selectedPoiSources"
+                            @update:selected="onPoiSelectionChange"
+                        />
                     </div>
                 </div>
                 <!-- 地域指定モーダル(Geocoder内蔵)。指定領域と存在範囲が重なるベースマップに絞り込む -->

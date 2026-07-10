@@ -241,6 +241,7 @@
     "base_map_filter_gcp": "Seulement les cartes couvrant l'étendue actuelle des GCP",
     "base_map_filter_region": "Filtrer par région",
     "base_map_search_no_results": "Aucun fond de carte correspondant.",
+    "poi_selector_label": "Sources de POI",
     "base_map_region_modal_title": "Sélectionner une région pour filtrer",
     "base_map_region_modal_help": "Faites glisser pour dessiner la région qui vous intéresse. Seuls les fonds de carte dont la couverture chevauche la région sont listés (les fonds de carte sans couverture définie sont considérés comme globaux et toujours listés).",
     "map_description": "Description",

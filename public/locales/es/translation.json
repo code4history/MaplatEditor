@@ -241,6 +241,7 @@
     "base_map_filter_gcp": "Solo mapas que cubran el área actual de GCP",
     "base_map_filter_region": "Filtrar por región",
     "base_map_search_no_results": "No hay mapas base coincidentes.",
+    "poi_selector_label": "Fuentes de POI",
     "base_map_region_modal_title": "Seleccionar una región para filtrar",
     "base_map_region_modal_help": "Arrastre para dibujar la región que le interese. Solo se listan los mapas base cuya cobertura se superpone con la región (los mapas base sin cobertura definida se consideran globales y siempre se listan).",
     "map_description": "Descripción",

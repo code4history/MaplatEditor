@@ -241,6 +241,7 @@
     "base_map_filter_gcp": "Nur Karten mit Abdeckung der aktuellen GCPs",
     "base_map_filter_region": "Nach Region filtern",
     "base_map_search_no_results": "Keine passenden Basiskarten gefunden.",
+    "poi_selector_label": "POI-Quellen",
     "base_map_region_modal_title": "Zu filternde Region festlegen",
     "base_map_region_modal_help": "Ziehen Sie den Bereich, in dem Sie Basiskarten anzeigen möchten. Es werden nur Basiskarten aufgelistet, deren Abdeckungsbereich sich mit der Region überschneidet (Basiskarten ohne festgelegten Abdeckungsbereich gelten als global und werden immer angezeigt).",
     "map_description": "Beschreibung",

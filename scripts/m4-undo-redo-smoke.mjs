@@ -17,7 +17,7 @@ try {
   assert.match(undoStack, /isDirty\s*\(\)\s*:\s*boolean/, 'UndoStack.isDirty() is missing');
   assert.match(undoStack, /static\s+fromSnapshot<T>/, 'UndoStack.fromSnapshot() is missing');
 
-  console.log('  [1/3] UndoStack SaaS parity surface: PASS');
+  console.log('  [1/4] UndoStack SaaS parity surface: PASS');
 
   const mapEdit = await readFile(
     path.join(projectRoot, 'src/views/MapEdit.vue'),
@@ -36,7 +36,7 @@ try {
   assert.match(mapEdit, /recordHistorySnapshot/, 'MapEdit.vue must record history snapshots');
   assert.match(mapEdit, /historyRestoring/, 'MapEdit.vue must guard restore from recording new history');
 
-  console.log('  [2/3] MapEdit history integration surface: PASS');
+  console.log('  [2/4] MapEdit history integration surface: PASS');
 
   assert.match(mapEdit, /@click="performUndo"/, 'MapEdit.vue must wire Undo button');
   assert.match(mapEdit, /@click="performRedo"/, 'MapEdit.vue must wire Redo button');
@@ -65,7 +65,30 @@ try {
   assert.doesNotMatch(electronMain, /role:\s*['"]undo['"]/, 'Electron Undo menu must not use native role only');
   assert.doesNotMatch(electronMain, /role:\s*['"]redo['"]/, 'Electron Redo menu must not use native role only');
 
-  console.log('  [3/3] Undo/Redo UI and shortcut wiring: PASS');
+  console.log('  [3/4] Undo/Redo UI and shortcut wiring: PASS');
+
+  // Phase 7 Task 3 (POI-137): MapEdit の settings タブに POI ソース selector をマウント。
+  // 器は mapData.pois 配列で、差分反映は AppEdit と共有の utils/poiReferenceUi。
+  // 書き込みは mapData の deep-watch が履歴を拾う (明示 recordHistory 不要 = undo/redo 対象)
+  assert.match(
+    mapEdit,
+    /import PoiSourceSelector from '\.\.\/components\/PoiSourceSelector\.vue'/,
+    'MapEdit.vue must import PoiSourceSelector'
+  );
+  assert.match(
+    mapEdit,
+    /import \{ extractPoiRefs, applyPoiSelection, samePoiSelection \} from '\.\.\/utils\/poiReferenceUi'/,
+    'MapEdit.vue must use the shared poiReferenceUi helpers'
+  );
+  const settingsTab = mapEdit.match(/v-show="activeTab === 'settings'"[\s\S]*?<!-- 地域指定モーダル/)?.[0] ?? '';
+  assert.ok(settingsTab, 'MapEdit.vue settings tab block could not be located');
+  assert.match(settingsTab, /<PoiSourceSelector/, 'MapEdit.vue must mount PoiSourceSelector in the settings tab');
+  assert.match(settingsTab, /mapedit\.poi_selector_label/, 'POI selector must have its own mapedit.poi_selector_label heading');
+  assert.match(mapEdit, /function syncPoiSelectionFromMapData/, 'MapEdit.vue must sync selector state from mapData.pois');
+  assert.match(mapEdit, /function onPoiSelectionChange/, 'MapEdit.vue must write selector changes back to mapData.pois');
+  assert.match(mapEdit, /delete mapData\.value\.pois/, 'MapEdit.vue must drop the pois key when nothing remains');
+
+  console.log('  [4/4] MapEdit POI source selector mount: PASS');
   console.log('M4 Undo/Redo smoke passed');
 } catch (err) {
   console.error('M4 Undo/Redo smoke FAILED:', err.message);

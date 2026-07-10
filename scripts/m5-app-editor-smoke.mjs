@@ -245,16 +245,28 @@ try {
     'AppEdit.vue が PoiSourceSelector を import していない'
   );
   assert.match(appEditView, /<PoiSourceSelector/, 'AppEdit.vue が PoiSourceSelector をマウントしていない');
+  // Phase 7 Task 3: 参照判定・復元・書き戻しの純関数部は MapEdit と共有の utils/poiReferenceUi に抽出済み
+  const poiReferenceUi = await readFile(path.join(projectRoot, 'src/utils/poiReferenceUi.ts'), 'utf8');
+  assert.match(
+    appEditView,
+    /import \{ extractPoiRefs, applyPoiSelection, samePoiSelection \} from "\.\.\/utils\/poiReferenceUi"/,
+    'AppEdit.vue が共有 util (poiReferenceUi) を import していない'
+  );
   // poiUid 復元: 参照要素判定は「string の poiUid キーを持つ object」(poiReferenceResolver と同一規約)
   assert.match(appEditView, /function syncPoiSelectionFromJson/, 'AppEdit.vue に poiSources → selector の復元がない');
   assert.match(
-    appEditView,
+    poiReferenceUi,
     /typeof uid === "string" && uid\.trim\(\) !== ""/,
-    'AppEdit.vue の参照要素判定が poiReferenceResolver 規約 (string の poiUid キー) と一致しない'
+    'poiReferenceUi.ts の参照要素判定が poiReferenceResolver 規約 (string の poiUid キー) と一致しない'
   );
   // 書き戻し: poiUid 要素の除去→再構築で、生要素 (URL/FC) は位置ごと透過されること
-  assert.match(appEditView, /function applyPoiSelection/, 'AppEdit.vue に selector → poiSources の書き戻しがない');
-  assert.match(appEditView, /const uid = poiUidOf\(entry\);/, 'AppEdit.vue の書き戻しが poiUid 要素判定を通していない');
+  assert.match(
+    poiReferenceUi,
+    /export function applyPoiSelection\(pois: unknown\[\], selected: SelectedPoiSourceRef\[\]\): unknown\[\]/,
+    'poiReferenceUi.ts に selector 選択の差分反映 (applyPoiSelection) がない'
+  );
+  assert.match(poiReferenceUi, /const uid = poiUidOf\(entry\);/, 'poiReferenceUi.ts の差分反映が poiUid 要素判定を通していない');
+  assert.match(appEditView, /function onPoiSelectionChange/, 'AppEdit.vue に selector → poiSources の書き戻しがない');
   assert.match(
     appEditView,
     /JSON\.stringify\(next, null, 2\)/,

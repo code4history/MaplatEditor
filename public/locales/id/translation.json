@@ -241,6 +241,7 @@
     "base_map_filter_gcp": "Hanya peta yang mencakup cakupan GCP saat ini",
     "base_map_filter_region": "Saring berdasarkan wilayah",
     "base_map_search_no_results": "Tidak ada peta dasar yang cocok.",
+    "poi_selector_label": "Sumber POI",
     "base_map_region_modal_title": "Tentukan wilayah untuk penyaringan",
     "base_map_region_modal_help": "Silakan seret untuk menentukan wilayah tempat peta dasar yang ingin Anda tampilkan berada. Hanya peta dasar yang cakupannya tumpang tindih dengan wilayah yang ditentukan yang akan ditampilkan dalam daftar (peta dasar tanpa cakupan yang diatur dianggap global dan selalu ditampilkan).",
     "map_description": "Deskripsi",

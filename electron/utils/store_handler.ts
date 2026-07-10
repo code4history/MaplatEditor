@@ -41,6 +41,9 @@ export interface HistMapStore {
   sub_maps: SubMap[];
   homePosition: Position;
   mercZoom: number;
+  // POI 配列 (Phase 7 / POI-137): {poiUid, cachedTitle} 参照要素と生要素 (URL/FC) の混在。
+  // シリアライズ両方向 (histMap2Store / store2HistMap) で素通し保持する
+  pois?: unknown[];
 }
 
 interface SubMap {
@@ -70,7 +73,8 @@ const keys: (keyof HistMapStore)[] = [
   "lang",
   "imageExtension",
   "homePosition",
-  "mercZoom"
+  "mercZoom",
+  "pois"
 ];
 
 export async function store2HistMap(

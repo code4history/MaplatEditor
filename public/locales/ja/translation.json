@@ -241,6 +241,7 @@
     "base_map_filter_gcp": "GCPの存在範囲を含む地図のみ",
     "base_map_filter_region": "地域で絞り込み",
     "base_map_search_no_results": "該当するベースマップがありません。",
+    "poi_selector_label": "POIソース",
     "base_map_region_modal_title": "絞り込む地域を指定",
     "base_map_region_modal_help": "表示したいベースマップがある地域をドラッグで指定してください。指定領域と存在範囲が重なるベースマップだけが一覧に表示されます(存在範囲未設定のベースマップは全球扱いとして常に表示されます)。",
     "map_description": "説明",

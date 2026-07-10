@@ -10,6 +10,7 @@ import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
 import PoiSourceSelector from "../components/PoiSourceSelector.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
+import { extractPoiRefs, applyPoiSelection, samePoiSelection } from "../utils/poiReferenceUi";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { fetchAllRegisteredMaps } from "../services/desktopMapList";
@@ -876,16 +877,10 @@ function normalizeJsonText(value: string, fallback: any) {
 // --- POI ソース selector 配線 (Phase 7 Task 2, 43 §2.4) ---
 // 真実の器は従来通り appData.poiSources (JSON 文字列) 1つ。selector は
 // 「string の poiUid キーを持つ object」参照要素のみを扱い、生要素 (URL/FC) は透過する。
+// 参照判定・復元・書き戻しの純関数部は MapEdit と共有の utils/poiReferenceUi に置き、
+// JSON 文字列⇄配列の層 (parse/stringify) だけを AppEdit 側に残す。
 const selectedPoiSources = ref<SelectedPoiSourceRef[]>([]);
 const poiSourcesJsonInvalid = ref(false);
-
-// 参照要素判定は main 側 poiReferenceResolver.poiUidOf と同一規約
-// (「string の poiUid キーを持つ object」。空白のみの uid は生要素扱い)
-function poiUidOf(entry: unknown): string | null {
-  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-  const uid = (entry as Record<string, unknown>).poiUid;
-  return typeof uid === "string" && uid.trim() !== "" ? uid : null;
-}
 
 function parsePoiSourcesArray(text: string): unknown[] | null {
   try {
@@ -908,62 +903,18 @@ function syncPoiSelectionFromJson() {
     return;
   }
   poiSourcesJsonInvalid.value = false;
-  const restored: SelectedPoiSourceRef[] = [];
-  for (const entry of parsed) {
-    const uid = poiUidOf(entry);
-    if (!uid || restored.some((item) => item.sourceId === uid)) continue;
-    const cachedTitle = (entry as Record<string, unknown>).cachedTitle;
-    restored.push({
-      kind: "registered-poi-source",
-      sourceId: uid,
-      catalogKey: `poi-source:${uid}`,
-      // mode は一覧カードの表示都合の補助情報で選択判定 (sourceId) には使われない。
-      // 保存形からは引けないため 'local' 仮置き
-      mode: "local",
-      cachedTitle: typeof cachedTitle === "string" ? cachedTitle : undefined,
-    });
-  }
+  const restored = extractPoiRefs(parsed);
   if (samePoiSelection(selectedPoiSources.value, restored)) return;
   selectedPoiSources.value = restored;
 }
 
-function samePoiSelection(a: SelectedPoiSourceRef[], b: SelectedPoiSourceRef[]): boolean {
-  return (
-    a.length === b.length &&
-    a.every((item, index) => item.sourceId === b[index].sourceId && item.cachedTitle === b[index].cachedTitle)
-  );
-}
-
-// selector の選択変更を poiSources 文字列へ書き戻す。既存参照は元の相対順を保ち、
-// 新規選択は末尾へ追加。生要素 (URL/FC) は位置ごと不変で透過する
-function applyPoiSelection(refs: SelectedPoiSourceRef[]) {
+// selector の選択変更を poiSources 文字列へ書き戻す (差分反映は共有 util の applyPoiSelection)
+function onPoiSelectionChange(refs: SelectedPoiSourceRef[]) {
   const parsed = parsePoiSourcesArray(appData.value.poiSources);
   if (!parsed) return; // parse 不能時は selector を disabled にしているため通常来ない (保険)
-  const selectedByUid = new Map(refs.map((item) => [item.sourceId, item]));
-  const next: unknown[] = [];
-  const written = new Set<string>();
-  for (const entry of parsed) {
-    const uid = poiUidOf(entry);
-    if (!uid) {
-      next.push(entry);
-      continue;
-    }
-    const selected = selectedByUid.get(uid);
-    if (!selected || written.has(uid)) continue; // 解除された参照と重複参照は除去
-    next.push(toPoiReferenceElement(selected));
-    written.add(uid);
-  }
-  for (const item of refs) {
-    if (!written.has(item.sourceId)) next.push(toPoiReferenceElement(item));
-  }
+  const next = applyPoiSelection(parsed, refs);
   appData.value.poiSources = JSON.stringify(next, null, 2);
   recordHistory();
-}
-
-function toPoiReferenceElement(item: SelectedPoiSourceRef): Record<string, string> {
-  const element: Record<string, string> = { poiUid: item.sourceId };
-  if (item.cachedTitle) element.cachedTitle = item.cachedTitle;
-  return element;
 }
 </script>
 
@@ -1151,7 +1102,7 @@ function toPoiReferenceElement(item: SelectedPoiSourceRef): Record<string, strin
                 <label class="form-label small fw-bold">{{ t("appedit.poi_selector_label") }}</label>
                 <div v-if="poiSourcesJsonInvalid" class="alert alert-warning py-1 px-2 small mb-2">{{ t("appedit.invalid_json") }}</div>
                 <div :class="{ 'poi-selector-disabled': poiSourcesJsonInvalid }" :aria-disabled="poiSourcesJsonInvalid">
-                  <PoiSourceSelector :initial-selected="selectedPoiSources" @update:selected="applyPoiSelection" />
+                  <PoiSourceSelector :initial-selected="selectedPoiSources" @update:selected="onPoiSelectionChange" />
                 </div>
               </div>
               <div class="col-md-6">

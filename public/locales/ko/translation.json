@@ -241,6 +241,7 @@
     "base_map_filter_gcp": "GCP의 존재 범위를 포함하는 지도만",
     "base_map_filter_region": "지역으로 필터링",
     "base_map_search_no_results": "해당하는 베이스맵이 없습니다.",
+    "poi_selector_label": "POI 소스",
     "base_map_region_modal_title": "필터링할 지역 지정",
     "base_map_region_modal_help": "표시하고 싶은 베이스맵이 있는 지역을 드래그로 지정하세요. 지정 영역과 존재 범위가 겹치는 베이스맵만 목록에 표시됩니다(존재 범위가 설정되지 않은 베이스맵은 전 지구로 간주되어 항상 표시됩니다).",
     "map_description": "설명",

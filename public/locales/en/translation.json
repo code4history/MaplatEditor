@@ -238,6 +238,7 @@
     "base_map_filter_gcp": "Only maps covering the current GCP extent",
     "base_map_filter_region": "Filter by region",
     "base_map_search_no_results": "No matching base maps.",
+    "poi_selector_label": "POI Sources",
     "base_map_region_modal_title": "Select a region to filter by",
     "base_map_region_modal_help": "Drag to draw the region you are interested in. Only base maps whose coverage overlaps the region are listed (base maps without coverage are treated as global and always listed).",
     "map_description": "Description",

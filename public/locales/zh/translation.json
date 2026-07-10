@@ -241,6 +241,7 @@
     "base_map_filter_gcp": "仅显示包含当前GCP范围的地图",
     "base_map_filter_region": "按区域筛选",
     "base_map_search_no_results": "没有符合条件的底图。",
+    "poi_selector_label": "POI来源",
     "base_map_region_modal_title": "指定筛选区域",
     "base_map_region_modal_help": "请通过拖动指定您想查看底图的区域。仅列出覆盖范围与指定区域重叠的底图(未设置覆盖范围的底图将被视为全球范围,始终列出)。",
     "map_description": "说明",

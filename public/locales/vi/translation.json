@@ -241,6 +241,7 @@
     "base_map_filter_gcp": "Chỉ bản đồ bao phủ phạm vi GCP hiện tại",
     "base_map_filter_region": "Lọc theo khu vực",
     "base_map_search_no_results": "Không có bản đồ nền phù hợp.",
+    "poi_selector_label": "Nguồn POI",
     "base_map_region_modal_title": "Chỉ định khu vực để lọc",
     "base_map_region_modal_help": "Vui lòng kéo để chỉ định khu vực có bản đồ nền bạn muốn hiển thị. Chỉ những bản đồ nền có phạm vi tồn tại trùng với khu vực đã chỉ định mới hiển thị trong danh sách (bản đồ nền chưa thiết lập phạm vi tồn tại được coi là toàn cầu và luôn hiển thị).",
     "map_description": "Mô tả",
