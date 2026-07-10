@@ -27,6 +27,7 @@
   "navbar": {
     "edit_map": "地図編集",
     "edit_app": "アプリ編集",
+    "assets": "画像アセット",
     "edit_poi": "POI編集",
     "add_basemap": "ベースマップ追加",
     "settings": "設定"
@@ -693,5 +694,43 @@
     "raw_apply_issues": "検証エラーのため適用できませんでした:",
     "raw_apply_warnings": "適用しましたが警告があります:",
     "raw_size_guard": "POIソースの規模が大きいため（1000フィーチャーまたは5MB超）、生GeoJSONは読み取り専用です。地図・フォームでの編集は引き続き可能です。"
+  },
+  "assetlist": {
+    "add_image": "画像を追加",
+    "search_placeholder": "画像アセットを検索...",
+    "loading": "読み込み中...",
+    "no_assets_found": "画像アセットが見つかりません",
+    "count_label": "{{num}} 件",
+    "slug_label": "スラッグ (ID)",
+    "slug_placeholder": "英数字・ハイフン・アンダースコア",
+    "title_label": "タイトル",
+    "title_placeholder": "画像のタイトルを入力",
+    "cancel": "キャンセル",
+    "rename_item": "名前を変更",
+    "delete_item": "この画像を削除",
+    "delete_confirm": "「{{name}}」を削除しますか？",
+    "delete_referenced": "この画像は {{num}} 個のPOIソースから参照されています:",
+    "delete_error": "画像アセットの削除に失敗しました",
+    "add_modal": {
+      "title": "画像を追加",
+      "file_label": "選択したファイル",
+      "add": "追加"
+    },
+    "rename_modal": {
+      "title": "画像の名前を変更",
+      "save": "保存"
+    },
+    "errors": {
+      "slug_charset": "スラッグは英数字・ハイフン・アンダースコアのみ使用できます",
+      "slug_taken": "このスラッグは既に使用されています",
+      "invalid": "画像を取り込めませんでした",
+      "not_found": "対象の画像アセットが見つかりません",
+      "internal": "内部エラーが発生しました",
+      "payload_too_large": "画像サイズが上限（20MB）を超えています",
+      "add_failed_hint": "ファイルを確認して再追加してください",
+      "revision_conflict": "他のウィンドウで更新されたため、一覧を再読み込みしました。もう一度お試しください",
+      "pick_failed": "ファイルを選択できませんでした",
+      "references_unavailable": "参照情報を取得できませんでした"
+    }
   }
 }

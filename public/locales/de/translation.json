@@ -27,6 +27,7 @@
   "navbar": {
     "edit_map": "Karte bearbeiten",
     "edit_app": "App bearbeiten",
+    "assets": "Assets",
     "edit_poi": "POI bearbeiten",
     "add_basemap": "Basiskarte hinzufügen",
     "settings": "Einstellungen"
@@ -690,5 +691,43 @@
     "raw_apply_issues": "Anwenden wegen Validierungsfehlern nicht möglich:",
     "raw_apply_warnings": "Mit Warnungen angewendet:",
     "raw_size_guard": "GeoJSON-Rohdaten sind schreibgeschützt, da diese Quelle groß ist (über 1000 Features oder 5 MB). Karten- und Formularbearbeitung bleiben möglich."
+  },
+  "assetlist": {
+    "add_image": "Bild hinzufügen",
+    "search_placeholder": "Bild-Assets durchsuchen...",
+    "loading": "Wird geladen...",
+    "no_assets_found": "Keine Bild-Assets gefunden",
+    "count_label": "{{num}} Assets",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Buchstaben, Ziffern, Bindestrich, Unterstrich",
+    "title_label": "Titel",
+    "title_placeholder": "Titel für das Bild eingeben",
+    "cancel": "Abbrechen",
+    "rename_item": "Umbenennen",
+    "delete_item": "Dieses Bild löschen",
+    "delete_confirm": "„{{name}}“ löschen?",
+    "delete_referenced": "Dieses Bild wird von {{num}} POI-Quellen referenziert:",
+    "delete_error": "Bild-Asset konnte nicht gelöscht werden",
+    "add_modal": {
+      "title": "Bild hinzufügen",
+      "file_label": "Ausgewählte Datei",
+      "add": "Hinzufügen"
+    },
+    "rename_modal": {
+      "title": "Bild umbenennen",
+      "save": "Speichern"
+    },
+    "errors": {
+      "slug_charset": "Der Slug darf nur Buchstaben, Ziffern, Bindestrich und Unterstrich enthalten",
+      "slug_taken": "Dieser Slug wird bereits verwendet",
+      "invalid": "Bild konnte nicht importiert werden",
+      "not_found": "Das Bild-Asset wurde nicht gefunden",
+      "internal": "Ein interner Fehler ist aufgetreten",
+      "payload_too_large": "Das Bild überschreitet das Größenlimit (20 MB)",
+      "add_failed_hint": "Prüfen Sie die Datei und fügen Sie sie erneut hinzu",
+      "revision_conflict": "In einem anderen Fenster aktualisiert; die Liste wurde neu geladen. Bitte versuchen Sie es erneut",
+      "pick_failed": "Datei konnte nicht ausgewählt werden",
+      "references_unavailable": "Referenzinformationen konnten nicht abgerufen werden"
+    }
   }
 }

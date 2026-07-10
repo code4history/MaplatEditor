@@ -42,6 +42,11 @@ const routes = [
     component: () => import('../views/PoiSourceList.vue')
   },
   {
+    path: '/assets', // image asset manager (Phase 6, AID-004)
+    name: 'AssetList',
+    component: () => import('../views/AssetList.vue')
+  },
+  {
     path: '/poisources/:sourceId', // POI source uid (ADR-0007)
     name: 'PoiEdit',
     component: () => import('../views/PoiEdit.vue')

@@ -27,6 +27,7 @@
   "navbar": {
     "edit_map": "地圖編輯",
     "edit_app": "應用程式編輯",
+    "assets": "圖片素材",
     "edit_poi": "POI編輯",
     "add_basemap": "新增底圖",
     "settings": "設定"
@@ -690,5 +691,43 @@
     "raw_apply_issues": "由於驗證錯誤，無法套用：",
     "raw_apply_warnings": "已套用，但有警告：",
     "raw_size_guard": "由於此來源規模較大（超過 1000 個圖徵或 5MB），原始 GeoJSON 為唯讀。仍可透過地圖與表單進行編輯。"
+  },
+  "assetlist": {
+    "add_image": "新增圖片",
+    "search_placeholder": "搜尋圖片素材...",
+    "loading": "載入中...",
+    "no_assets_found": "找不到圖片素材",
+    "count_label": "{{num}} 個",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "字母、數字、連字號、底線",
+    "title_label": "標題",
+    "title_placeholder": "輸入圖片標題",
+    "cancel": "取消",
+    "rename_item": "重新命名",
+    "delete_item": "刪除此圖片",
+    "delete_confirm": "確定要刪除「{{name}}」嗎？",
+    "delete_referenced": "此圖片被 {{num}} 個POI來源引用:",
+    "delete_error": "刪除圖片素材失敗",
+    "add_modal": {
+      "title": "新增圖片",
+      "file_label": "選擇的檔案",
+      "add": "新增"
+    },
+    "rename_modal": {
+      "title": "重新命名圖片",
+      "save": "儲存"
+    },
+    "errors": {
+      "slug_charset": "Slug只能包含字母、數字、連字號和底線",
+      "slug_taken": "此Slug已被使用",
+      "invalid": "無法匯入圖片",
+      "not_found": "找不到目標圖片素材",
+      "internal": "發生內部錯誤",
+      "payload_too_large": "圖片超過大小上限（20MB）",
+      "add_failed_hint": "請檢查檔案後重新新增",
+      "revision_conflict": "已在其他視窗中更新，清單已重新載入。請重試",
+      "pick_failed": "無法選擇檔案",
+      "references_unavailable": "無法取得引用資訊"
+    }
   }
 }

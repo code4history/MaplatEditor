@@ -27,6 +27,7 @@
   "navbar": {
     "edit_map": "地图编辑",
     "edit_app": "应用编辑",
+    "assets": "图片素材",
     "edit_poi": "POI编辑",
     "add_basemap": "添加底图",
     "settings": "设置"
@@ -690,5 +691,43 @@
     "raw_apply_issues": "由于验证错误，无法应用：",
     "raw_apply_warnings": "已应用，但存在警告：",
     "raw_size_guard": "由于此来源规模较大（超过 1000 个要素或 5MB），原始 GeoJSON 为只读。仍可通过地图和表单进行编辑。"
+  },
+  "assetlist": {
+    "add_image": "添加图片",
+    "search_placeholder": "搜索图片素材...",
+    "loading": "加载中...",
+    "no_assets_found": "未找到图片素材",
+    "count_label": "{{num}} 个",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "字母、数字、连字符、下划线",
+    "title_label": "标题",
+    "title_placeholder": "输入图片标题",
+    "cancel": "取消",
+    "rename_item": "重命名",
+    "delete_item": "删除此图片",
+    "delete_confirm": "确定删除“{{name}}”吗？",
+    "delete_referenced": "此图片被 {{num}} 个POI源引用:",
+    "delete_error": "删除图片素材失败",
+    "add_modal": {
+      "title": "添加图片",
+      "file_label": "选择的文件",
+      "add": "添加"
+    },
+    "rename_modal": {
+      "title": "重命名图片",
+      "save": "保存"
+    },
+    "errors": {
+      "slug_charset": "Slug只能包含字母、数字、连字符和下划线",
+      "slug_taken": "该Slug已被使用",
+      "invalid": "无法导入图片",
+      "not_found": "未找到目标图片素材",
+      "internal": "发生内部错误",
+      "payload_too_large": "图片超过大小上限（20MB）",
+      "add_failed_hint": "请检查文件后重新添加",
+      "revision_conflict": "已在其他窗口中更新，列表已重新加载。请重试",
+      "pick_failed": "无法选择文件",
+      "references_unavailable": "无法获取引用信息"
+    }
   }
 }

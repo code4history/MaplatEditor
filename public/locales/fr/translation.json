@@ -27,6 +27,7 @@
   "navbar": {
     "edit_map": "Modifier la carte",
     "edit_app": "Modifier l'application",
+    "assets": "Ressources",
     "edit_poi": "Modifier les POI",
     "add_basemap": "Ajouter un fond de carte",
     "settings": "Paramètres"
@@ -690,5 +691,43 @@
     "raw_apply_issues": "Impossible d'appliquer en raison d'erreurs de validation :",
     "raw_apply_warnings": "Appliqué avec des avertissements :",
     "raw_size_guard": "Le GeoJSON brut est en lecture seule car cette source est volumineuse (plus de 1000 entités ou 5 Mo). La modification via la carte et le formulaire reste possible."
+  },
+  "assetlist": {
+    "add_image": "Ajouter une image",
+    "search_placeholder": "Rechercher des ressources d'image...",
+    "loading": "Chargement...",
+    "no_assets_found": "Aucune ressource d'image trouvée",
+    "count_label": "{{num}} ressources",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Lettres, chiffres, tiret et tiret bas",
+    "title_label": "Titre",
+    "title_placeholder": "Saisissez un titre pour l'image",
+    "cancel": "Annuler",
+    "rename_item": "Renommer",
+    "delete_item": "Supprimer cette image",
+    "delete_confirm": "Supprimer « {{name}} » ?",
+    "delete_referenced": "Cette image est référencée par {{num}} sources de POI :",
+    "delete_error": "Échec de la suppression de la ressource d'image",
+    "add_modal": {
+      "title": "Ajouter une image",
+      "file_label": "Fichier sélectionné",
+      "add": "Ajouter"
+    },
+    "rename_modal": {
+      "title": "Renommer l'image",
+      "save": "Enregistrer"
+    },
+    "errors": {
+      "slug_charset": "Le slug ne peut contenir que des lettres, des chiffres, des tirets et des tirets bas",
+      "slug_taken": "Ce slug est déjà utilisé",
+      "invalid": "Impossible d'importer l'image",
+      "not_found": "Ressource d'image introuvable",
+      "internal": "Une erreur interne s'est produite",
+      "payload_too_large": "L'image dépasse la taille limite (20 Mo)",
+      "add_failed_hint": "Vérifiez le fichier et ajoutez-le à nouveau",
+      "revision_conflict": "Mis à jour dans une autre fenêtre ; la liste a été rechargée. Veuillez réessayer",
+      "pick_failed": "Impossible de sélectionner un fichier",
+      "references_unavailable": "Impossible de récupérer les informations de référence"
+    }
   }
 }

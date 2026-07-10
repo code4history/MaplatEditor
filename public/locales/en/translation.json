@@ -24,6 +24,7 @@
   "navbar": {
     "edit_map": "Edit Map",
     "edit_app": "Edit Application",
+    "assets": "Assets",
     "edit_poi": "Edit POI",
     "add_basemap": "Add Base Map",
     "settings": "Settings"
@@ -693,5 +694,43 @@
     "raw_apply_issues": "Could not apply due to validation errors:",
     "raw_apply_warnings": "Applied with warnings:",
     "raw_size_guard": "Raw GeoJSON is read-only because this source is large (over 1000 features or 5 MB). Map and form editing remain available."
+  },
+  "assetlist": {
+    "add_image": "Add Image",
+    "search_placeholder": "Search image assets...",
+    "loading": "Loading...",
+    "no_assets_found": "No image assets found",
+    "count_label": "{{num}} assets",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Letters, digits, hyphen, underscore",
+    "title_label": "Title",
+    "title_placeholder": "Enter a title for the image",
+    "cancel": "Cancel",
+    "rename_item": "Rename",
+    "delete_item": "Delete this image",
+    "delete_confirm": "Delete \"{{name}}\"?",
+    "delete_referenced": "This image is referenced by {{num}} POI sources:",
+    "delete_error": "Failed to delete the image asset",
+    "add_modal": {
+      "title": "Add Image",
+      "file_label": "Selected file",
+      "add": "Add"
+    },
+    "rename_modal": {
+      "title": "Rename Image",
+      "save": "Save"
+    },
+    "errors": {
+      "slug_charset": "Slug may only contain letters, digits, hyphen and underscore",
+      "slug_taken": "This slug is already in use",
+      "invalid": "Could not import the image",
+      "not_found": "The image asset was not found",
+      "internal": "An internal error occurred",
+      "payload_too_large": "The image exceeds the size limit (20MB)",
+      "add_failed_hint": "Check the file and add it again",
+      "revision_conflict": "Updated in another window; the list has been reloaded. Please try again",
+      "pick_failed": "Could not pick a file",
+      "references_unavailable": "Could not retrieve reference information"
+    }
   }
 }

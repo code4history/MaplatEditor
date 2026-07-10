@@ -27,6 +27,7 @@
   "navbar": {
     "edit_map": "Chỉnh sửa bản đồ",
     "edit_app": "Chỉnh sửa ứng dụng",
+    "assets": "Tài nguyên ảnh",
     "edit_poi": "Chỉnh sửa POI",
     "add_basemap": "Thêm bản đồ nền",
     "settings": "Cài đặt"
@@ -690,5 +691,43 @@
     "raw_apply_issues": "Không thể áp dụng do lỗi xác thực:",
     "raw_apply_warnings": "Đã áp dụng nhưng có cảnh báo:",
     "raw_size_guard": "GeoJSON thô ở chế độ chỉ đọc vì nguồn này lớn (hơn 1000 đối tượng hoặc 5MB). Vẫn có thể chỉnh sửa trên bản đồ và biểu mẫu."
+  },
+  "assetlist": {
+    "add_image": "Thêm hình ảnh",
+    "search_placeholder": "Tìm kiếm tài nguyên ảnh...",
+    "loading": "Đang tải...",
+    "no_assets_found": "Không tìm thấy tài nguyên ảnh",
+    "count_label": "{{num}} mục",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Chữ cái, chữ số, gạch nối, gạch dưới",
+    "title_label": "Tiêu đề",
+    "title_placeholder": "Nhập tiêu đề cho hình ảnh",
+    "cancel": "Hủy",
+    "rename_item": "Đổi tên",
+    "delete_item": "Xóa hình ảnh này",
+    "delete_confirm": "Xóa \"{{name}}\"?",
+    "delete_referenced": "Hình ảnh này được tham chiếu bởi {{num}} nguồn POI:",
+    "delete_error": "Không thể xóa tài nguyên ảnh",
+    "add_modal": {
+      "title": "Thêm hình ảnh",
+      "file_label": "Tệp đã chọn",
+      "add": "Thêm"
+    },
+    "rename_modal": {
+      "title": "Đổi tên hình ảnh",
+      "save": "Lưu"
+    },
+    "errors": {
+      "slug_charset": "Slug chỉ được chứa chữ cái, chữ số, gạch nối và gạch dưới",
+      "slug_taken": "Slug này đã được sử dụng",
+      "invalid": "Không thể nhập hình ảnh",
+      "not_found": "Không tìm thấy tài nguyên ảnh",
+      "internal": "Đã xảy ra lỗi nội bộ",
+      "payload_too_large": "Hình ảnh vượt quá giới hạn kích thước (20MB)",
+      "add_failed_hint": "Kiểm tra tệp và thêm lại",
+      "revision_conflict": "Đã được cập nhật ở cửa sổ khác; danh sách đã được tải lại. Vui lòng thử lại",
+      "pick_failed": "Không thể chọn tệp",
+      "references_unavailable": "Không thể lấy thông tin tham chiếu"
+    }
   }
 }

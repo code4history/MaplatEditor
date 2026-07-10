@@ -27,6 +27,7 @@
   "navbar": {
     "edit_map": "Editar mapa",
     "edit_app": "Editar aplicación",
+    "assets": "Recursos",
     "edit_poi": "Editar POI",
     "add_basemap": "Añadir mapa base",
     "settings": "Configuración"
@@ -690,5 +691,43 @@
     "raw_apply_issues": "No se pudo aplicar debido a errores de validación:",
     "raw_apply_warnings": "Aplicado con advertencias:",
     "raw_size_guard": "El GeoJSON sin procesar es de solo lectura porque esta fuente es grande (más de 1000 entidades o 5 MB). La edición en el mapa y el formulario sigue disponible."
+  },
+  "assetlist": {
+    "add_image": "Añadir imagen",
+    "search_placeholder": "Buscar recursos de imagen...",
+    "loading": "Cargando...",
+    "no_assets_found": "No se encontraron recursos de imagen",
+    "count_label": "{{num}} recursos",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Letras, dígitos, guion y guion bajo",
+    "title_label": "Título",
+    "title_placeholder": "Introduzca un título para la imagen",
+    "cancel": "Cancelar",
+    "rename_item": "Renombrar",
+    "delete_item": "Eliminar esta imagen",
+    "delete_confirm": "¿Eliminar \"{{name}}\"?",
+    "delete_referenced": "Esta imagen es referenciada por {{num}} fuentes de POI:",
+    "delete_error": "No se pudo eliminar el recurso de imagen",
+    "add_modal": {
+      "title": "Añadir imagen",
+      "file_label": "Archivo seleccionado",
+      "add": "Añadir"
+    },
+    "rename_modal": {
+      "title": "Renombrar imagen",
+      "save": "Guardar"
+    },
+    "errors": {
+      "slug_charset": "El slug solo puede contener letras, dígitos, guion y guion bajo",
+      "slug_taken": "Este slug ya está en uso",
+      "invalid": "No se pudo importar la imagen",
+      "not_found": "No se encontró el recurso de imagen",
+      "internal": "Se ha producido un error interno",
+      "payload_too_large": "La imagen supera el límite de tamaño (20 MB)",
+      "add_failed_hint": "Compruebe el archivo y vuelva a añadirlo",
+      "revision_conflict": "Actualizado en otra ventana; la lista se ha recargado. Inténtelo de nuevo",
+      "pick_failed": "No se pudo seleccionar el archivo",
+      "references_unavailable": "No se pudo obtener la información de referencias"
+    }
   }
 }

@@ -27,6 +27,7 @@
   "navbar": {
     "edit_map": "Edit Peta",
     "edit_app": "Edit Aplikasi",
+    "assets": "Aset",
     "edit_poi": "Edit POI",
     "add_basemap": "Tambah Peta Dasar",
     "settings": "Pengaturan"
@@ -690,5 +691,43 @@
     "raw_apply_issues": "Tidak dapat diterapkan karena kesalahan validasi:",
     "raw_apply_warnings": "Diterapkan dengan peringatan:",
     "raw_size_guard": "GeoJSON mentah bersifat hanya-baca karena sumber ini besar (lebih dari 1000 fitur atau 5 MB). Pengeditan peta dan formulir tetap tersedia."
+  },
+  "assetlist": {
+    "add_image": "Tambah Gambar",
+    "search_placeholder": "Cari aset gambar...",
+    "loading": "Memuat...",
+    "no_assets_found": "Aset gambar tidak ditemukan",
+    "count_label": "{{num}} aset",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Huruf, angka, tanda hubung, garis bawah",
+    "title_label": "Judul",
+    "title_placeholder": "Masukkan judul gambar",
+    "cancel": "Batal",
+    "rename_item": "Ganti nama",
+    "delete_item": "Hapus gambar ini",
+    "delete_confirm": "Hapus \"{{name}}\"?",
+    "delete_referenced": "Gambar ini direferensikan oleh {{num}} sumber POI:",
+    "delete_error": "Gagal menghapus aset gambar",
+    "add_modal": {
+      "title": "Tambah Gambar",
+      "file_label": "Berkas terpilih",
+      "add": "Tambah"
+    },
+    "rename_modal": {
+      "title": "Ganti Nama Gambar",
+      "save": "Simpan"
+    },
+    "errors": {
+      "slug_charset": "Slug hanya boleh berisi huruf, angka, tanda hubung, dan garis bawah",
+      "slug_taken": "Slug ini sudah digunakan",
+      "invalid": "Tidak dapat mengimpor gambar",
+      "not_found": "Aset gambar tidak ditemukan",
+      "internal": "Terjadi kesalahan internal",
+      "payload_too_large": "Gambar melebihi batas ukuran (20MB)",
+      "add_failed_hint": "Periksa berkas lalu tambahkan lagi",
+      "revision_conflict": "Diperbarui di jendela lain; daftar telah dimuat ulang. Silakan coba lagi",
+      "pick_failed": "Tidak dapat memilih berkas",
+      "references_unavailable": "Tidak dapat mengambil informasi referensi"
+    }
   }
 }
