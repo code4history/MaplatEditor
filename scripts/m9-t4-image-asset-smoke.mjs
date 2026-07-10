@@ -6,16 +6,17 @@
 //   (a) add: 実PNGをコピー → metadata(mime/width/height/ext) 正しい / assets/{uid}.{ext} に実体 /
 //       title は string 入力でも内部形 {ja:...} (ADR-0005) / slug参照でも解決 (findAssetByRef)
 //   (b) add: 既存slugへの add → Exist (アセットは作られない)
-//   (c) add: 非画像ファイル(.txt) → Error{code:'invalid-request'} (slug/アセットとも消費されない)
+//   (c) add: 非画像ファイル(.txt) → Error{code:'invalid-request'} (slug/アセットとも消費されない) /
+//       fs エラー(存在しないファイル) → 'not-found' (decode 失敗と誤診しない)
 //   (d) list/search: metadata 行を返す(blob なし) / title・slug の部分一致でヒット
 //   (e) rename: 既存slugへの改名 → Exist
 //   (f) rename: stale expectedRevision → { error:'revision-conflict', current }
 //   (g) rename: 正常系 → revision++ / registry 同期(旧slug解放・新slugで解決可能)
 //   (h) getFilePath: 実在ファイルは file:// URL を返す
 //   (i) delete: 本体・registry 掃除 / ファイルは削除でなく _trash へ退避 / 旧slugは再利用可能
-//   (j) delete-race: rename の事前チェック(findAsset/isSlugAvailable)と書込の間に並行 delete →
-//       復活 (revision=1 再INSERT + registry slug 再占有) せず Error{code:'not-found'}、slug は解放のまま
-//       (m9-t3 の l4 と同機構: upsertAssetRow の not-found ガード)
+//   (j) delete-race: rename の書込 (upsertAssetMeta) の直前に並行 delete (フックで注入、
+//       事前チェックの順序に依らずガードを直撃) → 復活 (revision=1 再INSERT + registry slug 再占有)
+//       せず Error{code:'not-found'}、slug は解放のまま (m9-t3 の l4 と同機構: upsertAssetRow の not-found ガード)
 import { mkdtemp, rm, writeFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -148,13 +149,19 @@ try {
       assert.equal(dupe.result, 'Exist', '既存 slug への add は Exist のはず');
       console.log('ok: (b) add rejects a taken slug');
 
-      // (c) add: 非画像ファイル(.txt) → Error{code:'invalid-request'}
+      // (c) add: 非画像ファイル(.txt) → Error{code:'invalid-request'}。
+      // fs エラーは decode 失敗と区別する: 存在しないファイルは invalid-request(恒久的な響き)ではなく
+      // not-found を返すこと(EACCES/EBUSY 等の一時障害は同じ fs catch で internal へ落ちる設計)
       const rejected = await imageAssetService.add({ slug: 'not-image', title: 'bad', sourcePath: txtPath });
       assert.equal(rejected.result, 'Error', '非画像ファイルは Error のはず: ' + JSON.stringify(rejected));
       assert.equal(rejected.code, 'invalid-request', '非画像ファイルは invalid-request のはず');
       assert.equal(await SqliteDataService.findAssetBySlug('not-image'), null, '拒否された add でアセットは作られないはず');
       assert.equal(await SqliteDataService.isSlugAvailable('not-image'), true, '拒否された add で slug は消費されないはず');
-      console.log('ok: (c) add rejects a non-image file');
+      const missing = await imageAssetService.add({ slug: 'missing-image', title: 'x', sourcePath: nodePath.join(fixtureDir, 'no-such-file.png') });
+      assert.equal(missing.result, 'Error', '存在しないファイルは Error のはず: ' + JSON.stringify(missing));
+      assert.equal(missing.code, 'not-found', 'fs 読み取り失敗(ENOENT)は invalid-request でなく not-found のはず');
+      assert.equal(await SqliteDataService.isSlugAvailable('missing-image'), true, '失敗した add で slug は消費されないはず');
+      console.log('ok: (c) add rejects a non-image file; fs errors are not misdiagnosed as non-image');
 
       // 追加の2件目(list/search用)
       const added2 = await imageAssetService.add({ slug: 'green-swatch', title: '緑色見本', sourcePath: png2Path });
@@ -216,26 +223,22 @@ try {
       assert.equal(reAdded.result, 'Success', '解放された slug は再利用できるはず: ' + JSON.stringify(reAdded));
       console.log('ok: (i) delete moves the file to _trash and frees the slug');
 
-      // (j) delete-race: rename の事前チェック(findAsset → isSlugAvailable)が通過した後、
-      // 書込 (upsertAssetMeta) の前に並行 delete が挟まる状況を isSlugAvailable のフックで再現する。
-      // 旧実装 (upsertAssetRow の行不在時 INSERT) では削除済みアセットが revision=1 で復活し
-      // registry slug を再占有していた — not-found ガードがそれを封鎖することを確認する
+      // (j) delete-race: rename の事前チェックが全て通過した後、書込の直前に並行 delete が挟まる
+      // 状況を upsertAssetMeta 自体のフック(delete してから本来の書込へ委譲)で再現する —
+      // 事前チェックの順序が将来変わっても、必ず upsertAssetRow の not-found ガードを直撃する。
+      // 旧実装 (行不在時 INSERT) では削除済みアセットが revision=1 で復活し registry slug を
+      // 再占有していた — ガードがそれを封鎖することを確認する
       const raceUid = reAdded.uid;
-      const origIsSlugAvailable = SqliteDataService.isSlugAvailable.bind(SqliteDataService);
-      let raceArmed = true;
-      (SqliteDataService as any).isSlugAvailable = async (slug: string, excludeUid?: string) => {
-        const available = await origIsSlugAvailable(slug, excludeUid);
-        if (raceArmed) {
-          raceArmed = false;
-          await imageAssetService.delete(raceUid);
-        }
-        return available;
+      const origUpsertAssetMeta = SqliteDataService.upsertAssetMeta.bind(SqliteDataService);
+      (SqliteDataService as any).upsertAssetMeta = async (u: string, s: string, i: any, expectedRevision?: number) => {
+        await imageAssetService.delete(raceUid);
+        return origUpsertAssetMeta(u, s, i, expectedRevision);
       };
       let raceRename: any;
       try {
         raceRename = await imageAssetService.rename(raceUid, { slug: 'race-renamed', title: 'レース', expectedRevision: 1 });
       } finally {
-        delete (SqliteDataService as any).isSlugAvailable;
+        delete (SqliteDataService as any).upsertAssetMeta;
       }
       assert.equal(raceRename.result, 'Error', '並行 delete 後の rename は Error のはず: ' + JSON.stringify(raceRename));
       assert.equal(raceRename.code, 'not-found', '並行 delete は code not-found のはず');

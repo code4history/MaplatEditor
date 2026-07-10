@@ -103,12 +103,13 @@ export class ImageAssetService {
   }
 
   // atomic tmp-rename: 同名 dest への書込中に読まれる/クラッシュで壊れたファイルが残ることを防ぐ。
-  // dest は新規採番された uid を含むため通常は衝突しないが、失敗時は tmp を掃除してから再送出する
-  private async copyBytesAtomic(sourcePath: string, destPath: string): Promise<void> {
+  // メタデータ抽出に使ったバッファをそのまま書く(元ファイルの再読込はしない — 読取後に元ファイルが
+  // 差し替わっても DB のメタデータと保存バイトが食い違わない)。dest は新規採番された uid を含むため
+  // 通常は衝突しないが、失敗時は tmp を掃除してから再送出する
+  private async writeBytesAtomic(bytes: Buffer, destPath: string): Promise<void> {
     const tmpPath = `${destPath}.tmp`;
     try {
-      await fs.remove(tmpPath);
-      await fs.copy(sourcePath, tmpPath);
+      await fs.writeFile(tmpPath, bytes);
       await fs.move(tmpPath, destPath, { overwrite: false });
     } catch (e) {
       try {
@@ -120,10 +121,12 @@ export class ImageAssetService {
     }
   }
 
-  // 任意の画像ファイルを読み、mime/width/height を抽出する。デコード不能(非画像/未対応形式)なら null
-  private async readImageMeta(sourcePath: string, ext: string): Promise<{ mime: string; width: number; height: number } | null> {
+  // 読取済みバイト列から mime/width/height を抽出する。デコード不能(非画像/未対応形式)なら null。
+  // fs エラー(EACCES/EBUSY 等 — OneDrive ロックはこのデータフォルダの既知ハザード)を
+  // 「非画像ファイル」と誤診しないよう、fs 読み取りは呼び出し元が済ませ、ここは decode のみを扱う
+  private async decodeImageMeta(bytes: Buffer, ext: string): Promise<{ mime: string; width: number; height: number } | null> {
     try {
-      const image = await Jimp.read(sourcePath);
+      const image = await Jimp.read(bytes);
       const mime = image.mime ?? EXT_MIME_FALLBACK[ext] ?? `image/${ext}`;
       return { mime, width: image.width, height: image.height };
     } catch {
@@ -141,17 +144,27 @@ export class ImageAssetService {
 
     const sourcePath = String(input.sourcePath ?? '');
     if (!sourcePath) return { result: 'Error', code: 'invalid-request', message: 'sourcePath is required' };
-    if (!(await fs.pathExists(sourcePath))) {
-      return { result: 'Error', code: 'not-found', message: `File not found: ${sourcePath}` };
-    }
     const ext = path.extname(sourcePath).slice(1).toLowerCase();
     if (!ext) return { result: 'Error', code: 'invalid-request', message: 'sourcePath must have a file extension' };
 
-    const meta = await this.readImageMeta(sourcePath, ext);
+    // fs 読み取りを decode より先に単独で行い、エラー種別を分ける: ENOENT → 'not-found'、
+    // それ以外(EACCES/EBUSY 等の一時障害 — OneDrive ロックは既知ハザード) → 'internal'。
+    // 「非画像ファイル」(invalid-request) の恒久的な響きの診断は decode 失敗のみに限定する。
+    // 以降 byteSize/デコード/保存はすべてこのバッファを正とする(stat/copy との TOCTOU 排除)
+    let bytes: Buffer;
+    try {
+      bytes = await fs.readFile(sourcePath);
+    } catch (e: any) {
+      if (e?.code === 'ENOENT') {
+        return { result: 'Error', code: 'not-found', message: `File not found: ${sourcePath}` };
+      }
+      return { result: 'Error', code: 'internal', message: `Failed to read file: ${e?.message ?? e}` };
+    }
+
+    const meta = await this.decodeImageMeta(bytes, ext);
     if (!meta) {
       return { result: 'Error', code: 'invalid-request', message: `Unsupported or corrupt image file: ${sourcePath}` };
     }
-    const stat = await fs.stat(sourcePath);
 
     let uid: string;
     try {
@@ -161,7 +174,7 @@ export class ImageAssetService {
         ext,
         width: meta.width,
         height: meta.height,
-        byteSize: stat.size,
+        byteSize: bytes.length,
       });
       uid = created.uid;
     } catch (e: any) {
@@ -170,7 +183,7 @@ export class ImageAssetService {
 
     try {
       await fs.ensureDir(this.assetsDir);
-      await this.copyBytesAtomic(sourcePath, path.join(this.assetsDir, `${uid}.${ext}`));
+      await this.writeBytesAtomic(bytes, path.join(this.assetsDir, `${uid}.${ext}`));
     } catch (e: any) {
       // DBは既にコミット済み: uid/slug/revision を返し、レンダラが再アップロード等で復旧できるようにする
       // (MapEditService.save の post-commit file operation failure と同じ方針)
