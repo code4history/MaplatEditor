@@ -1303,6 +1303,28 @@ class SqliteDataService {
     return refs;
   }
 
+  // poi_sources の data_json 中の画像アセット参照 (`"<uid>"` — icon/selectedIcon/image 配列の
+  // どこに現れても文字列一致で拾える。POI-139 の参照文法は uid をそのまま値に持つため
+  // "poiUid":"<uid>" のようなキー限定は不要) を走査する (43 §7 の削除確認フローが使う)。
+  // 参照ありでも削除自体はブロックしない(未解決 asset は picker の解釈表示側で警告する)
+  async findAssetReferences(uid: string): Promise<{ poiSources: Array<{ uid: string; slug: string; title: Record<string, string> }> }> {
+    // UUID 形状のみ許可: %/_ 等の LIKE メタ文字混入で偽参照を作らないためのガード
+    // (findPoiSourceReferences と同じ規律)
+    if (!UUID_PATTERN.test(uid)) return { poiSources: [] };
+    const db = await this.getDb();
+    const needle = `%"${uid}"%`;
+    const rows = db
+      .prepare('SELECT uid, slug, title_json FROM poi_sources WHERE data_json LIKE ?')
+      .all(needle) as any[];
+    return {
+      poiSources: rows.map((row) => ({
+        uid: String(row.uid),
+        slug: String(row.slug),
+        title: JSON.parse(row.title_json),
+      })),
+    };
+  }
+
   async upsertPoiSource(
     uid: string,
     slug: string,

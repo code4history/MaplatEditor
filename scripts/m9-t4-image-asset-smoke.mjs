@@ -163,6 +163,21 @@ try {
       assert.equal(await SqliteDataService.isSlugAvailable('missing-image'), true, '失敗した add で slug は消費されないはず');
       console.log('ok: (c) add rejects a non-image file; fs errors are not misdiagnosed as non-image');
 
+      // (c2) add: 巨大ファイル(21MB, IMAGE_ASSET_MAX_BYTES=20MB超) → Jimp.read に到達させず
+      // invalid-request/payload-too-large で拒否する。PNGヘッダ+ゼロ埋めのダミーバイトなので
+      // デコードに到達すれば失敗するはず(=このバイト列は非画像扱いになる)だが、ガードは
+      // decode 前に判定するため message は 'payload-too-large' になる(decode 失敗の汎用メッセージとは別)
+      const hugePath = nodePath.join(fixtureDir, 'huge-image.png');
+      const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      const hugeBytes = Buffer.concat([pngSignature, Buffer.alloc(21 * 1024 * 1024 - pngSignature.length)]);
+      await fsWriteFile(hugePath, hugeBytes);
+      const hugeRejected = await imageAssetService.add({ slug: 'huge-image', title: 'huge', sourcePath: hugePath });
+      assert.equal(hugeRejected.result, 'Error', '巨大ファイルは Error のはず: ' + JSON.stringify(hugeRejected));
+      assert.equal(hugeRejected.code, 'invalid-request', '巨大ファイルは invalid-request のはず');
+      assert.equal(hugeRejected.message, 'payload-too-large', 'サイズガードは Jimp.read の decode 失敗メッセージでなく payload-too-large を返すはず(decode に到達しない証跡)');
+      assert.equal(await SqliteDataService.isSlugAvailable('huge-image'), true, '拒否された add で slug は消費されないはず');
+      console.log('ok: (c2) add rejects an oversized file before decoding it');
+
       // 追加の2件目(list/search用)
       const added2 = await imageAssetService.add({ slug: 'green-swatch', title: '緑色見本', sourcePath: png2Path });
       assert.equal(added2.result, 'Success', '2件目の add も Success のはず: ' + JSON.stringify(added2));
@@ -246,6 +261,70 @@ try {
       assert.equal(await SqliteDataService.isSlugAvailable('race-renamed'), true, '改名先 slug が registry を再占有しないはず');
       assert.equal(await SqliteDataService.isSlugAvailable('crimson-swatch'), true, '旧 slug も解放のままのはず');
       console.log('ok: (j) delete during rename does not resurrect the asset');
+
+      // (k) findAssetReferences/findReferences: icon 参照・image 配列内参照の poi_source を拾う。
+      // 無関係な poi_source は拾わない。UUID 形でない ref は空配列(LIKE メタ文字混入ガード)
+      const refAsset = await imageAssetService.add({ slug: 'pin-icon', title: 'ピン', sourcePath: png2Path });
+      assert.equal(refAsset.result, 'Success');
+      const refUid = refAsset.uid;
+
+      const fcWithIcon = {
+        type: 'FeatureCollection',
+        features: [
+          { type: 'Feature', properties: { icon: refUid }, geometry: { type: 'Point', coordinates: [0, 0] } },
+        ],
+      };
+      const { uid: poiWithIconUid } = await SqliteDataService.createPoiSource('poi-with-icon-ref', {
+        title: { ja: 'アイコン参照あり' },
+        mode: 'local',
+        dataJson: JSON.stringify(fcWithIcon),
+        featureCount: 1,
+      });
+
+      const fcWithImage = {
+        type: 'FeatureCollection',
+        features: [
+          { type: 'Feature', properties: { images: [refUid] }, geometry: { type: 'Point', coordinates: [0, 0] } },
+        ],
+      };
+      const { uid: poiWithImageUid } = await SqliteDataService.createPoiSource('poi-with-image-ref', {
+        title: { ja: '画像参照あり' },
+        mode: 'local',
+        dataJson: JSON.stringify(fcWithImage),
+        featureCount: 1,
+      });
+
+      const fcUnrelated = {
+        type: 'FeatureCollection',
+        features: [
+          { type: 'Feature', properties: { icon: 'builtin:defaultpin' }, geometry: { type: 'Point', coordinates: [0, 0] } },
+        ],
+      };
+      await SqliteDataService.createPoiSource('poi-unrelated', {
+        title: { ja: '無関係' },
+        mode: 'local',
+        dataJson: JSON.stringify(fcUnrelated),
+        featureCount: 1,
+      });
+
+      const refs = await SqliteDataService.findAssetReferences(refUid);
+      const refUids = refs.poiSources.map((r) => r.uid).sort();
+      assert.deepEqual(refUids, [poiWithIconUid, poiWithImageUid].sort(), 'icon 参照・image 配列内参照の両方を拾い、無関係な poi_source は拾わないはず: ' + JSON.stringify(refs));
+      const iconRefRow = refs.poiSources.find((r) => r.uid === poiWithIconUid);
+      assert.equal(iconRefRow.slug, 'poi-with-icon-ref');
+      assert.deepEqual(iconRefRow.title, { ja: 'アイコン参照あり' });
+      console.log('ok: (k1) findAssetReferences finds icon and image-array references, not unrelated sources');
+
+      const nonUuidRefs = await SqliteDataService.findAssetReferences('not-a-uuid');
+      assert.deepEqual(nonUuidRefs, { poiSources: [] }, 'UUID 形でない ref は空配列のはず(LIKE メタ文字混入ガード)');
+      console.log('ok: (k2) findAssetReferences returns empty for a non-UUID-shaped ref');
+
+      // findReferences (service層): uid-or-slug 参照を解決してから同じ走査をする
+      const viaService = await imageAssetService.findReferences('pin-icon');
+      assert.deepEqual(viaService.poiSources.map((r) => r.uid).sort(), [poiWithIconUid, poiWithImageUid].sort(), 'imageAssetService.findReferences は slug 参照でも解決するはず');
+      const viaServiceMissing = await imageAssetService.findReferences('no-such-slug');
+      assert.deepEqual(viaServiceMissing, { poiSources: [] }, '存在しないアセットへの findReferences は空のはず');
+      console.log('ok: (k3) imageAssetService.findReferences resolves uid-or-slug and returns empty for a missing asset');
 
       console.log('M9-T4 image asset smoke passed');
       process.exit(0);

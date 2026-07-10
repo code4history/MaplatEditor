@@ -187,4 +187,7 @@ contextBridge.exposeInMainWorld('imageAssets', {
     ipcRenderer.invoke('imageassets:rename', uid, input),
   delete: (uid: string) => ipcRenderer.invoke('imageassets:delete', uid),
   getFilePath: (ref: string) => ipcRenderer.invoke('imageassets:getFilePath', ref),
+  findReferences: (ref: string) => ipcRenderer.invoke('imageassets:findReferences', ref),
+  // インポート用ネイティブファイル選択。キャンセル時は null
+  pickImageFile: () => ipcRenderer.invoke('imageassets:pickImageFile'),
 })

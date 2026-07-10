@@ -168,6 +168,17 @@ export type ImageAssetSaveResult =
     | { result: 'Error'; code: ImageAssetErrorCode; message?: string; uid?: string; slug?: string; revision?: number }
     | { error: 'revision-conflict'; current: number };
 
+// 逆参照 (poi_sources の icon/selectedIcon/image 参照)。AID-006 の削除確認フローが使う
+export interface ImageAssetReference {
+    uid: string;
+    slug: string;
+    title: Record<string, string>;
+}
+
+export interface ImageAssetReferencesResult {
+    poiSources: ImageAssetReference[];
+}
+
 export interface ImageAssetsAPI {
     add(input: { slug: string; title: any; sourcePath: string }): Promise<ImageAssetSaveResult>;
     list(): Promise<ImageAssetRow[]>;
@@ -176,6 +187,9 @@ export interface ImageAssetsAPI {
     rename(uid: string, input: { slug: string; title: any; expectedRevision?: number }): Promise<ImageAssetSaveResult>;
     delete(uid: string): Promise<{ ok: true }>;
     getFilePath(ref: string): Promise<string | null>;
+    findReferences(ref: string): Promise<ImageAssetReferencesResult>;
+    // インポート用ネイティブファイル選択。キャンセル時は null
+    pickImageFile(): Promise<{ filePath: string; fileName: string } | null>;
 }
 
 export interface AppAssetsAPI {

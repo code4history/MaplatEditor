@@ -31,9 +31,15 @@ const EXT_MIME_FALLBACK: Record<string, string> = {
 };
 
 // Error 結果の機械可読コード: 'not-found' = 対象アセット/元ファイル不在、
-// 'invalid-request' = 引数不正(slug欠落・拡張子不明・デコード不能な非画像ファイル)、
+// 'invalid-request' = 引数不正(slug欠落・拡張子不明・デコード不能な非画像ファイル・サイズ超過)、
 // 'internal' = 予期しない内部エラー
 export type ImageAssetErrorCode = 'not-found' | 'invalid-request' | 'internal';
+
+// decode サイズガード (Phase 2 引き継ぎ①: 大 PNG で main freeze)。バイト数はデコード前に、
+// 総ピクセル数(伸長爆弾対策)はデコード後にチェックする。どちらも Jimp.read を経由させず/
+// ファイルを書き込まずに 'invalid-request' として拒否する
+export const IMAGE_ASSET_MAX_BYTES = 20 * 1024 * 1024;
+export const IMAGE_ASSET_MAX_PIXELS = 100_000_000;
 
 // 保存系の結果 union (PoiSourceSaveResult と同形の慣習)。Error は post-commit のファイル操作失敗時
 // (MapEditService.save と同様) に uid/slug/revision を伴うことがある
@@ -161,9 +167,20 @@ export class ImageAssetService {
       return { result: 'Error', code: 'internal', message: `Failed to read file: ${e?.message ?? e}` };
     }
 
+    // バイト数ガードは Jimp.read へ渡す前に判定する(デコード自体が freeze/長時間化の原因になり得るため、
+    // 巨大ファイルはデコードへ到達させない)
+    if (bytes.length > IMAGE_ASSET_MAX_BYTES) {
+      return { result: 'Error', code: 'invalid-request', message: 'payload-too-large' };
+    }
+
     const meta = await this.decodeImageMeta(bytes, ext);
     if (!meta) {
       return { result: 'Error', code: 'invalid-request', message: `Unsupported or corrupt image file: ${sourcePath}` };
+    }
+
+    // 伸長爆弾対策: デコード後の総ピクセル数もガードする(ファイルは書き込まない)
+    if (meta.width * meta.height > IMAGE_ASSET_MAX_PIXELS) {
+      return { result: 'Error', code: 'invalid-request', message: 'payload-too-large' };
     }
 
     let uid: string;
@@ -281,6 +298,15 @@ export class ImageAssetService {
       }
     }
     return { ok: true };
+  }
+
+  // 逆参照: uid-or-slug 参照を uid へ解決してから poi_sources を走査する (findAssetByRef と同じ
+  // 参照解決の慣習)。対象アセットが存在しない場合は空扱い(削除確認フローが呼ぶ想定で、既に
+  // 削除済みでもエラーにはしない)
+  async findReferences(ref: string): Promise<{ poiSources: Array<{ uid: string; slug: string; title: Record<string, string> }> }> {
+    const record = await SqliteDataService.findAssetByRef(ref);
+    if (!record) return { poiSources: [] };
+    return SqliteDataService.findAssetReferences(record.uid);
   }
 
   // renderer 表示用の file:// URL (AppAssetService.fileUrlFor と同じ形)。実体が無ければ null
