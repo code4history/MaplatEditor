@@ -1,71 +1,41 @@
 import { ref, type Ref } from "vue";
-import type { PoiSourceSummary } from "../services/registeredPoiSourceCatalog";
 
-// window.poiSources.list の行 (electron.d.ts PoiSourceListRow と同形)
-interface PoiSourceListRow {
-  uid: string;
-  slug: string;
-  title: Record<string, string>;
-  mode: "local" | "remote";
-  url: string | null;
-  featureCount: number;
-  revision: number;
-  updatedAt: string;
-}
+// PoiSourceListResult / PoiSourceListRow は electron.d.ts でグローバル宣言済み (window.poiSources)。
+// API の返り値から行型を導出して契約ドリフトを vue-tsc に検出させる
+type PoiSourceListResult = Awaited<ReturnType<Window["poiSources"]["list"]>>;
+export type PoiSourceListRow = PoiSourceListResult["items"][number];
 
 const PAGE_SIZE = 20;
 
-// LangResource 内部形 {lang: text} → 一覧表示用テキスト (Phase 3 で画面ごと再構築されるまでの暫定)
-function titleToText(title: Record<string, string>, fallback: string): string {
-  if (title && typeof title === "object") {
-    if (typeof title.ja === "string" && title.ja) return title.ja;
-    const first = Object.values(title).find((t) => typeof t === "string" && t !== "");
-    if (first) return first;
-  }
-  return fallback;
-}
-
-// Write Store backend (poisource:* v2, uid/slug契約) の行を旧 view model へ写像する薄い読替え。
-// 画面群は Phase 3 で全面再構築されるため、ここは最小のコンパイル維持 shim に留める
-function rowToSummary(row: PoiSourceListRow): PoiSourceSummary {
-  return {
-    catalogKey: `poi-source:${row.uid}`,
-    sourceId: row.uid,
-    title: titleToText(row.title, row.slug),
-    mode: row.mode,
-    featureCount: row.featureCount,
-    url: row.url ?? undefined,
-    status: "ready",
-    readOnly: row.mode === "remote",
-    updatedAt: row.updatedAt,
-    validation: { status: "ready" },
-  };
-}
-
+// POI ソース一覧 (Phase 3, ADR-0007)。window.poiSources.list の行 (PoiSourceListRow) を
+// そのまま保持し、view 側でローカライズ/表示する。MapList/AppList の list パターンに整合。
 export function usePoiSourceList() {
-  const items: Ref<PoiSourceSummary[]> = ref([]);
+  const items: Ref<PoiSourceListRow[]> = ref([]);
   const loading: Ref<boolean> = ref(false);
   const error: Ref<string | null> = ref(null);
   const searchQuery: Ref<string> = ref("");
   const currentPage: Ref<number> = ref(1);
   const hasNext: Ref<boolean> = ref(false);
   const hasPrev: Ref<boolean> = ref(false);
+  const total: Ref<number> = ref(0);
 
-  async function loadSources(): Promise<void> {
+  async function loadSources(page: number = currentPage.value): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
       const response = await window.poiSources.list({
         query: searchQuery.value,
-        page: currentPage.value,
+        page,
         pageSize: PAGE_SIZE,
       });
-      items.value = response.items.map(rowToSummary);
+      items.value = response.items;
       currentPage.value = response.page;
       hasNext.value = response.hasNext;
       hasPrev.value = response.hasPrev;
+      total.value = response.total;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
+      items.value = [];
     } finally {
       loading.value = false;
     }
@@ -73,20 +43,17 @@ export function usePoiSourceList() {
 
   async function search(query: string): Promise<void> {
     searchQuery.value = query;
-    currentPage.value = 1;
-    await loadSources();
+    await loadSources(1);
   }
 
   async function nextPage(): Promise<void> {
     if (!hasNext.value) return;
-    currentPage.value++;
-    await loadSources();
+    await loadSources(currentPage.value + 1);
   }
 
   async function prevPage(): Promise<void> {
     if (!hasPrev.value) return;
-    currentPage.value = Math.max(1, currentPage.value - 1);
-    await loadSources();
+    await loadSources(Math.max(1, currentPage.value - 1));
   }
 
   return {
@@ -97,6 +64,7 @@ export function usePoiSourceList() {
     currentPage,
     hasNext,
     hasPrev,
+    total,
     loadSources,
     search,
     nextPage,

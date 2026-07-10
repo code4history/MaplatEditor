@@ -615,6 +615,53 @@
     },
     "error": {
       "unknown": "An error occurred while saving"
+    },
+    "import_file": "Import File",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Letters, digits, hyphen, underscore",
+    "title_label": "Title",
+    "title_placeholder": "Enter POI source title",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "Delete this POI source",
+    "delete_confirm": "Delete \"{{name}}\"?",
+    "delete_referenced": "This POI source is referenced by {{app}} app(s) / {{map}} map(s):",
+    "delete_error": "Failed to delete POI source",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "ref_kind": {
+      "map": "Map",
+      "app": "App"
+    },
+    "validation": {
+      "ready": "Ready",
+      "warning": "Warning",
+      "invalid": "Invalid"
+    },
+    "import_modal": {
+      "title": "Import GeoJSON File",
+      "file_label": "Selected file",
+      "import": "Import"
+    },
+    "errors": {
+      "slug_charset": "Slug may only contain letters, digits, hyphen and underscore",
+      "slug_taken": "This slug is already in use",
+      "invalid": "Cannot import due to validation errors",
+      "non_point": "Non-Point geometry cannot be imported",
+      "network": "Could not connect to the remote. Check your network and retry",
+      "http_status": "The URL is not reachable (not found or removed)",
+      "parse": "Could not parse the response as GeoJSON",
+      "not_found": "The target POI source was not found",
+      "internal": "An internal error occurred",
+      "revision_conflict": "Updated in another window. Please reload the list",
+      "not_feature_collection": "Not a GeoJSON FeatureCollection",
+      "coord_range": "Coordinates out of range (lon ±180 / lat ±90)",
+      "name_required": "name is required",
+      "display_id_duplicate": "Display ID is duplicated within the source",
+      "display_id_charset": "Display ID contains unsupported characters",
+      "no_content": "No content",
+      "scale_feature_count": "Too many features (over 1000)",
+      "scale_byte_size": "Data size too large (over 5MB)"
     }
   },
   "app": {

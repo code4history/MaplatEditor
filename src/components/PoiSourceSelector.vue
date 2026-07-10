@@ -19,9 +19,9 @@
     <div v-else class="d-flex flex-wrap justify-content-start align-items-start gap-3">
       <div
         v-for="source in items"
-        :key="source.sourceId"
+        :key="source.uid"
         class="poi-source-card"
-        :class="{ 'border-primary': isSelected(source.sourceId) }"
+        :class="{ 'border-primary': isSelected(source.uid) }"
         @click="toggleSelect(source)"
       >
         <div class="card-body py-2 px-3">
@@ -30,16 +30,14 @@
               {{ source.mode === 'local' ? t("poisource.local") : t("poisource.remote") }}
             </span>
             <span
-              v-if="isSelected(source.sourceId)"
+              v-if="isSelected(source.uid)"
               class="badge bg-success"
             >
               {{ t("applist.deselect") }}
             </span>
           </div>
-          <p class="mb-0 fw-medium" style="font-size: 13px;">{{ source.title }}</p>
-          <small class="text-muted">
-            {{ source.featureCount !== null ? `${source.featureCount} ${t("poisource.features")}` : '-' }}
-          </small>
+          <p class="mb-0 fw-medium" style="font-size: 13px;">{{ localizeTitle(source) }}</p>
+          <small class="text-muted">{{ source.featureCount }} {{ t("poisource.features") }}</small>
         </div>
       </div>
     </div>
@@ -68,8 +66,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { useTranslation } from "i18next-vue";
-import { usePoiSourceList } from "../composables/usePoiSourceList";
-import type { SelectedPoiSourceRef, PoiSourceSummary } from "../services/registeredPoiSourceCatalog";
+import i18next from "i18next";
+import { usePoiSourceList, type PoiSourceListRow } from "../composables/usePoiSourceList";
+import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 
 const { t } = useTranslation();
 
@@ -111,22 +110,40 @@ watch(
   }
 );
 
+// LangResource 内部形 {lang: text} → 表示テキスト (現在言語 → ja → en → 任意 → slug)
+function localizeTitle(row: PoiSourceListRow): string {
+  const title = row.title as Record<string, string> | string | null | undefined;
+  if (typeof title === "string") return title || row.slug;
+  if (title && typeof title === "object") {
+    const lang = i18next.language;
+    const picked =
+      title[lang] ||
+      title[lang?.split("-")[0]] ||
+      title.ja ||
+      title.en ||
+      Object.values(title).find((v) => typeof v === "string" && v !== "");
+    if (picked) return picked;
+  }
+  return row.slug;
+}
+
 function isSelected(sourceId: string): boolean {
   return selectedSources.value.some((s) => s.sourceId === sourceId);
 }
 
-function toggleSelect(source: PoiSourceSummary) {
-  if (isSelected(source.sourceId)) {
+// sourceId は uid 正準 (ADR-0007)。catalogKey は catalog 命名規約 `poi-source:${uid}` に整合
+function toggleSelect(source: PoiSourceListRow) {
+  if (isSelected(source.uid)) {
     selectedSources.value = selectedSources.value.filter(
-      (s) => s.sourceId !== source.sourceId
+      (s) => s.sourceId !== source.uid
     );
   } else {
     const ref: SelectedPoiSourceRef = {
       kind: "registered-poi-source",
-      sourceId: source.sourceId,
-      catalogKey: source.catalogKey,
+      sourceId: source.uid,
+      catalogKey: `poi-source:${source.uid}`,
       mode: source.mode,
-      cachedTitle: source.title,
+      cachedTitle: localizeTitle(source),
     };
     selectedSources.value.push(ref);
   }

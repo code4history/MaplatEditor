@@ -140,6 +140,8 @@ export interface PoiSourcesAPI {
     cloneToLocal(uid: string, input: { slug: string; title?: any }): Promise<PoiSourceSaveResult>;
     findReferences(uid: string): Promise<PoiSourceReference[]>;
     delete(uid: string): Promise<{ ok: true; references: PoiSourceReference[] }>;
+    // インポート用ネイティブファイル選択 (Phase 3)。キャンセル時は null
+    pickImportFile(): Promise<{ filePath: string; fileName: string } | null>;
 }
 
 // 画像アセット (ADR-0007): uid正準 + slug契約。title は LangResource (内部形/交換形どちらも受容し

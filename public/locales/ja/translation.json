@@ -618,6 +618,53 @@
     },
     "error": {
       "unknown": "保存中にエラーが発生しました"
+    },
+    "import_file": "ファイルインポート",
+    "slug_label": "スラッグ (ID)",
+    "slug_placeholder": "英数字・ハイフン・アンダースコア",
+    "title_label": "タイトル",
+    "title_placeholder": "POIソースのタイトルを入力",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "このPOIソースを削除",
+    "delete_confirm": "「{{name}}」を削除しますか？",
+    "delete_referenced": "このPOIソースは {{app}} 個のアプリ / {{map}} 個の地図から参照されています:",
+    "delete_error": "POIソースの削除に失敗しました",
+    "retry": "再試行",
+    "cancel": "キャンセル",
+    "ref_kind": {
+      "map": "地図",
+      "app": "アプリ"
+    },
+    "validation": {
+      "ready": "準備完了",
+      "warning": "警告",
+      "invalid": "無効"
+    },
+    "import_modal": {
+      "title": "GeoJSONファイルをインポート",
+      "file_label": "選択したファイル",
+      "import": "インポート"
+    },
+    "errors": {
+      "slug_charset": "スラッグは英数字・ハイフン・アンダースコアのみ使用できます",
+      "slug_taken": "このスラッグは既に使用されています",
+      "invalid": "検証エラーのため取り込めません",
+      "non_point": "Point以外のジオメトリは取り込めません",
+      "network": "リモートに接続できませんでした。ネットワークを確認して再試行してください",
+      "http_status": "URLにアクセスできません（見つからない、または削除された可能性があります）",
+      "parse": "GeoJSONとして解析できませんでした",
+      "not_found": "対象のPOIソースが見つかりません",
+      "internal": "内部エラーが発生しました",
+      "revision_conflict": "他のウィンドウで更新されています。一覧を読み直してください",
+      "not_feature_collection": "GeoJSON FeatureCollection ではありません",
+      "coord_range": "座標が範囲外です（経度±180 / 緯度±90）",
+      "name_required": "name（名前）は必須です",
+      "display_id_duplicate": "表示IDがソース内で重複しています",
+      "display_id_charset": "表示IDに使用できない文字が含まれています",
+      "no_content": "コンテンツがありません",
+      "scale_feature_count": "フィーチャー数が多すぎます（1000超）",
+      "scale_byte_size": "データサイズが大きすぎます（5MB超）"
     }
   }
 }

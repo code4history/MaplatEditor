@@ -76,32 +76,74 @@ try {
     'utf8'
   );
 
-  // usePoiSourceList composable を使用すること
+  // usePoiSourceList composable を使用すること (一覧→編集 遷移型、MapList/AppList 同型)
   assert.match(
     poiSourceList,
     /usePoiSourceList/,
     'PoiSourceList が usePoiSourceList を使っていない'
   );
 
-  // window.poiSources.createLocal を呼ぶこと
+  // 新規作成 (local) フロー: window.poiSources.createLocal を呼ぶこと
   assert.match(
     poiSourceList,
     /poiSources\.createLocal/,
     'PoiSourceList が window.poiSources.createLocal を呼んでいない'
   );
 
-  // window.poiSources.registerRemote を呼ぶこと
+  // インポートフロー: window.poiSources.importFile を呼ぶこと
+  assert.match(
+    poiSourceList,
+    /poiSources\.importFile/,
+    'PoiSourceList が window.poiSources.importFile を呼んでいない'
+  );
+
+  // インポートファイル選択: window.poiSources.pickImportFile を呼ぶこと
+  assert.match(
+    poiSourceList,
+    /poiSources\.pickImportFile/,
+    'PoiSourceList が window.poiSources.pickImportFile を呼んでいない'
+  );
+
+  // リモート登録フロー: window.poiSources.registerRemote を呼ぶこと
   assert.match(
     poiSourceList,
     /poiSources\.registerRemote/,
     'PoiSourceList が window.poiSources.registerRemote を呼んでいない'
   );
 
-  // window.poiSources.delete を呼ぶこと
+  // 削除前に参照提示 (AID-006): window.poiSources.findReferences を呼ぶこと
+  assert.match(
+    poiSourceList,
+    /poiSources\.findReferences/,
+    'PoiSourceList が window.poiSources.findReferences を呼んでいない'
+  );
+
+  // 削除フロー: window.poiSources.delete を呼ぶこと
   assert.match(
     poiSourceList,
     /poiSources\.delete/,
     'PoiSourceList が window.poiSources.delete を呼んでいない'
+  );
+
+  // slug 可用性チェック: window.assets.checkSlug を呼ぶこと (MapEdit と同 UX)
+  assert.match(
+    poiSourceList,
+    /assets\.checkSlug/,
+    'PoiSourceList が window.assets.checkSlug を呼んでいない'
+  );
+
+  // 成功時に uid でエディタへ遷移すること (router.push('/poisources/' + uid))
+  assert.match(
+    poiSourceList,
+    /router\.push\([^)]*\/poisources\/\$\{[^}]*uid[^}]*\}/,
+    'PoiSourceList が uid でエディタへ遷移していない'
+  );
+
+  // 生 ipcRenderer を使わないこと (House rule / m2-t3)
+  assert.doesNotMatch(
+    poiSourceList,
+    /ipcRenderer/,
+    'PoiSourceList に生 ipcRenderer 使用が残存している'
   );
 
   // --- Part 3b: usePoiSourceList composable shape ---
@@ -110,11 +152,23 @@ try {
     'utf8'
   );
 
-  // window.poiSources.list を呼ぶこと
+  // window.poiSources.list を呼ぶこと (query/page/pageSize 契約)
   assert.match(
     usePoiSourceList,
     /poiSources\.list/,
     'usePoiSourceList が window.poiSources.list を呼んでいない'
+  );
+
+  // ページング (prev/next) を提供すること
+  assert.match(
+    usePoiSourceList,
+    /nextPage/,
+    'usePoiSourceList に nextPage がない'
+  );
+  assert.match(
+    usePoiSourceList,
+    /prevPage/,
+    'usePoiSourceList に prevPage がない'
   );
 
   console.log('  [3/5] PoiSourceList.vue shape: PASS');
