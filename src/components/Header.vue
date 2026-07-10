@@ -79,7 +79,7 @@ const isMapSection = computed(() => {
 });
 
 const isPoiSection = computed(() => {
-    return currentRoute.value === 'PoiSourceList' || currentRoute.value === 'PoiSourceDetail';
+    return currentRoute.value === 'PoiSourceList' || currentRoute.value === 'PoiEdit';
 });
 
 const navigate = (targetName: string) => {

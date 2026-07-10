@@ -571,29 +571,6 @@
       "unreachable": "ไม่สามารถเข้าถึงได้",
       "unknown": "ไม่ทราบ"
     },
-    "detail": {
-      "back": "กลับไปยังรายการ",
-      "title_label": "ชื่อเรื่อง",
-      "mode_label": "โหมด",
-      "status_label": "สถานะ",
-      "url_label": "URL",
-      "feature_count": "จำนวน feature",
-      "updated_at": "วันที่อัปเดต",
-      "save": "บันทึก",
-      "delete": "ลบ",
-      "read_only": "อ่านอย่างเดียว",
-      "validate": "ตรวจสอบ"
-    },
-    "feature_table": {
-      "name": "ชื่อ",
-      "longitude": "ลองจิจูด",
-      "latitude": "ละติจูด",
-      "actions": "การดำเนินการ",
-      "add_feature": "เพิ่ม feature",
-      "delete": "ลบ",
-      "no_features": "ไม่มี feature",
-      "confirm_delete": "ต้องการลบ feature นี้หรือไม่?"
-    },
     "create_local_modal": {
       "title": "สร้างแหล่งข้อมูล POI ในเครื่อง",
       "name_label": "ชื่อเรื่อง",
@@ -613,5 +590,20 @@
     "error": {
       "unknown": "เกิดข้อผิดพลาดขณะบันทึก"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "แหล่งข้อมูล POI นี้มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก\nปิดโดยไม่บันทึกหรือไม่?",
+    "no_slug": "กรุณาระบุ slug",
+    "slug_available": "slug นี้สามารถใช้ได้",
+    "add_other_languages": "เพิ่มภาษาอื่น",
+    "success_save": "บันทึกเรียบร้อยแล้ว",
+    "error_saving": "เกิดข้อผิดพลาดขณะบันทึก",
+    "save_issues": "ไม่สามารถบันทึกได้เนื่องจากข้อผิดพลาดในการตรวจสอบ:",
+    "not_found": "ไม่พบแหล่งข้อมูล POI",
+    "read_only_notice": "แหล่งข้อมูล POI นี้เป็นแบบอ่านอย่างเดียวเนื่องจากอ้างอิง URL ระยะไกล หากต้องการแก้ไขให้คัดลอกเป็นแหล่งข้อมูลในเครื่อง",
+    "clone_to_local": "คัดลอกเป็นแหล่งข้อมูลในเครื่อง",
+    "clone_failed": "คัดลอกเป็นแหล่งข้อมูลในเครื่องไม่สำเร็จ",
+    "no_content_warning": "ไม่มี POI ใดที่มีเนื้อหา (คำอธิบาย, HTML, ที่อยู่, URL หรือรูปภาพ)",
+    "size_warning": "แหล่งข้อมูล POI นี้มีขนาดใหญ่และอาจทำงานช้า (เกิน 1000 ฟีเจอร์หรือ 5MB)"
   }
 }

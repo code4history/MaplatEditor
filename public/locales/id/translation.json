@@ -571,29 +571,6 @@
       "unreachable": "Tidak dapat dijangkau",
       "unknown": "Tidak diketahui"
     },
-    "detail": {
-      "back": "Kembali ke daftar",
-      "title_label": "Judul",
-      "mode_label": "Mode",
-      "status_label": "Status",
-      "url_label": "URL",
-      "feature_count": "Jumlah fitur",
-      "updated_at": "Waktu pembaruan",
-      "save": "Simpan",
-      "delete": "Hapus",
-      "read_only": "Hanya baca",
-      "validate": "Validasi"
-    },
-    "feature_table": {
-      "name": "Nama",
-      "longitude": "Bujur",
-      "latitude": "Lintang",
-      "actions": "Aksi",
-      "add_feature": "Tambah fitur",
-      "delete": "Hapus",
-      "no_features": "Tidak ada fitur",
-      "confirm_delete": "Apakah Anda ingin menghapus fitur ini?"
-    },
     "create_local_modal": {
       "title": "Buat Sumber POI Lokal",
       "name_label": "Judul",
@@ -613,5 +590,20 @@
     "error": {
       "unknown": "Terjadi kesalahan saat menyimpan"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "Sumber POI ini memiliki perubahan yang belum disimpan.\nTutup tanpa menyimpan?",
+    "no_slug": "Silakan tentukan slug.",
+    "slug_available": "Slug ini dapat digunakan.",
+    "add_other_languages": "Tambah bahasa lain",
+    "success_save": "Berhasil disimpan.",
+    "error_saving": "Terjadi kesalahan saat menyimpan.",
+    "save_issues": "Tidak dapat menyimpan karena kesalahan validasi:",
+    "not_found": "Sumber POI tidak ditemukan.",
+    "read_only_notice": "Sumber POI ini hanya-baca karena merujuk URL jarak jauh. Gandakan menjadi sumber lokal untuk mengedit.",
+    "clone_to_local": "Gandakan ke lokal",
+    "clone_failed": "Gagal menggandakan menjadi sumber lokal.",
+    "no_content_warning": "Tidak ada POI yang memiliki konten (deskripsi, HTML, alamat, URL, atau gambar).",
+    "size_warning": "Sumber POI ini besar dan dapat menjadi lambat (lebih dari 1000 fitur atau 5MB)."
   }
 }

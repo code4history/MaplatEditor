@@ -42,9 +42,9 @@ const routes = [
     component: () => import('../views/PoiSourceList.vue')
   },
   {
-    path: '/poisources/:sourceId',
-    name: 'PoiSourceDetail',
-    component: () => import('../views/PoiSourceDetail.vue')
+    path: '/poisources/:sourceId', // POI source uid (ADR-0007)
+    name: 'PoiEdit',
+    component: () => import('../views/PoiEdit.vue')
   }
 ]
 

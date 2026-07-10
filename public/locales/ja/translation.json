@@ -577,29 +577,6 @@
       "unreachable": "到達不可",
       "unknown": "不明"
     },
-    "detail": {
-      "back": "一覧に戻る",
-      "title_label": "タイトル",
-      "mode_label": "モード",
-      "status_label": "ステータス",
-      "url_label": "URL",
-      "feature_count": "フィーチャー数",
-      "updated_at": "更新日時",
-      "save": "保存",
-      "delete": "削除",
-      "read_only": "読み取り専用",
-      "validate": "検証"
-    },
-    "feature_table": {
-      "name": "名前",
-      "longitude": "経度",
-      "latitude": "緯度",
-      "actions": "操作",
-      "add_feature": "フィーチャー追加",
-      "delete": "削除",
-      "no_features": "フィーチャーがありません",
-      "confirm_delete": "このフィーチャーを削除しますか？"
-    },
     "create_local_modal": {
       "title": "ローカルPOIソースを作成",
       "name_label": "タイトル",
@@ -670,5 +647,20 @@
       "pick_failed": "ファイルを選択できませんでした",
       "references_unavailable": "参照情報を取得できませんでした"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "POIソースに変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?",
+    "no_slug": "スラッグを指定してください。",
+    "slug_available": "使用可能なスラッグです。",
+    "add_other_languages": "他言語を追加",
+    "success_save": "正常に保存できました。",
+    "error_saving": "保存時エラーが発生しました。",
+    "save_issues": "検証エラーのため保存できませんでした:",
+    "not_found": "対象のPOIソースが見つかりません。",
+    "read_only_notice": "このPOIソースはリモート参照のため読み取り専用です。編集するにはローカルへ複製してください。",
+    "clone_to_local": "ローカルへ複製",
+    "clone_failed": "ローカルへの複製に失敗しました。",
+    "no_content_warning": "どのPOIにもコンテンツ（説明・HTML・住所・URL・画像）がありません。",
+    "size_warning": "POIソースの規模が大きいため、動作が遅くなる可能性があります（1000フィーチャーまたは5MB超）。"
   }
 }

@@ -180,6 +180,7 @@ import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import { usePoiSourceList, type PoiSourceListRow } from "../composables/usePoiSourceList";
 import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
+import { ERROR_CODE_KEYS, issueMessage as resolveIssueMessage } from "../utils/poiSourceMessages";
 import type {
   PoiSourceSaveResult,
   PoiValidationIssue,
@@ -458,56 +459,27 @@ const handleSaveResult = (result: PoiSourceSaveResult): boolean => {
       modal.feedback = t("poisource.errors.internal");
       return false;
     case "Error": {
+      // code → i18n key の写像は PoiEdit と共用 (utils/poiSourceMessages)。挙動は Phase 3 と同一:
+      // network のみ再試行導線、invalid-request/internal は message を優先する
       const code = result.code;
+      const key = ERROR_CODE_KEYS[code] ?? "poisource.errors.internal";
       if (code === "network") {
-        modal.feedback = t("poisource.errors.network");
+        modal.feedback = t(key);
         modal.feedbackRetry = true;
         return false;
       }
-      if (code === "http-status") {
-        modal.feedback = t("poisource.errors.http_status");
+      if (code === "http-status" || code === "parse" || code === "not-found") {
+        modal.feedback = t(key);
         return false;
       }
-      if (code === "parse") {
-        modal.feedback = t("poisource.errors.parse");
-        return false;
-      }
-      if (code === "not-found") {
-        modal.feedback = t("poisource.errors.not_found");
-        return false;
-      }
-      if (code === "invalid-request") {
-        modal.feedback = result.message || t("poisource.errors.invalid");
-        return false;
-      }
-      modal.feedback = result.message || t("poisource.errors.internal");
+      modal.feedback = result.message || t(key);
       return false;
     }
   }
 };
 
-// poiGeoJson.ts の検証 code → i18n key の写像。非 Point (geometry-not-point) は POI-104 専用文言。
-// unsupported-scheme / payload-too-large は PoiSourceService の remote fetch (POI-121) が返す
-const ISSUE_CODE_KEYS: Record<string, string> = {
-  "geometry-not-point": "poisource.errors.non_point",
-  "not-feature-collection": "poisource.errors.not_feature_collection",
-  "coord-range": "poisource.errors.coord_range",
-  "name-required": "poisource.errors.name_required",
-  "display-id-duplicate": "poisource.errors.display_id_duplicate",
-  "display-id-charset": "poisource.errors.display_id_charset",
-  "no-content": "poisource.errors.no_content",
-  "scale-feature-count": "poisource.errors.scale_feature_count",
-  "scale-byte-size": "poisource.errors.scale_byte_size",
-  "unsupported-scheme": "poisource.errors.unsupported_scheme",
-  "payload-too-large": "poisource.errors.payload_too_large",
-};
-
-// 検証 issue を人間可読に。既知 code は専用文言、未知は code/message をそのまま出す
-const issueMessage = (issue: PoiValidationIssue): string => {
-  const key = ISSUE_CODE_KEYS[issue.code];
-  const base = key ? t(key) : issue.message || issue.code || t("poisource.errors.invalid");
-  return issue.featureId ? `${issue.featureId}: ${base}` : base;
-};
+// 検証 issue の人間可読化は PoiEdit と共用 (utils/poiSourceMessages)
+const issueMessage = (issue: PoiValidationIssue): string => resolveIssueMessage(issue, t);
 
 const submitModal = async () => {
   // MAJOR-1: canSubmit のみで判定する (feedbackRetry によるバイパスを廃止)

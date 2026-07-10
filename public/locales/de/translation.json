@@ -571,29 +571,6 @@
       "unreachable": "Nicht erreichbar",
       "unknown": "Unbekannt"
     },
-    "detail": {
-      "back": "Zurück zur Liste",
-      "title_label": "Titel",
-      "mode_label": "Modus",
-      "status_label": "Status",
-      "url_label": "URL",
-      "feature_count": "Anzahl der Objekte",
-      "updated_at": "Aktualisiert am",
-      "save": "Speichern",
-      "delete": "Löschen",
-      "read_only": "Schreibgeschützt",
-      "validate": "Prüfen"
-    },
-    "feature_table": {
-      "name": "Name",
-      "longitude": "Längengrad",
-      "latitude": "Breitengrad",
-      "actions": "Aktionen",
-      "add_feature": "Objekt hinzufügen",
-      "delete": "Löschen",
-      "no_features": "Keine Objekte vorhanden",
-      "confirm_delete": "Möchten Sie dieses Objekt löschen?"
-    },
     "create_local_modal": {
       "title": "Lokale POI-Quelle erstellen",
       "name_label": "Titel",
@@ -613,5 +590,20 @@
     "error": {
       "unknown": "Beim Speichern ist ein Fehler aufgetreten"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "Diese POI-Quelle wurde geändert, aber nicht gespeichert.\nMöchten Sie schließen, ohne zu speichern?",
+    "no_slug": "Bitte geben Sie einen Slug an.",
+    "slug_available": "Dieser Slug ist verfügbar.",
+    "add_other_languages": "Weitere Sprachen hinzufügen",
+    "success_save": "Erfolgreich gespeichert.",
+    "error_saving": "Beim Speichern ist ein Fehler aufgetreten.",
+    "save_issues": "Speichern wegen Validierungsfehlern nicht möglich:",
+    "not_found": "Die POI-Quelle wurde nicht gefunden.",
+    "read_only_notice": "Diese POI-Quelle ist schreibgeschützt, da sie eine Remote-URL referenziert. Zum Bearbeiten in eine lokale Quelle duplizieren.",
+    "clone_to_local": "Lokal duplizieren",
+    "clone_failed": "Duplizieren in eine lokale Quelle fehlgeschlagen.",
+    "no_content_warning": "Kein POI enthält Inhalte (Beschreibung, HTML, Adresse, URL oder Bild).",
+    "size_warning": "Diese POI-Quelle ist groß und kann langsam werden (über 1000 Features oder 5 MB)."
   }
 }

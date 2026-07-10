@@ -571,29 +571,6 @@
       "unreachable": "Inaccessible",
       "unknown": "Inconnu"
     },
-    "detail": {
-      "back": "Retour à la liste",
-      "title_label": "Titre",
-      "mode_label": "Mode",
-      "status_label": "Statut",
-      "url_label": "URL",
-      "feature_count": "Nombre d'entités",
-      "updated_at": "Mis à jour le",
-      "save": "Enregistrer",
-      "delete": "Supprimer",
-      "read_only": "Lecture seule",
-      "validate": "Valider"
-    },
-    "feature_table": {
-      "name": "Nom",
-      "longitude": "Longitude",
-      "latitude": "Latitude",
-      "actions": "Actions",
-      "add_feature": "Ajouter une entité",
-      "delete": "Supprimer",
-      "no_features": "Aucune entité",
-      "confirm_delete": "Voulez-vous supprimer cette entité ?"
-    },
     "create_local_modal": {
       "title": "Créer une source de POI locale",
       "name_label": "Titre",
@@ -613,5 +590,20 @@
     "error": {
       "unknown": "Une erreur s'est produite lors de l'enregistrement"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "Cette source de POI a été modifiée mais n'est pas enregistrée.\nFermer sans enregistrer ?",
+    "no_slug": "Veuillez spécifier un slug.",
+    "slug_available": "Ce slug est disponible.",
+    "add_other_languages": "Ajouter d'autres langues",
+    "success_save": "Enregistré avec succès.",
+    "error_saving": "Une erreur est survenue lors de l'enregistrement.",
+    "save_issues": "Impossible d'enregistrer en raison d'erreurs de validation :",
+    "not_found": "La source de POI est introuvable.",
+    "read_only_notice": "Cette source de POI est en lecture seule car elle référence une URL distante. Dupliquez-la en source locale pour la modifier.",
+    "clone_to_local": "Dupliquer en local",
+    "clone_failed": "Échec de la duplication en source locale.",
+    "no_content_warning": "Aucun POI ne contient de contenu (description, HTML, adresse, URL ou image).",
+    "size_warning": "Cette source de POI est volumineuse et peut devenir lente (plus de 1000 entités ou 5 Mo)."
   }
 }

@@ -571,29 +571,6 @@
       "unreachable": "無法連線",
       "unknown": "未知"
     },
-    "detail": {
-      "back": "返回清單",
-      "title_label": "標題",
-      "mode_label": "模式",
-      "status_label": "狀態",
-      "url_label": "URL",
-      "feature_count": "要素數量",
-      "updated_at": "更新時間",
-      "save": "儲存",
-      "delete": "刪除",
-      "read_only": "唯讀",
-      "validate": "驗證"
-    },
-    "feature_table": {
-      "name": "名稱",
-      "longitude": "經度",
-      "latitude": "緯度",
-      "actions": "操作",
-      "add_feature": "新增要素",
-      "delete": "刪除",
-      "no_features": "沒有要素",
-      "confirm_delete": "確定要刪除此要素嗎?"
-    },
     "create_local_modal": {
       "title": "建立本機POI來源",
       "name_label": "標題",
@@ -613,5 +590,20 @@
     "error": {
       "unknown": "儲存時發生錯誤"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "此POI來源有未儲存的變更。\n不儲存直接關閉嗎？",
+    "no_slug": "請指定Slug。",
+    "slug_available": "該Slug可以使用。",
+    "add_other_languages": "新增其他語言",
+    "success_save": "儲存成功。",
+    "error_saving": "儲存時發生錯誤。",
+    "save_issues": "因驗證錯誤無法儲存：",
+    "not_found": "找不到目標POI來源。",
+    "read_only_notice": "此POI來源引用遠端URL，為唯讀。若要編輯，請複製為本地來源。",
+    "clone_to_local": "複製到本地",
+    "clone_failed": "複製到本地來源失敗。",
+    "no_content_warning": "所有POI皆無內容（說明、HTML、地址、URL或圖片）。",
+    "size_warning": "此POI來源規模較大，可能導致執行緩慢（超過1000個要素或5MB）。"
   }
 }

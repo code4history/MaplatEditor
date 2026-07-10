@@ -571,29 +571,6 @@
       "unreachable": "无法访问",
       "unknown": "未知"
     },
-    "detail": {
-      "back": "返回列表",
-      "title_label": "标题",
-      "mode_label": "模式",
-      "status_label": "状态",
-      "url_label": "URL",
-      "feature_count": "要素数量",
-      "updated_at": "更新时间",
-      "save": "保存",
-      "delete": "删除",
-      "read_only": "只读",
-      "validate": "验证"
-    },
-    "feature_table": {
-      "name": "名称",
-      "longitude": "经度",
-      "latitude": "纬度",
-      "actions": "操作",
-      "add_feature": "添加要素",
-      "delete": "删除",
-      "no_features": "没有要素",
-      "confirm_delete": "确定要删除此要素吗?"
-    },
     "create_local_modal": {
       "title": "创建本地POI源",
       "name_label": "标题",
@@ -613,5 +590,20 @@
     "error": {
       "unknown": "保存时发生错误"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "此POI源有未保存的更改。\n不保存直接关闭吗？",
+    "no_slug": "请指定Slug。",
+    "slug_available": "该Slug可以使用。",
+    "add_other_languages": "添加其他语言",
+    "success_save": "保存成功。",
+    "error_saving": "保存时发生错误。",
+    "save_issues": "因验证错误无法保存：",
+    "not_found": "未找到目标POI源。",
+    "read_only_notice": "此POI源引用远程URL，为只读。若要编辑，请复制为本地源。",
+    "clone_to_local": "复制到本地",
+    "clone_failed": "复制到本地源失败。",
+    "no_content_warning": "所有POI均无内容（说明、HTML、地址、URL或图片）。",
+    "size_warning": "此POI源规模较大，可能导致运行缓慢（超过1000个要素或5MB）。"
   }
 }

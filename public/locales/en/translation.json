@@ -574,29 +574,6 @@
       "unreachable": "Unreachable",
       "unknown": "Unknown"
     },
-    "detail": {
-      "back": "Back to list",
-      "title_label": "Title",
-      "mode_label": "Mode",
-      "status_label": "Status",
-      "url_label": "URL",
-      "feature_count": "Feature Count",
-      "updated_at": "Updated At",
-      "save": "Save",
-      "delete": "Delete",
-      "read_only": "Read Only",
-      "validate": "Validate"
-    },
-    "feature_table": {
-      "name": "Name",
-      "longitude": "Longitude",
-      "latitude": "Latitude",
-      "actions": "Actions",
-      "add_feature": "Add Feature",
-      "delete": "Delete",
-      "no_features": "No features",
-      "confirm_delete": "Are you sure you want to delete this feature?"
-    },
     "create_local_modal": {
       "title": "Create Local POI Source",
       "name_label": "Title",
@@ -670,5 +647,20 @@
   },
   "app": {
     "title": "Maplat Editor"
+  },
+  "poiedit": {
+    "confirm_no_save": "This POI source has unsaved changes.\nClose without saving?",
+    "no_slug": "Please specify a slug.",
+    "slug_available": "This slug is available.",
+    "add_other_languages": "Add other languages",
+    "success_save": "Saved successfully.",
+    "error_saving": "An error occurred while saving.",
+    "save_issues": "Could not save due to validation errors:",
+    "not_found": "The POI source was not found.",
+    "read_only_notice": "This POI source is read-only because it references a remote URL. Clone it to a local source to edit.",
+    "clone_to_local": "Clone to local",
+    "clone_failed": "Failed to clone to a local source.",
+    "no_content_warning": "No POI has any content (description, HTML, address, URL or image).",
+    "size_warning": "This POI source is large and may become slow (over 1000 features or 5 MB)."
   }
 }

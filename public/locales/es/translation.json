@@ -571,29 +571,6 @@
       "unreachable": "Inaccesible",
       "unknown": "Desconocido"
     },
-    "detail": {
-      "back": "Volver a la lista",
-      "title_label": "Título",
-      "mode_label": "Modo",
-      "status_label": "Estado",
-      "url_label": "URL",
-      "feature_count": "Número de elementos",
-      "updated_at": "Actualizado el",
-      "save": "Guardar",
-      "delete": "Eliminar",
-      "read_only": "Solo lectura",
-      "validate": "Validar"
-    },
-    "feature_table": {
-      "name": "Nombre",
-      "longitude": "Longitud",
-      "latitude": "Latitud",
-      "actions": "Acciones",
-      "add_feature": "Añadir elemento",
-      "delete": "Eliminar",
-      "no_features": "No hay elementos",
-      "confirm_delete": "¿Desea eliminar este elemento?"
-    },
     "create_local_modal": {
       "title": "Crear fuente de POI local",
       "name_label": "Título",
@@ -613,5 +590,20 @@
     "error": {
       "unknown": "Se ha producido un error al guardar"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "Esta fuente de POI tiene cambios sin guardar.\n¿Cerrar sin guardar?",
+    "no_slug": "Especifique un slug.",
+    "slug_available": "Este slug está disponible.",
+    "add_other_languages": "Añadir otros idiomas",
+    "success_save": "Guardado correctamente.",
+    "error_saving": "Se produjo un error al guardar.",
+    "save_issues": "No se pudo guardar debido a errores de validación:",
+    "not_found": "No se encontró la fuente de POI.",
+    "read_only_notice": "Esta fuente de POI es de solo lectura porque referencia una URL remota. Clónela como fuente local para editarla.",
+    "clone_to_local": "Clonar en local",
+    "clone_failed": "Error al clonar como fuente local.",
+    "no_content_warning": "Ningún POI tiene contenido (descripción, HTML, dirección, URL o imagen).",
+    "size_warning": "Esta fuente de POI es grande y puede volverse lenta (más de 1000 entidades o 5 MB)."
   }
 }

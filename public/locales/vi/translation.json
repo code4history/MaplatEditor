@@ -571,29 +571,6 @@
       "unreachable": "Không thể kết nối",
       "unknown": "Không rõ"
     },
-    "detail": {
-      "back": "Quay lại danh sách",
-      "title_label": "Tiêu đề",
-      "mode_label": "Chế độ",
-      "status_label": "Trạng thái",
-      "url_label": "URL",
-      "feature_count": "Số lượng feature",
-      "updated_at": "Ngày giờ cập nhật",
-      "save": "Lưu",
-      "delete": "Xóa",
-      "read_only": "Chỉ đọc",
-      "validate": "Kiểm tra"
-    },
-    "feature_table": {
-      "name": "Tên",
-      "longitude": "Kinh độ",
-      "latitude": "Vĩ độ",
-      "actions": "Thao tác",
-      "add_feature": "Thêm feature",
-      "delete": "Xóa",
-      "no_features": "Không có feature nào",
-      "confirm_delete": "Bạn có muốn xóa feature này không?"
-    },
     "create_local_modal": {
       "title": "Tạo nguồn POI cục bộ",
       "name_label": "Tiêu đề",
@@ -613,5 +590,20 @@
     "error": {
       "unknown": "Đã xảy ra lỗi khi lưu"
     }
+  },
+  "poiedit": {
+    "confirm_no_save": "Nguồn POI này có thay đổi chưa được lưu.\nĐóng mà không lưu?",
+    "no_slug": "Vui lòng nhập slug.",
+    "slug_available": "Slug này có thể sử dụng.",
+    "add_other_languages": "Thêm ngôn ngữ khác",
+    "success_save": "Đã lưu thành công.",
+    "error_saving": "Đã xảy ra lỗi khi lưu.",
+    "save_issues": "Không thể lưu do lỗi xác thực:",
+    "not_found": "Không tìm thấy nguồn POI.",
+    "read_only_notice": "Nguồn POI này chỉ đọc vì tham chiếu URL từ xa. Hãy nhân bản thành nguồn cục bộ để chỉnh sửa.",
+    "clone_to_local": "Nhân bản thành nguồn cục bộ",
+    "clone_failed": "Nhân bản thành nguồn cục bộ thất bại.",
+    "no_content_warning": "Không POI nào có nội dung (mô tả, HTML, địa chỉ, URL hoặc hình ảnh).",
+    "size_warning": "Nguồn POI này lớn và có thể chạy chậm (hơn 1000 đối tượng hoặc 5MB)."
   }
 }
