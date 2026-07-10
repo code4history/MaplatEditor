@@ -606,6 +606,20 @@
     "no_content_warning": "Ningún POI tiene contenido (descripción, HTML, dirección, URL o imagen).",
     "size_warning": "Esta fuente de POI es grande y puede volverse lenta (más de 1000 entidades o 5 MB).",
     "context_add": "Añadir POI",
-    "context_delete": "Eliminar este POI"
+    "context_delete": "Eliminar este POI",
+    "select_poi": "Seleccione un POI",
+    "display_id": "ID de visualización",
+    "name": "Nombre",
+    "desc": "Descripción",
+    "html": "HTML",
+    "address": "Dirección",
+    "url": "URL",
+    "images": "Imágenes",
+    "add_image": "Añadir imagen",
+    "icon": "Icono",
+    "selected_icon": "Icono al seleccionar",
+    "coordinates": "Coordenadas",
+    "html_xss_warning": "El HTML se muestra tal cual, sin sanitizar. Introduzca solo contenido de confianza.",
+    "delete_poi": "Eliminar este POI"
   }
 }

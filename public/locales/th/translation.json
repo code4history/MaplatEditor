@@ -606,6 +606,20 @@
     "no_content_warning": "ไม่มี POI ใดที่มีเนื้อหา (คำอธิบาย, HTML, ที่อยู่, URL หรือรูปภาพ)",
     "size_warning": "แหล่งข้อมูล POI นี้มีขนาดใหญ่และอาจทำงานช้า (เกิน 1000 ฟีเจอร์หรือ 5MB)",
     "context_add": "เพิ่ม POI",
-    "context_delete": "ลบ POI นี้"
+    "context_delete": "ลบ POI นี้",
+    "select_poi": "เลือก POI",
+    "display_id": "ID ที่แสดง",
+    "name": "ชื่อ",
+    "desc": "คำอธิบาย",
+    "html": "HTML",
+    "address": "ที่อยู่",
+    "url": "URL",
+    "images": "รูปภาพ",
+    "add_image": "เพิ่มรูปภาพ",
+    "icon": "ไอคอน",
+    "selected_icon": "ไอคอนเมื่อถูกเลือก",
+    "coordinates": "พิกัด",
+    "html_xss_warning": "HTML จะแสดงตามที่ป้อนโดยไม่มีการกรอง โปรดป้อนเฉพาะเนื้อหาที่เชื่อถือได้",
+    "delete_poi": "ลบ POI นี้"
   }
 }

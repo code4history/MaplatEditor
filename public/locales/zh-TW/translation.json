@@ -606,6 +606,20 @@
     "no_content_warning": "所有POI皆無內容（說明、HTML、地址、URL或圖片）。",
     "size_warning": "此POI來源規模較大，可能導致執行緩慢（超過1000個要素或5MB）。",
     "context_add": "新增POI",
-    "context_delete": "刪除此POI"
+    "context_delete": "刪除此POI",
+    "select_poi": "請選擇POI",
+    "display_id": "顯示ID",
+    "name": "名稱",
+    "desc": "說明",
+    "html": "HTML",
+    "address": "地址",
+    "url": "URL",
+    "images": "圖片",
+    "add_image": "新增圖片",
+    "icon": "圖示",
+    "selected_icon": "選取時圖示",
+    "coordinates": "座標",
+    "html_xss_warning": "HTML將不經過濾直接顯示。請僅輸入可信內容。",
+    "delete_poi": "刪除此POI"
   }
 }

@@ -663,6 +663,20 @@
     "no_content_warning": "No POI has any content (description, HTML, address, URL or image).",
     "size_warning": "This POI source is large and may become slow (over 1000 features or 5 MB).",
     "context_add": "Add POI",
-    "context_delete": "Delete this POI"
+    "context_delete": "Delete this POI",
+    "select_poi": "Select a POI",
+    "display_id": "Display ID",
+    "name": "Name",
+    "desc": "Description",
+    "html": "HTML",
+    "address": "Address",
+    "url": "URL",
+    "images": "Images",
+    "add_image": "Add image",
+    "icon": "Icon",
+    "selected_icon": "Icon when selected",
+    "coordinates": "Coordinates",
+    "html_xss_warning": "HTML is displayed as-is without sanitization. Enter only trusted content.",
+    "delete_poi": "Delete this POI"
   }
 }

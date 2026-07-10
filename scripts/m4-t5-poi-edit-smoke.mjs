@@ -4,6 +4,9 @@
 // (cloneToLocal)、LangResourceInput が配線されていることを検証する。
 // Task 6: 地図ペイン (PoiEditMap) の contextmenu 追加/削除・Modify ドラッグ移動・
 // クリック選択・ReadOnly ガードの配線を検証する。
+// Task 7: 属性フォーム (PoiAttributeForm) の存在と PoiEdit 配線、フィールド確定 =
+// patchFeatureProperties/moveFeature 1 回、表示 ID 文字種・重複ガード、座標域外ガード、
+// html XSS 警告、focusName expose を検証する。
 import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -47,7 +50,7 @@ try {
     'router に旧 PoiSourceDetail が残存している'
   );
 
-  console.log('  [1/6] router PoiEdit route: PASS');
+  console.log('  [1/7] router PoiEdit route: PASS');
 
   // --- Part 2: PoiEdit.vue の配線 ---
   const poiEdit = await readFile(
@@ -145,7 +148,7 @@ try {
     'PoiEdit に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [2/6] PoiEdit.vue wiring: PASS');
+  console.log('  [2/7] PoiEdit.vue wiring: PASS');
 
   // --- Part 3: LangResourceInput.vue の形 ---
   const langResourceInput = await readFile(
@@ -202,7 +205,7 @@ try {
     'LangResourceInput に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [3/6] LangResourceInput.vue shape: PASS');
+  console.log('  [3/7] LangResourceInput.vue shape: PASS');
 
   // --- Part 4: 旧画面 3 ファイルが削除されていること ---
   for (const relPath of [
@@ -217,7 +220,7 @@ try {
     );
   }
 
-  console.log('  [4/6] legacy files removed: PASS');
+  console.log('  [4/7] legacy files removed: PASS');
 
   // --- Part 5 (Task 6): PoiEdit 側の地図ペイン統合 ---
   // 地図ペインは PoiEditMap コンポーネントとしてマウントされること
@@ -258,7 +261,7 @@ try {
     'PoiEdit の Delete キーが session.removeFeature を呼んでいない'
   );
 
-  console.log('  [5/6] PoiEdit map pane integration: PASS');
+  console.log('  [5/7] PoiEdit map pane integration: PASS');
 
   // --- Part 6 (Task 6): PoiEditMap.vue の配線 ---
   const poiEditMap = await readFile(
@@ -392,7 +395,139 @@ try {
     'PoiEditMap に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [6/6] PoiEditMap.vue map pane wiring: PASS');
+  console.log('  [6/7] PoiEditMap.vue map pane wiring: PASS');
+
+  // --- Part 7 (Task 7): 属性フォーム (PoiAttributeForm) ---
+  const attrForm = await readFile(
+    path.join(projectRoot, 'src/components/PoiAttributeForm.vue'),
+    'utf8'
+  );
+
+  // PoiEdit 配線: import + session/read-only を渡してマウント
+  assert.match(
+    poiEdit,
+    /import PoiAttributeForm from ['"]\.\.\/components\/PoiAttributeForm\.vue['"]/,
+    'PoiEdit が PoiAttributeForm を import していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiAttributeForm[\s\S]*?:session=/,
+    'PoiEdit が PoiAttributeForm に session を渡していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiAttributeForm[\s\S]*?:read-only=/,
+    'PoiEdit が PoiAttributeForm に read-only を渡していない'
+  );
+
+  // 新規追加時の name フォーカス: addFeature 直後の uid で focusName() を呼ぶ配線
+  assert.match(
+    poiEdit,
+    /focusName\(\)/,
+    'PoiEdit が addFeature 後に focusName() を呼んでいない'
+  );
+
+  // 未選択時プレースホルダ
+  assert.match(
+    attrForm,
+    /poiedit\.select_poi/,
+    'PoiAttributeForm に未選択プレースホルダ (poiedit.select_poi) がない'
+  );
+
+  // フィールド確定 = session API 1 回 (patch / move / remove)
+  assert.match(
+    attrForm,
+    /session\.patchFeatureProperties\(/,
+    'PoiAttributeForm が session.patchFeatureProperties を呼んでいない'
+  );
+  assert.match(
+    attrForm,
+    /session\.moveFeature\(/,
+    'PoiAttributeForm の座標入力が session.moveFeature を呼んでいない'
+  );
+  assert.match(
+    attrForm,
+    /session\.removeFeature\(/,
+    'PoiAttributeForm の削除ボタンが session.removeFeature を呼んでいない'
+  );
+
+  // 確定は change のみ (入力毎に commit しない)
+  assert.match(
+    attrForm,
+    /@change/,
+    'PoiAttributeForm に @change 確定ハンドラがない'
+  );
+
+  // LangResource フィールドは共用部品 LangResourceInput 経由
+  assert.match(
+    attrForm,
+    /import LangResourceInput from ['"]\.\/LangResourceInput\.vue['"]/,
+    'PoiAttributeForm が LangResourceInput を使っていない'
+  );
+
+  // html の XSS 警告 (POI-109、サニタイズはしない)
+  assert.match(
+    attrForm,
+    /poiedit\.html_xss_warning/,
+    'PoiAttributeForm に html XSS 警告 (poiedit.html_xss_warning) がない'
+  );
+
+  // 表示 ID: 文字種 (poiGeoJson の DISPLAY_ID_PATTERN 再利用) + ソース内重複ガード
+  assert.match(
+    attrForm,
+    /DISPLAY_ID_PATTERN/,
+    'PoiAttributeForm が DISPLAY_ID_PATTERN (poiGeoJson) を再利用していない'
+  );
+  assert.match(
+    attrForm,
+    /poisource\.errors\.display_id_charset/,
+    'PoiAttributeForm に表示 ID 文字種エラーがない'
+  );
+  assert.match(
+    attrForm,
+    /poisource\.errors\.display_id_duplicate/,
+    'PoiAttributeForm に表示 ID 重複エラーがない'
+  );
+
+  // name 必須 (空の確定はエラーで commit しない)
+  assert.match(
+    attrForm,
+    /poisource\.errors\.name_required/,
+    'PoiAttributeForm に name 必須エラーがない'
+  );
+
+  // 座標域外ガード (±180/±90、非有限も拒否して commit しない)
+  assert.match(
+    attrForm,
+    /Number\.isFinite/,
+    'PoiAttributeForm の座標入力に有限性ガードがない'
+  );
+  assert.match(
+    attrForm,
+    /-180|180/,
+    'PoiAttributeForm の座標入力に経度範囲ガードがない'
+  );
+  assert.match(
+    attrForm,
+    /poisource\.errors\.coord_range/,
+    'PoiAttributeForm に座標域外エラーがない'
+  );
+
+  // 新規追加時フォーカス用 focusName の expose
+  assert.match(
+    attrForm,
+    /defineExpose\(\{[\s\S]*?focusName/,
+    'PoiAttributeForm が focusName を expose していない'
+  );
+
+  // 生 ipcRenderer を使わないこと (House rule / m2-t3)
+  assert.doesNotMatch(
+    attrForm,
+    /ipcRenderer/,
+    'PoiAttributeForm に生 ipcRenderer 使用が残存している'
+  );
+
+  console.log('  [7/7] PoiAttributeForm.vue attribute form wiring: PASS');
 
   console.log('M4-T5 PoiEdit editor skeleton smoke passed');
 } catch (err) {

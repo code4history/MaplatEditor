@@ -606,6 +606,20 @@
     "no_content_warning": "Tidak ada POI yang memiliki konten (deskripsi, HTML, alamat, URL, atau gambar).",
     "size_warning": "Sumber POI ini besar dan dapat menjadi lambat (lebih dari 1000 fitur atau 5MB).",
     "context_add": "Tambahkan POI",
-    "context_delete": "Hapus POI ini"
+    "context_delete": "Hapus POI ini",
+    "select_poi": "Pilih POI",
+    "display_id": "ID tampilan",
+    "name": "Nama",
+    "desc": "Deskripsi",
+    "html": "HTML",
+    "address": "Alamat",
+    "url": "URL",
+    "images": "Gambar",
+    "add_image": "Tambahkan gambar",
+    "icon": "Ikon",
+    "selected_icon": "Ikon saat dipilih",
+    "coordinates": "Koordinat",
+    "html_xss_warning": "HTML ditampilkan apa adanya tanpa sanitasi. Masukkan hanya konten yang tepercaya.",
+    "delete_poi": "Hapus POI ini"
   }
 }

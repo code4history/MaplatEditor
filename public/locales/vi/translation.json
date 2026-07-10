@@ -606,6 +606,20 @@
     "no_content_warning": "Không POI nào có nội dung (mô tả, HTML, địa chỉ, URL hoặc hình ảnh).",
     "size_warning": "Nguồn POI này lớn và có thể chạy chậm (hơn 1000 đối tượng hoặc 5MB).",
     "context_add": "Thêm POI",
-    "context_delete": "Xóa POI này"
+    "context_delete": "Xóa POI này",
+    "select_poi": "Chọn một POI",
+    "display_id": "ID hiển thị",
+    "name": "Tên",
+    "desc": "Mô tả",
+    "html": "HTML",
+    "address": "Địa chỉ",
+    "url": "URL",
+    "images": "Hình ảnh",
+    "add_image": "Thêm hình ảnh",
+    "icon": "Biểu tượng",
+    "selected_icon": "Biểu tượng khi được chọn",
+    "coordinates": "Tọa độ",
+    "html_xss_warning": "HTML được hiển thị nguyên trạng, không được lọc. Chỉ nhập nội dung đáng tin cậy.",
+    "delete_poi": "Xóa POI này"
   }
 }

@@ -606,6 +606,20 @@
     "no_content_warning": "콘텐츠(설명·HTML·주소·URL·이미지)가 있는 POI가 없습니다.",
     "size_warning": "POI 소스 규모가 커서 동작이 느려질 수 있습니다(1000개 피처 또는 5MB 초과).",
     "context_add": "POI 추가",
-    "context_delete": "이 POI 삭제"
+    "context_delete": "이 POI 삭제",
+    "select_poi": "POI를 선택하세요",
+    "display_id": "표시 ID",
+    "name": "이름",
+    "desc": "설명",
+    "html": "HTML",
+    "address": "주소",
+    "url": "URL",
+    "images": "이미지",
+    "add_image": "이미지 추가",
+    "icon": "아이콘",
+    "selected_icon": "선택 시 아이콘",
+    "coordinates": "좌표",
+    "html_xss_warning": "HTML은 정제되지 않고 그대로 표시됩니다. 신뢰할 수 있는 내용만 입력하세요.",
+    "delete_poi": "이 POI 삭제"
   }
 }

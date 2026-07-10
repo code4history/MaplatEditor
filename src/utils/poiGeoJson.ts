@@ -20,8 +20,8 @@ const DEFAULT_LANG = "ja";
 const LANG_FIELDS = ["name", "desc", "html", "address", "url"] as const;
 
 // 表示 ID (Feature.id) の文字種: slug と同じ (POI-140)。viewer の namespaceID が {mapID}#{id}
-// 結合のため # 等を許すと壊れる。
-const DISPLAY_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+// 結合のため # 等を許すと壊れる。属性フォームの入力検証 (PoiAttributeForm) からも参照するため export。
+export const DISPLAY_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 // 規模 warning (POI-121) の閾値。
 const SCALE_FEATURE_COUNT = 1000;

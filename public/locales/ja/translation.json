@@ -663,6 +663,20 @@
     "no_content_warning": "どのPOIにもコンテンツ（説明・HTML・住所・URL・画像）がありません。",
     "size_warning": "POIソースの規模が大きいため、動作が遅くなる可能性があります（1000フィーチャーまたは5MB超）。",
     "context_add": "POIを追加",
-    "context_delete": "このPOIを削除"
+    "context_delete": "このPOIを削除",
+    "select_poi": "POIを選択してください",
+    "display_id": "表示ID",
+    "name": "名称",
+    "desc": "説明",
+    "html": "HTML",
+    "address": "住所",
+    "url": "URL",
+    "images": "画像",
+    "add_image": "画像を追加",
+    "icon": "アイコン",
+    "selected_icon": "選択時アイコン",
+    "coordinates": "座標",
+    "html_xss_warning": "HTMLはサニタイズされずそのまま表示されます。信頼できる内容のみ入力してください。",
+    "delete_poi": "このPOIを削除"
   }
 }

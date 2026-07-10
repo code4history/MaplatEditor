@@ -121,9 +121,15 @@
         </div>
       </div>
 
-      <!-- 地図ペイン (主役、仕様 §3.3)。属性フォーム (Task 7) / feature 一覧 (Task 8) は未マウント -->
-      <div class="flex-grow-1 position-relative overflow-hidden">
-        <PoiEditMap ref="mapPane" :session="session" :read-only="readOnly" />
+      <!-- 地図ペイン (主役、仕様 §3.3) + 右カラム: 属性フォーム (Task 7)。
+           feature 一覧 (Task 8) は未マウント -->
+      <div class="flex-grow-1 d-flex overflow-hidden">
+        <div class="flex-grow-1 position-relative overflow-hidden">
+          <PoiEditMap ref="mapPane" :session="mapSession" :read-only="readOnly" />
+        </div>
+        <div class="poi-side-pane border-start bg-white flex-shrink-0 overflow-auto">
+          <PoiAttributeForm ref="attrForm" :session="session" :read-only="readOnly" />
+        </div>
       </div>
     </template>
   </div>
@@ -140,8 +146,9 @@ import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import LangResourceInput from "../components/LangResourceInput.vue";
+import PoiAttributeForm from "../components/PoiAttributeForm.vue";
 import PoiEditMap from "../components/PoiEditMap.vue";
-import { usePoiEditSession } from "../composables/usePoiEditSession";
+import { usePoiEditSession, type PoiEditSession } from "../composables/usePoiEditSession";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
@@ -157,6 +164,22 @@ const { state: editState, isDirty, canUndo, canRedo } = session;
 
 // 地図ペイン (panTo / fitInitialView を expose。Task 8 の一覧選択からも使う)
 const mapPane = ref<InstanceType<typeof PoiEditMap> | null>(null);
+// 属性フォーム (focusName を expose。新規追加直後の name フォーカスに使う)
+const attrForm = ref<InstanceType<typeof PoiAttributeForm> | null>(null);
+
+// 新規追加時のフォーカス配線: addFeature 直後に selectedUid が新 uid になったら name 入力へ。
+// PoiEditMap の contextmenu 追加 (addPoiAt) はこの wrapper 経由で addFeature を呼ぶため連動する
+// (Task 8 の一覧「新規作成」も同じ wrapper を使うこと)。addFeature 以外は素通し
+const mapSession: PoiEditSession = {
+  ...session,
+  addFeature: (lngLat) => {
+    const uid = session.addFeature(lngLat);
+    void nextTick().then(() => {
+      if (session.selectedUid.value === uid) attrForm.value?.focusName();
+    });
+    return uid;
+  },
+};
 
 const loading = ref(true);
 const loadError = ref<string | null>(null);
@@ -516,3 +539,10 @@ onBeforeUnmount(() => {
   removeMainProcessListener = undefined;
 });
 </script>
+
+<style scoped>
+/* 右カラム (属性フォーム)。地図が主役の比率を保つ固定幅 */
+.poi-side-pane {
+  width: 340px;
+}
+</style>
