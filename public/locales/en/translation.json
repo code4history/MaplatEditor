@@ -661,7 +661,11 @@
       "display_id_charset": "Display ID contains unsupported characters",
       "no_content": "No content",
       "scale_feature_count": "Too many features (over 1000)",
-      "scale_byte_size": "Data size too large (over 5MB)"
+      "scale_byte_size": "Data size too large (over 5MB)",
+      "unsupported_scheme": "Only http/https URLs are supported",
+      "payload_too_large": "The data exceeds the size limit (50MB)",
+      "pick_failed": "Could not pick a file",
+      "references_unavailable": "Could not retrieve reference information"
     }
   },
   "app": {

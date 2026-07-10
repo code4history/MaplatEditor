@@ -63,17 +63,6 @@
                 <span class="badge" :class="source.mode === 'local' ? 'bg-primary' : 'bg-info'">
                   {{ source.mode === 'local' ? t("poisource.local") : t("poisource.remote") }}
                 </span>
-                <span
-                  v-if="hasValidationState(source)"
-                  class="badge"
-                  :class="{
-                    'bg-success': validationStateOf(source) === 'ready',
-                    'bg-warning': validationStateOf(source) === 'warning',
-                    'bg-danger': validationStateOf(source) === 'invalid'
-                  }"
-                >
-                  {{ t(`poisource.validation.${validationStateOf(source)}`) }}
-                </span>
               </div>
               <p class="mb-1 fw-medium text-break" style="font-size: 14px;">{{ localizeTitle(source) }}</p>
               <small class="text-muted d-block text-break">{{ source.slug }}</small>
@@ -148,6 +137,7 @@
                 class="form-control"
                 v-model="modal.url"
                 :placeholder="t('poisource.url_placeholder')"
+                @input="onUrlInput"
               />
             </template>
 
@@ -184,11 +174,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted } from "vue";
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import { usePoiSourceList, type PoiSourceListRow } from "../composables/usePoiSourceList";
+import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
+import type {
+  PoiSourceSaveResult,
+  PoiValidationIssue,
+  PoiSourceReference,
+} from "../electron";
 
 const { t } = useTranslation();
 const router = useRouter();
@@ -198,6 +194,7 @@ const {
   loading,
   error,
   searchQuery,
+  currentPage,
   hasNext,
   hasPrev,
   loadSources,
@@ -209,28 +206,8 @@ const {
 const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 // LangResource 内部形 {lang: text} → 表示テキスト (現在言語 → ja → en → 任意 → slug)
-const localizeTitle = (row: PoiSourceListRow): string => {
-  const title = row.title as Record<string, string> | string | null | undefined;
-  if (typeof title === "string") return title || row.slug;
-  if (title && typeof title === "object") {
-    const lang = i18next.language;
-    const picked =
-      title[lang] ||
-      title[lang?.split("-")[0]] ||
-      title.ja ||
-      title.en ||
-      Object.values(title).find((v) => typeof v === "string" && v !== "");
-    if (picked) return picked;
-  }
-  return row.slug;
-};
-
-// 一覧行が validation 状態を持つ場合のみバッジ表示 (PoiSourceListRow は現状 status を持たないため
-// 将来の拡張に備えた任意フィールド読み取り。持たない行はバッジ非表示)
-const hasValidationState = (row: PoiSourceListRow): boolean =>
-  typeof (row as any).validationState === "string";
-const validationStateOf = (row: PoiSourceListRow): string =>
-  String((row as any).validationState ?? "ready");
+const localizeTitle = (row: PoiSourceListRow): string =>
+  resolveLocalizedTitle(row.title, i18next.language) || row.slug;
 
 // --- Context menu / delete ---
 const contextMenu = reactive({ visible: false, x: 0, y: 0, uid: "", title: "" });
@@ -251,14 +228,18 @@ const deleteSource = async () => {
   const { uid, title } = contextMenu;
   hideContextMenu();
   // AID-006: 削除前に参照(app/map)を提示。references は Phase 7 まで空だが表示線を先に敷く
-  let references: Array<{ kind: "map" | "app"; slug: string }> = [];
+  let references: PoiSourceReference[] = [];
+  let referencesUnavailable = false;
   try {
     references = await window.poiSources.findReferences(uid);
   } catch (e) {
     console.error("Failed to resolve POI source references", e);
+    referencesUnavailable = true;
   }
   let message = t("poisource.delete_confirm", { name: title });
-  if (references.length > 0) {
+  if (referencesUnavailable) {
+    message += "\n\n" + t("poisource.errors.references_unavailable");
+  } else if (references.length > 0) {
     const appCount = references.filter((r) => r.kind === "app").length;
     const mapCount = references.filter((r) => r.kind === "map").length;
     message +=
@@ -269,8 +250,14 @@ const deleteSource = async () => {
   }
   if (!confirm(message)) return;
   try {
+    // 削除前の状態でページ末尾の最後の1件かどうかを判定し、削除後に空ページへ残らないようにする
+    const wasLastItemOnPage = items.value.length === 1 && hasPrev.value;
     await window.poiSources.delete(uid);
-    await loadSources();
+    if (wasLastItemOnPage) {
+      await loadSources(currentPage.value - 1);
+    } else {
+      await loadSources(currentPage.value);
+    }
   } catch (e) {
     console.error("Failed to delete POI source", e);
     alert(t("poisource.delete_error"));
@@ -342,6 +329,8 @@ const resetModal = () => {
   modal.slugEdited = false;
   slugChecked.value = false;
   slugAvailable.value = false;
+  // in-flight の slug チェック応答を無効化 (MINOR-1)
+  slugCheckToken++;
 };
 
 const closeModal = () => {
@@ -359,11 +348,12 @@ const suggestSlug = (base: string): string =>
     .toLowerCase();
 
 const checkSlug = async () => {
+  // early-return する場合でも in-flight の旧応答を無効化しておく (MINOR-1)
+  const token = ++slugCheckToken;
   const slug = modal.slug.trim();
   slugChecked.value = false;
   slugAvailable.value = false;
   if (!slug || !SLUG_PATTERN.test(slug)) return;
-  const token = ++slugCheckToken;
   try {
     const available = await window.assets.checkSlug({ slug });
     if (token !== slugCheckToken) return; // 後発の入力に上書きされた
@@ -378,7 +368,13 @@ const onSlugInput = () => {
   // 手入力されたら title からの自動提案を止める (空に戻したら提案を再開)
   modal.slugEdited = modal.slug.trim() !== "";
   modal.feedback = "";
+  modal.feedbackRetry = false;
   checkSlug();
+};
+
+const onUrlInput = () => {
+  modal.feedback = "";
+  modal.feedbackRetry = false;
 };
 
 // slug 自動生成初期値の提示 (43 §3.2): local 作成 / remote 登録では title 入力に追随して
@@ -387,12 +383,14 @@ const onSlugInput = () => {
 watch(
   () => modal.title,
   (title) => {
+    // MAJOR-1: title 編集時は常に古いフィードバック(特に retry 状態)を破棄する
+    modal.feedback = "";
+    modal.feedbackRetry = false;
     if (modal.mode !== "local" && modal.mode !== "remote") return;
     if (modal.slugEdited) return;
     const suggested = suggestSlug(title);
     if (suggested === modal.slug) return;
     modal.slug = suggested;
-    modal.feedback = "";
     checkSlug();
   }
 );
@@ -420,65 +418,76 @@ const openImport = async () => {
     checkSlug();
   } catch (e) {
     console.error("Failed to pick import file", e);
+    // MINOR-5: モーダルが開いていれば feedback で、開いていなければ alert で通知する
+    if (modal.mode) {
+      modal.feedback = t("poisource.errors.pick_failed");
+    } else {
+      alert(t("poisource.errors.pick_failed"));
+    }
   }
 };
 
 // PoiSourceSaveResult を解釈し、成功時はエディタへ遷移、失敗時は modal に feedback を出す
-const handleSaveResult = (result: any): boolean => {
-  if (result && result.result === "Success") {
-    const uid = result.uid;
-    closeModal();
-    router.push(`/poisources/${uid}`);
-    return true;
-  }
-  if (result && result.result === "Exist") {
-    modal.feedback = t("poisource.errors.slug_taken");
-    return false;
-  }
-  if (result && result.result === "Invalid") {
-    const issues = Array.isArray(result.issues) ? result.issues : [];
-    const errors = issues.filter((i: any) => i.level === "error");
-    modal.feedback = (errors.length ? errors : issues)
-      .map((i: any) => issueMessage(i))
-      .join("\n");
-    if (!modal.feedback) modal.feedback = t("poisource.errors.invalid");
-    return false;
-  }
-  if (result && result.error === "revision-conflict") {
+const handleSaveResult = (result: PoiSourceSaveResult): boolean => {
+  if ("error" in result) {
+    // result.error === 'revision-conflict'
     modal.feedback = t("poisource.errors.revision_conflict");
     return false;
   }
-  if (result && result.result === "Error") {
-    const code = result.code as string;
-    if (code === "network") {
-      modal.feedback = t("poisource.errors.network");
-      modal.feedbackRetry = true;
+  switch (result.result) {
+    case "Success": {
+      const uid = result.uid;
+      closeModal();
+      router.push(`/poisources/${uid}`);
+      return true;
+    }
+    case "Exist":
+      modal.feedback = t("poisource.errors.slug_taken");
+      return false;
+    case "Invalid": {
+      const issues = result.issues;
+      const errors = issues.filter((i) => i.level === "error");
+      modal.feedback = (errors.length ? errors : issues)
+        .map((i) => issueMessage(i))
+        .join("\n");
+      if (!modal.feedback) modal.feedback = t("poisource.errors.invalid");
       return false;
     }
-    if (code === "http-status") {
-      modal.feedback = t("poisource.errors.http_status");
+    case "ReadOnly":
+      // save 専用の結果 (create/import/register からは到達不能だが型上は網羅する)
+      modal.feedback = t("poisource.errors.internal");
+      return false;
+    case "Error": {
+      const code = result.code;
+      if (code === "network") {
+        modal.feedback = t("poisource.errors.network");
+        modal.feedbackRetry = true;
+        return false;
+      }
+      if (code === "http-status") {
+        modal.feedback = t("poisource.errors.http_status");
+        return false;
+      }
+      if (code === "parse") {
+        modal.feedback = t("poisource.errors.parse");
+        return false;
+      }
+      if (code === "not-found") {
+        modal.feedback = t("poisource.errors.not_found");
+        return false;
+      }
+      if (code === "invalid-request") {
+        modal.feedback = result.message || t("poisource.errors.invalid");
+        return false;
+      }
+      modal.feedback = result.message || t("poisource.errors.internal");
       return false;
     }
-    if (code === "parse") {
-      modal.feedback = t("poisource.errors.parse");
-      return false;
-    }
-    if (code === "not-found") {
-      modal.feedback = t("poisource.errors.not_found");
-      return false;
-    }
-    if (code === "invalid-request") {
-      modal.feedback = result.message || t("poisource.errors.invalid");
-      return false;
-    }
-    modal.feedback = result.message || t("poisource.errors.internal");
-    return false;
   }
-  modal.feedback = t("poisource.errors.internal");
-  return false;
 };
 
 // poiGeoJson.ts の検証 code → i18n key の写像。非 Point (geometry-not-point) は POI-104 専用文言。
+// unsupported-scheme / payload-too-large は PoiSourceService の remote fetch (POI-121) が返す
 const ISSUE_CODE_KEYS: Record<string, string> = {
   "geometry-not-point": "poisource.errors.non_point",
   "not-feature-collection": "poisource.errors.not_feature_collection",
@@ -489,24 +498,27 @@ const ISSUE_CODE_KEYS: Record<string, string> = {
   "no-content": "poisource.errors.no_content",
   "scale-feature-count": "poisource.errors.scale_feature_count",
   "scale-byte-size": "poisource.errors.scale_byte_size",
+  "unsupported-scheme": "poisource.errors.unsupported_scheme",
+  "payload-too-large": "poisource.errors.payload_too_large",
 };
 
 // 検証 issue を人間可読に。既知 code は専用文言、未知は code/message をそのまま出す
-const issueMessage = (issue: any): string => {
+const issueMessage = (issue: PoiValidationIssue): string => {
   const key = ISSUE_CODE_KEYS[issue.code];
   const base = key ? t(key) : issue.message || issue.code || t("poisource.errors.invalid");
   return issue.featureId ? `${issue.featureId}: ${base}` : base;
 };
 
 const submitModal = async () => {
-  if (!canSubmit.value && !modal.feedbackRetry) return;
+  // MAJOR-1: canSubmit のみで判定する (feedbackRetry によるバイパスを廃止)
+  if (!canSubmit.value) return;
   const slug = modal.slug.trim();
   const title = modal.title.trim();
   modal.submitting = true;
   modal.feedback = "";
   modal.feedbackRetry = false;
   try {
-    let result: any;
+    let result: PoiSourceSaveResult;
     if (modal.mode === "local") {
       result = await window.poiSources.createLocal({ slug, title });
     } else if (modal.mode === "import") {
@@ -529,9 +541,24 @@ const handleSearch = () => {
   search(searchQuery.value);
 };
 
+// Escape: コンテキストメニューが開いていれば閉じる。開いていなければ、モーダルが
+// 開いていて送信中でない場合に閉じる (MapList.vue の同型ハンドラに整合)
+const onKeyDown = (e: KeyboardEvent) => {
+  if (e.key !== "Escape") return;
+  if (contextMenu.visible) {
+    hideContextMenu();
+    return;
+  }
+  if (modal.mode && !modal.submitting) {
+    closeModal();
+  }
+};
+
 onMounted(() => {
   loadSources(1);
+  window.addEventListener("keydown", onKeyDown);
 });
+onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown));
 </script>
 
 <style scoped>

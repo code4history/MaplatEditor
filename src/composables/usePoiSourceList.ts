@@ -18,8 +18,12 @@ export function usePoiSourceList() {
   const hasNext: Ref<boolean> = ref(false);
   const hasPrev: Ref<boolean> = ref(false);
   const total: Ref<number> = ref(0);
+  // 一覧再読込の後着優先トークン。search/nextPage/prevPage の連打で古い応答が後から
+  // 返ってきても、最新の呼び出し以外は状態に反映しない (checkSlug と同じ方式)
+  let loadToken = 0;
 
   async function loadSources(page: number = currentPage.value): Promise<void> {
+    const token = ++loadToken;
     loading.value = true;
     error.value = null;
     try {
@@ -28,16 +32,18 @@ export function usePoiSourceList() {
         page,
         pageSize: PAGE_SIZE,
       });
+      if (token !== loadToken) return; // 後発の呼び出しに上書きされた
       items.value = response.items;
       currentPage.value = response.page;
       hasNext.value = response.hasNext;
       hasPrev.value = response.hasPrev;
       total.value = response.total;
     } catch (e) {
+      if (token !== loadToken) return;
       error.value = e instanceof Error ? e.message : String(e);
       items.value = [];
     } finally {
-      loading.value = false;
+      if (token === loadToken) loading.value = false;
     }
   }
 

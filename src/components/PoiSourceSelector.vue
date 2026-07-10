@@ -69,6 +69,7 @@ import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import { usePoiSourceList, type PoiSourceListRow } from "../composables/usePoiSourceList";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
+import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
 
 const { t } = useTranslation();
 
@@ -112,19 +113,7 @@ watch(
 
 // LangResource 内部形 {lang: text} → 表示テキスト (現在言語 → ja → en → 任意 → slug)
 function localizeTitle(row: PoiSourceListRow): string {
-  const title = row.title as Record<string, string> | string | null | undefined;
-  if (typeof title === "string") return title || row.slug;
-  if (title && typeof title === "object") {
-    const lang = i18next.language;
-    const picked =
-      title[lang] ||
-      title[lang?.split("-")[0]] ||
-      title.ja ||
-      title.en ||
-      Object.values(title).find((v) => typeof v === "string" && v !== "");
-    if (picked) return picked;
-  }
-  return row.slug;
+  return resolveLocalizedTitle(row.title, i18next.language) || row.slug;
 }
 
 function isSelected(sourceId: string): boolean {

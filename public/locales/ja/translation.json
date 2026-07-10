@@ -664,7 +664,11 @@
       "display_id_charset": "表示IDに使用できない文字が含まれています",
       "no_content": "コンテンツがありません",
       "scale_feature_count": "フィーチャー数が多すぎます（1000超）",
-      "scale_byte_size": "データサイズが大きすぎます（5MB超）"
+      "scale_byte_size": "データサイズが大きすぎます（5MB超）",
+      "unsupported_scheme": "URLはhttp/httpsのみ対応しています",
+      "payload_too_large": "データサイズが上限（50MB）を超えています",
+      "pick_failed": "ファイルを選択できませんでした",
+      "references_unavailable": "参照情報を取得できませんでした"
     }
   }
 }

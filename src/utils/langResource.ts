@@ -73,3 +73,24 @@ export function compactMapLangFields<T extends Record<string, any>>(document: T)
   }
   return out as T;
 }
+
+// LangResource (内部形 {lang: text} / 交換形の文字列) → 表示テキストへの解決。
+// 優先順位: 現在言語 → 言語の basename (en-US→en) → ja → en → 任意の非空値。
+// 該当が無ければ空文字を返す (呼び出し側で slug 等へのフォールバックを行うこと)。
+// PoiSourceList.vue / PoiSourceSelector.vue で重複していたロジックをそのまま移設 (挙動不変)
+export function localizeTitle(
+  title: LangResource | null | undefined,
+  lang: string,
+): string {
+  if (typeof title === "string") return title;
+  if (title && typeof title === "object") {
+    const picked =
+      title[lang] ||
+      title[lang?.split("-")[0]] ||
+      title.ja ||
+      title.en ||
+      Object.values(title).find((v) => typeof v === "string" && v !== "");
+    if (picked) return picked;
+  }
+  return "";
+}
