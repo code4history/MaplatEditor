@@ -94,6 +94,18 @@ try {
   // 11. iconId が空(`builtin:`) → url 扱い(iconId 必須、空は setId 参照とみなさない)
   assert.deepEqual(parseIconRef('builtin:'), { kind: 'url', url: 'builtin:' });
 
+  // 11b. `scheme://...` 形の絶対 URL(予約 scheme 以外)は setId 判定より先に url と判別する
+  // (仕様 §7 の判別順序: URL パターン → 登録済み setId → UUID。`ftp`/`s3` 等は setId として
+  // 登録され得ない scheme だが、`//` を伴う絶対 URL 形はここで url と判定すべき)
+  assert.deepEqual(parseIconRef('ftp://host/pin.png'), {
+    kind: 'url',
+    url: 'ftp://host/pin.png',
+  });
+  assert.deepEqual(parseIconRef('s3://bucket/x.png'), {
+    kind: 'url',
+    url: 's3://bucket/x.png',
+  });
+
   // 12. formatIconRef の往復が正規形で安定
   assert.equal(formatIconRef(parseIconRef('builtin:defaultpin')), 'builtin:defaultpin');
   assert.equal(formatIconRef(parseIconRef(uuid)), uuid);
@@ -114,6 +126,11 @@ try {
   );
   assert.equal(builtin.previewUrl('defaultpin'), 'icons/builtin/defaultpin.svg');
   assert.equal(builtin.previewUrl('defaultpin-red'), 'icons/builtin/defaultpin-red.svg');
+
+  // 14. title は i18n キー (titleKey) を持つ (Phase 6 品質レビュー MINOR-3: ハードコード英語
+  // "Builtin" ではなく poiedit.picker.set_builtin キーを呼び出し側の t() で解決する)
+  assert.equal(builtin.titleKey, 'poiedit.picker.set_builtin');
+  assert.equal(typeof builtin.title, 'undefined', 'title は titleKey に置き換わり残っていないはず');
 
   console.log('m6-t2-icon-refs smoke: PASS');
 } finally {

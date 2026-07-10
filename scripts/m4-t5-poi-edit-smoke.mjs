@@ -1114,6 +1114,37 @@ try {
     'useAssetThumbnails に生 ipcRenderer 使用が残存している'
   );
 
+  // pickerOpen ガード (Phase 6 品質レビュー MAJOR-2): picker 表示中はグローバルキー
+  // (undo/redo/Delete/menu:undo/redo) を抑止する。PoiAttributeForm が pickerOpen を expose し、
+  // PoiEdit の3ハンドラがそれぞれ先頭でガードすること
+  assert.match(
+    attrForm,
+    /defineExpose\(\{\s*focusName,\s*pickerOpen\s*\}\)/,
+    'PoiAttributeForm が pickerOpen を defineExpose していない'
+  );
+  assert.match(
+    poiEdit,
+    /const onHistoryKeydown = \(event: KeyboardEvent\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen\) return;/,
+    'PoiEdit の onHistoryKeydown が picker 表示中のガードを先頭に持っていない'
+  );
+  assert.match(
+    poiEdit,
+    /const onDeleteKeydown = \(event: KeyboardEvent\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen\) return;/,
+    'PoiEdit の onDeleteKeydown が picker 表示中のガードを先頭に持っていない'
+  );
+  assert.match(
+    poiEdit,
+    /const onMainProcessMessage = \(message: string\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen\) return;/,
+    'PoiEdit の onMainProcessMessage が picker 表示中のガードを先頭に持っていない'
+  );
+
+  // 確定時の imageIndex 再検証 (範囲外/行不在は console.warn + no-op で黙って捨てない)
+  assert.match(
+    attrForm,
+    /console\.warn\(\s*\n\s*`PoiAttributeForm: picker\.imageIndex/,
+    'PoiAttributeForm の onPickerSelect が imageIndex 範囲外を console.warn していない'
+  );
+
   console.log('  [10/10] AssetPicker + PoiAttributeForm picker wiring: PASS');
 
   console.log('M4-T5 PoiEdit editor skeleton smoke passed');

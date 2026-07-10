@@ -706,7 +706,8 @@
       "tab_url": "URL",
       "url_placeholder": "Nhập URL hình ảnh hoặc đường dẫn tương đối",
       "url_apply": "Dùng URL này",
-      "no_assets": "Không tìm thấy tài nguyên ảnh"
+      "no_assets": "Không tìm thấy tài nguyên ảnh",
+      "set_builtin": "Tiêu chuẩn"
     }
   },
   "assetlist": {

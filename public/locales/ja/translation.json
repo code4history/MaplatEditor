@@ -706,7 +706,8 @@
       "tab_url": "URL",
       "url_placeholder": "画像の URL または相対パスを入力",
       "url_apply": "この URL を使用",
-      "no_assets": "画像アセットが見つかりません"
+      "no_assets": "画像アセットが見つかりません",
+      "set_builtin": "標準"
     }
   },
   "assetlist": {

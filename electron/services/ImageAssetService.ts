@@ -41,6 +41,12 @@ export type ImageAssetErrorCode = 'not-found' | 'invalid-request' | 'internal';
 export const IMAGE_ASSET_MAX_BYTES = 20 * 1024 * 1024;
 export const IMAGE_ASSET_MAX_PIXELS = 100_000_000;
 
+// 伸長爆弾対策の総ピクセル数判定を純関数として切り出す (Phase 6 品質レビュー m9-t4 補強:
+// add からロジックを剥がして unit テスト可能にする。挙動は変えない)
+export function exceedsPixelLimit(width: number, height: number): boolean {
+  return width * height > IMAGE_ASSET_MAX_PIXELS;
+}
+
 // 保存系の結果 union (PoiSourceSaveResult と同形の慣習)。Error は post-commit のファイル操作失敗時
 // (MapEditService.save と同様) に uid/slug/revision を伴うことがある
 export type ImageAssetSaveResult =
@@ -179,7 +185,7 @@ export class ImageAssetService {
     }
 
     // 伸長爆弾対策: デコード後の総ピクセル数もガードする(ファイルは書き込まない)
-    if (meta.width * meta.height > IMAGE_ASSET_MAX_PIXELS) {
+    if (exceedsPixelLimit(meta.width, meta.height)) {
       return { result: 'Error', code: 'invalid-request', message: 'payload-too-large' };
     }
 

@@ -706,7 +706,8 @@
       "tab_url": "URL",
       "url_placeholder": "ป้อน URL ของรูปภาพหรือเส้นทางสัมพัทธ์",
       "url_apply": "ใช้ URL นี้",
-      "no_assets": "ไม่พบรูปภาพ"
+      "no_assets": "ไม่พบรูปภาพ",
+      "set_builtin": "มาตรฐาน"
     }
   },
   "assetlist": {

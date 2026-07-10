@@ -706,7 +706,8 @@
       "tab_url": "URL",
       "url_placeholder": "Introduzca la URL de la imagen o una ruta relativa",
       "url_apply": "Usar esta URL",
-      "no_assets": "No se encontraron recursos de imagen"
+      "no_assets": "No se encontraron recursos de imagen",
+      "set_builtin": "Integrado"
     }
   },
   "assetlist": {

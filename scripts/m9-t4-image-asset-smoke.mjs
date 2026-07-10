@@ -17,7 +17,8 @@
 //   (j) delete-race: rename の書込 (upsertAssetMeta) の直前に並行 delete (フックで注入、
 //       事前チェックの順序に依らずガードを直撃) → 復活 (revision=1 再INSERT + registry slug 再占有)
 //       せず Error{code:'not-found'}、slug は解放のまま (m9-t3 の l4 と同機構: upsertAssetRow の not-found ガード)
-import { mkdtemp, rm, writeFile, mkdir, stat } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, mkdir, stat, readFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -96,8 +97,14 @@ try {
       SettingsService.set('saveFolder', dataDir);
 
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
-      const { default: imageAssetService } = await import(${JSON.stringify(servicePath)});
+      const { default: imageAssetService, exceedsPixelLimit } = await import(${JSON.stringify(servicePath)});
       await SqliteDataService.getDb();
+
+      // (a0) exceedsPixelLimit: 境界値 (10000x10000 = 100,000,000 はちょうど上限、超えない /
+      // 10000x10001 は超える) — add の伸長爆弾ガードから切り出した純関数 (Phase 6 品質レビュー m9-t4 補強)
+      assert.equal(exceedsPixelLimit(10000, 10000), false, '10000x10000 はちょうど上限で超過ではないはず');
+      assert.equal(exceedsPixelLimit(10000, 10001), true, '10000x10001 は上限を超えるはず');
+      console.log('ok: (a0) exceedsPixelLimit boundary (10000x10000=false, 10000x10001=true)');
 
       // --- fixtures: 実PNG(Jimpで生成) + 非画像テキストファイル ---
       const fixtureDir = nodePath.join(workDir, 'fixtures');
@@ -360,6 +367,21 @@ try {
     timeout: 120000,
     maxBuffer: 1024 * 1024 * 8,
   });
+
+  // ソースパターン断言: add が exceedsPixelLimit を呼ぶ形にリファクタされているはず
+  // (ロジックの重複復活・呼び出し漏れの防止。Phase 6 品質レビュー m9-t4 補強)
+  const serviceSource = await readFile(servicePath, 'utf8');
+  assert.match(
+    serviceSource,
+    /export function exceedsPixelLimit\(width: number, height: number\): boolean/,
+    'ImageAssetService.ts に exceedsPixelLimit の export がない'
+  );
+  assert.match(
+    serviceSource,
+    /if \(exceedsPixelLimit\(meta\.width, meta\.height\)\)/,
+    'ImageAssetService.add が exceedsPixelLimit を呼んでいない'
+  );
+
   console.log('M9-T4 image asset smoke passed');
 } finally {
   await rm(workDir, { recursive: true, force: true });

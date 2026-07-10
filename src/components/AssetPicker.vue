@@ -49,7 +49,7 @@
           <!-- Icon set タブ: registry (listIconSets) → previewUrl サムネグリッド -->
           <div v-if="activeTab === 'iconset'">
             <div v-for="set in iconSets" :key="set.setId" class="mb-2">
-              <div class="fw-bold small mb-1">{{ set.title }}</div>
+              <div class="fw-bold small mb-1">{{ t(set.titleKey) }}</div>
               <div class="d-flex flex-wrap gap-2">
                 <button
                   v-for="iconId in set.iconIds"
@@ -216,6 +216,7 @@ const onCancel = (): void => {
 
 // Escape で閉じる (選択せず close のみ)
 const onKeyDown = (e: KeyboardEvent): void => {
+  if (e.isComposing) return; // IME 変換取り消しの Escape でモーダルが閉じないようにする
   if (e.key !== "Escape" || !props.visible) return;
   onCancel();
 };

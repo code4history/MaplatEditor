@@ -564,6 +564,7 @@ const isInputTarget = (event: KeyboardEvent): boolean => {
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
+  if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
   if (isInputTarget(event)) return;
   if (!(event.metaKey || event.ctrlKey)) return;
   const key = event.key.toLowerCase();
@@ -582,6 +583,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 // 選択中 feature の Delete キー削除 (仕様 §4)。ReadOnly では無効。
 // macOS のフルキーボードでない Delete キーは event.key === "Backspace" なので両方受ける
 const onDeleteKeydown = (event: KeyboardEvent) => {
+  if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
   if (event.key !== "Delete" && event.key !== "Backspace") return;
   if (isInputTarget(event)) return;
   if (readOnly.value) return;
@@ -594,6 +596,7 @@ const onDeleteKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
+  if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
   if (message === "menu:undo") {
     performUndo();
   } else if (message === "menu:redo") {

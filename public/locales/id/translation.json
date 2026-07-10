@@ -706,7 +706,8 @@
       "tab_url": "URL",
       "url_placeholder": "Masukkan URL gambar atau jalur relatif",
       "url_apply": "Gunakan URL ini",
-      "no_assets": "Aset gambar tidak ditemukan"
+      "no_assets": "Aset gambar tidak ditemukan",
+      "set_builtin": "Standar"
     }
   },
   "assetlist": {

@@ -516,6 +516,7 @@ const handleSearch = () => {
 // Escape: コンテキストメニューが開いていれば閉じる。開いていなければ、モーダルが
 // 開いていて送信中でない場合に閉じる (MapList.vue の同型ハンドラに整合)
 const onKeyDown = (e: KeyboardEvent) => {
+  if (e.isComposing) return; // IME 変換取り消しの Escape でモーダルが閉じないようにする
   if (e.key !== "Escape") return;
   if (contextMenu.visible) {
     hideContextMenu();

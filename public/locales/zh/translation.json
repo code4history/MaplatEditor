@@ -706,7 +706,8 @@
       "tab_url": "URL",
       "url_placeholder": "输入图片 URL 或相对路径",
       "url_apply": "使用此 URL",
-      "no_assets": "未找到图片素材"
+      "no_assets": "未找到图片素材",
+      "set_builtin": "标准"
     }
   },
   "assetlist": {

@@ -14,15 +14,16 @@ export function registerImageAssetHandlers() {
   ipcMain.handle('imageassets:getFilePath', (_, ref) => imageAssetService.getFilePath(ref));
   // 逆参照 (削除確認フローが使う。43 §7 の AID-006 と同型)
   ipcMain.handle('imageassets:findReferences', (_, ref) => imageAssetService.findReferences(ref));
-  // インポート用ファイル選択 (poisource:pickImportFile と同型)。SVG は Jimp でデコードできず
+  // インポート用ファイル選択 (poisource:pickImportFile と同型)。SVG / webp は Jimp でデコードできず
   // add が invalid-request で拒否するため、フィルタから外す(選ばせても必ず失敗する形式を
-  // ダイアログに出さない)
+  // ダイアログに出さない)。webp は Jimp 1.6 が decode 非対応(実機で
+  // "Mime type image/webp does not support decoding" を確認済み。@jimp/wasm-webp 導入は本 Phase 対象外)
   ipcMain.handle('imageassets:pickImageFile', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
     const options = {
       defaultPath: app.getPath('documents'),
       properties: ['openFile' as const],
-      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }],
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif'] }],
     };
     const ret = win
       ? await dialog.showOpenDialog(win, options)

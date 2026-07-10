@@ -34,14 +34,15 @@ const ICON_SET_REF_PATTERN = /^([^:]+):(.*)$/s;
 
 interface IconSetRegistryEntry {
   setId: string;
-  title: string;
+  titleKey: string;
   iconIds: string[];
   previewUrl(iconId: string): string;
 }
 
 export interface IconSetDef {
   setId: string;
-  title: string;
+  /** 表示名の i18n キー（呼び出し側が t() で解決する。ハードコード英語文言を持たない） */
+  titleKey: string;
   iconIds: string[];
   /** エディタ内プレビュー URL（picker サムネ・badge 用）。export 解決（POI-117）は Phase 7 */
   previewUrl(iconId: string): string;
@@ -63,7 +64,7 @@ function registerIconSet(def: IconSetRegistryEntry): void {
 
 registerIconSet({
   setId: "builtin",
-  title: "Builtin",
+  titleKey: "poiedit.picker.set_builtin",
   iconIds: [...BUILTIN_ICON_IDS],
   previewUrl: (iconId: string) => `icons/builtin/${iconId}.svg`,
 });
@@ -77,7 +78,7 @@ export function isRegisteredIconSet(setId: string): boolean {
 export function listIconSets(): IconSetDef[] {
   return [...iconSetRegistry.values()].map((entry) => ({
     setId: entry.setId,
-    title: entry.title,
+    titleKey: entry.titleKey,
     iconIds: [...entry.iconIds],
     previewUrl: entry.previewUrl,
   }));
@@ -97,6 +98,13 @@ export function parseIconRef(value: string): IconRef {
     // 下の「`://` を含む」チェックで既に url 扱いになる想定だが、ここでは prefix が
     // 予約 scheme の場合は setId 予約として先に url 判定する）。
     if (RESERVED_SCHEMES.has(prefix)) {
+      return { kind: "url", url: value };
+    }
+
+    // `scheme://...` 形の絶対 URL は setId 判定より先に url と判別する（仕様 §7 の判別順序:
+    // URL パターン → 登録済み setId → UUID）。`ftp://`/`s3://` のような予約外 scheme でも
+    // `//` を伴う絶対 URL 形は setId 参照とみなさない。
+    if (rest.startsWith("//")) {
       return { kind: "url", url: value };
     }
 

@@ -617,13 +617,21 @@ const openImagePicker = (index: number): void => {
   picker.visible = true;
 };
 
-// 選択結果を既存の確定経路に流す (Undo 粒度不変: picker で選択 = 1 commit)
+// 選択結果を既存の確定経路に流す (Undo 粒度不変: picker で選択 = 1 commit)。
+// image モードは確定前に picker.imageIndex の妥当性を再検証する (Phase 6 品質レビュー MAJOR-2:
+// picker 表示中に行削除等で index が範囲外/行不在になり得るため、黙って捨てず警告してから no-op)
 const onPickerSelect = (value: string): void => {
   if (picker.mode === "icon") {
     if (picker.iconTarget === "icon") iconInput.value = value;
     else selectedIconInput.value = value;
     onIconChange(picker.iconTarget, value);
   } else {
+    if (picker.imageIndex < 0 || picker.imageIndex >= imageRows.value.length) {
+      console.warn(
+        `PoiAttributeForm: picker.imageIndex (${picker.imageIndex}) is out of range at select time; discarding selection`,
+      );
+      return;
+    }
     onImageChange(picker.imageIndex, value);
   }
 };
@@ -669,7 +677,11 @@ const focusName = (): void => {
   nameWrap.value?.querySelector<HTMLElement>("input, textarea")?.focus();
 };
 
-defineExpose({ focusName });
+// picker 表示中かどうか (Phase 6 品質レビュー MAJOR-2: PoiEdit がグローバルキー
+// (undo/redo/Delete/menu:undo/redo) を picker 表示中は抑止するために参照する)
+const pickerOpen = computed(() => picker.visible);
+
+defineExpose({ focusName, pickerOpen });
 </script>
 
 <style scoped>

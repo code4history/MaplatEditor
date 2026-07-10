@@ -706,7 +706,8 @@
       "tab_url": "URL",
       "url_placeholder": "이미지 URL 또는 상대 경로를 입력하세요",
       "url_apply": "이 URL 사용",
-      "no_assets": "이미지 에셋을 찾을 수 없습니다"
+      "no_assets": "이미지 에셋을 찾을 수 없습니다",
+      "set_builtin": "표준"
     }
   },
   "assetlist": {
