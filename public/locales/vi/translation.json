@@ -620,6 +620,9 @@
     "selected_icon": "Biểu tượng khi được chọn",
     "coordinates": "Tọa độ",
     "html_xss_warning": "HTML được hiển thị nguyên trạng, không được lọc. Chỉ nhập nội dung đáng tin cậy.",
-    "delete_poi": "Xóa POI này"
+    "delete_poi": "Xóa POI này",
+    "filter_placeholder": "Lọc theo ID hiển thị, tên hoặc mô tả",
+    "add_poi": "Thêm POI",
+    "feature_count": "{{filtered}} / {{total}}"
   }
 }

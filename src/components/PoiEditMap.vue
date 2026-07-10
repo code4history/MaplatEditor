@@ -261,6 +261,13 @@ const panToIfOffscreen = (uid: string): void => {
   if (!containsCoordinate(extent, coords)) panTo(uid);
 };
 
+// 現在の地図中心 (lngLat)。一覧の「新規作成」が地図中央へ addFeature するために使う (Task 8)
+const getCenterLngLat = (): [number, number] | null => {
+  const center = map?.getView?.()?.getCenter?.();
+  if (!Array.isArray(center)) return null;
+  return roundLngLat(transform(center, "EPSG:3857", "EPSG:4326"));
+};
+
 // --- 初期表示: features があれば全体が入る extent へ fit、無ければ日本付近デフォルト ---
 const fitInitialView = (): void => {
   if (!map || !markerSource) return;
@@ -419,5 +426,5 @@ onBeforeUnmount(() => {
   contextmenu = null;
 });
 
-defineExpose({ panTo, fitInitialView });
+defineExpose({ panTo, fitInitialView, getCenterLngLat });
 </script>

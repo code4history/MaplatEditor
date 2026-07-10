@@ -7,6 +7,9 @@
 // Task 7: 属性フォーム (PoiAttributeForm) の存在と PoiEdit 配線、フィールド確定 =
 // patchFeatureProperties/moveFeature 1 回、表示 ID 文字種・重複ガード、座標域外ガード、
 // html XSS 警告、focusName expose を検証する。
+// Task 8: feature 一覧 (PoiFeatureList) の存在と PoiEdit 配線、自前 windowing
+// (spacer + scrollTop)、フィルタ対象 (表示 ID / name / desc)、scroll-to-selected、
+// 新規作成 = mapSession.addFeature 経由、readOnly ガードを検証する。
 import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -50,7 +53,7 @@ try {
     'router に旧 PoiSourceDetail が残存している'
   );
 
-  console.log('  [1/7] router PoiEdit route: PASS');
+  console.log('  [1/8] router PoiEdit route: PASS');
 
   // --- Part 2: PoiEdit.vue の配線 ---
   const poiEdit = await readFile(
@@ -148,7 +151,7 @@ try {
     'PoiEdit に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [2/7] PoiEdit.vue wiring: PASS');
+  console.log('  [2/8] PoiEdit.vue wiring: PASS');
 
   // --- Part 3: LangResourceInput.vue の形 ---
   const langResourceInput = await readFile(
@@ -205,7 +208,7 @@ try {
     'LangResourceInput に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [3/7] LangResourceInput.vue shape: PASS');
+  console.log('  [3/8] LangResourceInput.vue shape: PASS');
 
   // --- Part 4: 旧画面 3 ファイルが削除されていること ---
   for (const relPath of [
@@ -220,7 +223,7 @@ try {
     );
   }
 
-  console.log('  [4/7] legacy files removed: PASS');
+  console.log('  [4/8] legacy files removed: PASS');
 
   // --- Part 5 (Task 6): PoiEdit 側の地図ペイン統合 ---
   // 地図ペインは PoiEditMap コンポーネントとしてマウントされること
@@ -261,7 +264,7 @@ try {
     'PoiEdit の Delete キーが session.removeFeature を呼んでいない'
   );
 
-  console.log('  [5/7] PoiEdit map pane integration: PASS');
+  console.log('  [5/8] PoiEdit map pane integration: PASS');
 
   // --- Part 6 (Task 6): PoiEditMap.vue の配線 ---
   const poiEditMap = await readFile(
@@ -395,7 +398,7 @@ try {
     'PoiEditMap に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [6/7] PoiEditMap.vue map pane wiring: PASS');
+  console.log('  [6/8] PoiEditMap.vue map pane wiring: PASS');
 
   // --- Part 7 (Task 7): 属性フォーム (PoiAttributeForm) ---
   const attrForm = await readFile(
@@ -527,7 +530,188 @@ try {
     'PoiAttributeForm に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [7/7] PoiAttributeForm.vue attribute form wiring: PASS');
+  console.log('  [7/8] PoiAttributeForm.vue attribute form wiring: PASS');
+
+  // --- Part 8 (Task 8): feature 一覧 (PoiFeatureList) ---
+  const featureList = await readFile(
+    path.join(projectRoot, 'src/components/PoiFeatureList.vue'),
+    'utf8'
+  );
+
+  // PoiEdit 配線: import + session/read-only を渡してマウント、select/create を受ける
+  assert.match(
+    poiEdit,
+    /import PoiFeatureList from ['"]\.\.\/components\/PoiFeatureList\.vue['"]/,
+    'PoiEdit が PoiFeatureList を import していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiFeatureList[\s\S]*?:session=/,
+    'PoiEdit が PoiFeatureList に session を渡していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiFeatureList[\s\S]*?:read-only=/,
+    'PoiEdit が PoiFeatureList に read-only を渡していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiFeatureList[\s\S]*?@select=/,
+    'PoiEdit が PoiFeatureList の select を受けていない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiFeatureList[\s\S]*?@create=/,
+    'PoiEdit が PoiFeatureList の create を受けていない'
+  );
+
+  // 行選択の実行責務は PoiEdit 側: selectedUid 書き込み + 明示 pan (仕様 §3.3)
+  assert.match(
+    poiEdit,
+    /session\.selectedUid\.value = uid/,
+    'PoiEdit の一覧行選択が session.selectedUid を書いていない'
+  );
+  assert.match(
+    poiEdit,
+    /mapPane\.value\?\.panTo\(uid\)/,
+    'PoiEdit の一覧行選択が mapPane.panTo を呼んでいない'
+  );
+
+  // 新規作成 = 地図中央 (getCenterLngLat) + mapSession (wrapper) の addFeature 経由
+  // (生 session.addFeature では name フォーカスが飛ばない、Task 7 実装メモ)
+  assert.match(
+    poiEdit,
+    /getCenterLngLat\(\)/,
+    'PoiEdit の一覧新規作成が地図中央 (getCenterLngLat) を使っていない'
+  );
+  assert.match(
+    poiEdit,
+    /mapSession\.addFeature\(/,
+    'PoiEdit の一覧新規作成が mapSession.addFeature (wrapper) 経由でない'
+  );
+
+  // PoiEditMap 側の地図中央 API expose
+  assert.match(
+    poiEditMap,
+    /defineExpose\(\{[\s\S]*?getCenterLngLat/,
+    'PoiEditMap が getCenterLngLat を expose していない'
+  );
+
+  // フィルタ: 表示 ID / name / desc を対象に lowercase 部分一致
+  assert.match(
+    featureList,
+    /filterText/,
+    'PoiFeatureList にフィルタ入力 (filterText) がない'
+  );
+  assert.match(
+    featureList,
+    /poiedit\.filter_placeholder/,
+    'PoiFeatureList のフィルタに poiedit.filter_placeholder がない'
+  );
+  assert.match(
+    featureList,
+    /langValues\(feature\.properties\?\.name\)/,
+    'PoiFeatureList のフィルタが name (全言語) を対象にしていない'
+  );
+  assert.match(
+    featureList,
+    /langValues\(feature\.properties\?\.desc\)/,
+    'PoiFeatureList のフィルタが desc (全言語) を対象にしていない'
+  );
+  assert.match(
+    featureList,
+    /displayId/,
+    'PoiFeatureList のフィルタ/行が表示 ID を扱っていない'
+  );
+  assert.match(
+    featureList,
+    /toLowerCase\(\)/,
+    'PoiFeatureList のフィルタが lowercase 部分一致でない'
+  );
+
+  // 自前 windowing (依存追加なし): 固定行高 + scrollTop 可視 slice + overscan + spacer
+  assert.match(
+    featureList,
+    /ROW_HEIGHT = 32/,
+    'PoiFeatureList の固定行高 (ROW_HEIGHT) がない'
+  );
+  assert.match(
+    featureList,
+    /OVERSCAN = 10/,
+    'PoiFeatureList の overscan がない'
+  );
+  assert.match(
+    featureList,
+    /scrollTop/,
+    'PoiFeatureList が scrollTop ベースの windowing をしていない'
+  );
+  assert.match(
+    featureList,
+    /topSpacerHeight/,
+    'PoiFeatureList に上部 spacer がない'
+  );
+  assert.match(
+    featureList,
+    /bottomSpacerHeight/,
+    'PoiFeatureList に下部 spacer がない'
+  );
+  assert.match(
+    featureList,
+    /\.slice\(startIndex\.value, endIndex\.value\)/,
+    'PoiFeatureList が可視範囲の slice レンダリングをしていない'
+  );
+  // virtual list ライブラリの依存追加は禁止
+  assert.doesNotMatch(
+    featureList,
+    /virtual-scroll|vue-virtual|virtua/,
+    'PoiFeatureList が外部 virtual list 依存を import している'
+  );
+
+  // 選択同期: selectedUid の外部変化で scroll-to-selected (可視範囲外のときのみ)
+  assert.match(
+    featureList,
+    /watch\(session\.selectedUid/,
+    'PoiFeatureList が selectedUid を watch していない'
+  );
+  assert.match(
+    featureList,
+    /scrollToSelected/,
+    'PoiFeatureList に scroll-to-selected がない'
+  );
+
+  // 件数表示 (フィルタ後 / 全件)
+  assert.match(
+    featureList,
+    /poiedit\.feature_count/,
+    'PoiFeatureList に件数表示 (poiedit.feature_count) がない'
+  );
+
+  // 新規作成ボタン: readOnly では非表示、実行は emit で PoiEdit に委譲
+  assert.match(
+    featureList,
+    /v-if="!readOnly"[\s\S]*?emit\('create'\)/,
+    'PoiFeatureList の新規作成ボタンに readOnly ガードがない'
+  );
+  assert.match(
+    featureList,
+    /poiedit\.add_poi/,
+    'PoiFeatureList の新規作成ボタンに poiedit.add_poi がない'
+  );
+  // 一覧側は addFeature を直接呼ばない (実行責務は PoiEdit)
+  assert.doesNotMatch(
+    featureList,
+    /addFeature\(/,
+    'PoiFeatureList が addFeature を直接呼んでいる (PoiEdit へ委譲すること)'
+  );
+
+  // 生 ipcRenderer を使わないこと (House rule / m2-t3)
+  assert.doesNotMatch(
+    featureList,
+    /ipcRenderer/,
+    'PoiFeatureList に生 ipcRenderer 使用が残存している'
+  );
+
+  console.log('  [8/8] PoiFeatureList.vue feature list wiring: PASS');
 
   console.log('M4-T5 PoiEdit editor skeleton smoke passed');
 } catch (err) {

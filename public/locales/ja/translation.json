@@ -677,6 +677,9 @@
     "selected_icon": "選択時アイコン",
     "coordinates": "座標",
     "html_xss_warning": "HTMLはサニタイズされずそのまま表示されます。信頼できる内容のみ入力してください。",
-    "delete_poi": "このPOIを削除"
+    "delete_poi": "このPOIを削除",
+    "filter_placeholder": "表示ID・名称・説明で絞り込み",
+    "add_poi": "POIを追加",
+    "feature_count": "{{filtered}} / {{total}}"
   }
 }

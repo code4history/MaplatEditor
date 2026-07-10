@@ -620,6 +620,9 @@
     "selected_icon": "Icono al seleccionar",
     "coordinates": "Coordenadas",
     "html_xss_warning": "El HTML se muestra tal cual, sin sanitizar. Introduzca solo contenido de confianza.",
-    "delete_poi": "Eliminar este POI"
+    "delete_poi": "Eliminar este POI",
+    "filter_placeholder": "Filtrar por ID de visualización, nombre o descripción",
+    "add_poi": "Añadir POI",
+    "feature_count": "{{filtered}} / {{total}}"
   }
 }

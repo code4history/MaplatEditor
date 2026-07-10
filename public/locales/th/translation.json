@@ -620,6 +620,9 @@
     "selected_icon": "ไอคอนเมื่อถูกเลือก",
     "coordinates": "พิกัด",
     "html_xss_warning": "HTML จะแสดงตามที่ป้อนโดยไม่มีการกรอง โปรดป้อนเฉพาะเนื้อหาที่เชื่อถือได้",
-    "delete_poi": "ลบ POI นี้"
+    "delete_poi": "ลบ POI นี้",
+    "filter_placeholder": "กรองตาม ID ที่แสดง ชื่อ หรือคำอธิบาย",
+    "add_poi": "เพิ่ม POI",
+    "feature_count": "{{filtered}} / {{total}}"
   }
 }

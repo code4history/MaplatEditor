@@ -620,6 +620,9 @@
     "selected_icon": "Ikon saat dipilih",
     "coordinates": "Koordinat",
     "html_xss_warning": "HTML ditampilkan apa adanya tanpa sanitasi. Masukkan hanya konten yang tepercaya.",
-    "delete_poi": "Hapus POI ini"
+    "delete_poi": "Hapus POI ini",
+    "filter_placeholder": "Saring berdasarkan ID tampilan, nama, atau deskripsi",
+    "add_poi": "Tambah POI",
+    "feature_count": "{{filtered}} / {{total}}"
   }
 }

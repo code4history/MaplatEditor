@@ -677,6 +677,9 @@
     "selected_icon": "Icon when selected",
     "coordinates": "Coordinates",
     "html_xss_warning": "HTML is displayed as-is without sanitization. Enter only trusted content.",
-    "delete_poi": "Delete this POI"
+    "delete_poi": "Delete this POI",
+    "filter_placeholder": "Filter by display ID, name, or description",
+    "add_poi": "Add POI",
+    "feature_count": "{{filtered}} / {{total}}"
   }
 }

@@ -620,6 +620,9 @@
     "selected_icon": "선택 시 아이콘",
     "coordinates": "좌표",
     "html_xss_warning": "HTML은 정제되지 않고 그대로 표시됩니다. 신뢰할 수 있는 내용만 입력하세요.",
-    "delete_poi": "이 POI 삭제"
+    "delete_poi": "이 POI 삭제",
+    "filter_placeholder": "표시 ID·이름·설명으로 필터링",
+    "add_poi": "POI 추가",
+    "feature_count": "{{filtered}} / {{total}}"
   }
 }

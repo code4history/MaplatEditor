@@ -620,6 +620,9 @@
     "selected_icon": "选中时图标",
     "coordinates": "坐标",
     "html_xss_warning": "HTML将不经过滤直接显示。请仅输入可信内容。",
-    "delete_poi": "删除此POI"
+    "delete_poi": "删除此POI",
+    "filter_placeholder": "按显示ID、名称、描述筛选",
+    "add_poi": "添加POI",
+    "feature_count": "{{filtered}} / {{total}}"
   }
 }

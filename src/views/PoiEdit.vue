@@ -121,14 +121,23 @@
         </div>
       </div>
 
-      <!-- 地図ペイン (主役、仕様 §3.3) + 右カラム: 属性フォーム (Task 7)。
-           feature 一覧 (Task 8) は未マウント -->
+      <!-- 地図ペイン (主役、仕様 §3.3) + 右カラム: 属性フォーム (Task 7) の下に
+           feature 一覧 (Task 8) の上下分割。一覧は残り高さで flex (min-height 確保) -->
       <div class="flex-grow-1 d-flex overflow-hidden">
         <div class="flex-grow-1 position-relative overflow-hidden">
           <PoiEditMap ref="mapPane" :session="mapSession" :read-only="readOnly" />
         </div>
-        <div class="poi-side-pane border-start bg-white flex-shrink-0 overflow-auto">
-          <PoiAttributeForm ref="attrForm" :session="session" :read-only="readOnly" />
+        <div class="poi-side-pane border-start bg-white flex-shrink-0 d-flex flex-column overflow-hidden">
+          <div class="poi-form-area overflow-auto">
+            <PoiAttributeForm ref="attrForm" :session="session" :read-only="readOnly" />
+          </div>
+          <PoiFeatureList
+            class="poi-list-area"
+            :session="session"
+            :read-only="readOnly"
+            @select="onListSelect"
+            @create="createPoiAtMapCenter"
+          />
         </div>
       </div>
     </template>
@@ -136,9 +145,10 @@
 </template>
 
 <script setup lang="ts">
-// POI エディタ (Phase 4 Task 5/6, 仕様 43 §3.3/§4/§5/§6)。
+// POI エディタ (Phase 4 Task 5-8, 仕様 43 §3.3/§4/§5/§6)。
 // 地図ペインは PoiEditMap (base map selector + マーカー + contextmenu 追加/削除 +
-// Modify ドラッグ移動 + クリック選択)。属性フォーム (Task 7) / feature 一覧 (Task 8) は未マウント。
+// Modify ドラッグ移動 + クリック選択)。右カラムは属性フォーム (PoiAttributeForm) +
+// feature 一覧 (PoiFeatureList: フィルタ + 自前 windowing + 選択同期)。
 // 保存は useRevisionedAssetSave (revision 楽観ロック、ADR-0007)、編集は usePoiEditSession
 // (明示 commit = 1 Undo 単位) に委譲する。
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -148,6 +158,7 @@ import i18next from "i18next";
 import LangResourceInput from "../components/LangResourceInput.vue";
 import PoiAttributeForm from "../components/PoiAttributeForm.vue";
 import PoiEditMap from "../components/PoiEditMap.vue";
+import PoiFeatureList from "../components/PoiFeatureList.vue";
 import { usePoiEditSession, type PoiEditSession } from "../composables/usePoiEditSession";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { localizeTitle } from "../utils/langResource";
@@ -452,6 +463,23 @@ async function cloneSourceToLocal(): Promise<void> {
   }
 }
 
+// --- feature 一覧 (Task 8): 選択・新規作成の実行責務は PoiEdit 側に置く ---
+// 行クリック = 選択 + 地図 pan (仕様 §3.3。可視範囲内でも明示 pan する)
+function onListSelect(uid: string): void {
+  session.selectedUid.value = uid;
+  mapPane.value?.panTo(uid);
+}
+
+// 一覧の「新規作成」= 地図中央に配置 + フォームフォーカス (仕様 §3.3)。
+// 必ず mapSession (wrapper) の addFeature を使う (生 session では name フォーカスが飛ばない)
+function createPoiAtMapCenter(): void {
+  if (readOnly.value) return;
+  const center = mapPane.value?.getCenterLngLat();
+  if (!center) return;
+  const uid = mapSession.addFeature(center);
+  session.selectedUid.value = uid;
+}
+
 // --- Undo/Redo (ボタン + キーボード + menu:undo/redo IPC、MapEdit と同パターン) ---
 function performUndo(): void {
   if (readOnly.value || !canUndo.value) return;
@@ -541,8 +569,19 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 右カラム (属性フォーム)。地図が主役の比率を保つ固定幅 */
+/* 右カラム (属性フォーム + feature 一覧)。地図が主役の比率を保つ固定幅 */
 .poi-side-pane {
   width: 340px;
+}
+
+/* フォームは内容高さ基準 (必要なら縮んで内部スクロール)、一覧が残り高さを取る */
+.poi-form-area {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.poi-list-area {
+  flex: 1 1 auto;
+  min-height: 180px;
 }
 </style>
