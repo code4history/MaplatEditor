@@ -636,6 +636,7 @@
       "name_required": "name（名称）为必填项",
       "display_id_duplicate": "显示ID在源内重复",
       "display_id_charset": "显示ID包含不支持的字符",
+      "display_id_assigned": "已为缺少显示ID的POI自动分配ID",
       "no_content": "没有内容",
       "scale_feature_count": "要素数量过多（超过1000）",
       "scale_byte_size": "数据太大（超过5MB）",
@@ -683,7 +684,9 @@
     "raw_apply": "应用",
     "raw_discard": "放弃并重新生成",
     "raw_dirty_notice": "在按下应用之前，编辑内容不会生效。",
+    "raw_stale_notice": "自您开始编辑此面板以来，编辑器一侧已发生更新。应用将覆盖这些更改。",
     "raw_parse_error": "无法应用：JSON 语法错误",
+    "raw_id_not_string": "FeatureCollection 的 id（slug）必须为字符串",
     "raw_apply_issues": "由于验证错误，无法应用：",
     "raw_apply_warnings": "已应用，但存在警告：",
     "raw_size_guard": "由于此来源规模较大（超过 1000 个要素或 5MB），原始 GeoJSON 为只读。仍可通过地图和表单进行编辑。"

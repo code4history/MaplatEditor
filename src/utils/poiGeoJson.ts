@@ -498,6 +498,9 @@ export function toExportForm(
 // raw Apply 用: export 形 FeatureCollection (object) → 内部形。Feature.id で previous と照合し
 // _maplatUid を引継ぎ、無ければ新規採番 (POI-136)。同時に validate で issue を収集する。
 // 構造不正 (FeatureCollection でない) 場合は not-feature-collection error を返す。
+// UID 照合の後に ensureDisplayIds を適用し、id 欠落 feature を素通りさせず importFile/save 側の
+// prepare() (PoiSourceService.prepare) と同じ規律で採番する (Phase 5 品質レビュー MAJOR)。
+// 1 件以上採番した場合は warning issue (display-id-assigned, message=採番数) を追加する。
 export function fromExportForm(
   parsed: unknown,
   previous: PoiEditorFeature[],
@@ -556,5 +559,17 @@ export function fromExportForm(
     };
   });
 
-  return { features, issues };
+  // UID 照合の後に採番規律を適用する (importFile/save 側 prepare と同じ ensureDisplayIds)。
+  // これにより id 欠落 feature が採番されずに Apply されて slug 相当の識別子を欠く不変条件
+  // 違反を防ぐ (Phase 5 品質レビュー MAJOR)。
+  const { features: withIds, assigned } = ensureDisplayIds(features);
+  if (assigned.length > 0) {
+    issues.push({
+      level: "warning",
+      code: "display-id-assigned",
+      message: String(assigned.length),
+    });
+  }
+
+  return { features: withIds, issues };
 }

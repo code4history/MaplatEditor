@@ -426,6 +426,24 @@ try {
         console.log('ok: normalizeLegacyPoi coerces numeric name to "5"');
       }
 
+      // ---- fromExportForm: assigns missing display ids after uid matching (POI-141 raw Apply MAJOR fix) ----
+      {
+        const parsed = { type: 'FeatureCollection', features: [
+          { type: 'Feature', id: '', geometry: point(1,2), properties: { name: 'a' } },
+          { type: 'Feature', geometry: point(3,4), properties: { name: 'b' } },
+          { type: 'Feature', id: 'p9', geometry: point(5,6), properties: { name: 'c' } },
+        ] };
+        const { features, issues } = fromExportForm(parsed, []);
+        assert.ok(features.every((f) => typeof f.id === 'string' && f.id !== ''), '欠落 id の feature も全て非空 id を持つ: ' + JSON.stringify(features.map((f) => f.id)));
+        const ids = features.map((f) => f.id);
+        assert.equal(new Set(ids).size, ids.length, '空 id 2件を含んでも採番後の id は一意: ' + JSON.stringify(ids));
+        const assignedIssue = issues.find((i) => i.code === 'display-id-assigned');
+        assert.ok(assignedIssue, 'display-id-assigned warning が issues に含まれる: ' + JSON.stringify(issues));
+        assert.equal(assignedIssue.level, 'warning', 'display-id-assigned は warning レベル');
+        assert.equal(assignedIssue.message, '2', 'message に採番数 (2件) を含む');
+        console.log('ok: fromExportForm assigns missing display ids and reports display-id-assigned warning');
+      }
+
       console.log('M9-T1 poi geojson smoke passed');
     `
   );

@@ -5,6 +5,7 @@
       <span class="fw-bold small">{{ t("poiedit.raw_pane") }}</span>
       <span v-if="localDirty" class="small text-warning">
         {{ t("poiedit.raw_dirty_notice") }}
+        <template v-if="editorUpdatedSinceDirty"> {{ t("poiedit.raw_stale_notice") }}</template>
       </span>
       <div class="ms-auto d-flex gap-1">
         <button
@@ -80,7 +81,7 @@
 // ④session.commit 1 回 (= 1 Undo、仕様 §5)。
 import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
-import type { PoiEditSession } from "../composables/usePoiEditSession";
+import type { PoiEditSession, PoiEditState } from "../composables/usePoiEditSession";
 import type { LangResource } from "../utils/langResource";
 import { normalizeLangResource } from "../utils/langResource";
 import {
@@ -109,14 +110,23 @@ const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
 const text = ref("");
 // textarea がユーザー編集で snapshot 表示から乖離しているか。true の間は再生成で上書きしない
 const localDirty = ref(false);
+// localDirty 化した時点の snapshot 参照 (shallowRef のオブジェクト同一性判定用)。以後 session.state.value
+// が別参照に差し替わったら (= エディタ側で undo/redo・他ペイン編集等が起きた) stale notice を出す
+// (Phase 5 品質レビュー MINOR)。Apply 自体は許可のまま、上書きのリスクだけを警告する
+const dirtySnapshot = ref<PoiEditState | null>(null);
+const editorUpdatedSinceDirty = computed(
+  () => localDirty.value && props.session.state.value !== dirtySnapshot.value,
+);
 const parseError = ref<string | null>(null);
 const applyError = ref<string | null>(null);
 const applyIssues = ref<PoiValidationIssue[]>([]);
 const applyWarnings = ref<PoiValidationIssue[]>([]);
 
 // 規模ガード (POI-141): feature 数 or 表示 JSON サイズが POI-121 閾値超で textarea を read-only に。
-// 閾値は poiGeoJson の export 定数 (再定義禁止)。判定の byte size は validateFeatureCollection
-// と同じ JSON 文字列長。guard 中は編集不可のため localDirty にはならない (text = 表示 JSON)
+// 閾値は poiGeoJson の export 定数 (再定義禁止)。判定の byte size は pretty-print された export 形
+// (text.value、インデント込み) の文字列長。validateFeatureCollection 側の compact 内部形基準
+// (JSON.stringify(fc)) より大きく出るため、実データの規模超過より先に安全側で発火する。
+// guard 中は編集不可のため localDirty にはならない (text = 表示 JSON)
 const sizeGuard = computed(() => {
   const state = props.session.state.value;
   if (!state) return false;
@@ -149,6 +159,7 @@ function regenerate(): void {
   });
   text.value = JSON.stringify(exportFc, null, 2);
   localDirty.value = false;
+  dirtySnapshot.value = null;
 }
 
 // snapshot (shallowRef 同一性) / 表示状態の watch。非表示中・ローカル編集中は再生成しない
@@ -163,6 +174,10 @@ watch(
 );
 
 function onInput(): void {
+  // dirty 化した瞬間の snapshot 参照のみを捕捉 (以後の入力では上書きしない)
+  if (!localDirty.value) {
+    dirtySnapshot.value = props.session.state.value;
+  }
   localDirty.value = true;
   clearMessages();
 }
@@ -203,6 +218,13 @@ function apply(): void {
   //    その他 (type/features/id/name 除く) → layerMeta 全置換
   const rec = parsed as Record<string, unknown>;
   let slug = state.slug;
+  // id メンバー自体が無ければ現 slug を維持 (非対称: §2.3 の双方向読みで id 欠落=現 slug 維持 /
+  // name 欠落=title クリア。name は空 title の正当な表現がある一方、slug 空は不正なため)。
+  // id はあるが string でない場合はエラー化して適用不可にする (Phase 5 品質レビュー MINOR)
+  if ("id" in rec && typeof rec.id !== "string") {
+    applyError.value = t("poiedit.raw_id_not_string");
+    return;
+  }
   if (typeof rec.id === "string") {
     if (!SLUG_PATTERN.test(rec.id)) {
       applyError.value = t("poisource.errors.slug_charset");

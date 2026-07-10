@@ -636,6 +636,7 @@
       "name_required": "name(이름)은 필수입니다",
       "display_id_duplicate": "표시 ID가 소스 내에서 중복되었습니다",
       "display_id_charset": "표시 ID에 사용할 수 없는 문자가 포함되어 있습니다",
+      "display_id_assigned": "표시 ID가 없는 POI에 자동으로 ID를 부여했습니다",
       "no_content": "콘텐츠가 없습니다",
       "scale_feature_count": "피처 수가 너무 많습니다 (1000개 초과)",
       "scale_byte_size": "데이터 크기가 너무 큽니다 (5MB 초과)",
@@ -683,7 +684,9 @@
     "raw_apply": "적용",
     "raw_discard": "취소하고 다시 생성",
     "raw_dirty_notice": "적용을 누를 때까지 편집 내용이 반영되지 않습니다.",
+    "raw_stale_notice": "이 패널 편집을 시작한 이후 에디터 쪽이 업데이트되었습니다. 적용하면 해당 변경 사항을 덮어씁니다.",
     "raw_parse_error": "적용할 수 없습니다: JSON 구문 오류",
+    "raw_id_not_string": "FC의 id(슬러그)는 문자열로 지정해야 합니다",
     "raw_apply_issues": "검증 오류로 인해 적용할 수 없습니다:",
     "raw_apply_warnings": "경고와 함께 적용되었습니다:",
     "raw_size_guard": "이 소스가 크기 때문에(1000개 피처 또는 5MB 초과) 원본 GeoJSON은 읽기 전용입니다. 지도와 양식 편집은 계속 가능합니다."

@@ -636,6 +636,7 @@
       "name_required": "name est obligatoire",
       "display_id_duplicate": "L'ID d'affichage est en double dans la source",
       "display_id_charset": "L'ID d'affichage contient des caractères non pris en charge",
+      "display_id_assigned": "Des ID d'affichage ont été attribués automatiquement aux POI qui n'en avaient pas",
       "no_content": "Aucun contenu",
       "scale_feature_count": "Trop de features (plus de 1000)",
       "scale_byte_size": "Données trop volumineuses (plus de 5 Mo)",
@@ -683,7 +684,9 @@
     "raw_apply": "Appliquer",
     "raw_discard": "Abandonner et régénérer",
     "raw_dirty_notice": "Les modifications ne sont prises en compte qu'après avoir cliqué sur Appliquer.",
+    "raw_stale_notice": "L'éditeur a été mis à jour depuis que vous avez commencé à modifier ce panneau. Appliquer écrasera ces modifications.",
     "raw_parse_error": "Impossible d'appliquer : erreur de syntaxe JSON",
+    "raw_id_not_string": "L'id (slug) de la FeatureCollection doit être une chaîne de caractères",
     "raw_apply_issues": "Impossible d'appliquer en raison d'erreurs de validation :",
     "raw_apply_warnings": "Appliqué avec des avertissements :",
     "raw_size_guard": "Le GeoJSON brut est en lecture seule car cette source est volumineuse (plus de 1000 entités ou 5 Mo). La modification via la carte et le formulaire reste possible."

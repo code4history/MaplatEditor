@@ -886,6 +886,25 @@ try {
     'PoiRawPane に生 ipcRenderer 使用が残存している'
   );
 
+  // Phase 5 品質レビュー MINOR: localDirty 化時点の snapshot と比較した stale notice
+  assert.match(
+    rawPane,
+    /raw_stale_notice/,
+    'PoiRawPane に stale notice (raw_stale_notice) がない'
+  );
+  assert.match(
+    rawPane,
+    /dirtySnapshot/,
+    'PoiRawPane が dirty 化時点の snapshot を保持していない (stale 判定ができない)'
+  );
+
+  // Phase 5 品質レビュー MINOR: FC.id (slug) が string でない場合はエラー化して適用不可
+  assert.match(
+    rawPane,
+    /raw_id_not_string/,
+    'PoiRawPane に id 非 string エラー (raw_id_not_string) がない'
+  );
+
   console.log('  [9/9] PoiRawPane.vue raw GeoJSON pane wiring: PASS');
 
   console.log('M4-T5 PoiEdit editor skeleton smoke passed');

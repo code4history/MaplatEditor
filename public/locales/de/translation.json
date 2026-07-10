@@ -636,6 +636,7 @@
       "name_required": "name ist erforderlich",
       "display_id_duplicate": "Anzeige-ID ist innerhalb der Quelle doppelt vorhanden",
       "display_id_charset": "Anzeige-ID enthält nicht unterstützte Zeichen",
+      "display_id_assigned": "Anzeige-IDs wurden automatisch für POIs ohne ID vergeben",
       "no_content": "Kein Inhalt",
       "scale_feature_count": "Zu viele Features (über 1000)",
       "scale_byte_size": "Daten zu groß (über 5 MB)",
@@ -683,7 +684,9 @@
     "raw_apply": "Anwenden",
     "raw_discard": "Verwerfen und neu erzeugen",
     "raw_dirty_notice": "Änderungen werden erst nach „Anwenden“ übernommen.",
+    "raw_stale_notice": "Der Editor wurde aktualisiert, seit Sie mit der Bearbeitung dieses Bereichs begonnen haben. Das Anwenden überschreibt diese Änderungen.",
     "raw_parse_error": "Anwenden nicht möglich: JSON-Syntaxfehler",
+    "raw_id_not_string": "Die id (Slug) der FeatureCollection muss eine Zeichenkette sein",
     "raw_apply_issues": "Anwenden wegen Validierungsfehlern nicht möglich:",
     "raw_apply_warnings": "Mit Warnungen angewendet:",
     "raw_size_guard": "GeoJSON-Rohdaten sind schreibgeschützt, da diese Quelle groß ist (über 1000 Features oder 5 MB). Karten- und Formularbearbeitung bleiben möglich."

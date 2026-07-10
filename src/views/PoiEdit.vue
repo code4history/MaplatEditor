@@ -269,11 +269,16 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     }
     saveIssues.value = [];
     saveError.value = null;
-    // slug 欄を保存結果 (confirmedSlug) に同期
-    slugInput.value = result.slug;
-    slugChecked.value = false;
-    slugAvailable.value = false;
-    slugCheckToken++;
+    // slug 欄を保存結果 (confirmedSlug) に同期。ただし markSaved と同じ snapshot 同一性判定を
+    // 通した場合のみ: 保存中に editState が差し替わっていたら (raw pane Apply 等の新編集)、
+    // ここで上書きすると乖離した slug を表示してしまうため editState.slug watch (onSlugInput
+    // 経由の追随) に委ねる (Phase 5 品質レビュー MINOR)
+    if (editState.value === pendingSave!.capturedState) {
+      slugInput.value = result.slug;
+      slugChecked.value = false;
+      slugAvailable.value = false;
+      slugCheckToken++;
+    }
     // path param 正準 (/poisources/:sourceId): uid 変化時のみ追随 (履歴は汚さない)
     if (route.params.sourceId !== result.uid) {
       router.replace({ path: `/poisources/${result.uid}` });

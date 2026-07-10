@@ -636,6 +636,7 @@
       "name_required": "name（名稱）為必填",
       "display_id_duplicate": "顯示ID在來源內重複",
       "display_id_charset": "顯示ID包含不支援的字元",
+      "display_id_assigned": "已為缺少顯示ID的POI自動分配ID",
       "no_content": "沒有內容",
       "scale_feature_count": "要素數量過多（超過1000）",
       "scale_byte_size": "資料太大（超過5MB）",
@@ -683,7 +684,9 @@
     "raw_apply": "套用",
     "raw_discard": "放棄並重新產生",
     "raw_dirty_notice": "在按下套用之前，編輯內容不會生效。",
+    "raw_stale_notice": "自您開始編輯此面板以來，編輯器端已更新。套用將覆蓋這些變更。",
     "raw_parse_error": "無法套用：JSON 語法錯誤",
+    "raw_id_not_string": "FeatureCollection 的 id（slug）必須為字串",
     "raw_apply_issues": "由於驗證錯誤，無法套用：",
     "raw_apply_warnings": "已套用，但有警告：",
     "raw_size_guard": "由於此來源規模較大（超過 1000 個圖徵或 5MB），原始 GeoJSON 為唯讀。仍可透過地圖與表單進行編輯。"

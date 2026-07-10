@@ -636,6 +636,7 @@
       "name_required": "name wajib diisi",
       "display_id_duplicate": "ID tampilan duplikat di dalam sumber",
       "display_id_charset": "ID tampilan berisi karakter yang tidak didukung",
+      "display_id_assigned": "ID tampilan otomatis diberikan untuk POI yang belum memilikinya",
       "no_content": "Tidak ada konten",
       "scale_feature_count": "Terlalu banyak fitur (lebih dari 1000)",
       "scale_byte_size": "Ukuran data terlalu besar (lebih dari 5MB)",
@@ -683,7 +684,9 @@
     "raw_apply": "Terapkan",
     "raw_discard": "Buang & buat ulang",
     "raw_dirty_notice": "Perubahan tidak diterapkan sampai Anda menekan Terapkan.",
+    "raw_stale_notice": "Editor telah diperbarui sejak Anda mulai mengedit panel ini. Menerapkan akan menimpa perubahan tersebut.",
     "raw_parse_error": "Tidak dapat diterapkan: kesalahan sintaks JSON",
+    "raw_id_not_string": "id (slug) FeatureCollection harus berupa string",
     "raw_apply_issues": "Tidak dapat diterapkan karena kesalahan validasi:",
     "raw_apply_warnings": "Diterapkan dengan peringatan:",
     "raw_size_guard": "GeoJSON mentah bersifat hanya-baca karena sumber ini besar (lebih dari 1000 fitur atau 5 MB). Pengeditan peta dan formulir tetap tersedia."

@@ -636,6 +636,7 @@
       "name_required": "name es obligatorio",
       "display_id_duplicate": "El ID de visualización está duplicado dentro de la fuente",
       "display_id_charset": "El ID de visualización contiene caracteres no admitidos",
+      "display_id_assigned": "Se asignaron automáticamente IDs de visualización a los POI que carecían de uno",
       "no_content": "Sin contenido",
       "scale_feature_count": "Demasiados features (más de 1000)",
       "scale_byte_size": "Tamaño de datos demasiado grande (más de 5 MB)",
@@ -683,7 +684,9 @@
     "raw_apply": "Aplicar",
     "raw_discard": "Descartar y regenerar",
     "raw_dirty_notice": "Los cambios no se reflejan hasta pulsar Aplicar.",
+    "raw_stale_notice": "El editor se ha actualizado desde que comenzó a editar este panel. Aplicar sobrescribirá esos cambios.",
     "raw_parse_error": "No se puede aplicar: error de sintaxis JSON",
+    "raw_id_not_string": "El id (slug) de la FeatureCollection debe ser una cadena de texto",
     "raw_apply_issues": "No se pudo aplicar debido a errores de validación:",
     "raw_apply_warnings": "Aplicado con advertencias:",
     "raw_size_guard": "El GeoJSON sin procesar es de solo lectura porque esta fuente es grande (más de 1000 entidades o 5 MB). La edición en el mapa y el formulario sigue disponible."

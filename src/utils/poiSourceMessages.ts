@@ -12,6 +12,7 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
   "name-required": "poisource.errors.name_required",
   "display-id-duplicate": "poisource.errors.display_id_duplicate",
   "display-id-charset": "poisource.errors.display_id_charset",
+  "display-id-assigned": "poisource.errors.display_id_assigned",
   "no-content": "poisource.errors.no_content",
   "scale-feature-count": "poisource.errors.scale_feature_count",
   "scale-byte-size": "poisource.errors.scale_byte_size",
@@ -36,8 +37,11 @@ export function issueMessage(
   t: (key: string) => string,
 ): string {
   const key = ISSUE_CODE_KEYS[issue.code];
+  // 既知 code は文言優先だが、message (例: display-id-assigned の採番数) があれば併記する
   const base = key
-    ? t(key)
+    ? issue.message
+      ? `${t(key)} (${issue.message})`
+      : t(key)
     : issue.message || issue.code || t("poisource.errors.invalid");
   return issue.featureId ? `${issue.featureId}: ${base}` : base;
 }

@@ -639,6 +639,7 @@
       "name_required": "name（名前）は必須です",
       "display_id_duplicate": "表示IDがソース内で重複しています",
       "display_id_charset": "表示IDに使用できない文字が含まれています",
+      "display_id_assigned": "表示 ID が未設定の POI に自動採番しました",
       "no_content": "コンテンツがありません",
       "scale_feature_count": "フィーチャー数が多すぎます（1000超）",
       "scale_byte_size": "データサイズが大きすぎます（5MB超）",
@@ -686,7 +687,9 @@
     "raw_apply": "適用",
     "raw_discard": "破棄して再生成",
     "raw_dirty_notice": "編集中の内容は「適用」するまで反映されません。",
+    "raw_stale_notice": "このペインを編集し始めた後にエディタ側が更新されています。適用するとエディタ側の変更を上書きします",
     "raw_parse_error": "JSONの構文エラーのため適用できません",
+    "raw_id_not_string": "FC の id（slug）は文字列で指定してください",
     "raw_apply_issues": "検証エラーのため適用できませんでした:",
     "raw_apply_warnings": "適用しましたが警告があります:",
     "raw_size_guard": "POIソースの規模が大きいため（1000フィーチャーまたは5MB超）、生GeoJSONは読み取り専用です。地図・フォームでの編集は引き続き可能です。"

@@ -636,6 +636,7 @@
       "name_required": "name là bắt buộc",
       "display_id_duplicate": "ID hiển thị bị trùng lặp trong nguồn",
       "display_id_charset": "ID hiển thị chứa ký tự không được hỗ trợ",
+      "display_id_assigned": "Đã tự động gán ID hiển thị cho các POI chưa có ID",
       "no_content": "Không có nội dung",
       "scale_feature_count": "Quá nhiều đối tượng (hơn 1000)",
       "scale_byte_size": "Kích thước dữ liệu quá lớn (hơn 5MB)",
@@ -683,7 +684,9 @@
     "raw_apply": "Áp dụng",
     "raw_discard": "Hủy và tạo lại",
     "raw_dirty_notice": "Chỉnh sửa chưa được phản ánh cho đến khi nhấn Áp dụng.",
+    "raw_stale_notice": "Trình chỉnh sửa đã được cập nhật kể từ khi bạn bắt đầu chỉnh sửa bảng này. Áp dụng sẽ ghi đè các thay đổi đó.",
     "raw_parse_error": "Không thể áp dụng: lỗi cú pháp JSON",
+    "raw_id_not_string": "id (slug) của FeatureCollection phải là chuỗi ký tự",
     "raw_apply_issues": "Không thể áp dụng do lỗi xác thực:",
     "raw_apply_warnings": "Đã áp dụng nhưng có cảnh báo:",
     "raw_size_guard": "GeoJSON thô ở chế độ chỉ đọc vì nguồn này lớn (hơn 1000 đối tượng hoặc 5MB). Vẫn có thể chỉnh sửa trên bản đồ và biểu mẫu."
