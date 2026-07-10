@@ -70,18 +70,26 @@ try {
     'utf8'
   );
 
-  // window.imageAssets API の全配線 (list/search/add/rename/delete/getFilePath/
-  // findReferences/pickImageFile)
-  for (const api of [
-    'list',
-    'search',
-    'add',
-    'rename',
-    'delete',
-    'getFilePath',
-    'findReferences',
-    'pickImageFile',
-  ]) {
+  // 一覧 (list/search) + サムネイル (getFilePath) は Phase 6 Task 4 で AssetPicker と
+  // 共用の composable (useAssetThumbnails) へ抽出した (挙動不変)。AssetList 固有の
+  // API 配線 (add/rename/delete/findReferences/pickImageFile) は本体に残る
+  const assetThumbs = await readFile(
+    path.join(projectRoot, 'src/composables/useAssetThumbnails.ts'),
+    'utf8'
+  );
+  assert.match(
+    assetList,
+    /useAssetThumbnails/,
+    'AssetList が useAssetThumbnails (共用 composable) を使っていない'
+  );
+  for (const api of ['list', 'search', 'getFilePath']) {
+    assert.match(
+      assetThumbs,
+      new RegExp(`imageAssets\\.${api}\\(`),
+      `useAssetThumbnails が window.imageAssets.${api} を呼んでいない`
+    );
+  }
+  for (const api of ['add', 'rename', 'delete', 'findReferences', 'pickImageFile']) {
     assert.match(
       assetList,
       new RegExp(`imageAssets\\.${api}\\(`),
@@ -128,16 +136,17 @@ try {
     'AssetList に pickImageFile 失敗通知 (pick_failed) がない'
   );
 
-  // 一覧読込の後着優先トークン (Phase 3 MINOR-2: 検索連打での順序逆転防止)
+  // 一覧読込の後着優先トークン (Phase 3 MINOR-2: 検索連打での順序逆転防止)。
+  // Phase 6 Task 4 で composable へ移設
   assert.match(
-    assetList,
+    assetThumbs,
     /loadToken/,
-    'AssetList に一覧読込トークン (loadToken) がない'
+    'useAssetThumbnails に一覧読込トークン (loadToken) がない'
   );
   assert.match(
-    assetList,
+    assetThumbs,
     /token\s*!==\s*loadToken/,
-    'AssetList に token 不一致での応答破棄がない'
+    'useAssetThumbnails に token 不一致での応答破棄がない'
   );
 
   // slug 自動提案の手入力停止フラグ (Phase 3 同型)

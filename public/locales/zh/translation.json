@@ -690,7 +690,21 @@
     "raw_id_not_string": "FeatureCollection 的 id（slug）必须为字符串",
     "raw_apply_issues": "由于验证错误，无法应用：",
     "raw_apply_warnings": "已应用，但存在警告：",
-    "raw_size_guard": "由于此来源规模较大（超过 1000 个要素或 5MB），原始 GeoJSON 为只读。仍可通过地图和表单进行编辑。"
+    "raw_size_guard": "由于此来源规模较大（超过 1000 个要素或 5MB），原始 GeoJSON 为只读。仍可通过地图和表单进行编辑。",
+    "icon_pick": "选择",
+    "icon_clear": "清除",
+    "icon_unresolved_set": "未知的图标集",
+    "icon_asset_missing": "找不到引用的图片素材",
+    "picker": {
+      "title_icon": "选择图标",
+      "title_image": "选择图片",
+      "tab_iconset": "图标集",
+      "tab_assets": "图片素材",
+      "tab_url": "URL",
+      "url_placeholder": "输入图片 URL 或相对路径",
+      "url_apply": "使用此 URL",
+      "no_assets": "未找到图片素材"
+    }
   },
   "assetlist": {
     "add_image": "添加图片",

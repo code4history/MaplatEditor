@@ -690,7 +690,21 @@
     "raw_id_not_string": "id (slug) của FeatureCollection phải là chuỗi ký tự",
     "raw_apply_issues": "Không thể áp dụng do lỗi xác thực:",
     "raw_apply_warnings": "Đã áp dụng nhưng có cảnh báo:",
-    "raw_size_guard": "GeoJSON thô ở chế độ chỉ đọc vì nguồn này lớn (hơn 1000 đối tượng hoặc 5MB). Vẫn có thể chỉnh sửa trên bản đồ và biểu mẫu."
+    "raw_size_guard": "GeoJSON thô ở chế độ chỉ đọc vì nguồn này lớn (hơn 1000 đối tượng hoặc 5MB). Vẫn có thể chỉnh sửa trên bản đồ và biểu mẫu.",
+    "icon_pick": "Chọn",
+    "icon_clear": "Xóa",
+    "icon_unresolved_set": "Bộ biểu tượng không xác định",
+    "icon_asset_missing": "Không tìm thấy tài nguyên ảnh được tham chiếu",
+    "picker": {
+      "title_icon": "Chọn biểu tượng",
+      "title_image": "Chọn hình ảnh",
+      "tab_iconset": "Bộ biểu tượng",
+      "tab_assets": "Tài nguyên ảnh",
+      "tab_url": "URL",
+      "url_placeholder": "Nhập URL hình ảnh hoặc đường dẫn tương đối",
+      "url_apply": "Dùng URL này",
+      "no_assets": "Không tìm thấy tài nguyên ảnh"
+    }
   },
   "assetlist": {
     "add_image": "Thêm hình ảnh",

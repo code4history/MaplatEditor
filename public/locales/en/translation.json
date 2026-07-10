@@ -693,7 +693,21 @@
     "raw_id_not_string": "The FeatureCollection id (slug) must be a string",
     "raw_apply_issues": "Could not apply due to validation errors:",
     "raw_apply_warnings": "Applied with warnings:",
-    "raw_size_guard": "Raw GeoJSON is read-only because this source is large (over 1000 features or 5 MB). Map and form editing remain available."
+    "raw_size_guard": "Raw GeoJSON is read-only because this source is large (over 1000 features or 5 MB). Map and form editing remain available.",
+    "icon_pick": "Select",
+    "icon_clear": "Clear",
+    "icon_unresolved_set": "Unknown icon set",
+    "icon_asset_missing": "The referenced image asset was not found",
+    "picker": {
+      "title_icon": "Select an icon",
+      "title_image": "Select an image",
+      "tab_iconset": "Icon sets",
+      "tab_assets": "Image assets",
+      "tab_url": "URL",
+      "url_placeholder": "Enter an image URL or relative path",
+      "url_apply": "Use this URL",
+      "no_assets": "No image assets found"
+    }
   },
   "assetlist": {
     "add_image": "Add Image",

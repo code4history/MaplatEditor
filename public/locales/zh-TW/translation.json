@@ -690,7 +690,21 @@
     "raw_id_not_string": "FeatureCollection 的 id（slug）必須為字串",
     "raw_apply_issues": "由於驗證錯誤，無法套用：",
     "raw_apply_warnings": "已套用，但有警告：",
-    "raw_size_guard": "由於此來源規模較大（超過 1000 個圖徵或 5MB），原始 GeoJSON 為唯讀。仍可透過地圖與表單進行編輯。"
+    "raw_size_guard": "由於此來源規模較大（超過 1000 個圖徵或 5MB），原始 GeoJSON 為唯讀。仍可透過地圖與表單進行編輯。",
+    "icon_pick": "選擇",
+    "icon_clear": "清除",
+    "icon_unresolved_set": "未知的圖示集",
+    "icon_asset_missing": "找不到引用的圖片素材",
+    "picker": {
+      "title_icon": "選擇圖示",
+      "title_image": "選擇圖片",
+      "tab_iconset": "圖示集",
+      "tab_assets": "圖片素材",
+      "tab_url": "URL",
+      "url_placeholder": "輸入圖片 URL 或相對路徑",
+      "url_apply": "使用此 URL",
+      "no_assets": "找不到圖片素材"
+    }
   },
   "assetlist": {
     "add_image": "新增圖片",

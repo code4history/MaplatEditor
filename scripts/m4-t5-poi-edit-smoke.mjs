@@ -13,6 +13,10 @@
 // Phase 5 Task 2: raw GeoJSON 双方向ペイン (PoiRawPane) の存在と PoiEdit 配線、
 // toExportForm/fromExportForm 配線、Apply = session.commit 1 回 (=1 Undo)、
 // level==='error' ガード、規模ガード (poiGeoJson の export 定数)、readOnly を検証する。
+// Phase 6 Task 4: AssetPicker (icon/image 共用モーダル) の存在と PoiAttributeForm 配線
+// (icon/selectedIcon の解釈表示 + picker + クリア + 手入力 fallback、image 行 picker)、
+// parseIconRef/isRegisteredIconSet 使用、未登録 setId / 未存在 asset 警告、
+// 既存 onIconChange/onImageChange 確定経路の維持 (Undo 粒度不変)、readOnly を検証する。
 import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -56,7 +60,7 @@ try {
     'router に旧 PoiSourceDetail が残存している'
   );
 
-  console.log('  [1/9] router PoiEdit route: PASS');
+  console.log('  [1/10] router PoiEdit route: PASS');
 
   // --- Part 2: PoiEdit.vue の配線 ---
   const poiEdit = await readFile(
@@ -154,7 +158,7 @@ try {
     'PoiEdit に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [2/9] PoiEdit.vue wiring: PASS');
+  console.log('  [2/10] PoiEdit.vue wiring: PASS');
 
   // --- Part 3: LangResourceInput.vue の形 ---
   const langResourceInput = await readFile(
@@ -211,7 +215,7 @@ try {
     'LangResourceInput に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [3/9] LangResourceInput.vue shape: PASS');
+  console.log('  [3/10] LangResourceInput.vue shape: PASS');
 
   // --- Part 4: 旧画面 3 ファイルが削除されていること ---
   for (const relPath of [
@@ -226,7 +230,7 @@ try {
     );
   }
 
-  console.log('  [4/9] legacy files removed: PASS');
+  console.log('  [4/10] legacy files removed: PASS');
 
   // --- Part 5 (Task 6): PoiEdit 側の地図ペイン統合 ---
   // 地図ペインは PoiEditMap コンポーネントとしてマウントされること
@@ -267,7 +271,7 @@ try {
     'PoiEdit の Delete キーが session.removeFeature を呼んでいない'
   );
 
-  console.log('  [5/9] PoiEdit map pane integration: PASS');
+  console.log('  [5/10] PoiEdit map pane integration: PASS');
 
   // --- Part 6 (Task 6): PoiEditMap.vue の配線 ---
   const poiEditMap = await readFile(
@@ -401,7 +405,7 @@ try {
     'PoiEditMap に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [6/9] PoiEditMap.vue map pane wiring: PASS');
+  console.log('  [6/10] PoiEditMap.vue map pane wiring: PASS');
 
   // --- Part 7 (Task 7): 属性フォーム (PoiAttributeForm) ---
   const attrForm = await readFile(
@@ -533,7 +537,7 @@ try {
     'PoiAttributeForm に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [7/9] PoiAttributeForm.vue attribute form wiring: PASS');
+  console.log('  [7/10] PoiAttributeForm.vue attribute form wiring: PASS');
 
   // --- Part 8 (Task 8): feature 一覧 (PoiFeatureList) ---
   const featureList = await readFile(
@@ -714,7 +718,7 @@ try {
     'PoiFeatureList に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [8/9] PoiFeatureList.vue feature list wiring: PASS');
+  console.log('  [8/10] PoiFeatureList.vue feature list wiring: PASS');
 
   // --- Part 9 (Phase 5 Task 2): raw GeoJSON 双方向ペイン (PoiRawPane) ---
   const rawPane = await readFile(
@@ -905,7 +909,212 @@ try {
     'PoiRawPane に id 非 string エラー (raw_id_not_string) がない'
   );
 
-  console.log('  [9/9] PoiRawPane.vue raw GeoJSON pane wiring: PASS');
+  console.log('  [9/10] PoiRawPane.vue raw GeoJSON pane wiring: PASS');
+
+  // --- Part 10 (Phase 6 Task 4): AssetPicker + PoiAttributeForm の picker 配線 ---
+  const assetPicker = await readFile(
+    path.join(projectRoot, 'src/components/AssetPicker.vue'),
+    'utf8'
+  );
+
+  // AssetPicker: mode ('icon' | 'image') + visible props、select/close emits
+  assert.match(
+    assetPicker,
+    /mode:\s*['"]icon['"]\s*\|\s*['"]image['"]/,
+    "AssetPicker に mode: 'icon' | 'image' prop がない"
+  );
+  assert.match(
+    assetPicker,
+    /visible:\s*boolean/,
+    'AssetPicker に visible prop がない'
+  );
+  assert.match(
+    assetPicker,
+    /\(e:\s*['"]select['"],\s*ref:\s*string\)/,
+    'AssetPicker に select(ref: string) emit がない'
+  );
+  assert.match(
+    assetPicker,
+    /\(e:\s*['"]close['"]\)/,
+    'AssetPicker に close emit がない'
+  );
+
+  // タブ: Icon set は mode:'icon' のみ表示。registry (listIconSets) + formatIconRef で
+  // `{setId}:{iconId}` を組み立てる (hardcode 分岐禁止、仕様 §7)
+  assert.match(
+    assetPicker,
+    /v-if="mode === 'icon'"/,
+    "AssetPicker の Icon set タブが mode:'icon' 限定になっていない"
+  );
+  assert.match(
+    assetPicker,
+    /listIconSets/,
+    'AssetPicker が listIconSets (registry) を使っていない'
+  );
+  assert.match(
+    assetPicker,
+    /formatIconRef/,
+    'AssetPicker が formatIconRef で参照文字列を組み立てていない'
+  );
+
+  // Assets タブ: AssetList と共用の composable (search + token ガード + getFilePath サムネ)
+  assert.match(
+    assetPicker,
+    /useAssetThumbnails/,
+    'AssetPicker が useAssetThumbnails (共用 composable) を使っていない'
+  );
+  const assetThumbs = await readFile(
+    path.join(projectRoot, 'src/composables/useAssetThumbnails.ts'),
+    'utf8'
+  );
+  assert.match(
+    assetThumbs,
+    /loadToken/,
+    'useAssetThumbnails に後着優先トークンガードがない'
+  );
+  assert.match(
+    assetThumbs,
+    /getFilePath/,
+    'useAssetThumbnails が getFilePath でサムネイルを解決していない'
+  );
+  const assetListView = await readFile(
+    path.join(projectRoot, 'src/views/AssetList.vue'),
+    'utf8'
+  );
+  assert.match(
+    assetListView,
+    /useAssetThumbnails/,
+    'AssetList が共用 composable (useAssetThumbnails) に置き換わっていない'
+  );
+
+  // URL タブ: 空入力は決定不可
+  assert.match(
+    assetPicker,
+    /urlInput\.trim\(\) === ''|urlInput\.value\.trim\(\) === ''/,
+    'AssetPicker の URL タブに空入力ガードがない'
+  );
+
+  // Escape で close、二重 emit 防止
+  assert.match(
+    assetPicker,
+    /['"]Escape['"]/,
+    'AssetPicker に Escape ハンドリングがない'
+  );
+  assert.match(
+    assetPicker,
+    /if \(picked\) return/,
+    'AssetPicker に二重 emit 防止 (picked ガード) がない'
+  );
+
+  // PoiAttributeForm 配線: AssetPicker import + icon/selectedIcon 2 欄 + image 行
+  assert.match(
+    attrForm,
+    /import AssetPicker from ['"]\.\/AssetPicker\.vue['"]/,
+    'PoiAttributeForm が AssetPicker を import していない'
+  );
+  assert.match(
+    attrForm,
+    /openIconPicker\('icon'\)/,
+    'PoiAttributeForm の icon 欄に picker ボタンがない'
+  );
+  assert.match(
+    attrForm,
+    /openIconPicker\('selectedIcon'\)/,
+    'PoiAttributeForm の selectedIcon 欄に picker ボタンがない'
+  );
+  assert.match(
+    attrForm,
+    /openImagePicker\(index\)/,
+    'PoiAttributeForm の image 行に picker ボタンがない'
+  );
+
+  // 解釈表示: parseIconRef / isRegisteredIconSet + 未登録 setId / 未存在 asset の警告
+  assert.match(
+    attrForm,
+    /parseIconRef/,
+    'PoiAttributeForm が parseIconRef で現在値を解釈していない'
+  );
+  assert.match(
+    attrForm,
+    /isRegisteredIconSet/,
+    'PoiAttributeForm が isRegisteredIconSet で未登録 setId を判定していない'
+  );
+  assert.match(
+    attrForm,
+    /poiedit\.icon_unresolved_set/,
+    'PoiAttributeForm に未登録 icon set 警告 (poiedit.icon_unresolved_set) がない'
+  );
+  assert.match(
+    attrForm,
+    /poiedit\.icon_asset_missing/,
+    'PoiAttributeForm に未存在 asset 警告 (poiedit.icon_asset_missing) がない'
+  );
+  assert.match(
+    attrForm,
+    /imageAssets\.get\(/,
+    'PoiAttributeForm が imageAssets.get で asset 参照を解決表示していない'
+  );
+
+  // 確定経路の維持 (Undo 粒度不変): picker 選択も既存 onIconChange / onImageChange に流す。
+  // 手入力 text 欄 (直書き) も残す
+  assert.match(
+    attrForm,
+    /onIconChange\(picker\.iconTarget, value\)/,
+    'PoiAttributeForm の picker 選択が onIconChange 経路に流れていない'
+  );
+  assert.match(
+    attrForm,
+    /onImageChange\(picker\.imageIndex, value\)/,
+    'PoiAttributeForm の image picker 選択が onImageChange 経路に流れていない'
+  );
+  assert.match(
+    attrForm,
+    /v-model="iconInput"/,
+    'PoiAttributeForm の icon 手入力 text 欄が残っていない'
+  );
+  assert.match(
+    attrForm,
+    /v-model="selectedIconInput"/,
+    'PoiAttributeForm の selectedIcon 手入力 text 欄が残っていない'
+  );
+  assert.match(
+    attrForm,
+    /@change="onIconChange\('icon', iconInput\)"/,
+    'PoiAttributeForm の icon 手入力が既存 onIconChange 経路でない'
+  );
+
+  // クリアボタン (onIconChange('') 経由でフィールド削除)
+  assert.match(
+    attrForm,
+    /poiedit\.icon_clear/,
+    'PoiAttributeForm に icon クリアボタン (poiedit.icon_clear) がない'
+  );
+
+  // readOnly: 選択/クリアボタンは非表示 (v-if="!readOnly")
+  assert.match(
+    attrForm,
+    /v-if="!readOnly"[\s\S]{0,200}?openIconPicker\('icon'\)/,
+    'PoiAttributeForm の icon picker ボタンに readOnly ガードがない'
+  );
+  assert.match(
+    attrForm,
+    /v-if="!readOnly"[\s\S]{0,200}?openImagePicker\(index\)/,
+    'PoiAttributeForm の image picker ボタンに readOnly ガードがない'
+  );
+
+  // 生 ipcRenderer を使わないこと (House rule / m2-t3)
+  assert.doesNotMatch(
+    assetPicker,
+    /ipcRenderer/,
+    'AssetPicker に生 ipcRenderer 使用が残存している'
+  );
+  assert.doesNotMatch(
+    assetThumbs,
+    /ipcRenderer/,
+    'useAssetThumbnails に生 ipcRenderer 使用が残存している'
+  );
+
+  console.log('  [10/10] AssetPicker + PoiAttributeForm picker wiring: PASS');
 
   console.log('M4-T5 PoiEdit editor skeleton smoke passed');
 } catch (err) {

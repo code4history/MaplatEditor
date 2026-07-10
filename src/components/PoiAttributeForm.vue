@@ -92,6 +92,15 @@
               :disabled="readOnly"
               @change="onImageChange(index, ($event.target as HTMLInputElement).value)"
             />
+            <!-- picker (mode:'image'): 選択値は onImageChange の既存確定経路に流す (=1 commit) -->
+            <button
+              v-if="!readOnly"
+              type="button"
+              class="btn btn-sm btn-outline-secondary text-nowrap"
+              @click="openImagePicker(index)"
+            >
+              {{ t("poiedit.icon_pick") }}
+            </button>
             <button
               v-if="!readOnly"
               type="button"
@@ -113,27 +122,101 @@
         </button>
       </div>
 
-      <!-- icon / selectedIcon: 短期はプレーン text 入力 (参照文法 POI-139 のまま)。
-           Phase 6 で Assets タブの icon picker に差し替える -->
+      <!-- icon / selectedIcon (Phase 6 Task 4): 現在値の解釈表示 (parseIconRef →
+           iconset はサムネ + setId:iconId、asset は slug/title 解決表示、URL は短縮表示。
+           未登録 setId / 未存在 asset は警告 badge) + picker 選択 + クリア。
+           参照文法 (POI-139) の直書きも引き続き可 (text 入力は残し、既存 onIconChange 経路) -->
       <div class="mb-2">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.icon") }}</label>
-        <input
-          v-model="iconInput"
-          type="text"
-          class="form-control form-control-sm"
-          :disabled="readOnly"
-          @change="onIconChange('icon', iconInput)"
-        />
+        <div
+          v-if="iconDisplay.kind !== 'empty'"
+          class="d-flex align-items-center gap-2 small mb-1"
+        >
+          <img
+            v-if="iconDisplay.thumb"
+            :src="iconDisplay.thumb"
+            class="icon-thumb"
+            alt=""
+            @error="iconDisplay.thumb = null"
+          />
+          <span class="text-truncate">{{ iconDisplay.text }}</span>
+          <span v-if="iconDisplay.warning" class="badge text-bg-warning">
+            {{ t(iconDisplay.warning === "unresolved-set"
+              ? "poiedit.icon_unresolved_set"
+              : "poiedit.icon_asset_missing") }}
+          </span>
+        </div>
+        <div class="d-flex align-items-center gap-1">
+          <input
+            v-model="iconInput"
+            type="text"
+            class="form-control form-control-sm"
+            :disabled="readOnly"
+            @change="onIconChange('icon', iconInput)"
+          />
+          <button
+            v-if="!readOnly"
+            type="button"
+            class="btn btn-sm btn-outline-secondary text-nowrap"
+            @click="openIconPicker('icon')"
+          >
+            {{ t("poiedit.icon_pick") }}
+          </button>
+          <button
+            v-if="!readOnly"
+            type="button"
+            class="btn btn-sm btn-outline-secondary text-nowrap"
+            @click="clearIcon('icon')"
+          >
+            {{ t("poiedit.icon_clear") }}
+          </button>
+        </div>
       </div>
       <div class="mb-2">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.selected_icon") }}</label>
-        <input
-          v-model="selectedIconInput"
-          type="text"
-          class="form-control form-control-sm"
-          :disabled="readOnly"
-          @change="onIconChange('selectedIcon', selectedIconInput)"
-        />
+        <div
+          v-if="selectedIconDisplay.kind !== 'empty'"
+          class="d-flex align-items-center gap-2 small mb-1"
+        >
+          <img
+            v-if="selectedIconDisplay.thumb"
+            :src="selectedIconDisplay.thumb"
+            class="icon-thumb"
+            alt=""
+            @error="selectedIconDisplay.thumb = null"
+          />
+          <span class="text-truncate">{{ selectedIconDisplay.text }}</span>
+          <span v-if="selectedIconDisplay.warning" class="badge text-bg-warning">
+            {{ t(selectedIconDisplay.warning === "unresolved-set"
+              ? "poiedit.icon_unresolved_set"
+              : "poiedit.icon_asset_missing") }}
+          </span>
+        </div>
+        <div class="d-flex align-items-center gap-1">
+          <input
+            v-model="selectedIconInput"
+            type="text"
+            class="form-control form-control-sm"
+            :disabled="readOnly"
+            @change="onIconChange('selectedIcon', selectedIconInput)"
+          />
+          <button
+            v-if="!readOnly"
+            type="button"
+            class="btn btn-sm btn-outline-secondary text-nowrap"
+            @click="openIconPicker('selectedIcon')"
+          >
+            {{ t("poiedit.icon_pick") }}
+          </button>
+          <button
+            v-if="!readOnly"
+            type="button"
+            class="btn btn-sm btn-outline-secondary text-nowrap"
+            @click="clearIcon('selectedIcon')"
+          >
+            {{ t("poiedit.icon_clear") }}
+          </button>
+        </div>
       </div>
 
       <!-- 座標直接入力 (仕様 §4/§6)。±180/±90 域外・非有限はエラー表示して commit しない。
@@ -181,6 +264,15 @@
         {{ t("poiedit.delete_poi") }}
       </button>
     </div>
+
+    <!-- icon / image 共用の参照 picker (仕様 §7)。選択値は既存の確定経路
+         (onIconChange / onImageChange) に流す = 1 commit (Undo 粒度不変) -->
+    <AssetPicker
+      :mode="picker.mode"
+      :visible="picker.visible"
+      @select="onPickerSelect"
+      @close="picker.visible = false"
+    />
   </div>
 </template>
 
@@ -191,11 +283,16 @@
 // エラー表示のみで commit しない (欄は入力値のまま、選択切替で破棄)。
 // undo/redo 追随: 選択 feature の snapshot オブジェクト同一性を watch し、structural sharing
 // により「当 feature の committed 内容が実際に変わった時だけ」ローカルバッファを再初期化する。
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch, type Ref } from "vue";
 import { useTranslation } from "i18next-vue";
+import i18next from "i18next";
 import LangResourceInput from "./LangResourceInput.vue";
+import AssetPicker from "./AssetPicker.vue";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
 import { DISPLAY_ID_PATTERN, type PoiEditorFeature } from "../utils/poiGeoJson";
+import { parseIconRef, isRegisteredIconSet, listIconSets } from "../utils/iconRefs";
+import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
+import type { ImageAssetRow } from "../electron";
 
 const props = defineProps<{
   session: PoiEditSession;
@@ -414,7 +511,7 @@ const addImageRow = (): void => {
   });
 };
 
-// --- icon / selectedIcon (短期プレーン text。Phase 6 で picker 差し替え) ---
+// --- icon / selectedIcon: 確定経路は Phase 4 から不変 (picker / クリアもここへ流す = 1 commit) ---
 const onIconChange = (key: "icon" | "selectedIcon", raw: string): void => {
   const id = uid.value;
   if (!id || props.readOnly) return;
@@ -422,6 +519,113 @@ const onIconChange = (key: "icon" | "selectedIcon", raw: string): void => {
   const current = feature.value?.properties?.[key];
   if (next === current) return;
   session.patchFeatureProperties(id, { [key]: next });
+};
+
+// --- icon / selectedIcon の解釈表示 (Phase 6 Task 4、仕様 §7) ---
+// 入力バッファを parseIconRef で判別し、iconset は registry の previewUrl サムネ +
+// `setId:iconId` (未登録 setId は警告 badge — URL とはみなさない)、asset は imageAssets.get
+// で slug/title を解決表示 (未存在は警告)、URL は短縮表示 (CSS truncate) する。
+interface IconDisplay {
+  kind: "empty" | "iconset" | "asset" | "url";
+  text: string;
+  thumb: string | null;
+  warning: "unresolved-set" | "asset-missing" | null;
+}
+
+const EMPTY_ICON_DISPLAY: IconDisplay = { kind: "empty", text: "", thumb: null, warning: null };
+
+// asset 解決 (imageAssets.get / getFilePath) は非同期のため、後着優先トークンで
+// 古い応答が新しい入力の表示を上書きしないようにする (useAssetThumbnails と同方式)
+const createIconDisplay = (input: Ref<string>): Ref<IconDisplay> => {
+  const display = ref<IconDisplay>({ ...EMPTY_ICON_DISPLAY });
+  let token = 0;
+  const resolve = async (raw: string): Promise<void> => {
+    const current = ++token;
+    const value = raw.trim();
+    if (value === "") {
+      display.value = { ...EMPTY_ICON_DISPLAY };
+      return;
+    }
+    const parsed = parseIconRef(value);
+    if (parsed.kind === "iconset") {
+      const registered = isRegisteredIconSet(parsed.setId);
+      const set = registered
+        ? listIconSets().find((s) => s.setId === parsed.setId)
+        : undefined;
+      display.value = {
+        kind: "iconset",
+        text: `${parsed.setId}:${parsed.iconId}`,
+        thumb: set ? set.previewUrl(parsed.iconId) : null,
+        warning: registered ? null : "unresolved-set",
+      };
+      return;
+    }
+    if (parsed.kind === "asset") {
+      // 解決中は uid のまま表示 (解決後に slug/title へ差し替え)
+      display.value = { kind: "asset", text: value, thumb: null, warning: null };
+      let row: ImageAssetRow | null = null;
+      let thumb: string | null = null;
+      try {
+        row = await window.imageAssets.get(parsed.uid);
+        if (row) thumb = await window.imageAssets.getFilePath(parsed.uid).catch(() => null);
+      } catch (e) {
+        console.error("Failed to resolve icon asset reference", e);
+      }
+      if (current !== token) return; // 後発の入力に上書きされた
+      display.value = row
+        ? {
+            kind: "asset",
+            text: `${row.slug}: ${resolveLocalizedTitle(row.title, i18next.language) || row.slug}`,
+            thumb,
+            warning: null,
+          }
+        : { kind: "asset", text: value, thumb: null, warning: "asset-missing" };
+      return;
+    }
+    display.value = { kind: "url", text: parsed.url, thumb: null, warning: null };
+  };
+  watch(input, (value) => void resolve(value), { immediate: true });
+  return display;
+};
+
+const iconDisplay = createIconDisplay(iconInput);
+const selectedIconDisplay = createIconDisplay(selectedIconInput);
+
+const clearIcon = (key: "icon" | "selectedIcon"): void => {
+  if (key === "icon") iconInput.value = "";
+  else selectedIconInput.value = "";
+  onIconChange(key, "");
+};
+
+// --- AssetPicker (icon / image 共用モーダル) ---
+const picker = reactive({
+  visible: false,
+  mode: "icon" as "icon" | "image",
+  iconTarget: "icon" as "icon" | "selectedIcon",
+  imageIndex: 0,
+});
+
+const openIconPicker = (key: "icon" | "selectedIcon"): void => {
+  picker.mode = "icon";
+  picker.iconTarget = key;
+  picker.visible = true;
+};
+
+const openImagePicker = (index: number): void => {
+  picker.mode = "image";
+  picker.imageIndex = index;
+  picker.visible = true;
+};
+
+// 選択結果を既存の確定経路に流す (Undo 粒度不変: picker で選択 = 1 commit)
+const onPickerSelect = (value: string): void => {
+  if (picker.mode === "icon") {
+    if (picker.iconTarget === "icon") iconInput.value = value;
+    else selectedIconInput.value = value;
+    onIconChange(picker.iconTarget, value);
+  } else {
+    onImageChange(picker.imageIndex, value);
+  }
 };
 
 // --- 座標直接入力: 域外/非有限はエラーで commit しない。有効なら moveFeature 1 回 ---
@@ -471,5 +675,12 @@ defineExpose({ focusName });
 <style scoped>
 .poi-attribute-form {
   font-size: 0.875rem;
+}
+.icon-thumb {
+  max-width: 24px;
+  max-height: 24px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 </style>

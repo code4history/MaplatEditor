@@ -693,7 +693,21 @@
     "raw_id_not_string": "FC の id（slug）は文字列で指定してください",
     "raw_apply_issues": "検証エラーのため適用できませんでした:",
     "raw_apply_warnings": "適用しましたが警告があります:",
-    "raw_size_guard": "POIソースの規模が大きいため（1000フィーチャーまたは5MB超）、生GeoJSONは読み取り専用です。地図・フォームでの編集は引き続き可能です。"
+    "raw_size_guard": "POIソースの規模が大きいため（1000フィーチャーまたは5MB超）、生GeoJSONは読み取り専用です。地図・フォームでの編集は引き続き可能です。",
+    "icon_pick": "選択",
+    "icon_clear": "クリア",
+    "icon_unresolved_set": "未解決のアイコンセット",
+    "icon_asset_missing": "参照先の画像アセットが見つかりません",
+    "picker": {
+      "title_icon": "アイコンを選択",
+      "title_image": "画像を選択",
+      "tab_iconset": "アイコンセット",
+      "tab_assets": "画像アセット",
+      "tab_url": "URL",
+      "url_placeholder": "画像の URL または相対パスを入力",
+      "url_apply": "この URL を使用",
+      "no_assets": "画像アセットが見つかりません"
+    }
   },
   "assetlist": {
     "add_image": "画像を追加",

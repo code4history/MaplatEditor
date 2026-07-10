@@ -690,7 +690,21 @@
     "raw_id_not_string": "id (slug) FeatureCollection harus berupa string",
     "raw_apply_issues": "Tidak dapat diterapkan karena kesalahan validasi:",
     "raw_apply_warnings": "Diterapkan dengan peringatan:",
-    "raw_size_guard": "GeoJSON mentah bersifat hanya-baca karena sumber ini besar (lebih dari 1000 fitur atau 5 MB). Pengeditan peta dan formulir tetap tersedia."
+    "raw_size_guard": "GeoJSON mentah bersifat hanya-baca karena sumber ini besar (lebih dari 1000 fitur atau 5 MB). Pengeditan peta dan formulir tetap tersedia.",
+    "icon_pick": "Pilih",
+    "icon_clear": "Hapus",
+    "icon_unresolved_set": "Set ikon tidak dikenal",
+    "icon_asset_missing": "Aset gambar yang dirujuk tidak ditemukan",
+    "picker": {
+      "title_icon": "Pilih ikon",
+      "title_image": "Pilih gambar",
+      "tab_iconset": "Set ikon",
+      "tab_assets": "Aset gambar",
+      "tab_url": "URL",
+      "url_placeholder": "Masukkan URL gambar atau jalur relatif",
+      "url_apply": "Gunakan URL ini",
+      "no_assets": "Aset gambar tidak ditemukan"
+    }
   },
   "assetlist": {
     "add_image": "Tambah Gambar",

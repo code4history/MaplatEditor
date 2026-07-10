@@ -155,6 +155,7 @@ import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import noImage from "../assets/img/no_image.png";
 import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
+import { useAssetThumbnails } from "../composables/useAssetThumbnails";
 import type {
   ImageAssetRow,
   ImageAssetSaveResult,
@@ -175,54 +176,13 @@ const formatMeta = (row: ImageAssetRow): string => {
   return `${dims}${row.mime}`;
 };
 
-// --- 一覧 (search + サムネイル)。ページングなし (imageAssets.list/search は全件返す) ---
-const items = ref<ImageAssetRow[]>([]);
-const loading = ref(false);
-const error = ref<string | null>(null);
-const searchQuery = ref("");
-// uid → file:// URL。解決失敗 / onerror 時はエントリを持たず noImage にフォールバック
-const thumbUrls = reactive<Record<string, string>>({});
-// 一覧再読込の後着優先トークン (Phase 3 MINOR-2): 検索連打で古い応答が後から返って
-// きても、最新の呼び出し以外は状態に反映しない (usePoiSourceList と同方式)
-let loadToken = 0;
-
-const loadAssets = async (): Promise<void> => {
-  const token = ++loadToken;
-  loading.value = true;
-  error.value = null;
-  try {
-    const query = searchQuery.value.trim();
-    const rows = query
-      ? await window.imageAssets.search(query)
-      : await window.imageAssets.list();
-    if (token !== loadToken) return; // 後発の呼び出しに上書きされた
-    items.value = rows;
-    // サムネイルの file:// URL を並行解決 (getFilePath)。個別失敗は noImage フォールバック
-    const urls = await Promise.all(
-      rows.map((row) => window.imageAssets.getFilePath(row.uid).catch(() => null))
-    );
-    if (token !== loadToken) return;
-    for (const key of Object.keys(thumbUrls)) delete thumbUrls[key];
-    rows.forEach((row, i) => {
-      const url = urls[i];
-      if (url) thumbUrls[row.uid] = url;
-    });
-  } catch (e) {
-    if (token !== loadToken) return;
-    error.value = e instanceof Error ? e.message : String(e);
-    items.value = [];
-  } finally {
-    if (token === loadToken) loading.value = false;
-  }
-};
+// --- 一覧 (search + サムネイル)。実装は AssetPicker と共用の composable へ抽出
+// (Phase 6 Task 4。token ガード / getFilePath 並行解決 / noImage フォールバックは不変) ---
+const { items, loading, error, searchQuery, thumbUrls, loadAssets, onThumbError } =
+  useAssetThumbnails();
 
 const handleSearch = () => {
   loadAssets();
-};
-
-// 壊れた画像 (ファイル欠損等) は no_image.png にフォールバック
-const onThumbError = (uid: string) => {
-  delete thumbUrls[uid];
 };
 
 // --- Context menu (rename / delete) ---

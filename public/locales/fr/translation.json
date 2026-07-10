@@ -690,7 +690,21 @@
     "raw_id_not_string": "L'id (slug) de la FeatureCollection doit être une chaîne de caractères",
     "raw_apply_issues": "Impossible d'appliquer en raison d'erreurs de validation :",
     "raw_apply_warnings": "Appliqué avec des avertissements :",
-    "raw_size_guard": "Le GeoJSON brut est en lecture seule car cette source est volumineuse (plus de 1000 entités ou 5 Mo). La modification via la carte et le formulaire reste possible."
+    "raw_size_guard": "Le GeoJSON brut est en lecture seule car cette source est volumineuse (plus de 1000 entités ou 5 Mo). La modification via la carte et le formulaire reste possible.",
+    "icon_pick": "Sélectionner",
+    "icon_clear": "Effacer",
+    "icon_unresolved_set": "Jeu d'icônes inconnu",
+    "icon_asset_missing": "La ressource d'image référencée est introuvable",
+    "picker": {
+      "title_icon": "Sélectionner une icône",
+      "title_image": "Sélectionner une image",
+      "tab_iconset": "Jeux d'icônes",
+      "tab_assets": "Ressources d'image",
+      "tab_url": "URL",
+      "url_placeholder": "Saisissez l'URL de l'image ou un chemin relatif",
+      "url_apply": "Utiliser cette URL",
+      "no_assets": "Aucune ressource d'image trouvée"
+    }
   },
   "assetlist": {
     "add_image": "Ajouter une image",
