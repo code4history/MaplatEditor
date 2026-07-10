@@ -37,6 +37,7 @@
     "smoke:m9-t4-image-asset": "node scripts/m9-t4-image-asset-smoke.mjs",
     "smoke:m5-basemap-catalog": "node scripts/m5-basemap-catalog-smoke.mjs",
     "smoke:m6-app-source-model": "node scripts/m6-app-source-model-smoke.mjs",
+    "smoke:m6-t2-icon-refs": "node scripts/m6-t2-icon-refs-smoke.mjs",
     "smoke:m5-app-editor": "node scripts/m5-app-editor-smoke.mjs",
     "smoke:m2-electrobun-poc": "node scripts/m2-electrobun-poc-smoke.mjs",
     "electrobun:dev": "electrobun dev",
