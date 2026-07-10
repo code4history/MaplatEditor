@@ -8,6 +8,8 @@ import gsiThumb from "../assets/img/gsi.png";
 import gsiOrthoThumb from "../assets/img/gsi_ortho.png";
 import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
+import PoiSourceSelector from "../components/PoiSourceSelector.vue";
+import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { fetchAllRegisteredMaps } from "../services/desktopMapList";
@@ -833,6 +835,16 @@ async function renderPreview() {
   try {
     const result = await window.appedit.preparePreview(createPreviewDocument());
     previewUrl.value = result.url;
+    // main 解決層からの警告 (missing/duplicate POI 参照等) を export と同じ形式で表示する
+    const warnings = (result.warnings || []).map((key) => t(key)).join("\n");
+    if (warnings) {
+      await (window as any).dialog.showMessageBox({
+        type: "warning",
+        buttons: ["OK"],
+        message: t("appedit.preview_warnings"),
+        detail: warnings,
+      });
+    }
   } catch (e) {
     console.error("[AppEdit] Preview failed:", e);
     previewError.value = translatePreviewError(e);
@@ -859,6 +871,99 @@ function normalizeJsonText(value: string, fallback: any) {
   } catch {
     return JSON.stringify(fallback, null, 2);
   }
+}
+
+// --- POI ソース selector 配線 (Phase 7 Task 2, 43 §2.4) ---
+// 真実の器は従来通り appData.poiSources (JSON 文字列) 1つ。selector は
+// 「string の poiUid キーを持つ object」参照要素のみを扱い、生要素 (URL/FC) は透過する。
+const selectedPoiSources = ref<SelectedPoiSourceRef[]>([]);
+const poiSourcesJsonInvalid = ref(false);
+
+// 参照要素判定は main 側 poiReferenceResolver.poiUidOf と同一規約
+// (「string の poiUid キーを持つ object」。空白のみの uid は生要素扱い)
+function poiUidOf(entry: unknown): string | null {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+  const uid = (entry as Record<string, unknown>).poiUid;
+  return typeof uid === "string" && uid.trim() !== "" ? uid : null;
+}
+
+function parsePoiSourcesArray(text: string): unknown[] | null {
+  try {
+    const value = JSON.parse(text || "[]");
+    return Array.isArray(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+// poiSources 文字列の変化 (load/reload/import/undo/redo/手編集/selector 書き戻し) に
+// selector 表示を追随させる。書き戻し由来の変化は再 parse しても同値の選択集合に
+// なるため、同値なら ref を差し替えず selector との往復を止める (無限ループ回避)
+watch(() => appData.value.poiSources, syncPoiSelectionFromJson, { immediate: true });
+
+function syncPoiSelectionFromJson() {
+  const parsed = parsePoiSourcesArray(appData.value.poiSources);
+  if (!parsed) {
+    poiSourcesJsonInvalid.value = true;
+    return;
+  }
+  poiSourcesJsonInvalid.value = false;
+  const restored: SelectedPoiSourceRef[] = [];
+  for (const entry of parsed) {
+    const uid = poiUidOf(entry);
+    if (!uid || restored.some((item) => item.sourceId === uid)) continue;
+    const cachedTitle = (entry as Record<string, unknown>).cachedTitle;
+    restored.push({
+      kind: "registered-poi-source",
+      sourceId: uid,
+      catalogKey: `poi-source:${uid}`,
+      // mode は一覧カードの表示都合の補助情報で選択判定 (sourceId) には使われない。
+      // 保存形からは引けないため 'local' 仮置き
+      mode: "local",
+      cachedTitle: typeof cachedTitle === "string" ? cachedTitle : undefined,
+    });
+  }
+  if (samePoiSelection(selectedPoiSources.value, restored)) return;
+  selectedPoiSources.value = restored;
+}
+
+function samePoiSelection(a: SelectedPoiSourceRef[], b: SelectedPoiSourceRef[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((item, index) => item.sourceId === b[index].sourceId && item.cachedTitle === b[index].cachedTitle)
+  );
+}
+
+// selector の選択変更を poiSources 文字列へ書き戻す。既存参照は元の相対順を保ち、
+// 新規選択は末尾へ追加。生要素 (URL/FC) は位置ごと不変で透過する
+function applyPoiSelection(refs: SelectedPoiSourceRef[]) {
+  const parsed = parsePoiSourcesArray(appData.value.poiSources);
+  if (!parsed) return; // parse 不能時は selector を disabled にしているため通常来ない (保険)
+  const selectedByUid = new Map(refs.map((item) => [item.sourceId, item]));
+  const next: unknown[] = [];
+  const written = new Set<string>();
+  for (const entry of parsed) {
+    const uid = poiUidOf(entry);
+    if (!uid) {
+      next.push(entry);
+      continue;
+    }
+    const selected = selectedByUid.get(uid);
+    if (!selected || written.has(uid)) continue; // 解除された参照と重複参照は除去
+    next.push(toPoiReferenceElement(selected));
+    written.add(uid);
+  }
+  for (const item of refs) {
+    if (!written.has(item.sourceId)) next.push(toPoiReferenceElement(item));
+  }
+  appData.value.poiSources = JSON.stringify(next, null, 2);
+  recordHistory();
+}
+
+function toPoiReferenceElement(item: SelectedPoiSourceRef): Record<string, string> {
+  const element: Record<string, string> = { poiUid: item.sourceId };
+  if (item.cachedTitle) element.cachedTitle = item.cachedTitle;
+  return element;
 }
 </script>
 
@@ -1041,6 +1146,13 @@ function normalizeJsonText(value: string, fallback: any) {
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.default_zoom") }}</label>
                 <input v-model.number="appData.appSettings.defaultZoom" type="number" min="0" max="28" class="form-control form-control-sm" @change="recordHistory">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-bold">{{ t("appedit.poi_selector_label") }}</label>
+                <div v-if="poiSourcesJsonInvalid" class="alert alert-warning py-1 px-2 small mb-2">{{ t("appedit.invalid_json") }}</div>
+                <div :class="{ 'poi-selector-disabled': poiSourcesJsonInvalid }" :aria-disabled="poiSourcesJsonInvalid">
+                  <PoiSourceSelector :initial-selected="selectedPoiSources" @update:selected="applyPoiSelection" />
+                </div>
               </div>
               <div class="col-md-6">
                 <label class="form-label small fw-bold">{{ t("appedit.poi_sources_json") }}</label>
@@ -1319,6 +1431,11 @@ function normalizeJsonText(value: string, fallback: any) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 4px 12px;
+}
+/* poiSources JSON が parse 不能な間は selector 操作を止める (書き戻しで手編集を壊さない) */
+.poi-selector-disabled {
+  pointer-events: none;
+  opacity: 0.5;
 }
 .asset-preview {
   max-width: 120px;

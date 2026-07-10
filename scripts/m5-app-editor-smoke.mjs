@@ -238,6 +238,34 @@ try {
   assert.match(appEditView, /httpSettings/, 'AppEdit.vue に HTTP 設定がない');
   assert.match(appEditView, /manifestSettings/, 'AppEdit.vue に manifest 設定がない');
   assert.match(appEditView, /preparePreview/, 'AppEdit.vue が HTTP preview API を呼んでいない');
+  // Phase 7 Task 2: POI source selector の AppEdit マウント (真実の器は appData.poiSources 文字列1つ)
+  assert.match(
+    appEditView,
+    /import PoiSourceSelector from "\.\.\/components\/PoiSourceSelector\.vue"/,
+    'AppEdit.vue が PoiSourceSelector を import していない'
+  );
+  assert.match(appEditView, /<PoiSourceSelector/, 'AppEdit.vue が PoiSourceSelector をマウントしていない');
+  // poiUid 復元: 参照要素判定は「string の poiUid キーを持つ object」(poiReferenceResolver と同一規約)
+  assert.match(appEditView, /function syncPoiSelectionFromJson/, 'AppEdit.vue に poiSources → selector の復元がない');
+  assert.match(
+    appEditView,
+    /typeof uid === "string" && uid\.trim\(\) !== ""/,
+    'AppEdit.vue の参照要素判定が poiReferenceResolver 規約 (string の poiUid キー) と一致しない'
+  );
+  // 書き戻し: poiUid 要素の除去→再構築で、生要素 (URL/FC) は位置ごと透過されること
+  assert.match(appEditView, /function applyPoiSelection/, 'AppEdit.vue に selector → poiSources の書き戻しがない');
+  assert.match(appEditView, /const uid = poiUidOf\(entry\);/, 'AppEdit.vue の書き戻しが poiUid 要素判定を通していない');
+  assert.match(
+    appEditView,
+    /JSON\.stringify\(next, null, 2\)/,
+    'AppEdit.vue の書き戻しが poiSources 文字列へ JSON.stringify していない'
+  );
+  // parse 不能時は selector を disabled + 警告表示
+  assert.match(appEditView, /poiSourcesJsonInvalid/, 'AppEdit.vue に poiSources parse 不能時の selector disabled がない');
+  assert.match(appEditView, /poi-selector-disabled/, 'AppEdit.vue に selector disabled のスタイル適用がない');
+  // preview 起動時の warnings 表示 (export と同じ t(key) join → showMessageBox detail 形式)
+  assert.match(appEditView, /result\.warnings/, 'AppEdit.vue が preparePreview の warnings を表示していない');
+  assert.match(appEditView, /appedit\.preview_warnings/, 'AppEdit.vue が preview warnings ダイアログの message キーを使っていない');
   console.log('M5 app editor smoke passed');
 } finally {
   await rm(workDir, { recursive: true, force: true });

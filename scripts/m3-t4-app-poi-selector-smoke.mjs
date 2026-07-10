@@ -78,11 +78,18 @@ try {
     'utf8'
   );
 
-  // POI は後続タスクに戻すため、AppList/AppEdit では地図/ベースマップ編集に集中すること
+  // AppList は地図/ベースマップ一覧に集中 (POI selector はエディタ側の責務)
   assert.doesNotMatch(
-    `${appList}\n${appEdit}`,
+    appList,
     /PoiSourceSelector/,
-    'AppList/AppEdit に POI selector が残っている'
+    'AppList に POI selector が残っている'
+  );
+
+  // Phase 7 Task 2: AppEdit に POI selector がマウントされていること
+  assert.match(
+    appEdit,
+    /PoiSourceSelector/,
+    'AppEdit に POI selector がマウントされていない'
   );
 
   // AppList は複数アプリ一覧であること

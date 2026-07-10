@@ -37,7 +37,7 @@ export type AppSaveResult =
 export interface AppEditAPI {
     request(uid: string): Promise<any>;
     save(payload: AppSavePayload): Promise<AppSaveResult>;
-    preparePreview(document: any): Promise<{ url: string; port: number }>;
+    preparePreview(document: any): Promise<{ url: string; port: number; warnings: string[] }>;
     export(document: any): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
 }
 
