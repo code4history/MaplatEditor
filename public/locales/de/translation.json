@@ -341,7 +341,10 @@
     "migrating_legacy_basemaps": "Alte Basiskarten-Einstellungen werden in die neue Datenbank migriert.",
     "archiving_legacy_files": "Alte Datenbankdateien werden archiviert.",
     "migrated": "Die Migration zum neuen Datenbankformat ist abgeschlossen.",
-    "migration_failed": "Die Migration zum neuen Datenbankformat ist fehlgeschlagen."
+    "migration_failed": "Die Migration zum neuen Datenbankformat ist fehlgeschlagen.",
+    "migration_report_title": "Datenmigrationsbericht",
+    "migration_report_renamed": "Die folgenden IDs wurden umbenannt, um ID-Konflikte zu beheben.",
+    "migration_report_warnings": "Es liegen {{count}} Warnung(en) vor. Details finden Sie in der Datei migration-report-v2.json im Datenordner."
   },
   "applist": {
     "not_implement": "Noch nicht implementiert",

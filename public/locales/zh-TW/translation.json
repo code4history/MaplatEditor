@@ -341,7 +341,10 @@
     "migrating_legacy_basemaps": "正在將舊底圖設定遷移至新型資料庫中。",
     "archiving_legacy_files": "正在封存舊資料庫檔案。",
     "migrated": "已完成遷移至新型資料庫格式。",
-    "migration_failed": "遷移至新型資料庫格式失敗。"
+    "migration_failed": "遷移至新型資料庫格式失敗。",
+    "migration_report_title": "資料遷移報告",
+    "migration_report_renamed": "為解決 ID 衝突，已變更以下 ID。",
+    "migration_report_warnings": "有 {{count}} 筆警告。詳情請查看資料夾中的 migration-report-v2.json。"
   },
   "applist": {
     "not_implement": "尚未實作",

@@ -341,7 +341,10 @@
     "migrating_legacy_basemaps": "Sedang memigrasikan pengaturan peta dasar lama ke basis data baru.",
     "archiving_legacy_files": "Sedang mengarsipkan berkas basis data lama.",
     "migrated": "Migrasi ke format basis data baru selesai.",
-    "migration_failed": "Migrasi ke format basis data baru gagal."
+    "migration_failed": "Migrasi ke format basis data baru gagal.",
+    "migration_report_title": "Laporan migrasi data",
+    "migration_report_renamed": "ID berikut telah diubah untuk mengatasi konflik ID.",
+    "migration_report_warnings": "Ada {{count}} peringatan. Lihat migration-report-v2.json di folder data untuk detailnya."
   },
   "applist": {
     "not_implement": "Belum diimplementasikan",

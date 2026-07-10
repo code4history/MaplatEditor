@@ -341,7 +341,10 @@
     "migrating_legacy_basemaps": "กำลังย้ายการตั้งค่าแผนที่พื้นฐานเก่าไปยังฐานข้อมูลใหม่",
     "archiving_legacy_files": "กำลังจัดเก็บไฟล์ฐานข้อมูลเก่า",
     "migrated": "การย้ายไปยังรูปแบบฐานข้อมูลใหม่เสร็จสมบูรณ์แล้ว",
-    "migration_failed": "การย้ายไปยังรูปแบบฐานข้อมูลใหม่ล้มเหลว"
+    "migration_failed": "การย้ายไปยังรูปแบบฐานข้อมูลใหม่ล้มเหลว",
+    "migration_report_title": "รายงานการย้ายข้อมูล",
+    "migration_report_renamed": "มีการเปลี่ยน ID ต่อไปนี้เพื่อแก้ไขความซ้ำซ้อนของ ID",
+    "migration_report_warnings": "มีคำเตือน {{count}} รายการ โปรดดูรายละเอียดใน migration-report-v2.json ในโฟลเดอร์ข้อมูล"
   },
   "applist": {
     "not_implement": "ยังไม่รองรับ",

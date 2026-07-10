@@ -341,7 +341,10 @@
     "migrating_legacy_basemaps": "Đang di chuyển cài đặt bản đồ nền cũ sang cơ sở dữ liệu mới.",
     "archiving_legacy_files": "Đang lưu trữ tệp cơ sở dữ liệu cũ.",
     "migrated": "Đã hoàn tất di chuyển sang định dạng cơ sở dữ liệu mới.",
-    "migration_failed": "Di chuyển sang định dạng cơ sở dữ liệu mới thất bại."
+    "migration_failed": "Di chuyển sang định dạng cơ sở dữ liệu mới thất bại.",
+    "migration_report_title": "Báo cáo di chuyển dữ liệu",
+    "migration_report_renamed": "Các ID sau đã được đổi tên để giải quyết xung đột ID.",
+    "migration_report_warnings": "Có {{count}} cảnh báo. Xem chi tiết trong migration-report-v2.json ở thư mục dữ liệu."
   },
   "applist": {
     "not_implement": "Chưa triển khai",
