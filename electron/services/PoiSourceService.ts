@@ -136,7 +136,17 @@ export class PoiSourceService {
     const normalized = normalizeLegacyPoiList(input, DEFAULT_LANG);
     const withIds = ensureDisplayIds(normalized).features;
     const withUids = ensureFeatureUids(withIds);
-    const fc: PoiEditorFC = { type: 'FeatureCollection', features: withUids };
+    // 仕様 §2.3: FC トップレベルの layer metadata (icon/selectedIcon/hide は編集対象 POI-111、
+    // poiTemplate/iconTemplate/poiStyle は UI 無しで round-trip 保持、未知キーも POI-007 系
+    // テンプレートの将来拡張のため保持) を save/importFile/registerRemote/refreshRemote/
+    // cloneToLocal の全経路 (すべてここを通る) で保持する。ただし FC.id / FC.name は
+    // エディタが独立概念として持たない (slug/title 由来、export 時にのみ書き込む、§2.3) ため
+    // ここで削除する — これにより data_json が uid/slug/revision を含まない不変条件
+    // (ADR-0007) も自動的に守られる (FC.id が slug と同じ文字列であっても data_json には残らない)。
+    const { type: _type, features: _features, id: _id, name: _name, ...layerMeta } = isFc
+      ? (input as Record<string, unknown>)
+      : {};
+    const fc: PoiEditorFC = { ...layerMeta, type: 'FeatureCollection', features: withUids };
     const issues = validateFeatureCollection(fc);
     return { fc, issues, hasError: issues.some((i) => i.level === 'error') };
   }

@@ -470,6 +470,74 @@ try {
       assert.equal(paged.hasPrev, false);
       console.log('ok: (q) list rows carry metadata without blob; query hits FTS');
 
+      // (r) 仕様 §2.3: FC トップレベル layer metadata の save round-trip。id/name は保存されない
+      // (slug/title 由来の独立しない概念、export 時にのみ書き込む)。icon/selectedIcon/hide/
+      // poiTemplate/未知キー (customMeta) は round-trip 保持される (backend バグ修正、Phase5 Task1)。
+      const layerMetaSave = await poiSourceService.save(uid, {
+        slug: 'kyoto-poi',
+        title: '京都POI',
+        fc: {
+          type: 'FeatureCollection',
+          id: 'kyoto-poi',
+          name: '京都POI (layer name)',
+          icon: 'builtin:defaultpin',
+          selectedIcon: 'builtin:defaultpin-selected',
+          hide: false,
+          poiTemplate: '<div>{{name}}</div>',
+          customMeta: { future: 'extension', nested: [1, 2, 3] },
+          features: [
+            { type: 'Feature', id: 'kinkakuji', geometry: { type: 'Point', coordinates: [135.729, 35.039] },
+              properties: { name: { ja: '金閣寺' } } },
+          ],
+        },
+        expectedRevision: afterSave.revision,
+      });
+      assert.equal(layerMetaSave.result, 'Success', 'layer metadata 付き save は成功するはず: ' + JSON.stringify(layerMetaSave));
+      const afterLayerMetaSave = await poiSourceService.get(uid);
+      assert.equal(afterLayerMetaSave.fc.icon, 'builtin:defaultpin', 'icon は round-trip 保持されるはず (POI-111)');
+      assert.equal(afterLayerMetaSave.fc.selectedIcon, 'builtin:defaultpin-selected', 'selectedIcon は round-trip 保持されるはず (POI-111)');
+      assert.equal(afterLayerMetaSave.fc.hide, false, 'hide は round-trip 保持されるはず (POI-111)');
+      assert.equal(afterLayerMetaSave.fc.poiTemplate, '<div>{{name}}</div>', 'poiTemplate は round-trip 保持されるはず (POI-007/111)');
+      assert.deepEqual(afterLayerMetaSave.fc.customMeta, { future: 'extension', nested: [1, 2, 3] }, '未知キーも round-trip 保持されるはず (将来拡張)');
+      assert.ok(!('id' in afterLayerMetaSave.fc), 'FC.id は保存されないはず (slug 由来の独立しない概念、§2.3)');
+      assert.ok(!('name' in afterLayerMetaSave.fc), 'FC.name は保存されないはず (title 由来の独立しない概念、§2.3)');
+      assert.equal(afterLayerMetaSave.featureCount, 1, 'layer metadata 追加で feature_count がずれないはず');
+      console.log('ok: (r) FC top-level layer metadata round-trips through save; id/name are not persisted (§2.3)');
+
+      // (r2) importFile 経路でも同様に layer metadata が round-trip する
+      const importLayerMetaFile = nodePath.join(workDir, 'import-layer-meta.geojson');
+      await fsWriteFile(importLayerMetaFile, JSON.stringify({
+        type: 'FeatureCollection',
+        id: 'ignored-fc-id',
+        name: 'ignored-fc-name',
+        icon: 'builtin:defaultpin',
+        selectedIcon: 'builtin:defaultpin-selected',
+        hide: true,
+        poiTemplate: '<div>{{name}}</div>',
+        iconTemplate: '<img src="{{icon}}">',
+        poiStyle: { color: 'red' },
+        customMeta: { future: 'extension' },
+        features: [
+          { type: 'Feature', geometry: { type: 'Point', coordinates: [139.0, 35.0] }, properties: { name: 'テスト地点' } },
+        ],
+      }));
+      const importedLayerMeta = await poiSourceService.importFile({
+        slug: 'layer-meta-import', title: 'レイヤーメタ', filePath: importLayerMetaFile,
+      });
+      assert.equal(importedLayerMeta.result, 'Success', 'layer metadata 付き importFile は成功するはず: ' + JSON.stringify(importedLayerMeta));
+      const importedLayerMetaDoc = await poiSourceService.get(importedLayerMeta.uid);
+      assert.equal(importedLayerMetaDoc.fc.icon, 'builtin:defaultpin', 'importFile でも icon が round-trip 保持されるはず');
+      assert.equal(importedLayerMetaDoc.fc.selectedIcon, 'builtin:defaultpin-selected', 'importFile でも selectedIcon が round-trip 保持されるはず');
+      assert.equal(importedLayerMetaDoc.fc.hide, true, 'importFile でも hide が round-trip 保持されるはず');
+      assert.equal(importedLayerMetaDoc.fc.poiTemplate, '<div>{{name}}</div>', 'importFile でも poiTemplate が round-trip 保持されるはず');
+      assert.equal(importedLayerMetaDoc.fc.iconTemplate, '<img src="{{icon}}">', 'importFile でも iconTemplate が round-trip 保持されるはず');
+      assert.deepEqual(importedLayerMetaDoc.fc.poiStyle, { color: 'red' }, 'importFile でも poiStyle が round-trip 保持されるはず');
+      assert.deepEqual(importedLayerMetaDoc.fc.customMeta, { future: 'extension' }, 'importFile でも未知キーが round-trip 保持されるはず');
+      assert.ok(!('id' in importedLayerMetaDoc.fc), 'importFile でも FC.id は保存されないはず (§2.3)');
+      assert.ok(!('name' in importedLayerMetaDoc.fc), 'importFile でも FC.name は保存されないはず (§2.3)');
+      assert.equal(importedLayerMetaDoc.featureCount, 1, 'importFile の layer metadata 追加で feature_count がずれないはず');
+      console.log('ok: (r2) importFile preserves FC top-level layer metadata; id/name are not persisted (§2.3)');
+
       // (o) delete: 本体・registry 掃除
       const deleted = await poiSourceService.delete(uid);
       assert.equal(deleted.ok, true);
