@@ -132,6 +132,21 @@ try {
     'PoiSourceList が window.assets.checkSlug を呼んでいない'
   );
 
+  // 新規作成フローで title → slug 自動提案が配線されていること (43 §3.2「自動生成初期値の提示」):
+  // modal.title の watcher が suggestSlug を呼ぶ
+  assert.match(
+    poiSourceList,
+    /watch\s*\(\s*\(\)\s*=>\s*modal\.title[\s\S]*?suggestSlug\s*\(/,
+    'PoiSourceList に title → slug 自動提案 (watch modal.title → suggestSlug) がない'
+  );
+
+  // 手入力後は自動提案が上書きしないこと (slugEdited フラグ)
+  assert.match(
+    poiSourceList,
+    /slugEdited/,
+    'PoiSourceList に slug 手入力フラグ (slugEdited) がない'
+  );
+
   // 成功時に uid でエディタへ遷移すること (router.push('/poisources/' + uid))
   assert.match(
     poiSourceList,

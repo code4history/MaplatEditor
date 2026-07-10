@@ -184,7 +184,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
@@ -289,6 +289,8 @@ const modal = reactive({
   feedback: "",
   feedbackRetry: false,
   submitting: false,
+  // slug 欄をユーザーが手入力したら true。以後 title からの自動提案で上書きしない
+  slugEdited: false,
 });
 
 const slugChecked = ref(false);
@@ -337,6 +339,7 @@ const resetModal = () => {
   modal.feedback = "";
   modal.feedbackRetry = false;
   modal.submitting = false;
+  modal.slugEdited = false;
   slugChecked.value = false;
   slugAvailable.value = false;
 };
@@ -372,9 +375,27 @@ const checkSlug = async () => {
 };
 
 const onSlugInput = () => {
+  // 手入力されたら title からの自動提案を止める (空に戻したら提案を再開)
+  modal.slugEdited = modal.slug.trim() !== "";
   modal.feedback = "";
   checkSlug();
 };
+
+// slug 自動生成初期値の提示 (43 §3.2): local 作成 / remote 登録では title 入力に追随して
+// slug 候補を提示し、そのまま可用性チェックを回す。ユーザーが slug を手入力したら追随を止める。
+// import はファイル名由来の提案 (openImport) を維持するため対象外
+watch(
+  () => modal.title,
+  (title) => {
+    if (modal.mode !== "local" && modal.mode !== "remote") return;
+    if (modal.slugEdited) return;
+    const suggested = suggestSlug(title);
+    if (suggested === modal.slug) return;
+    modal.slug = suggested;
+    modal.feedback = "";
+    checkSlug();
+  }
+);
 
 const openCreateLocal = () => {
   resetModal();
