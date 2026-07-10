@@ -678,6 +678,14 @@
     "delete_poi": "ลบ POI นี้",
     "filter_placeholder": "กรองตาม ID ที่แสดง ชื่อ หรือคำอธิบาย",
     "add_poi": "เพิ่ม POI",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "GeoJSON ดิบ",
+    "raw_apply": "นำไปใช้",
+    "raw_discard": "ละทิ้งและสร้างใหม่",
+    "raw_dirty_notice": "การแก้ไขจะไม่มีผลจนกว่าจะกดนำไปใช้",
+    "raw_parse_error": "ไม่สามารถนำไปใช้ได้: ไวยากรณ์ JSON ผิดพลาด",
+    "raw_apply_issues": "ไม่สามารถนำไปใช้ได้เนื่องจากข้อผิดพลาดในการตรวจสอบ:",
+    "raw_apply_warnings": "นำไปใช้แล้วแต่มีคำเตือน:",
+    "raw_size_guard": "GeoJSON ดิบเป็นแบบอ่านอย่างเดียวเนื่องจากแหล่งข้อมูลนี้มีขนาดใหญ่ (เกิน 1000 ฟีเจอร์หรือ 5MB) ยังคงแก้ไขผ่านแผนที่และฟอร์มได้"
   }
 }

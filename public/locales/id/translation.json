@@ -678,6 +678,14 @@
     "delete_poi": "Hapus POI ini",
     "filter_placeholder": "Saring berdasarkan ID tampilan, nama, atau deskripsi",
     "add_poi": "Tambah POI",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "GeoJSON mentah",
+    "raw_apply": "Terapkan",
+    "raw_discard": "Buang & buat ulang",
+    "raw_dirty_notice": "Perubahan tidak diterapkan sampai Anda menekan Terapkan.",
+    "raw_parse_error": "Tidak dapat diterapkan: kesalahan sintaks JSON",
+    "raw_apply_issues": "Tidak dapat diterapkan karena kesalahan validasi:",
+    "raw_apply_warnings": "Diterapkan dengan peringatan:",
+    "raw_size_guard": "GeoJSON mentah bersifat hanya-baca karena sumber ini besar (lebih dari 1000 fitur atau 5 MB). Pengeditan peta dan formulir tetap tersedia."
   }
 }

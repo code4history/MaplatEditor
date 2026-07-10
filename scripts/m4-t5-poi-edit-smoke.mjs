@@ -10,6 +10,9 @@
 // Task 8: feature 一覧 (PoiFeatureList) の存在と PoiEdit 配線、自前 windowing
 // (spacer + scrollTop)、フィルタ対象 (表示 ID / name / desc)、scroll-to-selected、
 // 新規作成 = mapSession.addFeature 経由、readOnly ガードを検証する。
+// Phase 5 Task 2: raw GeoJSON 双方向ペイン (PoiRawPane) の存在と PoiEdit 配線、
+// toExportForm/fromExportForm 配線、Apply = session.commit 1 回 (=1 Undo)、
+// level==='error' ガード、規模ガード (poiGeoJson の export 定数)、readOnly を検証する。
 import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -53,7 +56,7 @@ try {
     'router に旧 PoiSourceDetail が残存している'
   );
 
-  console.log('  [1/8] router PoiEdit route: PASS');
+  console.log('  [1/9] router PoiEdit route: PASS');
 
   // --- Part 2: PoiEdit.vue の配線 ---
   const poiEdit = await readFile(
@@ -151,7 +154,7 @@ try {
     'PoiEdit に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [2/8] PoiEdit.vue wiring: PASS');
+  console.log('  [2/9] PoiEdit.vue wiring: PASS');
 
   // --- Part 3: LangResourceInput.vue の形 ---
   const langResourceInput = await readFile(
@@ -208,7 +211,7 @@ try {
     'LangResourceInput に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [3/8] LangResourceInput.vue shape: PASS');
+  console.log('  [3/9] LangResourceInput.vue shape: PASS');
 
   // --- Part 4: 旧画面 3 ファイルが削除されていること ---
   for (const relPath of [
@@ -223,7 +226,7 @@ try {
     );
   }
 
-  console.log('  [4/8] legacy files removed: PASS');
+  console.log('  [4/9] legacy files removed: PASS');
 
   // --- Part 5 (Task 6): PoiEdit 側の地図ペイン統合 ---
   // 地図ペインは PoiEditMap コンポーネントとしてマウントされること
@@ -264,7 +267,7 @@ try {
     'PoiEdit の Delete キーが session.removeFeature を呼んでいない'
   );
 
-  console.log('  [5/8] PoiEdit map pane integration: PASS');
+  console.log('  [5/9] PoiEdit map pane integration: PASS');
 
   // --- Part 6 (Task 6): PoiEditMap.vue の配線 ---
   const poiEditMap = await readFile(
@@ -398,7 +401,7 @@ try {
     'PoiEditMap に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [6/8] PoiEditMap.vue map pane wiring: PASS');
+  console.log('  [6/9] PoiEditMap.vue map pane wiring: PASS');
 
   // --- Part 7 (Task 7): 属性フォーム (PoiAttributeForm) ---
   const attrForm = await readFile(
@@ -530,7 +533,7 @@ try {
     'PoiAttributeForm に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [7/8] PoiAttributeForm.vue attribute form wiring: PASS');
+  console.log('  [7/9] PoiAttributeForm.vue attribute form wiring: PASS');
 
   // --- Part 8 (Task 8): feature 一覧 (PoiFeatureList) ---
   const featureList = await readFile(
@@ -711,7 +714,179 @@ try {
     'PoiFeatureList に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [8/8] PoiFeatureList.vue feature list wiring: PASS');
+  console.log('  [8/9] PoiFeatureList.vue feature list wiring: PASS');
+
+  // --- Part 9 (Phase 5 Task 2): raw GeoJSON 双方向ペイン (PoiRawPane) ---
+  const rawPane = await readFile(
+    path.join(projectRoot, 'src/components/PoiRawPane.vue'),
+    'utf8'
+  );
+
+  // PoiEdit 配線: import + session/read-only/visible を渡してマウント + 開閉トグル
+  assert.match(
+    poiEdit,
+    /import PoiRawPane from ['"]\.\.\/components\/PoiRawPane\.vue['"]/,
+    'PoiEdit が PoiRawPane を import していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiRawPane[\s\S]*?:session=/,
+    'PoiEdit が PoiRawPane に session を渡していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiRawPane[\s\S]*?:read-only=/,
+    'PoiEdit が PoiRawPane に read-only を渡していない'
+  );
+  assert.match(
+    poiEdit,
+    /<PoiRawPane[\s\S]*?:visible=/,
+    'PoiEdit が PoiRawPane に visible (閉時の再生成停止用) を渡していない'
+  );
+  assert.match(
+    poiEdit,
+    /rawPaneOpen/,
+    'PoiEdit に raw ペインの開閉トグル (rawPaneOpen) がない'
+  );
+  // 開閉で地図高さが変わるため OL に updateSize を通知する
+  assert.match(
+    poiEdit,
+    /updateSize\(\)/,
+    'PoiEdit がペイン開閉後に mapPane.updateSize() を呼んでいない'
+  );
+  assert.match(
+    poiEditMap,
+    /defineExpose\(\{[\s\S]*?updateSize/,
+    'PoiEditMap が updateSize を expose していない'
+  );
+
+  // 表示: toExportForm (座標丸めなし — Write Store の精度を劣化させない)、
+  // Apply: fromExportForm (Feature.id で UID 照合、POI-136)
+  assert.match(
+    rawPane,
+    /toExportForm/,
+    'PoiRawPane が toExportForm で表示を生成していない'
+  );
+  assert.match(
+    rawPane,
+    /fromExportForm/,
+    'PoiRawPane が fromExportForm で Apply していない'
+  );
+  assert.match(
+    rawPane,
+    /roundCoordinates:\s*false/,
+    'PoiRawPane の表示が roundCoordinates:false でない (座標が劣化する)'
+  );
+
+  // Apply = session.commit 1 回のみ (= 1 Undo、仕様 §5)。features/slug/title/layerMeta を
+  // 同一 commit で差し替える
+  assert.equal(
+    (rawPane.match(/session\.commit\(/g) || []).length,
+    1,
+    'PoiRawPane の session.commit 呼び出しが 1 箇所でない (1 Apply = 1 Undo が崩れる)'
+  );
+  for (const member of ['features', 'slug', 'title', 'layerMeta']) {
+    assert.match(
+      rawPane,
+      new RegExp(`draft\\.${member} = `),
+      `PoiRawPane の commit が draft.${member} を差し替えていない`
+    );
+  }
+
+  // level==='error' があれば適用不可 (warning のみなら適用可 + 警告表示)
+  assert.match(
+    rawPane,
+    /level === ['"]error['"]/,
+    "PoiRawPane に issues の level==='error' ガードがない"
+  );
+  assert.match(
+    rawPane,
+    /raw_apply_warnings/,
+    'PoiRawPane に warning のみ適用時の警告表示 (raw_apply_warnings) がない'
+  );
+
+  // issue 文言は共有写像 (utils/poiSourceMessages) を使うこと
+  assert.match(
+    rawPane,
+    /issueMessage/,
+    'PoiRawPane が poiSourceMessages.issueMessage を使っていない'
+  );
+
+  // 規模ガード (POI-141): poiGeoJson の export 定数を使い readOnly 化 (再定義禁止)
+  assert.match(
+    rawPane,
+    /SCALE_FEATURE_COUNT/,
+    'PoiRawPane が SCALE_FEATURE_COUNT (poiGeoJson) を使っていない'
+  );
+  assert.match(
+    rawPane,
+    /SCALE_BYTE_SIZE/,
+    'PoiRawPane が SCALE_BYTE_SIZE (poiGeoJson) を使っていない'
+  );
+  assert.doesNotMatch(
+    rawPane,
+    /\b1000\b|5 \* 1024/,
+    'PoiRawPane が規模閾値をマジックナンバーで再定義している'
+  );
+  const poiGeoJsonSource = await readFile(
+    path.join(projectRoot, 'src/utils/poiGeoJson.ts'),
+    'utf8'
+  );
+  assert.match(
+    poiGeoJsonSource,
+    /export const SCALE_FEATURE_COUNT/,
+    'poiGeoJson が SCALE_FEATURE_COUNT を export していない'
+  );
+  assert.match(
+    poiGeoJsonSource,
+    /export const SCALE_BYTE_SIZE/,
+    'poiGeoJson が SCALE_BYTE_SIZE を export していない'
+  );
+  assert.match(
+    rawPane,
+    /raw_size_guard/,
+    'PoiRawPane に規模ガード通知 (raw_size_guard) がない'
+  );
+
+  // remote ReadOnly / 規模ガードで textarea を readonly 化
+  assert.match(
+    rawPane,
+    /:readonly="isReadOnly"/,
+    'PoiRawPane の textarea が isReadOnly で readonly 化されていない'
+  );
+
+  // ローカル編集中は snapshot 再生成で上書きしない (dirty notice + 破棄して再生成)
+  assert.match(
+    rawPane,
+    /localDirty/,
+    'PoiRawPane にローカル編集の dirty 管理がない'
+  );
+  assert.match(
+    rawPane,
+    /raw_dirty_notice/,
+    'PoiRawPane に dirty notice (raw_dirty_notice) がない'
+  );
+  assert.match(
+    rawPane,
+    /raw_discard/,
+    'PoiRawPane に「破棄して再生成」(raw_discard) がない'
+  );
+
+  // JSON.parse 失敗 → 構文エラー表示で適用しない
+  assert.match(
+    rawPane,
+    /raw_parse_error/,
+    'PoiRawPane に構文エラー表示 (raw_parse_error) がない'
+  );
+
+  // 生 ipcRenderer を使わないこと (House rule / m2-t3)
+  assert.doesNotMatch(
+    rawPane,
+    /ipcRenderer/,
+    'PoiRawPane に生 ipcRenderer 使用が残存している'
+  );
+
+  console.log('  [9/9] PoiRawPane.vue raw GeoJSON pane wiring: PASS');
 
   console.log('M4-T5 PoiEdit editor skeleton smoke passed');
 } catch (err) {

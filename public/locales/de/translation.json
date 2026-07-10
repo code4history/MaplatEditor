@@ -678,6 +678,14 @@
     "delete_poi": "Dieses POI löschen",
     "filter_placeholder": "Nach Anzeige-ID, Name oder Beschreibung filtern",
     "add_poi": "POI hinzufügen",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "GeoJSON-Rohdaten",
+    "raw_apply": "Anwenden",
+    "raw_discard": "Verwerfen und neu erzeugen",
+    "raw_dirty_notice": "Änderungen werden erst nach „Anwenden“ übernommen.",
+    "raw_parse_error": "Anwenden nicht möglich: JSON-Syntaxfehler",
+    "raw_apply_issues": "Anwenden wegen Validierungsfehlern nicht möglich:",
+    "raw_apply_warnings": "Mit Warnungen angewendet:",
+    "raw_size_guard": "GeoJSON-Rohdaten sind schreibgeschützt, da diese Quelle groß ist (über 1000 Features oder 5 MB). Karten- und Formularbearbeitung bleiben möglich."
   }
 }

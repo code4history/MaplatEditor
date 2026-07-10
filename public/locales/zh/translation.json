@@ -678,6 +678,14 @@
     "delete_poi": "删除此POI",
     "filter_placeholder": "按显示ID、名称、描述筛选",
     "add_poi": "添加POI",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "原始 GeoJSON",
+    "raw_apply": "应用",
+    "raw_discard": "放弃并重新生成",
+    "raw_dirty_notice": "在按下应用之前，编辑内容不会生效。",
+    "raw_parse_error": "无法应用：JSON 语法错误",
+    "raw_apply_issues": "由于验证错误，无法应用：",
+    "raw_apply_warnings": "已应用，但存在警告：",
+    "raw_size_guard": "由于此来源规模较大（超过 1000 个要素或 5MB），原始 GeoJSON 为只读。仍可通过地图和表单进行编辑。"
   }
 }

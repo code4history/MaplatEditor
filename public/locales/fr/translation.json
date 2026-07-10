@@ -678,6 +678,14 @@
     "delete_poi": "Supprimer ce POI",
     "filter_placeholder": "Filtrer par ID d'affichage, nom ou description",
     "add_poi": "Ajouter un POI",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "GeoJSON brut",
+    "raw_apply": "Appliquer",
+    "raw_discard": "Abandonner et régénérer",
+    "raw_dirty_notice": "Les modifications ne sont prises en compte qu'après avoir cliqué sur Appliquer.",
+    "raw_parse_error": "Impossible d'appliquer : erreur de syntaxe JSON",
+    "raw_apply_issues": "Impossible d'appliquer en raison d'erreurs de validation :",
+    "raw_apply_warnings": "Appliqué avec des avertissements :",
+    "raw_size_guard": "Le GeoJSON brut est en lecture seule car cette source est volumineuse (plus de 1000 entités ou 5 Mo). La modification via la carte et le formulaire reste possible."
   }
 }

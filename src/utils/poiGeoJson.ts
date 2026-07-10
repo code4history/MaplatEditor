@@ -12,8 +12,9 @@ import {
 
 // POI editor の default 言語 (ADR-0005 既定)。title / feature の LangResource フィールドを
 // 交換形へ collapse する際にこの言語のみなら string 化する。各公開関数は optional な
-// defaultLang 引数でこの既定を上書きできる。
-const DEFAULT_LANG = "ja";
+// defaultLang 引数でこの既定を上書きできる。raw ペイン (PoiRawPane) の Apply 側正規化も
+// 同じ既定を共有するため export する。
+export const DEFAULT_LANG = "ja";
 
 // ADR-0005 の LangResource を適用する feature property (POI-135)。viewer が translate() を
 // 通すフィールド。image / icon は LangResource ではないので対象外。
@@ -23,9 +24,10 @@ const LANG_FIELDS = ["name", "desc", "html", "address", "url"] as const;
 // 結合のため # 等を許すと壊れる。属性フォームの入力検証 (PoiAttributeForm) からも参照するため export。
 export const DISPLAY_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-// 規模 warning (POI-121) の閾値。
-const SCALE_FEATURE_COUNT = 1000;
-const SCALE_BYTE_SIZE = 5 * 1024 * 1024;
+// 規模 warning (POI-121) / raw ペイン read-only ガード (POI-141) の閾値。
+// raw ペイン (PoiRawPane) が同じ閾値で read-only 判定するため export する (再定義禁止)。
+export const SCALE_FEATURE_COUNT = 1000;
+export const SCALE_BYTE_SIZE = 5 * 1024 * 1024;
 
 // export 座標の丸め桁 (POI-143, ≈1cm / RFC 7946 精度指針)。
 const COORD_DECIMALS = 7;
@@ -470,18 +472,27 @@ export function toExportForm(
 
   // FeatureCollection.id / name は GeoJSON foreign member。
   // viewer は FC.id を layer key、FC.name を layer 名として読む (POI-133)。
-  // @types/geojson の FeatureCollection には無い属性のため型を拡張する。
-  const out: FeatureCollection & { id?: string; name?: LangResource } = {
+  // id/name は slug/title 由来で常に上書きする (§2.3: FC.id/name は独立概念として持たない)。
+  const out: Record<string, unknown> = {
     type: "FeatureCollection",
     id: slug,
-    features,
   };
   const name = compactLangResource(titleInternal, defaultLang);
   if (name !== undefined) {
     out.name = name;
   }
+  // fc トップレベルの他の foreign member (layer metadata: icon/selectedIcon/hide/
+  // poiTemplate 等、§2.3) は export 形へそのまま持ち越す。raw ペイン表示→Apply の
+  // 往復で layerMeta を失わないためにもここでの pass-through が必要 (POI-136)。
+  for (const [key, value] of Object.entries(fc)) {
+    if (key === "type" || key === "features" || key === "id" || key === "name") {
+      continue;
+    }
+    out[key] = value;
+  }
+  out.features = features;
 
-  return out;
+  return out as unknown as FeatureCollection;
 }
 
 // raw Apply 用: export 形 FeatureCollection (object) → 内部形。Feature.id で previous と照合し

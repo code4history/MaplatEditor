@@ -678,6 +678,14 @@
     "delete_poi": "Xóa POI này",
     "filter_placeholder": "Lọc theo ID hiển thị, tên hoặc mô tả",
     "add_poi": "Thêm POI",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "GeoJSON thô",
+    "raw_apply": "Áp dụng",
+    "raw_discard": "Hủy và tạo lại",
+    "raw_dirty_notice": "Chỉnh sửa chưa được phản ánh cho đến khi nhấn Áp dụng.",
+    "raw_parse_error": "Không thể áp dụng: lỗi cú pháp JSON",
+    "raw_apply_issues": "Không thể áp dụng do lỗi xác thực:",
+    "raw_apply_warnings": "Đã áp dụng nhưng có cảnh báo:",
+    "raw_size_guard": "GeoJSON thô ở chế độ chỉ đọc vì nguồn này lớn (hơn 1000 đối tượng hoặc 5MB). Vẫn có thể chỉnh sửa trên bản đồ và biểu mẫu."
   }
 }

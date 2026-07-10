@@ -678,6 +678,14 @@
     "delete_poi": "이 POI 삭제",
     "filter_placeholder": "표시 ID·이름·설명으로 필터링",
     "add_poi": "POI 추가",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "원본 GeoJSON",
+    "raw_apply": "적용",
+    "raw_discard": "취소하고 다시 생성",
+    "raw_dirty_notice": "적용을 누를 때까지 편집 내용이 반영되지 않습니다.",
+    "raw_parse_error": "적용할 수 없습니다: JSON 구문 오류",
+    "raw_apply_issues": "검증 오류로 인해 적용할 수 없습니다:",
+    "raw_apply_warnings": "경고와 함께 적용되었습니다:",
+    "raw_size_guard": "이 소스가 크기 때문에(1000개 피처 또는 5MB 초과) 원본 GeoJSON은 읽기 전용입니다. 지도와 양식 편집은 계속 가능합니다."
   }
 }

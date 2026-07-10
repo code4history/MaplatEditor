@@ -681,6 +681,14 @@
     "delete_poi": "Delete this POI",
     "filter_placeholder": "Filter by display ID, name, or description",
     "add_poi": "Add POI",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "Raw GeoJSON",
+    "raw_apply": "Apply",
+    "raw_discard": "Discard & regenerate",
+    "raw_dirty_notice": "Edits are not reflected until you press Apply.",
+    "raw_parse_error": "Cannot apply: JSON syntax error",
+    "raw_apply_issues": "Could not apply due to validation errors:",
+    "raw_apply_warnings": "Applied with warnings:",
+    "raw_size_guard": "Raw GeoJSON is read-only because this source is large (over 1000 features or 5 MB). Map and form editing remain available."
   }
 }

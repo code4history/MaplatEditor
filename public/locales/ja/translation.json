@@ -681,6 +681,14 @@
     "delete_poi": "このPOIを削除",
     "filter_placeholder": "表示ID・名称・説明で絞り込み",
     "add_poi": "POIを追加",
-    "feature_count": "{{filtered}} / {{total}}"
+    "feature_count": "{{filtered}} / {{total}}",
+    "raw_pane": "生GeoJSON",
+    "raw_apply": "適用",
+    "raw_discard": "破棄して再生成",
+    "raw_dirty_notice": "編集中の内容は「適用」するまで反映されません。",
+    "raw_parse_error": "JSONの構文エラーのため適用できません",
+    "raw_apply_issues": "検証エラーのため適用できませんでした:",
+    "raw_apply_warnings": "適用しましたが警告があります:",
+    "raw_size_guard": "POIソースの規模が大きいため（1000フィーチャーまたは5MB超）、生GeoJSONは読み取り専用です。地図・フォームでの編集は引き続き可能です。"
   }
 }

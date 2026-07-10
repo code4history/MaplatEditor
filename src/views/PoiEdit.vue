@@ -55,6 +55,15 @@
             {{ featureCount }} {{ t("poisource.features") }}
           </div>
           <div class="col-3 pt-3 d-flex gap-1 justify-content-end">
+            <!-- raw GeoJSON ペイン (POI-136) のトグル。ReadOnly でも表示閲覧はできるため常設 -->
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              :class="{ active: rawPaneOpen }"
+              @click="toggleRawPane"
+            >
+              {{ t("poiedit.raw_pane") }}
+            </button>
             <template v-if="!readOnly">
               <button
                 type="button"
@@ -124,8 +133,20 @@
       <!-- 地図ペイン (主役、仕様 §3.3) + 右カラム: 属性フォーム (Task 7) の下に
            feature 一覧 (Task 8) の上下分割。一覧は残り高さで flex (min-height 確保) -->
       <div class="flex-grow-1 d-flex overflow-hidden">
-        <div class="flex-grow-1 position-relative overflow-hidden">
-          <PoiEditMap ref="mapPane" :session="mapSession" :read-only="readOnly" />
+        <!-- 中央カラム: 地図 (主役) + 下部の折りたたみ raw GeoJSON ペイン (POI-136)。
+             raw ペインは v-show で mount を維持 (閉→開でローカル編集を失わない)。
+             閉時の表示再生成停止は PoiRawPane が :visible で自律制御する -->
+        <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+          <div class="flex-grow-1 position-relative overflow-hidden">
+            <PoiEditMap ref="mapPane" :session="mapSession" :read-only="readOnly" />
+          </div>
+          <PoiRawPane
+            v-show="rawPaneOpen"
+            class="poi-raw-pane"
+            :session="session"
+            :read-only="readOnly"
+            :visible="rawPaneOpen"
+          />
         </div>
         <div class="poi-side-pane border-start bg-white flex-shrink-0 d-flex flex-column overflow-hidden">
           <div class="poi-form-area overflow-auto">
@@ -159,6 +180,7 @@ import LangResourceInput from "../components/LangResourceInput.vue";
 import PoiAttributeForm from "../components/PoiAttributeForm.vue";
 import PoiEditMap from "../components/PoiEditMap.vue";
 import PoiFeatureList from "../components/PoiFeatureList.vue";
+import PoiRawPane from "../components/PoiRawPane.vue";
 import {
   usePoiEditSession,
   type PoiEditSession,
@@ -195,6 +217,13 @@ const mapSession: PoiEditSession = {
     return uid;
   },
 };
+
+// raw GeoJSON ペイン (POI-136) の開閉。開閉で地図高さが変わるため OL へ updateSize を通知する
+const rawPaneOpen = ref(false);
+function toggleRawPane(): void {
+  rawPaneOpen.value = !rawPaneOpen.value;
+  void nextTick().then(() => mapPane.value?.updateSize());
+}
 
 const loading = ref(true);
 const loadError = ref<string | null>(null);
@@ -611,5 +640,11 @@ onBeforeUnmount(() => {
 .poi-list-area {
   flex: 1 1 auto;
   min-height: 180px;
+}
+
+/* raw GeoJSON ペイン (POI-136): 開時は地図の下に ~40% (地図が主役の比率維持) */
+.poi-raw-pane {
+  height: 40%;
+  flex-shrink: 0;
 }
 </style>

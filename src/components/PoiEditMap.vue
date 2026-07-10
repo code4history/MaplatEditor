@@ -275,6 +275,12 @@ const getCenterLngLat = (): [number, number] | null => {
   return roundLngLat(transform(center, "EPSG:3857", "EPSG:4326"));
 };
 
+// コンテナ高さの変化 (raw ペイン開閉、Phase 5) を OL へ通知する。OL は window resize しか
+// 自動追随しないため、レイアウト変更側 (PoiEdit) が明示的に呼ぶ
+const updateSize = (): void => {
+  map?.updateSize?.();
+};
+
 // --- 初期表示: features があれば全体が入る extent へ fit、無ければ日本付近デフォルト ---
 const fitInitialView = (): void => {
   if (!map || !markerSource) return;
@@ -433,5 +439,5 @@ onBeforeUnmount(() => {
   contextmenu = null;
 });
 
-defineExpose({ panTo, fitInitialView, getCenterLngLat });
+defineExpose({ panTo, fitInitialView, getCenterLngLat, updateSize });
 </script>
