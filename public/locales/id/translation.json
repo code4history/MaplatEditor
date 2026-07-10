@@ -526,6 +526,8 @@
     "export_button": "Ekspor",
     "export_success": "Ekspor selesai: {{outDir}}",
     "export_failed": "Ekspor gagal.",
+    "warn_missing_poi_source": "Beberapa sumber POI yang dirujuk tidak ditemukan dan dihapus dari keluaran.",
+    "warn_duplicate_poi_reference": "Sumber POI yang sama dirujuk oleh aplikasi dan peta sekaligus. POI mungkin ditampilkan dua kali.",
     "export": {
       "progress": "Sedang mengekspor...",
       "done": "Ekspor selesai",

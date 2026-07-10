@@ -523,6 +523,8 @@
     "export_button": "Export",
     "export_success": "Export completed: {{outDir}}",
     "export_failed": "Export failed.",
+    "warn_missing_poi_source": "Some referenced POI sources were not found and were omitted from the output.",
+    "warn_duplicate_poi_reference": "The same POI source is referenced by both the app and a map. POIs may appear twice.",
     "export": {
       "progress": "Exporting...",
       "done": "Export completed",

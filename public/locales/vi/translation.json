@@ -526,6 +526,8 @@
     "export_button": "Xuất",
     "export_success": "Đã hoàn tất xuất: {{outDir}}",
     "export_failed": "Xuất thất bại.",
+    "warn_missing_poi_source": "Không tìm thấy một số nguồn POI được tham chiếu nên đã loại khỏi kết quả xuất.",
+    "warn_duplicate_poi_reference": "Cùng một nguồn POI được tham chiếu bởi cả ứng dụng và bản đồ. POI có thể hiển thị hai lần.",
     "export": {
       "progress": "Đang xuất...",
       "done": "Xuất hoàn tất",

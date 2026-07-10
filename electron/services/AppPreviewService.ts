@@ -9,6 +9,13 @@ import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
+  collectPoiUids,
+  hasSharedPoiUid,
+  mergeWarnings,
+  resolvePoisArray,
+  DUPLICATE_POI_REFERENCE_WARNING,
+} from './poiReferenceResolver';
+import {
   composeViewerSource,
   hasViewerBasemapSource,
   normalizeAppSource,
@@ -21,6 +28,8 @@ type PreviewSession = {
   maps: Record<string, any>;
   manifest: any;
   viewerOption: any;
+  // POI 参照解決の警告 (静的 i18n キー)。prepare の返り値経由でレンダラの t(key) 表示に載せる
+  warnings: string[];
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -61,13 +70,17 @@ class AppPreviewService {
   private port: number | null = null;
   private sessions = new Map<string, PreviewSession>();
 
-  async prepare(document: any): Promise<{ url: string; port: number }> {
+  async prepare(document: any): Promise<{ url: string; port: number; warnings: string[] }> {
     await this.ensureServer(Number(document.httpSettings?.previewPort || 0) || undefined);
     await this.purgePreviewStorage();
     const token = `${sanitizeId(document.appID || 'preview')}-${Date.now().toString(36)}`;
     const previewSession = await this.createSession(token, document);
     this.sessions.set(token, previewSession);
-    return { url: `http://127.0.0.1:${this.port}/preview/${token}/`, port: this.port! };
+    return {
+      url: `http://127.0.0.1:${this.port}/preview/${token}/`,
+      port: this.port!,
+      warnings: previewSession.warnings,
+    };
   }
 
   // プレビューごとにWeiwudi(SWタイルキャッシュ)の地図登録とキャッシュを完全に消す。
@@ -118,6 +131,11 @@ class AppPreviewService {
   private async createSession(token: string, document: any): Promise<PreviewSession> {
     const maps: Record<string, any> = {};
     const documentLang = document.lang || 'ja';
+    // POI 参照解決 (Phase 7): app pois の {poiUid} 集合。map 側との積が非空なら二重参照警告 (POI-142)
+    const warnings: string[] = [];
+    const appPoisRaw = normalizeJsonArray(document.pois || document.poiSources);
+    const appPoiUids = collectPoiUids(appPoisRaw);
+    let duplicateReference = false;
     const normalizedSources: AppSource[] = (Array.isArray(document.sources) ? document.sources : [])
       .map((raw: any) => normalizeAppSource(raw));
     const entries = await Promise.all(normalizedSources.map(async (source: AppSource) => {
@@ -127,6 +145,16 @@ class AppPreviewService {
         const preview = await MapEditService.requestPreviewSource(source.mapUid);
         const viewerMapID = String(preview.mapID || source.mapUid);
         const label = source.label || preview.title || viewerMapID;
+        // map data_json の pois 内の {poiUid} 参照を export 形 FC へ解決 (生要素は透過)
+        let mapPois = preview.pois;
+        if (Array.isArray(mapPois)) {
+          if (!duplicateReference && hasSharedPoiUid(collectPoiUids(mapPois), appPoiUids)) {
+            duplicateReference = true;
+          }
+          const resolved = await resolvePoisArray(mapPois);
+          mergeWarnings(warnings, resolved.warnings);
+          mapPois = resolved.pois;
+        }
         // サムネイル実体はuidパス (ADR-0007)。preview serverの tmbs/ 経路で配信される
         const thumbnail = `tmbs/${preview.uid || viewerMapID}.jpg`;
         maps[viewerMapID] = this.toHttpAsset(normalizeRuntimeKeys({
@@ -137,7 +165,7 @@ class AppPreviewService {
           title: preview.title || label,
           thumbnail,
           url: preview.url || preview.url_,
-          pois: preview.pois,
+          pois: mapPois,
         }));
         const composed = composeViewerSource(source, {
           settingFilePrefix: 'maps/',
@@ -155,6 +183,10 @@ class AppPreviewService {
       entries.find((entry) => entry.source.startFrom) ??
       entries.find((entry) =>
         entry.source.mapUid === document.startFrom || entry.source.mapSlug === document.startFrom);
+    // app 側 pois の {poiUid} 参照も同じ resolver で export 形 FC へ解決する
+    const resolvedAppPois = await resolvePoisArray(appPoisRaw);
+    mergeWarnings(warnings, resolvedAppPois.warnings);
+    if (duplicateReference) mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
     const app = this.toHttpAsset(normalizeRuntimeKeys({
       appName: document.appName || document.title,
       title: document.title || document.appName,
@@ -168,7 +200,7 @@ class AppPreviewService {
       defaultZoom: Number(document.appSettings?.defaultZoom || 10),
       startFrom: startEntry ? startEntry.viewerMapID : document.startFrom,
       sources: entries.map((entry) => entry.composed),
-      pois: normalizeJsonArray(document.pois || document.poiSources),
+      pois: resolvedAppPois.pois,
     }));
     return {
       token,
@@ -176,6 +208,7 @@ class AppPreviewService {
       maps,
       manifest: this.createManifest(document),
       viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(normalizedSources)),
+      warnings,
     };
   }
 

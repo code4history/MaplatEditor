@@ -11,6 +11,7 @@
 // fetch payload には POI-121 の閾値を適用: 5MB 超 warning / 50MB 超 登録拒否。
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import type { FeatureCollection } from 'geojson';
 
 import SqliteDataService, {
   RevisionConflictError,
@@ -27,6 +28,7 @@ import {
   normalizeLegacyPoiList,
   ensureDisplayIds,
   ensureFeatureUids,
+  toExportForm,
   type PoiEditorFC,
   type PoiValidationIssue,
 } from '../../src/utils/poiGeoJson';
@@ -335,6 +337,21 @@ export class PoiSourceService {
   async get(ref: string): Promise<PoiSourceDetail | null> {
     const record = await SqliteDataService.findPoiSourceByRef(ref);
     return record ? this.detail(record) : null;
+  }
+
+  // preview / package export 用の export 形 FC (POI-117/143)。get と同じ uid正準+slugフォールバック
+  // 解決 (remote ソースも data_json の snapshot cache から同様に返る)。FC.id=slug / FC.name=title を
+  // 書き込み、_maplat* を剥がし、座標を7桁丸め (Write Store は変更しないため精度は劣化しない)。
+  // 見つからない/読めない参照は null (呼び出し側の poiReferenceResolver が要素落ち+警告に写像)
+  async exportForm(ref: string): Promise<FeatureCollection | null> {
+    try {
+      const detail = await this.get(ref);
+      if (!detail) return null;
+      return toExportForm(detail.fc, detail.slug, detail.title, { roundCoordinates: true });
+    } catch (e) {
+      console.error('[PoiSourceService] exportForm failed:', ref, e);
+      return null;
+    }
   }
 
   async createLocal(input: { slug: string; title: LangResource }): Promise<PoiSourceSaveResult> {

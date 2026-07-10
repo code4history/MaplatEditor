@@ -35,6 +35,7 @@
     "smoke:m9-t2-poi-store": "node scripts/m9-t2-poi-store-smoke.mjs",
     "smoke:m9-t3-poi-service": "node scripts/m9-t3-poi-service-smoke.mjs",
     "smoke:m9-t4-image-asset": "node scripts/m9-t4-image-asset-smoke.mjs",
+    "smoke:m10-t1-poi-reference-resolver": "node scripts/m10-t1-poi-reference-resolver-smoke.mjs",
     "smoke:m5-basemap-catalog": "node scripts/m5-basemap-catalog-smoke.mjs",
     "smoke:m6-app-source-model": "node scripts/m6-app-source-model-smoke.mjs",
     "smoke:m6-t2-icon-refs": "node scripts/m6-t2-icon-refs-smoke.mjs",

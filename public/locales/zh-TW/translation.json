@@ -526,6 +526,8 @@
     "export_button": "匯出",
     "export_success": "匯出已完成:{{outDir}}",
     "export_failed": "匯出失敗。",
+    "warn_missing_poi_source": "未找到部分被引用的POI來源，已從輸出中排除。",
+    "warn_duplicate_poi_reference": "同一POI來源同時被應用程式和地圖引用，POI可能會重複顯示。",
     "export": {
       "progress": "匯出中...",
       "done": "匯出完成",

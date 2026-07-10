@@ -8,6 +8,13 @@ import SqliteDataService from './SqliteDataService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
+  collectPoiUids,
+  hasSharedPoiUid,
+  mergeWarnings,
+  resolvePoisArray,
+  DUPLICATE_POI_REFERENCE_WARNING,
+} from './poiReferenceResolver';
+import {
   compactLangObject,
   composeViewerSource,
   hasViewerBasemapSource,
@@ -108,9 +115,13 @@ class AppExportService {
         source.data.thumbnail = outRel;
       }
 
-      // 1) apps/{appID}.json
-      const appJson = this.composeAppJson(document, sources, viewerMapID);
+      // 1) apps/{appID}.json (pois の {poiUid} 参照は export 形 FC へ解決される、Phase 7)
+      const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings);
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
+
+      // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
+      const appPoiUids = collectPoiUids(document.pois ?? parseJsonArray(document.poiSources));
+      let duplicateReference = false;
 
       // 2) Maplat地図: maps/{slug}.json + tiles + tmbs
       for (const source of maplatSources) {
@@ -126,6 +137,16 @@ class AppExportService {
         delete (mapJson as any).uid;
         delete (mapJson as any).slug;
         delete (mapJson as any).revision;
+        // map data_json の pois 内の {poiUid} 参照を export 形 FC へ解決 (生要素は透過、Phase 7)
+        if (Array.isArray((mapJson as any).pois)) {
+          if (!duplicateReference && hasSharedPoiUid(collectPoiUids((mapJson as any).pois), appPoiUids)) {
+            duplicateReference = true;
+            mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
+          }
+          const resolved = await resolvePoisArray((mapJson as any).pois);
+          mergeWarnings(warnings, resolved.warnings);
+          (mapJson as any).pois = resolved.pois;
+        }
         await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson, { spaces: 4 });
 
         // 読み込みは内部のuidパス、出力はslug名 (ADR-0007: viewer互換)
@@ -205,8 +226,14 @@ class AppExportService {
   }
 
   // Viewer形式の正規アプリJSON（camelCase・ビルトイン=文字列）。
-  // viewerMapID: ソースのViewer向けmapID解決(maplatはuid→slug) (ADR-0007)
-  private composeAppJson(document: any, sources: AppSource[], viewerMapID: (source: AppSource) => string) {
+  // viewerMapID: ソースのViewer向けmapID解決(maplatはuid→slug) (ADR-0007)。
+  // pois の {poiUid} 参照は export 形 FC へ解決し、警告 (missing 等) は warnings に合流する (Phase 7)
+  private async composeAppJson(
+    document: any,
+    sources: AppSource[],
+    viewerMapID: (source: AppSource) => string,
+    warnings: string[],
+  ) {
     const lang = document.lang || 'ja';
     const out: Record<string, unknown> = {
       // 交換形: デフォルト言語のみの多言語フィールドはプレーン文字列に畳み込む (ADR-0005)
@@ -231,7 +258,11 @@ class AppExportService {
     const startFrom = startSource ? viewerMapID(startSource) : document.startFrom;
     if (startFrom) out.startFrom = startFrom;
     const pois = document.pois ?? parseJsonArray(document.poiSources);
-    if (Array.isArray(pois) && pois.length > 0) out.pois = pois;
+    if (Array.isArray(pois) && pois.length > 0) {
+      const resolved = await resolvePoisArray(pois);
+      mergeWarnings(warnings, resolved.warnings);
+      if (resolved.pois.length > 0) out.pois = resolved.pois;
+    }
     return out;
   }
 
