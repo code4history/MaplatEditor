@@ -19,7 +19,10 @@
     "traditional": "Chino tradicional",
     "vietnamese": "Vietnamita",
     "thai": "Tailandés",
-    "indonesian": "Indonesio"
+    "indonesian": "Indonesio",
+    "reload": "Volver a cargar",
+    "overwrite": "Sobrescribir",
+    "revision_conflict": "Este elemento se ha actualizado en otra ventana."
   },
   "navbar": {
     "edit_map": "Editar mapa",
@@ -589,6 +592,57 @@
     },
     "error": {
       "unknown": "Se ha producido un error al guardar"
+    },
+    "import_file": "Importar archivo",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Letras, dígitos, guion y guion bajo",
+    "title_label": "Título",
+    "title_placeholder": "Introduzca el título de la fuente de POI",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "Eliminar esta fuente de POI",
+    "delete_confirm": "¿Eliminar \"{{name}}\"?",
+    "delete_referenced": "Esta fuente de POI está referenciada por {{app}} aplicación(es) / {{map}} mapa(s):",
+    "delete_error": "No se pudo eliminar la fuente de POI",
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "ref_kind": {
+      "map": "Mapa",
+      "app": "Aplicación"
+    },
+    "validation": {
+      "ready": "Listo",
+      "warning": "Advertencia",
+      "invalid": "No válido"
+    },
+    "import_modal": {
+      "title": "Importar archivo GeoJSON",
+      "file_label": "Archivo seleccionado",
+      "import": "Importar"
+    },
+    "errors": {
+      "slug_charset": "El slug solo puede contener letras, dígitos, guion y guion bajo",
+      "slug_taken": "Este slug ya está en uso",
+      "invalid": "No se puede importar debido a errores de validación",
+      "non_point": "No se pueden importar geometrías que no sean de tipo Point",
+      "network": "No se pudo conectar con el origen remoto. Compruebe la red y reintente",
+      "http_status": "No se puede acceder a la URL (no encontrada o eliminada)",
+      "parse": "No se pudo interpretar la respuesta como GeoJSON",
+      "not_found": "No se encontró la fuente de POI",
+      "internal": "Se ha producido un error interno",
+      "revision_conflict": "Actualizado en otra ventana. Vuelva a cargar la lista",
+      "not_feature_collection": "No es una FeatureCollection de GeoJSON",
+      "coord_range": "Coordenadas fuera de rango (lon ±180 / lat ±90)",
+      "name_required": "name es obligatorio",
+      "display_id_duplicate": "El ID de visualización está duplicado dentro de la fuente",
+      "display_id_charset": "El ID de visualización contiene caracteres no admitidos",
+      "no_content": "Sin contenido",
+      "scale_feature_count": "Demasiados features (más de 1000)",
+      "scale_byte_size": "Tamaño de datos demasiado grande (más de 5 MB)",
+      "unsupported_scheme": "Solo se admiten URLs http/https",
+      "payload_too_large": "Los datos superan el límite de tamaño (50 MB)",
+      "pick_failed": "No se pudo seleccionar el archivo",
+      "references_unavailable": "No se pudo obtener la información de referencias"
     }
   },
   "poiedit": {
@@ -616,6 +670,7 @@
     "url": "URL",
     "images": "Imágenes",
     "add_image": "Añadir imagen",
+    "remove_image": "Eliminar imagen",
     "icon": "Icono",
     "selected_icon": "Icono al seleccionar",
     "coordinates": "Coordenadas",

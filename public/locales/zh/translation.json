@@ -19,7 +19,10 @@
     "traditional": "繁体中文",
     "vietnamese": "越南语",
     "thai": "泰语",
-    "indonesian": "印尼语"
+    "indonesian": "印尼语",
+    "reload": "重新加载",
+    "overwrite": "覆盖",
+    "revision_conflict": "已在其他窗口中更新。"
   },
   "navbar": {
     "edit_map": "地图编辑",
@@ -589,6 +592,57 @@
     },
     "error": {
       "unknown": "保存时发生错误"
+    },
+    "import_file": "导入文件",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "字母、数字、连字符、下划线",
+    "title_label": "标题",
+    "title_placeholder": "请输入POI源的标题",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "删除此POI源",
+    "delete_confirm": "确定删除“{{name}}”吗？",
+    "delete_referenced": "此POI源被 {{app}} 个应用 / {{map}} 张地图引用:",
+    "delete_error": "删除POI源失败",
+    "retry": "重试",
+    "cancel": "取消",
+    "ref_kind": {
+      "map": "地图",
+      "app": "应用"
+    },
+    "validation": {
+      "ready": "准备就绪",
+      "warning": "警告",
+      "invalid": "无效"
+    },
+    "import_modal": {
+      "title": "导入GeoJSON文件",
+      "file_label": "已选择的文件",
+      "import": "导入"
+    },
+    "errors": {
+      "slug_charset": "Slug只能包含字母、数字、连字符和下划线",
+      "slug_taken": "该Slug已被使用",
+      "invalid": "由于验证错误，无法导入",
+      "non_point": "无法导入Point以外的几何类型",
+      "network": "无法连接到远程源。请检查网络后重试",
+      "http_status": "无法访问该URL（未找到或已被删除）",
+      "parse": "无法将响应解析为GeoJSON",
+      "not_found": "未找到目标POI源",
+      "internal": "发生内部错误",
+      "revision_conflict": "已在其他窗口中更新。请重新加载列表",
+      "not_feature_collection": "不是GeoJSON FeatureCollection",
+      "coord_range": "坐标超出范围（经度±180 / 纬度±90）",
+      "name_required": "name（名称）为必填项",
+      "display_id_duplicate": "显示ID在源内重复",
+      "display_id_charset": "显示ID包含不支持的字符",
+      "no_content": "没有内容",
+      "scale_feature_count": "要素数量过多（超过1000）",
+      "scale_byte_size": "数据太大（超过5MB）",
+      "unsupported_scheme": "URL仅支持http/https",
+      "payload_too_large": "数据超过大小上限（50MB）",
+      "pick_failed": "无法选择文件",
+      "references_unavailable": "无法获取引用信息"
     }
   },
   "poiedit": {
@@ -616,6 +670,7 @@
     "url": "URL",
     "images": "图片",
     "add_image": "添加图片",
+    "remove_image": "删除图片",
     "icon": "图标",
     "selected_icon": "选中时图标",
     "coordinates": "坐标",

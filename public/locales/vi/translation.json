@@ -19,7 +19,10 @@
     "traditional": "Tiếng Trung phồn thể",
     "vietnamese": "Tiếng Việt",
     "thai": "Tiếng Thái",
-    "indonesian": "Tiếng Indonesia"
+    "indonesian": "Tiếng Indonesia",
+    "reload": "Tải lại",
+    "overwrite": "Ghi đè",
+    "revision_conflict": "Mục này đã được cập nhật ở cửa sổ khác."
   },
   "navbar": {
     "edit_map": "Chỉnh sửa bản đồ",
@@ -589,6 +592,57 @@
     },
     "error": {
       "unknown": "Đã xảy ra lỗi khi lưu"
+    },
+    "import_file": "Nhập tệp",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Chữ cái, chữ số, gạch nối, gạch dưới",
+    "title_label": "Tiêu đề",
+    "title_placeholder": "Nhập tiêu đề nguồn POI",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "Xóa nguồn POI này",
+    "delete_confirm": "Xóa \"{{name}}\"?",
+    "delete_referenced": "Nguồn POI này đang được tham chiếu bởi {{app}} ứng dụng / {{map}} bản đồ:",
+    "delete_error": "Không thể xóa nguồn POI",
+    "retry": "Thử lại",
+    "cancel": "Hủy",
+    "ref_kind": {
+      "map": "Bản đồ",
+      "app": "Ứng dụng"
+    },
+    "validation": {
+      "ready": "Sẵn sàng",
+      "warning": "Cảnh báo",
+      "invalid": "Không hợp lệ"
+    },
+    "import_modal": {
+      "title": "Nhập tệp GeoJSON",
+      "file_label": "Tệp đã chọn",
+      "import": "Nhập"
+    },
+    "errors": {
+      "slug_charset": "Slug chỉ được chứa chữ cái, chữ số, gạch nối và gạch dưới",
+      "slug_taken": "Slug này đã được sử dụng",
+      "invalid": "Không thể nhập do lỗi kiểm tra dữ liệu",
+      "non_point": "Không thể nhập hình học khác ngoài Point",
+      "network": "Không thể kết nối tới nguồn từ xa. Kiểm tra mạng và thử lại",
+      "http_status": "Không thể truy cập URL (không tìm thấy hoặc đã bị xóa)",
+      "parse": "Không thể phân tích phản hồi dưới dạng GeoJSON",
+      "not_found": "Không tìm thấy nguồn POI cần xử lý",
+      "internal": "Đã xảy ra lỗi nội bộ",
+      "revision_conflict": "Đã được cập nhật ở cửa sổ khác. Vui lòng tải lại danh sách",
+      "not_feature_collection": "Không phải là GeoJSON FeatureCollection",
+      "coord_range": "Tọa độ nằm ngoài phạm vi (kinh độ ±180 / vĩ độ ±90)",
+      "name_required": "name là bắt buộc",
+      "display_id_duplicate": "ID hiển thị bị trùng lặp trong nguồn",
+      "display_id_charset": "ID hiển thị chứa ký tự không được hỗ trợ",
+      "no_content": "Không có nội dung",
+      "scale_feature_count": "Quá nhiều đối tượng (hơn 1000)",
+      "scale_byte_size": "Kích thước dữ liệu quá lớn (hơn 5MB)",
+      "unsupported_scheme": "Chỉ hỗ trợ URL http/https",
+      "payload_too_large": "Dữ liệu vượt quá giới hạn kích thước (50MB)",
+      "pick_failed": "Không thể chọn tệp",
+      "references_unavailable": "Không thể lấy thông tin tham chiếu"
     }
   },
   "poiedit": {
@@ -616,6 +670,7 @@
     "url": "URL",
     "images": "Hình ảnh",
     "add_image": "Thêm hình ảnh",
+    "remove_image": "Xóa hình ảnh",
     "icon": "Biểu tượng",
     "selected_icon": "Biểu tượng khi được chọn",
     "coordinates": "Tọa độ",

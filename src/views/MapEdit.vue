@@ -157,7 +157,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
 });
 // 既存の参照箇所を最小変更で handle 経由にするための別名
 // (revision は保存フロー移行後 MapEdit 内に直接の読み書きが残らないため別名不要)
-const { uid: mapUid, confirmedSlug, adoptLoaded, performSave } = saveHandle;
+const { uid: mapUid, confirmedSlug, adoptLoaded, performSave, saving } = saveHandle;
 /**
  * 旧実装 defaultMap 相当: 新規作成時の初期値
  * map.js defaultMap に完全準拠
@@ -2552,18 +2552,17 @@ const saveMap = async () => {
         return tin.getCompiled();
     });
 
-    // 4. 送信内容を send クロージャへ渡し、共通保存フロー (useRevisionedAssetSave) を実行
+    // 4. 送信内容を send クロージャへ渡し、共通保存フロー (useRevisionedAssetSave) を実行。
+    // pendingSave は意図的に clear しない: send/applySuccess は「最後に saveMap が確定した
+    // 送信内容」を参照し続ける必要がある (途中で null に戻すと保存フロー中の参照が壊れる。
+    // AppEdit も clear していないのと対称)
     pendingSave = { saveValue, tins, sendUid, copyFromUid };
-    try {
-        if (sendUid) {
-            await performSave(); // expectedRevision は handle.revision
-        } else {
-            // 新規作成・copy 保存は revision チェック対象外
-            // (旧実装: sendUid ? revision.value : undefined)
-            await performSave({ expectedRevision: undefined });
-        }
-    } finally {
-        pendingSave = null;
+    if (sendUid) {
+        await performSave(); // expectedRevision は handle.revision
+    } else {
+        // 新規作成・copy 保存は revision チェック対象外
+        // (旧実装: sendUid ? revision.value : undefined)
+        await performSave({ expectedRevision: undefined });
     }
 };
 
@@ -2954,7 +2953,7 @@ const goBack = async () => {
                 <!-- Save Button: 旧実装 v-bind:disabled="error || !dirty" 相当 -->
                 <div class="col-2 text-end">
                     <button type="button" class="btn btn-primary w-100" @click="saveMap"
-                            :disabled="!!saveError || !isDirty">{{ t("common.save") }}</button>
+                            :disabled="!!saveError || !isDirty || saving">{{ t("common.save") }}</button>
                 </div>
             </div>
         </div>

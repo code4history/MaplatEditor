@@ -97,9 +97,13 @@ const featureUid = (feature: any): string | null => {
   return typeof uid === "string" ? uid : null;
 };
 
+// 経度を [-180, 180] へ正規化 (地図を横に何周も pan した状態でのドラッグ/追加/中央取得が
+// 域外経度を持ち込まないようにする)
+const wrapLon = (lon: number): number => ((((lon + 180) % 360) + 360) % 360) - 180;
+
 // MapEdit の arrayRoundTo(lonlat, 6) 踏襲 (Write Store には入力時精度のまま保存される)
 const roundLngLat = (lonlat: number[]): [number, number] => [
-  Math.round(lonlat[0] * 1e6) / 1e6,
+  Math.round(wrapLon(lonlat[0]) * 1e6) / 1e6,
   Math.round(lonlat[1] * 1e6) / 1e6,
 ];
 
@@ -230,7 +234,10 @@ const onModifyEnd = (evt: any): void => {
     const before = sessionCoords(target.uid);
     if (merc && before) {
       const next = roundLngLat(transform(merc, "EPSG:3857", "EPSG:4326"));
-      if (next[0] !== before[0] || next[1] !== before[1]) {
+      // 「実際に変わった」判定は session 現値も同じ wrap + 6桁丸めで比較する
+      // (7桁以上の精度を持つインポート由来 feature を掴んで離しただけの偽 commit 防止)
+      const prev = roundLngLat(before);
+      if (next[0] !== prev[0] || next[1] !== prev[1]) {
         // moveFeature が snapshot を差し替え watch が全再描画する。ドラッグ後の OL feature と
         // session の新座標は一致するので視覚的なジャンプは起きない
         session.moveFeature(target.uid, next);

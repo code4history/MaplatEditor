@@ -19,7 +19,10 @@
     "traditional": "중국어 번체",
     "vietnamese": "베트남어",
     "thai": "태국어",
-    "indonesian": "인도네시아어"
+    "indonesian": "인도네시아어",
+    "reload": "다시 불러오기",
+    "overwrite": "덮어쓰기",
+    "revision_conflict": "다른 창에서 업데이트되었습니다."
   },
   "navbar": {
     "edit_map": "지도 편집",
@@ -589,6 +592,57 @@
     },
     "error": {
       "unknown": "저장 중 오류가 발생했습니다"
+    },
+    "import_file": "파일 가져오기",
+    "slug_label": "슬러그 (ID)",
+    "slug_placeholder": "영문자·숫자·하이픈·언더스코어",
+    "title_label": "제목",
+    "title_placeholder": "POI 소스의 제목을 입력",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "이 POI 소스 삭제",
+    "delete_confirm": "\"{{name}}\"을(를) 삭제하시겠습니까?",
+    "delete_referenced": "이 POI 소스는 {{app}}개의 앱 / {{map}}개의 지도에서 참조되고 있습니다:",
+    "delete_error": "POI 소스 삭제에 실패했습니다",
+    "retry": "다시 시도",
+    "cancel": "취소",
+    "ref_kind": {
+      "map": "지도",
+      "app": "앱"
+    },
+    "validation": {
+      "ready": "준비 완료",
+      "warning": "경고",
+      "invalid": "무효"
+    },
+    "import_modal": {
+      "title": "GeoJSON 파일 가져오기",
+      "file_label": "선택한 파일",
+      "import": "가져오기"
+    },
+    "errors": {
+      "slug_charset": "슬러그에는 영문자·숫자·하이픈·언더스코어만 사용할 수 있습니다",
+      "slug_taken": "이 슬러그는 이미 사용 중입니다",
+      "invalid": "유효성 검사 오류로 가져올 수 없습니다",
+      "non_point": "Point 이외의 지오메트리는 가져올 수 없습니다",
+      "network": "원격에 연결할 수 없습니다. 네트워크를 확인하고 다시 시도하세요",
+      "http_status": "URL에 접근할 수 없습니다 (찾을 수 없거나 삭제됨)",
+      "parse": "응답을 GeoJSON으로 해석할 수 없습니다",
+      "not_found": "대상 POI 소스를 찾을 수 없습니다",
+      "internal": "내부 오류가 발생했습니다",
+      "revision_conflict": "다른 창에서 업데이트되었습니다. 목록을 다시 불러오세요",
+      "not_feature_collection": "GeoJSON FeatureCollection이 아닙니다",
+      "coord_range": "좌표가 범위를 벗어났습니다 (경도 ±180 / 위도 ±90)",
+      "name_required": "name(이름)은 필수입니다",
+      "display_id_duplicate": "표시 ID가 소스 내에서 중복되었습니다",
+      "display_id_charset": "표시 ID에 사용할 수 없는 문자가 포함되어 있습니다",
+      "no_content": "콘텐츠가 없습니다",
+      "scale_feature_count": "피처 수가 너무 많습니다 (1000개 초과)",
+      "scale_byte_size": "데이터 크기가 너무 큽니다 (5MB 초과)",
+      "unsupported_scheme": "URL은 http/https만 지원합니다",
+      "payload_too_large": "데이터가 크기 제한(50MB)을 초과했습니다",
+      "pick_failed": "파일을 선택할 수 없습니다",
+      "references_unavailable": "참조 정보를 가져올 수 없습니다"
     }
   },
   "poiedit": {
@@ -616,6 +670,7 @@
     "url": "URL",
     "images": "이미지",
     "add_image": "이미지 추가",
+    "remove_image": "이미지 삭제",
     "icon": "아이콘",
     "selected_icon": "선택 시 아이콘",
     "coordinates": "좌표",

@@ -673,6 +673,7 @@
     "url": "URL",
     "images": "Images",
     "add_image": "Add image",
+    "remove_image": "Remove image",
     "icon": "Icon",
     "selected_icon": "Icon when selected",
     "coordinates": "Coordinates",

@@ -19,7 +19,10 @@
     "traditional": "繁體中文",
     "vietnamese": "越南文",
     "thai": "泰文",
-    "indonesian": "印尼文"
+    "indonesian": "印尼文",
+    "reload": "重新載入",
+    "overwrite": "覆寫",
+    "revision_conflict": "已在其他視窗中更新。"
   },
   "navbar": {
     "edit_map": "地圖編輯",
@@ -589,6 +592,57 @@
     },
     "error": {
       "unknown": "儲存時發生錯誤"
+    },
+    "import_file": "匯入檔案",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "字母、數字、連字號、底線",
+    "title_label": "標題",
+    "title_placeholder": "請輸入POI來源的標題",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "刪除此POI來源",
+    "delete_confirm": "確定要刪除「{{name}}」嗎？",
+    "delete_referenced": "此POI來源被 {{app}} 個應用程式 / {{map}} 張地圖引用:",
+    "delete_error": "刪除POI來源失敗",
+    "retry": "重試",
+    "cancel": "取消",
+    "ref_kind": {
+      "map": "地圖",
+      "app": "應用程式"
+    },
+    "validation": {
+      "ready": "準備完成",
+      "warning": "警告",
+      "invalid": "無效"
+    },
+    "import_modal": {
+      "title": "匯入GeoJSON檔案",
+      "file_label": "已選擇的檔案",
+      "import": "匯入"
+    },
+    "errors": {
+      "slug_charset": "Slug只能包含字母、數字、連字號和底線",
+      "slug_taken": "此Slug已被使用",
+      "invalid": "因驗證錯誤而無法匯入",
+      "non_point": "無法匯入Point以外的幾何類型",
+      "network": "無法連線到遠端來源。請檢查網路後重試",
+      "http_status": "無法存取該URL（找不到或已被刪除）",
+      "parse": "無法將回應解析為GeoJSON",
+      "not_found": "找不到目標POI來源",
+      "internal": "發生內部錯誤",
+      "revision_conflict": "已在其他視窗中更新。請重新載入清單",
+      "not_feature_collection": "不是GeoJSON FeatureCollection",
+      "coord_range": "座標超出範圍（經度±180 / 緯度±90）",
+      "name_required": "name（名稱）為必填",
+      "display_id_duplicate": "顯示ID在來源內重複",
+      "display_id_charset": "顯示ID包含不支援的字元",
+      "no_content": "沒有內容",
+      "scale_feature_count": "要素數量過多（超過1000）",
+      "scale_byte_size": "資料太大（超過5MB）",
+      "unsupported_scheme": "URL僅支援http/https",
+      "payload_too_large": "資料超過大小上限（50MB）",
+      "pick_failed": "無法選擇檔案",
+      "references_unavailable": "無法取得引用資訊"
     }
   },
   "poiedit": {
@@ -616,6 +670,7 @@
     "url": "URL",
     "images": "圖片",
     "add_image": "新增圖片",
+    "remove_image": "移除圖片",
     "icon": "圖示",
     "selected_icon": "選取時圖示",
     "coordinates": "座標",

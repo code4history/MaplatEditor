@@ -159,7 +159,11 @@ import LangResourceInput from "../components/LangResourceInput.vue";
 import PoiAttributeForm from "../components/PoiAttributeForm.vue";
 import PoiEditMap from "../components/PoiEditMap.vue";
 import PoiFeatureList from "../components/PoiFeatureList.vue";
-import { usePoiEditSession, type PoiEditSession } from "../composables/usePoiEditSession";
+import {
+  usePoiEditSession,
+  type PoiEditSession,
+  type PoiEditState,
+} from "../composables/usePoiEditSession";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
@@ -207,14 +211,18 @@ const slugAvailable = ref(false);
 let slugCheckToken = 0;
 
 // --- 保存フロー (revision 楽観ロック → conflict は composable が担う) ---
+// saveSource が捕捉した送信内容 (snapshot) を send クロージャへ渡す一時変数 (MapEdit の
+// pendingSave と同パターン)。保存中の編集で editState が差し替わっても、send (revision-conflict
+// の「上書き」再送含む) は捕捉時と同一の snapshot を送る。applySuccess は snapshot 同一性で
+// markSaved するかを判定する (保存中の新編集を誤ってクリーン化しない)
+let pendingSave: {
+  capturedState: PoiEditState;
+  payload: { slug: string; title: Record<string, string> | string; fc: PoiEditorFC };
+} | null = null;
 const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
   send: async ({ uid, expectedRevision }) => {
-    // adoptLoaded 後にしか到達しない (保存 UI は editState 確定後のみ表示)
-    const state = editState.value!;
-    // IPC 前に JSON ラウンドトリップ (AppEdit と同様、非 clone 可能値の混入防止)
-    const payload = JSON.parse(
-      JSON.stringify({ slug: state.slug, title: state.title, fc: session.toSaveFc() }),
-    ) as { slug: string; title: Record<string, string> | string; fc: PoiEditorFC };
+    // saveSource が pendingSave を設定した後にしか到達しない
+    const { payload } = pendingSave!;
     const result = await window.poiSources.save(uid!, { ...payload, expectedRevision });
     if (!result) {
       // IPC が結果を返さなかった: 表示のみで安全終了
@@ -224,8 +232,12 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     return result;
   },
   applySuccess: async (result) => {
-    // uid/revision/confirmedSlug は composable が反映済み。以下は画面固有処理
-    session.markSaved();
+    // uid/revision/confirmedSlug は composable が反映済み。以下は画面固有処理。
+    // markSaved は保存中に編集が入っていない (snapshot 同一、shallowRef のオブジェクト同一性)
+    // 場合のみ。編集が入っていたら isDirty のまま残して再保存を促す
+    if (editState.value === pendingSave!.capturedState) {
+      session.markSaved();
+    }
     saveIssues.value = [];
     saveError.value = null;
     // slug 欄を保存結果 (confirmedSlug) に同期
@@ -427,6 +439,19 @@ async function saveSource(): Promise<void> {
     saveError.value = slugError.value;
     return;
   }
+  // 送信内容をここで一度だけ捕捉 (JSON ラウンドトリップは AppEdit と同様、非 clone 可能値の
+  // 混入防止)。conflict 後の「上書き」再送も同一 snapshot を送る (MapEdit と同セマンティクス)
+  const capturedState = editState.value!;
+  pendingSave = {
+    capturedState,
+    payload: JSON.parse(
+      JSON.stringify({
+        slug: capturedState.slug,
+        title: capturedState.title,
+        fc: session.toSaveFc(),
+      }),
+    ) as { slug: string; title: Record<string, string> | string; fc: PoiEditorFC },
+  };
   await performSave();
 }
 
@@ -482,11 +507,13 @@ function createPoiAtMapCenter(): void {
 
 // --- Undo/Redo (ボタン + キーボード + menu:undo/redo IPC、MapEdit と同パターン) ---
 function performUndo(): void {
+  if (saveHandle.saving.value) return; // 保存中の snapshot 差し替えを防ぐ (markSaved 判定と対)
   if (readOnly.value || !canUndo.value) return;
   session.undo();
 }
 
 function performRedo(): void {
+  if (saveHandle.saving.value) return; // 保存中の snapshot 差し替えを防ぐ (markSaved 判定と対)
   if (readOnly.value || !canRedo.value) return;
   session.redo();
 }
@@ -518,9 +545,10 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
   }
 };
 
-// 選択中 feature の Delete キー削除 (仕様 §4)。ReadOnly では無効
+// 選択中 feature の Delete キー削除 (仕様 §4)。ReadOnly では無効。
+// macOS のフルキーボードでない Delete キーは event.key === "Backspace" なので両方受ける
 const onDeleteKeydown = (event: KeyboardEvent) => {
-  if (event.key !== "Delete") return;
+  if (event.key !== "Delete" && event.key !== "Backspace") return;
   if (isInputTarget(event)) return;
   if (readOnly.value) return;
   const uid = session.selectedUid.value;

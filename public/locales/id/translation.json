@@ -19,7 +19,10 @@
     "traditional": "Bahasa Tionghoa Tradisional",
     "vietnamese": "Bahasa Vietnam",
     "thai": "Bahasa Thai",
-    "indonesian": "Bahasa Indonesia"
+    "indonesian": "Bahasa Indonesia",
+    "reload": "Muat ulang",
+    "overwrite": "Timpa",
+    "revision_conflict": "Aset ini diperbarui di jendela lain."
   },
   "navbar": {
     "edit_map": "Edit Peta",
@@ -589,6 +592,57 @@
     },
     "error": {
       "unknown": "Terjadi kesalahan saat menyimpan"
+    },
+    "import_file": "Impor Berkas",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "Huruf, angka, tanda hubung, garis bawah",
+    "title_label": "Judul",
+    "title_placeholder": "Masukkan judul sumber POI",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "Hapus sumber POI ini",
+    "delete_confirm": "Hapus \"{{name}}\"?",
+    "delete_referenced": "Sumber POI ini direferensikan oleh {{app}} aplikasi / {{map}} peta:",
+    "delete_error": "Gagal menghapus sumber POI",
+    "retry": "Coba lagi",
+    "cancel": "Batal",
+    "ref_kind": {
+      "map": "Peta",
+      "app": "Aplikasi"
+    },
+    "validation": {
+      "ready": "Siap",
+      "warning": "Peringatan",
+      "invalid": "Tidak valid"
+    },
+    "import_modal": {
+      "title": "Impor Berkas GeoJSON",
+      "file_label": "Berkas terpilih",
+      "import": "Impor"
+    },
+    "errors": {
+      "slug_charset": "Slug hanya boleh berisi huruf, angka, tanda hubung, dan garis bawah",
+      "slug_taken": "Slug ini sudah digunakan",
+      "invalid": "Tidak dapat mengimpor karena kesalahan validasi",
+      "non_point": "Geometri selain Point tidak dapat diimpor",
+      "network": "Tidak dapat terhubung ke sumber jarak jauh. Periksa jaringan dan coba lagi",
+      "http_status": "URL tidak dapat diakses (tidak ditemukan atau telah dihapus)",
+      "parse": "Tidak dapat mengurai respons sebagai GeoJSON",
+      "not_found": "Sumber POI yang dituju tidak ditemukan",
+      "internal": "Terjadi kesalahan internal",
+      "revision_conflict": "Diperbarui di jendela lain. Muat ulang daftar",
+      "not_feature_collection": "Bukan FeatureCollection GeoJSON",
+      "coord_range": "Koordinat di luar jangkauan (bujur ±180 / lintang ±90)",
+      "name_required": "name wajib diisi",
+      "display_id_duplicate": "ID tampilan duplikat di dalam sumber",
+      "display_id_charset": "ID tampilan berisi karakter yang tidak didukung",
+      "no_content": "Tidak ada konten",
+      "scale_feature_count": "Terlalu banyak fitur (lebih dari 1000)",
+      "scale_byte_size": "Ukuran data terlalu besar (lebih dari 5MB)",
+      "unsupported_scheme": "Hanya URL http/https yang didukung",
+      "payload_too_large": "Data melebihi batas ukuran (50MB)",
+      "pick_failed": "Tidak dapat memilih berkas",
+      "references_unavailable": "Tidak dapat mengambil informasi referensi"
     }
   },
   "poiedit": {
@@ -616,6 +670,7 @@
     "url": "URL",
     "images": "Gambar",
     "add_image": "Tambahkan gambar",
+    "remove_image": "Hapus gambar",
     "icon": "Ikon",
     "selected_icon": "Ikon saat dipilih",
     "coordinates": "Koordinat",

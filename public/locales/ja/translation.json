@@ -673,6 +673,7 @@
     "url": "URL",
     "images": "画像",
     "add_image": "画像を追加",
+    "remove_image": "画像を削除",
     "icon": "アイコン",
     "selected_icon": "選択時アイコン",
     "coordinates": "座標",

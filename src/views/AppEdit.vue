@@ -215,7 +215,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     get overwrite() { return t("common.overwrite"); },
   },
 });
-const { uid: appUid, confirmedSlug, performSave } = saveHandle;
+const { uid: appUid, confirmedSlug, performSave, saving } = saveHandle;
 // onlyOne: slugの一意性確認済みか (ADR-0007: appID欄は既存アプリでも編集可のslug欄)
 const onlyOne = ref(false);
 const appIDError = ref("appedit.check_uniqueness");
@@ -891,7 +891,7 @@ function normalizeJsonText(value: string, fallback: any) {
           <button type="button" class="btn btn-outline-secondary w-50" :disabled="!canRedo" @click="performRedo">{{ t("menu.redo") }}</button>
         </div>
         <div class="col-2 d-flex gap-1">
-          <button type="button" class="btn btn-primary w-50" :disabled="!!saveError || !isDirty" @click="saveApp">{{ t("common.save") }}</button>
+          <button type="button" class="btn btn-primary w-50" :disabled="!!saveError || !isDirty || saving" @click="saveApp">{{ t("common.save") }}</button>
           <button type="button" class="btn btn-success w-50" :disabled="isDirty || !onlyOne || exporting" @click="exportApp">{{ t("appedit.export_button") }}</button>
         </div>
       </div>

@@ -19,7 +19,10 @@
     "traditional": "ภาษาจีนตัวเต็ม",
     "vietnamese": "ภาษาเวียดนาม",
     "thai": "ภาษาไทย",
-    "indonesian": "ภาษาอินโดนีเซีย"
+    "indonesian": "ภาษาอินโดนีเซีย",
+    "reload": "โหลดใหม่",
+    "overwrite": "เขียนทับ",
+    "revision_conflict": "รายการนี้ถูกอัปเดตในหน้าต่างอื่น"
   },
   "navbar": {
     "edit_map": "แก้ไขแผนที่",
@@ -589,6 +592,57 @@
     },
     "error": {
       "unknown": "เกิดข้อผิดพลาดขณะบันทึก"
+    },
+    "import_file": "นำเข้าไฟล์",
+    "slug_label": "Slug (ID)",
+    "slug_placeholder": "ตัวอักษร ตัวเลข ยัติภังค์ และขีดล่าง",
+    "title_label": "ชื่อเรื่อง",
+    "title_placeholder": "กรอกชื่อเรื่องแหล่งข้อมูล POI",
+    "url_label": "URL",
+    "url_placeholder": "https://example.com/pois.geojson",
+    "delete_item": "ลบแหล่งข้อมูล POI นี้",
+    "delete_confirm": "ลบ \"{{name}}\" หรือไม่?",
+    "delete_referenced": "แหล่งข้อมูล POI นี้ถูกอ้างอิงโดยแอป {{app}} รายการ / แผนที่ {{map}} รายการ:",
+    "delete_error": "ไม่สามารถลบแหล่งข้อมูล POI ได้",
+    "retry": "ลองอีกครั้ง",
+    "cancel": "ยกเลิก",
+    "ref_kind": {
+      "map": "แผนที่",
+      "app": "แอป"
+    },
+    "validation": {
+      "ready": "พร้อมใช้งาน",
+      "warning": "คำเตือน",
+      "invalid": "ไม่ถูกต้อง"
+    },
+    "import_modal": {
+      "title": "นำเข้าไฟล์ GeoJSON",
+      "file_label": "ไฟล์ที่เลือก",
+      "import": "นำเข้า"
+    },
+    "errors": {
+      "slug_charset": "Slug ใช้ได้เฉพาะตัวอักษร ตัวเลข ยัติภังค์ และขีดล่างเท่านั้น",
+      "slug_taken": "Slug นี้ถูกใช้งานแล้ว",
+      "invalid": "ไม่สามารถนำเข้าได้เนื่องจากข้อผิดพลาดในการตรวจสอบ",
+      "non_point": "ไม่สามารถนำเข้าเรขาคณิตอื่นนอกจาก Point ได้",
+      "network": "ไม่สามารถเชื่อมต่อกับปลายทางระยะไกลได้ โปรดตรวจสอบเครือข่ายแล้วลองอีกครั้ง",
+      "http_status": "ไม่สามารถเข้าถึง URL ได้ (ไม่พบหรือถูกลบไปแล้ว)",
+      "parse": "ไม่สามารถแปลงการตอบกลับเป็น GeoJSON ได้",
+      "not_found": "ไม่พบแหล่งข้อมูล POI เป้าหมาย",
+      "internal": "เกิดข้อผิดพลาดภายใน",
+      "revision_conflict": "มีการอัปเดตในหน้าต่างอื่น โปรดโหลดรายการใหม่",
+      "not_feature_collection": "ไม่ใช่ GeoJSON FeatureCollection",
+      "coord_range": "พิกัดอยู่นอกช่วง (ลองจิจูด ±180 / ละติจูด ±90)",
+      "name_required": "จำเป็นต้องระบุ name",
+      "display_id_duplicate": "ID แสดงผลซ้ำกันภายในแหล่งข้อมูล",
+      "display_id_charset": "ID แสดงผลมีอักขระที่ไม่รองรับ",
+      "no_content": "ไม่มีเนื้อหา",
+      "scale_feature_count": "จำนวนฟีเจอร์มากเกินไป (เกิน 1000)",
+      "scale_byte_size": "ขนาดข้อมูลใหญ่เกินไป (เกิน 5MB)",
+      "unsupported_scheme": "รองรับเฉพาะ URL แบบ http/https เท่านั้น",
+      "payload_too_large": "ข้อมูลเกินขีดจำกัดขนาด (50MB)",
+      "pick_failed": "ไม่สามารถเลือกไฟล์ได้",
+      "references_unavailable": "ไม่สามารถดึงข้อมูลการอ้างอิงได้"
     }
   },
   "poiedit": {
@@ -616,6 +670,7 @@
     "url": "URL",
     "images": "รูปภาพ",
     "add_image": "เพิ่มรูปภาพ",
+    "remove_image": "ลบรูปภาพ",
     "icon": "ไอคอน",
     "selected_icon": "ไอคอนเมื่อถูกเลือก",
     "coordinates": "พิกัด",

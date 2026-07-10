@@ -96,7 +96,7 @@
               v-if="!readOnly"
               type="button"
               class="btn btn-sm btn-outline-secondary"
-              aria-label="remove"
+              :aria-label="t('poiedit.remove_image')"
               @click="removeImageRow(index)"
             >
               &times;
