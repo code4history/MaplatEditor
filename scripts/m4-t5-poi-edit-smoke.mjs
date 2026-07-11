@@ -522,6 +522,13 @@ try {
     /poisource\.errors\.coord_range/,
     'PoiAttributeForm に座標域外エラーがない'
   );
+  // type="number" の v-model は数値を返すため、String 化してから trim すること
+  // (2026-07-11 実機バグ: lonInput.value.trim() が TypeError で座標入力が丸ごと無反応)
+  assert.match(
+    attrForm,
+    /String\(lonInput\.value[\s\S]{0,20}\.trim\(\)/,
+    'PoiAttributeForm の座標入力が String() 化せずに trim している (number v-model は数値を返す)'
+  );
 
   // 新規追加時フォーカス用 focusName の expose
   assert.match(

@@ -322,8 +322,9 @@ const displayIdError = ref<string | null>(null);
 const nameError = ref<string | null>(null);
 const iconInput = ref("");
 const selectedIconInput = ref("");
-const lonInput = ref("");
-const latInput = ref("");
+// type="number" の v-model は数値 (または空文字) を返すため string | number で持つ
+const lonInput = ref<string | number>("");
+const latInput = ref<string | number>("");
 const coordError = ref<string | null>(null);
 
 interface ImageRow {
@@ -641,8 +642,10 @@ const onCoordChange = (): void => {
   const f = feature.value;
   const id = uid.value;
   if (!f || !id || props.readOnly) return;
-  const lonRaw = lonInput.value.trim();
-  const latRaw = latInput.value.trim();
+  // type="number" の v-model は数値を返す (2026-07-11 実機バグ: .trim() 直呼びで TypeError →
+  // moveFeature に到達せず座標入力が丸ごと無反応だった)。String 化してから正規化する
+  const lonRaw = String(lonInput.value ?? "").trim();
+  const latRaw = String(latInput.value ?? "").trim();
   const lon = Number(lonRaw);
   const lat = Number(latRaw);
   if (
