@@ -15,6 +15,7 @@ import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import { compactMapLangFields } from '../../src/utils/langResource';
 import { ProgressReporter } from '../utils/ProgressReporter';
+import { resolvePoisArray } from '../services/poiReferenceResolver';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
@@ -52,6 +53,26 @@ async function createTinFromGcpsAsync(
                 else reject(err);
             });
     });
+}
+
+// download 用の交換形 map JSON を組み立てる (M2)。histMap2Store + 言語畳み込みの後、
+// pois 内の {poiUid} 参照を resolvePoisArray で export 形 FC へ解決する
+// (AppExportService/AppPreviewService と同じ viewer 互換の扱いに統一)。
+// mapedit:download の戻り値は 'Success'|'Canceled' の文字列契約 (renderer 未配線) を保つため、
+// warnings はここでは返すのみに留め、呼び出し側で console.warn するか判断させる
+export async function composeDownloadMapJson(mapObject: any, tins: any[]): Promise<{ compiled: any; warnings: string[] }> {
+    const compiled = compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins));
+    // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (ADR-0007)
+    delete (compiled as any).uid;
+    delete (compiled as any).slug;
+    delete (compiled as any).revision;
+    let warnings: string[] = [];
+    if (Array.isArray((compiled as any).pois)) {
+        const resolved = await resolvePoisArray((compiled as any).pois);
+        warnings = resolved.warnings;
+        (compiled as any).pois = resolved.pois;
+    }
+    return { compiled, warnings };
 }
 
 export const registerMapEditHandlers = () => {
@@ -124,12 +145,13 @@ export const registerMapEditHandlers = () => {
 
         // histMap2Store で store 形式に変換してから JSON 保存。
         // エクスポート(交換形)ではデフォルト言語のみの言語別フィールドを
-        // プレーン文字列に畳み込む (ADR-0005)
-        const compiled = compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins));
-        // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (ADR-0007)
-        delete (compiled as any).uid;
-        delete (compiled as any).slug;
-        delete (compiled as any).revision;
+        // プレーン文字列に畳み込む (ADR-0005)。pois 内の {poiUid} 参照は export 形 FC へ
+        // 解決する (viewer 互換, M2)。renderer には warnings を表示する経路が未配線のため
+        // console.warn で可視化するに留める (判断根拠は Phase 7 品質レビュー M2 参照)
+        const { compiled, warnings } = await composeDownloadMapJson(mapObject, tins);
+        if (warnings.length > 0) {
+            console.warn('[mapedit:download] POI reference warnings:', warnings);
+        }
         const tmpFile = path.join(tmpFolder, `${slug}.json`);
         await fs.ensureDir(tmpFolder);
         await fs.writeFile(tmpFile, JSON.stringify(compiled));

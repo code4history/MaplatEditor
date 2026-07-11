@@ -8,6 +8,7 @@ import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset } from '../utils/resourceAssets';
+import { normalizeJsonArray } from '../utils/jsonArray';
 import {
   collectPoiUids,
   hasSharedPoiUid,
@@ -450,19 +451,6 @@ function escapeHtml(value: string) {
 
 function findExistingPath(candidates: string[]) {
   return candidates.find(candidate => fs.existsSync(candidate)) || candidates[0];
-}
-
-function normalizeJsonArray(value: any) {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string' && value.trim()) {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
 }
 
 export default new AppPreviewService();

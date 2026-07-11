@@ -31,6 +31,8 @@ try {
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const mapEditServicePath = path.join(projectRoot, 'electron/services/MapEditService.ts');
+  const poiServicePath = path.join(projectRoot, 'electron/services/PoiSourceService.ts');
+  const mapeditIpcPath = path.join(projectRoot, 'electron/ipc/mapedit.ts');
 
   await writeFile(
     electronStubFile,
@@ -87,6 +89,8 @@ try {
 
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
       const { default: MapEditService } = await import(${JSON.stringify(mapEditServicePath)});
+      const { default: PoiSourceService } = await import(${JSON.stringify(poiServicePath)});
+      const { composeDownloadMapJson } = await import(${JSON.stringify(mapeditIpcPath)});
       await SqliteDataService.getDb();
 
       const POI_UID = '12345678-1234-4123-8123-123456789012';
@@ -171,6 +175,58 @@ try {
         'pois を持たない保存では data_json に pois キーが生えないはず: ' + JSON.stringify(stored2.pois)
       );
       console.log('ok: (3) maps without pois do not grow a pois key');
+
+      // --- ④ download 経路 (composeDownloadMapJson) でも {poiUid} 参照が export 形 FC へ
+      //     解決され、未解決の poiUid キーが出力に残らないこと (Phase 7 品質レビュー M2) ---
+      const created = await PoiSourceService.createLocal({ slug: 'download-poi', title: 'ダウンロードPOI' });
+      assert.equal(created.result, 'Success', 'createLocal は Success のはず: ' + JSON.stringify(created));
+      const srcUid = created.uid;
+      const savedSource = await PoiSourceService.save(srcUid, {
+        slug: 'download-poi',
+        title: 'ダウンロードPOI',
+        fc: {
+          type: 'FeatureCollection',
+          icon: 'builtin:defaultpin',
+          features: [
+            { type: 'Feature', id: 'spot',
+              geometry: { type: 'Point', coordinates: [135.5, 35.5] },
+              properties: { _maplatUid: '22222222-2222-4222-8222-222222222222', name: 'スポット' } },
+          ],
+        },
+        expectedRevision: 1,
+      });
+      assert.equal(savedSource.result, 'Success', 'POI ソース save は Success のはず: ' + JSON.stringify(savedSource));
+
+      const downloadPoisFixture = [{ poiUid: srcUid, cachedTitle: 'ダウンロードPOI' }, RAW_URL];
+      const downloadSaveResult = await MapEditService.save({
+        mapObject: { ...mapObject, mapID: 'download-poi-map', pois: downloadPoisFixture },
+        tins: [],
+        slug: 'download-poi-map',
+      });
+      assert.equal(
+        downloadSaveResult.result, 'Success',
+        'download 用 save は Success のはず: ' + JSON.stringify(downloadSaveResult)
+      );
+      // download 経路と同じ入力形 (MapEditService.request で読み込んだ編集用オブジェクト) を合成する
+      const downloadMapObject = await MapEditService.request(downloadSaveResult.uid);
+      const { compiled: downloadCompiled, warnings: downloadWarnings } =
+        await composeDownloadMapJson(downloadMapObject, []);
+      assert.ok(Array.isArray(downloadCompiled.pois), 'download 出力に pois 配列があるはず');
+      assert.equal(downloadCompiled.pois.length, 2, 'download 出力の pois 件数が変わらないはず');
+      const resolvedFc = downloadCompiled.pois[0];
+      assert.ok(
+        resolvedFc && typeof resolvedFc === 'object' && !('poiUid' in resolvedFc),
+        'download 出力の pois[0] は未解決の {poiUid} ではなく解決済み FC のはず: ' + JSON.stringify(resolvedFc)
+      );
+      assert.equal(resolvedFc.type, 'FeatureCollection', 'download 出力の pois[0] は FeatureCollection のはず');
+      assert.equal(resolvedFc.id, 'download-poi', 'download 出力の FC.id は POI ソースの slug のはず');
+      assert.equal(downloadCompiled.pois[1], RAW_URL, '生 URL は download 出力でも透過されるはず');
+      assert.ok(
+        !JSON.stringify(downloadCompiled.pois).includes('"poiUid"'),
+        'download 出力全体に未解決の poiUid キーが残らないはず'
+      );
+      assert.deepEqual(downloadWarnings, [], 'すべて解決できるため download の warnings は空のはず');
+      console.log('ok: (4) composeDownloadMapJson resolves {poiUid} references in download output (M2)');
 
       console.log('M10-T3 mapedit pois save smoke passed');
       process.exit(0);

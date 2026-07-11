@@ -22,6 +22,7 @@ import {
   type AppSource,
 } from '../../src/utils/appSourceModel';
 import { compactMapLangFields } from '../../src/utils/langResource';
+import { normalizeJsonArray } from '../utils/jsonArray';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
@@ -120,7 +121,7 @@ class AppExportService {
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
 
       // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
-      const appPoiUids = collectPoiUids(document.pois ?? parseJsonArray(document.poiSources));
+      const appPoiUids = collectPoiUids(normalizeJsonArray(document.pois || document.poiSources));
       let duplicateReference = false;
 
       // 2) Maplat地図: maps/{slug}.json + tiles + tmbs
@@ -257,7 +258,7 @@ class AppExportService {
       sources.find(source => source.mapUid === document.startFrom || source.mapSlug === document.startFrom);
     const startFrom = startSource ? viewerMapID(startSource) : document.startFrom;
     if (startFrom) out.startFrom = startFrom;
-    const pois = document.pois ?? parseJsonArray(document.poiSources);
+    const pois = normalizeJsonArray(document.pois || document.poiSources);
     if (Array.isArray(pois) && pois.length > 0) {
       const resolved = await resolvePoisArray(pois);
       mergeWarnings(warnings, resolved.warnings);
@@ -507,19 +508,6 @@ function finiteOr(value: any, fallback: number): number {
   if (value === null || value === undefined || value === '') return fallback;
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
-}
-
-function parseJsonArray(value: any): any[] {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string' && value.trim()) {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
 }
 
 function localize(value: any, lang = 'ja'): string {

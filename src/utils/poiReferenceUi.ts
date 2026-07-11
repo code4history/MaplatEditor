@@ -5,12 +5,19 @@
 // 生要素 (URL 文字列 / FC 埋め込み) は位置ごと透過する。
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 
+// UUID 形式判定。大文字小文字を区別しない — electron/adapters/StorageAdapter.ts の
+// UUID_PATTERN と同じ形（renderer からは import できないため値を揃えてここに再定義する）。
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // 参照要素判定は main 側 poiReferenceResolver.poiUidOf と同一規約
-// (「string の poiUid キーを持つ object」。空白のみの uid は生要素扱い)
+// (「string の poiUid キーを持つ object」かつ uid が UUID 形状のもののみ参照扱い。M4)。
+// UUID 形でない poiUid は将来拡張の手書き形の可能性があるため生要素として透過し、選択集合の
+// 復元・書き戻しの対象にもしない (位置不変で温存)。main 側の findPoiSourceReferences の
+// 走査対象 (UUID のみ) と対称。
 export function poiUidOf(entry: unknown): string | null {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
   const uid = (entry as Record<string, unknown>).poiUid;
-  return typeof uid === "string" && uid.trim() !== "" ? uid : null;
+  return typeof uid === "string" && UUID_PATTERN.test(uid) ? uid : null;
 }
 
 // pois 配列から selector の選択集合を復元する。重複参照は先勝ちで1つに畳む

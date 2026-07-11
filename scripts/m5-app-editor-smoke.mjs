@@ -252,12 +252,13 @@ try {
     /import \{ extractPoiRefs, applyPoiSelection, samePoiSelection \} from "\.\.\/utils\/poiReferenceUi"/,
     'AppEdit.vue が共有 util (poiReferenceUi) を import していない'
   );
-  // poiUid 復元: 参照要素判定は「string の poiUid キーを持つ object」(poiReferenceResolver と同一規約)
+  // poiUid 復元: 参照要素判定は「string の poiUid キーを持つ object」かつ UUID 形状のみ
+  // (poiReferenceResolver と同一規約, M4)
   assert.match(appEditView, /function syncPoiSelectionFromJson/, 'AppEdit.vue に poiSources → selector の復元がない');
   assert.match(
     poiReferenceUi,
-    /typeof uid === "string" && uid\.trim\(\) !== ""/,
-    'poiReferenceUi.ts の参照要素判定が poiReferenceResolver 規約 (string の poiUid キー) と一致しない'
+    /typeof uid === "string" && UUID_PATTERN\.test\(uid\)/,
+    'poiReferenceUi.ts の参照要素判定が poiReferenceResolver 規約 (UUID 形状の poiUid のみ, M4) と一致しない'
   );
   // 書き戻し: poiUid 要素の除去→再構築で、生要素 (URL/FC) は位置ごと透過されること
   assert.match(

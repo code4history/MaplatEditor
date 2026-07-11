@@ -6,17 +6,22 @@
 // 呼び込み点は 4 箇所: AppPreviewService の app JSON / map JSON、AppExportService の app JSON / map JSON。
 // warnings は静的 i18n キー (AppEdit 側の t(key) 表示と互換、パラメタ補間なし)。
 import PoiSourceService from './PoiSourceService';
+import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
 export interface ResolvedPois {
   pois: unknown[];
   warnings: string[];
 }
 
-// {poiUid} 参照要素なら uid を返す。poiUid 以外のキー (cachedTitle 等) は解決時に無視する
+// {poiUid} 参照要素なら uid を返す。poiUid 以外のキー (cachedTitle 等) は解決時に無視する。
+// uid は UUID 形状 (StorageAdapter.UUID_PATTERN と同形、大小文字非区別) のみ参照として扱う
+// (M4)。UUID 形でない poiUid は将来拡張の手書き形かもしれないため生要素として透過し、
+// missing 警告の対象にもしない (安全側)。この判定は SqliteDataService.findPoiSourceReferences
+// の走査対象 (UUID のみ) と対称 — 非 UUID 値はそもそも逆参照検索にも引っかからないため。
 function poiUidOf(entry: unknown): string | null {
   if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
   const uid = (entry as Record<string, unknown>).poiUid;
-  return typeof uid === 'string' && uid.trim() !== '' ? uid : null;
+  return typeof uid === 'string' && UUID_PATTERN.test(uid) ? uid : null;
 }
 
 // 二重参照検出 (POI-142) 用: pois 配列内の参照 uid 集合。非配列入力は空集合

@@ -42,6 +42,7 @@ try {
   const appDataServicePath = path.join(projectRoot, 'electron/services/AppDataService.ts');
   const appPreviewServicePath = path.join(projectRoot, 'electron/services/AppPreviewService.ts');
   const appExportServicePath = path.join(projectRoot, 'electron/services/AppExportService.ts');
+  const poiReferenceResolverPath = path.join(projectRoot, 'electron/services/poiReferenceResolver.ts');
 
   await writeFile(
     electronStubFile,
@@ -109,6 +110,7 @@ try {
       const { default: AppDataService } = await import(${JSON.stringify(appDataServicePath)});
       const { default: AppPreviewService } = await import(${JSON.stringify(appPreviewServicePath)});
       const { default: AppExportService } = await import(${JSON.stringify(appExportServicePath)});
+      const { resolvePoisArray } = await import(${JSON.stringify(poiReferenceResolverPath)});
       await SqliteDataService.getDb();
 
       const MISSING_KEY = 'appedit.warn_missing_poi_source';
@@ -280,6 +282,30 @@ try {
       );
       assert.equal(afterAll.fc.features[0].properties._maplatUid, '11111111-1111-4111-8111-111111111111');
       console.log('ok: (7) resolution does not degrade the Write Store source');
+
+      // --- (8) 非 UUID poiUid → 参照とみなさず生要素として透過。missing 警告も立たない (M4) ---
+      const nonUuidElement = { poiUid: 'legacy-not-a-uuid', cachedTitle: '将来拡張の手書き形' };
+      const nonUuidResult = await resolvePoisArray([nonUuidElement]);
+      assert.deepEqual(
+        nonUuidResult.pois, [nonUuidElement],
+        '非 UUID poiUid の要素は無加工で透過されるはず: ' + JSON.stringify(nonUuidResult.pois)
+      );
+      assert.deepEqual(
+        nonUuidResult.warnings, [],
+        '非 UUID poiUid は参照とみなさないため missing 警告は立たないはず: ' + JSON.stringify(nonUuidResult.warnings)
+      );
+      console.log('ok: (8) non-UUID poiUid is passed through as a raw element without a missing warning (M4)');
+
+      // --- (9) 同一配列内で同じ uid を複数回参照 → どちらも export 形 FC に解決される ---
+      const duplicateUidResult = await resolvePoisArray([
+        { poiUid: srcUid, cachedTitle: '京都POI' },
+        { poiUid: srcUid, cachedTitle: '京都POI(2回目)' },
+      ]);
+      assert.equal(duplicateUidResult.pois.length, 2, '同一 uid の重複参照も両方解決されて2件残るはず');
+      assertResolvedFc(duplicateUidResult.pois[0], 'duplicate uid [0]');
+      assertResolvedFc(duplicateUidResult.pois[1], 'duplicate uid [1]');
+      assert.deepEqual(duplicateUidResult.warnings, [], '重複参照だけでは警告は立たないはず');
+      console.log('ok: (9) duplicate uid references within the same array both resolve');
 
       console.log('M10-T1 poi reference resolver smoke passed');
       process.exit(0);
