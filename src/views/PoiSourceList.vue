@@ -12,7 +12,10 @@
           {{ t("poisource.import_file") }}
         </button>
       </div>
-      <div class="col-auto">
+      <!-- リモート登録はユーザー決定 (2026-07-11) により UI 抑制中: 望む形式のリモートデータが
+           実在せず、htmlTemplate 対応 (POI-007/109) までは実用にならないため。backend の
+           registerRemote/refreshRemote/ReadOnly/cloneToLocal ロジックは温存 (フラグで再表示可) -->
+      <div v-if="REMOTE_POI_REGISTRATION_ENABLED" class="col-auto">
         <button class="btn btn-light border shadow-sm px-4" @click="openRegisterRemote">
           {{ t("poisource.register_remote") }}
         </button>
@@ -189,6 +192,11 @@ import type {
 
 const { t } = useTranslation();
 const router = useRouter();
+
+// リモート登録 UI の抑制フラグ (ユーザー決定 2026-07-11)。望む形式のリモート POI データが
+// 実在せず、htmlTemplate 対応 (POI-007/109) までは実用にならないため UI のみ隠す。
+// backend (registerRemote/refreshRemote/ReadOnly/cloneToLocal) は温存 — true に戻せば復活する
+const REMOTE_POI_REGISTRATION_ENABLED = false;
 
 const {
   items,
