@@ -726,6 +726,20 @@ try {
     'utf8'
   );
 
+  // PoiRawPane のルートに h-100 を付けてはならない (Bootstrap の !important が親スコープの
+  // .poi-raw-pane { height: 40% } を打ち消し、flex-shrink:0 と相まって地図ペインを 0px に
+  // 潰す — 2026-07-11 実機バグの再発防止)
+  {
+    // コメントは読み飛ばし、ルート div の開始タグだけを検査する (コメント内の説明文が誤爆しないように)
+    const rawPaneRootTag = rawPane.match(/<template>\s*(?:<!--[\s\S]*?-->\s*)*(<div[^>]*>)/);
+    assert.ok(rawPaneRootTag, 'PoiRawPane のルート div が見つからない');
+    assert.doesNotMatch(
+      rawPaneRootTag[1],
+      /\bh-100\b/,
+      'PoiRawPane のルートに h-100 がある (親の height:40% を !important で打ち消して地図が 0px に潰れる)'
+    );
+  }
+
   // PoiEdit 配線: import + session/read-only/visible を渡してマウント + 開閉トグル
   assert.match(
     poiEdit,

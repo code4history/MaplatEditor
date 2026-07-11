@@ -1,5 +1,8 @@
 <template>
-  <div class="d-flex flex-column h-100 overflow-hidden bg-white border-top text-start">
+  <!-- 高さは親 (PoiEdit) の .poi-raw-pane { height: 40% } が与える。ここに h-100 を付けると
+       Bootstrap の !important が 40% を打ち消して中央カラム全高を占有し、flex-shrink:0 と
+       相まって地図ペイン (flex-grow) が 0px に潰れる (2026-07-11 実機バグ) -->
+  <div class="d-flex flex-column overflow-hidden bg-white border-top text-start">
     <!-- ヘッダ行: タイトル + dirty notice + 破棄/適用ボタン -->
     <div class="d-flex align-items-center gap-2 px-3 py-1 border-bottom flex-shrink-0">
       <span class="fw-bold small">{{ t("poiedit.raw_pane") }}</span>
