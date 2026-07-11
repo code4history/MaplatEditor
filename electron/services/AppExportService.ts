@@ -10,9 +10,11 @@ import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
   collectPoiUids,
   hasSharedPoiUid,
+  mergeIconFiles,
   mergeWarnings,
   resolvePoisArray,
   DUPLICATE_POI_REFERENCE_WARNING,
+  type IconFile,
 } from './poiReferenceResolver';
 import {
   compactLangObject,
@@ -116,8 +118,12 @@ class AppExportService {
         source.data.thumbnail = outRel;
       }
 
+      // POI icon 参照解決 (POI-117) の実体コピー要求。app/map の全解決結果を dest キーで畳んで
+      // 最後に outDir/imgs/... へまとめてコピーする
+      const iconFiles = new Map<string, IconFile>();
+
       // 1) apps/{appID}.json (pois の {poiUid} 参照は export 形 FC へ解決される、Phase 7)
-      const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings);
+      const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings, iconFiles);
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
 
       // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
@@ -146,6 +152,7 @@ class AppExportService {
           }
           const resolved = await resolvePoisArray((mapJson as any).pois);
           mergeWarnings(warnings, resolved.warnings);
+          mergeIconFiles(iconFiles, resolved.files);
           (mapJson as any).pois = resolved.pois;
         }
         await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson, { spaces: 4 });
@@ -183,6 +190,16 @@ class AppExportService {
           } else {
             warnings.push('appedit.export.missing_thumbnail');
           }
+        }
+      }
+
+      // 3b) POI icon 実体 (POI-117): 解決済み参照が指す imgs/... へコピー。
+      //     解決時 (resolveIconValue) に存在確認済みだが、レース等で消えていたら警告に落とす
+      for (const file of iconFiles.values()) {
+        if (fs.existsSync(file.src)) {
+          await fs.copy(file.src, path.join(outDir, ...file.dest.split('/')));
+        } else {
+          mergeWarnings(warnings, ['appedit.warn_unresolved_icon']);
         }
       }
 
@@ -234,6 +251,7 @@ class AppExportService {
     sources: AppSource[],
     viewerMapID: (source: AppSource) => string,
     warnings: string[],
+    iconFiles: Map<string, IconFile>,
   ) {
     const lang = document.lang || 'ja';
     const out: Record<string, unknown> = {
@@ -262,6 +280,7 @@ class AppExportService {
     if (Array.isArray(pois) && pois.length > 0) {
       const resolved = await resolvePoisArray(pois);
       mergeWarnings(warnings, resolved.warnings);
+      mergeIconFiles(iconFiles, resolved.files);
       if (resolved.pois.length > 0) out.pois = resolved.pois;
     }
     return out;

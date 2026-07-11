@@ -15,7 +15,7 @@ import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import { compactMapLangFields } from '../../src/utils/langResource';
 import { ProgressReporter } from '../utils/ProgressReporter';
-import { resolvePoisArray } from '../services/poiReferenceResolver';
+import { resolvePoisArray, type IconFile } from '../services/poiReferenceResolver';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
@@ -58,21 +58,27 @@ async function createTinFromGcpsAsync(
 // download 用の交換形 map JSON を組み立てる (M2)。histMap2Store + 言語畳み込みの後、
 // pois 内の {poiUid} 参照を resolvePoisArray で export 形 FC へ解決する
 // (AppExportService/AppPreviewService と同じ viewer 互換の扱いに統一)。
+// icon 参照文法も同時に imgs/... へ解決され (POI-117, M1)、実体コピー要求 files を返す
+// (呼び出し側が ZIP の imgs/... へ同梱する)。
 // mapedit:download の戻り値は 'Success'|'Canceled' の文字列契約 (renderer 未配線) を保つため、
 // warnings はここでは返すのみに留め、呼び出し側で console.warn するか判断させる
-export async function composeDownloadMapJson(mapObject: any, tins: any[]): Promise<{ compiled: any; warnings: string[] }> {
+export async function composeDownloadMapJson(
+    mapObject: any, tins: any[]
+): Promise<{ compiled: any; warnings: string[]; files: IconFile[] }> {
     const compiled = compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins));
     // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (ADR-0007)
     delete (compiled as any).uid;
     delete (compiled as any).slug;
     delete (compiled as any).revision;
     let warnings: string[] = [];
+    let files: IconFile[] = [];
     if (Array.isArray((compiled as any).pois)) {
         const resolved = await resolvePoisArray((compiled as any).pois);
         warnings = resolved.warnings;
+        files = resolved.files;
         (compiled as any).pois = resolved.pois;
     }
-    return { compiled, warnings };
+    return { compiled, warnings, files };
 }
 
 export const registerMapEditHandlers = () => {
@@ -148,7 +154,7 @@ export const registerMapEditHandlers = () => {
         // プレーン文字列に畳み込む (ADR-0005)。pois 内の {poiUid} 参照は export 形 FC へ
         // 解決する (viewer 互換, M2)。renderer には warnings を表示する経路が未配線のため
         // console.warn で可視化するに留める (判断根拠は Phase 7 品質レビュー M2 参照)
-        const { compiled, warnings } = await composeDownloadMapJson(mapObject, tins);
+        const { compiled, warnings, files } = await composeDownloadMapJson(mapObject, tins);
         if (warnings.length > 0) {
             console.warn('[mapedit:download] POI reference warnings:', warnings);
         }
@@ -161,6 +167,14 @@ export const registerMapEditHandlers = () => {
             [tmpFile, 'maps', `${slug}.json`],
             [path.join(thumbFolder, `${fileKey}.jpg`), 'tmbs', `${slug}.jpg`],
         ];
+
+        // 解決済み POI icon の実体 (POI-117): zip ルート相対 imgs/... へ同梱
+        // (viewer は icon をページ URL 基準で解決するため、index.html と同階層に置かれる想定の配置)
+        for (const file of files) {
+            const destSegments = file.dest.split('/');
+            const zipName = destSegments.pop()!;
+            targets.push([file.src, destSegments.join('/'), zipName]);
+        }
 
         // タイルファイルを再帰的に収集(読み込みはtiles/{uid}、zip内はtiles/{slug})
         const tileRoot = path.join(tileFolder, fileKey);

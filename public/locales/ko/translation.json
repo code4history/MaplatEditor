@@ -531,6 +531,7 @@
     "export_failed": "내보내기에 실패했습니다.",
     "warn_missing_poi_source": "참조하는 POI 소스를 찾을 수 없어 출력에서 제외했습니다.",
     "warn_duplicate_poi_reference": "동일한 POI 소스가 앱과 지도 양쪽에서 참조되고 있습니다. POI가 이중으로 표시될 수 있습니다.",
+    "warn_unresolved_icon": "해석할 수 없는 아이콘 참조가 있어 원래 값 그대로 출력했습니다.",
     "export": {
       "progress": "내보내는 중...",
       "done": "내보내기 완료",

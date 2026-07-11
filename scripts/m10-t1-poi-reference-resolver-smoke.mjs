@@ -13,6 +13,13 @@
 //      その app (と pois を持つ map) を返す (AID-006 実効化)
 //   ⑥ export 経路: AppExportService.exportApp の実出力 (apps/{appID}.json / maps/{slug}.json) の
 //      pois が①④と同じ解決結果になり、result.warnings に③④のキーが載る
+//   ⑩ icon 参照文法の解決 (POI-117): feature properties.icon='builtin:defaultpin' / layer metadata
+//      icon=asset UUID → preview の app JSON で 'imgs/icons/builtin/defaultpin.svg' /
+//      'imgs/{slug}.{ext}' に書き換わり、その URL を HTTP fetch すると 200 + 実体 (SVG/画像バイト)
+//   ⑪ export 出力ディレクトリに imgs/icons/builtin/defaultpin.svg と imgs/{slug}.{ext} が実在し、
+//      app JSON の参照がそれを指す
+//   ⑫ 未登録 setId ('maki:bank') → 原文維持 + warnings に appedit.warn_unresolved_icon (1回)
+//   ⑬ Write Store 内の data_json は参照文法のまま無変化
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -115,9 +122,29 @@ try {
 
       const MISSING_KEY = 'appedit.warn_missing_poi_source';
       const DUPLICATE_KEY = 'appedit.warn_duplicate_poi_reference';
+      const UNRESOLVED_ICON_KEY = 'appedit.warn_unresolved_icon';
       const MISSING_UID = '99999999-9999-4999-8999-999999999999';
 
+      // --- fixture: image asset (icon の asset UUID 参照先, POI-117) ---
+      // ImageAssetService.add は jimp デコードを要するため、DB 行 + 実体ファイルを直接作る
+      const assetBytes = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        'base64'
+      );
+      const { uid: assetUid } = await SqliteDataService.createAsset('temple-mark', {
+        title: { ja: '寺マーク' },
+        mime: 'image/png',
+        ext: 'png',
+        width: 1,
+        height: 1,
+        byteSize: assetBytes.length,
+      });
+      const assetsDir = nodePath.join(${JSON.stringify(dataDir)}, 'assets');
+      await (await import('fs-extra')).default.ensureDir(assetsDir);
+      await (await import('node:fs/promises')).writeFile(nodePath.join(assetsDir, assetUid + '.png'), assetBytes);
+
       // --- fixture: 登録 POI ソース (name・8桁精度座標・_maplatUid 付き feature) ---
+      // layer metadata icon=asset UUID / feature icon=builtin 参照 / selectedIcon=未登録 setId (⑩⑫)
       const created = await PoiSourceService.createLocal({ slug: 'kyoto-poi', title: '京都POI' });
       assert.equal(created.result, 'Success', 'createLocal は Success のはず: ' + JSON.stringify(created));
       const srcUid = created.uid;
@@ -126,11 +153,12 @@ try {
         title: '京都POI',
         fc: {
           type: 'FeatureCollection',
-          icon: 'builtin:defaultpin',
+          icon: assetUid,
           features: [
             { type: 'Feature', id: 'kinkakuji',
               geometry: { type: 'Point', coordinates: [135.12345678, 35.12345678] },
-              properties: { _maplatUid: '11111111-1111-4111-8111-111111111111', name: '金閣寺' } },
+              properties: { _maplatUid: '11111111-1111-4111-8111-111111111111', name: '金閣寺',
+                icon: 'builtin:defaultpin', selectedIcon: 'maki:bank' } },
           ],
         },
         expectedRevision: 1,
@@ -190,11 +218,16 @@ try {
         assert.equal(fc.type, 'FeatureCollection', label + ': pois[0] は FeatureCollection のはず');
         assert.equal(fc.id, 'kyoto-poi', label + ': FC.id === slug のはず (POI-133)');
         assert.equal(fc.name, '京都POI', label + ': FC.name === title のはず (ADR-0005 collapse)');
-        assert.equal(fc.icon, 'builtin:defaultpin', label + ': layer metadata が export 形に持ち越されるはず');
+        assert.equal(fc.icon, 'imgs/temple-mark.png',
+          label + ': layer metadata の asset UUID 参照が imgs/{slug}.{ext} に解決されるはず (POI-117)');
         assert.equal(fc.features.length, 1);
         const feature = fc.features[0];
         assert.equal(feature.id, 'kinkakuji');
         assert.equal(feature.properties.name, '金閣寺', label + ': feature name も交換形へ collapse されるはず');
+        assert.equal(feature.properties.icon, 'imgs/icons/builtin/defaultpin.svg',
+          label + ': feature の builtin 参照が imgs/icons/{setId}/{iconId}.svg に解決されるはず (POI-117)');
+        assert.equal(feature.properties.selectedIcon, 'maki:bank',
+          label + ': 未登録 setId の参照は原文維持のはず (⑫)');
         const internalKeys = Object.keys(feature.properties).filter((key: string) => key.startsWith('_maplat'));
         assert.deepEqual(internalKeys, [], label + ': _maplat* キーが剥がされているはず');
         assert.deepEqual(
@@ -238,6 +271,26 @@ try {
       assertResolvedFc(mapJson.pois[0], 'preview map JSON');
       console.log('ok: (1)-(4) preview app/map JSON resolve {poiUid} references with warnings');
 
+      // --- (10) 解決後の imgs/... URL が preview セッションから実際に配信される (POI-117) ---
+      const builtinRes = await fetch(prepared.url + 'imgs/icons/builtin/defaultpin.svg');
+      assert.equal(builtinRes.status, 200, 'builtin icon の配信は 200 のはず');
+      const builtinBody = await builtinRes.text();
+      assert.ok(builtinBody.includes('<svg'), 'builtin icon の中身は SVG のはず: ' + builtinBody.slice(0, 80));
+      const assetRes = await fetch(prepared.url + 'imgs/temple-mark.png');
+      assert.equal(assetRes.status, 200, 'asset icon の配信は 200 のはず');
+      const assetBody = Buffer.from(await assetRes.arrayBuffer());
+      assert.ok(assetBody.equals(assetBytes), 'asset icon の中身は登録したバイト列のはず');
+      console.log('ok: (10) preview serves resolved imgs/... icon URLs with real bytes');
+
+      // --- (12) 未登録 setId → 原文維持 (assertResolvedFc 内) + unresolved 警告キー1回 ---
+      assert.ok(prepared.warnings.includes(UNRESOLVED_ICON_KEY),
+        'unresolved icon 警告キーが載るはず: ' + JSON.stringify(prepared.warnings));
+      assert.equal(
+        prepared.warnings.filter((key: string) => key === UNRESOLVED_ICON_KEY).length, 1,
+        'unresolved icon 警告キーは1回だけのはず'
+      );
+      console.log('ok: (12) unregistered icon set stays as-is with a single unresolved warning');
+
       // ⑤ 参照を持つ app の保存で findReferences が実効化 (AID-006)
       const appSaved = await AppDataService.saveApp({ document: appDocument, slug: 'poi_ref_app' });
       assert.equal(appSaved.result, 'Success', 'saveApp は Success のはず: ' + JSON.stringify(appSaved));
@@ -273,7 +326,25 @@ try {
       assert.equal(exported.warnings.filter((key: string) => key === DUPLICATE_KEY).length, 1, 'export duplicate 警告キーは1回だけのはず');
       console.log('ok: (6) exportApp resolves {poiUid} in app/map JSON output with warnings');
 
-      // Write Store 側の POI ソース (内部形) は解決で劣化しない (8桁精度・_maplatUid 維持)
+      // --- (11) export 出力ディレクトリに icon 実体が同梱される (POI-117) ---
+      const exportedBuiltin = await fsReadFile(
+        nodePath.join(exported.outDir, 'imgs', 'icons', 'builtin', 'defaultpin.svg'), 'utf8');
+      assert.ok(exportedBuiltin.includes('<svg'), 'export された builtin icon の中身は SVG のはず');
+      const exportedAsset = await fsReadFile(nodePath.join(exported.outDir, 'imgs', 'temple-mark.png'));
+      assert.ok(exportedAsset.equals(assetBytes), 'export された asset icon の中身は登録したバイト列のはず');
+      // app JSON の参照が同梱ファイルを指すこと (assertResolvedFc で imgs/... 化は確認済み)
+      assert.equal(exportedAppJson.pois[0].icon, 'imgs/temple-mark.png');
+      assert.equal(exportedAppJson.pois[0].features[0].properties.icon, 'imgs/icons/builtin/defaultpin.svg');
+      assert.ok(exported.warnings.includes(UNRESOLVED_ICON_KEY),
+        'export warnings に unresolved icon キーが載るはず: ' + JSON.stringify(exported.warnings));
+      assert.equal(
+        exported.warnings.filter((key: string) => key === UNRESOLVED_ICON_KEY).length, 1,
+        'export unresolved icon 警告キーは1回だけのはず'
+      );
+      console.log('ok: (11) exportApp bundles resolved icon files under imgs/');
+
+      // (7)+(13) Write Store 側の POI ソース (内部形) は解決で劣化しない (8桁精度・_maplatUid 維持、
+      // icon/selectedIcon は参照文法のまま無変化)
       const afterAll = await PoiSourceService.get(srcUid);
       assert.deepEqual(
         afterAll.fc.features[0].geometry.coordinates,
@@ -281,7 +352,12 @@ try {
         '解決処理は Write Store 内の座標精度を劣化させないはず'
       );
       assert.equal(afterAll.fc.features[0].properties._maplatUid, '11111111-1111-4111-8111-111111111111');
-      console.log('ok: (7) resolution does not degrade the Write Store source');
+      assert.equal(afterAll.fc.icon, assetUid, 'Write Store 内の layer icon は asset UUID のままのはず (⑬)');
+      assert.equal(afterAll.fc.features[0].properties.icon, 'builtin:defaultpin',
+        'Write Store 内の feature icon は参照文法のままのはず (⑬)');
+      assert.equal(afterAll.fc.features[0].properties.selectedIcon, 'maki:bank',
+        'Write Store 内の selectedIcon も無変化のはず (⑬)');
+      console.log('ok: (7)(13) resolution does not degrade the Write Store source (icons stay in reference form)');
 
       // --- (8) 非 UUID poiUid → 参照とみなさず生要素として透過。missing 警告も立たない (M4) ---
       const nonUuidElement = { poiUid: 'legacy-not-a-uuid', cachedTitle: '将来拡張の手書き形' };
@@ -304,7 +380,15 @@ try {
       assert.equal(duplicateUidResult.pois.length, 2, '同一 uid の重複参照も両方解決されて2件残るはず');
       assertResolvedFc(duplicateUidResult.pois[0], 'duplicate uid [0]');
       assertResolvedFc(duplicateUidResult.pois[1], 'duplicate uid [1]');
-      assert.deepEqual(duplicateUidResult.warnings, [], '重複参照だけでは警告は立たないはず');
+      // fixture の selectedIcon='maki:bank' 由来の unresolved icon 警告 (1回) 以外は立たないはず
+      assert.deepEqual(
+        duplicateUidResult.warnings.filter((key: string) => key !== UNRESOLVED_ICON_KEY), [],
+        '重複参照だけでは missing/duplicate 警告は立たないはず'
+      );
+      assert.equal(
+        duplicateUidResult.warnings.filter((key: string) => key === UNRESOLVED_ICON_KEY).length, 1,
+        '同一参照の unresolved icon 警告は畳まれて1回のはず'
+      );
       console.log('ok: (9) duplicate uid references within the same array both resolve');
 
       console.log('M10-T1 poi reference resolver smoke passed');

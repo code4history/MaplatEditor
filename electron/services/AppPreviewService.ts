@@ -9,9 +9,11 @@ import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import { normalizeJsonArray } from '../utils/jsonArray';
+import SqliteDataService from './SqliteDataService';
 import {
   collectPoiUids,
   hasSharedPoiUid,
+  iconSetFilePath,
   mergeWarnings,
   resolvePoisArray,
   DUPLICATE_POI_REFERENCE_WARNING,
@@ -256,6 +258,7 @@ class AppPreviewService {
     if (rest[0] === 'tiles') return this.servePreviewTile(rest.slice(1), res);
     if (rest[0] === 'tmbs') return this.serveDataFile('tmbs', rest.slice(1), res);
     if (rest[0] === 'img') return this.serveDataFile('img', rest.slice(1), res);
+    if (rest[0] === 'imgs') return this.serveResolvedIcon(rest.slice(1), res);
     if (rest[0] === 'basemap_icons') return this.serveResourceAsset(rest, res);
     if (rest[0] === 'apps' && rest[1] === `${token}.json`) return this.sendJson(res, session.app);
     if (rest[0] === 'maps' && rest[1]) return this.sendJson(res, session.maps[rest[1].replace(/\.json$/, '')] || {});
@@ -331,6 +334,30 @@ ${manifestLink}
       if (await this.sendFileIfExists(res, candidate)) return;
     }
     this.sendText(res, 404, 'Asset not found');
+  }
+
+  // POI icon 参照解決 (POI-117) の出力パス 'imgs/...' の配信。
+  // imgs/icons/{setId}/{iconId}.{ext} → icon set 実体 (public/icons/... の候補解決、traversal ガード込み)、
+  // imgs/{slug}.{ext} → 登録 image asset の実体 {saveFolder}/assets/{uid}.{ext} (slug は DB 引き、
+  // ext が record と一致する場合のみ — 任意ファイル読み出しを防ぐ)
+  private async serveResolvedIcon(segments: string[], res: http.ServerResponse): Promise<void> {
+    const decoded = segments.map(segment => decodeURIComponent(segment));
+    if (decoded[0] === 'icons') {
+      const resolved = iconSetFilePath(decoded.join('/'));
+      if (!resolved) return this.sendText(res, 404, 'Icon not found');
+      return this.sendFile(res, resolved);
+    }
+    if (decoded.length === 1) {
+      const match = /^(.+)\.([A-Za-z0-9]+)$/.exec(decoded[0]);
+      if (match) {
+        const record = await SqliteDataService.findAssetByRef(match[1]);
+        if (record && record.ext === match[2].toLowerCase()) {
+          const saveFolder = SettingsService.get('saveFolder') as string;
+          return this.sendFile(res, path.join(saveFolder, 'assets', `${record.uid}.${record.ext}`));
+        }
+      }
+    }
+    this.sendText(res, 404, 'Icon not found');
   }
 
   // ビルトインベースマップのアイコン等、アプリ同梱リソースを配信する

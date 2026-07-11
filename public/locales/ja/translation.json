@@ -531,6 +531,7 @@
     "export_failed": "エクスポートに失敗しました。",
     "warn_missing_poi_source": "参照しているPOIソースが見つからなかったため、出力から除外しました。",
     "warn_duplicate_poi_reference": "同じPOIソースがアプリと地図の両方から参照されています。POIが二重に表示される可能性があります。",
+    "warn_unresolved_icon": "解決できないアイコン参照があったため、元の値のまま出力しました。",
     "export": {
       "progress": "エクスポート中...",
       "done": "エクスポート完了",

@@ -531,6 +531,7 @@
     "export_failed": "Ekspor gagal.",
     "warn_missing_poi_source": "Beberapa sumber POI yang dirujuk tidak ditemukan dan dihapus dari keluaran.",
     "warn_duplicate_poi_reference": "Sumber POI yang sama dirujuk oleh aplikasi dan peta sekaligus. POI mungkin ditampilkan dua kali.",
+    "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "export": {
       "progress": "Sedang mengekspor...",
       "done": "Ekspor selesai",
