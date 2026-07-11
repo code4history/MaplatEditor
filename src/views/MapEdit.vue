@@ -3494,7 +3494,10 @@ const goBack = async () => {
             <!-- Tab: Base map settings -->
             <div v-show="activeTab === 'settings'" class="h-100 p-4 d-flex flex-column">
                 <h4 class="mb-3">{{ t("mapedit.edit_base_map") }}</h4>
-                <div class="card flex-grow-1 overflow-hidden d-flex flex-column">
+                <!-- flex: 1 1 0 (basis 0) が必須: basis auto (=巨大なリスト内容高) にすると、
+                     下の POI カード (flex-shrink-0, max-height:40%) との圧縮競合で
+                     このカードだけが潰され、一覧のスクロール領域が 0px になる (2026-07-11 実機バグ) -->
+                <div class="card overflow-hidden d-flex flex-column" style="flex: 1 1 0; min-height: 0;">
                     <div class="card-header bg-light fw-bold">{{ t("mapedit.base_map_visibility") }}</div>
                     <div class="card-body d-flex flex-column overflow-hidden">
                         <p class="small text-muted mb-2">{{ t("mapedit.base_map_visibility_desc") }}</p>

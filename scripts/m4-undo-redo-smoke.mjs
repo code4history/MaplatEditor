@@ -87,6 +87,14 @@ try {
   assert.match(mapEdit, /function syncPoiSelectionFromMapData/, 'MapEdit.vue must sync selector state from mapData.pois');
   assert.match(mapEdit, /function onPoiSelectionChange/, 'MapEdit.vue must write selector changes back to mapData.pois');
   assert.match(mapEdit, /delete mapData\.value\.pois/, 'MapEdit.vue must drop the pois key when nothing remains');
+  // ベースマップ可視性カードは flex-basis 0 で「POI カード確保後の残り空間」を受け取ること。
+  // basis auto (flex-grow-1 のみ) だと flex-shrink-0 の POI カードとの圧縮競合でこのカードだけが
+  // 潰れ、一覧のスクロール領域が 0px になる (2026-07-11 実機バグの再発防止)
+  assert.match(
+    settingsTab,
+    /style="flex: 1 1 0; min-height: 0;"[\s\S]{0,200}?mapedit\.base_map_visibility/,
+    'ベースマップ可視性カードに flex: 1 1 0 がない (POI カードとの圧縮競合で一覧が 0px に潰れる)'
+  );
 
   console.log('  [4/4] MapEdit POI source selector mount: PASS');
   console.log('M4 Undo/Redo smoke passed');
