@@ -81,10 +81,13 @@
               >
                 {{ t("menu.redo") }}
               </button>
+              <!-- error レベルの live issue がある間は保存 disabled (仕様 §6「保存不可」の維持。
+                   2026-07-11 ポリシー変更でフォームはエラー値も commit するため、堰は
+                   backend Invalid + ここでの事前ゲート。理由は診断領域の liveErrors に見える) -->
               <button
                 type="button"
                 class="btn btn-primary"
-                :disabled="!isDirty || saving"
+                :disabled="!isDirty || saving || liveErrors.length > 0"
                 @click="saveSource"
               >
                 {{ t("common.save") }}
@@ -106,7 +109,7 @@
 
       <!-- 診断領域 (内容があるときのみ表示) -->
       <div
-        v-if="readOnly || saveError || saveIssues.length || liveWarnings.length"
+        v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarnings.length"
         class="px-4 py-2 flex-shrink-0 overflow-auto"
         style="max-height: 40%;"
       >
@@ -122,6 +125,14 @@
           <div class="fw-bold">{{ t("poiedit.save_issues") }}</div>
           <ul class="mb-0">
             <li v-for="(issue, index) in saveIssues" :key="index">{{ issueMessage(issue, t) }}</li>
+          </ul>
+        </div>
+        <!-- error レベルの live issue (2026-07-11 ポリシー変更: フォームはエラー値も commit
+             するため、保存前に理由をここでライブ可視化する。warning とは alert-danger で区別) -->
+        <div v-if="liveErrors.length" class="alert alert-danger">
+          <div class="fw-bold">{{ t("poiedit.save_issues") }}</div>
+          <ul class="mb-0">
+            <li v-for="(issue, index) in liveErrors" :key="index">{{ issueMessage(issue, t) }}</li>
           </ul>
         </div>
         <!-- POI-108 無コンテンツ警告 / POI-121 規模警告 -->
@@ -341,11 +352,21 @@ const slugError = computed<string | null>(() => {
   return null;
 });
 
-// 診断領域: POI-108 無コンテンツ / POI-121 規模 (>1000 features or serialize >5MB)。
-// 判定は poiGeoJson.validateFeatureCollection に委譲 (重複実装しない)
-const liveWarnings = computed<string[]>(() => {
+// 診断領域のライブ検証。判定は poiGeoJson.validateFeatureCollection に委譲 (重複実装しない)
+const liveIssues = computed<PoiValidationIssue[]>(() => {
   if (!editState.value) return [];
-  const issues = validateFeatureCollection(session.toSaveFc());
+  return validateFeatureCollection(session.toSaveFc());
+});
+
+// error レベルの live issue (2026-07-11 ポリシー変更: フォームはエラー値も Undo 履歴に commit
+// するため、診断領域に issueMessage でライブ表示し、保存ボタンの disabled 条件にも使う)
+const liveErrors = computed<PoiValidationIssue[]>(() =>
+  liveIssues.value.filter((issue) => issue.level === "error"),
+);
+
+// warning レベル: POI-108 無コンテンツ / POI-121 規模 (>1000 features or serialize >5MB)
+const liveWarnings = computed<string[]>(() => {
+  const issues = liveIssues.value;
   const keys: string[] = [];
   if (issues.some((i) => i.code === "no-content")) {
     keys.push("poiedit.no_content_warning");

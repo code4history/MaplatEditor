@@ -8,8 +8,9 @@
     <!-- :key=uid: 選択切替でローカル入力バッファと LangResourceInput の内部状態
          (activeLang / forceExpanded) を破棄する。同一 feature への commit では remount しない -->
     <div v-else :key="uid ?? ''">
-      <!-- 表示 ID (Feature.id)。文字種違反 / ソース内重複はエラー表示して commit しない
-           (欄は入力値のまま。選択切替で破棄) -->
+      <!-- 表示 ID (Feature.id)。文字種違反 / ソース内重複でも commit する (2026-07-11
+           ポリシー: エラーは committed 値から再判定して表示、保存側で堰き止め)。
+           空のみ非 commit (表現不可能な入力) -->
       <div class="mb-2">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.display_id") }}</label>
         <input
@@ -25,7 +26,8 @@
         </div>
       </div>
 
-      <!-- name (必須、POI-107)。空になった確定はエラー表示して commit しない -->
+      <!-- name (必須、POI-107)。空になる確定も commit する (properties から name が消える)。
+           必須エラーは committed 値から再判定して表示、保存側で堰き止め -->
       <div ref="nameWrap" class="mb-2">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.name") }}</label>
         <LangResourceInput
@@ -219,8 +221,9 @@
         </div>
       </div>
 
-      <!-- 座標直接入力 (仕様 §4/§6)。±180/±90 域外・非有限はエラー表示して commit しない。
-           有効なら moveFeature 1 回 = 1 Undo -->
+      <!-- 座標直接入力 (仕様 §4/§6)。両方有限数値なら ±180/±90 域外でも moveFeature 1 回 =
+           1 Undo で commit する (2026-07-11 ポリシー。域外エラーは committed 値から再判定して
+           表示、保存側で堰き止め)。空・非数値のみ非 commit (geometry に入れられない) -->
       <div class="mb-3">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.coordinates") }}</label>
         <div class="d-flex gap-1">
@@ -279,8 +282,17 @@
 <script setup lang="ts">
 // POI 属性フォーム (Phase 4 Task 7, 仕様 §3.3/§6)。
 // 確定粒度 = blur/change で patchFeatureProperties / moveFeature / commit 各 1 回 = 1 Undo
-// (仕様 §5。入力毎には commit しない)。表示 ID 文字種・重複 / name 空 / 座標域外の確定は
-// エラー表示のみで commit しない (欄は入力値のまま、選択切替で破棄)。
+// (仕様 §5。入力毎には commit しない)。
+// エラー値の commit ポリシー (2026-07-11 ユーザー決定で変更):
+// - 表現可能ならエラーでも commit する (= 1 Undo 単位として積む)。座標域外 (±180/±90 外) /
+//   表示 ID の文字種違反・ソース内重複 / name 空、いずれも commit し、保存・エクスポート側で
+//   堰き止める (PoiEdit の liveErrors + backend Invalid)。理由 = Undo の直感 (エラー入力後の
+//   Undo は直前の OK 値に戻るべき)。
+// - 表現不可能な入力のみ非 commit (エラー表示のみ、欄は入力値のまま): 座標欄の空・非数値
+//   (geometry に入れられない) / 表示 ID の空 (保存時に backend の ensureDisplayIds が自動採番し、
+//   markSaved 後に DB と session が乖離する既知バグ類型 [Phase 5 M1 と同型] を踏むため)。
+// - インラインエラーの判定源は committed 値 (computed): バッファ再初期化後もエラー状態が
+//   正しく再現される (undo で OK 値に戻ればエラーが消え、redo でエラー値に進めばまた出る)。
 // undo/redo 追随: 選択 feature の snapshot オブジェクト同一性を watch し、structural sharing
 // により「当 feature の committed 内容が実際に変わった時だけ」ローカルバッファを再初期化する。
 import { computed, nextTick, reactive, ref, watch, type Ref } from "vue";
@@ -316,16 +328,19 @@ const feature = computed<PoiEditorFeature | null>(() => {
   );
 });
 
-// --- ローカル編集バッファ (committed 値と分離。エラー時 non-commit で入力値を保持する) ---
+// --- ローカル編集バッファ (committed 値と分離。表現不可能な入力の non-commit 時に入力値を保持) ---
 const displayIdInput = ref("");
-const displayIdError = ref<string | null>(null);
-const nameError = ref<string | null>(null);
+// transient エラー = 表現不可能な入力による非 commit (空 ID / 空・非数値座標)。
+// バッファ再初期化 (選択切替 / commit / undo/redo 追随) でクリアする。
+// 表現可能なエラー (域外・文字種違反・重複・name 空) は commit されるため transient に持たず、
+// committed 値からの computed (displayIdError / nameError / coordError) で再判定する
+const displayIdTransientError = ref<string | null>(null);
 const iconInput = ref("");
 const selectedIconInput = ref("");
 // type="number" の v-model は数値 (または空文字) を返すため string | number で持つ
 const lonInput = ref<string | number>("");
 const latInput = ref<string | number>("");
-const coordError = ref<string | null>(null);
+const coordTransientError = ref<string | null>(null);
 
 interface ImageRow {
   text: string;
@@ -347,9 +362,10 @@ const imageRowFrom = (entry: unknown): ImageRow => {
 
 // committed feature からローカルバッファを再初期化 (選択切替 / commit / undo/redo 追随)
 const reinitBuffers = (f: PoiEditorFeature | null): void => {
-  displayIdError.value = null;
-  nameError.value = null;
-  coordError.value = null;
+  // transient (非 commit) エラーのみクリア。committed 値由来のエラーは computed が
+  // 再初期化後の committed 値から自動再判定する
+  displayIdTransientError.value = null;
+  coordTransientError.value = null;
   if (!f) {
     displayIdInput.value = "";
     iconInput.value = "";
@@ -399,16 +415,18 @@ const isLangEmpty = (value: string | Record<string, string> | undefined): boolea
   return !Object.values(value).some((v) => typeof v === "string" && v.trim() !== "");
 };
 
-// name は必須 (POI-107): 空になる確定はエラー表示のみで commit しない
+// name は必須 (POI-107) だが、空になる確定も commit する (properties から name が消える。
+// 2026-07-11 ポリシー: 保存側 name-required 検証で堰き止め)。エラーは committed 値から再判定
+const nameError = computed<string | null>(() =>
+  feature.value && isLangEmpty(langValue("name"))
+    ? t("poisource.errors.name_required")
+    : null,
+);
+
 const onNameUpdate = (value: string | Record<string, string> | undefined): void => {
   const id = uid.value;
   if (!id || props.readOnly) return;
-  if (isLangEmpty(value)) {
-    nameError.value = t("poisource.errors.name_required");
-    return;
-  }
-  nameError.value = null;
-  session.patchFeatureProperties(id, { name: value });
+  session.patchFeatureProperties(id, { name: isLangEmpty(value) ? undefined : value });
 };
 
 // desc/html/address/url: 空になった確定はフィールドごと落とす (undefined は保存時の
@@ -423,29 +441,41 @@ const onLangUpdate = (
 };
 
 // --- 表示 ID (Feature.id)。patchFeatureProperties では書けないため commit 直接 (1 Undo) ---
+// committed 値からのエラー再判定: 文字種 [A-Za-z0-9_-]+ (POI-140) → ソース内一意 (自分以外)
+const displayIdError = computed<string | null>(() => {
+  const f = feature.value;
+  const id = uid.value;
+  if (displayIdTransientError.value) return displayIdTransientError.value;
+  if (!f || !id) return null;
+  const value = typeof f.id === "string" ? f.id : String(f.id ?? "");
+  if (!DISPLAY_ID_PATTERN.test(value)) {
+    return t("poisource.errors.display_id_charset");
+  }
+  const duplicated = session.state.value?.features.some(
+    (o) => o.id === value && o.properties?._maplatUid !== id,
+  );
+  if (duplicated) return t("poisource.errors.display_id_duplicate");
+  return null;
+});
+
 const onDisplayIdChange = (): void => {
   const f = feature.value;
   const id = uid.value;
   if (!f || !id || props.readOnly) return;
   const value = displayIdInput.value;
   if (value === f.id) {
-    displayIdError.value = null;
+    displayIdTransientError.value = null;
     return;
   }
-  // (a) 文字種 [A-Za-z0-9_-]+ (POI-140。空文字も違反)
-  if (!DISPLAY_ID_PATTERN.test(value)) {
-    displayIdError.value = t("poisource.errors.display_id_charset");
+  // 空 ID のみ非 commit (表現不可能な入力): 空のまま commit すると保存時に backend の
+  // ensureDisplayIds が自動採番し、markSaved 後に DB と session が乖離する既知バグ類型
+  // (Phase 5 M1 と同型) を踏むため。文字種違反・重複は commit し、committed 値からの
+  // computed (displayIdError) が保存まで表示を維持する (2026-07-11 ポリシー)
+  if (value === "") {
+    displayIdTransientError.value = t("poisource.errors.display_id_charset");
     return;
   }
-  // (b) ソース内一意 (自分以外との重複)
-  const duplicated = session.state.value?.features.some(
-    (o) => o.id === value && o.properties?._maplatUid !== id,
-  );
-  if (duplicated) {
-    displayIdError.value = t("poisource.errors.display_id_duplicate");
-    return;
-  }
-  displayIdError.value = null;
+  displayIdTransientError.value = null;
   session.commit((draft) => {
     const index = draft.features.findIndex((o) => o.properties?._maplatUid === id);
     if (index < 0) return;
@@ -637,7 +667,30 @@ const onPickerSelect = (value: string): void => {
   }
 };
 
-// --- 座標直接入力: 域外/非有限はエラーで commit しない。有効なら moveFeature 1 回 ---
+// --- 座標直接入力 ---
+// committed 値からの域外エラー再判定 (±180/±90、非有限も含む。validateFeatureCollection の
+// coord-range と同判定)。域外値も commit されるため、undo/redo での再現はここが担う
+const coordError = computed<string | null>(() => {
+  if (coordTransientError.value) return coordTransientError.value;
+  const coords = feature.value?.geometry?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  const [lon, lat] = coords as number[];
+  if (
+    !Number.isFinite(lon) ||
+    !Number.isFinite(lat) ||
+    lon < -180 ||
+    lon > 180 ||
+    lat < -90 ||
+    lat > 90
+  ) {
+    return t("poisource.errors.coord_range");
+  }
+  return null;
+});
+
+// 空・非数値 (表現不可能) のみ非 commit。両方有限数値なら域外でも moveFeature で commit する
+// (2026-07-11 ポリシー。域外の範囲判定は commit を止めず、committed 値の coordError 表示 +
+// 保存側 coord-range 検証で堰き止める)
 const onCoordChange = (): void => {
   const f = feature.value;
   const id = uid.value;
@@ -648,20 +701,11 @@ const onCoordChange = (): void => {
   const latRaw = String(latInput.value ?? "").trim();
   const lon = Number(lonRaw);
   const lat = Number(latRaw);
-  if (
-    lonRaw === "" ||
-    latRaw === "" ||
-    !Number.isFinite(lon) ||
-    !Number.isFinite(lat) ||
-    lon < -180 ||
-    lon > 180 ||
-    lat < -90 ||
-    lat > 90
-  ) {
-    coordError.value = t("poisource.errors.coord_range");
+  if (lonRaw === "" || latRaw === "" || !Number.isFinite(lon) || !Number.isFinite(lat)) {
+    coordTransientError.value = t("poisource.errors.coord_range");
     return;
   }
-  coordError.value = null;
+  coordTransientError.value = null;
   const coords = f.geometry?.coordinates;
   if (Array.isArray(coords) && coords[0] === lon && coords[1] === lat) return;
   session.moveFeature(id, [lon, lat]);

@@ -499,14 +499,14 @@ try {
     'PoiAttributeForm に表示 ID 重複エラーがない'
   );
 
-  // name 必須 (空の確定はエラーで commit しない)
+  // name 必須 (2026-07-11 ポリシー: 空になる確定も commit し、エラーは committed 値から再判定)
   assert.match(
     attrForm,
     /poisource\.errors\.name_required/,
     'PoiAttributeForm に name 必須エラーがない'
   );
 
-  // 座標域外ガード (±180/±90、非有限も拒否して commit しない)
+  // 座標域外表示 (±180/±90、非有限も含む。committed 値から再判定して表示する)
   assert.match(
     attrForm,
     /Number\.isFinite/,
@@ -515,12 +515,48 @@ try {
   assert.match(
     attrForm,
     /-180|180/,
-    'PoiAttributeForm の座標入力に経度範囲ガードがない'
+    'PoiAttributeForm に座標域外の範囲判定がない'
   );
   assert.match(
     attrForm,
     /poisource\.errors\.coord_range/,
     'PoiAttributeForm に座標域外エラーがない'
+  );
+
+  // 新ポリシー (2026-07-11): 域外でも有限数値なら commit する = onCoordChange の非 commit
+  // ガードに範囲判定 (-180 等) が含まれず、moveFeature に到達すること
+  const onCoordChangeBody = attrForm.match(
+    /const onCoordChange = [\s\S]*?session\.moveFeature\([\s\S]*?\n\};/
+  );
+  assert.ok(
+    onCoordChangeBody,
+    'PoiAttributeForm の onCoordChange が moveFeature に到達していない'
+  );
+  assert.doesNotMatch(
+    onCoordChangeBody[0],
+    /-180|>\s*180|-90|>\s*90/,
+    'PoiAttributeForm の onCoordChange が域外を非 commit ガードにしている (域外でも commit する新ポリシー)'
+  );
+
+  // 新ポリシー (2026-07-11): 表示 ID の空のみ非 commit (backend ensureDisplayIds の自動採番で
+  // markSaved 後に DB と session が乖離するため。理由コメント必須)
+  assert.match(
+    attrForm,
+    /ensureDisplayIds/,
+    'PoiAttributeForm に表示 ID 空を非 commit にする理由 (ensureDisplayIds 乖離) のコメントがない'
+  );
+
+  // 新ポリシー (2026-07-11): PoiEdit が error レベル live issue を診断領域に表示し、
+  // 保存ボタンを disabled にする (堰は backend Invalid + 事前ゲート)
+  assert.match(
+    poiEdit,
+    /liveErrors/,
+    'PoiEdit に error レベル live issue (liveErrors) がない'
+  );
+  assert.match(
+    poiEdit,
+    /liveErrors\.length > 0/,
+    'PoiEdit の保存ボタンが error レベル live issue で disabled になっていない'
   );
   // type="number" の v-model は数値を返すため、String 化してから trim すること
   // (2026-07-11 実機バグ: lonInput.value.trim() が TypeError で座標入力が丸ごと無反応)
