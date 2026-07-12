@@ -567,16 +567,18 @@
   },
   "poiref": {
     "tab_label": "Dữ liệu POI",
-    "selected_list": "Dữ liệu POI đã chọn (thứ tự hiển thị)",
-    "empty": "Chưa chọn dữ liệu POI. Hãy thêm nguồn từ danh sách bên dưới.",
+    "selected_list_app": "Dữ liệu POI của ứng dụng này",
+    "selected_list_map": "Dữ liệu POI của bản đồ này",
+    "empty": "Chưa chọn dữ liệu POI nào. Thêm nguồn từ danh sách bên trái.",
+    "added": "Đã thêm",
     "move_up": "Lên",
     "move_down": "Xuống",
     "remove": "Bỏ chọn",
     "delete": "Xóa",
     "external_data": "Dữ liệu bên ngoài",
+    "external_note": "Dữ liệu bên ngoài (URL hoặc GeoJSON nhúng). Chỉ có thể sắp xếp lại và xóa.",
     "icon_override": "Biểu tượng ghi đè",
-    "selected_icon_override": "Biểu tượng ghi đè khi chọn",
-    "add_sources": "Thêm nguồn POI"
+    "selected_icon_override": "Biểu tượng ghi đè khi chọn"
   },
   "poisource": {
     "title": "Nguồn POI",

@@ -1,23 +1,38 @@
 <template>
-  <div class="poi-reference-editor h-100 d-flex flex-column gap-3">
-    <!-- 上段: 選択済み参照のリスト (pois 配列の順番どおり = viewer の layer 順)。
-         参照要素は 上下 + 上書き icon/selectedIcon + 解除、生 URL/FC 要素は「外部データ」
-         行として 表示 + 上下 + 削除 のみ (編集 UI は作らない — Phase 8 設計コントラクト) -->
-    <div class="card flex-shrink-0 d-flex flex-column poi-reference-selected">
-      <div class="card-header bg-light fw-bold">{{ t("poiref.selected_list") }}</div>
-      <div class="card-body overflow-auto">
-        <div v-if="entries.length === 0" class="text-muted small">{{ t("poiref.empty") }}</div>
+  <!-- 「POIデータ」タブ本体。AppEdit の地図選択タブ (sources) と同じ2カラム設計:
+       左 = 検索付き POI ソース一覧 (PoiSourceSelector)、右 = 選択済み参照のカード列
+       (pois 配列の順番どおり = viewer の layer 順)。参照要素は ↑/↓/× + 上書き
+       icon/selectedIcon、生 URL/FC 要素は「外部データ」カードとして 表示 + ↑/↓/× のみ
+       (編集 UI は作らない — Phase 8 設計コントラクト) -->
+  <div class="poi-reference-editor h-100">
+    <div
+      class="source-pane border-end pe-3"
+      :class="{ 'poi-selector-disabled': readOnly }"
+      :aria-disabled="readOnly"
+    >
+      <PoiSourceSelector :initial-selected="selectedRefs" @update:selected="onSelectionChange" />
+    </div>
+
+    <div class="selected-pane ps-3">
+      <h5>{{ t(headingKey ?? "poiref.selected_list_app") }}</h5>
+      <div v-if="entries.length === 0" class="text-muted py-3">{{ t("poiref.empty") }}</div>
+      <div v-else class="selected-list">
         <div
           v-for="(entry, index) in entries"
           :key="entryKey(entry, index)"
-          class="border rounded p-2 mb-2"
+          class="selected-source border rounded p-2 mb-2"
         >
           <div class="d-flex align-items-center justify-content-between gap-2">
             <div class="min-width-0">
-              <span v-if="poiUidOf(entry) === null" class="badge text-bg-secondary me-1">
-                {{ t("poiref.external_data") }}
-              </span>
-              <span class="fw-bold text-break">{{ entryTitle(entry) }}</span>
+              <div class="fw-bold text-break">
+                <span v-if="poiUidOf(entry) === null" class="badge text-bg-secondary me-1">
+                  {{ t("poiref.external_data") }}
+                </span>
+                {{ entryTitle(entry) }}
+              </div>
+              <small v-if="poiUidOf(entry) !== null" class="text-muted text-break">
+                {{ entrySubLabel(entry) }}
+              </small>
             </div>
             <div class="btn-group btn-group-sm flex-shrink-0">
               <button
@@ -38,10 +53,9 @@
                 type="button"
                 class="btn btn-outline-danger"
                 :disabled="readOnly"
+                :title="poiUidOf(entry) === null ? t('poiref.delete') : t('poiref.remove')"
                 @click="removeAt(index)"
-              >
-                {{ poiUidOf(entry) === null ? t("poiref.delete") : t("poiref.remove") }}
-              </button>
+              >×</button>
             </div>
           </div>
           <!-- 参照要素のみ: 参照単位の icon/selectedIcon 上書き (POI-112 最小形)。
@@ -66,28 +80,21 @@
               />
             </div>
           </div>
+          <!-- 外部データ (生 URL/FC) カード: 説明文付きで ↑/↓/× のみ -->
+          <div v-else class="form-text small mb-0">{{ t("poiref.external_note") }}</div>
         </div>
-      </div>
-    </div>
-
-    <!-- 下段: 追加用の PoiSourceSelector (既存部品)。選択トグルで追加/解除の双方が可能
-         (選択済みカードのクリック = 解除。上段の解除ボタンと等価) -->
-    <div class="card flex-grow-1 overflow-hidden d-flex flex-column" style="min-height: 0;">
-      <div class="card-header bg-light fw-bold">{{ t("poiref.add_sources") }}</div>
-      <div class="card-body overflow-auto" :class="{ 'poi-selector-disabled': readOnly }" :aria-disabled="readOnly">
-        <PoiSourceSelector :initial-selected="selectedRefs" @update:selected="onSelectionChange" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// 「POIデータ」タブの本体 (Phase 8 Task 2, 43 §2.4)。AppEdit (appData.pois) と
+// 「POIデータ」タブの本体 (Phase 8 Task 2/5, 43 §2.4)。AppEdit (appData.pois) と
 // MapEdit (mapData.pois) の両方から使う。真実の器は呼び出し側の pois 配列 1 つで、
 // 本コンポーネントは配列ごと差し替えの update:pois を emit するだけ (履歴記録は呼び出し側:
 // AppEdit = recordHistory 明示 / MapEdit = mapData の deep-watch)。
 // 参照要素判定・selector との往復は共有 util (utils/poiReferenceUi)。
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import PoiSourceSelector from "./PoiSourceSelector.vue";
 import IconRefField from "./IconRefField.vue";
@@ -97,6 +104,8 @@ import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferen
 const props = defineProps<{
   pois?: unknown[];
   readOnly?: boolean;
+  // 右カラム見出しの i18n キー。App=「このアプリのPOIデータ一覧」/ Map=「この地図のPOIデータ一覧」
+  headingKey?: string;
 }>();
 
 const emit = defineEmits<{
@@ -141,6 +150,37 @@ function entryTitle(entry: unknown): string {
   return t("poiref.external_data");
 }
 
+// カード副行 (地図選択の sourceIdLabel = slug表示 に対応)。参照要素の slug は pois 配列に
+// 保存されない (永続形は {poiUid, cachedTitle} 最小) ため、表示専用に poiSources.get で
+// 遅延解決してキャッシュする。解決前/失敗 (削除済みソース等) は uid をそのまま出す
+const slugByUid = ref<Record<string, string>>({});
+
+watch(
+  selectedRefs,
+  (refs) => {
+    for (const item of refs) {
+      const uid = item.sourceId;
+      if (uid in slugByUid.value) continue;
+      slugByUid.value[uid] = ""; // 取得中マーカー (再要求防止)
+      window.poiSources
+        .get(uid)
+        .then((detail) => {
+          if (detail?.slug) slugByUid.value[uid] = detail.slug;
+        })
+        .catch(() => {
+          // 解決失敗は uid フォールバック表示のまま (ベストエフォート)
+        });
+    }
+  },
+  { immediate: true },
+);
+
+function entrySubLabel(entry: unknown): string {
+  const uid = poiUidOf(entry);
+  if (!uid) return "";
+  return slugByUid.value[uid] || uid;
+}
+
 function overrideValue(entry: unknown, key: "icon" | "selectedIcon"): string {
   const value = (entry as Record<string, unknown>)[key];
   return typeof value === "string" ? value : "";
@@ -180,7 +220,7 @@ function setOverride(index: number, key: "icon" | "selectedIcon", raw: string): 
   emit("update:pois", next);
 }
 
-// selector の選択変更 (追加/解除トグル) を pois 配列へ反映。
+// selector の選択変更 (行クリックによる追加) を pois 配列へ反映。
 // 既存参照の相対順と上書きキーは applyPoiSelection が温存する
 function onSelectionChange(refs: SelectedPoiSourceRef[]): void {
   emit("update:pois", applyPoiSelection(entries.value, refs));
@@ -202,13 +242,22 @@ defineExpose({ pickerOpen });
 </script>
 
 <style scoped>
+/* AppEdit 地図選択タブ (.source-editor) と同じ2カラムグリッド */
 .poi-reference-editor {
+  display: grid;
+  grid-template-columns: minmax(280px, 36%) 1fr;
+  gap: 0;
+  overflow: hidden;
   min-height: 0;
 }
-/* 上段 (選択済みリスト) はフォーム優先の固定分配: 内容が少なければ小さく、
-   多ければ 55% で内部スクロール */
-.poi-reference-selected {
-  max-height: 55%;
+.source-pane,
+.selected-pane {
+  min-height: 0;
+  overflow: auto;
+}
+.source-pane {
+  display: flex;
+  flex-direction: column;
 }
 .min-width-0 {
   min-width: 0;

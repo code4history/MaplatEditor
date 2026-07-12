@@ -564,16 +564,18 @@
   },
   "poiref": {
     "tab_label": "POI Data",
-    "selected_list": "Selected POI data (display order)",
-    "empty": "No POI data selected. Add sources from the list below.",
+    "selected_list_app": "POI data in this app",
+    "selected_list_map": "POI data in this map",
+    "empty": "No POI data selected. Add sources from the list on the left.",
+    "added": "Added",
     "move_up": "Move up",
     "move_down": "Move down",
     "remove": "Deselect",
     "delete": "Delete",
     "external_data": "External data",
+    "external_note": "External data (URL or embedded GeoJSON). Only reordering and deletion are available.",
     "icon_override": "Icon override",
-    "selected_icon_override": "Selected-state icon override",
-    "add_sources": "Add POI sources"
+    "selected_icon_override": "Selected-state icon override"
   },
   "poisource": {
     "title": "POI Sources",

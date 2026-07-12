@@ -367,6 +367,36 @@ try {
   assert.match(poiReferenceEditor, /poiref\.selected_icon_override/, 'PoiReferenceEditor.vue に選択時アイコンラベルがない');
   assert.match(poiReferenceEditor, /poiref\.external_data/, 'PoiReferenceEditor.vue に外部データ (生 URL/FC) 行の表示がない');
   assert.match(poiReferenceEditor, /"update:pois"/, 'PoiReferenceEditor.vue が update:pois を emit していない');
+  // Phase 8 Task 5: 地図選択タブ (AppEdit sources) と同じ2カラム設計 (ユーザー指摘 2026-07-11:
+  // 上下2段は窮屈・検索が無い)。左 = 検索付き POI ソース一覧 / 右 = 選択済みカード列 (↑/↓/× btn-group)
+  assert.match(
+    poiReferenceEditor,
+    /grid-template-columns: minmax\(280px, 36%\) 1fr/,
+    'PoiReferenceEditor.vue が地図選択タブと同じ2カラムグリッドになっていない'
+  );
+  assert.match(poiReferenceEditor, /class="source-pane/, 'PoiReferenceEditor.vue に左カラム (source-pane) がない');
+  assert.match(poiReferenceEditor, /class="selected-pane/, 'PoiReferenceEditor.vue に右カラム (selected-pane) がない');
+  assert.match(
+    poiReferenceEditor,
+    /class="btn-group btn-group-sm flex-shrink-0"[\s\S]{0,900}?>↑<\/button>[\s\S]{0,600}?>↓<\/button>[\s\S]{0,600}?>×<\/button>/,
+    'PoiReferenceEditor.vue の選択済みカードに ↑/↓/× の btn-group (地図選択と同配置) がない'
+  );
+  // 右カラム見出しは呼び出し側の headingKey prop で App/Map を差し替える
+  assert.match(poiReferenceEditor, /headingKey\?: string/, 'PoiReferenceEditor.vue に見出しキー prop (headingKey) がない');
+  assert.match(
+    appEditView,
+    /<PoiReferenceEditor[\s\S]{0,200}?heading-key="poiref\.selected_list_app"/,
+    'AppEdit.vue が POIデータタブ見出し (poiref.selected_list_app) を渡していない'
+  );
+  // 左カラム (PoiSourceSelector) は検索ボックス付き一覧 (行クリックで追加、追加済みは no-op)
+  const poiSourceSelector = await readFile(path.join(projectRoot, 'src/components/PoiSourceSelector.vue'), 'utf8');
+  assert.match(poiSourceSelector, /poisource\.search_placeholder/, 'PoiSourceSelector.vue に検索ボックスがない');
+  assert.match(poiSourceSelector, /search\(searchInput\.value\.trim\(\)\)/, 'PoiSourceSelector.vue の検索が usePoiSourceList.search に接続されていない');
+  assert.match(poiSourceSelector, /class="source-row"/, 'PoiSourceSelector.vue が地図選択と同じリスト行 (source-row) になっていない');
+  assert.match(poiSourceSelector, /poiref\.added/, 'PoiSourceSelector.vue に追加済みバッジ (poiref.added) がない');
+  // picker 表示中のグローバルキー抑止 (MAJOR-1) と行 key の安定化 (MINOR-2) は再設計後も維持
+  assert.match(poiReferenceEditor, /defineExpose\(\{ pickerOpen \}\)/, 'PoiReferenceEditor.vue が pickerOpen を expose していない');
+  assert.match(poiReferenceEditor, /return `ref:\$\{uid\}#\$\{occurrence\}`/, 'PoiReferenceEditor.vue の entryKey が uid+occurrence 安定 key でない');
   // preview 起動時の warnings 表示 (export と同じ t(key) join → showMessageBox detail 形式)
   assert.match(appEditView, /result\.warnings/, 'AppEdit.vue が preparePreview の warnings を表示していない');
   assert.match(appEditView, /appedit\.preview_warnings/, 'AppEdit.vue が preview warnings ダイアログの message キーを使っていない');

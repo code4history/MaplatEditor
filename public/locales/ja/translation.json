@@ -567,16 +567,18 @@
   },
   "poiref": {
     "tab_label": "POIデータ",
-    "selected_list": "選択中のPOIデータ(表示順)",
-    "empty": "POIデータが選択されていません。下の一覧から追加してください。",
+    "selected_list_app": "このアプリのPOIデータ一覧",
+    "selected_list_map": "この地図のPOIデータ一覧",
+    "empty": "POIデータが選択されていません。左の一覧から追加してください。",
+    "added": "追加済み",
     "move_up": "上へ",
     "move_down": "下へ",
     "remove": "解除",
     "delete": "削除",
     "external_data": "外部データ",
+    "external_note": "外部データ(URLまたは埋め込みGeoJSON)です。順番の変更と削除のみ行えます。",
     "icon_override": "上書きアイコン",
-    "selected_icon_override": "選択時アイコン(上書き)",
-    "add_sources": "POIソースを追加"
+    "selected_icon_override": "選択時アイコン(上書き)"
   },
   "poisource": {
     "title": "POIソース",

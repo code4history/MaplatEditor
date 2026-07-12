@@ -84,6 +84,12 @@ try {
   const poisTab = mapEdit.match(/v-show="activeTab === 'pois'"[\s\S]*?<\/div>/)?.[0] ?? '';
   assert.ok(poisTab, 'MapEdit.vue pois tab block could not be located');
   assert.match(poisTab, /<PoiReferenceEditor/, 'MapEdit.vue must mount PoiReferenceEditor in the pois tab');
+  // Phase 8 Task 5: 右カラム見出しは Map 用 (「この地図のPOIデータ一覧」) を渡す
+  assert.match(
+    poisTab,
+    /heading-key="poiref\.selected_list_map"/,
+    'MapEdit.vue must pass the map heading key (poiref.selected_list_map) to PoiReferenceEditor'
+  );
   assert.match(mapEdit, /function onPoisChange/, 'MapEdit.vue must apply update:pois back to mapData.pois');
   assert.match(mapEdit, /delete mapData\.value\.pois/, 'MapEdit.vue must drop the pois key when nothing remains');
   const settingsTab = mapEdit.match(/v-show="activeTab === 'settings'"[\s\S]*?<!-- 地域指定モーダル/)?.[0] ?? '';

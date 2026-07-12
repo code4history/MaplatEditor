@@ -567,16 +567,18 @@
   },
   "poiref": {
     "tab_label": "POI 데이터",
-    "selected_list": "선택된 POI 데이터(표시 순서)",
-    "empty": "선택된 POI 데이터가 없습니다. 아래 목록에서 추가하세요.",
+    "selected_list_app": "이 앱의 POI 데이터 목록",
+    "selected_list_map": "이 지도의 POI 데이터 목록",
+    "empty": "선택된 POI 데이터가 없습니다. 왼쪽 목록에서 추가하세요.",
+    "added": "추가됨",
     "move_up": "위로",
     "move_down": "아래로",
     "remove": "선택 해제",
     "delete": "삭제",
     "external_data": "외부 데이터",
+    "external_note": "외부 데이터(URL 또는 내장 GeoJSON)입니다. 순서 변경과 삭제만 가능합니다.",
     "icon_override": "덮어쓰기 아이콘",
-    "selected_icon_override": "선택 시 아이콘(덮어쓰기)",
-    "add_sources": "POI 소스 추가"
+    "selected_icon_override": "선택 시 아이콘(덮어쓰기)"
   },
   "poisource": {
     "title": "POI 소스",

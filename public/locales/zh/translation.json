@@ -567,16 +567,18 @@
   },
   "poiref": {
     "tab_label": "POI数据",
-    "selected_list": "已选POI数据(显示顺序)",
-    "empty": "尚未选择POI数据。请从下方列表添加。",
+    "selected_list_app": "此应用的POI数据列表",
+    "selected_list_map": "此地图的POI数据列表",
+    "empty": "尚未选择POI数据。请从左侧列表中添加。",
+    "added": "已添加",
     "move_up": "上移",
     "move_down": "下移",
     "remove": "取消选择",
     "delete": "删除",
     "external_data": "外部数据",
+    "external_note": "外部数据(URL或内嵌GeoJSON)。仅可调整顺序和删除。",
     "icon_override": "覆盖图标",
-    "selected_icon_override": "选中时图标(覆盖)",
-    "add_sources": "添加POI源"
+    "selected_icon_override": "选中时图标(覆盖)"
   },
   "poisource": {
     "title": "POI源",

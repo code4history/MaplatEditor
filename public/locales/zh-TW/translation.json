@@ -567,16 +567,18 @@
   },
   "poiref": {
     "tab_label": "POI資料",
-    "selected_list": "已選POI資料(顯示順序)",
-    "empty": "尚未選擇POI資料。請從下方清單新增。",
+    "selected_list_app": "此應用程式的POI資料列表",
+    "selected_list_map": "此地圖的POI資料列表",
+    "empty": "尚未選擇POI資料。請從左側列表中加入。",
+    "added": "已加入",
     "move_up": "上移",
     "move_down": "下移",
     "remove": "取消選擇",
     "delete": "刪除",
     "external_data": "外部資料",
+    "external_note": "外部資料(URL或內嵌GeoJSON)。僅可調整順序與刪除。",
     "icon_override": "覆寫圖示",
-    "selected_icon_override": "選取時圖示(覆寫)",
-    "add_sources": "新增POI來源"
+    "selected_icon_override": "選取時圖示(覆寫)"
   },
   "poisource": {
     "title": "POI來源",

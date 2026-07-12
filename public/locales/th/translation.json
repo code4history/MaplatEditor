@@ -567,16 +567,18 @@
   },
   "poiref": {
     "tab_label": "ข้อมูล POI",
-    "selected_list": "ข้อมูล POI ที่เลือก (ลำดับการแสดงผล)",
-    "empty": "ยังไม่ได้เลือกข้อมูล POI กรุณาเพิ่มจากรายการด้านล่าง",
+    "selected_list_app": "ข้อมูล POI ของแอปนี้",
+    "selected_list_map": "ข้อมูล POI ของแผนที่นี้",
+    "empty": "ยังไม่ได้เลือกข้อมูล POI เพิ่มแหล่งข้อมูลจากรายการด้านซ้าย",
+    "added": "เพิ่มแล้ว",
     "move_up": "เลื่อนขึ้น",
     "move_down": "เลื่อนลง",
     "remove": "ยกเลิกการเลือก",
     "delete": "ลบ",
     "external_data": "ข้อมูลภายนอก",
+    "external_note": "ข้อมูลภายนอก (URL หรือ GeoJSON ฝังตัว) ทำได้เพียงจัดลำดับใหม่และลบเท่านั้น",
     "icon_override": "ไอคอนแทนที่",
-    "selected_icon_override": "ไอคอนแทนที่เมื่อถูกเลือก",
-    "add_sources": "เพิ่มแหล่งข้อมูล POI"
+    "selected_icon_override": "ไอคอนแทนที่เมื่อถูกเลือก"
   },
   "poisource": {
     "title": "แหล่งข้อมูล POI",

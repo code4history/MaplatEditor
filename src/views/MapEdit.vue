@@ -3581,6 +3581,7 @@ const goBack = async () => {
             <div v-show="activeTab === 'pois'" class="h-100 p-4 overflow-hidden">
                 <PoiReferenceEditor
                     ref="poiRefEditor"
+                    heading-key="poiref.selected_list_map"
                     :pois="Array.isArray(mapData.pois) ? mapData.pois : []"
                     @update:pois="onPoisChange"
                 />

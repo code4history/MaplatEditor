@@ -567,16 +567,18 @@
   },
   "poiref": {
     "tab_label": "Données POI",
-    "selected_list": "Données POI sélectionnées (ordre d'affichage)",
-    "empty": "Aucune donnée POI sélectionnée. Ajoutez des sources depuis la liste ci-dessous.",
+    "selected_list_app": "Données POI de cette application",
+    "selected_list_map": "Données POI de cette carte",
+    "empty": "Aucune donnée POI sélectionnée. Ajoutez des sources depuis la liste à gauche.",
+    "added": "Ajouté",
     "move_up": "Monter",
     "move_down": "Descendre",
     "remove": "Désélectionner",
     "delete": "Supprimer",
     "external_data": "Données externes",
+    "external_note": "Données externes (URL ou GeoJSON intégré). Seuls le réordonnancement et la suppression sont possibles.",
     "icon_override": "Icône de remplacement",
-    "selected_icon_override": "Icône de remplacement à la sélection",
-    "add_sources": "Ajouter des sources POI"
+    "selected_icon_override": "Icône de remplacement à la sélection"
   },
   "poisource": {
     "title": "Sources de POI",

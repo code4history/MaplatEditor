@@ -1231,7 +1231,7 @@ function onPoisChange(next: unknown[]) {
         <div v-if="poiHealFailed" class="alert alert-warning flex-shrink-0" role="alert">
           {{ t("appedit.poi_heal_failed") }}
         </div>
-        <PoiReferenceEditor class="flex-grow-1" :pois="appData.pois" @update:pois="onPoisChange" />
+        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="appData.pois" @update:pois="onPoisChange" />
       </div>
 
       <div v-show="activeTab === 'preview'" class="h-100 position-relative">

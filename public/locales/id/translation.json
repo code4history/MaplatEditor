@@ -567,16 +567,18 @@
   },
   "poiref": {
     "tab_label": "Data POI",
-    "selected_list": "Data POI terpilih (urutan tampilan)",
-    "empty": "Tidak ada data POI yang dipilih. Tambahkan sumber dari daftar di bawah.",
+    "selected_list_app": "Data POI aplikasi ini",
+    "selected_list_map": "Data POI peta ini",
+    "empty": "Tidak ada data POI yang dipilih. Tambahkan sumber dari daftar di sebelah kiri.",
+    "added": "Ditambahkan",
     "move_up": "Naik",
     "move_down": "Turun",
     "remove": "Batalkan pilihan",
     "delete": "Hapus",
     "external_data": "Data eksternal",
+    "external_note": "Data eksternal (URL atau GeoJSON tersemat). Hanya pengurutan ulang dan penghapusan yang tersedia.",
     "icon_override": "Ikon pengganti",
-    "selected_icon_override": "Ikon pengganti saat dipilih",
-    "add_sources": "Tambahkan sumber POI"
+    "selected_icon_override": "Ikon pengganti saat dipilih"
   },
   "poisource": {
     "title": "Sumber POI",

@@ -171,11 +171,17 @@ try {
     'PoiSourceSelector の selectedSources が配列でない'
   );
 
-  // toggleSelect 関数が存在すること
+  // 行クリックで追加できること (Phase 8 Task 5: 地図選択の addMapSource と同じ挙動 —
+  // 追加済み行は no-op で、解除は PoiReferenceEditor 右カラムの × から行う)
   assert.match(
     poiSourceSelector,
-    /function\s+toggleSelect/,
-    'PoiSourceSelector に toggleSelect がない'
+    /function\s+addSource/,
+    'PoiSourceSelector に addSource がない'
+  );
+  assert.match(
+    poiSourceSelector,
+    /if \(isSelected\(source\.uid\)\) return;/,
+    'PoiSourceSelector の addSource が追加済み no-op (地図選択と同じ挙動) になっていない'
   );
 
   // isSelected 関数が存在すること
@@ -183,6 +189,13 @@ try {
     poiSourceSelector,
     /function\s+isSelected/,
     'PoiSourceSelector に isSelected がない'
+  );
+
+  // 検索ボックス付き一覧であること (Phase 8 Task 5: 地図選択タブと同じ操作体系)
+  assert.match(
+    poiSourceSelector,
+    /poisource\.search_placeholder/,
+    'PoiSourceSelector に検索ボックスがない'
   );
 
   console.log('  [3/3] PoiSourceSelector.vue shape: PASS');
