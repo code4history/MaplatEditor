@@ -581,7 +581,8 @@
     "external_data": "外部資料",
     "external_note": "外部資料(URL或內嵌GeoJSON)。僅可調整順序與刪除。",
     "icon_override": "覆寫圖示",
-    "selected_icon_override": "選取時圖示(覆寫)"
+    "selected_icon_override": "選取時圖示(覆寫)",
+    "override_title": "覆寫標題"
   },
   "poisource": {
     "title": "POI來源",

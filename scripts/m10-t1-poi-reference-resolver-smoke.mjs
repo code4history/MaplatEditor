@@ -26,6 +26,8 @@
 //      SVG 経路) + pwaManifest 有効の export で、zip に favicon.ico (ICO マジック 00 00 01 00) が
 //      同梱され、index.html に favicon リンクがあり、manifest の icons が非空。
 //      サンドボックス等で Chrome が起動できない場合も jimp フォールバックで同条件を満たす
+//   ⑰ 参照要素の title 上書き (GUI 検証 D1): {poiUid, title: LangResource} → 解決後 FC.name が
+//      交換形 (compactLangResource collapse) でソース側 title より優先。空 title は上書きなし
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -481,11 +483,45 @@ try {
       assert.equal(noOverrideFc.selectedIcon, undefined, '非文字列 selectedIcon 上書きは無視されるはず');
       console.log('ok: (14) reference-level icon/selectedIcon overrides win over source values and resolve');
 
+      // --- (17) 参照要素の title 上書き (GUI 検証 D1) ---
+      // 参照側 title (LangResource) が非空なら、toExportForm が FC.name に書くのと同じ交換形
+      // (compactLangResource collapse) でソース側 title (FC.name='京都POI') より参照側が勝つ
+      const titleOverrideResult = await resolvePoisArray([
+        { poiUid: srcUid, cachedTitle: '京都POI', title: { ja: '上書き名' } },
+      ]);
+      const titleOverriddenFc: any = titleOverrideResult.pois[0];
+      assert.equal(titleOverriddenFc.type, 'FeatureCollection', 'title 上書きケースでも FC に解決されるはず');
+      assert.equal(
+        titleOverriddenFc.name, '上書き名',
+        'ja のみの title 上書きは交換形 string に collapse され FC.name を上書きするはず: ' + JSON.stringify(titleOverriddenFc.name)
+      );
+      assert.equal(titleOverriddenFc.id, 'kyoto-poi', 'title 上書きでも FC.id=slug は不変のはず');
+      // 複数言語の上書きは交換形 object のまま
+      const multiLangTitleResult = await resolvePoisArray([
+        { poiUid: srcUid, title: { ja: '上書き名', en: 'Override Name' } },
+      ]);
+      assert.deepEqual(
+        (multiLangTitleResult.pois[0] as any).name, { ja: '上書き名', en: 'Override Name' },
+        '複数言語の title 上書きは交換形 object のまま FC.name に載るはず'
+      );
+      // 空 title (空文字/空 object) は上書きなし = ソース側 title が残る
+      for (const emptyTitle of ['', {}]) {
+        const emptyTitleResult = await resolvePoisArray([
+          { poiUid: srcUid, title: emptyTitle },
+        ]);
+        assert.equal(
+          (emptyTitleResult.pois[0] as any).name, '京都POI',
+          '空 title (' + JSON.stringify(emptyTitle) + ') は上書きなしでソース側 title が残るはず'
+        );
+      }
+      console.log('ok: (17) reference-level title override rewrites FC.name in exchange form (D1)');
+
       // --- (15) poiReferenceUi.applyPoiSelection が上書きキーを温存する (Phase 8 Task 2) ---
       const { extractPoiRefs, applyPoiSelection } = await import(${JSON.stringify(poiReferenceUiPath)});
       const poisWithOverride = [
         'https://example.com/raw.geojson',
-        { poiUid: srcUid, cachedTitle: '京都POI', icon: 'builtin:defaultpin-red', selectedIcon: assetUid },
+        { poiUid: srcUid, cachedTitle: '京都POI', icon: 'builtin:defaultpin-red', selectedIcon: assetUid,
+          title: { ja: '上書き名' } },
         { poiUid: MISSING_UID, cachedTitle: '別参照' },
       ];
       const refs = extractPoiRefs(poisWithOverride);

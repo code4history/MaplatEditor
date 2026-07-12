@@ -581,7 +581,8 @@
     "external_data": "ข้อมูลภายนอก",
     "external_note": "ข้อมูลภายนอก (URL หรือ GeoJSON ฝังตัว) ทำได้เพียงจัดลำดับใหม่และลบเท่านั้น",
     "icon_override": "ไอคอนแทนที่",
-    "selected_icon_override": "ไอคอนแทนที่เมื่อถูกเลือก"
+    "selected_icon_override": "ไอคอนแทนที่เมื่อถูกเลือก",
+    "override_title": "ชื่อแทนที่"
   },
   "poisource": {
     "title": "แหล่งข้อมูล POI",

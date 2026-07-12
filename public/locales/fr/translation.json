@@ -581,7 +581,8 @@
     "external_data": "Données externes",
     "external_note": "Données externes (URL ou GeoJSON intégré). Seuls le réordonnancement et la suppression sont possibles.",
     "icon_override": "Icône de remplacement",
-    "selected_icon_override": "Icône de remplacement à la sélection"
+    "selected_icon_override": "Icône de remplacement à la sélection",
+    "override_title": "Titre de remplacement"
   },
   "poisource": {
     "title": "Sources de POI",

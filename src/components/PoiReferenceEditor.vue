@@ -58,9 +58,19 @@
               >×</button>
             </div>
           </div>
-          <!-- 参照要素のみ: 参照単位の icon/selectedIcon 上書き (POI-112 最小形)。
+          <!-- 参照要素のみ: 参照単位の title/icon/selectedIcon 上書き (POI-112 最小形 + D1)。
                resolver が解決後 FC のトップレベルへ適用する (ソース側の値より参照側が勝つ) -->
           <div v-if="poiUidOf(entry) !== null" class="row g-2 mt-1">
+            <!-- 上書きタイトル (GUI 検証 D1): PoiEdit ヘッダの title 編集と同じ LangResourceInput。
+                 空にクリアで上書き解除 (= title キー削除)。resolver が交換形 FC.name に適用する -->
+            <div class="col-12">
+              <label class="form-label small mb-0">{{ t("poiref.override_title") }}</label>
+              <LangResourceInput
+                :model-value="titleOverride(entry)"
+                :disabled="readOnly"
+                @update:model-value="setTitleOverride(index, $event)"
+              />
+            </div>
             <div class="col-md-6">
               <IconRefField
                 ref="iconFieldRefs"
@@ -96,10 +106,13 @@
 // 参照要素判定・selector との往復は共有 util (utils/poiReferenceUi)。
 import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
+import i18next from "i18next";
 import PoiSourceSelector from "./PoiSourceSelector.vue";
 import IconRefField from "./IconRefField.vue";
+import LangResourceInput from "./LangResourceInput.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";
+import { localizeTitle, type LangResource } from "../utils/langResource";
 
 const props = defineProps<{
   pois?: unknown[];
@@ -134,11 +147,15 @@ function entryKey(entry: unknown, index: number): string {
   return `ref:${uid}#${occurrence}`;
 }
 
-// 行タイトル: 参照 = cachedTitle (無ければ uid)、外部データ = URL 文字列 or FC の name/id
+// 行タイトル: 参照 = 上書き title (D1、あれば localizeTitle 解決) → cachedTitle → uid、
+// 外部データ = URL 文字列 or FC の name/id
 function entryTitle(entry: unknown): string {
   const uid = poiUidOf(entry);
   if (uid) {
-    const cachedTitle = (entry as Record<string, unknown>).cachedTitle;
+    const record = entry as Record<string, unknown>;
+    const overridden = localizeTitle(record.title as LangResource | undefined, i18next.language);
+    if (overridden) return overridden;
+    const cachedTitle = record.cachedTitle;
     return typeof cachedTitle === "string" && cachedTitle ? cachedTitle : uid;
   }
   if (typeof entry === "string") return entry;
@@ -179,6 +196,42 @@ function entrySubLabel(entry: unknown): string {
   const uid = poiUidOf(entry);
   if (!uid) return "";
   return slugByUid.value[uid] || uid;
+}
+
+// 上書きタイトル (D1) の現在値。LangResource (string | {lang: text}) 以外は未設定扱い
+function titleOverride(entry: unknown): string | Record<string, string> | undefined {
+  const value = (entry as Record<string, unknown>).title;
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, string>;
+  }
+  return undefined;
+}
+
+// 上書きタイトルの確定 (LangResourceInput の update:modelValue = blur 確定時のみ)。
+// 空 (空文字/空 object/空白のみ) は上書き解除 = title キーごと削除 (setOverride と同じ流儀)
+function setTitleOverride(
+  index: number,
+  raw: string | Record<string, string> | undefined,
+): void {
+  const current = entries.value[index];
+  if (!current || typeof current !== "object" || Array.isArray(current)) return;
+  const record = current as Record<string, unknown>;
+  const cleared =
+    raw === undefined ||
+    (typeof raw === "string" && raw.trim() === "") ||
+    (typeof raw === "object" && Object.keys(raw).length === 0);
+  const value = cleared ? undefined : raw;
+  if (JSON.stringify(record.title ?? null) === JSON.stringify(value ?? null)) return;
+  const updated: Record<string, unknown> = { ...record };
+  if (value === undefined) {
+    delete updated.title;
+  } else {
+    updated.title = value;
+  }
+  const next = [...entries.value];
+  next[index] = updated;
+  emit("update:pois", next);
 }
 
 function overrideValue(entry: unknown, key: "icon" | "selectedIcon"): string {

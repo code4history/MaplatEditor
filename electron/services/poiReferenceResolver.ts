@@ -1,5 +1,5 @@
 // 登録 POI ソース参照 ({poiUid}) と icon 参照文法の main 側解決層 (Phase 7, 43 §2.4/§7/§8)。
-// document.pois / map data_json の pois 配列内の { poiUid, cachedTitle? } 要素を
+// document.pois / map data_json の pois 配列内の { poiUid, cachedTitle?, icon?, selectedIcon?, title? } 要素を
 // PoiSourceService.exportForm の export 形 FeatureCollection へ置換する。
 // 生要素 (URL 文字列 / FC 埋め込み) は無加工で透過し (座標も丸めない)、
 // 見つからない/読めない poiUid は要素を落として 'appedit.warn_missing_poi_source' を1回だけ載せる。
@@ -25,6 +25,8 @@ import SqliteDataService from './SqliteDataService';
 import SettingsService from './SettingsService';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { parseIconRef, listIconSets } from '../../src/utils/iconRefs';
+import { compactLangResource, type LangResource } from '../../src/utils/langResource';
+import { DEFAULT_LANG } from '../../src/utils/poiGeoJson';
 
 // icon 実体のコピー要求。dest は出力ルート相対 (posix 区切り) — export はディレクトリコピー先、
 // preview は配信ルート、download は zip 内パスとして解釈する
@@ -187,7 +189,10 @@ export function hasSharedPoiUid(a: Set<string>, b: Set<string>): boolean {
 // 参照要素の icon/selectedIcon 上書き (Phase 8, POI-112 最小形) を解決後 FC のトップレベル
 // (layer metadata) へ適用する。string かつ非空の値のみ有効で、ソース側 FC に元々 icon が
 // あっても参照側の上書きが勝つ。ここでは参照文法のまま載せ、後段の resolveIconRefsInFc が
-// 通常の icon 解決 (imgs/ 書き換え + 実体コピー要求 + unresolved 警告) を等しく適用する
+// 通常の icon 解決 (imgs/ 書き換え + 実体コピー要求 + unresolved 警告) を等しく適用する。
+// title 上書き (GUI 検証 D1): 参照要素の title (LangResource) が非空なら、toExportForm が
+// FC.name に書くのと同じ交換形 (compactLangResource collapse、defaultLang=DEFAULT_LANG) で
+// 解決後 FC の name をソース側より優先で上書きする。空 (空文字/空 object/未定義) は上書きなし
 function applyReferenceIconOverrides(
   fc: Record<string, unknown>,
   entry: Record<string, unknown>,
@@ -198,6 +203,11 @@ function applyReferenceIconOverrides(
     if (typeof value !== 'string' || value === '') continue;
     if (!out) out = { ...fc };
     out[key] = value;
+  }
+  const title = compactLangResource(entry.title as LangResource | null | undefined, DEFAULT_LANG);
+  if (title !== undefined) {
+    if (!out) out = { ...fc };
+    out.name = title;
   }
   return out ?? fc;
 }

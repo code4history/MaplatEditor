@@ -578,7 +578,8 @@
     "external_data": "External data",
     "external_note": "External data (URL or embedded GeoJSON). Only reordering and deletion are available.",
     "icon_override": "Icon override",
-    "selected_icon_override": "Selected-state icon override"
+    "selected_icon_override": "Selected-state icon override",
+    "override_title": "Title override"
   },
   "poisource": {
     "title": "POI Sources",

@@ -581,7 +581,8 @@
     "external_data": "Data eksternal",
     "external_note": "Data eksternal (URL atau GeoJSON tersemat). Hanya pengurutan ulang dan penghapusan yang tersedia.",
     "icon_override": "Ikon pengganti",
-    "selected_icon_override": "Ikon pengganti saat dipilih"
+    "selected_icon_override": "Ikon pengganti saat dipilih",
+    "override_title": "Judul pengganti"
   },
   "poisource": {
     "title": "Sumber POI",
