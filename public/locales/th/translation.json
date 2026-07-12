@@ -714,7 +714,8 @@
       "url_apply": "ใช้ URL นี้",
       "no_assets": "ไม่พบรูปภาพ",
       "set_builtin": "มาตรฐาน"
-    }
+    },
+    "saving": "กำลังบันทึก…"
   },
   "assetlist": {
     "add_image": "เพิ่มรูปภาพ",

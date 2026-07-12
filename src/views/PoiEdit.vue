@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column h-100 text-start">
+  <div class="d-flex flex-column h-100 text-start position-relative">
     <!-- Loading -->
     <div v-if="loading" class="text-muted text-center py-4">
       {{ t("poisource.loading") }}
@@ -173,6 +173,15 @@
         </div>
       </div>
     </template>
+
+    <!-- 保存中オーバーレイ: 保存クリック → IPC 応答までの間の編集操作を全面抑制する
+         (ユーザー決定 2026-07-11。markSaved の snapshot 同一性判定は保険として残す) -->
+    <div v-if="saving" class="poi-saving-overlay d-flex align-items-center justify-content-center">
+      <div class="bg-white border rounded shadow px-4 py-3 d-flex align-items-center gap-2">
+        <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+        <span>{{ t("poiedit.saving") }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -605,6 +614,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 // macOS のフルキーボードでない Delete キーは event.key === "Backspace" なので両方受ける
 const onDeleteKeydown = (event: KeyboardEvent) => {
   if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
+  if (saveHandle.saving.value) return; // 保存中は編集操作を抑止 (保存中オーバーレイと対)
   if (event.key !== "Delete" && event.key !== "Backspace") return;
   if (isInputTarget(event)) return;
   if (readOnly.value) return;
@@ -675,5 +685,14 @@ onBeforeUnmount(() => {
 .poi-raw-pane {
   height: 40%;
   flex-shrink: 0;
+}
+
+/* 保存中オーバーレイ: 画面全域のクリック/ドラッグを吸収して編集操作を抑制する。
+   キーボード経路 (undo/redo/Delete) は各ハンドラの saving ガードが受け持つ */
+.poi-saving-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(255, 255, 255, 0.4);
 }
 </style>

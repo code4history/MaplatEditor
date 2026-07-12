@@ -714,7 +714,8 @@
       "url_apply": "Gunakan URL ini",
       "no_assets": "Aset gambar tidak ditemukan",
       "set_builtin": "Standar"
-    }
+    },
+    "saving": "Menyimpan…"
   },
   "assetlist": {
     "add_image": "Tambah Gambar",

@@ -151,6 +151,19 @@ try {
     'PoiEdit が utils/poiSourceMessages を使っていない'
   );
 
+  // 保存中オーバーレイ: 保存クリック → IPC 応答までの編集操作を全面抑制する
+  // (ユーザー決定 2026-07-11)。Delete キー経路にも saving ガードがあること
+  assert.match(
+    poiEdit,
+    /poi-saving-overlay/,
+    'PoiEdit に保存中オーバーレイ (poi-saving-overlay) がない'
+  );
+  assert.match(
+    poiEdit,
+    /onDeleteKeydown[\s\S]{0,200}?saveHandle\.saving\.value/,
+    'onDeleteKeydown に saving ガードがない (保存中の Delete が編集を変更してしまう)'
+  );
+
   // 生 ipcRenderer を使わないこと (House rule / m2-t3)
   assert.doesNotMatch(
     poiEdit,

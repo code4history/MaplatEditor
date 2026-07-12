@@ -714,7 +714,8 @@
       "url_apply": "この URL を使用",
       "no_assets": "画像アセットが見つかりません",
       "set_builtin": "標準"
-    }
+    },
+    "saving": "保存中…"
   },
   "assetlist": {
     "add_image": "画像を追加",

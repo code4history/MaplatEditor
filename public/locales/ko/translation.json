@@ -714,7 +714,8 @@
       "url_apply": "이 URL 사용",
       "no_assets": "이미지 에셋을 찾을 수 없습니다",
       "set_builtin": "표준"
-    }
+    },
+    "saving": "저장 중…"
   },
   "assetlist": {
     "add_image": "이미지 추가",

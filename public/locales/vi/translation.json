@@ -714,7 +714,8 @@
       "url_apply": "Dùng URL này",
       "no_assets": "Không tìm thấy tài nguyên ảnh",
       "set_builtin": "Tiêu chuẩn"
-    }
+    },
+    "saving": "Đang lưu…"
   },
   "assetlist": {
     "add_image": "Thêm hình ảnh",

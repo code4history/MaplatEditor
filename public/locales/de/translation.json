@@ -714,7 +714,8 @@
       "url_apply": "Diese URL verwenden",
       "no_assets": "Keine Bild-Assets gefunden",
       "set_builtin": "Integriert"
-    }
+    },
+    "saving": "Speichern…"
   },
   "assetlist": {
     "add_image": "Bild hinzufügen",

@@ -714,7 +714,8 @@
       "url_apply": "Use this URL",
       "no_assets": "No image assets found",
       "set_builtin": "Built-in"
-    }
+    },
+    "saving": "Saving…"
   },
   "assetlist": {
     "add_image": "Add Image",

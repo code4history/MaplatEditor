@@ -714,7 +714,8 @@
       "url_apply": "使用此 URL",
       "no_assets": "未找到图片素材",
       "set_builtin": "标准"
-    }
+    },
+    "saving": "保存中…"
   },
   "assetlist": {
     "add_image": "添加图片",
