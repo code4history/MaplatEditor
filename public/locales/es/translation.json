@@ -583,7 +583,8 @@
     "external_note": "Datos externos (URL o GeoJSON incrustado). Solo se permite reordenar y eliminar.",
     "icon_override": "Icono de reemplazo",
     "selected_icon_override": "Icono de reemplazo al seleccionar",
-    "override_title": "Título de reemplazo"
+    "override_title": "Título de reemplazo",
+    "missing_source": "No se encontró la fuente de POI referenciada (puede haber sido eliminada). Use × para quitar la referencia."
   },
   "poisource": {
     "title": "Fuentes de POI",

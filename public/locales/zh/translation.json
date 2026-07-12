@@ -583,7 +583,8 @@
     "external_note": "外部数据(URL或内嵌GeoJSON)。仅可调整顺序和删除。",
     "icon_override": "覆盖图标",
     "selected_icon_override": "选中时图标(覆盖)",
-    "override_title": "覆盖标题"
+    "override_title": "覆盖标题",
+    "missing_source": "未找到引用的POI数据源(可能已被删除)。可用×解除引用。"
   },
   "poisource": {
     "title": "POI源",

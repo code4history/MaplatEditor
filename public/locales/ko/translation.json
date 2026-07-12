@@ -583,7 +583,8 @@
     "external_note": "외부 데이터(URL 또는 내장 GeoJSON)입니다. 순서 변경과 삭제만 가능합니다.",
     "icon_override": "덮어쓰기 아이콘",
     "selected_icon_override": "선택 시 아이콘(덮어쓰기)",
-    "override_title": "덮어쓰기 제목"
+    "override_title": "덮어쓰기 제목",
+    "missing_source": "참조된 POI 소스를 찾을 수 없습니다(삭제되었을 수 있습니다). ×로 참조를 해제할 수 있습니다."
   },
   "poisource": {
     "title": "POI 소스",

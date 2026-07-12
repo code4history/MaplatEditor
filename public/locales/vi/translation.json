@@ -583,7 +583,8 @@
     "external_note": "Dữ liệu bên ngoài (URL hoặc GeoJSON nhúng). Chỉ có thể sắp xếp lại và xóa.",
     "icon_override": "Biểu tượng ghi đè",
     "selected_icon_override": "Biểu tượng ghi đè khi chọn",
-    "override_title": "Tiêu đề ghi đè"
+    "override_title": "Tiêu đề ghi đè",
+    "missing_source": "Không tìm thấy nguồn POI được tham chiếu (có thể đã bị xóa). Dùng × để gỡ tham chiếu."
   },
   "poisource": {
     "title": "Nguồn POI",

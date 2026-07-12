@@ -583,7 +583,8 @@
     "external_note": "外部データ(URLまたは埋め込みGeoJSON)です。順番の変更と削除のみ行えます。",
     "icon_override": "上書きアイコン",
     "selected_icon_override": "選択時アイコン(上書き)",
-    "override_title": "上書きタイトル"
+    "override_title": "上書きタイトル",
+    "missing_source": "参照先のPOIソースが見つかりません(削除された可能性があります)。×で参照を解除できます。"
   },
   "poisource": {
     "title": "POIソース",

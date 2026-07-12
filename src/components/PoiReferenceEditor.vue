@@ -21,6 +21,7 @@
           v-for="(entry, index) in entries"
           :key="entryKey(entry, index)"
           class="selected-source border rounded p-2 mb-2"
+          :class="{ 'border-warning bg-warning-subtle': isMissing(entry) }"
         >
           <div class="d-flex align-items-center justify-content-between gap-2">
             <div class="min-width-0">
@@ -33,6 +34,11 @@
               <small v-if="poiUidOf(entry) !== null" class="text-muted text-break">
                 {{ entrySubLabel(entry) }}
               </small>
+              <!-- 削除済みソースへの参照 (D4): not-found 確定時のみ警告文言を表示。
+                   × 解除・↑↓ は従来通り操作できる -->
+              <div v-if="isMissing(entry)" class="small text-warning-emphasis">
+                {{ t("poiref.missing_source") }}
+              </div>
             </div>
             <div class="btn-group btn-group-sm flex-shrink-0">
               <button
@@ -172,6 +178,11 @@ function entryTitle(entry: unknown): string {
 // 遅延解決してキャッシュする。解決前/失敗 (削除済みソース等) は uid をそのまま出す
 const slugByUid = ref<Record<string, string>>({});
 
+// not-found 確定の参照 uid 集合 (D4)。poiSources.get は IPC 成功 + 見つからない時に null を
+// 返す (PoiSourceService.get) — これで削除済みソースと判定し、カードを警告表示にする。
+// IPC 一時失敗 (reject) は unknown のまま = 警告にしない (ベストエフォート表示)
+const missingByUid = ref<Record<string, boolean>>({});
+
 watch(
   selectedRefs,
   (refs) => {
@@ -183,14 +194,20 @@ watch(
         .get(uid)
         .then((detail) => {
           if (detail?.slug) slugByUid.value[uid] = detail.slug;
+          missingByUid.value[uid] = detail == null; // null = not-found 確定 (削除済み)
         })
         .catch(() => {
-          // 解決失敗は uid フォールバック表示のまま (ベストエフォート)
+          // 解決失敗 (IPC 一時失敗) は uid フォールバック表示のまま (not-found 扱いにしない)
         });
     }
   },
   { immediate: true },
 );
+
+function isMissing(entry: unknown): boolean {
+  const uid = poiUidOf(entry);
+  return uid !== null && missingByUid.value[uid] === true;
+}
 
 function entrySubLabel(entry: unknown): string {
   const uid = poiUidOf(entry);

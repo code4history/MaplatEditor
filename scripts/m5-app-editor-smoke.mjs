@@ -399,6 +399,19 @@ try {
   assert.match(poiReferenceEditor, /poiref\.icon_override/, 'PoiReferenceEditor.vue に上書きアイコンラベルがない');
   assert.match(poiReferenceEditor, /poiref\.selected_icon_override/, 'PoiReferenceEditor.vue に選択時アイコンラベルがない');
   assert.match(poiReferenceEditor, /poiref\.external_data/, 'PoiReferenceEditor.vue に外部データ (生 URL/FC) 行の表示がない');
+  // 削除済みソースへの参照カードの警告表示 (GUI 検証 D4): poiSources.get の null (not-found 確定)
+  // で警告スタイル + 文言。IPC 一時失敗 (reject) は警告にしない
+  assert.match(poiReferenceEditor, /poiref\.missing_source/, 'PoiReferenceEditor.vue に削除済み参照の警告文言 (poiref.missing_source) がない');
+  assert.match(
+    poiReferenceEditor,
+    /'border-warning bg-warning-subtle': isMissing\(entry\)/,
+    'PoiReferenceEditor.vue の削除済み参照カードに警告スタイル (border-warning) が付かない'
+  );
+  assert.match(
+    poiReferenceEditor,
+    /missingByUid\.value\[uid\] = detail == null/,
+    'PoiReferenceEditor.vue が poiSources.get の null (not-found 確定) で missing 判定していない'
+  );
   assert.match(poiReferenceEditor, /"update:pois"/, 'PoiReferenceEditor.vue が update:pois を emit していない');
   // Phase 8 Task 5: 地図選択タブ (AppEdit sources) と同じ2カラム設計 (ユーザー指摘 2026-07-11:
   // 上下2段は窮屈・検索が無い)。左 = 検索付き POI ソース一覧 / 右 = 選択済みカード列 (↑/↓/× btn-group)

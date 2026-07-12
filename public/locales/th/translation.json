@@ -583,7 +583,8 @@
     "external_note": "ข้อมูลภายนอก (URL หรือ GeoJSON ฝังตัว) ทำได้เพียงจัดลำดับใหม่และลบเท่านั้น",
     "icon_override": "ไอคอนแทนที่",
     "selected_icon_override": "ไอคอนแทนที่เมื่อถูกเลือก",
-    "override_title": "ชื่อแทนที่"
+    "override_title": "ชื่อแทนที่",
+    "missing_source": "ไม่พบแหล่ง POI ที่อ้างอิง (อาจถูกลบไปแล้ว) ใช้ × เพื่อยกเลิกการอ้างอิง"
   },
   "poisource": {
     "title": "แหล่งข้อมูล POI",

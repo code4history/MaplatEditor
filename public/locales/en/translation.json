@@ -580,7 +580,8 @@
     "external_note": "External data (URL or embedded GeoJSON). Only reordering and deletion are available.",
     "icon_override": "Icon override",
     "selected_icon_override": "Selected-state icon override",
-    "override_title": "Title override"
+    "override_title": "Title override",
+    "missing_source": "The referenced POI source was not found (it may have been deleted). Use × to remove this reference."
   },
   "poisource": {
     "title": "POI Sources",
