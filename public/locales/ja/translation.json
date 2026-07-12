@@ -531,6 +531,7 @@
     "warn_unresolved_icon": "解決できないアイコン参照があったため、元の値のまま出力しました。",
     "export": {
       "progress": "エクスポート中...",
+      "zipping": "ZIPファイルを作成中",
       "done": "エクスポート完了",
       "pwa_fallback": "PWA画像生成(pwa-asset-generator)に失敗したため、基本アイコンのみ生成しました。Chrome/Chromiumのインストールを確認してください。",
       "no_icon_source": "PWAアイコン元画像が未設定のため、アイコンを生成しませんでした。",

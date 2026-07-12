@@ -531,6 +531,7 @@
     "warn_unresolved_icon": "Certaines références d’icônes n’ont pas pu être résolues et ont été conservées telles quelles dans la sortie.",
     "export": {
       "progress": "Export en cours...",
+      "zipping": "Création du fichier ZIP",
       "done": "Export terminé",
       "pwa_fallback": "La génération des images PWA (pwa-asset-generator) a échoué ; seules les icônes de base ont été générées. Veuillez vérifier que Chrome/Chromium est installé.",
       "no_icon_source": "Aucune image source d'icône PWA n'étant définie, aucune icône n'a été générée.",

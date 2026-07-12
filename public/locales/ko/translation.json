@@ -531,6 +531,7 @@
     "warn_unresolved_icon": "해석할 수 없는 아이콘 참조가 있어 원래 값 그대로 출력했습니다.",
     "export": {
       "progress": "내보내는 중...",
+      "zipping": "ZIP 파일을 생성하는 중",
       "done": "내보내기 완료",
       "pwa_fallback": "PWA 이미지 생성(pwa-asset-generator)에 실패하여 기본 아이콘만 생성했습니다. Chrome/Chromium 설치를 확인하세요.",
       "no_icon_source": "PWA 아이콘 원본 이미지가 설정되지 않아 아이콘을 생성하지 않았습니다.",

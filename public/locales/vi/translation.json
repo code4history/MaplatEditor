@@ -531,6 +531,7 @@
     "warn_unresolved_icon": "Một số tham chiếu biểu tượng không thể phân giải và được giữ nguyên trong kết quả xuất.",
     "export": {
       "progress": "Đang xuất...",
+      "zipping": "Đang tạo tệp ZIP",
       "done": "Xuất hoàn tất",
       "pwa_fallback": "Tạo ảnh PWA (pwa-asset-generator) thất bại, chỉ đã tạo biểu tượng cơ bản. Vui lòng kiểm tra xem Chrome/Chromium đã được cài đặt chưa.",
       "no_icon_source": "Chưa thiết lập ảnh gốc biểu tượng PWA nên không tạo biểu tượng.",

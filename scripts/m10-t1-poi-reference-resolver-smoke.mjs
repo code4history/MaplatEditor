@@ -11,13 +11,14 @@
 //      appedit.warn_duplicate_poi_reference。map JSON 側の pois[0] も FC に解決される
 //   ⑤ {poiUid} を pois に持つ app を保存 (AppDataService.saveApp) → findReferences(uid) が
 //      その app (と pois を持つ map) を返す (AID-006 実効化)
-//   ⑥ export 経路: AppExportService.exportApp の実出力 (apps/{appID}.json / maps/{slug}.json) の
-//      pois が①④と同じ解決結果になり、result.warnings に③④のキーが載る
+//   ⑥ export 経路: AppExportService.exportApp の実出力 (zip、Phase 8 Task 6) を展開した
+//      apps/{appID}.json / maps/{slug}.json の pois が①④と同じ解決結果になり、
+//      result.warnings に③④のキーが載る
 //   ⑩ icon 参照文法の解決 (POI-117): feature properties.icon='builtin:defaultpin' / layer metadata
 //      icon=asset UUID → preview の app JSON で 'imgs/icons/builtin/defaultpin.png' /
 //      'imgs/{slug}.{ext}' に書き換わり、その URL を HTTP fetch すると 200 + 実体 (画像バイト)。
 //      builtin:defaultpin の実体は Phase 8 Task 4 でビューア標準の png に差し替え済み
-//   ⑪ export 出力ディレクトリに imgs/icons/builtin/defaultpin.png と imgs/{slug}.{ext} が実在し、
+//   ⑪ export zip の展開結果に imgs/icons/builtin/defaultpin.png と imgs/{slug}.{ext} が実在し、
 //      app JSON の参照がそれを指す
 //   ⑫ 未登録 setId ('maki:bank') → 原文維持 + warnings に appedit.warn_unresolved_icon (1回)
 //   ⑬ Write Store 内の data_json は参照文法のまま無変化
@@ -67,10 +68,13 @@ try {
         whenReady() { return Promise.resolve(); },
         exit(code?: number) { if (code && code !== 0) process.exitCode = code; },
       };
-      // export 先ディレクトリを返す (AppExportService.exportApp のフォルダ選択ダイアログ相当)
+      // export 先 zip パスを返す (AppExportService.exportApp の zip 保存ダイアログ相当, Phase 8 Task 6)
       export const dialog = {
-        showOpenDialog() {
-          return Promise.resolve({ canceled: false, filePaths: [${JSON.stringify(exportRoot)}] });
+        showSaveDialog() {
+          return Promise.resolve({
+            canceled: false,
+            filePath: ${JSON.stringify(path.join(exportRoot, 'poi_ref_app.zip'))},
+          });
         },
         showMessageBox() { return Promise.resolve({ response: 0 }); },
       };
@@ -309,19 +313,27 @@ try {
       );
       console.log('ok: (5) findReferences returns referencing app/map (AID-006)');
 
-      // ⑥ export 経路 (exportApp の実出力)
+      // ⑥ export 経路 (exportApp の実出力 = zip、Phase 8 Task 6)。
+      //    生成 zip を展開し、従来のディレクトリ出力と同じアサーションを展開結果へ適用する
       const fakeWin = { webContents: { send() {} } };
       const exported = await AppExportService.exportApp(fakeWin as any, appDocument);
       assert.equal(exported.result, 'Success', 'exportApp は Success のはず: ' + JSON.stringify(exported));
+      assert.ok(
+        String(exported.outDir).endsWith('poi_ref_app.zip'),
+        'Success 時の outDir はダイアログで選んだ zip パスのはず: ' + exported.outDir
+      );
+      const { default: AdmZip } = await import('adm-zip');
+      const exportDir = nodePath.join(${JSON.stringify(workDir)}, 'export-extract');
+      new AdmZip(exported.outDir).extractAllTo(exportDir, true);
       const exportedAppJson = JSON.parse(
-        await fsReadFile(nodePath.join(exported.outDir, 'apps', 'poi_ref_app.json'), 'utf8')
+        await fsReadFile(nodePath.join(exportDir, 'apps', 'poi_ref_app.json'), 'utf8')
       );
       assertResolvedFc(exportedAppJson.pois[0], 'export app JSON');
       assert.equal(exportedAppJson.pois.length, 3, 'export でも missing 参照が落ちて 3 要素のはず');
       assert.equal(exportedAppJson.pois[1], rawUrl, 'export でも生 URL は透過されるはず');
       assert.deepEqual(exportedAppJson.pois[2], rawFc, 'export でも生 FC は無加工透過されるはず');
       const exportedMapJson = JSON.parse(
-        await fsReadFile(nodePath.join(exported.outDir, 'maps', 'poimap.json'), 'utf8')
+        await fsReadFile(nodePath.join(exportDir, 'maps', 'poimap.json'), 'utf8')
       );
       assertResolvedFc(exportedMapJson.pois[0], 'export map JSON');
       assert.ok(exported.warnings.includes(MISSING_KEY), 'export warnings に missing キーが載るはず: ' + JSON.stringify(exported.warnings));
@@ -330,12 +342,12 @@ try {
       assert.equal(exported.warnings.filter((key: string) => key === DUPLICATE_KEY).length, 1, 'export duplicate 警告キーは1回だけのはず');
       console.log('ok: (6) exportApp resolves {poiUid} in app/map JSON output with warnings');
 
-      // --- (11) export 出力ディレクトリに icon 実体が同梱される (POI-117) ---
+      // --- (11) export zip の展開結果に icon 実体が同梱される (POI-117) ---
       const exportedBuiltin = await fsReadFile(
-        nodePath.join(exported.outDir, 'imgs', 'icons', 'builtin', 'defaultpin.png'));
+        nodePath.join(exportDir, 'imgs', 'icons', 'builtin', 'defaultpin.png'));
       assert.ok(exportedBuiltin.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])),
         'export された builtin icon の中身は PNG のはず (Phase 8 Task 4: ビューア標準 png)');
-      const exportedAsset = await fsReadFile(nodePath.join(exported.outDir, 'imgs', 'temple-mark.png'));
+      const exportedAsset = await fsReadFile(nodePath.join(exportDir, 'imgs', 'temple-mark.png'));
       assert.ok(exportedAsset.equals(assetBytes), 'export された asset icon の中身は登録したバイト列のはず');
       // app JSON の参照が同梱ファイルを指すこと (assertResolvedFc で imgs/... 化は確認済み)
       assert.equal(exportedAppJson.pois[0].icon, 'imgs/temple-mark.png');

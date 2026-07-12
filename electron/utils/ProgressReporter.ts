@@ -39,10 +39,17 @@ export class ProgressReporter {
     this.window = window;
   }
 
+  // 事後にしか確定しないステップ数(zip追加単位など)を total へ織り込む。
+  // 見積もり超過分は負値で減算する(その瞬間だけ%が僅かに戻り得るのは許容)
+  extendTotal(delta: number) {
+    this.total += delta;
+  }
+
   // progressTextOverride: バー内側に表示する詳細テキスト。未指定時は旧実装と同じ "(current/total)"。
+  // msgOverride: フェーズごとにラベルを切り替えたい場合の startMsg 差し替え(100%時は endMsg が勝つ)。
   // 呼び出し側のスロットル(例: 100件ごと/200ms間隔)に加え、ここでも%変化/heartbeatでの
   // 二重throttleを行う(既定のminPercentDelta/heartbeatMsは旧実装のまま=挙動不変)
-  update(current: number, progressTextOverride?: string) {
+  update(current: number, progressTextOverride?: string, msgOverride?: string) {
     if (!this.window) return;
     const currentPercent = Math.floor((current / this.total) * 100);
     const currentTime = new Date();
@@ -59,7 +66,7 @@ export class ProgressReporter {
       this.lastTime = currentTime;
       // 旧実装と同じ形式: "(current/total)"。上書き指定時はそちらを使う
       const progress = progressTextOverride ?? `(${current}/${this.total})`;
-      const msg = currentPercent === 100 && this.endMsg ? this.endMsg : this.startMsg;
+      const msg = currentPercent === 100 && this.endMsg ? this.endMsg : (msgOverride ?? this.startMsg);
       this.window.webContents.send(this.channel, {
         text: msg,
         percent: currentPercent,

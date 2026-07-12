@@ -531,6 +531,7 @@
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "export": {
       "progress": "Sedang mengekspor...",
+      "zipping": "Sedang membuat berkas ZIP",
       "done": "Ekspor selesai",
       "pwa_fallback": "Pembuatan gambar PWA (pwa-asset-generator) gagal, sehingga hanya ikon dasar yang dibuat. Silakan periksa apakah Chrome/Chromium telah terpasang.",
       "no_icon_source": "Gambar sumber ikon PWA belum diatur, sehingga ikon tidak dibuat.",

@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import AdmZip from 'adm-zip';
 import { app, dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
@@ -56,7 +57,7 @@ async function countTileFiles(dir: string): Promise<number> {
   return count;
 }
 
-// 実コピー用: tileDir を基準にした相対パスの一覧を返す
+// 実コピー/zip 追加用: dir を基準にした相対パスの一覧を返す
 async function listTileFiles(dir: string): Promise<string[]> {
   const result: string[] = [];
   const stack: string[] = [''];
@@ -129,6 +130,7 @@ const olPackageRoot = findExistingPath([
 
 type ExportResult = {
   result: 'Success' | 'Canceled' | 'Error';
+  // Success 時はユーザーが選んだ zip ファイルのパス (Phase 8 Task 6 で zip 出力へ統一)
   outDir?: string;
   warnings: string[];
   message?: string;
@@ -144,24 +146,18 @@ class AppExportService {
     const appID = String(document?.appID || '').trim();
     if (!appID) return { result: 'Error', warnings, message: 'appedit.no_appid' };
 
-    const picked = await dialog.showOpenDialog(win, {
-      defaultPath: app.getPath('documents'),
-      properties: ['openDirectory', 'createDirectory'],
+    // 地図ダウンロード(mapedit:download)と同じ流儀で zip 保存先を選ぶ (Phase 8 Task 6)。
+    // 上書き確認は showSaveDialog のネイティブ確認に任せる(旧フォルダ出力の独自確認は廃止)
+    const picked = await dialog.showSaveDialog(win, {
+      defaultPath: path.join(app.getPath('documents'), `${appID}.zip`),
+      filters: [{ name: 'Output file', extensions: ['zip'] }],
     });
-    if (picked.canceled || picked.filePaths.length === 0) return { result: 'Canceled', warnings };
-    const outDir = path.join(picked.filePaths[0], appID);
+    if (picked.canceled || !picked.filePath) return { result: 'Canceled', warnings };
+    const zipFilePath = picked.filePath;
 
-    if (fs.existsSync(outDir) && (await fs.readdir(outDir)).length > 0) {
-      const answer = await dialog.showMessageBox(win, {
-        type: 'warning',
-        buttons: ['OK', 'Cancel'],
-        cancelId: 1,
-        message: `${outDir}`,
-        detail: 'Existing contents will be overwritten.',
-      });
-      if (answer.response !== 0) return { result: 'Canceled', warnings };
-      await fs.emptyDir(outDir);
-    }
+    // パッケージは一時ディレクトリに構成し、zip 化して保存先へ書き出したら finally で必ず削除する
+    await fs.ensureDir(app.getPath('temp'));
+    const outDir = await fs.mkdtemp(path.join(app.getPath('temp'), 'maplat-app-export-'));
 
     const sources: AppSource[] = (document.sources || []).map((raw: any) => normalizeAppSource(raw));
     const maplatSources = sources.filter(source => source.sourceType === 'maplat');
@@ -192,10 +188,12 @@ class AppExportService {
       }
 
       // 進捗: タイルファイル単位 + 地図ごとの残り作業(JSON書き出し/tmbコピー) + 固定ステップ(アセット/PWA/HTML)
+      //       + zip 追加単位(=パッケージ内全ファイル数)。zip 単位はパッケージ完成まで確定しないため、
+      //       支配的なタイル数で見積もっておき、確定後に extendTotal で補正する (Phase 8 Task 6)
       // minPercentDelta:0 でタイルコピー中も1%刻みで送信されるようにする(呼び出し側で200ms/100件throttle済み)
       const reporter = new ProgressReporter(
         'app:taskProgress',
-        totalTileFiles + maplatSources.length + 4,
+        totalTileFiles * 2 + maplatSources.length + 4,
         'appedit.export.progress',
         'appedit.export.done',
         { minPercentDelta: 0 },
@@ -345,10 +343,45 @@ class AppExportService {
       progressState.step++;
       reporter.update(progressState.step);
 
-      return { result: 'Success', outDir, warnings };
+      // 8) 一時パッケージを zip 化して保存先へ書き出す (Phase 8 Task 6)。
+      //    addLocalFolder 一括ではバーが止まるため、ファイル単位で zip へ追加しながら
+      //    タイルコピーと同じ 200ms/100件 throttle で進捗を報告する
+      const packageFiles = await listTileFiles(outDir);
+      reporter.extendTotal(packageFiles.length - totalTileFiles);
+      const zip = new AdmZip();
+      let zipped = 0;
+      let sinceLastReport = 0;
+      let lastReportTime = 0;
+      for (const rel of packageFiles) {
+        const zipDir = path
+          .dirname(rel)
+          .split(path.sep)
+          .filter(segment => segment && segment !== '.')
+          .join('/');
+        zip.addLocalFile(path.join(outDir, rel), zipDir, path.basename(rel));
+        zipped++;
+        sinceLastReport++;
+        progressState.step++;
+        const now = Date.now();
+        if (now - lastReportTime >= 200 || sinceLastReport >= 100 || zipped === packageFiles.length) {
+          lastReportTime = now;
+          sinceLastReport = 0;
+          reporter.update(
+            progressState.step,
+            `(${zipped}/${packageFiles.length})`,
+            'appedit.export.zipping',
+          );
+        }
+      }
+      zip.writeZip(zipFilePath);
+
+      return { result: 'Success', outDir: zipFilePath, warnings };
     } catch (e: any) {
       console.error('[AppExportService] export failed', e);
       return { result: 'Error', warnings, message: e?.message || String(e) };
+    } finally {
+      // 一時パッケージはキャンセル・失敗も含め必ず片付ける
+      await fs.remove(outDir);
     }
   }
 
