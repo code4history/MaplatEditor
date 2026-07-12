@@ -95,6 +95,13 @@ try {
     /style="flex: 1 1 0; min-height: 0;"[\s\S]{0,200}?mapedit\.base_map_visibility/,
     'ベースマップ可視性カードに flex: 1 1 0 がない (POI カードとの圧縮競合で一覧が 0px に潰れる)'
   );
+  // テキスト欄内の Cmd+Z 復活 (2026-07-11): menu:undo のセッション undo は
+  // 編集フィールド内では発動しない (ネイティブ undo は App.vue が振り分け)
+  assert.match(
+    mapEdit,
+    /onMainProcessMessage[\s\S]{0,400}?isEditableElement\(document\.activeElement\)/,
+    'MapEdit の menu:undo ハンドラに編集フィールド中の抑止 (isEditableElement) がない'
+  );
 
   console.log('  [4/4] MapEdit POI source selector mount: PASS');
   console.log('M4 Undo/Redo smoke passed');

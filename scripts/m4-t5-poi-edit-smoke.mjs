@@ -151,6 +151,23 @@ try {
     'PoiEdit が utils/poiSourceMessages を使っていない'
   );
 
+  // テキスト欄内の Cmd+Z 復活 (2026-07-11): メニューアクセラレータがネイティブ undo を
+  // 横取りするため、App.vue がグローバルに handleMenuTextUndoRedo で振り分け、
+  // PoiEdit のセッション undo は編集フィールド内では発動しない
+  {
+    const appVue = await readFile(path.join(projectRoot, 'src/App.vue'), 'utf8');
+    assert.match(
+      appVue,
+      /handleMenuTextUndoRedo/,
+      'App.vue がネイティブテキスト undo の振り分け (handleMenuTextUndoRedo) を配線していない'
+    );
+  }
+  assert.match(
+    poiEdit,
+    /onMainProcessMessage[\s\S]{0,400}?isEditableElement\(document\.activeElement\)/,
+    'PoiEdit の menu:undo ハンドラに編集フィールド中の抑止 (isEditableElement) がない'
+  );
+
   // 保存中オーバーレイ: 保存クリック → IPC 応答までの編集操作を全面抑制する
   // (ユーザー決定 2026-07-11)。Delete キー経路にも saving ガードがあること
   assert.match(

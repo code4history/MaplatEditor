@@ -8,6 +8,7 @@ import PoiSourceSelector from '../components/PoiSourceSelector.vue';
 import type { SelectedPoiSourceRef } from '../services/registeredPoiSourceCatalog';
 import { extractPoiRefs, applyPoiSelection, samePoiSelection } from '../utils/poiReferenceUi';
 import { envelopeToBbox } from '../utils/appSourceModel';
+import { isEditableElement } from '../utils/nativeTextUndo';
 import { LANGS_MAP, resolveEditorLanguage } from '../utils/editorLanguages';
 import { UndoStack } from '../services/editorUndoStack';
 import { editorComputeBackend } from '../services/editorComputeBackend';
@@ -755,6 +756,9 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
+    // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
+    // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
+    if (isEditableElement(document.activeElement)) return;
     if (message === 'menu:undo') {
         performUndo();
     } else if (message === 'menu:redo') {

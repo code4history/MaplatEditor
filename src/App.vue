@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { useTranslation } from "i18next-vue";
 import Header from "./components/Header.vue";
 import ProgressModal from "./components/ProgressModal.vue";
+import { handleMenuTextUndoRedo } from "./utils/nativeTextUndo";
 
 const { t } = useTranslation();
 
@@ -13,6 +14,7 @@ const modalProgressText = ref('');
 const modalEnableClose = ref(false);
 let removeTaskProgressListener: (() => void) | null = null;
 let removeMigrationReportListener: (() => void) | null = null;
+let removeMenuTextUndoListener: (() => void) | null = null;
 
 // レガシー移行レポート (ADR-0007): 移行を実行した起動で一度だけ届き、
 // slug改名(ID衝突のサフィックス解消)と警告件数を一覧表示する
@@ -23,6 +25,12 @@ const migrationWarningCount = ref(0);
 let migrationReportShown = false;
 
 onMounted(() => {
+  // メニューの Cmd/Ctrl+Z アクセラレータがネイティブのテキスト undo を横取りするため、
+  // 編集可能フィールドにフォーカスがある間はここでネイティブ undo/redo に振り分ける
+  // (全画面共通。各ビューのセッション undo 側は編集フィールド内では発動しない)
+  removeMenuTextUndoListener = window.appEvents.onMainProcessMessage((message) => {
+    handleMenuTextUndoRedo(message);
+  });
   removeTaskProgressListener = window.appEvents.onTaskProgress((progress) => {
     modalText.value = progress.text;
     modalPercent.value = progress.percent ?? 0;
@@ -46,6 +54,7 @@ onMounted(() => {
 onUnmounted(() => {
   removeTaskProgressListener?.();
   removeMigrationReportListener?.();
+  removeMenuTextUndoListener?.();
 });
 </script>
 

@@ -210,6 +210,7 @@ import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
+import { isEditableElement } from "../utils/nativeTextUndo";
 import type { PoiSourceSaveResult, PoiValidationIssue } from "../electron";
 
 const { t } = useTranslation();
@@ -628,6 +629,9 @@ let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
   if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
+  // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
+  // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
+  if (isEditableElement(document.activeElement)) return;
   if (message === "menu:undo") {
     performUndo();
   } else if (message === "menu:redo") {
