@@ -137,6 +137,37 @@ try {
 
   console.log('  [4/4] electron-env.d.ts 型宣言: PASS');
 
+  // --- Part 5: i18next 補間の HTML エスケープ無効化 (house rule) ---
+  // Vue は自動エスケープするため escapeValue は false が正 (Vue 環境の標準)。
+  // true のままだと t() をネイティブダイアログ (showMessageBox) に渡す箇所で
+  // エンティティが生表示される (2026-07-12 実機バグ: export 完了パスが &#x2F; 化)。
+  // 引き換えに t() の結果を v-html に渡すことは禁止 (XSS 面)
+  {
+    const i18nSource = await readFile(path.join(projectRoot, 'src/i18n.ts'), 'utf8');
+    assert.match(
+      i18nSource,
+      /interpolation:\s*\{\s*escapeValue:\s*false\s*\}/,
+      'i18n.ts に interpolation.escapeValue: false がない (ネイティブダイアログでエンティティが生表示される)'
+    );
+    // t() 出力の v-html 流し込み禁止の全域確認 (escapeValue: false の安全条件)。
+    // コメント中の言及に誤爆しないよう、ディレクティブ実使用 (v-html=) のみを .vue 限定で検査
+    const { execFileSync } = await import('node:child_process');
+    let vHtmlHits = '';
+    try {
+      vHtmlHits = execFileSync(
+        'grep',
+        ['-rln', '--include=*.vue', 'v-html=', path.join(projectRoot, 'src')],
+        { encoding: 'utf8' }
+      );
+    } catch (e) {
+      // grep は不一致で exit 1 = ヒットなし (正常)
+      vHtmlHits = '';
+    }
+    assert.equal(vHtmlHits.trim(), '', `src に v-html 使用がある (escapeValue:false と併用不可): ${vHtmlHits}`);
+  }
+
+  console.log('  [5/5] i18next interpolation house rule: PASS');
+
   console.log('M2-T3 prohibit-raw-ipc smoke passed');
 } finally {
   await rm(workDir, { recursive: true, force: true });

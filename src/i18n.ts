@@ -19,6 +19,12 @@ export async function initI18n(): Promise<void> {
       lng: lang,
       fallbackLng: 'en',
       debug: true,
+      // 補間値の HTML エスケープを無効化する (Vue 環境の標準設定)。
+      // Vue テンプレートは自動エスケープするため二重エスケープになるうえ、
+      // t() の結果をネイティブダイアログ (showMessageBox) に渡す箇所では
+      // エンティティが生表示される (2026-07-12 実機バグ: export 完了ダイアログの
+      // パスが &#x2F; 化)。t() を v-html に渡すことは禁止 (現状使用ゼロ)
+      interpolation: { escapeValue: false },
       backend: {
         loadPath: './locales/{{lng}}/{{ns}}.json'
       }
