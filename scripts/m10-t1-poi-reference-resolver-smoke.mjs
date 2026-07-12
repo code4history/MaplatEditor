@@ -271,6 +271,14 @@ try {
       assert.equal(appJson.pois[1], rawUrl, '生 URL 文字列は透過されるはず');
       assert.deepEqual(appJson.pois[2], rawFc, '生 FC は無加工で透過されるはず');
 
+      // ②' 配信 app JSON の pois 配列順は document の定義順 (エディタ POIデータタブの並び順) を保持
+      //     (2026-07-12 POI レイヤ順バグ修正: viewer 側 listPoiLayers も main 先頭 + この定義順で一覧化する)
+      assert.deepEqual(
+        appJson.pois.map((entry: any) => (typeof entry === 'string' ? entry : entry.id)),
+        ['kyoto-poi', rawUrl, 'embedded-raw'],
+        '配信 pois 配列は定義順を保持するはず'
+      );
+
       // ③ 存在しない poiUid → 要素落ち + warning キー (1回)
       assert.ok(!JSON.stringify(appJson.pois).includes('poiUid'), '未解決の {poiUid} 要素が残らないはず');
       assert.ok(Array.isArray(prepared.warnings), 'prepare は warnings 配列を返すはず');
