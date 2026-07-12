@@ -1,7 +1,8 @@
-// POI ソース参照 UI の共有純関数 (Phase 7, 43 §2.4)。
-// AppEdit (器 = poiSources JSON 文字列を parse した配列) と MapEdit (器 = mapData.pois 配列) の
-// 両エディタで PoiSourceSelector と永続形 pois 配列を往復させる。JSON 文字列⇄配列の層は呼び出し側の責務。
-// 永続形の参照要素は { poiUid: "<uid>", cachedTitle? } (main 側 poiReferenceResolver と同一規約)。
+// POI ソース参照 UI の共有純関数 (Phase 7-8, 43 §2.4)。
+// PoiReferenceEditor (AppEdit の appData.pois / MapEdit の mapData.pois の両方から利用) で
+// PoiSourceSelector と永続形 pois 配列を往復させる。
+// 永続形の参照要素は { poiUid: "<uid>", cachedTitle?, icon?, selectedIcon? }
+// (main 側 poiReferenceResolver と同一規約。icon/selectedIcon は参照単位の上書き, POI-112 最小形)。
 // 生要素 (URL 文字列 / FC 埋め込み) は位置ごと透過する。
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 
@@ -38,13 +39,6 @@ export function extractPoiRefs(pois: unknown[]): SelectedPoiSourceRef[] {
     });
   }
   return restored;
-}
-
-export function samePoiSelection(a: SelectedPoiSourceRef[], b: SelectedPoiSourceRef[]): boolean {
-  return (
-    a.length === b.length &&
-    a.every((item, index) => item.sourceId === b[index].sourceId && item.cachedTitle === b[index].cachedTitle)
-  );
 }
 
 // selector の選択変更を pois 配列へ反映した新配列を返す。既存参照は元の相対順を保ち、

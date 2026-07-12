@@ -21,6 +21,7 @@ try {
   const appDataServicePath = path.join(projectRoot, 'electron/services/AppDataService.ts');
   const sqliteDataServicePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const poiSourcesHealPath = path.join(projectRoot, 'src/utils/poiSourcesHeal.ts');
 
   await mkdir(dataDir, { recursive: true });
   await writeFile(
@@ -182,6 +183,35 @@ try {
       await AppDataService.deleteApp(demoUid);
       assert.equal(await AppDataService.getApp(demoUid), null);
 
+      // --- Phase 8 Task 2: poiSources 多重 stringify 破損の読込 heal (バグ①根治) ---
+      // 旧 AppEdit は normalize のたびに poiSources 文字列を JSON.stringify し直していたため、
+      // 保存⇄読込の往復ごとにエスケープが一段深くなる破損が data_json に残っている。
+      // healAppDocumentPois が二重・三重エスケープ文字列を配列に復元できることを behavioral に確認
+      const { healAppDocumentPois } = await import(${JSON.stringify(poiSourcesHealPath)});
+      const poisFixture = [
+        { poiUid: '11111111-1111-4111-8111-111111111111', cachedTitle: '京都POI', icon: 'builtin:defaultpin-red' },
+        'https://example.com/pois.geojson',
+      ];
+      const once = JSON.stringify(poisFixture);
+      const twice = JSON.stringify(once);
+      const thrice = JSON.stringify(twice);
+      assert.deepEqual(healAppDocumentPois({ poiSources: once }), poisFixture, '一重 stringify 文字列が配列に復元されるはず');
+      assert.deepEqual(healAppDocumentPois({ poiSources: twice }), poisFixture, '二重エスケープ文字列が配列に復元されるはず');
+      assert.deepEqual(healAppDocumentPois({ poiSources: thrice }), poisFixture, '三重エスケープ文字列が配列に復元されるはず');
+      // 実バグ形: 旧 saveApp が JSON.parse(破損 poiSources) を pois に入れたため pois 自体が文字列
+      assert.deepEqual(healAppDocumentPois({ pois: twice }), poisFixture, 'pois が破損文字列でも復元されるはず');
+      // pois 配列優先 (poiSources 旧形は fallback)
+      assert.deepEqual(
+        healAppDocumentPois({ pois: poisFixture, poiSources: '[]' }), poisFixture,
+        'pois 配列が poiSources より優先されるはず'
+      );
+      // 復元不能・未設定は空配列 (data_json は書き換えないため破壊はしない)
+      assert.deepEqual(healAppDocumentPois({ poiSources: '{broken json' }), [], 'parse 不能は空配列のはず');
+      assert.deepEqual(healAppDocumentPois({ poiSources: '"loop"' }), [], '配列に到達しない文字列は空配列のはず');
+      assert.deepEqual(healAppDocumentPois({}), [], '未設定は空配列のはず');
+      assert.deepEqual(healAppDocumentPois({ poiSources: '' }), [], '空文字列は空配列のはず');
+      console.log('ok: healAppDocumentPois restores multi-escaped poiSources strings');
+
       console.log('M5 app editor smoke passed');
     `
   );
@@ -238,44 +268,76 @@ try {
   assert.match(appEditView, /httpSettings/, 'AppEdit.vue に HTTP 設定がない');
   assert.match(appEditView, /manifestSettings/, 'AppEdit.vue に manifest 設定がない');
   assert.match(appEditView, /preparePreview/, 'AppEdit.vue が HTTP preview API を呼んでいない');
-  // Phase 7 Task 2: POI source selector の AppEdit マウント (真実の器は appData.poiSources 文字列1つ)
+  // Phase 8 Task 2: POIデータタブ (真実の器は appData.pois 配列1つ。生 textarea と
+  // poiSources 文字列形は廃止 — 二重 stringify 破損の根治)
   assert.match(
     appEditView,
-    /import PoiSourceSelector from "\.\.\/components\/PoiSourceSelector\.vue"/,
-    'AppEdit.vue が PoiSourceSelector を import していない'
+    /import PoiReferenceEditor from "\.\.\/components\/PoiReferenceEditor\.vue"/,
+    'AppEdit.vue が PoiReferenceEditor を import していない'
   );
-  assert.match(appEditView, /<PoiSourceSelector/, 'AppEdit.vue が PoiSourceSelector をマウントしていない');
-  // Phase 7 Task 3: 参照判定・復元・書き戻しの純関数部は MapEdit と共有の utils/poiReferenceUi に抽出済み
+  assert.match(
+    appEditView,
+    /v-show="activeTab === 'pois'"[\s\S]{0,300}?<PoiReferenceEditor/,
+    'AppEdit.vue が POIデータタブに PoiReferenceEditor をマウントしていない'
+  );
+  assert.match(
+    appEditView,
+    /activeTab === 'pois'[\s\S]{0,200}?poiref\.tab_label/,
+    'AppEdit.vue のタブバーに POIデータタブ (poiref.tab_label) がない'
+  );
+  // 読込 heal: pois 配列優先 + 旧 poiSources 文字列の bounded 再 parse 復元
+  assert.match(
+    appEditView,
+    /import \{ healAppDocumentPois \} from "\.\.\/utils\/poiSourcesHeal"/,
+    'AppEdit.vue が heal (poiSourcesHeal) を import していない'
+  );
+  assert.match(
+    appEditView,
+    /normalized\.pois = healAppDocumentPois\(value\)/,
+    'normalizeAppDocument が healAppDocumentPois で pois を復元していない'
+  );
+  // 破損の根本原因の再発防止: AppEdit は poiSources (JSON 文字列形) をコードとして
+  // 一切持たない (内部表現・保存形とも pois 配列のみ。旧形は heal 側でのみ扱う。
+  // コメント中の言及は許容するため、フィールド宣言/プロパティアクセス形のみ検出)
+  assert.doesNotMatch(
+    appEditView,
+    /poiSources\s*[:=]|\.poiSources|poiSources\.value/,
+    'AppEdit.vue に poiSources (文字列形) のコードが残存している — 二重 stringify 破損の再発リスク'
+  );
+  // 書き戻し: PoiReferenceEditor の update:pois を配列のまま反映 + 履歴記録
+  assert.match(appEditView, /function onPoisChange/, 'AppEdit.vue に update:pois の反映 (onPoisChange) がない');
+  assert.match(
+    appEditView,
+    /function onPoisChange\(next: unknown\[\]\) \{\s*\n\s*appData\.value\.pois = next;\s*\n\s*recordHistory\(\);/,
+    'onPoisChange が pois 配列反映 + recordHistory (AppEdit の履歴方式) になっていない'
+  );
+  // 参照判定・復元・書き戻しの純関数部は共有 util (utils/poiReferenceUi) に集約されたまま
   const poiReferenceUi = await readFile(path.join(projectRoot, 'src/utils/poiReferenceUi.ts'), 'utf8');
+  const poiReferenceEditor = await readFile(path.join(projectRoot, 'src/components/PoiReferenceEditor.vue'), 'utf8');
   assert.match(
-    appEditView,
-    /import \{ extractPoiRefs, applyPoiSelection, samePoiSelection \} from "\.\.\/utils\/poiReferenceUi"/,
-    'AppEdit.vue が共有 util (poiReferenceUi) を import していない'
+    poiReferenceEditor,
+    /import \{ poiUidOf, extractPoiRefs, applyPoiSelection \} from "\.\.\/utils\/poiReferenceUi"/,
+    'PoiReferenceEditor.vue が共有 util (poiReferenceUi) を import していない'
   );
-  // poiUid 復元: 参照要素判定は「string の poiUid キーを持つ object」かつ UUID 形状のみ
-  // (poiReferenceResolver と同一規約, M4)
-  assert.match(appEditView, /function syncPoiSelectionFromJson/, 'AppEdit.vue に poiSources → selector の復元がない');
   assert.match(
     poiReferenceUi,
     /typeof uid === "string" && UUID_PATTERN\.test\(uid\)/,
     'poiReferenceUi.ts の参照要素判定が poiReferenceResolver 規約 (UUID 形状の poiUid のみ, M4) と一致しない'
   );
-  // 書き戻し: poiUid 要素の除去→再構築で、生要素 (URL/FC) は位置ごと透過されること
   assert.match(
     poiReferenceUi,
     /export function applyPoiSelection\(pois: unknown\[\], selected: SelectedPoiSourceRef\[\]\): unknown\[\]/,
     'poiReferenceUi.ts に selector 選択の差分反映 (applyPoiSelection) がない'
   );
   assert.match(poiReferenceUi, /const uid = poiUidOf\(entry\);/, 'poiReferenceUi.ts の差分反映が poiUid 要素判定を通していない');
-  assert.match(appEditView, /function onPoiSelectionChange/, 'AppEdit.vue に selector → poiSources の書き戻しがない');
-  assert.match(
-    appEditView,
-    /JSON\.stringify\(next, null, 2\)/,
-    'AppEdit.vue の書き戻しが poiSources 文字列へ JSON.stringify していない'
-  );
-  // parse 不能時は selector を disabled + 警告表示
-  assert.match(appEditView, /poiSourcesJsonInvalid/, 'AppEdit.vue に poiSources parse 不能時の selector disabled がない');
-  assert.match(appEditView, /poi-selector-disabled/, 'AppEdit.vue に selector disabled のスタイル適用がない');
+  // POIデータタブの UI コントラクト: 順番変更 (上下) / 参照単位の icon 上書き / 解除 / 追加 selector
+  assert.match(poiReferenceEditor, /<PoiSourceSelector/, 'PoiReferenceEditor.vue が追加用 PoiSourceSelector をマウントしていない');
+  assert.match(poiReferenceEditor, /function move\(index: number, delta: number\)/, 'PoiReferenceEditor.vue に順番変更 (move) がない');
+  assert.match(poiReferenceEditor, /<IconRefField/, 'PoiReferenceEditor.vue が上書き icon 欄 (IconRefField) をマウントしていない');
+  assert.match(poiReferenceEditor, /poiref\.icon_override/, 'PoiReferenceEditor.vue に上書きアイコンラベルがない');
+  assert.match(poiReferenceEditor, /poiref\.selected_icon_override/, 'PoiReferenceEditor.vue に選択時アイコンラベルがない');
+  assert.match(poiReferenceEditor, /poiref\.external_data/, 'PoiReferenceEditor.vue に外部データ (生 URL/FC) 行の表示がない');
+  assert.match(poiReferenceEditor, /"update:pois"/, 'PoiReferenceEditor.vue が update:pois を emit していない');
   // preview 起動時の warnings 表示 (export と同じ t(key) join → showMessageBox detail 形式)
   assert.match(appEditView, /result\.warnings/, 'AppEdit.vue が preparePreview の warnings を表示していない');
   assert.match(appEditView, /appedit\.preview_warnings/, 'AppEdit.vue が preview warnings ダイアログの message キーを使っていない');

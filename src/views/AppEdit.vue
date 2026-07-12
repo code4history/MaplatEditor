@@ -8,9 +8,8 @@ import gsiThumb from "../assets/img/gsi.png";
 import gsiOrthoThumb from "../assets/img/gsi_ortho.png";
 import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
-import PoiSourceSelector from "../components/PoiSourceSelector.vue";
-import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
-import { extractPoiRefs, applyPoiSelection, samePoiSelection } from "../utils/poiReferenceUi";
+import PoiReferenceEditor from "../components/PoiReferenceEditor.vue";
+import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { fetchAllRegisteredMaps } from "../services/desktopMapList";
@@ -72,7 +71,10 @@ interface AppDocument {
   httpSettings: HttpSettings;
   appSettings: AppRuntimeSettings;
   manifestSettings: ManifestSettings;
-  poiSources: string;
+  // POI データ (43 §2.4): {poiUid, cachedTitle?, icon?, selectedIcon?} 参照要素と
+  // 生要素 (URL 文字列 / FC 埋め込み) の混在配列。旧 poiSources (JSON 文字列) 形は
+  // 読込時に healAppDocumentPois が配列へ復元し、保存形は pois 配列のみ (Phase 8)
+  pois: unknown[];
   startFrom?: string;
   status?: string;
   extraInfo?: string;
@@ -150,7 +152,7 @@ const defaultApp = (): AppDocument => ({
     scope: "./",
     iconSource: "",
   },
-  poiSources: "[]",
+  pois: [],
   status: "New",
   extraInfo: "",
   coverageLngLats: null,
@@ -158,7 +160,7 @@ const defaultApp = (): AppDocument => ({
 
 const appData = ref<AppDocument>(defaultApp());
 const originalAppData = ref<AppDocument>(defaultApp());
-const activeTab = ref<"metadata" | "sources" | "preview">("metadata");
+const activeTab = ref<"metadata" | "sources" | "pois" | "preview">("metadata");
 const sourceListMode = ref<"maps" | "baseMaps">("maps");
 const currentLang = ref<LangCode>("ja");
 // 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (ADR-0007, Phase 4 Task 3)。
@@ -443,7 +445,9 @@ function normalizeAppDocument(value: any): AppDocument {
   if (!normalized.manifestSettings.iconSource && typeof value.httpSettings?.iconSource === "string") {
     normalized.manifestSettings.iconSource = value.httpSettings.iconSource;
   }
-  normalized.poiSources = JSON.stringify(value.poiSources || value.pois || [], null, 2);
+  // pois (配列) 優先。旧 poiSources (JSON 文字列) と多重 stringify 破損は heal で配列に復元する
+  // (旧実装がここで JSON.stringify し直していたのが破損の根本原因 — 二度と文字列形にしない)
+  normalized.pois = healAppDocumentPois(value);
   normalized.startFrom = value.startFrom || value.start_from;
   normalized.extraInfo = typeof value.extraInfo === "string" ? value.extraInfo : "";
   normalized.coverageLngLats = Array.isArray(value.coverageLngLats) ? value.coverageLngLats : null;
@@ -628,13 +632,9 @@ async function saveApp() {
     saveError.value = t("appedit.check_uniqueness");
     return;
   }
+  // pois は配列のまま永続化する (旧 poiSources 文字列形は normalize で pois 配列に
+  // 統一済みのため、送信 document に poiSources キーは載らない — Phase 8 バグ①根治)
   const document = cloneDocument(appData.value);
-  try {
-    (document as any).pois = JSON.parse(document.poiSources || "[]");
-  } catch {
-    saveError.value = t("appedit.invalid_json");
-    return;
-  }
   // sources参照はuid (maplat)なので startFrom もuidで永続化する
   document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;
   document.status = "Update";
@@ -675,7 +675,6 @@ async function exportApp() {
   try {
     const document = cloneDocument(appData.value);
     document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;
-    (document as any).pois = JSON.parse(normalizeJsonText(document.poiSources || "[]", []));
     const result = await window.appedit.export(document);
     if (result.result === "Canceled") return;
     if (result.result === "Error") {
@@ -859,61 +858,16 @@ function destroyPreview() {
 
 function createPreviewDocument(): AppDocument {
   const document = cloneDocument(appData.value);
-  (document as any).pois = JSON.parse(normalizeJsonText(document.poiSources || "[]", []));
   if (previewLang.value) document.lang = previewLang.value;
   // sourcesはAppSource形のままmainプロセスへ渡し、composeViewerSourceで正規化する
   return document;
 }
 
-function normalizeJsonText(value: string, fallback: any) {
-  try {
-    JSON.parse(value);
-    return value;
-  } catch {
-    return JSON.stringify(fallback, null, 2);
-  }
-}
-
-// --- POI ソース selector 配線 (Phase 7 Task 2, 43 §2.4) ---
-// 真実の器は従来通り appData.poiSources (JSON 文字列) 1つ。selector は
-// 「string の poiUid キーを持つ object」参照要素のみを扱い、生要素 (URL/FC) は透過する。
-// 参照判定・復元・書き戻しの純関数部は MapEdit と共有の utils/poiReferenceUi に置き、
-// JSON 文字列⇄配列の層 (parse/stringify) だけを AppEdit 側に残す。
-const selectedPoiSources = ref<SelectedPoiSourceRef[]>([]);
-const poiSourcesJsonInvalid = ref(false);
-
-function parsePoiSourcesArray(text: string): unknown[] | null {
-  try {
-    const value = JSON.parse(text || "[]");
-    return Array.isArray(value) ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-// poiSources 文字列の変化 (load/reload/import/undo/redo/手編集/selector 書き戻し) に
-// selector 表示を追随させる。書き戻し由来の変化は再 parse しても同値の選択集合に
-// なるため、同値なら ref を差し替えず selector との往復を止める (無限ループ回避)
-watch(() => appData.value.poiSources, syncPoiSelectionFromJson, { immediate: true });
-
-function syncPoiSelectionFromJson() {
-  const parsed = parsePoiSourcesArray(appData.value.poiSources);
-  if (!parsed) {
-    poiSourcesJsonInvalid.value = true;
-    return;
-  }
-  poiSourcesJsonInvalid.value = false;
-  const restored = extractPoiRefs(parsed);
-  if (samePoiSelection(selectedPoiSources.value, restored)) return;
-  selectedPoiSources.value = restored;
-}
-
-// selector の選択変更を poiSources 文字列へ書き戻す (差分反映は共有 util の applyPoiSelection)
-function onPoiSelectionChange(refs: SelectedPoiSourceRef[]) {
-  const parsed = parsePoiSourcesArray(appData.value.poiSources);
-  if (!parsed) return; // parse 不能時は selector を disabled にしているため通常来ない (保険)
-  const next = applyPoiSelection(parsed, refs);
-  appData.value.poiSources = JSON.stringify(next, null, 2);
+// --- POIデータタブ配線 (Phase 8 Task 2, 43 §2.4) ---
+// 真実の器は appData.pois 配列 1 つ。順番変更/上書き/解除/追加は PoiReferenceEditor が
+// 配列ごと差し替えの update:pois で返すので、ここでは反映 + 履歴記録だけを行う
+function onPoisChange(next: unknown[]) {
+  appData.value.pois = next;
   recordHistory();
 }
 </script>
@@ -963,6 +917,11 @@ function onPoiSelectionChange(refs: SelectedPoiSourceRef[]) {
         <li class="nav-item">
           <a class="nav-link" :class="{ active: activeTab === 'sources' }" href="#" @click.prevent="activeTab = 'sources'">
             {{ t("appedit.edit_sources") }}
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" :class="{ active: activeTab === 'pois' }" href="#" @click.prevent="activeTab = 'pois'">
+            {{ t("poiref.tab_label") }}
           </a>
         </li>
         <li class="nav-item">
@@ -1097,17 +1056,6 @@ function onPoiSelectionChange(refs: SelectedPoiSourceRef[]) {
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.default_zoom") }}</label>
                 <input v-model.number="appData.appSettings.defaultZoom" type="number" min="0" max="28" class="form-control form-control-sm" @change="recordHistory">
-              </div>
-              <div class="col-12">
-                <label class="form-label small fw-bold">{{ t("appedit.poi_selector_label") }}</label>
-                <div v-if="poiSourcesJsonInvalid" class="alert alert-warning py-1 px-2 small mb-2">{{ t("appedit.invalid_json") }}</div>
-                <div :class="{ 'poi-selector-disabled': poiSourcesJsonInvalid }" :aria-disabled="poiSourcesJsonInvalid">
-                  <PoiSourceSelector :initial-selected="selectedPoiSources" @update:selected="onPoiSelectionChange" />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label small fw-bold">{{ t("appedit.poi_sources_json") }}</label>
-                <textarea v-model="appData.poiSources" class="form-control form-control-sm font-monospace" rows="3" @input="recordHistory" />
               </div>
             </div>
           </section>
@@ -1270,6 +1218,12 @@ function onPoiSelectionChange(refs: SelectedPoiSourceRef[]) {
         </div>
       </div>
 
+      <!-- Tab: POIデータ (Phase 8 Task 2)。器は appData.pois 配列、履歴は onPoisChange の
+           recordHistory 明示 (AppEdit の既存方式) -->
+      <div v-show="activeTab === 'pois'" class="h-100 overflow-hidden p-3">
+        <PoiReferenceEditor :pois="appData.pois" @update:pois="onPoisChange" />
+      </div>
+
       <div v-show="activeTab === 'preview'" class="h-100 position-relative">
         <iframe v-if="previewUrl" class="preview-map" :src="previewUrl" />
         <div class="preview-lang bg-white border rounded shadow-sm px-2 py-1 d-flex align-items-center gap-1">
@@ -1382,11 +1336,6 @@ function onPoiSelectionChange(refs: SelectedPoiSourceRef[]) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 4px 12px;
-}
-/* poiSources JSON が parse 不能な間は selector 操作を止める (書き戻しで手編集を壊さない) */
-.poi-selector-disabled {
-  pointer-events: none;
-  opacity: 0.5;
 }
 .asset-preview {
   max-width: 120px;

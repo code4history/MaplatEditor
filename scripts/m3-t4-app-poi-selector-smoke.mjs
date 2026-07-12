@@ -85,11 +85,21 @@ try {
     'AppList に POI selector が残っている'
   );
 
-  // Phase 7 Task 2: AppEdit に POI selector がマウントされていること
+  // Phase 8 Task 2: AppEdit の POI UI は POIデータタブの PoiReferenceEditor に集約
+  // (PoiSourceSelector は PoiReferenceEditor が追加用に内蔵する)
   assert.match(
     appEdit,
+    /PoiReferenceEditor/,
+    'AppEdit に PoiReferenceEditor がマウントされていない'
+  );
+  const poiReferenceEditor = await readFile(
+    path.join(projectRoot, 'src/components/PoiReferenceEditor.vue'),
+    'utf8'
+  );
+  assert.match(
+    poiReferenceEditor,
     /PoiSourceSelector/,
-    'AppEdit に POI selector がマウントされていない'
+    'PoiReferenceEditor が追加用の PoiSourceSelector を内蔵していない'
   );
 
   // AppList は複数アプリ一覧であること
@@ -105,11 +115,11 @@ try {
     'AppList.vue が新規 AppEdit へ遷移しない'
   );
 
-  // AppEdit は metadata/sources/preview タブ構成であること
+  // AppEdit は metadata/sources/pois/preview タブ構成であること (Phase 8 で POIデータタブ追加)
   assert.match(
     appEdit,
-    /activeTab\s*=\s*ref<"metadata"\s*\|\s*"sources"\s*\|\s*"preview">/,
-    'AppEdit.vue に metadata/sources/preview タブ状態がない'
+    /activeTab\s*=\s*ref<"metadata"\s*\|\s*"sources"\s*\|\s*"pois"\s*\|\s*"preview">/,
+    'AppEdit.vue に metadata/sources/pois/preview タブ状態がない'
   );
 
   assert.match(

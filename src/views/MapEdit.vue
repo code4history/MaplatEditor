@@ -4,9 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
 import EnvelopeEditorModal from '../components/EnvelopeEditorModal.vue';
-import PoiSourceSelector from '../components/PoiSourceSelector.vue';
-import type { SelectedPoiSourceRef } from '../services/registeredPoiSourceCatalog';
-import { extractPoiRefs, applyPoiSelection, samePoiSelection } from '../utils/poiReferenceUi';
+import PoiReferenceEditor from '../components/PoiReferenceEditor.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { LANGS_MAP, resolveEditorLanguage } from '../utils/editorLanguages';
@@ -695,26 +693,12 @@ watch(() => mapData.value.mapID, (newVal, oldVal) => {
     }
 });
 
-// --- POI ソース selector 配線 (Phase 7 Task 3, POI-137, 43 §2.4) ---
-// 器は mapData.pois 配列 (無ければ undefined)。AppEdit と違い JSON 文字列層は無く、
-// 参照判定・差分反映は共有 util (utils/poiReferenceUi)。書き込みは mapData の deep-watch
-// (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
-// undo/redo/reload による mapData 差し替えは pois の watch が selector 表示に反映する
-// (書き戻し由来の変化は同値の選択集合になるため samePoiSelection でスキップし往復を止める)
-const selectedPoiSources = ref<SelectedPoiSourceRef[]>([]);
-
-watch(() => mapData.value.pois, syncPoiSelectionFromMapData, { immediate: true, deep: true });
-
-function syncPoiSelectionFromMapData() {
-    const pois = mapData.value.pois;
-    const restored = extractPoiRefs(Array.isArray(pois) ? pois : []);
-    if (samePoiSelection(selectedPoiSources.value, restored)) return;
-    selectedPoiSources.value = restored;
-}
-
-function onPoiSelectionChange(refs: SelectedPoiSourceRef[]) {
-    const current = Array.isArray(mapData.value.pois) ? mapData.value.pois : [];
-    const next = applyPoiSelection(current, refs);
+// --- POIデータタブ配線 (Phase 8 Task 2, 43 §2.4) ---
+// 器は mapData.pois 配列 (無ければ undefined)。順番変更/上書き/解除/追加は
+// PoiReferenceEditor が配列ごと差し替えの update:pois で返す。書き込みは mapData の
+// deep-watch (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
+// undo/redo/reload による mapData 差し替えは :pois prop 経由で表示へそのまま反映される
+function onPoisChange(next: unknown[]) {
     if (next.length === 0) {
         // 全解除で生要素も残らなければ pois キー自体を削除し、旧データの JSON をきれいに保つ
         delete mapData.value.pois;
@@ -3022,6 +3006,11 @@ const goBack = async () => {
                         {{ t("mapedit.edit_base_map") }}
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" :class="{ active: activeTab === 'pois' }" @click.prevent="activeTab = 'pois'" href="#">
+                        {{ t("poiref.tab_label") }}
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -3499,8 +3488,9 @@ const goBack = async () => {
             <div v-show="activeTab === 'settings'" class="h-100 p-4 d-flex flex-column">
                 <h4 class="mb-3">{{ t("mapedit.edit_base_map") }}</h4>
                 <!-- flex: 1 1 0 (basis 0) が必須: basis auto (=巨大なリスト内容高) にすると、
-                     下の POI カード (flex-shrink-0, max-height:40%) との圧縮競合で
-                     このカードだけが潰され、一覧のスクロール領域が 0px になる (2026-07-11 実機バグ) -->
+                     兄弟要素 (flex-shrink-0) との圧縮競合でこのカードだけが潰され、
+                     一覧のスクロール領域が 0px になる (2026-07-11 実機バグ。POI カードは
+                     Phase 8 で POIデータタブへ移設済みだが規約として維持) -->
                 <div class="card overflow-hidden d-flex flex-column" style="flex: 1 1 0; min-height: 0;">
                     <div class="card-header bg-light fw-bold">{{ t("mapedit.base_map_visibility") }}</div>
                     <div class="card-body d-flex flex-column overflow-hidden">
@@ -3571,16 +3561,6 @@ const goBack = async () => {
                         </div>
                     </div>
                 </div>
-                <!-- POI ソース参照 (Phase 7 Task 3, POI-137)。器は mapData.pois 配列 -->
-                <div class="card mt-3 flex-shrink-0 d-flex flex-column" style="max-height: 40%;">
-                    <div class="card-header bg-light fw-bold">{{ t("mapedit.poi_selector_label") }}</div>
-                    <div class="card-body overflow-auto">
-                        <PoiSourceSelector
-                            :initial-selected="selectedPoiSources"
-                            @update:selected="onPoiSelectionChange"
-                        />
-                    </div>
-                </div>
                 <!-- 地域指定モーダル(Geocoder内蔵)。指定領域と存在範囲が重なるベースマップに絞り込む -->
                 <EnvelopeEditorModal
                     v-if="showBaseMapRegionModal"
@@ -3589,6 +3569,15 @@ const goBack = async () => {
                     help-key="mapedit.base_map_region_modal_help"
                     @update:model-value="baseMapFilterRegion = $event"
                     @close="showBaseMapRegionModal = false"
+                />
+            </div>
+
+            <!-- Tab: POIデータ (Phase 8 Task 2)。器は mapData.pois 配列、履歴は mapData の
+                 deep-watch (scheduleHistorySnapshot) が拾う (MapEdit の既存方式) -->
+            <div v-show="activeTab === 'pois'" class="h-100 p-4 overflow-hidden">
+                <PoiReferenceEditor
+                    :pois="Array.isArray(mapData.pois) ? mapData.pois : []"
+                    @update:pois="onPoisChange"
                 />
             </div>
 

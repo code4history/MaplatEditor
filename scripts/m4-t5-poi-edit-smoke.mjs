@@ -1093,7 +1093,12 @@ try {
     'AssetPicker に二重 emit 防止 (picked ガード) がない'
   );
 
-  // PoiAttributeForm 配線: AssetPicker import + icon/selectedIcon 2 欄 + image 行
+  // PoiAttributeForm 配線: image 行 picker は AssetPicker 直接、icon/selectedIcon 2 欄は
+  // 共通部品 IconRefField (Phase 8 Task 2 で挙動不変抽出。PoiReferenceEditor と共用)
+  const iconRefField = await readFile(
+    path.join(projectRoot, 'src/components/IconRefField.vue'),
+    'utf8'
+  );
   assert.match(
     attrForm,
     /import AssetPicker from ['"]\.\/AssetPicker\.vue['"]/,
@@ -1101,13 +1106,20 @@ try {
   );
   assert.match(
     attrForm,
-    /openIconPicker\('icon'\)/,
-    'PoiAttributeForm の icon 欄に picker ボタンがない'
+    /import IconRefField from ['"]\.\/IconRefField\.vue['"]/,
+    'PoiAttributeForm が IconRefField を import していない'
+  );
+  // icon/selectedIcon の 2 欄が IconRefField でマウントされ、確定は既存 onIconChange 経路
+  // (session 1 commit = Undo 粒度不変) に流れること
+  assert.match(
+    attrForm,
+    /@update:model-value="onIconChange\('icon', \$event\)"/,
+    'PoiAttributeForm の icon 欄 (IconRefField) が onIconChange 経路に流れていない'
   );
   assert.match(
     attrForm,
-    /openIconPicker\('selectedIcon'\)/,
-    'PoiAttributeForm の selectedIcon 欄に picker ボタンがない'
+    /@update:model-value="onIconChange\('selectedIcon', \$event\)"/,
+    'PoiAttributeForm の selectedIcon 欄 (IconRefField) が onIconChange 経路に流れていない'
   );
   assert.match(
     attrForm,
@@ -1115,39 +1127,45 @@ try {
     'PoiAttributeForm の image 行に picker ボタンがない'
   );
 
-  // 解釈表示: parseIconRef / isRegisteredIconSet + 未登録 setId / 未存在 asset の警告
+  // IconRefField: picker ボタン + 解釈表示 (parseIconRef / isRegisteredIconSet +
+  // 未登録 setId / 未存在 asset の警告) + 手入力 + クリア
   assert.match(
-    attrForm,
+    iconRefField,
+    /@click="openPicker"/,
+    'IconRefField に picker ボタンがない'
+  );
+  assert.match(
+    iconRefField,
     /parseIconRef/,
-    'PoiAttributeForm が parseIconRef で現在値を解釈していない'
+    'IconRefField が parseIconRef で現在値を解釈していない'
   );
   assert.match(
-    attrForm,
+    iconRefField,
     /isRegisteredIconSet/,
-    'PoiAttributeForm が isRegisteredIconSet で未登録 setId を判定していない'
+    'IconRefField が isRegisteredIconSet で未登録 setId を判定していない'
   );
   assert.match(
-    attrForm,
+    iconRefField,
     /poiedit\.icon_unresolved_set/,
-    'PoiAttributeForm に未登録 icon set 警告 (poiedit.icon_unresolved_set) がない'
+    'IconRefField に未登録 icon set 警告 (poiedit.icon_unresolved_set) がない'
   );
   assert.match(
-    attrForm,
+    iconRefField,
     /poiedit\.icon_asset_missing/,
-    'PoiAttributeForm に未存在 asset 警告 (poiedit.icon_asset_missing) がない'
+    'IconRefField に未存在 asset 警告 (poiedit.icon_asset_missing) がない'
   );
   assert.match(
-    attrForm,
+    iconRefField,
     /imageAssets\.get\(/,
-    'PoiAttributeForm が imageAssets.get で asset 参照を解決表示していない'
+    'IconRefField が imageAssets.get で asset 参照を解決表示していない'
   );
 
-  // 確定経路の維持 (Undo 粒度不変): picker 選択も既存 onIconChange / onImageChange に流す。
-  // 手入力 text 欄 (直書き) も残す
+  // 確定経路の維持 (Undo 粒度不変): picker 選択/手入力/クリアはすべて update:modelValue
+  // 1 回に集約され、呼び出し側 (PoiAttributeForm) が 1 commit にする
   assert.match(
-    attrForm,
-    /onIconChange\(picker\.iconTarget, value\)/,
-    'PoiAttributeForm の picker 選択が onIconChange 経路に流れていない'
+    iconRefField,
+    /const onPickerSelect = \(value: string\): void => \{\s*\n\s*input\.value = value;\s*\n\s*commit\(value\);/,
+    'IconRefField の picker 選択が commit (update:modelValue) 経路に流れていない'
   );
   assert.match(
     attrForm,
@@ -1155,33 +1173,28 @@ try {
     'PoiAttributeForm の image picker 選択が onImageChange 経路に流れていない'
   );
   assert.match(
-    attrForm,
-    /v-model="iconInput"/,
-    'PoiAttributeForm の icon 手入力 text 欄が残っていない'
+    iconRefField,
+    /v-model="input"/,
+    'IconRefField の手入力 text 欄 (参照文法の直書き, POI-139) が残っていない'
   );
   assert.match(
-    attrForm,
-    /v-model="selectedIconInput"/,
-    'PoiAttributeForm の selectedIcon 手入力 text 欄が残っていない'
-  );
-  assert.match(
-    attrForm,
-    /@change="onIconChange\('icon', iconInput\)"/,
-    'PoiAttributeForm の icon 手入力が既存 onIconChange 経路でない'
+    iconRefField,
+    /@change="commit\(input\)"/,
+    'IconRefField の手入力が commit (update:modelValue) 経路でない'
   );
 
-  // クリアボタン (onIconChange('') 経由でフィールド削除)
+  // クリアボタン (commit('') → 呼び出し側 onIconChange('') でフィールド削除)
   assert.match(
-    attrForm,
+    iconRefField,
     /poiedit\.icon_clear/,
-    'PoiAttributeForm に icon クリアボタン (poiedit.icon_clear) がない'
+    'IconRefField に icon クリアボタン (poiedit.icon_clear) がない'
   );
 
   // readOnly: 選択/クリアボタンは非表示 (v-if="!readOnly")
   assert.match(
-    attrForm,
-    /v-if="!readOnly"[\s\S]{0,200}?openIconPicker\('icon'\)/,
-    'PoiAttributeForm の icon picker ボタンに readOnly ガードがない'
+    iconRefField,
+    /v-if="!readOnly"[\s\S]{0,200}?@click="openPicker"/,
+    'IconRefField の picker ボタンに readOnly ガードがない'
   );
   assert.match(
     attrForm,
@@ -1200,6 +1213,11 @@ try {
     /ipcRenderer/,
     'useAssetThumbnails に生 ipcRenderer 使用が残存している'
   );
+  assert.doesNotMatch(
+    iconRefField,
+    /ipcRenderer/,
+    'IconRefField に生 ipcRenderer 使用が残存している'
+  );
 
   // pickerOpen ガード (Phase 6 品質レビュー MAJOR-2): picker 表示中はグローバルキー
   // (undo/redo/Delete/menu:undo/redo) を抑止する。PoiAttributeForm が pickerOpen を expose し、
@@ -1208,6 +1226,18 @@ try {
     attrForm,
     /defineExpose\(\{\s*focusName,\s*pickerOpen\s*\}\)/,
     'PoiAttributeForm が pickerOpen を defineExpose していない'
+  );
+  // pickerOpen は image 行 picker + IconRefField 内蔵の icon picker ×2 を集約すること
+  // (IconRefField 抽出 [Phase 8] で icon picker が子コンポーネントに移ったため)
+  assert.match(
+    attrForm,
+    /picker\.visible \|\|\s*\n\s*!!iconFieldRef\.value\?\.pickerOpen \|\|\s*\n\s*!!selectedIconFieldRef\.value\?\.pickerOpen/,
+    'PoiAttributeForm の pickerOpen が IconRefField の picker 表示を集約していない'
+  );
+  assert.match(
+    iconRefField,
+    /defineExpose\(\{ pickerOpen: pickerVisible \}\)/,
+    'IconRefField が pickerOpen を defineExpose していない'
   );
   assert.match(
     poiEdit,
