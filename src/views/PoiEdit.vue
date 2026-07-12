@@ -674,15 +674,18 @@ onBeforeUnmount(() => {
   width: 340px;
 }
 
-/* フォームは内容高さ基準 (必要なら縮んで内部スクロール)、一覧が残り高さを取る */
+/* フォーム優先の固定分配 (Phase 8 Task 1): 旧 flex: 0 1 auto + min-height: 0 は
+   大量 feature 時に一覧 (flex-grow) がフォームを 0 まで押し潰していた。
+   フォームは内容高さ基準で伸び、最大 55% で内部スクロール (overflow-auto は template 側)。
+   一覧は残り高さを取り、min-height でフォームが大きくても常に操作可能を保証する */
 .poi-form-area {
-  flex: 0 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  max-height: 55%;
 }
 
 .poi-list-area {
-  flex: 1 1 auto;
-  min-height: 180px;
+  flex: 1 1 0;
+  min-height: 160px;
 }
 
 /* raw GeoJSON ペイン (POI-136): 開時は地図の下に ~40% (地図が主役の比率維持) */

@@ -60,7 +60,7 @@ try {
     'router に旧 PoiSourceDetail が残存している'
   );
 
-  console.log('  [1/10] router PoiEdit route: PASS');
+  console.log('  [1/11] router PoiEdit route: PASS');
 
   // --- Part 2: PoiEdit.vue の配線 ---
   const poiEdit = await readFile(
@@ -188,7 +188,7 @@ try {
     'PoiEdit に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [2/10] PoiEdit.vue wiring: PASS');
+  console.log('  [2/11] PoiEdit.vue wiring: PASS');
 
   // --- Part 3: LangResourceInput.vue の形 ---
   const langResourceInput = await readFile(
@@ -245,7 +245,7 @@ try {
     'LangResourceInput に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [3/10] LangResourceInput.vue shape: PASS');
+  console.log('  [3/11] LangResourceInput.vue shape: PASS');
 
   // --- Part 4: 旧画面 3 ファイルが削除されていること ---
   for (const relPath of [
@@ -260,7 +260,7 @@ try {
     );
   }
 
-  console.log('  [4/10] legacy files removed: PASS');
+  console.log('  [4/11] legacy files removed: PASS');
 
   // --- Part 5 (Task 6): PoiEdit 側の地図ペイン統合 ---
   // 地図ペインは PoiEditMap コンポーネントとしてマウントされること
@@ -301,7 +301,7 @@ try {
     'PoiEdit の Delete キーが session.removeFeature を呼んでいない'
   );
 
-  console.log('  [5/10] PoiEdit map pane integration: PASS');
+  console.log('  [5/11] PoiEdit map pane integration: PASS');
 
   // --- Part 6 (Task 6): PoiEditMap.vue の配線 ---
   const poiEditMap = await readFile(
@@ -435,7 +435,7 @@ try {
     'PoiEditMap に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [6/10] PoiEditMap.vue map pane wiring: PASS');
+  console.log('  [6/11] PoiEditMap.vue map pane wiring: PASS');
 
   // --- Part 7 (Task 7): 属性フォーム (PoiAttributeForm) ---
   const attrForm = await readFile(
@@ -610,7 +610,7 @@ try {
     'PoiAttributeForm に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [7/10] PoiAttributeForm.vue attribute form wiring: PASS');
+  console.log('  [7/11] PoiAttributeForm.vue attribute form wiring: PASS');
 
   // --- Part 8 (Task 8): feature 一覧 (PoiFeatureList) ---
   const featureList = await readFile(
@@ -791,7 +791,7 @@ try {
     'PoiFeatureList に生 ipcRenderer 使用が残存している'
   );
 
-  console.log('  [8/10] PoiFeatureList.vue feature list wiring: PASS');
+  console.log('  [8/11] PoiFeatureList.vue feature list wiring: PASS');
 
   // --- Part 9 (Phase 5 Task 2): raw GeoJSON 双方向ペイン (PoiRawPane) ---
   const rawPane = await readFile(
@@ -996,7 +996,7 @@ try {
     'PoiRawPane に id 非 string エラー (raw_id_not_string) がない'
   );
 
-  console.log('  [9/10] PoiRawPane.vue raw GeoJSON pane wiring: PASS');
+  console.log('  [9/11] PoiRawPane.vue raw GeoJSON pane wiring: PASS');
 
   // --- Part 10 (Phase 6 Task 4): AssetPicker + PoiAttributeForm の picker 配線 ---
   const assetPicker = await readFile(
@@ -1232,7 +1232,104 @@ try {
     'PoiAttributeForm の onPickerSelect が imageIndex 範囲外を console.warn していない'
   );
 
-  console.log('  [10/10] AssetPicker + PoiAttributeForm picker wiring: PASS');
+  console.log('  [10/11] AssetPicker + PoiAttributeForm picker wiring: PASS');
+
+  // --- Part 11 (Phase 8 Task 1): PoiEdit 右ペイン分配 + マーカーアイコン反映 ---
+
+  // 右ペイン CSS: フォーム優先の固定分配 (flex: 0 0 auto + max-height 55%)、
+  // 一覧は残り高さ (flex: 1 1 0 + min-height)。大量 feature でもフォームが潰れない
+  assert.match(
+    poiEdit,
+    /\.poi-form-area\s*\{[^}]*flex:\s*0 0 auto/,
+    'PoiEdit の .poi-form-area が flex: 0 0 auto (フォーム優先の固定分配) でない'
+  );
+  assert.match(
+    poiEdit,
+    /\.poi-form-area\s*\{[^}]*max-height:\s*55%/,
+    'PoiEdit の .poi-form-area が max-height: 55% を持っていない'
+  );
+  assert.match(
+    poiEdit,
+    /class="poi-form-area overflow-auto"/,
+    'PoiEdit の .poi-form-area 要素に overflow-auto (内部スクロール) がない'
+  );
+  assert.match(
+    poiEdit,
+    /\.poi-list-area\s*\{[^}]*flex:\s*1 1 0/,
+    'PoiEdit の .poi-list-area が flex: 1 1 0 (残り高さ) でない'
+  );
+  assert.match(
+    poiEdit,
+    /\.poi-list-area\s*\{[^}]*min-height:\s*160px/,
+    'PoiEdit の .poi-list-area が min-height: 160px を持っていない'
+  );
+
+  // マーカーアイコン解決: parseIconRef で icon 参照文法を判別し、asset は
+  // imageAssets.getFilePath の file:// URL を非同期キャッシュ経由で使う
+  assert.match(
+    poiEditMap,
+    /import \{ listIconSets, parseIconRef \} from ['"]\.\.\/utils\/iconRefs['"]/,
+    'PoiEditMap が iconRefs の parseIconRef/listIconSets を import していない'
+  );
+  assert.match(
+    poiEditMap,
+    /const ref = parseIconRef\(refString\);/,
+    'PoiEditMap がアイコン参照を parseIconRef で解決していない'
+  );
+  assert.match(
+    poiEditMap,
+    /window\.imageAssets\s*\n?\s*\.getFilePath\(uid\)/,
+    'PoiEditMap が asset 参照を imageAssets.getFilePath で解決していない'
+  );
+
+  // asset の非同期解決: uid → url|null の src キャッシュ + in-flight 重複要求ガード。
+  // 失敗は null キャッシュで再要求しない。解決後の再描画は 1 回に coalesce
+  assert.match(
+    poiEditMap,
+    /const assetSrcCache = new Map<string, string \| null>\(\);/,
+    'PoiEditMap に asset src キャッシュ (Map<uid, url|null>) がない'
+  );
+  assert.match(
+    poiEditMap,
+    /if \(assetSrcCache\.has\(uid\) \|\| assetInFlight\.has\(uid\)\) return;/,
+    'PoiEditMap の requestAssetSrc に in-flight 重複要求ガードがない'
+  );
+  assert.match(
+    poiEditMap,
+    /\.catch\(\(\) => \{\s*\n\s*assetSrcCache\.set\(uid, null\);/,
+    'PoiEditMap が asset 解決失敗を null キャッシュしていない (再要求され続ける)'
+  );
+  assert.match(
+    poiEditMap,
+    /const scheduleIconRedraw = /,
+    'PoiEditMap に解決後再描画の coalesce (scheduleIconRedraw) がない'
+  );
+
+  // Style/Icon インスタンスは src キーの cache で共有 (3000 feature 対策)
+  assert.match(
+    poiEditMap,
+    /const iconStyleCache = new Map<string, Style>\(\);/,
+    'PoiEditMap に src キーの Style キャッシュがない'
+  );
+
+  // 未設定/未解決は標準 SVG ピンへフォールバック、選択中は selectedIcon or 赤ピン切替
+  assert.match(
+    poiEditMap,
+    /const raw = selected \? properties\?\.selectedIcon : properties\?\.icon;/,
+    'PoiEditMap の markerStyle が icon/selectedIcon の切替意味論になっていない'
+  );
+  assert.match(
+    poiEditMap,
+    /return pinStyle\(selected\);/,
+    'PoiEditMap の markerStyle が標準 SVG ピンへフォールバックしていない'
+  );
+  assert.match(
+    poiEditMap,
+    /markerStyle\(feature\.properties, uid === session\.selectedUid\.value\)/,
+    'PoiEditMap の redrawMarkers が markerStyle を使っていない'
+  );
+
+  console.log('  [11/11] PoiEdit side pane split + marker icon resolution: PASS');
 
   console.log('M4-T5 PoiEdit editor skeleton smoke passed');
 } catch (err) {

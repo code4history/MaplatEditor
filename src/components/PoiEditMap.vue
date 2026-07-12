@@ -43,6 +43,7 @@ import { containsCoordinate } from "ol/extent";
 import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
 import { localizeTitle } from "../utils/langResource";
+import { listIconSets, parseIconRef } from "../utils/iconRefs";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
 
 const props = defineProps<{
@@ -91,6 +92,102 @@ const pinStyle = (selected: boolean): Style => {
   return pinStyles[key];
 };
 
+// --- 設定アイコンの反映 (Phase 8 Task 1, 仕様 §7 の icon 参照文法) ---
+// feature の properties.icon / (選択中は) properties.selectedIcon を parseIconRef で解決して
+// OL Icon の src に使う。解決できない場合 (未設定 / 未登録 setId / 不明 asset / asset 解決中)
+// は上の標準 SVG ピンへフォールバックする。
+//
+// asset (UUID) の file:// URL 解決は IPC (imageAssets.getFilePath) で非同期。
+// src キャッシュ (uid → url | null) + in-flight ガードで重複要求を防ぎ、解決後に
+// coalesce した redrawMarkers() 1 回で反映する。失敗は null をキャッシュして再要求しない。
+const assetSrcCache = new Map<string, string | null>();
+const assetInFlight = new Set<string>();
+
+// 解決完了の再描画は microtask で 1 回に coalesce する。modifyActive 中は redrawMarkers 側の
+// ガードで no-op になるが、modifyend が必ず redrawMarkers() か watch 経由の全再描画に到達する
+// ため取りこぼしはない (= ドラッグ確定後に最新キャッシュで描き直される)
+let iconRedrawQueued = false;
+const scheduleIconRedraw = (): void => {
+  if (iconRedrawQueued) return;
+  iconRedrawQueued = true;
+  queueMicrotask(() => {
+    iconRedrawQueued = false;
+    redrawMarkers();
+  });
+};
+
+const requestAssetSrc = (uid: string): void => {
+  if (assetSrcCache.has(uid) || assetInFlight.has(uid)) return;
+  assetInFlight.add(uid);
+  window.imageAssets
+    .getFilePath(uid)
+    .then((url) => {
+      assetSrcCache.set(uid, typeof url === "string" && url ? url : null);
+      if (assetSrcCache.get(uid)) scheduleIconRedraw();
+    })
+    .catch(() => {
+      assetSrcCache.set(uid, null);
+    })
+    .finally(() => {
+      assetInFlight.delete(uid);
+    });
+};
+
+// icon 参照 → Icon src。同期解決できない場合は null (標準ピンで描画)。
+const iconRefToSrc = (
+  refString: string,
+): { src: string; pinShaped: boolean } | null => {
+  const ref = parseIconRef(refString);
+  if (ref.kind === "iconset") {
+    // 登録済み setId + 既知 iconId のみ解決。未登録/未知は標準ピンへフォールバック
+    const set = listIconSets().find((s) => s.setId === ref.setId);
+    if (!set || !set.iconIds.includes(ref.iconId)) return null;
+    // builtin の実体はピン形 SVG (public/icons/builtin/*.svg)
+    return { src: set.previewUrl(ref.iconId), pinShaped: ref.setId === "builtin" };
+  }
+  if (ref.kind === "url") {
+    return { src: ref.url, pinShaped: false };
+  }
+  // asset: キャッシュ済みなら即時、未解決なら非同期要求して今回は標準ピン
+  const cached = assetSrcCache.get(ref.uid);
+  if (cached) return { src: cached, pinShaped: false };
+  if (!assetSrcCache.has(ref.uid)) requestAssetSrc(ref.uid);
+  return null; // 解決中 or 解決失敗 (null キャッシュ)
+};
+
+// Style/Icon インスタンスは src キーの cache で共有 (3000 feature でも Icon を使い回す)。
+// anchor: ピン形 (builtin) は先端が座標を指す [0.5, 1]、任意画像 (url/asset) は形状不明の
+// ため画像中心 [0.5, 0.5] が自然。サイズ正規化 (scale) は img 読み込み前に寸法が分からず
+// Icon 生成時に決められないため行わない (既定スケール)。
+const iconStyleCache = new Map<string, Style>();
+const iconRefStyle = (refString: string): Style | null => {
+  const resolved = iconRefToSrc(refString);
+  if (!resolved) return null;
+  const key = `${resolved.pinShaped ? "pin" : "img"}|${resolved.src}`;
+  let style = iconStyleCache.get(key);
+  if (!style) {
+    style = new Style({
+      image: new Icon({
+        src: resolved.src,
+        anchor: resolved.pinShaped ? [0.5, 1] : [0.5, 0.5],
+      }),
+    });
+    iconStyleCache.set(key, style);
+  }
+  return style;
+};
+
+// feature のスタイル決定: 通常時は icon (無ければ青ピン)、選択中は selectedIcon
+// (無ければ赤ピン)。viewer と同じ「icon ⇄ selectedIcon 切替」の意味論
+const markerStyle = (properties: any, selected: boolean): Style => {
+  const raw = selected ? properties?.selectedIcon : properties?.icon;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const style = iconRefStyle(raw.trim());
+    if (style) return style;
+  }
+  return pinStyle(selected);
+};
+
 // --- helper ---
 const featureUid = (feature: any): string | null => {
   const uid = feature?.get?.("_maplatUid");
@@ -130,7 +227,7 @@ const redrawMarkers = (): void => {
     map.setMarker(
       merc,
       { _maplatUid: uid },
-      pinStyle(uid === session.selectedUid.value),
+      markerStyle(feature.properties, uid === session.selectedUid.value),
       "marker",
     );
   }
@@ -142,8 +239,18 @@ watch(session.state, () => redrawMarkers());
 // (Task 8 の一覧クリック選択にもこの watch が効く)
 watch(session.selectedUid, (uid) => {
   if (!markerSource) return;
+  // icon/selectedIcon の解決に session 側 properties が要るため uid → properties の
+  // 索引を 1 回だけ作る (feature ごとの find は 3000 件で O(n^2) になるため)
+  const propsByUid = new Map<string, any>();
+  for (const f of session.state.value?.features ?? []) {
+    const fuid = f.properties?._maplatUid;
+    if (typeof fuid === "string") propsByUid.set(fuid, f.properties);
+  }
   for (const feature of markerSource.getFeatures()) {
-    feature.setStyle(pinStyle(featureUid(feature) === uid));
+    const fuid = featureUid(feature);
+    feature.setStyle(
+      markerStyle(fuid ? propsByUid.get(fuid) : undefined, fuid === uid),
+    );
   }
   if (uid) panToIfOffscreen(uid);
 });
