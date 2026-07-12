@@ -50,6 +50,7 @@ try {
   const appPreviewServicePath = path.join(projectRoot, 'electron/services/AppPreviewService.ts');
   const appExportServicePath = path.join(projectRoot, 'electron/services/AppExportService.ts');
   const poiReferenceResolverPath = path.join(projectRoot, 'electron/services/poiReferenceResolver.ts');
+  const poiReferenceUiPath = path.join(projectRoot, 'src/utils/poiReferenceUi.ts');
 
   await writeFile(
     electronStubFile,
@@ -390,6 +391,62 @@ try {
         '同一参照の unresolved icon 警告は畳まれて1回のはず'
       );
       console.log('ok: (9) duplicate uid references within the same array both resolve');
+
+      // --- (14) 参照要素の icon/selectedIcon 上書き (Phase 8 Task 2, POI-112 最小形) ---
+      // 参照側の上書きが解決後 FC のトップレベル icon/selectedIcon に適用され、ソース側の
+      // 既存値 (layer icon=asset UUID → imgs/temple-mark.png) より参照側が勝つ。
+      // 上書き値も既存の icon 参照文法解決 (imgs/ 書き換え + files 収集) を通る
+      const overrideResult = await resolvePoisArray([
+        { poiUid: srcUid, cachedTitle: '京都POI',
+          icon: 'builtin:defaultpin-red', selectedIcon: assetUid },
+      ]);
+      const overriddenFc: any = overrideResult.pois[0];
+      assert.equal(overriddenFc.type, 'FeatureCollection', '上書きケースでも FC に解決されるはず');
+      assert.equal(
+        overriddenFc.icon, 'imgs/icons/builtin/defaultpin-red.svg',
+        '参照側 icon 上書きがソース側 layer icon より勝ち、imgs/ へ解決されるはず: ' + overriddenFc.icon
+      );
+      assert.equal(
+        overriddenFc.selectedIcon, 'imgs/temple-mark.png',
+        '参照側 selectedIcon 上書き (asset UUID) も imgs/{slug}.{ext} へ解決されるはず: ' + overriddenFc.selectedIcon
+      );
+      assert.ok(
+        overrideResult.files.some((file: any) => file.dest === 'imgs/icons/builtin/defaultpin-red.svg'),
+        '上書き icon の実体コピー要求が files に載るはず: ' + JSON.stringify(overrideResult.files)
+      );
+      assert.ok(
+        overrideResult.files.some((file: any) => file.dest === 'imgs/temple-mark.png'),
+        '上書き selectedIcon (asset) の実体コピー要求が files に載るはず'
+      );
+      // feature 側の icon 解決は上書きの影響を受けない
+      assert.equal(overriddenFc.features[0].properties.icon, 'imgs/icons/builtin/defaultpin.svg');
+      // 非文字列/空文字の上書きは無視され、ソース側の値が残る
+      const noOverrideResult = await resolvePoisArray([
+        { poiUid: srcUid, cachedTitle: '京都POI', icon: '', selectedIcon: 42 },
+      ]);
+      const noOverrideFc: any = noOverrideResult.pois[0];
+      assert.equal(noOverrideFc.icon, 'imgs/temple-mark.png', '空文字 icon 上書きは無視されるはず');
+      assert.equal(noOverrideFc.selectedIcon, undefined, '非文字列 selectedIcon 上書きは無視されるはず');
+      console.log('ok: (14) reference-level icon/selectedIcon overrides win over source values and resolve');
+
+      // --- (15) poiReferenceUi.applyPoiSelection が上書きキーを温存する (Phase 8 Task 2) ---
+      const { extractPoiRefs, applyPoiSelection } = await import(${JSON.stringify(poiReferenceUiPath)});
+      const poisWithOverride = [
+        'https://example.com/raw.geojson',
+        { poiUid: srcUid, cachedTitle: '京都POI', icon: 'builtin:defaultpin-red', selectedIcon: assetUid },
+        { poiUid: MISSING_UID, cachedTitle: '別参照' },
+      ];
+      const refs = extractPoiRefs(poisWithOverride);
+      assert.equal(refs.length, 2, 'extractPoiRefs は参照2件を復元するはず');
+      // 選択維持 (同じ集合を書き戻し) → 上書きキーが温存され、生要素も位置ごと不変
+      const kept = applyPoiSelection(poisWithOverride, refs);
+      assert.deepEqual(kept, poisWithOverride,
+        '選択維持の書き戻しで icon/selectedIcon 上書きキーが温存されるはず: ' + JSON.stringify(kept));
+      // 片方を解除 → 残る参照の上書きキーは温存されたまま
+      const partial = applyPoiSelection(poisWithOverride, refs.filter((r: any) => r.sourceId === srcUid));
+      assert.deepEqual(partial, [poisWithOverride[0], poisWithOverride[1]],
+        '解除後も残存参照の上書きキーが温存されるはず: ' + JSON.stringify(partial));
+      console.log('ok: (15) applyPoiSelection preserves reference override keys');
 
       console.log('M10-T1 poi reference resolver smoke passed');
       process.exit(0);

@@ -48,7 +48,9 @@ export function samePoiSelection(a: SelectedPoiSourceRef[], b: SelectedPoiSource
 }
 
 // selector の選択変更を pois 配列へ反映した新配列を返す。既存参照は元の相対順を保ち、
-// 新規選択は末尾へ追加。生要素 (URL/FC) は位置ごと不変で透過する
+// 新規選択は末尾へ追加。生要素 (URL/FC) は位置ごと不変で透過する。
+// 選択維持の参照要素は icon/selectedIcon 等の追加キー (Phase 8 の参照単位上書き) を温存する
+// (poiUid/cachedTitle 以外を落とさない — 元 entry を base に spread で再構築)
 export function applyPoiSelection(pois: unknown[], selected: SelectedPoiSourceRef[]): unknown[] {
   const selectedByUid = new Map(selected.map((item) => [item.sourceId, item]));
   const next: unknown[] = [];
@@ -61,7 +63,7 @@ export function applyPoiSelection(pois: unknown[], selected: SelectedPoiSourceRe
     }
     const selectedRef = selectedByUid.get(uid);
     if (!selectedRef || written.has(uid)) continue; // 解除された参照と重複参照は除去
-    next.push(toPoiReferenceElement(selectedRef));
+    next.push(toPoiReferenceElement(selectedRef, entry as Record<string, unknown>));
     written.add(uid);
   }
   for (const item of selected) {
@@ -70,8 +72,11 @@ export function applyPoiSelection(pois: unknown[], selected: SelectedPoiSourceRe
   return next;
 }
 
-function toPoiReferenceElement(item: SelectedPoiSourceRef): Record<string, string> {
-  const element: Record<string, string> = { poiUid: item.sourceId };
+function toPoiReferenceElement(
+  item: SelectedPoiSourceRef,
+  base?: Record<string, unknown>,
+): Record<string, unknown> {
+  const element: Record<string, unknown> = { ...(base ?? {}), poiUid: item.sourceId };
   if (item.cachedTitle) element.cachedTitle = item.cachedTitle;
   return element;
 }

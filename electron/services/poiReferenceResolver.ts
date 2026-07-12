@@ -184,8 +184,27 @@ export function hasSharedPoiUid(a: Set<string>, b: Set<string>): boolean {
   return false;
 }
 
+// 参照要素の icon/selectedIcon 上書き (Phase 8, POI-112 最小形) を解決後 FC のトップレベル
+// (layer metadata) へ適用する。string かつ非空の値のみ有効で、ソース側 FC に元々 icon が
+// あっても参照側の上書きが勝つ。ここでは参照文法のまま載せ、後段の resolveIconRefsInFc が
+// 通常の icon 解決 (imgs/ 書き換え + 実体コピー要求 + unresolved 警告) を等しく適用する
+function applyReferenceIconOverrides(
+  fc: Record<string, unknown>,
+  entry: Record<string, unknown>,
+): Record<string, unknown> {
+  let out: Record<string, unknown> | null = null;
+  for (const key of ['icon', 'selectedIcon']) {
+    const value = entry[key];
+    if (typeof value !== 'string' || value === '') continue;
+    if (!out) out = { ...fc };
+    out[key] = value;
+  }
+  return out ?? fc;
+}
+
 // pois 配列内の {poiUid} 要素のみ export 形 FC に置換。生要素は透過 (icon 参照解決を除き無加工)。
 // missing は要素落ち + 警告キー1回。非配列入力は空配列扱い (呼び出し側で配列時のみ呼ぶこと)。
+// 参照要素の icon/selectedIcon 上書きは解決後 FC のトップレベルへ適用 (Phase 8, POI-112 最小形)。
 // 置換後の FC (解決済み・生 FC の双方) の icon 参照文法を imgs/... へ解決し、
 // 実体コピー要求を files として返す (POI-117)。同一参照の重複コピーは dest キーで畳む
 export async function resolvePoisArray(pois: unknown): Promise<ResolvedPois> {
@@ -202,7 +221,11 @@ export async function resolvePoisArray(pois: unknown): Promise<ResolvedPois> {
     }
     const fc = await PoiSourceService.exportForm(uid);
     if (fc) {
-      out.push(await resolveIconRefsInFc(fc, sink));
+      const overridden = applyReferenceIconOverrides(
+        fc as unknown as Record<string, unknown>,
+        entry as Record<string, unknown>,
+      );
+      out.push(await resolveIconRefsInFc(overridden, sink));
     } else {
       missing = true;
     }
