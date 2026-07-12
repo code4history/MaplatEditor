@@ -529,6 +529,7 @@
     "warn_duplicate_poi_reference": "Sumber POI yang sama dirujuk oleh aplikasi dan peta sekaligus. POI mungkin ditampilkan dua kali.",
     "poi_heal_failed": "Pengaturan POI yang tersimpan tidak dapat dipulihkan. Data akan hilang jika disimpan sekarang.",
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
+    "warn_icon_too_small": "Gambar sumber ikon PWA lebih kecil dari 512px, sehingga ikon yang dihasilkan mungkin tampak buram.",
     "export": {
       "progress": "Sedang mengekspor...",
       "zipping": "Sedang membuat berkas ZIP",

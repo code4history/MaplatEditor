@@ -529,6 +529,7 @@
     "warn_duplicate_poi_reference": "La misma fuente de POI está referenciada tanto por la aplicación como por un mapa. Los POI podrían mostrarse dos veces.",
     "poi_heal_failed": "No se pudieron restaurar los ajustes de POI guardados. Se perderán si guarda ahora.",
     "warn_unresolved_icon": "Algunas referencias de iconos no se pudieron resolver y se mantuvieron sin cambios en la salida.",
+    "warn_icon_too_small": "La imagen de origen del icono PWA es menor de 512px, por lo que los iconos generados pueden verse borrosos.",
     "export": {
       "progress": "Exportando...",
       "zipping": "Creando el archivo ZIP",

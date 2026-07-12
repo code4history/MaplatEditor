@@ -8,6 +8,7 @@ import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
+import { packIco } from '../utils/icoPack';
 import {
   collectPoiUids,
   hasSharedPoiUid,
@@ -330,7 +331,9 @@ class AppExportService {
       progressState.step++;
       reporter.update(progressState.step);
 
-      // 6) PWAアイコン/スプラッシュ生成 + manifest
+      // 6) PWAアイコン/スプラッシュ生成 + manifest (pwaManifest 有効時)。favicon.ico は常時生成する。
+      //    アイコン元画像 (manifestSettings.iconSource) 未指定時は同梱のデフォルト SVG (Maplat ロゴ)
+      //    へフォールバックするため、デフォルト経路でも manifest の icons は空にならない
       let htmlMeta: Record<string, string> = {};
       if (document.httpSettings?.pwaManifest) {
         const generated = await this.generatePwaAssets(outDir, appID, document, warnings);
@@ -338,6 +341,7 @@ class AppExportService {
         const manifest = this.composeManifest(document, appID, generated.icons);
         await fs.outputJson(path.join(outDir, 'pwa', `${appID}_manifest.json`), manifest, { spaces: 2 });
       }
+      await this.writeFaviconIco(outDir, appID, document);
       progressState.step++;
       reporter.update(progressState.step);
 
@@ -482,6 +486,16 @@ class AppExportService {
     };
   }
 
+  // アイコン元画像 (generator/jimp への入力) の解決。manifestSettings.iconSource (saveFolder 相対)
+  // が未指定または実体無しの場合は、アプリ同梱のデフォルト SVG (Maplat ロゴ、512x512 viewBox) に
+  // フォールバックする。SVG は pwa-asset-generator が Puppeteer でラスタライズできるため直接渡す
+  private resolveIconInput(document: any): string {
+    const iconSourceRel = String(document.manifestSettings?.iconSource || '');
+    const userIcon = iconSourceRel ? path.join(this.saveFolder, iconSourceRel) : '';
+    if (userIcon && fs.existsSync(userIcon)) return userIcon;
+    return resolveResourceAsset('pwa/appicon-default.svg') || '';
+  }
+
   // pwa-asset-generatorでアイコン/スプラッシュ生成。Chrome不在などの失敗時はjimpで最低限のアイコンを生成
   private async generatePwaAssets(
     outDir: string,
@@ -489,16 +503,29 @@ class AppExportService {
     document: any,
     warnings: string[],
   ): Promise<{ icons: any[]; htmlMeta: Record<string, string> }> {
-    const iconSourceRel = String(document.manifestSettings?.iconSource || '');
-    const iconSource = iconSourceRel ? path.join(this.saveFolder, iconSourceRel) : '';
+    const iconSource = this.resolveIconInput(document);
     const splashName = String(document.appSettings?.splash || '');
     const splashSource = splashName ? path.join(this.saveFolder, 'img', splashName) : '';
     const backgroundColor = document.manifestSettings?.backgroundColor || '#f6f0d3';
     const pagDir = path.join(outDir, 'pwa', appID);
 
-    if (!iconSource || !fs.existsSync(iconSource)) {
+    if (!iconSource) {
+      // 同梱デフォルトも解決できない場合のみ (通常起き得ない)
       warnings.push('appedit.export.no_icon_source');
       return { icons: [], htmlMeta: {} };
+    }
+
+    // raster 入力の解像度チェック: 長辺 512px 未満は生成アイコンが粗くなるため警告して続行。
+    // SVG はベクタなのでチェック不要。読めない raster は generator/fallback 側の失敗処理に任せる
+    if (!iconSource.toLowerCase().endsWith('.svg')) {
+      try {
+        const probe = await Jimp.read(iconSource);
+        if (Math.max(probe.bitmap.width, probe.bitmap.height) < 512) {
+          warnings.push('appedit.warn_icon_too_small');
+        }
+      } catch {
+        /* noop */
+      }
     }
 
     try {
@@ -533,12 +560,17 @@ class AppExportService {
     }
   }
 
-  // フォールバック: jimpで192/512アイコンのみ生成
+  // フォールバック: jimpで192/512アイコンのみ生成。
+  // jimp は SVG をデコードできないため、SVG 入力 (デフォルト SVG 含む) は同梱のプリレンダ済み
+  // デフォルト PNG (512x512) に差し替える
   private async generateFallbackIcons(
     iconSource: string,
     pagDir: string,
     appID: string,
   ): Promise<{ icons: any[]; htmlMeta: Record<string, string> }> {
+    if (iconSource.toLowerCase().endsWith('.svg')) {
+      iconSource = resolveResourceAsset('pwa/appicon-default.png') || iconSource;
+    }
     await fs.ensureDir(pagDir);
     const icons: any[] = [];
     for (const size of [192, 512]) {
@@ -558,6 +590,47 @@ class AppExportService {
       appleTouchIcon: `<link rel="apple-touch-icon" href="pwa/${appID}/manifest-icon-192.png">`,
     };
     return { icons, htmlMeta };
+  }
+
+  // favicon.ico をパッケージルートへ生成する (pwaManifest 無効時も常時)。
+  // 優先順: ① pwa-asset-generator 出力に .ico があればそれを配置 (8.1.5 時点では PNG のみで
+  // 出力されないが、将来の対応に備える) → ② generator の favicon PNG (favicon-196.png) を
+  // PNG-in-ICO (icoPack) で包む → ③ generator 未実行 (pwaManifest 無効) / 失敗時は jimp で
+  // 196px PNG を作ってから包む。favicon 生成失敗はエクスポート全体を落とさない
+  private async writeFaviconIco(outDir: string, appID: string, document: any) {
+    const pagDir = path.join(outDir, 'pwa', appID);
+    const icoPath = path.join(outDir, 'favicon.ico');
+    try {
+      if (fs.existsSync(pagDir)) {
+        const entries = await fs.readdir(pagDir);
+        const ico = entries.find(name => name.toLowerCase().endsWith('.ico'));
+        if (ico) {
+          await fs.copy(path.join(pagDir, ico), icoPath);
+          return;
+        }
+        const faviconPng = entries.find(name => /^favicon.*\.png$/i.test(name));
+        if (faviconPng) {
+          const data = await fs.readFile(path.join(pagDir, faviconPng));
+          // PNG IHDR (先頭16バイト目から width/height 各4バイト big-endian) から寸法を読む
+          const width = data.readUInt32BE(16);
+          const height = data.readUInt32BE(20);
+          await fs.writeFile(icoPath, packIco([{ data, width, height }]));
+          return;
+        }
+      }
+      // jimp は SVG をデコードできないため、SVG 入力は同梱のプリレンダ済みデフォルト PNG に差し替える
+      let input = this.resolveIconInput(document);
+      if (input.toLowerCase().endsWith('.svg')) {
+        input = resolveResourceAsset('pwa/appicon-default.png') || '';
+      }
+      if (!input || !fs.existsSync(input)) return;
+      const image = await Jimp.read(input);
+      image.resize({ w: 196, h: 196 });
+      const data = Buffer.from(await image.getBuffer('image/png'));
+      await fs.writeFile(icoPath, packIco([{ data, width: 196, height: 196 }]));
+    } catch (e) {
+      console.error('[AppExportService] favicon.ico generation failed', e);
+    }
   }
 
   private async copyViewerAssets(outDir: string, enableCache: boolean) {
@@ -606,6 +679,9 @@ class AppExportService {
     if (keywords) headLines.push(`  <meta name="keywords" content="${keywords}">`);
     headLines.push(`  <meta property="og:title" content="${title}">`);
     headLines.push(`  <meta name="twitter:card" content="summary">`);
+    // favicon.ico は writeFaviconIco が常時パッケージルートへ生成する。
+    // generator 由来の PNG favicon リンク (htmlMeta.favicon) がある場合も併記する
+    headLines.push(`  <link rel="icon" href="favicon.ico">`);
     if (splash) {
       const ogImage = siteUrl ? joinUrl(siteUrl, `img/${splash}`) : `img/${splash}`;
       headLines.push(`  <meta property="og:image" content="${escapeHtml(ogImage)}">`);

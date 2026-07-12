@@ -526,6 +526,7 @@
     "warn_duplicate_poi_reference": "The same POI source is referenced by both the app and a map. POIs may appear twice.",
     "poi_heal_failed": "Could not restore the saved POI settings; they will be lost if you save now.",
     "warn_unresolved_icon": "Some icon references could not be resolved and were left unchanged in the output.",
+    "warn_icon_too_small": "The PWA icon source image is smaller than 512px, so generated icons may look blurry.",
     "export": {
       "progress": "Exporting...",
       "zipping": "Generating zip file",

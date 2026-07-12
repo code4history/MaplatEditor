@@ -529,6 +529,7 @@
     "warn_duplicate_poi_reference": "同一POI来源同时被应用和地图引用，POI可能会重复显示。",
     "poi_heal_failed": "无法恢复已保存的POI设置，若现在保存将会丢失。",
     "warn_unresolved_icon": "部分图标引用无法解析，已按原值输出。",
+    "warn_icon_too_small": "PWA图标源图片小于512px，生成的图标可能会模糊。",
     "export": {
       "progress": "导出中...",
       "zipping": "正在创建ZIP文件",

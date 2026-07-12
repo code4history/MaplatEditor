@@ -22,6 +22,10 @@
 //      app JSON の参照がそれを指す
 //   ⑫ 未登録 setId ('maki:bank') → 原文維持 + warnings に appedit.warn_unresolved_icon (1回)
 //   ⑬ Write Store 内の data_json は参照文法のまま無変化
+//   ⑯ favicon/デフォルトアイコン: iconSource 未指定 (fixture に manifestSettings なし = デフォルト
+//      SVG 経路) + pwaManifest 有効の export で、zip に favicon.ico (ICO マジック 00 00 01 00) が
+//      同梱され、index.html に favicon リンクがあり、manifest の icons が非空。
+//      サンドボックス等で Chrome が起動できない場合も jimp フォールバックで同条件を満たす
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -316,7 +320,13 @@ try {
       // ⑥ export 経路 (exportApp の実出力 = zip、Phase 8 Task 6)。
       //    生成 zip を展開し、従来のディレクトリ出力と同じアサーションを展開結果へ適用する
       const fakeWin = { webContents: { send() {} } };
-      const exported = await AppExportService.exportApp(fakeWin as any, appDocument);
+      // ⑯ favicon/manifest 検証のため export では pwaManifest を有効化する (preview 側の
+      //    fixture 挙動は変えない)。manifestSettings は未指定のまま = デフォルト SVG 経路
+      const exportDocument = {
+        ...appDocument,
+        httpSettings: { ...appDocument.httpSettings, pwaManifest: true },
+      };
+      const exported = await AppExportService.exportApp(fakeWin as any, exportDocument);
       assert.equal(exported.result, 'Success', 'exportApp は Success のはず: ' + JSON.stringify(exported));
       assert.ok(
         String(exported.outDir).endsWith('poi_ref_app.zip'),
@@ -359,6 +369,32 @@ try {
         'export unresolved icon 警告キーは1回だけのはず'
       );
       console.log('ok: (11) exportApp bundles resolved icon files under imgs/');
+
+      // --- (16) favicon.ico / デフォルトアイコン (iconSource 未指定 → 同梱デフォルト SVG 経路) ---
+      const faviconIco = await fsReadFile(nodePath.join(exportDir, 'favicon.ico'));
+      assert.ok(faviconIco.subarray(0, 4).equals(Buffer.from([0x00, 0x00, 0x01, 0x00])),
+        'favicon.ico は ICO マジック (00 00 01 00) で始まるはず: ' + faviconIco.subarray(0, 4).toString('hex'));
+      // ICONDIRENTRY のオフセット位置に PNG マジック (PNG-in-ICO)
+      const icoImageOffset = faviconIco.readUInt32LE(18);
+      assert.ok(
+        faviconIco.subarray(icoImageOffset, icoImageOffset + 4)
+          .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])),
+        'favicon.ico の画像データは PNG のはず'
+      );
+      const exportedIndexHtml = await fsReadFile(nodePath.join(exportDir, 'index.html'), 'utf8');
+      assert.ok(exportedIndexHtml.includes('<link rel="icon" href="favicon.ico">'),
+        'index.html に favicon.ico のリンクがあるはず');
+      const exportedManifest = JSON.parse(
+        await fsReadFile(nodePath.join(exportDir, 'pwa', 'poi_ref_app_manifest.json'), 'utf8')
+      );
+      assert.ok(Array.isArray(exportedManifest.icons) && exportedManifest.icons.length > 0,
+        'manifest の icons はデフォルト経路でも非空のはず: ' + JSON.stringify(exportedManifest.icons));
+      for (const icon of exportedManifest.icons) {
+        const iconFile = await fsReadFile(nodePath.join(exportDir, ...String(icon.src).split('/')));
+        assert.ok(iconFile.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])),
+          'manifest icons の実体 PNG が zip に同梱されるはず: ' + icon.src);
+      }
+      console.log('ok: (16) exportApp bundles favicon.ico and default-generated manifest icons');
 
       // (7)+(13) Write Store 側の POI ソース (内部形) は解決で劣化しない (8桁精度・_maplatUid 維持、
       // icon/selectedIcon は参照文法のまま無変化)

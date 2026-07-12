@@ -529,6 +529,7 @@
     "warn_duplicate_poi_reference": "La même source de POI est référencée à la fois par l'application et par une carte. Les POI risquent de s'afficher en double.",
     "poi_heal_failed": "Impossible de restaurer les paramètres POI enregistrés. Ils seront perdus si vous enregistrez maintenant.",
     "warn_unresolved_icon": "Certaines références d’icônes n’ont pas pu être résolues et ont été conservées telles quelles dans la sortie.",
+    "warn_icon_too_small": "L'image source de l'icône PWA fait moins de 512px, les icônes générées peuvent donc paraître floues.",
     "export": {
       "progress": "Export en cours...",
       "zipping": "Création du fichier ZIP",

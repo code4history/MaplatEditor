@@ -529,6 +529,7 @@
     "warn_duplicate_poi_reference": "同じPOIソースがアプリと地図の両方から参照されています。POIが二重に表示される可能性があります。",
     "poi_heal_failed": "保存されていたPOI設定を復元できませんでした。このまま保存すると失われます。",
     "warn_unresolved_icon": "解決できないアイコン参照があったため、元の値のまま出力しました。",
+    "warn_icon_too_small": "PWAアイコン元画像が512pxより小さいため、生成されるアイコンが粗くなる可能性があります。",
     "export": {
       "progress": "エクスポート中...",
       "zipping": "ZIPファイルを作成中",
