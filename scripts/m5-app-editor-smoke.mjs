@@ -292,6 +292,13 @@ try {
     /v-show="activeTab === 'pois'"[\s\S]{0,300}?<PoiReferenceEditor/,
     'AppEdit.vue が POIデータタブに PoiReferenceEditor をマウントしていない'
   );
+  // v-show と d-flex の同居禁止: Bootstrap の display:flex!important が v-show に勝ち、
+  // ペインが常時表示になって後続タブ(プレビュー)を覆い隠す (2026-07-12、MapEdit と同型)
+  assert.doesNotMatch(
+    appEditView,
+    /<[a-zA-Z][^>]*v-show[^>]*\bd-flex\b[^>]*>/,
+    'AppEdit に v-show + d-flex 同居要素がある (v-show 専用ラッパーを挟むこと)'
+  );
   assert.match(
     appEditView,
     /activeTab === 'pois'[\s\S]{0,200}?poiref\.tab_label/,

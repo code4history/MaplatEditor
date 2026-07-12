@@ -3495,7 +3495,11 @@ const goBack = async () => {
             </div>
 
             <!-- Tab: Base map settings -->
-            <div v-show="activeTab === 'settings'" class="h-100 p-4 d-flex flex-column">
+            <!-- NOTE: v-show を d-flex と同じ div に置くと Bootstrap の display:flex!important に負けて
+                 v-show が効かない (gcps タブと同じ罠。実害: settings ペインが常時表示になり、後続の
+                 POIデータタブを覆い隠していた — 2026-07-12 実機バグ)。v-show 専用ラッパーを挟む -->
+            <div v-show="activeTab === 'settings'" class="h-100">
+            <div class="h-100 p-4 d-flex flex-column">
                 <h4 class="mb-3">{{ t("mapedit.edit_base_map") }}</h4>
                 <!-- flex: 1 1 0 (basis 0) が必須: basis auto (=巨大なリスト内容高) にすると、
                      兄弟要素 (flex-shrink-0) との圧縮競合でこのカードだけが潰され、
@@ -3580,6 +3584,7 @@ const goBack = async () => {
                     @update:model-value="baseMapFilterRegion = $event"
                     @close="showBaseMapRegionModal = false"
                 />
+            </div>
             </div>
 
             <!-- Tab: POIデータ (Phase 8 Task 2)。器は mapData.pois 配列、履歴は mapData の

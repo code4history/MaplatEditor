@@ -1227,11 +1227,16 @@ function onPoisChange(next: unknown[]) {
 
       <!-- Tab: POIデータ (Phase 8 Task 2)。器は appData.pois 配列、履歴は onPoisChange の
            recordHistory 明示 (AppEdit の既存方式) -->
-      <div v-show="activeTab === 'pois'" class="h-100 overflow-hidden p-3 d-flex flex-column">
+      <!-- NOTE: v-show を d-flex と同じ div に置くと Bootstrap の display:flex!important に負けて
+           v-show が効かず、後続タブ(プレビュー)を覆い隠す (MapEdit settings と同じ罠、2026-07-12)。
+           v-show 専用ラッパーを挟む -->
+      <div v-show="activeTab === 'pois'" class="h-100">
+      <div class="h-100 overflow-hidden p-3 d-flex flex-column">
         <div v-if="poiHealFailed" class="alert alert-warning flex-shrink-0" role="alert">
           {{ t("appedit.poi_heal_failed") }}
         </div>
         <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="appData.pois" @update:pois="onPoisChange" />
+      </div>
       </div>
 
       <div v-show="activeTab === 'preview'" class="h-100 position-relative">

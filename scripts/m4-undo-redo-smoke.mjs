@@ -112,6 +112,15 @@ try {
     'MapEdit の menu:undo ハンドラに編集フィールド中の抑止 (isEditableElement) がない'
   );
 
+  // v-show と d-flex の同居禁止: Bootstrap の display:flex!important が v-show の
+  // inline display:none に勝ち、ペインが常時表示になって後続タブを覆い隠す
+  // (2026-07-12 実機バグ: settings ペインが POIデータタブを隠していた)
+  assert.doesNotMatch(
+    mapEdit,
+    /<[a-zA-Z][^>]*v-show[^>]*\bd-flex\b[^>]*>/,
+    'MapEdit に v-show + d-flex 同居要素がある (v-show 専用ラッパーを挟むこと)'
+  );
+
   console.log('  [4/4] MapEdit POI data tab mount: PASS');
   console.log('M4 Undo/Redo smoke passed');
 } catch (err) {
