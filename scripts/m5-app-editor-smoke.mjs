@@ -87,7 +87,7 @@ try {
           // 旧保存形(mapID=slug)のmaplat参照: 読込時にuidへ解決されること
           { sourceType: 'maplat', mapID: 'histmap', role: 'maplat', title: 'Hist Map', startFrom: true, data: { mapID: 'histmap', maptype: 'maplat', noload: true } },
         ],
-        httpSettings: { previewPort: 41781, pwaManifest: true, enableShare: true, enableBorder: true },
+        httpSettings: { previewPort: 41781, pwaManifest: true, enableShare: true, enableBorder: true, enableMarkerList: true },
         appSettings: { splash: 'demo_splash.png', homeLng: 139, homeLat: 35, defaultZoom: 17 },
         manifestSettings: { name: 'Demo', shortName: 'Demo', backgroundColor: '#f6f0d3', themeColor: '#f6f0d3' },
         startFrom: 'histmap',
@@ -110,6 +110,8 @@ try {
       assert.equal(loaded.title.ja, 'デモアプリ');
       assert.equal(loaded.sources.length, 2);
       assert.equal(loaded.httpSettings.enableShare, true);
+      // マーカー一覧トグル (GUI 検証 D3): document 経由で保存/読込される
+      assert.equal(loaded.httpSettings.enableMarkerList, true);
       assert.equal(loaded.appSettings.splash, 'demo_splash.png');
       assert.equal(loaded.manifestSettings.name, 'Demo');
       // 旧slug参照のmaplatソースが読込時にuid+表示用slugへ解決されること (ADR-0007)
@@ -280,6 +282,30 @@ try {
   assert.match(appEditView, /httpSettings/, 'AppEdit.vue に HTTP 設定がない');
   assert.match(appEditView, /manifestSettings/, 'AppEdit.vue に manifest 設定がない');
   assert.match(appEditView, /preparePreview/, 'AppEdit.vue が HTTP preview API を呼んでいない');
+  // マーカー一覧/マーカー非表示トグル (GUI 検証 D3): メタデータ編集タブのチェックボックス →
+  // document.httpSettings → preview/export の viewerOption へ配線される
+  assert.match(
+    appEditView,
+    /v-model="appData\.httpSettings\.enableMarkerList"/,
+    'AppEdit.vue にマーカー一覧トグル (enableMarkerList) のチェックボックスがない'
+  );
+  assert.match(appEditView, /appedit\.marker_list_ui/, 'AppEdit.vue がマーカー一覧トグルのラベル (appedit.marker_list_ui) を使っていない');
+  assert.match(
+    appEditView,
+    /v-model="appData\.httpSettings\.enableHideMarker"/,
+    'AppEdit.vue にマーカー非表示トグル (enableHideMarker) のチェックボックスがない'
+  );
+  assert.match(
+    appPreviewService,
+    /enableMarkerList: Boolean\(httpSettings\.enableMarkerList\)/,
+    'AppPreviewService が enableMarkerList を viewerOption に渡していない'
+  );
+  const appExportServiceSrc = await readFile(path.join(projectRoot, 'electron/services/AppExportService.ts'), 'utf8');
+  assert.match(
+    appExportServiceSrc,
+    /enableMarkerList: Boolean\(httpSettings\.enableMarkerList\)/,
+    'AppExportService が enableMarkerList を viewerOption に渡していない'
+  );
   // Phase 8 Task 2: POIデータタブ (真実の器は appData.pois 配列1つ。生 textarea と
   // poiSources 文字列形は廃止 — 二重 stringify 破損の根治)
   assert.match(

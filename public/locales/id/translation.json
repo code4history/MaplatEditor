@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "UI overlay",
     "hide_marker_ui": "UI sembunyikan penanda",
+    "marker_list_ui": "UI daftar penanda",
     "border_ui": "UI tampilkan batas",
     "cache_ui": "Cache",
     "state_url": "URL status",

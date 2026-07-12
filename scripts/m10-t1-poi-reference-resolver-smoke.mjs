@@ -213,7 +213,8 @@ try {
           { sourceType: 'maplat', mapID: 'poimap', role: 'maplat', startFrom: true,
             data: { mapID: 'poimap', maptype: 'maplat', noload: true } },
         ],
-        httpSettings: { previewPort: 43181 },
+        // enableMarkerList はマーカー一覧トグル (GUI 検証 D3) の viewerOption 伝搬検証用
+        httpSettings: { previewPort: 43181, enableMarkerList: true },
         appSettings: { homeLng: 135.05, homeLat: 35.05, defaultZoom: 15 },
         startFrom: 'poimap',
         pois: [
@@ -257,6 +258,13 @@ try {
 
       // ① {poiUid} → export 形 FC
       assertResolvedFc(appJson.pois[0], 'preview app JSON');
+
+      // --- (18) enableMarkerList: true の document → preview HTML の viewerOption に伝搬 (D3) ---
+      const previewHtml = await (await fetch(prepared.url)).text();
+      assert.ok(
+        previewHtml.includes('"enableMarkerList":true'),
+        'preview HTML の viewerOption に enableMarkerList: true が載るはず'
+      );
 
       // ② 生 URL / 生 FC は透過 (生 FC の座標は丸めない)
       assert.equal(appJson.pois.length, 3, 'missing 参照が落ちて 3 要素のはず');
@@ -386,6 +394,11 @@ try {
       const exportedIndexHtml = await fsReadFile(nodePath.join(exportDir, 'index.html'), 'utf8');
       assert.ok(exportedIndexHtml.includes('<link rel="icon" href="favicon.ico">'),
         'index.html に favicon.ico のリンクがあるはず');
+      // --- (18) export 側も viewerOption に enableMarkerList: true が伝搬する (D3)。
+      //     export の option は JSON.stringify(viewerOption, null, 2) の整形出力 ---
+      assert.ok(exportedIndexHtml.includes('"enableMarkerList": true'),
+        'export index.html の viewerOption に enableMarkerList: true が載るはず');
+      console.log('ok: (18) enableMarkerList toggle propagates into preview/export viewerOption (D3)');
       const exportedManifest = JSON.parse(
         await fsReadFile(nodePath.join(exportDir, 'pwa', 'poi_ref_app_manifest.json'), 'utf8')
       );

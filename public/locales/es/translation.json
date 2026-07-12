@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "UI de superposición",
     "hide_marker_ui": "UI para ocultar marcadores",
+    "marker_list_ui": "UI de lista de marcadores",
     "border_ui": "UI de visualización de la envolvente",
     "cache_ui": "Caché",
     "state_url": "URL de estado",

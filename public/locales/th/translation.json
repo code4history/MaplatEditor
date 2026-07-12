@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "UI เลเยอร์ซ้อนทับ",
     "hide_marker_ui": "UI ซ่อนหมุด",
+    "marker_list_ui": "UI รายการหมุด",
     "border_ui": "UI แสดงเส้นขอบ",
     "cache_ui": "แคช",
     "state_url": "URL สถานะ",

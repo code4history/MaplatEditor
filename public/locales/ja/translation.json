@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "オーバーレイUI",
     "hide_marker_ui": "マーカー非表示UI",
+    "marker_list_ui": "マーカー一覧UI",
     "border_ui": "エンベロープ表示UI",
     "cache_ui": "キャッシュ",
     "state_url": "状態URL",

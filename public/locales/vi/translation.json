@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "UI lớp phủ",
     "hide_marker_ui": "UI ẩn điểm đánh dấu",
+    "marker_list_ui": "UI danh sách điểm đánh dấu",
     "border_ui": "UI hiển thị đường viền",
     "cache_ui": "Bộ nhớ đệm",
     "state_url": "URL trạng thái",

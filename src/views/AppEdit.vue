@@ -33,6 +33,7 @@ interface HttpSettings {
   pwaManifest: boolean;
   overlay: boolean;
   enableHideMarker: boolean;
+  enableMarkerList: boolean;
   enableBorder: boolean;
   enableCache: boolean;
   stateUrl: boolean;
@@ -129,6 +130,9 @@ const defaultApp = (): AppDocument => ({
     pwaManifest: true,
     overlay: true,
     enableHideMarker: true,
+    // マーカー一覧 UI (viewer の enableMarkerList、GUI 検証 D3)。viewer 既定 (無効) に合わせて
+    // false 既定 — 既存アプリ (キーなし保存形) の preview/export 出力を変えないため
+    enableMarkerList: false,
     enableBorder: true,
     enableCache: true,
     stateUrl: true,
@@ -498,6 +502,7 @@ function normalizeHttpSettings(value: any): HttpSettings {
     pwaManifest: value.pwaManifest ?? defaults.pwaManifest,
     overlay: value.overlay ?? defaults.overlay,
     enableHideMarker: value.enableHideMarker ?? defaults.enableHideMarker,
+    enableMarkerList: value.enableMarkerList ?? defaults.enableMarkerList,
     enableBorder: value.enableBorder ?? defaults.enableBorder,
     enableCache: value.enableCache ?? defaults.enableCache,
     stateUrl: value.stateUrl ?? defaults.stateUrl,
@@ -1021,6 +1026,7 @@ function onPoisChange(next: unknown[]) {
                   <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.pwa_manifest") }}</label>
                   <label class="form-check"><input v-model="appData.httpSettings.overlay" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.overlay_ui") }}</label>
                   <label class="form-check"><input v-model="appData.httpSettings.enableHideMarker" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.hide_marker_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableMarkerList" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.marker_list_ui") }}</label>
                   <label class="form-check"><input v-model="appData.httpSettings.enableBorder" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.border_ui") }}</label>
                   <label class="form-check"><input v-model="appData.httpSettings.enableCache" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.cache_ui") }}</label>
                   <label class="form-check"><input v-model="appData.httpSettings.stateUrl" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.state_url") }}</label>

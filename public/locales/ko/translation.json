@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "오버레이 UI",
     "hide_marker_ui": "마커 숨김 UI",
+    "marker_list_ui": "마커 목록 UI",
     "border_ui": "엔벨로프 표시 UI",
     "cache_ui": "캐시",
     "state_url": "상태 URL",

@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "叠加层UI",
     "hide_marker_ui": "隐藏标记UI",
+    "marker_list_ui": "标记列表UI",
     "border_ui": "范围显示UI",
     "cache_ui": "缓存",
     "state_url": "状态URL",

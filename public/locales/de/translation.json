@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "Overlay-UI",
     "hide_marker_ui": "Marker ausblenden (UI)",
+    "marker_list_ui": "Markerliste (UI)",
     "border_ui": "Hüllkurven-Anzeige (UI)",
     "cache_ui": "Cache",
     "state_url": "Status-URL",

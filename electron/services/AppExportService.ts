@@ -711,6 +711,8 @@ class AppExportService {
       // maplat/overlay だけのエクスポートでは backTo が null になり初期化時に落ちるため抑止する。
       overlay: Boolean(httpSettings.overlay) && hasBasemap,
       enableHideMarker: Boolean(httpSettings.enableHideMarker),
+      // viewer のマーカー一覧 UI (ui_init.ts の appOption.enableMarkerList)。GUI 検証 D3
+      enableMarkerList: Boolean(httpSettings.enableMarkerList),
       enableBorder: Boolean(httpSettings.enableBorder),
       enableCache: Boolean(httpSettings.enableCache),
       stateUrl: Boolean(httpSettings.stateUrl),

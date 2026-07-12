@@ -441,6 +441,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "Overlay UI",
     "hide_marker_ui": "Hide Marker UI",
+    "marker_list_ui": "Marker List UI",
     "border_ui": "Envelope UI",
     "cache_ui": "Cache",
     "state_url": "State URL",

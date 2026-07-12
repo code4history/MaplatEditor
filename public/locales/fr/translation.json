@@ -444,6 +444,7 @@
     "pwa_manifest": "PWA",
     "overlay_ui": "UI de superposition",
     "hide_marker_ui": "UI de masquage des marqueurs",
+    "marker_list_ui": "UI de liste des marqueurs",
     "border_ui": "UI d'affichage de l'enveloppe",
     "cache_ui": "Cache",
     "state_url": "URL d'état",
