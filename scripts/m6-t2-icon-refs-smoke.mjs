@@ -115,16 +115,43 @@ try {
   );
   assert.equal(formatIconRef(parseIconRef('maki:bank')), 'maki:bank');
 
-  // 13. listIconSets に builtin があり iconIds 5種、previewUrl が icons/builtin/{id}.svg 形式
+  // 13. listIconSets に builtin があり icons 7種 (Phase 8 Task 4: ビューア整合)。
+  //     defaultpin/defaultpin-selected はビューアの png、色5種 (blue/red/green/yellow/gray)
+  //     は SVG のボーナストラック。previewUrl は per-icon ext で png/svg 混在に追随する
   const sets = listIconSets();
   const builtin = sets.find((s) => s.setId === 'builtin');
   assert.ok(builtin, 'builtin icon set must be registered');
-  assert.equal(builtin.iconIds.length, 5);
+  assert.equal(builtin.iconIds.length, 7);
   assert.deepEqual(
     [...builtin.iconIds].sort(),
-    ['defaultpin', 'defaultpin-gray', 'defaultpin-green', 'defaultpin-red', 'defaultpin-yellow'].sort(),
+    [
+      'defaultpin',
+      'defaultpin-selected',
+      'defaultpin-blue',
+      'defaultpin-gray',
+      'defaultpin-green',
+      'defaultpin-red',
+      'defaultpin-yellow',
+    ].sort(),
   );
-  assert.equal(builtin.previewUrl('defaultpin'), 'icons/builtin/defaultpin.svg');
+  // icons: {id, ext}[] — iconIds は icons からの導出で一致するはず
+  assert.deepEqual(builtin.icons.map((icon) => icon.id), builtin.iconIds);
+  assert.deepEqual(
+    Object.fromEntries(builtin.icons.map((icon) => [icon.id, icon.ext])),
+    {
+      'defaultpin': 'png',
+      'defaultpin-selected': 'png',
+      'defaultpin-blue': 'svg',
+      'defaultpin-red': 'svg',
+      'defaultpin-green': 'svg',
+      'defaultpin-yellow': 'svg',
+      'defaultpin-gray': 'svg',
+    },
+  );
+  // defaultpin の実体はビューア標準の png (ユーザー決定 2026-07-11 のアート差し替え)
+  assert.equal(builtin.previewUrl('defaultpin'), 'icons/builtin/defaultpin.png');
+  assert.equal(builtin.previewUrl('defaultpin-selected'), 'icons/builtin/defaultpin-selected.png');
+  assert.equal(builtin.previewUrl('defaultpin-blue'), 'icons/builtin/defaultpin-blue.svg');
   assert.equal(builtin.previewUrl('defaultpin-red'), 'icons/builtin/defaultpin-red.svg');
 
   // 14. title は i18n キー (titleKey) を持つ (Phase 6 品質レビュー MINOR-3: ハードコード英語

@@ -20,7 +20,7 @@
 <script setup lang="ts">
 // PoiEdit の地図ペイン (Phase 4 Task 6, 仕様 §3.3/§4)。
 // MapEdit の確立済みパターン (MaplatMap ラッパ / setupBaseMaps / ol-contextmenu /
-// SVG ピン data URI の Icon / forEachFeatureAtPixel 選択) を単一マップへ移植する。
+// 標準ピン Icon / forEachFeatureAtPixel 選択) を単一マップへ移植する。
 // 点マーカーのドラッグ移動は marker vector source への OL Modify + Snap で新規に配線し、
 // modifyend 1 回 = session.moveFeature 1 commit (=1 Undo、仕様 §5) とする。
 // base map の切替は Undo 対象外 (編集内容ではない)。
@@ -73,18 +73,21 @@ let modifyTarget: { uid: string } | null = null;
 const baseMapList = ref<any[]>([]);
 const currentBaseMapID = ref("osm");
 
-// --- マーカースタイル (SVG ピン data URI の Icon、anchor [0.5, 1]。選択中は色違い) ---
+// --- 標準マーカースタイル (Phase 8 Task 4, ユーザー決定 2026-07-11「ビューア標準に整合」) ---
+// ビューア (MaplatCore) と同じ defaultpin.png / defaultpin_selected.png を使う
+// (public/icons/builtin/ へコピー済み。旧・インライン SVG ピン生成器は廃止)。
+// anchor はビューアと同じ [0.5, 1] — MaplatCore/src/map_ex.ts で確認済み:
+// markerDefaultStyle (defaultpin.png) と setMarker の文字列 src 経路がともに
+// anchor: [0.5, 1.0] (fraction) で描画している。
 const pinStyles: Record<string, Style> = {};
 const pinStyle = (selected: boolean): Style => {
   const key = selected ? "selected" : "normal";
   if (!pinStyles[key]) {
-    const fill = selected ? "#FF5533" : "#3B7CFF";
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="36" viewBox="0 0 26 36">
-<path d="M13 1C6.4 1 1 6.4 1 13c0 9 12 22 12 22s12-13 12-22C25 6.4 19.6 1 13 1z" fill="${fill}" stroke="#333333" stroke-width="1.5"/>
-<circle cx="13" cy="13" r="4.5" fill="#FFFFFF"/></svg>`;
     pinStyles[key] = new Style({
       image: new Icon({
-        src: `data:image/svg+xml,${encodeURIComponent(svg)}`,
+        src: selected
+          ? "icons/builtin/defaultpin-selected.png"
+          : "icons/builtin/defaultpin.png",
         anchor: [0.5, 1],
       }),
     });
@@ -95,7 +98,7 @@ const pinStyle = (selected: boolean): Style => {
 // --- 設定アイコンの反映 (Phase 8 Task 1, 仕様 §7 の icon 参照文法) ---
 // feature の properties.icon / (選択中は) properties.selectedIcon を parseIconRef で解決して
 // OL Icon の src に使う。解決できない場合 (未設定 / 未登録 setId / 不明 asset / asset 解決中)
-// は上の標準 SVG ピンへフォールバックする。
+// は上の標準ピンへフォールバックする。
 //
 // asset (UUID) の file:// URL 解決は IPC (imageAssets.getFilePath) で非同期。
 // src キャッシュ (uid → url | null) + in-flight ガードで重複要求を防ぎ、解決後に
@@ -142,7 +145,7 @@ const iconRefToSrc = (
     // 登録済み setId + 既知 iconId のみ解決。未登録/未知は標準ピンへフォールバック
     const set = listIconSets().find((s) => s.setId === ref.setId);
     if (!set || !set.iconIds.includes(ref.iconId)) return null;
-    // builtin の実体はピン形 SVG (public/icons/builtin/*.svg)
+    // builtin の実体はピン形画像 (public/icons/builtin/*.{png,svg})
     return { src: set.previewUrl(ref.iconId), pinShaped: ref.setId === "builtin" };
   }
   if (ref.kind === "url") {
@@ -163,7 +166,7 @@ const iconRefToSrc = (
 // new Image() による事前読み込みチェックを行い、成功/失敗を確定させる。
 // チェック未完了 (pending) の間と、失敗が確定した後は標準ピンへフォールバックする。
 //
-// builtin (previewUrl) はアプリに同梱される同一オリジンの静的アセット (public/icons/builtin/*.svg)
+// builtin (previewUrl) はアプリに同梱される同一オリジンの静的アセット (public/icons/builtin/*.{png,svg})
 // であり実運用で 404 し得ないため、このチェックの対象外とする (下の iconRefStyle で
 // resolved.pinShaped = true の場合はチェックをスキップしてそのまま描画する)
 const iconLoadOkCache = new Map<string, boolean>(); // true=読み込み成功確認済み, false=失敗確定

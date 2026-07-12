@@ -43,7 +43,7 @@ export const UNRESOLVED_ICON_WARNING = 'appedit.warn_unresolved_icon';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
-// builtin 等 icon set 実体 (public/icons/{setId}/*.svg) の候補ルート。
+// builtin 等 icon set 実体 (public/icons/{setId}/*.{png,svg}) の候補ルート。
 // dev は APP_ROOT/public、prod は dist / パッケージ相対 (AppPreviewService の候補配列方式を踏襲)
 const ICON_ASSET_ROOTS = [
   path.resolve(appRoot, 'public'),

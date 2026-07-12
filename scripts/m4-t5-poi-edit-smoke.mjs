@@ -1366,7 +1366,7 @@ try {
     'PoiEditMap に src キーの Style キャッシュがない'
   );
 
-  // 未設定/未解決は標準 SVG ピンへフォールバック、選択中は selectedIcon or 赤ピン切替
+  // 未設定/未解決は標準ピンへフォールバック、選択中は selectedIcon or 選択中ピン切替
   assert.match(
     poiEditMap,
     /const raw = selected \? properties\?\.selectedIcon : properties\?\.icon;/,
@@ -1375,7 +1375,30 @@ try {
   assert.match(
     poiEditMap,
     /return pinStyle\(selected\);/,
-    'PoiEditMap の markerStyle が標準 SVG ピンへフォールバックしていない'
+    'PoiEditMap の markerStyle が標準ピンへフォールバックしていない'
+  );
+  // 標準ピンはビューア (MaplatCore) と同じ defaultpin.png / defaultpin-selected.png
+  // (Phase 8 Task 4, ユーザー決定 2026-07-11。旧・インライン SVG 生成器は廃止)
+  assert.match(
+    poiEditMap,
+    /"icons\/builtin\/defaultpin\.png"/,
+    'PoiEditMap の標準ピンがビューアの defaultpin.png になっていない'
+  );
+  assert.match(
+    poiEditMap,
+    /"icons\/builtin\/defaultpin-selected\.png"/,
+    'PoiEditMap の選択中標準ピンがビューアの defaultpin-selected.png になっていない'
+  );
+  assert.doesNotMatch(
+    poiEditMap,
+    /data:image\/svg\+xml/,
+    'PoiEditMap に廃止済みのインライン SVG ピン生成器 (data URI) が残っている'
+  );
+  // anchor はビューア (MaplatCore/src/map_ex.ts) と同じ [0.5, 1]
+  assert.match(
+    poiEditMap,
+    /anchor: \[0\.5, 1\],/,
+    'PoiEditMap の標準ピン anchor がビューアと同じ [0.5, 1] になっていない'
   );
   assert.match(
     poiEditMap,

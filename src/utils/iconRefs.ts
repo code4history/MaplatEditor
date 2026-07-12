@@ -11,8 +11,11 @@
  * 未登録の setId のコロン形式は { kind: "iconset" } として返し isRegisteredIconSet(setId) = false
  * となる（URL とはみなさない）。呼び出し側（PoiAttributeForm 等）がこれを「未解決 icon set」警告として扱う。
  *
- * builtin icon set の実体は `public/icons/builtin/*.svg`（POI-126 の version 管理準拠：
- * iconIds は追加のみ・既存 id の意味を変えない）。
+ * builtin icon set の実体は `public/icons/builtin/*.{png,svg}`（POI-126 の version 管理準拠：
+ * icons は追加のみ・既存 id の意味を変えない）。
+ * 例外: `defaultpin` のみ 2026-07-11 のユーザー決定「ビルトインをビューア標準ピンに整合させる」
+ * に基づき、旧・青 SVG から MaplatCore/parts/defaultpin.png（ビューア標準の青バルーン）へ
+ * アートを差し替えた。旧・青 SVG のアートは新 id `defaultpin-blue` として温存している。
  */
 
 export type IconRef =
@@ -32,10 +35,16 @@ const RESERVED_SCHEMES = new Set(["http", "https", "data", "file", "blob"]);
 
 const ICON_SET_REF_PATTERN = /^([^:]+):(.*)$/s;
 
+/** icon 1 個分の registry エントリ。実体拡張子（png/svg 混在）を id と一緒に持つ */
+export interface IconEntry {
+  id: string;
+  ext: "png" | "svg";
+}
+
 interface IconSetRegistryEntry {
   setId: string;
   titleKey: string;
-  iconIds: string[];
+  icons: IconEntry[];
   previewUrl(iconId: string): string;
 }
 
@@ -43,30 +52,45 @@ export interface IconSetDef {
   setId: string;
   /** 表示名の i18n キー（呼び出し側が t() で解決する。ハードコード英語文言を持たない） */
   titleKey: string;
+  /** id + 実体拡張子（実体は `icons/{setId}/{id}.{ext}`）。並び順 = picker グリッドの表示順 */
+  icons: IconEntry[];
+  /** icons から導出した id 一覧（既存呼び出し側の存在チェック用に維持） */
   iconIds: string[];
   /** エディタ内プレビュー URL（picker サムネ・badge 用）。export 解決（POI-117）は Phase 7 */
   previewUrl(iconId: string): string;
 }
 
-const BUILTIN_ICON_IDS = [
-  "defaultpin",
-  "defaultpin-red",
-  "defaultpin-green",
-  "defaultpin-yellow",
-  "defaultpin-gray",
+// builtin セットの構成（Phase 8 Task 4, ユーザー決定 2026-07-11「ビューア標準に整合」）:
+//   defaultpin          = ビューア標準の青バルーン (MaplatCore/parts/defaultpin.png のコピー)
+//   defaultpin-selected = ビューアの選択中ピン (MaplatCore/parts/defaultpin_selected.png のコピー)
+//   defaultpin-blue     = 旧 defaultpin の青 SVG を温存 (アート選択肢を失わないボーナストラック)
+//   defaultpin-red/green/yellow/gray = 既存 SVG のまま (ボーナストラック)
+const BUILTIN_ICONS: IconEntry[] = [
+  { id: "defaultpin", ext: "png" },
+  { id: "defaultpin-selected", ext: "png" },
+  { id: "defaultpin-blue", ext: "svg" },
+  { id: "defaultpin-red", ext: "svg" },
+  { id: "defaultpin-green", ext: "svg" },
+  { id: "defaultpin-yellow", ext: "svg" },
+  { id: "defaultpin-gray", ext: "svg" },
 ];
 
 const iconSetRegistry: Map<string, IconSetRegistryEntry> = new Map();
 
-function registerIconSet(def: IconSetRegistryEntry): void {
-  iconSetRegistry.set(def.setId, def);
+function registerIconSet(def: Omit<IconSetRegistryEntry, "previewUrl">): void {
+  const extById = new Map(def.icons.map((icon) => [icon.id, icon.ext]));
+  iconSetRegistry.set(def.setId, {
+    ...def,
+    // 未知 iconId は svg 扱い（呼び出し側は iconIds 存在チェックを先に通す想定）
+    previewUrl: (iconId: string) =>
+      `icons/${def.setId}/${iconId}.${extById.get(iconId) ?? "svg"}`,
+  });
 }
 
 registerIconSet({
   setId: "builtin",
   titleKey: "poiedit.picker.set_builtin",
-  iconIds: [...BUILTIN_ICON_IDS],
-  previewUrl: (iconId: string) => `icons/builtin/${iconId}.svg`,
+  icons: [...BUILTIN_ICONS],
 });
 
 /** setId が登録済み icon set かどうか。 */
@@ -79,7 +103,8 @@ export function listIconSets(): IconSetDef[] {
   return [...iconSetRegistry.values()].map((entry) => ({
     setId: entry.setId,
     titleKey: entry.titleKey,
-    iconIds: [...entry.iconIds],
+    icons: entry.icons.map((icon) => ({ ...icon })),
+    iconIds: entry.icons.map((icon) => icon.id),
     previewUrl: entry.previewUrl,
   }));
 }

@@ -14,9 +14,10 @@
 //   ⑥ export 経路: AppExportService.exportApp の実出力 (apps/{appID}.json / maps/{slug}.json) の
 //      pois が①④と同じ解決結果になり、result.warnings に③④のキーが載る
 //   ⑩ icon 参照文法の解決 (POI-117): feature properties.icon='builtin:defaultpin' / layer metadata
-//      icon=asset UUID → preview の app JSON で 'imgs/icons/builtin/defaultpin.svg' /
-//      'imgs/{slug}.{ext}' に書き換わり、その URL を HTTP fetch すると 200 + 実体 (SVG/画像バイト)
-//   ⑪ export 出力ディレクトリに imgs/icons/builtin/defaultpin.svg と imgs/{slug}.{ext} が実在し、
+//      icon=asset UUID → preview の app JSON で 'imgs/icons/builtin/defaultpin.png' /
+//      'imgs/{slug}.{ext}' に書き換わり、その URL を HTTP fetch すると 200 + 実体 (画像バイト)。
+//      builtin:defaultpin の実体は Phase 8 Task 4 でビューア標準の png に差し替え済み
+//   ⑪ export 出力ディレクトリに imgs/icons/builtin/defaultpin.png と imgs/{slug}.{ext} が実在し、
 //      app JSON の参照がそれを指す
 //   ⑫ 未登録 setId ('maki:bank') → 原文維持 + warnings に appedit.warn_unresolved_icon (1回)
 //   ⑬ Write Store 内の data_json は参照文法のまま無変化
@@ -225,8 +226,8 @@ try {
         const feature = fc.features[0];
         assert.equal(feature.id, 'kinkakuji');
         assert.equal(feature.properties.name, '金閣寺', label + ': feature name も交換形へ collapse されるはず');
-        assert.equal(feature.properties.icon, 'imgs/icons/builtin/defaultpin.svg',
-          label + ': feature の builtin 参照が imgs/icons/{setId}/{iconId}.svg に解決されるはず (POI-117)');
+        assert.equal(feature.properties.icon, 'imgs/icons/builtin/defaultpin.png',
+          label + ': feature の builtin 参照が imgs/icons/{setId}/{iconId}.{ext} (実体 = png) に解決されるはず (POI-117, Phase 8 Task 4)');
         assert.equal(feature.properties.selectedIcon, 'maki:bank',
           label + ': 未登録 setId の参照は原文維持のはず (⑫)');
         const internalKeys = Object.keys(feature.properties).filter((key: string) => key.startsWith('_maplat'));
@@ -273,10 +274,12 @@ try {
       console.log('ok: (1)-(4) preview app/map JSON resolve {poiUid} references with warnings');
 
       // --- (10) 解決後の imgs/... URL が preview セッションから実際に配信される (POI-117) ---
-      const builtinRes = await fetch(prepared.url + 'imgs/icons/builtin/defaultpin.svg');
+      const builtinRes = await fetch(prepared.url + 'imgs/icons/builtin/defaultpin.png');
       assert.equal(builtinRes.status, 200, 'builtin icon の配信は 200 のはず');
-      const builtinBody = await builtinRes.text();
-      assert.ok(builtinBody.includes('<svg'), 'builtin icon の中身は SVG のはず: ' + builtinBody.slice(0, 80));
+      const builtinBody = Buffer.from(await builtinRes.arrayBuffer());
+      // PNG シグネチャ (\x89PNG) — defaultpin の実体はビューア標準の png (Phase 8 Task 4)
+      assert.ok(builtinBody.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])),
+        'builtin icon の中身は PNG のはず: ' + builtinBody.subarray(0, 8).toString('hex'));
       const assetRes = await fetch(prepared.url + 'imgs/temple-mark.png');
       assert.equal(assetRes.status, 200, 'asset icon の配信は 200 のはず');
       const assetBody = Buffer.from(await assetRes.arrayBuffer());
@@ -329,13 +332,14 @@ try {
 
       // --- (11) export 出力ディレクトリに icon 実体が同梱される (POI-117) ---
       const exportedBuiltin = await fsReadFile(
-        nodePath.join(exported.outDir, 'imgs', 'icons', 'builtin', 'defaultpin.svg'), 'utf8');
-      assert.ok(exportedBuiltin.includes('<svg'), 'export された builtin icon の中身は SVG のはず');
+        nodePath.join(exported.outDir, 'imgs', 'icons', 'builtin', 'defaultpin.png'));
+      assert.ok(exportedBuiltin.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])),
+        'export された builtin icon の中身は PNG のはず (Phase 8 Task 4: ビューア標準 png)');
       const exportedAsset = await fsReadFile(nodePath.join(exported.outDir, 'imgs', 'temple-mark.png'));
       assert.ok(exportedAsset.equals(assetBytes), 'export された asset icon の中身は登録したバイト列のはず');
       // app JSON の参照が同梱ファイルを指すこと (assertResolvedFc で imgs/... 化は確認済み)
       assert.equal(exportedAppJson.pois[0].icon, 'imgs/temple-mark.png');
-      assert.equal(exportedAppJson.pois[0].features[0].properties.icon, 'imgs/icons/builtin/defaultpin.svg');
+      assert.equal(exportedAppJson.pois[0].features[0].properties.icon, 'imgs/icons/builtin/defaultpin.png');
       assert.ok(exported.warnings.includes(UNRESOLVED_ICON_KEY),
         'export warnings に unresolved icon キーが載るはず: ' + JSON.stringify(exported.warnings));
       assert.equal(
@@ -419,7 +423,7 @@ try {
         '上書き selectedIcon (asset) の実体コピー要求が files に載るはず'
       );
       // feature 側の icon 解決は上書きの影響を受けない
-      assert.equal(overriddenFc.features[0].properties.icon, 'imgs/icons/builtin/defaultpin.svg');
+      assert.equal(overriddenFc.features[0].properties.icon, 'imgs/icons/builtin/defaultpin.png');
       // 非文字列/空文字の上書きは無視され、ソース側の値が残る
       const noOverrideResult = await resolvePoisArray([
         { poiUid: srcUid, cachedTitle: '京都POI', icon: '', selectedIcon: 42 },
