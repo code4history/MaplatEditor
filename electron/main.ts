@@ -37,8 +37,11 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 1200, // 旧実装に合わせた最小サイズ
-    minHeight: 800,
+    // 最小サイズ緩和 (ユーザー決定 2026-07-12): 旧実装の 1200x800 は可視領域が狭い環境で
+    // 画面からはみ出したまま縮められなかった。1000x640 = 2カラム UI (右ペイン 340px + 地図)
+    // が破綻しない下限
+    minWidth: 1000,
+    minHeight: 640,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
