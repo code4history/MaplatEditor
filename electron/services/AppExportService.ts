@@ -158,9 +158,15 @@ class AppExportService {
     // パッケージは一時ディレクトリに構成し、zip 化して保存先へ書き出したら finally で必ず削除する
     await fs.ensureDir(app.getPath('temp'));
     const outDir = await fs.mkdtemp(path.join(app.getPath('temp'), 'maplat-app-export-'));
+    // zip は一旦 staging 領域(outDir と同じ temp 配下)へ書き、成功後にユーザー選択先へ move する
+    // (mapedit:download と同方式)。途中失敗時はユーザーの選択先に何も残らない
+    const tmpZipPath = `${outDir}.zip`;
 
     const sources: AppSource[] = (document.sources || []).map((raw: any) => normalizeAppSource(raw));
     const maplatSources = sources.filter(source => source.sourceType === 'maplat');
+
+    // catch 節でエラー時の進捗モーダル片付け(MINOR-3)に使うため try の外で宣言する
+    let reporter: ProgressReporter | undefined;
 
     try {
       // 0) maplatソースのuid参照を地図docへ解決 (ADR-0007)。旧保存形のslug参照も受容する。
@@ -191,7 +197,7 @@ class AppExportService {
       //       + zip 追加単位(=パッケージ内全ファイル数)。zip 単位はパッケージ完成まで確定しないため、
       //       支配的なタイル数で見積もっておき、確定後に extendTotal で補正する (Phase 8 Task 6)
       // minPercentDelta:0 でタイルコピー中も1%刻みで送信されるようにする(呼び出し側で200ms/100件throttle済み)
-      const reporter = new ProgressReporter(
+      reporter = new ProgressReporter(
         'app:taskProgress',
         totalTileFiles * 2 + maplatSources.length + 4,
         'appedit.export.progress',
@@ -347,7 +353,11 @@ class AppExportService {
       //    addLocalFolder 一括ではバーが止まるため、ファイル単位で zip へ追加しながら
       //    タイルコピーと同じ 200ms/100件 throttle で進捗を報告する
       const packageFiles = await listTileFiles(outDir);
+      // extendTotal 後の確定total(以後 finalTotal)を自前計算しておく: 100%到達を
+      // writeZip+move完了後まで遅らせる(MINOR-1)ための上限値として使う
+      const initialTotal = totalTileFiles * 2 + maplatSources.length + 4;
       reporter.extendTotal(packageFiles.length - totalTileFiles);
+      const finalTotal = initialTotal + (packageFiles.length - totalTileFiles);
       const zip = new AdmZip();
       let zipped = 0;
       let sinceLastReport = 0;
@@ -362,26 +372,44 @@ class AppExportService {
         zipped++;
         sinceLastReport++;
         progressState.step++;
+        // イベントループ解放 (MAJOR-2): addLocalFile は同期読込のため、大量ファイルで
+        // メインプロセスが固まらないよう50ファイルごとに1マクロタスク分だけ他イベントへ譲る
+        if (zipped % 50 === 0) {
+          await new Promise<void>(resolve => setImmediate(resolve));
+        }
         const now = Date.now();
         if (now - lastReportTime >= 200 || sinceLastReport >= 100 || zipped === packageFiles.length) {
           lastReportTime = now;
           sinceLastReport = 0;
+          // 100%はwriteZip(とmove)完了後にのみ到達させる(MINOR-1)。ここでは finalTotal-1 を
+          // 上限にし、addLocalFile 完了だけで完了文言(endMsg)が出てしまうのを防ぐ
           reporter.update(
-            progressState.step,
+            Math.min(progressState.step, finalTotal - 1),
             `(${zipped}/${packageFiles.length})`,
             'appedit.export.zipping',
           );
         }
       }
-      zip.writeZip(zipFilePath);
+      // ユーザー指定パスへ直接ではなく staging 領域(outDir と同じ temp 配下)の zip パスへ書き、
+      // 成功後に move する(MINOR-2、mapedit:download と同方式)。途中失敗時はユーザーの選択先に
+      // 何も残らない。adm-zip 0.5.17 は writeZipPromise(内部で toAsyncBuffer)を持つため使用する
+      await zip.writeZipPromise(tmpZipPath);
+      await fs.move(tmpZipPath, zipFilePath, { overwrite: true });
+
+      // 100% / 完了文言(appedit.export.done)の送信は zip 書き出し・move が完了してから (MINOR-1)
+      reporter.update(finalTotal);
 
       return { result: 'Success', outDir: zipFilePath, warnings };
     } catch (e: any) {
       console.error('[AppExportService] export failed', e);
+      // 進捗モーダルが残留しないよう percent=100 を送って閉じられる状態にする。
+      // 成功文言(endMsg)は出さずエラー専用テキストを表示する (MINOR-3)
+      reporter?.fail('appedit.export.failed');
       return { result: 'Error', warnings, message: e?.message || String(e) };
     } finally {
-      // 一時パッケージはキャンセル・失敗も含め必ず片付ける
+      // 一時パッケージ・staging zip はキャンセル・失敗も含め必ず片付ける
       await fs.remove(outDir);
+      await fs.remove(tmpZipPath);
     }
   }
 

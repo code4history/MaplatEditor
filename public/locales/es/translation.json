@@ -533,6 +533,7 @@
       "progress": "Exportando...",
       "zipping": "Creando el archivo ZIP",
       "done": "Exportación completada",
+      "failed": "Error al exportar",
       "pwa_fallback": "Error en la generación de imágenes PWA (pwa-asset-generator); solo se generaron los iconos básicos. Compruebe que Chrome/Chromium esté instalado.",
       "no_icon_source": "Como no se ha establecido ninguna imagen de origen del icono PWA, no se generó ningún icono.",
       "missing_thumbnail": "No se encontraron algunas miniaturas de mapas base/superposiciones.",

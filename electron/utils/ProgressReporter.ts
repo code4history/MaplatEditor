@@ -74,4 +74,16 @@ export class ProgressReporter {
       });
     }
   }
+
+  // エラー終了時専用: percent=100 を送って呼び出し側のモーダルを閉じられる状態にしつつ、
+  // 成功文言(endMsg)ではなくエラー用テキストを表示する。update() の throttle/endMsg 優先ロジック
+  // を経由しない即時送信(エラーは頻度制御不要な単発イベントのため)
+  fail(msgOverride: string) {
+    if (!this.window) return;
+    this.window.webContents.send(this.channel, {
+      text: msgOverride,
+      percent: 100,
+      progress: '',
+    });
+  }
 }

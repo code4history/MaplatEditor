@@ -533,6 +533,7 @@
       "progress": "Wird exportiert...",
       "zipping": "ZIP-Datei wird erstellt",
       "done": "Export abgeschlossen",
+      "failed": "Export fehlgeschlagen",
       "pwa_fallback": "Die PWA-Bilderzeugung (pwa-asset-generator) ist fehlgeschlagen, daher wurden nur die Basissymbole erzeugt. Bitte prüfen Sie, ob Chrome/Chromium installiert ist.",
       "no_icon_source": "Da kein PWA-Symbol-Quellbild festgelegt wurde, wurden keine Symbole erzeugt.",
       "missing_thumbnail": "Für einige Basiskarten/Overlays wurden keine Miniaturansichten gefunden.",

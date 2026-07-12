@@ -533,6 +533,7 @@
       "progress": "내보내는 중...",
       "zipping": "ZIP 파일을 생성하는 중",
       "done": "내보내기 완료",
+      "failed": "내보내기에 실패했습니다",
       "pwa_fallback": "PWA 이미지 생성(pwa-asset-generator)에 실패하여 기본 아이콘만 생성했습니다. Chrome/Chromium 설치를 확인하세요.",
       "no_icon_source": "PWA 아이콘 원본 이미지가 설정되지 않아 아이콘을 생성하지 않았습니다.",
       "missing_thumbnail": "일부 베이스맵/오버레이의 썸네일 이미지를 찾을 수 없었습니다.",

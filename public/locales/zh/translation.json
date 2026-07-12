@@ -533,6 +533,7 @@
       "progress": "导出中...",
       "zipping": "正在创建ZIP文件",
       "done": "导出完成",
+      "failed": "导出失败",
       "pwa_fallback": "PWA图像生成(pwa-asset-generator)失败,仅生成了基本图标。请检查是否已安装Chrome/Chromium。",
       "no_icon_source": "PWA图标原始图像未设置,因此未生成图标。",
       "missing_thumbnail": "部分底图/叠加层的缩略图未找到。",

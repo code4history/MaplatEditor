@@ -533,6 +533,7 @@
       "progress": "Đang xuất...",
       "zipping": "Đang tạo tệp ZIP",
       "done": "Xuất hoàn tất",
+      "failed": "Xuất thất bại",
       "pwa_fallback": "Tạo ảnh PWA (pwa-asset-generator) thất bại, chỉ đã tạo biểu tượng cơ bản. Vui lòng kiểm tra xem Chrome/Chromium đã được cài đặt chưa.",
       "no_icon_source": "Chưa thiết lập ảnh gốc biểu tượng PWA nên không tạo biểu tượng.",
       "missing_thumbnail": "Không tìm thấy ảnh thu nhỏ của một số bản đồ nền/lớp phủ.",

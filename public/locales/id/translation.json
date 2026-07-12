@@ -533,6 +533,7 @@
       "progress": "Sedang mengekspor...",
       "zipping": "Sedang membuat berkas ZIP",
       "done": "Ekspor selesai",
+      "failed": "Ekspor gagal",
       "pwa_fallback": "Pembuatan gambar PWA (pwa-asset-generator) gagal, sehingga hanya ikon dasar yang dibuat. Silakan periksa apakah Chrome/Chromium telah terpasang.",
       "no_icon_source": "Gambar sumber ikon PWA belum diatur, sehingga ikon tidak dibuat.",
       "missing_thumbnail": "Beberapa thumbnail peta dasar/overlay tidak ditemukan.",

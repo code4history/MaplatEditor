@@ -2830,6 +2830,12 @@ const exportMap = async () => {
             console.error('[exportMap]', result);
             modalFinish(t('mapedit.export_error'));
         }
+    } catch (e) {
+        // mapedit:download が例外で reject した場合、finish を呼ばないまま抜けると
+        // 進捗モーダルが閉じられない状態で残留する(MINOR-3 と同型の残留)。
+        // OKボタンを有効化できるよう、既存の失敗パターンと同じ export_error で締める
+        console.error('[exportMap]', e);
+        modalFinish(t('mapedit.export_error'));
     } finally {
         unsubscribe();
     }
