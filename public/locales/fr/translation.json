@@ -527,6 +527,7 @@
     "export_failed": "Échec de l'export.",
     "warn_missing_poi_source": "Certaines sources de POI référencées sont introuvables et ont été exclues de la sortie.",
     "warn_duplicate_poi_reference": "La même source de POI est référencée à la fois par l'application et par une carte. Les POI risquent de s'afficher en double.",
+    "poi_heal_failed": "Impossible de restaurer les paramètres POI enregistrés. Ils seront perdus si vous enregistrez maintenant.",
     "warn_unresolved_icon": "Certaines références d’icônes n’ont pas pu être résolues et ont été conservées telles quelles dans la sortie.",
     "export": {
       "progress": "Export en cours...",

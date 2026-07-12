@@ -155,6 +155,37 @@ const iconRefToSrc = (
   return null; // 解決中 or 解決失敗 (null キャッシュ)
 };
 
+// --- icon 画像の読み込み失敗フォールバック (Phase 8 品質レビュー MAJOR-3) ---
+// url/asset 由来の icon src (previewUrl 以外) は 404 や破損ファイルの可能性があり、
+// OL の Icon はロード失敗時に例外を投げず単に描画されないだけなので、放置すると
+// 「アイコン指定はあるのに地図上に何も見えない」状態になってしまう。requestAssetSrc と
+// 同じ非同期パターン (キャッシュ Map + inFlight Set + 解決後 scheduleIconRedraw) で
+// new Image() による事前読み込みチェックを行い、成功/失敗を確定させる。
+// チェック未完了 (pending) の間と、失敗が確定した後は標準ピンへフォールバックする。
+//
+// builtin (previewUrl) はアプリに同梱される同一オリジンの静的アセット (public/icons/builtin/*.svg)
+// であり実運用で 404 し得ないため、このチェックの対象外とする (下の iconRefStyle で
+// resolved.pinShaped = true の場合はチェックをスキップしてそのまま描画する)
+const iconLoadOkCache = new Map<string, boolean>(); // true=読み込み成功確認済み, false=失敗確定
+const iconLoadInFlight = new Set<string>();
+
+const requestIconLoadCheck = (src: string): void => {
+  if (iconLoadOkCache.has(src) || iconLoadInFlight.has(src)) return;
+  iconLoadInFlight.add(src);
+  const probe = new Image();
+  probe.onload = () => {
+    iconLoadOkCache.set(src, true);
+    iconLoadInFlight.delete(src);
+    scheduleIconRedraw();
+  };
+  probe.onerror = () => {
+    iconLoadOkCache.set(src, false);
+    iconLoadInFlight.delete(src);
+    scheduleIconRedraw();
+  };
+  probe.src = src;
+};
+
 // Style/Icon インスタンスは src キーの cache で共有 (3000 feature でも Icon を使い回す)。
 // anchor: ピン形 (builtin) は先端が座標を指す [0.5, 1]、任意画像 (url/asset) は形状不明の
 // ため画像中心 [0.5, 0.5] が自然。サイズ正規化 (scale) は img 読み込み前に寸法が分からず
@@ -163,6 +194,14 @@ const iconStyleCache = new Map<string, Style>();
 const iconRefStyle = (refString: string): Style | null => {
   const resolved = iconRefToSrc(refString);
   if (!resolved) return null;
+  if (!resolved.pinShaped) {
+    // builtin 以外 (url/asset) は事前読み込みチェックを経てから描画する。未チェック/pending
+    // 中は標準ピンで描画し (asset 解決中と同じ扱い)、失敗確定なら標準ピンへ固定フォールバックする
+    if (iconLoadOkCache.get(resolved.src) !== true) {
+      requestIconLoadCheck(resolved.src);
+      return null;
+    }
+  }
   const key = `${resolved.pinShaped ? "pin" : "img"}|${resolved.src}`;
   let style = iconStyleCache.get(key);
   if (!style) {

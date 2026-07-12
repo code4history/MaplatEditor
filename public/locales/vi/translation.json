@@ -527,6 +527,7 @@
     "export_failed": "Xuất thất bại.",
     "warn_missing_poi_source": "Không tìm thấy một số nguồn POI được tham chiếu nên đã loại khỏi kết quả xuất.",
     "warn_duplicate_poi_reference": "Cùng một nguồn POI được tham chiếu bởi cả ứng dụng và bản đồ. POI có thể hiển thị hai lần.",
+    "poi_heal_failed": "Không thể khôi phục cài đặt POI đã lưu. Dữ liệu sẽ bị mất nếu bạn lưu ngay bây giờ.",
     "warn_unresolved_icon": "Một số tham chiếu biểu tượng không thể phân giải và được giữ nguyên trong kết quả xuất.",
     "export": {
       "progress": "Đang xuất...",

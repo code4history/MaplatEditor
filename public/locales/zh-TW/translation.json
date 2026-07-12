@@ -527,6 +527,7 @@
     "export_failed": "匯出失敗。",
     "warn_missing_poi_source": "未找到部分被引用的POI來源，已從輸出中排除。",
     "warn_duplicate_poi_reference": "同一POI來源同時被應用程式和地圖引用，POI可能會重複顯示。",
+    "poi_heal_failed": "無法還原已儲存的POI設定，若現在儲存將會遺失。",
     "warn_unresolved_icon": "部分圖示引用無法解析，已按原值輸出。",
     "export": {
       "progress": "匯出中...",

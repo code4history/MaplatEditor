@@ -698,6 +698,8 @@ watch(() => mapData.value.mapID, (newVal, oldVal) => {
 // PoiReferenceEditor が配列ごと差し替えの update:pois で返す。書き込みは mapData の
 // deep-watch (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
 // undo/redo/reload による mapData 差し替えは :pois prop 経由で表示へそのまま反映される
+const poiRefEditor = ref<InstanceType<typeof PoiReferenceEditor> | null>(null);
+
 function onPoisChange(next: unknown[]) {
     if (next.length === 0) {
         // 全解除で生要素も残らなければ pois キー自体を削除し、旧データの JSON をきれいに保つ
@@ -720,6 +722,7 @@ const performRedo = async () => {
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
+    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 8 品質レビュー MAJOR-1)
     const target = event.target as HTMLElement | null;
     const isInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
     if (isInput) return;
@@ -740,6 +743,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
+    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 8 品質レビュー MAJOR-1)
     // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
     // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
     if (isEditableElement(document.activeElement)) return;
@@ -3576,6 +3580,7 @@ const goBack = async () => {
                  deep-watch (scheduleHistorySnapshot) が拾う (MapEdit の既存方式) -->
             <div v-show="activeTab === 'pois'" class="h-100 p-4 overflow-hidden">
                 <PoiReferenceEditor
+                    ref="poiRefEditor"
                     :pois="Array.isArray(mapData.pois) ? mapData.pois : []"
                     @update:pois="onPoisChange"
                 />

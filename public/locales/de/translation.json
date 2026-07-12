@@ -527,6 +527,7 @@
     "export_failed": "Export fehlgeschlagen.",
     "warn_missing_poi_source": "Einige referenzierte POI-Quellen wurden nicht gefunden und aus der Ausgabe entfernt.",
     "warn_duplicate_poi_reference": "Dieselbe POI-Quelle wird sowohl von der App als auch von einer Karte referenziert. POIs werden möglicherweise doppelt angezeigt.",
+    "poi_heal_failed": "Die gespeicherten POI-Einstellungen konnten nicht wiederhergestellt werden. Sie gehen verloren, wenn Sie jetzt speichern.",
     "warn_unresolved_icon": "Einige Symbolverweise konnten nicht aufgelöst werden und wurden unverändert ausgegeben.",
     "export": {
       "progress": "Wird exportiert...",

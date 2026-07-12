@@ -225,6 +225,10 @@ const { uid: appUid, confirmedSlug, performSave, saving } = saveHandle;
 const onlyOne = ref(false);
 const appIDError = ref("appedit.check_uniqueness");
 const saveError = ref<string | null>(null);
+// pois 復元 heal が失敗した (data_json 破損などで復元不能だった) かどうか。
+// true のまま保存すると復元できなかった pois が失われるため、POIデータタブに警告を出す
+// (Phase 8 品質レビュー MAJOR-2)
+const poiHealFailed = ref(false);
 const mapItems = ref<MapListItem[]>([]);
 const mapSearchQuery = ref("");
 const baseMapItems = ref<BaseMapItem[]>([]);
@@ -446,8 +450,11 @@ function normalizeAppDocument(value: any): AppDocument {
     normalized.manifestSettings.iconSource = value.httpSettings.iconSource;
   }
   // pois (配列) 優先。旧 poiSources (JSON 文字列) と多重 stringify 破損は heal で配列に復元する
-  // (旧実装がここで JSON.stringify し直していたのが破損の根本原因 — 二度と文字列形にしない)
-  normalized.pois = healAppDocumentPois(value);
+  // (旧実装がここで JSON.stringify し直していたのが破損の根本原因 — 二度と文字列形にしない)。
+  // 復元不能 (failed) の場合は POIデータタブに警告を出す (このまま保存すると失われるため)
+  const poiHeal = healAppDocumentPois(value);
+  normalized.pois = poiHeal.pois;
+  poiHealFailed.value = poiHeal.failed;
   normalized.startFrom = value.startFrom || value.start_from;
   normalized.extraInfo = typeof value.extraInfo === "string" ? value.extraInfo : "";
   normalized.coverageLngLats = Array.isArray(value.coverageLngLats) ? value.coverageLngLats : null;
@@ -1220,8 +1227,11 @@ function onPoisChange(next: unknown[]) {
 
       <!-- Tab: POIデータ (Phase 8 Task 2)。器は appData.pois 配列、履歴は onPoisChange の
            recordHistory 明示 (AppEdit の既存方式) -->
-      <div v-show="activeTab === 'pois'" class="h-100 overflow-hidden p-3">
-        <PoiReferenceEditor :pois="appData.pois" @update:pois="onPoisChange" />
+      <div v-show="activeTab === 'pois'" class="h-100 overflow-hidden p-3 d-flex flex-column">
+        <div v-if="poiHealFailed" class="alert alert-warning flex-shrink-0" role="alert">
+          {{ t("appedit.poi_heal_failed") }}
+        </div>
+        <PoiReferenceEditor class="flex-grow-1" :pois="appData.pois" @update:pois="onPoisChange" />
       </div>
 
       <div v-show="activeTab === 'preview'" class="h-100 position-relative">

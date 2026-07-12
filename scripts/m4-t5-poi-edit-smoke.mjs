@@ -435,6 +435,30 @@ try {
     'PoiEditMap に生 ipcRenderer 使用が残存している'
   );
 
+  // icon 読み込み失敗フォールバック (Phase 8 品質レビュー MAJOR-3): new Image() の preload
+  // チェックで onerror 時に標準ピンへ差し替え、scheduleIconRedraw で再描画すること
+  assert.match(
+    poiEditMap,
+    /new Image\(\)/,
+    'PoiEditMap が icon の preload チェックに new Image() を使っていない'
+  );
+  assert.match(
+    poiEditMap,
+    /probe\.onerror\s*=\s*\(\)\s*=>\s*\{[\s\S]*?iconLoadOkCache\.set\([^,]+,\s*false\)[\s\S]*?scheduleIconRedraw\(\)/,
+    'PoiEditMap の icon onerror ハンドラが失敗を記録して scheduleIconRedraw を呼んでいない'
+  );
+  assert.match(
+    poiEditMap,
+    /iconLoadOkCache\.get\(resolved\.src\)\s*!==\s*true/,
+    'PoiEditMap の iconRefStyle が読み込み未確認/失敗時に標準ピンへフォールバックしていない'
+  );
+  // builtin (previewUrl) は同梱静的アセットのため読み込み失敗チェックの対象外とすること
+  assert.match(
+    poiEditMap,
+    /if\s*\(!resolved\.pinShaped\)\s*\{/,
+    'PoiEditMap が builtin (pinShaped) を読み込み失敗チェックの対象外にしていない'
+  );
+
   console.log('  [6/11] PoiEditMap.vue map pane wiring: PASS');
 
   // --- Part 7 (Task 7): 属性フォーム (PoiAttributeForm) ---

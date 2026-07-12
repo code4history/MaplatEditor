@@ -49,6 +49,7 @@
           <div v-if="poiUidOf(entry) !== null" class="row g-2 mt-1">
             <div class="col-md-6">
               <IconRefField
+                ref="iconFieldRefs"
                 :label="t('poiref.icon_override')"
                 :model-value="overrideValue(entry, 'icon')"
                 :read-only="readOnly"
@@ -57,6 +58,7 @@
             </div>
             <div class="col-md-6">
               <IconRefField
+                ref="selectedIconFieldRefs"
                 :label="t('poiref.selected_icon_override')"
                 :model-value="overrideValue(entry, 'selectedIcon')"
                 :read-only="readOnly"
@@ -85,7 +87,7 @@
 // 本コンポーネントは配列ごと差し替えの update:pois を emit するだけ (履歴記録は呼び出し側:
 // AppEdit = recordHistory 明示 / MapEdit = mapData の deep-watch)。
 // 参照要素判定・selector との往復は共有 util (utils/poiReferenceUi)。
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useTranslation } from "i18next-vue";
 import PoiSourceSelector from "./PoiSourceSelector.vue";
 import IconRefField from "./IconRefField.vue";
@@ -108,11 +110,19 @@ const entries = computed<unknown[]>(() => (Array.isArray(props.pois) ? props.poi
 // selector の選択集合は pois 配列から復元 (書き戻し由来の変化は selector 側 prop watch が吸収)
 const selectedRefs = computed<SelectedPoiSourceRef[]>(() => extractPoiRefs(entries.value));
 
-// 参照は uid ベースの key で並べ替え時の要素同一性を保つ。同一 uid の重複参照 (旧データで
-// あり得る) でも key が衝突しないよう index を併記する。生要素は位置 key
+// 参照は uid ベースの key で並べ替え時の要素同一性を保つ (MINOR-2: key に index を含めると
+// 並べ替えのたびに IconRefField が remount され、未確定入力が失われる)。同一 uid の重複参照
+// (旧データであり得る) は「その uid が配列内で何番目の出現か」(occurrence) を併記して key の
+// 衝突を避ける — occurrence は uid 自体の相対順が変わらない限り並べ替えでも安定する。
+// 生要素 (uid なし) は同一性を判定する術がないため位置 key のまま (index)
 function entryKey(entry: unknown, index: number): string {
   const uid = poiUidOf(entry);
-  return uid ? `ref:${uid}:${index}` : `raw:${index}`;
+  if (!uid) return `raw:${index}`;
+  let occurrence = 0;
+  for (let i = 0; i < index; i++) {
+    if (poiUidOf(entries.value[i]) === uid) occurrence++;
+  }
+  return `ref:${uid}#${occurrence}`;
 }
 
 // 行タイトル: 参照 = cachedTitle (無ければ uid)、外部データ = URL 文字列 or FC の name/id
@@ -175,6 +185,20 @@ function setOverride(index: number, key: "icon" | "selectedIcon", raw: string): 
 function onSelectionChange(refs: SelectedPoiSourceRef[]): void {
   emit("update:pois", applyPoiSelection(entries.value, refs));
 }
+
+// picker 表示中かどうか (Phase 8 品質レビュー MAJOR-1: MapEdit がグローバルキー
+// (undo/redo/menu:undo/redo) を picker 表示中は抑止するために参照する)。参照行数ぶんの
+// IconRefField (icon/selectedIcon 上書き、行ごとに2個 = 2N) を v-for 内の template ref で
+// 配列収集し、いずれか1つでも picker 表示中なら true とする
+const iconFieldRefs = ref<InstanceType<typeof IconRefField>[]>([]);
+const selectedIconFieldRefs = ref<InstanceType<typeof IconRefField>[]>([]);
+const pickerOpen = computed(
+  () =>
+    iconFieldRefs.value.some((field) => field?.pickerOpen) ||
+    selectedIconFieldRefs.value.some((field) => field?.pickerOpen),
+);
+
+defineExpose({ pickerOpen });
 </script>
 
 <style scoped>

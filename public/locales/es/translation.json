@@ -527,6 +527,7 @@
     "export_failed": "Error al exportar.",
     "warn_missing_poi_source": "No se encontraron algunas fuentes de POI referenciadas y se omitieron de la salida.",
     "warn_duplicate_poi_reference": "La misma fuente de POI está referenciada tanto por la aplicación como por un mapa. Los POI podrían mostrarse dos veces.",
+    "poi_heal_failed": "No se pudieron restaurar los ajustes de POI guardados. Se perderán si guarda ahora.",
     "warn_unresolved_icon": "Algunas referencias de iconos no se pudieron resolver y se mantuvieron sin cambios en la salida.",
     "export": {
       "progress": "Exportando...",
