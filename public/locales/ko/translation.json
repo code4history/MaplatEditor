@@ -191,6 +191,8 @@
     "map_name_repr": "지도 명칭 (표시용)",
     "map_name_repr_pf": "지도 명칭(표시용)을 입력하세요",
     "map_name_repr_desc": "지도의 표시용 명칭을 15자(반각 30자) 이내로 입력하세요.",
+    "map_label": "소스 라벨",
+    "map_label_desc": "뷰어의 소스 전환기에 표시되는 짧은 이름입니다.",
     "map_name_ofc": "지도 명칭(정식명)",
     "map_name_ofc_pf": "지도 명칭(정식명)을 입력하세요",
     "map_name_ofc_desc": "지도의 정식 명칭을 입력하세요.",

@@ -191,6 +191,8 @@
     "map_name_repr": "地图名称(显示用)",
     "map_name_repr_pf": "请输入地图名称(显示用)",
     "map_name_repr_desc": "请在15个字符(半角30个字符)以内输入地图的显示用名称。",
+    "map_label": "源标签",
+    "map_label_desc": "显示在查看器源切换器中的简短名称。",
     "map_name_ofc": "地图名称(正式名称)",
     "map_name_ofc_pf": "请输入地图名称(正式名称)",
     "map_name_ofc_desc": "请输入地图的正式名称。",

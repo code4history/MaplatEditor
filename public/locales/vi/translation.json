@@ -191,6 +191,8 @@
     "map_name_repr": "Tên bản đồ (hiển thị)",
     "map_name_repr_pf": "Vui lòng nhập tên bản đồ để hiển thị",
     "map_name_repr_desc": "Vui lòng nhập tên hiển thị của bản đồ trong vòng 30 ký tự nửa độ rộng (15 ký tự toàn độ rộng).",
+    "map_label": "Nhãn nguồn",
+    "map_label_desc": "Tên ngắn hiển thị trong bộ chọn nguồn của trình xem.",
     "map_name_ofc": "Tên bản đồ (chính thức)",
     "map_name_ofc_pf": "Vui lòng nhập tên chính thức của bản đồ",
     "map_name_ofc_desc": "Vui lòng nhập tên chính thức của bản đồ.",

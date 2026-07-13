@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
@@ -41,5 +41,12 @@ assert.equal(isTranslationMode('en', 'ja'), true);
 assert.equal(isTranslationMode('en-US', 'en-US'), false);
 assert.equal(isTranslationMode('', 'ja'), false);
 assert.equal(isTranslationMode('en', ''), false);
+
+const mapEdit = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
+assert.match(mapEdit, /const label = createLangComputed\(['"]label['"]\)/);
+assert.match(mapEdit, /data-testid="map-label"[^>]*v-model="label"/);
+assert.match(mapEdit, /data-testid="map-slug"[^>]*:disabled="translationMode"/);
+assert.match(mapEdit, /data-editor-document-language[^>]*:disabled="translationMode"/);
+assert.match(mapEdit, /@click="mapUpload"[^>]*:disabled="translationMode"/);
 
 console.log('M11-T3 language-boundary smoke checks passed.');

@@ -191,6 +191,8 @@
     "map_name_repr": "Nombre del mapa (visualización)",
     "map_name_repr_pf": "Introduzca el nombre de visualización del mapa",
     "map_name_repr_desc": "Introduzca el nombre de visualización del mapa con un máximo de 30 caracteres (o 15 caracteres de ancho completo).",
+    "map_label": "Etiqueta de la fuente",
+    "map_label_desc": "Un nombre breve mostrado en el selector de fuentes del visor.",
     "map_name_ofc": "Nombre del mapa (oficial)",
     "map_name_ofc_pf": "Introduzca el nombre oficial del mapa",
     "map_name_ofc_desc": "Introduzca el nombre oficial del mapa.",

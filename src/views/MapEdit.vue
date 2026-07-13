@@ -11,6 +11,8 @@ import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
 import LangValueChips from '../components/editor-ui/LangValueChips.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { isEditableElement } from '../utils/nativeTextUndo';
+import { isTranslationMode } from '../utils/editorLanguageMode';
+import { MAP_LANG_ATTRS } from '../utils/langResource';
 import {
     LANGS_MAP,
     SUPPORTED_LANGUAGES,
@@ -180,6 +182,7 @@ const { uid: mapUid, revision, confirmedSlug, adoptLoaded, performSave, saving }
  */
 const defaultMapData = () => ({
     title: '',
+    label: '',
     attr: '',
     dataAttr: '',
     strictMode: 'strict',   // 旧実装デフォルトは 'strict'
@@ -505,8 +508,7 @@ const canUndo = computed(() => historyStack.value?.canUndo() ?? false);
 const canRedo = computed(() => historyStack.value?.canRedo() ?? false);
 
 // const onOffAttr = ['license', 'dataLicense', 'reference', 'url'];
-const langAttr = ['title', 'officialTitle', 'author', 'era', 'createdAt', 'contributor',
-  'mapper', 'attr', 'dataAttr', 'description'];
+const langAttr = [...MAP_LANG_ATTRS];
 
 const arrayRoundTo = (array: number[], decimal: number) => {
     const factor = Math.pow(10, decimal);
@@ -673,6 +675,7 @@ const createLangComputed = (key: string) => computed({
 
 // ローカライズフィールドの computed プロパティ
 const title = createLangComputed('title');
+const label = createLangComputed('label');
 const officialTitle = createLangComputed('officialTitle');
 const author = createLangComputed('author');
 const era = createLangComputed('era');
@@ -688,8 +691,8 @@ const description = createLangComputed('description');
 // v-model="mapData.createAt" → langAttr の createdAt に対応
 // v-model="mapData.owner"    → langAttr の contributor に対応
 
-const isDefaultLang = computed(
-    () => (mapData.value.lang || 'ja') === currentLang.value,
+const translationMode = computed(
+    () => isTranslationMode(currentLang.value, mapData.value.lang || 'ja'),
 );
 
 const setDocumentLanguage = (newLang: LangCode) => {
@@ -3135,11 +3138,13 @@ const goBack = async () => {
                         <div class="col-md-3" :class="mapIDError && mapIDError !== 'mapedit.check_uniqueness' ? 'has-error' : ''">
                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.mapid") }}</label>
                             <input
+                                data-testid="map-slug"
                                 type="text"
                                 class="form-control form-control-sm"
                                 :class="mapIDError && mapIDError !== 'mapedit.check_uniqueness' ? 'is-invalid' : ''"
                                 v-model="mapData.mapID"
                                 :placeholder="t('mapedit.input_mapid')"
+                                :disabled="translationMode"
                             >
                             <!-- バリデーションエラーメッセージ（旧実装 small.text-danger 相当） -->
                             <div v-if="mapIDError && mapIDError !== 'mapedit.check_uniqueness'"
@@ -3157,7 +3162,7 @@ const goBack = async () => {
                              確認済み(onlyOne)や形式エラーの間は無効化する -->
                         <div class="col-md-2 d-flex align-items-start pt-4">
                             <button class="btn btn-secondary btn-sm w-100 mt-1"
-                                    :disabled="onlyOne || !!(mapIDError && mapIDError !== 'mapedit.check_uniqueness')"
+                                    :disabled="translationMode || onlyOne || !!(mapIDError && mapIDError !== 'mapedit.check_uniqueness')"
                                     @click="checkOnlyOne">
                                 {{ t("mapedit.uniqueness_button") }}
                             </button>
@@ -3177,7 +3182,8 @@ const goBack = async () => {
                         </div>
                          <div class="col-md-2 d-flex align-items-start pt-4">
                             <button class="btn btn-outline-secondary btn-sm w-100 mt-1"
-                                    @click="mapUpload">{{ t("mapedit.upload_map") }}</button>
+                                    @click="mapUpload"
+                                    :disabled="translationMode">{{ t("mapedit.upload_map") }}</button>
                         </div>
                     </div>
 
@@ -3191,6 +3197,7 @@ const goBack = async () => {
                                 class="form-select form-select-sm"
                                 data-editor-document-language
                                 :value="mapData.lang || 'ja'"
+                                :disabled="translationMode"
                                 @change="setDocumentLanguage(($event.target as HTMLSelectElement).value as LangCode)"
                             >
                                 <option
@@ -3212,12 +3219,17 @@ const goBack = async () => {
                             <div v-if="saveError?.title" class="form-text small text-muted text-danger mb-0" style="font-size: 0.75rem;">{{ saveError.title }}</div>
                             <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_repr_desc") }}</div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-4">
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <input data-testid="map-label" type="text" class="form-control form-control-sm" v-model="label">
+                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_label_desc") }}</div>
+                        </div>
+                        <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_ofc") }} <LangValueChips :model-value="mapData.officialTitle" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="officialTitle" :placeholder="t('mapedit.map_name_ofc_pf')">
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_ofc_desc") }}</div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_author") }} <LangValueChips :model-value="mapData.author" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="author" :placeholder="t('mapedit.map_author_pf')">
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_author_desc") }}</div>
@@ -3253,7 +3265,7 @@ const goBack = async () => {
                     <div class="row g-1 mb-2">
                          <div class="col-md-3">
                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_image_license") }}</label>
-                            <select class="form-select form-select-sm" v-model="mapData.license" :disabled="!isDefaultLang">
+                            <select class="form-select form-select-sm" v-model="mapData.license" :disabled="translationMode">
                                 <option value="All right reserved">{{ t("mapedit.cc_allright_reserved") }}</option>
                                 <option value="CC BY">{{ t("mapedit.cc_by") }}</option>
                                 <option value="CC BY-SA">{{ t("mapedit.cc_by_sa") }}</option>
@@ -3268,7 +3280,7 @@ const goBack = async () => {
                         </div>
                          <div class="col-md-3">
                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_gcp_license") }}</label>
-                             <select class="form-select form-select-sm" v-model="mapData.dataLicense" :disabled="!isDefaultLang">
+                             <select class="form-select form-select-sm" v-model="mapData.dataLicense" :disabled="translationMode">
                                 <option value="All right reserved">{{ t("mapedit.cc_allright_reserved") }}</option>
                                 <option value="CC BY">{{ t("mapedit.cc_by") }}</option>
                                 <option value="CC BY-SA">{{ t("mapedit.cc_by_sa") }}</option>
@@ -3297,12 +3309,12 @@ const goBack = async () => {
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
                              <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_source") }}</label>
-                             <input type="text" class="form-control form-control-sm" v-model="mapData.reference" :disabled="!isDefaultLang" :placeholder="t('mapedit.map_source_pf')">
+                             <input type="text" class="form-control form-control-sm" v-model="mapData.reference" :disabled="translationMode" :placeholder="t('mapedit.map_source_pf')">
                              <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_source_desc") }}</div>
                         </div>
                          <div class="col-md-8">
                              <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_tile") }}</label>
-                             <input type="text" class="form-control form-control-sm" v-model="mapData.url" :disabled="!isDefaultLang" :placeholder="t('mapedit.map_tile_pf')">
+                             <input type="text" class="form-control form-control-sm" v-model="mapData.url" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
                              <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_tile_desc") }}</div>
                         </div>
                     </div>

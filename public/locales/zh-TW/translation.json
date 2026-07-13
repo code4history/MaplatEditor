@@ -191,6 +191,8 @@
     "map_name_repr": "地圖名稱(顯示用)",
     "map_name_repr_pf": "請輸入地圖名稱(顯示用)",
     "map_name_repr_desc": "請在15個字元(半形30個字元)以內輸入地圖的顯示用名稱。",
+    "map_label": "來源標籤",
+    "map_label_desc": "顯示在檢視器來源切換器中的簡短名稱。",
     "map_name_ofc": "地圖名稱(正式名稱)",
     "map_name_ofc_pf": "請輸入地圖名稱(正式名稱)",
     "map_name_ofc_desc": "請輸入地圖的正式名稱。",

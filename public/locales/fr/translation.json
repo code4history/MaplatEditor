@@ -191,6 +191,8 @@
     "map_name_repr": "Nom de la carte (affichage)",
     "map_name_repr_pf": "Veuillez saisir le nom d'affichage de la carte",
     "map_name_repr_desc": "Veuillez saisir le nom d'affichage de la carte en 30 caractères maximum (ou 15 caractères pleine largeur).",
+    "map_label": "Libellé de la source",
+    "map_label_desc": "Un nom court affiché dans le sélecteur de sources du visualiseur.",
     "map_name_ofc": "Nom de la carte (officiel)",
     "map_name_ofc_pf": "Veuillez saisir le nom officiel de la carte",
     "map_name_ofc_desc": "Veuillez saisir le nom officiel de la carte.",

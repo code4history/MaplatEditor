@@ -267,6 +267,16 @@ try {
       // デフォルト言語以外の単一言語はオブジェクトのまま(言語情報を失わない)
       assert.deepEqual(langResource.compactLangResource({ en: 'Japan Map' }, 'ja'), { en: 'Japan Map' });
       assert.equal(langResource.compactLangResource({ ja: '' }, 'ja'), undefined);
+      const normalizedLabel = langResource.normalizeMapLangFields({
+        lang: 'ja',
+        title: '姫路古地図',
+        label: '姫路',
+      });
+      assert.deepEqual(normalizedLabel.label, { ja: '姫路' });
+      assert.equal(
+        langResource.compactMapLangFields({ lang: 'ja', label: { ja: '姫路' } }).label,
+        '姫路',
+      );
       const compactedDoc = langResource.compactMapLangFields({ lang: 'ja', title: { ja: '日本地図' }, description: { ja: '説明', en: 'Desc' }, attr: {} });
       assert.equal(compactedDoc.title, '日本地図');
       assert.deepEqual(compactedDoc.description, { ja: '説明', en: 'Desc' });

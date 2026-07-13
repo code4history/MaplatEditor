@@ -188,6 +188,8 @@
     "map_name_repr": "Map Name (For representation)",
     "map_name_repr_pf": "Enter map name for representation.",
     "map_name_repr_desc": "Enter map name for representation within 30 half-width (15 full-width) characters.",
+    "map_label": "Source label",
+    "map_label_desc": "A concise name shown in the viewer source switcher.",
     "map_name_ofc": "Map Name (Full)",
     "map_name_ofc_pf": "Enter full, detailed map name.",
     "map_name_ofc_desc": "Enter full, detailed map name.",

@@ -191,6 +191,8 @@
     "map_name_repr": "Nama Peta (untuk tampilan)",
     "map_name_repr_pf": "Silakan masukkan nama peta untuk tampilan",
     "map_name_repr_desc": "Silakan masukkan nama tampilan peta dalam 30 karakter setengah lebar (15 karakter lebar penuh).",
+    "map_label": "Label sumber",
+    "map_label_desc": "Nama singkat yang ditampilkan pada pemilih sumber di penampil.",
     "map_name_ofc": "Nama Peta (resmi)",
     "map_name_ofc_pf": "Silakan masukkan nama resmi peta",
     "map_name_ofc_desc": "Silakan masukkan nama resmi peta.",

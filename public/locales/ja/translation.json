@@ -191,6 +191,8 @@
     "map_name_repr": "地図名称 (表示用)",
     "map_name_repr_pf": "地図名称(表示用)を入力してください",
     "map_name_repr_desc": "地図の表示用名称を15文字(半角30文字)以内で入力してください。",
+    "map_label": "ソースラベル",
+    "map_label_desc": "ビューアの地図切替に表示する短い名称です。",
     "map_name_ofc": "地図名称(正式名)",
     "map_name_ofc_pf": "地図名称(正式名)を入力してください",
     "map_name_ofc_desc": "地図の正式名称を入力してください。",

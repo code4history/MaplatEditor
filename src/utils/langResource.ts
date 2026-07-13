@@ -9,6 +9,7 @@ export type LangResource = string | Record<string, string>;
 // MapEditの言語別編集対象フィールド(MapEdit.vue langAttrと一致させること)
 export const MAP_LANG_ATTRS = [
   "title",
+  "label",
   "officialTitle",
   "author",
   "era",
