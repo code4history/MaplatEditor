@@ -42,6 +42,7 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
   let serialize: (() => unknown) | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let dirty = false;
+  let pendingPersist: Promise<void> | null = null;
 
   const envelope = (): AssetDraftEnvelope => {
     if (!identity || !serialize) throw new Error('Draft lifecycle is not open');
@@ -60,13 +61,24 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
 
   const persist = async () => {
     if (!dirty || !identity) return;
+    const operation = options.api.put(envelope());
+    pendingPersist = operation;
     try {
-      await options.api.put(envelope());
+      await operation;
       error.value = null;
     } catch (cause) {
       error.value = cause instanceof Error ? cause : new Error(String(cause));
       (options.onError ?? ((value) => console.warn('[asset-draft] automatic save failed:', value)))(error.value);
+    } finally {
+      if (pendingPersist === operation) pendingPersist = null;
     }
+  };
+
+  const removePersisted = async () => {
+    const target = identity ? { ...identity } : null;
+    if (!target) return;
+    if (pendingPersist) await pendingPersist.catch(() => undefined);
+    await options.api.remove(target.kind, target.assetUid);
   };
 
   return {
@@ -89,7 +101,8 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
     },
     async flush() {
       cancelTimer();
-      await persist();
+      if (dirty) await persist();
+      else await removePersisted();
     },
     flushSync() {
       if (!dirty || !identity) return { ok: true };
@@ -104,8 +117,8 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
     },
     async markSaved() {
       cancelTimer();
-      if (identity) await options.api.remove(identity.kind, identity.assetUid);
       dirty = false;
+      await removePersisted();
       error.value = null;
     },
     close() {

@@ -63,7 +63,11 @@ assert.match(
   /const markSaved = async[\s\S]*await core\.markSaved\(\)[\s\S]*draftRestored\.value = false/,
   'Saving a restored draft must immediately leave draft-restored state',
 );
-assert.match(draftLifecycle, /const discard = async[\s\S]*assetDrafts\.remove/);
+assert.match(
+  draftLifecycle,
+  /const discard = async[\s\S]*await core\.markSaved\(\)/,
+  'Discard must cancel pending persistence as well as remove the stored draft',
+);
 
 const busy = await readFile(
   path.join(projectRoot, 'src/components/editor-ui/EditorBusyOverlay.vue'),
@@ -155,6 +159,11 @@ assert.match(mapEdit, /import EditorBusyOverlay from/);
 assert.match(mapEdit, /import \{ runEditorExportDecision \} from/);
 assert.match(mapEdit, /<EditorActionHeader[\s\S]*@save="saveMap"/);
 assert.match(mapEdit, /@discard-draft="discardRestoredDraft"/);
+assert.match(
+  mapEdit,
+  /nextTick\(\(\) => draftLifecycle\.schedule\(isDirty\.value\)\)/,
+  'Map draft scheduling must follow the saved checkpoint, not mere history activity',
+);
 assert.match(mapEdit, /data-editor-action="export"[\s\S]*@click="exportMap"/);
 assert.match(mapEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"/);
 assert.match(mapEdit, /const saveState = computed/);
@@ -197,6 +206,11 @@ assert.match(appEdit, /import EditorBusyOverlay from/);
 assert.match(appEdit, /import \{ runEditorExportDecision \} from/);
 assert.match(appEdit, /<EditorActionHeader[\s\S]*@save="saveApp"/);
 assert.match(appEdit, /@discard-draft="discardRestoredDraft"/);
+assert.match(
+  appEdit,
+  /nextTick\(\(\) => draftLifecycle\.schedule\(isDirty\.value\)\)/,
+  'App draft scheduling must follow the saved checkpoint, not mere history activity',
+);
 assert.match(appEdit, /data-editor-action="export"[\s\S]*@click="exportApp"/);
 assert.match(appEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"/);
 assert.match(appEdit, /const saveState = computed/);

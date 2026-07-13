@@ -347,7 +347,7 @@ onMounted(async () => {
 
 watch(
   appData,
-  () => nextTick(() => draftLifecycle.schedule(true)),
+  () => nextTick(() => draftLifecycle.schedule(isDirty.value)),
   { deep: true, flush: "post" },
 );
 
@@ -754,8 +754,8 @@ async function reloadFromStore() {
     onlyOne.value = true;
     appIDError.value = "";
     currentLang.value = appData.value.lang;
-    await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
     resetHistoryBase();
+    await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   } catch (e) {
     console.error("[reloadFromStore] Failed to reload app data:", e);
   }

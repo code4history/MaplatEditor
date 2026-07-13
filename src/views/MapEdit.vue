@@ -722,7 +722,7 @@ watch(
 );
 watch(
     [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer],
-    () => nextTick(() => draftLifecycle.schedule(true)),
+    () => nextTick(() => draftLifecycle.schedule(isDirty.value)),
     { deep: true, flush: 'post' }
 );
 

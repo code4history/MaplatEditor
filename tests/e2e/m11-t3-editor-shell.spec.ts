@@ -152,6 +152,8 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await page.locator('[data-editor-action="discard-draft"]').click();
     await expect(appName).toHaveValue('T3 App');
     await expect(page.locator('[data-editor-action="discard-draft"]')).toBeHidden();
+    await page.waitForTimeout(2200);
+    expect(await page.evaluate((uid) => window.assetDrafts.get('app', uid), appUid)).toBeNull();
 
     await appName.fill('T3 App edited');
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
@@ -202,7 +204,33 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await expect(mapEnglishChip).toHaveAttribute('title', 'English: T3 Map');
     await mapEnglishChip.click();
     await expect(page.locator('[data-editor-action="language"]')).toHaveValue('en');
-    await expect(page.getByTestId('map-title')).toHaveValue('T3 Map');
+    const mapTitle = page.getByTestId('map-title');
+    await expect(mapTitle).toHaveValue('T3 Map');
+    await mapTitle.fill('T3 Map transient edit');
+    await page.locator('.editor-action-header__identity strong').click();
+    await expect(page.locator('[data-editor-action="undo"]')).toBeEnabled();
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await expect(mapTitle).toHaveValue('T3 Map');
+    await expect(page.getByTestId('editor-save')).toBeDisabled();
+    await page.getByTestId('editor-back').click();
+    await expect(page.locator('a[href*="mapedit?uid="]')).toBeVisible();
+    expect(await page.evaluate((uid) => window.assetDrafts.get('map', uid), mapUid)).toBeNull();
+
+    await openHash(page, `#/mapedit?uid=${mapUid}`, '#mapDocumentLanguage');
+    await page.getByTestId('map-title').fill('T3 Map discarded draft');
+    await page.locator('.editor-action-header__identity strong').click();
+    await expect(page.locator('[data-editor-action="undo"]')).toBeEnabled();
+    await page.getByTestId('editor-back').click();
+    expect(await page.evaluate((uid) => window.assetDrafts.get('map', uid), mapUid)).not.toBeNull();
+
+    await openHash(page, `#/mapedit?uid=${mapUid}`, '#mapDocumentLanguage');
+    await expect(page.locator('[data-editor-action="discard-draft"]')).toBeVisible();
+    await app.evaluate(() => { (globalThis as any).__m11T3DialogHarness.nextResponse = 0; });
+    await page.locator('[data-editor-action="discard-draft"]').click();
+    await expect(page.getByTestId('map-title')).toHaveValue('T3 地図');
+    await page.waitForTimeout(2200);
+    await page.getByTestId('editor-back').click();
+    expect(await page.evaluate((uid) => window.assetDrafts.get('map', uid), mapUid)).toBeNull();
   } finally {
     await app.close();
   }

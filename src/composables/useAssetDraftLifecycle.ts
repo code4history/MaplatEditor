@@ -77,9 +77,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
   };
 
   const discard = async () => {
-    if (currentUid.value) {
-      await window.assetDrafts.remove(options.kind, currentUid.value);
-    }
+    await core.markSaved();
     draftRestored.value = false;
     conflictDraft.value = null;
   };

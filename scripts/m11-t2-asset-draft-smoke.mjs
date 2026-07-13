@@ -182,8 +182,15 @@ try {
   await core.flush();
   assert.equal(core.error.value, null);
   assert.deepEqual(calls.put.at(-1).payload, { value: 5 });
+  core.schedule(false);
+  await core.flush();
+  assert.deepEqual(
+    calls.remove,
+    [['map', 'map-1']],
+    'returning to the saved checkpoint must remove an already persisted draft',
+  );
   await core.markSaved();
-  assert.deepEqual(calls.remove, [['map', 'map-1']]);
+  assert.deepEqual(calls.remove, [['map', 'map-1'], ['map', 'map-1']]);
   console.log('  [6/6] Two-second throttle, flush, retry, sync, and save cleanup: PASS');
 
   const draft = envelope('map', 'map-1', 7);
