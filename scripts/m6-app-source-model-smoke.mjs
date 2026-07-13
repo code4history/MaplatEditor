@@ -150,6 +150,14 @@ try {
   const unknownString = normalizeAppSource('mapbox');
   assert.equal(unknownString.sourceType, 'tms');
 
+  const englishLegacyLabel = normalizeAppSource({
+    mapID: 'english_tiles',
+    maptype: 'base',
+    label: 'English tiles',
+    url: 'https://example.com/{z}/{x}/{y}.png',
+  }, 'en');
+  assert.deepEqual(englishLegacyLabel.label, { en: 'English tiles' });
+
   console.log('m6-app-source-model smoke: PASS');
 } finally {
   await rm(workDir, { recursive: true, force: true });

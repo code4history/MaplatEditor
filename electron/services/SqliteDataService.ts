@@ -106,7 +106,7 @@ export interface MigrationReport {
 const MIGRATION_REPORT_FILE = 'migration-report-v2.json';
 
 const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
-const SEARCH_INDEX_BACKFILL_ID = '2026-07-04-search-index-backfill';
+const SEARCH_INDEX_BACKFILL_ID = '2026-07-14-app-localized-search-index-backfill';
 // 表示設定オプトイン化(ADR-0006)のv1向け一括破棄。schema v2 の新規DBには
 // オプトアウト時代の行が存在し得ないため no-op だが、旧コード経路が再実行
 // されないよう marker のみ記録する
@@ -225,7 +225,12 @@ function collectSearchStrings(value: any): string[] {
 function ftsRawFromJson(dataJson: string, fields: string[]): string {
   try {
     const doc = JSON.parse(dataJson);
-    return fields.flatMap((field) => collectSearchStrings(doc?.[field])).join('\n');
+    return fields
+      .flatMap((field) => {
+        const value = field.split('.').reduce((current, key) => current?.[key], doc);
+        return collectSearchStrings(value);
+      })
+      .join('\n');
   } catch {
     return '';
   }
@@ -517,7 +522,14 @@ class SqliteDataService {
       ftsRawFromJson(String(dataJson ?? ''), ['title', 'officialTitle', 'description'])
     );
     db.function('maplat_app_fts_raw', { deterministic: true }, (dataJson: unknown) =>
-      ftsRawFromJson(String(dataJson ?? ''), ['title', 'appName', 'description'])
+      ftsRawFromJson(String(dataJson ?? ''), [
+        'title',
+        'appName',
+        'description',
+        'keywords',
+        'manifestSettings.name',
+        'manifestSettings.shortName',
+      ])
     );
     db.function('maplat_poi_fts_raw', { deterministic: true }, (dataJson: unknown, titleJson: unknown, slug: unknown) =>
       poiFtsRawFromJson(String(dataJson ?? ''), String(titleJson ?? ''), String(slug ?? ''))

@@ -64,7 +64,8 @@ class AppDataService {
       const url = AppAssetService.fileUrlFor(`img/${splash}`);
       if (url) return url;
     }
-    const sources: AppSource[] = (Array.isArray(doc.sources) ? doc.sources : []).map((raw: any) => normalizeAppSource(raw));
+    const sources: AppSource[] = (Array.isArray(doc.sources) ? doc.sources : [])
+      .map((raw: any) => normalizeAppSource(raw, doc.lang || 'ja'));
     // startFromは新形=uid、旧保存形=slugのどちらもあり得る (ADR-0007)
     const startFromID = doc.startFrom || doc.start_from || sources.find((source) => source.startFrom)?.mapUid;
     const startSource = sources.find((source) => source.mapUid === startFromID || source.mapSlug === startFromID);
@@ -106,7 +107,7 @@ class AppDataService {
     const legacyStartFrom = typeof doc.startFrom === 'string' ? doc.startFrom : undefined;
     for (const raw of doc.sources) {
       if (!raw || typeof raw !== 'object') continue;
-      const normalized = normalizeAppSource(raw);
+      const normalized = normalizeAppSource(raw, doc.lang || 'ja');
       if (normalized.sourceType !== 'maplat' || !normalized.mapUid) continue;
       const mapDoc = await SqliteDataService.findMapByRef(normalized.mapUid);
       if (!mapDoc) continue;

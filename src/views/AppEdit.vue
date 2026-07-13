@@ -560,7 +560,7 @@ function normalizeLangObject(value: any, defaultLang?: string): Record<string, s
 }
 
 function normalizeSource(value: any, defaultLang?: string): AppSource {
-  const source = normalizeAppSource(value) as AppSource;
+  const source = normalizeAppSource(value, defaultLang) as AppSource;
   if (!source.title) {
     const fallbackID = source.mapSlug || source.mapUid;
     const title = source.label || (source.data as any)?.title || fallbackID;
@@ -917,15 +917,16 @@ function addBaseMapSource(item: BaseMapItem) {
       role: "base",
     });
   } else {
+    const label = normalizeLangObject(item.data?.label || item.data?.title || title, appData.value.lang);
     // マスタのアイコン/提供範囲等は「選択時のデフォルト」としてディープコピーで継承する。
     // 以後の編集はコピーにのみ反映し、マスタ側は変更しない(Inherited Source Defaults)
     const source = normalizeAppSource({
       mapID: item.mapID,
       maptype: item.data?.maptype,
       data: JSON.parse(JSON.stringify(item.data || {})),
-    }) as AppSource;
+    }, appData.value.lang) as AppSource;
     source.title = title;
-    source.label = { ...normalizeLangObject(title) };
+    source.label = { ...label };
     source.thumbnail = item.thumbnailUrl || undefined;
     if (source.data && !source.data.thumbnail && item.thumbnailUrl) {
       // マスタにthumbnail未設定の旧ユーザーベースマップ: Viewer規約のtmbs/{mapID}_menu.jpgを補完

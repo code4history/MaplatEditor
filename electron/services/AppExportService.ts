@@ -25,7 +25,8 @@ import {
   normalizeAppSource,
   type AppSource,
 } from '../../src/utils/appSourceModel';
-import { compactMapLangFields } from '../../src/utils/langResource';
+import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
+import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { normalizeJsonArray } from '../utils/jsonArray';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -163,7 +164,8 @@ class AppExportService {
     // (mapedit:download と同方式)。途中失敗時はユーザーの選択先に何も残らない
     const tmpZipPath = `${outDir}.zip`;
 
-    const sources: AppSource[] = (document.sources || []).map((raw: any) => normalizeAppSource(raw));
+    const sources: AppSource[] = (document.sources || [])
+      .map((raw: any) => normalizeAppSource(raw, document.lang || 'ja'));
     const maplatSources = sources.filter(source => source.sourceType === 'maplat');
 
     // catch 節でエラー時の進捗モーダル片付け(MINOR-3)に使うため try の外で宣言する
@@ -462,7 +464,7 @@ class AppExportService {
 
   private composeManifest(document: any, appID: string, icons: any[]) {
     const manifest = document.manifestSettings || {};
-    const appName = localize(document.appName || document.title, document.lang || 'ja') || appID;
+    const localized = resolveAppLocalizedMetadata({ ...document, appID });
     const siteUrl = String(document.siteUrl || '').trim();
     let startUrl = manifest.startUrl || './';
     let scope = manifest.scope || './';
@@ -475,8 +477,8 @@ class AppExportService {
       }
     }
     return {
-      name: manifest.name || appName,
-      short_name: manifest.shortName || appName,
+      name: localized.manifestName,
+      short_name: localized.manifestShortName,
       background_color: manifest.backgroundColor || '#f6f0d3',
       theme_color: manifest.themeColor || '#f6f0d3',
       display: manifest.display || 'standalone',
@@ -663,9 +665,10 @@ class AppExportService {
 
   private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean): string {
     const lang = document.lang || 'ja';
-    const title = escapeHtml(localize(document.appName || document.title, lang) || appID);
-    const description = escapeHtml(localize(document.description, lang) || '');
-    const keywords = escapeHtml(String(document.keywords || '').trim());
+    const localized = resolveAppLocalizedMetadata({ ...document, appID });
+    const title = escapeHtml(localized.appName);
+    const description = escapeHtml(localizeTitle(document.description, lang) || '');
+    const keywords = escapeHtml(localized.keywords.trim());
     const siteUrl = String(document.siteUrl || '').trim();
     const splash = String(document.appSettings?.splash || '');
     const pwaManifest = Boolean(document.httpSettings?.pwaManifest);
@@ -775,11 +778,6 @@ function finiteOr(value: any, fallback: number): number {
   if (value === null || value === undefined || value === '') return fallback;
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
-}
-
-function localize(value: any, lang = 'ja'): string {
-  if (typeof value === 'string') return value;
-  return value?.[lang] || value?.ja || value?.en || Object.values(value || {})[0] || '';
 }
 
 function escapeHtml(value: string): string {

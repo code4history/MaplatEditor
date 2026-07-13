@@ -24,6 +24,8 @@ import {
   normalizeAppSource,
   type AppSource,
 } from '../../src/utils/appSourceModel';
+import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
+import { localizeTitle } from '../../src/utils/langResource';
 
 type PreviewSession = {
   token: string;
@@ -140,7 +142,7 @@ class AppPreviewService {
     const appPoiUids = collectPoiUids(appPoisRaw);
     let duplicateReference = false;
     const normalizedSources: AppSource[] = (Array.isArray(document.sources) ? document.sources : [])
-      .map((raw: any) => normalizeAppSource(raw));
+      .map((raw: any) => normalizeAppSource(raw, documentLang));
     const entries = await Promise.all(normalizedSources.map(async (source: AppSource) => {
       if (source.sourceType === 'maplat') {
         // uid正準参照 (ADR-0007)。旧保存形のslug参照もrequestPreviewSourceが解決する。
@@ -217,10 +219,10 @@ class AppPreviewService {
 
   private createManifest(document: any) {
     const manifest = document.manifestSettings || {};
-    const appName = localize(document.appName || document.title, document.lang || 'ja') || document.appID || 'Maplat';
+    const localized = resolveAppLocalizedMetadata(document);
     return {
-      name: manifest.name || appName,
-      short_name: manifest.shortName || appName,
+      name: localized.manifestName || 'Maplat',
+      short_name: localized.manifestShortName || 'Maplat',
       background_color: manifest.backgroundColor || '#f6f0d3',
       theme_color: manifest.themeColor || '#f6f0d3',
       display: manifest.display || 'standalone',
@@ -269,7 +271,7 @@ class AppPreviewService {
 
   private renderHtml(session: PreviewSession) {
     const { token, app } = session;
-    const title = escapeHtml(localize(app.title || app.appName || app.app_name, app.lang) || token);
+    const title = escapeHtml(localizeTitle(app.title || app.appName || app.app_name, app.lang) || token);
     const manifestLink = session.viewerOption.pwaManifest ? `  <link rel="manifest" href="pwa/${token}_manifest.json">\n` : '';
     return `<!DOCTYPE html>
 <html>
@@ -467,11 +469,6 @@ function finiteOr(value: any, fallback: number): number {
   if (value === null || value === undefined || value === '') return fallback;
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
-}
-
-function localize(value: any, lang = 'ja') {
-  if (typeof value === 'string') return value;
-  return value?.[lang] || value?.ja || value?.en || Object.values(value || {})[0] || '';
 }
 
 function escapeHtml(value: string) {

@@ -142,8 +142,10 @@ class SearchDataService {
     let rawDocs = await this.readAllAppDocs();
     if (query && query.trim()) {
       rawDocs = rawDocs.filter((doc) =>
-        ['title', 'description'].some(attr => checkLocaleAttr(doc[attr], query)) ||
+        ['title', 'description', 'keywords'].some(attr => checkLocaleAttr(doc[attr], query)) ||
         checkLocaleAttr(doc.appName, query) ||
+        checkLocaleAttr(doc.manifestSettings?.name, query) ||
+        checkLocaleAttr(doc.manifestSettings?.shortName, query) ||
         new RegExp(query.trim(), 'i').test(doc.appID || doc._id || '')
       );
     }

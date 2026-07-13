@@ -135,15 +135,19 @@ function isBaseLikeMaptype(maptype: unknown): boolean {
   return maptype === undefined || maptype === null || maptype === "" || maptype === "base";
 }
 
-function pickLabel(raw: any, data: Record<string, any>): Record<string, string> | undefined {
+function pickLabel(
+  raw: any,
+  data: Record<string, any>,
+  defaultLang: string,
+): Record<string, string> | undefined {
   const candidate = raw?.label ?? data?.label;
   if (candidate === undefined || candidate === null) return undefined;
-  if (typeof candidate === "string") return { ja: candidate };
+  if (typeof candidate === "string") return { [defaultLang]: candidate };
   return { ...candidate };
 }
 
 // 任意の保存形(レガシー文字列 / 旧AppEdit形(mapID) / 新形(mapUid)) → AppSource
-export function normalizeAppSource(raw: any): AppSource {
+export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   if (typeof raw === "string") {
     if (isViewerBuiltin(raw)) {
       return { sourceType: "builtin", mapUid: raw, role: "base" };
@@ -170,7 +174,7 @@ export function normalizeAppSource(raw: any): AppSource {
       mapUid: mapRef,
       role: "maplat",
       startFrom: Boolean(raw?.startFrom),
-      label: pickLabel(raw, data),
+      label: pickLabel(raw, data, defaultLang),
       title: typeof raw?.title === "string" ? raw.title : undefined,
       mapSlug: typeof raw?.mapSlug === "string" ? raw.mapSlug : undefined,
     };
@@ -189,7 +193,7 @@ export function normalizeAppSource(raw: any): AppSource {
 
   const role: SourceRole =
     raw?.role === "overlay" || maptype === "overlay" ? "overlay" : "base";
-  const label = pickLabel(raw, data);
+  const label = pickLabel(raw, data, defaultLang);
   delete data.label;
   delete data.mapID;
   delete data.maptype;

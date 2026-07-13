@@ -42,6 +42,34 @@ assert.equal(isTranslationMode('en-US', 'en-US'), false);
 assert.equal(isTranslationMode('', 'ja'), false);
 assert.equal(isTranslationMode('en', ''), false);
 
+const { resolveAppLocalizedMetadata } = await importSource(
+  'src/utils/appLocalizedMetadata.ts',
+  'appLocalizedMetadata.mjs',
+);
+const resolvedMetadata = resolveAppLocalizedMetadata({
+  appID: 'himeji',
+  lang: 'ja',
+  title: { ja: '姫路アプリ', en: 'Himeji App' },
+  keywords: { ja: '姫路,古地図', en: 'Himeji,historical map' },
+  manifestSettings: {
+    name: { ja: '姫路案内', en: 'Himeji Guide' },
+    shortName: { ja: '姫路', en: 'Himeji' },
+  },
+});
+assert.deepEqual(resolvedMetadata, {
+  lang: 'ja',
+  appName: '姫路アプリ',
+  keywords: '姫路,古地図',
+  manifestName: '姫路案内',
+  manifestShortName: '姫路',
+});
+assert.equal(resolveAppLocalizedMetadata({
+  appID: 'fallback',
+  lang: 'en',
+  title: { en: 'Fallback App' },
+  manifestSettings: { name: {}, shortName: {} },
+}).manifestName, 'Fallback App');
+
 const mapEdit = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
 assert.match(mapEdit, /const label = createLangComputed\(['"]label['"]\)/);
 assert.match(mapEdit, /data-testid="map-label"[^>]*v-model="label"/);
@@ -90,5 +118,18 @@ const appSourceEditor = await readFile(
 assert.match(appSourceEditor, /defaultLang:\s*LangCode/);
 assert.match(appSourceEditor, /<LangValueChips/);
 assert.doesNotMatch(appSourceEditor, /props\.currentLang !== "ja"/);
+
+const appPreviewService = await readFile(
+  path.join(projectRoot, 'electron/services/AppPreviewService.ts'),
+  'utf8',
+);
+const appExportService = await readFile(
+  path.join(projectRoot, 'electron/services/AppExportService.ts'),
+  'utf8',
+);
+for (const service of [appPreviewService, appExportService]) {
+  assert.match(service, /resolveAppLocalizedMetadata/);
+  assert.doesNotMatch(service, /String\(document\.keywords \|\| ''\)/);
+}
 
 console.log('M11-T3 language-boundary smoke checks passed.');

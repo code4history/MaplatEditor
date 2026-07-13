@@ -81,6 +81,7 @@ try {
         appID: 'demo_app',
         title: { ja: 'デモアプリ', en: 'Demo App' },
         description: { ja: '説明', en: 'Description' },
+        keywords: { ja: '姫路,古地図', en: 'Himeji,historical map' },
         lang: 'ja',
         sources: [
           { sourceType: 'base-map', mapID: 'osm', role: 'base', title: 'OpenStreetMap', data: { mapID: 'osm', maptype: 'base' } },
@@ -89,7 +90,12 @@ try {
         ],
         httpSettings: { previewPort: 41781, pwaManifest: true, enableShare: true, enableBorder: true, enableMarkerList: true },
         appSettings: { splash: 'demo_splash.png', homeLng: 139, homeLat: 35, defaultZoom: 17 },
-        manifestSettings: { name: 'Demo', shortName: 'Demo', backgroundColor: '#f6f0d3', themeColor: '#f6f0d3' },
+        manifestSettings: {
+          name: { ja: '姫路案内', en: 'Himeji Guide' },
+          shortName: { ja: '姫路', en: 'Himeji' },
+          backgroundColor: '#f6f0d3',
+          themeColor: '#f6f0d3',
+        },
         startFrom: 'histmap',
       };
 
@@ -113,7 +119,7 @@ try {
       // マーカー一覧トグル (GUI 検証 D3): document 経由で保存/読込される
       assert.equal(loaded.httpSettings.enableMarkerList, true);
       assert.equal(loaded.appSettings.splash, 'demo_splash.png');
-      assert.equal(loaded.manifestSettings.name, 'Demo');
+      assert.deepEqual(loaded.manifestSettings.name, { ja: '姫路案内', en: 'Himeji Guide' });
       // 旧slug参照のmaplatソースが読込時にuid+表示用slugへ解決されること (ADR-0007)
       assert.equal(loaded.sources[1].mapUid, histmapUid);
       assert.equal(loaded.sources[1].mapSlug, 'histmap');
@@ -126,6 +132,8 @@ try {
       assert.equal(listed.docs[0].uid, demoUid);
       assert.equal(listed.docs[0].appID, 'demo_app');
       assert.equal(listed.docs[0].title, 'デモアプリ');
+      assert.equal((await AppDataService.requestApps('Himeji,historical', 1, 20)).docs.length, 1);
+      assert.equal((await AppDataService.requestApps('Himeji Guide', 1, 20)).docs.length, 1);
 
       const legacyCreated = await AppDataService.saveApp({ slug: 'legacy_app', document: {
         appID: 'legacy_app',
