@@ -11,6 +11,8 @@ export function registerPoisourceHandlers() {
   ipcMain.handle('poisource:createLocal', (_, input) => poiSourceService.createLocal(input));
   ipcMain.handle('poisource:save', (_, uid, payload) => poiSourceService.save(uid, payload));
   ipcMain.handle('poisource:importFile', (_, input) => poiSourceService.importFile(input));
+  ipcMain.handle('poisource:detectImportLanguage', (_, filePath, fallbackLang) =>
+    poiSourceService.detectImportLanguage(filePath, fallbackLang));
   ipcMain.handle('poisource:registerRemote', (_, input) => poiSourceService.registerRemote(input));
   ipcMain.handle('poisource:refreshRemote', (_, uid) => poiSourceService.refreshRemote(uid));
   ipcMain.handle('poisource:cloneToLocal', (_, uid, input) => poiSourceService.cloneToLocal(uid, input));

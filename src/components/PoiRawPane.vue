@@ -88,12 +88,12 @@ import type { PoiEditSession, PoiEditState } from "../composables/usePoiEditSess
 import type { LangResource } from "../utils/langResource";
 import { normalizeLangResource } from "../utils/langResource";
 import {
-  DEFAULT_LANG,
   SCALE_BYTE_SIZE,
   SCALE_FEATURE_COUNT,
   fromExportForm,
   toExportForm,
   type PoiValidationIssue,
+  resolvePoiSourceLanguage,
 } from "../utils/poiGeoJson";
 import { issueMessage } from "../utils/poiSourceMessages";
 
@@ -103,6 +103,8 @@ const props = defineProps<{
   readOnly: boolean;
   /** ペインが開いているか。false の間は表示再生成を止める */
   visible: boolean;
+  /** 翻訳モードでは共通属性も含むRaw JSONのApplyを禁止する */
+  translationMode: boolean;
 }>();
 
 const { t } = useTranslation();
@@ -139,7 +141,7 @@ const sizeGuard = computed(() => {
   );
 });
 
-const isReadOnly = computed(() => props.readOnly || sizeGuard.value);
+const isReadOnly = computed(() => props.readOnly || props.translationMode || sizeGuard.value);
 const canApply = computed(() => localDirty.value && !isReadOnly.value);
 
 function clearMessages(): void {
@@ -159,6 +161,7 @@ function regenerate(): void {
   }
   const exportFc = toExportForm(props.session.toSaveFc(), state.slug, state.title, {
     roundCoordinates: false,
+    defaultLang: state.lang,
   });
   text.value = JSON.stringify(exportFc, null, 2);
   localDirty.value = false;
@@ -208,7 +211,9 @@ function apply(): void {
 
   // ② fromExportForm: Feature.id で UID 照合 + validate。level==='error' があれば適用不可、
   //    warning のみ (scale-* / no-content) なら適用は許して警告表示する
-  const { features, issues } = fromExportForm(parsed, state.features, DEFAULT_LANG);
+  const parsedRecord = parsed as Record<string, unknown>;
+  const rawLang = resolvePoiSourceLanguage(parsedRecord.lang, state.lang);
+  const { features, issues } = fromExportForm(parsed, state.features, rawLang);
   const errors = issues.filter((issue) => issue.level === "error");
   const warnings = issues.filter((issue) => issue.level === "warning");
   if (errors.length > 0) {
@@ -219,7 +224,7 @@ function apply(): void {
   // ③ トップレベルの写像: id→slug (string のみ。文字種違反は適用不可。グローバル一意は
   //    保存時の Exist に委ねる) / name→title (normalizeLangResource で内部形へ) /
   //    その他 (type/features/id/name 除く) → layerMeta 全置換
-  const rec = parsed as Record<string, unknown>;
+  const rec = parsedRecord;
   let slug = state.slug;
   // id メンバー自体が無ければ現 slug を維持 (非対称: §2.3 の双方向読みで id 欠落=現 slug 維持 /
   // name 欠落=title クリア。name は空 title の正当な表現がある一方、slug 空は不正なため)。
@@ -237,11 +242,11 @@ function apply(): void {
   }
   const title = normalizeLangResource(
     rec.name as LangResource | null | undefined,
-    DEFAULT_LANG,
+    rawLang,
   );
   const layerMeta: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(rec)) {
-    if (key === "type" || key === "features" || key === "id" || key === "name") {
+    if (key === "type" || key === "features" || key === "id" || key === "name" || key === "lang") {
       continue;
     }
     layerMeta[key] = value;
@@ -251,6 +256,7 @@ function apply(): void {
   //    slug 変更時は PoiEdit 側の slug 欄 watch (editState.slug) が追随して checkSlug する
   props.session.commit((draft) => {
     draft.features = features;
+    draft.lang = rawLang;
     draft.slug = slug;
     draft.title = title;
     draft.layerMeta = layerMeta;

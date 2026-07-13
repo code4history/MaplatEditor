@@ -133,6 +133,13 @@
               :placeholder="t('poisource.title_placeholder')"
             />
 
+            <label class="form-label mt-3">{{ t("mapedit.set_default") }}</label>
+            <select v-model="modal.lang" class="form-select" data-poi-source-language @change="modal.langEdited = true">
+              <option v-for="language in SUPPORTED_LANGUAGES" :key="language.code" :value="language.code">
+                {{ language.nativeName }}
+              </option>
+            </select>
+
             <!-- Register remote: url -->
             <template v-if="modal.mode === 'remote'">
               <label class="form-label mt-3">{{ t("poisource.url_label") }}</label>
@@ -191,6 +198,11 @@ import type {
   PoiValidationIssue,
   PoiSourceReference,
 } from "../electron";
+import {
+  SUPPORTED_LANGUAGES,
+  resolveEditorLanguage,
+  type LangCode,
+} from "../utils/editorLanguages";
 
 const { t } = useTranslation();
 const router = useRouter();
@@ -289,6 +301,8 @@ const modal = reactive({
   feedback: "",
   feedbackRetry: false,
   submitting: false,
+  lang: resolveEditorLanguage(i18next.language) as LangCode,
+  langEdited: false,
   // slug 欄をユーザーが手入力したら true。以後 title からの自動提案で上書きしない
   slugEdited: false,
 });
@@ -340,6 +354,8 @@ const resetModal = () => {
   modal.feedbackRetry = false;
   modal.submitting = false;
   modal.slugEdited = false;
+  modal.lang = resolveEditorLanguage(i18next.language);
+  modal.langEdited = false;
   slugChecked.value = false;
   slugAvailable.value = false;
   // in-flight の slug チェック応答を無効化 (MINOR-1)
@@ -428,6 +444,10 @@ const openImport = async () => {
     modal.fileName = picked.fileName;
     modal.slug = suggestSlug(picked.fileName);
     modal.title = picked.fileName.replace(/\.[^.]+$/, "");
+    modal.lang = resolveEditorLanguage(
+      await window.poiSources.detectImportLanguage(modal.filePath, modal.lang),
+    );
+    modal.langEdited = false;
     checkSlug();
   } catch (e) {
     console.error("Failed to pick import file", e);
@@ -504,11 +524,15 @@ const submitModal = async () => {
   try {
     let result: PoiSourceSaveResult;
     if (modal.mode === "local") {
-      result = await window.poiSources.createLocal({ slug, title });
+      result = await window.poiSources.createLocal({ slug, title, lang: modal.lang });
     } else if (modal.mode === "import") {
-      result = await window.poiSources.importFile({ slug, title, filePath: modal.filePath });
+      result = await window.poiSources.importFile({
+        slug, title, filePath: modal.filePath, lang: modal.lang, langOverride: modal.langEdited,
+      });
     } else if (modal.mode === "remote") {
-      result = await window.poiSources.registerRemote({ slug, title, url: modal.url.trim() });
+      result = await window.poiSources.registerRemote({
+        slug, title, url: modal.url.trim(), lang: modal.lang, langOverride: modal.langEdited,
+      });
     } else {
       return;
     }

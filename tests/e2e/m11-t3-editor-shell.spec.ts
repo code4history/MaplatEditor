@@ -73,6 +73,7 @@ async function seedPoi(page: Page): Promise<{ uid: string; slug: string }> {
     const result = await window.poiSources.createLocal({
       slug,
       title: { ja: 'T3 POI 日本語', en: 'T3 POI English' },
+      lang: 'ja',
     });
     if (!result || result.result !== 'Success') throw new Error(`Could not seed POI: ${JSON.stringify(result)}`);
     return { uid: result.uid, slug };
@@ -215,8 +216,14 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await openHash(page, `#/poisources/${poi.uid}`, '.poi-side-pane');
     await expectHeaderOrder(page);
     const language = page.locator('[data-editor-action="language"]');
+    await expect(language).toHaveValue('ja');
     await language.selectOption('en');
     await expect(page.getByTestId('poi-title').locator('input')).toHaveValue('T3 POI English');
+    await expect(page.getByTestId('poi-title').locator('input')).toBeEnabled();
+    await expect(page.getByTestId('poi-slug')).toBeDisabled();
+    await expect(page.locator('[data-editor-document-language]')).toBeDisabled();
+    await page.getByRole('button', { name: /Raw GeoJSON|生GeoJSON/ }).click();
+    await expect(page.locator('.poi-raw-textarea')).toHaveAttribute('readonly', '');
 
     await page.locator('[data-editor-action="export"]').click();
     await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible();
@@ -224,6 +231,7 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     const exported = JSON.parse(await readFile(exportPath, 'utf8'));
     expect(exported.type).toBe('FeatureCollection');
     expect(exported.id).toBe(poi.slug);
+    expect(exported.lang).toBe('ja');
 
     await openHash(page, `#/mapedit?uid=${mapUid}`, '#mapDocumentLanguage');
     await expectHeaderOrder(page);

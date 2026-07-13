@@ -82,10 +82,11 @@
             <label class="form-label fw-bold small mb-0">{{ t("poisource.slug_label") }}</label>
             <input
               v-model="slugInput"
+              data-testid="poi-slug"
               type="text"
               class="form-control form-control-sm"
               :class="{ 'is-invalid': !!slugError }"
-              :disabled="readOnly"
+              :disabled="readOnly || translationMode"
               @input="onSlugInput"
               @change="onSlugChange"
             />
@@ -97,7 +98,21 @@
               {{ t("poiedit.slug_available") }}
             </div>
           </div>
-          <div class="col-3 pt-3 d-flex align-items-center justify-content-end gap-2">
+          <div class="col-3">
+            <label class="form-label fw-bold small mb-0">{{ t("mapedit.set_default") }}</label>
+            <select
+              :value="editState.lang"
+              class="form-select form-select-sm"
+              data-editor-document-language
+              :disabled="readOnly || translationMode"
+              @change="onDefaultLanguageChange"
+            >
+              <option v-for="language in SUPPORTED_LANGUAGES" :key="language.code" :value="language.code">
+                {{ language.nativeName }}
+              </option>
+            </select>
+          </div>
+          <div class="col-12 d-flex align-items-center justify-content-end gap-2">
             <span class="text-muted small">{{ featureCount }} {{ t("poisource.features") }}</span>
             <button
               type="button"
@@ -160,6 +175,7 @@
             class="poi-raw-pane"
             :session="session"
             :read-only="readOnly"
+            :translation-mode="translationMode"
             :visible="rawPaneOpen"
           />
         </div>
@@ -178,6 +194,7 @@
             class="poi-list-area"
             :session="session"
             :read-only="readOnly"
+            :active-lang="currentLang"
             @select="onListSelect"
             @create="createPoiAtMapCenter"
           />
@@ -224,6 +241,7 @@ import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
 import { isEditableElement } from "../utils/nativeTextUndo";
+import { isTranslationMode } from "../utils/editorLanguageMode";
 import {
   SUPPORTED_LANGUAGES,
   resolveEditorLanguage,
@@ -238,6 +256,9 @@ const currentLang = ref<LangCode>(resolveEditorLanguage(i18next.language));
 
 const session = usePoiEditSession();
 const { state: editState, isDirty, canUndo, canRedo } = session;
+const translationMode = computed(() =>
+  isTranslationMode(currentLang.value, editState.value?.lang),
+);
 
 // 地図ペイン (panTo / fitInitialView を expose。Task 8 の一覧選択からも使う)
 const mapPane = ref<InstanceType<typeof PoiEditMap> | null>(null);
@@ -463,10 +484,12 @@ async function load(sourceId: string): Promise<void> {
     readOnly.value = detail.readOnly;
     // fc は Phase 2 get 経由で _maplatUid 付与済みの内部形
     session.load({
+      lang: resolveEditorLanguage(detail.lang || i18next.language),
       slug: detail.slug,
       title: detail.title,
       fc: (detail.fc ?? { type: "FeatureCollection", features: [] }) as PoiEditorFC,
     });
+    currentLang.value = resolveEditorLanguage(detail.lang || i18next.language);
     slugInput.value = detail.slug;
     slugChecked.value = false;
     slugAvailable.value = false;
@@ -505,6 +528,13 @@ function onTitleUpdate(value: string | Record<string, string> | undefined): void
   });
 }
 
+function onDefaultLanguageChange(event: Event): void {
+  if (readOnly.value || translationMode.value) return;
+  const lang = resolveEditorLanguage((event.target as HTMLSelectElement).value);
+  session.commit((draft) => { draft.lang = lang; });
+  currentLang.value = lang;
+}
+
 // slug の編集を検知して一意性を再チェック (ADR-0007)。
 // 永続化済み slug (confirmedSlug) に戻った場合は自分自身なので確認済み扱い
 async function onSlugInput(): Promise<void> {
@@ -535,7 +565,7 @@ async function onSlugInput(): Promise<void> {
 // change (blur) 確定時に 1 Undo 単位として commit する
 function onSlugChange(): void {
   const state = editState.value;
-  if (!state || readOnly.value) return;
+  if (!state || readOnly.value || translationMode.value) return;
   const slug = slugInput.value.trim();
   slugInput.value = slug;
   if (slug === state.slug) return;

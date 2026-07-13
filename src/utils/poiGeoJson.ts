@@ -9,12 +9,27 @@ import {
   compactLangResource,
   normalizeLangResource,
 } from "./langResource";
+import {
+  resolveEditorLanguage,
+  type LangCode,
+} from "./editorLanguages";
 
 // POI editor の default 言語 (ADR-0005 既定)。title / feature の LangResource フィールドを
 // 交換形へ collapse する際にこの言語のみなら string 化する。各公開関数は optional な
 // defaultLang 引数でこの既定を上書きできる。raw ペイン (PoiRawPane) の Apply 側正規化も
 // 同じ既定を共有するため export する。
 export const DEFAULT_LANG = "ja";
+
+export function resolvePoiSourceLanguage(
+  candidate: unknown,
+  fallback: string = DEFAULT_LANG,
+): LangCode {
+  const fallbackLang = resolveEditorLanguage(fallback);
+  if (typeof candidate !== "string" || candidate.trim() === "") {
+    return fallbackLang;
+  }
+  return resolveEditorLanguage(candidate);
+}
 
 // ADR-0005 の LangResource を適用する feature property (POI-135)。viewer が translate() を
 // 通すフィールド。image / icon は LangResource ではないので対象外。
@@ -50,6 +65,26 @@ export interface PoiEditorFeature extends Feature<Point> {
 // 本モジュールの純関数が必要とするのは features のみなので最小に留める。
 export interface PoiEditorFC extends FeatureCollection {
   features: PoiEditorFeature[];
+  lang?: LangCode;
+}
+
+export function normalizePoiSourceCollection(
+  input: unknown,
+  fallbackLang: string = DEFAULT_LANG,
+): PoiEditorFC & { lang: LangCode } {
+  const source = isRecord(input) ? input : {};
+  const lang = resolvePoiSourceLanguage(source.lang, fallbackLang);
+  const features = ensureFeatureUids(
+    ensureDisplayIds(normalizeLegacyPoiList(input, lang)).features,
+  );
+  const layerMeta: Record<string, unknown> = {};
+  if (source.type === "FeatureCollection") {
+    for (const [key, value] of Object.entries(source)) {
+      if (key === "type" || key === "features" || key === "id" || key === "name" || key === "lang") continue;
+      layerMeta[key] = value;
+    }
+  }
+  return { ...layerMeta, type: "FeatureCollection", lang, features };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

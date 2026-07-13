@@ -6,6 +6,7 @@
 import { computed, ref, shallowRef, type ComputedRef, type Ref } from "vue";
 import { UndoStack } from "../services/editorUndoStack";
 import type { LangResource } from "../utils/langResource";
+import type { LangCode } from "../utils/editorLanguages";
 import {
   ensureDisplayIds,
   type PoiEditorFC,
@@ -13,6 +14,7 @@ import {
 } from "../utils/poiGeoJson";
 
 export interface PoiEditState {
+  lang: LangCode;
   slug: string;
   title: LangResource;
   features: PoiEditorFeature[];
@@ -27,7 +29,7 @@ export interface PoiEditSession {
   isDirty: ComputedRef<boolean>;
   canUndo: ComputedRef<boolean>;
   canRedo: ComputedRef<boolean>;
-  load(detail: { slug: string; title: LangResource; fc: PoiEditorFC }): void;
+  load(detail: { lang: LangCode; slug: string; title: LangResource; fc: PoiEditorFC }): void;
   reset(state: PoiEditState, restoredDraft?: boolean): void;
   /** 仕様 §5 の 1 Undo 単位 = commit 1 回。draft は state の shallow copy (features は新配列)。
    * mutate 内で feature を変更する場合は clone してから書くこと (未変更 feature は共有のまま)。
@@ -101,13 +103,16 @@ export function usePoiEditSession(): PoiEditSession {
   };
 
   const load = (detail: {
+    lang: LangCode;
     slug: string;
     title: LangResource;
     fc: PoiEditorFC;
   }): void => {
-    const { features, type: _type, ...rest } = detail.fc;
+    const { features, type: _type, lang: _lang, ...rest } = detail.fc;
     void _type;
+    void _lang;
     reset({
+      lang: detail.lang,
       slug: detail.slug,
       title: detail.title,
       features: features.slice(),
@@ -204,6 +209,7 @@ export function usePoiEditSession(): PoiEditSession {
     return {
       ...current.layerMeta,
       type: "FeatureCollection",
+      lang: current.lang,
       features: current.features.slice(),
     } as PoiEditorFC;
   };

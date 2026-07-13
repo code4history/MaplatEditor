@@ -164,6 +164,8 @@ contextBridge.exposeInMainWorld('poiSources', {
   createLocal: (input: any) => ipcRenderer.invoke('poisource:createLocal', input),
   save: (uid: string, payload: any) => ipcRenderer.invoke('poisource:save', uid, payload),
   importFile: (input: any) => ipcRenderer.invoke('poisource:importFile', input),
+  detectImportLanguage: (filePath: string, fallbackLang?: string) =>
+    ipcRenderer.invoke('poisource:detectImportLanguage', filePath, fallbackLang),
   registerRemote: (input: any) => ipcRenderer.invoke('poisource:registerRemote', input),
   refreshRemote: (uid: string) => ipcRenderer.invoke('poisource:refreshRemote', uid),
   cloneToLocal: (uid: string, input: any) => ipcRenderer.invoke('poisource:cloneToLocal', uid, input),

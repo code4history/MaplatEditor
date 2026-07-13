@@ -59,13 +59,14 @@
 //   責務は PoiEdit 側に置き、本コンポーネントは emit するだけ。
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
-import i18next from "i18next";
 import { localizeTitle } from "../utils/langResource";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
+import type { LangCode } from "../utils/editorLanguages";
 
 const props = defineProps<{
   session: PoiEditSession;
   readOnly: boolean;
+  activeLang: LangCode;
 }>();
 
 const emit = defineEmits<{
@@ -118,7 +119,7 @@ const coordSummary = (coords: unknown): string => {
 const allRows = computed<FeatureRow[]>(() => {
   const state = session.state.value;
   if (!state) return [];
-  const lang = i18next.language;
+  const lang = props.activeLang;
   return state.features.flatMap((feature) => {
     const uid = feature.properties?._maplatUid;
     if (typeof uid !== "string") return [];

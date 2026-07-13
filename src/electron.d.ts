@@ -94,6 +94,7 @@ export interface PoiSourceListResult {
 }
 
 export interface PoiSourceDetailResult extends PoiSourceListRow {
+    lang: string;
     readOnly: boolean;
     fc: any;
 }
@@ -140,10 +141,11 @@ export interface PoiSourceReference {
 export interface PoiSourcesAPI {
     list(request: { query: string; page: number; pageSize: number }): Promise<PoiSourceListResult>;
     get(uid: string): Promise<PoiSourceDetailResult | null>;
-    createLocal(input: { slug: string; title: any }): Promise<PoiSourceSaveResult>;
+    createLocal(input: { slug: string; title: any; lang?: string }): Promise<PoiSourceSaveResult>;
     save(uid: string, payload: { slug: string; title: any; fc: any; expectedRevision?: number }): Promise<PoiSourceSaveResult>;
-    importFile(input: { slug: string; title: any; filePath: string }): Promise<PoiSourceSaveResult>;
-    registerRemote(input: { slug: string; title: any; url: string }): Promise<PoiSourceSaveResult>;
+    importFile(input: { slug: string; title: any; filePath: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult>;
+    detectImportLanguage(filePath: string, fallbackLang?: string): Promise<string>;
+    registerRemote(input: { slug: string; title: any; url: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult>;
     refreshRemote(uid: string): Promise<PoiSourceSaveResult>;
     cloneToLocal(uid: string, input: { slug: string; title?: any }): Promise<PoiSourceSaveResult>;
     findReferences(uid: string): Promise<PoiSourceReference[]>;

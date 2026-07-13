@@ -116,7 +116,7 @@ try {
       await fsWriteFile(legacyGeojsonFile, legacyGeojsonContent);
 
       // (a) createLocal → get
-      const created = await poiSourceService.createLocal({ slug: 'kyoto-poi', title: '京都POI' });
+      const created = await poiSourceService.createLocal({ slug: 'kyoto-poi', title: '京都POI', lang: 'ja' });
       assert.equal(created.result, 'Success', 'createLocal は Success を返すはず: ' + JSON.stringify(created));
       assert.match(created.uid, UUID_PATTERN);
       assert.equal(created.revision, 1);
@@ -131,7 +131,8 @@ try {
       assert.equal(got.featureCount, 0);
       assert.equal(got.revision, 1);
       assert.ok(typeof got.updatedAt === 'string' && got.updatedAt !== '', 'updatedAt を返すはず');
-      assert.deepEqual(got.fc, { type: 'FeatureCollection', features: [] }, '空FCで作成されるはず');
+      assert.equal(got.lang, 'ja', '未指定の既定言語は設定/UI言語へ固定されるはず');
+      assert.deepEqual(got.fc, { type: 'FeatureCollection', lang: 'ja', features: [] }, 'lang付き空FCで作成されるはず');
       // slug 参照でも解決 (findPoiSourceByRef)
       const gotBySlug = await poiSourceService.get('kyoto-poi');
       assert.equal(gotBySlug.uid, uid, 'get は slug 参照でも解決するはず');
@@ -198,6 +199,7 @@ try {
       const importFcFile = nodePath.join(workDir, 'import-fc.geojson');
       await fsWriteFile(importFcFile, JSON.stringify({
         type: 'FeatureCollection',
+        lang: 'en-US',
         features: [
           { type: 'Feature', geometry: { type: 'Point', coordinates: [139.7, 35.68] }, properties: { name: '東京駅' } },
           { type: 'Feature', id: 'osaka', geometry: { type: 'Point', coordinates: [135.5, 34.7] }, properties: { name: { ja: '大阪駅', en: 'Osaka Sta.' } } },
@@ -207,7 +209,9 @@ try {
       assert.equal(imported.result, 'Success', 'GeoJSON import は Success のはず: ' + JSON.stringify(imported));
       const importedDoc = await poiSourceService.get(imported.uid);
       assert.equal(importedDoc.featureCount, 2);
-      assert.deepEqual(importedDoc.title, { ja: '駅' }, 'import 経路でも title は内部形のはず');
+      assert.equal(importedDoc.lang, 'en', 'top-level lang がPOI既定言語になるはず');
+      assert.deepEqual(importedDoc.title, { en: '駅' }, 'import title はPOI既定言語で内部形化されるはず');
+      assert.deepEqual(importedDoc.fc.features[0].properties.name, { en: '東京駅' });
       assert.ok(importedDoc.fc.features.every((f: any) => typeof f.id === 'string' && f.id !== ''), '表示IDが採番されるはず');
       assert.ok(importedDoc.fc.features.every((f: any) => UUID_PATTERN.test(f.properties._maplatUid)), '_maplatUid が採番されるはず');
       assert.deepEqual(importedDoc.fc.features[1].properties.name, { ja: '大阪駅', en: 'Osaka Sta.' });
@@ -222,10 +226,11 @@ try {
       const importedLegacy = await poiSourceService.importFile({ slug: 'legacy-pois', title: '旧形式POI', filePath: importLegacyFile });
       assert.equal(importedLegacy.result, 'Success', '旧POI形式 import は Success のはず: ' + JSON.stringify(importedLegacy));
       const legacyDoc = await poiSourceService.get(importedLegacy.uid);
+      assert.equal(legacyDoc.lang, 'en', 'lang無し外部GeoJSONはテスト環境UI言語を固定するはず');
       assert.equal(legacyDoc.featureCount, 2);
       assert.deepEqual(legacyDoc.fc.features[0].geometry, { type: 'Point', coordinates: [135.729, 35.039] }, 'lat/lng が正規化されるはず');
       assert.deepEqual(legacyDoc.fc.features[1].geometry, { type: 'Point', coordinates: [135.798, 35.027] }, 'lnglat が正規化されるはず');
-      assert.deepEqual(legacyDoc.fc.features[0].properties.name, { ja: '金閣寺' });
+      assert.deepEqual(legacyDoc.fc.features[0].properties.name, { en: '金閣寺' });
       assert.equal(legacyDoc.fc.features[0].properties.image, 'kinkakuji.jpg', 'image は透過されるはず');
       console.log('ok: (f) importFile legacy POI list');
 
@@ -311,6 +316,7 @@ try {
       });
       const server = createServer((req, res) => {
         res.setHeader('content-type', 'application/json');
+        res.setHeader('content-language', 'en-US');
         res.end(remotePayload);
       });
       await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
@@ -326,9 +332,10 @@ try {
       assert.equal(remoteDoc.mode, 'remote');
       assert.equal(remoteDoc.url, remoteUrl);
       assert.equal(remoteDoc.readOnly, true, 'remote は read-only のはず');
-      assert.deepEqual(remoteDoc.title, { ja: '札幌リモート' }, 'registerRemote 経路でも title は内部形のはず');
+      assert.equal(remoteDoc.lang, 'en', 'top-level lang欠落時はContent-Languageを採用するはず');
+      assert.deepEqual(remoteDoc.title, { en: '札幌リモート' }, 'registerRemote titleはsource既定言語で内部形化されるはず');
       assert.equal(remoteDoc.featureCount, 1);
-      assert.deepEqual(remoteDoc.fc.features[0].properties.name, { ja: '時計台' }, 'fetch snapshot が内部形で永続するはず');
+      assert.deepEqual(remoteDoc.fc.features[0].properties.name, { en: '時計台' }, 'fetch snapshot がsource既定言語の内部形で永続するはず');
       // 登録失敗 (unreachable) では登録しない。Error は機械可読 code を持つ
       const unreachable = await poiSourceService.registerRemote({ slug: 'unreachable-remote', title: 'x', url: 'http://127.0.0.1:1/nope.geojson' });
       assert.equal(unreachable.result, 'Error', 'fetch 失敗時は登録しないはず');
@@ -357,7 +364,7 @@ try {
       const refreshedDoc = await poiSourceService.get(registered.uid);
       assert.equal(refreshedDoc.featureCount, 2, 'snapshot が更新されるはず');
       assert.ok(refreshedDoc.revision > remoteDoc.revision, 'refresh で revision が上がるはず');
-      assert.deepEqual(refreshedDoc.fc.features[1].properties.name, { ja: '旧道庁' });
+      assert.deepEqual(refreshedDoc.fc.features[1].properties.name, { en: '旧道庁' });
       console.log('ok: (j) refreshRemote updates snapshot');
 
       // (k) refreshRemote 失敗 → Error、snapshot 無傷 (degraded cache)
@@ -487,7 +494,7 @@ try {
       assert.equal(clonedDoc.mode, 'local');
       assert.equal(clonedDoc.url, null, 'local 複製に url は残らないはず');
       assert.equal(clonedDoc.readOnly, false);
-      assert.deepEqual(clonedDoc.title, { ja: '札幌ローカル' }, 'clone 経路でも title は内部形のはず');
+      assert.deepEqual(clonedDoc.title, { en: '札幌ローカル' }, 'clone titleはsource既定言語で内部形化されるはず');
       assert.equal(clonedDoc.featureCount, 2, 'features が複製されるはず');
       assert.deepEqual(
         clonedDoc.fc.features.map((f: any) => f.id),

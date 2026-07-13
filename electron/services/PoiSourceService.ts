@@ -25,14 +25,14 @@ import {
 } from '../../src/utils/langResource';
 import {
   validateFeatureCollection,
-  normalizeLegacyPoiList,
-  ensureDisplayIds,
-  ensureFeatureUids,
   toExportForm,
+  normalizePoiSourceCollection,
+  resolvePoiSourceLanguage,
   type PoiEditorFC,
   type PoiValidationIssue,
 } from '../../src/utils/poiGeoJson';
 import type { PoiZipImport } from './PoiPackageService';
+import SettingsService from './SettingsService';
 
 // POI editor の default 言語 (ADR-0005 既定、poiGeoJson.ts と一致)
 const DEFAULT_LANG = 'ja';
@@ -60,6 +60,7 @@ export interface PoiSourceListResult {
 // get の返り値: metadata + 内部形 FeatureCollection (_maplatUid 入り)
 export interface PoiSourceDetail {
   uid: string;
+  lang: string;
   slug: string;
   title: Record<string, string>;
   mode: 'local' | 'remote';
@@ -109,7 +110,7 @@ interface PreparedFc {
 }
 
 type RemoteFetchResult =
-  | { ok: true; text: string }
+  | { ok: true; text: string; contentLanguage?: string }
   | { ok: false; tooLarge: true }
   | { ok: false; tooLarge?: false; code: 'network' | 'http-status'; message: string };
 
@@ -127,7 +128,7 @@ export class PoiSourceService {
 
   // 任意入力 (内部形FC / 交換形FC / 旧POI形式) を内部形へ正規化し検証する。
   // ensureDisplayIds/ensureFeatureUids は内部形入力には冪等 (既存 id/_maplatUid を維持)
-  private prepare(input: unknown): PreparedFc {
+  private prepare(input: unknown, fallbackLang: string = DEFAULT_LANG): PreparedFc {
     const structural = validateFeatureCollection(input);
     const isFc =
       input !== null && typeof input === 'object' && !Array.isArray(input) &&
@@ -136,9 +137,8 @@ export class PoiSourceService {
     if (isFc && structural.some((i) => i.code === 'not-feature-collection')) {
       return { fc: { type: 'FeatureCollection', features: [] }, issues: structural, hasError: true };
     }
-    const normalized = normalizeLegacyPoiList(input, DEFAULT_LANG);
-    const withIds = ensureDisplayIds(normalized).features;
-    const withUids = ensureFeatureUids(withIds);
+    const normalizedCollection = normalizePoiSourceCollection(input, fallbackLang);
+    const withUids = normalizedCollection.features;
     // 仕様 §2.3: FC トップレベルの layer metadata (icon/selectedIcon/hide は編集対象 POI-111、
     // poiTemplate/iconTemplate/poiStyle は UI 無しで round-trip 保持、未知キーも POI-007 系
     // テンプレートの将来拡張のため保持) を save/importFile/registerRemote/refreshRemote/
@@ -146,30 +146,38 @@ export class PoiSourceService {
     // エディタが独立概念として持たない (slug/title 由来、export 時にのみ書き込む、§2.3) ため
     // ここで削除する — これにより data_json が uid/slug/revision を含まない不変条件
     // (ADR-0007) も自動的に守られる (FC.id が slug と同じ文字列であっても data_json には残らない)。
-    const { type: _type, features: _features, id: _id, name: _name, ...layerMeta } = isFc
+    const { type: _type, features: _features, id: _id, name: _name, lang: _lang, ...layerMeta } = isFc
       ? (input as Record<string, unknown>)
       : {};
-    const fc: PoiEditorFC = { ...layerMeta, type: 'FeatureCollection', features: withUids };
+    const fc: PoiEditorFC = { ...layerMeta, type: 'FeatureCollection', lang: normalizedCollection.lang, features: withUids };
     const issues = validateFeatureCollection(fc);
     return { fc, issues, hasError: issues.some((i) => i.level === 'error') };
   }
 
-  private titleInternal(title: unknown): Record<string, string> {
-    return normalizeLangResource(title as LangResource | null | undefined, DEFAULT_LANG);
+  private withLanguageOverride(input: unknown, lang: string | undefined, override: boolean | undefined): unknown {
+    if (!override || !input || typeof input !== 'object' || Array.isArray(input)) return input;
+    return { ...(input as Record<string, unknown>), lang: resolvePoiSourceLanguage(lang, DEFAULT_LANG) };
+  }
+
+  private titleInternal(title: unknown, lang: string = DEFAULT_LANG): Record<string, string> {
+    return normalizeLangResource(title as LangResource | null | undefined, lang);
   }
 
   private detail(record: PoiSourceRecord): PoiSourceDetail {
+    const fc = JSON.parse(record.dataJson) as PoiEditorFC;
+    const lang = resolvePoiSourceLanguage(fc.lang, SettingsService.get('lang'));
     return {
       uid: record.uid,
       slug: record.slug,
-      title: this.titleInternal(record.title),
+      title: this.titleInternal(record.title, lang),
+      lang,
       mode: record.mode,
       url: record.url,
       featureCount: record.featureCount,
       revision: record.revision,
       updatedAt: record.updatedAt,
       readOnly: record.mode === 'remote',
-      fc: JSON.parse(record.dataJson) as PoiEditorFC,
+      fc: { ...fc, lang },
     };
   }
 
@@ -202,7 +210,7 @@ export class PoiSourceService {
     if (!(await SqliteDataService.isSlugAvailable(trimmed))) return { result: 'Exist' };
     try {
       const { uid } = await SqliteDataService.createPoiSource(trimmed, {
-        title: this.titleInternal(title),
+        title: this.titleInternal(title, fc.lang),
         mode,
         url,
         dataJson: JSON.stringify(fc),
@@ -241,7 +249,7 @@ export class PoiSourceService {
         if (Buffer.byteLength(text, 'utf8') > this.remoteMaxBytes) {
           return { ok: false, tooLarge: true };
         }
-        return { ok: true, text };
+        return { ok: true, text, contentLanguage: response.headers.get('content-language') || undefined };
       }
       const reader = response.body.getReader();
       const chunks: Buffer[] = [];
@@ -258,7 +266,7 @@ export class PoiSourceService {
         }
         chunks.push(Buffer.from(value));
       }
-      return { ok: true, text: Buffer.concat(chunks).toString('utf8') };
+      return { ok: true, text: Buffer.concat(chunks).toString('utf8'), contentLanguage: response.headers.get('content-language') || undefined };
     } catch (e: any) {
       const message = e?.name === 'AbortError' ? 'Fetch timed out' : String(e);
       return { ok: false, code: 'network', message };
@@ -271,6 +279,7 @@ export class PoiSourceService {
   // 戻り値: 登録/更新に使える snapshot、または失敗を表す PoiSourceSaveResult
   private async fetchSnapshot(
     url: string,
+    fallbackLang: string = DEFAULT_LANG,
   ): Promise<{ ok: true; fc: PoiEditorFC; issues: PoiValidationIssue[] } | { ok: false; failure: PoiSourceSaveResult }> {
     let parsedUrl: URL;
     try {
@@ -299,7 +308,11 @@ export class PoiSourceService {
     } catch {
       return { ok: false, failure: { result: 'Error', code: 'parse', message: 'Response is not valid JSON' } };
     }
-    const prepared = this.prepare(parsed);
+    const parsedLang = parsed && typeof parsed === 'object' ? (parsed as any).lang : undefined;
+    const prepared = this.prepare(
+      parsed,
+      resolvePoiSourceLanguage(parsedLang, fetched.contentLanguage || fallbackLang),
+    );
     if (prepared.hasError) {
       return { ok: false, failure: { result: 'Invalid', issues: prepared.issues } };
     }
@@ -348,15 +361,22 @@ export class PoiSourceService {
     try {
       const detail = await this.get(ref);
       if (!detail) return null;
-      return toExportForm(detail.fc, detail.slug, detail.title, { roundCoordinates: true });
+      return toExportForm(detail.fc, detail.slug, detail.title, {
+        roundCoordinates: true,
+        defaultLang: detail.lang,
+      });
     } catch (e) {
       console.error('[PoiSourceService] exportForm failed:', ref, e);
       return null;
     }
   }
 
-  async createLocal(input: { slug: string; title: LangResource }): Promise<PoiSourceSaveResult> {
-    const empty: PoiEditorFC = { type: 'FeatureCollection', features: [] };
+  async createLocal(input: { slug: string; title: LangResource; lang?: string }): Promise<PoiSourceSaveResult> {
+    const empty: PoiEditorFC = {
+      type: 'FeatureCollection',
+      lang: resolvePoiSourceLanguage(input.lang, SettingsService.get('lang')),
+      features: [],
+    };
     return await this.createSource(input.slug, input.title, 'local', empty, []);
   }
 
@@ -384,7 +404,7 @@ export class PoiSourceService {
         uid,
         slug,
         {
-          title: this.titleInternal(input.title),
+          title: this.titleInternal(input.title, prepared.fc.lang),
           mode: 'local',
           dataJson: JSON.stringify(prepared.fc),
           featureCount: prepared.fc.features.length,
@@ -399,7 +419,7 @@ export class PoiSourceService {
 
   // .geojson/.json を読み、FeatureCollection または 旧POIオブジェクト形式を内部形化して
   // 新規 local ソースとして取り込む。Point以外を含む場合は取込拒否 (POI-104)
-  async importFile(input: { slug: string; title: LangResource; filePath: string }): Promise<PoiSourceSaveResult> {
+  async importFile(input: { slug: string; title: LangResource; filePath: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult> {
     const ext = path.extname(String(input.filePath ?? '')).toLowerCase();
     if (ext === '.zip') {
       if (!(await SqliteDataService.isSlugAvailable(String(input.slug ?? '').trim()))) {
@@ -409,7 +429,10 @@ export class PoiSourceService {
       try {
         const { importPoiZip } = await import('./PoiPackageService');
         preparedImport = await importPoiZip(input.filePath);
-        const prepared = this.prepare(preparedImport.fc);
+        const prepared = this.prepare(
+          this.withLanguageOverride(preparedImport.fc, input.lang, input.langOverride),
+          input.lang || SettingsService.get('lang'),
+        );
         if (prepared.hasError) {
           await preparedImport.cleanup();
           return { result: 'Invalid', issues: prepared.issues };
@@ -437,18 +460,38 @@ export class PoiSourceService {
     } catch {
       return { result: 'Error', code: 'parse', message: 'File is not valid JSON' };
     }
-    const prepared = this.prepare(parsed);
+    const prepared = this.prepare(
+      this.withLanguageOverride(parsed, input.lang, input.langOverride),
+      input.lang || SettingsService.get('lang'),
+    );
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
     return await this.createSource(input.slug, input.title, 'local', prepared.fc, prepared.issues);
   }
 
   // fetch → 正規化/検証 → 成功時のみ登録。fetch snapshot を data_json に永続 cache する
   // (仕様の session memory cache からの意図的逸脱 — 冒頭コメント参照)
-  async registerRemote(input: { slug: string; title: LangResource; url: string }): Promise<PoiSourceSaveResult> {
+  async registerRemote(input: { slug: string; title: LangResource; url: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult> {
     const url = String(input.url ?? '').trim();
-    const snapshot = await this.fetchSnapshot(url);
+    const snapshot = await this.fetchSnapshot(url, input.lang || SettingsService.get('lang'));
     if (!snapshot.ok) return snapshot.failure;
-    return await this.createSource(input.slug, input.title, 'remote', snapshot.fc, snapshot.issues, url);
+    const fc = this.withLanguageOverride(snapshot.fc, input.lang, input.langOverride) as PoiEditorFC;
+    const prepared = this.prepare(fc, input.lang);
+    return await this.createSource(input.slug, input.title, 'remote', prepared.fc, snapshot.issues, url);
+  }
+
+  async detectImportLanguage(filePath: string, fallbackLang?: string): Promise<string> {
+    const ext = path.extname(String(filePath ?? '')).toLowerCase();
+    if (ext === '.zip') {
+      const { importPoiZip } = await import('./PoiPackageService');
+      const imported = await importPoiZip(filePath);
+      try {
+        return resolvePoiSourceLanguage((imported.fc as PoiEditorFC).lang, fallbackLang || SettingsService.get('lang'));
+      } finally {
+        await imported.cleanup();
+      }
+    }
+    const parsed = JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>;
+    return resolvePoiSourceLanguage(parsed?.lang, fallbackLang || SettingsService.get('lang'));
   }
 
   // 明示再取得 (POI-118)。fetch 失敗時は既存 snapshot を無傷に保つ (degraded cache)。
@@ -460,11 +503,12 @@ export class PoiSourceService {
     if (existing.mode !== 'remote' || !existing.url) {
       return { result: 'Error', code: 'invalid-request', message: `POI source is not remote: ${uid}` };
     }
-    const snapshot = await this.fetchSnapshot(existing.url);
+    const existingFc = JSON.parse(existing.dataJson) as PoiEditorFC;
+    const snapshot = await this.fetchSnapshot(existing.url, existingFc.lang);
     if (!snapshot.ok) return snapshot.failure;
     try {
       const { revision } = await SqliteDataService.upsertPoiSource(uid, existing.slug, {
-        title: this.titleInternal(existing.title),
+        title: this.titleInternal(existing.title, snapshot.fc.lang),
         mode: 'remote',
         url: existing.url,
         dataJson: JSON.stringify(snapshot.fc),
