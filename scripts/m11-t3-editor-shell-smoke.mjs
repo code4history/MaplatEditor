@@ -147,6 +147,12 @@ assert.match(mapEdit, /editor_ui\.busy_exporting/);
 assert.match(mapEdit, /window\.mapedit\.previewSource\(mapUid\.value/);
 assert.match(mapEdit, /key === ['"]s['"][\s\S]*saveMap\(\)/);
 assert.match(mapEdit, /data-editor-document-language/);
+const mapMenuHandler = mapEdit.slice(
+  mapEdit.indexOf('const onMainProcessMessage ='),
+  mapEdit.indexOf('/**', mapEdit.indexOf('const onMainProcessMessage =')),
+);
+assert.match(mapMenuHandler, /if \(saving\.value \|\| exporting\.value\) return/);
+assert.match(mapEdit, /modalShow\(t\(['"]editor_ui\.busy_exporting['"]\)\)/);
 assert.doesNotMatch(
   mapEdit,
   /@click\.prevent="activeTab = 'inout'"/,
@@ -179,6 +185,15 @@ assert.match(appEdit, /key === ['"]z['"][\s\S]*performUndo\(\)/);
 assert.match(appEdit, /key === ['"]y['"][\s\S]*performRedo\(\)/);
 assert.match(appEdit, /isEditableElement\(/);
 assert.match(appEdit, /data-editor-document-language/);
+const appUndoRedo = appEdit.slice(
+  appEdit.indexOf('function performUndo()'),
+  appEdit.indexOf('function onEditorKeydown'),
+);
+assert.doesNotMatch(
+  appUndoRedo,
+  /currentLang\.value\s*=\s*appData\.value\.lang/,
+  'Undo/Redo must not reset the independent editor language',
+);
 assert.match(appEdit, /activeTab === 'preview'/, 'Preview tab must remain available');
 assert.doesNotMatch(
   appEdit,

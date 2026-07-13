@@ -633,7 +633,6 @@ function performUndo() {
   historyApplying.value = true;
   historyStack.value.undo();
   appData.value = cloneDocument(historyStack.value.current());
-  currentLang.value = appData.value.lang;
   historyApplying.value = false;
 }
 
@@ -642,7 +641,6 @@ function performRedo() {
   historyApplying.value = true;
   historyStack.value.redo();
   appData.value = cloneDocument(historyStack.value.current());
-  currentLang.value = appData.value.lang;
   historyApplying.value = false;
 }
 

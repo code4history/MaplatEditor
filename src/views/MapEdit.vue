@@ -795,6 +795,7 @@ const onMainProcessMessage = (message: string) => {
     // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
     // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
     if (isEditableElement(document.activeElement)) return;
+    if (saving.value || exporting.value) return;
     if (message === 'menu:undo') {
         performUndo();
     } else if (message === 'menu:redo') {
@@ -2895,7 +2896,7 @@ const chooseMapExport = async (hasSaved: boolean) => {
 // 保存済み正本だけを入力にし、編集中state/draftを直接出力しない。
 const downloadSavedMap = async (): Promise<boolean> => {
     if (!mapUid.value) return false;
-    modalShow('mapedit.message_export');
+    modalShow(t('editor_ui.busy_exporting'));
     const unsubscribe = window.mapedit.onProgress((progress) => {
         modalProgress(progress.text, progress.percent, progress.progress);
     });
