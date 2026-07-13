@@ -11,6 +11,9 @@ import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
 import PoiReferenceEditor from "../components/PoiReferenceEditor.vue";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
+import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
+import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
+import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
@@ -23,9 +26,17 @@ import {
 } from "../utils/appSourceModel";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
+import { runEditorExportDecision } from "../composables/useEditorExportDecision";
+import { isEditableElement } from "../utils/nativeTextUndo";
 import type { AppSaveResult } from "../electron";
 
-import { LANGS_MAP, LANG_CODES, resolveEditorLanguage, type LangCode } from "../utils/editorLanguages";
+import {
+  LANGS_MAP,
+  LANG_CODES,
+  SUPPORTED_LANGUAGES,
+  resolveEditorLanguage,
+  type LangCode,
+} from "../utils/editorLanguages";
 
 interface AppSource extends SharedAppSource {
   thumbnail?: string;
@@ -177,6 +188,7 @@ const currentLang = ref<LangCode>("ja");
 //   confirmedSlug: 現在DBに永続化されているslug。appID欄がこの値に戻ったら再チェック不要
 // saveApp が組み立てた送信内容を send クロージャへ渡す一時変数
 let pendingSave: { document: AppDocument } | null = null;
+let appSaveSucceeded = false;
 const saveHandle = useRevisionedAssetSave<AppSaveResult>({
   send: async ({ uid, expectedRevision }) => {
     const { document } = pendingSave!;
@@ -194,6 +206,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     return result;
   },
   applySuccess: async (result) => {
+    appSaveSucceeded = true;
     // uid/revision/confirmedSlug は composable が保存結果から反映済み。以下は画面固有処理
     appData.value = normalizeAppDocument({ ...pendingSave!.document, appID: result.slug });
     onlyOne.value = true;
@@ -264,15 +277,17 @@ const draftLifecycle = useAssetDraftLifecycle<AppDocument>({
     await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   },
 });
-const isDefaultLang = computed({
-  get: () => appData.value.lang === currentLang.value,
-  set: (checked: boolean) => {
-    if (checked) {
-      appData.value.lang = currentLang.value;
-      recordHistory();
-    }
-  },
+const exporting = ref(false);
+const saveState = computed<EditorSaveState>(() => {
+  if (saving.value) return "saving";
+  if (draftLifecycle.draftRestored.value) return "draft-restored";
+  return isDirty.value ? "dirty" : "saved";
 });
+const setDocumentLanguage = (language: LangCode) => {
+  if (appData.value.lang === language) return;
+  appData.value.lang = language;
+  recordHistory();
+};
 const titleText = computed({
   get: () => appData.value.title[currentLang.value] || "",
   set: (value: string) => {
@@ -321,6 +336,8 @@ onMounted(async () => {
     await router.replace({ query: { ...route.query, draftUid } });
   }
   await draftLifecycle.open(draftUid, revision.value ?? null);
+  window.addEventListener("keydown", onEditorKeydown);
+  removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
   await Promise.all([loadMaps(), loadBaseMaps()]);
 });
 
@@ -447,6 +464,9 @@ async function hydrateSourceThumbnails() {
 }
 
 onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onEditorKeydown);
+  removeMainProcessListener?.();
+  removeMainProcessListener = undefined;
   destroyPreview();
 });
 
@@ -626,6 +646,36 @@ function performRedo() {
   historyApplying.value = false;
 }
 
+function onEditorKeydown(event: KeyboardEvent) {
+  if (!(event.metaKey || event.ctrlKey)) return;
+  const key = event.key.toLowerCase();
+  if (key === "s") {
+    event.preventDefault();
+    if (!saving.value && !exporting.value && isDirty.value && !saveError.value) void saveApp();
+    return;
+  }
+  if (isEditableElement(event.target as Element | null)) return;
+  if (saving.value || exporting.value) return;
+  if (key === "z" && event.shiftKey) {
+    event.preventDefault();
+    performRedo();
+  } else if (key === "z") {
+    event.preventDefault();
+    performUndo();
+  } else if (key === "y") {
+    event.preventDefault();
+    performRedo();
+  }
+}
+
+let removeMainProcessListener: (() => void) | undefined;
+function onMainProcessMessage(message: string) {
+  if (isEditableElement(document.activeElement)) return;
+  if (saving.value || exporting.value) return;
+  if (message === "menu:undo") performUndo();
+  else if (message === "menu:redo") performRedo();
+}
+
 /**
  * slug(appID欄) 一意性チェック
  * ADR-0007: 既存アプリでは excludeUid=自分 を渡し、自分の現slugは「空き」と判定される
@@ -662,15 +712,16 @@ function onAppIDInput() {
  * conflict(読み直す/上書き)・成功反映・Exist等の共通処理は
  * useRevisionedAssetSave (saveHandle) が担う
  */
-async function saveApp() {
+async function saveApp(): Promise<boolean> {
+  appSaveSucceeded = false;
   saveError.value = null;
   if (!appData.value.appID.trim()) {
     saveError.value = t("appedit.no_appid");
-    return;
+    return false;
   }
   if (!onlyOne.value || appIDError.value) {
     saveError.value = t("appedit.check_uniqueness");
-    return;
+    return false;
   }
   // pois は配列のまま永続化する (旧 poiSources 文字列形は normalize で pois 配列に
   // 統一済みのため、送信 document に poiSources キーは載らない — Phase 8 バグ①根治)
@@ -685,6 +736,7 @@ async function saveApp() {
   // conflict/成功反映/Exist等の共通処理は useRevisionedAssetSave (saveHandle) が担う
   pendingSave = { document };
   await performSave();
+  return appSaveSucceeded;
 }
 
 /**
@@ -707,16 +759,31 @@ async function reloadFromStore() {
   }
 }
 
-const exporting = ref(false);
+async function chooseAppExport(hasSaved: boolean) {
+  const buttons = hasSaved
+    ? [
+        `${t("common.save")} + ${t("appedit.export_button")}`,
+        `${t("editor_ui.save_state.saved")}: ${t("appedit.export_button")}`,
+        t("common.cancel"),
+      ]
+    : [`${t("common.save")} + ${t("appedit.export_button")}`, t("common.cancel")];
+  const result = await (window as any).dialog.showMessageBox({
+    type: "info",
+    buttons,
+    cancelId: buttons.length - 1,
+    message: t("appedit.confirm_save"),
+  });
+  if (result.response === 0) return "save" as const;
+  if (hasSaved && result.response === 1) return "saved" as const;
+  return "cancel" as const;
+}
 
-async function exportApp() {
-  if (exporting.value) return;
-  exporting.value = true;
+async function exportSavedApp(): Promise<boolean> {
+  if (!appUid.value) return false;
   try {
-    const document = cloneDocument(appData.value);
-    document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;
+    const document = cloneDocument(await window.appedit.request(appUid.value));
     const result = await window.appedit.export(document);
-    if (result.result === "Canceled") return;
+    if (result.result === "Canceled") return false;
     if (result.result === "Error") {
       await (window as any).dialog.showMessageBox({
         type: "error",
@@ -724,7 +791,7 @@ async function exportApp() {
         message: t("appedit.export_failed"),
         detail: result.message || "",
       });
-      return;
+      return false;
     }
     const warnings = (result.warnings || []).map((key) => t(key)).join("\n");
     await (window as any).dialog.showMessageBox({
@@ -732,6 +799,29 @@ async function exportApp() {
       buttons: ["OK"],
       message: t("appedit.export_success", { outDir: result.outDir }),
       detail: warnings,
+    });
+    return true;
+  } catch (error) {
+    await (window as any).dialog.showMessageBox({
+      type: "error",
+      buttons: ["OK"],
+      message: t("appedit.export_failed"),
+      detail: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
+async function exportApp() {
+  if (exporting.value || saving.value || saveError.value) return;
+  exporting.value = true;
+  try {
+    await runEditorExportDecision({
+      dirty: isDirty.value,
+      hasSaved: !!appUid.value,
+      choose: chooseAppExport,
+      save: saveApp,
+      exportSaved: exportSavedApp,
     });
   } finally {
     exporting.value = false;
@@ -919,38 +1009,38 @@ function onPoisChange(next: unknown[]) {
       @discard="draftLifecycle.resolveConflict('discard')"
       @apply="draftLifecycle.resolveConflict('apply')"
     />
-    <div class="px-4 py-3 pb-0 d-flex align-items-center flex-shrink-0 bg-white">
-      <div class="row w-100 align-items-center g-2">
-        <div class="col-5 d-flex align-items-center gap-2">
-          <h4>
-            <a href="#" data-testid="editor-back" class="text-decoration-none" @click.prevent="goBack">&lt;&lt;</a>
-            <span class="ms-2 text-dark">{{ displayTitle || appData.appID || t("appedit.new_app") }}</span>
-          </h4>
-        </div>
-        <div class="col-1 text-end">
-          <label class="fw-bold" for="appLang">{{ t("common.language") }}</label>
-        </div>
-        <div class="col-2">
-          <select id="appLang" v-model="currentLang" class="form-select">
-            <option v-for="(v, k) in langsMap" :key="k" :value="k">{{ t("common." + v) }}</option>
-          </select>
-        </div>
-        <div class="col-2">
-          <div class="form-check d-flex align-items-center gap-1">
-            <input id="appLangDefault" v-model="isDefaultLang" class="form-check-input" type="checkbox" :disabled="isDefaultLang">
-            <label class="form-check-label fw-bold" for="appLangDefault">{{ t("mapedit.set_default") }}</label>
-          </div>
-        </div>
-        <div class="col-2 d-flex gap-1">
-          <button type="button" class="btn btn-outline-secondary w-50" :disabled="!canUndo" @click="performUndo">{{ t("menu.undo") }}</button>
-          <button type="button" class="btn btn-outline-secondary w-50" :disabled="!canRedo" @click="performRedo">{{ t("menu.redo") }}</button>
-        </div>
-        <div class="col-2 d-flex gap-1">
-          <button data-testid="editor-save" type="button" class="btn btn-primary w-50" :disabled="!!saveError || !isDirty || saving" @click="saveApp">{{ t("common.save") }}</button>
-          <button type="button" class="btn btn-success w-50" :disabled="isDirty || !onlyOne || exporting" @click="exportApp">{{ t("appedit.export_button") }}</button>
-        </div>
-      </div>
-    </div>
+    <EditorBusyOverlay
+      :visible="saving || exporting"
+      :label="saving ? t('editor_ui.save_state.saving') : t('appedit.export_button')"
+    />
+    <EditorActionHeader
+      :title="displayTitle || appData.appID || t('appedit.new_app')"
+      :save-state="saveState"
+      :active-lang="currentLang"
+      :language-options="SUPPORTED_LANGUAGES"
+      :can-undo="canUndo"
+      :can-redo="canRedo"
+      :save-disabled="!!saveError || !isDirty"
+      :saving="saving"
+      :actions-disabled="exporting"
+      @back="goBack"
+      @update:active-lang="currentLang = $event"
+      @undo="performUndo"
+      @redo="performRedo"
+      @save="saveApp"
+    >
+      <template #actions="{ disabled }">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-primary"
+          data-editor-action="export"
+          :disabled="disabled || !!saveError || !onlyOne || exporting"
+          @click="exportApp"
+        >
+          {{ t("appedit.export_button") }}
+        </button>
+      </template>
+    </EditorActionHeader>
 
     <div class="px-4 mt-2">
       <ul class="nav nav-tabs nav-fill bg-white flex-shrink-0 border-bottom-0">
@@ -1007,6 +1097,28 @@ function onPoisChange(next: unknown[]) {
             <div class="col-md-7">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.app_name") }}</label>
               <input v-model="titleText" type="text" class="form-control form-control-sm" @input="recordHistory">
+            </div>
+          </div>
+          <div class="row g-1 mb-2">
+            <div class="col-md-3">
+              <label class="form-label fw-bold small mb-0" for="appDocumentLanguage">
+                {{ t("mapedit.set_default") }}
+              </label>
+              <select
+                id="appDocumentLanguage"
+                class="form-select form-select-sm"
+                data-editor-document-language
+                :value="appData.lang"
+                @change="setDocumentLanguage(($event.target as HTMLSelectElement).value as LangCode)"
+              >
+                <option
+                  v-for="language in SUPPORTED_LANGUAGES"
+                  :key="language.code"
+                  :value="language.code"
+                >
+                  {{ language.nativeName }}
+                </option>
+              </select>
             </div>
           </div>
           <div class="row g-1 mb-2">

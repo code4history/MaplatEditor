@@ -5,6 +5,7 @@
         type="button"
         class="btn btn-sm btn-link text-decoration-none px-0"
         data-editor-action="back"
+        data-testid="editor-back"
         @click="emit('back')"
       >
         <i class="bi bi-chevron-left" aria-hidden="true"></i>
@@ -61,6 +62,7 @@
         type="button"
         class="btn btn-sm btn-primary"
         data-editor-action="save"
+        data-testid="editor-save"
         :disabled="saving || actionsDisabled || saveDisabled"
         @click="emit('save')"
       >

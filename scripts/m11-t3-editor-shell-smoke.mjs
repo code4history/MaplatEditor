@@ -44,6 +44,8 @@ assert.match(
 assert.match(header, /saveVisible\?: boolean/);
 assert.match(header, /actionsDisabled\?: boolean/);
 assert.match(header, /v-if="saveVisible"/);
+assert.match(header, /data-testid="editor-back"/);
+assert.match(header, /data-testid="editor-save"/);
 assert.match(header, /saving \|\| actionsDisabled \|\| !canUndo/);
 assert.match(header, /saving \|\| actionsDisabled \|\| saveDisabled/);
 console.log('  [1/4] Shared Header visibility and disable contract: PASS');
@@ -151,6 +153,30 @@ assert.match(
   /v-show="activeTab === 'inout'"/,
   'WMTS/CSV実装は後続再配置まで保持する',
 );
-console.log('  [5/5] Map editor uses the shared shell and saved-state Export: PASS');
+console.log('  [5/6] Map editor uses the shared shell and saved-state Export: PASS');
+
+const appEdit = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
+assert.match(appEdit, /import EditorActionHeader from/);
+assert.match(appEdit, /import EditorBusyOverlay from/);
+assert.match(appEdit, /import \{ runEditorExportDecision \} from/);
+assert.match(appEdit, /<EditorActionHeader[\s\S]*@save="saveApp"/);
+assert.match(appEdit, /data-editor-action="export"[\s\S]*@click="exportApp"/);
+assert.match(appEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"/);
+assert.match(appEdit, /const saveState = computed/);
+assert.match(appEdit, /draftLifecycle\.draftRestored\.value/);
+assert.match(appEdit, /runEditorExportDecision\(/);
+assert.match(appEdit, /window\.appedit\.request\(appUid\.value/);
+assert.match(appEdit, /key === ['"]s['"][\s\S]*saveApp\(\)/);
+assert.match(appEdit, /key === ['"]z['"][\s\S]*performUndo\(\)/);
+assert.match(appEdit, /key === ['"]y['"][\s\S]*performRedo\(\)/);
+assert.match(appEdit, /isEditableElement\(/);
+assert.match(appEdit, /data-editor-document-language/);
+assert.match(appEdit, /activeTab === 'preview'/, 'Preview tab must remain available');
+assert.doesNotMatch(
+  appEdit,
+  /:disabled="isDirty \|\| !onlyOne \|\| exporting"/,
+  'dirty App Export must offer a choice instead of being disabled',
+);
+console.log('  [6/6] App editor uses the shared shell, shortcuts, and saved-state Export: PASS');
 
 console.log('m11-t3 editor shell smoke: PASS');
