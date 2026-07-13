@@ -126,6 +126,11 @@ export type PoiSourceSaveResult =
     | { result: 'Error'; code: PoiSourceErrorCode; message?: string }
     | { error: 'revision-conflict'; current: number };
 
+export type PoiSourceExportResult =
+    | { result: 'Success'; filePath: string }
+    | { result: 'Canceled' }
+    | { result: 'Error'; message?: string };
+
 export interface PoiSourceReference {
     kind: 'map' | 'app';
     uid: string;
@@ -143,6 +148,7 @@ export interface PoiSourcesAPI {
     cloneToLocal(uid: string, input: { slug: string; title?: any }): Promise<PoiSourceSaveResult>;
     findReferences(uid: string): Promise<PoiSourceReference[]>;
     delete(uid: string): Promise<{ ok: true; references: PoiSourceReference[] }>;
+    exportFile(uid: string): Promise<PoiSourceExportResult>;
     // インポート用ネイティブファイル選択 (Phase 3)。キャンセル時は null
     pickImportFile(): Promise<{ filePath: string; fileName: string } | null>;
 }

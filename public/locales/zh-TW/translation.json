@@ -776,6 +776,7 @@
   "editor_ui": {
     "back": "返回列表",
     "translations": "已有翻譯",
+    "export_button": "匯出", "export_dirty_prompt": "有尚未儲存的變更。請選擇要匯出的內容。", "export_save_and_run": "儲存並匯出", "export_saved_only": "匯出已儲存版本", "export_success": "匯出完成。", "export_failed": "匯出失敗。", "busy_exporting": "正在匯出…",
     "save_state": {"dirty": "尚未儲存 ●", "saving": "儲存中…", "saved": "已儲存", "draft_restored": "已還原草稿"},
     "slug_state": {"checking": "檢查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "無法確認"},
     "draft_badge": "草稿",

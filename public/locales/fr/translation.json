@@ -776,6 +776,7 @@
   "editor_ui": {
     "back": "Retour à la liste",
     "translations": "Traductions disponibles",
+    "export_button": "Exporter", "export_dirty_prompt": "Des modifications ne sont pas enregistrées. Choisissez quoi exporter.", "export_save_and_run": "Enregistrer et exporter", "export_saved_only": "Exporter la version enregistrée", "export_success": "Export terminé.", "export_failed": "Échec de l’export.", "busy_exporting": "Export en cours…",
     "save_state": {"dirty": "Non enregistré ●", "saving": "Enregistrement…", "saved": "Enregistré", "draft_restored": "Brouillon restauré"},
     "slug_state": {"checking": "Vérification…", "available": "Disponible", "taken": "Déjà utilisé", "unavailable": "Vérification impossible"},
     "draft_badge": "Brouillon",

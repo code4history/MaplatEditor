@@ -776,6 +776,7 @@
   "editor_ui": {
     "back": "Volver a la lista",
     "translations": "Traducciones disponibles",
+    "export_button": "Exportar", "export_dirty_prompt": "Hay cambios sin guardar. Elija qué desea exportar.", "export_save_and_run": "Guardar y exportar", "export_saved_only": "Exportar la versión guardada", "export_success": "Exportación completada.", "export_failed": "Error al exportar.", "busy_exporting": "Exportando…",
     "save_state": {"dirty": "Sin guardar ●", "saving": "Guardando…", "saved": "Guardado", "draft_restored": "Borrador restaurado"},
     "slug_state": {"checking": "Comprobando…", "available": "Disponible", "taken": "Ya está en uso", "unavailable": "No se pudo comprobar"},
     "draft_badge": "Borrador",

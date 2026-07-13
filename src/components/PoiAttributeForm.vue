@@ -32,8 +32,11 @@
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.name") }}</label>
         <LangResourceInput
           :model-value="langValue('name')"
+          :active-lang="activeLang"
+          :language-options="languageOptions"
           :disabled="readOnly"
           @update:model-value="onNameUpdate"
+          @select-language="(code) => emit('selectLanguage', code)"
         />
         <div v-if="nameError" class="form-text small text-danger mb-0">{{ nameError }}</div>
       </div>
@@ -43,19 +46,25 @@
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.desc") }}</label>
         <LangResourceInput
           :model-value="langValue('desc')"
+          :active-lang="activeLang"
+          :language-options="languageOptions"
           multiline
           :disabled="readOnly"
           @update:model-value="onLangUpdate('desc', $event)"
+          @select-language="(code) => emit('selectLanguage', code)"
         />
       </div>
       <div class="mb-2">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.html") }}</label>
         <LangResourceInput
           :model-value="langValue('html')"
+          :active-lang="activeLang"
+          :language-options="languageOptions"
           multiline
           :warning="t('poiedit.html_xss_warning')"
           :disabled="readOnly"
           @update:model-value="onLangUpdate('html', $event)"
+          @select-language="(code) => emit('selectLanguage', code)"
         />
       </div>
 
@@ -64,16 +73,22 @@
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.address") }}</label>
         <LangResourceInput
           :model-value="langValue('address')"
+          :active-lang="activeLang"
+          :language-options="languageOptions"
           :disabled="readOnly"
           @update:model-value="onLangUpdate('address', $event)"
+          @select-language="(code) => emit('selectLanguage', code)"
         />
       </div>
       <div class="mb-2">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.url") }}</label>
         <LangResourceInput
           :model-value="langValue('url')"
+          :active-lang="activeLang"
+          :language-options="languageOptions"
           :disabled="readOnly"
           @update:model-value="onLangUpdate('url', $event)"
+          @select-language="(code) => emit('selectLanguage', code)"
         />
       </div>
 
@@ -223,10 +238,17 @@ import AssetPicker from "./AssetPicker.vue";
 import IconRefField from "./IconRefField.vue";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
 import { DISPLAY_ID_PATTERN, type PoiEditorFeature } from "../utils/poiGeoJson";
+import type { LangCode } from "../utils/editorLanguages";
 
 const props = defineProps<{
   session: PoiEditSession;
   readOnly: boolean;
+  activeLang: LangCode;
+  languageOptions: readonly { code: LangCode; nativeName: string }[];
+}>();
+
+const emit = defineEmits<{
+  selectLanguage: [code: LangCode];
 }>();
 
 const { t } = useTranslation();

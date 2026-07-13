@@ -776,6 +776,7 @@
   "editor_ui": {
     "back": "一覧へ",
     "translations": "翻訳済み言語",
+    "export_button": "エクスポート", "export_dirty_prompt": "未保存の変更があります。出力方法を選んでください。", "export_save_and_run": "保存してエクスポート", "export_saved_only": "保存済み版をエクスポート", "export_success": "エクスポートしました。", "export_failed": "エクスポートに失敗しました。", "busy_exporting": "エクスポート中…",
     "save_state": {"dirty": "未保存 ●", "saving": "保存中…", "saved": "保存済み", "draft_restored": "下書きから復元"},
     "slug_state": {"checking": "確認中…", "available": "使用できます", "taken": "既に使用されています", "unavailable": "確認できません"},
     "draft_badge": "下書き",

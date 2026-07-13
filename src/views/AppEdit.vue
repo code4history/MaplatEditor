@@ -762,16 +762,16 @@ async function reloadFromStore() {
 async function chooseAppExport(hasSaved: boolean) {
   const buttons = hasSaved
     ? [
-        `${t("common.save")} + ${t("appedit.export_button")}`,
-        `${t("editor_ui.save_state.saved")}: ${t("appedit.export_button")}`,
+        t("editor_ui.export_save_and_run"),
+        t("editor_ui.export_saved_only"),
         t("common.cancel"),
       ]
-    : [`${t("common.save")} + ${t("appedit.export_button")}`, t("common.cancel")];
+    : [t("editor_ui.export_save_and_run"), t("common.cancel")];
   const result = await (window as any).dialog.showMessageBox({
     type: "info",
     buttons,
     cancelId: buttons.length - 1,
-    message: t("appedit.confirm_save"),
+    message: t("editor_ui.export_dirty_prompt"),
   });
   if (result.response === 0) return "save" as const;
   if (hasSaved && result.response === 1) return "saved" as const;
@@ -1011,7 +1011,7 @@ function onPoisChange(next: unknown[]) {
     />
     <EditorBusyOverlay
       :visible="saving || exporting"
-      :label="saving ? t('editor_ui.save_state.saving') : t('appedit.export_button')"
+      :label="saving ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
     />
     <EditorActionHeader
       :title="displayTitle || appData.appID || t('appedit.new_app')"
@@ -1037,7 +1037,7 @@ function onPoisChange(next: unknown[]) {
           :disabled="disabled || !!saveError || !onlyOne || exporting"
           @click="exportApp"
         >
-          {{ t("appedit.export_button") }}
+          {{ t("editor_ui.export_button") }}
         </button>
       </template>
     </EditorActionHeader>

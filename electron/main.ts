@@ -168,6 +168,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('poisource:cloneToLocal')
   ipcMain.removeHandler('poisource:findReferences')
   ipcMain.removeHandler('poisource:delete')
+  ipcMain.removeHandler('poisource:exportFile')
   ipcMain.removeHandler('asset:checkSlug')
   ipcMain.removeHandler('imageassets:add')
   ipcMain.removeHandler('imageassets:list')

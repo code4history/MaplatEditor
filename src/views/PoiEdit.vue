@@ -19,25 +19,63 @@
     </div>
 
     <template v-else-if="editState">
-      <!-- Header: 戻る / title / slug / Undo/Redo / 保存 -->
+      <EditorActionHeader
+        :title="displayTitle"
+        :save-state="saveState"
+        :active-lang="currentLang"
+        :language-options="SUPPORTED_LANGUAGES"
+        :can-undo="!readOnly && canUndo"
+        :can-redo="!readOnly && canRedo"
+        :save-disabled="!isDirty || liveErrors.length > 0"
+        :saving="saving"
+        :actions-disabled="exporting || cloning"
+        :save-visible="!readOnly"
+        @back="goBack"
+        @update:active-lang="currentLang = $event"
+        @undo="performUndo"
+        @redo="performRedo"
+        @save="saveSource"
+      >
+        <template #actions="{ disabled }">
+          <button
+            v-if="!readOnly"
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            data-editor-action="export"
+            :disabled="disabled || (!saveHandle.uid.value && liveErrors.length > 0)"
+            @click="exportSource"
+          >
+            {{ t("editor_ui.export_button") }}
+          </button>
+          <button
+            v-else
+            type="button"
+            class="btn btn-sm btn-primary"
+            data-editor-action="clone"
+            :disabled="disabled || cloning"
+            @click="cloneSourceToLocal"
+          >
+            {{ t("poiedit.clone_to_local") }}
+          </button>
+        </template>
+      </EditorActionHeader>
+
+      <!-- title / slugは文書フィールドとしてworkspace上部に置く -->
       <div class="px-4 py-2 flex-shrink-0 bg-white border-bottom">
-        <div class="row w-100 align-items-start g-2">
-          <div class="col-4 d-flex align-items-start gap-2">
-            <h4 class="mb-0 pt-3">
-              <a href="#" class="text-decoration-none" @click.prevent="goBack">&lt;&lt;</a>
-            </h4>
-            <div class="flex-grow-1">
-              <label class="form-label fw-bold small mb-0">{{ t("poisource.title_label") }}</label>
-              <!-- title 変更は session.commit 経由 = 1 Undo 単位 (仕様 §5) -->
-              <LangResourceInput
-                v-if="!readOnly"
-                :model-value="editState.title"
-                @update:model-value="onTitleUpdate"
-              />
-              <div v-else class="form-control-plaintext py-0">{{ displayTitle }}</div>
-            </div>
+        <div class="row align-items-start g-2">
+          <div class="col-5">
+            <label class="form-label fw-bold small mb-0">{{ t("poisource.title_label") }}</label>
+            <LangResourceInput
+              v-if="!readOnly"
+              :model-value="editState.title"
+              :active-lang="currentLang"
+              :language-options="SUPPORTED_LANGUAGES"
+              @update:model-value="onTitleUpdate"
+              @select-language="currentLang = $event"
+            />
+            <div v-else class="form-control-plaintext py-0">{{ displayTitle }}</div>
           </div>
-          <div class="col-3">
+          <div class="col-4">
             <label class="form-label fw-bold small mb-0">{{ t("poisource.slug_label") }}</label>
             <input
               v-model="slugInput"
@@ -56,57 +94,15 @@
               {{ t("poiedit.slug_available") }}
             </div>
           </div>
-          <div class="col-2 pt-4 text-muted small">
-            {{ featureCount }} {{ t("poisource.features") }}
-          </div>
-          <div class="col-3 pt-3 d-flex gap-1 justify-content-end">
-            <!-- raw GeoJSON ペイン (POI-136) のトグル。ReadOnly でも表示閲覧はできるため常設 -->
+          <div class="col-3 pt-3 d-flex align-items-center justify-content-end gap-2">
+            <span class="text-muted small">{{ featureCount }} {{ t("poisource.features") }}</span>
             <button
               type="button"
-              class="btn btn-outline-secondary"
+              class="btn btn-sm btn-outline-secondary"
               :class="{ active: rawPaneOpen }"
               @click="toggleRawPane"
             >
               {{ t("poiedit.raw_pane") }}
-            </button>
-            <template v-if="!readOnly">
-              <button
-                type="button"
-                class="btn btn-outline-secondary"
-                :disabled="!canUndo"
-                @click="performUndo"
-              >
-                {{ t("menu.undo") }}
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline-secondary"
-                :disabled="!canRedo"
-                @click="performRedo"
-              >
-                {{ t("menu.redo") }}
-              </button>
-              <!-- error レベルの live issue がある間は保存 disabled (仕様 §6「保存不可」の維持。
-                   2026-07-11 ポリシー変更でフォームはエラー値も commit するため、堰は
-                   backend Invalid + ここでの事前ゲート。理由は診断領域の liveErrors に見える) -->
-              <button
-                type="button"
-                class="btn btn-primary"
-                :disabled="!isDirty || saving || liveErrors.length > 0"
-                @click="saveSource"
-              >
-                {{ t("common.save") }}
-              </button>
-            </template>
-            <!-- ReadOnly (remote): 編集の代わりに「ローカルへ複製」導線 (Phase 3 cloneToLocal) -->
-            <button
-              v-else
-              type="button"
-              class="btn btn-primary"
-              :disabled="cloning"
-              @click="cloneSourceToLocal"
-            >
-              {{ t("poiedit.clone_to_local") }}
             </button>
           </div>
         </div>
@@ -166,7 +162,14 @@
         </div>
         <div class="poi-side-pane border-start bg-white flex-shrink-0 d-flex flex-column overflow-hidden">
           <div class="poi-form-area overflow-auto">
-            <PoiAttributeForm ref="attrForm" :session="session" :read-only="readOnly" />
+            <PoiAttributeForm
+              ref="attrForm"
+              :session="session"
+              :read-only="readOnly"
+              :active-lang="currentLang"
+              :language-options="SUPPORTED_LANGUAGES"
+              @select-language="currentLang = $event"
+            />
           </div>
           <PoiFeatureList
             class="poi-list-area"
@@ -179,14 +182,10 @@
       </div>
     </template>
 
-    <!-- 保存中オーバーレイ: 保存クリック → IPC 応答までの間の編集操作を全面抑制する
-         (ユーザー決定 2026-07-11。markSaved の snapshot 同一性判定は保険として残す) -->
-    <div v-if="saving" class="poi-saving-overlay d-flex align-items-center justify-content-center">
-      <div class="bg-white border rounded shadow px-4 py-3 d-flex align-items-center gap-2">
-        <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
-        <span>{{ t("poiedit.saving") }}</span>
-      </div>
-    </div>
+    <EditorBusyOverlay
+      :visible="saving || exporting || cloning"
+      :label="saving ? t('poiedit.saving') : exporting ? t('editor_ui.busy_exporting') : t('poiedit.clone_to_local')"
+    />
   </div>
 </template>
 
@@ -207,6 +206,9 @@ import PoiEditMap from "../components/PoiEditMap.vue";
 import PoiFeatureList from "../components/PoiFeatureList.vue";
 import PoiRawPane from "../components/PoiRawPane.vue";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
+import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
+import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
+import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import {
   usePoiEditSession,
   type PoiEditSession,
@@ -214,15 +216,22 @@ import {
 } from "../composables/usePoiEditSession";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
+import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
 import { isEditableElement } from "../utils/nativeTextUndo";
+import {
+  SUPPORTED_LANGUAGES,
+  resolveEditorLanguage,
+  type LangCode,
+} from "../utils/editorLanguages";
 import type { PoiSourceSaveResult, PoiValidationIssue } from "../electron";
 
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
+const currentLang = ref<LangCode>(resolveEditorLanguage(i18next.language));
 
 const session = usePoiEditSession();
 const { state: editState, isDirty, canUndo, canRedo } = session;
@@ -293,6 +302,7 @@ let pendingSave: {
   capturedState: PoiEditState;
   payload: { slug: string; title: Record<string, string> | string; fc: PoiEditorFC };
 } | null = null;
+let poiSaveSucceeded = false;
 const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
   send: async ({ uid, expectedRevision }) => {
     // saveSource が pendingSave を設定した後にしか到達しない
@@ -306,6 +316,7 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     return result;
   },
   applySuccess: async (result) => {
+    poiSaveSucceeded = true;
     // uid/revision/confirmedSlug は composable が反映済み。以下は画面固有処理。
     // markSaved は保存中に編集が入っていない (snapshot 同一、shallowRef のオブジェクト同一性)
     // 場合のみ。編集が入っていたら isDirty のまま残して再保存を促す
@@ -370,11 +381,17 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
   },
 });
 const { confirmedSlug, saving, performSave } = saveHandle;
+const exporting = ref(false);
 
 const displayTitle = computed(() => {
   const state = editState.value;
   if (!state) return "";
-  return localizeTitle(state.title, i18next.language) || state.slug;
+  return localizeTitle(state.title, currentLang.value) || state.slug;
+});
+const saveState = computed<EditorSaveState>(() => {
+  if (saving.value) return "saving";
+  if (draftLifecycle.draftRestored.value) return "draft-restored";
+  return isDirty.value ? "dirty" : "saved";
 });
 
 const featureCount = computed(() => editState.value?.features.length ?? 0);
@@ -527,13 +544,14 @@ watch(
 );
 
 // --- 保存 ---
-async function saveSource(): Promise<void> {
-  if (readOnly.value || saving.value) return;
+async function saveSource(): Promise<boolean> {
+  poiSaveSucceeded = false;
+  if (readOnly.value || saving.value) return false;
   saveError.value = null;
   saveIssues.value = []; // 前回 Invalid の issues を持ち越さない
   if (slugError.value) {
     saveError.value = slugError.value;
-    return;
+    return false;
   }
   // 送信内容をここで一度だけ捕捉 (JSON ラウンドトリップは AppEdit と同様、非 clone 可能値の
   // 混入防止)。conflict 後の「上書き」再送も同一 snapshot を送る (MapEdit と同セマンティクス)
@@ -549,6 +567,64 @@ async function saveSource(): Promise<void> {
     ) as { slug: string; title: Record<string, string> | string; fc: PoiEditorFC },
   };
   await performSave();
+  return poiSaveSucceeded;
+}
+
+async function choosePoiExport(hasSaved: boolean) {
+  const buttons = hasSaved
+    ? [
+        t("editor_ui.export_save_and_run"),
+        t("editor_ui.export_saved_only"),
+        t("common.cancel"),
+      ]
+    : [t("editor_ui.export_save_and_run"), t("common.cancel")];
+  const result = await (window as any).dialog.showMessageBox({
+    type: "info",
+    buttons,
+    cancelId: buttons.length - 1,
+    message: t("editor_ui.export_dirty_prompt"),
+  });
+  if (result.response === 0) return "save" as const;
+  if (hasSaved && result.response === 1) return "saved" as const;
+  return "cancel" as const;
+}
+
+async function exportSavedSource(): Promise<boolean> {
+  const uid = saveHandle.uid.value;
+  if (!uid) return false;
+  const result = await window.poiSources.exportFile(uid);
+  if (result.result === "Canceled") return false;
+  if (result.result === "Error") {
+    await (window as any).dialog.showMessageBox({
+      type: "error",
+      buttons: ["OK"],
+      message: t("editor_ui.export_failed"),
+      detail: result.message || "",
+    });
+    return false;
+  }
+  await (window as any).dialog.showMessageBox({
+    type: "info",
+    buttons: ["OK"],
+    message: t("editor_ui.export_success"),
+  });
+  return true;
+}
+
+async function exportSource(): Promise<void> {
+  if (readOnly.value || saving.value || exporting.value) return;
+  exporting.value = true;
+  try {
+    await runEditorExportDecision({
+      dirty: isDirty.value,
+      hasSaved: !!saveHandle.uid.value,
+      choose: choosePoiExport,
+      save: saveSource,
+      exportSaved: exportSavedSource,
+    });
+  } finally {
+    exporting.value = false;
+  }
 }
 
 // --- ReadOnly (remote) → ローカル複製 (Phase 3 cloneToLocal) して新 uid へ遷移 ---
@@ -603,13 +679,13 @@ function createPoiAtMapCenter(): void {
 
 // --- Undo/Redo (ボタン + キーボード + menu:undo/redo IPC、MapEdit と同パターン) ---
 function performUndo(): void {
-  if (saveHandle.saving.value) return; // 保存中の snapshot 差し替えを防ぐ (markSaved 判定と対)
+  if (saveHandle.saving.value || exporting.value) return; // 保存中の snapshot 差し替えを防ぐ (markSaved 判定と対)
   if (readOnly.value || !canUndo.value) return;
   session.undo();
 }
 
 function performRedo(): void {
-  if (saveHandle.saving.value) return; // 保存中の snapshot 差し替えを防ぐ (markSaved 判定と対)
+  if (saveHandle.saving.value || exporting.value) return; // 保存中の snapshot 差し替えを防ぐ (markSaved 判定と対)
   if (readOnly.value || !canRedo.value) return;
   session.redo();
 }
@@ -627,9 +703,17 @@ const isInputTarget = (event: KeyboardEvent): boolean => {
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
   if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
-  if (isInputTarget(event)) return;
   if (!(event.metaKey || event.ctrlKey)) return;
   const key = event.key.toLowerCase();
+  if (key === "s") {
+    event.preventDefault();
+    if (!readOnly.value && !saving.value && !exporting.value && isDirty.value && liveErrors.value.length === 0) {
+      void saveSource();
+    }
+    return;
+  }
+  if (isInputTarget(event)) return;
+  if (saving.value || exporting.value) return;
   if (key === "z" && event.shiftKey) {
     event.preventDefault();
     performRedo();
@@ -646,7 +730,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 // macOS のフルキーボードでない Delete キーは event.key === "Backspace" なので両方受ける
 const onDeleteKeydown = (event: KeyboardEvent) => {
   if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
-  if (saveHandle.saving.value) return; // 保存中は編集操作を抑止 (保存中オーバーレイと対)
+  if (saveHandle.saving.value || exporting.value || cloning.value) return; // Busy中は編集操作を抑止
   if (event.key !== "Delete" && event.key !== "Backspace") return;
   if (isInputTarget(event)) return;
   if (readOnly.value) return;
@@ -663,6 +747,7 @@ const onMainProcessMessage = (message: string) => {
   // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
   // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
   if (isEditableElement(document.activeElement)) return;
+  if (saving.value || exporting.value || cloning.value) return;
   if (message === "menu:undo") {
     performUndo();
   } else if (message === "menu:redo") {
@@ -717,12 +802,4 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-/* 保存中オーバーレイ: 画面全域のクリック/ドラッグを吸収して編集操作を抑制する。
-   キーボード経路 (undo/redo/Delete) は各ハンドラの saving ガードが受け持つ */
-.poi-saving-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1050;
-  background: rgba(255, 255, 255, 0.4);
-}
 </style>

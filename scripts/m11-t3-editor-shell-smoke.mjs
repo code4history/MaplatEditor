@@ -140,6 +140,10 @@ assert.match(mapEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"
 assert.match(mapEdit, /const saveState = computed/);
 assert.match(mapEdit, /draftLifecycle\.draftRestored\.value/);
 assert.match(mapEdit, /runEditorExportDecision\(/);
+assert.match(mapEdit, /editor_ui\.export_dirty_prompt/);
+assert.match(mapEdit, /editor_ui\.export_save_and_run/);
+assert.match(mapEdit, /editor_ui\.export_saved_only/);
+assert.match(mapEdit, /editor_ui\.busy_exporting/);
 assert.match(mapEdit, /window\.mapedit\.previewSource\(mapUid\.value/);
 assert.match(mapEdit, /key === ['"]s['"][\s\S]*saveMap\(\)/);
 assert.match(mapEdit, /data-editor-document-language/);
@@ -165,6 +169,10 @@ assert.match(appEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"
 assert.match(appEdit, /const saveState = computed/);
 assert.match(appEdit, /draftLifecycle\.draftRestored\.value/);
 assert.match(appEdit, /runEditorExportDecision\(/);
+assert.match(appEdit, /editor_ui\.export_dirty_prompt/);
+assert.match(appEdit, /editor_ui\.export_save_and_run/);
+assert.match(appEdit, /editor_ui\.export_saved_only/);
+assert.match(appEdit, /editor_ui\.busy_exporting/);
 assert.match(appEdit, /window\.appedit\.request\(appUid\.value/);
 assert.match(appEdit, /key === ['"]s['"][\s\S]*saveApp\(\)/);
 assert.match(appEdit, /key === ['"]z['"][\s\S]*performUndo\(\)/);
@@ -177,6 +185,63 @@ assert.doesNotMatch(
   /:disabled="isDirty \|\| !onlyOne \|\| exporting"/,
   'dirty App Export must offer a choice instead of being disabled',
 );
-console.log('  [6/6] App editor uses the shared shell, shortcuts, and saved-state Export: PASS');
+console.log('  [6/8] App editor uses the shared shell, shortcuts, and saved-state Export: PASS');
+
+const poiEdit = await readFile(path.join(projectRoot, 'src/views/PoiEdit.vue'), 'utf8');
+assert.match(poiEdit, /import EditorActionHeader from/);
+assert.match(poiEdit, /import EditorBusyOverlay from/);
+assert.match(poiEdit, /import \{ runEditorExportDecision \} from/);
+assert.match(poiEdit, /<EditorActionHeader[\s\S]*:save-visible="!readOnly"/);
+assert.match(poiEdit, /data-editor-action="export"[\s\S]*@click="exportSource"/);
+assert.match(poiEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting \|\| cloning"/);
+assert.match(poiEdit, /<PoiAttributeForm[\s\S]*:active-lang="currentLang"/);
+assert.match(poiEdit, /<LangResourceInput[\s\S]*:active-lang="currentLang"/);
+assert.match(poiEdit, /window\.poiSources\.exportFile\(uid\)/);
+assert.match(poiEdit, /key === ['"]s['"][\s\S]*saveSource\(\)/);
+assert.match(poiEdit, /const saveState = computed/);
+assert.doesNotMatch(poiEdit, /class="poi-saving-overlay/);
+
+const poiAttributes = await readFile(
+  path.join(projectRoot, 'src/components/PoiAttributeForm.vue'),
+  'utf8',
+);
+assert.match(poiAttributes, /activeLang:\s*LangCode/);
+assert.match(poiAttributes, /languageOptions:\s*readonly/);
+assert.match(poiAttributes, /:active-lang="activeLang"/);
+assert.match(poiAttributes, /emit\(['"]selectLanguage['"],\s*code\)/);
+console.log('  [7/8] POI editor shares Header, Busy, language, and saved export contracts: PASS');
+
+const poiIpc = await readFile(path.join(projectRoot, 'electron/ipc/poisource.ts'), 'utf8');
+const preload = await readFile(path.join(projectRoot, 'electron/preload.ts'), 'utf8');
+const declarations = await readFile(path.join(projectRoot, 'src/electron.d.ts'), 'utf8');
+const electronMain = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
+assert.match(poiIpc, /ipcMain\.handle\(['"]poisource:exportFile['"]/);
+assert.match(poiIpc, /dialog\.showSaveDialog/);
+assert.match(poiIpc, /poiSourceService\.exportForm\(uid\)/);
+assert.match(poiIpc, /fs\.writeFile\([^,]+,\s*JSON\.stringify\(fc, null, 2\),\s*['"]utf8['"]\)/);
+assert.doesNotMatch(poiIpc, /filePath\s*:\s*input|input\.filePath/);
+assert.match(preload, /exportFile:\s*\(uid:\s*string\)\s*=>\s*ipcRenderer\.invoke\(['"]poisource:exportFile['"],\s*uid\)/);
+assert.match(declarations, /exportFile\(uid:\s*string\):\s*Promise<PoiSourceExportResult>/);
+assert.match(electronMain, /removeHandler\(['"]poisource:exportFile['"]\)/);
+
+const editorUiKeys = [
+  'export_button',
+  'export_dirty_prompt',
+  'export_save_and_run',
+  'export_saved_only',
+  'export_success',
+  'export_failed',
+  'busy_exporting',
+];
+for (const locale of ['ja', 'en', 'de', 'fr', 'es', 'ko', 'zh', 'zh-TW', 'vi', 'th', 'id']) {
+  const messages = JSON.parse(
+    await readFile(path.join(projectRoot, 'public/locales', locale, 'translation.json'), 'utf8'),
+  );
+  for (const key of editorUiKeys) {
+    assert.equal(typeof messages.editor_ui?.[key], 'string', `${locale}: editor_ui.${key} missing`);
+    assert.notEqual(messages.editor_ui[key].trim(), '', `${locale}: editor_ui.${key} empty`);
+  }
+}
+console.log('  [8/8] POI native export boundary and 11-locale vocabulary: PASS');
 
 console.log('m11-t3 editor shell smoke: PASS');

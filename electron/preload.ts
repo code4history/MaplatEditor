@@ -169,6 +169,7 @@ contextBridge.exposeInMainWorld('poiSources', {
   cloneToLocal: (uid: string, input: any) => ipcRenderer.invoke('poisource:cloneToLocal', uid, input),
   findReferences: (uid: string) => ipcRenderer.invoke('poisource:findReferences', uid),
   delete: (uid: string) => ipcRenderer.invoke('poisource:delete', uid),
+  exportFile: (uid: string) => ipcRenderer.invoke('poisource:exportFile', uid),
   // インポート用ネイティブファイル選択 (Phase 3)。キャンセル時は null
   pickImportFile: () => ipcRenderer.invoke('poisource:pickImportFile'),
 })

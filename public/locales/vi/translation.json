@@ -776,6 +776,7 @@
   "editor_ui": {
     "back": "Về danh sách",
     "translations": "Bản dịch hiện có",
+    "export_button": "Xuất", "export_dirty_prompt": "Có thay đổi chưa lưu. Hãy chọn nội dung cần xuất.", "export_save_and_run": "Lưu và xuất", "export_saved_only": "Xuất phiên bản đã lưu", "export_success": "Xuất hoàn tất.", "export_failed": "Xuất thất bại.", "busy_exporting": "Đang xuất…",
     "save_state": {"dirty": "Chưa lưu ●", "saving": "Đang lưu…", "saved": "Đã lưu", "draft_restored": "Đã khôi phục bản nháp"},
     "slug_state": {"checking": "Đang kiểm tra…", "available": "Có thể sử dụng", "taken": "Đã được sử dụng", "unavailable": "Không thể kiểm tra"},
     "draft_badge": "Bản nháp",

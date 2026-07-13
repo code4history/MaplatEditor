@@ -776,6 +776,7 @@
   "editor_ui": {
     "back": "Back to list",
     "translations": "Available translations",
+    "export_button": "Export", "export_dirty_prompt": "There are unsaved changes. Choose what to export.", "export_save_and_run": "Save and export", "export_saved_only": "Export saved version", "export_success": "Export completed.", "export_failed": "Export failed.", "busy_exporting": "Exporting…",
     "save_state": {"dirty": "Unsaved ●", "saving": "Saving…", "saved": "Saved", "draft_restored": "Draft restored"},
     "slug_state": {"checking": "Checking…", "available": "Available", "taken": "Already in use", "unavailable": "Could not verify"},
     "draft_badge": "Draft",

@@ -168,12 +168,12 @@ try {
     'PoiEdit の menu:undo ハンドラに編集フィールド中の抑止 (isEditableElement) がない'
   );
 
-  // 保存中オーバーレイ: 保存クリック → IPC 応答までの編集操作を全面抑制する
-  // (ユーザー決定 2026-07-11)。Delete キー経路にも saving ガードがあること
+  // M11-T3共通Busy: 保存/Export/clone中の編集操作を全面抑制する。
+  // Delete キー経路にも saving ガードがあること
   assert.match(
     poiEdit,
-    /poi-saving-overlay/,
-    'PoiEdit に保存中オーバーレイ (poi-saving-overlay) がない'
+    /<EditorBusyOverlay[\s\S]*?:visible="saving \|\| exporting \|\| cloning"/,
+    'PoiEdit に共通 EditorBusyOverlay がない'
   );
   assert.match(
     poiEdit,

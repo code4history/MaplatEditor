@@ -2876,16 +2876,16 @@ const importMap = async () => {
 const chooseMapExport = async (hasSaved: boolean) => {
     const buttons = hasSaved
         ? [
-            `${t('common.save')} + ${t('mapedit.export_map_data')}`,
-            `${t('editor_ui.save_state.saved')}: ${t('mapedit.export_map_data')}`,
+            t('editor_ui.export_save_and_run'),
+            t('editor_ui.export_saved_only'),
             t('common.cancel'),
         ]
-        : [`${t('common.save')} + ${t('mapedit.export_map_data')}`, t('common.cancel')];
+        : [t('editor_ui.export_save_and_run'), t('common.cancel')];
     const result = await (window as any).dialog.showMessageBox({
         type: 'info',
         buttons,
         cancelId: buttons.length - 1,
-        message: t('mapedit.confirm_save'),
+        message: t('editor_ui.export_dirty_prompt'),
     });
     if (result.response === 0) return 'save' as const;
     if (hasSaved && result.response === 1) return 'saved' as const;
@@ -3038,7 +3038,7 @@ const goBack = async () => {
         />
         <EditorBusyOverlay
             :visible="saving || exporting"
-            :label="saving ? t('editor_ui.save_state.saving') : t('mapedit.message_export')"
+            :label="saving ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
         />
 
         <EditorActionHeader
@@ -3065,7 +3065,7 @@ const goBack = async () => {
                     :disabled="disabled || !!saveError || exporting"
                     @click="exportMap"
                 >
-                    {{ t("mapedit.export_map_data") }}
+                    {{ t("editor_ui.export_button") }}
                 </button>
             </template>
         </EditorActionHeader>

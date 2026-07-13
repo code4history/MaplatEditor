@@ -776,6 +776,7 @@
   "editor_ui": {
     "back": "Zurück zur Liste",
     "translations": "Verfügbare Übersetzungen",
+    "export_button": "Exportieren", "export_dirty_prompt": "Es gibt ungespeicherte Änderungen. Wählen Sie die Exportmethode.", "export_save_and_run": "Speichern und exportieren", "export_saved_only": "Gespeicherte Version exportieren", "export_success": "Export abgeschlossen.", "export_failed": "Export fehlgeschlagen.", "busy_exporting": "Export läuft…",
     "save_state": {"dirty": "Ungespeichert ●", "saving": "Speichern…", "saved": "Gespeichert", "draft_restored": "Entwurf wiederhergestellt"},
     "slug_state": {"checking": "Wird geprüft…", "available": "Verfügbar", "taken": "Bereits verwendet", "unavailable": "Prüfung nicht möglich"},
     "draft_badge": "Entwurf",
