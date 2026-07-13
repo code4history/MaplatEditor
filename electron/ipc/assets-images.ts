@@ -9,7 +9,7 @@ export function registerImageAssetHandlers() {
   ipcMain.handle('imageassets:list', () => imageAssetService.list());
   ipcMain.handle('imageassets:search', (_, query) => imageAssetService.search(query));
   ipcMain.handle('imageassets:get', (_, ref) => imageAssetService.get(ref));
-  ipcMain.handle('imageassets:rename', (_, uid, input) => imageAssetService.rename(uid, input));
+  ipcMain.handle('imageassets:update-metadata', (_, uid, input) => imageAssetService.updateMetadata(uid, input));
   ipcMain.handle('imageassets:delete', (_, uid) => imageAssetService.delete(uid));
   ipcMain.handle('imageassets:getFilePath', (_, ref) => imageAssetService.getFilePath(ref));
   // 逆参照 (削除確認フローが使う。43 §7 の AID-006 と同型)

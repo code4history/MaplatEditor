@@ -65,21 +65,43 @@ try {
     `
       import assert from 'node:assert/strict';
       import { access, mkdir, writeFile } from 'node:fs/promises';
+      import { DatabaseSync } from 'node:sqlite';
+      import nodePath from 'node:path';
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
+
+      // T4 legacy fixture: lang/labelがない既存user Base Mapをmigration対象として先置きする。
+      const legacyDb = new DatabaseSync(nodePath.join(${JSON.stringify(dataDir)}, 'maplat.sqlite'));
+      legacyDb.exec(\`
+        CREATE TABLE asset_registry (uid TEXT PRIMARY KEY, kind TEXT NOT NULL, slug TEXT NOT NULL UNIQUE);
+        CREATE TABLE base_maps (
+          uid TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, scope TEXT NOT NULL,
+          sort_order INTEGER NOT NULL, data_json TEXT NOT NULL,
+          revision INTEGER NOT NULL DEFAULT 1, updated_at TEXT DEFAULT (datetime('now'))
+        );
+        INSERT INTO asset_registry (uid, kind, slug)
+        VALUES ('33333333-3333-4333-8333-333333333333', 'base_map', 'user-base');
+        INSERT INTO base_maps (uid, slug, scope, sort_order, data_json)
+        VALUES ('33333333-3333-4333-8333-333333333333', 'user-base', 'user', 0,
+          '{"mapID":"user-base","title":"User Base","url":"https://example.test/{z}/{x}/{y}.png"}');
+      \`);
+      legacyDb.close();
 
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
 
       // Initial catalog exposes builtin base maps only
       const initial = await SettingsService.listBaseMaps();
       assert.ok(initial.some((item) => item.scope === 'builtin' && item.mapID === 'osm'));
-      assert.equal(initial.filter((item) => item.scope === 'user').length, 0);
+      assert.equal(initial.filter((item) => item.scope === 'user').length, 1);
 
       // Builtin masters are seeded from the KTGIS catalog (ADR-0002):
       // osm carries a 52px icon, KTGIS maps carry icon + coverage, and the
       // catalog includes newly imported maps such as muroran00
       const osm = initial.find((item) => item.scope === 'builtin' && item.mapID === 'osm');
+      assert.equal(osm.data.lang, 'en', 'builtin Base Mapのdefault languageはenのはず');
+      assert.equal(typeof osm.data.title, 'object', 'builtin titleは内部LangResource形のはず');
+      assert.equal(typeof osm.data.label, 'object', 'builtin labelは内部LangResource形のはず');
       assert.equal(osm.data.thumbnail, 'basemap_icons/osm.png');
       assert.ok(!osm.data.coverageLngLats, 'osm coverage must stay undefined (global)');
       const gsi = initial.find((item) => item.scope === 'builtin' && item.mapID === 'gsi');
@@ -90,9 +112,13 @@ try {
       assert.equal(muroran.data.thumbnail, 'basemap_icons/muroran00.png');
       assert.equal(muroran.data.coverageLngLats.length, 4);
       assert.ok(initial.filter((item) => item.scope === 'builtin').length >= 329);
+      const migratedUserBase = initial.find((item) => item.scope === 'user' && item.mapID === 'user-base');
+      assert.equal(migratedUserBase.data.lang, 'ja', 'lang欠落の旧user Base Mapはjaへ一度だけ補完するはず');
+      assert.deepEqual(migratedUserBase.data.title, { ja: 'User Base' });
+      assert.deepEqual(migratedUserBase.data.label, { ja: 'User Base' }, 'label欠落時はtitleをcloneするはず');
 
       // Add a user base map (uid正準 ADR-0007: payload = { uid?, slug, tms }, uidなし=新規)
-      const { uid: myBaseUid } = await SettingsService.saveUserBaseMap({
+      const addedResult = await SettingsService.saveUserBaseMap({
         slug: 'my_basemap',
         tms: {
           title: 'My Base Map',
@@ -102,6 +128,8 @@ try {
           maxZoom: 18,
         },
       });
+      assert.equal(addedResult.result, 'Success');
+      const { uid: myBaseUid, revision: myBaseRevision } = addedResult;
       const afterAdd = await SettingsService.listBaseMaps();
       const added = afterAdd.find((item) => item.mapID === 'my_basemap');
       assert.ok(added);
@@ -129,9 +157,10 @@ try {
 
       // Update preserves scope and updates content; user masters can carry
       // icon (thumbnail) and coverage (coverageLngLats) as app-selection defaults
-      await SettingsService.saveUserBaseMap({
+      const savedUpdate = await SettingsService.saveUserBaseMap({
         uid: added.uid,
         slug: 'my_basemap',
+        expectedRevision: myBaseRevision,
         tms: {
           title: 'My Base Map v2',
           url: 'https://example.test/tiles/{z}/{x}/{-y}.png',
@@ -139,6 +168,15 @@ try {
           coverageLngLats: [[139, 35], [140, 35], [140, 36], [139, 36]],
         },
       });
+      assert.equal(savedUpdate.result, 'Success');
+      assert.equal(savedUpdate.revision, myBaseRevision + 1);
+      const staleUpdate = await SettingsService.saveUserBaseMap({
+        uid: added.uid,
+        slug: 'my_basemap-stale',
+        expectedRevision: myBaseRevision,
+        tms: { title: 'Stale update', url: 'https://example.test/stale/{z}/{x}/{y}.png' },
+      });
+      assert.deepEqual(staleUpdate, { error: 'revision-conflict', current: savedUpdate.revision });
       const afterUpdate = await SettingsService.listBaseMaps();
       const updated = afterUpdate.find((item) => item.mapID === 'my_basemap');
       assert.equal(updated.uid, added.uid, '更新でuidが変わってはいけない');
@@ -148,17 +186,19 @@ try {
       assert.equal(afterUpdate.filter((item) => item.mapID === 'my_basemap').length, 1);
 
       // Builtin ID conflicts are rejected (slugのグローバル一意性)
-      await assert.rejects(() => SettingsService.saveUserBaseMap({
+      assert.deepEqual(await SettingsService.saveUserBaseMap({
         slug: 'osm',
         tms: { title: 'Fake OSM', url: 'https://example.test/{z}/{x}/{y}.png' },
-      }));
-      await assert.rejects(() => SettingsService.saveUserBaseMap({ tms: { title: 'No ID' } }));
+      }), { result: 'Exist' });
+      assert.deepEqual(await SettingsService.saveUserBaseMap({ tms: { title: 'No ID' } }), {
+        result: 'Error', code: 'invalid-request', message: 'slug is required',
+      });
       // 未知のuid指定の更新は拒否される
-      await assert.rejects(() => SettingsService.saveUserBaseMap({
+      assert.deepEqual(await SettingsService.saveUserBaseMap({
         uid: '00000000-0000-4000-8000-000000000000',
         slug: 'ghost',
         tms: { title: 'Ghost', url: 'https://example.test/{z}/{x}/{y}.png' },
-      }));
+      }), { result: 'Error', code: 'not-found', message: 'Unknown user base map: 00000000-0000-4000-8000-000000000000' });
 
       // Visibility rows of a deleted user base map are cleaned up (削除はuid指定)
       await SettingsService.setBaseMapVisibilityForMapID('some-map', added.uid, false);
@@ -172,10 +212,12 @@ try {
       assert.equal(Number(visibilityRows.count), 0);
 
       // 同じslugで再追加すると新しいuidの別アセットになり、表示設定は既定(オプトイン=非表示)に戻る
-      const { uid: readdedUid } = await SettingsService.saveUserBaseMap({
+      const readdedResult = await SettingsService.saveUserBaseMap({
         slug: 'my_basemap',
         tms: { title: 'My Base Map v3', url: 'https://example.test/tiles/{z}/{x}/{y}.png' },
       });
+      assert.equal(readdedResult.result, 'Success');
+      const { uid: readdedUid } = readdedResult;
       assert.notEqual(readdedUid, added.uid, '再追加は別uidの新アセットになるはず');
       const visibility = await SettingsService.getBaseMapVisibilityOfMapID('some-map');
       const readded = visibility.find((item) => item.mapID === 'my_basemap');
@@ -186,10 +228,12 @@ try {
       // 保存時に tmbs/{uid}.{ext} へ移動され、thumbnail参照も追随する
       await mkdir(${JSON.stringify(path.join(dataDir, 'tmbs'))}, { recursive: true });
       await writeFile(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/icon_new.png', 'png-bytes');
-      const { uid: iconNewUid } = await SettingsService.saveUserBaseMap({
+      const iconNewResult = await SettingsService.saveUserBaseMap({
         slug: 'icon_new',
         tms: { title: 'Icon New', url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: 'tmbs/icon_new.png' },
       });
+      assert.equal(iconNewResult.result, 'Success');
+      const { uid: iconNewUid } = iconNewResult;
       const iconNew = (await SettingsService.listBaseMaps()).find((item) => item.uid === iconNewUid);
       assert.equal(iconNew.data.thumbnail, 'tmbs/' + iconNewUid + '.png');
       await access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/' + iconNewUid + '.png');

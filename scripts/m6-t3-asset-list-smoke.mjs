@@ -69,10 +69,21 @@ try {
     path.join(projectRoot, 'src/views/AssetList.vue'),
     'utf8'
   );
+  const electronMain = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
+  assert.match(
+    electronMain,
+    /removeHandler\('imageassets:update-metadata'\)/,
+    'Electron再登録cleanupがimageassets:update-metadataを解除していない'
+  );
+  assert.doesNotMatch(
+    electronMain,
+    /removeHandler\('imageassets:rename'\)/,
+    '廃止したimageassets:rename cleanupが残っている'
+  );
 
   // 一覧 (list/search) + サムネイル (getFilePath) は Phase 6 Task 4 で AssetPicker と
   // 共用の composable (useAssetThumbnails) へ抽出した (挙動不変)。AssetList 固有の
-  // API 配線 (add/rename/delete/findReferences/pickImageFile) は本体に残る
+  // API 配線 (add/updateMetadata/delete/findReferences/pickImageFile) は本体に残る
   const assetThumbs = await readFile(
     path.join(projectRoot, 'src/composables/useAssetThumbnails.ts'),
     'utf8'
@@ -89,7 +100,7 @@ try {
       `useAssetThumbnails が window.imageAssets.${api} を呼んでいない`
     );
   }
-  for (const api of ['add', 'rename', 'delete', 'findReferences', 'pickImageFile']) {
+  for (const api of ['add', 'updateMetadata', 'delete', 'findReferences', 'pickImageFile']) {
     assert.match(
       assetList,
       new RegExp(`imageAssets\\.${api}\\(`),

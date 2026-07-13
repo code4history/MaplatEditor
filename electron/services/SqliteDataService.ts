@@ -17,7 +17,7 @@ import builtinBaseMaps from '../builtin_base_maps.json';
 import defaultTmsList from '../tms_list.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
-import { normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
+import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
 import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
@@ -126,6 +126,7 @@ const PROVISIONAL_MAP_KEY_PREFIX = 'slug:';
 const PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID = '2026-07-09-provisional-visibility-slug-prefix';
 // ユーザーベースマップのアイコンパス uid 化(tmbs/{slug}.png → tmbs/{uid}.png)
 const BASE_MAP_ICON_MIGRATION_ID = '2026-07-09-base-map-icon-uid-paths';
+const BASE_MAP_LANGUAGE_MIGRATION_ID = '2026-07-14-m11-t4-basemap-language';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる
@@ -133,6 +134,7 @@ export interface BaseMapSavePayload {
   uid?: string;
   slug: string;
   tms: any;
+  expectedRevision?: number;
 }
 
 // POI ソース (ADR-0007): FeatureCollection の blob(editor内部形: _maplatUid 入り)を data_json に持つ。
@@ -172,6 +174,8 @@ export interface PoiSourceSummary {
 
 // 画像等アセット (ADR-0007): バイト実体は別管理(tiles/tmbs同様のファイル)で、本テーブルはメタデータのみ持つ。
 export interface AssetInput {
+  lang: string;
+  sourceName?: string | null;
   title: LangResource;
   mime: string;
   ext: string;
@@ -183,6 +187,8 @@ export interface AssetInput {
 export interface AssetRecord {
   uid: string;
   slug: string;
+  lang: string;
+  sourceName: string | null;
   title: LangResource;
   mime: string;
   ext: string;
@@ -349,6 +355,8 @@ function assetRowToRecord(row: any): AssetRecord {
   return {
     uid: String(row.uid),
     slug: String(row.slug),
+    lang: String(row.lang || 'ja'),
+    sourceName: row.source_name == null ? null : String(row.source_name),
     title: JSON.parse(row.title_json),
     mime: String(row.mime),
     ext: String(row.ext),
@@ -602,6 +610,8 @@ class SqliteDataService {
       CREATE TABLE IF NOT EXISTS assets (
         uid TEXT PRIMARY KEY,
         slug TEXT NOT NULL UNIQUE,
+        lang TEXT NOT NULL DEFAULT 'ja',
+        source_name TEXT,
         title_json TEXT NOT NULL,
         mime TEXT NOT NULL,
         ext TEXT NOT NULL,
@@ -612,6 +622,12 @@ class SqliteDataService {
         updated_at TEXT DEFAULT (datetime('now'))
       );
     `);
+    const assetColumns = new Set(
+      (db.prepare('PRAGMA table_info(assets)').all() as any[]).map((column) => String(column.name)),
+    );
+    if (!assetColumns.has('lang')) db.exec("ALTER TABLE assets ADD COLUMN lang TEXT");
+    if (!assetColumns.has('source_name')) db.exec('ALTER TABLE assets ADD COLUMN source_name TEXT');
+    db.exec("UPDATE assets SET lang = 'ja' WHERE lang IS NULL OR trim(lang) = ''");
     this.applySearchIndexSchema(db);
     // builtin base maps を最初に登録し、レガシー取込より先に clean slug を確保する (ADR-0007)
     this.applyBuiltinBaseMapSeed(db);
@@ -625,10 +641,38 @@ class SqliteDataService {
     }
 
     await this.runLegacyMigrationIfNeeded(db);
+    this.applyBaseMapLanguageMigration(db);
     // 以下はレガシー取込の後に走らせる(初回移行の直後でも取込済みの行が対象になるように)
     this.applyProvisionalVisibilityKeyMigration(db);
     this.sweepStaleProvisionalVisibility(db);
     await this.migrateBaseMapIconPaths(db);
+  }
+
+  private applyBaseMapLanguageMigration(db: DatabaseSync): void {
+    const applied = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(BASE_MAP_LANGUAGE_MIGRATION_ID);
+    if (applied) return;
+    const rows = db.prepare('SELECT uid, scope, data_json FROM base_maps').all() as any[];
+    this.withTransaction(db, () => {
+      for (const row of rows) {
+        const data = JSON.parse(String(row.data_json || '{}'));
+        const lang = typeof data.lang === 'string' && data.lang ? data.lang : row.scope === 'builtin' ? 'en' : 'ja';
+        const title = normalizeLangResource(data.title, lang);
+        const label = normalizeLangResource(data.label, lang);
+        const normalized = {
+          ...data,
+          lang,
+          title,
+          label: Object.keys(label).length > 0 ? label : { ...title },
+          attr: normalizeLangResource(data.attr, lang),
+        };
+        db.prepare('UPDATE base_maps SET data_json = ? WHERE uid = ?')
+          .run(JSON.stringify(normalized), row.uid);
+      }
+      db.prepare('INSERT INTO schema_migrations (id) VALUES (?)')
+        .run(BASE_MAP_LANGUAGE_MIGRATION_ID);
+    });
   }
 
   private async runLegacyMigrationIfNeeded(db: DatabaseSync): Promise<void> {
@@ -1392,9 +1436,9 @@ class SqliteDataService {
     this.withTransaction(db, () => {
       this.registerAsset(db, 'asset', uid, slug);
       db.prepare(
-        `INSERT INTO assets (uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))`
-      ).run(uid, slug, JSON.stringify(input.title), input.mime, input.ext, input.width ?? null, input.height ?? null, input.byteSize);
+        `INSERT INTO assets (uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))`
+      ).run(uid, slug, input.lang, input.sourceName ?? null, JSON.stringify(input.title), input.mime, input.ext, input.width ?? null, input.height ?? null, input.byteSize);
     });
     return uid;
   }
@@ -1426,11 +1470,11 @@ class SqliteDataService {
       const tail: any[] = expectedRevision != null ? [uid, expectedRevision] : [uid];
       const result = db.prepare(
         `UPDATE assets
-         SET slug = ?, title_json = ?, mime = ?, ext = ?, width = ?, height = ?, byte_size = ?,
+         SET slug = ?, lang = ?, source_name = ?, title_json = ?, mime = ?, ext = ?, width = ?, height = ?, byte_size = ?,
              revision = revision + 1, updated_at = datetime('now')
          ${where}`
       ).run(
-        slug, JSON.stringify(input.title), input.mime, input.ext, input.width ?? null, input.height ?? null, input.byteSize, ...tail,
+        slug, input.lang, input.sourceName ?? null, JSON.stringify(input.title), input.mime, input.ext, input.width ?? null, input.height ?? null, input.byteSize, ...tail,
       );
       if (Number(result.changes) === 0) {
         const now = db.prepare('SELECT revision FROM assets WHERE uid = ?').get(uid) as any;
@@ -1448,7 +1492,7 @@ class SqliteDataService {
   async findAsset(uid: string): Promise<AssetRecord | null> {
     const db = await this.getDb();
     const row = db
-      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets WHERE uid = ?')
+      .prepare('SELECT uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets WHERE uid = ?')
       .get(uid) as any;
     return row ? assetRowToRecord(row) : null;
   }
@@ -1456,7 +1500,7 @@ class SqliteDataService {
   async findAssetBySlug(slug: string): Promise<AssetRecord | null> {
     const db = await this.getDb();
     const row = db
-      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets WHERE slug = ?')
+      .prepare('SELECT uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets WHERE slug = ?')
       .get(slug) as any;
     return row ? assetRowToRecord(row) : null;
   }
@@ -1492,7 +1536,7 @@ class SqliteDataService {
   async listAssets(): Promise<AssetRecord[]> {
     const db = await this.getDb();
     const rows = db
-      .prepare('SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets ORDER BY slug')
+      .prepare('SELECT uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets ORDER BY slug')
       .all() as any[];
     return rows.map(assetRowToRecord);
   }
@@ -1511,7 +1555,7 @@ class SqliteDataService {
     }
     const rows = db
       .prepare(
-        `SELECT uid, slug, title_json, mime, ext, width, height, byte_size, revision, updated_at
+        `SELECT uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at
          FROM assets WHERE ${conditions} ORDER BY slug`
       )
       .all(...params) as any[];
@@ -1789,11 +1833,15 @@ class SqliteDataService {
           .prepare(`SELECT uid, slug, revision FROM base_maps WHERE uid = ? AND scope = 'user'`)
           .get(uid) as any;
         if (!existing) throw new Error(`Unknown user base map: ${uid}`);
+        const currentRevision = Number(existing.revision);
+        if (payload.expectedRevision != null && currentRevision !== payload.expectedRevision) {
+          throw new RevisionConflictError(currentRevision);
+        }
         if (String(existing.slug) !== slug) this.renameAssetSlug(db, 'base_map', uid, slug);
         db.prepare(
           `UPDATE base_maps SET slug = ?, data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
         ).run(slug, JSON.stringify({ ...tms, mapID: slug }), uid);
-        return { uid, revision: Number(existing.revision) + 1 };
+        return { uid, revision: currentRevision + 1 };
       });
     }
 

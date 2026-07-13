@@ -16,9 +16,6 @@ import SqliteDataService, { RevisionConflictError, AssetNotFoundError, type Asse
 import SettingsService from './SettingsService';
 import { normalizeLangResource, type LangResource } from '../../src/utils/langResource';
 
-// POI editor と同じ既定言語 (ADR-0005)
-const DEFAULT_LANG = 'ja';
-
 // jimp が mime を返さない場合の拡張子フォールバック(通常は各デコーダが mime を設定する)
 const EXT_MIME_FALLBACK: Record<string, string> = {
   png: 'image/png',
@@ -59,6 +56,8 @@ export type ImageAssetSaveResult =
 export interface ImageAssetSummary {
   uid: string;
   slug: string;
+  lang: string;
+  sourceName: string | null;
   title: Record<string, string>;
   mime: string;
   ext: string;
@@ -78,15 +77,17 @@ export class ImageAssetService {
     return path.join(this.saveFolder, 'assets');
   }
 
-  private titleInternal(title: unknown): Record<string, string> {
-    return normalizeLangResource(title as LangResource | null | undefined, DEFAULT_LANG);
+  private titleInternal(title: unknown, lang: string): Record<string, string> {
+    return normalizeLangResource(title as LangResource | null | undefined, lang);
   }
 
   private summary(record: AssetRecord): ImageAssetSummary {
     return {
       uid: record.uid,
       slug: record.slug,
-      title: this.titleInternal(record.title),
+      lang: record.lang,
+      sourceName: record.sourceName,
+      title: this.titleInternal(record.title, record.lang),
       mime: record.mime,
       ext: record.ext,
       width: record.width,
@@ -149,7 +150,7 @@ export class ImageAssetService {
   // --- Public API ---
 
   // sourcePath のバイトを {saveFolder}/assets/{uid}.{ext} へコピーし、メタデータを新規登録する
-  async add(input: { slug: string; title: LangResource; sourcePath: string }): Promise<ImageAssetSaveResult> {
+  async add(input: { slug: string; title: LangResource; lang?: string; sourceName?: string; sourcePath: string }): Promise<ImageAssetSaveResult> {
     const slug = String(input.slug ?? '').trim();
     if (!slug) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
     if (!(await SqliteDataService.isSlugAvailable(slug))) return { result: 'Exist' };
@@ -158,6 +159,8 @@ export class ImageAssetService {
     if (!sourcePath) return { result: 'Error', code: 'invalid-request', message: 'sourcePath is required' };
     const ext = path.extname(sourcePath).slice(1).toLowerCase();
     if (!ext) return { result: 'Error', code: 'invalid-request', message: 'sourcePath must have a file extension' };
+    const lang = String(input.lang || 'ja');
+    const sourceName = path.basename(String(input.sourceName || sourcePath));
 
     // fs 読み取りを decode より先に単独で行い、エラー種別を分ける: ENOENT → 'not-found'、
     // それ以外(EACCES/EBUSY 等の一時障害 — OneDrive ロックは既知ハザード) → 'internal'。
@@ -192,7 +195,9 @@ export class ImageAssetService {
     let uid: string;
     try {
       const created = await SqliteDataService.createAsset(slug, {
-        title: this.titleInternal(input.title),
+        lang,
+        sourceName,
+        title: this.titleInternal(input.title, lang),
         mime: meta.mime,
         ext,
         width: meta.width,
@@ -236,9 +241,9 @@ export class ImageAssetService {
 
   // slug/title の改名。expectedRevision は楽観ロック。mime/ext/width/height/byteSize はバイト実体を
   // 変えないため既存値を維持する(rename はメタデータのみの操作)
-  async rename(
+  async updateMetadata(
     uid: string,
-    input: { slug: string; title: LangResource; expectedRevision?: number },
+    input: { slug: string; title: LangResource; lang?: string; expectedRevision?: number },
   ): Promise<ImageAssetSaveResult> {
     const existing = await SqliteDataService.findAsset(uid);
     if (!existing) return { result: 'Error', code: 'not-found', message: `Asset not found: ${uid}` };
@@ -254,7 +259,9 @@ export class ImageAssetService {
         uid,
         slug,
         {
-          title: this.titleInternal(input.title),
+          lang: String(input.lang || existing.lang || 'ja'),
+          sourceName: existing.sourceName,
+          title: this.titleInternal(input.title, String(input.lang || existing.lang || 'ja')),
           mime: existing.mime,
           ext: existing.ext,
           width: existing.width ?? undefined,
@@ -276,6 +283,13 @@ export class ImageAssetService {
     } catch (e: any) {
       return this.mapWriteError(e);
     }
+  }
+
+  async rename(
+    uid: string,
+    input: { slug: string; title: LangResource; expectedRevision?: number },
+  ): Promise<ImageAssetSaveResult> {
+    return this.updateMetadata(uid, { ...input });
   }
 
   // 削除: DB行・registryを掃除した後、実体は削除せず _trash へ退避する(ユーザーデータの保全)。

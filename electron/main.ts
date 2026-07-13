@@ -174,7 +174,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('imageassets:list')
   ipcMain.removeHandler('imageassets:search')
   ipcMain.removeHandler('imageassets:get')
-  ipcMain.removeHandler('imageassets:rename')
+  ipcMain.removeHandler('imageassets:update-metadata')
   ipcMain.removeHandler('imageassets:delete')
   ipcMain.removeHandler('imageassets:getFilePath')
 

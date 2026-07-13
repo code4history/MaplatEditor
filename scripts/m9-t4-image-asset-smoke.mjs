@@ -85,6 +85,7 @@ try {
     entryFile,
     `
       import assert from 'node:assert/strict';
+      import { DatabaseSync } from 'node:sqlite';
       import { writeFile as fsWriteFile, mkdir as fsMkdir, stat as fsStat } from 'node:fs/promises';
       import nodePath from 'node:path';
       import { Jimp } from 'jimp';
@@ -93,12 +94,31 @@ try {
       const workDir = ${JSON.stringify(workDir)};
       const dataDir = ${JSON.stringify(dataDir)};
 
+      // T4 legacy migration fixture: lang/source_name列がまだ無い既存assets表。
+      const legacyDb = new DatabaseSync(nodePath.join(dataDir, 'maplat.sqlite'));
+      legacyDb.exec(\`
+        CREATE TABLE assets (
+          uid TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, title_json TEXT NOT NULL,
+          mime TEXT NOT NULL, ext TEXT NOT NULL, width INTEGER, height INTEGER,
+          byte_size INTEGER NOT NULL, revision INTEGER NOT NULL DEFAULT 1,
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+        INSERT INTO assets (uid, slug, title_json, mime, ext, width, height, byte_size)
+        VALUES ('22222222-2222-4222-8222-222222222222', 'legacy-language', '{"ja":"旧画像"}', 'image/png', 'png', 1, 1, 1);
+      \`);
+      legacyDb.close();
+
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       SettingsService.set('saveFolder', dataDir);
 
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
       const { default: imageAssetService, exceedsPixelLimit } = await import(${JSON.stringify(servicePath)});
-      await SqliteDataService.getDb();
+      const migratedDb = await SqliteDataService.getDb();
+      const rawMigratedLanguage = migratedDb.prepare('SELECT lang FROM assets WHERE slug = ?').get('legacy-language');
+      assert.equal(rawMigratedLanguage.lang, 'ja', 'legacy langは表示時fallbackではなくDBへbackfillするはず');
+      const migratedLanguageRow = await imageAssetService.get('legacy-language');
+      assert.equal(migratedLanguageRow.lang, 'ja', 'lang列欠落の既存assetはjaへ一度だけ補完するはず');
+      assert.equal(migratedLanguageRow.sourceName, null, '既存assetのsourceNameは推測せずnullのはず');
 
       // (a0) exceedsPixelLimit: 境界値 (10000x10000 = 100,000,000 はちょうど上限、超えない /
       // 10000x10001 は超える) — add の伸長爆弾ガードから切り出した純関数 (Phase 6 品質レビュー m9-t4 補強)
@@ -117,6 +137,40 @@ try {
       await greenImage.write(png2Path as \`\${string}.png\`);
       const txtPath = nodePath.join(fixtureDir, 'not-an-image.txt');
       await fsWriteFile(txtPath, 'this is not an image');
+
+      // (t4) default language/sourceName/updateMetadata 契約。
+      // sourceName は表示用basenameだけを保存し、絶対pathは既存どおりDBへ入れない。
+      const languageAdded = await imageAssetService.add({
+        slug: 'language-contract',
+        title: { en: 'Language contract' },
+        lang: 'en',
+        sourceName: 'nested/source-image.png',
+        sourcePath: pngPath,
+      });
+      assert.equal(languageAdded.result, 'Success', 'T4 language asset add は Success のはず: ' + JSON.stringify(languageAdded));
+      const languageRow = await imageAssetService.get(languageAdded.uid);
+      assert.equal(languageRow.lang, 'en', 'payloadのdefault languageを永続化するはず');
+      assert.equal(languageRow.sourceName, 'source-image.png', 'sourceNameはbasenameだけを永続化するはず');
+      assert.deepEqual(languageRow.title, { en: 'Language contract' });
+      const languageUpdated = await imageAssetService.updateMetadata(languageAdded.uid, {
+        slug: 'language-contract-updated',
+        title: { en: 'Updated contract' },
+        lang: 'en',
+        expectedRevision: 1,
+      });
+      assert.equal(languageUpdated.result, 'Success');
+      assert.equal(languageUpdated.revision, 2);
+      const languageConflict = await imageAssetService.updateMetadata(languageAdded.uid, {
+        slug: 'language-contract-stale',
+        title: { en: 'Stale contract' },
+        lang: 'en',
+        expectedRevision: 1,
+      });
+      assert.deepEqual(languageConflict, { error: 'revision-conflict', current: 2 });
+      const languageUpdatedRow = await imageAssetService.get(languageAdded.uid);
+      assert.equal(languageUpdatedRow.sourceName, 'source-image.png', 'metadata更新でsourceNameを失わないはず');
+      assert.equal(languageUpdatedRow.mime, 'image/png', 'metadata更新でbinary metadataを失わないはず');
+      console.log('ok: (t4) language/sourceName/updateMetadata contract');
 
       // (a) add: metadata 正しい / 実体配置 / title 内部形 / slug参照でも解決
       const added = await imageAssetService.add({ slug: 'red-swatch', title: '赤色見本', sourcePath: pngPath });

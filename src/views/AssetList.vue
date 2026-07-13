@@ -163,6 +163,7 @@ import i18next from "i18next";
 import noImage from "../assets/img/no_image.png";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
+import { resolveEditorLanguage, type LangCode } from "../utils/editorLanguages";
 import { useAssetThumbnails } from "../composables/useAssetThumbnails";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
@@ -261,6 +262,7 @@ const modal = reactive({
   title: "",
   sourcePath: "",
   fileName: "",
+  lang: "ja" as LangCode,
   feedback: "",
   submitting: false,
   // slug 欄をユーザーが手入力したら true。以後 title からの自動提案で上書きしない
@@ -330,6 +332,7 @@ const resetModal = () => {
   modal.title = "";
   modal.sourcePath = "";
   modal.fileName = "";
+  modal.lang = resolveEditorLanguage(i18next.language);
   modal.feedback = "";
   modal.submitting = false;
   modal.slugEdited = false;
@@ -411,6 +414,7 @@ const openAdd = async () => {
     modal.mode = "add";
     modal.sourcePath = picked.filePath;
     modal.fileName = picked.fileName;
+    modal.lang = resolveEditorLanguage(i18next.language);
     modal.slug = suggestSlug(picked.fileName);
     modal.title = picked.fileName.replace(/\.[^.]+$/, "");
     await modalDraftLifecycle.open(pendingDraft?.assetUid ?? crypto.randomUUID(), null);
@@ -435,6 +439,7 @@ const openRename = async () => {
   modal.mode = "rename";
   modal.uid = row.uid;
   modal.expectedRevision = row.revision;
+  modal.lang = row.lang as LangCode;
   modal.slug = row.slug;
   modal.title = localizeAssetTitle(row);
   // rename では slug の自動提案追随をしない (既存 slug の維持が既定)
@@ -524,14 +529,21 @@ const submitModal = async () => {
   try {
     let result: ImageAssetSaveResult;
     if (modal.mode === "add") {
-      result = await window.imageAssets.add({ slug, title, sourcePath: modal.sourcePath });
+      result = await window.imageAssets.add({
+        slug,
+        title,
+        lang: modal.lang,
+        sourceName: modal.fileName,
+        sourcePath: modal.sourcePath,
+      });
     } else if (modal.mode === "rename") {
       // 表示言語のエントリのみ書き換え、他言語エントリは保持する (LangResource 内部形)
       const key = resolveTitleKey(renameOriginalTitle, i18next.language);
       const mergedTitle = { ...renameOriginalTitle, [key]: title };
-      result = await window.imageAssets.rename(modal.uid, {
+      result = await window.imageAssets.updateMetadata(modal.uid, {
         slug,
         title: mergedTitle,
+        lang: modal.lang,
         expectedRevision: modal.expectedRevision,
       });
     } else {

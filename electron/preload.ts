@@ -142,7 +142,7 @@ contextBridge.exposeInMainWorld('appEvents', {
 contextBridge.exposeInMainWorld('baseMaps', {
   list: () => ipcRenderer.invoke('basemaps:list'),
   // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)
-  saveUser: (payload: { uid?: string; slug: string; tms: any }) => ipcRenderer.invoke('basemaps:save-user', payload),
+  saveUser: (payload: { uid?: string; slug: string; tms: any; expectedRevision?: number }) => ipcRenderer.invoke('basemaps:save-user', payload),
   deleteUser: (baseMapUid: string) => ipcRenderer.invoke('basemaps:delete-user', baseMapUid),
   setAlways: (baseMapUid: string, always: boolean) => ipcRenderer.invoke('basemaps:set-always', baseMapUid, always),
 })
@@ -184,13 +184,13 @@ contextBridge.exposeInMainWorld('assets', {
 // 画像アセット (ADR-0007): uid正準 + slug契約。get/getFilePath は uid-or-slug 参照を受ける。
 // channel prefix は imageassets:* (asset:checkSlug とは別名前空間)
 contextBridge.exposeInMainWorld('imageAssets', {
-  add: (input: { slug: string; title: any; sourcePath: string }) =>
+  add: (input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string }) =>
     ipcRenderer.invoke('imageassets:add', input),
   list: () => ipcRenderer.invoke('imageassets:list'),
   search: (query: string) => ipcRenderer.invoke('imageassets:search', query),
   get: (ref: string) => ipcRenderer.invoke('imageassets:get', ref),
-  rename: (uid: string, input: { slug: string; title: any; expectedRevision?: number }) =>
-    ipcRenderer.invoke('imageassets:rename', uid, input),
+  updateMetadata: (uid: string, input: { slug: string; title: any; lang: string; expectedRevision: number }) =>
+    ipcRenderer.invoke('imageassets:update-metadata', uid, input),
   delete: (uid: string) => ipcRenderer.invoke('imageassets:delete', uid),
   getFilePath: (ref: string) => ipcRenderer.invoke('imageassets:getFilePath', ref),
   findReferences: (ref: string) => ipcRenderer.invoke('imageassets:findReferences', ref),

@@ -159,9 +159,28 @@ class SettingsService extends EventEmitter {
     return SqliteDataService.listBaseMaps();
   }
 
-  public async saveUserBaseMap(payload: { uid?: string; slug: string; tms: any }): Promise<{ uid: string; revision: number }> {
-    const { default: SqliteDataService } = await import('./SqliteDataService');
-    return await SqliteDataService.saveUserBaseMap(payload);
+  public async saveUserBaseMap(
+    payload: { uid?: string; slug: string; tms: any; expectedRevision?: number },
+  ): Promise<
+    | { result: 'Success'; uid: string; revision: number }
+    | { result: 'Exist' }
+    | { result: 'Error'; code: 'not-found' | 'invalid-request' | 'internal'; message?: string }
+    | { error: 'revision-conflict'; current: number }
+  > {
+    const { default: SqliteDataService, RevisionConflictError } = await import('./SqliteDataService');
+    try {
+      const saved = await SqliteDataService.saveUserBaseMap(payload);
+      return { result: 'Success', ...saved };
+    } catch (error) {
+      if (error instanceof RevisionConflictError) {
+        return { error: 'revision-conflict', current: error.current };
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.startsWith('Slug already in use')) return { result: 'Exist' };
+      if (message === 'slug is required') return { result: 'Error', code: 'invalid-request', message };
+      if (message.startsWith('Unknown user base map:')) return { result: 'Error', code: 'not-found', message };
+      return { result: 'Error', code: 'internal', message };
+    }
   }
 
   public async deleteUserBaseMap(baseMapRef: string): Promise<void> {

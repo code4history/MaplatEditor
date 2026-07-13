@@ -161,6 +161,8 @@ export interface PoiSourcesAPI {
 export interface ImageAssetRow {
     uid: string;
     slug: string;
+    lang: string;
+    sourceName: string | null;
     title: Record<string, string>;
     mime: string;
     ext: string;
@@ -191,11 +193,11 @@ export interface ImageAssetReferencesResult {
 }
 
 export interface ImageAssetsAPI {
-    add(input: { slug: string; title: any; sourcePath: string }): Promise<ImageAssetSaveResult>;
+    add(input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string }): Promise<ImageAssetSaveResult>;
     list(): Promise<ImageAssetRow[]>;
     search(query: string): Promise<ImageAssetRow[]>;
     get(ref: string): Promise<ImageAssetRow | null>;
-    rename(uid: string, input: { slug: string; title: any; expectedRevision?: number }): Promise<ImageAssetSaveResult>;
+    updateMetadata(uid: string, input: { slug: string; title: any; lang: string; expectedRevision: number }): Promise<ImageAssetSaveResult>;
     delete(uid: string): Promise<{ ok: true }>;
     getFilePath(ref: string): Promise<string | null>;
     findReferences(ref: string): Promise<ImageAssetReferencesResult>;
@@ -220,11 +222,18 @@ export interface BaseMapSavePayload {
     uid?: string;
     slug: string;
     tms: any;
+    expectedRevision?: number;
 }
+
+export type BaseMapSaveResult =
+    | { result: 'Success'; uid: string; revision: number }
+    | { result: 'Exist' }
+    | { result: 'Error'; code: 'not-found' | 'invalid-request' | 'internal'; message?: string }
+    | { error: 'revision-conflict'; current: number };
 
 export interface BaseMapsAPI {
     list(): Promise<Array<{ uid: string; mapID: string; scope: "builtin" | "user"; data: any; revision: number; thumbnailUrl?: string | null; alwaysVisible: boolean; alwaysLocked: boolean }>>;
-    saveUser(payload: BaseMapSavePayload): Promise<{ uid: string; revision: number }>;
+    saveUser(payload: BaseMapSavePayload): Promise<BaseMapSaveResult>;
     deleteUser(baseMapUid: string): Promise<void>;
     setAlways(baseMapUid: string, always: boolean): Promise<void>;
 }
