@@ -26,7 +26,7 @@
         class="form-select form-select-sm editor-action-header__language"
         data-editor-action="language"
         :aria-label="t('common.language')"
-        :disabled="saving"
+        :disabled="saving || actionsDisabled"
         @change="emit('update:activeLang', ($event.target as HTMLSelectElement).value as LangCode)"
       >
         <option v-for="language in languageOptions" :key="language.code" :value="language.code">
@@ -37,7 +37,7 @@
         type="button"
         class="btn btn-sm btn-outline-secondary"
         data-editor-action="undo"
-        :disabled="saving || !canUndo"
+        :disabled="saving || actionsDisabled || !canUndo"
         :title="t('menu.undo')"
         @click="emit('undo')"
       >
@@ -48,19 +48,20 @@
         type="button"
         class="btn btn-sm btn-outline-secondary"
         data-editor-action="redo"
-        :disabled="saving || !canRedo"
+        :disabled="saving || actionsDisabled || !canRedo"
         :title="t('menu.redo')"
         @click="emit('redo')"
       >
         <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
         <span class="visually-hidden">{{ t("menu.redo") }}</span>
       </button>
-      <slot name="actions"></slot>
+      <slot name="actions" :disabled="saving || actionsDisabled"></slot>
       <button
+        v-if="saveVisible"
         type="button"
         class="btn btn-sm btn-primary"
         data-editor-action="save"
-        :disabled="saving || saveDisabled"
+        :disabled="saving || actionsDisabled || saveDisabled"
         @click="emit('save')"
       >
         <span v-if="saving" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
@@ -84,7 +85,7 @@ interface LanguageOption {
   nativeName: string;
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   title: string;
   saveState: EditorSaveState;
   activeLang: LangCode;
@@ -93,7 +94,14 @@ const props = defineProps<{
   canRedo: boolean;
   saveDisabled?: boolean;
   saving?: boolean;
-}>();
+  actionsDisabled?: boolean;
+  saveVisible?: boolean;
+}>(), {
+  saveDisabled: false,
+  saving: false,
+  actionsDisabled: false,
+  saveVisible: true,
+});
 
 const emit = defineEmits<{
   "back": [];

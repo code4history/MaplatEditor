@@ -208,11 +208,21 @@ try {
     'LangResourceInput に update:modelValue emit がない'
   );
 
-  // 11 言語タブは LANGS_MAP から導出 (重複定義しない)
+  // M11-T3: editor共通言語を親から受け取り、選択肢のfallbackだけを共通定義から導出
   assert.match(
     langResourceInput,
-    /LANGS_MAP/,
-    'LangResourceInput が LANGS_MAP を使っていない'
+    /activeLang\?\s*:\s*LangCode/,
+    'LangResourceInput が親管理の activeLang を受け取らない'
+  );
+  assert.match(
+    langResourceInput,
+    /SUPPORTED_LANGUAGES/,
+    'LangResourceInput の言語選択肢fallbackが共通定義を使っていない'
+  );
+  assert.doesNotMatch(
+    langResourceInput,
+    /class="nav nav-tabs lang-tabs"/,
+    'LangResourceInput に項目ごとの11言語タブが残っている'
   );
 
   // 確定時のみ emit (@change)。入力毎 (@input) には emit しない
