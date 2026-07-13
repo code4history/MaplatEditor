@@ -67,6 +67,7 @@
             <label class="form-label fw-bold small mb-0">{{ t("poisource.title_label") }}</label>
             <LangResourceInput
               v-if="!readOnly"
+              data-testid="poi-title"
               :model-value="editState.title"
               :active-lang="currentLang"
               :language-options="SUPPORTED_LANGUAGES"

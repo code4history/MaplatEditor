@@ -2,6 +2,7 @@
   <div
     v-if="visible"
     class="editor-busy-overlay"
+    data-editor-busy-overlay
     aria-busy="true"
     aria-live="polite"
     role="status"

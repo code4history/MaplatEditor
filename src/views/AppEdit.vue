@@ -1096,7 +1096,7 @@ function onPoisChange(next: unknown[]) {
             </div>
             <div class="col-md-7">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.app_name") }}</label>
-              <input v-model="titleText" type="text" class="form-control form-control-sm" @input="recordHistory">
+              <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" @input="recordHistory">
             </div>
           </div>
           <div class="row g-1 mb-2">
