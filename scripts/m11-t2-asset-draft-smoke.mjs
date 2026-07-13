@@ -121,6 +121,87 @@ try {
   assert.match(declarations, /assetDrafts:\s*AssetDraftsAPI/);
   assert.doesNotMatch(declarations, /appdraft:\s*AppDraftAPI/);
   console.log('  [5/5] Safe IPC and typed preload boundary: PASS');
+
+  const { createAssetDraftLifecycleCore, decideDraftRestore } = await importSource(
+    'src/composables/assetDraftLifecycleCore.ts',
+    'assetDraftLifecycleCore.mjs',
+  );
+  let nextTimerId = 1;
+  const timers = new Map();
+  const calls = { put: [], remove: [], sync: [] };
+  let payload = { value: 1 };
+  let failNextPut = false;
+  const core = createAssetDraftLifecycleCore({
+    delayMs: 2000,
+    now: () => '2026-07-13T12:34:56.000Z',
+    setTimeoutFn: (fn, delay) => { const id = nextTimerId++; timers.set(id, { fn, delay }); return id; },
+    clearTimeoutFn: (id) => timers.delete(id),
+    api: {
+      put: async (draft) => {
+        if (failNextPut) { failNextPut = false; throw new Error('disk full'); }
+        calls.put.push(structuredClone(draft));
+      },
+      remove: async (kind, uid) => calls.remove.push([kind, uid]),
+      flushSync: (draft) => { calls.sync.push(structuredClone(draft)); return { ok: true }; },
+    },
+  });
+  core.open({ kind: 'map', assetUid: 'map-1', baseRevision: 7 }, () => payload);
+  core.schedule(false);
+  assert.equal(timers.size, 0, 'clean state must not schedule a draft');
+  core.schedule(true);
+  payload = { value: 2 };
+  core.schedule(true);
+  assert.equal(timers.size, 1, 'continuous edits must share one trailing timer');
+  const scheduled = [...timers.values()][0];
+  assert.equal(scheduled.delay, 2000);
+  timers.clear();
+  await scheduled.fn();
+  assert.equal(calls.put.length, 1);
+  assert.deepEqual(calls.put[0].payload, { value: 2 });
+
+  payload = { value: 3 };
+  core.schedule(true);
+  await core.flush();
+  assert.equal(timers.size, 0, 'flush must cancel the pending timer');
+  assert.deepEqual(calls.put.at(-1).payload, { value: 3 });
+  core.flushSync();
+  assert.deepEqual(calls.sync.at(-1).payload, { value: 3 });
+
+  failNextPut = true;
+  payload = { value: 4 };
+  core.schedule(true);
+  await core.flush();
+  assert.match(core.error.value.message, /disk full/);
+  payload = { value: 5 };
+  core.schedule(true);
+  await core.flush();
+  assert.equal(core.error.value, null);
+  assert.deepEqual(calls.put.at(-1).payload, { value: 5 });
+  await core.markSaved();
+  assert.deepEqual(calls.remove, [['map', 'map-1']]);
+  console.log('  [6/6] Two-second throttle, flush, retry, sync, and save cleanup: PASS');
+
+  const draft = envelope('map', 'map-1', 7);
+  assert.equal(decideDraftRestore(null, 7), 'none');
+  assert.equal(decideDraftRestore(draft, 7), 'auto-apply');
+  assert.equal(decideDraftRestore(draft, 8), 'conflict');
+  assert.equal(decideDraftRestore(envelope('map', 'map-1', null), null), 'auto-apply');
+  console.log('  [7/7] Revision-aware restore decision: PASS');
+
+  const lifecycleSource = await readFile(
+    path.join(projectRoot, 'src/composables/useAssetDraftLifecycle.ts'),
+    'utf8',
+  );
+  assert.match(lifecycleSource, /export function useAssetDraftLifecycle/);
+  assert.match(lifecycleSource, /window\.assetDrafts\.get/);
+  assert.match(lifecycleSource, /window\.assetDrafts\.put/);
+  assert.match(lifecycleSource, /window\.assetDrafts\.remove/);
+  assert.match(lifecycleSource, /window\.assetDrafts\.flushSync/);
+  assert.match(lifecycleSource, /addEventListener\(['"]beforeunload['"]/);
+  assert.match(lifecycleSource, /removeEventListener\(['"]beforeunload['"]/);
+  assert.match(lifecycleSource, /decideDraftRestore/);
+  assert.match(lifecycleSource, /conflictDraft/);
+  console.log('  [8/8] Vue lifecycle wraps restore and beforeunload safely: PASS');
   console.log('M11-T2 asset draft smoke passed');
 } catch (error) {
   console.error('M11-T2 asset draft smoke FAILED:', error.stack ?? error.message);
