@@ -98,7 +98,7 @@ import { registerMapEditHandlers } from './ipc/mapedit'
 import { registerMapUploadHandlers } from './ipc/mapupload'
 import { registerDataUploadHandlers } from './ipc/dataupload'
 import { registerWmtsHandlers } from './ipc/wmts'
-import { registerAppDraftHandlers } from './ipc/appdraft'
+import { registerAssetDraftHandlers } from './ipc/assetDrafts'
 import { registerAppHandlers } from './ipc/apps'
 import { registerPoisourceHandlers } from './ipc/poisource'
 import { registerAppAssetHandlers } from './ipc/appassets'
@@ -129,8 +129,11 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('dataupload:showDataSelectDialog')
   ipcMain.removeHandler('wmtsGen:generate')
   ipcMain.removeHandler('dialog:showMessageBox')
-  ipcMain.removeHandler('appdraft:save')
-  ipcMain.removeHandler('appdraft:load')
+  ipcMain.removeHandler('asset-drafts:put')
+  ipcMain.removeHandler('asset-drafts:get')
+  ipcMain.removeHandler('asset-drafts:remove')
+  ipcMain.removeHandler('asset-drafts:list')
+  ipcMain.removeAllListeners('asset-drafts:flush-sync')
   ipcMain.removeHandler('applist:request')
   ipcMain.removeHandler('applist:delete')
   ipcMain.removeHandler('appedit:request')
@@ -165,7 +168,7 @@ app.whenReady().then(() => {
   registerMapUploadHandlers()
   registerDataUploadHandlers()
   registerWmtsHandlers()
-  registerAppDraftHandlers()
+  registerAssetDraftHandlers()
   registerAppHandlers()
   registerPoisourceHandlers()
   registerAppAssetHandlers()

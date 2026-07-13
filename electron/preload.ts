@@ -81,9 +81,12 @@ contextBridge.exposeInMainWorld('versions', {
   v8: process.versions.v8
 })
 
-contextBridge.exposeInMainWorld('appdraft', {
-  save: (draft: any) => ipcRenderer.invoke('appdraft:save', draft),
-  load: () => ipcRenderer.invoke('appdraft:load'),
+contextBridge.exposeInMainWorld('assetDrafts', {
+  put: (draft: any) => ipcRenderer.invoke('asset-drafts:put', draft),
+  get: (kind: string, assetUid: string) => ipcRenderer.invoke('asset-drafts:get', kind, assetUid),
+  remove: (kind: string, assetUid: string) => ipcRenderer.invoke('asset-drafts:remove', kind, assetUid),
+  list: (kind?: string) => ipcRenderer.invoke('asset-drafts:list', kind),
+  flushSync: (draft: any) => ipcRenderer.sendSync('asset-drafts:flush-sync', draft),
 })
 
 contextBridge.exposeInMainWorld('applist', {

@@ -70,69 +70,24 @@ function extractShape(source) {
 }
 
 try {
-  // --- Part 1: AppDraftService 型/構造 ---
-  const servicePath = path.join(projectRoot, 'electron/services/AppDraftService.ts');
+  // --- Part 1: M11で共通化されたAssetDraftService 型/構造 ---
+  const servicePath = path.join(projectRoot, 'electron/services/AssetDraftService.ts');
   const serviceSource = await readFile(servicePath, 'utf8');
 
   // electron-store を使用していることを確認
   assert.match(
     serviceSource,
     /import\s+Store\s+from\s+['"]electron-store['"]/,
-    'AppDraftService.ts が electron-store を import していない'
+    'AssetDraftService.ts が electron-store を import していない'
   );
-
-  // save/load メソッドが存在することを確認
-  assert.match(
-    serviceSource,
-    /save\s*\(\s*draft\s*:\s*MinimalAppDraft\s*\|\s*null\s*\)\s*:\s*void/,
-    'AppDraftService.ts に save メソッドがない'
-  );
-  assert.match(
-    serviceSource,
-    /load\s*\(\)\s*:\s*MinimalAppDraft\s*\|\s*null/,
-    'AppDraftService.ts に load メソッドがない'
-  );
-
-  // MinimalAppDraft 型が selectedMap を持つことを確認
-  assert.match(
-    serviceSource,
-    /interface\s+MinimalAppDraft/,
-    'AppDraftService.ts に MinimalAppDraft インターフェースがない'
-  );
-  assert.match(
-    serviceSource,
-    /selectedMap\s*\?\s*:\s*\{/,
-    'MinimalAppDraft に selectedMap プロパティがない'
-  );
-  // home_position 等が含まれていないことを確認
-  assert.doesNotMatch(
-    serviceSource,
-    /home_position/,
-    'MinimalAppDraft に home_position が含まれている (m5/m6 の責務外)'
-  );
-  assert.doesNotMatch(
-    serviceSource,
-    /default_zoom/,
-    'MinimalAppDraft に default_zoom が含まれている (m5/m6 の責務外)'
-  );
-
-  console.log('  [1/7] AppDraftService 型/構造: PASS');
+  assert.match(serviceSource, /new\s+AssetDraftStore/, '共通AssetDraftStoreを使用していない');
+  console.log('  [1/7] AssetDraftService 型/構造: PASS');
 
   // --- Part 2: IPC handler 構造 ---
-  const ipcPath = path.join(projectRoot, 'electron/ipc/appdraft.ts');
+  const ipcPath = path.join(projectRoot, 'electron/ipc/assetDrafts.ts');
   const ipcSource = await readFile(ipcPath, 'utf8');
-
-  // appdraft:save / appdraft:load を ipcMain.handle で登録することを確認
-  assert.match(
-    ipcSource,
-    /ipcMain\.handle\s*\(\s*['"]appdraft:save['"]/,
-    'appdraft.ts に appdraft:save ハンドラがない'
-  );
-  assert.match(
-    ipcSource,
-    /ipcMain\.handle\s*\(\s*['"]appdraft:load['"]/,
-    'appdraft.ts に appdraft:load ハンドラがない'
-  );
+  assert.match(ipcSource, /asset-drafts:put/, 'asset-drafts:put ハンドラがない');
+  assert.match(ipcSource, /asset-drafts:get/, 'asset-drafts:get ハンドラがない');
 
   // main.ts に registerAppDraftHandlers が呼ばれることを確認
   const mainSource = await readFile(
@@ -141,21 +96,11 @@ try {
   );
   assert.match(
     mainSource,
-    /registerAppDraftHandlers\s*\(\)/,
-    'main.ts に registerAppDraftHandlers() 呼び出しがない'
+    /registerAssetDraftHandlers\s*\(\)/,
+    'main.ts に registerAssetDraftHandlers() 呼び出しがない'
   );
-
-  // HMR removeHandler に appdraft:save / appdraft:load が含まれることを確認
-  assert.match(
-    mainSource,
-    /ipcMain\.removeHandler\s*\(\s*['"]appdraft:save['"]\s*\)/,
-    'main.ts に appdraft:save の removeHandler がない'
-  );
-  assert.match(
-    mainSource,
-    /ipcMain\.removeHandler\s*\(\s*['"]appdraft:load['"]\s*\)/,
-    'main.ts に appdraft:load の removeHandler がない'
-  );
+  assert.match(mainSource, /removeHandler\(['"]asset-drafts:put['"]\)/, 'asset-drafts:put cleanupがない');
+  assert.match(mainSource, /removeHandler\(['"]asset-drafts:get['"]\)/, 'asset-drafts:get cleanupがない');
 
   console.log('  [2/7] IPC handler 構造: PASS');
 
@@ -167,73 +112,19 @@ try {
 
   assert.match(
     preloadSource,
-    /contextBridge\.exposeInMainWorld\s*\(\s*['"]appdraft['"]/,
-    'preload.ts に window.appdraft の公開がない'
+    /contextBridge\.exposeInMainWorld\s*\(\s*['"]assetDrafts['"]/,
+    'preload.ts に window.assetDrafts の公開がない'
   );
-  assert.match(
-    preloadSource,
-    /save\s*:\s*\(\s*draft\s*:\s*any\s*\)\s*=>\s*ipcRenderer\.invoke\s*\(\s*['"]appdraft:save['"]/,
-    'preload.ts に appdraft.save 定義がない'
-  );
-  assert.match(
-    preloadSource,
-    /load\s*:\s*\(\)\s*=>\s*ipcRenderer\.invoke\s*\(\s*['"]appdraft:load['"]/,
-    'preload.ts に appdraft.load 定義がない'
-  );
+  assert.match(preloadSource, /asset-drafts:put/, 'preload.ts にassetDrafts.putがない');
+  assert.match(preloadSource, /asset-drafts:get/, 'preload.ts にassetDrafts.getがない');
 
   console.log('  [3/7] preload 構造: PASS');
 
-  // --- Part 4: useAppDraft composable ---
-  const composablePath = path.join(projectRoot, 'src/composables/useAppDraft.ts');
-  const composableSource = await readFile(composablePath, 'utf8');
-
-  // saveDraft / loadDraft / clearDraft をエクスポートすることを確認
-  assert.match(
-    composableSource,
-    /export\s+function\s+useAppDraft\s*\(/,
-    'useAppDraft.ts に useAppDraft が export されていない'
-  );
-  assert.match(
-    composableSource,
-    /async\s+function\s+saveDraft\s*\(/,
-    'useAppDraft.ts に saveDraft がない'
-  );
-  assert.match(
-    composableSource,
-    /async\s+function\s+loadDraft\s*\(/,
-    'useAppDraft.ts に loadDraft がない'
-  );
-  assert.match(
-    composableSource,
-    /async\s+function\s+clearDraft\s*\(/,
-    'useAppDraft.ts に clearDraft がない'
-  );
-
-  // window.appdraft.* を呼ぶことを確認
-  assert.match(
-    composableSource,
-    /window\s+as\s+any\s*\)\s*\.appdraft\.save/,
-    'useAppDraft.ts が window.appdraft.save を呼んでいない'
-  );
-  assert.match(
-    composableSource,
-    /window\s+as\s+any\s*\)\s*\.appdraft\.load/,
-    'useAppDraft.ts が window.appdraft.load を呼んでいない'
-  );
-
-  // loadDraft に try-catch があることを確認
-  assert.match(
-    composableSource,
-    /try\s*\{/,
-    'loadDraft に try-catch がない (graceful degradation が実装されていない)'
-  );
-  assert.match(
-    composableSource,
-    /catch\s*\(\s*e\s*\)/,
-    'loadDraft に catch 経路がない'
-  );
-
-  console.log('  [4/7] useAppDraft composable: PASS');
+  const storeSource = await readFile(path.join(projectRoot, 'src/services/assetDraftStore.ts'), 'utf8');
+  assert.match(storeSource, /class\s+AssetDraftStore/, 'AssetDraftStoreがない');
+  assert.match(storeSource, /async\s+put\(/, 'AssetDraftStore.putがない');
+  assert.match(storeSource, /async\s+get\(/, 'AssetDraftStore.getがない');
+  console.log('  [4/7] 共通AssetDraftStore: PASS');
 
   // --- Part 5: App list/edit integration ---
   const appListView = await readFile(
@@ -350,30 +241,30 @@ try {
     assert.fail('vite.config.ts が見つからない');
   }
 
-  // electron.d.ts に AppDraftAPI が追加されていることを確認
+  // electron.d.ts に AssetDraftsAPI が追加されていることを確認
   const electronDts = await readFile(
     path.join(projectRoot, 'src/electron.d.ts'),
     'utf8'
   );
   assert.match(
     electronDts,
-    /export\s+interface\s+AppDraftAPI/,
-    'electron.d.ts に AppDraftAPI がない'
+    /export\s+interface\s+AssetDraftsAPI/,
+    'electron.d.ts に AssetDraftsAPI がない'
   );
   assert.match(
     electronDts,
-    /save\s*\(\s*draft\s*:\s*any\s*\)\s*:\s*Promise\s*<\s*void\s*>/,
-    'AppDraftAPI に save メソッドがない'
+    /put\s*\(\s*draft\s*:/,
+    'AssetDraftsAPI に put メソッドがない'
   );
   assert.match(
     electronDts,
-    /load\s*\(\)\s*:\s*Promise\s*<\s*any\s*>/,
-    'AppDraftAPI に load メソッドがない'
+    /get\s*\(\s*kind\s*:/,
+    'AssetDraftsAPI に get メソッドがない'
   );
   assert.match(
     electronDts,
-    /appdraft\s*:\s*AppDraftAPI/,
-    'Window に appdraft が宣言されていない'
+    /assetDrafts\s*:\s*AssetDraftsAPI/,
+    'Window に assetDrafts が宣言されていない'
   );
 
   console.log('  [7/7] m1 全体 regression (構造確認): PASS');

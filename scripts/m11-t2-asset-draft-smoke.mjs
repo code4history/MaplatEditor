@@ -93,6 +93,34 @@ try {
   const serviceSource = await readFile(path.join(projectRoot, 'electron/services/AssetDraftService.ts'), 'utf8');
   assert.match(serviceSource, /electron-store/);
   assert.match(serviceSource, /new AssetDraftStore/);
+  const ipcSource = await readFile(path.join(projectRoot, 'electron/ipc/assetDrafts.ts'), 'utf8');
+  for (const channel of ['put', 'get', 'remove', 'list']) {
+    assert.match(ipcSource, new RegExp(`ipcMain\\.handle\\(['"]asset-drafts:${channel}['"]`));
+  }
+  assert.match(ipcSource, /ipcMain\.on\(['"]asset-drafts:flush-sync['"]/);
+  assert.match(ipcSource, /event\.returnValue\s*=/);
+
+  const mainSource = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
+  assert.match(mainSource, /registerAssetDraftHandlers\(\)/);
+  for (const channel of ['put', 'get', 'remove', 'list']) {
+    assert.match(mainSource, new RegExp(`removeHandler\\(['"]asset-drafts:${channel}['"]\\)`));
+  }
+  assert.match(mainSource, /removeAllListeners\(['"]asset-drafts:flush-sync['"]\)/);
+  assert.doesNotMatch(mainSource, /registerAppDraftHandlers|appdraft:/);
+
+  const preloadSource = await readFile(path.join(projectRoot, 'electron/preload.ts'), 'utf8');
+  assert.match(preloadSource, /exposeInMainWorld\(['"]assetDrafts['"]/);
+  for (const channel of ['put', 'get', 'remove', 'list']) {
+    assert.match(preloadSource, new RegExp(`ipcRenderer\\.invoke\\(['"]asset-drafts:${channel}['"]`));
+  }
+  assert.match(preloadSource, /ipcRenderer\.sendSync\(['"]asset-drafts:flush-sync['"]/);
+  assert.doesNotMatch(preloadSource, /exposeInMainWorld\(['"]appdraft['"]/);
+
+  const declarations = await readFile(path.join(projectRoot, 'src/electron.d.ts'), 'utf8');
+  assert.match(declarations, /interface AssetDraftsAPI/);
+  assert.match(declarations, /assetDrafts:\s*AssetDraftsAPI/);
+  assert.doesNotMatch(declarations, /appdraft:\s*AppDraftAPI/);
+  console.log('  [5/5] Safe IPC and typed preload boundary: PASS');
   console.log('M11-T2 asset draft smoke passed');
 } catch (error) {
   console.error('M11-T2 asset draft smoke FAILED:', error.stack ?? error.message);

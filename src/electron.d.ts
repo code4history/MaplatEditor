@@ -9,9 +9,12 @@ export interface MapListAPI {
     onRefresh(listener: () => void): () => void;
 }
 
-export interface AppDraftAPI {
-    save(draft: any): Promise<void>;
-    load(): Promise<any>;
+export interface AssetDraftsAPI {
+    put(draft: import('./types/assetDraft').AssetDraftEnvelope): Promise<void>;
+    get(kind: import('./types/assetDraft').AssetDraftKind, assetUid: string): Promise<import('./types/assetDraft').AssetDraftEnvelope | null>;
+    remove(kind: import('./types/assetDraft').AssetDraftKind, assetUid: string): Promise<void>;
+    list(kind?: import('./types/assetDraft').AssetDraftKind): Promise<import('./types/assetDraft').AssetDraftSummary[]>;
+    flushSync(draft: import('./types/assetDraft').AssetDraftEnvelope): { ok: boolean; error?: string };
 }
 
 export interface AppListAPI {
@@ -239,7 +242,7 @@ declare global {
     settings: SettingsAPI;
     maplist: MapListAPI;
     mapedit: MapEditAPI;
-    appdraft: AppDraftAPI;
+    assetDrafts: AssetDraftsAPI;
     applist: AppListAPI;
     appedit: AppEditAPI;
     appEvents: AppEventsAPI;
