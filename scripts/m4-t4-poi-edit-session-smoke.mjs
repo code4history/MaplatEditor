@@ -186,27 +186,30 @@ try {
     console.log('  case 6 (new commit discards redo history): PASS');
   }
 
-  // ⑦ markSaved 後 isDirty=false。UndoStack.save() の現物セマンティクス（history を
-  //   現在 snapshot 1 件へリセット）通り、canUndo/canRedo も false になる
-  //   （MapEdit resetHistoryBase と同一挙動）。
+  // ⑦ markSaved 後 isDirty=false。M11-T1 checkpointセマンティクスにより
+  //   保存前履歴は保持し、Undoでdirty、Redoで再びcleanへ戻れる。
   {
     const session = loadSession();
     session.patchFeatureProperties('uid-a', { name: { ja: 'A2' } });
     assert.equal(session.isDirty.value, true);
     session.markSaved();
     assert.equal(session.isDirty.value, false);
-    assert.equal(session.canUndo.value, false, 'UndoStack.save() drops history');
+    assert.equal(session.canUndo.value, true, 'UndoStack.save() preserves history');
     assert.equal(session.canRedo.value, false);
     // 状態は保存時点のまま
     assert.deepEqual(
       session.state.value.features.find((f) => f.properties._maplatUid === 'uid-a').properties.name,
       { ja: 'A2' },
     );
+    session.undo();
+    assert.equal(session.isDirty.value, true);
+    session.redo();
+    assert.equal(session.isDirty.value, false);
     // markSaved 後も新たな編集で再び dirty になれる
     session.patchFeatureProperties('uid-b', { name: { ja: 'B2' } });
     assert.equal(session.isDirty.value, true);
     assert.equal(session.canUndo.value, true);
-    console.log('  case 7 (markSaved resets dirty + history per UndoStack.save()): PASS');
+    console.log('  case 7 (markSaved checkpoint preserves history): PASS');
   }
 
   // ⑧ toSaveFc: layerMeta（name 等 fc トップレベル）を保存し、現在の features を反映

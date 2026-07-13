@@ -777,6 +777,8 @@
     "back": "Back to list",
     "translations": "Available translations",
     "save_state": {"dirty": "Unsaved ●", "saving": "Saving…", "saved": "Saved", "draft_restored": "Draft restored"},
-    "slug_state": {"checking": "Checking…", "available": "Available", "taken": "Already in use", "unavailable": "Could not verify"}
+    "slug_state": {"checking": "Checking…", "available": "Available", "taken": "Already in use", "unavailable": "Could not verify"},
+    "draft_badge": "Draft",
+    "draft_conflict": {"title": "Draft differs from saved version", "message": "The saved version changed after this draft was created. Choose which content to open.", "discard": "Discard draft and open latest", "apply": "Apply draft"}
   }
 }

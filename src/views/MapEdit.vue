@@ -5,12 +5,14 @@ import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
 import EnvelopeEditorModal from '../components/EnvelopeEditorModal.vue';
 import PoiReferenceEditor from '../components/PoiReferenceEditor.vue';
+import DraftConflictDialog from '../components/editor-ui/DraftConflictDialog.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { LANGS_MAP, resolveEditorLanguage } from '../utils/editorLanguages';
 import { UndoStack } from '../services/editorUndoStack';
 import { editorComputeBackend } from '../services/editorComputeBackend';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
+import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import type { MapSaveResult } from '../electron';
 // @ts-ignore
 import { useTranslation } from 'i18next-vue';
@@ -119,6 +121,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         mapData.value.status = 'Update';
         originalMapData.value = cloneDeep(mapData.value);
         markHistorySaved();
+        await draftLifecycle.markSaved();
         onlyOne.value = true;
         // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
         // 再オープンできるようURLのクエリを追随させる (履歴は汚さない)
@@ -159,7 +162,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
 });
 // 既存の参照箇所を最小変更で handle 経由にするための別名
 // (revision は保存フロー移行後 MapEdit 内に直接の読み書きが残らないため別名不要)
-const { uid: mapUid, confirmedSlug, adoptLoaded, performSave, saving } = saveHandle;
+const { uid: mapUid, revision, confirmedSlug, adoptLoaded, performSave, saving } = saveHandle;
 /**
  * 旧実装 defaultMap 相当: 新規作成時の初期値
  * map.js defaultMap に完全準拠
@@ -460,6 +463,16 @@ const markHistorySaved = () => {
     if (historyStack.value) historyStack.value.save();
 };
 
+const draftLifecycle = useAssetDraftLifecycle<MapEditHistoryState>({
+    kind: 'map',
+    serialize: captureHistoryState,
+    apply: restoreHistoryState,
+    onRestored: () => {
+        initializeHistoryStack();
+        historyStack.value?.markDirty();
+    },
+});
+
 const scheduleHistorySnapshot = () => {
     if (historyTimer) clearTimeout(historyTimer);
     historyTimer = setTimeout(() => {
@@ -685,6 +698,11 @@ watch(
     [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer],
     scheduleHistorySnapshot,
     { deep: true }
+);
+watch(
+    [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer],
+    () => nextTick(() => draftLifecycle.schedule(isDirty.value)),
+    { deep: true, flush: 'post' }
 );
 
 // slug(mapID欄)の編集を検知して一意性再チェックを要求する (ADR-0007)。
@@ -1539,6 +1557,13 @@ onMounted(async () => {
     // tinObjects: メインレイヤー + サブマップ分 の undefined で初期化（旧実装: vueMap.tinObjects = [...]）
     tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
     initializeHistoryStack();
+    const draftUid = uid && uid !== 'new'
+        ? uid
+        : (typeof route.query.draftUid === 'string' ? route.query.draftUid : crypto.randomUUID());
+    if (isNew && route.query.draftUid !== draftUid) {
+        await router.replace({ query: { ...route.query, draftUid } });
+    }
+    await draftLifecycle.open(draftUid, revision.value ?? null);
     window.addEventListener('keydown', onHistoryKeydown);
     removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
 
@@ -2916,22 +2941,19 @@ const uploadCsv = async () => {
 };
 
 const goBack = async () => {
-    if (isDirty.value) {
-        const response = await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK', 'Cancel'],
-            cancelId: 1,
-            message: t('mapedit.confirm_no_save')
-        });
-        if (response.response !== 0) return;
-    }
-    router.push({ name: 'MapList' });
+    await draftLifecycle.flush();
+    await router.push({ name: 'MapList' });
 };
 
 </script>
 
 <template>
     <div class="d-flex flex-column h-100 text-start">
+        <DraftConflictDialog
+            :visible="!!draftLifecycle.conflictDraft.value"
+            @discard="draftLifecycle.resolveConflict('discard')"
+            @apply="draftLifecycle.resolveConflict('apply')"
+        />
 
         <!-- ProgressModal: 旧実装の #staticModal 相当 -->
         <ProgressModal

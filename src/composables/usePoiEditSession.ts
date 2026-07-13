@@ -28,6 +28,7 @@ export interface PoiEditSession {
   canUndo: ComputedRef<boolean>;
   canRedo: ComputedRef<boolean>;
   load(detail: { slug: string; title: LangResource; fc: PoiEditorFC }): void;
+  reset(state: PoiEditState, restoredDraft?: boolean): void;
   /** 仕様 §5 の 1 Undo 単位 = commit 1 回。draft は state の shallow copy (features は新配列)。
    * mutate 内で feature を変更する場合は clone してから書くこと (未変更 feature は共有のまま)。
    * slug/title/layerMeta の変更は値・オブジェクトごと差し替えで書く。 */
@@ -87,6 +88,18 @@ export function usePoiEditSession(): PoiEditSession {
     return stack ? stack.canRedo() : false;
   });
 
+  const reset = (state: PoiEditState, restoredDraft = false): void => {
+    stack = new UndoStack<PoiEditState>({
+      ...state,
+      title: structuredClone(state.title),
+      features: state.features.slice(),
+      layerMeta: structuredClone(state.layerMeta),
+    });
+    if (restoredDraft) stack.markDirty();
+    selectedUid.value = null;
+    touch();
+  };
+
   const load = (detail: {
     slug: string;
     title: LangResource;
@@ -94,14 +107,12 @@ export function usePoiEditSession(): PoiEditSession {
   }): void => {
     const { features, type: _type, ...rest } = detail.fc;
     void _type;
-    stack = new UndoStack<PoiEditState>({
+    reset({
       slug: detail.slug,
       title: detail.title,
       features: features.slice(),
       layerMeta: rest as Record<string, unknown>,
     });
-    selectedUid.value = null;
-    touch();
   };
 
   const requireStack = (): UndoStack<PoiEditState> => {
@@ -204,6 +215,7 @@ export function usePoiEditSession(): PoiEditSession {
     canUndo,
     canRedo,
     load,
+    reset,
     commit,
     addFeature,
     removeFeature,

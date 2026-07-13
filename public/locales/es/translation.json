@@ -777,6 +777,8 @@
     "back": "Volver a la lista",
     "translations": "Traducciones disponibles",
     "save_state": {"dirty": "Sin guardar ●", "saving": "Guardando…", "saved": "Guardado", "draft_restored": "Borrador restaurado"},
-    "slug_state": {"checking": "Comprobando…", "available": "Disponible", "taken": "Ya está en uso", "unavailable": "No se pudo comprobar"}
+    "slug_state": {"checking": "Comprobando…", "available": "Disponible", "taken": "Ya está en uso", "unavailable": "No se pudo comprobar"},
+    "draft_badge": "Borrador",
+    "draft_conflict": {"title": "El borrador difiere de la versión guardada", "message": "La versión guardada cambió después de crear el borrador.", "discard": "Descartar borrador y abrir la última", "apply": "Aplicar borrador"}
   }
 }

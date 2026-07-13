@@ -777,6 +777,8 @@
     "back": "返回列表",
     "translations": "已有翻譯",
     "save_state": {"dirty": "尚未儲存 ●", "saving": "儲存中…", "saved": "已儲存", "draft_restored": "已還原草稿"},
-    "slug_state": {"checking": "檢查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "無法確認"}
+    "slug_state": {"checking": "檢查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "無法確認"},
+    "draft_badge": "草稿",
+    "draft_conflict": {"title": "草稿與已儲存版本不同", "message": "建立草稿後，已儲存版本已更新。", "discard": "捨棄草稿並開啟最新版本", "apply": "套用草稿"}
   }
 }

@@ -202,6 +202,45 @@ try {
   assert.match(lifecycleSource, /decideDraftRestore/);
   assert.match(lifecycleSource, /conflictDraft/);
   console.log('  [8/8] Vue lifecycle wraps restore and beforeunload safely: PASS');
+
+  const conflictDialog = await readFile(
+    path.join(projectRoot, 'src/components/editor-ui/DraftConflictDialog.vue'),
+    'utf8',
+  );
+  assert.match(conflictDialog, /emit\('discard'\)/);
+  assert.match(conflictDialog, /emit\('apply'\)/);
+  assert.match(conflictDialog, /editor_ui\.draft_conflict/);
+  for (const viewName of ['MapEdit.vue', 'AppEdit.vue', 'PoiEdit.vue']) {
+    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
+    assert.match(source, /useAssetDraftLifecycle/, `${viewName}: draft lifecycle missing`);
+    assert.match(source, /DraftConflictDialog/, `${viewName}: conflict dialog missing`);
+    assert.match(source, /draftLifecycle\.open/, `${viewName}: draft open missing`);
+    assert.match(source, /draftLifecycle\.schedule/, `${viewName}: throttled schedule missing`);
+    assert.match(source, /draftLifecycle\.flush\(\)/, `${viewName}: hot-exit flush missing`);
+    assert.match(source, /draftLifecycle\.markSaved\(\)/, `${viewName}: save cleanup missing`);
+  }
+  const mapView = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
+  const appView = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
+  const poiView = await readFile(path.join(projectRoot, 'src/views/PoiEdit.vue'), 'utf8');
+  for (const [name, source] of [['MapEdit', mapView], ['AppEdit', appView], ['PoiEdit', poiView]]) {
+    const start = Math.max(source.indexOf('const goBack = async'), source.indexOf('async function goBack'));
+    const end = source.indexOf('router.push', start);
+    const goBack = start >= 0 && end >= 0 ? source.slice(start, end + 'router.push'.length) : '';
+    assert.ok(goBack, `${name}: goBack block missing`);
+    assert.doesNotMatch(goBack, /showMessageBox/, `${name}: dirty leave confirmation must be removed`);
+  }
+  const poiSession = await readFile(
+    path.join(projectRoot, 'src/composables/usePoiEditSession.ts'),
+    'utf8',
+  );
+  assert.match(poiSession, /const reset = \(state: PoiEditState, restoredDraft = false\)/);
+  assert.match(poiSession, /\breset,/);
+  const { UndoStack } = await importSource('src/services/editorUndoStack.ts', 'draftUndoStack.mjs');
+  const restoredHistory = new UndoStack({ value: 'draft' });
+  restoredHistory.markDirty();
+  assert.equal(restoredHistory.isDirty(), true, 'restored draft must remain saveable after history reset');
+  assert.equal(restoredHistory.canUndo(), false, 'restored draft must not resurrect pre-exit undo history');
+  console.log('  [9/9] Map/App/POI adapters use common hot-exit lifecycle: PASS');
   console.log('M11-T2 asset draft smoke passed');
 } catch (error) {
   console.error('M11-T2 asset draft smoke FAILED:', error.stack ?? error.message);

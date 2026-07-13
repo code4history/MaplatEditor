@@ -61,6 +61,10 @@ export class UndoStack<T> {
     this.basePointer = this.pointer;
   }
 
+  markDirty(): void {
+    this.basePointer = null;
+  }
+
   snapshot(): UndoStackSnapshot<T> {
     return {
       history: this.history.slice(),

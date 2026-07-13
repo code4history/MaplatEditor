@@ -777,6 +777,8 @@
     "back": "一覧へ",
     "translations": "翻訳済み言語",
     "save_state": {"dirty": "未保存 ●", "saving": "保存中…", "saved": "保存済み", "draft_restored": "下書きから復元"},
-    "slug_state": {"checking": "確認中…", "available": "使用できます", "taken": "既に使用されています", "unavailable": "確認できません"}
+    "slug_state": {"checking": "確認中…", "available": "使用できます", "taken": "既に使用されています", "unavailable": "確認できません"},
+    "draft_badge": "下書き",
+    "draft_conflict": {"title": "下書きと保存済み版が異なります", "message": "下書きの作成後に保存済み版が更新されています。開く内容を選んでください。", "discard": "下書きを破棄して最新を開く", "apply": "下書きを適用する"}
   }
 }

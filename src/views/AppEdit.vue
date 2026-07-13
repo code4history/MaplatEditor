@@ -10,6 +10,7 @@ import gsiOrthoThumb from "../assets/img/gsi_ortho.png";
 import { UndoStack } from "../services/editorUndoStack";
 import AppSourceEditor from "../components/AppSourceEditor.vue";
 import PoiReferenceEditor from "../components/PoiReferenceEditor.vue";
+import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
@@ -21,6 +22,7 @@ import {
   type AppSource as SharedAppSource,
 } from "../utils/appSourceModel";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
+import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import type { AppSaveResult } from "../electron";
 
 import { LANGS_MAP, LANG_CODES, resolveEditorLanguage, type LangCode } from "../utils/editorLanguages";
@@ -198,6 +200,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     appIDError.value = "";
     await hydrateSourceThumbnails();
     markHistorySaved();
+    await draftLifecycle.markSaved();
     // 新規作成でuidが確定した場合、リロード時に正しいアプリを再オープンできるよう
     // URLのクエリを追随させる (履歴は汚さない)
     if (route.query.uid !== result.uid) {
@@ -225,7 +228,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     get overwrite() { return t("common.overwrite"); },
   },
 });
-const { uid: appUid, confirmedSlug, performSave, saving } = saveHandle;
+const { uid: appUid, revision, confirmedSlug, performSave, saving } = saveHandle;
 // onlyOne: slugの一意性確認済みか (ADR-0007: appID欄は既存アプリでも編集可のslug欄)
 const onlyOne = ref(false);
 const appIDError = ref("appedit.check_uniqueness");
@@ -247,6 +250,19 @@ const displayTitle = computed(() => localized(appData.value.title) || localized(
 const isDirty = computed(() => historyStack.value?.isDirty() ?? false);
 const canUndo = computed(() => historyStack.value?.canUndo() ?? false);
 const canRedo = computed(() => historyStack.value?.canRedo() ?? false);
+const draftLifecycle = useAssetDraftLifecycle<AppDocument>({
+  kind: "app",
+  serialize: () => cloneDocument(appData.value),
+  apply: (payload) => {
+    appData.value = normalizeAppDocument(payload);
+    currentLang.value = appData.value.lang;
+  },
+  onRestored: async () => {
+    resetHistoryBase();
+    historyStack.value?.markDirty();
+    await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
+  },
+});
 const isDefaultLang = computed({
   get: () => appData.value.lang === currentLang.value,
   set: (checked: boolean) => {
@@ -299,8 +315,19 @@ onMounted(async () => {
   currentLang.value = appData.value.lang;
   await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   resetHistoryBase();
+  const draftUid = uid || (typeof route.query.draftUid === "string" ? route.query.draftUid : crypto.randomUUID());
+  if (!uid && route.query.draftUid !== draftUid) {
+    await router.replace({ query: { ...route.query, draftUid } });
+  }
+  await draftLifecycle.open(draftUid, revision.value ?? null);
   await Promise.all([loadMaps(), loadBaseMaps()]);
 });
+
+watch(
+  appData,
+  () => nextTick(() => draftLifecycle.schedule(isDirty.value)),
+  { deep: true, flush: "post" },
+);
 
 const splashPreviewUrl = ref<string | null>(null);
 const iconPreviewUrl = ref<string | null>(null);
@@ -557,17 +584,8 @@ function localizedWithLang(value: any, lang: string): string {
 }
 
 async function goBack() {
-  // 地図編集と同様、未保存の変更があれば確認ダイアログを出す
-  if (isDirty.value) {
-    const response = await (window as any).dialog.showMessageBox({
-      type: "info",
-      buttons: ["OK", "Cancel"],
-      cancelId: 1,
-      message: t("appedit.confirm_no_save"),
-    });
-    if (response.response !== 0) return;
-  }
-  router.push("/applist");
+  await draftLifecycle.flush();
+  await router.push("/applist");
 }
 
 function resetHistoryBase() {
@@ -895,6 +913,11 @@ function onPoisChange(next: unknown[]) {
 
 <template>
   <div class="d-flex flex-column h-100 text-start">
+    <DraftConflictDialog
+      :visible="!!draftLifecycle.conflictDraft.value"
+      @discard="draftLifecycle.resolveConflict('discard')"
+      @apply="draftLifecycle.resolveConflict('apply')"
+    />
     <div class="px-4 py-3 pb-0 d-flex align-items-center flex-shrink-0 bg-white">
       <div class="row w-100 align-items-center g-2">
         <div class="col-5 d-flex align-items-center gap-2">

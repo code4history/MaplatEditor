@@ -777,6 +777,8 @@
     "back": "返回列表",
     "translations": "已有翻译",
     "save_state": {"dirty": "未保存 ●", "saving": "保存中…", "saved": "已保存", "draft_restored": "已恢复草稿"},
-    "slug_state": {"checking": "检查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "无法确认"}
+    "slug_state": {"checking": "检查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "无法确认"},
+    "draft_badge": "草稿",
+    "draft_conflict": {"title": "草稿与已保存版本不同", "message": "创建草稿后，已保存版本发生了更新。", "discard": "丢弃草稿并打开最新版本", "apply": "应用草稿"}
   }
 }

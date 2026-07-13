@@ -777,6 +777,8 @@
     "back": "Retour à la liste",
     "translations": "Traductions disponibles",
     "save_state": {"dirty": "Non enregistré ●", "saving": "Enregistrement…", "saved": "Enregistré", "draft_restored": "Brouillon restauré"},
-    "slug_state": {"checking": "Vérification…", "available": "Disponible", "taken": "Déjà utilisé", "unavailable": "Vérification impossible"}
+    "slug_state": {"checking": "Vérification…", "available": "Disponible", "taken": "Déjà utilisé", "unavailable": "Vérification impossible"},
+    "draft_badge": "Brouillon",
+    "draft_conflict": {"title": "Le brouillon diffère de la version enregistrée", "message": "La version enregistrée a changé après la création du brouillon.", "discard": "Supprimer le brouillon et ouvrir la dernière version", "apply": "Appliquer le brouillon"}
   }
 }

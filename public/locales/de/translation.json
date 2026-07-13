@@ -777,6 +777,8 @@
     "back": "Zurück zur Liste",
     "translations": "Verfügbare Übersetzungen",
     "save_state": {"dirty": "Ungespeichert ●", "saving": "Speichern…", "saved": "Gespeichert", "draft_restored": "Entwurf wiederhergestellt"},
-    "slug_state": {"checking": "Wird geprüft…", "available": "Verfügbar", "taken": "Bereits verwendet", "unavailable": "Prüfung nicht möglich"}
+    "slug_state": {"checking": "Wird geprüft…", "available": "Verfügbar", "taken": "Bereits verwendet", "unavailable": "Prüfung nicht möglich"},
+    "draft_badge": "Entwurf",
+    "draft_conflict": {"title": "Entwurf und gespeicherte Version unterscheiden sich", "message": "Die gespeicherte Version wurde nach Erstellung des Entwurfs geändert.", "discard": "Entwurf verwerfen und neueste öffnen", "apply": "Entwurf anwenden"}
   }
 }

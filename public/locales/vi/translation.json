@@ -777,6 +777,8 @@
     "back": "Về danh sách",
     "translations": "Bản dịch hiện có",
     "save_state": {"dirty": "Chưa lưu ●", "saving": "Đang lưu…", "saved": "Đã lưu", "draft_restored": "Đã khôi phục bản nháp"},
-    "slug_state": {"checking": "Đang kiểm tra…", "available": "Có thể sử dụng", "taken": "Đã được sử dụng", "unavailable": "Không thể kiểm tra"}
+    "slug_state": {"checking": "Đang kiểm tra…", "available": "Có thể sử dụng", "taken": "Đã được sử dụng", "unavailable": "Không thể kiểm tra"},
+    "draft_badge": "Bản nháp",
+    "draft_conflict": {"title": "Bản nháp khác với bản đã lưu", "message": "Bản đã lưu đã thay đổi sau khi tạo bản nháp.", "discard": "Bỏ bản nháp và mở bản mới nhất", "apply": "Áp dụng bản nháp"}
   }
 }

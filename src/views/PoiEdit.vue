@@ -1,5 +1,10 @@
 <template>
   <div class="d-flex flex-column h-100 text-start position-relative">
+    <DraftConflictDialog
+      :visible="!!draftLifecycle.conflictDraft.value"
+      @discard="draftLifecycle.resolveConflict('discard')"
+      @apply="draftLifecycle.resolveConflict('apply')"
+    />
     <!-- Loading -->
     <div v-if="loading" class="text-muted text-center py-4">
       {{ t("poisource.loading") }}
@@ -201,12 +206,14 @@ import PoiAttributeForm from "../components/PoiAttributeForm.vue";
 import PoiEditMap from "../components/PoiEditMap.vue";
 import PoiFeatureList from "../components/PoiFeatureList.vue";
 import PoiRawPane from "../components/PoiRawPane.vue";
+import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import {
   usePoiEditSession,
   type PoiEditSession,
   type PoiEditState,
 } from "../composables/usePoiEditSession";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
+import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
@@ -260,6 +267,22 @@ const slugChecked = ref(false);
 const slugAvailable = ref(false);
 let slugCheckToken = 0;
 
+const draftLifecycle = useAssetDraftLifecycle<PoiEditState>({
+  kind: "poi",
+  serialize: () => {
+    if (!editState.value) throw new Error("POI draft requested before load");
+    return structuredClone(editState.value);
+  },
+  apply: (payload) => {
+    session.reset(payload, true);
+    slugInput.value = payload.slug;
+  },
+  onRestored: async () => {
+    await nextTick();
+    mapPane.value?.fitInitialView();
+  },
+});
+
 // --- 保存フロー (revision 楽観ロック → conflict は composable が担う) ---
 // saveSource が捕捉した送信内容 (snapshot) を send クロージャへ渡す一時変数 (MapEdit の
 // pendingSave と同パターン)。保存中の編集で editState が差し替わっても、send (revision-conflict
@@ -287,6 +310,7 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     // 場合のみ。編集が入っていたら isDirty のまま残して再保存を促す
     if (editState.value === pendingSave!.capturedState) {
       session.markSaved();
+      await draftLifecycle.markSaved();
     }
     saveIssues.value = [];
     saveError.value = null;
@@ -411,6 +435,7 @@ async function load(sourceId: string): Promise<void> {
     slugChecked.value = false;
     slugAvailable.value = false;
     slugCheckToken++;
+    await draftLifecycle.open(detail.uid, detail.revision);
   } catch (e) {
     console.error("[PoiEdit] Failed to load POI source:", e);
     loadError.value = t("poisource.errors.internal");
@@ -493,6 +518,11 @@ watch(
       onSlugInput();
     }
   },
+);
+watch(
+  editState,
+  () => draftLifecycle.schedule(isDirty.value),
+  { deep: true, flush: "post" },
 );
 
 // --- 保存 ---
@@ -641,16 +671,8 @@ const onMainProcessMessage = (message: string) => {
 
 // --- 離脱確認 (goBack ボタン方式、ルートガードは使わない) ---
 async function goBack(): Promise<void> {
-  if (isDirty.value) {
-    const response = await (window as any).dialog.showMessageBox({
-      type: "info",
-      buttons: ["OK", "Cancel"],
-      cancelId: 1,
-      message: t("poiedit.confirm_no_save"),
-    });
-    if (response.response !== 0) return;
-  }
-  router.push("/poisources");
+  await draftLifecycle.flush();
+  await router.push("/poisources");
 }
 
 onMounted(() => {
