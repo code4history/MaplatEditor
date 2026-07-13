@@ -772,5 +772,11 @@
       "pick_failed": "Could not pick a file",
       "references_unavailable": "Could not retrieve reference information"
     }
+  },
+  "editor_ui": {
+    "back": "Back to list",
+    "translations": "Available translations",
+    "save_state": {"dirty": "Unsaved ●", "saving": "Saving…", "saved": "Saved", "draft_restored": "Draft restored"},
+    "slug_state": {"checking": "Checking…", "available": "Available", "taken": "Already in use", "unavailable": "Could not verify"}
   }
 }

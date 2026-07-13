@@ -772,5 +772,11 @@
       "pick_failed": "파일을 선택할 수 없습니다",
       "references_unavailable": "참조 정보를 가져올 수 없습니다"
     }
+  },
+  "editor_ui": {
+    "back": "목록으로",
+    "translations": "사용 가능한 번역",
+    "save_state": {"dirty": "저장되지 않음 ●", "saving": "저장 중…", "saved": "저장됨", "draft_restored": "초안 복원됨"},
+    "slug_state": {"checking": "확인 중…", "available": "사용 가능", "taken": "이미 사용 중", "unavailable": "확인할 수 없음"}
   }
 }

@@ -772,5 +772,11 @@
       "pick_failed": "Không thể chọn tệp",
       "references_unavailable": "Không thể lấy thông tin tham chiếu"
     }
+  },
+  "editor_ui": {
+    "back": "Về danh sách",
+    "translations": "Bản dịch hiện có",
+    "save_state": {"dirty": "Chưa lưu ●", "saving": "Đang lưu…", "saved": "Đã lưu", "draft_restored": "Đã khôi phục bản nháp"},
+    "slug_state": {"checking": "Đang kiểm tra…", "available": "Có thể sử dụng", "taken": "Đã được sử dụng", "unavailable": "Không thể kiểm tra"}
   }
 }

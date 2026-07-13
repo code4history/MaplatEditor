@@ -772,5 +772,11 @@
       "pick_failed": "No se pudo seleccionar el archivo",
       "references_unavailable": "No se pudo obtener la información de referencias"
     }
+  },
+  "editor_ui": {
+    "back": "Volver a la lista",
+    "translations": "Traducciones disponibles",
+    "save_state": {"dirty": "Sin guardar ●", "saving": "Guardando…", "saved": "Guardado", "draft_restored": "Borrador restaurado"},
+    "slug_state": {"checking": "Comprobando…", "available": "Disponible", "taken": "Ya está en uso", "unavailable": "No se pudo comprobar"}
   }
 }

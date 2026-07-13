@@ -772,5 +772,11 @@
       "pick_failed": "無法選擇檔案",
       "references_unavailable": "無法取得引用資訊"
     }
+  },
+  "editor_ui": {
+    "back": "返回列表",
+    "translations": "已有翻譯",
+    "save_state": {"dirty": "尚未儲存 ●", "saving": "儲存中…", "saved": "已儲存", "draft_restored": "已還原草稿"},
+    "slug_state": {"checking": "檢查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "無法確認"}
   }
 }

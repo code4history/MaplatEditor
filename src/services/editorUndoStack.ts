@@ -3,13 +3,13 @@ const MAX_HISTORY = 100;
 export interface UndoStackSnapshot<T> {
   history: T[];
   pointer: number;
-  basePointer: number;
+  basePointer: number | null;
 }
 
 export class UndoStack<T> {
   private history: T[];
   private pointer: number;
-  private basePointer: number;
+  private basePointer: number | null;
 
   constructor(initial: T) {
     this.history = [initial];
@@ -28,7 +28,10 @@ export class UndoStack<T> {
     if (this.history.length > MAX_HISTORY + 1) {
       const dropped = this.history.length - (MAX_HISTORY + 1);
       this.history = this.history.slice(dropped);
-      this.basePointer = Math.max(0, this.basePointer - dropped);
+      this.basePointer =
+        this.basePointer === null || this.basePointer < dropped
+          ? null
+          : this.basePointer - dropped;
     }
 
     this.pointer = this.history.length - 1;
@@ -51,13 +54,11 @@ export class UndoStack<T> {
   }
 
   isDirty(): boolean {
-    return this.pointer !== this.basePointer;
+    return this.basePointer === null || this.pointer !== this.basePointer;
   }
 
   save(): void {
-    this.history = [this.history[this.pointer] as T];
-    this.pointer = 0;
-    this.basePointer = 0;
+    this.basePointer = this.pointer;
   }
 
   snapshot(): UndoStackSnapshot<T> {

@@ -772,5 +772,11 @@
       "pick_failed": "ファイルを選択できませんでした",
       "references_unavailable": "参照情報を取得できませんでした"
     }
+  },
+  "editor_ui": {
+    "back": "一覧へ",
+    "translations": "翻訳済み言語",
+    "save_state": {"dirty": "未保存 ●", "saving": "保存中…", "saved": "保存済み", "draft_restored": "下書きから復元"},
+    "slug_state": {"checking": "確認中…", "available": "使用できます", "taken": "既に使用されています", "unavailable": "確認できません"}
   }
 }

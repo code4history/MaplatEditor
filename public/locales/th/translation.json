@@ -772,5 +772,11 @@
       "pick_failed": "ไม่สามารถเลือกไฟล์ได้",
       "references_unavailable": "ไม่สามารถดึงข้อมูลการอ้างอิงได้"
     }
+  },
+  "editor_ui": {
+    "back": "กลับไปที่รายการ",
+    "translations": "คำแปลที่มีอยู่",
+    "save_state": {"dirty": "ยังไม่ได้บันทึก ●", "saving": "กำลังบันทึก…", "saved": "บันทึกแล้ว", "draft_restored": "กู้คืนฉบับร่างแล้ว"},
+    "slug_state": {"checking": "กำลังตรวจสอบ…", "available": "ใช้ได้", "taken": "ถูกใช้แล้ว", "unavailable": "ตรวจสอบไม่ได้"}
   }
 }

@@ -772,5 +772,11 @@
       "pick_failed": "Datei konnte nicht ausgewählt werden",
       "references_unavailable": "Referenzinformationen konnten nicht abgerufen werden"
     }
+  },
+  "editor_ui": {
+    "back": "Zurück zur Liste",
+    "translations": "Verfügbare Übersetzungen",
+    "save_state": {"dirty": "Ungespeichert ●", "saving": "Speichern…", "saved": "Gespeichert", "draft_restored": "Entwurf wiederhergestellt"},
+    "slug_state": {"checking": "Wird geprüft…", "available": "Verfügbar", "taken": "Bereits verwendet", "unavailable": "Prüfung nicht möglich"}
   }
 }
