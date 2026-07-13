@@ -1,5 +1,10 @@
 <template>
   <div class="container-fluid p-3">
+    <DraftConflictDialog
+      :visible="!!modalDraftLifecycle.conflictDraft.value"
+      @discard="modalDraftLifecycle.resolveConflict('discard')"
+      @apply="modalDraftLifecycle.resolveConflict('apply')"
+    />
     <!-- Controls Row -->
     <div class="row mb-3 gx-2 align-items-center">
       <div class="col-auto">
@@ -50,7 +55,10 @@
                 <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="basemap-icon" loading="lazy" decoding="async" :alt="item.mapID">
                 <span v-else class="text-muted">-</span>
               </td>
-              <td class="text-break">{{ item.mapID }}</td>
+              <td class="text-break">
+                {{ item.mapID }}
+                <span v-if="hasDraft(item.uid)" class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span>
+              </td>
               <td class="text-break">{{ item.data.title }}</td>
               <td class="text-break"><small>{{ item.data.url }}</small></td>
               <td><small>{{ coverageLabel(item.data) }}</small></td>
@@ -244,22 +252,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
+import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import { envelopeToBbox } from "../utils/appSourceModel";
+import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
+import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 
 interface BaseMapCatalogItem {
   uid: string;
   mapID: string;
   scope: "builtin" | "user";
   data: any;
+  revision: number;
   thumbnailUrl?: string | null;
   alwaysVisible: boolean;
   alwaysLocked: boolean;
 }
 
 const { t } = useTranslation();
+const { hasDraft, refreshDrafts } = useAssetDraftBadges('base-map');
 
 const items = ref<BaseMapCatalogItem[]>([]);
 const loading = ref(false);
@@ -290,6 +303,12 @@ const form = ref({
   coverageLngLats: null as [number, number][] | null,
 });
 const formThumbnailUrl = ref<string | null>(null);
+const modalDraftReady = ref(false);
+const modalDraftLifecycle = useAssetDraftLifecycle<typeof form.value>({
+  kind: 'base-map',
+  serialize: () => JSON.parse(JSON.stringify(form.value)),
+  apply: (payload) => { form.value = JSON.parse(JSON.stringify(payload)); },
+});
 
 function coverageLabel(data: any): string {
   const bbox = envelopeToBbox(data?.coverageLngLats);
@@ -302,6 +321,7 @@ const loadBaseMaps = async () => {
   error.value = "";
   try {
     items.value = await window.baseMaps.list();
+    await refreshDrafts();
   } catch (e) {
     console.error("Failed to load base maps", e);
     error.value = t("basemap.errors.load_failed");
@@ -314,16 +334,20 @@ onMounted(() => {
   loadBaseMaps();
 });
 
-const openAddModal = () => {
+const openAddModal = async () => {
+  modalDraftReady.value = false;
   editingUid.value = null;
   originalMapID.value = "";
   form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", coverageLngLats: null };
   formThumbnailUrl.value = null;
   formError.value = "";
   showModal.value = true;
+  await modalDraftLifecycle.open(crypto.randomUUID(), null);
+  modalDraftReady.value = true;
 };
 
-const openEditModal = (item: BaseMapCatalogItem) => {
+const openEditModal = async (item: BaseMapCatalogItem) => {
+  modalDraftReady.value = false;
   editingUid.value = item.uid;
   originalMapID.value = item.mapID;
   form.value = {
@@ -341,11 +365,19 @@ const openEditModal = (item: BaseMapCatalogItem) => {
   formThumbnailUrl.value = item.thumbnailUrl || null;
   formError.value = "";
   showModal.value = true;
+  await modalDraftLifecycle.open(item.uid, item.revision);
+  modalDraftReady.value = true;
 };
 
-const closeModal = () => {
+const closeModal = async () => {
+  if (modalDraftReady.value) await modalDraftLifecycle.flush();
+  modalDraftReady.value = false;
   showModal.value = false;
 };
+
+watch(form, () => {
+  if (showModal.value && modalDraftReady.value) modalDraftLifecycle.schedule(true);
+}, { deep: true, flush: 'post' });
 
 // アイコンのファイルキー: 既存ベースマップはuid(tmbs/{uid}.png)、
 // 新規はuid未採番のため入力IDの暫定名(保存時にsaveUserBaseMapがuid名へ付け替える)
@@ -489,6 +521,8 @@ const saveBaseMap = async () => {
   try {
     // uid正準の保存 (ADR-0007): 編集時はuid指定(slug変更=同一uidの付け替え)、新規はuid採番
     await window.baseMaps.saveUser({ uid: editingUid.value ?? undefined, slug, tms });
+    await modalDraftLifecycle.markSaved();
+    modalDraftReady.value = false;
     showModal.value = false;
     await loadBaseMaps();
   } catch (e) {
@@ -504,6 +538,7 @@ const deleteBaseMap = async (item: BaseMapCatalogItem) => {
   if (!confirm(t("basemap.delete_confirm", { name }))) return;
   try {
     await window.baseMaps.deleteUser(item.uid);
+    await window.assetDrafts.remove('base-map', item.uid);
     await loadBaseMaps();
   } catch (e) {
     console.error("Failed to delete base map", e);

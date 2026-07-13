@@ -215,7 +215,7 @@ export interface BaseMapSavePayload {
 }
 
 export interface BaseMapsAPI {
-    list(): Promise<Array<{ uid: string; mapID: string; scope: "builtin" | "user"; data: any; thumbnailUrl?: string | null; alwaysVisible: boolean; alwaysLocked: boolean }>>;
+    list(): Promise<Array<{ uid: string; mapID: string; scope: "builtin" | "user"; data: any; revision: number; thumbnailUrl?: string | null; alwaysVisible: boolean; alwaysLocked: boolean }>>;
     saveUser(payload: BaseMapSavePayload): Promise<{ uid: string; revision: number }>;
     deleteUser(baseMapUid: string): Promise<void>;
     setAlways(baseMapUid: string, always: boolean): Promise<void>;

@@ -241,6 +241,32 @@ try {
   assert.equal(restoredHistory.isDirty(), true, 'restored draft must remain saveable after history reset');
   assert.equal(restoredHistory.canUndo(), false, 'restored draft must not resurrect pre-exit undo history');
   console.log('  [9/9] Map/App/POI adapters use common hot-exit lifecycle: PASS');
+
+  const listKinds = {
+    'MapList.vue': 'map',
+    'AppList.vue': 'app',
+    'PoiSourceList.vue': 'poi',
+    'BaseMapList.vue': 'base-map',
+    'AssetList.vue': 'image-asset',
+  };
+  for (const [viewName, kind] of Object.entries(listKinds)) {
+    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
+    assert.match(source, new RegExp(`useAssetDraftBadges\\(['"]${kind}['"]\\)`), `${viewName}: summary kind missing`);
+    assert.match(source, /hasDraft\(/, `${viewName}: UID badge lookup missing`);
+    assert.match(source, /editor_ui\.draft_badge/, `${viewName}: translated draft badge missing`);
+    assert.match(source, /assetDrafts\.remove/, `${viewName}: asset deletion must remove orphan draft`);
+  }
+  for (const viewName of ['BaseMapList.vue', 'AssetList.vue']) {
+    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
+    assert.match(source, /useAssetDraftLifecycle/, `${viewName}: modal draft lifecycle missing`);
+    assert.match(source, /modalDraftLifecycle\.open/, `${viewName}: modal draft open missing`);
+    assert.match(source, /modalDraftLifecycle\.schedule/, `${viewName}: modal draft schedule missing`);
+    assert.match(source, /modalDraftLifecycle\.flush\(\)/, `${viewName}: modal close flush missing`);
+    assert.match(source, /modalDraftLifecycle\.markSaved\(\)/, `${viewName}: modal save cleanup missing`);
+  }
+  const sqliteSource = await readFile(path.join(projectRoot, 'electron/services/SqliteDataService.ts'), 'utf8');
+  assert.match(sqliteSource, /listBaseMaps[\s\S]*?SELECT uid, slug, scope, data_json, revision/);
+  console.log('  [10/10] Five asset lists and lightweight editors share draft badges/lifecycle: PASS');
   console.log('M11-T2 asset draft smoke passed');
 } catch (error) {
   console.error('M11-T2 asset draft smoke FAILED:', error.stack ?? error.message);

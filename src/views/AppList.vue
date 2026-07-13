@@ -41,6 +41,7 @@
             </div>
             <div class="mt-2 text-center app-title">
               <p class="mb-0 text-break">{{ app.title }}</p>
+              <span v-if="hasDraft(app.uid)" class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span>
             </div>
           </router-link>
         </div>
@@ -68,9 +69,11 @@ import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
+import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 
 const { t } = useTranslation();
 const router = useRouter();
+const { hasDraft, refreshDrafts } = useAssetDraftBadges('app');
 
 interface AppItem {
   uid: string;
@@ -91,6 +94,7 @@ const loadApps = async (page: number = 1) => {
     applist.value = result.docs;
     currentPage.value = result.pageUpdate ?? page;
     hasNext.value = result.next;
+    await refreshDrafts();
   } catch (e) {
     console.error("Failed to fetch app list", e);
   }
@@ -120,6 +124,7 @@ const deleteApp = async () => {
   try {
     // 削除もuid正準 (ADR-0007)
     const result = await window.applist.delete(uid, searchQuery.value, currentPage.value);
+    await window.assetDrafts.remove('app', uid);
     applist.value = result.docs;
     currentPage.value = result.pageUpdate ?? currentPage.value;
     hasNext.value = result.next;

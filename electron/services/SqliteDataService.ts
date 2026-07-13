@@ -1712,7 +1712,7 @@ class SqliteDataService {
     const overrides = this.alwaysOverrides(db);
     const rows = db
       .prepare(`
-        SELECT uid, slug, scope, data_json
+        SELECT uid, slug, scope, data_json, revision
         FROM base_maps
         ORDER BY CASE scope WHEN 'builtin' THEN 0 ELSE 1 END, sort_order, slug
       `)
@@ -1724,6 +1724,7 @@ class SqliteDataService {
         mapID: String(row.slug),
         scope: row.scope,
         data,
+        revision: Number(row.revision),
         alwaysVisible: this.effectiveAlways(String(row.slug), String(row.uid), data, overrides),
         alwaysLocked: FORCED_ALWAYS_BASE_MAP_IDS.has(String(row.slug)),
       };

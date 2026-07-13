@@ -1,5 +1,10 @@
 <template>
   <div class="container-fluid p-3" @click="hideContextMenu">
+    <DraftConflictDialog
+      :visible="!!modalDraftLifecycle.conflictDraft.value"
+      @discard="modalDraftLifecycle.resolveConflict('discard')"
+      @apply="modalDraftLifecycle.resolveConflict('apply')"
+    />
     <!-- Controls Row -->
     <div class="row mb-3 gx-2 align-items-center">
       <div class="col-auto">
@@ -57,6 +62,7 @@
           </div>
           <div class="card-body py-2 px-3">
             <p class="mb-1 fw-medium text-break" style="font-size: 14px;">{{ localizeAssetTitle(asset) }}</p>
+            <span v-if="hasDraft(asset.uid)" class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span>
             <small class="text-muted d-block text-break">{{ asset.slug }}</small>
             <small class="text-muted d-block">{{ formatMeta(asset) }}</small>
           </div>
@@ -154,8 +160,11 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from "vue"
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import noImage from "../assets/img/no_image.png";
+import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
 import { useAssetThumbnails } from "../composables/useAssetThumbnails";
+import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
+import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import type {
   ImageAssetRow,
   ImageAssetSaveResult,
@@ -163,6 +172,7 @@ import type {
 } from "../electron";
 
 const { t } = useTranslation();
+const { hasDraft, refreshDrafts } = useAssetDraftBadges('image-asset');
 
 const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
 
@@ -233,6 +243,7 @@ const deleteAsset = async () => {
   if (!confirm(message)) return;
   try {
     await window.imageAssets.delete(row.uid);
+    await window.assetDrafts.remove('image-asset', row.uid);
     await loadAssets();
   } catch (e) {
     console.error("Failed to delete image asset", e);
@@ -258,6 +269,25 @@ const modal = reactive({
 });
 // rename 時に他言語エントリを保持するため、編集前の title 内部形を控えておく
 let renameOriginalTitle: Record<string, string> = {};
+interface ImageAssetMetadataDraft {
+  slug: string;
+  title: string;
+  originalTitle: Record<string, string>;
+}
+const modalDraftReady = ref(false);
+const modalDraftLifecycle = useAssetDraftLifecycle<ImageAssetMetadataDraft>({
+  kind: 'image-asset',
+  serialize: () => ({
+    slug: modal.slug,
+    title: modal.title,
+    originalTitle: { ...renameOriginalTitle },
+  }),
+  apply: (payload) => {
+    modal.slug = payload.slug;
+    modal.title = payload.title;
+    renameOriginalTitle = { ...payload.originalTitle };
+  },
+});
 
 const slugChecked = ref(false);
 const slugAvailable = ref(false);
@@ -310,7 +340,9 @@ const resetModal = () => {
   slugCheckToken++;
 };
 
-const closeModal = () => {
+const closeModal = async () => {
+  if (modalDraftReady.value) await modalDraftLifecycle.flush();
+  modalDraftReady.value = false;
   modal.mode = null;
   resetModal();
 };
@@ -389,7 +421,7 @@ const openAdd = async () => {
   }
 };
 
-const openRename = () => {
+const openRename = async () => {
   const row = contextRow.value;
   hideContextMenu();
   if (!row) return;
@@ -403,7 +435,17 @@ const openRename = () => {
   modal.slugEdited = true;
   renameOriginalTitle = { ...row.title };
   checkSlug();
+  await modalDraftLifecycle.open(row.uid, row.revision);
+  modalDraftReady.value = true;
 };
+
+watch(
+  () => [modal.slug, modal.title],
+  () => {
+    if (modal.mode === 'rename' && modalDraftReady.value) modalDraftLifecycle.schedule(true);
+  },
+  { flush: 'post' },
+);
 
 // localizeTitle の解決優先順位 (現在言語 → basename → ja → en → 任意) と同じ順序で
 // 「表示に使われた言語キー」を求める。rename の編集値はこのキーへ書き戻し、他言語は保持する
@@ -431,8 +473,11 @@ const handleSaveResult = async (result: ImageAssetSaveResult): Promise<void> => 
   }
   switch (result.result) {
     case "Success":
-      closeModal();
+      if (modal.mode === 'rename') await modalDraftLifecycle.markSaved();
+      modalDraftReady.value = false;
+      await closeModal();
       await loadAssets();
+      await refreshDrafts();
       return;
     case "Exist":
       modal.feedback = t("assetlist.errors.slug_taken");
@@ -511,6 +556,7 @@ const onKeyDown = (e: KeyboardEvent) => {
 
 onMounted(() => {
   loadAssets();
+  refreshDrafts();
   window.addEventListener("keydown", onKeyDown);
 });
 onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown));

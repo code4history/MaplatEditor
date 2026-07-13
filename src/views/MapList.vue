@@ -65,6 +65,7 @@
             <!-- Title container -->
             <div class="mt-2 text-center" style="width: 190px; min-height: 3em;">
               <p class="mb-0 text-break" style="font-size: 14px; line-height: 1.4;">{{ map.title }}</p>
+              <span v-if="hasDraft(map.uid)" class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span>
             </div>
           </router-link>
         </div>
@@ -93,9 +94,11 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
+import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 
 const { t } = useTranslation();
 const router = useRouter();
+const { hasDraft, refreshDrafts } = useAssetDraftBadges('map');
 
 interface MapItem {
   mapID: string;
@@ -128,6 +131,7 @@ const loadMaps = async (page: number = 1) => {
     // pageUpdate: 最終ページ全削除時にバックエンドが調整したページ番号
     currentPage.value = result.pageUpdate ?? page;
     hasNext.value = result.next;
+    await refreshDrafts();
   } catch (e) {
     console.error("Failed to fetch map list", e);
   }
@@ -185,6 +189,7 @@ const deleteMap = async () => {
   try {
     // 削除もuid正準 (ADR-0007)
     const result = await (window as any).maplist.delete(uid, searchQuery.value, currentPage.value);
+    await window.assetDrafts.remove('map', uid);
     maplist.value = result.docs;
     currentPage.value = result.pageUpdate ?? currentPage.value;
     hasNext.value = result.next;

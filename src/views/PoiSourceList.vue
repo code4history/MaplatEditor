@@ -66,6 +66,7 @@
                 <span class="badge" :class="source.mode === 'local' ? 'bg-primary' : 'bg-info'">
                   {{ source.mode === 'local' ? t("poisource.local") : t("poisource.remote") }}
                 </span>
+                <span v-if="hasDraft(source.uid)" class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span>
               </div>
               <p class="mb-1 fw-medium text-break" style="font-size: 14px;">{{ localizeTitle(source) }}</p>
               <small class="text-muted d-block text-break">{{ source.slug }}</small>
@@ -182,6 +183,7 @@ import { useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import { usePoiSourceList, type PoiSourceListRow } from "../composables/usePoiSourceList";
+import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
 import { ERROR_CODE_KEYS, issueMessage as resolveIssueMessage } from "../utils/poiSourceMessages";
 import type {
@@ -192,6 +194,7 @@ import type {
 
 const { t } = useTranslation();
 const router = useRouter();
+const { hasDraft, refreshDrafts } = useAssetDraftBadges('poi');
 
 // リモート登録 UI の抑制フラグ (ユーザー決定 2026-07-11)。望む形式のリモート POI データが
 // 実在せず、htmlTemplate 対応 (POI-007/109) までは実用にならないため UI のみ隠す。
@@ -262,6 +265,7 @@ const deleteSource = async () => {
     // 削除前の状態でページ末尾の最後の1件かどうかを判定し、削除後に空ページへ残らないようにする
     const wasLastItemOnPage = items.value.length === 1 && hasPrev.value;
     await window.poiSources.delete(uid);
+    await window.assetDrafts.remove('poi', uid);
     if (wasLastItemOnPage) {
       await loadSources(currentPage.value - 1);
     } else {
@@ -537,6 +541,7 @@ const onKeyDown = (e: KeyboardEvent) => {
 
 onMounted(() => {
   loadSources(1);
+  refreshDrafts();
   window.addEventListener("keydown", onKeyDown);
 });
 onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown));
