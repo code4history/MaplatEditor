@@ -9,7 +9,7 @@ async function launch(userDataDir: string): Promise<{ app: ElectronApplication; 
   const app = await electron.launch({
     args: [projectRoot, `--user-data-dir=${userDataDir}`],
     cwd: projectRoot,
-    env: { ...process.env, VITE_DEV_SERVER_URL: '' },
+    env: { ...process.env, VITE_DEV_SERVER_URL: '', MAPLAT_E2E_ROOT: userDataDir },
   });
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
@@ -57,6 +57,8 @@ async function openApp(page: Page, uid: string): Promise<void> {
 test('hot exit restores drafts, shows badge, resolves revision conflicts, and flushes on quit', async () => {
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t2-'));
   let runtime = await launch(userDataDir);
+  const saveFolder = await runtime.page.evaluate(() => window.settings.get('saveFolder'));
+  expect(saveFolder.startsWith(userDataDir)).toBe(true);
 
   await runtime.page.evaluate(() => { location.hash = '#/appedit'; });
   await expect(runtime.page.getByTestId('app-id')).toBeVisible();

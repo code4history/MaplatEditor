@@ -13,11 +13,17 @@ interface AppSettings {
 // @ts-ignore
 import defaultTmsList from '../tms_list.json';
 import { resolveEditorLanguage } from '../../src/utils/editorLanguages';
+import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
+
+const runtimeStoragePaths = resolveRuntimeStoragePaths(
+  process.env.MAPLAT_E2E_ROOT,
+  path.join(app.getPath('documents'), app.getName()),
+);
 
 // lang はデフォルト値を持たせない: 未設定(初回起動)の場合はOSの言語から解決し
 // (非対応言語は en へフォールバック)、その結果を設定として永続化する
 const defaultSettings: AppSettings = {
-  saveFolder: path.join(app.getPath('documents'), app.getName()),
+  saveFolder: runtimeStoragePaths.saveFolder,
   tmsList: defaultTmsList
 } as AppSettings;
 
@@ -28,8 +34,11 @@ class SettingsService extends EventEmitter {
 
   constructor() {
     super();
-    this.store = new Store<AppSettings>({ defaults: defaultSettings });
-    this.migrateLegacySettings();
+    this.store = new Store<AppSettings>({
+      defaults: defaultSettings,
+      ...(runtimeStoragePaths.settingsStoreCwd ? { cwd: runtimeStoragePaths.settingsStoreCwd } : {}),
+    });
+    if (!runtimeStoragePaths.isolated) this.migrateLegacySettings();
     this.ensureDataDirectories();
   }
 

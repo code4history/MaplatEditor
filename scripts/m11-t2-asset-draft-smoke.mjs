@@ -18,6 +18,7 @@ async function importSource(relativeEntry, fileName) {
     build: {
       outDir,
       emptyOutDir: true,
+      rollupOptions: { external: ['node:path'] },
       lib: { entry: path.join(projectRoot, relativeEntry), formats: ['es'], fileName: () => fileName },
     },
   });
@@ -295,6 +296,33 @@ try {
   const sqliteSource = await readFile(path.join(projectRoot, 'electron/services/SqliteDataService.ts'), 'utf8');
   assert.match(sqliteSource, /listBaseMaps[\s\S]*?SELECT uid, slug, scope, data_json, revision/);
   console.log('  [10/10] Five asset lists and lightweight editors share draft badges/lifecycle: PASS');
+
+  const { resolveRuntimeStoragePaths } = await importSource(
+    'electron/services/runtimeStoragePaths.ts',
+    'runtimeStoragePaths.mjs',
+  );
+  assert.deepEqual(resolveRuntimeStoragePaths(undefined, '/real/default'), {
+    isolated: false,
+    saveFolder: '/real/default',
+    settingsStoreCwd: undefined,
+    assetDraftStoreCwd: undefined,
+  });
+  assert.deepEqual(resolveRuntimeStoragePaths('/tmp/maplat-e2e', '/real/default'), {
+    isolated: true,
+    saveFolder: path.resolve('/tmp/maplat-e2e/save-folder'),
+    settingsStoreCwd: path.resolve('/tmp/maplat-e2e/electron-store/settings'),
+    assetDraftStoreCwd: path.resolve('/tmp/maplat-e2e/electron-store/asset-drafts'),
+  });
+  const settingsSource = await readFile(path.join(projectRoot, 'electron/services/SettingsService.ts'), 'utf8');
+  assert.match(settingsSource, /MAPLAT_E2E_ROOT/);
+  assert.match(settingsSource, /runtimeStoragePaths\.isolated/);
+  const draftServiceSource = await readFile(path.join(projectRoot, 'electron/services/AssetDraftService.ts'), 'utf8');
+  assert.match(draftServiceSource, /runtimeStoragePaths\.assetDraftStoreCwd/);
+  const e2eSource = await readFile(path.join(projectRoot, 'tests/e2e/m11-t2-draft-hot-exit.spec.ts'), 'utf8');
+  assert.match(e2eSource, /MAPLAT_E2E_ROOT:\s*userDataDir/);
+  assert.match(e2eSource, /window\.settings\.get\(['"]saveFolder['"]\)/);
+  assert.match(e2eSource, /startsWith\(userDataDir\)/);
+  console.log('  [11/11] Electron E2E storage is isolated from user data: PASS');
   console.log('M11-T2 asset draft smoke passed');
 } catch (error) {
   console.error('M11-T2 asset draft smoke FAILED:', error.stack ?? error.message);
