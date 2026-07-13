@@ -428,8 +428,13 @@ const restoreHistoryState = async (state: MapEditHistoryState) => {
     newGcp.value = undefined;
     newlyAddEdge.value = undefined;
     await nextTick();
-    gcpsToMarkers();
-    updateTin();
+    // Draft restore runs before initMaps()/loadMapTiles() during mount. Rendering
+    // here is only valid for Undo/Redo after the map runtime is ready; initial
+    // draft rendering is performed by loadMapTiles() below.
+    if (illstMap && mercMap && illstSource) {
+        gcpsToMarkers();
+        updateTin();
+    }
     historyRestoring.value = false;
 };
 
