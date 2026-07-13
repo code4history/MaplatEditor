@@ -93,6 +93,8 @@ try {
   const serviceSource = await readFile(path.join(projectRoot, 'electron/services/AssetDraftService.ts'), 'utf8');
   assert.match(serviceSource, /electron-store/);
   assert.match(serviceSource, /new AssetDraftStore/);
+  const storeSourceContract = await readFile(path.join(projectRoot, 'src/services/assetDraftStore.ts'), 'utf8');
+  assert.doesNotMatch(storeSourceContract, /async\s+(?:put|get|remove|list)\(/, 'sync close flush requires synchronous store methods');
   const ipcSource = await readFile(path.join(projectRoot, 'electron/ipc/assetDrafts.ts'), 'utf8');
   for (const channel of ['put', 'get', 'remove', 'list']) {
     assert.match(ipcSource, new RegExp(`ipcMain\\.handle\\(['"]asset-drafts:${channel}['"]`));

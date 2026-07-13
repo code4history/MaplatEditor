@@ -122,8 +122,8 @@ try {
 
   const storeSource = await readFile(path.join(projectRoot, 'src/services/assetDraftStore.ts'), 'utf8');
   assert.match(storeSource, /class\s+AssetDraftStore/, 'AssetDraftStoreがない');
-  assert.match(storeSource, /async\s+put\(/, 'AssetDraftStore.putがない');
-  assert.match(storeSource, /async\s+get\(/, 'AssetDraftStore.getがない');
+  assert.match(storeSource, /\bput\(/, 'AssetDraftStore.putがない');
+  assert.match(storeSource, /\bget\(/, 'AssetDraftStore.getがない');
   console.log('  [4/7] 共通AssetDraftStore: PASS');
 
   // --- Part 5: App list/edit integration ---

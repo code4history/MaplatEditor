@@ -52,7 +52,7 @@ const storageKey = (kind: AssetDraftKind, assetUid: string) => `${KEY_PREFIX}${k
 export class AssetDraftStore {
   constructor(private readonly store: AssetDraftKeyValueStore) {}
 
-  async put(value: AssetDraftEnvelope): Promise<void> {
+  put(value: AssetDraftEnvelope): void {
     validateAssetDraftEnvelope(value);
     const key = storageKey(value.kind, value.assetUid);
     this.store.set(key, JSON.parse(JSON.stringify(value)));
@@ -61,7 +61,7 @@ export class AssetDraftStore {
     this.store.set(INDEX_KEY, [...index].sort());
   }
 
-  async get(kind: AssetDraftKind, assetUid: string): Promise<AssetDraftEnvelope | null> {
+  get(kind: AssetDraftKind, assetUid: string): AssetDraftEnvelope | null {
     if (!isKind(kind) || !validUid(assetUid)) return null;
     const key = storageKey(kind, assetUid);
     const value = this.store.get<unknown>(key, null);
@@ -75,12 +75,12 @@ export class AssetDraftStore {
     }
   }
 
-  async remove(kind: AssetDraftKind, assetUid: string): Promise<void> {
+  remove(kind: AssetDraftKind, assetUid: string): void {
     if (!isKind(kind) || !validUid(assetUid)) return;
     this.removeKey(storageKey(kind, assetUid));
   }
 
-  async list(kind?: AssetDraftKind): Promise<AssetDraftSummary[]> {
+  list(kind?: AssetDraftKind): AssetDraftSummary[] {
     if (kind !== undefined && !isKind(kind)) throw new TypeError('Invalid draft kind');
     const summaries: AssetDraftSummary[] = [];
     for (const key of this.store.get<string[]>(INDEX_KEY, [])) {

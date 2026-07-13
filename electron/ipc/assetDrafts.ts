@@ -18,7 +18,7 @@ export function registerAssetDraftHandlers(): void {
   ipcMain.on('asset-drafts:flush-sync', (event, draft: AssetDraftEnvelope) => {
     try {
       validateAssetDraftEnvelope(draft);
-      void AssetDraftService.put(draft);
+      AssetDraftService.put(draft);
       event.returnValue = { ok: true };
     } catch (error) {
       event.returnValue = { ok: false, error: error instanceof Error ? error.message : String(error) };
