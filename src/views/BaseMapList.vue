@@ -10,6 +10,7 @@
       <div class="col-auto">
         <button class="btn btn-light border shadow-sm px-4" @click="openAddModal">
           {{ t("basemap.add") }}
+          <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t('editor_ui.draft_badge') }}</span>
         </button>
       </div>
       <div class="col">
@@ -272,7 +273,8 @@ interface BaseMapCatalogItem {
 }
 
 const { t } = useTranslation();
-const { hasDraft, refreshDrafts } = useAssetDraftBadges('base-map');
+const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges('base-map');
+const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
 
 const items = ref<BaseMapCatalogItem[]>([]);
 const loading = ref(false);
@@ -336,13 +338,14 @@ onMounted(() => {
 
 const openAddModal = async () => {
   modalDraftReady.value = false;
+  const pendingDraft = newDrafts.value.at(-1);
   editingUid.value = null;
   originalMapID.value = "";
   form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", coverageLngLats: null };
   formThumbnailUrl.value = null;
   formError.value = "";
   showModal.value = true;
-  await modalDraftLifecycle.open(crypto.randomUUID(), null);
+  await modalDraftLifecycle.open(pendingDraft?.assetUid ?? crypto.randomUUID(), null);
   modalDraftReady.value = true;
 };
 

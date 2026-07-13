@@ -70,6 +70,16 @@
           </router-link>
         </div>
       </div>
+      <div v-for="draft in newDrafts" :key="draft.assetUid" class="map-card-wrapper">
+        <div class="map-card-inner">
+          <router-link :to="`/mapedit?draftUid=${draft.assetUid}`" class="text-decoration-none text-dark d-block">
+            <div class="position-relative bg-white" style="width: 190px; height: 190px; margin: 0 auto; overflow: hidden;">
+              <img :src="noImage" class="position-absolute top-50 start-50 translate-middle" style="max-width: 100%; max-height: 100%;" :alt="t('editor_ui.draft_badge')">
+            </div>
+            <div class="mt-2 text-center"><span class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span></div>
+          </router-link>
+        </div>
+      </div>
     </div>
 
     <!-- Context menu -->
@@ -90,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
@@ -98,7 +108,8 @@ import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 
 const { t } = useTranslation();
 const router = useRouter();
-const { hasDraft, refreshDrafts } = useAssetDraftBadges('map');
+const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges('map');
+const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
 
 interface MapItem {
   mapID: string;

@@ -57,13 +57,26 @@ async function openApp(page: Page, uid: string): Promise<void> {
 test('hot exit restores drafts, shows badge, resolves revision conflicts, and flushes on quit', async () => {
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t2-'));
   let runtime = await launch(userDataDir);
+
+  await runtime.page.evaluate(() => { location.hash = '#/appedit'; });
+  await expect(runtime.page.getByTestId('app-id')).toBeVisible();
+  await runtime.page.getByTestId('app-id').fill('provisional-app-draft');
+  await runtime.page.getByTestId('app-id').blur();
+  await runtime.page.getByTestId('editor-back').click();
+  const provisionalDraft = runtime.page.locator('a[href*="/appedit?draftUid="]').filter({ hasText: /Draft|下書き/ });
+  await expect(provisionalDraft).toBeVisible();
+  await provisionalDraft.click();
+  await expect(runtime.page.getByTestId('app-id')).toHaveValue('provisional-app-draft');
+  await runtime.page.getByTestId('editor-back').click();
+  await expect(runtime.page.getByTestId('app-id')).toBeHidden();
+
   const seeded = await createApp(runtime.page);
 
   await openApp(runtime.page, seeded.uid);
   await runtime.page.getByTestId('app-id').fill('draft-restored-after-route');
   await runtime.page.getByTestId('app-id').blur();
   await runtime.page.getByTestId('editor-back').click();
-  await expect(runtime.page.locator('.badge').filter({ hasText: /Draft|下書き/ })).toBeVisible();
+  await expect(runtime.page.locator('.badge').filter({ hasText: /Draft|下書き/ }).first()).toBeVisible();
 
   await openApp(runtime.page, seeded.uid);
   await expect(runtime.page.getByTestId('app-id')).toHaveValue('draft-restored-after-route');

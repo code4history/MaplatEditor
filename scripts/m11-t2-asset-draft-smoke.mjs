@@ -270,6 +270,17 @@ try {
     assert.match(source, /modalDraftLifecycle\.flush\(\)/, `${viewName}: modal close flush missing`);
     assert.match(source, /modalDraftLifecycle\.markSaved\(\)/, `${viewName}: modal save cleanup missing`);
   }
+  for (const viewName of ['MapList.vue', 'AppList.vue']) {
+    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
+    assert.match(source, /newDrafts/, `${viewName}: provisional new drafts must be listed`);
+    assert.match(source, /draftUid=/, `${viewName}: provisional draft reopen link missing`);
+  }
+  for (const viewName of ['BaseMapList.vue', 'AssetList.vue']) {
+    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
+    assert.match(source, /newDrafts/, `${viewName}: new modal drafts must be discoverable`);
+    assert.match(source, /baseRevision\s*===\s*null/, `${viewName}: provisional draft filter missing`);
+    assert.match(source, /editor_ui\.draft_badge/, `${viewName}: Add action draft badge missing`);
+  }
   const sqliteSource = await readFile(path.join(projectRoot, 'electron/services/SqliteDataService.ts'), 'utf8');
   assert.match(sqliteSource, /listBaseMaps[\s\S]*?SELECT uid, slug, scope, data_json, revision/);
   console.log('  [10/10] Five asset lists and lightweight editors share draft badges/lifecycle: PASS');

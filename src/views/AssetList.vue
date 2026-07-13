@@ -10,6 +10,7 @@
       <div class="col-auto">
         <button class="btn btn-light border shadow-sm px-4" @click="openAdd">
           {{ t("assetlist.add_image") }}
+          <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t('editor_ui.draft_badge') }}</span>
         </button>
       </div>
       <div class="col">
@@ -172,7 +173,8 @@ import type {
 } from "../electron";
 
 const { t } = useTranslation();
-const { hasDraft, refreshDrafts } = useAssetDraftBadges('image-asset');
+const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges('image-asset');
+const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
 
 const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
 
@@ -401,6 +403,8 @@ watch(
 
 const openAdd = async () => {
   try {
+    modalDraftReady.value = false;
+    const pendingDraft = newDrafts.value.at(-1);
     const picked = await window.imageAssets.pickImageFile();
     if (!picked) return; // canceled
     resetModal();
@@ -409,6 +413,8 @@ const openAdd = async () => {
     modal.fileName = picked.fileName;
     modal.slug = suggestSlug(picked.fileName);
     modal.title = picked.fileName.replace(/\.[^.]+$/, "");
+    await modalDraftLifecycle.open(pendingDraft?.assetUid ?? crypto.randomUUID(), null);
+    modalDraftReady.value = true;
     checkSlug();
   } catch (e) {
     console.error("Failed to pick image file", e);
@@ -442,7 +448,7 @@ const openRename = async () => {
 watch(
   () => [modal.slug, modal.title],
   () => {
-    if (modal.mode === 'rename' && modalDraftReady.value) modalDraftLifecycle.schedule(true);
+    if (modal.mode && modalDraftReady.value) modalDraftLifecycle.schedule(true);
   },
   { flush: 'post' },
 );
@@ -473,7 +479,7 @@ const handleSaveResult = async (result: ImageAssetSaveResult): Promise<void> => 
   }
   switch (result.result) {
     case "Success":
-      if (modal.mode === 'rename') await modalDraftLifecycle.markSaved();
+      await modalDraftLifecycle.markSaved();
       modalDraftReady.value = false;
       await closeModal();
       await loadAssets();

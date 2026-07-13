@@ -46,6 +46,16 @@
           </router-link>
         </div>
       </div>
+      <div v-for="draft in newDrafts" :key="draft.assetUid" class="app-card-wrapper">
+        <div class="app-card-inner">
+          <router-link :to="`/appedit?draftUid=${draft.assetUid}`" class="text-decoration-none text-dark d-block">
+            <div class="position-relative bg-white app-image">
+              <img :src="noImage" :alt="t('editor_ui.draft_badge')" class="position-absolute top-50 start-50 translate-middle" style="max-width: 100%; max-height: 100%;">
+            </div>
+            <div class="mt-2 text-center app-title"><span class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span></div>
+          </router-link>
+        </div>
+      </div>
     </div>
 
     <ul
@@ -65,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
@@ -73,7 +83,8 @@ import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 
 const { t } = useTranslation();
 const router = useRouter();
-const { hasDraft, refreshDrafts } = useAssetDraftBadges('app');
+const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges('app');
+const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
 
 interface AppItem {
   uid: string;
