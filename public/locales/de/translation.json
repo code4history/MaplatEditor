@@ -749,6 +749,21 @@
     "saving": "Speichern…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "Neues Bild-Asset",
+      "default_language": "Standardsprache",
+      "select_image": "Bild auswählen",
+      "no_source": "Kein Bild ausgewählt",
+      "reselect_required": "Wählen Sie das Bild vor dem Speichern erneut aus. Absolute Dateipfade werden nicht im Entwurf gespeichert.",
+      "selecting": "Bild wird ausgewählt...",
+      "source_name": "Ursprünglicher Dateiname",
+      "dimensions": "Abmessungen",
+      "file_size": "Dateigröße",
+      "untitled": "Ohne Titel",
+      "overwrite_confirm": "Die neueste gespeicherte Version mit Ihren Änderungen überschreiben?",
+      "not_found": "Das ausgewählte Bild-Asset wurde nicht gefunden.",
+      "select_prompt": "Wählen Sie links ein Bild-Asset aus oder erstellen Sie ein neues."
+    },
     "add_image": "Bild hinzufügen",
     "search_placeholder": "Bild-Assets durchsuchen...",
     "loading": "Wird geladen...",
@@ -774,6 +789,8 @@
       "save": "Speichern"
     },
     "errors": {
+      "slug_required": "Geben Sie einen Slug ein",
+      "title_required": "Geben Sie einen Titel in der Standardsprache ein",
       "slug_charset": "Der Slug darf nur Buchstaben, Ziffern, Bindestrich und Unterstrich enthalten",
       "slug_taken": "Dieser Slug wird bereits verwendet",
       "invalid": "Bild konnte nicht importiert werden",

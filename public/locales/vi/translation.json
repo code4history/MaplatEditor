@@ -749,6 +749,21 @@
     "saving": "Đang lưu…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "Tài nguyên ảnh mới",
+      "default_language": "Ngôn ngữ mặc định",
+      "select_image": "Chọn ảnh",
+      "no_source": "Chưa chọn ảnh",
+      "reselect_required": "Hãy chọn lại ảnh trước khi lưu. Đường dẫn tệp tuyệt đối không được lưu trong bản nháp.",
+      "selecting": "Đang chọn ảnh...",
+      "source_name": "Tên tệp gốc",
+      "dimensions": "Kích thước",
+      "file_size": "Dung lượng tệp",
+      "untitled": "Chưa có tiêu đề",
+      "overwrite_confirm": "Ghi đè phiên bản đã lưu mới nhất bằng nội dung chỉnh sửa hiện tại?",
+      "not_found": "Không tìm thấy tài nguyên ảnh đã chọn.",
+      "select_prompt": "Chọn tài nguyên ảnh từ danh sách bên trái hoặc tạo mới."
+    },
     "add_image": "Thêm hình ảnh",
     "search_placeholder": "Tìm kiếm tài nguyên ảnh...",
     "loading": "Đang tải...",
@@ -774,6 +789,8 @@
       "save": "Lưu"
     },
     "errors": {
+      "slug_required": "Nhập slug",
+      "title_required": "Nhập tiêu đề bằng ngôn ngữ mặc định",
       "slug_charset": "Slug chỉ được chứa chữ cái, chữ số, gạch nối và gạch dưới",
       "slug_taken": "Slug này đã được sử dụng",
       "invalid": "Không thể nhập hình ảnh",

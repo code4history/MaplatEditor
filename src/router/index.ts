@@ -42,7 +42,7 @@ const routes = [
     component: () => import('../views/PoiSourceList.vue')
   },
   {
-    path: '/assets', // image asset manager (Phase 6, AID-004)
+    path: '/assets', // image asset master-detail; ?uid/new selection and q/page are preserved
     name: 'AssetList',
     component: () => import('../views/AssetList.vue')
   },

@@ -749,6 +749,21 @@
     "saving": "저장 중…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "새 이미지 에셋",
+      "default_language": "기본 언어",
+      "select_image": "이미지 선택",
+      "no_source": "선택된 이미지 없음",
+      "reselect_required": "저장하기 전에 이미지를 다시 선택하세요. 절대 파일 경로는 초안에 저장되지 않습니다.",
+      "selecting": "이미지 선택 중...",
+      "source_name": "원본 파일명",
+      "dimensions": "이미지 크기",
+      "file_size": "파일 크기",
+      "untitled": "제목 없음",
+      "overwrite_confirm": "최신 저장 버전을 현재 편집 내용으로 덮어쓸까요?",
+      "not_found": "선택한 이미지 에셋을 찾을 수 없습니다.",
+      "select_prompt": "왼쪽 목록에서 이미지 에셋을 선택하거나 새로 만드세요."
+    },
     "add_image": "이미지 추가",
     "search_placeholder": "이미지 에셋 검색...",
     "loading": "불러오는 중...",
@@ -774,6 +789,8 @@
       "save": "저장"
     },
     "errors": {
+      "slug_required": "슬러그를 입력하세요",
+      "title_required": "기본 언어로 제목을 입력하세요",
       "slug_charset": "슬러그에는 영문자·숫자·하이픈·언더스코어만 사용할 수 있습니다",
       "slug_taken": "이 슬러그는 이미 사용 중입니다",
       "invalid": "이미지를 가져올 수 없습니다",

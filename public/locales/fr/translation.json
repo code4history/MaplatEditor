@@ -749,6 +749,21 @@
     "saving": "Enregistrement…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "Nouvelle ressource image",
+      "default_language": "Langue par défaut",
+      "select_image": "Sélectionner une image",
+      "no_source": "Aucune image sélectionnée",
+      "reselect_required": "Sélectionnez à nouveau l’image avant d’enregistrer. Les chemins absolus ne sont pas conservés dans les brouillons.",
+      "selecting": "Sélection de l’image...",
+      "source_name": "Nom du fichier d’origine",
+      "dimensions": "Dimensions",
+      "file_size": "Taille du fichier",
+      "untitled": "Sans titre",
+      "overwrite_confirm": "Écraser la dernière version enregistrée avec vos modifications ?",
+      "not_found": "La ressource image sélectionnée est introuvable.",
+      "select_prompt": "Sélectionnez une ressource image à gauche ou créez-en une nouvelle."
+    },
     "add_image": "Ajouter une image",
     "search_placeholder": "Rechercher des ressources d'image...",
     "loading": "Chargement...",
@@ -774,6 +789,8 @@
       "save": "Enregistrer"
     },
     "errors": {
+      "slug_required": "Saisissez un slug",
+      "title_required": "Saisissez un titre dans la langue par défaut",
       "slug_charset": "Le slug ne peut contenir que des lettres, des chiffres, des tirets et des tirets bas",
       "slug_taken": "Ce slug est déjà utilisé",
       "invalid": "Impossible d'importer l'image",

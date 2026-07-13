@@ -749,6 +749,21 @@
     "saving": "保存中…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "新規画像アセット",
+      "default_language": "デフォルト言語",
+      "select_image": "画像を選択",
+      "no_source": "画像が選択されていません",
+      "reselect_required": "保存するには画像を再選択してください。ファイルの絶対パスは下書きに保存されません。",
+      "selecting": "画像を選択中...",
+      "source_name": "元ファイル名",
+      "dimensions": "画像サイズ",
+      "file_size": "ファイルサイズ",
+      "untitled": "名称未設定",
+      "overwrite_confirm": "最新の保存版を現在の編集内容で上書きしますか？",
+      "not_found": "選択された画像アセットが見つかりません。",
+      "select_prompt": "左の一覧から画像アセットを選択するか、新規作成してください。"
+    },
     "add_image": "画像を追加",
     "search_placeholder": "画像アセットを検索...",
     "loading": "読み込み中...",
@@ -774,6 +789,8 @@
       "save": "保存"
     },
     "errors": {
+      "slug_required": "スラッグを入力してください",
+      "title_required": "デフォルト言語のタイトルを入力してください",
       "slug_charset": "スラッグは英数字・ハイフン・アンダースコアのみ使用できます",
       "slug_taken": "このスラッグは既に使用されています",
       "invalid": "画像を取り込めませんでした",

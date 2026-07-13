@@ -239,6 +239,7 @@ const draftLifecycle = useAssetDraftLifecycle<BaseMapEditDocument>({
   serialize: () => clone(document.value),
   apply: (payload) => { document.value = clone(payload); },
   onRestored: () => {
+    activeLang.value = document.value.defaultLang;
     history = new UndoStack(clone(document.value));
     history.markDirty();
     historyVersion.value++;
@@ -261,12 +262,24 @@ function resetSession(item: BaseMapCatalogItem | null, uid: string): void {
 
 let sessionOpened = false;
 let sessionTransition = Promise.resolve();
+let pendingSavedIdentity: { uid: string; revision: number } | null = null;
 watch(
   () => [props.uid, props.item?.revision, props.isNew] as const,
   ([uid, itemRevision, isNew]) => {
     sessionTransition = sessionTransition.then(async () => {
       if (sessionOpened) await draftLifecycle.flush();
       if (uid !== props.uid || itemRevision !== props.item?.revision || isNew !== props.isNew) return;
+      if (
+        pendingSavedIdentity &&
+        !isNew &&
+        uid === pendingSavedIdentity.uid &&
+        itemRevision === pendingSavedIdentity.revision
+      ) {
+        pendingSavedIdentity = null;
+        await draftLifecycle.open(uid, itemRevision);
+        sessionOpened = true;
+        return;
+      }
       resetSession(props.item, uid);
       if (props.item?.scope !== "builtin") await draftLifecycle.open(uid, itemRevision ?? null);
       sessionOpened = props.item?.scope !== "builtin";
@@ -339,6 +352,7 @@ onMounted(() => window.addEventListener("keydown", onEditorKeydown));
 onBeforeUnmount(() => window.removeEventListener("keydown", onEditorKeydown));
 
 async function goBack(): Promise<void> {
+  await sessionTransition;
   if (editable.value) await draftLifecycle.flush();
   emit("back");
 }
@@ -366,6 +380,7 @@ function saveFailure(result: BaseMapSaveResult): string {
 }
 
 async function save(): Promise<void> {
+  await sessionTransition;
   if (!editable.value || !dirty.value || !validation.value.valid) return;
   if (overwritePending.value) {
     const confirmation = await (window as any).dialog.showMessageBox({
@@ -404,6 +419,7 @@ async function save(): Promise<void> {
       historyVersion.value++;
       await draftLifecycle.markSaved();
     }
+    pendingSavedIdentity = { uid: result.uid, revision: result.revision };
     emit("saved", result.uid);
   } catch (cause) {
     console.error("Failed to save base map", cause);
@@ -428,6 +444,7 @@ function keepCurrentEdit(): void {
 }
 
 async function prepareForDelete(): Promise<void> {
+  await sessionTransition;
   if (sessionOpened) await draftLifecycle.discard();
   sessionOpened = false;
 }

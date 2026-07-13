@@ -280,18 +280,14 @@ try {
       source += await readFile(path.join(projectRoot, 'src/components/basemap/BaseMapMasterList.vue'), 'utf8');
       source += await readFile(path.join(projectRoot, 'src/components/basemap/BaseMapEdit.vue'), 'utf8');
     }
+    if (viewName === 'AssetList.vue') {
+      source += await readFile(path.join(projectRoot, 'src/components/assets/AssetMasterList.vue'), 'utf8');
+      source += await readFile(path.join(projectRoot, 'src/components/assets/AssetEdit.vue'), 'utf8');
+    }
     assert.match(source, new RegExp(`useAssetDraftBadges\\(['"]${kind}['"]\\)`), `${viewName}: summary kind missing`);
     assert.match(source, /hasDraft\(|draftUids\.has\(/, `${viewName}: UID badge lookup missing`);
     assert.match(source, /editor_ui\.draft_badge/, `${viewName}: translated draft badge missing`);
     assert.match(source, /assetDrafts\.remove/, `${viewName}: asset deletion must remove orphan draft`);
-  }
-  for (const viewName of ['AssetList.vue']) {
-    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
-    assert.match(source, /useAssetDraftLifecycle/, `${viewName}: modal draft lifecycle missing`);
-    assert.match(source, /modalDraftLifecycle\.open/, `${viewName}: modal draft open missing`);
-    assert.match(source, /modalDraftLifecycle\.schedule/, `${viewName}: modal draft schedule missing`);
-    assert.match(source, /modalDraftLifecycle\.flush\(\)/, `${viewName}: modal close flush missing`);
-    assert.match(source, /modalDraftLifecycle\.markSaved\(\)/, `${viewName}: modal save cleanup missing`);
   }
   const baseMapEditor = await readFile(
     path.join(projectRoot, 'src/components/basemap/BaseMapEdit.vue'),
@@ -302,16 +298,19 @@ try {
   assert.match(baseMapEditor, /draftLifecycle\.schedule/, 'BaseMapEdit.vue: editor draft schedule missing');
   assert.match(baseMapEditor, /draftLifecycle\.flush\(\)/, 'BaseMapEdit.vue: editor back flush missing');
   assert.match(baseMapEditor, /draftLifecycle\.markSaved\(\)/, 'BaseMapEdit.vue: editor save cleanup missing');
+  const assetEditor = await readFile(
+    path.join(projectRoot, 'src/components/assets/AssetEdit.vue'),
+    'utf8',
+  );
+  assert.match(assetEditor, /useAssetDraftLifecycle/, 'AssetEdit.vue: editor draft lifecycle missing');
+  assert.match(assetEditor, /draftLifecycle\.open/, 'AssetEdit.vue: editor draft open missing');
+  assert.match(assetEditor, /draftLifecycle\.schedule/, 'AssetEdit.vue: editor draft schedule missing');
+  assert.match(assetEditor, /draftLifecycle\.flush\(\)/, 'AssetEdit.vue: editor back flush missing');
+  assert.match(assetEditor, /draftLifecycle\.markSaved\(\)/, 'AssetEdit.vue: editor save cleanup missing');
   for (const viewName of ['MapList.vue', 'AppList.vue']) {
     const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
     assert.match(source, /newDrafts/, `${viewName}: provisional new drafts must be listed`);
     assert.match(source, /draftUid=/, `${viewName}: provisional draft reopen link missing`);
-  }
-  for (const viewName of ['AssetList.vue']) {
-    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
-    assert.match(source, /newDrafts/, `${viewName}: new modal drafts must be discoverable`);
-    assert.match(source, /baseRevision\s*===\s*null/, `${viewName}: provisional draft filter missing`);
-    assert.match(source, /editor_ui\.draft_badge/, `${viewName}: Add action draft badge missing`);
   }
   const baseMapShell = await readFile(path.join(projectRoot, 'src/views/BaseMapList.vue'), 'utf8');
   const baseMapMaster = await readFile(
@@ -321,6 +320,15 @@ try {
   assert.match(baseMapMaster, /newDrafts/, 'BaseMapMasterList.vue: new drafts must be discoverable');
   assert.match(baseMapMaster, /baseRevision\s*===\s*null/, 'BaseMapMasterList.vue: provisional draft filter missing');
   assert.match(baseMapShell, /selectDraft/, 'BaseMapList.vue: provisional draft reopen route missing');
+  const assetShell = await readFile(path.join(projectRoot, 'src/views/AssetList.vue'), 'utf8');
+  const assetMaster = await readFile(
+    path.join(projectRoot, 'src/components/assets/AssetMasterList.vue'),
+    'utf8',
+  );
+  assert.match(assetMaster, /newDrafts/, 'AssetMasterList.vue: new drafts must be discoverable');
+  assert.match(assetMaster, /baseRevision\s*===\s*null/, 'AssetMasterList.vue: provisional draft filter missing');
+  assert.match(assetMaster, /editor_ui\.draft_badge/, 'AssetMasterList.vue: Add action draft badge missing');
+  assert.match(assetShell, /selectDraft/, 'AssetList.vue: provisional draft reopen route missing');
   const sqliteSource = await readFile(path.join(projectRoot, 'electron/services/SqliteDataService.ts'), 'utf8');
   assert.match(sqliteSource, /listBaseMaps[\s\S]*?SELECT uid, slug, scope, data_json, revision/);
   console.log('  [10/10] Five asset lists and lightweight editors share draft badges/lifecycle: PASS');

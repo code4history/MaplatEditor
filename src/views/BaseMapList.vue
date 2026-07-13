@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
@@ -147,6 +147,9 @@ onMounted(async () => {
   await loadBaseMaps();
   await nextTick();
   await restoreScroll(masterList.value?.scrollElement ?? null);
+});
+onBeforeUnmount(() => {
+  if (draftRefreshTimer) clearTimeout(draftRefreshTimer);
 });
 
 </script>

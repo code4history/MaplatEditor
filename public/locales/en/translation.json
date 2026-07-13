@@ -749,6 +749,21 @@
     "saving": "Saving…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "New image asset",
+      "default_language": "Default language",
+      "select_image": "Select image",
+      "no_source": "No image selected",
+      "reselect_required": "Select the image again before saving. Absolute file paths are not stored in drafts.",
+      "selecting": "Selecting image...",
+      "source_name": "Original file name",
+      "dimensions": "Dimensions",
+      "file_size": "File size",
+      "untitled": "Untitled",
+      "overwrite_confirm": "Overwrite the latest saved version with your current edits?",
+      "not_found": "The selected image asset was not found.",
+      "select_prompt": "Select an image asset from the list or create a new one."
+    },
     "add_image": "Add Image",
     "search_placeholder": "Search image assets...",
     "loading": "Loading...",
@@ -774,6 +789,8 @@
       "save": "Save"
     },
     "errors": {
+      "slug_required": "Enter a slug",
+      "title_required": "Enter a title in the default language",
       "slug_charset": "Slug may only contain letters, digits, hyphen and underscore",
       "slug_taken": "This slug is already in use",
       "invalid": "Could not import the image",

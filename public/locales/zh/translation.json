@@ -749,6 +749,21 @@
     "saving": "保存中…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "新建图像资源",
+      "default_language": "默认语言",
+      "select_image": "选择图像",
+      "no_source": "未选择图像",
+      "reselect_required": "保存前请重新选择图像。草稿不会保存绝对文件路径。",
+      "selecting": "正在选择图像...",
+      "source_name": "原始文件名",
+      "dimensions": "图像尺寸",
+      "file_size": "文件大小",
+      "untitled": "未命名",
+      "overwrite_confirm": "要用当前编辑内容覆盖最新保存版本吗？",
+      "not_found": "找不到所选图像资源。",
+      "select_prompt": "请从左侧列表选择图像资源，或新建一个。"
+    },
     "add_image": "添加图片",
     "search_placeholder": "搜索图片素材...",
     "loading": "加载中...",
@@ -774,6 +789,8 @@
       "save": "保存"
     },
     "errors": {
+      "slug_required": "请输入 Slug",
+      "title_required": "请输入默认语言的标题",
       "slug_charset": "Slug只能包含字母、数字、连字符和下划线",
       "slug_taken": "该Slug已被使用",
       "invalid": "无法导入图片",

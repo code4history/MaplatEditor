@@ -749,6 +749,21 @@
     "saving": "儲存中…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "新增圖片資產",
+      "default_language": "預設語言",
+      "select_image": "選擇圖片",
+      "no_source": "尚未選擇圖片",
+      "reselect_required": "儲存前請重新選擇圖片。草稿不會保存絕對檔案路徑。",
+      "selecting": "正在選擇圖片...",
+      "source_name": "原始檔名",
+      "dimensions": "圖片尺寸",
+      "file_size": "檔案大小",
+      "untitled": "未命名",
+      "overwrite_confirm": "要以目前編輯內容覆寫最新儲存版本嗎？",
+      "not_found": "找不到所選圖片資產。",
+      "select_prompt": "請從左側清單選擇圖片資產，或新增一個。"
+    },
     "add_image": "新增圖片",
     "search_placeholder": "搜尋圖片素材...",
     "loading": "載入中...",
@@ -774,6 +789,8 @@
       "save": "儲存"
     },
     "errors": {
+      "slug_required": "請輸入 Slug",
+      "title_required": "請輸入預設語言的標題",
       "slug_charset": "Slug只能包含字母、數字、連字號和底線",
       "slug_taken": "此Slug已被使用",
       "invalid": "無法匯入圖片",

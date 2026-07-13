@@ -1,11 +1,6 @@
 import type { ImageAssetRow } from "../electron";
-import type { LangCode } from "./editorLanguages";
+import { resolveEditorLanguage, type LangCode } from "./editorLanguages";
 import { normalizeLangResource } from "./langResource";
-
-type ImageAssetRowWithLanguage = ImageAssetRow & {
-  lang?: LangCode;
-  sourceName?: string | null;
-};
 
 export interface ImageAssetEditDocument {
   uid: string;
@@ -27,11 +22,11 @@ export type ImageAssetMetadataDraft = Pick<
 
 export interface ImageAssetValidation {
   valid: boolean;
-  errors: Array<"slug-required" | "title-required" | "source-required">;
+  errors: Array<"slug-required" | "slug-invalid" | "title-required" | "source-required">;
 }
 
-export function fromImageAssetRow(row: ImageAssetRowWithLanguage): ImageAssetEditDocument {
-  const defaultLang = row.lang || "ja";
+export function fromImageAssetRow(row: ImageAssetRow): ImageAssetEditDocument {
+  const defaultLang = resolveEditorLanguage(row.lang || "ja");
   return {
     uid: row.uid,
     defaultLang,
@@ -89,6 +84,7 @@ export function validateImageAssetDocument(
 ): ImageAssetValidation {
   const errors: ImageAssetValidation["errors"] = [];
   if (!document.slug.trim()) errors.push("slug-required");
+  else if (!/^[A-Za-z0-9_-]+$/.test(document.slug.trim())) errors.push("slug-invalid");
   if (!document.title[document.defaultLang]?.trim()) errors.push("title-required");
   if (!document.mime && !hasVolatileSource) errors.push("source-required");
   return { valid: errors.length === 0, errors };

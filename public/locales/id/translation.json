@@ -749,6 +749,21 @@
     "saving": "Menyimpan…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "Aset gambar baru",
+      "default_language": "Bahasa bawaan",
+      "select_image": "Pilih gambar",
+      "no_source": "Belum ada gambar dipilih",
+      "reselect_required": "Pilih kembali gambar sebelum menyimpan. Path file absolut tidak disimpan dalam draf.",
+      "selecting": "Memilih gambar...",
+      "source_name": "Nama file asli",
+      "dimensions": "Dimensi",
+      "file_size": "Ukuran file",
+      "untitled": "Tanpa judul",
+      "overwrite_confirm": "Timpa versi tersimpan terbaru dengan suntingan saat ini?",
+      "not_found": "Aset gambar yang dipilih tidak ditemukan.",
+      "select_prompt": "Pilih aset gambar dari daftar kiri atau buat yang baru."
+    },
     "add_image": "Tambah Gambar",
     "search_placeholder": "Cari aset gambar...",
     "loading": "Memuat...",
@@ -774,6 +789,8 @@
       "save": "Simpan"
     },
     "errors": {
+      "slug_required": "Masukkan slug",
+      "title_required": "Masukkan judul dalam bahasa bawaan",
       "slug_charset": "Slug hanya boleh berisi huruf, angka, tanda hubung, dan garis bawah",
       "slug_taken": "Slug ini sudah digunakan",
       "invalid": "Tidak dapat mengimpor gambar",

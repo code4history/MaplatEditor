@@ -749,6 +749,21 @@
     "saving": "Guardando…"
   },
   "assetlist": {
+    "master_detail": {
+      "new_draft": "Nuevo recurso de imagen",
+      "default_language": "Idioma predeterminado",
+      "select_image": "Seleccionar imagen",
+      "no_source": "No hay imagen seleccionada",
+      "reselect_required": "Vuelva a seleccionar la imagen antes de guardar. Las rutas absolutas no se almacenan en borradores.",
+      "selecting": "Seleccionando imagen...",
+      "source_name": "Nombre de archivo original",
+      "dimensions": "Dimensiones",
+      "file_size": "Tamaño del archivo",
+      "untitled": "Sin título",
+      "overwrite_confirm": "¿Sobrescribir la última versión guardada con sus cambios?",
+      "not_found": "No se encontró el recurso de imagen seleccionado.",
+      "select_prompt": "Seleccione un recurso de imagen de la lista o cree uno nuevo."
+    },
     "add_image": "Añadir imagen",
     "search_placeholder": "Buscar recursos de imagen...",
     "loading": "Cargando...",
@@ -774,6 +789,8 @@
       "save": "Guardar"
     },
     "errors": {
+      "slug_required": "Introduzca un slug",
+      "title_required": "Introduzca un título en el idioma predeterminado",
       "slug_charset": "El slug solo puede contener letras, dígitos, guion y guion bajo",
       "slug_taken": "Este slug ya está en uso",
       "invalid": "No se pudo importar la imagen",

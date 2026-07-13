@@ -65,8 +65,16 @@ try {
   console.log('  [2/4] router /assets route: PASS');
 
   // --- Part 3: AssetList.vue shape ---
-  const assetList = await readFile(
+  let assetList = await readFile(
     path.join(projectRoot, 'src/views/AssetList.vue'),
+    'utf8'
+  );
+  assetList += await readFile(
+    path.join(projectRoot, 'src/components/assets/AssetMasterList.vue'),
+    'utf8'
+  );
+  assetList += await readFile(
+    path.join(projectRoot, 'src/components/assets/AssetEdit.vue'),
     'utf8'
   );
   const electronMain = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
@@ -160,11 +168,11 @@ try {
     'useAssetThumbnails に token 不一致での応答破棄がない'
   );
 
-  // slug 自動提案の手入力停止フラグ (Phase 3 同型)
+  // slug 自動提案は空欄時だけ適用し、手入力値を上書きしない
   assert.match(
     assetList,
-    /slugEdited/,
-    'AssetList に slug 手入力フラグ (slugEdited) がない'
+    /document\.value\.slug\s*\|\|\s*suggestSlug/,
+    'AssetEdit が手入力済み slug を画像再選択で上書きする'
   );
 
   // add の payload-too-large は専用文言へ写像する

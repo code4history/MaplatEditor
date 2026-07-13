@@ -150,6 +150,10 @@ try {
   const emptyAsset = newImageAssetDocument(uid, "de");
   assert.equal(emptyAsset.defaultLang, "de");
   assert.equal(validateImageAssetDocument(emptyAsset, false).valid, false);
+  assert.equal(
+    validateImageAssetDocument({ ...emptyAsset, slug: "invalid slug", title: { de: "Bild" } }, true).valid,
+    false,
+  );
 
   assert.deepEqual(
     mergeMasterDetailQuery({ q: "himeji", page: "2" }, { uid }),
@@ -283,11 +287,38 @@ try {
   assert.match(baseMapEditor, /reloadLatest/);
   assert.match(baseMapEditor, /keepCurrentEdit/);
   assert.match(baseMapEditor, /sessionTransition/);
+  assert.match(baseMapEditor, /pendingSavedIdentity/);
   assert.match(baseMapEditor, /onEditorKeydown/);
   assert.match(baseMapEditor, /key === "y"/);
   assert.match(baseMapEditor, /event\.shiftKey/);
   assert.match(baseMapEditor, /translationMode/);
   assert.match(baseMapEditor, /:disabled="structuralDisabled"/);
+
+  const assetShell = await readFile(
+    path.join(projectRoot, "src/views/AssetList.vue"),
+    "utf8",
+  );
+  const assetMasterList = await readFile(
+    path.join(projectRoot, "src/components/assets/AssetMasterList.vue"),
+    "utf8",
+  );
+  const assetEditor = await readFile(
+    path.join(projectRoot, "src/components/assets/AssetEdit.vue"),
+    "utf8",
+  );
+  assert.match(assetShell, /AssetMasterList/);
+  assert.match(assetShell, /AssetEdit/);
+  assert.match(assetShell, /useMasterDetailRouteState/);
+  assert.doesNotMatch(assetShell, /modal show d-block/);
+  assert.match(assetMasterList, /useAssetThumbnails/);
+  assert.match(assetEditor, /EditorActionHeader/);
+  assert.match(assetEditor, /EditorBusyOverlay/);
+  assert.match(assetEditor, /pickImageFile/);
+  assert.match(assetEditor, /sourcePath/);
+  assert.match(assetEditor, /toImageAssetDraft/);
+  assert.match(assetEditor, /pendingSavedIdentity/);
+  const draftSerializer = assetEditor.match(/serialize:[\s\S]*?apply:/)?.[0] ?? "";
+  assert.doesNotMatch(draftSerializer, /sourcePath/);
 
   console.log("m11-t4 master-detail smoke: PASS (Part 1 pure contracts)");
 } finally {
