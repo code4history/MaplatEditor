@@ -7,6 +7,7 @@
     "settings": "Pengaturan",
     "reset": "Atur ulang",
     "save": "Simpan",
+    "cancel": "Batal",
     "download": "Unduh",
     "language": "Bahasa",
     "japanese": "Bahasa Jepang",
@@ -774,6 +775,7 @@
     }
   },
   "editor_ui": {
+    "discard_draft": "Buang draf", "discard_draft_confirm": "Buang draf ini dan kembali ke versi tersimpan?",
     "back": "Kembali ke daftar",
     "translations": "Terjemahan yang tersedia",
     "export_button": "Ekspor", "export_dirty_prompt": "Ada perubahan yang belum disimpan. Pilih yang akan diekspor.", "export_save_and_run": "Simpan dan ekspor", "export_saved_only": "Ekspor versi tersimpan", "export_success": "Ekspor selesai.", "export_failed": "Ekspor gagal.", "busy_exporting": "Mengekspor…",

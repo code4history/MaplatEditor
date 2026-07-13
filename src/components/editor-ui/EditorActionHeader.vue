@@ -19,6 +19,16 @@
       >
         {{ t(saveStateMeta.key) }}
       </span>
+      <button
+        v-if="discardDraftVisible"
+        type="button"
+        class="btn btn-sm btn-link text-danger text-decoration-none p-0"
+        data-editor-action="discard-draft"
+        :disabled="saving || actionsDisabled"
+        @click="emit('discard-draft')"
+      >
+        {{ t("editor_ui.discard_draft") }}
+      </button>
     </div>
 
     <div class="editor-action-header__actions">
@@ -98,11 +108,13 @@ const props = withDefaults(defineProps<{
   saving?: boolean;
   actionsDisabled?: boolean;
   saveVisible?: boolean;
+  discardDraftVisible?: boolean;
 }>(), {
   saveDisabled: false,
   saving: false,
   actionsDisabled: false,
   saveVisible: true,
+  discardDraftVisible: false,
 });
 
 const emit = defineEmits<{
@@ -111,6 +123,7 @@ const emit = defineEmits<{
   "undo": [];
   "redo": [];
   "save": [];
+  "discard-draft": [];
 }>();
 
 const { t } = useTranslation();

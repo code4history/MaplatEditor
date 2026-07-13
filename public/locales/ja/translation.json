@@ -7,6 +7,7 @@
     "settings": "設定",
     "reset": "リセット",
     "save": "保存",
+    "cancel": "キャンセル",
     "download": "ダウンロード",
     "revision_conflict": "他のウィンドウで更新されています。",
     "reload": "読み直す",
@@ -774,6 +775,7 @@
     }
   },
   "editor_ui": {
+    "discard_draft": "下書きを破棄", "discard_draft_confirm": "下書きを破棄して保存済み版に戻しますか？",
     "back": "一覧へ",
     "translations": "翻訳済み言語",
     "export_button": "エクスポート", "export_dirty_prompt": "未保存の変更があります。出力方法を選んでください。", "export_save_and_run": "保存してエクスポート", "export_saved_only": "保存済み版をエクスポート", "export_success": "エクスポートしました。", "export_failed": "エクスポートに失敗しました。", "busy_exporting": "エクスポート中…",

@@ -48,7 +48,22 @@ assert.match(header, /data-testid="editor-back"/);
 assert.match(header, /data-testid="editor-save"/);
 assert.match(header, /saving \|\| actionsDisabled \|\| !canUndo/);
 assert.match(header, /saving \|\| actionsDisabled \|\| saveDisabled/);
+assert.match(header, /discardDraftVisible\?: boolean/);
+assert.match(header, /data-editor-action="discard-draft"/);
+assert.match(header, /editor_ui\.discard_draft/);
+assert.match(header, /emit\(['"]discard-draft['"]\)/);
 console.log('  [1/4] Shared Header visibility and disable contract: PASS');
+
+const draftLifecycle = await readFile(
+  path.join(projectRoot, 'src/composables/useAssetDraftLifecycle.ts'),
+  'utf8',
+);
+assert.match(
+  draftLifecycle,
+  /const markSaved = async[\s\S]*await core\.markSaved\(\)[\s\S]*draftRestored\.value = false/,
+  'Saving a restored draft must immediately leave draft-restored state',
+);
+assert.match(draftLifecycle, /const discard = async[\s\S]*assetDrafts\.remove/);
 
 const busy = await readFile(
   path.join(projectRoot, 'src/components/editor-ui/EditorBusyOverlay.vue'),
@@ -131,10 +146,15 @@ assert.deepEqual(await exercise({ dirty: false, hasSaved: false }), {
 console.log('  [4/5] Saved-state Export decision edge cases: PASS');
 
 const mapEdit = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
+assert.match(mapEdit, /import LangValueChips from/);
+assert.match(mapEdit, /<LangValueChips[\s\S]*:model-value="mapData\.title"/);
+assert.match(mapEdit, /const selectEditorLanguage = \(language: LangCode\)/);
+assert.match(mapEdit, /@select-language="selectEditorLanguage"/);
 assert.match(mapEdit, /import EditorActionHeader from/);
 assert.match(mapEdit, /import EditorBusyOverlay from/);
 assert.match(mapEdit, /import \{ runEditorExportDecision \} from/);
 assert.match(mapEdit, /<EditorActionHeader[\s\S]*@save="saveMap"/);
+assert.match(mapEdit, /@discard-draft="discardRestoredDraft"/);
 assert.match(mapEdit, /data-editor-action="export"[\s\S]*@click="exportMap"/);
 assert.match(mapEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"/);
 assert.match(mapEdit, /const saveState = computed/);
@@ -145,6 +165,8 @@ assert.match(mapEdit, /editor_ui\.export_save_and_run/);
 assert.match(mapEdit, /editor_ui\.export_saved_only/);
 assert.match(mapEdit, /editor_ui\.busy_exporting/);
 assert.match(mapEdit, /window\.mapedit\.previewSource\(mapUid\.value/);
+assert.doesNotMatch(mapEdit, /:disabled="disabled \|\| !!saveError \|\| exporting"/);
+assert.doesNotMatch(mapEdit, /exporting\.value \|\| saving\.value \|\| saveError\.value/);
 assert.match(mapEdit, /key === ['"]s['"][\s\S]*saveMap\(\)/);
 assert.match(mapEdit, /data-editor-document-language/);
 const mapMenuHandler = mapEdit.slice(
@@ -166,10 +188,15 @@ assert.match(
 console.log('  [5/6] Map editor uses the shared shell and saved-state Export: PASS');
 
 const appEdit = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
+assert.match(appEdit, /import LangValueChips from/);
+assert.match(appEdit, /<LangValueChips[\s\S]*:model-value="appData\.title"/);
+assert.match(appEdit, /<LangValueChips[\s\S]*:model-value="appData\.description"/);
+assert.match(appEdit, /@select-language="selectEditorLanguage"/);
 assert.match(appEdit, /import EditorActionHeader from/);
 assert.match(appEdit, /import EditorBusyOverlay from/);
 assert.match(appEdit, /import \{ runEditorExportDecision \} from/);
 assert.match(appEdit, /<EditorActionHeader[\s\S]*@save="saveApp"/);
+assert.match(appEdit, /@discard-draft="discardRestoredDraft"/);
 assert.match(appEdit, /data-editor-action="export"[\s\S]*@click="exportApp"/);
 assert.match(appEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"/);
 assert.match(appEdit, /const saveState = computed/);
@@ -200,6 +227,8 @@ assert.doesNotMatch(
   /:disabled="isDirty \|\| !onlyOne \|\| exporting"/,
   'dirty App Export must offer a choice instead of being disabled',
 );
+assert.doesNotMatch(appEdit, /:disabled="disabled \|\| !!saveError \|\| !onlyOne \|\| exporting"/);
+assert.doesNotMatch(appEdit, /exporting\.value \|\| saving\.value \|\| saveError\.value/);
 console.log('  [6/8] App editor uses the shared shell, shortcuts, and saved-state Export: PASS');
 
 const poiEdit = await readFile(path.join(projectRoot, 'src/views/PoiEdit.vue'), 'utf8');
@@ -207,6 +236,7 @@ assert.match(poiEdit, /import EditorActionHeader from/);
 assert.match(poiEdit, /import EditorBusyOverlay from/);
 assert.match(poiEdit, /import \{ runEditorExportDecision \} from/);
 assert.match(poiEdit, /<EditorActionHeader[\s\S]*:save-visible="!readOnly"/);
+assert.match(poiEdit, /@discard-draft="discardRestoredDraft"/);
 assert.match(poiEdit, /data-editor-action="export"[\s\S]*@click="exportSource"/);
 assert.match(poiEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting \|\| cloning"/);
 assert.match(poiEdit, /<PoiAttributeForm[\s\S]*:active-lang="currentLang"/);
@@ -227,13 +257,23 @@ assert.match(poiAttributes, /emit\(['"]selectLanguage['"],\s*code\)/);
 console.log('  [7/8] POI editor shares Header, Busy, language, and saved export contracts: PASS');
 
 const poiIpc = await readFile(path.join(projectRoot, 'electron/ipc/poisource.ts'), 'utf8');
+const mapIpc = await readFile(path.join(projectRoot, 'electron/ipc/mapedit.ts'), 'utf8');
+const mapDownloadHandler = mapIpc.slice(
+  mapIpc.indexOf("ipcMain.handle('mapedit:download'"),
+  mapIpc.indexOf("ipcMain.handle('mapedit:uploadCsv'"),
+);
+assert.ok(
+  mapDownloadHandler.indexOf('dialog.showSaveDialog') < mapDownloadHandler.indexOf('composeDownloadMapJson'),
+  'Map must choose the output path before compiling or archiving data',
+);
 const preload = await readFile(path.join(projectRoot, 'electron/preload.ts'), 'utf8');
 const declarations = await readFile(path.join(projectRoot, 'src/electron.d.ts'), 'utf8');
 const electronMain = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
 assert.match(poiIpc, /ipcMain\.handle\(['"]poisource:exportFile['"]/);
 assert.match(poiIpc, /dialog\.showSaveDialog/);
 assert.match(poiIpc, /poiSourceService\.exportForm\(uid\)/);
-assert.match(poiIpc, /fs\.writeFile\([^,]+,\s*JSON\.stringify\(fc, null, 2\),\s*['"]utf8['"]\)/);
+assert.match(poiIpc, /inspectPoiExport\(fc\)/);
+assert.match(poiIpc, /writePoiExport\(inspection, ret\.filePath\)/);
 assert.doesNotMatch(poiIpc, /filePath\s*:\s*input|input\.filePath/);
 assert.match(preload, /exportFile:\s*\(uid:\s*string\)\s*=>\s*ipcRenderer\.invoke\(['"]poisource:exportFile['"],\s*uid\)/);
 assert.match(declarations, /exportFile\(uid:\s*string\):\s*Promise<PoiSourceExportResult>/);
@@ -252,6 +292,10 @@ for (const locale of ['ja', 'en', 'de', 'fr', 'es', 'ko', 'zh', 'zh-TW', 'vi', '
   const messages = JSON.parse(
     await readFile(path.join(projectRoot, 'public/locales', locale, 'translation.json'), 'utf8'),
   );
+  assert.equal(typeof messages.common?.cancel, 'string', `${locale}: common.cancel missing`);
+  assert.notEqual(messages.common.cancel.trim(), '', `${locale}: common.cancel empty`);
+  assert.equal(typeof messages.editor_ui?.discard_draft, 'string', `${locale}: editor_ui.discard_draft missing`);
+  assert.equal(typeof messages.editor_ui?.discard_draft_confirm, 'string', `${locale}: editor_ui.discard_draft_confirm missing`);
   for (const key of editorUiKeys) {
     assert.equal(typeof messages.editor_ui?.[key], 'string', `${locale}: editor_ui.${key} missing`);
     assert.notEqual(messages.editor_ui[key].trim(), '', `${locale}: editor_ui.${key} empty`);

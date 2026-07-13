@@ -45,6 +45,7 @@ try {
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const servicePath = path.join(projectRoot, 'electron/services/PoiSourceService.ts');
+  const packageServicePath = path.join(projectRoot, 'electron/services/PoiPackageService.ts');
 
   await mkdir(dataDir, { recursive: true });
   await writeFile(
@@ -243,6 +244,63 @@ try {
       assert.equal(await SqliteDataService.findPoiSourceBySlug('bad-import'), null, '拒否された import でソースは作られないはず');
       assert.equal(await SqliteDataService.isSlugAvailable('bad-import'), true, '拒否された import で slug は消費されないはず');
       console.log('ok: (g) importFile rejects non-Point (POI-104)');
+
+      // (g2) portable ZIP: 規定配置を取り込み、画像pathを永続Asset UIDへ戻す。
+      const AdmZip = (await import('adm-zip')).default;
+      const packageFile = nodePath.join(workDir, 'portable-poi.zip');
+      const packageZip = new AdmZip();
+      const packageImage = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        'base64'
+      );
+      packageZip.addFile('imgs/portable-photo.png', packageImage);
+      packageZip.addFile('pois/portable.geojson', Buffer.from(JSON.stringify({
+        type: 'FeatureCollection', id: 'portable', features: [{
+          type: 'Feature', id: 'portable-1',
+          geometry: { type: 'Point', coordinates: [135.0, 35.0] },
+          properties: { name: 'Portable', image: { src: 'imgs/portable-photo.png', desc: 'photo' } },
+        }],
+      })));
+      packageZip.writeZip(packageFile);
+      const importedPackage = await poiSourceService.importFile({
+        slug: 'portable-import', title: 'Portable import', filePath: packageFile,
+      });
+      assert.equal(importedPackage.result, 'Success', 'portable ZIP import should succeed: ' + JSON.stringify(importedPackage));
+      const importedPackageDoc = await poiSourceService.get(importedPackage.uid);
+      const importedImageUid = importedPackageDoc.fc.features[0].properties.image.src;
+      assert.match(importedImageUid, UUID_PATTERN, 'package image path must become an Asset UID');
+      const importedAsset = await SqliteDataService.findAsset(importedImageUid);
+      assert.equal(importedAsset.slug, 'portable-photo');
+
+      const { inspectPoiExport, writePoiExport } = await import(${JSON.stringify(packageServicePath)});
+      const exportedPackageFc = await poiSourceService.exportForm(importedPackage.uid);
+      const packageInspection = await inspectPoiExport(exportedPackageFc);
+      assert.equal(packageInspection.kind, 'zip', 'asset reference must select ZIP automatically');
+      const roundTripZipPath = nodePath.join(workDir, 'portable-roundtrip.zip');
+      await writePoiExport(packageInspection, roundTripZipPath);
+      const roundTripZip = new AdmZip(roundTripZipPath);
+      assert.deepEqual(
+        roundTripZip.getEntries().map((entry: any) => entry.entryName).sort(),
+        ['imgs/portable-photo.png', 'pois/portable-import.geojson'],
+      );
+
+      const invalidPackageFile = nodePath.join(workDir, 'portable-invalid.zip');
+      const invalidPackageZip = new AdmZip();
+      invalidPackageZip.addFile('imgs/cleanup-photo.png', packageImage);
+      invalidPackageZip.addFile('pois/invalid.geojson', Buffer.from(JSON.stringify({
+        type: 'FeatureCollection', features: [{
+          type: 'Feature', id: 'bad', geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] },
+          properties: { name: 'Bad', image: 'imgs/cleanup-photo.png' },
+        }],
+      })));
+      invalidPackageZip.writeZip(invalidPackageFile);
+      const invalidPackage = await poiSourceService.importFile({
+        slug: 'portable-invalid', title: 'invalid', filePath: invalidPackageFile,
+      });
+      assert.equal(invalidPackage.result, 'Invalid');
+      assert.equal(await SqliteDataService.findAssetBySlug('cleanup-photo'), null,
+        'failed ZIP import must remove image asset registry rows');
+      console.log('ok: (g2) portable ZIP import/export resolves image assets');
 
       // --- 使い捨てローカル HTTP サーバ (registerRemote / refreshRemote 用) ---
       let remotePayload = JSON.stringify({

@@ -7,6 +7,7 @@
     "settings": "การตั้งค่า",
     "reset": "รีเซ็ต",
     "save": "บันทึก",
+    "cancel": "ยกเลิก",
     "download": "ดาวน์โหลด",
     "language": "ภาษา",
     "japanese": "ภาษาญี่ปุ่น",
@@ -774,6 +775,7 @@
     }
   },
   "editor_ui": {
+    "discard_draft": "ละทิ้งฉบับร่าง", "discard_draft_confirm": "ละทิ้งฉบับร่างนี้และกลับไปยังเวอร์ชันที่บันทึกไว้หรือไม่",
     "back": "กลับไปที่รายการ",
     "translations": "คำแปลที่มีอยู่",
     "export_button": "ส่งออก", "export_dirty_prompt": "มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก โปรดเลือกสิ่งที่จะส่งออก", "export_save_and_run": "บันทึกและส่งออก", "export_saved_only": "ส่งออกเวอร์ชันที่บันทึกแล้ว", "export_success": "ส่งออกเสร็จสมบูรณ์", "export_failed": "ส่งออกไม่สำเร็จ", "busy_exporting": "กำลังส่งออก…",

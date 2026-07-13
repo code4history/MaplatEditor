@@ -7,6 +7,7 @@
     "settings": "Paramètres",
     "reset": "Réinitialiser",
     "save": "Enregistrer",
+    "cancel": "Annuler",
     "download": "Télécharger",
     "language": "Langue",
     "japanese": "Japonais",
@@ -774,6 +775,7 @@
     }
   },
   "editor_ui": {
+    "discard_draft": "Supprimer le brouillon", "discard_draft_confirm": "Supprimer ce brouillon et revenir à la version enregistrée ?",
     "back": "Retour à la liste",
     "translations": "Traductions disponibles",
     "export_button": "Exporter", "export_dirty_prompt": "Des modifications ne sont pas enregistrées. Choisissez quoi exporter.", "export_save_and_run": "Enregistrer et exporter", "export_saved_only": "Exporter la version enregistrée", "export_success": "Export terminé.", "export_failed": "Échec de l’export.", "busy_exporting": "Export en cours…",

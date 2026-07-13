@@ -13,6 +13,7 @@ import PoiReferenceEditor from "../components/PoiReferenceEditor.vue";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
+import LangValueChips from "../components/editor-ui/LangValueChips.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
@@ -181,6 +182,9 @@ const originalAppData = ref<AppDocument>(defaultApp());
 const activeTab = ref<"metadata" | "sources" | "pois" | "preview">("metadata");
 const sourceListMode = ref<"maps" | "baseMaps">("maps");
 const currentLang = ref<LangCode>("ja");
+const selectEditorLanguage = (language: LangCode) => {
+  currentLang.value = language;
+};
 // 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (ADR-0007, Phase 4 Task 3)。
 // 以下の3値の正本は handle の ref に一本化する:
 //   uid(=appUid): 不変の正本キー。undefined = 未保存の新規アプリ
@@ -757,6 +761,20 @@ async function reloadFromStore() {
   }
 }
 
+async function discardRestoredDraft() {
+  if (!appUid.value || !draftLifecycle.draftRestored.value) return;
+  const result = await (window as any).dialog.showMessageBox({
+    type: "warning",
+    buttons: [t("editor_ui.discard_draft"), t("common.cancel")],
+    defaultId: 1,
+    cancelId: 1,
+    message: t("editor_ui.discard_draft_confirm"),
+  });
+  if (result.response !== 0) return;
+  await draftLifecycle.discard();
+  await reloadFromStore();
+}
+
 async function chooseAppExport(hasSaved: boolean) {
   const buttons = hasSaved
     ? [
@@ -811,7 +829,7 @@ async function exportSavedApp(): Promise<boolean> {
 }
 
 async function exportApp() {
-  if (exporting.value || saving.value || saveError.value) return;
+  if (exporting.value || saving.value) return;
   exporting.value = true;
   try {
     await runEditorExportDecision({
@@ -1021,18 +1039,20 @@ function onPoisChange(next: unknown[]) {
       :save-disabled="!!saveError || !isDirty"
       :saving="saving"
       :actions-disabled="exporting"
+      :discard-draft-visible="saveState === 'draft-restored' && !!appUid"
       @back="goBack"
       @update:active-lang="currentLang = $event"
       @undo="performUndo"
       @redo="performRedo"
       @save="saveApp"
+      @discard-draft="discardRestoredDraft"
     >
       <template #actions="{ disabled }">
         <button
           type="button"
           class="btn btn-sm btn-outline-primary"
           data-editor-action="export"
-          :disabled="disabled || !!saveError || !onlyOne || exporting"
+          :disabled="disabled || exporting"
           @click="exportApp"
         >
           {{ t("editor_ui.export_button") }}
@@ -1093,7 +1113,7 @@ function onPoisChange(next: unknown[]) {
               </button>
             </div>
             <div class="col-md-7">
-              <label class="form-label fw-bold small mb-0">{{ t("appedit.app_name") }}</label>
+              <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_name") }} <LangValueChips :model-value="appData.title" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
               <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" @input="recordHistory">
             </div>
           </div>
@@ -1121,7 +1141,7 @@ function onPoisChange(next: unknown[]) {
           </div>
           <div class="row g-1 mb-2">
             <div class="col-12">
-              <label class="form-label fw-bold small mb-0">{{ t("appedit.description") }}</label>
+              <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.description") }} <LangValueChips :model-value="appData.description" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
               <textarea v-model="descriptionText" class="form-control form-control-sm" rows="5" @input="recordHistory" />
             </div>
           </div>

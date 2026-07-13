@@ -7,6 +7,7 @@
     "settings": "設定",
     "reset": "重設",
     "save": "儲存",
+    "cancel": "取消",
     "download": "下載",
     "language": "語言",
     "japanese": "日文",
@@ -774,6 +775,7 @@
     }
   },
   "editor_ui": {
+    "discard_draft": "捨棄草稿", "discard_draft_confirm": "要捨棄此草稿並返回已儲存版本嗎？",
     "back": "返回列表",
     "translations": "已有翻譯",
     "export_button": "匯出", "export_dirty_prompt": "有尚未儲存的變更。請選擇要匯出的內容。", "export_save_and_run": "儲存並匯出", "export_saved_only": "匯出已儲存版本", "export_success": "匯出完成。", "export_failed": "匯出失敗。", "busy_exporting": "正在匯出…",

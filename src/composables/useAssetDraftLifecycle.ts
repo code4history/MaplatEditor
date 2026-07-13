@@ -70,6 +70,20 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     await core.flush();
   };
 
+  const markSaved = async () => {
+    await core.markSaved();
+    draftRestored.value = false;
+    conflictDraft.value = null;
+  };
+
+  const discard = async () => {
+    if (currentUid.value) {
+      await window.assetDrafts.remove(options.kind, currentUid.value);
+    }
+    draftRestored.value = false;
+    conflictDraft.value = null;
+  };
+
   onMounted(() => {
     window.addEventListener('beforeunload', beforeUnload);
     window.addEventListener('maplat:flush-drafts', beforeUnload);
@@ -89,7 +103,8 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     resolveConflict,
     schedule: core.schedule,
     flush,
-    markSaved: core.markSaved,
+    markSaved,
+    discard,
     flushSync: core.flushSync,
     currentUid,
     currentRevision,

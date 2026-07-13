@@ -21,6 +21,7 @@ async function installNativeDialogHarness(app: ElectronApplication, exportPath: 
     const harness = {
       messageBoxes: [] as Array<{ buttons?: string[]; message?: string }>,
       exportPath: nextExportPath,
+      nextResponse: null as number | null,
     };
     (globalThis as any).__m11T3DialogHarness = harness;
 
@@ -29,7 +30,9 @@ async function installNativeDialogHarness(app: ElectronApplication, exportPath: 
       harness.messageBoxes.push({ buttons: options.buttons, message: options.message });
       // Busy表示を実画面で観測できるだけの時間、native dialog応答を保留する。
       await new Promise((resolve) => setTimeout(resolve, 350));
-      return { response: (options.buttons?.length ?? 0) >= 2 ? options.buttons.length - 1 : 0, checkboxChecked: false };
+      const response = harness.nextResponse ?? ((options.buttons?.length ?? 0) >= 2 ? options.buttons.length - 1 : 0);
+      harness.nextResponse = null;
+      return { response, checkboxChecked: false };
     }) as typeof dialog.showMessageBox;
 
     dialog.showSaveDialog = (async () => {
@@ -76,6 +79,27 @@ async function seedPoi(page: Page): Promise<{ uid: string; slug: string }> {
   });
 }
 
+async function seedMap(page: Page): Promise<string> {
+  return page.evaluate(async () => {
+    const slug = `m11-t3-map-${Date.now()}`;
+    const result = await window.mapedit.save({
+      slug,
+      mapObject: {
+        mapID: slug,
+        title: { ja: 'T3 地図', en: 'T3 Map' },
+        officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+        attr: {}, dataAttr: {}, description: {},
+        license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
+        imageExtension: 'jpg', width: 400, height: 300, gcps: [], edges: [], sub_maps: [],
+        strictMode: 'strict', vertexMode: 'plain', status: 'New',
+      },
+      tins: [],
+    });
+    if (!result || result.result !== 'Success') throw new Error(`Could not seed map: ${JSON.stringify(result)}`);
+    return result.uid;
+  });
+}
+
 async function openHash(page: Page, hash: string, ready: string): Promise<void> {
   await page.evaluate((nextHash) => { location.hash = nextHash; }, hash);
   await expect(page.locator(ready)).toBeVisible();
@@ -100,11 +124,35 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
 
     const appUid = await seedApp(page);
     const poi = await seedPoi(page);
+    const mapUid = await seedMap(page);
+
+    await page.evaluate(async (uid) => {
+      const saved = await window.appedit.request(uid);
+      await window.assetDrafts.put({
+        schemaVersion: 1,
+        kind: 'app',
+        assetUid: uid,
+        baseRevision: saved.revision,
+        updatedAt: new Date().toISOString(),
+        payload: {
+          ...saved,
+          title: { ...saved.title, en: 'T3 App restored draft' },
+          appName: { ...saved.appName, en: 'T3 App restored draft' },
+        },
+      });
+    }, appUid);
 
     await openHash(page, `#/appedit?uid=${appUid}`, '[data-testid="app-id"]');
     await expectHeaderOrder(page);
 
     const appName = page.getByTestId('app-title');
+    await expect(appName).toHaveValue('T3 App restored draft');
+    await expect(page.locator('[data-editor-action="discard-draft"]')).toBeVisible();
+    await app.evaluate(() => { (globalThis as any).__m11T3DialogHarness.nextResponse = 0; });
+    await page.locator('[data-editor-action="discard-draft"]').click();
+    await expect(appName).toHaveValue('T3 App');
+    await expect(page.locator('[data-editor-action="discard-draft"]')).toBeHidden();
+
     await appName.fill('T3 App edited');
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
     await appName.press(saveShortcut);
@@ -116,8 +164,13 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await appLanguage.selectOption('ja');
     await appName.fill('T3 アプリ');
     await page.locator('.editor-action-header__identity strong').click();
+    const englishChip = page.locator('.lang-value-chip', { hasText: 'EN' }).first();
+    await expect(englishChip).toBeVisible();
+    await expect(englishChip).toHaveAttribute('title', /English: T3 App edited/);
+    await englishChip.click();
+    await expect(appLanguage).toHaveValue('en');
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
-    await expect(appLanguage).toHaveValue('ja');
+    await expect(appLanguage).toHaveValue('en');
 
     await appName.fill('T3 App dirty export');
     await page.locator('[data-editor-action="export"]').click();
@@ -142,9 +195,14 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     expect(exported.type).toBe('FeatureCollection');
     expect(exported.id).toBe(poi.slug);
 
-    await openHash(page, '#/mapedit', '#mapDocumentLanguage');
+    await openHash(page, `#/mapedit?uid=${mapUid}`, '#mapDocumentLanguage');
     await expectHeaderOrder(page);
     await expect(page.locator('.nav-tabs .nav-link')).toHaveCount(4);
+    const mapEnglishChip = page.locator('.lang-value-chip', { hasText: 'EN' }).first();
+    await expect(mapEnglishChip).toHaveAttribute('title', 'English: T3 Map');
+    await mapEnglishChip.click();
+    await expect(page.locator('[data-editor-action="language"]')).toHaveValue('en');
+    await expect(page.getByTestId('map-title')).toHaveValue('T3 Map');
   } finally {
     await app.close();
   }

@@ -106,6 +106,37 @@ interface IconResolutionSink {
   warnings: string[];
 }
 
+async function resolveImageValue(
+  value: unknown,
+  sink: IconResolutionSink,
+): Promise<{ value: unknown; changed: boolean }> {
+  if (typeof value === 'string') {
+    const resolution = await resolveIconValue(value);
+    if (!resolution) return { value, changed: false };
+    if (resolution.kind === 'unresolved') {
+      mergeWarnings(sink.warnings, [UNRESOLVED_ICON_WARNING]);
+      return { value, changed: false };
+    }
+    sink.files.set(resolution.file.dest, resolution.file);
+    return { value: resolution.dest, changed: true };
+  }
+  if (Array.isArray(value)) {
+    const resolved = await Promise.all(value.map((entry) => resolveImageValue(entry, sink)));
+    return resolved.some((entry) => entry.changed)
+      ? { value: resolved.map((entry) => entry.value), changed: true }
+      : { value, changed: false };
+  }
+  if (value && typeof value === 'object') {
+    const object = value as Record<string, unknown>;
+    if (typeof object.src !== 'string') return { value, changed: false };
+    const resolved = await resolveImageValue(object.src, sink);
+    return resolved.changed
+      ? { value: { ...object, src: resolved.value }, changed: true }
+      : { value, changed: false };
+  }
+  return { value, changed: false };
+}
+
 // props (layer metadata または feature properties) の icon/selectedIcon を解決。
 // 変更があった場合のみ shallow copy を返す (無変更なら null — 生 FC の無加工透過を保つ)
 async function resolveIconProps(
@@ -123,6 +154,13 @@ async function resolveIconProps(
     sink.files.set(resolution.file.dest, resolution.file);
     if (!changed) changed = { ...props };
     changed[key] = resolution.dest;
+  }
+  if ('image' in props) {
+    const image = await resolveImageValue(props.image, sink);
+    if (image.changed) {
+      if (!changed) changed = { ...props };
+      changed.image = image.value;
+    }
   }
   return changed;
 }
@@ -154,6 +192,17 @@ async function resolveIconRefsInFc(entry: unknown, sink: IconResolutionSink): Pr
     }
   }
   return out ?? entry;
+}
+
+export async function resolvePoiFeatureCollection(entry: unknown): Promise<{
+  fc: unknown;
+  files: IconFile[];
+  warnings: string[];
+}> {
+  const warnings: string[] = [];
+  const sink: IconResolutionSink = { files: new Map(), warnings };
+  const fc = await resolveIconRefsInFc(entry, sink);
+  return { fc, files: [...sink.files.values()], warnings };
 }
 
 // {poiUid} 参照要素なら uid を返す。poiUid 以外のキー (cachedTitle 等) は解決時に無視する。

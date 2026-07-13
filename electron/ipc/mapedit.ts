@@ -149,6 +149,12 @@ export const registerMapEditHandlers = () => {
         const slug = mapDoc?.slug || mapObject.mapID;
         const fileKey = mapDoc?.uid || slug;
 
+        const ret = await dialog.showSaveDialog(win, {
+            defaultPath: path.join(app.getPath('documents'), `${slug}.zip`),
+            filters: [{ name: 'Output file', extensions: ['zip'] }],
+        });
+        if (ret.canceled || !ret.filePath) return 'Canceled';
+
         // histMap2Store で store 形式に変換してから JSON 保存。
         // エクスポート(交換形)ではデフォルト言語のみの言語別フィールドを
         // プレーン文字列に畳み込む (ADR-0005)。pois 内の {poiUid} 参照は export 形 FC へ
@@ -209,20 +215,9 @@ export const registerMapEditHandlers = () => {
         }
         zip.writeZip(zipFilePath);
 
-        const ret = await dialog.showSaveDialog(win, {
-            defaultPath: path.join(app.getPath('documents'), `${slug}.zip`),
-            filters: [{ name: 'Output file', extensions: ['zip'] }],
-        });
-
         await fs.remove(tmpFile);
-
-        if (!ret.canceled && ret.filePath) {
-            await fs.move(zipFilePath, ret.filePath, { overwrite: true });
-            return 'Success';
-        } else {
-            await fs.remove(zipFilePath);
-            return 'Canceled';
-        }
+        await fs.move(zipFilePath, ret.filePath, { overwrite: true });
+        return 'Success';
     });
 
     // 旧実装: mapedit_uploadCsv 相当（CSV インポート）

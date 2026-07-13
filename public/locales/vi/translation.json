@@ -7,6 +7,7 @@
     "settings": "Cài đặt",
     "reset": "Đặt lại",
     "save": "Lưu",
+    "cancel": "Hủy",
     "download": "Tải xuống",
     "language": "Ngôn ngữ",
     "japanese": "Tiếng Nhật",
@@ -774,6 +775,7 @@
     }
   },
   "editor_ui": {
+    "discard_draft": "Bỏ bản nháp", "discard_draft_confirm": "Bỏ bản nháp này và quay lại phiên bản đã lưu?",
     "back": "Về danh sách",
     "translations": "Bản dịch hiện có",
     "export_button": "Xuất", "export_dirty_prompt": "Có thay đổi chưa lưu. Hãy chọn nội dung cần xuất.", "export_save_and_run": "Lưu và xuất", "export_saved_only": "Xuất phiên bản đã lưu", "export_success": "Xuất hoàn tất.", "export_failed": "Xuất thất bại.", "busy_exporting": "Đang xuất…",

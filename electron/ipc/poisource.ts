@@ -1,7 +1,7 @@
 import { ipcMain, dialog, app, BrowserWindow } from 'electron';
 import path from 'path';
-import fs from 'fs-extra';
 import poiSourceService from '../services/PoiSourceService';
+import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService';
 
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
@@ -21,18 +21,20 @@ export function registerPoisourceHandlers() {
     try {
       const fc = await poiSourceService.exportForm(uid);
       if (!fc) return { result: 'Error', message: 'POI source not found' } as const;
-      const slug = String((fc as typeof fc & { id?: string | number }).id ?? 'poi')
-        .replace(/[^A-Za-z0-9_-]+/g, '-') || 'poi';
+      const inspection = await inspectPoiExport(fc);
+      const extension = inspection.kind === 'zip' ? 'zip' : 'geojson';
       const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
       const options = {
-        defaultPath: path.join(app.getPath('documents'), `${slug}.geojson`),
-        filters: [{ name: 'GeoJSON', extensions: ['geojson', 'json'] }],
+        defaultPath: path.join(app.getPath('documents'), `${inspection.slug}.${extension}`),
+        filters: inspection.kind === 'zip'
+          ? [{ name: 'POI package', extensions: ['zip'] }]
+          : [{ name: 'GeoJSON', extensions: ['geojson', 'json'] }],
       };
       const ret = win
         ? await dialog.showSaveDialog(win, options)
         : await dialog.showSaveDialog(options);
       if (ret.canceled || !ret.filePath) return { result: 'Canceled' } as const;
-      await fs.writeFile(ret.filePath, JSON.stringify(fc, null, 2), 'utf8');
+      await writePoiExport(inspection, ret.filePath);
       return { result: 'Success', filePath: ret.filePath } as const;
     } catch (error) {
       console.error('[poisource:exportFile] failed:', error);
@@ -50,7 +52,7 @@ export function registerPoisourceHandlers() {
     const options = {
       defaultPath: app.getPath('documents'),
       properties: ['openFile' as const],
-      filters: [{ name: 'GeoJSON', extensions: ['geojson', 'json'] }],
+      filters: [{ name: 'POI data', extensions: ['geojson', 'json', 'zip'] }],
     };
     const ret = win
       ? await dialog.showOpenDialog(win, options)

@@ -32,6 +32,7 @@ import {
   type PoiEditorFC,
   type PoiValidationIssue,
 } from '../../src/utils/poiGeoJson';
+import type { PoiZipImport } from './PoiPackageService';
 
 // POI editor の default 言語 (ADR-0005 既定、poiGeoJson.ts と一致)
 const DEFAULT_LANG = 'ja';
@@ -400,6 +401,27 @@ export class PoiSourceService {
   // 新規 local ソースとして取り込む。Point以外を含む場合は取込拒否 (POI-104)
   async importFile(input: { slug: string; title: LangResource; filePath: string }): Promise<PoiSourceSaveResult> {
     const ext = path.extname(String(input.filePath ?? '')).toLowerCase();
+    if (ext === '.zip') {
+      if (!(await SqliteDataService.isSlugAvailable(String(input.slug ?? '').trim()))) {
+        return { result: 'Exist' };
+      }
+      let preparedImport: PoiZipImport | null = null;
+      try {
+        const { importPoiZip } = await import('./PoiPackageService');
+        preparedImport = await importPoiZip(input.filePath);
+        const prepared = this.prepare(preparedImport.fc);
+        if (prepared.hasError) {
+          await preparedImport.cleanup();
+          return { result: 'Invalid', issues: prepared.issues };
+        }
+        const result = await this.createSource(input.slug, input.title, 'local', prepared.fc, prepared.issues);
+        if (!('result' in result) || result.result !== 'Success') await preparedImport.cleanup();
+        return result;
+      } catch (e: any) {
+        if (preparedImport) await preparedImport.cleanup();
+        return { result: 'Error', code: 'invalid-request', message: e?.message ?? String(e) };
+      }
+    }
     if (ext !== '.geojson' && ext !== '.json') {
       return { result: 'Error', code: 'invalid-request', message: `Unsupported file extension: ${ext || '(none)'}` };
     }

@@ -30,11 +30,13 @@
         :saving="saving"
         :actions-disabled="exporting || cloning"
         :save-visible="!readOnly"
+        :discard-draft-visible="saveState === 'draft-restored' && !!saveHandle.uid.value"
         @back="goBack"
         @update:active-lang="currentLang = $event"
         @undo="performUndo"
         @redo="performRedo"
         @save="saveSource"
+        @discard-draft="discardRestoredDraft"
       >
         <template #actions="{ disabled }">
           <button
@@ -383,6 +385,21 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
 });
 const { confirmedSlug, saving, performSave } = saveHandle;
 const exporting = ref(false);
+
+async function discardRestoredDraft() {
+  const uid = saveHandle.uid.value;
+  if (!uid || !draftLifecycle.draftRestored.value) return;
+  const result = await (window as any).dialog.showMessageBox({
+    type: "warning",
+    buttons: [t("editor_ui.discard_draft"), t("common.cancel")],
+    defaultId: 1,
+    cancelId: 1,
+    message: t("editor_ui.discard_draft_confirm"),
+  });
+  if (result.response !== 0) return;
+  await draftLifecycle.discard();
+  await load(uid);
+}
 
 const displayTitle = computed(() => {
   const state = editState.value;

@@ -8,6 +8,7 @@ import PoiReferenceEditor from '../components/PoiReferenceEditor.vue';
 import DraftConflictDialog from '../components/editor-ui/DraftConflictDialog.vue';
 import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
 import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
+import LangValueChips from '../components/editor-ui/LangValueChips.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import {
@@ -389,6 +390,9 @@ const vertexMode = ref<'plain' | 'birdeye'>('plain');
 // });
 
 const currentLang = ref<LangCode>('ja');
+const selectEditorLanguage = (language: LangCode) => {
+    currentLang.value = language;
+};
 
 type MapEditHistoryState = {
     mapData: any;
@@ -2696,6 +2700,20 @@ const reloadFromStore = async () => {
     }
 };
 
+const discardRestoredDraft = async () => {
+    if (!mapUid.value || !draftLifecycle.draftRestored.value) return;
+    const result = await (window as any).dialog.showMessageBox({
+        type: 'warning',
+        buttons: [t('editor_ui.discard_draft'), t('common.cancel')],
+        defaultId: 1,
+        cancelId: 1,
+        message: t('editor_ui.discard_draft_confirm'),
+    });
+    if (result.response !== 0) return;
+    await draftLifecycle.discard();
+    await reloadFromStore();
+};
+
 // A-3: エラー点の順送り表示
 // 旧実装 mapedit.js L.1686-1700 に準拠
 const viewError = () => {
@@ -2933,7 +2951,7 @@ const downloadSavedMap = async (): Promise<boolean> => {
 };
 
 const exportMap = async () => {
-    if (exporting.value || saving.value || saveError.value) return;
+    if (exporting.value || saving.value) return;
     exporting.value = true;
     try {
         await runEditorExportDecision({
@@ -3052,18 +3070,20 @@ const goBack = async () => {
             :save-disabled="!!saveError || !isDirty"
             :saving="saving"
             :actions-disabled="exporting"
+            :discard-draft-visible="saveState === 'draft-restored' && !!mapUid"
             @back="goBack"
             @update:active-lang="currentLang = $event"
             @undo="performUndo"
             @redo="performRedo"
             @save="saveMap"
+            @discard-draft="discardRestoredDraft"
         >
             <template #actions="{ disabled }">
                 <button
                     type="button"
                     class="btn btn-sm btn-outline-primary"
                     data-editor-action="export"
-                    :disabled="disabled || !!saveError || exporting"
+                    :disabled="disabled || exporting"
                     @click="exportMap"
                 >
                     {{ t("editor_ui.export_button") }}
@@ -3187,18 +3207,18 @@ const goBack = async () => {
                     <!-- Row 2 -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_name_repr") }}</label>
-                            <input type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_name_repr_pf')">
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_repr") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <input data-testid="map-title" type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_name_repr_pf')">
                             <div v-if="saveError?.title" class="form-text small text-muted text-danger mb-0" style="font-size: 0.75rem;">{{ saveError.title }}</div>
                             <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_repr_desc") }}</div>
                         </div>
                         <div class="col-md-5">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_name_ofc") }}</label>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_ofc") }} <LangValueChips :model-value="mapData.officialTitle" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="officialTitle" :placeholder="t('mapedit.map_name_ofc_pf')">
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_ofc_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_author") }}</label>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_author") }} <LangValueChips :model-value="mapData.author" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="author" :placeholder="t('mapedit.map_author_pf')">
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_author_desc") }}</div>
                         </div>
@@ -3207,22 +3227,22 @@ const goBack = async () => {
                     <!-- Row 3 -->
                     <div class="row g-1 mb-2">
                          <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_create_at") }}</label>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_create_at") }} <LangValueChips :model-value="mapData.createdAt" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="createdAt" :placeholder="t('mapedit.map_create_at_pf')">
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_create_at_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_era") }}</label>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_era") }} <LangValueChips :model-value="mapData.era" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="era" :placeholder="t('mapedit.map_era_pf')">
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_era_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_owner") }}</label>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_owner") }} <LangValueChips :model-value="mapData.contributor" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="contributor" :placeholder="t('mapedit.map_owner_pf')">
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_owner_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_mapper") }}</label>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_mapper") }} <LangValueChips :model-value="mapData.mapper" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <!-- 旧実装 mapedit.html L.125: placeholder は 'mapedit.map_mapper'（_pf なし）-->
                             <input type="text" class="form-control form-control-sm" v-model="mapper" :placeholder="t('mapedit.map_mapper')">
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_mapper_desc") }}</div>
@@ -3261,13 +3281,13 @@ const goBack = async () => {
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_gcp_license_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_copyright") }}</label>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
                             <div v-if="saveError?.attr" class="form-text small text-muted text-danger mb-0" style="font-size: 0.75rem;">{{ saveError.attr }}</div>
                             <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_copyright_desc") }}</div>
                         </div>
                          <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_gcp_copyright") }}</label>
+                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_copyright") }} <LangValueChips :model-value="mapData.dataAttr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="dataAttr" :placeholder="t('mapedit.map_gcp_copyright_pf')">
                              <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_gcp_copyright_desc") }}</div>
                         </div>
@@ -3290,7 +3310,7 @@ const goBack = async () => {
                     <!-- Row 6 -->
                      <div class="row g-2">
                          <div class="col-12">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_description") }}</label>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_description") }} <LangValueChips :model-value="mapData.description" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <textarea class="form-control form-control-sm" rows="3" v-model="description" :placeholder="t('mapedit.map_description_pf')"></textarea>
                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_description_desc") }}</div>
                         </div>

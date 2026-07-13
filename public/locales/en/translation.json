@@ -4,6 +4,7 @@
     "settings": "Settings",
     "reset": "Reset",
     "save": "Save",
+    "cancel": "Cancel",
     "download": "Download",
     "revision_conflict": "This asset was updated in another window.",
     "reload": "Reload",
@@ -774,6 +775,7 @@
     }
   },
   "editor_ui": {
+    "discard_draft": "Discard draft", "discard_draft_confirm": "Discard this draft and return to the saved version?",
     "back": "Back to list",
     "translations": "Available translations",
     "export_button": "Export", "export_dirty_prompt": "There are unsaved changes. Choose what to export.", "export_save_and_run": "Save and export", "export_saved_only": "Export saved version", "export_success": "Export completed.", "export_failed": "Export failed.", "busy_exporting": "Exporting…",
