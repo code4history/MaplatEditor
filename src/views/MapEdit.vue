@@ -1592,6 +1592,16 @@ onBeforeUnmount(() => {
     window.removeEventListener('keydown', onHistoryKeydown);
     removeMainProcessListener?.();
     removeMainProcessListener = undefined;
+    // Map/OpenLayers runtime is module-scoped. Clear it before a subsequent
+    // MapEdit mount applies a draft, otherwise restoreHistoryState() can draw
+    // through a detached source left by the previous screen.
+    illstMap?.setTarget(undefined);
+    mercMap?.setTarget(undefined);
+    illstSource = null;
+    illstMap = null;
+    mercMap = null;
+    illstCheckSource = null;
+    mercCheckSource = null;
     editorComputeBackend.dispose();
 });
 

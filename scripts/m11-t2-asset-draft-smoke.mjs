@@ -235,6 +235,11 @@ try {
     assert.ok(goBack, `${name}: goBack block missing`);
     assert.doesNotMatch(goBack, /showMessageBox/, `${name}: dirty leave confirmation must be removed`);
   }
+  assert.match(
+    mapView,
+    /onBeforeUnmount\([\s\S]*illstMap\?\.setTarget\(undefined\)[\s\S]*mercMap\?\.setTarget\(undefined\)[\s\S]*illstSource\s*=\s*null[\s\S]*illstMap\s*=\s*null[\s\S]*mercMap\s*=\s*null/,
+    'MapEdit must detach and clear module-scoped map runtime before draft restore on reopen',
+  );
   const poiSession = await readFile(
     path.join(projectRoot, 'src/composables/usePoiEditSession.ts'),
     'utf8',
