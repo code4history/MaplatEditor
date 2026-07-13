@@ -1,116 +1,121 @@
-// ビルトインベースマップ定義の生成スクリプト。
-// ../Playground/KTGIS/ktgis-maplat-catalog.json を正本として electron/builtin_base_maps.json を生成する。
-// - KTGIS(今昔マップ): rows から生成
-// - 非KTGIS基盤レイヤー(osm/gsi/gsi_ortho/地理院年代別/AFFRC): baseMapRows から生成
-// - アイコンは52px文字なし(no-year)を public/basemap_icons/{mapID}.png へコピーする
-//   (osm/gsi/gsi_ortho は AppEdit の静的サムネイル用に src/assets/img/ へもコピー)
-// 手編集禁止: 変更はカタログまたは本スクリプトに対して行うこと(ADR-0002)。
-import { copyFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+// KTGISカタログを正本としてbuiltin Base Map定義を決定的に生成する。
+// --data-only はJSONだけを書き換え、既存アイコンを一切削除・変更しない。
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
-const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
-const catalogPath = process.argv[2]
-  ? path.resolve(process.argv[2])
-  : path.resolve(projectRoot, '../Playground/KTGIS/ktgis-maplat-catalog.json');
-const catalogDir = path.dirname(catalogPath);
-const legacyTmsListPath = path.join(projectRoot, 'electron/tms_list.json');
-const outputPath = path.join(projectRoot, 'electron/builtin_base_maps.json');
-const iconOutputDir = path.join(projectRoot, 'public/basemap_icons');
-const assetImgDir = path.join(projectRoot, 'src/assets/img');
+const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
+const defaultCatalogPath = path.resolve(projectRoot, "../Playground/KTGIS/ktgis-maplat-catalog.json");
+const legacyTmsListPath = path.join(projectRoot, "electron/tms_list.json");
+const outputPath = path.join(projectRoot, "electron/builtin_base_maps.json");
+const iconOutputDir = path.join(projectRoot, "public/basemap_icons");
+const assetImgDir = path.join(projectRoot, "src/assets/img");
 
-// Viewerビルトイン(アプリJSONへは素の文字列で出力される3種)
-const VIEWER_BUILTIN_IDS = new Set(['osm', 'gsi', 'gsi_ortho']);
+const VIEWER_BUILTIN_IDS = new Set(["osm", "gsi", "gsi_ortho"]);
+const OSM_LANGS = ["ja", "en", "de", "fr", "es", "ko", "zh", "zh-TW", "vi", "th", "id"];
 
-// 帰属表示: カタログにはattrがないため、ここで管理する
+export const BASE_MAP_LOCALIZED_NAMES = {
+  osm: { ja: "OpenStreetMap", en: "OpenStreetMap", de: "OpenStreetMap", fr: "OpenStreetMap", es: "OpenStreetMap", ko: "OpenStreetMap", zh: "OpenStreetMap", "zh-TW": "OpenStreetMap", vi: "OpenStreetMap", th: "OpenStreetMap", id: "OpenStreetMap" },
+  gsi: { ja: "地理院地図", en: "GSI Maps" },
+  gsi_ortho: { ja: "地理院航空写真", en: "GSI Aerial Photographs" },
+  gsi_ort_USA10: { ja: "地理院航空写真1945-50", en: "GSI Aerial Photographs 1945–1950" },
+  gsi_ort_old10: { ja: "地理院航空写真1961-64", en: "GSI Aerial Photographs 1961–1964" },
+  gsi_gazo1: { ja: "地理院航空写真1974-78", en: "GSI Aerial Photographs 1974–1978" },
+  gsi_gazo2: { ja: "地理院航空写真1979-83", en: "GSI Aerial Photographs 1979–1983" },
+  gsi_gazo3: { ja: "地理院航空写真1984-86", en: "GSI Aerial Photographs 1984–1986" },
+  gsi_gazo4: { ja: "地理院航空写真1988-90", en: "GSI Aerial Photographs 1988–1990" },
+  affrc_rapid16: { ja: "1/2万 迅速測図原図", en: "Rapid Survey Maps, 1:20,000" },
+  affrc_tokyo5k: { ja: "1/5千 東京測量図原図", en: "Tokyo Survey Maps, 1:5,000" },
+};
+
 const BASE_MAP_ATTRS = {
-  gsi_ort_USA10: 'The Geospatial Information Authority of Japan',
-  gsi_ort_old10: 'The Geospatial Information Authority of Japan',
-  gsi_gazo1: 'The Geospatial Information Authority of Japan',
-  gsi_gazo2: 'The Geospatial Information Authority of Japan',
-  gsi_gazo3: 'The Geospatial Information Authority of Japan',
-  gsi_gazo4: 'The Geospatial Information Authority of Japan',
-  // 旧aginfo配信終了に伴いCC-BYミラーへ移行(カタログnote参照)。権利者は農研機構
-  affrc_rapid16: '農研機構農業環境研究部門',
-  affrc_tokyo5k: '農研機構農業環境研究部門',
+  gsi_ort_USA10: "The Geospatial Information Authority of Japan",
+  gsi_ort_old10: "The Geospatial Information Authority of Japan",
+  gsi_gazo1: "The Geospatial Information Authority of Japan",
+  gsi_gazo2: "The Geospatial Information Authority of Japan",
+  gsi_gazo3: "The Geospatial Information Authority of Japan",
+  gsi_gazo4: "The Geospatial Information Authority of Japan",
+  affrc_rapid16: "農研機構農業環境研究部門",
+  affrc_tokyo5k: "農研機構農業環境研究部門",
 };
 
 function bboxToEnvelope([west, south, east, north]) {
-  return [
-    [west, south],
-    [east, south],
-    [east, north],
-    [west, north],
-  ];
+  return [[west, south], [east, south], [east, north], [west, north]];
 }
 
-const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
-const legacyList = JSON.parse(await readFile(legacyTmsListPath, 'utf8'));
-const legacyByID = new Map(legacyList.map((tms) => [tms.mapID, tms]));
+function resourceAttr(value) {
+  if (!value) return undefined;
+  return value.includes("農研機構") ? { ja: value, en: "NARO Institute for Agro-Environmental Sciences" } : { en: value };
+}
 
-// 生成物ディレクトリは毎回作り直す(旧アイコンの残骸を残さない)
-await rm(iconOutputDir, { recursive: true, force: true });
-await mkdir(iconOutputDir, { recursive: true });
-
-const output = [];
-const iconCopies = [];
-const seenIDs = new Set();
-
-// 1) 非KTGIS基盤レイヤー: カタログ baseMapRows を正本に生成
-for (const row of catalog.baseMapRows) {
-  const mapID = row.id;
-  seenIDs.add(mapID);
-  const entry = { mapID, title: row.title };
-  if (VIEWER_BUILTIN_IDS.has(mapID)) {
-    // Viewer内蔵レイヤー: アプリ出力は素の文字列のままにするため always を維持。
-    // url/zoomはViewer内蔵定義と同値の参考情報(MapEditはmapIDで特別扱いしurlを見ない)
-    entry.always = true;
+export function buildBuiltinBaseMaps(catalog, legacyList) {
+  const legacyByID = new Map(legacyList.map((tms) => [tms.mapID, tms]));
+  const output = [];
+  const seenIDs = new Set();
+  for (const row of catalog.baseMapRows) {
+    const mapID = row.id;
+    const title = BASE_MAP_LOCALIZED_NAMES[mapID];
+    if (!title) throw new Error(`localized Base Map name missing: ${mapID}`);
+    if (mapID === "osm" && Object.keys(title).length !== OSM_LANGS.length) {
+      throw new Error("OSM must provide all supported languages");
+    }
+    seenIDs.add(mapID);
+    const entry = { mapID, lang: "en", title: { ...title }, label: { ...title } };
+    if (VIEWER_BUILTIN_IDS.has(mapID)) entry.always = true;
+    if (row.tileUrl) entry.url = row.tileUrl;
+    if (row.minZoom != null) entry.minZoom = row.minZoom;
+    if (row.maxZoom != null) entry.maxZoom = row.maxZoom;
+    const attr = resourceAttr(BASE_MAP_ATTRS[mapID] || legacyByID.get(mapID)?.attr);
+    if (attr) entry.attr = attr;
+    if (row.bboxWest != null) entry.coverageLngLats = bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]);
+    if (row.icon52NoYear) entry.thumbnail = `basemap_icons/${mapID}.png`;
+    output.push(entry);
   }
-  if (row.tileUrl) entry.url = row.tileUrl;
-  if (row.minZoom != null) entry.minZoom = row.minZoom;
-  if (row.maxZoom != null) entry.maxZoom = row.maxZoom;
-  const attr = BASE_MAP_ATTRS[mapID] || legacyByID.get(mapID)?.attr;
-  if (attr) entry.attr = attr;
-  if (row.bboxWest != null) {
-    // 存在範囲(検索/ピッカー用メタデータ)。利用範囲(envelopeLngLats)は既定で空(ADR-0004)
-    entry.coverageLngLats = bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]);
+  for (const row of catalog.rows) {
+    if (typeof row.regionEn !== "string" || !row.regionEn.trim()) throw new Error(`regionEn missing: ${row.region}`);
+    const mapID = row.maplatEditorId || row.id.replace(/\//g, "");
+    if (seenIDs.has(mapID)) continue;
+    seenIDs.add(mapID);
+    const legacy = legacyByID.get(mapID);
+    const title = {
+      ja: legacy?.title || `今昔マップ ${row.region} ${row.era}`,
+      en: `Konjaku Map: ${row.regionEn} ${row.era}`,
+    };
+    output.push({
+      mapID, lang: "en", title, label: { ...title },
+      attr: resourceAttr(legacy?.attr || "Konjaku Map on the Web"),
+      url: row.tileUrl, minZoom: row.minZoom, maxZoom: row.maxZoom,
+      coverageLngLats: bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]),
+      thumbnail: `basemap_icons/${mapID}.png`,
+    });
   }
-  if (row.icon52NoYear) {
-    entry.thumbnail = `basemap_icons/${mapID}.png`;
-    iconCopies.push({ from: path.join(catalogDir, row.icon52NoYear), to: path.join(iconOutputDir, `${mapID}.png`) });
+  return output;
+}
+
+async function syncKnownIconFiles(catalog, catalogDir) {
+  await mkdir(iconOutputDir, { recursive: true });
+  await mkdir(assetImgDir, { recursive: true });
+  for (const row of [...catalog.baseMapRows, ...catalog.rows]) {
+    if (!row.icon52NoYear) continue;
+    const mapID = row.maplatEditorId || row.id.replace(/\//g, "");
+    await copyFile(path.join(catalogDir, row.icon52NoYear), path.join(iconOutputDir, `${mapID}.png`));
     if (VIEWER_BUILTIN_IDS.has(mapID)) {
-      iconCopies.push({ from: path.join(catalogDir, row.icon52NoYear), to: path.join(assetImgDir, `${mapID}.png`) });
+      await copyFile(path.join(catalogDir, row.icon52NoYear), path.join(assetImgDir, `${mapID}.png`));
     }
   }
-  output.push(entry);
 }
 
-// 2) KTGIS(今昔マップ): カタログ rows を正本に生成(アイコンは52px文字なし)
-for (const row of catalog.rows) {
-  const mapID = row.maplatEditorId || row.id.replace(/\//g, '');
-  if (seenIDs.has(mapID)) {
-    console.warn(`skip duplicated mapID: ${mapID} (${row.id})`);
-    continue;
-  }
-  seenIDs.add(mapID);
-  const legacy = legacyByID.get(mapID);
-  const entry = {
-    mapID,
-    title: legacy?.title || `今昔マップ ${row.region} ${row.era}`,
-    attr: legacy?.attr || '今昔マップ on the web',
-    url: row.tileUrl,
-    minZoom: row.minZoom,
-    maxZoom: row.maxZoom,
-    coverageLngLats: bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]),
-    thumbnail: `basemap_icons/${mapID}.png`,
-  };
-  output.push(entry);
-  iconCopies.push({ from: path.join(catalogDir, row.icon52NoYear), to: path.join(iconOutputDir, `${mapID}.png`) });
+async function main() {
+  const catalogArg = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
+  const catalogPath = catalogArg ? path.resolve(catalogArg) : defaultCatalogPath;
+  const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
+  const legacyList = JSON.parse(await readFile(legacyTmsListPath, "utf8"));
+  const output = buildBuiltinBaseMaps(catalog, legacyList);
+  await writeFile(outputPath, `${JSON.stringify(output, null, 1)}\n`, "utf8");
+  if (!process.argv.includes("--data-only")) await syncKnownIconFiles(catalog, path.dirname(catalogPath));
+  console.log(`generated ${output.length} builtin base maps -> ${path.relative(projectRoot, outputPath)}`);
 }
 
-for (const { from, to } of iconCopies) {
-  await copyFile(from, to);
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  await main();
 }
-await writeFile(outputPath, JSON.stringify(output, null, 1) + '\n');
-console.log(`generated ${output.length} builtin base maps -> ${path.relative(projectRoot, outputPath)}`);
-console.log(`copied ${iconCopies.length} icons -> ${path.relative(projectRoot, iconOutputDir)} (+ viewer builtins to src/assets/img)`);
-console.log(`icon files now in basemap_icons: ${(await readdir(iconOutputDir)).length}`);

@@ -160,6 +160,52 @@ try {
   assert.match(routeComposable, /restoreScroll/);
   assert.match(routeComposable, /mergeMasterDetailQuery/);
 
+  const generatorSource = await readFile(
+    path.join(projectRoot, "scripts/generate-builtin-basemaps.mjs"),
+    "utf8",
+  );
+  assert.match(generatorSource, /export function buildBuiltinBaseMaps/);
+  assert.match(generatorSource, /--data-only/);
+  assert.doesNotMatch(generatorSource, /rm\(iconOutputDir/);
+
+  const catalog = JSON.parse(
+    await readFile(path.resolve(projectRoot, "../Playground/KTGIS/ktgis-maplat-catalog.json"), "utf8"),
+  );
+  const regions = new Map();
+  for (const row of catalog.rows) {
+    assert.equal(typeof row.regionEn, "string", `regionEn missing: ${row.region}`);
+    assert.ok(row.regionEn.trim(), `regionEn empty: ${row.region}`);
+    if (regions.has(row.region)) assert.equal(regions.get(row.region), row.regionEn);
+    else regions.set(row.region, row.regionEn);
+  }
+  assert.equal(regions.size, 59);
+  const { buildBuiltinBaseMaps } = await import(
+    `${pathToFileURL(path.join(projectRoot, "scripts/generate-builtin-basemaps.mjs")).href}?smoke=${Date.now()}`
+  );
+  const legacyList = JSON.parse(
+    await readFile(path.join(projectRoot, "electron/tms_list.json"), "utf8"),
+  );
+  const generatedBuiltins = buildBuiltinBaseMaps(catalog, legacyList);
+  assert.equal(generatedBuiltins.length, 329);
+  const missingRegionCatalog = structuredClone(catalog);
+  delete missingRegionCatalog.rows[0].regionEn;
+  assert.throws(
+    () => buildBuiltinBaseMaps(missingRegionCatalog, legacyList),
+    /regionEn missing/,
+  );
+
+  const builtins = JSON.parse(
+    await readFile(path.join(projectRoot, "electron/builtin_base_maps.json"), "utf8"),
+  );
+  const osmBuiltin = builtins.find((entry) => entry.mapID === "osm");
+  assert.equal(osmBuiltin.lang, "en");
+  assert.equal(Object.keys(osmBuiltin.title).length, 11);
+  for (const entry of builtins.filter((item) => item.mapID !== "osm")) {
+    assert.equal(entry.lang, "en");
+    assert.deepEqual(Object.keys(entry.title).sort(), ["en", "ja"]);
+    assert.deepEqual(entry.label, entry.title);
+  }
+
   console.log("m11-t4 master-detail smoke: PASS (Part 1 pure contracts)");
 } finally {
   await rm(workDir, { recursive: true, force: true });
