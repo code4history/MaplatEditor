@@ -10,6 +10,7 @@ import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
 import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
 import LangValueChips from '../components/editor-ui/LangValueChips.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
+import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
@@ -2406,6 +2407,7 @@ const setupBaseMaps = async () => {
 
     const layers = await Promise.all([...baseMapList.value].reverse().map(async (tms) => {
         let source;
+        const localizedMeta = resolveBaseMapLayerMetadata(tms, currentLang.value);
         try {
             if (['osm', 'gsi', 'gsi_ortho'].includes(tms.mapID)) {
                 source = await mapSourceFactory(tms.mapID, {});
@@ -2413,7 +2415,7 @@ const setupBaseMaps = async () => {
                  source = await mapSourceFactory({
                      mapID: tms.mapID || 'custom',
                      url: tms.url,
-                     attr: tms.attr,
+                     attr: localizedMeta.attr,
                      maptype: 'base',
                      maxZoom: tms.maxZoom || 18,
                      minZoom: tms.minZoom || 0
@@ -2431,7 +2433,7 @@ const setupBaseMaps = async () => {
         return new Tile({
             source: source,
             properties: {
-                title: tms.title,
+                title: localizedMeta.title,
                 mapID: tms.mapID,
                 type: 'base'
             },

@@ -1,3 +1,6 @@
+import { resolveBaseMapRuntimeText } from "./baseMapEditorDocument";
+import type { LangResource } from "./langResource";
+
 // アプリ設定のソース(sources)モデル共有ロジック。
 // renderer(AppEdit)とelectron main(AppPreviewService/AppExportService)の両方から使う。
 // Viewer(@maplat/core)仕様: sources要素が文字列 "osm"|"gsi"|"gsi_ortho" のときだけ
@@ -116,6 +119,39 @@ export interface AppSource {
   mapSlug?: string; // maplatのみ: Editor表示用slug(読込時に解決。Viewer出力しない)
 }
 
+export function createAppSourceFromBaseMap(
+  master: Record<string, any>,
+  appDefaultLang: string,
+): AppSource {
+  const mapID = String(master.mapID || "");
+  const cloned = structuredClone(master);
+  const labelSource = cloned.label ?? cloned.title;
+  const label = typeof labelSource === "string"
+    ? { [cloned.lang || "en"]: labelSource }
+    : { ...(labelSource || {}) };
+  delete cloned.mapID;
+  delete cloned.label;
+  cloned.defaultLang = appDefaultLang;
+  if (isViewerBuiltin(mapID)) {
+    return {
+      sourceType: "builtin",
+      mapUid: mapID,
+      role: "base",
+      label,
+      data: cloned,
+      title: resolveBaseMapRuntimeText(master.title, appDefaultLang, master.lang || "en"),
+    };
+  }
+  return {
+    sourceType: "tms",
+    mapUid: mapID,
+    role: cloned.maptype === "overlay" ? "overlay" : "base",
+    label,
+    data: cloned,
+    title: resolveBaseMapRuntimeText(master.title, appDefaultLang, master.lang || "en"),
+  };
+}
+
 export function compactLangObject(
   value?: Record<string, string> | string,
   defaultLang?: string,
@@ -188,6 +224,9 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
       mapUid: builtinRef || mapRef,
       role: "base",
       startFrom: Boolean(raw?.startFrom),
+      label: pickLabel(raw, data, defaultLang),
+      data: raw?.data && typeof raw.data === "object" ? structuredClone(raw.data) : undefined,
+      title: typeof raw?.title === "string" ? raw.title : undefined,
     };
   }
 
@@ -242,6 +281,16 @@ export function composeViewerSource(
   // Viewerに渡る範囲は利用範囲(envelopeLngLats)のみ(ユーザー明示設定、既定は空)。
   // 広域の存在範囲をenvelopeとして渡すとWeiwudi(SWタイルキャッシュ)の対象範囲が暴発する(ADR-0004)
   delete data.coverageLngLats;
+  const defaultLang = String(data.defaultLang || data.lang || "en");
+  const runtimeLang = options.lang ?? defaultLang;
+  if (data.title !== undefined) {
+    data.title = resolveBaseMapRuntimeText(data.title as LangResource, runtimeLang, defaultLang);
+  }
+  if (data.attr !== undefined) {
+    data.attr = resolveBaseMapRuntimeText(data.attr as LangResource, runtimeLang, defaultLang);
+  }
+  delete data.defaultLang;
+  delete data.lang;
   const out: Record<string, unknown> = {
     ...data,
     mapID: source.mapUid,

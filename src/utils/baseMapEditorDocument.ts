@@ -150,3 +150,14 @@ export function resolveBaseMapRuntimeText(
     ""
   );
 }
+
+export function resolveBaseMapLayerMetadata(
+  data: { title?: LangResource; attr?: LangResource; lang?: string; defaultLang?: string },
+  activeLang: string,
+): { title: string; attr: string } {
+  const defaultLang = data.defaultLang || data.lang || "en";
+  return {
+    title: resolveBaseMapRuntimeText(data.title, activeLang, defaultLang),
+    attr: resolveBaseMapRuntimeText(data.attr, activeLang, defaultLang),
+  };
+}

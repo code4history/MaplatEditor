@@ -20,6 +20,7 @@ try {
       `export * from ${modulePath("src/utils/baseMapEditorDocument.ts")};`,
       `export * from ${modulePath("src/utils/imageAssetEditorDocument.ts")};`,
       `export * from ${modulePath("src/utils/masterDetailRouteState.ts")};`,
+      `export * from ${modulePath("src/utils/appSourceModel.ts")};`,
     ].join("\n"),
     "utf8",
   );
@@ -42,12 +43,16 @@ try {
   const {
     applyImageAssetDraft,
     clampScrollTop,
+    composeViewerSource,
+    createAppSourceFromBaseMap,
     fromBaseMapCatalogItem,
     fromImageAssetRow,
     mergeMasterDetailQuery,
     newBaseMapDocument,
     newImageAssetDocument,
+    normalizeAppSource,
     resolveBaseMapRuntimeText,
+    resolveBaseMapLayerMetadata,
     toBaseMapSavePayload,
     toImageAssetDraft,
     validateBaseMapDocument,
@@ -149,6 +154,38 @@ try {
   );
   assert.equal(clampScrollTop(500, 200, 600), 400);
   assert.equal(clampScrollTop(-20, 200, 600), 0);
+
+  const master = {
+    mapID: "custom",
+    lang: "en",
+    title: { ja: "地図", en: "Map" },
+    label: { ja: "地図ラベル", en: "Map label" },
+    attr: { ja: "帰属", en: "Attribution" },
+    url: "https://x/{z}/{x}/{y}.png",
+    coverageLngLats: [[135, 34], [136, 34], [136, 35], [135, 35]],
+  };
+  const appSource = createAppSourceFromBaseMap(master, "ja");
+  assert.deepEqual(appSource.label, master.label);
+  assert.notEqual(appSource.label, master.label);
+  assert.equal(appSource.data.defaultLang, "ja");
+  const runtimeSource = composeViewerSource(appSource, { lang: "ja" });
+  assert.equal(runtimeSource.title, "地図");
+  assert.equal(runtimeSource.attr, "帰属");
+  assert.equal("coverageLngLats" in runtimeSource, false);
+  assert.equal("defaultLang" in runtimeSource, false);
+  assert.deepEqual(resolveBaseMapLayerMetadata(master, "ja"), { title: "地図", attr: "帰属" });
+  const builtinMaster = {
+    mapID: "osm",
+    lang: "en",
+    title: { ja: "OpenStreetMap", en: "OpenStreetMap" },
+    label: { ja: "OpenStreetMap", en: "OpenStreetMap" },
+  };
+  const builtinSource = createAppSourceFromBaseMap(builtinMaster, "ja");
+  assert.deepEqual(builtinSource.label, builtinMaster.label);
+  assert.notEqual(builtinSource.label, builtinMaster.label);
+  assert.equal(builtinSource.data.defaultLang, "ja");
+  assert.equal(composeViewerSource(builtinSource, { lang: "ja" }), "osm");
+  assert.deepEqual(normalizeAppSource(builtinSource, "ja").label, builtinMaster.label);
 
   const routeComposable = await readFile(
     path.join(projectRoot, "src/composables/useMasterDetailRouteState.ts"),
