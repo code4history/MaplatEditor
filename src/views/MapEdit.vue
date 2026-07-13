@@ -6,13 +6,22 @@ import ProgressModal from '../components/ProgressModal.vue';
 import EnvelopeEditorModal from '../components/EnvelopeEditorModal.vue';
 import PoiReferenceEditor from '../components/PoiReferenceEditor.vue';
 import DraftConflictDialog from '../components/editor-ui/DraftConflictDialog.vue';
+import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
+import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { isEditableElement } from '../utils/nativeTextUndo';
-import { LANGS_MAP, resolveEditorLanguage } from '../utils/editorLanguages';
+import {
+    LANGS_MAP,
+    SUPPORTED_LANGUAGES,
+    resolveEditorLanguage,
+    type LangCode,
+} from '../utils/editorLanguages';
 import { UndoStack } from '../services/editorUndoStack';
 import { editorComputeBackend } from '../services/editorComputeBackend';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
+import { runEditorExportDecision } from '../composables/useEditorExportDecision';
+import type { EditorSaveState } from '../components/editor-ui/editorUiTypes';
 import type { MapSaveResult } from '../electron';
 // @ts-ignore
 import { useTranslation } from 'i18next-vue';
@@ -108,6 +117,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         return result;
     },
     applySuccess: async (result) => {
+        mapSaveSucceeded = true;
         await (window as any).dialog.showMessageBox({
             type: 'info',
             buttons: ['OK'],
@@ -378,7 +388,7 @@ const vertexMode = ref<'plain' | 'birdeye'>('plain');
 //   }
 // });
 
-const currentLang = ref('ja');
+const currentLang = ref<LangCode>('ja');
 
 type MapEditHistoryState = {
     mapData: any;
@@ -674,30 +684,31 @@ const description = createLangComputed('description');
 // v-model="mapData.createAt" → langAttr の createdAt に対応
 // v-model="mapData.owner"    → langAttr の contributor に対応
 
-const isDefaultLang = computed({
-    get: () => (mapData.value.lang || 'ja') === currentLang.value,
-    set: (newValue: boolean) => {
-        if (!newValue) return;
-        const oldLang = mapData.value.lang || 'ja';
-        const newLang = currentLang.value;
-        if (oldLang === newLang) return;
+const isDefaultLang = computed(
+    () => (mapData.value.lang || 'ja') === currentLang.value,
+);
 
-        // 内部表現はオブジェクト常態(ADR-0005)なので、各言語の値は言語キーの下に
-        // 保持されたまま。プレーン文字列(=旧デフォルト言語の値)だけオブジェクト形へ
-        // 正規化してから、デフォルト言語の切替はlangの付け替えのみで完結する。
-        // (切替後にプレーン文字列を新言語値として誤解釈して旧値コピーが起きていた #56)
-        for (const attr of langAttr) {
-            const val = mapData.value[attr];
-            if (typeof val !== 'object' || val === null) {
-                mapData.value[attr] = val ? { [oldLang]: val } : {};
-            }
+const setDocumentLanguage = (newLang: LangCode) => {
+    const oldLang = (mapData.value.lang || 'ja') as LangCode;
+    if (oldLang === newLang) return;
+    // 旧プレーン文字列を旧既定言語の値として保全してから、文書既定言語だけを変更する。
+    for (const attr of langAttr) {
+        const value = mapData.value[attr];
+        if (typeof value !== 'object' || value === null) {
+            mapData.value[attr] = value ? { [oldLang]: value } : {};
         }
-        mapData.value.lang = newLang;
     }
-});
+    mapData.value.lang = newLang;
+};
 const isDirty = computed(() => {
     if (historyStack.value) return historyStack.value.isDirty();
     return !isEqual(mapData.value, originalMapData.value);
+});
+const exporting = ref(false);
+const saveState = computed<EditorSaveState>(() => {
+    if (saving.value) return 'saving';
+    if (draftLifecycle.draftRestored.value) return 'draft-restored';
+    return isDirty.value ? 'dirty' : 'saved';
 });
 
 watch(
@@ -756,11 +767,15 @@ const performRedo = async () => {
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
     if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 8 品質レビュー MAJOR-1)
-    const target = event.target as HTMLElement | null;
-    const isInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
-    if (isInput) return;
     if (!(event.metaKey || event.ctrlKey)) return;
     const key = event.key.toLowerCase();
+    if (key === 's') {
+        event.preventDefault();
+        if (!saving.value && !exporting.value && isDirty.value && !saveError.value) void saveMap();
+        return;
+    }
+    if (isEditableElement(event.target as Element | null)) return;
+    if (saving.value || exporting.value) return;
     if (key === 'z' && event.shiftKey) {
         event.preventDefault();
         performRedo();
@@ -1542,7 +1557,7 @@ onMounted(async () => {
     }
 
     // 編集言語の初期値は地図のデフォルト言語(未設定の旧データはja)
-    currentLang.value = mapData.value.lang || 'ja';
+    currentLang.value = (mapData.value.lang || 'ja') as LangCode;
 
     // wmtsフォルダパスをバックエンドから取得
     // NOTE: mapData と originalMapData 両方に設定しないと isDirty が常に true になる
@@ -2584,7 +2599,9 @@ const checkOnlyOne = async () => {
  * 4. 成功反映・revision-conflict(読み直す/上書き)・部分成功 Error{revision} の引き継ぎは
  *    useRevisionedAssetSave (saveHandle) が共通処理する
  */
-const saveMap = async () => {
+let mapSaveSucceeded = false;
+const saveMap = async (): Promise<boolean> => {
+    mapSaveSucceeded = false;
     // 1. 保存確認ダイアログ（旧実装: t('mapedit.confirm_save')）
     const confirmResult = await (window as any).dialog.showMessageBox({
         type: 'info',
@@ -2592,7 +2609,7 @@ const saveMap = async () => {
         cancelId: 1,
         message: t('mapedit.confirm_save')
     });
-    if (confirmResult.response === 1) return; // キャンセル
+    if (confirmResult.response === 1) return false; // キャンセル
 
     // 保存する値を作成（mapDataのコピー）
     const saveValue = cloneDeep(mapData.value);
@@ -2637,6 +2654,7 @@ const saveMap = async () => {
         // (旧実装: sendUid ? revision.value : undefined)
         await performSave({ expectedRevision: undefined });
     }
+    return mapSaveSucceeded;
 };
 
 /**
@@ -2855,39 +2873,77 @@ const importMap = async () => {
     }
 };
 
-// 旧実装: vueMap.$on('exportMap') 相当
-// 有効条件: !error && !dirty
-const exportMap = async () => {
+const chooseMapExport = async (hasSaved: boolean) => {
+    const buttons = hasSaved
+        ? [
+            `${t('common.save')} + ${t('mapedit.export_map_data')}`,
+            `${t('editor_ui.save_state.saved')}: ${t('mapedit.export_map_data')}`,
+            t('common.cancel'),
+        ]
+        : [`${t('common.save')} + ${t('mapedit.export_map_data')}`, t('common.cancel')];
+    const result = await (window as any).dialog.showMessageBox({
+        type: 'info',
+        buttons,
+        cancelId: buttons.length - 1,
+        message: t('mapedit.confirm_save'),
+    });
+    if (result.response === 0) return 'save' as const;
+    if (hasSaved && result.response === 1) return 'saved' as const;
+    return 'cancel' as const;
+};
+
+// 保存済み正本だけを入力にし、編集中state/draftを直接出力しない。
+const downloadSavedMap = async (): Promise<boolean> => {
+    if (!mapUid.value) return false;
     modalShow('mapedit.message_export');
     const unsubscribe = window.mapedit.onProgress((progress) => {
         modalProgress(progress.text, progress.percent, progress.progress);
     });
     try {
-        // 旧実装: window.mapedit.download(vueMap.map, vueMap.tinObjects.map(...))
-        const tins = tinObjects.value.map((tin: any) => {
-            if (!tin || typeof tin === 'string') return tin || 'tooLessGcps';
-            return tin.getCompiled();
-        });
+        const savedMap = await window.mapedit.previewSource(mapUid.value);
+        const tins = [
+            savedMap.compiled ?? 'tooLessGcps',
+            ...(savedMap.sub_maps ?? []).map((subMap: any) => subMap.compiled ?? 'tooLessGcps'),
+        ];
         const result = await (window as any).mapedit.download(
-            JSON.parse(JSON.stringify(mapData.value)),
+            JSON.parse(JSON.stringify(savedMap)),
             JSON.parse(JSON.stringify(tins))
         );
         if (result === 'Success') {
             modalFinish(t('mapedit.export_success'));
+            return true;
         } else if (result === 'Canceled') {
             modalFinish(t('mapedit.imexport_canceled'));
         } else {
             console.error('[exportMap]', result);
             modalFinish(t('mapedit.export_error'));
         }
+        return false;
     } catch (e) {
         // mapedit:download が例外で reject した場合、finish を呼ばないまま抜けると
         // 進捗モーダルが閉じられない状態で残留する(MINOR-3 と同型の残留)。
         // OKボタンを有効化できるよう、既存の失敗パターンと同じ export_error で締める
         console.error('[exportMap]', e);
         modalFinish(t('mapedit.export_error'));
+        return false;
     } finally {
         unsubscribe();
+    }
+};
+
+const exportMap = async () => {
+    if (exporting.value || saving.value || saveError.value) return;
+    exporting.value = true;
+    try {
+        await runEditorExportDecision({
+            dirty: isDirty.value,
+            hasSaved: !!mapUid.value,
+            choose: chooseMapExport,
+            save: saveMap,
+            exportSaved: downloadSavedMap,
+        });
+    } finally {
+        exporting.value = false;
     }
 };
 
@@ -2980,59 +3036,39 @@ const goBack = async () => {
             :enable-close="modalEnableClose"
             @close="modalHide"
         />
+        <EditorBusyOverlay
+            :visible="saving || exporting"
+            :label="saving ? t('editor_ui.save_state.saving') : t('mapedit.message_export')"
+        />
 
-        <!-- 1. Header Area (Mimicking title-container) -->
-        <div class="px-4 py-3 pb-0 d-flex align-items-center flex-shrink-0 bg-white">
-            <div class="row w-100 align-items-center g-2">
-                <!-- Title & Back -->
-                <div class="col-5 d-flex align-items-center gap-2">
-                    <h4>
-                        <a href="#" class="text-decoration-none" @click.prevent="goBack">&lt;&lt;</a>
-                        <span class="ms-2 text-dark">{{ displayTitle || mapData.mapID || mapID }}</span>
-                    </h4>
-                </div>
-                
-                <!-- Language Label -->
-                <div class="col-1 text-end">
-                    <label class="fw-bold" for="lang">{{ t("common.language") }}</label>
-                </div>
-                
-                <!-- Language Select -->
-                <div class="col-2">
-                    <!-- 旧実装 mapedit.html L.33-36: v-for="(v, k) in langs" に準拠 -->
-                    <select class="form-select" id="lang" v-model="currentLang">
-                        <option v-for="(v, k) in langsMap" :key="k" :value="k">{{ t('common.' + v) }}</option>
-                    </select>
-                </div>
-                
-                <!-- Default Checkbox -->
-                <div class="col-2">
-                    <div class="form-check d-flex align-items-center gap-1">
-                        <input class="form-check-input" type="checkbox" id="langDefault" v-model="isDefaultLang" :disabled="isDefaultLang">
-                        <label class="form-check-label fw-bold" for="langDefault">{{ t("mapedit.set_default") }}</label>
-                    </div>
-                </div>
-
-                <div class="col-2 d-flex gap-1">
-                    <button type="button" class="btn btn-outline-secondary w-50"
-                            @click="performUndo"
-                            :disabled="!canUndo">
-                        {{ t("menu.undo") }}
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary w-50"
-                            @click="performRedo"
-                            :disabled="!canRedo">
-                        {{ t("menu.redo") }}
-                    </button>
-                </div>
-
-                <!-- Save Button: 旧実装 v-bind:disabled="error || !dirty" 相当 -->
-                <div class="col-2 text-end">
-                    <button type="button" class="btn btn-primary w-100" @click="saveMap"
-                            :disabled="!!saveError || !isDirty || saving">{{ t("common.save") }}</button>
-                </div>
-            </div>
-        </div>
+        <EditorActionHeader
+            :title="displayTitle || mapData.mapID || mapID"
+            :save-state="saveState"
+            :active-lang="currentLang"
+            :language-options="SUPPORTED_LANGUAGES"
+            :can-undo="canUndo"
+            :can-redo="canRedo"
+            :save-disabled="!!saveError || !isDirty"
+            :saving="saving"
+            :actions-disabled="exporting"
+            @back="goBack"
+            @update:active-lang="currentLang = $event"
+            @undo="performUndo"
+            @redo="performRedo"
+            @save="saveMap"
+        >
+            <template #actions="{ disabled }">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    data-editor-action="export"
+                    :disabled="disabled || !!saveError || exporting"
+                    @click="exportMap"
+                >
+                    {{ t("mapedit.export_map_data") }}
+                </button>
+            </template>
+        </EditorActionHeader>
 
         <!-- 2. Tabs -->
         <div class="px-4 mt-2">
@@ -3051,11 +3087,6 @@ const goBack = async () => {
                        @click.prevent="gcpsEditReady && (activeTab = 'gcps')"
                        href="#">
                         {{ t("mapedit.edit_gcp") }}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" :class="{ active: activeTab === 'inout' }" @click.prevent="activeTab = 'inout'" href="#">
-                        {{ t("mapedit.dataset_inout") }}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -3126,6 +3157,29 @@ const goBack = async () => {
                          <div class="col-md-2 d-flex align-items-start pt-4">
                             <button class="btn btn-outline-secondary btn-sm w-100 mt-1"
                                     @click="mapUpload">{{ t("mapedit.upload_map") }}</button>
+                        </div>
+                    </div>
+
+                    <div class="row g-1 mb-2">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small mb-0" for="mapDocumentLanguage">
+                                {{ t("mapedit.set_default") }}
+                            </label>
+                            <select
+                                id="mapDocumentLanguage"
+                                class="form-select form-select-sm"
+                                data-editor-document-language
+                                :value="mapData.lang || 'ja'"
+                                @change="setDocumentLanguage(($event.target as HTMLSelectElement).value as LangCode)"
+                            >
+                                <option
+                                    v-for="language in SUPPORTED_LANGUAGES"
+                                    :key="language.code"
+                                    :value="language.code"
+                                >
+                                    {{ language.nativeName }}
+                                </option>
+                            </select>
                         </div>
                     </div>
 

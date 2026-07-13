@@ -38,10 +38,10 @@ try {
 
   console.log('  [2/4] MapEdit history integration surface: PASS');
 
-  assert.match(mapEdit, /@click="performUndo"/, 'MapEdit.vue must wire Undo button');
-  assert.match(mapEdit, /@click="performRedo"/, 'MapEdit.vue must wire Redo button');
-  assert.match(mapEdit, /:disabled="!canUndo"/, 'Undo button must be disabled when unavailable');
-  assert.match(mapEdit, /:disabled="!canRedo"/, 'Redo button must be disabled when unavailable');
+  assert.match(mapEdit, /@undo="performUndo"/, 'MapEdit.vue must wire shared Header Undo');
+  assert.match(mapEdit, /@redo="performRedo"/, 'MapEdit.vue must wire shared Header Redo');
+  assert.match(mapEdit, /:can-undo="canUndo"/, 'Header Undo must receive availability');
+  assert.match(mapEdit, /:can-redo="canRedo"/, 'Header Redo must receive availability');
   assert.match(mapEdit, /keydown/, 'MapEdit.vue must register keyboard shortcuts');
   assert.match(mapEdit, /metaKey\s*\|\|\s*event\.ctrlKey/, 'Keyboard shortcuts must support Cmd/Ctrl');
   assert.match(mapEdit, /performUndo\s*\(\)/, 'Keyboard shortcut must call performUndo');

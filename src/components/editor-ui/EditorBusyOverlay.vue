@@ -23,7 +23,7 @@ defineProps<{
 <style scoped>
 .editor-busy-overlay {
   position: fixed;
-  z-index: 1080;
+  z-index: 1040;
   inset: 0;
   display: grid;
   place-items: center;

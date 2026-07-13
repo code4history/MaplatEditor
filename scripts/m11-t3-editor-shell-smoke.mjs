@@ -126,6 +126,31 @@ assert.deepEqual(await exercise({ dirty: false, hasSaved: false }), {
   calls: [],
   result: 'save-failed',
 });
-console.log('  [4/4] Saved-state Export decision edge cases: PASS');
+console.log('  [4/5] Saved-state Export decision edge cases: PASS');
+
+const mapEdit = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
+assert.match(mapEdit, /import EditorActionHeader from/);
+assert.match(mapEdit, /import EditorBusyOverlay from/);
+assert.match(mapEdit, /import \{ runEditorExportDecision \} from/);
+assert.match(mapEdit, /<EditorActionHeader[\s\S]*@save="saveMap"/);
+assert.match(mapEdit, /data-editor-action="export"[\s\S]*@click="exportMap"/);
+assert.match(mapEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"/);
+assert.match(mapEdit, /const saveState = computed/);
+assert.match(mapEdit, /draftLifecycle\.draftRestored\.value/);
+assert.match(mapEdit, /runEditorExportDecision\(/);
+assert.match(mapEdit, /window\.mapedit\.previewSource\(mapUid\.value/);
+assert.match(mapEdit, /key === ['"]s['"][\s\S]*saveMap\(\)/);
+assert.match(mapEdit, /data-editor-document-language/);
+assert.doesNotMatch(
+  mapEdit,
+  /@click\.prevent="activeTab = 'inout'"/,
+  'Map入出力tabは表示しない',
+);
+assert.match(
+  mapEdit,
+  /v-show="activeTab === 'inout'"/,
+  'WMTS/CSV実装は後続再配置まで保持する',
+);
+console.log('  [5/5] Map editor uses the shared shell and saved-state Export: PASS');
 
 console.log('m11-t3 editor shell smoke: PASS');
