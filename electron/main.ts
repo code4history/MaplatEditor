@@ -34,6 +34,8 @@ let win: BrowserWindow | null
 let forceQuit = false
 
 function createWindow() {
+  let draftFlushReady = false
+  let draftFlushInProgress = false
   win = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -63,6 +65,23 @@ function createWindow() {
   // 旧実装 main.js L.79-85 に準拠:
   // macOS では×ボタンでウィンドウを隠すだけにする（アプリ状態を保持）
   win.on('close', (e) => {
+    const closingWindow = win
+    if (!draftFlushReady && closingWindow && !closingWindow.webContents.isDestroyed()) {
+      e.preventDefault()
+      if (draftFlushInProgress) return
+      draftFlushInProgress = true
+      void closingWindow.webContents
+        .executeJavaScript("window.dispatchEvent(new Event('maplat:flush-drafts'))")
+        .catch((error) => console.warn('[asset-draft] renderer close flush failed:', error))
+        .finally(() => {
+          draftFlushInProgress = false
+          draftFlushReady = true
+          if (forceQuit) app.quit()
+          else closingWindow.close()
+        })
+      return
+    }
+    draftFlushReady = false
     if (process.platform === 'darwin' && !forceQuit) {
       e.preventDefault()
       win?.hide()

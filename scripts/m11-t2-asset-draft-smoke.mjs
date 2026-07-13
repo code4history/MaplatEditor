@@ -106,6 +106,7 @@ try {
     assert.match(mainSource, new RegExp(`removeHandler\\(['"]asset-drafts:${channel}['"]\\)`));
   }
   assert.match(mainSource, /removeAllListeners\(['"]asset-drafts:flush-sync['"]\)/);
+  assert.match(mainSource, /executeJavaScript\(["']window\.dispatchEvent\(new Event\(["']maplat:flush-drafts/);
   assert.doesNotMatch(mainSource, /registerAppDraftHandlers|appdraft:/);
 
   const preloadSource = await readFile(path.join(projectRoot, 'electron/preload.ts'), 'utf8');
@@ -136,6 +137,7 @@ try {
     now: () => '2026-07-13T12:34:56.000Z',
     setTimeoutFn: (fn, delay) => { const id = nextTimerId++; timers.set(id, { fn, delay }); return id; },
     clearTimeoutFn: (id) => timers.delete(id),
+    onError: () => {},
     api: {
       put: async (draft) => {
         if (failNextPut) { failNextPut = false; throw new Error('disk full'); }
@@ -199,8 +201,10 @@ try {
   assert.match(lifecycleSource, /window\.assetDrafts\.flushSync/);
   assert.match(lifecycleSource, /addEventListener\(['"]beforeunload['"]/);
   assert.match(lifecycleSource, /removeEventListener\(['"]beforeunload['"]/);
+  assert.match(lifecycleSource, /addEventListener\(['"]maplat:flush-drafts['"]/);
   assert.match(lifecycleSource, /decideDraftRestore/);
   assert.match(lifecycleSource, /conflictDraft/);
+  assert.match(lifecycleSource, /shouldPersist/);
   console.log('  [8/8] Vue lifecycle wraps restore and beforeunload safely: PASS');
 
   const conflictDialog = await readFile(

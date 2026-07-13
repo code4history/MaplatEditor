@@ -253,6 +253,7 @@ const canRedo = computed(() => historyStack.value?.canRedo() ?? false);
 const draftLifecycle = useAssetDraftLifecycle<AppDocument>({
   kind: "app",
   serialize: () => cloneDocument(appData.value),
+  shouldPersist: () => isDirty.value,
   apply: (payload) => {
     appData.value = normalizeAppDocument(payload);
     currentLang.value = appData.value.lang;
@@ -325,7 +326,7 @@ onMounted(async () => {
 
 watch(
   appData,
-  () => nextTick(() => draftLifecycle.schedule(isDirty.value)),
+  () => nextTick(() => draftLifecycle.schedule(true)),
   { deep: true, flush: "post" },
 );
 
@@ -922,7 +923,7 @@ function onPoisChange(next: unknown[]) {
       <div class="row w-100 align-items-center g-2">
         <div class="col-5 d-flex align-items-center gap-2">
           <h4>
-            <a href="#" class="text-decoration-none" @click.prevent="goBack">&lt;&lt;</a>
+            <a href="#" data-testid="editor-back" class="text-decoration-none" @click.prevent="goBack">&lt;&lt;</a>
             <span class="ms-2 text-dark">{{ displayTitle || appData.appID || t("appedit.new_app") }}</span>
           </h4>
         </div>
@@ -945,7 +946,7 @@ function onPoisChange(next: unknown[]) {
           <button type="button" class="btn btn-outline-secondary w-50" :disabled="!canRedo" @click="performRedo">{{ t("menu.redo") }}</button>
         </div>
         <div class="col-2 d-flex gap-1">
-          <button type="button" class="btn btn-primary w-50" :disabled="!!saveError || !isDirty || saving" @click="saveApp">{{ t("common.save") }}</button>
+          <button data-testid="editor-save" type="button" class="btn btn-primary w-50" :disabled="!!saveError || !isDirty || saving" @click="saveApp">{{ t("common.save") }}</button>
           <button type="button" class="btn btn-success w-50" :disabled="isDirty || !onlyOne || exporting" @click="exportApp">{{ t("appedit.export_button") }}</button>
         </div>
       </div>
@@ -984,6 +985,7 @@ function onPoisChange(next: unknown[]) {
             <div class="col-md-3" :class="appIDError && appIDError !== 'appedit.check_uniqueness' ? 'has-error' : ''">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.appid") }}</label>
               <input
+                data-testid="app-id"
                 v-model="appData.appID"
                 type="text"
                 class="form-control form-control-sm"

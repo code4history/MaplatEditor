@@ -466,6 +466,7 @@ const markHistorySaved = () => {
 const draftLifecycle = useAssetDraftLifecycle<MapEditHistoryState>({
     kind: 'map',
     serialize: captureHistoryState,
+    shouldPersist: () => isDirty.value,
     apply: restoreHistoryState,
     onRestored: () => {
         initializeHistoryStack();
@@ -701,7 +702,7 @@ watch(
 );
 watch(
     [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer],
-    () => nextTick(() => draftLifecycle.schedule(isDirty.value)),
+    () => nextTick(() => draftLifecycle.schedule(true)),
     { deep: true, flush: 'post' }
 );
 

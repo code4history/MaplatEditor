@@ -7,6 +7,7 @@ export interface UseAssetDraftLifecycleOptions<T> {
   serialize: () => T;
   apply: (payload: T) => void | Promise<void>;
   onRestored?: () => void | Promise<void>;
+  shouldPersist?: () => boolean;
 }
 
 export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions<T>) {
@@ -59,13 +60,24 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
   };
 
   const beforeUnload = () => {
+    const shouldPersist = options.shouldPersist?.() ?? false;
+    if (shouldPersist) core.schedule(true);
     core.flushSync();
   };
 
-  onMounted(() => window.addEventListener('beforeunload', beforeUnload));
+  const flush = async () => {
+    if (options.shouldPersist?.()) core.schedule(true);
+    await core.flush();
+  };
+
+  onMounted(() => {
+    window.addEventListener('beforeunload', beforeUnload);
+    window.addEventListener('maplat:flush-drafts', beforeUnload);
+  });
   onBeforeUnmount(() => {
     core.flushSync();
     window.removeEventListener('beforeunload', beforeUnload);
+    window.removeEventListener('maplat:flush-drafts', beforeUnload);
     core.close();
   });
 
@@ -76,7 +88,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     open,
     resolveConflict,
     schedule: core.schedule,
-    flush: core.flush,
+    flush,
     markSaved: core.markSaved,
     flushSync: core.flushSync,
     currentUid,

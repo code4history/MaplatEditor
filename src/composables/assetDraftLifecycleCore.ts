@@ -29,6 +29,7 @@ interface CoreOptions {
   now?: () => string;
   setTimeoutFn?: (callback: () => void | Promise<void>, delay: number) => ReturnType<typeof setTimeout>;
   clearTimeoutFn?: (timer: ReturnType<typeof setTimeout>) => void;
+  onError?: (error: Error) => void;
 }
 
 export function createAssetDraftLifecycleCore(options: CoreOptions) {
@@ -64,6 +65,7 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
       error.value = null;
     } catch (cause) {
       error.value = cause instanceof Error ? cause : new Error(String(cause));
+      (options.onError ?? ((value) => console.warn('[asset-draft] automatic save failed:', value)))(error.value);
     }
   };
 

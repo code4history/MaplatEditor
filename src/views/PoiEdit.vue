@@ -273,6 +273,7 @@ const draftLifecycle = useAssetDraftLifecycle<PoiEditState>({
     if (!editState.value) throw new Error("POI draft requested before load");
     return structuredClone(editState.value);
   },
+  shouldPersist: () => isDirty.value,
   apply: (payload) => {
     session.reset(payload, true);
     slugInput.value = payload.slug;
