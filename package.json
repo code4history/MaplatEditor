@@ -41,6 +41,7 @@
     "smoke:m10-t1-poi-reference-resolver": "node scripts/m10-t1-poi-reference-resolver-smoke.mjs",
     "smoke:m10-t3-mapedit-pois-save": "node scripts/m10-t3-mapedit-pois-save-smoke.mjs",
     "smoke:m11-t1-ui-foundations": "node scripts/m11-t1-ui-foundations-smoke.mjs",
+    "smoke:m11-t2-asset-draft": "node scripts/m11-t2-asset-draft-smoke.mjs",
     "smoke:m5-basemap-catalog": "node scripts/m5-basemap-catalog-smoke.mjs",
     "smoke:m6-app-source-model": "node scripts/m6-app-source-model-smoke.mjs",
     "smoke:m6-t2-icon-refs": "node scripts/m6-t2-icon-refs-smoke.mjs",
