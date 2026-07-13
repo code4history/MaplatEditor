@@ -112,6 +112,13 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden();
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 
+    const appLanguage = page.locator('[data-editor-action="language"]');
+    await appLanguage.selectOption('ja');
+    await appName.fill('T3 アプリ');
+    await page.locator('.editor-action-header__identity strong').click();
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await expect(appLanguage).toHaveValue('ja');
+
     await appName.fill('T3 App dirty export');
     await page.locator('[data-editor-action="export"]').click();
     await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible();
