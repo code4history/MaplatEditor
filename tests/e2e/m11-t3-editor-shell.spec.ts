@@ -164,6 +164,9 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
 
     const appLanguage = page.locator('[data-editor-action="language"]');
     await appLanguage.selectOption('ja');
+    await expect(page.getByTestId('app-id')).toBeDisabled();
+    await expect(page.locator('[data-editor-document-language]')).toBeDisabled();
+    await expect(appName).toBeEnabled();
     await appName.fill('T3 アプリ');
     await page.locator('.editor-action-header__identity strong').click();
     const englishChip = page.locator('.lang-value-chip', { hasText: 'EN' }).first();
@@ -173,6 +176,31 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await expect(appLanguage).toHaveValue('en');
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     await expect(appLanguage).toHaveValue('en');
+
+    await appLanguage.selectOption('ja');
+    await page.getByTestId('app-keywords').fill('姫路,古地図');
+    await page.getByTestId('app-manifest-name').fill('姫路案内');
+    await page.getByTestId('app-manifest-short-name').fill('姫路');
+    await appLanguage.selectOption('en');
+    await page.getByTestId('app-keywords').fill('Himeji,historical map');
+    await page.getByTestId('app-manifest-name').fill('Himeji Guide');
+    await page.getByTestId('app-manifest-short-name').fill('Himeji');
+    await page.getByTestId('editor-save').click();
+    await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible();
+    await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden();
+    const localizedApp = await page.evaluate((uid) => window.appedit.request(uid), appUid);
+    expect(localizedApp.keywords).toMatchObject({
+      ja: '姫路,古地図',
+      en: 'Himeji,historical map',
+    });
+    expect(localizedApp.manifestSettings.name).toMatchObject({
+      ja: '姫路案内',
+      en: 'Himeji Guide',
+    });
+    expect(localizedApp.manifestSettings.shortName).toMatchObject({
+      ja: '姫路',
+      en: 'Himeji',
+    });
 
     await appName.fill('T3 App dirty export');
     await page.locator('[data-editor-action="export"]').click();
@@ -205,6 +233,9 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await mapEnglishChip.click();
     await expect(page.locator('[data-editor-action="language"]')).toHaveValue('en');
     const mapTitle = page.getByTestId('map-title');
+    await expect(page.getByTestId('map-slug')).toBeDisabled();
+    await expect(page.locator('[data-editor-document-language]')).toBeDisabled();
+    await expect(page.getByTestId('map-label')).toBeEnabled();
     await expect(mapTitle).toHaveValue('T3 Map');
     await mapTitle.fill('T3 Map transient edit');
     await page.locator('.editor-action-header__identity strong').click();
