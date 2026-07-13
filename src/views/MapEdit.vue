@@ -118,7 +118,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         mapData.value.revision = result.revision;
         mapData.value.status = 'Update';
         originalMapData.value = cloneDeep(mapData.value);
-        resetHistoryBase();
+        markHistorySaved();
         onlyOne.value = true;
         // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
         // 再オープンできるようURLのクエリを追随させる (履歴は汚さない)
@@ -449,6 +449,15 @@ const recordHistorySnapshot = () => {
     const nextState = captureHistoryState();
     if (isEqual(historyStack.value.current(), nextState)) return;
     historyStack.value.push(nextState);
+};
+
+const markHistorySaved = () => {
+    if (historyTimer) {
+        clearTimeout(historyTimer);
+        historyTimer = undefined;
+    }
+    recordHistorySnapshot();
+    if (historyStack.value) historyStack.value.save();
 };
 
 const scheduleHistorySnapshot = () => {

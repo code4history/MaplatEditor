@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
@@ -205,6 +205,55 @@ try {
     }
   }
   console.log('  [8/8] Editor UI vocabulary exists in all 11 locales: PASS');
+
+  const mapEdit = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
+  assert.match(
+    mapEdit,
+    /applySuccess:[\s\S]*?markHistorySaved\(\)/,
+    'MapEdit保存成功時は履歴を初期化せず保存checkpointを記録する',
+  );
+  const appEdit = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
+  assert.match(
+    appEdit,
+    /applySuccess:[\s\S]*?markHistorySaved\(\)/,
+    'AppEdit保存成功時も履歴を初期化せず保存checkpointを記録する',
+  );
+  assert.match(
+    mapEdit,
+    /const markHistorySaved = \(\) => \{[\s\S]*?recordHistorySnapshot\(\)[\s\S]*?historyStack\.value\.save\(\)/,
+    '保存直前の未確定変更を履歴へ積んでからcheckpointを記録する',
+  );
+  console.log('  [9/9] MapEdit save preserves editor history: PASS');
+
+  const electronFixture = await mkdtemp(path.join(scratchRoot, 'electron-fixture-'));
+  const { inspectElectronInstallation, ensureElectronInstallation } = await import(
+    `${pathToFileURL(path.join(projectRoot, 'scripts/ensure-electron.mjs')).href}?t=${Date.now()}`
+  );
+  let repairs = 0;
+  assert.equal((await inspectElectronInstallation(electronFixture)).ready, false);
+  await ensureElectronInstallation({
+    packageDir: electronFixture,
+    runInstall: async () => {
+      repairs += 1;
+      await mkdir(path.join(electronFixture, 'dist'), { recursive: true });
+      await writeFile(path.join(electronFixture, 'dist', 'version'), '39.8.6');
+      await writeFile(path.join(electronFixture, 'dist', 'electron-bin'), 'fixture');
+      await writeFile(path.join(electronFixture, 'path.txt'), 'electron-bin\n');
+    },
+  });
+  assert.equal(repairs, 1, '欠損時だけinstallを実行する');
+  await ensureElectronInstallation({
+    packageDir: electronFixture,
+    runInstall: async () => { repairs += 1; },
+  });
+  assert.equal(repairs, 1, '正常時はinstallを再実行しない');
+  await rm(electronFixture, { recursive: true, force: true });
+
+  const packageJson = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
+  assert.equal(packageJson.scripts.postinstall, 'node scripts/ensure-electron.mjs');
+  assert.equal(packageJson.scripts.predev, 'node scripts/ensure-electron.mjs');
+  assert.equal(packageJson.scripts.predist, 'node scripts/ensure-electron.mjs');
+  console.log('  [10/10] Electron install guard is idempotent and wired to lifecycle scripts: PASS');
   console.log('M11-T1 UI foundations smoke passed');
 } catch (err) {
   console.error('M11-T1 UI foundations smoke FAILED:', err.stack ?? err.message);

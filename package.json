@@ -6,6 +6,9 @@
   "author": "Maplat Project",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/ensure-electron.mjs",
+    "predev": "node scripts/ensure-electron.mjs",
+    "predist": "node scripts/ensure-electron.mjs",
     "dev": "node -e \"process.platform==='win32'&&require('child_process').execSync('chcp 65001')\" && vite",
     "preview": "vite preview",
     "build": "vue-tsc && vite build",

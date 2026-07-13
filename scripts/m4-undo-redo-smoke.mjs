@@ -46,7 +46,7 @@ try {
   assert.match(mapEdit, /metaKey\s*\|\|\s*event\.ctrlKey/, 'Keyboard shortcuts must support Cmd/Ctrl');
   assert.match(mapEdit, /performUndo\s*\(\)/, 'Keyboard shortcut must call performUndo');
   assert.match(mapEdit, /performRedo\s*\(\)/, 'Keyboard shortcut must call performRedo');
-  assert.match(mapEdit, /historyStack\.value\.save\s*\(\)/, 'Save success must reset dirty history base');
+  assert.match(mapEdit, /historyStack\.value\.save\s*\(\)/, 'Save success must record a history checkpoint');
   assert.match(mapEdit, /onMainProcessMessage/, 'MapEdit.vue must handle Electron menu undo/redo messages');
 
   // Phase 4 Task 2: 保存フローは useRevisionedAssetSave へ移行済み。
@@ -54,7 +54,8 @@ try {
   const saveSuccessBlock = mapEdit.match(/applySuccess:\s*async[\s\S]*?reloadFromStore:/)?.[0] ?? '';
   assert.ok(saveSuccessBlock, 'MapEdit.vue save success branch (applySuccess closure) could not be located');
   assert.doesNotMatch(saveSuccessBlock, /mapedit\.request/, 'Save success must not reload the map after saving');
-  assert.match(saveSuccessBlock, /resetHistoryBase\s*\(\)/, 'Save success must reset dirty history base via resetHistoryBase');
+  assert.match(saveSuccessBlock, /markHistorySaved\s*\(\)/, 'Save success must preserve history and mark its checkpoint');
+  assert.doesNotMatch(saveSuccessBlock, /resetHistoryBase\s*\(\)/, 'Save success must not clear the history stack');
 
   const electronMain = await readFile(
     path.join(projectRoot, 'electron/main.ts'),

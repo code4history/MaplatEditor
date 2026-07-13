@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
+import isEqual from "lodash-es/isEqual";
 import noImage from "../assets/img/no_image.png";
 import osmThumb from "../assets/img/osm.png";
 import gsiThumb from "../assets/img/gsi.png";
@@ -196,7 +197,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     onlyOne.value = true;
     appIDError.value = "";
     await hydrateSourceThumbnails();
-    resetHistoryBase();
+    markHistorySaved();
     // 新規作成でuidが確定した場合、リロード時に正しいアプリを再オープンできるよう
     // URLのクエリを追随させる (履歴は汚さない)
     if (route.query.uid !== result.uid) {
@@ -577,7 +578,15 @@ function resetHistoryBase() {
 
 function recordHistory() {
   if (historyApplying.value) return;
-  historyStack.value?.push(cloneDocument(appData.value));
+  const next = cloneDocument(appData.value);
+  if (!historyStack.value || isEqual(historyStack.value.current(), next)) return;
+  historyStack.value.push(next);
+}
+
+function markHistorySaved() {
+  recordHistory();
+  historyStack.value?.save();
+  originalAppData.value = cloneDocument(appData.value);
 }
 
 function performUndo() {
