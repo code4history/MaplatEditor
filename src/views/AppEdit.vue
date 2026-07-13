@@ -65,8 +65,8 @@ interface AppRuntimeSettings {
 }
 
 interface ManifestSettings {
-  name: string;
-  shortName: string;
+  name: Record<string, string>;
+  shortName: Record<string, string>;
   backgroundColor: string;
   themeColor: string;
   display: string;
@@ -80,7 +80,7 @@ interface AppDocument {
   appName: Record<string, string>;
   title: Record<string, string>;
   description: Record<string, string>;
-  keywords: string;
+  keywords: Record<string, string>;
   siteUrl: string;
   lang: LangCode;
   sources: AppSource[];
@@ -135,7 +135,7 @@ const defaultApp = (): AppDocument => ({
   appName: emptyLangRecord(),
   title: emptyLangRecord(),
   description: emptyLangRecord(),
-  keywords: "",
+  keywords: emptyLangRecord(),
   siteUrl: "",
   // 新規アプリのデフォルト言語は編集者のエディタUI言語(設定言語)に合わせる
   lang: resolveEditorLanguage(i18next.language),
@@ -162,8 +162,8 @@ const defaultApp = (): AppDocument => ({
     defaultZoom: 17,
   },
   manifestSettings: {
-    name: "",
-    shortName: "",
+    name: emptyLangRecord(),
+    shortName: emptyLangRecord(),
     backgroundColor: "#f6f0d3",
     themeColor: "#f6f0d3",
     display: "standalone",
@@ -305,6 +305,25 @@ const descriptionText = computed({
     appData.value.description[currentLang.value] = value;
   },
 });
+function setLangValue(record: Record<string, string>, value: string): void {
+  if (value.trim()) record[currentLang.value] = value;
+  else delete record[currentLang.value];
+}
+function createAppLangComputed(key: "keywords") {
+  return computed({
+    get: () => appData.value[key][currentLang.value] || "",
+    set: (value: string) => setLangValue(appData.value[key], value),
+  });
+}
+function createManifestLangComputed(key: "name" | "shortName") {
+  return computed({
+    get: () => appData.value.manifestSettings[key][currentLang.value] || "",
+    set: (value: string) => setLangValue(appData.value.manifestSettings[key], value),
+  });
+}
+const keywordsText = createAppLangComputed("keywords");
+const manifestNameText = createManifestLangComputed("name");
+const manifestShortNameText = createManifestLangComputed("shortName");
 const filteredBaseMapItems = computed(() => {
   const query = baseMapSearchQuery.value.trim().toLowerCase();
   if (!query) return baseMapItems.value;
@@ -494,14 +513,17 @@ function normalizeAppDocument(value: any): AppDocument {
   normalized.appName = normalizeLangObject(value.appName || value.title, normalized.lang);
   normalized.title = normalizeLangObject(value.title || value.appName, normalized.lang);
   normalized.description = normalizeLangObject(value.description, normalized.lang);
-  normalized.keywords = typeof value.keywords === "string" ? value.keywords : "";
+  normalized.keywords = normalizeLangObject(value.keywords, normalized.lang);
   normalized.siteUrl = typeof value.siteUrl === "string" ? value.siteUrl : "";
   normalized.sources = Array.isArray(value.sources)
     ? value.sources.map((source: any) => normalizeSource(source, normalized.lang))
     : [];
   normalized.httpSettings = normalizeHttpSettings(value.httpSettings || value.http || value);
   normalized.appSettings = normalizeAppSettings(value.appSettings || value);
-  normalized.manifestSettings = normalizeManifestSettings(value.manifestSettings || value.manifest || {});
+  normalized.manifestSettings = normalizeManifestSettings(
+    value.manifestSettings || value.manifest || {},
+    normalized.lang,
+  );
   // 旧配置(httpSettings.iconSource)からの移行
   if (!normalized.manifestSettings.iconSource && typeof value.httpSettings?.iconSource === "string") {
     normalized.manifestSettings.iconSource = value.httpSettings.iconSource;
@@ -583,12 +605,12 @@ function finiteOrNull(value: any): number | null {
   return Number.isFinite(num) ? num : null;
 }
 
-function normalizeManifestSettings(value: any): ManifestSettings {
+function normalizeManifestSettings(value: any, defaultLang: string): ManifestSettings {
   const defaults = defaultApp().manifestSettings;
   return {
     ...defaults,
-    name: value.name || "",
-    shortName: value.shortName || value.short_name || "",
+    name: normalizeLangObject(value.name, defaultLang),
+    shortName: normalizeLangObject(value.shortName || value.short_name, defaultLang),
     backgroundColor: value.backgroundColor || value.background_color || defaults.backgroundColor,
     themeColor: value.themeColor || value.theme_color || defaults.themeColor,
     display: value.display || defaults.display,
@@ -1147,8 +1169,8 @@ function onPoisChange(next: unknown[]) {
           </div>
           <div class="row g-1 mb-2">
             <div class="col-md-7">
-              <label class="form-label fw-bold small mb-0">{{ t("appedit.keywords") }}</label>
-              <input v-model="appData.keywords" type="text" class="form-control form-control-sm" @input="recordHistory">
+              <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.keywords") }} <LangValueChips :model-value="appData.keywords" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+              <input data-testid="app-keywords" v-model="keywordsText" type="text" class="form-control form-control-sm" @input="recordHistory">
             </div>
             <div class="col-md-5">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.site_url") }}</label>
@@ -1241,12 +1263,12 @@ function onPoisChange(next: unknown[]) {
             <h5>{{ t("appedit.manifest_settings") }}</h5>
             <div class="row g-2">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">{{ t("appedit.manifest_name") }}</label>
-                <input v-model="appData.manifestSettings.name" type="text" class="form-control form-control-sm" @input="recordHistory">
+                <div class="form-label small fw-bold d-flex align-items-center gap-1">{{ t("appedit.manifest_name") }} <LangValueChips :model-value="appData.manifestSettings.name" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                <input data-testid="app-manifest-name" v-model="manifestNameText" type="text" class="form-control form-control-sm" @input="recordHistory">
               </div>
               <div class="col-md-3">
-                <label class="form-label small fw-bold">{{ t("appedit.manifest_short_name") }}</label>
-                <input v-model="appData.manifestSettings.shortName" type="text" class="form-control form-control-sm" @input="recordHistory">
+                <div class="form-label small fw-bold d-flex align-items-center gap-1">{{ t("appedit.manifest_short_name") }} <LangValueChips :model-value="appData.manifestSettings.shortName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                <input data-testid="app-manifest-short-name" v-model="manifestShortNameText" type="text" class="form-control form-control-sm" @input="recordHistory">
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.manifest_background_color") }}</label>

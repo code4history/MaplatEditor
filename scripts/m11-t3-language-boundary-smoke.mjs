@@ -49,4 +49,15 @@ assert.match(mapEdit, /data-testid="map-slug"[^>]*:disabled="translationMode"/);
 assert.match(mapEdit, /data-editor-document-language[^>]*:disabled="translationMode"/);
 assert.match(mapEdit, /@click="mapUpload"[^>]*:disabled="translationMode"/);
 
+const appEdit = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
+assert.match(appEdit, /keywords:\s*Record<string, string>/);
+assert.match(appEdit, /name:\s*Record<string, string>/);
+assert.match(appEdit, /shortName:\s*Record<string, string>/);
+assert.match(appEdit, /const keywordsText = createAppLangComputed/);
+assert.match(appEdit, /const manifestNameText = createManifestLangComputed/);
+assert.match(appEdit, /const manifestShortNameText = createManifestLangComputed/);
+assert.match(appEdit, /data-testid="app-keywords"[^>]*v-model="keywordsText"/);
+assert.match(appEdit, /data-testid="app-manifest-name"[^>]*v-model="manifestNameText"/);
+assert.match(appEdit, /data-testid="app-manifest-short-name"[^>]*v-model="manifestShortNameText"/);
+
 console.log('M11-T3 language-boundary smoke checks passed.');
