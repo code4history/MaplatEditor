@@ -3728,6 +3728,10 @@ const goBack = async () => {
                     ref="poiRefEditor"
                     heading-key="poiref.selected_list_map"
                     :pois="Array.isArray(mapData.pois) ? mapData.pois : []"
+                    :active-lang="currentLang"
+                    :default-lang="(mapData.lang || 'ja') as LangCode"
+                    :language-options="SUPPORTED_LANGUAGES"
+                    @select-language="selectEditorLanguage"
                     @update:pois="onPoisChange"
                 />
             </div>

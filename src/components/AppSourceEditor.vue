@@ -8,6 +8,8 @@
 import { computed, ref } from "vue";
 import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "./EnvelopeEditorModal.vue";
+import LangValueChips from "./editor-ui/LangValueChips.vue";
+import type { LangCode } from "../utils/editorLanguages";
 import {
   bboxToEnvelope,
   envelopeToBbox,
@@ -16,12 +18,18 @@ import {
 
 const props = defineProps<{
   source: AppSource & { thumbnail?: string };
-  currentLang: string;
+  currentLang: LangCode;
+  defaultLang: LangCode;
+  languageOptions: readonly { code: LangCode; nativeName: string }[];
+  translationMode?: boolean;
   fallbackCenter?: [number, number];
   // アプリ提供範囲(参考)。利用範囲ピッカーの薄緑ガイド+スナップ対象
   appCoverageLngLats?: [number, number][] | null;
 }>();
-const emit = defineEmits<{ (e: "change"): void }>();
+const emit = defineEmits<{
+  (e: "change"): void;
+  (e: "select-language", language: LangCode): void;
+}>();
 
 const { t } = useTranslation();
 const showEnvelopeModal = ref(false);
@@ -43,8 +51,8 @@ function setLangText(key: "title" | "attr", text: string) {
   const value = data.value[key];
   if (value && typeof value === "object") {
     value[props.currentLang] = text;
-  } else if (typeof value === "string" && props.currentLang !== "ja") {
-    data.value[key] = { ja: value, [props.currentLang]: text };
+  } else if (typeof value === "string" && props.currentLang !== props.defaultLang) {
+    data.value[key] = { [props.defaultLang]: value, [props.currentLang]: text };
   } else {
     data.value[key] = { [props.currentLang]: text };
   }
@@ -111,29 +119,29 @@ async function uploadThumbnail() {
     <!-- tms: ピンポイント設定 -->
     <div v-else-if="source.sourceType === 'tms'" class="row g-2 mt-1">
       <div class="col-md-4">
-        <label class="form-label small mb-0">{{ t("appedit.source_title") }}</label>
+        <div class="form-label small mb-0 d-flex align-items-center gap-1">{{ t("appedit.source_title") }} <LangValueChips :model-value="data.title" :active-lang="currentLang" :default-lang="defaultLang" :language-options="languageOptions" @select-language="emit('select-language', $event)" /></div>
         <input :value="langText('title')" type="text" class="form-control form-control-sm" @input="setLangText('title', ($event.target as HTMLInputElement).value)">
       </div>
       <div class="col-md-4">
-        <label class="form-label small mb-0">{{ t("appedit.source_attr") }}</label>
+        <div class="form-label small mb-0 d-flex align-items-center gap-1">{{ t("appedit.source_attr") }} <LangValueChips :model-value="data.attr" :active-lang="currentLang" :default-lang="defaultLang" :language-options="languageOptions" @select-language="emit('select-language', $event)" /></div>
         <input :value="langText('attr')" type="text" class="form-control form-control-sm" @input="setLangText('attr', ($event.target as HTMLInputElement).value)">
       </div>
       <div class="col-md-2">
         <label class="form-label small mb-0">{{ t("appedit.min_zoom") }}</label>
-        <input :value="data.minZoom ?? ''" type="number" min="0" max="25" class="form-control form-control-sm" @change="setNumber('minZoom', ($event.target as HTMLInputElement).value)">
+        <input :value="data.minZoom ?? ''" type="number" min="0" max="25" class="form-control form-control-sm" :disabled="translationMode" @change="setNumber('minZoom', ($event.target as HTMLInputElement).value)">
       </div>
       <div class="col-md-2">
         <label class="form-label small mb-0">{{ t("appedit.max_zoom") }}</label>
-        <input :value="data.maxZoom ?? ''" type="number" min="1" max="25" class="form-control form-control-sm" @change="setNumber('maxZoom', ($event.target as HTMLInputElement).value)">
+        <input :value="data.maxZoom ?? ''" type="number" min="1" max="25" class="form-control form-control-sm" :disabled="translationMode" @change="setNumber('maxZoom', ($event.target as HTMLInputElement).value)">
       </div>
       <div class="col-md-8">
         <label class="form-label small mb-0">{{ t("appedit.source_url") }}</label>
-        <input v-model="data.url" type="text" class="form-control form-control-sm font-monospace" @input="emit('change')">
+        <input v-model="data.url" type="text" class="form-control form-control-sm font-monospace" :disabled="translationMode" @input="emit('change')">
       </div>
       <div class="col-md-4">
         <label class="form-label small mb-0">{{ t("appedit.thumbnail") }}</label>
         <div class="d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-sm btn-outline-secondary" @click="uploadThumbnail">
+          <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="translationMode" @click="uploadThumbnail">
             {{ t("appedit.upload") }}
           </button>
           <small class="text-muted">{{ t("appedit.thumbnail_note") }}</small>
@@ -145,11 +153,11 @@ async function uploadThumbnail() {
       <template v-if="source.role === 'overlay'">
         <div class="col-md-3">
           <label class="form-label small mb-0">{{ t("appedit.mercator_x_shift") }}</label>
-          <input :value="data.mercatorXShift ?? ''" type="number" step="0.01" class="form-control form-control-sm" @change="setNumber('mercatorXShift', ($event.target as HTMLInputElement).value)">
+          <input :value="data.mercatorXShift ?? ''" type="number" step="0.01" class="form-control form-control-sm" :disabled="translationMode" @change="setNumber('mercatorXShift', ($event.target as HTMLInputElement).value)">
         </div>
         <div class="col-md-3">
           <label class="form-label small mb-0">{{ t("appedit.mercator_y_shift") }}</label>
-          <input :value="data.mercatorYShift ?? ''" type="number" step="0.01" class="form-control form-control-sm" @change="setNumber('mercatorYShift', ($event.target as HTMLInputElement).value)">
+          <input :value="data.mercatorYShift ?? ''" type="number" step="0.01" class="form-control form-control-sm" :disabled="translationMode" @change="setNumber('mercatorYShift', ($event.target as HTMLInputElement).value)">
         </div>
       </template>
 
@@ -164,13 +172,14 @@ async function uploadThumbnail() {
               type="number"
               step="0.000001"
               class="form-control form-control-sm"
+              :disabled="translationMode"
               @change="setBboxPart(index, ($event.target as HTMLInputElement).value)"
             >
           </div>
-          <button type="button" class="btn btn-sm btn-outline-primary" @click="showEnvelopeModal = true">
+          <button type="button" class="btn btn-sm btn-outline-primary" :disabled="translationMode" @click="showEnvelopeModal = true">
             {{ t("appedit.envelope_pick") }}
           </button>
-          <button v-if="bbox" type="button" class="btn btn-sm btn-outline-danger" @click="clearEnvelope">
+          <button v-if="bbox" type="button" class="btn btn-sm btn-outline-danger" :disabled="translationMode" @click="clearEnvelope">
             {{ t("appedit.envelope_clear") }}
           </button>
         </div>

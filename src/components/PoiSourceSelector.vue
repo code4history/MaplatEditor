@@ -78,15 +78,16 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { useTranslation } from "i18next-vue";
-import i18next from "i18next";
 import { usePoiSourceList, type PoiSourceListRow } from "../composables/usePoiSourceList";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
+import type { LangCode } from "../utils/editorLanguages";
 
 const { t } = useTranslation();
 
 const props = defineProps<{
   initialSelected?: SelectedPoiSourceRef[];
+  activeLang: LangCode;
 }>();
 
 const emit = defineEmits<{
@@ -134,7 +135,7 @@ function onSearchInput() {
 
 // LangResource 内部形 {lang: text} → 表示テキスト (現在言語 → ja → en → 任意 → slug)
 function localizeTitle(row: PoiSourceListRow): string {
-  return resolveLocalizedTitle(row.title, i18next.language) || row.slug;
+  return resolveLocalizedTitle(row.title, props.activeLang) || row.slug;
 }
 
 function isSelected(sourceId: string): boolean {
@@ -150,7 +151,7 @@ function addSource(source: PoiSourceListRow) {
     sourceId: source.uid,
     catalogKey: `poi-source:${source.uid}`,
     mode: source.mode,
-    cachedTitle: localizeTitle(source),
+    cachedTitle: source.title,
   };
   selectedSources.value.push(ref);
   emit("update:selected", [...selectedSources.value]);

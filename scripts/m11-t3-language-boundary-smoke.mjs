@@ -59,5 +59,36 @@ assert.match(appEdit, /const manifestShortNameText = createManifestLangComputed/
 assert.match(appEdit, /data-testid="app-keywords"[^>]*v-model="keywordsText"/);
 assert.match(appEdit, /data-testid="app-manifest-name"[^>]*v-model="manifestNameText"/);
 assert.match(appEdit, /data-testid="app-manifest-short-name"[^>]*v-model="manifestShortNameText"/);
+assert.match(appEdit, /const translationMode = computed/);
+assert.match(appEdit, /data-testid="app-id"[^>]*:disabled="translationMode"/);
+assert.match(appEdit, /data-editor-document-language[^>]*:disabled="translationMode"/);
+assert.match(appEdit, /<PoiReferenceEditor[^>]*:active-lang="currentLang"/);
+assert.match(appEdit, /<AppSourceEditor[^>]*:default-lang="appData\.lang"/);
+assert.match(appEdit, /normalizeLangObject\(value\.label \|\| value\.data\?\.label/);
+assert.doesNotMatch(appEdit, /localizedWithLang\(title, "ja"\)/);
+
+const poiReferenceEditor = await readFile(
+  path.join(projectRoot, 'src/components/PoiReferenceEditor.vue'),
+  'utf8',
+);
+assert.match(poiReferenceEditor, /activeLang:\s*LangCode/);
+assert.match(poiReferenceEditor, /languageOptions:\s*readonly/);
+assert.match(poiReferenceEditor, /<PoiSourceSelector[^>]*:active-lang="activeLang"/);
+assert.match(poiReferenceEditor, /:active-lang="activeLang"/);
+
+const poiSourceSelector = await readFile(
+  path.join(projectRoot, 'src/components/PoiSourceSelector.vue'),
+  'utf8',
+);
+assert.match(poiSourceSelector, /activeLang:\s*LangCode/);
+assert.doesNotMatch(poiSourceSelector, /i18next\.language/);
+
+const appSourceEditor = await readFile(
+  path.join(projectRoot, 'src/components/AppSourceEditor.vue'),
+  'utf8',
+);
+assert.match(appSourceEditor, /defaultLang:\s*LangCode/);
+assert.match(appSourceEditor, /<LangValueChips/);
+assert.doesNotMatch(appSourceEditor, /props\.currentLang !== "ja"/);
 
 console.log('M11-T3 language-boundary smoke checks passed.');

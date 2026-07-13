@@ -36,7 +36,11 @@ export function extractPoiRefs(pois: unknown[]): SelectedPoiSourceRef[] {
       // mode は一覧カードの表示都合の補助情報で選択判定 (sourceId) には使われない。
       // 保存形からは引けないため 'local' 仮置き
       mode: "local",
-      cachedTitle: typeof cachedTitle === "string" ? cachedTitle : undefined,
+      cachedTitle:
+        typeof cachedTitle === "string" ||
+        (cachedTitle && typeof cachedTitle === "object" && !Array.isArray(cachedTitle))
+          ? cachedTitle as Record<string, string>
+          : undefined,
     });
   }
   return restored;

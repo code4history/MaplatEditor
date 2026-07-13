@@ -29,6 +29,7 @@ import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { isEditableElement } from "../utils/nativeTextUndo";
+import { isTranslationMode } from "../utils/editorLanguageMode";
 import type { AppSaveResult } from "../electron";
 
 import {
@@ -264,6 +265,9 @@ const historyStack = ref<UndoStack<AppDocument> | null>(null);
 const historyApplying = ref(false);
 
 const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName) || appData.value.appID);
+const translationMode = computed(() =>
+  isTranslationMode(currentLang.value, appData.value.lang),
+);
 const isDirty = computed(() => historyStack.value?.isDirty() ?? false);
 const canUndo = computed(() => historyStack.value?.canUndo() ?? false);
 const canRedo = computed(() => historyStack.value?.canRedo() ?? false);
@@ -560,10 +564,14 @@ function normalizeSource(value: any, defaultLang?: string): AppSource {
   if (!source.title) {
     const fallbackID = source.mapSlug || source.mapUid;
     const title = source.label || (source.data as any)?.title || fallbackID;
-    source.title = typeof title === "string" ? title : localizedWithLang(title, "ja") || fallbackID;
+    source.title = typeof title === "string"
+      ? title
+      : localizedWithLang(title, defaultLang || "ja") || fallbackID;
   }
   if (source.sourceType !== "builtin") {
-    source.label = { ...normalizeLangObject(source.label || source.title, defaultLang) };
+    source.label = {
+      ...normalizeLangObject(value.label || value.data?.label || source.label || source.title, defaultLang),
+    };
   }
   source.thumbnail = typeof value === "object" && value !== null ? value.thumbnail : undefined;
   return source;
@@ -1121,6 +1129,7 @@ function onPoisChange(next: unknown[]) {
                 class="form-control form-control-sm"
                 :class="appIDError && appIDError !== 'appedit.check_uniqueness' ? 'is-invalid' : ''"
                 :placeholder="t('appedit.input_appid')"
+                :disabled="translationMode"
                 @input="onAppIDInput(); recordHistory()"
               />
               <div v-if="appIDError" class="form-text small text-danger mb-0" style="font-size: 0.75rem;">
@@ -1130,7 +1139,7 @@ function onPoisChange(next: unknown[]) {
             </div>
             <div class="col-md-2 d-flex align-items-start pt-4">
               <!-- 一意性チェックボタン: 確認済み(onlyOne)の間は無効化 (ADR-0007) -->
-              <button class="btn btn-secondary btn-sm w-100 mt-1" :disabled="onlyOne" @click="checkOnlyOne">
+              <button class="btn btn-secondary btn-sm w-100 mt-1" :disabled="translationMode || onlyOne" @click="checkOnlyOne">
                 {{ t("appedit.uniqueness_button") }}
               </button>
             </div>
@@ -1149,6 +1158,7 @@ function onPoisChange(next: unknown[]) {
                 class="form-select form-select-sm"
                 data-editor-document-language
                 :value="appData.lang"
+                :disabled="translationMode"
                 @change="setDocumentLanguage(($event.target as HTMLSelectElement).value as LangCode)"
               >
                 <option
@@ -1174,14 +1184,14 @@ function onPoisChange(next: unknown[]) {
             </div>
             <div class="col-md-5">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.site_url") }}</label>
-              <input v-model="appData.siteUrl" type="url" class="form-control form-control-sm" placeholder="https://example.com/myapp/" @input="recordHistory">
+              <input v-model="appData.siteUrl" type="url" class="form-control form-control-sm" placeholder="https://example.com/myapp/" :disabled="translationMode" @input="recordHistory">
               <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.site_url_note") }}</div>
             </div>
           </div>
           <div class="row g-1">
             <div class="col-12">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.extra_info") }}</label>
-              <textarea v-model="appData.extraInfo" class="form-control form-control-sm font-monospace" rows="8" @input="recordHistory" />
+              <textarea v-model="appData.extraInfo" class="form-control form-control-sm font-monospace" rows="8" :disabled="translationMode" @input="recordHistory" />
             </div>
           </div>
           <div class="row g-1 mb-2">
@@ -1189,10 +1199,10 @@ function onPoisChange(next: unknown[]) {
               <label class="form-label fw-bold small mb-0">{{ t("appedit.app_coverage") }}</label>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="small font-monospace">{{ bboxLabel(appData.coverageLngLats) }}</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" @click="appCoverageModalVisible = true">
+                <button type="button" class="btn btn-sm btn-outline-primary" :disabled="translationMode" @click="appCoverageModalVisible = true">
                   {{ t("appedit.envelope_pick") }}
                 </button>
-                <button v-if="appData.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" @click="applyAppCoverage(null)">
+                <button v-if="appData.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" :disabled="translationMode" @click="applyAppCoverage(null)">
                   {{ t("appedit.envelope_clear") }}
                 </button>
               </div>
@@ -1204,28 +1214,28 @@ function onPoisChange(next: unknown[]) {
             <div class="row g-2">
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.preview_port") }}</label>
-                <input v-model.number="appData.httpSettings.previewPort" type="number" min="1" max="65535" class="form-control form-control-sm" @change="recordHistory">
+                <input v-model.number="appData.httpSettings.previewPort" type="number" min="1" max="65535" class="form-control form-control-sm" :disabled="translationMode" @change="recordHistory">
               </div>
               <div class="col-md-10">
                 <label class="form-label small fw-bold">{{ t("appedit.http_toggles") }}</label>
                 <div class="toggle-grid">
-                  <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.pwa_manifest") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.overlay" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.overlay_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableHideMarker" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.hide_marker_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableMarkerList" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.marker_list_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableBorder" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.border_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableCache" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.cache_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.stateUrl" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.state_url") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableShare" type="checkbox" class="form-check-input" @change="recordHistory"> {{ t("appedit.share_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.pwa_manifest") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.overlay" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.overlay_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableHideMarker" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.hide_marker_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableMarkerList" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.marker_list_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableBorder" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.border_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableCache" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.cache_ui") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.stateUrl" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.state_url") }}</label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableShare" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.share_ui") }}</label>
                 </div>
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">{{ t("appedit.mapbox_token") }}</label>
-                <input v-model="appData.httpSettings.mapboxToken" type="text" class="form-control form-control-sm" @input="recordHistory">
+                <input v-model="appData.httpSettings.mapboxToken" type="text" class="form-control form-control-sm" :disabled="translationMode" @input="recordHistory">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">{{ t("appedit.google_api_key") }}</label>
-                <input v-model="appData.httpSettings.googleApiKey" type="text" class="form-control form-control-sm" @input="recordHistory">
+                <input v-model="appData.httpSettings.googleApiKey" type="text" class="form-control form-control-sm" :disabled="translationMode" @input="recordHistory">
               </div>
             </div>
           </section>
@@ -1237,24 +1247,24 @@ function onPoisChange(next: unknown[]) {
                 <label class="form-label small fw-bold">{{ t("appedit.splash") }}</label>
                 <div class="d-flex align-items-center gap-2">
                   <input v-model="appData.appSettings.splash" type="text" class="form-control form-control-sm" readonly>
-                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" @click="uploadSplash">{{ t("appedit.upload") }}</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" :disabled="translationMode" @click="uploadSplash">{{ t("appedit.upload") }}</button>
                 </div>
                 <img v-if="splashPreviewUrl" :src="splashPreviewUrl" class="asset-preview mt-1" alt="splash">
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.home_lng") }}</label>
-                <input :value="appData.appSettings.homeLng ?? ''" type="number" step="0.000001" class="form-control form-control-sm" @change="appData.appSettings.homeLng = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
+                <input :value="appData.appSettings.homeLng ?? ''" type="number" step="0.000001" class="form-control form-control-sm" :disabled="translationMode" @change="appData.appSettings.homeLng = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.home_lat") }}</label>
-                <input :value="appData.appSettings.homeLat ?? ''" type="number" step="0.000001" class="form-control form-control-sm" @change="appData.appSettings.homeLat = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
+                <input :value="appData.appSettings.homeLat ?? ''" type="number" step="0.000001" class="form-control form-control-sm" :disabled="translationMode" @change="appData.appSettings.homeLat = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
               </div>
               <div class="col-md-2 d-flex align-items-end">
-                <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap mb-1" @click="openHomePositionModal">{{ t("appedit.home_pick") }}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap mb-1" :disabled="translationMode" @click="openHomePositionModal">{{ t("appedit.home_pick") }}</button>
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.default_zoom") }}</label>
-                <input v-model.number="appData.appSettings.defaultZoom" type="number" min="0" max="28" class="form-control form-control-sm" @change="recordHistory">
+                <input v-model.number="appData.appSettings.defaultZoom" type="number" min="0" max="28" class="form-control form-control-sm" :disabled="translationMode" @change="recordHistory">
               </div>
             </div>
           </section>
@@ -1272,15 +1282,15 @@ function onPoisChange(next: unknown[]) {
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.manifest_background_color") }}</label>
-                <input v-model="appData.manifestSettings.backgroundColor" type="color" class="form-control form-control-sm form-control-color" @input="recordHistory">
+                <input v-model="appData.manifestSettings.backgroundColor" type="color" class="form-control form-control-sm form-control-color" :disabled="translationMode" @input="recordHistory">
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.manifest_theme_color") }}</label>
-                <input v-model="appData.manifestSettings.themeColor" type="color" class="form-control form-control-sm form-control-color" @input="recordHistory">
+                <input v-model="appData.manifestSettings.themeColor" type="color" class="form-control form-control-sm form-control-color" :disabled="translationMode" @input="recordHistory">
               </div>
               <div class="col-md-3">
                 <label class="form-label small fw-bold">{{ t("appedit.manifest_display") }}</label>
-                <select v-model="appData.manifestSettings.display" class="form-select form-select-sm" @change="recordHistory">
+                <select v-model="appData.manifestSettings.display" class="form-select form-select-sm" :disabled="translationMode" @change="recordHistory">
                   <option value="standalone">standalone</option>
                   <option value="fullscreen">fullscreen</option>
                   <option value="minimal-ui">minimal-ui</option>
@@ -1289,17 +1299,17 @@ function onPoisChange(next: unknown[]) {
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">{{ t("appedit.manifest_start_url") }}</label>
-                <input v-model="appData.manifestSettings.startUrl" type="text" class="form-control form-control-sm" @input="recordHistory">
+                <input v-model="appData.manifestSettings.startUrl" type="text" class="form-control form-control-sm" :disabled="translationMode" @input="recordHistory">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">{{ t("appedit.manifest_scope") }}</label>
-                <input v-model="appData.manifestSettings.scope" type="text" class="form-control form-control-sm" @input="recordHistory">
+                <input v-model="appData.manifestSettings.scope" type="text" class="form-control form-control-sm" :disabled="translationMode" @input="recordHistory">
               </div>
               <div class="col-md-6">
                 <label class="form-label small fw-bold">{{ t("appedit.manifest_icon_source") }}</label>
                 <div class="d-flex align-items-center gap-2">
                   <input v-model="appData.manifestSettings.iconSource" type="text" class="form-control form-control-sm" readonly>
-                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" @click="uploadPwaIcon">{{ t("appedit.upload") }}</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" :disabled="translationMode" @click="uploadPwaIcon">{{ t("appedit.upload") }}</button>
                 </div>
                 <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.manifest_icon_note") }}</div>
                 <div v-if="assetUploadError" class="text-danger small">{{ assetUploadError }}</div>
@@ -1389,17 +1399,17 @@ function onPoisChange(next: unknown[]) {
               </div>
               <div class="row g-2 mt-2 align-items-center">
                 <div v-if="source.sourceType !== 'builtin' && source.label" class="col-md-5">
-                  <label class="form-label small mb-0">{{ t("appedit.source_label") }}</label>
+                  <div class="form-label small mb-0 d-flex align-items-center gap-1">{{ t("appedit.source_label") }} <LangValueChips :model-value="source.label" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                   <input v-model="source.label[currentLang]" type="text" class="form-control form-control-sm" @input="recordHistory">
                 </div>
                 <div class="col-auto">
                   <div class="form-check">
-                    <input :id="`start-${index}`" class="form-check-input" type="radio" name="startFrom" :checked="source.startFrom" @change="setStartFrom(source)">
+                    <input :id="`start-${index}`" class="form-check-input" type="radio" name="startFrom" :checked="source.startFrom" :disabled="translationMode" @change="setStartFrom(source)">
                     <label class="form-check-label" :for="`start-${index}`">{{ t("appedit.start_from") }}</label>
                   </div>
                 </div>
                 <div v-if="source.sourceType === 'tms'" class="col-auto">
-                  <select v-model="source.role" class="form-select form-select-sm" @change="recordHistory">
+                  <select v-model="source.role" class="form-select form-select-sm" :disabled="translationMode" @change="recordHistory">
                     <option value="base">{{ t("appedit.roles.base") }}</option>
                     <option value="overlay">{{ t("appedit.roles.overlay") }}</option>
                   </select>
@@ -1408,8 +1418,12 @@ function onPoisChange(next: unknown[]) {
               <AppSourceEditor
                 :source="source"
                 :current-lang="currentLang"
+                :default-lang="appData.lang"
+                :language-options="SUPPORTED_LANGUAGES"
+                :translation-mode="translationMode"
                 :fallback-center="homePosition ?? undefined"
                 :app-coverage-lng-lats="appData.coverageLngLats ?? null"
+                @select-language="selectEditorLanguage"
                 @change="recordHistory"
               />
             </div>
@@ -1427,7 +1441,7 @@ function onPoisChange(next: unknown[]) {
         <div v-if="poiHealFailed" class="alert alert-warning flex-shrink-0" role="alert">
           {{ t("appedit.poi_heal_failed") }}
         </div>
-        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="appData.pois" @update:pois="onPoisChange" />
+        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="appData.pois" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>
 

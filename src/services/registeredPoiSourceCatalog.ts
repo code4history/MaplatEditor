@@ -80,5 +80,5 @@ export interface SelectedPoiSourceRef {
   sourceId: string;
   catalogKey: PoiSourceCatalogKey;
   mode: PoiSourceMode;
-  cachedTitle?: string;
+  cachedTitle?: string | Record<string, string>;
 }

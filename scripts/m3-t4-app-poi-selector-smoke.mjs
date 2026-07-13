@@ -5,68 +5,14 @@ import assert from 'node:assert/strict';
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 
 try {
-  // --- Part 1: useAppDraft 型拡張 + saveDraft シグネチャ ---
-  const useAppDraft = await readFile(
-    path.join(projectRoot, 'src/composables/useAppDraft.ts'),
+  // --- Part 1: App draft lifecycle keeps the complete AppDocument ---
+  const assetDraftLifecycle = await readFile(
+    path.join(projectRoot, 'src/composables/useAssetDraftLifecycle.ts'),
     'utf8'
   );
-
-  // MinimalAppDraft に selectedPoiSources が存在すること
-  assert.match(
-    useAppDraft,
-    /selectedPoiSources\s*\?\s*:\s*SelectedPoiSourceRef\[\]/,
-    'useAppDraft.ts に selectedPoiSources がない'
-  );
-
-  // saveDraft がオブジェクト引数を取ること（旧 3 引数シグネチャでないこと）
-  assert.doesNotMatch(
-    useAppDraft,
-    /function\s+saveDraft\s*\(\s*ref\s*:\s*SelectedRegisteredMapRef/,
-    'useAppDraft.ts の saveDraft が旧 3 引数シグネチャのまま'
-  );
-
-  // saveDraft が MinimalAppDraft オブジェクト引数を取ること
-  assert.match(
-    useAppDraft,
-    /function\s+saveDraft\s*\(\s*draft\s*:\s*MinimalAppDraft\s*\)/,
-    'useAppDraft.ts の saveDraft が MinimalAppDraft オブジェクト引数を取らない'
-  );
-
-  // loadDraft が selectedPoiSources の正規化を行うこと
-  assert.match(
-    useAppDraft,
-    /selectedPoiSources/,
-    'useAppDraft.ts の loadDraft に selectedPoiSources 正規化がない'
-  );
-
-  // SelectedPoiSourceRef を import すること
-  assert.match(
-    useAppDraft,
-    /SelectedPoiSourceRef/,
-    'useAppDraft.ts に SelectedPoiSourceRef の import がない'
-  );
-
-  // --- Part 1b: AppDraftService.ts 型拡張 ---
-  const appDraftService = await readFile(
-    path.join(projectRoot, 'electron/services/AppDraftService.ts'),
-    'utf8'
-  );
-
-  // MinimalAppDraft に selectedPoiSources が存在すること
-  assert.match(
-    appDraftService,
-    /selectedPoiSources\s*\?\s*:/,
-    'AppDraftService.ts に selectedPoiSources がない'
-  );
-
-  // selectedMap が optional であること
-  assert.match(
-    appDraftService,
-    /selectedMap\s*\?\s*:/,
-    'AppDraftService.ts の selectedMap が optional でない'
-  );
-
-  console.log('  [1/3] useAppDraft + AppDraftService 型拡張: PASS');
+  assert.match(assetDraftLifecycle, /useAssetDraftLifecycle<T>/);
+  assert.match(assetDraftLifecycle, /serialize:\s*\(\)\s*=>\s*T/);
+  console.log('  [1/3] Generic asset draft lifecycle preserves AppDocument: PASS');
 
   // --- Part 2: AppList/AppEdit app editor shape ---
   const appList = await readFile(

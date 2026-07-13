@@ -10,7 +10,7 @@
       :class="{ 'poi-selector-disabled': readOnly }"
       :aria-disabled="readOnly"
     >
-      <PoiSourceSelector :initial-selected="selectedRefs" @update:selected="onSelectionChange" />
+      <PoiSourceSelector :initial-selected="selectedRefs" :active-lang="activeLang" @update:selected="onSelectionChange" />
     </div>
 
     <div class="selected-pane ps-3">
@@ -74,6 +74,10 @@
               <LangResourceInput
                 :model-value="titleOverride(entry)"
                 :disabled="readOnly"
+                :active-lang="activeLang"
+                :default-lang="defaultLang"
+                :language-options="languageOptions"
+                @select-language="emit('select-language', $event)"
                 @update:model-value="setTitleOverride(index, $event)"
               />
             </div>
@@ -112,23 +116,27 @@
 // 参照要素判定・selector との往復は共有 util (utils/poiReferenceUi)。
 import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
-import i18next from "i18next";
 import PoiSourceSelector from "./PoiSourceSelector.vue";
 import IconRefField from "./IconRefField.vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";
 import { localizeTitle, type LangResource } from "../utils/langResource";
+import type { LangCode } from "../utils/editorLanguages";
 
 const props = defineProps<{
   pois?: unknown[];
   readOnly?: boolean;
+  activeLang: LangCode;
+  defaultLang: LangCode;
+  languageOptions: readonly { code: LangCode; nativeName: string }[];
   // 右カラム見出しの i18n キー。App=「このアプリのPOIデータ一覧」/ Map=「この地図のPOIデータ一覧」
   headingKey?: string;
 }>();
 
 const emit = defineEmits<{
   "update:pois": [value: unknown[]];
+  "select-language": [value: LangCode];
 }>();
 
 const { t } = useTranslation();
@@ -159,10 +167,9 @@ function entryTitle(entry: unknown): string {
   const uid = poiUidOf(entry);
   if (uid) {
     const record = entry as Record<string, unknown>;
-    const overridden = localizeTitle(record.title as LangResource | undefined, i18next.language);
+    const overridden = localizeTitle(record.title as LangResource | undefined, props.activeLang);
     if (overridden) return overridden;
-    const cachedTitle = record.cachedTitle;
-    return typeof cachedTitle === "string" && cachedTitle ? cachedTitle : uid;
+    return localizeTitle(record.cachedTitle as LangResource | undefined, props.activeLang) || uid;
   }
   if (typeof entry === "string") return entry;
   if (entry && typeof entry === "object" && !Array.isArray(entry)) {
