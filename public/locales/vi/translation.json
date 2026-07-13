@@ -36,6 +36,16 @@
   "basemap": {
     "description": "Quản lý các bản đồ nền do người dùng định nghĩa (tile XYZ/TMS) dùng làm lớp nền khi chỉnh sửa bản đồ.",
     "add": "Thêm bản đồ nền",
+    "master_detail": {
+      "new_draft": "Bản đồ nền mới",
+      "builtin_read_only": "Bản đồ nền tích hợp chỉ có thể đọc.",
+      "label": "Nhãn hiển thị",
+      "default_language": "Ngôn ngữ mặc định",
+      "untitled": "Chưa có tiêu đề",
+      "not_found": "Không tìm thấy bản đồ nền đã chọn.",
+      "overwrite_confirm": "Ghi đè phiên bản đã lưu mới nhất bằng nội dung chỉnh sửa hiện tại?",
+      "select_prompt": "Chọn bản đồ nền từ danh sách bên trái hoặc tạo mới."
+    },
     "user_section": "Bản đồ nền do người dùng định nghĩa",
     "builtin_section": "Bản đồ nền tích hợp sẵn (không thể chỉnh sửa)",
     "loading": "Đang tải...",

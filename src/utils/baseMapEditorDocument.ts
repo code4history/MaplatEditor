@@ -9,6 +9,12 @@ export interface BaseMapCatalogItemLike {
   data: Record<string, unknown>;
 }
 
+export interface BaseMapCatalogItem extends BaseMapCatalogItemLike {
+  thumbnailUrl?: string | null;
+  alwaysVisible: boolean;
+  alwaysLocked: boolean;
+}
+
 export interface BaseMapEditDocument {
   uid: string;
   scope: "builtin" | "user";
@@ -26,7 +32,16 @@ export interface BaseMapEditDocument {
 
 export interface BaseMapValidation {
   valid: boolean;
-  errors: Array<"slug-required" | "title-required" | "url-required" | "zoom-range">;
+  errors: Array<
+    | "slug-required"
+    | "slug-invalid"
+    | "title-required"
+    | "url-required"
+    | "url-invalid"
+    | "min-zoom-invalid"
+    | "max-zoom-invalid"
+    | "zoom-range"
+  >;
 }
 
 export interface BaseMapSavePayload {
@@ -102,8 +117,18 @@ export function newBaseMapDocument(uid: string, lang: LangCode): BaseMapEditDocu
 export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapValidation {
   const errors: BaseMapValidation["errors"] = [];
   if (!document.slug.trim()) errors.push("slug-required");
+  else if (!/^[A-Za-z0-9_-]+$/.test(document.slug.trim())) errors.push("slug-invalid");
   if (!document.title[document.defaultLang]?.trim()) errors.push("title-required");
   if (!document.url.trim()) errors.push("url-required");
+  else if (!(document.url.includes("{z}") && document.url.includes("{x}") && (document.url.includes("{y}") || document.url.includes("{-y}")))) {
+    errors.push("url-invalid");
+  }
+  if (document.minZoom !== null && (!Number.isInteger(document.minZoom) || document.minZoom < 0 || document.minZoom > 25)) {
+    errors.push("min-zoom-invalid");
+  }
+  if (document.maxZoom !== null && (!Number.isInteger(document.maxZoom) || document.maxZoom < 1 || document.maxZoom > 25)) {
+    errors.push("max-zoom-invalid");
+  }
   if (document.minZoom !== null && document.maxZoom !== null && document.minZoom > document.maxZoom) {
     errors.push("zoom-range");
   }

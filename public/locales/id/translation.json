@@ -36,6 +36,16 @@
   "basemap": {
     "description": "Kelola peta dasar yang ditentukan pengguna (tile XYZ/TMS) yang dapat digunakan sebagai latar saat mengedit peta.",
     "add": "Tambah Peta Dasar",
+    "master_detail": {
+      "new_draft": "Peta dasar baru",
+      "builtin_read_only": "Peta dasar bawaan hanya dapat dibaca.",
+      "label": "Label tampilan",
+      "default_language": "Bahasa bawaan",
+      "untitled": "Tanpa judul",
+      "not_found": "Peta dasar yang dipilih tidak ditemukan.",
+      "overwrite_confirm": "Timpa versi tersimpan terbaru dengan suntingan saat ini?",
+      "select_prompt": "Pilih peta dasar dari daftar kiri atau buat yang baru."
+    },
     "user_section": "Peta dasar yang ditentukan pengguna",
     "builtin_section": "Peta dasar bawaan (tidak dapat diedit)",
     "loading": "Memuat...",

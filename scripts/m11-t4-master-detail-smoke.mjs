@@ -108,6 +108,17 @@ try {
   );
   assert.equal("uid" in newBasePayload, false);
   assert.equal("expectedRevision" in newBasePayload, false);
+  assert.equal(
+    validateBaseMapDocument({
+      ...emptyBase,
+      slug: "invalid slug",
+      title: { fr: "Titre" },
+      url: "https://example.test/static.png",
+      minZoom: -1,
+      maxZoom: 26,
+    }).valid,
+    false,
+  );
 
   const asset = fromImageAssetRow({
     uid,
@@ -242,6 +253,41 @@ try {
     assert.deepEqual(Object.keys(entry.title).sort(), ["en", "ja"]);
     assert.deepEqual(entry.label, entry.title);
   }
+
+  const baseMapShell = await readFile(
+    path.join(projectRoot, "src/views/BaseMapList.vue"),
+    "utf8",
+  );
+  const baseMapMasterList = await readFile(
+    path.join(projectRoot, "src/components/basemap/BaseMapMasterList.vue"),
+    "utf8",
+  );
+  const baseMapEditor = await readFile(
+    path.join(projectRoot, "src/components/basemap/BaseMapEdit.vue"),
+    "utf8",
+  );
+  assert.match(baseMapShell, /BaseMapMasterList/);
+  assert.match(baseMapShell, /BaseMapEdit/);
+  assert.match(baseMapShell, /useMasterDetailRouteState/);
+  assert.match(baseMapShell, /data-master-detail/);
+  assert.match(baseMapShell, /notFound/);
+  assert.doesNotMatch(baseMapShell, /modal show d-block/);
+  assert.match(baseMapMasterList, /draft_badge/);
+  assert.match(baseMapEditor, /EditorActionHeader/);
+  assert.match(baseMapEditor, /EditorBusyOverlay/);
+  assert.match(baseMapEditor, /LangResourceInput/);
+  assert.match(baseMapEditor, /useAssetDraftLifecycle/);
+  assert.match(baseMapEditor, /UndoStack/);
+  assert.match(baseMapEditor, /shouldPersist/);
+  assert.match(baseMapEditor, /conflictRevision/);
+  assert.match(baseMapEditor, /reloadLatest/);
+  assert.match(baseMapEditor, /keepCurrentEdit/);
+  assert.match(baseMapEditor, /sessionTransition/);
+  assert.match(baseMapEditor, /onEditorKeydown/);
+  assert.match(baseMapEditor, /key === "y"/);
+  assert.match(baseMapEditor, /event\.shiftKey/);
+  assert.match(baseMapEditor, /translationMode/);
+  assert.match(baseMapEditor, /:disabled="structuralDisabled"/);
 
   console.log("m11-t4 master-detail smoke: PASS (Part 1 pure contracts)");
 } finally {

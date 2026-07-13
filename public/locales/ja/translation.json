@@ -36,6 +36,16 @@
   "basemap": {
     "description": "地図編集の下敷きに使えるユーザ定義ベースマップ(XYZ/TMSタイル)を管理します。",
     "add": "ベースマップ追加",
+    "master_detail": {
+      "new_draft": "新規ベースマップ",
+      "builtin_read_only": "内蔵ベースマップは参照専用です。",
+      "label": "表示ラベル",
+      "default_language": "デフォルト言語",
+      "untitled": "名称未設定",
+      "not_found": "選択されたベースマップが見つかりません。",
+      "overwrite_confirm": "最新の保存版を現在の編集内容で上書きしますか？",
+      "select_prompt": "左の一覧からベースマップを選択するか、新規作成してください。"
+    },
     "user_section": "ユーザ定義ベースマップ",
     "builtin_section": "内蔵ベースマップ(編集不可)",
     "loading": "読み込み中...",

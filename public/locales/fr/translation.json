@@ -36,6 +36,16 @@
   "basemap": {
     "description": "Gérez les fonds de carte définis par l'utilisateur (tuiles XYZ/TMS) utilisables comme arrière-plan lors de l'édition de cartes.",
     "add": "Ajouter un fond de carte",
+    "master_detail": {
+      "new_draft": "Nouveau fond de carte",
+      "builtin_read_only": "Les fonds de carte intégrés sont en lecture seule.",
+      "label": "Libellé d’affichage",
+      "default_language": "Langue par défaut",
+      "untitled": "Sans titre",
+      "not_found": "Le fond de carte sélectionné est introuvable.",
+      "overwrite_confirm": "Écraser la dernière version enregistrée avec vos modifications ?",
+      "select_prompt": "Sélectionnez un fond de carte à gauche ou créez-en un nouveau."
+    },
     "user_section": "Fonds de carte définis par l'utilisateur",
     "builtin_section": "Fonds de carte intégrés (non modifiables)",
     "loading": "Chargement...",

@@ -36,6 +36,16 @@
   "basemap": {
     "description": "Verwalten Sie benutzerdefinierte Basiskarten (XYZ/TMS-Kacheln), die als Hintergrund bei der Kartenbearbeitung verwendet werden können.",
     "add": "Basiskarte hinzufügen",
+    "master_detail": {
+      "new_draft": "Neue Basiskarte",
+      "builtin_read_only": "Integrierte Basiskarten sind schreibgeschützt.",
+      "label": "Anzeigebezeichnung",
+      "default_language": "Standardsprache",
+      "untitled": "Ohne Titel",
+      "not_found": "Die ausgewählte Basiskarte wurde nicht gefunden.",
+      "overwrite_confirm": "Die neueste gespeicherte Version mit Ihren Änderungen überschreiben?",
+      "select_prompt": "Wählen Sie links eine Basiskarte aus oder erstellen Sie eine neue."
+    },
     "user_section": "Benutzerdefinierte Basiskarten",
     "builtin_section": "Integrierte Basiskarten (nicht bearbeitbar)",
     "loading": "Wird geladen...",

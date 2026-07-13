@@ -1,577 +1,165 @@
 <template>
-  <div class="container-fluid p-3">
-    <DraftConflictDialog
-      :visible="!!modalDraftLifecycle.conflictDraft.value"
-      @discard="modalDraftLifecycle.resolveConflict('discard')"
-      @apply="modalDraftLifecycle.resolveConflict('apply')"
-    />
-    <!-- Controls Row -->
-    <div class="row mb-3 gx-2 align-items-center">
-      <div class="col-auto">
-        <button class="btn btn-light border shadow-sm px-4" @click="openAddModal">
-          {{ t("basemap.add") }}
-          <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t('editor_ui.draft_badge') }}</span>
-        </button>
-      </div>
-      <div class="col">
-        <div><span class="text-muted" style="font-size: 13px;">{{ t("basemap.description") }}</span></div>
-        <div><span class="text-muted" style="font-size: 13px;">{{ t("basemap.always_note") }}</span></div>
-      </div>
+  <main class="base-map-master-detail d-flex h-100 overflow-hidden" data-master-detail="base-map">
+    <div class="base-map-master-detail__master border-end">
+      <BaseMapMasterList
+        ref="masterList"
+        :items="items"
+        :selected-uid="selectedUid"
+        :active-lang="activeLang"
+        :draft-uids="draftUids"
+        :draft-summaries="draftSummaries"
+        :loading="loading"
+        :error="error"
+        @select="selectExisting"
+        @select-draft="selectDraft"
+        @create="createBaseMap"
+        @delete="deleteBaseMap"
+        @toggle-always="toggleAlways"
+        @scroll="saveScroll"
+      />
     </div>
-
-    <!-- Loading -->
-    <div v-if="loading" class="text-muted text-center py-3">
-      {{ t("basemap.loading") }}
-    </div>
-
-    <!-- Error -->
-    <div v-else-if="error" class="alert alert-danger">
-      {{ error }}
-    </div>
-
-    <template v-else>
-      <!-- User-defined base maps -->
-      <h6 class="fw-bold mb-2">{{ t("basemap.user_section") }}</h6>
-      <div v-if="userBaseMaps.length === 0" class="text-muted py-3">
-        {{ t("basemap.no_user_basemaps") }}
-      </div>
-      <div v-else class="table-responsive mb-4">
-        <table class="table table-hover table-sm align-middle bg-white shadow-sm">
-          <thead class="table-light">
-            <tr>
-              <th style="width: 60px;">{{ t("basemap.icon") }}</th>
-              <th style="width: 160px;">{{ t("basemap.id") }}</th>
-              <th style="width: 220px;">{{ t("basemap.map_title") }}</th>
-              <th>{{ t("basemap.url") }}</th>
-              <th style="width: 180px;">{{ t("basemap.coverage") }}</th>
-              <th style="width: 90px;">{{ t("basemap.always_visible") }}</th>
-              <th style="width: 90px;">{{ t("basemap.min_zoom") }}</th>
-              <th style="width: 90px;">{{ t("basemap.max_zoom") }}</th>
-              <th style="width: 140px;">{{ t("basemap.actions") }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in userBaseMaps" :key="item.uid">
-              <td>
-                <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="basemap-icon" loading="lazy" decoding="async" :alt="item.mapID">
-                <span v-else class="text-muted">-</span>
-              </td>
-              <td class="text-break">
-                {{ item.mapID }}
-                <span v-if="hasDraft(item.uid)" class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span>
-              </td>
-              <td class="text-break">{{ item.data.title }}</td>
-              <td class="text-break"><small>{{ item.data.url }}</small></td>
-              <td><small>{{ coverageLabel(item.data) }}</small></td>
-              <td class="text-center">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  :checked="item.alwaysVisible"
-                  :disabled="item.alwaysLocked"
-                  @change="toggleAlways(item, $event)"
-                >
-              </td>
-              <td>{{ item.data.minZoom ?? '-' }}</td>
-              <td>{{ item.data.maxZoom ?? '-' }}</td>
-              <td>
-                <button class="btn btn-sm btn-outline-secondary me-1" @click="openEditModal(item)">
-                  {{ t("basemap.edit") }}
-                </button>
-                <button class="btn btn-sm btn-outline-danger" @click="deleteBaseMap(item)">
-                  {{ t("basemap.delete") }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Builtin base maps (read-only) -->
-      <details class="mb-3">
-        <summary class="fw-bold mb-2" style="cursor: pointer;">
-          {{ t("basemap.builtin_section") }} ({{ builtinBaseMaps.length }})
-        </summary>
-        <div class="table-responsive mt-2">
-          <table class="table table-sm align-middle bg-white shadow-sm">
-            <thead class="table-light">
-              <tr>
-                <th style="width: 60px;">{{ t("basemap.icon") }}</th>
-                <th style="width: 160px;">{{ t("basemap.id") }}</th>
-                <th style="width: 220px;">{{ t("basemap.map_title") }}</th>
-                <th>{{ t("basemap.url") }}</th>
-                <th style="width: 180px;">{{ t("basemap.coverage") }}</th>
-                <th style="width: 90px;">{{ t("basemap.always_visible") }}</th>
-                <th style="width: 90px;">{{ t("basemap.max_zoom") }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in builtinBaseMaps" :key="item.uid">
-                <td>
-                  <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="basemap-icon" loading="lazy" decoding="async" :alt="item.mapID">
-                  <span v-else class="text-muted">-</span>
-                </td>
-                <td class="text-break text-muted">{{ item.mapID }}</td>
-                <td class="text-break text-muted">{{ item.data.title }}</td>
-                <td class="text-break text-muted"><small>{{ item.data.url || '-' }}</small></td>
-                <td class="text-muted"><small>{{ coverageLabel(item.data) }}</small></td>
-                <td class="text-center">
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    :checked="item.alwaysVisible"
-                    :disabled="item.alwaysLocked"
-                    @change="toggleAlways(item, $event)"
-                  >
-                </td>
-                <td class="text-muted">{{ item.data.maxZoom ?? '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
+    <div class="base-map-master-detail__detail flex-grow-1 min-w-0">
+      <BaseMapEdit
+        ref="editor"
+        v-if="selectedUid && (selectedItem || isNew)"
+        :uid="selectedUid"
+        :is-new="isNew"
+        :item="selectedItem"
+        @back="closeEditor"
+        @saved="saved"
+        @reload="reloadEditor"
+        @changed="refreshDraftsSoon"
+      />
+      <div v-else-if="notFound" class="h-100 d-grid place-items-center p-4 text-center">
+        <div class="alert alert-warning mb-0">
+          <p>{{ t("basemap.master_detail.not_found") }}</p>
+          <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
         </div>
-      </details>
-    </template>
-
-    <!-- Add/Edit Modal -->
-    <div v-if="showModal" class="modal show d-block" tabindex="-1">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">
-              {{ editing ? t("basemap.modal.edit_title") : t("basemap.modal.add_title") }}
-            </h5>
-            <button type="button" class="btn-close" @click="closeModal"></button>
-          </div>
-          <div class="modal-body">
-            <div v-if="formError" class="alert alert-danger py-2">{{ formError }}</div>
-            <!-- IDは編集時も変更可能(改名)。正本キーはuid(ADR-0007)のため、
-                 表示設定・常時表示設定・アイコンは改名の影響を受けない -->
-
-            <label class="form-label">{{ t("basemap.modal.id_label") }}</label>
-            <input
-              type="text"
-              class="form-control"
-              v-model="form.mapID"
-              :placeholder="t('basemap.modal.id_placeholder')"
-            />
-            <label class="form-label mt-2">{{ t("basemap.modal.title_label") }}</label>
-            <input
-              type="text"
-              class="form-control"
-              v-model="form.title"
-              :placeholder="t('basemap.modal.title_placeholder')"
-            />
-            <label class="form-label mt-2">{{ t("basemap.modal.url_label") }}</label>
-            <input
-              type="text"
-              class="form-control"
-              v-model="form.url"
-              :placeholder="t('basemap.modal.url_placeholder')"
-            />
-            <label class="form-label mt-2">{{ t("basemap.modal.attr_label") }}</label>
-            <input
-              type="text"
-              class="form-control"
-              v-model="form.attr"
-              :placeholder="t('basemap.modal.attr_placeholder')"
-            />
-            <div class="row">
-              <div class="col">
-                <label class="form-label mt-2">{{ t("basemap.modal.min_zoom_label") }}</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  v-model="form.minZoom"
-                  min="0"
-                  max="25"
-                />
-              </div>
-              <div class="col">
-                <label class="form-label mt-2">{{ t("basemap.modal.max_zoom_label") }}</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  v-model="form.maxZoom"
-                  min="1"
-                  max="25"
-                />
-              </div>
-            </div>
-            <!-- アイコン(52px正方形)。アプリ登録時のデフォルトとして継承される -->
-            <label class="form-label mt-2">{{ t("basemap.icon") }}</label>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <img v-if="formThumbnailUrl" :src="formThumbnailUrl" class="basemap-icon" :alt="form.mapID">
-              <button type="button" class="btn btn-sm btn-outline-secondary" @click="uploadIcon">
-                {{ t("appedit.upload") }}
-              </button>
-              <!-- タイルURLと存在範囲が揃っている場合、範囲の画像から52pxアイコンを自動生成できる -->
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-primary"
-                :disabled="!canGenerateIcon || generatingIcon"
-                @click="generateIcon"
-              >
-                {{ generatingIcon ? t("basemap.generating_icon") : t("basemap.generate_icon") }}
-              </button>
-              <small class="text-muted">{{ t("appedit.thumbnail_note") }}</small>
-            </div>
-            <!-- 提供範囲(経緯度)。アプリ登録時のデフォルトとして継承される -->
-            <label class="form-label mt-2">{{ t("basemap.coverage") }}</label>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <span class="small font-monospace">{{ coverageLabel({ coverageLngLats: form.coverageLngLats }) }}</span>
-              <button type="button" class="btn btn-sm btn-outline-primary" @click="showEnvelopeModal = true">
-                {{ t("appedit.envelope_pick") }}
-              </button>
-              <button v-if="form.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" @click="form.coverageLngLats = null">
-                {{ t("appedit.envelope_clear") }}
-              </button>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeModal">
-              {{ t("basemap.modal.cancel") }}
-            </button>
-            <button type="button" class="btn btn-primary" @click="saveBaseMap" :disabled="saving">
-              {{ t("basemap.modal.save") }}
-            </button>
-          </div>
+      </div>
+      <div v-else class="h-100 d-grid place-items-center text-muted p-4 text-center">
+        <div>
+          <i class="bi bi-map fs-1 d-block mb-2" aria-hidden="true"></i>
+          {{ t("basemap.master_detail.select_prompt") }}
         </div>
       </div>
     </div>
-
-    <!-- タイルURL定義済みなら当該タイルをオーバーレイし、実在範囲を見ながら指定できる -->
-    <EnvelopeEditorModal
-      v-if="showEnvelopeModal"
-      :model-value="form.coverageLngLats"
-      :overlay-tms="overlayTms"
-      title-key="basemap.coverage_modal_title"
-      help-key="basemap.coverage_modal_help"
-      @update:model-value="form.coverageLngLats = $event"
-      @close="showEnvelopeModal = false"
-    />
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 import { useTranslation } from "i18next-vue";
-import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
-import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
-import { envelopeToBbox } from "../utils/appSourceModel";
+import i18next from "i18next";
+import BaseMapEdit from "../components/basemap/BaseMapEdit.vue";
+import BaseMapMasterList from "../components/basemap/BaseMapMasterList.vue";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
-import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
-
-interface BaseMapCatalogItem {
-  uid: string;
-  mapID: string;
-  scope: "builtin" | "user";
-  data: any;
-  revision: number;
-  thumbnailUrl?: string | null;
-  alwaysVisible: boolean;
-  alwaysLocked: boolean;
-}
+import { useMasterDetailRouteState } from "../composables/useMasterDetailRouteState";
+import { resolveEditorLanguage } from "../utils/editorLanguages";
+import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
+import { localizeTitle } from "../utils/langResource";
 
 const { t } = useTranslation();
-const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges('base-map');
-const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
+const route = useRoute();
+const { select, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
+const { draftUids, draftSummaries, refreshDrafts } = useAssetDraftBadges("base-map");
 
 const items = ref<BaseMapCatalogItem[]>([]);
-const loading = ref(false);
+const loading = ref(true);
 const error = ref("");
+const masterList = ref<InstanceType<typeof BaseMapMasterList> | null>(null);
+const editor = ref<InstanceType<typeof BaseMapEdit> | null>(null);
+const activeLang = computed(() => resolveEditorLanguage(i18next.language));
+const selectedUid = computed(() => typeof route.query.uid === "string" ? route.query.uid : null);
+const isNew = computed(() => route.query.new === "1");
+const selectedItem = computed(() => items.value.find((item) => item.uid === selectedUid.value) ?? null);
+const notFound = computed(() => !!selectedUid.value && !isNew.value && !loading.value && !selectedItem.value);
 
-const userBaseMaps = computed(() => items.value.filter((item) => item.scope === "user"));
-const builtinBaseMaps = computed(() => items.value.filter((item) => item.scope === "builtin"));
-
-// Modal state
-const showModal = ref(false);
-const showEnvelopeModal = ref(false);
-// 編集対象のuid(正本キー、ADR-0007)。新規作成時はnull
-const editingUid = ref<string | null>(null);
-// 編集モード判定はeditingUidから導出する(並行stateの不整合を作らない)
-const editing = computed(() => editingUid.value !== null);
-// 編集対象の元slug(改名判定用)。新規作成時は空
-const originalMapID = ref("");
-const saving = ref(false);
-const formError = ref("");
-const form = ref({
-  mapID: "",
-  title: "",
-  url: "",
-  attr: "",
-  minZoom: "" as string | number,
-  maxZoom: "" as string | number,
-  thumbnail: "" as string,
-  coverageLngLats: null as [number, number][] | null,
-});
-const formThumbnailUrl = ref<string | null>(null);
-const modalDraftReady = ref(false);
-const modalDraftLifecycle = useAssetDraftLifecycle<typeof form.value>({
-  kind: 'base-map',
-  serialize: () => JSON.parse(JSON.stringify(form.value)),
-  apply: (payload) => { form.value = JSON.parse(JSON.stringify(payload)); },
-});
-
-function coverageLabel(data: any): string {
-  const bbox = envelopeToBbox(data?.coverageLngLats);
-  if (!bbox) return "-";
-  return `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}`;
-}
-
-const loadBaseMaps = async () => {
+async function loadBaseMaps(): Promise<void> {
   loading.value = true;
   error.value = "";
   try {
-    items.value = await window.baseMaps.list();
+    items.value = await window.baseMaps.list() as BaseMapCatalogItem[];
     await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to load base maps", e);
+  } catch (cause) {
+    console.error("Failed to load base maps", cause);
     error.value = t("basemap.errors.load_failed");
   } finally {
     loading.value = false;
   }
-};
+}
 
-onMounted(() => {
-  loadBaseMaps();
-});
+async function selectExisting(uid: string): Promise<void> { await select(uid, false); }
+async function selectDraft(uid: string): Promise<void> { await select(uid, true); }
 
-const openAddModal = async () => {
-  modalDraftReady.value = false;
-  const pendingDraft = newDrafts.value.at(-1);
-  editingUid.value = null;
-  originalMapID.value = "";
-  form.value = { mapID: "", title: "", url: "", attr: "", minZoom: "", maxZoom: "", thumbnail: "", coverageLngLats: null };
-  formThumbnailUrl.value = null;
-  formError.value = "";
-  showModal.value = true;
-  await modalDraftLifecycle.open(pendingDraft?.assetUid ?? crypto.randomUUID(), null);
-  modalDraftReady.value = true;
-};
+async function createBaseMap(): Promise<void> {
+  const pending = draftSummaries.value.filter((draft) => draft.baseRevision === null).at(-1);
+  await select(pending?.assetUid ?? crypto.randomUUID(), true);
+}
 
-const openEditModal = async (item: BaseMapCatalogItem) => {
-  modalDraftReady.value = false;
-  editingUid.value = item.uid;
-  originalMapID.value = item.mapID;
-  form.value = {
-    mapID: item.mapID,
-    title: item.data.title || "",
-    url: item.data.url || "",
-    attr: item.data.attr || "",
-    minZoom: item.data.minZoom ?? "",
-    maxZoom: item.data.maxZoom ?? "",
-    thumbnail: typeof item.data.thumbnail === "string" ? item.data.thumbnail : "",
-    coverageLngLats: Array.isArray(item.data.coverageLngLats)
-      ? JSON.parse(JSON.stringify(item.data.coverageLngLats))
-      : null,
-  };
-  formThumbnailUrl.value = item.thumbnailUrl || null;
-  formError.value = "";
-  showModal.value = true;
-  await modalDraftLifecycle.open(item.uid, item.revision);
-  modalDraftReady.value = true;
-};
+async function closeEditor(): Promise<void> {
+  await clearSelection();
+  await refreshDrafts();
+}
 
-const closeModal = async () => {
-  if (modalDraftReady.value) await modalDraftLifecycle.flush();
-  modalDraftReady.value = false;
-  showModal.value = false;
-};
+async function saved(uid: string): Promise<void> {
+  await loadBaseMaps();
+  await select(uid, false);
+}
 
-watch(form, () => {
-  if (showModal.value && modalDraftReady.value) modalDraftLifecycle.schedule(true);
-}, { deep: true, flush: 'post' });
+async function reloadEditor(): Promise<void> {
+  await loadBaseMaps();
+}
 
-// アイコンのファイルキー: 既存ベースマップはuid(tmbs/{uid}.png)、
-// 新規はuid未採番のため入力IDの暫定名(保存時にsaveUserBaseMapがuid名へ付け替える)
-const iconFileKey = (): string => editingUid.value || form.value.mapID.trim();
+let draftRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+function refreshDraftsSoon(): void {
+  if (draftRefreshTimer) clearTimeout(draftRefreshTimer);
+  draftRefreshTimer = setTimeout(() => { void refreshDrafts(); }, 900);
+}
 
-const uploadIcon = async () => {
-  const fileKey = iconFileKey();
-  if (!fileKey) {
-    formError.value = t("basemap.errors.id_required");
-    return;
-  }
-  formError.value = "";
-  const result = await window.appAssets.uploadTmsThumbnail(fileKey);
-  if (result.err === "Canceled") return;
-  if (result.err) {
-    formError.value = t("appedit.error_invalid_image");
-    return;
-  }
-  form.value.thumbnail = result.path || "";
-  formThumbnailUrl.value = result.fileUrl || null;
-};
-
-// タイルURLテンプレートが有効な形なら、範囲指定モーダルへのオーバーレイ用定義を返す
-const overlayTms = computed(() => {
-  const url = String(form.value.url || "").trim();
-  if (!(url.includes("{z}") && url.includes("{x}") && (url.includes("{y}") || url.includes("{-y}")))) {
-    return null;
-  }
-  return {
-    url,
-    minZoom: form.value.minZoom !== "" && form.value.minZoom !== null ? Number(form.value.minZoom) : undefined,
-    maxZoom: form.value.maxZoom !== "" && form.value.maxZoom !== null ? Number(form.value.maxZoom) : undefined,
-  };
-});
-
-// アイコン自動生成はタイルURLと存在範囲の両方が設定済みの場合のみ
-const canGenerateIcon = computed(() => overlayTms.value != null && form.value.coverageLngLats != null);
-const generatingIcon = ref(false);
-
-const generateIcon = async () => {
-  const fileKey = iconFileKey();
-  if (!fileKey) {
-    formError.value = t("basemap.errors.id_required");
-    return;
-  }
-  if (!overlayTms.value || !form.value.coverageLngLats) return;
-  formError.value = "";
-  generatingIcon.value = true;
-  try {
-    // IPCの構造化クローンはVueのreactiveプロキシを受け付けない("An object could not be cloned")
-    // ため、プレーンなデータに落としてから渡す
-    const coverage = JSON.parse(JSON.stringify(form.value.coverageLngLats));
-    const result = await window.appAssets.generateTmsThumbnail(fileKey, { ...overlayTms.value }, coverage);
-    if (result.err || !result.path) {
-      formError.value = t("basemap.errors.icon_generate_failed");
-      return;
-    }
-    form.value.thumbnail = result.path;
-    formThumbnailUrl.value = result.fileUrl ? `${result.fileUrl}?t=${Date.now()}` : null;
-  } catch (e) {
-    console.error("Failed to generate base map icon", e);
-    formError.value = t("basemap.errors.icon_generate_failed");
-  } finally {
-    generatingIcon.value = false;
-  }
-};
-
-const validateForm = (): string | null => {
-  const mapID = form.value.mapID.trim();
-  const title = form.value.title.trim();
-  const url = form.value.url.trim();
-  if (!mapID) return t("basemap.errors.id_required");
-  if (!/^[a-zA-Z0-9_-]+$/.test(mapID)) return t("basemap.errors.id_invalid");
-  // ID変更(新規または改名)時のみ重複を検査する(自分自身のuidは除外)
-  if (mapID !== originalMapID.value &&
-      items.value.some((item) => item.mapID === mapID && item.uid !== editingUid.value)) {
-    return t("basemap.errors.id_duplicate");
-  }
-  if (!title) return t("basemap.errors.title_required");
-  if (!url) return t("basemap.errors.url_required");
-  if (!(url.includes("{z}") && url.includes("{x}") && (url.includes("{y}") || url.includes("{-y}")))) {
-    return t("basemap.errors.url_invalid");
-  }
-  const hasMinZoom = form.value.minZoom !== "" && form.value.minZoom !== null;
-  const hasMaxZoom = form.value.maxZoom !== "" && form.value.maxZoom !== null;
-  if (hasMinZoom) {
-    const zoom = Number(form.value.minZoom);
-    if (!Number.isInteger(zoom) || zoom < 0 || zoom > 25) {
-      return t("basemap.errors.min_zoom_invalid");
-    }
-  }
-  if (hasMaxZoom) {
-    const zoom = Number(form.value.maxZoom);
-    if (!Number.isInteger(zoom) || zoom < 1 || zoom > 25) {
-      return t("basemap.errors.max_zoom_invalid");
-    }
-  }
-  if (hasMinZoom && hasMaxZoom && Number(form.value.minZoom) > Number(form.value.maxZoom)) {
-    return t("basemap.errors.zoom_order_invalid");
-  }
-  return null;
-};
-
-const saveBaseMap = async () => {
-  const validationError = validateForm();
-  if (validationError) {
-    formError.value = validationError;
-    return;
-  }
-  // IDはMaplat地図・アプリ・ビルトイン含む全アセットと共通の空間で一意 (ADR-0007)。
-  // 自分自身のuidを除外して(excludeUid)Write Store横断で確認する
-  const slug = form.value.mapID.trim();
-  if (slug !== originalMapID.value) {
-    try {
-      const available = await window.assets.checkSlug({ slug, excludeUid: editingUid.value ?? undefined });
-      if (!available) {
-        formError.value = t("basemap.errors.id_duplicate");
-        return;
-      }
-    } catch (e) {
-      console.error("Failed to check base map ID availability", e);
-    }
-  }
-  const tms: any = {
-    mapID: slug,
-    title: form.value.title.trim(),
-    url: form.value.url.trim(),
-  };
-  const attr = form.value.attr.trim();
-  if (attr) tms.attr = attr;
-  if (form.value.minZoom !== "" && form.value.minZoom !== null) {
-    tms.minZoom = Number(form.value.minZoom);
-  }
-  if (form.value.maxZoom !== "" && form.value.maxZoom !== null) {
-    tms.maxZoom = Number(form.value.maxZoom);
-  }
-  if (form.value.thumbnail) tms.thumbnail = form.value.thumbnail;
-  // IPCの構造化クローン対策: reactiveプロキシの配列はプレーンに落としてから渡す
-  if (form.value.coverageLngLats) tms.coverageLngLats = JSON.parse(JSON.stringify(form.value.coverageLngLats));
-  saving.value = true;
-  try {
-    // uid正準の保存 (ADR-0007): 編集時はuid指定(slug変更=同一uidの付け替え)、新規はuid採番
-    await window.baseMaps.saveUser({ uid: editingUid.value ?? undefined, slug, tms });
-    await modalDraftLifecycle.markSaved();
-    modalDraftReady.value = false;
-    showModal.value = false;
-    await loadBaseMaps();
-  } catch (e) {
-    console.error("Failed to save base map", e);
-    formError.value = t("basemap.errors.save_failed");
-  } finally {
-    saving.value = false;
-  }
-};
-
-const deleteBaseMap = async (item: BaseMapCatalogItem) => {
-  const name = item.data.title || item.mapID;
+async function deleteBaseMap(item: BaseMapCatalogItem): Promise<void> {
+  const name = localizeTitle(item.data.title as any, activeLang.value) || item.mapID;
   if (!confirm(t("basemap.delete_confirm", { name }))) return;
   try {
+    if (selectedUid.value === item.uid) await editor.value?.prepareForDelete();
     await window.baseMaps.deleteUser(item.uid);
-    await window.assetDrafts.remove('base-map', item.uid);
+    await window.assetDrafts.remove("base-map", item.uid);
+    if (selectedUid.value === item.uid) await clearSelection();
     await loadBaseMaps();
-  } catch (e) {
-    console.error("Failed to delete base map", e);
+  } catch (cause) {
+    console.error("Failed to delete base map", cause);
     error.value = t("basemap.errors.delete_failed");
   }
-};
+}
 
-const toggleAlways = async (item: BaseMapCatalogItem, event: Event) => {
-  const input = event.target as HTMLInputElement;
-  const always = input.checked;
+async function toggleAlways(item: BaseMapCatalogItem, always: boolean): Promise<void> {
   try {
     await window.baseMaps.setAlways(item.uid, always);
     item.alwaysVisible = always;
-  } catch (e) {
-    console.error("Failed to update always-visible setting", e);
-    input.checked = !always;
+  } catch (cause) {
+    console.error("Failed to update always-visible setting", cause);
     error.value = t("basemap.errors.always_failed");
+    await loadBaseMaps();
   }
-};
+}
+
+onMounted(async () => {
+  await loadBaseMaps();
+  await nextTick();
+  await restoreScroll(masterList.value?.scrollElement ?? null);
+});
+
 </script>
 
 <style scoped>
-.table {
-    font-size: 13px;
-}
-.basemap-icon {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    background: #f8f9fa;
-    border: 1px solid var(--bs-border-color);
+.base-map-master-detail { min-height: 0; }
+.base-map-master-detail__master { width: clamp(18rem, 34vw, 30rem); flex: 0 0 clamp(18rem, 34vw, 30rem); min-height: 0; }
+.base-map-master-detail__detail { min-height: 0; }
+.min-w-0 { min-width: 0; }
+.d-grid.place-items-center { place-items: center; }
+@media (max-width: 800px) {
+  .base-map-master-detail { flex-direction: column; overflow: auto !important; }
+  .base-map-master-detail__master { width: 100%; flex: 0 0 42vh; min-height: 18rem; }
+  .base-map-master-detail__detail { flex: 0 0 auto; min-height: 32rem; }
 }
 </style>

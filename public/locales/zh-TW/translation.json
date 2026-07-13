@@ -36,6 +36,16 @@
   "basemap": {
     "description": "管理可作為地圖編輯背景使用的使用者自訂底圖(XYZ/TMS圖磚)。",
     "add": "新增底圖",
+    "master_detail": {
+      "new_draft": "新增底圖",
+      "builtin_read_only": "內建底圖為唯讀。",
+      "label": "顯示標籤",
+      "default_language": "預設語言",
+      "untitled": "未命名",
+      "not_found": "找不到所選底圖。",
+      "overwrite_confirm": "要以目前編輯內容覆寫最新儲存版本嗎？",
+      "select_prompt": "請從左側清單選擇底圖，或新增底圖。"
+    },
     "user_section": "使用者自訂底圖",
     "builtin_section": "內建底圖(無法編輯)",
     "loading": "載入中...",

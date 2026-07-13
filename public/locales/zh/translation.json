@@ -36,6 +36,16 @@
   "basemap": {
     "description": "管理可用作地图编辑背景的用户自定义底图(XYZ/TMS瓦片)。",
     "add": "添加底图",
+    "master_detail": {
+      "new_draft": "新建底图",
+      "builtin_read_only": "内置底图为只读。",
+      "label": "显示标签",
+      "default_language": "默认语言",
+      "untitled": "未命名",
+      "not_found": "找不到所选底图。",
+      "overwrite_confirm": "要用当前编辑内容覆盖最新保存版本吗？",
+      "select_prompt": "请从左侧列表选择底图，或新建底图。"
+    },
     "user_section": "用户自定义底图",
     "builtin_section": "内置底图(不可编辑)",
     "loading": "加载中...",

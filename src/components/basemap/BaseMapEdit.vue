@@ -1,0 +1,486 @@
+<template>
+  <section class="base-map-edit d-flex flex-column h-100 position-relative bg-white">
+    <DraftConflictDialog
+      :visible="!!draftLifecycle.conflictDraft.value"
+      @discard="draftLifecycle.resolveConflict('discard')"
+      @apply="draftLifecycle.resolveConflict('apply')"
+    />
+    <EditorActionHeader
+      :title="displayTitle"
+      :save-state="saveState"
+      :active-lang="activeLang"
+      :language-options="SUPPORTED_LANGUAGES"
+      :can-undo="editable && canUndo"
+      :can-redo="editable && canRedo"
+      :save-disabled="!dirty || !validation.valid"
+      :saving="saving"
+      :actions-disabled="generatingIcon || conflictRevision !== null"
+      :save-visible="editable"
+      :discard-draft-visible="editable && !isNew && draftLifecycle.draftRestored.value"
+      @back="goBack"
+      @update:active-lang="activeLang = $event"
+      @undo="undo"
+      @redo="redo"
+      @save="save"
+      @discard-draft="discardDraft"
+    />
+
+    <div v-if="error" class="alert alert-danger rounded-0 mb-0 py-2">{{ error }}</div>
+    <div v-else-if="dirty && validationMessages.length" class="alert alert-warning rounded-0 mb-0 py-2">
+      <ul class="mb-0"><li v-for="message in validationMessages" :key="message">{{ message }}</li></ul>
+    </div>
+    <div v-if="conflictRevision !== null" class="alert alert-warning rounded-0 mb-0 py-2 d-flex align-items-center gap-2 flex-wrap">
+      <span class="flex-grow-1">{{ t("common.revision_conflict") }}</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" @click="reloadLatest">{{ t("common.reload") }}</button>
+      <button type="button" class="btn btn-sm btn-warning" @click="keepCurrentEdit">{{ t("common.overwrite") }}</button>
+    </div>
+    <div v-if="readOnly" class="alert alert-info rounded-0 mb-0 py-2">{{ t("basemap.master_detail.builtin_read_only") }}</div>
+
+    <div class="flex-grow-1 overflow-auto p-3" data-testid="basemap-editor">
+      <div class="row g-3">
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.title_label") }}</label>
+          <LangResourceInput
+            :model-value="document.title"
+            :active-lang="activeLang"
+            :default-lang="document.defaultLang"
+            :language-options="SUPPORTED_LANGUAGES"
+            :disabled="readOnly || saving"
+            @update:model-value="updateResource('title', $event)"
+            @select-language="activeLang = $event"
+          />
+        </div>
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.master_detail.label") }}</label>
+          <LangResourceInput
+            :model-value="document.label"
+            :active-lang="activeLang"
+            :default-lang="document.defaultLang"
+            :language-options="SUPPORTED_LANGUAGES"
+            :disabled="readOnly || saving"
+            @update:model-value="updateResource('label', $event)"
+            @select-language="activeLang = $event"
+          />
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.attr_label") }}</label>
+          <LangResourceInput
+            :model-value="document.attr"
+            :active-lang="activeLang"
+            :default-lang="document.defaultLang"
+            :language-options="SUPPORTED_LANGUAGES"
+            :disabled="readOnly || saving"
+            @update:model-value="updateResource('attr', $event)"
+            @select-language="activeLang = $event"
+          />
+        </div>
+
+        <div class="col-12"><hr class="my-1"></div>
+        <div class="col-12 col-lg-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.id_label") }}</label>
+          <input
+            :value="document.slug"
+            type="text"
+            class="form-control form-control-sm"
+            :disabled="structuralDisabled"
+            @change="updateField('slug', ($event.target as HTMLInputElement).value.trim())"
+          >
+        </div>
+        <div class="col-12 col-lg-6">
+          <label class="form-label fw-semibold">{{ t("basemap.master_detail.default_language") }}</label>
+          <select
+            :value="document.defaultLang"
+            class="form-select form-select-sm"
+            :disabled="structuralDisabled"
+            @change="changeDefaultLang(($event.target as HTMLSelectElement).value as LangCode)"
+          >
+            <option v-for="language in SUPPORTED_LANGUAGES" :key="language.code" :value="language.code">{{ language.nativeName }}</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.url_label") }}</label>
+          <input
+            :value="document.url"
+            type="text"
+            class="form-control form-control-sm"
+            :disabled="structuralDisabled"
+            @change="updateField('url', ($event.target as HTMLInputElement).value.trim())"
+          >
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.min_zoom_label") }}</label>
+          <input
+            :value="document.minZoom ?? ''"
+            type="number"
+            min="0"
+            max="25"
+            class="form-control form-control-sm"
+            :disabled="structuralDisabled"
+            @change="updateNumber('minZoom', ($event.target as HTMLInputElement).value)"
+          >
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.max_zoom_label") }}</label>
+          <input
+            :value="document.maxZoom ?? ''"
+            type="number"
+            min="1"
+            max="25"
+            class="form-control form-control-sm"
+            :disabled="structuralDisabled"
+            @change="updateNumber('maxZoom', ($event.target as HTMLInputElement).value)"
+          >
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ t("basemap.icon") }}</label>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <img v-if="thumbnailUrl" :src="thumbnailUrl" class="base-map-icon" :alt="document.slug">
+            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="structuralDisabled" @click="uploadIcon">{{ t("appedit.upload") }}</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled || !canGenerateIcon || generatingIcon" @click="generateIcon">
+              {{ generatingIcon ? t("basemap.generating_icon") : t("basemap.generate_icon") }}
+            </button>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ t("basemap.coverage") }}</label>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="small font-monospace">{{ coverageText }}</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled" @click="showEnvelopeModal = true">{{ t("appedit.envelope_pick") }}</button>
+            <button v-if="document.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" :disabled="structuralDisabled" @click="updateField('coverageLngLats', null)">{{ t("appedit.envelope_clear") }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <EnvelopeEditorModal
+      v-if="showEnvelopeModal"
+      :model-value="document.coverageLngLats"
+      :overlay-tms="overlayTms"
+      title-key="basemap.coverage_modal_title"
+      help-key="basemap.coverage_modal_help"
+      @update:model-value="updateField('coverageLngLats', $event)"
+      @close="showEnvelopeModal = false"
+    />
+    <EditorBusyOverlay :visible="saving || generatingIcon" :label="saving ? t('editor_ui.save_state.saving') : t('basemap.generating_icon')" />
+  </section>
+</template>
+
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useTranslation } from "i18next-vue";
+import i18next from "i18next";
+import EnvelopeEditorModal from "../EnvelopeEditorModal.vue";
+import LangResourceInput from "../LangResourceInput.vue";
+import DraftConflictDialog from "../editor-ui/DraftConflictDialog.vue";
+import EditorActionHeader from "../editor-ui/EditorActionHeader.vue";
+import EditorBusyOverlay from "../editor-ui/EditorBusyOverlay.vue";
+import type { EditorSaveState } from "../editor-ui/editorUiTypes";
+import { useAssetDraftLifecycle } from "../../composables/useAssetDraftLifecycle";
+import { UndoStack } from "../../services/editorUndoStack";
+import {
+  fromBaseMapCatalogItem,
+  newBaseMapDocument,
+  resolveBaseMapRuntimeText,
+  toBaseMapSavePayload,
+  validateBaseMapDocument,
+  type BaseMapCatalogItem,
+  type BaseMapEditDocument,
+} from "../../utils/baseMapEditorDocument";
+import { envelopeToBbox } from "../../utils/appSourceModel";
+import { isTranslationMode } from "../../utils/editorLanguageMode";
+import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../../utils/editorLanguages";
+import { isEditableElement } from "../../utils/nativeTextUndo";
+import type { BaseMapSaveResult } from "../../electron";
+
+const props = defineProps<{ uid: string; isNew: boolean; item: BaseMapCatalogItem | null }>();
+const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string] }>();
+const { t } = useTranslation();
+
+const clone = <T,>(value: T): T => structuredClone(value);
+const initial = props.item
+  ? fromBaseMapCatalogItem(props.item)
+  : newBaseMapDocument(props.uid, resolveEditorLanguage(i18next.language));
+const document = ref<BaseMapEditDocument>(clone(initial));
+let history = new UndoStack<BaseMapEditDocument>(clone(initial));
+const historyVersion = ref(0);
+const revision = ref<number | null>(props.item?.revision ?? null);
+const activeLang = ref<LangCode>(document.value.defaultLang);
+const saving = ref(false);
+const generatingIcon = ref(false);
+const error = ref("");
+const conflictRevision = ref<number | null>(null);
+const overwritePending = ref(false);
+const thumbnailUrl = ref<string | null>(props.item?.thumbnailUrl ?? null);
+const showEnvelopeModal = ref(false);
+const readOnly = computed(() => document.value.scope === "builtin");
+const editable = computed(() => !readOnly.value);
+const translationMode = computed(() => isTranslationMode(activeLang.value, document.value.defaultLang));
+const structuralDisabled = computed(() => readOnly.value || translationMode.value || saving.value);
+const dirty = computed(() => (historyVersion.value, history.isDirty()));
+const canUndo = computed(() => (historyVersion.value, history.canUndo()));
+const canRedo = computed(() => (historyVersion.value, history.canRedo()));
+const validation = computed(() => validateBaseMapDocument(document.value));
+const validationMessages = computed(() => validation.value.errors.map((code) => t({
+  "slug-required": "basemap.errors.id_required",
+  "slug-invalid": "basemap.errors.id_invalid",
+  "title-required": "basemap.errors.title_required",
+  "url-required": "basemap.errors.url_required",
+  "url-invalid": "basemap.errors.url_invalid",
+  "min-zoom-invalid": "basemap.errors.min_zoom_invalid",
+  "max-zoom-invalid": "basemap.errors.max_zoom_invalid",
+  "zoom-range": "basemap.errors.zoom_order_invalid",
+}[code])));
+const displayTitle = computed(() => resolveBaseMapRuntimeText(document.value.title, activeLang.value, document.value.defaultLang) || document.value.slug || t("basemap.master_detail.untitled"));
+const saveState = computed<EditorSaveState>(() => saving.value ? "saving" : draftLifecycle.draftRestored.value ? "draft-restored" : dirty.value ? "dirty" : "saved");
+
+const draftLifecycle = useAssetDraftLifecycle<BaseMapEditDocument>({
+  kind: "base-map",
+  serialize: () => clone(document.value),
+  apply: (payload) => { document.value = clone(payload); },
+  onRestored: () => {
+    history = new UndoStack(clone(document.value));
+    history.markDirty();
+    historyVersion.value++;
+  },
+  shouldPersist: () => editable.value && dirty.value,
+});
+
+function resetSession(item: BaseMapCatalogItem | null, uid: string): void {
+  const next = item ? fromBaseMapCatalogItem(item) : newBaseMapDocument(uid, resolveEditorLanguage(i18next.language));
+  document.value = clone(next);
+  history = new UndoStack(clone(next));
+  historyVersion.value++;
+  revision.value = item?.revision ?? null;
+  activeLang.value = next.defaultLang;
+  thumbnailUrl.value = item?.thumbnailUrl ?? null;
+  error.value = "";
+  conflictRevision.value = null;
+  overwritePending.value = false;
+}
+
+let sessionOpened = false;
+let sessionTransition = Promise.resolve();
+watch(
+  () => [props.uid, props.item?.revision, props.isNew] as const,
+  ([uid, itemRevision, isNew]) => {
+    sessionTransition = sessionTransition.then(async () => {
+      if (sessionOpened) await draftLifecycle.flush();
+      if (uid !== props.uid || itemRevision !== props.item?.revision || isNew !== props.isNew) return;
+      resetSession(props.item, uid);
+      if (props.item?.scope !== "builtin") await draftLifecycle.open(uid, itemRevision ?? null);
+      sessionOpened = props.item?.scope !== "builtin";
+    }).catch((cause) => {
+      console.error("Failed to change base map editor session", cause);
+      error.value = t("basemap.errors.load_failed");
+    });
+  },
+  { immediate: true },
+);
+
+function commit(next: BaseMapEditDocument): void {
+  if (readOnly.value) return;
+  document.value = clone(next);
+  history.push(clone(next));
+  historyVersion.value++;
+  draftLifecycle.schedule(true);
+  emit("changed");
+}
+
+function updateField<K extends keyof BaseMapEditDocument>(key: K, value: BaseMapEditDocument[K]): void {
+  if (structuralDisabled.value && !(["title", "label", "attr"] as string[]).includes(key)) return;
+  commit({ ...document.value, [key]: clone(value) });
+}
+
+function updateResource(key: "title" | "label" | "attr", value: string | Record<string, string> | undefined): void {
+  const normalized = typeof value === "object" && value ? value : value ? { [document.value.defaultLang]: value } : {};
+  updateField(key, normalized);
+}
+
+function updateNumber(key: "minZoom" | "maxZoom", raw: string): void {
+  updateField(key, raw === "" ? null : Number(raw));
+}
+
+function changeDefaultLang(lang: LangCode): void {
+  updateField("defaultLang", lang);
+  activeLang.value = lang;
+}
+
+function applyHistory(): void {
+  document.value = clone(history.current());
+  historyVersion.value++;
+  draftLifecycle.schedule(dirty.value);
+}
+function undo(): void { history.undo(); applyHistory(); }
+function redo(): void { history.redo(); applyHistory(); }
+
+function onEditorKeydown(event: KeyboardEvent): void {
+  if (!(event.metaKey || event.ctrlKey)) return;
+  const key = event.key.toLowerCase();
+  if (key === "s") {
+    event.preventDefault();
+    if (!saving.value && conflictRevision.value === null && editable.value && dirty.value && validation.value.valid) void save();
+    return;
+  }
+  if (isEditableElement(event.target as Element | null) || saving.value || generatingIcon.value || conflictRevision.value !== null) return;
+  if (key === "z" && event.shiftKey) {
+    event.preventDefault();
+    redo();
+  } else if (key === "z") {
+    event.preventDefault();
+    undo();
+  } else if (key === "y") {
+    event.preventDefault();
+    redo();
+  }
+}
+
+onMounted(() => window.addEventListener("keydown", onEditorKeydown));
+onBeforeUnmount(() => window.removeEventListener("keydown", onEditorKeydown));
+
+async function goBack(): Promise<void> {
+  if (editable.value) await draftLifecycle.flush();
+  emit("back");
+}
+
+async function discardDraft(): Promise<void> {
+  const result = await (window as any).dialog.showMessageBox({
+    type: "warning",
+    buttons: [t("editor_ui.discard_draft"), t("common.cancel")],
+    defaultId: 1,
+    cancelId: 1,
+    message: t("editor_ui.discard_draft_confirm"),
+  });
+  if (result.response !== 0) return;
+  await draftLifecycle.discard();
+  if (props.item) resetSession(props.item, props.uid);
+  else emit("back");
+  emit("changed");
+}
+
+function saveFailure(result: BaseMapSaveResult): string {
+  if ("error" in result) return t("common.revision_conflict");
+  if (result.result === "Exist") return t("basemap.errors.id_duplicate");
+  if (result.result === "Error") return result.message || t("basemap.errors.save_failed");
+  return t("basemap.errors.save_failed");
+}
+
+async function save(): Promise<void> {
+  if (!editable.value || !dirty.value || !validation.value.valid) return;
+  if (overwritePending.value) {
+    const confirmation = await (window as any).dialog.showMessageBox({
+      type: "warning",
+      buttons: [t("common.overwrite"), t("common.cancel")],
+      defaultId: 1,
+      cancelId: 1,
+      message: t("basemap.master_detail.overwrite_confirm"),
+    });
+    if (confirmation.response !== 0) return;
+    overwritePending.value = false;
+  }
+  error.value = "";
+  saving.value = true;
+  try {
+    const available = await window.assets.checkSlug({ slug: document.value.slug, excludeUid: revision.value === null ? undefined : document.value.uid });
+    if (!available) { error.value = t("basemap.errors.id_duplicate"); return; }
+    const captured = document.value;
+    const capturedVersion = historyVersion.value;
+    const result = await window.baseMaps.saveUser(toBaseMapSavePayload(captured, revision.value));
+    if (!("result" in result)) {
+      conflictRevision.value = result.current;
+      error.value = "";
+      return;
+    }
+    if (result.result !== "Success") { error.value = saveFailure(result); return; }
+    revision.value = result.revision;
+    const snapshot = history.snapshot();
+    history = UndoStack.fromSnapshot({
+      ...snapshot,
+      history: snapshot.history.map((state) => ({ ...state, uid: result.uid })),
+    });
+    document.value = clone(history.current());
+    if (capturedVersion === historyVersion.value) {
+      history.save();
+      historyVersion.value++;
+      await draftLifecycle.markSaved();
+    }
+    emit("saved", result.uid);
+  } catch (cause) {
+    console.error("Failed to save base map", cause);
+    error.value = t("basemap.errors.save_failed");
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function reloadLatest(): Promise<void> {
+  await draftLifecycle.discard();
+  sessionOpened = false;
+  conflictRevision.value = null;
+  emit("reload", document.value.uid);
+}
+
+function keepCurrentEdit(): void {
+  if (conflictRevision.value === null) return;
+  revision.value = conflictRevision.value;
+  conflictRevision.value = null;
+  overwritePending.value = true;
+}
+
+async function prepareForDelete(): Promise<void> {
+  if (sessionOpened) await draftLifecycle.discard();
+  sessionOpened = false;
+}
+
+defineExpose({ prepareForDelete });
+
+const overlayTms = computed(() => {
+  const url = document.value.url.trim();
+  if (!(url.includes("{z}") && url.includes("{x}") && (url.includes("{y}") || url.includes("{-y}")))) return null;
+  return { url, minZoom: document.value.minZoom ?? undefined, maxZoom: document.value.maxZoom ?? undefined };
+});
+const canGenerateIcon = computed(() => overlayTms.value !== null && document.value.coverageLngLats !== null && !!document.value.slug);
+const iconFileKey = () => revision.value === null ? document.value.slug : document.value.uid;
+
+async function uploadIcon(): Promise<void> {
+  const key = iconFileKey();
+  if (!key) { error.value = t("basemap.errors.id_required"); return; }
+  try {
+    const result = await window.appAssets.uploadTmsThumbnail(key);
+    if (result.err === "Canceled") return;
+    if (result.err || !result.path) { error.value = t("appedit.error_invalid_image"); return; }
+    thumbnailUrl.value = result.fileUrl ?? null;
+    updateField("thumbnail", result.path);
+  } catch (cause) {
+    console.error("Failed to upload base map icon", cause);
+    error.value = t("appedit.error_invalid_image");
+  }
+}
+
+async function generateIcon(): Promise<void> {
+  if (!overlayTms.value || !document.value.coverageLngLats) return;
+  generatingIcon.value = true;
+  error.value = "";
+  try {
+    const result = await window.appAssets.generateTmsThumbnail(iconFileKey(), clone(overlayTms.value), clone(document.value.coverageLngLats));
+    if (result.err || !result.path) { error.value = t("basemap.errors.icon_generate_failed"); return; }
+    thumbnailUrl.value = result.fileUrl ? `${result.fileUrl}?t=${Date.now()}` : null;
+    updateField("thumbnail", result.path);
+  } catch (cause) {
+    console.error("Failed to generate base map icon", cause);
+    error.value = t("basemap.errors.icon_generate_failed");
+  } finally {
+    generatingIcon.value = false;
+  }
+}
+
+const coverageText = computed(() => {
+  const bbox = envelopeToBbox(document.value.coverageLngLats);
+  return bbox ? `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}` : "-";
+});
+</script>
+
+<style scoped>
+.base-map-edit { min-width: 0; }
+.base-map-icon { width: 52px; height: 52px; object-fit: contain; background: #f8f9fa; border: 1px solid var(--bs-border-color); }
+</style>

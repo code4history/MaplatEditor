@@ -33,6 +33,16 @@
   "basemap": {
     "description": "Manage user-defined base maps (XYZ/TMS tiles) usable as background in map editing.",
     "add": "Add Base Map",
+    "master_detail": {
+      "new_draft": "New base map",
+      "builtin_read_only": "Builtin base maps are read-only.",
+      "label": "Display label",
+      "default_language": "Default language",
+      "untitled": "Untitled",
+      "not_found": "The selected base map was not found.",
+      "overwrite_confirm": "Overwrite the latest saved version with your current edits?",
+      "select_prompt": "Select a base map from the list or create a new one."
+    },
     "user_section": "User-defined base maps",
     "builtin_section": "Builtin base maps (read-only)",
     "loading": "Loading...",

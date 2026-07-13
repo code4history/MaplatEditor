@@ -27,7 +27,7 @@ const routes = [
     component: () => import('../views/AppEdit.vue')
   },
   {
-    path: '/basemaps',
+    path: '/basemaps', // master-detail selection uses ?uid=<asset uid>&new=1; q/page are preserved
     name: 'BaseMapList',
     component: () => import('../views/BaseMapList.vue')
   },

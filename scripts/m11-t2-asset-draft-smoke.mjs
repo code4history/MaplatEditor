@@ -275,13 +275,17 @@ try {
     'AssetList.vue': 'image-asset',
   };
   for (const [viewName, kind] of Object.entries(listKinds)) {
-    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
+    let source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
+    if (viewName === 'BaseMapList.vue') {
+      source += await readFile(path.join(projectRoot, 'src/components/basemap/BaseMapMasterList.vue'), 'utf8');
+      source += await readFile(path.join(projectRoot, 'src/components/basemap/BaseMapEdit.vue'), 'utf8');
+    }
     assert.match(source, new RegExp(`useAssetDraftBadges\\(['"]${kind}['"]\\)`), `${viewName}: summary kind missing`);
-    assert.match(source, /hasDraft\(/, `${viewName}: UID badge lookup missing`);
+    assert.match(source, /hasDraft\(|draftUids\.has\(/, `${viewName}: UID badge lookup missing`);
     assert.match(source, /editor_ui\.draft_badge/, `${viewName}: translated draft badge missing`);
     assert.match(source, /assetDrafts\.remove/, `${viewName}: asset deletion must remove orphan draft`);
   }
-  for (const viewName of ['BaseMapList.vue', 'AssetList.vue']) {
+  for (const viewName of ['AssetList.vue']) {
     const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
     assert.match(source, /useAssetDraftLifecycle/, `${viewName}: modal draft lifecycle missing`);
     assert.match(source, /modalDraftLifecycle\.open/, `${viewName}: modal draft open missing`);
@@ -289,17 +293,34 @@ try {
     assert.match(source, /modalDraftLifecycle\.flush\(\)/, `${viewName}: modal close flush missing`);
     assert.match(source, /modalDraftLifecycle\.markSaved\(\)/, `${viewName}: modal save cleanup missing`);
   }
+  const baseMapEditor = await readFile(
+    path.join(projectRoot, 'src/components/basemap/BaseMapEdit.vue'),
+    'utf8',
+  );
+  assert.match(baseMapEditor, /useAssetDraftLifecycle/, 'BaseMapEdit.vue: editor draft lifecycle missing');
+  assert.match(baseMapEditor, /draftLifecycle\.open/, 'BaseMapEdit.vue: editor draft open missing');
+  assert.match(baseMapEditor, /draftLifecycle\.schedule/, 'BaseMapEdit.vue: editor draft schedule missing');
+  assert.match(baseMapEditor, /draftLifecycle\.flush\(\)/, 'BaseMapEdit.vue: editor back flush missing');
+  assert.match(baseMapEditor, /draftLifecycle\.markSaved\(\)/, 'BaseMapEdit.vue: editor save cleanup missing');
   for (const viewName of ['MapList.vue', 'AppList.vue']) {
     const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
     assert.match(source, /newDrafts/, `${viewName}: provisional new drafts must be listed`);
     assert.match(source, /draftUid=/, `${viewName}: provisional draft reopen link missing`);
   }
-  for (const viewName of ['BaseMapList.vue', 'AssetList.vue']) {
+  for (const viewName of ['AssetList.vue']) {
     const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
     assert.match(source, /newDrafts/, `${viewName}: new modal drafts must be discoverable`);
     assert.match(source, /baseRevision\s*===\s*null/, `${viewName}: provisional draft filter missing`);
     assert.match(source, /editor_ui\.draft_badge/, `${viewName}: Add action draft badge missing`);
   }
+  const baseMapShell = await readFile(path.join(projectRoot, 'src/views/BaseMapList.vue'), 'utf8');
+  const baseMapMaster = await readFile(
+    path.join(projectRoot, 'src/components/basemap/BaseMapMasterList.vue'),
+    'utf8',
+  );
+  assert.match(baseMapMaster, /newDrafts/, 'BaseMapMasterList.vue: new drafts must be discoverable');
+  assert.match(baseMapMaster, /baseRevision\s*===\s*null/, 'BaseMapMasterList.vue: provisional draft filter missing');
+  assert.match(baseMapShell, /selectDraft/, 'BaseMapList.vue: provisional draft reopen route missing');
   const sqliteSource = await readFile(path.join(projectRoot, 'electron/services/SqliteDataService.ts'), 'utf8');
   assert.match(sqliteSource, /listBaseMaps[\s\S]*?SELECT uid, slug, scope, data_json, revision/);
   console.log('  [10/10] Five asset lists and lightweight editors share draft badges/lifecycle: PASS');

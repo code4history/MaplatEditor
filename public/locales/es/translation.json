@@ -36,6 +36,16 @@
   "basemap": {
     "description": "Gestione los mapas base definidos por el usuario (teselas XYZ/TMS) que se pueden usar como fondo al editar mapas.",
     "add": "Añadir mapa base",
+    "master_detail": {
+      "new_draft": "Nuevo mapa base",
+      "builtin_read_only": "Los mapas base integrados son de solo lectura.",
+      "label": "Etiqueta visible",
+      "default_language": "Idioma predeterminado",
+      "untitled": "Sin título",
+      "not_found": "No se encontró el mapa base seleccionado.",
+      "overwrite_confirm": "¿Sobrescribir la última versión guardada con sus cambios?",
+      "select_prompt": "Seleccione un mapa base de la lista o cree uno nuevo."
+    },
     "user_section": "Mapas base definidos por el usuario",
     "builtin_section": "Mapas base integrados (no editables)",
     "loading": "Cargando...",

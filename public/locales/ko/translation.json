@@ -36,6 +36,16 @@
   "basemap": {
     "description": "지도 편집의 배경으로 사용할 수 있는 사용자 정의 베이스맵(XYZ/TMS 타일)을 관리합니다.",
     "add": "베이스맵 추가",
+    "master_detail": {
+      "new_draft": "새 베이스맵",
+      "builtin_read_only": "내장 베이스맵은 읽기 전용입니다.",
+      "label": "표시 라벨",
+      "default_language": "기본 언어",
+      "untitled": "제목 없음",
+      "not_found": "선택한 베이스맵을 찾을 수 없습니다.",
+      "overwrite_confirm": "최신 저장 버전을 현재 편집 내용으로 덮어쓸까요?",
+      "select_prompt": "왼쪽 목록에서 베이스맵을 선택하거나 새로 만드세요."
+    },
     "user_section": "사용자 정의 베이스맵",
     "builtin_section": "내장 베이스맵(편집 불가)",
     "loading": "불러오는 중...",
