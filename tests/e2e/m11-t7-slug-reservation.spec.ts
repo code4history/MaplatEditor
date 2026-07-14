@@ -110,16 +110,21 @@ async function expectSlugField(page: Page, testid: string): Promise<void> {
 
 // タイトル → スラッグ (ID) → デフォルト言語 の視覚順(AC7): DOM 上の出現順で判定する
 async function expectHeadOrder(page: Page, titleLabel: string | RegExp): Promise<void> {
-  await expect(page.locator('label, .form-label').filter({ hasText: titleLabel }).first()).toBeVisible();
+  const title = page.locator('label, .form-label').filter({ hasText: titleLabel }).first();
+  await expect(title).toBeVisible();
   await expect(page.locator('label', { hasText: 'スラッグ (ID)' }).first()).toBeVisible();
   await expect(page.locator('label', { hasText: 'デフォルト言語' }).first()).toBeVisible();
-  const order = await page.evaluate(() => {
-    const labels = Array.from(document.querySelectorAll('label, .form-label')).map((el) => (el.textContent ?? '').trim());
-    const at = (needle: string) => labels.findIndex((text) => text.includes(needle));
-    return { slug: at('スラッグ (ID)'), lang: at('デフォルト言語') };
+  const labels = await title.evaluate((element) => {
+    const group = element.closest('.row');
+    if (!group) throw new Error('leading field group (.row) not found');
+    return Array.from(group.querySelectorAll('label, .form-label')).map((label) => (label.textContent ?? '').trim());
   });
-  expect(order.slug).toBeGreaterThanOrEqual(0);
-  expect(order.lang).toBeGreaterThan(order.slug);
+  const titleAt = labels.findIndex((text) => typeof titleLabel === 'string' ? text.includes(titleLabel) : titleLabel.test(text));
+  const slugAt = labels.findIndex((text) => text.includes('スラッグ (ID)'));
+  const langAt = labels.findIndex((text) => text.includes('デフォルト言語'));
+  expect(titleAt).toBeGreaterThanOrEqual(0);
+  expect(titleAt).toBeLessThan(slugAt);
+  expect(slugAt).toBeLessThan(langAt);
 }
 
 test('five edits share SlugField with unified head order and §9 tabs', async () => {
@@ -331,9 +336,9 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
 
     // Undo で checkpoint clean → AC10: store から即時除去(D9)
     await runtime.page.getByTestId('editor-undo').click();
-    await expect.poll(async () =>
-      runtime.page.evaluate(async (assetUid) => (await window.assetDrafts.get('base-map', assetUid!)) != null, uid),
-    { timeout: 10_000 }).toBe(false);
+    const draftImmediatelyAfterUndo = await runtime.page.evaluate(async (assetUid) =>
+      window.assetDrafts.get('base-map', assetUid!), uid);
+    expect(draftImmediatelyAfterUndo).toBeNull();
 
     // 再起動(同一 root)しても draft は復活しない
     await runtime.app.close();
