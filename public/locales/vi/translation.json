@@ -811,6 +811,8 @@
   },
   "editor_ui": {
     "slug_format_help": "Chỉ dùng chữ cái, số, dấu gạch ngang và gạch dưới.",
+    "slug_label": "Slug (ID)",
+    "default_lang_label": "Ngôn ngữ mặc định",
     "new_item": "Mới",
     "discard_draft": "Bỏ bản nháp",
     "discard_draft_confirm": "Bỏ bản nháp này và quay lại phiên bản đã lưu?",
@@ -832,6 +834,9 @@
     "slug_state": {
       "checking": "Đang kiểm tra…",
       "available": "Có thể sử dụng",
+      "invalid-format": "Định dạng không hợp lệ",
+      "reserved-by-other": "Đã bị nơi khác giữ",
+      "check-failed": "Kiểm tra thất bại",
       "taken": "Đã được sử dụng",
       "unavailable": "Không thể kiểm tra"
     },

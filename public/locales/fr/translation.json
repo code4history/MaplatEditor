@@ -811,6 +811,8 @@
   },
   "editor_ui": {
     "slug_format_help": "Utilisez uniquement lettres, chiffres, tiret et underscore.",
+    "slug_label": "Slug (ID)",
+    "default_lang_label": "Langue par défaut",
     "new_item": "Nouveau",
     "discard_draft": "Supprimer le brouillon",
     "discard_draft_confirm": "Supprimer ce brouillon et revenir à la version enregistrée ?",
@@ -832,6 +834,9 @@
     "slug_state": {
       "checking": "Vérification…",
       "available": "Disponible",
+      "invalid-format": "Format invalide",
+      "reserved-by-other": "Réservé ailleurs",
+      "check-failed": "Échec de la vérification",
       "taken": "Déjà utilisé",
       "unavailable": "Vérification impossible"
     },

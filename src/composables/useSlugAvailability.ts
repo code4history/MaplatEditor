@@ -10,6 +10,18 @@ export type SlugAvailabilityState =
   | 'taken'
   | 'unavailable';
 
+// §7.1 の 6 値状態語彙 (M11-T7/D1)。SlugField はこの語彙で状態を表示する。
+// 内部の SlugAvailabilityState を写像する: taken→reserved-by-other(registry既存 or
+// 他者予約の双方を包含)、unavailable→check-failed、format不正→invalid-format。
+// 既存の 5 値 state は後方互換のため温存する(m11-t1 の state machine テスト等)。
+export type SlugFieldState =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'invalid-format'
+  | 'reserved-by-other'
+  | 'check-failed';
+
 interface SlugCheckInput {
   slug: string;
   excludeUid?: string;
@@ -28,6 +40,24 @@ const defaultCheck = (input: SlugCheckInput): Promise<boolean> =>
 export function useSlugAvailability(options: UseSlugAvailabilityOptions) {
   const state = ref<SlugAvailabilityState>('idle');
   const validationError = computed(() => validateSlugSyntax(options.slug.value));
+
+  // 6 値語彙への写像 (D1)。SlugField が表示に使う。checking 中は format 判定より
+  // 照会状態を優先する。'required'(空) は idle 扱いにしてエラー表示を出さない。
+  const fieldState = computed<SlugFieldState>(() => {
+    if (state.value === 'checking') return 'checking';
+    if (validationError.value === 'invalid') return 'invalid-format';
+    if (validationError.value === 'required') return 'idle';
+    switch (state.value) {
+      case 'available':
+        return 'available';
+      case 'taken':
+        return 'reserved-by-other';
+      case 'unavailable':
+        return 'check-failed';
+      default:
+        return 'idle';
+    }
+  });
   const delayMs = options.delayMs ?? 400;
   const check = options.check ?? defaultCheck;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -88,6 +118,7 @@ export function useSlugAvailability(options: UseSlugAvailabilityOptions) {
 
   return {
     state,
+    fieldState,
     validationError,
     refresh: run,
     cancel,

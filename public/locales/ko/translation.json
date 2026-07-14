@@ -811,6 +811,8 @@
   },
   "editor_ui": {
     "slug_format_help": "영숫자, 하이픈, 밑줄만 사용할 수 있습니다.",
+    "slug_label": "슬러그 (ID)",
+    "default_lang_label": "기본 언어",
     "new_item": "새로 만들기",
     "discard_draft": "초안 삭제",
     "discard_draft_confirm": "이 초안을 삭제하고 저장된 버전으로 돌아가시겠습니까?",
@@ -832,6 +834,9 @@
     "slug_state": {
       "checking": "확인 중…",
       "available": "사용 가능",
+      "invalid-format": "형식 오류",
+      "reserved-by-other": "다른 곳에서 사용 중",
+      "check-failed": "확인 실패",
       "taken": "이미 사용 중",
       "unavailable": "확인할 수 없음"
     },

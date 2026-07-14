@@ -811,6 +811,8 @@
   },
   "editor_ui": {
     "slug_format_help": "Gunakan hanya huruf, angka, tanda hubung, dan garis bawah.",
+    "slug_label": "Slug (ID)",
+    "default_lang_label": "Bahasa default",
     "new_item": "Baru",
     "discard_draft": "Buang draf",
     "discard_draft_confirm": "Buang draf ini dan kembali ke versi tersimpan?",
@@ -832,6 +834,9 @@
     "slug_state": {
       "checking": "Memeriksa…",
       "available": "Tersedia",
+      "invalid-format": "Format tidak valid",
+      "reserved-by-other": "Dipakai pihak lain",
+      "check-failed": "Pemeriksaan gagal",
       "taken": "Sudah digunakan",
       "unavailable": "Tidak dapat memeriksa"
     },

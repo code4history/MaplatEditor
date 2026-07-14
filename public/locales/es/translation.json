@@ -811,6 +811,8 @@
   },
   "editor_ui": {
     "slug_format_help": "Use solo letras, números, guion y guion bajo.",
+    "slug_label": "Slug (ID)",
+    "default_lang_label": "Idioma predeterminado",
     "new_item": "Nuevo",
     "discard_draft": "Descartar borrador",
     "discard_draft_confirm": "¿Descartar este borrador y volver a la versión guardada?",
@@ -832,6 +834,9 @@
     "slug_state": {
       "checking": "Comprobando…",
       "available": "Disponible",
+      "invalid-format": "Formato no válido",
+      "reserved-by-other": "Reservado por otro",
+      "check-failed": "Error de comprobación",
       "taken": "Ya está en uso",
       "unavailable": "No se pudo comprobar"
     },

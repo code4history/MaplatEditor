@@ -137,3 +137,34 @@ assert.match(storage, /create\?:\s*boolean/, "MapSaveRequest must add create fla
 assert.match(storage, /renameFromSlug\?:\s*string/, "MapSaveRequest must add renameFromSlug (D5)");
 
 console.log("m11-t7 smoke Part B: OK");
+
+const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh-TW"];
+
+// --- Part C1: SlugField 契約 ---
+const slugField = await readSrc("src/components/editor-ui/SlugField.vue");
+assert.match(slugField, /assetKind/, "SlugField must accept assetKind prop");
+assert.match(slugField, /assetUid/, "SlugField must accept assetUid prop");
+assert.match(slugField, /draftUid/, "SlugField must accept draftUid prop");
+assert.match(slugField, /originalSlug/, "SlugField must accept originalSlug prop");
+assert.match(slugField, /confirmForSave/, "SlugField must expose confirmForSave");
+assert.match(slugField, /role="status"/, "SlugField must expose accessible status");
+assert.match(slugField, /reserved-by-other/, "SlugField must map reserved-by-other state (§7.1)");
+assert.match(slugField, /editor_ui\.slug_label/, "SlugField must use editor_ui.slug_label");
+
+// --- Part C2: useSlugAvailability の 6 状態写像（D1） ---
+const avail = await readSrc("src/composables/useSlugAvailability.ts");
+assert.match(avail, /invalid-format|invalid_format/, "must expose invalid-format state (D1)");
+assert.match(avail, /reserved-by-other/, "must map taken -> reserved-by-other (D1)");
+assert.match(avail, /check-failed|check_failed/, "must map unavailable -> check-failed (D1)");
+
+// --- Part C3: 新 label キー（11 locale） ---
+for (const loc of LOCALES) {
+  const t = JSON.parse(await readSrc(`public/locales/${loc}/translation.json`));
+  assert.ok(t.editor_ui?.slug_label != null, `editor_ui.slug_label missing in ${loc}`);
+  assert.ok(t.editor_ui?.default_lang_label != null, `editor_ui.default_lang_label missing in ${loc}`);
+}
+const ja = JSON.parse(await readSrc("public/locales/ja/translation.json"));
+assert.equal(ja.editor_ui.slug_label, "スラッグ (ID)"); // §18b 決定2 確定語彙
+assert.equal(ja.editor_ui.default_lang_label, "デフォルト言語");
+
+console.log("m11-t7 smoke Part C: OK");

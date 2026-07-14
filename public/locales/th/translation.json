@@ -811,6 +811,8 @@
   },
   "editor_ui": {
     "slug_format_help": "ใช้ได้เฉพาะตัวอักษร ตัวเลข ยัติภังค์ และขีดล่าง",
+    "slug_label": "สลัก (ID)",
+    "default_lang_label": "ภาษาเริ่มต้น",
     "new_item": "สร้างใหม่",
     "discard_draft": "ละทิ้งฉบับร่าง",
     "discard_draft_confirm": "ละทิ้งฉบับร่างนี้และกลับไปยังเวอร์ชันที่บันทึกไว้หรือไม่",
@@ -832,6 +834,9 @@
     "slug_state": {
       "checking": "กำลังตรวจสอบ…",
       "available": "ใช้ได้",
+      "invalid-format": "รูปแบบไม่ถูกต้อง",
+      "reserved-by-other": "ถูกใช้โดยรายอื่น",
+      "check-failed": "ตรวจสอบไม่สำเร็จ",
       "taken": "ถูกใช้แล้ว",
       "unavailable": "ตรวจสอบไม่ได้"
     },

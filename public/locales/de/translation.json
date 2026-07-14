@@ -811,6 +811,8 @@
   },
   "editor_ui": {
     "slug_format_help": "Nur Buchstaben, Ziffern, Bindestrich und Unterstrich.",
+    "slug_label": "Slug (ID)",
+    "default_lang_label": "Standardsprache",
     "new_item": "Neu",
     "discard_draft": "Entwurf verwerfen",
     "discard_draft_confirm": "Diesen Entwurf verwerfen und zur gespeicherten Version zurückkehren?",
@@ -832,6 +834,9 @@
     "slug_state": {
       "checking": "Wird geprüft…",
       "available": "Verfügbar",
+      "invalid-format": "Ungültiges Format",
+      "reserved-by-other": "Anderweitig reserviert",
+      "check-failed": "Prüfung fehlgeschlagen",
       "taken": "Bereits verwendet",
       "unavailable": "Prüfung nicht möglich"
     },

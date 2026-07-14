@@ -811,6 +811,8 @@
   },
   "editor_ui": {
     "slug_format_help": "Use only letters, numbers, hyphen, and underscore.",
+    "slug_label": "Slug (ID)",
+    "default_lang_label": "Default language",
     "new_item": "New",
     "discard_draft": "Discard draft",
     "discard_draft_confirm": "Discard this draft and return to the saved version?",
@@ -832,6 +834,9 @@
     "slug_state": {
       "checking": "Checking…",
       "available": "Available",
+      "invalid-format": "Invalid format",
+      "reserved-by-other": "Reserved by another",
+      "check-failed": "Check failed",
       "taken": "Already in use",
       "unavailable": "Could not verify"
     },
