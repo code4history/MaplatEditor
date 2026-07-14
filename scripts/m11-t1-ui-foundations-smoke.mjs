@@ -123,12 +123,26 @@ try {
   slug.value = 'second';
   await Promise.resolve();
   await new Promise((resolve) => setTimeout(resolve, 40));
-  pending.get('second').resolve(true);
+  pending.get('second').resolve('available');
   await Promise.resolve();
   assert.equal(availability.state.value, 'available');
-  pending.get('first').resolve(false);
+  pending.get('first').resolve('taken');
   await Promise.resolve();
   assert.equal(availability.state.value, 'available', '古い応答で後着結果を上書きしない');
+
+  slug.value = 'taken-slug';
+  const takenRequest = availability.refresh();
+  await Promise.resolve();
+  pending.get('taken-slug').resolve('taken');
+  await takenRequest;
+  assert.equal(availability.fieldState.value, 'reserved-by-other', 'registry takenをfield競合へ写像する');
+
+  slug.value = 'reserved-slug';
+  const reservedRequest = availability.refresh();
+  await Promise.resolve();
+  pending.get('reserved-slug').resolve('reserved-by-other');
+  await reservedRequest;
+  assert.equal(availability.fieldState.value, 'reserved-by-other', '他者予約をfield競合へ写像する');
 
   slug.value = 'third';
   const thirdRequest = availability.refresh();

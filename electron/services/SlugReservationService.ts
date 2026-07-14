@@ -15,12 +15,18 @@ export type SlugReservationResult =
 
 export type SlugCheckResult = 'available' | 'reserved-by-other' | 'taken';
 
+/** 旧boolean APIの互換写像。三値判定そのものはcheckへ集約する。 */
+export const slugCheckResultIsAvailable = (result: SlugCheckResult): boolean =>
+  result === 'available';
+
 interface Deps {
   db: DatabaseSync;
   instanceId: string;
   now: () => string; // ISO 文字列
   leaseMs?: number;  // 既定 120000 (2分)
   draftExists?: (assetKind: string, draftUid: string | null) => boolean;
+  // asset_registry の所有者。check の三値判定を予約判定と同じ Single Source に集約する。
+  registryOwner?: (slug: string) => string | null;
 }
 
 const LEASE_MS = 120_000;
@@ -30,6 +36,7 @@ export function createSlugReservationService(deps: Deps) {
   const { db, instanceId, now } = deps;
   const leaseMs = deps.leaseMs ?? LEASE_MS;
   const draftExists = deps.draftExists ?? (() => false);
+  const registryOwner = deps.registryOwner ?? (() => null);
   const leaseUntil = (): string => new Date(Date.parse(now()) + leaseMs).toISOString();
   const moveConflict = Symbol('move-conflict');
 
@@ -120,11 +127,15 @@ export function createSlugReservationService(deps: Deps) {
     },
 
     check(p: { slug: string; excludeUid?: string }): SlugCheckResult {
+      // registryを先に判定する。予約表にも異常な重複行がある場合でも、永続資産の
+      // occupied状態を公開契約の taken として優先する（§7.2/D2）。
+      const owner = registryOwner(p.slug);
+      if (owner != null && owner !== p.excludeUid) return 'taken';
       const row = db.prepare(
         'SELECT asset_uid, asset_kind, draft_uid, lease_expires_at FROM slug_reservations WHERE slug = ?'
       ).get(p.slug) as any;
       if (conflictsWithOtherOwner(row, p.excludeUid)) return 'reserved-by-other';
-      return 'available'; // registry 側の taken 判定は呼び出し側(isSlugAvailable 合成)が担う
+      return 'available';
     },
 
     // save 6 経路が withTransaction 内から呼ぶ promote 検証(D12/D13、IPC 非公開)。

@@ -18,7 +18,11 @@ import defaultTmsList from '../tms_list.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
-import { createSlugReservationService, type SlugReservationService } from './SlugReservationService';
+import {
+  createSlugReservationService,
+  slugCheckResultIsAvailable,
+  type SlugReservationService,
+} from './SlugReservationService';
 import { toDraftKind } from './slugReservationKind';
 import AssetDraftService from './AssetDraftService';
 import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
@@ -515,6 +519,10 @@ class SqliteDataService {
       instanceId: this.instanceId,
       now: () => new Date().toISOString(),
       draftExists: (kind, draftUid) => this.slugReservationDraftExists(kind, draftUid),
+      registryOwner: (slug) => {
+        const row = db.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
+        return row == null ? null : String(row.uid);
+      },
     });
     this.runSlugGc();
     // unref(): lease/GC timer は event loop を専有しない。electron 本体は他の
@@ -1131,12 +1139,8 @@ class SqliteDataService {
   }
 
   async isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean> {
-    const db = await this.getDb();
-    const row = db.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
-    const registryOk = !row || (excludeUid != null && String(row.uid) === excludeUid);
-    if (!registryOk) return false;
-    // registry空きでも他者の有効予約があれば不可(reserved-by-other → boolean falseへ写像)
-    return this.slugReservations?.check({ slug, excludeUid }) !== 'reserved-by-other';
+    // 旧boolean契約は公開三値checkの互換wrapper。判定ロジックを重複させない。
+    return slugCheckResultIsAvailable(await this.checkSlugReservation({ slug, excludeUid }));
   }
 
   // --- slug 予約 IPC 薄wrapper(M11-T7/§7.2)。getDbで接続確定後にserviceへ委譲する。

@@ -27,19 +27,22 @@ interface SlugCheckInput {
   excludeUid?: string;
 }
 
+export type SlugCheckResult = 'available' | 'reserved-by-other' | 'taken';
+
 interface UseSlugAvailabilityOptions {
   slug: Readonly<Ref<string>>;
   excludeUid?: Readonly<Ref<string | undefined>>;
   delayMs?: number;
-  check?: (input: SlugCheckInput) => Promise<boolean>;
+  check?: (input: SlugCheckInput) => Promise<SlugCheckResult>;
 }
 
 // slug 可用性(registry AND 予約合成)の単発照会。SlugField 外の候補探索(クローン時の
 // 空き slug 提案等)もこの sanctioned wrapper を経由する(AC17: 生 checkSlug を UI に散らさない)。
 export const checkSlugAvailability = (input: SlugCheckInput): Promise<boolean> =>
-  window.assets.checkSlug(input);
+  window.slugReservations.check(input).then((result) => result === 'available');
 
-const defaultCheck = checkSlugAvailability;
+const defaultCheck = (input: SlugCheckInput): Promise<SlugCheckResult> =>
+  window.slugReservations.check(input);
 
 export function useSlugAvailability(options: UseSlugAvailabilityOptions) {
   const state = ref<SlugAvailabilityState>('idle');
@@ -83,12 +86,12 @@ export function useSlugAvailability(options: UseSlugAvailabilityOptions) {
     const token = ++requestToken;
     state.value = 'checking';
     try {
-      const available = await check({
+      const result = await check({
         slug,
         excludeUid: options.excludeUid?.value,
       });
       if (!disposed && token === requestToken) {
-        state.value = available ? 'available' : 'taken';
+        state.value = result === 'available' ? 'available' : 'taken';
       }
     } catch {
       if (!disposed && token === requestToken) state.value = 'unavailable';

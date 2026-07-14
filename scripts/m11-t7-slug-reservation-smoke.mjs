@@ -4,7 +4,10 @@ import { readFile } from "node:fs/promises";
 
 // SlugReservationService は electron 依存なしの純ロジックにするため、node で直接 import できる。
 // (electron の app/ipcMain には依存させない — 接続と instanceId/now を注入する)
-import { createSlugReservationService } from "../electron/services/SlugReservationService.ts";
+import {
+  createSlugReservationService,
+  slugCheckResultIsAvailable,
+} from "../electron/services/SlugReservationService.ts";
 import { toRegistryKind, toDraftKind } from "../electron/services/slugReservationKind.ts";
 
 const readSrc = (rel) => readFile(new URL(`../${rel}`, import.meta.url), "utf8");
@@ -14,6 +17,11 @@ function makeDb() {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA journal_mode=WAL");
   db.exec(`
+    CREATE TABLE asset_registry (
+      uid TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE
+    );
     CREATE TABLE slug_reservations (
       slug TEXT PRIMARY KEY,
       asset_uid TEXT NOT NULL,
@@ -29,6 +37,44 @@ function makeDb() {
 
 const UID_A = "11111111-1111-4111-8111-111111111111";
 const UID_B = "22222222-2222-4222-8222-222222222222";
+
+// 旧 asset:checkSlug boolean wrapper の戻り値互換（availableのみtrue）。
+assert.equal(slugCheckResultIsAvailable("available"), true);
+assert.equal(slugCheckResultIsAvailable("taken"), false);
+assert.equal(slugCheckResultIsAvailable("reserved-by-other"), false);
+
+// --- Part A0: 公開 check の registry + 予約 Single Source（§7.2/D2/D7） ---
+{
+  const db = makeDb();
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const draftExists = (kind, draftUid) => kind === "map" && draftUid === "protected-draft";
+  const svc = createSlugReservationService({
+    db,
+    instanceId: "inst-A",
+    now,
+    draftExists,
+    registryOwner: (slug) => {
+      const row = db.prepare("SELECT uid FROM asset_registry WHERE slug=?").get(slug);
+      return row == null ? null : String(row.uid);
+    },
+  });
+  db.prepare("INSERT INTO asset_registry(uid, kind, slug) VALUES (?, ?, ?)")
+    .run(UID_A, "map", "registry-slug");
+  assert.equal(svc.check({ slug: "registry-slug" }), "taken", "他uidのregistry行はtaken");
+  assert.equal(svc.check({ slug: "registry-slug", excludeUid: UID_A }), "available", "自uidのregistry行は除外");
+
+  assert.equal(svc.reserve({ slug: "reserved", assetUid: UID_B, assetKind: "app", draftUid: "d-B" }).result, "ok");
+  assert.equal(svc.check({ slug: "reserved", excludeUid: UID_A }), "reserved-by-other", "他owner予約はreserved");
+  assert.equal(svc.check({ slug: "reserved", excludeUid: UID_B }), "available", "自owner予約は除外");
+  assert.equal(svc.check({ slug: "fresh", excludeUid: UID_A }), "available", "空きslugはavailable");
+
+  assert.equal(svc.reserve({ slug: "expired-protected-check", assetUid: UID_B, assetKind: "map", draftUid: "protected-draft" }).result, "ok");
+  db.prepare("UPDATE slug_reservations SET lease_expires_at=? WHERE slug=?")
+    .run("2026-07-14T00:00:00Z", "expired-protected-check");
+  assert.equal(svc.check({ slug: "expired-protected-check", excludeUid: UID_A }), "reserved-by-other",
+    "expiredでもdraftが残る他owner予約は保護する");
+  db.close();
+}
 
 // --- Part A1: kind 写像（§7.3） ---
 assert.equal(toRegistryKind("poi-source"), "poi_source");
@@ -317,6 +363,8 @@ assert.match(preload, /exposeInMainWorld\(['"]slugReservations['"]/, "preload mu
 assert.doesNotMatch(preload, /slugReservations[\s\S]*?ipcRenderer\b(?![.]invoke|[.]on|[.]removeListener)/, "no raw ipcRenderer leak");
 
 const sqlite = await readSrc("electron/services/SqliteDataService.ts");
+assert.match(sqlite, /isSlugAvailable[\s\S]{0,400}checkSlugReservation/,
+  "legacy boolean API must delegate to the unified tri-state check");
 assert.doesNotMatch(sqlite, /private slugReservationDraftExists[\s\S]{0,400}?\bcatch\b/,
   "SqliteDataService must propagate draft lookup/kind conversion failures");
 // promote 検証が withTransaction 内(6 helper)へ差し込まれている
@@ -374,6 +422,24 @@ const avail = await readSrc("src/composables/useSlugAvailability.ts");
 assert.match(avail, /invalid-format|invalid_format/, "must expose invalid-format state (D1)");
 assert.match(avail, /reserved-by-other/, "must map taken -> reserved-by-other (D1)");
 assert.match(avail, /check-failed|check_failed/, "must map unavailable -> check-failed (D1)");
+assert.match(avail, /window\.slugReservations\.check/, "Slug UI composable must use the new tri-state API");
+assert.doesNotMatch(avail, /window\.assets\.checkSlug/, "Slug UI composable must not depend on the legacy API (AC17)");
+
+// AC17は5 Edit直書きだけでなく、共通SlugField→composableの依存グラフまで監査する。
+assert.match(slugField, /useSlugAvailability/, "SlugField must depend on the sanctioned availability composable");
+for (const rel of [
+  "src/components/editor-ui/SlugField.vue",
+  "src/composables/useSlugAvailability.ts",
+  "src/views/MapEdit.vue",
+  "src/views/AppEdit.vue",
+  "src/views/PoiEdit.vue",
+  "src/views/PoiSourceList.vue",
+  "src/components/basemap/BaseMapEdit.vue",
+  "src/components/assets/AssetEdit.vue",
+]) {
+  const src = await readSrc(rel);
+  assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must not use legacy checkSlug in the slug UI graph (AC17)`);
+}
 
 // --- Part C3: 新 label キー（11 locale） ---
 for (const loc of LOCALES) {
