@@ -74,6 +74,10 @@ assert.match(headerVue, /var\(--editor-ui-header-fg\)/, "Header must use header-
 assert.match(headerVue, /navigate\('MapList'\)/);
 assert.match(headerVue, /router\.push\('\/basemaps'\)/);
 assert.match(headerVue, /currentRoute\.value === 'MapEdit'/, "sticky logic must remain");
+// F1: アプリ nav は Map/POI と同型の section 判定（AppList + AppEdit）で active になる
+assert.match(headerVue, /isAppSection/, "Header must define isAppSection for F1");
+assert.match(headerVue, /currentRoute\.value === 'AppList' \|\| currentRoute\.value === 'AppEdit'/, "isAppSection must cover AppList + AppEdit");
+assert.match(headerVue, /:class="\{ active: isAppSection \}"/, "app nav-link must bind active to isAppSection");
 // .main-content offset が token
 assert.match(appVue, /\.main-content\s*\{[^}]*var\(--editor-ui-header-height\)/s, "main-content must use header-height token");
 
@@ -150,9 +154,19 @@ assert.match(diag, /var\(--editor-ui-diag-summary-padding\)/);
 
 const help = await read("src/components/editor-ui/ContextHelp.vue");
 assert.match(help, /bi-question-circle/);
-assert.match(help, /Tooltip/); assert.match(help, /Popover/);
+// v3: Tooltip/Popover の 2 mode を廃止し、Popover を trigger 'hover focus' で単一化する
+assert.doesNotMatch(help, /\bTooltip\b/, "ContextHelp v3 must not use Tooltip");
+assert.doesNotMatch(help, /mode\s*[:?]/, "ContextHelp v3 must not declare a mode prop");
+assert.doesNotMatch(help, /Escape/, "ContextHelp v3 must not have an Escape handler");
+assert.doesNotMatch(help, /onOutsideClick|outsideClick/, "ContextHelp v3 must not have an outside-click handler");
+assert.match(help, /new Popover\(/, "ContextHelp v3 must wrap Bootstrap Popover");
+assert.match(help, /trigger:\s*["']hover focus["']/, "ContextHelp v3 Popover must use trigger 'hover focus'");
+assert.match(help, /customClass:\s*["']editor-ui-help-popover["']/, "ContextHelp v3 must set customClass editor-ui-help-popover");
 assert.match(help, /dispose\(\)/, "ContextHelp must dispose on unmount");
-assert.match(help, /Escape/, "ContextHelp popover must close on Escape");
+// token 準拠カードの見た目は tokens ファイルへ非 scoped で定義する
+assert.match(tokens, /\.editor-ui-help-popover/, "tokens must define .editor-ui-help-popover card");
+assert.match(tokens, /\.editor-ui-help-popover[^{]*\{[^}]*var\(--editor-ui-radius\)/s, "help popover card must use --editor-ui-radius");
+assert.match(tokens, /\.editor-ui-help-popover[\s\S]*var\(--editor-ui-font-size-sm\)/, "help popover card must use --editor-ui-font-size-sm");
 
 // primitive 用新キー（全 locale）
 for (const loc of LOCALES) {
@@ -162,7 +176,7 @@ for (const loc of LOCALES) {
 
 console.log("m11-t5 smoke Part 6: OK");
 
-// --- Part 7: S7 pilot 統合 ---
+// --- Part 7: S7 pilot 統合 + F2〜F7 ---
 for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/assets/AssetEdit.vue"]) {
   const src = await read(rel);
   assert.match(src, /EditorField/, `${rel} must use EditorField`);
@@ -170,10 +184,45 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
   assert.match(src, /ContextHelp/, `${rel} must use ContextHelp`);
   assert.match(src, /editor-ui-mono/, `${rel} slug input must use editor-ui-mono`);
   assert.match(src, /scope="operation"/, `${rel} save error must be operation-scope diagnostic`);
+  // F3: 黄色バナー撤去 → section scope summary へ置換（全項目即時 = dirty ゲートなし）
+  assert.match(src, /scope="section"/, `${rel} validation summary must be section-scope diagnostic`);
+  assert.doesNotMatch(src, /alert alert-warning[^"]*"\s*>\s*<ul/, `${rel} must not keep the yellow validation banner`);
+  assert.match(src, /sectionDiagnostics/, `${rel} must expose sectionDiagnostics`);
+  // F2: field 診断がある入力へ is-invalid（赤枠）を連動付与
+  assert.match(src, /'is-invalid':\s*slugDiagnostics\.length/, `${rel} slug input must bind is-invalid to slugDiagnostics`);
+  assert.match(src, /titleDiagnostics/, `${rel} must wire title field diagnostics`);
+  assert.match(src, /:invalid="titleDiagnostics\.length > 0"/, `${rel} title input must bind is-invalid via LangResourceInput invalid`);
+  // F6: ContextHelp から mode 指定を除去
+  assert.doesNotMatch(src, /mode="tooltip"|mode="popover"/, `${rel} must not pass mode to ContextHelp (v3)`);
+  // F7: master-detail ホストから back を非表示にできるよう backVisible を受け取り転送する
+  assert.match(src, /backVisible/, `${rel} must accept backVisible prop`);
+  assert.match(src, /:back-visible="backVisible"/, `${rel} must forward backVisible to EditorActionHeader`);
+  // F5: 新規 draft でも「下書きを破棄」を表示（isNew && dirty）
+  assert.match(src, /isNew && dirty/, `${rel} discard-draft must be visible for new drafts (F5)`);
+  // F8: dirty 変化を親へ通知する draft-state イベント
+  assert.match(src, /"draft-state"/, `${rel} must emit draft-state for live badge (F8)`);
 }
-// BaseMapEdit の 存在範囲 label へ Popover（設計 v2追補）
+// BaseMap は URL / zoom も field 診断 + is-invalid（F3 全項目）
 const baseMapEdit = await read("src/components/basemap/BaseMapEdit.vue");
-assert.match(baseMapEdit, /mode="popover"/, "BaseMapEdit coverage must use ContextHelp popover");
+assert.match(baseMapEdit, /'is-invalid':\s*urlDiagnostics\.length/, "BaseMapEdit url must bind is-invalid");
+assert.match(baseMapEdit, /minZoomDiagnostics/, "BaseMapEdit min zoom must have field diagnostics");
+assert.match(baseMapEdit, /maxZoomDiagnostics/, "BaseMapEdit max zoom must have field diagnostics");
+// BaseMapEdit の 存在範囲 help は v3 で title 付き（mode なし）
+assert.match(baseMapEdit, /basemap\.coverage_help/, "BaseMapEdit coverage must use ContextHelp with coverage_help");
+// EditorActionHeader は backVisible prop（後方互換 default true）を持つ
+const actionHeaderSrc = await read("src/components/editor-ui/EditorActionHeader.vue");
+assert.match(actionHeaderSrc, /backVisible\?:\s*boolean/, "EditorActionHeader must add optional backVisible prop");
+assert.match(actionHeaderSrc, /backVisible:\s*true/, "EditorActionHeader backVisible must default to true");
+assert.match(actionHeaderSrc, /v-if="backVisible"/, "EditorActionHeader back button must gate on backVisible");
+// F7: master-detail ホストが back を非表示にする
+for (const rel of ["src/views/BaseMapList.vue", "src/views/AssetList.vue"]) {
+  const src = await read(rel);
+  assert.match(src, /:back-visible="false"/, `${rel} must hide back button in master-detail (F7)`);
+  // F8: live draft override を効かせる
+  assert.match(src, /@draft-state="onDraftState"/, `${rel} must handle draft-state (F8)`);
+  assert.match(src, /effectiveDraftUids/, `${rel} must expose effectiveDraftUids override (F8)`);
+  assert.match(src, /:draft-uids="effectiveDraftUids"/, `${rel} master list must use effectiveDraftUids (F8)`);
+}
 // basemap.coverage_help を 11 locale へ追加
 for (const loc of LOCALES) {
   const t = translations[loc] ?? JSON.parse(await read(`public/locales/${loc}/translation.json`));
