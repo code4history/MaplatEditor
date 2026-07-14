@@ -1,5 +1,5 @@
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { mkdtemp } from 'node:fs/promises';
+import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -22,9 +22,22 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   return { app, page };
 }
 
+// m11-t4 と同じ dialog stub 先例を踏襲（Electron main の dialog を差し替える）。
+async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
+  await app.evaluate(async ({ dialog }, selectedImage) => {
+    dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
+    dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+  }, imagePath);
+}
+
 async function openHash(page: Page, hash: string, ready: string): Promise<void> {
   await page.evaluate((nextHash) => { location.hash = nextHash; }, hash);
   await expect(page.locator(ready)).toBeVisible();
+}
+
+async function fillAndCommit(locator: ReturnType<Page['getByTestId']>, value: string): Promise<void> {
+  await locator.fill(value);
+  await locator.press('Tab');
 }
 
 // エディタ UI 言語を ja へ確定させる。settings.set → /settings 訪問で
@@ -35,7 +48,6 @@ async function forceJapanese(page: Page): Promise<void> {
   await expect(page.locator('#langSwitcher')).toHaveValue('ja');
 }
 
-// m11-t3 の seed helper を再掲（isolated service 経由でエンティティ作成）
 async function seedApp(page: Page): Promise<string> {
   return page.evaluate(async () => {
     const slug = `m11-t5-app-${Date.now()}`;
@@ -106,12 +118,28 @@ test('shell font, header vocabulary, and header offset use tokens', async () => 
   }
 });
 
-test('pilot editors show token diagnostics, mono slug, and context help', async () => {
+test('F1: application-management nav stays active on both AppList and AppEdit', async () => {
   test.setTimeout(120_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t5-'));
   const { app, page } = await launch(e2eRoot);
   try {
-    // 新規エディタは list の「新規追加」ボタン経由で開く（uid が randomUUID で採番され ?uid=..&new=1 になる）
+    await forceJapanese(page);
+    const appUid = await seedApp(page);
+    await openHash(page, '#/applist', '.main-content');
+    await expect(page.locator('.navbar-nav .nav-link.active', { hasText: 'アプリ管理' })).toBeVisible();
+    // AppEdit へ遷移しても section 判定（AppList + AppEdit）で active を維持する
+    await openHash(page, `#/appedit?uid=${appUid}`, '[data-testid="app-id"]');
+    await expect(page.locator('.navbar-nav .nav-link.active', { hasText: 'アプリ管理' })).toBeVisible();
+  } finally {
+    await app.close();
+  }
+});
+
+test('base map pilot: unified help, field diagnostics, immediate summary, and no master-detail back button', async () => {
+  test.setTimeout(120_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t5-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
     await expect(page.locator('[data-testid="basemap-editor"]')).toBeVisible();
@@ -120,30 +148,110 @@ test('pilot editors show token diagnostics, mono slug, and context help', async 
     const slugFont = await page.getByTestId('basemap-slug').evaluate((el) => getComputedStyle(el).fontFamily.toLowerCase());
     expect(slugFont).toMatch(/mono|menlo|consolas|courier|sfmono|liberation/);
 
-    // AC10: ContextHelp tooltip（slug）が focus と hover で開く
-    const help = page.locator('[data-editor-help]').first();
-    await help.focus();
-    await expect(page.locator('.tooltip')).toBeVisible();
-    await page.getByTestId('basemap-slug').focus(); // blur
-    await expect(page.locator('.tooltip')).toHaveCount(0);
-    await help.hover();
-    await expect(page.locator('.tooltip')).toBeVisible();
+    // F7: master-detail のヘッダーに「< 一覧へ」back ボタンが無い
+    await expect(page.getByTestId('editor-back')).toHaveCount(0);
 
-    // AC11 / AC9: slug を不正化 → field 診断（danger）が出る
+    // AC10 / F6: slug help（title なし）が focus と hover の双方で同じ editor-ui-help-popover カードを開く
+    const slugHelp = page.locator('[data-editor-help]').first();
+    await slugHelp.focus();
+    await expect(page.locator('.editor-ui-help-popover')).toBeVisible();
+    await page.getByTestId('basemap-slug').focus(); // blur で閉じる
+    await expect(page.locator('.editor-ui-help-popover')).toHaveCount(0);
+    await slugHelp.hover();
+    await expect(page.locator('.editor-ui-help-popover')).toBeVisible();
+    await page.mouse.move(5, 5); // hover 離脱で閉じる
+    await expect(page.locator('.editor-ui-help-popover')).toHaveCount(0);
+
+    // AC10 / F6: coverage help（title 付き）も同じカード・同じ挙動
+    const coverageHelp = page.locator('[data-editor-help]').last();
+    await coverageHelp.focus();
+    await expect(page.locator('.editor-ui-help-popover')).toBeVisible();
+
+    // F3: 新規 draft で必須未入力の section summary が即時表示される（dirty ゲートなし）
+    await expect(page.getByTestId('basemap-validation-summary')).toBeVisible();
+
+    // F2 / F3: 不正 slug → is-invalid 赤枠 + field 診断 + section summary
     await page.getByTestId('basemap-slug').fill('bad slug!');
     await page.getByTestId('basemap-slug').press('Tab');
-    await expect(page.locator('[data-diagnostic-scope="field"]')).toBeVisible();
+    await expect(page.getByTestId('basemap-slug')).toHaveClass(/is-invalid/);
+    await expect(page.locator('[data-diagnostic-scope="field"]').first()).toBeVisible();
+    await expect(page.getByTestId('basemap-validation-summary')).toBeVisible();
+  } finally {
+    await app.close();
+  }
+});
 
-    // AC10: 存在範囲(coverage) の ContextHelp popover が click で開き、Escape/外側 click で閉じる
-    const pop = page.locator('[data-editor-help]').last();
-    await pop.click();
-    await expect(page.locator('.popover')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.locator('.popover')).toHaveCount(0);
-    await pop.click();
-    await expect(page.locator('.popover')).toBeVisible();
-    await page.mouse.click(5, 5); // 外側 click
-    await expect(page.locator('.popover')).toHaveCount(0);
+test('base map: new-draft discard removes list row and duplicate-id operation diagnostic clears on undo', async () => {
+  test.setTimeout(120_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t5-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    await installDialogHarness(app, path.join(e2eRoot, 'unused.png'));
+    await forceJapanese(page);
+
+    // F5: 新規 draft をヘッダーから破棄すると、左 List の下書き行が消える
+    await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
+    await page.getByTestId('basemap-new').click();
+    await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-discard-basemap');
+    await fillAndCommit(page.getByTestId('basemap-title'), '破棄予定');
+    await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+    await page.reload(); // beforeunload flushSync で draft を永続化する
+    await expect(page.locator('[data-master-detail="base-map"]')).toBeVisible();
+    const draftRow = page.getByRole('button', { name: /新規ベースマップ/ });
+    await expect(draftRow).toBeVisible();
+    await expect(page.getByTestId('editor-discard-draft')).toBeVisible();
+    await page.getByTestId('editor-discard-draft').click();
+    await expect(draftRow).toHaveCount(0);
+
+    // F4: ID 重複の operation 診断が Undo（文書変更）で消える
+    await page.getByTestId('basemap-new').click();
+    await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
+    await fillAndCommit(page.getByTestId('basemap-title'), '重複元');
+    await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+    await page.getByTestId('editor-save').click();
+    await expect(page).not.toHaveURL(/new=1/);
+
+    await page.getByTestId('basemap-new').click();
+    await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
+    await fillAndCommit(page.getByTestId('basemap-title'), '重複先');
+    await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+    await page.getByTestId('editor-save').click();
+    await expect(page.locator('[data-diagnostic-scope="operation"]')).toBeVisible();
+    await page.getByTestId('editor-undo').click();
+    await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});
+
+test('F8: editing an asset shows the draft badge live and undo removes it immediately', async () => {
+  test.setTimeout(120_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t5-'));
+  const imagePath = path.join(e2eRoot, 'e2e-input.png');
+  await copyFile(path.join(projectRoot, 'src/assets/img/no_image.png'), imagePath);
+  const { app, page } = await launch(e2eRoot);
+  try {
+    await installDialogHarness(app, imagePath);
+    await forceJapanese(page);
+
+    // 既存アセットを 1 件作る
+    await openHash(page, '#/assets', '[data-master-detail="image-asset"]');
+    await page.getByTestId('asset-new').click();
+    await page.getByTestId('asset-pick-file').click();
+    await fillAndCommit(page.getByTestId('asset-slug'), 'e2e-f8-asset');
+    await fillAndCommit(page.getByTestId('asset-title'), 'F8画像');
+    await page.getByTestId('editor-save').click();
+    await expect(page).not.toHaveURL(/new=1/);
+    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
+
+    // 編集で dirty → 一覧の下書きバッジが即時に付く（一覧の再訪問なし）
+    await fillAndCommit(page.getByTestId('asset-title'), 'F8画像編集');
+    await expect(page.getByTestId('asset-draft-badge')).toBeVisible();
+
+    // Undo で checkpoint clean に戻すと下書きバッジが即時に消える
+    await page.getByTestId('editor-undo').click();
+    await expect(page.getByTestId('asset-title')).toHaveValue('F8画像');
+    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
   } finally {
     await app.close();
   }

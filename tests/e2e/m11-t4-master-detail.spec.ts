@@ -80,7 +80,8 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await expect(page).toHaveURL(/page=3/);
 
     await fillAndCommit(page.getByTestId('basemap-title'), '下書きタイトル');
-    await page.getByTestId('editor-back').click();
+    // T5-F7: master-detail から「一覧へ」back ボタンを撤去したため戻る操作は不要。
+    // 左 List は常時表示で、T5-F8 により下書きバッジは編集で即時に付く。
     await expect(page.getByTestId('basemap-draft-badge')).toBeVisible();
     await page.getByTestId('basemap-row-e2e-user-basemap').click();
     await page.reload();
@@ -93,7 +94,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await page.getByTestId('editor-undo').click();
     await expect(page.getByTestId('basemap-title')).toHaveValue('テストベースマップ');
     await expect(page.getByTestId('editor-redo')).toBeEnabled();
-    await page.getByTestId('editor-back').click();
+    // T5-F8: Undo で checkpoint clean に戻ると下書きバッジが即時に消える（back 操作なし）。
     await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(0);
 
     await page.getByTestId('basemap-search').fill('');
@@ -157,7 +158,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await expect(page).toHaveURL(/page=2/);
 
     await fillAndCommit(page.getByTestId('asset-title'), '下書き画像');
-    await page.getByTestId('editor-back').click();
+    // T5-F7/F8: back ボタン撤去。編集で下書きバッジが即時に付く（left List 常時表示）。
     await expect(page.getByTestId('asset-draft-badge')).toBeVisible();
     await page.getByTestId('asset-row-e2e-image-asset').click();
     await page.reload();
@@ -165,7 +166,6 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await page.getByTestId('editor-discard-draft').click();
     await expect(page.getByTestId('asset-title')).toHaveValue('テスト画像');
 
-    await page.getByTestId('editor-back').click();
     await page.getByTestId('asset-new').click();
     await page.getByTestId('asset-pick-file').click();
     await fillAndCommit(page.getByTestId('asset-title'), '再選択テスト');
