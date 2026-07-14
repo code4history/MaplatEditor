@@ -188,3 +188,40 @@ assert.match(menu, /emit\(["']select["']/, "must emit select with action key");
 // focus restore（trigger へ戻す）
 assert.match(menu, /focus\(\)/, "must restore focus to trigger");
 console.log("m11-t6 smoke Part 3: OK");
+
+// --- Part 4: 表示 primitives 契約 ---
+const toolbar = await read("src/components/resource-list/ResourceListToolbar.vue");
+assert.match(toolbar, /bi-plus-lg/, "toolbar primary must use plus icon");
+assert.match(toolbar, /resource_list\.new_item/, "toolbar primary must use resource_list.new_item");
+assert.match(toolbar, /name="secondary"/, "toolbar must expose secondary slot (Import)");
+assert.match(toolbar, /name="range"/, "toolbar must expose range slot");
+assert.match(toolbar, /resource_list\.search_placeholder/, "toolbar search must use unified placeholder");
+// pager 廃止: prev/next ボタンや < > を持たない
+assert.doesNotMatch(toolbar, /&lt;|&gt;|prevPage|nextPage/, "toolbar must not contain pager");
+
+const status = await read("src/components/resource-list/ResourceResultStatus.vue");
+for (const key of ["total_loaded", "loaded_only", "loading", "empty", "end", "load_error", "append_error", "retry"]) {
+  assert.match(status, new RegExp(`resource_list\\.${key}`), `ResultStatus must render resource_list.${key}`);
+}
+
+const shell = await read("src/components/resource-list/ResourceListShell.vue");
+assert.match(shell, /IntersectionObserver/, "Shell must use IntersectionObserver sentinel");
+assert.match(shell, /resource-list__sentinel/, "Shell must render sentinel");
+assert.doesNotMatch(shell, /prevPage|nextPage/, "Shell must not have pager");
+
+const card = await read("src/components/resource-list/ResourceGridCard.vue");
+const row = await read("src/components/resource-list/ResourceMasterRow.vue");
+for (const [name, src] of [["GridCard", card], ["MasterRow", row]]) {
+  assert.match(src, /ResourceActionMenu/, `${name} must host ResourceActionMenu`);
+  assert.match(src, /resource-item__title/, `${name} must render title layer`);
+  assert.match(src, /resource-item__slug/, `${name} must render Slug layer`);
+  assert.match(src, /contextmenu/, `${name} must wire right-click to the menu`);
+  // primitive は domain service を直接呼ばない（window.* 不使用）
+  assert.doesNotMatch(src, /window\.\w+/, `${name} must not call domain services directly`);
+}
+// primitive 全体で window.* を呼ばない（AC1）
+for (const rel of ["ResourceListShell.vue", "ResourceListToolbar.vue", "ResourceResultStatus.vue", "ResourceGridCard.vue", "ResourceMasterRow.vue", "ResourceActionMenu.vue"]) {
+  const src = await read(`src/components/resource-list/${rel}`);
+  assert.doesNotMatch(src, /window\.(maplist|applist|poiSources|baseMaps|imageAssets|assetDrafts)/, `${rel} must not import domain service`);
+}
+console.log("m11-t6 smoke Part 4: OK");
