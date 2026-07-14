@@ -14,6 +14,7 @@ import fs from 'fs-extra';
 import { Jimp } from 'jimp';
 import SqliteDataService, { RevisionConflictError, AssetNotFoundError, type AssetRecord } from './SqliteDataService';
 import SettingsService from './SettingsService';
+import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { normalizeLangResource, type LangResource } from '../../src/utils/langResource';
 
 // jimp が mime を返さない場合の拡張子フォールバック(通常は各デコーダが mime を設定する)
@@ -150,10 +151,16 @@ export class ImageAssetService {
   // --- Public API ---
 
   // sourcePath のバイトを {saveFolder}/assets/{uid}.{ext} へコピーし、メタデータを新規登録する
-  async add(input: { slug: string; title: LangResource; lang?: string; sourceName?: string; sourcePath: string }): Promise<ImageAssetSaveResult> {
+  async add(input: { slug: string; title: LangResource; lang?: string; sourceName?: string; sourcePath: string; uid?: string }): Promise<ImageAssetSaveResult> {
     const slug = String(input.slug ?? '').trim();
     if (!slug) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
-    if (!(await SqliteDataService.isSlugAvailable(slug))) return { result: 'Exist' };
+    // preset uid (D11改/M11-T7): renderer 事前採番 uid。slug 予約の帰属(asset_uid)と行 uid を
+    // 一致させ promote を成立させる。UUID 形状のみ受理(registry 汚染防止)
+    const presetUid = input.uid != null ? String(input.uid) : undefined;
+    if (presetUid != null && !UUID_PATTERN.test(presetUid)) {
+      return { result: 'Error', code: 'invalid-request', message: 'uid must be a UUID' };
+    }
+    if (!(await SqliteDataService.isSlugAvailable(slug, presetUid))) return { result: 'Exist' };
 
     const sourcePath = String(input.sourcePath ?? '');
     if (!sourcePath) return { result: 'Error', code: 'invalid-request', message: 'sourcePath is required' };
@@ -203,7 +210,7 @@ export class ImageAssetService {
         width: meta.width,
         height: meta.height,
         byteSize: bytes.length,
-      });
+      }, presetUid);
       uid = created.uid;
     } catch (e: any) {
       return this.mapWriteError(e);

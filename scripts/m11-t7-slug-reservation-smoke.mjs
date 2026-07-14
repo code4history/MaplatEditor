@@ -138,6 +138,28 @@ assert.match(storage, /renameFromSlug\?:\s*string/, "MapSaveRequest must add ren
 
 console.log("m11-t7 smoke Part B: OK");
 
+// --- Part B3: 専用 create endpoint の preset uid 転送（フェーズA補完、D11改/AC6） ---
+// SlugField は renderer 事前採番 uid で予約する(帰属=asset_uid)。POI/画像アセット/ベースマップの
+// 新規保存が同じ uid で行を作らないと promoteWithin が conflict になるため、3経路とも
+// preset uid を service 層まで転送していることを source 契約で固定する。
+const poiSvcSrc = await readSrc("electron/services/PoiSourceService.ts");
+assert.match(poiSvcSrc, /createLocal\(input: \{[^}]*uid\?: string/s,
+  "PoiSourceService.createLocal must accept preset uid (D11)");
+assert.match(poiSvcSrc, /createPoiSource\(trimmed, \{[\s\S]*?\},\s*presetUid\)/,
+  "PoiSourceService.createSource must forward preset uid to createPoiSource");
+const imgSvcSrc = await readSrc("electron/services/ImageAssetService.ts");
+assert.match(imgSvcSrc, /async add\(input: \{[^}]*uid\?: string/s,
+  "ImageAssetService.add must accept preset uid (D11)");
+assert.match(imgSvcSrc, /createAsset\(slug, \{[\s\S]*?\},\s*presetUid\)/,
+  "ImageAssetService.add must forward preset uid to createAsset");
+// saveUserBaseMap: create===true で payload.uid を preset 採用(§7.2b)。
+// 既存の uid 有無 dispatch(update 経路の NotFound throw=復活防止)は不変。
+assert.match(sqlite, /BaseMapSavePayload \{[\s\S]{0,400}?create\?:\s*boolean/,
+  "BaseMapSavePayload must add create flag (§7.2b)");
+assert.match(sqlite, /payload[?]?\.create === true/,
+  "saveUserBaseMap must dispatch preset uid on create flag");
+console.log("m11-t7 smoke Part B3: OK");
+
 const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh-TW"];
 
 // --- Part C1: SlugField 契約 ---

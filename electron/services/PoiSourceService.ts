@@ -33,6 +33,7 @@ import {
 } from '../../src/utils/poiGeoJson';
 import type { PoiZipImport } from './PoiPackageService';
 import SettingsService from './SettingsService';
+import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
 // POI editor の default 言語 (ADR-0005 既定、poiGeoJson.ts と一致)
 const DEFAULT_LANG = 'ja';
@@ -204,10 +205,16 @@ export class PoiSourceService {
     fc: PoiEditorFC,
     issues: PoiValidationIssue[],
     url?: string,
+    presetUid?: string,
   ): Promise<PoiSourceSaveResult> {
     const trimmed = String(slug ?? '').trim();
     if (!trimmed) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
-    if (!(await SqliteDataService.isSlugAvailable(trimmed))) return { result: 'Exist' };
+    // preset uid (D11改/M11-T7): renderer 事前採番 uid。slug 予約の帰属(asset_uid)と行 uid を
+    // 一致させ promote を成立させる。UUID 形状のみ受理(registry 汚染防止)
+    if (presetUid != null && !UUID_PATTERN.test(presetUid)) {
+      return { result: 'Error', code: 'invalid-request', message: 'uid must be a UUID' };
+    }
+    if (!(await SqliteDataService.isSlugAvailable(trimmed, presetUid))) return { result: 'Exist' };
     try {
       const { uid } = await SqliteDataService.createPoiSource(trimmed, {
         title: this.titleInternal(title, fc.lang),
@@ -215,7 +222,7 @@ export class PoiSourceService {
         url,
         dataJson: JSON.stringify(fc),
         featureCount: fc.features.length,
-      });
+      }, presetUid);
       return { result: 'Success', uid, slug: trimmed, revision: 1, issues };
     } catch (e: any) {
       return this.mapWriteError(e);
@@ -371,13 +378,13 @@ export class PoiSourceService {
     }
   }
 
-  async createLocal(input: { slug: string; title: LangResource; lang?: string }): Promise<PoiSourceSaveResult> {
+  async createLocal(input: { slug: string; title: LangResource; lang?: string; uid?: string }): Promise<PoiSourceSaveResult> {
     const empty: PoiEditorFC = {
       type: 'FeatureCollection',
       lang: resolvePoiSourceLanguage(input.lang, SettingsService.get('lang')),
       features: [],
     };
-    return await this.createSource(input.slug, input.title, 'local', empty, []);
+    return await this.createSource(input.slug, input.title, 'local', empty, [], undefined, input.uid);
   }
 
   // 保存はuid正準。検証エラー (level='error') があれば拒否し issues を返す (POI-104 ほか)。

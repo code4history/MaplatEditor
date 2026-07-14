@@ -142,12 +142,16 @@ const BASE_MAP_ICON_MIGRATION_ID = '2026-07-09-base-map-icon-uid-paths';
 const BASE_MAP_LANGUAGE_MIGRATION_ID = '2026-07-14-m11-t4-basemap-language';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
-// uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる
+// uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
+// create=true (§7.2b/D11改) は新規作成の明示合図: uid を事前採番 preset として採用する
+// (slug 予約の帰属 asset_uid と行 uid を一致させ promote を成立させる)。
+// create なし/false の uid 有無 dispatch は従来どおり(update 経路の NotFound throw=復活防止不変)
 export interface BaseMapSavePayload {
   uid?: string;
   slug: string;
   tms: any;
   expectedRevision?: number;
+  create?: boolean;
 }
 
 // POI ソース (ADR-0007): FeatureCollection の blob(editor内部形: _maplatUid 入り)を data_json に持つ。
@@ -1925,7 +1929,10 @@ class SqliteDataService {
     const tms = payload?.tms ?? {};
     const db = await this.getDb();
 
-    if (payload?.uid != null && String(payload.uid).trim() !== '') {
+    // create=true は新規作成の明示合図(§7.2b): uid を preset として新規経路へ回す。
+    // create なし/false は従来の uid 有無 dispatch(update 経路の NotFound throw 不変)
+    const requestedCreate = payload?.create === true;
+    if (!requestedCreate && payload?.uid != null && String(payload.uid).trim() !== '') {
       const uid = String(payload.uid);
       // 現在値の読み取りも同一トランザクション内で行う(BEGIN IMMEDIATEで書き込みロックを
       // 先頭取得するため、並走する書き込みと交錯して返却revisionがずれることがない)
@@ -1953,7 +1960,12 @@ class SqliteDataService {
       .prepare(`SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order FROM base_maps WHERE scope = 'user'`)
       .get() as any;
     const sortOrder = Number(next.next_order);
-    const uid = generateUid();
+    // preset uid (D11改): create=true で uid 指定があれば事前採番 uid を採用(UUID 形状のみ)
+    const presetUid = requestedCreate && payload?.uid != null && String(payload.uid).trim() !== ''
+      ? String(payload.uid)
+      : undefined;
+    if (presetUid != null && !UUID_PATTERN.test(presetUid)) throw new Error('uid must be a UUID');
+    const uid = presetUid ?? generateUid();
     const data: any = { ...tms, mapID: slug };
     this.withTransaction(db, () => {
       this.promoteSlugWithin(db, slug, uid); // AC4

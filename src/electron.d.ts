@@ -160,7 +160,8 @@ export interface PoiSourceReference {
 export interface PoiSourcesAPI {
     list(request: { query: string; page: number; pageSize: number }): Promise<PoiSourceListResult>;
     get(uid: string): Promise<PoiSourceDetailResult | null>;
-    createLocal(input: { slug: string; title: any; lang?: string }): Promise<PoiSourceSaveResult>;
+    // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
+    createLocal(input: { slug: string; title: any; lang?: string; uid?: string }): Promise<PoiSourceSaveResult>;
     save(uid: string, payload: { slug: string; title: any; fc: any; expectedRevision?: number }): Promise<PoiSourceSaveResult>;
     importFile(input: { slug: string; title: any; filePath: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult>;
     detectImportLanguage(filePath: string, fallbackLang?: string): Promise<string>;
@@ -212,7 +213,8 @@ export interface ImageAssetReferencesResult {
 }
 
 export interface ImageAssetsAPI {
-    add(input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string }): Promise<ImageAssetSaveResult>;
+    // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
+    add(input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string; uid?: string }): Promise<ImageAssetSaveResult>;
     list(): Promise<ImageAssetRow[]>;
     search(query: string): Promise<ImageAssetRow[]>;
     get(ref: string): Promise<ImageAssetRow | null>;
@@ -236,12 +238,14 @@ export interface AppAssetsAPI {
     fileUrl(relPath: string): Promise<string | null>;
 }
 
-// uid正準のベースマップ保存要求 (ADR-0007)。uid無指定は新規作成
+// uid正準のベースマップ保存要求 (ADR-0007)。uid無指定は新規作成。
+// create=true (§7.2b/D11改) は新規作成の明示合図(uid=事前採番preset)
 export interface BaseMapSavePayload {
     uid?: string;
     slug: string;
     tms: any;
     expectedRevision?: number;
+    create?: boolean;
 }
 
 export type BaseMapSaveResult =

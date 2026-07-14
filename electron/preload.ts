@@ -141,8 +141,9 @@ contextBridge.exposeInMainWorld('appEvents', {
 
 contextBridge.exposeInMainWorld('baseMaps', {
   list: () => ipcRenderer.invoke('basemaps:list'),
-  // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)
-  saveUser: (payload: { uid?: string; slug: string; tms: any; expectedRevision?: number }) => ipcRenderer.invoke('basemaps:save-user', payload),
+  // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)。
+  // create=true (§7.2b/D11改) は新規作成の明示合図(uid=事前採番preset)
+  saveUser: (payload: { uid?: string; slug: string; tms: any; expectedRevision?: number; create?: boolean }) => ipcRenderer.invoke('basemaps:save-user', payload),
   deleteUser: (baseMapUid: string) => ipcRenderer.invoke('basemaps:delete-user', baseMapUid),
   setAlways: (baseMapUid: string, always: boolean) => ipcRenderer.invoke('basemaps:set-always', baseMapUid, always),
 })
@@ -184,7 +185,8 @@ contextBridge.exposeInMainWorld('assets', {
 // 画像アセット (ADR-0007): uid正準 + slug契約。get/getFilePath は uid-or-slug 参照を受ける。
 // channel prefix は imageassets:* (asset:checkSlug とは別名前空間)
 contextBridge.exposeInMainWorld('imageAssets', {
-  add: (input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string }) =>
+  // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
+  add: (input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string; uid?: string }) =>
     ipcRenderer.invoke('imageassets:add', input),
   list: () => ipcRenderer.invoke('imageassets:list'),
   search: (query: string) => ipcRenderer.invoke('imageassets:search', query),
