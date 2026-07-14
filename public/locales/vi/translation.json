@@ -607,7 +607,7 @@
   },
   "poisource": {
     "title": "Nguồn POI",
-    "search_placeholder": "Tìm kiếm nguồn POI...",
+    "search_placeholder": "Tìm kiếm nguồn POI…",
     "create_local": "Tạo cục bộ",
     "register_remote": "Đăng ký từ xa",
     "no_sources_found": "Không tìm thấy nguồn POI",
@@ -771,7 +771,7 @@
       "select_prompt": "Chọn tài nguyên ảnh từ danh sách bên trái hoặc tạo mới."
     },
     "add_image": "Thêm hình ảnh",
-    "search_placeholder": "Tìm kiếm tài nguyên ảnh...",
+    "search_placeholder": "Tìm kiếm tài nguyên ảnh…",
     "loading": "Đang tải...",
     "no_assets_found": "Không tìm thấy tài nguyên ảnh",
     "count_label": "{{num}} mục",
@@ -812,14 +812,36 @@
   "editor_ui": {
     "slug_format_help": "Chỉ dùng chữ cái, số, dấu gạch ngang và gạch dưới.",
     "new_item": "Mới",
-    "discard_draft": "Bỏ bản nháp", "discard_draft_confirm": "Bỏ bản nháp này và quay lại phiên bản đã lưu?",
+    "discard_draft": "Bỏ bản nháp",
+    "discard_draft_confirm": "Bỏ bản nháp này và quay lại phiên bản đã lưu?",
     "back": "Về danh sách",
     "translations": "Bản dịch hiện có",
-    "export_button": "Xuất", "export_dirty_prompt": "Có thay đổi chưa lưu. Hãy chọn nội dung cần xuất.", "export_save_and_run": "Lưu và xuất", "export_saved_only": "Xuất phiên bản đã lưu", "export_success": "Xuất hoàn tất.", "export_failed": "Xuất thất bại.", "busy_exporting": "Đang xuất…",
-    "save_state": {"dirty": "Chưa lưu ●", "saving": "Đang lưu…", "saved": "Đã lưu", "draft_restored": "Đã khôi phục bản nháp"},
-    "slug_state": {"checking": "Đang kiểm tra…", "available": "Có thể sử dụng", "taken": "Đã được sử dụng", "unavailable": "Không thể kiểm tra"},
+    "export_button": "Xuất",
+    "export_dirty_prompt": "Có thay đổi chưa lưu. Hãy chọn nội dung cần xuất.",
+    "export_save_and_run": "Lưu và xuất",
+    "export_saved_only": "Xuất phiên bản đã lưu",
+    "export_success": "Xuất hoàn tất.",
+    "export_failed": "Xuất thất bại.",
+    "busy_exporting": "Đang xuất…",
+    "save_state": {
+      "dirty": "Chưa lưu ●",
+      "saving": "Đang lưu…",
+      "saved": "Đã lưu",
+      "draft_restored": "Đã khôi phục bản nháp"
+    },
+    "slug_state": {
+      "checking": "Đang kiểm tra…",
+      "available": "Có thể sử dụng",
+      "taken": "Đã được sử dụng",
+      "unavailable": "Không thể kiểm tra"
+    },
     "draft_badge": "Bản nháp",
-    "draft_conflict": {"title": "Bản nháp khác với bản đã lưu", "message": "Bản đã lưu đã thay đổi sau khi tạo bản nháp.", "discard": "Bỏ bản nháp và mở bản mới nhất", "apply": "Áp dụng bản nháp"}
+    "draft_conflict": {
+      "title": "Bản nháp khác với bản đã lưu",
+      "message": "Bản đã lưu đã thay đổi sau khi tạo bản nháp.",
+      "discard": "Bỏ bản nháp và mở bản mới nhất",
+      "apply": "Áp dụng bản nháp"
+    }
   },
   "resource_list": {
     "new_item": "Mới",

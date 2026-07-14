@@ -127,6 +127,9 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     }
     const lastCursor = consumedCursors.value.at(-1) ?? null;
     const gen = ++generation;
+    // in-flight loadMore の finally は gen 不一致で解放しないため、ここで明示解放する
+    // （残置すると同一 cursor の loadMore が恒久ブロックされる）。
+    loadingCursorKey = null;
     try {
       const batch = await adapter.load({ filter: sources.filter(), cursor: lastCursor, limit, signal: new AbortController().signal });
       if (gen !== generation) return;

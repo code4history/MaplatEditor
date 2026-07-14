@@ -607,7 +607,7 @@
   },
   "poisource": {
     "title": "Fuentes de POI",
-    "search_placeholder": "Buscar fuentes de POI...",
+    "search_placeholder": "Buscar fuentes de POI…",
     "create_local": "Crear local",
     "register_remote": "Registrar remota",
     "no_sources_found": "No se encontraron fuentes de POI",
@@ -771,7 +771,7 @@
       "select_prompt": "Seleccione un recurso de imagen de la lista o cree uno nuevo."
     },
     "add_image": "Añadir imagen",
-    "search_placeholder": "Buscar recursos de imagen...",
+    "search_placeholder": "Buscar recursos de imagen…",
     "loading": "Cargando...",
     "no_assets_found": "No se encontraron recursos de imagen",
     "count_label": "{{num}} recursos",
@@ -812,14 +812,36 @@
   "editor_ui": {
     "slug_format_help": "Use solo letras, números, guion y guion bajo.",
     "new_item": "Nuevo",
-    "discard_draft": "Descartar borrador", "discard_draft_confirm": "¿Descartar este borrador y volver a la versión guardada?",
+    "discard_draft": "Descartar borrador",
+    "discard_draft_confirm": "¿Descartar este borrador y volver a la versión guardada?",
     "back": "Volver a la lista",
     "translations": "Traducciones disponibles",
-    "export_button": "Exportar", "export_dirty_prompt": "Hay cambios sin guardar. Elija qué desea exportar.", "export_save_and_run": "Guardar y exportar", "export_saved_only": "Exportar la versión guardada", "export_success": "Exportación completada.", "export_failed": "Error al exportar.", "busy_exporting": "Exportando…",
-    "save_state": {"dirty": "Sin guardar ●", "saving": "Guardando…", "saved": "Guardado", "draft_restored": "Borrador restaurado"},
-    "slug_state": {"checking": "Comprobando…", "available": "Disponible", "taken": "Ya está en uso", "unavailable": "No se pudo comprobar"},
+    "export_button": "Exportar",
+    "export_dirty_prompt": "Hay cambios sin guardar. Elija qué desea exportar.",
+    "export_save_and_run": "Guardar y exportar",
+    "export_saved_only": "Exportar la versión guardada",
+    "export_success": "Exportación completada.",
+    "export_failed": "Error al exportar.",
+    "busy_exporting": "Exportando…",
+    "save_state": {
+      "dirty": "Sin guardar ●",
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "draft_restored": "Borrador restaurado"
+    },
+    "slug_state": {
+      "checking": "Comprobando…",
+      "available": "Disponible",
+      "taken": "Ya está en uso",
+      "unavailable": "No se pudo comprobar"
+    },
     "draft_badge": "Borrador",
-    "draft_conflict": {"title": "El borrador difiere de la versión guardada", "message": "La versión guardada cambió después de crear el borrador.", "discard": "Descartar borrador y abrir la última", "apply": "Aplicar borrador"}
+    "draft_conflict": {
+      "title": "El borrador difiere de la versión guardada",
+      "message": "La versión guardada cambió después de crear el borrador.",
+      "discard": "Descartar borrador y abrir la última",
+      "apply": "Aplicar borrador"
+    }
   },
   "resource_list": {
     "new_item": "Nuevo",

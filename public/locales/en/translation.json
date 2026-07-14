@@ -604,7 +604,7 @@
   },
   "poisource": {
     "title": "POI Sources",
-    "search_placeholder": "Search POI sources...",
+    "search_placeholder": "Search POI sources…",
     "create_local": "Create Local",
     "register_remote": "Register Remote",
     "no_sources_found": "No POI sources found",
@@ -771,7 +771,7 @@
       "select_prompt": "Select an image asset from the list or create a new one."
     },
     "add_image": "Add Image",
-    "search_placeholder": "Search image assets...",
+    "search_placeholder": "Search image assets…",
     "loading": "Loading...",
     "no_assets_found": "No image assets found",
     "count_label": "{{num}} assets",
@@ -812,14 +812,36 @@
   "editor_ui": {
     "slug_format_help": "Use only letters, numbers, hyphen, and underscore.",
     "new_item": "New",
-    "discard_draft": "Discard draft", "discard_draft_confirm": "Discard this draft and return to the saved version?",
+    "discard_draft": "Discard draft",
+    "discard_draft_confirm": "Discard this draft and return to the saved version?",
     "back": "Back to list",
     "translations": "Available translations",
-    "export_button": "Export", "export_dirty_prompt": "There are unsaved changes. Choose what to export.", "export_save_and_run": "Save and export", "export_saved_only": "Export saved version", "export_success": "Export completed.", "export_failed": "Export failed.", "busy_exporting": "Exporting…",
-    "save_state": {"dirty": "Unsaved ●", "saving": "Saving…", "saved": "Saved", "draft_restored": "Draft restored"},
-    "slug_state": {"checking": "Checking…", "available": "Available", "taken": "Already in use", "unavailable": "Could not verify"},
+    "export_button": "Export",
+    "export_dirty_prompt": "There are unsaved changes. Choose what to export.",
+    "export_save_and_run": "Save and export",
+    "export_saved_only": "Export saved version",
+    "export_success": "Export completed.",
+    "export_failed": "Export failed.",
+    "busy_exporting": "Exporting…",
+    "save_state": {
+      "dirty": "Unsaved ●",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "draft_restored": "Draft restored"
+    },
+    "slug_state": {
+      "checking": "Checking…",
+      "available": "Available",
+      "taken": "Already in use",
+      "unavailable": "Could not verify"
+    },
     "draft_badge": "Draft",
-    "draft_conflict": {"title": "Draft differs from saved version", "message": "The saved version changed after this draft was created. Choose which content to open.", "discard": "Discard draft and open latest", "apply": "Apply draft"}
+    "draft_conflict": {
+      "title": "Draft differs from saved version",
+      "message": "The saved version changed after this draft was created. Choose which content to open.",
+      "discard": "Discard draft and open latest",
+      "apply": "Apply draft"
+    }
   },
   "resource_list": {
     "new_item": "New",

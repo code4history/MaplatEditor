@@ -607,7 +607,7 @@
   },
   "poisource": {
     "title": "แหล่งข้อมูล POI",
-    "search_placeholder": "ค้นหาแหล่งข้อมูล POI...",
+    "search_placeholder": "ค้นหาแหล่งข้อมูล POI…",
     "create_local": "สร้างในเครื่อง",
     "register_remote": "ลงทะเบียนระยะไกล",
     "no_sources_found": "ไม่พบแหล่งข้อมูล POI",
@@ -771,7 +771,7 @@
       "select_prompt": "เลือกแอสเซ็ตรูปภาพจากรายการด้านซ้ายหรือสร้างใหม่"
     },
     "add_image": "เพิ่มรูปภาพ",
-    "search_placeholder": "ค้นหารูปภาพ...",
+    "search_placeholder": "ค้นหารูปภาพ…",
     "loading": "กำลังโหลด...",
     "no_assets_found": "ไม่พบรูปภาพ",
     "count_label": "{{num}} รายการ",
@@ -812,14 +812,36 @@
   "editor_ui": {
     "slug_format_help": "ใช้ได้เฉพาะตัวอักษร ตัวเลข ยัติภังค์ และขีดล่าง",
     "new_item": "สร้างใหม่",
-    "discard_draft": "ละทิ้งฉบับร่าง", "discard_draft_confirm": "ละทิ้งฉบับร่างนี้และกลับไปยังเวอร์ชันที่บันทึกไว้หรือไม่",
+    "discard_draft": "ละทิ้งฉบับร่าง",
+    "discard_draft_confirm": "ละทิ้งฉบับร่างนี้และกลับไปยังเวอร์ชันที่บันทึกไว้หรือไม่",
     "back": "กลับไปที่รายการ",
     "translations": "คำแปลที่มีอยู่",
-    "export_button": "ส่งออก", "export_dirty_prompt": "มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก โปรดเลือกสิ่งที่จะส่งออก", "export_save_and_run": "บันทึกและส่งออก", "export_saved_only": "ส่งออกเวอร์ชันที่บันทึกแล้ว", "export_success": "ส่งออกเสร็จสมบูรณ์", "export_failed": "ส่งออกไม่สำเร็จ", "busy_exporting": "กำลังส่งออก…",
-    "save_state": {"dirty": "ยังไม่ได้บันทึก ●", "saving": "กำลังบันทึก…", "saved": "บันทึกแล้ว", "draft_restored": "กู้คืนฉบับร่างแล้ว"},
-    "slug_state": {"checking": "กำลังตรวจสอบ…", "available": "ใช้ได้", "taken": "ถูกใช้แล้ว", "unavailable": "ตรวจสอบไม่ได้"},
+    "export_button": "ส่งออก",
+    "export_dirty_prompt": "มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก โปรดเลือกสิ่งที่จะส่งออก",
+    "export_save_and_run": "บันทึกและส่งออก",
+    "export_saved_only": "ส่งออกเวอร์ชันที่บันทึกแล้ว",
+    "export_success": "ส่งออกเสร็จสมบูรณ์",
+    "export_failed": "ส่งออกไม่สำเร็จ",
+    "busy_exporting": "กำลังส่งออก…",
+    "save_state": {
+      "dirty": "ยังไม่ได้บันทึก ●",
+      "saving": "กำลังบันทึก…",
+      "saved": "บันทึกแล้ว",
+      "draft_restored": "กู้คืนฉบับร่างแล้ว"
+    },
+    "slug_state": {
+      "checking": "กำลังตรวจสอบ…",
+      "available": "ใช้ได้",
+      "taken": "ถูกใช้แล้ว",
+      "unavailable": "ตรวจสอบไม่ได้"
+    },
     "draft_badge": "ฉบับร่าง",
-    "draft_conflict": {"title": "ฉบับร่างต่างจากเวอร์ชันที่บันทึก", "message": "เวอร์ชันที่บันทึกถูกแก้ไขหลังสร้างฉบับร่าง", "discard": "ทิ้งฉบับร่างและเปิดเวอร์ชันล่าสุด", "apply": "ใช้ฉบับร่าง"}
+    "draft_conflict": {
+      "title": "ฉบับร่างต่างจากเวอร์ชันที่บันทึก",
+      "message": "เวอร์ชันที่บันทึกถูกแก้ไขหลังสร้างฉบับร่าง",
+      "discard": "ทิ้งฉบับร่างและเปิดเวอร์ชันล่าสุด",
+      "apply": "ใช้ฉบับร่าง"
+    }
   },
   "resource_list": {
     "new_item": "สร้างใหม่",

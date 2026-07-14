@@ -85,7 +85,7 @@ onBeforeRouteLeave(() => {
 });
 async function restoreOrLoad(): Promise<void> {
   const cached = backCache.load();
-  if (cached && cached.q === query.value && cached.batches > 1) {
+  if (cached && cached.q === query.value && cached.batches >= 1) {
     await restore(cached.batches);
     await nextTick();
     const root = shellRef.value?.contentRef ?? null;

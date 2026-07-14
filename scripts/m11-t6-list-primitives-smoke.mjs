@@ -150,6 +150,29 @@ function makePageAdapter(opts: { failAppend?: boolean } = {}) {
   assert.ok(!list.items.value.some((i: any) => i.uid === "d"), "削除した uid は消える");
   assert.ok(!hasDup(list.items.value.map((i: any) => i.uid)), "再取得 dedupe で重複が出ない");
 }
+// (6) applyDeletion×in-flight loadMore: cursor ロックが残留せず、以後の loadMore が進む（実装レビューMinor-2回帰）
+{
+  const adapter = makePageAdapter();
+  const baseLoad = adapter.load.bind(adapter);
+  let release: (() => void) | null = null;
+  let deferOnce = false;
+  adapter.load = (input: any) => {
+    if (deferOnce && input.cursor === 2) {
+      deferOnce = false;
+      return new Promise((resolve) => { release = () => resolve(baseLoad(input)); });
+    }
+    return baseLoad(input);
+  };
+  const list = useInfiniteResourceList(adapter, sources, { limit: 3 });
+  await list.loadFirst();
+  deferOnce = true;
+  const pending = list.loadMore();          // cursor=2 を in-flight で保留
+  await list.applyDeletion("a");            // generation++（旧 loadMore は破棄対象になる）
+  release?.();
+  await pending;
+  await list.loadMore();                    // 修正前はここが恒久ブロックされていた
+  assert.ok(list.items.value.some((i: any) => i.uid === "d"), "cursor ロック残留なしで追加取得できる");
+}
 function hasDup(arr: string[]) { return new Set(arr).size !== arr.length; }
 
 console.log("m11-t6 composable unit: OK");

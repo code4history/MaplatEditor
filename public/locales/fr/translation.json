@@ -607,7 +607,7 @@
   },
   "poisource": {
     "title": "Sources de POI",
-    "search_placeholder": "Rechercher des sources de POI...",
+    "search_placeholder": "Rechercher des sources de POI…",
     "create_local": "Créer en local",
     "register_remote": "Enregistrer une source distante",
     "no_sources_found": "Aucune source de POI trouvée",
@@ -771,7 +771,7 @@
       "select_prompt": "Sélectionnez une ressource image à gauche ou créez-en une nouvelle."
     },
     "add_image": "Ajouter une image",
-    "search_placeholder": "Rechercher des ressources d'image...",
+    "search_placeholder": "Rechercher des ressources d'image…",
     "loading": "Chargement...",
     "no_assets_found": "Aucune ressource d'image trouvée",
     "count_label": "{{num}} ressources",
@@ -812,14 +812,36 @@
   "editor_ui": {
     "slug_format_help": "Utilisez uniquement lettres, chiffres, tiret et underscore.",
     "new_item": "Nouveau",
-    "discard_draft": "Supprimer le brouillon", "discard_draft_confirm": "Supprimer ce brouillon et revenir à la version enregistrée ?",
+    "discard_draft": "Supprimer le brouillon",
+    "discard_draft_confirm": "Supprimer ce brouillon et revenir à la version enregistrée ?",
     "back": "Retour à la liste",
     "translations": "Traductions disponibles",
-    "export_button": "Exporter", "export_dirty_prompt": "Des modifications ne sont pas enregistrées. Choisissez quoi exporter.", "export_save_and_run": "Enregistrer et exporter", "export_saved_only": "Exporter la version enregistrée", "export_success": "Export terminé.", "export_failed": "Échec de l’export.", "busy_exporting": "Export en cours…",
-    "save_state": {"dirty": "Non enregistré ●", "saving": "Enregistrement…", "saved": "Enregistré", "draft_restored": "Brouillon restauré"},
-    "slug_state": {"checking": "Vérification…", "available": "Disponible", "taken": "Déjà utilisé", "unavailable": "Vérification impossible"},
+    "export_button": "Exporter",
+    "export_dirty_prompt": "Des modifications ne sont pas enregistrées. Choisissez quoi exporter.",
+    "export_save_and_run": "Enregistrer et exporter",
+    "export_saved_only": "Exporter la version enregistrée",
+    "export_success": "Export terminé.",
+    "export_failed": "Échec de l’export.",
+    "busy_exporting": "Export en cours…",
+    "save_state": {
+      "dirty": "Non enregistré ●",
+      "saving": "Enregistrement…",
+      "saved": "Enregistré",
+      "draft_restored": "Brouillon restauré"
+    },
+    "slug_state": {
+      "checking": "Vérification…",
+      "available": "Disponible",
+      "taken": "Déjà utilisé",
+      "unavailable": "Vérification impossible"
+    },
     "draft_badge": "Brouillon",
-    "draft_conflict": {"title": "Le brouillon diffère de la version enregistrée", "message": "La version enregistrée a changé après la création du brouillon.", "discard": "Supprimer le brouillon et ouvrir la dernière version", "apply": "Appliquer le brouillon"}
+    "draft_conflict": {
+      "title": "Le brouillon diffère de la version enregistrée",
+      "message": "La version enregistrée a changé après la création du brouillon.",
+      "discard": "Supprimer le brouillon et ouvrir la dernière version",
+      "apply": "Appliquer le brouillon"
+    }
   },
   "resource_list": {
     "new_item": "Nouveau",

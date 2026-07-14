@@ -607,7 +607,7 @@
   },
   "poisource": {
     "title": "POI-Quellen",
-    "search_placeholder": "POI-Quellen suchen...",
+    "search_placeholder": "POI-Quellen suchen…",
     "create_local": "Lokal erstellen",
     "register_remote": "Extern registrieren",
     "no_sources_found": "Keine POI-Quellen gefunden",
@@ -771,7 +771,7 @@
       "select_prompt": "Wählen Sie links ein Bild-Asset aus oder erstellen Sie ein neues."
     },
     "add_image": "Bild hinzufügen",
-    "search_placeholder": "Bild-Assets durchsuchen...",
+    "search_placeholder": "Bild-Assets durchsuchen…",
     "loading": "Wird geladen...",
     "no_assets_found": "Keine Bild-Assets gefunden",
     "count_label": "{{num}} Assets",
@@ -812,14 +812,36 @@
   "editor_ui": {
     "slug_format_help": "Nur Buchstaben, Ziffern, Bindestrich und Unterstrich.",
     "new_item": "Neu",
-    "discard_draft": "Entwurf verwerfen", "discard_draft_confirm": "Diesen Entwurf verwerfen und zur gespeicherten Version zurückkehren?",
+    "discard_draft": "Entwurf verwerfen",
+    "discard_draft_confirm": "Diesen Entwurf verwerfen und zur gespeicherten Version zurückkehren?",
     "back": "Zurück zur Liste",
     "translations": "Verfügbare Übersetzungen",
-    "export_button": "Exportieren", "export_dirty_prompt": "Es gibt ungespeicherte Änderungen. Wählen Sie die Exportmethode.", "export_save_and_run": "Speichern und exportieren", "export_saved_only": "Gespeicherte Version exportieren", "export_success": "Export abgeschlossen.", "export_failed": "Export fehlgeschlagen.", "busy_exporting": "Export läuft…",
-    "save_state": {"dirty": "Ungespeichert ●", "saving": "Speichern…", "saved": "Gespeichert", "draft_restored": "Entwurf wiederhergestellt"},
-    "slug_state": {"checking": "Wird geprüft…", "available": "Verfügbar", "taken": "Bereits verwendet", "unavailable": "Prüfung nicht möglich"},
+    "export_button": "Exportieren",
+    "export_dirty_prompt": "Es gibt ungespeicherte Änderungen. Wählen Sie die Exportmethode.",
+    "export_save_and_run": "Speichern und exportieren",
+    "export_saved_only": "Gespeicherte Version exportieren",
+    "export_success": "Export abgeschlossen.",
+    "export_failed": "Export fehlgeschlagen.",
+    "busy_exporting": "Export läuft…",
+    "save_state": {
+      "dirty": "Ungespeichert ●",
+      "saving": "Speichern…",
+      "saved": "Gespeichert",
+      "draft_restored": "Entwurf wiederhergestellt"
+    },
+    "slug_state": {
+      "checking": "Wird geprüft…",
+      "available": "Verfügbar",
+      "taken": "Bereits verwendet",
+      "unavailable": "Prüfung nicht möglich"
+    },
     "draft_badge": "Entwurf",
-    "draft_conflict": {"title": "Entwurf und gespeicherte Version unterscheiden sich", "message": "Die gespeicherte Version wurde nach Erstellung des Entwurfs geändert.", "discard": "Entwurf verwerfen und neueste öffnen", "apply": "Entwurf anwenden"}
+    "draft_conflict": {
+      "title": "Entwurf und gespeicherte Version unterscheiden sich",
+      "message": "Die gespeicherte Version wurde nach Erstellung des Entwurfs geändert.",
+      "discard": "Entwurf verwerfen und neueste öffnen",
+      "apply": "Entwurf anwenden"
+    }
   },
   "resource_list": {
     "new_item": "Neu",

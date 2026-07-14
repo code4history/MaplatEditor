@@ -607,7 +607,7 @@
   },
   "poisource": {
     "title": "POIソース",
-    "search_placeholder": "POIソースを検索...",
+    "search_placeholder": "POIソースを検索…",
     "create_local": "ローカル作成",
     "register_remote": "リモート登録",
     "no_sources_found": "POIソースが見つかりません",
@@ -771,7 +771,7 @@
       "select_prompt": "左の一覧からアセットを選択するか、新規作成してください。"
     },
     "add_image": "画像を追加",
-    "search_placeholder": "アセットを検索...",
+    "search_placeholder": "アセットを検索…",
     "loading": "読み込み中...",
     "no_assets_found": "アセットが見つかりません",
     "count_label": "{{num}} 件",
@@ -812,14 +812,36 @@
   "editor_ui": {
     "slug_format_help": "半角英数字・ハイフン・アンダースコアのみ使用できます。",
     "new_item": "新規追加",
-    "discard_draft": "下書きを破棄", "discard_draft_confirm": "下書きを破棄して保存済み版に戻しますか？",
+    "discard_draft": "下書きを破棄",
+    "discard_draft_confirm": "下書きを破棄して保存済み版に戻しますか？",
     "back": "一覧へ",
     "translations": "翻訳済み言語",
-    "export_button": "エクスポート", "export_dirty_prompt": "未保存の変更があります。出力方法を選んでください。", "export_save_and_run": "保存してエクスポート", "export_saved_only": "保存済み版をエクスポート", "export_success": "エクスポートしました。", "export_failed": "エクスポートに失敗しました。", "busy_exporting": "エクスポート中…",
-    "save_state": {"dirty": "未保存 ●", "saving": "保存中…", "saved": "保存済み", "draft_restored": "下書きから復元"},
-    "slug_state": {"checking": "確認中…", "available": "使用できます", "taken": "既に使用されています", "unavailable": "確認できません"},
+    "export_button": "エクスポート",
+    "export_dirty_prompt": "未保存の変更があります。出力方法を選んでください。",
+    "export_save_and_run": "保存してエクスポート",
+    "export_saved_only": "保存済み版をエクスポート",
+    "export_success": "エクスポートしました。",
+    "export_failed": "エクスポートに失敗しました。",
+    "busy_exporting": "エクスポート中…",
+    "save_state": {
+      "dirty": "未保存 ●",
+      "saving": "保存中…",
+      "saved": "保存済み",
+      "draft_restored": "下書きから復元"
+    },
+    "slug_state": {
+      "checking": "確認中…",
+      "available": "使用できます",
+      "taken": "既に使用されています",
+      "unavailable": "確認できません"
+    },
     "draft_badge": "下書き",
-    "draft_conflict": {"title": "下書きと保存済み版が異なります", "message": "下書きの作成後に保存済み版が更新されています。開く内容を選んでください。", "discard": "下書きを破棄して最新を開く", "apply": "下書きを適用する"}
+    "draft_conflict": {
+      "title": "下書きと保存済み版が異なります",
+      "message": "下書きの作成後に保存済み版が更新されています。開く内容を選んでください。",
+      "discard": "下書きを破棄して最新を開く",
+      "apply": "下書きを適用する"
+    }
   },
   "resource_list": {
     "new_item": "新規追加",

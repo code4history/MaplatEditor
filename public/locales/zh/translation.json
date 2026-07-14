@@ -607,7 +607,7 @@
   },
   "poisource": {
     "title": "POI源",
-    "search_placeholder": "搜索POI源...",
+    "search_placeholder": "搜索POI源…",
     "create_local": "创建本地",
     "register_remote": "注册远程",
     "no_sources_found": "未找到POI源",
@@ -771,7 +771,7 @@
       "select_prompt": "请从左侧列表选择图像资源，或新建一个。"
     },
     "add_image": "添加图片",
-    "search_placeholder": "搜索素材...",
+    "search_placeholder": "搜索素材…",
     "loading": "加载中...",
     "no_assets_found": "未找到素材",
     "count_label": "{{num}} 个",
@@ -812,14 +812,36 @@
   "editor_ui": {
     "slug_format_help": "仅可使用字母、数字、连字符和下划线。",
     "new_item": "新建",
-    "discard_draft": "放弃草稿", "discard_draft_confirm": "放弃此草稿并返回已保存版本吗？",
+    "discard_draft": "放弃草稿",
+    "discard_draft_confirm": "放弃此草稿并返回已保存版本吗？",
     "back": "返回列表",
     "translations": "已有翻译",
-    "export_button": "导出", "export_dirty_prompt": "存在未保存的更改。请选择要导出的内容。", "export_save_and_run": "保存并导出", "export_saved_only": "导出已保存版本", "export_success": "导出完成。", "export_failed": "导出失败。", "busy_exporting": "正在导出…",
-    "save_state": {"dirty": "未保存 ●", "saving": "保存中…", "saved": "已保存", "draft_restored": "已恢复草稿"},
-    "slug_state": {"checking": "检查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "无法确认"},
+    "export_button": "导出",
+    "export_dirty_prompt": "存在未保存的更改。请选择要导出的内容。",
+    "export_save_and_run": "保存并导出",
+    "export_saved_only": "导出已保存版本",
+    "export_success": "导出完成。",
+    "export_failed": "导出失败。",
+    "busy_exporting": "正在导出…",
+    "save_state": {
+      "dirty": "未保存 ●",
+      "saving": "保存中…",
+      "saved": "已保存",
+      "draft_restored": "已恢复草稿"
+    },
+    "slug_state": {
+      "checking": "检查中…",
+      "available": "可以使用",
+      "taken": "已被使用",
+      "unavailable": "无法确认"
+    },
     "draft_badge": "草稿",
-    "draft_conflict": {"title": "草稿与已保存版本不同", "message": "创建草稿后，已保存版本发生了更新。", "discard": "丢弃草稿并打开最新版本", "apply": "应用草稿"}
+    "draft_conflict": {
+      "title": "草稿与已保存版本不同",
+      "message": "创建草稿后，已保存版本发生了更新。",
+      "discard": "丢弃草稿并打开最新版本",
+      "apply": "应用草稿"
+    }
   },
   "resource_list": {
     "new_item": "新建",
