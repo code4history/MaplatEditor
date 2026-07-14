@@ -49,6 +49,7 @@
     "smoke:m11-t4-master-detail": "node scripts/m11-t4-master-detail-smoke.mjs",
     "smoke:m11-t5-shell-tokens": "node scripts/m11-t5-shell-tokens-smoke.mjs",
     "smoke:m11-t6-list-primitives": "node scripts/m11-t6-list-primitives-smoke.mjs",
+    "smoke:m11-t7-slug-reservation": "node --experimental-strip-types scripts/m11-t7-slug-reservation-smoke.mjs",
     "test:e2e:m11-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t6-list-primitives.spec.ts",
     "generate:builtin-basemaps": "node scripts/generate-builtin-basemaps.mjs",
     "test:e2e:m11-t2": "pnpm run build && playwright test tests/e2e/m11-t2-draft-hot-exit.spec.ts",

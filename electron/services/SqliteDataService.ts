@@ -18,6 +18,9 @@ import defaultTmsList from '../tms_list.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
+import { createSlugReservationService, type SlugReservationService } from './SlugReservationService';
+import { toDraftKind } from './slugReservationKind';
+import AssetDraftService from './AssetDraftService';
 import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
@@ -416,6 +419,10 @@ function sendMigrationProgress(text: string, percent: number, progress: string =
 class SqliteDataService {
   private db: DatabaseSync | null = null;
   private activeDbFile: string | null = null;
+  // slug 予約(M11-T7): instance_id は起動ごとに一度だけ採番(D3)。
+  private readonly instanceId = globalThis.crypto.randomUUID();
+  private slugReservations: SlugReservationService | null = null;
+  private slugTimers: { renew?: NodeJS.Timeout; gc?: NodeJS.Timeout } = {};
 
   private get folders(): Folders {
     const saveFolder = SettingsService.get('saveFolder') as string;
@@ -434,6 +441,11 @@ class SqliteDataService {
   }
 
   async reset(): Promise<void> {
+    // slug 予約の lease/GC timer を止め、service を破棄する(接続を張り替えるため)
+    if (this.slugTimers.renew) clearInterval(this.slugTimers.renew);
+    if (this.slugTimers.gc) clearInterval(this.slugTimers.gc);
+    this.slugTimers = {};
+    this.slugReservations = null;
     if (this.db) {
       try {
         this.db.close();
@@ -443,6 +455,21 @@ class SqliteDataService {
     }
     this.db = null;
     this.activeDbFile = null;
+  }
+
+  // slug 予約 GC(D4): lease 失効かつ draft 保護なし・24h 経過の予約を掃除する。
+  // draft 存在判定は asset_kind→draft kind 写像(§7.3)で AssetDraftService を照会する。
+  private runSlugGc(): void {
+    this.slugReservations?.gc({
+      draftExists: (kind, draftUid) => {
+        if (draftUid == null) return false;
+        try {
+          return AssetDraftService.get(toDraftKind(kind as AssetKind), draftUid) != null;
+        } catch {
+          return false;
+        }
+      },
+    });
   }
 
   async getDb(): Promise<DatabaseSync> {
@@ -469,6 +496,16 @@ class SqliteDataService {
     this.db = db;
     this.activeDbFile = sqliteFile;
     await this.migrate();
+    // slug 予約 service を同一 DatabaseSync 接続注入で生成し(D13)、起動時 GC +
+    // 30 秒 lease renew + 10 分 GC timer を開始する。
+    this.slugReservations = createSlugReservationService({
+      db,
+      instanceId: this.instanceId,
+      now: () => new Date().toISOString(),
+    });
+    this.runSlugGc();
+    this.slugTimers.renew ??= setInterval(() => this.slugReservations?.renewOwn(), 30_000);
+    this.slugTimers.gc ??= setInterval(() => this.runSlugGc(), 10 * 60_000);
     return db;
   }
 
@@ -620,6 +657,15 @@ class SqliteDataService {
         byte_size INTEGER NOT NULL,
         revision INTEGER NOT NULL DEFAULT 1,
         updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS slug_reservations (
+        slug TEXT PRIMARY KEY,
+        asset_uid TEXT NOT NULL,
+        asset_kind TEXT NOT NULL,
+        instance_id TEXT NOT NULL,
+        draft_uid TEXT,
+        lease_expires_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       );
     `);
     const assetColumns = new Set(
