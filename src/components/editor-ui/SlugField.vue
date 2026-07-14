@@ -67,10 +67,18 @@ const state = computed<SlugFieldState>(() => reservationState.value ?? availabil
 // idle は無音(空文字)。それ以外は slug_state.<state> を読む(role=status のアクセシブル表示)
 const statusText = computed(() => (state.value === 'idle' ? '' : t(`editor_ui.slug_state.${state.value}`)));
 
-watch([slugRef, () => props.originalSlug], ([slug]) => {
+watch([slugRef, () => props.originalSlug], async ([slug]) => {
   reservation.invalidate(slug.trim());
   reservationState.value = null;
-  if (slug.trim() === props.originalSlug) void reservation.releaseIfHeld();
+  if (slug.trim() === props.originalSlug) {
+    try {
+      await reservation.releaseIfHeld();
+    } catch {
+      if (slugRef.value.trim() === slug.trim() && slug.trim() === props.originalSlug) {
+        reservationState.value = 'check-failed';
+      }
+    }
+  }
 }, { flush: 'sync' });
 
 watch(availability.fieldState, async (s) => {

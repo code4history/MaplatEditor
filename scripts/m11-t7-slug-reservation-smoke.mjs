@@ -682,6 +682,79 @@ const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh
   assert.equal(calls.reserve.length + calls.move.length, writesBefore);
   checkImpl = async () => "taken";
   assert.deepEqual(await unchangedHarness.confirmForSave(), { ok: false, state: "reserved-by-other" });
+
+  // held は取得時 identity に束縛する。props/current identity が変化しても旧UIDで解放する。
+  {
+    const identityCalls = { reserve: [], move: [], release: [] };
+    window.slugReservations.reserve = async (payload) => { identityCalls.reserve.push(payload); return { result: "ok" }; };
+    window.slugReservations.move = async (payload) => { identityCalls.move.push(payload); return { result: "ok" }; };
+    window.slugReservations.release = async (payload) => { identityCalls.release.push(payload); };
+    window.slugReservations.check = async () => "available";
+    const identityHarness = createSlugReservationHarness({ currentSlug: "old", assetUid: UID_A, draftUid: "draft-a" });
+    assert.equal(await identityHarness.reservation.onAvailable("old"), "available");
+    identityHarness.setIdentity({ assetUid: UID_B, draftUid: "draft-b" });
+    await identityHarness.reservation.releaseIfHeld();
+    assert.deepEqual(identityCalls.release.at(-1), { slug: "old", assetUid: UID_A });
+  }
+
+  // session切替は旧heldを旧UIDでreleaseしてから新identityでreserveする。identity跨ぎmoveは禁止。
+  {
+    const sequence = [];
+    window.slugReservations.reserve = async (payload) => { sequence.push(["reserve", payload]); return { result: "ok" }; };
+    window.slugReservations.move = async (payload) => { sequence.push(["move", payload]); return { result: "ok" }; };
+    window.slugReservations.release = async (payload) => { sequence.push(["release", payload]); };
+    const switched = createSlugReservationHarness({ currentSlug: "old", assetUid: UID_A, draftUid: "draft-a" });
+    await switched.reservation.onAvailable("old");
+    switched.setIdentity({ assetUid: UID_B, draftUid: "draft-b" });
+    switched.setCurrentSlug("new");
+    assert.equal(await switched.reservation.onAvailable("new"), "available");
+    assert.deepEqual(sequence.slice(-2), [
+      ["release", { slug: "old", assetUid: UID_A }],
+      ["reserve", { slug: "new", assetUid: UID_B, assetKind: "map", draftUid: "draft-b" }],
+    ]);
+    assert.ok(!sequence.some(([op, payload]) => op === "move" && payload.fromSlug === "old" && payload.assetUid === UID_B));
+  }
+
+  // queued stale cleanupも、mutation enqueue時にsnapshotしたUIDで解放する。
+  {
+    let finishReserve;
+    const releases = [];
+    window.slugReservations.reserve = (payload) => new Promise((resolve) => {
+      finishReserve = () => resolve({ result: "ok", payload });
+    });
+    window.slugReservations.release = async (payload) => { releases.push(payload); };
+    const queued = createSlugReservationHarness({ currentSlug: "stale", assetUid: UID_A, draftUid: "draft-a" });
+    const pending = queued.reservation.onAvailable("stale");
+    queued.setIdentity({ assetUid: UID_B, draftUid: "draft-b" });
+    queued.setCurrentSlug("bad slug");
+    await Promise.resolve();
+    finishReserve();
+    assert.equal(await pending, null);
+    assert.deepEqual(releases, [{ slug: "stale", assetUid: UID_A }]);
+  }
+
+  // original復帰のheld解放失敗は保存を止め、再試行成功時だけheldを消して回復する。
+  for (const failure of ["conflict", "error", "throw"]) {
+    let failRelease = true;
+    const retryCalls = { reserve: [], release: [] };
+    window.slugReservations.reserve = async (payload) => { retryCalls.reserve.push(payload); return { result: "ok" }; };
+    window.slugReservations.release = async (payload) => {
+      retryCalls.release.push(payload);
+      if (failRelease) {
+        if (failure === "throw") throw new Error(failure);
+        return { result: failure };
+      }
+    };
+    window.slugReservations.check = async () => "available";
+    const restored = createSlugReservationHarness({ originalSlug: "original", currentSlug: "changed", assetUid: UID_A });
+    await restored.reservation.onAvailable("changed");
+    restored.setCurrentSlug("original");
+    assert.deepEqual(await restored.confirmForSave(), { ok: false, state: "check-failed" });
+    failRelease = false;
+    assert.deepEqual(await restored.confirmForSave(), { ok: true, state: "available" });
+    await restored.reservation.onAvailable("probe");
+    assert.equal(retryCalls.reserve.at(-1).slug, "probe", "successful retry must clear held");
+  }
 }
 
 // --- Part C1: SlugField 契約 ---
@@ -697,6 +770,8 @@ assert.match(slugField, /editor_ui\.slug_label/, "SlugField must use editor_ui.s
 assert.match(slugField, /await reservation\.onAvailable/, "SlugField must await reservation result");
 assert.match(slugField, /reservationState\.value\s*=\s*result/, "SlugField must reflect reservation result in field state");
 assert.doesNotMatch(slugField, /void reservation\.onAvailable/, "SlugField must not discard reservation result");
+assert.doesNotMatch(slugField, /void reservation\.releaseIfHeld\(\)/,
+  "original slug release must handle rejection and publish check-failed");
 
 // --- Part C2: useSlugAvailability の 6 状態写像（D1） ---
 const avail = await readSrc("src/composables/useSlugAvailability.ts");
@@ -753,6 +828,14 @@ for (const rel of ["src/views/PoiEdit.vue", "src/views/PoiSourceList.vue"]) {
   assert.match(src, /SlugField/, `${rel} must use SlugField`);
   assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must drop raw checkSlug (AC17)`);
 }
+const poiSourceListSrc = await readSrc("src/views/PoiSourceList.vue");
+assert.match(poiSourceListSrc, /async function resetModal|const resetModal\s*=\s*async/,
+  "POI modal reset must await reservation release before resetting uid");
+assert.match(poiSourceListSrc, /await modalSlugField\.value\?\.release\(\)/,
+  "POI modal reset/close must await reservation release");
+const resetModalBody = poiSourceListSrc.slice(poiSourceListSrc.indexOf("resetModal"), poiSourceListSrc.indexOf("const closeModal"));
+assert.ok(resetModalBody.indexOf("await modalSlugField.value?.release()") < resetModalBody.indexOf("modal.uid = crypto.randomUUID()"),
+  "POI modal uid must not change until release completes");
 console.log("m11-t7 smoke Part E: OK");
 
 // --- Part F1: AppEdit が SlugField、一意性ボタン撤去 ---

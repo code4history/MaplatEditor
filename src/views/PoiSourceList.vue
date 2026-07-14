@@ -328,7 +328,16 @@ const canSubmit = computed(() => {
   return true;
 });
 
-const resetModal = () => {
+const resetModal = async (): Promise<boolean> => {
+  try {
+    // held は現在の modal.uid に束縛されているため、UID再採番より先に解放を完了する。
+    await modalSlugField.value?.release();
+  } catch (e) {
+    console.error("Failed to release POI source slug reservation", e);
+    modal.feedback = t("poisource.errors.internal");
+    modal.feedbackRetry = false;
+    return false;
+  }
   modal.slug = "";
   modal.title = "";
   modal.url = "";
@@ -343,14 +352,15 @@ const resetModal = () => {
   // M11-T7: 新規開始ごとに予約帰属 uid を採番し直す。可用性状態もリセット
   modal.uid = crypto.randomUUID();
   modalSlugState.value = "idle";
+  return true;
 };
 
-const closeModal = () => {
+const closeModal = async (): Promise<boolean> => {
   // M11-T7/AC15: モーダル破棄(=draft なし新規の放棄)で保持中の予約を解放する。
   // 成功 submit 後は promote が予約を消化済みのため release は無害な no-op
-  void modalSlugField.value?.release();
+  if (!await resetModal()) return false;
   modal.mode = null;
-  resetModal();
+  return true;
 };
 
 // slug 自動生成 (title or ファイル名 → [A-Za-z0-9_-])。可用性チェックは checkSlug に委ねる
@@ -393,13 +403,13 @@ watch(
   }
 );
 
-const openCreateLocal = () => {
-  resetModal();
+const openCreateLocal = async () => {
+  if (!await resetModal()) return;
   modal.mode = "local";
 };
 
-const openRegisterRemote = () => {
-  resetModal();
+const openRegisterRemote = async () => {
+  if (!await resetModal()) return;
   modal.mode = "remote";
 };
 
@@ -407,7 +417,7 @@ const openImport = async () => {
   try {
     const picked = await window.poiSources.pickImportFile();
     if (!picked) return; // canceled
-    resetModal();
+    if (!await resetModal()) return;
     modal.mode = "import";
     modal.filePath = picked.filePath;
     modal.fileName = picked.fileName;
@@ -435,7 +445,7 @@ const openImport = async () => {
 };
 
 // PoiSourceSaveResult を解釈し、成功時はエディタへ遷移、失敗時は modal に feedback を出す
-const handleSaveResult = (result: PoiSourceSaveResult): boolean => {
+const handleSaveResult = async (result: PoiSourceSaveResult): Promise<boolean> => {
   if ("error" in result) {
     // result.error === 'revision-conflict'
     modal.feedback = t("poisource.errors.revision_conflict");
@@ -444,7 +454,7 @@ const handleSaveResult = (result: PoiSourceSaveResult): boolean => {
   switch (result.result) {
     case "Success": {
       const uid = result.uid;
-      closeModal();
+      if (!await closeModal()) return false;
       router.push(`/poisources/${uid}`);
       return true;
     }
@@ -511,7 +521,7 @@ const submitModal = async () => {
     } else {
       return;
     }
-    handleSaveResult(result);
+    await handleSaveResult(result);
   } catch (e) {
     console.error("Failed to submit POI source", e);
     modal.feedback = t("poisource.errors.internal");
