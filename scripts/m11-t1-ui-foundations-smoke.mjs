@@ -253,6 +253,11 @@ try {
   assert.equal(packageJson.scripts.postinstall, 'node scripts/ensure-electron.mjs');
   assert.equal(packageJson.scripts.predev, 'node scripts/ensure-electron.mjs');
   assert.equal(packageJson.scripts.predist, 'node scripts/ensure-electron.mjs');
+  assert.match(
+    packageJson.scripts['test:e2e:m11-t4'],
+    /^node scripts\/ensure-electron\.mjs && /,
+    'Electron E2E本体が起動前にバイナリ欠損を修復する',
+  );
   console.log('  [10/10] Electron install guard is idempotent and wired to lifecycle scripts: PASS');
   console.log('M11-T1 UI foundations smoke passed');
 } catch (err) {

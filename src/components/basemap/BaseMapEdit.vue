@@ -34,13 +34,14 @@
       <button type="button" class="btn btn-sm btn-outline-secondary" @click="reloadLatest">{{ t("common.reload") }}</button>
       <button type="button" class="btn btn-sm btn-warning" @click="keepCurrentEdit">{{ t("common.overwrite") }}</button>
     </div>
-    <div v-if="readOnly" class="alert alert-info rounded-0 mb-0 py-2">{{ t("basemap.master_detail.builtin_read_only") }}</div>
+    <div v-if="readOnly" class="alert alert-info rounded-0 mb-0 py-2" data-testid="basemap-editor-readonly">{{ t("basemap.master_detail.builtin_read_only") }}</div>
 
     <div class="flex-grow-1 overflow-auto p-3" data-testid="basemap-editor">
       <div class="row g-3">
         <div class="col-12 col-xl-6">
           <label class="form-label fw-semibold">{{ t("basemap.modal.title_label") }}</label>
           <LangResourceInput
+            input-testid="basemap-title"
             :model-value="document.title"
             :active-lang="activeLang"
             :default-lang="document.defaultLang"
@@ -53,6 +54,7 @@
         <div class="col-12 col-xl-6">
           <label class="form-label fw-semibold">{{ t("basemap.master_detail.label") }}</label>
           <LangResourceInput
+            input-testid="basemap-label"
             :model-value="document.label"
             :active-lang="activeLang"
             :default-lang="document.defaultLang"
@@ -65,6 +67,7 @@
         <div class="col-12">
           <label class="form-label fw-semibold">{{ t("basemap.modal.attr_label") }}</label>
           <LangResourceInput
+            input-testid="basemap-attr"
             :model-value="document.attr"
             :active-lang="activeLang"
             :default-lang="document.defaultLang"
@@ -82,6 +85,7 @@
             :value="document.slug"
             type="text"
             class="form-control form-control-sm"
+            data-testid="basemap-slug"
             :disabled="structuralDisabled"
             @change="updateField('slug', ($event.target as HTMLInputElement).value.trim())"
           >
@@ -91,6 +95,7 @@
           <select
             :value="document.defaultLang"
             class="form-select form-select-sm"
+            data-testid="basemap-default-language"
             :disabled="structuralDisabled"
             @change="changeDefaultLang(($event.target as HTMLSelectElement).value as LangCode)"
           >
@@ -103,6 +108,7 @@
             :value="document.url"
             type="text"
             class="form-control form-control-sm"
+            data-testid="basemap-url"
             :disabled="structuralDisabled"
             @change="updateField('url', ($event.target as HTMLInputElement).value.trim())"
           >
@@ -197,7 +203,7 @@ const props = defineProps<{ uid: string; isNew: boolean; item: BaseMapCatalogIte
 const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string] }>();
 const { t } = useTranslation();
 
-const clone = <T,>(value: T): T => structuredClone(value);
+const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const initial = props.item
   ? fromBaseMapCatalogItem(props.item)
   : newBaseMapDocument(props.uid, resolveEditorLanguage(i18next.language));

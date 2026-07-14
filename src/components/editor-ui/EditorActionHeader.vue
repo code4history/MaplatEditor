@@ -15,6 +15,7 @@
       <span
         class="small text-nowrap"
         :class="saveStateMeta.className"
+        data-testid="editor-save-state"
         role="status"
       >
         {{ t(saveStateMeta.key) }}
@@ -24,6 +25,7 @@
         type="button"
         class="btn btn-sm btn-link text-danger text-decoration-none p-0"
         data-editor-action="discard-draft"
+        data-testid="editor-discard-draft"
         :disabled="saving || actionsDisabled"
         @click="emit('discard-draft')"
       >
@@ -36,6 +38,7 @@
         :value="activeLang"
         class="form-select form-select-sm editor-action-header__language"
         data-editor-action="language"
+        data-testid="editor-language"
         :aria-label="t('common.language')"
         :disabled="saving || actionsDisabled"
         @change="emit('update:activeLang', ($event.target as HTMLSelectElement).value as LangCode)"
@@ -48,6 +51,7 @@
         type="button"
         class="btn btn-sm btn-outline-secondary"
         data-editor-action="undo"
+        data-testid="editor-undo"
         :disabled="saving || actionsDisabled || !canUndo"
         :title="t('menu.undo')"
         @click="emit('undo')"
@@ -59,6 +63,7 @@
         type="button"
         class="btn btn-sm btn-outline-secondary"
         data-editor-action="redo"
+        data-testid="editor-redo"
         :disabled="saving || actionsDisabled || !canRedo"
         :title="t('menu.redo')"
         @click="emit('redo')"

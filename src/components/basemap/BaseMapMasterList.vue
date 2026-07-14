@@ -1,13 +1,13 @@
 <template>
   <section class="base-map-master-list d-flex flex-column h-100 bg-white">
     <div class="p-3 border-bottom">
-      <button type="button" class="btn btn-primary btn-sm w-100 mb-2" @click="emit('create')">
+      <button type="button" class="btn btn-primary btn-sm w-100 mb-2" data-testid="basemap-new" @click="emit('create')">
         <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("basemap.add") }}
         <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
       </button>
     </div>
 
-    <div ref="scrollElement" class="flex-grow-1 overflow-auto" @scroll.passive="emit('scroll', scrollElement)">
+    <div ref="scrollElement" class="flex-grow-1 overflow-auto" data-testid="basemap-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
       <div v-if="loading" class="text-muted text-center py-4">{{ t("basemap.loading") }}</div>
       <div v-else-if="error" class="alert alert-danger m-3">{{ error }}</div>
       <template v-else>
@@ -37,6 +37,7 @@
           class="base-map-row list-group-item list-group-item-action border-0 border-bottom rounded-0 px-3 py-2 w-100 text-start"
           :class="{ active: selectedUid === item.uid }"
           :aria-current="selectedUid === item.uid ? 'true' : undefined"
+          :data-testid="`basemap-row-${item.mapID}`"
           @click="emit('select', item.uid)"
           @keydown.enter.prevent="emit('select', item.uid)"
           @keydown.space.prevent="emit('select', item.uid)"
@@ -47,7 +48,7 @@
             <span class="d-block text-truncate fw-semibold">{{ titleOf(item) || item.mapID }}</span>
             <small class="d-block text-truncate" :class="selectedUid === item.uid ? 'text-white-50' : 'text-muted'">{{ item.mapID }}</small>
           </span>
-          <span v-if="draftUids.has(item.uid)" class="badge bg-warning text-dark">{{ t("editor_ui.draft_badge") }}</span>
+          <span v-if="draftUids.has(item.uid)" class="badge bg-warning text-dark" data-testid="basemap-draft-badge">{{ t("editor_ui.draft_badge") }}</span>
           <span class="form-check ms-1" @click.stop>
             <input
               class="form-check-input"
@@ -73,6 +74,7 @@
             class="base-map-row list-group-item list-group-item-action border-0 border-top rounded-0 px-3 py-2 w-100 text-start"
             :class="{ active: selectedUid === item.uid }"
             :aria-current="selectedUid === item.uid ? 'true' : undefined"
+            :data-testid="`basemap-row-${item.mapID}`"
             @click="emit('select', item.uid)"
             @keydown.enter.prevent="emit('select', item.uid)"
             @keydown.space.prevent="emit('select', item.uid)"

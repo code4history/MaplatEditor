@@ -49,6 +49,7 @@
     "smoke:m11-t4-master-detail": "node scripts/m11-t4-master-detail-smoke.mjs",
     "test:e2e:m11-t2": "pnpm run build && playwright test tests/e2e/m11-t2-draft-hot-exit.spec.ts",
     "test:e2e:m11-t3": "pnpm run build && playwright test tests/e2e/m11-t3-editor-shell.spec.ts",
+    "test:e2e:m11-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t4-master-detail.spec.ts",
     "smoke:m5-basemap-catalog": "node scripts/m5-basemap-catalog-smoke.mjs",
     "smoke:m6-app-source-model": "node scripts/m6-app-source-model-smoke.mjs",
     "smoke:m6-t2-icon-refs": "node scripts/m6-t2-icon-refs-smoke.mjs",

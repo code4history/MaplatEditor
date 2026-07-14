@@ -5,6 +5,7 @@
         v-if="multiline"
         class="form-control form-control-sm"
         rows="3"
+        :data-testid="inputTestid"
         :value="valueFor(activeLang)"
         :disabled="disabled"
         @change="onConfirm(($event.target as HTMLTextAreaElement).value)"
@@ -12,6 +13,7 @@
       <input
         v-else
         type="text"
+        :data-testid="inputTestid"
         class="form-control form-control-sm"
         :value="valueFor(activeLang)"
         :disabled="disabled"
@@ -52,6 +54,7 @@ const props = withDefaults(defineProps<{
   multiline?: boolean;
   warning?: string;
   disabled?: boolean;
+  inputTestid?: string;
 }>(), {
   activeLang: "ja",
   languageOptions: () => SUPPORTED_LANGUAGES,
@@ -59,6 +62,7 @@ const props = withDefaults(defineProps<{
   multiline: false,
   warning: undefined,
   disabled: false,
+  inputTestid: undefined,
 });
 
 const emit = defineEmits<{

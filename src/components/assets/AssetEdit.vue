@@ -39,6 +39,7 @@
         <div class="col-12 col-xl-7">
           <label class="form-label fw-semibold">{{ t("assetlist.title_label") }}</label>
           <LangResourceInput
+            input-testid="asset-title"
             :model-value="document.title"
             :active-lang="activeLang"
             :default-lang="document.defaultLang"
@@ -65,6 +66,7 @@
             :value="document.slug"
             type="text"
             class="form-control form-control-sm"
+            data-testid="asset-slug"
             :disabled="structuralDisabled"
             @change="updateDocument({ ...document, slug: ($event.target as HTMLInputElement).value.trim() })"
           >
@@ -74,12 +76,12 @@
         <div class="col-12">
           <label class="form-label fw-semibold">{{ t("assetlist.add_modal.file_label") }}</label>
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <button v-if="isNew" type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled" @click="pickImageFile">
+            <button v-if="isNew" type="button" class="btn btn-sm btn-outline-primary" data-testid="asset-pick-file" :disabled="structuralDisabled" @click="pickImageFile">
               {{ t("assetlist.master_detail.select_image") }}
             </button>
             <span class="small">{{ volatileSource?.sourceName || document.sourceName || t("assetlist.master_detail.no_source") }}</span>
           </div>
-          <div v-if="isNew && !volatileSource" class="form-text text-warning">{{ t("assetlist.master_detail.reselect_required") }}</div>
+          <div v-if="isNew && !volatileSource" class="form-text text-warning" data-testid="asset-source-repick-warning">{{ t("assetlist.master_detail.reselect_required") }}</div>
         </div>
 
         <div v-if="previewUrl" class="col-12 col-xl-5">
@@ -131,7 +133,7 @@ interface AssetEditHistoryState { document: ImageAssetEditDocument; volatileSour
 const props = defineProps<{ uid: string; isNew: boolean; item: ImageAssetRow | null }>();
 const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string] }>();
 const { t } = useTranslation();
-const clone = <T,>(value: T): T => structuredClone(value);
+const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const initialDocument = props.item
   ? fromImageAssetRow(props.item)

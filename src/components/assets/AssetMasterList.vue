@@ -1,7 +1,7 @@
 <template>
   <section class="asset-master-list d-flex flex-column h-100 bg-white" @click="hideContextMenu">
     <div class="p-3 border-bottom">
-      <button type="button" class="btn btn-primary btn-sm w-100 mb-2" @click="emit('create')">
+      <button type="button" class="btn btn-primary btn-sm w-100 mb-2" data-testid="asset-new" @click="emit('create')">
         <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("assetlist.add_image") }}
         <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
       </button>
@@ -15,7 +15,7 @@
       <small class="text-muted d-block mt-1">{{ t("assetlist.count_label", { num: items.length }) }}</small>
     </div>
 
-    <div ref="scrollElement" class="flex-grow-1 overflow-auto" @scroll.passive="emit('scroll', scrollElement)">
+    <div ref="scrollElement" class="flex-grow-1 overflow-auto" data-testid="asset-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
       <div v-if="loading" class="text-muted text-center py-4">{{ t("assetlist.loading") }}</div>
       <div v-else-if="error" class="alert alert-danger m-3">{{ error }}</div>
       <div v-else-if="items.length === 0 && newDrafts.length === 0" class="text-muted small text-center p-3">{{ t("assetlist.no_assets_found") }}</div>
@@ -41,6 +41,7 @@
           class="asset-row list-group-item list-group-item-action border-0 border-bottom rounded-0 px-3 py-2"
           :class="{ active: selectedUid === asset.uid }"
           :aria-current="selectedUid === asset.uid ? 'true' : undefined"
+          :data-testid="`asset-row-${asset.slug}`"
           @click.stop="selectRow(asset.uid)"
           @keydown.enter.prevent="emit('select', asset.uid)"
           @keydown.space.prevent="emit('select', asset.uid)"
@@ -59,7 +60,7 @@
             <small class="d-block text-truncate" :class="selectedUid === asset.uid ? 'text-white-50' : 'text-muted'">{{ asset.slug }}</small>
             <small class="d-block text-truncate" :class="selectedUid === asset.uid ? 'text-white-50' : 'text-muted'">{{ formatMeta(asset) }}</small>
           </div>
-          <span v-if="draftUids.has(asset.uid)" class="badge bg-warning text-dark">{{ t("editor_ui.draft_badge") }}</span>
+          <span v-if="draftUids.has(asset.uid)" class="badge bg-warning text-dark" data-testid="asset-draft-badge">{{ t("editor_ui.draft_badge") }}</span>
         </div>
       </template>
     </div>
