@@ -23,6 +23,7 @@ import {
   createAppSourceFromBaseMap,
   envelopeToBbox,
   normalizeAppSource,
+  resolveBaseMapSelectorText,
   type AppSource as SharedAppSource,
 } from "../utils/appSourceModel";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
@@ -908,14 +909,12 @@ function addBaseMapSource(item: BaseMapItem) {
   // builtin/tmsソースは登録地図ではないためuid解決の対象外。ビルトインID/TMS地図IDを
   // そのまま埋め込み値として保持する(app保存時の追加コピーであり、他エンティティへの参照ではない)
   if (appData.value.sources.some((source) => source.mapUid === item.mapID && source.sourceType !== "maplat")) return;
-  const title = baseMapTitle(item);
   // builtinを含め、マスタの全言語resource/提供範囲等はApp文書へ独立コピーする。
   // Viewer出力時だけbuiltinは従来どおり文字列IDへ畳み込む。
   const source = createAppSourceFromBaseMap(
     { mapID: item.mapID, ...(item.data || {}) },
     appData.value.lang,
   ) as AppSource;
-  source.title = title;
   source.thumbnail = item.thumbnailUrl || undefined;
   if (source.sourceType === "tms" && source.data && !source.data.thumbnail && item.thumbnailUrl) {
     // マスタにthumbnail未設定の旧ユーザーベースマップ: Viewer規約のtmbs/{mapID}_menu.jpgを補完
@@ -964,7 +963,10 @@ function sourceIdLabel(source: AppSource): string {
 }
 
 function baseMapTitle(item: BaseMapItem): string {
-  return String(item.data?.title ?? item.data?.label ?? item.mapID);
+  return resolveBaseMapSelectorText(
+    { mapID: item.mapID, ...(item.data || {}) },
+    appData.value.lang,
+  );
 }
 
 function baseMapThumbnail(item: BaseMapItem): string {
@@ -1087,7 +1089,7 @@ function onPoisChange(next: unknown[]) {
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" :class="{ active: activeTab === 'sources' }" href="#" @click.prevent="activeTab = 'sources'">
+          <a data-testid="app-sources-tab" class="nav-link" :class="{ active: activeTab === 'sources' }" href="#" @click.prevent="activeTab = 'sources'">
             {{ t("appedit.edit_sources") }}
           </a>
         </li>
@@ -1317,7 +1319,7 @@ function onPoisChange(next: unknown[]) {
               <button class="btn btn-sm" :class="sourceListMode === 'maps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'maps'">
                 {{ t("appedit.map_list") }}
               </button>
-              <button class="btn btn-sm" :class="sourceListMode === 'baseMaps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'baseMaps'">
+              <button data-testid="app-basemap-mode" class="btn btn-sm" :class="sourceListMode === 'baseMaps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'baseMaps'">
                 {{ t("appedit.base_map_list") }}
               </button>
             </div>
@@ -1331,6 +1333,7 @@ function onPoisChange(next: unknown[]) {
             <input
               v-else
               v-model="baseMapSearchQuery"
+              data-testid="app-basemap-search"
               class="form-control form-control-sm"
               :placeholder="t('appedit.search_base_maps')"
             >
@@ -1359,7 +1362,7 @@ function onPoisChange(next: unknown[]) {
 
           <div v-else>
             <div class="source-list">
-              <button v-for="item in filteredBaseMapItems" :key="`${item.scope}:${item.mapID}`" type="button" class="source-row" @click="addBaseMapSource(item)">
+              <button v-for="item in filteredBaseMapItems" :key="`${item.scope}:${item.mapID}`" type="button" class="source-row" :data-testid="`app-basemap-row-${item.mapID}`" @click="addBaseMapSource(item)">
                 <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)" loading="lazy" decoding="async">
                 <span>{{ baseMapTitle(item) }}</span>
               </button>
@@ -1371,7 +1374,7 @@ function onPoisChange(next: unknown[]) {
           <h5>{{ t("appedit.selected_sources") }}</h5>
           <div v-if="appData.sources.length === 0" class="text-muted py-3">{{ t("appedit.no_selected_sources") }}</div>
           <div v-else class="selected-list">
-            <div v-for="(source, index) in appData.sources" :key="`${source.sourceType}:${source.mapUid}`" class="selected-source border rounded p-2 mb-2">
+            <div v-for="(source, index) in appData.sources" :key="`${source.sourceType}:${source.mapUid}`" class="selected-source border rounded p-2 mb-2" :data-testid="`app-selected-source-${source.mapUid}`">
               <div class="d-flex align-items-center justify-content-between gap-2">
                 <div class="d-flex align-items-center gap-2">
                   <img :src="sourceThumbnail(source)" :alt="sourceTitle(source)" class="selected-source-thumb">

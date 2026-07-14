@@ -90,6 +90,7 @@ try {
     normalizeAppSource,
     resolveBaseMapRuntimeText,
     resolveBaseMapLayerMetadata,
+    resolveBaseMapSelectorText,
     parseBaseMapBboxQuery,
     serializeBaseMapBboxQuery,
     toBaseMapSavePayload,
@@ -265,8 +266,11 @@ try {
     coverageLngLats: [[135, 34], [136, 34], [136, 35], [135, 35]],
   };
   const appSource = createAppSourceFromBaseMap(master, "ja");
+  assert.equal(resolveBaseMapSelectorText(master, "ja"), "地図ラベル");
+  assert.equal(resolveBaseMapSelectorText(master, "en"), "Map label");
   assert.deepEqual(appSource.label, master.label);
   assert.notEqual(appSource.label, master.label);
+  assert.equal(appSource.title, "地図");
   assert.equal(appSource.data.defaultLang, "ja");
   const runtimeSource = composeViewerSource(appSource, { lang: "ja" });
   assert.equal(runtimeSource.title, "地図");
@@ -352,6 +356,12 @@ try {
     () => buildBuiltinBaseMaps(missingRegionCatalog, legacyList),
     /regionEn missing/,
   );
+  const duplicateMapIDCatalog = structuredClone(catalog);
+  duplicateMapIDCatalog.rows.push(structuredClone(duplicateMapIDCatalog.rows[0]));
+  assert.throws(
+    () => buildBuiltinBaseMaps(duplicateMapIDCatalog, legacyList),
+    /catalog Base Map mapID must be unique/,
+  );
 
   const builtins = JSON.parse(
     await readFile(path.join(projectRoot, "electron/builtin_base_maps.json"), "utf8"),
@@ -376,6 +386,10 @@ try {
     path.join(projectRoot, "src/views/BaseMapList.vue"),
     "utf8",
   );
+  const appEditor = await readFile(path.join(projectRoot, "src/views/AppEdit.vue"), "utf8");
+  assert.doesNotMatch(appEditor, /String\(item\.data\?\.(?:title|label)/);
+  assert.doesNotMatch(appEditor, /source\.title\s*=\s*baseMapTitle/);
+  assert.match(appEditor, /resolveBaseMapSelectorText/);
   const baseMapMasterList = await readFile(
     path.join(projectRoot, "src/components/basemap/BaseMapMasterList.vue"),
     "utf8",

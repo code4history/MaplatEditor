@@ -124,7 +124,9 @@ export function createAppSourceFromBaseMap(
   appDefaultLang: string,
 ): AppSource {
   const mapID = String(master.mapID || "");
-  const cloned = structuredClone(master);
+  // rendererからはVue reactive Proxyが渡るため、JSON文書としてplain objectへ剥がす。
+  // structuredCloneはProxyをcloneできず、AppのBase Map選択がDataCloneErrorになる。
+  const cloned = JSON.parse(JSON.stringify(master));
   const labelSource = cloned.label ?? cloned.title;
   const label = typeof labelSource === "string"
     ? { [cloned.lang || "en"]: labelSource }
@@ -150,6 +152,18 @@ export function createAppSourceFromBaseMap(
     data: cloned,
     title: resolveBaseMapRuntimeText(master.title, appDefaultLang, master.lang || "en"),
   };
+}
+
+export function resolveBaseMapSelectorText(
+  master: Record<string, any>,
+  activeLang: string,
+): string {
+  const defaultLang = master.defaultLang || master.lang || "en";
+  return (
+    resolveBaseMapRuntimeText(master.label, activeLang, defaultLang) ||
+    resolveBaseMapRuntimeText(master.title, activeLang, defaultLang) ||
+    String(master.mapID || "")
+  );
 }
 
 export function compactLangObject(

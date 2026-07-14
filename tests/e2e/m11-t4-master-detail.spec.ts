@@ -43,6 +43,12 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
   const imagePath = path.join(e2eRoot, 'e2e-input.png');
   await copyFile(path.join(projectRoot, 'src/assets/img/no_image.png'), imagePath);
   const { app, page } = await launch(e2eRoot);
+  const pageErrors: string[] = [];
+  const consoleErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
 
   try {
     await installDialogHarness(app, imagePath);
@@ -114,6 +120,19 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await page.reload();
     await expect(page).toHaveURL(directBaseMapUrl);
     await expect(page.getByTestId('basemap-slug')).toHaveValue('e2e-user-basemap');
+
+    await openHash(page, '#/appedit', '[data-testid="app-id"]');
+    await page.getByTestId('app-sources-tab').click();
+    await page.getByTestId('app-basemap-mode').click();
+    await page.getByTestId('app-basemap-search').fill('GSI');
+    await expect(page.getByTestId('app-basemap-row-gsi')).toHaveText(/地理院|GSI/);
+    await expect(page.getByTestId('app-basemap-row-gsi')).not.toHaveText('[object Object]');
+    const consoleErrorCountBeforeAdd = consoleErrors.length;
+    await page.getByTestId('app-basemap-row-gsi').click();
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors.slice(consoleErrorCountBeforeAdd)).toEqual([]);
+    await expect(page.getByTestId('app-selected-source-gsi')).toHaveText(/地理院地図|GSI Maps/);
+    await expect(page.getByTestId('app-selected-source-gsi')).not.toHaveText('[object Object]');
 
     await openHash(page, '#/assets?q=&page=2', '[data-master-detail="image-asset"]');
     await expect(page.getByTestId('asset-new')).toHaveClass(/btn-outline-primary/);

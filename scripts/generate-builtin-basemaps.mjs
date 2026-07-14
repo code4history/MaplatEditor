@@ -170,7 +170,7 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
   for (const row of catalog.rows) {
     if (typeof row.regionEn !== "string" || !row.regionEn.trim()) throw new Error(`regionEn missing: ${row.region}`);
     const mapID = row.maplatEditorId || row.id.replace(/\//g, "");
-    if (seenIDs.has(mapID)) continue;
+    if (seenIDs.has(mapID)) throw new Error(`catalog Base Map mapID must be unique: ${mapID}`);
     seenIDs.add(mapID);
     const legacy = legacyByID.get(mapID);
     if (legacy?.url && legacy.url !== row.tileUrl) throw new Error(`legacy Base Map URL mismatch: ${mapID}`);
