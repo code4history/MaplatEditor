@@ -1,186 +1,97 @@
 <template>
-  <div class="container-fluid p-3" @click="hideContextMenu">
-    <div class="row mb-3 gx-2 align-items-center">
-      <div class="col-auto">
-        <button class="btn btn-light border shadow-sm px-4" @click="createNewApp">
-          {{ t("applist.new_create") }}
-        </button>
-      </div>
-      <div class="col">
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="form-control shadow-sm"
-          :placeholder="t('applist.search_placeholder')"
-          @input="handleSearch"
-        />
-      </div>
-      <div class="col-auto">
-        <div class="btn-group shadow-sm" role="group">
-          <button class="btn btn-light border" :disabled="currentPage <= 1" @click="prevPage">&lt;</button>
-          <button class="btn btn-light border" :disabled="!hasNext" @click="nextPage">&gt;</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="d-flex flex-wrap justify-content-start align-items-start gap-4" style="padding-left: 5px;">
-      <div v-for="app in applist" :key="app.uid" class="app-card-wrapper">
-        <div class="app-card-inner">
-          <!-- アプリ編集はuid正準で開く (ADR-0007) -->
-          <router-link :to="`/appedit?uid=${app.uid}`" class="text-decoration-none text-dark d-block">
-            <div class="position-relative bg-white app-image">
-              <img
-                :src="app.image || noImage"
-                :alt="app.title"
-                loading="lazy"
-                decoding="async"
-                class="position-absolute top-50 start-50 translate-middle"
-                style="max-width: 100%; max-height: 100%; width: auto; height: auto;"
-                @contextmenu.prevent="openContextMenu($event, app)"
-              />
-            </div>
-            <div class="mt-2 text-center app-title">
-              <p class="mb-0 text-break">{{ app.title }}</p>
-              <span v-if="hasDraft(app.uid)" class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span>
-            </div>
-          </router-link>
-        </div>
-      </div>
-      <div v-for="draft in newDrafts" :key="draft.assetUid" class="app-card-wrapper">
-        <div class="app-card-inner">
-          <router-link :to="`/appedit?draftUid=${draft.assetUid}`" class="text-decoration-none text-dark d-block">
-            <div class="position-relative bg-white app-image">
-              <img :src="noImage" :alt="t('editor_ui.draft_badge')" class="position-absolute top-50 start-50 translate-middle" style="max-width: 100%; max-height: 100%;">
-            </div>
-            <div class="mt-2 text-center app-title"><span class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span></div>
-          </router-link>
-        </div>
-      </div>
-    </div>
-
-    <ul
-      v-if="contextMenu.visible"
-      class="dropdown-menu show ctx-menu"
-      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
-      @click.stop
+  <div class="app-list h-100 d-flex flex-column">
+    <ResourceListShell
+      kind="app"
+      kind-name-key="resource_list.kind_app"
+      variant="grid"
+      :query="query"
+      :state="state"
+      :total="total"
+      :loaded="loaded"
+      :new-draft="newDrafts.length > 0"
+      @create="createNewApp"
+      @update:query="updateQuery"
+      @retry="retry"
+      @load-more="loadMore"
     >
-      <li class="dropdown-header">{{ t("applist.delete_menu") }}</li>
-      <li>
-        <a class="dropdown-item" href="#" @click.prevent="deleteApp">
-          {{ t("applist.delete_item", { name: contextMenu.name }) }}
-        </a>
-      </li>
-    </ul>
+      <div class="d-flex flex-wrap justify-content-start align-items-start gap-4 p-3">
+        <ResourceGridCard
+          v-for="vm in viewModels"
+          :key="vm.uid"
+          :item="vm"
+          kind="app"
+          :to="`/appedit?uid=${vm.uid}`"
+          :fallback-image="noImage"
+          :draft-label="t('editor_ui.draft_badge')"
+          @action="onAction"
+        />
+        <router-link
+          v-for="draft in newDrafts"
+          :key="draft.assetUid"
+          :to="`/appedit?draftUid=${draft.assetUid}`"
+          class="resource-grid-card text-decoration-none text-dark"
+        >
+          <div class="resource-grid-card__thumb bg-white"><img :src="noImage" :alt="t('editor_ui.draft_badge')"></div>
+          <div class="text-center mt-2"><span class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span></div>
+        </router-link>
+      </div>
+    </ResourceListShell>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onBeforeUnmount, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
+import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
+import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
+import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
+import { createAppListAdapter, type AppListRow } from "./resource-adapters/appListAdapter";
+import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 
 const { t } = useTranslation();
+const route = useRoute();
 const router = useRouter();
-const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges('app');
+const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges("app");
 const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
 
-interface AppItem {
-  uid: string;
-  appID: string;
-  title: string;
-  image: string | null;
+const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
+const selectedUidRef = { value: null as string | null };
+const adapter = createAppListAdapter({ hasDraft, selectedUid: () => selectedUidRef.value });
+const { items, total, loaded, state, loadFirst, loadMore, retry, applyDeletion } = useInfiniteResourceList<AppListRow, number>(
+  adapter,
+  { filter: () => ({ q: query.value, bbox: null }), activeLang: () => "" },
+);
+const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, "")));
+
+function updateQuery(value: string): void {
+  void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
 }
+function createNewApp(): void { void router.push("/appedit"); }
 
-const applist = ref<AppItem[]>([]);
-const searchQuery = ref("");
-const currentPage = ref(1);
-const hasNext = ref(true);
-const contextMenu = ref({ visible: false, x: 0, y: 0, uid: "", name: "" });
-
-const loadApps = async (page: number = 1) => {
+async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
+  if (key !== "delete") return;
+  if (!confirm(t("applist.delete_confirm", { name: vm.title }))) return;
   try {
-    const result = await window.applist.request(searchQuery.value, page);
-    applist.value = result.docs;
-    currentPage.value = result.pageUpdate ?? page;
-    hasNext.value = result.next;
+    await window.applist.delete(vm.uid, query.value, 1); // backend 側の削除・参照処理は無改変
+    await window.assetDrafts.remove("app", vm.uid);
+    await applyDeletion(vm.uid); // D9: UID除去 + 最終page再取得 dedupe
     await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to fetch app list", e);
-  }
-};
-
-onMounted(() => {
-  loadApps(1);
-  const unsubscribe = window.applist.onRefresh(() => loadApps(1));
-  onBeforeUnmount(() => unsubscribe());
-});
-
-const handleSearch = () => loadApps(1);
-const createNewApp = () => router.push("/appedit");
-const prevPage = () => currentPage.value > 1 && loadApps(currentPage.value - 1);
-const nextPage = () => hasNext.value && loadApps(currentPage.value + 1);
-
-const openContextMenu = (event: MouseEvent, app: AppItem) => {
-  contextMenu.value = { visible: true, x: event.clientX, y: event.clientY, uid: app.uid, name: app.title };
-};
-const hideContextMenu = () => {
-  contextMenu.value.visible = false;
-};
-const deleteApp = async () => {
-  const { uid, name } = contextMenu.value;
-  hideContextMenu();
-  if (!confirm(t("applist.delete_confirm", { name }))) return;
-  try {
-    // 削除もuid正準 (ADR-0007)
-    const result = await window.applist.delete(uid, searchQuery.value, currentPage.value);
-    await window.assetDrafts.remove('app', uid);
-    applist.value = result.docs;
-    currentPage.value = result.pageUpdate ?? currentPage.value;
-    hasNext.value = result.next;
   } catch (e) {
     console.error("Failed to delete app", e);
     alert(t("applist.delete_error"));
   }
-};
-</script>
+}
 
-<style scoped>
-.app-card-wrapper {
-  width: 200px;
-  background: transparent;
-  flex-shrink: 0;
-}
-.app-card-inner {
-  background: #fff;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  border: 1px solid rgba(0,0,0,0.1);
-  border-radius: 4px;
-  padding: 4px;
-  transition: box-shadow 0.2s;
-  width: 100%;
-}
-.app-card-inner:hover {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-.app-image {
-  width: 190px;
-  height: 190px;
-  margin: 0 auto;
-  overflow: hidden;
-}
-.app-title {
-  width: 190px;
-  min-height: 3em;
-}
-.app-title p {
-  font-size: 14px;
-  line-height: 1.4;
-}
-.ctx-menu {
-  position: fixed;
-  z-index: 2000;
-  display: block;
-}
-</style>
+let unsubscribe: (() => void) | null = null;
+onMounted(async () => {
+  await loadFirst();
+  await refreshDrafts();
+  unsubscribe = window.applist.onRefresh(() => { void loadFirst(); void refreshDrafts(); });
+});
+onBeforeUnmount(() => unsubscribe?.());
+// route.q 変更で再取得（filter generation）
+watch(query, () => { void loadFirst(); });
+</script>

@@ -240,3 +240,16 @@ assert.doesNotMatch(mapList, /prevPage|nextPage|&lt;|&gt;/, "MapList must not co
 assert.match(mapList, /assetDrafts\.remove\(['"]map['"]/, "delete must still remove map draft");
 assert.match(mapList, /applyDeletion/, "delete must use composable applyDeletion (D9)");
 console.log("m11-t6 smoke Part 5: OK");
+
+// --- Part 6: AppList 移行 ---
+const appAdapter = await read("src/views/resource-adapters/appListAdapter.ts");
+assert.match(appAdapter, /window\.applist\.request/, "appAdapter must call applist.request (D1)");
+assert.match(appAdapter, /total:\s*null/, "app batch total must be null (D8改)");
+const appList = await read("src/views/AppList.vue");
+assert.match(appList, /ResourceListShell/);
+assert.match(appList, /ResourceGridCard/);
+assert.match(appList, /useInfiniteResourceList/);
+assert.doesNotMatch(appList, /prevPage|nextPage|&lt;|&gt;/, "AppList must not contain pager");
+assert.match(appList, /assetDrafts\.remove\(['"]app['"]/);
+assert.match(appList, /applyDeletion/);
+console.log("m11-t6 smoke Part 6: OK");
