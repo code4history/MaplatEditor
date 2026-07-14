@@ -20,33 +20,37 @@ async function launch(e2eRoot: string, instance: string): Promise<Runtime> {
     cwd: projectRoot,
     env: { ...process.env, VITE_DEV_SERVER_URL: '', MAPLAT_E2E_ROOT: e2eRoot },
   });
-  const page = await app.firstWindow();
-  await page.waitForLoadState('domcontentloaded');
-  const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
-  // AC14: instance固有userDataDirへ逃げず、両instanceが共有E2E root配下だけを使う
-  if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
-    await app.close();
-    throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);
+  try {
+    const page = await app.firstWindow();
+    await page.waitForLoadState('domcontentloaded');
+    const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+    // AC14: instance固有userDataDirへ逃げず、両instanceが共有E2E root配下だけを使う
+    if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
+      throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);
+    }
+    return { app, page, userDataDir, saveFolder };
+  } catch (error) {
+    try { await app.close(); } catch { /* cleanup失敗で元例外を上書きしない */ }
+    throw error;
   }
-  return { app, page, userDataDir, saveFolder };
 }
 
 async function launchPair(): Promise<{ e2eRoot: string; a: Runtime; b: Runtime }> {
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-multi-'));
-  const a = await launch(e2eRoot, 'a');
+  let a: Runtime | null = null;
+  let b: Runtime | null = null;
   try {
-    const b = await launch(e2eRoot, 'b');
+    a = await launch(e2eRoot, 'a');
+    b = await launch(e2eRoot, 'b');
     if (path.resolve(a.saveFolder) !== path.resolve(b.saveFolder)) {
-      await Promise.all([a.app.close(), b.app.close()]);
       throw new Error(`E2E instances do not share saveFolder: ${a.saveFolder} !== ${b.saveFolder}`);
     }
     if (path.resolve(a.userDataDir) === path.resolve(b.userDataDir)) {
-      await Promise.all([a.app.close(), b.app.close()]);
       throw new Error('E2E instances unexpectedly share --user-data-dir');
     }
     return { e2eRoot, a, b };
   } catch (error) {
-    await a.app.close();
+    await Promise.allSettled([a, b].filter((runtime): runtime is Runtime => runtime !== null).map((runtime) => runtime.app.close()));
     throw error;
   }
 }

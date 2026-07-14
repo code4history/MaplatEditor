@@ -12,14 +12,20 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
     cwd: projectRoot,
     env: { ...process.env, VITE_DEV_SERVER_URL: '', MAPLAT_E2E_ROOT: e2eRoot },
   });
-  const page = await app.firstWindow();
-  await page.waitForLoadState('domcontentloaded');
-  // AC14: 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
-  const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
-  if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
-    throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);
+  try {
+    const page = await app.firstWindow();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForLoadState('domcontentloaded');
+    // AC14: 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
+    const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+    if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
+      throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);
+    }
+    return { app, page };
+  } catch (error) {
+    try { await app.close(); } catch { /* cleanup失敗で元例外を上書きしない */ }
+    throw error;
   }
-  return { app, page };
 }
 
 // dialog を承認へ倒しつつ、表示 message を main プロセス側 global に記録する
@@ -125,6 +131,21 @@ async function expectHeadOrder(page: Page, titleLabel: string | RegExp): Promise
   expect(titleAt).toBeGreaterThanOrEqual(0);
   expect(titleAt).toBeLessThan(slugAt);
   expect(slugAt).toBeLessThan(langAt);
+
+  const slug = page.locator('label', { hasText: 'スラッグ (ID)' }).first();
+  const lang = page.locator('label', { hasText: 'デフォルト言語' }).first();
+  const [titleBox, slugBox, langBox] = await Promise.all([
+    title.locator('xpath=..').boundingBox(),
+    slug.locator('xpath=..').boundingBox(),
+    lang.locator('xpath=..').boundingBox(),
+  ]);
+  expect(titleBox).not.toBeNull();
+  expect(slugBox).not.toBeNull();
+  expect(langBox).not.toBeNull();
+  const visuallyBefore = (a: NonNullable<typeof titleBox>, b: NonNullable<typeof titleBox>) =>
+    a.y + 2 < b.y || (Math.abs(a.y - b.y) <= 2 && a.x < b.x);
+  expect(visuallyBefore(titleBox!, slugBox!)).toBe(true);
+  expect(visuallyBefore(slugBox!, langBox!)).toBe(true);
 }
 
 test('five edits share SlugField with unified head order and §9 tabs', async () => {
