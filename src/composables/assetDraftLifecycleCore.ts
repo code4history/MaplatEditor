@@ -91,9 +91,17 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
       error.value = null;
     },
     schedule(isDirty: boolean) {
+      const wasDirty = dirty;
       dirty = isDirty;
       cancelTimer();
-      if (!dirty || !identity) return;
+      if (!dirty) {
+        // D9/S7a (M11-T7/AC10): dirty→clean 遷移(Undo 等の checkpoint clean)で
+        // 永続 draft を即時除去し、再起動時の draft 復活を防ぐ。store が正になるだけで、
+        // T5 の liveDraftOverrides/reconcile 契約は不変。
+        if (wasDirty && identity) void removePersisted();
+        return;
+      }
+      if (!identity) return;
       timer = setTimeoutFn(async () => {
         timer = undefined;
         await persist();

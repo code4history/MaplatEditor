@@ -295,3 +295,100 @@ assert.equal(jaI.editor_ui.tabs.pois, "POI選択");
 assert.equal(jaI.editor_ui.tabs.maps, "地図選択");
 assert.equal(jaI.editor_ui.tabs.preview, "プレビュー");
 console.log("m11-t7 smoke Part I: OK");
+
+// --- Part J1: placeholder 全角 …(AppEdit picker 系、AC11 = T6 Info-10 持ち越し) ---
+// AppEdit の picker 検索 placeholder(ベースマップ検索)は i18n 値側に半角 ... が残っていた。
+for (const loc of LOCALES) {
+  const t = JSON.parse(await readSrc(`public/locales/${loc}/translation.json`));
+  assert.doesNotMatch(String(t.appedit?.search_base_maps ?? ""), /\.\.\./,
+    `appedit.search_base_maps must use full-width … in ${loc} (AC11)`);
+}
+
+// --- Part J2: assetDraftLifecycleCore の checkpoint clean 即時除去(D9/AC10、vite bundle → node) ---
+{
+  const { mkdir, mkdtemp, writeFile, rm } = await import("node:fs/promises");
+  const path = await import("node:path");
+  const { build } = await import("vite");
+  const projectRoot = new URL("..", import.meta.url).pathname;
+  const scratchRoot = path.join(projectRoot, ".tmp-smoke");
+  await mkdir(scratchRoot, { recursive: true });
+  const workDir = await mkdtemp(path.join(scratchRoot, "t7-draft-core-"));
+  const entryFile = path.join(workDir, "entry.ts");
+  const outFile = path.join(workDir, "dist", "entry.mjs");
+  await writeFile(entryFile, `
+import assert from "node:assert/strict";
+import { createAssetDraftLifecycleCore } from ${JSON.stringify(path.join(projectRoot, "src/composables/assetDraftLifecycleCore.ts"))};
+
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+// fake api: put/remove を記録。setTimeoutFn は callback を捕捉して手動実行する
+function makeHarness() {
+  const api = {
+    puts: [] as unknown[],
+    removed: [] as Array<{ kind: string; assetUid: string }>,
+    put(draft: any) { this.puts.push(draft); return Promise.resolve(); },
+    remove(kind: any, assetUid: string) { this.removed.push({ kind, assetUid }); return Promise.resolve(); },
+    flushSync() { return { ok: true }; },
+  };
+  let pending: (() => void | Promise<void>) | null = null;
+  const core = createAssetDraftLifecycleCore({
+    api,
+    delayMs: 1,
+    setTimeoutFn: (cb) => { pending = cb; return 0 as any; },
+    clearTimeoutFn: () => { pending = null; },
+  });
+  return { api, core, firePending: async () => { const cb = pending; pending = null; if (cb) await cb(); } };
+}
+
+// (1) dirty → 手動 persist → schedule(false)(checkpoint clean)で remove が即時呼ばれる(D9)
+{
+  const { api, core, firePending } = makeHarness();
+  core.open({ kind: "map", assetUid: "uid-1", baseRevision: 3 }, () => ({ v: 1 }));
+  core.schedule(true);
+  await firePending(); // 手動 persist
+  assert.equal(api.puts.length, 1);
+  core.schedule(false); // Undo 等で checkpoint clean
+  await flush();
+  assert.deepEqual(api.removed, [{ kind: "map", assetUid: "uid-1" }]);
+}
+
+// (2) wasDirty ガード: 一度も dirty になっていない schedule(false) は remove しない
+{
+  const { api, core } = makeHarness();
+  core.open({ kind: "app", assetUid: "uid-2", baseRevision: null }, () => ({}));
+  core.schedule(false);
+  await flush();
+  assert.deepEqual(api.removed, []);
+}
+
+// (3) clean → clean の再 schedule(false) は remove を重ねない(遷移時のみ)
+{
+  const { api, core, firePending } = makeHarness();
+  core.open({ kind: "map", assetUid: "uid-3", baseRevision: 1 }, () => ({}));
+  core.schedule(true);
+  await firePending();
+  core.schedule(false);
+  await flush();
+  core.schedule(false);
+  await flush();
+  assert.equal(api.removed.length, 1);
+}
+
+console.log("m11-t7 draft core unit: OK");
+`);
+  await build({
+    root: workDir,
+    configFile: false,
+    logLevel: "error",
+    build: {
+      outDir: path.join(workDir, "dist"),
+      lib: { entry: entryFile, formats: ["es"], fileName: () => "entry.mjs" },
+      rollupOptions: { external: ["node:assert/strict"] },
+      minify: false,
+      emptyOutDir: true,
+    },
+  });
+  await import(path.resolve(outFile));
+  await rm(workDir, { recursive: true, force: true });
+}
+console.log("m11-t7 smoke Part J: OK");
