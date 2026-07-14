@@ -41,7 +41,7 @@
             <a
               href="#"
               class="nav-link h-100 d-flex align-items-center px-4"
-              :class="{ active: currentRoute === 'AppList' }"
+              :class="{ active: isAppSection }"
               @click.prevent="navigate('AppList')"
             >
               {{ t("navbar.edit_app") }}
@@ -90,6 +90,10 @@ const isMapSection = computed(() => {
 
 const isPoiSection = computed(() => {
     return currentRoute.value === 'PoiSourceList' || currentRoute.value === 'PoiEdit';
+});
+
+const isAppSection = computed(() => {
+    return currentRoute.value === 'AppList' || currentRoute.value === 'AppEdit';
 });
 
 const isAssetSection = computed(() => {
