@@ -9,6 +9,7 @@ import DraftConflictDialog from '../components/editor-ui/DraftConflictDialog.vue
 import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
 import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
 import LangValueChips from '../components/editor-ui/LangValueChips.vue';
+import SlugField from '../components/editor-ui/SlugField.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
@@ -94,14 +95,22 @@ let pendingSave: {
 const saveHandle = useRevisionedAssetSave<MapSaveResult>({
     send: async ({ expectedRevision }) => {
         const { saveValue, tins, sendUid, copyFromUid } = pendingSave!;
+        // M11-T7/D5改: UID 維持改名は明示フィールド renameFromSlug で原本(slugキー)改名の
+        // 残作業を引き継ぐ。起点は「最後に完全成功した保存の slug」(mapID ref = applySuccess
+        // でのみ更新)であり、DBコミット後のファイル操作失敗→再試行でも失われない。
+        const renameFromSlug =
+            sendUid && mapID.value && mapID.value !== saveValue.mapID ? mapID.value : undefined;
         // JSON ラウンドトリップで Vue リアクティブプロキシ・非シリアライズ可能値を除去してから送信
         const result = await window.mapedit.save({
             mapObject: JSON.parse(JSON.stringify(saveValue)),
             tins: JSON.parse(JSON.stringify(tins)),
-            uid: sendUid,
+            // M11-T7/AC6: 新規は事前採番 uid + create 明示合図(§7.2b)で create 経路へ
+            uid: sendUid ?? (copyFromUid ? undefined : (newMapUid || undefined)),
             slug: saveValue.mapID,
             expectedRevision,
             copyFromUid,
+            renameFromSlug,
+            ...(sendUid == null && !copyFromUid && newMapUid ? { create: true } : {}),
         });
         if (!result) {
             // IPC が結果を返さなかった: 旧実装の最終elseと同じくエラー通知して終了
@@ -136,7 +145,6 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         originalMapData.value = cloneDeep(mapData.value);
         markHistorySaved();
         await draftLifecycle.markSaved();
-        onlyOne.value = true;
         // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
         // 再オープンできるようURLのクエリを追随させる (履歴は汚さない)
         if (route.query.uid !== result.uid) {
@@ -147,8 +155,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
     isDirty: () => isDirty.value,
     onFailure: async (result) => {
         if (result.result === 'Exist') {
-            // 保存レースでslugを先取りされた: 一意性チェックボタンを再度有効化する
-            onlyOne.value = false;
+            // 保存レースで slug を先取りされた(field 表示は SlugField が担う)
             await (window as any).dialog.showMessageBox({
                 type: 'info',
                 buttons: ['OK'],
@@ -157,7 +164,8 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         } else {
             // DBコミット後のファイル操作失敗 (Error{revision付き}, ADR-0007) は composable が
             // uid/revision/confirmedSlug を取り込み済み(偽のrevision-conflict防止)。ここでは通知のみ。
-            // status(Change:{旧slug})は成功まで保持し、原本改名の残作業を再試行に引き継ぐ
+            // 原本改名の残作業は mapID ref(applySuccess でのみ更新)由来の renameFromSlug が
+            // 再試行に引き継ぐ(M11-T7/D5改)
             console.error('[saveMap] Save error:', result);
             await (window as any).dialog.showMessageBox({
                 type: 'info',
@@ -216,13 +224,14 @@ const defaultMapData = () => ({
 });
 const mapData = ref<any>({});
 const originalMapData = ref<any>({}); // isDirty 比較用ディープクローン
-/**
- * onlyOne: 旧実装の vueMap.onlyOne 相当
- * true  = slugの一意性確認済み（保存可能）
- * false = 一意性未確認（一意性チェックボタンでの確認が必要）
- * ADR-0007: mapID欄は既存地図でも編集可能なslug欄になった。編集すると false に戻る
- */
-const onlyOne = ref(false);
+// M11-T7: mapID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne の手動一意性
+// 確認機構は撤去し、保存時 confirmForSave(予約再確認)へ機構置換した。
+const slugField = ref<InstanceType<typeof SlugField> | null>(null);
+// 新規地図の事前採番 uid (AC6): draft キーと保存 create uid を兼ねる。既存 draftUid が
+// route にあれば引き継ぐ(hot exit 復元で予約 claim も同じ帰属になる)
+const newMapUid = (typeof route.query.uid === 'string' && route.query.uid && route.query.uid !== 'new')
+    ? ''
+    : (typeof route.query.draftUid === 'string' ? route.query.draftUid : crypto.randomUUID());
 const mappingUIRow = ref('layer');
 const currentEditingLayer = ref(0);
 const editingID = ref('');
@@ -730,20 +739,12 @@ watch(
     { deep: true, flush: 'post' }
 );
 
-// slug(mapID欄)の編集を検知して一意性再チェックを要求する (ADR-0007)。
-// 永続化済みslug(confirmedSlug)に戻った場合は自分自身のslugなので確認済み扱いに復帰する
-watch(() => mapData.value.mapID, (newVal, oldVal) => {
-    if (newVal === oldVal) return;
-    if (confirmedSlug.value && newVal === confirmedSlug.value) {
-        onlyOne.value = true;
-        // 改名を取り止めたので Change: ステータスを元に戻す
-        if (typeof mapData.value.status === 'string' && mapData.value.status.startsWith('Change:')) {
-            mapData.value.status = 'Update';
-        }
-    } else {
-        onlyOne.value = false;
-    }
-});
+// slug(mapID欄) の live 入力 (M11-T7)。可用性確認・予約 lifecycle は SlugField 内蔵
+// (excludeUid=自 uid で自分の現 slug は「空き」判定 = ADR-0007 継承)。履歴・draft は
+// mapData の deep watch が拾う(既存の文法どおり)。
+function onMapIDLiveInput(value: string): void {
+    mapData.value.mapID = value;
+}
 
 // --- POIデータタブ配線 (Phase 8 Task 2, 43 §2.4) ---
 // 器は mapData.pois 配列 (無ければ undefined)。順番変更/上書き/解除/追加は
@@ -812,20 +813,6 @@ const onMainProcessMessage = (message: string) => {
 };
 
 /**
- * 旧実装 computed.error の mapID 部分を再実装
- * - 空: 'mapedit.error_set_mapid'
- * - 使用不可文字: 'mapedit.error_mapid_character'  (/^[\d\w_-]+$/ に不一致)
- * - 未確認（新規）: 'mapedit.check_uniqueness'  ← onlyOne が false の間
- */
-const mapIDError = computed(() => {
-    const id = mapData.value.mapID;
-    if (id == null || id === '') return 'mapedit.error_set_mapid';
-    if (!id.match(/^[\d\w_-]+$/)) return 'mapedit.error_mapid_character';
-    if (!onlyOne.value) return 'mapedit.check_uniqueness';
-    return null;
-});
-
-/**
  * 旧実装 computed.displayTitle 相当（map.js L.123）
  * タイトル未設定時は 'mapmodel.untitled' キーを使う
  */
@@ -876,14 +863,12 @@ const blockingGcpsError = computed(() =>
 const saveError = computed(() => {
     const err: Record<string, string> = {};
 
-    // --- mapID ---
+    // --- mapID (一意性は SlugField + 保存時 confirmForSave が担う。ここは形式検証のみ) ---
     const id = mapData.value.mapID as string | undefined;
     if (id == null || id === '') {
         err['mapID'] = 'mapedit.error_set_mapid';
     } else if (!id.match(/^[\d\w_-]+$/)) {
         err['mapID'] = 'mapedit.error_mapid_character';
-    } else if (!onlyOne.value) {
-        err['mapIDOnlyOne'] = 'mapedit.check_uniqueness';
     }
 
     // --- title（表示用タイトル必須・長さ制限）---
@@ -1540,19 +1525,18 @@ onMounted(async () => {
     const isNew = !uid || uid === 'new';
 
     if (isNew) {
-        // 新規地図: defaultMap で初期化、onlyOne = false（mapID編集可）
+        // 新規地図: defaultMap で初期化
         // デフォルト言語は編集者のエディタUI言語(設定言語)に合わせる
         const fresh: any = defaultMapData();
         fresh.lang = resolveEditorLanguage(i18next.language);
         mapData.value = fresh;
         originalMapData.value = cloneDeep(fresh);
-        onlyOne.value = false;
     } else {
         // 既存地図: バックエンドからuidで読み込み
         try {
             const data = await (window as any).mapedit.request(uid);
             if (data) {
-                // バックエンドが mapID(=slug)/uid/revision/status/onlyOne を設定してくれている
+                // バックエンドが mapID(=slug)/uid/revision/status を設定してくれている
                 if (!data.status) data.status = 'Update';
                 adoptLoaded({ uid: data.uid ?? uid, slug: data.mapID, revision: data.revision });
                 mapID.value = data.mapID;
@@ -1562,7 +1546,6 @@ onMounted(async () => {
         } catch (e) {
             console.error("Failed to load map data:", e);
         }
-        onlyOne.value = true;
     }
 
     // 編集言語の初期値は地図のデフォルト言語(未設定の旧データはja)
@@ -1587,9 +1570,8 @@ onMounted(async () => {
     // tinObjects: メインレイヤー + サブマップ分 の undefined で初期化（旧実装: vueMap.tinObjects = [...]）
     tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
     initializeHistoryStack();
-    const draftUid = uid && uid !== 'new'
-        ? uid
-        : (typeof route.query.draftUid === 'string' ? route.query.draftUid : crypto.randomUUID());
+    // M11-T7: 新規の draft キー = 事前採番 uid(newMapUid)。予約帰属・create uid と一致させる
+    const draftUid = uid && uid !== 'new' ? uid : newMapUid;
     if (isNew && route.query.draftUid !== draftUid) {
         await router.replace({ query: { ...route.query, draftUid } });
     }
@@ -2562,50 +2544,12 @@ const mapUpload = async () => {
 };
 
 /**
- * 旧実装: vueMap.$on('checkOnlyOne') 相当
- * slug(mapID欄) 一意性チェック
- * ADR-0007: 既存地図では excludeUid=自分 を渡し、自分の現slugは「空き」と判定される
- */
-const checkOnlyOne = async () => {
-    const currentMapID = mapData.value.mapID as string;
-    const isUnique = await (window as any).assets.checkSlug({
-        slug: currentMapID,
-        excludeUid: mapUid.value ?? undefined,
-    });
-    if (isUnique) {
-        await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
-            message: t('mapedit.alert_mapid_checked')
-        });
-        onlyOne.value = true;
-        // 既存地図でslugが変わった場合は改名として Change:{旧slug} を立てる
-        // (保存時に「複製にするか」の確認に使う)。同じslugのままなら Update のまま
-        if (confirmedSlug.value && currentMapID !== confirmedSlug.value) {
-            if (mapData.value.status === 'Update') {
-                mapData.value.status = `Change:${confirmedSlug.value}`;
-            }
-        } else if (
-            typeof mapData.value.status === 'string' &&
-            mapData.value.status.startsWith('Change:')
-        ) {
-            mapData.value.status = 'Update';
-        }
-    } else {
-        await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
-            message: t('mapedit.alert_mapid_duplicated')
-        });
-        onlyOne.value = false;
-    }
-};
-
-/**
  * 旧実装: vueMap.$on('saveMap') 相当 (ADR-0007: uid正準 + revision楽観ロック)
  * 1. 確認ダイアログ
- * 2. Change: ステータスの場合、Copy に変えるかどうかの追加確認
- * 3. mapedit:save IPC を { mapObject, tins, uid?, slug, expectedRevision?, copyFromUid? } で呼ぶ
+ * 2. 予約再確認 (M11-T7 confirmForSave。改名は UID 維持の slug 付け替え = AC5、
+ *    複製化確認ダイアログは撤去。複製は T10 の専用導線が copyFromUid 経路を再利用する)
+ * 3. mapedit:save IPC を { mapObject, tins, uid?, slug, expectedRevision?, copyFromUid?,
+ *    renameFromSlug?, create? } で呼ぶ
  * 4. 成功反映・revision-conflict(読み直す/上書き)・部分成功 Error{revision} の引き継ぎは
  *    useRevisionedAssetSave (saveHandle) が共通処理する
  */
@@ -2621,30 +2565,24 @@ const saveMap = async (): Promise<boolean> => {
     });
     if (confirmResult.response === 1) return false; // キャンセル
 
+    // 2. M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)
+    const slugOk = await slugField.value?.confirmForSave() ?? true;
+    if (!slugOk) {
+        await (window as any).dialog.showMessageBox({
+            type: 'info',
+            buttons: ['OK'],
+            message: t('mapedit.error_duplicate_id')
+        });
+        return false;
+    }
+
     // 保存する値を作成（mapDataのコピー）
     const saveValue = cloneDeep(mapData.value);
 
-    // uid正準の宛先: 既存地図は uid 宛の upsert、新規は uid なしの create
-    let sendUid: string | undefined = mapUid.value ?? undefined;
-    let copyFromUid: string | undefined = undefined;
-
-    // 2. Change: ステータス(改名)の場合、Copy に変更するかの確認
-    // 旧実装: response===0(OK) → Copy, response===1(Cancel) → Keep Change
-    if (saveValue.status && saveValue.status.match(/^Change:(.+)$/)) {
-        const copyResult = await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK', 'Cancel'],
-            cancelId: 1,
-            message: t('mapedit.copy_or_move')
-        });
-        if (copyResult.response === 0) {
-            // OK → Copy（現在のuidを複製元に、新uidで新規作成）
-            copyFromUid = mapUid.value ?? undefined;
-            sendUid = undefined;
-            delete saveValue.uid;
-        }
-        // キャンセル → そのまま Change（uid維持のslug改名）
-    }
+    // uid正準の宛先: 既存地図は uid 宛の upsert(改名も同一 uid の slug 付け替え)、
+    // 新規は create。copyFromUid 保存経路は温存(導線は T10 複製で再利用)
+    const sendUid: string | undefined = mapUid.value ?? undefined;
+    const copyFromUid: string | undefined = undefined;
 
     // 3. tins 収集（旧実装: vueMap.tinObjects.map(tin => tin.getCompiled())）
     const tins = tinObjects.value.map((tin: any) => {
@@ -2694,7 +2632,6 @@ const reloadFromStore = async () => {
         editingID.value = '';
         newGcp.value = undefined;
         newlyAddEdge.value = undefined;
-        onlyOne.value = true;
         resetHistoryBase();
         await nextTick();
         if (data.url_) await loadMapTiles();
@@ -2876,7 +2813,6 @@ const importMap = async () => {
             mercZoom.value = histMap.mercZoom;
             strictMode.value = histMap.strictMode || 'strict';
             vertexMode.value = histMap.vertexMode || 'plain';
-            onlyOne.value = true;
             // TIN インスタンスを生成（旧実装: vueMap.tinObjects = tins.map(...)）
             if (compiledTins && compiledTins.length > 0) {
                 tinObjects.value = compiledTins.map((compiled: any) => {
@@ -3136,38 +3072,21 @@ const goBack = async () => {
                 <form class="container-fluid" @submit.prevent>
                     <!-- Row 1 -->
                     <div class="row g-1 mb-2">
-                        <!-- Map ID フィールド: slug編集欄 (ADR-0007: 既存地図でも編集可、変更時は一意性再チェック) -->
-                        <div class="col-md-3" :class="mapIDError && mapIDError !== 'mapedit.check_uniqueness' ? 'has-error' : ''">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.mapid") }}</label>
-                            <input
-                                data-testid="map-slug"
-                                type="text"
-                                class="form-control form-control-sm"
-                                :class="mapIDError && mapIDError !== 'mapedit.check_uniqueness' ? 'is-invalid' : ''"
-                                v-model="mapData.mapID"
-                                :placeholder="t('mapedit.input_mapid')"
+                        <!-- Map ID フィールド (M11-T7/AC1/AC5): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
+                             手動一意性確認ボタンは撤去。改名は UID 維持の slug 付け替え(保存時に
+                             renameFromSlug で原本改名の残作業を引き継ぐ) -->
+                        <div class="col-md-5">
+                            <SlugField
+                                ref="slugField"
+                                :model-value="mapData.mapID ?? ''"
+                                asset-kind="map"
+                                :asset-uid="mapUid || newMapUid"
+                                :draft-uid="mapUid || newMapUid"
+                                :original-slug="confirmedSlug"
                                 :disabled="translationMode"
-                            >
-                            <!-- バリデーションエラーメッセージ（旧実装 small.text-danger 相当） -->
-                            <div v-if="mapIDError && mapIDError !== 'mapedit.check_uniqueness'"
-                                 class="form-text small text-danger mb-0" style="font-size: 0.75rem;">
-                                {{ t(mapIDError) }}
-                            </div>
-                            <!-- 一意性未確認メッセージ（旧実装 mapedit.check_uniqueness 相当） -->
-                            <div v-else-if="mapIDError === 'mapedit.check_uniqueness'"
-                                 class="form-text small text-danger mb-0" style="font-size: 0.75rem;">
-                                {{ t('mapedit.check_uniqueness') }}
-                            </div>
-                            <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.unique_mapid") }}</div>
-                        </div>
-                        <!-- 一意性チェックボタン: mapID欄は常時編集可のslug欄 (ADR-0007)。
-                             確認済み(onlyOne)や形式エラーの間は無効化する -->
-                        <div class="col-md-2 d-flex align-items-start pt-4">
-                            <button class="btn btn-secondary btn-sm w-100 mt-1"
-                                    :disabled="translationMode || onlyOne || !!(mapIDError && mapIDError !== 'mapedit.check_uniqueness')"
-                                    @click="checkOnlyOne">
-                                {{ t("mapedit.uniqueness_button") }}
-                            </button>
+                                input-testid="map-slug"
+                                @update:model-value="onMapIDLiveInput"
+                            />
                         </div>
                         <div class="col-md-2">
                              <label class="form-label fw-bold small mb-0">{{ t("mapedit.image_width") }}</label>

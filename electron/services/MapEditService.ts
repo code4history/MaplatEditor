@@ -219,7 +219,8 @@ class MapEditService {
                 // 新規作成の明示合図(D11改): rendererが事前採番したuidを採用し、
                 // unique制約 + 予約promoteで二重作成/他者占有を防ぐ。uid有無ではなくcreateフラグで
                 // 分岐するため、既存update経路の復活防止不変条件(lookup失敗=エラー)を侵さない。
-                if (!(await SqliteDataService.isSlugAvailable(slug))) {
+                // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする(D2改)
+                if (!(await SqliteDataService.isSlugAvailable(slug, request.uid ?? undefined))) {
                     throw new Error('Exist');
                 }
                 const created = await SqliteDataService.createMap(slug, compiled, request.uid ?? undefined);
@@ -269,6 +270,12 @@ class MapEditService {
                 return { error: 'revision-conflict', current: e.current };
             }
             if (e && e.message === 'Exist') return { result: 'Exist' };
+            // registerAsset/renameAssetSlug のslug衝突(レース先取り)と slug 予約 promote conflict
+            // (M11-T7/AC4)も duplicate として写像する
+            if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
+                return { result: 'Exist' };
+            }
+            if (e?.kind === 'slug-reservation-conflict') return { result: 'Exist' };
             console.error('[MapEditService.save] Error:', e);
             return { result: 'Error' };
         }

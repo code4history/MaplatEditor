@@ -213,3 +213,13 @@ assert.match(appEditSrc, /SlugField/, "AppEdit must use SlugField");
 assert.doesNotMatch(appEditSrc, /appedit\.uniqueness_button/, "AppEdit must drop uniqueness button (AC1)");
 assert.doesNotMatch(appEditSrc, /window\.assets\.checkSlug/, "AppEdit must drop raw checkSlug (AC17)");
 console.log("m11-t7 smoke Part F1: OK");
+
+// --- Part F2: MapEdit が SlugField、旧改名 flow 撤去、renameFromSlug を保存へ渡す ---
+const mapEditVue = await readSrc("src/views/MapEdit.vue");
+assert.match(mapEditVue, /SlugField/, "MapEdit must use SlugField");
+assert.doesNotMatch(mapEditVue, /mapedit\.uniqueness_button/, "MapEdit must drop uniqueness button (AC1)");
+assert.doesNotMatch(mapEditVue, /copy_or_move/, "MapEdit must drop copy_or_move dialog (AC5)");
+assert.doesNotMatch(mapEditVue, /`Change:\$\{/, "MapEdit must drop Change: status (D5)");
+assert.match(mapEditVue, /renameFromSlug/, "MapEdit must pass renameFromSlug on rename save (D5)");
+assert.doesNotMatch(mapEditVue, /window\.assets\.checkSlug/, "MapEdit must drop raw checkSlug (AC17)");
+console.log("m11-t7 smoke Part F2: OK");

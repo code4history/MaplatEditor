@@ -133,7 +133,8 @@ class AppDataService {
       if (request.create === true) {
         // 新規作成の明示合図(D11改): 事前採番uidを採用。uid有無ではなくcreateフラグで分岐し、
         // 既存update経路の復活防止不変条件(lookup失敗=Error)を侵さない。
-        if (!(await SqliteDataService.isSlugAvailable(slug))) return { result: 'Exist' };
+        // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする(D2改)
+        if (!(await SqliteDataService.isSlugAvailable(slug, uid))) return { result: 'Exist' };
         const { uid: createdUid } = await SqliteDataService.createApp(slug, document, uid);
         return { result: 'Success', uid: createdUid, slug, revision: 1 };
       }
@@ -157,6 +158,10 @@ class AppDataService {
       }
       // registerAsset/renameAssetSlugのslug衝突(レースで先取りされた場合)は 'Exist' に写像
       if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
+        return { result: 'Exist' };
+      }
+      // slug 予約 promote conflict(M11-T7/AC4)も duplicate として写像する
+      if (e?.kind === 'slug-reservation-conflict') {
         return { result: 'Exist' };
       }
       console.error('[AppDataService.saveApp] Error:', e);
