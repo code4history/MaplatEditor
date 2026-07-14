@@ -225,3 +225,18 @@ for (const rel of ["ResourceListShell.vue", "ResourceListToolbar.vue", "Resource
   assert.doesNotMatch(src, /window\.(maplist|applist|poiSources|baseMaps|imageAssets|assetDrafts)/, `${rel} must not import domain service`);
 }
 console.log("m11-t6 smoke Part 4: OK");
+
+// --- Part 5: MapList 移行 ---
+const mapAdapter = await read("src/views/resource-adapters/mapListAdapter.ts");
+assert.match(mapAdapter, /window\.maplist\.request/, "mapAdapter must call maplist.request (D1)");
+assert.match(mapAdapter, /total:\s*null/, "map batch total must be null (D8改)");
+const mapList = await read("src/views/MapList.vue");
+assert.match(mapList, /ResourceListShell/, "MapList must use ResourceListShell");
+assert.match(mapList, /ResourceGridCard/, "MapList must use ResourceGridCard");
+assert.match(mapList, /useInfiniteResourceList/, "MapList must use composable");
+// pager 全廃
+assert.doesNotMatch(mapList, /prevPage|nextPage|&lt;|&gt;/, "MapList must not contain pager");
+// 削除は menu 経由（旧独自 dropdown 撤去）。confirm と assetDrafts.remove は維持
+assert.match(mapList, /assetDrafts\.remove\(['"]map['"]/, "delete must still remove map draft");
+assert.match(mapList, /applyDeletion/, "delete must use composable applyDeletion (D9)");
+console.log("m11-t6 smoke Part 5: OK");
