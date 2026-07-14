@@ -820,5 +820,24 @@
     "slug_state": {"checking": "Wird geprüft…", "available": "Verfügbar", "taken": "Bereits verwendet", "unavailable": "Prüfung nicht möglich"},
     "draft_badge": "Entwurf",
     "draft_conflict": {"title": "Entwurf und gespeicherte Version unterscheiden sich", "message": "Die gespeicherte Version wurde nach Erstellung des Entwurfs geändert.", "discard": "Entwurf verwerfen und neueste öffnen", "apply": "Entwurf anwenden"}
+  },
+  "resource_list": {
+    "new_item": "Neu",
+    "search_placeholder": "{{name}} suchen…",
+    "kind_map": "Karten",
+    "kind_poi_source": "POI-Quellen",
+    "kind_base_map": "Basiskarten",
+    "kind_app": "Apps",
+    "kind_asset": "Assets",
+    "loading": "Wird geladen…",
+    "empty": "Keine passenden Einträge",
+    "end": "Alle Einträge angezeigt",
+    "load_error": "Laden fehlgeschlagen",
+    "append_error": "Weitere konnten nicht geladen werden",
+    "retry": "Erneut versuchen",
+    "menu_delete": "Löschen",
+    "menu_label": "Aktionen",
+    "total_loaded": "{{loaded}} von {{total}} angezeigt",
+    "loaded_only": "{{loaded}} angezeigt"
   }
 }

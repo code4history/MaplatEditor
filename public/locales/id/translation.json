@@ -820,5 +820,24 @@
     "slug_state": {"checking": "Memeriksa…", "available": "Tersedia", "taken": "Sudah digunakan", "unavailable": "Tidak dapat memeriksa"},
     "draft_badge": "Draf",
     "draft_conflict": {"title": "Draf berbeda dari versi tersimpan", "message": "Versi tersimpan berubah setelah draf dibuat.", "discard": "Buang draf dan buka versi terbaru", "apply": "Terapkan draf"}
+  },
+  "resource_list": {
+    "new_item": "Baru",
+    "search_placeholder": "Cari {{name}}…",
+    "kind_map": "peta",
+    "kind_poi_source": "sumber POI",
+    "kind_base_map": "peta dasar",
+    "kind_app": "aplikasi",
+    "kind_asset": "aset",
+    "loading": "Memuat…",
+    "empty": "Tidak ada item yang cocok",
+    "end": "Semua item ditampilkan",
+    "load_error": "Gagal memuat",
+    "append_error": "Gagal memuat lainnya",
+    "retry": "Coba lagi",
+    "menu_delete": "Hapus",
+    "menu_label": "Tindakan",
+    "total_loaded": "{{loaded}} dari {{total}} ditampilkan",
+    "loaded_only": "{{loaded}} ditampilkan"
   }
 }

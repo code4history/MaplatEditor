@@ -1,0 +1,59 @@
+/* M11-T6 共通 List CSS 正本（P2）。値は T5 の --editor-ui-* token へ委譲する。 */
+.resource-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.resource-list__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--editor-ui-space-2);
+  padding: var(--editor-ui-space-3);
+}
+
+.resource-list__search {
+  flex: 1 1 12rem;
+  min-width: 0;
+  height: var(--editor-ui-control-height);
+}
+
+.resource-list__status {
+  font-size: var(--editor-ui-font-size-sm);
+  color: var(--bs-secondary-color);
+  padding: 0 var(--editor-ui-space-3) var(--editor-ui-space-2);
+}
+
+.resource-list__content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.resource-list__sentinel {
+  height: 1px;
+}
+
+/* item 情報階層（thumbnail→title→Slug→metadata→badge→menu）は grid/master 共通の意味順 */
+.resource-item__title {
+  font-size: var(--editor-ui-font-size-base);
+  font-weight: 600;
+}
+
+.resource-item__slug,
+.resource-item__meta {
+  font-size: var(--editor-ui-font-size-sm);
+  color: var(--bs-secondary-color);
+}
+
+.resource-item__slug {
+  font-family: var(--editor-ui-font-mono);
+}
+
+/* action menu 位置 */
+.resource-action-menu {
+  position: fixed;
+  z-index: var(--editor-ui-z-overlay);
+  min-width: 10rem;
+}

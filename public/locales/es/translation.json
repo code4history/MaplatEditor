@@ -820,5 +820,24 @@
     "slug_state": {"checking": "Comprobando…", "available": "Disponible", "taken": "Ya está en uso", "unavailable": "No se pudo comprobar"},
     "draft_badge": "Borrador",
     "draft_conflict": {"title": "El borrador difiere de la versión guardada", "message": "La versión guardada cambió después de crear el borrador.", "discard": "Descartar borrador y abrir la última", "apply": "Aplicar borrador"}
+  },
+  "resource_list": {
+    "new_item": "Nuevo",
+    "search_placeholder": "Buscar {{name}}…",
+    "kind_map": "mapas",
+    "kind_poi_source": "fuentes de POI",
+    "kind_base_map": "mapas base",
+    "kind_app": "aplicaciones",
+    "kind_asset": "recursos",
+    "loading": "Cargando…",
+    "empty": "No hay elementos coincidentes",
+    "end": "Se muestran todos los elementos",
+    "load_error": "Error al cargar",
+    "append_error": "Error al cargar más",
+    "retry": "Reintentar",
+    "menu_delete": "Eliminar",
+    "menu_label": "Acciones",
+    "total_loaded": "{{loaded}} de {{total}} mostrados",
+    "loaded_only": "{{loaded}} mostrados"
   }
 }

@@ -820,5 +820,24 @@
     "slug_state": {"checking": "Checking…", "available": "Available", "taken": "Already in use", "unavailable": "Could not verify"},
     "draft_badge": "Draft",
     "draft_conflict": {"title": "Draft differs from saved version", "message": "The saved version changed after this draft was created. Choose which content to open.", "discard": "Discard draft and open latest", "apply": "Apply draft"}
+  },
+  "resource_list": {
+    "new_item": "New",
+    "search_placeholder": "Search {{name}}…",
+    "kind_map": "maps",
+    "kind_poi_source": "POI sources",
+    "kind_base_map": "base maps",
+    "kind_app": "apps",
+    "kind_asset": "assets",
+    "loading": "Loading…",
+    "empty": "No matching items",
+    "end": "All items shown",
+    "load_error": "Failed to load",
+    "append_error": "Failed to load more",
+    "retry": "Retry",
+    "menu_delete": "Delete",
+    "menu_label": "Actions",
+    "total_loaded": "{{loaded}} of {{total}} shown",
+    "loaded_only": "{{loaded}} shown"
   }
 }

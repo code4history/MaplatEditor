@@ -820,5 +820,24 @@
     "slug_state": {"checking": "Đang kiểm tra…", "available": "Có thể sử dụng", "taken": "Đã được sử dụng", "unavailable": "Không thể kiểm tra"},
     "draft_badge": "Bản nháp",
     "draft_conflict": {"title": "Bản nháp khác với bản đã lưu", "message": "Bản đã lưu đã thay đổi sau khi tạo bản nháp.", "discard": "Bỏ bản nháp và mở bản mới nhất", "apply": "Áp dụng bản nháp"}
+  },
+  "resource_list": {
+    "new_item": "Mới",
+    "search_placeholder": "Tìm kiếm {{name}}…",
+    "kind_map": "bản đồ",
+    "kind_poi_source": "nguồn POI",
+    "kind_base_map": "bản đồ nền",
+    "kind_app": "ứng dụng",
+    "kind_asset": "tài nguyên",
+    "loading": "Đang tải…",
+    "empty": "Không có mục phù hợp",
+    "end": "Đã hiển thị tất cả",
+    "load_error": "Tải thất bại",
+    "append_error": "Tải thêm thất bại",
+    "retry": "Thử lại",
+    "menu_delete": "Xóa",
+    "menu_label": "Menu thao tác",
+    "total_loaded": "Hiển thị {{loaded}}/{{total}}",
+    "loaded_only": "Hiển thị {{loaded}}"
   }
 }

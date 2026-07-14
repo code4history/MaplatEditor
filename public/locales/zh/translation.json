@@ -820,5 +820,24 @@
     "slug_state": {"checking": "检查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "无法确认"},
     "draft_badge": "草稿",
     "draft_conflict": {"title": "草稿与已保存版本不同", "message": "创建草稿后，已保存版本发生了更新。", "discard": "丢弃草稿并打开最新版本", "apply": "应用草稿"}
+  },
+  "resource_list": {
+    "new_item": "新建",
+    "search_placeholder": "搜索{{name}}…",
+    "kind_map": "地图",
+    "kind_poi_source": "POI源",
+    "kind_base_map": "底图",
+    "kind_app": "应用",
+    "kind_asset": "素材",
+    "loading": "加载中…",
+    "empty": "没有匹配的项目",
+    "end": "已显示全部",
+    "load_error": "加载失败",
+    "append_error": "加载更多失败",
+    "retry": "重试",
+    "menu_delete": "删除",
+    "menu_label": "操作菜单",
+    "total_loaded": "共{{total}}项·已显示{{loaded}}项",
+    "loaded_only": "已显示{{loaded}}项"
   }
 }

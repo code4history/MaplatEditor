@@ -820,5 +820,24 @@
     "slug_state": {"checking": "กำลังตรวจสอบ…", "available": "ใช้ได้", "taken": "ถูกใช้แล้ว", "unavailable": "ตรวจสอบไม่ได้"},
     "draft_badge": "ฉบับร่าง",
     "draft_conflict": {"title": "ฉบับร่างต่างจากเวอร์ชันที่บันทึก", "message": "เวอร์ชันที่บันทึกถูกแก้ไขหลังสร้างฉบับร่าง", "discard": "ทิ้งฉบับร่างและเปิดเวอร์ชันล่าสุด", "apply": "ใช้ฉบับร่าง"}
+  },
+  "resource_list": {
+    "new_item": "สร้างใหม่",
+    "search_placeholder": "ค้นหา{{name}}…",
+    "kind_map": "แผนที่",
+    "kind_poi_source": "แหล่งข้อมูล POI",
+    "kind_base_map": "แผนที่พื้นฐาน",
+    "kind_app": "แอปพลิเคชัน",
+    "kind_asset": "ทรัพยากร",
+    "loading": "กำลังโหลด…",
+    "empty": "ไม่มีรายการที่ตรงกัน",
+    "end": "แสดงรายการทั้งหมดแล้ว",
+    "load_error": "โหลดไม่สำเร็จ",
+    "append_error": "โหลดเพิ่มเติมไม่สำเร็จ",
+    "retry": "ลองใหม่",
+    "menu_delete": "ลบ",
+    "menu_label": "เมนูการทำงาน",
+    "total_loaded": "แสดง {{loaded}} จาก {{total}} รายการ",
+    "loaded_only": "แสดง {{loaded}} รายการ"
   }
 }

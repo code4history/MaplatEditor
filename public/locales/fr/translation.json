@@ -820,5 +820,24 @@
     "slug_state": {"checking": "Vérification…", "available": "Disponible", "taken": "Déjà utilisé", "unavailable": "Vérification impossible"},
     "draft_badge": "Brouillon",
     "draft_conflict": {"title": "Le brouillon diffère de la version enregistrée", "message": "La version enregistrée a changé après la création du brouillon.", "discard": "Supprimer le brouillon et ouvrir la dernière version", "apply": "Appliquer le brouillon"}
+  },
+  "resource_list": {
+    "new_item": "Nouveau",
+    "search_placeholder": "Rechercher {{name}}…",
+    "kind_map": "des cartes",
+    "kind_poi_source": "des sources de POI",
+    "kind_base_map": "des fonds de carte",
+    "kind_app": "des applications",
+    "kind_asset": "des ressources",
+    "loading": "Chargement…",
+    "empty": "Aucun élément correspondant",
+    "end": "Tous les éléments affichés",
+    "load_error": "Échec du chargement",
+    "append_error": "Échec du chargement supplémentaire",
+    "retry": "Réessayer",
+    "menu_delete": "Supprimer",
+    "menu_label": "Actions",
+    "total_loaded": "{{loaded}} sur {{total}} affichés",
+    "loaded_only": "{{loaded}} affichés"
   }
 }

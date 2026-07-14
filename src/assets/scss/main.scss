@@ -1,6 +1,9 @@
 // Application Shell token 正本（唯一の取込点）
 @import "./editor-ui-tokens.scss";
 
+// M11-T6 共通 List primitives CSS（値は editor-ui token へ委譲）
+@import "../../components/resource-list/resource-list.scss";
+
 // Import Bootstrap 5
 @import "bootstrap/scss/bootstrap";
 @import "bootstrap-icons/font/bootstrap-icons.css";

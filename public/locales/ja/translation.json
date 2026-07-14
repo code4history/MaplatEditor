@@ -820,5 +820,24 @@
     "slug_state": {"checking": "確認中…", "available": "使用できます", "taken": "既に使用されています", "unavailable": "確認できません"},
     "draft_badge": "下書き",
     "draft_conflict": {"title": "下書きと保存済み版が異なります", "message": "下書きの作成後に保存済み版が更新されています。開く内容を選んでください。", "discard": "下書きを破棄して最新を開く", "apply": "下書きを適用する"}
+  },
+  "resource_list": {
+    "new_item": "新規追加",
+    "search_placeholder": "{{name}}を検索…",
+    "kind_map": "地図",
+    "kind_poi_source": "POIソース",
+    "kind_base_map": "ベースマップ",
+    "kind_app": "アプリ",
+    "kind_asset": "アセット",
+    "loading": "読み込み中…",
+    "empty": "該当する項目がありません",
+    "end": "すべて表示しました",
+    "load_error": "読み込みに失敗しました",
+    "append_error": "追加の読み込みに失敗しました",
+    "retry": "再試行",
+    "menu_delete": "削除",
+    "menu_label": "操作メニュー",
+    "total_loaded": "全{{total}}件・{{loaded}}件表示中",
+    "loaded_only": "{{loaded}}件表示中"
   }
 }

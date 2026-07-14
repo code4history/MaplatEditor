@@ -820,5 +820,24 @@
     "slug_state": {"checking": "檢查中…", "available": "可以使用", "taken": "已被使用", "unavailable": "無法確認"},
     "draft_badge": "草稿",
     "draft_conflict": {"title": "草稿與已儲存版本不同", "message": "建立草稿後，已儲存版本已更新。", "discard": "捨棄草稿並開啟最新版本", "apply": "套用草稿"}
+  },
+  "resource_list": {
+    "new_item": "新增",
+    "search_placeholder": "搜尋{{name}}…",
+    "kind_map": "地圖",
+    "kind_poi_source": "POI來源",
+    "kind_base_map": "底圖",
+    "kind_app": "應用程式",
+    "kind_asset": "素材",
+    "loading": "載入中…",
+    "empty": "沒有符合的項目",
+    "end": "已顯示全部",
+    "load_error": "載入失敗",
+    "append_error": "載入更多失敗",
+    "retry": "重試",
+    "menu_delete": "刪除",
+    "menu_label": "操作選單",
+    "total_loaded": "共{{total}}項·已顯示{{loaded}}項",
+    "loaded_only": "已顯示{{loaded}}項"
   }
 }
