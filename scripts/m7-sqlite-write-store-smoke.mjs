@@ -203,11 +203,14 @@ try {
       // (1) post-commit失敗: url_ が存在しないtmpタイルを指す改名保存 → DBコミット後の
       //     fs.move が失敗し、確定した uid/slug/revision 付きの Error が返る
       const poisoned = await StorageAdapter.saveMapForEdit({
-        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Change:legacy-map',
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update',
                      url_: fileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
         tins: ['tooLessGcps'],
         uid: legacyUid,
         slug: 'legacy-map-renamed',
+        // 機構置換(M11-T7/D5改): 旧 status:'Change:{旧slug}' の代わりに明示フィールド
+        // renameFromSlug で原本(originals)改名の残作業を引き継ぐ。editorは成功まで originalSlug を保持する
+        renameFromSlug: 'legacy-map',
         expectedRevision: beforeRename.revision,
       });
       assert.equal(poisoned.result, 'Error');
@@ -220,22 +223,24 @@ try {
 
       // (2) revisionを補正しない再試行は楽観ロックで弾かれる(コミット済みrevisionが返る)
       const stale = await StorageAdapter.saveMapForEdit({
-        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Change:legacy-map' },
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update' },
         tins: ['tooLessGcps'],
         uid: legacyUid,
         slug: 'legacy-map-renamed',
+        renameFromSlug: 'legacy-map',
         expectedRevision: beforeRename.revision,
       });
       assert.equal(stale.error, 'revision-conflict');
       assert.equal(stale.current, poisoned.revision);
 
       // (3) Errorが返したrevisionで補正した再試行は成功し、孤児となった旧slugの原本改名を
-      //     引き継ぐ(レンダラは成功まで Change:{旧slug} を保持する)
+      //     引き継ぐ(M11-T7/D5改: レンダラは成功まで originalSlug を renameFromSlug として渡す)
       const retried = await StorageAdapter.saveMapForEdit({
-        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Change:legacy-map' },
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update' },
         tins: ['tooLessGcps'],
         uid: legacyUid,
         slug: 'legacy-map-renamed',
+        renameFromSlug: 'legacy-map',
         expectedRevision: poisoned.revision,
       });
       assert.equal(retried.result, 'Success');
@@ -245,10 +250,11 @@ try {
 
       // (4) 通常の改名(元のslugへ戻す): uid維持でslugが付け替わり、原本も追随する
       const renamedBack = await StorageAdapter.saveMapForEdit({
-        mapObject: { ...loaded, mapID: 'legacy-map', status: 'Change:legacy-map-renamed' },
+        mapObject: { ...loaded, mapID: 'legacy-map', status: 'Update' },
         tins: ['tooLessGcps'],
         uid: legacyUid,
         slug: 'legacy-map',
+        renameFromSlug: 'legacy-map-renamed',
         expectedRevision: retried.revision,
       });
       assert.equal(renamedBack.result, 'Success');

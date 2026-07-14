@@ -215,7 +215,17 @@ class MapEditService {
         let copySourceSlug: string | null = null;
         let renamedFromSlug: string | null = null;
         try {
-            if (uid) {
+            if (request.create === true) {
+                // 新規作成の明示合図(D11改): rendererが事前採番したuidを採用し、
+                // unique制約 + 予約promoteで二重作成/他者占有を防ぐ。uid有無ではなくcreateフラグで
+                // 分岐するため、既存update経路の復活防止不変条件(lookup失敗=エラー)を侵さない。
+                if (!(await SqliteDataService.isSlugAvailable(slug))) {
+                    throw new Error('Exist');
+                }
+                const created = await SqliteDataService.createMap(slug, compiled, request.uid ?? undefined);
+                savedUid = created.uid;
+                savedRevision = 1;
+            } else if (uid) {
                 const existing = await SqliteDataService.findMap(uid);
                 if (!existing) throw new Error(`Map with uid ${uid} not found`);
                 if (existing.slug !== slug) {
@@ -224,20 +234,14 @@ class MapEditService {
                         throw new Error('Exist');
                     }
                     renamedFromSlug = existing.slug;
-                } else if (!request.copyFromUid) {
-                    // 再試行の救済: 前回の保存がDBコミット後のファイル操作で失敗した場合、
-                    // DB上のslugは既に改名済みで、この呼び出しでは existing.slug === slug となり
-                    // renamedFromSlug が立たない。レンダラが成功まで保持し続ける Change:{旧slug}
-                    // を手掛かりに、旧slugが孤児(どの地図にも属さない)であれば
-                    // 原本(originals)改名の残作業として引き継ぐ
-                    const changeMatch = typeof mapObject.status === 'string'
-                        ? mapObject.status.match(/^Change:(.+)$/)
-                        : null;
-                    const candidate = changeMatch?.[1];
-                    if (candidate && candidate !== slug &&
-                        !(await SqliteDataService.findMapBySlug(candidate))) {
-                        renamedFromSlug = candidate;
-                    }
+                } else if (request.renameFromSlug && request.renameFromSlug !== slug &&
+                           !(await SqliteDataService.findMapBySlug(request.renameFromSlug))) {
+                    // 再試行の救済(D5改): 前回の保存がDBコミット後のファイル操作で失敗した場合、
+                    // DB上のslugは既に改名済みで existing.slug === slug となり renamedFromSlug が
+                    // 立たない。editorが成功(saved)まで保持し続ける明示フィールド renameFromSlug を
+                    // 手掛かりに、旧slugが孤児(どの地図にも属さない)であれば原本(originals)改名の
+                    // 残作業として引き継ぐ。旧status文字列への埋め込みは全廃した。
+                    renamedFromSlug = request.renameFromSlug;
                 }
                 const { revision } = await SqliteDataService.upsertMap(
                     uid, slug, compiled, request.expectedRevision ?? undefined
@@ -245,7 +249,7 @@ class MapEditService {
                 savedUid = uid;
                 savedRevision = revision;
             } else {
-                // 新規 / 複製 — 新しくslugを名乗るので空きを確認
+                // 新規 / 複製 (従来のserver採番経路、後方互換) — 新しくslugを名乗るので空きを確認
                 if (!(await SqliteDataService.isSlugAvailable(slug))) {
                     throw new Error('Exist');
                 }

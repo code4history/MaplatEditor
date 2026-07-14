@@ -13,6 +13,8 @@ export interface AppSaveRequest {
   uid?: string | null;
   slug: string;
   expectedRevision?: number | null;
+  // 新規作成の明示合図 (D11改)。true=create経路(uid採用)、なし/false=従来のuid有無dispatch
+  create?: boolean;
 }
 
 export type AppSaveResult =
@@ -128,6 +130,13 @@ class AppDataService {
     const slug = String(request.slug || '').trim();
     if (!slug) return { result: 'Error' };
     try {
+      if (request.create === true) {
+        // 新規作成の明示合図(D11改): 事前採番uidを採用。uid有無ではなくcreateフラグで分岐し、
+        // 既存update経路の復活防止不変条件(lookup失敗=Error)を侵さない。
+        if (!(await SqliteDataService.isSlugAvailable(slug))) return { result: 'Exist' };
+        const { uid: createdUid } = await SqliteDataService.createApp(slug, document, uid);
+        return { result: 'Success', uid: createdUid, slug, revision: 1 };
+      }
       if (uid) {
         const existing = await SqliteDataService.findApp(uid);
         if (!existing) return { result: 'Error' };

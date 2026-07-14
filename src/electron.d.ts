@@ -29,6 +29,8 @@ export interface AppSavePayload {
     uid?: string;
     slug: string;
     expectedRevision?: number;
+    // 新規作成の明示合図 (M11-T7/D11改)。true=create経路(uid採用)
+    create?: boolean;
 }
 
 export type AppSaveResult =
@@ -58,6 +60,23 @@ export interface MapSavePayload {
     slug?: string;
     expectedRevision?: number;
     copyFromUid?: string;
+    // 新規作成の明示合図 (M11-T7/D11改)。true=create経路(uid採用)
+    create?: boolean;
+    // UID維持改名の残作業引き継ぎ (M11-T7/D5改)。Map専用
+    renameFromSlug?: string;
+}
+
+// slug 予約 API (M11-T7/§7.2)
+export type SlugReservationResult =
+    | { result: 'ok' }
+    | { result: 'conflict' }
+    | { result: 'error'; message: string };
+
+export interface SlugReservationApi {
+    reserve(payload: { slug: string; assetUid: string; assetKind: string; draftUid: string }): Promise<SlugReservationResult>;
+    move(payload: { fromSlug: string | null; toSlug: string; assetUid: string; assetKind: string; draftUid: string }): Promise<SlugReservationResult>;
+    release(payload: { slug: string; assetUid: string }): Promise<void>;
+    check(payload: { slug: string; excludeUid?: string }): Promise<'available' | 'reserved-by-other' | 'taken'>;
 }
 
 export type MapSaveResult =
@@ -268,5 +287,6 @@ declare global {
     appAssets: AppAssetsAPI;
     assets: AssetsAPI;
     imageAssets: ImageAssetsAPI;
+    slugReservations: SlugReservationApi;
   }
 }

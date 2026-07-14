@@ -69,6 +69,16 @@ export class RevisionConflictError extends Error {
   }
 }
 
+// slug 予約の promote 検証(M11-T7/D12)が他 asset_uid の有効予約を検出した場合に投げる。
+// save の withTransaction 内で throw することで本体書込を rollback し、asset を作らない(AC4)。
+export class SlugReservationConflictError extends Error {
+  readonly kind = 'slug-reservation-conflict';
+  constructor(slug: string) {
+    super(`Slug reserved by another instance: ${slug}`);
+    this.name = 'SlugReservationConflictError';
+  }
+}
+
 // upsertPoiSource が対象行を見つけられなかった (並行 delete に負けた) 場合に投げる。
 // upsert-as-insert で削除済みソースを復活させないためのガード (delete-race resurrection 防止)
 export class PoiSourceNotFoundError extends Error {
@@ -504,8 +514,11 @@ class SqliteDataService {
       now: () => new Date().toISOString(),
     });
     this.runSlugGc();
-    this.slugTimers.renew ??= setInterval(() => this.slugReservations?.renewOwn(), 30_000);
-    this.slugTimers.gc ??= setInterval(() => this.runSlugGc(), 10 * 60_000);
+    // unref(): lease/GC timer は event loop を専有しない。electron 本体は他の
+    // handle(BrowserWindow 等)が生存するため動き続け、smoke/test の短命プロセスは
+    // 他に保留が無くなれば自然終了できる(timer が exit を妨げない)。
+    this.slugTimers.renew ??= setInterval(() => this.slugReservations?.renewOwn(), 30_000).unref();
+    this.slugTimers.gc ??= setInterval(() => this.runSlugGc(), 10 * 60_000).unref();
     return db;
   }
 
@@ -1094,6 +1107,17 @@ class SqliteDataService {
     }
   }
 
+  // save 6経路のwithTransaction内から呼ぶslug予約promote検証(D12/D13)。
+  // 同一DatabaseSync接続を共有するSlugReservationService.promoteWithinへ委譲し、
+  // 他asset_uidの有効予約があればthrowしてtransaction全体をrollbackする(AC4)。
+  // 予約が無いslugでは常に成立するため、既存save回帰(予約未使用)を壊さない。
+  private promoteSlugWithin(db: DatabaseSync, slug: string, uid: string): void {
+    const svc = this.slugReservations;
+    if (!svc) return; // 接続確定前は予約機構なし(理論上到達しない: getDbで生成済み)
+    const promote = svc.promoteWithin(db, { slug, assetUid: uid });
+    if (!promote.ok) throw new SlugReservationConflictError(slug);
+  }
+
   private slugTaken(db: DatabaseSync, slug: string): boolean {
     return db.prepare('SELECT 1 FROM asset_registry WHERE slug = ?').get(slug) != null;
   }
@@ -1106,16 +1130,41 @@ class SqliteDataService {
   async isSlugAvailable(slug: string, excludeUid?: string): Promise<boolean> {
     const db = await this.getDb();
     const row = db.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
-    if (!row) return true;
-    return excludeUid != null && String(row.uid) === excludeUid;
+    const registryOk = !row || (excludeUid != null && String(row.uid) === excludeUid);
+    if (!registryOk) return false;
+    // registry空きでも他者の有効予約があれば不可(reserved-by-other → boolean falseへ写像)
+    return this.slugReservations?.check({ slug, excludeUid }) !== 'reserved-by-other';
+  }
+
+  // --- slug 予約 IPC 薄wrapper(M11-T7/§7.2)。getDbで接続確定後にserviceへ委譲する。
+  //     promote/renewOwn/gc はrenderer非公開(save経路とmain timerのみが使う)。
+  async reserveSlug(p: { slug: string; assetUid: string; assetKind: string; draftUid: string }) {
+    await this.getDb();
+    return this.slugReservations!.reserve(p);
+  }
+
+  async moveSlug(p: { fromSlug: string | null; toSlug: string; assetUid: string; assetKind: string; draftUid: string }) {
+    await this.getDb();
+    return this.slugReservations!.move(p);
+  }
+
+  async releaseSlug(p: { slug: string; assetUid: string }): Promise<void> {
+    await this.getDb();
+    this.slugReservations!.release(p);
+  }
+
+  async checkSlugReservation(p: { slug: string; excludeUid?: string }) {
+    await this.getDb();
+    return this.slugReservations!.check(p);
   }
 
   // --- maps / apps 共通CRUD内部実装 ---
 
-  private createDocRow(db: DatabaseSync, kind: 'map' | 'app', slug: string, dataJson: string): string {
+  private createDocRow(db: DatabaseSync, kind: 'map' | 'app', slug: string, dataJson: string, presetUid?: string): string {
     const table = ASSET_TABLES[kind]!;
-    const uid = generateUid();
+    const uid = presetUid ?? generateUid(); // D11改: 指定があれば事前採番uidを採用(後方互換)
     this.withTransaction(db, () => {
+      this.promoteSlugWithin(db, slug, uid); // AC4: 他者予約はconflictでrollback
       this.registerAsset(db, kind, uid, slug);
       db.prepare(
         `INSERT INTO ${table} (uid, slug, data_json, revision, updated_at)
@@ -1138,6 +1187,7 @@ class SqliteDataService {
     return this.withTransaction(db, () => {
       const existing = db.prepare(`SELECT slug, revision FROM ${table} WHERE uid = ?`).get(uid) as any;
       if (!existing) {
+        this.promoteSlugWithin(db, slug, uid); // AC4
         this.registerAsset(db, kind, uid, slug);
         db.prepare(
           `INSERT INTO ${table} (uid, slug, data_json, revision, updated_at)
@@ -1151,6 +1201,7 @@ class SqliteDataService {
         throw new RevisionConflictError(currentRevision);
       }
       if (String(existing.slug) !== slug) {
+        this.promoteSlugWithin(db, slug, uid); // AC4: 改名先slugのpromote
         this.renameAssetSlug(db, kind, uid, slug);
       }
       const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
@@ -1209,9 +1260,9 @@ class SqliteDataService {
     return await this.findMapBySlug(ref);
   }
 
-  async createMap(slug: string, document: any): Promise<{ uid: string }> {
+  async createMap(slug: string, document: any, presetUid?: string): Promise<{ uid: string }> {
     const db = await this.getDb();
-    const uid = this.createDocRow(db, 'map', slug, JSON.stringify(normalizeMapDocument(document)));
+    const uid = this.createDocRow(db, 'map', slug, JSON.stringify(normalizeMapDocument(document)), presetUid);
     return { uid };
   }
 
@@ -1267,9 +1318,9 @@ class SqliteDataService {
     return await this.findAppBySlug(ref);
   }
 
-  async createApp(slug: string, document: any): Promise<{ uid: string }> {
+  async createApp(slug: string, document: any, presetUid?: string): Promise<{ uid: string }> {
     const db = await this.getDb();
-    const uid = this.createDocRow(db, 'app', slug, JSON.stringify(normalizeAppDocument(document)));
+    const uid = this.createDocRow(db, 'app', slug, JSON.stringify(normalizeAppDocument(document)), presetUid);
     return { uid };
   }
 
@@ -1303,9 +1354,10 @@ class SqliteDataService {
   // 汎用形ではなく、saveUserBaseMap と同じく registerAsset/renameAssetSlug/withTransaction を再利用した
   // 専用の内部ヘルパーで実装する。
 
-  private createPoiSourceRow(db: DatabaseSync, slug: string, input: PoiSourceInput): string {
-    const uid = generateUid();
+  private createPoiSourceRow(db: DatabaseSync, slug: string, input: PoiSourceInput, presetUid?: string): string {
+    const uid = presetUid ?? generateUid(); // D11改: 事前採番uid受け入れ(後方互換)
     this.withTransaction(db, () => {
+      this.promoteSlugWithin(db, slug, uid); // AC4
       this.registerAsset(db, 'poi_source', uid, slug);
       db.prepare(
         `INSERT INTO poi_sources (uid, slug, title_json, mode, url, data_json, feature_count, revision, updated_at)
@@ -1336,6 +1388,7 @@ class SqliteDataService {
         throw new RevisionConflictError(currentRevision);
       }
       if (String(existing.slug) !== slug) {
+        this.promoteSlugWithin(db, slug, uid); // AC4: 改名先slugのpromote
         this.renameAssetSlug(db, 'poi_source', uid, slug);
       }
       const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
@@ -1356,9 +1409,9 @@ class SqliteDataService {
     });
   }
 
-  async createPoiSource(slug: string, input: PoiSourceInput): Promise<{ uid: string }> {
+  async createPoiSource(slug: string, input: PoiSourceInput, presetUid?: string): Promise<{ uid: string }> {
     const db = await this.getDb();
-    return { uid: this.createPoiSourceRow(db, slug, input) };
+    return { uid: this.createPoiSourceRow(db, slug, input, presetUid) };
   }
 
   async findPoiSource(uid: string): Promise<PoiSourceRecord | null> {
@@ -1477,9 +1530,10 @@ class SqliteDataService {
   // poi_sources と同型。バイト実体は別管理でメタデータのみ持つため FTS 専用表は設けず、
   // searchAssets は slug/title の LIKE 一致で足りる(maps/apps の raw LIKE フォールバックと同機構)。
 
-  private createAssetRow(db: DatabaseSync, slug: string, input: AssetInput): string {
-    const uid = generateUid();
+  private createAssetRow(db: DatabaseSync, slug: string, input: AssetInput, presetUid?: string): string {
+    const uid = presetUid ?? generateUid(); // D11改: 事前採番uid受け入れ(後方互換)
     this.withTransaction(db, () => {
+      this.promoteSlugWithin(db, slug, uid); // AC4
       this.registerAsset(db, 'asset', uid, slug);
       db.prepare(
         `INSERT INTO assets (uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at)
@@ -1510,6 +1564,7 @@ class SqliteDataService {
         throw new RevisionConflictError(currentRevision);
       }
       if (String(existing.slug) !== slug) {
+        this.promoteSlugWithin(db, slug, uid); // AC4: 改名先slugのpromote
         this.renameAssetSlug(db, 'asset', uid, slug);
       }
       const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
@@ -1530,9 +1585,9 @@ class SqliteDataService {
     });
   }
 
-  async createAsset(slug: string, input: AssetInput): Promise<{ uid: string }> {
+  async createAsset(slug: string, input: AssetInput, presetUid?: string): Promise<{ uid: string }> {
     const db = await this.getDb();
-    return { uid: this.createAssetRow(db, slug, input) };
+    return { uid: this.createAssetRow(db, slug, input, presetUid) };
   }
 
   async findAsset(uid: string): Promise<AssetRecord | null> {
@@ -1883,7 +1938,10 @@ class SqliteDataService {
         if (payload.expectedRevision != null && currentRevision !== payload.expectedRevision) {
           throw new RevisionConflictError(currentRevision);
         }
-        if (String(existing.slug) !== slug) this.renameAssetSlug(db, 'base_map', uid, slug);
+        if (String(existing.slug) !== slug) {
+          this.promoteSlugWithin(db, slug, uid); // AC4: 改名先slugのpromote
+          this.renameAssetSlug(db, 'base_map', uid, slug);
+        }
         db.prepare(
           `UPDATE base_maps SET slug = ?, data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
         ).run(slug, JSON.stringify({ ...tms, mapID: slug }), uid);
@@ -1898,6 +1956,7 @@ class SqliteDataService {
     const uid = generateUid();
     const data: any = { ...tms, mapID: slug };
     this.withTransaction(db, () => {
+      this.promoteSlugWithin(db, slug, uid); // AC4
       this.registerAsset(db, 'base_map', uid, slug);
       db.prepare(
         `INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at)

@@ -123,6 +123,7 @@ import { registerPoisourceHandlers } from './ipc/poisource'
 import { registerAppAssetHandlers } from './ipc/appassets'
 import { registerAssetHandlers } from './ipc/assets'
 import { registerImageAssetHandlers } from './ipc/assets-images'
+import { registerSlugReservationHandlers } from './ipc/slugReservations'
 
 import { ipcMain } from 'electron'
 
@@ -194,6 +195,7 @@ app.whenReady().then(() => {
   registerAppAssetHandlers()
   registerAssetHandlers()
   registerImageAssetHandlers()
+  registerSlugReservationHandlers()
   createWindow()
   setupMenu()
 

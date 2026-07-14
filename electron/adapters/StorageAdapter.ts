@@ -20,6 +20,10 @@ export interface MapSaveRequest {
   slug?: string;
   expectedRevision?: number | null;
   copyFromUid?: string | null;
+  // 新規作成の明示合図 (D11改)。true=create経路(uid採用)、なし/false=従来のuid有無dispatch
+  create?: boolean;
+  // UID維持改名の残作業引き継ぎ (D5改)。Map専用: originals(slugキー)改名の再試行救済
+  renameFromSlug?: string;
 }
 
 export type MapSaveResult =
@@ -92,6 +96,10 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
     if (request.slug != null) assertMapID(request.slug);
     if (request.uid != null) assertUid(request.uid, 'uid');
     if (request.copyFromUid != null) assertUid(request.copyFromUid, 'copyFromUid');
+    if (request.renameFromSlug != null) assertMapID(request.renameFromSlug);
+    if (request.create != null && typeof request.create !== 'boolean') {
+      throw new TypeError('create must be a boolean');
+    }
     if (request.expectedRevision != null &&
         (!Number.isInteger(request.expectedRevision) || request.expectedRevision < 1)) {
       throw new TypeError('expectedRevision must be a positive integer');

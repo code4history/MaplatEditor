@@ -197,3 +197,16 @@ contextBridge.exposeInMainWorld('imageAssets', {
   // インポート用ネイティブファイル選択。キャンセル時は null
   pickImageFile: () => ipcRenderer.invoke('imageassets:pickImageFile'),
 })
+
+// slug 予約 (M11-T7/§7.2): 複数 instance 間の slug 予約・移動・解放・確認。
+// payload-only の invoke のみ(m2安全API境界: raw ipcRenderer を渡さない)。
+contextBridge.exposeInMainWorld('slugReservations', {
+  reserve: (payload: { slug: string; assetUid: string; assetKind: string; draftUid: string }) =>
+    ipcRenderer.invoke('slug-reservations:reserve', payload),
+  move: (payload: { fromSlug: string | null; toSlug: string; assetUid: string; assetKind: string; draftUid: string }) =>
+    ipcRenderer.invoke('slug-reservations:move', payload),
+  release: (payload: { slug: string; assetUid: string }) =>
+    ipcRenderer.invoke('slug-reservations:release', payload),
+  check: (payload: { slug: string; excludeUid?: string }) =>
+    ipcRenderer.invoke('slug-reservations:check', payload),
+})

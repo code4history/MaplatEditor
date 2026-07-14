@@ -98,3 +98,42 @@ assert.equal(toDraftKind("asset"), "image-asset");
 }
 
 console.log("m11-t7 smoke Part A (service unit): OK");
+
+// --- Part B1: promote conflict / 成立 / rollback（AC4） ---
+// promoteWithin の単体挙動を一時 DB で検証（save 統合は E2E/後続 build で担保）。
+{
+  const db = makeDb();
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const svc = createSlugReservationService({ db, instanceId: "inst-A", now });
+  // 他 asset_uid の有効予約 → promote conflict（本体を作らないことは呼び出し側が rollback）
+  svc.reserve({ slug: "taken", assetUid: UID_B, assetKind: "map", draftUid: "d-B" });
+  assert.deepEqual(svc.promoteWithin(db, { slug: "taken", assetUid: UID_A }), { ok: false, reason: "conflict" });
+  // 自 asset_uid の予約 → 成立し、予約を消化
+  svc.reserve({ slug: "mine", assetUid: UID_A, assetKind: "map", draftUid: "d-A" });
+  assert.deepEqual(svc.promoteWithin(db, { slug: "mine", assetUid: UID_A }), { ok: true });
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM slug_reservations WHERE slug=?").get("mine").c, 0);
+  // 予約が「無い」slug も成立（registry unique が最終防衛）
+  assert.deepEqual(svc.promoteWithin(db, { slug: "fresh", assetUid: UID_A }), { ok: true });
+  db.close();
+}
+
+// --- Part B2: source 契約 assert ---
+const preload = await readSrc("electron/preload.ts");
+assert.match(preload, /exposeInMainWorld\(['"]slugReservations['"]/, "preload must expose window.slugReservations");
+assert.doesNotMatch(preload, /slugReservations[\s\S]*?ipcRenderer\b(?![.]invoke|[.]on|[.]removeListener)/, "no raw ipcRenderer leak");
+
+const sqlite = await readSrc("electron/services/SqliteDataService.ts");
+// promote 検証が withTransaction 内(6 helper)へ差し込まれている
+assert.match(sqlite, /promoteWithin/, "SqliteDataService must call promoteWithin inside save paths");
+// slug_reservations は search/export helper に現れない（AC12）
+assert.doesNotMatch(sqlite, /INSERT INTO (search|export)[\s\S]*slug_reservations/, "reservations must not leak to search/export");
+
+const mapEdit = await readSrc("electron/services/MapEditService.ts");
+assert.match(mapEdit, /renameFromSlug/, "MapEditService must use renameFromSlug (D5)");
+assert.doesNotMatch(mapEdit, /Change:/, "MapEditService must drop Change: status rescue (D5)");
+
+const storage = await readSrc("electron/adapters/StorageAdapter.ts");
+assert.match(storage, /create\?:\s*boolean/, "MapSaveRequest must add create flag (D11)");
+assert.match(storage, /renameFromSlug\?:\s*string/, "MapSaveRequest must add renameFromSlug (D5)");
+
+console.log("m11-t7 smoke Part B: OK");
