@@ -1,6 +1,7 @@
 <template>
   <div class="poi-source-list h-100 d-flex flex-column">
     <ResourceListShell
+      ref="shellRef"
       kind="poi-source"
       kind-name-key="resource_list.kind_poi_source"
       variant="grid"
@@ -131,12 +132,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
+import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import noImage from "../assets/img/no_image.png";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
+import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
@@ -173,9 +175,42 @@ const adapter = createPoiSourceListAdapter({
   localLabel: t("poisource.local"),
   remoteLabel: t("poisource.remote"),
 });
-const { items, total, loaded, state, loadFirst, loadMore, retry, applyDeletion } =
+const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } =
   useInfiniteResourceList<PoiSourceListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: null }), activeLang: () => i18next.language });
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, i18next.language)));
+const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
+const backCache = useResourceListBackCache("poi-source");
+
+function firstVisibleUid(): string | null {
+  const root = shellRef.value?.contentRef ?? null;
+  if (!root) return null;
+  const top = root.getBoundingClientRect().top;
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>("[data-resource-uid]"))) {
+    if (el.getBoundingClientRect().bottom >= top) return el.dataset.resourceUid ?? null;
+  }
+  return null;
+}
+onBeforeRouteLeave(() => {
+  const root = shellRef.value?.contentRef ?? null;
+  backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: root?.scrollTop ?? 0 });
+});
+async function restoreOrLoad(): Promise<void> {
+  const cached = backCache.load();
+  if (cached && cached.q === query.value && cached.batches > 1) {
+    await restore(cached.batches);
+    await nextTick();
+    const root = shellRef.value?.contentRef ?? null;
+    if (root) {
+      const anchor = cached.anchorUid
+        ? root.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(cached.anchorUid)}"]`)
+        : null;
+      if (anchor) anchor.scrollIntoView({ block: "start" });
+      else root.scrollTop = cached.scrollTop;
+    }
+  } else {
+    await loadFirst();
+  }
+}
 
 function updateQuery(value: string): void {
   void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
@@ -489,7 +524,7 @@ const onKeyDown = (e: KeyboardEvent) => {
 };
 
 onMounted(async () => {
-  await loadFirst();
+  await restoreOrLoad();
   await refreshDrafts();
   window.addEventListener("keydown", onKeyDown);
 });
