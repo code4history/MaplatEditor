@@ -164,7 +164,7 @@ interface AssetEditHistoryState { document: ImageAssetEditDocument; volatileSour
 const props = withDefaults(defineProps<{ uid: string; isNew: boolean; item: ImageAssetRow | null; backVisible?: boolean }>(), {
   backVisible: true,
 });
-const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string]; "draft-state": [uid: string, hasDraft: boolean] }>();
+const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string]; "draft-state": [uid: string, hasDraft: boolean]; flushed: [] }>();
 const { t } = useTranslation();
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -249,7 +249,11 @@ watch(
   () => [props.uid, props.item?.revision, props.isNew] as const,
   ([uid, itemRevision, isNew]) => {
     sessionTransition = sessionTransition.then(async () => {
-      if (sessionOpened) await draftLifecycle.flush();
+      if (sessionOpened) {
+        await draftLifecycle.flush();
+        // F8 Major-1: flush で store が確定した後に List のバッジ再照会契機を作る。
+        emit("flushed");
+      }
       if (uid !== props.uid || itemRevision !== props.item?.revision || isNew !== props.isNew) return;
       if (
         pendingSavedIdentity &&
@@ -282,12 +286,14 @@ watch(
         historyVersion.value++;
         await draftLifecycle.open(uid, itemRevision);
         sessionOpened = true;
+        establishDraftState(uid);
         return;
       }
       resetSession(props.item, uid);
       if (props.item) previewUrl.value = await window.imageAssets.getFilePath(uid).catch(() => null);
       await draftLifecycle.open(uid, itemRevision ?? null);
       sessionOpened = true;
+      establishDraftState(uid);
     }).catch((cause) => {
       console.error("Failed to change image asset editor session", cause);
       error.value = t("assetlist.errors.internal");
@@ -362,6 +368,7 @@ async function pickImageFile(): Promise<void> {
 async function goBack(): Promise<void> {
   await sessionTransition;
   await draftLifecycle.flush();
+  emit("flushed");
   emit("back");
 }
 
@@ -376,6 +383,8 @@ async function discardDraft(): Promise<void> {
   if (result.response !== 0) return;
   await draftLifecycle.discard();
   // F5: 新規 draft の破棄は draft store から削除して選択解除（新規作成前の空状態）へ戻す。
+  // F8 Major-1: discard は store を即時変更するため、List のバッジ再照会も即時に行う。
+  emit("flushed");
   if (props.item) resetSession(props.item, props.uid);
   else emit("back");
   emit("changed");
@@ -492,13 +501,18 @@ function onEditorKeydown(event: KeyboardEvent): void {
 onMounted(() => window.addEventListener("keydown", onEditorKeydown));
 onBeforeUnmount(() => window.removeEventListener("keydown", onEditorKeydown));
 
-// F8: dirty（下書きが存在する状態）の変化を親 List へ即時通知する。
+// F8: dirty（下書きが存在する状態）の変化を「セッション確立済みの uid」に対してのみ通知する。
 // Undo で checkpoint clean に戻れば dirty=false となりバッジが即時に消える。
-watch(
-  () => [props.uid, dirty.value] as const,
-  ([uid, hasDraft]) => emit("draft-state", uid, hasDraft),
-  { immediate: true },
-);
+// uid 切替中は旧 session の dirty を新 uid へ流さない（Major-1: transient誤バッジ防止）。
+let draftStateUid: string | null = null;
+watch(dirty, (hasDraft) => {
+  if (draftStateUid !== null) emit("draft-state", draftStateUid, hasDraft);
+});
+watch(() => props.uid, () => { draftStateUid = null; });
+function establishDraftState(uid: string): void {
+  draftStateUid = uid;
+  emit("draft-state", uid, dirty.value);
+}
 
 defineExpose({ prepareForDelete });
 </script>

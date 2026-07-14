@@ -306,3 +306,62 @@ test('captures regression screenshots for human review', async () => {
     await app.close();
   }
 });
+
+// F8 Major-1 回帰: 行切替（master-detail の主要導線）を跨いでも draft バッジが store と整合する。
+// レビュー v2 の再現 C（編集→行切替でバッジ消失）/ D（Undo クリーン→行切替でバッジ復活）を固定化。
+test('F8: draft badges stay consistent across row switching', async () => {
+  test.setTimeout(240_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t5-'));
+  const imagePath = path.join(e2eRoot, 'e2e-input.png');
+  await copyFile(path.join(projectRoot, 'src/assets/img/no_image.png'), imagePath);
+  const { app, page } = await launch(e2eRoot);
+  try {
+    await installDialogHarness(app, imagePath);
+
+    // --- 消失側（旧再現C）: BaseMap A を編集 → 別行 B へ切替してもバッジが残る ---
+    await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
+    for (const [slug, title] of [['f8-switch-a', 'F8切替A'], ['f8-switch-b', 'F8切替B']] as const) {
+      await page.getByTestId('basemap-new').click();
+      await fillAndCommit(page.getByTestId('basemap-slug'), slug);
+      await fillAndCommit(page.getByTestId('basemap-title'), title);
+      await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+      await page.getByTestId('editor-save').click();
+      await expect(page).not.toHaveURL(/new=1/);
+    }
+    await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(0);
+    await page.getByTestId('basemap-row-f8-switch-a').click();
+    await fillAndCommit(page.getByTestId('basemap-title'), 'F8切替A 変更');
+    await expect(page.getByTestId('basemap-draft-badge')).toBeVisible();
+    await page.waitForTimeout(1500); // 旧 900ms refresh 窓を跨いでから切り替える
+    await page.getByTestId('basemap-row-f8-switch-b').click();
+    await page.waitForTimeout(1500); // session flush（store 永続化）を待つ
+    const bmDrafts = await page.evaluate(async () => (await window.assetDrafts.list('base-map')).length);
+    expect(bmDrafts).toBe(1);
+    await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(1);
+
+    // --- 復活側（旧再現D）: Asset A を Undo でクリーン化 → 別行 B へ切替してもバッジが戻らない ---
+    await openHash(page, '#/assets', '[data-master-detail="image-asset"]');
+    for (const slug of ['f8-asset-a', 'f8-asset-b']) {
+      await page.getByTestId('asset-new').click();
+      await page.getByTestId('asset-pick-file').click();
+      await fillAndCommit(page.getByTestId('asset-slug'), slug);
+      await fillAndCommit(page.getByTestId('asset-title'), `F8 ${slug}`);
+      await page.getByTestId('editor-save').click();
+      await expect(page).not.toHaveURL(/new=1/);
+    }
+    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
+    await page.getByTestId('asset-row-f8-asset-a').click();
+    await fillAndCommit(page.getByTestId('asset-title'), 'F8 A 変更');
+    await expect(page.getByTestId('asset-draft-badge')).toBeVisible();
+    await page.waitForTimeout(3000); // persist(2000ms)+refresh(2300ms) を跨ぎ store 側 draftUids に載せる
+    await page.getByTestId('editor-undo').click();
+    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
+    await page.getByTestId('asset-row-f8-asset-b').click();
+    await page.waitForTimeout(1500); // session flush（store から removePersisted）を待つ
+    const assetDrafts = await page.evaluate(async () => (await window.assetDrafts.list('image-asset')).length);
+    expect(assetDrafts).toBe(0);
+    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
+  } finally {
+    await app.close();
+  }
+});

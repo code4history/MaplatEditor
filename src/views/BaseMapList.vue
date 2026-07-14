@@ -35,6 +35,7 @@
         @saved="saved"
         @reload="reloadEditor"
         @changed="refreshDraftsSoon"
+        @flushed="refreshDraftsNow"
         @draft-state="onDraftState"
       />
       <div v-else-if="notFound" class="h-100 d-grid place-items-center p-4 text-center">
@@ -101,17 +102,33 @@ const notFound = computed(() => !!selectedUid.value && !isNew.value && !loading.
 const rangeFilterOpen = ref(false);
 
 // F8: Edit 側の live な下書き状態を List バッジへ即時反映する（store の永続化遅延を待たない）。
-const liveDraft = ref<{ uid: string; hasDraft: boolean } | null>(null);
+// 行切替を跨いでも uid ごとの override を保持し、store と一致した項目だけ回収する（Major-1対応）。
+// store 未反映の live 状態（persist throttle 中の編集など）は回収せず優先し続ける。
+const liveDraftOverrides = ref<Map<string, boolean>>(new Map());
 const effectiveDraftUids = computed(() => {
   const set = new Set(draftUids.value);
-  if (liveDraft.value) {
-    if (liveDraft.value.hasDraft) set.add(liveDraft.value.uid);
-    else set.delete(liveDraft.value.uid);
+  for (const [uid, hasDraft] of liveDraftOverrides.value) {
+    if (hasDraft) set.add(uid);
+    else set.delete(uid);
   }
   return set;
 });
 function onDraftState(uid: string, hasDraft: boolean): void {
-  liveDraft.value = { uid, hasDraft };
+  const next = new Map(liveDraftOverrides.value);
+  next.set(uid, hasDraft);
+  liveDraftOverrides.value = next;
+}
+function reconcileDraftOverrides(): void {
+  const store = new Set(draftUids.value);
+  const next = new Map(liveDraftOverrides.value);
+  for (const [uid, hasDraft] of next) {
+    if (store.has(uid) === hasDraft) next.delete(uid);
+  }
+  liveDraftOverrides.value = next;
+}
+async function refreshDraftsNow(): Promise<void> {
+  await refreshDrafts();
+  reconcileDraftOverrides();
 }
 
 async function updateFilters(filters: { q?: string | null; bbox?: string | null }): Promise<void> {
@@ -154,9 +171,8 @@ async function createBaseMap(): Promise<void> {
 }
 
 async function closeEditor(): Promise<void> {
-  liveDraft.value = null;
   await clearSelection();
-  await refreshDrafts();
+  await refreshDraftsNow();
 }
 
 async function saved(uid: string): Promise<void> {
@@ -171,7 +187,8 @@ async function reloadEditor(): Promise<void> {
 let draftRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 function refreshDraftsSoon(): void {
   if (draftRefreshTimer) clearTimeout(draftRefreshTimer);
-  draftRefreshTimer = setTimeout(() => { void refreshDrafts(); }, 900);
+  // persist 遅延(2000ms)より後に読む。900ms では store 反映前に空振りする（Major-1対応）。
+  draftRefreshTimer = setTimeout(() => { void refreshDraftsNow(); }, 2300);
 }
 
 async function deleteBaseMap(item: BaseMapCatalogItem): Promise<void> {
