@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { build } from "vite";
 
 // SlugReservationService は electron 依存なしの純ロジックにするため、node で直接 import できる。
 // (electron の app/ipcMain には依存させない — 接続と instanceId/now を注入する)
@@ -11,6 +14,35 @@ import {
 import { toRegistryKind, toDraftKind } from "../electron/services/slugReservationKind.ts";
 
 const readSrc = (rel) => readFile(new URL(`../${rel}`, import.meta.url), "utf8");
+
+const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
+const scratchRoot = path.join(projectRoot, ".tmp-smoke");
+await mkdir(scratchRoot, { recursive: true });
+
+async function importSource(relativeEntry, fileName) {
+  const workDir = await mkdtemp(path.join(scratchRoot, "m11-t7-renderer-"));
+  const outDir = path.join(workDir, "dist");
+  try {
+    await build({
+      root: projectRoot,
+      logLevel: "error",
+      configFile: false,
+      build: {
+        outDir,
+        emptyOutDir: true,
+        lib: {
+          entry: path.join(projectRoot, relativeEntry),
+          formats: ["es"],
+          fileName: () => fileName,
+        },
+        rollupOptions: { external: [] },
+      },
+    });
+    return await import(`${pathToFileURL(path.join(outDir, fileName)).href}?t=${Date.now()}`);
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
 
 // --- 一時 DB を作り slug_reservations スキーマを張る ---
 function makeDb() {
@@ -406,6 +438,87 @@ console.log("m11-t7 smoke Part B3: OK");
 
 const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh-TW"];
 
+// --- Part C0: renderer 予約状態機械（Major-2） ---
+{
+  const { createSlugReservationHarness } = await importSource(
+    "scripts/fixtures/m11-t7-slug-reservation-harness.ts",
+    "slugReservationHarness.mjs",
+  );
+  const calls = { reserve: [], move: [], release: [], check: [] };
+  let reserveImpl = async () => ({ result: "ok" });
+  let moveImpl = async () => ({ result: "ok" });
+  let checkImpl = async () => "available";
+  globalThis.window = {
+    slugReservations: {
+      reserve: async (payload) => { calls.reserve.push(payload); return reserveImpl(payload); },
+      move: async (payload) => { calls.move.push(payload); return moveImpl(payload); },
+      release: async (payload) => { calls.release.push(payload); },
+      check: async (payload) => { calls.check.push(payload); return checkImpl(payload); },
+    },
+  };
+
+  // reserve conflict/error/throw は held を更新せず、UI向け状態を返す。
+  const reserveHarness = createSlugReservationHarness({ currentSlug: "conflict" });
+  reserveImpl = async () => ({ result: "conflict" });
+  assert.equal(await reserveHarness.reservation.onAvailable("conflict"), "reserved-by-other");
+  reserveImpl = async () => ({ result: "error", message: "disk" });
+  assert.equal(await reserveHarness.reservation.onAvailable("error"), "check-failed");
+  reserveImpl = async () => { throw new Error("ipc"); };
+  assert.equal(await reserveHarness.reservation.onAvailable("throw"), "check-failed");
+  reserveImpl = async () => ({ result: "ok" });
+  assert.equal(await reserveHarness.reservation.onAvailable("held"), "available");
+  assert.equal(calls.move.length, 0, "failed reserve must not become held");
+
+  // move conflict は旧 held を維持し、次の move でも旧slugをfromSlugにする。
+  moveImpl = async () => ({ result: "conflict" });
+  assert.equal(await reserveHarness.reservation.onAvailable("blocked"), "reserved-by-other");
+  moveImpl = async () => ({ result: "ok" });
+  assert.equal(await reserveHarness.reservation.onAvailable("next"), "available");
+  assert.equal(calls.move.at(-1).fromSlug, "held");
+
+  // A/B逆転: stale Aは状態/heldを上書きせず、成功してしまったA予約だけ安全に解放する。
+  const pending = new Map();
+  reserveImpl = ({ slug }) => new Promise((resolve) => pending.set(slug, resolve));
+  const staleHarness = createSlugReservationHarness({ currentSlug: "a" });
+  const a = staleHarness.reservation.onAvailable("a");
+  staleHarness.setCurrentSlug("b");
+  const b = staleHarness.reservation.onAvailable("b");
+  pending.get("b")({ result: "ok" });
+  assert.equal(await b, "available");
+  pending.get("a")({ result: "ok" });
+  assert.equal(await a, null, "stale response must not publish a field state");
+  assert.ok(calls.release.some((p) => p.slug === "a"), "stale successful reservation must not leak");
+  reserveImpl = async () => ({ result: "ok" });
+  await staleHarness.reservation.onAvailable("c");
+  assert.equal(calls.move.at(-1).fromSlug, "b", "stale A must not overwrite current held B");
+
+  // confirm: taken/reserved/error は false。変更slugは再reserve成功時のみtrue。
+  const confirmHarness = createSlugReservationHarness({ originalSlug: "original", currentSlug: "changed" });
+  for (const result of ["taken", "reserved-by-other"]) {
+    checkImpl = async () => result;
+    assert.deepEqual(await confirmHarness.confirmForSave(), { ok: false, state: "reserved-by-other" });
+  }
+  checkImpl = async () => { throw new Error("offline"); };
+  assert.deepEqual(await confirmHarness.confirmForSave(), { ok: false, state: "check-failed" });
+  checkImpl = async () => "available";
+  reserveImpl = async () => ({ result: "ok" });
+  assert.deepEqual(await confirmHarness.confirmForSave(), { ok: true, state: "available" });
+
+  // check後の保存raceでreserve conflictならUI競合 + false。
+  const raceHarness = createSlugReservationHarness({ originalSlug: "original", currentSlug: "race" });
+  reserveImpl = async () => ({ result: "conflict" });
+  assert.deepEqual(await raceHarness.confirmForSave(), { ok: false, state: "reserved-by-other" });
+
+  // 未変更はregistry自己ownerのavailable確認だけでtrue。reserve/moveは呼ばない。
+  const unchangedHarness = createSlugReservationHarness({ originalSlug: "same", currentSlug: "same" });
+  const writesBefore = calls.reserve.length + calls.move.length;
+  checkImpl = async () => "available";
+  assert.deepEqual(await unchangedHarness.confirmForSave(), { ok: true, state: "available" });
+  assert.equal(calls.reserve.length + calls.move.length, writesBefore);
+  checkImpl = async () => "taken";
+  assert.deepEqual(await unchangedHarness.confirmForSave(), { ok: false, state: "reserved-by-other" });
+}
+
 // --- Part C1: SlugField 契約 ---
 const slugField = await readSrc("src/components/editor-ui/SlugField.vue");
 assert.match(slugField, /assetKind/, "SlugField must accept assetKind prop");
@@ -416,6 +529,9 @@ assert.match(slugField, /confirmForSave/, "SlugField must expose confirmForSave"
 assert.match(slugField, /role="status"/, "SlugField must expose accessible status");
 assert.match(slugField, /reserved-by-other/, "SlugField must map reserved-by-other state (§7.1)");
 assert.match(slugField, /editor_ui\.slug_label/, "SlugField must use editor_ui.slug_label");
+assert.match(slugField, /await reservation\.onAvailable/, "SlugField must await reservation result");
+assert.match(slugField, /reservationState\.value\s*=\s*result/, "SlugField must reflect reservation result in field state");
+assert.doesNotMatch(slugField, /void reservation\.onAvailable/, "SlugField must not discard reservation result");
 
 // --- Part C2: useSlugAvailability の 6 状態写像（D1） ---
 const avail = await readSrc("src/composables/useSlugAvailability.ts");

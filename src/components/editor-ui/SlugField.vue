@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef, watch } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import { useTranslation } from 'i18next-vue';
 import EditorField from './EditorField.vue';
 import ContextHelp from './ContextHelp.vue';
@@ -62,19 +62,30 @@ const reservation = useSlugReservation({
   originalSlug: () => props.originalSlug,
 });
 
-const state = availability.fieldState; // §7.1 の 6 値 (D1)
+const reservationState = ref<SlugFieldState | null>(null);
+const state = computed<SlugFieldState>(() => reservationState.value ?? availability.fieldState.value);
 // idle は無音(空文字)。それ以外は slug_state.<state> を読む(role=status のアクセシブル表示)
 const statusText = computed(() => (state.value === 'idle' ? '' : t(`editor_ui.slug_state.${state.value}`)));
 
-watch(state, (s) => {
-  emit('state-change', s);
+watch([slugRef, () => props.originalSlug], ([slug]) => {
+  reservation.invalidate();
+  reservationState.value = null;
+  if (slug.trim() === props.originalSlug) void reservation.releaseIfHeld();
+}, { flush: 'sync' });
+
+watch(availability.fieldState, async (s) => {
   const current = slugRef.value.trim();
   if (current === props.originalSlug) {
-    void reservation.releaseIfHeld();
+    reservationState.value = null;
   } else if (s === 'available') {
-    void reservation.onAvailable(current);
+    const result = await reservation.onAvailable(current);
+    if (result != null && slugRef.value.trim() === current) reservationState.value = result;
+  } else {
+    reservationState.value = null;
   }
 });
+
+watch(state, (s) => emit('state-change', s));
 
 const diagnostics = computed<DiagnosticItem[]>(() => {
   if (state.value === 'invalid-format') {
@@ -97,7 +108,10 @@ function onInput(v: string): void {
 }
 
 async function confirmForSave(): Promise<boolean> {
-  return reservation.confirmForSave(slugRef.value.trim());
+  const current = slugRef.value.trim();
+  const result = await reservation.confirmForSave(current);
+  if (result != null && slugRef.value.trim() === current) reservationState.value = result.state;
+  return result?.ok ?? false;
 }
 
 // 新規の放棄(モーダル閉じ・draft 破棄)で保持中の予約を明示解放する(D6改/AC15)。
