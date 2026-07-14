@@ -14,6 +14,7 @@ import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue
 import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
 import LangValueChips from "../components/editor-ui/LangValueChips.vue";
+import SlugField from "../components/editor-ui/SlugField.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
@@ -198,11 +199,14 @@ let appSaveSucceeded = false;
 const saveHandle = useRevisionedAssetSave<AppSaveResult>({
   send: async ({ uid, expectedRevision }) => {
     const { document } = pendingSave!;
+    // M11-T7/AC6: 新規は事前採番 uid + create 明示合図(§7.2b)で create 経路へ dispatch する
+    // (予約帰属 asset_uid と行 uid を一致させ promote を成立させる)
     const result = await window.appedit.save({
       document: JSON.parse(JSON.stringify(document)),
-      uid,
+      uid: uid ?? (newAppUid || undefined),
       slug: document.appID.trim(),
       expectedRevision,
+      ...(uid == null && newAppUid ? { create: true } : {}),
     });
     if (!result) {
       // IPC が結果を返さなかった: 旧実装の最終elseと同じ処理(表示のみ、console.error/dialog無し)
@@ -215,8 +219,6 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     appSaveSucceeded = true;
     // uid/revision/confirmedSlug は composable が保存結果から反映済み。以下は画面固有処理
     appData.value = normalizeAppDocument({ ...pendingSave!.document, appID: result.slug });
-    onlyOne.value = true;
-    appIDError.value = "";
     await hydrateSourceThumbnails();
     markHistorySaved();
     await draftLifecycle.markSaved();
@@ -231,9 +233,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
   isDirty: () => isDirty.value,
   onFailure: async (result) => {
     if (result.result === "Exist") {
-      // 保存レースでslugを先取りされた: 一意性チェックボタンを再度有効化する
-      onlyOne.value = false;
-      appIDError.value = "appedit.duplicate_appid";
+      // 保存レースで slug を先取りされた: 重複を operation 診断へ(field 表示は SlugField が担う)
       saveError.value = t("appedit.duplicate_appid");
     } else {
       saveError.value = t("appedit.error_saving");
@@ -248,9 +248,14 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
   },
 });
 const { uid: appUid, revision, confirmedSlug, performSave, saving } = saveHandle;
-// onlyOne: slugの一意性確認済みか (ADR-0007: appID欄は既存アプリでも編集可のslug欄)
-const onlyOne = ref(false);
-const appIDError = ref("appedit.check_uniqueness");
+// M11-T7: appID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne/appIDError の
+// 手動一意性確認機構は撤去し、保存時 confirmForSave(予約再確認)へ機構置換した。
+const slugField = ref<InstanceType<typeof SlugField> | null>(null);
+// 新規アプリの事前採番 uid (AC6): draft キーと保存 create uid を兼ねる。既存 draftUid が
+// route にあれば引き継ぐ(hot exit 復元で予約 claim も同じ帰属になる)
+const newAppUid = (typeof route.query.uid === "string" && route.query.uid)
+  ? ""
+  : (typeof route.query.draftUid === "string" ? route.query.draftUid : crypto.randomUUID());
 const saveError = ref<string | null>(null);
 // pois 復元 heal が失敗した (data_json 破損などで復元不能だった) かどうか。
 // true のまま保存すると復元できなかった pois が失われるため、POIデータタブに警告を出す
@@ -352,14 +357,13 @@ onMounted(async () => {
     if (loaded) {
       appData.value = normalizeAppDocument(loaded);
       saveHandle.adoptLoaded({ uid: loaded.uid ?? uid, slug: appData.value.appID, revision: loaded.revision });
-      onlyOne.value = true;
-      appIDError.value = "";
     }
   }
   currentLang.value = appData.value.lang;
   await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   resetHistoryBase();
-  const draftUid = uid || (typeof route.query.draftUid === "string" ? route.query.draftUid : crypto.randomUUID());
+  // M11-T7: 新規の draft キー = 事前採番 uid(newAppUid)。予約帰属・create uid と一致させる
+  const draftUid = uid || newAppUid;
   if (!uid && route.query.draftUid !== draftUid) {
     await router.replace({ query: { ...route.query, draftUid } });
   }
@@ -709,34 +713,13 @@ function onMainProcessMessage(message: string) {
   else if (message === "menu:redo") performRedo();
 }
 
-/**
- * slug(appID欄) 一意性チェック
- * ADR-0007: 既存アプリでは excludeUid=自分 を渡し、自分の現slugは「空き」と判定される
- */
-async function checkOnlyOne() {
-  const appID = appData.value.appID.trim();
-  if (!appID) {
-    appIDError.value = "appedit.no_appid";
-    return;
-  }
-  const available = await window.assets.checkSlug({
-    slug: appID,
-    excludeUid: appUid.value ?? undefined,
-  });
-  appIDError.value = available ? "" : "appedit.duplicate_appid";
-  if (!appIDError.value) onlyOne.value = true;
-}
-
-// slug(appID欄)の編集を検知して一意性再チェックを要求する (ADR-0007)。
-// 永続化済みslug(confirmedSlug)に戻った場合は自分自身のslugなので確認済み扱いに復帰する
-function onAppIDInput() {
-  if (confirmedSlug.value && appData.value.appID === confirmedSlug.value) {
-    onlyOne.value = true;
-    appIDError.value = "";
-  } else {
-    onlyOne.value = false;
-    appIDError.value = "appedit.check_uniqueness";
-  }
+// slug(appID欄) の live 入力 (M11-T7)。可用性確認・予約 lifecycle は SlugField 内蔵
+// (excludeUid=自 uid で自分の現 slug は「空き」判定 = ADR-0007 継承)。
+// 旧実装の @input 毎 recordHistory と同じ履歴文法を保つ。
+function onAppIDLiveInput(value: string): void {
+  saveError.value = null;
+  appData.value.appID = value;
+  recordHistory();
 }
 
 /**
@@ -752,8 +735,11 @@ async function saveApp(): Promise<boolean> {
     saveError.value = t("appedit.no_appid");
     return false;
   }
-  if (!onlyOne.value || appIDError.value) {
-    saveError.value = t("appedit.check_uniqueness");
+  // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)。
+  // registry 重複は backend の unique 制約(Exist)が最終防衛
+  const slugOk = await slugField.value?.confirmForSave() ?? true;
+  if (!slugOk) {
+    saveError.value = t("appedit.duplicate_appid");
     return false;
   }
   // pois は配列のまま永続化する (旧 poiSources 文字列形は normalize で pois 配列に
@@ -782,8 +768,6 @@ async function reloadFromStore() {
     if (!loaded) return;
     appData.value = normalizeAppDocument(loaded);
     saveHandle.adoptLoaded({ uid: loaded.uid ?? appUid.value, slug: appData.value.appID, revision: loaded.revision });
-    onlyOne.value = true;
-    appIDError.value = "";
     currentLang.value = appData.value.lang;
     resetHistoryBase();
     await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
@@ -1110,29 +1094,20 @@ function onPoisChange(next: unknown[]) {
       <div v-show="activeTab === 'metadata'" class="h-100 overflow-auto p-3">
         <form class="container-fluid" @submit.prevent>
           <div class="row g-1 mb-2">
-            <!-- App ID フィールド: slug編集欄 (ADR-0007: 既存アプリでも編集可、変更時は一意性再チェック) -->
-            <div class="col-md-3" :class="appIDError && appIDError !== 'appedit.check_uniqueness' ? 'has-error' : ''">
-              <label class="form-label fw-bold small mb-0">{{ t("appedit.appid") }}</label>
-              <input
-                data-testid="app-id"
-                v-model="appData.appID"
-                type="text"
-                class="form-control form-control-sm"
-                :class="appIDError && appIDError !== 'appedit.check_uniqueness' ? 'is-invalid' : ''"
-                :placeholder="t('appedit.input_appid')"
+            <!-- App ID フィールド (M11-T7/AC1): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
+                 手動一意性確認ボタンは撤去(debounce 自動確認 + 保存時 confirmForSave へ機構置換) -->
+            <div class="col-md-5">
+              <SlugField
+                ref="slugField"
+                :model-value="appData.appID"
+                asset-kind="app"
+                :asset-uid="appUid || newAppUid"
+                :draft-uid="appUid || newAppUid"
+                :original-slug="confirmedSlug"
                 :disabled="translationMode"
-                @input="onAppIDInput(); recordHistory()"
+                input-testid="app-id"
+                @update:model-value="onAppIDLiveInput"
               />
-              <div v-if="appIDError" class="form-text small text-danger mb-0" style="font-size: 0.75rem;">
-                {{ t(appIDError) }}
-              </div>
-              <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.unique_appid") }}</div>
-            </div>
-            <div class="col-md-2 d-flex align-items-start pt-4">
-              <!-- 一意性チェックボタン: 確認済み(onlyOne)の間は無効化 (ADR-0007) -->
-              <button class="btn btn-secondary btn-sm w-100 mt-1" :disabled="translationMode || onlyOne" @click="checkOnlyOne">
-                {{ t("appedit.uniqueness_button") }}
-              </button>
             </div>
             <div class="col-md-7">
               <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_name") }} <LangValueChips :model-value="appData.title" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>

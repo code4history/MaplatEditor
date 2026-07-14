@@ -206,3 +206,10 @@ for (const rel of ["src/views/PoiEdit.vue", "src/views/PoiSourceList.vue"]) {
   assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must drop raw checkSlug (AC17)`);
 }
 console.log("m11-t7 smoke Part E: OK");
+
+// --- Part F1: AppEdit が SlugField、一意性ボタン撤去 ---
+const appEditSrc = await readSrc("src/views/AppEdit.vue");
+assert.match(appEditSrc, /SlugField/, "AppEdit must use SlugField");
+assert.doesNotMatch(appEditSrc, /appedit\.uniqueness_button/, "AppEdit must drop uniqueness button (AC1)");
+assert.doesNotMatch(appEditSrc, /window\.assets\.checkSlug/, "AppEdit must drop raw checkSlug (AC17)");
+console.log("m11-t7 smoke Part F1: OK");
