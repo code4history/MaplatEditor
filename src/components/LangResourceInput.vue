@@ -4,6 +4,7 @@
       <textarea
         v-if="multiline"
         class="form-control form-control-sm"
+        :class="{ 'is-invalid': invalid }"
         rows="3"
         :data-testid="inputTestid"
         :value="valueFor(activeLang)"
@@ -15,6 +16,7 @@
         type="text"
         :data-testid="inputTestid"
         class="form-control form-control-sm"
+        :class="{ 'is-invalid': invalid }"
         :value="valueFor(activeLang)"
         :disabled="disabled"
         @change="onConfirm(($event.target as HTMLInputElement).value)"
@@ -54,6 +56,7 @@ const props = withDefaults(defineProps<{
   multiline?: boolean;
   warning?: string;
   disabled?: boolean;
+  invalid?: boolean;
   inputTestid?: string;
 }>(), {
   activeLang: "ja",
@@ -62,6 +65,7 @@ const props = withDefaults(defineProps<{
   multiline: false,
   warning: undefined,
   disabled: false,
+  invalid: false,
   inputTestid: undefined,
 });
 
