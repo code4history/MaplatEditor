@@ -15,6 +15,7 @@ import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
 import LangValueChips from "../components/editor-ui/LangValueChips.vue";
 import SlugField from "../components/editor-ui/SlugField.vue";
+import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
@@ -1282,7 +1283,13 @@ function onPoisChange(next: unknown[]) {
               </div>
             </div>
           </section>
-          <div v-if="saveError" class="alert alert-danger mt-3">{{ saveError }}</div>
+          <!-- M11-T7/AC8: 保存 operation エラーは DiagnosticFeedback scope="operation" -->
+          <DiagnosticFeedback
+            v-if="saveError"
+            class="mt-3"
+            scope="operation"
+            :items="[{ key: 'save-error', severity: 'danger', message: saveError }]"
+          />
         </form>
       </div>
 
@@ -1404,9 +1411,7 @@ function onPoisChange(next: unknown[]) {
            v-show 専用ラッパーを挟む -->
       <div v-show="activeTab === 'pois'" class="h-100">
       <div class="h-100 overflow-hidden p-3 d-flex flex-column">
-        <div v-if="poiHealFailed" class="alert alert-warning flex-shrink-0" role="alert">
-          {{ t("appedit.poi_heal_failed") }}
-        </div>
+        <DiagnosticFeedback v-if="poiHealFailed" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_heal_failed') }]" scope="section" class="flex-shrink-0" />
         <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="appData.pois" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>
@@ -1425,7 +1430,13 @@ function onPoisChange(next: unknown[]) {
             <option v-for="(v, k) in langsMap" :key="k" :value="k">{{ t("common." + v) }}</option>
           </select>
         </div>
-        <div v-if="previewError" class="alert alert-warning preview-error">{{ previewError }}</div>
+        <!-- M11-T7/AC8: section 診断(警告)へ移行(絶対配置の overlay 位置は .preview-error が担う) -->
+        <DiagnosticFeedback
+          v-if="previewError"
+          class="preview-error"
+          scope="section"
+          :items="[{ key: 'preview-error', severity: 'warning', message: previewError }]"
+        />
       </div>
     </div>
 

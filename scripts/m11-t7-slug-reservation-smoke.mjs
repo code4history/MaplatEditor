@@ -252,3 +252,17 @@ for (const [rel, keys] of [
   assert.doesNotMatch(src, keys, `${rel} must not reference retired keys (D10)`);
 }
 console.log("m11-t7 smoke Part G: OK");
+
+// --- Part H: 診断が DiagnosticFeedback/EditorField へ移行、旧 alert/独自 banner 撤去(AC8) ---
+for (const rel of ["src/views/MapEdit.vue", "src/views/AppEdit.vue", "src/views/PoiEdit.vue", "src/views/PoiSourceList.vue"]) {
+  const src = await readSrc(rel);
+  assert.match(src, /DiagnosticFeedback|EditorField/, `${rel} must use diagnostic primitives (AC8)`);
+  // 保存 operation エラーは DiagnosticFeedback scope="operation" で表示する
+  assert.match(src, /scope="operation"/, `${rel} must surface save errors as operation diagnostics (AC8)`);
+  // window.alert の独自診断は残らない
+  assert.doesNotMatch(src, /window\.alert\(|[^.\w]alert\(t\(/, `${rel} must not use raw alert for diagnostics (AC8)`);
+}
+// AppEdit の旧 is-invalid 条件付き appIDError banner が残らない
+const appH = await readSrc("src/views/AppEdit.vue");
+assert.doesNotMatch(appH, /appIDError && appIDError !== 'appedit\.check_uniqueness'/, "AppEdit must drop legacy is-invalid banner");
+console.log("m11-t7 smoke Part H: OK");

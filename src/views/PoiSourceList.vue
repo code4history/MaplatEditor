@@ -100,9 +100,10 @@
               />
             </template>
 
-            <!-- Feedback (validation issues / error-code messages) -->
-            <div v-if="modal.feedback" class="alert mt-3 mb-0" :class="modal.feedbackRetry ? 'alert-warning' : 'alert-danger'">
-              <div style="white-space: pre-line;">{{ modal.feedback }}</div>
+            <!-- Feedback (validation issues / error-code messages)。
+                 M11-T7/AC8: DiagnosticFeedback scope="operation" へ移行(retry 導線は温存) -->
+            <div v-if="modal.feedback" class="mt-3">
+              <DiagnosticFeedback scope="operation" :items="modalFeedbackItems" />
               <button
                 v-if="modal.feedbackRetry"
                 type="button"
@@ -158,6 +159,8 @@ import {
   type LangCode,
 } from "../utils/editorLanguages";
 import SlugField from "../components/editor-ui/SlugField.vue";
+import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
+import type { DiagnosticItem } from "../components/editor-ui/editorUiTypes";
 import type { SlugFieldState } from "../composables/useSlugAvailability";
 
 const { t } = useTranslation();
@@ -255,7 +258,12 @@ const deleteSourceByUid = async (uid: string, title: string) => {
     await refreshDrafts();
   } catch (e) {
     console.error("Failed to delete POI source", e);
-    alert(t("poisource.delete_error"));
+    // M11-T7/AC8: 生 alert 撤去。native dialog(既存の確認 dialog と同系)で通知する
+    await (window as any).dialog.showMessageBox({
+      type: "error",
+      buttons: ["OK"],
+      message: t("poisource.delete_error"),
+    });
   }
 };
 
@@ -282,6 +290,19 @@ const modal = reactive({
 // M11-T7: 可用性確認・field 診断は SlugField 内蔵。canSubmit は state-change で判定する
 const modalSlugField = ref<InstanceType<typeof SlugField> | null>(null);
 const modalSlugState = ref<SlugFieldState>("idle");
+
+// M11-T7/AC8: modal feedback を DiagnosticFeedback items へ写像(複数行は行ごとに item 化。
+// network 再試行導線がある場合は warning、それ以外は danger = 旧 alert-warning/danger と同色)
+const modalFeedbackItems = computed<DiagnosticItem[]>(() =>
+  modal.feedback
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line, index) => ({
+      key: `feedback-${index}`,
+      severity: modal.feedbackRetry ? ("warning" as const) : ("danger" as const),
+      message: line,
+    })),
+);
 
 const modalTitle = computed(() => {
   if (modal.mode === "local") return t("poisource.create_local_modal.title");
@@ -399,11 +420,16 @@ const openImport = async () => {
     // 可用性チェックは SlugField が modal.slug の変化で自動実行する
   } catch (e) {
     console.error("Failed to pick import file", e);
-    // MINOR-5: モーダルが開いていれば feedback で、開いていなければ alert で通知する
+    // MINOR-5: モーダルが開いていれば feedback(operation 診断)で、開いていなければ
+    // native dialog で通知する(M11-T7/AC8: 生 alert 撤去)
     if (modal.mode) {
       modal.feedback = t("poisource.errors.pick_failed");
     } else {
-      alert(t("poisource.errors.pick_failed"));
+      await (window as any).dialog.showMessageBox({
+        type: "error",
+        buttons: ["OK"],
+        message: t("poisource.errors.pick_failed"),
+      });
     }
   }
 };

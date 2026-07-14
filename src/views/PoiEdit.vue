@@ -10,10 +10,13 @@
       {{ t("poisource.loading") }}
     </div>
 
-    <!-- Load error (not found 等): エラー表示 + 一覧へ戻る導線 -->
+    <!-- Load error (not found 等): エラー表示 + 一覧へ戻る導線 (M11-T7/AC8: operation 診断) -->
     <div v-else-if="loadError" class="p-4">
-      <div class="alert alert-danger">{{ loadError }}</div>
-      <button type="button" class="btn btn-outline-secondary" @click="router.push('/poisources')">
+      <DiagnosticFeedback
+        scope="operation"
+        :items="[{ key: 'load-error', severity: 'danger', message: loadError }]"
+      />
+      <button type="button" class="btn btn-outline-secondary mt-2" @click="router.push('/poisources')">
         {{ t("common.back") }}
       </button>
     </div>
@@ -123,38 +126,31 @@
         </div>
       </div>
 
-      <!-- 診断領域 (内容があるときのみ表示) -->
+      <!-- 診断領域 (内容があるときのみ表示)。M11-T7/AC8: T5 の DiagnosticFeedback 文法
+           (section=検証まとめ・operation=保存エラー、即時表示)へ移行 -->
       <div
         v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarnings.length"
         class="px-4 py-2 flex-shrink-0 overflow-auto"
         style="max-height: 40%;"
       >
-        <div v-if="readOnly" class="alert alert-info">
-          {{ t("poiedit.read_only_notice") }}
-        </div>
-        <div v-if="saveError" class="alert alert-danger alert-dismissible">
-          {{ saveError }}
-          <button type="button" class="btn-close" @click="saveError = null"></button>
-        </div>
-        <!-- 保存 Invalid の issues 一覧 -->
-        <div v-if="saveIssues.length" class="alert alert-danger">
-          <div class="fw-bold">{{ t("poiedit.save_issues") }}</div>
-          <ul class="mb-0">
-            <li v-for="(issue, index) in saveIssues" :key="index">{{ issueMessage(issue, t) }}</li>
-          </ul>
-        </div>
-        <!-- error レベルの live issue (2026-07-11 ポリシー変更: フォームはエラー値も commit
-             するため、保存前に理由をここでライブ可視化する。warning とは alert-danger で区別) -->
-        <div v-if="liveErrors.length" class="alert alert-danger">
-          <div class="fw-bold">{{ t("poiedit.save_issues") }}</div>
-          <ul class="mb-0">
-            <li v-for="(issue, index) in liveErrors" :key="index">{{ issueMessage(issue, t) }}</li>
-          </ul>
-        </div>
+        <DiagnosticFeedback
+          v-if="readOnly"
+          scope="section"
+          :items="[{ key: 'read-only', severity: 'info', message: t('poiedit.read_only_notice') }]"
+        />
+        <DiagnosticFeedback
+          v-if="saveError"
+          scope="operation"
+          dismissible
+          :items="[{ key: 'save-error', severity: 'danger', message: saveError }]"
+          @dismiss="saveError = null"
+        />
+        <!-- 保存 Invalid の issues 一覧 + error レベルの live issue (2026-07-11 ポリシー:
+             フォームはエラー値も commit するため保存前に理由をライブ可視化する) -->
+        <DiagnosticFeedback v-if="saveIssueItems.length" scope="section" :items="saveIssueItems" />
+        <DiagnosticFeedback v-if="liveErrorItems.length" scope="section" :items="liveErrorItems" />
         <!-- POI-108 無コンテンツ警告 / POI-121 規模警告 -->
-        <div v-for="key in liveWarnings" :key="key" class="alert alert-warning">
-          {{ t(key) }}
-        </div>
+        <DiagnosticFeedback v-if="liveWarningItems.length" scope="section" :items="liveWarningItems" />
       </div>
 
       <!-- 地図ペイン (主役、仕様 §3.3) + 右カラム: 属性フォーム (Task 7) の下に
@@ -223,6 +219,8 @@ import PoiEditMap from "../components/PoiEditMap.vue";
 import PoiFeatureList from "../components/PoiFeatureList.vue";
 import PoiRawPane from "../components/PoiRawPane.vue";
 import SlugField from "../components/editor-ui/SlugField.vue";
+import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
+import type { DiagnosticItem } from "../components/editor-ui/editorUiTypes";
 import { checkSlugAvailability, type SlugFieldState } from "../composables/useSlugAvailability";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
@@ -461,6 +459,25 @@ const liveWarnings = computed<string[]>(() => {
   }
   return keys;
 });
+
+// M11-T7/AC8: 診断領域の DiagnosticFeedback items(T5 文法 DiagnosticItem = {key, severity, message})
+const saveIssueItems = computed<DiagnosticItem[]>(() =>
+  saveIssues.value.map((issue, index) => ({
+    key: `save-issue-${index}`,
+    severity: "danger" as const,
+    message: issueMessage(issue, t),
+  })),
+);
+const liveErrorItems = computed<DiagnosticItem[]>(() =>
+  liveErrors.value.map((issue, index) => ({
+    key: `live-error-${index}`,
+    severity: "danger" as const,
+    message: issueMessage(issue, t),
+  })),
+);
+const liveWarningItems = computed<DiagnosticItem[]>(() =>
+  liveWarnings.value.map((key) => ({ key, severity: "warning" as const, message: t(key) })),
+);
 
 // --- 読込 ---
 async function load(sourceId: string): Promise<void> {

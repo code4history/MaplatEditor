@@ -10,6 +10,7 @@ import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
 import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
 import LangValueChips from '../components/editor-ui/LangValueChips.vue';
 import SlugField from '../components/editor-ui/SlugField.vue';
+import DiagnosticFeedback from '../components/editor-ui/DiagnosticFeedback.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
@@ -113,13 +114,9 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
             ...(sendUid == null && !copyFromUid && newMapUid ? { create: true } : {}),
         });
         if (!result) {
-            // IPC が結果を返さなかった: 旧実装の最終elseと同じくエラー通知して終了
+            // IPC が結果を返さなかった: エラーを operation 診断へ(M11-T7/AC8)
             console.error('[saveMap] Save error:', result);
-            await (window as any).dialog.showMessageBox({
-                type: 'info',
-                buttons: ['OK'],
-                message: t('mapedit.error_saving')
-            });
+            saveOperationError.value = t('mapedit.error_saving');
             return null;
         }
         // 旧実装の result.slug ?? saveValue.mapID フォールバックを維持
@@ -155,23 +152,16 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
     isDirty: () => isDirty.value,
     onFailure: async (result) => {
         if (result.result === 'Exist') {
-            // 保存レースで slug を先取りされた(field 表示は SlugField が担う)
-            await (window as any).dialog.showMessageBox({
-                type: 'info',
-                buttons: ['OK'],
-                message: t('mapedit.error_duplicate_id')
-            });
+            // 保存レースで slug を先取りされた(field 表示は SlugField が担う)。
+            // M11-T7/AC8: operation 診断へ(旧 info ダイアログ撤去)
+            saveOperationError.value = t('mapedit.error_duplicate_id');
         } else {
             // DBコミット後のファイル操作失敗 (Error{revision付き}, ADR-0007) は composable が
             // uid/revision/confirmedSlug を取り込み済み(偽のrevision-conflict防止)。ここでは通知のみ。
             // 原本改名の残作業は mapID ref(applySuccess でのみ更新)由来の renameFromSlug が
             // 再試行に引き継ぐ(M11-T7/D5改)
             console.error('[saveMap] Save error:', result);
-            await (window as any).dialog.showMessageBox({
-                type: 'info',
-                buttons: ['OK'],
-                message: t('mapedit.error_saving')
-            });
+            saveOperationError.value = t('mapedit.error_saving');
         }
     },
     // ダイアログ表示時点の言語で t() されるよう getter で渡す (旧実装と同じタイミングで翻訳)
@@ -227,6 +217,9 @@ const originalMapData = ref<any>({}); // isDirty 比較用ディープクロー�
 // M11-T7: mapID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne の手動一意性
 // 確認機構は撤去し、保存時 confirmForSave(予約再確認)へ機構置換した。
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
+// M11-T7/AC8: 保存 operation エラー(ID 重複/予約 conflict/保存失敗)。旧 error ダイアログから
+// DiagnosticFeedback scope="operation" へ移行。編集(履歴 snapshot)で自動的に解消する(F4 同型)
+const saveOperationError = ref<string | null>(null);
 // 新規地図の事前採番 uid (AC6): draft キーと保存 create uid を兼ねる。既存 draftUid が
 // route にあれば引き継ぐ(hot exit 復元で予約 claim も同じ帰属になる)
 const newMapUid = (typeof route.query.uid === 'string' && route.query.uid && route.query.uid !== 'new')
@@ -507,6 +500,8 @@ const draftLifecycle = useAssetDraftLifecycle<MapEditHistoryState>({
 });
 
 const scheduleHistorySnapshot = () => {
+    // F4 同型: 文書の変更で保存時 operation 診断を解消する(M11-T7/AC8)
+    if (saveOperationError.value) saveOperationError.value = null;
     if (historyTimer) clearTimeout(historyTimer);
     historyTimer = setTimeout(() => {
         historyTimer = undefined;
@@ -2556,6 +2551,7 @@ const mapUpload = async () => {
 let mapSaveSucceeded = false;
 const saveMap = async (): Promise<boolean> => {
     mapSaveSucceeded = false;
+    saveOperationError.value = null;
     // 1. 保存確認ダイアログ（旧実装: t('mapedit.confirm_save')）
     const confirmResult = await (window as any).dialog.showMessageBox({
         type: 'info',
@@ -2568,11 +2564,8 @@ const saveMap = async (): Promise<boolean> => {
     // 2. M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)
     const slugOk = await slugField.value?.confirmForSave() ?? true;
     if (!slugOk) {
-        await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
-            message: t('mapedit.error_duplicate_id')
-        });
+        // M11-T7/AC8: 予約 conflict は operation 診断で保存中断(D7)
+        saveOperationError.value = t('mapedit.error_duplicate_id');
         return false;
     }
 
@@ -3031,6 +3024,16 @@ const goBack = async () => {
                 </button>
             </template>
         </EditorActionHeader>
+
+        <!-- M11-T7/AC8: 保存 operation エラー(予約 conflict/ID 重複/保存失敗)は
+             DiagnosticFeedback scope="operation"(旧 error ダイアログから移行) -->
+        <DiagnosticFeedback
+            v-if="saveOperationError"
+            scope="operation"
+            dismissible
+            :items="[{ key: 'save-error', severity: 'danger', message: saveOperationError }]"
+            @dismiss="saveOperationError = null"
+        />
 
         <!-- 2. Tabs -->
         <div class="px-4 mt-2">
@@ -3597,9 +3600,12 @@ const goBack = async () => {
                         <div v-if="baseMapVisibilityLoading" class="small text-muted">
                             {{ t("applist.loading") }}
                         </div>
-                        <div v-else-if="baseMapVisibilityError" class="alert alert-danger py-2">
-                            {{ baseMapVisibilityError }}
-                        </div>
+                        <!-- M11-T7/AC8: section 診断へ移行 -->
+                        <DiagnosticFeedback
+                            v-else-if="baseMapVisibilityError"
+                            scope="section"
+                            :items="[{ key: 'basemap-visibility', severity: 'danger', message: baseMapVisibilityError }]"
+                        />
                         <div v-else class="overflow-auto flex-grow-1">
                             <div v-if="filteredBaseMapVisibilityList.length === 0" class="small text-muted">
                                 {{ t("mapedit.base_map_search_no_results") }}
