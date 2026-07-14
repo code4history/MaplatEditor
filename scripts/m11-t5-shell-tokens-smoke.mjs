@@ -181,15 +181,17 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
   const src = await read(rel);
   assert.match(src, /EditorField/, `${rel} must use EditorField`);
   assert.match(src, /DiagnosticFeedback/, `${rel} must use DiagnosticFeedback`);
-  assert.match(src, /ContextHelp/, `${rel} must use ContextHelp`);
-  assert.match(src, /editor-ui-mono/, `${rel} slug input must use editor-ui-mono`);
+  // M11-T7 移行後: slug 欄は共通 SlugField(ContextHelp/editor-ui-mono/is-invalid 内蔵)へ寄せた。
+  // 内蔵の各不変条件は m11-t7 smoke Part C と SlugField source 自体が担保する。
+  assert.match(src, /ContextHelp|SlugField/, `${rel} must use ContextHelp (directly or via SlugField)`);
+  assert.match(src, /editor-ui-mono|SlugField/, `${rel} slug input must use editor-ui-mono (directly or via SlugField)`);
   assert.match(src, /scope="operation"/, `${rel} save error must be operation-scope diagnostic`);
   // F3: 黄色バナー撤去 → section scope summary へ置換（全項目即時 = dirty ゲートなし）
   assert.match(src, /scope="section"/, `${rel} validation summary must be section-scope diagnostic`);
   assert.doesNotMatch(src, /alert alert-warning[^"]*"\s*>\s*<ul/, `${rel} must not keep the yellow validation banner`);
   assert.match(src, /sectionDiagnostics/, `${rel} must expose sectionDiagnostics`);
-  // F2: field 診断がある入力へ is-invalid（赤枠）を連動付与
-  assert.match(src, /'is-invalid':\s*slugDiagnostics\.length/, `${rel} slug input must bind is-invalid to slugDiagnostics`);
+  // F2: field 診断がある入力へ is-invalid（赤枠）を連動付与(slug 欄は SlugField 内蔵)
+  assert.match(src, /('is-invalid':\s*slugDiagnostics\.length)|SlugField/, `${rel} slug input must bind is-invalid (directly or via SlugField)`);
   assert.match(src, /titleDiagnostics/, `${rel} must wire title field diagnostics`);
   assert.match(src, /:invalid="titleDiagnostics\.length > 0"/, `${rel} title input must bind is-invalid via LangResourceInput invalid`);
   // F6: ContextHelp から mode 指定を除去

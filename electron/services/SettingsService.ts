@@ -177,6 +177,8 @@ class SettingsService extends EventEmitter {
       }
       const message = error instanceof Error ? error.message : String(error);
       if (message.startsWith('Slug already in use')) return { result: 'Exist' };
+      // slug 予約 promote conflict(M11-T7/AC4)も duplicate として operation 診断へ写像する
+      if ((error as { kind?: string })?.kind === 'slug-reservation-conflict') return { result: 'Exist' };
       if (message === 'slug is required') return { result: 'Error', code: 'invalid-request', message };
       if (message.startsWith('Unknown user base map:')) return { result: 'Error', code: 'not-found', message };
       return { result: 'Error', code: 'internal', message };

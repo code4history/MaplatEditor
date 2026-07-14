@@ -194,6 +194,10 @@ export class PoiSourceService {
     if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
       return { result: 'Exist' };
     }
+    // slug 予約 promote conflict(M11-T7/AC4)も duplicate として operation 診断へ写像する
+    if (e?.kind === 'slug-reservation-conflict') {
+      return { result: 'Exist' };
+    }
     console.error('[PoiSourceService] write error:', e);
     return { result: 'Error', code: 'internal', message: e instanceof Error ? e.message : String(e) };
   }

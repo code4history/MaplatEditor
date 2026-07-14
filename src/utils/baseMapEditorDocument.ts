@@ -48,6 +48,8 @@ export interface BaseMapSavePayload {
   uid?: string;
   slug: string;
   expectedRevision?: number;
+  // 新規作成の明示合図 (M11-T7/§7.2b)。true=uid を事前採番 preset として採用
+  create?: boolean;
   tms: {
     lang: LangCode;
     title: Record<string, string>;

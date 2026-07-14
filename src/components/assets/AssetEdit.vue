@@ -71,28 +71,20 @@
           </select>
         </div>
         <div class="col-12">
-          <EditorField
-            :label="t('assetlist.slug_label')"
-            label-for="asset-slug-input"
-            :diagnostics="slugDiagnostics"
-          >
-            <template #help>
-              <ContextHelp
-                :text="t('editor_ui.slug_format_help')"
-                :ariaLabel="t('editor_ui.slug_format_help')"
-              />
-            </template>
-            <input
-              id="asset-slug-input"
-              :value="document.slug"
-              type="text"
-              class="form-control form-control-sm editor-ui-mono"
-              :class="{ 'is-invalid': slugDiagnostics.length }"
-              data-testid="asset-slug"
-              :disabled="structuralDisabled"
-              @change="updateDocument({ ...document, slug: ($event.target as HTMLInputElement).value.trim() })"
-            >
-          </EditorField>
+          <!-- M11-T7/AC1: 共通 SlugField(内蔵 label/help/可用性診断+予約 lifecycle)。
+               入力中は slugLive(live 可用性確認)、blur 確定(@change)で従来どおり履歴 commit -->
+          <SlugField
+            ref="slugField"
+            :model-value="slugLive"
+            asset-kind="image-asset"
+            :asset-uid="document.uid"
+            :draft-uid="document.uid"
+            :original-slug="originalSlug"
+            :disabled="structuralDisabled"
+            input-testid="asset-slug"
+            @update:model-value="slugLive = $event"
+            @change="updateDocument({ ...document, slug: $event.trim() })"
+          />
         </div>
 
         <div class="col-12"><hr class="my-1"></div>
@@ -140,7 +132,7 @@ import EditorActionHeader from "../editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../editor-ui/EditorBusyOverlay.vue";
 import EditorField from "../editor-ui/EditorField.vue";
 import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
-import ContextHelp from "../editor-ui/ContextHelp.vue";
+import SlugField from "../editor-ui/SlugField.vue";
 import type { DiagnosticItem, EditorSaveState } from "../editor-ui/editorUiTypes";
 import { useAssetDraftLifecycle } from "../../composables/useAssetDraftLifecycle";
 import { UndoStack } from "../../services/editorUndoStack";
@@ -176,6 +168,11 @@ const volatileSource = shallowRef<VolatileSource | null>(null);
 let history = new UndoStack<AssetEditHistoryState>({ document: clone(initialDocument), volatileSource: null });
 const historyVersion = ref(0);
 const revision = ref<number | null>(props.item?.revision ?? null);
+// M11-T7: SlugField 連携。slugLive=入力中の live 値(可用性確認用)、originalSlug=保存済み slug
+// (未変更判定・元 slug 復帰 release 用。保存成功まで更新しない)。
+const slugField = ref<InstanceType<typeof SlugField> | null>(null);
+const slugLive = ref(initialDocument.slug);
+const originalSlug = ref<string | undefined>(props.item?.slug);
 const activeLang = ref<LangCode>(document.value.defaultLang);
 const saving = ref(false);
 const picking = ref(false);
@@ -203,7 +200,6 @@ function diagnosticsFor(codes: readonly string[]): DiagnosticItem[] {
     .filter((code) => codes.includes(code))
     .map((code) => ({ key: code, severity: "danger" as const, message: t(VALIDATION_MESSAGE_KEYS[code]) }));
 }
-const slugDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["slug-required", "slug-invalid"]));
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
 const sourceDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["source-required"]));
 // section summary は全 validation error を同じ文法で併記する。
@@ -235,6 +231,7 @@ function resetSession(item: ImageAssetRow | null, uid: string): void {
   history = new UndoStack({ document: clone(next), volatileSource: null });
   historyVersion.value++;
   revision.value = item?.revision ?? null;
+  originalSlug.value = item?.slug;
   activeLang.value = next.defaultLang;
   error.value = "";
   conflictRevision.value = null;
@@ -301,6 +298,12 @@ watch(
   },
   { immediate: true },
 );
+
+// document.slug の外部変化(Undo/Redo/draft 復元/セッション切替/自動提案)を SlugField の live 値へ
+// 同期する。元 slug へ復帰した場合は SlugField 内部の予約 release が発火する(AC15)。
+watch(() => document.value.slug, (slug) => {
+  if (slugLive.value.trim() !== slug) slugLive.value = slug;
+});
 
 function pushCurrent(): void {
   // F4: 文書の変更で保存時 operation 診断（slug重複等）を解消する。
@@ -422,8 +425,10 @@ async function save(): Promise<void> {
   error.value = "";
   saving.value = true;
   try {
-    const available = await window.assets.checkSlug({ slug: document.value.slug, excludeUid: revision.value === null ? undefined : document.value.uid });
-    if (!available) { error.value = t("assetlist.errors.slug_taken"); return; }
+    // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)。
+    // registry 重複は backend の unique 制約(Exist)が最終防衛。
+    const slugOk = await slugField.value?.confirmForSave() ?? true;
+    if (!slugOk) { error.value = t("assetlist.errors.slug_taken"); return; }
     const capturedVersion = historyVersion.value;
     let result: ImageAssetSaveResult;
     if (props.isNew) {
@@ -434,6 +439,8 @@ async function save(): Promise<void> {
         lang: document.value.defaultLang,
         sourceName: volatileSource.value.sourceName,
         sourcePath: volatileSource.value.sourcePath,
+        // AC6: 新規 = 事前採番 uid(予約帰属 asset_uid と行 uid を一致させる)
+        uid: document.value.uid,
       });
     } else {
       result = await window.imageAssets.updateMetadata(document.value.uid, {
@@ -446,6 +453,8 @@ async function save(): Promise<void> {
     if (!("result" in result)) { conflictRevision.value = result.current; return; }
     if (result.result !== "Success") { error.value = saveFailure(result); return; }
     revision.value = result.revision;
+    // 保存成功(saved)で初めて originalSlug を確定 slug へ更新する
+    originalSlug.value = result.slug;
     const snapshot = history.snapshot();
     history = UndoStack.fromSnapshot({
       ...snapshot,

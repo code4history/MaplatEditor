@@ -190,3 +190,11 @@ assert.equal(ja.editor_ui.slug_label, "スラッグ (ID)"); // §18b 決定2 確
 assert.equal(ja.editor_ui.default_lang_label, "デフォルト言語");
 
 console.log("m11-t7 smoke Part C: OK");
+
+// --- Part D: BaseMap/Asset が SlugField を使い、生 checkSlug が残らない ---
+for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/assets/AssetEdit.vue"]) {
+  const src = await readSrc(rel);
+  assert.match(src, /SlugField/, `${rel} must use SlugField`);
+  assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must drop raw checkSlug (AC17)`);
+}
+console.log("m11-t7 smoke Part D: OK");
