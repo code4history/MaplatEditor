@@ -266,3 +266,32 @@ for (const rel of ["src/views/MapEdit.vue", "src/views/AppEdit.vue", "src/views/
 const appH = await readSrc("src/views/AppEdit.vue");
 assert.doesNotMatch(appH, /appIDError && appIDError !== 'appedit\.check_uniqueness'/, "AppEdit must drop legacy is-invalid banner");
 console.log("m11-t7 smoke Part H: OK");
+
+// --- Part I: EditorTabs が nav-tabs 同等 DOM を出力し、Map/App が採用(AC9/§9) ---
+const tabs = await readSrc("src/components/editor-ui/EditorTabs.vue");
+assert.match(tabs, /nav-tabs/, "EditorTabs must output nav-tabs DOM (S6)");
+assert.match(tabs, /nav-link/, "EditorTabs must output nav-link");
+assert.match(tabs, /aria-selected/, "EditorTabs must set aria-selected");
+assert.match(tabs, /role="tab"/, "EditorTabs must set role=tab");
+assert.match(tabs, /tabindex/, "EditorTabs must manage tabindex");
+assert.match(tabs, /disabledReasonKey|disabled-reason/, "EditorTabs must support disabled reason tooltip");
+const mapI = await readSrc("src/views/MapEdit.vue");
+assert.match(mapI, /EditorTabs/, "MapEdit must use EditorTabs");
+assert.match(mapI, /editor_ui\.tabs\./, "MapEdit must use §9 tab vocabulary");
+const appI = await readSrc("src/views/AppEdit.vue");
+assert.match(appI, /EditorTabs/, "AppEdit must use EditorTabs");
+assert.match(appI, /editor_ui\.tabs\./, "AppEdit must use §9 tab vocabulary");
+// §9 tab 語彙(11 locale) の存在
+for (const loc of LOCALES) {
+  const t = JSON.parse(await readSrc(`public/locales/${loc}/translation.json`));
+  assert.ok(t.editor_ui?.tabs != null, `editor_ui.tabs missing in ${loc}`);
+}
+// ja の §9 確定語彙
+const jaI = JSON.parse(await readSrc("public/locales/ja/translation.json"));
+assert.equal(jaI.editor_ui.tabs.metadata, "メタデータ編集");
+assert.equal(jaI.editor_ui.tabs.gcps, "対応点編集");
+assert.equal(jaI.editor_ui.tabs.base_maps, "ベースマップ選択");
+assert.equal(jaI.editor_ui.tabs.pois, "POI選択");
+assert.equal(jaI.editor_ui.tabs.maps, "地図選択");
+assert.equal(jaI.editor_ui.tabs.preview, "プレビュー");
+console.log("m11-t7 smoke Part I: OK");

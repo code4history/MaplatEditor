@@ -10,6 +10,7 @@ import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
 import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
 import LangValueChips from '../components/editor-ui/LangValueChips.vue';
 import SlugField from '../components/editor-ui/SlugField.vue';
+import EditorTabs from '../components/editor-ui/EditorTabs.vue';
 import DiagnosticFeedback from '../components/editor-ui/DiagnosticFeedback.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
@@ -3035,36 +3036,19 @@ const goBack = async () => {
             @dismiss="saveOperationError = null"
         />
 
-        <!-- 2. Tabs -->
+        <!-- 2. Tabs (M11-T7/AC9: EditorTabs primitive + §9 語彙。gcpsEditReady の
+             disabled/aria/tabindex は EditorTabs の disabled 機構が担う) -->
         <div class="px-4 mt-2">
-             <ul class="nav nav-tabs nav-fill bg-white flex-shrink-0 border-bottom-0">
-                <li class="nav-item">
-                    <a class="nav-link" :class="{ active: activeTab === 'metadata' }" @click.prevent="activeTab = 'metadata'" href="#">
-                        {{ t("mapedit.edit_metadata") }}
-                    </a>
-                </li>
-                <!-- 旧実装 mapedit.html L.47: v-bind:class="{ disabled: !gcpsEditReady }" に準拠 -->
-                <li class="nav-item">
-                    <a class="nav-link"
-                       :class="{ active: activeTab === 'gcps', disabled: !gcpsEditReady }"
-                       :aria-disabled="!gcpsEditReady"
-                       :tabindex="!gcpsEditReady ? -1 : undefined"
-                       @click.prevent="gcpsEditReady && (activeTab = 'gcps')"
-                       href="#">
-                        {{ t("mapedit.edit_gcp") }}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" :class="{ active: activeTab === 'settings' }" @click.prevent="activeTab = 'settings'" href="#">
-                        {{ t("mapedit.edit_base_map") }}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" :class="{ active: activeTab === 'pois' }" @click.prevent="activeTab = 'pois'" href="#">
-                        {{ t("poiref.tab_label") }}
-                    </a>
-                </li>
-            </ul>
+            <EditorTabs
+                :model-value="activeTab"
+                :tabs="[
+                    { key: 'metadata', labelKey: 'editor_ui.tabs.metadata' },
+                    { key: 'gcps', labelKey: 'editor_ui.tabs.gcps', disabled: !gcpsEditReady, disabledReasonKey: 'editor_ui.tabs.gcps_requires_image' },
+                    { key: 'settings', labelKey: 'editor_ui.tabs.base_maps' },
+                    { key: 'pois', labelKey: 'editor_ui.tabs.pois' },
+                ]"
+                @update:model-value="activeTab = $event"
+            />
         </div>
 
         <!-- 3. Main Content Area -->

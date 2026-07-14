@@ -846,6 +846,15 @@
       "message": "La versión guardada cambió después de crear el borrador.",
       "discard": "Descartar borrador y abrir la última",
       "apply": "Aplicar borrador"
+    },
+    "tabs": {
+      "metadata": "Editar metadatos",
+      "gcps": "Editar GCP",
+      "base_maps": "Seleccionar mapas base",
+      "pois": "Seleccionar POIs",
+      "maps": "Seleccionar mapas",
+      "preview": "Vista previa",
+      "gcps_requires_image": "Registre primero la imagen del mapa"
     }
   },
   "resource_list": {

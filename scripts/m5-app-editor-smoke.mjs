@@ -333,10 +333,11 @@ try {
     /<[a-zA-Z][^>]*v-show[^>]*\bd-flex\b[^>]*>/,
     'AppEdit に v-show + d-flex 同居要素がある (v-show 専用ラッパーを挟むこと)'
   );
+  // M11-T7/AC9: タブは EditorTabs primitive + §9 語彙(editor_ui.tabs.pois)へ移行した
   assert.match(
     appEditView,
-    /activeTab === 'pois'[\s\S]{0,200}?poiref\.tab_label/,
-    'AppEdit.vue のタブバーに POIデータタブ (poiref.tab_label) がない'
+    /key: 'pois'[\s\S]{0,120}?editor_ui\.tabs\.pois/,
+    'AppEdit.vue のタブバーに POI選択タブ (editor_ui.tabs.pois、§9 語彙) がない'
   );
   // 読込 heal: pois 配列優先 + 旧 poiSources 文字列の bounded 再 parse 復元
   assert.match(

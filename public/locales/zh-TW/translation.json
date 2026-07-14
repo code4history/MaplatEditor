@@ -846,6 +846,15 @@
       "message": "建立草稿後，已儲存版本已更新。",
       "discard": "捨棄草稿並開啟最新版本",
       "apply": "套用草稿"
+    },
+    "tabs": {
+      "metadata": "編輯詮釋資料",
+      "gcps": "編輯控制點",
+      "base_maps": "選擇底圖",
+      "pois": "POI選擇",
+      "maps": "地圖選擇",
+      "preview": "預覽",
+      "gcps_requires_image": "請先登錄地圖圖像"
     }
   },
   "resource_list": {

@@ -16,6 +16,7 @@ import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
 import LangValueChips from "../components/editor-ui/LangValueChips.vue";
 import SlugField from "../components/editor-ui/SlugField.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
+import EditorTabs from "../components/editor-ui/EditorTabs.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
@@ -1066,29 +1067,18 @@ function onPoisChange(next: unknown[]) {
       </template>
     </EditorActionHeader>
 
+    <!-- M11-T7/AC9: EditorTabs primitive + §9 語彙(メタデータ編集/地図選択/POI選択/プレビュー) -->
     <div class="px-4 mt-2">
-      <ul class="nav nav-tabs nav-fill bg-white flex-shrink-0 border-bottom-0">
-        <li class="nav-item">
-          <a class="nav-link" :class="{ active: activeTab === 'metadata' }" href="#" @click.prevent="activeTab = 'metadata'">
-            {{ t("appedit.edit_metadata") }}
-          </a>
-        </li>
-        <li class="nav-item">
-          <a data-testid="app-sources-tab" class="nav-link" :class="{ active: activeTab === 'sources' }" href="#" @click.prevent="activeTab = 'sources'">
-            {{ t("appedit.edit_sources") }}
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" :class="{ active: activeTab === 'pois' }" href="#" @click.prevent="activeTab = 'pois'">
-            {{ t("poiref.tab_label") }}
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" :class="{ active: activeTab === 'preview' }" href="#" @click.prevent="activeTab = 'preview'">
-            {{ t("appedit.preview_tab") }}
-          </a>
-        </li>
-      </ul>
+      <EditorTabs
+        :model-value="activeTab"
+        :tabs="[
+          { key: 'metadata', labelKey: 'editor_ui.tabs.metadata' },
+          { key: 'sources', labelKey: 'editor_ui.tabs.maps', testid: 'app-sources-tab' },
+          { key: 'pois', labelKey: 'editor_ui.tabs.pois' },
+          { key: 'preview', labelKey: 'editor_ui.tabs.preview' },
+        ]"
+        @update:model-value="activeTab = $event as typeof activeTab"
+      />
     </div>
 
     <div class="flex-grow-1 position-relative overflow-hidden bg-white border-top">

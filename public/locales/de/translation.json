@@ -846,6 +846,15 @@
       "message": "Die gespeicherte Version wurde nach Erstellung des Entwurfs geändert.",
       "discard": "Entwurf verwerfen und neueste öffnen",
       "apply": "Entwurf anwenden"
+    },
+    "tabs": {
+      "metadata": "Metadaten bearbeiten",
+      "gcps": "GCP bearbeiten",
+      "base_maps": "Basiskarten auswählen",
+      "pois": "POIs auswählen",
+      "maps": "Karten auswählen",
+      "preview": "Vorschau",
+      "gcps_requires_image": "Zuerst ein Kartenbild registrieren"
     }
   },
   "resource_list": {

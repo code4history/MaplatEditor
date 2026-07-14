@@ -846,6 +846,15 @@
       "message": "Bản đã lưu đã thay đổi sau khi tạo bản nháp.",
       "discard": "Bỏ bản nháp và mở bản mới nhất",
       "apply": "Áp dụng bản nháp"
+    },
+    "tabs": {
+      "metadata": "Chỉnh sửa siêu dữ liệu",
+      "gcps": "Chỉnh sửa điểm tương ứng",
+      "base_maps": "Chọn bản đồ nền",
+      "pois": "Chọn POI",
+      "maps": "Chọn bản đồ",
+      "preview": "Xem trước",
+      "gcps_requires_image": "Hãy đăng ký ảnh bản đồ trước"
     }
   },
   "resource_list": {

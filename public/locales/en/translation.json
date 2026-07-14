@@ -846,6 +846,15 @@
       "message": "The saved version changed after this draft was created. Choose which content to open.",
       "discard": "Discard draft and open latest",
       "apply": "Apply draft"
+    },
+    "tabs": {
+      "metadata": "Edit Metadata",
+      "gcps": "Edit GCP",
+      "base_maps": "Select Base Maps",
+      "pois": "Select POIs",
+      "maps": "Select Maps",
+      "preview": "Preview",
+      "gcps_requires_image": "Register a map image first"
     }
   },
   "resource_list": {

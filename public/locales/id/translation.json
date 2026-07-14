@@ -846,6 +846,15 @@
       "message": "Versi tersimpan berubah setelah draf dibuat.",
       "discard": "Buang draf dan buka versi terbaru",
       "apply": "Terapkan draf"
+    },
+    "tabs": {
+      "metadata": "Edit metadata",
+      "gcps": "Edit titik korespondensi",
+      "base_maps": "Pilih peta dasar",
+      "pois": "Pilih POI",
+      "maps": "Pilih peta",
+      "preview": "Pratinjau",
+      "gcps_requires_image": "Daftarkan gambar peta terlebih dahulu"
     }
   },
   "resource_list": {

@@ -846,6 +846,15 @@
       "message": "下書きの作成後に保存済み版が更新されています。開く内容を選んでください。",
       "discard": "下書きを破棄して最新を開く",
       "apply": "下書きを適用する"
+    },
+    "tabs": {
+      "metadata": "メタデータ編集",
+      "gcps": "対応点編集",
+      "base_maps": "ベースマップ選択",
+      "pois": "POI選択",
+      "maps": "地図選択",
+      "preview": "プレビュー",
+      "gcps_requires_image": "先に地図画像を登録してください"
     }
   },
   "resource_list": {

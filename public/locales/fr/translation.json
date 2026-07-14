@@ -846,6 +846,15 @@
       "message": "La version enregistrée a changé après la création du brouillon.",
       "discard": "Supprimer le brouillon et ouvrir la dernière version",
       "apply": "Appliquer le brouillon"
+    },
+    "tabs": {
+      "metadata": "Modifier les métadonnées",
+      "gcps": "Modifier les GCP",
+      "base_maps": "Sélectionner les fonds de carte",
+      "pois": "Sélectionner les POI",
+      "maps": "Sélectionner les cartes",
+      "preview": "Aperçu",
+      "gcps_requires_image": "Enregistrez d'abord l'image de la carte"
     }
   },
   "resource_list": {

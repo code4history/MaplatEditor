@@ -846,6 +846,15 @@
       "message": "创建草稿后，已保存版本发生了更新。",
       "discard": "丢弃草稿并打开最新版本",
       "apply": "应用草稿"
+    },
+    "tabs": {
+      "metadata": "编辑元数据",
+      "gcps": "编辑控制点",
+      "base_maps": "选择底图",
+      "pois": "POI选择",
+      "maps": "地图选择",
+      "preview": "预览",
+      "gcps_requires_image": "请先注册地图图像"
     }
   },
   "resource_list": {
