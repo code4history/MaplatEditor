@@ -178,6 +178,11 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('imageassets:update-metadata')
   ipcMain.removeHandler('imageassets:delete')
   ipcMain.removeHandler('imageassets:getFilePath')
+  // Minor-2 (M11-T7): slug reservation channels の HMR cleanup
+  ipcMain.removeHandler('slug-reservations:reserve')
+  ipcMain.removeHandler('slug-reservations:move')
+  ipcMain.removeHandler('slug-reservations:release')
+  ipcMain.removeHandler('slug-reservations:check')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)

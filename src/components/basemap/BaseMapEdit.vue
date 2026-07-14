@@ -76,6 +76,7 @@
             input-testid="basemap-slug"
             @update:model-value="slugLive = $event"
             @change="updateField('slug', $event.trim())"
+            @state-change="slugFieldState = $event"
           />
         </div>
         <div class="col-12 col-lg-6">
@@ -219,6 +220,8 @@ import ContextHelp from "../editor-ui/ContextHelp.vue";
 import SlugField from "../editor-ui/SlugField.vue";
 import type { DiagnosticItem, EditorSaveState } from "../editor-ui/editorUiTypes";
 import { useAssetDraftLifecycle } from "../../composables/useAssetDraftLifecycle";
+import { useInitialDraftPersist } from "../../composables/useInitialDraftPersist";
+import type { SlugFieldState } from "../../composables/useSlugAvailability";
 import { UndoStack } from "../../services/editorUndoStack";
 import {
   fromBaseMapCatalogItem,
@@ -254,6 +257,7 @@ const revision = ref<number | null>(props.item?.revision ?? null);
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
 const slugLive = ref(initial.slug);
 const originalSlug = ref<string | undefined>(props.item?.mapID);
+const slugFieldState = ref<SlugFieldState>("idle");
 const activeLang = ref<LangCode>(document.value.defaultLang);
 const saving = ref(false);
 const generatingIcon = ref(false);
@@ -361,6 +365,13 @@ watch(
   },
   { immediate: true },
 );
+
+// AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
+useInitialDraftPersist({
+  slugState: slugFieldState,
+  isNewAsset: () => revision.value === null,
+  flushDraft: () => draftLifecycle.flush(),
+});
 
 // document.slug の外部変化(Undo/Redo/draft 復元/セッション切替)を SlugField の live 値へ同期する。
 // 元 slug へ復帰した場合は SlugField 内部の予約 release が発火する(AC15)。

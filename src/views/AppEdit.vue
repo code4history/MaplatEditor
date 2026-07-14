@@ -31,6 +31,8 @@ import {
 } from "../utils/appSourceModel";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
+import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
+import type { SlugFieldState } from "../composables/useSlugAvailability";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { isEditableElement } from "../utils/nativeTextUndo";
 import { isTranslationMode } from "../utils/editorLanguageMode";
@@ -253,6 +255,7 @@ const { uid: appUid, revision, confirmedSlug, performSave, saving } = saveHandle
 // M11-T7: appID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne/appIDError の
 // 手動一意性確認機構は撤去し、保存時 confirmForSave(予約再確認)へ機構置換した。
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
+const slugFieldState = ref<SlugFieldState>("idle");
 // 新規アプリの事前採番 uid (AC6): draft キーと保存 create uid を兼ねる。既存 draftUid が
 // route にあれば引き継ぐ(hot exit 復元で予約 claim も同じ帰属になる)
 const newAppUid = (typeof route.query.uid === "string" && route.query.uid)
@@ -293,6 +296,14 @@ const draftLifecycle = useAssetDraftLifecycle<AppDocument>({
     await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   },
 });
+
+// AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
+useInitialDraftPersist({
+  slugState: slugFieldState,
+  isNewAsset: () => !appUid.value,
+  flushDraft: () => draftLifecycle.flush(),
+});
+
 const exporting = ref(false);
 const saveState = computed<EditorSaveState>(() => {
   if (saving.value) return "saving";
@@ -1103,6 +1114,7 @@ function onPoisChange(next: unknown[]) {
                 :disabled="translationMode"
                 input-testid="app-id"
                 @update:model-value="onAppIDLiveInput"
+                @state-change="slugFieldState = $event"
               />
             </div>
             <div class="col-md-3">

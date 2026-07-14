@@ -868,7 +868,7 @@ for (const [rel, titleKey] of EDIT_ORDER) {
   const src = await readSrc(rel);
   assert.match(src, /editor_ui\.default_lang_label/, `${rel} must use editor_ui.default_lang_label (AC7)`);
   const titleAt = src.indexOf(titleKey);
-  const slugAt = src.indexOf("<SlugField");
+  const slugAt = src.search(/<SlugField[\s>]/);
   const langAt = src.indexOf("editor_ui.default_lang_label");
   assert.ok(titleAt >= 0 && slugAt >= 0 && langAt >= 0, `${rel} must contain title/slug/default-lang fields`);
   assert.ok(titleAt < slugAt && slugAt < langAt,
@@ -1023,3 +1023,125 @@ console.log("m11-t7 draft core unit: OK");
   await rm(workDir, { recursive: true, force: true });
 }
 console.log("m11-t7 smoke Part J: OK");
+
+// --- Part K: AC6 新規開始の UID採番→予約成功→初期draft即時保存 を実コードで保証する ---
+// 5 Edit とも新規の事前採番 uid で予約・保存し、予約成功(state=available)時に
+// 初期draftを即時flushする仕組みを持つ(§5.1 S3 / §7.2b / D11改)。
+// Map/App/BaseMap は create: true flag dispatch(§7.2b)。POI/Asset は dedicated create endpoint へ uid を通す(D11改)。
+const FLAG_EDIT_VIEWS = [
+  "src/views/MapEdit.vue",
+  "src/views/AppEdit.vue",
+  "src/components/basemap/BaseMapEdit.vue",
+];
+const DEDICATED_EDIT_VIEWS = [
+  "src/views/PoiEdit.vue",
+  "src/components/assets/AssetEdit.vue",
+];
+for (const rel of FLAG_EDIT_VIEWS) {
+  const src = await readSrc(rel);
+  assert.match(src, /create\s*[=:]\s*(true|!)/, `${rel} must pass create flag on new save (AC6/D11)`);
+}
+for (const rel of [...FLAG_EDIT_VIEWS, ...DEDICATED_EDIT_VIEWS]) {
+  const src = await readSrc(rel);
+  assert.match(src, /crypto\.randomUUID|newMapUid|newAppUid|document\.value\.uid|modal\.uid|\.uid\b/, `${rel} must use preset uid for new asset (AC6)`);
+}
+
+// 予約成功時に初期draftを即時保存する共通仕組みの存在を検証する。
+// SlugField state-change を watch し、available + new asset で flush する。
+const persistComposable = await readSrc("src/composables/useInitialDraftPersist.ts");
+assert.match(persistComposable, /available/, "useInitialDraftPersist must watch for available state");
+assert.match(persistComposable, /flush|persistNow/, "useInitialDraftPersist must flush draft on reservation success");
+
+// 全5 Edit が useInitialDraftPersist を使う
+const ALL_EDIT_VIEWS = [...FLAG_EDIT_VIEWS, ...DEDICATED_EDIT_VIEWS];
+for (const rel of ALL_EDIT_VIEWS) {
+  const src = await readSrc(rel);
+  assert.match(src, /useInitialDraftPersist/, `${rel} must use useInitialDraftPersist (AC6)`);
+}
+
+// POI作成モーダルも modalSlugState で予約成功後に uid を確定する
+const poiListSrc = await readSrc("src/views/PoiSourceList.vue");
+assert.match(poiListSrc, /crypto\.randomUUID/, "POI modal must pre-mint uid (AC6)");
+
+console.log("m11-t7 smoke Part K: OK");
+
+// --- Part L: Minor-1 slug reservation IPC runtime validation ---
+// 型だけに依存せず、main境界で不正 kind・空 slug/UID・必須フィールド欠落を拒否する。
+const ipcSrc = await readSrc("electron/ipc/slugReservations.ts");
+assert.match(ipcSrc, /validate|assert|throw|reject/, "slugReservations IPC must validate payloads at main boundary");
+// 正しい kind 値のみを受け付ける
+assert.match(ipcSrc, /map.*app.*poi-source.*base-map.*image-asset|SlugFieldKind|VALID_KINDS|allowedKinds/, "IPC must validate assetKind against allowed set");
+// 空 slug/UID を拒否(generic requireString helper が各フィールドで空を拒否する)
+assert.match(ipcSrc, /requireString|!slug|slug\.trim\(\)|slug\.length|isEmpty/, "IPC must reject empty slug");
+assert.match(ipcSrc, /requireString.*assetUid|!assetUid|assetUid\.trim\(\)|assetUid\.length/, "IPC must reject empty assetUid");
+
+console.log("m11-t7 smoke Part L: OK");
+
+// --- Part M: Minor-2 HMR handler cleanup for slug reservation channels ---
+// HMR 再登録時の多重登録を防ぐため、removeHandler 一覧へ slug-reservations:* を追加する。
+const mainSrc = await readSrc("electron/main.ts");
+assert.match(mainSrc, /removeHandler\(['"]slug-reservations:reserve['"]/, "main must removeHandler slug-reservations:reserve on HMR");
+assert.match(mainSrc, /removeHandler\(['"]slug-reservations:move['"]/, "main must removeHandler slug-reservations:move on HMR");
+assert.match(mainSrc, /removeHandler\(['"]slug-reservations:release['"]/, "main must removeHandler slug-reservations:release on HMR");
+assert.match(mainSrc, /removeHandler\(['"]slug-reservations:check['"]/, "main must removeHandler slug-reservations:check on HMR");
+
+console.log("m11-t7 smoke Part M: OK");
+
+// --- Part N: AC4 実DB統合 - promote conflict が registerAsset INSERT を rollbackする ---
+// Service unit のSQL模擬ではなく、asset_registry + slug_reservations の両テーブルを使い、
+// promote conflict 時に asset_registry への INSERT が rollback されることを検証する。
+{
+  const db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA journal_mode=WAL");
+  db.exec(`
+    CREATE TABLE asset_registry (
+      uid TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE
+    );
+    CREATE TABLE slug_reservations (
+      slug TEXT PRIMARY KEY,
+      asset_uid TEXT NOT NULL,
+      asset_kind TEXT NOT NULL,
+      instance_id TEXT NOT NULL,
+      draft_uid TEXT,
+      lease_expires_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const svc = createSlugReservationService({ db, instanceId: "inst-A", now });
+
+  // 他 uid が予約中の slug へ promote → conflict → registerAsset は rollback
+  svc.reserve({ slug: "clash", assetUid: UID_B, assetKind: "map", draftUid: "d-B" });
+  let threw = false;
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    const promote = svc.promoteWithin(db, { slug: "clash", assetUid: UID_A });
+    if (!promote.ok) throw new Error("conflict");
+    // promote が conflict なのでここには到達しない
+    db.prepare("INSERT INTO asset_registry (uid, kind, slug) VALUES (?, ?, ?)").run(UID_A, "map", "clash");
+    db.exec("COMMIT");
+  } catch {
+    threw = true;
+    try { db.exec("ROLLBACK"); } catch { /* transaction already rolled back */ }
+  }
+  assert.equal(threw, true, "promote conflict must prevent registry INSERT");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM asset_registry WHERE slug=?").get("clash").c, 0,
+    "registry must not contain the clashed slug (transaction rollback)");
+
+  // 自 uid の予約 → promote 成立 → registerAsset 成功 → 予約消化
+  svc.reserve({ slug: "mine", assetUid: UID_A, assetKind: "map", draftUid: "d-A" });
+  db.exec("BEGIN IMMEDIATE");
+  const promoteOk = svc.promoteWithin(db, { slug: "mine", assetUid: UID_A });
+  assert.deepEqual(promoteOk, { ok: true });
+  db.prepare("INSERT INTO asset_registry (uid, kind, slug) VALUES (?, ?, ?)").run(UID_A, "map", "mine");
+  db.exec("COMMIT");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM asset_registry WHERE slug=?").get("mine").c, 1,
+    "registry must contain the promoted slug");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM slug_reservations WHERE slug=?").get("mine").c, 0,
+    "reservation must be consumed after successful promote");
+
+  db.close();
+}
+console.log("m11-t7 smoke Part N: OK");

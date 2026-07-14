@@ -233,6 +233,7 @@ import {
 } from "../composables/usePoiEditSession";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
+import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
@@ -311,6 +312,13 @@ const draftLifecycle = useAssetDraftLifecycle<PoiEditState>({
     await nextTick();
     mapPane.value?.fitInitialView();
   },
+});
+
+// AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
+useInitialDraftPersist({
+  slugState: slugFieldState,
+  isNewAsset: () => !saveHandle.uid.value,
+  flushDraft: () => draftLifecycle.flush(),
 });
 
 // --- 保存フロー (revision 楽観ロック → conflict は composable が担う) ---

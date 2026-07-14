@@ -27,6 +27,8 @@ import { UndoStack } from '../services/editorUndoStack';
 import { editorComputeBackend } from '../services/editorComputeBackend';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
+import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
+import type { SlugFieldState } from '../composables/useSlugAvailability';
 import { runEditorExportDecision } from '../composables/useEditorExportDecision';
 import type { EditorSaveState } from '../components/editor-ui/editorUiTypes';
 import type { MapSaveResult } from '../electron';
@@ -218,6 +220,7 @@ const originalMapData = ref<any>({}); // isDirty 比較用ディープクロー�
 // M11-T7: mapID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne の手動一意性
 // 確認機構は撤去し、保存時 confirmForSave(予約再確認)へ機構置換した。
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
+const slugFieldState = ref<SlugFieldState>('idle');
 // M11-T7/AC8: 保存 operation エラー(ID 重複/予約 conflict/保存失敗)。旧 error ダイアログから
 // DiagnosticFeedback scope="operation" へ移行。編集(履歴 snapshot)で自動的に解消する(F4 同型)
 const saveOperationError = ref<string | null>(null);
@@ -498,6 +501,13 @@ const draftLifecycle = useAssetDraftLifecycle<MapEditHistoryState>({
         initializeHistoryStack();
         historyStack.value?.markDirty();
     },
+});
+
+// AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
+useInitialDraftPersist({
+    slugState: slugFieldState,
+    isNewAsset: () => !mapUid.value,
+    flushDraft: () => draftLifecycle.flush(),
 });
 
 const scheduleHistorySnapshot = () => {
@@ -3079,6 +3089,7 @@ const goBack = async () => {
                                 :disabled="translationMode"
                                 input-testid="map-slug"
                                 @update:model-value="onMapIDLiveInput"
+                                @state-change="slugFieldState = $event"
                             />
                         </div>
                         <div class="col-md-3">
