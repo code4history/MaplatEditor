@@ -2,6 +2,7 @@
   <header class="editor-action-header bg-white border-bottom px-3 py-2">
     <div class="editor-action-header__identity">
       <button
+        v-if="backVisible"
         type="button"
         class="btn btn-sm btn-link text-decoration-none px-0"
         data-editor-action="back"
@@ -113,12 +114,14 @@ const props = withDefaults(defineProps<{
   saving?: boolean;
   actionsDisabled?: boolean;
   saveVisible?: boolean;
+  backVisible?: boolean;
   discardDraftVisible?: boolean;
 }>(), {
   saveDisabled: false,
   saving: false,
   actionsDisabled: false,
   saveVisible: true,
+  backVisible: true,
   discardDraftVisible: false,
 });
 
