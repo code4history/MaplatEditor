@@ -12,7 +12,7 @@ const iconOutputDir = path.join(projectRoot, "public/basemap_icons");
 const assetImgDir = path.join(projectRoot, "src/assets/img");
 
 const VIEWER_BUILTIN_IDS = new Set(["osm", "gsi", "gsi_ortho"]);
-const OSM_LANGS = ["ja", "en", "de", "fr", "es", "ko", "zh", "zh-TW", "vi", "th", "id"];
+export const OSM_LANGS = ["ja", "en", "de", "fr", "es", "ko", "zh", "zh-TW", "vi", "th", "id"];
 
 export const BASE_MAP_LOCALIZED_NAMES = {
   osm: { ja: "OpenStreetMap", en: "OpenStreetMap", de: "OpenStreetMap", fr: "OpenStreetMap", es: "OpenStreetMap", ko: "OpenStreetMap", zh: "OpenStreetMap", "zh-TW": "OpenStreetMap", vi: "OpenStreetMap", th: "OpenStreetMap", id: "OpenStreetMap" },
@@ -27,6 +27,97 @@ export const BASE_MAP_LOCALIZED_NAMES = {
   affrc_rapid16: { ja: "1/2万 迅速測図原図", en: "Rapid Survey Maps, 1:20,000" },
   affrc_tokyo5k: { ja: "1/5千 東京測量図原図", en: "Tokyo Survey Maps, 1:5,000" },
 };
+
+export const BASE_MAP_LOCALIZED_LABELS = {
+  osm: Object.fromEntries(OSM_LANGS.map((lang) => [lang, "OSM"])),
+  gsi: { ja: "地理院", en: "GSI" },
+  gsi_ortho: { ja: "地理院オルソ", en: "GSI Ortho" },
+  gsi_ort_USA10: { ja: "空撮 1945-50", en: "Aero 1945-50" },
+  gsi_ort_old10: { ja: "空撮 1961-64", en: "Aero 1961-64" },
+  gsi_gazo1: { ja: "空撮 1974-78", en: "Aero 1974-78" },
+  gsi_gazo2: { ja: "空撮 1979-83", en: "Aero 1979-83" },
+  gsi_gazo3: { ja: "空撮 1984-86", en: "Aero 1984-86" },
+  gsi_gazo4: { ja: "空撮 1988-90", en: "Aero 1988-90" },
+  affrc_rapid16: { ja: "迅速測図", en: "Rapid Survey" },
+  affrc_tokyo5k: { ja: "東京 1:5000", en: "Tokyo 1:5000" },
+};
+
+const REGION_LABELS = {
+  "首都圏": { ja: "東京", en: "Tokyo" },
+  "中京圏": { ja: "名古屋", en: "Nagoya" },
+  "京阪神圏": { ja: "大阪", en: "Osaka" },
+  "東北地方太平洋岸": { ja: "東北", en: "Tohoku" },
+  "関東": { ja: "関東", en: "Kanto" },
+  "札幌": { ja: "札幌", en: "Sapporo" },
+  "旭川": { ja: "旭川", en: "Asahikawa" },
+  "釧路": { ja: "釧路", en: "Kushiro" },
+  "帯広": { ja: "帯広", en: "Obihiro" },
+  "苫小牧": { ja: "苫小牧", en: "Tomakomai" },
+  "室蘭": { ja: "室蘭", en: "Muroran" },
+  "函館": { ja: "函館", en: "Hakodate" },
+  "青森": { ja: "青森", en: "Aomori" },
+  "弘前": { ja: "弘前", en: "Hirosaki" },
+  "盛岡": { ja: "盛岡", en: "Morioka" },
+  "岩手県南": { ja: "北上", en: "Kitakami" },
+  "仙台": { ja: "仙台", en: "Sendai" },
+  "秋田": { ja: "秋田", en: "Akita" },
+  "山形": { ja: "山形", en: "Yamagata" },
+  "米沢": { ja: "米沢", en: "Yonezawa" },
+  "庄内": { ja: "庄内", en: "Shonai" },
+  "福島": { ja: "福島", en: "Fukushima" },
+  "会津": { ja: "会津", en: "Aizu" },
+  "新潟": { ja: "新潟", en: "Niigata" },
+  "金沢・富山": { ja: "金沢", en: "Kanazawa" },
+  "福井": { ja: "福井", en: "Fukui" },
+  "長野": { ja: "長野", en: "Nagano" },
+  "松本": { ja: "松本", en: "Matsumoto" },
+  "伊那": { ja: "伊那", en: "Ina" },
+  "浜松・豊橋": { ja: "浜松", en: "Hamamatsu" },
+  "津": { ja: "津", en: "Tsu" },
+  "伊賀": { ja: "伊賀", en: "Iga" },
+  "近江": { ja: "近江", en: "Omi" },
+  "姫路": { ja: "姫路", en: "Himeji" },
+  "和歌山": { ja: "和歌山", en: "Wakayama" },
+  "鳥取": { ja: "鳥取", en: "Tottori" },
+  "松江・米子": { ja: "松江", en: "Matsue" },
+  "岡山・福山": { ja: "岡山", en: "Okayama" },
+  "広島": { ja: "広島", en: "Hiroshima" },
+  "周南": { ja: "周南", en: "Shunan" },
+  "山口": { ja: "山口", en: "Yamaguchi" },
+  "徳島": { ja: "徳島", en: "Tokushima" },
+  "高松": { ja: "高松", en: "Takamatsu" },
+  "松山": { ja: "松山", en: "Matsuyama" },
+  "東予": { ja: "今治", en: "Imabari" },
+  "高知": { ja: "高知", en: "Kochi" },
+  "福岡・北九州": { ja: "福岡", en: "Fukuoka" },
+  "佐賀・久留米": { ja: "佐賀", en: "Saga" },
+  "長崎": { ja: "長崎", en: "Nagasaki" },
+  "佐世保": { ja: "佐世保", en: "Sasebo" },
+  "大牟田・島原": { ja: "大牟田", en: "Omuta" },
+  "熊本": { ja: "熊本", en: "Kumamoto" },
+  "八代": { ja: "八代", en: "Yatsushiro" },
+  "大分": { ja: "大分", en: "Oita" },
+  "延岡": { ja: "延岡", en: "Nobeoka" },
+  "宮崎": { ja: "宮崎", en: "Miyazaki" },
+  "都城": { ja: "都城", en: "Miyakonojo" },
+  "鹿児島": { ja: "鹿児島", en: "Kagoshima" },
+  "沖縄本島南部": { ja: "那覇", en: "Naha" },
+};
+
+export function compactEra(value) {
+  const era = value.replace(/年$/, "");
+  const match = era.match(/^(\d{4})-(\d{4})$/);
+  return match ? `${match[1]}-${match[2].slice(-2)}` : era;
+}
+
+function konjakuLabel(row, mapID) {
+  const region = REGION_LABELS[row.region];
+  if (!region) throw new Error(`compact Base Map label missing: ${row.region}`);
+  const era = compactEra(row.era);
+  if (mapID === "kagoshima5man") return { ja: `${region.ja} ${era} 5万`, en: `${region.en} ${era} 50k` };
+  if (mapID === "kagoshima2man") return { ja: `${region.ja} ${era} 2万`, en: `${region.en} ${era} 20k` };
+  return { ja: `${region.ja} ${era}`, en: `${region.en} ${era}` };
+}
 
 const BASE_MAP_ATTRS = {
   gsi_ort_USA10: "The Geospatial Information Authority of Japan",
@@ -49,6 +140,9 @@ function resourceAttr(value) {
 }
 
 export function buildBuiltinBaseMaps(catalog, legacyList) {
+  if (new Set(legacyList.map((tms) => tms.mapID)).size !== legacyList.length) {
+    throw new Error("legacy Base Map mapID must be unique");
+  }
   const legacyByID = new Map(legacyList.map((tms) => [tms.mapID, tms]));
   const output = [];
   const seenIDs = new Set();
@@ -60,7 +154,9 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
       throw new Error("OSM must provide all supported languages");
     }
     seenIDs.add(mapID);
-    const entry = { mapID, lang: "en", title: { ...title }, label: { ...title } };
+    const label = BASE_MAP_LOCALIZED_LABELS[mapID];
+    if (!label) throw new Error(`localized Base Map label missing: ${mapID}`);
+    const entry = { mapID, lang: "en", title: { ...title }, label: { ...label } };
     if (VIEWER_BUILTIN_IDS.has(mapID)) entry.always = true;
     if (row.tileUrl) entry.url = row.tileUrl;
     if (row.minZoom != null) entry.minZoom = row.minZoom;
@@ -77,17 +173,25 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
     if (seenIDs.has(mapID)) continue;
     seenIDs.add(mapID);
     const legacy = legacyByID.get(mapID);
+    if (legacy?.url && legacy.url !== row.tileUrl) throw new Error(`legacy Base Map URL mismatch: ${mapID}`);
     const title = {
-      ja: legacy?.title || `今昔マップ ${row.region} ${row.era}`,
+      ja: `今昔マップ ${row.region} ${row.era}`,
       en: `Konjaku Map: ${row.regionEn} ${row.era}`,
     };
+    const label = konjakuLabel(row, mapID);
     output.push({
-      mapID, lang: "en", title, label: { ...title },
+      mapID, lang: "en", title, label,
       attr: resourceAttr(legacy?.attr || "Konjaku Map on the Web"),
       url: row.tileUrl, minZoom: row.minZoom, maxZoom: row.maxZoom,
       coverageLngLats: bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]),
       thumbnail: `basemap_icons/${mapID}.png`,
     });
+  }
+  if (new Set(output.map((entry) => entry.mapID)).size !== output.length) throw new Error("generated Base Map mapID must be unique");
+  for (const lang of ["ja", "en"]) {
+    if (new Set(output.map((entry) => entry.label[lang])).size !== output.length) {
+      throw new Error(`generated Base Map ${lang} labels must be unique`);
+    }
   }
   return output;
 }

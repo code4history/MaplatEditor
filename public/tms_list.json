@@ -120,7 +120,7 @@
   {"mapID":"nagasaki01","attr":"今昔マップ on the web","url":"https://ktgis.net/kjmapw/kjtilemap/nagasaki/01/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 長崎 1954年"},
   {"mapID":"nagasaki02","attr":"今昔マップ on the web","url":"https://ktgis.net/kjmapw/kjtilemap/nagasaki/02/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 長崎 1970-1970年"},
   {"mapID":"nagasaki03","attr":"今昔マップ on the web","url":"https://ktgis.net/kjmapw/kjtilemap/nagasaki/03/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 長崎 1982-1983年"},
-  {"mapID":"nagasaki03","attr":"今昔マップ on the web","url":"https://ktgis.net/kjmapw/kjtilemap/nagasaki/03/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 長崎 1996-2000年"},
+  {"mapID":"nagasaki04","attr":"今昔マップ on the web","url":"https://ktgis.net/kjmapw/kjtilemap/nagasaki/04/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 長崎 1996-2000年"},
   {"mapID":"kanazawa2man","attr":"今昔マップ on the web","url":"https://ktgis.net/kjmapw/kjtilemap/kanazawa/2man/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 金沢・富山 1909-1910年"},
   {"mapID":"kanazawa00","attr":"今昔マップ on the web","url":"https://ktgis.net/kjmapw/kjtilemap/kanazawa/00/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 金沢・富山 1930年"},
   {"mapID":"kanazawa01","attr":"今昔マップ on the web","url":"https://ktgis.net/kjmapw/kjtilemap/kanazawa/01/{z}/{x}/{-y}.png","maxZoom":16,"title":"今昔マップ 金沢・富山 1968-1969年"},

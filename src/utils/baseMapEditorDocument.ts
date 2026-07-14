@@ -139,6 +139,7 @@ export function toBaseMapSavePayload(
   document: BaseMapEditDocument,
   revision: number | null,
 ): BaseMapSavePayload {
+  const hasExplicitLabel = Object.values(document.label).some((value) => value.trim() !== "");
   return {
     ...(revision !== null && document.scope === "user" && document.uid ? { uid: document.uid } : {}),
     slug: document.slug,
@@ -146,7 +147,7 @@ export function toBaseMapSavePayload(
     tms: {
       lang: document.defaultLang,
       title: { ...document.title },
-      label: { ...document.label },
+      label: hasExplicitLabel ? { ...document.label } : { ...document.title },
       attr: { ...document.attr },
       url: document.url,
       minZoom: document.minZoom,

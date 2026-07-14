@@ -13,6 +13,40 @@ const outDir = path.join(workDir, "dist");
 
 const modulePath = (relativePath) => JSON.stringify(path.join(projectRoot, relativePath));
 
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quoted) {
+      if (char === '"' && text[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else if (char === '"') quoted = false;
+      else field += char;
+    } else if (char === '"') quoted = true;
+    else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n") {
+      row.push(field.replace(/\r$/, ""));
+      rows.push(row);
+      row = [];
+      field = "";
+    } else field += char;
+  }
+  if (field || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  const [header, ...body] = rows;
+  return body.filter((values) => values.some(Boolean)).map((values) =>
+    Object.fromEntries(header.map((key, index) => [key, values[index] ?? ""])),
+  );
+}
+
 try {
   await writeFile(
     entryPath,
@@ -113,6 +147,14 @@ try {
   );
   assert.equal("uid" in newBasePayload, false);
   assert.equal("expectedRevision" in newBasePayload, false);
+  assert.deepEqual(
+    toBaseMapSavePayload({ ...emptyBase, slug: "title-fallback", title: { fr: "Titre" }, label: {} }, null).tms.label,
+    { fr: "Titre" },
+  );
+  assert.deepEqual(
+    toBaseMapSavePayload({ ...emptyBase, slug: "preserve-label", title: { fr: "Titre" }, label: { fr: "Court" } }, null).tms.label,
+    { fr: "Court" },
+  );
   assert.equal(
     validateBaseMapDocument({
       ...emptyBase,
@@ -282,6 +324,28 @@ try {
   );
   const generatedBuiltins = buildBuiltinBaseMaps(catalog, legacyList);
   assert.equal(generatedBuiltins.length, 329);
+  const goldenRows = parseCsv(
+    await readFile(path.join(projectRoot, "tests/fixtures/m11-t4-builtin-label-review.csv"), "utf8"),
+  );
+  assert.equal(goldenRows.length, 329);
+  const goldenByMapID = new Map(goldenRows.map((row) => [row.mapID, row]));
+  assert.equal(goldenByMapID.size, 329);
+  for (const entry of generatedBuiltins) {
+    const golden = goldenByMapID.get(entry.mapID);
+    assert.ok(golden, `golden row missing: ${entry.mapID}`);
+    assert.equal(entry.title.ja, golden.title_ja, `${entry.mapID}: title.ja`);
+    assert.equal(entry.title.en, golden.title_en, `${entry.mapID}: title.en`);
+    assert.equal(entry.label.ja, golden.label_ja, `${entry.mapID}: label.ja`);
+    assert.equal(entry.label.en, golden.label_en, `${entry.mapID}: label.en`);
+  }
+  assert.equal(new Set(generatedBuiltins.map((entry) => entry.label.ja)).size, 329);
+  assert.equal(new Set(generatedBuiltins.map((entry) => entry.label.en)).size, 329);
+  assert.equal(generatedBuiltins.filter((entry) => entry.label.ja.length > 12).length, 0);
+  const generatedOsm = generatedBuiltins.find((entry) => entry.mapID === "osm");
+  assert.equal(Object.keys(generatedOsm.label).length, 11);
+  assert.ok(Object.values(generatedOsm.label).every((label) => label === "OSM"));
+  assert.equal(generatedBuiltins.find((entry) => entry.mapID === "nagasaki03").url.includes("/nagasaki/03/"), true);
+  assert.equal(generatedBuiltins.find((entry) => entry.mapID === "nagasaki04").url.includes("/nagasaki/04/"), true);
   const missingRegionCatalog = structuredClone(catalog);
   delete missingRegionCatalog.rows[0].regionEn;
   assert.throws(
@@ -298,7 +362,14 @@ try {
   for (const entry of builtins.filter((item) => item.mapID !== "osm")) {
     assert.equal(entry.lang, "en");
     assert.deepEqual(Object.keys(entry.title).sort(), ["en", "ja"]);
-    assert.deepEqual(entry.label, entry.title);
+    assert.deepEqual(entry.label, generatedBuiltins.find((generated) => generated.mapID === entry.mapID).label);
+  }
+
+  for (const tmsPath of ["electron/tms_list.json", "public/tms_list.json"]) {
+    const tmsList = JSON.parse(await readFile(path.join(projectRoot, tmsPath), "utf8"));
+    assert.equal(tmsList.filter((entry) => entry.mapID === "nagasaki03").length, 1, `${tmsPath}: nagasaki03`);
+    assert.equal(tmsList.filter((entry) => entry.mapID === "nagasaki04").length, 1, `${tmsPath}: nagasaki04`);
+    assert.equal(tmsList.find((entry) => entry.mapID === "nagasaki04").url.includes("/nagasaki/04/"), true);
   }
 
   const baseMapShell = await readFile(
