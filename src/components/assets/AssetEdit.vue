@@ -59,18 +59,8 @@
             />
           </EditorField>
         </div>
+        <!-- M11-T7/AC7・§18b決定2: 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
         <div class="col-12 col-xl-5">
-          <label class="form-label fw-semibold">{{ t("assetlist.master_detail.default_language") }}</label>
-          <select
-            :value="document.defaultLang"
-            class="form-select form-select-sm"
-            :disabled="structuralDisabled"
-            @change="changeDefaultLang(($event.target as HTMLSelectElement).value as LangCode)"
-          >
-            <option v-for="language in SUPPORTED_LANGUAGES" :key="language.code" :value="language.code">{{ language.nativeName }}</option>
-          </select>
-        </div>
-        <div class="col-12">
           <!-- M11-T7/AC1: 共通 SlugField(内蔵 label/help/可用性診断+予約 lifecycle)。
                入力中は slugLive(live 可用性確認)、blur 確定(@change)で従来どおり履歴 commit -->
           <SlugField
@@ -85,6 +75,17 @@
             @update:model-value="slugLive = $event"
             @change="updateDocument({ ...document, slug: $event.trim() })"
           />
+        </div>
+        <div class="col-12 col-xl-5">
+          <label class="form-label fw-semibold">{{ t("editor_ui.default_lang_label") }}</label>
+          <select
+            :value="document.defaultLang"
+            class="form-select form-select-sm"
+            :disabled="structuralDisabled"
+            @change="changeDefaultLang(($event.target as HTMLSelectElement).value as LangCode)"
+          >
+            <option v-for="language in SUPPORTED_LANGUAGES" :key="language.code" :value="language.code">{{ language.nativeName }}</option>
+          </select>
         </div>
 
         <div class="col-12"><hr class="my-1"></div>

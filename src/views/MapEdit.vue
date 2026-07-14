@@ -3070,12 +3070,18 @@ const goBack = async () => {
             <!-- Tab: Metadata (Full Page Form) -->
             <div v-show="activeTab === 'metadata'" class="h-100 overflow-auto p-3">
                 <form class="container-fluid" @submit.prevent>
-                    <!-- Row 1 -->
+                    <!-- Row 1 (M11-T7/AC7・§18b決定2): 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
                     <div class="row g-1 mb-2">
+                        <div class="col-md-5">
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_repr") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <input data-testid="map-title" type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_name_repr_pf')">
+                            <div v-if="saveError?.title" class="form-text small text-muted text-danger mb-0" style="font-size: 0.75rem;">{{ saveError.title }}</div>
+                            <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_repr_desc") }}</div>
+                        </div>
                         <!-- Map ID フィールド (M11-T7/AC1/AC5): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
                              手動一意性確認ボタンは撤去。改名は UID 維持の slug 付け替え(保存時に
                              renameFromSlug で原本改名の残作業を引き継ぐ) -->
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <SlugField
                                 ref="slugField"
                                 :model-value="mapData.mapID ?? ''"
@@ -3088,30 +3094,9 @@ const goBack = async () => {
                                 @update:model-value="onMapIDLiveInput"
                             />
                         </div>
-                        <div class="col-md-2">
-                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.image_width") }}</label>
-                             <input type="number" class="form-control form-control-sm" v-model="mapData.width" disabled>
-                        </div>
-                         <div class="col-md-2">
-                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.image_height") }}</label>
-                             <input type="number" class="form-control form-control-sm" v-model="mapData.height" disabled>
-                        </div>
-                         <!-- 旧実装 mapedit.html L.82: v-model="imageExtensionCalc" (computed, read-only) に準拠 -->
-                         <div class="col-md-1">
-                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.extension") }}</label>
-                             <input type="text" class="form-control form-control-sm" :value="imageExtensionCalc" disabled>
-                        </div>
-                         <div class="col-md-2 d-flex align-items-start pt-4">
-                            <button class="btn btn-outline-secondary btn-sm w-100 mt-1"
-                                    @click="mapUpload"
-                                    :disabled="translationMode">{{ t("mapedit.upload_map") }}</button>
-                        </div>
-                    </div>
-
-                    <div class="row g-1 mb-2">
                         <div class="col-md-3">
                             <label class="form-label fw-bold small mb-0" for="mapDocumentLanguage">
-                                {{ t("mapedit.set_default") }}
+                                {{ t("editor_ui.default_lang_label") }}
                             </label>
                             <select
                                 id="mapDocumentLanguage"
@@ -3132,14 +3117,29 @@ const goBack = async () => {
                         </div>
                     </div>
 
+                    <div class="row g-1 mb-2">
+                        <div class="col-md-2">
+                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.image_width") }}</label>
+                             <input type="number" class="form-control form-control-sm" v-model="mapData.width" disabled>
+                        </div>
+                         <div class="col-md-2">
+                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.image_height") }}</label>
+                             <input type="number" class="form-control form-control-sm" v-model="mapData.height" disabled>
+                        </div>
+                         <!-- 旧実装 mapedit.html L.82: v-model="imageExtensionCalc" (computed, read-only) に準拠 -->
+                         <div class="col-md-1">
+                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.extension") }}</label>
+                             <input type="text" class="form-control form-control-sm" :value="imageExtensionCalc" disabled>
+                        </div>
+                         <div class="col-md-2 d-flex align-items-start pt-4">
+                            <button class="btn btn-outline-secondary btn-sm w-100 mt-1"
+                                    @click="mapUpload"
+                                    :disabled="translationMode">{{ t("mapedit.upload_map") }}</button>
+                        </div>
+                    </div>
+
                     <!-- Row 2 -->
                     <div class="row g-1 mb-2">
-                        <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_repr") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
-                            <input data-testid="map-title" type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_name_repr_pf')">
-                            <div v-if="saveError?.title" class="form-text small text-muted text-danger mb-0" style="font-size: 0.75rem;">{{ saveError.title }}</div>
-                            <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_repr_desc") }}</div>
-                        </div>
                         <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input data-testid="map-label" type="text" class="form-control form-control-sm" v-model="label">

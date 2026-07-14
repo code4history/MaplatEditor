@@ -223,3 +223,32 @@ assert.doesNotMatch(mapEditVue, /`Change:\$\{/, "MapEdit must drop Change: statu
 assert.match(mapEditVue, /renameFromSlug/, "MapEdit must pass renameFromSlug on rename save (D5)");
 assert.doesNotMatch(mapEditVue, /window\.assets\.checkSlug/, "MapEdit must drop raw checkSlug (AC17)");
 console.log("m11-t7 smoke Part F2: OK");
+
+// --- Part G: 5 Edit 先頭が タイトル→スラッグ(ID)→デフォルト言語、ラベル統一(AC7/§18b決定2) ---
+// 順序は template 内の初出 index で検証する(title label → <SlugField → default_lang_label)。
+const EDIT_ORDER = [
+  ["src/views/MapEdit.vue", 'mapedit.map_name_repr'],
+  ["src/views/AppEdit.vue", 'appedit.app_name'],
+  ["src/views/PoiEdit.vue", 'poisource.title_label'],
+  ["src/components/basemap/BaseMapEdit.vue", 'basemap.modal.title_label'],
+  ["src/components/assets/AssetEdit.vue", 'assetlist.title_label'],
+];
+for (const [rel, titleKey] of EDIT_ORDER) {
+  const src = await readSrc(rel);
+  assert.match(src, /editor_ui\.default_lang_label/, `${rel} must use editor_ui.default_lang_label (AC7)`);
+  const titleAt = src.indexOf(titleKey);
+  const slugAt = src.indexOf("<SlugField");
+  const langAt = src.indexOf("editor_ui.default_lang_label");
+  assert.ok(titleAt >= 0 && slugAt >= 0 && langAt >= 0, `${rel} must contain title/slug/default-lang fields`);
+  assert.ok(titleAt < slugAt && slugAt < langAt,
+    `${rel} field order must be title -> slug -> default language (AC7): title@${titleAt} slug@${slugAt} lang@${langAt}`);
+}
+// 廃止キーは未参照化のみ(削除は T12)。参照が 0 であることを確認。
+for (const [rel, keys] of [
+  ["src/views/MapEdit.vue", /mapedit\.uniqueness_button|mapedit\.check_uniqueness|mapedit\.copy_or_move/],
+  ["src/views/AppEdit.vue", /appedit\.uniqueness_button|appedit\.check_uniqueness/],
+]) {
+  const src = await readSrc(rel);
+  assert.doesNotMatch(src, keys, `${rel} must not reference retired keys (D10)`);
+}
+console.log("m11-t7 smoke Part G: OK");

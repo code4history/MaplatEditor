@@ -1093,7 +1093,12 @@ function onPoisChange(next: unknown[]) {
     <div class="flex-grow-1 position-relative overflow-hidden bg-white border-top">
       <div v-show="activeTab === 'metadata'" class="h-100 overflow-auto p-3">
         <form class="container-fluid" @submit.prevent>
+          <!-- Row 1 (M11-T7/AC7・§18b決定2): 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
           <div class="row g-1 mb-2">
+            <div class="col-md-4">
+              <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_name") }} <LangValueChips :model-value="appData.title" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+              <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" @input="recordHistory">
+            </div>
             <!-- App ID フィールド (M11-T7/AC1): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
                  手動一意性確認ボタンは撤去(debounce 自動確認 + 保存時 confirmForSave へ機構置換) -->
             <div class="col-md-5">
@@ -1109,15 +1114,9 @@ function onPoisChange(next: unknown[]) {
                 @update:model-value="onAppIDLiveInput"
               />
             </div>
-            <div class="col-md-7">
-              <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_name") }} <LangValueChips :model-value="appData.title" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
-              <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" @input="recordHistory">
-            </div>
-          </div>
-          <div class="row g-1 mb-2">
             <div class="col-md-3">
               <label class="form-label fw-bold small mb-0" for="appDocumentLanguage">
-                {{ t("mapedit.set_default") }}
+                {{ t("editor_ui.default_lang_label") }}
               </label>
               <select
                 id="appDocumentLanguage"

@@ -96,7 +96,7 @@
             />
           </div>
           <div class="col-3">
-            <label class="form-label fw-bold small mb-0">{{ t("mapedit.set_default") }}</label>
+            <label class="form-label fw-bold small mb-0">{{ t("editor_ui.default_lang_label") }}</label>
             <select
               :value="editState.lang"
               class="form-select form-select-sm"
