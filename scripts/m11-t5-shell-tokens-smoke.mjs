@@ -55,3 +55,12 @@ for (const rel of ["src/App.vue", "src/assets/scss/main.scss", "src/assets/scss/
 assert.match(tokens, /\.editor-ui-mono\s*\{[^}]*var\(--editor-ui-font-mono\)/s, ".editor-ui-mono must use font-mono token");
 
 console.log("m11-t5 smoke Part 2: OK");
+
+// --- Part 3: S3 style.css 撤去 ---
+assert.equal(await exists("src/style.css"), false, "src/style.css must be deleted");
+assert.doesNotMatch(mainTs, /['"]\.\/style\.css['"]/, "main.ts must not import ./style.css");
+// #app サイズ規則が App.vue へ移設されている
+assert.match(appVue, /#app\s*\{[^}]*width:\s*100%/s, "App.vue must own #app width rule");
+assert.match(appVue, /#app\s*\{[^}]*height:\s*100%/s, "App.vue must own #app height rule");
+
+console.log("m11-t5 smoke Part 3: OK");

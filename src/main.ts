@@ -1,5 +1,4 @@
 import { createApp } from 'vue'
-import './style.css' // Keep default vite style for now, or remove if conflicting
 import './assets/scss/main.scss' // Import Modern SCSS
 import 'bootstrap' // Import Bootstrap JS
 import 'bootstrap-icons/font/bootstrap-icons.css'

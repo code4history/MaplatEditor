@@ -113,6 +113,10 @@ onUnmounted(() => {
 <style>
 /* Global styles or minimal reset */
 #app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
   font-family: var(--editor-ui-font-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
