@@ -171,3 +171,20 @@ await import(path.resolve(outFile));
 await rm(workDir, { recursive: true, force: true });
 
 console.log("m11-t6 smoke Part 2: OK");
+
+// --- Part 3: ResourceActionMenu 契約 ---
+const menu = await read("src/components/resource-list/ResourceActionMenu.vue");
+assert.match(menu, /role="menu"/, "menu role missing");
+assert.match(menu, /aria-expanded/, "aria-expanded missing");
+assert.match(menu, /role="menuitem"/, "menuitem role missing");
+assert.match(menu, /contextmenu/, "must handle right-click (contextmenu)");
+// Shift+F10（keydown 監視）
+assert.match(menu, /F10/, "must handle Shift+F10");
+assert.match(menu, /Escape/, "must close on Escape");
+// actions 空なら trigger 自体を出さない（D4改 / AC17）
+assert.match(menu, /v-if="actions\.length"/, "empty actions must hide the ⋮ trigger (D4改)");
+// select emit（key を親へ返す）
+assert.match(menu, /emit\(["']select["']/, "must emit select with action key");
+// focus restore（trigger へ戻す）
+assert.match(menu, /focus\(\)/, "must restore focus to trigger");
+console.log("m11-t6 smoke Part 3: OK");
