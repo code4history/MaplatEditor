@@ -15,7 +15,8 @@
       :save-disabled="!dirty || !validation.valid"
       :saving="saving"
       :actions-disabled="picking || conflictRevision !== null"
-      :discard-draft-visible="!isNew && draftLifecycle.draftRestored.value"
+      :back-visible="backVisible"
+      :discard-draft-visible="draftLifecycle.draftRestored.value || (isNew && dirty)"
       @back="goBack"
       @update:active-lang="activeLang = $event"
       @undo="undo"
@@ -29,9 +30,12 @@
       scope="operation"
       :items="[{ key: 'save-error', severity: 'danger', message: error }]"
     />
-    <div v-else-if="dirty && validationMessages.length" class="alert alert-warning rounded-0 mb-0 py-2">
-      <ul class="mb-0"><li v-for="message in validationMessages" :key="message">{{ message }}</li></ul>
-    </div>
+    <DiagnosticFeedback
+      v-else-if="sectionDiagnostics.length"
+      scope="section"
+      :items="sectionDiagnostics"
+      data-testid="asset-validation-summary"
+    />
     <div v-if="conflictRevision !== null" class="alert alert-warning rounded-0 mb-0 py-2 d-flex align-items-center gap-2 flex-wrap">
       <span class="flex-grow-1">{{ t("common.revision_conflict") }}</span>
       <button type="button" class="btn btn-sm btn-outline-secondary" @click="reloadLatest">{{ t("common.reload") }}</button>
@@ -41,17 +45,19 @@
     <div class="flex-grow-1 overflow-auto p-3">
       <div class="row g-3">
         <div class="col-12 col-xl-7">
-          <label class="form-label fw-semibold">{{ t("assetlist.title_label") }}</label>
-          <LangResourceInput
-            input-testid="asset-title"
-            :model-value="document.title"
-            :active-lang="activeLang"
-            :default-lang="document.defaultLang"
-            :language-options="SUPPORTED_LANGUAGES"
-            :disabled="saving || picking"
-            @update:model-value="updateTitle"
-            @select-language="activeLang = $event"
-          />
+          <EditorField :label="t('assetlist.title_label')" :diagnostics="titleDiagnostics">
+            <LangResourceInput
+              input-testid="asset-title"
+              :model-value="document.title"
+              :active-lang="activeLang"
+              :default-lang="document.defaultLang"
+              :language-options="SUPPORTED_LANGUAGES"
+              :disabled="saving || picking"
+              :invalid="titleDiagnostics.length > 0"
+              @update:model-value="updateTitle"
+              @select-language="activeLang = $event"
+            />
+          </EditorField>
         </div>
         <div class="col-12 col-xl-5">
           <label class="form-label fw-semibold">{{ t("assetlist.master_detail.default_language") }}</label>
@@ -72,7 +78,6 @@
           >
             <template #help>
               <ContextHelp
-                mode="tooltip"
                 :text="t('editor_ui.slug_format_help')"
                 :ariaLabel="t('editor_ui.slug_format_help')"
               />
@@ -82,6 +87,7 @@
               :value="document.slug"
               type="text"
               class="form-control form-control-sm editor-ui-mono"
+              :class="{ 'is-invalid': slugDiagnostics.length }"
               data-testid="asset-slug"
               :disabled="structuralDisabled"
               @change="updateDocument({ ...document, slug: ($event.target as HTMLInputElement).value.trim() })"
@@ -98,7 +104,12 @@
             </button>
             <span class="small">{{ volatileSource?.sourceName || document.sourceName || t("assetlist.master_detail.no_source") }}</span>
           </div>
-          <div v-if="isNew && !volatileSource" class="form-text text-warning" data-testid="asset-source-repick-warning">{{ t("assetlist.master_detail.reselect_required") }}</div>
+          <DiagnosticFeedback
+            v-if="sourceDiagnostics.length"
+            scope="field"
+            :items="sourceDiagnostics"
+            data-testid="asset-source-repick-warning"
+          />
         </div>
 
         <div v-if="previewUrl" class="col-12 col-xl-5">
@@ -150,8 +161,10 @@ import { isEditableElement } from "../../utils/nativeTextUndo";
 interface VolatileSource { sourcePath: string; sourceName: string }
 interface AssetEditHistoryState { document: ImageAssetEditDocument; volatileSource: VolatileSource | null }
 
-const props = defineProps<{ uid: string; isNew: boolean; item: ImageAssetRow | null }>();
-const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string] }>();
+const props = withDefaults(defineProps<{ uid: string; isNew: boolean; item: ImageAssetRow | null; backVisible?: boolean }>(), {
+  backVisible: true,
+});
+const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string]; "draft-state": [uid: string, hasDraft: boolean] }>();
 const { t } = useTranslation();
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -177,21 +190,25 @@ const dirty = computed(() => (historyVersion.value, history.isDirty()));
 const canUndo = computed(() => (historyVersion.value, history.canUndo()));
 const canRedo = computed(() => (historyVersion.value, history.canRedo()));
 const validation = computed(() => validateImageAssetDocument(document.value, volatileSource.value !== null));
-const validationMessages = computed(() => validation.value.errors.map((code) => t({
+// 既存 validation の error code → i18n キー（黄色バナー再利用の文言）。
+const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   "slug-required": "assetlist.errors.slug_required",
   "slug-invalid": "assetlist.errors.slug_charset",
   "title-required": "assetlist.errors.title_required",
   "source-required": "assetlist.master_detail.reselect_required",
-}[code])));
-// slug 形式エラーだけを field 診断へ（既存 validation を再利用）
-const SLUG_ERROR_MESSAGE_KEYS: Record<string, string> = {
-  "slug-required": "assetlist.errors.slug_required",
-  "slug-invalid": "assetlist.errors.slug_charset",
 };
-const slugDiagnostics = computed<DiagnosticItem[]>(() =>
-  validation.value.errors
-    .filter((code) => code === "slug-required" || code === "slug-invalid")
-    .map((code) => ({ key: code, severity: "danger" as const, message: t(SLUG_ERROR_MESSAGE_KEYS[code]) })),
+// 指定 code 集合を field 診断（danger）へ。全項目を即時表示する（dirty ゲートなし）。
+function diagnosticsFor(codes: readonly string[]): DiagnosticItem[] {
+  return validation.value.errors
+    .filter((code) => codes.includes(code))
+    .map((code) => ({ key: code, severity: "danger" as const, message: t(VALIDATION_MESSAGE_KEYS[code]) }));
+}
+const slugDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["slug-required", "slug-invalid"]));
+const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
+const sourceDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["source-required"]));
+// section summary は全 validation error を同じ文法で併記する。
+const sectionDiagnostics = computed<DiagnosticItem[]>(() =>
+  validation.value.errors.map((code) => ({ key: code, severity: "danger" as const, message: t(VALIDATION_MESSAGE_KEYS[code]) })),
 );
 const displayTitle = computed(() => localizeTitle(document.value.title, activeLang.value) || document.value.slug || t("assetlist.master_detail.untitled"));
 const saveState = computed<EditorSaveState>(() => saving.value ? "saving" : draftLifecycle.draftRestored.value ? "draft-restored" : dirty.value ? "dirty" : "saved");
@@ -280,6 +297,8 @@ watch(
 );
 
 function pushCurrent(): void {
+  // F4: 文書の変更で保存時 operation 診断（slug重複等）を解消する。
+  error.value = "";
   history.push({ document: clone(document.value), volatileSource: clone(volatileSource.value) });
   historyVersion.value++;
   draftLifecycle.schedule(true);
@@ -302,6 +321,8 @@ function changeDefaultLang(lang: LangCode): void {
 }
 
 function applyHistory(): void {
+  // F4: Undo/Redo でも保存時 operation 診断を解消する。
+  error.value = "";
   const current = history.current();
   document.value = clone(current.document);
   volatileSource.value = clone(current.volatileSource);
@@ -354,7 +375,9 @@ async function discardDraft(): Promise<void> {
   });
   if (result.response !== 0) return;
   await draftLifecycle.discard();
+  // F5: 新規 draft の破棄は draft store から削除して選択解除（新規作成前の空状態）へ戻す。
   if (props.item) resetSession(props.item, props.uid);
+  else emit("back");
   emit("changed");
 }
 
@@ -468,6 +491,14 @@ function onEditorKeydown(event: KeyboardEvent): void {
 }
 onMounted(() => window.addEventListener("keydown", onEditorKeydown));
 onBeforeUnmount(() => window.removeEventListener("keydown", onEditorKeydown));
+
+// F8: dirty（下書きが存在する状態）の変化を親 List へ即時通知する。
+// Undo で checkpoint clean に戻れば dirty=false となりバッジが即時に消える。
+watch(
+  () => [props.uid, dirty.value] as const,
+  ([uid, hasDraft]) => emit("draft-state", uid, hasDraft),
+  { immediate: true },
+);
 
 defineExpose({ prepareForDelete });
 </script>
