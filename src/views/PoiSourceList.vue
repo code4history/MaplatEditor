@@ -1,96 +1,42 @@
 <template>
-  <div class="container-fluid p-3" @click="hideContextMenu">
-    <!-- Controls Row -->
-    <div class="row mb-3 gx-2 align-items-center">
-      <div class="col-auto">
-        <button class="btn btn-light border shadow-sm px-4" @click="openCreateLocal">
-          {{ t("poisource.create_local") }}
-        </button>
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-light border shadow-sm px-4" @click="openImport">
+  <div class="poi-source-list h-100 d-flex flex-column">
+    <ResourceListShell
+      kind="poi-source"
+      kind-name-key="resource_list.kind_poi_source"
+      variant="grid"
+      :query="query"
+      :state="state"
+      :total="total"
+      :loaded="loaded"
+      @create="openCreateLocal"
+      @update:query="updateQuery"
+      @retry="retry"
+      @load-more="loadMore"
+    >
+      <template #secondary>
+        <button class="btn btn-outline-secondary btn-sm" data-poi-import @click="openImport">
           {{ t("poisource.import_file") }}
         </button>
-      </div>
-      <!-- リモート登録はユーザー決定 (2026-07-11) により UI 抑制中: 望む形式のリモートデータが
-           実在せず、htmlTemplate 対応 (POI-007/109) までは実用にならないため。backend の
-           registerRemote/refreshRemote/ReadOnly/cloneToLocal ロジックは温存 (フラグで再表示可) -->
-      <div v-if="REMOTE_POI_REGISTRATION_ENABLED" class="col-auto">
-        <button class="btn btn-light border shadow-sm px-4" @click="openRegisterRemote">
+        <!-- リモート登録 UI は 2026-07-11 決定により抑制中（D13）。表示条件を変えず slot 内へ移設。
+             backend (registerRemote/refreshRemote/ReadOnly/cloneToLocal) は温存 — true に戻せば復活する -->
+        <button v-if="REMOTE_POI_REGISTRATION_ENABLED" class="btn btn-outline-secondary btn-sm" @click="openRegisterRemote">
           {{ t("poisource.register_remote") }}
         </button>
-      </div>
-      <div class="col">
-        <input
-          type="text"
-          class="form-control shadow-sm"
-          :placeholder="t('poisource.search_placeholder')"
-          v-model="searchQuery"
-          @input="handleSearch"
+      </template>
+
+      <div class="d-flex flex-wrap justify-content-start align-items-start gap-4 p-3">
+        <ResourceGridCard
+          v-for="vm in viewModels"
+          :key="vm.uid"
+          :item="vm"
+          kind="poi-source"
+          :to="`/poisources/${vm.uid}`"
+          :fallback-image="noImage"
+          :draft-label="t('editor_ui.draft_badge')"
+          @action="onAction"
         />
       </div>
-      <div class="col-auto">
-        <div class="btn-group shadow-sm" role="group">
-          <button class="btn btn-light border" :disabled="!hasPrev" @click="prevPage">&lt;</button>
-          <button class="btn btn-light border" :disabled="!hasNext" @click="nextPage">&gt;</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="loading" class="text-muted text-center py-3">
-      {{ t("poisource.loading") }}
-    </div>
-
-    <!-- Error -->
-    <div v-else-if="error" class="alert alert-danger">
-      {{ error }}
-    </div>
-
-    <!-- Empty -->
-    <div v-else-if="items.length === 0" class="text-muted text-center py-3">
-      {{ t("poisource.no_sources_found") }}
-    </div>
-
-    <!-- Source Grid -->
-    <div v-else class="d-flex flex-wrap justify-content-start align-items-start gap-4" style="padding-left: 5px;">
-      <div v-for="source in items" :key="source.uid" class="source-card-wrapper">
-        <div class="source-card-inner">
-          <router-link
-            :to="`/poisources/${source.uid}`"
-            class="text-decoration-none text-dark d-block"
-            @contextmenu.prevent="openContextMenu($event, source)"
-          >
-            <div class="card-body py-2 px-3">
-              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <span class="badge" :class="source.mode === 'local' ? 'bg-primary' : 'bg-info'">
-                  {{ source.mode === 'local' ? t("poisource.local") : t("poisource.remote") }}
-                </span>
-                <span v-if="hasDraft(source.uid)" class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span>
-              </div>
-              <p class="mb-1 fw-medium text-break" style="font-size: 14px;">{{ localizeTitle(source) }}</p>
-              <small class="text-muted d-block text-break">{{ source.slug }}</small>
-              <small class="text-muted d-block">{{ source.featureCount }} {{ t("poisource.features") }}</small>
-            </div>
-          </router-link>
-        </div>
-      </div>
-    </div>
-
-    <!-- Context menu -->
-    <ul
-      v-if="contextMenu.visible"
-      class="dropdown-menu show ctx-menu"
-      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
-      @click.stop
-    >
-      <li class="dropdown-header">{{ contextMenu.title }}</li>
-      <li>
-        <a class="dropdown-item text-danger" href="#" @click.prevent="deleteSource">
-          {{ t("poisource.delete_item") }}
-        </a>
-      </li>
-    </ul>
+    </ResourceListShell>
 
     <!-- Create Local / Import / Register Remote Modal (shared form) -->
     <div v-if="modal.mode" class="modal show d-block" tabindex="-1" @click.self="closeModal">
@@ -186,12 +132,17 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
-import { usePoiSourceList, type PoiSourceListRow } from "../composables/usePoiSourceList";
+import noImage from "../assets/img/no_image.png";
+import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
-import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
+import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
+import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
+import { createPoiSourceListAdapter } from "./resource-adapters/poiSourceListAdapter";
+import type { PoiSourceListRow } from "../electron";
+import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 import { ERROR_CODE_KEYS, issueMessage as resolveIssueMessage } from "../utils/poiSourceMessages";
 import type {
   PoiSourceSaveResult,
@@ -205,6 +156,7 @@ import {
 } from "../utils/editorLanguages";
 
 const { t } = useTranslation();
+const route = useRoute();
 const router = useRouter();
 const { hasDraft, refreshDrafts } = useAssetDraftBadges('poi');
 
@@ -213,44 +165,31 @@ const { hasDraft, refreshDrafts } = useAssetDraftBadges('poi');
 // backend (registerRemote/refreshRemote/ReadOnly/cloneToLocal) は温存 — true に戻せば復活する
 const REMOTE_POI_REGISTRATION_ENABLED = false;
 
-const {
-  items,
-  loading,
-  error,
-  searchQuery,
-  currentPage,
-  hasNext,
-  hasPrev,
-  loadSources,
-  search,
-  nextPage,
-  prevPage,
-} = usePoiSourceList();
+const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
+const adapter = createPoiSourceListAdapter({
+  hasDraft,
+  selectedUid: () => null,
+  featuresLabel: (count) => `${count} ${t("poisource.features")}`,
+  localLabel: t("poisource.local"),
+  remoteLabel: t("poisource.remote"),
+});
+const { items, total, loaded, state, loadFirst, loadMore, retry, applyDeletion } =
+  useInfiniteResourceList<PoiSourceListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: null }), activeLang: () => i18next.language });
+const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, i18next.language)));
+
+function updateQuery(value: string): void {
+  void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
+}
 
 const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-// LangResource 内部形 {lang: text} → 表示テキスト (現在言語 → ja → en → 任意 → slug)
-const localizeTitle = (row: PoiSourceListRow): string =>
-  resolveLocalizedTitle(row.title, i18next.language) || row.slug;
+// --- delete（右クリックメニュー導線は ResourceActionMenu に一本化。参照チェックは維持）---
+async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
+  if (key !== "delete") return;
+  await deleteSourceByUid(vm.uid, vm.title);
+}
 
-// --- Context menu / delete ---
-const contextMenu = reactive({ visible: false, x: 0, y: 0, uid: "", title: "" });
-
-const openContextMenu = (event: MouseEvent, source: PoiSourceListRow) => {
-  contextMenu.visible = true;
-  contextMenu.x = event.clientX;
-  contextMenu.y = event.clientY;
-  contextMenu.uid = source.uid;
-  contextMenu.title = localizeTitle(source);
-};
-
-const hideContextMenu = () => {
-  contextMenu.visible = false;
-};
-
-const deleteSource = async () => {
-  const { uid, title } = contextMenu;
-  hideContextMenu();
+const deleteSourceByUid = async (uid: string, title: string) => {
   // AID-006: 削除前に参照(app/map)を提示。references は Phase 7 まで空だが表示線を先に敷く
   let references: PoiSourceReference[] = [];
   let referencesUnavailable = false;
@@ -274,15 +213,10 @@ const deleteSource = async () => {
   }
   if (!confirm(message)) return;
   try {
-    // 削除前の状態でページ末尾の最後の1件かどうかを判定し、削除後に空ページへ残らないようにする
-    const wasLastItemOnPage = items.value.length === 1 && hasPrev.value;
     await window.poiSources.delete(uid);
     await window.assetDrafts.remove('poi', uid);
-    if (wasLastItemOnPage) {
-      await loadSources(currentPage.value - 1);
-    } else {
-      await loadSources(currentPage.value);
-    }
+    await applyDeletion(uid); // D9: UID除去 + 最終page再取得 dedupe
+    await refreshDrafts();
   } catch (e) {
     console.error("Failed to delete POI source", e);
     alert(t("poisource.delete_error"));
@@ -545,55 +479,26 @@ const submitModal = async () => {
   }
 };
 
-const handleSearch = () => {
-  search(searchQuery.value);
-};
-
-// Escape: コンテキストメニューが開いていれば閉じる。開いていなければ、モーダルが
-// 開いていて送信中でない場合に閉じる (MapList.vue の同型ハンドラに整合)
+// Escape: モーダルが開いていて送信中でない場合に閉じる (MapList.vue の同型ハンドラに整合)
 const onKeyDown = (e: KeyboardEvent) => {
   if (e.isComposing) return; // IME 変換取り消しの Escape でモーダルが閉じないようにする
   if (e.key !== "Escape") return;
-  if (contextMenu.visible) {
-    hideContextMenu();
-    return;
-  }
   if (modal.mode && !modal.submitting) {
     closeModal();
   }
 };
 
-onMounted(() => {
-  loadSources(1);
-  refreshDrafts();
+onMounted(async () => {
+  await loadFirst();
+  await refreshDrafts();
   window.addEventListener("keydown", onKeyDown);
 });
 onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown));
+// route.q 変更で再取得（filter generation）
+watch(query, () => { void loadFirst(); });
 </script>
 
 <style scoped>
-.source-card-wrapper {
-    width: 240px;
-    background: transparent;
-    flex-shrink: 0;
-}
-.source-card-inner {
-    background: #fff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    border: 1px solid rgba(0,0,0,0.1);
-    border-radius: 4px;
-    padding: 4px;
-    transition: box-shadow 0.2s;
-    width: 100%;
-}
-.source-card-inner:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-.ctx-menu {
-    position: fixed;
-    z-index: 9999;
-    min-width: 160px;
-}
 .modal {
     background: rgba(0, 0, 0, 0.4);
 }

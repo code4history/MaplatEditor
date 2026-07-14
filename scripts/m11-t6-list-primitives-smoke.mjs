@@ -253,3 +253,22 @@ assert.doesNotMatch(appList, /prevPage|nextPage|&lt;|&gt;/, "AppList must not co
 assert.match(appList, /assetDrafts\.remove\(['"]app['"]/);
 assert.match(appList, /applyDeletion/);
 console.log("m11-t6 smoke Part 6: OK");
+
+// --- Part 7: PoiSourceList 移行 ---
+const poiAdapter = await read("src/views/resource-adapters/poiSourceListAdapter.ts");
+assert.match(poiAdapter, /window\.poiSources\.list/, "poiAdapter must call poiSources.list");
+assert.match(poiAdapter, /total:\s*\w+\.total/, "poi batch must pass through real total (D8改)");
+const poi = await read("src/views/PoiSourceList.vue");
+assert.match(poi, /ResourceListShell/);
+assert.match(poi, /ResourceGridCard/);
+assert.match(poi, /useInfiniteResourceList/);
+assert.doesNotMatch(poi, /prevPage|nextPage|&lt;|&gt;/, "PoiSourceList must not contain pager");
+// Import は secondary slot へ
+assert.match(poi, /#secondary/, "Import must move to secondary slot");
+assert.match(poi, /openImport/, "Import handler must remain (no functional change)");
+// Remote 登録フラグは不変（false のまま、slot 内へ移設）
+assert.match(poi, /REMOTE_POI_REGISTRATION_ENABLED\s*=\s*false/, "remote flag must stay false (D13)");
+assert.match(poi, /v-if="REMOTE_POI_REGISTRATION_ENABLED"/, "remote button must stay flag-gated (D13)");
+// 削除の参照チェック（findReferences）は維持
+assert.match(poi, /findReferences/, "delete must keep reference check");
+console.log("m11-t6 smoke Part 7: OK");
