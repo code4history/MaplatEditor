@@ -198,3 +198,11 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
   assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must drop raw checkSlug (AC17)`);
 }
 console.log("m11-t7 smoke Part D: OK");
+
+// --- Part E: POI Edit + 作成モーダルが SlugField、生 checkSlug 撤去 ---
+for (const rel of ["src/views/PoiEdit.vue", "src/views/PoiSourceList.vue"]) {
+  const src = await readSrc(rel);
+  assert.match(src, /SlugField/, `${rel} must use SlugField`);
+  assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must drop raw checkSlug (AC17)`);
+}
+console.log("m11-t7 smoke Part E: OK");

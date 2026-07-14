@@ -79,24 +79,21 @@
             <div v-else class="form-control-plaintext py-0">{{ displayTitle }}</div>
           </div>
           <div class="col-4">
-            <label class="form-label fw-bold small mb-0">{{ t("poisource.slug_label") }}</label>
-            <input
-              v-model="slugInput"
-              data-testid="poi-slug"
-              type="text"
-              class="form-control form-control-sm"
-              :class="{ 'is-invalid': !!slugError }"
+            <!-- M11-T7/AC1: 共通 SlugField(内蔵 label/help/可用性診断+予約 lifecycle)。
+                 入力中は slugInput(live 可用性確認)、blur 確定(@change)で session.commit -->
+            <SlugField
+              ref="slugField"
+              :model-value="slugInput"
+              asset-kind="poi-source"
+              :asset-uid="saveHandle.uid.value ?? ''"
+              :draft-uid="saveHandle.uid.value"
+              :original-slug="confirmedSlug"
               :disabled="readOnly || translationMode"
-              @input="onSlugInput"
+              input-testid="poi-slug"
+              @update:model-value="onSlugLiveInput"
               @change="onSlugChange"
+              @state-change="slugFieldState = $event"
             />
-            <div v-if="slugError" class="form-text small text-danger mb-0">{{ slugError }}</div>
-            <div
-              v-else-if="slugChecked && slugAvailable && slugInput.trim() !== confirmedSlug"
-              class="form-text small text-success mb-0"
-            >
-              {{ t("poiedit.slug_available") }}
-            </div>
           </div>
           <div class="col-3">
             <label class="form-label fw-bold small mb-0">{{ t("mapedit.set_default") }}</label>
@@ -225,6 +222,8 @@ import PoiAttributeForm from "../components/PoiAttributeForm.vue";
 import PoiEditMap from "../components/PoiEditMap.vue";
 import PoiFeatureList from "../components/PoiFeatureList.vue";
 import PoiRawPane from "../components/PoiRawPane.vue";
+import SlugField from "../components/editor-ui/SlugField.vue";
+import { checkSlugAvailability, type SlugFieldState } from "../composables/useSlugAvailability";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
@@ -293,12 +292,11 @@ const saveError = ref<string | null>(null);
 const saveIssues = ref<PoiValidationIssue[]>([]);
 const cloning = ref(false);
 
-// --- slug 入力 (checkSlug excludeUid + 一意性表示、AppEdit/PoiSourceList と同 UX) ---
+// --- slug 入力 (M11-T7: 共通 SlugField。可用性確認・予約 lifecycle は SlugField 内蔵) ---
 const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
 const slugInput = ref("");
-const slugChecked = ref(false);
-const slugAvailable = ref(false);
-let slugCheckToken = 0;
+const slugField = ref<InstanceType<typeof SlugField> | null>(null);
+const slugFieldState = ref<SlugFieldState>("idle");
 
 const draftLifecycle = useAssetDraftLifecycle<PoiEditState>({
   kind: "poi",
@@ -352,13 +350,10 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     saveError.value = null;
     // slug 欄を保存結果 (confirmedSlug) に同期。ただし markSaved と同じ snapshot 同一性判定を
     // 通した場合のみ: 保存中に editState が差し替わっていたら (raw pane Apply 等の新編集)、
-    // ここで上書きすると乖離した slug を表示してしまうため editState.slug watch (onSlugInput
-    // 経由の追随) に委ねる (Phase 5 品質レビュー MINOR)
+    // ここで上書きすると乖離した slug を表示してしまうため editState.slug watch の追随に
+    // 委ねる (Phase 5 品質レビュー MINOR)
     if (editState.value === pendingSave!.capturedState) {
       slugInput.value = result.slug;
-      slugChecked.value = false;
-      slugAvailable.value = false;
-      slugCheckToken++;
     }
     // path param 正準 (/poisources/:sourceId): uid 変化時のみ追随 (履歴は汚さない)
     if (route.params.sourceId !== result.uid) {
@@ -377,9 +372,7 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
   isDirty: () => isDirty.value,
   onFailure: async (result) => {
     if (result.result === "Exist") {
-      // 保存レースで slug を先取りされた: 重複表示 + 一意性再チェックを要求
-      slugChecked.value = true;
-      slugAvailable.value = false;
+      // 保存レースで slug を先取りされた: 重複を operation 診断へ(field 表示は SlugField が担う)
       saveError.value = t("poisource.errors.slug_taken");
     } else if (result.result === "Invalid") {
       saveIssues.value = result.issues;
@@ -439,7 +432,8 @@ const slugError = computed<string | null>(() => {
   const slug = slugInput.value.trim();
   if (!slug) return t("poiedit.no_slug");
   if (!SLUG_PATTERN.test(slug)) return t("poisource.errors.slug_charset");
-  if (slugChecked.value && !slugAvailable.value) return t("poisource.errors.slug_taken");
+  // 他者予約/registry 重複は SlugField の state で判定する(field 表示は SlugField 内蔵)
+  if (slugFieldState.value === "reserved-by-other") return t("poisource.errors.slug_taken");
   return null;
 });
 
@@ -491,9 +485,6 @@ async function load(sourceId: string): Promise<void> {
     });
     currentLang.value = resolveEditorLanguage(detail.lang || i18next.language);
     slugInput.value = detail.slug;
-    slugChecked.value = false;
-    slugAvailable.value = false;
-    slugCheckToken++;
     await draftLifecycle.open(detail.uid, detail.revision);
   } catch (e) {
     console.error("[PoiEdit] Failed to load POI source:", e);
@@ -535,38 +526,18 @@ function onDefaultLanguageChange(event: Event): void {
   currentLang.value = lang;
 }
 
-// slug の編集を検知して一意性を再チェック (ADR-0007)。
-// 永続化済み slug (confirmedSlug) に戻った場合は自分自身なので確認済み扱い
-async function onSlugInput(): Promise<void> {
+// slug の live 入力(M11-T7)。可用性確認・予約 lifecycle は SlugField 内蔵のため、
+// ここでは保存 operation 診断の解消と live 値の保持のみ行う
+function onSlugLiveInput(value: string): void {
   saveError.value = null;
-  const token = ++slugCheckToken;
-  const slug = slugInput.value.trim();
-  slugChecked.value = false;
-  slugAvailable.value = false;
-  if (!slug || !SLUG_PATTERN.test(slug)) return;
-  if (confirmedSlug.value && slug === confirmedSlug.value) {
-    slugChecked.value = true;
-    slugAvailable.value = true;
-    return;
-  }
-  try {
-    const available = await window.assets.checkSlug({
-      slug,
-      excludeUid: saveHandle.uid.value ?? undefined,
-    });
-    if (token !== slugCheckToken) return; // 後発の入力に上書きされた
-    slugChecked.value = true;
-    slugAvailable.value = available;
-  } catch (e) {
-    console.error("[PoiEdit] Failed to check slug availability:", e);
-  }
+  slugInput.value = value;
 }
 
 // change (blur) 確定時に 1 Undo 単位として commit する
-function onSlugChange(): void {
+function onSlugChange(value: string): void {
   const state = editState.value;
   if (!state || readOnly.value || translationMode.value) return;
-  const slug = slugInput.value.trim();
+  const slug = value.trim();
   slugInput.value = slug;
   if (slug === state.slug) return;
   session.commit((draft) => {
@@ -574,15 +545,12 @@ function onSlugChange(): void {
   });
 }
 
-// undo/redo/読込で session 側の slug が変わったら入力欄と一意性表示を追随させる
+// undo/redo/読込で session 側の slug が変わったら入力欄を追随させる(可用性は SlugField が再確認)
 watch(
   () => editState.value?.slug,
   (next) => {
     if (typeof next !== "string") return;
-    if (next !== slugInput.value) {
-      slugInput.value = next;
-      onSlugInput();
-    }
+    if (next !== slugInput.value) slugInput.value = next;
   },
 );
 watch(
@@ -599,6 +567,12 @@ async function saveSource(): Promise<boolean> {
   saveIssues.value = []; // 前回 Invalid の issues を持ち越さない
   if (slugError.value) {
     saveError.value = slugError.value;
+    return false;
+  }
+  // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)
+  const slugOk = await slugField.value?.confirmForSave() ?? true;
+  if (!slugOk) {
+    saveError.value = t("poisource.errors.slug_taken");
     return false;
   }
   // 送信内容をここで一度だけ捕捉 (JSON ラウンドトリップは AppEdit と同様、非 clone 可能値の
@@ -689,7 +663,8 @@ async function cloneSourceToLocal(): Promise<void> {
       (confirmedSlug.value || state.slug).replace(/[^A-Za-z0-9_-]+/g, "-") || "poi";
     let candidate = `${base}-local`;
     for (let i = 2; i <= 50; i++) {
-      if (await window.assets.checkSlug({ slug: candidate })) break;
+      // M11-T7/AC17: 生 checkSlug ではなく sanctioned wrapper(registry AND 予約合成)で探索する
+      if (await checkSlugAvailability({ slug: candidate })) break;
       candidate = `${base}-local${i}`;
     }
     const result = await window.poiSources.cloneToLocal(uid, { slug: candidate });

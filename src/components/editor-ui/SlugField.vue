@@ -100,5 +100,11 @@ async function confirmForSave(): Promise<boolean> {
   return reservation.confirmForSave(slugRef.value.trim());
 }
 
-defineExpose({ confirmForSave });
+// 新規の放棄(モーダル閉じ・draft 破棄)で保持中の予約を明示解放する(D6改/AC15)。
+// promote 消化済み・未予約時は no-op。
+async function release(): Promise<void> {
+  await reservation.releaseIfHeld();
+}
+
+defineExpose({ confirmForSave, release });
 </script>

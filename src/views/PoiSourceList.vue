@@ -59,17 +59,18 @@
               />
             </div>
 
-            <!-- slug -->
-            <label class="form-label">{{ t("poisource.slug_label") }}</label>
-            <input
-              type="text"
-              class="form-control"
-              :class="{ 'is-invalid': slugError, 'is-valid': slugChecked && !slugError }"
-              v-model="modal.slug"
-              :placeholder="t('poisource.slug_placeholder')"
-              @input="onSlugInput"
+            <!-- slug (M11-T7/AC1: 共通 SlugField。可用性確認・予約 lifecycle 内蔵) -->
+            <SlugField
+              ref="modalSlugField"
+              :model-value="modal.slug"
+              asset-kind="poi-source"
+              :asset-uid="modal.uid"
+              :draft-uid="modal.uid"
+              :disabled="modal.submitting"
+              input-testid="poi-create-slug"
+              @update:model-value="onSlugLiveInput"
+              @state-change="modalSlugState = $event"
             />
-            <div v-if="slugError" class="invalid-feedback d-block">{{ slugError }}</div>
 
             <!-- title -->
             <label class="form-label mt-3">{{ t("poisource.title_label") }}</label>
@@ -156,6 +157,8 @@ import {
   resolveEditorLanguage,
   type LangCode,
 } from "../utils/editorLanguages";
+import SlugField from "../components/editor-ui/SlugField.vue";
+import type { SlugFieldState } from "../composables/useSlugAvailability";
 
 const { t } = useTranslation();
 const route = useRoute();
@@ -216,8 +219,6 @@ function updateQuery(value: string): void {
   void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
 }
 
-const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
-
 // --- delete（右クリックメニュー導線は ResourceActionMenu に一本化。参照チェックは維持）---
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
   if (key !== "delete") return;
@@ -274,19 +275,13 @@ const modal = reactive({
   langEdited: false,
   // slug 欄をユーザーが手入力したら true。以後 title からの自動提案で上書きしない
   slugEdited: false,
+  // M11-T7/AC6: 新規開始の事前採番 uid(予約帰属 asset_uid = 作成行 uid)。resetModal で採番し直す
+  uid: crypto.randomUUID(),
 });
 
-const slugChecked = ref(false);
-const slugAvailable = ref(false);
-let slugCheckToken = 0;
-
-const slugError = computed<string | null>(() => {
-  const slug = modal.slug.trim();
-  if (!slug) return null;
-  if (!SLUG_PATTERN.test(slug)) return t("poisource.errors.slug_charset");
-  if (slugChecked.value && !slugAvailable.value) return t("poisource.errors.slug_taken");
-  return null;
-});
+// M11-T7: 可用性確認・field 診断は SlugField 内蔵。canSubmit は state-change で判定する
+const modalSlugField = ref<InstanceType<typeof SlugField> | null>(null);
+const modalSlugState = ref<SlugFieldState>("idle");
 
 const modalTitle = computed(() => {
   if (modal.mode === "local") return t("poisource.create_local_modal.title");
@@ -304,9 +299,8 @@ const submitLabel = computed(() => {
 
 const canSubmit = computed(() => {
   if (modal.submitting) return false;
-  const slug = modal.slug.trim();
-  if (!slug || !SLUG_PATTERN.test(slug)) return false;
-  if (slugChecked.value && !slugAvailable.value) return false;
+  // M11-T7: SlugField の可用性確定(available)を submit 条件にする
+  if (modalSlugState.value !== "available") return false;
   if (!modal.title.trim()) return false;
   if (modal.mode === "remote" && !modal.url.trim()) return false;
   if (modal.mode === "import" && !modal.filePath) return false;
@@ -325,13 +319,15 @@ const resetModal = () => {
   modal.slugEdited = false;
   modal.lang = resolveEditorLanguage(i18next.language);
   modal.langEdited = false;
-  slugChecked.value = false;
-  slugAvailable.value = false;
-  // in-flight の slug チェック応答を無効化 (MINOR-1)
-  slugCheckToken++;
+  // M11-T7: 新規開始ごとに予約帰属 uid を採番し直す。可用性状態もリセット
+  modal.uid = crypto.randomUUID();
+  modalSlugState.value = "idle";
 };
 
 const closeModal = () => {
+  // M11-T7/AC15: モーダル破棄(=draft なし新規の放棄)で保持中の予約を解放する。
+  // 成功 submit 後は promote が予約を消化済みのため release は無害な no-op
+  void modalSlugField.value?.release();
   modal.mode = null;
   resetModal();
 };
@@ -345,29 +341,13 @@ const suggestSlug = (base: string): string =>
     .replace(/^-+|-+$/g, "")
     .toLowerCase();
 
-const checkSlug = async () => {
-  // early-return する場合でも in-flight の旧応答を無効化しておく (MINOR-1)
-  const token = ++slugCheckToken;
-  const slug = modal.slug.trim();
-  slugChecked.value = false;
-  slugAvailable.value = false;
-  if (!slug || !SLUG_PATTERN.test(slug)) return;
-  try {
-    const available = await window.assets.checkSlug({ slug });
-    if (token !== slugCheckToken) return; // 後発の入力に上書きされた
-    slugChecked.value = true;
-    slugAvailable.value = available;
-  } catch (e) {
-    console.error("Failed to check slug availability", e);
-  }
-};
-
-const onSlugInput = () => {
+// M11-T7: 可用性チェックは SlugField 内蔵(modal.slug の変化に自動追随)へ移行した
+const onSlugLiveInput = (value: string) => {
+  modal.slug = value;
   // 手入力されたら title からの自動提案を止める (空に戻したら提案を再開)
-  modal.slugEdited = modal.slug.trim() !== "";
+  modal.slugEdited = value.trim() !== "";
   modal.feedback = "";
   modal.feedbackRetry = false;
-  checkSlug();
 };
 
 const onUrlInput = () => {
@@ -388,8 +368,7 @@ watch(
     if (modal.slugEdited) return;
     const suggested = suggestSlug(title);
     if (suggested === modal.slug) return;
-    modal.slug = suggested;
-    checkSlug();
+    modal.slug = suggested; // 可用性チェックは SlugField が modelValue 変化で自動実行する
   }
 );
 
@@ -417,7 +396,7 @@ const openImport = async () => {
       await window.poiSources.detectImportLanguage(modal.filePath, modal.lang),
     );
     modal.langEdited = false;
-    checkSlug();
+    // 可用性チェックは SlugField が modal.slug の変化で自動実行する
   } catch (e) {
     console.error("Failed to pick import file", e);
     // MINOR-5: モーダルが開いていれば feedback で、開いていなければ alert で通知する
@@ -492,15 +471,16 @@ const submitModal = async () => {
   modal.feedbackRetry = false;
   try {
     let result: PoiSourceSaveResult;
+    // M11-T7/AC6: 事前採番 uid を create endpoint へ転送(予約帰属 asset_uid と行 uid を一致させる)
     if (modal.mode === "local") {
-      result = await window.poiSources.createLocal({ slug, title, lang: modal.lang });
+      result = await window.poiSources.createLocal({ slug, title, lang: modal.lang, uid: modal.uid });
     } else if (modal.mode === "import") {
       result = await window.poiSources.importFile({
-        slug, title, filePath: modal.filePath, lang: modal.lang, langOverride: modal.langEdited,
+        slug, title, filePath: modal.filePath, lang: modal.lang, langOverride: modal.langEdited, uid: modal.uid,
       });
     } else if (modal.mode === "remote") {
       result = await window.poiSources.registerRemote({
-        slug, title, url: modal.url.trim(), lang: modal.lang, langOverride: modal.langEdited,
+        slug, title, url: modal.url.trim(), lang: modal.lang, langOverride: modal.langEdited, uid: modal.uid,
       });
     } else {
       return;

@@ -163,9 +163,9 @@ export interface PoiSourcesAPI {
     // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
     createLocal(input: { slug: string; title: any; lang?: string; uid?: string }): Promise<PoiSourceSaveResult>;
     save(uid: string, payload: { slug: string; title: any; fc: any; expectedRevision?: number }): Promise<PoiSourceSaveResult>;
-    importFile(input: { slug: string; title: any; filePath: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult>;
+    importFile(input: { slug: string; title: any; filePath: string; lang?: string; langOverride?: boolean; uid?: string }): Promise<PoiSourceSaveResult>;
     detectImportLanguage(filePath: string, fallbackLang?: string): Promise<string>;
-    registerRemote(input: { slug: string; title: any; url: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult>;
+    registerRemote(input: { slug: string; title: any; url: string; lang?: string; langOverride?: boolean; uid?: string }): Promise<PoiSourceSaveResult>;
     refreshRemote(uid: string): Promise<PoiSourceSaveResult>;
     cloneToLocal(uid: string, input: { slug: string; title?: any }): Promise<PoiSourceSaveResult>;
     findReferences(uid: string): Promise<PoiSourceReference[]>;

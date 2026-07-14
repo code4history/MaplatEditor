@@ -430,10 +430,10 @@ export class PoiSourceService {
 
   // .geojson/.json を読み、FeatureCollection または 旧POIオブジェクト形式を内部形化して
   // 新規 local ソースとして取り込む。Point以外を含む場合は取込拒否 (POI-104)
-  async importFile(input: { slug: string; title: LangResource; filePath: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult> {
+  async importFile(input: { slug: string; title: LangResource; filePath: string; lang?: string; langOverride?: boolean; uid?: string }): Promise<PoiSourceSaveResult> {
     const ext = path.extname(String(input.filePath ?? '')).toLowerCase();
     if (ext === '.zip') {
-      if (!(await SqliteDataService.isSlugAvailable(String(input.slug ?? '').trim()))) {
+      if (!(await SqliteDataService.isSlugAvailable(String(input.slug ?? '').trim(), input.uid))) {
         return { result: 'Exist' };
       }
       let preparedImport: PoiZipImport | null = null;
@@ -448,7 +448,7 @@ export class PoiSourceService {
           await preparedImport.cleanup();
           return { result: 'Invalid', issues: prepared.issues };
         }
-        const result = await this.createSource(input.slug, input.title, 'local', prepared.fc, prepared.issues);
+        const result = await this.createSource(input.slug, input.title, 'local', prepared.fc, prepared.issues, undefined, input.uid);
         if (!('result' in result) || result.result !== 'Success') await preparedImport.cleanup();
         return result;
       } catch (e: any) {
@@ -476,18 +476,18 @@ export class PoiSourceService {
       input.lang || SettingsService.get('lang'),
     );
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
-    return await this.createSource(input.slug, input.title, 'local', prepared.fc, prepared.issues);
+    return await this.createSource(input.slug, input.title, 'local', prepared.fc, prepared.issues, undefined, input.uid);
   }
 
   // fetch → 正規化/検証 → 成功時のみ登録。fetch snapshot を data_json に永続 cache する
   // (仕様の session memory cache からの意図的逸脱 — 冒頭コメント参照)
-  async registerRemote(input: { slug: string; title: LangResource; url: string; lang?: string; langOverride?: boolean }): Promise<PoiSourceSaveResult> {
+  async registerRemote(input: { slug: string; title: LangResource; url: string; lang?: string; langOverride?: boolean; uid?: string }): Promise<PoiSourceSaveResult> {
     const url = String(input.url ?? '').trim();
     const snapshot = await this.fetchSnapshot(url, input.lang || SettingsService.get('lang'));
     if (!snapshot.ok) return snapshot.failure;
     const fc = this.withLanguageOverride(snapshot.fc, input.lang, input.langOverride) as PoiEditorFC;
     const prepared = this.prepare(fc, input.lang);
-    return await this.createSource(input.slug, input.title, 'remote', prepared.fc, snapshot.issues, url);
+    return await this.createSource(input.slug, input.title, 'remote', prepared.fc, snapshot.issues, url, input.uid);
   }
 
   async detectImportLanguage(filePath: string, fallbackLang?: string): Promise<string> {

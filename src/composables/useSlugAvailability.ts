@@ -34,8 +34,12 @@ interface UseSlugAvailabilityOptions {
   check?: (input: SlugCheckInput) => Promise<boolean>;
 }
 
-const defaultCheck = (input: SlugCheckInput): Promise<boolean> =>
+// slug 可用性(registry AND 予約合成)の単発照会。SlugField 外の候補探索(クローン時の
+// 空き slug 提案等)もこの sanctioned wrapper を経由する(AC17: 生 checkSlug を UI に散らさない)。
+export const checkSlugAvailability = (input: SlugCheckInput): Promise<boolean> =>
   window.assets.checkSlug(input);
+
+const defaultCheck = checkSlugAvailability;
 
 export function useSlugAvailability(options: UseSlugAvailabilityOptions) {
   const state = ref<SlugAvailabilityState>('idle');

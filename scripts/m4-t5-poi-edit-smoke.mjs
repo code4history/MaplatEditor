@@ -101,16 +101,17 @@ try {
     'PoiEdit に poiedit.confirm_no_save 離脱確認がない'
   );
 
-  // slug 一意性チェック: excludeUid 付き checkSlug (ADR-0007: 自分の現 slug は空き扱い)
+  // slug 一意性チェック: M11-T7/AC17 で共通 SlugField へ移行(内部で excludeUid=自 uid の
+  // checkSlug 合成を行う。ADR-0007「自分の現 slug は空き扱い」は asset-uid prop が担う)
   assert.match(
     poiEdit,
-    /assets\.checkSlug/,
-    'PoiEdit が window.assets.checkSlug を呼んでいない'
+    /SlugField/,
+    'PoiEdit が SlugField を使っていない'
   );
   assert.match(
     poiEdit,
-    /excludeUid/,
-    'PoiEdit の checkSlug に excludeUid がない'
+    /:asset-uid=/,
+    'PoiEdit の SlugField に asset-uid(excludeUid 相当)がない'
   );
 
   // ReadOnly (remote) 分岐: 編集 UI を read-only 化し、cloneToLocal 導線を出す
