@@ -738,23 +738,23 @@
     "icon_pick": "選択",
     "icon_clear": "クリア",
     "icon_unresolved_set": "未解決のアイコンセット",
-    "icon_asset_missing": "参照先の画像アセットが見つかりません",
+    "icon_asset_missing": "参照先のアセットが見つかりません",
     "picker": {
       "title_icon": "アイコンを選択",
       "title_image": "画像を選択",
       "tab_iconset": "アイコンセット",
-      "tab_assets": "画像アセット",
+      "tab_assets": "アセット",
       "tab_url": "URL",
       "url_placeholder": "画像の URL または相対パスを入力",
       "url_apply": "この URL を使用",
-      "no_assets": "画像アセットが見つかりません",
+      "no_assets": "アセットが見つかりません",
       "set_builtin": "標準"
     },
     "saving": "保存中…"
   },
   "assetlist": {
     "master_detail": {
-      "new_draft": "新規画像アセット",
+      "new_draft": "新規アセット",
       "default_language": "デフォルト言語",
       "select_image": "画像を選択",
       "no_source": "画像が選択されていません",
@@ -765,13 +765,13 @@
       "file_size": "ファイルサイズ",
       "untitled": "名称未設定",
       "overwrite_confirm": "最新の保存版を現在の編集内容で上書きしますか？",
-      "not_found": "選択された画像アセットが見つかりません。",
-      "select_prompt": "左の一覧から画像アセットを選択するか、新規作成してください。"
+      "not_found": "選択されたアセットが見つかりません。",
+      "select_prompt": "左の一覧からアセットを選択するか、新規作成してください。"
     },
     "add_image": "画像を追加",
-    "search_placeholder": "画像アセットを検索...",
+    "search_placeholder": "アセットを検索...",
     "loading": "読み込み中...",
-    "no_assets_found": "画像アセットが見つかりません",
+    "no_assets_found": "アセットが見つかりません",
     "count_label": "{{num}} 件",
     "slug_label": "スラッグ (ID)",
     "slug_placeholder": "英数字・ハイフン・アンダースコア",
@@ -782,7 +782,7 @@
     "delete_item": "この画像を削除",
     "delete_confirm": "「{{name}}」を削除しますか？",
     "delete_referenced": "この画像は {{num}} 個のPOIソースから参照されています:",
-    "delete_error": "画像アセットの削除に失敗しました",
+    "delete_error": "アセットの削除に失敗しました",
     "add_modal": {
       "title": "画像を追加",
       "file_label": "選択したファイル",
@@ -798,7 +798,7 @@
       "slug_charset": "スラッグは英数字・ハイフン・アンダースコアのみ使用できます",
       "slug_taken": "このスラッグは既に使用されています",
       "invalid": "画像を取り込めませんでした",
-      "not_found": "対象の画像アセットが見つかりません",
+      "not_found": "対象のアセットが見つかりません",
       "internal": "内部エラーが発生しました",
       "payload_too_large": "画像サイズが上限（20MB）を超えています",
       "add_failed_hint": "ファイルを確認して再追加してください",

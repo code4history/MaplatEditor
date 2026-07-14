@@ -743,7 +743,7 @@
       "title_icon": "Chọn biểu tượng",
       "title_image": "Chọn hình ảnh",
       "tab_iconset": "Bộ biểu tượng",
-      "tab_assets": "Tài nguyên ảnh",
+      "tab_assets": "Tài nguyên",
       "tab_url": "URL",
       "url_placeholder": "Nhập URL hình ảnh hoặc đường dẫn tương đối",
       "url_apply": "Dùng URL này",
@@ -754,7 +754,7 @@
   },
   "assetlist": {
     "master_detail": {
-      "new_draft": "Tài nguyên ảnh mới",
+      "new_draft": "Tài nguyên mới",
       "default_language": "Ngôn ngữ mặc định",
       "select_image": "Chọn ảnh",
       "no_source": "Chưa chọn ảnh",

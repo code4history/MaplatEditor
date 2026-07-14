@@ -95,3 +95,29 @@ assert.equal(translations.ja.navbar.assets, "アセット管理");
 assert.equal(translations.ja.navbar.settings, "設定");
 
 console.log("m11-t5 smoke Part 4: OK");
+
+// --- Part 5: S5 画像アセット→アセット 文言移行 ---
+// 画像修飾の複合語が「表示値」から消えていること。キー名は英語識別子なので walk 対象外。
+const IMAGE_QUALIFIED = {
+  ja: "画像アセット",
+  ko: "이미지 에셋",
+  vi: "Tài nguyên ảnh",
+  zh: "图片素材",
+  "zh-TW": "圖片素材",
+};
+const collectStringValues = (node, out = []) => {
+  if (typeof node === "string") out.push(node);
+  else if (node && typeof node === "object") for (const v of Object.values(node)) collectStringValues(v, out);
+  return out;
+};
+for (const [loc, term] of Object.entries(IMAGE_QUALIFIED)) {
+  const parsed = JSON.parse(await read(`public/locales/${loc}/translation.json`));
+  const offenders = collectStringValues(parsed).filter((value) => value.includes(term));
+  assert.equal(offenders.length, 0, `${loc}: image-qualified asset term "${term}" remains in ${offenders.length} value(s)`);
+}
+// i18n キー名の不変（キー名に該当語を含まないので、キーが残っていること = 名称不変を担保）
+const jaParsed = JSON.parse(await read("public/locales/ja/translation.json"));
+assert.ok("assets" in jaParsed.navbar, "navbar.assets key name must remain");
+assert.ok("tab_assets" in (jaParsed.poiedit?.picker ?? jaParsed.assetlist ?? {}) || JSON.stringify(jaParsed).includes('"tab_assets"'), "tab_assets key name must remain");
+
+console.log("m11-t5 smoke Part 5: OK");
