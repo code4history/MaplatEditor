@@ -8,7 +8,7 @@
         :active-lang="activeLang"
         :query="searchQuery"
         :range-filter-active="!!filterBbox"
-        :draft-uids="draftUids"
+        :draft-uids="effectiveDraftUids"
         :draft-summaries="draftSummaries"
         :loading="loading"
         :error="error"
@@ -30,10 +30,12 @@
         :uid="selectedUid"
         :is-new="isNew"
         :item="selectedItem"
+        :back-visible="false"
         @back="closeEditor"
         @saved="saved"
         @reload="reloadEditor"
         @changed="refreshDraftsSoon"
+        @draft-state="onDraftState"
       />
       <div v-else-if="notFound" class="h-100 d-grid place-items-center p-4 text-center">
         <div class="alert alert-warning mb-0">
@@ -98,6 +100,20 @@ const selectedItem = computed(() => items.value.find((item) => item.uid === sele
 const notFound = computed(() => !!selectedUid.value && !isNew.value && !loading.value && !selectedItem.value);
 const rangeFilterOpen = ref(false);
 
+// F8: Edit 側の live な下書き状態を List バッジへ即時反映する（store の永続化遅延を待たない）。
+const liveDraft = ref<{ uid: string; hasDraft: boolean } | null>(null);
+const effectiveDraftUids = computed(() => {
+  const set = new Set(draftUids.value);
+  if (liveDraft.value) {
+    if (liveDraft.value.hasDraft) set.add(liveDraft.value.uid);
+    else set.delete(liveDraft.value.uid);
+  }
+  return set;
+});
+function onDraftState(uid: string, hasDraft: boolean): void {
+  liveDraft.value = { uid, hasDraft };
+}
+
 async function updateFilters(filters: { q?: string | null; bbox?: string | null }): Promise<void> {
   await router.replace({ query: mergeMasterDetailFilters(route.query, filters) });
 }
@@ -138,6 +154,7 @@ async function createBaseMap(): Promise<void> {
 }
 
 async function closeEditor(): Promise<void> {
+  liveDraft.value = null;
   await clearSelection();
   await refreshDrafts();
 }
