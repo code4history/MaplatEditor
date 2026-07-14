@@ -26,11 +26,11 @@
     "revision_conflict": "Cet élément a été mis à jour dans une autre fenêtre."
   },
   "navbar": {
-    "edit_map": "Modifier la carte",
-    "edit_app": "Modifier l'application",
-    "assets": "Ressources",
-    "edit_poi": "Modifier les POI",
-    "add_basemap": "Ajouter un fond de carte",
+    "edit_map": "Gérer les cartes",
+    "edit_app": "Gérer les applications",
+    "assets": "Gérer les ressources",
+    "edit_poi": "Gérer les POI",
+    "add_basemap": "Gérer les fonds de carte",
     "settings": "Paramètres"
   },
   "basemap": {

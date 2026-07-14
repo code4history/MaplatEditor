@@ -119,10 +119,10 @@ const navigate = (targetName: string) => {
 
 <style scoped>
 .navbar {
-    height: 50px;
-    min-height: 50px;
-    background-color: #222 !important; /* BS3 navbar-inverse bg */
-    border-color: #080808;
+    height: var(--editor-ui-header-height);
+    min-height: var(--editor-ui-header-height);
+    background-color: var(--editor-ui-header-bg) !important; /* BS3 navbar-inverse bg */
+    border-color: var(--editor-ui-header-bg-active);
     padding: 0;
 }
 
@@ -133,9 +133,9 @@ const navigate = (targetName: string) => {
 }
 
 .navbar-brand {
-    color: #9d9d9d !important; /* BS3 brand color */
+    color: var(--editor-ui-header-fg) !important; /* BS3 brand color */
     font-size: 18px;
-    height: 50px;
+    height: var(--editor-ui-header-height);
     padding: 15px 15px;
     line-height: 20px;
     margin-right: 0;
@@ -144,7 +144,7 @@ const navigate = (targetName: string) => {
 }
 
 .navbar-brand:hover {
-    color: #fff !important;
+    color: var(--editor-ui-header-fg-active) !important;
 }
 
 .navbar-collapse {
@@ -165,7 +165,7 @@ const navigate = (targetName: string) => {
 
 /* BS3 navbar-inverse link styles */
 .nav-link {
-    color: #9d9d9d !important;
+    color: var(--editor-ui-header-fg) !important;
     padding-top: 15px;
     padding-bottom: 15px;
     line-height: 20px;
@@ -179,14 +179,14 @@ const navigate = (targetName: string) => {
 }
 
 .nav-link:hover {
-    color: #fff !important;
+    color: var(--editor-ui-header-fg-active) !important;
     background-color: transparent; /* BS3 doesn't change bg on hover, only color */
 }
 
 /* BS3 navbar-inverse active styling */
 .nav-link.active {
-    color: #fff !important;
-    background-color: #080808 !important; /* Darker black background */
+    color: var(--editor-ui-header-fg-active) !important;
+    background-color: var(--editor-ui-header-bg-active) !important; /* Darker black background */
     box-shadow: none;
     border: none;
     margin-top: 0;

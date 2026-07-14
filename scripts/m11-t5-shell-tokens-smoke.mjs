@@ -64,3 +64,34 @@ assert.match(appVue, /#app\s*\{[^}]*width:\s*100%/s, "App.vue must own #app widt
 assert.match(appVue, /#app\s*\{[^}]*height:\s*100%/s, "App.vue must own #app height rule");
 
 console.log("m11-t5 smoke Part 3: OK");
+
+// --- Part 4: S4 Header 語彙・token・header-height ---
+const headerVue = await read("src/components/Header.vue");
+assert.match(headerVue, /var\(--editor-ui-header-height\)/, "Header must use header-height token");
+assert.match(headerVue, /var\(--editor-ui-header-bg\)/, "Header must use header-bg token");
+assert.match(headerVue, /var\(--editor-ui-header-fg\)/, "Header must use header-fg token");
+// route / nav 順序 / sticky logic 不変（navigate 関数と route push が残る）
+assert.match(headerVue, /navigate\('MapList'\)/);
+assert.match(headerVue, /router\.push\('\/basemaps'\)/);
+assert.match(headerVue, /currentRoute\.value === 'MapEdit'/, "sticky logic must remain");
+// .main-content offset が token
+assert.match(appVue, /\.main-content\s*\{[^}]*var\(--editor-ui-header-height\)/s, "main-content must use header-height token");
+
+const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh-TW"];
+const NAVBAR_KEYS = ["edit_map", "edit_poi", "add_basemap", "edit_app", "assets", "settings"];
+const translations = {};
+for (const loc of LOCALES) {
+  translations[loc] = JSON.parse(await read(`public/locales/${loc}/translation.json`));
+  for (const key of NAVBAR_KEYS) {
+    assert.ok(translations[loc].navbar?.[key], `navbar.${key} missing in ${loc}`);
+  }
+}
+// ja 確定語彙
+assert.equal(translations.ja.navbar.edit_map, "地図管理");
+assert.equal(translations.ja.navbar.edit_poi, "POI管理");
+assert.equal(translations.ja.navbar.add_basemap, "ベースマップ管理");
+assert.equal(translations.ja.navbar.edit_app, "アプリ管理");
+assert.equal(translations.ja.navbar.assets, "アセット管理");
+assert.equal(translations.ja.navbar.settings, "設定");
+
+console.log("m11-t5 smoke Part 4: OK");

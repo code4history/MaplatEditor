@@ -26,11 +26,11 @@
     "revision_conflict": "Aset ini diperbarui di jendela lain."
   },
   "navbar": {
-    "edit_map": "Edit Peta",
-    "edit_app": "Edit Aplikasi",
-    "assets": "Aset",
-    "edit_poi": "Edit POI",
-    "add_basemap": "Tambah Peta Dasar",
+    "edit_map": "Kelola Peta",
+    "edit_app": "Kelola Aplikasi",
+    "assets": "Kelola Aset",
+    "edit_poi": "Kelola POI",
+    "add_basemap": "Kelola Peta Dasar",
     "settings": "Pengaturan"
   },
   "basemap": {

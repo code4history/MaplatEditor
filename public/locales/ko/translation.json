@@ -26,11 +26,11 @@
     "revision_conflict": "다른 창에서 업데이트되었습니다."
   },
   "navbar": {
-    "edit_map": "지도 편집",
-    "edit_app": "앱 편집",
-    "assets": "이미지 에셋",
-    "edit_poi": "POI 편집",
-    "add_basemap": "베이스맵 추가",
+    "edit_map": "지도 관리",
+    "edit_app": "앱 관리",
+    "assets": "에셋 관리",
+    "edit_poi": "POI 관리",
+    "add_basemap": "베이스맵 관리",
     "settings": "설정"
   },
   "basemap": {

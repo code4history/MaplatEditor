@@ -26,11 +26,11 @@
     "revision_conflict": "Mục này đã được cập nhật ở cửa sổ khác."
   },
   "navbar": {
-    "edit_map": "Chỉnh sửa bản đồ",
-    "edit_app": "Chỉnh sửa ứng dụng",
-    "assets": "Tài nguyên ảnh",
-    "edit_poi": "Chỉnh sửa POI",
-    "add_basemap": "Thêm bản đồ nền",
+    "edit_map": "Quản lý bản đồ",
+    "edit_app": "Quản lý ứng dụng",
+    "assets": "Quản lý tài nguyên",
+    "edit_poi": "Quản lý POI",
+    "add_basemap": "Quản lý bản đồ nền",
     "settings": "Cài đặt"
   },
   "basemap": {

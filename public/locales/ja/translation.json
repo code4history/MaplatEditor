@@ -26,11 +26,11 @@
     "indonesian": "インドネシア語"
   },
   "navbar": {
-    "edit_map": "地図編集",
-    "edit_app": "アプリ編集",
-    "assets": "画像アセット",
-    "edit_poi": "POI編集",
-    "add_basemap": "ベースマップ追加",
+    "edit_map": "地図管理",
+    "edit_app": "アプリ管理",
+    "assets": "アセット管理",
+    "edit_poi": "POI管理",
+    "add_basemap": "ベースマップ管理",
     "settings": "設定"
   },
   "basemap": {

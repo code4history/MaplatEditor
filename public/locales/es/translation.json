@@ -26,11 +26,11 @@
     "revision_conflict": "Este elemento se ha actualizado en otra ventana."
   },
   "navbar": {
-    "edit_map": "Editar mapa",
-    "edit_app": "Editar aplicación",
-    "assets": "Recursos",
-    "edit_poi": "Editar POI",
-    "add_basemap": "Añadir mapa base",
+    "edit_map": "Gestionar mapas",
+    "edit_app": "Gestionar aplicaciones",
+    "assets": "Gestionar recursos",
+    "edit_poi": "Gestionar POI",
+    "add_basemap": "Gestionar mapas base",
     "settings": "Configuración"
   },
   "basemap": {

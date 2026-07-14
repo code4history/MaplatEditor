@@ -26,11 +26,11 @@
     "revision_conflict": "已在其他視窗中更新。"
   },
   "navbar": {
-    "edit_map": "地圖編輯",
-    "edit_app": "應用程式編輯",
-    "assets": "圖片素材",
-    "edit_poi": "POI編輯",
-    "add_basemap": "新增底圖",
+    "edit_map": "地圖管理",
+    "edit_app": "應用程式管理",
+    "assets": "素材管理",
+    "edit_poi": "POI管理",
+    "add_basemap": "底圖管理",
     "settings": "設定"
   },
   "basemap": {

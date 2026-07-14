@@ -23,11 +23,11 @@
     "indonesian": "Indonesian"
   },
   "navbar": {
-    "edit_map": "Edit Map",
-    "edit_app": "Edit Application",
-    "assets": "Assets",
-    "edit_poi": "Edit POI",
-    "add_basemap": "Add Base Map",
+    "edit_map": "Manage Maps",
+    "edit_app": "Manage Apps",
+    "assets": "Manage Assets",
+    "edit_poi": "Manage POIs",
+    "add_basemap": "Manage Base Maps",
     "settings": "Settings"
   },
   "basemap": {
