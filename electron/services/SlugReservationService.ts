@@ -20,6 +20,7 @@ interface Deps {
   instanceId: string;
   now: () => string; // ISO 文字列
   leaseMs?: number;  // 既定 120000 (2分)
+  draftExists?: (assetKind: string, draftUid: string | null) => boolean;
 }
 
 const LEASE_MS = 120_000;
@@ -28,33 +29,62 @@ const GC_STALE_MS = 24 * 60 * 60 * 1000;
 export function createSlugReservationService(deps: Deps) {
   const { db, instanceId, now } = deps;
   const leaseMs = deps.leaseMs ?? LEASE_MS;
+  const draftExists = deps.draftExists ?? (() => false);
   const leaseUntil = (): string => new Date(Date.parse(now()) + leaseMs).toISOString();
 
-  // 有効(=lease 未失効)かつ他 asset_uid の予約が存在するか。asset_uid が正本(D2改)。
-  const activeOtherOwner = (slug: string, assetUid: string): boolean => {
-    const row = db.prepare('SELECT asset_uid, lease_expires_at FROM slug_reservations WHERE slug = ?').get(slug) as any;
-    if (!row) return false;
-    if (String(row.asset_uid) === assetUid) return false; // 自己所有
-    return String(row.lease_expires_at) > now(); // lease 有効な他者
+  const withImmediateTransaction = <T>(fn: () => T): T => {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const result = fn();
+      db.exec('COMMIT');
+      return result;
+    } catch (error) {
+      try {
+        db.exec('ROLLBACK');
+      } catch {
+        // 元のDB errorを維持する。
+      }
+      throw error;
+    }
+  };
+
+  type ReservationInput = { slug: string; assetUid: string; assetKind: string; draftUid: string };
+
+  const conflictsWithOtherOwner = (row: any, assetUid?: string): boolean => {
+    if (!row || (assetUid != null && String(row.asset_uid) === assetUid)) return false;
+    const leaseLive = String(row.lease_expires_at) > now();
+    if (leaseLive) return true;
+    return draftExists(
+      String(row.asset_kind),
+      row.draft_uid == null ? null : String(row.draft_uid)
+    );
+  };
+
+  // BEGIN IMMEDIATE 後に所有権を再判定し、そのまま同じ transaction でclaim/takeoverする。
+  // 他assetの期限切れ予約はdraftが残る間だけ保護し、draftなしなら新ownerへ全列を移す。
+  const acquireWithin = (p: ReservationInput): SlugReservationResult => {
+    const existing = db.prepare(
+      'SELECT asset_uid, asset_kind, draft_uid, lease_expires_at FROM slug_reservations WHERE slug = ?'
+    ).get(p.slug) as any;
+    if (conflictsWithOtherOwner(existing, p.assetUid)) return { result: 'conflict' };
+    db.prepare(
+      `INSERT INTO slug_reservations (slug, asset_uid, asset_kind, instance_id, draft_uid, lease_expires_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(slug) DO UPDATE SET
+         asset_uid = excluded.asset_uid,
+         asset_kind = excluded.asset_kind,
+         instance_id = excluded.instance_id,
+         draft_uid = excluded.draft_uid,
+         lease_expires_at = excluded.lease_expires_at,
+         updated_at = excluded.updated_at`
+    ).run(p.slug, p.assetUid, p.assetKind, instanceId, p.draftUid, leaseUntil(), now());
+    return { result: 'ok' };
   };
 
   return {
     reserve(p: { slug: string; assetUid: string; assetKind: string; draftUid: string }): SlugReservationResult {
       try {
-        const existing = db.prepare('SELECT asset_uid FROM slug_reservations WHERE slug = ?').get(p.slug) as any;
-        if (existing && String(existing.asset_uid) !== p.assetUid) return { result: 'conflict' };
-        // 自 asset_uid の既予約は冪等 ok + instance/lease/draft を現 instance へ付け替え(=claim, §7.2)
-        db.prepare(
-          `INSERT INTO slug_reservations (slug, asset_uid, asset_kind, instance_id, draft_uid, lease_expires_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(slug) DO UPDATE SET
-             asset_kind = excluded.asset_kind,
-             instance_id = excluded.instance_id,
-             draft_uid = excluded.draft_uid,
-             lease_expires_at = excluded.lease_expires_at,
-             updated_at = excluded.updated_at`
-        ).run(p.slug, p.assetUid, p.assetKind, instanceId, p.draftUid, leaseUntil(), now());
-        return { result: 'ok' };
+        return withImmediateTransaction(() => acquireWithin(p));
       } catch (e: any) {
         return { result: 'error', message: String(e?.message ?? e) };
       }
@@ -62,20 +92,16 @@ export function createSlugReservationService(deps: Deps) {
 
     move(p: { fromSlug: string | null; toSlug: string; assetUid: string; assetKind: string; draftUid: string }): SlugReservationResult {
       try {
-        if (activeOtherOwner(p.toSlug, p.assetUid)) return { result: 'conflict' };
-        // 旧予約解放 + 新予約を単一実行(AC15)。個別 DB 呼び出しだが SlugReservationService は
-        // 単一接続のため、呼び出し側(save)は withTransaction 内で使う場面のみ。ここは lifecycle 用。
-        if (p.fromSlug && p.fromSlug !== p.toSlug) {
-          db.prepare('DELETE FROM slug_reservations WHERE slug = ? AND asset_uid = ?').run(p.fromSlug, p.assetUid);
-        }
-        db.prepare(
-          `INSERT INTO slug_reservations (slug, asset_uid, asset_kind, instance_id, draft_uid, lease_expires_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(slug) DO UPDATE SET
-             instance_id = excluded.instance_id, draft_uid = excluded.draft_uid,
-             lease_expires_at = excluded.lease_expires_at, updated_at = excluded.updated_at`
-        ).run(p.toSlug, p.assetUid, p.assetKind, instanceId, p.draftUid, leaseUntil(), now());
-        return { result: 'ok' };
+        return withImmediateTransaction(() => {
+          const existing = db.prepare(
+            'SELECT asset_uid, asset_kind, draft_uid, lease_expires_at FROM slug_reservations WHERE slug = ?'
+          ).get(p.toSlug) as any;
+          if (conflictsWithOtherOwner(existing, p.assetUid)) return { result: 'conflict' };
+          if (p.fromSlug && p.fromSlug !== p.toSlug) {
+            db.prepare('DELETE FROM slug_reservations WHERE slug = ? AND asset_uid = ?').run(p.fromSlug, p.assetUid);
+          }
+          return acquireWithin({ ...p, slug: p.toSlug });
+        });
       } catch (e: any) {
         return { result: 'error', message: String(e?.message ?? e) };
       }
@@ -86,20 +112,20 @@ export function createSlugReservationService(deps: Deps) {
     },
 
     check(p: { slug: string; excludeUid?: string }): SlugCheckResult {
-      const row = db.prepare('SELECT asset_uid, lease_expires_at FROM slug_reservations WHERE slug = ?').get(p.slug) as any;
-      if (row && String(row.lease_expires_at) > now() && (p.excludeUid == null || String(row.asset_uid) !== p.excludeUid)) {
-        return 'reserved-by-other';
-      }
+      const row = db.prepare(
+        'SELECT asset_uid, asset_kind, draft_uid, lease_expires_at FROM slug_reservations WHERE slug = ?'
+      ).get(p.slug) as any;
+      if (conflictsWithOtherOwner(row, p.excludeUid)) return 'reserved-by-other';
       return 'available'; // registry 側の taken 判定は呼び出し側(isSlugAvailable 合成)が担う
     },
 
     // save 6 経路が withTransaction 内から呼ぶ promote 検証(D12/D13、IPC 非公開)。
     // 対象 slug の有効予約が「無い」or「asset_uid 一致」なら成立。他 asset_uid の有効予約は conflict。
     promoteWithin(txDb: DatabaseSync, p: { slug: string; assetUid: string }): { ok: true } | { ok: false; reason: 'conflict' } {
-      const row = txDb.prepare('SELECT asset_uid, lease_expires_at FROM slug_reservations WHERE slug = ?').get(p.slug) as any;
-      if (row && String(row.asset_uid) !== p.assetUid && String(row.lease_expires_at) > now()) {
-        return { ok: false, reason: 'conflict' };
-      }
+      const row = txDb.prepare(
+        'SELECT asset_uid, asset_kind, draft_uid, lease_expires_at FROM slug_reservations WHERE slug = ?'
+      ).get(p.slug) as any;
+      if (conflictsWithOtherOwner(row, p.assetUid)) return { ok: false, reason: 'conflict' };
       // 成立: 自 asset_uid の予約を消化(registry unique 制約が最終防衛)
       txDb.prepare('DELETE FROM slug_reservations WHERE slug = ? AND asset_uid = ?').run(p.slug, p.assetUid);
       return { ok: true };

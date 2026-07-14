@@ -78,6 +78,113 @@ assert.equal(toDraftKind("asset"), "image-asset");
   db.close();
 }
 
+// --- Part A3b: move の後段失敗は旧予約解放を rollback（AC15） ---
+{
+  const db = makeDb();
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const svc = createSlugReservationService({ db, instanceId: "inst-A", now });
+  assert.equal(svc.reserve({ slug: "rollback-old", assetUid: UID_A, assetKind: "app", draftUid: "d-A" }).result, "ok");
+  db.exec(`
+    CREATE TRIGGER fail_move_insert
+    BEFORE INSERT ON slug_reservations
+    WHEN NEW.slug = 'rollback-new'
+    BEGIN
+      SELECT RAISE(ABORT, 'injected move failure');
+    END;
+  `);
+  const moved = svc.move({
+    fromSlug: "rollback-old",
+    toSlug: "rollback-new",
+    assetUid: UID_A,
+    assetKind: "app",
+    draftUid: "d-A",
+  });
+  assert.equal(moved.result, "error");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM slug_reservations WHERE slug=?").get("rollback-old").c, 1,
+    "old reservation must be restored when acquiring the new slug fails");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM slug_reservations WHERE slug=?").get("rollback-new").c, 0);
+  db.close();
+}
+
+// --- Part A3c: expired reservation takeover / draft protection（D2/D4/D6） ---
+{
+  const db = makeDb();
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const svcA = createSlugReservationService({ db, instanceId: "inst-A", now, draftExists: () => false });
+  const svcB = createSlugReservationService({ db, instanceId: "inst-B", now, draftExists: () => false });
+  assert.equal(svcA.reserve({ slug: "expired-orphan", assetUid: UID_A, assetKind: "map", draftUid: "d-A" }).result, "ok");
+  db.prepare("UPDATE slug_reservations SET lease_expires_at=? WHERE slug=?")
+    .run("2026-07-14T00:00:00Z", "expired-orphan");
+  assert.equal(svcB.reserve({ slug: "expired-orphan", assetUid: UID_B, assetKind: "asset", draftUid: "d-B" }).result, "ok");
+  const takeover = db.prepare(`
+    SELECT asset_uid, asset_kind, instance_id, draft_uid, lease_expires_at, updated_at
+    FROM slug_reservations WHERE slug=?
+  `).get("expired-orphan");
+  assert.equal(takeover.asset_uid, UID_B);
+  assert.equal(takeover.asset_kind, "asset");
+  assert.equal(takeover.instance_id, "inst-B");
+  assert.equal(takeover.draft_uid, "d-B");
+  assert.ok(String(takeover.lease_expires_at) > now());
+  assert.equal(takeover.updated_at, now());
+  assert.deepEqual(svcB.promoteWithin(db, { slug: "expired-orphan", assetUid: UID_B }), { ok: true });
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM slug_reservations WHERE slug=?").get("expired-orphan").c, 0);
+  db.close();
+}
+
+{
+  const db = makeDb();
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  let draftChecks = 0;
+  const draftExists = (kind, draftUid) => {
+    draftChecks += 1;
+    return kind === "map" && draftUid === "protected-draft";
+  };
+  const svcA = createSlugReservationService({ db, instanceId: "inst-A", now, draftExists });
+  const svcB = createSlugReservationService({ db, instanceId: "inst-B", now, draftExists });
+  assert.equal(svcA.reserve({ slug: "expired-protected", assetUid: UID_A, assetKind: "map", draftUid: "protected-draft" }).result, "ok");
+  db.prepare("UPDATE slug_reservations SET lease_expires_at=? WHERE slug=?")
+    .run("2026-07-14T00:00:00Z", "expired-protected");
+  assert.equal(svcB.check({ slug: "expired-protected", excludeUid: UID_B }), "reserved-by-other");
+  assert.equal(svcB.reserve({ slug: "expired-protected", assetUid: UID_B, assetKind: "app", draftUid: "d-B" }).result, "conflict");
+  assert.equal(draftChecks, 2, "check and reserve conflicts must both be based on draft protection");
+  const protectedRow = db.prepare("SELECT asset_uid, asset_kind, draft_uid FROM slug_reservations WHERE slug=?")
+    .get("expired-protected");
+  assert.equal(protectedRow.asset_uid, UID_A);
+  assert.equal(protectedRow.asset_kind, "map");
+  assert.equal(protectedRow.draft_uid, "protected-draft");
+  assert.deepEqual(svcB.promoteWithin(db, { slug: "expired-protected", assetUid: UID_B }),
+    { ok: false, reason: "conflict" },
+    "promote must preserve another asset's expired reservation while its draft exists");
+  db.close();
+}
+
+// DatabaseSync は同期APIのため、同一threadの2接続barrierは決定的に構成できない。
+// 代わりに、所有権SELECTが BEGIN IMMEDIATE 後、書込とCOMMITの前にあることを記録DBで固定する。
+{
+  const db = makeDb();
+  const calls = [];
+  const tracedDb = {
+    exec(sql) {
+      calls.push(`exec:${sql}`);
+      return db.exec(sql);
+    },
+    prepare(sql) {
+      calls.push(`prepare:${sql}`);
+      return db.prepare(sql);
+    },
+  };
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const svc = createSlugReservationService({ db: tracedDb, instanceId: "inst-A", now });
+  assert.equal(svc.reserve({ slug: "atomic", assetUid: UID_A, assetKind: "map", draftUid: "d-A" }).result, "ok");
+  const beginAt = calls.findIndex((call) => call === "exec:BEGIN IMMEDIATE");
+  const selectAt = calls.findIndex((call) => call.startsWith("prepare:SELECT"));
+  const writeAt = calls.findIndex((call) => call.startsWith("prepare:INSERT"));
+  const commitAt = calls.findIndex((call) => call === "exec:COMMIT");
+  assert.ok(beginAt >= 0 && beginAt < selectAt && selectAt < writeAt && writeAt < commitAt,
+    `reserve ownership check/write must be enclosed by BEGIN IMMEDIATE: ${calls.join(" | ")}`);
+  db.close();
+}
+
 // --- Part A4: lease 直接 UPDATE + GC（AC3） ---
 {
   const db = makeDb();

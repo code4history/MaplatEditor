@@ -473,16 +473,18 @@ class SqliteDataService {
 
   // slug 予約 GC(D4): lease 失効かつ draft 保護なし・24h 経過の予約を掃除する。
   // draft 存在判定は asset_kind→draft kind 写像(§7.3)で AssetDraftService を照会する。
+  private slugReservationDraftExists(kind: string, draftUid: string | null): boolean {
+    if (draftUid == null) return false;
+    try {
+      return AssetDraftService.get(toDraftKind(kind as AssetKind), draftUid) != null;
+    } catch {
+      return false;
+    }
+  }
+
   private runSlugGc(): void {
     this.slugReservations?.gc({
-      draftExists: (kind, draftUid) => {
-        if (draftUid == null) return false;
-        try {
-          return AssetDraftService.get(toDraftKind(kind as AssetKind), draftUid) != null;
-        } catch {
-          return false;
-        }
-      },
+      draftExists: (kind, draftUid) => this.slugReservationDraftExists(kind, draftUid),
     });
   }
 
@@ -516,6 +518,7 @@ class SqliteDataService {
       db,
       instanceId: this.instanceId,
       now: () => new Date().toISOString(),
+      draftExists: (kind, draftUid) => this.slugReservationDraftExists(kind, draftUid),
     });
     this.runSlugGc();
     // unref(): lease/GC timer は event loop を専有しない。electron 本体は他の
