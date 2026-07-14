@@ -475,11 +475,7 @@ class SqliteDataService {
   // draft 存在判定は asset_kind→draft kind 写像(§7.3)で AssetDraftService を照会する。
   private slugReservationDraftExists(kind: string, draftUid: string | null): boolean {
     if (draftUid == null) return false;
-    try {
-      return AssetDraftService.get(toDraftKind(kind as AssetKind), draftUid) != null;
-    } catch {
-      return false;
-    }
+    return AssetDraftService.get(toDraftKind(kind as AssetKind), draftUid) != null;
   }
 
   private runSlugGc(): void {

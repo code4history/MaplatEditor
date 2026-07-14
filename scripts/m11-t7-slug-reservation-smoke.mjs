@@ -185,6 +185,93 @@ assert.equal(toDraftKind("asset"), "image-asset");
   db.close();
 }
 
+// move中のdraft判定結果が変化しても、conflictなら旧予約を失わない。
+{
+  const db = makeDb();
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const owner = createSlugReservationService({ db, instanceId: "inst-B", now });
+  assert.equal(owner.reserve({ slug: "unstable-target", assetUid: UID_B, assetKind: "map", draftUid: "d-B" }).result, "ok");
+  db.prepare("UPDATE slug_reservations SET lease_expires_at=? WHERE slug=?")
+    .run("2026-07-14T00:00:00Z", "unstable-target");
+  let checks = 0;
+  const mover = createSlugReservationService({
+    db,
+    instanceId: "inst-A",
+    now,
+    draftExists: () => ++checks >= 2,
+  });
+  assert.equal(mover.reserve({ slug: "unstable-old", assetUid: UID_A, assetKind: "app", draftUid: "d-A" }).result, "ok");
+  const result = mover.move({
+    fromSlug: "unstable-old",
+    toSlug: "unstable-target",
+    assetUid: UID_A,
+    assetKind: "app",
+    draftUid: "d-A",
+  });
+  assert.equal(result.result, "conflict");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM slug_reservations WHERE slug=? AND asset_uid=?")
+    .get("unstable-old", UID_A).c, 1,
+    "a normal conflict after the target check must not commit deletion of the old reservation");
+  assert.equal(db.prepare("SELECT asset_uid FROM slug_reservations WHERE slug=?").get("unstable-target").asset_uid, UID_B);
+  db.close();
+}
+
+// draft lookup障害は空き扱いにせず、reserve/moveをrollbackしpromote transactionへ伝播する。
+{
+  const db = makeDb();
+  db.exec("CREATE TABLE promoted_assets (slug TEXT PRIMARY KEY)");
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const owner = createSlugReservationService({ db, instanceId: "inst-B", now });
+  for (const slug of ["lookup-reserve", "lookup-move", "lookup-promote"]) {
+    assert.equal(owner.reserve({ slug, assetUid: UID_B, assetKind: "map", draftUid: "d-B" }).result, "ok");
+  }
+  db.prepare("UPDATE slug_reservations SET lease_expires_at=?")
+    .run("2026-07-14T00:00:00Z");
+  const failing = createSlugReservationService({
+    db,
+    instanceId: "inst-A",
+    now,
+    draftExists: () => { throw new Error("draft lookup failed"); },
+  });
+
+  const reserved = failing.reserve({ slug: "lookup-reserve", assetUid: UID_A, assetKind: "app", draftUid: "d-A" });
+  assert.equal(reserved.result, "error");
+  assert.equal(db.prepare("SELECT asset_uid FROM slug_reservations WHERE slug=?").get("lookup-reserve").asset_uid, UID_B);
+
+  assert.equal(failing.reserve({ slug: "lookup-old", assetUid: UID_A, assetKind: "app", draftUid: "d-A" }).result, "ok");
+  let moveChecks = 0;
+  const failingMove = createSlugReservationService({
+    db,
+    instanceId: "inst-A",
+    now,
+    draftExists: () => {
+      moveChecks += 1;
+      if (moveChecks === 1) return false;
+      throw new Error("draft lookup failed during move");
+    },
+  });
+  const moved = failingMove.move({
+    fromSlug: "lookup-old",
+    toSlug: "lookup-move",
+    assetUid: UID_A,
+    assetKind: "app",
+    draftUid: "d-A",
+  });
+  assert.equal(moved.result, "error");
+  assert.equal(db.prepare("SELECT asset_uid FROM slug_reservations WHERE slug=?").get("lookup-old").asset_uid, UID_A);
+  assert.equal(db.prepare("SELECT asset_uid FROM slug_reservations WHERE slug=?").get("lookup-move").asset_uid, UID_B);
+
+  db.exec("BEGIN IMMEDIATE");
+  assert.throws(() => {
+    db.prepare("INSERT INTO promoted_assets (slug) VALUES (?)").run("lookup-promote");
+    failing.promoteWithin(db, { slug: "lookup-promote", assetUid: UID_A });
+  }, /draft lookup failed/);
+  db.exec("ROLLBACK");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM promoted_assets").get().c, 0);
+  assert.equal(db.prepare("SELECT asset_uid FROM slug_reservations WHERE slug=?").get("lookup-promote").asset_uid, UID_B);
+  db.close();
+}
+
 // --- Part A4: lease 直接 UPDATE + GC（AC3） ---
 {
   const db = makeDb();
@@ -230,6 +317,8 @@ assert.match(preload, /exposeInMainWorld\(['"]slugReservations['"]/, "preload mu
 assert.doesNotMatch(preload, /slugReservations[\s\S]*?ipcRenderer\b(?![.]invoke|[.]on|[.]removeListener)/, "no raw ipcRenderer leak");
 
 const sqlite = await readSrc("electron/services/SqliteDataService.ts");
+assert.doesNotMatch(sqlite, /private slugReservationDraftExists[\s\S]{0,400}?\bcatch\b/,
+  "SqliteDataService must propagate draft lookup/kind conversion failures");
 // promote 検証が withTransaction 内(6 helper)へ差し込まれている
 assert.match(sqlite, /promoteWithin/, "SqliteDataService must call promoteWithin inside save paths");
 // slug_reservations は search/export helper に現れない（AC12）

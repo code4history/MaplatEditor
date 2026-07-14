@@ -31,6 +31,7 @@ export function createSlugReservationService(deps: Deps) {
   const leaseMs = deps.leaseMs ?? LEASE_MS;
   const draftExists = deps.draftExists ?? (() => false);
   const leaseUntil = (): string => new Date(Date.parse(now()) + leaseMs).toISOString();
+  const moveConflict = Symbol('move-conflict');
 
   const withImmediateTransaction = <T>(fn: () => T): T => {
     db.exec('BEGIN IMMEDIATE');
@@ -62,11 +63,7 @@ export function createSlugReservationService(deps: Deps) {
 
   // BEGIN IMMEDIATE 後に所有権を再判定し、そのまま同じ transaction でclaim/takeoverする。
   // 他assetの期限切れ予約はdraftが残る間だけ保護し、draftなしなら新ownerへ全列を移す。
-  const acquireWithin = (p: ReservationInput): SlugReservationResult => {
-    const existing = db.prepare(
-      'SELECT asset_uid, asset_kind, draft_uid, lease_expires_at FROM slug_reservations WHERE slug = ?'
-    ).get(p.slug) as any;
-    if (conflictsWithOtherOwner(existing, p.assetUid)) return { result: 'conflict' };
+  const writeReservationWithin = (p: ReservationInput): SlugReservationResult => {
     db.prepare(
       `INSERT INTO slug_reservations (slug, asset_uid, asset_kind, instance_id, draft_uid, lease_expires_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -79,6 +76,14 @@ export function createSlugReservationService(deps: Deps) {
          updated_at = excluded.updated_at`
     ).run(p.slug, p.assetUid, p.assetKind, instanceId, p.draftUid, leaseUntil(), now());
     return { result: 'ok' };
+  };
+
+  const acquireWithin = (p: ReservationInput): SlugReservationResult => {
+    const existing = db.prepare(
+      'SELECT asset_uid, asset_kind, draft_uid, lease_expires_at FROM slug_reservations WHERE slug = ?'
+    ).get(p.slug) as any;
+    if (conflictsWithOtherOwner(existing, p.assetUid)) return { result: 'conflict' };
+    return writeReservationWithin(p);
   };
 
   return {
@@ -100,9 +105,12 @@ export function createSlugReservationService(deps: Deps) {
           if (p.fromSlug && p.fromSlug !== p.toSlug) {
             db.prepare('DELETE FROM slug_reservations WHERE slug = ? AND asset_uid = ?').run(p.fromSlug, p.assetUid);
           }
-          return acquireWithin({ ...p, slug: p.toSlug });
+          const acquired = acquireWithin({ ...p, slug: p.toSlug });
+          if (acquired.result === 'conflict') throw moveConflict;
+          return acquired;
         });
       } catch (e: any) {
+        if (e === moveConflict) return { result: 'conflict' };
         return { result: 'error', message: String(e?.message ?? e) };
       }
     },
