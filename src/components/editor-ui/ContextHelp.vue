@@ -12,11 +12,12 @@
 </template>
 
 <script setup lang="ts">
+// v3: 同じ ? アイコンは同じ挙動（人間決定 2026-07-14）。
+// Bootstrap Popover を trigger 'hover focus' で単一化し、title 有無で見た目の階層だけ変える。
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import { Tooltip, Popover } from "bootstrap";
+import { Popover } from "bootstrap";
 
 const props = withDefaults(defineProps<{
-  mode: "tooltip" | "popover";
   text: string;
   title?: string;
   placement?: "top" | "bottom" | "left" | "right";
@@ -27,37 +28,20 @@ const props = withDefaults(defineProps<{
 
 const triggerRef = ref<HTMLButtonElement | null>(null);
 const fallbackTitle = ref<string>("");
-let instance: Tooltip | Popover | null = null;
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape" && instance) (instance as Popover).hide();
-}
-
-function onOutsideClick(event: MouseEvent) {
-  if (!triggerRef.value) return;
-  if (!triggerRef.value.contains(event.target as Node)) (instance as Popover)?.hide();
-}
+let instance: Popover | null = null;
 
 onMounted(() => {
   const el = triggerRef.value;
   if (!el) return;
   try {
-    if (props.mode === "tooltip") {
-      instance = new Tooltip(el, {
-        title: props.text,
-        placement: props.placement,
-        trigger: "hover focus",
-      });
-    } else {
-      instance = new Popover(el, {
-        content: props.text,
-        title: props.title ?? "",
-        placement: props.placement,
-        trigger: "click",
-      });
-      document.addEventListener("keydown", onKeydown);
-      document.addEventListener("click", onOutsideClick, true);
-    }
+    instance = new Popover(el, {
+      content: props.text,
+      title: props.title ?? "",
+      placement: props.placement,
+      trigger: "hover focus",
+      // customClass は Bootstrap の型定義に未収録だが実行時に有効なオプション。
+      customClass: "editor-ui-help-popover",
+    } as ConstructorParameters<typeof Popover>[1]);
   } catch (cause) {
     // 初期化失敗時は title 属性へフォールバック（表示欠落で操作を止めない）
     console.warn("ContextHelp init failed; falling back to title attribute", cause);
@@ -66,8 +50,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener("keydown", onKeydown);
-  document.removeEventListener("click", onOutsideClick, true);
   instance?.dispose();
   instance = null;
 });

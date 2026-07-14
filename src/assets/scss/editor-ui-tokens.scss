@@ -67,3 +67,19 @@
 .editor-ui-mono {
   font-family: var(--editor-ui-font-mono);
 }
+
+/* ContextHelp v3 共通カード。Popover は body 直下へ描画されるため非 scoped で定義する。
+   全ヘルプ共通の token 準拠カード（白背景 + subtle border + token radius / font-size-sm）。 */
+.editor-ui-help-popover.popover {
+  background-color: #fff;
+  border: var(--editor-ui-border-width) solid var(--bs-border-color);
+  border-radius: var(--editor-ui-radius);
+  font-size: var(--editor-ui-font-size-sm);
+}
+.editor-ui-help-popover .popover-header {
+  background-color: #fff;
+  font-size: var(--editor-ui-font-size-sm);
+}
+.editor-ui-help-popover .popover-body {
+  font-size: var(--editor-ui-font-size-sm);
+}
