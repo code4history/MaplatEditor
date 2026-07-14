@@ -154,7 +154,7 @@ async function closeEditor(): Promise<void> {
 }
 async function saved(uid: string): Promise<void> {
   await masterList.value?.reload();
-  await refreshDrafts();
+  await refreshDraftsNow();
   await select(uid, false);
 }
 async function reloadEditor(): Promise<void> { await masterList.value?.reload(); }
@@ -190,7 +190,7 @@ async function deleteAsset(row: ImageAssetRow): Promise<void> {
     await window.assetDrafts.remove("image-asset", row.uid);
     if (selectedUid.value === row.uid) await clearSelection();
     await masterList.value?.reload();
-    await refreshDrafts();
+    await refreshDraftsNow();
   } catch (cause) {
     console.error("Failed to delete image asset", cause);
     alert(t("assetlist.delete_error"));

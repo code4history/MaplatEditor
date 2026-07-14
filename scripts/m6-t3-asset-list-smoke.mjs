@@ -77,6 +77,16 @@ try {
     path.join(projectRoot, 'src/components/assets/AssetEdit.vue'),
     'utf8'
   );
+  // M11-T6 P5/AC1: 行は共通 primitives へ移行。削除メニューの Escape 閉じは ResourceActionMenu、
+  // サムネイル(loading=lazy)と欠損フォールバック(placeholder)は ResourceMasterRow が担う。
+  assetList += await readFile(
+    path.join(projectRoot, 'src/components/resource-list/ResourceActionMenu.vue'),
+    'utf8'
+  );
+  assetList += await readFile(
+    path.join(projectRoot, 'src/components/resource-list/ResourceMasterRow.vue'),
+    'utf8'
+  );
   const electronMain = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
   assert.match(
     electronMain,
@@ -189,16 +199,17 @@ try {
     'AssetList に Escape ハンドラがない'
   );
 
-  // サムネイルは遅延読込 + 壊れた画像の no_image フォールバック
+  // サムネイルは遅延読込 + 欠損/壊れた画像のフォールバック（M11-T6 で ResourceMasterRow の
+  // placeholder + @error 復帰へ移行。noImage PNG からアイコン placeholder へ変更）
   assert.match(
     assetList,
     /loading="lazy"/,
-    'AssetList のサムネイルが loading="lazy" でない'
+    'Assetlist のサムネイルが loading="lazy" でない'
   );
   assert.match(
     assetList,
-    /no_image/,
-    'AssetList に no_image フォールバックがない'
+    /resource-master-row__placeholder|no_image/,
+    'AssetList に欠損サムネイルのフォールバック（placeholder / no_image）がない'
   );
 
   // 生 ipcRenderer を使わないこと (House rule / m2-t3)

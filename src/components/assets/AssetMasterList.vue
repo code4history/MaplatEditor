@@ -1,15 +1,15 @@
 <template>
-  <section class="asset-master-list d-flex flex-column h-100 bg-white" @click="hideContextMenu">
+  <section class="asset-master-list d-flex flex-column h-100 bg-white">
     <div class="p-3 border-bottom">
       <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" data-testid="asset-new" @click="emit('create')">
-        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("editor_ui.new_item") }}
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("resource_list.new_item") }}
         <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
       </button>
       <input
         :value="query"
         type="search"
         class="form-control form-control-sm"
-        :placeholder="t('assetlist.search_placeholder')"
+        :placeholder="t('resource_list.search_placeholder', { name: t('resource_list.kind_asset') })"
         @input="emit('update:query', ($event.target as HTMLInputElement).value)"
       >
       <small class="text-muted d-block mt-1">{{ t("assetlist.count_label", { num: items.length }) }}</small>
@@ -33,58 +33,30 @@
           <span class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
         </button>
 
-        <div
+        <ResourceMasterRow
           v-for="asset in items"
           :key="asset.uid"
-          role="button"
-          tabindex="0"
-          class="asset-row list-group-item list-group-item-action border-0 border-bottom rounded-0 px-3 py-2"
-          :class="{ active: selectedUid === asset.uid }"
-          :aria-current="selectedUid === asset.uid ? 'true' : undefined"
+          :item="vmOf(asset)"
+          kind="image-asset"
+          :draft-label="t('editor_ui.draft_badge')"
+          draft-badge-test-id="asset-draft-badge"
           :data-testid="`asset-row-${asset.slug}`"
-          @click.stop="selectRow(asset.uid)"
-          @keydown.enter.prevent="emit('select', asset.uid)"
-          @keydown.space.prevent="emit('select', asset.uid)"
-          @contextmenu.prevent.stop="openContextMenu($event, asset)"
-        >
-          <div class="asset-row__thumb">
-            <img
-              :src="thumbUrls[asset.uid] || noImage"
-              loading="lazy"
-              :alt="titleOf(asset)"
-              @error="onThumbError(asset.uid)"
-            >
-          </div>
-          <div class="min-w-0 flex-grow-1">
-            <span class="d-block text-truncate fw-semibold">{{ titleOf(asset) }}</span>
-            <small class="d-block text-truncate" :class="selectedUid === asset.uid ? 'text-white-50' : 'text-muted'">{{ asset.slug }}</small>
-            <small class="d-block text-truncate" :class="selectedUid === asset.uid ? 'text-white-50' : 'text-muted'">{{ formatMeta(asset) }}</small>
-          </div>
-          <span v-if="draftUids.has(asset.uid)" class="badge bg-warning text-dark" data-testid="asset-draft-badge">{{ t("editor_ui.draft_badge") }}</span>
-        </div>
+          @select="(uid) => emit('select', uid)"
+          @action="(key) => onRowAction(key, asset)"
+        />
       </template>
     </div>
-
-    <ul
-      v-if="contextRow"
-      class="dropdown-menu show asset-context-menu"
-      :style="{ top: contextPosition.y + 'px', left: contextPosition.x + 'px' }"
-      @click.stop
-    >
-      <li class="dropdown-header">{{ titleOf(contextRow) }}</li>
-      <li><button type="button" class="dropdown-item text-danger" @click="emitDelete">{{ t("assetlist.delete_item") }}</button></li>
-    </ul>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
-import noImage from "../../assets/img/no_image.png";
 import { useAssetThumbnails } from "../../composables/useAssetThumbnails";
 import type { AssetDraftSummary } from "../../types/assetDraft";
 import type { ImageAssetRow } from "../../electron";
-import { localizeTitle } from "../../utils/langResource";
+import ResourceMasterRow from "../resource-list/ResourceMasterRow.vue";
+import { createAssetListAdapter } from "./assetListAdapter";
 
 const props = defineProps<{
   selectedUid: string | null;
@@ -104,24 +76,22 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useTranslation();
-const { items, loading, error, searchQuery, thumbUrls, loadAssets, onThumbError } = useAssetThumbnails();
+const { items, loading, error, searchQuery, thumbUrls, loadAssets } = useAssetThumbnails();
 const scrollElement = ref<HTMLElement | null>(null);
-const contextRow = ref<ImageAssetRow | null>(null);
-const contextPosition = ref({ x: 0, y: 0 });
 const newDrafts = computed(() => props.draftSummaries.filter((draft) => draft.baseRevision === null));
 
-const titleOf = (row: ImageAssetRow) => localizeTitle(row.title, props.activeLang) || row.slug;
-const formatMeta = (row: ImageAssetRow) => `${row.width !== null && row.height !== null ? `${row.width}×${row.height} · ` : ""}${row.mime}`;
+// item→view model 写像は共通 adapter へ集約。thumbnail の file:// URL は useAssetThumbnails が解決し、
+// deps.thumbUrl 経由で参照する。個別失敗の placeholder フォールバックは ResourceMasterRow の <img> が担う。
+const adapter = createAssetListAdapter({
+  hasDraft: (uid) => props.draftUids.has(uid),
+  selectedUid: () => props.selectedUid,
+  thumbUrl: (uid) => thumbUrls[uid] ?? null,
+});
+const vmOf = (asset: ImageAssetRow) => adapter.toViewModel(asset, props.activeLang);
 
-function openContextMenu(event: MouseEvent, row: ImageAssetRow): void {
-  contextRow.value = row;
-  contextPosition.value = { x: event.clientX, y: event.clientY };
-}
-function hideContextMenu(): void { contextRow.value = null; }
-function selectRow(uid: string): void { hideContextMenu(); emit("select", uid); }
-function emitDelete(): void {
-  if (contextRow.value) emit("delete", contextRow.value);
-  hideContextMenu();
+// 削除は ResourceActionMenu の `削除` から host へ委譲（参照チェック・draft 削除は host が担う）
+function onRowAction(key: string, asset: ImageAssetRow): void {
+  if (key === "delete") emit("delete", asset);
 }
 
 async function reload(): Promise<void> {
@@ -133,19 +103,10 @@ watch(() => props.query, (value) => {
   searchQuery.value = value;
   void reload();
 });
-function onKeydown(event: KeyboardEvent): void {
-  if (event.key === "Escape") hideContextMenu();
-}
-onMounted(() => window.addEventListener("keydown", onKeydown));
-onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 defineExpose({ reload, scrollElement });
 </script>
 
 <style scoped>
 .asset-master-list { min-width: 18rem; }
-.asset-row { display: flex; align-items: center; gap: .65rem; }
-.asset-row__thumb { width: 56px; height: 56px; flex: 0 0 56px; display: grid; place-items: center; overflow: hidden; background: #f8f9fa; border: 1px solid var(--bs-border-color); }
-.asset-row__thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.asset-context-menu { position: fixed; z-index: 1060; min-width: 10rem; }
 .min-w-0 { min-width: 0; }
 </style>

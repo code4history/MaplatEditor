@@ -272,3 +272,29 @@ assert.match(poi, /v-if="REMOTE_POI_REGISTRATION_ENABLED"/, "remote button must 
 // 削除の参照チェック（findReferences）は維持
 assert.match(poi, /findReferences/, "delete must keep reference check");
 console.log("m11-t6 smoke Part 7: OK");
+
+// --- Part 8: master 2種移行 + P7 ---
+const bmAdapter = await read("src/components/basemap/baseMapListAdapter.ts");
+assert.match(bmAdapter, /filterBaseMapCatalog/, "BaseMap adapter must reuse filterBaseMapCatalog (D3改)");
+assert.match(bmAdapter, /input\.filter\.bbox|filter\.bbox/, "BaseMap adapter must consume filter.bbox (D3改)");
+// builtin は actions 空（D4改 / AC17）
+assert.match(bmAdapter, /scope === ["']builtin["']/, "builtin capability must gate actions");
+const assetAdapter = await read("src/components/assets/assetListAdapter.ts");
+assert.match(assetAdapter, /width|height|mime/, "asset metadata must include dims/mime");
+
+const bmList = await read("src/components/basemap/BaseMapMasterList.vue");
+assert.match(bmList, /ResourceMasterRow/, "BaseMapMasterList must use ResourceMasterRow");
+// 可視 trash アイコンは撤去（menu 経由へ）。always checkbox は固有 slot で維持（D11）
+assert.doesNotMatch(bmList, /bi-trash/, "visible trash icon must move to menu (P5)");
+assert.match(bmList, /always/, "always checkbox must remain as resource slot (D11)");
+const assetMaster = await read("src/components/assets/AssetMasterList.vue");
+assert.match(assetMaster, /ResourceMasterRow/, "AssetMasterList must use ResourceMasterRow");
+
+// P7: refreshDrafts 直呼びが refreshDraftsNow へ統一（BaseMapList/AssetList の save/delete/load 経路）
+for (const rel of ["src/views/BaseMapList.vue", "src/views/AssetList.vue"]) {
+  const src = await read(rel);
+  // saved/reload/delete 経路に裸の refreshDrafts() が残らない（refreshDraftsNow を使う）
+  assert.doesNotMatch(src, /await refreshDrafts\(\);\s*\n\s*await select/, `${rel}: saved path must use refreshDraftsNow`);
+  assert.match(src, /refreshDraftsNow/, `${rel} must use refreshDraftsNow`);
+}
+console.log("m11-t6 smoke Part 8: OK");

@@ -2,7 +2,7 @@
   <section class="base-map-master-list d-flex flex-column h-100 bg-white">
     <div class="p-3 border-bottom">
       <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" data-testid="basemap-new" @click="emit('create')">
-        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("editor_ui.new_item") }}
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("resource_list.new_item") }}
         <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
       </button>
       <input
@@ -10,7 +10,7 @@
         type="search"
         class="form-control form-control-sm mb-2"
         data-testid="basemap-search"
-        :placeholder="t('basemap.master_detail.search_placeholder')"
+        :placeholder="t('resource_list.search_placeholder', { name: t('resource_list.kind_base_map') })"
         @input="emit('update:query', ($event.target as HTMLInputElement).value)"
       >
       <div class="d-flex gap-2">
@@ -53,62 +53,18 @@
 
         <h6 class="small text-uppercase text-muted px-3 pt-3 mb-1">{{ t("basemap.user_section") }}</h6>
         <div v-if="userItems.length === 0" class="text-muted small px-3 py-2">{{ t("basemap.no_user_basemaps") }}</div>
-        <div
+        <ResourceMasterRow
           v-for="item in userItems"
           :key="item.uid"
-          role="button"
-          tabindex="0"
-          class="base-map-row list-group-item list-group-item-action border-0 border-bottom rounded-0 px-3 py-2 w-100 text-start"
-          :class="{ active: selectedUid === item.uid }"
-          :aria-current="selectedUid === item.uid ? 'true' : undefined"
+          :item="vmOf(item)"
+          kind="base-map"
+          :draft-label="t('editor_ui.draft_badge')"
+          draft-badge-test-id="basemap-draft-badge"
           :data-testid="`basemap-row-${item.mapID}`"
-          @click="emit('select', item.uid)"
-          @keydown.enter.prevent="emit('select', item.uid)"
-          @keydown.space.prevent="emit('select', item.uid)"
+          @select="(uid) => emit('select', uid)"
+          @action="(key) => onRowAction(key, item)"
         >
-          <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="base-map-row__icon" :alt="item.mapID">
-          <span v-else class="base-map-row__icon base-map-row__placeholder"><i class="bi bi-map" aria-hidden="true"></i></span>
-          <span class="min-w-0 flex-grow-1">
-            <span class="d-block text-truncate fw-semibold">{{ titleOf(item) || item.mapID }}</span>
-            <small class="d-block text-truncate" :class="selectedUid === item.uid ? 'text-white-50' : 'text-muted'">{{ item.mapID }}</small>
-          </span>
-          <span v-if="draftUids.has(item.uid)" class="badge bg-warning text-dark" data-testid="basemap-draft-badge">{{ t("editor_ui.draft_badge") }}</span>
-          <span class="form-check ms-1" @click.stop>
-            <input
-              class="form-check-input"
-              type="checkbox"
-              :title="t('basemap.always_visible')"
-              :checked="item.alwaysVisible"
-              :disabled="item.alwaysLocked"
-              @change="emit('toggle-always', item, ($event.target as HTMLInputElement).checked)"
-            >
-          </span>
-          <button type="button" class="btn btn-sm btn-link text-danger p-0" :title="t('basemap.delete')" @click.stop="emit('delete', item)">
-            <i class="bi bi-trash" aria-hidden="true"></i>
-          </button>
-        </div>
-
-        <details class="border-bottom" open>
-          <summary class="small text-uppercase text-muted px-3 py-3">{{ t("basemap.builtin_section") }} ({{ builtinItems.length }})</summary>
-          <div
-            v-for="item in builtinItems"
-            :key="item.uid"
-            role="button"
-            tabindex="0"
-            class="base-map-row list-group-item list-group-item-action border-0 border-top rounded-0 px-3 py-2 w-100 text-start"
-            :class="{ active: selectedUid === item.uid }"
-            :aria-current="selectedUid === item.uid ? 'true' : undefined"
-            :data-testid="`basemap-row-${item.mapID}`"
-            @click="emit('select', item.uid)"
-            @keydown.enter.prevent="emit('select', item.uid)"
-            @keydown.space.prevent="emit('select', item.uid)"
-          >
-            <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" class="base-map-row__icon" :alt="item.mapID">
-            <span v-else class="base-map-row__icon base-map-row__placeholder"><i class="bi bi-map" aria-hidden="true"></i></span>
-            <span class="min-w-0 flex-grow-1">
-              <span class="d-block text-truncate">{{ titleOf(item) || item.mapID }}</span>
-              <small class="d-block text-truncate" :class="selectedUid === item.uid ? 'text-white-50' : 'text-muted'">{{ item.mapID }}</small>
-            </span>
+          <template #extra>
             <span class="form-check ms-1" @click.stop>
               <input
                 class="form-check-input"
@@ -119,7 +75,33 @@
                 @change="emit('toggle-always', item, ($event.target as HTMLInputElement).checked)"
               >
             </span>
-          </div>
+          </template>
+        </ResourceMasterRow>
+
+        <details class="border-bottom" open>
+          <summary class="small text-uppercase text-muted px-3 py-3">{{ t("basemap.builtin_section") }} ({{ builtinItems.length }})</summary>
+          <ResourceMasterRow
+            v-for="item in builtinItems"
+            :key="item.uid"
+            :item="vmOf(item)"
+            kind="base-map"
+            :draft-label="t('editor_ui.draft_badge')"
+            :data-testid="`basemap-row-${item.mapID}`"
+            @select="(uid) => emit('select', uid)"
+          >
+            <template #extra>
+              <span class="form-check ms-1" @click.stop>
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  :title="t('basemap.always_visible')"
+                  :checked="item.alwaysVisible"
+                  :disabled="item.alwaysLocked"
+                  @change="emit('toggle-always', item, ($event.target as HTMLInputElement).checked)"
+                >
+              </span>
+            </template>
+          </ResourceMasterRow>
         </details>
       </template>
     </div>
@@ -131,7 +113,8 @@ import { computed, ref } from "vue";
 import { useTranslation } from "i18next-vue";
 import type { AssetDraftSummary } from "../../types/assetDraft";
 import type { BaseMapCatalogItem } from "../../utils/baseMapEditorDocument";
-import { localizeTitle } from "../../utils/langResource";
+import ResourceMasterRow from "../resource-list/ResourceMasterRow.vue";
+import { createBaseMapListAdapter } from "./baseMapListAdapter";
 
 const props = defineProps<{
   items: BaseMapCatalogItem[];
@@ -162,15 +145,26 @@ const scrollElement = ref<HTMLElement | null>(null);
 const newDrafts = computed(() => props.draftSummaries.filter((draft) => draft.baseRevision === null));
 const userItems = computed(() => props.items.filter((item) => item.scope === "user"));
 const builtinItems = computed(() => props.items.filter((item) => item.scope === "builtin"));
-const titleOf = (item: BaseMapCatalogItem) => localizeTitle(item.data.title as any, props.activeLang);
+
+// item→view model 写像は共通 adapter（D3改の filterBaseMapCatalog を内包）へ集約する。
+// ここでは toViewModel のみを使い、host が渡す既に filter 済みの props.items を描画する。
+const adapter = createBaseMapListAdapter({
+  source: () => props.items,
+  hasDraft: (uid) => props.draftUids.has(uid),
+  selectedUid: () => props.selectedUid,
+  activeLang: () => props.activeLang,
+});
+const vmOf = (item: BaseMapCatalogItem) => adapter.toViewModel(item, props.activeLang);
+
+// 可視 trash を廃し、削除は ResourceActionMenu の `削除`（user のみ）から。builtin は actions 空で ⋮ 非表示（AC17）。
+function onRowAction(key: string, item: BaseMapCatalogItem): void {
+  if (key === "delete") emit("delete", item);
+}
 
 defineExpose({ scrollElement });
 </script>
 
 <style scoped>
 .base-map-master-list { min-width: 18rem; }
-.base-map-row { display: flex; align-items: center; gap: .65rem; }
-.base-map-row__icon { width: 40px; height: 40px; flex: 0 0 40px; object-fit: contain; background: #f8f9fa; border: 1px solid var(--bs-border-color); }
-.base-map-row__placeholder { display: grid; place-items: center; color: var(--bs-secondary-color); }
 .min-w-0 { min-width: 0; }
 </style>

@@ -284,6 +284,15 @@ try {
       source += await readFile(path.join(projectRoot, 'src/components/assets/AssetMasterList.vue'), 'utf8');
       source += await readFile(path.join(projectRoot, 'src/components/assets/AssetEdit.vue'), 'utf8');
     }
+    // M11-T6: grid 一覧の draft バッジ UID ルックアップは adapter の toViewModel(deps.hasDraft) へ集約された
+    const gridAdapters = {
+      'MapList.vue': 'src/views/resource-adapters/mapListAdapter.ts',
+      'AppList.vue': 'src/views/resource-adapters/appListAdapter.ts',
+      'PoiSourceList.vue': 'src/views/resource-adapters/poiSourceListAdapter.ts',
+    };
+    if (gridAdapters[viewName]) {
+      source += await readFile(path.join(projectRoot, gridAdapters[viewName]), 'utf8');
+    }
     assert.match(source, new RegExp(`useAssetDraftBadges\\(['"]${kind}['"]\\)`), `${viewName}: summary kind missing`);
     assert.match(source, /hasDraft\(|draftUids\.has\(/, `${viewName}: UID badge lookup missing`);
     assert.match(source, /editor_ui\.draft_badge/, `${viewName}: translated draft badge missing`);

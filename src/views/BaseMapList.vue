@@ -153,7 +153,7 @@ async function loadBaseMaps(): Promise<void> {
   error.value = "";
   try {
     items.value = await window.baseMaps.list() as BaseMapCatalogItem[];
-    await refreshDrafts();
+    await refreshDraftsNow();
   } catch (cause) {
     console.error("Failed to load base maps", cause);
     error.value = t("basemap.errors.load_failed");

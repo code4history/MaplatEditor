@@ -409,7 +409,8 @@ try {
   assert.match(baseMapMasterList, /basemap-search/);
   assert.match(baseMapMasterList, /basemap-range-filter/);
   assert.match(baseMapMasterList, /basemap-range-clear/);
-  assert.match(baseMapMasterList, /editor_ui\.new_item/);
+  // M11-T6 D7: 一覧の新規追加ボタンは resource_list.new_item へ集約（値は editor_ui.new_item と同一「新規追加」）
+  assert.match(baseMapMasterList, /resource_list\.new_item/);
   assert.match(baseMapShell, /EnvelopeEditorModal/);
   assert.match(baseMapShell, /mergeMasterDetailFilters/);
   assert.match(baseMapEditor, /EditorActionHeader/);
@@ -447,7 +448,8 @@ try {
   assert.doesNotMatch(assetShell, /modal show d-block/);
   assert.match(assetMasterList, /useAssetThumbnails/);
   assert.match(assetMasterList, /btn-outline-primary/);
-  assert.match(assetMasterList, /editor_ui\.new_item/);
+  // M11-T6 D7: 新規追加ボタンは resource_list.new_item へ集約（値は editor_ui.new_item と同一「新規追加」）
+  assert.match(assetMasterList, /resource_list\.new_item/);
   assert.match(assetEditor, /EditorActionHeader/);
   assert.match(assetEditor, /EditorBusyOverlay/);
   assert.match(assetEditor, /pickImageFile/);

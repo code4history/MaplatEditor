@@ -12,7 +12,7 @@
     @contextmenu.prevent="onContextMenu"
   >
     <span class="resource-master-row__thumb">
-      <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" loading="lazy" :alt="item.title">
+      <img v-if="item.thumbnailUrl && !thumbBroken" :src="item.thumbnailUrl" loading="lazy" :alt="item.title" @error="thumbBroken = true">
       <span v-else class="resource-master-row__placeholder"><i class="bi bi-image" aria-hidden="true"></i></span>
     </span>
     <span class="min-w-0 flex-grow-1">
@@ -20,7 +20,7 @@
       <small v-if="item.slug" class="resource-item__slug d-block text-truncate">{{ item.slug }}</small>
       <small v-for="meta in item.metadata" :key="meta" class="resource-item__meta d-block text-truncate">{{ meta }}</small>
     </span>
-    <span v-if="item.hasDraft" class="badge bg-warning text-dark" data-resource-draft-badge>{{ draftLabel }}</span>
+    <span v-if="item.hasDraft" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
     <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="badgeClass(badge.tone)">{{ badge.label }}</span>
     <slot name="extra"></slot>
     <ResourceActionMenu ref="menuRef" :actions="actions" @select="(key) => emit('action', key, item)" />
@@ -33,10 +33,11 @@ import ResourceActionMenu from "./ResourceActionMenu.vue";
 import { buildResourceListActions } from "./buildResourceListActions";
 import type { ResourceListItemViewModel, ResourceListKind } from "./resourceListTypes";
 
-const props = defineProps<{ item: ResourceListItemViewModel; kind: ResourceListKind; draftLabel: string }>();
+const props = defineProps<{ item: ResourceListItemViewModel; kind: ResourceListKind; draftLabel: string; draftBadgeTestId?: string }>();
 const emit = defineEmits<{ select: [uid: string]; action: [key: string, item: ResourceListItemViewModel] }>();
 
 const menuRef = ref<InstanceType<typeof ResourceActionMenu> | null>(null);
+const thumbBroken = ref(false); // 壊れた thumbnail(file:// 欠損等)は placeholder へフォールバック
 const actions = computed(() => buildResourceListActions(props.kind, props.item));
 function badgeClass(tone: "info" | "warning" | "neutral"): string {
   return tone === "warning" ? "bg-warning text-dark" : tone === "info" ? "bg-info text-dark" : "bg-secondary";
