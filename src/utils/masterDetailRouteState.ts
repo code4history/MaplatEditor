@@ -16,6 +16,18 @@ export function mergeMasterDetailQuery(
   return query;
 }
 
+export function mergeMasterDetailFilters(
+  current: LocationQueryRaw,
+  filters: { q?: string | null; bbox?: string | null },
+): LocationQueryRaw {
+  const query: LocationQueryRaw = { ...current };
+  if (filters.q === null || filters.q === "") delete query.q;
+  else if (filters.q !== undefined) query.q = filters.q;
+  if (filters.bbox === null || filters.bbox === "") delete query.bbox;
+  else if (filters.bbox !== undefined) query.bbox = filters.bbox;
+  return query;
+}
+
 export function clampScrollTop(
   requested: number,
   clientHeight: number,

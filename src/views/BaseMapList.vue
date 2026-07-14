@@ -3,15 +3,20 @@
     <div class="base-map-master-detail__master border-end">
       <BaseMapMasterList
         ref="masterList"
-        :items="items"
+        :items="filteredItems"
         :selected-uid="selectedUid"
         :active-lang="activeLang"
+        :query="searchQuery"
+        :range-filter-active="!!filterBbox"
         :draft-uids="draftUids"
         :draft-summaries="draftSummaries"
         :loading="loading"
         :error="error"
         @select="selectExisting"
         @select-draft="selectDraft"
+        @update:query="updateSearchQuery"
+        @open-range-filter="rangeFilterOpen = true"
+        @clear-range-filter="clearRangeFilter"
         @create="createBaseMap"
         @delete="deleteBaseMap"
         @toggle-always="toggleAlways"
@@ -43,24 +48,37 @@
         </div>
       </div>
     </div>
+    <EnvelopeEditorModal
+      v-if="rangeFilterOpen"
+      :model-value="filterEnvelope"
+      title-key="basemap.coverage_modal_title"
+      help-key="appedit.envelope_modal_help"
+      @update:model-value="applyRangeFilter"
+      @close="rangeFilterOpen = false"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import BaseMapEdit from "../components/basemap/BaseMapEdit.vue";
 import BaseMapMasterList from "../components/basemap/BaseMapMasterList.vue";
+import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useMasterDetailRouteState } from "../composables/useMasterDetailRouteState";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
 import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
+import { filterBaseMapCatalog, parseBaseMapBboxQuery, serializeBaseMapBboxQuery, type Wgs84Bbox } from "../utils/baseMapCatalogFilter";
 import { localizeTitle } from "../utils/langResource";
+import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
+import { mergeMasterDetailFilters } from "../utils/masterDetailRouteState";
 
 const { t } = useTranslation();
 const route = useRoute();
+const router = useRouter();
 const { select, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, refreshDrafts } = useAssetDraftBadges("base-map");
 
@@ -70,10 +88,32 @@ const error = ref("");
 const masterList = ref<InstanceType<typeof BaseMapMasterList> | null>(null);
 const editor = ref<InstanceType<typeof BaseMapEdit> | null>(null);
 const activeLang = computed(() => resolveEditorLanguage(i18next.language));
+const searchQuery = computed(() => typeof route.query.q === "string" ? route.query.q : "");
+const filterBbox = computed(() => parseBaseMapBboxQuery(route.query.bbox));
+const filterEnvelope = computed(() => filterBbox.value ? bboxToEnvelope(filterBbox.value) : null);
+const filteredItems = computed(() => filterBaseMapCatalog(items.value, searchQuery.value, filterBbox.value));
 const selectedUid = computed(() => typeof route.query.uid === "string" ? route.query.uid : null);
 const isNew = computed(() => route.query.new === "1");
 const selectedItem = computed(() => items.value.find((item) => item.uid === selectedUid.value) ?? null);
 const notFound = computed(() => !!selectedUid.value && !isNew.value && !loading.value && !selectedItem.value);
+const rangeFilterOpen = ref(false);
+
+async function updateFilters(filters: { q?: string | null; bbox?: string | null }): Promise<void> {
+  await router.replace({ query: mergeMasterDetailFilters(route.query, filters) });
+}
+
+function updateSearchQuery(value: string): void {
+  void updateFilters({ q: value.trim() ? value : null });
+}
+
+function applyRangeFilter(value: [number, number][] | null): void {
+  const bbox = envelopeToBbox(value) as Wgs84Bbox | null;
+  void updateFilters({ bbox: serializeBaseMapBboxQuery(bbox) });
+}
+
+function clearRangeFilter(): void {
+  void updateFilters({ bbox: null });
+}
 
 async function loadBaseMaps(): Promise<void> {
   loading.value = true;

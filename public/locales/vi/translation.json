@@ -37,6 +37,10 @@
     "description": "Quản lý các bản đồ nền do người dùng định nghĩa (tile XYZ/TMS) dùng làm lớp nền khi chỉnh sửa bản đồ.",
     "add": "Thêm bản đồ nền",
     "master_detail": {
+      "search_placeholder": "Tìm kiếm bản đồ nền…",
+      "range_filter": "Lọc theo khu vực",
+      "clear_range_filter": "Xóa bộ lọc khu vực",
+      "count_label": "{{num}} mục",
       "new_draft": "Bản đồ nền mới",
       "builtin_read_only": "Bản đồ nền tích hợp chỉ có thể đọc.",
       "label": "Nhãn hiển thị",
@@ -804,6 +808,7 @@
     }
   },
   "editor_ui": {
+    "new_item": "Mới",
     "discard_draft": "Bỏ bản nháp", "discard_draft_confirm": "Bỏ bản nháp này và quay lại phiên bản đã lưu?",
     "back": "Về danh sách",
     "translations": "Bản dịch hiện có",

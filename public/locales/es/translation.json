@@ -37,6 +37,10 @@
     "description": "Gestione los mapas base definidos por el usuario (teselas XYZ/TMS) que se pueden usar como fondo al editar mapas.",
     "add": "Añadir mapa base",
     "master_detail": {
+      "search_placeholder": "Buscar mapas base…",
+      "range_filter": "Filtrar por área",
+      "clear_range_filter": "Borrar filtro de área",
+      "count_label": "{{num}} elementos",
       "new_draft": "Nuevo mapa base",
       "builtin_read_only": "Los mapas base integrados son de solo lectura.",
       "label": "Etiqueta visible",
@@ -804,6 +808,7 @@
     }
   },
   "editor_ui": {
+    "new_item": "Nuevo",
     "discard_draft": "Descartar borrador", "discard_draft_confirm": "¿Descartar este borrador y volver a la versión guardada?",
     "back": "Volver a la lista",
     "translations": "Traducciones disponibles",

@@ -37,6 +37,10 @@
     "description": "管理可用作地图编辑背景的用户自定义底图(XYZ/TMS瓦片)。",
     "add": "添加底图",
     "master_detail": {
+      "search_placeholder": "搜索底图…",
+      "range_filter": "按范围筛选",
+      "clear_range_filter": "清除范围筛选",
+      "count_label": "{{num}}项",
       "new_draft": "新建底图",
       "builtin_read_only": "内置底图为只读。",
       "label": "显示标签",
@@ -804,6 +808,7 @@
     }
   },
   "editor_ui": {
+    "new_item": "新建",
     "discard_draft": "放弃草稿", "discard_draft_confirm": "放弃此草稿并返回已保存版本吗？",
     "back": "返回列表",
     "translations": "已有翻译",

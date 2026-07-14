@@ -1,10 +1,34 @@
 <template>
   <section class="base-map-master-list d-flex flex-column h-100 bg-white">
     <div class="p-3 border-bottom">
-      <button type="button" class="btn btn-primary btn-sm w-100 mb-2" data-testid="basemap-new" @click="emit('create')">
-        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("basemap.add") }}
+      <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" data-testid="basemap-new" @click="emit('create')">
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("editor_ui.new_item") }}
         <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
       </button>
+      <input
+        :value="query"
+        type="search"
+        class="form-control form-control-sm mb-2"
+        data-testid="basemap-search"
+        :placeholder="t('basemap.master_detail.search_placeholder')"
+        @input="emit('update:query', ($event.target as HTMLInputElement).value)"
+      >
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1" data-testid="basemap-range-filter" @click="emit('open-range-filter')">
+          <i class="bi bi-bounding-box me-1" aria-hidden="true"></i>{{ t("basemap.master_detail.range_filter") }}
+        </button>
+        <button
+          v-if="rangeFilterActive"
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          data-testid="basemap-range-clear"
+          :title="t('basemap.master_detail.clear_range_filter')"
+          @click="emit('clear-range-filter')"
+        >
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <small class="text-muted d-block mt-1">{{ t("basemap.master_detail.count_label", { num: items.length }) }}</small>
     </div>
 
     <div ref="scrollElement" class="flex-grow-1 overflow-auto" data-testid="basemap-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
@@ -113,6 +137,8 @@ const props = defineProps<{
   items: BaseMapCatalogItem[];
   selectedUid: string | null;
   activeLang: string;
+  query: string;
+  rangeFilterActive: boolean;
   draftUids: Set<string>;
   draftSummaries: AssetDraftSummary[];
   loading: boolean;
@@ -120,6 +146,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
+  "update:query": [value: string];
+  "open-range-filter": [];
+  "clear-range-filter": [];
   "select": [uid: string];
   "select-draft": [uid: string];
   "create": [];

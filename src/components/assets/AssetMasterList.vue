@@ -1,8 +1,8 @@
 <template>
   <section class="asset-master-list d-flex flex-column h-100 bg-white" @click="hideContextMenu">
     <div class="p-3 border-bottom">
-      <button type="button" class="btn btn-primary btn-sm w-100 mb-2" data-testid="asset-new" @click="emit('create')">
-        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("assetlist.add_image") }}
+      <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" data-testid="asset-new" @click="emit('create')">
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("editor_ui.new_item") }}
         <span v-if="newDrafts.length" class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
       </button>
       <input

@@ -37,6 +37,10 @@
     "description": "Gérez les fonds de carte définis par l'utilisateur (tuiles XYZ/TMS) utilisables comme arrière-plan lors de l'édition de cartes.",
     "add": "Ajouter un fond de carte",
     "master_detail": {
+      "search_placeholder": "Rechercher des fonds de carte…",
+      "range_filter": "Filtrer par zone",
+      "clear_range_filter": "Effacer le filtre de zone",
+      "count_label": "{{num}} éléments",
       "new_draft": "Nouveau fond de carte",
       "builtin_read_only": "Les fonds de carte intégrés sont en lecture seule.",
       "label": "Libellé d’affichage",
@@ -804,6 +808,7 @@
     }
   },
   "editor_ui": {
+    "new_item": "Nouveau",
     "discard_draft": "Supprimer le brouillon", "discard_draft_confirm": "Supprimer ce brouillon et revenir à la version enregistrée ?",
     "back": "Retour à la liste",
     "translations": "Traductions disponibles",

@@ -37,6 +37,10 @@
     "description": "Kelola peta dasar yang ditentukan pengguna (tile XYZ/TMS) yang dapat digunakan sebagai latar saat mengedit peta.",
     "add": "Tambah Peta Dasar",
     "master_detail": {
+      "search_placeholder": "Cari peta dasar…",
+      "range_filter": "Filter berdasarkan area",
+      "clear_range_filter": "Hapus filter area",
+      "count_label": "{{num}} item",
       "new_draft": "Peta dasar baru",
       "builtin_read_only": "Peta dasar bawaan hanya dapat dibaca.",
       "label": "Label tampilan",
@@ -804,6 +808,7 @@
     }
   },
   "editor_ui": {
+    "new_item": "Baru",
     "discard_draft": "Buang draf", "discard_draft_confirm": "Buang draf ini dan kembali ke versi tersimpan?",
     "back": "Kembali ke daftar",
     "translations": "Terjemahan yang tersedia",

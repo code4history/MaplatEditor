@@ -20,6 +20,7 @@ try {
       `export * from ${modulePath("src/utils/baseMapEditorDocument.ts")};`,
       `export * from ${modulePath("src/utils/imageAssetEditorDocument.ts")};`,
       `export * from ${modulePath("src/utils/masterDetailRouteState.ts")};`,
+      `export * from ${modulePath("src/utils/baseMapCatalogFilter.ts")};`,
       `export * from ${modulePath("src/utils/appSourceModel.ts")};`,
     ].join("\n"),
     "utf8",
@@ -47,12 +48,16 @@ try {
     createAppSourceFromBaseMap,
     fromBaseMapCatalogItem,
     fromImageAssetRow,
+    filterBaseMapCatalog,
     mergeMasterDetailQuery,
+    mergeMasterDetailFilters,
     newBaseMapDocument,
     newImageAssetDocument,
     normalizeAppSource,
     resolveBaseMapRuntimeText,
     resolveBaseMapLayerMetadata,
+    parseBaseMapBboxQuery,
+    serializeBaseMapBboxQuery,
     toBaseMapSavePayload,
     toImageAssetDraft,
     validateBaseMapDocument,
@@ -168,6 +173,44 @@ try {
     { q: "himeji", uid, new: "1" },
   );
   assert.equal(clampScrollTop(500, 200, 600), 400);
+
+  const worldBaseMap = {
+    uid: "world",
+    mapID: "osm",
+    scope: "builtin",
+    revision: 0,
+    data: {
+      title: { ja: "OpenStreetMap", en: "OpenStreetMap" },
+      label: { ja: "OSM", en: "OSM" },
+      attr: { en: "OpenStreetMap contributors" },
+      url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    },
+  };
+  const himejiBaseMap = {
+    uid: "himeji",
+    mapID: "himeji-old",
+    scope: "user",
+    revision: 1,
+    data: {
+      title: { ja: "姫路古地図", en: "Historic Himeji" },
+      label: { ja: "姫路", en: "Himeji" },
+      attr: { ja: "姫路市立城郭研究室" },
+      url: "https://example.test/himeji/{z}/{x}/{y}.png",
+      coverageLngLats: [[134.5, 34.5], [135, 34.5], [135, 35], [134.5, 35]],
+    },
+  };
+  assert.deepEqual(filterBaseMapCatalog([worldBaseMap, himejiBaseMap], "城郭", null).map((item) => item.uid), ["himeji"]);
+  assert.deepEqual(filterBaseMapCatalog([worldBaseMap, himejiBaseMap], "historic", null).map((item) => item.uid), ["himeji"]);
+  assert.deepEqual(filterBaseMapCatalog([worldBaseMap, himejiBaseMap], "", [134.7, 34.7, 134.8, 34.8]).map((item) => item.uid), ["world", "himeji"]);
+  assert.deepEqual(filterBaseMapCatalog([worldBaseMap, himejiBaseMap], "", [140, 40, 141, 41]).map((item) => item.uid), ["world"]);
+  assert.deepEqual(parseBaseMapBboxQuery("134.7,34.7,134.8,34.8"), [134.7, 34.7, 134.8, 34.8]);
+  assert.equal(parseBaseMapBboxQuery("134.8,34.8,134.7,34.7"), null);
+  assert.equal(parseBaseMapBboxQuery("181,34,182,35"), null);
+  assert.equal(serializeBaseMapBboxQuery([134.7, 34.7, 134.8, 34.8]), "134.7,34.7,134.8,34.8");
+  assert.deepEqual(
+    mergeMasterDetailFilters({ uid: "world", page: "2" }, { q: "gsi", bbox: null }),
+    { uid: "world", page: "2", q: "gsi" },
+  );
   assert.equal(clampScrollTop(-20, 200, 600), 0);
 
   const master = {
@@ -277,6 +320,13 @@ try {
   assert.match(baseMapShell, /notFound/);
   assert.doesNotMatch(baseMapShell, /modal show d-block/);
   assert.match(baseMapMasterList, /draft_badge/);
+  assert.match(baseMapMasterList, /btn-outline-primary/);
+  assert.match(baseMapMasterList, /basemap-search/);
+  assert.match(baseMapMasterList, /basemap-range-filter/);
+  assert.match(baseMapMasterList, /basemap-range-clear/);
+  assert.match(baseMapMasterList, /editor_ui\.new_item/);
+  assert.match(baseMapShell, /EnvelopeEditorModal/);
+  assert.match(baseMapShell, /mergeMasterDetailFilters/);
   assert.match(baseMapEditor, /EditorActionHeader/);
   assert.match(baseMapEditor, /EditorBusyOverlay/);
   assert.match(baseMapEditor, /LangResourceInput/);
@@ -311,6 +361,8 @@ try {
   assert.match(assetShell, /useMasterDetailRouteState/);
   assert.doesNotMatch(assetShell, /modal show d-block/);
   assert.match(assetMasterList, /useAssetThumbnails/);
+  assert.match(assetMasterList, /btn-outline-primary/);
+  assert.match(assetMasterList, /editor_ui\.new_item/);
   assert.match(assetEditor, /EditorActionHeader/);
   assert.match(assetEditor, /EditorBusyOverlay/);
   assert.match(assetEditor, /pickImageFile/);
@@ -319,6 +371,9 @@ try {
   assert.match(assetEditor, /pendingSavedIdentity/);
   const draftSerializer = assetEditor.match(/serialize:[\s\S]*?apply:/)?.[0] ?? "";
   assert.doesNotMatch(draftSerializer, /sourcePath/);
+
+  const routerSource = await readFile(path.join(projectRoot, "src/router/index.ts"), "utf8");
+  assert.match(routerSource, /uid\/new\/q\/bbox\/page/);
 
   console.log("m11-t4 master-detail smoke: PASS (Part 1 pure contracts)");
 } finally {

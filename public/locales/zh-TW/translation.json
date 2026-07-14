@@ -37,6 +37,10 @@
     "description": "管理可作為地圖編輯背景使用的使用者自訂底圖(XYZ/TMS圖磚)。",
     "add": "新增底圖",
     "master_detail": {
+      "search_placeholder": "搜尋底圖…",
+      "range_filter": "依範圍篩選",
+      "clear_range_filter": "清除範圍篩選",
+      "count_label": "{{num}} 項",
       "new_draft": "新增底圖",
       "builtin_read_only": "內建底圖為唯讀。",
       "label": "顯示標籤",
@@ -804,6 +808,7 @@
     }
   },
   "editor_ui": {
+    "new_item": "新增",
     "discard_draft": "捨棄草稿", "discard_draft_confirm": "要捨棄此草稿並返回已儲存版本嗎？",
     "back": "返回列表",
     "translations": "已有翻譯",

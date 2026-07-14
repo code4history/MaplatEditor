@@ -37,6 +37,10 @@
     "description": "Verwalten Sie benutzerdefinierte Basiskarten (XYZ/TMS-Kacheln), die als Hintergrund bei der Kartenbearbeitung verwendet werden können.",
     "add": "Basiskarte hinzufügen",
     "master_detail": {
+      "search_placeholder": "Basiskarten suchen…",
+      "range_filter": "Nach Bereich filtern",
+      "clear_range_filter": "Bereichsfilter löschen",
+      "count_label": "{{num}} Elemente",
       "new_draft": "Neue Basiskarte",
       "builtin_read_only": "Integrierte Basiskarten sind schreibgeschützt.",
       "label": "Anzeigebezeichnung",
@@ -804,6 +808,7 @@
     }
   },
   "editor_ui": {
+    "new_item": "Neu",
     "discard_draft": "Entwurf verwerfen", "discard_draft_confirm": "Diesen Entwurf verwerfen und zur gespeicherten Version zurückkehren?",
     "back": "Zurück zur Liste",
     "translations": "Verfügbare Übersetzungen",

@@ -37,6 +37,10 @@
     "description": "地図編集の下敷きに使えるユーザ定義ベースマップ(XYZ/TMSタイル)を管理します。",
     "add": "ベースマップ追加",
     "master_detail": {
+      "search_placeholder": "ベースマップを検索…",
+      "range_filter": "範囲で絞り込む",
+      "clear_range_filter": "範囲指定を解除",
+      "count_label": "{{num}}件",
       "new_draft": "新規ベースマップ",
       "builtin_read_only": "内蔵ベースマップは参照専用です。",
       "label": "表示ラベル",
@@ -804,6 +808,7 @@
     }
   },
   "editor_ui": {
+    "new_item": "新規追加",
     "discard_draft": "下書きを破棄", "discard_draft_confirm": "下書きを破棄して保存済み版に戻しますか？",
     "back": "一覧へ",
     "translations": "翻訳済み言語",
