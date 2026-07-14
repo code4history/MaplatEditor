@@ -113,7 +113,7 @@ onUnmounted(() => {
 <style>
 /* Global styles or minimal reset */
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--editor-ui-font-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;

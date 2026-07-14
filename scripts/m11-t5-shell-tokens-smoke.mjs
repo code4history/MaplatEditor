@@ -41,3 +41,17 @@ assert.match(busyOverlay, /var\(--editor-ui-z-overlay\)/, "EditorBusyOverlay mus
 assert.match(busyOverlay, /var\(--editor-ui-overlay-bg\)/, "EditorBusyOverlay must use overlay-bg token");
 
 console.log("m11-t5 smoke Part 1: OK");
+
+// --- Part 2: S2 OS標準 font ---
+const appVue = await read("src/App.vue");
+assert.match(appVue, /var\(--editor-ui-font-base\)/, "App.vue #app must use font-base token");
+// src 全域から Inter / Avenir 指定が消えていること
+for (const rel of ["src/App.vue", "src/assets/scss/main.scss", "src/assets/scss/editor-ui-tokens.scss"]) {
+  const text = await read(rel);
+  assert.doesNotMatch(text, /\bInter\b/, `${rel} still references Inter`);
+  assert.doesNotMatch(text, /\bAvenir\b/, `${rel} still references Avenir`);
+}
+// .editor-ui-mono が mono token を参照する
+assert.match(tokens, /\.editor-ui-mono\s*\{[^}]*var\(--editor-ui-font-mono\)/s, ".editor-ui-mono must use font-mono token");
+
+console.log("m11-t5 smoke Part 2: OK");
