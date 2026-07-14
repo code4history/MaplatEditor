@@ -19,18 +19,28 @@ export function useSlugReservation(opts: {
   let reserved: string | null = null;
   let generation = 0;
   let latestSlug: string | null = null;
+  let operationTail: Promise<void> = Promise.resolve();
+  let queuedOperations = 0;
 
   function invalidate(): void {
     generation += 1;
     latestSlug = null;
   }
 
+  function enqueueOperation<T>(work: () => Promise<T>): Promise<T> {
+    queuedOperations += 1;
+    const operation = operationTail.then(work);
+    operationTail = operation.then(() => undefined, () => undefined);
+    return operation.finally(() => { queuedOperations -= 1; });
+  }
+
   async function releaseStaleReservation(slug: string): Promise<void> {
-    // slug単位 + assetUid条件付きreleaseなので、別slugのcurrent heldは壊さない。
-    // newer requestが同じslugを再取得中/取得済みなら、その予約を消さない。
-    if (latestSlug === slug || reserved === slug) return;
+    // 後続operationがある場合は、それが実行時のheldからmove/releaseする。
+    // 後続なし（invalid slug等）だけstale成功分を明示解放する。
+    if (queuedOperations > 1 || latestSlug === slug) return;
     try {
       await window.slugReservations.release({ slug, assetUid: opts.assetUid() });
+      if (reserved === slug) reserved = null;
     } catch {
       // stale cleanup失敗を現在のfield状態へ伝播させない。lease/GCが最終回収する。
     }
@@ -49,14 +59,16 @@ export function useSlugReservation(opts: {
           slug, assetUid: opts.assetUid(), assetKind: kind, draftUid,
         });
 
-      if (token !== generation) {
-        if (result.result === 'ok') await releaseStaleReservation(slug);
-        return null;
-      }
       if (result.result === 'ok') {
+        // IPC mutationが成功した時点の実heldはstale UI応答でも必ず追跡する。
         reserved = slug;
+        if (token !== generation) {
+          await releaseStaleReservation(slug);
+          return null;
+        }
         return 'available';
       }
+      if (token !== generation) return null;
       return result.result === 'conflict' ? 'reserved-by-other' : 'check-failed';
     } catch {
       return token === generation ? 'check-failed' : null;
@@ -67,15 +79,18 @@ export function useSlugReservation(opts: {
   async function onAvailable(slug: string): Promise<SlugReservationFieldState | null> {
     const token = ++generation;
     latestSlug = slug;
-    return acquire(slug, token);
+    return enqueueOperation(() => acquire(slug, token));
   }
 
   // originalSlug 復帰・draft 破棄で予約を解放する。
   async function releaseIfHeld(): Promise<void> {
     invalidate();
-    const held = reserved;
-    reserved = null;
-    if (held) await window.slugReservations.release({ slug: held, assetUid: opts.assetUid() });
+    await enqueueOperation(async () => {
+      const held = reserved;
+      if (!held) return;
+      await window.slugReservations.release({ slug: held, assetUid: opts.assetUid() });
+      if (reserved === held) reserved = null;
+    });
   }
 
   // 保存直前はcheckだけで終えず、変更slugのreserve/moveを再確立する。
@@ -90,8 +105,11 @@ export function useSlugReservation(opts: {
       });
       if (token !== generation) return null;
       if (checked !== 'available') return { ok: false, state: 'reserved-by-other' };
-      if (currentSlug === opts.originalSlug()) return { ok: true, state: 'available' };
-      const state = await acquire(currentSlug, token);
+      if (currentSlug === opts.originalSlug()) {
+        await operationTail;
+        return token === generation ? { ok: true, state: 'available' } : null;
+      }
+      const state = await enqueueOperation(() => acquire(currentSlug, token));
       if (state == null) return null;
       return { ok: state === 'available' && reserved === currentSlug, state };
     } catch {

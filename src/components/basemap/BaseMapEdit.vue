@@ -463,6 +463,15 @@ async function discardDraft(): Promise<void> {
     message: t("editor_ui.discard_draft_confirm"),
   });
   if (result.response !== 0) return;
+  if (props.isNew) {
+    try {
+      await slugField.value?.release();
+    } catch (cause) {
+      console.error("Failed to release base map slug reservation", cause);
+      error.value = t("basemap.errors.save_failed");
+      return;
+    }
+  }
   await draftLifecycle.discard();
   // F8 Major-1: discard は store を即時変更するため、List のバッジ再照会も即時に行う。
   emit("flushed");

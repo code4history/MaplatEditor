@@ -385,6 +385,15 @@ async function discardDraft(): Promise<void> {
     message: t("editor_ui.discard_draft_confirm"),
   });
   if (result.response !== 0) return;
+  if (props.isNew) {
+    try {
+      await slugField.value?.release();
+    } catch (cause) {
+      console.error("Failed to release image asset slug reservation", cause);
+      error.value = t("assetlist.errors.internal");
+      return;
+    }
+  }
   await draftLifecycle.discard();
   // F5: 新規 draft の破棄は draft store から削除して選択解除（新規作成前の空状態）へ戻す。
   // F8 Major-1: discard は store を即時変更するため、List のバッジ再照会も即時に行う。

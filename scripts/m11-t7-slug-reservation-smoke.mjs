@@ -476,23 +476,99 @@ const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh
   assert.equal(await reserveHarness.reservation.onAvailable("next"), "available");
   assert.equal(calls.move.at(-1).fromSlug, "held");
 
-  // A/B逆転: stale Aは状態/heldを上書きせず、成功してしまったA予約だけ安全に解放する。
-  const pending = new Map();
-  reserveImpl = ({ slug }) => new Promise((resolve) => pending.set(slug, resolve));
+  // A/B逆転: stale AはUI状態を上書きせず、実held AからBへ直列moveする。
+  let resolveStaleA;
+  reserveImpl = ({ slug }) => slug === "a"
+    ? new Promise((resolve) => { resolveStaleA = resolve; })
+    : Promise.resolve({ result: "ok" });
+  moveImpl = async () => ({ result: "ok" });
   const staleHarness = createSlugReservationHarness({ currentSlug: "a" });
   const a = staleHarness.reservation.onAvailable("a");
   staleHarness.setCurrentSlug("b");
   const b = staleHarness.reservation.onAvailable("b");
-  pending.get("b")({ result: "ok" });
-  assert.equal(await b, "available");
-  pending.get("a")({ result: "ok" });
+  await Promise.resolve();
+  resolveStaleA({ result: "ok" });
   assert.equal(await a, null, "stale response must not publish a field state");
-  assert.ok(calls.release.some((p) => p.slug === "a"), "stale successful reservation must not leak");
+  assert.equal(await b, "available");
+  assert.equal(calls.move.at(-1).fromSlug, "a", "B must move from actual stale-success held A");
   reserveImpl = async () => ({ result: "ok" });
   await staleHarness.reservation.onAvailable("c");
   assert.equal(calls.move.at(-1).fromSlug, "b", "stale A must not overwrite current held B");
 
+  // 後続onAvailableがないinvalid入力への変更では、stale成功分をqueue完了時に解放する。
+  {
+    const dbHeld = new Set();
+    let resolveInvalidA;
+    window.slugReservations.reserve = async ({ slug }) => { dbHeld.add(slug); return { result: "ok" }; };
+    window.slugReservations.move = async (payload) => new Promise((resolve) => {
+      resolveInvalidA = () => {
+        dbHeld.delete(payload.fromSlug);
+        dbHeld.add(payload.toSlug);
+        resolve({ result: "ok" });
+      };
+    });
+    window.slugReservations.release = async ({ slug }) => { dbHeld.delete(slug); };
+    const invalidHarness = createSlugReservationHarness({ currentSlug: "h" });
+    await invalidHarness.reservation.onAvailable("h");
+    const invalidatedMove = invalidHarness.reservation.onAvailable("a");
+    invalidHarness.setCurrentSlug("bad slug");
+    await Promise.resolve();
+    resolveInvalidA();
+    assert.equal(await invalidatedMove, null);
+    assert.deepEqual([...dbHeld], [], "stale success without a successor must be released");
+  }
+
+  // held H から A/B を並行要求してもmutationは直列化する。A成功後にBが失敗した場合、
+  // Bは実held Aからmoveを試し、DB/内部heldともAを維持する。
+  for (const bFailure of ["conflict", "error", "throw"]) {
+    const dbHeld = new Set();
+    let resolveA;
+    const serialCalls = [];
+    window.slugReservations.reserve = async ({ slug }) => {
+      dbHeld.add(slug);
+      return { result: "ok" };
+    };
+    window.slugReservations.move = async (payload) => {
+      serialCalls.push(payload);
+      if (payload.toSlug === "a") {
+        return new Promise((resolve) => {
+          resolveA = () => {
+            dbHeld.delete(payload.fromSlug);
+            dbHeld.add(payload.toSlug);
+            resolve({ result: "ok" });
+          };
+        });
+      }
+      if (payload.toSlug === "b") {
+        if (bFailure === "throw") throw new Error("ipc");
+        return bFailure === "conflict"
+          ? { result: "conflict" }
+          : { result: "error", message: "disk" };
+      }
+      return { result: "conflict" };
+    };
+    window.slugReservations.release = async ({ slug }) => { dbHeld.delete(slug); };
+    const serialHarness = createSlugReservationHarness({ currentSlug: "h" });
+    assert.equal(await serialHarness.reservation.onAvailable("h"), "available");
+    const moveA = serialHarness.reservation.onAvailable("a");
+    serialHarness.setCurrentSlug("b");
+    const moveB = serialHarness.reservation.onAvailable("b");
+    await Promise.resolve();
+    assert.equal(serialCalls.length, 1, "B move must wait until A move settles");
+    resolveA();
+    assert.equal(await moveA, null);
+    assert.equal(await moveB, bFailure === "conflict" ? "reserved-by-other" : "check-failed");
+    assert.deepEqual([...dbHeld], ["a"], `B ${bFailure}: DB must retain actual held A`);
+    await serialHarness.reservation.onAvailable("probe");
+    assert.equal(serialCalls.at(-1).fromSlug, "a", `B ${bFailure}: local held must advance to A`);
+    assert.deepEqual([...dbHeld], ["a"]);
+  }
+
   // confirm: taken/reserved/error は false。変更slugは再reserve成功時のみtrue。
+  window.slugReservations.reserve = async (payload) => { calls.reserve.push(payload); return reserveImpl(payload); };
+  window.slugReservations.move = async (payload) => { calls.move.push(payload); return moveImpl(payload); };
+  window.slugReservations.release = async (payload) => { calls.release.push(payload); };
+  window.slugReservations.check = async (payload) => { calls.check.push(payload); return checkImpl(payload); };
   const confirmHarness = createSlugReservationHarness({ originalSlug: "original", currentSlug: "changed" });
   for (const result of ["taken", "reserved-by-other"]) {
     checkImpl = async () => result;
@@ -574,6 +650,11 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
   const src = await readSrc(rel);
   assert.match(src, /SlugField/, `${rel} must use SlugField`);
   assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must drop raw checkSlug (AC17)`);
+  const discard = src.slice(src.indexOf("async function discardDraft"), src.indexOf("function saveFailure"));
+  assert.match(discard, /await slugField\.value\?\.release\(\)/,
+    `${rel} new draft discard must await slug reservation release`);
+  assert.ok(discard.indexOf("await slugField.value?.release()") < discard.indexOf("await draftLifecycle.discard()"),
+    `${rel} must release reservation before discarding/closing the draft`);
 }
 console.log("m11-t7 smoke Part D: OK");
 
