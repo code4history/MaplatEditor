@@ -24,7 +24,11 @@
       @discard-draft="discardDraft"
     />
 
-    <div v-if="error" class="alert alert-danger rounded-0 mb-0 py-2">{{ error }}</div>
+    <DiagnosticFeedback
+      v-if="error"
+      scope="operation"
+      :items="[{ key: 'save-error', severity: 'danger', message: error }]"
+    />
     <div v-else-if="dirty && validationMessages.length" class="alert alert-warning rounded-0 mb-0 py-2">
       <ul class="mb-0"><li v-for="message in validationMessages" :key="message">{{ message }}</li></ul>
     </div>
@@ -61,15 +65,28 @@
           </select>
         </div>
         <div class="col-12">
-          <label class="form-label fw-semibold">{{ t("assetlist.slug_label") }}</label>
-          <input
-            :value="document.slug"
-            type="text"
-            class="form-control form-control-sm"
-            data-testid="asset-slug"
-            :disabled="structuralDisabled"
-            @change="updateDocument({ ...document, slug: ($event.target as HTMLInputElement).value.trim() })"
+          <EditorField
+            :label="t('assetlist.slug_label')"
+            label-for="asset-slug-input"
+            :diagnostics="slugDiagnostics"
           >
+            <template #help>
+              <ContextHelp
+                mode="tooltip"
+                :text="t('editor_ui.slug_format_help')"
+                :ariaLabel="t('editor_ui.slug_format_help')"
+              />
+            </template>
+            <input
+              id="asset-slug-input"
+              :value="document.slug"
+              type="text"
+              class="form-control form-control-sm editor-ui-mono"
+              data-testid="asset-slug"
+              :disabled="structuralDisabled"
+              @change="updateDocument({ ...document, slug: ($event.target as HTMLInputElement).value.trim() })"
+            >
+          </EditorField>
         </div>
 
         <div class="col-12"><hr class="my-1"></div>
@@ -110,7 +127,10 @@ import LangResourceInput from "../LangResourceInput.vue";
 import DraftConflictDialog from "../editor-ui/DraftConflictDialog.vue";
 import EditorActionHeader from "../editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../editor-ui/EditorBusyOverlay.vue";
-import type { EditorSaveState } from "../editor-ui/editorUiTypes";
+import EditorField from "../editor-ui/EditorField.vue";
+import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
+import ContextHelp from "../editor-ui/ContextHelp.vue";
+import type { DiagnosticItem, EditorSaveState } from "../editor-ui/editorUiTypes";
 import { useAssetDraftLifecycle } from "../../composables/useAssetDraftLifecycle";
 import { UndoStack } from "../../services/editorUndoStack";
 import type { ImageAssetRow, ImageAssetSaveResult } from "../../electron";
@@ -163,6 +183,16 @@ const validationMessages = computed(() => validation.value.errors.map((code) => 
   "title-required": "assetlist.errors.title_required",
   "source-required": "assetlist.master_detail.reselect_required",
 }[code])));
+// slug 形式エラーだけを field 診断へ（既存 validation を再利用）
+const SLUG_ERROR_MESSAGE_KEYS: Record<string, string> = {
+  "slug-required": "assetlist.errors.slug_required",
+  "slug-invalid": "assetlist.errors.slug_charset",
+};
+const slugDiagnostics = computed<DiagnosticItem[]>(() =>
+  validation.value.errors
+    .filter((code) => code === "slug-required" || code === "slug-invalid")
+    .map((code) => ({ key: code, severity: "danger" as const, message: t(SLUG_ERROR_MESSAGE_KEYS[code]) })),
+);
 const displayTitle = computed(() => localizeTitle(document.value.title, activeLang.value) || document.value.slug || t("assetlist.master_detail.untitled"));
 const saveState = computed<EditorSaveState>(() => saving.value ? "saving" : draftLifecycle.draftRestored.value ? "draft-restored" : dirty.value ? "dirty" : "saved");
 const dimensions = computed(() => document.value.width !== null && document.value.height !== null ? `${document.value.width}×${document.value.height}` : "-");

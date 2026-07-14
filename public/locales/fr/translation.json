@@ -66,6 +66,7 @@
     "generating_icon": "Génération...",
     "coverage": "Zone de couverture",
     "coverage_modal_title": "Définir la zone de couverture",
+    "coverage_help": "L'étendue géographique approximative où existent les tuiles de ce fond de carte. Utilisée pour la recherche par zone lors de la recherche de fonds de carte par région ; si elle n'est pas définie, elle est considérée comme mondiale.",
     "coverage_modal_help": "Faites glisser pour indiquer la zone approximative où les tuiles de cette carte existent. Utilisé lors de la recherche de fonds de carte par région.",
     "always_visible": "Toujours visible",
     "always_note": "Les fonds de carte définis comme toujours visibles apparaissent dans l'éditeur de toutes les cartes, quelle que soit la sélection propre à chaque carte (et ne peuvent pas être désactivés par carte). OSM ne peut pas être retiré de l'affichage permanent.",

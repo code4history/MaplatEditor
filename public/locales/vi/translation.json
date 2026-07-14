@@ -66,6 +66,7 @@
     "generating_icon": "Đang tạo...",
     "coverage": "Phạm vi tồn tại",
     "coverage_modal_title": "Chỉ định phạm vi tồn tại",
+    "coverage_help": "Phạm vi địa lý gần đúng nơi tồn tại tile của bản đồ nền này. Được dùng cho tìm kiếm theo phạm vi khi tìm bản đồ nền theo khu vực; nếu không đặt, sẽ được coi là toàn thế giới.",
     "coverage_modal_help": "Vui lòng kéo để chỉ định phạm vi gần đúng nơi tồn tại tile của bản đồ này. Được dùng khi tìm bản đồ nền theo khu vực.",
     "always_visible": "Luôn hiển thị",
     "always_note": "Các bản đồ nền được đặt luôn hiển thị sẽ xuất hiện trên màn hình chỉnh sửa của mọi bản đồ bất kể lựa chọn (không thể tắt theo từng bản đồ). Không thể loại OSM khỏi chế độ luôn hiển thị.",

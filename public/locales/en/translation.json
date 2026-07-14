@@ -63,6 +63,7 @@
     "generating_icon": "Generating...",
     "coverage": "Coverage",
     "coverage_modal_title": "Specify coverage",
+    "coverage_help": "The approximate geographic extent where this base map's tiles exist. Used for range search when finding base maps by region; if unset, it is treated as worldwide.",
     "coverage_modal_help": "Draw the approximate area where this map's tiles exist. Used when searching base maps by region.",
     "always_visible": "Always visible",
     "always_note": "Base maps set to always visible appear in every map's editor regardless of per-map selection (and cannot be turned off per map). OSM cannot be removed from always visible.",

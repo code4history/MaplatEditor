@@ -66,6 +66,7 @@
     "generating_icon": "生成中...",
     "coverage": "覆盖范围",
     "coverage_modal_title": "指定覆盖范围",
+    "coverage_help": "此底图瓦片存在的大致地理范围。用于按区域查找底图时的范围搜索；若未设置，则视为覆盖全球。",
     "coverage_modal_help": "请通过拖动指定此地图瓦片存在的大致范围。用于按区域搜索底图时使用。",
     "always_visible": "始终显示",
     "always_note": "设置为始终显示的底图将在所有地图的编辑界面中显示,无论是否被选中(无法在各地图的设置中关闭)。OSM无法从始终显示中移除。",

@@ -25,7 +25,11 @@
       @discard-draft="discardDraft"
     />
 
-    <div v-if="error" class="alert alert-danger rounded-0 mb-0 py-2">{{ error }}</div>
+    <DiagnosticFeedback
+      v-if="error"
+      scope="operation"
+      :items="[{ key: 'save-error', severity: 'danger', message: error }]"
+    />
     <div v-else-if="dirty && validationMessages.length" class="alert alert-warning rounded-0 mb-0 py-2">
       <ul class="mb-0"><li v-for="message in validationMessages" :key="message">{{ message }}</li></ul>
     </div>
@@ -80,15 +84,28 @@
 
         <div class="col-12"><hr class="my-1"></div>
         <div class="col-12 col-lg-6">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.id_label") }}</label>
-          <input
-            :value="document.slug"
-            type="text"
-            class="form-control form-control-sm"
-            data-testid="basemap-slug"
-            :disabled="structuralDisabled"
-            @change="updateField('slug', ($event.target as HTMLInputElement).value.trim())"
+          <EditorField
+            :label="t('basemap.modal.id_label')"
+            label-for="basemap-slug-input"
+            :diagnostics="slugDiagnostics"
           >
+            <template #help>
+              <ContextHelp
+                mode="tooltip"
+                :text="t('editor_ui.slug_format_help')"
+                :ariaLabel="t('editor_ui.slug_format_help')"
+              />
+            </template>
+            <input
+              id="basemap-slug-input"
+              :value="document.slug"
+              type="text"
+              class="form-control form-control-sm editor-ui-mono"
+              data-testid="basemap-slug"
+              :disabled="structuralDisabled"
+              @change="updateField('slug', ($event.target as HTMLInputElement).value.trim())"
+            >
+          </EditorField>
         </div>
         <div class="col-12 col-lg-6">
           <label class="form-label fw-semibold">{{ t("basemap.master_detail.default_language") }}</label>
@@ -149,7 +166,15 @@
           </div>
         </div>
         <div class="col-12">
-          <label class="form-label fw-semibold">{{ t("basemap.coverage") }}</label>
+          <label class="form-label fw-semibold">
+            {{ t("basemap.coverage") }}
+            <ContextHelp
+              mode="popover"
+              :title="t('basemap.coverage')"
+              :text="t('basemap.coverage_help')"
+              :ariaLabel="t('basemap.coverage_help')"
+            />
+          </label>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span class="small font-monospace">{{ coverageText }}</span>
             <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled" @click="showEnvelopeModal = true">{{ t("appedit.envelope_pick") }}</button>
@@ -181,7 +206,10 @@ import LangResourceInput from "../LangResourceInput.vue";
 import DraftConflictDialog from "../editor-ui/DraftConflictDialog.vue";
 import EditorActionHeader from "../editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../editor-ui/EditorBusyOverlay.vue";
-import type { EditorSaveState } from "../editor-ui/editorUiTypes";
+import EditorField from "../editor-ui/EditorField.vue";
+import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
+import ContextHelp from "../editor-ui/ContextHelp.vue";
+import type { DiagnosticItem, EditorSaveState } from "../editor-ui/editorUiTypes";
 import { useAssetDraftLifecycle } from "../../composables/useAssetDraftLifecycle";
 import { UndoStack } from "../../services/editorUndoStack";
 import {
@@ -237,6 +265,16 @@ const validationMessages = computed(() => validation.value.errors.map((code) => 
   "max-zoom-invalid": "basemap.errors.max_zoom_invalid",
   "zoom-range": "basemap.errors.zoom_order_invalid",
 }[code])));
+// slug 形式エラーだけを field 診断へ（既存 validation を再利用）
+const SLUG_ERROR_MESSAGE_KEYS: Record<string, string> = {
+  "slug-required": "basemap.errors.id_required",
+  "slug-invalid": "basemap.errors.id_invalid",
+};
+const slugDiagnostics = computed<DiagnosticItem[]>(() =>
+  validation.value.errors
+    .filter((code) => code === "slug-required" || code === "slug-invalid")
+    .map((code) => ({ key: code, severity: "danger" as const, message: t(SLUG_ERROR_MESSAGE_KEYS[code]) })),
+);
 const displayTitle = computed(() => resolveBaseMapRuntimeText(document.value.title, activeLang.value, document.value.defaultLang) || document.value.slug || t("basemap.master_detail.untitled"));
 const saveState = computed<EditorSaveState>(() => saving.value ? "saving" : draftLifecycle.draftRestored.value ? "draft-restored" : dirty.value ? "dirty" : "saved");
 

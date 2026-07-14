@@ -66,6 +66,7 @@
     "generating_icon": "Sedang membuat...",
     "coverage": "Cakupan wilayah",
     "coverage_modal_title": "Tentukan cakupan wilayah",
+    "coverage_help": "Perkiraan cakupan geografis tempat tile peta dasar ini berada. Digunakan untuk pencarian berdasarkan area saat mencari peta dasar per wilayah; jika tidak diatur, dianggap mencakup seluruh dunia.",
     "coverage_modal_help": "Silakan seret untuk menentukan area perkiraan tempat tile peta ini berada. Digunakan saat mencari peta dasar berdasarkan wilayah.",
     "always_visible": "Selalu tampil",
     "always_note": "Peta dasar yang disetel selalu tampil akan muncul di layar edit setiap peta terlepas dari pilihan (tidak dapat dinonaktifkan per peta). OSM tidak dapat dikeluarkan dari selalu tampil.",

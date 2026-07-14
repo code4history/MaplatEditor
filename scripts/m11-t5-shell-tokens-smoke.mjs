@@ -161,3 +161,24 @@ for (const loc of LOCALES) {
 }
 
 console.log("m11-t5 smoke Part 6: OK");
+
+// --- Part 7: S7 pilot 統合 ---
+for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/assets/AssetEdit.vue"]) {
+  const src = await read(rel);
+  assert.match(src, /EditorField/, `${rel} must use EditorField`);
+  assert.match(src, /DiagnosticFeedback/, `${rel} must use DiagnosticFeedback`);
+  assert.match(src, /ContextHelp/, `${rel} must use ContextHelp`);
+  assert.match(src, /editor-ui-mono/, `${rel} slug input must use editor-ui-mono`);
+  assert.match(src, /scope="operation"/, `${rel} save error must be operation-scope diagnostic`);
+}
+// BaseMapEdit の 存在範囲 label へ Popover（設計 v2追補）
+const baseMapEdit = await read("src/components/basemap/BaseMapEdit.vue");
+assert.match(baseMapEdit, /mode="popover"/, "BaseMapEdit coverage must use ContextHelp popover");
+// basemap.coverage_help を 11 locale へ追加
+for (const loc of LOCALES) {
+  const t = translations[loc] ?? JSON.parse(await read(`public/locales/${loc}/translation.json`));
+  assert.ok(t.basemap?.coverage_help, `basemap.coverage_help missing in ${loc}`);
+}
+
+console.log("m11-t5 smoke Part 7: OK");
+console.log("m11-t5 smoke: ALL OK");

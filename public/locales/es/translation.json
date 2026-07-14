@@ -66,6 +66,7 @@
     "generating_icon": "Generando...",
     "coverage": "Área de cobertura",
     "coverage_modal_title": "Especificar área de cobertura",
+    "coverage_help": "La extensión geográfica aproximada donde existen las teselas de este mapa base. Se usa para la búsqueda por rango al buscar mapas base por región; si no se define, se considera de alcance mundial.",
     "coverage_modal_help": "Arrastre para indicar el área aproximada donde existen las teselas de este mapa. Se usa al buscar mapas base por región.",
     "always_visible": "Siempre visible",
     "always_note": "Los mapas base configurados como siempre visibles aparecen en el editor de todos los mapas, independientemente de la selección por mapa (y no se pueden desactivar por mapa). OSM no se puede quitar de la visibilidad permanente.",

@@ -66,6 +66,7 @@
     "generating_icon": "Wird erzeugt...",
     "coverage": "Abdeckungsbereich",
     "coverage_modal_title": "Abdeckungsbereich festlegen",
+    "coverage_help": "Der ungefähre geografische Bereich, in dem die Kacheln dieser Basiskarte vorhanden sind. Wird für die Bereichssuche bei der Suche nach Basiskarten nach Region verwendet; ist er nicht festgelegt, gilt er als weltweit.",
     "coverage_modal_help": "Ziehen Sie den ungefähren Bereich, in dem die Kacheln dieser Karte vorhanden sind. Dies wird bei der Suche nach Basiskarten nach Region verwendet.",
     "always_visible": "Immer sichtbar",
     "always_note": "Als immer sichtbar festgelegte Basiskarten werden in jedem Karteneditor unabhängig von der Auswahl je Karte angezeigt (und können pro Karte nicht deaktiviert werden). OSM kann nicht aus der dauerhaften Sichtbarkeit entfernt werden.",
