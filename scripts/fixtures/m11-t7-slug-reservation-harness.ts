@@ -17,7 +17,7 @@ export function createSlugReservationHarness(options?: {
     setOriginalSlug(value: string | undefined) { originalSlug = value; },
     setCurrentSlug(value: string) {
       currentSlug = value;
-      reservation.invalidate();
+      reservation.invalidate(value);
     },
     confirmForSave() { return reservation.confirmForSave(currentSlug); },
   };

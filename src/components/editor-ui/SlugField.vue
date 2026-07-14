@@ -68,7 +68,7 @@ const state = computed<SlugFieldState>(() => reservationState.value ?? availabil
 const statusText = computed(() => (state.value === 'idle' ? '' : t(`editor_ui.slug_state.${state.value}`)));
 
 watch([slugRef, () => props.originalSlug], ([slug]) => {
-  reservation.invalidate();
+  reservation.invalidate(slug.trim());
   reservationState.value = null;
   if (slug.trim() === props.originalSlug) void reservation.releaseIfHeld();
 }, { flush: 'sync' });

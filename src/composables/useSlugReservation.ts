@@ -22,9 +22,9 @@ export function useSlugReservation(opts: {
   let operationTail: Promise<void> = Promise.resolve();
   let queuedOperations = 0;
 
-  function invalidate(): void {
+  function invalidate(currentSlug?: string): void {
     generation += 1;
-    latestSlug = null;
+    latestSlug = currentSlug?.trim() || null;
   }
 
   function enqueueOperation<T>(work: () => Promise<T>): Promise<T> {
@@ -68,10 +68,15 @@ export function useSlugReservation(opts: {
         }
         return 'available';
       }
-      if (token !== generation) return null;
+      if (token !== generation) {
+        if (reserved) await releaseStaleReservation(reserved);
+        return null;
+      }
       return result.result === 'conflict' ? 'reserved-by-other' : 'check-failed';
     } catch {
-      return token === generation ? 'check-failed' : null;
+      if (token === generation) return 'check-failed';
+      if (reserved) await releaseStaleReservation(reserved);
+      return null;
     }
   }
 

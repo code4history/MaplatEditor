@@ -564,6 +564,95 @@ const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh
     assert.deepEqual([...dbHeld], ["a"]);
   }
 
+  // A成功後、後続A→Bの待機中に入力がinvalid化し、そのBが失敗した場合は、
+  // queue末尾でcurrent入力でもない実held Aを解放する。
+  for (const bFailure of ["conflict", "error", "throw"]) {
+    const dbHeld = new Set();
+    const serialCalls = { reserve: [], move: [], release: [] };
+    let resolveA;
+    let settleB;
+    window.slugReservations.reserve = async (payload) => {
+      serialCalls.reserve.push(payload);
+      if (payload.slug === "probe") return { result: "conflict" };
+      dbHeld.add(payload.slug);
+      return { result: "ok" };
+    };
+    window.slugReservations.move = async (payload) => {
+      serialCalls.move.push(payload);
+      if (payload.toSlug === "a") {
+        return new Promise((resolve) => {
+          resolveA = () => {
+            dbHeld.delete(payload.fromSlug);
+            dbHeld.add(payload.toSlug);
+            resolve({ result: "ok" });
+          };
+        });
+      }
+      return new Promise((resolve, reject) => {
+        settleB = () => {
+          if (bFailure === "throw") reject(new Error("ipc"));
+          else resolve(bFailure === "conflict"
+            ? { result: "conflict" }
+            : { result: "error", message: "disk" });
+        };
+      });
+    };
+    window.slugReservations.release = async (payload) => {
+      serialCalls.release.push(payload);
+      dbHeld.delete(payload.slug);
+    };
+    const abandonedHarness = createSlugReservationHarness({ currentSlug: "h" });
+    await abandonedHarness.reservation.onAvailable("h");
+    const moveA = abandonedHarness.reservation.onAvailable("a");
+    abandonedHarness.setCurrentSlug("b");
+    const moveB = abandonedHarness.reservation.onAvailable("b");
+    await Promise.resolve();
+    resolveA();
+    assert.equal(await moveA, null);
+    await Promise.resolve();
+    abandonedHarness.setCurrentSlug("bad slug");
+    settleB();
+    assert.equal(await moveB, null);
+    assert.deepEqual([...dbHeld], [], `stale B ${bFailure}: abandoned held A must be released`);
+    assert.ok(serialCalls.release.some((p) => p.slug === "a"));
+    assert.equal(await abandonedHarness.reservation.onAvailable("probe"), "reserved-by-other");
+    assert.equal(serialCalls.reserve.at(-1).slug, "probe", "internal held must be null after cleanup");
+  }
+
+  // stale失敗時でも入力が実held Aへ戻っているならAはcurrentなので解放しない。
+  {
+    const dbHeld = new Set();
+    const moveCalls = [];
+    const released = [];
+    let settleB;
+    window.slugReservations.reserve = async ({ slug }) => { dbHeld.add(slug); return { result: "ok" }; };
+    window.slugReservations.move = async (payload) => {
+      moveCalls.push(payload);
+      if (payload.toSlug === "a") {
+        dbHeld.delete(payload.fromSlug);
+        dbHeld.add("a");
+        return { result: "ok" };
+      }
+      if (payload.toSlug === "b") {
+        return new Promise((resolve) => { settleB = () => resolve({ result: "conflict" }); });
+      }
+      return { result: "conflict" };
+    };
+    window.slugReservations.release = async ({ slug }) => { released.push(slug); dbHeld.delete(slug); };
+    const currentHeldHarness = createSlugReservationHarness({ currentSlug: "h" });
+    await currentHeldHarness.reservation.onAvailable("h");
+    await currentHeldHarness.reservation.onAvailable("a");
+    const moveB = currentHeldHarness.reservation.onAvailable("b");
+    await Promise.resolve();
+    currentHeldHarness.setCurrentSlug("a");
+    settleB();
+    assert.equal(await moveB, null);
+    assert.deepEqual([...dbHeld], ["a"]);
+    assert.ok(!released.includes("a"), "current held A must not be released");
+    await currentHeldHarness.reservation.onAvailable("probe");
+    assert.equal(moveCalls.at(-1).fromSlug, "a");
+  }
+
   // confirm: taken/reserved/error は false。変更slugは再reserve成功時のみtrue。
   window.slugReservations.reserve = async (payload) => { calls.reserve.push(payload); return reserveImpl(payload); };
   window.slugReservations.move = async (payload) => { calls.move.push(payload); return moveImpl(payload); };
