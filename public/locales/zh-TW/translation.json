@@ -3,6 +3,7 @@
     "title": "Maplat Editor"
   },
   "common": {
+    "close": "關閉",
     "back": "返回",
     "settings": "設定",
     "reset": "重設",
@@ -808,6 +809,7 @@
     }
   },
   "editor_ui": {
+    "slug_format_help": "僅可使用字母、數字、連字號和底線。",
     "new_item": "新增",
     "discard_draft": "捨棄草稿", "discard_draft_confirm": "要捨棄此草稿並返回已儲存版本嗎？",
     "back": "返回列表",

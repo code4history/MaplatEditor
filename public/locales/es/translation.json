@@ -3,6 +3,7 @@
     "title": "Maplat Editor"
   },
   "common": {
+    "close": "Cerrar",
     "back": "Volver",
     "settings": "Configuración",
     "reset": "Restablecer",
@@ -808,6 +809,7 @@
     }
   },
   "editor_ui": {
+    "slug_format_help": "Use solo letras, números, guion y guion bajo.",
     "new_item": "Nuevo",
     "discard_draft": "Descartar borrador", "discard_draft_confirm": "¿Descartar este borrador y volver a la versión guardada?",
     "back": "Volver a la lista",

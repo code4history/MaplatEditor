@@ -3,6 +3,7 @@
     "title": "Maplat Editor"
   },
   "common": {
+    "close": "Fermer",
     "back": "Retour",
     "settings": "Paramètres",
     "reset": "Réinitialiser",
@@ -808,6 +809,7 @@
     }
   },
   "editor_ui": {
+    "slug_format_help": "Utilisez uniquement lettres, chiffres, tiret et underscore.",
     "new_item": "Nouveau",
     "discard_draft": "Supprimer le brouillon", "discard_draft_confirm": "Supprimer ce brouillon et revenir à la version enregistrée ?",
     "back": "Retour à la liste",

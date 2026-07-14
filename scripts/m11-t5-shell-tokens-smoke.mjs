@@ -121,3 +121,43 @@ assert.ok("assets" in jaParsed.navbar, "navbar.assets key name must remain");
 assert.ok("tab_assets" in (jaParsed.poiedit?.picker ?? jaParsed.assetlist ?? {}) || JSON.stringify(jaParsed).includes('"tab_assets"'), "tab_assets key name must remain");
 
 console.log("m11-t5 smoke Part 5: OK");
+
+// --- Part 6: S6 primitives 契約 ---
+const uiTypes = await read("src/components/editor-ui/editorUiTypes.ts");
+assert.match(uiTypes, /export type DiagnosticSeverity = 'info' \| 'success' \| 'warning' \| 'danger';/);
+assert.match(uiTypes, /export type DiagnosticScope = 'field' \| 'section' \| 'operation';/);
+assert.match(uiTypes, /export interface DiagnosticItem/);
+
+const field = await read("src/components/editor-ui/EditorField.vue");
+assert.match(field, /label/); assert.match(field, /labelFor/);
+assert.match(field, /required/); assert.match(field, /hint/);
+assert.match(field, /diagnostics/);
+assert.match(field, /name="help"/, "EditorField must expose help slot");
+assert.match(field, /DiagnosticFeedback/, "EditorField must render DiagnosticFeedback for field scope");
+
+const diag = await read("src/components/editor-ui/DiagnosticFeedback.vue");
+// severity icon の正本は editorUiTypes.ts の DIAGNOSTIC_SEVERITY_ICON（設計 §7.3）。
+// DiagnosticFeedback はそれを import して利用する（SSOT 二重定義を避ける）。
+for (const icon of ["bi-info-circle", "bi-check-circle", "bi-exclamation-triangle", "bi-exclamation-octagon"]) {
+  assert.match(uiTypes, new RegExp(icon), `DIAGNOSTIC_SEVERITY_ICON must map ${icon}`);
+}
+assert.match(diag, /DIAGNOSTIC_SEVERITY_ICON/, "DiagnosticFeedback must wire to severity icon map");
+// role は danger→alert / それ以外→status を dynamic bind で割り当てる（設計 §7.3）
+assert.match(diag, /:role="[^"]*'alert'[^"]*'status'[^"]*"/, "DiagnosticFeedback must bind role danger→alert else→status");
+assert.match(diag, /dismissible/); assert.match(diag, /dismiss/);
+assert.match(diag, /var\(--editor-ui-diag-/, "DiagnosticFeedback must use diag tokens");
+assert.match(diag, /var\(--editor-ui-diag-summary-padding\)/);
+
+const help = await read("src/components/editor-ui/ContextHelp.vue");
+assert.match(help, /bi-question-circle/);
+assert.match(help, /Tooltip/); assert.match(help, /Popover/);
+assert.match(help, /dispose\(\)/, "ContextHelp must dispose on unmount");
+assert.match(help, /Escape/, "ContextHelp popover must close on Escape");
+
+// primitive 用新キー（全 locale）
+for (const loc of LOCALES) {
+  const t = translations[loc] ?? JSON.parse(await read(`public/locales/${loc}/translation.json`));
+  assert.ok(t.editor_ui?.slug_format_help, `editor_ui.slug_format_help missing in ${loc}`);
+}
+
+console.log("m11-t5 smoke Part 6: OK");

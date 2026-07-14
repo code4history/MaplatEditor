@@ -3,6 +3,7 @@
     "title": "Maplat Editor"
   },
   "common": {
+    "close": "Tutup",
     "back": "Kembali",
     "settings": "Pengaturan",
     "reset": "Atur ulang",
@@ -808,6 +809,7 @@
     }
   },
   "editor_ui": {
+    "slug_format_help": "Gunakan hanya huruf, angka, tanda hubung, dan garis bawah.",
     "new_item": "Baru",
     "discard_draft": "Buang draf", "discard_draft_confirm": "Buang draf ini dan kembali ke versi tersimpan?",
     "back": "Kembali ke daftar",

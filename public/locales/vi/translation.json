@@ -3,6 +3,7 @@
     "title": "Maplat Editor"
   },
   "common": {
+    "close": "Đóng",
     "back": "Quay lại",
     "settings": "Cài đặt",
     "reset": "Đặt lại",
@@ -808,6 +809,7 @@
     }
   },
   "editor_ui": {
+    "slug_format_help": "Chỉ dùng chữ cái, số, dấu gạch ngang và gạch dưới.",
     "new_item": "Mới",
     "discard_draft": "Bỏ bản nháp", "discard_draft_confirm": "Bỏ bản nháp này và quay lại phiên bản đã lưu?",
     "back": "Về danh sách",
