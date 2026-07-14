@@ -47,7 +47,17 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
   try {
     await installDialogHarness(app, imagePath);
 
-    await openHash(page, '#/basemaps?q=preserved&page=3', '[data-master-detail="base-map"]');
+    await openHash(page, '#/basemaps?page=3', '[data-master-detail="base-map"]');
+    await expect(page.getByTestId('basemap-new')).toHaveClass(/btn-outline-primary/);
+    await expect(page.getByTestId('basemap-new')).toHaveText(/新規追加|New/);
+    await page.getByTestId('basemap-search').fill('GSI Ortho');
+    await expect(page.getByTestId('basemap-row-gsi_ortho')).toBeVisible();
+    await expect(page.getByTestId('basemap-row-osm')).toHaveCount(0);
+    await expect(page).toHaveURL(/q=GSI(?:\+|%20)Ortho/);
+    await page.reload();
+    await expect(page.getByTestId('basemap-search')).toHaveValue('GSI Ortho');
+    await expect(page.getByTestId('basemap-row-gsi_ortho')).toBeVisible();
+    await page.getByTestId('basemap-search').fill('e2e');
     await page.getByTestId('basemap-new').click();
     await expect(page).toHaveURL(/uid=.*new=1/);
     await expect(page.getByTestId('editor-save')).toBeDisabled();
@@ -60,7 +70,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
     await expect(page.getByTestId('editor-save')).toBeDisabled();
     await expect(page.getByTestId('editor-undo')).toBeEnabled();
-    await expect(page).toHaveURL(/q=preserved/);
+    await expect(page).toHaveURL(/q=e2e/);
     await expect(page).toHaveURL(/page=3/);
 
     await fillAndCommit(page.getByTestId('basemap-title'), '下書きタイトル');
@@ -80,6 +90,19 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await page.getByTestId('editor-back').click();
     await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(0);
 
+    await page.getByTestId('basemap-search').fill('');
+    await page.getByTestId('basemap-range-filter').click();
+    await expect(page.locator('.envelope-modal')).toBeVisible();
+    await page.locator('.envelope-modal').getByRole('button', { name: /キャンセル|Cancel/i }).click();
+    await page.evaluate(() => { location.hash = '/basemaps?bbox=134.5,34.5,135,35'; });
+    await expect(page).toHaveURL(/bbox=134\.5(?:%2C|,)34\.5(?:%2C|,)135(?:%2C|,)35/);
+    await expect(page.getByTestId('basemap-row-osm')).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId('basemap-row-osm')).toBeVisible();
+    await expect(page.getByTestId('basemap-range-clear')).toBeVisible();
+    await page.getByTestId('basemap-range-clear').click();
+    await expect(page).not.toHaveURL(/bbox=/);
+
     await page.getByTestId('basemap-row-osm').click();
     await expect(page.getByTestId('basemap-editor-readonly')).toBeVisible();
     await expect(page.getByTestId('basemap-title').locator('xpath=..').locator('.lang-value-chip')).toHaveCount(10);
@@ -93,6 +116,8 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await expect(page.getByTestId('basemap-slug')).toHaveValue('e2e-user-basemap');
 
     await openHash(page, '#/assets?q=&page=2', '[data-master-detail="image-asset"]');
+    await expect(page.getByTestId('asset-new')).toHaveClass(/btn-outline-primary/);
+    await expect(page.getByTestId('asset-new')).toHaveText(/新規追加|New/);
     await page.getByTestId('asset-new').click();
     await page.getByTestId('asset-pick-file').click();
     await fillAndCommit(page.getByTestId('asset-slug'), 'e2e-image-asset');
