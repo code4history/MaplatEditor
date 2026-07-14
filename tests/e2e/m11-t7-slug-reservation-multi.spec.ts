@@ -85,16 +85,6 @@ async function waitForOwnedReservation(page: Page, slug: string, uid: string): P
   ), { timeout: 15_000 }).toEqual({ ownerView: 'available', outsiderView: 'reserved-by-other' });
 }
 
-async function seedPoi(page: Page, slug: string): Promise<string> {
-  return page.evaluate(async (poiSlug) => {
-    const result = await window.poiSources.createLocal({ slug: poiSlug, title: { ja: 'T7 multi POI' }, lang: 'ja' });
-    if (!result || !('result' in result) || result.result !== 'Success') {
-      throw new Error(`seed POI failed: ${JSON.stringify(result)}`);
-    }
-    return result.uid;
-  }, slug);
-}
-
 test('instance B reports reserved-by-other when instance A reserves the slug', async () => {
   test.setTimeout(180_000);
   const { a, b } = await launchPair();
@@ -107,16 +97,24 @@ test('instance B reports reserved-by-other when instance A reserves the slug', a
     await a.page.getByTestId('basemap-slug').fill(slug);
     await waitForOwnedReservation(a.page, slug, aUid);
 
-    // POI EditはSlugFieldのstate-changeを親validationへ反映する契約を持つ。
-    const bPoiUid = await seedPoi(b.page, 'm11-t7-multi-b-poi');
-    await openHash(b.page, `#/poisources/${bPoiUid}`, '[data-testid="poi-slug"]');
-    const bSlug = b.page.getByTestId('poi-slug');
+    // POI作成modalのcanSubmitはmodalSlugState === availableを直接条件にする。
+    // 必須titleを満たし、同一submitのenabled→競合state→disabled遷移で親伝播を証明する。
+    await openHash(b.page, '#/poisources', '[data-resource-list="poi-source"]');
+    await b.page.locator('[data-resource-new]').click();
+    const modal = b.page.locator('.modal');
+    await expect(modal).toBeVisible();
+    const bSlug = b.page.getByTestId('poi-create-slug');
+    await modal.locator('.modal-body > input.form-control').fill('T7 multi POI');
+    await bSlug.fill('m11-t7-multi-b-available');
+    const submit = modal.locator('.modal-footer .btn-primary');
+    await expect(submit).toBeEnabled();
+
     await bSlug.fill(slug);
     const field = b.page.locator('.editor-field', { has: bSlug });
     await expect(field.locator('[data-diagnostic-scope="field"]')).toBeVisible();
     await expect(field.locator('[role="status"]')).toHaveText('他で使用中です');
     await expect(bSlug).toHaveClass(/is-invalid/);
-    await expect(b.page.getByTestId('editor-save')).toBeDisabled();
+    await expect(submit).toBeDisabled();
   } finally {
     await Promise.all([a.app.close(), b.app.close()]);
   }
