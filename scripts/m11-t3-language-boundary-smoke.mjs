@@ -73,9 +73,21 @@ assert.equal(resolveAppLocalizedMetadata({
 const mapEdit = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
 assert.match(mapEdit, /const label = createLangComputed\(['"]label['"]\)/);
 assert.match(mapEdit, /data-testid="map-label"[^>]*v-model="label"/);
-assert.match(mapEdit, /data-testid="map-slug"[^>]*:disabled="translationMode"/);
+assert.match(
+  mapEdit,
+  /<SlugField(?=[^>]*:disabled="translationMode")(?=[^>]*input-testid="map-slug")[^>]*\/>/,
+);
 assert.match(mapEdit, /data-editor-document-language[^>]*:disabled="translationMode"/);
 assert.match(mapEdit, /@click="mapUpload"[^>]*:disabled="translationMode"/);
+
+const slugField = await readFile(
+  path.join(projectRoot, 'src/components/editor-ui/SlugField.vue'),
+  'utf8',
+);
+assert.match(
+  slugField,
+  /<input(?=[^>]*:disabled="disabled")(?=[^>]*:data-testid="inputTestid")[^>]*\/>/,
+);
 
 const appEdit = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
 assert.match(appEdit, /keywords:\s*Record<string, string>/);
@@ -88,7 +100,10 @@ assert.match(appEdit, /data-testid="app-keywords"[^>]*v-model="keywordsText"/);
 assert.match(appEdit, /data-testid="app-manifest-name"[^>]*v-model="manifestNameText"/);
 assert.match(appEdit, /data-testid="app-manifest-short-name"[^>]*v-model="manifestShortNameText"/);
 assert.match(appEdit, /const translationMode = computed/);
-assert.match(appEdit, /data-testid="app-id"[^>]*:disabled="translationMode"/);
+assert.match(
+  appEdit,
+  /<SlugField(?=[^>]*:disabled="translationMode")(?=[^>]*input-testid="app-id")[^>]*\/>/,
+);
 assert.match(appEdit, /data-editor-document-language[^>]*:disabled="translationMode"/);
 assert.match(appEdit, /<PoiReferenceEditor[^>]*:active-lang="currentLang"/);
 assert.match(appEdit, /<AppSourceEditor[^>]*:default-lang="appData\.lang"/);
