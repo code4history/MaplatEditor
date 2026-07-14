@@ -139,7 +139,7 @@ const saveStateMeta = computed(() => EDITOR_SAVE_STATE_META[props.saveState]);
 .editor-action-header {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: var(--editor-ui-z-action-header);
   display: flex;
   align-items: center;
   justify-content: space-between;

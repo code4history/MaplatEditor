@@ -24,11 +24,11 @@ defineProps<{
 <style scoped>
 .editor-busy-overlay {
   position: fixed;
-  z-index: 1040;
+  z-index: var(--editor-ui-z-overlay);
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgb(255 255 255 / 58%);
+  background: var(--editor-ui-overlay-bg);
   cursor: wait;
 }
 
