@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'm11-t5-screenshots');
@@ -114,7 +115,7 @@ test('shell font, header vocabulary, and header offset use tokens', async () => 
     expect(headerHeight).toBe(50);
     expect(contentOffset).toBe(50);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -131,7 +132,7 @@ test('F1: application-management nav stays active on both AppList and AppEdit', 
     await openHash(page, `#/appedit?uid=${appUid}`, '[data-testid="app-id"]');
     await expect(page.locator('.navbar-nav .nav-link.active', { hasText: 'アプリ管理' })).toBeVisible();
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -177,7 +178,7 @@ test('base map pilot: unified help, field diagnostics, immediate summary, and no
     await expect(page.locator('[data-diagnostic-scope="field"]').first()).toBeVisible();
     await expect(page.getByTestId('basemap-validation-summary')).toBeVisible();
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -220,7 +221,7 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     await page.getByTestId('editor-undo').click();
     await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -253,7 +254,7 @@ test('F8: editing an asset shows the draft badge live and undo removes it immedi
     await expect(page.getByTestId('asset-title')).toHaveValue('F8画像');
     await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -303,7 +304,7 @@ test('captures regression screenshots for human review', async () => {
     await openHash(page, `#/poisources/${poiUid}`, '.poi-side-pane');
     await shot('10-poi-edit-diagnostics');
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -362,6 +363,6 @@ test('F8: draft badges stay consistent across row switching', async () => {
     expect(assetDrafts).toBe(0);
     await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });

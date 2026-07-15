@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdir, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -30,7 +31,7 @@ async function launch(e2eRoot: string, instance: string): Promise<Runtime> {
     }
     return { app, page, userDataDir, saveFolder };
   } catch (error) {
-    try { await app.close(); } catch { /* cleanup失敗で元例外を上書きしない */ }
+    try { await quitElectronApplication(app); } catch { /* cleanup失敗で元例外を上書きしない */ }
     throw error;
   }
 }
@@ -50,7 +51,11 @@ async function launchPair(): Promise<{ e2eRoot: string; a: Runtime; b: Runtime }
     }
     return { e2eRoot, a, b };
   } catch (error) {
-    await Promise.allSettled([a, b].filter((runtime): runtime is Runtime => runtime !== null).map((runtime) => runtime.app.close()));
+    await Promise.allSettled(
+      [a, b]
+        .filter((runtime): runtime is Runtime => runtime !== null)
+        .map((runtime) => quitElectronApplication(runtime.app)),
+    );
     throw error;
   }
 }
@@ -120,7 +125,7 @@ test('instance B reports reserved-by-other when instance A reserves the slug', a
     await expect(bSlug).toHaveClass(/is-invalid/);
     await expect(submit).toBeDisabled();
   } finally {
-    await Promise.all([a.app.close(), b.app.close()]);
+    await Promise.all([quitElectronApplication(a.app), quitElectronApplication(b.app)]);
   }
 });
 
@@ -172,6 +177,6 @@ test('instance B save conflicts with instance A reservation and creates no asset
       (await window.assetDrafts.get('base-map', uid)) != null, bUid);
     expect(draftCreated).toBe(false);
   } finally {
-    await Promise.all([a.app.close(), b.app.close()]);
+    await Promise.all([quitElectronApplication(a.app), quitElectronApplication(b.app)]);
   }
 });

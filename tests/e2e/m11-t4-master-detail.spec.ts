@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -177,6 +178,6 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });

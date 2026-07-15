@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -271,6 +272,6 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await page.getByTestId('editor-back').click();
     expect(await page.evaluate((uid) => window.assetDrafts.get('map', uid), mapUid)).toBeNull();
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });

@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'm11-t6-screenshots');
@@ -183,7 +184,7 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await page.locator('[data-resource-search]').fill('zzz-no-such-map-xyz');
     await expect(page.locator('[data-resource-status][data-state="empty"]')).toBeVisible();
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -214,7 +215,7 @@ test('poi list shows real total, keeps Import in secondary slot, and hides flag-
     await page.keyboard.press('Escape');
     await expect(page.locator('.modal .modal-title')).toHaveCount(0);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -278,7 +279,7 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await expect(page.locator('.modal')).toBeVisible();
     await page.keyboard.press('Escape');
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -317,7 +318,7 @@ test('infinite scroll replaces the pager and Back restores query and scroll (gri
     await expect.poll(async () => page.locator('[data-resource-content="map"]').evaluate((el) => el.scrollTop), { timeout: 10_000 }).toBeGreaterThan(0);
     expect(beforeScroll).toBeGreaterThan(0);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -336,6 +337,6 @@ test('captures list screenshots for human review', async () => {
     await openHash(page, '#/applist', '[data-resource-list="app"]');             await shot('04-app-list');
     await openHash(page, '#/assets', '[data-master-detail="image-asset"]');      await shot('05-asset-list');
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });

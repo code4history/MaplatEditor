@@ -3,6 +3,7 @@ import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'm11-t7-screenshots');
@@ -24,7 +25,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
     }
     return { app, page };
   } catch (error) {
-    try { await app.close(); } catch { /* cleanup失敗で元例外を上書きしない */ }
+    try { await quitElectronApplication(app); } catch { /* cleanup失敗で元例外を上書きしない */ }
     throw error;
   }
 }
@@ -363,7 +364,7 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     await expectSlugInputAlignment(page, 'asset-slug', 'asset-title');
     await shot('05-asset');
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -406,7 +407,7 @@ test('map rename keeps the uid, passes renameFromSlug, and never shows copy_or_m
     const appDocument = await page.evaluate(async (uid) => window.appedit.request(uid), appUid);
     expect(appDocument?.sources?.[0]?.mapUid).toBe(mapUid);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -448,7 +449,7 @@ test('diagnostics use field and operation scopes without legacy banners', async 
     await slugInput.fill('m11-t7-map-dup-b2');
     await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -511,7 +512,7 @@ test('new base map creation mints uid, reserves slug, and persists initial draft
       window.slugReservations.check({ slug, excludeUid: uid }), { slug, uid: newUid });
     expect(reservedAfter).toBe('available');
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -564,7 +565,7 @@ test('new base map save fails cleanly when slug is reserved by another owner', a
       (await window.assetDrafts.get('base-map', uid)) != null, newUid);
     expect(draftCreated).toBe(false);
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -618,7 +619,7 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
     expect(draftImmediatelyAfterUndo).toBeNull();
 
     // 再起動(同一 root)しても draft は復活しない
-    await runtime.app.close();
+    await quitElectronApplication(runtime.app);
     runtime = await launch(e2eRoot);
     await forceJapanese(runtime.page);
     const restored = await runtime.page.evaluate(async (assetUid) =>
@@ -628,7 +629,7 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
     await expect(runtime.page.getByTestId('basemap-row-e2e-t7-draft-base')).toBeVisible();
     await expect(runtime.page.getByTestId('editor-discard-draft')).toHaveCount(0);
   } finally {
-    await runtime.app.close();
+    await quitElectronApplication(runtime.app);
   }
 });
 
@@ -678,7 +679,7 @@ test('actual base map save service rolls back registry and body on promote confl
     }
     expect(dbState).toEqual({ registry: 0, body: 0, reservationOwner: foreignUid });
   } finally {
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -748,7 +749,7 @@ test('stale reserve completion cannot publish available or create a draft while 
     expect(foreignView).toBe('reserved-by-other');
   } finally {
     if (harnessInstalled) await restoreDeferredReserveHarness(app);
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
 
@@ -805,6 +806,6 @@ test('release failure keeps the editor uid and draft until discard retry succeed
     )).toBe(true);
   } finally {
     if (harnessInstalled) await restoreReleaseFailureHarness(app);
-    await app.close();
+    await quitElectronApplication(app);
   }
 });
