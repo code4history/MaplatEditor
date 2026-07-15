@@ -8,7 +8,7 @@
     </template>
     <input
       :id="fieldId"
-      class="form-control editor-ui-mono"
+      class="form-control form-control-sm editor-ui-mono"
       :class="{ 'is-invalid': hasDangerDiagnostics }"
       :value="modelValue"
       :disabled="disabled"

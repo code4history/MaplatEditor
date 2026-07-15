@@ -1,7 +1,7 @@
 <template>
   <div class="resource-grid-card" :data-resource-uid="item.uid">
     <router-link :to="to" class="text-decoration-none text-dark d-block" @contextmenu.prevent="onContextMenu">
-      <div class="resource-grid-card__thumb bg-white">
+      <div class="resource-grid-card__thumb">
         <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" loading="lazy" decoding="async" :alt="item.title">
         <img v-else :src="fallbackImage" :alt="item.title">
       </div>

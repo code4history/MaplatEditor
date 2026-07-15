@@ -1,6 +1,6 @@
 <template>
   <div class="editor-field">
-    <label class="editor-field__label form-label fw-semibold" :for="labelFor">
+    <label class="editor-field__label form-label fw-semibold mb-0" :for="labelFor">
       {{ label }}
       <span v-if="required" class="editor-field__required text-danger" aria-hidden="true">*</span>
       <span v-if="$slots.help" class="editor-field__help">

@@ -61,6 +61,24 @@ async function openAt(x: number, y: number): Promise<void> {
   document.addEventListener("click", onOutside, true);
   document.addEventListener("keydown", onGlobalKeydown, true);
   await nextTick();
+  // menu幅・高さを測定し、viewport境界内へclampする(Major 1修正)
+  const menu = menuRef.value;
+  if (menu) {
+    const menuRect = menu.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let nx = x;
+    let ny = y;
+    // 右端はみ出し補正
+    if (nx + menuRect.width > vw - 4) nx = Math.max(4, vw - menuRect.width - 4);
+    // 下端はみ出し補正
+    if (ny + menuRect.height > vh - 4) ny = Math.max(4, vh - menuRect.height - 4);
+    // 左端はみ出し補正
+    if (nx < 4) nx = 4;
+    // 上端はみ出し補正
+    if (ny < 4) ny = 4;
+    position.value = { x: nx, y: ny };
+  }
   (menuRef.value?.querySelector('[role="menuitem"]:not(:disabled)') as HTMLElement | null)?.focus();
 }
 
