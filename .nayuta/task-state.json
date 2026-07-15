@@ -1,7 +1,7 @@
 {
   "task": "m11-t8",
   "name": "全文・空間検索 / App Coverage / 2カラムselector / GCP auto range",
-  "status": "design_approved",
+  "status": "implementation_in_progress",
   "classification": "new feature",
   "design_revision": 2,
   "design_doc": "docs/superpowers/specs/2026-07-16-m11-t8-search-coverage-design.md",
@@ -28,7 +28,7 @@
     {
       "id": "t8-2",
       "name": "Spatial search (R-Tree) 拡張",
-      "status": "pending",
+      "status": "completed",
       "classification": "new feature"
     },
     {
@@ -72,8 +72,26 @@
     "T7 47b9001 (E2E orphaned process cleanup) は済"
   ],
   "handoff": {
-    "next_action": "implementation planning by nayuta-designer",
-    "actor": "nayuta-designer",
-    "stop_condition": "実装計画書の作成完了を待つ"
-  }
+    "next_action": "implementation of T8-3 (App Coverage Auto Calc) by nayuta-implementer",
+    "actor": "nayuta-implementer",
+    "stop_condition": "T8-3実装完了を待つ"
+  },
+  "implementation_reviews": [
+    {
+      "revision": 1,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-implementation-reviewer",
+      "verdict": "changes_required_major",
+      "counts": { "critical": 0, "major": 2, "minor": 0, "info": 0 },
+      "report": "docs/superpowers/reviews/2026-07-16-m11-t8-implementation-review-v1.md"
+    },
+    {
+      "revision": 2,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-implementation-reviewer",
+      "verdict": "approved",
+      "counts": { "critical": 0, "major": 0, "minor": 0, "info": 0 },
+      "report": "docs/superpowers/reviews/2026-07-16-m11-t8-implementation-review-v2.md"
+    }
+  ]
 }

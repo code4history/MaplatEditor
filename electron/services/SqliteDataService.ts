@@ -317,6 +317,62 @@ function mapBboxFromJson(dataJson: string): string | null {
   }
 }
 
+function poiBboxFromJson(dataJson: string): string | null {
+  try {
+    const fc = JSON.parse(dataJson);
+    const features = Array.isArray(fc?.features) ? fc.features : [];
+    if (features.length === 0) return null;
+
+    function collectCoords(geom: any): [number, number][] {
+      if (!geom || !geom.type || !geom.coordinates) return [];
+      const type = geom.type;
+      const coords = geom.coordinates;
+      if (type === 'Point') return [[coords[0], coords[1]]];
+      if (type === 'MultiPoint' || type === 'LineString') return coords;
+      if (type === 'MultiLineString' || type === 'Polygon') {
+        const result: [number, number][] = [];
+        for (const ring of coords) { for (const c of ring) result.push([c[0], c[1]]); }
+        return result;
+      }
+      if (type === 'MultiPolygon') {
+        const result: [number, number][] = [];
+        for (const polygon of coords) { for (const ring of polygon) { for (const c of ring) result.push([c[0], c[1]]); } }
+        return result;
+      }
+      if (type === 'GeometryCollection' && Array.isArray(geom.geometries)) {
+        const result: [number, number][] = [];
+        for (const g of geom.geometries) result.push(...collectCoords(g));
+        return result;
+      }
+      return [];
+    }
+
+    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    let found = false;
+    for (const feature of features) {
+      const pts = collectCoords(feature?.geometry);
+      for (const [lng, lat] of pts) {
+        if (typeof lng !== 'number' || typeof lat !== 'number') continue;
+        if (!isFinite(lng) || !isFinite(lat)) continue;
+        minLng = Math.min(minLng, lng); minLat = Math.min(minLat, lat);
+        maxLng = Math.max(maxLng, lng); maxLat = Math.max(maxLat, lat);
+        found = true;
+      }
+    }
+    if (!found) return null;
+    const mercX = (lng: number) => lng * 20037508.34 / 180;
+    const mercY = (lat: number) => Math.log(Math.tan((90 + lat) * Math.PI / 360)) * 20037508.34 / Math.PI;
+    return JSON.stringify([mercX(minLng), mercY(minLat), mercX(maxLng), mercY(maxLat)]);
+  } catch {
+    return null;
+  }
+}
+
+// Appのbbox(メルカトル座標)。T8-3(App Coverage自動計算)で実装予定、現状は常にnull
+function appBboxFromJson(_dataJson: string): string | null {
+  return null;
+}
+
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
@@ -628,8 +684,20 @@ class SqliteDataService {
     db.function('maplat_poi_fts_raw', { deterministic: true }, (dataJson: unknown, titleJson: unknown, slug: unknown) =>
       poiFtsRawFromJson(String(dataJson ?? ''), String(titleJson ?? ''), String(slug ?? ''))
     );
+    db.function('maplat_base_map_fts_raw', { deterministic: true }, (dataJson: unknown) =>
+      ftsRawFromJson(String(dataJson ?? ''), ['title', 'label', 'attribution'])
+    );
+    db.function('maplat_asset_fts_raw', { deterministic: true }, (slug: unknown, titleJson: unknown, sourceName: unknown) =>
+      [slug, titleJson, sourceName].map(v => String(v ?? '')).filter(Boolean).join('\n')
+    );
     db.function('maplat_map_bbox', { deterministic: true }, (dataJson: unknown) =>
       mapBboxFromJson(String(dataJson ?? ''))
+    );
+    db.function('maplat_poi_bbox', { deterministic: true }, (dataJson: unknown) =>
+      poiBboxFromJson(String(dataJson ?? ''))
+    );
+    db.function('maplat_app_bbox', { deterministic: true }, (dataJson: unknown) =>
+      appBboxFromJson(String(dataJson ?? ''))
     );
   }
 
@@ -977,8 +1045,20 @@ class SqliteDataService {
       CREATE VIRTUAL TABLE IF NOT EXISTS maps_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
       CREATE VIRTUAL TABLE IF NOT EXISTS apps_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
       CREATE VIRTUAL TABLE IF NOT EXISTS poi_sources_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
+      CREATE VIRTUAL TABLE IF NOT EXISTS base_maps_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
+      CREATE VIRTUAL TABLE IF NOT EXISTS assets_fts USING fts5(uid UNINDEXED, raw UNINDEXED, words);
       CREATE VIRTUAL TABLE IF NOT EXISTS maps_rtree USING rtree(id, min_x, max_x, min_y, max_y);
       CREATE TABLE IF NOT EXISTS maps_rtree_key (
+        uid TEXT PRIMARY KEY,
+        rid INTEGER NOT NULL UNIQUE
+      );
+      CREATE VIRTUAL TABLE IF NOT EXISTS apps_rtree USING rtree(id, min_x, max_x, min_y, max_y);
+      CREATE TABLE IF NOT EXISTS apps_rtree_key (
+        uid TEXT PRIMARY KEY,
+        rid INTEGER NOT NULL UNIQUE
+      );
+      CREATE VIRTUAL TABLE IF NOT EXISTS poi_sources_rtree USING rtree(id, min_x, max_x, min_y, max_y);
+      CREATE TABLE IF NOT EXISTS poi_sources_rtree_key (
         uid TEXT PRIMARY KEY,
         rid INTEGER NOT NULL UNIQUE
       );
@@ -988,12 +1068,24 @@ class SqliteDataService {
       DROP TRIGGER IF EXISTS maps_search_ai;
       DROP TRIGGER IF EXISTS maps_search_au;
       DROP TRIGGER IF EXISTS maps_search_ad;
+      DROP TRIGGER IF EXISTS apps_rtree_ai;
+      DROP TRIGGER IF EXISTS apps_rtree_au;
+      DROP TRIGGER IF EXISTS apps_rtree_ad;
+      DROP TRIGGER IF EXISTS poi_sources_rtree_ai;
+      DROP TRIGGER IF EXISTS poi_sources_rtree_au;
+      DROP TRIGGER IF EXISTS poi_sources_rtree_ad;
       DROP TRIGGER IF EXISTS apps_search_ai;
       DROP TRIGGER IF EXISTS apps_search_au;
       DROP TRIGGER IF EXISTS apps_search_ad;
       DROP TRIGGER IF EXISTS poi_sources_search_ai;
       DROP TRIGGER IF EXISTS poi_sources_search_au;
       DROP TRIGGER IF EXISTS poi_sources_search_ad;
+      DROP TRIGGER IF EXISTS base_maps_search_ai;
+      DROP TRIGGER IF EXISTS base_maps_search_au;
+      DROP TRIGGER IF EXISTS base_maps_search_ad;
+      DROP TRIGGER IF EXISTS assets_search_ai;
+      DROP TRIGGER IF EXISTS assets_search_au;
+      DROP TRIGGER IF EXISTS assets_search_ad;
 
       CREATE TRIGGER maps_search_ai AFTER INSERT ON maps BEGIN
         DELETE FROM maps_fts WHERE uid = new.uid;
@@ -1078,6 +1170,112 @@ class SqliteDataService {
       CREATE TRIGGER poi_sources_search_ad AFTER DELETE ON poi_sources BEGIN
         DELETE FROM poi_sources_fts WHERE uid = old.uid;
       END;
+
+      CREATE TRIGGER apps_rtree_ai AFTER INSERT ON apps BEGIN
+        DELETE FROM apps_rtree WHERE id IN (SELECT rid FROM apps_rtree_key WHERE uid = new.uid);
+        DELETE FROM apps_rtree_key WHERE uid = new.uid;
+        INSERT INTO apps_rtree_key(uid, rid)
+          SELECT new.uid, new.rowid WHERE maplat_app_bbox(new.data_json) IS NOT NULL;
+        INSERT INTO apps_rtree(id, min_x, max_x, min_y, max_y)
+          SELECT new.rowid,
+                 json_extract(maplat_app_bbox(new.data_json), '$[0]'),
+                 json_extract(maplat_app_bbox(new.data_json), '$[2]'),
+                 json_extract(maplat_app_bbox(new.data_json), '$[1]'),
+                 json_extract(maplat_app_bbox(new.data_json), '$[3]')
+          WHERE maplat_app_bbox(new.data_json) IS NOT NULL;
+      END;
+
+      CREATE TRIGGER apps_rtree_au AFTER UPDATE ON apps BEGIN
+        DELETE FROM apps_rtree WHERE id IN (SELECT rid FROM apps_rtree_key WHERE uid IN (old.uid, new.uid));
+        DELETE FROM apps_rtree_key WHERE uid IN (old.uid, new.uid);
+        INSERT INTO apps_rtree_key(uid, rid)
+          SELECT new.uid, new.rowid WHERE maplat_app_bbox(new.data_json) IS NOT NULL;
+        INSERT INTO apps_rtree(id, min_x, max_x, min_y, max_y)
+          SELECT new.rowid,
+                 json_extract(maplat_app_bbox(new.data_json), '$[0]'),
+                 json_extract(maplat_app_bbox(new.data_json), '$[2]'),
+                 json_extract(maplat_app_bbox(new.data_json), '$[1]'),
+                 json_extract(maplat_app_bbox(new.data_json), '$[3]')
+          WHERE maplat_app_bbox(new.data_json) IS NOT NULL;
+      END;
+
+      CREATE TRIGGER apps_rtree_ad AFTER DELETE ON apps BEGIN
+        DELETE FROM apps_rtree WHERE id IN (SELECT rid FROM apps_rtree_key WHERE uid = old.uid);
+        DELETE FROM apps_rtree_key WHERE uid = old.uid;
+      END;
+
+      CREATE TRIGGER poi_sources_rtree_ai AFTER INSERT ON poi_sources BEGIN
+        DELETE FROM poi_sources_rtree WHERE id IN (SELECT rid FROM poi_sources_rtree_key WHERE uid = new.uid);
+        DELETE FROM poi_sources_rtree_key WHERE uid = new.uid;
+        INSERT INTO poi_sources_rtree_key(uid, rid)
+          SELECT new.uid, new.rowid WHERE maplat_poi_bbox(new.data_json) IS NOT NULL;
+        INSERT INTO poi_sources_rtree(id, min_x, max_x, min_y, max_y)
+          SELECT new.rowid,
+                 json_extract(maplat_poi_bbox(new.data_json), '$[0]'),
+                 json_extract(maplat_poi_bbox(new.data_json), '$[2]'),
+                 json_extract(maplat_poi_bbox(new.data_json), '$[1]'),
+                 json_extract(maplat_poi_bbox(new.data_json), '$[3]')
+          WHERE maplat_poi_bbox(new.data_json) IS NOT NULL;
+      END;
+
+      CREATE TRIGGER poi_sources_rtree_au AFTER UPDATE ON poi_sources BEGIN
+        DELETE FROM poi_sources_rtree WHERE id IN (SELECT rid FROM poi_sources_rtree_key WHERE uid IN (old.uid, new.uid));
+        DELETE FROM poi_sources_rtree_key WHERE uid IN (old.uid, new.uid);
+        INSERT INTO poi_sources_rtree_key(uid, rid)
+          SELECT new.uid, new.rowid WHERE maplat_poi_bbox(new.data_json) IS NOT NULL;
+        INSERT INTO poi_sources_rtree(id, min_x, max_x, min_y, max_y)
+          SELECT new.rowid,
+                 json_extract(maplat_poi_bbox(new.data_json), '$[0]'),
+                 json_extract(maplat_poi_bbox(new.data_json), '$[2]'),
+                 json_extract(maplat_poi_bbox(new.data_json), '$[1]'),
+                 json_extract(maplat_poi_bbox(new.data_json), '$[3]')
+          WHERE maplat_poi_bbox(new.data_json) IS NOT NULL;
+      END;
+
+      CREATE TRIGGER poi_sources_rtree_ad AFTER DELETE ON poi_sources BEGIN
+        DELETE FROM poi_sources_rtree WHERE id IN (SELECT rid FROM poi_sources_rtree_key WHERE uid = old.uid);
+        DELETE FROM poi_sources_rtree_key WHERE uid = old.uid;
+      END;
+
+      CREATE TRIGGER base_maps_search_ai AFTER INSERT ON base_maps BEGIN
+        DELETE FROM base_maps_fts WHERE uid = new.uid;
+        INSERT INTO base_maps_fts(uid, raw, words)
+          VALUES (new.uid,
+                  new.slug || char(10) || maplat_base_map_fts_raw(new.data_json),
+                  maplat_tokenize(new.slug || ' ' || maplat_base_map_fts_raw(new.data_json)));
+      END;
+
+      CREATE TRIGGER base_maps_search_au AFTER UPDATE ON base_maps BEGIN
+        DELETE FROM base_maps_fts WHERE uid IN (old.uid, new.uid);
+        INSERT INTO base_maps_fts(uid, raw, words)
+          VALUES (new.uid,
+                  new.slug || char(10) || maplat_base_map_fts_raw(new.data_json),
+                  maplat_tokenize(new.slug || ' ' || maplat_base_map_fts_raw(new.data_json)));
+      END;
+
+      CREATE TRIGGER base_maps_search_ad AFTER DELETE ON base_maps BEGIN
+        DELETE FROM base_maps_fts WHERE uid = old.uid;
+      END;
+
+      CREATE TRIGGER assets_search_ai AFTER INSERT ON assets BEGIN
+        DELETE FROM assets_fts WHERE uid = new.uid;
+        INSERT INTO assets_fts(uid, raw, words)
+          VALUES (new.uid,
+                  maplat_asset_fts_raw(new.slug, new.title_json, new.source_name),
+                  maplat_tokenize(maplat_asset_fts_raw(new.slug, new.title_json, new.source_name)));
+      END;
+
+      CREATE TRIGGER assets_search_au AFTER UPDATE ON assets BEGIN
+        DELETE FROM assets_fts WHERE uid IN (old.uid, new.uid);
+        INSERT INTO assets_fts(uid, raw, words)
+          VALUES (new.uid,
+                  maplat_asset_fts_raw(new.slug, new.title_json, new.source_name),
+                  maplat_tokenize(maplat_asset_fts_raw(new.slug, new.title_json, new.source_name)));
+      END;
+
+      CREATE TRIGGER assets_search_ad AFTER DELETE ON assets BEGIN
+        DELETE FROM assets_fts WHERE uid = old.uid;
+      END;
     `);
 
     // トリガ導入以前に書き込まれた既存行の索引を一度だけ再構築する
@@ -1091,6 +1289,10 @@ class SqliteDataService {
         DELETE FROM maps_rtree;
         DELETE FROM maps_rtree_key;
         DELETE FROM apps_fts;
+        DELETE FROM apps_rtree;
+        DELETE FROM apps_rtree_key;
+        DELETE FROM poi_sources_rtree;
+        DELETE FROM poi_sources_rtree_key;
         INSERT INTO maps_fts(uid, raw, words)
           SELECT uid,
                  slug || char(10) || maplat_map_fts_raw(data_json),
@@ -1109,7 +1311,35 @@ class SqliteDataService {
           SELECT uid,
                  slug || char(10) || maplat_app_fts_raw(data_json),
                  maplat_tokenize(slug || ' ' || maplat_app_fts_raw(data_json))
-          FROM apps;
+           FROM apps;
+         INSERT INTO apps_rtree_key(uid, rid)
+           SELECT uid, rowid FROM apps WHERE maplat_app_bbox(data_json) IS NOT NULL;
+         INSERT INTO apps_rtree(id, min_x, max_x, min_y, max_y)
+           SELECT rowid,
+                  json_extract(maplat_app_bbox(data_json), '$[0]'),
+                  json_extract(maplat_app_bbox(data_json), '$[2]'),
+                  json_extract(maplat_app_bbox(data_json), '$[1]'),
+                  json_extract(maplat_app_bbox(data_json), '$[3]')
+           FROM apps WHERE maplat_app_bbox(data_json) IS NOT NULL;
+         INSERT INTO base_maps_fts(uid, raw, words)
+          SELECT uid,
+                 slug || char(10) || maplat_base_map_fts_raw(data_json),
+                 maplat_tokenize(slug || ' ' || maplat_base_map_fts_raw(data_json))
+           FROM base_maps;
+         INSERT INTO poi_sources_rtree_key(uid, rid)
+           SELECT uid, rowid FROM poi_sources WHERE maplat_poi_bbox(data_json) IS NOT NULL;
+         INSERT INTO poi_sources_rtree(id, min_x, max_x, min_y, max_y)
+           SELECT rowid,
+                  json_extract(maplat_poi_bbox(data_json), '$[0]'),
+                  json_extract(maplat_poi_bbox(data_json), '$[2]'),
+                  json_extract(maplat_poi_bbox(data_json), '$[1]'),
+                  json_extract(maplat_poi_bbox(data_json), '$[3]')
+           FROM poi_sources WHERE maplat_poi_bbox(data_json) IS NOT NULL;
+         INSERT INTO assets_fts(uid, raw, words)
+          SELECT uid,
+                 maplat_asset_fts_raw(slug, title_json, source_name),
+                 maplat_tokenize(maplat_asset_fts_raw(slug, title_json, source_name))
+          FROM assets;
         INSERT OR REPLACE INTO schema_migrations (id) VALUES ('${SEARCH_INDEX_BACKFILL_ID}');
         COMMIT;
       `);
@@ -1672,25 +1902,9 @@ class SqliteDataService {
     return rows.map(assetRowToRecord);
   }
 
-  // 各検索語につき slug または title_json の部分一致(LIKE)を要求する暗黙AND。
-  // 空クエリは絞り込みなし(全件)。専用FTS表は持たない(過剰実装しない)
+  // FTS5 経由のアセット検索。旧 LIKE 実装から FTS5 に移行
   async searchAssets(query: string): Promise<AssetRecord[]> {
-    const db = await this.getDb();
-    const terms = query.trim().split(/\s+/).filter(Boolean);
-    if (terms.length === 0) return this.listAssets();
-    const conditions = terms.map(() => `(slug LIKE ? ESCAPE '\\' OR title_json LIKE ? ESCAPE '\\')`).join(' AND ');
-    const params: string[] = [];
-    for (const term of terms) {
-      const like = `%${escapeLike(term)}%`;
-      params.push(like, like);
-    }
-    const rows = db
-      .prepare(
-        `SELECT uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at
-         FROM assets WHERE ${conditions} ORDER BY slug`
-      )
-      .all(...params) as any[];
-    return rows.map(assetRowToRecord);
+    return this.searchFtsAssets(query);
   }
 
   // --- search (FTS5 / R-Tree) ---
@@ -1699,7 +1913,7 @@ class SqliteDataService {
   // 複数語はAND(積集合)。戻り値 null は「検索語なし=絞り込みなし」。
   private searchUids(
     db: DatabaseSync,
-    table: 'maps_fts' | 'apps_fts' | 'poi_sources_fts',
+    table: 'maps_fts' | 'apps_fts' | 'poi_sources_fts' | 'base_maps_fts' | 'assets_fts',
     query: string,
   ): string[] | null {
     const terms = query.trim().split(/\s+/).filter(Boolean);
@@ -1729,16 +1943,17 @@ class SqliteDataService {
 
   private readDocsByUids(
     db: DatabaseSync,
-    table: 'maps' | 'apps',
+    table: 'maps' | 'apps' | 'base_maps',
     uids: string[],
     rowToDocument: (row: any) => any,
   ): any[] {
     const docs: any[] = [];
+    const columns = table === 'base_maps' ? 'uid, slug, scope, sort_order, data_json, revision' : 'uid, slug, data_json, revision';
     for (let i = 0; i < uids.length; i += 500) {
       const chunk = uids.slice(i, i + 500);
       const placeholders = chunk.map(() => '?').join(',');
       const rows = db
-        .prepare(`SELECT uid, slug, data_json, revision FROM ${table} WHERE uid IN (${placeholders}) ORDER BY slug`)
+        .prepare(`SELECT ${columns} FROM ${table} WHERE uid IN (${placeholders}) ORDER BY slug`)
         .all(...chunk) as any[];
       docs.push(...rows.map(rowToDocument));
     }
@@ -1761,16 +1976,57 @@ class SqliteDataService {
     return this.readDocsByUids(db, 'apps', uids, appRowToDocument);
   }
 
+  async searchBaseMaps(query: string): Promise<BaseMapCatalogItem[]> {
+    const db = await this.getDb();
+    const uids = this.searchUids(db, 'base_maps_fts', query);
+    if (uids === null) return this.listBaseMaps();
+    if (uids.length === 0) return [];
+    const overrides = this.alwaysOverrides(db);
+    const placeholders = uids.map(() => '?').join(',');
+    const rows = db
+      .prepare(`SELECT uid, slug, scope, data_json, revision FROM base_maps WHERE uid IN (${placeholders}) ORDER BY slug`)
+      .all(...uids) as any[];
+    return rows.map((row: any) => {
+      const data = JSON.parse(row.data_json);
+      return {
+        uid: String(row.uid),
+        mapID: String(row.slug),
+        scope: row.scope,
+        data,
+        revision: Number(row.revision),
+        alwaysVisible: this.effectiveAlways(String(row.slug), String(row.uid), data, overrides),
+        alwaysLocked: FORCED_ALWAYS_BASE_MAP_IDS.has(String(row.slug)),
+      };
+    });
+  }
+
+  async searchFtsAssets(query: string): Promise<AssetRecord[]> {
+    const db = await this.getDb();
+    const uids = this.searchUids(db, 'assets_fts', query);
+    if (uids === null) return this.listAssets();
+    if (uids.length === 0) return [];
+    const placeholders = uids.map(() => '?').join(',');
+    const rows = db
+      .prepare(
+        `SELECT uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at
+         FROM assets WHERE uid IN (${placeholders}) ORDER BY slug`
+      )
+      .all(...uids) as any[];
+    return rows.map(assetRowToRecord);
+  }
+
   // extent = [minX, minY, maxX, maxY](メルカトル座標)。bbox交差する地図のslugを返す
   // (レンダラ互換: 呼び出し元(mapedit:extentMapList)は現状slug列で消費するため未uid化)
-  async searchExtent(extent: number[]): Promise<string[]> {
+  async searchExtent(extent: number[], kind: 'map' | 'poi-source' | 'app' = 'map'): Promise<string[]> {
     const db = await this.getDb();
+    const rtree = kind === 'map' ? 'maps_rtree' : kind === 'poi-source' ? 'poi_sources_rtree' : 'apps_rtree';
+    const table = kind === 'map' ? 'maps' : kind === 'poi-source' ? 'poi_sources' : 'apps';
     const rows = db
       .prepare(`
         SELECT m.slug AS id
-        FROM maps_rtree r
-        JOIN maps_rtree_key k ON k.rid = r.id
-        JOIN maps m ON m.uid = k.uid
+        FROM ${rtree} r
+        JOIN ${rtree}_key k ON k.rid = r.id
+        JOIN ${table} m ON m.uid = k.uid
         WHERE r.max_x >= ? AND r.min_x <= ? AND r.max_y >= ? AND r.min_y <= ?
         ORDER BY m.slug
       `)

@@ -202,6 +202,21 @@ contextBridge.exposeInMainWorld('imageAssets', {
 
 // slug 予約 (M11-T7/§7.2): 複数 instance 間の slug 予約・移動・解放・確認。
 // payload-only の invoke のみ(m2安全API境界: raw ipcRenderer を渡さない)。
+contextBridge.exposeInMainWorld('search', {
+  maps: (filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }) =>
+    ipcRenderer.invoke('search:maps', filter),
+  apps: (filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }) =>
+    ipcRenderer.invoke('search:apps', filter),
+  poiSources: (filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }) =>
+    ipcRenderer.invoke('search:poiSources', filter),
+  baseMaps: (filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }) =>
+    ipcRenderer.invoke('search:baseMaps', filter),
+  imageAssets: (filter: { q?: string; page: number; pageSize: number }) =>
+    ipcRenderer.invoke('search:imageAssets', filter),
+  searchExtent: (kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]) =>
+    ipcRenderer.invoke('search:extent', kind, bbox),
+})
+
 contextBridge.exposeInMainWorld('slugReservations', {
   reserve: (payload: { slug: string; assetUid: string; assetKind: string; draftUid: string }) =>
     ipcRenderer.invoke('slug-reservations:reserve', payload),

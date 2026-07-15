@@ -152,10 +152,11 @@ class SearchDataService {
     return paginate(rawDocs, page, pageSize);
   }
 
-  async searchExtent(extent: number[]): Promise<string[]> {
+  async searchExtent(extent: number[], kind: 'map' | 'poi-source' | 'app' = 'map'): Promise<string[]> {
     if (activeSearchEngine() !== 'duckdb') {
-      return SqliteDataService.searchExtent(extent);
+      return SqliteDataService.searchExtent(extent, kind);
     }
+    if (kind !== 'map') return []; // DuckDB経路はmapのみ対応。非mapはSQLiteフォールバックに委譲
     const docs = await this.readAllMapDocs();
     return docs
       .filter((doc) => {
