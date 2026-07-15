@@ -1,0 +1,79 @@
+{
+  "task": "m11-t8",
+  "name": "全文・空間検索 / App Coverage / 2カラムselector / GCP auto range",
+  "status": "design_approved",
+  "classification": "new feature",
+  "design_revision": 2,
+  "design_doc": "docs/superpowers/specs/2026-07-16-m11-t8-search-coverage-design.md",
+  "outer_branch": "codex/m11-t8",
+  "outer_worktree": ".worktrees/m11-t5",
+  "worktree_reuse_note": "T6〜T12はm11-t5 worktreeを流用",
+  "outer_base_commit": "2a49857a",
+  "submodule": "MaplatEditor",
+  "submodule_branch": "codex/m11-t8-search-coverage",
+  "submodule_base_commit": "46c30a2",
+  "depends_on": [
+    "m11-t6",
+    "m11-t7"
+  ],
+  "e2e_required": true,
+  "backend_changes": "あり(FTS5拡張、R-Tree追加、SearchDataService統合、IPC追加)",
+  "sub_tasks": [
+    {
+      "id": "t8-1",
+      "name": "SearchLayer統合 / FTS5拡張",
+      "status": "pending",
+      "classification": "adaptation"
+    },
+    {
+      "id": "t8-2",
+      "name": "Spatial search (R-Tree) 拡張",
+      "status": "pending",
+      "classification": "new feature"
+    },
+    {
+      "id": "t8-3",
+      "name": "App Coverage 自動計算",
+      "status": "pending",
+      "classification": "new feature"
+    },
+    {
+      "id": "t8-4",
+      "name": "2カラム ResourceSelector 共通化",
+      "status": "pending",
+      "classification": "adaptation"
+    },
+    {
+      "id": "t8-5",
+      "name": "GCP Auto Range",
+      "status": "pending",
+      "classification": "new feature"
+    }
+  ],
+  "design_reviews": [
+    {
+      "revision": 1,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-design-reviewer",
+      "verdict": "conditional_pass_minor_only",
+      "counts": { "critical": 0, "major": 0, "minor": 4, "info": 3 }
+    },
+    {
+      "revision": 2,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-design-reviewer",
+      "verdict": "approved",
+      "counts": { "critical": 0, "major": 0, "minor": 0, "info": 0 }
+    }
+  ],
+  "carryover_from_t7": [
+    "stashed flexbox layout changes in codex/m11-t7-slug-reservation stash@{0}",
+    "T7 46c30a2 (設定タブ二重バー修正) は済",
+    "T7 47b9001 (E2E orphaned process cleanup) は済"
+  ],
+  "handoff": {
+    "next_action": "implementation planning by nayuta-designer",
+    "actor": "nayuta-designer",
+    "stop_condition": "実装計画書の作成完了を待つ"
+  }
+}
