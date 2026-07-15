@@ -321,6 +321,122 @@ test('diagnostics use field and operation scopes without legacy banners', async 
   }
 });
 
+// AC6: 新規作成の順序保証 — UID採番 → slug予約成功 → 初期draft即時保存 → save(create:true + uid)
+// 予約失敗時は asset 本体も draft も残さない(D7/AC6)。
+test('new base map creation mints uid, reserves slug, and persists initial draft before save', async () => {
+  test.setTimeout(300_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    await installDialogHarness(app);
+    await forceJapanese(page);
+
+    // 新規ベースマップを開く(UID事前採番済み)
+    await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
+    await page.getByTestId('basemap-new').click();
+    await expect(page.getByTestId('basemap-slug')).toBeVisible();
+
+    // UIDがroute queryから取得できる = 事前採番済み
+    const newUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
+    expect(newUid).not.toBe('');
+    expect(newUid).toMatch(/^[0-9a-f]{8}-/);
+
+    // slugを入力 → 予約成功を待つ
+    const slug = 'e2e-t7-ac6-new-basemap';
+    await page.getByTestId('basemap-slug').fill(slug);
+    await page.getByTestId('basemap-slug').press('Tab');
+    await expect.poll(async () =>
+      page.evaluate(async ({ slug, uid }) =>
+        window.slugReservations.check({ slug, excludeUid: uid }),
+        { slug, uid: newUid }),
+    { timeout: 15_000 }).toBe('available');
+
+    // AC6: 予約成功後、初期draftが即時保存されている(GC保護リンケージ確立)
+    await expect.poll(async () =>
+      page.evaluate(async (uid) => (await window.assetDrafts.get('base-map', uid!)) != null, newUid),
+    { timeout: 10_000 }).toBe(true);
+
+    // 必須フィールドを埋めて保存
+    await page.getByTestId('basemap-title').fill('AC6新規ベースマップ');
+    await page.getByTestId('basemap-title').press('Tab');
+    await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
+    await page.getByTestId('basemap-url').press('Tab');
+    await expect(page.getByTestId('editor-save')).toBeEnabled();
+
+    // UI保存ボタンをクリック → renderer save() → confirmForSave → preload → main → transaction
+    await page.getByTestId('editor-save').click();
+
+    // 保存成功: basemapがlistに出現し、uidが一致することを確認
+    await expect.poll(async () => {
+      const rows = await page.evaluate(async (s) => {
+        const all = await window.baseMaps.list();
+        return all.find((r: any) => r.mapID === s)?.uid ?? null;
+      }, slug);
+      return rows;
+    }, { timeout: 15_000 }).toBe(newUid);
+
+    // 予約は消化済み(promote成功)
+    const reservedAfter = await page.evaluate(async ({ slug, uid }) =>
+      window.slugReservations.check({ slug, excludeUid: uid }), { slug, uid: newUid });
+    expect(reservedAfter).toBe('available');
+  } finally {
+    await app.close();
+  }
+});
+
+// AC6: 他instanceが予約中のslugで保存しようとすると、asset本体もdraftも作られない
+test('new base map save fails cleanly when slug is reserved by another owner', async () => {
+  test.setTimeout(300_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    await installDialogHarness(app);
+    await forceJapanese(page);
+
+    // 別uidがslugを予約する
+    const foreignUid = 'e2e-ac6-foreign-uid';
+    const clashSlug = 'e2e-t7-ac6-clash';
+    await page.evaluate(async ({ slug, uid }) => {
+      await window.slugReservations.reserve({
+        slug, assetUid: uid, assetKind: 'base-map', draftUid: 'foreign-draft',
+      });
+    }, { slug: clashSlug, uid: foreignUid });
+
+    // 新規ベースマップで同slugを入力 → reserved-by-other
+    await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
+    await page.getByTestId('basemap-new').click();
+    const newUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
+    expect(newUid).not.toBe('');
+    await page.getByTestId('basemap-slug').fill(clashSlug);
+    const field = page.locator('.editor-field', { has: page.getByTestId('basemap-slug') });
+    await expect(field.locator('[data-diagnostic-scope="field"]')).toBeVisible({ timeout: 15_000 });
+    await expect(field.locator('[role="status"]')).toHaveText('他で使用中です');
+
+    // 保存を試みる → confirmForSaveが拒否 → assetは作成されない
+    await page.getByTestId('basemap-title').fill('AC6 Clash');
+    await page.getByTestId('basemap-title').press('Tab');
+    await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
+    await page.getByTestId('basemap-url').press('Tab');
+    const saveButton = page.getByTestId('editor-save');
+    const enabled = await saveButton.isEnabled();
+    // reserved-by-other状態では保存ボタンが無効、または有効でもクリックでoperation診断
+    if (enabled) {
+      await saveButton.click();
+      await expect(page.locator('[data-diagnostic-scope="operation"]')).toBeVisible({ timeout: 15_000 });
+    }
+    // AC6: asset本体は作成されていない
+    const assetCreated = await page.evaluate(async (slug) =>
+      (await window.baseMaps.list()).some((row) => row.mapID === slug), clashSlug);
+    expect(assetCreated).toBe(false);
+    // AC6: draftも作成されていない
+    const draftCreated = await page.evaluate(async (uid) =>
+      (await window.assetDrafts.get('base-map', uid)) != null, newUid);
+    expect(draftCreated).toBe(false);
+  } finally {
+    await app.close();
+  }
+});
+
 test('checkpoint clean removes the persisted draft immediately and it stays gone across relaunch', async () => {
   test.setTimeout(300_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-'));
@@ -341,7 +457,16 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
     await runtime.page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await runtime.page.getByTestId('basemap-url').press('Tab');
     await runtime.page.getByTestId('editor-save').click();
-    await expect(runtime.page).not.toHaveURL(/new=1/);
+
+    // 保存成功: basemapがlistに出現するまで待つ
+    await expect.poll(async () => {
+      const rows = await runtime.page.evaluate(async () => {
+        const all = await window.baseMaps.list();
+        return all.find((r: any) => r.mapID === 'e2e-t7-draft-base')?.uid ?? null;
+      });
+      return rows;
+    }, { timeout: 15_000 }).not.toBeNull();
+
     const uid = await runtime.page.evaluate(async () => {
       const rows = await window.baseMaps.list();
       return rows.find((row) => row.mapID === 'e2e-t7-draft-base')?.uid ?? null;

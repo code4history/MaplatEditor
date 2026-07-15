@@ -145,11 +145,22 @@ test('instance B save conflicts with instance A reservation and creates no asset
     await waitForOwnedReservation(b.page, slug, bUid);
     await expect(b.page.getByTestId('editor-save')).toBeEnabled();
     await b.page.evaluate(async ({ slug, uid }) => window.slugReservations.release({ slug, assetUid: uid }), { slug, uid: bUid });
+    // Bの予約がDBから完全に解放されたことを確認してからAに進む。
+    // (composable内部のreleaseIfHeldは非同期IPC経由のため、IPC完了をDB checkで待つ)
+    await expect.poll(async () => b.page.evaluate(
+      async (slug) => window.slugReservations.check({ slug }),
+      slug,
+    ), { timeout: 10_000 }).toBe('available');
 
     const aUid = await openNewBaseMap(a.page);
     expect(aUid).not.toBe('');
     await a.page.getByTestId('basemap-slug').fill(slug);
     await waitForOwnedReservation(a.page, slug, aUid);
+    // BからAの予約が確認できることを最終確認
+    await expect.poll(async () => b.page.evaluate(
+      async (slug) => window.slugReservations.check({ slug }),
+      slug,
+    ), { timeout: 10_000 }).toBe('reserved-by-other');
 
     await b.page.getByTestId('editor-save').click();
     await expect(b.page.locator('[data-diagnostic-scope="operation"]')).toBeVisible();

@@ -14,14 +14,20 @@ export function useInitialDraftPersist(opts: {
 
   watch(opts.slugState, async (state) => {
     if (state !== 'available' || !opts.isNewAsset() || initialPersisted.value) return;
-    initialPersisted.value = true;
+    // flush成功後にのみ完了フラグを立てる。失敗時は再試行可能。
     try {
       await opts.flushDraft();
+      initialPersisted.value = true;
     } catch {
-      // flush失敗は既存の draft lifecycle error handling へ委譲する。
+      // flush失敗: initialPersistedはfalseのままなので、次回available遷移で再試行される。
       // 予約自体は成立しているため、lease/GC が最終回収するまで保持される。
     }
   });
 
-  return { initialPersisted };
+  // asset/session identity切替時にone-shot状態をresetする。
+  // 同一コンポーネントが複数assetを扱う場合(例: リスト→新規→リスト→新規)、
+  // 2件目以降の新規assetでも初期draft保存が実行される。
+  const reset = () => { initialPersisted.value = false; };
+
+  return { initialPersisted, reset };
 }

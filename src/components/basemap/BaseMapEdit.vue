@@ -336,6 +336,8 @@ watch(
   () => [props.uid, props.item?.revision, props.isNew] as const,
   ([uid, itemRevision, isNew]) => {
     sessionTransition = sessionTransition.then(async () => {
+      // AC6: asset/session identity切替時に初期draft保存のone-shot状態をresetする
+      resetInitialDraftPersist();
       if (sessionOpened) {
         await draftLifecycle.flush();
         // F8 Major-1: flush で store が確定した後に List のバッジ再照会契機を作る。
@@ -367,7 +369,7 @@ watch(
 );
 
 // AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
-useInitialDraftPersist({
+const { initialPersisted: _initialPersisted, reset: resetInitialDraftPersist } = useInitialDraftPersist({
   slugState: slugFieldState,
   isNewAsset: () => revision.value === null,
   flushDraft: () => draftLifecycle.flush(),

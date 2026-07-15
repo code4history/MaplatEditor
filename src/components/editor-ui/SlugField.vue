@@ -81,13 +81,21 @@ watch([slugRef, () => props.originalSlug], async ([slug]) => {
   }
 }, { flush: 'sync' });
 
+let onAvailablePending = false;
 watch(availability.fieldState, async (s) => {
   const current = slugRef.value.trim();
   if (current === props.originalSlug) {
     reservationState.value = null;
   } else if (s === 'available') {
-    const result = await reservation.onAvailable(current);
-    if (result != null && slugRef.value.trim() === current) reservationState.value = result;
+    // onAvailable は非同期IPCを含む。重複実行を防止する。
+    if (onAvailablePending) return;
+    onAvailablePending = true;
+    try {
+      const result = await reservation.onAvailable(current);
+      if (result != null && slugRef.value.trim() === current) reservationState.value = result;
+    } finally {
+      onAvailablePending = false;
+    }
   } else {
     reservationState.value = null;
   }

@@ -1,7 +1,7 @@
 // SlugField 内部で使う予約 lifecycle composable (M11-T7/D6改)。
 // window.slugReservations を叩き、available 確定時に reserve/move、originalSlug 復帰や
 // draft 破棄で release、保存直前に confirmForSave で予約成立を再確認する。
-import { toRegistryKind, type SlugFieldKind } from '../utils/slugReservationKind';
+import type { SlugFieldKind } from '../utils/slugReservationKind';
 
 export type SlugReservationFieldState = 'available' | 'reserved-by-other' | 'check-failed';
 
@@ -12,7 +12,7 @@ export interface SlugReservationConfirmation {
 
 interface ReservationIdentity {
   assetUid: string;
-  assetKind: ReturnType<typeof toRegistryKind>;
+  assetKind: string;
   draftUid: string;
 }
 
@@ -33,8 +33,13 @@ export function useSlugReservation(opts: {
   let queuedOperations = 0;
 
   function invalidate(currentSlug?: string): void {
-    generation += 1;
-    latestSlug = currentSlug?.trim() || null;
+    const trimmed = currentSlug?.trim() || null;
+    // slug が実質的に変化した場合のみ generation を increment する。
+    // 同一 slug の再通知で generation が進み、onAvailable の結果が stale 扱いになる問題を回避する。
+    if (trimmed !== latestSlug) {
+      generation += 1;
+    }
+    latestSlug = trimmed;
   }
 
   function enqueueOperation<T>(work: () => Promise<T>): Promise<T> {
@@ -46,10 +51,14 @@ export function useSlugReservation(opts: {
 
   function snapshotIdentity(): ReservationIdentity {
     const assetUid = opts.assetUid();
+    const draftUid = opts.draftUid();
+    // IPC の kind 検証は UI 形式(base-map)を期待する。registry 形式(base_map)は
+    // backend の reserve 側で変換する。snapshotIdentity は UI 形式を返す。
+    const assetKind = (opts.assetKind() as SlugFieldKind);
     return {
       assetUid,
-      assetKind: toRegistryKind(opts.assetKind() as SlugFieldKind),
-      draftUid: opts.draftUid() ?? assetUid,
+      assetKind,
+      draftUid: draftUid ?? assetUid,
     };
   }
 
@@ -94,11 +103,11 @@ export function useSlugReservation(opts: {
       }
       const result = from && from.slug !== slug
         ? await window.slugReservations.move({
-          fromSlug: from.slug, toSlug: slug, ...identity,
-        })
+            fromSlug: from.slug, toSlug: slug, ...identity,
+          })
         : await window.slugReservations.reserve({
-          slug, ...identity,
-        });
+            slug, ...identity,
+          });
 
       if (result.result === 'ok') {
         // IPC mutationが成功した時点の実heldはstale UI応答でも必ず追跡する。
@@ -143,17 +152,33 @@ export function useSlugReservation(opts: {
   // 保存直前はcheckだけで終えず、変更slugのreserve/moveを再確立する。
   // 未変更slugも自己registry ownerを除外したcheckがavailableの時だけ通すが予約はしない(AC15)。
   async function confirmForSave(currentSlug: string): Promise<SlugReservationConfirmation | null> {
-    const token = ++generation;
-    latestSlug = currentSlug;
     const identity = snapshotIdentity();
-    const originalSlug = opts.originalSlug();
+    // 常にDBの状態を確認してから判定する。
+    // composable内部のreservedはIPC release等でDB側と不整合になる場合があるため。
     try {
-      const checked = await window.slugReservations.check({
+      const dbCheck = await window.slugReservations.check({
         slug: currentSlug,
         excludeUid: identity.assetUid,
       });
-      if (token !== generation) return null;
-      if (checked !== 'available') return { ok: false, state: 'reserved-by-other' };
+      if (dbCheck !== 'available') {
+        reserved = null;
+        return { ok: false, state: 'reserved-by-other' };
+      }
+    } catch {
+      return { ok: false, state: 'check-failed' };
+    }
+
+    // DB上でslugが空き → 予約状態に応じて処理
+    if (reserved && reserved.slug === currentSlug && sameIdentity(reserved, identity)) {
+      // 既に予約済み。generation increment なしで成功。
+      return { ok: true, state: 'available' };
+    }
+
+    // 予約が無い/不一致 → 新規reserve
+    const token = ++generation;
+    latestSlug = currentSlug;
+    const originalSlug = opts.originalSlug();
+    try {
       if (currentSlug === originalSlug) {
         await enqueueOperation(async () => {
           const held = reserved;

@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import SqliteDataService from '../services/SqliteDataService';
+import { toRegistryKind } from '../services/slugReservationKind';
 
 // slug 予約 IPC (M11-T7/§7.2)。payload-only・raw event 非伝搬(m2安全API境界)。
 // promote/renewOwn/gc はここに露出しない(save経路とmain timerのみが使う)。
@@ -37,8 +38,9 @@ function validateReservePayload(p: unknown): {
   const obj = p as Record<string, unknown>;
   const slug = requireString(obj.slug, 'slug');
   const assetUid = requireString(obj.assetUid, 'assetUid');
-  const assetKind = requireString(obj.assetKind, 'assetKind');
-  if (!VALID_KINDS.has(assetKind)) throw new IpcValidationError(`Invalid assetKind: ${assetKind}`);
+  const uiKind = requireString(obj.assetKind, 'assetKind');
+  if (!VALID_KINDS.has(uiKind)) throw new IpcValidationError(`Invalid assetKind: ${uiKind}`);
+  const assetKind = toRegistryKind(uiKind as any);
   const draftUid = requireString(obj.draftUid, 'draftUid');
   return { slug, assetUid, assetKind, draftUid };
 }
@@ -55,8 +57,9 @@ function validateMovePayload(p: unknown): {
   const fromSlug = fromSlugRaw == null ? null : fromSlugRaw;
   const toSlug = requireString(obj.toSlug, 'toSlug');
   const assetUid = requireString(obj.assetUid, 'assetUid');
-  const assetKind = requireString(obj.assetKind, 'assetKind');
-  if (!VALID_KINDS.has(assetKind)) throw new IpcValidationError(`Invalid assetKind: ${assetKind}`);
+  const uiKind = requireString(obj.assetKind, 'assetKind');
+  if (!VALID_KINDS.has(uiKind)) throw new IpcValidationError(`Invalid assetKind: ${uiKind}`);
+  const assetKind = toRegistryKind(uiKind as any);
   const draftUid = requireString(obj.draftUid, 'draftUid');
   return { fromSlug, toSlug, assetUid, assetKind, draftUid };
 }
