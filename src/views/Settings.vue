@@ -1,6 +1,5 @@
 <template>
   <div class="h-100 d-flex flex-column">
-    <Header />
     <div class="container-fluid main flex-grow-1 mt-4 px-4">
       <!-- Tabs -->
       <ul class="nav nav-tabs nav-justified mb-3" role="tablist">
@@ -129,7 +128,6 @@
 <script setup lang="ts">
 import { reactive, onMounted, ref, computed } from "vue";
 import { useTranslation } from "i18next-vue";
-import Header from "../components/Header.vue";
 import { SUPPORTED_LANGUAGES } from "../utils/editorLanguages";
 
 const { t, i18next } = useTranslation();
