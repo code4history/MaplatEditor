@@ -63,13 +63,12 @@ const reservation = useSlugReservation({
 });
 
 const reservationState = ref<SlugFieldState | null>(null);
-// 予約acquire中は available を抑制し、予約確定後にのみ available を公開する(AC6/Major-3)。
-// onAvailable は非同期IPCを含み、完了前に available を emit すると
-// useInitialDraftPersist が予約成功前に draft flush する。
-const reservationPending = ref(false);
+// Counter-based pending tracking: reservationPendingCount > 0 iff any operation is in flight.
+// 旧 request の finally が新 request の pending を解除しない(Major-C)。
+const reservationPendingCount = ref(0);
 const state = computed<SlugFieldState>(() => {
-  if (reservationPending.value) return 'idle';
-  // release失敗検出: slugがoriginalに戻っているのにheldが残っている = release失敗(Major-2)。
+  if (reservationPendingCount.value > 0) return 'idle';
+  // release失敗検出: reactive ref なので Vue computed が再評価される(Major-D)。
   if (reservationState.value === null && availability.fieldState.value === 'available'
       && slugRef.value.trim() === props.originalSlug && reservation.hasFailedRelease()) {
     return 'check-failed';
@@ -93,29 +92,27 @@ watch([slugRef, () => props.originalSlug], async ([slug]) => {
   }
 }, { flush: 'sync' });
 
-let onAvailablePending = false;
+// Counter-based pending: increment on onAvailable start, decrement on finish.
+// 旧 request の finally が新 request の pending を解除しない(Major-C)。
+let onAvailableToken = 0;
 let lastEmittedState: SlugFieldState | null = null;
 watch(availability.fieldState, async (s) => {
   const current = slugRef.value.trim();
   if (current === props.originalSlug) {
     reservationState.value = null;
-    onAvailablePending = false;
-    reservationPending.value = false;
   } else if (s === 'available') {
-    // onAvailable は非同期IPCを含む。重複実行を防止する。
-    if (onAvailablePending) return;
-    onAvailablePending = true;
-    reservationPending.value = true;
+    const token = ++onAvailableToken;
+    reservationPendingCount.value += 1;
     try {
       const result = await reservation.onAvailable(current);
-      if (result != null && slugRef.value.trim() === current) reservationState.value = result;
+      if (token === onAvailableToken && result != null && slugRef.value.trim() === current) {
+        reservationState.value = result;
+      }
     } finally {
-      onAvailablePending = false;
-      reservationPending.value = false;
+      reservationPendingCount.value = Math.max(0, reservationPendingCount.value - 1);
     }
   } else {
     reservationState.value = null;
-    onAvailablePending = false;
   }
 });
 

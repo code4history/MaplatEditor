@@ -418,9 +418,9 @@ test('new base map save fails cleanly when slug is reserved by another owner', a
     await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await page.getByTestId('basemap-url').press('Tab');
     const saveButton = page.getByTestId('editor-save');
-    const enabled = await saveButton.isEnabled();
-    // reserved-by-other状態では保存ボタンが無効、または有効でもクリックでoperation診断
-    if (enabled) {
+    // reserved-by-other状態では保存ボタンが無効の場合がある
+    // (field-level danger diagnostic が is-invalid を付与し、form dirty でも button disabled)
+    if (await saveButton.isEnabled()) {
       await saveButton.click();
       await expect(page.locator('[data-diagnostic-scope="operation"]')).toBeVisible({ timeout: 15_000 });
     }

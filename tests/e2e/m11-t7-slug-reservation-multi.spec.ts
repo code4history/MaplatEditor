@@ -141,7 +141,9 @@ test('instance B save conflicts with instance A reservation and creates no asset
 
     // Bが同じslugで新規basemapを開く
     const bUid = await openNewBaseMap(b.page);
+    // Major-B: 異なるasset UIDで開始されることを確認
     expect(bUid).not.toBe('');
+    expect(aUid).not.toBe(bUid);
     await b.page.getByTestId('basemap-slug').fill(slug);
     await b.page.getByTestId('basemap-slug').press('Tab');
     await b.page.getByTestId('basemap-title').fill('B conflict body');
@@ -153,15 +155,22 @@ test('instance B save conflicts with instance A reservation and creates no asset
     const field = b.page.locator('.editor-field', { has: b.page.getByTestId('basemap-slug') });
     await expect(field.locator('[role="status"]')).toHaveText('他で使用中です', { timeout: 15_000 });
 
-    // 保存を試みる → confirmForSaveが拒否 → assetは作成されない
+    // 保存ボタンが有効になるまで待つ(保存操作の前提条件)
     const saveButton = b.page.getByTestId('editor-save');
-    if (await saveButton.isEnabled()) {
-      await saveButton.click();
-      await expect(b.page.locator('[data-diagnostic-scope="operation"]')).toBeVisible({ timeout: 15_000 });
-    }
+    await expect(saveButton).toBeEnabled({ timeout: 15_000 });
+
+    // 保存ボタンを無条件にclickし、operation診断とasset body非生成をassertする(Major-A)。
+    // 保存操作はconfirmForSave → reserve再試行 → conflict → operation診断を経る。
+    await saveButton.click();
+    await expect(b.page.locator('[data-diagnostic-scope="operation"]')).toBeVisible({ timeout: 15_000 });
+
     // AC6: asset本体は作成されていない
     const created = await b.page.evaluate(async (slug) => (await window.baseMaps.list()).some((row: any) => row.mapID === slug), slug);
     expect(created).toBe(false);
+    // AC6: draftも作成されていない
+    const draftCreated = await b.page.evaluate(async (uid) =>
+      (await window.assetDrafts.get('base-map', uid)) != null, bUid);
+    expect(draftCreated).toBe(false);
   } finally {
     await Promise.all([a.app.close(), b.app.close()]);
   }

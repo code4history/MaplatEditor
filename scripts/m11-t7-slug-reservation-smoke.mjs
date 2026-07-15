@@ -755,10 +755,51 @@ const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh
     await restored.reservation.onAvailable("probe");
     assert.equal(retryCalls.reserve.at(-1).slug, "probe", "successful retry must clear held");
   }
+
+  // --- Major-C: counter-based pending が旧 request の finally で新 request の pending を解除しない ---
+  {
+    let resolveA;
+    const harness = createSlugReservationHarness({ currentSlug: "h" });
+    // A: 保留中のpromise
+    window.slugReservations.reserve = ({ slug }) =>
+      slug === "a" ? new Promise((r) => { resolveA = r; }) : Promise.resolve({ result: "ok" });
+    window.slugReservations.move = async () => ({ result: "ok" });
+    window.slugReservations.release = async () => {};
+    const pendingA = harness.reservation.onAvailable("a");
+    // A の完了前に slug を "b" に変更して onAvailable("b") を呼ぶ
+    harness.setCurrentSlug("b");
+    const pendingB = harness.reservation.onAvailable("b");
+    // A を完了させる
+    await Promise.resolve();
+    resolveA({ result: "ok" });
+    const resultA = await pendingA;
+    const resultB = await pendingB;
+    // A は stale なので null、B は最新なので available
+    assert.equal(resultA, null, "stale A must return null");
+    assert.equal(resultB, "available", "latest B must be available");
+  }
+
+  // --- Major-D: release 失敗が reactive ref をセットし、hasFailedRelease が即座に反映される ---
+  {
+    window.slugReservations.release = async () => { throw new Error("ipc-fail"); };
+    window.slugReservations.reserve = async () => ({ result: "ok" });
+    window.slugReservations.check = async () => "available";
+    const harness = createSlugReservationHarness({ currentSlug: "new", assetUid: UID_A });
+    await harness.reservation.onAvailable("new");
+    // releaseIfHeld が reject する
+    await assert.rejects(() => harness.reservation.releaseIfHeld(), /ipc-fail/);
+    // hasFailedRelease は直後に true（reactive ref のため）
+    assert.equal(harness.reservation.hasFailedRelease(), true, "hasFailedRelease must reflect rejection immediately");
+    // 正常系でリセット
+    window.slugReservations.release = async () => {};
+    await harness.reservation.releaseIfHeld();
+    assert.equal(harness.reservation.hasFailedRelease(), false, "hasFailedRelease must clear after successful release");
+  }
 }
 
 // --- Part C1: SlugField 契約 ---
 const slugField = await readSrc("src/components/editor-ui/SlugField.vue");
+const slugReservation = await readSrc("src/composables/useSlugReservation.ts");
 assert.match(slugField, /assetKind/, "SlugField must accept assetKind prop");
 assert.match(slugField, /assetUid/, "SlugField must accept assetUid prop");
 assert.match(slugField, /draftUid/, "SlugField must accept draftUid prop");
@@ -772,6 +813,16 @@ assert.match(slugField, /reservationState\.value\s*=\s*result/, "SlugField must 
 assert.doesNotMatch(slugField, /void reservation\.onAvailable/, "SlugField must not discard reservation result");
 assert.doesNotMatch(slugField, /void reservation\.releaseIfHeld\(\)/,
   "original slug release must handle rejection and publish check-failed");
+// Major-C: counter-based pending (reservationPendingCount > 0) が onAvailable 中に available を抑制する
+assert.match(slugField, /reservationPendingCount/, "SlugField must use counter-based pending (Major-C)");
+assert.doesNotMatch(slugField, /onAvailablePending\b/, "SlugField must not use boolean onAvailablePending (Major-C)");
+// Major-D: hasFailedRelease() は reactive ref (releaseFailed/releasePending) を参照し、
+// Vue computed が再評価される。SlugField は hasFailedRelease() を state computed 内で呼ぶ。
+assert.match(slugField, /hasFailedRelease\(\)/,
+  "SlugField must call hasFailedRelease() in computed state (Major-D)");
+// useSlugReservation が reactive ref を export していること（hasFailedRelease内部が .value を使う）
+assert.match(slugReservation, /releaseFailed\.value|releasePending\.value/,
+  "useSlugReservation must expose releaseFailed/releasePending as reactive refs (Major-D)");
 
 // --- Part C2: useSlugAvailability の 6 状態写像（D1） ---
 const avail = await readSrc("src/composables/useSlugAvailability.ts");
