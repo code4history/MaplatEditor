@@ -63,7 +63,19 @@ const reservation = useSlugReservation({
 });
 
 const reservationState = ref<SlugFieldState | null>(null);
-const state = computed<SlugFieldState>(() => reservationState.value ?? availability.fieldState.value);
+// 予約acquire中は available を抑制し、予約確定後にのみ available を公開する(AC6/Major-3)。
+// onAvailable は非同期IPCを含み、完了前に available を emit すると
+// useInitialDraftPersist が予約成功前に draft flush する。
+const reservationPending = ref(false);
+const state = computed<SlugFieldState>(() => {
+  if (reservationPending.value) return 'idle';
+  // release失敗検出: slugがoriginalに戻っているのにheldが残っている = release失敗(Major-2)。
+  if (reservationState.value === null && availability.fieldState.value === 'available'
+      && slugRef.value.trim() === props.originalSlug && reservation.hasFailedRelease()) {
+    return 'check-failed';
+  }
+  return reservationState.value ?? availability.fieldState.value;
+});
 // idle は無音(空文字)。それ以外は slug_state.<state> を読む(role=status のアクセシブル表示)
 const statusText = computed(() => (state.value === 'idle' ? '' : t(`editor_ui.slug_state.${state.value}`)));
 
@@ -82,26 +94,37 @@ watch([slugRef, () => props.originalSlug], async ([slug]) => {
 }, { flush: 'sync' });
 
 let onAvailablePending = false;
+let lastEmittedState: SlugFieldState | null = null;
 watch(availability.fieldState, async (s) => {
   const current = slugRef.value.trim();
   if (current === props.originalSlug) {
     reservationState.value = null;
+    onAvailablePending = false;
+    reservationPending.value = false;
   } else if (s === 'available') {
     // onAvailable は非同期IPCを含む。重複実行を防止する。
     if (onAvailablePending) return;
     onAvailablePending = true;
+    reservationPending.value = true;
     try {
       const result = await reservation.onAvailable(current);
       if (result != null && slugRef.value.trim() === current) reservationState.value = result;
     } finally {
       onAvailablePending = false;
+      reservationPending.value = false;
     }
   } else {
     reservationState.value = null;
+    onAvailablePending = false;
   }
 });
 
-watch(state, (s) => emit('state-change', s));
+watch(state, (s) => {
+  if (s !== lastEmittedState) {
+    lastEmittedState = s;
+    emit('state-change', s);
+  }
+});
 
 const diagnostics = computed<DiagnosticItem[]>(() => {
   if (state.value === 'invalid-format') {

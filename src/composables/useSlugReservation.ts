@@ -31,6 +31,10 @@ export function useSlugReservation(opts: {
   let latestSlug: string | null = null;
   let operationTail: Promise<void> = Promise.resolve();
   let queuedOperations = 0;
+  // release失敗/保留を SlugField に伝えるためのフラグ(Major-2)。
+  // sync watch が reserved をクリアした後も、非同期 release の成否を追跡する。
+  let releasePending = false;
+  let releaseFailed = false;
 
   function invalidate(currentSlug?: string): void {
     const trimmed = currentSlug?.trim() || null;
@@ -134,67 +138,126 @@ export function useSlugReservation(opts: {
   async function onAvailable(slug: string): Promise<SlugReservationFieldState | null> {
     const token = ++generation;
     latestSlug = slug;
+    releaseFailed = false;
+    releasePending = false;
     const identity = snapshotIdentity();
     return enqueueOperation(() => acquire(slug, token, identity));
   }
 
   // originalSlug 復帰・draft 破棄で予約を解放する。
+  // reserved は release 成功後にのみクリアする(Major-2)。
   async function releaseIfHeld(): Promise<void> {
     invalidate();
-    await enqueueOperation(async () => {
-      const held = reserved;
-      if (!held) return;
+    releaseFailed = false;
+    const held = reserved;
+    if (!held) return;
+    releasePending = true;
+    const chain = operationTail.then(async () => {
       await releaseReservation(held);
       if (reserved === held) reserved = null;
     });
+    // error handler は releaseFailed をセットするが releasePending はクリアしない。
+    // confirmForSave が releasePending を確認してから operationTail を await するため。
+    operationTail = chain.then(
+      () => { releasePending = false; },
+      () => { releaseFailed = true; releasePending = false; },
+    );
+    await operationTail;
   }
 
   // 保存直前はcheckだけで終えず、変更slugのreserve/moveを再確立する。
-  // 未変更slugも自己registry ownerを除外したcheckがavailableの時だけ通すが予約はしない(AC15)。
+  // DB上の自己予約と予約なしを区別し、stale heldでも再reserveしてDB ownershipを再確立する(Major-2)。
+  // 未変更slugもDB確認で他者予約を検出し、自己所有なら冪等claimする(AC15)。
   async function confirmForSave(currentSlug: string): Promise<SlugReservationConfirmation | null> {
     const identity = snapshotIdentity();
-    // 常にDBの状態を確認してから判定する。
-    // composable内部のreservedはIPC release等でDB側と不整合になる場合があるため。
+    const originalSlug = opts.originalSlug();
+    const token = ++generation;
+    latestSlug = currentSlug;
+
+    // slug未変更: held一致なら即成功。それ以外はDB確認で自己所有判定(AC15)。
+    if (currentSlug === originalSlug) {
+      // held一致: 既に予約済み。generation increment なしで成功。
+      if (reserved && reserved.slug === currentSlug && sameIdentity(reserved, identity)) {
+        return { ok: true, state: 'available' };
+      }
+      // heldあり but 不一致 → releaseしてからDB確認。release失敗はcheck-failed(Major-2)。
+      // releaseIfHeld は invalidate で generation を進めるため、直接 release 操作を行う。
+      if (reserved) {
+        const held = reserved;
+        releasePending = true;
+        try {
+          await releaseReservation(held);
+          if (reserved === held) reserved = null;
+          releasePending = false;
+        } catch {
+          releaseFailed = true;
+          releasePending = false;
+          return { ok: false, state: 'check-failed' };
+        }
+      }
+      // heldなし/解放済み: DB確認で自己所有判定
+      try {
+        const dbCheck = await window.slugReservations.check({
+          slug: currentSlug,
+          excludeUid: identity.assetUid,
+        });
+        if (dbCheck !== 'available') {
+          reserved = null;
+          return { ok: false, state: 'reserved-by-other' };
+        }
+      } catch {
+        return { ok: false, state: 'check-failed' };
+      }
+      return token === generation ? { ok: true, state: 'available' } : null;
+    }
+
+    // slug変更: 常にacquire()でDB ownershipを再確立する。
+    // stale held → release + 新 reserve/claim。DB上の他者予約 → reserved-by-other。
+    // DB上の自己予約(再試行時) → 冪等claim。DB上の予約なし → 新規reserve。
+    // acquire() の前にDB checkを行い、他者予約を検出したら即座にreturnする(Major-2)。
+    // acquire() はstale heldを解放する際、DB上の他者予約も巻き込んで消す場合があるため。
+    releaseFailed = false;
+    releasePending = false;
     try {
-      const dbCheck = await window.slugReservations.check({
+      const preCheck = await window.slugReservations.check({
         slug: currentSlug,
         excludeUid: identity.assetUid,
       });
-      if (dbCheck !== 'available') {
+      if (preCheck !== 'available') {
         reserved = null;
         return { ok: false, state: 'reserved-by-other' };
       }
-    } catch {
-      return { ok: false, state: 'check-failed' };
-    }
-
-    // DB上でslugが空き → 予約状態に応じて処理
-    if (reserved && reserved.slug === currentSlug && sameIdentity(reserved, identity)) {
-      // 既に予約済み。generation increment なしで成功。
-      return { ok: true, state: 'available' };
-    }
-
-    // 予約が無い/不一致 → 新規reserve
-    const token = ++generation;
-    latestSlug = currentSlug;
-    const originalSlug = opts.originalSlug();
-    try {
-      if (currentSlug === originalSlug) {
-        await enqueueOperation(async () => {
-          const held = reserved;
-          if (!held) return;
-          await releaseReservation(held);
-          if (reserved === held) reserved = null;
-        });
-        return token === generation ? { ok: true, state: 'available' } : null;
-      }
       const state = await enqueueOperation(() => acquire(currentSlug, token, identity));
       if (state == null) return null;
-      return { ok: state === 'available' && reserved?.slug === currentSlug && sameIdentity(reserved, identity), state };
+      // acquire成立 && DBで最終確認
+      if (state === 'available' && reserved?.slug === currentSlug && sameIdentity(reserved, identity)) {
+        try {
+          const dbCheck = await window.slugReservations.check({
+            slug: currentSlug,
+            excludeUid: identity.assetUid,
+          });
+          if (dbCheck !== 'available') {
+            reserved = null;
+            return { ok: false, state: 'reserved-by-other' };
+          }
+        } catch {
+          return { ok: false, state: 'check-failed' };
+        }
+        return { ok: true, state: 'available' };
+      }
+      return { ok: false, state };
     } catch {
       return token === generation ? { ok: false, state: 'check-failed' } : null;
     }
   }
 
-  return { onAvailable, releaseIfHeld, confirmForSave, invalidate };
+  // release失敗/保留を SlugField に伝える(Major-2)。
+  // SlugField の state computed が check-failed を返すために使う。
+  // releasePending: 非同期 release 中。完了を待つか check-failed 扱いにする。
+  // releaseFailed: release が失敗し、reserved がクリアされても検出可能。
+  function hasFailedRelease(): boolean {
+    return releaseFailed || releasePending;
+  }
+
+  return { onAvailable, releaseIfHeld, confirmForSave, invalidate, hasFailedRelease };
 }

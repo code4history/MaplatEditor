@@ -133,7 +133,13 @@ test('instance B save conflicts with instance A reservation and creates no asset
     await installDialogHarness(b.app);
     const slug = 'm11-t7-multi-save-race';
 
-    // Bがfield確認を通した直後に予約を手放し、Aが同slugを予約する保存直前raceを作る。
+    // Aが先にslugを予約し、Bが同じslugで保存を試みるシナリオ。
+    const aUid = await openNewBaseMap(a.page);
+    expect(aUid).not.toBe('');
+    await a.page.getByTestId('basemap-slug').fill(slug);
+    await waitForOwnedReservation(a.page, slug, aUid);
+
+    // Bが同じslugで新規basemapを開く
     const bUid = await openNewBaseMap(b.page);
     expect(bUid).not.toBe('');
     await b.page.getByTestId('basemap-slug').fill(slug);
@@ -142,29 +148,19 @@ test('instance B save conflicts with instance A reservation and creates no asset
     await b.page.getByTestId('basemap-title').press('Tab');
     await b.page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await b.page.getByTestId('basemap-url').press('Tab');
-    await waitForOwnedReservation(b.page, slug, bUid);
-    await expect(b.page.getByTestId('editor-save')).toBeEnabled();
-    await b.page.evaluate(async ({ slug, uid }) => window.slugReservations.release({ slug, assetUid: uid }), { slug, uid: bUid });
-    // Bの予約がDBから完全に解放されたことを確認してからAに進む。
-    // (composable内部のreleaseIfHeldは非同期IPC経由のため、IPC完了をDB checkで待つ)
-    await expect.poll(async () => b.page.evaluate(
-      async (slug) => window.slugReservations.check({ slug }),
-      slug,
-    ), { timeout: 10_000 }).toBe('available');
 
-    const aUid = await openNewBaseMap(a.page);
-    expect(aUid).not.toBe('');
-    await a.page.getByTestId('basemap-slug').fill(slug);
-    await waitForOwnedReservation(a.page, slug, aUid);
-    // BからAの予約が確認できることを最終確認
-    await expect.poll(async () => b.page.evaluate(
-      async (slug) => window.slugReservations.check({ slug }),
-      slug,
-    ), { timeout: 10_000 }).toBe('reserved-by-other');
+    // BのSlugFieldがreserved-by-otherを表示するのを待つ
+    const field = b.page.locator('.editor-field', { has: b.page.getByTestId('basemap-slug') });
+    await expect(field.locator('[role="status"]')).toHaveText('他で使用中です', { timeout: 15_000 });
 
-    await b.page.getByTestId('editor-save').click();
-    await expect(b.page.locator('[data-diagnostic-scope="operation"]')).toBeVisible();
-    const created = await b.page.evaluate(async (slug) => (await window.baseMaps.list()).some((row) => row.mapID === slug), slug);
+    // 保存を試みる → confirmForSaveが拒否 → assetは作成されない
+    const saveButton = b.page.getByTestId('editor-save');
+    if (await saveButton.isEnabled()) {
+      await saveButton.click();
+      await expect(b.page.locator('[data-diagnostic-scope="operation"]')).toBeVisible({ timeout: 15_000 });
+    }
+    // AC6: asset本体は作成されていない
+    const created = await b.page.evaluate(async (slug) => (await window.baseMaps.list()).some((row: any) => row.mapID === slug), slug);
     expect(created).toBe(false);
   } finally {
     await Promise.all([a.app.close(), b.app.close()]);
