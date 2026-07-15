@@ -520,6 +520,7 @@
     "error_not_square": "正方形の画像を指定してください。",
     "error_too_small": "512x512以上の画像を指定してください。",
     "error_invalid_image": "画像ファイルを指定してください。",
+    "app_coverage_auto": "地図から自動計算",
     "app_coverage": "アプリ提供範囲(参考)",
     "app_coverage_note": "アプリが対象とするおおよその範囲です。ベースマップの利用範囲設定時のガイドとスナップ対象になります(範囲外の地図提供を禁止するものではありません)。",
     "app_coverage_modal_title": "アプリ提供範囲を指定",

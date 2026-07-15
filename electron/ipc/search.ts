@@ -70,4 +70,8 @@ export function registerSearchHandlers() {
   ipcMain.handle('search:extent', async (_event, kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]) => {
     return SqliteDataService.searchExtent(bbox, kind);
   });
+
+  ipcMain.handle('search:appCoverage', async (_event, appUid: string, mapUids?: string[]) => {
+    return SqliteDataService.appCoverage(appUid, mapUids);
+  });
 }

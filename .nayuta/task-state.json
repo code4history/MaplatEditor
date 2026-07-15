@@ -72,9 +72,9 @@
     "T7 47b9001 (E2E orphaned process cleanup) は済"
   ],
   "handoff": {
-    "next_action": "implementation of T8-3 (App Coverage Auto Calc) by nayuta-implementer",
-    "actor": "nayuta-implementer",
-    "stop_condition": "T8-3実装完了を待つ"
+    "next_action": "human verification of T8 integration",
+    "actor": "USER",
+    "stop_condition": "人間による検証手順 of T8 integration の完了を待つ"
   },
   "implementation_reviews": [
     {
@@ -92,6 +92,14 @@
       "verdict": "approved",
       "counts": { "critical": 0, "major": 0, "minor": 0, "info": 0 },
       "report": "docs/superpowers/reviews/2026-07-16-m11-t8-implementation-review-v2.md"
+    },
+    {
+      "revision": 3,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-implementation-reviewer",
+      "verdict": "changes_required_major",
+      "counts": { "critical": 0, "major": 3, "minor": 0, "info": 0 },
+      "report": "docs/superpowers/reviews/2026-07-16-m11-t8-implementation-review-v3.md"
     }
   ]
 }

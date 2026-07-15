@@ -21,6 +21,7 @@ import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
+import ResourceSelector from "../components/ResourceSelector.vue";
 import { fetchAllRegisteredMaps } from "../services/desktopMapList";
 import {
   createAppSourceFromBaseMap,
@@ -32,6 +33,7 @@ import {
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
+import { useAppCoverageAutoCalc } from "../composables/useAppCoverageAutoCalc";
 import type { SlugFieldState } from "../composables/useSlugAvailability";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { isEditableElement } from "../utils/nativeTextUndo";
@@ -186,6 +188,7 @@ const defaultApp = (): AppDocument => ({
 
 const appData = ref<AppDocument>(defaultApp());
 const originalAppData = ref<AppDocument>(defaultApp());
+const appCoverageAuto = useAppCoverageAutoCalc({ appDoc: appData as any });
 const activeTab = ref<"metadata" | "sources" | "pois" | "preview">("metadata");
 const sourceListMode = ref<"maps" | "baseMaps">("maps");
 const currentLang = ref<LangCode>("ja");
@@ -392,6 +395,7 @@ watch(
   { deep: true, flush: "post" },
 );
 
+
 const splashPreviewUrl = ref<string | null>(null);
 const iconPreviewUrl = ref<string | null>(null);
 const assetUploadError = ref<string | null>(null);
@@ -452,7 +456,6 @@ const homeModalVisible = ref(false);
 const homeModalFallback = ref<[number, number] | undefined>(undefined);
 const appCoverageModalVisible = ref(false);
 
-// アプリ提供範囲(参考)の設定。Viewer出力には含めない
 function applyAppCoverage(value: [number, number][] | null) {
   appData.value.coverageLngLats = value;
   recordHistory();
@@ -1166,11 +1169,22 @@ function onPoisChange(next: unknown[]) {
             <div class="col-12">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.app_coverage") }}</label>
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span class="small font-monospace">{{ bboxLabel(appData.coverageLngLats) }}</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" :disabled="translationMode" @click="appCoverageModalVisible = true">
+                <span class="small font-monospace">{{ bboxLabel(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value) }}</span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  :disabled="translationMode"
+                  @click="appCoverageModalVisible = true"
+                >
                   {{ t("appedit.envelope_pick") }}
                 </button>
-                <button v-if="appData.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" :disabled="translationMode" @click="applyAppCoverage(null)">
+                <button
+                  v-if="appData.coverageLngLats"
+                  type="button"
+                  class="btn btn-sm btn-outline-danger"
+                  :disabled="translationMode"
+                  @click="applyAppCoverage(null)"
+                >
                   {{ t("appedit.envelope_clear") }}
                 </button>
               </div>
@@ -1295,8 +1309,8 @@ function onPoisChange(next: unknown[]) {
         </form>
       </div>
 
-      <div v-show="activeTab === 'sources'" class="h-100 p-3 source-editor">
-        <div class="source-pane border-end pe-3">
+      <ResourceSelector v-show="activeTab === 'sources'" class="p-3">
+        <template #list>
           <div class="source-pane-toolbar pb-2">
             <div class="btn-group w-100 mb-2" role="group">
               <button class="btn btn-sm" :class="sourceListMode === 'maps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'maps'">
@@ -1351,9 +1365,9 @@ function onPoisChange(next: unknown[]) {
               </button>
             </div>
           </div>
-        </div>
+        </template>
 
-        <div class="selected-pane ps-3">
+        <template #selected>
           <h5>{{ t("appedit.selected_sources") }}</h5>
           <div v-if="appData.sources.length === 0" class="text-muted py-3">{{ t("appedit.no_selected_sources") }}</div>
           <div v-else class="selected-list">
@@ -1403,8 +1417,8 @@ function onPoisChange(next: unknown[]) {
               />
             </div>
           </div>
-        </div>
-      </div>
+        </template>
+      </ResourceSelector>
 
       <!-- Tab: POIデータ (Phase 8 Task 2)。器は appData.pois 配列、履歴は onPoisChange の
            recordHistory 明示 (AppEdit の既存方式) -->
@@ -1452,7 +1466,7 @@ function onPoisChange(next: unknown[]) {
 
     <EnvelopeEditorModal
       v-if="appCoverageModalVisible"
-      :model-value="appData.coverageLngLats ?? null"
+      :model-value="appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value"
       :fallback-center="homePosition ?? undefined"
       title-key="appedit.app_coverage_modal_title"
       help-key="appedit.app_coverage_modal_help"
@@ -1463,21 +1477,7 @@ function onPoisChange(next: unknown[]) {
 </template>
 
 <style scoped>
-.source-editor {
-  display: grid;
-  grid-template-columns: minmax(280px, 36%) 1fr;
-  gap: 0;
-  overflow: hidden;
-}
-.source-pane,
-.selected-pane {
-  min-height: 0;
-  overflow: auto;
-}
-.source-pane {
-  display: flex;
-  flex-direction: column;
-}
+/* 2カラムグリッドは ResourceSelector が提供 */
 .source-pane-toolbar {
   position: sticky;
   top: 0;

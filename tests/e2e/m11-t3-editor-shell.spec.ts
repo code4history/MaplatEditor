@@ -275,7 +275,6 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     // Verify Settings tab does not render double header
     await openHash(page, '#/settings', '#langSwitcher');
     await expect(page.locator('nav.navbar')).toHaveCount(1);
-    await page.pause();
   } finally {
     await quitElectronApplication(app);
   }

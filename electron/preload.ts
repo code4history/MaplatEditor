@@ -215,6 +215,8 @@ contextBridge.exposeInMainWorld('search', {
     ipcRenderer.invoke('search:imageAssets', filter),
   searchExtent: (kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]) =>
     ipcRenderer.invoke('search:extent', kind, bbox),
+  appCoverage: (appUid: string, mapUids?: string[]) =>
+    ipcRenderer.invoke('search:appCoverage', appUid, mapUids),
 })
 
 contextBridge.exposeInMainWorld('slugReservations', {

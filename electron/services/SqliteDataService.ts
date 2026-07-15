@@ -368,9 +368,29 @@ function poiBboxFromJson(dataJson: string): string | null {
   }
 }
 
-// Appのbbox(メルカトル座標)。T8-3(App Coverage自動計算)で実装予定、現状は常にnull
-function appBboxFromJson(_dataJson: string): string | null {
-  return null;
+// Appのbbox(メルカトル座標)。data_json の coverageLngLats([[lng,lat],...]) から算出
+function appBboxFromJson(dataJson: string): string | null {
+  try {
+    const doc = JSON.parse(dataJson);
+    const coverage = doc?.coverageLngLats ?? doc?.coverage;
+    if (!Array.isArray(coverage) || coverage.length === 0) return null;
+    const mercX = (lng: number) => lng * 20037508.34 / 180;
+    const mercY = (lat: number) => Math.log(Math.tan((90 + lat) * Math.PI / 360)) * 20037508.34 / Math.PI;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let found = false;
+    for (const pt of coverage) {
+      const lng = pt[0], lat = pt[1];
+      if (typeof lng !== 'number' || typeof lat !== 'number') continue;
+      if (!isFinite(lng) || !isFinite(lat)) continue;
+      const x = mercX(lng), y = mercY(lat);
+      minX = Math.min(minX, x); minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+      found = true;
+    }
+    return found ? JSON.stringify([minX, minY, maxX, maxY]) : null;
+  } catch {
+    return null;
+  }
 }
 
 function escapeLike(value: string): string {
@@ -2032,6 +2052,53 @@ class SqliteDataService {
       `)
       .all(extent[0], extent[2], extent[1], extent[3]) as any[];
     return rows.map((row) => String(row.id));
+  }
+
+  async appCoverage(appUid: string, passedMapUids?: string[]): Promise<{ coverageLngLats: [number, number][]; maps: number } | null> {
+    const db = await this.getDb();
+    let mapUids: string[] = [];
+    if (Array.isArray(passedMapUids)) {
+      mapUids = passedMapUids.map(String);
+    } else {
+      const app = db.prepare('SELECT data_json FROM apps WHERE uid = ?').get(appUid) as any;
+      if (!app) return null;
+      const data = JSON.parse(app.data_json);
+      const rawSources = data?.sources ?? data?.dataSources ?? [];
+      for (const src of rawSources) {
+        if (src?.sourceType !== 'maplat') continue;
+        const uid = src.mapUid || src.mapID || src.map_id;
+        if (uid) mapUids.push(String(uid));
+      }
+    }
+    if (mapUids.length === 0) return null;
+    const rows = db
+      .prepare(`
+        SELECT r.min_x, r.min_y, r.max_x, r.max_y
+        FROM maps_rtree r
+        JOIN maps_rtree_key k ON k.rid = r.id
+        WHERE k.uid IN (${mapUids.map(() => '?').join(',')})
+      `)
+      .all(...mapUids) as any[];
+    if (rows.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const row of rows) {
+      minX = Math.min(minX, Number(row.min_x));
+      minY = Math.min(minY, Number(row.min_y));
+      maxX = Math.max(maxX, Number(row.max_x));
+      maxY = Math.max(maxY, Number(row.max_y));
+    }
+    if (!isFinite(minX)) return null;
+    const bufX = (maxX - minX) * 0.05, bufY = (maxY - minY) * 0.05;
+    const bMinX = minX - bufX, bMinY = minY! - bufY, bMaxX = maxX! + bufX, bMaxY = maxY! + bufY;
+    const lng = (x: number) => x * 180 / 20037508.34;
+    const lat = (y: number) => 180 / Math.PI * (2 * Math.atan(Math.exp(y * Math.PI / 20037508.34)) - Math.PI / 2);
+    const coverageLngLats: [number, number][] = [
+      [lng(bMinX), lat(bMinY)],
+      [lng(bMaxX), lat(bMinY)],
+      [lng(bMaxX), lat(bMaxY)],
+      [lng(bMinX), lat(bMaxY)],
+    ];
+    return { coverageLngLats, maps: rows.length };
   }
 
   // --- base maps ---

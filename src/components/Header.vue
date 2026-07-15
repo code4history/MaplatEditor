@@ -157,6 +157,7 @@ const navigate = (targetName: string) => {
 
 .navbar-nav {
     flex-direction: row;
+    flex-wrap: nowrap;
     height: 100%;
     margin-bottom: 0;
 }
@@ -178,6 +179,7 @@ const navigate = (targetName: string) => {
     align-items: center;
     border-radius: 0; /* Square */
     margin: 0;
+    white-space: nowrap;
     transition: color 0.2s, background-color 0.2s;
     font-size: 14px;
 }
