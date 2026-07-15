@@ -45,6 +45,31 @@ async function approveConfirm(page: Page): Promise<void> {
   await page.evaluate(() => { window.confirm = () => true; });
 }
 
+// M11-T7: menu が production の clamp 式と同じ座標にあることを検証
+async function expectMenuAt(page: Page, x: number, y: number): Promise<void> {
+  await expect(page.locator('[role="menu"]')).toHaveCSS('position', 'fixed');
+  const mbox = await page.locator('[role="menu"]').boundingBox();
+  expect(mbox).not.toBeNull();
+  if (mbox) {
+    const vp = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
+    // ResourceActionMenu.openAt() と同じ clamp 式
+    const expectedX = Math.max(4, Math.min(x, vp.w - mbox.width - 4));
+    const expectedY = Math.max(4, Math.min(y, vp.h - mbox.height - 4));
+    expect(Math.abs(mbox.x - expectedX)).toBeLessThanOrEqual(2);
+    expect(Math.abs(mbox.y - expectedY)).toBeLessThanOrEqual(2);
+    expect(mbox.x + mbox.width).toBeLessThanOrEqual(vp.w + 1);
+    expect(mbox.y + mbox.height).toBeLessThanOrEqual(vp.h + 1);
+  }
+}
+
+async function expectMenuNearTrigger(page: Page, trigger: ReturnType<Page['locator']>): Promise<void> {
+  const tbox = await trigger.boundingBox();
+  expect(tbox).not.toBeNull();
+  if (tbox) {
+    await expectMenuAt(page, tbox.x + tbox.width, tbox.y + tbox.height);
+  }
+}
+
 async function seedMap(page: Page, tag: string): Promise<string> {
   return page.evaluate(async (slugTag) => {
     const slug = `m11-t6-map-${slugTag}`;
@@ -77,6 +102,10 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await forceJapanese(page);
     await approveConfirm(page);
     const uid = await seedMap(page, 'grid-a');
+    // overflow を保証するため計 15 件 seed（grid-a + scroll-1〜14）
+    for (let i = 1; i <= 14; i++) {
+      await seedMap(page, `scroll-${i}`);
+    }
 
     await openHash(page, '#/maplist', '[data-resource-list="map"]');
 
@@ -92,6 +121,10 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await expect(card.locator('.resource-item__title')).toBeVisible();
     await expect(card.locator('.resource-item__slug')).toContainText('m11-t6-map-grid-a');
 
+    // M11-T7 surface: grid card must have white bg + visible border (.source-row 統一)
+    await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await expect(card).toHaveCSS('border-top-width', '1px');
+
     // AC4: Map は total=null → 「M件表示中」（全N件…にはならない）
     const count = page.locator('[data-resource-count]');
     await expect(count).toContainText('件表示中');
@@ -102,22 +135,49 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await trigger.click();
     await expect(page.locator('[role="menu"]')).toBeVisible();
+    // M11-T7: menu must use position:fixed and stay near trigger + within viewport
+    await expectMenuNearTrigger(page, trigger);
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
     await page.keyboard.press('Escape');
     await expect(page.locator('[role="menu"]')).toHaveCount(0);
     await expect(trigger).toBeFocused();
-    // AC10: 右クリックでも同 menu
+    // AC10: 右クリックでも同 menu（card 中心の明示座標で検証）
+    const cardBox = await card.boundingBox();
+    expect(cardBox).not.toBeNull();
     await card.click({ button: 'right' });
     await expect(page.locator('[role="menu"]')).toBeVisible();
+    if (cardBox) {
+      await expectMenuAt(page, cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2);
+    }
     await page.keyboard.press('Escape');
     // AC10: Shift+F10 でも同 menu
     await trigger.focus();
     await page.keyboard.press('Shift+F10');
     await expect(page.locator('[role="menu"]')).toBeVisible();
+    await expectMenuNearTrigger(page, trigger);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[role="menu"]')).toHaveCount(0);
 
-    // AC11: menu の 削除 → confirm 承認 → card が消える
+    // M11-T7: menu position after scroll（末尾cardを通常click。scrollTop が click 前後とも > 0）
+    const content = page.locator('[data-resource-content="map"]');
+    const cards = page.locator('[data-resource-uid]');
+    await content.evaluate((el) => { el.scrollTop = Math.max(0, el.scrollHeight - el.clientHeight - 80); });
+    let scrollTop = await content.evaluate((el) => el.scrollTop);
+    expect(scrollTop).toBeGreaterThan(0);
+    const lastCard = cards.last();
+    await expect(lastCard).toBeVisible();
+    const lastCardUid = await lastCard.getAttribute('data-resource-uid');
+    expect(lastCardUid).not.toBeNull();
+    const lastTrigger = lastCard.locator('[data-resource-action-trigger]');
+    await lastTrigger.click();
+    scrollTop = await content.evaluate((el) => el.scrollTop);
+    expect(scrollTop).toBeGreaterThan(0);
+    await expect(page.locator('[role="menu"]')).toBeVisible();
+    await expectMenuNearTrigger(page, lastTrigger);
+
+    // AC11: menu の 削除 → confirm 承認 → card（scroll test で開いた末尾card）が消える
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();
-    await expect(page.locator(`[data-resource-uid="${uid}"]`)).toHaveCount(0);
+    await expect(page.locator(`[data-resource-uid="${lastCardUid}"]`)).toHaveCount(0);
 
     // AC4 empty: 一致しない検索で empty 状態
     await page.locator('[data-resource-search]').fill('zzz-no-such-map-xyz');
@@ -174,6 +234,9 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     const builtinRow = page.getByTestId('basemap-row-osm');
     await expect(builtinRow).toBeVisible();
     await expect(builtinRow.locator('[data-resource-action-trigger]')).toHaveCount(0);
+    // M11-T7 surface: master row must have white bg + visible border (.source-row 統一)
+    await expect(builtinRow).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await expect(builtinRow).toHaveCSS('border-top-width', '1px');
 
     // user 基図を 1 件作成
     await page.getByTestId('basemap-new').click();
@@ -191,6 +254,21 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await expect(userRow).toBeVisible();
     const userTrigger = userRow.locator('[data-resource-action-trigger]');
     await expect(userTrigger).toHaveCount(1);
+
+    // M11-T7 selected: click row → .active + aria-current + dark text + blue border + blue bg
+    await userRow.locator('.resource-item__title').click();
+    await expect(userRow).toHaveClass(/active/);
+    await expect(userRow).toHaveAttribute('aria-current', 'true');
+    await expect(userRow).toHaveCSS('color', 'rgb(33, 37, 41)');
+    await expect(userRow).toHaveCSS('background-color', 'rgba(13, 110, 253, 0.06)');
+    await expect(userRow).toHaveCSS('border-top-color', 'rgb(13, 110, 253)');
+
+    // M11-T7 gap: 2 連続 builtin master row（nth(2)）間に 6px margin-top
+    // (nth(0)=user, nth(1)=osm, nth(2)=gsi が consecutive builtin の先頭対)
+    const rowCount = await page.locator('[data-testid^="basemap-row-"]').count();
+    expect(rowCount).toBeGreaterThanOrEqual(3);
+    await expect(page.locator('[data-testid^="basemap-row-"]').nth(2)).toHaveCSS('margin-top', '6px');
+
     await userTrigger.click();
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();
     await expect(page.getByTestId('basemap-row-e2e-user-basemap')).toHaveCount(0);

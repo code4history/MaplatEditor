@@ -12,6 +12,7 @@ import {
   slugCheckResultIsAvailable,
 } from "../electron/services/SlugReservationService.ts";
 import { toRegistryKind, toDraftKind } from "../electron/services/slugReservationKind.ts";
+import { createResettableSingleFlight } from "../electron/services/ResettableSingleFlight.ts";
 
 const readSrc = (rel) => readFile(new URL(`../${rel}`, import.meta.url), "utf8");
 
@@ -69,6 +70,146 @@ function makeDb() {
 
 const UID_A = "11111111-1111-4111-8111-111111111111";
 const UID_B = "22222222-2222-4222-8222-222222222222";
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+// --- Part A-1: SqliteDataService が使う resettable single-flight lifecycle ---
+// 同期同一key、初期化中reset、失敗後retryを決定論的に物理的に重ねる。
+{
+  const firstInit = deferred();
+  let starts = 0;
+  const disposed = [];
+  const lifecycle = createResettableSingleFlight({
+    initialize: async (key) => {
+      starts += 1;
+      const value = { key, serial: starts };
+      if (starts === 1) await firstInit.promise;
+      return value;
+    },
+    dispose: async (value) => { disposed.push(value); },
+  });
+
+  const first = lifecycle.get("same.sqlite");
+  const second = lifecycle.get("same.sqlite");
+  await Promise.resolve();
+  assert.equal(starts, 1, "同期同一keyのgetは単一初期化へcoalesceする");
+  firstInit.resolve();
+  const [firstValue, secondValue] = await Promise.all([first, second]);
+  assert.strictEqual(firstValue, secondValue, "coalesced waiterは同一resourceを受け取る");
+  await lifecycle.reset();
+  assert.deepEqual(disposed, [firstValue], "published resourceはresetで一度だけdisposeする");
+}
+
+{
+  const oldInit = deferred();
+  let starts = 0;
+  const disposed = [];
+  const lifecycle = createResettableSingleFlight({
+    initialize: async (key) => {
+      starts += 1;
+      const value = { key, serial: starts };
+      if (starts === 1) await oldInit.promise;
+      return value;
+    },
+    dispose: async (value) => { disposed.push(value); },
+  });
+
+  const owner = lifecycle.get("old.sqlite");
+  await Promise.resolve();
+  const resetting = lifecycle.reset();
+  const waiter = lifecycle.get("old.sqlite");
+  oldInit.resolve();
+  await resetting;
+  const [ownerValue, waiterValue] = await Promise.all([owner, waiter]);
+  assert.equal(starts, 2, "resetで無効化された初期化は新generationで一度だけ再試行する");
+  assert.equal(ownerValue.serial, 2, "init ownerへ旧generation resourceを返さない");
+  assert.strictEqual(ownerValue, waiterValue, "reset待機callerも新generation resourceを共有する");
+  assert.deepEqual(disposed.map((value) => value.serial), [1],
+    "旧generation resourceは公開せずdisposeする");
+  await lifecycle.reset();
+}
+
+{
+  const oldInit = deferred();
+  let starts = 0;
+  const disposed = [];
+  const lifecycle = createResettableSingleFlight({
+    initialize: async (key) => {
+      starts += 1;
+      const value = { key, serial: starts };
+      if (key === "old-folder.sqlite") await oldInit.promise;
+      return value;
+    },
+    dispose: async (value) => { disposed.push(value); },
+  });
+  const oldRequest = lifecycle.get("old-folder.sqlite");
+  await Promise.resolve();
+  const newRequest = lifecycle.get("new-folder.sqlite");
+  oldInit.resolve();
+  const [oldResult, newResult] = await Promise.all([oldRequest, newRequest]);
+  assert.equal(oldResult.key, "new-folder.sqlite",
+    "進行中にkeyが変わったownerへ旧folder resourceを返さない");
+  assert.equal(newResult.key, "new-folder.sqlite",
+    "異なるkeyのwaiterへ旧folder resourceを返さない");
+  assert.equal(starts, 2, "旧folder initを破棄して新folderを一度だけ初期化する");
+  assert.deepEqual(disposed.map((value) => value.key), ["old-folder.sqlite"]);
+  await lifecycle.reset();
+}
+
+{
+  let starts = 0;
+  let fail = true;
+  const lifecycle = createResettableSingleFlight({
+    initialize: async (key) => {
+      starts += 1;
+      if (fail) throw new Error("injected init failure");
+      return { key, serial: starts };
+    },
+    dispose: async () => {},
+  });
+  await assert.rejects(() => lifecycle.get("retry.sqlite"), /injected init failure/);
+  await lifecycle.reset();
+  fail = false;
+  const retried = await lifecycle.get("retry.sqlite");
+  assert.equal(retried.serial, 2, "init rejection後もreset/retryできる");
+  await lifecycle.reset();
+}
+
+{
+  let starts = 0;
+  let failPublish = true;
+  const disposed = [];
+  const lifecycle = createResettableSingleFlight({
+    initialize: async (key) => ({ key, serial: ++starts }),
+    publish: () => {
+      if (failPublish) throw new Error("injected publish failure");
+    },
+    dispose: async (value, published) => { disposed.push({ value, published }); },
+  });
+  await assert.rejects(() => lifecycle.get("publish.sqlite"), /injected publish failure/);
+  assert.equal(disposed.length, 1, "publish途中失敗でもresourceを一度だけdisposeする");
+  assert.equal(disposed[0].published, true,
+    "publish途中失敗は外部参照/timerを消すためpublished cleanupを通す");
+  failPublish = false;
+  const retried = await lifecycle.get("publish.sqlite");
+  assert.equal(retried.serial, 2, "publish失敗後も同じkeyを再初期化できる");
+  await lifecycle.reset();
+}
+console.log("m11-t7 smoke Part A-1 (DB lifecycle): OK");
+
+const sqliteDataServiceSource = await readSrc("electron/services/SqliteDataService.ts");
+assert.match(sqliteDataServiceSource, /createResettableSingleFlight/,
+  "SqliteDataService.getDb/reset must use the tested resettable single-flight lifecycle");
+assert.doesNotMatch(sqliteDataServiceSource, /initGeneration|initPromise\s*:/,
+  "SqliteDataService must not retain a second untested initialization state machine");
 
 // 旧 asset:checkSlug boolean wrapper の戻り値互換（availableのみtrue）。
 assert.equal(slugCheckResultIsAvailable("available"), true);

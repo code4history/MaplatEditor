@@ -256,6 +256,24 @@ async function expectHeadOrder(page: Page, titleLabel: string | RegExp): Promise
   expect(visuallyBefore(slugBox!, langBox!)).toBe(true);
 }
 
+// title inputs と slug inputs の top-edge と height が揃っていること (form-control-sm で高さ統一)
+async function expectSlugInputAlignment(page: Page, slugTestId: string, titleTestId: string): Promise<void> {
+  const slugInput = page.getByTestId(slugTestId);
+  const titleInput = page.getByTestId(titleTestId);
+  await expect(slugInput).toBeVisible();
+  await expect(titleInput).toBeVisible();
+  const [slugBox, titleBox] = await Promise.all([
+    slugInput.boundingBox(),
+    titleInput.boundingBox(),
+  ]);
+  expect(slugBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  if (slugBox && titleBox) {
+    expect(Math.abs(titleBox.y - slugBox.y)).toBeLessThanOrEqual(3);
+    expect(Math.abs(titleBox.height - slugBox.height)).toBeLessThanOrEqual(2);
+  }
+}
+
 test('five edits share SlugField with unified head order and §9 tabs', async () => {
   test.setTimeout(300_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-'));
@@ -272,6 +290,7 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     await openHash(page, `#/mapedit?uid=${mapUid}`, '#mapDocumentLanguage');
     await expectSlugField(page, 'map-slug');
     await expectHeadOrder(page, '地図名称');
+    await expectSlugInputAlignment(page, 'map-slug', 'map-title');
     // AC9: §9 tab 語彙 + role/aria。画像未登録 seed のため対応点編集は disabled
     const mapTabs = page.locator('.nav-tabs [role="tab"]');
     await expect(mapTabs).toHaveCount(4);
@@ -300,6 +319,7 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     await openHash(page, `#/appedit?uid=${appUid}`, '[data-testid="app-id"]');
     await expectSlugField(page, 'app-id');
     await expectHeadOrder(page, 'アプリ名');
+    await expectSlugInputAlignment(page, 'app-id', 'app-title');
     const appTabs = page.locator('.nav-tabs [role="tab"]');
     await expect(appTabs).toHaveCount(4);
     await expect(appTabs.nth(0)).toHaveText(/メタデータ編集/);
@@ -324,6 +344,7 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     await openHash(page, `#/poisources/${poiUid}`, '[data-testid="poi-slug"]');
     await expectSlugField(page, 'poi-slug');
     await expectHeadOrder(page, 'タイトル');
+    await expectSlugInputAlignment(page, 'poi-slug', 'poi-title');
     await shot('03-poi');
 
     // --- BaseMap Edit (AC1/AC7) ---
@@ -331,6 +352,7 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     await page.getByTestId('basemap-new').click();
     await expectSlugField(page, 'basemap-slug');
     await expectHeadOrder(page, 'タイトル');
+    await expectSlugInputAlignment(page, 'basemap-slug', 'basemap-title');
     await shot('04-basemap');
 
     // --- Asset Edit (AC1/AC7) ---
@@ -338,6 +360,7 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     await page.getByTestId('asset-new').click();
     await expectSlugField(page, 'asset-slug');
     await expectHeadOrder(page, 'タイトル');
+    await expectSlugInputAlignment(page, 'asset-slug', 'asset-title');
     await shot('05-asset');
   } finally {
     await app.close();

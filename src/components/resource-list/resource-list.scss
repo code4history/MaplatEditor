@@ -51,32 +51,51 @@
   font-family: var(--editor-ui-font-mono);
 }
 
-/* action menu 位置 */
+/* action menu — Bootstrap .dropdown-menu{position:absolute} を同じspecificityで上書き
+   (本SCSSはBootstrapより後に読み込まれるため、宣言順で勝つ) */
 .resource-action-menu {
   position: fixed;
   z-index: var(--editor-ui-z-overlay);
   min-width: 10rem;
 }
 
-/* item surface: grid/master 共通の背景・境界・hover/selected (Major 3) */
+/* item surface: .source-row と同一の視覚文法で grid/master を統一
+   background #fff / border 1px / radius 4px / gap で分離
+   hover は薄い背景変化、selected は #0d6efd 枠 + 青淡背景 */
 .resource-grid-card,
 .resource-master-row {
-  background: var(--bs-body-bg);
+  background: #fff;
   border: 1px solid var(--bs-border-color);
-  border-radius: var(--bs-border-radius-sm);
-  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  border-radius: 4px;
+  transition: background-color 0.15s, border-color 0.15s;
 }
 
 .resource-grid-card:hover,
 .resource-master-row:hover {
   background: var(--bs-tertiary-bg);
-  border-color: var(--bs-border-color-translucent);
 }
 
-.resource-grid-card.router-link-active,
-.resource-grid-card.router-link-exact-active,
-.resource-master-row[aria-selected="true"] {
-  background: var(--bs-primary-bg-subtle);
-  border-color: var(--bs-primary-border-subtle);
-  box-shadow: inset 0 0 0 1px var(--bs-primary-border-subtle);
+/* 選択状態: master row は .active クラス、grid card は内側 router-link の :has で検出
+   Bootstrap .list-group-item.active は color: #fff を設定するため、明示的に上書きする */
+.resource-master-row.active {
+  border-color: #0d6efd;
+  background: rgba(13, 110, 253, 0.06);
+  color: var(--bs-body-color);
+}
+.resource-master-row.active .resource-item__title {
+  color: var(--bs-body-color);
+}
+.resource-master-row.active .resource-item__slug,
+.resource-master-row.active .resource-item__meta {
+  color: var(--bs-secondary-color);
+}
+
+.resource-grid-card:has(a.router-link-active) {
+  border-color: #0d6efd;
+  background: rgba(13, 110, 253, 0.06);
+}
+
+/* item 間 gap（source-list の gap: 6px 相当） */
+.resource-master-row + .resource-master-row {
+  margin-top: 6px;
 }

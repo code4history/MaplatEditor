@@ -2,7 +2,7 @@
   <div
     role="button"
     tabindex="0"
-    class="resource-master-row list-group-item list-group-item-action border-0 border-bottom rounded-0 px-3 py-2"
+    class="resource-master-row list-group-item list-group-item-action px-3 py-2"
     :class="{ active: item.selected }"
     :data-resource-uid="item.uid"
     :aria-current="item.selected ? 'true' : undefined"

@@ -27,6 +27,7 @@ import { toDraftKind } from './slugReservationKind';
 import AssetDraftService from './AssetDraftService';
 import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
+import { createResettableSingleFlight } from './ResettableSingleFlight';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -110,6 +111,11 @@ interface Folders {
   sqliteFile: string;
   nedbFile: string;
   retiredNedbFile: string;
+}
+
+interface InitializedDb {
+  db: DatabaseSync;
+  slugReservations: SlugReservationService;
 }
 
 // レガシー移行の実行結果(slugサフィックス改名・ファイルリネーム・警告)。
@@ -436,11 +442,38 @@ function sendMigrationProgress(text: string, percent: number, progress: string =
 
 class SqliteDataService {
   private db: DatabaseSync | null = null;
-  private activeDbFile: string | null = null;
   // slug 予約(M11-T7): instance_id は起動ごとに一度だけ採番(D3)。
   private readonly instanceId = globalThis.crypto.randomUUID();
   private slugReservations: SlugReservationService | null = null;
   private slugTimers: { renew?: NodeJS.Timeout; gc?: NodeJS.Timeout } = {};
+  // getDb/resetは単一のgeneration境界で直列化する。同一sqliteFileはsingle-flight、
+  // resetで無効化された初期化結果はpublish前にcloseされる。
+  private readonly dbLifecycle = createResettableSingleFlight<string, InitializedDb>({
+    initialize: (sqliteFile) => this.initializeDb(path.dirname(sqliteFile), sqliteFile),
+    publish: (initialized) => {
+      this.db = initialized.db;
+      this.slugReservations = initialized.slugReservations;
+      this.runSlugGc();
+      this.slugTimers.renew = setInterval(() => this.slugReservations?.renewOwn(), 30_000).unref();
+      this.slugTimers.gc = setInterval(() => this.runSlugGc(), 10 * 60_000).unref();
+    },
+    dispose: (initialized, published) => {
+      if (published) {
+        if (this.slugTimers.renew) clearInterval(this.slugTimers.renew);
+        if (this.slugTimers.gc) clearInterval(this.slugTimers.gc);
+        this.slugTimers = {};
+        if (this.slugReservations === initialized.slugReservations) this.slugReservations = null;
+        if (this.db === initialized.db) {
+          this.db = null;
+        }
+      }
+      try {
+        initialized.db.close();
+      } catch {
+        // 既にclose済みの場合はnoop。
+      }
+    },
+  });
 
   private get folders(): Folders {
     const saveFolder = SettingsService.get('saveFolder') as string;
@@ -459,20 +492,7 @@ class SqliteDataService {
   }
 
   async reset(): Promise<void> {
-    // slug 予約の lease/GC timer を止め、service を破棄する(接続を張り替えるため)
-    if (this.slugTimers.renew) clearInterval(this.slugTimers.renew);
-    if (this.slugTimers.gc) clearInterval(this.slugTimers.gc);
-    this.slugTimers = {};
-    this.slugReservations = null;
-    if (this.db) {
-      try {
-        this.db.close();
-      } catch {
-        // noop
-      }
-    }
-    this.db = null;
-    this.activeDbFile = null;
+    await this.dbLifecycle.reset();
   }
 
   // slug 予約 GC(D4): lease 失効かつ draft 保護なし・24h 経過の予約を掃除する。
@@ -489,48 +509,53 @@ class SqliteDataService {
   }
 
   async getDb(): Promise<DatabaseSync> {
-    const { saveFolder, sqliteFile } = this.folders;
-    if (this.db && this.activeDbFile === sqliteFile) return this.db;
+    const { sqliteFile } = this.folders;
+    const initialized = await this.dbLifecycle.get(sqliteFile);
+    return initialized.db;
+  }
 
-    await this.reset();
-    await fs.ensureDir(saveFolder);
-    let db = new DatabaseSync(sqliteFile);
-    // 旧schema(v1: maps.uid 列なし)のDBは書き換えずに退避し、新規v2 DBを作って
-    // レガシー入力から再取込する(DBは未公開のため in-place migration は行わない)
-    if (this.hasV1Schema(db)) {
-      db.close();
-      await this.retireV1Database(sqliteFile);
+  private async initializeDb(saveFolder: string, sqliteFile: string): Promise<InitializedDb> {
+    let db: DatabaseSync | null = null;
+    try {
+      await fs.ensureDir(saveFolder);
       db = new DatabaseSync(sqliteFile);
+      // 旧schema(v1: maps.uid 列なし)のDBは書き換えずに退避し、新規v2 DBを作って
+      // レガシー入力から再取込する(DBは未公開のため in-place migration は行わない)
+      if (this.hasV1Schema(db)) {
+        db.close();
+        await this.retireV1Database(sqliteFile);
+        db = new DatabaseSync(sqliteFile);
+      }
+      db.exec('PRAGMA journal_mode=WAL');
+      db.exec('PRAGMA busy_timeout=5000');
+      // WAL時の標準設定: コミット毎のfsyncを削減(電源断で直近コミットが巻き戻る可能性はあるがDB破損はしない)
+      db.exec('PRAGMA synchronous=NORMAL');
+      // INSERT OR REPLACE時の内部DELETEでもトリガを発火させる(検索索引の同期漏れ防止)
+      db.exec('PRAGMA recursive_triggers=ON');
+      this.registerSearchFunctions(db);
+      await this.migrate(db);
+      // slug 予約 service を同一 DatabaseSync 接続注入で生成し(D13)、起動時 GC +
+      // 30 秒 lease renew + 10 分 GC timer を開始する。
+      // NOTE: const activeDb を closure 用に確保する(db は let なので finally の null 代入が
+      //       後で registryOwner closure 内で null 参照を引き起こすため)
+      const activeDb = db;
+      const slugReservations = createSlugReservationService({
+        db: activeDb,
+        instanceId: this.instanceId,
+        now: () => new Date().toISOString(),
+        draftExists: (kind, draftUid) => this.slugReservationDraftExists(kind, draftUid),
+        registryOwner: (slug) => {
+          const row = activeDb.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
+          return row == null ? null : String(row.uid);
+        },
+      });
+      db = null; // 成功: finally での close を抑制
+      return { db: activeDb, slugReservations };
+    } finally {
+      if (db) {
+        try { db.close(); } catch { /* 初期化失敗: 生成した connection を閉じる */ }
+      }
     }
-    db.exec('PRAGMA journal_mode=WAL');
-    db.exec('PRAGMA busy_timeout=5000');
-    // WAL時の標準設定: コミット毎のfsyncを削減(電源断で直近コミットが巻き戻る可能性はあるがDB破損はしない)
-    db.exec('PRAGMA synchronous=NORMAL');
-    // INSERT OR REPLACE時の内部DELETEでもトリガを発火させる(検索索引の同期漏れ防止)
-    db.exec('PRAGMA recursive_triggers=ON');
-    this.registerSearchFunctions(db);
-    this.db = db;
-    this.activeDbFile = sqliteFile;
-    await this.migrate();
-    // slug 予約 service を同一 DatabaseSync 接続注入で生成し(D13)、起動時 GC +
-    // 30 秒 lease renew + 10 分 GC timer を開始する。
-    this.slugReservations = createSlugReservationService({
-      db,
-      instanceId: this.instanceId,
-      now: () => new Date().toISOString(),
-      draftExists: (kind, draftUid) => this.slugReservationDraftExists(kind, draftUid),
-      registryOwner: (slug) => {
-        const row = db.prepare('SELECT uid FROM asset_registry WHERE slug = ?').get(slug) as any;
-        return row == null ? null : String(row.uid);
-      },
-    });
-    this.runSlugGc();
-    // unref(): lease/GC timer は event loop を専有しない。electron 本体は他の
-    // handle(BrowserWindow 等)が生存するため動き続け、smoke/test の短命プロセスは
-    // 他に保留が無くなれば自然終了できる(timer が exit を妨げない)。
-    this.slugTimers.renew ??= setInterval(() => this.slugReservations?.renewOwn(), 30_000).unref();
-    this.slugTimers.gc ??= setInterval(() => this.runSlugGc(), 10 * 60_000).unref();
-    return db;
   }
 
   private hasV1Schema(db: DatabaseSync): boolean {
@@ -608,9 +633,7 @@ class SqliteDataService {
     );
   }
 
-  private async migrate(): Promise<void> {
-    const db = this.db;
-    if (!db) throw new Error('SQLite connection is not initialized');
+  private async migrate(db: DatabaseSync): Promise<void> {
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
