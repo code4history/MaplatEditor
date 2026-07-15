@@ -780,18 +780,30 @@ const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh
   }
 
   // --- Major-D: release 失敗が reactive ref をセットし、hasFailedRelease が即座に反映される ---
+  // かつ、SlugField の state computed が 'check-failed' になり、close callback が呼ばれないこと(component level behavioral test)。
   {
     window.slugReservations.release = async () => { throw new Error("ipc-fail"); };
     window.slugReservations.reserve = async () => ({ result: "ok" });
     window.slugReservations.check = async () => "available";
-    const harness = createSlugReservationHarness({ currentSlug: "new", assetUid: UID_A });
-    await harness.reservation.onAvailable("new");
-    // releaseIfHeld が reject する
+    // originalSlug="new" に設定し、"changed" へ予約してから "new" へ復帰させることで
+    // SlugField の release失敗検出パス (slug===original && available && hasFailedRelease) を触发する。
+    const harness = createSlugReservationHarness({ originalSlug: "new", currentSlug: "new", assetUid: UID_A });
+    harness.setAvailabilityInternal("available");
+    // slug を "changed" に変更して予約を取得
+    harness.setCurrentSlug("changed");
+    await harness.reservation.onAvailable("changed");
+    // slug を original "new" へ復帰 → sync watch が releaseIfHeld を呼び、失敗する
+    harness.setCurrentSlug("new");
+    // availability が available のまま (slug===original) なので state computed が check-failed を返す
     await assert.rejects(() => harness.reservation.releaseIfHeld(), /ipc-fail/);
-    // hasFailedRelease は直後に true（reactive ref のため）
+    // composable level: hasFailedRelease は直後に true（reactive ref のため）
     assert.equal(harness.reservation.hasFailedRelease(), true, "hasFailedRelease must reflect rejection immediately");
+    // component level behavioral: state computed が 'check-failed' になる(Major-D)
+    assert.equal(harness.state.value, "check-failed",
+      "SlugField state computed must return check-failed immediately after release failure");
     // 正常系でリセット
     window.slugReservations.release = async () => {};
+    harness.setOriginalSlug(undefined);
     await harness.reservation.releaseIfHeld();
     assert.equal(harness.reservation.hasFailedRelease(), false, "hasFailedRelease must clear after successful release");
   }
@@ -816,10 +828,10 @@ assert.doesNotMatch(slugField, /void reservation\.releaseIfHeld\(\)/,
 // Major-C: counter-based pending (reservationPendingCount > 0) が onAvailable 中に available を抑制する
 assert.match(slugField, /reservationPendingCount/, "SlugField must use counter-based pending (Major-C)");
 assert.doesNotMatch(slugField, /onAvailablePending\b/, "SlugField must not use boolean onAvailablePending (Major-C)");
-// Major-D: hasFailedRelease() は reactive ref (releaseFailed/releasePending) を参照し、
-// Vue computed が再評価される。SlugField は hasFailedRelease() を state computed 内で呼ぶ。
-assert.match(slugField, /hasFailedRelease\(\)/,
-  "SlugField must call hasFailedRelease() in computed state (Major-D)");
+// Major-D: hasFailedRelease() は state computed の release失敗検出パス内で呼ばれ、
+// Vue computed が再評価されることをregexで保証する。
+assert.match(slugField, /hasFailedRelease\(\)\)\s*\{[\s\S]*?return\s+['"]check-failed['"]/,
+  "SlugField state computed must return 'check-failed' when hasFailedRelease() is true (Major-D)");
 // useSlugReservation が reactive ref を export していること（hasFailedRelease内部が .value を使う）
 assert.match(slugReservation, /releaseFailed\.value|releasePending\.value/,
   "useSlugReservation must expose releaseFailed/releasePending as reactive refs (Major-D)");
