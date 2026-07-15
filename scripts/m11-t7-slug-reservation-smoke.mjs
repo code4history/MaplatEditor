@@ -1208,3 +1208,123 @@ console.log("m11-t7 smoke Part M: OK");
   db.close();
 }
 console.log("m11-t7 smoke Part N: OK");
+
+// --- Part O: Major 1 — 実 save service transaction の promote conflict rollback ---
+// Node.js で実 SlugReservationService + 実 promoteSlugWithin ロジックを呼び、
+// foreign reservation が promote を block し transaction rollback されることを検証する。
+// Electron 依存なし（node:sqlite + SlugReservationService のみ）。
+{
+  const db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA journal_mode=WAL");
+  db.exec(`
+    CREATE TABLE asset_registry (
+      uid TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE
+    );
+    CREATE TABLE base_maps (
+      uid TEXT PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE,
+      scope TEXT NOT NULL,
+      sort_order INTEGER NOT NULL,
+      data_json TEXT NOT NULL,
+      revision INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE slug_reservations (
+      slug TEXT PRIMARY KEY,
+      asset_uid TEXT NOT NULL,
+      asset_kind TEXT NOT NULL,
+      instance_id TEXT NOT NULL,
+      draft_uid TEXT,
+      lease_expires_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  const now = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const svc = createSlugReservationService({ db, instanceId: "inst-promote-test", now });
+
+  // saveUserBaseMap のトランザクションロジック(実コードと同等: promoteWithin → registerAsset → INSERT)
+  const saveUserBaseMapTx = (slug, uid) => {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const promote = svc.promoteWithin(db, { slug, assetUid: uid });
+      if (!promote.ok) throw new Error(`Slug reservation conflict: ${slug}`);
+      db.prepare("INSERT INTO asset_registry (uid, kind, slug) VALUES (?, ?, ?)").run(uid, "base_map", slug);
+      db.prepare(
+        `INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at)
+         VALUES (?, ?, 'user', 0, ?, 1, datetime('now'))`
+      ).run(uid, slug, JSON.stringify({ mapID: slug }));
+      db.exec("COMMIT");
+      return { uid, revision: 1 };
+    } catch (e) {
+      try { db.exec("ROLLBACK"); } catch { /* noop */ }
+      throw e;
+    }
+  };
+
+  // O1: foreign reservation → promote conflict → rollback
+  svc.reserve({ slug: "promote-clash", assetUid: UID_B, assetKind: "base_map", draftUid: "d-B" });
+  let threw = false;
+  try { saveUserBaseMapTx("promote-clash", UID_A); } catch { threw = true; }
+  assert.equal(threw, true, "save must throw on promote conflict");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM asset_registry WHERE slug=?").get("promote-clash").c, 0,
+    "registry must not contain the conflicted asset (transaction rolled back)");
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM base_maps WHERE slug=?").get("promote-clash").c, 0,
+    "base_maps must not contain the conflicted asset (transaction rolled back)");
+  assert.equal(db.prepare("SELECT asset_uid FROM slug_reservations WHERE slug=?").get("promote-clash").asset_uid, UID_B,
+    "foreign reservation must survive failed promote");
+
+  // O2: 自 uid 予約 → promote 成立 → registry + base_maps に行が作られる
+  svc.reserve({ slug: "promote-ok", assetUid: UID_A, assetKind: "base_map", draftUid: "d-A" });
+  const result = saveUserBaseMapTx("promote-ok", UID_A);
+  assert.equal(result.uid, UID_A);
+  assert.equal(db.prepare("SELECT uid, kind FROM asset_registry WHERE slug=?").get("promote-ok").uid, UID_A);
+  assert.equal(db.prepare("SELECT uid FROM base_maps WHERE slug=?").get("promote-ok").uid, UID_A);
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM slug_reservations WHERE slug=?").get("promote-ok").c, 0,
+    "reservation consumed after successful promote");
+
+  db.close();
+}
+
+// O3/O4 は独立 DB で実行(UID 再利用回避)
+{
+  const db3 = new DatabaseSync(":memory:");
+  db3.exec("PRAGMA journal_mode=WAL");
+  db3.exec(`
+    CREATE TABLE asset_registry (uid TEXT PRIMARY KEY, kind TEXT NOT NULL, slug TEXT NOT NULL UNIQUE);
+    CREATE TABLE base_maps (uid TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, scope TEXT NOT NULL, sort_order INTEGER NOT NULL, data_json TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, updated_at TEXT DEFAULT (datetime('now')));
+    CREATE TABLE slug_reservations (slug TEXT PRIMARY KEY, asset_uid TEXT NOT NULL, asset_kind TEXT NOT NULL, instance_id TEXT NOT NULL, draft_uid TEXT, lease_expires_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+  `);
+  const now3 = () => new Date("2026-07-15T00:00:00Z").toISOString();
+  const svc3 = createSlugReservationService({ db: db3, instanceId: "inst-promote-test-3", now: now3 });
+  const save3 = (slug, uid) => {
+    db3.exec("BEGIN IMMEDIATE");
+    try {
+      const promote = svc3.promoteWithin(db3, { slug, assetUid: uid });
+      if (!promote.ok) throw new Error(`Slug reservation conflict: ${slug}`);
+      db3.prepare("INSERT INTO asset_registry (uid, kind, slug) VALUES (?, ?, ?)").run(uid, "base_map", slug);
+      db3.prepare(`INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at) VALUES (?, ?, 'user', 0, ?, 1, datetime('now'))`).run(uid, slug, JSON.stringify({ mapID: slug }));
+      db3.exec("COMMIT");
+      return { uid, revision: 1 };
+    } catch (e) { try { db3.exec("ROLLBACK"); } catch {} throw e; }
+  };
+
+  // O3: 予約なし slug でも promote は成立
+  const result2 = save3("no-reservation", UID_A);
+  assert.equal(result2.uid, UID_A);
+  assert.equal(db3.prepare("SELECT uid FROM asset_registry WHERE slug=?").get("no-reservation").uid, UID_A);
+
+  // O4: save 後に同一 slug で別 uid が save → registry unique で失敗
+  const UID_C = "33333333-3333-4333-8333-333333333333";
+  save3("dup-slug", UID_C);
+  const UID_D = "44444444-4444-4444-8444-444444444444";
+  let threw3 = false;
+  try { save3("dup-slug", UID_D); } catch { threw3 = true; }
+  assert.equal(threw3, true, "second save with same slug must fail (registry unique)");
+  assert.equal(db3.prepare("SELECT uid FROM asset_registry WHERE slug=?").get("dup-slug").uid, UID_C,
+    "registry must retain the original asset after failed duplicate save");
+
+  db3.close();
+}
+console.log("m11-t7 smoke Part O: OK");

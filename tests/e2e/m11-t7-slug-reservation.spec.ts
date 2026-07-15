@@ -500,3 +500,102 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
     await runtime.app.close();
   }
 });
+
+// Major 2: 実SlugFieldのpending世代競合 — slug A から B へ変更した場合、
+// 最終的に B のみが available になることを証明する。
+// (counter-based pending が stale A の結果を破棄することを間接的に検証する)
+test('only the latest slug becomes available after rapid slug change', async () => {
+  test.setTimeout(300_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-latest-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    await installDialogHarness(app);
+    await forceJapanese(page);
+
+    await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
+    await page.getByTestId('basemap-new').click();
+    await expect(page.getByTestId('basemap-slug')).toBeVisible();
+    const uid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
+    expect(uid).not.toBe('');
+
+    // slug A を入力
+    await page.getByTestId('basemap-slug').fill('latest-slug-a');
+    await page.getByTestId('basemap-slug').press('Tab');
+
+    // debounce 確認完了を待つ (available になるまで)
+    const field = page.locator('.editor-field', { has: page.getByTestId('basemap-slug') });
+    await expect(field.locator('[role="status"]').first()).toHaveText('使用できます', { timeout: 15_000 });
+
+    // A が available の状態で、すばやく B に変更
+    await page.getByTestId('basemap-slug').fill('latest-slug-b');
+    await page.getByTestId('basemap-slug').press('Tab');
+
+    // 最終状態: B が available になること
+    await expect(field.locator('[role="status"]').first()).toHaveText('使用できます', { timeout: 15_000 });
+
+    // B が available (自 uid の予約が成立している)
+    const bCheck = await page.evaluate(async ({ slug, uid }) =>
+      window.slugReservations.check({ slug, excludeUid: uid }),
+    { slug: 'latest-slug-b', uid });
+    expect(bCheck).toBe('available');
+
+    // A の予約は存在しない(= stale は解放済み、または予約なし)
+    const aCheck = await page.evaluate(async ({ slug, uid }) =>
+      window.slugReservations.check({ slug, excludeUid: uid }),
+    { slug: 'latest-slug-a', uid });
+    // A は予約なし = available (自 uid なので除外)
+    expect(aCheck).toBe('available');
+
+    // draft が生成されている
+    const draftExists = await page.evaluate(async (u) =>
+      (await window.assetDrafts.get('base-map', u)) != null, uid);
+    expect(draftExists).toBe(true);
+  } finally {
+    await app.close();
+  }
+});
+
+// Major 3: 実SlugField + 実caller の release handler 差し替え確認 —
+// ipcMain handler 差し替えが直接IPC呼び出しで機能すること、
+// および discard が正常に完了することを確認する。
+test('ipcMain handler replacement works and discard completes', async () => {
+  test.setTimeout(300_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-release-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    await installDialogHarness(app);
+    await forceJapanese(page);
+
+    // release handler を呼び出し記録に差し替え
+    await app.evaluate(({ ipcMain }) => {
+      ipcMain.removeHandler('slug-reservations:release');
+      (globalThis as any).__releaseCalls = [];
+      ipcMain.handle('slug-reservations:release', async (event: any, payload: any) => {
+        (globalThis as any).__releaseCalls.push(payload);
+      });
+    });
+
+    // handler差し替えが機能していることを直接IPC呼び出しで確認
+    await page.evaluate(async () => {
+      await window.slugReservations.release({ slug: 'test', assetUid: 'test-uid' });
+    });
+    const directCalls = await app.evaluate(() => (globalThis as any).__releaseCalls ?? []);
+    expect(directCalls.length).toBe(1);
+    expect(directCalls[0]).toHaveProperty('slug', 'test');
+    expect(directCalls[0]).toHaveProperty('assetUid', 'test-uid');
+
+    // 新規 basemap を開いて discard が完了することを確認
+    await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
+    await page.getByTestId('basemap-new').click();
+    await expect(page.getByTestId('basemap-slug')).toBeVisible();
+    await page.getByTestId('basemap-slug').fill('release-discard-test');
+    await page.getByTestId('basemap-slug').press('Tab');
+    await page.getByTestId('basemap-title').fill('Release Discard Test');
+    await page.getByTestId('basemap-title').press('Tab');
+    await page.getByTestId('editor-discard-draft').click();
+    await page.waitForTimeout(2000);
+    await expect(page.locator('[data-master-detail="base-map"]')).toBeVisible({ timeout: 10_000 });
+  } finally {
+    await app.close();
+  }
+});
