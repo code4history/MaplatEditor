@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'm11-t7-screenshots');
@@ -46,6 +47,113 @@ async function installDialogHarness(app: ElectronApplication, imagePath?: string
 
 async function dialogMessages(app: ElectronApplication): Promise<string[]> {
   return app.evaluate(() => ((globalThis as any).__dialogMessages ?? []) as string[]);
+}
+
+async function installDeferredReserveHarness(app: ElectronApplication): Promise<void> {
+  await app.evaluate(({ ipcMain }) => {
+    const channel = 'slug-reservations:reserve';
+    const moveChannel = 'slug-reservations:move';
+    const checkChannel = 'slug-reservations:check';
+    const handlers = (ipcMain as any)._invokeHandlers as Map<string, (...args: any[]) => any> | undefined;
+    const original = handlers?.get(channel);
+    const originalMove = handlers?.get(moveChannel);
+    const originalCheck = handlers?.get(checkChannel);
+    if (typeof original !== 'function') throw new Error(`Original ${channel} handler not found`);
+    if (typeof originalMove !== 'function') throw new Error(`Original ${moveChannel} handler not found`);
+    if (typeof originalCheck !== 'function') throw new Error(`Original ${checkChannel} handler not found`);
+    const harness = {
+      original,
+      originalMove,
+      originalCheck,
+      calls: [] as any[],
+      checks: [] as any[],
+      pending: new Map<string, { resolve: () => void }>(),
+    };
+    (globalThis as any).__m11T7ReserveHarness = harness;
+    ipcMain.removeHandler(channel);
+    ipcMain.handle(channel, async (event: any, payload: any) => {
+      harness.calls.push(payload);
+      await new Promise<void>((resolve) => harness.pending.set(String(payload.slug), { resolve }));
+      harness.pending.delete(String(payload.slug));
+      return original(event, payload);
+    });
+    ipcMain.removeHandler(moveChannel);
+    ipcMain.handle(moveChannel, async (event: any, payload: any) => {
+      harness.calls.push(payload);
+      await new Promise<void>((resolve) => harness.pending.set(String(payload.toSlug), { resolve }));
+      harness.pending.delete(String(payload.toSlug));
+      return originalMove(event, payload);
+    });
+    ipcMain.removeHandler(checkChannel);
+    ipcMain.handle(checkChannel, async (event: any, payload: any) => {
+      const result = await originalCheck(event, payload);
+      harness.checks.push(payload);
+      return result;
+    });
+  });
+}
+
+async function resolveDeferredReserve(app: ElectronApplication, slug: string): Promise<void> {
+  await app.evaluate((_, targetSlug) => {
+    const harness = (globalThis as any).__m11T7ReserveHarness;
+    const pending = harness?.pending?.get(targetSlug);
+    if (!pending) throw new Error(`Pending reserve not found: ${targetSlug}`);
+    pending.resolve();
+  }, slug);
+}
+
+async function restoreDeferredReserveHarness(app: ElectronApplication): Promise<void> {
+  await app.evaluate(({ ipcMain }) => {
+    const channel = 'slug-reservations:reserve';
+    const moveChannel = 'slug-reservations:move';
+    const checkChannel = 'slug-reservations:check';
+    const harness = (globalThis as any).__m11T7ReserveHarness;
+    if (!harness) return;
+    for (const pending of harness.pending.values()) pending.resolve();
+    ipcMain.removeHandler(channel);
+    ipcMain.handle(channel, harness.original);
+    ipcMain.removeHandler(moveChannel);
+    ipcMain.handle(moveChannel, harness.originalMove);
+    ipcMain.removeHandler(checkChannel);
+    ipcMain.handle(checkChannel, harness.originalCheck);
+    delete (globalThis as any).__m11T7ReserveHarness;
+  });
+}
+
+async function installReleaseFailureHarness(app: ElectronApplication): Promise<void> {
+  await app.evaluate(({ ipcMain }) => {
+    const channel = 'slug-reservations:release';
+    const handlers = (ipcMain as any)._invokeHandlers as Map<string, (...args: any[]) => any> | undefined;
+    const original = handlers?.get(channel);
+    if (typeof original !== 'function') throw new Error(`Original ${channel} handler not found`);
+    const harness = { original, calls: [] as any[], fail: true };
+    (globalThis as any).__m11T7ReleaseHarness = harness;
+    ipcMain.removeHandler(channel);
+    ipcMain.handle(channel, async (event: any, payload: any) => {
+      harness.calls.push(payload);
+      if (harness.fail) throw new Error('injected release failure');
+      return original(event, payload);
+    });
+  });
+}
+
+async function setReleaseFailure(app: ElectronApplication, fail: boolean): Promise<void> {
+  await app.evaluate((_, shouldFail) => {
+    const harness = (globalThis as any).__m11T7ReleaseHarness;
+    if (!harness) throw new Error('Release harness not installed');
+    harness.fail = shouldFail;
+  }, fail);
+}
+
+async function restoreReleaseFailureHarness(app: ElectronApplication): Promise<void> {
+  await app.evaluate(({ ipcMain }) => {
+    const channel = 'slug-reservations:release';
+    const harness = (globalThis as any).__m11T7ReleaseHarness;
+    if (!harness) return;
+    ipcMain.removeHandler(channel);
+    ipcMain.handle(channel, harness.original);
+    delete (globalThis as any).__m11T7ReleaseHarness;
+  });
 }
 
 async function openHash(page: Page, hash: string, ready: string): Promise<void> {
@@ -501,16 +609,68 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
   }
 });
 
-// Major 2: 実SlugFieldのpending世代競合 — slug A から B へ変更した場合、
-// 最終的に B のみが available になることを証明する。
-// (counter-based pending が stale A の結果を破棄することを間接的に検証する)
-test('only the latest slug becomes available after rapid slug change', async () => {
+// Major 1 / AC4: preload→IPC→SettingsService→SqliteDataService.saveUserBaseMap の実経路を通し、
+// foreign reservationによるpromote conflictがregistry/body双方をrollbackすることを証明する。
+test('actual base map save service rolls back registry and body on promote conflict', async () => {
+  test.setTimeout(300_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-save-service-'));
+  const { app, page } = await launch(e2eRoot);
+  const slug = 'actual-service-promote-clash';
+  const foreignUid = '11111111-1111-4111-8111-111111111111';
+  const targetUid = '22222222-2222-4222-8222-222222222222';
+  try {
+    await page.evaluate(async () => { await window.baseMaps.list(); });
+    const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+    const reserved = await page.evaluate(async ({ slug, foreignUid }) =>
+      window.slugReservations.reserve({
+        slug,
+        assetUid: foreignUid,
+        assetKind: 'base-map',
+        draftUid: 'foreign-draft',
+      }), { slug, foreignUid });
+    expect(reserved).toEqual({ result: 'ok' });
+
+    const result = await page.evaluate(async ({ slug, targetUid }) =>
+      window.baseMaps.saveUser({
+        create: true,
+        uid: targetUid,
+        slug,
+        tms: { mapID: slug, title: { ja: 'AC4 conflict' }, url: 'https://example.test/{z}/{x}/{y}.png' },
+      }), { slug, targetUid });
+    expect(result).toEqual({ result: 'Exist' });
+
+    const rows = await page.evaluate(async () => window.baseMaps.list());
+    expect(rows.some((row) => row.mapID === slug || row.uid === targetUid)).toBe(false);
+
+    const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
+    let dbState: { registry: number; body: number; reservationOwner: string };
+    try {
+      dbState = {
+        registry: Number((db.prepare('SELECT COUNT(*) AS count FROM asset_registry WHERE slug = ? OR uid = ?').get(slug, targetUid) as any).count),
+        body: Number((db.prepare('SELECT COUNT(*) AS count FROM base_maps WHERE slug = ? OR uid = ?').get(slug, targetUid) as any).count),
+        reservationOwner: String((db.prepare('SELECT asset_uid FROM slug_reservations WHERE slug = ?').get(slug) as any)?.asset_uid ?? ''),
+      };
+    } finally {
+      db.close();
+    }
+    expect(dbState).toEqual({ registry: 0, body: 0, reservationOwner: foreignUid });
+  } finally {
+    await app.close();
+  }
+});
+
+// Major 2: 実SlugFieldでA/B reserveを同時pendingにし、stale Aだけが完了しても
+// 最新Bの成功前にはavailable/state-change/initial draftが発火しないことを証明する。
+test('stale reserve completion cannot publish available or create a draft while latest reserve is pending', async () => {
   test.setTimeout(300_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-latest-'));
   const { app, page } = await launch(e2eRoot);
+  let harnessInstalled = false;
   try {
     await installDialogHarness(app);
     await forceJapanese(page);
+    await installDeferredReserveHarness(app);
+    harnessInstalled = true;
 
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
@@ -518,84 +678,110 @@ test('only the latest slug becomes available after rapid slug change', async () 
     const uid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
     expect(uid).not.toBe('');
 
-    // slug A を入力
     await page.getByTestId('basemap-slug').fill('latest-slug-a');
     await page.getByTestId('basemap-slug').press('Tab');
+    await expect.poll(() => app.evaluate(() =>
+      (globalThis as any).__m11T7ReserveHarness?.pending?.has('latest-slug-a') ?? false
+    ), { timeout: 15_000 }).toBe(true);
 
-    // debounce 確認完了を待つ (available になるまで)
-    const field = page.locator('.editor-field', { has: page.getByTestId('basemap-slug') });
-    await expect(field.locator('[role="status"]').first()).toHaveText('使用できます', { timeout: 15_000 });
-
-    // A が available の状態で、すばやく B に変更
+    // Aを未解決のままBへ変更し、両requestを同時pendingにする。
     await page.getByTestId('basemap-slug').fill('latest-slug-b');
     await page.getByTestId('basemap-slug').press('Tab');
+    await expect.poll(() => app.evaluate(() =>
+      ((globalThis as any).__m11T7ReserveHarness?.checks ?? [])
+        .some((payload: any) => payload.slug === 'latest-slug-b')
+    ), { timeout: 15_000 }).toBe(true);
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
 
-    // 最終状態: B が available になること
+    const field = page.locator('.editor-field', { has: page.getByTestId('basemap-slug') });
+    await expect(field.locator('[role="status"]').first()).not.toHaveText('使用できます');
+    expect(await page.evaluate(async (u) =>
+      (await window.assetDrafts.get('base-map', u)) != null, uid
+    )).toBe(false);
+
+    // stale Aだけを完了させる。Bは未解決なのでavailable/draftは禁止。
+    await resolveDeferredReserve(app, 'latest-slug-a');
+    await expect.poll(() => app.evaluate(() => ({
+      a: (globalThis as any).__m11T7ReserveHarness?.pending?.has('latest-slug-a') ?? false,
+      b: (globalThis as any).__m11T7ReserveHarness?.pending?.has('latest-slug-b') ?? false,
+    })), { timeout: 15_000 }).toEqual({ a: false, b: true });
+    await expect(field.locator('[role="status"]').first()).not.toHaveText('使用できます');
+    expect(await page.evaluate(async (u) =>
+      (await window.assetDrafts.get('base-map', u)) != null, uid)
+    ).toBe(false);
+
+    // 最新B完了後にだけavailableとinitial draftを公開する。
+    await resolveDeferredReserve(app, 'latest-slug-b');
     await expect(field.locator('[role="status"]').first()).toHaveText('使用できます', { timeout: 15_000 });
+    await expect.poll(() => page.evaluate(async (u) =>
+      (await window.assetDrafts.get('base-map', u)) != null, uid
+    ), { timeout: 15_000 }).toBe(true);
 
-    // B が available (自 uid の予約が成立している)
-    const bCheck = await page.evaluate(async ({ slug, uid }) =>
-      window.slugReservations.check({ slug, excludeUid: uid }),
-    { slug: 'latest-slug-b', uid });
-    expect(bCheck).toBe('available');
-
-    // A の予約は存在しない(= stale は解放済み、または予約なし)
-    const aCheck = await page.evaluate(async ({ slug, uid }) =>
-      window.slugReservations.check({ slug, excludeUid: uid }),
-    { slug: 'latest-slug-a', uid });
-    // A は予約なし = available (自 uid なので除外)
-    expect(aCheck).toBe('available');
-
-    // draft が生成されている
-    const draftExists = await page.evaluate(async (u) =>
-      (await window.assetDrafts.get('base-map', u)) != null, uid);
-    expect(draftExists).toBe(true);
+    const foreignView = await page.evaluate(async () =>
+      window.slugReservations.check({
+        slug: 'latest-slug-b',
+        excludeUid: '33333333-3333-4333-8333-333333333333',
+      }));
+    expect(foreignView).toBe('reserved-by-other');
   } finally {
+    if (harnessInstalled) await restoreDeferredReserveHarness(app);
     await app.close();
   }
 });
 
-// Major 3: 実SlugField + 実caller の release handler 差し替え確認 —
-// ipcMain handler 差し替えが直接IPC呼び出しで機能すること、
-// および discard が正常に完了することを確認する。
-test('ipcMain handler replacement works and discard completes', async () => {
+// Major 3: 実SlugField + BaseMap discard callerを通し、release reject時は
+// operation feedbackを表示してclose/reset/draft削除を止め、再試行成功時だけ完了する。
+test('release failure keeps the editor uid and draft until discard retry succeeds', async () => {
   test.setTimeout(300_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t7-release-'));
   const { app, page } = await launch(e2eRoot);
+  let harnessInstalled = false;
   try {
     await installDialogHarness(app);
     await forceJapanese(page);
+    await installReleaseFailureHarness(app);
+    harnessInstalled = true;
 
-    // release handler を呼び出し記録に差し替え
-    await app.evaluate(({ ipcMain }) => {
-      ipcMain.removeHandler('slug-reservations:release');
-      (globalThis as any).__releaseCalls = [];
-      ipcMain.handle('slug-reservations:release', async (event: any, payload: any) => {
-        (globalThis as any).__releaseCalls.push(payload);
-      });
-    });
-
-    // handler差し替えが機能していることを直接IPC呼び出しで確認
-    await page.evaluate(async () => {
-      await window.slugReservations.release({ slug: 'test', assetUid: 'test-uid' });
-    });
-    const directCalls = await app.evaluate(() => (globalThis as any).__releaseCalls ?? []);
-    expect(directCalls.length).toBe(1);
-    expect(directCalls[0]).toHaveProperty('slug', 'test');
-    expect(directCalls[0]).toHaveProperty('assetUid', 'test-uid');
-
-    // 新規 basemap を開いて discard が完了することを確認
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
     await expect(page.getByTestId('basemap-slug')).toBeVisible();
+    const uid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
+    expect(uid).not.toBe('');
     await page.getByTestId('basemap-slug').fill('release-discard-test');
     await page.getByTestId('basemap-slug').press('Tab');
     await page.getByTestId('basemap-title').fill('Release Discard Test');
     await page.getByTestId('basemap-title').press('Tab');
+    await expect.poll(() => page.evaluate(async (assetUid) =>
+      (await window.assetDrafts.get('base-map', assetUid)) != null, uid
+    ), { timeout: 15_000 }).toBe(true);
+    const hashBefore = await page.evaluate(() => location.hash);
+
+    // 1回目はrelease reject。callerはclose/reset/draft削除へ進んではならない。
     await page.getByTestId('editor-discard-draft').click();
-    await page.waitForTimeout(2000);
-    await expect(page.locator('[data-master-detail="base-map"]')).toBeVisible({ timeout: 10_000 });
+    await expect.poll(() => app.evaluate(() =>
+      ((globalThis as any).__m11T7ReleaseHarness?.calls ?? []).length
+    )).toBe(1);
+    const firstCall = await app.evaluate(() => (globalThis as any).__m11T7ReleaseHarness.calls[0]);
+    expect(firstCall).toMatchObject({ slug: 'release-discard-test', assetUid: uid });
+    await expect(page.locator('[data-diagnostic-scope="operation"]')).toBeVisible();
+    await expect(page.getByTestId('basemap-editor')).toBeVisible();
+    expect(await page.evaluate(() => location.hash)).toBe(hashBefore);
+    expect(await page.evaluate(async (assetUid) =>
+      (await window.assetDrafts.get('base-map', assetUid)) != null, uid
+    )).toBe(true);
+
+    // 2回目は実original handlerへ通し、release成功後にだけclose/draft削除が完了する。
+    await setReleaseFailure(app, false);
+    await page.getByTestId('editor-discard-draft').click();
+    await expect.poll(() => app.evaluate(() =>
+      ((globalThis as any).__m11T7ReleaseHarness?.calls ?? []).length
+    )).toBe(2);
+    await expect(page.getByTestId('basemap-editor')).toHaveCount(0);
+    await expect.poll(() => page.evaluate(async (assetUid) =>
+      (await window.assetDrafts.get('base-map', assetUid)) == null, uid
+    )).toBe(true);
   } finally {
+    if (harnessInstalled) await restoreReleaseFailureHarness(app);
     await app.close();
   }
 });
