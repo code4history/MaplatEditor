@@ -4,6 +4,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import AdmZip from 'adm-zip';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
@@ -108,194 +109,208 @@ test.describe('M11-T9 POI Content Mode', () => {
     }
   });
 
-  test('AC10: insert maplat-asset reference via real UI button interaction', async () => {
+  test('AC10: 「画像を挿入」ボタン経由で maplat-asset:<UID> が HTML textarea に挿入される', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t9-ac10-'));
     const { app, page } = await launch(e2eRoot);
-
     try {
-      // Create a test image asset first
-      const assetSlug = `m11-t9-test-asset-${Date.now()}`;
+      // 実画像アセットを seed
+      const assetSlug = `t9-asset-${Date.now()}`;
       const imgPath = path.join(e2eRoot, 'test-1x1.png');
       await writeFile(imgPath, Buffer.from(MINI_PNG_BASE64, 'base64'));
-
       const assetUid = await page.evaluate(async (params) => {
-        // Use window.imageAssets.add with a real file path
         const r = await window.imageAssets.add({
-          slug: params.slug,
-          title: { ja: 'テストアセット' },
-          lang: 'ja',
-          sourceName: 'test-1x1.png',
-          sourcePath: params.imgPath,
+          slug: params.slug, title: { ja: 'テストアセット' }, lang: 'ja',
+          sourceName: 'test-1x1.png', sourcePath: params.imgPath,
         });
         if (!r || r.result !== 'Success') throw new Error(`asset create: ${JSON.stringify(r)}`);
-        return r.uid;
+        return r.uid as string;
       }, { slug: assetSlug, imgPath });
 
-      // Create POI and open it
-      const poi = await seedPoi(page);
-      await openHash(page, `#/poisources/${poi.uid}`);
-      await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
-      const featureRow = page.locator('.poi-feature-row').first();
-      await featureRow.click();
-      await page.waitForTimeout(500);
-
-      // Switch to html mode
-      const htmlTab = page.getByTestId('poi-content-mode-tab-html');
-      await htmlTab.click();
-      const confirmBtn = page.getByTestId('poi-content-mode-confirm');
-      if (await confirmBtn.isVisible({ timeout: 1000 }).catch(() => false)) await confirmBtn.click();
-      await expect(htmlTab).toHaveClass(/active/);
-
-      // AC10: Add the asset UUID to the image row via UI interaction
-      // First, click "素材を追加" to open the AssetPicker
-      const addRefBtn = page.locator('button:has-text("素材を追加")');
-      await expect(addRefBtn).toBeVisible({ timeout: 3000 });
-      await addRefBtn.click();
-
-      // AssetPicker modal should appear. Select the test asset from the Assets tab.
-      // The AssetPicker has tabs: Icon set / Assets / URL
-      const assetsTab = page.locator('.asset-picker-tab-assets, [data-testid="picker-tab-assets"]');
-      if (await assetsTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await assetsTab.click();
-      }
-      // Click on the test asset in the picker
-      const assetItem = page.locator(`[data-testid="asset-item-${assetUid}"], .asset-picker-item:has-text("テストアセット")`);
-      if (await assetItem.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await assetItem.click();
-      } else {
-        // Fallback: inject asset UID into image row via evaluate
-        await page.evaluate(async (uid) => {
-          // Find the PoiAttributeForm and add the asset UID to image rows
-          const buttons = document.querySelectorAll('button');
-          for (const btn of buttons) {
-            if (btn.textContent === '素材を追加') {
-              // Close any open picker first
-              const closeBtn = document.querySelector('.modal .btn-close, .modal [data-testid="picker-close"]');
-              if (closeBtn) (closeBtn as HTMLElement).click();
-              await new Promise(r => setTimeout(r, 100));
-              break;
-            }
-          }
-        }, assetUid as string);
-
-        // Close the picker modal
-        const closeBtn = page.locator('.modal .btn-close, button:has-text("Close"), [data-testid="picker-close"]');
-        if (await closeBtn.isVisible({ timeout: 1000 }).catch(() => false)) await closeBtn.click();
-        await page.waitForTimeout(300);
-
-        // Directly add the asset UID to an image row via page.evaluate
-        await page.evaluate(async (uid) => {
-          // Find image row inputs and set the first empty one to the UUID
-          const inputs = document.querySelectorAll('.poi-attribute-form input[type="text"]');
-          for (const input of inputs) {
-            const el = input as HTMLInputElement;
-            if (el.value === '' && !el.disabled) {
-              const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                window.HTMLInputElement.prototype, 'value'
-              )?.set;
-              nativeInputValueSetter?.call(el, uid);
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-              el.dispatchEvent(new Event('change', { bubbles: true }));
-              await new Promise(r => setTimeout(r, 300));
-              break;
-            }
-          }
-        }, assetUid as string);
-        await page.waitForTimeout(300);
-      }
-
-      // Now click "画像を挿入" button to insert maplat-asset: reference into HTML
-      const insertBtn = page.locator('button:has-text("画像を挿入")');
-      if (await insertBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await insertBtn.click();
-        await page.waitForTimeout(500);
-
-        // Verify the HTML textarea now contains the maplat-asset: reference
-        const htmlContent = await page.evaluate(() => {
-          const textareas = document.querySelectorAll('textarea');
-          for (const ta of textareas) {
-            const val = ta.value || '';
-            if (val.includes('maplat-asset:')) return val;
-          }
-          return null;
+      // html mode + 参照素材(image)に asset UID を持つ POI を seed
+      const slug = `m11-t9-ac10-${Date.now()}`;
+      const srcUid = await page.evaluate(async (params) => {
+        const r = await window.poiSources.createLocal({ slug: params.slug, title: { ja: 'AC10 POI' }, lang: 'ja' });
+        if (!r || r.result !== 'Success') throw new Error(`create: ${JSON.stringify(r)}`);
+        await window.poiSources.save(r.uid, {
+          slug: params.slug, title: { ja: 'AC10 POI' },
+          fc: {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
+              properties: { _maplatContentMode: 'html', name: { ja: 'AC10' }, html: { ja: '' }, image: [params.assetUid] },
+            }],
+          },
         });
-        expect(htmlContent).toContain('maplat-asset:');
-        expect(htmlContent).toContain(assetUid);
-      }
+        return r.uid as string;
+      }, { slug, assetUid });
 
+      await openHash(page, `#/poisources/${srcUid}`);
+      await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
+      await page.locator('.poi-feature-row').first().click();
+
+      // html mode で参照素材行に UID が表示されている（実UI状態の無条件アサーション）
+      await expect(page.getByTestId('poi-content-mode-tab-html')).toHaveClass(/active/, { timeout: 5000 });
+      const refInput = page.locator('label:has-text("参照素材") + div input[type="text"]').first();
+      await expect(refInput).toHaveValue(assetUid, { timeout: 5000 });
+
+      // 「画像を挿入」ボタン（実UI）で HTML textarea に挿入される
+      await page.locator('button', { hasText: '画像を挿入' }).first().click();
+      const htmlContent = await page.evaluate(() => {
+        for (const ta of document.querySelectorAll('textarea')) {
+          if ((ta.value || '').includes('maplat-asset:')) return ta.value;
+        }
+        return '';
+      });
+      expect(htmlContent).toContain(`maplat-asset:${assetUid}`);
+      expect(htmlContent).toContain('<img src=');
       console.log('  AC10: PASS');
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('AC12-AC13: maplat-asset references survive roundtrip + preview/export resolution verified', async () => {
+  test('AC12+AC14: プレビューで maplat-asset が解決・配信され、欠落参照はエディタで警告される', async () => {
+    test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t9-ac12-'));
     const { app, page } = await launch(e2eRoot);
-
     try {
-      const slug = `m11-t9-ref-${Date.now()}`;
-      const syntheticUid = '00000000-0000-4000-a000-000000000042';
-      const refHtml = `<p>Ref: <img src="maplat-asset:${syntheticUid}" /></p>`;
-      const createResult = await page.evaluate(async (params) => {
-        const r = await window.poiSources.createLocal({ slug: params.slug, title: { ja: 'T9 Ref POI' }, lang: 'ja' });
-        if (!r || r.result !== 'Success') throw new Error(`create: ${JSON.stringify(r)}`);
-        const uid = r.uid;
-        await window.poiSources.save(uid, {
-          slug: params.slug, title: { ja: 'T9 Ref POI' },
+      // 実画像アセット + それを参照する html mode POI を seed
+      const assetSlug = `t9-prev-asset-${Date.now()}`;
+      const imgPath = path.join(e2eRoot, 'prev-1x1.png');
+      await writeFile(imgPath, Buffer.from(MINI_PNG_BASE64, 'base64'));
+      const seeded = await page.evaluate(async (params) => {
+        const a = await window.imageAssets.add({
+          slug: params.slug, title: { ja: 'プレビュー素材' }, lang: 'ja',
+          sourceName: 'prev-1x1.png', sourcePath: params.imgPath,
+        });
+        if (!a || a.result !== 'Success') throw new Error(`asset: ${JSON.stringify(a)}`);
+        const p = await window.poiSources.createLocal({ slug: `${params.slug}-poi`, title: { ja: 'AC12 POI' }, lang: 'ja' });
+        if (!p || p.result !== 'Success') throw new Error(`poi: ${JSON.stringify(p)}`);
+        await window.poiSources.save(p.uid, {
+          slug: `${params.slug}-poi`, title: { ja: 'AC12 POI' },
           fc: {
             type: 'FeatureCollection',
             features: [{
               type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
-              properties: {
-                _maplatContentMode: 'html',
-                name: { ja: 'AREF POI' },
-                html: { ja: params.refHtml },
-              },
+              properties: { _maplatContentMode: 'html', name: { ja: 'AC12' }, html: { ja: `<img src="maplat-asset:${a.uid}" />` } },
             }],
           },
         });
-        return uid;
-      }, { slug, refHtml });
+        return { assetUid: a.uid as string, poiUid: p.uid as string };
+      }, { slug: assetSlug, imgPath });
 
-      const uid = createResult as unknown as string;
+      // AC12: app 直下 pois に {poiUid} を持つアプリのプレビューセッションを生成し、解決結果を実HTTPで検証
+      const preview = await page.evaluate(async (poiUid) => {
+        return await window.appedit.preparePreview({
+          appID: 'ac12app', appName: { ja: 'AC12' }, title: { ja: 'AC12' },
+          lang: 'ja', sources: [], pois: [{ poiUid }],
+          appSettings: {}, httpSettings: {}, manifestSettings: {},
+        });
+      }, seeded.poiUid);
+      const m = /^(https?:\/\/[^/]+)\/preview\/([^/?]+)/.exec(String(preview.url));
+      expect(m, `preview url should contain token: ${preview.url}`).not.toBeNull();
+      const origin = m![1];
+      const token = m![2];
 
-      // Navigate to editor — verify maplat-asset reference appears
-      await openHash(page, `#/poisources/${uid}`);
+      const appJsonRes = await fetch(`${origin}/preview/${token}/apps/${token}.json`);
+      expect(appJsonRes.status).toBe(200);
+      const appJsonText = await appJsonRes.text();
+      const resolvedUrl = `/preview/${token}/imgs/assets/${seeded.assetUid}.png`;
+      expect(appJsonText).toContain(resolvedUrl);
+      expect(appJsonText).not.toContain('maplat-asset:');
+
+      // 解決済み URL から実体（画像バイト）が配信される
+      const assetRes = await fetch(`${origin}${resolvedUrl}`);
+      expect(assetRes.status).toBe(200);
+      const bytes = new Uint8Array(await assetRes.arrayBuffer());
+      expect(bytes.length).toBeGreaterThan(0);
+      expect(bytes[0]).toBe(0x89); // PNG magic
+
+      // AC14: 欠落 UID を参照する POI をエディタで開くと欠落警告が表示される（無条件アサーション）
+      const missingUid = '00000000-0000-4000-a000-000000000042';
+      const missSlug = `t9-miss-${Date.now()}`;
+      const missPoiUid = await page.evaluate(async (params) => {
+        const p = await window.poiSources.createLocal({ slug: params.slug, title: { ja: 'AC14 POI' }, lang: 'ja' });
+        if (!p || p.result !== 'Success') throw new Error(`poi: ${JSON.stringify(p)}`);
+        await window.poiSources.save(p.uid, {
+          slug: params.slug, title: { ja: 'AC14 POI' },
+          fc: {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
+              properties: { _maplatContentMode: 'html', name: { ja: 'AC14' }, html: { ja: `<img src="maplat-asset:${params.missingUid}" />` } },
+            }],
+          },
+        });
+        return p.uid as string;
+      }, { slug: missSlug, missingUid });
+
+      await openHash(page, `#/poisources/${missPoiUid}`);
       await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
-      const featureRow = page.locator('.poi-feature-row').first();
-      await featureRow.click();
-      await page.waitForTimeout(500);
+      await expect(page.getByText(/参照先が存在しないアセット参照/)).toBeVisible({ timeout: 10000 });
 
-      // Switch to html mode tab
-      const htmlTab = page.getByTestId('poi-content-mode-tab-html');
-      await htmlTab.click();
-      const confirmBtn = page.getByTestId('poi-content-mode-confirm');
-      if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) await confirmBtn.click();
-      await page.waitForTimeout(500);
+      console.log('  AC12+AC14: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
 
-      // Check textarea contains the maplat-asset reference
-      const hasRef = await page.evaluate((uid) => {
-        const textareas = document.querySelectorAll('textarea');
-        for (const ta of textareas) {
-          if ((ta.value || '').includes(`maplat-asset:${uid}`)) return true;
-        }
-        return false;
-      }, syntheticUid);
-      expect(hasRef).toBe(true);
+  test('AC13: エクスポートで maplat-asset が imgs/{slug}.{ext} に書き換えられ実体が同梱される', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t9-ac13-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const assetSlug = `t9-exp-asset-${Date.now()}`;
+      const imgPath = path.join(e2eRoot, 'exp-1x1.png');
+      await writeFile(imgPath, Buffer.from(MINI_PNG_BASE64, 'base64'));
+      const seeded = await page.evaluate(async (params) => {
+        const a = await window.imageAssets.add({
+          slug: params.slug, title: { ja: 'エクスポート素材' }, lang: 'ja',
+          sourceName: 'exp-1x1.png', sourcePath: params.imgPath,
+        });
+        if (!a || a.result !== 'Success') throw new Error(`asset: ${JSON.stringify(a)}`);
+        const p = await window.poiSources.createLocal({ slug: `${params.slug}-poi`, title: { ja: 'AC13 POI' }, lang: 'ja' });
+        if (!p || p.result !== 'Success') throw new Error(`poi: ${JSON.stringify(p)}`);
+        await window.poiSources.save(p.uid, {
+          slug: `${params.slug}-poi`, title: { ja: 'AC13 POI' },
+          fc: {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
+              properties: { _maplatContentMode: 'html', name: { ja: 'AC13' }, html: { ja: `<img src="maplat-asset:${a.uid}" />` } },
+            }],
+          },
+        });
+        return { assetUid: a.uid as string, poiUid: p.uid as string };
+      }, { slug: assetSlug, imgPath });
 
-      // AC14: synthetic UID won't resolve → missing asset warning should appear.
-      // The async check via window.imageAssets.getFilePath takes time.
-      // Wait for the diagnostic to show up, or accept that it may not have resolved yet.
-      try {
-        await page.waitForSelector('.editor-diagnostic', { timeout: 4000 });
-      } catch {
-        // Diagnostic may not appear if the async asset check hasn't completed;
-        // this is acceptable since the smoke test covers AC14 logic.
-      }
-      // At minimum, verify the ref appears in the textarea (already verified above)
+      // 保存ダイアログを stub して zip 出力先を固定（既存 m11-t4 等と同型）
+      const zipPath = path.join(e2eRoot, 'ac13-export.zip');
+      await app.evaluate(async ({ dialog }, out) => {
+        dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      }, zipPath);
 
-      console.log('  AC12-AC13+AC14: PASS');
+      const exportResult = await page.evaluate(async (poiUid) => {
+        return await window.appedit.export({
+          appID: 'ac13app', appName: { ja: 'AC13' }, title: { ja: 'AC13' },
+          lang: 'ja', sources: [], pois: [{ poiUid }],
+          appSettings: {}, httpSettings: {}, manifestSettings: {},
+        });
+      }, seeded.poiUid);
+      expect(exportResult?.result, `export result: ${JSON.stringify(exportResult)}`).toBe('Success');
+
+      // zip を検査: app json の html が imgs/{slug}.png に書き換わり、実体が同梱される
+      const zip = new AdmZip(zipPath);
+      const names = zip.getEntries().map((e) => e.entryName);
+      const appEntry = zip.getEntries().find((e) => /(^|\/)apps\/.*\.json$/.test(e.entryName));
+      expect(appEntry, `apps json entry in: ${names.join(', ')}`).toBeTruthy();
+      const appText = appEntry!.getData().toString('utf8');
+      expect(appText).toContain(`imgs/${assetSlug}.png`);
+      expect(appText).not.toContain('maplat-asset:');
+      expect(names.some((n) => n.endsWith(`imgs/${assetSlug}.png`)), `asset entry in: ${names.join(', ')}`).toBe(true);
+
+      console.log('  AC13: PASS');
     } finally {
       await quitElectronApplication(app);
     }
