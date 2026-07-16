@@ -267,7 +267,14 @@ const newAppUid = (typeof route.query.uid === "string" && route.query.uid)
 const saveOperationError = ref<string | null>(null);
 // 保存前バリデーション(MapEdit の saveError computed と同型、全エディタ統一 2026-07-16):
 // スラッグ未入力の間は保存ボタンを常時 disabled にする(形式・一意性は SlugField/バックエンドが担保)
+// M11-T10 (人間検証R4): アプリ名も必須。空のまま保存できると一覧のタイトルが slug 代用になる
+const appTitleMissing = computed(() => {
+  const hasValue = (record: Record<string, string> | undefined) =>
+    Object.values(record ?? {}).some((value) => value && value.trim());
+  return !hasValue(appData.value.title) && !hasValue(appData.value.appName);
+});
 const saveValidationError = computed<string | null>(() => {
+  if (appTitleMissing.value) return t("appedit.no_app_name");
   const id = appData.value.appID;
   if (!id || !id.trim()) return t("appedit.no_appid");
   return null;
@@ -1170,7 +1177,8 @@ function onPoisChange(next: unknown[]) {
           <div class="row g-1 mb-2">
             <div class="col-md-4">
               <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_name") }} <LangValueChips :model-value="appData.title" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
-              <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" @input="recordHistory">
+              <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" :class="appTitleMissing ? 'is-invalid' : ''" @input="recordHistory">
+              <DiagnosticFeedback v-if="appTitleMissing" scope="field" :items="[{ key: 'title-required', severity: 'danger', message: t('appedit.no_app_name') }]" />
             </div>
             <!-- App ID フィールド (M11-T7/AC1): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
                  手動一意性確認ボタンは撤去(debounce 自動確認 + 保存時 confirmForSave へ機構置換) -->
@@ -1182,6 +1190,7 @@ function onPoisChange(next: unknown[]) {
                 :asset-uid="appUid || newAppUid"
                 :draft-uid="appUid || newAppUid"
                 :original-slug="confirmedSlug"
+                :required="true"
                 :disabled="translationMode"
                 input-testid="app-id"
                 @update:model-value="onAppIDLiveInput"
