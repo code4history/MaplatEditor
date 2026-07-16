@@ -128,12 +128,14 @@ const navigate = (targetName: string) => {
     background-color: var(--editor-ui-header-bg) !important; /* BS3 navbar-inverse bg */
     border-color: var(--editor-ui-header-bg-active);
     padding: 0;
+    flex-wrap: nowrap !important;
 }
 
 .container-fluid {
     height: 100%;
     padding-left: 15px;
     padding-right: 15px;
+    flex-wrap: nowrap !important;
 }
 
 .navbar-brand {
@@ -157,6 +159,7 @@ const navigate = (targetName: string) => {
 
 .navbar-nav {
     flex-direction: row;
+    flex-wrap: nowrap;
     height: 100%;
     margin-bottom: 0;
 }
@@ -178,6 +181,7 @@ const navigate = (targetName: string) => {
     align-items: center;
     border-radius: 0; /* Square */
     margin: 0;
+    white-space: nowrap;
     transition: color 0.2s, background-color 0.2s;
     font-size: 14px;
 }

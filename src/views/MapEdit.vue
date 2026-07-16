@@ -58,6 +58,7 @@ import { Vector as VectorSource } from 'ol/source';
 import { Style, Stroke, Fill, Icon } from 'ol/style';
 import { LineString } from 'ol/geom';
 import { transform } from 'ol/proj';
+import { useGcpAutoRange } from '../composables/useGcpAutoRange';
 // import { getCenter } from 'ol/extent';
 // import { Projection } from 'ol/proj';
 // import { XYZ } from 'ol/source';
@@ -316,6 +317,7 @@ const showBaseMapRegionModal = ref(false);
 const activeTab = ref('metadata');
 
 const gcps = ref<any[]>([]);
+const gcpAutoRange = useGcpAutoRange({ gcps });
 const newGcp = ref<any>(undefined);
 const homePosition = ref<any>(undefined);
 const mercZoom = ref<number | undefined>(undefined);
@@ -2236,20 +2238,6 @@ const baseMapSearchHaystack = (item: any): string => {
         .toLowerCase();
 };
 
-// 現在のGCP(メルカトル座標)の存在範囲を経緯度bboxで返す。GCPがなければnull
-const gcpLngLatBbox = (): [number, number, number, number] | null => {
-    let bbox: [number, number, number, number] | null = null;
-    for (const gcp of gcps.value) {
-        const merc = gcp?.[1];
-        if (!Array.isArray(merc) || typeof merc[0] !== 'number' || typeof merc[1] !== 'number') continue;
-        const [lng, lat] = transform(merc, 'EPSG:3857', 'EPSG:4326');
-        bbox = bbox
-            ? [Math.min(bbox[0], lng), Math.min(bbox[1], lat), Math.max(bbox[2], lng), Math.max(bbox[3], lat)]
-            : [lng, lat, lng, lat];
-    }
-    return bbox;
-};
-
 const bboxContains = (outer: number[], inner: number[]): boolean =>
     outer[0] <= inner[0] && outer[1] <= inner[1] && outer[2] >= inner[2] && outer[3] >= inner[3];
 
@@ -2260,7 +2248,7 @@ const bboxIntersects = (a: number[], b: number[]): boolean =>
 // OSM同様に全球扱いとし、GCP範囲/地域指定の絞り込みに常にマッチする
 const filteredBaseMapVisibilityList = computed(() => {
     const text = baseMapSearchText.value.trim().toLowerCase();
-    const gcpBbox = baseMapFilterByGcps.value ? gcpLngLatBbox() : null;
+    const gcpBbox = baseMapFilterByGcps.value ? gcpAutoRange.bbox.value : null;
     const regionBbox = envelopeToBbox(baseMapFilterRegion.value);
     return baseMapVisibilityList.value.filter((item) => {
         if (text && !baseMapSearchHaystack(item).includes(text)) return false;
@@ -2647,7 +2635,24 @@ const reloadFromStore = async () => {
 };
 
 const discardRestoredDraft = async () => {
-    if (!mapUid.value || !draftLifecycle.draftRestored.value) return;
+    if (!draftLifecycle.draftRestored.value) return;
+    // 新規(未保存)地図の下書き: 破棄=完全削除でセーブポイントが存在しないため、
+    // 削除後は編集対象が無くなり一覧へ戻る(hot-exit flush を通すと下書きが
+    // 再保存されるため、flush せず直接遷移する。AppEdit と同型)
+    if (!mapUid.value) {
+        const name = displayTitle.value || mapData.value.mapID || t('editor_ui.draft_badge');
+        const result = await (window as any).dialog.showMessageBox({
+            type: 'warning',
+            buttons: [t('editor_ui.delete_draft'), t('common.cancel')],
+            defaultId: 1,
+            cancelId: 1,
+            message: t('editor_ui.delete_draft_confirm', { name }),
+        });
+        if (result.response !== 0) return;
+        await draftLifecycle.discard();
+        await router.push({ name: 'MapList' });
+        return;
+    }
     const result = await (window as any).dialog.showMessageBox({
         type: 'warning',
         buttons: [t('editor_ui.discard_draft'), t('common.cancel')],
@@ -3015,7 +3020,7 @@ const goBack = async () => {
             :save-disabled="!!saveError || !isDirty"
             :saving="saving"
             :actions-disabled="exporting"
-            :discard-draft-visible="saveState === 'draft-restored' && !!mapUid"
+            :discard-draft-visible="saveState === 'draft-restored'"
             @back="goBack"
             @update:active-lang="currentLang = $event"
             @undo="performUndo"

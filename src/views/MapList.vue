@@ -26,15 +26,15 @@
           :draft-label="t('editor_ui.draft_badge')"
           @action="onAction"
         />
-        <router-link
+        <ResourceDraftCard
           v-for="draft in newDrafts"
           :key="draft.assetUid"
+          :draft="draft"
           :to="`/mapedit?draftUid=${draft.assetUid}`"
-          class="resource-grid-card text-decoration-none text-dark"
-        >
-          <div class="resource-grid-card__thumb bg-white"><img :src="noImage" :alt="t('editor_ui.draft_badge')"></div>
-          <div class="text-center mt-2"><span class="badge bg-warning text-dark">{{ t('editor_ui.draft_badge') }}</span></div>
-        </router-link>
+          :fallback-image="noImage"
+          :draft-label="t('editor_ui.draft_badge')"
+          @delete-draft="removeNewDraft"
+        />
       </div>
     </ResourceListShell>
   </div>
@@ -50,6 +50,7 @@ import { useInfiniteResourceList } from "../composables/useInfiniteResourceList"
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
+import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 
@@ -93,7 +94,9 @@ async function restoreOrLoad(): Promise<void> {
       const anchor = cached.anchorUid
         ? root.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(cached.anchorUid)}"]`)
         : null;
-      if (anchor) anchor.scrollIntoView({ block: "start" });
+      // scrollIntoView は overflow:hidden の body まで祖先ごとスクロールさせ、fixed ヘッダー下に
+      // コンテンツ全体が潜り込む(ステート依存被りの真因)ため、root コンテナのみをスクロールする
+      if (anchor) root.scrollTop += anchor.getBoundingClientRect().top - root.getBoundingClientRect().top;
       else root.scrollTop = cached.scrollTop;
     }
   } else {
@@ -118,6 +121,18 @@ async function onAction(key: string, vm: ResourceListItemViewModel): Promise<voi
   } catch (e) {
     console.error("Failed to delete map", e);
     alert(t("maplist.delete_error"));
+  }
+}
+
+// 新規(未保存)下書きの削除。保存済み地図行は存在しないため draft store のみ消す
+async function removeNewDraft(draft: import("../types/assetDraft").AssetDraftSummary): Promise<void> {
+  const name = draft.label ?? draft.slug ?? t("editor_ui.draft_badge");
+  if (!confirm(t("editor_ui.delete_draft_confirm", { name }))) return;
+  try {
+    await window.assetDrafts.remove("map", draft.assetUid);
+    await refreshDrafts();
+  } catch (e) {
+    console.error("Failed to delete new-map draft", e);
   }
 }
 

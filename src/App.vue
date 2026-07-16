@@ -123,8 +123,10 @@ onUnmounted(() => {
   color: #2c3e50;
 }
 .main-content {
-  margin-top: var(--editor-ui-header-height);
-  height: calc(100vh - var(--editor-ui-header-height));
+  margin-top: 50px;
+  margin-top: var(--editor-ui-header-height, 50px);
+  height: calc(100vh - 50px);
+  height: calc(100vh - var(--editor-ui-header-height, 50px));
   overflow-y: auto;
   padding: 0; /* Remove padding here so scrollbar is at the edge */
   width: 100%;

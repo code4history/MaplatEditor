@@ -292,5 +292,18 @@ declare global {
     assets: AssetsAPI;
     imageAssets: ImageAssetsAPI;
     slugReservations: SlugReservationApi;
+    search: SearchAPI;
+    isE2E: boolean;
+    testDebug?: any;
   }
+}
+
+interface SearchAPI {
+  maps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
+  apps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
+  poiSources(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
+  baseMaps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
+  imageAssets(filter: { q?: string; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
+  searchExtent(kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]): Promise<string[]>;
+  appCoverage(appUid: string, mapUids?: string[]): Promise<{ coverageLngLats: [number, number][]; maps: number } | null>;
 }

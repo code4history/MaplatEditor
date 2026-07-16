@@ -1,0 +1,105 @@
+{
+  "task": "m11-t8",
+  "name": "全文・空間検索 / App Coverage / 2カラムselector / GCP auto range",
+  "status": "implementation_in_progress",
+  "classification": "new feature",
+  "design_revision": 3.1,
+  "design_doc": "docs/superpowers/specs/2026-07-16-m11-t8-search-coverage-design.md",
+  "outer_branch": "codex/m11-t8",
+  "outer_worktree": ".worktrees/m11-t5",
+  "worktree_reuse_note": "T6〜T12はm11-t5 worktreeを流用",
+  "outer_base_commit": "2a49857a",
+  "submodule": "MaplatEditor",
+  "submodule_branch": "codex/m11-t8-search-coverage",
+  "submodule_base_commit": "46c30a2",
+  "depends_on": [
+    "m11-t6",
+    "m11-t7"
+  ],
+  "e2e_required": true,
+  "backend_changes": "あり(FTS5拡張、R-Tree追加、SearchDataService統合、IPC追加)",
+  "sub_tasks": [
+    {
+      "id": "t8-1",
+      "name": "SearchLayer統合 / FTS5拡張",
+      "status": "pending",
+      "classification": "adaptation"
+    },
+    {
+      "id": "t8-2",
+      "name": "Spatial search (R-Tree) 拡張",
+      "status": "completed",
+      "classification": "new feature"
+    },
+    {
+      "id": "t8-3",
+      "name": "App Coverage 自動計算",
+      "status": "pending",
+      "classification": "new feature"
+    },
+    {
+      "id": "t8-4",
+      "name": "2カラム ResourceSelector 共通化",
+      "status": "pending",
+      "classification": "adaptation"
+    },
+    {
+      "id": "t8-5",
+      "name": "GCP Auto Range",
+      "status": "pending",
+      "classification": "new feature"
+    }
+  ],
+  "design_reviews": [
+    {
+      "revision": 1,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-design-reviewer",
+      "verdict": "conditional_pass_minor_only",
+      "counts": { "critical": 0, "major": 0, "minor": 4, "info": 3 }
+    },
+    {
+      "revision": 2,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-design-reviewer",
+      "verdict": "approved",
+      "counts": { "critical": 0, "major": 0, "minor": 0, "info": 0 }
+    }
+  ],
+  "carryover_from_t7": [
+    "stashed flexbox layout changes in codex/m11-t7-slug-reservation stash@{0}",
+    "T7 46c30a2 (設定タブ二重バー修正) は済",
+    "T7 47b9001 (E2E orphaned process cleanup) は済"
+  ],
+  "handoff": {
+    "next_action": "human verification of T8 integration",
+    "actor": "USER",
+    "stop_condition": "人間による検証手順 of T8 integration の完了を待つ"
+  },
+  "implementation_reviews": [
+    {
+      "revision": 1,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-implementation-reviewer",
+      "verdict": "changes_required_major",
+      "counts": { "critical": 0, "major": 2, "minor": 0, "info": 0 },
+      "report": "docs/superpowers/reviews/2026-07-16-m11-t8-implementation-review-v1.md"
+    },
+    {
+      "revision": 2,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-implementation-reviewer",
+      "verdict": "approved",
+      "counts": { "critical": 0, "major": 0, "minor": 0, "info": 0 },
+      "report": "docs/superpowers/reviews/2026-07-16-m11-t8-implementation-review-v2.md"
+    },
+    {
+      "revision": 3,
+      "date": "2026-07-16",
+      "reviewer": "nayuta-implementation-reviewer",
+      "verdict": "changes_required_major",
+      "counts": { "critical": 0, "major": 3, "minor": 0, "info": 0 },
+      "report": "docs/superpowers/reviews/2026-07-16-m11-t8-implementation-review-v3.md"
+    }
+  ]
+}

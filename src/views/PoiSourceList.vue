@@ -210,7 +210,9 @@ async function restoreOrLoad(): Promise<void> {
       const anchor = cached.anchorUid
         ? root.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(cached.anchorUid)}"]`)
         : null;
-      if (anchor) anchor.scrollIntoView({ block: "start" });
+      // scrollIntoView は overflow:hidden の body まで祖先ごとスクロールさせ、fixed ヘッダー下に
+      // コンテンツ全体が潜り込む(ステート依存被りの真因)ため、root コンテナのみをスクロールする
+      if (anchor) root.scrollTop += anchor.getBoundingClientRect().top - root.getBoundingClientRect().top;
       else root.scrollTop = cached.scrollTop;
     }
   } else {

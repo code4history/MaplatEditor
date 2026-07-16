@@ -21,6 +21,7 @@ import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
+import ResourceSelector from "../components/ResourceSelector.vue";
 import { fetchAllRegisteredMaps } from "../services/desktopMapList";
 import {
   createAppSourceFromBaseMap,
@@ -32,6 +33,7 @@ import {
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
+import { useAppCoverageAutoCalc } from "../composables/useAppCoverageAutoCalc";
 import type { SlugFieldState } from "../composables/useSlugAvailability";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { isEditableElement } from "../utils/nativeTextUndo";
@@ -186,6 +188,7 @@ const defaultApp = (): AppDocument => ({
 
 const appData = ref<AppDocument>(defaultApp());
 const originalAppData = ref<AppDocument>(defaultApp());
+const appCoverageAuto = useAppCoverageAutoCalc({ appDoc: appData as any });
 const activeTab = ref<"metadata" | "sources" | "pois" | "preview">("metadata");
 const sourceListMode = ref<"maps" | "baseMaps">("maps");
 const currentLang = ref<LangCode>("ja");
@@ -214,7 +217,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     });
     if (!result) {
       // IPC が結果を返さなかった: 旧実装の最終elseと同じ処理(表示のみ、console.error/dialog無し)
-      saveError.value = t("appedit.error_saving");
+      saveOperationError.value = t("appedit.error_saving");
       return null;
     }
     return result;
@@ -238,9 +241,9 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
   onFailure: async (result) => {
     if (result.result === "Exist") {
       // 保存レースで slug を先取りされた: 重複を operation 診断へ(field 表示は SlugField が担う)
-      saveError.value = t("appedit.duplicate_appid");
+      saveOperationError.value = t("appedit.duplicate_appid");
     } else {
-      saveError.value = t("appedit.error_saving");
+      saveOperationError.value = t("appedit.error_saving");
     }
   },
   // ダイアログ表示時点の言語で t() されるよう getter で渡す (旧実装と同じタイミングで翻訳)
@@ -261,7 +264,14 @@ const slugFieldState = ref<SlugFieldState>("idle");
 const newAppUid = (typeof route.query.uid === "string" && route.query.uid)
   ? ""
   : (typeof route.query.draftUid === "string" ? route.query.draftUid : crypto.randomUUID());
-const saveError = ref<string | null>(null);
+const saveOperationError = ref<string | null>(null);
+// 保存前バリデーション(MapEdit の saveError computed と同型、全エディタ統一 2026-07-16):
+// スラッグ未入力の間は保存ボタンを常時 disabled にする(形式・一意性は SlugField/バックエンドが担保)
+const saveValidationError = computed<string | null>(() => {
+  const id = appData.value.appID;
+  if (!id || !id.trim()) return t("appedit.no_appid");
+  return null;
+});
 // pois 復元 heal が失敗した (data_json 破損などで復元不能だった) かどうか。
 // true のまま保存すると復元できなかった pois が失われるため、POIデータタブに警告を出す
 // (Phase 8 品質レビュー MAJOR-2)
@@ -370,6 +380,7 @@ onMounted(async () => {
     if (loaded) {
       appData.value = normalizeAppDocument(loaded);
       saveHandle.adoptLoaded({ uid: loaded.uid ?? uid, slug: appData.value.appID, revision: loaded.revision });
+      appCoverageAuto.refresh();
     }
   }
   currentLang.value = appData.value.lang;
@@ -395,6 +406,14 @@ watch(
 const splashPreviewUrl = ref<string | null>(null);
 const iconPreviewUrl = ref<string | null>(null);
 const assetUploadError = ref<string | null>(null);
+
+if (typeof window !== 'undefined' && (window as any).isE2E) {
+  (window as any).testDebug = {
+    appData,
+    applyAppCoverage,
+    appCoverageAuto,
+  };
+}
 
 // splash/PWAアイコンのプレビュー画像URLを解決する
 async function hydrateAssetPreviews() {
@@ -452,7 +471,6 @@ const homeModalVisible = ref(false);
 const homeModalFallback = ref<[number, number] | undefined>(undefined);
 const appCoverageModalVisible = ref(false);
 
-// アプリ提供範囲(参考)の設定。Viewer出力には含めない
 function applyAppCoverage(value: [number, number][] | null) {
   appData.value.coverageLngLats = value;
   recordHistory();
@@ -669,6 +687,9 @@ function resetHistoryBase() {
 
 function recordHistory() {
   if (historyApplying.value) return;
+  // F4 同型(MapEdit): 文書の変更で保存時 operation 診断を解消する
+  // (旧実装は slug 入力時のみ解消され、他フィールド編集では保存ボタンが disabled のまま固まった)
+  if (saveOperationError.value) saveOperationError.value = null;
   const next = cloneDocument(appData.value);
   if (!historyStack.value || isEqual(historyStack.value.current(), next)) return;
   historyStack.value.push(next);
@@ -701,7 +722,7 @@ function onEditorKeydown(event: KeyboardEvent) {
   const key = event.key.toLowerCase();
   if (key === "s") {
     event.preventDefault();
-    if (!saving.value && !exporting.value && isDirty.value && !saveError.value) void saveApp();
+    if (!saving.value && !exporting.value && isDirty.value && !saveOperationError.value && !saveValidationError.value) void saveApp();
     return;
   }
   if (isEditableElement(event.target as Element | null)) return;
@@ -730,7 +751,7 @@ function onMainProcessMessage(message: string) {
 // (excludeUid=自 uid で自分の現 slug は「空き」判定 = ADR-0007 継承)。
 // 旧実装の @input 毎 recordHistory と同じ履歴文法を保つ。
 function onAppIDLiveInput(value: string): void {
-  saveError.value = null;
+  saveOperationError.value = null;
   appData.value.appID = value;
   recordHistory();
 }
@@ -743,16 +764,16 @@ function onAppIDLiveInput(value: string): void {
  */
 async function saveApp(): Promise<boolean> {
   appSaveSucceeded = false;
-  saveError.value = null;
+  saveOperationError.value = null;
   if (!appData.value.appID.trim()) {
-    saveError.value = t("appedit.no_appid");
+    saveOperationError.value = t("appedit.no_appid");
     return false;
   }
   // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)。
   // registry 重複は backend の unique 制約(Exist)が最終防衛
   const slugOk = await slugField.value?.confirmForSave() ?? true;
   if (!slugOk) {
-    saveError.value = t("appedit.duplicate_appid");
+    saveOperationError.value = t("appedit.duplicate_appid");
     return false;
   }
   // pois は配列のまま永続化する (旧 poiSources 文字列形は normalize で pois 配列に
@@ -790,7 +811,24 @@ async function reloadFromStore() {
 }
 
 async function discardRestoredDraft() {
-  if (!appUid.value || !draftLifecycle.draftRestored.value) return;
+  if (!draftLifecycle.draftRestored.value) return;
+  // 新規(未保存)アプリの下書き: 破棄=完全削除でセーブポイントが存在しないため、
+  // 削除後は編集対象が無くなり一覧へ戻る(このとき hot-exit flush を通すと
+  // 下書きが再保存されるため goBack ではなく直接遷移する)
+  if (!appUid.value) {
+    const name = localized(appData.value.appName) || appData.value.appID || t("editor_ui.draft_badge");
+    const result = await (window as any).dialog.showMessageBox({
+      type: "warning",
+      buttons: [t("editor_ui.delete_draft"), t("common.cancel")],
+      defaultId: 1,
+      cancelId: 1,
+      message: t("editor_ui.delete_draft_confirm", { name }),
+    });
+    if (result.response !== 0) return;
+    await draftLifecycle.discard();
+    await router.push("/applist");
+    return;
+  }
   const result = await (window as any).dialog.showMessageBox({
     type: "warning",
     buttons: [t("editor_ui.discard_draft"), t("common.cancel")],
@@ -1054,10 +1092,10 @@ function onPoisChange(next: unknown[]) {
       :language-options="SUPPORTED_LANGUAGES"
       :can-undo="canUndo"
       :can-redo="canRedo"
-      :save-disabled="!!saveError || !isDirty"
+      :save-disabled="!!saveValidationError || !!saveOperationError || !isDirty"
       :saving="saving"
       :actions-disabled="exporting"
-      :discard-draft-visible="saveState === 'draft-restored' && !!appUid"
+      :discard-draft-visible="saveState === 'draft-restored'"
       @back="goBack"
       @update:active-lang="currentLang = $event"
       @undo="performUndo"
@@ -1077,6 +1115,16 @@ function onPoisChange(next: unknown[]) {
         </button>
       </template>
     </EditorActionHeader>
+
+    <!-- M11-T7/AC8 同型(MapEdit): 保存 operation エラーはアクションヘッダ直下に常時可視で表示する。
+         旧配置(メタデータフォーム最下部)ではスクロールしないと見えず、保存失敗が伝わらなかった -->
+    <DiagnosticFeedback
+      v-if="saveOperationError"
+      scope="operation"
+      dismissible
+      :items="[{ key: 'save-error', severity: 'danger', message: saveOperationError }]"
+      @dismiss="saveOperationError = null"
+    />
 
     <!-- M11-T7/AC9: EditorTabs primitive + §9 語彙(メタデータ編集/地図選択/POI選択/プレビュー) -->
     <div class="px-4 mt-2">
@@ -1166,11 +1214,22 @@ function onPoisChange(next: unknown[]) {
             <div class="col-12">
               <label class="form-label fw-bold small mb-0">{{ t("appedit.app_coverage") }}</label>
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span class="small font-monospace">{{ bboxLabel(appData.coverageLngLats) }}</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" :disabled="translationMode" @click="appCoverageModalVisible = true">
+                <span class="small font-monospace">{{ bboxLabel(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value) }}</span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  :disabled="translationMode"
+                  @click="appCoverageModalVisible = true"
+                >
                   {{ t("appedit.envelope_pick") }}
                 </button>
-                <button v-if="appData.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" :disabled="translationMode" @click="applyAppCoverage(null)">
+                <button
+                  v-if="appData.coverageLngLats"
+                  type="button"
+                  class="btn btn-sm btn-outline-danger"
+                  :disabled="translationMode"
+                  @click="applyAppCoverage(null)"
+                >
                   {{ t("appedit.envelope_clear") }}
                 </button>
               </div>
@@ -1285,18 +1344,11 @@ function onPoisChange(next: unknown[]) {
               </div>
             </div>
           </section>
-          <!-- M11-T7/AC8: 保存 operation エラーは DiagnosticFeedback scope="operation" -->
-          <DiagnosticFeedback
-            v-if="saveError"
-            class="mt-3"
-            scope="operation"
-            :items="[{ key: 'save-error', severity: 'danger', message: saveError }]"
-          />
         </form>
       </div>
 
-      <div v-show="activeTab === 'sources'" class="h-100 p-3 source-editor">
-        <div class="source-pane border-end pe-3">
+      <ResourceSelector v-show="activeTab === 'sources'" class="p-3">
+        <template #list>
           <div class="source-pane-toolbar pb-2">
             <div class="btn-group w-100 mb-2" role="group">
               <button class="btn btn-sm" :class="sourceListMode === 'maps' ? 'btn-primary' : 'btn-outline-primary'" @click="sourceListMode = 'maps'">
@@ -1351,9 +1403,9 @@ function onPoisChange(next: unknown[]) {
               </button>
             </div>
           </div>
-        </div>
+        </template>
 
-        <div class="selected-pane ps-3">
+        <template #selected>
           <h5>{{ t("appedit.selected_sources") }}</h5>
           <div v-if="appData.sources.length === 0" class="text-muted py-3">{{ t("appedit.no_selected_sources") }}</div>
           <div v-else class="selected-list">
@@ -1403,8 +1455,8 @@ function onPoisChange(next: unknown[]) {
               />
             </div>
           </div>
-        </div>
-      </div>
+        </template>
+      </ResourceSelector>
 
       <!-- Tab: POIデータ (Phase 8 Task 2)。器は appData.pois 配列、履歴は onPoisChange の
            recordHistory 明示 (AppEdit の既存方式) -->
@@ -1452,7 +1504,7 @@ function onPoisChange(next: unknown[]) {
 
     <EnvelopeEditorModal
       v-if="appCoverageModalVisible"
-      :model-value="appData.coverageLngLats ?? null"
+      :model-value="appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value"
       :fallback-center="homePosition ?? undefined"
       title-key="appedit.app_coverage_modal_title"
       help-key="appedit.app_coverage_modal_help"
@@ -1463,21 +1515,7 @@ function onPoisChange(next: unknown[]) {
 </template>
 
 <style scoped>
-.source-editor {
-  display: grid;
-  grid-template-columns: minmax(280px, 36%) 1fr;
-  gap: 0;
-  overflow: hidden;
-}
-.source-pane,
-.selected-pane {
-  min-height: 0;
-  overflow: auto;
-}
-.source-pane {
-  display: flex;
-  flex-direction: column;
-}
+/* 2カラムグリッドは ResourceSelector が提供 */
 .source-pane-toolbar {
   position: sticky;
   top: 0;

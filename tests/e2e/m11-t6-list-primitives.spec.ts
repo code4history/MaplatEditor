@@ -126,10 +126,10 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)');
     await expect(card).toHaveCSS('border-top-width', '1px');
 
-    // AC4: Map は total=null → 「M件表示中」（全N件…にはならない）
+    // AC4改(2026-07-16 件数表示統一・人間指示): backend が total を返すため
+    // 「全N件」(完載) または「全N件中 M件表示」(部分表示) 形式になる
     const count = page.locator('[data-resource-count]');
-    await expect(count).toContainText('件表示中');
-    await expect(count).not.toContainText('全');
+    await expect(count).toContainText('全15件');
 
     // AC10: ⋮ click → menu、Escape で閉じ trigger へ focus 復帰、aria-expanded トグル
     const trigger = card.locator('[data-resource-action-trigger]');

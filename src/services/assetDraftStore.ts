@@ -49,6 +49,40 @@ export function validateAssetDraftEnvelope(value: unknown): asserts value is Ass
 
 const storageKey = (kind: AssetDraftKind, assetUid: string) => `${KEY_PREFIX}${kind}:${assetUid}`;
 
+// 多言語オブジェクト({ja: "..", en: ".."})または文字列から最初の非空文字列を返す
+function firstLangValue(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    for (const entry of Object.values(value as Record<string, unknown>)) {
+      if (typeof entry === 'string' && entry.trim()) return entry.trim();
+    }
+  }
+  return undefined;
+}
+
+// 新規下書きカードの識別用に payload から表示名/slug を best-effort 抽出する。
+// kind ごとの正確なスキーマには依存せず、代表的なフィールド名を順に試す
+function draftLabelOf(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const p = payload as Record<string, unknown>;
+  return (
+    firstLangValue(p.appName) ??
+    firstLangValue(p.title) ??
+    firstLangValue(p.officialTitle) ??
+    firstLangValue(p.name)
+  );
+}
+
+function draftSlugOf(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined;
+  const p = payload as Record<string, unknown>;
+  for (const key of ['appID', 'slug', 'mapID']) {
+    const v = p[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+
 export class AssetDraftStore {
   constructor(private readonly store: AssetDraftKeyValueStore) {}
 
@@ -94,6 +128,8 @@ export class AssetDraftStore {
             assetUid: draft.assetUid,
             baseRevision: draft.baseRevision,
             updatedAt: draft.updatedAt,
+            label: draftLabelOf(draft.payload),
+            slug: draftSlugOf(draft.payload),
           });
         }
       } catch {

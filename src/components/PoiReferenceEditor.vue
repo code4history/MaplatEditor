@@ -4,16 +4,18 @@
        (pois 配列の順番どおり = viewer の layer 順)。参照要素は ↑/↓/× + 上書き
        icon/selectedIcon、生 URL/FC 要素は「外部データ」カードとして 表示 + ↑/↓/× のみ
        (編集 UI は作らない — Phase 8 設計コントラクト) -->
-  <div class="poi-reference-editor h-100">
-    <div
-      class="source-pane border-end pe-3"
-      :class="{ 'poi-selector-disabled': readOnly }"
-      :aria-disabled="readOnly"
-    >
-      <PoiSourceSelector :initial-selected="selectedRefs" :active-lang="activeLang" @update:selected="onSelectionChange" />
-    </div>
+  <ResourceSelector>
+    <template #list>
+      <div
+        class="source-pane-body"
+        :class="{ 'poi-selector-disabled': readOnly }"
+        :aria-disabled="readOnly"
+      >
+        <PoiSourceSelector :initial-selected="selectedRefs" :active-lang="activeLang" @update:selected="onSelectionChange" />
+      </div>
+    </template>
 
-    <div class="selected-pane ps-3">
+    <template #selected>
       <h5>{{ t(headingKey ?? "poiref.selected_list_app") }}</h5>
       <div v-if="entries.length === 0" class="text-muted py-3">{{ t("poiref.empty") }}</div>
       <div v-else class="selected-list">
@@ -34,8 +36,6 @@
               <small v-if="poiUidOf(entry) !== null" class="text-muted text-break">
                 {{ entrySubLabel(entry) }}
               </small>
-              <!-- 削除済みソースへの参照 (D4): not-found 確定時のみ警告文言を表示。
-                   × 解除・↑↓ は従来通り操作できる -->
               <div v-if="isMissing(entry)" class="small text-warning-emphasis">
                 {{ t("poiref.missing_source") }}
               </div>
@@ -64,11 +64,7 @@
               >×</button>
             </div>
           </div>
-          <!-- 参照要素のみ: 参照単位の title/icon/selectedIcon 上書き (POI-112 最小形 + D1)。
-               resolver が解決後 FC のトップレベルへ適用する (ソース側の値より参照側が勝つ) -->
           <div v-if="poiUidOf(entry) !== null" class="row g-2 mt-1">
-            <!-- 上書きタイトル (GUI 検証 D1): PoiEdit ヘッダの title 編集と同じ LangResourceInput。
-                 空にクリアで上書き解除 (= title キー削除)。resolver が交換形 FC.name に適用する -->
             <div class="col-12">
               <label class="form-label small mb-0">{{ t("poiref.override_title") }}</label>
               <LangResourceInput
@@ -100,12 +96,11 @@
               />
             </div>
           </div>
-          <!-- 外部データ (生 URL/FC) カード: 説明文付きで ↑/↓/× のみ -->
           <div v-else class="form-text small mb-0">{{ t("poiref.external_note") }}</div>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </ResourceSelector>
 </template>
 
 <script setup lang="ts">
@@ -118,6 +113,7 @@ import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import PoiSourceSelector from "./PoiSourceSelector.vue";
 import IconRefField from "./IconRefField.vue";
+import ResourceSelector from "./ResourceSelector.vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";
@@ -319,22 +315,12 @@ defineExpose({ pickerOpen });
 </script>
 
 <style scoped>
-/* AppEdit 地図選択タブ (.source-editor) と同じ2カラムグリッド */
-.poi-reference-editor {
-  display: grid;
-  grid-template-columns: minmax(280px, 36%) 1fr;
-  gap: 0;
-  overflow: hidden;
-  min-height: 0;
-}
-.source-pane,
-.selected-pane {
-  min-height: 0;
-  overflow: auto;
-}
-.source-pane {
+/* 2カラムグリッドは ResourceSelector が提供 */
+.source-pane-body {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: auto;
 }
 .min-width-0 {
   min-width: 0;

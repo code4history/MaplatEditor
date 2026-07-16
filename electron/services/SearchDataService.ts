@@ -38,7 +38,7 @@ function checkLocaleAttr(attr: any, condition: string): boolean {
 function paginate(rawDocs: any[], page: number, pageSize: number): MapListResult {
   // pageSize<=0 は全件取得(ページネーションなし)
   if (pageSize <= 0) {
-    return { docs: rawDocs, prev: false, next: false };
+    return { docs: rawDocs, prev: false, next: false, total: rawDocs.length };
   }
   let currentPage = page;
   let pageUpdate: number | undefined;
@@ -52,6 +52,7 @@ function paginate(rawDocs: any[], page: number, pageSize: number): MapListResult
     docs: pageDocs,
     prev: currentPage > 1,
     next: rawDocs.length > start + pageSize,
+    total: rawDocs.length,
   };
   if (pageUpdate !== undefined) result.pageUpdate = pageUpdate;
   return result;
@@ -152,10 +153,11 @@ class SearchDataService {
     return paginate(rawDocs, page, pageSize);
   }
 
-  async searchExtent(extent: number[]): Promise<string[]> {
+  async searchExtent(extent: number[], kind: 'map' | 'poi-source' | 'app' = 'map'): Promise<string[]> {
     if (activeSearchEngine() !== 'duckdb') {
-      return SqliteDataService.searchExtent(extent);
+      return SqliteDataService.searchExtent(extent, kind);
     }
+    if (kind !== 'map') return []; // DuckDB経路はmapのみ対応。非mapはSQLiteフォールバックに委譲
     const docs = await this.readAllMapDocs();
     return docs
       .filter((doc) => {

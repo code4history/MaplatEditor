@@ -124,6 +124,7 @@ import { registerAppAssetHandlers } from './ipc/appassets'
 import { registerAssetHandlers } from './ipc/assets'
 import { registerImageAssetHandlers } from './ipc/assets-images'
 import { registerSlugReservationHandlers } from './ipc/slugReservations'
+import { registerSearchHandlers } from './ipc/search'
 
 import { ipcMain } from 'electron'
 
@@ -183,6 +184,11 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('slug-reservations:move')
   ipcMain.removeHandler('slug-reservations:release')
   ipcMain.removeHandler('slug-reservations:check')
+  ipcMain.removeHandler('search:maps')
+  ipcMain.removeHandler('search:apps')
+  ipcMain.removeHandler('search:poiSources')
+  ipcMain.removeHandler('search:baseMaps')
+  ipcMain.removeHandler('search:imageAssets')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
@@ -201,6 +207,7 @@ app.whenReady().then(() => {
   registerAssetHandlers()
   registerImageAssetHandlers()
   registerSlugReservationHandlers()
+  registerSearchHandlers()
   createWindow()
   setupMenu()
 
