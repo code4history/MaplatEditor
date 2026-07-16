@@ -20,10 +20,14 @@ export function useAppCoverageAutoCalc(options: UseAppCoverageAutoCalcOptions): 
   })
 
   async function calc(): Promise<void> {
-    if (!options.appDoc.value) return
+    if (!options.appDoc.value) {
+      console.log('calc: appDoc.value is empty');
+      return;
+    }
     const calcId = ++currentCalcId
     const app = options.appDoc.value as any
     const uid = app.uid ?? app._id ?? ""
+    console.log('calc start:', { uid, app });
     try {
       const rawSources = app.sources ?? app.dataSources ?? []
       const mapUids: string[] = []
@@ -32,24 +36,33 @@ export function useAppCoverageAutoCalc(options: UseAppCoverageAutoCalcOptions): 
         const mUid = src.mapUid || src.mapID || src.map_id
         if (mUid) mapUids.push(String(mUid))
       }
+      console.log('calc mapUids:', mapUids);
       const result = await (window as any).search?.appCoverage?.(uid, mapUids)
-      if (calcId !== currentCalcId) return
+      console.log('calc result:', result);
+      if (calcId !== currentCalcId) {
+        console.log('calc: race condition layout ignored');
+        return;
+      }
 
       if (result && Array.isArray(result.coverageLngLats)) {
+        console.log('calc success set autoCoverage:', result.coverageLngLats);
         autoCoverage.value = result.coverageLngLats as [number, number][]
       } else {
+        console.log('calc no result coverage set null');
         autoCoverage.value = null
       }
-    } catch {
+    } catch (e) {
+      console.log('calc error:', e);
       if (calcId === currentCalcId) {
         autoCoverage.value = null
       }
     }
   }
 
-  watch(options.appDoc, () => {
+  watch(() => options.appDoc.value, () => {
+    console.log('watch triggered for appDoc.value:', options.appDoc.value);
     calc()
-  }, { deep: true })
+  }, { deep: true, immediate: true })
 
   function manualOverride(lngLats: [number, number][] | null): void {
     if (options.appDoc.value) {
@@ -63,8 +76,6 @@ export function useAppCoverageAutoCalc(options: UseAppCoverageAutoCalcOptions): 
     }
     calc()
   }
-
-  if (options.appDoc.value) calc()
 
   return { autoCoverage, isAuto, manualOverride, clear }
 }
