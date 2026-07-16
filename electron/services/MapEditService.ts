@@ -223,6 +223,15 @@ class MapEditService {
                 if (!(await SqliteDataService.isSlugAvailable(slug, request.uid ?? undefined))) {
                     throw new Error('Exist');
                 }
+                // M11-T10: 複製は create 経路に乗る(事前採番uid=予約帰属)。複製元の
+                // tiles/tmbs/原本コピーは従来 copy 経路と同じ後段ファイル操作を使う
+                if (request.copyFromUid) {
+                    const source = await SqliteDataService.findMap(request.copyFromUid);
+                    if (source) {
+                        copySourceUid = source.uid;
+                        copySourceSlug = source.slug;
+                    }
+                }
                 const created = await SqliteDataService.createMap(slug, compiled, request.uid ?? undefined);
                 savedUid = created.uid;
                 savedRevision = 1;

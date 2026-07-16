@@ -109,13 +109,16 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         const result = await window.mapedit.save({
             mapObject: JSON.parse(JSON.stringify(saveValue)),
             tins: JSON.parse(JSON.stringify(tins)),
-            // M11-T7/AC6: 新規は事前採番 uid + create 明示合図(§7.2b)で create 経路へ
-            uid: sendUid ?? (copyFromUid ? undefined : (newMapUid || undefined)),
+            // M11-T7/AC6: 新規は事前採番 uid + create 明示合図(§7.2b)で create 経路へ。
+            // M11-T10: 複製(copyFromUid)も同じ create 経路に乗せる。一覧側の slug 予約は
+            // asset_uid=newMapUid 帰属のため、uid を送らない旧 copy 経路(server採番)だと
+            // 自分の予約に isSlugAvailable が弾かれて Exist になる(複製保存の自己衝突)。
+            uid: sendUid ?? (newMapUid || undefined),
             slug: saveValue.mapID,
             expectedRevision,
             copyFromUid,
             renameFromSlug,
-            ...(sendUid == null && !copyFromUid && newMapUid ? { create: true } : {}),
+            ...(sendUid == null && newMapUid ? { create: true } : {}),
         });
         if (!result) {
             // IPC が結果を返さなかった: エラーを operation 診断へ(M11-T7/AC8)
@@ -408,6 +411,9 @@ const selectEditorLanguage = (language: LangCode) => {
 };
 
 type MapEditHistoryState = {
+    // M11-T10: 複製元UID (undefined=複製ではない)。保存時のタイル/サムネイル複製と
+    // draft 復元後の複製継続の両方が依存する
+    copyFromUid?: string;
     mapData: any;
     sub_maps: any[];
     gcps: any[];
@@ -425,6 +431,8 @@ const historyReady = ref(false);
 let historyTimer: ReturnType<typeof setTimeout> | undefined;
 
 const captureHistoryState = (): MapEditHistoryState => ({
+    // M11-T10: 複製元UID。draft 経由(hot-exit→復元→保存)でもタイル/サムネイル複製を失わない
+    copyFromUid: copyFromUidSource.value,
     mapData: cloneDeep(mapData.value),
     sub_maps: cloneDeep(sub_maps.value),
     gcps: cloneDeep(gcps.value),
@@ -438,6 +446,7 @@ const captureHistoryState = (): MapEditHistoryState => ({
 
 const restoreHistoryState = async (state: MapEditHistoryState) => {
     historyRestoring.value = true;
+    copyFromUidSource.value = state.copyFromUid;
     mapData.value = cloneDeep(state.mapData);
     sub_maps.value = cloneDeep(state.sub_maps);
     currentEditingLayer.value = Math.min(
@@ -1616,6 +1625,9 @@ onMounted(async () => {
     // tinObjects: メインレイヤー + サブマップ分 の undefined で初期化（旧実装: vueMap.tinObjects = [...]）
     tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
     initializeHistoryStack();
+    // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする
+    // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
+    if (copyFromUidSource.value) historyStack.value?.markDirty();
     // M11-T7: 新規の draft キー = 事前採番 uid(newMapUid)。予約帰属・create uid と一致させる
     const draftUid = uid && uid !== 'new' ? uid : newMapUid;
     if (isNew && route.query.draftUid !== draftUid) {
