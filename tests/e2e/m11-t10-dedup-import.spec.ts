@@ -3,6 +3,7 @@
 // AC4(copyFromUidのタイル複製)・AC13/AC14(失敗経路)はコード検査+人間検証(設計v3.2)。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, writeFile } from 'node:fs/promises';
+import { DatabaseSync } from 'node:sqlite';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
@@ -53,11 +54,18 @@ async function seedPoi(page: Page, withFeature = false): Promise<{ uid: string; 
 async function seedMap(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const slug = `t10-map-${Date.now()}`;
+    // gcps を持つが compiled は持たない(素体) map。複製保存が TIN 計算を待って
+    // compiled を生成できることの検証素材になる
     const result = await window.mapedit.save({ slug, mapObject: {
       mapID: slug, title: { ja: 'T10 地図' }, officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
       attr: { ja: 'T10 attribution' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
       reference: '', url: '', lang: 'ja', imageExtension: 'jpg', width: 400, height: 300,
-      gcps: [], edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
+      gcps: [
+        [[100, 100], [15550000, 4160000]],
+        [[300, 100], [15560000, 4160000]],
+        [[200, 250], [15555000, 4150000]],
+      ],
+      edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
     }, tins: [] });
     if (!result || result.result !== 'Success') throw new Error(`seed map failed: ${JSON.stringify(result)}`);
     return { uid: result.uid as string, slug };
@@ -223,9 +231,22 @@ test.describe('M11-T10 Dedup/Import', () => {
 
       // slug 重複エラーが出ていない
       await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
+
+      // R5: 即保存でも TIN 計算完了を待つため、保存された複製は compiled を持つ
+      // (待たないと gcps 素体へ劣化し store2HistMap が compiledRequired 警告を出す)
+      const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+      await quitElectronApplication(app);
+      const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
+      try {
+        const row = db.prepare('SELECT data_json FROM maps WHERE slug = ?').get(`${seeded.slug}-copy`) as { data_json: string } | undefined;
+        expect(row).toBeTruthy();
+        expect(String(row!.data_json)).toContain('"compiled"');
+      } finally {
+        db.close();
+      }
       console.log('  Map複製保存: PASS');
     } finally {
-      await quitElectronApplication(app);
+      await quitElectronApplication(app).catch(() => { /* 既に終了済み */ });
     }
   });
 
