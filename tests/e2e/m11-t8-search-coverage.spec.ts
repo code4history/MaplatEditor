@@ -101,7 +101,7 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
 
     // FTS 全文検索の検証 (base-map の全文検索が機能することを確認)
     const ftsResult = await page.evaluate(async () => {
-      return await (window as any).search.list('base-map', { q: 'ベースマップ' }, 1, 10);
+      return await (window as any).search.baseMaps({ q: 'ベースマップ', page: 1, pageSize: 10 });
     });
     expect(ftsResult.docs.map((d: any) => d.uid)).toContain('bm-1');
 
