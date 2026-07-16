@@ -78,11 +78,11 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
       );
       
       INSERT INTO maps (uid, slug, data_json) VALUES (
-        'map-1', 'test-map', '{"width":400,"height":300,"lang":"ja","edges":[[0,0],[400,0],[400,300],[0,300]],"gcps":[{"x":0,"y":300,"lng":139.7,"lat":35.6},{"x":400,"y":0,"lng":139.8,"lat":35.7}],"compiled":{"vertices_points":[[null,[15551351.4,4249117.8]],[null,[15562483.3,4259837.2]]]}}'
+        'aaaaaaaa-bbbb-cccc-dddd-000000000001', 'test-map', '{"width":400,"height":300,"lang":"ja","edges":[[0,0],[400,0],[400,300],[0,300]],"gcps":[{"x":0,"y":300,"lng":139.7,"lat":35.6},{"x":400,"y":0,"lng":139.8,"lat":35.7}],"compiled":{"vertices_points":[[null,[15551351.4,4249117.8]],[null,[15562483.3,4259837.2]]]}}'
       );
       
       INSERT INTO apps (uid, slug, data_json) VALUES (
-        'app-1', 'test-app', '{"appName":"テストアプリ","sources":[{"sourceType":"maplat","mapUid":"map-1"}]}'
+        'bbbbbbbb-cccc-dddd-eeee-000000000001', 'test-app', '{"appName":"テストアプリ","sources":[{"sourceType":"maplat","mapUid":"aaaaaaaa-bbbb-cccc-dddd-000000000001"}]}'
       );
     `);
 
@@ -117,8 +117,7 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
     await page.evaluate((nextHash) => { location.hash = nextHash; }, '#/applist');
     await expect(page.locator('.resource-list__toolbar')).toBeVisible();
 
-    // app-1 の編集へ遷移
-    await page.locator(`[data-resource-uid="app-1"] a`).click();
+    await page.locator(`[data-resource-uid="bbbbbbbb-cccc-dddd-eeee-000000000001"] a`).click();
     await expect(page.locator('text=アプリ提供範囲(参考)')).toBeVisible();
     await expect(page.locator('.small.font-monospace')).toContainText('W139.69');
     await expect(page.locator('button:has-text("クリア")')).not.toBeVisible();

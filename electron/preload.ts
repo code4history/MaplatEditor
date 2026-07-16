@@ -219,6 +219,8 @@ contextBridge.exposeInMainWorld('search', {
     ipcRenderer.invoke('search:appCoverage', appUid, mapUids),
 })
 
+contextBridge.exposeInMainWorld('isE2E', Boolean(process.env.MAPLAT_E2E_ROOT))
+
 contextBridge.exposeInMainWorld('slugReservations', {
   reserve: (payload: { slug: string; assetUid: string; assetKind: string; draftUid: string }) =>
     ipcRenderer.invoke('slug-reservations:reserve', payload),

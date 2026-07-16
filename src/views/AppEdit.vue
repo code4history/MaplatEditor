@@ -373,6 +373,7 @@ onMounted(async () => {
     if (loaded) {
       appData.value = normalizeAppDocument(loaded);
       saveHandle.adoptLoaded({ uid: loaded.uid ?? uid, slug: appData.value.appID, revision: loaded.revision });
+      appCoverageAuto.refresh();
     }
   }
   currentLang.value = appData.value.lang;
@@ -395,12 +396,11 @@ watch(
   { deep: true, flush: "post" },
 );
 
-
 const splashPreviewUrl = ref<string | null>(null);
 const iconPreviewUrl = ref<string | null>(null);
 const assetUploadError = ref<string | null>(null);
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && (window as any).isE2E) {
   (window as any).testDebug = {
     appData,
     applyAppCoverage,
