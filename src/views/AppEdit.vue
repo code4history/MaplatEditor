@@ -400,6 +400,14 @@ const splashPreviewUrl = ref<string | null>(null);
 const iconPreviewUrl = ref<string | null>(null);
 const assetUploadError = ref<string | null>(null);
 
+if (typeof window !== 'undefined') {
+  (window as any).testDebug = {
+    appData,
+    applyAppCoverage,
+    appCoverageAuto,
+  };
+}
+
 // splash/PWAアイコンのプレビュー画像URLを解決する
 async function hydrateAssetPreviews() {
   splashPreviewUrl.value = appData.value.appSettings.splash
