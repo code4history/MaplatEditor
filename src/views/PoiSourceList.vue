@@ -34,25 +34,25 @@
 
     <!-- 削除確認 dialog -->
     <DeleteConfirmDialog
-      :visible="deleteDialog.visible"
-      :title="deleteDialog.title"
-      :references="deleteDialog.references"
-      :references-unavailable="deleteDialog.refsUnavailable"
-      :deleting="deleting"
-      @confirm="onDeleteConfirm"
-      @cancel="deleteDialog.visible = false"
+      :visible="deletion.dialog.visible"
+      :title="deletion.dialog.title"
+      :references="deletion.dialog.references"
+      :references-unavailable="deletion.dialog.refsUnavailable"
+      :deleting="deletion.deleting.value"
+      @confirm="deletion.confirm"
+      @cancel="deletion.cancel"
     />
 
-    <div v-if="deleteError" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
+    <div v-if="deletion.error.value" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
       <DiagnosticFeedback scope="operation" dismissible
-        :items="[{ key: 'delete-error', severity: 'danger', message: deleteError }]"
-        @dismiss="deleteError = null" />
+        :items="[{ key: 'list-op-error', severity: 'danger', message: deletion.error.value }]"
+        @dismiss="deletion.error.value = null" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
@@ -61,6 +61,7 @@ import { useInfiniteResourceList } from "../composables/useInfiniteResourceList"
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useResourceDelete } from "../composables/useResourceDelete";
+import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
 import ImportSlot from "../components/resource-list/ImportSlot.vue";
@@ -69,7 +70,6 @@ import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import { createPoiSourceListAdapter } from "./resource-adapters/poiSourceListAdapter";
 import type { PoiSourceListRow, PoiSourceSaveResult } from "../electron";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
-import type { DeleteReference } from "../components/resource-list/DeleteConfirmDialog.vue";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
 
 const { t } = useTranslation();
@@ -147,73 +147,47 @@ async function onImport(): Promise<void> {
   }
 }
 
-// --- Delete ---
-const { deleting, requestDelete } = useResourceDelete({
-  onDelete: async (uid) => { await window.poiSources.delete(uid); },
-  onDraftRemove: async (uid) => { await window.assetDrafts.remove("poi", uid); },
+// --- Delete (useResourceDelete: 共通 dialog + 参照一覧 + 実行) ---
+const deletion = useResourceDelete({
+  confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
+  references: async (uid) => {
+    const refs = await window.poiSources.findReferences(uid);
+    return refs.map((r) => ({ kind: r.kind, slug: r.slug, title: "" }));
+  },
+  onDelete: async (uid) => {
+    await window.poiSources.delete(uid);
+    await window.assetDrafts.remove("poi", uid);
+  },
   onDeleted: async (uid) => { applyDeletion(uid); await refreshDrafts(); },
-  onError: (_uid, msg) => { deleteError.value = msg; },
 });
-const deleteError = ref<string | null>(null);
-const deleteDialog = reactive({
-  visible: false, title: "", references: [] as DeleteReference[], refsUnavailable: false,
-});
-let pendingDeleteUid = "";
 
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
   if (key === "delete") {
-    pendingDeleteUid = vm.uid;
-    let references: DeleteReference[] = [];
-    let refsUnavailable = false;
-    try {
-      const refs = await window.poiSources.findReferences(vm.uid);
-      references = refs.map((r) => ({ kind: r.kind, slug: r.slug, title: "" }));
-    } catch { refsUnavailable = true; }
-    deleteDialog.title = t("resource_list.delete_confirm_title", { title: vm.title });
-    deleteDialog.references = references;
-    deleteDialog.refsUnavailable = refsUnavailable;
-    deleteDialog.visible = true;
+    await deletion.request(vm);
   } else if (key === "duplicate") {
     await duplicateByVm(vm);
   }
 }
-async function onDeleteConfirm(): Promise<void> {
-  deleteDialog.visible = false;
-  await requestDelete(pendingDeleteUid);
-}
 
 // --- Duplicate（行作成方式・設計v3.2）: POIエディタは行前提（/poisources/:uid）のため、
-// createLocal(予約uid/slug) + fc複製で新規行を作ってから遷移する。remote元もローカル複製になる ---
+// reserveCopySlug で採番・予約した slug/uid で createLocal + fc複製の新規行を作ってから遷移する。
+// remote元もローカル複製になる ---
 async function duplicateByVm(vm: ResourceListItemViewModel): Promise<void> {
-  const newUid = crypto.randomUUID();
-  const tryReserve = async (slug: string): Promise<boolean> => {
-    const result = await window.slugReservations.reserve({ slug, assetUid: newUid, assetKind: "poi-source", draftUid: newUid });
-    return result.result === "ok";
-  };
-  const doDuplicate = async (slug: string): Promise<void> => {
-    try {
-      const source = await window.poiSources.get(vm.uid);
-      if (!source) throw new Error(`source not found: ${vm.uid}`);
-      const created = await window.poiSources.createLocal({ slug, title: source.title, lang: source.lang, uid: newUid });
-      if (!("result" in created) || created.result !== "Success") throw new Error("createLocal failed");
-      const saved = await window.poiSources.save(newUid, { slug, title: source.title, fc: source.fc });
-      if (!("result" in saved) || saved.result !== "Success") throw new Error("fc copy failed");
-      await loadFirst();
-      router.push(`/poisources/${newUid}?new=1`);
-    } catch (e) {
-      console.error("Duplicate failed", e);
-      deleteError.value = t("resource_list.duplicate_failed");
-    }
-  };
-
-  const baseSlug = vm.slug || "poi-source";
-  const copySlug = (baseSlug.length > 95 ? baseSlug.slice(0, 95) : baseSlug) + "-copy";
-  if (await tryReserve(copySlug)) return doDuplicate(copySlug);
-  for (let i = 2; i <= 100; i++) {
-    const next = `${baseSlug.slice(0, 90)}-copy${i}`;
-    if (await tryReserve(next)) return doDuplicate(next);
+  const reserved = await reserveCopySlug(vm.slug, "poi-source", "poi-source");
+  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }
+  try {
+    const source = await window.poiSources.get(vm.uid);
+    if (!source) throw new Error(`source not found: ${vm.uid}`);
+    const created = await window.poiSources.createLocal({ slug: reserved.slug, title: source.title, lang: source.lang, uid: reserved.uid });
+    if (!("result" in created) || created.result !== "Success") throw new Error("createLocal failed");
+    const saved = await window.poiSources.save(reserved.uid, { slug: reserved.slug, title: source.title, fc: source.fc });
+    if (!("result" in saved) || saved.result !== "Success") throw new Error("fc copy failed");
+    await loadFirst();
+    router.push(`/poisources/${reserved.uid}?new=1`);
+  } catch (e) {
+    console.error("Duplicate failed", e);
+    deletion.error.value = t("resource_list.duplicate_failed");
   }
-  deleteError.value = t("resource_list.duplicate_failed");
 }
 
 // --- lifecycle ---

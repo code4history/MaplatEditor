@@ -43,13 +43,13 @@
     </ResourceListShell>
 
     <DeleteConfirmDialog
-      :visible="deleteDialogVisible" :title="deleteDialogTitle"
-      :deleting="false" @confirm="onDeleteConfirm" @cancel="deleteDialogVisible = false"
+      :visible="deletion.dialog.visible" :title="deletion.dialog.title"
+      :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
     />
-    <div v-if="deleteError" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
+    <div v-if="deletion.error.value" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
       <DiagnosticFeedback scope="operation" dismissible
-        :items="[{ key: 'delete-error', severity: 'danger', message: deleteError }]"
-        @dismiss="deleteError = null" />
+        :items="[{ key: 'list-op-error', severity: 'danger', message: deletion.error.value }]"
+        @dismiss="deletion.error.value = null" />
     </div>
   </div>
 </template>
@@ -61,6 +61,8 @@ import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
+import { useResourceDelete } from "../composables/useResourceDelete";
+import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
@@ -74,7 +76,7 @@ import type { ResourceListItemViewModel } from "../components/resource-list/reso
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges("map");
+const { hasDraft, draftSummaries, refreshDrafts, removeNewDraft } = useAssetDraftBadges("map");
 const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
 
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
@@ -132,48 +134,22 @@ function onImportMap(): void { void router.push("/mapedit?new=1&import=1"); }
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
   if (key === "duplicate") { await duplicateByVm(vm); return; }
   if (key !== "delete") return;
-  pendingDeleteUid.value = vm.uid;
-  deleteDialogTitle.value = t("resource_list.delete_confirm_title", { title: vm.title });
-  deleteDialogVisible.value = true;
+  await deletion.request(vm);
 }
 
-// 新規(未保存)下書きの削除。保存済み地図行は存在しないため draft store のみ消す
-async function removeNewDraft(draft: import("../types/assetDraft").AssetDraftSummary): Promise<void> {
-  const name = draft.label ?? draft.slug ?? t("editor_ui.draft_badge");
-  if (!confirm(t("editor_ui.delete_draft_confirm", { name }))) return;
-  try {
-    await window.assetDrafts.remove("map", draft.assetUid);
-    await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to delete new-map draft", e);
-  }
-}
-
-// M11-T10: 削除 (useResourceDelete) + 複製
-
-const deleteDialogVisible = ref(false);
-const deleteDialogTitle = ref("");
-const pendingDeleteUid = ref("");
-const deleteError = ref<string | null>(null);
-async function onDeleteConfirm() {
-  deleteDialogVisible.value = false;
-  try {
-    await (window as any).maplist.delete(pendingDeleteUid.value, query.value, 1);
-    await window.assetDrafts.remove("map", pendingDeleteUid.value);
-    applyDeletion(pendingDeleteUid.value); await refreshDrafts();
-  } catch (e: any) { deleteError.value = e?.message || String(e); }
-}
+// M11-T10: 削除 (useResourceDelete) + 複製 (reserveCopySlug) — 共通 composable に委譲
+const deletion = useResourceDelete({
+  confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
+  onDelete: async (uid) => {
+    await (window as any).maplist.delete(uid, query.value, 1);
+    await window.assetDrafts.remove("map", uid);
+  },
+  onDeleted: async (uid) => { applyDeletion(uid); await refreshDrafts(); },
+});
 async function duplicateByVm(vm: ResourceListItemViewModel) {
-  const newUid = crypto.randomUUID();
-  const tryReserve = async (slug: string) => { const r = await window.slugReservations.reserve({ slug, assetUid: newUid, assetKind: "map", draftUid: newUid }); return r.result === "ok"; };
-  const baseSlug = vm.slug || "map";
-  const copySlug = (baseSlug.length > 95 ? baseSlug.slice(0, 95) : baseSlug) + "-copy";
-  if (await tryReserve(copySlug)) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(copySlug)}&new=1`); return; }
-  for (let i = 2; i <= 100; i++) {
-    const next = `${baseSlug.slice(0, 90)}-copy${i}`;
-    if (await tryReserve(next)) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`); return; }
-  }
-  deleteError.value = t("resource_list.duplicate_failed");
+  const reserved = await reserveCopySlug(vm.slug, "map", "map");
+  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }
+  void router.push(duplicateEditorPath("/mapedit", vm.uid, reserved));
 }
 
 let unsubscribe: (() => void) | null = null;
