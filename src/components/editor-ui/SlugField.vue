@@ -36,9 +36,11 @@ const props = withDefaults(defineProps<{
   draftUid?: string;
   originalSlug?: string;
   disabled?: boolean;
+  // M11-T10: 必須入力。空欄を field 診断(danger)で示す(サマリバナー廃止に伴う field 診断一元化)
+  required?: boolean;
   // 既存 E2E 互換の data-testid 透過(LangResourceInput の input-testid と同型)
   inputTestid?: string;
-}>(), { disabled: false });
+}>(), { disabled: false, required: false });
 
 const emit = defineEmits<{
   'update:modelValue': [string];
@@ -124,6 +126,9 @@ watch(state, (s) => {
 });
 
 const diagnostics = computed<DiagnosticItem[]>(() => {
+  if (props.required && !props.modelValue.trim()) {
+    return [{ key: 'req', severity: 'danger', message: t('editor_ui.slug_state.required') }];
+  }
   if (state.value === 'invalid-format') {
     return [{ key: 'fmt', severity: 'danger', message: t('editor_ui.slug_state.invalid-format') }];
   }

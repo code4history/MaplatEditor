@@ -855,7 +855,8 @@
       "reserved-by-other": "他で使用中です",
       "check-failed": "確認に失敗しました",
       "taken": "既に使用されています",
-      "unavailable": "確認できません"
+      "unavailable": "確認できません",
+      "required": "スラッグを入力してください"
     },
     "draft_badge": "下書き",
     "draft_conflict": {
@@ -872,7 +873,8 @@
       "maps": "地図選択",
       "preview": "プレビュー",
       "gcps_requires_image": "先に地図画像を登録してください"
-    }
+    },
+    "untitled": "タイトル未設定"
   },
   "resource_list": {
     "new_item": "新規追加",

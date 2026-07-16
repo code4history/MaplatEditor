@@ -855,7 +855,8 @@
       "reserved-by-other": "Reserved by another",
       "check-failed": "Check failed",
       "taken": "Already in use",
-      "unavailable": "Could not verify"
+      "unavailable": "Could not verify",
+      "required": "Enter a slug"
     },
     "draft_badge": "Draft",
     "draft_conflict": {
@@ -872,7 +873,8 @@
       "maps": "Select Maps",
       "preview": "Preview",
       "gcps_requires_image": "Register a map image first"
-    }
+    },
+    "untitled": "Untitled"
   },
   "resource_list": {
     "new_item": "New",
