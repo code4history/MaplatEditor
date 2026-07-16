@@ -120,8 +120,7 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
     // app-1 の編集へ遷移
     await page.locator(`[data-resource-uid="app-1"] a`).click();
     await expect(page.locator('text=アプリ提供範囲(参考)')).toBeVisible();
-    const bboxTextInitial = await page.locator('.small.font-monospace').textContent();
-    expect(bboxTextInitial).toContain('W139.69');
+    await expect(page.locator('.small.font-monospace')).toContainText('W139.69');
     await expect(page.locator('button:has-text("クリア")')).not.toBeVisible();
 
     // 手動指定をシミュレート
@@ -132,8 +131,7 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
     });
 
     // 手動指定後は、その値が表示され、かつ「クリア」ボタンが表示される
-    const bboxTextManual = await page.locator('.small.font-monospace').textContent();
-    expect(bboxTextManual).toContain('W139 S35 E140 N36');
+    await expect(page.locator('.small.font-monospace')).toContainText('W139 S35 E140 N36');
     await expect(page.locator('button:has-text("クリア")')).toBeVisible();
 
     // 手動の状態で地図を追加しても、手動の範囲が上書きされないことを確認
@@ -143,27 +141,22 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
         mapUid: 'map-new'
       });
     });
-    await page.waitForTimeout(500);
 
     // 手動カバレッジ（W139 S35 E140 N36）のままであること
-    const bboxTextAfterAdd = await page.locator('.small.font-monospace').textContent();
-    expect(bboxTextAfterAdd).toContain('W139 S35 E140 N36');
+    await expect(page.locator('.small.font-monospace')).toContainText('W139 S35 E140 N36');
 
     // 「クリア」ボタンをクリックして手動をクリア
     await page.locator('button:has-text("クリア")').click();
 
     // クリア後は、クリアボタンが消え、自動計算結果に戻る
     await expect(page.locator('button:has-text("クリア")')).not.toBeVisible();
-    const bboxTextAfterClear = await page.locator('.small.font-monospace').textContent();
-    expect(bboxTextAfterClear).not.toContain('W139 S35 E140 N36');
+    await expect(page.locator('.small.font-monospace')).not.toContainText('W139 S35 E140 N36');
 
     // 地図をすべて削除すると、カバレッジも消去（-）される
     await page.evaluate(() => {
       (window as any).testDebug.appData.value.sources = [];
     });
-    await page.waitForTimeout(500);
-    const bboxTextEmpty = await page.locator('.small.font-monospace').textContent();
-    expect(bboxTextEmpty).toBe('-');
+    await expect(page.locator('.small.font-monospace')).toHaveText('-');
 
     // 5. ヘッダー被りの検証（nowrapの効果）
     await page.locator('.navbar-nav .nav-link', { hasText: 'ベースマップ管理' }).click();
