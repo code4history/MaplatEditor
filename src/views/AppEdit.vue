@@ -382,6 +382,23 @@ onMounted(async () => {
       saveHandle.adoptLoaded({ uid: loaded.uid ?? uid, slug: appData.value.appID, revision: loaded.revision });
       appCoverageAuto.refresh();
     }
+  } else {
+    // M11-T10: duplicateFrom がある場合は元アプリから内容を複製（設計v3.1 案A: エディタ側ロード）。
+    // 複製浄化: normalizeAppDocument は uid/revision を写さない。slug(appID) は予約値で上書き
+    const dupFrom = typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : "";
+    if (dupFrom) {
+      try {
+        const source = await window.appedit.request(dupFrom);
+        if (source) {
+          const normalized = normalizeAppDocument(source);
+          if (typeof route.query.slug === "string" && route.query.slug) normalized.appID = route.query.slug;
+          appData.value = normalized;
+          appCoverageAuto.refresh();
+        }
+      } catch (e) {
+        console.error("Failed to duplicate app", e);
+      }
+    }
   }
   currentLang.value = appData.value.lang;
   await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
