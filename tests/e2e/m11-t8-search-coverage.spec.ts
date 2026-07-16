@@ -118,7 +118,7 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
     await expect(page.locator('.resource-list__toolbar')).toBeVisible();
 
     // app-1 の編集へ遷移
-    await page.locator(`[data-resource-card="app-1"] a`).click();
+    await page.locator(`[data-resource-uid="app-1"] a`).click();
     await expect(page.locator('.app-edit')).toBeVisible();
 
     // 初期状態：自動カバレッジ表示、クリアボタン非表示
