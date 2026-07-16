@@ -106,24 +106,20 @@ test('instance B reports reserved-by-other when instance A reserves the slug', a
     await a.page.getByTestId('basemap-slug').fill(slug);
     await waitForOwnedReservation(a.page, slug, aUid);
 
-    // POI作成modalのcanSubmitはmodalSlugState === availableを直接条件にする。
-    // 必須titleを満たし、同一submitのenabled→競合state→disabled遷移で親伝播を証明する。
+    // M11-T10: POI作成モーダルは解体済み(HV5)。B は新規追加→POIエディタの SlugField で
+    // A の予約中 slug を入力し、reserved-by-other の伝播を検証する（検証意図は不変）。
     await openHash(b.page, '#/poisources', '[data-resource-list="poi-source"]');
     await b.page.locator('[data-resource-new]').click();
-    const modal = b.page.locator('.modal');
-    await expect(modal).toBeVisible();
-    const bSlug = b.page.getByTestId('poi-create-slug');
-    await modal.locator('.modal-body > input.form-control').fill('T7 multi POI');
+    await expect(b.page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
+    const bSlug = b.page.getByTestId('poi-slug');
     await bSlug.fill('m11-t7-multi-b-available');
-    const submit = modal.locator('.modal-footer .btn-primary');
-    await expect(submit).toBeEnabled();
+    const field = b.page.locator('.editor-field', { has: bSlug });
+    await expect(bSlug).not.toHaveClass(/is-invalid/);
 
     await bSlug.fill(slug);
-    const field = b.page.locator('.editor-field', { has: bSlug });
     await expect(field.locator('[data-diagnostic-scope="field"]')).toBeVisible();
     await expect(field.locator('[role="status"]')).toHaveText('他で使用中です');
     await expect(bSlug).toHaveClass(/is-invalid/);
-    await expect(submit).toBeDisabled();
   } finally {
     await Promise.all([quitElectronApplication(a.app), quitElectronApplication(b.app)]);
   }

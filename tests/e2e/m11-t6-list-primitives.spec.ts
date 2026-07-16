@@ -176,8 +176,10 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await expect(page.locator('[role="menu"]')).toBeVisible();
     await expectMenuNearTrigger(page, lastTrigger);
 
-    // AC11: menu の 削除 → confirm 承認 → card（scroll test で開いた末尾card）が消える
+    // AC11: menu の 削除 → 共通 DeleteConfirmDialog 承認 → card（scroll test で開いた末尾card）が消える
+    // M11-T10 (AC5): window.confirm ではなく共通ダイアログを承認する
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();
+    await page.getByTestId('delete-confirm-button').click();
     await expect(page.locator(`[data-resource-uid="${lastCardUid}"]`)).toHaveCount(0);
 
     // AC4 empty: 一致しない検索で empty 状態
@@ -205,15 +207,11 @@ test('poi list shows real total, keeps Import in secondary slot, and hides flag-
     await expect(page.locator('[data-resource-count]')).toContainText('全');
 
     // AC12: Import は toolbar secondary slot にあり、Remote 登録ボタンは DOM に無い（フラグ抑制 D13）
+    // M11-T10: 旧 [data-poi-import]+プレビューモーダルは解体され、共通 ImportSlot([data-resource-import])
+    // + file picker 直行フローに統一（クリック→エディタ遷移の実効検証は m11-t10 AC10 が担う）。
     const toolbar = page.locator('[data-resource-toolbar]');
-    await expect(toolbar.locator('[data-poi-import]')).toBeVisible();
+    await expect(toolbar.locator('[data-resource-import]')).toBeVisible();
     await expect(page.locator('button', { hasText: 'リモート登録' })).toHaveCount(0);
-
-    // AC12: Import クリックで（stub された）ファイル選択後にモーダルが開き、閉じられる
-    await page.locator('[data-poi-import]').click();
-    await expect(page.locator('.modal .modal-title')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.locator('.modal .modal-title')).toHaveCount(0);
   } finally {
     await quitElectronApplication(app);
   }
@@ -272,6 +270,8 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
 
     await userTrigger.click();
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();
+    // M11-T10 (AC5): window.confirm ではなく共通 DeleteConfirmDialog を承認して削除する
+    await page.getByTestId('delete-confirm-button').click();
     await expect(page.getByTestId('basemap-row-e2e-user-basemap')).toHaveCount(0);
 
     // AC16: 範囲で絞り込むボタン→ modal→ 適用が現行どおり動く（filterBaseMapCatalog 温存）
