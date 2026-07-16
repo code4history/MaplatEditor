@@ -94,7 +94,7 @@ import { mergeMasterDetailFilters } from "../utils/masterDetailRouteState";
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { select, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
+const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, refreshDrafts } = useAssetDraftBadges("base-map");
 
 const items = ref<BaseMapCatalogItem[]>([]);
@@ -230,7 +230,7 @@ const duplicateSourceItem = computed(() =>
 async function duplicateBaseMap(item: BaseMapCatalogItem): Promise<void> {
   const reserved = await reserveCopySlug(item.mapID, "base-map", "base-map");
   if (!reserved) { error.value = t("resource_list.duplicate_failed"); return; }
-  await router.push({ query: { ...route.query, uid: reserved.uid, new: "1", duplicateFrom: item.uid, slug: reserved.slug } });
+  await selectDuplicate(item.uid, reserved);
 }
 
 async function toggleAlways(item: BaseMapCatalogItem, always: boolean): Promise<void> {

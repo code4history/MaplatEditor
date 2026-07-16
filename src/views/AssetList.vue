@@ -74,7 +74,7 @@ import { localizeTitle } from "../utils/langResource";
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { select, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
+const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, refreshDrafts } = useAssetDraftBadges("image-asset");
 
 const items = ref<ImageAssetRow[]>([]);
@@ -212,7 +212,7 @@ const duplicateSourceItem = computed(() =>
 async function duplicateAsset(row: ImageAssetRow): Promise<void> {
   const reserved = await reserveCopySlug(row.slug, "image-asset", "asset");
   if (!reserved) { alert(t("resource_list.duplicate_failed")); return; }
-  await router.push({ query: { ...route.query, uid: reserved.uid, new: "1", duplicateFrom: row.uid, slug: reserved.slug } });
+  await selectDuplicate(row.uid, reserved);
 }
 
 onMounted(async () => {
