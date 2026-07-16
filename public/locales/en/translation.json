@@ -764,7 +764,8 @@
     "reference_assets": "Reference Assets",
     "copy_ref": "Copy Reference",
     "insert_image": "Insert Image",
-    "add_reference_asset": "Add Asset"
+    "add_reference_asset": "Add Asset",
+    "asset_refs_present": "HTML contains asset references (maplat-asset:). Please ensure referenced assets exist when exporting."
   },
   "assetlist": {
     "master_detail": {

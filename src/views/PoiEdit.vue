@@ -237,6 +237,7 @@ import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
+import { collectAssetRefsInFc } from "../utils/poiContentMode";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
 import { isEditableElement } from "../utils/nativeTextUndo";
 import { isTranslationMode } from "../utils/editorLanguageMode";
@@ -464,6 +465,13 @@ const liveWarnings = computed<string[]>(() => {
   }
   if (issues.some((i) => i.code === "scale-feature-count" || i.code === "scale-byte-size")) {
     keys.push("poiedit.size_warning");
+  }
+  // M11-T9 AC14: Asset Reference が存在する場合、保存前に注意を促す
+  // （欠落Assetの厳密な存在確認は保存時の backend 側 findAssetReferences が担当）
+  const fc = session.toSaveFc();
+  const assetUids = collectAssetRefsInFc(fc);
+  if (assetUids.size > 0) {
+    keys.push("poiedit.asset_refs_present");
   }
   return keys;
 });

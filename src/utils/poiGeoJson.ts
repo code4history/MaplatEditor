@@ -165,6 +165,28 @@ function externalizeLangFields(
   }
 }
 
+// LangResource 値が非空の string または非空の言語値を持つか。
+function hasNonEmptyStringOrLangValue(value: unknown): boolean {
+  if (typeof value === "string") return value.trim() !== "";
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return Object.values(value as Record<string, unknown>).some(
+      (v) => typeof v === "string" && v.trim() !== "",
+    );
+  }
+  return false;
+}
+
+// LangResource から最初の非空文字列を取得（url format validation 用）。
+function getFirstLangStringValue(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    for (const v of Object.values(value as Record<string, unknown>)) {
+      if (typeof v === "string" && v.trim() !== "") return v;
+    }
+  }
+  return undefined;
+}
+
 // feature が「コンテンツ」(desc/html/address/url/image のいずれか非空) を持つか (POI-108)。
 function hasContent(props: Record<string, unknown>): boolean {
   for (const key of ["desc", "html", "address", "url", "image"]) {
@@ -278,6 +300,33 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
     }
 
     if (hasContent(props)) anyContent = true;
+
+    // --- Content Mode 検証 (M11-T9) ---
+    const mode = props._maplatContentMode;
+    if (mode === 'html') {
+      // html mode で html が空 → warning
+      if (!hasNonEmptyStringOrLangValue(props.html)) {
+        issues.push({
+          level: "warning",
+          code: "content-mode-html-missing-content",
+          featureId: id,
+        });
+      }
+    }
+    if (mode === 'url') {
+      // url mode で url が javascript: / data: プロトコル → error
+      const urlValue = getFirstLangStringValue(props.url);
+      if (typeof urlValue === 'string' && urlValue.trim() !== '') {
+        const trimmed = urlValue.trim().toLowerCase();
+        if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:')) {
+          issues.push({
+            level: "error",
+            code: "content-mode-url-format",
+            featureId: id,
+          });
+        }
+      }
+    }
   }
 
   // 無コンテンツ warning (POI-108): ソース全体が無コンテンツ (かつ 1 件以上) の時に単一 warning

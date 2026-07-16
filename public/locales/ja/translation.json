@@ -764,7 +764,8 @@
     "reference_assets": "参照素材",
     "copy_ref": "参照をコピー",
     "insert_image": "画像を挿入",
-    "add_reference_asset": "素材を追加"
+    "add_reference_asset": "素材を追加",
+    "asset_refs_present": "HTML内にアセット参照（maplat-asset:）が含まれています。エクスポート時に参照先アセットが存在することを確認してください。"
   },
   "assetlist": {
     "master_detail": {

@@ -212,6 +212,148 @@ try {
     console.log('  case 4c (feature without html): PASS');
   }
 
+  // --- ケース5: validateFeatureCollection content mode validation (AC15) ---
+  // poiGeoJson.ts を追加 build して検証する
+  await build({
+    root: projectRoot,
+    logLevel: 'error',
+    configFile: false,
+    build: {
+      outDir: path.join(workDir, 'dist-geojson'),
+      emptyOutDir: true,
+      lib: {
+        entry: path.join(projectRoot, 'src/utils/poiGeoJson.ts'),
+        formats: ['es'],
+        fileName: () => 'poiGeoJson.mjs',
+      },
+      rollupOptions: { external: [] },
+    },
+  });
+
+  const geoMod = await import(pathToFileURL(path.join(workDir, 'dist-geojson', 'poiGeoJson.mjs')).href);
+  const { validateFeatureCollection } = geoMod;
+
+  // 5a: content-mode-html-missing-content: html mode + empty html → warning
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p1',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'html',
+            name: { ja: 'test' },
+            html: { ja: '' },
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const htmlEmptyIssue = issues.find((i) => i.code === 'content-mode-html-missing-content');
+    assert.ok(htmlEmptyIssue, 'empty html in html mode should warn');
+    assert.equal(htmlEmptyIssue.level, 'warning');
+    assert.equal(htmlEmptyIssue.featureId, 'p1');
+    console.log('  case 5a (html mode + empty html → warning): PASS');
+  }
+
+  // 5b: content-mode-url-format: data: URL → error
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p2',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'url',
+            name: { ja: 'test' },
+            url: 'data:text/html,<script>alert(1)</script>',
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const urlIssue = issues.find((i) => i.code === 'content-mode-url-format');
+    assert.ok(urlIssue, 'data: URL in url mode should be error');
+    assert.equal(urlIssue.level, 'error');
+    assert.equal(urlIssue.featureId, 'p2');
+    console.log('  case 5b (data: URL in url mode → error): PASS');
+  }
+
+  // 5c: content-mode-url-format: javascript: URL → error
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p3',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'url',
+            name: { ja: 'test' },
+            url: 'JavaScript:void(0)',
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const urlIssue = issues.find((i) => i.code === 'content-mode-url-format');
+    assert.ok(urlIssue, 'javascript: URL in url mode should be error');
+    assert.equal(urlIssue.level, 'error');
+    assert.equal(urlIssue.featureId, 'p3');
+    console.log('  case 5c (javascript: URL in url mode → error): PASS');
+  }
+
+  // 5d: https URL in url mode → no error
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p4',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'url',
+            name: { ja: 'test' },
+            url: 'https://example.com',
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const urlIssue = issues.find((i) => i.code === 'content-mode-url-format');
+    assert.equal(urlIssue, undefined, 'https URL should not trigger error');
+    console.log('  case 5d (https URL in url mode → no error): PASS');
+  }
+
+  // 5e: html mode with non-empty html → no warning
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p5',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'html',
+            name: { ja: 'test' },
+            html: { ja: '<p>content</p>' },
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const htmlEmptyIssue = issues.find((i) => i.code === 'content-mode-html-missing-content');
+    assert.equal(htmlEmptyIssue, undefined, 'non-empty html should not warn');
+    console.log('  case 5e (html mode with content → no warning): PASS');
+  }
+
   console.log('m11-t9-poi-content-mode smoke: PASS');
 } finally {
   await rm(workDir, { recursive: true, force: true });

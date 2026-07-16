@@ -647,18 +647,23 @@ function getHtmlTextarea(): HTMLTextAreaElement | null {
 }
 
 const ASSET_REF_PREFIX = "maplat-asset:";
+const ASSET_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function copyAssetRef(index: number): void {
   const row = imageRows.value[index];
   if (!row || !row.text) return;
-  const refValue = `${ASSET_REF_PREFIX}${row.text}`;
+  const uid = row.text.trim();
+  if (!ASSET_UUID_RE.test(uid)) return; // legacy path では参照を生成しない
+  const refValue = `${ASSET_REF_PREFIX}${uid}`;
   void navigator.clipboard.writeText(refValue);
 }
 
 function insertAssetRef(index: number): void {
   const row = imageRows.value[index];
   if (!row || !row.text) return;
-  const refValue = `${ASSET_REF_PREFIX}${row.text}`;
+  const uid = row.text.trim();
+  if (!ASSET_UUID_RE.test(uid)) return; // legacy path では参照を生成しない
+  const refValue = `${ASSET_REF_PREFIX}${uid}`;
   const imgTag = `<img src="${refValue}" />`;
   const textarea = getHtmlTextarea();
   if (textarea) {
