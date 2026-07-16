@@ -77,6 +77,16 @@ class AppPreviewService {
   private port: number | null = null;
   private sessions = new Map<string, PreviewSession>();
 
+  // maplat-asset:<UID> の実体パス解決 (map側/app側 pois 共通)。callback として渡すため arrow で束縛
+  private resolveAssetPath = async (uid: string): Promise<string | null> => {
+    const record = await SqliteDataService.findAsset(uid);
+    if (!record) return null;
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const src = path.join(saveFolder, 'assets', `${record.uid}.${record.ext}`);
+    if (!(await fs.pathExists(src))) return null;
+    return src;
+  };
+
   async prepare(document: any): Promise<{ url: string; port: number; warnings: string[] }> {
     await this.ensureServer(Number(document.httpSettings?.previewPort || 0) || undefined);
     await this.purgePreviewStorage();
@@ -163,16 +173,7 @@ class AppPreviewService {
           mapPois = resolved.pois;
           // M11-T9: maplat-asset:<UID> をプレビュー用パスに解決
           mapPois = await Promise.all(
-            mapPois.map((poi: unknown) =>
-              resolveAssetRefsInFcForPreview(poi, token, async (uid: string) => {
-                const record = await SqliteDataService.findAsset(uid);
-                if (!record) return null;
-                const saveFolder = SettingsService.get('saveFolder') as string;
-                const src = path.join(saveFolder, 'assets', `${record.uid}.${record.ext}`);
-                if (!(await fs.pathExists(src))) return null;
-                return src;
-              }),
-            ),
+            mapPois.map((poi: unknown) => resolveAssetRefsInFcForPreview(poi, token, this.resolveAssetPath)),
           );
         }
         // サムネイル実体はuidパス (ADR-0007)。preview serverの tmbs/ 経路で配信される
@@ -206,6 +207,11 @@ class AppPreviewService {
     // app 側 pois の {poiUid} 参照も同じ resolver で export 形 FC へ解決する
     const resolvedAppPois = await resolvePoisArray(appPoisRaw);
     mergeWarnings(warnings, resolvedAppPois.warnings);
+    // M11-T9: app 側 pois の maplat-asset:<UID> もプレビュー用パスに解決する
+    // (実装レビューv3: map 側のみ解決されており、POI選択タブで付けた app 直下 pois が未解決だった)
+    const appPoisAssetResolved = await Promise.all(
+      resolvedAppPois.pois.map((poi: unknown) => resolveAssetRefsInFcForPreview(poi, token, this.resolveAssetPath)),
+    );
     if (duplicateReference) mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
     const app = this.toHttpAsset(normalizeRuntimeKeys({
       appName: document.appName || document.title,
@@ -220,7 +226,7 @@ class AppPreviewService {
       defaultZoom: Number(document.appSettings?.defaultZoom || 10),
       startFrom: startEntry ? startEntry.viewerMapID : document.startFrom,
       sources: entries.map((entry) => entry.composed),
-      pois: resolvedAppPois.pois,
+      pois: appPoisAssetResolved,
     }));
     return {
       token,
