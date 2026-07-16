@@ -129,7 +129,7 @@
       <!-- 診断領域 (内容があるときのみ表示)。M11-T7/AC8: T5 の DiagnosticFeedback 文法
            (section=検証まとめ・operation=保存エラー、即時表示)へ移行 -->
       <div
-        v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarnings.length"
+        v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarnings.length || missingAssetWarningItems.length"
         class="px-4 py-2 flex-shrink-0 overflow-auto"
         style="max-height: 40%;"
       >
@@ -480,7 +480,12 @@ const assetRefCheckSeq = ref(0);
 
 watch(
   () => session.state.value?.features,
-  () => {
+  (features) => {
+    // load() 前は toSaveFc() が throw し watcher ごと停止するため、state 未初期化時はスキップする
+    if (!features) {
+      missingAssetRefUids.value = [];
+      return;
+    }
     const seq = ++assetRefCheckSeq.value;
     const fc = session.toSaveFc();
     const uids = [...collectAssetRefsInFc(fc)];
