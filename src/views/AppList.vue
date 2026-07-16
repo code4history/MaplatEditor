@@ -33,6 +33,11 @@
       :visible="deleteDialogVisible" :title="deleteDialogTitle"
       :deleting="false" @confirm="onDeleteConfirm" @cancel="deleteDialogVisible = false"
     />
+    <div v-if="deleteError" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
+      <DiagnosticFeedback scope="operation" dismissible
+        :items="[{ key: 'delete-error', severity: 'danger', message: deleteError }]"
+        @dismiss="deleteError = null" />
+    </div>
   </div>
 </template>
 
@@ -48,6 +53,7 @@ import ResourceListShell from "../components/resource-list/ResourceListShell.vue
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
 import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
+import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import { createAppListAdapter, type AppListRow } from "./resource-adapters/appListAdapter";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 import type { AssetDraftSummary } from "../types/assetDraft";
@@ -87,13 +93,14 @@ async function removeNewDraft(draft: AssetDraftSummary): Promise<void> {
 const deleteDialogVisible = ref(false);
 const deleteDialogTitle = ref("");
 const pendingDeleteUid = ref("");
+const deleteError = ref<string | null>(null);
 async function onDeleteConfirm() {
   deleteDialogVisible.value = false;
   try {
     await window.applist.delete(pendingDeleteUid.value, query.value, 1);
     await window.assetDrafts.remove("app", pendingDeleteUid.value);
     applyDeletion(pendingDeleteUid.value); await refreshDrafts();
-  } catch (e: any) { console.error("Delete failed", e); }
+  } catch (e: any) { deleteError.value = e?.message || String(e); }
 }
 async function duplicateByVm(vm: ResourceListItemViewModel) {
   const newUid = crypto.randomUUID();
