@@ -3126,7 +3126,8 @@ const goBack = async () => {
                         <div class="col-md-5">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_repr") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input data-testid="map-title" type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_name_repr_pf')">
-                            <div v-if="saveError?.title" class="form-text small text-muted text-danger mb-0" style="font-size: 0.75rem;">{{ saveError.title }}</div>
+                            <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
+                            <DiagnosticFeedback v-if="saveError?.title" scope="field" :items="[{ key: 'title-required', severity: 'danger', message: saveError.title }]" />
                             <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_repr_desc") }}</div>
                         </div>
                         <!-- Map ID フィールド (M11-T7/AC1/AC5): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
@@ -3140,6 +3141,7 @@ const goBack = async () => {
                                 :asset-uid="mapUid || newMapUid"
                                 :draft-uid="mapUid || newMapUid"
                                 :original-slug="confirmedSlug"
+                                :required="true"
                                 :disabled="translationMode"
                                 input-testid="map-slug"
                                 @update:model-value="onMapIDLiveInput"
@@ -3268,7 +3270,8 @@ const goBack = async () => {
                         <div class="col-md-3">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
                             <input type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
-                            <div v-if="saveError?.attr" class="form-text small text-muted text-danger mb-0" style="font-size: 0.75rem;">{{ saveError.attr }}</div>
+                            <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
+                            <DiagnosticFeedback v-if="saveError?.attr" scope="field" :items="[{ key: 'attr-required', severity: 'danger', message: saveError.attr }]" />
                             <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_copyright_desc") }}</div>
                         </div>
                          <div class="col-md-3">

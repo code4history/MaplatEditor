@@ -91,6 +91,7 @@
               :asset-uid="saveHandle.uid.value ?? ''"
               :draft-uid="saveHandle.uid.value"
               :original-slug="confirmedSlug"
+              :required="true"
               :disabled="readOnly || translationMode"
               input-testid="poi-slug"
               @update:model-value="onSlugLiveInput"
