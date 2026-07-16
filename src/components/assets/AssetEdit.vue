@@ -157,8 +157,19 @@ import { isEditableElement } from "../../utils/nativeTextUndo";
 interface VolatileSource { sourcePath: string; sourceName: string }
 interface AssetEditHistoryState { document: ImageAssetEditDocument; volatileSource: VolatileSource | null }
 
-const props = withDefaults(defineProps<{ uid: string; isNew: boolean; item: ImageAssetRow | null; backVisible?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  uid: string;
+  isNew: boolean;
+  item: ImageAssetRow | null;
+  backVisible?: boolean;
+  /** M11-T10 複製(案A): 新規モードで複製元の row を受け取り、エディタ側で複製浄化して初期化する */
+  duplicateSourceItem?: ImageAssetRow | null;
+  /** M11-T10 複製: 一覧側で予約済みの slug（複製浄化で元slugを上書きする） */
+  presetSlug?: string;
+}>(), {
   backVisible: true,
+  duplicateSourceItem: null,
+  presetSlug: "",
 });
 const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string]; "draft-state": [uid: string, hasDraft: boolean]; flushed: [] }>();
 const { t } = useTranslation();
@@ -166,7 +177,9 @@ const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const initialDocument = props.item
   ? fromImageAssetRow(props.item)
-  : newImageAssetDocument(props.uid, resolveEditorLanguage(i18next.language));
+  : props.isNew && props.duplicateSourceItem
+    ? duplicateInitialDoc(props.duplicateSourceItem, props.uid)
+    : newImageAssetDocument(props.uid, resolveEditorLanguage(i18next.language));
 const document = ref<ImageAssetEditDocument>(clone(initialDocument));
 const volatileSource = shallowRef<VolatileSource | null>(null);
 let history = new UndoStack<AssetEditHistoryState>({ document: clone(initialDocument), volatileSource: null });
@@ -229,10 +242,37 @@ const draftLifecycle = useAssetDraftLifecycle<ReturnType<typeof toImageAssetDraf
   shouldPersist: () => dirty.value,
 });
 
+// M11-T10 複製浄化: uid は新規採番値へ、slug は予約値へ上書き
+function duplicateInitialDoc(source: ImageAssetRow, uid: string): ImageAssetEditDocument {
+  const doc = fromImageAssetRow(source);
+  return { ...doc, uid, slug: props.presetSlug || `${doc.slug}-copy` };
+}
+
+// M11-T10 複製: 元アセットの実体ファイルを volatileSource として流し込む
+// (file:// URL を絶対パスへ正規化。新規保存(add)が sourcePath から実体を複製する)
+async function prefillDuplicateSource(source: ImageAssetRow): Promise<void> {
+  try {
+    const fileUrl = await window.imageAssets.getFilePath(source.uid);
+    if (!fileUrl) throw new Error("source file not found");
+    const sourcePath = decodeURIComponent(String(fileUrl).replace(/^file:\/\//, ""));
+    volatileSource.value = { sourcePath, sourceName: source.sourceName || `${source.slug}.${source.ext ?? "png"}` };
+    previewUrl.value = String(fileUrl);
+    pushCurrent();
+  } catch (cause) {
+    console.error("Failed to prefill duplicate source", cause);
+    error.value = t("assetlist.master_detail.reselect_required");
+  }
+}
+
 function resetSession(item: ImageAssetRow | null, uid: string): void {
-  const next = item ? fromImageAssetRow(item) : newImageAssetDocument(uid, resolveEditorLanguage(i18next.language));
+  const next = item
+    ? fromImageAssetRow(item)
+    : props.isNew && props.duplicateSourceItem
+      ? duplicateInitialDoc(props.duplicateSourceItem, uid)
+      : newImageAssetDocument(uid, resolveEditorLanguage(i18next.language));
   document.value = clone(next);
   volatileSource.value = null;
+  if (!item && props.isNew && props.duplicateSourceItem) void prefillDuplicateSource(props.duplicateSourceItem);
   history = new UndoStack({ document: clone(next), volatileSource: null });
   historyVersion.value++;
   revision.value = item?.revision ?? null;

@@ -13,7 +13,8 @@
         @select="selectExisting"
         @select-draft="selectDraft"
         @create="createAsset"
-        @delete="deleteAsset"
+        @delete="requestDeleteAsset"
+        @duplicate="duplicateAsset"
         @scroll="saveScroll"
       />
     </div>
@@ -24,6 +25,8 @@
         :uid="selectedUid"
         :is-new="isNew"
         :item="selectedItem"
+        :duplicate-source-item="duplicateSourceItem"
+        :preset-slug="presetSlug"
         :back-visible="false"
         @back="closeEditor"
         @saved="saved"
@@ -42,12 +45,20 @@
         <div><i class="bi bi-images fs-1 d-block mb-2" aria-hidden="true"></i>{{ t("assetlist.master_detail.select_prompt") }}</div>
       </div>
     </div>
+
+    <!-- M11-T10: 共通削除確認 dialog（参照情報つき） -->
+    <DeleteConfirmDialog
+      :visible="deleteDialog.visible" :title="deleteDialog.title"
+      :references="deleteDialog.references" :references-unavailable="deleteDialog.refsUnavailable"
+      :deleting="false" @confirm="onDeleteConfirm" @cancel="deleteDialog.visible = false"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import AssetEdit from "../components/assets/AssetEdit.vue";
@@ -165,7 +176,12 @@ function refreshDraftsSoon(): void {
   draftRefreshTimer = setTimeout(() => { void refreshDraftsNow(); }, 2300);
 }
 
-async function deleteAsset(row: ImageAssetRow): Promise<void> {
+// M11-T10: 共通確認 dialog（native confirm 全廃）+ 参照情報表示
+const deleteDialog = reactive({
+  visible: false, title: "", references: [] as Array<{ kind: string; slug: string; title: string }>, refsUnavailable: false,
+});
+let pendingDeleteRow: ImageAssetRow | null = null;
+async function requestDeleteAsset(row: ImageAssetRow): Promise<void> {
   const title = localizeTitle(row.title, activeLang.value) || row.slug;
   let references: ImageAssetReference[] = [];
   let referencesUnavailable = false;
@@ -175,15 +191,45 @@ async function deleteAsset(row: ImageAssetRow): Promise<void> {
     console.error("Failed to resolve image asset references", cause);
     referencesUnavailable = true;
   }
-  let message = t("assetlist.delete_confirm", { name: title });
-  if (referencesUnavailable) {
-    message += `\n\n${t("assetlist.errors.references_unavailable")}`;
-  } else if (references.length) {
-    message += `\n\n${t("assetlist.delete_referenced", { num: references.length })}\n${references
-      .map((reference) => `- ${reference.slug}: ${localizeTitle(reference.title, activeLang.value) || reference.slug}`)
-      .join("\n")}`;
+  pendingDeleteRow = row;
+  deleteDialog.title = t("resource_list.delete_confirm_title", { title });
+  deleteDialog.references = references.map((reference) => ({
+    kind: "poi-source", slug: reference.slug, title: localizeTitle(reference.title, activeLang.value) || reference.slug,
+  }));
+  deleteDialog.refsUnavailable = referencesUnavailable;
+  deleteDialog.visible = true;
+}
+async function onDeleteConfirm(): Promise<void> {
+  deleteDialog.visible = false;
+  if (pendingDeleteRow) await deleteAsset(pendingDeleteRow);
+  pendingDeleteRow = null;
+}
+
+// M11-T10 複製（案A）: slug予約 + 新規UID採番 → duplicateFrom/slug クエリ付きで new モードを開く
+const duplicateFrom = computed(() => (typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : ""));
+const presetSlug = computed(() => (typeof route.query.slug === "string" ? route.query.slug : ""));
+const duplicateSourceItem = computed(() =>
+  duplicateFrom.value ? items.value.find((row) => row.uid === duplicateFrom.value) ?? null : null,
+);
+async function duplicateAsset(row: ImageAssetRow): Promise<void> {
+  const newUid = crypto.randomUUID();
+  const tryReserve = async (slug: string): Promise<boolean> => {
+    const result = await window.slugReservations.reserve({ slug, assetUid: newUid, assetKind: "image-asset", draftUid: newUid });
+    return result.result === "ok";
+  };
+  const open = (slug: string) =>
+    router.push({ query: { ...route.query, uid: newUid, new: "1", duplicateFrom: row.uid, slug } });
+  const baseSlug = row.slug || "asset";
+  const copySlug = (baseSlug.length > 95 ? baseSlug.slice(0, 95) : baseSlug) + "-copy";
+  if (await tryReserve(copySlug)) { await open(copySlug); return; }
+  for (let i = 2; i <= 100; i++) {
+    const next = `${baseSlug.slice(0, 90)}-copy${i}`;
+    if (await tryReserve(next)) { await open(next); return; }
   }
-  if (!confirm(message)) return;
+  alert(t("resource_list.duplicate_failed"));
+}
+
+async function deleteAsset(row: ImageAssetRow): Promise<void> {
   try {
     if (selectedUid.value === row.uid) await editor.value?.prepareForDelete();
     await window.imageAssets.delete(row.uid);
