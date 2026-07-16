@@ -71,7 +71,6 @@ import type { PoiSourceListRow, PoiSourceSaveResult } from "../electron";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 import type { DeleteReference } from "../components/resource-list/DeleteConfirmDialog.vue";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
-// --- Duplicate (slug予約 → エディタ遷移) ---
 
 const { t } = useTranslation();
 const route = useRoute();
@@ -170,7 +169,7 @@ async function onAction(key: string, vm: ResourceListItemViewModel): Promise<voi
       const refs = await window.poiSources.findReferences(vm.uid);
       references = refs.map((r) => ({ kind: r.kind, slug: r.slug, title: "" }));
     } catch { refsUnavailable = true; }
-    deleteDialog.title = `${vm.title} を削除しますか？`;
+    deleteDialog.title = t("resource_list.delete_confirm_title", { title: vm.title });
     deleteDialog.references = references;
     deleteDialog.refsUnavailable = refsUnavailable;
     deleteDialog.visible = true;
@@ -183,28 +182,38 @@ async function onDeleteConfirm(): Promise<void> {
   await requestDelete(pendingDeleteUid);
 }
 
-// --- Duplicate (slug予約 → エディタ遷移) ---
+// --- Duplicate（行作成方式・設計v3.2）: POIエディタは行前提（/poisources/:uid）のため、
+// createLocal(予約uid/slug) + fc複製で新規行を作ってから遷移する。remote元もローカル複製になる ---
 async function duplicateByVm(vm: ResourceListItemViewModel): Promise<void> {
   const newUid = crypto.randomUUID();
   const tryReserve = async (slug: string): Promise<boolean> => {
     const result = await window.slugReservations.reserve({ slug, assetUid: newUid, assetKind: "poi-source", draftUid: newUid });
     return result.result === "ok";
   };
+  const doDuplicate = async (slug: string): Promise<void> => {
+    try {
+      const source = await window.poiSources.get(vm.uid);
+      if (!source) throw new Error(`source not found: ${vm.uid}`);
+      const created = await window.poiSources.createLocal({ slug, title: source.title, lang: source.lang, uid: newUid });
+      if (!("result" in created) || created.result !== "Success") throw new Error("createLocal failed");
+      const saved = await window.poiSources.save(newUid, { slug, title: source.title, fc: source.fc });
+      if (!("result" in saved) || saved.result !== "Success") throw new Error("fc copy failed");
+      await loadFirst();
+      router.push(`/poisources/${newUid}?new=1`);
+    } catch (e) {
+      console.error("Duplicate failed", e);
+      deleteError.value = t("resource_list.duplicate_failed");
+    }
+  };
 
   const baseSlug = vm.slug || "poi-source";
   const copySlug = (baseSlug.length > 95 ? baseSlug.slice(0, 95) : baseSlug) + "-copy";
-  if (await tryReserve(copySlug)) {
-    router.push(`/poisources/${vm.uid}?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(copySlug)}&new=1`);
-    return;
-  }
+  if (await tryReserve(copySlug)) return doDuplicate(copySlug);
   for (let i = 2; i <= 100; i++) {
     const next = `${baseSlug.slice(0, 90)}-copy${i}`;
-    if (await tryReserve(next)) {
-      router.push(`/poisources/${vm.uid}?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`);
-      return;
-    }
+    if (await tryReserve(next)) return doDuplicate(next);
   }
-  await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: "複製用のslugが確保できませんでした。" });
+  deleteError.value = t("resource_list.duplicate_failed");
 }
 
 // --- lifecycle ---
