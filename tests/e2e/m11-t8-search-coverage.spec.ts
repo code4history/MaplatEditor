@@ -157,17 +157,27 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
     });
     await expect(page.locator('.small.font-monospace')).toHaveText('-');
 
-    // 5. ヘッダー被りの検証（nowrapの効果）
-    await page.locator('.navbar-nav .nav-link', { hasText: 'ベースマップ管理' }).click();
-    await expect(page).toHaveURL(/\/basemaps/);
-    await page.locator('.navbar-nav .nav-link', { hasText: 'アセット管理' }).click();
-    await expect(page).toHaveURL(/\/assets/);
+    // 5. ヘッダー被りの検証（600px幅 + boundingRect 比較）
+    await page.setViewportSize({ width: 600, height: 800 });
+    await page.waitForTimeout(500);
 
-    const toolbarMargin = await page.evaluate(() => {
-      const el = document.querySelector('.main-content') as HTMLElement;
-      return el ? parseInt(getComputedStyle(el).marginTop, 10) : 0;
+    const headerRects = await page.evaluate(() => {
+      const tabs = document.querySelectorAll('.navbar-nav .nav-link');
+      return Array.from(tabs).map(t => {
+        const r = t.getBoundingClientRect();
+        return { label: (t.textContent ?? '').trim(), top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+      });
     });
-    expect(toolbarMargin).toBe(50);
+    expect(headerRects.length).toBeGreaterThan(0);
+
+    // 隣接タブ間の Y 重なりチェック（折り返し = next.top >= curr.bottom、重なり = NG）
+    for (let i = 0; i < headerRects.length - 1; i++) {
+      const curr = headerRects[i];
+      const next = headerRects[i + 1];
+      expect(next.top,
+        `Header tab "${curr.label}" → "${next.label}" must not overlap vertically at 600px width`
+      ).toBeGreaterThanOrEqual(curr.bottom - 1);
+    }
 
     await quitElectronApplication(app);
   });
