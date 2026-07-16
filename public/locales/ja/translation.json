@@ -816,6 +816,8 @@
     "new_item": "新規追加",
     "discard_draft": "下書きを破棄",
     "discard_draft_confirm": "下書きを破棄して保存済み版に戻しますか？",
+    "delete_draft": "下書きを削除",
+    "delete_draft_confirm": "未保存の下書き「{{name}}」を削除しますか？この操作は元に戻せません。",
     "back": "一覧へ",
     "translations": "翻訳済み言語",
     "export_button": "エクスポート",
