@@ -687,7 +687,9 @@
       "unsupported_scheme": "Only http/https URLs are supported",
       "payload_too_large": "The data exceeds the size limit (50MB)",
       "pick_failed": "Could not pick a file",
-      "references_unavailable": "Could not retrieve reference information"
+      "references_unavailable": "Could not retrieve reference information",
+      "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
     }
   },
   "app": {

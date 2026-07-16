@@ -18,6 +18,9 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
   "scale-byte-size": "poisource.errors.scale_byte_size",
   "unsupported-scheme": "poisource.errors.unsupported_scheme",
   "payload-too-large": "poisource.errors.payload_too_large",
+  // M11-T9: Content Mode 検証 (人間検証Round1: i18n未登録で生コード表示だった)
+  "content-mode-url-format": "poisource.errors.content_mode_url_format",
+  "content-mode-html-missing-content": "poisource.errors.content_mode_html_missing_content",
 };
 
 // PoiSourceSaveResult の Error variant (electron.d.ts) の code → i18n key。
