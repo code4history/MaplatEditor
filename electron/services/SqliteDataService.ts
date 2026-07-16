@@ -129,7 +129,7 @@ export interface MigrationReport {
 const MIGRATION_REPORT_FILE = 'migration-report-v2.json';
 
 const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
-const SEARCH_INDEX_BACKFILL_ID = '2026-07-14-app-localized-search-index-backfill';
+const SEARCH_INDEX_BACKFILL_ID = '2026-07-16-app-fts-rtree-backfill';
 // 表示設定オプトイン化(ADR-0006)のv1向け一括破棄。schema v2 の新規DBには
 // オプトアウト時代の行が存在し得ないため no-op だが、旧コード経路が再実行
 // されないよう marker のみ記録する
@@ -368,26 +368,61 @@ function poiBboxFromJson(dataJson: string): string | null {
   }
 }
 
-// Appのbbox(メルカトル座標)。data_json の coverageLngLats([[lng,lat],...]) から算出
-function appBboxFromJson(dataJson: string): string | null {
+// Appのbbox(メルカトル座標)。手動の coverageLngLats があればそれを、
+// なければ関連する maps の maps_rtree を SELECT クエリして自動計算
+function appBboxFromJson(dataJson: string, db: DatabaseSync): string | null {
   try {
     const doc = JSON.parse(dataJson);
     const coverage = doc?.coverageLngLats ?? doc?.coverage;
-    if (!Array.isArray(coverage) || coverage.length === 0) return null;
-    const mercX = (lng: number) => lng * 20037508.34 / 180;
-    const mercY = (lat: number) => Math.log(Math.tan((90 + lat) * Math.PI / 360)) * 20037508.34 / Math.PI;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    let found = false;
-    for (const pt of coverage) {
-      const lng = pt[0], lat = pt[1];
-      if (typeof lng !== 'number' || typeof lat !== 'number') continue;
-      if (!isFinite(lng) || !isFinite(lat)) continue;
-      const x = mercX(lng), y = mercY(lat);
-      minX = Math.min(minX, x); minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
-      found = true;
+    if (Array.isArray(coverage) && coverage.length > 0) {
+      const mercX = (lng: number) => lng * 20037508.34 / 180;
+      const mercY = (lat: number) => Math.log(Math.tan((90 + lat) * Math.PI / 360)) * 20037508.34 / Math.PI;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      let found = false;
+      for (const pt of coverage) {
+        const lng = pt[0], lat = pt[1];
+        if (typeof lng !== 'number' || typeof lat !== 'number') continue;
+        if (!isFinite(lng) || !isFinite(lat)) continue;
+        const x = mercX(lng), y = mercY(lat);
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+        found = true;
+      }
+      return found ? JSON.stringify([minX, minY, maxX, maxY]) : null;
     }
-    return found ? JSON.stringify([minX, minY, maxX, maxY]) : null;
+
+    // 手動指定がない場合は、アプリに設定された地図の境界から自動計算
+    const rawSources = doc?.sources ?? doc?.dataSources ?? [];
+    const mapUids: string[] = [];
+    for (const src of rawSources) {
+      if (src?.sourceType !== 'maplat') continue;
+      const uid = src.mapUid || src.mapID || src.map_id;
+      if (uid) mapUids.push(String(uid));
+    }
+    if (mapUids.length === 0) return null;
+
+    // maps_rtree から同期的に座標を取得
+    const stmt = db.prepare(`
+      SELECT r.min_x, r.min_y, r.max_x, r.max_y
+      FROM maps_rtree r
+      JOIN maps_rtree_key k ON k.rid = r.id
+      WHERE k.uid IN (${mapUids.map(() => '?').join(',')})
+    `);
+    const rows = stmt.all(...mapUids) as any[];
+    if (rows.length === 0) return null;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const row of rows) {
+      minX = Math.min(minX, Number(row.min_x));
+      minY = Math.min(minY, Number(row.min_y));
+      maxX = Math.max(maxX, Number(row.max_x));
+      maxY = Math.max(maxY, Number(row.max_y));
+    }
+    if (!isFinite(minX)) return null;
+
+    const bufX = (maxX - minX) * 0.05;
+    const bufY = (maxY - minY) * 0.05;
+    return JSON.stringify([minX - bufX, minY - bufY, maxX + bufX, maxY + bufY]);
   } catch {
     return null;
   }
@@ -716,8 +751,8 @@ class SqliteDataService {
     db.function('maplat_poi_bbox', { deterministic: true }, (dataJson: unknown) =>
       poiBboxFromJson(String(dataJson ?? ''))
     );
-    db.function('maplat_app_bbox', { deterministic: true }, (dataJson: unknown) =>
-      appBboxFromJson(String(dataJson ?? ''))
+    db.function('maplat_app_bbox', (dataJson: unknown) =>
+      appBboxFromJson(String(dataJson ?? ''), db)
     );
   }
 
@@ -1311,6 +1346,8 @@ class SqliteDataService {
         DELETE FROM apps_fts;
         DELETE FROM apps_rtree;
         DELETE FROM apps_rtree_key;
+        DELETE FROM base_maps_fts;
+        DELETE FROM assets_fts;
         DELETE FROM poi_sources_rtree;
         DELETE FROM poi_sources_rtree_key;
         INSERT INTO maps_fts(uid, raw, words)
