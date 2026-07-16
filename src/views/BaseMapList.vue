@@ -18,7 +18,8 @@
         @open-range-filter="rangeFilterOpen = true"
         @clear-range-filter="clearRangeFilter"
         @create="createBaseMap"
-        @delete="deleteBaseMap"
+        @delete="requestDeleteBaseMap"
+        @duplicate="duplicateBaseMap"
         @toggle-always="toggleAlways"
         @scroll="saveScroll"
       />
@@ -30,6 +31,8 @@
         :uid="selectedUid"
         :is-new="isNew"
         :item="selectedItem"
+        :duplicate-source-item="duplicateSourceItem"
+        :preset-slug="presetSlug"
         :back-visible="false"
         @back="closeEditor"
         @saved="saved"
@@ -59,6 +62,12 @@
       @update:model-value="applyRangeFilter"
       @close="rangeFilterOpen = false"
     />
+
+    <!-- M11-T10: 共通削除確認 dialog -->
+    <DeleteConfirmDialog
+      :visible="deleteDialogVisible" :title="deleteDialogTitle"
+      :deleting="false" @confirm="onDeleteConfirm" @cancel="deleteDialogVisible = false"
+    />
   </main>
 </template>
 
@@ -67,6 +76,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
+import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import BaseMapEdit from "../components/basemap/BaseMapEdit.vue";
 import BaseMapMasterList from "../components/basemap/BaseMapMasterList.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
@@ -191,9 +201,47 @@ function refreshDraftsSoon(): void {
   draftRefreshTimer = setTimeout(() => { void refreshDraftsNow(); }, 2300);
 }
 
-async function deleteBaseMap(item: BaseMapCatalogItem): Promise<void> {
+// M11-T10: 共通確認 dialog（native confirm 全廃）
+const deleteDialogVisible = ref(false);
+const deleteDialogTitle = ref("");
+let pendingDeleteItem: BaseMapCatalogItem | null = null;
+function requestDeleteBaseMap(item: BaseMapCatalogItem): void {
   const name = localizeTitle(item.data.title as any, activeLang.value) || item.mapID;
-  if (!confirm(t("basemap.delete_confirm", { name }))) return;
+  pendingDeleteItem = item;
+  deleteDialogTitle.value = t("resource_list.delete_confirm_title", { title: name });
+  deleteDialogVisible.value = true;
+}
+async function onDeleteConfirm(): Promise<void> {
+  deleteDialogVisible.value = false;
+  if (pendingDeleteItem) await deleteBaseMap(pendingDeleteItem);
+  pendingDeleteItem = null;
+}
+
+// M11-T10 複製（案A）: slug予約 + 新規UID採番 → duplicateFrom/slug クエリ付きで new モードを開く
+const duplicateFrom = computed(() => (typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : ""));
+const presetSlug = computed(() => (typeof route.query.slug === "string" ? route.query.slug : ""));
+const duplicateSourceItem = computed(() =>
+  duplicateFrom.value ? items.value.find((item) => item.uid === duplicateFrom.value) ?? null : null,
+);
+async function duplicateBaseMap(item: BaseMapCatalogItem): Promise<void> {
+  const newUid = crypto.randomUUID();
+  const tryReserve = async (slug: string): Promise<boolean> => {
+    const result = await window.slugReservations.reserve({ slug, assetUid: newUid, assetKind: "base-map", draftUid: newUid });
+    return result.result === "ok";
+  };
+  const open = (slug: string) =>
+    router.push({ query: { ...route.query, uid: newUid, new: "1", duplicateFrom: item.uid, slug } });
+  const baseSlug = item.mapID || "base-map";
+  const copySlug = (baseSlug.length > 95 ? baseSlug.slice(0, 95) : baseSlug) + "-copy";
+  if (await tryReserve(copySlug)) { await open(copySlug); return; }
+  for (let i = 2; i <= 100; i++) {
+    const next = `${baseSlug.slice(0, 90)}-copy${i}`;
+    if (await tryReserve(next)) { await open(next); return; }
+  }
+  error.value = t("resource_list.duplicate_failed");
+}
+
+async function deleteBaseMap(item: BaseMapCatalogItem): Promise<void> {
   try {
     if (selectedUid.value === item.uid) await editor.value?.prepareForDelete();
     await window.baseMaps.deleteUser(item.uid);

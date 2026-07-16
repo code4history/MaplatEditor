@@ -238,16 +238,35 @@ import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../..
 import { isEditableElement } from "../../utils/nativeTextUndo";
 import type { BaseMapSaveResult } from "../../electron";
 
-const props = withDefaults(defineProps<{ uid: string; isNew: boolean; item: BaseMapCatalogItem | null; backVisible?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  uid: string;
+  isNew: boolean;
+  item: BaseMapCatalogItem | null;
+  backVisible?: boolean;
+  /** M11-T10 複製(案A): 新規モードで複製元の catalog item を受け取り、エディタ側で複製浄化して初期化する */
+  duplicateSourceItem?: BaseMapCatalogItem | null;
+  /** M11-T10 複製: 一覧側で予約済みの slug（複製浄化で元slugを上書きする） */
+  presetSlug?: string;
+}>(), {
   backVisible: true,
+  duplicateSourceItem: null,
+  presetSlug: "",
 });
+
+// M11-T10 複製浄化: uid は新規採番値へ、slug は予約値へ上書き、scope は user 固定（builtin 複製も user になる）
+function duplicateInitial(source: BaseMapCatalogItem, uid: string): BaseMapEditDocument {
+  const doc = fromBaseMapCatalogItem(source);
+  return { ...doc, uid, scope: "user", slug: props.presetSlug || `${doc.slug}-copy` };
+}
 const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string]; "draft-state": [uid: string, hasDraft: boolean]; flushed: [] }>();
 const { t } = useTranslation();
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const initial = props.item
   ? fromBaseMapCatalogItem(props.item)
-  : newBaseMapDocument(props.uid, resolveEditorLanguage(i18next.language));
+  : props.isNew && props.duplicateSourceItem
+    ? duplicateInitial(props.duplicateSourceItem, props.uid)
+    : newBaseMapDocument(props.uid, resolveEditorLanguage(i18next.language));
 const document = ref<BaseMapEditDocument>(clone(initial));
 let history = new UndoStack<BaseMapEditDocument>(clone(initial));
 const historyVersion = ref(0);
@@ -316,7 +335,11 @@ const draftLifecycle = useAssetDraftLifecycle<BaseMapEditDocument>({
 });
 
 function resetSession(item: BaseMapCatalogItem | null, uid: string): void {
-  const next = item ? fromBaseMapCatalogItem(item) : newBaseMapDocument(uid, resolveEditorLanguage(i18next.language));
+  const next = item
+    ? fromBaseMapCatalogItem(item)
+    : props.isNew && props.duplicateSourceItem
+      ? duplicateInitial(props.duplicateSourceItem, uid)
+      : newBaseMapDocument(uid, resolveEditorLanguage(i18next.language));
   document.value = clone(next);
   history = new UndoStack(clone(next));
   historyVersion.value++;
