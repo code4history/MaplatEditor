@@ -57,8 +57,8 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
       INSERT INTO schema_migrations (id) VALUES ('2026-07-04-sqlite-write-store-legacy-import');
       INSERT INTO schema_migrations (id) VALUES ('2026-07-14-app-localized-search-index-backfill');
       
-      INSERT INTO base_maps (uid, slug, scope, data_json) VALUES (
-        'bm-1', 'test-basemap', 'global', '{"title":{"ja":"テストベースマップ","en":"Test BaseMap"},"label":"bm-label","attribution":"bm-attr"}'
+      INSERT INTO base_maps (uid, slug, scope, sort_order, data_json) VALUES (
+        'bm-1', 'test-basemap', 'global', 10, '{"title":{"ja":"テストベースマップ","en":"Test BaseMap"},"label":"bm-label","attribution":"bm-attr"}'
       );
       
       INSERT INTO maps (uid, slug, data_json) VALUES (
