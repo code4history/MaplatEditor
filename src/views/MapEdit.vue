@@ -230,6 +230,7 @@ const saveOperationError = ref<string | null>(null);
 const newMapUid = (typeof route.query.uid === 'string' && route.query.uid && route.query.uid !== 'new')
     ? ''
     : (typeof route.query.draftUid === 'string' ? route.query.draftUid : crypto.randomUUID());
+const copyFromUidSource = ref<string | undefined>(undefined); // M11-T10: 複製元UID
 const mappingUIRow = ref('layer');
 const currentEditingLayer = ref(0);
 const editingID = ref('');
@@ -1534,11 +1535,43 @@ onMounted(async () => {
 
     if (isNew) {
         // 新規地図: defaultMap で初期化
-        // デフォルト言語は編集者のエディタUI言語(設定言語)に合わせる
-        const fresh: any = defaultMapData();
-        fresh.lang = resolveEditorLanguage(i18next.language);
-        mapData.value = fresh;
-        originalMapData.value = cloneDeep(fresh);
+        // M11-T10: duplicateFrom がある場合は元地図から内容を複製
+        const dupFrom = route.query.duplicateFrom as string | undefined;
+        if (dupFrom) {
+          try {
+            const source = await (window as any).mapedit.request(dupFrom);
+            if (source) {
+              // 複製浄化: uid/revision 除去、予約slugで上書き
+              delete source.uid;
+              delete source.revision;
+              if (route.query.slug) source.mapID = route.query.slug as string;
+              if (!source.status) source.status = 'New';
+              const fresh = source;
+              fresh.lang = fresh.lang || resolveEditorLanguage(i18next.language);
+              mapData.value = fresh;
+              originalMapData.value = cloneDeep(fresh);
+              // copyFromUid を保持: 保存時に tiles/thumbnail 複製
+              copyFromUidSource.value = dupFrom;
+            } else {
+              // fallback to default
+              const fresh: any = defaultMapData();
+              fresh.lang = resolveEditorLanguage(i18next.language);
+              mapData.value = fresh;
+              originalMapData.value = cloneDeep(fresh);
+            }
+          } catch (e) {
+            console.error("Failed to duplicate map", e);
+            const fresh: any = defaultMapData();
+            fresh.lang = resolveEditorLanguage(i18next.language);
+            mapData.value = fresh;
+            originalMapData.value = cloneDeep(fresh);
+          }
+        } else {
+          const fresh: any = defaultMapData();
+          fresh.lang = resolveEditorLanguage(i18next.language);
+          mapData.value = fresh;
+          originalMapData.value = cloneDeep(fresh);
+        }
     } else {
         // 既存地図: バックエンドからuidで読み込み
         try {
@@ -2574,7 +2607,8 @@ const saveMap = async (): Promise<boolean> => {
     // uid正準の宛先: 既存地図は uid 宛の upsert(改名も同一 uid の slug 付け替え)、
     // 新規は create。copyFromUid 保存経路は温存(導線は T10 複製で再利用)
     const sendUid: string | undefined = mapUid.value ?? undefined;
-    const copyFromUid: string | undefined = undefined;
+    // M11-T10: duplicateFrom で複製した場合、copyFromUid に元地図 UID を設定
+    const copyFromUid: string | undefined = copyFromUidSource.value || undefined;
 
     // 3. tins 収集（旧実装: vueMap.tinObjects.map(tin => tin.getCompiled())）
     const tins = tinObjects.value.map((tin: any) => {

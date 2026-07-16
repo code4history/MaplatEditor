@@ -71,7 +71,7 @@ import type { PoiSourceListRow, PoiSourceSaveResult } from "../electron";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 import type { DeleteReference } from "../components/resource-list/DeleteConfirmDialog.vue";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
-import { checkSlugAvailability } from "../composables/useSlugAvailability";
+// --- Duplicate (slug予約 → エディタ遷移) ---
 
 const { t } = useTranslation();
 const route = useRoute();
@@ -183,31 +183,28 @@ async function onDeleteConfirm(): Promise<void> {
   await requestDelete(pendingDeleteUid);
 }
 
-// --- Duplicate ---
+// --- Duplicate (slug予約 → エディタ遷移) ---
 async function duplicateByVm(vm: ResourceListItemViewModel): Promise<void> {
-  const sourceUid = vm.uid;
-  const copySlug = suggestCopySlug(vm.slug || "poi-source");
   const newUid = crypto.randomUUID();
-  const available = await checkSlugAvailability({ slug: copySlug, excludeUid: newUid });
-  if (available) {
-    router.push(`/poisources/${sourceUid}?duplicateFrom=${sourceUid}&draftUid=${newUid}&slug=${encodeURIComponent(copySlug)}&new=1`);
+  const tryReserve = async (slug: string): Promise<boolean> => {
+    const result = await window.slugReservations.reserve({ slug, assetUid: newUid, assetKind: "poi-source", draftUid: newUid });
+    return result.result === "ok";
+  };
+
+  const baseSlug = vm.slug || "poi-source";
+  const copySlug = (baseSlug.length > 95 ? baseSlug.slice(0, 95) : baseSlug) + "-copy";
+  if (await tryReserve(copySlug)) {
+    router.push(`/poisources/${vm.uid}?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(copySlug)}&new=1`);
     return;
   }
-  // インクリメント試行
   for (let i = 2; i <= 100; i++) {
-    const next = `${(vm.slug || "poi-source").slice(0, 90)}-copy${i}`;
-    if (await checkSlugAvailability({ slug: next, excludeUid: newUid })) {
-      router.push(`/poisources/${sourceUid}?duplicateFrom=${sourceUid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`);
+    const next = `${baseSlug.slice(0, 90)}-copy${i}`;
+    if (await tryReserve(next)) {
+      router.push(`/poisources/${vm.uid}?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`);
       return;
     }
   }
   await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: "複製用のslugが確保できませんでした。" });
-}
-
-function suggestCopySlug(slug: string): string {
-  const suffix = "-copy";
-  const maxLen = 95;
-  return (slug.length > maxLen ? slug.slice(0, maxLen) : slug) + suffix;
 }
 
 // --- lifecycle ---

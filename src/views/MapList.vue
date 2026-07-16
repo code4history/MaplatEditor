@@ -53,7 +53,6 @@ import noImage from "../assets/img/no_image.png";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
-import { checkSlugAvailability } from "../composables/useSlugAvailability";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
@@ -148,12 +147,14 @@ async function onDeleteConfirm() {
   } catch (e: any) { console.error("Delete failed", e); }
 }
 async function duplicateByVm(vm: ResourceListItemViewModel) {
-  const copySlug = (vm.slug || "map").length > 95 ? (vm.slug || "map").slice(0, 95) + "-copy" : (vm.slug || "map") + "-copy";
   const newUid = crypto.randomUUID();
-  if (await checkSlugAvailability({ slug: copySlug, excludeUid: newUid })) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(copySlug)}&new=1`); return; }
+  const tryReserve = async (slug: string) => { const r = await window.slugReservations.reserve({ slug, assetUid: newUid, assetKind: "map", draftUid: newUid }); return r.result === "ok"; };
+  const baseSlug = vm.slug || "map";
+  const copySlug = (baseSlug.length > 95 ? baseSlug.slice(0, 95) : baseSlug) + "-copy";
+  if (await tryReserve(copySlug)) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(copySlug)}&new=1`); return; }
   for (let i = 2; i <= 100; i++) {
-    const next = `${(vm.slug || "map").slice(0, 90)}-copy${i}`;
-    if (await checkSlugAvailability({ slug: next, excludeUid: newUid })) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`); return; }
+    const next = `${baseSlug.slice(0, 90)}-copy${i}`;
+    if (await tryReserve(next)) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`); return; }
   }
 }
 
