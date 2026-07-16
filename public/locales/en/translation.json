@@ -752,7 +752,19 @@
       "no_assets": "No image assets found",
       "set_builtin": "Built-in"
     },
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "content_mode_standard": "Standard",
+    "content_mode_html": "HTML",
+    "content_mode_url": "Web Page",
+    "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
+    "content_mode_switch_title": "Switch Content Mode",
+    "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
+    "content_mode_confirm": "Switch",
+    "content_mode_cancel": "Cancel",
+    "reference_assets": "Reference Assets",
+    "copy_ref": "Copy Reference",
+    "insert_image": "Insert Image",
+    "add_reference_asset": "Add Asset"
   },
   "assetlist": {
     "master_detail": {

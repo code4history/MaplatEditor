@@ -5,12 +5,25 @@
       {{ t("poiedit.select_poi") }}
     </div>
 
-    <!-- :key=uid: 選択切替でローカル入力バッファと LangResourceInput の内部状態
-         (activeLang / forceExpanded) を破棄する。同一 feature への commit では remount しない -->
     <div v-else :key="uid ?? ''">
-      <!-- 表示 ID (Feature.id)。文字種違反 / ソース内重複でも commit する (2026-07-11
-           ポリシー: エラーは committed 値から再判定して表示、保存側で堰き止め)。
-           空のみ非 commit (表現不可能な入力) -->
+      <!-- Content Mode 選択タブ -->
+      <PoiContentModeEditor
+        :model-value="contentMode"
+        :has-incompatible-values="incompatibleFieldKeys.length > 0"
+        :incompatible-field-names="incompatibleFieldKeys"
+        :read-only="readOnly"
+        @update:model-value="onModeChange"
+      />
+
+      <!-- 非互換フィールド診断（混在データがある場合に section diagnostic 表示） -->
+      <DiagnosticFeedback
+        v-if="incompatibleDiagnosticItems.length"
+        scope="section"
+        :items="incompatibleDiagnosticItems"
+        class="mt-1 mb-2"
+      />
+
+      <!-- 表示 ID (Feature.id) -->
       <div class="mb-2">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.display_id") }}</label>
         <input
@@ -26,8 +39,7 @@
         </div>
       </div>
 
-      <!-- name (必須、POI-107)。空になる確定も commit する (properties から name が消える)。
-           必須エラーは committed 値から再判定して表示、保存側で堰き止め -->
+      <!-- name (必須) -->
       <div ref="nameWrap" class="mb-2">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.name") }}</label>
         <LangResourceInput
@@ -41,107 +53,166 @@
         <div v-if="nameError" class="form-text small text-danger mb-0">{{ nameError }}</div>
       </div>
 
-      <!-- desc / html (multiline)。html は非空時に XSS 警告 (POI-109、サニタイズはしない) -->
-      <div class="mb-2">
-        <label class="form-label fw-bold small mb-0">{{ t("poiedit.desc") }}</label>
-        <LangResourceInput
-          :model-value="langValue('desc')"
-          :active-lang="activeLang"
-          :language-options="languageOptions"
-          multiline
-          :disabled="readOnly"
-          @update:model-value="onLangUpdate('desc', $event)"
-          @select-language="(code) => emit('selectLanguage', code)"
-        />
-      </div>
-      <div class="mb-2">
-        <label class="form-label fw-bold small mb-0">{{ t("poiedit.html") }}</label>
-        <LangResourceInput
-          :model-value="langValue('html')"
-          :active-lang="activeLang"
-          :language-options="languageOptions"
-          multiline
-          :warning="t('poiedit.html_xss_warning')"
-          :disabled="readOnly"
-          @update:model-value="onLangUpdate('html', $event)"
-          @select-language="(code) => emit('selectLanguage', code)"
-        />
-      </div>
-
-      <!-- address / url (1行) -->
-      <div class="mb-2">
-        <label class="form-label fw-bold small mb-0">{{ t("poiedit.address") }}</label>
-        <LangResourceInput
-          :model-value="langValue('address')"
-          :active-lang="activeLang"
-          :language-options="languageOptions"
-          :disabled="readOnly"
-          @update:model-value="onLangUpdate('address', $event)"
-          @select-language="(code) => emit('selectLanguage', code)"
-        />
-      </div>
-      <div class="mb-2">
-        <label class="form-label fw-bold small mb-0">{{ t("poiedit.url") }}</label>
-        <LangResourceInput
-          :model-value="langValue('url')"
-          :active-lang="activeLang"
-          :language-options="languageOptions"
-          :disabled="readOnly"
-          @update:model-value="onLangUpdate('url', $event)"
-          @select-language="(code) => emit('selectLanguage', code)"
-        />
-      </div>
-
-      <!-- image リスト (POI-110: string | array | {src,desc} を許容)。行の確定/削除 = 1 commit。
-           object entry ({src,desc}) は src のみ編集し他キーは保持する -->
-      <div class="mb-2">
-        <label class="form-label fw-bold small mb-0">{{ t("poiedit.images") }}</label>
-        <div ref="imageRowsWrap">
-          <div
-            v-for="(row, index) in imageRows"
-            :key="index"
-            class="d-flex align-items-center gap-1 mb-1"
-          >
-            <input
-              :value="row.text"
-              type="text"
-              class="form-control form-control-sm"
-              :disabled="readOnly"
-              @change="onImageChange(index, ($event.target as HTMLInputElement).value)"
-            />
-            <!-- picker (mode:'image'): 選択値は onImageChange の既存確定経路に流す (=1 commit) -->
-            <button
-              v-if="!readOnly"
-              type="button"
-              class="btn btn-sm btn-outline-secondary text-nowrap"
-              @click="openImagePicker(index)"
-            >
-              {{ t("poiedit.icon_pick") }}
-            </button>
-            <button
-              v-if="!readOnly"
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              :aria-label="t('poiedit.remove_image')"
-              @click="removeImageRow(index)"
-            >
-              &times;
-            </button>
-          </div>
+      <!-- === standard mode: desc, address, image === -->
+      <template v-if="shownMode === 'standard'">
+        <div class="mb-2">
+          <label class="form-label fw-bold small mb-0">{{ t("poiedit.desc") }}</label>
+          <LangResourceInput
+            :model-value="langValue('desc')"
+            :active-lang="activeLang"
+            :language-options="languageOptions"
+            multiline
+            :disabled="readOnly"
+            @update:model-value="onLangUpdate('desc', $event)"
+            @select-language="(code) => emit('selectLanguage', code)"
+          />
         </div>
-        <button
-          v-if="!readOnly"
-          type="button"
-          class="btn btn-sm btn-outline-secondary"
-          @click="addImageRow"
-        >
-          {{ t("poiedit.add_image") }}
-        </button>
-      </div>
 
-      <!-- icon / selectedIcon (Phase 6 Task 4): 解釈表示 + AssetPicker (mode:'icon') +
-           クリア + 手入力は共通部品 IconRefField (Phase 8 で抽出) に委譲。
-           確定は従来どおり update:modelValue → onIconChange (session 1 commit) 経路 -->
+        <div class="mb-2">
+          <label class="form-label fw-bold small mb-0">{{ t("poiedit.address") }}</label>
+          <LangResourceInput
+            :model-value="langValue('address')"
+            :active-lang="activeLang"
+            :language-options="languageOptions"
+            :disabled="readOnly"
+            @update:model-value="onLangUpdate('address', $event)"
+            @select-language="(code) => emit('selectLanguage', code)"
+          />
+        </div>
+
+        <!-- image リスト（standard mode: 表示用メディア） -->
+        <div class="mb-2">
+          <label class="form-label fw-bold small mb-0">{{ t("poiedit.images") }}</label>
+          <div ref="imageRowsWrap">
+            <div
+              v-for="(row, index) in imageRows"
+              :key="index"
+              class="d-flex align-items-center gap-1 mb-1"
+            >
+              <input
+                :value="row.text"
+                type="text"
+                class="form-control form-control-sm"
+                :disabled="readOnly"
+                @change="onImageChange(index, ($event.target as HTMLInputElement).value)"
+              />
+              <button
+                v-if="!readOnly"
+                type="button"
+                class="btn btn-sm btn-outline-secondary text-nowrap"
+                @click="openImagePicker(index)"
+              >
+                {{ t("poiedit.icon_pick") }}
+              </button>
+              <button
+                v-if="!readOnly"
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                :aria-label="t('poiedit.remove_image')"
+                @click="removeImageRow(index)"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+          <button
+            v-if="!readOnly"
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            @click="addImageRow"
+          >
+            {{ t("poiedit.add_image") }}
+          </button>
+        </div>
+      </template>
+
+      <!-- === html mode: HTML + 参照素材 === -->
+      <template v-if="shownMode === 'html'">
+        <div class="mb-2">
+          <label class="form-label fw-bold small mb-0">{{ t("poiedit.html") }}</label>
+          <LangResourceInput
+            ref="htmlInputRef"
+            :model-value="langValue('html')"
+            :active-lang="activeLang"
+            :language-options="languageOptions"
+            multiline
+            :warning="t('poiedit.html_xss_warning')"
+            :disabled="readOnly"
+            @update:model-value="onLangUpdate('html', $event)"
+            @select-language="(code) => emit('selectLanguage', code)"
+          />
+        </div>
+
+        <!-- 参照素材 (Asset Reference URI 挿入UI) -->
+        <div class="mb-2">
+          <label class="form-label fw-bold small mb-0">{{ t("poiedit.reference_assets") }}</label>
+          <div ref="referenceAssetsWrap">
+            <div
+              v-for="(row, index) in imageRows"
+              :key="index"
+              class="d-flex align-items-center gap-1 mb-1"
+            >
+              <input
+                :value="row.text"
+                type="text"
+                class="form-control form-control-sm"
+                :disabled="readOnly"
+                @change="onImageChange(index, ($event.target as HTMLInputElement).value)"
+              />
+              <button
+                v-if="!readOnly"
+                type="button"
+                class="btn btn-sm btn-outline-secondary text-nowrap"
+                @click="copyAssetRef(index)"
+              >
+                {{ t("poiedit.copy_ref") }}
+              </button>
+              <button
+                v-if="!readOnly"
+                type="button"
+                class="btn btn-sm btn-outline-secondary text-nowrap"
+                @click="insertAssetRef(index)"
+              >
+                {{ t("poiedit.insert_image") }}
+              </button>
+              <button
+                v-if="!readOnly"
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                :aria-label="t('poiedit.remove_image')"
+                @click="removeImageRow(index)"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+          <button
+            v-if="!readOnly"
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            @click="openReferenceAssetPicker"
+          >
+            {{ t("poiedit.add_reference_asset") }}
+          </button>
+        </div>
+      </template>
+
+      <!-- === url mode: URL only === -->
+      <template v-if="shownMode === 'url'">
+        <div class="mb-2">
+          <label class="form-label fw-bold small mb-0">{{ t("poiedit.url") }}</label>
+          <LangResourceInput
+            :model-value="langValue('url')"
+            :active-lang="activeLang"
+            :language-options="languageOptions"
+            :disabled="readOnly"
+            @update:model-value="onLangUpdate('url', $event)"
+            @select-language="(code) => emit('selectLanguage', code)"
+          />
+        </div>
+      </template>
+
+      <!-- icon / selectedIcon -->
       <IconRefField
         ref="iconFieldRef"
         :label="t('poiedit.icon')"
@@ -157,9 +228,7 @@
         @update:model-value="onIconChange('selectedIcon', $event)"
       />
 
-      <!-- 座標直接入力 (仕様 §4/§6)。両方有限数値なら ±180/±90 域外でも moveFeature 1 回 =
-           1 Undo で commit する (2026-07-11 ポリシー。域外エラーは committed 値から再判定して
-           表示、保存側で堰き止め)。空・非数値のみ非 commit (geometry に入れられない) -->
+      <!-- 座標直接入力 -->
       <div class="mb-3">
         <label class="form-label fw-bold small mb-0">{{ t("poiedit.coordinates") }}</label>
         <div class="d-flex gap-1">
@@ -193,7 +262,7 @@
         <div v-if="coordError" class="form-text small text-danger mb-0">{{ coordError }}</div>
       </div>
 
-      <!-- 削除 (確認なし: Undo で戻せる)。ReadOnly では非表示 -->
+      <!-- 削除 -->
       <button
         v-if="!readOnly"
         type="button"
@@ -204,41 +273,33 @@
       </button>
     </div>
 
-    <!-- image 行用の参照 picker (仕様 §7)。選択値は既存の確定経路 (onImageChange) に流す
-         = 1 commit (Undo 粒度不変)。icon 用 picker は IconRefField が内蔵する -->
+    <!-- image 行用の参照 picker (standard mode: 画像 picker + html mode: 素材追加 picker) -->
     <AssetPicker
       mode="image"
-      :visible="picker.visible"
-      @select="onPickerSelect"
-      @close="picker.visible = false"
+      :visible="pickerAssetVisible"
+      @select="onPickerAssetSelect"
+      @close="pickerAssetVisible = false"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-// POI 属性フォーム (Phase 4 Task 7, 仕様 §3.3/§6)。
-// 確定粒度 = blur/change で patchFeatureProperties / moveFeature / commit 各 1 回 = 1 Undo
-// (仕様 §5。入力毎には commit しない)。
-// エラー値の commit ポリシー (2026-07-11 ユーザー決定で変更):
-// - 表現可能ならエラーでも commit する (= 1 Undo 単位として積む)。座標域外 (±180/±90 外) /
-//   表示 ID の文字種違反・ソース内重複 / name 空、いずれも commit し、保存・エクスポート側で
-//   堰き止める (PoiEdit の liveErrors + backend Invalid)。理由 = Undo の直感 (エラー入力後の
-//   Undo は直前の OK 値に戻るべき)。
-// - 表現不可能な入力のみ非 commit (エラー表示のみ、欄は入力値のまま): 座標欄の空・非数値
-//   (geometry に入れられない) / 表示 ID の空 (保存時に backend の ensureDisplayIds が自動採番し、
-//   markSaved 後に DB と session が乖離する既知バグ類型 [Phase 5 M1 と同型] を踏むため)。
-// - インラインエラーの判定源は committed 値 (computed): バッファ再初期化後もエラー状態が
-//   正しく再現される (undo で OK 値に戻ればエラーが消え、redo でエラー値に進めばまた出る)。
-// undo/redo 追随: 選択 feature の snapshot オブジェクト同一性を watch し、structural sharing
-// により「当 feature の committed 内容が実際に変わった時だけ」ローカルバッファを再初期化する。
-import { computed, nextTick, reactive, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import AssetPicker from "./AssetPicker.vue";
 import IconRefField from "./IconRefField.vue";
+import PoiContentModeEditor from "./PoiContentModeEditor.vue";
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
+import type { DiagnosticItem } from "./editor-ui/editorUiTypes";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
 import { DISPLAY_ID_PATTERN, type PoiEditorFeature } from "../utils/poiGeoJson";
 import type { LangCode } from "../utils/editorLanguages";
+import {
+  incompatibleFieldsForMode,
+  type PoiContentMode,
+  CONTENT_MODE_VALUES,
+} from "../utils/poiContentMode";
 
 const props = defineProps<{
   session: PoiEditSession;
@@ -252,14 +313,10 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useTranslation();
-// session は PoiEdit が一度だけ生成する不変オブジェクト (中の ref がリアクティブ)
 const session = props.session;
 
 const uid = computed(() => session.selectedUid.value);
 
-// 選択中 feature の現在 snapshot 上のオブジェクト。usePoiEditSession は structural sharing の
-// shallowRef なので、この computed の値 (同一性) は「選択変更」か「当 feature への commit /
-// undo/redo による実変更」の時だけ変わる
 const feature = computed<PoiEditorFeature | null>(() => {
   const id = uid.value;
   if (!id) return null;
@@ -268,25 +325,95 @@ const feature = computed<PoiEditorFeature | null>(() => {
   );
 });
 
-// --- ローカル編集バッファ (committed 値と分離。表現不可能な入力の non-commit 時に入力値を保持) ---
+// --- Content Mode ---
+const contentMode = computed<PoiContentMode | undefined>(() => {
+  const mode = feature.value?.properties?._maplatContentMode;
+  if (typeof mode === "string" && CONTENT_MODE_VALUES.includes(mode as PoiContentMode)) {
+    return mode as PoiContentMode;
+  }
+  return undefined;
+});
+
+// 非互換フィールド（現在のモードに合わないフィールドで非空の値を持つもの）
+const incompatibleFieldKeys = computed<string[]>(() => {
+  const mode = contentMode.value;
+  if (!mode) return [];
+  const f = feature.value;
+  if (!f) return [];
+  const incompatible = incompatibleFieldsForMode(mode);
+  return incompatible.filter((key) => {
+    const value = f.properties[key];
+    if (value === undefined || value === null) return false;
+    if (typeof value === "string") return value.trim() !== "";
+    if (typeof value === "object" && !Array.isArray(value)) {
+      return Object.values(value as Record<string, unknown>).some(
+        (v) => typeof v === "string" && v.trim() !== "",
+      );
+    }
+    if (Array.isArray(value)) return value.length > 0;
+    return true;
+  });
+});
+
+const incompatibleDiagnosticItems = computed<DiagnosticItem[]>(() => {
+  if (incompatibleFieldKeys.value.length === 0) return [];
+  const fieldNames = incompatibleFieldKeys.value.map((k) => {
+    const displayNames: Record<string, string> = {
+      desc: t("poiedit.desc"),
+      address: t("poiedit.address"),
+      html: t("poiedit.html"),
+      url: t("poiedit.url"),
+      image: t("poiedit.images"),
+    };
+    return displayNames[k] || k;
+  });
+  return [
+    {
+      key: "content-mode-mismatch",
+      severity: "warning",
+      message: t("poiedit.content_mode_mismatch", { fields: fieldNames.join(" / ") }),
+    },
+  ];
+});
+
+// モード切替ハンドラ。PoiContentModeEditor は確認後に emit する
+const onModeChange = (mode: PoiContentMode): void => {
+  const id = uid.value;
+  if (!id || props.readOnly) return;
+  if (mode === contentMode.value) return;
+
+  // 非互換フィールド削除 + mode 変更 = 1 Undo unit
+  session.commit((draft) => {
+    const index = draft.features.findIndex((f) => f.properties?._maplatUid === id);
+    if (index < 0) return;
+    const cloned = structuredClone(draft.features[index]) as PoiEditorFeature;
+    // 新しい mode の非互換フィールドを削除
+    const incompatible = incompatibleFieldsForMode(mode);
+    for (const key of incompatible) {
+      delete cloned.properties[key];
+    }
+    cloned.properties._maplatContentMode = mode;
+    draft.features[index] = cloned;
+  });
+};
+
+// UI表示用のモード（undefined → standard）
+const shownMode = computed<PoiContentMode>(
+  () => contentMode.value ?? "standard",
+);
+
+// --- ローカル編集バッファ ---
 const displayIdInput = ref("");
-// transient エラー = 表現不可能な入力による非 commit (空 ID / 空・非数値座標)。
-// バッファ再初期化 (選択切替 / commit / undo/redo 追随) でクリアする。
-// 表現可能なエラー (域外・文字種違反・重複・name 空) は commit されるため transient に持たず、
-// committed 値からの computed (displayIdError / nameError / coordError) で再判定する
 const displayIdTransientError = ref<string | null>(null);
-// type="number" の v-model は数値 (または空文字) を返すため string | number で持つ
 const lonInput = ref<string | number>("");
 const latInput = ref<string | number>("");
 const coordTransientError = ref<string | null>(null);
 
 interface ImageRow {
   text: string;
-  /** committed 側の元 entry ({src,desc} object の他キー保持用)。新規行は undefined */
   original?: unknown;
 }
 const imageRows = ref<ImageRow[]>([]);
-// committed 値が配列だった場合は 1 件になっても配列形を保つ (round-trip 最小差分)
 let committedImageWasArray = false;
 
 const imageRowFrom = (entry: unknown): ImageRow => {
@@ -298,10 +425,7 @@ const imageRowFrom = (entry: unknown): ImageRow => {
   return { text: "", original: entry };
 };
 
-// committed feature からローカルバッファを再初期化 (選択切替 / commit / undo/redo 追随)
 const reinitBuffers = (f: PoiEditorFeature | null): void => {
-  // transient (非 commit) エラーのみクリア。committed 値由来のエラーは computed が
-  // 再初期化後の committed 値から自動再判定する
   displayIdTransientError.value = null;
   coordTransientError.value = null;
   if (!f) {
@@ -331,7 +455,7 @@ const reinitBuffers = (f: PoiEditorFeature | null): void => {
 
 watch(feature, (f) => reinitBuffers(f), { immediate: true });
 
-// --- LangResource フィールド (name/desc/html/address/url) ---
+// --- LangResource フィールド ---
 const langValue = (key: string): string | Record<string, string> | undefined => {
   const value = feature.value?.properties?.[key];
   if (typeof value === "string") return value;
@@ -347,8 +471,6 @@ const isLangEmpty = (value: string | Record<string, string> | undefined): boolea
   return !Object.values(value).some((v) => typeof v === "string" && v.trim() !== "");
 };
 
-// name は必須 (POI-107) だが、空になる確定も commit する (properties から name が消える。
-// 2026-07-11 ポリシー: 保存側 name-required 検証で堰き止め)。エラーは committed 値から再判定
 const nameError = computed<string | null>(() =>
   feature.value && isLangEmpty(langValue("name"))
     ? t("poisource.errors.name_required")
@@ -361,8 +483,6 @@ const onNameUpdate = (value: string | Record<string, string> | undefined): void 
   session.patchFeatureProperties(id, { name: isLangEmpty(value) ? undefined : value });
 };
 
-// desc/html/address/url: 空になった確定はフィールドごと落とす (undefined は保存時の
-// JSON round-trip で削除される。externalizeLangFields の空フィールド削除規約と整合)
 const onLangUpdate = (
   key: "desc" | "html" | "address" | "url",
   value: string | Record<string, string> | undefined,
@@ -372,8 +492,7 @@ const onLangUpdate = (
   session.patchFeatureProperties(id, { [key]: isLangEmpty(value) ? undefined : value });
 };
 
-// --- 表示 ID (Feature.id)。patchFeatureProperties では書けないため commit 直接 (1 Undo) ---
-// committed 値からのエラー再判定: 文字種 [A-Za-z0-9_-]+ (POI-140) → ソース内一意 (自分以外)
+// --- 表示 ID ---
 const displayIdError = computed<string | null>(() => {
   const f = feature.value;
   const id = uid.value;
@@ -399,10 +518,6 @@ const onDisplayIdChange = (): void => {
     displayIdTransientError.value = null;
     return;
   }
-  // 空 ID のみ非 commit (表現不可能な入力): 空のまま commit すると保存時に backend の
-  // ensureDisplayIds が自動採番し、markSaved 後に DB と session が乖離する既知バグ類型
-  // (Phase 5 M1 と同型) を踏むため。文字種違反・重複は commit し、committed 値からの
-  // computed (displayIdError) が保存まで表示を維持する (2026-07-11 ポリシー)
   if (value === "") {
     displayIdTransientError.value = t("poisource.errors.display_id_charset");
     return;
@@ -417,9 +532,7 @@ const onDisplayIdChange = (): void => {
   });
 };
 
-// --- image リスト ---
-// ローカル行 → properties.image の値へ。空行は落とし、object entry は src のみ差し替え。
-// 0 件 = undefined (フィールド削除) / 1 件 = 元が配列でなければ単数形を維持 / 複数 = 配列
+// --- image リスト（standard モードでは表示用、html モードでは参照素材） ---
 const buildImageValue = (): unknown => {
   const entries: unknown[] = [];
   for (const row of imageRows.value) {
@@ -442,7 +555,6 @@ const buildImageValue = (): unknown => {
   return entries;
 };
 
-// 各確定 (行の変更 / 削除) = 1 commit。committed 値と等価なら commit しない
 const commitImages = (): void => {
   const id = uid.value;
   if (!id || props.readOnly) return;
@@ -464,7 +576,6 @@ const removeImageRow = (index: number): void => {
   commitImages();
 };
 
-// 追加はローカル行のみ (空のまま commit しない)。値の確定 (blur) 時に 1 commit になる
 const imageRowsWrap = ref<HTMLElement | null>(null);
 const addImageRow = (): void => {
   imageRows.value.push({ text: "" });
@@ -474,9 +585,7 @@ const addImageRow = (): void => {
   });
 };
 
-// --- icon / selectedIcon: 確定経路は Phase 4 から不変 (IconRefField の picker /
-// クリア / 手入力もすべてここへ流す = 1 commit)。解釈表示・picker・クリアの UI は
-// 共通部品 IconRefField (Phase 8 で抽出) が担い、committed 値を modelValue で渡す ---
+// --- icon / selectedIcon ---
 const iconValue = computed<string>(() => {
   const icon = feature.value?.properties?.icon;
   return typeof icon === "string" ? icon : "";
@@ -497,33 +606,76 @@ const onIconChange = (key: "icon" | "selectedIcon", raw: string): void => {
   session.patchFeatureProperties(id, { [key]: next });
 };
 
-// --- AssetPicker (image 行用モーダル。icon 用は IconRefField 内蔵) ---
-const picker = reactive({
-  visible: false,
-  imageIndex: 0,
-});
+// --- AssetPicker (image 行用) ---
+const pickerAssetVisible = ref(false);
+let pickerCallback: ((value: string) => void) | null = null;
 
 const openImagePicker = (index: number): void => {
-  picker.imageIndex = index;
-  picker.visible = true;
+  pickerCallback = (value: string) => {
+    onImageChange(index, value);
+  };
+  pickerAssetVisible.value = true;
 };
 
-// 選択結果を既存の確定経路に流す (Undo 粒度不変: picker で選択 = 1 commit)。
-// 確定前に picker.imageIndex の妥当性を再検証する (Phase 6 品質レビュー MAJOR-2:
-// picker 表示中に行削除等で index が範囲外/行不在になり得るため、黙って捨てず警告してから no-op)
-const onPickerSelect = (value: string): void => {
-  if (picker.imageIndex < 0 || picker.imageIndex >= imageRows.value.length) {
-    console.warn(
-      `PoiAttributeForm: picker.imageIndex (${picker.imageIndex}) is out of range at select time; discarding selection`,
-    );
-    return;
-  }
-  onImageChange(picker.imageIndex, value);
+// html モードの参照素材追加
+const referenceAssetsWrap = ref<HTMLElement | null>(null);
+const openReferenceAssetPicker = (): void => {
+  pickerCallback = (value: string) => {
+    // 参照素材行として追加し、先頭 commit
+    imageRows.value.push({ text: value });
+    commitImages();
+  };
+  pickerAssetVisible.value = true;
 };
+
+const onPickerAssetSelect = (value: string): void => {
+  pickerAssetVisible.value = false;
+  if (pickerCallback) {
+    pickerCallback(value);
+    pickerCallback = null;
+  }
+};
+
+// --- Asset Reference URI 操作 (html mode) ---
+const htmlInputRef = ref<InstanceType<typeof LangResourceInput> | null>(null);
+
+function getHtmlTextarea(): HTMLTextAreaElement | null {
+  if (!htmlInputRef.value) return null;
+  const el = htmlInputRef.value.$el as HTMLElement | undefined;
+  if (!el) return null;
+  return el.querySelector<HTMLTextAreaElement>("textarea");
+}
+
+const ASSET_REF_PREFIX = "maplat-asset:";
+
+function copyAssetRef(index: number): void {
+  const row = imageRows.value[index];
+  if (!row || !row.text) return;
+  const refValue = `${ASSET_REF_PREFIX}${row.text}`;
+  void navigator.clipboard.writeText(refValue);
+}
+
+function insertAssetRef(index: number): void {
+  const row = imageRows.value[index];
+  if (!row || !row.text) return;
+  const refValue = `${ASSET_REF_PREFIX}${row.text}`;
+  const imgTag = `<img src="${refValue}" />`;
+  const textarea = getHtmlTextarea();
+  if (textarea) {
+    const start = textarea.selectionStart;
+    const current = langValue("html");
+    const currentStr = typeof current === "string" ? current : "";
+    const newValue = currentStr.slice(0, start) + imgTag + currentStr.slice(textarea.selectionEnd);
+    onLangUpdate("html", newValue);
+  } else {
+    // textarea が取れない場合は末尾に追加
+    const current = langValue("html");
+    const currentStr = typeof current === "string" ? current : "";
+    onLangUpdate("html", currentStr + (currentStr ? "\n" : "") + imgTag);
+  }
+}
 
 // --- 座標直接入力 ---
-// committed 値からの域外エラー再判定 (±180/±90、非有限も含む。validateFeatureCollection の
-// coord-range と同判定)。域外値も commit されるため、undo/redo での再現はここが担う
 const coordError = computed<string | null>(() => {
   if (coordTransientError.value) return coordTransientError.value;
   const coords = feature.value?.geometry?.coordinates;
@@ -542,15 +694,10 @@ const coordError = computed<string | null>(() => {
   return null;
 });
 
-// 空・非数値 (表現不可能) のみ非 commit。両方有限数値なら域外でも moveFeature で commit する
-// (2026-07-11 ポリシー。域外の範囲判定は commit を止めず、committed 値の coordError 表示 +
-// 保存側 coord-range 検証で堰き止める)
 const onCoordChange = (): void => {
   const f = feature.value;
   const id = uid.value;
   if (!f || !id || props.readOnly) return;
-  // type="number" の v-model は数値を返す (2026-07-11 実機バグ: .trim() 直呼びで TypeError →
-  // moveFeature に到達せず座標入力が丸ごと無反応だった)。String 化してから正規化する
   const lonRaw = String(lonInput.value ?? "").trim();
   const latRaw = String(latInput.value ?? "").trim();
   const lon = Number(lonRaw);
@@ -565,25 +712,23 @@ const onCoordChange = (): void => {
   session.moveFeature(id, [lon, lat]);
 };
 
-// --- 削除 (確認なし。Undo で戻せる) ---
+// --- 削除 ---
 const deleteFeature = (): void => {
   const id = uid.value;
   if (!id || props.readOnly) return;
   session.removeFeature(id);
 };
 
-// --- 新規追加直後の name フォーカス (PoiEdit が addFeature 後に呼ぶ) ---
+// --- 新規追加直後の name フォーカス ---
 const nameWrap = ref<HTMLElement | null>(null);
 const focusName = (): void => {
   nameWrap.value?.querySelector<HTMLElement>("input, textarea")?.focus();
 };
 
-// picker 表示中かどうか (Phase 6 品質レビュー MAJOR-2: PoiEdit がグローバルキー
-// (undo/redo/Delete/menu:undo/redo) を picker 表示中は抑止するために参照する)。
-// image 行 picker + IconRefField 内蔵の icon picker ×2 をここで集約する
+// --- pickerOpen ---
 const pickerOpen = computed(
   () =>
-    picker.visible ||
+    pickerAssetVisible.value ||
     !!iconFieldRef.value?.pickerOpen ||
     !!selectedIconFieldRef.value?.pickerOpen,
 );
