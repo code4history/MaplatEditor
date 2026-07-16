@@ -274,6 +274,8 @@ function resetSession(item: ImageAssetRow | null, uid: string): void {
   volatileSource.value = null;
   if (!item && props.isNew && props.duplicateSourceItem) void prefillDuplicateSource(props.duplicateSourceItem);
   history = new UndoStack({ document: clone(next), volatileSource: null });
+  // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする(即保存可能)
+  if (!item && props.isNew && props.duplicateSourceItem) history.markDirty();
   historyVersion.value++;
   revision.value = item?.revision ?? null;
   originalSlug.value = item?.slug;

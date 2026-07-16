@@ -403,6 +403,11 @@ onMounted(async () => {
   currentLang.value = appData.value.lang;
   await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   resetHistoryBase();
+  // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする
+  // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
+  if (!uid && typeof route.query.duplicateFrom === "string" && route.query.duplicateFrom) {
+    historyStack.value?.markDirty();
+  }
   // M11-T7: 新規の draft キー = 事前採番 uid(newAppUid)。予約帰属・create uid と一致させる
   const draftUid = uid || newAppUid;
   if (!uid && route.query.draftUid !== draftUid) {

@@ -342,6 +342,8 @@ function resetSession(item: BaseMapCatalogItem | null, uid: string): void {
       : newBaseMapDocument(uid, resolveEditorLanguage(i18next.language));
   document.value = clone(next);
   history = new UndoStack(clone(next));
+  // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする(即保存可能)
+  if (!item && props.isNew && props.duplicateSourceItem) history.markDirty();
   historyVersion.value++;
   revision.value = item?.revision ?? null;
   originalSlug.value = item?.mapID;
