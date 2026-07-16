@@ -103,6 +103,14 @@ test.describe('M11-T9 POI Content Mode', () => {
       await expect(urlTab).toHaveClass(/active/);
       await expect(page.locator('label:has-text("画像")')).toHaveCount(0);
 
+      // AC15(表示層): javascript: URL のライブエラーが i18n 文言で表示される
+      // (人間検証Round1: 生コード "content-mode-url-format" が表示されていた回帰防止)
+      const urlInput = page.locator('label:has-text("URL") + div input').first();
+      await urlInput.fill('javascript:alert(1)');
+      await urlInput.press('Tab'); // LangResourceInput は @change(blur) コミット
+      await expect(page.getByText(/URLに http\/https 以外のプロトコル/)).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('content-mode-url-format')).toHaveCount(0);
+
       console.log('  AC1-AC8+AC16: PASS');
     } finally {
       await quitElectronApplication(app);
@@ -239,6 +247,11 @@ test.describe('M11-T9 POI Content Mode', () => {
             features: [{
               type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
               properties: { _maplatContentMode: 'html', name: { ja: 'AC14' }, html: { ja: `<img src="maplat-asset:${params.missingUid}" />` } },
+            }, {
+              // 標準表示モードの画像欄によるアセットUID直接参照の欠落も検出する
+              // (人間検証Round1: 画像欄が未検査だった穴の回帰防止)
+              type: 'Feature', id: 'p2', geometry: { type: 'Point', coordinates: [139.768, 35.682] },
+              properties: { name: { ja: 'AC14img' }, image: ['11111111-2222-4333-a444-000000000055'] },
             }],
           },
         });
@@ -247,7 +260,8 @@ test.describe('M11-T9 POI Content Mode', () => {
 
       await openHash(page, `#/poisources/${missPoiUid}`);
       await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByText(/参照先が存在しないアセット参照/)).toBeVisible({ timeout: 10000 });
+      // html内参照(p1)と画像欄UID直接参照(p2)の両方が欠落として数えられる(2件)
+      await expect(page.getByText(/参照先が存在しないアセット参照が2件/)).toBeVisible({ timeout: 10000 });
 
       console.log('  AC12+AC14: PASS');
     } finally {
