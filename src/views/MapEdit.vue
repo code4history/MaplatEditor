@@ -1535,10 +1535,29 @@ const createContextMenu = (map: any) => {
   return contextmenu;
 };
 
+// M11-T10 (人間検証R6): request が添付する compiled 由来の tins を mapData から切り離して取り出す
+const extractCompiledTins = (data: any): any[] | null => {
+    const tins = Array.isArray(data?.compiledTins) ? data.compiledTins : null;
+    if (data && 'compiledTins' in data) delete data.compiledTins;
+    return tins;
+};
+// compiled を持つレイヤーへ Tin を種付けする(再計算は compiled が無いレイヤーだけで良い)。
+// 文字列(tooLessGcps/compiledRequired)は未計算のまま残し、load 側の再計算に委ねる
+const seedTinObjects = (tins: any[] | null): void => {
+    if (!tins) return;
+    tins.forEach((entry, i) => {
+        if (i >= tinObjects.value.length || !entry || typeof entry === 'string') return;
+        const tin = new Tin(TIN_V2_OPTIONS);
+        tin.setCompiled(entry);
+        tinObjects.value[i] = tin;
+    });
+};
+
 onMounted(async () => {
     // 地図編集はuid正準で開く (ADR-0007): /mapedit?uid=<uid>。uid未指定は新規作成
     const uid = route.query.uid as string | undefined;
     const isNew = !uid || uid === 'new';
+    let requestCompiledTins: any[] | null = null;
 
     if (isNew) {
         // 新規地図: defaultMap で初期化
@@ -1548,6 +1567,8 @@ onMounted(async () => {
           try {
             const source = await (window as any).mapedit.request(dupFrom);
             if (source) {
+              // M11-T10 (R6): 複製元の compiled tins を種付け用に確保(再計算なしで即保存可能に)
+              requestCompiledTins = extractCompiledTins(source);
               // 複製浄化: uid/revision 除去、予約slugで上書き
               delete source.uid;
               delete source.revision;
@@ -1589,6 +1610,8 @@ onMounted(async () => {
         try {
             const data = await (window as any).mapedit.request(uid);
             if (data) {
+                // M11-T10 (R6): compiled tins を種付け用に確保(compiled 持ちは初回再計算を省く)
+                requestCompiledTins = extractCompiledTins(data);
                 // バックエンドが mapID(=slug)/uid/revision/status を設定してくれている
                 if (!data.status) data.status = 'Update';
                 adoptLoaded({ uid: data.uid ?? uid, slug: data.mapID, revision: data.revision });
@@ -1622,6 +1645,8 @@ onMounted(async () => {
     vertexMode.value = mapData.value.vertexMode || 'plain';
     // tinObjects: メインレイヤー + サブマップ分 の undefined で初期化（旧実装: vueMap.tinObjects = [...]）
     tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
+    // M11-T10 (R6): compiled を持つレイヤーは種付けし再計算を省く(未訪問レイヤーの素体化も防ぐ)
+    seedTinObjects(requestCompiledTins);
     initializeHistoryStack();
     // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする
     // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
@@ -2263,7 +2288,10 @@ const loadMapTiles = async () => {
 
         // マーカーを描画しTINを計算・表示（旧実装の gcpsToMarkers() + tinResultUpdate() 相当）
         gcpsToMarkers();
-        updateTin();
+        // M11-T10 (R6): compiled 種付け済みレイヤーは再計算せず描画のみ行う
+        // (compiled は再計算を省くための保存形式。無い/素体文字列のときだけ計算する)
+        if (!tinObject.value || typeof tinObject.value === 'string') updateTin();
+        else tinResultUpdate();
 
     } catch (e) {
         console.error('[loadMapTiles] mapSourceFactory でタイル読み込み失敗:', e);
@@ -2611,7 +2639,11 @@ const mapUpload = async () => {
  *    useRevisionedAssetSave (saveHandle) が共通処理する
  */
 let mapSaveSucceeded = false;
+// M11-T10 (人間検証R6): 確認後〜performSave 開始までの準備区間(予約再確認・TIN計算待ち)も
+// Busy カバー対象にする。saving(useRevisionedAssetSave) は performSave 中しか立たないため
+const preparingSave = ref(false);
 const saveMap = async (): Promise<boolean> => {
+    if (preparingSave.value || saving.value) return false; // 準備区間の再入防止
     mapSaveSucceeded = false;
     saveOperationError.value = null;
     // 1. 保存確認ダイアログ（旧実装: t('mapedit.confirm_save')）
@@ -2623,6 +2655,15 @@ const saveMap = async (): Promise<boolean> => {
     });
     if (confirmResult.response === 1) return false; // キャンセル
 
+    preparingSave.value = true;
+    try {
+        return await saveMapAfterConfirm();
+    } finally {
+        preparingSave.value = false;
+    }
+};
+
+const saveMapAfterConfirm = async (): Promise<boolean> => {
     // 2. M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)
     const slugOk = await slugField.value?.confirmForSave() ?? true;
     if (!slugOk) {
@@ -2677,6 +2718,7 @@ const reloadFromStore = async () => {
     try {
         const data = await (window as any).mapedit.request(mapUid.value);
         if (!data) return;
+        const reloadCompiledTins = extractCompiledTins(data);
         if (!data.status) data.status = 'Update';
         // wmtsFolder は request 結果に含まれないため現在値を引き継ぐ
         data.wmtsFolder = mapData.value.wmtsFolder;
@@ -2693,6 +2735,7 @@ const reloadFromStore = async () => {
         strictMode.value = data.strictMode || 'strict';
         vertexMode.value = data.vertexMode || 'plain';
         tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
+        seedTinObjects(reloadCompiledTins);
         editingID.value = '';
         newGcp.value = undefined;
         newlyAddEdge.value = undefined;
@@ -2700,7 +2743,9 @@ const reloadFromStore = async () => {
         await nextTick();
         if (data.url_) await loadMapTiles();
         gcpsToMarkers();
-        updateTin();
+        // M11-T10 (R6): compiled 種付け済みなら再計算せず描画のみ
+        if (!tinObject.value || typeof tinObject.value === 'string') updateTin();
+        else tinResultUpdate();
     } catch (e) {
         console.error('[reloadFromStore] Failed to reload map data:', e);
     }
@@ -3077,9 +3122,10 @@ const goBack = async () => {
             :enable-close="modalEnableClose"
             @close="modalHide"
         />
+        <!-- M11-T10 (R6): 保存準備区間(予約再確認・TIN計算待ち)もカバーする -->
         <EditorBusyOverlay
-            :visible="saving || exporting"
-            :label="saving ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
+            :visible="saving || preparingSave || exporting"
+            :label="saving || preparingSave ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
         />
 
         <EditorActionHeader

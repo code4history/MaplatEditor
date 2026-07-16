@@ -33,6 +33,11 @@ class MapEditService {
         res[0].status = 'Update';
         res[0].onlyOne = true; // DBに存在するので一意確認済み
 
+        // M11-T10 (人間検証R6): normalizeRequestData が compiled から生成済みの tins
+        // (byCompiled: 平文 compiled or 文字列素体) をエディタへ添付する。エディタは
+        // compiled を持つレイヤーを再計算せず種付けし、無いレイヤーだけ再計算する。
+        if (res[1]) res[0].compiledTins = res[1];
+
         return res[0];
     }
 
