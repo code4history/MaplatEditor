@@ -108,9 +108,9 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
     // 空間検索の検証 (自動カバレッジのアプリが searchExtent で引っかかること)
     // 東京周辺の BBox [W, S, E, N] = [139.5, 35.5, 140.0, 36.0]
     const spatialResult = await page.evaluate(async () => {
-      return await (window as any).search.searchExtent('app', [139.5, 35.5, 140.0, 36.0]);
+      return await (window as any).search.searchExtent('app', [15529087, 4232311, 15584729, 4301232]);
     });
-    expect(spatialResult).toContain('app-1');
+    expect(spatialResult).toContain('test-app');
 
     // 4. アプリ編集画面でのカバレッジ変更のインタラクション（トグル無し）の検証
     await page.evaluate(() => window.settings.set('lang', 'ja'));
