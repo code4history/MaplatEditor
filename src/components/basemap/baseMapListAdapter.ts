@@ -33,7 +33,7 @@ export function createBaseMapListAdapter(deps: BaseMapAdapterDeps): ResourceList
         selected: deps.selectedUid() === item.uid,
         hasDraft: deps.hasDraft(item.uid),
         // D4改 / AC17: builtin は削除不可（現行区分維持）→ actions 空 → ⋮ 非表示。user のみ delete。
-        actions: item.scope === "builtin" ? [] : ["delete"],
+        actions: item.scope === "builtin" ? [] : ["duplicate", "delete"],
       };
     },
   };

@@ -888,6 +888,7 @@
     "append_error": "Failed to load more",
     "retry": "Retry",
     "menu_delete": "Delete",
+    "menu_duplicate": "Duplicate",
     "menu_label": "Actions",
     "loaded_only": "{{loaded}} shown",
     "total_only": "{{total}} items",

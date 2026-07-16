@@ -888,6 +888,7 @@
     "append_error": "追加の読み込みに失敗しました",
     "retry": "再試行",
     "menu_delete": "削除",
+    "menu_duplicate": "複製",
     "menu_label": "操作メニュー",
     "loaded_only": "{{loaded}}件表示中",
     "total_only": "全{{total}}件",
