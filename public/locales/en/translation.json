@@ -517,7 +517,6 @@
     "error_not_square": "Please provide a square image.",
     "error_too_small": "Please provide an image of at least 512x512.",
     "error_invalid_image": "Please provide an image file.",
-    "app_coverage_auto": "Auto-calculate from maps",
     "app_coverage": "App coverage (reference)",
     "app_coverage_note": "Approximate area this app targets. Used as a guide and snap target when setting base map usage extents (it does not forbid maps outside it).",
     "app_coverage_modal_title": "Specify app coverage",
