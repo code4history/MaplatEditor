@@ -1837,8 +1837,17 @@ const tinResultUpdate = () => {
     }
 };
 
-const updateTin = async () => {
-    if (!illstSource) return;
+// M11-T10: 進行中の TIN 計算を保存が待てるように件数を追跡する。
+// 複製直後は dirty で即保存できるため、worker 計算完了前に tins を収集すると
+// compiled が失われ store が gcps 素体へ劣化する(store2HistMap の compiledRequired 警告)。
+let tinComputeActive = 0;
+const tinComputeWaiters: Array<() => void> = [];
+const waitForTinComputeIdle = (): Promise<void> =>
+    tinComputeActive === 0 ? Promise.resolve() : new Promise((resolve) => { tinComputeWaiters.push(resolve); });
+
+// opts.force: 保存前ゲート用。タイル読込(illstSource)前でも TIN 計算自体は gcps/bounds だけで可能
+const updateTin = async (opts?: { force?: boolean }) => {
+    if (!illstSource && !opts?.force) return;
     const gcpList = gcps.value;
     if (!gcpList || gcpList.length < 3) {
         tinObject.value = 'tooLessGcps';
@@ -1865,6 +1874,7 @@ const updateTin = async () => {
         console.error('[updateTin] Both wh and bounds are missing for index:', index);
         return;
     }
+    tinComputeActive++;
     try {
         // Vue の Proxy は IPC の Structured Clone に対応しないため、JSON でプレーンオブジェクトに変換する
         const plainGcps = JSON.parse(JSON.stringify(gcpList.map((g: any[]) => [g[0], g[1]])));
@@ -1888,8 +1898,13 @@ const updateTin = async () => {
             tinObject.value = tin;
         }
     } catch (err: any) {
+        // unmount による worker dispose は画面遷移中の正常な取消。状態を汚さず終了する(人間検証R5)
+        if (String(err?.message ?? err).includes('worker was disposed')) return;
         console.error('[updateTin] IPC error:', err);
         tinObject.value = 'unknownError';
+    } finally {
+        tinComputeActive--;
+        if (tinComputeActive === 0) tinComputeWaiters.splice(0).forEach((resolve) => resolve());
     }
     tinResultUpdate();
 };
@@ -2615,6 +2630,14 @@ const saveMap = async (): Promise<boolean> => {
         saveOperationError.value = t('mapedit.error_duplicate_id');
         return false;
     }
+
+    // M11-T10 (人間検証R5): 複製直後は dirty 即保存が可能なため、TIN 計算完了前に保存すると
+    // compiled が失われ store が gcps 素体へ劣化する。未計算なら現在レイヤーの計算を起動し、
+    // 進行中の計算の完了を待ってから tins を収集する。
+    if (tinObject.value == null && (gcps.value?.length ?? 0) >= 3) {
+        await updateTin({ force: true });
+    }
+    await waitForTinComputeIdle();
 
     // 保存する値を作成（mapDataのコピー）
     const saveValue = cloneDeep(mapData.value);
