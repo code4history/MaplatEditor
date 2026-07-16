@@ -767,7 +767,7 @@
     "copy_ref": "参照をコピー",
     "insert_image": "画像を挿入",
     "add_reference_asset": "素材を追加",
-    "missing_asset_refs": "HTML内に参照先が存在しないアセット参照が{{count}}件あります。アセットが削除されていないか確認してください。"
+    "missing_asset_refs": "参照先が存在しないアセット参照が{{count}}件あります。アセットが削除されていないか確認してください。"
   },
   "assetlist": {
     "master_detail": {
