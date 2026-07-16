@@ -59,6 +59,8 @@ import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
+import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
+import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
