@@ -217,7 +217,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     });
     if (!result) {
       // IPC が結果を返さなかった: 旧実装の最終elseと同じ処理(表示のみ、console.error/dialog無し)
-      saveError.value = t("appedit.error_saving");
+      saveOperationError.value = t("appedit.error_saving");
       return null;
     }
     return result;
@@ -241,9 +241,9 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
   onFailure: async (result) => {
     if (result.result === "Exist") {
       // 保存レースで slug を先取りされた: 重複を operation 診断へ(field 表示は SlugField が担う)
-      saveError.value = t("appedit.duplicate_appid");
+      saveOperationError.value = t("appedit.duplicate_appid");
     } else {
-      saveError.value = t("appedit.error_saving");
+      saveOperationError.value = t("appedit.error_saving");
     }
   },
   // ダイアログ表示時点の言語で t() されるよう getter で渡す (旧実装と同じタイミングで翻訳)
@@ -264,7 +264,14 @@ const slugFieldState = ref<SlugFieldState>("idle");
 const newAppUid = (typeof route.query.uid === "string" && route.query.uid)
   ? ""
   : (typeof route.query.draftUid === "string" ? route.query.draftUid : crypto.randomUUID());
-const saveError = ref<string | null>(null);
+const saveOperationError = ref<string | null>(null);
+// 保存前バリデーション(MapEdit の saveError computed と同型、全エディタ統一 2026-07-16):
+// スラッグ未入力の間は保存ボタンを常時 disabled にする(形式・一意性は SlugField/バックエンドが担保)
+const saveValidationError = computed<string | null>(() => {
+  const id = appData.value.appID;
+  if (!id || !id.trim()) return t("appedit.no_appid");
+  return null;
+});
 // pois 復元 heal が失敗した (data_json 破損などで復元不能だった) かどうか。
 // true のまま保存すると復元できなかった pois が失われるため、POIデータタブに警告を出す
 // (Phase 8 品質レビュー MAJOR-2)
@@ -682,7 +689,7 @@ function recordHistory() {
   if (historyApplying.value) return;
   // F4 同型(MapEdit): 文書の変更で保存時 operation 診断を解消する
   // (旧実装は slug 入力時のみ解消され、他フィールド編集では保存ボタンが disabled のまま固まった)
-  if (saveError.value) saveError.value = null;
+  if (saveOperationError.value) saveOperationError.value = null;
   const next = cloneDocument(appData.value);
   if (!historyStack.value || isEqual(historyStack.value.current(), next)) return;
   historyStack.value.push(next);
@@ -715,7 +722,7 @@ function onEditorKeydown(event: KeyboardEvent) {
   const key = event.key.toLowerCase();
   if (key === "s") {
     event.preventDefault();
-    if (!saving.value && !exporting.value && isDirty.value && !saveError.value) void saveApp();
+    if (!saving.value && !exporting.value && isDirty.value && !saveOperationError.value && !saveValidationError.value) void saveApp();
     return;
   }
   if (isEditableElement(event.target as Element | null)) return;
@@ -744,7 +751,7 @@ function onMainProcessMessage(message: string) {
 // (excludeUid=自 uid で自分の現 slug は「空き」判定 = ADR-0007 継承)。
 // 旧実装の @input 毎 recordHistory と同じ履歴文法を保つ。
 function onAppIDLiveInput(value: string): void {
-  saveError.value = null;
+  saveOperationError.value = null;
   appData.value.appID = value;
   recordHistory();
 }
@@ -757,16 +764,16 @@ function onAppIDLiveInput(value: string): void {
  */
 async function saveApp(): Promise<boolean> {
   appSaveSucceeded = false;
-  saveError.value = null;
+  saveOperationError.value = null;
   if (!appData.value.appID.trim()) {
-    saveError.value = t("appedit.no_appid");
+    saveOperationError.value = t("appedit.no_appid");
     return false;
   }
   // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)。
   // registry 重複は backend の unique 制約(Exist)が最終防衛
   const slugOk = await slugField.value?.confirmForSave() ?? true;
   if (!slugOk) {
-    saveError.value = t("appedit.duplicate_appid");
+    saveOperationError.value = t("appedit.duplicate_appid");
     return false;
   }
   // pois は配列のまま永続化する (旧 poiSources 文字列形は normalize で pois 配列に
@@ -1085,7 +1092,7 @@ function onPoisChange(next: unknown[]) {
       :language-options="SUPPORTED_LANGUAGES"
       :can-undo="canUndo"
       :can-redo="canRedo"
-      :save-disabled="!!saveError || !isDirty"
+      :save-disabled="!!saveValidationError || !!saveOperationError || !isDirty"
       :saving="saving"
       :actions-disabled="exporting"
       :discard-draft-visible="saveState === 'draft-restored'"
@@ -1112,11 +1119,11 @@ function onPoisChange(next: unknown[]) {
     <!-- M11-T7/AC8 同型(MapEdit): 保存 operation エラーはアクションヘッダ直下に常時可視で表示する。
          旧配置(メタデータフォーム最下部)ではスクロールしないと見えず、保存失敗が伝わらなかった -->
     <DiagnosticFeedback
-      v-if="saveError"
+      v-if="saveOperationError"
       scope="operation"
       dismissible
-      :items="[{ key: 'save-error', severity: 'danger', message: saveError }]"
-      @dismiss="saveError = null"
+      :items="[{ key: 'save-error', severity: 'danger', message: saveOperationError }]"
+      @dismiss="saveOperationError = null"
     />
 
     <!-- M11-T7/AC9: EditorTabs primitive + §9 語彙(メタデータ編集/地図選択/POI選択/プレビュー) -->

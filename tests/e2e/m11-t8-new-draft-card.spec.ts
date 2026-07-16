@@ -75,17 +75,14 @@ test('slug-less save shows visible error, recovers on edit, and new draft is dis
   });
   await page.evaluate(() => window.settings.set('lang', 'ja'));
 
-  // 1. slug なし保存: DBに行は作られず、エラーがヘッダ直下に可視表示される
+  // 1. slug なしの間は保存ボタンが disabled (全エディタ統一の保存前バリデーション)。
+  //    slug を入力すると enabled になる
   await page.evaluate(() => { location.hash = '#/appedit'; });
   await page.getByTestId('app-title').fill('スラッグなしテスト');
-  await page.getByRole('button', { name: '保存' }).click();
-  await expect(page.getByText('アプリIDを指定してください。')).toBeVisible();
+  await expect(page.getByRole('button', { name: '保存' })).toBeDisabled();
   const appCount = await page.evaluate(async () => (await (window as any).search.apps({ page: 1, pageSize: 10 })).total);
   expect(appCount).toBe(0);
-  // 保存ボタンは一旦 disabled になるが、文書編集で診断が解消され再度押せる (F4同型)
-  await expect(page.getByRole('button', { name: '保存' })).toBeDisabled();
-  await page.getByTestId('app-title').fill('スラッグなしテスト2');
-  await expect(page.getByText('アプリIDを指定してください。')).not.toBeVisible();
+  await page.getByTestId('app-id').fill('noslug-recovery');
   await expect(page.getByRole('button', { name: '保存' })).toBeEnabled();
 
   // 2. 新規下書きをエディタから破棄できる: 下書きを seed して復元状態で開く
