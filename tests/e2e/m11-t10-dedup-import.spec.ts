@@ -229,6 +229,43 @@ test.describe('M11-T10 Dedup/Import', () => {
     }
   });
 
+  test('master-detail複製後の新規追加が複製クエリを引きずらない (人間検証R2指摘)', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-mdnew-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      // user 基図を UI で1件作成
+      await openHash(page, '#/basemaps');
+      await expect(page.getByTestId('basemap-new')).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('basemap-new').click();
+      await page.getByTestId('basemap-slug').fill('t10-md-base');
+      await page.getByTestId('basemap-slug').press('Tab');
+      await page.getByTestId('basemap-title').fill('T10 MD Base');
+      await page.getByTestId('basemap-title').press('Tab');
+      await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
+      await page.getByTestId('basemap-url').press('Tab');
+      await page.getByTestId('editor-save').click();
+      await expect(page).not.toHaveURL(/new=1/);
+
+      // 複製 → -copy の複製エディタが開く（duplicateFrom/slug ワンショットクエリ付き）
+      const row = page.getByTestId('basemap-row-t10-md-base');
+      await row.locator('[data-resource-action-trigger]').click();
+      await page.locator('[role="menuitem"]:has-text("複製")').click();
+      await expect(page.getByTestId('basemap-slug')).toHaveValue('t10-md-base-copy', { timeout: 10000 });
+
+      // 新規追加 → 複製内容・presetSlug を引きずらず空で開く
+      await page.getByTestId('basemap-new').click();
+      await expect(page.getByTestId('basemap-slug')).toHaveValue('', { timeout: 10000 });
+      await expect(page.getByTestId('basemap-title')).toHaveValue('');
+      const hash = await page.evaluate(() => location.hash);
+      expect(hash).not.toContain('duplicateFrom');
+
+      console.log('  master-detail新規クリーン: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
   test('AC11+POI複製: MapListにImportボタン、POI複製は行作成方式で内容ごと複製される', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-misc-'));
