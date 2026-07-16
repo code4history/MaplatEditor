@@ -95,7 +95,7 @@ const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
 const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
-const { draftUids, draftSummaries, refreshDrafts } = useAssetDraftBadges("base-map");
+const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("base-map");
 
 const items = ref<BaseMapCatalogItem[]>([]);
 const loading = ref(true);
@@ -178,8 +178,7 @@ async function selectExisting(uid: string): Promise<void> { await select(uid, fa
 async function selectDraft(uid: string): Promise<void> { await select(uid, true); }
 
 async function createBaseMap(): Promise<void> {
-  const pending = draftSummaries.value.filter((draft) => draft.baseRevision === null).at(-1);
-  await select(pending?.assetUid ?? crypto.randomUUID(), true);
+  await select(latestNewDraft.value?.assetUid ?? crypto.randomUUID(), true);
 }
 
 async function closeEditor(): Promise<void> {

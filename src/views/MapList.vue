@@ -76,8 +76,7 @@ import type { ResourceListItemViewModel } from "../components/resource-list/reso
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { hasDraft, draftSummaries, refreshDrafts, removeNewDraft } = useAssetDraftBadges("map");
-const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
+const { hasDraft, newDrafts, latestNewDraft, refreshDrafts, removeNewDraft } = useAssetDraftBadges("map");
 
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
 const selectedUidRef = { value: null as string | null };
@@ -127,7 +126,11 @@ const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((
 function updateQuery(value: string): void {
   void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
 }
-function createNewMap(): void { void router.push("/mapedit"); }
+// M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
+function createNewMap(): void {
+  const pending = latestNewDraft.value;
+  void router.push(pending ? `/mapedit?draftUid=${pending.assetUid}` : "/mapedit");
+}
 // M11-T10 (AC11): インポート導線 — MapEdit の新規モードで既存 importMap フローを自動起動
 function onImportMap(): void { void router.push("/mapedit?new=1&import=1"); }
 

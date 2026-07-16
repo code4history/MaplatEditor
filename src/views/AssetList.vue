@@ -75,7 +75,7 @@ const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
 const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
-const { draftUids, draftSummaries, refreshDrafts } = useAssetDraftBadges("image-asset");
+const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("image-asset");
 
 const items = ref<ImageAssetRow[]>([]);
 const selectedCache = ref<ImageAssetRow | null>(null);
@@ -158,8 +158,7 @@ async function selectExisting(uid: string): Promise<void> { await select(uid, fa
 async function selectDraft(uid: string): Promise<void> { await select(uid, true); }
 
 async function createAsset(): Promise<void> {
-  const pending = draftSummaries.value.filter((draft) => draft.baseRevision === null).at(-1);
-  await select(pending?.assetUid ?? crypto.randomUUID(), true);
+  await select(latestNewDraft.value?.assetUid ?? crypto.randomUUID(), true);
 }
 async function closeEditor(): Promise<void> {
   await clearSelection();

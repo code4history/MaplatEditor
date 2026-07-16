@@ -1,10 +1,14 @@
-import { shallowRef } from 'vue';
+import { computed, shallowRef } from 'vue';
 import i18next from 'i18next';
 import type { AssetDraftKind, AssetDraftSummary } from '../types/assetDraft';
 
 export function useAssetDraftBadges(kind: AssetDraftKind) {
   const draftUids = shallowRef<Set<string>>(new Set());
   const draftSummaries = shallowRef<AssetDraftSummary[]>([]);
+  // 新規(未保存)下書き。baseRevision===null が「保存済み行に紐づかない下書き」の共通判定
+  const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
+  // M11-T10 (人間検証R4): 「新規追加」は既存の新規下書きがあればそれを引き継ぐ(全一覧共通)
+  const latestNewDraft = computed(() => newDrafts.value.at(-1) ?? null);
 
   const refreshDrafts = async () => {
     const summaries = await window.assetDrafts.list(kind);
@@ -36,5 +40,5 @@ export function useAssetDraftBadges(kind: AssetDraftKind) {
     }
   };
 
-  return { draftUids, draftSummaries, refreshDrafts, hasDraft, removeNewDraft };
+  return { draftUids, draftSummaries, newDrafts, latestNewDraft, refreshDrafts, hasDraft, removeNewDraft };
 }

@@ -62,8 +62,7 @@ import type { ResourceListItemViewModel } from "../components/resource-list/reso
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { hasDraft, draftSummaries, refreshDrafts, removeNewDraft } = useAssetDraftBadges("app");
-const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
+const { hasDraft, newDrafts, latestNewDraft, refreshDrafts, removeNewDraft } = useAssetDraftBadges("app");
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
 const selectedUidRef = { value: null as string | null };
 const adapter = createAppListAdapter({ hasDraft, selectedUid: () => selectedUidRef.value });
@@ -75,7 +74,11 @@ onBeforeRouteLeave(() => { const r = shellRef.value?.contentRef; backCache.save(
 async function restoreOrLoad() { const c = backCache.load(); if (c && c.q === query.value && c.batches >= 1) { await restore(c.batches); await nextTick(); const r = shellRef.value?.contentRef; if (r) { const a = c.anchorUid ? r.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(c.anchorUid)}"]`) : null; if (a) r.scrollTop += a.getBoundingClientRect().top - r.getBoundingClientRect().top; else r.scrollTop = c.scrollTop; } } else { await loadFirst(); } }
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, "")));
 function updateQuery(value: string): void { void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } }); }
-function createNewApp(): void { void router.push("/appedit"); }
+// M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
+function createNewApp(): void {
+  const pending = latestNewDraft.value;
+  void router.push(pending ? `/appedit?draftUid=${pending.assetUid}` : "/appedit");
+}
 
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
   if (key === "duplicate") { await duplicateByVm(vm); return; }
