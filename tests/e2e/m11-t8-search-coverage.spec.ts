@@ -78,7 +78,7 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
       );
       
       INSERT INTO maps (uid, slug, data_json) VALUES (
-        'map-1', 'test-map', '{"width":400,"height":300,"lang":"ja","edges":[[0,0],[400,0],[400,300],[0,300]],"gcps":[{"x":0,"y":300,"lng":139.7,"lat":35.6},{"x":400,"y":0,"lng":139.8,"lat":35.7}]}'
+        'map-1', 'test-map', '{"width":400,"height":300,"lang":"ja","edges":[[0,0],[400,0],[400,300],[0,300]],"gcps":[{"x":0,"y":300,"lng":139.7,"lat":35.6},{"x":400,"y":0,"lng":139.8,"lat":35.7}],"compiled":{"vertices_points":[[null,[15551351.4,4249117.8]],[null,[15562483.3,4259837.2]]]}}'
       );
       
       INSERT INTO apps (uid, slug, data_json) VALUES (
