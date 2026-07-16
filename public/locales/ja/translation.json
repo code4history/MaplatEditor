@@ -892,6 +892,12 @@
     "menu_label": "操作メニュー",
     "loaded_only": "{{loaded}}件表示中",
     "total_only": "全{{total}}件",
-    "total_partial": "全{{total}}件中 {{loaded}}件表示"
+    "total_partial": "全{{total}}件中 {{loaded}}件表示",
+    "delete_irreversible": "この操作は取り消せません。",
+    "delete_referenced_by": "以下の資源から参照されています:",
+    "delete_references_unavailable": "参照情報を取得できませんでした。",
+    "deleting": "削除中…",
+    "import_poi": "インポート",
+    "import_map": "地図インポート"
   }
 }

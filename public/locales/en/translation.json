@@ -892,6 +892,12 @@
     "menu_label": "Actions",
     "loaded_only": "{{loaded}} shown",
     "total_only": "{{total}} items",
-    "total_partial": "Showing {{loaded}} of {{total}}"
+    "total_partial": "Showing {{loaded}} of {{total}}",
+    "delete_irreversible": "This action cannot be undone.",
+    "delete_referenced_by": "Referenced by the following resources:",
+    "delete_references_unavailable": "Unable to retrieve reference information.",
+    "deleting": "Deleting…",
+    "import_poi": "Import",
+    "import_map": "Import Map"
   }
 }
