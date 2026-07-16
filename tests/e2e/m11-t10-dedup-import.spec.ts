@@ -50,6 +50,20 @@ async function seedPoi(page: Page, withFeature = false): Promise<{ uid: string; 
   }, withFeature);
 }
 
+async function seedMap(page: Page): Promise<{ uid: string; slug: string }> {
+  return page.evaluate(async () => {
+    const slug = `t10-map-${Date.now()}`;
+    const result = await window.mapedit.save({ slug, mapObject: {
+      mapID: slug, title: { ja: 'T10 地図' }, officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+      attr: { ja: 'T10 attribution' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
+      reference: '', url: '', lang: 'ja', imageExtension: 'jpg', width: 400, height: 300,
+      gcps: [], edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
+    }, tins: [] });
+    if (!result || result.result !== 'Success') throw new Error(`seed map failed: ${JSON.stringify(result)}`);
+    return { uid: result.uid as string, slug };
+  });
+}
+
 // カードの ⋮ メニューから action を実行する
 async function clickCardAction(page: Page, uid: string, label: string): Promise<void> {
   const card = page.locator(`[data-resource-uid="${uid}"]`);
@@ -79,7 +93,16 @@ test.describe('M11-T10 Dedup/Import', () => {
       const countAfterDup = await page.evaluate(async () => (await (window as any).search.apps({ page: 1, pageSize: 50 })).total);
       expect(countAfterDup).toBe(1); // 元の1件のみ(複製は未保存)
 
-      // AC3: 同じ元からもう一度複製 → -copy は予約済みなので -copy2 が採番される
+      // 複製オープンは dirty (人間検証指摘): 無変更でも保存でき、保存後に一覧へ現れる
+      const saveButton = page.getByTestId('editor-save');
+      await expect(saveButton).toBeEnabled({ timeout: 10000 });
+      await saveButton.click();
+      await expect.poll(async () =>
+        (await page.evaluate(async () => (await (window as any).search.apps({ page: 1, pageSize: 50 })).total)),
+      { timeout: 15000 }).toBe(2);
+
+      // AC3: 同じ元からもう一度複製 → -copy は保存済み(registry taken)なので -copy2 が採番される
+      // (check 前置がないと registry を見ずに -copy を再予約してしまう回帰の検出を兼ねる)
       await openHash(page, '#/applist');
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
       await clickCardAction(page, seeded.uid, '複製');
@@ -165,6 +188,42 @@ test.describe('M11-T10 Dedup/Import', () => {
       await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
 
       console.log('  AC9+AC10: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('Map複製: dirtyで開き無変更保存が成功し一覧に複製行が現れる(予約自己衝突の回帰検出)', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-mapdup-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      // MapEdit の保存は確認ダイアログ(main process)を経由するため stub で承認する
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+      const seeded = await seedMap(page);
+      // 初期ルートが #/maplist のため、同一hashでは再マウントされない。別ルート経由で再入する
+      await openHash(page, '#/applist');
+      await openHash(page, '#/maplist');
+      await expect(page.locator(`[data-resource-uid="${seeded.uid}"]`)).toBeVisible({ timeout: 15000 });
+
+      // 複製 → MapEdit が予約slug(-copy)で dirty オープン
+      await clickCardAction(page, seeded.uid, '複製');
+      await expect(page.getByTestId('map-slug')).toHaveValue(`${seeded.slug}-copy`, { timeout: 15000 });
+      const saveButton = page.getByTestId('editor-save');
+      await expect(saveButton).toBeEnabled({ timeout: 15000 });
+
+      // 無変更のまま保存 → 予約(asset_uid=draftUid)と create uid が一致し Exist にならない
+      await saveButton.click();
+      await expect.poll(async () => page.evaluate(async () => {
+        const r = await window.maplist.request('', 1);
+        return r.docs.map((d: any) => d.mapID).sort().join(',');
+      }), { timeout: 20000 }).toBe(`${seeded.slug},${seeded.slug}-copy`);
+
+      // slug 重複エラーが出ていない
+      await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
+      console.log('  Map複製保存: PASS');
     } finally {
       await quitElectronApplication(app);
     }
