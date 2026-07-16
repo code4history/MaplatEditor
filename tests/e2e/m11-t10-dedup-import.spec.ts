@@ -266,6 +266,36 @@ test.describe('M11-T10 Dedup/Import', () => {
     }
   });
 
+  test('新規追加は既存の新規下書きを引き継ぐ / アプリ名必須で保存が塞がる (人間検証R4)', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-draft-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      // 新規 App エディタで slug のみ入力 → dirty + slug予約成功で初期draftが永続される
+      await openHash(page, '#/appedit');
+      await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('app-id').fill('t10-draft-app');
+      // R4: アプリ名が空の間は保存不可(タイトル必須)
+      await expect(page.getByTestId('editor-save')).toBeDisabled();
+      const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
+      expect(draftUid).not.toBeNull();
+      // 初期draft永続(useInitialDraftPersist)を待つ
+      await expect.poll(async () => page.evaluate(async (uid) =>
+        (await window.assetDrafts.get('app', uid!)) != null, draftUid), { timeout: 15000 }).toBe(true);
+
+      // 一覧へ戻り「新規追加」→ 既存の新規下書きを引き継いで開く(master-detailと同文法)
+      await openHash(page, '#/applist');
+      await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
+      await page.locator('[data-resource-new]').click();
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 10000 }).toContain(`draftUid=${draftUid}`);
+      await expect(page.getByTestId('app-id')).toHaveValue('t10-draft-app', { timeout: 10000 });
+
+      console.log('  新規追加draft引継ぎ+アプリ名必須: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
   test('AC11+POI複製: MapListにImportボタン、POI複製は行作成方式で内容ごと複製される', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-misc-'));
