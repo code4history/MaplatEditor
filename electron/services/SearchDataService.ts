@@ -38,7 +38,7 @@ function checkLocaleAttr(attr: any, condition: string): boolean {
 function paginate(rawDocs: any[], page: number, pageSize: number): MapListResult {
   // pageSize<=0 は全件取得(ページネーションなし)
   if (pageSize <= 0) {
-    return { docs: rawDocs, prev: false, next: false };
+    return { docs: rawDocs, prev: false, next: false, total: rawDocs.length };
   }
   let currentPage = page;
   let pageUpdate: number | undefined;
@@ -52,6 +52,7 @@ function paginate(rawDocs: any[], page: number, pageSize: number): MapListResult
     docs: pageDocs,
     prev: currentPage > 1,
     next: rawDocs.length > start + pageSize,
+    total: rawDocs.length,
   };
   if (pageUpdate !== undefined) result.pageUpdate = pageUpdate;
   return result;

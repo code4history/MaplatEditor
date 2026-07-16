@@ -9,7 +9,6 @@
     <template v-else>
       <span data-resource-count>{{ countLabel }}</span>
       <span v-if="state === 'appending'" class="ms-2">{{ t("resource_list.loading") }}</span>
-      <span v-else-if="state === 'end'" class="ms-2">・{{ t("resource_list.end") }}</span>
       <span v-else-if="state === 'append-error'" class="ms-2 text-danger">
         {{ t("resource_list.append_error") }}
         <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-resource-retry @click="emit('retry')">{{ t("resource_list.retry") }}</button>
@@ -27,9 +26,14 @@ const props = defineProps<{ state: ResourceListState; total: number | null; load
 const emit = defineEmits<{ retry: [] }>();
 
 const { t } = useTranslation();
-const countLabel = computed(() =>
-  props.total == null
-    ? t("resource_list.loaded_only", { loaded: props.loaded })
-    : t("resource_list.total_loaded", { total: props.total, loaded: props.loaded }),
-);
+// 件数表示の統一ルール(2026-07-16 人間指示):
+//   完載(end / loaded>=total) → 「全N件」 / 部分表示 → 「全N件中 M件表示」 / total不明 → 「M件表示中」
+const countLabel = computed(() => {
+  if (props.total != null) {
+    return props.state === "end" || props.loaded >= props.total
+      ? t("resource_list.total_only", { total: props.total })
+      : t("resource_list.total_partial", { total: props.total, loaded: props.loaded });
+  }
+  return t("resource_list.loaded_only", { loaded: props.loaded });
+});
 </script>

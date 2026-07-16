@@ -7,7 +7,8 @@ export interface MapListAdapterDeps {
   selectedUid: () => string | null;
 }
 
-// page式 maplist backend を cursor(=ページ番号) へ内部包装する（D1）。maplist は total を返さない → total: null（D8改）。
+// page式 maplist backend を cursor(=ページ番号) へ内部包装する（D1）。
+// 件数表示統一(2026-07-16 人間指示、旧D8改を更新): backend が total を返すようになったため実値を通す。
 export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdapter<MapListRow, number> {
   return {
     async load({ filter, cursor }) {
@@ -16,7 +17,7 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
       // pageUpdate: 最終ページ全削除時のバックエンド補正。cursor 連鎖は補正値へ揃える（D9）。
       const effectivePage = (result.pageUpdate ?? page) as number;
       const nextCursor = result.next ? effectivePage + 1 : null;
-      return { items: result.docs as MapListRow[], total: null, nextCursor };
+      return { items: result.docs as MapListRow[], total: (result as { total?: number }).total ?? null, nextCursor };
     },
     toViewModel(item): ResourceListItemViewModel {
       return {

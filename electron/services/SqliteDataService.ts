@@ -36,6 +36,8 @@ export interface MapListResult {
   prev: boolean;
   next: boolean;
   pageUpdate?: number;
+  /** 条件一致の総件数。一覧の「全N件」表示に使う(2026-07-16 件数表示統一) */
+  total?: number;
 }
 
 export interface AppListResult {
@@ -43,6 +45,8 @@ export interface AppListResult {
   prev: boolean;
   next: boolean;
   pageUpdate?: number;
+  /** 条件一致の総件数。一覧の「全N件」表示に使う(2026-07-16 件数表示統一) */
+  total?: number;
 }
 
 export interface BaseMapVisibilityItem {
