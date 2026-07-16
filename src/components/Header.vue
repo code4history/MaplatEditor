@@ -128,12 +128,14 @@ const navigate = (targetName: string) => {
     background-color: var(--editor-ui-header-bg) !important; /* BS3 navbar-inverse bg */
     border-color: var(--editor-ui-header-bg-active);
     padding: 0;
+    flex-wrap: nowrap !important;
 }
 
 .container-fluid {
     height: 100%;
     padding-left: 15px;
     padding-right: 15px;
+    flex-wrap: nowrap !important;
 }
 
 .navbar-brand {
