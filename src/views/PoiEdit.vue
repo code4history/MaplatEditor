@@ -129,7 +129,7 @@
       <!-- 診断領域 (内容があるときのみ表示)。M11-T7/AC8: T5 の DiagnosticFeedback 文法
            (section=検証まとめ・operation=保存エラー、即時表示)へ移行 -->
       <div
-        v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarnings.length"
+        v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarnings.length || missingAssetWarningItems.length"
         class="px-4 py-2 flex-shrink-0 overflow-auto"
         style="max-height: 40%;"
       >
@@ -151,6 +151,8 @@
         <DiagnosticFeedback v-if="liveErrorItems.length" scope="section" :items="liveErrorItems" />
         <!-- POI-108 無コンテンツ警告 / POI-121 規模警告 -->
         <DiagnosticFeedback v-if="liveWarningItems.length" scope="section" :items="liveWarningItems" />
+        <!-- M11-T9 AC14: Asset Reference 欠落警告（欠落UIDがある場合のみ表示） -->
+        <DiagnosticFeedback v-if="missingAssetWarningItems.length" scope="section" :items="missingAssetWarningItems" />
       </div>
 
       <!-- 地図ペイン (主役、仕様 §3.3) + 右カラム: 属性フォーム (Task 7) の下に
@@ -237,6 +239,7 @@ import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
+import { collectAssetRefsInFc, collectImageAssetUids } from "../utils/poiContentMode";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
 import { isEditableElement } from "../utils/nativeTextUndo";
 import { isTranslationMode } from "../utils/editorLanguageMode";
@@ -466,6 +469,59 @@ const liveWarnings = computed<string[]>(() => {
     keys.push("poiedit.size_warning");
   }
   return keys;
+});
+
+// M11-T9 AC14: Asset Reference 欠落診断。
+// HTML内の maplat-asset:<UID> (collectAssetRefsInFc) と、画像欄のアセットUID直接参照
+// (collectImageAssetUids、人間検証Round1で標準表示の画像が未検査だった穴を解消) を合算し、
+// window.imageAssets.getFilePath で1件ずつ存在照会して解決できない UID のみ warning を立てる。
+// 参照が1件もない場合は何も表示しない（有効な参照だけならノイズ警告しない）。
+const missingAssetRefUids = ref<string[]>([]);
+const assetRefCheckSeq = ref(0);
+
+watch(
+  () => session.state.value?.features,
+  (features) => {
+    // load() 前は toSaveFc() が throw し watcher ごと停止するため、state 未初期化時はスキップする
+    if (!features) {
+      missingAssetRefUids.value = [];
+      return;
+    }
+    const seq = ++assetRefCheckSeq.value;
+    const fc = session.toSaveFc();
+    const uidSet = collectAssetRefsInFc(fc);
+    for (const f of (fc as { features?: Array<{ properties?: Record<string, unknown> }> }).features ?? []) {
+      for (const uid of collectImageAssetUids(f?.properties?.image)) uidSet.add(uid);
+    }
+    const uids = [...uidSet];
+    if (uids.length === 0) {
+      missingAssetRefUids.value = [];
+      return;
+    }
+    // 非同期で各UIDの存在を確認
+    Promise.all(uids.map(async (uid) => {
+      try {
+        const path = await window.imageAssets.getFilePath(uid);
+        return path ? null : uid; // null = resolved
+      } catch {
+        return uid; // error = missing
+      }
+    })).then((results) => {
+      if (seq !== assetRefCheckSeq.value) return; // stale
+      const missing = results.filter((uid): uid is string => uid !== null);
+      missingAssetRefUids.value = missing;
+    });
+  },
+  { immediate: true, deep: true },
+);
+
+const missingAssetWarningItems = computed<DiagnosticItem[]>(() => {
+  if (missingAssetRefUids.value.length === 0) return [];
+  return [{
+    key: "missing-asset-ref",
+    severity: "warning" as const,
+    message: t("poiedit.missing_asset_refs", { count: missingAssetRefUids.value.length }),
+  }];
 });
 
 // M11-T7/AC8: 診断領域の DiagnosticFeedback items(T5 文法 DiagnosticItem = {key, severity, message})

@@ -16,14 +16,16 @@
         {{ t("poiedit.feature_count", { filtered: filteredRows.length, total: allRows.length }) }}
       </span>
       <!-- 新規作成 (地図中央に配置 + フォームフォーカスは PoiEdit の mapSession 経由)。
+           M11-T9/AC18: Resource List の + アクションと同一の文法（アイコン・ボタンclass）に統一。
            ReadOnly では非表示 -->
       <button
         v-if="!readOnly"
         type="button"
-        class="btn btn-sm btn-outline-primary text-nowrap"
+        class="btn btn-outline-primary btn-sm"
+        data-resource-new
         @click="emit('create')"
       >
-        {{ t("poiedit.add_poi") }}
+        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ t("poiedit.add_poi") }}
       </button>
     </div>
     <!-- windowing スクロールコンテナ: 可視範囲 + overscan の行だけ DOM 化し、

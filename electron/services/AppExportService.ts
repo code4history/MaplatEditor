@@ -15,6 +15,7 @@ import {
   mergeIconFiles,
   mergeWarnings,
   resolvePoisArray,
+  resolveAssetRefsForExport,
   DUPLICATE_POI_REFERENCE_WARNING,
   type IconFile,
 } from './poiReferenceResolver';
@@ -263,7 +264,14 @@ class AppExportService {
           const resolved = await resolvePoisArray((mapJson as any).pois);
           mergeWarnings(warnings, resolved.warnings);
           mergeIconFiles(iconFiles, resolved.files);
-          (mapJson as any).pois = resolved.pois;
+          // M11-T9: maplat-asset:<UID> をエクスポート用パスに解決 + Asset実体収集
+          const assetRefResults = await Promise.all(
+            resolved.pois.map((poi: unknown) => resolveAssetRefsForExport(poi, iconFiles)),
+          );
+          for (const r of assetRefResults) {
+            mergeWarnings(warnings, r.warnings);
+          }
+          (mapJson as any).pois = assetRefResults.map((r) => r.entry);
         }
         await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson, { spaces: 4 });
         progressState.step++;
@@ -457,7 +465,14 @@ class AppExportService {
       const resolved = await resolvePoisArray(pois);
       mergeWarnings(warnings, resolved.warnings);
       mergeIconFiles(iconFiles, resolved.files);
-      if (resolved.pois.length > 0) out.pois = resolved.pois;
+      // M11-T9: app 側 pois の asset ref も解決
+      const appAssetRefResults = await Promise.all(
+        resolved.pois.map((poi: unknown) => resolveAssetRefsForExport(poi, iconFiles)),
+      );
+      for (const r of appAssetRefResults) {
+        mergeWarnings(warnings, r.warnings);
+      }
+      if (appAssetRefResults.length > 0) out.pois = appAssetRefResults.map((r) => r.entry);
     }
     return out;
   }

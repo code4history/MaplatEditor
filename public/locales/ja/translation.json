@@ -690,7 +690,9 @@
       "unsupported_scheme": "URLはhttp/httpsのみ対応しています",
       "payload_too_large": "データサイズが上限（50MB）を超えています",
       "pick_failed": "ファイルを選択できませんでした",
-      "references_unavailable": "参照情報を取得できませんでした"
+      "references_unavailable": "参照情報を取得できませんでした",
+      "content_mode_url_format": "URLに http/https 以外のプロトコル（javascript: 等）は使用できません。",
+      "content_mode_html_missing_content": "HTMLモードですがHTML内容が空です。"
     }
   },
   "poiedit": {
@@ -752,7 +754,20 @@
       "no_assets": "アセットが見つかりません",
       "set_builtin": "標準"
     },
-    "saving": "保存中…"
+    "saving": "保存中…",
+    "content_mode_standard": "標準表示",
+    "content_mode_html": "HTML",
+    "content_mode_url": "外部ページ",
+    "content_mode_mismatch": "現在の表示形式と整合しないフィールド（{{fields}}）に値が残っています。表示形式を切り替えるとこれらの値は削除されます。",
+    "content_mode_switch_title": "表示形式の切替",
+    "content_mode_switch_warning": "{{fields}}の内容が削除されます。よろしいですか？",
+    "content_mode_confirm": "切替",
+    "content_mode_cancel": "キャンセル",
+    "reference_assets": "参照素材",
+    "copy_ref": "参照をコピー",
+    "insert_image": "画像を挿入",
+    "add_reference_asset": "素材を追加",
+    "missing_asset_refs": "参照先が存在しないアセット参照が{{count}}件あります。アセットが削除されていないか確認してください。"
   },
   "assetlist": {
     "master_detail": {

@@ -687,7 +687,9 @@
       "unsupported_scheme": "Only http/https URLs are supported",
       "payload_too_large": "The data exceeds the size limit (50MB)",
       "pick_failed": "Could not pick a file",
-      "references_unavailable": "Could not retrieve reference information"
+      "references_unavailable": "Could not retrieve reference information",
+      "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
     }
   },
   "app": {
@@ -752,7 +754,20 @@
       "no_assets": "No image assets found",
       "set_builtin": "Built-in"
     },
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "content_mode_standard": "Standard",
+    "content_mode_html": "HTML",
+    "content_mode_url": "Web Page",
+    "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
+    "content_mode_switch_title": "Switch Content Mode",
+    "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
+    "content_mode_confirm": "Switch",
+    "content_mode_cancel": "Cancel",
+    "reference_assets": "Reference Assets",
+    "copy_ref": "Copy Reference",
+    "insert_image": "Insert Image",
+    "add_reference_asset": "Add Asset",
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
   },
   "assetlist": {
     "master_detail": {

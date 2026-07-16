@@ -13,6 +13,7 @@ import {
   resolveEditorLanguage,
   type LangCode,
 } from "./editorLanguages";
+import { estimateContentMode } from "./poiContentMode";
 
 // POI editor の default 言語 (ADR-0005 既定)。title / feature の LangResource フィールドを
 // 交換形へ collapse する際にこの言語のみなら string 化する。各公開関数は optional な
@@ -77,6 +78,17 @@ export function normalizePoiSourceCollection(
   const features = ensureFeatureUids(
     ensureDisplayIds(normalizeLegacyPoiList(input, lang)).features,
   );
+  // _maplatContentMode が無い feature に legacy 推定値を設定。
+  // 既に値がある feature は上書きしない（ユーザー設定を尊重）。
+  const featuresWithMode = features.map((f) => {
+    if (f.properties._maplatContentMode === undefined) {
+      const estimated = estimateContentMode(f.properties);
+      if (estimated !== undefined) {
+        return { ...f, properties: { ...f.properties, _maplatContentMode: estimated } };
+      }
+    }
+    return f;
+  });
   const layerMeta: Record<string, unknown> = {};
   if (source.type === "FeatureCollection") {
     for (const [key, value] of Object.entries(source)) {
@@ -84,7 +96,7 @@ export function normalizePoiSourceCollection(
       layerMeta[key] = value;
     }
   }
-  return { ...layerMeta, type: "FeatureCollection", lang, features };
+  return { ...layerMeta, type: "FeatureCollection", lang, features: featuresWithMode };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -151,6 +163,44 @@ function externalizeLangFields(
       else props[key] = compacted;
     }
   }
+}
+
+// LangResource 値が非空の string または非空の言語値を持つか。
+function hasNonEmptyStringOrLangValue(value: unknown): boolean {
+  if (typeof value === "string") return value.trim() !== "";
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return Object.values(value as Record<string, unknown>).some(
+      (v) => typeof v === "string" && v.trim() !== "",
+    );
+  }
+  return false;
+}
+
+// LangResource 値（全言語）の中に、url mode で許可されないプロトコル
+// （http/https 以外かつ先頭が protocol:// 形式）が 1 件でもあるか。
+// 許可: http: / https: で始まる、またはプロトコル文字列を持たない（相対パス・空）。
+// 拒否: javascript: / data: / vbscript: / ftp: / file: 等、何らかのプロトコル識別子を持つものすべて。
+function hasDangerousUrlProtocol(value: unknown): boolean {
+  if (typeof value === "string") {
+    return isDangerousUrlString(value);
+  }
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return Object.values(value as Record<string, unknown>).some(
+      (v) => typeof v === "string" && isDangerousUrlString(v),
+    );
+  }
+  return false;
+}
+
+function isDangerousUrlString(s: string): boolean {
+  const trimmed = s.trim();
+  if (trimmed === "") return false;
+  // プロトコル識別子がなければ相対パスとみなし許可
+  if (!/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return false;
+  // http: または https: は許可
+  if (/^https?:\/\//i.test(trimmed)) return false;
+  // その他のプロトコル（javascript:/data:/vbscript:/ftp:等）は拒否
+  return true;
 }
 
 // feature が「コンテンツ」(desc/html/address/url/image のいずれか非空) を持つか (POI-108)。
@@ -266,6 +316,29 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
     }
 
     if (hasContent(props)) anyContent = true;
+
+    // --- Content Mode 検証 (M11-T9) ---
+    const mode = props._maplatContentMode;
+    if (mode === 'html') {
+      // html mode で html が空 → warning
+      if (!hasNonEmptyStringOrLangValue(props.html)) {
+        issues.push({
+          level: "warning",
+          code: "content-mode-html-missing-content",
+          featureId: id,
+        });
+      }
+    }
+    if (mode === 'url') {
+    // url mode で url が http:/https: 以外のプロトコル → error（全言語走査）
+    if (hasDangerousUrlProtocol(props.url)) {
+      issues.push({
+        level: "error",
+        code: "content-mode-url-format",
+        featureId: id,
+      });
+    }
+  }
   }
 
   // 無コンテンツ warning (POI-108): ソース全体が無コンテンツ (かつ 1 件以上) の時に単一 warning
@@ -581,6 +654,13 @@ export function fromExportForm(
     const prevUid = prev?.properties?._maplatUid;
     props._maplatUid =
       typeof prevUid === "string" && prevUid !== "" ? prevUid : mintUid();
+
+    // export 形から戻した feature に _maplatContentMode を再推定
+    // （_maplat* は上で剥がされるので、legacy データの html/url から推定する）
+    const estimated = estimateContentMode(props);
+    if (estimated !== undefined) {
+      props._maplatContentMode = estimated;
+    }
 
     const geometry = isRecord(rec.geometry)
       ? (rec.geometry as unknown as Point)
