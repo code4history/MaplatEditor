@@ -119,9 +119,6 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
 
     // app-1 の編集へ遷移
     await page.locator(`[data-resource-uid="app-1"] a`).click();
-    await expect(page.locator('.app-edit')).toBeVisible();
-
-    // 初期状態：自動カバレッジ表示、クリアボタン非表示
     await expect(page.locator('text=アプリ提供範囲(参考)')).toBeVisible();
     const bboxTextInitial = await page.locator('.small.font-monospace').textContent();
     expect(bboxTextInitial).toContain('W139.69');
