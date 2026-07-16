@@ -3,7 +3,7 @@
   "name": "全文・空間検索 / App Coverage / 2カラムselector / GCP auto range",
   "status": "implementation_in_progress",
   "classification": "new feature",
-  "design_revision": 2,
+  "design_revision": 3.1,
   "design_doc": "docs/superpowers/specs/2026-07-16-m11-t8-search-coverage-design.md",
   "outer_branch": "codex/m11-t8",
   "outer_worktree": ".worktrees/m11-t5",

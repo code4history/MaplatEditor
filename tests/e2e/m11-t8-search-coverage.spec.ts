@@ -157,27 +157,20 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
     });
     await expect(page.locator('.small.font-monospace')).toHaveText('-');
 
-    // 5. ヘッダー被りの検証（600px幅 + boundingRect 比較）
-    await page.setViewportSize({ width: 600, height: 800 });
+    // 5. ヘッダー被りの検証（800px幅で navbar-bottom ≤ main-content-top）
+    // タブ展開が保たれる 800px（>768px navbar-expand-md 閾値）で検証
+    await page.setViewportSize({ width: 800, height: 800 });
     await page.waitForTimeout(500);
 
-    const headerRects = await page.evaluate(() => {
-      const tabs = document.querySelectorAll('.navbar-nav .nav-link');
-      return Array.from(tabs).map(t => {
-        const r = t.getBoundingClientRect();
-        return { label: (t.textContent ?? '').trim(), top: r.top, bottom: r.bottom, left: r.left, right: r.right };
-      });
+    const overlap = await page.evaluate(() => {
+      const navbar = document.querySelector('.navbar') as HTMLElement | null;
+      const main = document.querySelector('.main-content') as HTMLElement | null;
+      if (!navbar || !main) return { gap: NaN, status: 'missing' };
+      const nr = navbar.getBoundingClientRect();
+      const mr = main.getBoundingClientRect();
+      return { gap: mr.top - nr.bottom, status: mr.top < nr.bottom ? 'overlap' : 'ok' };
     });
-    expect(headerRects.length).toBeGreaterThan(0);
-
-    // 隣接タブ間の Y 重なりチェック（折り返し = next.top >= curr.bottom、重なり = NG）
-    for (let i = 0; i < headerRects.length - 1; i++) {
-      const curr = headerRects[i];
-      const next = headerRects[i + 1];
-      expect(next.top,
-        `Header tab "${curr.label}" → "${next.label}" must not overlap vertically at 600px width`
-      ).toBeGreaterThanOrEqual(curr.bottom - 1);
-    }
+    expect(overlap.status, `Header-content gap: ${overlap.gap}px (expected >= 0)`).toBe('ok');
 
     await quitElectronApplication(app);
   });

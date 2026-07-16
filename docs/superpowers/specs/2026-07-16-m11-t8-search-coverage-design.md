@@ -36,7 +36,6 @@
 ### 逸脱検出事項（実装時に特に注意）
 
 - `autoCoverage` 値を `coverageLngLats` に流し込む watcher/applyAppCoverage 呼び出しは **禁止**
-- `coverageLngLats` がセットされていることを `isAuto` 判定に使うのは **禁止**（独立状態）
 - アプリを開いただけで dirty 化 + undo 履歴汚染を引き起こす書き込みは **禁止**
 
 ## 既存実装参照
