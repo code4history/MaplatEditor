@@ -424,10 +424,11 @@ async function discardRestoredDraft() {
   await load(uid);
 }
 
+// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug 代用はしない(M11-T10)
 const displayTitle = computed(() => {
   const state = editState.value;
   if (!state) return "";
-  return localizeTitle(state.title, currentLang.value) || state.slug;
+  return localizeTitle(state.title, currentLang.value);
 });
 const saveState = computed<EditorSaveState>(() => {
   if (saving.value) return "saving";

@@ -285,7 +285,8 @@ const previewUrl = ref("");
 const historyStack = ref<UndoStack<AppDocument> | null>(null);
 const historyApplying = ref(false);
 
-const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName) || appData.value.appID);
+// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug(appID) 代用はしない(M11-T10)
+const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName));
 const translationMode = computed(() =>
   isTranslationMode(currentLang.value, appData.value.lang),
 );
@@ -1108,7 +1109,7 @@ function onPoisChange(next: unknown[]) {
       :label="saving ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
     />
     <EditorActionHeader
-      :title="displayTitle || appData.appID || t('appedit.new_app')"
+      :title="displayTitle"
       :save-state="saveState"
       :active-lang="currentLang"
       :language-options="SUPPORTED_LANGUAGES"

@@ -832,16 +832,14 @@ const onMainProcessMessage = (message: string) => {
 
 /**
  * 旧実装 computed.displayTitle 相当（map.js L.123）
- * タイトル未設定時は 'mapmodel.untitled' キーを使う
+ * タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)へ一元化(M11-T10)
  */
 const displayTitle = computed(() => {
     const title = mapData.value.title;
-    if (!title) return t('mapmodel.untitled');
+    if (!title) return '';
     if (typeof title !== 'object') return title;
     const lang = mapData.value.lang || 'ja';
-    const defTitle = title[lang];
-    if (defTitle) return defTitle;
-    return t('mapmodel.untitled');
+    return title[lang] || '';
 });
 
 /**
@@ -3062,7 +3060,7 @@ const goBack = async () => {
         />
 
         <EditorActionHeader
-            :title="displayTitle || mapData.mapID || mapID"
+            :title="displayTitle"
             :save-state="saveState"
             :active-lang="currentLang"
             :language-options="SUPPORTED_LANGUAGES"
