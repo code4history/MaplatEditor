@@ -25,16 +25,12 @@
       @discard-draft="discardDraft"
     />
 
+    <!-- M11-T10 (人間検証R3): 全量サマリバナーは廃止し Map/App と同じ
+         「field 診断 + バナーは操作エラーのみ」の文法へ統一 -->
     <DiagnosticFeedback
       v-if="error"
       scope="operation"
       :items="[{ key: 'save-error', severity: 'danger', message: error }]"
-    />
-    <DiagnosticFeedback
-      v-else-if="sectionDiagnostics.length"
-      scope="section"
-      :items="sectionDiagnostics"
-      data-testid="asset-validation-summary"
     />
     <div v-if="conflictRevision !== null" class="alert alert-warning rounded-0 mb-0 py-2 d-flex align-items-center gap-2 flex-wrap">
       <span class="flex-grow-1">{{ t("common.revision_conflict") }}</span>
@@ -70,6 +66,7 @@
             :asset-uid="document.uid"
             :draft-uid="document.uid"
             :original-slug="originalSlug"
+            :required="true"
             :disabled="structuralDisabled"
             input-testid="asset-slug"
             @update:model-value="slugLive = $event"
@@ -136,6 +133,7 @@ import EditorField from "../editor-ui/EditorField.vue";
 import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
 import SlugField from "../editor-ui/SlugField.vue";
 import type { DiagnosticItem, EditorSaveState } from "../editor-ui/editorUiTypes";
+import { validationFieldDiagnostics } from "../editor-ui/validationDiagnostics";
 import { useAssetDraftLifecycle } from "../../composables/useAssetDraftLifecycle";
 import { useInitialDraftPersist } from "../../composables/useInitialDraftPersist";
 import type { SlugFieldState } from "../../composables/useSlugAvailability";
@@ -212,19 +210,14 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   "title-required": "assetlist.errors.title_required",
   "source-required": "assetlist.master_detail.reselect_required",
 };
-// 指定 code 集合を field 診断（danger）へ。全項目を即時表示する（dirty ゲートなし）。
-function diagnosticsFor(codes: readonly string[]): DiagnosticItem[] {
-  return validation.value.errors
-    .filter((code) => codes.includes(code))
-    .map((code) => ({ key: code, severity: "danger" as const, message: t(VALIDATION_MESSAGE_KEYS[code]) }));
-}
+// field 診断（danger）への変換は共通 validationFieldDiagnostics(M11-T10)。全項目を即時表示（dirtyゲートなし）。
+// slug-required/slug-invalid は SlugField(required + 形式診断内蔵)が field 側で表示する。
+const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
+  validationFieldDiagnostics(validation.value.errors, VALIDATION_MESSAGE_KEYS, t, codes);
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
 const sourceDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["source-required"]));
-// section summary は全 validation error を同じ文法で併記する。
-const sectionDiagnostics = computed<DiagnosticItem[]>(() =>
-  validation.value.errors.map((code) => ({ key: code, severity: "danger" as const, message: t(VALIDATION_MESSAGE_KEYS[code]) })),
-);
-const displayTitle = computed(() => localizeTitle(document.value.title, activeLang.value) || document.value.slug || t("assetlist.master_detail.untitled"));
+// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug 代用はしない(M11-T10)
+const displayTitle = computed(() => localizeTitle(document.value.title, activeLang.value));
 const saveState = computed<EditorSaveState>(() => saving.value ? "saving" : draftLifecycle.draftRestored.value ? "draft-restored" : dirty.value ? "dirty" : "saved");
 const dimensions = computed(() => document.value.width !== null && document.value.height !== null ? `${document.value.width}×${document.value.height}` : "-");
 const fileSize = computed(() => document.value.byteSize === null ? "-" : `${Math.max(1, Math.round(document.value.byteSize / 1024))} KB`);
