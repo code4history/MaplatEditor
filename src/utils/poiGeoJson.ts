@@ -13,6 +13,7 @@ import {
   resolveEditorLanguage,
   type LangCode,
 } from "./editorLanguages";
+import { estimateContentMode } from "./poiContentMode";
 
 // POI editor の default 言語 (ADR-0005 既定)。title / feature の LangResource フィールドを
 // 交換形へ collapse する際にこの言語のみなら string 化する。各公開関数は optional な
@@ -77,6 +78,17 @@ export function normalizePoiSourceCollection(
   const features = ensureFeatureUids(
     ensureDisplayIds(normalizeLegacyPoiList(input, lang)).features,
   );
+  // _maplatContentMode が無い feature に legacy 推定値を設定。
+  // 既に値がある feature は上書きしない（ユーザー設定を尊重）。
+  const featuresWithMode = features.map((f) => {
+    if (f.properties._maplatContentMode === undefined) {
+      const estimated = estimateContentMode(f.properties);
+      if (estimated !== undefined) {
+        return { ...f, properties: { ...f.properties, _maplatContentMode: estimated } };
+      }
+    }
+    return f;
+  });
   const layerMeta: Record<string, unknown> = {};
   if (source.type === "FeatureCollection") {
     for (const [key, value] of Object.entries(source)) {
@@ -84,7 +96,7 @@ export function normalizePoiSourceCollection(
       layerMeta[key] = value;
     }
   }
-  return { ...layerMeta, type: "FeatureCollection", lang, features };
+  return { ...layerMeta, type: "FeatureCollection", lang, features: featuresWithMode };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -581,6 +593,13 @@ export function fromExportForm(
     const prevUid = prev?.properties?._maplatUid;
     props._maplatUid =
       typeof prevUid === "string" && prevUid !== "" ? prevUid : mintUid();
+
+    // export 形から戻した feature に _maplatContentMode を再推定
+    // （_maplat* は上で剥がされるので、legacy データの html/url から推定する）
+    const estimated = estimateContentMode(props);
+    if (estimated !== undefined) {
+      props._maplatContentMode = estimated;
+    }
 
     const geometry = isRecord(rec.geometry)
       ? (rec.geometry as unknown as Point)
