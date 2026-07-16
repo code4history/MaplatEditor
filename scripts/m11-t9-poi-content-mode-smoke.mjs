@@ -354,6 +354,100 @@ try {
     console.log('  case 5e (html mode with content → no warning): PASS');
   }
 
+  // 5f: vbscript: URL in url mode → error (blocklist catch-all)
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p6',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'url',
+            name: { ja: 'test' },
+            url: 'vbscript:msgbox(1)',
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const urlIssue = issues.find((i) => i.code === 'content-mode-url-format');
+    assert.ok(urlIssue, 'vbscript: URL in url mode should be error');
+    assert.equal(urlIssue.level, 'error');
+    console.log('  case 5f (vbscript: URL → error, allowlist): PASS');
+  }
+
+  // 5g: ftp: URL in url mode → error (not in http/https allowlist)
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p7',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'url',
+            name: { ja: 'test' },
+            url: 'ftp://example.com/file',
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const urlIssue = issues.find((i) => i.code === 'content-mode-url-format');
+    assert.ok(urlIssue, 'ftp: URL in url mode should be error');
+    console.log('  case 5g (ftp: URL → error, allowlist): PASS');
+  }
+
+  // 5h: relative path in url mode → no error
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p8',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'url',
+            name: { ja: 'test' },
+            url: '/page/subpage',
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const urlIssue = issues.find((i) => i.code === 'content-mode-url-format');
+    assert.equal(urlIssue, undefined, 'relative path should be allowed');
+    console.log('  case 5h (relative path in url mode → no error): PASS');
+  }
+
+  // 5i: javascript: in SECOND language of LangResource → error (full lang walk)
+  {
+    const fc = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          id: 'p9',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {
+            _maplatContentMode: 'url',
+            name: { ja: 'test' },
+            url: { ja: 'https://example.com', en: 'javascript:alert(1)' },
+          },
+        },
+      ],
+    };
+    const issues = validateFeatureCollection(fc);
+    const urlIssue = issues.find((i) => i.code === 'content-mode-url-format');
+    assert.ok(urlIssue, 'javascript: in second lang should be caught');
+    assert.equal(urlIssue.level, 'error');
+    console.log('  case 5i (javascript: in second LangResource lang → error, full walk): PASS');
+  }
+
   console.log('m11-t9-poi-content-mode smoke: PASS');
 } finally {
   await rm(workDir, { recursive: true, force: true });

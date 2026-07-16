@@ -176,15 +176,31 @@ function hasNonEmptyStringOrLangValue(value: unknown): boolean {
   return false;
 }
 
-// LangResource から最初の非空文字列を取得（url format validation 用）。
-function getFirstLangStringValue(value: unknown): string | undefined {
-  if (typeof value === "string") return value;
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    for (const v of Object.values(value as Record<string, unknown>)) {
-      if (typeof v === "string" && v.trim() !== "") return v;
-    }
+// LangResource 値（全言語）の中に、url mode で許可されないプロトコル
+// （http/https 以外かつ先頭が protocol:// 形式）が 1 件でもあるか。
+// 許可: http: / https: で始まる、またはプロトコル文字列を持たない（相対パス・空）。
+// 拒否: javascript: / data: / vbscript: / ftp: / file: 等、何らかのプロトコル識別子を持つものすべて。
+function hasDangerousUrlProtocol(value: unknown): boolean {
+  if (typeof value === "string") {
+    return isDangerousUrlString(value);
   }
-  return undefined;
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return Object.values(value as Record<string, unknown>).some(
+      (v) => typeof v === "string" && isDangerousUrlString(v),
+    );
+  }
+  return false;
+}
+
+function isDangerousUrlString(s: string): boolean {
+  const trimmed = s.trim();
+  if (trimmed === "") return false;
+  // プロトコル識別子がなければ相対パスとみなし許可
+  if (!/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return false;
+  // http: または https: は許可
+  if (/^https?:\/\//i.test(trimmed)) return false;
+  // その他のプロトコル（javascript:/data:/vbscript:/ftp:等）は拒否
+  return true;
 }
 
 // feature が「コンテンツ」(desc/html/address/url/image のいずれか非空) を持つか (POI-108)。
@@ -314,19 +330,15 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
       }
     }
     if (mode === 'url') {
-      // url mode で url が javascript: / data: プロトコル → error
-      const urlValue = getFirstLangStringValue(props.url);
-      if (typeof urlValue === 'string' && urlValue.trim() !== '') {
-        const trimmed = urlValue.trim().toLowerCase();
-        if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:')) {
-          issues.push({
-            level: "error",
-            code: "content-mode-url-format",
-            featureId: id,
-          });
-        }
-      }
+    // url mode で url が http:/https: 以外のプロトコル → error（全言語走査）
+    if (hasDangerousUrlProtocol(props.url)) {
+      issues.push({
+        level: "error",
+        code: "content-mode-url-format",
+        featureId: id,
+      });
     }
+  }
   }
 
   // 無コンテンツ warning (POI-108): ソース全体が無コンテンツ (かつ 1 件以上) の時に単一 warning

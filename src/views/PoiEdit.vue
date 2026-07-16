@@ -151,6 +151,8 @@
         <DiagnosticFeedback v-if="liveErrorItems.length" scope="section" :items="liveErrorItems" />
         <!-- POI-108 無コンテンツ警告 / POI-121 規模警告 -->
         <DiagnosticFeedback v-if="liveWarningItems.length" scope="section" :items="liveWarningItems" />
+        <!-- M11-T9 AC14: Asset Reference 欠落警告（欠落UIDがある場合のみ表示） -->
+        <DiagnosticFeedback v-if="missingAssetWarningItems.length" scope="section" :items="missingAssetWarningItems" />
       </div>
 
       <!-- 地図ペイン (主役、仕様 §3.3) + 右カラム: 属性フォーム (Task 7) の下に
@@ -466,14 +468,50 @@ const liveWarnings = computed<string[]>(() => {
   if (issues.some((i) => i.code === "scale-feature-count" || i.code === "scale-byte-size")) {
     keys.push("poiedit.size_warning");
   }
-  // M11-T9 AC14: Asset Reference が存在する場合、保存前に注意を促す
-  // （欠落Assetの厳密な存在確認は保存時の backend 側 findAssetReferences が担当）
-  const fc = session.toSaveFc();
-  const assetUids = collectAssetRefsInFc(fc);
-  if (assetUids.size > 0) {
-    keys.push("poiedit.asset_refs_present");
-  }
   return keys;
+});
+
+// M11-T9 AC14: Asset Reference 欠落診断。
+// collectAssetRefsInFc で収集した UID を window.imageAssets.getFilePath で1件ずつ存在照会し、
+// 解決できない UID があればwarning キーを立てる。
+// 参照が1件もない場合は何も表示しない（有効な参照だけならノイズ警告しない）。
+const missingAssetRefUids = ref<string[]>([]);
+const assetRefCheckSeq = ref(0);
+
+watch(
+  () => session.state.value?.features,
+  () => {
+    const seq = ++assetRefCheckSeq.value;
+    const fc = session.toSaveFc();
+    const uids = [...collectAssetRefsInFc(fc)];
+    if (uids.length === 0) {
+      missingAssetRefUids.value = [];
+      return;
+    }
+    // 非同期で各UIDの存在を確認
+    Promise.all(uids.map(async (uid) => {
+      try {
+        const path = await window.imageAssets.getFilePath(uid);
+        return path ? null : uid; // null = resolved
+      } catch {
+        return uid; // error = missing
+      }
+    })).then((results) => {
+      if (seq !== assetRefCheckSeq.value) return; // stale
+      const missing = results.filter((uid): uid is string => uid !== null);
+      missingAssetRefUids.value = missing;
+    });
+  },
+  { immediate: true, deep: true },
+);
+
+const missingAssetWarningItems = computed<DiagnosticItem[]>(() => {
+  if (missingAssetRefUids.value.length === 0) return [];
+  return [{
+    key: "missing-asset-ref",
+    severity: "warning" as const,
+    message: t("poiedit.missing_asset_refs", { count: missingAssetRefUids.value.length }),
+  }];
 });
 
 // M11-T7/AC8: 診断領域の DiagnosticFeedback items(T5 文法 DiagnosticItem = {key, severity, message})
