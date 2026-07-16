@@ -15,6 +15,10 @@
       @retry="retry"
       @load-more="loadMore"
     >
+      <template #secondary>
+        <ImportSlot kind="map" @import="onImportMap" />
+      </template>
+
       <div class="d-flex flex-wrap justify-content-start align-items-start gap-4 p-3">
         <ResourceGridCard
           v-for="vm in viewModels"
@@ -37,6 +41,16 @@
         />
       </div>
     </ResourceListShell>
+
+    <DeleteConfirmDialog
+      :visible="deletion.dialog.visible" :title="deletion.dialog.title"
+      :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
+    />
+    <div v-if="deletion.error.value" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
+      <DiagnosticFeedback scope="operation" dismissible
+        :items="[{ key: 'list-op-error', severity: 'danger', message: deletion.error.value }]"
+        @dismiss="deletion.error.value = null" />
+    </div>
   </div>
 </template>
 
@@ -47,18 +61,22 @@ import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
+import { useResourceDelete } from "../composables/useResourceDelete";
+import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
 import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
+import ImportSlot from "../components/resource-list/ImportSlot.vue";
+import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
+import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges("map");
-const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
+const { hasDraft, newDrafts, latestNewDraft, refreshDrafts, removeNewDraft } = useAssetDraftBadges("map");
 
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
 const selectedUidRef = { value: null as string | null };
@@ -108,32 +126,33 @@ const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((
 function updateQuery(value: string): void {
   void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
 }
-function createNewMap(): void { void router.push("/mapedit"); }
+// M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
+function createNewMap(): void {
+  const pending = latestNewDraft.value;
+  void router.push(pending ? `/mapedit?draftUid=${pending.assetUid}` : "/mapedit");
+}
+// M11-T10 (AC11): インポート導線 — MapEdit の新規モードで既存 importMap フローを自動起動
+function onImportMap(): void { void router.push("/mapedit?new=1&import=1"); }
 
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
+  if (key === "duplicate") { await duplicateByVm(vm); return; }
   if (key !== "delete") return;
-  if (!confirm(t("maplist.delete_confirm", { name: vm.title }))) return;
-  try {
-    await (window as any).maplist.delete(vm.uid, query.value, 1); // backend 側の削除・参照処理は無改変
-    await window.assetDrafts.remove("map", vm.uid);
-    await applyDeletion(vm.uid); // D9: UID除去 + 最終page再取得 dedupe
-    await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to delete map", e);
-    alert(t("maplist.delete_error"));
-  }
+  await deletion.request(vm);
 }
 
-// 新規(未保存)下書きの削除。保存済み地図行は存在しないため draft store のみ消す
-async function removeNewDraft(draft: import("../types/assetDraft").AssetDraftSummary): Promise<void> {
-  const name = draft.label ?? draft.slug ?? t("editor_ui.draft_badge");
-  if (!confirm(t("editor_ui.delete_draft_confirm", { name }))) return;
-  try {
-    await window.assetDrafts.remove("map", draft.assetUid);
-    await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to delete new-map draft", e);
-  }
+// M11-T10: 削除 (useResourceDelete) + 複製 (reserveCopySlug) — 共通 composable に委譲
+const deletion = useResourceDelete({
+  confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
+  onDelete: async (uid) => {
+    await (window as any).maplist.delete(uid, query.value, 1);
+    await window.assetDrafts.remove("map", uid);
+  },
+  onDeleted: async (uid) => { applyDeletion(uid); await refreshDrafts(); },
+});
+async function duplicateByVm(vm: ResourceListItemViewModel) {
+  const reserved = await reserveCopySlug(vm.slug, "map", "map");
+  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }
+  void router.push(duplicateEditorPath("/mapedit", vm.uid, reserved));
 }
 
 let unsubscribe: (() => void) | null = null;

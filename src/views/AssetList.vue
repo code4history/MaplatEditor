@@ -13,7 +13,8 @@
         @select="selectExisting"
         @select-draft="selectDraft"
         @create="createAsset"
-        @delete="deleteAsset"
+        @delete="requestDeleteAsset"
+        @duplicate="duplicateAsset"
         @scroll="saveScroll"
       />
     </div>
@@ -24,6 +25,8 @@
         :uid="selectedUid"
         :is-new="isNew"
         :item="selectedItem"
+        :duplicate-source-item="duplicateSourceItem"
+        :preset-slug="presetSlug"
         :back-visible="false"
         @back="closeEditor"
         @saved="saved"
@@ -42,18 +45,28 @@
         <div><i class="bi bi-images fs-1 d-block mb-2" aria-hidden="true"></i>{{ t("assetlist.master_detail.select_prompt") }}</div>
       </div>
     </div>
+
+    <!-- M11-T10: 共通削除確認 dialog（参照情報つき） -->
+    <DeleteConfirmDialog
+      :visible="deletion.dialog.visible" :title="deletion.dialog.title"
+      :references="deletion.dialog.references" :references-unavailable="deletion.dialog.refsUnavailable"
+      :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import AssetEdit from "../components/assets/AssetEdit.vue";
 import AssetMasterList from "../components/assets/AssetMasterList.vue";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useMasterDetailRouteState } from "../composables/useMasterDetailRouteState";
+import { useResourceDelete } from "../composables/useResourceDelete";
+import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import type { ImageAssetReference, ImageAssetRow } from "../electron";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
 import { localizeTitle } from "../utils/langResource";
@@ -61,8 +74,8 @@ import { localizeTitle } from "../utils/langResource";
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { select, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
-const { draftUids, draftSummaries, refreshDrafts } = useAssetDraftBadges("image-asset");
+const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
+const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("image-asset");
 
 const items = ref<ImageAssetRow[]>([]);
 const selectedCache = ref<ImageAssetRow | null>(null);
@@ -145,8 +158,7 @@ async function selectExisting(uid: string): Promise<void> { await select(uid, fa
 async function selectDraft(uid: string): Promise<void> { await select(uid, true); }
 
 async function createAsset(): Promise<void> {
-  const pending = draftSummaries.value.filter((draft) => draft.baseRevision === null).at(-1);
-  await select(pending?.assetUid ?? crypto.randomUUID(), true);
+  await select(latestNewDraft.value?.assetUid ?? crypto.randomUUID(), true);
 }
 async function closeEditor(): Promise<void> {
   await clearSelection();
@@ -165,36 +177,41 @@ function refreshDraftsSoon(): void {
   draftRefreshTimer = setTimeout(() => { void refreshDraftsNow(); }, 2300);
 }
 
-async function deleteAsset(row: ImageAssetRow): Promise<void> {
-  const title = localizeTitle(row.title, activeLang.value) || row.slug;
-  let references: ImageAssetReference[] = [];
-  let referencesUnavailable = false;
-  try {
-    references = (await window.imageAssets.findReferences(row.uid)).poiSources;
-  } catch (cause) {
-    console.error("Failed to resolve image asset references", cause);
-    referencesUnavailable = true;
-  }
-  let message = t("assetlist.delete_confirm", { name: title });
-  if (referencesUnavailable) {
-    message += `\n\n${t("assetlist.errors.references_unavailable")}`;
-  } else if (references.length) {
-    message += `\n\n${t("assetlist.delete_referenced", { num: references.length })}\n${references
-      .map((reference) => `- ${reference.slug}: ${localizeTitle(reference.title, activeLang.value) || reference.slug}`)
-      .join("\n")}`;
-  }
-  if (!confirm(message)) return;
-  try {
-    if (selectedUid.value === row.uid) await editor.value?.prepareForDelete();
-    await window.imageAssets.delete(row.uid);
-    await window.assetDrafts.remove("image-asset", row.uid);
-    if (selectedUid.value === row.uid) await clearSelection();
+// M11-T10: 共通確認 dialog（native confirm 全廃、useResourceDelete へ委譲）+ 参照情報表示
+const deletion = useResourceDelete({
+  confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
+  references: async (uid) => {
+    const references: ImageAssetReference[] = (await window.imageAssets.findReferences(uid)).poiSources;
+    return references.map((reference) => ({
+      kind: "poi-source", slug: reference.slug, title: localizeTitle(reference.title, activeLang.value) || reference.slug,
+    }));
+  },
+  onDelete: async (uid) => {
+    if (selectedUid.value === uid) await editor.value?.prepareForDelete();
+    await window.imageAssets.delete(uid);
+    await window.assetDrafts.remove("image-asset", uid);
+  },
+  onDeleted: async (uid) => {
+    if (selectedUid.value === uid) await clearSelection();
     await masterList.value?.reload();
     await refreshDraftsNow();
-  } catch (cause) {
-    console.error("Failed to delete image asset", cause);
-    alert(t("assetlist.delete_error"));
-  }
+  },
+  onError: () => { alert(t("assetlist.delete_error")); },
+});
+async function requestDeleteAsset(row: ImageAssetRow): Promise<void> {
+  await deletion.request({ uid: row.uid, title: localizeTitle(row.title, activeLang.value) || row.slug });
+}
+
+// M11-T10 複製（案A）: reserveCopySlug（check前置+新規UID採番）→ duplicateFrom/slug クエリ付きで new モードを開く
+const duplicateFrom = computed(() => (typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : ""));
+const presetSlug = computed(() => (typeof route.query.slug === "string" ? route.query.slug : ""));
+const duplicateSourceItem = computed(() =>
+  duplicateFrom.value ? items.value.find((row) => row.uid === duplicateFrom.value) ?? null : null,
+);
+async function duplicateAsset(row: ImageAssetRow): Promise<void> {
+  const reserved = await reserveCopySlug(row.slug, "image-asset", "asset");
+  if (!reserved) { alert(t("resource_list.duplicate_failed")); return; }
+  await selectDuplicate(row.uid, reserved);
 }
 
 onMounted(async () => {

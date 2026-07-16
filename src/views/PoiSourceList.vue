@@ -9,20 +9,13 @@
       :state="state"
       :total="total"
       :loaded="loaded"
-      @create="openCreateLocal"
+      @create="onCreate"
       @update:query="updateQuery"
       @retry="retry"
       @load-more="loadMore"
     >
       <template #secondary>
-        <button class="btn btn-outline-secondary btn-sm" data-poi-import @click="openImport">
-          {{ t("poisource.import_file") }}
-        </button>
-        <!-- リモート登録 UI は 2026-07-11 決定により抑制中（D13）。表示条件を変えず slot 内へ移設。
-             backend (registerRemote/refreshRemote/ReadOnly/cloneToLocal) は温存 — true に戻せば復活する -->
-        <button v-if="REMOTE_POI_REGISTRATION_ENABLED" class="btn btn-outline-secondary btn-sm" @click="openRegisterRemote">
-          {{ t("poisource.register_remote") }}
-        </button>
+        <ImportSlot kind="poi-source" @import="onImport" />
       </template>
 
       <div class="d-flex flex-wrap justify-content-start align-items-start gap-4 p-3">
@@ -39,102 +32,27 @@
       </div>
     </ResourceListShell>
 
-    <!-- Create Local / Import / Register Remote Modal (shared form) -->
-    <div v-if="modal.mode" class="modal show d-block" tabindex="-1" @click.self="closeModal">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">{{ modalTitle }}</h5>
-            <button type="button" class="btn-close" @click="closeModal"></button>
-          </div>
-          <div class="modal-body">
-            <!-- Import: picked file path (read-only display) -->
-            <div v-if="modal.mode === 'import'" class="mb-3">
-              <label class="form-label">{{ t("poisource.import_modal.file_label") }}</label>
-              <input
-                type="text"
-                class="form-control"
-                :value="modal.fileName"
-                readonly
-              />
-            </div>
+    <!-- 削除確認 dialog -->
+    <DeleteConfirmDialog
+      :visible="deletion.dialog.visible"
+      :title="deletion.dialog.title"
+      :references="deletion.dialog.references"
+      :references-unavailable="deletion.dialog.refsUnavailable"
+      :deleting="deletion.deleting.value"
+      @confirm="deletion.confirm"
+      @cancel="deletion.cancel"
+    />
 
-            <!-- slug (M11-T7/AC1: 共通 SlugField。可用性確認・予約 lifecycle 内蔵) -->
-            <SlugField
-              ref="modalSlugField"
-              :model-value="modal.slug"
-              asset-kind="poi-source"
-              :asset-uid="modal.uid"
-              :draft-uid="modal.uid"
-              :disabled="modal.submitting"
-              input-testid="poi-create-slug"
-              @update:model-value="onSlugLiveInput"
-              @state-change="modalSlugState = $event"
-            />
-
-            <!-- title -->
-            <label class="form-label mt-3">{{ t("poisource.title_label") }}</label>
-            <input
-              type="text"
-              class="form-control"
-              v-model="modal.title"
-              :placeholder="t('poisource.title_placeholder')"
-            />
-
-            <label class="form-label mt-3">{{ t("mapedit.set_default") }}</label>
-            <select v-model="modal.lang" class="form-select" data-poi-source-language @change="modal.langEdited = true">
-              <option v-for="language in SUPPORTED_LANGUAGES" :key="language.code" :value="language.code">
-                {{ language.nativeName }}
-              </option>
-            </select>
-
-            <!-- Register remote: url -->
-            <template v-if="modal.mode === 'remote'">
-              <label class="form-label mt-3">{{ t("poisource.url_label") }}</label>
-              <input
-                type="url"
-                class="form-control"
-                v-model="modal.url"
-                :placeholder="t('poisource.url_placeholder')"
-                @input="onUrlInput"
-              />
-            </template>
-
-            <!-- Feedback (validation issues / error-code messages)。
-                 M11-T7/AC8: DiagnosticFeedback scope="operation" へ移行(retry 導線は温存) -->
-            <div v-if="modal.feedback" class="mt-3">
-              <DiagnosticFeedback scope="operation" :items="modalFeedbackItems" />
-              <button
-                v-if="modal.feedbackRetry"
-                type="button"
-                class="btn btn-sm btn-outline-secondary mt-2"
-                @click="submitModal"
-              >
-                {{ t("poisource.retry") }}
-              </button>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeModal">
-              {{ t("poisource.cancel") }}
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              :disabled="!canSubmit"
-              @click="submitModal"
-            >
-              {{ submitLabel }}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div v-if="deletion.error.value" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
+      <DiagnosticFeedback scope="operation" dismissible
+        :items="[{ key: 'list-op-error', severity: 'danger', message: deletion.error.value }]"
+        @dismiss="deletion.error.value = null" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
@@ -142,36 +60,22 @@ import noImage from "../assets/img/no_image.png";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
+import { useResourceDelete } from "../composables/useResourceDelete";
+import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
-import { createPoiSourceListAdapter } from "./resource-adapters/poiSourceListAdapter";
-import type { PoiSourceListRow } from "../electron";
-import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
-import { ERROR_CODE_KEYS, issueMessage as resolveIssueMessage } from "../utils/poiSourceMessages";
-import type {
-  PoiSourceSaveResult,
-  PoiValidationIssue,
-  PoiSourceReference,
-} from "../electron";
-import {
-  SUPPORTED_LANGUAGES,
-  resolveEditorLanguage,
-  type LangCode,
-} from "../utils/editorLanguages";
-import SlugField from "../components/editor-ui/SlugField.vue";
+import ImportSlot from "../components/resource-list/ImportSlot.vue";
+import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
-import type { DiagnosticItem } from "../components/editor-ui/editorUiTypes";
-import type { SlugFieldState } from "../composables/useSlugAvailability";
+import { createPoiSourceListAdapter } from "./resource-adapters/poiSourceListAdapter";
+import type { PoiSourceListRow, PoiSourceSaveResult } from "../electron";
+import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
+import { resolveEditorLanguage } from "../utils/editorLanguages";
 
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { hasDraft, refreshDrafts } = useAssetDraftBadges('poi');
-
-// リモート登録 UI の抑制フラグ (ユーザー決定 2026-07-11)。望む形式のリモート POI データが
-// 実在せず、htmlTemplate 対応 (POI-007/109) までは実用にならないため UI のみ隠す。
-// backend (registerRemote/refreshRemote/ReadOnly/cloneToLocal) は温存 — true に戻せば復活する
-const REMOTE_POI_REGISTRATION_ENABLED = false;
+const { hasDraft, refreshDrafts } = useAssetDraftBadges("poi");
 
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
 const adapter = createPoiSourceListAdapter({
@@ -181,7 +85,7 @@ const adapter = createPoiSourceListAdapter({
   localLabel: t("poisource.local"),
   remoteLabel: t("poisource.remote"),
 });
-const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } =
+const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, applyDeletion } =
   useInfiniteResourceList<PoiSourceListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: null }), activeLang: () => i18next.language });
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, i18next.language)));
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
@@ -196,363 +100,114 @@ function firstVisibleUid(): string | null {
   }
   return null;
 }
-onBeforeRouteLeave(() => {
-  const root = shellRef.value?.contentRef ?? null;
-  backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: root?.scrollTop ?? 0 });
-});
-async function restoreOrLoad(): Promise<void> {
-  const cached = backCache.load();
-  if (cached && cached.q === query.value && cached.batches >= 1) {
-    await restore(cached.batches);
-    await nextTick();
-    const root = shellRef.value?.contentRef ?? null;
-    if (root) {
-      const anchor = cached.anchorUid
-        ? root.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(cached.anchorUid)}"]`)
-        : null;
-      // scrollIntoView は overflow:hidden の body まで祖先ごとスクロールさせ、fixed ヘッダー下に
-      // コンテンツ全体が潜り込む(ステート依存被りの真因)ため、root コンテナのみをスクロールする
-      if (anchor) root.scrollTop += anchor.getBoundingClientRect().top - root.getBoundingClientRect().top;
-      else root.scrollTop = cached.scrollTop;
-    }
-  } else {
-    await loadFirst();
+
+watch(query, () => loadFirst(), { immediate: false });
+
+function suggestSlug(candidate: string): string {
+  return candidate
+    .replace(/[\s.]+/g, "-")
+    .replace(/[^A-Za-z0-9_-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 100)
+    .toLowerCase() || "poi-source";
+}
+
+// --- Create: 空draft 作成 → エディタ遷移 ---
+const creating = ref(false);
+
+async function onCreate(): Promise<void> {
+  if (creating.value) return;
+  creating.value = true;
+  try {
+    const slug = `poi-${Date.now().toString(36)}`;
+    const result: PoiSourceSaveResult = await window.poiSources.createLocal({ slug, title: { ja: slug }, lang: "ja" });
+    if (!("result" in result) || result.result !== "Success") throw new Error("Create failed");
+    router.push(`/poisources/${("uid" in result ? result.uid : "")}?new=1`);
+  } catch (e) {
+    console.error("Failed to create POI source", e);
+  } finally {
+    creating.value = false;
   }
 }
 
-function updateQuery(value: string): void {
-  void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
-}
-
-// --- delete（右クリックメニュー導線は ResourceActionMenu に一本化。参照チェックは維持）---
-async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
-  if (key !== "delete") return;
-  await deleteSourceByUid(vm.uid, vm.title);
-}
-
-const deleteSourceByUid = async (uid: string, title: string) => {
-  // AID-006: 削除前に参照(app/map)を提示。references は Phase 7 まで空だが表示線を先に敷く
-  let references: PoiSourceReference[] = [];
-  let referencesUnavailable = false;
-  try {
-    references = await window.poiSources.findReferences(uid);
-  } catch (e) {
-    console.error("Failed to resolve POI source references", e);
-    referencesUnavailable = true;
-  }
-  let message = t("poisource.delete_confirm", { name: title });
-  if (referencesUnavailable) {
-    message += "\n\n" + t("poisource.errors.references_unavailable");
-  } else if (references.length > 0) {
-    const appCount = references.filter((r) => r.kind === "app").length;
-    const mapCount = references.filter((r) => r.kind === "map").length;
-    message +=
-      "\n\n" +
-      t("poisource.delete_referenced", { app: appCount, map: mapCount }) +
-      "\n" +
-      references.map((r) => `- ${t(`poisource.ref_kind.${r.kind}`)}: ${r.slug}`).join("\n");
-  }
-  if (!confirm(message)) return;
-  try {
-    await window.poiSources.delete(uid);
-    await window.assetDrafts.remove('poi', uid);
-    await applyDeletion(uid); // D9: UID除去 + 最終page再取得 dedupe
-    await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to delete POI source", e);
-    // M11-T7/AC8: 生 alert 撤去。native dialog(既存の確認 dialog と同系)で通知する
-    await (window as any).dialog.showMessageBox({
-      type: "error",
-      buttons: ["OK"],
-      message: t("poisource.delete_error"),
-    });
-  }
-};
-
-// --- Shared modal (create local / import / register remote) ---
-type ModalMode = "local" | "import" | "remote" | null;
-const modal = reactive({
-  mode: null as ModalMode,
-  slug: "",
-  title: "",
-  url: "",
-  filePath: "",
-  fileName: "",
-  feedback: "",
-  feedbackRetry: false,
-  submitting: false,
-  lang: resolveEditorLanguage(i18next.language) as LangCode,
-  langEdited: false,
-  // slug 欄をユーザーが手入力したら true。以後 title からの自動提案で上書きしない
-  slugEdited: false,
-  // M11-T7/AC6: 新規開始の事前採番 uid(予約帰属 asset_uid = 作成行 uid)。resetModal で採番し直す
-  uid: crypto.randomUUID(),
-});
-
-// M11-T7: 可用性確認・field 診断は SlugField 内蔵。canSubmit は state-change で判定する
-const modalSlugField = ref<InstanceType<typeof SlugField> | null>(null);
-const modalSlugState = ref<SlugFieldState>("idle");
-
-// M11-T7/AC8: modal feedback を DiagnosticFeedback items へ写像(複数行は行ごとに item 化。
-// network 再試行導線がある場合は warning、それ以外は danger = 旧 alert-warning/danger と同色)
-const modalFeedbackItems = computed<DiagnosticItem[]>(() =>
-  modal.feedback
-    .split("\n")
-    .filter((line) => line.trim() !== "")
-    .map((line, index) => ({
-      key: `feedback-${index}`,
-      severity: modal.feedbackRetry ? ("warning" as const) : ("danger" as const),
-      message: line,
-    })),
-);
-
-const modalTitle = computed(() => {
-  if (modal.mode === "local") return t("poisource.create_local_modal.title");
-  if (modal.mode === "import") return t("poisource.import_modal.title");
-  if (modal.mode === "remote") return t("poisource.register_remote_modal.title");
-  return "";
-});
-
-const submitLabel = computed(() => {
-  if (modal.mode === "local") return t("poisource.create_local_modal.create");
-  if (modal.mode === "import") return t("poisource.import_modal.import");
-  if (modal.mode === "remote") return t("poisource.register_remote_modal.register");
-  return "";
-});
-
-const canSubmit = computed(() => {
-  if (modal.submitting) return false;
-  // M11-T7: SlugField の可用性確定(available)を submit 条件にする
-  if (modalSlugState.value !== "available") return false;
-  if (!modal.title.trim()) return false;
-  if (modal.mode === "remote" && !modal.url.trim()) return false;
-  if (modal.mode === "import" && !modal.filePath) return false;
-  return true;
-});
-
-const resetModal = async (): Promise<boolean> => {
-  try {
-    // held は現在の modal.uid に束縛されているため、UID再採番より先に解放を完了する。
-    await modalSlugField.value?.release();
-  } catch (e) {
-    console.error("Failed to release POI source slug reservation", e);
-    modal.feedback = t("poisource.errors.internal");
-    modal.feedbackRetry = false;
-    return false;
-  }
-  modal.slug = "";
-  modal.title = "";
-  modal.url = "";
-  modal.filePath = "";
-  modal.fileName = "";
-  modal.feedback = "";
-  modal.feedbackRetry = false;
-  modal.submitting = false;
-  modal.slugEdited = false;
-  modal.lang = resolveEditorLanguage(i18next.language);
-  modal.langEdited = false;
-  // M11-T7: 新規開始ごとに予約帰属 uid を採番し直す。可用性状態もリセット
-  modal.uid = crypto.randomUUID();
-  modalSlugState.value = "idle";
-  return true;
-};
-
-const closeModal = async (): Promise<boolean> => {
-  // M11-T7/AC15: モーダル破棄(=draft なし新規の放棄)で保持中の予約を解放する。
-  // 成功 submit 後は promote が予約を消化済みのため release は無害な no-op
-  if (!await resetModal()) return false;
-  modal.mode = null;
-  return true;
-};
-
-// slug 自動生成 (title or ファイル名 → [A-Za-z0-9_-])。可用性チェックは checkSlug に委ねる
-const suggestSlug = (base: string): string =>
-  base
-    .normalize("NFKD")
-    .replace(/\.[^.]+$/, "")
-    .replace(/[^A-Za-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase();
-
-// M11-T7: 可用性チェックは SlugField 内蔵(modal.slug の変化に自動追随)へ移行した
-const onSlugLiveInput = (value: string) => {
-  modal.slug = value;
-  // 手入力されたら title からの自動提案を止める (空に戻したら提案を再開)
-  modal.slugEdited = value.trim() !== "";
-  modal.feedback = "";
-  modal.feedbackRetry = false;
-};
-
-const onUrlInput = () => {
-  modal.feedback = "";
-  modal.feedbackRetry = false;
-};
-
-// slug 自動生成初期値の提示 (43 §3.2): local 作成 / remote 登録では title 入力に追随して
-// slug 候補を提示し、そのまま可用性チェックを回す。ユーザーが slug を手入力したら追随を止める。
-// import はファイル名由来の提案 (openImport) を維持するため対象外
-watch(
-  () => modal.title,
-  (title) => {
-    // MAJOR-1: title 編集時は常に古いフィードバック(特に retry 状態)を破棄する
-    modal.feedback = "";
-    modal.feedbackRetry = false;
-    if (modal.mode !== "local" && modal.mode !== "remote") return;
-    if (modal.slugEdited) return;
-    const suggested = suggestSlug(title);
-    if (suggested === modal.slug) return;
-    modal.slug = suggested; // 可用性チェックは SlugField が modelValue 変化で自動実行する
-  }
-);
-
-const openCreateLocal = async () => {
-  if (!await resetModal()) return;
-  modal.mode = "local";
-};
-
-const openRegisterRemote = async () => {
-  if (!await resetModal()) return;
-  modal.mode = "remote";
-};
-
-const openImport = async () => {
+// --- Import ---
+async function onImport(): Promise<void> {
   try {
     const picked = await window.poiSources.pickImportFile();
-    if (!picked) return; // canceled
-    if (!await resetModal()) return;
-    modal.mode = "import";
-    modal.filePath = picked.filePath;
-    modal.fileName = picked.fileName;
-    modal.slug = suggestSlug(picked.fileName);
-    modal.title = picked.fileName.replace(/\.[^.]+$/, "");
-    modal.lang = resolveEditorLanguage(
-      await window.poiSources.detectImportLanguage(modal.filePath, modal.lang),
-    );
-    modal.langEdited = false;
-    // 可用性チェックは SlugField が modal.slug の変化で自動実行する
-  } catch (e) {
-    console.error("Failed to pick import file", e);
-    // MINOR-5: モーダルが開いていれば feedback(operation 診断)で、開いていなければ
-    // native dialog で通知する(M11-T7/AC8: 生 alert 撤去)
-    if (modal.mode) {
-      modal.feedback = t("poisource.errors.pick_failed");
-    } else {
-      await (window as any).dialog.showMessageBox({
-        type: "error",
-        buttons: ["OK"],
-        message: t("poisource.errors.pick_failed"),
-      });
-    }
+    if (!picked) return;
+    const slug = suggestSlug(picked.fileName);
+    const lang = resolveEditorLanguage(await window.poiSources.detectImportLanguage(picked.filePath, "ja"));
+    const result = await window.poiSources.importFile({ slug, title: { [lang]: picked.fileName.replace(/\.[^.]+$/, "") }, filePath: picked.filePath });
+    if (!("result" in result) || result.result !== "Success") throw new Error("Import failed");
+    router.push(`/poisources/${("uid" in result ? result.uid : "")}?new=1`);
+  } catch (e: any) {
+    console.error("Import failed", e);
+    await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: e?.message || t("poisource.errors.pick_failed") });
   }
-};
-
-// PoiSourceSaveResult を解釈し、成功時はエディタへ遷移、失敗時は modal に feedback を出す
-const handleSaveResult = async (result: PoiSourceSaveResult): Promise<boolean> => {
-  if ("error" in result) {
-    // result.error === 'revision-conflict'
-    modal.feedback = t("poisource.errors.revision_conflict");
-    return false;
-  }
-  switch (result.result) {
-    case "Success": {
-      const uid = result.uid;
-      if (!await closeModal()) return false;
-      router.push(`/poisources/${uid}`);
-      return true;
-    }
-    case "Exist":
-      modal.feedback = t("poisource.errors.slug_taken");
-      return false;
-    case "Invalid": {
-      const issues = result.issues;
-      const errors = issues.filter((i) => i.level === "error");
-      modal.feedback = (errors.length ? errors : issues)
-        .map((i) => issueMessage(i))
-        .join("\n");
-      if (!modal.feedback) modal.feedback = t("poisource.errors.invalid");
-      return false;
-    }
-    case "ReadOnly":
-      // save 専用の結果 (create/import/register からは到達不能だが型上は網羅する)
-      modal.feedback = t("poisource.errors.internal");
-      return false;
-    case "Error": {
-      // code → i18n key の写像は PoiEdit と共用 (utils/poiSourceMessages)。挙動は Phase 3 と同一:
-      // network のみ再試行導線、invalid-request/internal は message を優先する
-      const code = result.code;
-      const key = ERROR_CODE_KEYS[code] ?? "poisource.errors.internal";
-      if (code === "network") {
-        modal.feedback = t(key);
-        modal.feedbackRetry = true;
-        return false;
-      }
-      if (code === "http-status" || code === "parse" || code === "not-found") {
-        modal.feedback = t(key);
-        return false;
-      }
-      modal.feedback = result.message || t(key);
-      return false;
-    }
-  }
-};
-
-// 検証 issue の人間可読化は PoiEdit と共用 (utils/poiSourceMessages)
-const issueMessage = (issue: PoiValidationIssue): string => resolveIssueMessage(issue, t);
-
-const submitModal = async () => {
-  // MAJOR-1: canSubmit のみで判定する (feedbackRetry によるバイパスを廃止)
-  if (!canSubmit.value) return;
-  const slug = modal.slug.trim();
-  const title = modal.title.trim();
-  modal.submitting = true;
-  modal.feedback = "";
-  modal.feedbackRetry = false;
-  try {
-    let result: PoiSourceSaveResult;
-    // M11-T7/AC6: 事前採番 uid を create endpoint へ転送(予約帰属 asset_uid と行 uid を一致させる)
-    if (modal.mode === "local") {
-      result = await window.poiSources.createLocal({ slug, title, lang: modal.lang, uid: modal.uid });
-    } else if (modal.mode === "import") {
-      result = await window.poiSources.importFile({
-        slug, title, filePath: modal.filePath, lang: modal.lang, langOverride: modal.langEdited, uid: modal.uid,
-      });
-    } else if (modal.mode === "remote") {
-      result = await window.poiSources.registerRemote({
-        slug, title, url: modal.url.trim(), lang: modal.lang, langOverride: modal.langEdited, uid: modal.uid,
-      });
-    } else {
-      return;
-    }
-    await handleSaveResult(result);
-  } catch (e) {
-    console.error("Failed to submit POI source", e);
-    modal.feedback = t("poisource.errors.internal");
-  } finally {
-    modal.submitting = false;
-  }
-};
-
-// Escape: モーダルが開いていて送信中でない場合に閉じる (MapList.vue の同型ハンドラに整合)
-const onKeyDown = (e: KeyboardEvent) => {
-  if (e.isComposing) return; // IME 変換取り消しの Escape でモーダルが閉じないようにする
-  if (e.key !== "Escape") return;
-  if (modal.mode && !modal.submitting) {
-    closeModal();
-  }
-};
-
-onMounted(async () => {
-  await restoreOrLoad();
-  await refreshDrafts();
-  window.addEventListener("keydown", onKeyDown);
-});
-onBeforeUnmount(() => window.removeEventListener("keydown", onKeyDown));
-// route.q 変更で再取得（filter generation）
-watch(query, () => { void loadFirst(); });
-</script>
-
-<style scoped>
-.modal {
-    background: rgba(0, 0, 0, 0.4);
 }
-</style>
+
+// --- Delete (useResourceDelete: 共通 dialog + 参照一覧 + 実行) ---
+const deletion = useResourceDelete({
+  confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
+  references: async (uid) => {
+    const refs = await window.poiSources.findReferences(uid);
+    return refs.map((r) => ({ kind: r.kind, slug: r.slug, title: "" }));
+  },
+  onDelete: async (uid) => {
+    await window.poiSources.delete(uid);
+    await window.assetDrafts.remove("poi", uid);
+  },
+  onDeleted: async (uid) => { applyDeletion(uid); await refreshDrafts(); },
+});
+
+async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
+  if (key === "delete") {
+    await deletion.request(vm);
+  } else if (key === "duplicate") {
+    await duplicateByVm(vm);
+  }
+}
+
+// --- Duplicate（行作成方式・設計v3.2）: POIエディタは行前提（/poisources/:uid）のため、
+// reserveCopySlug で採番・予約した slug/uid で createLocal + fc複製の新規行を作ってから遷移する。
+// remote元もローカル複製になる ---
+async function duplicateByVm(vm: ResourceListItemViewModel): Promise<void> {
+  const reserved = await reserveCopySlug(vm.slug, "poi-source", "poi-source");
+  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }
+  try {
+    const source = await window.poiSources.get(vm.uid);
+    if (!source) throw new Error(`source not found: ${vm.uid}`);
+    const created = await window.poiSources.createLocal({ slug: reserved.slug, title: source.title, lang: source.lang, uid: reserved.uid });
+    if (!("result" in created) || created.result !== "Success") throw new Error("createLocal failed");
+    const saved = await window.poiSources.save(reserved.uid, { slug: reserved.slug, title: source.title, fc: source.fc });
+    if (!("result" in saved) || saved.result !== "Success") throw new Error("fc copy failed");
+    await loadFirst();
+    router.push(`/poisources/${reserved.uid}?new=1`);
+  } catch (e) {
+    console.error("Duplicate failed", e);
+    deletion.error.value = t("resource_list.duplicate_failed");
+  }
+}
+
+// --- lifecycle ---
+onMounted(async () => {
+  await loadFirst();
+  await refreshDrafts();
+});
+
+onBeforeUnmount(() => {
+  backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
+});
+
+onBeforeRouteLeave((_to, _from, next) => {
+  backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
+  next();
+});
+
+function updateQuery(q: string): void {
+  router.replace({ query: { ...route.query, q: q || undefined } });
+}
+
+defineExpose({ shellRef });
+</script>

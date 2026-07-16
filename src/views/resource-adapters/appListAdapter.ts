@@ -25,7 +25,7 @@ export function createAppListAdapter(deps: AppListAdapterDeps): ResourceListAdap
         badges: [],
         selected: deps.selectedUid() === item.uid,
         hasDraft: deps.hasDraft(item.uid),
-        actions: ["delete"],
+        actions: ["duplicate", "delete"],
       };
     },
   };

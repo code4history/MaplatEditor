@@ -556,7 +556,8 @@
       "no_icon_source": "PWA icon source is not set, so no icons were generated.",
       "missing_thumbnail": "Some base map/overlay thumbnails were not found.",
       "missing_splash": "The splash image was not found."
-    }
+    },
+    "no_app_name": "Please input an app name."
   },
   "mapmodel": {
     "untitled": "Untitled",
@@ -855,7 +856,8 @@
       "reserved-by-other": "Reserved by another",
       "check-failed": "Check failed",
       "taken": "Already in use",
-      "unavailable": "Could not verify"
+      "unavailable": "Could not verify",
+      "required": "Enter a slug"
     },
     "draft_badge": "Draft",
     "draft_conflict": {
@@ -872,7 +874,8 @@
       "maps": "Select Maps",
       "preview": "Preview",
       "gcps_requires_image": "Register a map image first"
-    }
+    },
+    "untitled": "Untitled"
   },
   "resource_list": {
     "new_item": "New",
@@ -888,9 +891,18 @@
     "append_error": "Failed to load more",
     "retry": "Retry",
     "menu_delete": "Delete",
+    "menu_duplicate": "Duplicate",
     "menu_label": "Actions",
     "loaded_only": "{{loaded}} shown",
     "total_only": "{{total}} items",
-    "total_partial": "Showing {{loaded}} of {{total}}"
+    "total_partial": "Showing {{loaded}} of {{total}}",
+    "delete_irreversible": "This action cannot be undone.",
+    "delete_referenced_by": "Referenced by the following resources:",
+    "delete_references_unavailable": "Unable to retrieve reference information.",
+    "deleting": "Deleting…",
+    "import_poi": "Import",
+    "import_map": "Import Map",
+    "delete_confirm_title": "Delete \"{{title}}\"?",
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
 }

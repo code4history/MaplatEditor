@@ -60,6 +60,7 @@
     "test:e2e:m11-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t4-master-detail.spec.ts",
     "test:e2e:m11-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t5-shell-tokens.spec.ts",
     "test:e2e:m11-t9": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t9-poi-content-mode.spec.ts",
+    "test:e2e:m11-t10": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t10-dedup-import.spec.ts",
     "smoke:m5-basemap-catalog": "node scripts/m5-basemap-catalog-smoke.mjs",
     "smoke:m6-app-source-model": "node scripts/m6-app-source-model-smoke.mjs",
     "smoke:m6-t2-icon-refs": "node scripts/m6-t2-icon-refs-smoke.mjs",

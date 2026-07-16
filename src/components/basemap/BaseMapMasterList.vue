@@ -136,6 +136,7 @@ const emit = defineEmits<{
   "select-draft": [uid: string];
   "create": [];
   "delete": [item: BaseMapCatalogItem];
+  "duplicate": [item: BaseMapCatalogItem];
   "toggle-always": [item: BaseMapCatalogItem, always: boolean];
   "scroll": [element: HTMLElement | null];
 }>();
@@ -159,6 +160,7 @@ const vmOf = (item: BaseMapCatalogItem) => adapter.toViewModel(item, props.activ
 // 可視 trash を廃し、削除は ResourceActionMenu の `削除`（user のみ）から。builtin は actions 空で ⋮ 非表示（AC17）。
 function onRowAction(key: string, item: BaseMapCatalogItem): void {
   if (key === "delete") emit("delete", item);
+  if (key === "duplicate") emit("duplicate", item);
 }
 
 defineExpose({ scrollElement });

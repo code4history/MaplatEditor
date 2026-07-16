@@ -168,15 +168,18 @@ test('base map pilot: unified help, field diagnostics, immediate summary, and no
     await coverageHelp.focus();
     await expect(page.locator('.editor-ui-help-popover')).toBeVisible();
 
-    // F3: 新規 draft で必須未入力の section summary が即時表示される（dirty ゲートなし）
-    await expect(page.getByTestId('basemap-validation-summary')).toBeVisible();
+    // F3改(M11-T10 人間検証R3): section summary は廃止し Map/App と同じ field 診断へ統一。
+    // 新規 draft では必須未入力が field 診断として即時表示される（dirty ゲートなし）
+    await expect(page.getByTestId('basemap-validation-summary')).toHaveCount(0);
+    const slugField = page.locator('.editor-field', { has: page.getByTestId('basemap-slug') });
+    await expect(slugField.locator('[data-diagnostic-scope="field"]')).toContainText('スラッグを入力してください');
 
-    // F2 / F3: 不正 slug → is-invalid 赤枠 + field 診断 + section summary
+    // F2 / F3改: 不正 slug → is-invalid 赤枠 + field 診断（summary は出ない）
     await page.getByTestId('basemap-slug').fill('bad slug!');
     await page.getByTestId('basemap-slug').press('Tab');
     await expect(page.getByTestId('basemap-slug')).toHaveClass(/is-invalid/);
     await expect(page.locator('[data-diagnostic-scope="field"]').first()).toBeVisible();
-    await expect(page.getByTestId('basemap-validation-summary')).toBeVisible();
+    await expect(page.getByTestId('basemap-validation-summary')).toHaveCount(0);
   } finally {
     await quitElectronApplication(app);
   }

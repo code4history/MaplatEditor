@@ -267,7 +267,14 @@ const newAppUid = (typeof route.query.uid === "string" && route.query.uid)
 const saveOperationError = ref<string | null>(null);
 // 保存前バリデーション(MapEdit の saveError computed と同型、全エディタ統一 2026-07-16):
 // スラッグ未入力の間は保存ボタンを常時 disabled にする(形式・一意性は SlugField/バックエンドが担保)
+// M11-T10 (人間検証R4): アプリ名も必須。空のまま保存できると一覧のタイトルが slug 代用になる
+const appTitleMissing = computed(() => {
+  const hasValue = (record: Record<string, string> | undefined) =>
+    Object.values(record ?? {}).some((value) => value && value.trim());
+  return !hasValue(appData.value.title) && !hasValue(appData.value.appName);
+});
 const saveValidationError = computed<string | null>(() => {
+  if (appTitleMissing.value) return t("appedit.no_app_name");
   const id = appData.value.appID;
   if (!id || !id.trim()) return t("appedit.no_appid");
   return null;
@@ -285,7 +292,8 @@ const previewUrl = ref("");
 const historyStack = ref<UndoStack<AppDocument> | null>(null);
 const historyApplying = ref(false);
 
-const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName) || appData.value.appID);
+// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug(appID) 代用はしない(M11-T10)
+const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName));
 const translationMode = computed(() =>
   isTranslationMode(currentLang.value, appData.value.lang),
 );
@@ -382,10 +390,32 @@ onMounted(async () => {
       saveHandle.adoptLoaded({ uid: loaded.uid ?? uid, slug: appData.value.appID, revision: loaded.revision });
       appCoverageAuto.refresh();
     }
+  } else {
+    // M11-T10: duplicateFrom がある場合は元アプリから内容を複製（設計v3.1 案A: エディタ側ロード）。
+    // 複製浄化: normalizeAppDocument は uid/revision を写さない。slug(appID) は予約値で上書き
+    const dupFrom = typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : "";
+    if (dupFrom) {
+      try {
+        const source = await window.appedit.request(dupFrom);
+        if (source) {
+          const normalized = normalizeAppDocument(source);
+          if (typeof route.query.slug === "string" && route.query.slug) normalized.appID = route.query.slug;
+          appData.value = normalized;
+          appCoverageAuto.refresh();
+        }
+      } catch (e) {
+        console.error("Failed to duplicate app", e);
+      }
+    }
   }
   currentLang.value = appData.value.lang;
   await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   resetHistoryBase();
+  // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする
+  // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
+  if (!uid && typeof route.query.duplicateFrom === "string" && route.query.duplicateFrom) {
+    historyStack.value?.markDirty();
+  }
   // M11-T7: 新規の draft キー = 事前採番 uid(newAppUid)。予約帰属・create uid と一致させる
   const draftUid = uid || newAppUid;
   if (!uid && route.query.draftUid !== draftUid) {
@@ -1086,7 +1116,7 @@ function onPoisChange(next: unknown[]) {
       :label="saving ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
     />
     <EditorActionHeader
-      :title="displayTitle || appData.appID || t('appedit.new_app')"
+      :title="displayTitle"
       :save-state="saveState"
       :active-lang="currentLang"
       :language-options="SUPPORTED_LANGUAGES"
@@ -1147,7 +1177,8 @@ function onPoisChange(next: unknown[]) {
           <div class="row g-1 mb-2">
             <div class="col-md-4">
               <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_name") }} <LangValueChips :model-value="appData.title" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
-              <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" @input="recordHistory">
+              <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" :class="appTitleMissing ? 'is-invalid' : ''" @input="recordHistory">
+              <DiagnosticFeedback v-if="appTitleMissing" scope="field" :items="[{ key: 'title-required', severity: 'danger', message: t('appedit.no_app_name') }]" />
             </div>
             <!-- App ID フィールド (M11-T7/AC1): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
                  手動一意性確認ボタンは撤去(debounce 自動確認 + 保存時 confirmForSave へ機構置換) -->
@@ -1159,6 +1190,7 @@ function onPoisChange(next: unknown[]) {
                 :asset-uid="appUid || newAppUid"
                 :draft-uid="appUid || newAppUid"
                 :original-slug="confirmedSlug"
+                :required="true"
                 :disabled="translationMode"
                 input-testid="app-id"
                 @update:model-value="onAppIDLiveInput"

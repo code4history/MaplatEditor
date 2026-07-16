@@ -33,6 +33,11 @@ class MapEditService {
         res[0].status = 'Update';
         res[0].onlyOne = true; // DBに存在するので一意確認済み
 
+        // M11-T10 (人間検証R6): normalizeRequestData が compiled から生成済みの tins
+        // (byCompiled: 平文 compiled or 文字列素体) をエディタへ添付する。エディタは
+        // compiled を持つレイヤーを再計算せず種付けし、無いレイヤーだけ再計算する。
+        if (res[1]) res[0].compiledTins = res[1];
+
         return res[0];
     }
 
@@ -222,6 +227,15 @@ class MapEditService {
                 // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする(D2改)
                 if (!(await SqliteDataService.isSlugAvailable(slug, request.uid ?? undefined))) {
                     throw new Error('Exist');
+                }
+                // M11-T10: 複製は create 経路に乗る(事前採番uid=予約帰属)。複製元の
+                // tiles/tmbs/原本コピーは従来 copy 経路と同じ後段ファイル操作を使う
+                if (request.copyFromUid) {
+                    const source = await SqliteDataService.findMap(request.copyFromUid);
+                    if (source) {
+                        copySourceUid = source.uid;
+                        copySourceSlug = source.slug;
+                    }
                 }
                 const created = await SqliteDataService.createMap(slug, compiled, request.uid ?? undefined);
                 savedUid = created.uid;

@@ -559,7 +559,8 @@
       "no_icon_source": "PWAアイコン元画像が未設定のため、アイコンを生成しませんでした。",
       "missing_thumbnail": "一部のベースマップ/オーバーレイのサムネイル画像が見つかりませんでした。",
       "missing_splash": "スプラッシュ画像が見つかりませんでした。"
-    }
+    },
+    "no_app_name": "アプリ名を入力してください。"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",
@@ -855,7 +856,8 @@
       "reserved-by-other": "他で使用中です",
       "check-failed": "確認に失敗しました",
       "taken": "既に使用されています",
-      "unavailable": "確認できません"
+      "unavailable": "確認できません",
+      "required": "スラッグを入力してください"
     },
     "draft_badge": "下書き",
     "draft_conflict": {
@@ -872,7 +874,8 @@
       "maps": "地図選択",
       "preview": "プレビュー",
       "gcps_requires_image": "先に地図画像を登録してください"
-    }
+    },
+    "untitled": "タイトル未設定"
   },
   "resource_list": {
     "new_item": "新規追加",
@@ -888,9 +891,18 @@
     "append_error": "追加の読み込みに失敗しました",
     "retry": "再試行",
     "menu_delete": "削除",
+    "menu_duplicate": "複製",
     "menu_label": "操作メニュー",
     "loaded_only": "{{loaded}}件表示中",
     "total_only": "全{{total}}件",
-    "total_partial": "全{{total}}件中 {{loaded}}件表示"
+    "total_partial": "全{{total}}件中 {{loaded}}件表示",
+    "delete_irreversible": "この操作は取り消せません。",
+    "delete_referenced_by": "以下の資源から参照されています:",
+    "delete_references_unavailable": "参照情報を取得できませんでした。",
+    "deleting": "削除中…",
+    "import_poi": "インポート",
+    "import_map": "地図インポート",
+    "delete_confirm_title": "「{{title}}」を削除しますか？",
+    "duplicate_failed": "複製に失敗しました。スラッグの確保または内容の複製ができませんでした。"
   }
 }

@@ -17,26 +17,27 @@
     >
       <div class="d-flex flex-wrap justify-content-start align-items-start gap-4 p-3">
         <ResourceGridCard
-          v-for="vm in viewModels"
-          :key="vm.uid"
-          :item="vm"
-          kind="app"
-          :to="`/appedit?uid=${vm.uid}`"
-          :fallback-image="noImage"
-          :draft-label="t('editor_ui.draft_badge')"
+          v-for="vm in viewModels" :key="vm.uid" :item="vm" kind="app"
+          :to="`/appedit?uid=${vm.uid}`" :fallback-image="noImage" :draft-label="t('editor_ui.draft_badge')"
           @action="onAction"
         />
         <ResourceDraftCard
-          v-for="draft in newDrafts"
-          :key="draft.assetUid"
-          :draft="draft"
-          :to="`/appedit?draftUid=${draft.assetUid}`"
-          :fallback-image="noImage"
-          :draft-label="t('editor_ui.draft_badge')"
+          v-for="draft in newDrafts" :key="draft.assetUid" :draft="draft"
+          :to="`/appedit?draftUid=${draft.assetUid}`" :fallback-image="noImage" :draft-label="t('editor_ui.draft_badge')"
           @delete-draft="removeNewDraft"
         />
       </div>
     </ResourceListShell>
+
+    <DeleteConfirmDialog
+      :visible="deletion.dialog.visible" :title="deletion.dialog.title"
+      :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
+    />
+    <div v-if="deletion.error.value" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
+      <DiagnosticFeedback scope="operation" dismissible
+        :items="[{ key: 'list-op-error', severity: 'danger', message: deletion.error.value }]"
+        @dismiss="deletion.error.value = null" />
+    </div>
   </div>
 </template>
 
@@ -47,102 +48,61 @@ import { useTranslation } from "i18next-vue";
 import noImage from "../assets/img/no_image.png";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
+import { useResourceDelete } from "../composables/useResourceDelete";
+import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
 import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
+import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
+import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import { createAppListAdapter, type AppListRow } from "./resource-adapters/appListAdapter";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
-import type { AssetDraftSummary } from "../types/assetDraft";
 
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { hasDraft, draftSummaries, refreshDrafts } = useAssetDraftBadges("app");
-const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
-
+const { hasDraft, newDrafts, latestNewDraft, refreshDrafts, removeNewDraft } = useAssetDraftBadges("app");
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
 const selectedUidRef = { value: null as string | null };
 const adapter = createAppListAdapter({ hasDraft, selectedUid: () => selectedUidRef.value });
-const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<AppListRow, number>(
-  adapter,
-  { filter: () => ({ q: query.value, bbox: null }), activeLang: () => "" },
-);
+const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<AppListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: null }), activeLang: () => "" });
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("app");
-
-function firstVisibleUid(): string | null {
-  const root = shellRef.value?.contentRef ?? null;
-  if (!root) return null;
-  const top = root.getBoundingClientRect().top;
-  for (const el of Array.from(root.querySelectorAll<HTMLElement>("[data-resource-uid]"))) {
-    if (el.getBoundingClientRect().bottom >= top) return el.dataset.resourceUid ?? null;
-  }
-  return null;
-}
-onBeforeRouteLeave(() => {
-  const root = shellRef.value?.contentRef ?? null;
-  backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: root?.scrollTop ?? 0 });
-});
-async function restoreOrLoad(): Promise<void> {
-  const cached = backCache.load();
-  if (cached && cached.q === query.value && cached.batches >= 1) {
-    await restore(cached.batches);
-    await nextTick();
-    const root = shellRef.value?.contentRef ?? null;
-    if (root) {
-      const anchor = cached.anchorUid
-        ? root.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(cached.anchorUid)}"]`)
-        : null;
-      // scrollIntoView は overflow:hidden の body まで祖先ごとスクロールさせ、fixed ヘッダー下に
-      // コンテンツ全体が潜り込む(ステート依存被りの真因)ため、root コンテナのみをスクロールする
-      if (anchor) root.scrollTop += anchor.getBoundingClientRect().top - root.getBoundingClientRect().top;
-      else root.scrollTop = cached.scrollTop;
-    }
-  } else {
-    await loadFirst();
-  }
-}
+function firstVisibleUid() { const r = shellRef.value?.contentRef; if (!r) return null; const t = r.getBoundingClientRect().top; for (const e of Array.from(r.querySelectorAll<HTMLElement>("[data-resource-uid]"))) { if (e.getBoundingClientRect().bottom >= t) return e.dataset.resourceUid ?? null; } return null; }
+onBeforeRouteLeave(() => { const r = shellRef.value?.contentRef; backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: r?.scrollTop ?? 0 }); });
+async function restoreOrLoad() { const c = backCache.load(); if (c && c.q === query.value && c.batches >= 1) { await restore(c.batches); await nextTick(); const r = shellRef.value?.contentRef; if (r) { const a = c.anchorUid ? r.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(c.anchorUid)}"]`) : null; if (a) r.scrollTop += a.getBoundingClientRect().top - r.getBoundingClientRect().top; else r.scrollTop = c.scrollTop; } } else { await loadFirst(); } }
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, "")));
-
-function updateQuery(value: string): void {
-  void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
+function updateQuery(value: string): void { void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } }); }
+// M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
+function createNewApp(): void {
+  const pending = latestNewDraft.value;
+  void router.push(pending ? `/appedit?draftUid=${pending.assetUid}` : "/appedit");
 }
-function createNewApp(): void { void router.push("/appedit"); }
 
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
+  if (key === "duplicate") { await duplicateByVm(vm); return; }
   if (key !== "delete") return;
-  if (!confirm(t("applist.delete_confirm", { name: vm.title }))) return;
-  try {
-    await window.applist.delete(vm.uid, query.value, 1); // backend 側の削除・参照処理は無改変
-    await window.assetDrafts.remove("app", vm.uid);
-    await applyDeletion(vm.uid); // D9: UID除去 + 最終page再取得 dedupe
-    await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to delete app", e);
-    alert(t("applist.delete_error"));
-  }
+  await deletion.request(vm);
 }
 
-// 新規(未保存)下書きの削除。保存済みアプリ行は存在しないため draft store のみ消す
-async function removeNewDraft(draft: AssetDraftSummary): Promise<void> {
-  const name = draft.label ?? draft.slug ?? t("editor_ui.draft_badge");
-  if (!confirm(t("editor_ui.delete_draft_confirm", { name }))) return;
-  try {
-    await window.assetDrafts.remove("app", draft.assetUid);
-    await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to delete new-app draft", e);
-  }
+// M11-T10: 削除 (useResourceDelete) + 複製 (reserveCopySlug) — 共通 composable に委譲
+const deletion = useResourceDelete({
+  confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
+  onDelete: async (uid) => {
+    await window.applist.delete(uid, query.value, 1);
+    await window.assetDrafts.remove("app", uid);
+  },
+  onDeleted: async (uid) => { applyDeletion(uid); await refreshDrafts(); },
+});
+async function duplicateByVm(vm: ResourceListItemViewModel) {
+  const reserved = await reserveCopySlug(vm.slug, "app", "app");
+  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }
+  void router.push(duplicateEditorPath("/appedit", vm.uid, reserved));
 }
 
 let unsubscribe: (() => void) | null = null;
-onMounted(async () => {
-  await restoreOrLoad();
-  await refreshDrafts();
-  unsubscribe = window.applist.onRefresh(() => { void loadFirst(); void refreshDrafts(); });
-});
+onMounted(async () => { await restoreOrLoad(); await refreshDrafts(); unsubscribe = window.applist.onRefresh(() => { void loadFirst(); void refreshDrafts(); }); });
 onBeforeUnmount(() => unsubscribe?.());
-// route.q 変更で再取得（filter generation）
 watch(query, () => { void loadFirst(); });
 </script>

@@ -29,7 +29,7 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
         badges: [],
         selected: deps.selectedUid() === item.uid,
         hasDraft: deps.hasDraft(item.uid),
-        actions: ["delete"], // T10 で "duplicate" 追加
+        actions: ["duplicate", "delete"],
       };
     },
   };

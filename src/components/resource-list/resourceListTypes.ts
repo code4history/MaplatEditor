@@ -46,7 +46,7 @@ export interface ResourceListAdapter<T, Cursor = string> {
 }
 
 export interface ResourceListAction {
-  key: "delete" | "delete-draft"; // T10 で "duplicate" を追加予定。"delete-draft" は新規下書きカード専用
+  key: "duplicate" | "delete" | "delete-draft";
   labelKey: string;
   destructive: boolean;
   enabled: boolean;

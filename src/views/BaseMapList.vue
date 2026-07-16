@@ -18,7 +18,8 @@
         @open-range-filter="rangeFilterOpen = true"
         @clear-range-filter="clearRangeFilter"
         @create="createBaseMap"
-        @delete="deleteBaseMap"
+        @delete="requestDeleteBaseMap"
+        @duplicate="duplicateBaseMap"
         @toggle-always="toggleAlways"
         @scroll="saveScroll"
       />
@@ -30,6 +31,8 @@
         :uid="selectedUid"
         :is-new="isNew"
         :item="selectedItem"
+        :duplicate-source-item="duplicateSourceItem"
+        :preset-slug="presetSlug"
         :back-visible="false"
         @back="closeEditor"
         @saved="saved"
@@ -59,6 +62,12 @@
       @update:model-value="applyRangeFilter"
       @close="rangeFilterOpen = false"
     />
+
+    <!-- M11-T10: 共通削除確認 dialog -->
+    <DeleteConfirmDialog
+      :visible="deletion.dialog.visible" :title="deletion.dialog.title"
+      :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
+    />
   </main>
 </template>
 
@@ -67,11 +76,14 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
+import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import BaseMapEdit from "../components/basemap/BaseMapEdit.vue";
 import BaseMapMasterList from "../components/basemap/BaseMapMasterList.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useMasterDetailRouteState } from "../composables/useMasterDetailRouteState";
+import { useResourceDelete } from "../composables/useResourceDelete";
+import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
 import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
 import { filterBaseMapCatalog, parseBaseMapBboxQuery, serializeBaseMapBboxQuery, type Wgs84Bbox } from "../utils/baseMapCatalogFilter";
@@ -82,8 +94,8 @@ import { mergeMasterDetailFilters } from "../utils/masterDetailRouteState";
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { select, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
-const { draftUids, draftSummaries, refreshDrafts } = useAssetDraftBadges("base-map");
+const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
+const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("base-map");
 
 const items = ref<BaseMapCatalogItem[]>([]);
 const loading = ref(true);
@@ -166,8 +178,7 @@ async function selectExisting(uid: string): Promise<void> { await select(uid, fa
 async function selectDraft(uid: string): Promise<void> { await select(uid, true); }
 
 async function createBaseMap(): Promise<void> {
-  const pending = draftSummaries.value.filter((draft) => draft.baseRevision === null).at(-1);
-  await select(pending?.assetUid ?? crypto.randomUUID(), true);
+  await select(latestNewDraft.value?.assetUid ?? crypto.randomUUID(), true);
 }
 
 async function closeEditor(): Promise<void> {
@@ -191,19 +202,34 @@ function refreshDraftsSoon(): void {
   draftRefreshTimer = setTimeout(() => { void refreshDraftsNow(); }, 2300);
 }
 
-async function deleteBaseMap(item: BaseMapCatalogItem): Promise<void> {
-  const name = localizeTitle(item.data.title as any, activeLang.value) || item.mapID;
-  if (!confirm(t("basemap.delete_confirm", { name }))) return;
-  try {
-    if (selectedUid.value === item.uid) await editor.value?.prepareForDelete();
-    await window.baseMaps.deleteUser(item.uid);
-    await window.assetDrafts.remove("base-map", item.uid);
-    if (selectedUid.value === item.uid) await clearSelection();
+// M11-T10: 共通確認 dialog（native confirm 全廃、useResourceDelete へ委譲）
+const deletion = useResourceDelete({
+  confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
+  onDelete: async (uid) => {
+    if (selectedUid.value === uid) await editor.value?.prepareForDelete();
+    await window.baseMaps.deleteUser(uid);
+    await window.assetDrafts.remove("base-map", uid);
+  },
+  onDeleted: async (uid) => {
+    if (selectedUid.value === uid) await clearSelection();
     await loadBaseMaps();
-  } catch (cause) {
-    console.error("Failed to delete base map", cause);
-    error.value = t("basemap.errors.delete_failed");
-  }
+  },
+  onError: () => { error.value = t("basemap.errors.delete_failed"); },
+});
+async function requestDeleteBaseMap(item: BaseMapCatalogItem): Promise<void> {
+  await deletion.request({ uid: item.uid, title: localizeTitle(item.data.title as any, activeLang.value) || item.mapID });
+}
+
+// M11-T10 複製（案A）: reserveCopySlug（check前置+新規UID採番）→ duplicateFrom/slug クエリ付きで new モードを開く
+const duplicateFrom = computed(() => (typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : ""));
+const presetSlug = computed(() => (typeof route.query.slug === "string" ? route.query.slug : ""));
+const duplicateSourceItem = computed(() =>
+  duplicateFrom.value ? items.value.find((item) => item.uid === duplicateFrom.value) ?? null : null,
+);
+async function duplicateBaseMap(item: BaseMapCatalogItem): Promise<void> {
+  const reserved = await reserveCopySlug(item.mapID, "base-map", "base-map");
+  if (!reserved) { error.value = t("resource_list.duplicate_failed"); return; }
+  await selectDuplicate(item.uid, reserved);
 }
 
 async function toggleAlways(item: BaseMapCatalogItem, always: boolean): Promise<void> {

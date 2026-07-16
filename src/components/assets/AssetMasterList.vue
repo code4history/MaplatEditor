@@ -72,6 +72,7 @@ const emit = defineEmits<{
   "select-draft": [uid: string];
   "create": [];
   "delete": [row: ImageAssetRow];
+  "duplicate": [row: ImageAssetRow];
   "scroll": [element: HTMLElement | null];
 }>();
 
@@ -92,6 +93,7 @@ const vmOf = (asset: ImageAssetRow) => adapter.toViewModel(asset, props.activeLa
 // 削除は ResourceActionMenu の `削除` から host へ委譲（参照チェック・draft 削除は host が担う）
 function onRowAction(key: string, asset: ImageAssetRow): void {
   if (key === "delete") emit("delete", asset);
+  if (key === "duplicate") emit("duplicate", asset);
 }
 
 async function reload(): Promise<void> {

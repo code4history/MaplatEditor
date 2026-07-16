@@ -25,16 +25,12 @@
       @discard-draft="discardDraft"
     />
 
+    <!-- M11-T10 (人間検証R3): 全量サマリバナーは廃止し Map/App と同じ
+         「field 診断 + バナーは操作エラーのみ」の文法へ統一 -->
     <DiagnosticFeedback
       v-if="error"
       scope="operation"
       :items="[{ key: 'save-error', severity: 'danger', message: error }]"
-    />
-    <DiagnosticFeedback
-      v-else-if="sectionDiagnostics.length"
-      scope="section"
-      :items="sectionDiagnostics"
-      data-testid="asset-validation-summary"
     />
     <div v-if="conflictRevision !== null" class="alert alert-warning rounded-0 mb-0 py-2 d-flex align-items-center gap-2 flex-wrap">
       <span class="flex-grow-1">{{ t("common.revision_conflict") }}</span>
@@ -70,6 +66,7 @@
             :asset-uid="document.uid"
             :draft-uid="document.uid"
             :original-slug="originalSlug"
+            :required="true"
             :disabled="structuralDisabled"
             input-testid="asset-slug"
             @update:model-value="slugLive = $event"
@@ -136,6 +133,7 @@ import EditorField from "../editor-ui/EditorField.vue";
 import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
 import SlugField from "../editor-ui/SlugField.vue";
 import type { DiagnosticItem, EditorSaveState } from "../editor-ui/editorUiTypes";
+import { validationFieldDiagnostics } from "../editor-ui/validationDiagnostics";
 import { useAssetDraftLifecycle } from "../../composables/useAssetDraftLifecycle";
 import { useInitialDraftPersist } from "../../composables/useInitialDraftPersist";
 import type { SlugFieldState } from "../../composables/useSlugAvailability";
@@ -157,8 +155,19 @@ import { isEditableElement } from "../../utils/nativeTextUndo";
 interface VolatileSource { sourcePath: string; sourceName: string }
 interface AssetEditHistoryState { document: ImageAssetEditDocument; volatileSource: VolatileSource | null }
 
-const props = withDefaults(defineProps<{ uid: string; isNew: boolean; item: ImageAssetRow | null; backVisible?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  uid: string;
+  isNew: boolean;
+  item: ImageAssetRow | null;
+  backVisible?: boolean;
+  /** M11-T10 複製(案A): 新規モードで複製元の row を受け取り、エディタ側で複製浄化して初期化する */
+  duplicateSourceItem?: ImageAssetRow | null;
+  /** M11-T10 複製: 一覧側で予約済みの slug（複製浄化で元slugを上書きする） */
+  presetSlug?: string;
+}>(), {
   backVisible: true,
+  duplicateSourceItem: null,
+  presetSlug: "",
 });
 const emit = defineEmits<{ back: []; saved: [uid: string]; changed: []; reload: [uid: string]; "draft-state": [uid: string, hasDraft: boolean]; flushed: [] }>();
 const { t } = useTranslation();
@@ -166,7 +175,9 @@ const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const initialDocument = props.item
   ? fromImageAssetRow(props.item)
-  : newImageAssetDocument(props.uid, resolveEditorLanguage(i18next.language));
+  : props.isNew && props.duplicateSourceItem
+    ? duplicateInitialDoc(props.duplicateSourceItem, props.uid)
+    : newImageAssetDocument(props.uid, resolveEditorLanguage(i18next.language));
 const document = ref<ImageAssetEditDocument>(clone(initialDocument));
 const volatileSource = shallowRef<VolatileSource | null>(null);
 let history = new UndoStack<AssetEditHistoryState>({ document: clone(initialDocument), volatileSource: null });
@@ -199,19 +210,14 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   "title-required": "assetlist.errors.title_required",
   "source-required": "assetlist.master_detail.reselect_required",
 };
-// 指定 code 集合を field 診断（danger）へ。全項目を即時表示する（dirty ゲートなし）。
-function diagnosticsFor(codes: readonly string[]): DiagnosticItem[] {
-  return validation.value.errors
-    .filter((code) => codes.includes(code))
-    .map((code) => ({ key: code, severity: "danger" as const, message: t(VALIDATION_MESSAGE_KEYS[code]) }));
-}
+// field 診断（danger）への変換は共通 validationFieldDiagnostics(M11-T10)。全項目を即時表示（dirtyゲートなし）。
+// slug-required/slug-invalid は SlugField(required + 形式診断内蔵)が field 側で表示する。
+const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
+  validationFieldDiagnostics(validation.value.errors, VALIDATION_MESSAGE_KEYS, t, codes);
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
 const sourceDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["source-required"]));
-// section summary は全 validation error を同じ文法で併記する。
-const sectionDiagnostics = computed<DiagnosticItem[]>(() =>
-  validation.value.errors.map((code) => ({ key: code, severity: "danger" as const, message: t(VALIDATION_MESSAGE_KEYS[code]) })),
-);
-const displayTitle = computed(() => localizeTitle(document.value.title, activeLang.value) || document.value.slug || t("assetlist.master_detail.untitled"));
+// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug 代用はしない(M11-T10)
+const displayTitle = computed(() => localizeTitle(document.value.title, activeLang.value));
 const saveState = computed<EditorSaveState>(() => saving.value ? "saving" : draftLifecycle.draftRestored.value ? "draft-restored" : dirty.value ? "dirty" : "saved");
 const dimensions = computed(() => document.value.width !== null && document.value.height !== null ? `${document.value.width}×${document.value.height}` : "-");
 const fileSize = computed(() => document.value.byteSize === null ? "-" : `${Math.max(1, Math.round(document.value.byteSize / 1024))} KB`);
@@ -229,11 +235,40 @@ const draftLifecycle = useAssetDraftLifecycle<ReturnType<typeof toImageAssetDraf
   shouldPersist: () => dirty.value,
 });
 
+// M11-T10 複製浄化: uid は新規採番値へ、slug は予約値へ上書き
+function duplicateInitialDoc(source: ImageAssetRow, uid: string): ImageAssetEditDocument {
+  const doc = fromImageAssetRow(source);
+  return { ...doc, uid, slug: props.presetSlug || `${doc.slug}-copy` };
+}
+
+// M11-T10 複製: 元アセットの実体ファイルを volatileSource として流し込む
+// (file:// URL を絶対パスへ正規化。新規保存(add)が sourcePath から実体を複製する)
+async function prefillDuplicateSource(source: ImageAssetRow): Promise<void> {
+  try {
+    const fileUrl = await window.imageAssets.getFilePath(source.uid);
+    if (!fileUrl) throw new Error("source file not found");
+    const sourcePath = decodeURIComponent(String(fileUrl).replace(/^file:\/\//, ""));
+    volatileSource.value = { sourcePath, sourceName: source.sourceName || `${source.slug}.${source.ext ?? "png"}` };
+    previewUrl.value = String(fileUrl);
+    pushCurrent();
+  } catch (cause) {
+    console.error("Failed to prefill duplicate source", cause);
+    error.value = t("assetlist.master_detail.reselect_required");
+  }
+}
+
 function resetSession(item: ImageAssetRow | null, uid: string): void {
-  const next = item ? fromImageAssetRow(item) : newImageAssetDocument(uid, resolveEditorLanguage(i18next.language));
+  const next = item
+    ? fromImageAssetRow(item)
+    : props.isNew && props.duplicateSourceItem
+      ? duplicateInitialDoc(props.duplicateSourceItem, uid)
+      : newImageAssetDocument(uid, resolveEditorLanguage(i18next.language));
   document.value = clone(next);
   volatileSource.value = null;
+  if (!item && props.isNew && props.duplicateSourceItem) void prefillDuplicateSource(props.duplicateSourceItem);
   history = new UndoStack({ document: clone(next), volatileSource: null });
+  // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする(即保存可能)
+  if (!item && props.isNew && props.duplicateSourceItem) history.markDirty();
   historyVersion.value++;
   revision.value = item?.revision ?? null;
   originalSlug.value = item?.slug;
