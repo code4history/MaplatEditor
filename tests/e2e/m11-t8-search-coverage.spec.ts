@@ -42,12 +42,18 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
       DROP TRIGGER IF EXISTS apps_search_ad;
       DROP TRIGGER IF EXISTS apps_search_au;
       DROP TRIGGER IF EXISTS apps_search_ai;
+      DROP TRIGGER IF EXISTS apps_rtree_ad;
+      DROP TRIGGER IF EXISTS apps_rtree_au;
+      DROP TRIGGER IF EXISTS apps_rtree_ai;
       DROP TRIGGER IF EXISTS maps_search_ad;
       DROP TRIGGER IF EXISTS maps_search_au;
       DROP TRIGGER IF EXISTS maps_search_ai;
       DROP TRIGGER IF EXISTS poi_sources_search_ad;
       DROP TRIGGER IF EXISTS poi_sources_search_au;
       DROP TRIGGER IF EXISTS poi_sources_search_ai;
+      DROP TRIGGER IF EXISTS poi_sources_rtree_ad;
+      DROP TRIGGER IF EXISTS poi_sources_rtree_au;
+      DROP TRIGGER IF EXISTS poi_sources_rtree_ai;
 
       DELETE FROM schema_migrations;
       DELETE FROM apps;
