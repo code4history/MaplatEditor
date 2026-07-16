@@ -13,6 +13,7 @@ interface UseAppCoverageAutoCalcReturn {
 
 export function useAppCoverageAutoCalc(options: UseAppCoverageAutoCalcOptions): UseAppCoverageAutoCalcReturn {
   const autoCoverage = ref<[number, number][] | null>(null)
+  let currentCalcId = 0
 
   const isAuto = computed(() => {
     return !options.appDoc.value?.coverageLngLats
@@ -20,6 +21,7 @@ export function useAppCoverageAutoCalc(options: UseAppCoverageAutoCalcOptions): 
 
   async function calc(): Promise<void> {
     if (!options.appDoc.value) return
+    const calcId = ++currentCalcId
     const app = options.appDoc.value as any
     const uid = app.uid ?? app._id ?? ""
     try {
@@ -31,13 +33,17 @@ export function useAppCoverageAutoCalc(options: UseAppCoverageAutoCalcOptions): 
         if (mUid) mapUids.push(String(mUid))
       }
       const result = await (window as any).search?.appCoverage?.(uid, mapUids)
+      if (calcId !== currentCalcId) return
+
       if (result && Array.isArray(result.coverageLngLats)) {
         autoCoverage.value = result.coverageLngLats as [number, number][]
       } else {
         autoCoverage.value = null
       }
     } catch {
-      autoCoverage.value = null
+      if (calcId === currentCalcId) {
+        autoCoverage.value = null
+      }
     }
   }
 
