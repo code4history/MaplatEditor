@@ -232,15 +232,32 @@ test.describe('M11-T10 Dedup/Import', () => {
       // slug 重複エラーが出ていない
       await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
 
-      // R5: 即保存でも TIN 計算完了を待つため、保存された複製は compiled を持つ
-      // (待たないと gcps 素体へ劣化し store2HistMap が compiledRequired 警告を出す)
+      // R6: compiled を持つ地図(いま保存した複製)を複製→即保存。request が添付する
+      // compiled tins の種付けにより、再計算なしで compiled が引き継がれる
+      await openHash(page, '#/applist');
+      await openHash(page, '#/maplist');
+      const copyUid = await page.evaluate(async (slug) =>
+        (await window.maplist.request('', 1)).docs.find((d: any) => d.mapID === slug)?.uid, `${seeded.slug}-copy`);
+      expect(copyUid).toBeTruthy();
+      await expect(page.locator(`[data-resource-uid="${copyUid}"]`)).toBeVisible({ timeout: 15000 });
+      await clickCardAction(page, copyUid!, '複製');
+      await expect(page.getByTestId('map-slug')).toHaveValue(`${seeded.slug}-copy-copy`, { timeout: 15000 });
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 15000 });
+      await page.getByTestId('editor-save').click();
+      await expect.poll(async () => page.evaluate(async () =>
+        (await window.maplist.request('', 1)).docs.length), { timeout: 20000 }).toBe(3);
+
+      // R5/R6: 保存された複製が compiled を持つことを sqlite 直接検査で確認
+      // (待たない/種付けしないと gcps 素体へ劣化し store2HistMap が compiledRequired 警告を出す)
       const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
       await quitElectronApplication(app);
       const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
       try {
-        const row = db.prepare('SELECT data_json FROM maps WHERE slug = ?').get(`${seeded.slug}-copy`) as { data_json: string } | undefined;
-        expect(row).toBeTruthy();
-        expect(String(row!.data_json)).toContain('"compiled"');
+        for (const slug of [`${seeded.slug}-copy`, `${seeded.slug}-copy-copy`]) {
+          const row = db.prepare('SELECT data_json FROM maps WHERE slug = ?').get(slug) as { data_json: string } | undefined;
+          expect(row).toBeTruthy();
+          expect(String(row!.data_json)).toContain('"compiled"');
+        }
       } finally {
         db.close();
       }
