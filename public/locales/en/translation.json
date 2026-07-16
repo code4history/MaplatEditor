@@ -898,6 +898,8 @@
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
     "import_poi": "Import",
-    "import_map": "Import Map"
+    "import_map": "Import Map",
+    "delete_confirm_title": "Delete \"{{title}}\"?",
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
 }

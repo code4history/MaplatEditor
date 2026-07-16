@@ -15,6 +15,10 @@
       @retry="retry"
       @load-more="loadMore"
     >
+      <template #secondary>
+        <ImportSlot kind="map" @import="onImportMap" />
+      </template>
+
       <div class="d-flex flex-wrap justify-content-start align-items-start gap-4 p-3">
         <ResourceGridCard
           v-for="vm in viewModels"
@@ -61,6 +65,7 @@ import { useResourceListBackCache } from "../composables/useResourceListBackCach
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
 import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
+import ImportSlot from "../components/resource-list/ImportSlot.vue";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
@@ -121,12 +126,14 @@ function updateQuery(value: string): void {
   void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
 }
 function createNewMap(): void { void router.push("/mapedit"); }
+// M11-T10 (AC11): インポート導線 — MapEdit の新規モードで既存 importMap フローを自動起動
+function onImportMap(): void { void router.push("/mapedit?new=1&import=1"); }
 
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
   if (key === "duplicate") { await duplicateByVm(vm); return; }
   if (key !== "delete") return;
   pendingDeleteUid.value = vm.uid;
-  deleteDialogTitle.value = `${vm.title} を削除しますか？`;
+  deleteDialogTitle.value = t("resource_list.delete_confirm_title", { title: vm.title });
   deleteDialogVisible.value = true;
 }
 
@@ -166,6 +173,7 @@ async function duplicateByVm(vm: ResourceListItemViewModel) {
     const next = `${baseSlug.slice(0, 90)}-copy${i}`;
     if (await tryReserve(next)) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`); return; }
   }
+  deleteError.value = t("resource_list.duplicate_failed");
 }
 
 let unsubscribe: (() => void) | null = null;

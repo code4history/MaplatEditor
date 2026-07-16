@@ -898,6 +898,8 @@
     "delete_references_unavailable": "参照情報を取得できませんでした。",
     "deleting": "削除中…",
     "import_poi": "インポート",
-    "import_map": "地図インポート"
+    "import_map": "地図インポート",
+    "delete_confirm_title": "「{{title}}」を削除しますか？",
+    "duplicate_failed": "複製に失敗しました。スラッグの確保または内容の複製ができませんでした。"
   }
 }

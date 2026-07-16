@@ -1571,6 +1571,11 @@ onMounted(async () => {
           fresh.lang = resolveEditorLanguage(i18next.language);
           mapData.value = fresh;
           originalMapData.value = cloneDeep(fresh);
+          // M11-T10 (AC11): MapList のインポート導線から遷移した場合、
+          // 新規初期化後に既存の importMap フロー(ファイル選択→展開)を自動起動する
+          if (route.query.import === '1') {
+            void nextTick(() => { void importMap(); });
+          }
         }
     } else {
         // 既存地図: バックエンドからuidで読み込み

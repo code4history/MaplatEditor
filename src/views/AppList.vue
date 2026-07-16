@@ -80,7 +80,7 @@ async function onAction(key: string, vm: ResourceListItemViewModel): Promise<voi
   if (key === "duplicate") { await duplicateByVm(vm); return; }
   if (key !== "delete") return;
   pendingDeleteUid.value = vm.uid;
-  deleteDialogTitle.value = `${vm.title} を削除しますか？`;
+  deleteDialogTitle.value = t("resource_list.delete_confirm_title", { title: vm.title });
   deleteDialogVisible.value = true;
 }
 async function removeNewDraft(draft: AssetDraftSummary): Promise<void> {
@@ -112,6 +112,7 @@ async function duplicateByVm(vm: ResourceListItemViewModel) {
     const next = `${baseSlug.slice(0, 90)}-copy${i}`;
     if (await tryReserve(next)) { router.push(`/appedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`); return; }
   }
+  deleteError.value = t("resource_list.duplicate_failed");
 }
 
 let unsubscribe: (() => void) | null = null;
