@@ -59,6 +59,16 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
       DELETE FROM apps;
       DELETE FROM maps;
       DELETE FROM base_maps;
+      DELETE FROM base_maps_fts;
+      DELETE FROM apps_rtree;
+      DELETE FROM apps_rtree_key;
+      DELETE FROM apps_fts;
+      DELETE FROM maps_fts;
+      DELETE FROM maps_rtree;
+      DELETE FROM maps_rtree_key;
+      DELETE FROM assets_fts;
+      DELETE FROM poi_sources_rtree;
+      DELETE FROM poi_sources_rtree_key;
       
       INSERT INTO schema_migrations (id) VALUES ('2026-07-04-sqlite-write-store-legacy-import');
       INSERT INTO schema_migrations (id) VALUES ('2026-07-14-app-localized-search-index-backfill');
