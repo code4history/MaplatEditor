@@ -37,6 +37,11 @@
         />
       </div>
     </ResourceListShell>
+
+    <DeleteConfirmDialog
+      :visible="deleteDialogVisible" :title="deleteDialogTitle"
+      :deleting="false" @confirm="onDeleteConfirm" @cancel="deleteDialogVisible = false"
+    />
   </div>
 </template>
 
@@ -48,9 +53,9 @@ import noImage from "../assets/img/no_image.png";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
+import { checkSlugAvailability } from "../composables/useSlugAvailability";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
-import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
-import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
+import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 
@@ -111,17 +116,11 @@ function updateQuery(value: string): void {
 function createNewMap(): void { void router.push("/mapedit"); }
 
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
+  if (key === "duplicate") { await duplicateByVm(vm); return; }
   if (key !== "delete") return;
-  if (!confirm(t("maplist.delete_confirm", { name: vm.title }))) return;
-  try {
-    await (window as any).maplist.delete(vm.uid, query.value, 1); // backend 側の削除・参照処理は無改変
-    await window.assetDrafts.remove("map", vm.uid);
-    await applyDeletion(vm.uid); // D9: UID除去 + 最終page再取得 dedupe
-    await refreshDrafts();
-  } catch (e) {
-    console.error("Failed to delete map", e);
-    alert(t("maplist.delete_error"));
-  }
+  pendingDeleteUid.value = vm.uid;
+  deleteDialogTitle.value = `${vm.title} を削除しますか？`;
+  deleteDialogVisible.value = true;
 }
 
 // 新規(未保存)下書きの削除。保存済み地図行は存在しないため draft store のみ消す
@@ -133,6 +132,28 @@ async function removeNewDraft(draft: import("../types/assetDraft").AssetDraftSum
     await refreshDrafts();
   } catch (e) {
     console.error("Failed to delete new-map draft", e);
+  }
+}
+
+// M11-T10: 削除 + 複製
+const deleteDialogVisible = ref(false);
+const deleteDialogTitle = ref("");
+const pendingDeleteUid = ref("");
+async function onDeleteConfirm() {
+  deleteDialogVisible.value = false;
+  try {
+    await (window as any).maplist.delete(pendingDeleteUid.value, query.value, 1);
+    await window.assetDrafts.remove("map", pendingDeleteUid.value);
+    applyDeletion(pendingDeleteUid.value); await refreshDrafts();
+  } catch (e: any) { console.error("Delete failed", e); }
+}
+async function duplicateByVm(vm: ResourceListItemViewModel) {
+  const copySlug = (vm.slug || "map").length > 95 ? (vm.slug || "map").slice(0, 95) + "-copy" : (vm.slug || "map") + "-copy";
+  const newUid = crypto.randomUUID();
+  if (await checkSlugAvailability({ slug: copySlug, excludeUid: newUid })) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(copySlug)}&new=1`); return; }
+  for (let i = 2; i <= 100; i++) {
+    const next = `${(vm.slug || "map").slice(0, 90)}-copy${i}`;
+    if (await checkSlugAvailability({ slug: next, excludeUid: newUid })) { router.push(`/mapedit?duplicateFrom=${vm.uid}&draftUid=${newUid}&slug=${encodeURIComponent(next)}&new=1`); return; }
   }
 }
 
