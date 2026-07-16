@@ -47,17 +47,9 @@ export function useAppCoverageAutoCalc(options: UseAppCoverageAutoCalcOptions): 
     }
   }
 
-  watch(() => {
-    const doc = options.appDoc.value as any
-    if (!doc?.sources) return 0
-    return (doc.sources as any[]).length
-  }, () => {
+  watch(options.appDoc, () => {
     calc()
-  })
-
-  watch(() => options.appDoc.value?.uid ?? options.appDoc.value?._id, () => {
-    calc()
-  })
+  }, { deep: true })
 
   function manualOverride(lngLats: [number, number][] | null): void {
     if (options.appDoc.value) {
