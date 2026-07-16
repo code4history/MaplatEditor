@@ -239,7 +239,7 @@ import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { localizeTitle } from "../utils/langResource";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
-import { collectAssetRefsInFc } from "../utils/poiContentMode";
+import { collectAssetRefsInFc, collectImageAssetUids } from "../utils/poiContentMode";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
 import { isEditableElement } from "../utils/nativeTextUndo";
 import { isTranslationMode } from "../utils/editorLanguageMode";
@@ -472,8 +472,9 @@ const liveWarnings = computed<string[]>(() => {
 });
 
 // M11-T9 AC14: Asset Reference 欠落診断。
-// collectAssetRefsInFc で収集した UID を window.imageAssets.getFilePath で1件ずつ存在照会し、
-// 解決できない UID があればwarning キーを立てる。
+// HTML内の maplat-asset:<UID> (collectAssetRefsInFc) と、画像欄のアセットUID直接参照
+// (collectImageAssetUids、人間検証Round1で標準表示の画像が未検査だった穴を解消) を合算し、
+// window.imageAssets.getFilePath で1件ずつ存在照会して解決できない UID のみ warning を立てる。
 // 参照が1件もない場合は何も表示しない（有効な参照だけならノイズ警告しない）。
 const missingAssetRefUids = ref<string[]>([]);
 const assetRefCheckSeq = ref(0);
@@ -488,7 +489,11 @@ watch(
     }
     const seq = ++assetRefCheckSeq.value;
     const fc = session.toSaveFc();
-    const uids = [...collectAssetRefsInFc(fc)];
+    const uidSet = collectAssetRefsInFc(fc);
+    for (const f of (fc as { features?: Array<{ properties?: Record<string, unknown> }> }).features ?? []) {
+      for (const uid of collectImageAssetUids(f?.properties?.image)) uidSet.add(uid);
+    }
+    const uids = [...uidSet];
     if (uids.length === 0) {
       missingAssetRefUids.value = [];
       return;
