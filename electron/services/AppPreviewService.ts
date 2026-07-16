@@ -16,6 +16,7 @@ import {
   iconSetFilePath,
   mergeWarnings,
   resolvePoisArray,
+  resolveAssetRefsInFcForPreview,
   DUPLICATE_POI_REFERENCE_WARNING,
 } from './poiReferenceResolver';
 import {
@@ -26,6 +27,7 @@ import {
 } from '../../src/utils/appSourceModel';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { localizeTitle } from '../../src/utils/langResource';
+import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
 type PreviewSession = {
   token: string;
@@ -159,6 +161,19 @@ class AppPreviewService {
           const resolved = await resolvePoisArray(mapPois);
           mergeWarnings(warnings, resolved.warnings);
           mapPois = resolved.pois;
+          // M11-T9: maplat-asset:<UID> をプレビュー用パスに解決
+          mapPois = await Promise.all(
+            mapPois.map((poi: unknown) =>
+              resolveAssetRefsInFcForPreview(poi, token, async (uid: string) => {
+                const record = await SqliteDataService.findAsset(uid);
+                if (!record) return null;
+                const saveFolder = SettingsService.get('saveFolder') as string;
+                const src = path.join(saveFolder, 'assets', `${record.uid}.${record.ext}`);
+                if (!(await fs.pathExists(src))) return null;
+                return src;
+              }),
+            ),
+          );
         }
         // サムネイル実体はuidパス (ADR-0007)。preview serverの tmbs/ 経路で配信される
         const thumbnail = `tmbs/${preview.uid || viewerMapID}.jpg`;
@@ -260,6 +275,8 @@ class AppPreviewService {
     if (rest[0] === 'tiles') return this.servePreviewTile(rest.slice(1), res);
     if (rest[0] === 'tmbs') return this.serveDataFile('tmbs', rest.slice(1), res);
     if (rest[0] === 'img') return this.serveDataFile('img', rest.slice(1), res);
+    // M11-T9: maplat-asset:<UID> 解決用の Asset 実体配信。既存 imgs 分岐より前に置く
+    if (rest[0] === 'imgs' && rest[1] === 'assets') return this.serveAssetFile(rest[2], res);
     if (rest[0] === 'imgs') return this.serveResolvedIcon(rest.slice(1), res);
     if (rest[0] === 'basemap_icons') return this.serveResourceAsset(rest, res);
     if (rest[0] === 'apps' && rest[1] === `${token}.json`) return this.sendJson(res, session.app);
@@ -362,6 +379,21 @@ ${manifestLink}
       }
     }
     this.sendText(res, 404, 'Icon not found');
+  }
+
+  // M11-T9: maplat-asset:<UID> 解決用の Asset 実体配信。
+  // パストラバーサル防御: uid 部が UUID 形状、ext 部が画像拡張子のみ許可。
+  private async serveAssetFile(filename: string | undefined, res: http.ServerResponse): Promise<void> {
+    if (!filename) return this.sendText(res, 404, 'Not Found');
+    const decoded = decodeURIComponent(filename);
+    const match = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(png|jpe?g|gif|webp|svg)$/i.exec(decoded);
+    if (!match) return this.sendText(res, 404, 'Not Found');
+    const uid = match[1].toLowerCase();
+    if (!UUID_PATTERN.test(uid)) return this.sendText(res, 404, 'Not Found');
+    const ext = match[2].toLowerCase();
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const assetPath = path.join(saveFolder, 'assets', `${uid}.${ext}`);
+    await this.sendFile(res, assetPath);
   }
 
   // ビルトインベースマップのアイコン等、アプリ同梱リソースを配信する

@@ -27,6 +27,9 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { parseIconRef, listIconSets } from '../../src/utils/iconRefs';
 import { compactLangResource, type LangResource } from '../../src/utils/langResource';
 import { DEFAULT_LANG } from '../../src/utils/poiGeoJson';
+import {
+  collectAssetRefUids,
+} from '../../src/utils/poiContentMode';
 
 // icon 実体のコピー要求。dest は出力ルート相対 (posix 区切り) — export はディレクトリコピー先、
 // preview は配信ルート、download は zip 内パスとして解釈する
@@ -309,3 +312,162 @@ export function mergeWarnings(target: string[], added: string[]): void {
 
 // 二重参照警告キー (POI-142)。静的キー制約のため slug は含めない ({key,params} 化は UI 統一タスクで)
 export const DUPLICATE_POI_REFERENCE_WARNING = 'appedit.warn_duplicate_poi_reference';
+
+// Asset Reference 欠落警告キー (M11-T9)。
+export const MISSING_ASSET_REF_WARNING = 'appedit.warn_missing_asset_ref';
+
+// --- Asset Reference URI (maplat-asset:<UID>) 解決 (M11-T9) ---
+
+const ASSET_REF_RE = /maplat-asset:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
+
+// LangResource の全言語値から maplat-asset:<UID> を抽出し replaceFn で置換する。
+// FEATURE_COPY: 変更がない場合は original をそのまま返す（copy-on-write）。
+function replaceAssetRefsInLangValue(
+  value: unknown,
+  replaceFn: (uid: string) => string,
+): { result: unknown; changed: boolean } {
+  if (typeof value === 'string') {
+    let changed = false;
+    const result = value.replace(ASSET_REF_RE, (_match, uid: string) => {
+      changed = true;
+      return replaceFn(uid.toLowerCase());
+    });
+    return { result, changed };
+  }
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    let changed = false;
+    const newObj: Record<string, unknown> = {};
+    for (const [lang, text] of Object.entries(obj)) {
+      if (typeof text === 'string') {
+        const newText = text.replace(ASSET_REF_RE, (_match, uid: string) => {
+          changed = true;
+          return replaceFn(uid.toLowerCase());
+        });
+        newObj[lang] = newText;
+      } else {
+        newObj[lang] = text;
+      }
+    }
+    return { result: changed ? newObj : obj, changed };
+  }
+  return { result: value, changed: false };
+}
+
+// FC 内の全 features の properties.html（LangResource 全言語値）から maplat-asset:<UID> を
+// replaceFn で置換する (copy-on-write)。走査対象は html のみ（設計 §93）。
+function resolveAssetRefsInFc(
+  entry: unknown,
+  replaceFn: (uid: string) => string,
+): unknown {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return entry;
+  const fc = entry as Record<string, unknown>;
+  if (fc.type !== 'FeatureCollection' || !Array.isArray(fc.features)) return entry;
+
+  const features = fc.features as unknown[];
+  let changedFeatures: unknown[] | null = null;
+  for (let i = 0; i < features.length; i++) {
+    const feature = features[i];
+    if (!feature || typeof feature !== 'object') continue;
+    const props = (feature as Record<string, unknown>).properties;
+    if (!props || typeof props !== 'object') continue;
+    const html = (props as Record<string, unknown>).html;
+    if (html === undefined) continue;
+
+    const { result, changed } = replaceAssetRefsInLangValue(html, replaceFn);
+    if (changed) {
+      if (!changedFeatures) changedFeatures = [...features];
+      changedFeatures[i] = {
+        ...(feature as Record<string, unknown>),
+        properties: { ...(props as Record<string, unknown>), html: result },
+      };
+    }
+  }
+  if (changedFeatures) {
+    return { ...fc, features: changedFeatures };
+  }
+  return entry;
+}
+
+// プレビュー用: FC 内の maplat-asset:<UID> を /preview/{token}/imgs/assets/{uid}.{ext} に置換。
+// getAssetPath(uid) は ImageAssetService.getFilePath(uid) の結果（ext 抽出に使う）。
+// 2パス方式: 先に全 UID を収集し ext を解決してから同期的に置換する。
+export async function resolveAssetRefsInFcForPreview(
+  entry: unknown,
+  token: string,
+  getAssetPath: (uid: string) => Promise<string | null>,
+): Promise<unknown> {
+  const uidExtCache = new Map<string, string>();
+  const allUids = collectAssetRefUidsFromFcProps(entry);
+
+  for (const uid of allUids) {
+    const filePath = await getAssetPath(uid);
+    if (filePath) {
+      const ext = path.extname(filePath).replace(/^\./, '') || 'png';
+      uidExtCache.set(uid, ext);
+    }
+  }
+
+  return resolveAssetRefsInFc(entry, (uid) => {
+    const ext = uidExtCache.get(uid);
+    if (ext) {
+      return `/preview/${token}/imgs/assets/${uid}.${ext}`;
+    }
+    // 解決できない UID は元の参照を維持（欠落診断は呼び出し側の責務）
+    return `maplat-asset:${uid}`;
+  });
+}
+
+// FC 内の全 features の properties.html から Asset Reference UID を収集
+function collectAssetRefUidsFromFcProps(entry: unknown): Set<string> {
+  const uids = new Set<string>();
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return uids;
+  const fc = entry as Record<string, unknown>;
+  if (fc.type !== 'FeatureCollection' || !Array.isArray(fc.features)) return uids;
+  for (const feature of fc.features as unknown[]) {
+    if (!feature || typeof feature !== 'object') continue;
+    const props = (feature as Record<string, unknown>).properties;
+    if (!props || typeof props !== 'object') continue;
+    const html = (props as Record<string, unknown>).html;
+    if (html !== undefined) {
+      const found = collectAssetRefUids(html);
+      for (const uid of found) uids.add(uid);
+    }
+  }
+  return uids;
+}
+
+// エクスポート用: FC 内の maplat-asset:<UID> を imgs/{slug}.{ext} に置換し、
+// 実体コピー要求を icons Map に追加。
+// 戻り値の warnings は欠落 Asset の警告キー（複数欠落でも1回だけ）。
+export async function resolveAssetRefsForExport(
+  entry: unknown,
+  icons: Map<string, IconFile>,
+): Promise<{ entry: unknown; warnings: string[] }> {
+  const warnings: string[] = [];
+  const allUids = collectAssetRefUidsFromFcProps(entry);
+  const uidToDest = new Map<string, string>();
+
+  for (const uid of allUids) {
+    const record = await SqliteDataService.findAsset(uid);
+    if (!record) {
+      mergeWarnings(warnings, [MISSING_ASSET_REF_WARNING]);
+      continue;
+    }
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const src = path.join(saveFolder, 'assets', `${record.uid}.${record.ext}`);
+    if (!(await fs.pathExists(src))) {
+      mergeWarnings(warnings, [MISSING_ASSET_REF_WARNING]);
+      continue;
+    }
+    const dest = `imgs/${record.slug}.${record.ext}`;
+    uidToDest.set(uid, dest);
+    icons.set(dest, { src, dest });
+  }
+
+  const result = resolveAssetRefsInFc(entry, (uid) => {
+    return uidToDest.get(uid) ?? `maplat-asset:${uid}`;
+  });
+
+  return { entry: result, warnings };
+}
