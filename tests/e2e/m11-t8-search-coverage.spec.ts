@@ -33,6 +33,22 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
     const db = new DatabaseSync(dbPath);
     
     db.exec(`
+      DROP TRIGGER IF EXISTS base_maps_search_ad;
+      DROP TRIGGER IF EXISTS base_maps_search_au;
+      DROP TRIGGER IF EXISTS base_maps_search_ai;
+      DROP TRIGGER IF EXISTS assets_search_ad;
+      DROP TRIGGER IF EXISTS assets_search_au;
+      DROP TRIGGER IF EXISTS assets_search_ai;
+      DROP TRIGGER IF EXISTS apps_search_ad;
+      DROP TRIGGER IF EXISTS apps_search_au;
+      DROP TRIGGER IF EXISTS apps_search_ai;
+      DROP TRIGGER IF EXISTS maps_search_ad;
+      DROP TRIGGER IF EXISTS maps_search_au;
+      DROP TRIGGER IF EXISTS maps_search_ai;
+      DROP TRIGGER IF EXISTS poi_sources_search_ad;
+      DROP TRIGGER IF EXISTS poi_sources_search_au;
+      DROP TRIGGER IF EXISTS poi_sources_search_ai;
+
       DELETE FROM schema_migrations;
       DELETE FROM apps;
       DELETE FROM maps;
