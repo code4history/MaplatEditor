@@ -680,6 +680,9 @@ function resetHistoryBase() {
 
 function recordHistory() {
   if (historyApplying.value) return;
+  // F4 同型(MapEdit): 文書の変更で保存時 operation 診断を解消する
+  // (旧実装は slug 入力時のみ解消され、他フィールド編集では保存ボタンが disabled のまま固まった)
+  if (saveError.value) saveError.value = null;
   const next = cloneDocument(appData.value);
   if (!historyStack.value || isEqual(historyStack.value.current(), next)) return;
   historyStack.value.push(next);
@@ -801,7 +804,24 @@ async function reloadFromStore() {
 }
 
 async function discardRestoredDraft() {
-  if (!appUid.value || !draftLifecycle.draftRestored.value) return;
+  if (!draftLifecycle.draftRestored.value) return;
+  // 新規(未保存)アプリの下書き: 破棄=完全削除でセーブポイントが存在しないため、
+  // 削除後は編集対象が無くなり一覧へ戻る(このとき hot-exit flush を通すと
+  // 下書きが再保存されるため goBack ではなく直接遷移する)
+  if (!appUid.value) {
+    const name = localized(appData.value.appName) || appData.value.appID || t("editor_ui.draft_badge");
+    const result = await (window as any).dialog.showMessageBox({
+      type: "warning",
+      buttons: [t("editor_ui.delete_draft"), t("common.cancel")],
+      defaultId: 1,
+      cancelId: 1,
+      message: t("editor_ui.delete_draft_confirm", { name }),
+    });
+    if (result.response !== 0) return;
+    await draftLifecycle.discard();
+    await router.push("/applist");
+    return;
+  }
   const result = await (window as any).dialog.showMessageBox({
     type: "warning",
     buttons: [t("editor_ui.discard_draft"), t("common.cancel")],
@@ -1068,7 +1088,7 @@ function onPoisChange(next: unknown[]) {
       :save-disabled="!!saveError || !isDirty"
       :saving="saving"
       :actions-disabled="exporting"
-      :discard-draft-visible="saveState === 'draft-restored' && !!appUid"
+      :discard-draft-visible="saveState === 'draft-restored'"
       @back="goBack"
       @update:active-lang="currentLang = $event"
       @undo="performUndo"
@@ -1088,6 +1108,16 @@ function onPoisChange(next: unknown[]) {
         </button>
       </template>
     </EditorActionHeader>
+
+    <!-- M11-T7/AC8 同型(MapEdit): 保存 operation エラーはアクションヘッダ直下に常時可視で表示する。
+         旧配置(メタデータフォーム最下部)ではスクロールしないと見えず、保存失敗が伝わらなかった -->
+    <DiagnosticFeedback
+      v-if="saveError"
+      scope="operation"
+      dismissible
+      :items="[{ key: 'save-error', severity: 'danger', message: saveError }]"
+      @dismiss="saveError = null"
+    />
 
     <!-- M11-T7/AC9: EditorTabs primitive + §9 語彙(メタデータ編集/地図選択/POI選択/プレビュー) -->
     <div class="px-4 mt-2">
@@ -1307,13 +1337,6 @@ function onPoisChange(next: unknown[]) {
               </div>
             </div>
           </section>
-          <!-- M11-T7/AC8: 保存 operation エラーは DiagnosticFeedback scope="operation" -->
-          <DiagnosticFeedback
-            v-if="saveError"
-            class="mt-3"
-            scope="operation"
-            :items="[{ key: 'save-error', severity: 'danger', message: saveError }]"
-          />
         </form>
       </div>
 

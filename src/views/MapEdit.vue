@@ -2635,7 +2635,24 @@ const reloadFromStore = async () => {
 };
 
 const discardRestoredDraft = async () => {
-    if (!mapUid.value || !draftLifecycle.draftRestored.value) return;
+    if (!draftLifecycle.draftRestored.value) return;
+    // 新規(未保存)地図の下書き: 破棄=完全削除でセーブポイントが存在しないため、
+    // 削除後は編集対象が無くなり一覧へ戻る(hot-exit flush を通すと下書きが
+    // 再保存されるため、flush せず直接遷移する。AppEdit と同型)
+    if (!mapUid.value) {
+        const name = displayTitle.value || mapData.value.mapID || t('editor_ui.draft_badge');
+        const result = await (window as any).dialog.showMessageBox({
+            type: 'warning',
+            buttons: [t('editor_ui.delete_draft'), t('common.cancel')],
+            defaultId: 1,
+            cancelId: 1,
+            message: t('editor_ui.delete_draft_confirm', { name }),
+        });
+        if (result.response !== 0) return;
+        await draftLifecycle.discard();
+        await router.push({ name: 'MapList' });
+        return;
+    }
     const result = await (window as any).dialog.showMessageBox({
         type: 'warning',
         buttons: [t('editor_ui.discard_draft'), t('common.cancel')],
@@ -3003,7 +3020,7 @@ const goBack = async () => {
             :save-disabled="!!saveError || !isDirty"
             :saving="saving"
             :actions-disabled="exporting"
-            :discard-draft-visible="saveState === 'draft-restored' && !!mapUid"
+            :discard-draft-visible="saveState === 'draft-restored'"
             @back="goBack"
             @update:active-lang="currentLang = $event"
             @undo="performUndo"
