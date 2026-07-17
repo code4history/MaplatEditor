@@ -50,7 +50,7 @@
               :active-lang="activeLang"
               :default-lang="document.defaultLang"
               :language-options="SUPPORTED_LANGUAGES"
-              :disabled="readOnly || saving"
+              :disabled="readOnly || saving || sessionTransitionPending"
               :invalid="titleDiagnostics.length > 0"
               @update:model-value="updateResource('title', $event)"
               @select-language="activeLang = $event"
@@ -69,7 +69,7 @@
             :draft-uid="document.uid"
             :original-slug="originalSlug"
             :required="true"
-            :disabled="structuralDisabled"
+            :disabled="structuralDisabled || sessionTransitionPending"
             input-testid="basemap-slug"
             @update:model-value="slugLive = $event"
             @change="updateField('slug', $event.trim())"
@@ -82,7 +82,7 @@
             :value="document.defaultLang"
             class="form-select form-select-sm"
             data-testid="basemap-default-language"
-            :disabled="structuralDisabled"
+            :disabled="structuralDisabled || sessionTransitionPending"
             @change="changeDefaultLang(($event.target as HTMLSelectElement).value as LangCode)"
           >
             <option v-for="language in SUPPORTED_LANGUAGES" :key="language.code" :value="language.code">{{ language.nativeName }}</option>
@@ -96,7 +96,7 @@
             :active-lang="activeLang"
             :default-lang="document.defaultLang"
             :language-options="SUPPORTED_LANGUAGES"
-            :disabled="readOnly || saving"
+            :disabled="readOnly || saving || sessionTransitionPending"
             @update:model-value="updateResource('label', $event)"
             @select-language="activeLang = $event"
           />
@@ -109,7 +109,7 @@
             :active-lang="activeLang"
             :default-lang="document.defaultLang"
             :language-options="SUPPORTED_LANGUAGES"
-            :disabled="readOnly || saving"
+            :disabled="readOnly || saving || sessionTransitionPending"
             @update:model-value="updateResource('attr', $event)"
             @select-language="activeLang = $event"
           />
@@ -125,7 +125,7 @@
               class="form-control form-control-sm"
               :class="{ 'is-invalid': urlDiagnostics.length }"
               data-testid="basemap-url"
-              :disabled="structuralDisabled"
+              :disabled="structuralDisabled || sessionTransitionPending"
               @change="updateField('url', ($event.target as HTMLInputElement).value.trim())"
             >
           </EditorField>
@@ -140,7 +140,7 @@
               max="25"
               class="form-control form-control-sm"
               :class="{ 'is-invalid': minZoomDiagnostics.length }"
-              :disabled="structuralDisabled"
+              :disabled="structuralDisabled || sessionTransitionPending"
               @change="updateNumber('minZoom', ($event.target as HTMLInputElement).value)"
             >
           </EditorField>
@@ -155,7 +155,7 @@
               max="25"
               class="form-control form-control-sm"
               :class="{ 'is-invalid': maxZoomDiagnostics.length }"
-              :disabled="structuralDisabled"
+              :disabled="structuralDisabled || sessionTransitionPending"
               @change="updateNumber('maxZoom', ($event.target as HTMLInputElement).value)"
             >
           </EditorField>
@@ -165,7 +165,7 @@
           <label class="form-label fw-semibold">{{ t("basemap.icon") }}</label>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <img v-if="thumbnailUrl" :src="thumbnailUrl" class="base-map-icon" :alt="document.slug">
-            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="structuralDisabled" @click="uploadIcon">{{ t("appedit.upload") }}</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="structuralDisabled || sessionTransitionPending" @click="uploadIcon">{{ t("appedit.upload") }}</button>
             <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled || !canGenerateIcon || generatingIcon" @click="generateIcon">
               {{ generatingIcon ? t("basemap.generating_icon") : t("basemap.generate_icon") }}
             </button>
@@ -182,8 +182,8 @@
           </label>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span class="small font-monospace">{{ coverageText }}</span>
-            <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled" @click="showEnvelopeModal = true">{{ t("appedit.envelope_pick") }}</button>
-            <button v-if="document.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" :disabled="structuralDisabled" @click="updateField('coverageLngLats', null)">{{ t("appedit.envelope_clear") }}</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled || sessionTransitionPending" @click="showEnvelopeModal = true">{{ t("appedit.envelope_pick") }}</button>
+            <button v-if="document.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" :disabled="structuralDisabled || sessionTransitionPending" @click="updateField('coverageLngLats', null)">{{ t("appedit.envelope_clear") }}</button>
           </div>
         </div>
       </div>
@@ -286,7 +286,7 @@ const showEnvelopeModal = ref(false);
 const readOnly = computed(() => document.value.scope === "builtin");
 const editable = computed(() => !readOnly.value);
 const translationMode = computed(() => isTranslationMode(activeLang.value, document.value.defaultLang));
-const structuralDisabled = computed(() => readOnly.value || translationMode.value || saving.value);
+const structuralDisabled = computed(() => readOnly.value || translationMode.value || saving.value || sessionTransitionPending.value);
 const dirty = computed(() => (historyVersion.value, history.isDirty()));
 const canUndo = computed(() => (historyVersion.value, history.canUndo()));
 const canRedo = computed(() => (historyVersion.value, history.canRedo()));
@@ -350,10 +350,12 @@ function resetSession(item: BaseMapCatalogItem | null, uid: string): void {
 
 let sessionOpened = false;
 let sessionTransition = Promise.resolve();
+const sessionTransitionPending = ref(false);
 let pendingSavedIdentity: { uid: string; revision: number } | null = null;
 watch(
   () => [props.uid, props.item?.revision, props.isNew] as const,
   ([uid, itemRevision, isNew]) => {
+    sessionTransitionPending.value = true;
     sessionTransition = sessionTransition.then(async () => {
       // AC6: asset/session identity切替時に初期draft保存のone-shot状態をresetする
       resetInitialDraftPersist();
@@ -382,6 +384,8 @@ watch(
     }).catch((cause) => {
       console.error("Failed to change base map editor session", cause);
       error.value = t("basemap.errors.load_failed");
+    }).finally(() => {
+      sessionTransitionPending.value = false;
     });
   },
   { immediate: true },

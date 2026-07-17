@@ -68,7 +68,11 @@ export function registerSettingsHandlers() {
 
   // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)
   ipcMain.handle('basemaps:save-user', async (_, payload: { uid?: string; slug: string; tms: any }) => {
-    return await SettingsService.saveUserBaseMap(payload);
+    const result = await SettingsService.saveUserBaseMap(payload);
+    if (result && (result as any).result === 'Success') {
+      BrowserWindow.getAllWindows().forEach(win => win.webContents.send('maplist:refresh'));
+    }
+    return result;
   });
 
   ipcMain.handle('basemaps:delete-user', async (_, baseMapUid: string) => {

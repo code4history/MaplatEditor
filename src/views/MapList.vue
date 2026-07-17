@@ -156,10 +156,14 @@ async function duplicateByVm(vm: ResourceListItemViewModel) {
 }
 
 let unsubscribe: (() => void) | null = null;
-onMounted(async () => {
-  await restoreOrLoad();
-  await refreshDrafts();
+onMounted(() => {
+  // m11-t12: refresh イベントは restoreOrLoad() 中に発行される可能性があるため、
+  // リスナー登録を先に行い、イベントを取りこぼさないようにする。
   unsubscribe = window.maplist.onRefresh(() => { void loadFirst(); void refreshDrafts(); });
+  void (async () => {
+    await restoreOrLoad();
+    await refreshDrafts();
+  })();
 });
 onBeforeUnmount(() => unsubscribe?.());
 // route.q 変更で再取得（filter generation）
