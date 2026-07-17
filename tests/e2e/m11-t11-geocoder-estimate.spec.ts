@@ -91,6 +91,35 @@ async function createTestBaseMap(page: Page): Promise<{ uid: string; title: stri
   });
 }
 
+async function createFarBaseMap(page: Page): Promise<{ uid: string; title: string; slug: string }> {
+  return page.evaluate(async () => {
+    const slug = `m11-t11-far-basemap-${Date.now()}`;
+    const result = await window.baseMaps.saveUser({
+      slug,
+      tms: {
+        lang: 'ja',
+        title: { ja: `遠方テスト ${slug}` },
+        label: { ja: `遠方テスト ${slug}` },
+        attr: {},
+        url: 'https://example.com/tiles/{z}/{x}/{y}.png',
+        minZoom: 0,
+        maxZoom: 18,
+        thumbnail: '',
+        // 東京GCP範囲と交差しない大阪方面の存在範囲
+        coverageLngLats: [
+          [135.49, 34.66],
+          [135.51, 34.66],
+          [135.51, 34.68],
+          [135.49, 34.68],
+        ],
+      },
+      create: true,
+    });
+    if (!result || result.result !== 'Success') throw new Error(`Far base map seed failed: ${JSON.stringify(result)}`);
+    return { uid: result.uid, title: `遠方テスト ${slug}`, slug };
+  });
+}
+
 async function createMapWithOutlierGcps(page: Page): Promise<string> {
   return page.evaluate(async () => {
     const slug = `m11-t11-outlier-${Date.now()}`;
@@ -487,6 +516,36 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
 
     // 外れGCPを含む bbox は存在範囲で包含されていないが、一部交差しているため表示される
     await expect(page.getByText(title, { exact: false })).toBeVisible({ timeout: 30000 });
+
+    await quitElectronApplication(app);
+  });
+
+  test('HV-R2: checked base map outside filter region stays visible so it can be unchecked', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-r2-checked-'));
+    const { app, page } = await launch(e2eRoot);
+
+    const mapUid = await createMapWithGcps(page);
+    const { uid: farUid, title } = await createFarBaseMap(page);
+
+    // 絞り込み対象外の遠方ベースマップを事前に ON にしておく
+    await page.evaluate(async ({ mapRef, baseMapUid }) => {
+      await window.mapedit.setBaseMapVisibilityForMapID(mapRef, baseMapUid, true);
+    }, { mapRef: mapUid, baseMapUid: farUid });
+
+    await openMapEdit(page, mapUid);
+    await switchMapEditSettingsTab(page);
+
+    // ロード完了を待つ
+    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).toBeVisible({ timeout: 30000 });
+
+    // 絞り込み対象外だが、チェック済み（表示ON）なので一覧に残り、オフにできる
+    await expect(page.getByText(title, { exact: true })).toBeVisible({ timeout: 30000 });
+
+    // チェックを外すと、未チェックかつ範囲外なのでフィルタ対象になり一覧から消える
+    await page.locator('label').filter({ hasText: title }).first().click();
+
+    await expect(page.getByText(title, { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     await quitElectronApplication(app);
   });

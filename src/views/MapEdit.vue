@@ -2380,6 +2380,9 @@ const filteredBaseMapVisibilityList = computed(() => {
     const gcpBbox = rawGcpBbox ? expandBboxByRatio(rawGcpBbox, 0.05) : null;
     return baseMapVisibilityList.value.filter((item) => {
         if (text && !baseMapSearchHaystack(item).includes(text)) return false;
+        // チェック済み（表示ON）は空間絞り込みをバイパスし、一覧に残す。
+        // これにより、遠隔地のON済みベースマップも絞り込み中にオフにできる（HV-R2）。
+        if (item.enabled) return true;
         const coverage = envelopeToBbox(item?.data?.coverageLngLats ?? null);
         if (coverage) {
             // 空間条件は coverage と「一部でも交差」すれば該当（正本 §10.2）。
