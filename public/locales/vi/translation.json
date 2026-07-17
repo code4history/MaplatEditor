@@ -561,7 +561,8 @@
       "no_icon_source": "Chưa thiết lập ảnh gốc biểu tượng PWA nên không tạo biểu tượng.",
       "missing_thumbnail": "Không tìm thấy ảnh thu nhỏ của một số bản đồ nền/lớp phủ.",
       "missing_splash": "Không tìm thấy ảnh màn hình khởi động."
-    }
+    },
+    "no_app_name": "Please input an app name."
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",
@@ -692,7 +693,9 @@
       "unsupported_scheme": "Chỉ hỗ trợ URL http/https",
       "payload_too_large": "Dữ liệu vượt quá giới hạn kích thước (50MB)",
       "pick_failed": "Không thể chọn tệp",
-      "references_unavailable": "Không thể lấy thông tin tham chiếu"
+      "references_unavailable": "Không thể lấy thông tin tham chiếu",
+      "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
     }
   },
   "poiedit": {
@@ -754,7 +757,20 @@
       "no_assets": "Không tìm thấy tài nguyên ảnh",
       "set_builtin": "Tiêu chuẩn"
     },
-    "saving": "Đang lưu…"
+    "saving": "Đang lưu…",
+    "content_mode_standard": "Standard",
+    "content_mode_html": "HTML",
+    "content_mode_url": "Web Page",
+    "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
+    "content_mode_switch_title": "Switch Content Mode",
+    "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
+    "content_mode_confirm": "Switch",
+    "content_mode_cancel": "Cancel",
+    "reference_assets": "Reference Assets",
+    "copy_ref": "Copy Reference",
+    "insert_image": "Insert Image",
+    "add_reference_asset": "Add Asset",
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
   },
   "assetlist": {
     "master_detail": {
@@ -840,7 +856,8 @@
       "reserved-by-other": "Đã bị nơi khác giữ",
       "check-failed": "Kiểm tra thất bại",
       "taken": "Đã được sử dụng",
-      "unavailable": "Không thể kiểm tra"
+      "unavailable": "Không thể kiểm tra",
+      "required": "Enter a slug"
     },
     "draft_badge": "Bản nháp",
     "draft_conflict": {
@@ -857,7 +874,10 @@
       "maps": "Chọn bản đồ",
       "preview": "Xem trước",
       "gcps_requires_image": "Hãy đăng ký ảnh bản đồ trước"
-    }
+    },
+    "delete_draft": "Delete draft",
+    "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
+    "untitled": "Untitled"
   },
   "resource_list": {
     "new_item": "Mới",
@@ -869,13 +889,22 @@
     "kind_asset": "tài nguyên",
     "loading": "Đang tải…",
     "empty": "Không có mục phù hợp",
-    "end": "Đã hiển thị tất cả",
     "load_error": "Tải thất bại",
     "append_error": "Tải thêm thất bại",
     "retry": "Thử lại",
     "menu_delete": "Xóa",
     "menu_label": "Menu thao tác",
-    "total_loaded": "Hiển thị {{loaded}}/{{total}}",
-    "loaded_only": "Hiển thị {{loaded}}"
+    "loaded_only": "Hiển thị {{loaded}}",
+    "menu_duplicate": "Duplicate",
+    "total_only": "{{total}} items",
+    "total_partial": "Showing {{loaded}} of {{total}}",
+    "delete_irreversible": "This action cannot be undone.",
+    "delete_referenced_by": "Referenced by the following resources:",
+    "delete_references_unavailable": "Unable to retrieve reference information.",
+    "deleting": "Deleting…",
+    "import_poi": "Import",
+    "import_map": "Import Map",
+    "delete_confirm_title": "Delete \"{{title}}\"?",
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
 }

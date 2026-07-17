@@ -561,7 +561,8 @@
       "no_icon_source": "PWA 아이콘 원본 이미지가 설정되지 않아 아이콘을 생성하지 않았습니다.",
       "missing_thumbnail": "일부 베이스맵/오버레이의 썸네일 이미지를 찾을 수 없었습니다.",
       "missing_splash": "스플래시 이미지를 찾을 수 없었습니다."
-    }
+    },
+    "no_app_name": "Please input an app name."
   },
   "mapmodel": {
     "untitled": "제목 미설정",
@@ -692,7 +693,9 @@
       "unsupported_scheme": "URL은 http/https만 지원합니다",
       "payload_too_large": "데이터가 크기 제한(50MB)을 초과했습니다",
       "pick_failed": "파일을 선택할 수 없습니다",
-      "references_unavailable": "참조 정보를 가져올 수 없습니다"
+      "references_unavailable": "참조 정보를 가져올 수 없습니다",
+      "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
     }
   },
   "poiedit": {
@@ -754,7 +757,20 @@
       "no_assets": "에셋을 찾을 수 없습니다",
       "set_builtin": "표준"
     },
-    "saving": "저장 중…"
+    "saving": "저장 중…",
+    "content_mode_standard": "Standard",
+    "content_mode_html": "HTML",
+    "content_mode_url": "Web Page",
+    "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
+    "content_mode_switch_title": "Switch Content Mode",
+    "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
+    "content_mode_confirm": "Switch",
+    "content_mode_cancel": "Cancel",
+    "reference_assets": "Reference Assets",
+    "copy_ref": "Copy Reference",
+    "insert_image": "Insert Image",
+    "add_reference_asset": "Add Asset",
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
   },
   "assetlist": {
     "master_detail": {
@@ -840,7 +856,8 @@
       "reserved-by-other": "다른 곳에서 사용 중",
       "check-failed": "확인 실패",
       "taken": "이미 사용 중",
-      "unavailable": "확인할 수 없음"
+      "unavailable": "확인할 수 없음",
+      "required": "Enter a slug"
     },
     "draft_badge": "초안",
     "draft_conflict": {
@@ -857,7 +874,10 @@
       "maps": "지도 선택",
       "preview": "미리보기",
       "gcps_requires_image": "먼저 지도 이미지를 등록하세요"
-    }
+    },
+    "delete_draft": "Delete draft",
+    "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
+    "untitled": "Untitled"
   },
   "resource_list": {
     "new_item": "새로 만들기",
@@ -869,13 +889,22 @@
     "kind_asset": "에셋",
     "loading": "불러오는 중…",
     "empty": "일치하는 항목이 없습니다",
-    "end": "모든 항목을 표시했습니다",
     "load_error": "불러오지 못했습니다",
     "append_error": "추가 로딩에 실패했습니다",
     "retry": "다시 시도",
     "menu_delete": "삭제",
     "menu_label": "작업 메뉴",
-    "total_loaded": "전체 {{total}}건 중 {{loaded}}건 표시",
-    "loaded_only": "{{loaded}}건 표시"
+    "loaded_only": "{{loaded}}건 표시",
+    "menu_duplicate": "Duplicate",
+    "total_only": "{{total}} items",
+    "total_partial": "Showing {{loaded}} of {{total}}",
+    "delete_irreversible": "This action cannot be undone.",
+    "delete_referenced_by": "Referenced by the following resources:",
+    "delete_references_unavailable": "Unable to retrieve reference information.",
+    "deleting": "Deleting…",
+    "import_poi": "Import",
+    "import_map": "Import Map",
+    "delete_confirm_title": "Delete \"{{title}}\"?",
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
 }

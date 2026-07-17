@@ -561,7 +561,8 @@
       "no_icon_source": "ยังไม่ได้ตั้งค่าภาพต้นฉบับไอคอน PWA จึงไม่ได้สร้างไอคอน",
       "missing_thumbnail": "ไม่พบภาพย่อของแผนที่พื้นฐาน/เลเยอร์ซ้อนทับบางรายการ",
       "missing_splash": "ไม่พบภาพหน้าจอเริ่มต้น"
-    }
+    },
+    "no_app_name": "Please input an app name."
   },
   "mapmodel": {
     "untitled": "ยังไม่มีชื่อ",
@@ -692,7 +693,9 @@
       "unsupported_scheme": "รองรับเฉพาะ URL แบบ http/https เท่านั้น",
       "payload_too_large": "ข้อมูลเกินขีดจำกัดขนาด (50MB)",
       "pick_failed": "ไม่สามารถเลือกไฟล์ได้",
-      "references_unavailable": "ไม่สามารถดึงข้อมูลการอ้างอิงได้"
+      "references_unavailable": "ไม่สามารถดึงข้อมูลการอ้างอิงได้",
+      "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
     }
   },
   "poiedit": {
@@ -754,7 +757,20 @@
       "no_assets": "ไม่พบรูปภาพ",
       "set_builtin": "มาตรฐาน"
     },
-    "saving": "กำลังบันทึก…"
+    "saving": "กำลังบันทึก…",
+    "content_mode_standard": "Standard",
+    "content_mode_html": "HTML",
+    "content_mode_url": "Web Page",
+    "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
+    "content_mode_switch_title": "Switch Content Mode",
+    "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
+    "content_mode_confirm": "Switch",
+    "content_mode_cancel": "Cancel",
+    "reference_assets": "Reference Assets",
+    "copy_ref": "Copy Reference",
+    "insert_image": "Insert Image",
+    "add_reference_asset": "Add Asset",
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
   },
   "assetlist": {
     "master_detail": {
@@ -840,7 +856,8 @@
       "reserved-by-other": "ถูกใช้โดยรายอื่น",
       "check-failed": "ตรวจสอบไม่สำเร็จ",
       "taken": "ถูกใช้แล้ว",
-      "unavailable": "ตรวจสอบไม่ได้"
+      "unavailable": "ตรวจสอบไม่ได้",
+      "required": "Enter a slug"
     },
     "draft_badge": "ฉบับร่าง",
     "draft_conflict": {
@@ -857,7 +874,10 @@
       "maps": "เลือกแผนที่",
       "preview": "ดูตัวอย่าง",
       "gcps_requires_image": "กรุณาลงทะเบียนภาพแผนที่ก่อน"
-    }
+    },
+    "delete_draft": "Delete draft",
+    "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
+    "untitled": "Untitled"
   },
   "resource_list": {
     "new_item": "สร้างใหม่",
@@ -869,13 +889,22 @@
     "kind_asset": "ทรัพยากร",
     "loading": "กำลังโหลด…",
     "empty": "ไม่มีรายการที่ตรงกัน",
-    "end": "แสดงรายการทั้งหมดแล้ว",
     "load_error": "โหลดไม่สำเร็จ",
     "append_error": "โหลดเพิ่มเติมไม่สำเร็จ",
     "retry": "ลองใหม่",
     "menu_delete": "ลบ",
     "menu_label": "เมนูการทำงาน",
-    "total_loaded": "แสดง {{loaded}} จาก {{total}} รายการ",
-    "loaded_only": "แสดง {{loaded}} รายการ"
+    "loaded_only": "แสดง {{loaded}} รายการ",
+    "menu_duplicate": "Duplicate",
+    "total_only": "{{total}} items",
+    "total_partial": "Showing {{loaded}} of {{total}}",
+    "delete_irreversible": "This action cannot be undone.",
+    "delete_referenced_by": "Referenced by the following resources:",
+    "delete_references_unavailable": "Unable to retrieve reference information.",
+    "deleting": "Deleting…",
+    "import_poi": "Import",
+    "import_map": "Import Map",
+    "delete_confirm_title": "Delete \"{{title}}\"?",
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
 }
