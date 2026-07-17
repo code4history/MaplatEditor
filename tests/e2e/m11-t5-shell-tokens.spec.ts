@@ -212,6 +212,9 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '重複元');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+    // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
+    await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
 
@@ -219,6 +222,8 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '重複先');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+    await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();
     await expect(page.locator('[data-diagnostic-scope="operation"]')).toBeVisible();
     await page.getByTestId('editor-undo').click();
@@ -242,10 +247,12 @@ test('F8: editing an asset shows the draft badge live and undo removes it immedi
     await openHash(page, '#/assets', '[data-master-detail="image-asset"]');
     await page.getByTestId('asset-new').click();
     await page.getByTestId('asset-pick-file').click();
-    await fillAndCommit(page.getByTestId('asset-slug'), 'e2e-f8-asset');
-    await fillAndCommit(page.getByTestId('asset-title'), 'F8画像');
-    await page.getByTestId('editor-save').click();
-    await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
+      await fillAndCommit(page.getByTestId('asset-slug'), 'e2e-f8-asset');
+      await fillAndCommit(page.getByTestId('asset-title'), 'F8画像');
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
 
     // 編集で dirty → 一覧の下書きバッジが即時に付く（一覧の再訪問なし）
@@ -329,10 +336,10 @@ test('F8: draft badges stay consistent across row switching', async () => {
       await fillAndCommit(page.getByTestId('basemap-slug'), slug);
       await fillAndCommit(page.getByTestId('basemap-title'), title);
       await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
-      // T12: 非同期 validation / dirty state が確定するまで待ってからクリック。クリック時に disabled だと保存が発火しない。
+      // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
       await page.getByTestId('editor-save').click();
-      // T12: 並列実行時に save → 一覧遷移が 5s 以内に終わらないケースがあるため猶予を広げる
       await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     }
     await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(0);
@@ -353,10 +360,10 @@ test('F8: draft badges stay consistent across row switching', async () => {
       await page.getByTestId('asset-pick-file').click();
       await fillAndCommit(page.getByTestId('asset-slug'), slug);
       await fillAndCommit(page.getByTestId('asset-title'), `F8 ${slug}`);
-      // T12: 非同期 validation / dirty state が確定するまで待ってからクリック
+      // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
       await page.getByTestId('editor-save').click();
-      // T12: 並列実行時に save → 一覧遷移が 5s 以内に終わらないケースがあるため猶予を広げる
       await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     }
     await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);

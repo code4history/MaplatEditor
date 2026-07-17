@@ -72,6 +72,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await fillAndCommit(page.getByTestId('basemap-title'), 'テストベースマップ');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
     await expect(page.getByTestId('editor-save')).toBeEnabled();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
@@ -150,6 +151,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
         return original(input);
       };
     });
+    await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
     await page.getByTestId('editor-save').click();
     // 並列負荷時、非同期 validation/保存開始までの猶予が必要
     await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible({ timeout: 30000 });
@@ -176,6 +178,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await expect(page.getByTestId('editor-save')).toBeDisabled();
     await page.getByTestId('asset-pick-file').click();
     await expect(page.getByTestId('editor-save')).toBeEnabled();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
   } finally {

@@ -245,6 +245,9 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await page.getByTestId('basemap-title').press('Tab');
     await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await page.getByTestId('basemap-url').press('Tab');
+    // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
+    await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
 
