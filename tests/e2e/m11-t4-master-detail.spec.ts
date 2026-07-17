@@ -152,8 +152,10 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
       };
     });
     await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+    // T12: 非同期 validation/dirty 確定を待ってから保存(dirty確定前クリックだと保存が不発火し
+    // overlay が一度も出ない = F8 と同型)。add は 1200ms 遅延 stub 済みなので overlay は観測可能
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();
-    // 並列負荷時、非同期 validation/保存開始までの猶予が必要
     await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible({ timeout: 30000 });
     await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 30000 });
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
