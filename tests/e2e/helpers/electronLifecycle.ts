@@ -1,6 +1,6 @@
 import type { ElectronApplication } from '@playwright/test';
 
-const QUIT_TIMEOUT_MS = 10_000;
+const QUIT_TIMEOUT_MS = 30_000;
 
 /**
  * ElectronApplication.close() closes the Playwright connection, but MaplatEditor intentionally

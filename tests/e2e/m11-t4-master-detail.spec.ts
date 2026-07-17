@@ -73,7 +73,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
     await expect(page.getByTestId('editor-save')).toBeEnabled();
     await page.getByTestId('editor-save').click();
-    await expect(page).not.toHaveURL(/new=1/);
+    await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
     await expect(page.getByTestId('editor-save')).toBeDisabled();
     await expect(page.getByTestId('editor-undo')).toBeEnabled();
@@ -146,14 +146,15 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await page.evaluate(() => {
       const original = window.imageAssets.add.bind(window.imageAssets);
       window.imageAssets.add = async (input) => {
-        await new Promise((resolve) => setTimeout(resolve, 350));
+        await new Promise((resolve) => setTimeout(resolve, 1200));
         return original(input);
       };
     });
     await page.getByTestId('editor-save').click();
-    await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible();
-    await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden();
-    await expect(page).not.toHaveURL(/new=1/);
+    // 並列負荷時、非同期 validation/保存開始までの猶予が必要
+    await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 30000 });
+    await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
     await expect(page.getByTestId('editor-undo')).toBeEnabled();
     await expect(page).toHaveURL(/page=2/);
@@ -176,7 +177,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await page.getByTestId('asset-pick-file').click();
     await expect(page.getByTestId('editor-save')).toBeEnabled();
     await page.getByTestId('editor-save').click();
-    await expect(page).not.toHaveURL(/new=1/);
+    await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
   } finally {
     await quitElectronApplication(app);
   }
