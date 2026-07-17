@@ -24,7 +24,8 @@
     "indonesian": "Indonésien",
     "reload": "Recharger",
     "overwrite": "Écraser",
-    "revision_conflict": "Cet élément a été mis à jour dans une autre fenêtre."
+    "revision_conflict": "Cet élément a été mis à jour dans une autre fenêtre.",
+    "estimate": "Estimer"
   },
   "navbar": {
     "edit_map": "Gérer les cartes",
@@ -257,7 +258,6 @@
     "base_map_visibility_desc": "Sélectionnez les fonds de carte à utiliser dans l'éditeur de cette carte. Seuls les fonds de carte cochés sont affichés. Les fonds de carte toujours visibles sont toujours inclus, quelle que soit la sélection.",
     "base_map_always_visible": "Toujours visible",
     "base_map_search_placeholder": "Rechercher par titre ou ID (ex. : Himeji)",
-    "base_map_filter_gcp": "Seulement les cartes couvrant l'étendue actuelle des GCP",
     "base_map_filter_region": "Filtrer par région",
     "base_map_search_no_results": "Aucun fond de carte correspondant.",
     "base_map_region_modal_title": "Sélectionner une région pour filtrer",
@@ -334,7 +334,8 @@
     "latitude": "Latitude",
     "longitude": "Longitude",
     "edit_layer": "Modifier le calque de carte",
-    "edit_coordinate": "Modifier les coordonnées"
+    "edit_coordinate": "Modifier les coordonnées",
+    "base_map_filter_gcp_auto": "Filtrer par étendue GCP"
   },
   "mapupload": {
     "map_image": "Image de la carte",

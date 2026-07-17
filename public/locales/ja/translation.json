@@ -24,7 +24,8 @@
     "traditional": "中国語繁体字",
     "vietnamese": "ベトナム語",
     "thai": "タイ語",
-    "indonesian": "インドネシア語"
+    "indonesian": "インドネシア語",
+    "estimate": "推定"
   },
   "navbar": {
     "edit_map": "地図管理",
@@ -257,7 +258,6 @@
     "base_map_visibility_desc": "この地図の編集画面で使うベースマップを選択します。チェックしたベースマップだけが表示されます。常時表示のベースマップは選択に関わらず常に表示されます。",
     "base_map_always_visible": "常時表示",
     "base_map_search_placeholder": "タイトル・IDで検索(例: 姫路)",
-    "base_map_filter_gcp": "GCPの存在範囲を含む地図のみ",
     "base_map_filter_region": "地域で絞り込み",
     "base_map_search_no_results": "該当するベースマップがありません。",
     "base_map_region_modal_title": "絞り込む地域を指定",
@@ -334,7 +334,8 @@
     "latitude": "緯度",
     "longitude": "経度",
     "edit_layer": "地図レイヤ編集",
-    "edit_coordinate": "座標編集"
+    "edit_coordinate": "座標編集",
+    "base_map_filter_gcp_auto": "GCP範囲で絞り込み中"
   },
   "mapupload": {
     "map_image": "地図画像",

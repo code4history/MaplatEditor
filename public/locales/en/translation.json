@@ -21,7 +21,8 @@
     "traditional": "Traditional Chinese",
     "vietnamese": "Vietnamese",
     "thai": "Thai",
-    "indonesian": "Indonesian"
+    "indonesian": "Indonesian",
+    "estimate": "Estimate"
   },
   "navbar": {
     "edit_map": "Manage Maps",
@@ -254,7 +255,6 @@
     "base_map_visibility_desc": "Select base maps to use in this map editor. Only checked base maps are shown. Always-visible base maps are always included regardless of selection.",
     "base_map_always_visible": "Always visible",
     "base_map_search_placeholder": "Search by title or ID (e.g. Himeji)",
-    "base_map_filter_gcp": "Only maps covering the current GCP extent",
     "base_map_filter_region": "Filter by region",
     "base_map_search_no_results": "No matching base maps.",
     "base_map_region_modal_title": "Select a region to filter by",
@@ -331,7 +331,8 @@
     "latitude": "Latitude",
     "longitude": "Longitude",
     "edit_layer": "Edit map layer",
-    "edit_coordinate": "Edit coordinate"
+    "edit_coordinate": "Edit coordinate",
+    "base_map_filter_gcp_auto": "Filtering by GCP extent"
   },
   "mapupload": {
     "map_image": "Map Image",

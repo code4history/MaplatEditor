@@ -34,9 +34,12 @@ const props = defineProps<{
   // 対象ベースマップのタイルをOSMの上に重ねて表示する(URLテンプレート定義済みの場合)。
   // タイルが実在する範囲を目視しながら正確に範囲指定できるようにするため
   overlayTms?: { url: string; minZoom?: number; maxZoom?: number } | null;
+  // true のとき「推定」ボタンを表示する
+  enableEstimate?: boolean;
 }>();
 const emit = defineEmits<{
   (e: "update:modelValue", value: [number, number][] | null): void;
+  (e: "estimate"): void;
   (e: "close"): void;
 }>();
 
@@ -270,6 +273,14 @@ function confirm() {
           </button>
           <button type="button" class="btn btn-secondary" @click="emit('close')">
             {{ t("basemap.modal.cancel") }}
+          </button>
+          <button
+            v-if="enableEstimate"
+            type="button"
+            class="btn btn-outline-info"
+            @click="emit('estimate')"
+          >
+            {{ t("common.estimate") }}
           </button>
           <button type="button" class="btn btn-primary" @click="confirm">
             {{ t("appedit.confirm") }}

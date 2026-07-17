@@ -24,7 +24,8 @@
     "indonesian": "Bahasa Indonesia",
     "reload": "Muat ulang",
     "overwrite": "Timpa",
-    "revision_conflict": "Aset ini diperbarui di jendela lain."
+    "revision_conflict": "Aset ini diperbarui di jendela lain.",
+    "estimate": "Estimasi"
   },
   "navbar": {
     "edit_map": "Kelola Peta",
@@ -257,7 +258,6 @@
     "base_map_visibility_desc": "Pilih peta dasar yang digunakan di layar edit peta ini. Hanya peta dasar yang dicentang yang akan ditampilkan. Peta dasar selalu tampil akan selalu ditampilkan terlepas dari pilihan.",
     "base_map_always_visible": "Selalu tampil",
     "base_map_search_placeholder": "Cari berdasarkan judul atau ID (contoh: Himeji)",
-    "base_map_filter_gcp": "Hanya peta yang mencakup cakupan GCP saat ini",
     "base_map_filter_region": "Saring berdasarkan wilayah",
     "base_map_search_no_results": "Tidak ada peta dasar yang cocok.",
     "base_map_region_modal_title": "Tentukan wilayah untuk penyaringan",
@@ -334,7 +334,8 @@
     "latitude": "Lintang",
     "longitude": "Bujur",
     "edit_layer": "Edit lapisan peta",
-    "edit_coordinate": "Edit koordinat"
+    "edit_coordinate": "Edit koordinat",
+    "base_map_filter_gcp_auto": "Menyaring berdasarkan cakupan GCP"
   },
   "mapupload": {
     "map_image": "Gambar peta",

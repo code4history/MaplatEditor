@@ -24,7 +24,8 @@
     "indonesian": "인도네시아어",
     "reload": "다시 불러오기",
     "overwrite": "덮어쓰기",
-    "revision_conflict": "다른 창에서 업데이트되었습니다."
+    "revision_conflict": "다른 창에서 업데이트되었습니다.",
+    "estimate": "추정"
   },
   "navbar": {
     "edit_map": "지도 관리",
@@ -257,7 +258,6 @@
     "base_map_visibility_desc": "이 지도의 편집 화면에서 사용할 베이스맵을 선택합니다. 체크한 베이스맵만 표시됩니다. 항상 표시되는 베이스맵은 선택 여부와 관계없이 항상 표시됩니다.",
     "base_map_always_visible": "항상 표시",
     "base_map_search_placeholder": "제목·ID로 검색(예: 히메지)",
-    "base_map_filter_gcp": "GCP의 존재 범위를 포함하는 지도만",
     "base_map_filter_region": "지역으로 필터링",
     "base_map_search_no_results": "해당하는 베이스맵이 없습니다.",
     "base_map_region_modal_title": "필터링할 지역 지정",
@@ -334,7 +334,8 @@
     "latitude": "위도",
     "longitude": "경도",
     "edit_layer": "지도 레이어 편집",
-    "edit_coordinate": "좌표 편집"
+    "edit_coordinate": "좌표 편집",
+    "base_map_filter_gcp_auto": "GCP 범위로 필터링 중"
   },
   "mapupload": {
     "map_image": "지도 이미지",

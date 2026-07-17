@@ -24,7 +24,8 @@
     "indonesian": "印尼语",
     "reload": "重新加载",
     "overwrite": "覆盖",
-    "revision_conflict": "已在其他窗口中更新。"
+    "revision_conflict": "已在其他窗口中更新。",
+    "estimate": "估计"
   },
   "navbar": {
     "edit_map": "地图管理",
@@ -257,7 +258,6 @@
     "base_map_visibility_desc": "选择在此地图编辑界面中使用的底图。仅显示已勾选的底图。始终显示的底图无论是否被选中都会一直显示。",
     "base_map_always_visible": "始终显示",
     "base_map_search_placeholder": "按标题·ID搜索(例:姬路)",
-    "base_map_filter_gcp": "仅显示包含当前GCP范围的地图",
     "base_map_filter_region": "按区域筛选",
     "base_map_search_no_results": "没有符合条件的底图。",
     "base_map_region_modal_title": "指定筛选区域",
@@ -334,7 +334,8 @@
     "latitude": "纬度",
     "longitude": "经度",
     "edit_layer": "编辑地图图层",
-    "edit_coordinate": "编辑坐标"
+    "edit_coordinate": "编辑坐标",
+    "base_map_filter_gcp_auto": "正在按GCP范围筛选"
   },
   "mapupload": {
     "map_image": "地图图像",

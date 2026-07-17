@@ -24,7 +24,8 @@
     "indonesian": "ภาษาอินโดนีเซีย",
     "reload": "โหลดใหม่",
     "overwrite": "เขียนทับ",
-    "revision_conflict": "รายการนี้ถูกอัปเดตในหน้าต่างอื่น"
+    "revision_conflict": "รายการนี้ถูกอัปเดตในหน้าต่างอื่น",
+    "estimate": "ประมาณ"
   },
   "navbar": {
     "edit_map": "จัดการแผนที่",
@@ -257,7 +258,6 @@
     "base_map_visibility_desc": "เลือกแผนที่พื้นฐานที่จะใช้ในหน้าจอแก้ไขของแผนที่นี้ จะแสดงเฉพาะแผนที่พื้นฐานที่เลือกไว้เท่านั้น แผนที่พื้นฐานที่ตั้งค่าแสดงตลอดเวลาจะแสดงเสมอโดยไม่ขึ้นกับการเลือก",
     "base_map_always_visible": "แสดงตลอดเวลา",
     "base_map_search_placeholder": "ค้นหาด้วยชื่อเรื่องหรือ ID (เช่น: Himeji)",
-    "base_map_filter_gcp": "เฉพาะแผนที่ที่ครอบคลุมขอบเขต GCP ปัจจุบัน",
     "base_map_filter_region": "กรองตามพื้นที่",
     "base_map_search_no_results": "ไม่พบแผนที่พื้นฐานที่ตรงกัน",
     "base_map_region_modal_title": "ระบุพื้นที่ที่จะกรอง",
@@ -334,7 +334,8 @@
     "latitude": "ละติจูด",
     "longitude": "ลองจิจูด",
     "edit_layer": "แก้ไขเลเยอร์แผนที่",
-    "edit_coordinate": "แก้ไขพิกัด"
+    "edit_coordinate": "แก้ไขพิกัด",
+    "base_map_filter_gcp_auto": "กรองตามขอบเขต GCP"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",

@@ -38,6 +38,8 @@ import { defaults as controlDefaults } from "ol/control";
 import "ol/ol.css";
 import { Tile, Group } from "ol/layer";
 import { Style, Icon } from "ol/style";
+// @ts-ignore 住所検索コントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
+import Geocoder from "../libs/ol-geocoder/base";
 import { transform } from "ol/proj";
 import { containsCoordinate } from "ol/extent";
 import type VectorSource from "ol/source/Vector";
@@ -578,6 +580,22 @@ onMounted(async () => {
   redrawMarkers();
   fitInitialView();
   await setupBaseMaps();
+
+  // 住所検索コントロール(MapEditのベースマップ側と同じ設定・挙動)。
+  // 選択時にビューを fit、ピンは表示しない。
+  const geocoder = new Geocoder("nominatim", {
+    provider: "osm",
+    lang: "en-US",
+    placeholder: t("mapedit.control_put_address"),
+    limit: 5,
+    keepOpen: false,
+  });
+  geocoder.on("addresschosen", () => {
+    if (geocoder.getLayer && geocoder.getLayer()) {
+      geocoder.getLayer().getSource().clear();
+    }
+  });
+  map.addControl(geocoder);
 });
 
 onBeforeUnmount(() => {

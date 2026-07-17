@@ -24,7 +24,8 @@
     "indonesian": "Indonesisch",
     "reload": "Neu laden",
     "overwrite": "Überschreiben",
-    "revision_conflict": "Dieses Element wurde in einem anderen Fenster aktualisiert."
+    "revision_conflict": "Dieses Element wurde in einem anderen Fenster aktualisiert.",
+    "estimate": "Schätzen"
   },
   "navbar": {
     "edit_map": "Karten verwalten",
@@ -257,7 +258,6 @@
     "base_map_visibility_desc": "Wählen Sie die Basiskarten aus, die im Editor dieser Karte verwendet werden sollen. Nur ausgewählte Basiskarten werden angezeigt. Dauerhaft sichtbare Basiskarten werden unabhängig von der Auswahl immer angezeigt.",
     "base_map_always_visible": "Immer sichtbar",
     "base_map_search_placeholder": "Nach Titel oder ID suchen (z. B. Himeji)",
-    "base_map_filter_gcp": "Nur Karten mit Abdeckung der aktuellen GCPs",
     "base_map_filter_region": "Nach Region filtern",
     "base_map_search_no_results": "Keine passenden Basiskarten gefunden.",
     "base_map_region_modal_title": "Zu filternde Region festlegen",
@@ -334,7 +334,8 @@
     "latitude": "Breitengrad",
     "longitude": "Längengrad",
     "edit_layer": "Kartenebene bearbeiten",
-    "edit_coordinate": "Koordinaten bearbeiten"
+    "edit_coordinate": "Koordinaten bearbeiten",
+    "base_map_filter_gcp_auto": "Auf GCP-Ausdehnung filtern"
   },
   "mapupload": {
     "map_image": "Kartenbild",
