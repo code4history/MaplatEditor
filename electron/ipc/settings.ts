@@ -67,11 +67,10 @@ export function registerSettingsHandlers() {
   });
 
   // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)
+  // NOTE: maplist:refresh は発行しない — リスナーは MapList のみで、ベースマップは地図一覧に
+  // 表示されないため実益がない (T12 レビュー Min1)
   ipcMain.handle('basemaps:save-user', async (_, payload: { uid?: string; slug: string; tms: any }) => {
     const result = await SettingsService.saveUserBaseMap(payload);
-    if (result && (result as any).result === 'Success') {
-      BrowserWindow.getAllWindows().forEach(win => win.webContents.send('maplist:refresh'));
-    }
     return result;
   });
 
