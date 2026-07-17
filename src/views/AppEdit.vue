@@ -34,6 +34,12 @@ import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
 import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
 import { useAppCoverageAutoCalc } from "../composables/useAppCoverageAutoCalc";
+import {
+  computeBboxAndCentroid,
+  estimateZoomForBbox,
+  expandBboxByRatio,
+  bboxToEnvelope,
+} from "../utils/geoEstimate";
 import type { SlugFieldState } from "../composables/useSlugAvailability";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { isEditableElement } from "../utils/nativeTextUndo";
@@ -442,6 +448,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
     appData,
     applyAppCoverage,
     appCoverageAuto,
+    estimateHomeFromSources,
   };
 }
 
@@ -540,6 +547,20 @@ async function resolveMaplatFallbackCenter(): Promise<[number, number] | undefin
 function applyHomePosition(value: [number, number] | null) {
   appData.value.appSettings.homeLng = value ? value[0] : null;
   appData.value.appSettings.homeLat = value ? value[1] : null;
+  recordHistory();
+}
+
+// 選択済み source 群の合成 coverage から home position / defaultZoom を推定する
+function estimateHomeFromSources() {
+  const coverage = appData.value.coverageLngLats ?? appCoverageAuto.autoCoverage.value;
+  const bbox = envelopeToBbox(coverage);
+  if (!bbox) return;
+  const expanded = expandBboxByRatio(bbox, 0.05);
+  const result = computeBboxAndCentroid(bboxToEnvelope(expanded));
+  if (!result) return;
+  appData.value.appSettings.homeLng = result.centroid[0];
+  appData.value.appSettings.homeLat = result.centroid[1];
+  appData.value.appSettings.defaultZoom = estimateZoomForBbox(result.bbox);
   recordHistory();
 }
 
@@ -1250,6 +1271,7 @@ function onPoisChange(next: unknown[]) {
                 <button
                   type="button"
                   class="btn btn-sm btn-outline-primary"
+                  data-testid="app-coverage-pick-button"
                   :disabled="translationMode"
                   @click="appCoverageModalVisible = true"
                 >
@@ -1319,7 +1341,10 @@ function onPoisChange(next: unknown[]) {
                 <input :value="appData.appSettings.homeLat ?? ''" type="number" step="0.000001" class="form-control form-control-sm" :disabled="translationMode" @change="appData.appSettings.homeLat = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
               </div>
               <div class="col-md-2 d-flex align-items-end">
-                <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap mb-1" :disabled="translationMode" @click="openHomePositionModal">{{ t("appedit.home_pick") }}</button>
+                <button type="button" class="btn btn-sm btn-outline-info text-nowrap mb-1" data-testid="app-edit-estimate-home" :disabled="translationMode || !(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value)" @click="estimateHomeFromSources">
+                  {{ t("common.estimate") }}
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap mb-1 ms-1" :disabled="translationMode" @click="openHomePositionModal">{{ t("appedit.home_pick") }}</button>
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.default_zoom") }}</label>

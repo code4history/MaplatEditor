@@ -34,6 +34,9 @@ const props = defineProps<{
   // 対象ベースマップのタイルをOSMの上に重ねて表示する(URLテンプレート定義済みの場合)。
   // タイルが実在する範囲を目視しながら正確に範囲指定できるようにするため
   overlayTms?: { url: string; minZoom?: number; maxZoom?: number } | null;
+  // modelValue が未設定の場合に表示する「現在の有効範囲」ガイド(auto 値等)。
+  // 描画は guideSource へ、確定しても modelValue は変更しない。
+  fallbackBbox?: [number, number, number, number] | null;
 }>();
 const emit = defineEmits<{
   (e: "update:modelValue", value: [number, number][] | null): void;
@@ -49,9 +52,17 @@ const coverageSource = new VectorSource();
 const appCoverageSource = new VectorSource();
 const currentBbox = ref<[number, number, number, number] | null>(null);
 
+const isGuide = ref(false);
 const boxStyle = new Style({
   stroke: new Stroke({ color: "#dc3545", width: 2, lineDash: [6, 6] }),
   fill: new Fill({ color: "rgba(220, 53, 69, 0.08)" }),
+});
+
+// fallbackBbox 用のガイド矩形（オレンジ点線）
+const guideSource = new VectorSource();
+const guideStyle = new Style({
+  stroke: new Stroke({ color: "#fd7e14", width: 2, lineDash: [6, 6] }),
+  fill: new Fill({ color: "rgba(253, 126, 20, 0.08)" }),
 });
 
 // 存在範囲: 薄い青のポリゴン
@@ -74,15 +85,22 @@ function appCoverageBbox(): [number, number, number, number] | null {
   return envelopeToBbox(props.appCoverageLngLats ?? null);
 }
 
-function renderBbox(bbox: [number, number, number, number] | null) {
-  vectorSource.clear();
+function renderBbox(bbox: [number, number, number, number] | null, guide = false) {
+  const target = guide ? guideSource : vectorSource;
+  target.clear();
   if (!bbox) return;
   const extent = transformExtent(bbox, "EPSG:4326", "EPSG:3857");
-  vectorSource.addFeature(new Feature({ geometry: fromExtent(extent) }));
+  target.addFeature(new Feature({ geometry: fromExtent(extent) }));
 }
 
 onMounted(() => {
   currentBbox.value = envelopeToBbox(props.modelValue);
+  isGuide.value = false;
+  // modelValue が未設定かつ fallbackBbox があれば、現在有効範囲をガイド表示する
+  if (!currentBbox.value && props.fallbackBbox) {
+    currentBbox.value = props.fallbackBbox;
+    isGuide.value = true;
+  }
   // 対象タイルのオーバーレイ(OSMの上、ガイド/描画レイヤの下)。
   // タイルが無い場所は404で透過し、下のOSMが見える=タイル実在範囲がそのまま視認できる。
   // 注意: XYZソースのminZoom(タイルグリッド最小ズーム)は絶対に設定しないこと。
@@ -124,6 +142,7 @@ onMounted(() => {
       ...overlayLayers,
       new VectorLayer({ source: appCoverageSource, style: appCoverageStyle }),
       new VectorLayer({ source: coverageSource, style: coverageStyle }),
+      new VectorLayer({ source: guideSource, style: guideStyle }),
       new VectorLayer({ source: vectorSource, style: boxStyle }),
     ],
     view: new View({ center: [0, 0], zoom: 2 }),
@@ -138,7 +157,7 @@ onMounted(() => {
     const extent = transformExtent(appCoverage, "EPSG:4326", "EPSG:3857");
     appCoverageSource.addFeature(new Feature({ geometry: fromExtent(extent) }));
   }
-  renderBbox(currentBbox.value);
+  renderBbox(currentBbox.value, isGuide.value);
   // 既存データが退化した範囲(空/一点)でもモーダルの初期化を止めない
   try {
     const fitTarget = currentBbox.value || coverage || appCoverage;
@@ -163,6 +182,8 @@ onMounted(() => {
   });
   draw.on("drawstart", () => {
     vectorSource.clear();
+    guideSource.clear();
+    isGuide.value = false;
   });
   draw.on("drawend", (event) => {
     const geometry = event.feature.getGeometry();
@@ -175,6 +196,7 @@ onMounted(() => {
       round6(extent[3]),
     ]);
     currentBbox.value = cropped;
+    isGuide.value = false;
     // クロップ結果を正として矩形を描き直す
     renderBbox(cropped);
   });
@@ -223,7 +245,10 @@ onBeforeUnmount(() => {
 
 watch(currentBbox, (bbox) => {
   // drawend後のfeatureはそのまま表示に使うため、クリア時のみ再描画
-  if (!bbox) vectorSource.clear();
+  if (!bbox) {
+    vectorSource.clear();
+    guideSource.clear();
+  }
 });
 
 function round6(value: number): number {
@@ -232,11 +257,16 @@ function round6(value: number): number {
 
 function clearBox() {
   currentBbox.value = null;
+  isGuide.value = false;
   vectorSource.clear();
+  guideSource.clear();
 }
 
 function confirm() {
-  emit("update:modelValue", currentBbox.value ? bboxToEnvelope(currentBbox.value) : null);
+  // ガイド表示中に確定しても modelValue は変更しない(手動確定なし = auto のまま)
+  if (!isGuide.value) {
+    emit("update:modelValue", currentBbox.value ? bboxToEnvelope(currentBbox.value) : null);
+  }
   emit("close");
 }
 </script>
@@ -259,6 +289,7 @@ function confirm() {
           <div ref="mapElement" class="envelope-map"></div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentBbox">
+              <span v-if="isGuide" class="badge text-bg-warning me-2" data-testid="envelope-guide-badge">{{ t("mapedit.base_map_region_guide") }}</span>
               W {{ currentBbox[0] }} / S {{ currentBbox[1] }} / E {{ currentBbox[2] }} / N {{ currentBbox[3] }}
             </template>
             <template v-else>—</template>

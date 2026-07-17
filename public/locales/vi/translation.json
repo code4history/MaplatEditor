@@ -24,7 +24,8 @@
     "indonesian": "Tiếng Indonesia",
     "reload": "Tải lại",
     "overwrite": "Ghi đè",
-    "revision_conflict": "Mục này đã được cập nhật ở cửa sổ khác."
+    "revision_conflict": "Mục này đã được cập nhật ở cửa sổ khác.",
+    "estimate": "Ước tính"
   },
   "navbar": {
     "edit_map": "Quản lý bản đồ",
@@ -257,7 +258,6 @@
     "base_map_visibility_desc": "Chọn bản đồ nền sử dụng trên màn hình chỉnh sửa của bản đồ này. Chỉ những bản đồ nền đã chọn mới được hiển thị. Bản đồ nền luôn hiển thị sẽ luôn được hiển thị bất kể lựa chọn.",
     "base_map_always_visible": "Luôn hiển thị",
     "base_map_search_placeholder": "Tìm theo tiêu đề, ID (ví dụ: Himeji)",
-    "base_map_filter_gcp": "Chỉ bản đồ bao phủ phạm vi GCP hiện tại",
     "base_map_filter_region": "Lọc theo khu vực",
     "base_map_search_no_results": "Không có bản đồ nền phù hợp.",
     "base_map_region_modal_title": "Chỉ định khu vực để lọc",
@@ -334,7 +334,9 @@
     "latitude": "Vĩ độ",
     "longitude": "Kinh độ",
     "edit_layer": "Chỉnh sửa lớp bản đồ",
-    "edit_coordinate": "Chỉnh sửa tọa độ"
+    "edit_coordinate": "Chỉnh sửa tọa độ",
+    "base_map_filter_gcp_auto": "Đang lọc theo phạm vi GCP",
+    "base_map_region_guide": "Hướng dẫn vùng hiệu quả"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

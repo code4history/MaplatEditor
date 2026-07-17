@@ -13,6 +13,7 @@ import SlugField from '../components/editor-ui/SlugField.vue';
 import EditorTabs from '../components/editor-ui/EditorTabs.vue';
 import DiagnosticFeedback from '../components/editor-ui/DiagnosticFeedback.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
+import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
@@ -314,7 +315,6 @@ const baseMapVisibilityLoading = ref(false);
 const baseMapVisibilityError = ref('');
 // ベースマップ表示選択の検索/絞り込み(文字列・GCP範囲・地域指定)
 const baseMapSearchText = ref('');
-const baseMapFilterByGcps = ref(false);
 const baseMapFilterRegion = ref<[number, number][] | null>(null);
 const showBaseMapRegionModal = ref(false);
 
@@ -745,6 +745,18 @@ const saveState = computed<EditorSaveState>(() => {
     if (draftLifecycle.draftRestored.value) return 'draft-restored';
     return isDirty.value ? 'dirty' : 'saved';
 });
+
+if (typeof window !== 'undefined' && (window as any).isE2E) {
+    (window as any).testDebug = {
+        mapData,
+        homePosition,
+        mercZoom,
+        gcps,
+        currentEditingLayer,
+        baseMapFilterRegion,
+        estimateHomeFromGcps,
+    };
+}
 
 watch(
     [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer],
@@ -1328,6 +1340,28 @@ const setHomeMerc = () => {
     
     gcpsToMarkers();
 };
+
+// GCP 重心と bbox fit zoom を homePosition / mercZoom に一発設定する推定アクション
+function estimateHomeFromGcps() {
+    if (!gcps.value || gcps.value.length === 0) return;
+    const points: [number, number][] = [];
+    for (const gcp of gcps.value) {
+        const merc = gcp?.[1];
+        if (Array.isArray(merc) && typeof merc[0] === 'number' && typeof merc[1] === 'number') {
+            const [lng, lat] = transform([merc[0], merc[1]], 'EPSG:3857', 'EPSG:4326');
+            points.push([lng, lat]);
+        }
+    }
+    const result = computeBboxAndCentroid(points);
+    if (!result) return;
+    const { bbox, centroid } = result;
+    const zoom = estimateZoomForBbox(bbox);
+    homePosition.value = centroid;
+    mercZoom.value = zoom;
+    mapData.value.homePosition = cloneDeep(centroid);
+    mapData.value.mercZoom = zoom;
+    gcpsToMarkers();
+}
 
 const syncLayerData = () => {
     const layer = currentEditingLayer.value;
@@ -1932,6 +1966,10 @@ const updateTin = async (opts?: { force?: boolean }) => {
         if (tinComputeActive === 0) tinComputeWaiters.splice(0).forEach((resolve) => resolve());
     }
     tinResultUpdate();
+    // M11-T11 HV-M1: Undo/Redo 等で TIN 再計算後に illst 側 home マーカーが再描画されるよう、
+    // homePosition がある場合は gcpsToMarkers() をもう一度呼び出す。
+    // illstSource 未ロード時(保存時force計算等)は edges 描画で落ちるためガードする。
+    if (homePosition.value && illstSource) gcpsToMarkers();
 };
 
 const boundsModifyEnd = (evt: any) => {
@@ -2329,9 +2367,6 @@ const baseMapSearchHaystack = (item: any): string => {
         .toLowerCase();
 };
 
-const bboxContains = (outer: number[], inner: number[]): boolean =>
-    outer[0] <= inner[0] && outer[1] <= inner[1] && outer[2] >= inner[2] && outer[3] >= inner[3];
-
 const bboxIntersects = (a: number[], b: number[]): boolean =>
     a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3];
 
@@ -2339,14 +2374,20 @@ const bboxIntersects = (a: number[], b: number[]): boolean =>
 // OSM同様に全球扱いとし、GCP範囲/地域指定の絞り込みに常にマッチする
 const filteredBaseMapVisibilityList = computed(() => {
     const text = baseMapSearchText.value.trim().toLowerCase();
-    const gcpBbox = baseMapFilterByGcps.value ? gcpAutoRange.bbox.value : null;
+    // 地域指定が manual override されていればそれを使い、未設定(auto)なら GCP bbox (+5% buffer) を使う
     const regionBbox = envelopeToBbox(baseMapFilterRegion.value);
+    const rawGcpBbox = regionBbox ? null : gcpAutoRange.bbox.value;
+    const gcpBbox = rawGcpBbox ? expandBboxByRatio(rawGcpBbox, 0.05) : null;
     return baseMapVisibilityList.value.filter((item) => {
         if (text && !baseMapSearchHaystack(item).includes(text)) return false;
+        // チェック済み（表示ON）は空間絞り込みをバイパスし、一覧に残す。
+        // これにより、遠隔地のON済みベースマップも絞り込み中にオフにできる（HV-R2）。
+        if (item.enabled) return true;
         const coverage = envelopeToBbox(item?.data?.coverageLngLats ?? null);
         if (coverage) {
-            // GCP範囲: GCPの存在範囲を「含む」地図のみ / 地域指定: 領域と「重なる」地図のみ
-            if (gcpBbox && !bboxContains(coverage, gcpBbox)) return false;
+            // 空間条件は coverage と「一部でも交差」すれば該当（正本 §10.2）。
+            // GCP with 外れ点で coverage が bbox 全域を包含できず全滅するのを防ぐ。
+            if (gcpBbox && !bboxIntersects(coverage, gcpBbox)) return false;
             if (regionBbox && !bboxIntersects(coverage, regionBbox)) return false;
         }
         return true;
@@ -2356,6 +2397,12 @@ const filteredBaseMapVisibilityList = computed(() => {
 const baseMapFilterRegionLabel = computed(() => {
     const bbox = envelopeToBbox(baseMapFilterRegion.value);
     return bbox ? `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}` : '';
+});
+
+// auto 状態の有効範囲を地域指定モーダルにガイド表示するための bbox（+5% buffer 済み）
+const baseMapRegionFallbackBbox = computed(() => {
+    const raw = gcpAutoRange.bbox.value;
+    return raw ? expandBboxByRatio(raw, 0.05) : null;
 });
 
 const getVisibleBaseMapID = (): string | null => {
@@ -3176,9 +3223,9 @@ const goBack = async () => {
                 :model-value="activeTab"
                 :tabs="[
                     { key: 'metadata', labelKey: 'editor_ui.tabs.metadata' },
-                    { key: 'gcps', labelKey: 'editor_ui.tabs.gcps', disabled: !gcpsEditReady, disabledReasonKey: 'editor_ui.tabs.gcps_requires_image' },
-                    { key: 'settings', labelKey: 'editor_ui.tabs.base_maps' },
-                    { key: 'pois', labelKey: 'editor_ui.tabs.pois' },
+                    { key: 'gcps', labelKey: 'editor_ui.tabs.gcps', disabled: !gcpsEditReady, disabledReasonKey: 'editor_ui.tabs.gcps_requires_image', testid: 'map-tab-gcps' },
+                    { key: 'settings', labelKey: 'editor_ui.tabs.base_maps', testid: 'map-tab-settings' },
+                    { key: 'pois', labelKey: 'editor_ui.tabs.pois', testid: 'map-tab-pois' },
                 ]"
                 @update:model-value="activeTab = $event"
             />
@@ -3462,16 +3509,22 @@ const goBack = async () => {
                         <div id="illstMap" class="w-100 h-100"></div>
                         <!-- Home Button Illst -->
                         <div class="position-absolute bottom-0 end-0 m-3 mb-4" style="z-index: 10;">
-                             <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeIllst" @click="setHomeIllst"><i class="bi bi-house"></i></button>
+                            <button class="btn btn-light btn-sm shadow-sm border" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
+                                <i class="bi bi-magic"></i>
+                            </button>
+                            <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeIllst" @click="setHomeIllst"><i class="bi bi-house"></i></button>
                         </div>
                     </div>
-                    
+
                     <!-- Right: Mercator Map (Destination/Reference) -->
                     <div class="col-6 h-100 position-relative px-1">
                         <div id="mercMap" class="w-100 h-100"></div>
                          <!-- Home Button Merc -->
                         <div class="position-absolute bottom-0 end-0 m-3 mb-4" style="z-index: 10;">
-                             <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeMerc" @click="setHomeMerc"><i class="bi bi-house"></i></button>
+                            <button class="btn btn-light btn-sm shadow-sm border" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
+                                <i class="bi bi-magic"></i>
+                            </button>
+                            <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeMerc" @click="setHomeMerc"><i class="bi bi-house"></i></button>
                         </div>
                     </div>
                 </div>
@@ -3697,23 +3750,15 @@ const goBack = async () => {
                                 v-model="baseMapSearchText"
                                 :placeholder="t('mapedit.base_map_search_placeholder')"
                             >
-                            <div v-if="gcps.length > 0" class="form-check m-0">
-                                <input
-                                    id="baseMapGcpFilter"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                    v-model="baseMapFilterByGcps"
-                                >
-                                <label class="form-check-label small" for="baseMapGcpFilter">
-                                    {{ t("mapedit.base_map_filter_gcp") }}
-                                </label>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary" @click="showBaseMapRegionModal = true">
+                            <span v-if="gcpAutoRange.bbox.value && !baseMapFilterRegion" class="small text-muted" data-testid="map-base-map-auto-label">
+                                {{ t("mapedit.base_map_filter_gcp_auto") }}
+                            </span>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-testid="map-base-map-region-button" @click="showBaseMapRegionModal = true">
                                 {{ t("mapedit.base_map_filter_region") }}
                             </button>
                             <template v-if="baseMapFilterRegion">
-                                <span class="small font-monospace">{{ baseMapFilterRegionLabel }}</span>
-                                <button type="button" class="btn btn-sm btn-outline-danger" @click="baseMapFilterRegion = null">
+                                <span class="small font-monospace" data-testid="map-base-map-region-label">{{ baseMapFilterRegionLabel }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-testid="map-base-map-region-clear" @click="baseMapFilterRegion = null">
                                     {{ t("appedit.envelope_clear") }}
                                 </button>
                             </template>
@@ -3763,6 +3808,7 @@ const goBack = async () => {
                     :model-value="baseMapFilterRegion"
                     title-key="mapedit.base_map_region_modal_title"
                     help-key="mapedit.base_map_region_modal_help"
+                    :fallback-bbox="baseMapRegionFallbackBbox"
                     @update:model-value="baseMapFilterRegion = $event"
                     @close="showBaseMapRegionModal = false"
                 />
