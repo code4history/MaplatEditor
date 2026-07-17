@@ -335,7 +335,8 @@
     "longitude": "経度",
     "edit_layer": "地図レイヤ編集",
     "edit_coordinate": "座標編集",
-    "base_map_filter_gcp_auto": "GCP範囲で絞り込み中"
+    "base_map_filter_gcp_auto": "GCP範囲で絞り込み中",
+    "base_map_region_guide": "有効範囲ガイド"
   },
   "mapupload": {
     "map_image": "地図画像",

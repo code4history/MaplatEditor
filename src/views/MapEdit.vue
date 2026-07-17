@@ -1966,6 +1966,9 @@ const updateTin = async (opts?: { force?: boolean }) => {
         if (tinComputeActive === 0) tinComputeWaiters.splice(0).forEach((resolve) => resolve());
     }
     tinResultUpdate();
+    // M11-T11 HV-M1: Undo/Redo 等で TIN 再計算後に illst 側 home マーカーが再描画されるよう、
+    // homePosition がある場合は gcpsToMarkers() をもう一度呼び出す。
+    if (homePosition.value) gcpsToMarkers();
 };
 
 const boundsModifyEnd = (evt: any) => {
@@ -2363,9 +2366,6 @@ const baseMapSearchHaystack = (item: any): string => {
         .toLowerCase();
 };
 
-const bboxContains = (outer: number[], inner: number[]): boolean =>
-    outer[0] <= inner[0] && outer[1] <= inner[1] && outer[2] >= inner[2] && outer[3] >= inner[3];
-
 const bboxIntersects = (a: number[], b: number[]): boolean =>
     a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3];
 
@@ -2381,8 +2381,9 @@ const filteredBaseMapVisibilityList = computed(() => {
         if (text && !baseMapSearchHaystack(item).includes(text)) return false;
         const coverage = envelopeToBbox(item?.data?.coverageLngLats ?? null);
         if (coverage) {
-            // GCP範囲: GCPの存在範囲を「含む」地図のみ / 地域指定: 領域と「重なる」地図のみ
-            if (gcpBbox && !bboxContains(coverage, gcpBbox)) return false;
+            // 空間条件は coverage と「一部でも交差」すれば該当（正本 §10.2）。
+            // GCP with 外れ点で coverage が bbox 全域を包含できず全滅するのを防ぐ。
+            if (gcpBbox && !bboxIntersects(coverage, gcpBbox)) return false;
             if (regionBbox && !bboxIntersects(coverage, regionBbox)) return false;
         }
         return true;
@@ -2392,6 +2393,12 @@ const filteredBaseMapVisibilityList = computed(() => {
 const baseMapFilterRegionLabel = computed(() => {
     const bbox = envelopeToBbox(baseMapFilterRegion.value);
     return bbox ? `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}` : '';
+});
+
+// auto 状態の有効範囲を地域指定モーダルにガイド表示するための bbox（+5% buffer 済み）
+const baseMapRegionFallbackBbox = computed(() => {
+    const raw = gcpAutoRange.bbox.value;
+    return raw ? expandBboxByRatio(raw, 0.05) : null;
 });
 
 const getVisibleBaseMapID = (): string | null => {
@@ -3797,6 +3804,7 @@ const goBack = async () => {
                     :model-value="baseMapFilterRegion"
                     title-key="mapedit.base_map_region_modal_title"
                     help-key="mapedit.base_map_region_modal_help"
+                    :fallback-bbox="baseMapRegionFallbackBbox"
                     @update:model-value="baseMapFilterRegion = $event"
                     @close="showBaseMapRegionModal = false"
                 />

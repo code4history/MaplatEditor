@@ -335,7 +335,8 @@
     "longitude": "ลองจิจูด",
     "edit_layer": "แก้ไขเลเยอร์แผนที่",
     "edit_coordinate": "แก้ไขพิกัด",
-    "base_map_filter_gcp_auto": "กรองตามขอบเขต GCP"
+    "base_map_filter_gcp_auto": "กรองตามขอบเขต GCP",
+    "base_map_region_guide": "คู่มือพื้นที่มีประสิทธิผล"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",

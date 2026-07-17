@@ -332,7 +332,8 @@
     "longitude": "Longitude",
     "edit_layer": "Edit map layer",
     "edit_coordinate": "Edit coordinate",
-    "base_map_filter_gcp_auto": "Filtering by GCP extent"
+    "base_map_filter_gcp_auto": "Filtering by GCP extent",
+    "base_map_region_guide": "Effective area guide"
   },
   "mapupload": {
     "map_image": "Map Image",

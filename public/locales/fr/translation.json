@@ -335,7 +335,8 @@
     "longitude": "Longitude",
     "edit_layer": "Modifier le calque de carte",
     "edit_coordinate": "Modifier les coordonnées",
-    "base_map_filter_gcp_auto": "Filtrer par étendue GCP"
+    "base_map_filter_gcp_auto": "Filtrer par étendue GCP",
+    "base_map_region_guide": "Guide zone effective"
   },
   "mapupload": {
     "map_image": "Image de la carte",

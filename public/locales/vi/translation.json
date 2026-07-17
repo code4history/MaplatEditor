@@ -335,7 +335,8 @@
     "longitude": "Kinh độ",
     "edit_layer": "Chỉnh sửa lớp bản đồ",
     "edit_coordinate": "Chỉnh sửa tọa độ",
-    "base_map_filter_gcp_auto": "Đang lọc theo phạm vi GCP"
+    "base_map_filter_gcp_auto": "Đang lọc theo phạm vi GCP",
+    "base_map_region_guide": "Hướng dẫn vùng hiệu quả"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

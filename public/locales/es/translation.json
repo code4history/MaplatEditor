@@ -335,7 +335,8 @@
     "longitude": "Longitud",
     "edit_layer": "Editar capa del mapa",
     "edit_coordinate": "Editar coordenadas",
-    "base_map_filter_gcp_auto": "Filtrando por extensión GCP"
+    "base_map_filter_gcp_auto": "Filtrando por extensión GCP",
+    "base_map_region_guide": "Guía de área efectiva"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

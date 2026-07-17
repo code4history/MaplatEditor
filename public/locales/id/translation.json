@@ -335,7 +335,8 @@
     "longitude": "Bujur",
     "edit_layer": "Edit lapisan peta",
     "edit_coordinate": "Edit koordinat",
-    "base_map_filter_gcp_auto": "Menyaring berdasarkan cakupan GCP"
+    "base_map_filter_gcp_auto": "Menyaring berdasarkan cakupan GCP",
+    "base_map_region_guide": "Panduan area efektif"
   },
   "mapupload": {
     "map_image": "Gambar peta",

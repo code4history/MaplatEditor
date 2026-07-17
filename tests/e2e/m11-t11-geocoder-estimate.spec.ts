@@ -62,6 +62,67 @@ async function createPoiSource(page: Page): Promise<string> {
   });
 }
 
+async function createTestBaseMap(page: Page): Promise<{ uid: string; title: string; slug: string }> {
+  return page.evaluate(async () => {
+    const slug = `m11-t11-basemap-${Date.now()}`;
+    const result = await window.baseMaps.saveUser({
+      slug,
+      tms: {
+        lang: 'ja',
+        title: { ja: `外れGCPテスト ${slug}` },
+        label: { ja: `外れGCPテスト ${slug}` },
+        attr: {},
+        url: 'https://example.com/tiles/{z}/{x}/{y}.png',
+        minZoom: 0,
+        maxZoom: 18,
+        thumbnail: '',
+        // 東京中心部の存在範囲（外れGCPの茨城側を含まない）
+        coverageLngLats: [
+          [139.75, 35.62],
+          [139.78, 35.62],
+          [139.78, 35.67],
+          [139.75, 35.67],
+        ],
+      },
+      create: true,
+    });
+    if (!result || result.result !== 'Success') throw new Error(`Base map seed failed: ${JSON.stringify(result)}`);
+    return { uid: result.uid, title: `外れGCPテスト ${slug}`, slug };
+  });
+}
+
+async function createMapWithOutlierGcps(page: Page): Promise<string> {
+  return page.evaluate(async () => {
+    const slug = `m11-t11-outlier-${Date.now()}`;
+    const result = await window.mapedit.save({
+      slug,
+      mapObject: {
+        mapID: slug,
+        title: { ja: '外れGCP推定テスト', en: 'Outlier GCP Estimate Test' },
+        officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+        attr: {}, dataAttr: {}, description: {},
+        license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
+        imageExtension: 'png', width: 500, height: 400,
+        url_: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+        gcps: [
+          [[0, 400], [15551351.4, 4249117.8]],
+          [[500, 400], [15562483.3, 4249117.8]],
+          [[500, 0], [15562483.3, 4259837.2]],
+          [[0, 0], [15551351.4, 4259837.2]],
+          // 茨城方面の外れGCP
+          [[450, 50], [15584500.0, 4265000.0]],
+        ],
+        edges: [],
+        sub_maps: [],
+        strictMode: 'strict', vertexMode: 'plain', status: 'New',
+      },
+      tins: [],
+    });
+    if (!result || result.result !== 'Success') throw new Error(`Map seed failed: ${JSON.stringify(result)}`);
+    return result.uid;
+  });
+}
+
 async function seedMapAndApp(e2eRoot: string): Promise<{ mapUid: string; appUid: string }> {
   const mapUid = 'aaaaaaaa-aaaa-aaaa-aaaa-000000000001';
   const appUid = 'bbbbbbbb-bbbb-bbbb-bbbb-000000000001';
@@ -322,6 +383,50 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
 
     await page.locator('[data-testid="map-base-map-region-button"]').click();
     await expect(page.locator('.envelope-modal #gcd-input-query')).toHaveCount(1);
+
+    await quitElectronApplication(app);
+  });
+
+  test('HV-M2: region modal shows auto GCP range as a guide without overriding auto', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-hv2-'));
+    const { app, page } = await launch(e2eRoot);
+
+    const uid = await createMapWithGcps(page);
+    await openMapEdit(page, uid);
+    await switchMapEditSettingsTab(page);
+
+    await page.locator('[data-testid="map-base-map-region-button"]').click();
+    await expect(page.locator('.envelope-modal')).toBeVisible();
+    await expect(page.locator('[data-testid="envelope-guide-badge"]')).toBeVisible();
+    const coordinateText = await page.locator('.envelope-modal .font-monospace').textContent();
+    expect(coordinateText).toMatch(/W\s*139\./);
+    expect(coordinateText).toMatch(/N\s*35\./);
+
+    // ガイド表示だけでは auto 状態は上書きしない
+    await page.locator('.envelope-modal .btn-close').first().click();
+    await expect(page.locator('.envelope-modal')).not.toBeVisible();
+    const region = await page.evaluate(() => (window as any).testDebug.baseMapFilterRegion.value);
+    expect(region).toBeNull();
+
+    await quitElectronApplication(app);
+  });
+
+  test('HV-M3: outlier GCP uses intersects (not contains) so local base map still listed', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-hv3-'));
+    const { app, page } = await launch(e2eRoot);
+
+    const { title } = await createTestBaseMap(page);
+    const mapUid = await createMapWithOutlierGcps(page);
+    await openMapEdit(page, mapUid);
+    await switchMapEditSettingsTab(page);
+
+    // ロード完了を待つ（まず auto ラベルか一覧のいずれかが表示される）
+    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).toBeVisible({ timeout: 30000 });
+
+    // 外れGCPを含む bbox は存在範囲で包含されていないが、一部交差しているため表示される
+    await expect(page.getByText(title, { exact: false })).toBeVisible({ timeout: 30000 });
 
     await quitElectronApplication(app);
   });

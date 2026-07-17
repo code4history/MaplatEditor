@@ -335,7 +335,8 @@
     "longitude": "경도",
     "edit_layer": "지도 레이어 편집",
     "edit_coordinate": "좌표 편집",
-    "base_map_filter_gcp_auto": "GCP 범위로 필터링 중"
+    "base_map_filter_gcp_auto": "GCP 범위로 필터링 중",
+    "base_map_region_guide": "유효 범위 안내"
   },
   "mapupload": {
     "map_image": "지도 이미지",

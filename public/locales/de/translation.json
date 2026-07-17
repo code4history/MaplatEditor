@@ -335,7 +335,8 @@
     "longitude": "Längengrad",
     "edit_layer": "Kartenebene bearbeiten",
     "edit_coordinate": "Koordinaten bearbeiten",
-    "base_map_filter_gcp_auto": "Auf GCP-Ausdehnung filtern"
+    "base_map_filter_gcp_auto": "Auf GCP-Ausdehnung filtern",
+    "base_map_region_guide": "Gültiger Bereich"
   },
   "mapupload": {
     "map_image": "Kartenbild",

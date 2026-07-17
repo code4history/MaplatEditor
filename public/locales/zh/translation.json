@@ -335,7 +335,8 @@
     "longitude": "经度",
     "edit_layer": "编辑地图图层",
     "edit_coordinate": "编辑坐标",
-    "base_map_filter_gcp_auto": "正在按GCP范围筛选"
+    "base_map_filter_gcp_auto": "正在按GCP范围筛选",
+    "base_map_region_guide": "有效范围参考"
   },
   "mapupload": {
     "map_image": "地图图像",
