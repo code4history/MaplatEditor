@@ -1968,7 +1968,8 @@ const updateTin = async (opts?: { force?: boolean }) => {
     tinResultUpdate();
     // M11-T11 HV-M1: Undo/Redo 等で TIN 再計算後に illst 側 home マーカーが再描画されるよう、
     // homePosition がある場合は gcpsToMarkers() をもう一度呼び出す。
-    if (homePosition.value) gcpsToMarkers();
+    // illstSource 未ロード時(保存時force計算等)は edges 描画で落ちるためガードする。
+    if (homePosition.value && illstSource) gcpsToMarkers();
 };
 
 const boundsModifyEnd = (evt: any) => {

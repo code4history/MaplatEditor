@@ -264,8 +264,8 @@ function clearBox() {
 
 function confirm() {
   // ガイド表示中に確定しても modelValue は変更しない(手動確定なし = auto のまま)
-  if (!isGuide.value && currentBbox.value) {
-    emit("update:modelValue", bboxToEnvelope(currentBbox.value));
+  if (!isGuide.value) {
+    emit("update:modelValue", currentBbox.value ? bboxToEnvelope(currentBbox.value) : null);
   }
   emit("close");
 }

@@ -372,6 +372,66 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     await quitElectronApplication(app);
   });
 
+  test('HV-M2 regression: clearing inside envelope modal and confirming emits null (AppEdit coverage)', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-coverage-clear-'));
+    const { mapUid, appUid } = await seedMapAndApp(e2eRoot);
+    const { app, page } = await launch(e2eRoot);
+
+    await openAppEdit(page, appUid);
+
+    await page.waitForFunction(
+      () => {
+        const td = (window as any).testDebug;
+        return !!(td.appData.value.coverageLngLats || td.appCoverageAuto?.autoCoverage?.value);
+      },
+      undefined,
+      { timeout: 60000 },
+    );
+
+    // 初期状態は auto（手動 coverage は未設定）
+    const initialCoverage = await page.evaluate(() => (window as any).testDebug.appData.value.coverageLngLats);
+    expect(initialCoverage).toBeNull();
+
+    // 範囲選択モーダルを開く。AppEdit は modelValue に auto coverage 自体を渡すので
+    // ガイドバッジは表示されず、currentBbox は auto 値になっている。
+    await page.locator('[data-testid="app-coverage-pick-button"]').first().click();
+    await expect(page.locator('.envelope-modal')).toBeVisible();
+    const autoCoordinateText = await page.locator('.envelope-modal .font-monospace').textContent();
+    expect(autoCoordinateText).not.toBe('—');
+
+    // モーダル内でクリア→確定しても、手動 coverage は null のまま（auto 維持）
+    await page.locator('.envelope-modal .btn-outline-danger').first().click();
+    await page.locator('.envelope-modal .btn-primary').first().click();
+    await expect(page.locator('.envelope-modal')).not.toBeVisible();
+
+    const afterClearCoverage = await page.evaluate(() => (window as any).testDebug.appData.value.coverageLngLats);
+    expect(afterClearCoverage).toBeNull();
+
+    // 既存の手動値を持って開いてクリア→確定すると、null が emit されて手動値が削除される。
+    // これがないと、HV-M2 対応で入ったガードによりクリアが無視されて手動値が残る。
+    await page.evaluate(() => {
+      (window as any).testDebug.appData.value.coverageLngLats = [
+        [139.74, 35.64],
+        [139.76, 35.64],
+        [139.76, 35.66],
+        [139.74, 35.66],
+      ];
+    });
+    await page.locator('[data-testid="app-coverage-pick-button"]').first().click();
+    await expect(page.locator('.envelope-modal')).toBeVisible();
+    await expect(page.locator('[data-testid="envelope-guide-badge"]')).not.toBeVisible();
+
+    await page.locator('.envelope-modal .btn-outline-danger').first().click();
+    await page.locator('.envelope-modal .btn-primary').first().click();
+    await expect(page.locator('.envelope-modal')).not.toBeVisible();
+
+    const afterManualClear = await page.evaluate(() => (window as any).testDebug.appData.value.coverageLngLats);
+    expect(afterManualClear).toBeNull();
+
+    await quitElectronApplication(app);
+  });
+
   test('EnvelopeEditorModal renders geocoder control (regression)', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-geocoder-'));

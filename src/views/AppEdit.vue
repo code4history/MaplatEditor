@@ -1271,6 +1271,7 @@ function onPoisChange(next: unknown[]) {
                 <button
                   type="button"
                   class="btn btn-sm btn-outline-primary"
+                  data-testid="app-coverage-pick-button"
                   :disabled="translationMode"
                   @click="appCoverageModalVisible = true"
                 >
