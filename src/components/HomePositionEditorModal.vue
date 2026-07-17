@@ -18,12 +18,9 @@ const props = defineProps<{
   modelValue: [number, number] | null;
   // 初期表示中心（ホームポジション未設定時に使用）
   fallbackCenter?: [number, number];
-  // true のとき「推定」ボタンを表示する
-  enableEstimate?: boolean;
 }>();
 const emit = defineEmits<{
   (e: "update:modelValue", value: [number, number] | null): void;
-  (e: "estimate"): void;
   (e: "close"): void;
 }>();
 
@@ -129,14 +126,6 @@ function confirm() {
           </button>
           <button type="button" class="btn btn-secondary" @click="emit('close')">
             {{ t("basemap.modal.cancel") }}
-          </button>
-          <button
-            v-if="enableEstimate"
-            type="button"
-            class="btn btn-outline-info"
-            @click="emit('estimate')"
-          >
-            {{ t("common.estimate") }}
           </button>
           <button type="button" class="btn btn-primary" @click="confirm">
             {{ t("appedit.confirm") }}

@@ -29,7 +29,9 @@ async function createMapWithGcps(page: Page): Promise<string> {
         officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
         attr: {}, dataAttr: {}, description: {},
         license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
-        imageExtension: 'jpg', width: 400, height: 300,
+        imageExtension: 'png', width: 400, height: 300,
+        // GCPタブを有効にするため最低限の画像URLを与える（noload経由でエラーは無視される）
+        url_: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
         gcps: [
           [[0, 300], [15551351.4, 4249117.8]],
           [[400, 300], [15562483.3, 4249117.8]],
@@ -47,17 +49,28 @@ async function createMapWithGcps(page: Page): Promise<string> {
   });
 }
 
+async function createPoiSource(page: Page): Promise<string> {
+  return page.evaluate(async () => {
+    const slug = `m11-t11-poi-${Date.now()}`;
+    const result = await window.poiSources.createLocal({
+      slug,
+      title: { ja: 'ジオコーダ配線テスト', en: 'Geocoder Wiring Test' },
+      lang: 'ja',
+    });
+    if (!result || result.result !== 'Success') throw new Error(`POI source seed failed: ${JSON.stringify(result)}`);
+    return result.uid;
+  });
+}
+
 async function seedMapAndApp(e2eRoot: string): Promise<{ mapUid: string; appUid: string }> {
   const mapUid = 'aaaaaaaa-aaaa-aaaa-aaaa-000000000001';
   const appUid = 'bbbbbbbb-bbbb-bbbb-bbbb-000000000001';
-  // 1回起動して saveFolder を取得
   const { app, page } = await launch(e2eRoot);
   const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
   await quitElectronApplication(app);
 
   const dbPath = path.join(saveFolder, 'maplat.sqlite');
   const db = new DatabaseSync(dbPath);
-  // 同じ内容の compiled が欲しいため gcps は配列形ではなく merc 含む compiled を DB 直書き
   const mapJson = JSON.stringify({
     width: 400,
     height: 300,
@@ -138,41 +151,131 @@ async function openAppEdit(page: Page, uid: string): Promise<void> {
   await page.waitForFunction(() => !!(window as any).testDebug?.appData?.value?.appID);
 }
 
-async function switchMapEditSettingsTab(page: Page): Promise<void> {
-  await page.locator('.nav-link', { hasText: 'ベースマップ選択' }).click();
+async function navigateToPoiEdit(page: Page, uid: string): Promise<void> {
+  await page.evaluate((nextUid) => { location.hash = `#/poisources/${nextUid}`; }, uid);
+  await expect(page.locator('#gcd-input-query')).toBeVisible({ timeout: 60000 });
 }
 
-async function openEnvelopeModalFromMapEdit(page: Page): Promise<void> {
-  await switchMapEditSettingsTab(page);
-  await page.locator('button:has-text("地域で絞り込み")').first().click();
-  await expect(page.locator('.envelope-modal')).toBeVisible();
+async function switchMapEditGcpsTab(page: Page): Promise<void> {
+  const tab = page.locator('[data-testid="map-tab-gcps"]');
+  await expect(tab).toBeVisible();
+  await tab.click();
+}
+
+async function switchMapEditSettingsTab(page: Page): Promise<void> {
+  const tab = page.locator('[data-testid="map-tab-settings"]');
+  await expect(tab).toBeVisible();
+  await tab.click();
 }
 
 test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
-  test('MapEdit GCP estimate sets homePosition/mercZoom from GCPs', async () => {
+  test('AC1: PoiEditMap renders geocoder control', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-poi-'));
+    const { app, page } = await launch(e2eRoot);
+
+    const uid = await createPoiSource(page);
+    await navigateToPoiEdit(page, uid);
+
+    await expect(page.locator('#gcd-input-query')).toBeVisible();
+
+    await quitElectronApplication(app);
+  });
+
+  test('AC2/AC7: MapEdit estimate button sets homePosition and is one undo unit', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-map-'));
     const { app, page } = await launch(e2eRoot);
 
     const uid = await createMapWithGcps(page);
     await openMapEdit(page, uid);
+    // GCPタブを有効化するため url_ をセット（画像読込は不要）
+    await page.evaluate(() => {
+      (window as any).testDebug.mapData.value.url_ = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+    });
+    await switchMapEditGcpsTab(page);
 
     const before = await page.evaluate(() => (window as any).testDebug.homePosition.value);
     expect(before).toBeUndefined();
 
-    await page.evaluate(() => (window as any).testDebug.estimateHomeFromGcps());
+    await page.locator('[data-testid="map-edit-estimate-home"]').first().click();
+
+    await page.waitForFunction(
+      () => (window as any).testDebug.homePosition.value != null,
+      undefined,
+      { timeout: 30000 },
+    );
 
     const after = await page.evaluate(() => (window as any).testDebug.homePosition.value);
     expect(after).toBeDefined();
-    const mapHome = await page.evaluate(() => (window as any).testDebug.mapData.value.homePosition);
-    expect(mapHome).toEqual(after);
+    expect(Math.abs(after[0] - 139.75)).toBeLessThan(0.02);
+    expect(Math.abs(after[1] - 35.65)).toBeLessThan(0.02);
+
     const mercZoom = await page.evaluate(() => (window as any).testDebug.mercZoom.value);
     expect(typeof mercZoom).toBe('number');
+    expect(mercZoom).toBeGreaterThanOrEqual(8);
+
+    await page.locator('[data-testid="editor-undo"]').click();
+
+    await page.waitForFunction(
+      () => (window as any).testDebug.homePosition.value == null,
+      undefined,
+      { timeout: 30000 },
+    );
+    const undone = await page.evaluate(() => (window as any).testDebug.homePosition.value);
+    expect(undone).toBeUndefined();
 
     await quitElectronApplication(app);
   });
 
-  test('AppEdit estimate sets homePosition from selected source coverage', async () => {
+  test('AC3: base map filter auto -> manual override -> clear returns to auto', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-ac3-'));
+    const { app, page } = await launch(e2eRoot);
+
+    const uid = await createMapWithGcps(page);
+    await openMapEdit(page, uid);
+    await switchMapEditSettingsTab(page);
+
+    // auto: GCP範囲自動ラベルが表示されている
+    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).toBeVisible();
+    // 手動 override 指定前はクリアボタンがない
+    await expect(page.locator('[data-testid="map-base-map-region-clear"]')).not.toBeVisible();
+
+    // モーダルを開き、testDebug経由で手動領域を設定し確定
+    await page.locator('[data-testid="map-base-map-region-button"]').click();
+    await expect(page.locator('.envelope-modal')).toBeVisible();
+
+    // 描画UIを経由せず親 ref を直接書き換えて manual override をシミュレート
+    await page.evaluate(() => {
+      (window as any).testDebug.baseMapFilterRegion.value = [
+        [139.74, 35.64],
+        [139.76, 35.64],
+        [139.76, 35.66],
+        [139.74, 35.66],
+      ];
+    });
+
+    // モーダルを閉じて親ビューに戻る
+    await page.locator('.envelope-modal .btn-close').first().click();
+    await expect(page.locator('.envelope-modal')).not.toBeVisible();
+
+    await expect(page.locator('[data-testid="map-base-map-region-label"]')).toBeVisible();
+    const labelText = await page.locator('[data-testid="map-base-map-region-label"]').textContent();
+    expect(labelText).toMatch(/W139\.74.*S35\.64.*E139\.76.*N35\.66/);
+
+    // auto ラベルは非表示
+    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).not.toBeVisible();
+
+    // クリアで auto に戻る
+    await page.locator('[data-testid="map-base-map-region-clear"]').click();
+    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).toBeVisible();
+    await expect(page.locator('[data-testid="map-base-map-region-clear"]')).not.toBeVisible();
+
+    await quitElectronApplication(app);
+  });
+
+  test('AC4: AppEdit estimate button sets homePosition/defaultZoom from source coverage', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t11-app-'));
     const { mapUid, appUid } = await seedMapAndApp(e2eRoot);
@@ -180,11 +283,10 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
 
     await openAppEdit(page, appUid);
 
-    // 自動導出提供範囲が計算されるのを待つ
     await page.waitForFunction(
       () => {
         const td = (window as any).testDebug;
-        return !!(td.appData.value.coverageLngLats || td.appCoverageAuto.autoCoverage.value);
+        return !!(td.appData.value.coverageLngLats || td.appCoverageAuto?.autoCoverage?.value);
       },
       undefined,
       { timeout: 60000 },
@@ -195,7 +297,7 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     expect(beforeLng).toBeNull();
     expect(beforeLat).toBeNull();
 
-    await page.evaluate(() => (window as any).testDebug.estimateHomeFromSources());
+    await page.locator('[data-testid="app-edit-estimate-home"]').click();
 
     const afterLng = await page.evaluate(() => (window as any).testDebug.appData.value.appSettings.homeLng);
     const afterLat = await page.evaluate(() => (window as any).testDebug.appData.value.appSettings.homeLat);
@@ -203,6 +305,8 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     expect(typeof afterLng).toBe('number');
     expect(typeof afterLat).toBe('number');
     expect(typeof afterZoom).toBe('number');
+    expect(Math.abs(afterLng - 139.75)).toBeLessThan(0.02);
+    expect(Math.abs(afterLat - 35.65)).toBeLessThan(0.02);
 
     await quitElectronApplication(app);
   });
@@ -214,8 +318,9 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
 
     const uid = await createMapWithGcps(page);
     await openMapEdit(page, uid);
+    await switchMapEditSettingsTab(page);
 
-    await openEnvelopeModalFromMapEdit(page);
+    await page.locator('[data-testid="map-base-map-region-button"]').click();
     await expect(page.locator('.envelope-modal #gcd-input-query')).toHaveCount(1);
 
     await quitElectronApplication(app);

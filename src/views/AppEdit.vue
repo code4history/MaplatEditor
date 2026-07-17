@@ -1340,7 +1340,7 @@ function onPoisChange(next: unknown[]) {
                 <input :value="appData.appSettings.homeLat ?? ''" type="number" step="0.000001" class="form-control form-control-sm" :disabled="translationMode" @change="appData.appSettings.homeLat = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
               </div>
               <div class="col-md-2 d-flex align-items-end">
-                <button type="button" class="btn btn-sm btn-outline-info text-nowrap mb-1" :disabled="translationMode || !(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value)" @click="estimateHomeFromSources">
+                <button type="button" class="btn btn-sm btn-outline-info text-nowrap mb-1" data-testid="app-edit-estimate-home" :disabled="translationMode || !(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value)" @click="estimateHomeFromSources">
                   {{ t("common.estimate") }}
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap mb-1 ms-1" :disabled="translationMode" @click="openHomePositionModal">{{ t("appedit.home_pick") }}</button>

@@ -61,19 +61,48 @@ try {
     assert.equal(result.centroid[1], 35.6);
   }
 
-  // 3. 同一直線上の多点 → 縦または横が 0 のため拡張される
+  // 3. 同一直線上の多点 → 退化した軸のみ拡張される
   {
+    // 横長（緯度方向が退化）
     const result = computeBboxAndCentroid([
       [139.7, 35.6],
       [139.8, 35.6],
     ]);
     assert.ok(result);
     const [w, s, e, n] = result.bbox;
-    assert.ok(e - w > 0.009, "経度幅は元の 0.01° 以上を維持");
-    assert.ok(n - s >= 0.009, "緯度幅は 1km 以上に拡張される");
+    const width = e - w;
+    const height = n - s;
+    assert.ok(Math.abs(width - 0.1) < 1e-6, "経度幅は元の 0.1° を維持");
+    assert.ok(Math.abs(height - 0.009) < 1e-6, "緯度幅は 1km 相当に拡張される");
+    assert.ok(Math.abs(result.centroid[1] - 35.6) < 1e-6, "重心の緯度は元の中心");
+
+    // 縦長（経度方向が退化）
+    const result2 = computeBboxAndCentroid([
+      [139.7, 35.6],
+      [139.7, 35.7],
+    ]);
+    assert.ok(result2);
+    const width2 = result2.bbox[2] - result2.bbox[0];
+    const height2 = result2.bbox[3] - result2.bbox[1];
+    assert.ok(Math.abs(width2 - 0.009) < 1e-6, "経度幅は 1km 相当に拡張される");
+    assert.ok(Math.abs(height2 - 0.1) < 1e-6, "緯度幅は元の 0.1° を維持");
   }
 
-  // 4. zoom 推定: 幅の大小に応じた clamp
+  // 4. 長方形（非退化）→ 元の bbox を維持
+  {
+    const result = computeBboxAndCentroid([
+      [139.7, 35.6],
+      [139.8, 35.6],
+      [139.8, 35.7],
+      [139.7, 35.7],
+    ]);
+    assert.ok(result);
+    const [w, s, e, n] = result.bbox;
+    assert.ok(Math.abs(e - w - 0.1) < 1e-6, "非退化の場合は元の経度幅");
+    assert.ok(Math.abs(n - s - 0.1) < 1e-6, "非退化の場合は元の緯度幅");
+  }
+
+  // 5. zoom 推定: 幅の大小に応じた clamp
   {
     // 広域
     const zWorld = estimateZoomForBbox([-180, -90, 180, 90], 18);
@@ -81,12 +110,15 @@ try {
     // 狭域 (1km)
     const zNarrow = estimateZoomForBbox([139.7, 35.6, 139.709, 35.609], 18);
     assert.ok(zNarrow >= 15 && zNarrow <= 18, "1km 程度は高 zoom");
+    // 南北長 bbox でも高い方に合わせてズーム
+    const zTall = estimateZoomForBbox([139.7, 35.6, 139.705, 35.65], 18);
+    assert.ok(zTall >= 12 && zTall <= 18, "南北長 bbox でも適切な zoom");
     // maxZoom clamp
     const zTiny = estimateZoomForBbox([139.7, 35.6, 139.7005, 35.6005], 16);
     assert.equal(zTiny, 16, "maxZoom を超えない");
   }
 
-  // 5. bbox の union
+  // 6. bbox の union
   {
     const u = unionBboxes([
       [139.7, 35.6, 139.8, 35.7],
@@ -96,7 +128,7 @@ try {
     assert.equal(unionBboxes([]), null);
   }
 
-  // 6. expandBboxByRatio
+  // 7. expandBboxByRatio
   {
     const expanded = expandBboxByRatio([139.7, 35.6, 139.8, 35.7], 0.05);
     const [w, s, e, n] = expanded;

@@ -13,7 +13,7 @@ import SlugField from '../components/editor-ui/SlugField.vue';
 import EditorTabs from '../components/editor-ui/EditorTabs.vue';
 import DiagnosticFeedback from '../components/editor-ui/DiagnosticFeedback.vue';
 import { envelopeToBbox } from '../utils/appSourceModel';
-import { computeBboxAndCentroid, estimateZoomForBbox } from '../utils/geoEstimate';
+import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
@@ -753,6 +753,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         mercZoom,
         gcps,
         currentEditingLayer,
+        baseMapFilterRegion,
         estimateHomeFromGcps,
     };
 }
@@ -2372,9 +2373,10 @@ const bboxIntersects = (a: number[], b: number[]): boolean =>
 // OSM同様に全球扱いとし、GCP範囲/地域指定の絞り込みに常にマッチする
 const filteredBaseMapVisibilityList = computed(() => {
     const text = baseMapSearchText.value.trim().toLowerCase();
-    // 地域指定が manual override されていればそれを使い、未設定(auto)なら GCP bbox を使う
+    // 地域指定が manual override されていればそれを使い、未設定(auto)なら GCP bbox (+5% buffer) を使う
     const regionBbox = envelopeToBbox(baseMapFilterRegion.value);
-    const gcpBbox = regionBbox ? null : gcpAutoRange.bbox.value;
+    const rawGcpBbox = regionBbox ? null : gcpAutoRange.bbox.value;
+    const gcpBbox = rawGcpBbox ? expandBboxByRatio(rawGcpBbox, 0.05) : null;
     return baseMapVisibilityList.value.filter((item) => {
         if (text && !baseMapSearchHaystack(item).includes(text)) return false;
         const coverage = envelopeToBbox(item?.data?.coverageLngLats ?? null);
@@ -3210,9 +3212,9 @@ const goBack = async () => {
                 :model-value="activeTab"
                 :tabs="[
                     { key: 'metadata', labelKey: 'editor_ui.tabs.metadata' },
-                    { key: 'gcps', labelKey: 'editor_ui.tabs.gcps', disabled: !gcpsEditReady, disabledReasonKey: 'editor_ui.tabs.gcps_requires_image' },
-                    { key: 'settings', labelKey: 'editor_ui.tabs.base_maps' },
-                    { key: 'pois', labelKey: 'editor_ui.tabs.pois' },
+                    { key: 'gcps', labelKey: 'editor_ui.tabs.gcps', disabled: !gcpsEditReady, disabledReasonKey: 'editor_ui.tabs.gcps_requires_image', testid: 'map-tab-gcps' },
+                    { key: 'settings', labelKey: 'editor_ui.tabs.base_maps', testid: 'map-tab-settings' },
+                    { key: 'pois', labelKey: 'editor_ui.tabs.pois', testid: 'map-tab-pois' },
                 ]"
                 @update:model-value="activeTab = $event"
             />
@@ -3496,7 +3498,7 @@ const goBack = async () => {
                         <div id="illstMap" class="w-100 h-100"></div>
                         <!-- Home Button Illst -->
                         <div class="position-absolute bottom-0 end-0 m-3 mb-4" style="z-index: 10;">
-                            <button class="btn btn-light btn-sm shadow-sm border" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
+                            <button class="btn btn-light btn-sm shadow-sm border" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
                                 <i class="bi bi-magic"></i>
                             </button>
                             <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeIllst" @click="setHomeIllst"><i class="bi bi-house"></i></button>
@@ -3508,7 +3510,7 @@ const goBack = async () => {
                         <div id="mercMap" class="w-100 h-100"></div>
                          <!-- Home Button Merc -->
                         <div class="position-absolute bottom-0 end-0 m-3 mb-4" style="z-index: 10;">
-                            <button class="btn btn-light btn-sm shadow-sm border" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
+                            <button class="btn btn-light btn-sm shadow-sm border" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
                                 <i class="bi bi-magic"></i>
                             </button>
                             <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeMerc" @click="setHomeMerc"><i class="bi bi-house"></i></button>
@@ -3737,15 +3739,15 @@ const goBack = async () => {
                                 v-model="baseMapSearchText"
                                 :placeholder="t('mapedit.base_map_search_placeholder')"
                             >
-                            <span v-if="gcpAutoRange.bbox.value" class="small text-muted">
+                            <span v-if="gcpAutoRange.bbox.value && !baseMapFilterRegion" class="small text-muted" data-testid="map-base-map-auto-label">
                                 {{ t("mapedit.base_map_filter_gcp_auto") }}
                             </span>
-                            <button type="button" class="btn btn-sm btn-outline-primary" @click="showBaseMapRegionModal = true">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-testid="map-base-map-region-button" @click="showBaseMapRegionModal = true">
                                 {{ t("mapedit.base_map_filter_region") }}
                             </button>
                             <template v-if="baseMapFilterRegion">
-                                <span class="small font-monospace">{{ baseMapFilterRegionLabel }}</span>
-                                <button type="button" class="btn btn-sm btn-outline-danger" @click="baseMapFilterRegion = null">
+                                <span class="small font-monospace" data-testid="map-base-map-region-label">{{ baseMapFilterRegionLabel }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-testid="map-base-map-region-clear" @click="baseMapFilterRegion = null">
                                     {{ t("appedit.envelope_clear") }}
                                 </button>
                             </template>

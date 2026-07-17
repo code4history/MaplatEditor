@@ -13,7 +13,7 @@ const MIN_BBOX_DEG = 0.009;
 /**
  * 複数点の WGS84 座標から bbox と重心を返す。
  * bbox の縦または横が 0 の場合（1点のみ、または同一直線上の多点）は、
- * 最小 1km 相当の正方形 bbox へ拡張してから返す。
+ * 退化した軸のみを最小 1km 相当に拡張してから返す。非退化軸は元の範囲を維持する。
  */
 export function computeBboxAndCentroid(points: LngLat[]): { bbox: Bbox; centroid: LngLat } | null {
   if (!Array.isArray(points) || points.length === 0) return null;
@@ -40,15 +40,17 @@ export function computeBboxAndCentroid(points: LngLat[]): { bbox: Bbox; centroid
   const centroid: LngLat = [round6(sumLng / valid), round6(sumLat / valid)];
   let width = east - west;
   let height = north - south;
-  // 1点または degenerate な領域は正方形に拡張
-  if (width < MIN_BBOX_DEG || height < MIN_BBOX_DEG) {
+  // 経度方向が退化していれば centroid を中心に 1km 相当に拡張
+  if (width < MIN_BBOX_DEG) {
     const half = MIN_BBOX_DEG / 2;
-    const cx = (west + east) / 2;
-    const cy = (south + north) / 2;
-    west = cx - half;
-    east = cx + half;
-    south = cy - half;
-    north = cy + half;
+    west = centroid[0] - half;
+    east = centroid[0] + half;
+  }
+  // 緯度方向が退化していれば centroid を中心に 1km 相当に拡張
+  if (height < MIN_BBOX_DEG) {
+    const half = MIN_BBOX_DEG / 2;
+    south = centroid[1] - half;
+    north = centroid[1] + half;
   }
   // 緯度は極を超えないよう clamp
   south = Math.max(-90, south);
@@ -65,9 +67,10 @@ export function computeBboxAndCentroid(points: LngLat[]): { bbox: Bbox; centroid
  */
 export function estimateZoomForBbox(bbox: Bbox, maxZoom: number = 18): number {
   const width = bbox[2] - bbox[0];
-  if (!Number.isFinite(width) || width <= 0) return 1;
-  // 経度 360°を zoom 0 の 1 tile(256px) と仮定し、1段多めに zoom しておく
-  const zoom = Math.log2(360 / width) + 1;
+  const height = bbox[3] - bbox[1];
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return 1;
+  // 経緯度幅の大きい方を zoom 0 の 1 tile(256px) と仮定し、1段多めに zoom しておく
+  const zoom = Math.log2(360 / Math.max(width, height)) + 1;
   return Math.min(maxZoom, Math.max(1, Math.floor(zoom)));
 }
 
