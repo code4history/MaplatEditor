@@ -237,6 +237,7 @@ try {
 
       // (i) createAsset → findAsset / findAssetBySlug
       const { uid: assetUid } = await SqliteDataService.createAsset('temple-photo', {
+        lang: 'ja',
         title: { ja: '寺院の写真' },
         mime: 'image/jpeg',
         ext: 'jpg',
@@ -263,7 +264,7 @@ try {
       const assetRenamed = await SqliteDataService.upsertAssetMeta(
         assetUid,
         'shrine-photo',
-        { title: { ja: '神社の写真' }, mime: 'image/jpeg', ext: 'jpg', width: 1024, height: 768, byteSize: 204800 },
+        { lang: 'ja', title: { ja: '神社の写真' }, mime: 'image/jpeg', ext: 'jpg', width: 1024, height: 768, byteSize: 204800 },
         1,
       );
       assert.equal(assetRenamed.revision, 2);
@@ -280,7 +281,7 @@ try {
       try {
         await SqliteDataService.upsertAssetMeta(
           assetUid, 'shrine-photo',
-          { title: { ja: 'x' }, mime: 'image/jpeg', ext: 'jpg', byteSize: 1 }, 1,
+          { lang: 'ja', title: { ja: 'x' }, mime: 'image/jpeg', ext: 'jpg', byteSize: 1 }, 1,
         );
       } catch (e) {
         assetConflict = e;
@@ -295,7 +296,7 @@ try {
         'asset が持つ slug で createMap は失敗するはず',
       );
       await assert.rejects(
-        () => SqliteDataService.createAsset('shared-slug', { title: { ja: 'x' }, mime: 'image/png', ext: 'png', byteSize: 1 }),
+        () => SqliteDataService.createAsset('shared-slug', { lang: 'ja', title: { ja: 'x' }, mime: 'image/png', ext: 'png', byteSize: 1 }),
         'map が持つ slug で createAsset は失敗するはず',
       );
       console.log('ok: (m) global slug collision (asset vs map)');

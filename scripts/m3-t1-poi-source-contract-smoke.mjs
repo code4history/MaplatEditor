@@ -60,7 +60,14 @@ try {
     'PoiSourceService が poiGeoJson 純関数を import していない'
   );
   assert.match(serviceSource, /validateFeatureCollection/, 'PoiSourceService が validateFeatureCollection を使っていない');
-  assert.match(serviceSource, /normalizeLegacyPoiList/, 'PoiSourceService が normalizeLegacyPoiList を使っていない');
+  // M11: legacy 正規化は poiGeoJson.normalizePoiSourceCollection に集約され、service はその窓口を使う
+  assert.match(serviceSource, /normalizePoiSourceCollection/, 'PoiSourceService が normalizePoiSourceCollection を使っていない');
+  const poiGeoJsonSource = await readFile(
+    path.join(projectRoot, 'src/utils/poiGeoJson.ts'),
+    'utf8'
+  );
+  assert.match(poiGeoJsonSource, /export function normalizePoiSourceCollection[\s\S]{0,400}?normalizeLegacyPoiList/,
+    'normalizePoiSourceCollection が normalizeLegacyPoiList を内包していない');
   assert.match(serviceSource, /ensureDisplayIds/, 'PoiSourceService が ensureDisplayIds を使っていない');
   assert.match(serviceSource, /ensureFeatureUids/, 'PoiSourceService が ensureFeatureUids を使っていない');
   // level='error' issue が 1 つでもあれば保存/取込を拒否する

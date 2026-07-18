@@ -79,7 +79,7 @@ assert.match(headerVue, /isAppSection/, "Header must define isAppSection for F1"
 assert.match(headerVue, /currentRoute\.value === 'AppList' \|\| currentRoute\.value === 'AppEdit'/, "isAppSection must cover AppList + AppEdit");
 assert.match(headerVue, /:class="\{ active: isAppSection \}"/, "app nav-link must bind active to isAppSection");
 // .main-content offset が token
-assert.match(appVue, /\.main-content\s*\{[^}]*var\(--editor-ui-header-height\)/s, "main-content must use header-height token");
+assert.match(appVue, /\.main-content\s*\{[^}]*var\(--editor-ui-header-height[,)]/s, "main-content must use header-height token");
 
 const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh-TW"];
 const NAVBAR_KEYS = ["edit_map", "edit_poi", "add_basemap", "edit_app", "assets", "settings"];
@@ -186,10 +186,10 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
   assert.match(src, /ContextHelp|SlugField/, `${rel} must use ContextHelp (directly or via SlugField)`);
   assert.match(src, /editor-ui-mono|SlugField/, `${rel} slug input must use editor-ui-mono (directly or via SlugField)`);
   assert.match(src, /scope="operation"/, `${rel} save error must be operation-scope diagnostic`);
-  // F3: 黄色バナー撤去 → section scope summary へ置換（全項目即時 = dirty ゲートなし）
-  assert.match(src, /scope="section"/, `${rel} validation summary must be section-scope diagnostic`);
+  // F3改 (M11-T10 人間検証R3): 全量サマリバナー(section scope)は廃止し、
+  // Map/App と同じ「field 診断 + バナーは操作エラーのみ」の文法へ統一
+  assert.doesNotMatch(src, /scope="section"/, `${rel} must not keep the section-scope validation summary (T10 R3)`);
   assert.doesNotMatch(src, /alert alert-warning[^"]*"\s*>\s*<ul/, `${rel} must not keep the yellow validation banner`);
-  assert.match(src, /sectionDiagnostics/, `${rel} must expose sectionDiagnostics`);
   // F2: field 診断がある入力へ is-invalid（赤枠）を連動付与(slug 欄は SlugField 内蔵)
   assert.match(src, /('is-invalid':\s*slugDiagnostics\.length)|SlugField/, `${rel} slug input must bind is-invalid (directly or via SlugField)`);
   assert.match(src, /titleDiagnostics/, `${rel} must wire title field diagnostics`);

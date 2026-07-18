@@ -142,6 +142,8 @@ try {
   const WINDOW_MAPLIST_RAW = /(window\.maplist\.(?:request|delete|on|off)|\(\s*window\s+as\s+any\s*\)\s*\.\s*maplist\.(?:request|delete|on|off))/;
   const ALLOWLIST = new Set([
     'src/views/MapList.vue',
+    'src/views/resource-adapters/mapListAdapter.ts', // M11-T6: 一覧データ取得は adapter 層経由
+
     'src/services/registeredMapCatalog.ts',
     'src/services/desktopMapList.ts',
   ]);
@@ -170,11 +172,12 @@ try {
   console.log('  [2/4] window.maplist raw IPC allowlist: PASS');
 
   // --- Part 3: MapList.vue regression (2-arg + docs + delete) ---
+  // M11-T6: 一覧取得は mapListAdapter (2-arg request + result.docs) 経由。delete は MapList 側に残存
   const mapListView = await readFile(path.join(projectRoot, 'src/views/MapList.vue'), 'utf8');
-  assert.match(mapListView, /\(window as any\)\.maplist\.request\(/, 'MapList.vue に (window as any).maplist.request() がない');
+  const mapListAdapterView = await readFile(path.join(projectRoot, 'src/views/resource-adapters/mapListAdapter.ts'), 'utf8');
+  assert.match(mapListAdapterView, /window\.maplist\.request\(filter\.q, page\)/, 'mapListAdapter に 2-arg maplist.request() がない');
   assert.match(mapListView, /\(window as any\)\.maplist\.delete\(/, 'MapList.vue に (window as any).maplist.delete() がない');
-  assert.match(mapListView, /result\.docs/, 'MapList.vue に result.docs がない');
-  assert.match(mapListView, /maplist\.value\s*=/, 'MapList.vue に maplist.value = がない');
+  assert.match(mapListAdapterView, /result\.docs/, 'mapListAdapter に result.docs がない');
   console.log('  [3/4] MapList.vue regression: PASS');
 
   // --- Part 4: Unit smoke (adapter functions via dynamic import) ---

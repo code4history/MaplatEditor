@@ -76,11 +76,16 @@ try {
     'utf8'
   );
 
-  // usePoiSourceList composable を使用すること (一覧→編集 遷移型、MapList/AppList 同型)
+  // M11-T6: 一覧は共通 primitives (useInfiniteResourceList + resource adapter) を使用 (MapList/AppList 同型)
   assert.match(
     poiSourceList,
-    /usePoiSourceList/,
-    'PoiSourceList が usePoiSourceList を使っていない'
+    /useInfiniteResourceList/,
+    'PoiSourceList が useInfiniteResourceList を使っていない'
+  );
+  assert.match(
+    poiSourceList,
+    /createPoiSourceListAdapter/,
+    'PoiSourceList が createPoiSourceListAdapter を使っていない'
   );
 
   // 新規作成 (local) フロー: window.poiSources.createLocal を呼ぶこと
@@ -104,11 +109,16 @@ try {
     'PoiSourceList が window.poiSources.pickImportFile を呼んでいない'
   );
 
-  // リモート登録フロー: window.poiSources.registerRemote を呼ぶこと
+  // リモート登録 UI は 18d62d8 でフラグ裏へ退避 (M11 一覧刷新後は未再配線)。
+  // backend 契約 (poisource:registerRemote IPC) が存続していることを確認する
+  const poiPreload = await readFile(
+    path.join(projectRoot, 'electron/preload.ts'),
+    'utf8'
+  );
   assert.match(
-    poiSourceList,
-    /poiSources\.registerRemote/,
-    'PoiSourceList が window.poiSources.registerRemote を呼んでいない'
+    poiPreload,
+    /poisource:registerRemote/,
+    'preload に poisource:registerRemote IPC 配線がない'
   );
 
   // 削除前に参照提示 (AID-006): window.poiSources.findReferences を呼ぶこと
@@ -125,26 +135,19 @@ try {
     'PoiSourceList が window.poiSources.delete を呼んでいない'
   );
 
-  // slug 可用性チェック: window.assets.checkSlug を呼ぶこと (MapEdit と同 UX)
-  assert.match(
+  // M11-T7 (AC17): 生 checkSlug は撤去され、slug 可用性は PoiEdit 側の共通 SlugField が担う
+  assert.doesNotMatch(
     poiSourceList,
     /assets\.checkSlug/,
-    'PoiSourceList が window.assets.checkSlug を呼んでいない'
+    'PoiSourceList に生 checkSlug が残っている (AC17)'
   );
 
-  // 新規作成フローで title → slug 自動提案が配線されていること (43 §3.2「自動生成初期値の提示」):
-  // modal.title の watcher が suggestSlug を呼ぶ
+  // M11-T10: 作成モーダル撤去に伴い、自動提案 (43 §3.2) は import のファイル名 → suggestSlug。
+  // 新規作成は暫定 slug で行を作り、PoiEdit の共通 SlugField で編集する
   assert.match(
     poiSourceList,
-    /watch\s*\(\s*\(\)\s*=>\s*modal\.title[\s\S]*?suggestSlug\s*\(/,
-    'PoiSourceList に title → slug 自動提案 (watch modal.title → suggestSlug) がない'
-  );
-
-  // 手入力後は自動提案が上書きしないこと (slugEdited フラグ)
-  assert.match(
-    poiSourceList,
-    /slugEdited/,
-    'PoiSourceList に slug 手入力フラグ (slugEdited) がない'
+    /suggestSlug\(picked\.fileName\)/,
+    'PoiSourceList の import が suggestSlug でファイル名から slug を提案していない'
   );
 
   // 成功時に uid でエディタへ遷移すること (router.push('/poisources/' + uid))

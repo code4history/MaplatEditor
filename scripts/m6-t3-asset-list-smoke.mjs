@@ -133,30 +133,50 @@ try {
     'AssetList が削除前に findReferences を呼んでいない'
   );
 
-  // findReferences 失敗時は参照情報なしの旨を添えて続行する
+  // M11-T10: 削除確認は共通 DeleteConfirmDialog + useResourceDelete へ委譲。
+  // findReferences 失敗時の文言 (references_unavailable) は共通 dialog 側が持つ
   assert.match(
     assetList,
+    /DeleteConfirmDialog/,
+    'AssetList が共通 DeleteConfirmDialog を使っていない'
+  );
+  assert.match(
+    assetList,
+    /useResourceDelete/,
+    'AssetList が useResourceDelete を使っていない'
+  );
+  const deleteDialogSource = await readFile(
+    path.join(projectRoot, 'src/components/resource-list/DeleteConfirmDialog.vue'),
+    'utf8'
+  );
+  assert.match(
+    deleteDialogSource,
     /references_unavailable/,
-    'AssetList に findReferences 失敗時の文言 (references_unavailable) がない'
+    'DeleteConfirmDialog に findReferences 失敗時の文言 (references_unavailable) がない'
   );
 
-  // slug 可用性チェック: rename では自分自身を除外する (excludeUid)
-  assert.match(
+  // M11-T7: slug 可用性チェックは AssetEdit 内の共通 SlugField (予約 lifecycle、
+  // 自己予約は identity で除外) へ移行し、生 checkSlug は撤去 (AC17)
+  assert.doesNotMatch(
     assetList,
     /assets\.checkSlug/,
-    'AssetList が window.assets.checkSlug を呼んでいない'
+    'AssetList に生 checkSlug が残っている (AC17)'
+  );
+  const assetEditSource = await readFile(
+    path.join(projectRoot, 'src/components/assets/AssetEdit.vue'),
+    'utf8'
   );
   assert.match(
-    assetList,
-    /excludeUid/,
-    'AssetList の checkSlug に excludeUid がない'
+    assetEditSource,
+    /SlugField/,
+    'AssetEdit が共通 SlugField を使っていない'
   );
-
-  // pickImageFile: キャンセル (null) は何もしない (Phase 3 MINOR-5 系ガード)
+  // M11-T7: 自己除外は SlugField の予約 identity (assetUid 除外) が担う。
+  // pickImageFile の null (キャンセル) ガードは AssetEdit 側へ移動 (M11-T4)
   assert.match(
-    assetList,
+    assetEditSource,
     /pickImageFile\(\);\s*\n\s*if\s*\(\s*!picked\s*\)\s*return/,
-    'AssetList に pickImageFile の null (キャンセル) ガードがない'
+    'AssetEdit に pickImageFile の null (キャンセル) ガードがない'
   );
   // pick の reject は通知する
   assert.match(

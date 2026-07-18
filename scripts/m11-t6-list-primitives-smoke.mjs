@@ -17,7 +17,7 @@ assert.match(types, /total:\s*number\s*\|\s*null/, "ResourceListBatch.total must
 assert.match(types, /export interface ResourceListItemViewModel/, "view model missing");
 assert.match(types, /export interface ResourceListAdapter<T, Cursor = string>/, "adapter missing");
 assert.match(types, /export interface ResourceListAction/, "ResourceListAction missing");
-assert.match(types, /key:\s*"delete"/, "ResourceListAction.key must be \"delete\" for T6");
+assert.match(types, /key:\s*"duplicate"\s*\|\s*"delete"\s*\|\s*"delete-draft"/, "ResourceListAction.key union must be duplicate|delete|delete-draft (T10)");
 
 // --- Part 1b: action 写像は i18n key を返す（labelKey）が adapter へ i18n を漏らさない ---
 const builder = await read("src/components/resource-list/buildResourceListActions.ts");
@@ -33,8 +33,8 @@ assert.match(mainScss, /resource-list/, "main.scss must import resource-list.scs
 
 // --- Part 1d: i18n resource_list namespace（全 locale）+ placeholder 全角… ---
 const REQUIRED_KEYS = [
-  "new_item", "loading", "empty", "end", "load_error", "append_error", "retry",
-  "menu_delete", "menu_label", "total_loaded", "loaded_only", "search_placeholder",
+  "new_item", "loading", "empty", "load_error", "append_error", "retry",
+  "menu_delete", "menu_label", "total_only", "total_partial", "loaded_only", "search_placeholder",
 ];
 const KIND_KEYS = ["kind_map", "kind_poi_source", "kind_base_map", "kind_app", "kind_asset"];
 const translations = {};
@@ -223,7 +223,7 @@ assert.match(toolbar, /resource_list\.search_placeholder/, "toolbar search must 
 assert.doesNotMatch(toolbar, /&lt;|&gt;|prevPage|nextPage/, "toolbar must not contain pager");
 
 const status = await read("src/components/resource-list/ResourceResultStatus.vue");
-for (const key of ["total_loaded", "loaded_only", "loading", "empty", "end", "load_error", "append_error", "retry"]) {
+for (const key of ["total_only", "total_partial", "loaded_only", "loading", "empty", "load_error", "append_error", "retry"]) {
   assert.match(status, new RegExp(`resource_list\\.${key}`), `ResultStatus must render resource_list.${key}`);
 }
 
@@ -252,7 +252,7 @@ console.log("m11-t6 smoke Part 4: OK");
 // --- Part 5: MapList 移行 ---
 const mapAdapter = await read("src/views/resource-adapters/mapListAdapter.ts");
 assert.match(mapAdapter, /window\.maplist\.request/, "mapAdapter must call maplist.request (D1)");
-assert.match(mapAdapter, /total:\s*null/, "map batch total must be null (D8改)");
+assert.match(mapAdapter, /total: \(result as \{ total\?: number \}\)\.total \?\? null/, "map batch must pass backend total through (2026-07-16 件数表示統一)");
 const mapList = await read("src/views/MapList.vue");
 assert.match(mapList, /ResourceListShell/, "MapList must use ResourceListShell");
 assert.match(mapList, /ResourceGridCard/, "MapList must use ResourceGridCard");
@@ -267,7 +267,7 @@ console.log("m11-t6 smoke Part 5: OK");
 // --- Part 6: AppList 移行 ---
 const appAdapter = await read("src/views/resource-adapters/appListAdapter.ts");
 assert.match(appAdapter, /window\.applist\.request/, "appAdapter must call applist.request (D1)");
-assert.match(appAdapter, /total:\s*null/, "app batch total must be null (D8改)");
+assert.match(appAdapter, /total: \(result as \{ total\?: number \}\)\.total \?\? null/, "app batch must pass backend total through (2026-07-16 件数表示統一)");
 const appList = await read("src/views/AppList.vue");
 assert.match(appList, /ResourceListShell/);
 assert.match(appList, /ResourceGridCard/);
@@ -288,10 +288,10 @@ assert.match(poi, /useInfiniteResourceList/);
 assert.doesNotMatch(poi, /prevPage|nextPage|&lt;|&gt;/, "PoiSourceList must not contain pager");
 // Import は secondary slot へ
 assert.match(poi, /#secondary/, "Import must move to secondary slot");
-assert.match(poi, /openImport/, "Import handler must remain (no functional change)");
-// Remote 登録フラグは不変（false のまま、slot 内へ移設）
-assert.match(poi, /REMOTE_POI_REGISTRATION_ENABLED\s*=\s*false/, "remote flag must stay false (D13)");
-assert.match(poi, /v-if="REMOTE_POI_REGISTRATION_ENABLED"/, "remote button must stay flag-gated (D13)");
+assert.match(poi, /onImport/, "Import handler must remain (no functional change)");
+// M11-T10: 作成モーダル解体時に、無効化フラグ (D13, false 固定) ごと remote 登録 UI を撤去。
+// backend 契約 (poisource:registerRemote IPC) の存続は m3-t3 smoke が確認する
+assert.doesNotMatch(poi, /registerRemote/, "remote registration UI must stay removed (T10; IPC surface covered by m3-t3)");
 // 削除の参照チェック（findReferences）は維持
 assert.match(poi, /findReferences/, "delete must keep reference check");
 console.log("m11-t6 smoke Part 7: OK");

@@ -183,10 +183,20 @@ try {
   );
 
   // AppList は app list API を使って一覧を表示することを確認
+  // M11-T6: 一覧データ取得は resource-adapters 層経由 (AppList → createAppListAdapter → window.applist.request)
   assert.match(
     appListView,
+    /createAppListAdapter/,
+    'AppList.vue が createAppListAdapter を使っていない'
+  );
+  const appListAdapterSource = await readFile(
+    path.join(projectRoot, 'src/views/resource-adapters/appListAdapter.ts'),
+    'utf8'
+  );
+  assert.match(
+    appListAdapterSource,
     /window\.applist\.request/,
-    'AppList.vue が window.applist.request を使っていない'
+    'appListAdapter.ts が window.applist.request を呼んでいない'
   );
 
   // AppEdit は maplist API(desktopMapListサービス経由)で地図一覧を表示することを確認
