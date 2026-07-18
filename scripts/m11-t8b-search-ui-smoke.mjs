@@ -15,6 +15,7 @@ await writeFile(entryFile, `
 import assert from "node:assert/strict";
 import { WEB_MERCATOR_MAX_LAT, mercatorBboxToWgs84, wgs84BboxToMercator } from ${JSON.stringify(path.join(projectRoot, "electron/utils/webMercator.ts"))};
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from ${JSON.stringify(path.join(projectRoot, "electron/utils/searchSpatial.ts"))};
+import { useInfiniteResourceList } from ${JSON.stringify(path.join(projectRoot, "src/composables/useInfiniteResourceList.ts"))};
 
 const world = wgs84BboxToMercator([-180, -90, 180, 90]);
 assert.ok(world.every(Number.isFinite), "極を含むWGS84 bboxも有限値へclampする");
@@ -33,6 +34,17 @@ const global = { uid: "global", data: {} };
 const inside = { uid: "inside", data: { coverageLngLats: [[135, 35], [136, 36]] } };
 const outside = { uid: "outside", data: { coverageLngLats: [[10, 10], [11, 11]] } };
 assert.deepEqual(filterBaseMapsByBbox([global, inside, outside], bbox), [global, inside], "coverage未設定は全世界、設定済みは交差判定する");
+
+let release!: (value: { items: Array<{ uid: string }>; total: number; nextCursor: null }) => void;
+const deferredAdapter = {
+  load: () => new Promise<{ items: Array<{ uid: string }>; total: number; nextCursor: null }>((resolve) => { release = resolve; }),
+};
+const list = useInfiniteResourceList(deferredAdapter, { filter: () => ({ q: "", bbox: null }), activeLang: () => "ja" });
+const pending = list.loadFirst();
+list.dispose();
+release({ items: [{ uid: "late" }], total: 1, nextCursor: null });
+await pending;
+assert.deepEqual(list.items.value, [], "dispose後の後着応答は反映しない");
 console.log("m11-t8b spatial unit: OK");
 `);
 
@@ -61,7 +73,25 @@ try {
   assert.match(preload, /resourceBbox:.*search:resourceBbox/s, "preload resourceBbox missing");
   const declarations = await read("src/electron.d.ts");
   assert.match(declarations, /resourceBbox\(kind: 'map'/, "SearchAPI.resourceBbox missing");
-  console.log("m11-t8b Task 1 smoke: OK");
+
+  const types = await read("src/components/resource-list/resourceListTypes.ts");
+  assert.match(types, /export interface ResourceDataAdapter<T, Cursor = string>/, "ResourceDataAdapter missing");
+  assert.match(types, /ResourceListAdapter<T, Cursor = string> extends ResourceDataAdapter<T, Cursor>/, "ResourceListAdapter must extend load-only contract");
+  const infinite = await read("src/composables/useInfiniteResourceList.ts");
+  assert.match(infinite, /dispose:\s*\(\) => void/, "dispose contract missing");
+  for (const [file, api] of [
+    ["src/views/resource-adapters/mapListAdapter.ts", "maps"],
+    ["src/views/resource-adapters/appListAdapter.ts", "apps"],
+    ["src/views/resource-adapters/poiSourceListAdapter.ts", "poiSources"],
+  ]) {
+    const source = await read(file);
+    assert.match(source, new RegExp(`window\\.search\\.${api}`), `${file} must use search API`);
+  }
+  const baseAdapter = await read("src/views/resource-adapters/baseMapSearchAdapter.ts");
+  assert.match(baseAdapter, /window\.search\.baseMaps/, "baseMapSearchAdapter must use FTS API");
+  const assetAdapter = await read("src/views/resource-adapters/imageAssetSearchAdapter.ts");
+  assert.match(assetAdapter, /window\.search\.imageAssets/, "imageAssetSearchAdapter must use FTS API");
+  console.log("m11-t8b Task 1-2 smoke: OK");
 } finally {
   await rm(workDir, { recursive: true, force: true });
 }

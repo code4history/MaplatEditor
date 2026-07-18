@@ -251,8 +251,8 @@ console.log("m11-t6 smoke Part 4: OK");
 
 // --- Part 5: MapList 移行 ---
 const mapAdapter = await read("src/views/resource-adapters/mapListAdapter.ts");
-assert.match(mapAdapter, /window\.maplist\.request/, "mapAdapter must call maplist.request (D1)");
-assert.match(mapAdapter, /total: \(result as \{ total\?: number \}\)\.total \?\? null/, "map batch must pass backend total through (2026-07-16 件数表示統一)");
+assert.match(mapAdapter, /window\.search\.maps/, "mapAdapter must call search.maps (M11-T8b)");
+assert.match(mapAdapter, /total: result\.total/, "map batch must pass search total through");
 const mapList = await read("src/views/MapList.vue");
 assert.match(mapList, /ResourceListShell/, "MapList must use ResourceListShell");
 assert.match(mapList, /ResourceGridCard/, "MapList must use ResourceGridCard");
@@ -266,8 +266,8 @@ console.log("m11-t6 smoke Part 5: OK");
 
 // --- Part 6: AppList 移行 ---
 const appAdapter = await read("src/views/resource-adapters/appListAdapter.ts");
-assert.match(appAdapter, /window\.applist\.request/, "appAdapter must call applist.request (D1)");
-assert.match(appAdapter, /total: \(result as \{ total\?: number \}\)\.total \?\? null/, "app batch must pass backend total through (2026-07-16 件数表示統一)");
+assert.match(appAdapter, /window\.search\.apps/, "appAdapter must call search.apps (M11-T8b)");
+assert.match(appAdapter, /total: result\.total/, "app batch must pass search total through");
 const appList = await read("src/views/AppList.vue");
 assert.match(appList, /ResourceListShell/);
 assert.match(appList, /ResourceGridCard/);
@@ -279,7 +279,7 @@ console.log("m11-t6 smoke Part 6: OK");
 
 // --- Part 7: PoiSourceList 移行 ---
 const poiAdapter = await read("src/views/resource-adapters/poiSourceListAdapter.ts");
-assert.match(poiAdapter, /window\.poiSources\.list/, "poiAdapter must call poiSources.list");
+assert.match(poiAdapter, /window\.search\.poiSources/, "poiAdapter must call search.poiSources (M11-T8b)");
 assert.match(poiAdapter, /total:\s*\w+\.total/, "poi batch must pass through real total (D8改)");
 const poi = await read("src/views/PoiSourceList.vue");
 assert.match(poi, /ResourceListShell/);

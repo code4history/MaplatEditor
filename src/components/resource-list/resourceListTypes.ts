@@ -35,13 +35,16 @@ export interface ResourceListItemViewModel {
   actions: Array<"duplicate" | "delete">;
 }
 
-export interface ResourceListAdapter<T, Cursor = string> {
+export interface ResourceDataAdapter<T, Cursor = string> {
   load(input: {
     filter: ResourceListFilter;
     cursor: Cursor | null;
     limit: number;
     signal: AbortSignal;
   }): Promise<ResourceListBatch<T, Cursor>>;
+}
+
+export interface ResourceListAdapter<T, Cursor = string> extends ResourceDataAdapter<T, Cursor> {
   toViewModel(item: T, activeLang: string): ResourceListItemViewModel;
 }
 

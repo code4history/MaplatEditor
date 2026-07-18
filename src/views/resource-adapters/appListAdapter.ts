@@ -1,4 +1,5 @@
 import type { ResourceListAdapter, ResourceListItemViewModel } from "../../components/resource-list/resourceListTypes";
+import { localizeTitle } from "../../utils/langResource";
 
 export interface AppListRow { uid: string; appID: string; title: string; image: string | null }
 
@@ -8,12 +9,16 @@ export interface AppListAdapterDeps { hasDraft: (uid: string) => boolean; select
 // 件数表示統一(2026-07-16 人間指示、旧D8改を更新): backend が total を返すようになったため実値を通す。
 export function createAppListAdapter(deps: AppListAdapterDeps): ResourceListAdapter<AppListRow, number> {
   return {
-    async load({ filter, cursor }) {
+    async load({ filter, cursor, limit }) {
       const page = cursor ?? 1;
-      const result = await window.applist.request(filter.q, page);
-      const effectivePage = (result.pageUpdate ?? page) as number;
-      const nextCursor = result.next ? effectivePage + 1 : null;
-      return { items: result.docs as AppListRow[], total: (result as { total?: number }).total ?? null, nextCursor };
+      const result = await window.search.apps({ q: filter.q, bbox: filter.bbox ?? undefined, page, pageSize: limit });
+      const items = result.docs.map((doc: any): AppListRow => ({
+        uid: String(doc.uid),
+        appID: String(doc.appID ?? doc.slug ?? doc._id),
+        title: localizeTitle(doc.title ?? doc.appName, "") || String(doc.appID ?? doc.slug ?? doc._id),
+        image: doc.image ?? doc.thumbnail ?? null,
+      }));
+      return { items, total: result.total, nextCursor: result.next ?? null };
     },
     toViewModel(item): ResourceListItemViewModel {
       return {

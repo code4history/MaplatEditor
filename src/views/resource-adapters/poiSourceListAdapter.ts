@@ -16,11 +16,10 @@ export interface PoiSourceAdapterDeps {
 export function createPoiSourceListAdapter(deps: PoiSourceAdapterDeps): ResourceListAdapter<PoiSourceListRow, number> {
   const pageSize = deps.pageSize ?? 20;
   return {
-    async load({ filter, cursor }) {
+    async load({ filter, cursor, limit }) {
       const page = cursor ?? 1;
-      const result = await window.poiSources.list({ query: filter.q, page, pageSize });
-      const nextCursor = result.hasNext ? result.page + 1 : null;
-      return { items: result.items, total: result.total, nextCursor };
+      const result = await window.search.poiSources({ q: filter.q, bbox: filter.bbox ?? undefined, page, pageSize: limit || pageSize });
+      return { items: result.docs as PoiSourceListRow[], total: result.total, nextCursor: result.next ?? null };
     },
     toViewModel(item): ResourceListItemViewModel {
       return {
