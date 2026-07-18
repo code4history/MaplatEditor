@@ -97,6 +97,7 @@ const adapter = createMapListAdapter({ hasDraft, selectedUid: () => selectedUidR
 const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<MapListRow, number>(
   adapter,
   { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" },
+  { limit: 20 },
 );
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("map");

@@ -1,7 +1,7 @@
 <template>
   <div class="resource-selector-list d-flex flex-column h-100 min-h-0">
     <div class="source-pane-toolbar pb-2">
-      <input :value="query" type="search" class="form-control form-control-sm" :placeholder="placeholder" @input="emit('update:query', ($event.target as HTMLInputElement).value)">
+      <input :value="query" type="search" class="form-control form-control-sm" :placeholder="placeholder" :data-testid="inputTestid" @input="emit('update:query', ($event.target as HTMLInputElement).value)">
       <button v-if="spatialContext" type="button" class="btn btn-outline-secondary btn-sm mt-2 w-100" data-testid="selector-spatial-toggle" @click="emit('toggle-spatial-context')">
         {{ spatialContext.enabled
           ? t('resource_selector.range_auto', { context: t(spatialContext.labelKey) })
@@ -27,9 +27,10 @@ const props = withDefaults(defineProps<{
   adapter: ResourceDataAdapter<any, any>;
   query: string;
   placeholder: string;
+  inputTestid?: string;
   spatialContext?: SelectorSpatialContextView;
   limit?: number;
-}>(), { limit: 30, spatialContext: undefined });
+}>(), { limit: 30, spatialContext: undefined, inputTestid: undefined });
 const emit = defineEmits<{ "update:query": [value: string]; "toggle-spatial-context": [] }>();
 const { t } = useTranslation();
 const effectiveQuery = ref(props.query);
