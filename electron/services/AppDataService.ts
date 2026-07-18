@@ -1,10 +1,7 @@
-import fs from 'fs-extra';
-import path from 'path';
-import SettingsService from './SettingsService';
-import AppAssetService from './AppAssetService';
 import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import SearchDataService, { type AppListResult } from './SearchDataService';
-import { normalizeAppSource, type AppSource } from '../../src/utils/appSourceModel';
+import { normalizeAppSource } from '../../src/utils/appSourceModel';
+import { resolveAppListImage } from './resourceImageResolver';
 
 // uid正準の保存要求/結果 (ADR-0007)。uid無指定は新規作成。
 // expectedRevision は楽観ロック(不一致で revision-conflict を返す)
@@ -24,13 +21,6 @@ export type AppSaveResult =
   | { error: 'revision-conflict'; current: number };
 
 class AppDataService {
-  private get folders() {
-    const saveFolder = SettingsService.get('saveFolder');
-    return {
-      tileFolder: path.join(saveFolder, "tiles"),
-    };
-  }
-
   private getLocalizedTitle(value: any, lang: string, fallback: string): string {
     if (typeof value === 'string' && value.trim()) return value;
     if (value && typeof value === 'object') {
@@ -39,42 +29,11 @@ class AppDataService {
     return fallback;
   }
 
-  private async getMapTile(mapRef: string): Promise<string | null> {
-    // 内部タイルはuidパス (ADR-0007)。uid-or-slug解決はWrite Storeに集約
-    const mapDoc = await SqliteDataService.findMapByRef(mapRef);
-    if (!mapDoc?.uid) return null;
-    const thumbFolder = path.join(this.folders.tileFolder, mapDoc.uid, "0", "0");
-    if (!fs.existsSync(thumbFolder)) return null;
-    try {
-      const files = await fs.readdir(thumbFolder);
-      const tileFile = files.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
-      return tileFile ? `file://${path.join(thumbFolder, tileFile).split(path.sep).join('/')}` : null;
-    } catch {
-      return null;
-    }
-  }
-
   // アプリの代表ビジュアル: アイコン → スプラッシュ → startFromがMaplat地図なら0/0/0タイル → null(NO IMAGE)
+  // M12-T1-HOTFIX-1: ロジック本体は共有 resolver（resourceImageResolver.resolveAppListImage）へ
+  // 一元化（優先順位は従来どおり。search:apps 経路と同一実装）
   private async resolveAppImage(doc: any): Promise<string | null> {
-    const iconSource = doc.manifestSettings?.iconSource || doc.httpSettings?.iconSource;
-    if (typeof iconSource === 'string' && iconSource.trim()) {
-      const url = AppAssetService.fileUrlFor(iconSource);
-      if (url) return url;
-    }
-    const splash = doc.appSettings?.splash || doc.splash;
-    if (typeof splash === 'string' && splash.trim()) {
-      const url = AppAssetService.fileUrlFor(`img/${splash}`);
-      if (url) return url;
-    }
-    const sources: AppSource[] = (Array.isArray(doc.sources) ? doc.sources : [])
-      .map((raw: any) => normalizeAppSource(raw, doc.lang || 'ja'));
-    // startFromは新形=uid、旧保存形=slugのどちらもあり得る (ADR-0007)
-    const startFromID = doc.startFrom || doc.start_from || sources.find((source) => source.startFrom)?.mapUid;
-    const startSource = sources.find((source) => source.mapUid === startFromID || source.mapSlug === startFromID);
-    if (startSource?.sourceType === 'maplat') {
-      return await this.getMapTile(startSource.mapUid);
-    }
-    return null;
+    return resolveAppListImage(doc);
   }
 
   async requestApps(query: string = '', page: number = 1, pageSize: number = 20): Promise<AppListResult> {

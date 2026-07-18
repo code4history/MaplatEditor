@@ -84,7 +84,8 @@
     "dist:linux:x64": "pnpm run build && electron-builder --config electron-builder.config.cjs --publish never --linux --x64",
     "dist:linux:arm64": "pnpm run build && electron-builder --config electron-builder.config.cjs --publish never --linux --arm64",
     "smoke:m11-t10b-poi-deferred-create": "node scripts/m11-t10b-poi-deferred-create-smoke.mjs",
-    "smoke:m12-t1-edge-split": "node scripts/m12-t1-edge-split-smoke.mjs"
+    "smoke:m12-t1-edge-split": "node scripts/m12-t1-edge-split-smoke.mjs",
+    "smoke:m12-t1-hotfix-1-search-thumbnails": "node scripts/m12-t1-hotfix-1-search-thumbnails-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

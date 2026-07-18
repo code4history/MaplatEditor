@@ -3,6 +3,7 @@ import path from 'path';
 import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import SearchDataService, { type MapListResult } from './SearchDataService';
+import { resolveMapListImage } from './resourceImageResolver';
 
 class MapDataService {
   private get folders() {
@@ -19,8 +20,6 @@ class MapDataService {
     const rawResult = await SearchDataService.listMaps(query, page, pageSize);
     const docs = await Promise.all(rawResult.docs.map(async (doc: any) => {
         const mapID = doc._id || doc.mapID;
-        // 内部ファイル(tiles/tmbs)はuidキー (ADR-0007)。uid欠落時は旧slugパスへフォールバック
-        const fileKey = doc.uid || mapID;
         let title = doc.title;
         if (typeof title === 'object' && title !== null) {
             const lang = doc.lang || 'ja';
@@ -55,28 +54,9 @@ class MapDataService {
             res.height = 190;
         }
 
-        const { tileFolder, uiThumbnailFolder } = this.folders;
-        // 正式なサムネイルはデータフォルダのtmbs/{uid}.jpg。無い場合のみズーム0タイルへフォールバック
-        // 同期I/Oはイベントループを直列にブロックするため非同期で確認する(OneDrive等の遅いストレージ対策)
-        const uiThumbnail = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
-        if (await fs.pathExists(uiThumbnail)) {
-            res.image = `file://${uiThumbnail.split(path.sep).join('/')}`;
-            return res;
-        }
-        const thumbFolder = path.join(tileFolder, fileKey, "0", "0");
-
-        try {
-            const files = await fs.readdir(thumbFolder);
-            const tileFile = files.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
-            if (tileFile) {
-                const tilePath = path.join(thumbFolder, tileFile);
-                res.image = `file://${tilePath.split(path.sep).join('/')}`;
-            }
-        } catch (e: any) {
-            if (e?.code !== 'ENOENT') {
-                console.error(`[MapDataService] ${mapID} のサムネイル読み込みエラー`, e);
-            }
-        }
+        // M12-T1-HOTFIX-1: 画像解決は共有 resolver（resourceImageResolver.resolveMapListImage）へ
+        // 一元化（tmbs 優先 → tiles fallback の順序は従来どおり。search:maps 経路と同一実装）
+        res.image = await resolveMapListImage({ uid: doc.uid, _id: mapID, mapID });
         return res;
     }));
 

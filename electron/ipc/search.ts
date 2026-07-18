@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import SqliteDataService from '../services/SqliteDataService';
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from '../utils/searchSpatial';
 import { wgs84BboxToMercator } from '../utils/webMercator';
+import { resolveAppListImage, resolveMapListImage } from '../services/resourceImageResolver';
 
 function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[]; total: number; prev?: number; next?: number } {
   if (pageSize <= 0) {
@@ -17,6 +18,23 @@ function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[];
   };
 }
 
+// M12-T1-HOTFIX-1: paginate 後の page 分の docs へ image を添付する。
+// pageSize<=0 の全件経路では添付しない（無制限のファイル I/O を防ぐ。レビュー Minor-1）。
+async function attachImages<T extends { image?: string | null }>(
+  paged: { docs: T[]; total: number; prev?: number; next?: number },
+  pageSize: number,
+  resolve: (doc: T) => Promise<string | null>,
+): Promise<typeof paged> {
+  if (pageSize <= 0) return paged;
+  paged.docs = await Promise.all(
+    paged.docs.map(async (doc) => {
+      doc.image = await resolve(doc);
+      return doc;
+    }),
+  );
+  return paged;
+}
+
 type SearchFilter = { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number };
 
 export function registerSearchHandlers() {
@@ -25,9 +43,9 @@ export function registerSearchHandlers() {
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'map');
       const filtered = filterDocsByExtentSlugs(docs, extentSlugs, (doc) => doc._id);
-      return paginate(filtered, filter.page, filter.pageSize);
+      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveMapListImage);
     }
-    return paginate(docs, filter.page, filter.pageSize);
+    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveMapListImage);
   });
 
   ipcMain.handle('search:apps', async (_event, filter: SearchFilter) => {
@@ -35,9 +53,9 @@ export function registerSearchHandlers() {
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'app');
       const filtered = filterDocsByExtentSlugs(docs, extentSlugs, (doc) => doc._id);
-      return paginate(filtered, filter.page, filter.pageSize);
+      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveAppListImage);
     }
-    return paginate(docs, filter.page, filter.pageSize);
+    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveAppListImage);
   });
 
   ipcMain.handle('search:poiSources', async (_event, filter: SearchFilter) => {
