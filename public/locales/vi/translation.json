@@ -844,6 +844,7 @@
     "export_success": "Xuất hoàn tất.",
     "export_failed": "Xuất thất bại.",
     "busy_exporting": "Đang xuất…",
+    "busy_importing": "Đang nhập…",
     "save_state": {
       "dirty": "Chưa lưu ●",
       "saving": "Đang lưu…",

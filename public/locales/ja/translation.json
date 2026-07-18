@@ -846,6 +846,7 @@
     "export_success": "エクスポートしました。",
     "export_failed": "エクスポートに失敗しました。",
     "busy_exporting": "エクスポート中…",
+    "busy_importing": "インポート中…",
     "save_state": {
       "dirty": "未保存 ●",
       "saving": "保存中…",

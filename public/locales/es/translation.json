@@ -844,6 +844,7 @@
     "export_success": "Exportación completada.",
     "export_failed": "Error al exportar.",
     "busy_exporting": "Exportando…",
+    "busy_importing": "Importando…",
     "save_state": {
       "dirty": "Sin guardar ●",
       "saving": "Guardando…",

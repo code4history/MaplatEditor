@@ -844,6 +844,7 @@
     "export_success": "Ekspor selesai.",
     "export_failed": "Ekspor gagal.",
     "busy_exporting": "Mengekspor…",
+    "busy_importing": "Mengimpor…",
     "save_state": {
       "dirty": "Belum disimpan ●",
       "saving": "Menyimpan…",
