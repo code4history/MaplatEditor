@@ -189,6 +189,24 @@ try {
         'applist.request 経路の image 添付が委譲後も現行どおり: ' + legacyAppDoc.image);
       console.log('ok: (g) legacy request paths keep attaching images after delegation');
 
+      // (h) search:baseMaps も thumbnailUrl を添付する（builtin の basemap_icons/ 解決）
+      //     — discovery「ビルトインBM アイコン非表示」の回帰面
+      const baseMapsResult = await call('search:baseMaps', { q: '', page: 1, pageSize: 40 });
+      const osmDoc = baseMapsResult.docs.find((d: any) => d.mapID === 'osm' || d.slug === 'osm');
+      assert.ok(osmDoc, '内蔵ベースマップ osm が search:baseMaps に含まれること');
+      assert.ok(osmDoc.thumbnailUrl && osmDoc.thumbnailUrl.includes('basemap_icons'),
+        'builtin の thumbnail が thumbnailUrl として添付されること: ' + osmDoc.thumbnailUrl);
+      console.log('ok: (h) search:baseMaps attaches builtin thumbnail as thumbnailUrl');
+
+      // (i) basemaps:list 経路（settings IPC）の thumbnailUrl 解決が委譲後も現行どおり
+      const { registerSettingsHandlers } = await import(${JSON.stringify(path.join(projectRoot, 'electron/ipc/settings.ts'))});
+      registerSettingsHandlers();
+      const basemapsList = await call('basemaps:list');
+      const osmListItem = basemapsList.find((d: any) => d.mapID === 'osm' || d.slug === 'osm');
+      assert.ok(osmListItem.thumbnailUrl && osmListItem.thumbnailUrl.includes('basemap_icons'),
+        'basemaps:list 経路の thumbnailUrl 解決が委譲後も現行どおり: ' + osmListItem.thumbnailUrl);
+      console.log('ok: (i) basemaps:list path keeps resolving thumbnailUrl after delegation');
+
       console.log('m12-t1-hotfix-1 smoke: ALL PASS');
     `
   );

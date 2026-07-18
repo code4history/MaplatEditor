@@ -8,6 +8,7 @@ import SettingsService from './SettingsService';
 import AppAssetService from './AppAssetService';
 import SqliteDataService from './SqliteDataService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
+import { resourceAssetFileUrl } from '../utils/resourceAssets';
 
 // 地図一覧の画像: 正式サムネイル tmbs/{fileKey}.jpg → 無ければ tiles/{fileKey}/0/0/0.* fallback。
 // fileKey は uid 優先（ADR-0007。uid 欠落時は旧 slug パスへフォールバック）。
@@ -82,4 +83,30 @@ async function resolveMapTileByRef(mapRef: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+// ベースマップ一覧の icon 解決: マスタの thumbnail を UI 表示用 URL へ解決する。
+// basemap_icons/（同梱リソース）は resourceAssetFileUrl、その他の相対パスは saveFolder 基準、
+// thumbnail 未設定の旧ユーザーベースマップは tmbs/{mapID}_menu.jpg の存在で補完する。
+// electron/ipc/settings.ts basemaps:list（:46-66）と同一ロジックを共有化したもの（挙動不変）。
+export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; data?: any }): string | null {
+  const saveFolder = SettingsService.get('saveFolder');
+  let thumbnailUrl: string | null = null;
+  const thumbnail = typeof item.data?.thumbnail === 'string' ? item.data.thumbnail : '';
+  if (thumbnail.startsWith('basemap_icons/')) {
+    thumbnailUrl = resourceAssetFileUrl(thumbnail);
+  } else if (thumbnail) {
+    const thumbPath = path.resolve(path.join(saveFolder, thumbnail));
+    if (thumbPath.startsWith(path.resolve(saveFolder)) && fs.existsSync(thumbPath)) {
+      thumbnailUrl = `file://${thumbPath.split(path.sep).join('/')}`;
+    }
+  }
+  if (!thumbnailUrl) {
+    const mapID = item.mapID || item.slug;
+    const legacyPath = path.join(saveFolder, 'tmbs', `${mapID}_menu.jpg`);
+    if (fs.existsSync(legacyPath)) {
+      thumbnailUrl = `file://${legacyPath.split(path.sep).join('/')}`;
+    }
+  }
+  return thumbnailUrl;
 }

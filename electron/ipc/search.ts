@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import SqliteDataService from '../services/SqliteDataService';
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from '../utils/searchSpatial';
 import { wgs84BboxToMercator } from '../utils/webMercator';
-import { resolveAppListImage, resolveMapListImage } from '../services/resourceImageResolver';
+import { resolveAppListImage, resolveBaseMapListImage, resolveMapListImage } from '../services/resourceImageResolver';
 
 function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[]; total: number; prev?: number; next?: number } {
   if (pageSize <= 0) {
@@ -18,17 +18,19 @@ function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[];
   };
 }
 
-// M12-T1-HOTFIX-1: paginate 後の page 分の docs へ image を添付する。
+// M12-T1-HOTFIX-1: paginate 後の page 分の docs へ画像を添付する。
 // pageSize<=0 の全件経路では添付しない（無制限のファイル I/O を防ぐ。レビュー Minor-1）。
-async function attachImages<T extends { image?: string | null }>(
+// key 引数で添付先フィールドを指定する（maps/apps は `image`、baseMaps は `thumbnailUrl`）。
+async function attachImages<T>(
   paged: { docs: T[]; total: number; prev?: number; next?: number },
   pageSize: number,
-  resolve: (doc: T) => Promise<string | null>,
+  resolve: (doc: T) => Promise<string | null> | string | null,
+  key: 'image' | 'thumbnailUrl' = 'image',
 ): Promise<typeof paged> {
   if (pageSize <= 0) return paged;
   paged.docs = await Promise.all(
     paged.docs.map(async (doc) => {
-      doc.image = await resolve(doc);
+      (doc as Record<string, unknown>)[key] = await resolve(doc);
       return doc;
     }),
   );
@@ -72,9 +74,9 @@ export function registerSearchHandlers() {
     const docs = await SqliteDataService.searchBaseMaps(filter.q ?? '');
     if (filter.bbox) {
       const filtered = filterBaseMapsByBbox(docs, filter.bbox);
-      return paginate(filtered, filter.page, filter.pageSize);
+      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveBaseMapListImage, 'thumbnailUrl');
     }
-    return paginate(docs, filter.page, filter.pageSize);
+    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveBaseMapListImage, 'thumbnailUrl');
   });
 
   ipcMain.handle('search:imageAssets', async (_event, filter: SearchFilter) => {

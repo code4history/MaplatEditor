@@ -1,9 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
-import fs from 'fs-extra';
-import path from 'path';
 import SettingsService from '../services/SettingsService';
 import MapDataService from '../services/MapDataService';
-import { resourceAssetFileUrl } from '../utils/resourceAssets';
+import { resolveBaseMapListImage } from '../services/resourceImageResolver';
 
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get', (_, key: string) => {
@@ -42,28 +40,10 @@ export function registerSettingsHandlers() {
 
   ipcMain.handle('basemaps:list', async () => {
     const items = await SettingsService.listBaseMaps();
-    const saveFolder = SettingsService.get('saveFolder') as string;
-    // マスタのthumbnail(basemap_icons/=同梱リソース, tmbs/等=データフォルダ)をUI表示用URLへ解決する。
+    // M12-T1-HOTFIX-1: マスタの thumbnail(basemap_icons/=同梱リソース, tmbs/等=データフォルダ)の
+    // UI表示用URL解決は共有 resolver へ一元化（挙動不変。search:baseMaps 経路と同一実装）。
     // thumbnail未設定の旧ユーザーベースマップはtmbs/{mapID}_menu.jpgの存在で補完する。
-    return items.map((item: any) => {
-      let thumbnailUrl: string | null = null;
-      const thumbnail = typeof item.data?.thumbnail === 'string' ? item.data.thumbnail : '';
-      if (thumbnail.startsWith('basemap_icons/')) {
-        thumbnailUrl = resourceAssetFileUrl(thumbnail);
-      } else if (thumbnail) {
-        const thumbPath = path.resolve(path.join(saveFolder, thumbnail));
-        if (thumbPath.startsWith(path.resolve(saveFolder)) && fs.existsSync(thumbPath)) {
-          thumbnailUrl = `file://${thumbPath.split(path.sep).join('/')}`;
-        }
-      }
-      if (!thumbnailUrl) {
-        const legacyPath = path.join(saveFolder, 'tmbs', `${item.mapID}_menu.jpg`);
-        if (fs.existsSync(legacyPath)) {
-          thumbnailUrl = `file://${legacyPath.split(path.sep).join('/')}`;
-        }
-      }
-      return { ...item, thumbnailUrl };
-    });
+    return items.map((item: any) => ({ ...item, thumbnailUrl: resolveBaseMapListImage(item) }));
   });
 
   // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)
