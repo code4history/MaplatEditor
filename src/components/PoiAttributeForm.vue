@@ -519,6 +519,8 @@ const onDisplayIdChange = (): void => {
     return;
   }
   if (value === "") {
+    // 表示 ID 空は commit しない: 空のまま保存すると ensureDisplayIds が保存時に別 ID を
+    // 採番し、markSaved 後に DB と session が乖離するため (transient エラー表示に留める)
     displayIdTransientError.value = t("poisource.errors.display_id_charset");
     return;
   }
