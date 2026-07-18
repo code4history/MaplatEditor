@@ -80,6 +80,7 @@ import { createPoiSourceListAdapter } from "./resource-adapters/poiSourceListAda
 import type { PoiSourceListRow, PoiSourceSaveResult } from "../electron";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
+import { suggestSlug } from "../utils/poiSourceSlug";
 
 const { t } = useTranslation();
 const route = useRoute();
@@ -113,16 +114,6 @@ function firstVisibleUid(): string | null {
 }
 
 watch([query, bbox], () => loadFirst(), { immediate: false });
-
-function suggestSlug(candidate: string): string {
-  return candidate
-    .replace(/[\s.]+/g, "-")
-    .replace(/[^A-Za-z0-9_-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 100)
-    .toLowerCase() || "poi-source";
-}
 
 // --- Create: 空draft 作成 → エディタ遷移 ---
 const creating = ref(false);

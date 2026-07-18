@@ -29,7 +29,7 @@ export interface PoiEditSession {
   isDirty: ComputedRef<boolean>;
   canUndo: ComputedRef<boolean>;
   canRedo: ComputedRef<boolean>;
-  load(detail: { lang: LangCode; slug: string; title: LangResource; fc: PoiEditorFC }): void;
+  load(detail: { lang: LangCode; slug: string; title: LangResource; fc: PoiEditorFC }, opts?: { dirty?: boolean }): void;
   reset(state: PoiEditState, restoredDraft?: boolean): void;
   /** 仕様 §5 の 1 Undo 単位 = commit 1 回。draft は state の shallow copy (features は新配列)。
    * mutate 内で feature を変更する場合は clone してから書くこと (未変更 feature は共有のまま)。
@@ -102,22 +102,29 @@ export function usePoiEditSession(): PoiEditSession {
     touch();
   };
 
-  const load = (detail: {
-    lang: LangCode;
-    slug: string;
-    title: LangResource;
-    fc: PoiEditorFC;
-  }): void => {
+  const load = (
+    detail: {
+      lang: LangCode;
+      slug: string;
+      title: LangResource;
+      fc: PoiEditorFC;
+    },
+    opts?: { dirty?: boolean },
+  ): void => {
     const { features, type: _type, lang: _lang, ...rest } = detail.fc;
     void _type;
     void _lang;
-    reset({
-      lang: detail.lang,
-      slug: detail.slug,
-      title: detail.title,
-      features: features.slice(),
-      layerMeta: rest as Record<string, unknown>,
-    });
+    reset(
+      {
+        lang: detail.lang,
+        slug: detail.slug,
+        title: detail.title,
+        features: features.slice(),
+        layerMeta: rest as Record<string, unknown>,
+      },
+      // M11-T10b: 複製の dirty-open（即保存可能・hot-exit で下書き化）に使う
+      opts?.dirty ?? false,
+    );
   };
 
   const requireStack = (): UndoStack<PoiEditState> => {
