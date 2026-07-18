@@ -66,3 +66,9 @@ export type ResourceListState =
   | "end"
   | "error"
   | "append-error";
+
+export interface SelectorSpatialContextView {
+  bbox: Wgs84Bbox | null;
+  enabled: boolean;
+  labelKey: "resource_selector.context_map" | "resource_selector.context_app_coverage";
+}

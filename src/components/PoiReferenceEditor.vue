@@ -11,7 +11,19 @@
         :class="{ 'poi-selector-disabled': readOnly }"
         :aria-disabled="readOnly"
       >
-        <PoiSourceSelector :initial-selected="selectedRefs" :active-lang="activeLang" @update:selected="onSelectionChange" />
+        <ResourceSelectorList
+          v-model:query="poiSearchQuery"
+          :adapter="poiSourceAdapter"
+          :placeholder="t('resource_list.search_placeholder', { name: t('resource_list.kind_poi_source') })"
+          :spatial-context="spatialContext"
+          @toggle-spatial-context="emit('toggle-spatial-context')"
+        >
+          <template #item="{ item }">
+            <button type="button" class="source-row" :disabled="readOnly || isPoiSelected(item.uid)" @click="addPoiSource(item)">
+              <span><strong>{{ poiSourceTitle(item) }}</strong><small class="d-block text-muted">{{ item.slug }}</small></span>
+            </button>
+          </template>
+        </ResourceSelectorList>
       </div>
     </template>
 
@@ -111,7 +123,7 @@
 // 参照要素判定・selector との往復は共有 util (utils/poiReferenceUi)。
 import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
-import PoiSourceSelector from "./PoiSourceSelector.vue";
+import ResourceSelectorList from "./ResourceSelectorList.vue";
 import IconRefField from "./IconRefField.vue";
 import ResourceSelector from "./ResourceSelector.vue";
 import LangResourceInput from "./LangResourceInput.vue";
@@ -119,6 +131,9 @@ import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalo
 import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";
 import { localizeTitle, type LangResource } from "../utils/langResource";
 import type { LangCode } from "../utils/editorLanguages";
+import type { PoiSourceListRow } from "../electron";
+import type { SelectorSpatialContextView } from "./resource-list/resourceListTypes";
+import { createPoiSourceListAdapter } from "../views/resource-adapters/poiSourceListAdapter";
 
 const props = defineProps<{
   pois?: unknown[];
@@ -128,19 +143,41 @@ const props = defineProps<{
   languageOptions: readonly { code: LangCode; nativeName: string }[];
   // 右カラム見出しの i18n キー。App=「このアプリのPOIデータ一覧」/ Map=「この地図のPOIデータ一覧」
   headingKey?: string;
+  spatialContext?: SelectorSpatialContextView;
 }>();
 
 const emit = defineEmits<{
   "update:pois": [value: unknown[]];
   "select-language": [value: LangCode];
+  "toggle-spatial-context": [];
 }>();
 
 const { t } = useTranslation();
+const poiSearchQuery = ref("");
+const poiSourceAdapter = createPoiSourceListAdapter({
+  hasDraft: () => false,
+  selectedUid: () => null,
+  featuresLabel: (count) => `${count} ${t("poisource.features")}`,
+  localLabel: t("poisource.local"),
+  remoteLabel: t("poisource.remote"),
+});
 
 const entries = computed<unknown[]>(() => (Array.isArray(props.pois) ? props.pois : []));
 
 // selector の選択集合は pois 配列から復元 (書き戻し由来の変化は selector 側 prop watch が吸収)
 const selectedRefs = computed<SelectedPoiSourceRef[]>(() => extractPoiRefs(entries.value));
+const isPoiSelected = (uid: string) => selectedRefs.value.some((item) => item.sourceId === uid);
+const poiSourceTitle = (item: PoiSourceListRow) => localizeTitle(item.title, props.activeLang) || item.slug;
+function addPoiSource(item: PoiSourceListRow): void {
+  if (props.readOnly || isPoiSelected(item.uid)) return;
+  onSelectionChange([...selectedRefs.value, {
+    kind: "registered-poi-source",
+    sourceId: item.uid,
+    catalogKey: item.uid,
+    mode: item.mode,
+    cachedTitle: item.title,
+  }]);
+}
 
 // 参照は uid ベースの key で並べ替え時の要素同一性を保つ (MINOR-2: key に index を含めると
 // 並べ替えのたびに IconRefField が remount され、未確定入力が失われる)。同一 uid の重複参照

@@ -37,12 +37,16 @@ const REQUIRED_KEYS = [
   "menu_delete", "menu_label", "total_only", "total_partial", "loaded_only", "search_placeholder",
 ];
 const KIND_KEYS = ["kind_map", "kind_poi_source", "kind_base_map", "kind_app", "kind_asset"];
+const SELECTOR_KEYS = ["context_map", "context_app_coverage", "range_auto", "range_none"];
 const translations = {};
 for (const loc of LOCALES) {
   const t = JSON.parse(await read(`public/locales/${loc}/translation.json`));
   translations[loc] = t;
   for (const key of [...REQUIRED_KEYS, ...KIND_KEYS]) {
     assert.ok(t.resource_list?.[key] != null, `resource_list.${key} missing in ${loc}`);
+  }
+  for (const key of SELECTOR_KEYS) {
+    assert.ok(t.resource_selector?.[key] != null, `resource_selector.${key} missing in ${loc}`);
   }
   // placeholder template は {{name}} を含み、末尾は全角 … （半角 ... 禁止）
   const ph = t.resource_list.search_placeholder;

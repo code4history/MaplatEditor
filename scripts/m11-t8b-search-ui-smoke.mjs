@@ -100,7 +100,17 @@ try {
     assert.match(source, /EnvelopeEditorModal/, `${file} must render range modal`);
     assert.match(source, /bbox:\s*bbox\.value/, `${file} must pass WGS84 bbox to adapter`);
   }
-  console.log("m11-t8b Task 1-3 smoke: OK");
+  const selectorList = await read("src/components/ResourceSelectorList.vue");
+  assert.match(selectorList, /spatialContext\?: SelectorSpatialContextView/, "selector list plain spatial prop missing");
+  assert.match(selectorList, /toggle-spatial-context/, "selector list toggle event missing");
+  assert.match(selectorList, /name="item"/, "selector list full row slot missing");
+  assert.match(selectorList, /onBeforeUnmount\([\s\S]*dispose\(\)/, "selector list must dispose in-flight reads");
+  const spatial = await read("src/composables/useSelectorSpatialContext.ts");
+  assert.match(spatial, /export function useSelectorSpatialContext/, "spatial context composable missing");
+  const poiEditor = await read("src/components/PoiReferenceEditor.vue");
+  assert.match(poiEditor, /spatialContext\?: SelectorSpatialContextView/, "PoiReferenceEditor spatial prop missing");
+  assert.match(poiEditor, /toggle-spatial-context/, "PoiReferenceEditor toggle forwarding missing");
+  console.log("m11-t8b Task 1-5 smoke: OK");
 } finally {
   await rm(workDir, { recursive: true, force: true });
 }

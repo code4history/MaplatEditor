@@ -2,6 +2,7 @@
   "app": {
     "title": "Maplat Editor"
   },
+  "resource_selector": { "context_map": "地図提供範囲", "context_app_coverage": "アプリ提供範囲", "range_auto": "範囲: 自動（{{context}}）", "range_none": "範囲: 全世界" },
   "common": {
     "close": "閉じる",
     "back": "戻る",

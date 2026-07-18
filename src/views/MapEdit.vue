@@ -29,7 +29,9 @@ import { editorComputeBackend } from '../services/editorComputeBackend';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
+import { useSelectorSpatialContext } from '../composables/useSelectorSpatialContext';
 import type { SlugFieldState } from '../composables/useSlugAvailability';
+import type { SelectorSpatialContextView, Wgs84Bbox } from '../components/resource-list/resourceListTypes';
 import { runEditorExportDecision } from '../composables/useEditorExportDecision';
 import type { EditorSaveState } from '../components/editor-ui/editorUiTypes';
 import type { MapSaveResult } from '../electron';
@@ -782,6 +784,25 @@ function onMapIDLiveInput(value: string): void {
 // deep-watch (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
 // undo/redo/reload による mapData 差し替えは :pois prop 経由で表示へそのまま反映される
 const poiRefEditor = ref<InstanceType<typeof PoiReferenceEditor> | null>(null);
+const mapCanonicalBbox = ref<Wgs84Bbox | null>(null);
+const mapPoiSpatialContext = useSelectorSpatialContext(computed(() => mapCanonicalBbox.value));
+const mapPoiSpatialView = computed<SelectorSpatialContextView>(() => ({
+    bbox: mapPoiSpatialContext.bbox.value,
+    enabled: mapPoiSpatialContext.enabled.value,
+    labelKey: 'resource_selector.context_map',
+}));
+let mapCanonicalBboxGeneration = 0;
+
+async function refreshMapCanonicalBbox(): Promise<void> {
+    const generation = ++mapCanonicalBboxGeneration;
+    const uid = mapUid.value;
+    if (!uid) {
+        mapCanonicalBbox.value = null;
+        return;
+    }
+    const bbox = await window.search.resourceBbox('map', uid);
+    if (generation === mapCanonicalBboxGeneration) mapCanonicalBbox.value = bbox;
+}
 
 function onPoisChange(next: unknown[]) {
     if (next.length === 0) {
@@ -1709,6 +1730,8 @@ onMounted(async () => {
             });
         } else if (newTab === 'settings') {
             loadBaseMapVisibility();
+        } else if (newTab === 'pois') {
+            void refreshMapCanonicalBbox();
         }
     });
 });
@@ -3825,6 +3848,8 @@ const goBack = async () => {
                     :active-lang="currentLang"
                     :default-lang="(mapData.lang || 'ja') as LangCode"
                     :language-options="SUPPORTED_LANGUAGES"
+                    :spatial-context="mapPoiSpatialView"
+                    @toggle-spatial-context="mapPoiSpatialContext.toggle"
                     @select-language="selectEditorLanguage"
                     @update:pois="onPoisChange"
                 />

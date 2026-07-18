@@ -1,7 +1,7 @@
 import type { ResourceListAdapter, ResourceListItemViewModel } from "../../components/resource-list/resourceListTypes";
 import { localizeTitle } from "../../utils/langResource";
 
-export interface MapListRow { uid: string; mapID: string; title: string; image: string | null; width?: number; height?: number }
+export interface MapListRow { uid: string; mapID: string; title: string; image: string | null; width?: number; height?: number; previewDisabled?: boolean; previewDisabledReason?: string }
 
 export interface MapListAdapterDeps {
   hasDraft: (uid: string) => boolean;
@@ -22,6 +22,8 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
         image: doc.image ?? doc.thumbnail ?? null,
         width: doc.width,
         height: doc.height,
+        previewDisabled: doc.compiled?.strict_status === "strict_error" || Boolean(doc.compiled?.kinks_points) || (Array.isArray(doc.sub_maps) && doc.sub_maps.some((sub: any) => sub.compiled?.strict_status === "strict_error" || Boolean(sub.compiled?.kinks_points))),
+        previewDisabledReason: "appedit.preview.strict_error",
       }));
       return { items, total: result.total, nextCursor: result.next ?? null };
     },

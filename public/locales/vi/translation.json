@@ -2,6 +2,7 @@
   "app": {
     "title": "Maplat Editor"
   },
+  "resource_selector": { "context_map": "Phạm vi bản đồ", "context_app_coverage": "Phạm vi ứng dụng", "range_auto": "Phạm vi: Tự động ({{context}})", "range_none": "Phạm vi: Toàn thế giới" },
   "common": {
     "close": "Đóng",
     "back": "Quay lại",
