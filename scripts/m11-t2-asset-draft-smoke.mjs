@@ -237,8 +237,15 @@ try {
     assert.match(source, /draftLifecycle\.open/, `${viewName}: draft open missing`);
     assert.match(source, /draftLifecycle\.schedule/, `${viewName}: throttled schedule missing`);
     assert.match(source, /draftLifecycle\.flush\(\)/, `${viewName}: hot-exit flush missing`);
+  }
+  // save cleanup: Map/App は markSaved、PoiEdit は M11-T10b の rebase+flush 契約
+  // （保存成功時に identity を保存済み行へ再構成し、追加編集が新規カード化しない）
+  for (const viewName of ['MapEdit.vue', 'AppEdit.vue']) {
+    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
     assert.match(source, /draftLifecycle\.markSaved\(\)/, `${viewName}: save cleanup missing`);
   }
+  const poiViewForCleanup = await readFile(path.join(projectRoot, 'src/views/PoiEdit.vue'), 'utf8');
+  assert.match(poiViewForCleanup, /draftLifecycle\.rebase\(/, 'PoiEdit.vue: save cleanup (rebase) missing');
   const mapView = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
   const appView = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
   const poiView = await readFile(path.join(projectRoot, 'src/views/PoiEdit.vue'), 'utf8');

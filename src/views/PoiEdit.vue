@@ -391,8 +391,15 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     // 場合のみ。編集が入っていたら isDirty のまま残して再保存を促す
     if (editState.value === pendingSave!.capturedState) {
       session.markSaved();
-      await draftLifecycle.markSaved();
     }
+    // M11-T10b（実装レビュー Major）: draft lifecycle の identity を保存済み行へ再構成する。
+    // baseRevision=null（新規時）や保存前 revision のままだと、追加編集の下書きが
+    // 「新規下書きカード」化・再開時に revision conflict になる。
+    // rebase は restore 判定を伴わない（保存直後の古い下書きで conflict dialog を出さない）。
+    // flush は shouldPersist(draftDirty) に従うため、保存中の追加編集は失われない
+    // （編集があれば新 baseRevision の下書きとして永続化、なければ下書き除去）
+    draftLifecycle.rebase(result.uid, result.revision);
+    await draftLifecycle.flush();
     saveIssues.value = [];
     saveError.value = null;
     // slug 欄を保存結果 (confirmedSlug) に同期。ただし markSaved と同じ snapshot 同一性判定を
@@ -607,7 +614,12 @@ const liveWarningItems = computed<DiagnosticItem[]>(() =>
 );
 
 // --- 読込 ---
+// M11-T10b（実装レビュー Minor）: 世代 token。既存→new 再初期化や連続した load の間に
+// 遅い旧応答が新しい session を上書きするのを防ぐ
+let loadGeneration = 0;
+
 async function load(sourceId: string): Promise<void> {
+  const generation = ++loadGeneration;
   newModeActive.value = false;
   loading.value = true;
   loadError.value = null;
@@ -615,6 +627,7 @@ async function load(sourceId: string): Promise<void> {
   saveIssues.value = [];
   try {
     const detail = await window.poiSources.get(sourceId);
+    if (generation !== loadGeneration) return; // 旧 load 応答は破棄
     if (!detail) {
       loadError.value = t("poiedit.not_found");
       return;
@@ -631,11 +644,13 @@ async function load(sourceId: string): Promise<void> {
     currentLang.value = resolveEditorLanguage(detail.lang || i18next.language);
     slugInput.value = detail.slug;
     await draftLifecycle.open(detail.uid, detail.revision);
+    if (generation !== loadGeneration) return; // open 中の遷移も破棄
   } catch (e) {
+    if (generation !== loadGeneration) return;
     console.error("[PoiEdit] Failed to load POI source:", e);
     loadError.value = t("poisource.errors.internal");
   } finally {
-    loading.value = false;
+    if (generation === loadGeneration) loading.value = false;
   }
   if (!loadError.value) {
     // 初期表示: features があれば全体が入る extent へ fit、無ければ日本付近デフォルト。
@@ -975,6 +990,7 @@ onMounted(() => {
 // 空 / 複製（duplicateFrom）/ インポート（import=1）/ 下書き復元（draftUid）の4経路。
 // onMounted 初回と、同一コンポーネントのまま既存→新規へ遷移した場合の再初期化の双方で呼ばれる
 async function initializeEditor(): Promise<void> {
+  const generation = ++loadGeneration;
   const sourceId = route.params.sourceId as string;
   if (sourceId !== "new") {
     newModeActive.value = false;
@@ -1007,6 +1023,7 @@ async function initializeEditor(): Promise<void> {
       source = null;
     }
     if (source) {
+      if (generation !== loadGeneration) return; // 遅い複製元応答は新しい session を上書きしない
       const reservedSlug = typeof route.query.slug === "string" ? route.query.slug : source.slug;
       const lang = resolveEditorLanguage(source.lang);
       session.load(
@@ -1029,6 +1046,7 @@ async function initializeEditor(): Promise<void> {
     await router.replace({ query: { ...route.query, draftUid: newPoiUid.value } });
   }
   await draftLifecycle.open(newPoiUid.value, null);
+  if (generation !== loadGeneration) return; // 初期化中の遷移は破棄
   // インポート自動起動（複製と併用しない）。draft 復元があっても importFile 成功時に張り直す
   if (route.query.import === "1" && !duplicateFrom) {
     void nextTick(() => {

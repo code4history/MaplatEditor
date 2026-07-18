@@ -658,4 +658,49 @@ test.describe('M11-T10 Dedup/Import', () => {
       await quitElectronApplication(app);
     }
   });
+
+  test('AC17: 初回保存後の追加編集は保存済み行の下書きとして扱われ、新規カード化・復元 conflict しない', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-postsave-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+      // 新規作成 → slug 入力 → 保存（行作成 + draft lifecycle が保存済み行 identity へ再構成される）
+      await openHash(page, '#/poisources/new');
+      await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('poi-slug').fill('t10b-postsave');
+      await page.getByTestId('poi-slug').press('Tab');
+      await page.getByTestId('editor-save').click();
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 })
+        .toMatch(/#\/poisources\/[0-9a-f-]{36}$/);
+      const savedUid = (await page.evaluate(() => location.hash.match(/#\/poisources\/([0-9a-f-]{36})/)?.[1]))!;
+      expect(savedUid).toBeTruthy();
+
+      // リロードせず追加編集（feature を1件追加）→ 戻る（hot-exit flush）
+      await page.locator('.poi-feature-list [data-resource-new]').click();
+      await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
+      await page.getByTestId('editor-back').click();
+      await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
+
+      // 新規下書きカードは現れず（baseRevision=null の下書きが残らない）、保存済み行に badge
+      await expect(page.locator('[data-resource-uid]')).toHaveCount(1, { timeout: 10000 });
+      const savedCard = page.locator(`[data-resource-uid="${savedUid}"]`);
+      await expect(savedCard).toBeVisible({ timeout: 10000 });
+      await expect(savedCard.locator('.badge', { hasText: '下書き' })).toBeVisible({ timeout: 5000 });
+
+      // 行を開く → conflict dialog なしで auto-apply 復元（feature 1件 + draft-restored）
+      await savedCard.click();
+      await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('poi-slug')).toHaveValue('t10b-postsave', { timeout: 10000 });
+      await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
+      await expect(page.locator('text=revision').or(page.locator('[data-diagnostic-scope="operation"]', { hasText: /conflict|競合/ }))).toHaveCount(0);
+
+      console.log('  AC17: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
 });

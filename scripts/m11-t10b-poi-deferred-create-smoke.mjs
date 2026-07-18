@@ -143,18 +143,23 @@ try {
       assert.equal(gotSettings.lang, 'ja', '両方無しの場合 settings lang (ja) が使われるはず');
       console.log('ok: (b3) settings lang is the final fallback');
 
-      // (c) Invalid fc (name 欠落 = level error) は拒否され、行も残らない
+      // (c) Invalid fc (name 欠落 = level error) は拒否され、行も残らない。
+      // preset UID で検証する（誤って別 uid で作成された場合も検出できるように）
+      const invalidUid = crypto.randomUUID();
       const invalid = await poiSourceService.createLocal({
         slug: 'invalid-fc',
         title: { ja: 'invalid' },
+        uid: invalidUid,
         fc: {
           type: 'FeatureCollection',
           features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [139.7, 35.6] }, properties: {} }],
         },
       });
       assert.equal(invalid.result, 'Invalid', 'error 含有 fc は Invalid 拒否のはず: ' + JSON.stringify(invalid));
-      const missingRow = await poiSourceService.get('invalid-fc');
-      assert.equal(missingRow, null, 'Invalid 拒否時に行が残らないはず');
+      const missingByUid = await poiSourceService.get(invalidUid);
+      assert.equal(missingByUid, null, 'Invalid 拒否時に preset uid の行が残らないはず');
+      const missingBySlug = await poiSourceService.get('invalid-fc');
+      assert.equal(missingBySlug, null, 'Invalid 拒否時に slug の行が残らないはず');
       console.log('ok: (c) invalid fc is rejected without creating a row');
 
       // (d) 後方互換: fc 省略は従来どおり空ソース作成
