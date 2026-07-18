@@ -1412,8 +1412,12 @@ function onPoisChange(next: unknown[]) {
             @toggle-spatial-context="appSourceSpatialContext.toggle"
           >
             <template #item="{ item }">
-              <button v-if="sourceListMode === 'maps'" type="button" class="source-row" :disabled="item.previewDisabled" @click="addMapSource(item)">
-                <img :src="item.image || noImage" :alt="item.title"><span>{{ item.title }}</span>
+              <button v-if="sourceListMode === 'maps'" type="button" class="source-row" :disabled="item.previewDisabled" :title="item.previewDisabled ? t(item.previewDisabledReason || 'appedit.preview.unavailable') : item.title" @click="addMapSource(item)">
+                <img :src="item.image || noImage" :alt="item.title" loading="lazy" decoding="async">
+                <span>
+                  {{ item.title }}
+                  <small v-if="item.previewDisabled" class="d-block text-danger">{{ t(item.previewDisabledReason || "appedit.preview.unavailable") }}</small>
+                </span>
               </button>
               <button v-else type="button" class="source-row" :data-testid="`app-basemap-row-${item.mapID}`" @click="addBaseMapSource(item)">
                 <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)"><span>{{ baseMapTitle(item) }}</span>
@@ -1545,29 +1549,7 @@ function onPoisChange(next: unknown[]) {
   gap: 6px;
   min-height: 0;
 }
-.source-row {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  border: 1px solid var(--bs-border-color);
-  background: #fff;
-  border-radius: 4px;
-  padding: 6px;
-  text-align: left;
-}
-.source-row img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  background: #f8f9fa;
-  border: 1px solid var(--bs-border-color);
-}
-.source-row-disabled {
-  opacity: 0.58;
-  cursor: not-allowed;
-}
+/* .source-row の基底スタイルは ResourceSelectorList の :slotted に集約 (m11-t8b) */
 .selected-source-thumb {
   width: 40px;
   height: 40px;

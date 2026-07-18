@@ -63,4 +63,28 @@ onBeforeUnmount(() => {
 <style scoped>
 .min-h-0 { min-height: 0; }
 .source-list { display: flex; flex-direction: column; gap: 4px; }
+/* #item slot の行基底スタイル。行 DOM は host 所有だが、見た目の基底は selector 側で統一する
+   (host は disabled 等の差分クラスだけ足す)。slot 内容は親 scope のため :slotted で当てる */
+:slotted(.source-row) {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--bs-border-color);
+  background: #fff;
+  border-radius: 4px;
+  padding: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+:slotted(.source-row:hover) { border-color: var(--bs-primary-border-subtle); }
+:slotted(.source-row:disabled) { opacity: 0.58; cursor: not-allowed; }
+:slotted(.source-row img) {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  background: #f8f9fa;
+  border: 1px solid var(--bs-border-color);
+}
 </style>
