@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "Annuler la définition de la ligne de correspondance",
     "context_correspond_line_remove": "Supprimer la ligne de correspondance",
     "context_marker_on_line": "Ajouter un marqueur sur la ligne de correspondance",
+    "edge_error_not_found": "Ligne de correspondance introuvable",
+    "edge_error_zero_length": "La ligne de correspondance a une longueur nulle",
     "context_home_remove": "Supprimer la position d'accueil",
     "context_home_show": "Afficher la position d'accueil",
     "control_basemap": "Fond de carte",

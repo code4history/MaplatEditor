@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "Cancelar la especificación de la línea de correspondencia",
     "context_correspond_line_remove": "Eliminar línea de correspondencia",
     "context_marker_on_line": "Añadir marcador en la línea de correspondencia",
+    "edge_error_not_found": "Línea de correspondencia no encontrada",
+    "edge_error_zero_length": "La línea de correspondencia tiene longitud cero",
     "context_home_remove": "Eliminar posición de inicio",
     "context_home_show": "Mostrar posición de inicio",
     "control_basemap": "Mapa base",

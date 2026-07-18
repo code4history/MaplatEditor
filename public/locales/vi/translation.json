@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "Hủy chỉ định đường tương ứng",
     "context_correspond_line_remove": "Xóa đường tương ứng",
     "context_marker_on_line": "Thêm điểm đánh dấu trên đường tương ứng",
+    "edge_error_not_found": "Không tìm thấy đường tương ứng",
+    "edge_error_zero_length": "Đường tương ứng có độ dài bằng không",
     "context_home_remove": "Xóa vị trí chính",
     "context_home_show": "Hiển thị vị trí chính",
     "control_basemap": "Bản đồ nền",

@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "取消指定对应线",
     "context_correspond_line_remove": "删除对应线",
     "context_marker_on_line": "在对应线上添加标记",
+    "edge_error_not_found": "未找到对应线",
+    "edge_error_zero_length": "对应线长度为零",
     "context_home_remove": "删除主页位置",
     "context_home_show": "显示主页位置",
     "control_basemap": "底图",

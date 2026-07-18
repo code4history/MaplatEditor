@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "대응선 지정 취소",
     "context_correspond_line_remove": "대응선 삭제",
     "context_marker_on_line": "대응선 위에 마커 추가",
+    "edge_error_not_found": "대응선을 찾을 수 없습니다",
+    "edge_error_zero_length": "대응선의 길이가 0입니다",
     "context_home_remove": "홈 위치 삭제",
     "context_home_show": "홈 위치 표시",
     "control_basemap": "베이스맵",

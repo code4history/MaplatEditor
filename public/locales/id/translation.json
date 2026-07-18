@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "Batalkan penentuan garis korespondensi",
     "context_correspond_line_remove": "Hapus garis korespondensi",
     "context_marker_on_line": "Tambah penanda pada garis korespondensi",
+    "edge_error_not_found": "Garis korespondensi tidak ditemukan",
+    "edge_error_zero_length": "Panjang garis korespondensi nol",
     "context_home_remove": "Hapus posisi awal",
     "context_home_show": "Tampilkan posisi awal",
     "control_basemap": "Peta dasar",

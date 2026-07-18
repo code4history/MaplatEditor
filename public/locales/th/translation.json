@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "ยกเลิกการระบุเส้นที่สอดคล้อง",
     "context_correspond_line_remove": "ลบเส้นที่สอดคล้อง",
     "context_marker_on_line": "เพิ่มหมุดบนเส้นที่สอดคล้อง",
+    "edge_error_not_found": "ไม่พบเส้นที่สอดคล้อง",
+    "edge_error_zero_length": "เส้นที่สอดคล้องมีความยาวเป็นศูนย์",
     "context_home_remove": "ลบตำแหน่งเริ่มต้น",
     "context_home_show": "แสดงตำแหน่งเริ่มต้น",
     "control_basemap": "แผนที่พื้นฐาน",

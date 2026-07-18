@@ -48,6 +48,7 @@ import { MaplatMap } from '@maplat/core/src/map_ex';
 import { mapSourceFactory } from '@maplat/core/src/source_ex';
 import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
+import { edgeSplit } from '../utils/edgeSplitMath';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
 import { defaults as controlDefaults } from 'ol/control';
@@ -1516,6 +1517,78 @@ const removeEdge = (arg: any) => {
     }
 };
 
+// M12-T1: 対応線上への対応点作成（旧版 mapedit.js:405-489 addMarkerOnEdge の移植）。
+// 計算部は src/utils/edgeSplitMath.ts の純粋関数へ分離し、ここでは座標丸め・
+// エラー診断・gcps/edges mutation・再描画を担う。現行契約への適合差分:
+// (a) gcps は3要素 [illst, mercator, layer]、(b) syncLayerData() で永続化、
+// (c) エラー診断（EDGE_NOT_FOUND/ZERO_LENGTH/GCP_COLLISION/INVALID_COORDINATE_ARRAY）
+const edgeOperationError = ref<string | null>(null);
+
+const addMarkerOnEdge = (arg: any, map: any) => {
+    edgeOperationError.value = null;
+    const edgeGeom = arg.data.edge;
+    const isIllst = map === illstMap;
+    const coord = edgeGeom.getGeometry().getClosestPoint(arg.coordinate);
+    // 座標丸めは旧版と同じ式（illst: 小数2桁 / mercator: 小数6桁）
+    const xy = isIllst ? arrayRoundTo(illstSource.sysCoord2Xy(coord), 2) : arrayRoundTo(coord, 6);
+    const startEnd = edgeGeom.get('startEnd');
+    const edgeIndex = edges.value.findIndex(e => e[2][0] === startEnd[0] && e[2][1] === startEnd[1]);
+    if (edgeIndex < 0) {
+        console.warn('[m12-t1 edge-split] EDGE_NOT_FOUND', startEnd);
+        edgeOperationError.value = t('mapedit.edge_error_not_found');
+        return;
+    }
+    const edge = edges.value[edgeIndex];
+    const gcp1 = gcps.value[startEnd[0]];
+    const gcp2 = gcps.value[startEnd[1]];
+    const result = edgeSplit({
+        thisNodes: isIllst ? edge[0] : edge[1],
+        thatNodes: isIllst ? edge[1] : edge[0],
+        thisEnd1: gcp1[isIllst ? 0 : 1],
+        thisEnd2: gcp2[isIllst ? 0 : 1],
+        thatEnd1: gcp1[isIllst ? 1 : 0],
+        thatEnd2: gcp2[isIllst ? 1 : 0],
+        xy,
+    });
+    if (!result.ok) {
+        if (result.code === 'EDGE_ZERO_LENGTH') {
+            console.warn('[m12-t1 edge-split] EDGE_ZERO_LENGTH', startEnd);
+            edgeOperationError.value = t('mapedit.edge_error_zero_length');
+        } else {
+            console.error('[m12-t1 edge-split] INVALID_COORDINATE_ARRAY', startEnd);
+        }
+        return;
+    }
+    const newGcpPoint: [number[], number[]] = [
+        isIllst ? xy : result.thatXy,
+        isIllst ? result.thatXy : xy,
+    ];
+    // 座標丸め衝突（Minor-2）: 丸め後の新 GCP が既存 GCP と同座標なら mutation なし
+    const collision = gcps.value.some((gcp) =>
+        Math.hypot(gcp[0][0] - newGcpPoint[0][0], gcp[0][1] - newGcpPoint[0][1]) < 1e-8 &&
+        Math.hypot(gcp[1][0] - newGcpPoint[1][0], gcp[1][1] - newGcpPoint[1][1]) < 1e-8,
+    );
+    if (collision) {
+        console.warn('[m12-t1 edge-split] GCP_COLLISION', newGcpPoint[0], newGcpPoint[1]);
+        return;
+    }
+    gcps.value.push([newGcpPoint[0], newGcpPoint[1], currentEditingLayer.value]);
+    const newGcpIndex = gcps.value.length - 1;
+    editingID.value = String(newGcpIndex + 1);
+    edges.value.splice(edgeIndex, 1, [
+        isIllst ? result.thisPrevNodes : result.thatPrevNodes,
+        isIllst ? result.thatPrevNodes : result.thisPrevNodes,
+        [startEnd[0], newGcpIndex],
+    ]);
+    edges.value.push([
+        isIllst ? result.thisLastNodes : result.thatLastNodes,
+        isIllst ? result.thatLastNodes : result.thisLastNodes,
+        [newGcpIndex, startEnd[1]],
+    ]);
+    gcpsToMarkers();
+    syncLayerData();
+};
+
 const createContextMenu = (map: any) => {
   const contextmenu = new ContextMenu({
     width: 170,
@@ -1547,16 +1620,22 @@ const createContextMenu = (map: any) => {
     
     contextmenu.clear();
     
-    if (feature) {
-      if (feature.getGeometry()?.getType() === 'LineString') {
-         // フィーチャーがエッジの場合
-         const edgeStartEnd = feature.get('startEnd');
-         contextmenu.push({ 
-             text: t('mapedit.context_correspond_line_remove') || 'Remove Edge', 
-             data: { startEnd: edgeStartEnd }, 
-             callback: (e: any) => removeEdge(e) 
-         });
-      } else {
+     if (feature) {
+       if (feature.getGeometry()?.getType() === 'LineString') {
+          // フィーチャーがエッジの場合
+          const edgeStartEnd = feature.get('startEnd');
+          contextmenu.push({
+              text: t('mapedit.context_correspond_line_remove') || 'Remove Edge',
+              data: { startEnd: edgeStartEnd },
+              callback: (e: any) => removeEdge(e)
+          });
+          // M12-T1: 対応線上への対応点作成（旧版は removeEdge と両方 push していた）
+          contextmenu.push({
+              text: t('mapedit.context_marker_on_line'),
+              data: { edge: feature },
+              callback: (e: any) => addMarkerOnEdge(e, map)
+          });
+       } else {
         // フィーチャーがマーカーの場合
         const gcpIndex = feature.get('gcpIndex');
         if (gcpIndex === 'home') {
@@ -3237,6 +3316,14 @@ const goBack = async () => {
             dismissible
             :items="[{ key: 'save-error', severity: 'danger', message: saveOperationError }]"
             @dismiss="saveOperationError = null"
+        />
+        <!-- M12-T1: 対応線操作のエラー（EDGE_NOT_FOUND/ZERO_LENGTH）は operation 診断で表示 -->
+        <DiagnosticFeedback
+            v-if="edgeOperationError"
+            scope="operation"
+            dismissible
+            :items="[{ key: 'edge-error', severity: 'danger', message: edgeOperationError }]"
+            @dismiss="edgeOperationError = null"
         />
 
         <!-- 2. Tabs (M11-T7/AC9: EditorTabs primitive + §9 語彙。gcpsEditReady の

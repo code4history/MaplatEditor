@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "対応線指定キャンセル",
     "context_correspond_line_remove": "対応線削除",
     "context_marker_on_line": "対応線上にマーカー追加",
+    "edge_error_not_found": "対応線が見つかりません",
+    "edge_error_zero_length": "対応線の長さがゼロです",
     "context_home_remove": "ホーム位置削除",
     "context_home_show": "ホーム位置表示",
     "control_basemap": "ベースマップ",

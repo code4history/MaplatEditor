@@ -302,6 +302,8 @@
     "context_correspond_line_cancel": "Festlegen der Verbindungslinie abbrechen",
     "context_correspond_line_remove": "Verbindungslinie entfernen",
     "context_marker_on_line": "Marker auf Verbindungslinie hinzufügen",
+    "edge_error_not_found": "Verbindungslinie nicht gefunden",
+    "edge_error_zero_length": "Verbindungslinie hat Länge null",
     "context_home_remove": "Startposition entfernen",
     "context_home_show": "Startposition anzeigen",
     "control_basemap": "Basiskarte",
