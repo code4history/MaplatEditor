@@ -1027,16 +1027,18 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
 console.log("m11-t7 smoke Part D: OK");
 
 // --- Part E: POI の slug UI は PoiEdit の SlugField に一元化、生 checkSlug 撤去 ---
-// M11-T10: PoiSourceList の作成モーダルは行作成方式 (createLocal → PoiEdit 遷移) に置換され、
-// slug 編集・予約 lifecycle は PoiEdit 側 SlugField が担う。複製は reserveCopySlug (共通文法)。
-// (POI の遅延作成統一は t10b で他 4 種と同型化予定)
+// M11-T10b: POI の新規/複製/インポートは遅延作成へ統一（一覧は行を作らず /poisources/new の
+// 未作成モードへ遷移。行の作成は PoiEdit 保存時の createLocal(fc) が担う）。複製は reserveCopySlug
+// (共通文法) + duplicateEditorPath 遷移。slug 編集・予約 lifecycle は PoiEdit 側 SlugField が担う。
 const poiEditSrc = await readSrc("src/views/PoiEdit.vue");
 assert.match(poiEditSrc, /SlugField/, "PoiEdit must use SlugField");
 assert.doesNotMatch(poiEditSrc, /window\.assets\.checkSlug/, "PoiEdit must drop raw checkSlug (AC17)");
 const poiSourceListSrc = await readSrc("src/views/PoiSourceList.vue");
 assert.doesNotMatch(poiSourceListSrc, /window\.assets\.checkSlug/, "PoiSourceList must drop raw checkSlug (AC17)");
 assert.match(poiSourceListSrc, /reserveCopySlug/, "PoiSourceList duplicate must reserve slug via reserveCopySlug (T10)");
-assert.match(poiSourceListSrc, /createLocal/, "PoiSourceList create/duplicate must go through createLocal");
+assert.doesNotMatch(poiSourceListSrc, /poiSources\.createLocal\(/, "PoiSourceList must not createLocal directly (T10b deferred creation)");
+assert.match(poiSourceListSrc, /duplicateEditorPath/, "PoiSourceList duplicate must navigate via duplicateEditorPath (T10b)");
+assert.match(poiSourceListSrc, /\/poisources\/new/, "PoiSourceList create must navigate to /poisources/new (T10b)");
 console.log("m11-t7 smoke Part E: OK");
 
 // --- Part F1: AppEdit が SlugField、一意性ボタン撤去 ---
@@ -1260,11 +1262,17 @@ for (const rel of ALL_EDIT_VIEWS) {
   assert.match(src, /useInitialDraftPersist/, `${rel} must use useInitialDraftPersist (AC6)`);
 }
 
-// M11-T10: POI 作成モーダルは行作成方式へ置換。複製は reserveCopySlug が uid を事前採番し
-// createLocal({ uid }) が予約帰属と一致する uid で行を作る (AC6 の帰属一貫性は共通実装側で担保)
+// M11-T10b: POI 複製は遅延作成へ統一。reserveCopySlug が uid/slug を事前採番・予約し、
+// 一覧は duplicateEditorPath で未作成モードへ遷移するだけ。行の作成は PoiEdit 保存時の
+// createLocal({ uid: newPoiUid, fc }) が担う (AC6 の帰属一貫性 = 予約uid = draftUid = create uid)
 const poiListSrc = await readSrc("src/views/PoiSourceList.vue");
-assert.match(poiListSrc, /createLocal\(\{ slug: reserved\.slug,[^)]*uid: reserved\.uid/,
-  "POI duplicate must createLocal with pre-reserved uid (AC6)");
+assert.match(poiListSrc, /reserveCopySlug\(/,
+  "POI duplicate must reserve slug via reserveCopySlug (AC6)");
+assert.match(poiListSrc, /duplicateEditorPath\("\/poisources\/new"/,
+  "POI duplicate must navigate to /poisources/new via duplicateEditorPath (T10b deferred creation)");
+const poiEditSrcForCreate = await readSrc("src/views/PoiEdit.vue");
+assert.match(poiEditSrcForCreate, /createLocal\(\{[^}]*uid: newPoiUid\.value/,
+  "POI save in uncreated mode must createLocal with pre-reserved uid (AC6)");
 
 console.log("m11-t7 smoke Part K: OK");
 

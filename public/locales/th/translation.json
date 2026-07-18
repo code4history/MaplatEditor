@@ -844,6 +844,7 @@
     "export_success": "ส่งออกเสร็จสมบูรณ์",
     "export_failed": "ส่งออกไม่สำเร็จ",
     "busy_exporting": "กำลังส่งออก…",
+    "busy_importing": "กำลังนำเข้า…",
     "save_state": {
       "dirty": "ยังไม่ได้บันทึก ●",
       "saving": "กำลังบันทึก…",

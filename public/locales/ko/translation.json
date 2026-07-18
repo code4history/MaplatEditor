@@ -844,6 +844,7 @@
     "export_success": "내보내기가 완료되었습니다.",
     "export_failed": "내보내기에 실패했습니다.",
     "busy_exporting": "내보내는 중…",
+    "busy_importing": "가져오는 중…",
     "save_state": {
       "dirty": "저장되지 않음 ●",
       "saving": "저장 중…",

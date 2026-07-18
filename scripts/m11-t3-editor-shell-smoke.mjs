@@ -252,7 +252,7 @@ assert.match(poiEdit, /import \{ runEditorExportDecision \} from/);
 assert.match(poiEdit, /<EditorActionHeader[\s\S]*:save-visible="!readOnly"/);
 assert.match(poiEdit, /@discard-draft="discardRestoredDraft"/);
 assert.match(poiEdit, /data-editor-action="export"[\s\S]*@click="exportSource"/);
-assert.match(poiEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting \|\| cloning"/);
+assert.match(poiEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting \|\| cloning \|\| importing"/);
 assert.match(poiEdit, /<PoiAttributeForm[\s\S]*:active-lang="currentLang"/);
 assert.match(poiEdit, /<LangResourceInput[\s\S]*:active-lang="currentLang"/);
 assert.match(poiEdit, /window\.poiSources\.exportFile\(uid\)/);

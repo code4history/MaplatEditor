@@ -29,11 +29,11 @@
         :language-options="SUPPORTED_LANGUAGES"
         :can-undo="!readOnly && canUndo"
         :can-redo="!readOnly && canRedo"
-        :save-disabled="!isDirty || liveErrors.length > 0"
+        :save-disabled="!draftDirty || liveErrors.length > 0"
         :saving="saving"
         :actions-disabled="exporting || cloning"
         :save-visible="!readOnly"
-        :discard-draft-visible="saveState === 'draft-restored' && !!saveHandle.uid.value"
+        :discard-draft-visible="saveState === 'draft-restored'"
         @back="goBack"
         @update:active-lang="currentLang = $event"
         @undo="performUndo"
@@ -88,8 +88,8 @@
               ref="slugField"
               :model-value="slugInput"
               asset-kind="poi-source"
-              :asset-uid="saveHandle.uid.value ?? ''"
-              :draft-uid="saveHandle.uid.value"
+              :asset-uid="saveHandle.uid.value ?? newPoiUid"
+              :draft-uid="saveHandle.uid.value ?? newPoiUid"
               :original-slug="confirmedSlug"
               :required="true"
               :disabled="readOnly || translationMode"
@@ -199,8 +199,8 @@
     </template>
 
     <EditorBusyOverlay
-      :visible="saving || exporting || cloning"
-      :label="saving ? t('poiedit.saving') : exporting ? t('editor_ui.busy_exporting') : t('poiedit.clone_to_local')"
+      :visible="saving || exporting || cloning || importing"
+      :label="saving ? t('poiedit.saving') : importing ? t('editor_ui.busy_importing') : exporting ? t('editor_ui.busy_exporting') : t('poiedit.clone_to_local')"
     />
   </div>
 </template>
@@ -239,6 +239,7 @@ import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { localizeTitle } from "../utils/langResource";
+import { suggestSlug } from "../utils/poiSourceSlug";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
 import { collectAssetRefsInFc, collectImageAssetUids } from "../utils/poiContentMode";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
@@ -301,13 +302,31 @@ const slugInput = ref("");
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
 const slugFieldState = ref<SlugFieldState>("idle");
 
+// M11-T10b: 未作成モードの事前採番 uid（draft キーと保存 create uid を兼ねる。
+// MapEdit の newMapUid と同型）。初期化（onMounted / 同一コンポーネントでの new 再突入）
+// ごとに採番し直すため ref で持ち、既存 draftUid が route にあれば引き継ぐ。
+// newModeActive は「未作成モードとして初期化済み」のフラグで、既存→新規の再初期化判定に使う
+const newPoiUid = ref("");
+const newModeActive = ref(false);
+
+// M11-T10b (順序契約 #2): 文書操作系 dirty。Undo 履歴の isDirty とは分離し、
+// slug live 入力の diverged（session 未 commit）も「保存すべき変更」として扱う。
+// 保存ボタン / Cmd+S / saveState / export / draft persist の全入口をこれに揃える
+const draftDirty = computed(
+  () =>
+    isDirty.value ||
+    (!!editState.value && slugInput.value.trim() !== editState.value.slug),
+);
+
 const draftLifecycle = useAssetDraftLifecycle<PoiEditState>({
   kind: "poi",
   serialize: () => {
     if (!editState.value) throw new Error("POI draft requested before load");
-    return structuredClone(editState.value);
+    // M11-T10b (順序契約 #3): draft の slug は live 値を正本とする
+    // （予約 slug と下書きカード表示・復元内容を一致させる）
+    return { ...structuredClone(editState.value), slug: slugInput.value };
   },
-  shouldPersist: () => isDirty.value,
+  shouldPersist: () => draftDirty.value,
   apply: (payload) => {
     session.reset(payload, true);
     slugInput.value = payload.slug;
@@ -339,7 +358,23 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
   send: async ({ uid, expectedRevision }) => {
     // saveSource が pendingSave を設定した後にしか到達しない
     const { payload } = pendingSave!;
-    const result = await window.poiSources.save(uid!, { ...payload, expectedRevision });
+    if (uid == null) {
+      // M11-T10b: 未作成モードの初回保存は createLocal(fc付き) で単一作成。
+      // （空行を作ってから save する2段書き込みは行わない。予約 promote は createSource 経路で成立）
+      const created = await window.poiSources.createLocal({
+        slug: payload.slug,
+        title: payload.title,
+        lang: payload.fc.lang,
+        uid: newPoiUid.value,
+        fc: payload.fc,
+      });
+      if (!created) {
+        saveError.value = t("poiedit.error_saving");
+        return null;
+      }
+      return created;
+    }
+    const result = await window.poiSources.save(uid, { ...payload, expectedRevision });
     if (!result) {
       // IPC が結果を返さなかった: 表示のみで安全終了
       saveError.value = t("poiedit.error_saving");
@@ -349,13 +384,24 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
   },
   applySuccess: async (result) => {
     poiSaveSucceeded = true;
+    // 保存で既存行の編集モードへ移行（new 再突入時の initializeEditor 再呼出しを有効にする）
+    newModeActive.value = false;
     // uid/revision/confirmedSlug は composable が反映済み。以下は画面固有処理。
     // markSaved は保存中に編集が入っていない (snapshot 同一、shallowRef のオブジェクト同一性)
     // 場合のみ。編集が入っていたら isDirty のまま残して再保存を促す
     if (editState.value === pendingSave!.capturedState) {
       session.markSaved();
-      await draftLifecycle.markSaved();
     }
+    // M11-T10b（実装レビュー Major/再）: markSaved → rebase → flush の順序。
+    // ① markSaved: 復元下書きが保存で消費されたため draftRestored/conflictDraft を必ずリセットし、
+    //    旧 identity の下書きを store から除去（復元表示と破棄操作が残らない）
+    // ② rebase: identity を保存済み行の (uid, revision) へ再構成（restore 判定なし。
+    //    追加編集の下書きが新規カード化・復元 conflict しない）
+    // ③ flush: shouldPersist(draftDirty) に従い、追加編集があれば新 baseRevision で永続化、
+    //    なければ除去済みのまま（保存中の追加編集は失われない）
+    await draftLifecycle.markSaved();
+    draftLifecycle.rebase(result.uid, result.revision);
+    await draftLifecycle.flush();
     saveIssues.value = [];
     saveError.value = null;
     // slug 欄を保存結果 (confirmedSlug) に同期。ただし markSaved と同じ snapshot 同一性判定を
@@ -412,7 +458,31 @@ const exporting = ref(false);
 
 async function discardRestoredDraft() {
   const uid = saveHandle.uid.value;
-  if (!uid || !draftLifecycle.draftRestored.value) return;
+  if (!draftLifecycle.draftRestored.value) return;
+  // M11-T10b: 未作成（保存済み行なし）下書きの破棄は完全削除（MapEdit 型）。
+  // 予約 teardown: ① slugField.release() 成功後にのみ進む（失敗時は診断して中止）→
+  // ② 一覧由来の未 acquire 予約を direct API で冪等解放 → ③ draft 削除 → 一覧へ
+  if (!uid) {
+    const result = await (window as any).dialog.showMessageBox({
+      type: "warning",
+      buttons: [t("editor_ui.delete_draft"), t("common.cancel")],
+      defaultId: 1,
+      cancelId: 1,
+      message: t("editor_ui.delete_draft_confirm", { name: displayTitle.value || slugInput.value || t("editor_ui.draft_badge") }),
+    });
+    if (result.response !== 0) return;
+    try {
+      await slugField.value?.release();
+    } catch (cause) {
+      console.error("[PoiEdit] Failed to release slug reservation for new source draft", cause);
+      saveError.value = t("poisource.errors.internal");
+      return;
+    }
+    await releaseReservedSlugForNew();
+    await draftLifecycle.discard();
+    await router.push("/poisources");
+    return;
+  }
   const result = await (window as any).dialog.showMessageBox({
     type: "warning",
     buttons: [t("editor_ui.discard_draft"), t("common.cancel")],
@@ -434,7 +504,7 @@ const displayTitle = computed(() => {
 const saveState = computed<EditorSaveState>(() => {
   if (saving.value) return "saving";
   if (draftLifecycle.draftRestored.value) return "draft-restored";
-  return isDirty.value ? "dirty" : "saved";
+  return draftDirty.value ? "dirty" : "saved";
 });
 
 const featureCount = computed(() => editState.value?.features.length ?? 0);
@@ -546,13 +616,20 @@ const liveWarningItems = computed<DiagnosticItem[]>(() =>
 );
 
 // --- 読込 ---
+// M11-T10b（実装レビュー Minor）: 世代 token。既存→new 再初期化や連続した load の間に
+// 遅い旧応答が新しい session を上書きするのを防ぐ
+let loadGeneration = 0;
+
 async function load(sourceId: string): Promise<void> {
+  const generation = ++loadGeneration;
+  newModeActive.value = false;
   loading.value = true;
   loadError.value = null;
   saveError.value = null;
   saveIssues.value = [];
   try {
     const detail = await window.poiSources.get(sourceId);
+    if (generation !== loadGeneration) return; // 旧 load 応答は破棄
     if (!detail) {
       loadError.value = t("poiedit.not_found");
       return;
@@ -568,12 +645,16 @@ async function load(sourceId: string): Promise<void> {
     });
     currentLang.value = resolveEditorLanguage(detail.lang || i18next.language);
     slugInput.value = detail.slug;
-    await draftLifecycle.open(detail.uid, detail.revision);
+    await draftLifecycle.open(detail.uid, detail.revision, {
+      shouldApply: () => generation === loadGeneration,
+    });
+    if (generation !== loadGeneration) return; // open 中の遷移も破棄
   } catch (e) {
+    if (generation !== loadGeneration) return;
     console.error("[PoiEdit] Failed to load POI source:", e);
     loadError.value = t("poisource.errors.internal");
   } finally {
-    loading.value = false;
+    if (generation === loadGeneration) loading.value = false;
   }
   if (!loadError.value) {
     // 初期表示: features があれば全体が入る extent へ fit、無ければ日本付近デフォルト。
@@ -589,6 +670,12 @@ watch(
   () => route.params.sourceId,
   (next) => {
     if (typeof next !== "string" || next === "") return;
+    if (next === "new") {
+      // 既に未作成モードとして初期化済みなら何もしない（draftUid replace 等の自己遷移）。
+      // 既存→新規の再突入は initializeEditor で再初期化する（M11-T10b）
+      if (!newModeActive.value) void initializeEditor();
+      return;
+    }
     if (next === saveHandle.uid.value) return;
     load(next);
   },
@@ -636,9 +723,30 @@ watch(
     if (next !== slugInput.value) slugInput.value = next;
   },
 );
+
+// M11-T10b（設計レビュー Minor）: 新規で予約成立後に live 入力を空欄へ戻した場合、
+// draftDirty は false（draft は除去される）のに held 予約だけが lease/GC まで残る孤児になる。
+// 空欄復帰で予約を即時解放し、同じ slug がすぐ available へ戻るようにする。
+// 既存行は SlugField の元 slug 復帰 release が担うため対象外（新規のみ）。
+watch(slugInput, async (value, oldValue) => {
+  if (saveHandle.uid.value) return;
+  if (value.trim() !== "" || !oldValue || oldValue.trim() === "") return;
+  try {
+    await slugField.value?.release();
+  } catch (cause) {
+    // SlugField 内部の releaseFailed 警告状態に委譲（再予約は次回入力で行われる）
+    console.error("[PoiEdit] Failed to release slug reservation on empty revert", cause);
+  }
+  try {
+    await window.slugReservations.release({ slug: oldValue.trim(), assetUid: newPoiUid.value });
+  } catch (cause) {
+    // lease/GC が最終回収するため log のみ
+    console.error("[PoiEdit] Failed to direct-release slug reservation on empty revert", cause);
+  }
+});
 watch(
-  editState,
-  () => draftLifecycle.schedule(isDirty.value),
+  [editState, slugInput],
+  () => draftLifecycle.schedule(draftDirty.value),
   { deep: true, flush: "post" },
 );
 
@@ -648,6 +756,14 @@ async function saveSource(): Promise<boolean> {
   if (readOnly.value || saving.value) return false;
   saveError.value = null;
   saveIssues.value = []; // 前回 Invalid の issues を持ち越さない
+  // M11-T10b (順序契約 #6): live slug を session へ確定してから捕捉する。
+  // blur 前の Cmd+S / 保存クリックが古い session slug を送ることを防ぐ（1 Undo 単位）
+  const liveSlug = slugInput.value.trim();
+  if (editState.value && liveSlug !== "" && liveSlug !== editState.value.slug) {
+    session.commit((draft) => {
+      draft.slug = liveSlug;
+    });
+  }
   if (slugError.value) {
     saveError.value = slugError.value;
     return false;
@@ -721,7 +837,7 @@ async function exportSource(): Promise<void> {
   exporting.value = true;
   try {
     await runEditorExportDecision({
-      dirty: isDirty.value,
+      dirty: draftDirty.value,
       hasSaved: !!saveHandle.uid.value,
       choose: choosePoiExport,
       save: saveSource,
@@ -813,7 +929,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
   const key = event.key.toLowerCase();
   if (key === "s") {
     event.preventDefault();
-    if (!readOnly.value && !saving.value && !exporting.value && isDirty.value && liveErrors.value.length === 0) {
+    if (!readOnly.value && !saving.value && !exporting.value && draftDirty.value && liveErrors.value.length === 0) {
       void saveSource();
     }
     return;
@@ -871,8 +987,163 @@ onMounted(() => {
   window.addEventListener("keydown", onHistoryKeydown);
   window.addEventListener("keydown", onDeleteKeydown);
   removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
-  load(route.params.sourceId as string);
+  void initializeEditor();
 });
+
+// M11-T10b: 未作成モード（/poisources/new）の初期化分岐。
+// 空 / 複製（duplicateFrom）/ インポート（import=1）/ 下書き復元（draftUid）の4経路。
+// onMounted 初回と、同一コンポーネントのまま既存→新規へ遷移した場合の再初期化の双方で呼ばれる
+async function initializeEditor(): Promise<void> {
+  const generation = ++loadGeneration;
+  const sourceId = route.params.sourceId as string;
+  if (sourceId !== "new") {
+    newModeActive.value = false;
+    await load(sourceId);
+    return;
+  }
+  // 未作成モード: save handle を未作成状態へ戻す（既存→新規の再初期化で uid が残らないように）
+  saveHandle.uid.value = undefined;
+  saveHandle.revision.value = undefined;
+  saveHandle.confirmedSlug.value = undefined;
+  newModeActive.value = true;
+  newPoiUid.value = typeof route.query.draftUid === "string" && route.query.draftUid
+    ? route.query.draftUid
+    : crypto.randomUUID();
+  // readOnly なし・load 済み扱いで session を直接初期化する
+  readOnly.value = false;
+  loading.value = false;
+  saveError.value = null;
+  saveIssues.value = [];
+  const duplicateFrom = typeof route.query.duplicateFrom === "string" && route.query.duplicateFrom
+    ? route.query.duplicateFrom
+    : null;
+  if (duplicateFrom) {
+    // 複製（案A: エディタ側ロード）。複製浄化: uid/revision/readOnly は写さず、
+    // slug は予約値で上書き。title/lang/fc（layerMeta 含む）を複製し dirty で開く
+    let source: Awaited<ReturnType<typeof window.poiSources.get>> | null = null;
+    try {
+      source = await window.poiSources.get(duplicateFrom);
+    } catch {
+      source = null;
+    }
+    if (source) {
+      if (generation !== loadGeneration) return; // 遅い複製元応答は新しい session を上書きしない
+      const reservedSlug = typeof route.query.slug === "string" ? route.query.slug : source.slug;
+      const lang = resolveEditorLanguage(source.lang);
+      session.load(
+        { lang, slug: reservedSlug, title: source.title, fc: source.fc as PoiEditorFC },
+        { dirty: true },
+      );
+      slugInput.value = reservedSlug;
+      currentLang.value = lang;
+    } else {
+      // 元消失（並行削除等）: 予約を解放してから空初期化 + operation 診断（予約 teardown 契約）。
+      // 世代外の遅い応答なら release/初期化も行わない
+      if (generation !== loadGeneration) return;
+      await releaseReservedSlugForNew();
+      initializeEmptySession();
+      saveError.value = t("resource_list.duplicate_failed");
+    }
+  } else {
+    initializeEmptySession();
+  }
+  // 新規の draft キー = 事前採番 uid。予約帰属・create uid と一致させる（M11-T7 と同型）
+  if (route.query.draftUid !== newPoiUid.value) {
+    await router.replace({ query: { ...route.query, draftUid: newPoiUid.value } });
+  }
+  if (generation !== loadGeneration) return; // 初期化中の遷移は以降の副作用ごと破棄
+  await draftLifecycle.open(newPoiUid.value, null, {
+    shouldApply: () => generation === loadGeneration,
+  });
+  if (generation !== loadGeneration) return; // open 中の遷移も破棄
+  // インポート自動起動（複製と併用しない）。draft 復元があっても importFile 成功時に張り直す
+  if (route.query.import === "1" && !duplicateFrom) {
+    void nextTick(() => {
+      void importAutoRun();
+    });
+  }
+  await nextTick();
+  mapPane.value?.fitInitialView();
+}
+
+// 未作成モードの空初期化（lang は UI 言語 = POI ソース既定言語の新規ルール）
+function initializeEmptySession(): void {
+  const lang = resolveEditorLanguage(i18next.language);
+  session.load({
+    lang,
+    slug: "",
+    title: {},
+    fc: { type: "FeatureCollection", features: [] } as PoiEditorFC,
+  });
+  slugInput.value = "";
+  currentLang.value = lang;
+}
+
+// 一覧の reserveCopySlug 由来など SlugField 未 acquire の予約を冪等解放する
+// （DELETE 冪等のため重複実行も安全。失敗時は lease/GC が最終回収）
+async function releaseReservedSlugForNew(): Promise<void> {
+  const slug = typeof route.query.slug === "string" && route.query.slug
+    ? route.query.slug
+    : slugInput.value.trim();
+  if (!slug) return;
+  try {
+    await window.slugReservations.release({ slug, assetUid: newPoiUid.value });
+  } catch (cause) {
+    console.error("[PoiEdit] Failed to release reserved slug for new source", cause);
+  }
+}
+
+// --- インポート自動起動（/poisources/new?import=1）---
+const importing = ref(false);
+
+async function importAutoRun(): Promise<void> {
+  if (importing.value || saveHandle.uid.value) return;
+  importing.value = true;
+  try {
+    const picked = await window.poiSources.pickImportFile();
+    if (!picked) return; // キャンセル: 空の未作成モードに留まる（何も作られない）
+    const slug = suggestSlug(picked.fileName);
+    const lang = resolveEditorLanguage(
+      await window.poiSources.detectImportLanguage(picked.filePath, "ja"),
+    );
+    const result = await window.poiSources.importFile({
+      slug,
+      title: { [lang]: picked.fileName.replace(/\.[^.]+$/, "") },
+      filePath: picked.filePath,
+      uid: newPoiUid.value,
+    });
+    if (!("result" in result) || result.result !== "Success") {
+      // PoiSourceSaveResult failure は saveSource の onFailure と同じ語彙で診断へ
+      if ("result" in result && result.result === "Exist") {
+        saveError.value = t("poisource.errors.slug_taken");
+      } else if ("result" in result && result.result === "Invalid") {
+        saveIssues.value = result.issues;
+      } else if ("result" in result && result.result === "Error") {
+        const key = ERROR_CODE_KEYS[result.code] ?? "poisource.errors.internal";
+        saveError.value =
+          result.code === "invalid-request" || result.code === "internal"
+            ? result.message || t(key)
+            : t(key);
+      } else {
+        saveError.value = t("poisource.errors.internal");
+      }
+      return;
+    }
+    // import 内容が正になるため、import 前の未作成下書きは廃棄（復元競合ダイアログ防止）
+    await window.assetDrafts.remove("poi", newPoiUid.value);
+    // adoptLoaded + session.load + draftLifecycle.open(uid, revision) を一括で張り直す
+    await load(result.uid);
+    // import=1 を URL から除去（リロードで再起動しない）
+    await router.replace({ path: `/poisources/${result.uid}` });
+  } catch (e: any) {
+    // pickImportFile / detectImportLanguage / importFile 自身の throw（IPC 不達・main 例外）も
+    // 同じ operation 診断へ収束させる（silent 失敗禁止）
+    console.error("[PoiEdit] import failed", e);
+    saveError.value = e?.message || t("poisource.errors.internal");
+  } finally {
+    importing.value = false;
+  }
+}
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onHistoryKeydown);

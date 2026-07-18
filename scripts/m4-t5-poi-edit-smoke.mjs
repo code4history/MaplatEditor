@@ -169,11 +169,11 @@ try {
     'PoiEdit の menu:undo ハンドラに編集フィールド中の抑止 (isEditableElement) がない'
   );
 
-  // M11-T3共通Busy: 保存/Export/clone中の編集操作を全面抑制する。
-  // Delete キー経路にも saving ガードがあること
+  // M11-T3共通Busy: 保存/Export/clone/import中の編集操作を全面抑制する。
+  // Delete キー経路にも saving ガードがあること（M11-T10b: import 自動起動中も Busy）
   assert.match(
     poiEdit,
-    /<EditorBusyOverlay[\s\S]*?:visible="saving \|\| exporting \|\| cloning"/,
+    /<EditorBusyOverlay[\s\S]*?:visible="saving \|\| exporting \|\| cloning \|\| importing"/,
     'PoiEdit に共通 EditorBusyOverlay がない'
   );
   assert.match(

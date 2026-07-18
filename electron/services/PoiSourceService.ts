@@ -382,7 +382,16 @@ export class PoiSourceService {
     }
   }
 
-  async createLocal(input: { slug: string; title: LangResource; lang?: string; uid?: string }): Promise<PoiSourceSaveResult> {
+  // M11-T10b: fc 指定時は内容入りの単一書き込み作成（遅延作成の保存経路）。
+  // prepare で正規化+検証し、error issue があれば Invalid 拒否（中途の空行を残さない）。
+  // fc 省略時は従来どおり空 FC で作成（後方互換）。
+  async createLocal(input: { slug: string; title: LangResource; lang?: string; uid?: string; fc?: unknown }): Promise<PoiSourceSaveResult> {
+    if (input.fc !== undefined) {
+      // fallback 言語は既存の空 FC 経路と同じ式に固定（fc.lang があれば prepare 内でそちらが優先される）
+      const prepared = this.prepare(input.fc, resolvePoiSourceLanguage(input.lang, SettingsService.get('lang')));
+      if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
+      return await this.createSource(input.slug, input.title, 'local', prepared.fc, prepared.issues, undefined, input.uid);
+    }
     const empty: PoiEditorFC = {
       type: 'FeatureCollection',
       lang: resolvePoiSourceLanguage(input.lang, SettingsService.get('lang')),

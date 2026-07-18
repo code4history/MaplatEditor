@@ -844,6 +844,7 @@
     "export_success": "导出完成。",
     "export_failed": "导出失败。",
     "busy_exporting": "正在导出…",
+    "busy_importing": "正在导入…",
     "save_state": {
       "dirty": "未保存 ●",
       "saving": "保存中…",

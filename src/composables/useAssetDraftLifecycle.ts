@@ -33,7 +33,11 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     draftRestored.value = true;
   };
 
-  const open = async (assetUid: string, revision: number | null) => {
+  const open = async (
+    assetUid: string,
+    revision: number | null,
+    opts?: { shouldApply?: () => boolean },
+  ) => {
     currentUid.value = assetUid;
     currentRevision.value = revision;
     draftRestored.value = false;
@@ -41,8 +45,11 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     configureCore(assetUid, revision);
     const draft = await window.assetDrafts.get(options.kind, assetUid) as AssetDraftEnvelope<T> | null;
     const decision = decideDraftRestore(draft, revision);
-    if (decision === 'auto-apply' && draft) await applyDraft(draft);
-    if (decision === 'conflict' && draft) conflictDraft.value = draft;
+    // M11-T10b（実装レビュー Minor）: get の await 中に遷移が起きた場合、古い session への
+    // 復元適用・conflict 提示を shouldApply ガードで抑止する（省略時は従来どおり適用）
+    const mayApply = opts?.shouldApply?.() ?? true;
+    if (decision === 'auto-apply' && draft && mayApply) await applyDraft(draft);
+    if (decision === 'conflict' && draft && mayApply) conflictDraft.value = draft;
     return decision;
   };
 
@@ -76,6 +83,17 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     conflictDraft.value = null;
   };
 
+  // M11-T10b（実装レビュー Major）: 保存成功後に identity を保存済み行へ再構成する。
+  // open() と違い draft store の restore 判定を行わない（保存直後に古い下書きが残っていても
+  // conflict dialog を出さない）。baseRevision を保存 revision へ進めることで、
+  // 追加編集の下書きが「保存済み行の下書き」として扱われ、新規カード化・復元 conflict を防ぐ。
+  // core の dirty フラグは変えず、次の schedule/flush が現在の編集状態をそのまま永続化する。
+  const rebase = (assetUid: string, baseRevision: number | null) => {
+    currentUid.value = assetUid;
+    currentRevision.value = baseRevision;
+    configureCore(assetUid, baseRevision);
+  };
+
   const discard = async () => {
     await core.markSaved();
     draftRestored.value = false;
@@ -102,6 +120,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     schedule: core.schedule,
     flush,
     markSaved,
+    rebase,
     discard,
     flushSync: core.flushSync,
     currentUid,

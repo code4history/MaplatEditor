@@ -88,25 +88,22 @@ try {
     'PoiSourceList が createPoiSourceListAdapter を使っていない'
   );
 
-  // 新規作成 (local) フロー: window.poiSources.createLocal を呼ぶこと
-  assert.match(
+  // M11-T10b 遅延作成統一: 一覧は行作成 IPC を直接呼ばず、エディタ未作成モードへ遷移する。
+  // （createLocal / importFile / pickImportFile は PoiEdit 側が保存・import 自動起動で呼ぶ）
+  assert.doesNotMatch(
     poiSourceList,
-    /poiSources\.createLocal/,
-    'PoiSourceList が window.poiSources.createLocal を呼んでいない'
+    /poiSources\.createLocal\(/,
+    'PoiSourceList が window.poiSources.createLocal を直接呼んでいる（遅延作成違反）'
   );
-
-  // インポートフロー: window.poiSources.importFile を呼ぶこと
   assert.match(
     poiSourceList,
-    /poiSources\.importFile/,
-    'PoiSourceList が window.poiSources.importFile を呼んでいない'
+    /\/poisources\/new/,
+    'PoiSourceList の新規作成が /poisources/new 遷移でない'
   );
-
-  // インポートファイル選択: window.poiSources.pickImportFile を呼ぶこと
   assert.match(
     poiSourceList,
-    /poiSources\.pickImportFile/,
-    'PoiSourceList が window.poiSources.pickImportFile を呼んでいない'
+    /\/poisources\/new\?import=1/,
+    'PoiSourceList のインポートが /poisources/new?import=1 遷移でない'
   );
 
   // リモート登録 UI は 18d62d8 でフラグ裏へ退避 (M11 一覧刷新後は未再配線)。
@@ -142,19 +139,21 @@ try {
     'PoiSourceList に生 checkSlug が残っている (AC17)'
   );
 
-  // M11-T10: 作成モーダル撤去に伴い、自動提案 (43 §3.2) は import のファイル名 → suggestSlug。
-  // 新規作成は暫定 slug で行を作り、PoiEdit の共通 SlugField で編集する
-  assert.match(
-    poiSourceList,
-    /suggestSlug\(picked\.fileName\)/,
-    'PoiSourceList の import が suggestSlug でファイル名から slug を提案していない'
+  // M11-T10b: 作成モーダル撤去 + 遅延作成統一に伴い、import のファイル名 → suggestSlug の
+  // 自動提案 (43 §3.2) は PoiEdit の import 自動起動へ移動。一覧は /poisources/new 系へ遷移するだけ
+  const poiEditSrc = await readFile(
+    path.join(projectRoot, 'src/views/PoiEdit.vue'),
+    'utf8'
   );
-
-  // 成功時に uid でエディタへ遷移すること (router.push('/poisources/' + uid))
   assert.match(
-    poiSourceList,
-    /router\.push\([^)]*\/poisources\/\$\{[^}]*uid[^}]*\}/,
-    'PoiSourceList が uid でエディタへ遷移していない'
+    poiEditSrc,
+    /suggestSlug\(picked\.fileName\)/,
+    'PoiEdit の import 自動起動が suggestSlug でファイル名から slug を提案していない'
+  );
+  assert.match(
+    poiEditSrc,
+    /router\.replace\(\{ path: `\/poisources\/\$\{result\.uid\}` \}\)/,
+    'PoiEdit の import 成功後の正準化遷移がない'
   );
 
   // 生 ipcRenderer を使わないこと (House rule / m2-t3)
