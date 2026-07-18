@@ -20,14 +20,17 @@ function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[];
 
 // M12-T1-HOTFIX-1: paginate 後の page 分の docs へ画像を添付する。
 // pageSize<=0 の全件経路では添付しない（無制限のファイル I/O を防ぐ。レビュー Minor-1）。
-// key 引数で添付先フィールドを指定する（maps/apps は `image`、baseMaps は `thumbnailUrl`）。
+// ただし attachWhenUnbounded=true の handler（search:baseMaps）は例外的に全件添付する
+// （basemap catalog は内蔵329件＋ユーザ定義の有界集合で、basemaps:list も全件解決している
+// 既存挙動のため）。key 引数で添付先フィールドを指定する（maps/apps は `image`、baseMaps は `thumbnailUrl`）。
 async function attachImages<T>(
   paged: { docs: T[]; total: number; prev?: number; next?: number },
   pageSize: number,
   resolve: (doc: T) => Promise<string | null> | string | null,
   key: 'image' | 'thumbnailUrl' = 'image',
+  attachWhenUnbounded = false,
 ): Promise<typeof paged> {
-  if (pageSize <= 0) return paged;
+  if (pageSize <= 0 && !attachWhenUnbounded) return paged;
   paged.docs = await Promise.all(
     paged.docs.map(async (doc) => {
       (doc as Record<string, unknown>)[key] = await resolve(doc);
@@ -74,9 +77,10 @@ export function registerSearchHandlers() {
     const docs = await SqliteDataService.searchBaseMaps(filter.q ?? '');
     if (filter.bbox) {
       const filtered = filterBaseMapsByBbox(docs, filter.bbox);
-      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveBaseMapListImage, 'thumbnailUrl');
+      // basemap catalog は有界集合のため pageSize<=0 でも全件添付する（basemaps:list と同じ挙動）
+      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveBaseMapListImage, 'thumbnailUrl', true);
     }
-    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveBaseMapListImage, 'thumbnailUrl');
+    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveBaseMapListImage, 'thumbnailUrl', true);
   });
 
   ipcMain.handle('search:imageAssets', async (_event, filter: SearchFilter) => {

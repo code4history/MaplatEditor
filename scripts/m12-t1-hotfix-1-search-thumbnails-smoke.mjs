@@ -196,7 +196,12 @@ try {
       assert.ok(osmDoc, '内蔵ベースマップ osm が search:baseMaps に含まれること');
       assert.ok(osmDoc.thumbnailUrl && osmDoc.thumbnailUrl.includes('basemap_icons'),
         'builtin の thumbnail が thumbnailUrl として添付されること: ' + osmDoc.thumbnailUrl);
-      console.log('ok: (h) search:baseMaps attaches builtin thumbnail as thumbnailUrl');
+      // BaseMapList は limit:0（pageSize<=0 全件経路）で読むため、同経路でも添付されることを確認する
+      const baseMapsAll = await call('search:baseMaps', { q: '', page: 1, pageSize: 0 });
+      const osmAll = baseMapsAll.docs.find((d: any) => d.mapID === 'osm' || d.slug === 'osm');
+      assert.ok(osmAll.thumbnailUrl && osmAll.thumbnailUrl.includes('basemap_icons'),
+        'pageSize<=0 全件経路でも builtin thumbnailUrl が添付されること: ' + osmAll.thumbnailUrl);
+      console.log('ok: (h) search:baseMaps attaches builtin thumbnail as thumbnailUrl (pageSize>0 and pageSize<=0)');
 
       // (i) basemaps:list 経路（settings IPC）の thumbnailUrl 解決が委譲後も現行どおり
       const { registerSettingsHandlers } = await import(${JSON.stringify(path.join(projectRoot, 'electron/ipc/settings.ts'))});
