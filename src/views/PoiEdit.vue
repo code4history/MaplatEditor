@@ -392,12 +392,14 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     if (editState.value === pendingSave!.capturedState) {
       session.markSaved();
     }
-    // M11-T10b（実装レビュー Major）: draft lifecycle の identity を保存済み行へ再構成する。
-    // baseRevision=null（新規時）や保存前 revision のままだと、追加編集の下書きが
-    // 「新規下書きカード」化・再開時に revision conflict になる。
-    // rebase は restore 判定を伴わない（保存直後の古い下書きで conflict dialog を出さない）。
-    // flush は shouldPersist(draftDirty) に従うため、保存中の追加編集は失われない
-    // （編集があれば新 baseRevision の下書きとして永続化、なければ下書き除去）
+    // M11-T10b（実装レビュー Major/再）: markSaved → rebase → flush の順序。
+    // ① markSaved: 復元下書きが保存で消費されたため draftRestored/conflictDraft を必ずリセットし、
+    //    旧 identity の下書きを store から除去（復元表示と破棄操作が残らない）
+    // ② rebase: identity を保存済み行の (uid, revision) へ再構成（restore 判定なし。
+    //    追加編集の下書きが新規カード化・復元 conflict しない）
+    // ③ flush: shouldPersist(draftDirty) に従い、追加編集があれば新 baseRevision で永続化、
+    //    なければ除去済みのまま（保存中の追加編集は失われない）
+    await draftLifecycle.markSaved();
     draftLifecycle.rebase(result.uid, result.revision);
     await draftLifecycle.flush();
     saveIssues.value = [];
@@ -643,7 +645,9 @@ async function load(sourceId: string): Promise<void> {
     });
     currentLang.value = resolveEditorLanguage(detail.lang || i18next.language);
     slugInput.value = detail.slug;
-    await draftLifecycle.open(detail.uid, detail.revision);
+    await draftLifecycle.open(detail.uid, detail.revision, {
+      shouldApply: () => generation === loadGeneration,
+    });
     if (generation !== loadGeneration) return; // open 中の遷移も破棄
   } catch (e) {
     if (generation !== loadGeneration) return;
@@ -1033,7 +1037,9 @@ async function initializeEditor(): Promise<void> {
       slugInput.value = reservedSlug;
       currentLang.value = lang;
     } else {
-      // 元消失（並行削除等）: 予約を解放してから空初期化 + operation 診断（予約 teardown 契約）
+      // 元消失（並行削除等）: 予約を解放してから空初期化 + operation 診断（予約 teardown 契約）。
+      // 世代外の遅い応答なら release/初期化も行わない
+      if (generation !== loadGeneration) return;
       await releaseReservedSlugForNew();
       initializeEmptySession();
       saveError.value = t("resource_list.duplicate_failed");
@@ -1045,8 +1051,11 @@ async function initializeEditor(): Promise<void> {
   if (route.query.draftUid !== newPoiUid.value) {
     await router.replace({ query: { ...route.query, draftUid: newPoiUid.value } });
   }
-  await draftLifecycle.open(newPoiUid.value, null);
-  if (generation !== loadGeneration) return; // 初期化中の遷移は破棄
+  if (generation !== loadGeneration) return; // 初期化中の遷移は以降の副作用ごと破棄
+  await draftLifecycle.open(newPoiUid.value, null, {
+    shouldApply: () => generation === loadGeneration,
+  });
+  if (generation !== loadGeneration) return; // open 中の遷移も破棄
   // インポート自動起動（複製と併用しない）。draft 復元があっても importFile 成功時に張り直す
   if (route.query.import === "1" && !duplicateFrom) {
     void nextTick(() => {

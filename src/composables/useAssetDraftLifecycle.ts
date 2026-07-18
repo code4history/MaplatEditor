@@ -33,7 +33,11 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     draftRestored.value = true;
   };
 
-  const open = async (assetUid: string, revision: number | null) => {
+  const open = async (
+    assetUid: string,
+    revision: number | null,
+    opts?: { shouldApply?: () => boolean },
+  ) => {
     currentUid.value = assetUid;
     currentRevision.value = revision;
     draftRestored.value = false;
@@ -41,8 +45,11 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     configureCore(assetUid, revision);
     const draft = await window.assetDrafts.get(options.kind, assetUid) as AssetDraftEnvelope<T> | null;
     const decision = decideDraftRestore(draft, revision);
-    if (decision === 'auto-apply' && draft) await applyDraft(draft);
-    if (decision === 'conflict' && draft) conflictDraft.value = draft;
+    // M11-T10b（実装レビュー Minor）: get の await 中に遷移が起きた場合、古い session への
+    // 復元適用・conflict 提示を shouldApply ガードで抑止する（省略時は従来どおり適用）
+    const mayApply = opts?.shouldApply?.() ?? true;
+    if (decision === 'auto-apply' && draft && mayApply) await applyDraft(draft);
+    if (decision === 'conflict' && draft && mayApply) conflictDraft.value = draft;
     return decision;
   };
 

@@ -703,4 +703,47 @@ test.describe('M11-T10 Dedup/Import', () => {
       await quitElectronApplication(app);
     }
   });
+
+  test('AC18: 復元下書きの保存後は draft-restored 表示と破棄操作が消える', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-restored-save-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+      // 下書きを作成（新規で slug 入力 → focus 維持 flush）
+      await openHash(page, '#/poisources/new');
+      await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('poi-slug').fill('t10b-restored-save');
+      await page.getByTestId('poi-slug').press('Tab');
+      const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
+      await page.evaluate(() => window.dispatchEvent(new Event('maplat:flush-drafts')));
+      await expect.poll(async () => page.evaluate(async (uid) =>
+        (await window.assetDrafts.get('poi', uid!)) != null, draftUid), { timeout: 15000 }).toBe(true);
+
+      // 下書きカードから復元 → draft-restored 表示 + 破棄ボタンが見える
+      await openHash(page, '#/poisources');
+      await page.locator(`[data-resource-uid="${draftUid}"]`).click();
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 15000 });
+      await expect(page.getByTestId('editor-discard-draft')).toBeVisible({ timeout: 5000 });
+
+      // 保存 → draft-restored 表示と破棄ボタンが消え、保存済み表示になる
+      await page.getByTestId('editor-save').click();
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 })
+        .toMatch(/#\/poisources\/[0-9a-f-]{36}$/);
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み/, { timeout: 10_000 });
+      await expect(page.getByTestId('editor-discard-draft')).toHaveCount(0);
+
+      // 一覧へ戻る → 下書きカードなし・保存済み行に badge なし
+      await page.getByTestId('editor-back').click();
+      await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
+      await expect.poll(async () => page.evaluate(async (uid) =>
+        (await window.assetDrafts.get('poi', uid!)) != null, draftUid), { timeout: 15000 }).toBe(false);
+
+      console.log('  AC18: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
 });
