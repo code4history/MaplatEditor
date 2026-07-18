@@ -69,7 +69,7 @@
             :draft-uid="document.uid"
             :original-slug="originalSlug"
             :required="true"
-            :disabled="structuralDisabled || sessionTransitionPending"
+            :disabled="structuralDisabled"
             input-testid="basemap-slug"
             @update:model-value="slugLive = $event"
             @change="updateField('slug', $event.trim())"
@@ -82,7 +82,7 @@
             :value="document.defaultLang"
             class="form-select form-select-sm"
             data-testid="basemap-default-language"
-            :disabled="structuralDisabled || sessionTransitionPending"
+            :disabled="structuralDisabled"
             @change="changeDefaultLang(($event.target as HTMLSelectElement).value as LangCode)"
           >
             <option v-for="language in SUPPORTED_LANGUAGES" :key="language.code" :value="language.code">{{ language.nativeName }}</option>
@@ -125,7 +125,7 @@
               class="form-control form-control-sm"
               :class="{ 'is-invalid': urlDiagnostics.length }"
               data-testid="basemap-url"
-              :disabled="structuralDisabled || sessionTransitionPending"
+              :disabled="structuralDisabled"
               @change="updateField('url', ($event.target as HTMLInputElement).value.trim())"
             >
           </EditorField>
@@ -140,7 +140,7 @@
               max="25"
               class="form-control form-control-sm"
               :class="{ 'is-invalid': minZoomDiagnostics.length }"
-              :disabled="structuralDisabled || sessionTransitionPending"
+              :disabled="structuralDisabled"
               @change="updateNumber('minZoom', ($event.target as HTMLInputElement).value)"
             >
           </EditorField>
@@ -155,7 +155,7 @@
               max="25"
               class="form-control form-control-sm"
               :class="{ 'is-invalid': maxZoomDiagnostics.length }"
-              :disabled="structuralDisabled || sessionTransitionPending"
+              :disabled="structuralDisabled"
               @change="updateNumber('maxZoom', ($event.target as HTMLInputElement).value)"
             >
           </EditorField>
@@ -165,7 +165,7 @@
           <label class="form-label fw-semibold">{{ t("basemap.icon") }}</label>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <img v-if="thumbnailUrl" :src="thumbnailUrl" class="base-map-icon" :alt="document.slug">
-            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="structuralDisabled || sessionTransitionPending" @click="uploadIcon">{{ t("appedit.upload") }}</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="structuralDisabled" @click="uploadIcon">{{ t("appedit.upload") }}</button>
             <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled || !canGenerateIcon || generatingIcon" @click="generateIcon">
               {{ generatingIcon ? t("basemap.generating_icon") : t("basemap.generate_icon") }}
             </button>
@@ -182,8 +182,8 @@
           </label>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span class="small font-monospace">{{ coverageText }}</span>
-            <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled || sessionTransitionPending" @click="showEnvelopeModal = true">{{ t("appedit.envelope_pick") }}</button>
-            <button v-if="document.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" :disabled="structuralDisabled || sessionTransitionPending" @click="updateField('coverageLngLats', null)">{{ t("appedit.envelope_clear") }}</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled" @click="showEnvelopeModal = true">{{ t("appedit.envelope_pick") }}</button>
+            <button v-if="document.coverageLngLats" type="button" class="btn btn-sm btn-outline-danger" :disabled="structuralDisabled" @click="updateField('coverageLngLats', null)">{{ t("appedit.envelope_clear") }}</button>
           </div>
         </div>
       </div>
