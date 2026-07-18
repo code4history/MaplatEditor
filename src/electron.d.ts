@@ -160,8 +160,9 @@ export interface PoiSourceReference {
 export interface PoiSourcesAPI {
     list(request: { query: string; page: number; pageSize: number }): Promise<PoiSourceListResult>;
     get(uid: string): Promise<PoiSourceDetailResult | null>;
-    // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
-    createLocal(input: { slug: string; title: any; lang?: string; uid?: string }): Promise<PoiSourceSaveResult>;
+    // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる。
+    // fc 指定時は内容入りの単一作成 (M11-T10b 遅延作成の保存経路)。prepare 検証で error あれば Invalid 拒否
+    createLocal(input: { slug: string; title: any; lang?: string; uid?: string; fc?: unknown }): Promise<PoiSourceSaveResult>;
     save(uid: string, payload: { slug: string; title: any; fc: any; expectedRevision?: number }): Promise<PoiSourceSaveResult>;
     importFile(input: { slug: string; title: any; filePath: string; lang?: string; langOverride?: boolean; uid?: string }): Promise<PoiSourceSaveResult>;
     detectImportLanguage(filePath: string, fallbackLang?: string): Promise<string>;
