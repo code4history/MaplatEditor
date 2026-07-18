@@ -755,6 +755,15 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         homePosition,
         mercZoom,
         gcps,
+        // M12-T1: edge 分割 E2E の状態検証と右クリック座標計算用
+        edges,
+        illstMapInfo: () => ({ map: illstMap, source: illstSource }),
+        mercMapInfo: () => ({ map: mercMap, source: illstSource }),
+        // url_ を E2E 側で設定した後に illstSource を初期化するための再実行口
+        loadMapTiles: async () => loadMapTiles(),
+        // edge 分割のエラー経路（衝突・edge 未検出）は marker が hit を遮るため UI 右クリックでは
+        // 到達不能。実関数を直接駆動して検証するための公開口（実経路そのものを呼ぶ）
+        addMarkerOnEdge: (arg: any, map: any) => addMarkerOnEdge(arg, map),
         currentEditingLayer,
         baseMapFilterRegion,
         estimateHomeFromGcps,
