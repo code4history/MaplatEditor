@@ -1026,20 +1026,17 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
 }
 console.log("m11-t7 smoke Part D: OK");
 
-// --- Part E: POI Edit + 作成モーダルが SlugField、生 checkSlug 撤去 ---
-for (const rel of ["src/views/PoiEdit.vue", "src/views/PoiSourceList.vue"]) {
-  const src = await readSrc(rel);
-  assert.match(src, /SlugField/, `${rel} must use SlugField`);
-  assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must drop raw checkSlug (AC17)`);
-}
+// --- Part E: POI の slug UI は PoiEdit の SlugField に一元化、生 checkSlug 撤去 ---
+// M11-T10: PoiSourceList の作成モーダルは行作成方式 (createLocal → PoiEdit 遷移) に置換され、
+// slug 編集・予約 lifecycle は PoiEdit 側 SlugField が担う。複製は reserveCopySlug (共通文法)。
+// (POI の遅延作成統一は t10b で他 4 種と同型化予定)
+const poiEditSrc = await readSrc("src/views/PoiEdit.vue");
+assert.match(poiEditSrc, /SlugField/, "PoiEdit must use SlugField");
+assert.doesNotMatch(poiEditSrc, /window\.assets\.checkSlug/, "PoiEdit must drop raw checkSlug (AC17)");
 const poiSourceListSrc = await readSrc("src/views/PoiSourceList.vue");
-assert.match(poiSourceListSrc, /async function resetModal|const resetModal\s*=\s*async/,
-  "POI modal reset must await reservation release before resetting uid");
-assert.match(poiSourceListSrc, /await modalSlugField\.value\?\.release\(\)/,
-  "POI modal reset/close must await reservation release");
-const resetModalBody = poiSourceListSrc.slice(poiSourceListSrc.indexOf("resetModal"), poiSourceListSrc.indexOf("const closeModal"));
-assert.ok(resetModalBody.indexOf("await modalSlugField.value?.release()") < resetModalBody.indexOf("modal.uid = crypto.randomUUID()"),
-  "POI modal uid must not change until release completes");
+assert.doesNotMatch(poiSourceListSrc, /window\.assets\.checkSlug/, "PoiSourceList must drop raw checkSlug (AC17)");
+assert.match(poiSourceListSrc, /reserveCopySlug/, "PoiSourceList duplicate must reserve slug via reserveCopySlug (T10)");
+assert.match(poiSourceListSrc, /createLocal/, "PoiSourceList create/duplicate must go through createLocal");
 console.log("m11-t7 smoke Part E: OK");
 
 // --- Part F1: AppEdit が SlugField、一意性ボタン撤去 ---
@@ -1263,9 +1260,11 @@ for (const rel of ALL_EDIT_VIEWS) {
   assert.match(src, /useInitialDraftPersist/, `${rel} must use useInitialDraftPersist (AC6)`);
 }
 
-// POI作成モーダルも modalSlugState で予約成功後に uid を確定する
+// M11-T10: POI 作成モーダルは行作成方式へ置換。複製は reserveCopySlug が uid を事前採番し
+// createLocal({ uid }) が予約帰属と一致する uid で行を作る (AC6 の帰属一貫性は共通実装側で担保)
 const poiListSrc = await readSrc("src/views/PoiSourceList.vue");
-assert.match(poiListSrc, /crypto\.randomUUID/, "POI modal must pre-mint uid (AC6)");
+assert.match(poiListSrc, /createLocal\(\{ slug: reserved\.slug,[^)]*uid: reserved\.uid/,
+  "POI duplicate must createLocal with pre-reserved uid (AC6)");
 
 console.log("m11-t7 smoke Part K: OK");
 

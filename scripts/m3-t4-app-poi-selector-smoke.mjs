@@ -49,15 +49,17 @@ try {
   );
 
   // AppList は複数アプリ一覧であること
+  // M11-T6: 一覧データ取得は adapter 層経由 (AppList → createAppListAdapter → window.applist.request)
   assert.match(
     appList,
-    /window\.applist\.request/,
-    'AppList.vue が window.applist.request を呼んでいない'
+    /createAppListAdapter/,
+    'AppList.vue が createAppListAdapter を使っていない'
   );
 
+  // M11-T10: 新規追加は既存 new-draft があればそれを引き継いで遷移する
   assert.match(
     appList,
-    /router\.push\("\/appedit"\)/,
+    /router\.push\([^;]*"\/appedit"\)/,
     'AppList.vue が新規 AppEdit へ遷移しない'
   );
 

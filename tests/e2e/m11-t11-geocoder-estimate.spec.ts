@@ -2,7 +2,6 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
@@ -19,33 +18,42 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 }
 
 async function createMapWithGcps(page: Page): Promise<string> {
+  // T12-4: DB 直書きを防ぐため、素体 save 後に window.mapedit.updateTin で compiled を生成し、
+  // 再度 save して compiled / rtree / fts をバックエンド側で永続化する。
   return page.evaluate(async () => {
     const slug = `m11-t11-map-${Date.now()}`;
-    const result = await window.mapedit.save({
-      slug,
-      mapObject: {
-        mapID: slug,
-        title: { ja: '推定テスト地図', en: 'Estimate Test Map' },
-        officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-        attr: {}, dataAttr: {}, description: {},
-        license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
-        imageExtension: 'png', width: 400, height: 300,
-        // GCPタブを有効にするため最低限の画像URLを与える（noload経由でエラーは無視される）
-        url_: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
-        gcps: [
-          [[0, 300], [15551351.4, 4249117.8]],
-          [[400, 300], [15562483.3, 4249117.8]],
-          [[400, 0], [15562483.3, 4259837.2]],
-          [[0, 0], [15551351.4, 4259837.2]],
-        ],
-        edges: [],
-        sub_maps: [],
-        strictMode: 'strict', vertexMode: 'plain', status: 'New',
-      },
-      tins: [],
-    });
-    if (!result || result.result !== 'Success') throw new Error(`Map seed failed: ${JSON.stringify(result)}`);
-    return result.uid;
+    const mapObject = {
+      mapID: slug,
+      title: { ja: '推定テスト地図', en: 'Estimate Test Map' },
+      officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+      attr: {}, dataAttr: {}, description: {},
+      license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
+      imageExtension: 'png', width: 400, height: 300,
+      // GCPタブを有効にするため最低限の画像URLを与える（noload経由でエラーは無視される）
+      url_: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+      gcps: [
+        [[0, 300], [15551351.4, 4249117.8]],
+        [[400, 300], [15562483.3, 4249117.8]],
+        [[400, 0], [15562483.3, 4259837.2]],
+        [[0, 0], [15551351.4, 4259837.2]],
+      ],
+      edges: [],
+      sub_maps: [],
+      strictMode: 'strict', vertexMode: 'plain', status: 'New',
+    };
+    const r1 = await window.mapedit.save({ slug, mapObject, tins: [] });
+    if (!r1 || r1.result !== 'Success') throw new Error(`Map seed failed: ${JSON.stringify(r1)}`);
+
+    const tinResult = await window.mapedit.updateTin(
+      mapObject.gcps, mapObject.edges, 0, [mapObject.width, mapObject.height],
+      mapObject.strictMode, mapObject.vertexMode,
+    );
+    if (!Array.isArray(tinResult) || !tinResult[1] || typeof tinResult[1] !== 'object') {
+      throw new Error(`TIN compile failed: ${JSON.stringify(tinResult)}`);
+    }
+    const r2 = await window.mapedit.save({ slug, uid: r1.uid, mapObject, tins: [tinResult[1]] });
+    if (!r2 || r2.result !== 'Success') throw new Error(`Compiled map save failed: ${JSON.stringify(r2)}`);
+    return r2.uid;
   });
 }
 
@@ -153,82 +161,38 @@ async function createMapWithOutlierGcps(page: Page): Promise<string> {
 }
 
 async function seedMapAndApp(e2eRoot: string): Promise<{ mapUid: string; appUid: string }> {
-  const mapUid = 'aaaaaaaa-aaaa-aaaa-aaaa-000000000001';
-  const appUid = 'bbbbbbbb-bbbb-bbbb-bbbb-000000000001';
+  // T12-4: DB 直書き・トリガー DROP を廃止し、公開 API だけで seed する。
+  // createMapWithGcps 内で素体 save → window.mapedit.updateTin → compiled 付き save を済ませている。
   const { app, page } = await launch(e2eRoot);
-  const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
-  await quitElectronApplication(app);
+  try {
+    const mapUid = await createMapWithGcps(page);
 
-  const dbPath = path.join(saveFolder, 'maplat.sqlite');
-  const db = new DatabaseSync(dbPath);
-  const mapJson = JSON.stringify({
-    width: 400,
-    height: 300,
-    lang: 'ja',
-    edges: [[0, 0], [400, 0], [400, 300], [0, 300]],
-    gcps: [
-      { x: 0, y: 300, lng: 139.7, lat: 35.6 },
-      { x: 400, y: 300, lng: 139.8, lat: 35.6 },
-      { x: 400, y: 0, lng: 139.8, lat: 35.7 },
-      { x: 0, y: 0, lng: 139.7, lat: 35.7 },
-    ],
-    compiled: {
-      version: 2.00703,
-      points: [
-        [[0, 300], [15551351.4, 4249117.8]],
-        [[400, 300], [15562483.3, 4249117.8]],
-        [[400, 0], [15562483.3, 4259837.2]],
-        [[0, 0], [15551351.4, 4259837.2]],
-      ],
-      vertices_points: [
-        [[0, 300], [15551351.4, 4249117.8]],
-        [[400, 300], [15562483.3, 4249117.8]],
-        [[400, 0], [15562483.3, 4259837.2]],
-        [[0, 0], [15551351.4, 4259837.2]],
-      ],
-      centroid_point: [[200, 150], [15556917.35, 4254477.5]],
-      strict_status: 'strict',
-      wh: [400, 300],
-      weight_buffer: { forw: { '0': 1, '1': 1, '2': 1, '3': 1, bbox0: 1, bbox1: 1, bbox2: 1, bbox3: 1, cent: 1 }, bakw: { '0': 1, '1': 1, '2': 1, '3': 1, bbox0: 1, bbox1: 1, bbox2: 1, bbox3: 1, cent: 1 } },
-      tins_points: [],
-      vertices_params: [],
-      edgeNodes: [],
-    },
-  });
-  const appJson = JSON.stringify({
-    appID: 'm11-t11-app',
-    appName: { ja: '推定テストアプリ' },
-    title: { ja: '推定テストアプリ' },
-    description: {},
-    lang: 'ja',
-    sources: [{ sourceType: 'maplat', mapUid }],
-    pois: [],
-    httpSettings: {},
-    appSettings: {},
-    manifestSettings: {},
-  });
-  db.exec(`
-    DROP TRIGGER IF EXISTS maps_search_ad;
-    DROP TRIGGER IF EXISTS maps_search_au;
-    DROP TRIGGER IF EXISTS maps_search_ai;
-    DROP TRIGGER IF EXISTS apps_search_ad;
-    DROP TRIGGER IF EXISTS apps_search_au;
-    DROP TRIGGER IF EXISTS apps_search_ai;
-    DROP TRIGGER IF EXISTS apps_rtree_ad;
-    DROP TRIGGER IF EXISTS apps_rtree_au;
-    DROP TRIGGER IF EXISTS apps_rtree_ai;
-  `);
-  db.exec(`DELETE FROM maps_rtree WHERE id IN (SELECT rid FROM maps_rtree_key WHERE uid = '${mapUid}'); DELETE FROM maps_rtree_key WHERE uid = '${mapUid}';`);
-  db.exec(`DELETE FROM apps WHERE uid = '${appUid}'; DELETE FROM maps WHERE uid = '${mapUid}';`);
-  db.prepare('INSERT INTO maps (uid, slug, data_json) VALUES (?, ?, ?)').run(mapUid, 'm11-t11-map', mapJson);
-  const rowid = Number((db.prepare('SELECT last_insert_rowid() AS id').get() as any).id);
-  db.prepare('INSERT INTO maps_rtree_key (uid, rid) VALUES (?, ?)').run(mapUid, rowid);
-  db.prepare('INSERT INTO maps_rtree (id, min_x, max_x, min_y, max_y) VALUES (?, ?, ?, ?, ?)').run(
-    rowid, 15551351.4, 15562483.3, 4249117.8, 4259837.2
-  );
-  db.prepare('INSERT INTO apps (uid, slug, data_json) VALUES (?, ?, ?)').run(appUid, 'm11-t11-app', appJson);
-  db.close();
-  return { mapUid, appUid };
+    const appUid = await page.evaluate(async (mapUid) => {
+      const slug = `m11-t11-app-${Date.now()}`;
+      const r = await window.appedit.save({
+        slug,
+        create: true,
+        document: {
+          appID: slug,
+          appName: { ja: '推定テストアプリ', en: 'Estimate test app' },
+          title: { ja: '推定テストアプリ', en: 'Estimate test app' },
+          description: {},
+          lang: 'ja',
+          sources: [{ sourceType: 'maplat', mapUid }],
+          pois: [],
+          httpSettings: {},
+          appSettings: {},
+          manifestSettings: {},
+        },
+      });
+      if (!r || r.result !== 'Success') throw new Error(`seed app failed: ${JSON.stringify(r)}`);
+      return r.uid;
+    }, mapUid);
+
+    return { mapUid, appUid };
+  } finally {
+    await quitElectronApplication(app);
+  }
 }
 
 async function openMapEdit(page: Page, uid: string): Promise<void> {

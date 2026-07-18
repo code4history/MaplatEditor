@@ -137,10 +137,20 @@ try {
   );
 
   // AppList は複数アプリ一覧として applist API を使うこと
+  // M11-T6: 一覧データ取得は resource-adapters 層経由 (AppList → createAppListAdapter → window.applist.request)
   assert.match(
     appListView,
+    /createAppListAdapter/,
+    'AppList.vue が createAppListAdapter を使っていない'
+  );
+  const appListAdapterSource = await readFile(
+    path.join(projectRoot, 'src/views/resource-adapters/appListAdapter.ts'),
+    'utf8'
+  );
+  assert.match(
+    appListAdapterSource,
     /window\.applist\.request/,
-    'AppList.vue が window.applist.request を呼んでいない'
+    'appListAdapter.ts が window.applist.request を呼んでいない'
   );
 
   // アプリ編集はuid正準で開く (ADR-0007: ルーティング・IPCはuid、slugは表示/編集用)

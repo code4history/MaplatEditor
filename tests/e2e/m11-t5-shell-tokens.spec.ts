@@ -212,13 +212,18 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '重複元');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+    // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
+    await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();
-    await expect(page).not.toHaveURL(/new=1/);
+    await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
 
     await page.getByTestId('basemap-new').click();
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '重複先');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+    await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();
     await expect(page.locator('[data-diagnostic-scope="operation"]')).toBeVisible();
     await page.getByTestId('editor-undo').click();
@@ -242,10 +247,12 @@ test('F8: editing an asset shows the draft badge live and undo removes it immedi
     await openHash(page, '#/assets', '[data-master-detail="image-asset"]');
     await page.getByTestId('asset-new').click();
     await page.getByTestId('asset-pick-file').click();
-    await fillAndCommit(page.getByTestId('asset-slug'), 'e2e-f8-asset');
-    await fillAndCommit(page.getByTestId('asset-title'), 'F8画像');
-    await page.getByTestId('editor-save').click();
-    await expect(page).not.toHaveURL(/new=1/);
+      await fillAndCommit(page.getByTestId('asset-slug'), 'e2e-f8-asset');
+      await fillAndCommit(page.getByTestId('asset-title'), 'F8画像');
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
 
     // 編集で dirty → 一覧の下書きバッジが即時に付く（一覧の再訪問なし）
@@ -329,19 +336,24 @@ test('F8: draft badges stay consistent across row switching', async () => {
       await fillAndCommit(page.getByTestId('basemap-slug'), slug);
       await fillAndCommit(page.getByTestId('basemap-title'), title);
       await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
+      // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
       await page.getByTestId('editor-save').click();
-      await expect(page).not.toHaveURL(/new=1/);
+      await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     }
-    await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(0);
+    // 保存後のバッジ消滅は eventually-consistent (persist throttle 2000ms + refresh debounce 2300ms)。
+    // 並列負荷時は連鎖の最悪ケースが 5s を超えるため余裕ある窓で待つ (T12)
+    await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(0, { timeout: 30_000 });
     await page.getByTestId('basemap-row-f8-switch-a').click();
     await fillAndCommit(page.getByTestId('basemap-title'), 'F8切替A 変更');
     await expect(page.getByTestId('basemap-draft-badge')).toBeVisible();
-    await page.waitForTimeout(1500); // 旧 900ms refresh 窓を跨いでから切り替える
     await page.getByTestId('basemap-row-f8-switch-b').click();
-    await page.waitForTimeout(1500); // session flush（store 永続化）を待つ
-    const bmDrafts = await page.evaluate(async () => (await window.assetDrafts.list('base-map')).length);
-    expect(bmDrafts).toBe(1);
-    await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(1);
+    // T12: 固定sleepを廃し、行切替の session flush が store へ永続化するのを状態ベースで待つ
+    await expect.poll(async () =>
+      page.evaluate(async () => (await window.assetDrafts.list('base-map')).length),
+    { timeout: 30_000 }).toBe(1);
+    await expect(page.getByTestId('basemap-draft-badge')).toHaveCount(1, { timeout: 30_000 });
 
     // --- 復活側（旧再現D）: Asset A を Undo でクリーン化 → 別行 B へ切替してもバッジが戻らない ---
     await openHash(page, '#/assets', '[data-master-detail="image-asset"]');
@@ -350,21 +362,30 @@ test('F8: draft badges stay consistent across row switching', async () => {
       await page.getByTestId('asset-pick-file').click();
       await fillAndCommit(page.getByTestId('asset-slug'), slug);
       await fillAndCommit(page.getByTestId('asset-title'), `F8 ${slug}`);
+      // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
       await page.getByTestId('editor-save').click();
-      await expect(page).not.toHaveURL(/new=1/);
+      await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     }
-    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
+    // 保存後のバッジ消滅は eventually-consistent。余裕ある窓で待つ (T12)
+    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0, { timeout: 30_000 });
     await page.getByTestId('asset-row-f8-asset-a').click();
     await fillAndCommit(page.getByTestId('asset-title'), 'F8 A 変更');
     await expect(page.getByTestId('asset-draft-badge')).toBeVisible();
-    await page.waitForTimeout(3000); // persist(2000ms)+refresh(2300ms) を跨ぎ store 側 draftUids に載せる
+    // T12: 固定sleep(3000ms)を廃し、draft が store に永続化される(persist throttle 2000ms)のを
+    // 状態ベースで待つ。「store に載った draft が Undo クリーン化で消える」検証の前提条件
+    await expect.poll(async () =>
+      page.evaluate(async () => (await window.assetDrafts.list('image-asset')).length),
+    { timeout: 30_000 }).toBe(1);
     await page.getByTestId('editor-undo').click();
-    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
+    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0, { timeout: 30_000 });
     await page.getByTestId('asset-row-f8-asset-b').click();
-    await page.waitForTimeout(1500); // session flush（store から removePersisted）を待つ
-    const assetDrafts = await page.evaluate(async () => (await window.assetDrafts.list('image-asset')).length);
-    expect(assetDrafts).toBe(0);
-    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0);
+    // T12: 固定sleepを廃し、session flush の removePersisted を状態ベースで待つ
+    await expect.poll(async () =>
+      page.evaluate(async () => (await window.assetDrafts.list('image-asset')).length),
+    { timeout: 30_000 }).toBe(0);
+    await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0, { timeout: 30_000 });
   } finally {
     await quitElectronApplication(app);
   }

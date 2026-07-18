@@ -561,7 +561,8 @@
       "no_icon_source": "PWA图标原始图像未设置,因此未生成图标。",
       "missing_thumbnail": "部分底图/叠加层的缩略图未找到。",
       "missing_splash": "未找到启动画面图像。"
-    }
+    },
+    "no_app_name": "Please input an app name."
   },
   "mapmodel": {
     "untitled": "标题未设置",
@@ -692,7 +693,9 @@
       "unsupported_scheme": "URL仅支持http/https",
       "payload_too_large": "数据超过大小上限（50MB）",
       "pick_failed": "无法选择文件",
-      "references_unavailable": "无法获取引用信息"
+      "references_unavailable": "无法获取引用信息",
+      "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
     }
   },
   "poiedit": {
@@ -754,7 +757,20 @@
       "no_assets": "未找到素材",
       "set_builtin": "标准"
     },
-    "saving": "保存中…"
+    "saving": "保存中…",
+    "content_mode_standard": "Standard",
+    "content_mode_html": "HTML",
+    "content_mode_url": "Web Page",
+    "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
+    "content_mode_switch_title": "Switch Content Mode",
+    "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
+    "content_mode_confirm": "Switch",
+    "content_mode_cancel": "Cancel",
+    "reference_assets": "Reference Assets",
+    "copy_ref": "Copy Reference",
+    "insert_image": "Insert Image",
+    "add_reference_asset": "Add Asset",
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
   },
   "assetlist": {
     "master_detail": {
@@ -840,7 +856,8 @@
       "reserved-by-other": "已被他处占用",
       "check-failed": "检查失败",
       "taken": "已被使用",
-      "unavailable": "无法确认"
+      "unavailable": "无法确认",
+      "required": "Enter a slug"
     },
     "draft_badge": "草稿",
     "draft_conflict": {
@@ -857,7 +874,10 @@
       "maps": "地图选择",
       "preview": "预览",
       "gcps_requires_image": "请先注册地图图像"
-    }
+    },
+    "delete_draft": "Delete draft",
+    "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
+    "untitled": "Untitled"
   },
   "resource_list": {
     "new_item": "新建",
@@ -869,13 +889,22 @@
     "kind_asset": "素材",
     "loading": "加载中…",
     "empty": "没有匹配的项目",
-    "end": "已显示全部",
     "load_error": "加载失败",
     "append_error": "加载更多失败",
     "retry": "重试",
     "menu_delete": "删除",
     "menu_label": "操作菜单",
-    "total_loaded": "共{{total}}项·已显示{{loaded}}项",
-    "loaded_only": "已显示{{loaded}}项"
+    "loaded_only": "已显示{{loaded}}项",
+    "menu_duplicate": "Duplicate",
+    "total_only": "{{total}} items",
+    "total_partial": "Showing {{loaded}} of {{total}}",
+    "delete_irreversible": "This action cannot be undone.",
+    "delete_referenced_by": "Referenced by the following resources:",
+    "delete_references_unavailable": "Unable to retrieve reference information.",
+    "deleting": "Deleting…",
+    "import_poi": "Import",
+    "import_map": "Import Map",
+    "delete_confirm_title": "Delete \"{{title}}\"?",
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
 }

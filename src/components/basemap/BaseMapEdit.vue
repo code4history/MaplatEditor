@@ -50,7 +50,7 @@
               :active-lang="activeLang"
               :default-lang="document.defaultLang"
               :language-options="SUPPORTED_LANGUAGES"
-              :disabled="readOnly || saving"
+              :disabled="readOnly || saving || sessionTransitionPending"
               :invalid="titleDiagnostics.length > 0"
               @update:model-value="updateResource('title', $event)"
               @select-language="activeLang = $event"
@@ -96,7 +96,7 @@
             :active-lang="activeLang"
             :default-lang="document.defaultLang"
             :language-options="SUPPORTED_LANGUAGES"
-            :disabled="readOnly || saving"
+            :disabled="readOnly || saving || sessionTransitionPending"
             @update:model-value="updateResource('label', $event)"
             @select-language="activeLang = $event"
           />
@@ -109,7 +109,7 @@
             :active-lang="activeLang"
             :default-lang="document.defaultLang"
             :language-options="SUPPORTED_LANGUAGES"
-            :disabled="readOnly || saving"
+            :disabled="readOnly || saving || sessionTransitionPending"
             @update:model-value="updateResource('attr', $event)"
             @select-language="activeLang = $event"
           />
@@ -286,7 +286,7 @@ const showEnvelopeModal = ref(false);
 const readOnly = computed(() => document.value.scope === "builtin");
 const editable = computed(() => !readOnly.value);
 const translationMode = computed(() => isTranslationMode(activeLang.value, document.value.defaultLang));
-const structuralDisabled = computed(() => readOnly.value || translationMode.value || saving.value);
+const structuralDisabled = computed(() => readOnly.value || translationMode.value || saving.value || sessionTransitionPending.value);
 const dirty = computed(() => (historyVersion.value, history.isDirty()));
 const canUndo = computed(() => (historyVersion.value, history.canUndo()));
 const canRedo = computed(() => (historyVersion.value, history.canRedo()));
@@ -350,10 +350,12 @@ function resetSession(item: BaseMapCatalogItem | null, uid: string): void {
 
 let sessionOpened = false;
 let sessionTransition = Promise.resolve();
+const sessionTransitionPending = ref(false);
 let pendingSavedIdentity: { uid: string; revision: number } | null = null;
 watch(
   () => [props.uid, props.item?.revision, props.isNew] as const,
   ([uid, itemRevision, isNew]) => {
+    sessionTransitionPending.value = true;
     sessionTransition = sessionTransition.then(async () => {
       // AC6: asset/session identity切替時に初期draft保存のone-shot状態をresetする
       resetInitialDraftPersist();
@@ -382,6 +384,8 @@ watch(
     }).catch((cause) => {
       console.error("Failed to change base map editor session", cause);
       error.value = t("basemap.errors.load_failed");
+    }).finally(() => {
+      sessionTransitionPending.value = false;
     });
   },
   { immediate: true },

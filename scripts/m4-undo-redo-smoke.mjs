@@ -77,10 +77,11 @@ try {
     /import PoiReferenceEditor from '\.\.\/components\/PoiReferenceEditor\.vue'/,
     'MapEdit.vue must import PoiReferenceEditor'
   );
+  // M11-T3/T9: タブバーは共通 EditorTabs 化され、POI タブの label は editor_ui.tabs.pois
   assert.match(
     mapEdit,
-    /activeTab === 'pois'[\s\S]{0,200}?poiref\.tab_label/,
-    'MapEdit.vue must add the POI data tab (poiref.tab_label) to the tab bar'
+    /key: 'pois', labelKey: 'editor_ui\.tabs\.pois'/,
+    "MapEdit.vue must add the POI data tab (editor_ui.tabs.pois) to the EditorTabs bar"
   );
   const poisTab = mapEdit.match(/v-show="activeTab === 'pois'"[\s\S]*?<\/div>/)?.[0] ?? '';
   assert.ok(poisTab, 'MapEdit.vue pois tab block could not be located');

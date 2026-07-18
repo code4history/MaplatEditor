@@ -1100,13 +1100,14 @@ try {
     'useAssetThumbnails が getFilePath でサムネイルを解決していない'
   );
   const assetListView = await readFile(
-    path.join(projectRoot, 'src/views/AssetList.vue'),
+    // M11-T4: AssetList は master-detail 化され、一覧描画は AssetMasterList へ分離
+    path.join(projectRoot, 'src/components/assets/AssetMasterList.vue'),
     'utf8'
   );
   assert.match(
     assetListView,
     /useAssetThumbnails/,
-    'AssetList が共用 composable (useAssetThumbnails) に置き換わっていない'
+    'AssetMasterList が共用 composable (useAssetThumbnails) に置き換わっていない'
   );
 
   // URL タブ: 空入力は決定不可
@@ -1202,9 +1203,10 @@ try {
     /const onPickerSelect = \(value: string\): void => \{\s*\n\s*input\.value = value;\s*\n\s*commit\(value\);/,
     'IconRefField の picker 選択が commit (update:modelValue) 経路に流れていない'
   );
+  // M11-T9: picker は開いた行 index を closure に捕捉して onImageChange へ流す
   assert.match(
     attrForm,
-    /onImageChange\(picker\.imageIndex, value\)/,
+    /openImagePicker[\s\S]{0,200}?onImageChange\(index, value\)/,
     'PoiAttributeForm の image picker 選択が onImageChange 経路に流れていない'
   );
   assert.match(
@@ -1266,7 +1268,7 @@ try {
   // (IconRefField 抽出 [Phase 8] で icon picker が子コンポーネントに移ったため)
   assert.match(
     attrForm,
-    /picker\.visible \|\|\s*\n\s*!!iconFieldRef\.value\?\.pickerOpen \|\|\s*\n\s*!!selectedIconFieldRef\.value\?\.pickerOpen/,
+    /pickerAssetVisible\.value \|\|\s*\n\s*!!iconFieldRef\.value\?\.pickerOpen \|\|\s*\n\s*!!selectedIconFieldRef\.value\?\.pickerOpen/,
     'PoiAttributeForm の pickerOpen が IconRefField の picker 表示を集約していない'
   );
   assert.match(
@@ -1290,11 +1292,12 @@ try {
     'PoiEdit の onMainProcessMessage が picker 表示中のガードを先頭に持っていない'
   );
 
-  // 確定時の imageIndex 再検証 (範囲外/行不在は console.warn + no-op で黙って捨てない)
+  // M11-T9: picker 確定は開いた行 index を closure に捕捉する方式へ変更。
+  // 選択値は必ず開いた行に届き、確定後は callback を破棄する (stale index が構造的に発生しない)
   assert.match(
     attrForm,
-    /console\.warn\(\s*\n\s*`PoiAttributeForm: picker\.imageIndex/,
-    'PoiAttributeForm の onPickerSelect が imageIndex 範囲外を console.warn していない'
+    /pickerCallback\(value\);\s*\n\s*pickerCallback = null;/,
+    'PoiAttributeForm の picker 確定が callback 実行後に破棄されていない'
   );
 
   console.log('  [10/11] AssetPicker + PoiAttributeForm picker wiring: PASS');

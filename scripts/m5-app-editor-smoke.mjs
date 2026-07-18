@@ -423,17 +423,29 @@ try {
   );
   assert.match(poiReferenceEditor, /"update:pois"/, 'PoiReferenceEditor.vue が update:pois を emit していない');
   // Phase 8 Task 5: 地図選択タブ (AppEdit sources) と同じ2カラム設計 (ユーザー指摘 2026-07-11:
-  // 上下2段は窮屈・検索が無い)。左 = 検索付き POI ソース一覧 / 右 = 選択済みカード列 (↑/↓/× btn-group)
+  // 上下2段は窮屈・検索が無い)。T9 以降、PoiReferenceEditor は ResourceSelector コンポーネントにラップされ、
+  // 2カラム grid / 左右 pane / ↑↓× btn-group は ResourceSelector 内で一元実装される。
   assert.match(
     poiReferenceEditor,
-    /grid-template-columns: minmax\(280px, 36%\) 1fr/,
-    'PoiReferenceEditor.vue が地図選択タブと同じ2カラムグリッドになっていない'
+    /import ResourceSelector from "\.\/ResourceSelector\.vue"/,
+    'PoiReferenceEditor.vue が ResourceSelector を import していない'
   );
-  assert.match(poiReferenceEditor, /class="source-pane/, 'PoiReferenceEditor.vue に左カラム (source-pane) がない');
-  assert.match(poiReferenceEditor, /class="selected-pane/, 'PoiReferenceEditor.vue に右カラム (selected-pane) がない');
   assert.match(
     poiReferenceEditor,
-    /class="btn-group btn-group-sm flex-shrink-0"[\s\S]{0,900}?>↑<\/button>[\s\S]{0,600}?>↓<\/button>[\s\S]{0,600}?>×<\/button>/,
+    /<ResourceSelector[\s\S]*<template #list>[\s\S]*?<PoiSourceSelector/,
+    'PoiReferenceEditor.vue が ResourceSelector #list slot に PoiSourceSelector を配置していない'
+  );
+  const resourceSelector = await readFile(path.join(projectRoot, 'src/components/ResourceSelector.vue'), 'utf8');
+  assert.match(
+    resourceSelector,
+    /grid-template-columns: minmax\(280px, 36%\) 1fr/,
+    'ResourceSelector.vue が2カラムグリッドを提供していない'
+  );
+  assert.match(resourceSelector, /class="source-pane/, 'ResourceSelector.vue に左カラム (source-pane) がない');
+  assert.match(resourceSelector, /class="selected-pane/, 'ResourceSelector.vue に右カラム (selected-pane) がない');
+  assert.match(
+    poiReferenceEditor,
+    /class="btn-group btn-group-sm flex-shrink-0"[\s\S]{0,900}>↑<\/button>[\s\S]{0,600}>↓<\/button>[\s\S]{0,600}>×<\/button>/,
     'PoiReferenceEditor.vue の選択済みカードに ↑/↓/× の btn-group (地図選択と同配置) がない'
   );
   // 右カラム見出しは呼び出し側の headingKey prop で App/Map を差し替える

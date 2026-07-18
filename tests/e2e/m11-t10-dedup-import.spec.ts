@@ -104,6 +104,7 @@ test.describe('M11-T10 Dedup/Import', () => {
       // 複製オープンは dirty (人間検証指摘): 無変更でも保存でき、保存後に一覧へ現れる
       const saveButton = page.getByTestId('editor-save');
       await expect(saveButton).toBeEnabled({ timeout: 10000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
       await saveButton.click();
       await expect.poll(async () =>
         (await page.evaluate(async () => (await (window as any).search.apps({ page: 1, pageSize: 50 })).total)),
@@ -211,6 +212,11 @@ test.describe('M11-T10 Dedup/Import', () => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       const seeded = await seedMap(page);
+      // Search Layer 初期化/マイグレーションで遅延することがあるため、一覧遷移前に
+      // backend 側に slug が反映されるまで待つ。これで maplist 初回ロード時に行が描画される。
+      await expect.poll(async () =>
+        (await page.evaluate(async () => (await window.maplist.request('', 1)).docs.map((d: any) => d.mapID))),
+      { timeout: 30000 }).toContain(seeded.slug);
       // 初期ルートが #/maplist のため、同一hashでは再マウントされない。別ルート経由で再入する
       await openHash(page, '#/applist');
       await openHash(page, '#/maplist');
@@ -221,6 +227,7 @@ test.describe('M11-T10 Dedup/Import', () => {
       await expect(page.getByTestId('map-slug')).toHaveValue(`${seeded.slug}-copy`, { timeout: 15000 });
       const saveButton = page.getByTestId('editor-save');
       await expect(saveButton).toBeEnabled({ timeout: 15000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
 
       // 無変更のまま保存 → 予約(asset_uid=draftUid)と create uid が一致し Exist にならない
       await saveButton.click();
@@ -234,6 +241,10 @@ test.describe('M11-T10 Dedup/Import', () => {
 
       // R6: compiled を持つ地図(いま保存した複製)を複製→即保存。request が添付する
       // compiled tins の種付けにより、再計算なしで compiled が引き継がれる
+      // 一覧遷移前に backend 反映を確認し、maplist 初回ロードで行が描画されるようにする
+      await expect.poll(async () =>
+        (await page.evaluate(async () => (await window.maplist.request('', 1)).docs.map((d: any) => d.mapID))),
+      { timeout: 30000 }).toContain(`${seeded.slug}-copy`);
       await openHash(page, '#/applist');
       await openHash(page, '#/maplist');
       const copyUid = await page.evaluate(async (slug) =>
@@ -243,6 +254,7 @@ test.describe('M11-T10 Dedup/Import', () => {
       await clickCardAction(page, copyUid!, '複製');
       await expect(page.getByTestId('map-slug')).toHaveValue(`${seeded.slug}-copy-copy`, { timeout: 15000 });
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 15000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
       await page.getByTestId('editor-save').click();
       await expect.poll(async () => page.evaluate(async () =>
         (await window.maplist.request('', 1)).docs.length), { timeout: 20000 }).toBe(3);
@@ -282,8 +294,11 @@ test.describe('M11-T10 Dedup/Import', () => {
       await page.getByTestId('basemap-title').press('Tab');
       await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
       await page.getByTestId('basemap-url').press('Tab');
+      // 非同期 validation/dirty state が確定するまで待ってから保存（並列負荷時に click が無視されるのを防ぐ）
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
       await page.getByTestId('editor-save').click();
-      await expect(page).not.toHaveURL(/new=1/);
+      await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
 
       // 複製 → -copy の複製エディタが開く（duplicateFrom/slug ワンショットクエリ付き）
       const row = page.getByTestId('basemap-row-t10-md-base');

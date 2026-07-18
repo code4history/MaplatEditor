@@ -165,7 +165,7 @@ assert.match(
   'Map draft scheduling must follow the saved checkpoint, not mere history activity',
 );
 assert.match(mapEdit, /data-editor-action="export"[\s\S]*@click="exportMap"/);
-assert.match(mapEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting"/);
+assert.match(mapEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| preparingSave \|\| exporting"/);
 assert.match(mapEdit, /const saveState = computed/);
 assert.match(mapEdit, /draftLifecycle\.draftRestored\.value/);
 assert.match(mapEdit, /runEditorExportDecision\(/);

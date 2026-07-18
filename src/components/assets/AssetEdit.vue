@@ -48,7 +48,7 @@
               :active-lang="activeLang"
               :default-lang="document.defaultLang"
               :language-options="SUPPORTED_LANGUAGES"
-              :disabled="saving || picking"
+              :disabled="saving || picking || sessionTransitionPending"
               :invalid="titleDiagnostics.length > 0"
               @update:model-value="updateTitle"
               @select-language="activeLang = $event"
@@ -198,7 +198,7 @@ const conflictRevision = ref<number | null>(null);
 const overwritePending = ref(false);
 
 const translationMode = computed(() => isTranslationMode(activeLang.value, document.value.defaultLang));
-const structuralDisabled = computed(() => translationMode.value || saving.value || picking.value);
+const structuralDisabled = computed(() => translationMode.value || saving.value || picking.value || sessionTransitionPending.value);
 const dirty = computed(() => (historyVersion.value, history.isDirty()));
 const canUndo = computed(() => (historyVersion.value, history.canUndo()));
 const canRedo = computed(() => (historyVersion.value, history.canRedo()));
@@ -281,10 +281,12 @@ function resetSession(item: ImageAssetRow | null, uid: string): void {
 
 let sessionOpened = false;
 let sessionTransition = Promise.resolve();
+const sessionTransitionPending = ref(false);
 let pendingSavedIdentity: { uid: string; revision: number } | null = null;
 watch(
   () => [props.uid, props.item?.revision, props.isNew] as const,
   ([uid, itemRevision, isNew]) => {
+    sessionTransitionPending.value = true;
     sessionTransition = sessionTransition.then(async () => {
       if (sessionOpened) {
         await draftLifecycle.flush();
@@ -334,6 +336,8 @@ watch(
     }).catch((cause) => {
       console.error("Failed to change image asset editor session", cause);
       error.value = t("assetlist.errors.internal");
+    }).finally(() => {
+      sessionTransitionPending.value = false;
     });
   },
   { immediate: true },

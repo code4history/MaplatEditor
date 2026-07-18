@@ -104,7 +104,15 @@ export const registerMapEditHandlers = () => {
     // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (ADR-0007)
     ipcMain.handle('mapedit:save', async (_event, payload: any) => {
         try {
-            return await StorageAdapter.saveMapForEdit(payload);
+            const result = await StorageAdapter.saveMapForEdit(payload);
+            if (result && 'result' in result && result.result === 'Success') {
+                // 地図保存後は MapList を最新化する (app 保存と同様の一貫性: M11-T10 E2E で
+                // 保存直後の一覧遷移時に新規行が表示されないフレークの根因を解消)
+                BrowserWindow.getAllWindows().forEach(win => {
+                    win.webContents.send('maplist:refresh');
+                });
+            }
+            return result;
         } catch (e) {
             console.error('Failed to handle mapedit:save', e);
             return { result: 'Error' };

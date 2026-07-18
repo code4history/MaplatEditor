@@ -29,6 +29,10 @@ export function useSlugReservation(opts: {
 }) {
   let reserved: HeldReservation | null = null;
   let generation = 0;
+  // M11-T12: confirmForSave(保存直前の予約再確認)進行中の slug。この間、同一 slug への
+  // debounce済み onAvailable は抑止する。無条件の generation++ が進行中の確認を stale 化し
+  // 保存が「ID重複」で中断される競合の根治(保存側の確認が UI 側の live 確認に優先する)
+  let confirmInFlightSlug: string | null = null;
   let latestSlug: string | null = null;
   let operationTail: Promise<void> = Promise.resolve();
   let queuedOperations = 0;
@@ -142,6 +146,16 @@ export function useSlugReservation(opts: {
   // Counter-based pending: reservationPendingCount を increment/decrement し、
   // 旧 request の finally が新 request の pending を解除しないようにする(Major-C)。
   async function onAvailable(slug: string): Promise<SlugReservationFieldState | null> {
+    // M11-T12: 保存側の確認が進行中の slug への live 確認は抑止(上記コメント参照)
+    if (confirmInFlightSlug === slug) return null;
+    // M11-T12: 既に同一 identity で同じ slug を保持しているなら再claimは不要。
+    // 無条件に generation を進めると、進行中の confirmForSave (保存直前の予約再確認) を
+    // stale 化して null(=保存中断「ID重複」)にしてしまう競合があった(並列負荷時、
+    // debounce された可用性チェックが保存クリック後に着弾するケース)。
+    if (reserved && reserved.slug === slug && sameIdentity(reserved, snapshotIdentity())) {
+      latestSlug = slug;
+      return 'available';
+    }
     const token = ++generation;
     latestSlug = slug;
     releaseFailed.value = false;
@@ -179,6 +193,15 @@ export function useSlugReservation(opts: {
   // DB上の自己予約と予約なしを区別し、stale heldでも再reserveしてDB ownershipを再確立する(Major-2)。
   // 未変更slugもDB確認で他者予約を検出し、自己所有なら冪等claimする(AC15)。
   async function confirmForSave(currentSlug: string): Promise<SlugReservationConfirmation | null> {
+    confirmInFlightSlug = currentSlug;
+    try {
+      return await confirmForSaveInner(currentSlug);
+    } finally {
+      confirmInFlightSlug = null;
+    }
+  }
+
+  async function confirmForSaveInner(currentSlug: string): Promise<SlugReservationConfirmation | null> {
     const identity = snapshotIdentity();
     const originalSlug = opts.originalSlug();
     const token = ++generation;

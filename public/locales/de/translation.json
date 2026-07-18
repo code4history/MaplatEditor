@@ -561,7 +561,8 @@
       "no_icon_source": "Da kein PWA-Symbol-Quellbild festgelegt wurde, wurden keine Symbole erzeugt.",
       "missing_thumbnail": "Für einige Basiskarten/Overlays wurden keine Miniaturansichten gefunden.",
       "missing_splash": "Das Splash-Bild wurde nicht gefunden."
-    }
+    },
+    "no_app_name": "Please input an app name."
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",
@@ -692,7 +693,9 @@
       "unsupported_scheme": "Nur http/https-URLs werden unterstützt",
       "payload_too_large": "Die Daten überschreiten das Größenlimit (50 MB)",
       "pick_failed": "Datei konnte nicht ausgewählt werden",
-      "references_unavailable": "Referenzinformationen konnten nicht abgerufen werden"
+      "references_unavailable": "Referenzinformationen konnten nicht abgerufen werden",
+      "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
     }
   },
   "poiedit": {
@@ -754,7 +757,20 @@
       "no_assets": "Keine Bild-Assets gefunden",
       "set_builtin": "Integriert"
     },
-    "saving": "Speichern…"
+    "saving": "Speichern…",
+    "content_mode_standard": "Standard",
+    "content_mode_html": "HTML",
+    "content_mode_url": "Web Page",
+    "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
+    "content_mode_switch_title": "Switch Content Mode",
+    "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
+    "content_mode_confirm": "Switch",
+    "content_mode_cancel": "Cancel",
+    "reference_assets": "Reference Assets",
+    "copy_ref": "Copy Reference",
+    "insert_image": "Insert Image",
+    "add_reference_asset": "Add Asset",
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
   },
   "assetlist": {
     "master_detail": {
@@ -840,7 +856,8 @@
       "reserved-by-other": "Anderweitig reserviert",
       "check-failed": "Prüfung fehlgeschlagen",
       "taken": "Bereits verwendet",
-      "unavailable": "Prüfung nicht möglich"
+      "unavailable": "Prüfung nicht möglich",
+      "required": "Enter a slug"
     },
     "draft_badge": "Entwurf",
     "draft_conflict": {
@@ -857,7 +874,10 @@
       "maps": "Karten auswählen",
       "preview": "Vorschau",
       "gcps_requires_image": "Zuerst ein Kartenbild registrieren"
-    }
+    },
+    "delete_draft": "Delete draft",
+    "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
+    "untitled": "Untitled"
   },
   "resource_list": {
     "new_item": "Neu",
@@ -869,13 +889,22 @@
     "kind_asset": "Assets",
     "loading": "Wird geladen…",
     "empty": "Keine passenden Einträge",
-    "end": "Alle Einträge angezeigt",
     "load_error": "Laden fehlgeschlagen",
     "append_error": "Weitere konnten nicht geladen werden",
     "retry": "Erneut versuchen",
     "menu_delete": "Löschen",
     "menu_label": "Aktionen",
-    "total_loaded": "{{loaded}} von {{total}} angezeigt",
-    "loaded_only": "{{loaded}} angezeigt"
+    "loaded_only": "{{loaded}} angezeigt",
+    "menu_duplicate": "Duplicate",
+    "total_only": "{{total}} items",
+    "total_partial": "Showing {{loaded}} of {{total}}",
+    "delete_irreversible": "This action cannot be undone.",
+    "delete_referenced_by": "Referenced by the following resources:",
+    "delete_references_unavailable": "Unable to retrieve reference information.",
+    "deleting": "Deleting…",
+    "import_poi": "Import",
+    "import_map": "Import Map",
+    "delete_confirm_title": "Delete \"{{title}}\"?",
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
 }

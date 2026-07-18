@@ -144,6 +144,7 @@ try {
         'base64'
       );
       const { uid: assetUid } = await SqliteDataService.createAsset('temple-mark', {
+        lang: 'ja',
         title: { ja: '寺マーク' },
         mime: 'image/png',
         ext: 'png',

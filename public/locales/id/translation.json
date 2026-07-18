@@ -561,7 +561,8 @@
       "no_icon_source": "Gambar sumber ikon PWA belum diatur, sehingga ikon tidak dibuat.",
       "missing_thumbnail": "Beberapa thumbnail peta dasar/overlay tidak ditemukan.",
       "missing_splash": "Gambar layar pembuka tidak ditemukan."
-    }
+    },
+    "no_app_name": "Please input an app name."
   },
   "mapmodel": {
     "untitled": "Belum berjudul",
@@ -692,7 +693,9 @@
       "unsupported_scheme": "Hanya URL http/https yang didukung",
       "payload_too_large": "Data melebihi batas ukuran (50MB)",
       "pick_failed": "Tidak dapat memilih berkas",
-      "references_unavailable": "Tidak dapat mengambil informasi referensi"
+      "references_unavailable": "Tidak dapat mengambil informasi referensi",
+      "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
     }
   },
   "poiedit": {
@@ -754,7 +757,20 @@
       "no_assets": "Aset gambar tidak ditemukan",
       "set_builtin": "Standar"
     },
-    "saving": "Menyimpan…"
+    "saving": "Menyimpan…",
+    "content_mode_standard": "Standard",
+    "content_mode_html": "HTML",
+    "content_mode_url": "Web Page",
+    "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
+    "content_mode_switch_title": "Switch Content Mode",
+    "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
+    "content_mode_confirm": "Switch",
+    "content_mode_cancel": "Cancel",
+    "reference_assets": "Reference Assets",
+    "copy_ref": "Copy Reference",
+    "insert_image": "Insert Image",
+    "add_reference_asset": "Add Asset",
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
   },
   "assetlist": {
     "master_detail": {
@@ -840,7 +856,8 @@
       "reserved-by-other": "Dipakai pihak lain",
       "check-failed": "Pemeriksaan gagal",
       "taken": "Sudah digunakan",
-      "unavailable": "Tidak dapat memeriksa"
+      "unavailable": "Tidak dapat memeriksa",
+      "required": "Enter a slug"
     },
     "draft_badge": "Draf",
     "draft_conflict": {
@@ -857,7 +874,10 @@
       "maps": "Pilih peta",
       "preview": "Pratinjau",
       "gcps_requires_image": "Daftarkan gambar peta terlebih dahulu"
-    }
+    },
+    "delete_draft": "Delete draft",
+    "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
+    "untitled": "Untitled"
   },
   "resource_list": {
     "new_item": "Baru",
@@ -869,13 +889,22 @@
     "kind_asset": "aset",
     "loading": "Memuat…",
     "empty": "Tidak ada item yang cocok",
-    "end": "Semua item ditampilkan",
     "load_error": "Gagal memuat",
     "append_error": "Gagal memuat lainnya",
     "retry": "Coba lagi",
     "menu_delete": "Hapus",
     "menu_label": "Tindakan",
-    "total_loaded": "{{loaded}} dari {{total}} ditampilkan",
-    "loaded_only": "{{loaded}} ditampilkan"
+    "loaded_only": "{{loaded}} ditampilkan",
+    "menu_duplicate": "Duplicate",
+    "total_only": "{{total}} items",
+    "total_partial": "Showing {{loaded}} of {{total}}",
+    "delete_irreversible": "This action cannot be undone.",
+    "delete_referenced_by": "Referenced by the following resources:",
+    "delete_references_unavailable": "Unable to retrieve reference information.",
+    "deleting": "Deleting…",
+    "import_poi": "Import",
+    "import_map": "Import Map",
+    "delete_confirm_title": "Delete \"{{title}}\"?",
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
 }

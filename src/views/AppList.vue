@@ -102,7 +102,13 @@ async function duplicateByVm(vm: ResourceListItemViewModel) {
 }
 
 let unsubscribe: (() => void) | null = null;
-onMounted(async () => { await restoreOrLoad(); await refreshDrafts(); unsubscribe = window.applist.onRefresh(() => { void loadFirst(); void refreshDrafts(); }); });
+onMounted(() => {
+  unsubscribe = window.applist.onRefresh(() => { void loadFirst(); void refreshDrafts(); });
+  void (async () => {
+    await restoreOrLoad();
+    await refreshDrafts();
+  })();
+});
 onBeforeUnmount(() => unsubscribe?.());
 watch(query, () => { void loadFirst(); });
 </script>
