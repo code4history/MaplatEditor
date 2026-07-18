@@ -1,6 +1,6 @@
 // POI ソース参照 UI の共有純関数 (Phase 7-8, 43 §2.4)。
 // PoiReferenceEditor (AppEdit の appData.pois / MapEdit の mapData.pois の両方から利用) で
-// PoiSourceSelector と永続形 pois 配列を往復させる。
+// ResourceSelectorList の選択状態と永続形 pois 配列を往復させる。
 // 永続形の参照要素は { poiUid: "<uid>", cachedTitle?, icon?, selectedIcon?, title? }
 // (main 側 poiReferenceResolver と同一規約。icon/selectedIcon は参照単位の上書き (POI-112 最小形)、
 // title は参照単位のタイトル上書き (LangResource, GUI 検証 D1))。

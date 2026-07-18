@@ -1,6 +1,6 @@
 <template>
   <!-- 「POIデータ」タブ本体。AppEdit の地図選択タブ (sources) と同じ2カラム設計:
-       左 = 検索付き POI ソース一覧 (PoiSourceSelector)、右 = 選択済み参照のカード列
+       左 = 検索付き POI ソース一覧 (ResourceSelectorList)、右 = 選択済み参照のカード列
        (pois 配列の順番どおり = viewer の layer 順)。参照要素は ↑/↓/× + 上書き
        icon/selectedIcon、生 URL/FC 要素は「外部データ」カードとして 表示 + ↑/↓/× のみ
        (編集 UI は作らない — Phase 8 設計コントラクト) -->

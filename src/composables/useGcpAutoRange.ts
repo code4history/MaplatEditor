@@ -8,17 +8,12 @@ interface UseGcpAutoRangeOptions {
 
 interface UseGcpAutoRangeReturn {
   bbox: Ref<[number, number, number, number] | null>
-  isAuto: Ref<boolean>
-  manualOverride: (bbox: [number, number, number, number] | null) => void
-  clear: () => void
 }
 
 export function useGcpAutoRange(options: UseGcpAutoRangeOptions): UseGcpAutoRangeReturn {
   const bbox = ref<[number, number, number, number] | null>(null)
-  const isAuto = ref(true)
 
   function calc(): void {
-    if (!isAuto.value) return
     let result: [number, number, number, number] | null = null
     for (const gcp of options.gcps.value) {
       const merc = gcp?.[1]
@@ -32,22 +27,9 @@ export function useGcpAutoRange(options: UseGcpAutoRangeOptions): UseGcpAutoRang
     options.onAutoRange?.(result)
   }
 
-  watch(() => options.gcps.value?.length ?? 0, () => calc())
-
   watch(options.gcps, () => calc(), { deep: true })
-
-  function manualOverride(value: [number, number, number, number] | null): void {
-    isAuto.value = false
-    bbox.value = value
-    options.onAutoRange?.(value)
-  }
-
-  function clear(): void {
-    isAuto.value = true
-    calc()
-  }
 
   calc()
 
-  return { bbox, isAuto, manualOverride, clear }
+  return { bbox }
 }

@@ -27,7 +27,7 @@ export function useAssetThumbnails(): AssetThumbnails {
   const searchQuery = ref("");
   const thumbUrls = reactive<Record<string, string>>({});
   // 一覧再読込の後着優先トークン (Phase 3 MINOR-2): 検索連打で古い応答が後から返って
-  // きても、最新の呼び出し以外は状態に反映しない (usePoiSourceList と同方式)
+  // きても、最新の呼び出し以外は状態に反映しない (一覧系の generation guard と同方式)
   let loadToken = 0;
 
   const loadAssets = async (): Promise<void> => {

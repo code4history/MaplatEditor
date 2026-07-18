@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { build } from "vite";
 
@@ -110,6 +110,13 @@ try {
   const poiEditor = await read("src/components/PoiReferenceEditor.vue");
   assert.match(poiEditor, /spatialContext\?: SelectorSpatialContextView/, "PoiReferenceEditor spatial prop missing");
   assert.match(poiEditor, /toggle-spatial-context/, "PoiReferenceEditor toggle forwarding missing");
+  for (const removed of ["src/components/PoiSourceSelector.vue", "src/composables/usePoiSourceList.ts"]) {
+    await assert.rejects(access(path.join(projectRoot, removed)), `${removed} must be deleted after selector migration`);
+  }
+  const selectorShell = await read("src/components/ResourceSelector.vue");
+  assert.doesNotMatch(selectorShell, /available\?|searchText|name="row"/, "ResourceSelector legacy list fallback must be removed");
+  const gcpAutoRange = await read("src/composables/useGcpAutoRange.ts");
+  assert.doesNotMatch(gcpAutoRange, /isAuto|manualOverride|function clear/, "unwired GCP override API must be removed");
   console.log("m11-t8b Task 1-5 smoke: OK");
 } finally {
   await rm(workDir, { recursive: true, force: true });
