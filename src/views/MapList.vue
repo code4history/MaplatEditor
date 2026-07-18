@@ -18,6 +18,14 @@
       <template #secondary>
         <ImportSlot kind="map" @import="onImportMap" />
       </template>
+      <template #range>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-testid="map-range-filter" @click="modalOpen = true">
+          <i class="bi bi-bounding-box me-1" aria-hidden="true"></i>{{ t("basemap.master_detail.range_filter") }}
+        </button>
+        <button v-if="bbox" type="button" class="btn btn-outline-secondary btn-sm" data-testid="map-range-clear" @click="clear">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </template>
 
       <div class="d-flex flex-wrap justify-content-start align-items-start gap-4 p-3">
         <ResourceGridCard
@@ -41,6 +49,7 @@
         />
       </div>
     </ResourceListShell>
+    <EnvelopeEditorModal v-if="modalOpen" :model-value="envelopeForModal" title-key="basemap.coverage_modal_title" help-key="appedit.envelope_modal_help" @update:model-value="apply" @close="modalOpen = false" />
 
     <DeleteConfirmDialog
       :visible="deletion.dialog.visible" :title="deletion.dialog.title"
@@ -70,20 +79,24 @@ import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue
 import ImportSlot from "../components/resource-list/ImportSlot.vue";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
+import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
+import { useBboxRangeFilter } from "../composables/useBboxRangeFilter";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
+const { bbox, modalOpen, envelopeForModal, apply, clear } = useBboxRangeFilter({ route, router });
 const { hasDraft, newDrafts, latestNewDraft, refreshDrafts, removeNewDraft } = useAssetDraftBadges("map");
 
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
+const bboxQuery = computed(() => (typeof route.query.bbox === "string" ? route.query.bbox : null));
 const selectedUidRef = { value: null as string | null };
 const adapter = createMapListAdapter({ hasDraft, selectedUid: () => selectedUidRef.value });
 const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<MapListRow, number>(
   adapter,
-  { filter: () => ({ q: query.value, bbox: null }), activeLang: () => "" },
+  { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" },
 );
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("map");
@@ -100,11 +113,11 @@ function firstVisibleUid(): string | null {
 }
 onBeforeRouteLeave(() => {
   const root = shellRef.value?.contentRef ?? null;
-  backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: root?.scrollTop ?? 0 });
+  backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: root?.scrollTop ?? 0 });
 });
 async function restoreOrLoad(): Promise<void> {
   const cached = backCache.load();
-  if (cached && cached.q === query.value && cached.batches >= 1) {
+  if (cached && cached.q === query.value && cached.bbox === bboxQuery.value && cached.batches >= 1) {
     await restore(cached.batches);
     await nextTick();
     const root = shellRef.value?.contentRef ?? null;
@@ -167,5 +180,5 @@ onMounted(() => {
 });
 onBeforeUnmount(() => unsubscribe?.());
 // route.q 変更で再取得（filter generation）
-watch(query, () => { void loadFirst(); });
+watch([query, bbox], () => { void loadFirst(); });
 </script>

@@ -91,7 +91,16 @@ try {
   assert.match(baseAdapter, /window\.search\.baseMaps/, "baseMapSearchAdapter must use FTS API");
   const assetAdapter = await read("src/views/resource-adapters/imageAssetSearchAdapter.ts");
   assert.match(assetAdapter, /window\.search\.imageAssets/, "imageAssetSearchAdapter must use FTS API");
-  console.log("m11-t8b Task 1-2 smoke: OK");
+  const bboxComposable = await read("src/composables/useBboxRangeFilter.ts");
+  assert.match(bboxComposable, /export function useBboxRangeFilter/, "bbox composable missing");
+  assert.match(bboxComposable, /parseBaseMapBboxQuery/, "bbox query parser must be shared");
+  for (const file of ["src/views/MapList.vue", "src/views/PoiSourceList.vue"]) {
+    const source = await read(file);
+    assert.match(source, /useBboxRangeFilter/, `${file} must use shared bbox UI`);
+    assert.match(source, /EnvelopeEditorModal/, `${file} must render range modal`);
+    assert.match(source, /bbox:\s*bbox\.value/, `${file} must pass WGS84 bbox to adapter`);
+  }
+  console.log("m11-t8b Task 1-3 smoke: OK");
 } finally {
   await rm(workDir, { recursive: true, force: true });
 }

@@ -5,6 +5,7 @@
 import { ref, reactive } from "vue";
 import type { Ref } from "vue";
 import type { ImageAssetRow } from "../electron";
+import { imageAssetSearchAdapter } from "../views/resource-adapters/imageAssetSearchAdapter";
 
 export interface AssetThumbnails {
   items: Ref<ImageAssetRow[]>;
@@ -19,7 +20,7 @@ export interface AssetThumbnails {
 }
 
 export function useAssetThumbnails(): AssetThumbnails {
-  // 一覧 (search + サムネイル)。ページングなし (imageAssets.list/search は全件返す)
+  // 一覧 (search + サムネイル)。master/picker互換のため全件batchで取得する。
   const items = ref<ImageAssetRow[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -34,10 +35,13 @@ export function useAssetThumbnails(): AssetThumbnails {
     loading.value = true;
     error.value = null;
     try {
-      const query = searchQuery.value.trim();
-      const rows = query
-        ? await window.imageAssets.search(query)
-        : await window.imageAssets.list();
+      const batch = await imageAssetSearchAdapter.load({
+        filter: { q: searchQuery.value.trim(), bbox: null },
+        cursor: null,
+        limit: 0,
+        signal: new AbortController().signal,
+      });
+      const rows = batch.items;
       if (token !== loadToken) return; // 後発の呼び出しに上書きされた
       items.value = rows;
       // サムネイルの file:// URL を並行解決 (getFilePath)。個別失敗は noImage フォールバック

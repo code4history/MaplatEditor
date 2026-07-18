@@ -17,6 +17,12 @@
       <template #secondary>
         <ImportSlot kind="poi-source" @import="onImport" />
       </template>
+      <template #range>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-testid="poi-source-range-filter" @click="modalOpen = true">
+          <i class="bi bi-bounding-box me-1" aria-hidden="true"></i>{{ t("basemap.master_detail.range_filter") }}
+        </button>
+        <button v-if="bbox" type="button" class="btn btn-outline-secondary btn-sm" data-testid="poi-source-range-clear" @click="clear"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+      </template>
 
       <div class="d-flex flex-wrap justify-content-start align-items-start gap-4 p-3">
         <ResourceGridCard
@@ -31,6 +37,7 @@
         />
       </div>
     </ResourceListShell>
+    <EnvelopeEditorModal v-if="modalOpen" :model-value="envelopeForModal" title-key="basemap.coverage_modal_title" help-key="appedit.envelope_modal_help" @update:model-value="apply" @close="modalOpen = false" />
 
     <!-- 削除確認 dialog -->
     <DeleteConfirmDialog
@@ -67,6 +74,8 @@ import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
 import ImportSlot from "../components/resource-list/ImportSlot.vue";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
+import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
+import { useBboxRangeFilter } from "../composables/useBboxRangeFilter";
 import { createPoiSourceListAdapter } from "./resource-adapters/poiSourceListAdapter";
 import type { PoiSourceListRow, PoiSourceSaveResult } from "../electron";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
@@ -75,9 +84,11 @@ import { resolveEditorLanguage } from "../utils/editorLanguages";
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
+const { bbox, modalOpen, envelopeForModal, apply, clear } = useBboxRangeFilter({ route, router });
 const { hasDraft, refreshDrafts } = useAssetDraftBadges("poi");
 
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
+const bboxQuery = computed(() => (typeof route.query.bbox === "string" ? route.query.bbox : null));
 const adapter = createPoiSourceListAdapter({
   hasDraft,
   selectedUid: () => null,
@@ -86,7 +97,7 @@ const adapter = createPoiSourceListAdapter({
   remoteLabel: t("poisource.remote"),
 });
 const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, applyDeletion } =
-  useInfiniteResourceList<PoiSourceListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: null }), activeLang: () => i18next.language });
+  useInfiniteResourceList<PoiSourceListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => i18next.language });
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, i18next.language)));
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("poi-source");
@@ -101,7 +112,7 @@ function firstVisibleUid(): string | null {
   return null;
 }
 
-watch(query, () => loadFirst(), { immediate: false });
+watch([query, bbox], () => loadFirst(), { immediate: false });
 
 function suggestSlug(candidate: string): string {
   return candidate
@@ -197,11 +208,11 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
+  backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
 });
 
 onBeforeRouteLeave((_to, _from, next) => {
-  backCache.save({ q: query.value, bbox: null, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
+  backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
   next();
 });
 
