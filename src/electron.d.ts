@@ -299,11 +299,14 @@ declare global {
 }
 
 interface SearchAPI {
+  /** bboxはWGS84。main processでEPSG:3857へ変換される。 */
   maps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
   apps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
   poiSources(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
   baseMaps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
   imageAssets(filter: { q?: string; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
+  /** 既存互換のraw API。bboxはEPSG:3857。UIは各search APIを使用する。 */
   searchExtent(kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]): Promise<string[]>;
+  resourceBbox(kind: 'map', uid: string): Promise<[number, number, number, number] | null>;
   appCoverage(appUid: string, mapUids?: string[]): Promise<{ coverageLngLats: [number, number][]; maps: number } | null>;
 }

@@ -2,6 +2,7 @@
   "app": {
     "title": "Maplat Editor"
   },
+  "resource_selector": { "context_map": "ขอบเขตแผนที่", "context_app_coverage": "ขอบเขตแอป", "range_auto": "ขอบเขต: อัตโนมัติ ({{context}})", "range_none": "ขอบเขต: ทั่วโลก" },
   "common": {
     "close": "ปิด",
     "back": "ย้อนกลับ",

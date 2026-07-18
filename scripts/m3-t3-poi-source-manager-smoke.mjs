@@ -164,29 +164,24 @@ try {
     'PoiSourceList に生 ipcRenderer 使用が残存している'
   );
 
-  // --- Part 3b: usePoiSourceList composable shape ---
-  const usePoiSourceList = await readFile(
-    path.join(projectRoot, 'src/composables/usePoiSourceList.ts'),
+  // --- Part 3b: POI source search adapter shape ---
+  const poiSourceAdapter = await readFile(
+    path.join(projectRoot, 'src/views/resource-adapters/poiSourceListAdapter.ts'),
     'utf8'
   );
 
-  // window.poiSources.list を呼ぶこと (query/page/pageSize 契約)
+  // bbox 対応 search API を呼ぶこと
   assert.match(
-    usePoiSourceList,
-    /poiSources\.list/,
-    'usePoiSourceList が window.poiSources.list を呼んでいない'
+    poiSourceAdapter,
+    /window\.search\.poiSources/,
+    'poiSourceListAdapter が window.search.poiSources を呼んでいない'
   );
 
-  // ページング (prev/next) を提供すること
+  // cursor page を次 batch として提供すること
   assert.match(
-    usePoiSourceList,
-    /nextPage/,
-    'usePoiSourceList に nextPage がない'
-  );
-  assert.match(
-    usePoiSourceList,
-    /prevPage/,
-    'usePoiSourceList に prevPage がない'
+    poiSourceAdapter,
+    /nextCursor:\s*result\.next/,
+    'poiSourceListAdapter に次 cursor がない'
   );
 
   console.log('  [3/3] PoiSourceList.vue shape: PASS');

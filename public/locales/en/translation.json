@@ -698,6 +698,7 @@
   "app": {
     "title": "Maplat Editor"
   },
+  "resource_selector": { "context_map": "Map coverage", "context_app_coverage": "App coverage", "range_auto": "Range: Auto ({{context}})", "range_none": "Range: Worldwide" },
   "poiedit": {
     "confirm_no_save": "This POI source has unsaved changes.\nClose without saving?",
     "no_slug": "Please specify a slug.",

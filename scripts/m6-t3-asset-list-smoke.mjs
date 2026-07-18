@@ -106,18 +106,18 @@ try {
     path.join(projectRoot, 'src/composables/useAssetThumbnails.ts'),
     'utf8'
   );
+  const assetSearchAdapter = await readFile(
+    path.join(projectRoot, 'src/views/resource-adapters/imageAssetSearchAdapter.ts'),
+    'utf8'
+  );
   assert.match(
     assetList,
     /useAssetThumbnails/,
     'AssetList が useAssetThumbnails (共用 composable) を使っていない'
   );
-  for (const api of ['list', 'search', 'getFilePath']) {
-    assert.match(
-      assetThumbs,
-      new RegExp(`imageAssets\\.${api}\\(`),
-      `useAssetThumbnails が window.imageAssets.${api} を呼んでいない`
-    );
-  }
+  assert.match(assetThumbs, /imageAssetSearchAdapter\.load/, 'useAssetThumbnails が共通 search adapter を使っていない');
+  assert.match(assetSearchAdapter, /window\.search\.imageAssets/, 'image asset adapter が FTS API を呼んでいない');
+  assert.match(assetThumbs, /imageAssets\.getFilePath\(/, 'useAssetThumbnails が window.imageAssets.getFilePath を呼んでいない');
   for (const api of ['add', 'updateMetadata', 'delete', 'findReferences', 'pickImageFile']) {
     assert.match(
       assetList,

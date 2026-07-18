@@ -35,13 +35,16 @@ export interface ResourceListItemViewModel {
   actions: Array<"duplicate" | "delete">;
 }
 
-export interface ResourceListAdapter<T, Cursor = string> {
+export interface ResourceDataAdapter<T, Cursor = string> {
   load(input: {
     filter: ResourceListFilter;
     cursor: Cursor | null;
     limit: number;
     signal: AbortSignal;
   }): Promise<ResourceListBatch<T, Cursor>>;
+}
+
+export interface ResourceListAdapter<T, Cursor = string> extends ResourceDataAdapter<T, Cursor> {
   toViewModel(item: T, activeLang: string): ResourceListItemViewModel;
 }
 
@@ -63,3 +66,9 @@ export type ResourceListState =
   | "end"
   | "error"
   | "append-error";
+
+export interface SelectorSpatialContextView {
+  bbox: Wgs84Bbox | null;
+  enabled: boolean;
+  labelKey: "resource_selector.context_map" | "resource_selector.context_app_coverage";
+}

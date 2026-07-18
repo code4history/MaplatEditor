@@ -2,6 +2,7 @@
   "app": {
     "title": "Maplat Editor"
   },
+  "resource_selector": { "context_map": "Couverture de la carte", "context_app_coverage": "Couverture de l’application", "range_auto": "Étendue : Automatique ({{context}})", "range_none": "Étendue : Monde entier" },
   "common": {
     "close": "Fermer",
     "back": "Retour",

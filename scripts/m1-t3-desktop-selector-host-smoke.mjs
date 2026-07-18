@@ -183,7 +183,7 @@ try {
   );
 
   // AppList は app list API を使って一覧を表示することを確認
-  // M11-T6: 一覧データ取得は resource-adapters 層経由 (AppList → createAppListAdapter → window.applist.request)
+  // M11-T8b: 一覧データ取得は bbox 対応 search adapter 経由
   assert.match(
     appListView,
     /createAppListAdapter/,
@@ -195,17 +195,15 @@ try {
   );
   assert.match(
     appListAdapterSource,
-    /window\.applist\.request/,
-    'appListAdapter.ts が window.applist.request を呼んでいない'
+    /window\.search\.apps/,
+    'appListAdapter.ts が window.search.apps を呼んでいない'
   );
 
-  // AppEdit は maplist API(desktopMapListサービス経由)で地図一覧を表示することを確認
-  // raw window.maplist.* の直呼びは m1-t2 smoke の allowlist で禁止されているため、
-  // サービス層 fetchAllRegisteredMaps の利用を検証する
+  // AppEdit は共通 map search adapter で地図一覧を表示する
   assert.match(
     appEditView,
-    /fetchAllRegisteredMaps/,
-    'AppEdit.vue が desktopMapList サービス(fetchAllRegisteredMaps)を使っていない'
+    /createMapListAdapter/,
+    'AppEdit.vue が共通 map search adapter を使っていない'
   );
 
   // applist.not_implement が消えていることを確認

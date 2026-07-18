@@ -2,6 +2,7 @@
   "app": {
     "title": "Maplat Editor"
   },
+  "resource_selector": { "context_map": "지도 범위", "context_app_coverage": "앱 범위", "range_auto": "범위: 자동 ({{context}})", "range_none": "범위: 전 세계" },
   "common": {
     "close": "닫기",
     "back": "뒤로",

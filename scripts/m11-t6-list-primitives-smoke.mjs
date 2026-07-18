@@ -37,12 +37,16 @@ const REQUIRED_KEYS = [
   "menu_delete", "menu_label", "total_only", "total_partial", "loaded_only", "search_placeholder",
 ];
 const KIND_KEYS = ["kind_map", "kind_poi_source", "kind_base_map", "kind_app", "kind_asset"];
+const SELECTOR_KEYS = ["context_map", "context_app_coverage", "range_auto", "range_none"];
 const translations = {};
 for (const loc of LOCALES) {
   const t = JSON.parse(await read(`public/locales/${loc}/translation.json`));
   translations[loc] = t;
   for (const key of [...REQUIRED_KEYS, ...KIND_KEYS]) {
     assert.ok(t.resource_list?.[key] != null, `resource_list.${key} missing in ${loc}`);
+  }
+  for (const key of SELECTOR_KEYS) {
+    assert.ok(t.resource_selector?.[key] != null, `resource_selector.${key} missing in ${loc}`);
   }
   // placeholder template は {{name}} を含み、末尾は全角 … （半角 ... 禁止）
   const ph = t.resource_list.search_placeholder;
@@ -251,8 +255,8 @@ console.log("m11-t6 smoke Part 4: OK");
 
 // --- Part 5: MapList 移行 ---
 const mapAdapter = await read("src/views/resource-adapters/mapListAdapter.ts");
-assert.match(mapAdapter, /window\.maplist\.request/, "mapAdapter must call maplist.request (D1)");
-assert.match(mapAdapter, /total: \(result as \{ total\?: number \}\)\.total \?\? null/, "map batch must pass backend total through (2026-07-16 件数表示統一)");
+assert.match(mapAdapter, /window\.search\.maps/, "mapAdapter must call search.maps (M11-T8b)");
+assert.match(mapAdapter, /total: result\.total/, "map batch must pass search total through");
 const mapList = await read("src/views/MapList.vue");
 assert.match(mapList, /ResourceListShell/, "MapList must use ResourceListShell");
 assert.match(mapList, /ResourceGridCard/, "MapList must use ResourceGridCard");
@@ -266,8 +270,8 @@ console.log("m11-t6 smoke Part 5: OK");
 
 // --- Part 6: AppList 移行 ---
 const appAdapter = await read("src/views/resource-adapters/appListAdapter.ts");
-assert.match(appAdapter, /window\.applist\.request/, "appAdapter must call applist.request (D1)");
-assert.match(appAdapter, /total: \(result as \{ total\?: number \}\)\.total \?\? null/, "app batch must pass backend total through (2026-07-16 件数表示統一)");
+assert.match(appAdapter, /window\.search\.apps/, "appAdapter must call search.apps (M11-T8b)");
+assert.match(appAdapter, /total: result\.total/, "app batch must pass search total through");
 const appList = await read("src/views/AppList.vue");
 assert.match(appList, /ResourceListShell/);
 assert.match(appList, /ResourceGridCard/);
@@ -279,7 +283,7 @@ console.log("m11-t6 smoke Part 6: OK");
 
 // --- Part 7: PoiSourceList 移行 ---
 const poiAdapter = await read("src/views/resource-adapters/poiSourceListAdapter.ts");
-assert.match(poiAdapter, /window\.poiSources\.list/, "poiAdapter must call poiSources.list");
+assert.match(poiAdapter, /window\.search\.poiSources/, "poiAdapter must call search.poiSources (M11-T8b)");
 assert.match(poiAdapter, /total:\s*\w+\.total/, "poi batch must pass through real total (D8改)");
 const poi = await read("src/views/PoiSourceList.vue");
 assert.match(poi, /ResourceListShell/);

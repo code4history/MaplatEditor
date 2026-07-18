@@ -1,6 +1,7 @@
 import type { ResourceListAdapter, ResourceListItemViewModel } from "../../components/resource-list/resourceListTypes";
+import { localizeTitle } from "../../utils/langResource";
 
-export interface MapListRow { uid: string; mapID: string; title: string; image: string | null; width?: number; height?: number }
+export interface MapListRow { uid: string; mapID: string; title: string; image: string | null; width?: number; height?: number; previewDisabled?: boolean; previewDisabledReason?: string }
 
 export interface MapListAdapterDeps {
   hasDraft: (uid: string) => boolean;
@@ -11,13 +12,20 @@ export interface MapListAdapterDeps {
 // 件数表示統一(2026-07-16 人間指示、旧D8改を更新): backend が total を返すようになったため実値を通す。
 export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdapter<MapListRow, number> {
   return {
-    async load({ filter, cursor }) {
+    async load({ filter, cursor, limit }) {
       const page = cursor ?? 1;
-      const result = await window.maplist.request(filter.q, page);
-      // pageUpdate: 最終ページ全削除時のバックエンド補正。cursor 連鎖は補正値へ揃える（D9）。
-      const effectivePage = (result.pageUpdate ?? page) as number;
-      const nextCursor = result.next ? effectivePage + 1 : null;
-      return { items: result.docs as MapListRow[], total: (result as { total?: number }).total ?? null, nextCursor };
+      const result = await window.search.maps({ q: filter.q, bbox: filter.bbox ?? undefined, page, pageSize: limit });
+      const items = result.docs.map((doc: any): MapListRow => ({
+        uid: String(doc.uid),
+        mapID: String(doc.mapID ?? doc.slug ?? doc._id),
+        title: localizeTitle(doc.title, "") || String(doc.mapID ?? doc.slug ?? doc._id),
+        image: doc.image ?? doc.thumbnail ?? null,
+        width: doc.width,
+        height: doc.height,
+        previewDisabled: doc.compiled?.strict_status === "strict_error" || Boolean(doc.compiled?.kinks_points) || (Array.isArray(doc.sub_maps) && doc.sub_maps.some((sub: any) => sub.compiled?.strict_status === "strict_error" || Boolean(sub.compiled?.kinks_points))),
+        previewDisabledReason: "appedit.preview.strict_error",
+      }));
+      return { items, total: result.total, nextCursor: result.next ?? null };
     },
     toViewModel(item): ResourceListItemViewModel {
       return {

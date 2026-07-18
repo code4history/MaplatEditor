@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
@@ -86,14 +86,21 @@ import { useResourceDelete } from "../composables/useResourceDelete";
 import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
 import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
-import { filterBaseMapCatalog, parseBaseMapBboxQuery, serializeBaseMapBboxQuery, type Wgs84Bbox } from "../utils/baseMapCatalogFilter";
+import { useBboxRangeFilter } from "../composables/useBboxRangeFilter";
+import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
 import { localizeTitle } from "../utils/langResource";
-import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
 import { mergeMasterDetailFilters } from "../utils/masterDetailRouteState";
 
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
+const {
+  bbox: filterBbox,
+  modalOpen: rangeFilterOpen,
+  envelopeForModal: filterEnvelope,
+  apply: applyRangeFilter,
+  clear: clearRangeFilter,
+} = useBboxRangeFilter({ route, router });
 const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("base-map");
 
@@ -104,14 +111,11 @@ const masterList = ref<InstanceType<typeof BaseMapMasterList> | null>(null);
 const editor = ref<InstanceType<typeof BaseMapEdit> | null>(null);
 const activeLang = computed(() => resolveEditorLanguage(i18next.language));
 const searchQuery = computed(() => typeof route.query.q === "string" ? route.query.q : "");
-const filterBbox = computed(() => parseBaseMapBboxQuery(route.query.bbox));
-const filterEnvelope = computed(() => filterBbox.value ? bboxToEnvelope(filterBbox.value) : null);
-const filteredItems = computed(() => filterBaseMapCatalog(items.value, searchQuery.value, filterBbox.value));
+const filteredItems = computed(() => items.value);
 const selectedUid = computed(() => typeof route.query.uid === "string" ? route.query.uid : null);
 const isNew = computed(() => route.query.new === "1");
 const selectedItem = computed(() => items.value.find((item) => item.uid === selectedUid.value) ?? null);
 const notFound = computed(() => !!selectedUid.value && !isNew.value && !loading.value && !selectedItem.value);
-const rangeFilterOpen = ref(false);
 
 // F8: Edit 側の live な下書き状態を List バッジへ即時反映する（store の永続化遅延を待たない）。
 // 行切替を跨いでも uid ごとの override を保持し、store と一致した項目だけ回収する（Major-1対応）。
@@ -151,20 +155,17 @@ function updateSearchQuery(value: string): void {
   void updateFilters({ q: value.trim() ? value : null });
 }
 
-function applyRangeFilter(value: [number, number][] | null): void {
-  const bbox = envelopeToBbox(value) as Wgs84Bbox | null;
-  void updateFilters({ bbox: serializeBaseMapBboxQuery(bbox) });
-}
-
-function clearRangeFilter(): void {
-  void updateFilters({ bbox: null });
-}
-
 async function loadBaseMaps(): Promise<void> {
   loading.value = true;
   error.value = "";
   try {
-    items.value = await window.baseMaps.list() as BaseMapCatalogItem[];
+    const batch = await baseMapSearchAdapter.load({
+      filter: { q: searchQuery.value, bbox: filterBbox.value },
+      cursor: null,
+      limit: 0,
+      signal: new AbortController().signal,
+    });
+    items.value = batch.items;
     await refreshDraftsNow();
   } catch (cause) {
     console.error("Failed to load base maps", cause);
@@ -248,6 +249,8 @@ onMounted(async () => {
   await nextTick();
   await restoreScroll(masterList.value?.scrollElement ?? null);
 });
+
+watch([searchQuery, filterBbox], () => { void loadBaseMaps(); });
 onBeforeUnmount(() => {
   if (draftRefreshTimer) clearTimeout(draftRefreshTimer);
 });

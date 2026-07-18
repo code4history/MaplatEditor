@@ -22,7 +22,11 @@ import { healAppDocumentPois } from "../utils/poiSourcesHeal";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import ResourceSelector from "../components/ResourceSelector.vue";
-import { fetchAllRegisteredMaps } from "../services/desktopMapList";
+import ResourceSelectorList from "../components/ResourceSelectorList.vue";
+import { createMapListAdapter } from "./resource-adapters/mapListAdapter";
+import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
+import { useSelectorSpatialContext } from "../composables/useSelectorSpatialContext";
+import type { SelectorSpatialContextView, Wgs84Bbox } from "../components/resource-list/resourceListTypes";
 import {
   createAppSourceFromBaseMap,
   envelopeToBbox,
@@ -195,6 +199,12 @@ const defaultApp = (): AppDocument => ({
 const appData = ref<AppDocument>(defaultApp());
 const originalAppData = ref<AppDocument>(defaultApp());
 const appCoverageAuto = useAppCoverageAutoCalc({ appDoc: appData as any });
+const appSpatialSource = computed<Wgs84Bbox | null>(() => envelopeToBbox(appData.value.coverageLngLats ?? appCoverageAuto.autoCoverage.value) as Wgs84Bbox | null);
+const appSourceSpatialContext = useSelectorSpatialContext(appSpatialSource);
+const appPoiSpatialContext = useSelectorSpatialContext(appSpatialSource);
+const appSourceSpatialView = computed<SelectorSpatialContextView>(() => ({ bbox: appSourceSpatialContext.bbox.value, enabled: appSourceSpatialContext.enabled.value, labelKey: "resource_selector.context_app_coverage" }));
+const appPoiSpatialView = computed<SelectorSpatialContextView>(() => ({ bbox: appPoiSpatialContext.bbox.value, enabled: appPoiSpatialContext.enabled.value, labelKey: "resource_selector.context_app_coverage" }));
+const mapSourceAdapter = createMapListAdapter({ hasDraft: () => false, selectedUid: () => null });
 const activeTab = ref<"metadata" | "sources" | "pois" | "preview">("metadata");
 const sourceListMode = ref<"maps" | "baseMaps">("maps");
 const currentLang = ref<LangCode>("ja");
@@ -289,9 +299,7 @@ const saveValidationError = computed<string | null>(() => {
 // true のまま保存すると復元できなかった pois が失われるため、POIデータタブに警告を出す
 // (Phase 8 品質レビュー MAJOR-2)
 const poiHealFailed = ref(false);
-const mapItems = ref<MapListItem[]>([]);
 const mapSearchQuery = ref("");
-const baseMapItems = ref<BaseMapItem[]>([]);
 const baseMapSearchQuery = ref("");
 const previewError = ref<string | null>(null);
 const previewUrl = ref("");
@@ -371,20 +379,6 @@ function createManifestLangComputed(key: "name" | "shortName") {
 const keywordsText = createAppLangComputed("keywords");
 const manifestNameText = createManifestLangComputed("name");
 const manifestShortNameText = createManifestLangComputed("shortName");
-const filteredBaseMapItems = computed(() => {
-  const query = baseMapSearchQuery.value.trim().toLowerCase();
-  if (!query) return baseMapItems.value;
-  return baseMapItems.value.filter((item) =>
-    item.mapID.toLowerCase().includes(query) || baseMapTitle(item).toLowerCase().includes(query),
-  );
-});
-const filteredMapItems = computed(() => {
-  const query = mapSearchQuery.value.trim().toLowerCase();
-  if (!query) return mapItems.value;
-  return mapItems.value.filter((item) =>
-    item.mapID.toLowerCase().includes(query) || item.title.toLowerCase().includes(query),
-  );
-});
 
 onMounted(async () => {
   // アプリ編集はuid正準で開く (ADR-0007): /appedit?uid=<uid>。uid未指定は新規作成
@@ -430,7 +424,6 @@ onMounted(async () => {
   await draftLifecycle.open(draftUid, revision.value ?? null);
   window.addEventListener("keydown", onEditorKeydown);
   removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
-  await Promise.all([loadMaps(), loadBaseMaps()]);
 });
 
 watch(
@@ -961,15 +954,6 @@ async function exportApp() {
   }
 }
 
-// 全件を一度に取得し、検索はクライアント側で絞り込む(ベース地図リストと同様)
-async function loadMaps() {
-  mapItems.value = await fetchAllRegisteredMaps();
-}
-
-async function loadBaseMaps() {
-  baseMapItems.value = await window.baseMaps.list();
-}
-
 async function addMapSource(item: MapListItem) {
   if (item.previewDisabled) {
     previewError.value = t(item.previewDisabledReason || "appedit.preview.unavailable");
@@ -1416,50 +1400,30 @@ function onPoisChange(next: unknown[]) {
               </button>
             </div>
 
-            <input
-              v-if="sourceListMode === 'maps'"
-              v-model="mapSearchQuery"
-              class="form-control form-control-sm"
-              :placeholder="t('maplist.search_placeholder')"
-            >
-            <input
-              v-else
-              v-model="baseMapSearchQuery"
-              data-testid="app-basemap-search"
-              class="form-control form-control-sm"
-              :placeholder="t('appedit.search_base_maps')"
-            >
           </div>
-
-          <div v-if="sourceListMode === 'maps'">
-            <div class="source-list">
-              <button
-                v-for="item in filteredMapItems"
-                :key="item.mapID"
-                type="button"
-                class="source-row"
-                :class="{ 'source-row-disabled': item.previewDisabled }"
-                :disabled="item.previewDisabled"
-                :title="item.previewDisabled ? t(item.previewDisabledReason || 'appedit.preview.unavailable') : item.title"
-                @click="addMapSource(item)"
-              >
+          <ResourceSelectorList
+            :key="sourceListMode"
+            :query="sourceListMode === 'maps' ? mapSearchQuery : baseMapSearchQuery"
+            :adapter="sourceListMode === 'maps' ? mapSourceAdapter : baseMapSearchAdapter"
+            :placeholder="sourceListMode === 'maps' ? t('maplist.search_placeholder') : t('appedit.search_base_maps')"
+            :input-testid="sourceListMode === 'baseMaps' ? 'app-basemap-search' : undefined"
+            :spatial-context="appSourceSpatialView"
+            @update:query="sourceListMode === 'maps' ? (mapSearchQuery = $event) : (baseMapSearchQuery = $event)"
+            @toggle-spatial-context="appSourceSpatialContext.toggle"
+          >
+            <template #item="{ item }">
+              <button v-if="sourceListMode === 'maps'" type="button" class="source-row" :disabled="item.previewDisabled" :title="item.previewDisabled ? t(item.previewDisabledReason || 'appedit.preview.unavailable') : item.title" @click="addMapSource(item)">
                 <img :src="item.image || noImage" :alt="item.title" loading="lazy" decoding="async">
                 <span>
                   {{ item.title }}
                   <small v-if="item.previewDisabled" class="d-block text-danger">{{ t(item.previewDisabledReason || "appedit.preview.unavailable") }}</small>
                 </span>
               </button>
-            </div>
-          </div>
-
-          <div v-else>
-            <div class="source-list">
-              <button v-for="item in filteredBaseMapItems" :key="`${item.scope}:${item.mapID}`" type="button" class="source-row" :data-testid="`app-basemap-row-${item.mapID}`" @click="addBaseMapSource(item)">
-                <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)" loading="lazy" decoding="async">
-                <span>{{ baseMapTitle(item) }}</span>
+              <button v-else type="button" class="source-row" :data-testid="`app-basemap-row-${item.mapID}`" @click="addBaseMapSource(item)">
+                <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)"><span>{{ baseMapTitle(item) }}</span>
               </button>
-            </div>
-          </div>
+            </template>
+          </ResourceSelectorList>
         </template>
 
         <template #selected>
@@ -1523,7 +1487,7 @@ function onPoisChange(next: unknown[]) {
       <div v-show="activeTab === 'pois'" class="h-100">
       <div class="h-100 overflow-hidden p-3 d-flex flex-column">
         <DiagnosticFeedback v-if="poiHealFailed" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_heal_failed') }]" scope="section" class="flex-shrink-0" />
-        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="appData.pois" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
+        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="appData.pois" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>
 
@@ -1585,29 +1549,7 @@ function onPoisChange(next: unknown[]) {
   gap: 6px;
   min-height: 0;
 }
-.source-row {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  border: 1px solid var(--bs-border-color);
-  background: #fff;
-  border-radius: 4px;
-  padding: 6px;
-  text-align: left;
-}
-.source-row img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  background: #f8f9fa;
-  border: 1px solid var(--bs-border-color);
-}
-.source-row-disabled {
-  opacity: 0.58;
-  cursor: not-allowed;
-}
+/* .source-row の基底スタイルは ResourceSelectorList の :slotted に集約 (m11-t8b) */
 .selected-source-thumb {
   width: 40px;
   height: 40px;

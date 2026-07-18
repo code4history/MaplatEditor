@@ -44,8 +44,8 @@ try {
   );
   assert.match(
     poiReferenceEditor,
-    /PoiSourceSelector/,
-    'PoiReferenceEditor が追加用の PoiSourceSelector を内蔵していない'
+    /ResourceSelectorList/,
+    'PoiReferenceEditor が共通 ResourceSelectorList を内蔵していない'
   );
 
   // AppList は複数アプリ一覧であること
@@ -70,19 +70,8 @@ try {
     'AppEdit.vue に metadata/sources/pois/preview タブ状態がない'
   );
 
-  assert.match(
-    appEdit,
-    /window\.baseMaps\.list\s*\(\s*\)/,
-    'AppEdit.vue が window.baseMaps.list() を呼んでいない'
-  );
-
-  // raw window.maplist.* の直呼びは m1-t2 smoke の allowlist で禁止されているため、
-  // サービス層 fetchAllRegisteredMaps の利用を検証する
-  assert.match(
-    appEdit,
-    /fetchAllRegisteredMaps/,
-    'AppEdit.vue が desktopMapList サービス(fetchAllRegisteredMaps)を使っていない'
-  );
+  assert.match(appEdit, /baseMapSearchAdapter/, 'AppEdit.vue が base map search adapter を使っていない');
+  assert.match(appEdit, /createMapListAdapter/, 'AppEdit.vue が map search adapter を使っていない');
 
   assert.match(
     appEdit,
@@ -92,61 +81,12 @@ try {
 
   console.log('  [2/3] AppList.vue app editor shape: PASS');
 
-  // --- Part 3: PoiSourceSelector.vue shape ---
-  const poiSourceSelector = await readFile(
-    path.join(projectRoot, 'src/components/PoiSourceSelector.vue'),
-    'utf8'
-  );
-
-  // usePoiSourceList composable を使用すること
-  assert.match(
-    poiSourceSelector,
-    /usePoiSourceList/,
-    'PoiSourceSelector に usePoiSourceList がない'
-  );
-
-  // @update:selected を emit すること
-  assert.match(
-    poiSourceSelector,
-    /update:selected/,
-    'PoiSourceSelector に update:selected emit がない'
-  );
-
-  // 複数選択が可能であること（selectedSources が配列）
-  assert.match(
-    poiSourceSelector,
-    /selectedSources\s*=\s*ref<SelectedPoiSourceRef\[\]>/,
-    'PoiSourceSelector の selectedSources が配列でない'
-  );
-
-  // 行クリックで追加できること (Phase 8 Task 5: 地図選択の addMapSource と同じ挙動 —
-  // 追加済み行は no-op で、解除は PoiReferenceEditor 右カラムの × から行う)
-  assert.match(
-    poiSourceSelector,
-    /function\s+addSource/,
-    'PoiSourceSelector に addSource がない'
-  );
-  assert.match(
-    poiSourceSelector,
-    /if \(isSelected\(source\.uid\)\) return;/,
-    'PoiSourceSelector の addSource が追加済み no-op (地図選択と同じ挙動) になっていない'
-  );
-
-  // isSelected 関数が存在すること
-  assert.match(
-    poiSourceSelector,
-    /function\s+isSelected/,
-    'PoiSourceSelector に isSelected がない'
-  );
-
-  // 検索ボックス付き一覧であること (Phase 8 Task 5: 地図選択タブと同じ操作体系)
-  assert.match(
-    poiSourceSelector,
-    /poisource\.search_placeholder/,
-    'PoiSourceSelector に検索ボックスがない'
-  );
-
-  console.log('  [3/3] PoiSourceSelector.vue shape: PASS');
+  // --- Part 3: shared POI selector shape ---
+  assert.match(poiReferenceEditor, /poiSourceAdapter/, 'PoiReferenceEditor に POI search adapter がない');
+  assert.match(poiReferenceEditor, /function\s+addPoiSource/, 'PoiReferenceEditor に追加操作がない');
+  assert.match(poiReferenceEditor, /isPoiSelected\(item\.uid\)/, '追加済み POI の無効化がない');
+  assert.match(poiReferenceEditor, /toggle-spatial-context/, '空間 context toggle の転送がない');
+  console.log('  [3/3] shared POI selector shape: PASS');
 
   console.log('M3-T4 App editor POI selector smoke passed');
 } catch (err) {

@@ -2,6 +2,7 @@
   "app": {
     "title": "Maplat Editor"
   },
+  "resource_selector": { "context_map": "Cakupan peta", "context_app_coverage": "Cakupan aplikasi", "range_auto": "Rentang: Otomatis ({{context}})", "range_none": "Rentang: Seluruh dunia" },
   "common": {
     "close": "Tutup",
     "back": "Kembali",

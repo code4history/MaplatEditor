@@ -1,6 +1,6 @@
 import { computed, ref, shallowRef, type ComputedRef, type Ref } from "vue";
 import type {
-  ResourceListAdapter,
+  ResourceDataAdapter,
   ResourceListFilter,
   ResourceListState,
 } from "../components/resource-list/resourceListTypes";
@@ -26,10 +26,11 @@ export interface UseInfiniteResourceList<T extends { uid: string }> {
   restore: (targetBatches: number) => Promise<void>;
   applyDeletion: (uid: string) => Promise<void>;
   anchorFor: (uid: string) => number;
+  dispose: () => void;
 }
 
 export function useInfiniteResourceList<T extends { uid: string }, Cursor = string>(
-  adapter: ResourceListAdapter<T, Cursor>,
+  adapter: ResourceDataAdapter<T, Cursor>,
   sources: InfiniteResourceListSources,
   options: InfiniteResourceListOptions = {},
 ): UseInfiniteResourceList<T> {
@@ -156,5 +157,12 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
 
   const anchorFor = (uid: string): number => items.value.findIndex((item) => item.uid === uid);
 
-  return { items, total, loaded, batchesLoaded, state, loadFirst, loadMore, retry, restore, applyDeletion, anchorFor };
+  function dispose(): void {
+    generation += 1;
+    controller?.abort();
+    controller = null;
+    loadingCursorKey = null;
+  }
+
+  return { items, total, loaded, batchesLoaded, state, loadFirst, loadMore, retry, restore, applyDeletion, anchorFor, dispose };
 }
