@@ -302,14 +302,12 @@ const slugInput = ref("");
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
 const slugFieldState = ref<SlugFieldState>("idle");
 
-// M11-T10b: 未作成モード判定と事前採番 uid（draft キーと保存 create uid を兼ねる。
-// MapEdit の newMapUid と同型。既存 draftUid が route にあれば引き継ぐ）
-const isNewSource = (route.params.sourceId as string) === "new";
-const newPoiUid = isNewSource
-  ? (typeof route.query.draftUid === "string" && route.query.draftUid
-      ? route.query.draftUid
-      : crypto.randomUUID())
-  : "";
+// M11-T10b: 未作成モードの事前採番 uid（draft キーと保存 create uid を兼ねる。
+// MapEdit の newMapUid と同型）。初期化（onMounted / 同一コンポーネントでの new 再突入）
+// ごとに採番し直すため ref で持ち、既存 draftUid が route にあれば引き継ぐ。
+// newModeActive は「未作成モードとして初期化済み」のフラグで、既存→新規の再初期化判定に使う
+const newPoiUid = ref("");
+const newModeActive = ref(false);
 
 // M11-T10b (順序契約 #2): 文書操作系 dirty。Undo 履歴の isDirty とは分離し、
 // slug live 入力の diverged（session 未 commit）も「保存すべき変更」として扱う。
@@ -367,7 +365,7 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
         slug: payload.slug,
         title: payload.title,
         lang: payload.fc.lang,
-        uid: newPoiUid,
+        uid: newPoiUid.value,
         fc: payload.fc,
       });
       if (!created) {
@@ -386,6 +384,8 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
   },
   applySuccess: async (result) => {
     poiSaveSucceeded = true;
+    // 保存で既存行の編集モードへ移行（new 再突入時の initializeEditor 再呼出しを有効にする）
+    newModeActive.value = false;
     // uid/revision/confirmedSlug は composable が反映済み。以下は画面固有処理。
     // markSaved は保存中に編集が入っていない (snapshot 同一、shallowRef のオブジェクト同一性)
     // 場合のみ。編集が入っていたら isDirty のまま残して再保存を促す
@@ -608,6 +608,7 @@ const liveWarningItems = computed<DiagnosticItem[]>(() =>
 
 // --- 読込 ---
 async function load(sourceId: string): Promise<void> {
+  newModeActive.value = false;
   loading.value = true;
   loadError.value = null;
   saveError.value = null;
@@ -650,7 +651,12 @@ watch(
   () => route.params.sourceId,
   (next) => {
     if (typeof next !== "string" || next === "") return;
-    if (next === "new") return; // 未作成モードは initializeEditor が担う（M11-T10b）
+    if (next === "new") {
+      // 既に未作成モードとして初期化済みなら何もしない（draftUid replace 等の自己遷移）。
+      // 既存→新規の再突入は initializeEditor で再初期化する（M11-T10b）
+      if (!newModeActive.value) void initializeEditor();
+      return;
+    }
     if (next === saveHandle.uid.value) return;
     load(next);
   },
@@ -713,7 +719,7 @@ watch(slugInput, async (value, oldValue) => {
     console.error("[PoiEdit] Failed to release slug reservation on empty revert", cause);
   }
   try {
-    await window.slugReservations.release({ slug: oldValue.trim(), assetUid: newPoiUid });
+    await window.slugReservations.release({ slug: oldValue.trim(), assetUid: newPoiUid.value });
   } catch (cause) {
     // lease/GC が最終回収するため log のみ
     console.error("[PoiEdit] Failed to direct-release slug reservation on empty revert", cause);
@@ -966,16 +972,28 @@ onMounted(() => {
 });
 
 // M11-T10b: 未作成モード（/poisources/new）の初期化分岐。
-// 空 / 複製（duplicateFrom）/ インポート（import=1）/ 下書き復元（draftUid）の4経路
+// 空 / 複製（duplicateFrom）/ インポート（import=1）/ 下書き復元（draftUid）の4経路。
+// onMounted 初回と、同一コンポーネントのまま既存→新規へ遷移した場合の再初期化の双方で呼ばれる
 async function initializeEditor(): Promise<void> {
   const sourceId = route.params.sourceId as string;
   if (sourceId !== "new") {
+    newModeActive.value = false;
     await load(sourceId);
     return;
   }
-  // 未作成モード: readOnly なし・load 済み扱いで session を直接初期化する
+  // 未作成モード: save handle を未作成状態へ戻す（既存→新規の再初期化で uid が残らないように）
+  saveHandle.uid.value = undefined;
+  saveHandle.revision.value = undefined;
+  saveHandle.confirmedSlug.value = undefined;
+  newModeActive.value = true;
+  newPoiUid.value = typeof route.query.draftUid === "string" && route.query.draftUid
+    ? route.query.draftUid
+    : crypto.randomUUID();
+  // readOnly なし・load 済み扱いで session を直接初期化する
   readOnly.value = false;
   loading.value = false;
+  saveError.value = null;
+  saveIssues.value = [];
   const duplicateFrom = typeof route.query.duplicateFrom === "string" && route.query.duplicateFrom
     ? route.query.duplicateFrom
     : null;
@@ -1007,10 +1025,10 @@ async function initializeEditor(): Promise<void> {
     initializeEmptySession();
   }
   // 新規の draft キー = 事前採番 uid。予約帰属・create uid と一致させる（M11-T7 と同型）
-  if (route.query.draftUid !== newPoiUid) {
-    await router.replace({ query: { ...route.query, draftUid: newPoiUid } });
+  if (route.query.draftUid !== newPoiUid.value) {
+    await router.replace({ query: { ...route.query, draftUid: newPoiUid.value } });
   }
-  await draftLifecycle.open(newPoiUid, null);
+  await draftLifecycle.open(newPoiUid.value, null);
   // インポート自動起動（複製と併用しない）。draft 復元があっても importFile 成功時に張り直す
   if (route.query.import === "1" && !duplicateFrom) {
     void nextTick(() => {
@@ -1042,7 +1060,7 @@ async function releaseReservedSlugForNew(): Promise<void> {
     : slugInput.value.trim();
   if (!slug) return;
   try {
-    await window.slugReservations.release({ slug, assetUid: newPoiUid });
+    await window.slugReservations.release({ slug, assetUid: newPoiUid.value });
   } catch (cause) {
     console.error("[PoiEdit] Failed to release reserved slug for new source", cause);
   }
@@ -1065,7 +1083,7 @@ async function importAutoRun(): Promise<void> {
       slug,
       title: { [lang]: picked.fileName.replace(/\.[^.]+$/, "") },
       filePath: picked.filePath,
-      uid: newPoiUid,
+      uid: newPoiUid.value,
     });
     if (!("result" in result) || result.result !== "Success") {
       // PoiSourceSaveResult failure は saveSource の onFailure と同じ語彙で診断へ
@@ -1085,7 +1103,7 @@ async function importAutoRun(): Promise<void> {
       return;
     }
     // import 内容が正になるため、import 前の未作成下書きは廃棄（復元競合ダイアログ防止）
-    await window.assetDrafts.remove("poi", newPoiUid);
+    await window.assetDrafts.remove("poi", newPoiUid.value);
     // adoptLoaded + session.load + draftLifecycle.open(uid, revision) を一括で張り直す
     await load(result.uid);
     // import=1 を URL から除去（リロードで再起動しない）

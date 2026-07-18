@@ -165,22 +165,67 @@ test.describe('M11-T10 Dedup/Import', () => {
     }
   });
 
-  test('AC9+AC10: POI 新規追加が即エディタ遷移、Importがfile picker経由でエディタ遷移', async () => {
+  test('AC1+AC2: POI新規追加は未作成モードで開き、保存するまで行が作られず、保存で作成される', async () => {
     test.setTimeout(180_000);
-    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-imp-'));
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-new-'));
     const { app, page } = await launch(e2eRoot);
     try {
+      // 保存成功ダイアログを自動承認
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
       await openHash(page, '#/poisources');
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
 
-      // AC9: 新規追加 → POIエディタへ遷移(モーダルなし)
+      // AC1: 新規追加 → 未作成モード（/poisources/new）。行も下書きもまだ作られない
       await page.locator('[data-resource-new]').click();
       await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
       const hashAfterCreate = await page.evaluate(() => location.hash);
-      expect(hashAfterCreate).toMatch(/#\/poisources\/[0-9a-f-]{36}\?new=1/);
+      expect(hashAfterCreate).toMatch(/#\/poisources\/new/);
+      await expect.poll(async () =>
+        page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
+      { timeout: 10000 }).toBe(0);
 
-      // AC10: Import — file picker(stub) → import → エディタ遷移、featureが読み込まれる
-      const geojsonPath = path.join(e2eRoot, 't10-import.geojson');
+      // AC2: slug 入力（blur で commit）→ 保存ボタンが enabled（draftDirty）→ 保存で行作成 + ルート正準化
+      await page.getByTestId('poi-slug').fill('t10b-new-poi');
+      await page.getByTestId('poi-slug').press('Tab');
+      const saveButton = page.getByTestId('editor-save');
+      await expect(saveButton).toBeEnabled({ timeout: 10000 });
+      await saveButton.click();
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 })
+        .toMatch(/#\/poisources\/[0-9a-f-]{36}$/);
+      await expect.poll(async () =>
+        page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
+      { timeout: 15000 }).toBe(1);
+      // slug 重複（Exist）の operation 診断が出ていない（予約 promote 成立）
+      await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
+
+      console.log('  AC1+AC2: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('AC6: POI Importは未作成モード経由でfile picker→内容作成。キャンセルでは何も作られない', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-imp-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      // まずキャンセル経路: picker がキャンセルを返すと未作成モードのまま何も作られない
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showOpenDialog = (async () => ({ canceled: true, filePaths: [] })) as typeof dialog.showOpenDialog;
+      });
+      await openHash(page, '#/poisources');
+      await expect(page.locator('[data-resource-import]')).toBeVisible({ timeout: 15000 });
+      await page.locator('[data-resource-import]').click();
+      await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
+      expect(await page.evaluate(() => location.hash)).toMatch(/#\/poisources\/new\?import=1/);
+      await expect.poll(async () =>
+        page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
+      { timeout: 10000 }).toBe(0);
+
+      // 成功経路: file picker(stub) → importFile(preset uid) → エディタに feature が読み込まれ正準化される
+      const geojsonPath = path.join(e2eRoot, 't10b-import.geojson');
       await writeFile(geojsonPath, JSON.stringify({
         type: 'FeatureCollection',
         features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [139.7, 35.6] }, properties: { name: 'Imported POI' } }],
@@ -189,14 +234,15 @@ test.describe('M11-T10 Dedup/Import', () => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [filePath] })) as typeof dialog.showOpenDialog;
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       }, geojsonPath);
-
       await openHash(page, '#/poisources');
       await expect(page.locator('[data-resource-import]')).toBeVisible({ timeout: 15000 });
       await page.locator('[data-resource-import]').click();
       await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
-      await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
+      await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 15000 });
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 })
+        .toMatch(/#\/poisources\/[0-9a-f-]{36}$/);
 
-      console.log('  AC9+AC10: PASS');
+      console.log('  AC6: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -349,9 +395,9 @@ test.describe('M11-T10 Dedup/Import', () => {
     }
   });
 
-  test('AC11+POI複製: MapListにImportボタン、POI複製は行作成方式で内容ごと複製される', async () => {
+  test('AC3+AC11: POI複製は未作成モードでdirtyに開き保存で作成、MapListにImportボタン', async () => {
     test.setTimeout(180_000);
-    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-misc-'));
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-dup-'));
     const { app, page } = await launch(e2eRoot);
     try {
       // AC11: MapList toolbar にインポートボタン
@@ -359,19 +405,255 @@ test.describe('M11-T10 Dedup/Import', () => {
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('[data-resource-import]')).toBeVisible({ timeout: 5000 });
 
-      // POI複製(行作成方式): feature付きソースを複製 → 新uidのエディタ、slug=-copy、feature 1件
+      // AC3: POI複製 → 未作成モード（/poisources/new?duplicateFrom=...）で dirty に開き、保存まで行は増えない
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
       const poi = await seedPoi(page, true);
       await openHash(page, '#/poisources');
       await expect(page.locator(`[data-resource-uid="${poi.uid}"]`)).toBeVisible({ timeout: 15000 });
       await clickCardAction(page, poi.uid, '複製');
 
       await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
+      const hash = await page.evaluate(() => location.hash);
+      expect(hash).toContain('#/poisources/new');
+      expect(hash).toContain('duplicateFrom=');
       await expect(page.getByTestId('poi-slug')).toHaveValue(`${poi.slug}-copy`, { timeout: 10000 });
       await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
-      const hash = await page.evaluate(() => location.hash);
-      expect(hash).not.toContain(poi.uid); // 新uidの行で開いている
+      // dirty オープン（無変更でも保存可能）
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
+      // 保存前に行は増えない
+      await expect.poll(async () =>
+        page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
+      { timeout: 10000 }).toBe(1);
 
-      console.log('  AC11+POI複製: PASS');
+      // 保存 → 内容ごと作成（予約=self のため Exist にならない）
+      await page.getByTestId('editor-save').click();
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 })
+        .toMatch(/#\/poisources\/[0-9a-f-]{36}$/);
+      await expect.poll(async () =>
+        page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
+      { timeout: 15000 }).toBe(2);
+      await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
+
+      console.log('  AC3+AC11: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('AC4+AC5: 複製を放棄すると下書きカードが現れ、復元・削除で予約ごと解放される', async () => {
+    test.setTimeout(240_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-draft-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+      // removeNewDraft の native confirm は protocol dialog より renderer 側 stub が確実
+      await page.evaluate(() => { (window as any).confirm = () => true; });
+
+      const poi = await seedPoi(page, true);
+      await openHash(page, '#/poisources');
+      await expect(page.locator(`[data-resource-uid="${poi.uid}"]`)).toBeVisible({ timeout: 15000 });
+      await clickCardAction(page, poi.uid, '複製');
+      await expect(page.getByTestId('poi-slug')).toHaveValue(`${poi.slug}-copy`, { timeout: 10000 });
+      const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
+      expect(draftUid).not.toBeNull();
+
+      // AC4: 保存せず戻る（hot-exit flush）→ 一覧に下書きカード
+      await page.getByTestId('editor-back').click();
+      await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
+      const draftCard = page.locator(`[data-resource-uid="${draftUid}"]`);
+      await expect(draftCard).toBeVisible({ timeout: 15000 });
+      await expect(draftCard).toContainText(`${poi.slug}-copy`, { timeout: 5000 });
+      // 行は増えていない
+      await expect.poll(async () =>
+        page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
+      { timeout: 10000 }).toBe(1);
+
+      // 下書きカードを開く → slug・内容が dirty(draft-restored) で復元
+      await draftCard.click();
+      await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('poi-slug')).toHaveValue(`${poi.slug}-copy`, { timeout: 10000 });
+      await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
+
+      // AC5: 下書きカードを削除 → 予約ごと解放され、再複製で -copy が再採番される
+      await page.getByTestId('editor-back').click();
+      await expect(page.locator(`[data-resource-uid="${draftUid}"]`)).toBeVisible({ timeout: 15000 });
+      await clickCardAction(page, draftUid!, '下書きを削除');
+      await expect(page.locator(`[data-resource-uid="${draftUid}"]`)).toHaveCount(0, { timeout: 10000 });
+      await expect.poll(async () =>
+        page.evaluate(async (slug) => window.slugReservations.check({ slug }), `${poi.slug}-copy`),
+      { timeout: 10000 }).toBe('available');
+      await clickCardAction(page, poi.uid, '複製');
+      await expect(page.getByTestId('poi-slug')).toHaveValue(`${poi.slug}-copy`, { timeout: 10000 });
+
+      console.log('  AC4+AC5: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('AC7: POI新規下書きは「新規追加」で引き継がれる', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-takeover-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      // 新規で slug のみ入力 → 予約成立 + 初期draft永続（draftDirty=live diverged で実 persist）
+      await openHash(page, '#/poisources/new');
+      await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('poi-slug').fill('t10b-takeover');
+      await page.getByTestId('poi-slug').press('Tab');
+      const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
+      expect(draftUid).not.toBeNull();
+      await expect.poll(async () => page.evaluate(async (uid) =>
+        (await window.assetDrafts.get('poi', uid!)) != null, draftUid), { timeout: 15000 }).toBe(true);
+
+      // 一覧へ戻り「新規追加」→ 同じ draftUid の未作成モードが開く
+      await openHash(page, '#/poisources');
+      await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
+      await page.locator('[data-resource-new]').click();
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 10000 }).toContain(`draftUid=${draftUid}`);
+      await expect(page.getByTestId('poi-slug')).toHaveValue('t10b-takeover', { timeout: 10000 });
+
+      console.log('  AC7: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('AC13+AC14: blur前の保存とflushはlive slugを使う', async () => {
+    test.setTimeout(240_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-live-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+
+      // AC13: blur 前の Cmd+S が live slug で作成する（古い session slug を送らない）
+      await openHash(page, '#/poisources/new');
+      await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('poi-slug').click();
+      await page.getByTestId('poi-slug').pressSequentially('t10b-live-save', { delay: 20 });
+      // blur させないまま Cmd+S（draftDirty で gate が開く → flush commit → 最新 slug で作成）
+      await page.keyboard.press('Meta+s');
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 })
+        .toMatch(/#\/poisources\/[0-9a-f-]{36}$/);
+      const savedSlugs = await page.evaluate(async () =>
+        ((await (window as any).search.poiSources({ page: 1, pageSize: 50 })).docs as Array<{ slug: string }>).map((d) => d.slug));
+      expect(savedSlugs).toContain('t10b-live-save');
+      console.log('  AC13: PASS');
+
+      // AC14: blur 前に focus を維持したまま flush → live slug 入りの下書きが残り復元される
+      await openHash(page, '#/poisources/new');
+      await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('poi-slug').click();
+      await page.getByTestId('poi-slug').pressSequentially('t10b-live-draft', { delay: 20 });
+      // diverged 状態（保存ボタンが enabled）を DOM 観測で確認
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10000 });
+      const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
+      expect(draftUid).not.toBeNull();
+      // focus を移動させず hot-exit 相当の flushSync を発火
+      await page.evaluate(() => window.dispatchEvent(new Event('maplat:flush-drafts')));
+      await expect.poll(async () => page.evaluate(async (uid) => {
+        const draft = await window.assetDrafts.get('poi', uid!) as { payload?: { slug?: string } } | null;
+        return draft?.payload?.slug ?? null;
+      }, draftUid), { timeout: 15000 }).toBe('t10b-live-draft');
+      await openHash(page, '#/poisources');
+      const draftCard = page.locator(`[data-resource-uid="${draftUid}"]`);
+      await expect(draftCard).toBeVisible({ timeout: 15000 });
+      await draftCard.click();
+      await expect(page.getByTestId('poi-slug')).toHaveValue('t10b-live-draft', { timeout: 10000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
+      console.log('  AC14: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('AC15+AC16: 未作成下書きの画面内破棄と空欄復帰で予約が即時解放される', async () => {
+    test.setTimeout(240_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-release-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+
+      // AC16: slug 入力（予約成立）→ 空欄へ戻す → 同じ slug が即時 available
+      await openHash(page, '#/poisources/new');
+      await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
+      await page.getByTestId('poi-slug').fill('t10b-revert');
+      await page.getByTestId('poi-slug').press('Tab');
+      // 予約成立を待つ（自 uid 帰属の予約は excludeUid なしの check では reserved-by-other に見える）
+      await expect.poll(async () =>
+        page.evaluate(async (slug) => window.slugReservations.check({ slug }), 't10b-revert'),
+      { timeout: 15000 }).toBe('reserved-by-other');
+      await page.getByTestId('poi-slug').fill('');
+      await page.getByTestId('poi-slug').press('Tab');
+      await expect.poll(async () =>
+        page.evaluate(async (slug) => window.slugReservations.check({ slug }), 't10b-revert'),
+      { timeout: 15000 }).toBe('available');
+      console.log('  AC16: PASS');
+
+      // AC15: 下書き復元状態から画面内破棄 → 下書きと予約が解放される
+      await page.getByTestId('poi-slug').fill('t10b-discard');
+      await page.getByTestId('poi-slug').press('Tab');
+      const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
+      expect(draftUid).not.toBeNull();
+      await expect.poll(async () => page.evaluate(async (uid) =>
+        (await window.assetDrafts.get('poi', uid!)) != null, draftUid), { timeout: 15000 }).toBe(true);
+      // リロードして下書き復元状態にする
+      await page.reload();
+      await expect(page.getByTestId('poi-slug')).toHaveValue('t10b-discard', { timeout: 15000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
+      await page.getByTestId('editor-discard-draft').click();
+      // 破棄後は一覧へ戻り、slug は即時 available
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 }).toBe('#/poisources');
+      await expect.poll(async () => page.evaluate(async (uid) =>
+        (await window.assetDrafts.get('poi', uid!)) != null, draftUid), { timeout: 15000 }).toBe(false);
+      await expect.poll(async () =>
+        page.evaluate(async (slug) => window.slugReservations.check({ slug }), 't10b-discard'),
+      { timeout: 15000 }).toBe('available');
+      console.log('  AC15: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('AC10: 未作成編集はリロード後もdraftUid経由で復元される', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-reload-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+      // 複製で開き、feature を1件追加してからリロード（復元競合なく dirty 復元されること）
+      const poi = await seedPoi(page, true);
+      await openHash(page, '#/poisources');
+      await expect(page.locator(`[data-resource-uid="${poi.uid}"]`)).toBeVisible({ timeout: 15000 });
+      await clickCardAction(page, poi.uid, '複製');
+      await expect(page.getByTestId('poi-slug')).toHaveValue(`${poi.slug}-copy`, { timeout: 10000 });
+      await page.getByTestId('poi-slug').press('Tab');
+      // 一覧の「新規作成」で feature を1件追加（編集を加える）
+      await page.locator('.poi-feature-list [data-resource-new]').click();
+      await expect(page.locator('.poi-feature-row')).toHaveCount(2, { timeout: 10000 });
+      // draft 永続を待ってからリロード
+      const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
+      await expect.poll(async () => page.evaluate(async (uid) =>
+        (await window.assetDrafts.get('poi', uid!)) != null, draftUid), { timeout: 15000 }).toBe(true);
+      await page.reload();
+      // 復元競合ダイアログではなく auto-apply で内容が戻る
+      await expect(page.getByTestId('poi-slug')).toHaveValue(`${poi.slug}-copy`, { timeout: 15000 });
+      await expect(page.locator('.poi-feature-row')).toHaveCount(2, { timeout: 10000 });
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
+
+      console.log('  AC10: PASS');
     } finally {
       await quitElectronApplication(app);
     }
