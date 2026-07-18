@@ -213,12 +213,12 @@ try {
   console.log('ok: Part2-1 PoiSourceList は遷移と予約のみを担う');
 
   const poiEditSrc = await readFile(path.join(projectRoot, 'src/views/PoiEdit.vue'), 'utf8');
-  assert.ok(poiEditSrc.includes("'new'") && poiEditSrc.includes('newPoiUid'), 'PoiEdit が new 未作成モード分岐を持つこと');
+  assert.ok(poiEditSrc.includes('"new"') && poiEditSrc.includes('newPoiUid'), 'PoiEdit が new 未作成モード分岐を持つこと');
   assert.ok(poiEditSrc.includes('duplicateFrom'), 'PoiEdit が duplicateFrom 初期化を持つこと');
-  assert.ok(poiEditSrc.includes("import === '1'") || poiEditSrc.includes('importAutoRun'), 'PoiEdit が import 自動起動を持つこと');
+  assert.ok(poiEditSrc.includes('importAutoRun'), 'PoiEdit が import 自動起動を持つこと');
   assert.ok(poiEditSrc.includes('draftDirty'), 'PoiEdit が draftDirty を持つこと');
   assert.ok(poiEditSrc.includes('createLocal('), 'PoiEdit の保存分岐が createLocal を呼ぶこと');
-  assert.ok(poiEditSrc.includes('slugField.value?.release()') || poiEditSrc.includes('slugField.release()'), 'PoiEdit の予約 teardown が slugField.release() を呼ぶこと');
+  assert.ok(poiEditSrc.includes('slugField.value?.release()'), 'PoiEdit の予約 teardown が slugField.release() を呼ぶこと');
   console.log('ok: Part2-2 PoiEdit は未作成モード契約を持つ');
 
   const locales = ['ja', 'en', 'de', 'es', 'fr', 'id', 'ko', 'th', 'vi', 'zh', 'zh-TW'];

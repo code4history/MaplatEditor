@@ -9,6 +9,7 @@
       :state="state"
       :total="total"
       :loaded="loaded"
+      :new-draft="newDrafts.length > 0"
       @create="onCreate"
       @update:query="updateQuery"
       @retry="retry"
@@ -34,6 +35,15 @@
           :fallback-image="noImage"
           :draft-label="t('editor_ui.draft_badge')"
           @action="onAction"
+        />
+        <ResourceDraftCard
+          v-for="draft in newDrafts"
+          :key="draft.assetUid"
+          :draft="draft"
+          :to="`/poisources/new?draftUid=${draft.assetUid}`"
+          :fallback-image="noImage"
+          :draft-label="t('editor_ui.draft_badge')"
+          @delete-draft="removeNewDraft"
         />
       </div>
     </ResourceListShell>
@@ -68,25 +78,24 @@ import { useInfiniteResourceList } from "../composables/useInfiniteResourceList"
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useResourceDelete } from "../composables/useResourceDelete";
-import { reserveCopySlug } from "../composables/useResourceDuplicate";
+import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
+import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
 import ImportSlot from "../components/resource-list/ImportSlot.vue";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { useBboxRangeFilter } from "../composables/useBboxRangeFilter";
 import { createPoiSourceListAdapter } from "./resource-adapters/poiSourceListAdapter";
-import type { PoiSourceListRow, PoiSourceSaveResult } from "../electron";
+import type { PoiSourceListRow } from "../electron";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
-import { resolveEditorLanguage } from "../utils/editorLanguages";
-import { suggestSlug } from "../utils/poiSourceSlug";
 
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
 const { bbox, modalOpen, envelopeForModal, apply, clear } = useBboxRangeFilter({ route, router });
-const { hasDraft, refreshDrafts } = useAssetDraftBadges("poi");
+const { hasDraft, newDrafts, latestNewDraft, refreshDrafts, removeNewDraft } = useAssetDraftBadges("poi");
 
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
 const bboxQuery = computed(() => (typeof route.query.bbox === "string" ? route.query.bbox : null));
@@ -115,38 +124,16 @@ function firstVisibleUid(): string | null {
 
 watch([query, bbox], () => loadFirst(), { immediate: false });
 
-// --- Create: 空draft 作成 → エディタ遷移 ---
-const creating = ref(false);
-
-async function onCreate(): Promise<void> {
-  if (creating.value) return;
-  creating.value = true;
-  try {
-    const slug = `poi-${Date.now().toString(36)}`;
-    const result: PoiSourceSaveResult = await window.poiSources.createLocal({ slug, title: { ja: slug }, lang: "ja" });
-    if (!("result" in result) || result.result !== "Success") throw new Error("Create failed");
-    router.push(`/poisources/${("uid" in result ? result.uid : "")}?new=1`);
-  } catch (e) {
-    console.error("Failed to create POI source", e);
-  } finally {
-    creating.value = false;
-  }
+// --- Create: 遅延作成（M11-T10b）。行は作らずエディタの未作成モードを開く ---
+// M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く（他4種と同じ文法）
+function onCreate(): void {
+  const pending = latestNewDraft.value;
+  void router.push(pending ? `/poisources/new?draftUid=${pending.assetUid}` : "/poisources/new");
 }
 
-// --- Import ---
-async function onImport(): Promise<void> {
-  try {
-    const picked = await window.poiSources.pickImportFile();
-    if (!picked) return;
-    const slug = suggestSlug(picked.fileName);
-    const lang = resolveEditorLanguage(await window.poiSources.detectImportLanguage(picked.filePath, "ja"));
-    const result = await window.poiSources.importFile({ slug, title: { [lang]: picked.fileName.replace(/\.[^.]+$/, "") }, filePath: picked.filePath });
-    if (!("result" in result) || result.result !== "Success") throw new Error("Import failed");
-    router.push(`/poisources/${("uid" in result ? result.uid : "")}?new=1`);
-  } catch (e: any) {
-    console.error("Import failed", e);
-    await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: e?.message || t("poisource.errors.pick_failed") });
-  }
+// --- Import: 遅延作成（M11-T10b）。file picker と importFile はエディタの未作成モードが自動起動する ---
+function onImport(): void {
+  void router.push("/poisources/new?import=1");
 }
 
 // --- Delete (useResourceDelete: 共通 dialog + 参照一覧 + 実行) ---
@@ -171,25 +158,13 @@ async function onAction(key: string, vm: ResourceListItemViewModel): Promise<voi
   }
 }
 
-// --- Duplicate（行作成方式・設計v3.2）: POIエディタは行前提（/poisources/:uid）のため、
-// reserveCopySlug で採番・予約した slug/uid で createLocal + fc複製の新規行を作ってから遷移する。
-// remote元もローカル複製になる ---
+// --- Duplicate（遅延作成・設計v1.2）: reserveCopySlug で採番・予約した slug/uid で
+// エディタの未作成モードを開き、内容複製と作成はエディタ側が担う（Map/App と同じ文法）。
+// 保存まで行は増えない。remote元もローカル複製になる ---
 async function duplicateByVm(vm: ResourceListItemViewModel): Promise<void> {
   const reserved = await reserveCopySlug(vm.slug, "poi-source", "poi-source");
   if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }
-  try {
-    const source = await window.poiSources.get(vm.uid);
-    if (!source) throw new Error(`source not found: ${vm.uid}`);
-    const created = await window.poiSources.createLocal({ slug: reserved.slug, title: source.title, lang: source.lang, uid: reserved.uid });
-    if (!("result" in created) || created.result !== "Success") throw new Error("createLocal failed");
-    const saved = await window.poiSources.save(reserved.uid, { slug: reserved.slug, title: source.title, fc: source.fc });
-    if (!("result" in saved) || saved.result !== "Success") throw new Error("fc copy failed");
-    await loadFirst();
-    router.push(`/poisources/${reserved.uid}?new=1`);
-  } catch (e) {
-    console.error("Duplicate failed", e);
-    deletion.error.value = t("resource_list.duplicate_failed");
-  }
+  void router.push(duplicateEditorPath("/poisources/new", vm.uid, reserved));
 }
 
 // --- lifecycle ---
