@@ -203,6 +203,7 @@ contextBridge.exposeInMainWorld('imageAssets', {
 // slug 予約 (M11-T7/§7.2): 複数 instance 間の slug 予約・移動・解放・確認。
 // payload-only の invoke のみ(m2安全API境界: raw ipcRenderer を渡さない)。
 contextBridge.exposeInMainWorld('search', {
+  // bbox filter は WGS84。main process の search handler が EPSG:3857 へ変換する。
   maps: (filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }) =>
     ipcRenderer.invoke('search:maps', filter),
   apps: (filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }) =>
@@ -215,6 +216,9 @@ contextBridge.exposeInMainWorld('search', {
     ipcRenderer.invoke('search:imageAssets', filter),
   searchExtent: (kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]) =>
     ipcRenderer.invoke('search:extent', kind, bbox),
+  // raw searchExtent は既存互換の EPSG:3857。UI は上記 search:* filter を使う。
+  resourceBbox: (kind: 'map', uid: string) =>
+    ipcRenderer.invoke('search:resourceBbox', kind, uid),
   appCoverage: (appUid: string, mapUids?: string[]) =>
     ipcRenderer.invoke('search:appCoverage', appUid, mapUids),
 })

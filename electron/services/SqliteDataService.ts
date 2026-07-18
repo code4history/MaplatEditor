@@ -28,6 +28,7 @@ import AssetDraftService from './AssetDraftService';
 import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { createResettableSingleFlight } from './ResettableSingleFlight';
+import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -2093,6 +2094,19 @@ class SqliteDataService {
       `)
       .all(extent[0], extent[2], extent[1], extent[3]) as any[];
     return rows.map((row) => String(row.id));
+  }
+
+  async resourceBbox(kind: 'map', uid: string): Promise<Bbox | null> {
+    const db = await this.getDb();
+    if (kind !== 'map' || !uid) return null;
+    const row = db.prepare(`
+      SELECT r.min_x, r.min_y, r.max_x, r.max_y
+      FROM maps_rtree r
+      JOIN maps_rtree_key k ON k.rid = r.id
+      WHERE k.uid = ?
+    `).get(uid) as { min_x: number; min_y: number; max_x: number; max_y: number } | undefined;
+    if (!row) return null;
+    return mercatorBboxToWgs84([row.min_x, row.min_y, row.max_x, row.max_y]);
   }
 
   async appCoverage(appUid: string, passedMapUids?: string[]): Promise<{ coverageLngLats: [number, number][]; maps: number } | null> {

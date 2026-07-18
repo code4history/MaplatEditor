@@ -189,6 +189,9 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('search:poiSources')
   ipcMain.removeHandler('search:baseMaps')
   ipcMain.removeHandler('search:imageAssets')
+  ipcMain.removeHandler('search:extent')
+  ipcMain.removeHandler('search:appCoverage')
+  ipcMain.removeHandler('search:resourceBbox')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
