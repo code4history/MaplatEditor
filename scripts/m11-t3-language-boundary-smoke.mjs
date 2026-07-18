@@ -116,15 +116,10 @@ const poiReferenceEditor = await readFile(
 );
 assert.match(poiReferenceEditor, /activeLang:\s*LangCode/);
 assert.match(poiReferenceEditor, /languageOptions:\s*readonly/);
-assert.match(poiReferenceEditor, /<PoiSourceSelector[^>]*:active-lang="activeLang"/);
+assert.match(poiReferenceEditor, /ResourceSelectorList/);
 assert.match(poiReferenceEditor, /:active-lang="activeLang"/);
-
-const poiSourceSelector = await readFile(
-  path.join(projectRoot, 'src/components/PoiSourceSelector.vue'),
-  'utf8',
-);
-assert.match(poiSourceSelector, /activeLang:\s*LangCode/);
-assert.doesNotMatch(poiSourceSelector, /i18next\.language/);
+assert.match(poiReferenceEditor, /localizeTitle\(item\.title, props\.activeLang\)/);
+assert.doesNotMatch(poiReferenceEditor, /i18next\.language/);
 
 const appSourceEditor = await readFile(
   path.join(projectRoot, 'src/components/AppSourceEditor.vue'),

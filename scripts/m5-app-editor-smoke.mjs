@@ -402,7 +402,7 @@ try {
   );
   assert.match(poiReferenceUi, /const uid = poiUidOf\(entry\);/, 'poiReferenceUi.ts の差分反映が poiUid 要素判定を通していない');
   // POIデータタブの UI コントラクト: 順番変更 (上下) / 参照単位の icon 上書き / 解除 / 追加 selector
-  assert.match(poiReferenceEditor, /<PoiSourceSelector/, 'PoiReferenceEditor.vue が追加用 PoiSourceSelector をマウントしていない');
+  assert.match(poiReferenceEditor, /<ResourceSelectorList/, 'PoiReferenceEditor.vue が共通 ResourceSelectorList をマウントしていない');
   assert.match(poiReferenceEditor, /function move\(index: number, delta: number\)/, 'PoiReferenceEditor.vue に順番変更 (move) がない');
   assert.match(poiReferenceEditor, /<IconRefField/, 'PoiReferenceEditor.vue が上書き icon 欄 (IconRefField) をマウントしていない');
   assert.match(poiReferenceEditor, /poiref\.icon_override/, 'PoiReferenceEditor.vue に上書きアイコンラベルがない');
@@ -432,8 +432,8 @@ try {
   );
   assert.match(
     poiReferenceEditor,
-    /<ResourceSelector[\s\S]*<template #list>[\s\S]*?<PoiSourceSelector/,
-    'PoiReferenceEditor.vue が ResourceSelector #list slot に PoiSourceSelector を配置していない'
+    /<ResourceSelector[\s\S]*<template #list>[\s\S]*?<ResourceSelectorList/,
+    'PoiReferenceEditor.vue が ResourceSelector #list slot に ResourceSelectorList を配置していない'
   );
   const resourceSelector = await readFile(path.join(projectRoot, 'src/components/ResourceSelector.vue'), 'utf8');
   assert.match(
@@ -455,12 +455,11 @@ try {
     /<PoiReferenceEditor[\s\S]{0,200}?heading-key="poiref\.selected_list_app"/,
     'AppEdit.vue が POIデータタブ見出し (poiref.selected_list_app) を渡していない'
   );
-  // 左カラム (PoiSourceSelector) は検索ボックス付き一覧 (行クリックで追加、追加済みは no-op)
-  const poiSourceSelector = await readFile(path.join(projectRoot, 'src/components/PoiSourceSelector.vue'), 'utf8');
-  assert.match(poiSourceSelector, /poisource\.search_placeholder/, 'PoiSourceSelector.vue に検索ボックスがない');
-  assert.match(poiSourceSelector, /search\(searchInput\.value\.trim\(\)\)/, 'PoiSourceSelector.vue の検索が usePoiSourceList.search に接続されていない');
-  assert.match(poiSourceSelector, /class="source-row"/, 'PoiSourceSelector.vue が地図選択と同じリスト行 (source-row) になっていない');
-  assert.match(poiSourceSelector, /poiref\.added/, 'PoiSourceSelector.vue に追加済みバッジ (poiref.added) がない');
+  // 左カラムは共通検索一覧 + host 所有の行 (追加済みは disabled)
+  assert.match(poiReferenceEditor, /v-model:query="poiSearchQuery"/, 'POI selector に検索 query がない');
+  assert.match(poiReferenceEditor, /:adapter="poiSourceAdapter"/, 'POI selector が search adapter に接続されていない');
+  assert.match(poiReferenceEditor, /class="source-row"/, 'POI selector が共通の source-row になっていない');
+  assert.match(poiReferenceEditor, /:disabled="readOnly \|\| isPoiSelected\(item\.uid\)"/, '追加済み POI 行が無効化されない');
   // picker 表示中のグローバルキー抑止 (MAJOR-1) と行 key の安定化 (MINOR-2) は再設計後も維持
   assert.match(poiReferenceEditor, /defineExpose\(\{ pickerOpen \}\)/, 'PoiReferenceEditor.vue が pickerOpen を expose していない');
   assert.match(poiReferenceEditor, /return `ref:\$\{uid\}#\$\{occurrence\}`/, 'PoiReferenceEditor.vue の entryKey が uid+occurrence 安定 key でない');

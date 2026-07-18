@@ -137,7 +137,7 @@ try {
   );
 
   // AppList は複数アプリ一覧として applist API を使うこと
-  // M11-T6: 一覧データ取得は resource-adapters 層経由 (AppList → createAppListAdapter → window.applist.request)
+  // M11-T8b: 一覧データ取得は bbox 対応 search adapter 経由
   assert.match(
     appListView,
     /createAppListAdapter/,
@@ -149,8 +149,8 @@ try {
   );
   assert.match(
     appListAdapterSource,
-    /window\.applist\.request/,
-    'appListAdapter.ts が window.applist.request を呼んでいない'
+    /window\.search\.apps/,
+    'appListAdapter.ts が window.search.apps を呼んでいない'
   );
 
   // アプリ編集はuid正準で開く (ADR-0007: ルーティング・IPCはuid、slugは表示/編集用)

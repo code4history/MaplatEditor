@@ -171,11 +171,11 @@ try {
   assert.deepEqual(offenders, [], `raw window.maplist.* 直呼びが allowlist 外で検出されました: ${offenders.join(', ')}`);
   console.log('  [2/4] window.maplist raw IPC allowlist: PASS');
 
-  // --- Part 3: MapList.vue regression (2-arg + docs + delete) ---
-  // M11-T6: 一覧取得は mapListAdapter (2-arg request + result.docs) 経由。delete は MapList 側に残存
+  // --- Part 3: MapList.vue regression (search adapter + docs + delete) ---
+  // M11-T8b: 一覧取得は bbox 対応の search.maps 経由。delete は MapList 側に残存
   const mapListView = await readFile(path.join(projectRoot, 'src/views/MapList.vue'), 'utf8');
   const mapListAdapterView = await readFile(path.join(projectRoot, 'src/views/resource-adapters/mapListAdapter.ts'), 'utf8');
-  assert.match(mapListAdapterView, /window\.maplist\.request\(filter\.q, page\)/, 'mapListAdapter に 2-arg maplist.request() がない');
+  assert.match(mapListAdapterView, /window\.search\.maps\(\{\s*q:\s*filter\.q,\s*bbox:/, 'mapListAdapter に bbox 対応 search.maps() がない');
   assert.match(mapListView, /\(window as any\)\.maplist\.delete\(/, 'MapList.vue に (window as any).maplist.delete() がない');
   assert.match(mapListAdapterView, /result\.docs/, 'mapListAdapter に result.docs がない');
   console.log('  [3/4] MapList.vue regression: PASS');
