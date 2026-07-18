@@ -50,6 +50,7 @@
     "smoke:m11-t5-shell-tokens": "node scripts/m11-t5-shell-tokens-smoke.mjs",
     "smoke:m11-t6-list-primitives": "node scripts/m11-t6-list-primitives-smoke.mjs",
     "smoke:m11-t7-slug-reservation": "node --experimental-strip-types scripts/m11-t7-slug-reservation-smoke.mjs",
+    "smoke:m11-t8b-search-ui": "node scripts/m11-t8b-search-ui-smoke.mjs",
     "smoke:m11-t9-poi-content-mode": "node scripts/m11-t9-poi-content-mode-smoke.mjs",
     "smoke:m11-t11-geo-estimate": "node --experimental-strip-types scripts/m11-t11-geo-estimate-smoke.mjs",
     "test:e2e:m11-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t6-list-primitives.spec.ts",

@@ -114,6 +114,29 @@ test('WGS84 search adapters and selector contexts share FTS, bbox, remount, and 
     await poiToggle.click();
     await expect(poiToggle).toContainText(/全世界|指定なし/);
 
+    // AC3/AC4: 一覧の bbox 範囲フィルタ UI (BaseMapList 文法: ボタン→モーダル→?bbox=→クリア)
+    await page.evaluate(() => { location.hash = '#/maplist'; });
+    await expect(page.getByTestId('map-range-filter')).toBeVisible();
+    await page.getByTestId('map-range-filter').click();
+    await expect(page.locator('.envelope-modal')).toBeVisible();
+    await page.locator('.envelope-modal').getByRole('button', { name: /キャンセル|Cancel/i }).click();
+    await page.evaluate(() => { location.hash = '#/maplist?bbox=139.5,35.4,140,36'; });
+    await expect(page.locator(`[data-resource-uid="${seeded.mapUid}"]`)).toBeVisible();
+    await expect(page.getByTestId('map-range-clear')).toBeVisible();
+    await page.evaluate(() => { location.hash = '#/maplist?bbox=135,34,136,35'; });
+    await expect(page.locator(`[data-resource-uid="${seeded.mapUid}"]`)).toHaveCount(0, { timeout: 15_000 });
+    await page.getByTestId('map-range-clear').click();
+    await expect(page).not.toHaveURL(/bbox=/);
+    await expect(page.locator(`[data-resource-uid="${seeded.mapUid}"]`)).toBeVisible();
+
+    await page.evaluate(() => { location.hash = '#/poisources?bbox=139.5,35.4,140,36'; });
+    await expect(page.locator(`[data-resource-uid="${seeded.poiUid}"]`)).toBeVisible();
+    await page.evaluate(() => { location.hash = '#/poisources?bbox=135,34,136,35'; });
+    await expect(page.locator(`[data-resource-uid="${seeded.poiUid}"]`)).toHaveCount(0, { timeout: 15_000 });
+    await page.getByTestId('poi-source-range-clear').click();
+    await expect(page).not.toHaveURL(/bbox=/);
+    await expect(page.locator(`[data-resource-uid="${seeded.poiUid}"]`)).toBeVisible();
+
     await page.evaluate((uid) => { location.hash = `#/mapedit?uid=${uid}`; }, seeded.mapUid);
     await expect(page.getByTestId('map-tab-pois')).toBeVisible();
     await page.getByTestId('map-tab-pois').click();
