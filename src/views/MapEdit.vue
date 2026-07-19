@@ -5,6 +5,9 @@ import { isEqual, cloneDeep } from 'lodash-es';
 import ProgressModal from '../components/ProgressModal.vue';
 import EnvelopeEditorModal from '../components/EnvelopeEditorModal.vue';
 import PoiReferenceEditor from '../components/PoiReferenceEditor.vue';
+import ResourceSelector from '../components/ResourceSelector.vue';
+import ResourceSelectorList from '../components/ResourceSelectorList.vue';
+import ResourceMasterRow from '../components/resource-list/ResourceMasterRow.vue';
 import DraftConflictDialog from '../components/editor-ui/DraftConflictDialog.vue';
 import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
 import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
@@ -12,7 +15,11 @@ import LangValueChips from '../components/editor-ui/LangValueChips.vue';
 import SlugField from '../components/editor-ui/SlugField.vue';
 import EditorTabs from '../components/editor-ui/EditorTabs.vue';
 import DiagnosticFeedback from '../components/editor-ui/DiagnosticFeedback.vue';
-import { envelopeToBbox } from '../utils/appSourceModel';
+import noImage from '../assets/img/no_image.png';
+import osmThumb from '../assets/img/osm.png';
+import gsiThumb from '../assets/img/gsi.png';
+import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
+import { envelopeToBbox, resolveBaseMapSelectorText } from '../utils/appSourceModel';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
@@ -31,7 +38,9 @@ import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
 import { useSelectorSpatialContext } from '../composables/useSelectorSpatialContext';
 import type { SlugFieldState } from '../composables/useSlugAvailability';
-import type { SelectorSpatialContextView, Wgs84Bbox } from '../components/resource-list/resourceListTypes';
+import type { SelectorSpatialContextView, Wgs84Bbox, ResourceListItemViewModel } from '../components/resource-list/resourceListTypes';
+import { createBaseMapVisibilityListAdapter } from '../views/resource-adapters/baseMapVisibilityListAdapter';
+import type { BaseMapVisibilityItem } from '../../electron/services/SqliteDataService';
 import { runEditorExportDecision } from '../composables/useEditorExportDecision';
 import type { EditorSaveState } from '../components/editor-ui/editorUiTypes';
 import type { MapSaveResult } from '../electron';
@@ -313,13 +322,96 @@ const priority = computed(() => {
 });
 const baseMapList = ref<any[]>([]);
 const currentBaseMapID = ref('osm');
-const baseMapVisibilityList = ref<any[]>([]);
+const baseMapVisibilityList = ref<BaseMapVisibilityItem[]>([]);
 const baseMapVisibilityLoading = ref(false);
 const baseMapVisibilityError = ref('');
 // ベースマップ表示選択の検索/絞り込み(文字列・GCP範囲・地域指定)
 const baseMapSearchText = ref('');
 const baseMapFilterRegion = ref<[number, number][] | null>(null);
 const showBaseMapRegionModal = ref(false);
+
+// M12-T10: builtin ベースマップアイコン（OSM/GSI/GSI_ORTHO）の同梱リソース。
+// IPC が basemap_icons/ を resolveBaseMapListImage で解決済みだが、
+// 同梱リソースは vite import で確実にロードできるためフォールバックとして併用（AppEdit.vue:136-140 と同形式）
+const builtinThumbnails: Record<string, string> = {
+    osm: osmThumb,
+    gsi: gsiThumb,
+    gsi_ortho: gsiOrthoThumb,
+};
+
+// M12-T10: 左ペイン（selector）用 adapter。baseMapVisibilityList を ResourceListItemViewModel へ変換。
+// spatialContext は EnvelopeEditorModal 由来の baseMapFilterRegion を bbox として渡す。
+const baseMapVisibilityListAdapter = computed(() => createBaseMapVisibilityListAdapter({
+    source: () => baseMapVisibilityList.value,
+    hasDraft: () => false,
+    activeLang: () => mapData.value.lang || 'ja',
+}));
+
+// M12-T10: selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
+// 無ければ GCP auto range を fallback（現状の filteredBaseMapVisibilityList と同一方針）。
+const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
+    const manual = envelopeToBbox(baseMapFilterRegion.value);
+    if (manual) {
+        return { bbox: manual, enabled: true, labelKey: 'resource_selector.context_map' };
+    }
+    const auto = gcpAutoRange.bbox.value;
+    const expanded = auto ? expandBboxByRatio(auto, 0.05) : null;
+    return {
+        bbox: expanded,
+        enabled: !!expanded,
+        labelKey: 'resource_selector.context_map',
+    };
+});
+
+// M12-T10: 右ペイン（選択済み）= enabled なベースマップ一覧
+const enabledBaseMaps = computed(() => baseMapVisibilityList.value.filter((item) => item.enabled));
+
+// M12-T10: 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
+// builtin の同梱リソースは builtinThumbnails で確実に解決（AppEdit.vue:1042-1044 と同形式）
+function baseMapThumbnail(item: BaseMapVisibilityItem): string {
+    return builtinThumbnails[item.mapID] || item.thumbnailUrl || noImage;
+}
+
+// M12-T10: 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
+function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
+    return resolveBaseMapSelectorText(
+        { mapID: item.mapID, ...(item.data || {}) },
+        mapData.value.lang || 'ja',
+    );
+}
+
+// M12-T10: 左ペイン行クリック → enabled=true へ。locked は disabled でクリック不可。
+async function addBaseMapToEnabled(item: BaseMapVisibilityItem): Promise<void> {
+    if (item.locked || !baseMapVisibilityMapRef()) return;
+    try {
+        await (window as any).mapedit.setBaseMapVisibilityForMapID(baseMapVisibilityMapRef(), item.uid, true);
+        await loadBaseMapVisibility();
+        await refreshBaseMapLayers();
+    } catch (e: any) {
+        baseMapVisibilityError.value = e?.message || String(e);
+        console.error('[addBaseMapToEnabled] Failed:', e);
+    }
+}
+
+// M12-T10: 右ペイン削除ボタン → enabled=false へ。locked は disabled でクリック不可。
+async function removeBaseMapFromEnabled(item: BaseMapVisibilityItem): Promise<void> {
+    if (item.locked || !baseMapVisibilityMapRef()) return;
+    try {
+        await (window as any).mapedit.setBaseMapVisibilityForMapID(baseMapVisibilityMapRef(), item.uid, false);
+        await loadBaseMapVisibility();
+        await refreshBaseMapLayers();
+    } catch (e: any) {
+        baseMapVisibilityError.value = e?.message || String(e);
+        console.error('[removeBaseMapFromEnabled] Failed:', e);
+    }
+}
+
+// M12-T10: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
+// adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
+// （adapter の toViewModel は ResourceSelectorList 内部で使われる）
+function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
+    return baseMapVisibilityListAdapter.value.toViewModel(item, mapData.value.lang || 'ja');
+}
 
 const activeTab = ref('metadata');
 
@@ -2459,52 +2551,6 @@ watch(vertexMode, (newVal) => {
     if (illstSource) updateTin(); 
 });
 
-const baseMapTitle = (item: any) => {
-    const title = item?.data?.title ?? item?.title ?? item?.mapID ?? '';
-    if (typeof title === 'object' && title !== null) {
-        const titleValues = Object.values(title as Record<string, string>);
-        return title[mapData.value.lang || 'ja'] || title.ja || title.en || titleValues[0] || item.mapID;
-    }
-    return title;
-};
-
-// 文字列検索の対象: mapID + タイトルの全言語値(表示言語に依らずヒットさせる)
-const baseMapSearchHaystack = (item: any): string => {
-    const title = item?.data?.title;
-    const titleValues = typeof title === 'object' && title !== null ? Object.values(title) : [title];
-    return [item?.mapID, ...titleValues]
-        .filter((value): value is string => typeof value === 'string')
-        .join('\n')
-        .toLowerCase();
-};
-
-const bboxIntersects = (a: number[], b: number[]): boolean =>
-    a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3];
-
-// 検索/絞り込み適用後の一覧。存在範囲(coverageLngLats)未設定のベースマップは
-// OSM同様に全球扱いとし、GCP範囲/地域指定の絞り込みに常にマッチする
-const filteredBaseMapVisibilityList = computed(() => {
-    const text = baseMapSearchText.value.trim().toLowerCase();
-    // 地域指定が manual override されていればそれを使い、未設定(auto)なら GCP bbox (+5% buffer) を使う
-    const regionBbox = envelopeToBbox(baseMapFilterRegion.value);
-    const rawGcpBbox = regionBbox ? null : gcpAutoRange.bbox.value;
-    const gcpBbox = rawGcpBbox ? expandBboxByRatio(rawGcpBbox, 0.05) : null;
-    return baseMapVisibilityList.value.filter((item) => {
-        if (text && !baseMapSearchHaystack(item).includes(text)) return false;
-        // チェック済み（表示ON）は空間絞り込みをバイパスし、一覧に残す。
-        // これにより、遠隔地のON済みベースマップも絞り込み中にオフにできる（HV-R2）。
-        if (item.enabled) return true;
-        const coverage = envelopeToBbox(item?.data?.coverageLngLats ?? null);
-        if (coverage) {
-            // 空間条件は coverage と「一部でも交差」すれば該当（正本 §10.2）。
-            // GCP with 外れ点で coverage が bbox 全域を包含できず全滅するのを防ぐ。
-            if (gcpBbox && !bboxIntersects(coverage, gcpBbox)) return false;
-            if (regionBbox && !bboxIntersects(coverage, regionBbox)) return false;
-        }
-        return true;
-    });
-});
-
 const baseMapFilterRegionLabel = computed(() => {
     const bbox = envelopeToBbox(baseMapFilterRegion.value);
     return bbox ? `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}` : '';
@@ -2551,22 +2597,6 @@ const enabledBaseMapData = () => baseMapVisibilityList.value
 const refreshBaseMapLayers = async () => {
     baseMapList.value = enabledBaseMapData();
     await setupBaseMaps();
-};
-
-const setBaseMapVisible = async (item: any, event: Event) => {
-    const input = event.target as HTMLInputElement;
-    const enabled = input.checked;
-    if (item.locked || !baseMapVisibilityMapRef()) return;
-    item.enabled = enabled;
-    try {
-        // ベースマップ側はuid正準 (ADR-0007)
-        await (window as any).mapedit.setBaseMapVisibilityForMapID(baseMapVisibilityMapRef(), item.uid, enabled);
-        await refreshBaseMapLayers();
-    } catch (e: any) {
-        item.enabled = !enabled;
-        baseMapVisibilityError.value = e?.message || String(e);
-        console.error('[setBaseMapVisible] Failed:', e);
-    }
 };
 
 const setupBaseMaps = async () => {
@@ -3852,75 +3882,87 @@ const goBack = async () => {
             <div v-show="activeTab === 'settings'" class="h-100">
             <div class="h-100 p-4 d-flex flex-column">
                 <h4 class="mb-3">{{ t("mapedit.edit_base_map") }}</h4>
-                <!-- flex: 1 1 0 (basis 0) が必須: basis auto (=巨大なリスト内容高) にすると、
-                     兄弟要素 (flex-shrink-0) との圧縮競合でこのカードだけが潰され、
-                     一覧のスクロール領域が 0px になる (2026-07-11 実機バグ。POI カードは
-                     Phase 8 で POIデータタブへ移設済みだが規約として維持) -->
-                <div class="card overflow-hidden d-flex flex-column" style="flex: 1 1 0; min-height: 0;">
-                    <div class="card-header bg-light fw-bold">{{ t("mapedit.base_map_visibility") }}</div>
-                    <div class="card-body d-flex flex-column overflow-hidden">
-                        <p class="small text-muted mb-2">{{ t("mapedit.base_map_visibility_desc") }}</p>
-                        <!-- 検索/絞り込み: 一覧スクロールの対象外(固定表示) -->
-                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                            <input
-                                type="search"
-                                class="form-control form-control-sm"
-                                style="max-width: 260px;"
-                                v-model="baseMapSearchText"
-                                :placeholder="t('mapedit.base_map_search_placeholder')"
-                            >
-                            <span v-if="gcpAutoRange.bbox.value && !baseMapFilterRegion" class="small text-muted" data-testid="map-base-map-auto-label">
-                                {{ t("mapedit.base_map_filter_gcp_auto") }}
-                            </span>
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-testid="map-base-map-region-button" @click="showBaseMapRegionModal = true">
-                                {{ t("mapedit.base_map_filter_region") }}
-                            </button>
-                            <template v-if="baseMapFilterRegion">
-                                <span class="small font-monospace" data-testid="map-base-map-region-label">{{ baseMapFilterRegionLabel }}</span>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-testid="map-base-map-region-clear" @click="baseMapFilterRegion = null">
-                                    {{ t("appedit.envelope_clear") }}
-                                </button>
-                            </template>
-                        </div>
-                        <div v-if="baseMapVisibilityLoading" class="small text-muted">
-                            {{ t("applist.loading") }}
-                        </div>
-                        <!-- M11-T7/AC8: section 診断へ移行 -->
-                        <DiagnosticFeedback
-                            v-else-if="baseMapVisibilityError"
-                            scope="section"
-                            :items="[{ key: 'basemap-visibility', severity: 'danger', message: baseMapVisibilityError }]"
+                <ResourceSelector class="flex-grow-1 min-h-0">
+                  <template #list>
+                    <ResourceSelectorList
+                      v-model:query="baseMapSearchText"
+                      :adapter="baseMapVisibilityListAdapter"
+                      :placeholder="t('mapedit.base_map_search_placeholder')"
+                      :spatial-context="baseMapSpatialContext"
+                      @toggle-spatial-context="showBaseMapRegionModal = true"
+                    >
+                      <template #item="{ item }">
+                        <ResourceMasterRow
+                          :item="asResourceListRowFromVisibility(item)"
+                          kind="base-map"
+                          variant="selector"
+                          :disabled="item.locked || item.enabled"
+                          @select="addBaseMapToEnabled(item)"
                         />
-                        <div v-else class="overflow-auto flex-grow-1">
-                            <div v-if="filteredBaseMapVisibilityList.length === 0" class="small text-muted">
-                                {{ t("mapedit.base_map_search_no_results") }}
-                            </div>
-                            <div v-else class="list-group">
-                                <label
-                                    v-for="item in filteredBaseMapVisibilityList"
-                                    :key="`${item.scope}:${item.mapID}`"
-                                    class="list-group-item d-flex align-items-center gap-3"
-                                    :class="{ 'text-muted': item.locked }"
-                                >
-                                    <input
-                                        class="form-check-input flex-shrink-0"
-                                        type="checkbox"
-                                        :checked="item.enabled"
-                                        :disabled="item.locked"
-                                        @change="setBaseMapVisible(item, $event)"
-                                    >
-                                    <div class="flex-grow-1 min-width-0">
-                                        <div class="fw-semibold text-truncate">{{ baseMapTitle(item) }}</div>
-                                        <div class="small text-muted text-truncate">
-                                            {{ item.mapID }} / {{ item.scope }}
-                                            <span v-if="item.locked"> / {{ t("mapedit.base_map_always_visible") }}</span>
+                      </template>
+                    </ResourceSelectorList>
+                    <!-- 検索/絞り込み: 一覧スクロールの対象外(固定表示)。左ペイン外だが ResourceSelector の上へ置く案もあり -->
+                    <div class="d-flex flex-wrap align-items-center gap-2 pt-2">
+                        <span v-if="gcpAutoRange.bbox.value && !baseMapFilterRegion" class="small text-muted" data-testid="map-base-map-auto-label">
+                            {{ t("mapedit.base_map_filter_gcp_auto") }}
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-testid="map-base-map-region-button" @click="showBaseMapRegionModal = true">
+                            {{ t("mapedit.base_map_filter_region") }}
+                        </button>
+                        <template v-if="baseMapFilterRegion">
+                            <span class="small font-monospace" data-testid="map-base-map-region-label">{{ baseMapFilterRegionLabel }}</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-testid="map-base-map-region-clear" @click="baseMapFilterRegion = null">
+                                {{ t("appedit.envelope_clear") }}
+                            </button>
+                        </template>
+                    </div>
+                    <div v-if="baseMapVisibilityLoading" class="small text-muted">
+                        {{ t("applist.loading") }}
+                    </div>
+                    <!-- M11-T7/AC8: section 診断へ移行 -->
+                    <DiagnosticFeedback
+                        v-else-if="baseMapVisibilityError"
+                        scope="section"
+                        :items="[{ key: 'basemap-visibility', severity: 'danger', message: baseMapVisibilityError }]"
+                    />
+                  </template>
+
+                  <template #selected>
+                    <h5>{{ t("mapedit.base_map_visibility") }}</h5>
+                    <p class="small text-muted mb-2">{{ t("mapedit.base_map_visibility_desc") }}</p>
+                    <div v-if="enabledBaseMaps.length === 0" class="text-muted py-3">{{ t("mapedit.base_map_search_no_results") }}</div>
+                    <div v-else class="selected-list">
+                        <div
+                            v-for="item in enabledBaseMaps"
+                            :key="`${item.scope}:${item.mapID}`"
+                            class="selected-source border rounded p-2 mb-2"
+                            :data-testid="`map-selected-basemap-${item.mapID}`"
+                        >
+                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img :src="baseMapThumbnail(item)" :alt="baseMapTitleForSelected(item)" class="selected-source-thumb" style="width: 48px; height: 48px; object-fit: contain; background: #f8f9fa; border: 1px solid var(--bs-border-color);">
+                                    <div class="min-width-0">
+                                        <div class="fw-bold text-truncate">
+                                            {{ baseMapTitleForSelected(item) }}
+                                            <span v-if="item.locked" class="badge text-bg-secondary ms-1">{{ t("mapedit.base_map_always_visible") }}</span>
                                         </div>
+                                        <small class="text-muted text-truncate">{{ item.mapID }} / {{ item.scope }}</small>
                                     </div>
-                                </label>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-danger"
+                                        :disabled="item.locked"
+                                        :data-testid="`map-remove-basemap-${item.mapID}`"
+                                        @click="removeBaseMapFromEnabled(item)"
+                                    >×</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                  </template>
+                </ResourceSelector>
                 <!-- 地域指定モーダル(Geocoder内蔵)。指定領域と存在範囲が重なるベースマップに絞り込む -->
                 <EnvelopeEditorModal
                     v-if="showBaseMapRegionModal"

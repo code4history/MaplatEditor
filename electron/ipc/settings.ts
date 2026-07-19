@@ -31,7 +31,10 @@ export function registerSettingsHandlers() {
   });
 
   ipcMain.handle('mapedit:get-base-map-visibility', async (_, mapRef: string) => {
-    return await SettingsService.getBaseMapVisibilityOfMapID(mapRef);
+    // M12-T10: basemaps:list / search:baseMaps と同型: resolveBaseMapListImage で thumbnailUrl を付与。
+    // basemap_icons/=同梱リソース, tmbs/等=saveFolder 配下、ともに封じ込め済み(M12-T13)
+    const items = await SettingsService.getBaseMapVisibilityOfMapID(mapRef);
+    return items.map((item: any) => ({ ...item, thumbnailUrl: resolveBaseMapListImage(item) }));
   });
 
   ipcMain.handle('mapedit:set-base-map-visibility', async (_, mapRef: string, baseMapRef: string, enabled: boolean) => {

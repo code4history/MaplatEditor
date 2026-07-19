@@ -57,6 +57,8 @@ export interface BaseMapVisibilityItem {
   enabled: boolean;
   locked: boolean;
   data: any;
+  // M12-T10: IPC 返却時に resolveBaseMapListImage で付与される表示用フィールド（永続カラムではない）
+  thumbnailUrl?: string | null;
 }
 
 export interface BaseMapCatalogItem {
