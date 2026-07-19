@@ -8,7 +8,7 @@ import SettingsService from './SettingsService';
 import AppAssetService from './AppAssetService';
 import SqliteDataService from './SqliteDataService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
-import { resourceAssetFileUrl } from '../utils/resourceAssets';
+import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
 
 // 地図一覧の画像: 正式サムネイル tmbs/{fileKey}.jpg → 無ければ tiles/{fileKey}/0/0/0.* fallback。
 // fileKey は uid 優先（ADR-0007。uid 欠落時は旧 slug パスへフォールバック）。
@@ -27,6 +27,9 @@ export async function resolveMapListImage(doc: {
   if (!fileKey) return null;
   const uiThumbnail = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
   if (await fs.pathExists(uiThumbnail)) {
+    // sec-1 (M12-T13): fileKey が slug 由来で '..' を含む場合、path.join は正規化されて
+    // saveFolder 外を指しうる。返却前に saveFolder 配下であることを確認し、外なら null へ落とす。
+    if (!isUnderFolder(uiThumbnail, saveFolder)) return null;
     return `file://${uiThumbnail.split(path.sep).join('/')}`;
   }
   const thumbFolder = path.join(tileFolder, fileKey, '0', '0');
@@ -35,6 +38,8 @@ export async function resolveMapListImage(doc: {
     const tileFile = files.find((f) => /^0\.(jpg|jpeg|png)$/.test(f));
     if (tileFile) {
       const tilePath = path.join(thumbFolder, tileFile);
+      // sec-1 (M12-T13): tiles fallback 経路も同じく saveFolder 配下封じ込めを適用。
+      if (!isUnderFolder(tilePath, saveFolder)) return null;
       return `file://${tilePath.split(path.sep).join('/')}`;
     }
   } catch (e: any) {
@@ -97,14 +102,17 @@ export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; d
     thumbnailUrl = resourceAssetFileUrl(thumbnail);
   } else if (thumbnail) {
     const thumbPath = path.resolve(path.join(saveFolder, thumbnail));
-    if (thumbPath.startsWith(path.resolve(saveFolder)) && fs.existsSync(thumbPath)) {
+    // sec-2 (M12-T13): 旧実装は startsWith(path.resolve(saveFolder)) だったが末尾 path.sep が無く、
+    // 兄弟ディレクトリ（{saveFolder}-x）が prefix 一致で通過していた。isUnderFolder で厳密化。
+    if (isUnderFolder(thumbPath, saveFolder) && fs.existsSync(thumbPath)) {
       thumbnailUrl = `file://${thumbPath.split(path.sep).join('/')}`;
     }
   }
   if (!thumbnailUrl) {
     const mapID = item.mapID || item.slug;
     const legacyPath = path.join(saveFolder, 'tmbs', `${mapID}_menu.jpg`);
-    if (fs.existsSync(legacyPath)) {
+    // sec-2 (M12-T13): legacyPath も mapID に '..' が含まれれば脱出しうるため、同じく isUnderFolder で封じ込め（多層化）。
+    if (isUnderFolder(legacyPath, saveFolder) && fs.existsSync(legacyPath)) {
       thumbnailUrl = `file://${legacyPath.split(path.sep).join('/')}`;
     }
   }

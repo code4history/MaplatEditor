@@ -28,3 +28,13 @@ export function resourceAssetFileUrl(relPath: string): string | null {
   const resolved = resolveResourceAsset(relPath);
   return resolved ? `file://${resolved.split(path.sep).join('/')}` : null;
 }
+
+// saveFolder / folder 配下への封じ込め判定。`startsWith(path.resolve(folder) + path.sep)` で、
+// 兄弟ディレクトリ（`{folder}-x`）を prefix 一致から除外する（poiReferenceResolver.iconSetFilePath
+// と同じ形式）。resourceImageResolver / AppAssetService.fileUrlFor が共有して使う。
+// ※ base ちょうど（folder 自身）は除外されるが、対象は常に配下ファイルのため実害なし（設計 Info1）。
+export function isUnderFolder(resolvedPath: string, folder: string): boolean {
+  const base = path.resolve(folder);
+  const resolved = path.resolve(resolvedPath);
+  return resolved.startsWith(base + path.sep);
+}

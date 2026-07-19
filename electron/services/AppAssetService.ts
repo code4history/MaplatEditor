@@ -3,7 +3,7 @@ import path from 'path';
 import { dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
-import { resourceAssetFileUrl } from '../utils/resourceAssets';
+import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
 
 const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
 
@@ -238,7 +238,9 @@ class AppAssetService {
     }
     const baseFolder = path.resolve(this.saveFolder);
     const resolved = path.resolve(path.join(baseFolder, relPath));
-    if (!resolved.startsWith(baseFolder)) return null;
+    // sec-3 (M12-T13): 旧実装は startsWith(baseFolder) だったが末尾 path.sep が無く、兄弟ディレクトリ
+    // ({saveFolder}-x) が prefix 一致で通過していた。isUnderFolder で厳密化（sec-2 と同型）。
+    if (!isUnderFolder(resolved, this.saveFolder)) return null;
     if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
     return this.toFileUrl(resolved);
   }
