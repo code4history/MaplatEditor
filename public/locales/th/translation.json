@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "ขอบเขตแผนที่", "context_app_coverage": "ขอบเขตแอป", "range_auto": "ขอบเขต: อัตโนมัติ ({{context}})", "range_none": "ขอบเขต: ทั่วโลก" },
+  "resource_selector": {
+    "context_map": "ขอบเขตแผนที่",
+    "context_app_coverage": "ขอบเขตแอป",
+    "range_auto": "ขอบเขต: อัตโนมัติ ({{context}})",
+    "range_none": "ขอบเขต: ทั่วโลก"
+  },
   "common": {
     "close": "ปิด",
     "back": "ย้อนกลับ",
@@ -255,10 +260,10 @@
     "map_tile_pf": "กรุณากรอก URL ของไทล์แผนที่",
     "map_tile_desc": "หากใช้ไทล์แผนที่ภายนอก กรุณากรอกในรูปแบบ http://...{z}/{x}/{y}.{png|jpg} ไม่จำเป็นต้องตั้งค่าหากใช้ตำแหน่งจัดเก็บมาตรฐาน",
     "edit_base_map": "แก้ไขแผนที่พื้นฐาน",
-    "base_map_visibility": "แผนที่พื้นฐานที่แสดง",
+    "base_map_visibility": "แผนที่พื้นฐานของแผนที่นี้",
     "base_map_visibility_desc": "เลือกแผนที่พื้นฐานที่จะใช้ในหน้าจอแก้ไขของแผนที่นี้ จะแสดงเฉพาะแผนที่พื้นฐานที่เลือกไว้เท่านั้น แผนที่พื้นฐานที่ตั้งค่าแสดงตลอดเวลาจะแสดงเสมอโดยไม่ขึ้นกับการเลือก",
     "base_map_always_visible": "แสดงตลอดเวลา",
-    "base_map_search_placeholder": "ค้นหาด้วยชื่อเรื่องหรือ ID (เช่น: Himeji)",
+    "base_map_search_placeholder": "ค้นหาแผนที่พื้นฐาน…",
     "base_map_filter_region": "กรองตามพื้นที่",
     "base_map_search_no_results": "ไม่พบแผนที่พื้นฐานที่ตรงกัน",
     "base_map_region_modal_title": "ระบุพื้นที่ที่จะกรอง",
@@ -339,7 +344,11 @@
     "edit_layer": "แก้ไขเลเยอร์แผนที่",
     "edit_coordinate": "แก้ไขพิกัด",
     "base_map_filter_gcp_auto": "กรองตามขอบเขต GCP",
-    "base_map_region_guide": "คู่มือพื้นที่มีประสิทธิผล"
+    "base_map_region_guide": "คู่มือพื้นที่มีประสิทธิผล",
+    "no_selected_base_maps": "เพิ่มแผนที่พื้นฐานจากรายการทางซ้าย",
+    "range_filter_gcp_active": "กรองตามขอบเขต GCP",
+    "range_filter_manual_active": "กรองตามพื้นที่กำหนดเอง",
+    "range_filter_none": "กรองตามพื้นที่"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",
@@ -460,7 +469,7 @@
     "base_map_list": "รายการแผนที่พื้นฐาน",
     "search_base_maps": "ค้นหาแผนที่พื้นฐาน…",
     "selected_sources": "รายการแผนที่ของแอปพลิเคชันนี้",
-    "no_selected_sources": "ยังไม่ได้เลือกแผนที่",
+    "no_selected_sources": "เพิ่มแผนที่จากรายการทางซ้าย",
     "start_from": "start_from",
     "http_settings": "การตั้งค่า HTTP",
     "preview_port": "พอร์ตสำหรับดูตัวอย่าง",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "ไม่พบภาพย่อของแผนที่พื้นฐาน/เลเยอร์ซ้อนทับบางรายการ",
       "missing_splash": "ไม่พบภาพหน้าจอเริ่มต้น"
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "ค้นหาแผนที่…"
   },
   "mapmodel": {
     "untitled": "ยังไม่มีชื่อ",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "ข้อมูล POI",
-    "selected_list_app": "ข้อมูล POI ของแอปนี้",
-    "selected_list_map": "ข้อมูล POI ของแผนที่นี้",
-    "empty": "ยังไม่ได้เลือกข้อมูล POI เพิ่มแหล่งข้อมูลจากรายการด้านซ้าย",
+    "selected_list_app": "POI ในแอปนี้",
+    "selected_list_map": "POI ในแผนที่นี้",
+    "empty": "เพิ่ม POI จากรายการทางซ้าย",
     "added": "เพิ่มแล้ว",
     "move_up": "เลื่อนขึ้น",
     "move_down": "เลื่อนลง",
@@ -609,7 +619,8 @@
     "icon_override": "ไอคอนแทนที่",
     "selected_icon_override": "ไอคอนแทนที่เมื่อถูกเลือก",
     "override_title": "ชื่อแทนที่",
-    "missing_source": "ไม่พบแหล่ง POI ที่อ้างอิง (อาจถูกลบไปแล้ว) ใช้ × เพื่อยกเลิกการอ้างอิง"
+    "missing_source": "ไม่พบแหล่ง POI ที่อ้างอิง (อาจถูกลบไปแล้ว) ใช้ × เพื่อยกเลิกการอ้างอิง",
+    "search_placeholder": "ค้นหา POI…"
   },
   "poisource": {
     "title": "แหล่งข้อมูล POI",

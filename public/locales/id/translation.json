@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "Cakupan peta", "context_app_coverage": "Cakupan aplikasi", "range_auto": "Rentang: Otomatis ({{context}})", "range_none": "Rentang: Seluruh dunia" },
+  "resource_selector": {
+    "context_map": "Cakupan peta",
+    "context_app_coverage": "Cakupan aplikasi",
+    "range_auto": "Rentang: Otomatis ({{context}})",
+    "range_none": "Rentang: Seluruh dunia"
+  },
   "common": {
     "close": "Tutup",
     "back": "Kembali",
@@ -255,10 +260,10 @@
     "map_tile_pf": "Silakan masukkan URL tile peta",
     "map_tile_desc": "Jika menggunakan tile peta eksternal, silakan masukkan dalam format http://...{z}/{x}/{y}.{png|jpg}. Tidak perlu diatur jika menggunakan lokasi penyimpanan standar.",
     "edit_base_map": "Edit peta dasar",
-    "base_map_visibility": "Peta dasar yang ditampilkan",
+    "base_map_visibility": "Peta dasar peta ini",
     "base_map_visibility_desc": "Pilih peta dasar yang digunakan di layar edit peta ini. Hanya peta dasar yang dicentang yang akan ditampilkan. Peta dasar selalu tampil akan selalu ditampilkan terlepas dari pilihan.",
     "base_map_always_visible": "Selalu tampil",
-    "base_map_search_placeholder": "Cari berdasarkan judul atau ID (contoh: Himeji)",
+    "base_map_search_placeholder": "Cari peta dasar…",
     "base_map_filter_region": "Saring berdasarkan wilayah",
     "base_map_search_no_results": "Tidak ada peta dasar yang cocok.",
     "base_map_region_modal_title": "Tentukan wilayah untuk penyaringan",
@@ -339,7 +344,11 @@
     "edit_layer": "Edit lapisan peta",
     "edit_coordinate": "Edit koordinat",
     "base_map_filter_gcp_auto": "Menyaring berdasarkan cakupan GCP",
-    "base_map_region_guide": "Panduan area efektif"
+    "base_map_region_guide": "Panduan area efektif",
+    "no_selected_base_maps": "Tambahkan peta dasar dari daftar di kiri.",
+    "range_filter_gcp_active": "Menyaring berdasarkan cakupan GCP",
+    "range_filter_manual_active": "Menyaring berdasarkan wilayah manual",
+    "range_filter_none": "Saring berdasarkan wilayah"
   },
   "mapupload": {
     "map_image": "Gambar peta",
@@ -460,7 +469,7 @@
     "base_map_list": "Daftar peta dasar",
     "search_base_maps": "Cari peta dasar…",
     "selected_sources": "Daftar peta aplikasi ini",
-    "no_selected_sources": "Belum ada peta yang dipilih",
+    "no_selected_sources": "Tambahkan peta dari daftar di kiri.",
     "start_from": "start_from",
     "http_settings": "Pengaturan HTTP",
     "preview_port": "Port pratinjau",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "Beberapa thumbnail peta dasar/overlay tidak ditemukan.",
       "missing_splash": "Gambar layar pembuka tidak ditemukan."
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "Cari peta…"
   },
   "mapmodel": {
     "untitled": "Belum berjudul",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "Data POI",
-    "selected_list_app": "Data POI aplikasi ini",
-    "selected_list_map": "Data POI peta ini",
-    "empty": "Tidak ada data POI yang dipilih. Tambahkan sumber dari daftar di sebelah kiri.",
+    "selected_list_app": "POI aplikasi ini",
+    "selected_list_map": "POI peta ini",
+    "empty": "Tambahkan POI dari daftar di kiri.",
     "added": "Ditambahkan",
     "move_up": "Naik",
     "move_down": "Turun",
@@ -609,7 +619,8 @@
     "icon_override": "Ikon pengganti",
     "selected_icon_override": "Ikon pengganti saat dipilih",
     "override_title": "Judul pengganti",
-    "missing_source": "Sumber POI yang dirujuk tidak ditemukan (mungkin telah dihapus). Gunakan × untuk melepas rujukan."
+    "missing_source": "Sumber POI yang dirujuk tidak ditemukan (mungkin telah dihapus). Gunakan × untuk melepas rujukan.",
+    "search_placeholder": "Cari POI…"
   },
   "poisource": {
     "title": "Sumber POI",

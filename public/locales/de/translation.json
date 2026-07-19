@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "Kartenbereich", "context_app_coverage": "App-Abdeckung", "range_auto": "Bereich: Automatisch ({{context}})", "range_none": "Bereich: Weltweit" },
+  "resource_selector": {
+    "context_map": "Kartenbereich",
+    "context_app_coverage": "App-Abdeckung",
+    "range_auto": "Bereich: Automatisch ({{context}})",
+    "range_none": "Bereich: Weltweit"
+  },
   "common": {
     "close": "Schließen",
     "back": "Zurück",
@@ -255,10 +260,10 @@
     "map_tile_pf": "Bitte geben Sie die URL der Kartenkacheln ein",
     "map_tile_desc": "Wenn Sie externe Kartenkacheln verwenden, geben Sie das Format http://...{z}/{x}/{y}.{png|jpg} an. Bei Verwendung des Standardspeicherorts ist keine Einstellung erforderlich.",
     "edit_base_map": "Basiskarten bearbeiten",
-    "base_map_visibility": "Anzuzeigende Basiskarten",
+    "base_map_visibility": "Basiskarten in dieser Karte",
     "base_map_visibility_desc": "Wählen Sie die Basiskarten aus, die im Editor dieser Karte verwendet werden sollen. Nur ausgewählte Basiskarten werden angezeigt. Dauerhaft sichtbare Basiskarten werden unabhängig von der Auswahl immer angezeigt.",
     "base_map_always_visible": "Immer sichtbar",
-    "base_map_search_placeholder": "Nach Titel oder ID suchen (z. B. Himeji)",
+    "base_map_search_placeholder": "Basiskarten suchen…",
     "base_map_filter_region": "Nach Region filtern",
     "base_map_search_no_results": "Keine passenden Basiskarten gefunden.",
     "base_map_region_modal_title": "Zu filternde Region festlegen",
@@ -339,7 +344,11 @@
     "edit_layer": "Kartenebene bearbeiten",
     "edit_coordinate": "Koordinaten bearbeiten",
     "base_map_filter_gcp_auto": "Auf GCP-Ausdehnung filtern",
-    "base_map_region_guide": "Gültiger Bereich"
+    "base_map_region_guide": "Gültiger Bereich",
+    "no_selected_base_maps": "Fügen Sie Basiskarten aus der linken Liste hinzu.",
+    "range_filter_gcp_active": "Filtern nach GCP-Ausdehnung",
+    "range_filter_manual_active": "Filtern nach manueller Region",
+    "range_filter_none": "Nach Region filtern"
   },
   "mapupload": {
     "map_image": "Kartenbild",
@@ -460,7 +469,7 @@
     "base_map_list": "Basiskartenliste",
     "search_base_maps": "Basiskarten suchen…",
     "selected_sources": "Karten dieser App",
-    "no_selected_sources": "Keine Karten ausgewählt",
+    "no_selected_sources": "Fügen Sie Karten aus der linken Liste hinzu.",
     "start_from": "start_from",
     "http_settings": "HTTP-Einstellungen",
     "preview_port": "Vorschau-Port",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "Für einige Basiskarten/Overlays wurden keine Miniaturansichten gefunden.",
       "missing_splash": "Das Splash-Bild wurde nicht gefunden."
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "Karten suchen…"
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "POI-Daten",
-    "selected_list_app": "POI-Daten dieser App",
-    "selected_list_map": "POI-Daten dieser Karte",
-    "empty": "Keine POI-Daten ausgewählt. Fügen Sie Quellen aus der Liste links hinzu.",
+    "selected_list_app": "POIs in dieser App",
+    "selected_list_map": "POIs in dieser Karte",
+    "empty": "Fügen Sie POIs aus der linken Liste hinzu.",
     "added": "Hinzugefügt",
     "move_up": "Nach oben",
     "move_down": "Nach unten",
@@ -609,7 +619,8 @@
     "icon_override": "Icon-Überschreibung",
     "selected_icon_override": "Icon-Überschreibung bei Auswahl",
     "override_title": "Titel-Überschreibung",
-    "missing_source": "Die referenzierte POI-Quelle wurde nicht gefunden (möglicherweise gelöscht). Mit × kann die Referenz entfernt werden."
+    "missing_source": "Die referenzierte POI-Quelle wurde nicht gefunden (möglicherweise gelöscht). Mit × kann die Referenz entfernt werden.",
+    "search_placeholder": "POIs suchen…"
   },
   "poisource": {
     "title": "POI-Quellen",
