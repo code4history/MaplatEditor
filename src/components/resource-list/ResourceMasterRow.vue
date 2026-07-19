@@ -21,7 +21,7 @@
       <small v-if="item.slug" class="resource-item__slug d-block text-truncate">{{ item.slug }}</small>
       <small v-for="meta in item.metadata" :key="meta" class="resource-item__meta d-block text-truncate">{{ meta }}</small>
     </span>
-    <span v-if="item.hasDraft" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
+    <span v-if="item.hasDraft && draftLabel" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
     <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="badgeClass(badge.tone)">{{ badge.label }}</span>
     <slot name="extra"></slot>
     <ResourceActionMenu v-if="showActionMenu" ref="menuRef" :actions="actions" @select="(key) => emit('action', key, item)" />
@@ -37,14 +37,15 @@ import type { ResourceListItemViewModel, ResourceListKind } from "./resourceList
 const props = withDefaults(defineProps<{
   item: ResourceListItemViewModel;
   kind: ResourceListKind;
-  draftLabel: string;
+  // selector variant では使用しないため optional。master variant では必須
+  draftLabel?: string;
   draftBadgeTestId?: string;
   // variant: 'master' (default) = master-detail 用。action menu 表示、.active で選択中表示
   //          'selector' = Master-Selection 用。action menu 非表示、disabled で追加済み/追加不可を表示
   variant?: "master" | "selector";
   // selector variant 専用: 行がクリック不可（追加済み/previewDisabled 等）の場合 true
   disabled?: boolean;
-}>(), { variant: "master", disabled: false, draftBadgeTestId: undefined });
+}>(), { variant: "master", disabled: false, draftLabel: "", draftBadgeTestId: undefined });
 const emit = defineEmits<{ select: [uid: string]; action: [key: string, item: ResourceListItemViewModel] }>();
 
 const menuRef = ref<InstanceType<typeof ResourceActionMenu> | null>(null);

@@ -23,15 +23,18 @@ import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import ResourceSelector from "../components/ResourceSelector.vue";
 import ResourceSelectorList from "../components/ResourceSelectorList.vue";
-import { createMapListAdapter } from "./resource-adapters/mapListAdapter";
+import ResourceMasterRow from "../components/resource-list/ResourceMasterRow.vue";
+import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
+import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
+import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
+import { localizeTitle, type LangResource } from "../utils/langResource";
 import { useSelectorSpatialContext } from "../composables/useSelectorSpatialContext";
 import type { SelectorSpatialContextView, Wgs84Bbox } from "../components/resource-list/resourceListTypes";
 import {
   createAppSourceFromBaseMap,
   envelopeToBbox,
   normalizeAppSource,
-  resolveBaseMapSelectorText,
   type AppSource as SharedAppSource,
 } from "../utils/appSourceModel";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
@@ -1032,15 +1035,38 @@ function sourceIdLabel(source: AppSource): string {
   return source.sourceType === "maplat" ? source.mapSlug || source.mapUid : source.mapUid;
 }
 
-function baseMapTitle(item: BaseMapItem): string {
-  return resolveBaseMapSelectorText(
-    { mapID: item.mapID, ...(item.data || {}) },
-    appData.value.lang,
-  );
+// M12-T10: selector 左ペインの行を ResourceMasterRow へ統一。
+// 既存 adapter（mapListAdapter/baseMapSearchAdapter）の返却型 MapListRow / BaseMapCatalogItem を
+// ResourceListItemViewModel へ変換する。selector variant では selected=false・actions=[]・hasDraft=false。
+// ※ mapListAdapter は既に toViewModel を持つが、selector 用の変換は actions/selected を空にするため別途定義。
+function asResourceListRowFromMap(item: MapListRow): ResourceListItemViewModel {
+  return {
+    uid: item.uid,
+    slug: item.mapID,
+    title: item.title || item.mapID,
+    thumbnailUrl: item.image ?? null,
+    metadata: [],
+    badges: [],
+    selected: false,
+    hasDraft: false,
+    actions: [],
+  };
 }
 
-function baseMapThumbnail(item: BaseMapItem): string {
-  return builtinThumbnails[item.mapID] || item.thumbnailUrl || noImage;
+function asResourceListRowFromBaseMap(item: BaseMapCatalogItem): ResourceListItemViewModel {
+  const title = item.data?.title as LangResource | null | undefined;
+  const localized = title ? localizeTitle(title, appData.value.lang) : String(item.mapID);
+  return {
+    uid: item.uid,
+    slug: String(item.mapID),
+    title: localized,
+    thumbnailUrl: item.thumbnailUrl ?? null,
+    metadata: [String(item.mapID)],
+    badges: [],
+    selected: false,
+    hasDraft: false,
+    actions: [],
+  };
 }
 
 function sourceThumbnail(source: AppSource): string {
@@ -1412,16 +1438,24 @@ function onPoisChange(next: unknown[]) {
             @toggle-spatial-context="appSourceSpatialContext.toggle"
           >
             <template #item="{ item }">
-              <button v-if="sourceListMode === 'maps'" type="button" class="source-row" :disabled="item.previewDisabled" :title="item.previewDisabled ? t(item.previewDisabledReason || 'appedit.preview.unavailable') : item.title" @click="addMapSource(item)">
-                <img :src="item.image || noImage" :alt="item.title" loading="lazy" decoding="async">
-                <span>
-                  {{ item.title }}
-                  <small v-if="item.previewDisabled" class="d-block text-danger">{{ t(item.previewDisabledReason || "appedit.preview.unavailable") }}</small>
-                </span>
-              </button>
-              <button v-else type="button" class="source-row" :data-testid="`app-basemap-row-${item.mapID}`" @click="addBaseMapSource(item)">
-                <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)"><span>{{ baseMapTitle(item) }}</span>
-              </button>
+              <ResourceMasterRow
+                v-if="sourceListMode === 'maps'"
+                :item="asResourceListRowFromMap(item)"
+                kind="map"
+                variant="selector"
+                :disabled="!!item.previewDisabled"
+                :data-testid="`app-map-row-${item.mapID}`"
+                @select="addMapSource(item)"
+              />
+              <ResourceMasterRow
+                v-else
+                :item="asResourceListRowFromBaseMap(item)"
+                kind="base-map"
+                variant="selector"
+                :disabled="false"
+                :data-testid="`app-basemap-row-${item.mapID}`"
+                @select="addBaseMapSource(item)"
+              />
             </template>
           </ResourceSelectorList>
         </template>

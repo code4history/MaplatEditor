@@ -19,9 +19,13 @@
           @toggle-spatial-context="emit('toggle-spatial-context')"
         >
           <template #item="{ item }">
-            <button type="button" class="source-row" :disabled="readOnly || isPoiSelected(item.uid)" @click="addPoiSource(item)">
-              <span><strong>{{ poiSourceTitle(item) }}</strong><small class="d-block text-muted">{{ item.slug }}</small></span>
-            </button>
+            <ResourceMasterRow
+              :item="asResourceListRowFromPoiSource(item)"
+              kind="poi-source"
+              variant="selector"
+              :disabled="readOnly || isPoiSelected(item.uid)"
+              @select="addPoiSource(item)"
+            />
           </template>
         </ResourceSelectorList>
       </div>
@@ -126,13 +130,14 @@ import { useTranslation } from "i18next-vue";
 import ResourceSelectorList from "./ResourceSelectorList.vue";
 import IconRefField from "./IconRefField.vue";
 import ResourceSelector from "./ResourceSelector.vue";
+import ResourceMasterRow from "./resource-list/ResourceMasterRow.vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";
 import { localizeTitle, type LangResource } from "../utils/langResource";
 import type { LangCode } from "../utils/editorLanguages";
 import type { PoiSourceListRow } from "../electron";
-import type { SelectorSpatialContextView } from "./resource-list/resourceListTypes";
+import type { ResourceListItemViewModel, SelectorSpatialContextView } from "./resource-list/resourceListTypes";
 import { createPoiSourceListAdapter } from "../views/resource-adapters/poiSourceListAdapter";
 
 const props = defineProps<{
@@ -168,6 +173,23 @@ const entries = computed<unknown[]>(() => (Array.isArray(props.pois) ? props.poi
 const selectedRefs = computed<SelectedPoiSourceRef[]>(() => extractPoiRefs(entries.value));
 const isPoiSelected = (uid: string) => selectedRefs.value.some((item) => item.sourceId === uid);
 const poiSourceTitle = (item: PoiSourceListRow) => localizeTitle(item.title, props.activeLang) || item.slug;
+
+// M12-T10: selector 左ペインの行を ResourceMasterRow へ統一。
+// PoiSourceListRow を ResourceListItemViewModel へ変換。selector variant では selected=false・actions=[]・hasDraft=false。
+function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListItemViewModel {
+  return {
+    uid: item.uid,
+    slug: item.slug,
+    title: poiSourceTitle(item),
+    thumbnailUrl: null,
+    metadata: [],
+    badges: [],
+    selected: false,
+    hasDraft: false,
+    actions: [],
+  };
+}
+
 function addPoiSource(item: PoiSourceListRow): void {
   if (props.readOnly || isPoiSelected(item.uid)) return;
   onSelectionChange([...selectedRefs.value, {
