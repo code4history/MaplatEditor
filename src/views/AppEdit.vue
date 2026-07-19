@@ -24,6 +24,7 @@ import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import ResourceSelector from "../components/ResourceSelector.vue";
 import ResourceSelectorList from "../components/ResourceSelectorList.vue";
 import ResourceMasterRow from "../components/resource-list/ResourceMasterRow.vue";
+import ResourceEmptyState from "../components/resource-list/ResourceEmptyState.vue";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
 import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
@@ -1478,7 +1479,11 @@ function onPoisChange(next: unknown[]) {
 
         <template #selected>
           <h5>{{ t("appedit.selected_sources") }}</h5>
-          <div v-if="appData.sources.length === 0" class="text-muted py-3">{{ t("appedit.no_selected_sources") }}</div>
+          <ResourceEmptyState
+            v-if="appData.sources.length === 0"
+            icon-class="bi bi-map"
+            :message="t('appedit.no_selected_sources')"
+          />
           <div v-else class="selected-list">
             <div v-for="(source, index) in appData.sources" :key="`${source.sourceType}:${source.mapUid}`" class="selected-source border rounded p-2 mb-2" :data-testid="`app-selected-source-${source.mapUid}`">
               <div class="d-flex align-items-center justify-content-between gap-2">

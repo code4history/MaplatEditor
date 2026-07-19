@@ -36,7 +36,11 @@
 
     <template #selected>
       <h5>{{ t(headingKey ?? "poiref.selected_list_app") }}</h5>
-      <div v-if="entries.length === 0" class="text-muted py-3">{{ t("poiref.empty") }}</div>
+      <ResourceEmptyState
+        v-if="entries.length === 0"
+        icon-class="bi bi-geo-alt"
+        :message="t('poiref.empty')"
+      />
       <div v-else class="selected-list">
         <div
           v-for="(entry, index) in entries"
@@ -134,6 +138,7 @@ import ResourceSelectorList from "./ResourceSelectorList.vue";
 import IconRefField from "./IconRefField.vue";
 import ResourceSelector from "./ResourceSelector.vue";
 import ResourceMasterRow from "./resource-list/ResourceMasterRow.vue";
+import ResourceEmptyState from "./resource-list/ResourceEmptyState.vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";

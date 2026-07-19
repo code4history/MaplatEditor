@@ -41,8 +41,11 @@
           <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
         </div>
       </div>
-      <div v-else class="h-100 d-grid place-items-center text-muted p-4 text-center">
-        <div><i class="bi bi-images fs-1 d-block mb-2" aria-hidden="true"></i>{{ t("assetlist.master_detail.select_prompt") }}</div>
+      <div v-else class="h-100">
+        <ResourceEmptyState
+          icon-class="bi bi-images"
+          :message="t('assetlist.master_detail.select_prompt')"
+        />
       </div>
     </div>
 
@@ -59,6 +62,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
+import ResourceEmptyState from "../components/resource-list/ResourceEmptyState.vue";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import AssetEdit from "../components/assets/AssetEdit.vue";
