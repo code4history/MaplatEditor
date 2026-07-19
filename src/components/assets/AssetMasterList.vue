@@ -15,23 +15,20 @@
       <small class="text-muted d-block mt-1">{{ t("assetlist.count_label", { num: items.length }) }}</small>
     </div>
 
-    <div ref="scrollElement" class="flex-grow-1 overflow-auto" data-testid="asset-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
+    <div ref="scrollElement" class="resource-list__rows flex-grow-1 overflow-auto" data-testid="asset-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
       <div v-if="loading" class="text-muted text-center py-4">{{ t("assetlist.loading") }}</div>
       <div v-else-if="error" class="alert alert-danger m-3">{{ error }}</div>
       <div v-else-if="items.length === 0 && newDrafts.length === 0" class="text-muted small text-center p-3">{{ t("assetlist.no_assets_found") }}</div>
       <template v-else>
-        <button
+        <ResourceMasterRow
           v-for="draft in newDrafts"
           :key="draft.assetUid"
-          type="button"
-          class="list-group-item list-group-item-action border-0 border-bottom rounded-0 px-3 py-2 w-100 text-start"
-          :class="{ active: selectedUid === draft.assetUid }"
-          :aria-current="selectedUid === draft.assetUid ? 'true' : undefined"
-          @click="emit('select-draft', draft.assetUid)"
-        >
-          <span class="fw-semibold">{{ t("assetlist.master_detail.new_draft") }}</span>
-          <span class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
-        </button>
+          :item="draftViewModel(draft)"
+          kind="image-asset"
+          :draft-label="t('editor_ui.draft_badge')"
+          draft-badge-test-id="asset-draft-badge"
+          @select="emit('select-draft', draft.assetUid)"
+        />
 
         <ResourceMasterRow
           v-for="asset in items"
@@ -89,6 +86,22 @@ const adapter = createAssetListAdapter({
   thumbUrl: (uid) => thumbUrls[uid] ?? null,
 });
 const vmOf = (asset: ImageAssetRow) => adapter.toViewModel(asset, props.activeLang);
+
+// M12-T10 v2.0: draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
+// draft は hasDraft=true・badges で draft ラベルを表示。title は新規ドラフトのラベル。
+function draftViewModel(draft: AssetDraftSummary) {
+  return {
+    uid: draft.assetUid,
+    slug: draft.slug ?? "",
+    title: t("assetlist.master_detail.new_draft"),
+    thumbnailUrl: null,
+    metadata: [],
+    badges: [],
+    selected: props.selectedUid === draft.assetUid,
+    hasDraft: true,
+    actions: [],
+  };
+}
 
 // 削除は ResourceActionMenu の `削除` から host へ委譲（参照チェック・draft 削除は host が担う）
 function onRowAction(key: string, asset: ImageAssetRow): void {

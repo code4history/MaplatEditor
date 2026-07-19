@@ -2,11 +2,12 @@
   <div
     role="button"
     tabindex="0"
-    class="resource-master-row list-group-item list-group-item-action px-3 py-2"
+    class="resource-master-row"
     :class="rowClass"
     :data-resource-uid="item.uid"
     :aria-current="item.selected ? 'true' : undefined"
     :aria-disabled="isDisabled ? 'true' : undefined"
+    :title="isDisabled && item.disabledReason ? item.disabledReason : undefined"
     @click="onActivate"
     @keydown.enter.prevent="onActivate"
     @keydown.space.prevent="onActivate"
@@ -20,6 +21,7 @@
       <span class="resource-item__title d-block text-truncate">{{ item.title }}</span>
       <small v-if="item.slug" class="resource-item__slug d-block text-truncate">{{ item.slug }}</small>
       <small v-for="meta in item.metadata" :key="meta" class="resource-item__meta d-block text-truncate">{{ meta }}</small>
+      <small v-if="isDisabled && item.disabledReason" class="resource-master-row__reason d-block text-danger">{{ item.disabledReason }}</small>
     </span>
     <span v-if="item.hasDraft && draftLabel" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
     <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="badgeClass(badge.tone)">{{ badge.label }}</span>
@@ -40,10 +42,10 @@ const props = withDefaults(defineProps<{
   // selector variant では使用しないため optional。master variant では必須
   draftLabel?: string;
   draftBadgeTestId?: string;
-  // variant: 'master' (default) = master-detail 用。action menu 表示、.active で選択中表示
-  //          'selector' = Master-Selection 用。action menu 非表示、disabled で追加済み/追加不可を表示
+  // variant: 'master' (default) = master-detail 用。action menu 表示、.selected で選択中表示
+  //          'selector' = Master-Selection 用。action menu 非表示、disabled で追加不可表示
   variant?: "master" | "selector";
-  // selector variant 専用: 行がクリック不可（追加済み/previewDisabled 等）の場合 true
+  // selector variant 専用: 行がクリック不可（previewDisabled 等）の場合 true
   disabled?: boolean;
 }>(), { variant: "master", disabled: false, draftLabel: "", draftBadgeTestId: undefined });
 const emit = defineEmits<{ select: [uid: string]; action: [key: string, item: ResourceListItemViewModel] }>();
@@ -53,15 +55,20 @@ const thumbBroken = ref(false); // 壊れた thumbnail(file:// 欠損等)は pla
 const isDisabled = computed(() => props.variant === "selector" && props.disabled);
 const showActionMenu = computed(() => props.variant === "master");
 const actions = computed(() => buildResourceListActions(props.kind, props.item));
-const rowClass = computed(() => ({
-  active: props.variant === "master" && props.item.selected,
-  disabled: isDisabled.value,
-}));
+// M12-T10 v2.0: .active → .selected rename（Bootstrap 競合回避）。
+// selector variant では added（selected=true）を青で表示（HM6）。disabled は追加不可。
+// 優先順位: selected（added）が最優先（追加済みかつ previewDisabled の場合、追加済みが意味を持つ）
+const rowClass = computed(() => {
+  const classes: Record<string, boolean> = {};
+  if (props.item.selected) classes["selected"] = true;
+  if (isDisabled.value && !props.item.selected) classes["disabled"] = true;
+  return classes;
+});
 function badgeClass(tone: "info" | "warning" | "neutral"): string {
   return tone === "warning" ? "bg-warning text-dark" : tone === "info" ? "bg-info text-dark" : "bg-secondary";
 }
 function onActivate(): void {
-  if (isDisabled.value) return;
+  if (isDisabled.value || props.item.selected) return;
   emit("select", props.item.uid);
 }
 function onContextMenu(event: MouseEvent): void {
@@ -71,11 +78,6 @@ function onContextMenu(event: MouseEvent): void {
 </script>
 
 <style scoped>
-.resource-master-row { display: flex; align-items: center; gap: .65rem; }
-.resource-master-row__thumb { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; overflow: hidden; background: #f8f9fa; border: 1px solid var(--bs-border-color); }
-.resource-master-row__thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.resource-master-row__placeholder { color: var(--bs-secondary-color); }
+/* M12-T10 v2.0: 行の見た目は resource-list.scss（global 正本）へ集約。scoped CSS は全廃（C1 対応） */
 .min-w-0 { min-width: 0; }
-/* selector variant の disabled 表示。master variant は .active と併用しないため未使用 */
-.resource-master-row.disabled { opacity: 0.58; cursor: not-allowed; }
 </style>

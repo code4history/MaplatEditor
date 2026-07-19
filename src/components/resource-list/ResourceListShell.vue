@@ -13,7 +13,7 @@
 
     <ResourceResultStatus :state="state" :total="total" :loaded="loaded" @retry="emit('retry')" />
 
-    <div ref="contentRef" class="resource-list__content" :data-resource-content="kind">
+    <div ref="contentRef" class="resource-list__content resource-list__rows" :data-resource-content="kind">
       <slot></slot>
       <div ref="sentinelRef" class="resource-list__sentinel" data-resource-sentinel></div>
     </div>

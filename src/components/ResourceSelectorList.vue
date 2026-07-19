@@ -8,7 +8,7 @@
           : t('resource_selector.range_none') }}
       </button>
     </div>
-    <div class="source-list flex-grow-1 overflow-auto" @scroll.passive="onScroll">
+    <div class="source-list resource-list__rows flex-grow-1 overflow-auto" @scroll.passive="onScroll">
       <slot v-for="item in items" :key="item.uid" name="item" :item="item"></slot>
       <div v-if="state === 'loading' || state === 'appending'" class="text-muted text-center py-3">{{ t('resource_list.loading') }}</div>
       <div v-else-if="state === 'empty'" class="text-muted text-center py-3">{{ t('resource_list.empty') }}</div>
@@ -61,8 +61,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* M12-T10 v2.0: 行間隔・行見た目は resource-list.scss の .resource-list__rows / .resource-master-row へ集約（C1 対応）。
+   scoped CSS での行間隔・行見た目定義は全廃。 */
 .min-h-0 { min-height: 0; }
-/* M12-T10: 行間隔は master-detail 側 (.resource-list__content gap: 6px) と統一。
-   行 DOM の基底スタイルは :slotted(.source-row) から ResourceMasterRow の scoped CSS / resource-list.scss へ移行（廃止）。 */
-.source-list { display: flex; flex-direction: column; gap: 6px; }
 </style>
