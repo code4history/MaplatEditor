@@ -1035,11 +1035,18 @@ function sourceIdLabel(source: AppSource): string {
   return source.sourceType === "maplat" ? source.mapSlug || source.mapUid : source.mapUid;
 }
 
-// M12-T10: selector 左ペインの行を ResourceMasterRow へ統一。
-// 既存 adapter（mapListAdapter/baseMapSearchAdapter）の返却型 MapListRow / BaseMapCatalogItem を
-// ResourceListItemViewModel へ変換する。selector variant では selected=false・actions=[]・hasDraft=false。
-// ※ mapListAdapter は既に toViewModel を持つが、selector 用の変換は actions/selected を空にするため別途定義。
+// M12-T10 v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
+// added 判定（HM6: 追加済み=青=selected=true）・disabledReason（HM4: previewDisabled 理由表示）・
+// スラッグ重複除去（HM10: metadata から mapID を除外、slug 行が表示するため）を反映。
+function isMapSourceAdded(uid: string): boolean {
+  return appData.value.sources.some((source) => source.mapUid === uid && source.sourceType === "maplat");
+}
+function isBaseMapSourceAdded(mapID: string): boolean {
+  return appData.value.sources.some((source) => source.mapUid === mapID && source.sourceType !== "maplat");
+}
 function asResourceListRowFromMap(item: MapListRow): ResourceListItemViewModel {
+  const added = isMapSourceAdded(item.uid);
+  const previewDisabled = !!item.previewDisabled;
   return {
     uid: item.uid,
     slug: item.mapID,
@@ -1047,9 +1054,12 @@ function asResourceListRowFromMap(item: MapListRow): ResourceListItemViewModel {
     thumbnailUrl: item.image ?? null,
     metadata: [],
     badges: [],
-    selected: false,
+    // HM6: 追加済み=selected=true（青）。disabled より selected を優先
+    selected: added,
     hasDraft: false,
     actions: [],
+    // HM4: previewDisabled 理由を常時表示（added でない場合のみ）
+    disabledReason: !added && previewDisabled ? t(item.previewDisabledReason || "appedit.preview.unavailable") : undefined,
   };
 }
 
@@ -1059,14 +1069,17 @@ function asResourceListRowFromBaseMap(item: BaseMapCatalogItem): ResourceListIte
     { mapID: item.mapID, defaultLang: appData.value.lang, ...(item.data || {}) },
     appData.value.lang,
   );
+  const added = isBaseMapSourceAdded(item.mapID);
   return {
     uid: item.uid,
     slug: String(item.mapID),
     title,
     thumbnailUrl: item.thumbnailUrl ?? null,
-    metadata: [String(item.mapID)],
+    // HM10: スラッグ重複除去。slug 行が mapID を表示するため scope のみ残す（存在する場合）
+    metadata: item.scope ? [item.scope] : [],
     badges: [],
-    selected: false,
+    // HM6: 追加済み=selected=true（青）
+    selected: added,
     hasDraft: false,
     actions: [],
   };
@@ -1446,7 +1459,7 @@ function onPoisChange(next: unknown[]) {
                 :item="asResourceListRowFromMap(item)"
                 kind="map"
                 variant="selector"
-                :disabled="!!item.previewDisabled"
+                :disabled="!isMapSourceAdded(item.uid) && !!item.previewDisabled"
                 :data-testid="`app-map-row-${item.mapID}`"
                 @select="addMapSource(item)"
               />

@@ -23,7 +23,7 @@
               :item="asResourceListRowFromPoiSource(item)"
               kind="poi-source"
               variant="selector"
-              :disabled="readOnly || isPoiSelected(item.uid)"
+              :disabled="readOnly"
               @select="addPoiSource(item)"
             />
           </template>
@@ -174,9 +174,10 @@ const selectedRefs = computed<SelectedPoiSourceRef[]>(() => extractPoiRefs(entri
 const isPoiSelected = (uid: string) => selectedRefs.value.some((item) => item.sourceId === uid);
 const poiSourceTitle = (item: PoiSourceListRow) => localizeTitle(item.title, props.activeLang) || item.slug;
 
-// M12-T10: selector 左ペインの行を ResourceMasterRow へ統一。
-// PoiSourceListRow を ResourceListItemViewModel へ変換。selector variant では selected=false・actions=[]・hasDraft=false。
+// M12-T10 v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
+// HM6: 追加済み（isPoiSelected）=selected=true（青）。readOnly は disabled。
 function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListItemViewModel {
+  const added = isPoiSelected(item.uid);
   return {
     uid: item.uid,
     slug: item.slug,
@@ -184,7 +185,7 @@ function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListIte
     thumbnailUrl: null,
     metadata: [],
     badges: [],
-    selected: false,
+    selected: added,
     hasDraft: false,
     actions: [],
   };
