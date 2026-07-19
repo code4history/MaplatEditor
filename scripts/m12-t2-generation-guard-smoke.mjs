@@ -201,6 +201,28 @@ try {
     console.log("ok: (h) current runs the full import flow in order");
   }
 
+  // (h2) load() が世代を進める（import 捕捉世代が陳腐化する）実運用でも、
+  // importFile 成功後は loadSaved → replaceRoute まで完了する
+  // （loadSaved は自身の世代 guard を持つため、import 捕捉世代との post-load 比較はしない契約）
+  {
+    let current = true;
+    const calls = [];
+    const outcome = await runGuardedPoiImport({
+      isCurrent: () => current,
+      newUid: () => "uid-f",
+      pickImportFile: () => { calls.push("pick"); return Promise.resolve({ filePath: "/tmp/f.geojson", fileName: "f.geojson" }); },
+      detectImportLanguage: () => Promise.resolve("ja"),
+      importFile: () => { calls.push("import"); return Promise.resolve({ result: "Success", uid: "uid-f", slug: "f", revision: 1 }); },
+      removeDraft: () => Promise.resolve(),
+      loadSaved: () => { calls.push("load"); current = false; return Promise.resolve(); }, // load() による世代前進を再現
+      replaceRoute: (uid) => { calls.push(`replace:${uid}`); return Promise.resolve(); },
+    });
+    assert.deepEqual(calls, ["pick", "import", "load", "replace:uid-f"],
+      "load() が世代を進めても loadSaved → replaceRoute は完了するはず");
+    assert.deepEqual(outcome, { outcome: "current-saved" });
+    console.log("ok: (h2) load-time generation advance still completes replaceRoute");
+  }
+
   // 静的検査: PoiEdit.vue の配線（importAutoRun の generation 化・guardedReleaseThenFallback・importUid 固定）
   const { readFile } = await import("node:fs/promises");
   const poiEditSrc = await readFile(path.join(projectRoot, "src/views/PoiEdit.vue"), "utf8");

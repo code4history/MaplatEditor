@@ -63,8 +63,10 @@ export async function runGuardedPoiImport(opts: {
     return { outcome: "failed", failure: result };
   }
   await opts.removeDraft(opts.newUid());
+  // loadSaved（PoiEdit の load()）は自身の世代 guard を持ち世代を進めるため、
+  // ここでは import 捕捉世代との比較を行わない（比較すると常に stale となり
+  // replaceRoute が実行されない。load() が破棄される場合は load() 側の guard が担う）
   await opts.loadSaved(result.uid);
-  if (!opts.isCurrent()) return { outcome: "stale" }; // load 後の遷移は replace を行わない
   await opts.replaceRoute(result.uid);
   return { outcome: "current-saved" };
 }
