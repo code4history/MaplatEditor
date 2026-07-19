@@ -265,11 +265,12 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await expect(userRow).toHaveCSS('background-color', 'rgba(13, 110, 253, 0.06)');
     await expect(userRow).toHaveCSS('border-top-color', 'rgb(13, 110, 253)');
 
-    // M11-T7 gap: 2 連続 builtin master row（nth(2)）間に 6px margin-top
-    // (nth(0)=user, nth(1)=osm, nth(2)=gsi が consecutive builtin の先頭対)
+    // M11-T7 / M12-T10 gap: 親 .resource-list__content が gap:6px で行間隔を一元管理
+    // （旧 .resource-master-row + .resource-master-row { margin-top: 6px } は M12-T10 で廃止、gap へ統一）
     const rowCount = await page.locator('[data-testid^="basemap-row-"]').count();
     expect(rowCount).toBeGreaterThanOrEqual(3);
-    await expect(page.locator('[data-testid^="basemap-row-"]').nth(2)).toHaveCSS('margin-top', '6px');
+    const rowParent = page.locator('[data-testid^="basemap-row-"]').nth(2).locator('xpath=..');
+    await expect(rowParent).toHaveCSS('gap', '6px');
 
     await userTrigger.click();
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();

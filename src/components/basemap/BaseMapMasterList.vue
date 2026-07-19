@@ -169,4 +169,6 @@ defineExpose({ scrollElement });
 <style scoped>
 .base-map-master-list { min-width: 18rem; }
 .min-w-0 { min-width: 0; }
+/* M12-T10: details 内の builtin row 群も gap:6px で一元管理（.resource-list__content と同一） */
+details { display: flex; flex-direction: column; gap: 6px; }
 </style>

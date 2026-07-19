@@ -94,7 +94,7 @@ test('WGS84 search adapters and selector contexts share FTS, bbox, remount, and 
     const sourceList = page.locator('.resource-selector-list:visible');
     const sourceQuery = sourceList.locator('input[type="search"]');
     await sourceQuery.fill('配線固有');
-    await expect(sourceList.locator('.source-row')).toContainText('配線固有');
+    await expect(sourceList.locator('.resource-master-row')).toContainText('配線固有');
     const sourceToggle = sourceList.getByTestId('selector-spatial-toggle');
     await expect(sourceToggle).toContainText('自動');
     await sourceToggle.click();

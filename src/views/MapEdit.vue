@@ -339,14 +339,6 @@ const builtinThumbnails: Record<string, string> = {
     gsi_ortho: gsiOrthoThumb,
 };
 
-// M12-T10: 左ペイン（selector）用 adapter。baseMapVisibilityList を ResourceListItemViewModel へ変換。
-// spatialContext は EnvelopeEditorModal 由来の baseMapFilterRegion を bbox として渡す。
-const baseMapVisibilityListAdapter = computed(() => createBaseMapVisibilityListAdapter({
-    source: () => baseMapVisibilityList.value,
-    hasDraft: () => false,
-    activeLang: () => mapData.value.lang || 'ja',
-}));
-
 // M12-T10: selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
 // 無ければ GCP auto range を fallback（現状の filteredBaseMapVisibilityList と同一方針）。
 const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
@@ -362,6 +354,25 @@ const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
         labelKey: 'resource_selector.context_map',
     };
 });
+
+// M12-T10: 左ペイン（selector）用 adapter。baseMapVisibilityList を ResourceListItemViewModel へ変換。
+// stable インスタンス（computed で再生成しない）。source() が reactive に最新を返すため、
+// ResourceSelectorList の spatialContext / query watch で再 load される。
+// baseMapVisibilityList の初回 IPC 読込完了後に再 load させるため、query に空文字 trigger を送る
+// （watch(() => props.adapter) は computed だと過剰発火するため使わない方式）。
+const baseMapVisibilityListAdapter = createBaseMapVisibilityListAdapter({
+    source: () => baseMapVisibilityList.value,
+    hasDraft: () => false,
+    activeLang: () => mapData.value.lang || 'ja',
+});
+
+// M12-T10: baseMapVisibilityList が更新されたら ResourceSelectorList を再 load させる。
+// query に空文字を set しなおすことで watch が発火 → loadFirst() が走る。
+// （ただし query が既に空文字だと set しても変化しないため、nonce を付与）
+const baseMapReloadNonce = ref(0);
+watch(() => baseMapVisibilityList.value, () => {
+    baseMapReloadNonce.value++;
+}, { deep: false });
 
 // M12-T10: 右ペイン（選択済み）= enabled なベースマップ一覧
 const enabledBaseMaps = computed(() => baseMapVisibilityList.value.filter((item) => item.enabled));
@@ -410,7 +421,7 @@ async function removeBaseMapFromEnabled(item: BaseMapVisibilityItem): Promise<vo
 // adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
 // （adapter の toViewModel は ResourceSelectorList 内部で使われる）
 function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
-    return baseMapVisibilityListAdapter.value.toViewModel(item, mapData.value.lang || 'ja');
+    return baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
 }
 
 const activeTab = ref('metadata');
@@ -3882,9 +3893,10 @@ const goBack = async () => {
             <div v-show="activeTab === 'settings'" class="h-100">
             <div class="h-100 p-4 d-flex flex-column">
                 <h4 class="mb-3">{{ t("mapedit.edit_base_map") }}</h4>
-                <ResourceSelector class="flex-grow-1 min-h-0">
+                <ResourceSelector class="flex-grow-1 min-h-0" data-testid="map-base-map-selector">
                   <template #list>
                     <ResourceSelectorList
+                      :key="`bm-${baseMapReloadNonce}`"
                       v-model:query="baseMapSearchText"
                       :adapter="baseMapVisibilityListAdapter"
                       :placeholder="t('mapedit.base_map_search_placeholder')"
