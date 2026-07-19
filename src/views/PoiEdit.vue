@@ -239,7 +239,7 @@ import { useAssetDraftLifecycle } from "../composables/useAssetDraftLifecycle";
 import { useInitialDraftPersist } from "../composables/useInitialDraftPersist";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { localizeTitle } from "../utils/langResource";
-import { suggestSlug } from "../utils/poiSourceSlug";
+import { guardedReleaseThenFallback, runGuardedPoiImport } from "../utils/initGenerationGuard";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
 import { collectAssetRefsInFc, collectImageAssetUids } from "../utils/poiContentMode";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
@@ -1038,11 +1038,16 @@ async function initializeEditor(): Promise<void> {
       currentLang.value = lang;
     } else {
       // 元消失（並行削除等）: 予約を解放してから空初期化 + operation 診断（予約 teardown 契約）。
-      // 世代外の遅い応答なら release/初期化も行わない
-      if (generation !== loadGeneration) return;
-      await releaseReservedSlugForNew();
-      initializeEmptySession();
-      saveError.value = t("resource_list.duplicate_failed");
+      // M12-T2: release の await 前後で generation を確認し、stale なら解放後の
+      // （空初期化 + duplicate_failed 診断）副作用を行わない（新 session の上書き防止）
+      await guardedReleaseThenFallback({
+        isCurrent: () => generation === loadGeneration,
+        release: () => releaseReservedSlugForNew(),
+        onFallback: () => {
+          initializeEmptySession();
+          saveError.value = t("resource_list.duplicate_failed");
+        },
+      });
     }
   } else {
     initializeEmptySession();
@@ -1059,7 +1064,7 @@ async function initializeEditor(): Promise<void> {
   // インポート自動起動（複製と併用しない）。draft 復元があっても importFile 成功時に張り直す
   if (route.query.import === "1" && !duplicateFrom) {
     void nextTick(() => {
-      void importAutoRun();
+      void importAutoRun(generation);
     });
   }
   await nextTick();
@@ -1096,30 +1101,35 @@ async function releaseReservedSlugForNew(): Promise<void> {
 // --- インポート自動起動（/poisources/new?import=1）---
 const importing = ref(false);
 
-async function importAutoRun(): Promise<void> {
-  if (importing.value || saveHandle.uid.value) return;
+// M12-T2: generation 引数化。スケジュール後の世代切替（stale）では picker 表示・importFile・
+// loadSaved/replaceRoute を行わない（runGuardedPoiImport が各ステップ間で isCurrent を確認する。
+// 残留物ポリシー: importFile 成功後 stale でも自世代 uid の draft cleanup のみ実行される）
+async function importAutoRun(generation: number): Promise<void> {
+  if (importing.value || saveHandle.uid.value || generation !== loadGeneration) return;
   importing.value = true;
   try {
-    const picked = await window.poiSources.pickImportFile();
-    if (!picked) return; // キャンセル: 空の未作成モードに留まる（何も作られない）
-    const slug = suggestSlug(picked.fileName);
-    const lang = resolveEditorLanguage(
-      await window.poiSources.detectImportLanguage(picked.filePath, "ja"),
-    );
-    const result = await window.poiSources.importFile({
-      slug,
-      title: { [lang]: picked.fileName.replace(/\.[^.]+$/, "") },
-      filePath: picked.filePath,
-      uid: newPoiUid.value,
+    // flow 開始時に自世代 uid を固定（importFile と cleanup が同じ uid を使い、
+    // 世代切替後に新世代 uid の draft を誤消しない）
+    const importUid = newPoiUid.value;
+    const outcome = await runGuardedPoiImport({
+      isCurrent: () => generation === loadGeneration,
+      newUid: () => importUid,
+      pickImportFile: () => window.poiSources.pickImportFile(),
+      detectImportLanguage: (filePath, fallback) => window.poiSources.detectImportLanguage(filePath, fallback),
+      importFile: (input) => window.poiSources.importFile(input),
+      removeDraft: (uid) => window.assetDrafts.remove("poi", uid),
+      loadSaved: (uid) => load(uid),
+      replaceRoute: async (uid) => { await router.replace({ path: `/poisources/${uid}` }); },
     });
-    if (!("result" in result) || result.result !== "Success") {
+    if (outcome.outcome === "failed") {
       // PoiSourceSaveResult failure は saveSource の onFailure と同じ語彙で診断へ
-      if ("result" in result && result.result === "Exist") {
+      const result = outcome.failure as any;
+      if (result && "result" in result && result.result === "Exist") {
         saveError.value = t("poisource.errors.slug_taken");
-      } else if ("result" in result && result.result === "Invalid") {
+      } else if (result && "result" in result && result.result === "Invalid") {
         saveIssues.value = result.issues;
-      } else if ("result" in result && result.result === "Error") {
-        const key = ERROR_CODE_KEYS[result.code] ?? "poisource.errors.internal";
+      } else if (result && "result" in result && result.result === "Error") {
+        const key = ERROR_CODE_KEYS[result.code as keyof typeof ERROR_CODE_KEYS] ?? "poisource.errors.internal";
         saveError.value =
           result.code === "invalid-request" || result.code === "internal"
             ? result.message || t(key)
@@ -1127,19 +1137,15 @@ async function importAutoRun(): Promise<void> {
       } else {
         saveError.value = t("poisource.errors.internal");
       }
-      return;
     }
-    // import 内容が正になるため、import 前の未作成下書きは廃棄（復元競合ダイアログ防止）
-    await window.assetDrafts.remove("poi", newPoiUid.value);
-    // adoptLoaded + session.load + draftLifecycle.open(uid, revision) を一括で張り直す
-    await load(result.uid);
-    // import=1 を URL から除去（リロードで再起動しない）
-    await router.replace({ path: `/poisources/${result.uid}` });
+    // outcome "current-saved" / "cancelled" / "stale" は追加処理なし
   } catch (e: any) {
     // pickImportFile / detectImportLanguage / importFile 自身の throw（IPC 不達・main 例外）も
-    // 同じ operation 診断へ収束させる（silent 失敗禁止）
+    // 同じ operation 診断へ収束させる（silent 失敗禁止。stale では表示しない）
     console.error("[PoiEdit] import failed", e);
-    saveError.value = e?.message || t("poisource.errors.internal");
+    if (generation === loadGeneration) {
+      saveError.value = e?.message || t("poisource.errors.internal");
+    }
   } finally {
     importing.value = false;
   }
