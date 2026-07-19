@@ -458,7 +458,7 @@ try {
   // 左カラムは共通検索一覧 + host 所有の行 (追加済みは disabled)
   assert.match(poiReferenceEditor, /v-model:query="poiSearchQuery"/, 'POI selector に検索 query がない');
   assert.match(poiReferenceEditor, /:adapter="poiSourceAdapter"/, 'POI selector が search adapter に接続されていない');
-  assert.match(poiReferenceEditor, /class="source-row"/, 'POI selector が共通の source-row になっていない');
+  assert.match(poiReferenceEditor, /<ResourceMasterRow[\s\S]{0,200}?variant="selector"/, 'POI selector が共通の ResourceMasterRow variant="selector" になっていない');
   assert.match(poiReferenceEditor, /:disabled="readOnly \|\| isPoiSelected\(item\.uid\)"/, '追加済み POI 行が無効化されない');
   // picker 表示中のグローバルキー抑止 (MAJOR-1) と行 key の安定化 (MINOR-2) は再設計後も維持
   assert.match(poiReferenceEditor, /defineExpose\(\{ pickerOpen \}\)/, 'PoiReferenceEditor.vue が pickerOpen を expose していない');

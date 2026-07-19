@@ -28,13 +28,13 @@ import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapLi
 import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
 import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
-import { localizeTitle, type LangResource } from "../utils/langResource";
 import { useSelectorSpatialContext } from "../composables/useSelectorSpatialContext";
 import type { SelectorSpatialContextView, Wgs84Bbox } from "../components/resource-list/resourceListTypes";
 import {
   createAppSourceFromBaseMap,
   envelopeToBbox,
   normalizeAppSource,
+  resolveBaseMapSelectorText,
   type AppSource as SharedAppSource,
 } from "../utils/appSourceModel";
 import { useRevisionedAssetSave } from "../composables/useRevisionedAssetSave";
@@ -1054,12 +1054,15 @@ function asResourceListRowFromMap(item: MapListRow): ResourceListItemViewModel {
 }
 
 function asResourceListRowFromBaseMap(item: BaseMapCatalogItem): ResourceListItemViewModel {
-  const title = item.data?.title as LangResource | null | undefined;
-  const localized = title ? localizeTitle(title, appData.value.lang) : String(item.mapID);
+  // resolveBaseMapSelectorText で label → title → mapID の順に解決（AppEdit.vue:1035-1040 と同形式）
+  const title = resolveBaseMapSelectorText(
+    { mapID: item.mapID, defaultLang: appData.value.lang, ...(item.data || {}) },
+    appData.value.lang,
+  );
   return {
     uid: item.uid,
     slug: String(item.mapID),
-    title: localized,
+    title,
     thumbnailUrl: item.thumbnailUrl ?? null,
     metadata: [String(item.mapID)],
     badges: [],
