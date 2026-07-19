@@ -3,12 +3,13 @@
     role="button"
     tabindex="0"
     class="resource-master-row list-group-item list-group-item-action px-3 py-2"
-    :class="{ active: item.selected }"
+    :class="rowClass"
     :data-resource-uid="item.uid"
     :aria-current="item.selected ? 'true' : undefined"
-    @click="emit('select', item.uid)"
-    @keydown.enter.prevent="emit('select', item.uid)"
-    @keydown.space.prevent="emit('select', item.uid)"
+    :aria-disabled="isDisabled ? 'true' : undefined"
+    @click="onActivate"
+    @keydown.enter.prevent="onActivate"
+    @keydown.space.prevent="onActivate"
     @contextmenu.prevent="onContextMenu"
   >
     <span class="resource-master-row__thumb">
@@ -23,7 +24,7 @@
     <span v-if="item.hasDraft" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
     <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="badgeClass(badge.tone)">{{ badge.label }}</span>
     <slot name="extra"></slot>
-    <ResourceActionMenu ref="menuRef" :actions="actions" @select="(key) => emit('action', key, item)" />
+    <ResourceActionMenu v-if="showActionMenu" ref="menuRef" :actions="actions" @select="(key) => emit('action', key, item)" />
   </div>
 </template>
 
@@ -33,24 +34,47 @@ import ResourceActionMenu from "./ResourceActionMenu.vue";
 import { buildResourceListActions } from "./buildResourceListActions";
 import type { ResourceListItemViewModel, ResourceListKind } from "./resourceListTypes";
 
-const props = defineProps<{ item: ResourceListItemViewModel; kind: ResourceListKind; draftLabel: string; draftBadgeTestId?: string }>();
+const props = withDefaults(defineProps<{
+  item: ResourceListItemViewModel;
+  kind: ResourceListKind;
+  draftLabel: string;
+  draftBadgeTestId?: string;
+  // variant: 'master' (default) = master-detail 用。action menu 表示、.active で選択中表示
+  //          'selector' = Master-Selection 用。action menu 非表示、disabled で追加済み/追加不可を表示
+  variant?: "master" | "selector";
+  // selector variant 専用: 行がクリック不可（追加済み/previewDisabled 等）の場合 true
+  disabled?: boolean;
+}>(), { variant: "master", disabled: false, draftBadgeTestId: undefined });
 const emit = defineEmits<{ select: [uid: string]; action: [key: string, item: ResourceListItemViewModel] }>();
 
 const menuRef = ref<InstanceType<typeof ResourceActionMenu> | null>(null);
 const thumbBroken = ref(false); // 壊れた thumbnail(file:// 欠損等)は placeholder へフォールバック
+const isDisabled = computed(() => props.variant === "selector" && props.disabled);
+const showActionMenu = computed(() => props.variant === "master");
 const actions = computed(() => buildResourceListActions(props.kind, props.item));
+const rowClass = computed(() => ({
+  active: props.variant === "master" && props.item.selected,
+  disabled: isDisabled.value,
+}));
 function badgeClass(tone: "info" | "warning" | "neutral"): string {
   return tone === "warning" ? "bg-warning text-dark" : tone === "info" ? "bg-info text-dark" : "bg-secondary";
 }
+function onActivate(): void {
+  if (isDisabled.value) return;
+  emit("select", props.item.uid);
+}
 function onContextMenu(event: MouseEvent): void {
+  if (isDisabled.value) return;
   menuRef.value?.openAt(event.clientX, event.clientY);
 }
 </script>
 
 <style scoped>
 .resource-master-row { display: flex; align-items: center; gap: .65rem; }
-.resource-master-row__thumb { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; overflow: hidden; background: #f8f9fa; border: 1px solid var(--bs-border-color); }
+.resource-master-row__thumb { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; overflow: hidden; background: #f8f9fa; border: 1px solid var(--bs-border-color); }
 .resource-master-row__thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .resource-master-row__placeholder { color: var(--bs-secondary-color); }
 .min-w-0 { min-width: 0; }
+/* selector variant の disabled 表示。master variant は .active と併用しないため未使用 */
+.resource-master-row.disabled { opacity: 0.58; cursor: not-allowed; }
 </style>

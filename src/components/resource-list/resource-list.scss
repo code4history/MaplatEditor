@@ -29,6 +29,10 @@
   flex: 1 1 auto;
   overflow-y: auto;
   min-height: 0;
+  /* M12-T10: 行間隔は親 gap で一元管理（margin-top 廃止）。selector 側 .source-list も 6px へ揃える */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .resource-list__sentinel {
@@ -95,7 +99,5 @@
   background: rgba(13, 110, 253, 0.06);
 }
 
-/* item 間 gap（source-list の gap: 6px 相当） */
-.resource-master-row + .resource-master-row {
-  margin-top: 6px;
-}
+/* item 間 gap は親コンテナ (.resource-list__content / .source-list) の gap: 6px で一元管理（M12-T10）。
+   旧 .resource-master-row + .resource-master-row { margin-top: 6px } は廃止（selector 側との二重適用解消）。 */
