@@ -398,6 +398,16 @@ async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean):
     }
 }
 
+// M12-T10 v2.0: baseMapVisibilityList が IPC で読み込まれたら ResourceSelectorList を再 load させる。
+// HM1: :key remount は廃止。代わりに ref から ResourceSelectorList.reload() を直接呼ぶ（scroll 保持）。
+// ※ 楽観更新中（item.enabled 変更のみ）は配列参照が不変のため watch は発火せず、in-place で更新される。
+//   初回 IPC 読込完了時のみ配列参照が差し替わり watch が発火。
+const baseMapSelectorListRef = ref<{ reload: () => Promise<void> } | null>(null);
+watch(() => baseMapVisibilityList.value, () => {
+    // 初回ロード完了時に ResourceSelectorList.reload() を呼んで items を更新（scroll 保持）
+    void baseMapSelectorListRef.value?.reload();
+}, { deep: false });
+
 // M12-T10 v2.0: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
 // adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
 function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
@@ -3894,6 +3904,7 @@ const goBack = async () => {
                 <ResourceSelector class="flex-grow-1 min-h-0" data-testid="map-base-map-selector">
                   <template #list>
                     <ResourceSelectorList
+                      ref="baseMapSelectorListRef"
                       v-model:query="baseMapSearchText"
                       :adapter="baseMapVisibilityListAdapter"
                       :placeholder="t('mapedit.base_map_search_placeholder')"

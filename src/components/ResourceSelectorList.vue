@@ -62,6 +62,9 @@ onBeforeUnmount(() => {
   if (queryTimer) clearTimeout(queryTimer);
   dispose();
 });
+
+// M12-T10 v2.0: host 側から reload を呼べるように expose
+defineExpose({ reload: loadFirst });
 </script>
 
 <style scoped>

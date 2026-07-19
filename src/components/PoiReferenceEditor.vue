@@ -18,7 +18,7 @@
           :spatial-context="spatialContext"
           @toggle-spatial-context="emit('toggle-spatial-context')"
         >
-          <template #range-filter>
+          <template v-if="hasRangeFilterSlot" #range-filter>
             <slot name="range-filter"></slot>
           </template>
           <template #item="{ item }">
@@ -132,7 +132,7 @@
 // 本コンポーネントは配列ごと差し替えの update:pois を emit するだけ (履歴記録は呼び出し側:
 // AppEdit = recordHistory 明示 / MapEdit = mapData の deep-watch)。
 // 参照要素判定・selector との往復は共有 util (utils/poiReferenceUi)。
-import { computed, ref, watch } from "vue";
+import { computed, ref, useSlots, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import ResourceSelectorList from "./ResourceSelectorList.vue";
 import IconRefField from "./IconRefField.vue";
@@ -166,6 +166,10 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useTranslation();
+const slots = useSlots();
+// M12-T10 v2.0: host 側が #range-filter slot を提供した場合のみ ResourceRangeFilterButton を使い、
+// 未提供時は spatial-toggle を表示（排他）。useSlots() は slot の存在判定に使える。
+const hasRangeFilterSlot = computed(() => !!slots["range-filter"] && !!slots["range-filter"]());
 const poiSearchQuery = ref("");
 const poiSourceAdapter = createPoiSourceListAdapter({
   hasDraft: () => false,
