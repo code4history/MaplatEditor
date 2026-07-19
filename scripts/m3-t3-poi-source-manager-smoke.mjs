@@ -140,15 +140,26 @@ try {
   );
 
   // M11-T10b: 作成モーダル撤去 + 遅延作成統一に伴い、import のファイル名 → suggestSlug の
-  // 自動提案 (43 §3.2) は PoiEdit の import 自動起動へ移動。一覧は /poisources/new 系へ遷移するだけ
+  // 自動提案 (43 §3.2) は PoiEdit の import 自動起動へ移動。一覧は /poisources/new 系へ遷移するだけ。
+  // M12-T2: import フローは generation guard 付きの runGuardedPoiImport（initGenerationGuard.ts）へ
+  // 抽出され、suggestSlug はその内部で呼ばれる
   const poiEditSrc = await readFile(
     path.join(projectRoot, 'src/views/PoiEdit.vue'),
     'utf8'
   );
+  const guardSrc = await readFile(
+    path.join(projectRoot, 'src/utils/initGenerationGuard.ts'),
+    'utf8'
+  );
+  assert.match(
+    guardSrc,
+    /suggestSlug\(picked\.fileName\)/,
+    'import フロー（runGuardedPoiImport）が suggestSlug でファイル名から slug を提案していない'
+  );
   assert.match(
     poiEditSrc,
-    /suggestSlug\(picked\.fileName\)/,
-    'PoiEdit の import 自動起動が suggestSlug でファイル名から slug を提案していない'
+    /runGuardedPoiImport\(\{/,
+    'PoiEdit の import 自動起動が runGuardedPoiImport 経由でない'
   );
   assert.match(
     poiEditSrc,
