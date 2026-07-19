@@ -2,7 +2,9 @@
   <div class="resource-selector-list d-flex flex-column h-100 min-h-0">
     <div class="source-pane-toolbar pb-2">
       <input :value="query" type="search" class="form-control form-control-sm" :placeholder="placeholder" :data-testid="inputTestid" @input="emit('update:query', ($event.target as HTMLInputElement).value)">
-      <button v-if="spatialContext" type="button" class="btn btn-outline-secondary btn-sm mt-2 w-100" data-testid="selector-spatial-toggle" @click="emit('toggle-spatial-context')">
+      <!-- M12-T10 v2.0 HM3: #range-filter slot が提供された場合はそれを使い、spatial-toggle は出さない（排他） -->
+      <slot name="range-filter" v-if="hasRangeFilterSlot"></slot>
+      <button v-else-if="spatialContext" type="button" class="btn btn-outline-secondary btn-sm mt-2 w-100" data-testid="selector-spatial-toggle" @click="emit('toggle-spatial-context')">
         {{ spatialContext.enabled
           ? t('resource_selector.range_auto', { context: t(spatialContext.labelKey) })
           : t('resource_selector.range_none') }}
@@ -18,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, useSlots, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import type { ResourceDataAdapter, SelectorSpatialContextView } from "./resource-list/resourceListTypes";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
@@ -33,6 +35,8 @@ const props = withDefaults(defineProps<{
 }>(), { limit: 30, spatialContext: undefined, inputTestid: undefined });
 const emit = defineEmits<{ "update:query": [value: string]; "toggle-spatial-context": [] }>();
 const { t } = useTranslation();
+const slots = useSlots();
+const hasRangeFilterSlot = computed(() => !!slots["range-filter"]);
 const effectiveQuery = ref(props.query);
 const list = useInfiniteResourceList<any, any>(props.adapter, {
   filter: () => ({ q: effectiveQuery.value, bbox: props.spatialContext?.bbox ?? null }),
