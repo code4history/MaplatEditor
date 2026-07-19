@@ -14,10 +14,13 @@
         <ResourceSelectorList
           v-model:query="poiSearchQuery"
           :adapter="poiSourceAdapter"
-          :placeholder="t('resource_list.search_placeholder', { name: t('resource_list.kind_poi_source') })"
+          :placeholder="t('poiref.search_placeholder')"
           :spatial-context="spatialContext"
           @toggle-spatial-context="emit('toggle-spatial-context')"
         >
+          <template #range-filter>
+            <slot name="range-filter"></slot>
+          </template>
           <template #item="{ item }">
             <ResourceMasterRow
               :item="asResourceListRowFromPoiSource(item)"

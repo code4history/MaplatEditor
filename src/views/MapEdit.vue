@@ -8,6 +8,8 @@ import PoiReferenceEditor from '../components/PoiReferenceEditor.vue';
 import ResourceSelector from '../components/ResourceSelector.vue';
 import ResourceSelectorList from '../components/ResourceSelectorList.vue';
 import ResourceMasterRow from '../components/resource-list/ResourceMasterRow.vue';
+import ResourceRangeFilterButton from '../components/resource-list/ResourceRangeFilterButton.vue';
+import ResourceEmptyState from '../components/resource-list/ResourceEmptyState.vue';
 import DraftConflictDialog from '../components/editor-ui/DraftConflictDialog.vue';
 import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
 import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
@@ -36,7 +38,6 @@ import { editorComputeBackend } from '../services/editorComputeBackend';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
-import { useSelectorSpatialContext } from '../composables/useSelectorSpatialContext';
 import type { SlugFieldState } from '../composables/useSlugAvailability';
 import type { SelectorSpatialContextView, Wgs84Bbox, ResourceListItemViewModel } from '../components/resource-list/resourceListTypes';
 import { createBaseMapVisibilityListAdapter } from '../views/resource-adapters/baseMapVisibilityListAdapter';
@@ -339,8 +340,9 @@ const builtinThumbnails: Record<string, string> = {
     gsi_ortho: gsiOrthoThumb,
 };
 
-// M12-T10: selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
+// M12-T10 v2.0: selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
 // 無ければ GCP auto range を fallback（現状の filteredBaseMapVisibilityList と同一方針）。
+// adapter の bbox 絞り込みに使う。UI は ResourceRangeFilterButton へ一本化（spatial-toggle は #range-filter slot で排他）。
 const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
     const manual = envelopeToBbox(baseMapFilterRegion.value);
     if (manual) {
@@ -354,36 +356,26 @@ const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
         labelKey: 'resource_selector.context_map',
     };
 });
-
-// M12-T10: 左ペイン（selector）用 adapter。baseMapVisibilityList を ResourceListItemViewModel へ変換。
 // stable インスタンス（computed で再生成しない）。source() が reactive に最新を返すため、
 // ResourceSelectorList の spatialContext / query watch で再 load される。
-// baseMapVisibilityList の初回 IPC 読込完了後に再 load させるため、query に空文字 trigger を送る
-// （watch(() => props.adapter) は computed だと過剰発火するため使わない方式）。
+// HM1: 楽観更新で baseMapVisibilityList の item.enabled を in-place 更新するため、
+// adapter の source() は常に最新の reactivity を返す（remount なし）。
 const baseMapVisibilityListAdapter = createBaseMapVisibilityListAdapter({
     source: () => baseMapVisibilityList.value,
     hasDraft: () => false,
     activeLang: () => mapData.value.lang || 'ja',
 });
 
-// M12-T10: baseMapVisibilityList が更新されたら ResourceSelectorList を再 load させる。
-// query に空文字を set しなおすことで watch が発火 → loadFirst() が走る。
-// （ただし query が既に空文字だと set しても変化しないため、nonce を付与）
-const baseMapReloadNonce = ref(0);
-watch(() => baseMapVisibilityList.value, () => {
-    baseMapReloadNonce.value++;
-}, { deep: false });
-
-// M12-T10: 右ペイン（選択済み）= enabled なベースマップ一覧
+// M12-T10 v2.0: 右ペイン（選択済み）= enabled なベースマップ一覧
 const enabledBaseMaps = computed(() => baseMapVisibilityList.value.filter((item) => item.enabled));
 
-// M12-T10: 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
+// M12-T10 v2.0: 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
 // builtin の同梱リソースは builtinThumbnails で確実に解決（AppEdit.vue:1042-1044 と同形式）
 function baseMapThumbnail(item: BaseMapVisibilityItem): string {
     return builtinThumbnails[item.mapID] || item.thumbnailUrl || noImage;
 }
 
-// M12-T10: 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
+// M12-T10 v2.0: 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
 function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
     return resolveBaseMapSelectorText(
         { mapID: item.mapID, ...(item.data || {}) },
@@ -391,38 +383,55 @@ function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
     );
 }
 
-// M12-T10: 左ペイン行クリック → enabled=true へ。locked は disabled でクリック不可。
-async function addBaseMapToEnabled(item: BaseMapVisibilityItem): Promise<void> {
+// M12-T10 v2.0 HM1: 楽観更新。旧 setBaseMapVisible と同型（in-place で item.enabled を更新、scroll 保持）。
+// :key remount・baseMapReloadNonce は廃止。エラー時のみ loadBaseMapVisibility() で再取得。
+async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean): Promise<void> {
     if (item.locked || !baseMapVisibilityMapRef()) return;
+    item.enabled = enabled;  // 楽観更新（reactivity で行が即時に added/disabled 切替。scroll 不変）
     try {
-        await (window as any).mapedit.setBaseMapVisibilityForMapID(baseMapVisibilityMapRef(), item.uid, true);
-        await loadBaseMapVisibility();
+        await (window as any).mapedit.setBaseMapVisibilityForMapID(baseMapVisibilityMapRef(), item.uid, enabled);
         await refreshBaseMapLayers();
     } catch (e: any) {
+        item.enabled = !enabled;  // ロールバック
         baseMapVisibilityError.value = e?.message || String(e);
-        console.error('[addBaseMapToEnabled] Failed:', e);
+        await loadBaseMapVisibility();  // エラー時のみ再取得で整合
     }
 }
 
-// M12-T10: 右ペイン削除ボタン → enabled=false へ。locked は disabled でクリック不可。
-async function removeBaseMapFromEnabled(item: BaseMapVisibilityItem): Promise<void> {
-    if (item.locked || !baseMapVisibilityMapRef()) return;
-    try {
-        await (window as any).mapedit.setBaseMapVisibilityForMapID(baseMapVisibilityMapRef(), item.uid, false);
-        await loadBaseMapVisibility();
-        await refreshBaseMapLayers();
-    } catch (e: any) {
-        baseMapVisibilityError.value = e?.message || String(e);
-        console.error('[removeBaseMapFromEnabled] Failed:', e);
-    }
-}
-
-// M12-T10: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
+// M12-T10 v2.0: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
 // adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
-// （adapter の toViewModel は ResourceSelectorList 内部で使われる）
 function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
     return baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
 }
+
+// M12-T10 v2.0 HM3: 範囲コントロールの状態。manual 設定時 'manual' / GCP auto 存在時 'auto' / それ以外 'none'
+const baseMapRangeState = computed<"none" | "auto" | "manual">(() => {
+    if (baseMapFilterRegion.value) return "manual";
+    if (gcpAutoRange.bbox.value) return "auto";
+    return "none";
+});
+
+// M12-T10 v2.0 HM8: POI 選択の範囲コントロール（ベースマップ選択と同一方針）
+const poiFilterRegion = ref<[number, number][] | null>(null);
+const showPoiRegionModal = ref(false);
+const poiSpatialContext = computed<SelectorSpatialContextView>(() => {
+    const manual = envelopeToBbox(poiFilterRegion.value);
+    if (manual) {
+        return { bbox: manual, enabled: true, labelKey: 'resource_selector.context_map' };
+    }
+    const auto = gcpAutoRange.bbox.value;
+    const expanded = auto ? expandBboxByRatio(auto, 0.05) : null;
+    return {
+        bbox: expanded,
+        enabled: !!expanded,
+        labelKey: 'resource_selector.context_map',
+    };
+});
+const poiRangeState = computed<"none" | "auto" | "manual">(() => {
+    if (poiFilterRegion.value) return "manual";
+    if (gcpAutoRange.bbox.value) return "auto";
+    return "none";
+});
 
 const activeTab = ref('metadata');
 
@@ -898,12 +907,7 @@ function onMapIDLiveInput(value: string): void {
 // undo/redo/reload による mapData 差し替えは :pois prop 経由で表示へそのまま反映される
 const poiRefEditor = ref<InstanceType<typeof PoiReferenceEditor> | null>(null);
 const mapCanonicalBbox = ref<Wgs84Bbox | null>(null);
-const mapPoiSpatialContext = useSelectorSpatialContext(computed(() => mapCanonicalBbox.value));
-const mapPoiSpatialView = computed<SelectorSpatialContextView>(() => ({
-    bbox: mapPoiSpatialContext.bbox.value,
-    enabled: mapPoiSpatialContext.enabled.value,
-    labelKey: 'resource_selector.context_map',
-}));
+// M12-T10 v2.0: mapPoiSpatialContext/mapPoiSpatialView は poiSpatialContext へ統一（GCP auto/manual fallback）
 let mapCanonicalBboxGeneration = 0;
 
 async function refreshMapCanonicalBbox(): Promise<void> {
@@ -2562,11 +2566,6 @@ watch(vertexMode, (newVal) => {
     if (illstSource) updateTin(); 
 });
 
-const baseMapFilterRegionLabel = computed(() => {
-    const bbox = envelopeToBbox(baseMapFilterRegion.value);
-    return bbox ? `W${bbox[0]} S${bbox[1]} E${bbox[2]} N${bbox[3]}` : '';
-});
-
 // auto 状態の有効範囲を地域指定モーダルにガイド表示するための bbox（+5% buffer 済み）
 const baseMapRegionFallbackBbox = computed(() => {
     const raw = gcpAutoRange.bbox.value;
@@ -3892,42 +3891,37 @@ const goBack = async () => {
                  POIデータタブを覆い隠していた — 2026-07-12 実機バグ)。v-show 専用ラッパーを挟む -->
             <div v-show="activeTab === 'settings'" class="h-100">
             <div class="h-100 p-4 d-flex flex-column">
-                <h4 class="mb-3">{{ t("mapedit.edit_base_map") }}</h4>
                 <ResourceSelector class="flex-grow-1 min-h-0" data-testid="map-base-map-selector">
                   <template #list>
                     <ResourceSelectorList
-                      :key="`bm-${baseMapReloadNonce}`"
                       v-model:query="baseMapSearchText"
                       :adapter="baseMapVisibilityListAdapter"
                       :placeholder="t('mapedit.base_map_search_placeholder')"
                       :spatial-context="baseMapSpatialContext"
-                      @toggle-spatial-context="showBaseMapRegionModal = true"
                     >
+                      <template #range-filter>
+                        <ResourceRangeFilterButton
+                          :state="baseMapRangeState"
+                          :auto-label="t('mapedit.range_filter_gcp_active')"
+                          :manual-label="t('mapedit.range_filter_manual_active')"
+                          :none-label="t('mapedit.range_filter_none')"
+                          test-id="map-base-map-region-button"
+                          clear-test-id="map-base-map-region-clear"
+                          :clear-title="t('appedit.envelope_clear')"
+                          @open="showBaseMapRegionModal = true"
+                          @clear="baseMapFilterRegion = null"
+                        />
+                      </template>
                       <template #item="{ item }">
                         <ResourceMasterRow
                           :item="asResourceListRowFromVisibility(item)"
                           kind="base-map"
                           variant="selector"
-                          :disabled="item.locked || item.enabled"
-                          @select="addBaseMapToEnabled(item)"
+                          :disabled="item.locked"
+                          @select="setBaseMapEnabled(item, true)"
                         />
                       </template>
                     </ResourceSelectorList>
-                    <!-- 検索/絞り込み: 一覧スクロールの対象外(固定表示)。左ペイン外だが ResourceSelector の上へ置く案もあり -->
-                    <div class="d-flex flex-wrap align-items-center gap-2 pt-2">
-                        <span v-if="gcpAutoRange.bbox.value && !baseMapFilterRegion" class="small text-muted" data-testid="map-base-map-auto-label">
-                            {{ t("mapedit.base_map_filter_gcp_auto") }}
-                        </span>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-testid="map-base-map-region-button" @click="showBaseMapRegionModal = true">
-                            {{ t("mapedit.base_map_filter_region") }}
-                        </button>
-                        <template v-if="baseMapFilterRegion">
-                            <span class="small font-monospace" data-testid="map-base-map-region-label">{{ baseMapFilterRegionLabel }}</span>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-testid="map-base-map-region-clear" @click="baseMapFilterRegion = null">
-                                {{ t("appedit.envelope_clear") }}
-                            </button>
-                        </template>
-                    </div>
                     <div v-if="baseMapVisibilityLoading" class="small text-muted">
                         {{ t("applist.loading") }}
                     </div>
@@ -3941,8 +3935,11 @@ const goBack = async () => {
 
                   <template #selected>
                     <h5>{{ t("mapedit.base_map_visibility") }}</h5>
-                    <p class="small text-muted mb-2">{{ t("mapedit.base_map_visibility_desc") }}</p>
-                    <div v-if="enabledBaseMaps.length === 0" class="text-muted py-3">{{ t("mapedit.base_map_search_no_results") }}</div>
+                    <ResourceEmptyState
+                      v-if="enabledBaseMaps.length === 0"
+                      icon-class="bi bi-layers"
+                      :message="t('mapedit.no_selected_base_maps')"
+                    />
                     <div v-else class="selected-list">
                         <div
                             v-for="item in enabledBaseMaps"
@@ -3956,18 +3953,21 @@ const goBack = async () => {
                                     <div class="min-width-0">
                                         <div class="fw-bold text-truncate">
                                             {{ baseMapTitleForSelected(item) }}
-                                            <span v-if="item.locked" class="badge text-bg-secondary ms-1">{{ t("mapedit.base_map_always_visible") }}</span>
                                         </div>
                                         <small class="text-muted text-truncate">{{ item.mapID }} / {{ item.scope }}</small>
                                     </div>
                                 </div>
                                 <div class="btn-group btn-group-sm">
+                                    <!-- HM2: locked は × ではなく lock アイコン -->
+                                    <span v-if="item.locked" class="text-secondary d-flex align-items-center px-2" :title="t('mapedit.base_map_always_visible')">
+                                        <i class="bi bi-lock-fill" aria-hidden="true"></i>
+                                    </span>
                                     <button
+                                        v-else
                                         type="button"
                                         class="btn btn-outline-danger"
-                                        :disabled="item.locked"
                                         :data-testid="`map-remove-basemap-${item.mapID}`"
-                                        @click="removeBaseMapFromEnabled(item)"
+                                        @click="setBaseMapEnabled(item, false)"
                                     >×</button>
                                 </div>
                             </div>
@@ -3998,10 +3998,33 @@ const goBack = async () => {
                     :active-lang="currentLang"
                     :default-lang="(mapData.lang || 'ja') as LangCode"
                     :language-options="SUPPORTED_LANGUAGES"
-                    :spatial-context="mapPoiSpatialView"
-                    @toggle-spatial-context="mapPoiSpatialContext.toggle"
+                    :spatial-context="poiSpatialContext"
+                    @toggle-spatial-context="showPoiRegionModal = true"
                     @select-language="selectEditorLanguage"
                     @update:pois="onPoisChange"
+                >
+                  <template #range-filter>
+                    <ResourceRangeFilterButton
+                      :state="poiRangeState"
+                      :auto-label="t('mapedit.range_filter_gcp_active')"
+                      :manual-label="t('mapedit.range_filter_manual_active')"
+                      :none-label="t('mapedit.range_filter_none')"
+                      test-id="map-poi-range-button"
+                      clear-test-id="map-poi-range-clear"
+                      :clear-title="t('appedit.envelope_clear')"
+                      @open="showPoiRegionModal = true"
+                      @clear="poiFilterRegion = null"
+                    />
+                  </template>
+                </PoiReferenceEditor>
+                <EnvelopeEditorModal
+                    v-if="showPoiRegionModal"
+                    :model-value="poiFilterRegion"
+                    title-key="mapedit.base_map_region_modal_title"
+                    help-key="mapedit.base_map_region_modal_help"
+                    :fallback-bbox="baseMapRegionFallbackBbox"
+                    @update:model-value="poiFilterRegion = $event"
+                    @close="showPoiRegionModal = false"
                 />
             </div>
 
