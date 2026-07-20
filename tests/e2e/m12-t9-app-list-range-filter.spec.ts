@@ -39,6 +39,9 @@ async function seedAppAndOpenList(page: Page): Promise<{ appUid: string; appSlug
         description: {}, keywords: '', siteUrl: '', lang: 'ja',
         sources: [], pois: [], httpSettings: {}, appSettings: {},
         manifestSettings: {},
+        // AC4: bbox 絞り込み（139.5,35.5,139.9,35.9）に合致するよう App Coverage を明示指定
+        // （apps_rtree は coverageLngLats から算出される。未指定かつ sources 空だと extent なし＝絞り込みで消える）
+        coverageLngLats: [[139.5, 35.5], [139.9, 35.9]],
       },
     });
     if (!appR || appR.result !== 'Success') throw new Error(JSON.stringify(appR));
@@ -165,23 +168,23 @@ test.describe('M12-T9 AppList range filter', () => {
       // bbox 設定確認
       await expect(page.getByTestId('app-range-clear')).toBeVisible({ timeout: 15000 });
 
-      // app 編集画面へ遷移
-      await openHash(page, `#/appedit?uid=${seeded.appUid}`);
+      // app 編集画面へ遷移（カードクリック = router.push 実経路）
+      // ※ location.hash 直接変更は vue-router で replace 扱いとなり history.state.back が
+      //   直前ロケーションに更新されないため、goBack の router.back() 分岐を検証するには
+      //   カードクリック（push 遷移）が必須
+      await page.locator(`[data-resource-uid="${seeded.appUid}"] a`).first().click();
       await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 15000 });
 
-      // AppList へ戻る
-      await openHash(page, '#/applist');
-      await page.waitForTimeout(1000);
+      // AC4/AC6: エディタの戻るボタン（実経路）で AppList へ戻る
+      // ※ goBack は直前履歴が '/applist' 始まりなら router.back()（クエリ保持）で戻るため、
+      //   URL の bbox が維持され backCache 復元条件が成立する
+      await page.getByTestId('editor-back').click();
+      await expect(page.locator('[data-resource-list="app"]')).toBeVisible({ timeout: 15000 });
 
-      // AC4: 範囲絞り込み状態が復元される（URL に bbox が残っている）
-      // ※ backCache は sessionStorage に保存されるため、同一セッション内であれば復元される
-      //   ただし hash 遷移での backCache 復元は onBeforeRouteLeave → restoreOrLoad の経路で動くため、
-      //   URL の bbox が維持されていることを検証
-      const currentUrl = page.url();
-      // URL に bbox が含まれていることを確認（route query が維持されている）
-      // ※ hash 遷移では query param は location.hash に含まれないため、
-      //   AppList の watch([query, bbox]) が route.query.bbox を読むことで復元される
-      //   ここでは backCache の restore で c.bbox === bboxQuery.value が成立することを前提とする
+      // AC4: 範囲絞り込み状態が復元される（URL(hash) に bbox が保持されている）
+      await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 }).toContain('bbox=');
+      // bbox 復元によりクリアボタン（範囲絞り込み中の表示）が再び現れる
+      await expect(page.getByTestId('app-range-clear')).toBeVisible({ timeout: 15000 });
 
       console.log('  AC4: PASS');
     } finally {
