@@ -2,13 +2,15 @@
   <div class="resource-selector-list d-flex flex-column h-100 min-h-0">
     <div class="source-pane-toolbar pb-2">
       <input :value="query" type="search" class="form-control form-control-sm" :placeholder="placeholder" :data-testid="inputTestid" @input="emit('update:query', ($event.target as HTMLInputElement).value)">
-      <button v-if="spatialContext" type="button" class="btn btn-outline-secondary btn-sm mt-2 w-100" data-testid="selector-spatial-toggle" @click="emit('toggle-spatial-context')">
+      <!-- M12-T10 v2.0 HM3: #range-filter slot が提供された場合はそれを使い、spatial-toggle は出さない（排他） -->
+      <slot name="range-filter" v-if="hasRangeFilterSlot"></slot>
+      <button v-else-if="spatialContext" type="button" class="btn btn-outline-secondary btn-sm mt-2 w-100" data-testid="selector-spatial-toggle" @click="emit('toggle-spatial-context')">
         {{ spatialContext.enabled
           ? t('resource_selector.range_auto', { context: t(spatialContext.labelKey) })
           : t('resource_selector.range_none') }}
       </button>
     </div>
-    <div class="source-list flex-grow-1 overflow-auto" @scroll.passive="onScroll">
+    <div class="source-list resource-list__rows flex-grow-1 overflow-auto" @scroll.passive="onScroll">
       <slot v-for="item in items" :key="item.uid" name="item" :item="item"></slot>
       <div v-if="state === 'loading' || state === 'appending'" class="text-muted text-center py-3">{{ t('resource_list.loading') }}</div>
       <div v-else-if="state === 'empty'" class="text-muted text-center py-3">{{ t('resource_list.empty') }}</div>
@@ -18,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, useSlots, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import type { ResourceDataAdapter, SelectorSpatialContextView } from "./resource-list/resourceListTypes";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
@@ -33,6 +35,8 @@ const props = withDefaults(defineProps<{
 }>(), { limit: 30, spatialContext: undefined, inputTestid: undefined });
 const emit = defineEmits<{ "update:query": [value: string]; "toggle-spatial-context": [] }>();
 const { t } = useTranslation();
+const slots = useSlots();
+const hasRangeFilterSlot = computed(() => !!slots["range-filter"]);
 const effectiveQuery = ref(props.query);
 const list = useInfiniteResourceList<any, any>(props.adapter, {
   filter: () => ({ q: effectiveQuery.value, bbox: props.spatialContext?.bbox ?? null }),
@@ -58,33 +62,13 @@ onBeforeUnmount(() => {
   if (queryTimer) clearTimeout(queryTimer);
   dispose();
 });
+
+// M12-T10 v2.0: host 側から reload を呼べるように expose
+defineExpose({ reload: loadFirst });
 </script>
 
 <style scoped>
+/* M12-T10 v2.0: 行間隔・行見た目は resource-list.scss の .resource-list__rows / .resource-master-row へ集約（C1 対応）。
+   scoped CSS での行間隔・行見た目定義は全廃。 */
 .min-h-0 { min-height: 0; }
-.source-list { display: flex; flex-direction: column; gap: 4px; }
-/* #item slot の行基底スタイル。行 DOM は host 所有だが、見た目の基底は selector 側で統一する
-   (host は disabled 等の差分クラスだけ足す)。slot 内容は親 scope のため :slotted で当てる */
-:slotted(.source-row) {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  border: 1px solid var(--bs-border-color);
-  background: #fff;
-  border-radius: 4px;
-  padding: 6px;
-  text-align: left;
-  cursor: pointer;
-}
-:slotted(.source-row:hover) { border-color: var(--bs-primary-border-subtle); }
-:slotted(.source-row:disabled) { opacity: 0.58; cursor: not-allowed; }
-:slotted(.source-row img) {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  background: #f8f9fa;
-  border: 1px solid var(--bs-border-color);
-}
 </style>

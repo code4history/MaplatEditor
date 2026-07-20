@@ -251,10 +251,10 @@
     "map_tile_pf": "Enter the URL of map image tile.",
     "map_tile_desc": "If you use an external map tile, enter the format http://...{z}/{x}/{y}.{png|jpg}. No setting is required when using the standard placement position.",
     "edit_base_map": "Edit Base Maps",
-    "base_map_visibility": "Visible base maps",
+    "base_map_visibility": "Base maps in this map",
     "base_map_visibility_desc": "Select base maps to use in this map editor. Only checked base maps are shown. Always-visible base maps are always included regardless of selection.",
     "base_map_always_visible": "Always visible",
-    "base_map_search_placeholder": "Search by title or ID (e.g. Himeji)",
+    "base_map_search_placeholder": "Search base maps…",
     "base_map_filter_region": "Filter by region",
     "base_map_search_no_results": "No matching base maps.",
     "base_map_region_modal_title": "Select a region to filter by",
@@ -335,7 +335,11 @@
     "edit_layer": "Edit map layer",
     "edit_coordinate": "Edit coordinate",
     "base_map_filter_gcp_auto": "Filtering by GCP extent",
-    "base_map_region_guide": "Effective area guide"
+    "base_map_region_guide": "Effective area guide",
+    "no_selected_base_maps": "Add base maps from the list on the left.",
+    "range_filter_gcp_active": "Filtering by GCP extent",
+    "range_filter_manual_active": "Filtering by manual region",
+    "range_filter_none": "Filter by region"
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -456,7 +460,7 @@
     "base_map_list": "Base Map List",
     "search_base_maps": "Search base maps…",
     "selected_sources": "Selected Maps",
-    "no_selected_sources": "No maps selected",
+    "no_selected_sources": "Add maps from the list on the left.",
     "start_from": "start_from",
     "http_settings": "HTTP Settings",
     "preview_port": "Preview Port",
@@ -561,7 +565,8 @@
       "missing_thumbnail": "Some base map/overlay thumbnails were not found.",
       "missing_splash": "The splash image was not found."
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "Search maps…"
   },
   "mapmodel": {
     "untitled": "Untitled",
@@ -592,9 +597,9 @@
   },
   "poiref": {
     "tab_label": "POI Data",
-    "selected_list_app": "POI data in this app",
-    "selected_list_map": "POI data in this map",
-    "empty": "No POI data selected. Add sources from the list on the left.",
+    "selected_list_app": "POIs in this app",
+    "selected_list_map": "POIs in this map",
+    "empty": "Add POIs from the list on the left.",
     "added": "Added",
     "move_up": "Move up",
     "move_down": "Move down",
@@ -605,7 +610,8 @@
     "icon_override": "Icon override",
     "selected_icon_override": "Selected-state icon override",
     "override_title": "Title override",
-    "missing_source": "The referenced POI source was not found (it may have been deleted). Use × to remove this reference."
+    "missing_source": "The referenced POI source was not found (it may have been deleted). Use × to remove this reference.",
+    "search_placeholder": "Search POIs…"
   },
   "poisource": {
     "title": "POI Sources",
@@ -700,7 +706,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "Map coverage", "context_app_coverage": "App coverage", "range_auto": "Range: Auto ({{context}})", "range_none": "Range: Worldwide" },
+  "resource_selector": {
+    "context_map": "Map coverage",
+    "context_app_coverage": "App coverage",
+    "range_auto": "Range: Auto ({{context}})",
+    "range_none": "Range: Worldwide"
+  },
   "poiedit": {
     "confirm_no_save": "This POI source has unsaved changes.\nClose without saving?",
     "no_slug": "Please specify a slug.",

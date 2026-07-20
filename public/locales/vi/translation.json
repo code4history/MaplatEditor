@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "Phạm vi bản đồ", "context_app_coverage": "Phạm vi ứng dụng", "range_auto": "Phạm vi: Tự động ({{context}})", "range_none": "Phạm vi: Toàn thế giới" },
+  "resource_selector": {
+    "context_map": "Phạm vi bản đồ",
+    "context_app_coverage": "Phạm vi ứng dụng",
+    "range_auto": "Phạm vi: Tự động ({{context}})",
+    "range_none": "Phạm vi: Toàn thế giới"
+  },
   "common": {
     "close": "Đóng",
     "back": "Quay lại",
@@ -255,10 +260,10 @@
     "map_tile_pf": "Vui lòng nhập URL của tile bản đồ",
     "map_tile_desc": "Nếu sử dụng tile bản đồ bên ngoài, vui lòng nhập theo định dạng http://...{z}/{x}/{y}.{png|jpg}. Không cần thiết lập nếu dùng vị trí lưu trữ tiêu chuẩn.",
     "edit_base_map": "Chỉnh sửa bản đồ nền",
-    "base_map_visibility": "Bản đồ nền hiển thị",
+    "base_map_visibility": "Bản đồ nền của bản đồ này",
     "base_map_visibility_desc": "Chọn bản đồ nền sử dụng trên màn hình chỉnh sửa của bản đồ này. Chỉ những bản đồ nền đã chọn mới được hiển thị. Bản đồ nền luôn hiển thị sẽ luôn được hiển thị bất kể lựa chọn.",
     "base_map_always_visible": "Luôn hiển thị",
-    "base_map_search_placeholder": "Tìm theo tiêu đề, ID (ví dụ: Himeji)",
+    "base_map_search_placeholder": "Tìm bản đồ nền…",
     "base_map_filter_region": "Lọc theo khu vực",
     "base_map_search_no_results": "Không có bản đồ nền phù hợp.",
     "base_map_region_modal_title": "Chỉ định khu vực để lọc",
@@ -339,7 +344,11 @@
     "edit_layer": "Chỉnh sửa lớp bản đồ",
     "edit_coordinate": "Chỉnh sửa tọa độ",
     "base_map_filter_gcp_auto": "Đang lọc theo phạm vi GCP",
-    "base_map_region_guide": "Hướng dẫn vùng hiệu quả"
+    "base_map_region_guide": "Hướng dẫn vùng hiệu quả",
+    "no_selected_base_maps": "Thêm bản đồ nền từ danh sách bên trái.",
+    "range_filter_gcp_active": "Đang lọc theo phạm vi GCP",
+    "range_filter_manual_active": "Đang lọc theo khu vực thủ công",
+    "range_filter_none": "Lọc theo khu vực"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
@@ -460,7 +469,7 @@
     "base_map_list": "Danh sách bản đồ nền",
     "search_base_maps": "Tìm kiếm bản đồ nền…",
     "selected_sources": "Danh sách bản đồ của ứng dụng này",
-    "no_selected_sources": "Chưa chọn bản đồ nào",
+    "no_selected_sources": "Thêm bản đồ từ danh sách bên trái.",
     "start_from": "start_from",
     "http_settings": "Cài đặt HTTP",
     "preview_port": "Cổng xem trước",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "Không tìm thấy ảnh thu nhỏ của một số bản đồ nền/lớp phủ.",
       "missing_splash": "Không tìm thấy ảnh màn hình khởi động."
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "Tìm bản đồ…"
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "Dữ liệu POI",
-    "selected_list_app": "Dữ liệu POI của ứng dụng này",
-    "selected_list_map": "Dữ liệu POI của bản đồ này",
-    "empty": "Chưa chọn dữ liệu POI nào. Thêm nguồn từ danh sách bên trái.",
+    "selected_list_app": "POI trong ứng dụng này",
+    "selected_list_map": "POI trong bản đồ này",
+    "empty": "Thêm POI từ danh sách bên trái.",
     "added": "Đã thêm",
     "move_up": "Lên",
     "move_down": "Xuống",
@@ -609,7 +619,8 @@
     "icon_override": "Biểu tượng ghi đè",
     "selected_icon_override": "Biểu tượng ghi đè khi chọn",
     "override_title": "Tiêu đề ghi đè",
-    "missing_source": "Không tìm thấy nguồn POI được tham chiếu (có thể đã bị xóa). Dùng × để gỡ tham chiếu."
+    "missing_source": "Không tìm thấy nguồn POI được tham chiếu (có thể đã bị xóa). Dùng × để gỡ tham chiếu.",
+    "search_placeholder": "Tìm POI…"
   },
   "poisource": {
     "title": "Nguồn POI",

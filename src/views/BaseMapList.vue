@@ -47,11 +47,11 @@
           <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
         </div>
       </div>
-      <div v-else class="h-100 d-grid place-items-center text-muted p-4 text-center">
-        <div>
-          <i class="bi bi-map fs-1 d-block mb-2" aria-hidden="true"></i>
-          {{ t("basemap.master_detail.select_prompt") }}
-        </div>
+      <div v-else class="h-100">
+        <ResourceEmptyState
+          icon-class="bi bi-map"
+          :message="t('basemap.master_detail.select_prompt')"
+        />
       </div>
     </div>
     <EnvelopeEditorModal
@@ -77,6 +77,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
+import ResourceEmptyState from "../components/resource-list/ResourceEmptyState.vue";
 import BaseMapEdit from "../components/basemap/BaseMapEdit.vue";
 import BaseMapMasterList from "../components/basemap/BaseMapMasterList.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";

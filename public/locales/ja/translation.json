@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "地図提供範囲", "context_app_coverage": "アプリ提供範囲", "range_auto": "範囲: 自動（{{context}}）", "range_none": "範囲: 全世界" },
+  "resource_selector": {
+    "context_map": "地図提供範囲",
+    "context_app_coverage": "アプリ提供範囲",
+    "range_auto": "範囲: 自動（{{context}}）",
+    "range_none": "範囲: 全世界"
+  },
   "common": {
     "close": "閉じる",
     "back": "戻る",
@@ -255,10 +260,10 @@
     "map_tile_pf": "地図タイルのURLを入力してください",
     "map_tile_desc": "外部の地図タイルを用いる場合、http://...{z}/{x}/{y}.{png|jpg}の形で指定してください。標準の配置位置を使う場合は設定不要です。",
     "edit_base_map": "ベースマップ編集",
-    "base_map_visibility": "表示するベースマップ",
+    "base_map_visibility": "この地図のベースマップ",
     "base_map_visibility_desc": "この地図の編集画面で使うベースマップを選択します。チェックしたベースマップだけが表示されます。常時表示のベースマップは選択に関わらず常に表示されます。",
     "base_map_always_visible": "常時表示",
-    "base_map_search_placeholder": "タイトル・IDで検索(例: 姫路)",
+    "base_map_search_placeholder": "ベースマップを検索…",
     "base_map_filter_region": "地域で絞り込み",
     "base_map_search_no_results": "該当するベースマップがありません。",
     "base_map_region_modal_title": "絞り込む地域を指定",
@@ -339,7 +344,11 @@
     "edit_layer": "地図レイヤ編集",
     "edit_coordinate": "座標編集",
     "base_map_filter_gcp_auto": "GCP範囲で絞り込み中",
-    "base_map_region_guide": "有効範囲ガイド"
+    "base_map_region_guide": "有効範囲ガイド",
+    "no_selected_base_maps": "左の一覧からベースマップを追加してください。",
+    "range_filter_gcp_active": "GCP範囲で絞り込み中",
+    "range_filter_manual_active": "手動設定範囲で絞り込み中",
+    "range_filter_none": "範囲を指定して絞り込む"
   },
   "mapupload": {
     "map_image": "地図画像",
@@ -460,7 +469,7 @@
     "base_map_list": "ベースマップ一覧",
     "search_base_maps": "ベースマップを検索…",
     "selected_sources": "このアプリの地図一覧",
-    "no_selected_sources": "地図が選択されていません",
+    "no_selected_sources": "左の一覧から地図を追加してください。",
     "start_from": "start_from",
     "http_settings": "HTTP設定",
     "preview_port": "プレビュー用ポート",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "一部のベースマップ/オーバーレイのサムネイル画像が見つかりませんでした。",
       "missing_splash": "スプラッシュ画像が見つかりませんでした。"
     },
-    "no_app_name": "アプリ名を入力してください。"
+    "no_app_name": "アプリ名を入力してください。",
+    "search_maps_placeholder": "地図を検索…"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "POIデータ",
-    "selected_list_app": "このアプリのPOIデータ一覧",
-    "selected_list_map": "この地図のPOIデータ一覧",
-    "empty": "POIデータが選択されていません。左の一覧から追加してください。",
+    "selected_list_app": "このアプリのPOI一覧",
+    "selected_list_map": "この地図のPOI一覧",
+    "empty": "左の一覧からPOIを追加してください。",
     "added": "追加済み",
     "move_up": "上へ",
     "move_down": "下へ",
@@ -609,7 +619,8 @@
     "icon_override": "上書きアイコン",
     "selected_icon_override": "選択時アイコン(上書き)",
     "override_title": "上書きタイトル",
-    "missing_source": "参照先のPOIソースが見つかりません(削除された可能性があります)。×で参照を解除できます。"
+    "missing_source": "参照先のPOIソースが見つかりません(削除された可能性があります)。×で参照を解除できます。",
+    "search_placeholder": "POIを検索…"
   },
   "poisource": {
     "title": "POIソース",

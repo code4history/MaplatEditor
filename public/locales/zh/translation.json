@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "地图范围", "context_app_coverage": "应用范围", "range_auto": "范围：自动（{{context}}）", "range_none": "范围：全世界" },
+  "resource_selector": {
+    "context_map": "地图范围",
+    "context_app_coverage": "应用范围",
+    "range_auto": "范围：自动（{{context}}）",
+    "range_none": "范围：全世界"
+  },
   "common": {
     "close": "关闭",
     "back": "返回",
@@ -255,10 +260,10 @@
     "map_tile_pf": "请输入地图瓦片的URL",
     "map_tile_desc": "如果使用外部地图瓦片,请以http://...{z}/{x}/{y}.{png|jpg}的格式指定。使用标准存放位置时无需设置。",
     "edit_base_map": "编辑底图",
-    "base_map_visibility": "要显示的底图",
+    "base_map_visibility": "此地图的底图",
     "base_map_visibility_desc": "选择在此地图编辑界面中使用的底图。仅显示已勾选的底图。始终显示的底图无论是否被选中都会一直显示。",
     "base_map_always_visible": "始终显示",
-    "base_map_search_placeholder": "按标题·ID搜索(例:姬路)",
+    "base_map_search_placeholder": "搜索底图…",
     "base_map_filter_region": "按区域筛选",
     "base_map_search_no_results": "没有符合条件的底图。",
     "base_map_region_modal_title": "指定筛选区域",
@@ -339,7 +344,11 @@
     "edit_layer": "编辑地图图层",
     "edit_coordinate": "编辑坐标",
     "base_map_filter_gcp_auto": "正在按GCP范围筛选",
-    "base_map_region_guide": "有效范围参考"
+    "base_map_region_guide": "有效范围参考",
+    "no_selected_base_maps": "请从左侧列表添加底图。",
+    "range_filter_gcp_active": "正在按GCP范围筛选",
+    "range_filter_manual_active": "正在按手动设置范围筛选",
+    "range_filter_none": "按区域筛选"
   },
   "mapupload": {
     "map_image": "地图图像",
@@ -460,7 +469,7 @@
     "base_map_list": "底图列表",
     "search_base_maps": "搜索底图…",
     "selected_sources": "此应用的地图列表",
-    "no_selected_sources": "未选择地图",
+    "no_selected_sources": "请从左侧列表添加地图。",
     "start_from": "start_from",
     "http_settings": "HTTP设置",
     "preview_port": "预览用端口",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "部分底图/叠加层的缩略图未找到。",
       "missing_splash": "未找到启动画面图像。"
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "搜索地图…"
   },
   "mapmodel": {
     "untitled": "标题未设置",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "POI数据",
-    "selected_list_app": "此应用的POI数据列表",
-    "selected_list_map": "此地图的POI数据列表",
-    "empty": "尚未选择POI数据。请从左侧列表中添加。",
+    "selected_list_app": "此应用的POI",
+    "selected_list_map": "此地图的POI",
+    "empty": "请从左侧列表添加POI。",
     "added": "已添加",
     "move_up": "上移",
     "move_down": "下移",
@@ -609,7 +619,8 @@
     "icon_override": "覆盖图标",
     "selected_icon_override": "选中时图标(覆盖)",
     "override_title": "覆盖标题",
-    "missing_source": "未找到引用的POI数据源(可能已被删除)。可用×解除引用。"
+    "missing_source": "未找到引用的POI数据源(可能已被删除)。可用×解除引用。",
+    "search_placeholder": "搜索POI…"
   },
   "poisource": {
     "title": "POI源",

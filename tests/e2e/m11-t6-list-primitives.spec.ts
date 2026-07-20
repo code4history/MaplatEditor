@@ -257,19 +257,21 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     const userTrigger = userRow.locator('[data-resource-action-trigger]');
     await expect(userTrigger).toHaveCount(1);
 
-    // M11-T7 selected: click row → .active + aria-current + dark text + blue border + blue bg
+    // M11-T7 / M12-T10 v2.0 selected: click row → .selected + aria-current + dark text + blue border + blue bg
+    // （旧 .active は M12-T10 v2.0 で .selected へ rename、Bootstrap 競合を恒久排除）
     await userRow.locator('.resource-item__title').click();
-    await expect(userRow).toHaveClass(/active/);
+    await expect(userRow).toHaveClass(/selected/);
     await expect(userRow).toHaveAttribute('aria-current', 'true');
     await expect(userRow).toHaveCSS('color', 'rgb(33, 37, 41)');
     await expect(userRow).toHaveCSS('background-color', 'rgba(13, 110, 253, 0.06)');
     await expect(userRow).toHaveCSS('border-top-color', 'rgb(13, 110, 253)');
 
-    // M11-T7 gap: 2 連続 builtin master row（nth(2)）間に 6px margin-top
-    // (nth(0)=user, nth(1)=osm, nth(2)=gsi が consecutive builtin の先頭対)
+    // M11-T7 / M12-T10 v2.0 gap: 親 .resource-list__rows が gap:6px で行間隔を一元管理
+    // （旧 .resource-master-row + .resource-master-row { margin-top: 6px } は M12-T10 で廃止、gap へ統一）
     const rowCount = await page.locator('[data-testid^="basemap-row-"]').count();
     expect(rowCount).toBeGreaterThanOrEqual(3);
-    await expect(page.locator('[data-testid^="basemap-row-"]').nth(2)).toHaveCSS('margin-top', '6px');
+    const rowParent = page.locator('[data-testid^="basemap-row-"]').nth(2).locator('xpath=..');
+    await expect(rowParent).toHaveCSS('gap', '6px');
 
     await userTrigger.click();
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();

@@ -23,8 +23,12 @@ import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import ResourceSelector from "../components/ResourceSelector.vue";
 import ResourceSelectorList from "../components/ResourceSelectorList.vue";
-import { createMapListAdapter } from "./resource-adapters/mapListAdapter";
+import ResourceMasterRow from "../components/resource-list/ResourceMasterRow.vue";
+import ResourceEmptyState from "../components/resource-list/ResourceEmptyState.vue";
+import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
+import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
+import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 import { useSelectorSpatialContext } from "../composables/useSelectorSpatialContext";
 import type { SelectorSpatialContextView, Wgs84Bbox } from "../components/resource-list/resourceListTypes";
 import {
@@ -1032,15 +1036,54 @@ function sourceIdLabel(source: AppSource): string {
   return source.sourceType === "maplat" ? source.mapSlug || source.mapUid : source.mapUid;
 }
 
-function baseMapTitle(item: BaseMapItem): string {
-  return resolveBaseMapSelectorText(
-    { mapID: item.mapID, ...(item.data || {}) },
-    appData.value.lang,
-  );
+// M12-T10 v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
+// added 判定（HM6: 追加済み=青=selected=true）・disabledReason（HM4: previewDisabled 理由表示）・
+// スラッグ重複除去（HM10: metadata から mapID を除外、slug 行が表示するため）を反映。
+function isMapSourceAdded(uid: string): boolean {
+  return appData.value.sources.some((source) => source.mapUid === uid && source.sourceType === "maplat");
+}
+function isBaseMapSourceAdded(mapID: string): boolean {
+  return appData.value.sources.some((source) => source.mapUid === mapID && source.sourceType !== "maplat");
+}
+function asResourceListRowFromMap(item: MapListRow): ResourceListItemViewModel {
+  const added = isMapSourceAdded(item.uid);
+  const previewDisabled = !!item.previewDisabled;
+  return {
+    uid: item.uid,
+    slug: item.mapID,
+    title: item.title || item.mapID,
+    thumbnailUrl: item.image ?? null,
+    metadata: [],
+    badges: [],
+    // HM6: 追加済み=selected=true（青）。disabled より selected を優先
+    selected: added,
+    hasDraft: false,
+    actions: [],
+    // HM4: previewDisabled 理由を常時表示（added でない場合のみ）
+    disabledReason: !added && previewDisabled ? t(item.previewDisabledReason || "appedit.preview.unavailable") : undefined,
+  };
 }
 
-function baseMapThumbnail(item: BaseMapItem): string {
-  return builtinThumbnails[item.mapID] || item.thumbnailUrl || noImage;
+function asResourceListRowFromBaseMap(item: BaseMapCatalogItem): ResourceListItemViewModel {
+  // resolveBaseMapSelectorText で label → title → mapID の順に解決（AppEdit.vue:1035-1040 と同形式）
+  const title = resolveBaseMapSelectorText(
+    { mapID: item.mapID, defaultLang: appData.value.lang, ...(item.data || {}) },
+    appData.value.lang,
+  );
+  const added = isBaseMapSourceAdded(item.mapID);
+  return {
+    uid: item.uid,
+    slug: String(item.mapID),
+    title,
+    thumbnailUrl: item.thumbnailUrl ?? null,
+    // HM10: スラッグ重複除去。slug 行が mapID を表示するため scope のみ残す（存在する場合）
+    metadata: item.scope ? [item.scope] : [],
+    badges: [],
+    // HM6: 追加済み=selected=true（青）
+    selected: added,
+    hasDraft: false,
+    actions: [],
+  };
 }
 
 function sourceThumbnail(source: AppSource): string {
@@ -1405,30 +1448,42 @@ function onPoisChange(next: unknown[]) {
             :key="sourceListMode"
             :query="sourceListMode === 'maps' ? mapSearchQuery : baseMapSearchQuery"
             :adapter="sourceListMode === 'maps' ? mapSourceAdapter : baseMapSearchAdapter"
-            :placeholder="sourceListMode === 'maps' ? t('maplist.search_placeholder') : t('appedit.search_base_maps')"
+            :placeholder="sourceListMode === 'maps' ? t('appedit.search_maps_placeholder') : t('appedit.search_base_maps')"
             :input-testid="sourceListMode === 'baseMaps' ? 'app-basemap-search' : undefined"
             :spatial-context="appSourceSpatialView"
             @update:query="sourceListMode === 'maps' ? (mapSearchQuery = $event) : (baseMapSearchQuery = $event)"
             @toggle-spatial-context="appSourceSpatialContext.toggle"
           >
             <template #item="{ item }">
-              <button v-if="sourceListMode === 'maps'" type="button" class="source-row" :disabled="item.previewDisabled" :title="item.previewDisabled ? t(item.previewDisabledReason || 'appedit.preview.unavailable') : item.title" @click="addMapSource(item)">
-                <img :src="item.image || noImage" :alt="item.title" loading="lazy" decoding="async">
-                <span>
-                  {{ item.title }}
-                  <small v-if="item.previewDisabled" class="d-block text-danger">{{ t(item.previewDisabledReason || "appedit.preview.unavailable") }}</small>
-                </span>
-              </button>
-              <button v-else type="button" class="source-row" :data-testid="`app-basemap-row-${item.mapID}`" @click="addBaseMapSource(item)">
-                <img :src="baseMapThumbnail(item)" :alt="baseMapTitle(item)"><span>{{ baseMapTitle(item) }}</span>
-              </button>
+              <ResourceMasterRow
+                v-if="sourceListMode === 'maps'"
+                :item="asResourceListRowFromMap(item)"
+                kind="map"
+                variant="selector"
+                :disabled="!isMapSourceAdded(item.uid) && !!item.previewDisabled"
+                :data-testid="`app-map-row-${item.mapID}`"
+                @select="addMapSource(item)"
+              />
+              <ResourceMasterRow
+                v-else
+                :item="asResourceListRowFromBaseMap(item)"
+                kind="base-map"
+                variant="selector"
+                :disabled="false"
+                :data-testid="`app-basemap-row-${item.mapID}`"
+                @select="addBaseMapSource(item)"
+              />
             </template>
           </ResourceSelectorList>
         </template>
 
         <template #selected>
           <h5>{{ t("appedit.selected_sources") }}</h5>
-          <div v-if="appData.sources.length === 0" class="text-muted py-3">{{ t("appedit.no_selected_sources") }}</div>
+          <ResourceEmptyState
+            v-if="appData.sources.length === 0"
+            icon-class="bi bi-map"
+            :message="t('appedit.no_selected_sources')"
+          />
           <div v-else class="selected-list">
             <div v-for="(source, index) in appData.sources" :key="`${source.sourceType}:${source.mapUid}`" class="selected-source border rounded p-2 mb-2" :data-testid="`app-selected-source-${source.mapUid}`">
               <div class="d-flex align-items-center justify-content-between gap-2">

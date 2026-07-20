@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "Cobertura del mapa", "context_app_coverage": "Cobertura de la aplicación", "range_auto": "Rango: Automático ({{context}})", "range_none": "Rango: Todo el mundo" },
+  "resource_selector": {
+    "context_map": "Cobertura del mapa",
+    "context_app_coverage": "Cobertura de la aplicación",
+    "range_auto": "Rango: Automático ({{context}})",
+    "range_none": "Rango: Todo el mundo"
+  },
   "common": {
     "close": "Cerrar",
     "back": "Volver",
@@ -255,10 +260,10 @@
     "map_tile_pf": "Introduzca la URL de las teselas del mapa",
     "map_tile_desc": "Si utiliza teselas de mapa externas, introduzca el formato http://...{z}/{x}/{y}.{png|jpg}. No se requiere configuración si se usa la ubicación estándar.",
     "edit_base_map": "Editar mapas base",
-    "base_map_visibility": "Mapas base a mostrar",
+    "base_map_visibility": "Mapas base de este mapa",
     "base_map_visibility_desc": "Seleccione los mapas base que se usarán en el editor de este mapa. Solo se muestran los mapas base marcados. Los mapas base siempre visibles se incluyen siempre, independientemente de la selección.",
     "base_map_always_visible": "Siempre visible",
-    "base_map_search_placeholder": "Buscar por título o ID (p. ej.: Himeji)",
+    "base_map_search_placeholder": "Buscar mapas base…",
     "base_map_filter_region": "Filtrar por región",
     "base_map_search_no_results": "No hay mapas base coincidentes.",
     "base_map_region_modal_title": "Seleccionar una región para filtrar",
@@ -339,7 +344,11 @@
     "edit_layer": "Editar capa del mapa",
     "edit_coordinate": "Editar coordenadas",
     "base_map_filter_gcp_auto": "Filtrando por extensión GCP",
-    "base_map_region_guide": "Guía de área efectiva"
+    "base_map_region_guide": "Guía de área efectiva",
+    "no_selected_base_maps": "Añada mapas base desde la lista de la izquierda.",
+    "range_filter_gcp_active": "Filtrando por extensión GCP",
+    "range_filter_manual_active": "Filtrando por región manual",
+    "range_filter_none": "Filtrar por región"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
@@ -460,7 +469,7 @@
     "base_map_list": "Lista de mapas base",
     "search_base_maps": "Buscar mapas base…",
     "selected_sources": "Mapas de esta aplicación",
-    "no_selected_sources": "No hay mapas seleccionados",
+    "no_selected_sources": "Añada mapas desde la lista de la izquierda.",
     "start_from": "start_from",
     "http_settings": "Configuración HTTP",
     "preview_port": "Puerto de vista previa",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "No se encontraron algunas miniaturas de mapas base/superposiciones.",
       "missing_splash": "No se encontró la imagen de la pantalla de bienvenida."
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "Buscar mapas…"
   },
   "mapmodel": {
     "untitled": "Título no establecido",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "Datos de POI",
-    "selected_list_app": "Datos POI de esta aplicación",
-    "selected_list_map": "Datos POI de este mapa",
-    "empty": "No hay datos POI seleccionados. Añada fuentes desde la lista de la izquierda.",
+    "selected_list_app": "POIs de esta app",
+    "selected_list_map": "POIs de este mapa",
+    "empty": "Añada POIs desde la lista de la izquierda.",
     "added": "Añadido",
     "move_up": "Subir",
     "move_down": "Bajar",
@@ -609,7 +619,8 @@
     "icon_override": "Icono de reemplazo",
     "selected_icon_override": "Icono de reemplazo al seleccionar",
     "override_title": "Título de reemplazo",
-    "missing_source": "No se encontró la fuente de POI referenciada (puede haber sido eliminada). Use × para quitar la referencia."
+    "missing_source": "No se encontró la fuente de POI referenciada (puede haber sido eliminada). Use × para quitar la referencia.",
+    "search_placeholder": "Buscar POIs…"
   },
   "poisource": {
     "title": "Fuentes de POI",

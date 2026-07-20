@@ -31,24 +31,20 @@
       <small class="text-muted d-block mt-1">{{ t("basemap.master_detail.count_label", { num: items.length }) }}</small>
     </div>
 
-    <div ref="scrollElement" class="flex-grow-1 overflow-auto" data-testid="basemap-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
+    <div ref="scrollElement" class="resource-list__rows flex-grow-1 overflow-auto" data-testid="basemap-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
       <div v-if="loading" class="text-muted text-center py-4">{{ t("basemap.loading") }}</div>
       <div v-else-if="error" class="alert alert-danger m-3">{{ error }}</div>
       <template v-else>
-        <div v-if="newDrafts.length" class="border-bottom">
+        <div v-if="newDrafts.length">
           <h6 class="small text-uppercase text-muted px-3 pt-3 mb-1">{{ t("editor_ui.draft_badge") }}</h6>
-          <button
+          <ResourceMasterRow
             v-for="draft in newDrafts"
             :key="draft.assetUid"
-            type="button"
-            class="list-group-item list-group-item-action border-0 rounded-0 px-3 py-2 w-100 text-start"
-            :class="{ active: selectedUid === draft.assetUid }"
-            :aria-current="selectedUid === draft.assetUid ? 'true' : undefined"
-            @click="emit('select-draft', draft.assetUid)"
-          >
-            <span class="fw-semibold">{{ t("basemap.master_detail.new_draft") }}</span>
-            <span class="badge bg-warning text-dark ms-1">{{ t("editor_ui.draft_badge") }}</span>
-          </button>
+            :item="draftViewModel(draft)"
+            kind="base-map"
+            :draft-label="t('editor_ui.draft_badge')"
+            @select="emit('select-draft', draft.assetUid)"
+          />
         </div>
 
         <h6 class="small text-uppercase text-muted px-3 pt-3 mb-1">{{ t("basemap.user_section") }}</h6>
@@ -78,7 +74,7 @@
           </template>
         </ResourceMasterRow>
 
-        <details class="border-bottom" open>
+        <details class="resource-list__rows border-bottom" open>
           <summary class="small text-uppercase text-muted px-3 py-3">{{ t("basemap.builtin_section") }} ({{ builtinItems.length }})</summary>
           <ResourceMasterRow
             v-for="item in builtinItems"
@@ -157,6 +153,21 @@ const adapter = createBaseMapListAdapter({
 });
 const vmOf = (item: BaseMapCatalogItem) => adapter.toViewModel(item, props.activeLang);
 
+// M12-T10 v2.0: draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
+function draftViewModel(draft: AssetDraftSummary) {
+  return {
+    uid: draft.assetUid,
+    slug: "",
+    title: t("basemap.master_detail.new_draft"),
+    thumbnailUrl: null,
+    metadata: [],
+    badges: [],
+    selected: props.selectedUid === draft.assetUid,
+    hasDraft: true,
+    actions: [],
+  };
+}
+
 // 可視 trash を廃し、削除は ResourceActionMenu の `削除`（user のみ）から。builtin は actions 空で ⋮ 非表示（AC17）。
 function onRowAction(key: string, item: BaseMapCatalogItem): void {
   if (key === "delete") emit("delete", item);
@@ -169,4 +180,5 @@ defineExpose({ scrollElement });
 <style scoped>
 .base-map-master-list { min-width: 18rem; }
 .min-w-0 { min-width: 0; }
+/* M12-T10 v2.0: details 内の builtin row 群も .resource-list__rows クラスで gap 管理（scoped は廃止） */
 </style>

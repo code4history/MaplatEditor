@@ -14,14 +14,21 @@
         <ResourceSelectorList
           v-model:query="poiSearchQuery"
           :adapter="poiSourceAdapter"
-          :placeholder="t('resource_list.search_placeholder', { name: t('resource_list.kind_poi_source') })"
+          :placeholder="t('poiref.search_placeholder')"
           :spatial-context="spatialContext"
           @toggle-spatial-context="emit('toggle-spatial-context')"
         >
+          <template v-if="hasRangeFilterSlot" #range-filter>
+            <slot name="range-filter"></slot>
+          </template>
           <template #item="{ item }">
-            <button type="button" class="source-row" :disabled="readOnly || isPoiSelected(item.uid)" @click="addPoiSource(item)">
-              <span><strong>{{ poiSourceTitle(item) }}</strong><small class="d-block text-muted">{{ item.slug }}</small></span>
-            </button>
+            <ResourceMasterRow
+              :item="asResourceListRowFromPoiSource(item)"
+              kind="poi-source"
+              variant="selector"
+              :disabled="readOnly"
+              @select="addPoiSource(item)"
+            />
           </template>
         </ResourceSelectorList>
       </div>
@@ -29,7 +36,11 @@
 
     <template #selected>
       <h5>{{ t(headingKey ?? "poiref.selected_list_app") }}</h5>
-      <div v-if="entries.length === 0" class="text-muted py-3">{{ t("poiref.empty") }}</div>
+      <ResourceEmptyState
+        v-if="entries.length === 0"
+        icon-class="bi bi-geo-alt"
+        :message="t('poiref.empty')"
+      />
       <div v-else class="selected-list">
         <div
           v-for="(entry, index) in entries"
@@ -121,18 +132,20 @@
 // 本コンポーネントは配列ごと差し替えの update:pois を emit するだけ (履歴記録は呼び出し側:
 // AppEdit = recordHistory 明示 / MapEdit = mapData の deep-watch)。
 // 参照要素判定・selector との往復は共有 util (utils/poiReferenceUi)。
-import { computed, ref, watch } from "vue";
+import { computed, ref, useSlots, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import ResourceSelectorList from "./ResourceSelectorList.vue";
 import IconRefField from "./IconRefField.vue";
 import ResourceSelector from "./ResourceSelector.vue";
+import ResourceMasterRow from "./resource-list/ResourceMasterRow.vue";
+import ResourceEmptyState from "./resource-list/ResourceEmptyState.vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";
 import { localizeTitle, type LangResource } from "../utils/langResource";
 import type { LangCode } from "../utils/editorLanguages";
 import type { PoiSourceListRow } from "../electron";
-import type { SelectorSpatialContextView } from "./resource-list/resourceListTypes";
+import type { ResourceListItemViewModel, SelectorSpatialContextView } from "./resource-list/resourceListTypes";
 import { createPoiSourceListAdapter } from "../views/resource-adapters/poiSourceListAdapter";
 
 const props = defineProps<{
@@ -153,6 +166,10 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useTranslation();
+const slots = useSlots();
+// M12-T10 v2.0: host 側が #range-filter slot を提供した場合のみ ResourceRangeFilterButton を使い、
+// 未提供時は spatial-toggle を表示（排他）。useSlots() は slot の存在判定に使える。
+const hasRangeFilterSlot = computed(() => !!slots["range-filter"] && !!slots["range-filter"]());
 const poiSearchQuery = ref("");
 const poiSourceAdapter = createPoiSourceListAdapter({
   hasDraft: () => false,
@@ -168,6 +185,24 @@ const entries = computed<unknown[]>(() => (Array.isArray(props.pois) ? props.poi
 const selectedRefs = computed<SelectedPoiSourceRef[]>(() => extractPoiRefs(entries.value));
 const isPoiSelected = (uid: string) => selectedRefs.value.some((item) => item.sourceId === uid);
 const poiSourceTitle = (item: PoiSourceListRow) => localizeTitle(item.title, props.activeLang) || item.slug;
+
+// M12-T10 v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
+// HM6: 追加済み（isPoiSelected）=selected=true（青）。readOnly は disabled。
+function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListItemViewModel {
+  const added = isPoiSelected(item.uid);
+  return {
+    uid: item.uid,
+    slug: item.slug,
+    title: poiSourceTitle(item),
+    thumbnailUrl: null,
+    metadata: [],
+    badges: [],
+    selected: added,
+    hasDraft: false,
+    actions: [],
+  };
+}
+
 function addPoiSource(item: PoiSourceListRow): void {
   if (props.readOnly || isPoiSelected(item.uid)) return;
   onSelectionChange([...selectedRefs.value, {

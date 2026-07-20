@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "지도 범위", "context_app_coverage": "앱 범위", "range_auto": "범위: 자동 ({{context}})", "range_none": "범위: 전 세계" },
+  "resource_selector": {
+    "context_map": "지도 범위",
+    "context_app_coverage": "앱 범위",
+    "range_auto": "범위: 자동 ({{context}})",
+    "range_none": "범위: 전 세계"
+  },
   "common": {
     "close": "닫기",
     "back": "뒤로",
@@ -255,10 +260,10 @@
     "map_tile_pf": "지도 타일의 URL을 입력하세요",
     "map_tile_desc": "외부 지도 타일을 사용하는 경우, http://...{z}/{x}/{y}.{png|jpg} 형식으로 지정하세요. 표준 배치 위치를 사용하는 경우 설정이 필요하지 않습니다.",
     "edit_base_map": "베이스맵 편집",
-    "base_map_visibility": "표시할 베이스맵",
+    "base_map_visibility": "이 지도의 베이스맵",
     "base_map_visibility_desc": "이 지도의 편집 화면에서 사용할 베이스맵을 선택합니다. 체크한 베이스맵만 표시됩니다. 항상 표시되는 베이스맵은 선택 여부와 관계없이 항상 표시됩니다.",
     "base_map_always_visible": "항상 표시",
-    "base_map_search_placeholder": "제목·ID로 검색(예: 히메지)",
+    "base_map_search_placeholder": "베이스맵 검색…",
     "base_map_filter_region": "지역으로 필터링",
     "base_map_search_no_results": "해당하는 베이스맵이 없습니다.",
     "base_map_region_modal_title": "필터링할 지역 지정",
@@ -339,7 +344,11 @@
     "edit_layer": "지도 레이어 편집",
     "edit_coordinate": "좌표 편집",
     "base_map_filter_gcp_auto": "GCP 범위로 필터링 중",
-    "base_map_region_guide": "유효 범위 안내"
+    "base_map_region_guide": "유효 범위 안내",
+    "no_selected_base_maps": "왼쪽 목록에서 베이스맵을 추가하세요.",
+    "range_filter_gcp_active": "GCP 범위로 필터링 중",
+    "range_filter_manual_active": "수동 설정 범위로 필터링 중",
+    "range_filter_none": "지역으로 필터링"
   },
   "mapupload": {
     "map_image": "지도 이미지",
@@ -460,7 +469,7 @@
     "base_map_list": "베이스맵 목록",
     "search_base_maps": "베이스맵을 검색…",
     "selected_sources": "이 앱의 지도 목록",
-    "no_selected_sources": "선택된 지도가 없습니다",
+    "no_selected_sources": "왼쪽 목록에서 지도를 추가하세요.",
     "start_from": "start_from",
     "http_settings": "HTTP 설정",
     "preview_port": "미리보기용 포트",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "일부 베이스맵/오버레이의 썸네일 이미지를 찾을 수 없었습니다.",
       "missing_splash": "스플래시 이미지를 찾을 수 없었습니다."
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "지도 검색…"
   },
   "mapmodel": {
     "untitled": "제목 미설정",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "POI 데이터",
-    "selected_list_app": "이 앱의 POI 데이터 목록",
-    "selected_list_map": "이 지도의 POI 데이터 목록",
-    "empty": "선택된 POI 데이터가 없습니다. 왼쪽 목록에서 추가하세요.",
+    "selected_list_app": "이 앱의 POI",
+    "selected_list_map": "이 지도의 POI",
+    "empty": "왼쪽 목록에서 POI를 추가하세요.",
     "added": "추가됨",
     "move_up": "위로",
     "move_down": "아래로",
@@ -609,7 +619,8 @@
     "icon_override": "덮어쓰기 아이콘",
     "selected_icon_override": "선택 시 아이콘(덮어쓰기)",
     "override_title": "덮어쓰기 제목",
-    "missing_source": "참조된 POI 소스를 찾을 수 없습니다(삭제되었을 수 있습니다). ×로 참조를 해제할 수 있습니다."
+    "missing_source": "참조된 POI 소스를 찾을 수 없습니다(삭제되었을 수 있습니다). ×로 참조를 해제할 수 있습니다.",
+    "search_placeholder": "POI 검색…"
   },
   "poisource": {
     "title": "POI 소스",

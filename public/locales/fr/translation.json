@@ -2,7 +2,12 @@
   "app": {
     "title": "Maplat Editor"
   },
-  "resource_selector": { "context_map": "Couverture de la carte", "context_app_coverage": "Couverture de l’application", "range_auto": "Étendue : Automatique ({{context}})", "range_none": "Étendue : Monde entier" },
+  "resource_selector": {
+    "context_map": "Couverture de la carte",
+    "context_app_coverage": "Couverture de l’application",
+    "range_auto": "Étendue : Automatique ({{context}})",
+    "range_none": "Étendue : Monde entier"
+  },
   "common": {
     "close": "Fermer",
     "back": "Retour",
@@ -255,10 +260,10 @@
     "map_tile_pf": "Veuillez saisir l'URL des tuiles de la carte",
     "map_tile_desc": "Si vous utilisez des tuiles de carte externes, saisissez le format http://...{z}/{x}/{y}.{png|jpg}. Aucun réglage n'est nécessaire si vous utilisez l'emplacement standard.",
     "edit_base_map": "Modifier les fonds de carte",
-    "base_map_visibility": "Fonds de carte à afficher",
+    "base_map_visibility": "Fonds de carte de cette carte",
     "base_map_visibility_desc": "Sélectionnez les fonds de carte à utiliser dans l'éditeur de cette carte. Seuls les fonds de carte cochés sont affichés. Les fonds de carte toujours visibles sont toujours inclus, quelle que soit la sélection.",
     "base_map_always_visible": "Toujours visible",
-    "base_map_search_placeholder": "Rechercher par titre ou ID (ex. : Himeji)",
+    "base_map_search_placeholder": "Rechercher des fonds de carte…",
     "base_map_filter_region": "Filtrer par région",
     "base_map_search_no_results": "Aucun fond de carte correspondant.",
     "base_map_region_modal_title": "Sélectionner une région pour filtrer",
@@ -339,7 +344,11 @@
     "edit_layer": "Modifier le calque de carte",
     "edit_coordinate": "Modifier les coordonnées",
     "base_map_filter_gcp_auto": "Filtrer par étendue GCP",
-    "base_map_region_guide": "Guide zone effective"
+    "base_map_region_guide": "Guide zone effective",
+    "no_selected_base_maps": "Ajoutez des fonds de carte depuis la liste de gauche.",
+    "range_filter_gcp_active": "Filtrage par étendue GCP",
+    "range_filter_manual_active": "Filtrage par région manuelle",
+    "range_filter_none": "Filtrer par région"
   },
   "mapupload": {
     "map_image": "Image de la carte",
@@ -460,7 +469,7 @@
     "base_map_list": "Liste des fonds de carte",
     "search_base_maps": "Rechercher des fonds de carte…",
     "selected_sources": "Cartes de cette application",
-    "no_selected_sources": "Aucune carte sélectionnée",
+    "no_selected_sources": "Ajoutez des cartes depuis la liste de gauche.",
     "start_from": "start_from",
     "http_settings": "Paramètres HTTP",
     "preview_port": "Port de l'aperçu",
@@ -565,7 +574,8 @@
       "missing_thumbnail": "Certaines miniatures de fonds de carte/superpositions sont introuvables.",
       "missing_splash": "L'image de l'écran de démarrage est introuvable."
     },
-    "no_app_name": "Please input an app name."
+    "no_app_name": "Please input an app name.",
+    "search_maps_placeholder": "Rechercher des cartes…"
   },
   "mapmodel": {
     "untitled": "Titre non défini",
@@ -596,9 +606,9 @@
   },
   "poiref": {
     "tab_label": "Données POI",
-    "selected_list_app": "Données POI de cette application",
-    "selected_list_map": "Données POI de cette carte",
-    "empty": "Aucune donnée POI sélectionnée. Ajoutez des sources depuis la liste à gauche.",
+    "selected_list_app": "POIs de cette application",
+    "selected_list_map": "POIs de cette carte",
+    "empty": "Ajoutez des POIs depuis la liste de gauche.",
     "added": "Ajouté",
     "move_up": "Monter",
     "move_down": "Descendre",
@@ -609,7 +619,8 @@
     "icon_override": "Icône de remplacement",
     "selected_icon_override": "Icône de remplacement à la sélection",
     "override_title": "Titre de remplacement",
-    "missing_source": "La source de POI référencée est introuvable (elle a peut-être été supprimée). Utilisez × pour retirer la référence."
+    "missing_source": "La source de POI référencée est introuvable (elle a peut-être été supprimée). Utilisez × pour retirer la référence.",
+    "search_placeholder": "Rechercher des POIs…"
   },
   "poisource": {
     "title": "Sources de POI",
