@@ -243,4 +243,51 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       await quitElectronApplication(app);
     }
   });
+
+  test('AC5b: サムネイル未存在時は placeholder が表示される（null 連結退行の回帰）', async () => {
+    test.setTimeout(240_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t15-placeholder-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      // 画像未アップロードの新規地図を作成（サムネイル不存在）
+      const slug = await page.evaluate(async () => {
+        const mapSlug = `t15-nomap-${Date.now()}`;
+        const mapR = await window.mapedit.save({
+          slug: mapSlug,
+          mapObject: {
+            mapID: mapSlug, title: { ja: 'no thumb map' },
+            officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+            attr: { ja: 'attr' }, dataAttr: {}, description: {},
+            license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
+            imageExtension: 'jpg', width: 400, height: 300,
+            gcps: [[[0, 0], [15550000, 4160000]], [[400, 0], [15560000, 4160000]], [[400, 300], [15560000, 4150000]]],
+            edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
+          },
+          tins: [],
+        });
+        if (!mapR || mapR.result !== 'Success') throw new Error(JSON.stringify(mapR));
+        return mapR.uid;
+      });
+
+      // MapEdit へ遷移（初期タブは metadata。サムネイル管理セクションは metadata タブ内）
+      await openHash(page, `#/mapedit?uid=${slug}`);
+      await expect(page.getByTestId('thumbnail-replace-512')).toBeVisible({ timeout: 15000 });
+
+      // 512px の placeholder が表示される（img ではなく div.placeholder）
+      const placeholder512 = page.locator('div.border.rounded.text-muted').filter({ hasText: '512px' }).first();
+      await expect(placeholder512).toBeVisible({ timeout: 15000 });
+
+      // 52px の placeholder も表示される
+      const placeholder52 = page.locator('div.border.rounded.text-muted').filter({ hasText: '52px' }).first();
+      await expect(placeholder52).toBeVisible({ timeout: 15000 });
+
+      // img タグが表示されない（null 連結で壊れた画像が出ないことを検証）
+      const img512 = page.locator('img[alt="512px"]');
+      await expect(img512).toHaveCount(0);
+
+      console.log('  AC5b: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
 });

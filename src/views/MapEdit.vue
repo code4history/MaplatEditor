@@ -396,8 +396,14 @@ const thumbnailNonce = ref(0);
 async function refreshThumbnails(): Promise<void> {
     if (!mapUid.value) { thumbnail512Url.value = null; thumbnail52Url.value = null; return; }
     const v = `?v=${thumbnailNonce.value}`;
-    try { thumbnail512Url.value = (await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}_512.jpg`)) + v; } catch { thumbnail512Url.value = null; }
-    try { thumbnail52Url.value = (await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}.jpg`)) + v; } catch { thumbnail52Url.value = null; }
+    try {
+        const url512 = await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}_512.jpg`);
+        thumbnail512Url.value = url512 ? url512 + v : null;
+    } catch { thumbnail512Url.value = null; }
+    try {
+        const url52 = await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}.jpg`);
+        thumbnail52Url.value = url52 ? url52 + v : null;
+    } catch { thumbnail52Url.value = null; }
 }
 async function replaceThumbnail(kind: '512' | '52'): Promise<void> {
     if (!mapUid.value) return;
