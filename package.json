@@ -96,7 +96,8 @@
     "test:e2e:m12-t15": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t15-thumbnail-512.spec.ts",
     "smoke:m12-t15-upload-512": "node scripts/m12-t15-upload-512-smoke.mjs",
     "smoke:m12-t15-r4-export": "node scripts/m12-t15-r4-export-smoke.mjs",
-    "test:e2e:m12-t15-mining": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t15-mining-512.spec.ts"
+    "test:e2e:m12-t15-mining": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t15-mining-512.spec.ts",
+    "smoke:m12-t15-nedb-mining": "node scripts/m12-t15-nedb-mining-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",
