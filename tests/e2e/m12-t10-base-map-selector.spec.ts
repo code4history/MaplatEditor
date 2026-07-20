@@ -61,7 +61,7 @@ async function getBaseMapVisibility(page: Page, mapUid: string): Promise<any[]> 
 }
 
 test.describe('M12-T10 v2.0 MapEdit base map selector 2-pane', () => {
-  test('AC1+AC2b+AC7: 2 ペイン形式・locked は lock アイコン・IPC thumbnailUrl・empty state', async () => {
+  test('AC1+AC2b+AC7+AC8: 2 ペイン形式・locked は lock アイコン・IPC thumbnailUrl・empty state・文言', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-v2-layout-'));
     const { app, page } = await launch(e2eRoot);
@@ -72,6 +72,14 @@ test.describe('M12-T10 v2.0 MapEdit base map selector 2-pane', () => {
       // AC1: 左ペインに ResourceSelectorList、右ペインに selected-pane がある
       await expect(page.getByTestId('map-base-map-selector').locator('.source-pane')).toBeVisible();
       await expect(page.getByTestId('map-base-map-selector').locator('.selected-pane')).toBeVisible();
+
+      // AC8 HM7: 「ベースマップ編集」h4 が存在しない
+      await expect(page.getByText('ベースマップ編集')).toHaveCount(0);
+      // AC8 HM7: 検索 placeholder が「ベースマップを検索…」
+      const searchInput = page.getByTestId('map-base-map-selector').locator('.source-pane input[type="search"]');
+      await expect(searchInput).toHaveAttribute('placeholder', 'ベースマップを検索…');
+      // AC8 HM7: 右ペイン見出しが「この地図のベースマップ」
+      await expect(page.getByTestId('map-base-map-selector').locator('.selected-pane h5')).toHaveText('この地図のベースマップ');
 
       // AC2b: IPC 返却に thumbnailUrl が含まれる（builtin OSM は basemap_icons/ で解決される）
       const visibility = await getBaseMapVisibility(page, mapUid);
@@ -91,7 +99,7 @@ test.describe('M12-T10 v2.0 MapEdit base map selector 2-pane', () => {
       // （実際の empty 表示は全て disabled な状態で発生するが、初期状態では OSM が存在するため
       //   ここではクラス定義の存在確認のみ。完全な empty 検証は AC2 で全削除後）
 
-      console.log('  AC1+AC2b+AC7: PASS');
+      console.log('  AC1+AC2b+AC7+AC8: PASS');
     } finally {
       await quitElectronApplication(app);
     }

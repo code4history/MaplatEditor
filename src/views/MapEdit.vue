@@ -39,7 +39,7 @@ import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
 import type { SlugFieldState } from '../composables/useSlugAvailability';
-import type { SelectorSpatialContextView, Wgs84Bbox, ResourceListItemViewModel } from '../components/resource-list/resourceListTypes';
+import type { SelectorSpatialContextView, ResourceListItemViewModel } from '../components/resource-list/resourceListTypes';
 import { createBaseMapVisibilityListAdapter } from '../views/resource-adapters/baseMapVisibilityListAdapter';
 import type { BaseMapVisibilityItem } from '../../electron/services/SqliteDataService';
 import { runEditorExportDecision } from '../composables/useEditorExportDecision';
@@ -916,20 +916,8 @@ function onMapIDLiveInput(value: string): void {
 // deep-watch (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
 // undo/redo/reload による mapData 差し替えは :pois prop 経由で表示へそのまま反映される
 const poiRefEditor = ref<InstanceType<typeof PoiReferenceEditor> | null>(null);
-const mapCanonicalBbox = ref<Wgs84Bbox | null>(null);
-// M12-T10 v2.0: mapPoiSpatialContext/mapPoiSpatialView は poiSpatialContext へ統一（GCP auto/manual fallback）
-let mapCanonicalBboxGeneration = 0;
-
-async function refreshMapCanonicalBbox(): Promise<void> {
-    const generation = ++mapCanonicalBboxGeneration;
-    const uid = mapUid.value;
-    if (!uid) {
-        mapCanonicalBbox.value = null;
-        return;
-    }
-    const bbox = await window.search.resourceBbox('map', uid);
-    if (generation === mapCanonicalBboxGeneration) mapCanonicalBbox.value = bbox;
-}
+// M12-T10 v2.0 Min2: mapCanonicalBbox / refreshMapCanonicalBbox は dead code として削除
+// （POI spatial は poiSpatialContext へ移行済み、consumer なし）
 
 function onPoisChange(next: unknown[]) {
     if (next.length === 0) {
@@ -1935,9 +1923,8 @@ onMounted(async () => {
             });
         } else if (newTab === 'settings') {
             loadBaseMapVisibility();
-        } else if (newTab === 'pois') {
-            void refreshMapCanonicalBbox();
         }
+        // M12-T10 v2.0 Min2: pois タブの refreshMapCanonicalBbox 呼出は dead code のため削除
     });
 });
 

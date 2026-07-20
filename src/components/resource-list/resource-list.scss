@@ -72,17 +72,22 @@
    hover は薄い背景変化、selected は #0d6efd 枠 + 青淡背景。
    ResourceMasterRow の scoped CSS は全廃し、この global 正本のみで描画する（C1 対応）。
    Bootstrap list-group-item 由来の border/角丸潰しを排除するため、root class から list-group-item 系を除去済み。 */
+/* M12-T10 v2.0 Min1: 共通プロパティ（background/border/radius/transition）のみ共有。
+   padding/flex/gap/cursor は .resource-master-row のみに指定（grid card は独自レイアウト） */
 .resource-grid-card,
 .resource-master-row {
   background: #fff;
   border: 1px solid var(--bs-border-color);
   border-radius: 4px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.resource-master-row {
   padding: 0.5rem 1rem;
   display: flex;
   align-items: center;
   gap: 0.65rem;
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
 }
 
 .resource-grid-card:hover,

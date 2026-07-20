@@ -1448,7 +1448,7 @@ function onPoisChange(next: unknown[]) {
             :key="sourceListMode"
             :query="sourceListMode === 'maps' ? mapSearchQuery : baseMapSearchQuery"
             :adapter="sourceListMode === 'maps' ? mapSourceAdapter : baseMapSearchAdapter"
-            :placeholder="sourceListMode === 'maps' ? t('maplist.search_placeholder') : t('appedit.search_base_maps')"
+            :placeholder="sourceListMode === 'maps' ? t('appedit.search_maps_placeholder') : t('appedit.search_base_maps')"
             :input-testid="sourceListMode === 'baseMaps' ? 'app-basemap-search' : undefined"
             :spatial-context="appSourceSpatialView"
             @update:query="sourceListMode === 'maps' ? (mapSearchQuery = $event) : (baseMapSearchQuery = $event)"
