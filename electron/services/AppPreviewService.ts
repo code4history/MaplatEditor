@@ -7,7 +7,7 @@ import { session } from 'electron';
 import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
-import { resolveResourceAsset } from '../utils/resourceAssets';
+import { resolveResourceAsset, isUnderFolder } from '../utils/resourceAssets';
 import { normalizeJsonArray } from '../utils/jsonArray';
 import SqliteDataService from './SqliteDataService';
 import {
@@ -414,7 +414,9 @@ ${manifestLink}
     const saveFolder = SettingsService.get('saveFolder') as string;
     const baseFolder = path.resolve(path.join(saveFolder, folder));
     const resolved = path.resolve(path.join(baseFolder, ...segments.map(segment => decodeURIComponent(segment))));
-    if (!resolved.startsWith(baseFolder)) return this.sendText(res, 403, 'Forbidden');
+    // M12-T14: startsWith(baseFolder) は末尾 path.sep 欠落で `{baseFolder}-x`（例 tmbs-x）が
+    // prefix 一致通過していた。isUnderFolder（= startsWith(base + path.sep)）で厳密化（M12-T13 と同型）
+    if (!isUnderFolder(resolved, baseFolder)) return this.sendText(res, 403, 'Forbidden');
     await this.sendFile(res, resolved);
   }
 
@@ -427,7 +429,8 @@ ${manifestLink}
     const decoded = decodeURIComponent(filePath);
     const saveFolder = SettingsService.get('saveFolder') as string;
     const resolved = path.resolve(decoded);
-    if (!resolved.startsWith(path.resolve(saveFolder))) return this.sendText(res, 403, 'Forbidden');
+    // M12-T14: 同上。`{saveFolder}-x` の兄弟ディレクトリを除外
+    if (!isUnderFolder(resolved, saveFolder)) return this.sendText(res, 403, 'Forbidden');
     await this.sendFile(res, resolved);
   }
 
