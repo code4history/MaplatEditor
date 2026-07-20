@@ -16,6 +16,7 @@ import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
 import LangValueChips from "../components/editor-ui/LangValueChips.vue";
 import SlugField from "../components/editor-ui/SlugField.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
+import ContextHelp from "../components/editor-ui/ContextHelp.vue";
 import EditorTabs from "../components/editor-ui/EditorTabs.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
 import { healAppDocumentPois } from "../utils/poiSourcesHeal";
@@ -1286,9 +1287,8 @@ function onPoisChange(next: unknown[]) {
               <input data-testid="app-keywords" v-model="keywordsText" type="text" class="form-control form-control-sm" @input="recordHistory">
             </div>
             <div class="col-md-5">
-              <label class="form-label fw-bold small mb-0">{{ t("appedit.site_url") }}</label>
+              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.site_url") }} <ContextHelp :text="t('appedit.site_url_note')" :ariaLabel="t('appedit.site_url_note')" /></label>
               <input v-model="appData.siteUrl" type="url" class="form-control form-control-sm" placeholder="https://example.com/myapp/" :disabled="translationMode" @input="recordHistory">
-              <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.site_url_note") }}</div>
             </div>
           </div>
           <div class="row g-1">
@@ -1299,7 +1299,7 @@ function onPoisChange(next: unknown[]) {
           </div>
           <div class="row g-1 mb-2">
             <div class="col-12">
-              <label class="form-label fw-bold small mb-0">{{ t("appedit.app_coverage") }}</label>
+              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_coverage") }} <ContextHelp :text="t('appedit.app_coverage_note')" :ariaLabel="t('appedit.app_coverage_note')" /></label>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="small font-monospace">{{ bboxLabel(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value) }}</span>
                 <button
@@ -1321,7 +1321,6 @@ function onPoisChange(next: unknown[]) {
                   {{ t("appedit.envelope_clear") }}
                 </button>
               </div>
-              <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.app_coverage_note") }}</div>
             </div>
           </div>
           <section class="settings-section mt-3">
@@ -1424,13 +1423,13 @@ function onPoisChange(next: unknown[]) {
                 <input v-model="appData.manifestSettings.scope" type="text" class="form-control form-control-sm" :disabled="translationMode" @input="recordHistory">
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-bold">{{ t("appedit.manifest_icon_source") }}</label>
+                <label class="form-label small fw-bold d-flex align-items-center gap-1">{{ t("appedit.manifest_icon_source") }} <ContextHelp :text="t('appedit.manifest_icon_note')" :ariaLabel="t('appedit.manifest_icon_note')" /></label>
                 <div class="d-flex align-items-center gap-2">
-                  <input v-model="appData.manifestSettings.iconSource" type="text" class="form-control form-control-sm" readonly>
+                  <input v-model="appData.manifestSettings.iconSource" type="text" class="form-control form-control-sm" :class="{ 'is-invalid': !!assetUploadError }" readonly>
                   <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" :disabled="translationMode" @click="uploadPwaIcon">{{ t("appedit.upload") }}</button>
                 </div>
-                <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("appedit.manifest_icon_note") }}</div>
-                <div v-if="assetUploadError" class="text-danger small">{{ assetUploadError }}</div>
+                <!-- M12-T11 (R3/C32): inline text-danger から DF field へ -->
+                <DiagnosticFeedback v-if="assetUploadError" scope="field" :items="[{ key: 'pwa-icon', severity: 'danger', message: assetUploadError }]" />
                 <img v-if="iconPreviewUrl" :src="iconPreviewUrl" class="asset-preview mt-1" alt="icon">
               </div>
             </div>

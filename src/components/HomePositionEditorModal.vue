@@ -13,6 +13,7 @@ import { Style, Circle as CircleStyle, Stroke, Fill } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
+import ContextHelp from "./editor-ui/ContextHelp.vue";
 
 const props = defineProps<{
   modelValue: [number, number] | null;
@@ -107,11 +108,10 @@ function confirm() {
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">{{ t("appedit.home_modal_title") }}</h5>
+          <h5 class="modal-title d-flex align-items-center gap-1">{{ t("appedit.home_modal_title") }} <ContextHelp :text="t('appedit.home_modal_help')" :ariaLabel="t('appedit.home_modal_help')" /></h5>
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
         <div class="modal-body">
-          <p class="small text-muted mb-2">{{ t("appedit.home_modal_help") }}</p>
           <div ref="mapElement" class="home-position-map"></div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentPosition">

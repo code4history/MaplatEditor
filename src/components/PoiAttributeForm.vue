@@ -34,9 +34,8 @@
           :disabled="readOnly"
           @change="onDisplayIdChange"
         />
-        <div v-if="displayIdError" class="form-text small text-danger mb-0">
-          {{ displayIdError }}
-        </div>
+        <!-- M12-T11 (R3/C28): inline text-danger から DF field へ -->
+        <DiagnosticFeedback v-if="displayIdError" scope="field" :items="[{ key: 'display-id', severity: 'danger', message: displayIdError }]" />
       </div>
 
       <!-- name (必須) -->
@@ -50,7 +49,8 @@
           @update:model-value="onNameUpdate"
           @select-language="(code) => emit('selectLanguage', code)"
         />
-        <div v-if="nameError" class="form-text small text-danger mb-0">{{ nameError }}</div>
+        <!-- M12-T11 (R3/C29): inline text-danger から DF field へ -->
+        <DiagnosticFeedback v-if="nameError" scope="field" :items="[{ key: 'name-required', severity: 'danger', message: nameError }]" />
       </div>
 
       <!-- === standard mode: desc, address, image === -->
@@ -259,7 +259,8 @@
             />
           </div>
         </div>
-        <div v-if="coordError" class="form-text small text-danger mb-0">{{ coordError }}</div>
+        <!-- M12-T11 (R3/C30): inline text-danger から DF field へ -->
+        <DiagnosticFeedback v-if="coordError" scope="field" :items="[{ key: 'coord-range', severity: 'danger', message: coordError }]" />
       </div>
 
       <!-- 削除 -->

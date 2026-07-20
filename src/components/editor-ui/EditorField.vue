@@ -10,8 +10,6 @@
 
     <slot></slot>
 
-    <div v-if="hint" class="editor-field__hint form-text">{{ hint }}</div>
-
     <DiagnosticFeedback
       v-if="diagnostics.length"
       scope="field"
@@ -28,7 +26,6 @@ withDefaults(defineProps<{
   label: string;
   labelFor?: string;
   required?: boolean;
-  hint?: string;
   diagnostics?: DiagnosticItem[];
 }>(), {
   required: false,
@@ -46,9 +43,5 @@ withDefaults(defineProps<{
   display: inline-flex;
   align-items: center;
   gap: var(--editor-ui-space-1);
-}
-
-.editor-field__hint {
-  font-size: var(--editor-ui-font-size-sm);
 }
 </style>

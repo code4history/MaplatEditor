@@ -339,7 +339,8 @@
     "no_selected_base_maps": "Add base maps from the list on the left.",
     "range_filter_gcp_active": "Filtering by GCP extent",
     "range_filter_manual_active": "Filtering by manual region",
-    "range_filter_none": "Filter by region"
+    "range_filter_none": "Filter by region",
+    "basemap_settings_note": "These are editor display settings, not map content."
   },
   "mapupload": {
     "map_image": "Map Image",

@@ -119,7 +119,8 @@
               />
             </div>
           </div>
-          <div v-else class="form-text small mb-0">{{ t("poiref.external_note") }}</div>
+          <!-- 外部データカードの注記 (M12-T11/R1: form-text から (i) ボタンの Popover へ) -->
+          <div v-else class="mb-0"><ContextHelp :text="t('poiref.external_note')" :ariaLabel="t('poiref.external_note')" /></div>
         </div>
       </div>
     </template>
@@ -140,6 +141,7 @@ import ResourceSelector from "./ResourceSelector.vue";
 import ResourceMasterRow from "./resource-list/ResourceMasterRow.vue";
 import ResourceEmptyState from "./resource-list/ResourceEmptyState.vue";
 import LangResourceInput from "./LangResourceInput.vue";
+import ContextHelp from "./editor-ui/ContextHelp.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";
 import { localizeTitle, type LangResource } from "../utils/langResource";

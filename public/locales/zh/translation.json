@@ -348,7 +348,8 @@
     "no_selected_base_maps": "请从左侧列表添加底图。",
     "range_filter_gcp_active": "正在按GCP范围筛选",
     "range_filter_manual_active": "正在按手动设置范围筛选",
-    "range_filter_none": "按区域筛选"
+    "range_filter_none": "按区域筛选",
+    "basemap_settings_note": "这些是编辑器显示设置，而不是地图内容。"
   },
   "mapupload": {
     "map_image": "地图图像",

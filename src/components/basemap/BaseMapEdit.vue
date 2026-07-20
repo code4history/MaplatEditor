@@ -38,7 +38,8 @@
       <button type="button" class="btn btn-sm btn-outline-secondary" @click="reloadLatest">{{ t("common.reload") }}</button>
       <button type="button" class="btn btn-sm btn-warning" @click="keepCurrentEdit">{{ t("common.overwrite") }}</button>
     </div>
-    <div v-if="readOnly" class="alert alert-info rounded-0 mb-0 py-2" data-testid="basemap-editor-readonly">{{ t("basemap.master_detail.builtin_read_only") }}</div>
+    <!-- M12-T11 (R5/D4): alert-info から DF section(info) へ -->
+    <DiagnosticFeedback v-if="readOnly" scope="section" data-testid="basemap-editor-readonly" :items="[{ key: 'builtin-readonly', severity: 'info', message: t('basemap.master_detail.builtin_read_only') }]" />
 
     <div class="flex-grow-1 overflow-auto p-3" data-testid="basemap-editor">
       <div class="row g-3">

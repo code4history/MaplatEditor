@@ -348,7 +348,8 @@
     "no_selected_base_maps": "왼쪽 목록에서 베이스맵을 추가하세요.",
     "range_filter_gcp_active": "GCP 범위로 필터링 중",
     "range_filter_manual_active": "수동 설정 범위로 필터링 중",
-    "range_filter_none": "지역으로 필터링"
+    "range_filter_none": "지역으로 필터링",
+    "basemap_settings_note": "이 설정은 지도 콘텐츠가 아니라 편집기 표시 설정입니다."
   },
   "mapupload": {
     "map_image": "지도 이미지",

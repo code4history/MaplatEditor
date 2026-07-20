@@ -17,7 +17,8 @@
 
     <div ref="scrollElement" class="resource-list__rows flex-grow-1 overflow-auto" data-testid="asset-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
       <div v-if="loading" class="text-muted text-center py-4">{{ t("assetlist.loading") }}</div>
-      <div v-else-if="error" class="alert alert-danger m-3">{{ error }}</div>
+      <!-- M12-T11 (R3/C44): alert 直書きから DF section へ -->
+      <DiagnosticFeedback v-else-if="error" scope="section" :items="[{ key: 'assets-load', severity: 'danger', message: error }]" />
       <div v-else-if="items.length === 0 && newDrafts.length === 0" class="text-muted small text-center p-3">{{ t("assetlist.no_assets_found") }}</div>
       <template v-else>
         <ResourceMasterRow
@@ -53,6 +54,7 @@ import { useAssetThumbnails } from "../../composables/useAssetThumbnails";
 import type { AssetDraftSummary } from "../../types/assetDraft";
 import type { ImageAssetRow } from "../../electron";
 import ResourceMasterRow from "../resource-list/ResourceMasterRow.vue";
+import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
 import { createAssetListAdapter } from "./assetListAdapter";
 
 const props = defineProps<{

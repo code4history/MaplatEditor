@@ -348,7 +348,8 @@
     "no_selected_base_maps": "Thêm bản đồ nền từ danh sách bên trái.",
     "range_filter_gcp_active": "Đang lọc theo phạm vi GCP",
     "range_filter_manual_active": "Đang lọc theo khu vực thủ công",
-    "range_filter_none": "Lọc theo khu vực"
+    "range_filter_none": "Lọc theo khu vực",
+    "basemap_settings_note": "Đây là cài đặt hiển thị của trình chỉnh sửa, không phải nội dung bản đồ."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

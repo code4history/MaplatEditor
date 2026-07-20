@@ -35,11 +35,13 @@
         @flushed="refreshDraftsNow"
         @draft-state="onDraftState"
       />
-      <div v-else-if="notFound" class="h-100 d-grid place-items-center p-4 text-center">
-        <div class="alert alert-warning mb-0">
-          <p>{{ t("assetlist.master_detail.not_found") }}</p>
-          <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
-        </div>
+      <div v-else-if="notFound" class="h-100">
+        <!-- M12-T11 (R3/C47): alert から ResourceEmptyState 寄せ（アイコン+文言+戻るボタン） -->
+        <ResourceEmptyState icon-class="bi bi-images" :message="t('assetlist.master_detail.not_found')">
+          <template #actions>
+            <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
+          </template>
+        </ResourceEmptyState>
       </div>
       <div v-else class="h-100">
         <ResourceEmptyState
@@ -55,6 +57,12 @@
       :references="deletion.dialog.references" :references-unavailable="deletion.dialog.refsUnavailable"
       :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
     />
+    <!-- M12-T11 (R3/C49-C50): 削除/複製失敗は DF operation フローティングバナーで表示（他一覧と同文法） -->
+    <div v-if="deletion.error.value" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
+      <DiagnosticFeedback scope="operation" dismissible
+        :items="[{ key: 'list-op-error', severity: 'danger', message: deletion.error.value }]"
+        @dismiss="deletion.error.value = null" />
+    </div>
   </main>
 </template>
 
@@ -62,6 +70,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
+import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import ResourceEmptyState from "../components/resource-list/ResourceEmptyState.vue";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
@@ -200,7 +209,7 @@ const deletion = useResourceDelete({
     await masterList.value?.reload();
     await refreshDraftsNow();
   },
-  onError: () => { alert(t("assetlist.delete_error")); },
+  // M12-T11 (R3/C49): native alert() を廃止。error ref は DF operation バナーで表示（他一覧と同文法）
 });
 async function requestDeleteAsset(row: ImageAssetRow): Promise<void> {
   await deletion.request({ uid: row.uid, title: localizeTitle(row.title, activeLang.value) || row.slug });
@@ -214,7 +223,7 @@ const duplicateSourceItem = computed(() =>
 );
 async function duplicateAsset(row: ImageAssetRow): Promise<void> {
   const reserved = await reserveCopySlug(row.slug, "image-asset", "asset");
-  if (!reserved) { alert(t("resource_list.duplicate_failed")); return; }
+  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }  // M12-T11 (R3/C50): native alert() 廃止
   await selectDuplicate(row.uid, reserved);
 }
 
