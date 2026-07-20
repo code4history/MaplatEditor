@@ -1116,8 +1116,8 @@ class SqliteDataService {
     const tileFolder = path.join(saveFolder, 'tiles');
     const thumbFolder = path.join(saveFolder, 'tmbs');
 
-    // 全地図の uid を取得
-    const maps = db.prepare('SELECT uid FROM maps').all() as any[];
+    // 全地図の uid と元画像寸法（crop 用）を取得
+    const maps = db.prepare('SELECT uid, data_json FROM maps').all() as any[];
     if (maps.length === 0) {
       db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_ID);
       return;
@@ -1166,8 +1166,16 @@ class SqliteDataService {
     for (let i = 0; i < targets.length; i++) {
       const uid = targets[i];
       try {
+        // M12-T15 (Fix-1): 元画像寸法を data_json から取得し crop へ渡す（白帯焼き込み防止）
+        const mapRow = maps.find((m: any) => String(m.uid) === uid);
+        let origWidth = 0, origHeight = 0;
+        try {
+          const doc = mapRow?.data_json ? JSON.parse(String(mapRow.data_json)) : null;
+          origWidth = Number(doc?.width) || 0;
+          origHeight = Number(doc?.height) || 0;
+        } catch { /* noop */ }
         // ズーム2タイルを stitch して 512px 生成
-        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder);
+        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder, origWidth, origHeight);
         success++;
       } catch (e: any) {
         const msg = `512px mining failed for ${uid}: ${e?.message ?? e}`;
@@ -1202,11 +1210,15 @@ class SqliteDataService {
   }
 
   // ズーム2タイルを stitch して長辺512pxサムネイルを生成
+  // M12-T15 (Fix-1): origWidth/origHeight から pw/ph を算出し crop して白帯を除去する
+  // （アップロード経路 makeThumbnail512 と同一出力。crop 前は端タイルの白余白が残る）
   private async generateThumbnail512FromTiles(
     uid: string,
     _saveFolder: string,
     tileFolder: string,
-    thumbFolder: string
+    thumbFolder: string,
+    origWidth: number = 0,
+    origHeight: number = 0
   ): Promise<void> {
     // @ts-ignore - Jimp は ESM 動的 import
     const { Jimp } = await import('jimp');
@@ -1243,6 +1255,19 @@ class SqliteDataService {
     }
 
     if (!canvas) throw new Error('no zoom2 tiles could be read');
+
+    // M12-T15 (Fix-1): 元画像のアスペクト比で crop して白帯を除去（アップロード経路と同一式）
+    // pw/ph = orig / 2^(maxZoom-2)。maxZoom は元画像寸法から導出（MapUploadService.imageCutter と同じ式）
+    if (origWidth > 0 && origHeight > 0) {
+      const maxZoom = Math.ceil(Math.log(Math.max(origWidth, origHeight) / 256) / Math.log(2));
+      const pw = Math.round(origWidth / Math.pow(2, maxZoom - 2));
+      const ph = Math.round(origHeight / Math.pow(2, maxZoom - 2));
+      const cropW = Math.min(canvas.width, pw);
+      const cropH = Math.min(canvas.height, ph);
+      if (cropW > 0 && cropH > 0 && (cropW < canvas.width || cropH < canvas.height)) {
+        canvas.crop({ x: 0, y: 0, w: cropW, h: cropH });
+      }
+    }
 
     // 長辺512pxへ縮小
     const longSide = Math.max(canvas.width, canvas.height);

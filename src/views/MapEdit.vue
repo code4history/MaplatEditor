@@ -390,10 +390,14 @@ const thumbnail512Url = ref<string | null>(null);
 const thumbnail52Url = ref<string | null>(null);
 const derive52FromUpload = ref(true); // 「52px も作成する」チェックボックス（既定 ON）
 const thumbnailError = ref('');
+// M12-T15 (Fix-2): 置換後に同一 file:// URL でブラウザが画像をキャッシュするのを防ぐ cache buster。
+// 置換のたびにインクリメントして URL を一意にし、プレビューを再読込させる
+const thumbnailNonce = ref(0);
 async function refreshThumbnails(): Promise<void> {
     if (!mapUid.value) { thumbnail512Url.value = null; thumbnail52Url.value = null; return; }
-    try { thumbnail512Url.value = await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}_512.jpg`); } catch { thumbnail512Url.value = null; }
-    try { thumbnail52Url.value = await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}.jpg`); } catch { thumbnail52Url.value = null; }
+    const v = `?v=${thumbnailNonce.value}`;
+    try { thumbnail512Url.value = (await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}_512.jpg`)) + v; } catch { thumbnail512Url.value = null; }
+    try { thumbnail52Url.value = (await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}.jpg`)) + v; } catch { thumbnail52Url.value = null; }
 }
 async function replaceThumbnail(kind: '512' | '52'): Promise<void> {
     if (!mapUid.value) return;
@@ -404,6 +408,8 @@ async function replaceThumbnail(kind: '512' | '52'): Promise<void> {
     } catch (e: any) {
         thumbnailError.value = e?.message || String(e);
     }
+    // 置換後は nonce を上げてプレビューを強制再読込（同一 URL のブラウザキャッシュを回避）
+    thumbnailNonce.value++;
     await refreshThumbnails();
 }
 watch(mapUid, () => { void refreshThumbnails(); }, { immediate: true });
