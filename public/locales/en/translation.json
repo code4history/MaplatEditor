@@ -615,7 +615,6 @@
   },
   "poisource": {
     "title": "POI Sources",
-    "search_placeholder": "Search POI sources…",
     "create_local": "Create Local",
     "register_remote": "Register Remote",
     "no_sources_found": "No POI sources found",
@@ -917,7 +916,7 @@
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
     "import_poi": "Import",
-    "import_map": "Import Map",
+    "import_map": "Import",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }

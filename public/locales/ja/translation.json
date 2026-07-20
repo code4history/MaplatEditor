@@ -624,7 +624,6 @@
   },
   "poisource": {
     "title": "POIソース",
-    "search_placeholder": "POIソースを検索…",
     "create_local": "ローカル作成",
     "register_remote": "リモート登録",
     "no_sources_found": "POIソースが見つかりません",
@@ -917,7 +916,7 @@
     "delete_references_unavailable": "参照情報を取得できませんでした。",
     "deleting": "削除中…",
     "import_poi": "インポート",
-    "import_map": "地図インポート",
+    "import_map": "インポート",
     "delete_confirm_title": "「{{title}}」を削除しますか？",
     "duplicate_failed": "複製に失敗しました。スラッグの確保または内容の複製ができませんでした。"
   }

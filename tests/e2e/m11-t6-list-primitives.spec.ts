@@ -112,6 +112,8 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
 
     // AC2: 統一された ＋新規追加
     await expect(page.locator('[data-resource-new]')).toContainText('新規追加');
+    // M12-T6 AC2: MapList の import ボタン文言は「インポート」（「地図インポート」ではない）
+    await expect(page.locator('[data-resource-import]')).toHaveText('インポート');
     // AC5: pager ボタンが存在せず sentinel がある
     await expect(page.locator('[data-resource-sentinel]')).toHaveCount(1);
     await expect(page.locator('button', { hasText: /^[<>]$/ })).toHaveCount(0);
@@ -211,6 +213,10 @@ test('poi list shows real total, keeps Import in secondary slot, and hides flag-
     // + file picker 直行フローに統一（クリック→エディタ遷移の実効検証は m11-t10 AC10 が担う）。
     const toolbar = page.locator('[data-resource-toolbar]');
     await expect(toolbar.locator('[data-resource-import]')).toBeVisible();
+    // M12-T6 AC1: PoiSourceList の検索 placeholder は「POIを検索…」
+    await expect(page.locator('[data-resource-search]')).toHaveAttribute('placeholder', 'POIを検索…');
+    // M12-T6 AC2: PoiSourceList の import ボタン文言は「インポート」
+    await expect(toolbar.locator('[data-resource-import]')).toHaveText('インポート');
     await expect(page.locator('button', { hasText: 'リモート登録' })).toHaveCount(0);
   } finally {
     await quitElectronApplication(app);

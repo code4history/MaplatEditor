@@ -34,9 +34,15 @@ const props = defineProps<{
   query: string;
   kindNameKey: string; // 例: "resource_list.kind_map"
   newDraft?: boolean;
+  // optional: kindNameKey 構築（「{{name}}を検索…」）を上書きする完全な placeholder キー
+  searchPlaceholderKey?: string;
 }>();
 const emit = defineEmits<{ create: []; "update:query": [value: string] }>();
 
 const { t } = useTranslation();
-const searchPlaceholder = computed(() => t("resource_list.search_placeholder", { name: t(props.kindNameKey) }));
+const searchPlaceholder = computed(() =>
+  props.searchPlaceholderKey
+    ? t(props.searchPlaceholderKey)
+    : t("resource_list.search_placeholder", { name: t(props.kindNameKey) }),
+);
 </script>

@@ -624,7 +624,6 @@
   },
   "poisource": {
     "title": "POI源",
-    "search_placeholder": "搜索POI源…",
     "create_local": "创建本地",
     "register_remote": "注册远程",
     "no_sources_found": "未找到POI源",
@@ -916,8 +915,8 @@
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
-    "import_poi": "Import",
-    "import_map": "Import Map",
+    "import_poi": "导入",
+    "import_map": "导入",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }

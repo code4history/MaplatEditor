@@ -624,7 +624,6 @@
   },
   "poisource": {
     "title": "Nguồn POI",
-    "search_placeholder": "Tìm kiếm nguồn POI…",
     "create_local": "Tạo cục bộ",
     "register_remote": "Đăng ký từ xa",
     "no_sources_found": "Không tìm thấy nguồn POI",
@@ -916,8 +915,8 @@
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
-    "import_poi": "Import",
-    "import_map": "Import Map",
+    "import_poi": "Nhập",
+    "import_map": "Nhập",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }
