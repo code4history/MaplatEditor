@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "GCP範囲で絞り込み中",
     "range_filter_manual_active": "手動設定範囲で絞り込み中",
     "range_filter_none": "範囲を指定して絞り込む",
-    "basemap_settings_note": "この設定は地図のコンテンツではなく、エディタの表示設定です。"
+    "basemap_settings_note": "この設定は地図のコンテンツではなく、エディタの表示設定です。",
+    "thumbnail_manage": "サムネイル管理",
+    "thumbnail_derive_52": "512pxから52pxも作成する",
+    "thumbnail_replace_512": "512pxを置換…",
+    "thumbnail_replace_52": "52pxを置換…"
   },
   "mapupload": {
     "map_image": "地図画像",

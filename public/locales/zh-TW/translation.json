@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "正在以GCP範圍篩選",
     "range_filter_manual_active": "正在以手動設定範圍篩選",
     "range_filter_none": "依地區篩選",
-    "basemap_settings_note": "這些是編輯器顯示設定，而不是地圖內容。"
+    "basemap_settings_note": "這些是編輯器顯示設定，而不是地圖內容。",
+    "thumbnail_manage": "縮圖管理",
+    "thumbnail_derive_52": "同時從512px建立52px",
+    "thumbnail_replace_512": "取代512px…",
+    "thumbnail_replace_52": "取代52px…"
   },
   "mapupload": {
     "map_image": "地圖圖像",

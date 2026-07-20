@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "GCP 범위로 필터링 중",
     "range_filter_manual_active": "수동 설정 범위로 필터링 중",
     "range_filter_none": "지역으로 필터링",
-    "basemap_settings_note": "이 설정은 지도 콘텐츠가 아니라 편집기 표시 설정입니다."
+    "basemap_settings_note": "이 설정은 지도 콘텐츠가 아니라 편집기 표시 설정입니다.",
+    "thumbnail_manage": "썸네일 관리",
+    "thumbnail_derive_52": "512px에서 52px도 생성",
+    "thumbnail_replace_512": "512px 교체…",
+    "thumbnail_replace_52": "52px 교체…"
   },
   "mapupload": {
     "map_image": "지도 이미지",

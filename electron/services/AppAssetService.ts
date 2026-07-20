@@ -53,6 +53,51 @@ class AppAssetService {
     };
   }
 
+  // M12-T15 (R5): Maplat地図サムネイルの置換アップロード（リソース管理）。
+  // 512px/52px を独立して置き換えられる。512px アップロード時に「52px も作成する」で 52px を流用生成できる。
+  // 画像は任意サイズを受け付け、長辺 512/52px へ縮小して tmbs/{uid}_512.jpg / tmbs/{uid}.jpg へ保存する。
+  async replaceMapThumbnail(
+    win: BrowserWindow,
+    mapUid: string,
+    kind: '512' | '52',
+    derive52: boolean,
+  ): Promise<{ fileUrl?: string; fileUrl52?: string; err?: string }> {
+    const file = await this.pickImage(win);
+    if (!file) return { err: 'Canceled' };
+    let image;
+    try {
+      image = await Jimp.read(file);
+    } catch {
+      return { err: 'InvalidImage' };
+    }
+    const uid = sanitizeId(mapUid);
+    const result: { fileUrl?: string; fileUrl52?: string; err?: string } = {};
+    if (kind === '512') {
+      const img512 = image.clone();
+      resizeToLongSide(img512, 512);
+      const dest512 = path.join(this.saveFolder, 'tmbs', `${uid}_512.jpg`);
+      await fs.ensureDir(path.dirname(dest512));
+      await img512.write(dest512 as `${string}.${string}`);
+      result.fileUrl = this.toFileUrl(dest512);
+      // 「52px も作成する」チェック時: 512px 元画像から 52px を流用生成
+      if (derive52) {
+        const img52 = image.clone();
+        resizeToLongSide(img52, 52);
+        const dest52 = path.join(this.saveFolder, 'tmbs', `${uid}.jpg`);
+        await img52.write(dest52 as `${string}.${string}`);
+        result.fileUrl52 = this.toFileUrl(dest52);
+      }
+    } else {
+      const img52 = image.clone();
+      resizeToLongSide(img52, 52);
+      const dest52 = path.join(this.saveFolder, 'tmbs', `${uid}.jpg`);
+      await fs.ensureDir(path.dirname(dest52));
+      await img52.write(dest52 as `${string}.${string}`);
+      result.fileUrl = this.toFileUrl(dest52);
+    }
+    return result;
+  }
+
   // スプラッシュ画像: サイズ自由。img/へコピー
   async uploadSplash(win: BrowserWindow): Promise<UploadResult> {
     const file = await this.pickImage(win);

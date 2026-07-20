@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "Filtrage par étendue GCP",
     "range_filter_manual_active": "Filtrage par région manuelle",
     "range_filter_none": "Filtrer par région",
-    "basemap_settings_note": "Ce sont des paramètres d’affichage de l’éditeur, pas le contenu de la carte."
+    "basemap_settings_note": "Ce sont des paramètres d’affichage de l’éditeur, pas le contenu de la carte.",
+    "thumbnail_manage": "Gestion des vignettes",
+    "thumbnail_derive_52": "Créer aussi le 52px depuis le 512px",
+    "thumbnail_replace_512": "Remplacer le 512px…",
+    "thumbnail_replace_52": "Remplacer le 52px…"
   },
   "mapupload": {
     "map_image": "Image de la carte",

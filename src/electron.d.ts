@@ -229,6 +229,7 @@ export interface ImageAssetsAPI {
 
 export interface AppAssetsAPI {
     uploadTmsThumbnail(mapID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
+    replaceMapThumbnail(mapUid: string, kind: '512' | '52', derive52: boolean): Promise<{ fileUrl?: string; fileUrl52?: string; err?: string }>;
     generateTmsThumbnail(
         mapID: string,
         tms: { url?: string; minZoom?: number; maxZoom?: number },

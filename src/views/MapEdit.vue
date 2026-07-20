@@ -384,6 +384,30 @@ function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
     );
 }
 
+// M12-T15 (R5): サムネイル管理（512px/52px の置換アップロード + 512px→52px 流用）。
+// プレビューは appAssets.fileUrl で tmbs/{uid}(.|_512).jpg を解決する（存在しなければ placeholder）
+const thumbnail512Url = ref<string | null>(null);
+const thumbnail52Url = ref<string | null>(null);
+const derive52FromUpload = ref(true); // 「52px も作成する」チェックボックス（既定 ON）
+const thumbnailError = ref('');
+async function refreshThumbnails(): Promise<void> {
+    if (!mapUid.value) { thumbnail512Url.value = null; thumbnail52Url.value = null; return; }
+    try { thumbnail512Url.value = await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}_512.jpg`); } catch { thumbnail512Url.value = null; }
+    try { thumbnail52Url.value = await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}.jpg`); } catch { thumbnail52Url.value = null; }
+}
+async function replaceThumbnail(kind: '512' | '52'): Promise<void> {
+    if (!mapUid.value) return;
+    thumbnailError.value = '';
+    try {
+        const result = await (window as any).appAssets.replaceMapThumbnail(mapUid.value, kind, kind === '512' ? derive52FromUpload.value : false);
+        if (result?.err && result.err !== 'Canceled') thumbnailError.value = result.err;
+    } catch (e: any) {
+        thumbnailError.value = e?.message || String(e);
+    }
+    await refreshThumbnails();
+}
+watch(mapUid, () => { void refreshThumbnails(); }, { immediate: true });
+
 // M12-T10 v2.0 HM1: 楽観更新。旧 setBaseMapVisible と同型（in-place で item.enabled を更新、scroll 保持）。
 // :key remount・baseMapReloadNonce は廃止。エラー時のみ loadBaseMapVisibility() で再取得。
 async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean): Promise<void> {
@@ -3591,6 +3615,40 @@ const goBack = async () => {
                          <div class="col-12">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_description") }} <LangValueChips :model-value="mapData.description" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_description_desc')" :ariaLabel="t('mapedit.map_description_desc')" /></div>
                             <textarea class="form-control form-control-sm" rows="3" v-model="description" :placeholder="t('mapedit.map_description_pf')"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- M12-T15 (R5): サムネイル管理セクション -->
+                    <div class="row g-2 mt-2">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-light fw-bold small py-1">{{ t("mapedit.thumbnail_manage") }}</div>
+                                <div class="card-body py-2">
+                                    <div class="d-flex gap-3 align-items-start">
+                                        <div class="text-center">
+                                            <img v-if="thumbnail512Url" :src="thumbnail512Url" class="border rounded" style="width: 96px; height: 96px; object-fit: contain;" alt="512px">
+                                            <div v-else class="border rounded text-muted small d-flex align-items-center justify-content-center" style="width: 96px; height: 96px;">512px</div>
+                                            <div class="small text-muted mt-1">512px</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <img v-if="thumbnail52Url" :src="thumbnail52Url" class="border rounded" style="width: 52px; height: 52px; object-fit: contain;" alt="52px">
+                                            <div v-else class="border rounded text-muted small d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">52px</div>
+                                            <div class="small text-muted mt-1">52px</div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="form-check mb-2">
+                                                <input id="derive52" v-model="derive52FromUpload" class="form-check-input" type="checkbox" data-testid="thumbnail-derive-52">
+                                                <label class="form-check-label small" for="derive52">{{ t("mapedit.thumbnail_derive_52") }}</label>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="thumbnail-replace-512" @click="replaceThumbnail('512')">{{ t("mapedit.thumbnail_replace_512") }}</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="thumbnail-replace-52" @click="replaceThumbnail('52')">{{ t("mapedit.thumbnail_replace_52") }}</button>
+                                            </div>
+                                            <DiagnosticFeedback v-if="thumbnailError" scope="section" :items="[{ key: 'thumb-error', severity: 'danger', message: thumbnailError }]" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>

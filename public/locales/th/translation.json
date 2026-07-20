@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "กรองตามขอบเขต GCP",
     "range_filter_manual_active": "กรองตามพื้นที่กำหนดเอง",
     "range_filter_none": "กรองตามพื้นที่",
-    "basemap_settings_note": "เหล่านี้เป็นการตั้งค่าการแสดงผลของตัวแก้ไข ไม่ใช่เนื้อหาแผนที่"
+    "basemap_settings_note": "เหล่านี้เป็นการตั้งค่าการแสดงผลของตัวแก้ไข ไม่ใช่เนื้อหาแผนที่",
+    "thumbnail_manage": "จัดการภาพย่อ",
+    "thumbnail_derive_52": "สร้าง 52px จาก 512px ด้วย",
+    "thumbnail_replace_512": "แทนที่ 512px…",
+    "thumbnail_replace_52": "แทนที่ 52px…"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",

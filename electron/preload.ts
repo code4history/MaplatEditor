@@ -150,6 +150,9 @@ contextBridge.exposeInMainWorld('baseMaps', {
 
 contextBridge.exposeInMainWorld('appAssets', {
   uploadTmsThumbnail: (mapID: string) => ipcRenderer.invoke('appassets:upload-tms-thumbnail', mapID),
+  // M12-T15 (R5): Maplat地図サムネイル置換（512px/52px 独立 + 512px→52px 流用）
+  replaceMapThumbnail: (mapUid: string, kind: '512' | '52', derive52: boolean) =>
+    ipcRenderer.invoke('appassets:replace-map-thumbnail', mapUid, kind, derive52),
   generateTmsThumbnail: (mapID: string, tms: any, coverageLngLats: [number, number][]) =>
     ipcRenderer.invoke('appassets:generate-tms-thumbnail', mapID, tms, coverageLngLats),
   uploadSplash: () => ipcRenderer.invoke('appassets:upload-splash'),

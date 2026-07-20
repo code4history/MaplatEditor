@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "Filtrando por extensión GCP",
     "range_filter_manual_active": "Filtrando por región manual",
     "range_filter_none": "Filtrar por región",
-    "basemap_settings_note": "Estos son ajustes de visualización del editor, no contenido del mapa."
+    "basemap_settings_note": "Estos son ajustes de visualización del editor, no contenido del mapa.",
+    "thumbnail_manage": "Gestión de miniaturas",
+    "thumbnail_derive_52": "Crear también 52px desde 512px",
+    "thumbnail_replace_512": "Reemplazar 512px…",
+    "thumbnail_replace_52": "Reemplazar 52px…"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
