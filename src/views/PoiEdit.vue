@@ -980,6 +980,13 @@ const onMainProcessMessage = (message: string) => {
 // --- 離脱確認 (goBack ボタン方式、ルートガードは使わない) ---
 async function goBack(): Promise<void> {
   await draftLifecycle.flush();
+  // 直前の履歴がPOIソース一覧なら router.back()（?q= 等のクエリ保持 → backCache 復元が発火）。
+  // それ以外（直接編集画面を開いた等）は一覧へ push フォールバック。
+  const back = router.options.history.state.back as string | null;
+  if (typeof back === 'string' && back.startsWith('/poisources')) {
+    router.back();
+    return;
+  }
   await router.push("/poisources");
 }
 

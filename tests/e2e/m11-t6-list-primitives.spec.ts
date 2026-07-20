@@ -317,7 +317,10 @@ test('infinite scroll replaces the pager and Back restores query and scroll (gri
     const beforeScroll = await page.locator('[data-resource-content="map"]').evaluate((el) => el.scrollTop);
     await page.locator(`[data-resource-uid="${anchorUid}"] a`).first().click();
     await expect(page).toHaveURL(/\/mapedit/);
-    await page.goBack();
+    // AC8: エディタの戻るボタン（実経路）で戻る。goBack は直前履歴が '/maplist' 始まりなら
+    // router.back()（クエリ保持）で戻るため backCache 復元条件が成立する
+    await expect(page.getByTestId('editor-back')).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId('editor-back').click();
     await expect(page.locator('[data-resource-list="map"]')).toBeVisible();
     // 2 batch 復元で全 22 件が戻る
     await expect.poll(async () => cards.count(), { timeout: 15_000 }).toBe(22);
