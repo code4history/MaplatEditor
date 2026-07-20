@@ -9,6 +9,7 @@ const defaultCatalogPath = path.resolve(projectRoot, "../Playground/KTGIS/ktgis-
 const legacyTmsListPath = path.join(projectRoot, "electron/tms_list.json");
 const outputPath = path.join(projectRoot, "electron/builtin_base_maps.json");
 const iconOutputDir = path.join(projectRoot, "public/basemap_icons");
+const icon512OutputDir = path.join(projectRoot, "public/basemap_icons_512");
 const assetImgDir = path.join(projectRoot, "src/assets/img");
 
 const VIEWER_BUILTIN_IDS = new Set(["osm", "gsi", "gsi_ortho"]);
@@ -165,6 +166,7 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
     if (attr) entry.attr = attr;
     if (row.bboxWest != null) entry.coverageLngLats = bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]);
     if (row.icon52NoYear) entry.thumbnail = `basemap_icons/${mapID}.png`;
+    if (row.icon512NoYear) entry.thumbnail512 = `basemap_icons_512/${mapID}.png`;
     output.push(entry);
   }
   for (const row of catalog.rows) {
@@ -185,6 +187,7 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
       url: row.tileUrl, minZoom: row.minZoom, maxZoom: row.maxZoom,
       coverageLngLats: bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]),
       thumbnail: `basemap_icons/${mapID}.png`,
+      ...(row.icon512NoYear ? { thumbnail512: `basemap_icons_512/${mapID}.png` } : {}),
     });
   }
   if (new Set(output.map((entry) => entry.mapID)).size !== output.length) throw new Error("generated Base Map mapID must be unique");
@@ -198,6 +201,7 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
 
 async function syncKnownIconFiles(catalog, catalogDir) {
   await mkdir(iconOutputDir, { recursive: true });
+  await mkdir(icon512OutputDir, { recursive: true });
   await mkdir(assetImgDir, { recursive: true });
   for (const row of [...catalog.baseMapRows, ...catalog.rows]) {
     if (!row.icon52NoYear) continue;
@@ -205,6 +209,10 @@ async function syncKnownIconFiles(catalog, catalogDir) {
     await copyFile(path.join(catalogDir, row.icon52NoYear), path.join(iconOutputDir, `${mapID}.png`));
     if (VIEWER_BUILTIN_IDS.has(mapID)) {
       await copyFile(path.join(catalogDir, row.icon52NoYear), path.join(assetImgDir, `${mapID}.png`));
+    }
+    // R1/R2: 512px アイコンの取込（icon512NoYear があれば basemap_icons_512 へコピー）
+    if (row.icon512NoYear) {
+      await copyFile(path.join(catalogDir, row.icon512NoYear), path.join(icon512OutputDir, `${mapID}.png`));
     }
   }
 }
