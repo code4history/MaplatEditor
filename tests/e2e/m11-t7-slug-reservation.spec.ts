@@ -68,21 +68,37 @@ async function installDeferredReserveHarness(app: ElectronApplication): Promise<
       originalCheck,
       calls: [] as any[],
       checks: [] as any[],
-      pending: new Map<string, { resolve: () => void }>(),
+      // 同一 slug の重複登録で上書き消失しないよう、slug → resolver 配列 で保持する
+      pending: new Map<string, Array<{ resolve: () => void }>>(),
     };
     (globalThis as any).__m11T7ReserveHarness = harness;
+    const deferUntilResolved = async (slug: string): Promise<void> => {
+      const entry = { resolve: undefined as unknown as () => void };
+      await new Promise<void>((resolve) => {
+        entry.resolve = resolve;
+        const list = harness.pending.get(slug) ?? [];
+        list.push(entry);
+        harness.pending.set(slug, list);
+      });
+      // 自分の entry だけを除去し、空になったら map からも削除する
+      // (重複登録された他の pending wrapper を巻き込まない)
+      const list = harness.pending.get(slug);
+      if (list) {
+        const index = list.indexOf(entry);
+        if (index >= 0) list.splice(index, 1);
+        if (list.length === 0) harness.pending.delete(slug);
+      }
+    };
     ipcMain.removeHandler(channel);
     ipcMain.handle(channel, async (event: any, payload: any) => {
       harness.calls.push(payload);
-      await new Promise<void>((resolve) => harness.pending.set(String(payload.slug), { resolve }));
-      harness.pending.delete(String(payload.slug));
+      await deferUntilResolved(String(payload.slug));
       return original(event, payload);
     });
     ipcMain.removeHandler(moveChannel);
     ipcMain.handle(moveChannel, async (event: any, payload: any) => {
       harness.calls.push(payload);
-      await new Promise<void>((resolve) => harness.pending.set(String(payload.toSlug), { resolve }));
-      harness.pending.delete(String(payload.toSlug));
+      await deferUntilResolved(String(payload.toSlug));
       return originalMove(event, payload);
     });
     ipcMain.removeHandler(checkChannel);
@@ -94,31 +110,43 @@ async function installDeferredReserveHarness(app: ElectronApplication): Promise<
   });
 }
 
+// pending 未登録(false)・一過性の context destroyed(throw)の両方を expect.poll で retry する。
+// 既に resolve 済み(pending なし かつ calls に slug あり)も冪等に true 扱いとする。
 async function resolveDeferredReserve(app: ElectronApplication, slug: string): Promise<void> {
-  await app.evaluate((_, targetSlug) => {
+  await expect.poll(async () => app.evaluate((_, targetSlug) => {
     const harness = (globalThis as any).__m11T7ReserveHarness;
-    const pending = harness?.pending?.get(targetSlug);
-    if (!pending) throw new Error(`Pending reserve not found: ${targetSlug}`);
-    pending.resolve();
-  }, slug);
+    const pendingList = harness?.pending?.get(targetSlug);
+    if (pendingList && pendingList.length > 0) {
+      for (const entry of pendingList) entry.resolve();
+      return true;
+    }
+    // 既に解決済み(wrapper が pending から除去して original へ進んだ)場合は冪等に true
+    const alreadyCalled = (harness?.calls ?? []).some((payload: any) => payload.slug === targetSlug || payload.toSlug === targetSlug);
+    return alreadyCalled && !(harness?.pending?.has(targetSlug) ?? false);
+  }, slug), { timeout: 15_000 }).toBe(true);
 }
 
 async function restoreDeferredReserveHarness(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ ipcMain }) => {
-    const channel = 'slug-reservations:reserve';
-    const moveChannel = 'slug-reservations:move';
-    const checkChannel = 'slug-reservations:check';
-    const harness = (globalThis as any).__m11T7ReserveHarness;
-    if (!harness) return;
-    for (const pending of harness.pending.values()) pending.resolve();
-    ipcMain.removeHandler(channel);
-    ipcMain.handle(channel, harness.original);
-    ipcMain.removeHandler(moveChannel);
-    ipcMain.handle(moveChannel, harness.originalMove);
-    ipcMain.removeHandler(checkChannel);
-    ipcMain.handle(checkChannel, harness.originalCheck);
-    delete (globalThis as any).__m11T7ReserveHarness;
-  });
+  try {
+    await app.evaluate(({ ipcMain }) => {
+      const channel = 'slug-reservations:reserve';
+      const moveChannel = 'slug-reservations:move';
+      const checkChannel = 'slug-reservations:check';
+      const harness = (globalThis as any).__m11T7ReserveHarness;
+      if (!harness) return;
+      // 残存する全 pending wrapper を解放してから handler を復元する
+      for (const list of harness.pending.values()) {
+        for (const entry of list) entry.resolve();
+      }
+      ipcMain.removeHandler(channel);
+      ipcMain.handle(channel, harness.original);
+      ipcMain.removeHandler(moveChannel);
+      ipcMain.handle(moveChannel, harness.originalMove);
+      ipcMain.removeHandler(checkChannel);
+      ipcMain.handle(checkChannel, harness.originalCheck);
+      delete (globalThis as any).__m11T7ReserveHarness;
+    });
+  } catch { /* 本体失敗後の context destroyed 等は無視(harness 放棄で十分) */ }
 }
 
 async function installReleaseFailureHarness(app: ElectronApplication): Promise<void> {
