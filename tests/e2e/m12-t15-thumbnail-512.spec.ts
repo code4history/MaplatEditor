@@ -26,6 +26,13 @@ async function openHash(page: Page, hash: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
 }
 
+// ダイアログを差し替えて任意の画像を選択させる（置換フロー検証用）
+async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
+  await app.evaluate(async ({ dialog }, selectedImage) => {
+    dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
+  }, imagePath);
+}
+
 async function saveFolderOf(page: Page): Promise<string> {
   return page.evaluate(() => window.settings.get('saveFolder'));
 }
@@ -86,6 +93,95 @@ test.describe('M12-T15 512pxアイコン活用', () => {
     }
   });
 
+  test('AC5+Fix-2: 置換フローで 512px を置換し、プレビューが cache buster で更新される', async () => {
+    test.setTimeout(240_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t15-replace-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const { uid } = await seedMap(page);
+      const saveFolder = await saveFolderOf(page);
+      await placeThumbnails(saveFolder, uid);
+
+      // 置換用の画像（緑 800x400）を用意し、dialog を差し替える
+      const replaceImagePath = path.join(e2eRoot, 'replace.png');
+      const { Jimp } = await import('jimp');
+      await new Jimp({ width: 800, height: 400, color: 0x00ff00ff }).write(replaceImagePath);
+      await installDialogHarness(app, replaceImagePath);
+
+      await openHash(page, `#/mapedit?uid=${uid}`);
+      await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 15000 });
+
+      const metadataTab = page.getByTestId('map-title').locator('xpath=ancestor::form');
+      const img512 = metadataTab.locator('img[src*="_512.jpg"]');
+      await expect(img512).toBeVisible({ timeout: 15000 });
+      const srcBefore = await img512.getAttribute('src');
+
+      // 512px を置換（「52px も作成」チェックは既定 ON）
+      await page.getByTestId('thumbnail-replace-512').click();
+
+      // 置換後: プレビューの src が変わる（cache buster ?v= がインクリメントされる）
+      await expect.poll(async () => img512.getAttribute('src'), { timeout: 15000 }).not.toBe(srcBefore);
+
+      // 置換された 512px が実ファイルとして存在（緑画像から生成）
+      const thumb512Path = `${saveFolder}/tmbs/${uid}_512.jpg`;
+      const image = await Jimp.read(thumb512Path);
+      expect(Math.max(image.width, image.height)).toBeLessThanOrEqual(512);
+      // 「52px も作成」チェックが ON のため 52px も更新される
+      const thumb52Path = `${saveFolder}/tmbs/${uid}.jpg`;
+      const image52 = await Jimp.read(thumb52Path);
+      expect(Math.max(image52.width, image52.height)).toBeLessThanOrEqual(52);
+
+      console.log('  AC5+Fix-2: PASS (replace + cache buster + 52px 流用)');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('AC8: export に 512px サムネイルが同梱される', async () => {
+    test.setTimeout(240_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t15-export-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const { uid, slug } = await seedMap(page);
+      const saveFolder = await saveFolderOf(page);
+      await placeThumbnails(saveFolder, uid);
+
+      const zipPath = path.join(e2eRoot, 'export.zip');
+      // export の save dialog を差し替えて zipPath へ出力させる
+      await app.evaluate(async ({ dialog }, outZip) => {
+        dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
+      }, zipPath);
+
+      // app（favicon 未設定・地図をソースに持つ）を export
+      await page.evaluate(async (mapSlug) => {
+        const uid = crypto.randomUUID();
+        const r = await window.appedit.save({
+          uid, slug: `t15-exp-app-${Date.now()}`, create: true,
+          document: {
+            appID: `t15-exp-app-${Date.now()}`, lang: 'ja', title: { ja: 't15 exp app' }, appName: { ja: 't15 exp app' },
+            description: {}, keywords: '', siteUrl: '',
+            sources: [{ sourceType: 'maplat', mapUid: mapSlug, mapSlug }],
+            startFrom: mapSlug, pois: [], httpSettings: {}, appSettings: {}, manifestSettings: {},
+          },
+        });
+        if (!r || r.result !== 'Success') throw new Error(JSON.stringify(r));
+        const exportResult = await window.appedit.export((await window.appedit.request(uid)).document ?? (await window.appedit.request(uid)));
+        return exportResult;
+      }, slug);
+
+      // zip を adm-zip で読み、tmbs/{slug}_512.jpg が同梱されることを検証
+      const { default: AdmZip } = await import('adm-zip');
+      const zip = new AdmZip(zipPath);
+      const names = zip.getEntries().map((entry) => entry.entryName);
+      expect(names).toContain(`tmbs/${slug}.jpg`); // 52px（現行）
+      expect(names).toContain(`tmbs/${slug}_512.jpg`); // 512px（M12-T15 G）
+
+      console.log('  AC8: PASS (export 同梱)');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
   test('AC6: 地図一覧 grid card が 512px を優先表示する', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t15-ac6-'));
@@ -98,10 +194,10 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       await openHash(page, '#/maplist');
       await expect(page.locator('[data-resource-list="map"]')).toBeVisible({ timeout: 15000 });
 
-      // AC6: 512px がある地図の grid card は _512.jpg を使う
+      // AC6: 512px がある地図の grid card は _512.jpg を使う（画像読み込みを poll で待つ）
       const card = page.locator(`[data-resource-uid="${uid}"]`);
       await expect(card).toBeVisible({ timeout: 15000 });
-      await expect(card.locator('img')).toHaveAttribute('src', /_512\.jpg/);
+      await expect.poll(async () => card.locator('img').getAttribute('src'), { timeout: 15000 }).toMatch(/_512\.jpg/);
 
       console.log('  AC6: PASS');
     } finally {
