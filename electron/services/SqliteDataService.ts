@@ -157,6 +157,8 @@ const PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID = '2026-07-09-provisional-visib
 // ユーザーベースマップのアイコンパス uid 化(tmbs/{slug}.png → tmbs/{uid}.png)
 const BASE_MAP_ICON_MIGRATION_ID = '2026-07-09-base-map-icon-uid-paths';
 const BASE_MAP_LANGUAGE_MIGRATION_ID = '2026-07-14-m11-t4-basemap-language';
+// M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行後に1回だけ実行
+const THUMBNAIL_512_MINING_ID = '2026-07-20-thumbnail-512-mining';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
@@ -869,6 +871,8 @@ class SqliteDataService {
     this.applyProvisionalVisibilityKeyMigration(db);
     this.sweepStaleProvisionalVisibility(db);
     await this.migrateBaseMapIconPaths(db);
+    // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
+    await this.runThumbnail512MiningIfNeeded(db);
   }
 
   private applyBaseMapLanguageMigration(db: DatabaseSync): void {
@@ -1098,7 +1102,163 @@ class SqliteDataService {
     });
   }
 
-  // 全文検索(FTS5)/位置情報検索(R-Tree)の索引スキーマとトリガ。
+  // M12-T15 R3 §C2: 512px サムネイル起動時マイニング。
+  // 「ズーム2タイルは存在するが tmbs/{uid}_512.jpg がない地図」を対象に、
+  // ズーム2 stitch で 512px サムネイルを生成する。schema_migrations で1回限り実行を保証。
+  // 個別地図の失敗は warnings へ記録し、バッチ全体は止めない（§C2 個別失敗時継続）。
+  private async runThumbnail512MiningIfNeeded(db: DatabaseSync): Promise<void> {
+    const alreadyMined = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(THUMBNAIL_512_MINING_ID);
+    if (alreadyMined) return;
+
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const tileFolder = path.join(saveFolder, 'tiles');
+    const thumbFolder = path.join(saveFolder, 'tmbs');
+
+    // 全地図の uid を取得
+    const maps = db.prepare('SELECT uid FROM maps').all() as any[];
+    if (maps.length === 0) {
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_ID);
+      return;
+    }
+
+    // マイニング対象を抽出: tiles/{uid}/2/0/0.* が存在し、tmbs/{uid}_512.jpg が存在しない地図
+    const targets: string[] = [];
+    const skipped: string[] = [];
+    for (const map of maps) {
+      const uid = String(map.uid);
+      const thumb512Path = path.join(thumbFolder, `${uid}_512.jpg`);
+      if (await fs.pathExists(thumb512Path)) continue; // 既に 512px が存在
+      const zoom2Dir = path.join(tileFolder, uid, '2');
+      if (!await fs.pathExists(zoom2Dir)) {
+        // §C3: ズーム2タイルが存在しない（小地図等）はスキップ
+        skipped.push(uid);
+        continue;
+      }
+      // zoom2/0/0.* ファイルの存在チェック
+      try {
+        const files = await fs.readdir(path.join(zoom2Dir, '0'));
+        if (!files.some((f) => /^0\.(jpg|jpeg|png)$/.test(f))) {
+          skipped.push(uid);
+          continue;
+        }
+      } catch {
+        skipped.push(uid);
+        continue;
+      }
+      targets.push(uid);
+    }
+
+    if (targets.length === 0) {
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_ID);
+      console.log('[Thumbnail512Mining] no targets, skipped:', skipped.length);
+      return;
+    }
+
+    // 進捗通知（sendMigrationProgress と同一パターン）
+    sendMigrationProgress('database.migrating_thumbnails_512', 0, '(512px)');
+
+    const warnings: string[] = [];
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < targets.length; i++) {
+      const uid = targets[i];
+      try {
+        // ズーム2タイルを stitch して 512px 生成
+        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder);
+        success++;
+      } catch (e: any) {
+        const msg = `512px mining failed for ${uid}: ${e?.message ?? e}`;
+        warnings.push(msg);
+        console.warn(`[Thumbnail512Mining] ${msg}`);
+        failed++;
+      }
+      const percent = Math.round(((i + 1) / targets.length) * 100);
+      sendMigrationProgress('database.migrating_thumbnails_512', percent, '(512px)');
+    }
+
+    // マーカーを記録（失敗があっても記録して再実行を防止。warnings に残る）
+    db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_ID);
+
+    // migration-report-v2.json へ warnings を追記（既存レポートがあれば読み込んで追記）
+    if (warnings.length > 0) {
+      try {
+        const reportPath = path.join(saveFolder, MIGRATION_REPORT_FILE);
+        let report: MigrationReport = { renamedSlugs: [], renamedFiles: [], warnings: [] };
+        if (await fs.pathExists(reportPath)) {
+          report = await fs.readJson(reportPath);
+        }
+        report.warnings.push(...warnings);
+        await fs.writeJson(reportPath, report, { spaces: 2 });
+      } catch (e) {
+        console.error('[Thumbnail512Mining] failed to write warnings to migration report', e);
+      }
+    }
+
+    console.log(`[Thumbnail512Mining] done: ${success} success, ${skipped.length} skipped, ${failed} failed`);
+    sendMigrationProgress('database.migrating_thumbnails_512_done', 100, '(512px)');
+  }
+
+  // ズーム2タイルを stitch して長辺512pxサムネイルを生成
+  private async generateThumbnail512FromTiles(
+    uid: string,
+    _saveFolder: string,
+    tileFolder: string,
+    thumbFolder: string
+  ): Promise<void> {
+    // @ts-ignore - Jimp は ESM 動的 import
+    const { Jimp } = await import('jimp');
+
+    const zoom2Dir = path.join(tileFolder, uid, '2');
+    // zoom2 のタイル数を取得
+    const xDirs = await fs.readdir(zoom2Dir);
+    const maxX = Math.max(...xDirs.map((d) => parseInt(d, 10)).filter((n) => !isNaN(n)));
+
+    // 全タイルを合成してキャンバス作成
+    let canvas: any = null;
+
+    for (let tx = 0; tx <= maxX; tx++) {
+      const txDir = path.join(zoom2Dir, `${tx}`);
+      if (!await fs.pathExists(txDir)) continue;
+      const yFiles = await fs.readdir(txDir);
+      const yTiles = yFiles.filter((f) => /^\d+\.(jpg|jpeg|png)$/.test(f)).sort((a, b) => {
+        return parseInt(a, 10) - parseInt(b, 10);
+      });
+
+      for (const yFile of yTiles) {
+        const tilePath = path.join(txDir, yFile);
+        try {
+          const tileImage = await Jimp.read(tilePath);
+          if (!canvas) {
+            canvas = new Jimp({ width: (maxX + 1) * 256, height: yTiles.length * 256, color: 0xffffffff });
+          }
+          const ty = parseInt(yFile, 10);
+          canvas.composite(tileImage, tx * 256, ty * 256);
+        } catch {
+          // タイル読み込み失敗は白背景のまま残す
+        }
+      }
+    }
+
+    if (!canvas) throw new Error('no zoom2 tiles could be read');
+
+    // 長辺512pxへ縮小
+    const longSide = Math.max(canvas.width, canvas.height);
+    if (longSide > 512) {
+      const scale = 512 / longSide;
+      canvas.resize({
+        w: Math.max(1, Math.round(canvas.width * scale)),
+        h: Math.max(1, Math.round(canvas.height * scale)),
+      });
+    }
+
+    // tmbs/{uid}_512.jpg へ保存
+    await fs.ensureDir(thumbFolder);
+    const dest = path.join(thumbFolder, `${uid}_512.jpg`);
+    await canvas.write(dest as `${string}.${string}`);
+  }
   // maps/appsへの書き込み(経路を問わず)でトリガが発火し、JSトークナイザで
   // 分かち書きした全文索引とbbox索引が同一トランザクション内で更新される。
   // raw には slug も含める(slug rename は行UPDATEなのでトリガで索引が追随する)。
