@@ -26,13 +26,11 @@ const props = defineProps<{ state: ResourceListState; total: number | null; load
 const emit = defineEmits<{ retry: [] }>();
 
 const { t } = useTranslation();
-// 件数表示の統一ルール(2026-07-16 人間指示):
-//   完載(end / loaded>=total) → 「全N件」 / 部分表示 → 「全N件中 M件表示」 / total不明 → 「M件表示中」
+// 件数表示の統一ルール(2026-07-20 人間指示 M12-T7/F6):
+//   total 判明 → 常に「全N件」（無限scroll のため部分表示の M件は出さない） / total 不明 → 「M件表示中」
 const countLabel = computed(() => {
   if (props.total != null) {
-    return props.state === "end" || props.loaded >= props.total
-      ? t("resource_list.total_only", { total: props.total })
-      : t("resource_list.total_partial", { total: props.total, loaded: props.loaded });
+    return t("resource_list.total_only", { total: props.total });
   }
   return t("resource_list.loaded_only", { loaded: props.loaded });
 });

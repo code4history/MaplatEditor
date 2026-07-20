@@ -34,7 +34,7 @@ assert.match(mainScss, /resource-list/, "main.scss must import resource-list.scs
 // --- Part 1d: i18n resource_list namespace（全 locale）+ placeholder 全角… ---
 const REQUIRED_KEYS = [
   "new_item", "loading", "empty", "load_error", "append_error", "retry",
-  "menu_delete", "menu_label", "total_only", "total_partial", "loaded_only", "search_placeholder",
+  "menu_delete", "menu_label", "total_only", "loaded_only", "search_placeholder",
 ];
 const KIND_KEYS = ["kind_map", "kind_poi_source", "kind_base_map", "kind_app", "kind_asset"];
 const SELECTOR_KEYS = ["context_map", "context_app_coverage", "range_auto", "range_none"];
@@ -227,7 +227,7 @@ assert.match(toolbar, /resource_list\.search_placeholder/, "toolbar search must 
 assert.doesNotMatch(toolbar, /&lt;|&gt;|prevPage|nextPage/, "toolbar must not contain pager");
 
 const status = await read("src/components/resource-list/ResourceResultStatus.vue");
-for (const key of ["total_only", "total_partial", "loaded_only", "loading", "empty", "load_error", "append_error", "retry"]) {
+for (const key of ["total_only", "loaded_only", "loading", "empty", "load_error", "append_error", "retry"]) {
   assert.match(status, new RegExp(`resource_list\\.${key}`), `ResultStatus must render resource_list.${key}`);
 }
 
