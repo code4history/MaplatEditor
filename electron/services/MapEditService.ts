@@ -314,6 +314,13 @@ class MapEditService {
                 if (await fs.pathExists(tmpThumb)) {
                     await fs.move(tmpThumb, newThumbnail);
                 }
+                // M12-T15 R3: thumbnail_512.jpg を tmbs/{uid}_512.jpg へ移動
+                const tmpThumb512 = path.join(newTile, 'thumbnail_512.jpg');
+                const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
+                try { await fs.remove(newThumbnail512); } catch { /* noop */ }
+                if (await fs.pathExists(tmpThumb512)) {
+                    await fs.move(tmpThumb512, newThumbnail512);
+                }
                 // 改名時: 原本(slugキー)の旧ファイルを掃除(新ファイルはtmpから移動済み)
                 if (renamedFromSlug && renamedFromSlug !== slug) {
                     try { await fs.remove(path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`)); } catch { /* noop */ }

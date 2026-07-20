@@ -32,6 +32,76 @@ async function makeThumbnail(from: string, to: string): Promise<void> {
 }
 
 /**
+ * M12-T15 R3: ズーム2タイルを stitch して長辺512pxサムネイルを生成
+ * 画像ピラミッド方式: ズーム2の全タイルを合成すると画像全体が復元される
+ * @param outFolder - タイル出力フォルダ（{z}/{x}/{y}.{ext} 構造）
+ * @param to - 出力ファイルパス
+ * @param ext - タイル拡張子（jpg/png 等）
+ * @param origWidth - 元画像幅
+ * @param origHeight - 元画像高さ
+ * @param maxZoom - 最大ズームレベル
+ */
+async function makeThumbnail512(
+    outFolder: string,
+    to: string,
+    ext: string,
+    origWidth: number,
+    origHeight: number,
+    maxZoom: number
+): Promise<void> {
+    // ズーム2のタイルディレクトリ
+    const zoom2Dir = path.resolve(outFolder, '2');
+    // §C3: maxZoom < 2 の場合は呼ばれないが、万が一ディレクトリがない場合はスキップ
+    if (!await fs.pathExists(zoom2Dir)) return;
+
+    // ズーム2のタイル数を計算
+    const pw = Math.round(origWidth / Math.pow(2, maxZoom - 2));
+    const ph = Math.round(origHeight / Math.pow(2, maxZoom - 2));
+    const tilesX = Math.ceil(pw / 256);
+    const tilesY = Math.ceil(ph / 256);
+
+    // キャンバス作成（全タイルを合成）
+    const canvas = new Jimp({
+        width: tilesX * 256,
+        height: tilesY * 256,
+        color: 0xffffffff,
+    });
+
+    for (let tx = 0; tx < tilesX; tx++) {
+        for (let ty = 0; ty < tilesY; ty++) {
+            const tilePath = path.resolve(zoom2Dir, `${tx}`, `${ty}.${ext}`);
+            if (await fs.pathExists(tilePath)) {
+                try {
+                    const tileImage = await Jimp.read(tilePath);
+                    canvas.composite(tileImage, tx * 256, ty * 256);
+                } catch {
+                    // タイル読み込み失敗は白背景のまま残す
+                }
+            }
+        }
+    }
+
+    // 元画像のアスペクト比で crop（余分な白背景を除去）
+    const cropW = Math.min(canvas.width, pw);
+    const cropH = Math.min(canvas.height, ph);
+    if (cropW < canvas.width || cropH < canvas.height) {
+        canvas.crop({ x: 0, y: 0, w: cropW, h: cropH });
+    }
+
+    // 長辺512pxへ縮小
+    const longSide = Math.max(canvas.width, canvas.height);
+    if (longSide > 512) {
+        const scale = 512 / longSide;
+        canvas.resize({
+            w: Math.max(1, Math.round(canvas.width * scale)),
+            h: Math.max(1, Math.round(canvas.height * scale)),
+        });
+    }
+
+    await canvas.write(to as `${string}.${string}`);
+}
+
+/**
  * 旧実装 MapUpload.imageCutter() 相当
  * 画像を 256x256 タイルピラミッドに分割し、サムネイルを生成する
  *
@@ -126,6 +196,12 @@ async function imageCutter(
         const thumbFrom = path.resolve(outFolder, '0', '0', `0.${toExtKey}`);
         const thumbTo = path.resolve(outFolder, 'thumbnail.jpg');
         await makeThumbnail(thumbFrom, thumbTo);
+
+        // M12-T15 R3: ズーム2タイルから長辺512pxサムネイル生成（§C3: maxZoom < 2 はスキップ）
+        if (maxZoom >= 2) {
+            const thumb512To = path.resolve(outFolder, 'thumbnail_512.jpg');
+            await makeThumbnail512(outFolder, thumb512To, toExtKey, width, height, maxZoom);
+        }
 
         // 旧実装: url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`
         const url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`;
