@@ -912,7 +912,6 @@
     "loaded_only": "{{loaded}} ditampilkan",
     "menu_duplicate": "Duplicate",
     "total_only": "{{total}} items",
-    "total_partial": "Showing {{loaded}} of {{total}}",
     "delete_irreversible": "This action cannot be undone.",
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
