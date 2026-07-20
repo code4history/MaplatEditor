@@ -378,7 +378,9 @@
     "migration_failed": "Migrasi ke format basis data baru gagal.",
     "migration_report_title": "Laporan migrasi data",
     "migration_report_renamed": "ID berikut telah diubah untuk mengatasi konflik ID.",
-    "migration_report_warnings": "Ada {{count}} peringatan. Lihat migration-report-v2.json di folder data untuk detailnya."
+    "migration_report_warnings": "Ada {{count}} peringatan. Lihat migration-report-v2.json di folder data untuk detailnya.",
+    "migrating_thumbnails_512": "Membuat thumbnail 512px",
+    "migrating_thumbnails_512_done": "Pembuatan thumbnail 512px selesai"
   },
   "applist": {
     "not_implement": "Belum diimplementasikan",

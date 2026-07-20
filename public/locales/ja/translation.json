@@ -378,7 +378,9 @@
     "migration_failed": "新型DB形式への移行に失敗しました。",
     "migration_report_title": "データ移行レポート",
     "migration_report_renamed": "ID重複を解消するため、以下のIDを変更しました。",
-    "migration_report_warnings": "警告が{{count}}件あります。詳細はデータフォルダの migration-report-v2.json を確認してください。"
+    "migration_report_warnings": "警告が{{count}}件あります。詳細はデータフォルダの migration-report-v2.json を確認してください。",
+    "migrating_thumbnails_512": "512pxサムネイルを生成しています",
+    "migrating_thumbnails_512_done": "512pxサムネイルの生成が完了しました"
   },
   "applist": {
     "not_implement": "未実装",

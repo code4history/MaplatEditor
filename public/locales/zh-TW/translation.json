@@ -378,7 +378,9 @@
     "migration_failed": "遷移至新型資料庫格式失敗。",
     "migration_report_title": "資料遷移報告",
     "migration_report_renamed": "為解決 ID 衝突，已變更以下 ID。",
-    "migration_report_warnings": "有 {{count}} 筆警告。詳情請查看資料夾中的 migration-report-v2.json。"
+    "migration_report_warnings": "有 {{count}} 筆警告。詳情請查看資料夾中的 migration-report-v2.json。",
+    "migrating_thumbnails_512": "正在產生512px縮圖",
+    "migrating_thumbnails_512_done": "512px縮圖產生完成"
   },
   "applist": {
     "not_implement": "尚未實作",

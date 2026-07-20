@@ -218,6 +218,16 @@ class AppAssetService {
     const safeW = Math.max(1, Math.min(cropW, canvas.width - safeX));
     const safeH = Math.max(1, Math.min(cropH, canvas.height - safeY));
     canvas.crop({ x: safeX, y: safeY, w: safeW, h: safeH });
+
+    // M12-T15 (R4): crop 済みの中間画像から 512px と 52px を同時生成する（stitch を共有）
+    // 512px 側を先に clone して縮小（resizeToLongSide は破壊的なため）
+    const canvas512 = canvas.clone();
+    resizeToLongSide(canvas512, 512);
+    const relPath512 = `tmbs/${sanitizeId(mapID)}_512.png`;
+    const dest512 = path.join(this.saveFolder, relPath512);
+    await fs.ensureDir(path.dirname(dest512));
+    await canvas512.write(dest512 as `${string}.${string}`);
+
     resizeToIconLongSide(canvas);
 
     // Maplat地図のサムネイル(tmbs/{mapID}.jpg)と同じ規約のパスに置く。
@@ -250,9 +260,14 @@ const MERC_MAX = 20037508.342789244;
 
 // アイコン規約: 長辺52pxの長方形(縦横比保持)。正方形への引き伸ばしはしない
 function resizeToIconLongSide(image: { width: number; height: number; resize: (size: { w: number; h: number }) => unknown }): void {
+  resizeToLongSide(image, 52);
+}
+
+// M12-T15: 長辺 px への縮小を一般化（52px / 512px 共通）
+function resizeToLongSide(image: { width: number; height: number; resize: (size: { w: number; h: number }) => unknown }, px: number): void {
   const longSide = Math.max(image.width, image.height);
-  if (longSide === 52) return;
-  const scale = 52 / longSide;
+  if (longSide === px) return;
+  const scale = px / longSide;
   image.resize({
     w: Math.max(1, Math.round(image.width * scale)),
     h: Math.max(1, Math.round(image.height * scale)),

@@ -378,7 +378,9 @@
     "migration_failed": "La migration vers le nouveau format de base de données a échoué.",
     "migration_report_title": "Rapport de migration des données",
     "migration_report_renamed": "Les ID suivants ont été renommés afin de résoudre des conflits d'ID.",
-    "migration_report_warnings": "Il y a {{count}} avertissement(s). Consultez migration-report-v2.json dans le dossier de données pour plus de détails."
+    "migration_report_warnings": "Il y a {{count}} avertissement(s). Consultez migration-report-v2.json dans le dossier de données pour plus de détails.",
+    "migrating_thumbnails_512": "Génération des vignettes 512px",
+    "migrating_thumbnails_512_done": "Génération des vignettes 512px terminée"
   },
   "applist": {
     "not_implement": "Pas encore implémenté",

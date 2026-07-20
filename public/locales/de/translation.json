@@ -378,7 +378,9 @@
     "migration_failed": "Die Migration zum neuen Datenbankformat ist fehlgeschlagen.",
     "migration_report_title": "Datenmigrationsbericht",
     "migration_report_renamed": "Die folgenden IDs wurden umbenannt, um ID-Konflikte zu beheben.",
-    "migration_report_warnings": "Es liegen {{count}} Warnung(en) vor. Details finden Sie in der Datei migration-report-v2.json im Datenordner."
+    "migration_report_warnings": "Es liegen {{count}} Warnung(en) vor. Details finden Sie in der Datei migration-report-v2.json im Datenordner.",
+    "migrating_thumbnails_512": "512px-Thumbnails werden generiert",
+    "migrating_thumbnails_512_done": "512px-Thumbnail-Generierung abgeschlossen"
   },
   "applist": {
     "not_implement": "Noch nicht implementiert",

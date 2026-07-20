@@ -69,6 +69,13 @@ export async function resolveAppListImage(doc: any): Promise<string | null> {
   const startFromID = doc.startFrom || doc.start_from || sources.find((source: any) => source.startFrom)?.mapUid;
   const startSource = sources.find((source: any) => source.mapUid === startFromID || source.mapSlug === startFromID);
   if (startSource?.sourceType === 'maplat') {
+    // M12-T15 (R7): favicon 未設定のアプリは、startFrom の地図の 512px サムネイルを優先解決する
+    // （地図タイル fallback の前に tmbs/{uid}_512.jpg を試す）
+    const mapDoc = await SqliteDataService.findMapByRef(startSource.mapUid);
+    if (mapDoc) {
+      const thumb512 = await resolveMapListImage512(mapDoc);
+      if (thumb512) return thumb512;
+    }
     return await resolveMapTileByRef(startSource.mapUid);
   }
   return null;
@@ -88,6 +95,28 @@ async function resolveMapTileByRef(mapRef: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+// M12-T15 (R6): 地図一覧の高精細サムネイル解決。
+// tmbs/{uid}_512.jpg（512px、あれば）→ resolveMapListImage（52px → tile fallback）の順で解決する。
+// 512px は MapList grid card（200px 表示）の高精細化に使う。
+export async function resolveMapListImage512(doc: {
+  uid?: string;
+  mapID?: string;
+  slug?: string;
+  _id?: string;
+}): Promise<string | null> {
+  const saveFolder = SettingsService.get('saveFolder');
+  const fileKey = doc.uid || doc._id || doc.mapID || doc.slug;
+  if (fileKey) {
+    const thumb512 = path.join(saveFolder, 'tmbs', `${fileKey}_512.jpg`);
+    if (await fs.pathExists(thumb512)) {
+      // M12-T13 と同型: fileKey が slug 由来で '..' を含む場合の saveFolder 配下封じ込め
+      if (!isUnderFolder(thumb512, saveFolder)) return null;
+      return `file://${thumb512.split(path.sep).join('/')}`;
+    }
+  }
+  return resolveMapListImage(doc);
 }
 
 // ベースマップ一覧の icon 解決: マスタの thumbnail を UI 表示用 URL へ解決する。

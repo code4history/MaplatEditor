@@ -378,7 +378,9 @@
     "migration_failed": "向新型数据库格式的迁移失败。",
     "migration_report_title": "数据迁移报告",
     "migration_report_renamed": "为解决 ID 冲突，已更改以下 ID。",
-    "migration_report_warnings": "有 {{count}} 条警告。详情请查看数据文件夹中的 migration-report-v2.json。"
+    "migration_report_warnings": "有 {{count}} 条警告。详情请查看数据文件夹中的 migration-report-v2.json。",
+    "migrating_thumbnails_512": "正在生成512px缩略图",
+    "migrating_thumbnails_512_done": "512px缩略图生成完成"
   },
   "applist": {
     "not_implement": "未实现",

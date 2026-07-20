@@ -378,7 +378,9 @@
     "migration_failed": "Di chuyển sang định dạng cơ sở dữ liệu mới thất bại.",
     "migration_report_title": "Báo cáo di chuyển dữ liệu",
     "migration_report_renamed": "Các ID sau đã được đổi tên để giải quyết xung đột ID.",
-    "migration_report_warnings": "Có {{count}} cảnh báo. Xem chi tiết trong migration-report-v2.json ở thư mục dữ liệu."
+    "migration_report_warnings": "Có {{count}} cảnh báo. Xem chi tiết trong migration-report-v2.json ở thư mục dữ liệu.",
+    "migrating_thumbnails_512": "Đang tạo ảnh thu nhỏ 512px",
+    "migrating_thumbnails_512_done": "Tạo ảnh thu nhỏ 512px hoàn tất"
   },
   "applist": {
     "not_implement": "Chưa triển khai",

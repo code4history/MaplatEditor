@@ -378,7 +378,9 @@
     "migration_failed": "การย้ายไปยังรูปแบบฐานข้อมูลใหม่ล้มเหลว",
     "migration_report_title": "รายงานการย้ายข้อมูล",
     "migration_report_renamed": "มีการเปลี่ยน ID ต่อไปนี้เพื่อแก้ไขความซ้ำซ้อนของ ID",
-    "migration_report_warnings": "มีคำเตือน {{count}} รายการ โปรดดูรายละเอียดใน migration-report-v2.json ในโฟลเดอร์ข้อมูล"
+    "migration_report_warnings": "มีคำเตือน {{count}} รายการ โปรดดูรายละเอียดใน migration-report-v2.json ในโฟลเดอร์ข้อมูล",
+    "migrating_thumbnails_512": "กำลังสร้างภาพย่อ 512px",
+    "migrating_thumbnails_512_done": "สร้างภาพย่อ 512px เสร็จสิ้น"
   },
   "applist": {
     "not_implement": "ยังไม่รองรับ",
