@@ -348,7 +348,8 @@
     "no_selected_base_maps": "เพิ่มแผนที่พื้นฐานจากรายการทางซ้าย",
     "range_filter_gcp_active": "กรองตามขอบเขต GCP",
     "range_filter_manual_active": "กรองตามพื้นที่กำหนดเอง",
-    "range_filter_none": "กรองตามพื้นที่"
+    "range_filter_none": "กรองตามพื้นที่",
+    "basemap_settings_note": "เหล่านี้เป็นการตั้งค่าการแสดงผลของตัวแก้ไข ไม่ใช่เนื้อหาแผนที่"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",

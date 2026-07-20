@@ -348,7 +348,8 @@
     "no_selected_base_maps": "左の一覧からベースマップを追加してください。",
     "range_filter_gcp_active": "GCP範囲で絞り込み中",
     "range_filter_manual_active": "手動設定範囲で絞り込み中",
-    "range_filter_none": "範囲を指定して絞り込む"
+    "range_filter_none": "範囲を指定して絞り込む",
+    "basemap_settings_note": "この設定は地図のコンテンツではなく、エディタの表示設定です。"
   },
   "mapupload": {
     "map_image": "地図画像",

@@ -7,6 +7,7 @@ import type { SelectedRegisteredMapHostState } from "../composables/useRegistere
 import { onMounted } from "vue";
 import { useTranslation } from "i18next-vue";
 import { useRegisteredMapSelector } from "../composables/useRegisteredMapSelector";
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 
 const { t } = useTranslation();
 
@@ -75,9 +76,8 @@ function onPrevPage() {
       {{ t("applist.loading") }}
     </div>
 
-    <div v-else-if="selector.error.value" class="alert alert-danger">
-      {{ selector.error.value }}
-    </div>
+    <!-- M12-T11 (R3/C42): alert 直書きから DF section へ -->
+    <DiagnosticFeedback v-else-if="selector.error.value" scope="section" :items="[{ key: 'selector-load', severity: 'danger', message: selector.error.value }]" />
 
     <div v-else-if="selector.items.value.length === 0" class="text-muted text-center py-3">
       {{ t("applist.no_maps_found") }}

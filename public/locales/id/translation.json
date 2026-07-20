@@ -348,7 +348,8 @@
     "no_selected_base_maps": "Tambahkan peta dasar dari daftar di kiri.",
     "range_filter_gcp_active": "Menyaring berdasarkan cakupan GCP",
     "range_filter_manual_active": "Menyaring berdasarkan wilayah manual",
-    "range_filter_none": "Saring berdasarkan wilayah"
+    "range_filter_none": "Saring berdasarkan wilayah",
+    "basemap_settings_note": "Ini adalah pengaturan tampilan editor, bukan konten peta."
   },
   "mapupload": {
     "map_image": "Gambar peta",

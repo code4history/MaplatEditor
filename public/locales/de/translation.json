@@ -348,7 +348,8 @@
     "no_selected_base_maps": "Fügen Sie Basiskarten aus der linken Liste hinzu.",
     "range_filter_gcp_active": "Filtern nach GCP-Ausdehnung",
     "range_filter_manual_active": "Filtern nach manueller Region",
-    "range_filter_none": "Nach Region filtern"
+    "range_filter_none": "Nach Region filtern",
+    "basemap_settings_note": "Dies sind Editor-Anzeigeeinstellungen, kein Karteninhalt."
   },
   "mapupload": {
     "map_image": "Kartenbild",

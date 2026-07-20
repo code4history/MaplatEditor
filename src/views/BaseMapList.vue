@@ -41,11 +41,13 @@
         @flushed="refreshDraftsNow"
         @draft-state="onDraftState"
       />
-      <div v-else-if="notFound" class="h-100 d-grid place-items-center p-4 text-center">
-        <div class="alert alert-warning mb-0">
-          <p>{{ t("basemap.master_detail.not_found") }}</p>
-          <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
-        </div>
+      <div v-else-if="notFound" class="h-100">
+        <!-- M12-T11 (R3/C48): alert から ResourceEmptyState 寄せ（アイコン+文言+戻るボタン） -->
+        <ResourceEmptyState icon-class="bi bi-map" :message="t('basemap.master_detail.not_found')">
+          <template #actions>
+            <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
+          </template>
+        </ResourceEmptyState>
       </div>
       <div v-else class="h-100">
         <ResourceEmptyState

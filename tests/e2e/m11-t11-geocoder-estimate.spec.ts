@@ -291,8 +291,8 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     await openMapEdit(page, uid);
     await switchMapEditSettingsTab(page);
 
-    // auto: GCP範囲自動ラベルが表示されている
-    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).toBeVisible();
+    // auto: 範囲ボタンが「GCP範囲で絞り込み中」を表示（m12-t10 v2.0 の ResourceRangeFilterButton）
+    await expect(page.getByTestId('map-base-map-region-button')).toContainText('GCP範囲で絞り込み中');
     // 手動 override 指定前はクリアボタンがない
     await expect(page.locator('[data-testid="map-base-map-region-clear"]')).not.toBeVisible();
 
@@ -314,16 +314,12 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     await page.locator('.envelope-modal .btn-close').first().click();
     await expect(page.locator('.envelope-modal')).not.toBeVisible();
 
-    await expect(page.locator('[data-testid="map-base-map-region-label"]')).toBeVisible();
-    const labelText = await page.locator('[data-testid="map-base-map-region-label"]').textContent();
-    expect(labelText).toMatch(/W139\.74.*S35\.64.*E139\.76.*N35\.66/);
-
-    // auto ラベルは非表示
-    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).not.toBeVisible();
+    // manual: ボタンが「手動設定範囲で絞り込み中」へ切替（m12-t10 v2.0。数値表示はないため文言で検証）
+    await expect(page.getByTestId('map-base-map-region-button')).toContainText('手動設定範囲で絞り込み中');
 
     // クリアで auto に戻る
     await page.locator('[data-testid="map-base-map-region-clear"]').click();
-    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).toBeVisible();
+    await expect(page.getByTestId('map-base-map-region-button')).toContainText('GCP範囲で絞り込み中');
     await expect(page.locator('[data-testid="map-base-map-region-clear"]')).not.toBeVisible();
 
     await quitElectronApplication(app);
@@ -475,8 +471,8 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     await openMapEdit(page, mapUid);
     await switchMapEditSettingsTab(page);
 
-    // ロード完了を待つ（まず auto ラベルか一覧のいずれかが表示される）
-    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).toBeVisible({ timeout: 30000 });
+    // ロード完了を待つ（m12-t10 v2.0: 範囲ボタンの「GCP範囲で絞り込み中」表示を待つ）
+    await expect(page.getByTestId('map-base-map-region-button')).toContainText('GCP範囲で絞り込み中', { timeout: 30000 });
 
     // 外れGCPを含む bbox は存在範囲で包含されていないが、一部交差しているため表示される
     await expect(page.getByText(title, { exact: false })).toBeVisible({ timeout: 30000 });
@@ -490,7 +486,7 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     const { app, page } = await launch(e2eRoot);
 
     const mapUid = await createMapWithGcps(page);
-    const { uid: farUid, title } = await createFarBaseMap(page);
+    const { uid: farUid, title, slug: farSlug } = await createFarBaseMap(page);
 
     // 絞り込み対象外の遠方ベースマップを事前に ON にしておく
     await page.evaluate(async ({ mapRef, baseMapUid }) => {
@@ -501,15 +497,18 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     await switchMapEditSettingsTab(page);
 
     // ロード完了を待つ
-    await expect(page.locator('[data-testid="map-base-map-auto-label"]')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('map-base-map-region-button')).toContainText('GCP範囲で絞り込み中', { timeout: 30000 });
 
-    // 絞り込み対象外だが、チェック済み（表示ON）なので一覧に残り、オフにできる
-    await expect(page.getByText(title, { exact: true })).toBeVisible({ timeout: 30000 });
+    // 絞り込み対象外だが、チェック済み（表示ON）なので右ペイン（選択済み）に表示され、オフにできる
+    await expect(page.getByTestId(`map-selected-basemap-${farSlug}`)).toBeVisible({ timeout: 30000 });
 
-    // チェックを外すと、未チェックかつ範囲外なのでフィルタ対象になり一覧から消える
-    await page.locator('label').filter({ hasText: title }).first().click();
+    // 右ペインの × でオフにすると、未チェックかつ範囲外なのでフィルタ対象になり左右の一覧から消える
+    await page.getByTestId(`map-remove-basemap-${farSlug}`).click();
 
-    await expect(page.getByText(title, { exact: true })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId(`map-selected-basemap-${farSlug}`)).not.toBeVisible({ timeout: 10000 });
+    // M12-T11: t10 v2.0 の楽観更新モデルでは、左ペインの既読行は再フィルタせず残る（HM1 scroll 保持の設計）。
+    // オフ後は左ペイン行の選択表現（.selected=青）が解除されることを検証する（行の即時非表示ではない）
+    await expect(page.locator(`[data-resource-uid="${farUid}"]`)).not.toHaveClass(/selected/, { timeout: 10000 });
 
     await quitElectronApplication(app);
   });

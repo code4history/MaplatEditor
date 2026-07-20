@@ -30,9 +30,8 @@
       />
     </div>
 
-    <div v-if="warning && hasAnyValue" class="form-text small text-warning mb-0">
-      {{ warning }}
-    </div>
+    <!-- M12-T11 (R5/D7): form-text 警告から DF field(warning) へ。黄色三角アイコンで danger と区別 -->
+    <DiagnosticFeedback v-if="warning && hasAnyValue" scope="field" :items="[{ key: 'warning', severity: 'warning', message: warning }]" />
   </div>
 </template>
 
@@ -40,6 +39,7 @@
 // 親editorが管理する共通言語だけを表示する。change (blur確定) ごとに1 Undo単位。
 import { computed } from "vue";
 import LangValueChips from "./editor-ui/LangValueChips.vue";
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 import {
   SUPPORTED_LANGUAGES,
   type LangCode,

@@ -78,9 +78,8 @@
             <div v-if="assets.loading.value" class="text-muted text-center py-3">
               {{ t("assetlist.loading") }}
             </div>
-            <div v-else-if="assets.error.value" class="alert alert-danger">
-              {{ assets.error.value }}
-            </div>
+            <!-- M12-T11 (R3/C41): alert 直書きから DF section へ -->
+            <DiagnosticFeedback v-else-if="assets.error.value" scope="section" :items="[{ key: 'assets-load', severity: 'danger', message: assets.error.value }]" />
             <div v-else-if="assets.items.value.length === 0" class="text-muted text-center py-3">
               {{ t("poiedit.picker.no_assets") }}
             </div>
@@ -146,6 +145,7 @@ import { localizeTitle as resolveLocalizedTitle } from "../utils/langResource";
 import { listIconSets, formatIconRef } from "../utils/iconRefs";
 import { useAssetThumbnails } from "../composables/useAssetThumbnails";
 import type { ImageAssetRow } from "../electron";
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 
 const props = defineProps<{
   /** icon: Icon set / Assets / URL の3タブ。image: Assets / URL のみ (参照文法対象外) */

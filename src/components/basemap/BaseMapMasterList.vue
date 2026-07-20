@@ -33,7 +33,8 @@
 
     <div ref="scrollElement" class="resource-list__rows flex-grow-1 overflow-auto" data-testid="basemap-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
       <div v-if="loading" class="text-muted text-center py-4">{{ t("basemap.loading") }}</div>
-      <div v-else-if="error" class="alert alert-danger m-3">{{ error }}</div>
+      <!-- M12-T11 (R3/C43): alert 直書きから DF section へ -->
+      <DiagnosticFeedback v-else-if="error" scope="section" :items="[{ key: 'basemaps-load', severity: 'danger', message: error }]" />
       <template v-else>
         <div v-if="newDrafts.length">
           <h6 class="small text-uppercase text-muted px-3 pt-3 mb-1">{{ t("editor_ui.draft_badge") }}</h6>
@@ -110,6 +111,7 @@ import { useTranslation } from "i18next-vue";
 import type { AssetDraftSummary } from "../../types/assetDraft";
 import type { BaseMapCatalogItem } from "../../utils/baseMapEditorDocument";
 import ResourceMasterRow from "../resource-list/ResourceMasterRow.vue";
+import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
 import { createBaseMapListAdapter } from "./baseMapListAdapter";
 
 const props = defineProps<{

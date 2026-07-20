@@ -17,6 +17,7 @@ import LangValueChips from '../components/editor-ui/LangValueChips.vue';
 import SlugField from '../components/editor-ui/SlugField.vue';
 import EditorTabs from '../components/editor-ui/EditorTabs.vue';
 import DiagnosticFeedback from '../components/editor-ui/DiagnosticFeedback.vue';
+import ContextHelp from '../components/editor-ui/ContextHelp.vue';
 import noImage from '../assets/img/no_image.png';
 import osmThumb from '../assets/img/osm.png';
 import gsiThumb from '../assets/img/gsi.png';
@@ -487,6 +488,20 @@ const kinksCount = computed(() => {
     const tin = tinObject.value;
     if (!tin || typeof tin !== 'object') return 0;
     return tin.kinks?.bakw?.features?.length ?? 0;
+});
+
+// M12-T11 (R4/D1): GCP タブ footer のエラーステータス文言。「エラーなし」(strict) は null で非表示。
+// 文言キーは旧 span 表示のものをそのまま DF section バナーへ移す
+const gcpErrorStatusMessage = computed(() => {
+    switch (errorStatus.value) {
+        case 'tooLessGcps': return t('mapedit.map_error_too_short');
+        case 'tooLinear': return t('mapedit.map_error_linear');
+        case 'pointsOutside': return t('mapedit.map_error_outside');
+        case 'edgeError': return t('mapedit.map_error_crossing');
+        case 'strict_error': return t('mapedit.map_error_number', { num: kinksCount.value });
+        case 'loose': return t('mapedit.map_loose_by_error');
+        default: return null; // 'strict' (エラーなし)・未確定
+    }
 });
 
 watch(sub_maps, (newVal) => {
@@ -1128,6 +1143,17 @@ const csvUpError = computed(() => {
     }
     if (uiValue.projText === '') return 'proj_text';
     return false as const;
+});
+
+// M12-T11 (R3/C31): CSV インポート状態エラーは DF field へ。コード→文言の写像を一元化
+const csvUpErrorMessage = computed(() => {
+    switch (csvUpError.value) {
+        case 'column_dup': return t('dataio.csv_error_column_dup');
+        case 'column_null': return t('dataio.csv_error_column_null');
+        case 'ignore_header': return t('dataio.csv_error_ignore_header');
+        case 'proj_text': return t('dataio.csv_error_proj_text');
+        default: return null;
+    }
 });
 
 // 旧実装 map.js L.198-207
@@ -3403,11 +3429,10 @@ const goBack = async () => {
                     <!-- Row 1 (M11-T7/AC7・§18b決定2): 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-5">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_repr") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_repr") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_name_repr_desc')" :ariaLabel="t('mapedit.map_name_repr_desc')" /></div>
                             <input data-testid="map-title" type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_name_repr_pf')">
                             <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.title" scope="field" :items="[{ key: 'title-required', severity: 'danger', message: saveError.title }]" />
-                            <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_repr_desc") }}</div>
                         </div>
                         <!-- Map ID フィールド (M11-T7/AC1/AC5): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
                              手動一意性確認ボタンは撤去。改名は UID 維持の slug 付け替え(保存時に
@@ -3474,51 +3499,44 @@ const goBack = async () => {
                     <!-- Row 2 -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_label_desc')" :ariaLabel="t('mapedit.map_label_desc')" /></div>
                             <input data-testid="map-label" type="text" class="form-control form-control-sm" v-model="label">
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_label_desc") }}</div>
                         </div>
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_ofc") }} <LangValueChips :model-value="mapData.officialTitle" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_ofc") }} <LangValueChips :model-value="mapData.officialTitle" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_name_ofc_desc')" :ariaLabel="t('mapedit.map_name_ofc_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="officialTitle" :placeholder="t('mapedit.map_name_ofc_pf')">
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_name_ofc_desc") }}</div>
                         </div>
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_author") }} <LangValueChips :model-value="mapData.author" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_author") }} <LangValueChips :model-value="mapData.author" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_author_desc')" :ariaLabel="t('mapedit.map_author_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="author" :placeholder="t('mapedit.map_author_pf')">
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_author_desc") }}</div>
                         </div>
                     </div>
 
                     <!-- Row 3 -->
                     <div class="row g-1 mb-2">
                          <div class="col-md-3">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_create_at") }} <LangValueChips :model-value="mapData.createdAt" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_create_at") }} <LangValueChips :model-value="mapData.createdAt" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_create_at_desc')" :ariaLabel="t('mapedit.map_create_at_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="createdAt" :placeholder="t('mapedit.map_create_at_pf')">
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_create_at_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_era") }} <LangValueChips :model-value="mapData.era" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_era") }} <LangValueChips :model-value="mapData.era" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_era_desc')" :ariaLabel="t('mapedit.map_era_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="era" :placeholder="t('mapedit.map_era_pf')">
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_era_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_owner") }} <LangValueChips :model-value="mapData.contributor" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_owner") }} <LangValueChips :model-value="mapData.contributor" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_owner_desc')" :ariaLabel="t('mapedit.map_owner_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="contributor" :placeholder="t('mapedit.map_owner_pf')">
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_owner_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_mapper") }} <LangValueChips :model-value="mapData.mapper" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_mapper") }} <LangValueChips :model-value="mapData.mapper" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_mapper_desc')" :ariaLabel="t('mapedit.map_mapper_desc')" /></div>
                             <!-- 旧実装 mapedit.html L.125: placeholder は 'mapedit.map_mapper'（_pf なし）-->
                             <input type="text" class="form-control form-control-sm" v-model="mapper" :placeholder="t('mapedit.map_mapper')">
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_mapper_desc") }}</div>
                         </div>
                     </div>
 
                     <!-- Row 4 -->
                     <div class="row g-1 mb-2">
                          <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_image_license") }}</label>
+                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license") }} <ContextHelp :text="t('mapedit.map_image_license_desc')" :ariaLabel="t('mapedit.map_image_license_desc')" /></label>
                             <select class="form-select form-select-sm" v-model="mapData.license" :disabled="translationMode">
                                 <option value="All right reserved">{{ t("mapedit.cc_allright_reserved") }}</option>
                                 <option value="CC BY">{{ t("mapedit.cc_by") }}</option>
@@ -3530,10 +3548,9 @@ const goBack = async () => {
                                 <option value="CC0">{{ t("mapedit.cc0") }}</option>
                                 <option value="PD">{{ t("mapedit.cc_pd") }}</option>
                             </select>
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_image_license_desc") }}</div>
                         </div>
                          <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_gcp_license") }}</label>
+                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license") }} <ContextHelp :text="t('mapedit.map_gcp_license_desc')" :ariaLabel="t('mapedit.map_gcp_license_desc')" /></label>
                              <select class="form-select form-select-sm" v-model="mapData.dataLicense" :disabled="translationMode">
                                 <option value="All right reserved">{{ t("mapedit.cc_allright_reserved") }}</option>
                                 <option value="CC BY">{{ t("mapedit.cc_by") }}</option>
@@ -3544,42 +3561,36 @@ const goBack = async () => {
                                 <option value="CC BY-NC-ND">{{ t("mapedit.cc_by_nc_nd") }}</option>
                                 <option value="CC0">{{ t("mapedit.cc0") }}</option>
                             </select>
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_gcp_license_desc") }}</div>
                         </div>
                         <div class="col-md-3">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_copyright_desc')" :ariaLabel="t('mapedit.map_copyright_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
                             <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.attr" scope="field" :items="[{ key: 'attr-required', severity: 'danger', message: saveError.attr }]" />
-                            <div v-else class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_copyright_desc") }}</div>
                         </div>
                          <div class="col-md-3">
-                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_copyright") }} <LangValueChips :model-value="mapData.dataAttr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_copyright") }} <LangValueChips :model-value="mapData.dataAttr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_gcp_copyright_desc')" :ariaLabel="t('mapedit.map_gcp_copyright_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="dataAttr" :placeholder="t('mapedit.map_gcp_copyright_pf')">
-                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_gcp_copyright_desc") }}</div>
                         </div>
                     </div>
                     
                     <!-- Row 5 -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
-                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_source") }}</label>
+                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_source") }} <ContextHelp :text="t('mapedit.map_source_desc')" :ariaLabel="t('mapedit.map_source_desc')" /></label>
                              <input type="text" class="form-control form-control-sm" v-model="mapData.reference" :disabled="translationMode" :placeholder="t('mapedit.map_source_pf')">
-                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_source_desc") }}</div>
                         </div>
                          <div class="col-md-8">
-                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.map_tile") }}</label>
+                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_tile") }} <ContextHelp :text="t('mapedit.map_tile_desc')" :ariaLabel="t('mapedit.map_tile_desc')" /></label>
                              <input type="text" class="form-control form-control-sm" v-model="mapData.url" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
-                             <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_tile_desc") }}</div>
                         </div>
                     </div>
 
                     <!-- Row 6 -->
                      <div class="row g-2">
                          <div class="col-12">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_description") }} <LangValueChips :model-value="mapData.description" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_description") }} <LangValueChips :model-value="mapData.description" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_description_desc')" :ariaLabel="t('mapedit.map_description_desc')" /></div>
                             <textarea class="form-control form-control-sm" rows="3" v-model="description" :placeholder="t('mapedit.map_description_pf')"></textarea>
-                            <div class="form-text small mb-0" style="font-size: 0.75rem;">{{ t("mapedit.map_description_desc") }}</div>
                         </div>
                     </div>
                 </form>
@@ -3730,16 +3741,10 @@ const goBack = async () => {
                                  </div>
                              </div>
 
-                             <!-- Column 3: Error Status -->
+                             <!-- Column 3: Error Status (M12-T11/R4: footer 素表示から DF section バナーへ。
+                                  「エラーなし」(strict) は非表示) -->
                              <div class="col-md-3">
-                                 <span class="fw-bold">{{ t("mapedit.map_error_status") }}: </span>
-                                 <span v-if="errorStatus === 'tooLessGcps'">{{ t('mapedit.map_error_too_short') }}</span>
-                                 <span v-else-if="errorStatus === 'tooLinear'">{{ t('mapedit.map_error_linear') }}</span>
-                                 <span v-else-if="errorStatus === 'pointsOutside'">{{ t('mapedit.map_error_outside') }}</span>
-                                 <span v-else-if="errorStatus === 'edgeError'">{{ t('mapedit.map_error_crossing') }}</span>
-                                 <span v-else-if="errorStatus === 'strict'">{{ t('mapedit.map_no_error') }}</span>
-                                 <span v-else-if="errorStatus === 'strict_error'">{{ t('mapedit.map_error_number', {num: kinksCount}) }}</span>
-                                 <span v-else-if="errorStatus === 'loose'">{{ t('mapedit.map_loose_by_error') }}</span>
+                                 <DiagnosticFeedback v-if="gcpErrorStatusMessage" scope="section" :items="[{ key: 'gcp-error', severity: 'danger', message: gcpErrorStatusMessage }]" />
                              </div>
 
                              <!-- Column 4: View Error Button -->
@@ -3776,12 +3781,9 @@ const goBack = async () => {
                                     <label class="fw-bold">{{ t("dataio.import_csv") }}</label>
                                 </div>
                                 <div class="col-md-5">
-                                    <!-- CSV エラーステータス -->
+                                    <!-- CSV エラーステータス (M12-T11/R3: inline span から DF field へ) -->
                                     <label>{{ t("dataio.import_csv_status") }}:</label>
-                                    <span v-if="csvUpError === 'column_dup'" class="text-danger small ms-1">{{ t("dataio.csv_error_column_dup") }}</span>
-                                    <span v-else-if="csvUpError === 'column_null'" class="text-danger small ms-1">{{ t("dataio.csv_error_column_null") }}</span>
-                                    <span v-else-if="csvUpError === 'ignore_header'" class="text-danger small ms-1">{{ t("dataio.csv_error_ignore_header") }}</span>
-                                    <span v-else-if="csvUpError === 'proj_text'" class="text-danger small ms-1">{{ t("dataio.csv_error_proj_text") }}</span>
+                                    <DiagnosticFeedback v-if="csvUpErrorMessage" scope="field" :items="[{ key: 'csv-import', severity: 'danger', message: csvUpErrorMessage }]" />
                                 </div>
                                 <div class="col-md-4">
                                     <button type="button" class="btn btn-outline-secondary btn-sm"
@@ -3939,7 +3941,7 @@ const goBack = async () => {
                   </template>
 
                   <template #selected>
-                    <h5>{{ t("mapedit.base_map_visibility") }}</h5>
+                    <h5 class="d-flex align-items-center gap-1">{{ t("mapedit.base_map_visibility") }} <ContextHelp :text="t('mapedit.basemap_settings_note')" :ariaLabel="t('mapedit.basemap_settings_note')" /></h5>
                     <ResourceEmptyState
                       v-if="enabledBaseMaps.length === 0"
                       icon-class="bi bi-layers"

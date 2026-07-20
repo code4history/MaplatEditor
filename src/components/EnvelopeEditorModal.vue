@@ -4,7 +4,7 @@
 // coverageLngLats(地図の存在範囲)は薄青、appCoverageLngLats(アプリ提供範囲)は薄緑で表示。
 // 描画はどちらの境界にもスナップし、確定値は存在範囲の内側に自動クロップされる
 // (アプリ提供範囲は目安であり、はみ出し可)(ADR-0004)。
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch, computed } from "vue";
 import { useTranslation } from "i18next-vue";
 import Map from "ol/Map";
 import View from "ol/View";
@@ -19,6 +19,7 @@ import { transformExtent } from "ol/proj";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
 import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
+import ContextHelp from "./editor-ui/ContextHelp.vue";
 
 const props = defineProps<{
   modelValue: [number, number][] | null;
@@ -44,6 +45,12 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useTranslation();
+
+// M12-T11 (R1/A22): モーダル冒頭のヘルプ p.small.text-muted は廃止し、
+// タイトル横の ContextHelp (i) ボタン Popover へ文言を移す。動的切替ロジックは従来どおり
+const helpText = computed(() =>
+  t(props.helpKey || (props.coverageLngLats || props.appCoverageLngLats ? "appedit.envelope_modal_help_with_coverage" : "appedit.envelope_modal_help")),
+);
 const mapElement = ref<HTMLDivElement | null>(null);
 let map: Map | null = null;
 let draw: Draw | null = null;
@@ -279,13 +286,10 @@ function confirm() {
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">{{ t(titleKey || "appedit.envelope_modal_title") }}</h5>
+          <h5 class="modal-title d-flex align-items-center gap-1">{{ t(titleKey || "appedit.envelope_modal_title") }} <ContextHelp :text="helpText" :ariaLabel="helpText" /></h5>
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
         <div class="modal-body">
-          <p class="small text-muted mb-2">
-            {{ t(helpKey || (coverageLngLats || appCoverageLngLats ? "appedit.envelope_modal_help_with_coverage" : "appedit.envelope_modal_help")) }}
-          </p>
           <div ref="mapElement" class="envelope-map"></div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentBbox">

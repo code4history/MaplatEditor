@@ -9,6 +9,8 @@ import { computed, ref } from "vue";
 import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "./EnvelopeEditorModal.vue";
 import LangValueChips from "./editor-ui/LangValueChips.vue";
+import ContextHelp from "./editor-ui/ContextHelp.vue";
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 import type { LangCode } from "../utils/editorLanguages";
 import {
   bboxToEnvelope,
@@ -111,10 +113,10 @@ async function uploadThumbnail() {
 
 <template>
   <div>
-    <!-- builtin: 設定不可の説明のみ -->
-    <p v-if="source.sourceType === 'builtin'" class="small text-muted mb-0 mt-2">
-      {{ t("appedit.builtin_source_note") }}
-    </p>
+    <!-- builtin: 設定不可の説明のみ (M12-T11/R1: 注記は (i) ボタンの Popover へ) -->
+    <div v-if="source.sourceType === 'builtin'" class="mb-0 mt-2">
+      <ContextHelp :text="t('appedit.builtin_source_note')" :ariaLabel="t('appedit.builtin_source_note')" />
+    </div>
 
     <!-- tms: ピンポイント設定 -->
     <div v-else-if="source.sourceType === 'tms'" class="row g-2 mt-1">
@@ -139,14 +141,14 @@ async function uploadThumbnail() {
         <input v-model="data.url" type="text" class="form-control form-control-sm font-monospace" :disabled="translationMode" @input="emit('change')">
       </div>
       <div class="col-md-4">
-        <label class="form-label small mb-0">{{ t("appedit.thumbnail") }}</label>
+        <label class="form-label small mb-0 d-flex align-items-center gap-1">{{ t("appedit.thumbnail") }} <ContextHelp :text="t('appedit.thumbnail_note')" :ariaLabel="t('appedit.thumbnail_note')" /></label>
         <div class="d-flex align-items-center gap-2">
           <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="translationMode" @click="uploadThumbnail">
             {{ t("appedit.upload") }}
           </button>
-          <small class="text-muted">{{ t("appedit.thumbnail_note") }}</small>
         </div>
-        <div v-if="uploadError" class="text-danger small">{{ uploadError }}</div>
+        <!-- M12-T11 (R3/C33): inline text-danger から DF field へ -->
+        <DiagnosticFeedback v-if="uploadError" scope="field" :items="[{ key: 'thumbnail-upload', severity: 'danger', message: uploadError }]" />
       </div>
 
       <!-- overlay専用設定 -->

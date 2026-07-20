@@ -6,10 +6,6 @@
     <!-- ヘッダ行: タイトル + dirty notice + 破棄/適用ボタン -->
     <div class="d-flex align-items-center gap-2 px-3 py-1 border-bottom flex-shrink-0">
       <span class="fw-bold small">{{ t("poiedit.raw_pane") }}</span>
-      <span v-if="localDirty" class="small text-warning">
-        {{ t("poiedit.raw_dirty_notice") }}
-        <template v-if="editorUpdatedSinceDirty"> {{ t("poiedit.raw_stale_notice") }}</template>
-      </span>
       <div class="ms-auto d-flex gap-1">
         <button
           v-if="localDirty"
@@ -31,35 +27,29 @@
     </div>
 
     <!-- 診断領域: 規模ガード / 構文エラー / validation エラー / 適用後 warning -->
+    <!-- M12-T11 (R3/C36-C40, R5/D3): alert 直書きから DF section へ。warning は黄色三角で danger と区別 -->
     <div
-      v-if="sizeGuard || parseError || applyError || applyIssues.length || applyWarnings.length"
+      v-if="localDirty || sizeGuard || parseError || applyError || applyIssues.length || applyWarnings.length"
       class="px-3 py-1 flex-shrink-0 overflow-auto poi-raw-diagnostics"
     >
-      <div v-if="sizeGuard" class="alert alert-warning py-1 px-2 mb-1 small">
-        {{ t("poiedit.raw_size_guard") }}
-      </div>
-      <div v-if="parseError" class="alert alert-danger py-1 px-2 mb-1 small">
-        {{ parseError }}
-      </div>
-      <div v-if="applyError" class="alert alert-danger py-1 px-2 mb-1 small">
-        {{ applyError }}
-      </div>
-      <div v-if="applyIssues.length" class="alert alert-danger py-1 px-2 mb-1 small">
-        <div class="fw-bold">{{ t("poiedit.raw_apply_issues") }}</div>
-        <ul class="mb-0">
-          <li v-for="(issue, index) in applyIssues" :key="index">
-            {{ issueMessage(issue, t) }}
-          </li>
-        </ul>
-      </div>
-      <div v-if="applyWarnings.length" class="alert alert-warning py-1 px-2 mb-1 small">
-        <div class="fw-bold">{{ t("poiedit.raw_apply_warnings") }}</div>
-        <ul class="mb-0">
-          <li v-for="(issue, index) in applyWarnings" :key="index">
-            {{ issueMessage(issue, t) }}
-          </li>
-        </ul>
-      </div>
+      <DiagnosticFeedback
+        v-if="localDirty"
+        scope="section"
+        :items="[{ key: 'dirty', severity: 'warning', message: t('poiedit.raw_dirty_notice') + (editorUpdatedSinceDirty ? ' ' + t('poiedit.raw_stale_notice') : '') }]"
+      />
+      <DiagnosticFeedback v-if="sizeGuard" scope="section" :items="[{ key: 'size-guard', severity: 'warning', message: t('poiedit.raw_size_guard') }]" />
+      <DiagnosticFeedback v-if="parseError" scope="section" :items="[{ key: 'parse', severity: 'danger', message: parseError }]" />
+      <DiagnosticFeedback v-if="applyError" scope="section" :items="[{ key: 'apply', severity: 'danger', message: applyError }]" />
+      <DiagnosticFeedback
+        v-if="applyIssues.length"
+        scope="section"
+        :items="applyIssues.map((issue, index) => ({ key: `issue-${index}`, severity: 'danger', message: issueMessage(issue, t) }))"
+      />
+      <DiagnosticFeedback
+        v-if="applyWarnings.length"
+        scope="section"
+        :items="applyWarnings.map((issue, index) => ({ key: `warn-${index}`, severity: 'warning', message: issueMessage(issue, t) }))"
+      />
     </div>
 
     <!-- raw GeoJSON 本体。規模ガード (POI-141) / remote ReadOnly では readonly -->
@@ -96,6 +86,7 @@ import {
   resolvePoiSourceLanguage,
 } from "../utils/poiGeoJson";
 import { issueMessage } from "../utils/poiSourceMessages";
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 
 const props = defineProps<{
   session: PoiEditSession;

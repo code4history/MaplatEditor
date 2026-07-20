@@ -5,6 +5,10 @@
     <div>
       <i :class="iconClass" class="fs-1 d-block mb-2" aria-hidden="true"></i>
       <slot>{{ message }}</slot>
+      <!-- M12-T11 (R3/C47-C48): not found 画面の戻るボタン等を配置する optional actions slot -->
+      <div v-if="$slots.actions" class="mt-3">
+        <slot name="actions"></slot>
+      </div>
     </div>
   </div>
 </template>
