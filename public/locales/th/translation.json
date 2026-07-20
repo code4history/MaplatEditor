@@ -624,7 +624,6 @@
   },
   "poisource": {
     "title": "แหล่งข้อมูล POI",
-    "search_placeholder": "ค้นหาแหล่งข้อมูล POI…",
     "create_local": "สร้างในเครื่อง",
     "register_remote": "ลงทะเบียนระยะไกล",
     "no_sources_found": "ไม่พบแหล่งข้อมูล POI",
@@ -916,8 +915,8 @@
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
-    "import_poi": "Import",
-    "import_map": "Import Map",
+    "import_poi": "นำเข้า",
+    "import_map": "นำเข้า",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }

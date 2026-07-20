@@ -624,7 +624,6 @@
   },
   "poisource": {
     "title": "Fuentes de POI",
-    "search_placeholder": "Buscar fuentes de POI…",
     "create_local": "Crear local",
     "register_remote": "Registrar remota",
     "no_sources_found": "No se encontraron fuentes de POI",
@@ -916,8 +915,8 @@
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
-    "import_poi": "Import",
-    "import_map": "Import Map",
+    "import_poi": "Importar",
+    "import_map": "Importar",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }

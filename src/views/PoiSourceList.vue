@@ -4,6 +4,7 @@
       ref="shellRef"
       kind="poi-source"
       kind-name-key="resource_list.kind_poi_source"
+      search-placeholder-key="poiref.search_placeholder"
       variant="grid"
       :query="query"
       :state="state"

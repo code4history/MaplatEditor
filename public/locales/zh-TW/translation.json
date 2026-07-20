@@ -624,7 +624,6 @@
   },
   "poisource": {
     "title": "POI來源",
-    "search_placeholder": "搜尋POI來源…",
     "create_local": "建立本機",
     "register_remote": "登錄遠端",
     "no_sources_found": "找不到POI來源",
@@ -916,8 +915,8 @@
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
-    "import_poi": "Import",
-    "import_map": "Import Map",
+    "import_poi": "導入",
+    "import_map": "導入",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }

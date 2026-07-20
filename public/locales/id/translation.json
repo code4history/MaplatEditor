@@ -624,7 +624,6 @@
   },
   "poisource": {
     "title": "Sumber POI",
-    "search_placeholder": "Cari sumber POI…",
     "create_local": "Buat lokal",
     "register_remote": "Daftarkan jarak jauh",
     "no_sources_found": "Sumber POI tidak ditemukan",
@@ -916,8 +915,8 @@
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
-    "import_poi": "Import",
-    "import_map": "Import Map",
+    "import_poi": "Impor",
+    "import_map": "Impor",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }

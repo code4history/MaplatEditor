@@ -624,7 +624,6 @@
   },
   "poisource": {
     "title": "POI 소스",
-    "search_placeholder": "POI 소스를 검색…",
     "create_local": "로컬 생성",
     "register_remote": "원격 등록",
     "no_sources_found": "POI 소스를 찾을 수 없습니다",
@@ -916,8 +915,8 @@
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
-    "import_poi": "Import",
-    "import_map": "Import Map",
+    "import_poi": "가져오기",
+    "import_map": "가져오기",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
   }

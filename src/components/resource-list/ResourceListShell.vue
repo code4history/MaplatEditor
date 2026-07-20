@@ -4,6 +4,7 @@
       :query="query"
       :kind-name-key="kindNameKey"
       :new-draft="newDraft"
+      :search-placeholder-key="searchPlaceholderKey"
       @create="emit('create')"
       @update:query="(value) => emit('update:query', value)"
     >
@@ -35,6 +36,8 @@ const props = defineProps<{
   loaded: number;
   newDraft?: boolean;
   variant?: "grid" | "master";
+  // optional: kindNameKey 構築の検索 placeholder を上書きする完全なキー（toolbar へ中継）
+  searchPlaceholderKey?: string;
 }>();
 const emit = defineEmits<{ create: []; "update:query": [value: string]; retry: []; "load-more": [] }>();
 
