@@ -157,10 +157,9 @@ const PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID = '2026-07-09-provisional-visib
 // ユーザーベースマップのアイコンパス uid 化(tmbs/{slug}.png → tmbs/{uid}.png)
 const BASE_MAP_ICON_MIGRATION_ID = '2026-07-09-base-map-icon-uid-paths';
 const BASE_MAP_LANGUAGE_MIGRATION_ID = '2026-07-14-m11-t4-basemap-language';
-// M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガー移行後に1回だけ実行
-const THUMBNAIL_512_MINING_ID = '2026-07-20-thumbnail-512-mining';
-// M12-T15 M7: 壊れた 512px（crop 未実行で全グリッドキャンバスを縮小したもの）を検出して再生成するための v2 マーカー。
-// v1（2026-07-20）は crop 前提が実データで成立しない場合に壊れた 512px を恒久化したため、v2 で自己修復する
+// M12-T15 M7: 512px サムネイル起動時マイニング（§C2）の v2 マーカー。レガシー移行後に1回だけ実行する。
+// v1（'2026-07-20-thumbnail-512-mining'）は crop 前提が実データで成立しない場合に壊れた 512px を
+// 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）
 const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
@@ -1180,16 +1179,8 @@ class SqliteDataService {
     for (let i = 0; i < targets.length; i++) {
       const uid = targets[i];
       try {
-        // M12-T15 (Fix-1): 元画像寸法を data_json から取得し crop へ渡す（白帯焼き込み防止）
-        const mapRow = maps.find((m: any) => String(m.uid) === uid);
-        let origWidth = 0, origHeight = 0;
-        try {
-          const doc = mapRow?.data_json ? JSON.parse(String(mapRow.data_json)) : null;
-          origWidth = Number(doc?.width) || 0;
-          origHeight = Number(doc?.height) || 0;
-        } catch { /* noop */ }
-        // ズーム2タイルを stitch して 512px 生成
-        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder, origWidth, origHeight);
+        // ズーム2タイルを stitch して 512px 生成（M6: コンテンツ寸法はタイル実寸から導出）
+        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder);
         success++;
       } catch (e: any) {
         const msg = `512px mining failed for ${uid}: ${e?.message ?? e}`;
@@ -1271,9 +1262,7 @@ class SqliteDataService {
     uid: string,
     _saveFolder: string,
     tileFolder: string,
-    thumbFolder: string,
-    origWidth: number = 0,
-    origHeight: number = 0
+    thumbFolder: string
   ): Promise<void> {
     // @ts-ignore - Jimp は ESM 動的 import
     const { Jimp } = await import('jimp');

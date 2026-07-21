@@ -44,14 +44,18 @@ async function seedNonSquareMap(page: Page): Promise<{ uid: string; slug: string
   });
 }
 
-// saveFolder/tiles/{uid}/2/{tx}/{ty}.png に zoom2 タイル（4x2 の赤タイル）を配置する
+// saveFolder/tiles/{uid}/2/{tx}/{ty}.png に zoom2 タイル（4x2 の赤タイル）を配置する。
+// 実タイル生成（imageCutter）の契約に合わせ、端タイルは非パディングの実寸で書く:
+// 900x300 @ maxZoom=2 → tilesX=4（256x3+132）, tilesY=2（256+44）。
+// M6 はこの端タイル実寸からコンテンツ寸法（900x300）を導出して crop する
 async function placeZoom2Tiles(saveFolder: string, uid: string): Promise<void> {
-  // 900x300 @ maxZoom=2 → tilesX=ceil(900/256)=4, tilesY=ceil(300/256)=2
   for (let tx = 0; tx < 4; tx++) {
     const dir = path.join(saveFolder, 'tiles', uid, '2', String(tx));
     await mkdir(dir, { recursive: true });
     for (let ty = 0; ty < 2; ty++) {
-      const tile = new Jimp({ width: 256, height: 256, color: 0xff0000ff }); // 赤
+      const w = tx === 3 ? 900 - 3 * 256 : 256; // 端列は 132px
+      const h = ty === 1 ? 300 - 256 : 256; // 端行は 44px
+      const tile = new Jimp({ width: w, height: h, color: 0xff0000ff }); // 赤
       await tile.write(path.join(dir, `${ty}.png`) as `${string}.${string}`);
     }
   }
@@ -75,7 +79,8 @@ test.describe('M12-T15 Fix-1: 起動時 512px マイニング', () => {
       // マイニング marker を削除して、次回起動で 512px マイニングが走る状態にする
       const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
       try {
-        db.prepare("DELETE FROM schema_migrations WHERE id = '2026-07-20-thumbnail-512-mining'").run();
+        // M7 で marker が v2（2026-07-21-thumbnail-512-mining-v2）へ更新された。将来の版替えにも耐えるよう LIKE で全世代を削除する
+        db.prepare("DELETE FROM schema_migrations WHERE id LIKE '%thumbnail-512-mining%'").run();
       } finally {
         db.close();
       }
@@ -96,7 +101,7 @@ test.describe('M12-T15 Fix-1: 起動時 512px マイニング', () => {
         // Test-1 の核心: 生成された 512px が正しいアスペクト比（900:300 = 3:1、白帯なし）
         const image = await Jimp.read(thumb512Path);
         const aspect = image.width / image.height;
-        // Fix-1 前は crop なしで 1024x512（aspect 2）に白帯。Fix-1 後は 900x300（aspect 3）へ crop。
+        // crop なし（破損）は全グリッド 1024x512（aspect 2）。M6 は端タイル実寸から 900x300 へ crop（aspect 3）。
         // 長辺512px なので 512 x 171 付近（aspect ≈ 3）になることを検証
         expect(aspect).toBeGreaterThan(2.5); // 3:1 に近い（白帯があれば ~2:1 になる）
         expect(Math.max(image.width, image.height)).toBeLessThanOrEqual(512);
