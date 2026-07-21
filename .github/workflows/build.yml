@@ -2,8 +2,10 @@ name: Build and Release
 
 on:
   # master プッシュ時に自動実行
+  # glm52: リリース前サンプル版のコンパイル用（署名・公証・Release 作成は master 条件のままスキップされ、
+  #        成果物は Actions の artifacts からダウンロードする）
   push:
-    branches: [master]
+    branches: [master, glm52]
   # 手動実行（ブランチ問わず起動可能、署名は行わない）
   workflow_dispatch:
 
