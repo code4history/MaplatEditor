@@ -39,8 +39,8 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          # ローカル開発と同じ pnpm 11 系に固定。latest(12系)は pnpm-workspace.yaml の
-          # onlyBuiltDependencies を尊重せず ERR_PNPM_IGNORED_BUILDS で install が失敗する
+          # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
+          # build script 許可は pnpm-workspace.yaml の allowBuilds（pnpm 11 の新形式）参照
           version: 11
 
       - uses: actions/setup-node@v4
@@ -119,8 +119,8 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          # ローカル開発と同じ pnpm 11 系に固定。latest(12系)は pnpm-workspace.yaml の
-          # onlyBuiltDependencies を尊重せず ERR_PNPM_IGNORED_BUILDS で install が失敗する
+          # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
+          # build script 許可は pnpm-workspace.yaml の allowBuilds（pnpm 11 の新形式）参照
           version: 11
 
       - uses: actions/setup-node@v4
@@ -169,8 +169,8 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          # ローカル開発と同じ pnpm 11 系に固定。latest(12系)は pnpm-workspace.yaml の
-          # onlyBuiltDependencies を尊重せず ERR_PNPM_IGNORED_BUILDS で install が失敗する
+          # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
+          # build script 許可は pnpm-workspace.yaml の allowBuilds（pnpm 11 の新形式）参照
           version: 11
 
       - uses: actions/setup-node@v4

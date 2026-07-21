@@ -1,3 +1,11 @@
+# build script 許可リスト。pnpm 11 で onlyBuiltDependencies(リスト形式)は廃止され
+# allowBuilds(マップ形式)に置換された(旧キーは警告なしで無視される)。
+# pnpm 9/10/11初期との両対応のため新旧両形式を併記する
+allowBuilds:
+  '@parcel/watcher': true
+  electron: true
+  esbuild: true
+  less: true
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - electron
