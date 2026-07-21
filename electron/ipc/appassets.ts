@@ -17,6 +17,12 @@ export function registerAppAssetHandlers() {
     return await AppAssetService.uploadPwaIcon(win, appID);
   });
 
+  // M12-T15 (R5): Maplat地図サムネイルの置換アップロード（512px/52px 独立 + 512px→52px 流用）
+  ipcMain.handle('appassets:replace-map-thumbnail', async (event, mapUid: string, kind: '512' | '52', derive52: boolean) => {
+    const win = BrowserWindow.fromWebContents(event.sender)!;
+    return await AppAssetService.replaceMapThumbnail(win, mapUid, kind, derive52);
+  });
+
   ipcMain.handle(
     'appassets:generate-tms-thumbnail',
     async (_event, mapID: string, tms: { url?: string; minZoom?: number; maxZoom?: number }, coverageLngLats: [number, number][]) => {

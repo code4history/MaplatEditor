@@ -157,6 +157,10 @@ const PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID = '2026-07-09-provisional-visib
 // ユーザーベースマップのアイコンパス uid 化(tmbs/{slug}.png → tmbs/{uid}.png)
 const BASE_MAP_ICON_MIGRATION_ID = '2026-07-09-base-map-icon-uid-paths';
 const BASE_MAP_LANGUAGE_MIGRATION_ID = '2026-07-14-m11-t4-basemap-language';
+// M12-T15 M7: 512px サムネイル起動時マイニング（§C2）の v2 マーカー。レガシー移行後に1回だけ実行する。
+// v1（'2026-07-20-thumbnail-512-mining'）は crop 前提が実データで成立しない場合に壊れた 512px を
+// 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）
+const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
@@ -869,6 +873,8 @@ class SqliteDataService {
     this.applyProvisionalVisibilityKeyMigration(db);
     this.sweepStaleProvisionalVisibility(db);
     await this.migrateBaseMapIconPaths(db);
+    // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
+    await this.runThumbnail512MiningIfNeeded(db);
   }
 
   private applyBaseMapLanguageMigration(db: DatabaseSync): void {
@@ -1098,7 +1104,243 @@ class SqliteDataService {
     });
   }
 
-  // 全文検索(FTS5)/位置情報検索(R-Tree)の索引スキーマとトリガ。
+  // M12-T15 R3 §C2: 512px サムネイル起動時マイニング。
+  // 「ズーム2タイルは存在するが tmbs/{uid}_512.jpg がない地図」を対象に、
+  // ズーム2 stitch で 512px サムネイルを生成する。schema_migrations で1回限り実行を保証。
+  // 個別地図の失敗は warnings へ記録し、バッチ全体は止めない（§C2 個別失敗時継続）。
+  private async runThumbnail512MiningIfNeeded(db: DatabaseSync): Promise<void> {
+    const alreadyMined = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(THUMBNAIL_512_MINING_V2_ID);
+    if (alreadyMined) return;
+
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const tileFolder = path.join(saveFolder, 'tiles');
+    const thumbFolder = path.join(saveFolder, 'tmbs');
+
+    // 全地図の uid を取得（M6 により data_json の width/height は使わないため uid のみでよい）
+    const maps = db.prepare('SELECT uid FROM maps').all() as any[];
+    if (maps.length === 0) {
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_V2_ID);
+      return;
+    }
+
+    // M7: マイニング対象を抽出。
+    //   (a) tmbs/{uid}_512.jpg が存在しない地図（新規）
+    //   (b) 壊れた 512px（crop 未実行で全グリッドキャンバスを縮小したもの）を持つ地図（自己修復）
+    // R5 でユーザーが置換した 512px は破損シグネチャと寸法が異なるため巻き込まない。
+    const targets: string[] = [];
+    const skipped: string[] = [];
+    for (const map of maps) {
+      const uid = String(map.uid);
+      const thumb512Path = path.join(thumbFolder, `${uid}_512.jpg`);
+      const zoom2Dir = path.join(tileFolder, uid, '2');
+      if (!await fs.pathExists(zoom2Dir)) {
+        // §C3: ズーム2タイルが存在しない（小地図等）はスキップ
+        skipped.push(uid);
+        continue;
+      }
+      // zoom2/0/0.* ファイルの存在チェック
+      try {
+        const files = await fs.readdir(path.join(zoom2Dir, '0'));
+        if (!files.some((f) => /^0\.(jpg|jpeg|png)$/.test(f))) {
+          skipped.push(uid);
+          continue;
+        }
+      } catch {
+        skipped.push(uid);
+        continue;
+      }
+      if (await fs.pathExists(thumb512Path)) {
+        // M7: 既存 512px が破損シグネチャ（全グリッドキャンバスを縮小した寸法）なら再生成対象
+        const broken = await this.isBrokenThumbnail512(thumb512Path, zoom2Dir);
+        if (broken) {
+          targets.push(uid);
+        }
+        // 破損でなければ（正規生成・ユーザー置換）はスキップ
+        continue;
+      }
+      targets.push(uid);
+    }
+
+    if (targets.length === 0) {
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_V2_ID);
+      console.log('[Thumbnail512Mining] no targets, skipped:', skipped.length);
+      return;
+    }
+
+    // 進捗通知（sendMigrationProgress と同一パターン）
+    sendMigrationProgress('database.migrating_thumbnails_512', 0, '(512px)');
+
+    const warnings: string[] = [];
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < targets.length; i++) {
+      const uid = targets[i];
+      try {
+        // ズーム2タイルを stitch して 512px 生成（M6: コンテンツ寸法はタイル実寸から導出）
+        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder);
+        success++;
+      } catch (e: any) {
+        const msg = `512px mining failed for ${uid}: ${e?.message ?? e}`;
+        warnings.push(msg);
+        console.warn(`[Thumbnail512Mining] ${msg}`);
+        failed++;
+      }
+      const percent = Math.round(((i + 1) / targets.length) * 100);
+      sendMigrationProgress('database.migrating_thumbnails_512', percent, '(512px)');
+    }
+
+    // マーカーを記録（失敗があっても記録して再実行を防止。warnings に残る）
+    db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_V2_ID);
+
+    // migration-report-v2.json へ warnings を追記（既存レポートがあれば読み込んで追記）
+    if (warnings.length > 0) {
+      try {
+        const reportPath = path.join(saveFolder, MIGRATION_REPORT_FILE);
+        let report: MigrationReport = { renamedSlugs: [], renamedFiles: [], warnings: [] };
+        if (await fs.pathExists(reportPath)) {
+          report = await fs.readJson(reportPath);
+        }
+        report.warnings.push(...warnings);
+        await fs.writeJson(reportPath, report, { spaces: 2 });
+      } catch (e) {
+        console.error('[Thumbnail512Mining] failed to write warnings to migration report', e);
+      }
+    }
+
+    console.log(`[Thumbnail512Mining] done: ${success} success, ${skipped.length} skipped, ${failed} failed`);
+    sendMigrationProgress('database.migrating_thumbnails_512_done', 100, '(512px)');
+  }
+
+  // M7: 既存の tmbs/{uid}_512.jpg が破損シグネチャ（crop 未実行で全グリッドキャンバスを長辺512に縮小した寸法）かを判定する。
+  // グリッド寸法（(maxX+1)*256 x (maxY+1)*256）とタイル実寸（コンテンツ境界）を比較し、
+  // 端タイルがある（コンテンツ < グリッド）のに、実ファイルがグリッド全体を縮小した寸法と一致する場合に破損とみなす。
+  // 正規生成（コンテンツ境界で crop 済み）や R5 のユーザー置換（寸法が破損シグネチャと異なる）は false を返す。
+  private async isBrokenThumbnail512(thumbPath: string, zoom2Dir: string): Promise<boolean> {
+    try {
+      // @ts-ignore - Jimp は ESM 動的 import
+      const { Jimp } = await import('jimp');
+      const xDirs = await fs.readdir(zoom2Dir);
+      const maxX = Math.max(...xDirs.map((d) => parseInt(d, 10)).filter((n) => !isNaN(n)));
+      let maxY = 0;
+      let contentW = 0;
+      let contentH = 0;
+      for (let tx = 0; tx <= maxX; tx++) {
+        const txDir = path.join(zoom2Dir, `${tx}`);
+        if (!await fs.pathExists(txDir)) continue;
+        const yFiles = (await fs.readdir(txDir)).filter((f) => /^\d+\.(jpg|jpeg|png)$/.test(f));
+        for (const f of yFiles) {
+          const ty = parseInt(f, 10);
+          maxY = Math.max(maxY, ty);
+          const img = await Jimp.read(path.join(txDir, f));
+          contentW = Math.max(contentW, tx * 256 + img.width);
+          contentH = Math.max(contentH, ty * 256 + img.height);
+        }
+      }
+      const gridW = (maxX + 1) * 256;
+      const gridH = (maxY + 1) * 256;
+      // 端タイルがない（コンテンツ = グリッド）なら破損シグネチャと正規生成の区別がつかないため false
+      if (contentW >= gridW && contentH >= gridH) return false;
+      // 破損シグネチャ: グリッド全体を長辺512に縮小した寸法
+      const gridLong = Math.max(gridW, gridH);
+      const brokenW = Math.round((gridW * 512) / gridLong);
+      const brokenH = Math.round((gridH * 512) / gridLong);
+      const img = await Jimp.read(thumbPath);
+      return Math.abs(img.width - brokenW) <= 1 && Math.abs(img.height - brokenH) <= 1;
+    } catch {
+      return false;
+    }
+  }
+
+  // ズーム2タイルを stitch して長辺512pxサムネイルを生成
+  // M12-T15 (M6): コンテンツ寸法は data_json ではなくタイルの実寸から導出する。
+  // 端タイルは非パディング実寸で保存されるため、タイルピラミッド自体が正確なコンテンツ寸法を持つ。
+  // legacy データの DB 記録が不正・欠損でも正しく crop できる（data_json 依存の廃止）。
+  private async generateThumbnail512FromTiles(
+    uid: string,
+    _saveFolder: string,
+    tileFolder: string,
+    thumbFolder: string
+  ): Promise<void> {
+    // @ts-ignore - Jimp は ESM 動的 import
+    const { Jimp } = await import('jimp');
+
+    const zoom2Dir = path.join(tileFolder, uid, '2');
+    // zoom2 のタイル数を取得
+    const xDirs = await fs.readdir(zoom2Dir);
+      const maxX = Math.max(...xDirs.map((d) => parseInt(d, 10)).filter((n) => !isNaN(n)));
+
+    // 先に全カラムの最大行 index (maxY) を確定させ、正しい寸法のキャンバスを1度だけ作る
+    // （縦長・横長どちらでもグリッド全体を収める。長辺512px 縮小は後段で行う）
+    let maxY = 0;
+    for (let tx = 0; tx <= maxX; tx++) {
+      const txDir = path.join(zoom2Dir, `${tx}`);
+      if (!await fs.pathExists(txDir)) continue;
+      const yFiles = await fs.readdir(txDir);
+      for (const f of yFiles) {
+        if (/^\d+\.(jpg|jpeg|png)$/.test(f)) maxY = Math.max(maxY, parseInt(f, 10));
+      }
+    }
+
+    // M6: 全タイルを合成しつつ、実コンテンツ領域を「タイルの実寸」から導出する。
+    // contentWidth/contentHeight = 各タイルの (tx*256 + tile.width) / (ty*256 + tile.height) の最大値。
+    // 端タイルが非パディング実寸のため、グリッド切り上げでなく実コンテンツの正確な境界になる。
+    const canvas = new Jimp({ width: (maxX + 1) * 256, height: (maxY + 1) * 256, color: 0xffffffff });
+    let contentWidth = 0;
+    let contentHeight = 0;
+    let tilesRead = 0;
+
+    for (let tx = 0; tx <= maxX; tx++) {
+      const txDir = path.join(zoom2Dir, `${tx}`);
+      if (!await fs.pathExists(txDir)) continue;
+      const yFiles = await fs.readdir(txDir);
+      const yTiles = yFiles.filter((f) => /^\d+\.(jpg|jpeg|png)$/.test(f)).sort((a, b) => {
+        return parseInt(a, 10) - parseInt(b, 10);
+      });
+
+      for (const yFile of yTiles) {
+        const tilePath = path.join(txDir, yFile);
+        const ty = parseInt(yFile, 10);
+        try {
+          const tileImage = await Jimp.read(tilePath);
+          tilesRead++;
+          // M6: 実コンテンツ境界をタイル実寸から記録
+          contentWidth = Math.max(contentWidth, tx * 256 + tileImage.width);
+          contentHeight = Math.max(contentHeight, ty * 256 + tileImage.height);
+          canvas.composite(tileImage, tx * 256, ty * 256);
+        } catch {
+          // タイル読み込み失敗は白背景のまま残す
+        }
+      }
+    }
+
+    if (tilesRead === 0) throw new Error('no zoom2 tiles could be read');
+
+    // M6: crop はタイル実寸から導出したコンテンツ領域（contentWidth x contentHeight）へ行う。
+    // data_json の width/height に依存しないため、legacy データの寸法不一致でも正しく白帯を除去できる。
+    const cropW = Math.min(canvas.width, contentWidth);
+    const cropH = Math.min(canvas.height, contentHeight);
+    if (cropW > 0 && cropH > 0 && (cropW < canvas.width || cropH < canvas.height)) {
+      canvas.crop({ x: 0, y: 0, w: cropW, h: cropH });
+    }
+
+    // 長辺512pxへ縮小
+    const longSide = Math.max(canvas.width, canvas.height);
+    if (longSide > 512) {
+      const scale = 512 / longSide;
+      canvas.resize({
+        w: Math.max(1, Math.round(canvas.width * scale)),
+        h: Math.max(1, Math.round(canvas.height * scale)),
+      });
+    }
+
+    // tmbs/{uid}_512.jpg へ保存
+    await fs.ensureDir(thumbFolder);
+    const dest = path.join(thumbFolder, `${uid}_512.jpg`);
+    await canvas.write(dest as `${string}.${string}`);
+  }
   // maps/appsへの書き込み(経路を問わず)でトリガが発火し、JSトークナイザで
   // 分かち書きした全文索引とbbox索引が同一トランザクション内で更新される。
   // raw には slug も含める(slug rename は行UPDATEなのでトリガで索引が追随する)。

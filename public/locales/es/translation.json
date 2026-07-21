@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "Filtrando por extensión GCP",
     "range_filter_manual_active": "Filtrando por región manual",
     "range_filter_none": "Filtrar por región",
-    "basemap_settings_note": "Estos son ajustes de visualización del editor, no contenido del mapa."
+    "basemap_settings_note": "Estos son ajustes de visualización del editor, no contenido del mapa.",
+    "thumbnail_manage": "Gestión de miniaturas",
+    "thumbnail_derive_52": "Crear también 52px desde 512px",
+    "thumbnail_replace_512": "Reemplazar 512px…",
+    "thumbnail_replace_52": "Reemplazar 52px…"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
@@ -378,7 +382,9 @@
     "migration_failed": "Error en la migración al nuevo formato de base de datos.",
     "migration_report_title": "Informe de migración de datos",
     "migration_report_renamed": "Se cambiaron los siguientes ID para resolver conflictos de ID.",
-    "migration_report_warnings": "Hay {{count}} advertencia(s). Consulte migration-report-v2.json en la carpeta de datos para más detalles."
+    "migration_report_warnings": "Hay {{count}} advertencia(s). Consulte migration-report-v2.json en la carpeta de datos para más detalles.",
+    "migrating_thumbnails_512": "Generando miniaturas de 512px",
+    "migrating_thumbnails_512_done": "Generación de miniaturas de 512px completada"
   },
   "applist": {
     "not_implement": "Aún no implementado",

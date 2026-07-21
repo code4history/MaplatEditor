@@ -340,7 +340,11 @@
     "range_filter_gcp_active": "Filtering by GCP extent",
     "range_filter_manual_active": "Filtering by manual region",
     "range_filter_none": "Filter by region",
-    "basemap_settings_note": "These are editor display settings, not map content."
+    "basemap_settings_note": "These are editor display settings, not map content.",
+    "thumbnail_manage": "Thumbnail management",
+    "thumbnail_derive_52": "Also create 52px from 512px",
+    "thumbnail_replace_512": "Replace 512px…",
+    "thumbnail_replace_52": "Replace 52px…"
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -369,7 +373,9 @@
     "migration_failed": "Migration to the new database format failed.",
     "migration_report_title": "Data migration report",
     "migration_report_renamed": "The following IDs were renamed to resolve ID conflicts.",
-    "migration_report_warnings": "There are {{count}} warning(s). See migration-report-v2.json in the data folder for details."
+    "migration_report_warnings": "There are {{count}} warning(s). See migration-report-v2.json in the data folder for details.",
+    "migrating_thumbnails_512": "Generating 512px thumbnails",
+    "migrating_thumbnails_512_done": "512px thumbnail generation complete"
   },
   "applist": {
     "not_implement": "Not implemented yet",

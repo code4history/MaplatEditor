@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "Filtern nach GCP-Ausdehnung",
     "range_filter_manual_active": "Filtern nach manueller Region",
     "range_filter_none": "Nach Region filtern",
-    "basemap_settings_note": "Dies sind Editor-Anzeigeeinstellungen, kein Karteninhalt."
+    "basemap_settings_note": "Dies sind Editor-Anzeigeeinstellungen, kein Karteninhalt.",
+    "thumbnail_manage": "Thumbnail-Verwaltung",
+    "thumbnail_derive_52": "52px auch aus 512px erstellen",
+    "thumbnail_replace_512": "512px ersetzen…",
+    "thumbnail_replace_52": "52px ersetzen…"
   },
   "mapupload": {
     "map_image": "Kartenbild",
@@ -378,7 +382,9 @@
     "migration_failed": "Die Migration zum neuen Datenbankformat ist fehlgeschlagen.",
     "migration_report_title": "Datenmigrationsbericht",
     "migration_report_renamed": "Die folgenden IDs wurden umbenannt, um ID-Konflikte zu beheben.",
-    "migration_report_warnings": "Es liegen {{count}} Warnung(en) vor. Details finden Sie in der Datei migration-report-v2.json im Datenordner."
+    "migration_report_warnings": "Es liegen {{count}} Warnung(en) vor. Details finden Sie in der Datei migration-report-v2.json im Datenordner.",
+    "migrating_thumbnails_512": "512px-Thumbnails werden generiert",
+    "migrating_thumbnails_512_done": "512px-Thumbnail-Generierung abgeschlossen"
   },
   "applist": {
     "not_implement": "Noch nicht implementiert",

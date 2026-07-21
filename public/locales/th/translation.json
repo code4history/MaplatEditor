@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "กรองตามขอบเขต GCP",
     "range_filter_manual_active": "กรองตามพื้นที่กำหนดเอง",
     "range_filter_none": "กรองตามพื้นที่",
-    "basemap_settings_note": "เหล่านี้เป็นการตั้งค่าการแสดงผลของตัวแก้ไข ไม่ใช่เนื้อหาแผนที่"
+    "basemap_settings_note": "เหล่านี้เป็นการตั้งค่าการแสดงผลของตัวแก้ไข ไม่ใช่เนื้อหาแผนที่",
+    "thumbnail_manage": "จัดการภาพย่อ",
+    "thumbnail_derive_52": "สร้าง 52px จาก 512px ด้วย",
+    "thumbnail_replace_512": "แทนที่ 512px…",
+    "thumbnail_replace_52": "แทนที่ 52px…"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",
@@ -378,7 +382,9 @@
     "migration_failed": "การย้ายไปยังรูปแบบฐานข้อมูลใหม่ล้มเหลว",
     "migration_report_title": "รายงานการย้ายข้อมูล",
     "migration_report_renamed": "มีการเปลี่ยน ID ต่อไปนี้เพื่อแก้ไขความซ้ำซ้อนของ ID",
-    "migration_report_warnings": "มีคำเตือน {{count}} รายการ โปรดดูรายละเอียดใน migration-report-v2.json ในโฟลเดอร์ข้อมูล"
+    "migration_report_warnings": "มีคำเตือน {{count}} รายการ โปรดดูรายละเอียดใน migration-report-v2.json ในโฟลเดอร์ข้อมูล",
+    "migrating_thumbnails_512": "กำลังสร้างภาพย่อ 512px",
+    "migrating_thumbnails_512_done": "สร้างภาพย่อ 512px เสร็จสิ้น"
   },
   "applist": {
     "not_implement": "ยังไม่รองรับ",

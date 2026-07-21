@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "Menyaring berdasarkan cakupan GCP",
     "range_filter_manual_active": "Menyaring berdasarkan wilayah manual",
     "range_filter_none": "Saring berdasarkan wilayah",
-    "basemap_settings_note": "Ini adalah pengaturan tampilan editor, bukan konten peta."
+    "basemap_settings_note": "Ini adalah pengaturan tampilan editor, bukan konten peta.",
+    "thumbnail_manage": "Manajemen thumbnail",
+    "thumbnail_derive_52": "Buat juga 52px dari 512px",
+    "thumbnail_replace_512": "Ganti 512px…",
+    "thumbnail_replace_52": "Ganti 52px…"
   },
   "mapupload": {
     "map_image": "Gambar peta",
@@ -378,7 +382,9 @@
     "migration_failed": "Migrasi ke format basis data baru gagal.",
     "migration_report_title": "Laporan migrasi data",
     "migration_report_renamed": "ID berikut telah diubah untuk mengatasi konflik ID.",
-    "migration_report_warnings": "Ada {{count}} peringatan. Lihat migration-report-v2.json di folder data untuk detailnya."
+    "migration_report_warnings": "Ada {{count}} peringatan. Lihat migration-report-v2.json di folder data untuk detailnya.",
+    "migrating_thumbnails_512": "Membuat thumbnail 512px",
+    "migrating_thumbnails_512_done": "Pembuatan thumbnail 512px selesai"
   },
   "applist": {
     "not_implement": "Belum diimplementasikan",

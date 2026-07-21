@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "Đang lọc theo phạm vi GCP",
     "range_filter_manual_active": "Đang lọc theo khu vực thủ công",
     "range_filter_none": "Lọc theo khu vực",
-    "basemap_settings_note": "Đây là cài đặt hiển thị của trình chỉnh sửa, không phải nội dung bản đồ."
+    "basemap_settings_note": "Đây là cài đặt hiển thị của trình chỉnh sửa, không phải nội dung bản đồ.",
+    "thumbnail_manage": "Quản lý ảnh thu nhỏ",
+    "thumbnail_derive_52": "Tạo cả 52px từ 512px",
+    "thumbnail_replace_512": "Thay thế 512px…",
+    "thumbnail_replace_52": "Thay thế 52px…"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
@@ -378,7 +382,9 @@
     "migration_failed": "Di chuyển sang định dạng cơ sở dữ liệu mới thất bại.",
     "migration_report_title": "Báo cáo di chuyển dữ liệu",
     "migration_report_renamed": "Các ID sau đã được đổi tên để giải quyết xung đột ID.",
-    "migration_report_warnings": "Có {{count}} cảnh báo. Xem chi tiết trong migration-report-v2.json ở thư mục dữ liệu."
+    "migration_report_warnings": "Có {{count}} cảnh báo. Xem chi tiết trong migration-report-v2.json ở thư mục dữ liệu.",
+    "migrating_thumbnails_512": "Đang tạo ảnh thu nhỏ 512px",
+    "migrating_thumbnails_512_done": "Tạo ảnh thu nhỏ 512px hoàn tất"
   },
   "applist": {
     "not_implement": "Chưa triển khai",

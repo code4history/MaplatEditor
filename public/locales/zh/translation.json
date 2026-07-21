@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "正在按GCP范围筛选",
     "range_filter_manual_active": "正在按手动设置范围筛选",
     "range_filter_none": "按区域筛选",
-    "basemap_settings_note": "这些是编辑器显示设置，而不是地图内容。"
+    "basemap_settings_note": "这些是编辑器显示设置，而不是地图内容。",
+    "thumbnail_manage": "缩略图管理",
+    "thumbnail_derive_52": "同时从512px创建52px",
+    "thumbnail_replace_512": "替换512px…",
+    "thumbnail_replace_52": "替换52px…"
   },
   "mapupload": {
     "map_image": "地图图像",
@@ -378,7 +382,9 @@
     "migration_failed": "向新型数据库格式的迁移失败。",
     "migration_report_title": "数据迁移报告",
     "migration_report_renamed": "为解决 ID 冲突，已更改以下 ID。",
-    "migration_report_warnings": "有 {{count}} 条警告。详情请查看数据文件夹中的 migration-report-v2.json。"
+    "migration_report_warnings": "有 {{count}} 条警告。详情请查看数据文件夹中的 migration-report-v2.json。",
+    "migrating_thumbnails_512": "正在生成512px缩略图",
+    "migrating_thumbnails_512_done": "512px缩略图生成完成"
   },
   "applist": {
     "not_implement": "未实现",

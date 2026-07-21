@@ -287,6 +287,11 @@ class AppExportService {
         if (fs.existsSync(thumb)) {
           await fs.copy(thumb, path.join(outDir, 'tmbs', `${slug}.jpg`));
         }
+        // M12-T15 (G): 512px サムネイルも package に同梱する（tmbs/{uid}_512.jpg → tmbs/{slug}_512.jpg）
+        const thumb512 = path.join(this.saveFolder, 'tmbs', `${mapDoc.uid}_512.jpg`);
+        if (fs.existsSync(thumb512)) {
+          await fs.copy(thumb512, path.join(outDir, 'tmbs', `${slug}_512.jpg`));
+        }
       }
 
       // 3) TMSソースのサムネイル
@@ -302,6 +307,14 @@ class AppExportService {
             await fs.copy(from, path.join(outDir, thumbnail));
           } else {
             warnings.push('appedit.export.missing_thumbnail');
+          }
+          // M12-T15 (G): ユーザー basemap の 512px も同梱する（tmbs/{mapID}_512.png → 同じ相対パス）
+          const thumbnail512 = thumbnail.replace(/^(tmbs\/.+?)\.([a-z]+)$/i, '$1_512.$2');
+          if (thumbnail512 !== thumbnail && thumbnail512.startsWith('tmbs/')) {
+            const from512 = path.join(this.saveFolder, thumbnail512);
+            if (fs.existsSync(from512)) {
+              await fs.copy(from512, path.join(outDir, thumbnail512));
+            }
           }
         } else if (thumbnail.startsWith('basemap_icons/')) {
           const from = resolveResourceAsset(thumbnail);

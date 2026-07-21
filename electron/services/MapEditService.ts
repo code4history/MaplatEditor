@@ -314,6 +314,13 @@ class MapEditService {
                 if (await fs.pathExists(tmpThumb)) {
                     await fs.move(tmpThumb, newThumbnail);
                 }
+                // M12-T15 R3: thumbnail_512.jpg を tmbs/{uid}_512.jpg へ移動
+                const tmpThumb512 = path.join(newTile, 'thumbnail_512.jpg');
+                const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
+                try { await fs.remove(newThumbnail512); } catch { /* noop */ }
+                if (await fs.pathExists(tmpThumb512)) {
+                    await fs.move(tmpThumb512, newThumbnail512);
+                }
                 // 改名時: 原本(slugキー)の旧ファイルを掃除(新ファイルはtmpから移動済み)
                 if (renamedFromSlug && renamedFromSlug !== slug) {
                     try { await fs.remove(path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`)); } catch { /* noop */ }
@@ -326,6 +333,10 @@ class MapEditService {
                 if (await fs.pathExists(oldTile)) await fs.copy(oldTile, newTile);
                 if (await fs.pathExists(oldOriginal)) await fs.copy(oldOriginal, newOriginal);
                 if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);
+                // M12-T15 (Fix-3): 複製元の 512px サムネイルも複製する（複製地図が 512px を持てない問題の修正）
+                const oldThumbnail512 = path.join(thumbFolder, `${copySourceUid}_512.jpg`);
+                const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
+                if (await fs.pathExists(oldThumbnail512)) await fs.copy(oldThumbnail512, newThumbnail512);
             } else if (renamedFromSlug && renamedFromSlug !== slug) {
                 // 改名: tiles/tmbsはuidキーのため移動不要。原本(slugキー)のみ改名。
                 // 再試行でも安全なように「移動先が無く移動元がある」場合のみ移動する

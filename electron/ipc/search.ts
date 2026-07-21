@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import SqliteDataService from '../services/SqliteDataService';
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from '../utils/searchSpatial';
 import { wgs84BboxToMercator } from '../utils/webMercator';
-import { resolveAppListImage, resolveBaseMapListImage, resolveMapListImage } from '../services/resourceImageResolver';
+import { resolveAppListImage, resolveBaseMapListImage, resolveMapListImage512 } from '../services/resourceImageResolver';
 
 function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[]; total: number; prev?: number; next?: number } {
   if (pageSize <= 0) {
@@ -48,9 +48,9 @@ export function registerSearchHandlers() {
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'map');
       const filtered = filterDocsByExtentSlugs(docs, extentSlugs, (doc) => doc._id);
-      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveMapListImage);
+      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveMapListImage512);
     }
-    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveMapListImage);
+    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveMapListImage512);
   });
 
   ipcMain.handle('search:apps', async (_event, filter: SearchFilter) => {

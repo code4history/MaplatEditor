@@ -349,7 +349,11 @@
     "range_filter_gcp_active": "Filtrage par étendue GCP",
     "range_filter_manual_active": "Filtrage par région manuelle",
     "range_filter_none": "Filtrer par région",
-    "basemap_settings_note": "Ce sont des paramètres d’affichage de l’éditeur, pas le contenu de la carte."
+    "basemap_settings_note": "Ce sont des paramètres d’affichage de l’éditeur, pas le contenu de la carte.",
+    "thumbnail_manage": "Gestion des vignettes",
+    "thumbnail_derive_52": "Créer aussi le 52px depuis le 512px",
+    "thumbnail_replace_512": "Remplacer le 512px…",
+    "thumbnail_replace_52": "Remplacer le 52px…"
   },
   "mapupload": {
     "map_image": "Image de la carte",
@@ -378,7 +382,9 @@
     "migration_failed": "La migration vers le nouveau format de base de données a échoué.",
     "migration_report_title": "Rapport de migration des données",
     "migration_report_renamed": "Les ID suivants ont été renommés afin de résoudre des conflits d'ID.",
-    "migration_report_warnings": "Il y a {{count}} avertissement(s). Consultez migration-report-v2.json dans le dossier de données pour plus de détails."
+    "migration_report_warnings": "Il y a {{count}} avertissement(s). Consultez migration-report-v2.json dans le dossier de données pour plus de détails.",
+    "migrating_thumbnails_512": "Génération des vignettes 512px",
+    "migrating_thumbnails_512_done": "Génération des vignettes 512px terminée"
   },
   "applist": {
     "not_implement": "Pas encore implémenté",
