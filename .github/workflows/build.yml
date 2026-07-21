@@ -2,8 +2,8 @@ name: Build and Release
 
 on:
   # master プッシュ時に自動実行
-  # glm52: リリース前サンプル版のコンパイル用（署名・公証・Release 作成は master 条件のままスキップされ、
-  #        成果物は Actions の artifacts からダウンロードする）
+  # glm52: リリース前サンプル版のコンパイル用。署名・公証は secrets が設定されていれば master 同様に実施
+  #        （未設定なら安全にスキップ）。Release 作成のみ master 限定。成果物は Actions の artifacts から取得
   push:
     branches: [master, glm52]
   # 手動実行（ブランチ問わず起動可能、署名は行わない）
@@ -55,7 +55,7 @@ jobs:
       # master プッシュ時のみ実行（Secret 未設定の場合はスクリプト内でスキップ）
       # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する
       - name: Import Apple Developer certificate
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/glm52'
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
@@ -81,7 +81,7 @@ jobs:
       # 公証環境変数のセット（master かつ APPLE_ID が設定されている場合のみ）
       # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
       - name: Set macOS notarization environment
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/glm52'
         shell: bash
         env:
           _APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -134,7 +134,7 @@ jobs:
       # 署名環境変数のセット（master かつ WIN_CSC_LINK が設定されている場合のみ）
       # ※ 空文字を env: に渡すと electron-builder がパスとして解釈して誤動作するため $GITHUB_ENV 経由で設定
       - name: Set Windows code signing environment
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/glm52'
         shell: bash
         env:
           _WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
