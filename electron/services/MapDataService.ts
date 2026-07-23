@@ -4,6 +4,7 @@ import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import SearchDataService, { type MapListResult } from './SearchDataService';
 import { resolveMapListImage } from './resourceImageResolver';
+import MapMutationQueue from './MapMutationQueue';
 
 class MapDataService {
   private get folders() {
@@ -78,32 +79,39 @@ class MapDataService {
 
   // uid正準の削除 (ADR-0007)。参照解決は findMapByRef に一本化
   // (UUID形状はuid優先、旧slugリンク経由の呼び出しにはslugフォールバックで応える)
+  // M13-T2 (§5.6): 他の save/rename/clone/migration と直列化するため per-map queue でラップ
+  // する。中身のロジックは無変更 (trash lifecycle 化は T4)。uid 解決不能時は queue 対象と
+  // なる既存 map identity が無いため、queue なしで従来どおり実行する
   async deleteMap(uidOrMapID: string): Promise<void> {
     const doc = await SqliteDataService.findMapByRef(uidOrMapID);
     const fileKey = doc?.uid || uidOrMapID;
-    const slug = doc?.slug || uidOrMapID;
-    if (doc) await SqliteDataService.deleteMap(doc.uid);
-    const { tileFolder, uiThumbnailFolder, originalFolder } = this.folders;
+    if (!fileKey) return;
+    const run = async (): Promise<void> => {
+      const slug = doc?.slug || uidOrMapID;
+      if (doc) await SqliteDataService.deleteMap(doc.uid);
+      const { tileFolder, uiThumbnailFolder, originalFolder } = this.folders;
 
-    const tileDir = path.join(tileFolder, fileKey);
-    if (fs.existsSync(tileDir)) {
-      await fs.remove(tileDir);
-    }
+      const tileDir = path.join(tileFolder, fileKey);
+      if (fs.existsSync(tileDir)) {
+        await fs.remove(tileDir);
+      }
 
-    const thumbFile = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
-    if (fs.existsSync(thumbFile)) {
-      await fs.remove(thumbFile);
-    }
+      const thumbFile = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
+      if (fs.existsSync(thumbFile)) {
+        await fs.remove(thumbFile);
+      }
 
-    // 原本(originals)はslugキーのファイル名 (ADR-0007)
-    if (fs.existsSync(originalFolder)) {
-      const files = await fs.readdir(originalFolder);
-      for (const file of files) {
-        if (new RegExp(`^${slug}\\.`).test(file)) {
-          await fs.remove(path.join(originalFolder, file));
+      // 原本(originals)はslugキーのファイル名 (ADR-0007)
+      if (fs.existsSync(originalFolder)) {
+        const files = await fs.readdir(originalFolder);
+        for (const file of files) {
+          if (new RegExp(`^${slug}\\.`).test(file)) {
+            await fs.remove(path.join(originalFolder, file));
+          }
         }
       }
-    }
+    };
+    return MapMutationQueue.run(fileKey, 'map-delete', run);
   }
 
   async generateThumbnail(from: string, to: string) {
