@@ -177,6 +177,11 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
             // 保存レースで slug を先取りされた(field 表示は SlugField が担う)。
             // M11-T7/AC8: operation 診断へ(旧 info ダイアログ撤去)
             saveOperationError.value = t('mapedit.error_duplicate_id');
+        } else if ('errorKey' in result && result.errorKey) {
+            // M13-T2 (§5.3/§7, レビュー v1 Minor 5): originals 未対応拡張子など、main 側が
+            // 契約した errorKey を優先して専用メッセージを表示する(DB未到達の reject はこの分岐)
+            console.error('[saveMap] Save error:', result);
+            saveOperationError.value = t(result.errorKey);
         } else {
             // DBコミット後のファイル操作失敗 (Error{revision付き}, ADR-0007) は composable が
             // uid/revision/confirmedSlug を取り込み済み(偽のrevision-conflict防止)。ここでは通知のみ。
@@ -3297,7 +3302,9 @@ const wmtsGenerate = async () => {
     });
     try {
         // 旧実装: window.wmtsGen.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtension, vueMap.mainLayerHash)
+        // M13-T2 (§5.4): uid を先頭引数に追加 (canonical-first runtime read に必要)
         const arg = await (window as any).wmtsGen.generate(
+            mapData.value.uid,
             mapData.value.mapID,
             mapData.value.width,
             mapData.value.height,

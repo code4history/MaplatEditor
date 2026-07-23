@@ -329,6 +329,9 @@
     "success_save": "正常に保存できました。",
     "error_duplicate_id": "スラッグ (ID) が重複しています。\n別のスラッグ (ID) に変更してください。",
     "error_saving": "保存時エラーが発生しました。",
+    "originals": {
+      "unsupported_extension": "対応していない画像形式です(jpg/jpeg/pngのみ利用できます)。別の画像形式で保存し直してください。"
+    },
     "confirm_layer_delete": "本当にこのサブレイヤを削除してよろしいですか?",
     "confirm_no_save": "地図に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?",
     "testerror_too_short": "変換テストに必要な対応点の数が少なすぎます。",

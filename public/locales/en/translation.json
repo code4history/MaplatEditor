@@ -320,6 +320,9 @@
     "success_save": "Save succeeded.",
     "error_duplicate_id": "The slug (ID) is already in use.\nPlease change the slug (ID).",
     "error_saving": "Error occurred during save.",
+    "originals": {
+      "unsupported_extension": "Unsupported image format (only jpg/jpeg/png are supported). Please save again with a different image format."
+    },
     "confirm_layer_delete": "Are you sure you want to delete this sublayer?",
     "confirm_no_save": "The map data has been changed but not saved.\nAre you sure you want to close without saving?",
     "testerror_too_short": "Too few GCPs for projection test.",

@@ -83,8 +83,10 @@ export type MapSaveResult =
     | { result: 'Success'; uid: string; slug: string; revision: number }
     | { result: 'Exist' }
     // uid/slug/revision付きのErrorは「DBコミット済み・ファイル操作のみ失敗」。
-    // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)
-    | { result: 'Error'; uid?: string; slug?: string; revision?: number }
+    // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)。
+    // errorKey は additive (M13-T2 §5.3/§7): DBに未到達の reject (例: originals 未対応拡張子)
+    // では uid/slug/revision を伴わず errorKey のみを返す
+    | { result: 'Error'; uid?: string; slug?: string; revision?: number; errorKey?: string }
     | { error: 'revision-conflict'; current: number };
 
 export interface AssetsAPI {
