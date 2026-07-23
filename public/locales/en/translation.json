@@ -378,7 +378,9 @@
     "migration_report_renamed": "The following IDs were renamed to resolve ID conflicts.",
     "migration_report_warnings": "There are {{count}} warning(s). See migration-report-v2.json in the data folder for details.",
     "migrating_thumbnails_512": "Generating 512px thumbnails",
-    "migrating_thumbnails_512_done": "512px thumbnail generation complete"
+    "migrating_thumbnails_512_done": "512px thumbnail generation complete",
+    "migrating_originals": "Migrating original files to UUID filenames",
+    "migrating_originals_done": "Original file migration complete"
   },
   "applist": {
     "not_implement": "Not implemented yet",

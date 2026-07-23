@@ -29,6 +29,7 @@ import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from '
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { createResettableSingleFlight } from './ResettableSingleFlight';
 import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
+import { runColdBoot } from './OriginalsMigrationService';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -875,6 +876,19 @@ class SqliteDataService {
     await this.migrateBaseMapIconPaths(db);
     // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
     await this.runThumbnail512MiningIfNeeded(db);
+
+    // M13-T3: slug originals -> UUID originals の one-shot migration/report。
+    // v1.1 (レビュー v1 Major 2c): runColdBoot(db) 呼び出し全体を try/catch で防御する。
+    // OriginalsMigrationService.runInternal() は per-map I/O 失敗を 'copy_failed' entry として
+    // 記録し継続する設計だが(§5.1)、それでも予期しない例外(db.prepare() 自体の失敗等、DB破損に
+    // 近い異常系)が漏れ出す可能性をゼロにはできないため、ここでも二重に防御する。
+    // migrate() はいかなる場合も originals migration の失敗によって失敗してはならない
+    // (= getDb() のアプリ起動をブロックしてはならない)契約とする。
+    try {
+      await runColdBoot(db); // OriginalsMigrationService からimport。db を直接渡す(getDb()再入は禁止、§4.1)
+    } catch (e) {
+      console.error('[SqliteDataService] originals UUID migration failed unexpectedly; continuing DB initialization without it', e);
+    }
   }
 
   private applyBaseMapLanguageMigration(db: DatabaseSync): void {
