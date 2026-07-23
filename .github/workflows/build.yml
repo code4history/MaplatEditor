@@ -1,13 +1,20 @@
 name: Build and Release
 
 on:
-  # master プッシュ時に自動実行
-  # glm52: リリース前サンプル版のコンパイル用。署名・公証は secrets が設定されていれば master 同様に実施
-  #        （未設定なら安全にスキップ）。Release 作成のみ master 限定。成果物は Actions の artifacts から取得
+  # 署名ポリシー（Windows の eSigner は署名ごとに課金されるため、公証・リリースは明示的な手動操作に限定）:
+  #   glm52 push  : ビルドのみ（署名・公証なし）
+  #   master push : Mac は署名のみ（公証なし。テスター配布用に xattr 不要のバイナリを作る）、Win は署名なし
+  #   手動実行     : ブランチ問わず起動可能。通常は署名なしビルド。
+  #                 「release」チェックを入れると Mac 署名+公証 / Win eSigner 署名 / draft Release 作成
+  #                 を行うリリースビルドになる（master ブランチ限定。他ブランチではエラー停止）
   push:
     branches: [master, glm52]
-  # 手動実行（ブランチ問わず起動可能、署名は行わない）
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'リリースビルド（Mac 公証 + Win 署名 + Release 作成。eSigner の署名回数を消費。master 限定）'
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # GitHub Release 作成に必要
@@ -21,6 +28,13 @@ jobs:
     outputs:
       version: ${{ steps.ver.outputs.version }}
     steps:
+      # リリースビルドは master 限定（署名回数の浪費と誤リリースを防ぐ）
+      - name: Guard release trigger
+        if: github.event_name == 'workflow_dispatch' && inputs.release && github.ref != 'refs/heads/master'
+        run: |
+          echo "::error::リリースビルド（release=true）は master ブランチでのみ実行できます。"
+          exit 1
+
       - uses: actions/checkout@v4
       - name: Get version from package.json
         id: ver
@@ -51,11 +65,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Developer ID 証明書のインポート
-      # master プッシュ時のみ実行（Secret 未設定の場合はスクリプト内でスキップ）
+      # Developer ID 証明書のインポート（Mac 署名は master push とリリースビルドの両方で行う）
+      # インポート成功時に MAC_SIGN=true を設定 → electron-builder が Hardened Runtime 付き署名を行う
+      # （Secret 未設定の場合はスクリプト内でスキップ）
       # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する
       - name: Import Apple Developer certificate
-        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/glm52'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'workflow_dispatch' && inputs.release)
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
@@ -77,11 +92,12 @@ jobs:
             -S apple-tool:,apple:,codesign: \
             -s -k "$KEYCHAIN_PASSWORD" build.keychain
           rm certificate.p12
+          echo "MAC_SIGN=true" >> $GITHUB_ENV
 
-      # 公証環境変数のセット（master かつ APPLE_ID が設定されている場合のみ）
+      # 公証環境変数のセット（リリースビルドのみ。master push では公証しない＝時間短縮）
       # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
       - name: Set macOS notarization environment
-        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/glm52'
+        if: github.event_name == 'workflow_dispatch' && inputs.release
         shell: bash
         env:
           _APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -131,10 +147,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # 署名環境変数のセット（master かつ WIN_CSC_LINK が設定されている場合のみ）
+      # 署名環境変数のセット（リリースビルドのみ。eSigner の署名回数を消費するため master push でも署名しない）
       # ※ 空文字を env: に渡すと electron-builder がパスとして解釈して誤動作するため $GITHUB_ENV 経由で設定
       - name: Set Windows code signing environment
-        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/glm52'
+        if: github.event_name == 'workflow_dispatch' && inputs.release
         shell: bash
         env:
           _WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
@@ -196,11 +212,11 @@ jobs:
             release/${{ env.VERSION }}/latest-linux.yml
 
   # ─────────────────────────────────────────────
-  # GitHub Release 作成（master プッシュ時のみ）
+  # GitHub Release 作成（手動リリースビルドのみ。master 限定は prepare の Guard で担保）
   # ─────────────────────────────────────────────
   release:
     needs: [prepare, build-mac, build-win, build-linux]
-    if: github.ref == 'refs/heads/master'
+    if: github.event_name == 'workflow_dispatch' && inputs.release
     runs-on: ubuntu-latest
     steps:
       - name: Download all build artifacts

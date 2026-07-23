@@ -1,15 +1,16 @@
 // electron-builder 設定ファイル
 //
 // 署名の判定ロジック:
-//   macOS: APPLE_ID 環境変数が設定されている場合のみ Hardened Runtime・公証を有効化
+//   macOS 署名のみ: MAC_SIGN=true で Hardened Runtime 付き署名（公証なし。テスター配布用）
+//   macOS 署名+公証: APPLE_ID 環境変数が設定されている場合（リリース用）
 //   Windows: WIN_CSC_LINK または CSC_LINK が設定されている場合のみ署名
 //
-// ローカルビルド: .env ファイルに APPLE_ID 等を記載すれば署名される
-// CI (master): GitHub Secrets が設定されていれば署名、未設定なら署名なし
-// CI (branch/手動): 環境変数を渡さないため署名なし
+// ローカルビルド: .env ファイルに APPLE_ID 等を記載すれば署名+公証される
+// CI: build.yml がトリガー種別に応じて環境変数を出し分ける（詳細は build.yml 冒頭コメント）
 
-// macOS: APPLE_ID が設定されていれば署名・公証を行う
-const isMacSigning = !!process.env.APPLE_ID;
+// macOS: 署名（Hardened Runtime）は「署名のみ」「署名+公証」のどちらでも有効化
+const isMacNotarize = !!process.env.APPLE_ID;
+const isMacSigning = isMacNotarize || process.env.MAC_SIGN === 'true';
 
 // Windows: WIN_CSC_LINK または CSC_LINK が設定されていれば署名
 const isWinSigning = !!process.env.WIN_CSC_LINK || !!process.env.CSC_LINK;
@@ -41,7 +42,7 @@ const config = {
         }),
     },
     // 公証: APPLE_ID が設定されている場合のみ実行（スクリプト内でも再確認）
-    afterSign: isMacSigning ? 'scripts/notarize/notarize.cjs' : undefined,
+    afterSign: isMacNotarize ? 'scripts/notarize/notarize.cjs' : undefined,
 
     dmg: {
         artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
