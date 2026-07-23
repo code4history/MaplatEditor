@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { session } from 'electron';
 import SettingsService from './SettingsService';
 import MapEditService from './MapEditService';
+import MapPurposeService from './MapPurposeService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset, isUnderFolder } from '../utils/resourceAssets';
 import { normalizeJsonArray } from '../utils/jsonArray';
@@ -88,6 +89,12 @@ class AppPreviewService {
   };
 
   async prepare(document: any): Promise<{ url: string; port: number; warnings: string[] }> {
+    // M13-T1 (§2.7): strict_error / missing map を含む maplat 参照はプレビュー起動を拒否する
+    // (AC-T1-2)。ensureServer() (サーバー起動) / purgePreviewStorage() (ストレージ削除)
+    // という副作用が始まる前に判定する
+    await MapPurposeService.assertViewerRuntimeAllowed(
+      MapPurposeService.collectMaplatMapRefs(document), 'app-preview'
+    );
     await this.ensureServer(Number(document.httpSettings?.previewPort || 0) || undefined);
     await this.purgePreviewStorage();
     const token = `${sanitizeId(document.appID || 'preview')}-${Date.now().toString(36)}`;

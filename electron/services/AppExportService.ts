@@ -6,6 +6,7 @@ import { app, dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
+import MapPurposeService from './MapPurposeService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import { packIco } from '../utils/icoPack';
@@ -149,6 +150,16 @@ class AppExportService {
     const appID = String(document?.appID || '').trim();
     if (!appID) return { result: 'Error', warnings, message: 'appedit.no_appid' };
 
+    // M13-T1 (§2.7): pre-dialog revalidation。strict_error / missing map を含む maplat 参照は
+    // dialog を開く前に拒否する (AC-T1-2)
+    try {
+      await MapPurposeService.assertViewerRuntimeAllowed(
+        MapPurposeService.collectMaplatMapRefs(document), 'app-export'
+      );
+    } catch (e: any) {
+      return { result: 'Error', warnings, message: e?.message || 'appedit.preview.strict_error' };
+    }
+
     // 地図ダウンロード(mapedit:download)と同じ流儀で zip 保存先を選ぶ (Phase 8 Task 6)。
     // 上書き確認は showSaveDialog のネイティブ確認に任せる(旧フォルダ出力の独自確認は廃止)
     const picked = await dialog.showSaveDialog(win, {
@@ -173,6 +184,13 @@ class AppExportService {
     let reporter: ProgressReporter | undefined;
 
     try {
+      // M13-T1 (§2.7): post-dialog revalidation。dialog 待ち中の strict flip / delete を
+      // pre-dialog の古い判定のまま通さないよう再判定する (AC-T1-3)。outDir/tmpZipPath は
+      // 失敗時も finally で確実に削除される
+      await MapPurposeService.assertViewerRuntimeAllowed(
+        MapPurposeService.collectMaplatMapRefs(document), 'app-export'
+      );
+
       // 0) maplatソースのuid参照を地図docへ解決 (ADR-0007)。旧保存形のslug参照も受容する。
       //    出力(maps/tiles/tmbs/アプリJSON内mapID)はすべてslug名で行う(viewer互換)
       const maplatDocs = new Map<AppSource, any>();

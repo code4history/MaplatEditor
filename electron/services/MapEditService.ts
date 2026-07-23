@@ -11,6 +11,18 @@ import Tin from '@maplat/tin';
 
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
+// M13-T1 (§2.4): MapDataService.ts の isPreviewDisabled/isStrictErrorCompiled と同一ロジックの
+// 3個目の重複実装を避けるため、モジュールレベルの export 関数へ昇格する。
+// クラス内の private メソッドは薄いラッパーとしてこれらを呼ぶ
+export function isStrictErrorCompiled(compiled: any): boolean {
+    return compiled?.strict_status === 'strict_error' || Boolean(compiled?.kinks_points);
+}
+
+export function hasStrictError(json: any): boolean {
+    if (isStrictErrorCompiled(json.compiled)) return true;
+    return Array.isArray(json.sub_maps) && json.sub_maps.some((subMap: any) => isStrictErrorCompiled(subMap.compiled));
+}
+
 class MapEditService {
     // uid正準の読み出し (ADR-0007)。旧保存形のslug参照への保険として
     // slugフォールバック付きの SqliteDataService.findMapByRef で解決する
@@ -41,16 +53,15 @@ class MapEditService {
         return res[0];
     }
 
-    async requestPreviewSource(uidOrMapID: string) {
+    // M13-T1 (§2.5): 既存ロジックをそのまま抽出（strict throw を含まない）。
+    // strict-free な読み出し (MapPurposeService.downloadSavedMap など) から再利用する
+    async buildPreviewSource(uidOrMapID: string) {
         const json = await SqliteDataService.findMapByRef(uidOrMapID);
 
         if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
         const previewJson = await this.ensurePreviewCompiled({ ...json });
-        if (this.hasStrictError(previewJson)) {
-            throw new Error('appedit.preview.strict_error');
-        }
-
+        // ↓ ここに従来の hasStrictError チェックは置かない
         const saveFolder = SettingsService.get('saveFolder');
         const tileFolder = path.join(saveFolder, "tiles");
         const thumbFolder = path.join(tileFolder, json.uid, "0", "0");
@@ -68,6 +79,15 @@ class MapEditService {
             height: store.height ?? previewJson.height ?? previewJson.compiled?.wh?.[1],
             url: store.url_ ?? previewJson.url,
         };
+    }
+
+    // 既存の外部契約(mapedit:preview-source)はこのまま維持
+    async requestPreviewSource(uidOrMapID: string) {
+        const previewJson = await this.buildPreviewSource(uidOrMapID);
+        if (hasStrictError(previewJson)) {
+            throw new Error('appedit.preview.strict_error');
+        }
+        return previewJson;
     }
 
     private async ensurePreviewCompiled(json: any) {
@@ -118,19 +138,10 @@ class MapEditService {
         tin.setEdges(edges || []);
         await tin.updateTinAsync();
         const compiled = tin.getCompiled();
-        if (this.isStrictErrorCompiled(compiled)) {
+        if (isStrictErrorCompiled(compiled)) {
             throw new Error('appedit.preview.strict_error');
         }
         return compiled;
-    }
-
-    private hasStrictError(json: any) {
-        if (this.isStrictErrorCompiled(json.compiled)) return true;
-        return Array.isArray(json.sub_maps) && json.sub_maps.some((subMap: any) => this.isStrictErrorCompiled(subMap.compiled));
-    }
-
-    private isStrictErrorCompiled(compiled: any) {
-        return compiled?.strict_status === 'strict_error' || Boolean(compiled?.kinks_points);
     }
 
     private async normalizeRequestData(json: any, thumbFolder: string) {

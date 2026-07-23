@@ -44,6 +44,9 @@ contextBridge.exposeInMainWorld('mapedit', {
     ipcRenderer.invoke('mapedit:checkExtentMap', extent),
   download: (mapObject: any, tins: any[]) =>
     ipcRenderer.invoke('mapedit:download', mapObject, tins),
+  // M13-T1 (§2.1/§2.2): 保存済み地図専用のstrict-free搬出。mapRefはuid優先、slugも受理
+  downloadSaved: (mapRef: string) =>
+    ipcRenderer.invoke('mapedit:download-saved', mapRef),
   uploadCsv: (csvRepl: string, csvUpSettings: any) =>
     ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings),
   getWmtsFolder: () =>

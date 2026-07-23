@@ -135,6 +135,33 @@ try {
       assert.equal((await AppDataService.requestApps('Himeji,historical', 1, 20)).docs.length, 1);
       assert.equal((await AppDataService.requestApps('Himeji Guide', 1, 20)).docs.length, 1);
 
+      // M13-T1 (§1.6/§2.7): legacy_app ケースを2ケースへ分割する。
+      // AC-T1-2 (missing map 拒否) の適用により、旧M5契約(孤児参照でも警告なしSuccess)は
+      // 「孤児参照 reject」+「legacy形フィールド正規化(地図実在)」の2ケースへ分かれる。
+
+      // ケース1: 孤児参照 reject (新規)。DB に存在しないことが明確な別slugを参照させ、
+      // saveApp が {result:'Error'} を返すことを assert する(M13契約の回帰テスト)。
+      // 保存失敗でレコードは作られないため、使用するapp slugは後続assertに影響しない
+      const orphanCreated = await AppDataService.saveApp({ slug: 'orphan_legacy_app', document: {
+        appID: 'orphan_legacy_app',
+        app_name: { ja: '孤児旧アプリ', en: 'Orphan Legacy App' },
+        title: { ja: '孤児旧アプリ', en: 'Orphan Legacy App' },
+        default_zoom: 16,
+        home_position: [140, 36],
+        start_from: 'orphan_legacy_map',
+        fake_gps: true,
+        fake_radius: 20,
+        sources: [{ mapID: 'orphan_legacy_map', maptype: 'maplat', setting_file: 'maps/orphan_legacy_map.json' }],
+      } });
+      assert.equal(orphanCreated.result, 'Error', '孤児 maplat 参照を持つ App の保存は拒否されるはず(AC-T1-2)');
+
+      // ケース2: legacy形フィールド正規化(既存意図を保存・書き換え)。legacy_map を事前に
+      // 実在させてから同一形状(legacy形)のドキュメントを保存する。guardは実在地図を通過するため
+      // Successになり、camelCase正規化assert群はそのまま実行できる。ただしstartFrom/mapUidは
+      // 地図が実在するためresolveMaplatSourceRefs()のuid追随によりcreateMap()のuidへ解決される
+      // (孤児フォールバックの期待値は成立しない)。app slugはlegacy_appを維持する(後続の
+      // rename-Exist assertがslug legacy_app実在に依存するため)
+      const { uid: legacyMapUid } = await SqliteDataService.createMap('legacy_map', { title: 'Legacy Map' });
       const legacyCreated = await AppDataService.saveApp({ slug: 'legacy_app', document: {
         appID: 'legacy_app',
         app_name: { ja: '旧アプリ', en: 'Legacy App' },
@@ -151,9 +178,11 @@ try {
       assert.equal(legacyLoaded.appName.ja, '旧アプリ');
       assert.equal(legacyLoaded.defaultZoom, 16);
       assert.deepEqual(legacyLoaded.homePosition, [140, 36]);
-      // 孤児参照(該当地図なし)のstartFrom/sourcesは旧slugのまま残る(warning-freeフォールバック)
-      assert.equal(legacyLoaded.startFrom, 'legacy_map');
-      assert.equal(legacyLoaded.sources[0].mapUid, undefined);
+      // 地図が実在するため、startFrom/sources[0].mapUidの両方がresolveMaplatSourceRefs()の
+      // uid追随によりcreateMap()のuidへ解決される(孤児フォールバックではない。demoケースの
+      // 127行 assert.equal(loaded.startFrom, histmapUid) と同一の既存契約パターン)
+      assert.equal(legacyLoaded.startFrom, legacyMapUid);
+      assert.equal(legacyLoaded.sources[0].mapUid, legacyMapUid);
       assert.equal(legacyLoaded.fakeGps, true);
       assert.equal(legacyLoaded.fakeRadius, 20);
       assert.equal(legacyLoaded.sources[0].settingFile, 'maps/legacy_map.json');

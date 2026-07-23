@@ -2,6 +2,7 @@ import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import SearchDataService, { type AppListResult } from './SearchDataService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { resolveAppListImage } from './resourceImageResolver';
+import MapPurposeService from './MapPurposeService';
 
 // uid正準の保存要求/結果 (ADR-0007)。uid無指定は新規作成。
 // expectedRevision は楽観ロック(不一致で revision-conflict を返す)
@@ -89,6 +90,11 @@ class AppDataService {
     const slug = String(request.slug || '').trim();
     if (!slug) return { result: 'Error' };
     try {
+      // M13-T1 (§2.7): strict_error / missing map を含む maplat 参照は保存自体を拒否する
+      // (AC-T1-2)。DB書き込み分岐より前・try ブロック先頭で判定する
+      await MapPurposeService.assertViewerRuntimeAllowed(
+        MapPurposeService.collectMaplatMapRefs(document), 'app-save'
+      );
       if (request.create === true) {
         // 新規作成の明示合図(D11改): 事前採番uidを採用。uid有無ではなくcreateフラグで分岐し、
         // 既存update経路の復活防止不変条件(lookup失敗=Error)を侵さない。

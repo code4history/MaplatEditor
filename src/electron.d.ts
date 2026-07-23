@@ -274,6 +274,8 @@ export interface MapEditAPI {
     save(payload: MapSavePayload): Promise<MapSaveResult>;
     checkExtentMap(extent: number[]): Promise<any>;
     download(mapObject: any, tins: any[]): Promise<any>;
+    // M13-T1 (§2.2): 保存済み地図専用のstrict-free搬出
+    downloadSaved(mapRef: string): Promise<'Success' | 'Canceled' | 'Error'>;
     uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
     getWmtsFolder(): Promise<any>;
     onProgress(listener: (progress: any) => void): () => void;

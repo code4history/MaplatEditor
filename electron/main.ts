@@ -146,6 +146,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('mapupload:showMapSelectDialog')
   ipcMain.removeHandler('mapedit:getWmtsFolder')
   ipcMain.removeHandler('mapedit:download')
+  ipcMain.removeHandler('mapedit:download-saved')
   ipcMain.removeHandler('mapedit:uploadCsv')
   ipcMain.removeHandler('dataupload:showDataSelectDialog')
   ipcMain.removeHandler('wmtsGen:generate')
