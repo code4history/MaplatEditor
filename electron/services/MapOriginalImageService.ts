@@ -90,14 +90,22 @@ async function scanLegacyCandidates(originalFolder: string, slug: string): Promi
 /**
  * runtime read (WMTS 生成等) 用の canonical-first / legacy fallback resolver。
  *
- * タスク設計 §5.2 (レビュー v1 Minor 2 で精緻化済み):
- * 1. canonical `originals/<uid>.<ext>` を allowed set 順に探し、1件でも見つかれば即座に成功
- * 2. canonical 不在時のみ legacy を探す。basename が slug と一致し allowed ext に正規化できる
+ * タスク設計 §5.2 (レビュー v1 Minor 2 で精緻化済み。実装レビュー v1 Major 1 の指摘を受け、
+ * canonical 探索を extHint 優先化した — マイルストーン §4.3 point 1-2「canonical 探索は
+ * extHint 優先、その後 jpg -> jpeg -> png」に準拠):
+ * 1. normalizeExtHint(extHint) で extHint を正規化する。
+ * 2. canonical `originals/<uid>.<ext>` を探す。extHint が正規化できた場合は
+ *    `[extHint, ...ALLOWED_EXTS の残り]` の順、できなかった場合は allowed set 固定順
+ *    (jpg -> jpeg -> png) で探し、1件でも見つかれば即座に成功する。
+ *    (実装レビュー v1 Major 1: 既存地図の画像を形式変更して再アップロードすると
+ *    uid.<旧ext> が残置され canonical variant が複数になり得る。固定順のままだと
+ *    extHint を無視して stale な旧ファイルを返してしまうため、この優先順位が必須)
+ * 3. canonical 不在時のみ legacy を探す。basename が slug と一致し allowed ext に正規化できる
  *    ファイルだけを候補集合とする
- * 3. normalizeOriginalExt(extHint) が非 null で、候補集合中に該当拡張子のファイルが
+ * 4. 2 で正規化した extHint が非 null で、候補集合中に該当拡張子のファイルが
  *    ちょうど 1 件あればその1件を確定する。該当拡張子が 2 件以上 (case variant 等) なら、
  *    この時点で ambiguous として null を返す (Minor 2: extHint も曖昧性解消の万能薬ではない)
- * 4. 3 が確定しなかった場合 (該当拡張子 0 件、または extHint 自体が使えない)、候補集合全体の
+ * 5. 4 が確定しなかった場合 (該当拡張子 0 件、または extHint 自体が使えない)、候補集合全体の
  *    件数で判定する: 0件は null (missing)、1件は成功、2件以上は null (ambiguous)
  */
 export async function resolveRuntimeOriginal(
@@ -106,8 +114,12 @@ export async function resolveRuntimeOriginal(
     extHint?: string | null,
 ): Promise<RuntimeOriginalResolution | null> {
     const originalFolder = getOriginalFolder();
+    const normalizedHint = normalizeExtHint(extHint);
 
-    for (const ext of ALLOWED_EXTS) {
+    const canonicalSearchOrder: readonly OriginalExt[] = normalizedHint
+        ? [normalizedHint, ...ALLOWED_EXTS.filter((ext) => ext !== normalizedHint)]
+        : ALLOWED_EXTS;
+    for (const ext of canonicalSearchOrder) {
         const canonicalPath = path.join(originalFolder, `${uid}.${ext}`);
         if (await fs.pathExists(canonicalPath)) {
             return { path: canonicalPath, ext, source: 'canonical' };
@@ -116,7 +128,6 @@ export async function resolveRuntimeOriginal(
 
     const candidates = await scanLegacyCandidates(originalFolder, slug);
 
-    const normalizedHint = normalizeExtHint(extHint);
     if (normalizedHint) {
         const hintMatches = candidates.filter((c) => c.ext === normalizedHint);
         if (hintMatches.length === 1) {

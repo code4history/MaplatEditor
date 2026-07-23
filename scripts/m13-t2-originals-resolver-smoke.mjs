@@ -5,7 +5,8 @@
 // タスク設計 `docs/superpowers/specs/2026-07-24-m13-t2-originals-resolver-design.md` §5/§8 準拠。
 // シナリオ:
 //   (A) normalizeOriginalExt: 優先順位/trim/大小文字/allowed set の全分岐 (AC-T2-3)
-//   (B) resolveRuntimeOriginal: canonical-first、legacy 0/1/2+件、extHint disambiguation (AC-T2-2)
+//   (B) resolveRuntimeOriginal: canonical extHint優先探索(実装レビューv1 Major 1)、
+//       legacy 0/1/2+件、extHint disambiguation (AC-T2-2)
 //   (C) classifyMigrationCandidate: 7種の判定結果 (T3 が消費する純関数の契約固定)
 //   (D) MapMutationQueue: run()/runMany() の直列化と、前段 reject が後続をブロックしないこと
 //   (E) MapEditService.save(): tmpCheck 分岐の canonical(uid キー)書込みと未対応拡張子reject (AC-T2-1)
@@ -183,6 +184,28 @@ try {
       const b7 = await resolveRuntimeOriginal(UID_B7, 'b7-slug', 'jpg');
       assert.equal(b7, null, '同一 ext の複数物理ファイルは extHint があっても ambiguous (Minor 2)');
       console.log('ok: (B-7) resolveRuntimeOriginal: same-ext multiple physical files stay ambiguous even with extHint');
+
+      // (B-8) canonical variant 2件 (stale + current) + extHint -> extHint 優先で正しい方を返す
+      // (実装レビュー v1 Major 1 の再現シナリオ: 既存地図の画像を形式変更して再アップロードすると
+      // uid.<旧ext> が残置され canonical variant が2件になる。DB の imageExtension は新ext に
+      // 更新されるため、canonical 探索は固定順(jpg優先)ではなく extHint 優先で新ext を
+      // 返さなければならない。マイルストーン §4.3 point 1-2 準拠)
+      const UID_B8 = 'b8888888-8888-4888-8888-888888888888';
+      await fs.writeFile(path.join(originalsDir, UID_B8 + '.jpg'), 'stale-jpg-bytes');
+      await fs.writeFile(path.join(originalsDir, UID_B8 + '.png'), 'current-png-bytes');
+      const b8 = await resolveRuntimeOriginal(UID_B8, 'b8-slug', 'png');
+      assert.equal(b8?.source, 'canonical', 'canonical variant が複数でも canonical で解決されるはず');
+      assert.equal(b8?.ext, 'png', 'extHint=png のとき、固定順(jpg優先)ではなく extHint 優先で png が返るはず(実装レビューv1 Major 1)');
+      assert.equal(b8?.path, path.join(originalsDir, UID_B8 + '.png'));
+      console.log('ok: (B-8) resolveRuntimeOriginal: canonical extHint takes priority over fixed jpg->jpeg->png order (review v1 Major 1 fix)');
+
+      // (B-9) canonical variant 2件、extHint 無し -> 従来どおり固定順(jpg優先)のまま(回帰確認)
+      const UID_B9 = 'b9999999-9999-4999-8999-999999999999';
+      await fs.writeFile(path.join(originalsDir, UID_B9 + '.png'), 'png-bytes');
+      await fs.writeFile(path.join(originalsDir, UID_B9 + '.jpg'), 'jpg-bytes');
+      const b9 = await resolveRuntimeOriginal(UID_B9, 'b9-slug', undefined);
+      assert.equal(b9?.ext, 'jpg', 'extHint 無しでは既存どおり jpg->jpeg->png の固定順が維持される(B-1と同じ契約、レビューv1指摘のとおり無影響)');
+      console.log('ok: (B-9) resolveRuntimeOriginal: canonical fixed-order unaffected when extHint is absent (no regression, review v1 confirmed)');
 
       // ============================================================
       // (C) classifyMigrationCandidate: 7種の判定結果 (マイルストーン §4.5.4 判定表)
