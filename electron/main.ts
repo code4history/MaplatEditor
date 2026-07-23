@@ -33,6 +33,25 @@ let win: BrowserWindow | null
 // 旧実装 main.js L.88-93 に準拠: macOS で Cmd+Q が押されるまで force_quit を false に保つ
 let forceQuit = false
 
+// M13-T2 (SI-6/§5.9): 同一 userData profile からの複数 Electron process による
+// DB/filesystem mutation を防ぐ。ロックを取得できなければ即座に quit する。
+// 【既知の限界(タスク設計 §6.5)】 app.requestSingleInstanceLock() は userData path 単位の
+// ロックであり、--user-data-dir を分離した複数プロセス(= 複数マシンから OneDrive 等で
+// クラウド同期された同一 saveFolder に同時アクセスする運用)は防げない。saveFolder 内
+// ロックファイル方式等の追加対策要否は人間判断待ち(マイルストーン再レビュー要の scope 超過)
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    }
+  })
+}
+
 function createWindow() {
   let draftFlushReady = false
   let draftFlushInProgress = false
