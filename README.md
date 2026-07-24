@@ -29,13 +29,91 @@ binaries are distributed via GitHub Releases.
 <!-- SECTION 4: Key Features -->
 ## Key Features
 
+### Map and app data authoring
+
 - Desktop application for authoring Maplat historical map data (Windows / macOS)
-- GUI for map registration, control-point setting, and tile generation
+- GUI for map registration, ground control point (GCP) placement, and tile
+  generation, with geocoder-assisted address search and one-click estimation
+  of home position/zoom from GCPs or app sources
+- Right-click a correspondence line to insert a midpoint GCP and split the
+  line, restoring a workflow from the original editor
+- App editor covers base map and POI source selection, per-source settings
+  (built-in / TMS / WMTS), a coverage-area drawing tool, and PWA/OGP metadata
+  (icons, splash image, keywords, canonical URL)
 - Creates data consumable by Maplat viewer libraries (`@maplat/ui` /
-  `@maplat/core`)
-- Bundles OpenLayers and the Maplat core libraries — no separate install needed
-- Open-source (Apache 2.0 from version 0.7.0) — companion to the Maplat viewer
-  ecosystem
+  `@maplat/core`); bundles OpenLayers and the Maplat core libraries so no
+  separate install is needed
+
+### POI editor
+
+- Add, move, and delete points of interest (POIs) directly on the map, edit
+  multilingual name/description/HTML/address/URL/icon fields, and undo/redo
+  changes (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z or Y)
+- Three content modes per POI — Standard, HTML, and Web Page — plus inline
+  image references (`maplat-asset:<uid>`) that resolve to uploaded assets
+- An Assets tab manages shared images (search, rename, reference-checked
+  delete) through the same icon/asset/URL picker used for icon and image
+  fields
+- A "Raw" toggle exposes the underlying GeoJSON for direct editing (each
+  Apply is one undo step); sources over 1,000 features or 5 MB switch to
+  read-only for performance
+- Remote (registered) POI sources are read-only; a "copy locally" action
+  creates an editable local copy
+
+### Resource management
+
+- Five resource lists (Map / App / POI / Base Map / Asset) use infinite
+  scroll and full-text search across all five types, plus bounding-box range
+  search for Map, POI, Base Map, and App
+- Base map and image asset editing use left-list/right-edit master-detail
+  screens (replacing the previous modal editors), with the selected item
+  reflected in the URL for direct links
+- Every edit screen validates the slug (ID) automatically as you type — no
+  separate "check availability" step — and renaming a map's slug now edits
+  the same map in place instead of prompting to copy or move it
+- Duplicate, delete (with a reference list), and import actions are
+  available from a common list menu for every resource type
+
+### Drafts and data safety
+
+- Edits auto-save as local drafts every few seconds and are restored when
+  you reopen a resource; if a save conflicts with a newer revision, a dialog
+  lets you resolve it
+- Map, App, POI, Base Map, and Asset all follow the same "not created until
+  saved" flow — an abandoned new-resource draft is never written to disk,
+  and shows up as a draft card in the list that you can resume or discard
+- Deleting a map moves it to a trash location instead of deleting it
+  immediately
+- MaplatEditor migrates the data folder to the current format automatically
+  on first launch after an upgrade — legacy data import, thumbnail
+  generation, trash reconciliation, and originals renaming — without
+  deleting existing data; see [Prerequisites](#prerequisites) for details
+- Only one instance of MaplatEditor runs at a time; launching a second
+  instance brings the existing window to the front instead of opening a new
+  one
+
+### Export and import
+
+- Apps export as a single ZIP (`{appID}.zip`), optionally including a
+  static, PWA-ready build (manifest, icons, splash image)
+- POI sources export as GeoJSON, or as a ZIP package when they include image
+  references, and can be imported back with internal image references
+  resolved automatically
+- Maps or apps with unresolved ground-control-point errors, or with POI/base
+  map references pointing to missing data, are blocked from export or
+  preview until the underlying data issue is fixed
+
+### Thumbnails and localization
+
+- 512px high-definition thumbnails for maps, base maps, and apps are
+  generated automatically on upload, and backfilled for existing data on
+  first launch after upgrading
+- UI available in 11 languages: English, Japanese, German, Korean,
+  Vietnamese, Chinese (Simplified), Chinese (Traditional), French, Spanish,
+  Thai, and Indonesian. The 9 languages beyond English/Japanese are machine
+  translated and have not undergone human quality review
+- Open-source (Apache 2.0 from version 0.7.0) — companion to the Maplat
+  viewer ecosystem
 
 <!-- SECTION 5: Quick Start -->
 ## Quick Start
@@ -91,6 +169,16 @@ pnpm dist:win      # Windows
 pnpm dist:linux    # Linux
 ```
 
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| Cmd/Ctrl+S | Save |
+| Cmd/Ctrl+Z | Undo |
+| Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y | Redo |
+
+The Map/App/POI editors and the POI-on-map editing pane share this set.
+
 <!-- SECTION 6: Prerequisites -->
 ## Prerequisites
 
@@ -100,6 +188,28 @@ pnpm dist:linux    # Linux
 
 - Node.js: v20 or v22 (LTS tested via GitHub Actions)
 - pnpm: `>=9.0.0` (required; the project uses pnpm)
+
+> **Note**: On first launch after upgrading, MaplatEditor automatically
+> migrates the data folder to the current format (legacy data import,
+> thumbnail generation, trash reconciliation, and originals renaming to
+> UUID filenames). No existing map data is deleted, and each step resumes
+> safely if interrupted; startup may take longer than usual on that first
+> run.
+
+<!-- Known Limitations: not one of the 11 template sections; added here as a
+     MaplatEditor-specific note (design decision recorded in m14-t2 task
+     design §5 #4). -->
+## Known Limitations
+
+- Maps with unresolved ground-control-point errors, or with a POI/base map
+  reference pointing to missing data, cannot be exported or previewed until
+  the underlying issue is fixed.
+- Deleted maps move to a trash location, but MaplatEditor never purges the
+  trash automatically; disk usage grows until you clear it yourself.
+- The 9 UI languages added beyond English/Japanese are machine translated
+  and have not undergone human quality review.
+- The interface currently renders in light mode only, even when the OS is
+  set to dark mode.
 
 <!-- SECTION 7 Peer Dependencies: omitted (OpenLayers is bundled as a regular dependency) -->
 

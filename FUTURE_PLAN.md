@@ -3,10 +3,14 @@
 This document outlines potential future enhancements, features, and UI/UX improvements identified during the modernization of MaplatEditor to MaplatEditor-next.
 
 ## 1. Map-Specific Base Map Configuration UI
-**Current state**: Base maps are appended via `tmsList.json` and map-specific suppression rules are defined in `tmsList.[mapID].json`. Both currently require manual JSON file editing inside the `settings` directory.
-**Proposed improvement**: 
-- Create a dedicated UI panel (e.g., in `MapEdit.vue` or a new `Settings.vue` tab) to let users visually toggle which base maps should be visible/available for the currently edited historical map.
-- Migrate this configuration storage from standalone JSON files to the main database (e.g., NeDB or its successor) to ensure data integrity and easier querying.
+**Status**: Implemented (m11-t4 / m12-t10). The MapEdit "Select Base Maps" tab lets users
+toggle which base maps are visible/available for the currently edited historical map
+(`setBaseMapVisibilityForMapID`), backed by the SQLite `base_maps` table rather than
+manual `tmsList.[mapID].json` editing. Legacy `tmsList.*.json` files are still read for
+one-time migration of pre-existing settings.
+**Previous state**: Base maps were appended via `tmsList.json` and map-specific
+suppression rules were defined in `tmsList.[mapID].json`, both requiring manual JSON
+file editing inside the `settings` directory.
 
 ## 2. Global Base Map Management UI
 **Status**: Implemented (2026-07-02). The "ベースマップ追加" (Add Base Map) header tab opens `BaseMapList.vue`, which lets users Add/Edit/Delete user-defined TMS endpoints (stored in the DuckDB `base_maps` table with `scope = 'user'`) with attribution and max-zoom fields. Preview functionality remains a future enhancement.
