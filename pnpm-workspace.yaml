@@ -1,3 +1,11 @@
+# build script 許可リスト（pnpm 11 の新形式 allowBuilds + 旧形式 onlyBuiltDependencies の併記）
+allowBuilds:
+  '@parcel/watcher': true
+  electron: true
+  esbuild: true
+  less: true
 onlyBuiltDependencies:
+  - '@parcel/watcher'
   - electron
   - esbuild
+  - less
