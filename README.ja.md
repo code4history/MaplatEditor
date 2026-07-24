@@ -6,8 +6,8 @@
 <h1 align="center">MaplatEditor</h1>
 
 <p align="center">
-  [![CI](https://github.com/code4history/MaplatEditor/actions/workflows/build.yml/badge.svg)](https://github.com/code4history/MaplatEditor/actions/workflows/build.yml)
-  [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+  <a href="https://github.com/code4history/MaplatEditor/actions/workflows/build.yml"><img src="https://github.com/code4history/MaplatEditor/actions/workflows/build.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License" /></a>
 </p>
 
 <!-- SECTION 2: Elevator Pitch -->
