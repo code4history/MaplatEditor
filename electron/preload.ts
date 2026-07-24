@@ -44,6 +44,9 @@ contextBridge.exposeInMainWorld('mapedit', {
     ipcRenderer.invoke('mapedit:checkExtentMap', extent),
   download: (mapObject: any, tins: any[]) =>
     ipcRenderer.invoke('mapedit:download', mapObject, tins),
+  // M13-T1 (§2.1/§2.2): 保存済み地図専用のstrict-free搬出。mapRefはuid優先、slugも受理
+  downloadSaved: (mapRef: string) =>
+    ipcRenderer.invoke('mapedit:download-saved', mapRef),
   uploadCsv: (csvRepl: string, csvUpSettings: any) =>
     ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings),
   getWmtsFolder: () =>
@@ -62,8 +65,9 @@ contextBridge.exposeInMainWorld('dataupload', {
 })
 
 contextBridge.exposeInMainWorld('wmtsGen', {
-  generate: (mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string) =>
-    ipcRenderer.invoke('wmtsGen:generate', mapID, width, height, tinSerial, extKey, hash),
+  // M13-T2 (§5.4/§7): uid 追加。runtime read の canonical-first 解決に必要
+  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string) =>
+    ipcRenderer.invoke('wmtsGen:generate', uid, mapID, width, height, tinSerial, extKey, hash),
 })
 
 // 旧実装: window.mapupload 相当

@@ -29,6 +29,9 @@ import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from '
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { createResettableSingleFlight } from './ResettableSingleFlight';
 import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
+import { runColdBoot } from './OriginalsMigrationService';
+import { reconcileDeletedMapsTrash } from './MapTrashReconcileService';
+import { writeLegacyMigrationReport, appendMigrationWarnings } from './MigrationReportService';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -132,8 +135,6 @@ export interface MigrationReport {
   renamedFiles: Array<{ from: string; to: string }>;
   warnings: string[];
 }
-
-const MIGRATION_REPORT_FILE = 'migration-report-v2.json';
 
 const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
 const SEARCH_INDEX_BACKFILL_ID = '2026-07-16-app-fts-rtree-backfill';
@@ -867,6 +868,27 @@ class SqliteDataService {
       db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(OPT_IN_VISIBILITY_FLIP_ID);
     }
 
+    // M13-T5 §4.1/§5.4: 起動時 migration パイプライン4段階の依存関係・失敗ポリシー
+    // (マイルストーン設計 §2.5・タスク設計 `2026-07-24-m13-t5-migration-pipeline-design.md`
+    // §4.1 準拠。本コメントはドキュメンテーション追加のみで、実行順序・条件分岐・
+    // try/catch の配置は一切変更しない):
+    //   段階1 legacy migration (runLegacyMigrationIfNeeded, 下記)
+    //     foundational・fail-closed: 呼び出し元(ここ)に try/catch なし。地図の DB 行そのものを
+    //     作る段階であり、失敗を隠して起動を続けるより早期に失敗を可視化する方が安全という
+    //     意図的な設計(SI-9)。migrate() を抜けて getDb() の Promise を reject する
+    //   段階2 thumbnail-512 mining (runThumbnail512MiningIfNeeded, 下記)
+    //     best-effort enhancement: 個別地図の失敗は内部の per-map try/catch で吸収し
+    //     warnings として記録・継続する。ただし呼び出し元(ここ)にも try/catch がないため、
+    //     段階レベルの予期しない例外は理論上 migrate()/getDb() を失敗させ得る
+    //     (既知の限界。マイルストーン v3.1 SI-9 で対応案(a)=保証水準の明記を採用し、
+    //     (b)=外側 try/catch 追加は不採用と決定済み。本タスクでは変更しない)。
+    //     段階1完了後に実行する(maps テーブルへの行投入が段階1完了を前提とするため)
+    //   段階3 trash reconcile (reconcileDeletedMapsTrash, 下記)
+    //     best-effort enhancement: 呼び出し元(ここ)で try/catch 済み(二重防御)。
+    //     段階4より先に実行する(順序が逆だと crash 直後の起動で段階4が誤検知するため。詳細は下記コメント)
+    //   段階4 originals UUID migration (runColdBoot, 下記)
+    //     best-effort enhancement: 呼び出し元(ここ)で try/catch 済み(二重防御)。
+    //     migrate() はいかなる場合も本段階の失敗によって失敗してはならない契約
     await this.runLegacyMigrationIfNeeded(db);
     this.applyBaseMapLanguageMigration(db);
     // 以下はレガシー取込の後に走らせる(初回移行の直後でも取込済みの行が対象になるように)
@@ -875,6 +897,34 @@ class SqliteDataService {
     await this.migrateBaseMapIconPaths(db);
     // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
     await this.runThumbnail512MiningIfNeeded(db);
+
+    // M13-T4 (SI-8: T4 着手まで無効化されていた delete reconcile を本タスクで有効化する):
+    // trash へ move 済みだが DB delete が未完了 (crash等) の map を、DB row がまだ存在する
+    // 明白なケースだけ live へ復元する。runColdBoot と同じく db を直接渡し getDb() 再入を避ける。
+    // v1.1 (レビュー v1 Info 2 採用): originals UUID migration (runColdBoot) より先に実行する。
+    // 順序が逆だと、DB delete 失敗による crash 直後の起動で migration が先に走った場合、
+    // 実際には trash に存在するだけの original を skip_source_missing と誤って report してしまう
+    // (次回起動での migration 再走で自己回復するため correctness 問題ではないが、report 精度が
+    // 落ちる。追加コストなしで避けられるため、この順序を採用する)
+    try {
+      await reconcileDeletedMapsTrash(db);
+    } catch (e) {
+      console.error('[SqliteDataService] trash reconcile failed unexpectedly; continuing DB initialization without it', e);
+    }
+
+    // 既存(T3): originals UUID migration
+    // M13-T3: slug originals -> UUID originals の one-shot migration/report。
+    // v1.1 (レビュー v1 Major 2c): runColdBoot(db) 呼び出し全体を try/catch で防御する。
+    // OriginalsMigrationService.runInternal() は per-map I/O 失敗を 'copy_failed' entry として
+    // 記録し継続する設計だが(§5.1)、それでも予期しない例外(db.prepare() 自体の失敗等、DB破損に
+    // 近い異常系)が漏れ出す可能性をゼロにはできないため、ここでも二重に防御する。
+    // migrate() はいかなる場合も originals migration の失敗によって失敗してはならない
+    // (= getDb() のアプリ起動をブロックしてはならない)契約とする。
+    try {
+      await runColdBoot(db); // OriginalsMigrationService からimport。db を直接渡す(getDb()再入は禁止、§4.1)
+    } catch (e) {
+      console.error('[SqliteDataService] originals UUID migration failed unexpectedly; continuing DB initialization without it', e);
+    }
   }
 
   private applyBaseMapLanguageMigration(db: DatabaseSync): void {
@@ -942,11 +992,10 @@ class SqliteDataService {
       // report は移行を実際に実行した時のみ書く(退避アーカイブだけが残る2回目以降の起動では書かない)。
       // report 自体の書き込み失敗も migrate() を失敗させない(移行本体はコミット済みのため)
       if (notifyProgress) {
-        try {
-          await fs.writeJson(path.join(this.folders.saveFolder, MIGRATION_REPORT_FILE), report, { spaces: 2 });
-        } catch (e) {
-          console.error('[SqliteDataService] failed to write migration report', e);
-        }
+        // M13-T5 §5.2: atomic write(temp+fsync+rename)primitive へ差し替え。既存の
+        // fs.writeJson() 直接呼び出しを廃止(公開契約・失敗時に migrate() を失敗させない
+        // 方針は無変更。§5.1 の非対称ポリシーに従い、既存 report が壊れていても上書き回復する)
+        await writeLegacyMigrationReport(this.folders.saveFolder, report);
         // 移行を実際に実行した起動でのみレンダラへ通知する(App.vue の一覧モーダル)。
         // ウィンドウ未生成なら送られないが、report ファイルが正本として残る
         BrowserWindow.getAllWindows().forEach((win) => {
@@ -1195,19 +1244,13 @@ class SqliteDataService {
     // マーカーを記録（失敗があっても記録して再実行を防止。warnings に残る）
     db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_V2_ID);
 
-    // migration-report-v2.json へ warnings を追記（既存レポートがあれば読み込んで追記）
+    // migration-report-v2.json へ warnings を追記（既存レポートがあれば読み込んで追記）。
+    // M13-T5 §5.3: atomic write（temp+fsync+rename）primitive へ差し替え。既存の
+    // readJson+writeJson 直接呼び出しを廃止（marker 記録・warnings.length>0 の判定条件・
+    // 個別失敗の継続方針は無変更。§5.1 の abandon ポリシーに従い、既存 report が壊れて
+    // いれば追記自体を諦める）
     if (warnings.length > 0) {
-      try {
-        const reportPath = path.join(saveFolder, MIGRATION_REPORT_FILE);
-        let report: MigrationReport = { renamedSlugs: [], renamedFiles: [], warnings: [] };
-        if (await fs.pathExists(reportPath)) {
-          report = await fs.readJson(reportPath);
-        }
-        report.warnings.push(...warnings);
-        await fs.writeJson(reportPath, report, { spaces: 2 });
-      } catch (e) {
-        console.error('[Thumbnail512Mining] failed to write warnings to migration report', e);
-      }
+      await appendMigrationWarnings(saveFolder, warnings);
     }
 
     console.log(`[Thumbnail512Mining] done: ${success} success, ${skipped.length} skipped, ${failed} failed`);

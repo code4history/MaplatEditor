@@ -173,7 +173,9 @@ assert.match(mapEdit, /editor_ui\.export_dirty_prompt/);
 assert.match(mapEdit, /editor_ui\.export_save_and_run/);
 assert.match(mapEdit, /editor_ui\.export_saved_only/);
 assert.match(mapEdit, /editor_ui\.busy_exporting/);
-assert.match(mapEdit, /window\.mapedit\.previewSource\(mapUid\.value/);
+// M13-T1 (§2.8): downloadSavedMap() は previewSource()+download() の2段呼び出しから
+// window.mapedit.downloadSaved(mapUid.value) の単一呼び出しへ切替わった
+assert.match(mapEdit, /window\.mapedit\.downloadSaved\(mapUid\.value/);
 assert.doesNotMatch(mapEdit, /:disabled="disabled \|\| !!saveError \|\| exporting"/);
 assert.doesNotMatch(mapEdit, /exporting\.value \|\| saving\.value \|\| saveError\.value/);
 assert.match(mapEdit, /key === ['"]s['"][\s\S]*saveMap\(\)/);
@@ -183,7 +185,8 @@ const mapMenuHandler = mapEdit.slice(
   mapEdit.indexOf('/**', mapEdit.indexOf('const onMainProcessMessage =')),
 );
 assert.match(mapMenuHandler, /if \(saving\.value \|\| exporting\.value\) return/);
-assert.match(mapEdit, /modalShow\(t\(['"]editor_ui\.busy_exporting['"]\)\)/);
+// M13-T1 (§2.8/AC-T1-4): modalShow への引数は t() ラップなしの i18n key 直接渡しへ統一された
+assert.match(mapEdit, /modalShow\(['"]editor_ui\.busy_exporting['"]\)/);
 assert.doesNotMatch(
   mapEdit,
   /@click\.prevent="activeTab = 'inout'"/,
@@ -277,7 +280,9 @@ const mapDownloadHandler = mapIpc.slice(
   mapIpc.indexOf("ipcMain.handle('mapedit:uploadCsv'"),
 );
 assert.ok(
-  mapDownloadHandler.indexOf('dialog.showSaveDialog') < mapDownloadHandler.indexOf('composeDownloadMapJson'),
+  // M13-T1 (§1.5/§2.6): compose 呼び出しを内包する buildAndWriteMapZip へ移設したため、
+  // 序列 assert の比較対象文字列を composeDownloadMapJson から buildAndWriteMapZip へ更新
+  mapDownloadHandler.indexOf('dialog.showSaveDialog') < mapDownloadHandler.indexOf('buildAndWriteMapZip'),
   'Map must choose the output path before compiling or archiving data',
 );
 const preload = await readFile(path.join(projectRoot, 'electron/preload.ts'), 'utf8');

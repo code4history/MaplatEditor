@@ -6,6 +6,7 @@ import path from 'path';
 import { BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
 import { ProgressReporter } from '../utils/ProgressReporter';
+import { resolveRuntimeOriginal } from './MapOriginalImageService';
 
 const MERC_MAX = 20037508.342789244;
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
@@ -23,6 +24,7 @@ class WmtsGeneratorService {
 
     async generate(
         win: BrowserWindow,
+        uid: string,
         mapID: string,
         width: number,
         height: number,
@@ -35,8 +37,17 @@ class WmtsGeneratorService {
             tin.setCompiled(tinSerial);
 
             extKey = extKey || 'jpg';
-            const { originalFolder, wmtsFolder } = this.folders;
-            const imagePath = path.join(originalFolder, `${mapID}.${extKey}`);
+            const { wmtsFolder } = this.folders;
+            // M13-T2 (§5.4): originals の runtime read は canonical(uid キー)-first、
+            // canonical 不在時のみ一意な legacy(slug キー) fallback で解決する
+            const resolved = await resolveRuntimeOriginal(uid, mapID, extKey);
+            if (!resolved) {
+                // タスク設計レビュー v1 Minor 6: strict_error キーの流用をやめ、専用の非 i18n
+                // 診断文字列を確定する。renderer 側 wmtsGenerate() は arg.err を
+                // console.error するだけで、表示は既存の汎用 wmtsgenerate.error_generation
+                return { hash, err: new Error(`originals.unresolved: failed to resolve runtime original for uid=${uid} slug=${mapID}`) };
+            }
+            const imagePath = resolved.path;
             const tileRoot  = path.join(wmtsFolder, mapID);
 
             // --- 原版と同じ: 4隅を変換して zoom 計算 ---

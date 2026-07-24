@@ -83,8 +83,10 @@ export type MapSaveResult =
     | { result: 'Success'; uid: string; slug: string; revision: number }
     | { result: 'Exist' }
     // uid/slug/revision付きのErrorは「DBコミット済み・ファイル操作のみ失敗」。
-    // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)
-    | { result: 'Error'; uid?: string; slug?: string; revision?: number }
+    // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)。
+    // errorKey は additive (M13-T2 §5.3/§7): DBに未到達の reject (例: originals 未対応拡張子)
+    // では uid/slug/revision を伴わず errorKey のみを返す
+    | { result: 'Error'; uid?: string; slug?: string; revision?: number; errorKey?: string }
     | { error: 'revision-conflict'; current: number };
 
 export interface AssetsAPI {
@@ -274,6 +276,8 @@ export interface MapEditAPI {
     save(payload: MapSavePayload): Promise<MapSaveResult>;
     checkExtentMap(extent: number[]): Promise<any>;
     download(mapObject: any, tins: any[]): Promise<any>;
+    // M13-T1 (§2.2): 保存済み地図専用のstrict-free搬出
+    downloadSaved(mapRef: string): Promise<'Success' | 'Canceled' | 'Error'>;
     uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
     getWmtsFolder(): Promise<any>;
     onProgress(listener: (progress: any) => void): () => void;

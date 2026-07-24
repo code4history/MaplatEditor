@@ -177,6 +177,11 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
             // 保存レースで slug を先取りされた(field 表示は SlugField が担う)。
             // M11-T7/AC8: operation 診断へ(旧 info ダイアログ撤去)
             saveOperationError.value = t('mapedit.error_duplicate_id');
+        } else if ('errorKey' in result && result.errorKey) {
+            // M13-T2 (§5.3/§7, レビュー v1 Minor 5): originals 未対応拡張子など、main 側が
+            // 契約した errorKey を優先して専用メッセージを表示する(DB未到達の reject はこの分岐)
+            console.error('[saveMap] Save error:', result);
+            saveOperationError.value = t(result.errorKey);
         } else {
             // DBコミット後のファイル操作失敗 (Error{revision付き}, ADR-0007) は composable が
             // uid/revision/confirmedSlug を取り込み済み(偽のrevision-conflict防止)。ここでは通知のみ。
@@ -3171,17 +3176,17 @@ const importMap = async () => {
             if (arg.err === 'Canceled') {
                 modalHide();
             } else if (arg.err === 'Exist') {
-                modalFinish(t('dataupload.error_exist'));
+                modalFinish('dataupload.error_exist');
             } else if (arg.err === 'NoTile') {
-                modalFinish(t('dataupload.error_no_tile'));
+                modalFinish('dataupload.error_no_tile');
             } else if (arg.err === 'NoTmb') {
-                modalFinish(t('dataupload.error_no_tmb'));
+                modalFinish('dataupload.error_no_tmb');
             } else {
                 console.error('[importMap]', arg.err);
-                modalFinish(t('dataupload.error_upload'));
+                modalFinish('dataupload.error_upload');
             }
         } else {
-            modalFinish(t('dataupload.success_upload'));
+            modalFinish('dataupload.success_upload');
             // 旧実装: mapDataCommon(arg[0], arg[1]) 相当
             const { mapData: histMap, tins: compiledTins } = arg;
             // インポートで新規作成された地図のuid/revision/slugを正本として追跡 (ADR-0007)
@@ -3236,38 +3241,35 @@ const chooseMapExport = async (hasSaved: boolean) => {
 };
 
 // 保存済み正本だけを入力にし、編集中state/draftを直接出力しない。
+// M13-T1 (§2.8): previewSource()(strict throw あり)+download() の2段呼び出しから、
+// strict-freeな新IPC mapedit:download-saved(mapRef) の単一呼び出しへ切替える。
+// tins組み立てロジックはserver側(MapPurposeService.downloadSavedMap())へ移管したため削除
 const downloadSavedMap = async (): Promise<boolean> => {
     if (!mapUid.value) return false;
-    modalShow(t('editor_ui.busy_exporting'));
+    modalShow('editor_ui.busy_exporting');
     const unsubscribe = window.mapedit.onProgress((progress) => {
         modalProgress(progress.text, progress.percent, progress.progress);
     });
     try {
-        const savedMap = await window.mapedit.previewSource(mapUid.value);
-        const tins = [
-            savedMap.compiled ?? 'tooLessGcps',
-            ...(savedMap.sub_maps ?? []).map((subMap: any) => subMap.compiled ?? 'tooLessGcps'),
-        ];
-        const result = await (window as any).mapedit.download(
-            JSON.parse(JSON.stringify(savedMap)),
-            JSON.parse(JSON.stringify(tins))
-        );
+        const result = await window.mapedit.downloadSaved(mapUid.value);
         if (result === 'Success') {
-            modalFinish(t('mapedit.export_success'));
+            modalFinish('mapedit.export_success');
             return true;
         } else if (result === 'Canceled') {
-            modalFinish(t('mapedit.imexport_canceled'));
+            modalFinish('mapedit.imexport_canceled');
         } else {
             console.error('[exportMap]', result);
-            modalFinish(t('mapedit.export_error'));
+            modalFinish('mapedit.export_error');
         }
         return false;
     } catch (e) {
-        // mapedit:download が例外で reject した場合、finish を呼ばないまま抜けると
-        // 進捗モーダルが閉じられない状態で残留する(MINOR-3 と同型の残留)。
-        // OKボタンを有効化できるよう、既存の失敗パターンと同じ export_error で締める
+        // 防御的catch(v1.2追加: t1 review v2 Minor2対応)。
+        // MapPurposeService.downloadSavedMap()は契約上reject しないが、
+        // ipcRenderer.invoke('mapedit:download-saved', ...)自体はIPC基盤レベル
+        // (HMRによるhandler未登録の隙間等)で reject し得るため、その場合に
+        // 進捗モーダルが開いたまま残留することを防ぐ保険として維持する。
         console.error('[exportMap]', e);
-        modalFinish(t('mapedit.export_error'));
+        modalFinish('mapedit.export_error');
         return false;
     } finally {
         unsubscribe();
@@ -3294,13 +3296,15 @@ const exportMap = async () => {
 // 有効条件: wmtsEditReady
 const wmtsGenerate = async () => {
     if (!tinObjects.value[0] || typeof tinObjects.value[0] === 'string') return;
-    modalShow(t('wmtsgenerate.generating_tile'));
+    modalShow('wmtsgenerate.generating_tile');
     const unsubscribe = window.mapedit.onProgress((progress) => {
         modalProgress(progress.text, progress.percent, progress.progress);
     });
     try {
         // 旧実装: window.wmtsGen.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtension, vueMap.mainLayerHash)
+        // M13-T2 (§5.4): uid を先頭引数に追加 (canonical-first runtime read に必要)
         const arg = await (window as any).wmtsGen.generate(
+            mapData.value.uid,
             mapData.value.mapID,
             mapData.value.width,
             mapData.value.height,
@@ -3310,11 +3314,11 @@ const wmtsGenerate = async () => {
         );
         if (arg.err) {
             console.error('[wmtsGenerate]', arg.err);
-            modalFinish(t('wmtsgenerate.error_generation'));
+            modalFinish('wmtsgenerate.error_generation');
         } else {
             // 旧実装: vueMap.wmtsHash = arg.hash
             mapData.value.wmtsHash = arg.hash;
-            modalFinish(t('wmtsgenerate.success_generation'));
+            modalFinish('wmtsgenerate.success_generation');
         }
     } finally {
         unsubscribe();

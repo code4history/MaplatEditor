@@ -4,6 +4,7 @@ import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import SearchDataService, { type MapListResult } from './SearchDataService';
 import { resolveMapListImage } from './resourceImageResolver';
+import { deleteMapWithTrash } from './MapDeleteTrashService';
 
 class MapDataService {
   private get folders() {
@@ -78,32 +79,11 @@ class MapDataService {
 
   // uid正準の削除 (ADR-0007)。参照解決は findMapByRef に一本化
   // (UUID形状はuid優先、旧slugリンク経由の呼び出しにはslugフォールバックで応える)
+  // M13-T4 (§5.3): 中身を MapDeleteTrashService.deleteMapWithTrash() へ委譲する。
+  // シグネチャは不変。trash lifecycle (canonical/legacy を trash へ move → DB delete →
+  // 失敗時のみ live へロールバック → tiles/tmbs/tmbs_512 削除) は同サービスの責務。
   async deleteMap(uidOrMapID: string): Promise<void> {
-    const doc = await SqliteDataService.findMapByRef(uidOrMapID);
-    const fileKey = doc?.uid || uidOrMapID;
-    const slug = doc?.slug || uidOrMapID;
-    if (doc) await SqliteDataService.deleteMap(doc.uid);
-    const { tileFolder, uiThumbnailFolder, originalFolder } = this.folders;
-
-    const tileDir = path.join(tileFolder, fileKey);
-    if (fs.existsSync(tileDir)) {
-      await fs.remove(tileDir);
-    }
-
-    const thumbFile = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
-    if (fs.existsSync(thumbFile)) {
-      await fs.remove(thumbFile);
-    }
-
-    // 原本(originals)はslugキーのファイル名 (ADR-0007)
-    if (fs.existsSync(originalFolder)) {
-      const files = await fs.readdir(originalFolder);
-      for (const file of files) {
-        if (new RegExp(`^${slug}\\.`).test(file)) {
-          await fs.remove(path.join(originalFolder, file));
-        }
-      }
-    }
+    return deleteMapWithTrash(uidOrMapID);
   }
 
   async generateThumbnail(from: string, to: string) {

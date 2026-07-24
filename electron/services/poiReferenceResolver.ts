@@ -4,7 +4,8 @@
 // 生要素 (URL 文字列 / FC 埋め込み) は無加工で透過し (座標も丸めない)、
 // 見つからない/読めない poiUid は要素を落として 'appedit.warn_missing_poi_source' を1回だけ載せる。
 // 呼び込み点は 5 箇所: AppPreviewService の app JSON / map JSON、AppExportService の app JSON / map JSON、
-// mapedit:download の composeDownloadMapJson。
+// mapDownloadZip.ts の composeDownloadMapJson (M13-T1: mapedit.ts から移設。旧 mapedit:download の
+// composeDownloadMapJson を指していた記述を実体へ追随)。
 // warnings は静的 i18n キー (AppEdit 側の t(key) 表示と互換、パラメタ補間なし)。
 //
 // icon 参照文法の解決 (POI-117): pois 配列内の FC (解決済み・生 FC の双方) の layer metadata

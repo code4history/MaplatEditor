@@ -52,7 +52,8 @@ const { t } = useTranslation();
 
 interface Props {
   visible: boolean;
-  /** i18nキー、またはそのまま表示するテキスト */
+  /** i18nキーのみ (M13-T1: §2/§4 AC-T1-4)。翻訳済み文字列を渡してはならない —
+   *  ここで t(props.text) を通すため、呼び出し側が既に翻訳した文字列を渡すと二重翻訳になる */
   text: string;
   /** 0〜100 */
   percent: number;

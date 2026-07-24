@@ -188,7 +188,7 @@ try {
       await SqliteDataService.getDb();
       const liveUid = await verifyMigratedFolder(${JSON.stringify(dataDir)}, 'live');
       const liveReportPath = nodePath.join(${JSON.stringify(dataDir)}, 'migration-report-v2.json');
-      const liveReportBefore = await readFile(liveReportPath, 'utf8');
+      const liveReportBefore = JSON.parse(await readFile(liveReportPath, 'utf8'));
       console.log('ok: live legacy inputs migrated with uid/slug/report');
 
       // 再オープンで移行が再実行されないこと(地図の重複取込なし・uid安定・reportも書き直されない)
@@ -198,9 +198,29 @@ try {
       assert.equal(reopenedMaps.length, 2, '再オープンで地図が重複取込されてはいけない');
       const reopenedTatebayashi = await SqliteDataService.findMapBySlug('tatebayashi');
       assert.equal(reopenedTatebayashi.uid, liveUid, '再オープンで地図のuidが変わってはいけない');
-      const liveReportAfter = await readFile(liveReportPath, 'utf8');
-      assert.equal(liveReportAfter, liveReportBefore, '再オープンで report が書き直されてはいけない');
-      const reopenReport = JSON.parse(liveReportAfter);
+      const liveReportAfter = JSON.parse(await readFile(liveReportPath, 'utf8'));
+      // レガシー移行(nedb→sqlite)が管轄する3フィールドは、reopen で書き直されてはいけない(元の検証意図を維持)
+      assert.deepEqual(
+        { renamedSlugs: liveReportAfter.renamedSlugs, renamedFiles: liveReportAfter.renamedFiles, warnings: liveReportAfter.warnings },
+        { renamedSlugs: liveReportBefore.renamedSlugs, renamedFiles: liveReportBefore.renamedFiles, warnings: liveReportBefore.warnings },
+        '再オープンでレガシー移行(renamedSlugs/renamedFiles/warnings)は書き直されてはいけない',
+      );
+      // M13-T3: originalsUuidMigration は marker を持たず起動毎に idempotent 再計算されるため
+      // lastRunAt は変わってよいが、fixture に originals ファイルが無いため再計算結果(summary)は
+      // 安定しているはず
+      assert.ok(liveReportBefore.originalsUuidMigration, 'originalsUuidMigration が付与されるはず');
+      assert.ok(liveReportAfter.originalsUuidMigration, 'reopen 後も originalsUuidMigration が付与されるはず');
+      assert.deepEqual(
+        liveReportAfter.originalsUuidMigration.summary,
+        liveReportBefore.originalsUuidMigration.summary,
+        '再オープンでの再計算結果(summary)は不変のはず(fixture に originals ファイルが無く両地図とも skip_source_missing)',
+      );
+      assert.notEqual(
+        liveReportAfter.originalsUuidMigration.lastRunAt,
+        liveReportBefore.originalsUuidMigration.lastRunAt,
+        'lastRunAt は再走のたびに更新されるはず(no-marker idempotent re-run の意図どおり)',
+      );
+      const reopenReport = liveReportAfter;
       assert.deepEqual(reopenReport.renamedSlugs, [
         { kind: 'base_map', from: 'tatebayashi', to: 'tatebayashi_2' },
       ]);

@@ -6,10 +6,24 @@ import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import SettingsService from './SettingsService';
+import { normalizeOriginalExt, resolveRuntimeOriginal } from './MapOriginalImageService';
+import MapMutationQueue from './MapMutationQueue';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
+
+// M13-T1 (§2.4): MapDataService.ts の isPreviewDisabled/isStrictErrorCompiled と同一ロジックの
+// 3個目の重複実装を避けるため、モジュールレベルの export 関数へ昇格する。
+// クラス内の private メソッドは薄いラッパーとしてこれらを呼ぶ
+export function isStrictErrorCompiled(compiled: any): boolean {
+    return compiled?.strict_status === 'strict_error' || Boolean(compiled?.kinks_points);
+}
+
+export function hasStrictError(json: any): boolean {
+    if (isStrictErrorCompiled(json.compiled)) return true;
+    return Array.isArray(json.sub_maps) && json.sub_maps.some((subMap: any) => isStrictErrorCompiled(subMap.compiled));
+}
 
 class MapEditService {
     // uid正準の読み出し (ADR-0007)。旧保存形のslug参照への保険として
@@ -41,16 +55,15 @@ class MapEditService {
         return res[0];
     }
 
-    async requestPreviewSource(uidOrMapID: string) {
+    // M13-T1 (§2.5): 既存ロジックをそのまま抽出（strict throw を含まない）。
+    // strict-free な読み出し (MapPurposeService.downloadSavedMap など) から再利用する
+    async buildPreviewSource(uidOrMapID: string) {
         const json = await SqliteDataService.findMapByRef(uidOrMapID);
 
         if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
         const previewJson = await this.ensurePreviewCompiled({ ...json });
-        if (this.hasStrictError(previewJson)) {
-            throw new Error('appedit.preview.strict_error');
-        }
-
+        // ↓ ここに従来の hasStrictError チェックは置かない
         const saveFolder = SettingsService.get('saveFolder');
         const tileFolder = path.join(saveFolder, "tiles");
         const thumbFolder = path.join(tileFolder, json.uid, "0", "0");
@@ -68,6 +81,15 @@ class MapEditService {
             height: store.height ?? previewJson.height ?? previewJson.compiled?.wh?.[1],
             url: store.url_ ?? previewJson.url,
         };
+    }
+
+    // 既存の外部契約(mapedit:preview-source)はこのまま維持
+    async requestPreviewSource(uidOrMapID: string) {
+        const previewJson = await this.buildPreviewSource(uidOrMapID);
+        if (hasStrictError(previewJson)) {
+            throw new Error('appedit.preview.strict_error');
+        }
+        return previewJson;
     }
 
     private async ensurePreviewCompiled(json: any) {
@@ -118,19 +140,10 @@ class MapEditService {
         tin.setEdges(edges || []);
         await tin.updateTinAsync();
         const compiled = tin.getCompiled();
-        if (this.isStrictErrorCompiled(compiled)) {
+        if (isStrictErrorCompiled(compiled)) {
             throw new Error('appedit.preview.strict_error');
         }
         return compiled;
-    }
-
-    private hasStrictError(json: any) {
-        if (this.isStrictErrorCompiled(json.compiled)) return true;
-        return Array.isArray(json.sub_maps) && json.sub_maps.some((subMap: any) => this.isStrictErrorCompiled(subMap.compiled));
-    }
-
-    private isStrictErrorCompiled(compiled: any) {
-        return compiled?.strict_status === 'strict_error' || Boolean(compiled?.kinks_points);
     }
 
     private async normalizeRequestData(json: any, thumbFolder: string) {
@@ -189,7 +202,12 @@ class MapEditService {
         const uid: string | undefined =
             request.uid ?? (request.copyFromUid ? undefined : mapObject.uid ?? undefined);
         const url_ = mapObject.url_ as string | undefined;
+        // M13-T2 (§5.1/§5.3): 従来の imageExtension 変数は legacy 分岐(copySourceUid/renamedFromSlug)
+        // 専用に維持する (slug キーの originals ファイル名計算にそのまま使う、無変更)。
+        // normalizedExt は tmpCheck 分岐 (新規原本アップロード) の canonical(uid キー)化専用に
+        // 新設する。allowed set 外・trim 後 empty のみのフォールバックは normalizeOriginalExt に集約
         const imageExtension: string = mapObject.imageExtension || mapObject.imageExtention || 'jpg';
+        const normalizedExt = normalizeOriginalExt(mapObject.imageExtension, mapObject.imageExtention);
 
         // histMap2Store でシリアライズ（旧実装: storeHandler.histMap2Store）
         const compiled = await storeHandler.histMap2Store(mapObject, tins);
@@ -206,153 +224,194 @@ class MapEditService {
         const regex = new RegExp(`^${tmpUrl}`);
         const tmpCheck = url_ && url_.match(regex);
 
-        // フォルダの確保
-        await fs.ensureDir(tileFolder);
-        await fs.ensureDir(originalFolder);
-        await fs.ensureDir(thumbFolder);
+        // M13-T2 (§5.3): 新規原本アップロード(tmpCheck)で未対応拡張子なら、DB write に
+        // 一切触れる前に reject する。既存地図の更新(tmpCheck=false)は従来どおり legacy
+        // imageExtension をそのまま使うため、この reject の対象外(AC-T2-3)
+        if (tmpCheck && normalizedExt === null) {
+            return { result: 'Error', errorKey: 'mapedit.originals.unsupported_extension' };
+        }
 
-        // --- DB操作: uid正準のslug/document書込 (ADR-0007) ---
-        // 改名はuid維持のslug付替えになり、tiles/tmbs(uidキー)の移動が不要になる。
-        // 複製(copyFromUid)は新uidを採番し、複製元uidのファイルをコピーする
-        let savedUid: string;
-        let savedRevision: number;
-        let copySourceUid: string | null = null;
-        let copySourceSlug: string | null = null;
-        let renamedFromSlug: string | null = null;
-        try {
-            if (request.create === true) {
-                // 新規作成の明示合図(D11改): rendererが事前採番したuidを採用し、
-                // unique制約 + 予約promoteで二重作成/他者占有を防ぐ。uid有無ではなくcreateフラグで
-                // 分岐するため、既存update経路の復活防止不変条件(lookup失敗=エラー)を侵さない。
-                // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする(D2改)
-                if (!(await SqliteDataService.isSlugAvailable(slug, request.uid ?? undefined))) {
-                    throw new Error('Exist');
-                }
-                // M11-T10: 複製は create 経路に乗る(事前採番uid=予約帰属)。複製元の
-                // tiles/tmbs/原本コピーは従来 copy 経路と同じ後段ファイル操作を使う
-                if (request.copyFromUid) {
-                    const source = await SqliteDataService.findMap(request.copyFromUid);
-                    if (source) {
-                        copySourceUid = source.uid;
-                        copySourceSlug = source.slug;
-                    }
-                }
-                const created = await SqliteDataService.createMap(slug, compiled, request.uid ?? undefined);
-                savedUid = created.uid;
-                savedRevision = 1;
-            } else if (uid) {
-                const existing = await SqliteDataService.findMap(uid);
-                if (!existing) throw new Error(`Map with uid ${uid} not found`);
-                if (existing.slug !== slug) {
-                    // 改名先slugの空きを確認 (グローバル一意: 地図/アプリ/ベースマップ横断)
-                    if (!(await SqliteDataService.isSlugAvailable(slug, uid))) {
+        // M13-T2 (§5.8): 同一 uid への save/rename/clone/delete/migration を直列化する。
+        // queue 対象外は「request.create が truthy ではなく、かつ uid も未指定」の従来型
+        // サーバ採番 create 経路のみ(まだ存在しない map identity への書込みで、他 mutation
+        // と衝突しうる既存 identity が無いため queue 直列化の対象外としても安全)
+        const queueUid = request.create === true ? (request.uid ?? undefined) : (uid ?? undefined);
+
+        const body = async (): Promise<MapSaveResult> => {
+            // フォルダの確保
+            await fs.ensureDir(tileFolder);
+            await fs.ensureDir(originalFolder);
+            await fs.ensureDir(thumbFolder);
+
+            // --- DB操作: uid正準のslug/document書込 (ADR-0007) ---
+            // 改名はuid維持のslug付替えになり、tiles/tmbs(uidキー)の移動が不要になる。
+            // 複製(copyFromUid)は新uidを採番し、複製元uidのファイルをコピーする
+            let savedUid: string;
+            let savedRevision: number;
+            let copySourceUid: string | null = null;
+            let copySourceSlug: string | null = null;
+            // M13-T4 (§5.2): clone 分岐で複製元原本を resolveRuntimeOriginal() で解決するために
+            // 複製元の DB 上の imageExtension/imageExtention を extHint として保持する
+            let copySourceImageExtension: string | undefined;
+            let renamedFromSlug: string | null = null;
+            try {
+                if (request.create === true) {
+                    // 新規作成の明示合図(D11改): rendererが事前採番したuidを採用し、
+                    // unique制約 + 予約promoteで二重作成/他者占有を防ぐ。uid有無ではなくcreateフラグで
+                    // 分岐するため、既存update経路の復活防止不変条件(lookup失敗=エラー)を侵さない。
+                    // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする(D2改)
+                    if (!(await SqliteDataService.isSlugAvailable(slug, request.uid ?? undefined))) {
                         throw new Error('Exist');
                     }
-                    renamedFromSlug = existing.slug;
-                } else if (request.renameFromSlug && request.renameFromSlug !== slug &&
-                           !(await SqliteDataService.findMapBySlug(request.renameFromSlug))) {
-                    // 再試行の救済(D5改): 前回の保存がDBコミット後のファイル操作で失敗した場合、
-                    // DB上のslugは既に改名済みで existing.slug === slug となり renamedFromSlug が
-                    // 立たない。editorが成功(saved)まで保持し続ける明示フィールド renameFromSlug を
-                    // 手掛かりに、旧slugが孤児(どの地図にも属さない)であれば原本(originals)改名の
-                    // 残作業として引き継ぐ。旧status文字列への埋め込みは全廃した。
-                    renamedFromSlug = request.renameFromSlug;
+                    // M11-T10: 複製は create 経路に乗る(事前採番uid=予約帰属)。複製元の
+                    // tiles/tmbs/原本コピーは従来 copy 経路と同じ後段ファイル操作を使う
+                    if (request.copyFromUid) {
+                        const source = await SqliteDataService.findMap(request.copyFromUid);
+                        if (source) {
+                            copySourceUid = source.uid;
+                            copySourceSlug = source.slug;
+                            copySourceImageExtension = source.imageExtension || source.imageExtention || undefined;
+                        }
+                    }
+                    const created = await SqliteDataService.createMap(slug, compiled, request.uid ?? undefined);
+                    savedUid = created.uid;
+                    savedRevision = 1;
+                } else if (uid) {
+                    const existing = await SqliteDataService.findMap(uid);
+                    if (!existing) throw new Error(`Map with uid ${uid} not found`);
+                    if (existing.slug !== slug) {
+                        // 改名先slugの空きを確認 (グローバル一意: 地図/アプリ/ベースマップ横断)
+                        if (!(await SqliteDataService.isSlugAvailable(slug, uid))) {
+                            throw new Error('Exist');
+                        }
+                        renamedFromSlug = existing.slug;
+                    } else if (request.renameFromSlug && request.renameFromSlug !== slug &&
+                               !(await SqliteDataService.findMapBySlug(request.renameFromSlug))) {
+                        // 再試行の救済(D5改): 前回の保存がDBコミット後のファイル操作で失敗した場合、
+                        // DB上のslugは既に改名済みで existing.slug === slug となり renamedFromSlug が
+                        // 立たない。editorが成功(saved)まで保持し続ける明示フィールド renameFromSlug を
+                        // 手掛かりに、旧slugが孤児(どの地図にも属さない)であれば原本(originals)改名の
+                        // 残作業として引き継ぐ。旧status文字列への埋め込みは全廃した。
+                        renamedFromSlug = request.renameFromSlug;
+                    }
+                    const { revision } = await SqliteDataService.upsertMap(
+                        uid, slug, compiled, request.expectedRevision ?? undefined
+                    );
+                    savedUid = uid;
+                    savedRevision = revision;
+                } else {
+                    // 新規 / 複製 (従来のserver採番経路、後方互換) — 新しくslugを名乗るので空きを確認
+                    if (!(await SqliteDataService.isSlugAvailable(slug))) {
+                        throw new Error('Exist');
+                    }
+                    if (request.copyFromUid) {
+                        const source = await SqliteDataService.findMap(request.copyFromUid);
+                        if (source) {
+                            copySourceUid = source.uid;
+                            copySourceSlug = source.slug;
+                            copySourceImageExtension = source.imageExtension || source.imageExtention || undefined;
+                        }
+                    }
+                    const created = await SqliteDataService.createMap(slug, compiled);
+                    savedUid = created.uid;
+                    savedRevision = 1;
                 }
-                const { revision } = await SqliteDataService.upsertMap(
-                    uid, slug, compiled, request.expectedRevision ?? undefined
-                );
-                savedUid = uid;
-                savedRevision = revision;
-            } else {
-                // 新規 / 複製 (従来のserver採番経路、後方互換) — 新しくslugを名乗るので空きを確認
-                if (!(await SqliteDataService.isSlugAvailable(slug))) {
-                    throw new Error('Exist');
+            } catch (e: any) {
+                if (e instanceof RevisionConflictError) {
+                    return { error: 'revision-conflict', current: e.current };
                 }
-                if (request.copyFromUid) {
-                    const source = await SqliteDataService.findMap(request.copyFromUid);
-                    if (source) {
-                        copySourceUid = source.uid;
-                        copySourceSlug = source.slug;
+                if (e && e.message === 'Exist') return { result: 'Exist' };
+                // registerAsset/renameAssetSlug のslug衝突(レース先取り)と slug 予約 promote conflict
+                // (M11-T7/AC4)も duplicate として写像する
+                if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
+                    return { result: 'Exist' };
+                }
+                if (e?.kind === 'slug-reservation-conflict') return { result: 'Exist' };
+                console.error('[MapEditService.save] Error:', e);
+                return { result: 'Error' };
+            }
+
+            const newTile = path.join(tileFolder, savedUid);
+            // legacy(slug キー)の原本パス。copySourceUid/renamedFromSlug 分岐専用(本タスクで無変更)
+            const newOriginal = path.join(originalFolder, `${slug}.${imageExtension}`);
+            const newThumbnail = path.join(thumbFolder, `${savedUid}.jpg`);
+
+            // --- ファイル操作 (DBコミット後・ここでの失敗はDBを巻き戻さない) ---
+            try {
+                if (tmpCheck) {
+                    // M13-T2 (§5.3): 新規原本アップロードは canonical(uid キー)へ書き込む。
+                    // normalizedExt は tmpCheck 分岐の直前で null チェック済みのため non-null
+                    const canonicalOriginal = path.join(originalFolder, `${savedUid}.${normalizedExt}`);
+                    // tmpフォルダからの永続フォルダへの移動 (uidパス)
+                    try { await fs.remove(newTile); } catch { /* noop */ }
+                    await fs.move(tmpTileFolder, newTile);
+                    const tmpOriginal = path.join(newTile, `original.${normalizedExt}`);
+                    try { await fs.remove(canonicalOriginal); } catch { /* noop */ }
+                    if (await fs.pathExists(tmpOriginal)) {
+                        await fs.move(tmpOriginal, canonicalOriginal);
+                    }
+                    const tmpThumb = path.join(newTile, 'thumbnail.jpg');
+                    try { await fs.remove(newThumbnail); } catch { /* noop */ }
+                    if (await fs.pathExists(tmpThumb)) {
+                        await fs.move(tmpThumb, newThumbnail);
+                    }
+                    // M12-T15 R3: thumbnail_512.jpg を tmbs/{uid}_512.jpg へ移動
+                    const tmpThumb512 = path.join(newTile, 'thumbnail_512.jpg');
+                    const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
+                    try { await fs.remove(newThumbnail512); } catch { /* noop */ }
+                    if (await fs.pathExists(tmpThumb512)) {
+                        await fs.move(tmpThumb512, newThumbnail512);
+                    }
+                    // M13-T2: renamedFromSlug の legacy 原本クリーンアップは削除する。canonical
+                    // 書込み先が uid キーになったことで新旧ファイル名の衝突が起こらなくなったため
+                    // 不要になった。legacy ファイルは非破壊方針(SI-1/SI-2 の精神)により T3
+                    // migration / T4 delete が扱うまで放置してよい(旧実装の掃除処理を意図的に削除)
+                } else if (copySourceUid) {
+                    // 複製: 複製元uidのtiles/tmbsを新キーへコピー
+                    const oldTile = path.join(tileFolder, copySourceUid);
+                    const oldThumbnail = path.join(thumbFolder, `${copySourceUid}.jpg`);
+                    if (await fs.pathExists(oldTile)) await fs.copy(oldTile, newTile);
+                    if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);
+                    // M12-T15 (Fix-3): 複製元の 512px サムネイルも複製する（複製地図が 512px を持てない問題の修正）
+                    const oldThumbnail512 = path.join(thumbFolder, `${copySourceUid}_512.jpg`);
+                    const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
+                    if (await fs.pathExists(oldThumbnail512)) await fs.copy(oldThumbnail512, newThumbnail512);
+                    // M13-T4 (AC-T4-2): 原本は複製元 uid の canonical-first / legacy-fallback 解決結果を
+                    // 複製先の canonical 名 (uid キー) へ複写する。旧実装の legacy slug キー複写
+                    // (`${copySourceSlug}.${imageExtension}` -> `${slug}.${imageExtension}`) は廃止する
+                    // (T2 以降の新規保存は canonical 名で書かれるため、複製先も canonical 名に揃える)。
+                    // 複製元が解決不能 (ambiguous/missing legacy 等) でも clone の DB 行/tiles/tmbs は
+                    // 成功させる (milestone §4.7.2: best-effort、source は非破壊)
+                    try {
+                        const resolved = await resolveRuntimeOriginal(copySourceUid, copySourceSlug!, copySourceImageExtension);
+                        if (resolved) {
+                            const canonicalDestOriginal = path.join(originalFolder, `${savedUid}.${resolved.ext}`);
+                            await fs.copy(resolved.path, canonicalDestOriginal);
+                        } else {
+                            console.warn(`[MapEditService.save] clone: source original unresolved for copySourceUid=${copySourceUid} slug=${copySourceSlug}; skipping original copy (tiles/tmbs still copied)`);
+                        }
+                    } catch (e) {
+                        console.warn(`[MapEditService.save] clone: failed to copy resolved original for copySourceUid=${copySourceUid}`, e);
+                    }
+                } else if (renamedFromSlug && renamedFromSlug !== slug) {
+                    // 改名: tiles/tmbsはuidキーのため移動不要。原本(slugキー)のみ改名。
+                    // 再試行でも安全なように「移動先が無く移動元がある」場合のみ移動する
+                    // (移動先が既にあれば改名は完了済みか新しい原本が置かれている)
+                    const oldOriginal = path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`);
+                    if (!(await fs.pathExists(newOriginal)) && (await fs.pathExists(oldOriginal))) {
+                        await fs.move(oldOriginal, newOriginal);
                     }
                 }
-                const created = await SqliteDataService.createMap(slug, compiled);
-                savedUid = created.uid;
-                savedRevision = 1;
+            } catch (e: any) {
+                // DBは既にコミット済み: 確定したuid/slug/revisionを返してレンダラ側の
+                // 編集状態を補正し、再試行が偽のrevision-conflictや'Exist'にならないようにする
+                console.error('[MapEditService.save] post-commit file operation failed:', e);
+                return { result: 'Error', uid: savedUid, slug, revision: savedRevision };
             }
-        } catch (e: any) {
-            if (e instanceof RevisionConflictError) {
-                return { error: 'revision-conflict', current: e.current };
-            }
-            if (e && e.message === 'Exist') return { result: 'Exist' };
-            // registerAsset/renameAssetSlug のslug衝突(レース先取り)と slug 予約 promote conflict
-            // (M11-T7/AC4)も duplicate として写像する
-            if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
-                return { result: 'Exist' };
-            }
-            if (e?.kind === 'slug-reservation-conflict') return { result: 'Exist' };
-            console.error('[MapEditService.save] Error:', e);
-            return { result: 'Error' };
-        }
+            return { result: 'Success', uid: savedUid, slug, revision: savedRevision };
+        };
 
-        const newTile = path.join(tileFolder, savedUid);
-        const newOriginal = path.join(originalFolder, `${slug}.${imageExtension}`);
-        const newThumbnail = path.join(thumbFolder, `${savedUid}.jpg`);
-
-        // --- ファイル操作 (DBコミット後・ここでの失敗はDBを巻き戻さない) ---
-        try {
-            if (tmpCheck) {
-                // tmpフォルダからの永続フォルダへの移動 (uidパス)
-                try { await fs.remove(newTile); } catch { /* noop */ }
-                await fs.move(tmpTileFolder, newTile);
-                const tmpOriginal = path.join(newTile, `original.${imageExtension}`);
-                try { await fs.remove(newOriginal); } catch { /* noop */ }
-                if (await fs.pathExists(tmpOriginal)) {
-                    await fs.move(tmpOriginal, newOriginal);
-                }
-                const tmpThumb = path.join(newTile, 'thumbnail.jpg');
-                try { await fs.remove(newThumbnail); } catch { /* noop */ }
-                if (await fs.pathExists(tmpThumb)) {
-                    await fs.move(tmpThumb, newThumbnail);
-                }
-                // M12-T15 R3: thumbnail_512.jpg を tmbs/{uid}_512.jpg へ移動
-                const tmpThumb512 = path.join(newTile, 'thumbnail_512.jpg');
-                const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
-                try { await fs.remove(newThumbnail512); } catch { /* noop */ }
-                if (await fs.pathExists(tmpThumb512)) {
-                    await fs.move(tmpThumb512, newThumbnail512);
-                }
-                // 改名時: 原本(slugキー)の旧ファイルを掃除(新ファイルはtmpから移動済み)
-                if (renamedFromSlug && renamedFromSlug !== slug) {
-                    try { await fs.remove(path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`)); } catch { /* noop */ }
-                }
-            } else if (copySourceUid) {
-                // 複製: 複製元uidのtiles/tmbsと複製元slugの原本を新キーへコピー
-                const oldTile = path.join(tileFolder, copySourceUid);
-                const oldOriginal = path.join(originalFolder, `${copySourceSlug}.${imageExtension}`);
-                const oldThumbnail = path.join(thumbFolder, `${copySourceUid}.jpg`);
-                if (await fs.pathExists(oldTile)) await fs.copy(oldTile, newTile);
-                if (await fs.pathExists(oldOriginal)) await fs.copy(oldOriginal, newOriginal);
-                if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);
-                // M12-T15 (Fix-3): 複製元の 512px サムネイルも複製する（複製地図が 512px を持てない問題の修正）
-                const oldThumbnail512 = path.join(thumbFolder, `${copySourceUid}_512.jpg`);
-                const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
-                if (await fs.pathExists(oldThumbnail512)) await fs.copy(oldThumbnail512, newThumbnail512);
-            } else if (renamedFromSlug && renamedFromSlug !== slug) {
-                // 改名: tiles/tmbsはuidキーのため移動不要。原本(slugキー)のみ改名。
-                // 再試行でも安全なように「移動先が無く移動元がある」場合のみ移動する
-                // (移動先が既にあれば改名は完了済みか新しい原本が置かれている)
-                const oldOriginal = path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`);
-                if (!(await fs.pathExists(newOriginal)) && (await fs.pathExists(oldOriginal))) {
-                    await fs.move(oldOriginal, newOriginal);
-                }
-            }
-        } catch (e: any) {
-            // DBは既にコミット済み: 確定したuid/slug/revisionを返してレンダラ側の
-            // 編集状態を補正し、再試行が偽のrevision-conflictや'Exist'にならないようにする
-            console.error('[MapEditService.save] post-commit file operation failed:', e);
-            return { result: 'Error', uid: savedUid, slug, revision: savedRevision };
-        }
-        return { result: 'Success', uid: savedUid, slug, revision: savedRevision };
+        return queueUid ? MapMutationQueue.run(queueUid, 'map-save', body) : body();
     }
 }
 

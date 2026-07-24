@@ -320,6 +320,9 @@
     "success_save": "Save succeeded.",
     "error_duplicate_id": "The slug (ID) is already in use.\nPlease change the slug (ID).",
     "error_saving": "Error occurred during save.",
+    "originals": {
+      "unsupported_extension": "Unsupported image format (only jpg/jpeg/png are supported). Please save again with a different image format."
+    },
     "confirm_layer_delete": "Are you sure you want to delete this sublayer?",
     "confirm_no_save": "The map data has been changed but not saved.\nAre you sure you want to close without saving?",
     "testerror_too_short": "Too few GCPs for projection test.",
@@ -375,7 +378,9 @@
     "migration_report_renamed": "The following IDs were renamed to resolve ID conflicts.",
     "migration_report_warnings": "There are {{count}} warning(s). See migration-report-v2.json in the data folder for details.",
     "migrating_thumbnails_512": "Generating 512px thumbnails",
-    "migrating_thumbnails_512_done": "512px thumbnail generation complete"
+    "migrating_thumbnails_512_done": "512px thumbnail generation complete",
+    "migrating_originals": "Migrating original files to UUID filenames",
+    "migrating_originals_done": "Original file migration complete"
   },
   "applist": {
     "not_implement": "Not implemented yet",

@@ -33,6 +33,25 @@ let win: BrowserWindow | null
 // 旧実装 main.js L.88-93 に準拠: macOS で Cmd+Q が押されるまで force_quit を false に保つ
 let forceQuit = false
 
+// M13-T2 (SI-6/§5.9): 同一 userData profile からの複数 Electron process による
+// DB/filesystem mutation を防ぐ。ロックを取得できなければ即座に quit する。
+// 【既知の限界(タスク設計 §6.5)】 app.requestSingleInstanceLock() は userData path 単位の
+// ロックであり、--user-data-dir を分離した複数プロセス(= 複数マシンから OneDrive 等で
+// クラウド同期された同一 saveFolder に同時アクセスする運用)は防げない。saveFolder 内
+// ロックファイル方式等の追加対策要否は人間判断待ち(マイルストーン再レビュー要の scope 超過)
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    }
+  })
+}
+
 function createWindow() {
   let draftFlushReady = false
   let draftFlushInProgress = false
@@ -128,6 +147,10 @@ import { registerSearchHandlers } from './ipc/search'
 
 import { ipcMain } from 'electron'
 
+// M13-T3: 明示 migration 実行の起動面(menu item)から SqliteDataService.getDb() / runManual() を呼ぶ
+import SqliteDataService from './services/SqliteDataService'
+import { runManual } from './services/OriginalsMigrationService'
+
 app.whenReady().then(() => {
   // HMR時の「2重登録」エラーを防ぐため、既存ハンドラを事前に解除する
   ipcMain.removeHandler('settings:get')
@@ -146,6 +169,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('mapupload:showMapSelectDialog')
   ipcMain.removeHandler('mapedit:getWmtsFolder')
   ipcMain.removeHandler('mapedit:download')
+  ipcMain.removeHandler('mapedit:download-saved')
   ipcMain.removeHandler('mapedit:uploadCsv')
   ipcMain.removeHandler('dataupload:showDataSelectDialog')
   ipcMain.removeHandler('wmtsGen:generate')
@@ -237,7 +261,11 @@ const messages: Record<string, Record<string, string>> = {
     'menu.selectAll': 'Select All',
     'menu.development': 'Development',
     'menu.reload': 'Reload',
-    'menu.toggleDevTools': 'Toggle Developer Tools'
+    'menu.toggleDevTools': 'Toggle Developer Tools',
+    'menu.run_originals_migration': 'Migrate Originals to UUID Filenames',
+    'menu.originals_migration_done': 'Originals migration completed ({count} entries processed).',
+    'menu.originals_migration_warnings_hint': 'See migration-report-v2.json in the data folder for entries that were skipped and require manual review.',
+    'menu.originals_migration_failed': 'Originals migration failed. See the application log for details.'
   },
   ja: {
     'menu.maplateditor': 'MaplatEditor',
@@ -252,7 +280,11 @@ const messages: Record<string, Record<string, string>> = {
     'menu.selectAll': 'すべて選択',
     'menu.development': '開発',
     'menu.reload': '再読み込み',
-    'menu.toggleDevTools': '開発者ツール'
+    'menu.toggleDevTools': '開発者ツール',
+    'menu.run_originals_migration': '原本をUUIDファイル名へ移行',
+    'menu.originals_migration_done': '原本の移行が完了しました（{count}件処理）。',
+    'menu.originals_migration_warnings_hint': '手動確認が必要な項目は、保存先データフォルダの migration-report-v2.json をご確認ください。',
+    'menu.originals_migration_failed': '原本の移行に失敗しました。詳細はアプリケーションログを確認してください。'
   },
   de: {
     'menu.maplateditor': 'MaplatEditor',
@@ -468,7 +500,40 @@ function setupMenu() {
     label: t('menu.development'),
     submenu: [
       { role: 'reload', label: t('menu.reload') },
-      { role: 'toggleDevTools', label: t('menu.toggleDevTools') }
+      { role: 'toggleDevTools', label: t('menu.toggleDevTools') },
+      { type: 'separator' },
+      {
+        label: t('menu.run_originals_migration'),
+        click: async () => {
+          try {
+            const db = await SqliteDataService.getDb(); // ここでは既に resolve 済み(app起動後のmenu click)
+            const result = await runManual(db);
+            const total = Object.values(result.summary).reduce((a: number, b: number) => a + b, 0);
+            const lines = Object.entries(result.summary).map(([kind, count]) => `  ${kind}: ${count}`);
+            const doneMessage = t('menu.originals_migration_done').replace('{count}', String(total));
+            const message = `${doneMessage}\n${lines.join('\n')}\n\n${t('menu.originals_migration_warnings_hint')}`;
+            const options = { type: 'info' as const, title: t('menu.run_originals_migration'), message };
+            // v1.1 (レビュー v1 Minor 6): forceQuit パターン(main.ts 33-34行)により
+            // macOS では全ウィンドウ閉鎖後もアプリ/メニューが生存し win は null になり得る。
+            // win が null の場合は BrowserWindow 引数なしの showMessageBox へフォールバックする
+            if (win) {
+              await dialog.showMessageBox(win, options);
+            } else {
+              await dialog.showMessageBox(options);
+            }
+          } catch (e: any) {
+            // v1.1: runManual() 自体は per-map failure を吸収するが(§5.1)、
+            // getDb() や dialog 自体の予期しない失敗にも click ハンドラとして防御的に備える
+            console.error('[main] manual originals migration failed', e);
+            const errorOptions = { type: 'error' as const, title: t('menu.run_originals_migration'), message: t('menu.originals_migration_failed') };
+            if (win) {
+              await dialog.showMessageBox(win, errorOptions);
+            } else {
+              await dialog.showMessageBox(errorOptions);
+            }
+          }
+        }
+      }
     ]
   })
 
