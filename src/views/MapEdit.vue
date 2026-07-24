@@ -161,6 +161,11 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         mapData.value.uid = result.uid;
         mapData.value.revision = result.revision;
         mapData.value.status = 'Update';
+        // M12-T17: 新規原本アップロード直後の保存(tmpCheck)はバックエンドが恒久タイルURLを
+        // result.url として返す。originalMapData の cloneDeep(次行)・markHistorySaved(165行)
+        // より前に代入しないと、保存済みスナップショットに新しい url_ が反映されず
+        // 保存直後から恒久的に dirty になる(設計レビューv1 Major2 / v2 §1 で実挙動と整合確認済み)
+        if (result.url) mapData.value.url_ = result.url;
         originalMapData.value = cloneDeep(mapData.value);
         markHistorySaved();
         await draftLifecycle.markSaved();
@@ -169,6 +174,10 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         if (route.query.uid !== result.uid) {
             router.replace({ query: { ...route.query, uid: result.uid } });
         }
+        // M12-T17: タイル参照が恒久URLへ切り替わったので、タイルソースのみを再生成して
+        // 表示に反映する(loadMapTiles() 全体は使わない。exchangeTileSource() の理由は
+        // 定義側コメント参照)。url_ 代入・cloneDeep・markHistorySaved 完了後なので dirty 判定は汚さない
+        if (result.url) await exchangeTileSource();
     },
     reloadFromStore: () => reloadFromStore(),
     isDirty: () => isDirty.value,
@@ -2534,11 +2543,15 @@ const initMaps = async () => {
 
 // ... (imports)
 
-const loadMapTiles = async () => {
-    if (!illstMap) return;
-    
-    // 旧実装 reflectIllstMap に準拠: mapSourceFactory を使用
-    // 非正方形タイル（HistMap）などの設定を適切に処理する
+// M12-T17 (設計レビューv2 Minor2): mapSourceFactory + exchangeSource のみを行う軽量ヘルパー。
+// loadMapTiles() 全体はこの後 gcps/edges/homePosition 等を「レイヤー0のデータ」として
+// mapData.value から無条件に再代入する(2566行以降、syncLayerData 参照)。保存成功時の
+// タイル参照リフレッシュ(applySuccess)はレイヤー文脈を保ったまま呼ばれる初のケースであり、
+// loadMapTiles() をそのまま使うとサブレイヤー編集中(currentEditingLayer > 0)の gcps.value を
+// レイヤー0データで意図せず上書きしてしまう。タイルソースの差し替えだけが目的の呼び出しは
+// 本ヘルパーを使う(gcps/edges/ビュー中心/updateTin 等には一切触れない)
+const exchangeTileSource = async (): Promise<any> => {
+    if (!illstMap) return null;
     const options = {
         mapID: mapID.value,
         url: mapData.value.url_,
@@ -2548,11 +2561,24 @@ const loadMapTiles = async () => {
         noload: true, // HistMap/HistMap_tin を直接生成するためのフラグ
         imageExtension: mapData.value.extension || 'jpg'
     };
-
     try {
         const source = await mapSourceFactory(options, {});
         illstSource = source;
         illstMap.exchangeSource(source);
+        return source;
+    } catch (e) {
+        console.error('[exchangeTileSource] mapSourceFactory でタイル読み込み失敗:', e);
+        return null;
+    }
+};
+
+const loadMapTiles = async () => {
+    // 旧実装 reflectIllstMap に準拠: mapSourceFactory を使用
+    // 非正方形タイル（HistMap）などの設定を適切に処理する
+    const source = await exchangeTileSource();
+    if (!source) return;
+
+    try {
         console.log('[loadMapTiles] source ready, mapData.gcps:', mapData.value.gcps?.length);
 
         // illstMapのビュー中心を設定（旧実装 reflectIllstMap に完全準拠）
