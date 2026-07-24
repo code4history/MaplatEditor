@@ -80,7 +80,11 @@ export interface SlugReservationApi {
 }
 
 export type MapSaveResult =
-    | { result: 'Success'; uid: string; slug: string; revision: number }
+    // url (M12-T17): 新規原本アップロード(tmpCheck)でタイルが恒久領域へ移動された場合のみ設定される
+    // 恒久タイルURL({z}/{x}/{y}.ext パターンのテンプレート文字列)。既存地図の通常更新・clone・
+    // rename 経路(tmpCheckが偽)では省略(undefined)。electron/adapters/StorageAdapter.ts の
+    // 正本定義と同期すること(手動同期ミラー、M12-T17 設計レビュー v1 Major1)
+    | { result: 'Success'; uid: string; slug: string; revision: number; url?: string }
     | { result: 'Exist' }
     // uid/slug/revision付きのErrorは「DBコミット済み・ファイル操作のみ失敗」。
     // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)。

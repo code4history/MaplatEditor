@@ -336,6 +336,9 @@ class MapEditService {
             const newOriginal = path.join(originalFolder, `${slug}.${imageExtension}`);
             const newThumbnail = path.join(thumbFolder, `${savedUid}.jpg`);
 
+            // M12-T17: tmpCheck 分岐でタイル本体の移動が成功した場合のみ設定する恒久タイルURL。
+            // post-commit Error 経路(405-410行)へは意図的に含めない(設計§6.4、YAGNI)
+            let newTileUrl: string | undefined;
             // --- ファイル操作 (DBコミット後・ここでの失敗はDBを巻き戻さない) ---
             try {
                 if (tmpCheck) {
@@ -345,6 +348,14 @@ class MapEditService {
                     // tmpフォルダからの永続フォルダへの移動 (uidパス)
                     try { await fs.remove(newTile); } catch { /* noop */ }
                     await fs.move(tmpTileFolder, newTile);
+                    // M12-T17 (§6.1 #2): tmp プレフィックス文字列置換方式。url_ は tmpCheck 判定
+                    // (225行) により regex(^tmpUrl) に必ずマッチすることが保証されているため、
+                    // 置換後は元の {z}/{x}/{y}.ext サフィックスがそのまま保持される。
+                    // 置換を関数形式にする(設計レビュー v2 Minor1): 第2引数が文字列だと
+                    // $&/$`/$'/$n が特殊置換パターンとして解釈され、saveFolder パスに $ が
+                    // 含まれる場合に恒久URLが破損する(実測確認済み)。関数形式なら戻り値が
+                    // そのままリテラルとして挿入されるため、この種の解釈は一切発生しない
+                    newTileUrl = url_!.replace(regex, () => fileUrl(newTile));
                     const tmpOriginal = path.join(newTile, `original.${normalizedExt}`);
                     try { await fs.remove(canonicalOriginal); } catch { /* noop */ }
                     if (await fs.pathExists(tmpOriginal)) {
@@ -408,7 +419,9 @@ class MapEditService {
                 console.error('[MapEditService.save] post-commit file operation failed:', e);
                 return { result: 'Error', uid: savedUid, slug, revision: savedRevision };
             }
-            return { result: 'Success', uid: savedUid, slug, revision: savedRevision };
+            return newTileUrl
+                ? { result: 'Success', uid: savedUid, slug, revision: savedRevision, url: newTileUrl }
+                : { result: 'Success', uid: savedUid, slug, revision: savedRevision };
         };
 
         return queueUid ? MapMutationQueue.run(queueUid, 'map-save', body) : body();
