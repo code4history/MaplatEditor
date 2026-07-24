@@ -10,7 +10,7 @@
 //   Part C: 置換文字列 $ 特殊シーケンスハザード回帰 (設計レビュー v2 Minor1) —
 //           saveFolder パスに $& が含まれても恒久 URL が破損しない
 //   Part D: 既存地図の通常更新 (tmpCheck=false) は url を含まない (AC1 無回帰)
-//   Part E: clone (複製、tmpCheck=false) は url を含まない (AC6 無回帰)
+//   Part E: clone は url を含むようになった (M12-T19) — 複製先タイルパスを指す恒久URLを返す
 //   Part F: rename (改名、tmpCheck=false) は url を含まない (AC6 無回帰)
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -251,7 +251,12 @@ try {
       }
 
       // ============================================================
-      // Part E: clone (複製、tmpCheck=false) は url を含まない (AC6 無回帰)
+      // Part E: clone は url を含むようになった (M12-T19)。M12-T17時点では「clone は
+      // url を含まない」が正しい前提だったが、M12-T19 が「複製保存後もレンダラーが
+      // 複製元uidのタイルURLを保持し続ける」潜在不整合を修正した結果、clone 分岐も
+      // (tmpCheck 分岐と同様に) 複製先タイルパスを指す恒久URLを返すようになった。
+      // これは意図した仕様変更であり、旧アサーション(url===undefined)は本タスクの
+      // 目的そのものと矛盾するため更新した(M12-T19設計書§7.1 AC6)。
       // ============================================================
       {
         const { tileFolder } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-e'))});
@@ -271,8 +276,13 @@ try {
         assert.ok(typeof saveESrc.url === 'string', '複製元自体の新規保存は url を含むはず(前提確認)');
 
         const UID_E_DEST = 'e2222222-2222-4222-8222-222222222222';
+        // M12-T19: 実際の MapEdit.vue の挙動 (duplicateFrom 経由で複製元の request 結果を
+        // 丸ごと受け継ぐ) を模し、複製先の mapObject.url_ に複製元の恒久タイルURL(saveESrc.url)
+        // を設定する。これが無いと clone 分岐の newTileUrl 構築ガード(url_ && url_.startsWith(...))
+        // が発火せず、この smoke は url を含む新仕様を検証できない(m12-t19 designer が実測で
+        // 発見した、旧 Part E 自体のカバレッジの欠落)。
         const saveEDest = await MapEditService.save({
-          mapObject: { mapID: 'e1-clone-dest', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'e1-clone-dest', imageExtension: 'jpg', url_: saveESrc.url, gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'e1-clone-dest',
           uid: UID_E_DEST,
@@ -280,9 +290,15 @@ try {
           create: true,
         });
         assert.equal(saveEDest.result, 'Success');
-        assert.equal(saveEDest.url, undefined, 'clone (tmpCheck=false) は url を含まないはず (AC6)');
+        assert.ok(typeof saveEDest.url === 'string', 'clone は url を含むようになったはず (M12-T19): ' + JSON.stringify(saveEDest));
+        const expectedDestPrefix = fileUrl(path.join(tileFolder, UID_E_DEST));
+        assert.ok(
+          saveEDest.url.startsWith(expectedDestPrefix),
+          'url は複製先(' + UID_E_DEST + ')のタイルパスを指すはず(複製元ではない): ' + saveEDest.url
+        );
+        assert.ok(!saveEDest.url.includes(UID_E_SRC), 'url は複製元(' + UID_E_SRC + ')のパスを含まないはず: ' + saveEDest.url);
         assert.ok(await fs.pathExists(path.join(tileFolder, UID_E_DEST)), '複製先タイルフォルダ自体は作られているはず(既存動作)');
-        console.log('ok: (Part E) clone omits url even though tiles are copied (AC6 no-regression)');
+        console.log('ok: (Part E) clone now returns a permanent url pointing to the destination tile path (M12-T19)');
       }
 
       // ============================================================
