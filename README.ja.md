@@ -49,23 +49,19 @@ MaplatEditor はデスクトップインストーラーとして GitHub Releases
 
 | プラットフォーム | ダウンロード |
 |---|---|
-| Windows (x64) | [MaplatEditor.Setup.0.7.0.exe](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor.Setup.0.7.0.exe) |
-| macOS (Apple Silicon) | [MaplatEditor-0.7.0-arm64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-0.7.0-arm64.dmg) |
-| macOS (Intel x64) | [MaplatEditor-0.7.0.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-0.7.0.dmg) |
+| Windows (x64) | [MaplatEditor-Windows-0.7.0-x64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Windows-0.7.0-x64-Setup.exe) |
+| macOS (Apple Silicon) | [MaplatEditor-Mac-0.7.0-arm64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Mac-0.7.0-arm64.dmg) |
+| macOS (Intel x64) | [MaplatEditor-Mac-0.7.0-x64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Mac-0.7.0-x64.dmg) |
 
-> 全アセット一覧とリリースノートは
+> 全アセット一覧（Linux AppImage・Windows arm64 含む）とリリースノートは
 > [v0.7.0 リリースページ](https://github.com/code4history/MaplatEditor/releases/tag/v0.7.0)
 > を参照してください。
 
 ### スクリーンショット
 
-#### MapList（地図一覧）
-
-![MapList](https://raw.githubusercontent.com/code4history/MaplatEditor/master/maplist.png)
-
-#### MapEdit（地図編集）
-
-![MapEdit](https://raw.githubusercontent.com/code4history/MaplatEditor/master/mapedit.png)
+> MapList・MapEdit 画面のスクリーンショットは準備中です。旧 Wiki チュートリアルの
+> 画像は [Wiki ギャラリー](https://github.com/code4history/MaplatEditor/wiki/Gallery)
+> に保存しています。
 
 ### 開発
 

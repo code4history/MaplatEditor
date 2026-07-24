@@ -49,22 +49,19 @@ MaplatEditor is distributed as a desktop installer via GitHub Releases.
 
 | Platform | Download |
 |---|---|
-| Windows (x64) | [MaplatEditor.Setup.0.7.0.exe](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor.Setup.0.7.0.exe) |
-| macOS (Apple Silicon) | [MaplatEditor-0.7.0-arm64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-0.7.0-arm64.dmg) |
-| macOS (Intel x64) | [MaplatEditor-0.7.0.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-0.7.0.dmg) |
+| Windows (x64) | [MaplatEditor-Windows-0.7.0-x64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Windows-0.7.0-x64-Setup.exe) |
+| macOS (Apple Silicon) | [MaplatEditor-Mac-0.7.0-arm64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Mac-0.7.0-arm64.dmg) |
+| macOS (Intel x64) | [MaplatEditor-Mac-0.7.0-x64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Mac-0.7.0-x64.dmg) |
 
 > See the [v0.7.0 release page](https://github.com/code4history/MaplatEditor/releases/tag/v0.7.0)
-> for the full list of assets and release notes.
+> for the full list of assets (including Linux AppImage and Windows arm64)
+> and release notes.
 
 ### Screenshots
 
-#### MapList (map list)
-
-![MapList](https://raw.githubusercontent.com/code4history/MaplatEditor/master/maplist.png)
-
-#### MapEdit (map editing)
-
-![MapEdit](https://raw.githubusercontent.com/code4history/MaplatEditor/master/mapedit.png)
+> Screenshots of the MapList and MapEdit screens are pending. The legacy Wiki
+> tutorial images are preserved in the
+> [Wiki Gallery](https://github.com/code4history/MaplatEditor/wiki/Gallery).
 
 ### Development
 
