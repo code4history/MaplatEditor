@@ -925,10 +925,12 @@ try {
     /level === ['"]error['"]/,
     "PoiRawPane に issues の level==='error' ガードがない"
   );
+  // M12-T11 (R3/C36-C40): alert 直書き (raw_apply_warnings 見出し) から
+  // DiagnosticFeedback scope=section (severity: warning) へ移行済み
   assert.match(
     rawPane,
-    /raw_apply_warnings/,
-    'PoiRawPane に warning のみ適用時の警告表示 (raw_apply_warnings) がない'
+    /applyWarnings\.map\([\s\S]{0,200}?severity:\s*['"]warning['"]/,
+    'PoiRawPane に warning のみ適用時の警告表示 (applyWarnings → DiagnosticFeedback warning) がない'
   );
 
   // issue 文言は共有写像 (utils/poiSourceMessages) を使うこと

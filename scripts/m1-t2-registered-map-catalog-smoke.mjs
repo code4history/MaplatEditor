@@ -1,12 +1,46 @@
-import { readdir, readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { access, readdir, readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const workDir = await mkdtemp(path.join(tmpdir(), 'maplat-editor-m1-t2-'));
+
+const fileExists = (p) => access(p).then(() => true, () => false);
+
+// SaaS 正本の解決: 通常は sibling (../MaplatEditorSaaS)。Maplats の worktree では
+// MaplatEditorSaaS submodule が未初期化 (空ディレクトリ) のため、superproject の
+// git common dir から主 checkout を特定してそちらの正本へフォールバックする
+const SAAS_TRUTH_REL = 'MaplatEditorSaaS/packages/shared/src/contracts/registered-map-selector.ts';
+async function resolveSaasTruthPath() {
+  const sibling = path.resolve(projectRoot, '..', SAAS_TRUTH_REL);
+  if (await fileExists(sibling)) return sibling;
+  let commonDir = '';
+  try {
+    commonDir = execFileSync(
+      'git',
+      ['-C', path.resolve(projectRoot, '..'), 'rev-parse', '--path-format=absolute', '--git-common-dir'],
+      { encoding: 'utf8' }
+    ).trim();
+  } catch {
+    /* git が使えない場合は下の assert.fail に流す */
+  }
+  if (commonDir) {
+    const fallback = path.join(path.dirname(commonDir), SAAS_TRUTH_REL);
+    if (await fileExists(fallback)) {
+      console.warn(`  note: SaaS 正本を主 checkout から参照します: ${fallback}`);
+      return fallback;
+    }
+  }
+  assert.fail(
+    `SaaS 正本が見つかりません: ${sibling}\n` +
+    '  Maplats ルートで `git submodule update --init MaplatEditorSaaS` を実行するか、' +
+    '主 checkout に MaplatEditorSaaS がある状態で実行してください'
+  );
+}
 
 const NORMALIZE_TYPE = (s) =>
   s.replace(/\s+/g, ' ').replace(/\s*([<>(),;|&?:])\s*/g, '$1').trim();
@@ -86,7 +120,7 @@ function assertTypeAliasEqual(name, a, b) {
 
 try {
   // --- Part 1: AST structure comparison (mirror vs SaaS truth) ---
-  const truthPath = path.resolve(projectRoot, '..', 'MaplatEditorSaaS/packages/shared/src/contracts/registered-map-selector.ts');
+  const truthPath = await resolveSaasTruthPath();
   const mirrorPath = path.resolve(projectRoot, 'src/services/registeredMapCatalog.ts');
 
   const sourceOfTruth = await readFile(truthPath, 'utf8');

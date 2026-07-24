@@ -98,13 +98,28 @@ try {
   assert.ok(settingsTab, 'MapEdit.vue settings tab block could not be located');
   // POI カードは settings タブから撤去済み (POIデータタブへ移設)
   assert.doesNotMatch(settingsTab, /PoiSourceSelector|PoiReferenceEditor/, 'settings タブに POI UI が残存している (POIデータタブへ移設済みのはず)');
-  // ベースマップ可視性カードは flex-basis 0 で残り空間を受け取ること。
-  // basis auto (flex-grow-1 のみ) だと flex-shrink-0 の兄弟カードとの圧縮競合でこのカードだけが
-  // 潰れ、一覧のスクロール領域が 0px になる (2026-07-11 実機バグの再発防止)
+  // ベースマップ可視性ペインは共有 ResourceSelector (M12-T10 v2.0) へ移行済み。
+  // 旧 inline `flex: 1 1 0; min-height: 0;` の意図 = 「兄弟要素との圧縮競合で一覧の
+  // スクロール領域が 0px に潰れない」(2026-07-11 実機バグの再発防止) は、ホスト側の
+  // flex-grow-1 min-h-0 と ResourceSelector 内部の min-height:0 / overflow:auto が引き継ぐ
   assert.match(
     settingsTab,
-    /style="flex: 1 1 0; min-height: 0;"[\s\S]{0,200}?mapedit\.base_map_visibility/,
-    'ベースマップ可視性カードに flex: 1 1 0 がない (圧縮競合で一覧が 0px に潰れる)'
+    /<ResourceSelector[^>]*class="[^"]*\bflex-grow-1\b[^"]*\bmin-h-0\b/,
+    'settings タブの ResourceSelector に flex-grow-1 min-h-0 がない (圧縮競合で一覧が 0px に潰れる)'
+  );
+  assert.match(
+    settingsTab,
+    /mapedit\.base_map_visibility/,
+    'settings タブにベースマップ可視性ペイン (mapedit.base_map_visibility) がない'
+  );
+  const resourceSelector = await readFile(
+    path.join(projectRoot, 'src/components/ResourceSelector.vue'),
+    'utf8'
+  );
+  assert.match(
+    resourceSelector,
+    /min-height:\s*0/,
+    'ResourceSelector のペインに min-height: 0 がない (一覧潰れ防止の引き継ぎ先)'
   );
   // テキスト欄内の Cmd+Z 復活 (2026-07-11): menu:undo のセッション undo は
   // 編集フィールド内では発動しない (ネイティブ undo は App.vue が振り分け)

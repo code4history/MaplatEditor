@@ -134,7 +134,9 @@ assert.match(uiTypes, /export interface DiagnosticItem/);
 
 const field = await read("src/components/editor-ui/EditorField.vue");
 assert.match(field, /label/); assert.match(field, /labelFor/);
-assert.match(field, /required/); assert.match(field, /hint/);
+assert.match(field, /required/);
+// M12-T11 R2 (AC6): 未使用の hint prop は削除済み。参照 0 件を維持する
+assert.doesNotMatch(field, /hint/, "EditorField must not reintroduce the hint prop (M12-T11 R2)");
 assert.match(field, /diagnostics/);
 assert.match(field, /name="help"/, "EditorField must expose help slot");
 assert.match(field, /DiagnosticFeedback/, "EditorField must render DiagnosticFeedback for field scope");
@@ -186,9 +188,14 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
   assert.match(src, /ContextHelp|SlugField/, `${rel} must use ContextHelp (directly or via SlugField)`);
   assert.match(src, /editor-ui-mono|SlugField/, `${rel} slug input must use editor-ui-mono (directly or via SlugField)`);
   assert.match(src, /scope="operation"/, `${rel} save error must be operation-scope diagnostic`);
-  // F3改 (M11-T10 人間検証R3): 全量サマリバナー(section scope)は廃止し、
-  // Map/App と同じ「field 診断 + バナーは操作エラーのみ」の文法へ統一
-  assert.doesNotMatch(src, /scope="section"/, `${rel} must not keep the section-scope validation summary (T10 R3)`);
+  // F3改 (M11-T10 人間検証R3): 全量サマリバナー(section scope の validation 集約)は廃止し、
+  // Map/App と同じ「field 診断 + バナーは操作エラーのみ」の文法へ統一。
+  // M12-T11 で readOnly 通知等の非 validation バナーが DF scope=section へ変換されたため、
+  // 禁止対象は field 診断 (…Diagnostics) を束ねる section DF に限定する
+  const sectionDfTags = (src.match(/<DiagnosticFeedback[^>]*>/g) ?? []).filter((tag) => tag.includes('scope="section"'));
+  for (const tag of sectionDfTags) {
+    assert.doesNotMatch(tag, /Diagnostics/, `${rel} must not keep a section-scope validation summary (T10 R3): ${tag.slice(0, 100)}`);
+  }
   assert.doesNotMatch(src, /alert alert-warning[^"]*"\s*>\s*<ul/, `${rel} must not keep the yellow validation banner`);
   // F2: field 診断がある入力へ is-invalid（赤枠）を連動付与(slug 欄は SlugField 内蔵)
   assert.match(src, /('is-invalid':\s*slugDiagnostics\.length)|SlugField/, `${rel} slug input must bind is-invalid (directly or via SlugField)`);

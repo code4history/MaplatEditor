@@ -196,8 +196,12 @@ try {
   const statePath = path.join(projectRoot, '..', 'docs', 'superpowers', 'state', 'nayuta-state.json');
   const state = JSON.parse(await readFile(statePath, 'utf8'));
   const m12Tasks = state.milestones.m12.tasks;
+  // audit_finding_id は後続の別監査 (M12-T3 人間検証の F1〜F10、m12-t4 セキュリティレビューの
+  // m12-t4-sec-* 等) からも登録される。本台帳 (m12-t1 parity audit) と対応検査するのは
+  // 本台帳の行 ID 語彙 (ML|ME|AP|ST|IO|IP|BE)-n に一致する finding のみ
+  const LEDGER_FINDING_ID = /^(ML|ME|AP|ST|IO|IP|BE)-\d+$/;
   const auditRegistered = (Array.isArray(m12Tasks) ? m12Tasks : Object.values(m12Tasks))
-    .filter((t) => t.audit_finding_id);
+    .filter((t) => t.audit_finding_id && LEDGER_FINDING_ID.test(t.audit_finding_id));
   const unresolvedMissing = dataRows.filter((row) => {
     const cells = row.split('|').map((c) => c.trim()).filter((c) => c !== '');
     return cells[3] === 'missing' || cells[3] === '**missing**';
