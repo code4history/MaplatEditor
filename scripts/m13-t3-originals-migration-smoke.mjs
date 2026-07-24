@@ -144,6 +144,20 @@ try {
         // copyable -> migrated: legacy source 1件のみ
         await fs.writeFile(path.join(originalsDir, 'copyable-slug.jpg'), 'copyable-source-bytes');
 
+        // M13-T4 実装時吸収 (t3 実装レビュー Minor 1): 全 outcome ケースについて、
+        // legacy source ファイルが存在するものは migration 実行前後で byte 内容と mtime が
+        // 不変であることを assert する (設計 §7 記載の全件比較。既存の copyable ケースの
+        // 比較ロジックを他ケースへも適用する)。source ファイルが存在しない outcome
+        // (skip_canonical_variant_exists/skip_unsupported_extension/skip_source_missing) は対象外
+        const sourceSnapshotFiles = [
+          'already-slug.jpg', 'conflict-slug.jpg', 'ambiguous-slug.jpg', 'ambiguous-slug.png', 'copyable-slug.jpg',
+        ];
+        const sourceSnapshotsBefore = {};
+        for (const file of sourceSnapshotFiles) {
+          const p = path.join(originalsDir, file);
+          sourceSnapshotsBefore[file] = { content: await fs.readFile(p), mtimeMs: (await fs.stat(p)).mtimeMs };
+        }
+
         const rows = [
           { uid: 'uid-already', slug: 'already-slug', data_json: JSON.stringify({ imageExtension: 'jpg' }) },
           { uid: 'uid-conflict', slug: 'conflict-slug', data_json: JSON.stringify({ imageExtension: 'jpg' }) },
@@ -176,6 +190,18 @@ try {
         // AC-T3-1: source は1byteも変更されない
         const sourceAfter = await fs.readFile(path.join(originalsDir, 'copyable-slug.jpg'), 'utf8');
         assert.equal(sourceAfter, 'copyable-source-bytes', 'source は migration 後も不変のはず (AC-T3-1)');
+
+        // M13-T4 実装時吸収 (t3 実装レビュー Minor 1): 全 outcome ケースの source snapshot
+        // (byte 内容 + mtime) が migration 前後で不変であることを確認する
+        for (const file of sourceSnapshotFiles) {
+          const p = path.join(originalsDir, file);
+          const before = sourceSnapshotsBefore[file];
+          const afterContent = await fs.readFile(p);
+          const afterStat = await fs.stat(p);
+          assert.ok(before.content.equals(afterContent), \`source \${file} の byte 内容は migration 後も不変のはず (AC-T3-1, 全outcome共通)\`);
+          assert.equal(afterStat.mtimeMs, before.mtimeMs, \`source \${file} の mtime は migration 後も不変のはず (AC-T3-1, 全outcome共通)\`);
+        }
+        console.log('ok: (B-snapshot) all outcome cases with a legacy source file keep byte content + mtime unchanged (AC-T3-1, t3 review Minor 1 absorbed)');
         // AC-T3-2: target が source と同内容で作られ、.m13-tmp が空になっている
         const targetAfter = await fs.readFile(path.join(originalsDir, 'uid-copyable.jpg'), 'utf8');
         assert.equal(targetAfter, 'copyable-source-bytes', 'target は source と同内容のはず (AC-T3-2)');

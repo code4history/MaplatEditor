@@ -11,8 +11,9 @@
 //   (D) MapMutationQueue: run()/runMany() の直列化と、前段 reject が後続をブロックしないこと
 //   (E) MapEditService.save(): tmpCheck 分岐の canonical(uid キー)書込みと未対応拡張子reject (AC-T2-1)
 //   (F) MapEditService.save(): 同一 uid への2回同時発火が直列に完了すること (AC-T2-4)
-//   (G) 既知差異(レビュー v1 Minor 7): T2 適用後の canonical-only map を clone すると原本複写が
-//       silent にスキップされる(T4 で解消予定)
+//   (G) M13-T4 (AC-T4-2) 適用後: canonical-only map を clone すると、複製先には legacy
+//       slug キーではなく canonical uid キーの原本が作られる（レビュー v1 Minor 7 の既知差異は
+//       T4 で解消済み。m13-t4 設計 §4.9.2 の改修方針どおり、本 Part を「解消の確認」へ更新）
 //   (H) WmtsGeneratorService.generate(): canonical-first / legacy fallback / 解決不能時のerr (AC-T2-2)
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -444,7 +445,8 @@ try {
       console.log('ok: (F) MapEditService.save(): concurrent same-uid saves are serialized (physical overlap, not sequential await)');
 
       // ============================================================
-      // (G) 既知差異(レビュー v1 Minor 7): canonical-only map の clone は原本複写が silent skip
+      // (G) M13-T4 (AC-T4-2) 適用後: canonical-only map の clone は複製先 canonical へ複写される
+      // (レビュー v1 Minor 7 の既知差異は解消済み。m13-t4 設計 §4.9.2)
       // ============================================================
       const UID_G_SRC = 'aaaaaaaa-1111-4111-8111-111111111111';
       await prepareTmpUpload('jpg');
@@ -472,12 +474,22 @@ try {
         create: true,
       });
       assert.equal(saveGDest.result, 'Success', 'clone の save 自体は成功する(tiles/tmbsは複製される)');
-      const cloneDestOriginal = path.join(originalsDir, 'g-clone-dest.jpg');
+      const cloneDestLegacy = path.join(originalsDir, 'g-clone-dest.jpg');
       assert.ok(
-        !(await fs.pathExists(cloneDestOriginal)),
-        '既知差異(Minor 7): T2 適用後の canonical-only map を clone すると、copySourceUid 分岐は legacy slug パスしか見ないため原本複写が silent にスキップされる(T4=AC-T4-2 で解消予定)'
+        !(await fs.pathExists(cloneDestLegacy)),
+        'M13-T4 適用後も legacy slug キー(g-clone-dest.jpg)は作られないはず(canonical名に統一されたため)'
       );
-      console.log('ok: (G) MapEditService.save(): documents the T2/T4 interim clone-skips-original known gap (review v1 Minor 7)');
+      const cloneDestCanonical = path.join(originalsDir, UID_G_DEST + '.jpg');
+      assert.ok(
+        await fs.pathExists(cloneDestCanonical),
+        'M13-T4 (AC-T4-2) 適用後: 複製先の canonical(uidキー) 原本が作られるはず(レビュー v1 Minor 7 の既知差異は解消済み)'
+      );
+      assert.equal(
+        await fs.readFile(cloneDestCanonical, 'utf8'),
+        await fs.readFile(path.join(originalsDir, UID_G_SRC + '.jpg'), 'utf8'),
+        '複製先 canonical の内容は複製元 canonical と同一のはず'
+      );
+      console.log('ok: (G) MapEditService.save(): canonical-only clone now copies the resolved original to dest canonical (M13-T4 AC-T4-2, review v1 Minor 7 resolved)');
 
       // ============================================================
       // (H) WmtsGeneratorService.generate(): canonical-first / legacy fallback / unresolved (AC-T2-2)
