@@ -96,6 +96,7 @@
     "smoke:m13-t3-originals-migration": "node scripts/m13-t3-originals-migration-smoke.mjs",
     "smoke:m13-t4-originals-lifecycle": "node scripts/m13-t4-originals-lifecycle-smoke.mjs",
     "smoke:m13-t5-migration-report-atomic-write": "node --experimental-strip-types scripts/m13-t5-migration-report-atomic-write-smoke.mjs",
+    "test:e2e:m13-t5-migration-pipeline": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m13-t5-migration-pipeline-e2e.spec.ts",
     "smoke:m12-t2-generation-guard": "node scripts/m12-t2-generation-guard-smoke.mjs",
     "test:e2e:m12-t11": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t11-description-grammar.spec.ts",
     "smoke:m12-t15-thumbnail-512": "node scripts/m12-t15-thumbnail-512-smoke.mjs",
