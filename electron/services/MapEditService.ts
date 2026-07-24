@@ -381,7 +381,23 @@ class MapEditService {
                     // 複製: 複製元uidのtiles/tmbsを新キーへコピー
                     const oldTile = path.join(tileFolder, copySourceUid);
                     const oldThumbnail = path.join(thumbFolder, `${copySourceUid}.jpg`);
-                    if (await fs.pathExists(oldTile)) await fs.copy(oldTile, newTile);
+                    if (await fs.pathExists(oldTile)) {
+                        await fs.copy(oldTile, newTile);
+                        // M12-T19: 複製元のタイルコピーが実行された場合のみ、レンダラーが保持している
+                        // 複製元タイルURL(url_)を複製先タイルURLへ置換した恒久URLを構築する。
+                        // M12-T17のtmpCheck分岐と同じ「result.url経由でapplySuccessが汎用適用する」
+                        // 契約を再利用する(レンダラー側の変更は不要)。
+                        // 正規表現ではなく startsWith/slice を使う(tmpCheck分岐の正規表現方式と異なり、
+                        // oldTileのパスに正規表現特殊文字(括弧等)が含まれていても安全なため。
+                        // 詳細はM12-T17設計レビューv2 Minor1で発見された$特殊シーケンスハザードの
+                        // 教訓を踏まえ、置換対象文字列に対する解釈を一切発生させない構築方式を採用する)。
+                        // 設計レビューv1 Minor1: 区切り文字(/)を跨がない前方一致は誤検出になり得るため、
+                        // プレフィックス直後がパス区切りであることまで判定する(区切り込みで判定)。
+                        const oldTileUrlPrefix = fileUrl(oldTile) + '/';
+                        if (url_ && url_.startsWith(oldTileUrlPrefix)) {
+                            newTileUrl = fileUrl(newTile) + '/' + url_.slice(oldTileUrlPrefix.length);
+                        }
+                    }
                     if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);
                     // M12-T15 (Fix-3): 複製元の 512px サムネイルも複製する（複製地図が 512px を持てない問題の修正）
                     const oldThumbnail512 = path.join(thumbFolder, `${copySourceUid}_512.jpg`);
