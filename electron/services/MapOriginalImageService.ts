@@ -245,3 +245,42 @@ export async function classifyMigrationCandidate(
 
     return { kind: 'copyable', sourcePath: singleSourcePath, targetPath, ext: targetExt };
 }
+
+export interface DeletionTargets {
+    canonicalPaths: { ext: OriginalExt; path: string }[];
+    legacyPath: { ext: OriginalExt; path: string } | null;
+    /**
+     * v1.1 (AC-T4-3(c), レビュー v1 Major 2): legacy 候補の総数。呼び出し側 (MapDeleteTrashService)
+     * が「legacyPath が null」を 0件 (何もない) と 2件以上 (ambiguous) で区別できるようにするための
+     * フィールド。legacyPath !== null のとき legacyCandidateCount は必ず 1。
+     */
+    legacyCandidateCount: number;
+}
+
+/**
+ * delete (T4) 専用: trash へ move してよい対象だけを返す。
+ * - canonical: uid は永続的に一意なので、originals/<uid>.<ext> に該当する全 ext variant を返す
+ *   (ambiguity 判定不要、§5.5 参照)
+ * - legacy: scanLegacyCandidates() の候補が「ちょうど1件」の場合だけそれを legacyPath として返す
+ *   (classifyMigrationCandidate と同じ厳格判定。extHint による緩和は行わない —
+ *   delete は migration と同様に「誤った方を消してしまう」リスクを避けるため慎重な基準を保つ)。
+ *   候補が2件以上 (ambiguous) の場合も legacyCandidateCount で件数を呼び出し側へ伝える
+ *   (v1.1: milestone §4.7.3 手順3・AC-T4-3(c) の warning 契約に必要)
+ */
+export async function resolveDeletionTargets(uid: string, slug: string): Promise<DeletionTargets> {
+    const originalFolder = getOriginalFolder();
+
+    const canonicalPaths: { ext: OriginalExt; path: string }[] = [];
+    for (const ext of ALLOWED_EXTS) {
+        const p = path.join(originalFolder, `${uid}.${ext}`);
+        if (await fs.pathExists(p)) canonicalPaths.push({ ext, path: p });
+    }
+
+    const legacyCandidates = await scanLegacyCandidates(originalFolder, slug);
+    const legacyPath =
+        legacyCandidates.length === 1
+            ? { ext: legacyCandidates[0].ext, path: path.join(originalFolder, legacyCandidates[0].file) }
+            : null;
+
+    return { canonicalPaths, legacyPath, legacyCandidateCount: legacyCandidates.length };
+}

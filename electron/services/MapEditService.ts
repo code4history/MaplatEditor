@@ -6,7 +6,7 @@ import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import SettingsService from './SettingsService';
-import { normalizeOriginalExt } from './MapOriginalImageService';
+import { normalizeOriginalExt, resolveRuntimeOriginal } from './MapOriginalImageService';
 import MapMutationQueue from './MapMutationQueue';
 // @ts-ignore
 import Tin from '@maplat/tin';
@@ -250,6 +250,9 @@ class MapEditService {
             let savedRevision: number;
             let copySourceUid: string | null = null;
             let copySourceSlug: string | null = null;
+            // M13-T4 (§5.2): clone 分岐で複製元原本を resolveRuntimeOriginal() で解決するために
+            // 複製元の DB 上の imageExtension/imageExtention を extHint として保持する
+            let copySourceImageExtension: string | undefined;
             let renamedFromSlug: string | null = null;
             try {
                 if (request.create === true) {
@@ -267,6 +270,7 @@ class MapEditService {
                         if (source) {
                             copySourceUid = source.uid;
                             copySourceSlug = source.slug;
+                            copySourceImageExtension = source.imageExtension || source.imageExtention || undefined;
                         }
                     }
                     const created = await SqliteDataService.createMap(slug, compiled, request.uid ?? undefined);
@@ -305,6 +309,7 @@ class MapEditService {
                         if (source) {
                             copySourceUid = source.uid;
                             copySourceSlug = source.slug;
+                            copySourceImageExtension = source.imageExtension || source.imageExtention || undefined;
                         }
                     }
                     const created = await SqliteDataService.createMap(slug, compiled);
@@ -362,23 +367,32 @@ class MapEditService {
                     // 不要になった。legacy ファイルは非破壊方針(SI-1/SI-2 の精神)により T3
                     // migration / T4 delete が扱うまで放置してよい(旧実装の掃除処理を意図的に削除)
                 } else if (copySourceUid) {
-                    // 複製: 複製元uidのtiles/tmbsと複製元slugの原本を新キーへコピー
-                    // 【既知差異(レビュー v1 Minor 7)】T2 適用後〜T4 適用前の間、canonical
-                    // (uid キー)のみで保存された map を複製すると、この分岐は legacy slug パス
-                    // (pathExists ガードで不在)しか見ないため oldOriginal が見つからず、原本複写が
-                    // silent にスキップされる(tiles/tmbs は複製されるため表示は可能だが WMTS
-                    // 再生成は不能)。byte-for-byte 不変方針の正しい帰結であり、AC-T4-2
-                    // (clone は resolved original を originals/<newUid>.<ext> へ複写)で解消される
+                    // 複製: 複製元uidのtiles/tmbsを新キーへコピー
                     const oldTile = path.join(tileFolder, copySourceUid);
-                    const oldOriginal = path.join(originalFolder, `${copySourceSlug}.${imageExtension}`);
                     const oldThumbnail = path.join(thumbFolder, `${copySourceUid}.jpg`);
                     if (await fs.pathExists(oldTile)) await fs.copy(oldTile, newTile);
-                    if (await fs.pathExists(oldOriginal)) await fs.copy(oldOriginal, newOriginal);
                     if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);
                     // M12-T15 (Fix-3): 複製元の 512px サムネイルも複製する（複製地図が 512px を持てない問題の修正）
                     const oldThumbnail512 = path.join(thumbFolder, `${copySourceUid}_512.jpg`);
                     const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
                     if (await fs.pathExists(oldThumbnail512)) await fs.copy(oldThumbnail512, newThumbnail512);
+                    // M13-T4 (AC-T4-2): 原本は複製元 uid の canonical-first / legacy-fallback 解決結果を
+                    // 複製先の canonical 名 (uid キー) へ複写する。旧実装の legacy slug キー複写
+                    // (`${copySourceSlug}.${imageExtension}` -> `${slug}.${imageExtension}`) は廃止する
+                    // (T2 以降の新規保存は canonical 名で書かれるため、複製先も canonical 名に揃える)。
+                    // 複製元が解決不能 (ambiguous/missing legacy 等) でも clone の DB 行/tiles/tmbs は
+                    // 成功させる (milestone §4.7.2: best-effort、source は非破壊)
+                    try {
+                        const resolved = await resolveRuntimeOriginal(copySourceUid, copySourceSlug!, copySourceImageExtension);
+                        if (resolved) {
+                            const canonicalDestOriginal = path.join(originalFolder, `${savedUid}.${resolved.ext}`);
+                            await fs.copy(resolved.path, canonicalDestOriginal);
+                        } else {
+                            console.warn(`[MapEditService.save] clone: source original unresolved for copySourceUid=${copySourceUid} slug=${copySourceSlug}; skipping original copy (tiles/tmbs still copied)`);
+                        }
+                    } catch (e) {
+                        console.warn(`[MapEditService.save] clone: failed to copy resolved original for copySourceUid=${copySourceUid}`, e);
+                    }
                 } else if (renamedFromSlug && renamedFromSlug !== slug) {
                     // 改名: tiles/tmbsはuidキーのため移動不要。原本(slugキー)のみ改名。
                     // 再試行でも安全なように「移動先が無く移動元がある」場合のみ移動する

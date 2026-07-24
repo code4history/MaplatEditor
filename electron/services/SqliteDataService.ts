@@ -30,6 +30,7 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { createResettableSingleFlight } from './ResettableSingleFlight';
 import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 import { runColdBoot } from './OriginalsMigrationService';
+import { reconcileDeletedMapsTrash } from './MapTrashReconcileService';
 
 type BaseMapScope = 'builtin' | 'user';
 
@@ -877,6 +878,21 @@ class SqliteDataService {
     // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
     await this.runThumbnail512MiningIfNeeded(db);
 
+    // M13-T4 (SI-8: T4 着手まで無効化されていた delete reconcile を本タスクで有効化する):
+    // trash へ move 済みだが DB delete が未完了 (crash等) の map を、DB row がまだ存在する
+    // 明白なケースだけ live へ復元する。runColdBoot と同じく db を直接渡し getDb() 再入を避ける。
+    // v1.1 (レビュー v1 Info 2 採用): originals UUID migration (runColdBoot) より先に実行する。
+    // 順序が逆だと、DB delete 失敗による crash 直後の起動で migration が先に走った場合、
+    // 実際には trash に存在するだけの original を skip_source_missing と誤って report してしまう
+    // (次回起動での migration 再走で自己回復するため correctness 問題ではないが、report 精度が
+    // 落ちる。追加コストなしで避けられるため、この順序を採用する)
+    try {
+      await reconcileDeletedMapsTrash(db);
+    } catch (e) {
+      console.error('[SqliteDataService] trash reconcile failed unexpectedly; continuing DB initialization without it', e);
+    }
+
+    // 既存(T3): originals UUID migration
     // M13-T3: slug originals -> UUID originals の one-shot migration/report。
     // v1.1 (レビュー v1 Major 2c): runColdBoot(db) 呼び出し全体を try/catch で防御する。
     // OriginalsMigrationService.runInternal() は per-map I/O 失敗を 'copy_failed' entry として
