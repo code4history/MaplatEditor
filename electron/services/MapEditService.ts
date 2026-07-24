@@ -332,7 +332,7 @@ class MapEditService {
             }
 
             const newTile = path.join(tileFolder, savedUid);
-            // legacy(slug キー)の原本パス。copySourceUid/renamedFromSlug 分岐専用(本タスクで無変更)
+            // legacy(slug キー)の原本パス。renamedFromSlug 分岐専用(M13-T4 で copySourceUid 分岐は resolveRuntimeOriginal 経由の canonical 複写へ移行し、本変数を参照しなくなった)
             const newOriginal = path.join(originalFolder, `${slug}.${imageExtension}`);
             const newThumbnail = path.join(thumbFolder, `${savedUid}.jpg`);
 
