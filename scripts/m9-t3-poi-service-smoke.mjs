@@ -234,6 +234,35 @@ try {
       assert.equal(legacyDoc.fc.features[0].properties.image, 'kinkakuji.jpg', 'image は透過されるはず');
       console.log('ok: (f) importFile legacy POI list');
 
+      // (f2) importFile: 旧POIオブジェクト形式で whitelist 外キー(実データ実在例 start・selectedIcon)が
+      //      save 後も保持される (M3-T5 AC5-1/5-2)
+      const importLegacyUnknownFile = nodePath.join(workDir, 'import-legacy-unknown.json');
+      await fsWriteFile(importLegacyUnknownFile, JSON.stringify([
+        { lat: 39.703, lng: 141.153, name: '御堂', selectedIcon: 'builtin:temple-selected', start: 1599 },
+      ]));
+      const importedLegacyUnknown = await poiSourceService.importFile({
+        slug: 'legacy-unknown-keys', title: '旧形式POI(未知キー)', filePath: importLegacyUnknownFile,
+      });
+      assert.equal(importedLegacyUnknown.result, 'Success', '旧POI未知キー import は Success のはず: ' + JSON.stringify(importedLegacyUnknown));
+      const legacyUnknownDoc = await poiSourceService.get(importedLegacyUnknown.uid);
+      assert.equal(legacyUnknownDoc.fc.features[0].properties.selectedIcon, 'builtin:temple-selected', 'selectedIcon が import 後も保持されるはず (M3-T5)');
+      assert.equal(legacyUnknownDoc.fc.features[0].properties.start, 1599, '実データ実在キー start が import 後も保持されるはず (maps morioka_ndl 相当, M3-T5)');
+      assert.ok(!('lat' in legacyUnknownDoc.fc.features[0].properties), 'lat は properties に残置されないはず');
+      assert.ok(!('lng' in legacyUnknownDoc.fc.features[0].properties), 'lng は properties に残置されないはず');
+      console.log('ok: (f2) importFile legacy POI preserves whitelist-external keys through get (M3-T5)');
+
+      // (f3) feature 単位の未知 properties が save→get で round-trip する (M3-T5 AC5-4, §3.5 テストカバレッジの穴(a)の解消)
+      const unknownPropsSave = await poiSourceService.save(legacyUnknownDoc.uid, {
+        slug: legacyUnknownDoc.slug,
+        title: legacyUnknownDoc.title,
+        fc: legacyUnknownDoc.fc,
+        expectedRevision: legacyUnknownDoc.revision,
+      });
+      assert.equal(unknownPropsSave.result, 'Success', '未知キー入り feature の再save は成功するはず: ' + JSON.stringify(unknownPropsSave));
+      const afterUnknownPropsSave = await poiSourceService.get(legacyUnknownDoc.uid);
+      assert.equal(afterUnknownPropsSave.fc.features[0].properties.start, 1599, 'feature 単位の未知 properties は save→get で round-trip するはず (M3-T5)');
+      console.log('ok: (f3) feature-level unknown properties round-trip through save→get (M3-T5)');
+
       // (g) importFile: Point以外を含む → 取込拒否 (POI-104)
       const importBadFile = nodePath.join(workDir, 'import-bad.geojson');
       await fsWriteFile(importBadFile, JSON.stringify({

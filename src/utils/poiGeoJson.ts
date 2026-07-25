@@ -36,6 +36,17 @@ export function resolvePoiSourceLanguage(
 // 通すフィールド。image / icon は LangResource ではないので対象外。
 const LANG_FIELDS = ["name", "desc", "html", "address", "url"] as const;
 
+// 旧POIオブジェクト形式 (normalizeLegacyPoi の旧オブジェクト分岐) で properties から除外するキー。
+// 座標系5キーは geometry.coordinates へ、id は Feature.id へ移すため除外する (M3-T5)。
+const LEGACY_EXCLUDED_KEYS = new Set<string>([
+  "lnglat",
+  "lng",
+  "lat",
+  "longitude",
+  "latitude",
+  "id",
+]);
+
 // 表示 ID (Feature.id) の文字種: slug と同じ (POI-140)。viewer の namespaceID が {mapID}#{id}
 // 結合のため # 等を許すと壊れる。属性フォームの入力検証 (PoiAttributeForm) からも参照するため export。
 export const DISPLAY_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -365,8 +376,10 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
 
 // 旧POIオブジェクト形式 (glossary) → 内部形 Feature へ正規化。
 // coordinates: lnglat があればそのまま、無ければ [lng||longitude, lat||latitude]。
-// name/desc/html/address/url/image/icon 等を properties へ透過。image は string|array|{src,desc}
-// をそのまま渡す。display id / _maplatUid は採番しない (ensureDisplayIds/ensureFeatureUids の担当)。
+// 座標キー(lnglat/lng/lat/longitude/latitude)と id 以外の全キーを properties へ透過する
+// (M3-T5: 旧 whitelist を撤廃し FC 経路と同形化。parity 正本 = MaplatCore normalizePoi)。
+// _maplat* プレフィックスは fromExportForm と同じ規律で剥がし、再採番に委ねる (identity spoofing 防止)。
+// display id / _maplatUid は採番しない (ensureDisplayIds/ensureFeatureUids の担当)。
 // ただし既に id を持つ旧オブジェクトはその id を維持する。
 export function normalizeLegacyPoi(
   obj: Record<string, unknown>,
@@ -394,9 +407,9 @@ export function normalizeLegacyPoi(
     coordinates = [Number(lng), Number(lat)];
   }
 
-  const props: Record<string, unknown> = {};
-  for (const key of ["name", "desc", "html", "address", "url", "image", "icon"]) {
-    if (obj[key] !== undefined) props[key] = obj[key];
+  const props: Record<string, unknown> = { ...obj };
+  for (const key of Object.keys(props)) {
+    if (LEGACY_EXCLUDED_KEYS.has(key) || isInternalProp(key)) delete props[key];
   }
   internalizeLangFields(props, defaultLang);
 

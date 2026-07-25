@@ -169,6 +169,46 @@ try {
         console.log('ok: normalizeLegacyPoi keeps existing id');
       }
 
+      // ---- normalizeLegacyPoi: whitelist 撤廃 — 未知キー(selectedIcon・実データ実在例 start 等)を透過 (M3-T5) ----
+      {
+        const f = normalizeLegacyPoi({
+          lat: 39.703, lng: 141.153, name: '御堂',
+          selectedIcon: 'builtin:temple-selected', start: 1599, customField: 'future-extension',
+        });
+        assert.equal(f.properties.selectedIcon, 'builtin:temple-selected', 'whitelist 外キー selectedIcon が透過されるはず');
+        assert.equal(f.properties.start, 1599, '実データ実在キー start が透過されるはず (maps morioka_ndl 相当)');
+        assert.equal(f.properties.customField, 'future-extension', '任意の未知キーが透過されるはず');
+        console.log('ok: normalizeLegacyPoi passes through whitelist-external keys (selectedIcon/start/arbitrary, M3-T5)');
+      }
+
+      // ---- normalizeLegacyPoi: 座標キー・id は properties に残置されない (M3-T5 AC5-2) ----
+      {
+        const f = normalizeLegacyPoi({ lnglat: [135, 35], lng: 999, lat: 999, longitude: 999, latitude: 999, id: 'p9', name: 'A' });
+        for (const key of ['lnglat', 'lng', 'lat', 'longitude', 'latitude', 'id']) {
+          assert.ok(!(key in f.properties), key + ' は properties に残置されないはず');
+        }
+        assert.equal(f.id, 'p9', 'id は Feature.id へ移されるはず');
+        assert.deepEqual(f.geometry.coordinates, [135, 35], 'lnglat 優先で geometry へ');
+        console.log('ok: normalizeLegacyPoi excludes coordinate keys and id from properties (M3-T5)');
+      }
+
+      // ---- normalizeLegacyPoi: _maplat* prefix は fromExportForm と同じ規律で剥がされる (spoofing 防止, M3-T5 §3.3) ----
+      {
+        const f = normalizeLegacyPoi({ lat: 1, lng: 2, name: 'x', _maplatUid: 'spoofed-uid', _maplatContentMode: 'html' });
+        assert.ok(!('_maplatUid' in f.properties), '_maplatUid は剥がされ ensureFeatureUids の再採番に委ねられるはず');
+        assert.ok(!('_maplatContentMode' in f.properties), '_maplatContentMode も同様に剥がされるはず');
+        console.log('ok: normalizeLegacyPoi strips _maplat* prefixed keys from legacy object input (M3-T5)');
+      }
+
+      // ---- normalizeLegacyPoi: __proto__ 名キーでもプロトタイプ汚染しない (M3-T5 §3.4, spread+delete 安全パターン確認) ----
+      {
+        const malicious = JSON.parse('{"lat":1,"lng":2,"name":"y","__proto__":{"polluted":true}}');
+        const f = normalizeLegacyPoi(malicious);
+        assert.equal(Object.getPrototypeOf(f.properties), Object.prototype, 'properties の prototype は汚染されないはず');
+        assert.equal(({}).polluted, undefined, 'グローバル Object.prototype も汚染されないはず');
+        console.log('ok: normalizeLegacyPoi is safe against __proto__-named legacy keys (M3-T5)');
+      }
+
       // ---- normalizeLegacyPoiList: array / FC / single ----
       {
         const arr = normalizeLegacyPoiList([{ lng: 1, lat: 2, name: 'a' }, { lng: 3, lat: 4, name: 'b' }]);
