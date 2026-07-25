@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('mapedit', {
   // M13-T1 (§2.1/§2.2): 保存済み地図専用のstrict-free搬出。mapRefはuid優先、slugも受理
   downloadSaved: (mapRef: string) =>
     ipcRenderer.invoke('mapedit:download-saved', mapRef),
+  // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
   uploadCsv: (csvRepl: string, csvUpSettings: any) =>
     ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings),
   getWmtsFolder: () =>
@@ -64,6 +65,7 @@ contextBridge.exposeInMainWorld('dataupload', {
   showDataSelectDialog: () => ipcRenderer.invoke('dataupload:showDataSelectDialog'),
 })
 
+// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
 contextBridge.exposeInMainWorld('wmtsGen', {
   // M13-T2 (§5.4/§7): uid 追加。runtime read の canonical-first 解決に必要
   generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string) =>

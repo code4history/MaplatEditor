@@ -13,6 +13,12 @@ const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 interface PixelColor { r: number; g: number; b: number; a: number; }
 
+// M12-T22: 本クラスへのUI導線はM11-T3で意図的に撤去済み（MapEdit.vueの休眠
+// Data IOパネル内 wmtsGenerate() のみが window.wmtsGen.generate 経由で呼び出す）。
+// ロジックは削除禁止 — M4-(2)（既存Maplat定義→WMTS出力→ベースマップ登録）へ
+// 転用予定。参照する i18n キー（wmtsgenerate.* 全5キー、public/locales/*/
+// translation.json）も同様に削除禁止（§3.4参照）。
+// 詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
 class WmtsGeneratorService {
     private get folders() {
         const saveFolder = SettingsService.get('saveFolder') as string;

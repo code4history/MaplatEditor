@@ -109,7 +109,8 @@
     "smoke:m12-t15-m6m7": "node scripts/m12-t15-m6m7-smoke.mjs",
     "smoke:m12-t17-upload-tile-ref": "node scripts/m12-t17-upload-tile-ref-smoke.mjs",
     "test:e2e:m12-t17": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t17-upload-tile-refresh.spec.ts",
-    "smoke:m12-t19-clone-tile-ref": "node scripts/m12-t19-clone-tile-ref-smoke.mjs"
+    "smoke:m12-t19-clone-tile-ref": "node scripts/m12-t19-clone-tile-ref-smoke.mjs",
+    "smoke:m12-t22-data-io-dormant-preservation": "node scripts/m12-t22-data-io-dormant-preservation-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

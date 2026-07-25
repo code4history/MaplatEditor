@@ -282,6 +282,7 @@ export interface MapEditAPI {
     download(mapObject: any, tins: any[]): Promise<any>;
     // M13-T1 (§2.2): 保存済み地図専用のstrict-free搬出
     downloadSaved(mapRef: string): Promise<'Success' | 'Canceled' | 'Error'>;
+    // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
     uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
     getWmtsFolder(): Promise<any>;
     onProgress(listener: (progress: any) => void): () => void;

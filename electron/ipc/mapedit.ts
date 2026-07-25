@@ -149,6 +149,7 @@ export const registerMapEditHandlers = () => {
     });
 
     // 旧実装: mapedit_uploadCsv 相当（CSV インポート）
+    // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
     ipcMain.handle('mapedit:uploadCsv', async (event, csvRepl: string, csvUpSettings: any) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
 

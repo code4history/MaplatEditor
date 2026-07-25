@@ -1145,6 +1145,7 @@ const imageExtensionCalc = computed(() => {
 });
 
 // mainLayerHash: 旧実装 map.js L.248-254 に準拠（crypto-browserify polyfill 経由で SHA1）
+// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
 const mainLayerHash = computed(() => {
     const tin = tinObjects.value[0];
     if (!tin || typeof tin === 'string') return undefined;
@@ -1156,9 +1157,11 @@ const mainLayerHash = computed(() => {
 });
 
 // 旧実装 map.js L.211-213
+// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
 const wmtsDirty = computed(() => mapData.value.wmtsHash !== mainLayerHash.value);
 
 // 旧実装 map.js L.172-175 (Tin.STATUS_STRICT = 'strict')
+// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
 const wmtsEditReady = computed(() => {
     const tin = tinObjects.value[0];
     return !!(mainLayerHash.value && wmtsDirty.value &&
@@ -1166,6 +1169,7 @@ const wmtsEditReady = computed(() => {
 });
 
 // 旧実装 map.js L.431-439: csvUploadUiValue 初期値
+// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 const csvUploadUiValue = ref({
     pixXColumn: 1,
     pixYColumn: 2,
@@ -1177,6 +1181,7 @@ const csvUploadUiValue = ref({
 });
 
 // 旧実装 map.js L.176-194
+// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 const csvUpError = computed(() => {
     const uiValue = csvUploadUiValue.value;
     if (uiValue.pixXColumn === uiValue.pixYColumn || uiValue.pixXColumn === uiValue.lngColumn ||
@@ -1196,6 +1201,7 @@ const csvUpError = computed(() => {
 });
 
 // M12-T11 (R3/C31): CSV インポート状態エラーは DF field へ。コード→文言の写像を一元化
+// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 const csvUpErrorMessage = computed(() => {
     switch (csvUpError.value) {
         case 'column_dup': return t('dataio.csv_error_column_dup');
@@ -1207,6 +1213,7 @@ const csvUpErrorMessage = computed(() => {
 });
 
 // 旧実装 map.js L.198-207
+// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 const csvProjPreset = computed({
     get: () => {
         const projText = csvUploadUiValue.value.projText;
@@ -3163,6 +3170,7 @@ const downPriority = () => {
     normalizePriority(arr);
 };
 // 旧実装 map.js L.460-468: QGIS GeoReferencer のデフォルト設定を適用
+// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 const csvQgisSetting = () => {
     csvUploadUiValue.value = Object.assign({}, csvUploadUiValue.value, {
         pixXColumn: 1,
@@ -3175,6 +3183,7 @@ const csvQgisSetting = () => {
 };
 
 // 旧実装: vueMap._updateWholeGcps(gcps) 相当
+// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 // CSV/インポートで GCP を一括設定する
 const updateWholeGcps = (newGcps: any[]) => {
     if (currentEditingLayer.value === 0) {
@@ -3319,6 +3328,7 @@ const exportMap = async () => {
 };
 
 // 旧実装: vueMap.$on('wmtsGenerate') 相当
+// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
 // 有効条件: wmtsEditReady
 const wmtsGenerate = async () => {
     if (!tinObjects.value[0] || typeof tinObjects.value[0] === 'string') return;
@@ -3352,6 +3362,7 @@ const wmtsGenerate = async () => {
 };
 
 // 旧実装: vueMap.$on('uploadCsv') 相当
+// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 const uploadCsv = async () => {
     if (gcps.value.length > 0) {
         const confirm = await (window as any).dialog.showMessageBox({
@@ -3861,6 +3872,15 @@ const goBack = async () => {
 
             <!-- Tab: Data IO -->
             <!-- 旧実装 mapedit.html L.274-375 の wmtsTab に完全準拠 -->
+            <!--
+              M12-T22: 本ブロックへのUI導線はM11-T3で意図的に撤去済み（activeTabを'inout'へ
+              設定する経路が存在しない）。ロジックは削除禁止 — CSV GCPインポートはM12-T23で
+              再編復帰予定、WMTS生成はM4-(2)（既存Maplat定義→WMTS出力→ベースマップ登録）へ
+              転用予定。本ブロックが参照する i18n キー（public/locales/*/translation.json の
+              dataio.* 全28キー・wmtsgenerate.* 全5キー・mapedit.export_map_data）も同様に
+              削除禁止（JSON側にコメント記載不可のため本注記が唯一の防御線。§3.4参照）。
+              詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
+            -->
             <div v-show="activeTab === 'inout'" class="h-100 overflow-auto p-4">
                 <div class="card mb-4">
                     <div class="card-header bg-light fw-bold">{{ t("dataio.import_title") }}</div>
