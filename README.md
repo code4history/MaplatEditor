@@ -71,8 +71,9 @@ binaries are distributed via GitHub Releases.
 - Every edit screen validates the slug (ID) automatically as you type — no
   separate "check availability" step — and renaming a map's slug now edits
   the same map in place instead of prompting to copy or move it
-- Duplicate, delete (with a reference list), and import actions are
-  available from a common list menu for every resource type
+- Duplicate and delete (with a reference list) are available from a common
+  list menu for every resource type; import is available from the Map and
+  POI source lists
 
 ### Drafts and data safety
 
@@ -99,9 +100,10 @@ binaries are distributed via GitHub Releases.
 - POI sources export as GeoJSON, or as a ZIP package when they include image
   references, and can be imported back with internal image references
   resolved automatically
-- Maps or apps with unresolved ground-control-point errors, or with POI/base
-  map references pointing to missing data, are blocked from export or
-  preview until the underlying data issue is fixed
+- A map with unresolved ground-control-point errors cannot be previewed, but
+  exporting the map itself still succeeds; an app that includes such a map,
+  or that references missing POI/base map data, is blocked from saving,
+  previewing, and exporting until the issue is fixed
 
 ### Thumbnails and localization
 
@@ -201,9 +203,10 @@ The Map/App/POI editors and the POI-on-map editing pane share this set.
      design §5 #4). -->
 ## Known Limitations
 
-- Maps with unresolved ground-control-point errors, or with a POI/base map
-  reference pointing to missing data, cannot be exported or previewed until
-  the underlying issue is fixed.
+- A map with unresolved ground-control-point errors cannot be previewed
+  (exporting the map itself still works); an app that includes such a map,
+  or that references missing POI/base map data, cannot be saved, previewed,
+  or exported until the issue is fixed.
 - Deleted maps move to a trash location, but MaplatEditor never purges the
   trash automatically; disk usage grows until you clear it yourself.
 - The 9 UI languages added beyond English/Japanese are machine translated
