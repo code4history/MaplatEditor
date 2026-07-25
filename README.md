@@ -29,7 +29,7 @@ binaries are distributed via GitHub Releases.
 <!-- SECTION 4: Key Features -->
 ## Key Features
 
-### Map and app data authoring
+### Map and App Data Authoring
 
 - Desktop application for authoring Maplat historical map data (Windows / macOS)
 - GUI for map registration, ground control point (GCP) placement, and tile
@@ -44,7 +44,7 @@ binaries are distributed via GitHub Releases.
   `@maplat/core`); bundles OpenLayers and the Maplat core libraries so no
   separate install is needed
 
-### POI editor
+### POI Editor
 
 - Add, move, and delete points of interest (POIs) directly on the map, edit
   multilingual name/description/HTML/address/URL/icon fields, and undo/redo
@@ -60,7 +60,7 @@ binaries are distributed via GitHub Releases.
 - Remote (registered) POI sources are read-only; a "copy locally" action
   creates an editable local copy
 
-### Resource management
+### Resource Management
 
 - Five resource lists (Map / App / POI / Base Map / Asset) use infinite
   scroll and full-text search across all five types, plus bounding-box range
@@ -75,7 +75,7 @@ binaries are distributed via GitHub Releases.
   list menu for every resource type; import is available from the Map and
   POI source lists
 
-### Drafts and data safety
+### Drafts and Data Safety
 
 - Edits auto-save as local drafts every few seconds and are restored when
   you reopen a resource; if a save conflicts with a newer revision, a dialog
@@ -93,7 +93,7 @@ binaries are distributed via GitHub Releases.
   instance brings the existing window to the front instead of opening a new
   one
 
-### Export and import
+### Export and Import
 
 - Apps export as a single ZIP (`{appID}.zip`), optionally including a
   static, PWA-ready build (manifest, icons, splash image)
@@ -105,7 +105,7 @@ binaries are distributed via GitHub Releases.
   or that references a map missing from the database (e.g. deleted), is
   blocked from saving, previewing, and exporting until the issue is fixed
 
-### Thumbnails and localization
+### Thumbnails and Localization
 
 - 512px high-definition thumbnails for maps, base maps, and apps are
   generated automatically on upload, and backfilled for existing data on
