@@ -7,7 +7,10 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'm11-t5-screenshots');
 
-async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page: Page }> {
+// m14-t3: Wiki スクリーンショット取得スペック（m14-t3-wiki-screenshots.spec.ts）が
+// この launch() ヘルパーを env 含め丸ごと import して再利用するため export する
+// （設計書 §3.5.2。MAPLAT_E2E_ROOT の付け忘れを構造的に防ぐのが目的で、挙動は無変更）。
+export async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
     args: [projectRoot, `--user-data-dir=${e2eRoot}`],
     cwd: projectRoot,
