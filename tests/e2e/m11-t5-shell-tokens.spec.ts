@@ -1,30 +1,17 @@
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { launch } from './helpers/launchIsolated';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'm11-t5-screenshots');
 
-// m14-t3: Wiki スクリーンショット取得スペック（m14-t3-wiki-screenshots.spec.ts）が
-// この launch() ヘルパーを env 含め丸ごと import して再利用するため export する
-// （設計書 §3.5.2。MAPLAT_E2E_ROOT の付け忘れを構造的に防ぐのが目的で、挙動は無変更）。
-export async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page: Page }> {
-  const app = await electron.launch({
-    args: [projectRoot, `--user-data-dir=${e2eRoot}`],
-    cwd: projectRoot,
-    env: { ...process.env, VITE_DEV_SERVER_URL: '', MAPLAT_E2E_ROOT: e2eRoot },
-  });
-  const page = await app.firstWindow();
-  await page.waitForLoadState('domcontentloaded');
-  // AC14: 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
-  const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
-  if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
-    throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);
-  }
-  return { app, page };
-}
+// m14-t3: Wiki スクリーンショット取得スペック（m14-t3-wiki-screenshots.spec.ts）も
+// この launch() ヘルパーを env 含め丸ごと再利用する。実装レビュー v1 Major 1 対応として
+// helpers/launchIsolated.ts へ抽出し、本ファイルからも import する形に変更した
+// （スペック間 import を避けるため。挙動は無変更）。
 
 // m11-t4 と同じ dialog stub 先例を踏襲（Electron main の dialog を差し替える）。
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {

@@ -3,9 +3,12 @@
 // （タスク設計書 `docs/superpowers/specs/2026-07-25-m14-t3-wiki-catchup-design.md` §3.5 参照）。
 // assertion は「実ユーザーデータ非接触ガード」（launch() 内蔵）と各画面の到達確認に限定する。
 //
-// launch() は m11-t5-shell-tokens.spec.ts のヘルパーを env（MAPLAT_E2E_ROOT・
+// launch() は m11-t5-shell-tokens.spec.ts が導入したヘルパーを env（MAPLAT_E2E_ROOT・
 // --user-data-dir）含め丸ごと import して再利用する（設計書 §3.5.2。env の付け忘れを
-// 構造的に防ぐため。m11-t5 側で `export` を追加した以外の変更はしていない）。
+// 構造的に防ぐため）。実装レビュー v1 Major 1 対応: スペック間 import は Playwright が
+// 禁止するパターンで `playwright test`（引数なし・全体実行）の collection を破壊する
+// ため、launch() は tests/e2e/helpers/launchIsolated.ts へ抽出し、両スペックが
+// helpers/ から import する形に変更した（挙動は無変更）。
 //
 // フィクスチャは tests/fixtures/m13-t5-migration-pipeline/ 配下の実データ由来コピー
 // （takabatake_kozu1/2、人間承認済み・権利クリア確認済み）を再利用する
@@ -20,7 +23,7 @@ import { mkdir, mkdtemp, cp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
-import { launch } from './m11-t5-shell-tokens.spec';
+import { launch } from './helpers/launchIsolated';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixturesRoot = path.join(projectRoot, 'tests/fixtures/m13-t5-migration-pipeline');
