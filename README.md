@@ -102,8 +102,8 @@ binaries are distributed via GitHub Releases.
   resolved automatically
 - A map with unresolved ground-control-point errors cannot be previewed, but
   exporting the map itself still succeeds; an app that includes such a map,
-  or that references missing POI/base map data, is blocked from saving,
-  previewing, and exporting until the issue is fixed
+  or that references a map missing from the database (e.g. deleted), is
+  blocked from saving, previewing, and exporting until the issue is fixed
 
 ### Thumbnails and localization
 
@@ -205,8 +205,8 @@ The Map/App/POI editors and the POI-on-map editing pane share this set.
 
 - A map with unresolved ground-control-point errors cannot be previewed
   (exporting the map itself still works); an app that includes such a map,
-  or that references missing POI/base map data, cannot be saved, previewed,
-  or exported until the issue is fixed.
+  or that references a map missing from the database (e.g. deleted), cannot
+  be saved, previewed, or exported until the issue is fixed.
 - Deleted maps move to a trash location, but MaplatEditor never purges the
   trash automatically; disk usage grows until you clear it yourself.
 - The 9 UI languages added beyond English/Japanese are machine translated
