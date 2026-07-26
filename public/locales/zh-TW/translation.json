@@ -569,7 +569,7 @@
     "export_failed": "匯出失敗。",
     "warn_missing_poi_source": "未找到部分被引用的POI來源，已從輸出中排除。",
     "warn_duplicate_poi_reference": "同一POI來源同時被應用程式和地圖引用，POI可能會重複顯示。",
-    "poi_heal_failed": "無法還原 POI 資料。儲存時原始資料不會遺失，但此分頁中的編輯已停用，且資料不會反映到預覽或匯出中。",
+    "poi_format_unsupported": "POI 資料的格式不受編輯器支援。儲存時原始資料不會遺失，但此分頁中的編輯將被停用，且不會反映到匯出或預覽中。",
     "warn_unresolved_icon": "部分圖示引用無法解析，已按原值輸出。",
     "warn_icon_too_small": "PWA圖示來源圖片小於512px，產生的圖示可能會模糊。",
     "export": {

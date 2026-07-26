@@ -46,7 +46,7 @@
           :ariaLabel="t('poiref.add_blocked_note')"
         />
       </h5>
-      <!-- M3-T6 §5.4: 変換フィードバック (タブ内 DiagnosticFeedback — AppEdit poi_heal_failed と同文法) -->
+      <!-- M3-T6 §5.4: 変換フィードバック (タブ内 DiagnosticFeedback — AppEdit poi_format_unsupported と同文法) -->
       <DiagnosticFeedback
         v-if="convertFeedback"
         scope="section"

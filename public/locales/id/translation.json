@@ -569,7 +569,7 @@
     "export_failed": "Ekspor gagal.",
     "warn_missing_poi_source": "Beberapa sumber POI yang dirujuk tidak ditemukan dan dihapus dari keluaran.",
     "warn_duplicate_poi_reference": "Sumber POI yang sama dirujuk oleh aplikasi dan peta sekaligus. POI mungkin ditampilkan dua kali.",
-    "poi_heal_failed": "Data POI tidak dapat dipulihkan. Data asli tidak hilang saat disimpan, tetapi pengeditan di tab ini dinonaktifkan dan data tidak tercermin dalam pratinjau maupun ekspor.",
+    "poi_format_unsupported": "Data POI berada dalam format yang tidak didukung oleh editor. Data asli tidak akan hilang saat disimpan, tetapi pengeditan di tab ini dinonaktifkan dan tidak akan tercermin dalam pratinjau maupun ekspor.",
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "warn_icon_too_small": "Gambar sumber ikon PWA lebih kecil dari 512px, sehingga ikon yang dihasilkan mungkin tampak buram.",
     "export": {

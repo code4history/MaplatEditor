@@ -569,7 +569,7 @@
     "export_failed": "导出失败。",
     "warn_missing_poi_source": "未找到部分被引用的POI来源，已从输出中排除。",
     "warn_duplicate_poi_reference": "同一POI来源同时被应用和地图引用，POI可能会重复显示。",
-    "poi_heal_failed": "无法恢复 POI 数据。保存时原始数据不会丢失，但此标签页中的编辑已被禁用，且数据不会反映到预览或导出中。",
+    "poi_format_unsupported": "POI 数据的格式不受编辑器支持。保存时原始数据不会丢失，但此标签页中的编辑将被禁用，且不会反映到预览或导出中。",
     "warn_unresolved_icon": "部分图标引用无法解析，已按原值输出。",
     "warn_icon_too_small": "PWA图标源图片小于512px，生成的图标可能会模糊。",
     "export": {

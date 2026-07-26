@@ -29,7 +29,7 @@ import {
 } from '../../src/utils/appSourceModel';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
-import { normalizeJsonArray } from '../utils/jsonArray';
+import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
@@ -256,7 +256,7 @@ class AppExportService {
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
 
       // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
-      const appPoiUids = collectPoiUids(normalizeJsonArray(document.pois || document.poiSources));
+      const appPoiUids = collectPoiUids(readAppDocumentPois(document).pois);
       let duplicateReference = false;
 
       // 2) Maplat地図: maps/{slug}.json + tiles + tmbs
@@ -491,7 +491,7 @@ class AppExportService {
       sources.find(source => source.mapUid === document.startFrom || source.mapSlug === document.startFrom);
     const startFrom = startSource ? viewerMapID(startSource) : document.startFrom;
     if (startFrom) out.startFrom = startFrom;
-    const pois = normalizeJsonArray(document.pois || document.poiSources);
+    const pois = readAppDocumentPois(document).pois;
     if (Array.isArray(pois) && pois.length > 0) {
       const resolved = await resolvePoisArray(pois);
       mergeWarnings(warnings, resolved.warnings);

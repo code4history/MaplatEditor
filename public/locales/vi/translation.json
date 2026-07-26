@@ -569,7 +569,7 @@
     "export_failed": "Xuất thất bại.",
     "warn_missing_poi_source": "Không tìm thấy một số nguồn POI được tham chiếu nên đã loại khỏi kết quả xuất.",
     "warn_duplicate_poi_reference": "Cùng một nguồn POI được tham chiếu bởi cả ứng dụng và bản đồ. POI có thể hiển thị hai lần.",
-    "poi_heal_failed": "Không thể khôi phục dữ liệu POI. Dữ liệu gốc không bị mất khi lưu, nhưng việc chỉnh sửa trong thẻ này bị vô hiệu hóa và dữ liệu không được phản ánh trong bản xem trước hay xuất.",
+    "poi_format_unsupported": "Dữ liệu POI ở định dạng không được trình chỉnh sửa hỗ trợ. Dữ liệu gốc sẽ không bị mất khi lưu, nhưng việc chỉnh sửa trong thẻ này bị vô hiệu hóa và sẽ không được phản ánh trong bản xem trước hay xuất.",
     "warn_unresolved_icon": "Một số tham chiếu biểu tượng không thể phân giải và được giữ nguyên trong kết quả xuất.",
     "warn_icon_too_small": "Ảnh nguồn biểu tượng PWA nhỏ hơn 512px nên các biểu tượng được tạo có thể bị mờ.",
     "export": {

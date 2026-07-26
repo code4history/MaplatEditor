@@ -19,7 +19,7 @@ import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import ContextHelp from "../components/editor-ui/ContextHelp.vue";
 import EditorTabs from "../components/editor-ui/EditorTabs.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
-import { healAppDocumentPois } from "../utils/poiSourcesHeal";
+import { readAppDocumentPois } from "../utils/appPoisFormat";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import ResourceSelector from "../components/ResourceSelector.vue";
@@ -112,12 +112,12 @@ interface AppDocument {
   appSettings: AppRuntimeSettings;
   manifestSettings: ManifestSettings;
   // POI データ (43 §2.4): {poiUid, cachedTitle?, icon?, selectedIcon?} 参照要素と
-  // 生要素 (URL 文字列 / FC 埋め込み) の混在配列。旧 poiSources (JSON 文字列) 形は
-  // 読込時に healAppDocumentPois が配列へ復元し、保存形は pois 配列のみ (Phase 8)。
-  // M3-T6 §5.8: heal 失敗時は生値 (非配列) を温存するため unknown へ広げる (黙って消えない原則)。
+  // 生要素 (URL 文字列 / FC 埋め込み) の混在配列。editor 正準形は配列のみ (M12-T30)。
+  // readAppDocumentPois が形式判定 (復元は行わない) を行い、保存形は pois 配列のみ。
+  // M3-T6 §5.8: 未対応形式時は生値 (非配列) を温存するため unknown へ広げる (黙って消えない原則)。
   // 表示は Array.isArray ガード + read-only (map 側と同文法)
   pois: unknown;
-  // M3-T6 §5.8: heal 失敗時のみ旧 poiSources 生値を温存する (成功時は書かない — 従来どおり)
+  // M3-T6 §5.8 / M12-T30: 未対応形式時のみ旧 poiSources 生値を温存する (配列採用時は書かない — 従来どおり)
   poiSources?: unknown;
   startFrom?: string;
   status?: string;
@@ -304,10 +304,10 @@ const saveValidationError = computed<string | null>(() => {
   if (!id || !id.trim()) return t("appedit.no_appid");
   return null;
 });
-// pois 復元 heal が失敗した (data_json 破損などで復元不能だった) かどうか。
-// true のまま保存すると復元できなかった pois が失われるため、POIデータタブに警告を出す
-// (Phase 8 品質レビュー MAJOR-2)
-const poiHealFailed = ref(false);
+// pois がエディタ正準形式 (配列) でないかどうか (M12-T30: 復元ではなく形式判定)。
+// true のまま保存しても data_json の生値は温存されるが (黙って消えない原則)、
+// このタブでの編集は無効化され preview/export には反映されないため、POIデータタブに警告を出す
+const poisUnsupported = ref(false);
 const mapSearchQuery = ref("");
 const baseMapSearchQuery = ref("");
 const previewError = ref<string | null>(null);
@@ -621,21 +621,19 @@ function normalizeAppDocument(value: any): AppDocument {
   if (!normalized.manifestSettings.iconSource && typeof value.httpSettings?.iconSource === "string") {
     normalized.manifestSettings.iconSource = value.httpSettings.iconSource;
   }
-  // pois (配列) 優先。旧 poiSources (JSON 文字列) と多重 stringify 破損は heal で配列に復元する
-  // (旧実装がここで JSON.stringify し直していたのが破損の根本原因 — 二度と文字列形にしない)。
-  // M3-T6 §5.8 (H-5(d)): 復元不能 (failed) の場合は pois: [] を document へ書き込まず、
+  // pois (配列) のみが editor 正準形式 (M12-T30: 復元は行わず形式判定のみ)。
+  // M3-T6 §5.8 (H-5(d)): 未対応形式の場合は pois: [] を document へ書き込まず、
   // 元の生値を温存する (保存しても data_json から消えない — 黙って消えない原則)。
   // 表示は Array.isArray ガード + タブ read-only が受け止める。温存生値は preview/export では
-  // normalizeJsonArray により従来どおり空扱い (回帰ではない — 警告文言にも明記)。
-  // 「次回保存で治る」は heal 成功時のみ (現行どおり)
-  const poiHeal = healAppDocumentPois(value);
-  if (poiHeal.failed) {
+  // readAppDocumentPois により従来どおり空扱い (回帰ではない — 警告文言にも明記)。
+  const poisRead = readAppDocumentPois(value);
+  if (poisRead.unsupported) {
     if (value.pois != null) normalized.pois = value.pois;
     if (value.poiSources != null) normalized.poiSources = value.poiSources;
   } else {
-    normalized.pois = poiHeal.pois;
+    normalized.pois = poisRead.pois;
   }
-  poiHealFailed.value = poiHeal.failed;
+  poisUnsupported.value = poisRead.unsupported;
   normalized.startFrom = value.startFrom || value.start_from;
   normalized.extraInfo = typeof value.extraInfo === "string" ? value.extraInfo : "";
   normalized.coverageLngLats = Array.isArray(value.coverageLngLats) ? value.coverageLngLats : null;
@@ -845,8 +843,8 @@ async function saveApp(): Promise<boolean> {
     saveOperationError.value = t("appedit.duplicate_appid");
     return false;
   }
-  // pois は配列のまま永続化する (旧 poiSources 文字列形は normalize で pois 配列に
-  // 統一済みのため、送信 document に poiSources キーは載らない — Phase 8 バグ①根治)
+  // pois は配列のまま永続化する (正準形式 (配列) の場合は normalize で pois 配列に
+  // 統一済みのため、送信 document に poiSources キーは載らない — M12-T30)
   const document = cloneDocument(appData.value);
   // sources参照はuid (maplat)なので startFrom もuidで永続化する
   document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;
@@ -1560,10 +1558,10 @@ function onPoisChange(next: unknown[]) {
            v-show 専用ラッパーを挟む -->
       <div v-show="activeTab === 'pois'" class="h-100" data-testid="app-pois-tab-pane">
       <div class="h-100 overflow-hidden p-3 d-flex flex-column">
-        <DiagnosticFeedback v-if="poiHealFailed" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_heal_failed') }]" scope="section" class="flex-shrink-0" />
-        <!-- M3-T6 §5.8: heal 失敗中は表示ガード (Array.isArray — MapEdit と同文法) + read-only で
+        <DiagnosticFeedback v-if="poisUnsupported" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_format_unsupported') }]" scope="section" class="flex-shrink-0" />
+        <!-- M3-T6 §5.8 / M12-T30: 未対応形式中は表示ガード (Array.isArray — MapEdit と同文法) + read-only で
              生値温存を空配列表示の編集が上書きする経路を塞ぐ。§5.4: hostSlug/hostTitle は変換 slug/title 基底 -->
-        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="Array.isArray(appData.pois) ? appData.pois : []" :read-only="poiHealFailed" :host-slug="appData.appID" :host-title="appData.appName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
+        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="Array.isArray(appData.pois) ? appData.pois : []" :read-only="poisUnsupported" :host-slug="appData.appID" :host-title="appData.appName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>
 
