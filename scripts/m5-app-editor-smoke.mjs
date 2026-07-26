@@ -352,7 +352,9 @@ try {
   );
   assert.match(
     appEditView,
-    /v-show="activeTab === 'pois'"[\s\S]{0,300}?<PoiReferenceEditor/,
+    // m3-t6 98dfcfc でペイン内に DiagnosticFeedback + §5.8 コメントが挿入され 300 字を超えた
+    // (構造は不変: ペイン直下マウントのまま)。距離上限のみ 800 字へ緩和
+    /v-show="activeTab === 'pois'"[\s\S]{0,800}?<PoiReferenceEditor/,
     'AppEdit.vue が POIデータタブに PoiReferenceEditor をマウントしていない'
   );
   // v-show と d-flex の同居禁止: Bootstrap の display:flex!important が v-show に勝ち、
@@ -396,13 +398,15 @@ try {
     /v-if="poiHealFailed"[\s\S]{0,120}?appedit\.poi_heal_failed/,
     'AppEdit.vue が pois heal 失敗時にオンスクリーン警告 (appedit.poi_heal_failed) を出していない'
   );
-  // 破損の根本原因の再発防止: AppEdit は poiSources (JSON 文字列形) をコードとして
-  // 一切持たない (内部表現・保存形とも pois 配列のみ。旧形は heal 側でのみ扱う。
-  // コメント中の言及は許容するため、フィールド宣言/プロパティアクセス形のみ検出)
+  // 破損の根本原因の再発防止: AppEdit は poiSources を JSON 文字列として編集・再直列化する
+  // コードを一切持たない (内部表現・保存形とも pois 配列のみ。旧形は heal 側でのみ扱う)。
+  // m3-t6 §5.8 で heal 失敗時の生値温存 (normalized.poiSources = value.poiSources の無解釈
+  // passthrough) が正規契約になったため、検出対象は破損機構そのもの — poiSources への
+  // JSON.stringify/parse と ref (poiSources.value) — に限定する
   assert.doesNotMatch(
     appEditView,
-    /poiSources\s*[:=]|\.poiSources|poiSources\.value/,
-    'AppEdit.vue に poiSources (文字列形) のコードが残存している — 二重 stringify 破損の再発リスク'
+    /poiSources\.value|JSON\.stringify\([^\n)]*poiSources|JSON\.parse\([^\n)]*poiSources/,
+    'AppEdit.vue に poiSources の文字列直列化コードが残存している — 二重 stringify 破損の再発リスク'
   );
   // 書き戻し: PoiReferenceEditor の update:pois を配列のまま反映 + 履歴記録
   assert.match(appEditView, /function onPoisChange/, 'AppEdit.vue に update:pois の反映 (onPoisChange) がない');
@@ -416,7 +420,8 @@ try {
   const poiReferenceEditor = await readFile(path.join(projectRoot, 'src/components/PoiReferenceEditor.vue'), 'utf8');
   assert.match(
     poiReferenceEditor,
-    /import \{ poiUidOf, extractPoiRefs, applyPoiSelection \} from "\.\.\/utils\/poiReferenceUi"/,
+    // m3-t6 で isNonReferenceObjectEntry 等の named import が増えたため、3 関数の存在のみを検査
+    /import \{[^}]*\bpoiUidOf\b[^}]*\bextractPoiRefs\b[^}]*\bapplyPoiSelection\b[^}]*\} from "\.\.\/utils\/poiReferenceUi"/,
     'PoiReferenceEditor.vue が共有 util (poiReferenceUi) を import していない'
   );
   assert.match(
@@ -436,7 +441,8 @@ try {
   assert.match(poiReferenceEditor, /<IconRefField/, 'PoiReferenceEditor.vue が上書き icon 欄 (IconRefField) をマウントしていない');
   assert.match(poiReferenceEditor, /poiref\.icon_override/, 'PoiReferenceEditor.vue に上書きアイコンラベルがない');
   assert.match(poiReferenceEditor, /poiref\.selected_icon_override/, 'PoiReferenceEditor.vue に選択時アイコンラベルがない');
-  assert.match(poiReferenceEditor, /poiref\.external_data/, 'PoiReferenceEditor.vue に外部データ (生 URL/FC) 行の表示がない');
+  // m3-t6 §5.11: 単一バッジ poiref.external_data は inline_data / external_url の 2 種へ分割された
+  assert.match(poiReferenceEditor, /poiref\.inline_data/, 'PoiReferenceEditor.vue に非参照 (地図内定義POI) 行の表示がない');
   // 削除済みソースへの参照カードの警告表示 (GUI 検証 D4): poiSources.get の null (not-found 確定)
   // で警告スタイル + 文言。IPC 一時失敗 (reject) は警告にしない
   assert.match(poiReferenceEditor, /poiref\.missing_source/, 'PoiReferenceEditor.vue に削除済み参照の警告文言 (poiref.missing_source) がない');

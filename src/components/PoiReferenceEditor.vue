@@ -53,24 +53,44 @@
         class="mb-2"
         :items="[{ key: 'inline-convert', severity: convertFeedback.severity, message: convertFeedback.message }]"
       />
-      <!-- M3-T6 §5.4: 変換群 (旧 POI オブジェクト + 生 Feature) の一括変換ボタン。
-           1 件単位の変換は提供しない (P2b の 1 レイヤ意味論の保存 — 群 = 1 レイヤ) -->
-      <div v-if="hostSlug && convertGroupEntries.length > 0" class="d-flex align-items-center gap-1 mb-2">
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-primary"
-          data-testid="poiref-convert-group"
-          :disabled="readOnly || converting"
-          @click="convertGroup"
-        >{{ t("poiref.convert_group_action", { count: convertGroupEntries.length }) }}</button>
-        <ContextHelp :text="t('poiref.external_note')" :ariaLabel="t('poiref.external_note')" />
-      </div>
       <ResourceEmptyState
         v-if="entries.length === 0"
         icon-class="bi bi-geo-alt"
         :message="t('poiref.empty')"
       />
-      <div v-else class="selected-list">
+      <!-- M3-T6 §4.2/§5.4 (v1.2): ペインはレイヤ単位 (viewer 正本 normalize_pois.ts の先頭要素
+           判別に対応)。単層 (C4/C5/C7)・indeterminate (C6) = 配列全体で 1 枚のレイヤペイン
+           (ヘッダに変換ボタン 1 個)、複層 (C2a/C2b/C3) = 要素ごとに 1 カード。
+           変換ボタンは常に「1 レイヤに 1 個」— 一括 + 個別の二重構造は置かない -->
+      <div
+        v-else
+        :class="layerMode === 'multi' ? undefined : 'poiref-layer-pane border rounded p-2 mb-2'"
+        :data-testid="layerMode === 'multi' ? undefined : 'poiref-layer-pane'"
+      >
+        <!-- 単層レイヤペインのヘッダ: レイヤ変換 (配列全体をまとめて 1 FC = 1 ドラフト — §4.4) -->
+        <div v-if="layerMode !== 'multi' && hostSlug" class="d-flex align-items-center gap-1 mb-2">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            data-testid="poiref-convert-group"
+            :disabled="readOnly || converting || !canConvertLayer"
+            @click="convertGroup"
+          >{{ t("poiref.convert_group_action", { count: entries.length }) }}</button>
+          <!-- 変換不可の理由と整理手順 (§4.4: 生 FC・参照・URL・非 UUID poiUid・junk 含みは disabled) -->
+          <ContextHelp
+            v-if="!canConvertLayer"
+            :text="t('poiref.convert_blocked_note')"
+            :ariaLabel="t('poiref.convert_blocked_note')"
+          />
+        </div>
+        <!-- 混在警告 (単層・indeterminate = ペイン上部)。表示可否は共有述語 isMixedLayer のみで
+             決まる (mode ゲートなし — §5.4 v1.3。判定は resolver 警告と同一実装 §5.10) -->
+        <div
+          v-if="layerMode !== 'multi' && isMixedLayer"
+          class="small text-warning-emphasis mb-2"
+          data-testid="poiref-mixed-warning"
+        >{{ t("poiref.mixed_layer_warning") }}</div>
+        <div class="selected-list">
         <div
           v-for="(entry, index) in entries"
           :key="entryKey(entry, index)"
@@ -80,8 +100,10 @@
           <div class="d-flex align-items-center justify-content-between gap-2">
             <div class="min-width-0">
               <div class="fw-bold text-break">
+                <!-- M3-T6 §5.11: バッジ 2 種 (inline 要素 = 地図内定義POI / URL 文字列 = 外部URL参照。
+                     junk は inline 側帰属 — 第 3 バッジは増やさない) -->
                 <span v-if="poiUidOf(entry) === null" class="badge text-bg-secondary me-1">
-                  {{ t("poiref.external_data") }}
+                  {{ entryBadgeLabel(entry) }}
                 </span>
                 {{ entryTitle(entry) }}
               </div>
@@ -100,11 +122,26 @@
               <div v-if="isMissing(entry)" class="small text-warning-emphasis">
                 {{ t("poiref.missing_source") }}
               </div>
+              <!-- 混在警告 (複層 = 壊れ要素 (非 FC object) カード内 — §5.4 C3)。
+                   表示可否は共有述語 isMixedLayer のみ・位置だけがモードによる表示設計 -->
+              <div
+                v-if="layerMode === 'multi' && isMixedLayer && entryShapes[index] === 'object'"
+                class="small text-warning-emphasis"
+                data-testid="poiref-mixed-warning"
+              >{{ t("poiref.mixed_layer_warning") }}</div>
+              <!-- M3-T6 §4.2/§5.4 (v1.3): 複層モード index>=1 の key (id/properties.id) 欠落
+                   生メンバーへの viewer-fatal 注記 (normalize_pois.ts:31-33 throw = POI 全損) -->
+              <div
+                v-if="showsLayerKeyMissing(entry, index)"
+                class="small text-warning-emphasis"
+                data-testid="poiref-key-missing"
+              >{{ t("poiref.layer_key_missing_warning") }}</div>
             </div>
             <div class="btn-group btn-group-sm flex-shrink-0">
-              <!-- M3-T6 §5.4: 生 FC 要素の要素単位変換 (layerMeta round-trip 保持) -->
+              <!-- M3-T6 §5.4 (v1.2): 複層モードの生 FC カード = 1 レイヤの変換
+                   (layerMeta round-trip 保持)。表示条件は「複層モードの生 FC 要素」に限定 -->
               <button
-                v-if="hostSlug && isConvertibleFcEntry(entry)"
+                v-if="layerMode === 'multi' && hostSlug && isRawFcEntry(entry)"
                 type="button"
                 class="btn btn-outline-primary"
                 data-testid="poiref-convert-fc"
@@ -168,8 +205,10 @@
               />
             </div>
           </div>
-          <!-- 外部データカードの注記 (M12-T11/R1: form-text から (i) ボタンの Popover へ) -->
-          <div v-else class="mb-0"><ContextHelp :text="t('poiref.external_note')" :ariaLabel="t('poiref.external_note')" /></div>
+          <!-- 非参照メンバー行の注記 (M12-T11/R1 の (i) ボタン文法。§5.11: バッジ種別で
+               inline_note / external_url_note を出し分け) -->
+          <div v-else class="mb-0"><ContextHelp :text="t(entryNoteKey(entry))" :ariaLabel="t(entryNoteKey(entry))" /></div>
+        </div>
         </div>
       </div>
       <!-- M3-T6 §5.5: 非参照要素の削除確認 (DeleteConfirmDialog 再利用 + body 差し替え。
@@ -206,6 +245,13 @@ import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 import DeleteConfirmDialog from "./resource-list/DeleteConfirmDialog.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 import { poiUidOf, extractPoiRefs, applyPoiSelection, isNonReferenceObjectEntry } from "../utils/poiReferenceUi";
+import {
+  poisEntryShape,
+  poisLayerMode,
+  hasMixedPoisShapes,
+  hasPoisLayerKey,
+  type PoisEntryShape,
+} from "../utils/poisLayerStructure";
 import { convertInlineEntriesToDraft, type InlineConvertResult } from "../utils/inlinePoiConvert";
 import { localizeTitle, type LangResource } from "../utils/langResource";
 import type { LangCode } from "../utils/editorLanguages";
@@ -296,19 +342,59 @@ function entryItemCountLabel(entry: unknown): string | null {
   return count === null ? null : t("poiref.external_item_count", { count });
 }
 
-// §4: 変換群 = 旧 POI オブジェクト + 生 Feature (非 UUID poiUid object は温存規約により対象外)。
-// 生 FC は要素単位で変換する
-function isConvertGroupEntry(entry: unknown): boolean {
-  if (!isNonReferenceObjectEntry(entry)) return false;
-  const record = entry as Record<string, unknown>;
-  return record.type !== "FeatureCollection" && !("poiUid" in record);
+// §5.10 (v1.2/v1.3): レイヤ構造判定 — 共有述語 (poisLayerStructure = resolver 混在警告と同一実装)
+// の computed 連鎖がペイン構成 (§5.4)・変換可否 (§4.4)・混在警告表示の唯一の判定源。
+// 参照要素は "fc" へ写像する (resolver が FC に置換した後の形 = viewer が見る形で判別 — §4.2 前文)
+const entryShapes = computed<readonly PoisEntryShape[]>(() =>
+  entries.value.map((entry) => (poiUidOf(entry) !== null ? "fc" : poisEntryShape(entry))),
+);
+const layerMode = computed(() => poisLayerMode(entryShapes.value));
+const isMixedLayer = computed(() => hasMixedPoisShapes(entryShapes.value));
+
+// §4.4: 単層モードのレイヤ変換可能条件 = 全メンバーが旧 POI オブジェクト / 生 Feature
+// (= shape "object" かつ非 UUID poiUid 温存規約の対象外)。生 FC・参照 (= shape "fc")・
+// URL 文字列・junk が 1 つでも含まれると不可 (削除で整理されると computed で自動有効化)
+const canConvertLayer = computed(
+  () =>
+    entries.value.length > 0 &&
+    entries.value.every(
+      (entry, index) =>
+        entryShapes.value[index] === "object" && !("poiUid" in (entry as Record<string, unknown>)),
+    ),
+);
+
+// §5.4 (v1.2): 複層モードの生 FC 要素 (= 1 レイヤ) 判定。参照要素は poiUidOf ≠ null で除外、
+// 非 UUID poiUid object は温存規約 (§4.4) により FC 形でも変換対象外。
+// v1.1 の isConvertGroupEntry / isConvertibleFcEntry (要素単位の振り分け) は撤去した
+function isRawFcEntry(entry: unknown): boolean {
+  if (poiUidOf(entry) !== null) return false;
+  if (poisEntryShape(entry) !== "fc") return false;
+  return !("poiUid" in (entry as Record<string, unknown>));
 }
-function isConvertibleFcEntry(entry: unknown): boolean {
-  if (!isNonReferenceObjectEntry(entry)) return false;
-  const record = entry as Record<string, unknown>;
-  return record.type === "FeatureCollection" && !("poiUid" in record);
+
+// §4.2/§5.4 (v1.3): 複層モード index>=1 の key (id/properties.id) 欠落生メンバー行の
+// viewer-fatal 注記 (normalize_pois.ts:30-33 throw = POI 全損) の表示判定。string は fetch
+// 置換後の内容が静的判定不能のため対象外。UI のみで使用 — resolver 警告契約 (AC6-7) は拡張しない
+function showsLayerKeyMissing(entry: unknown, index: number): boolean {
+  return (
+    layerMode.value === "multi" &&
+    index >= 1 &&
+    poiUidOf(entry) === null &&
+    poisEntryShape(entry) !== "string" &&
+    !hasPoisLayerKey(entry)
+  );
 }
-const convertGroupEntries = computed(() => entries.value.filter(isConvertGroupEntry));
+
+// §5.11: バッジ 2 種 (string = 外部URL参照 / それ以外の非参照要素 = 地図内定義POI。
+// junk は inline 側帰属 — 第 3 バッジは増やさない)
+function entryBadgeLabel(entry: unknown): string {
+  return typeof entry === "string" ? t("poiref.external_url") : t("poiref.inline_data");
+}
+
+// §5.11: 非参照メンバー行の注記キー (バッジと同じ object vs string の二分で出し分け)
+function entryNoteKey(entry: unknown): string {
+  return typeof entry === "string" ? "poiref.external_url_note" : "poiref.inline_note";
+}
 
 // §5.4: 変換フィードバック (成功/失敗) — DiagnosticFeedback で表示 (ref 代入のみ、§9)
 const convertFeedback = ref<{ severity: "success" | "warning"; message: string } | null>(null);
@@ -326,13 +412,16 @@ function applyConvertResult(result: InlineConvertResult): void {
   convertFeedback.value = { severity: "warning", message: t(key) };
 }
 
-// 変換は document を一切変更しない (update:pois を発火しない — 非破壊・可逆。§5.4)
+// 変換は document を一切変更しない (update:pois を発火しない — 非破壊・可逆。§5.4)。
+// 単層モードのレイヤ変換: input = メンバー全件 (= entries そのもの — §4.4 の変換可能条件により
+// 全メンバーが旧オブジェクト / 生 Feature に限定済みで、v1.1 の対象フィルタは不要になった)
 async function convertGroup(): Promise<void> {
   if (!props.hostSlug || props.readOnly || converting.value) return;
+  if (layerMode.value === "multi" || !canConvertLayer.value) return;
   converting.value = true;
   try {
     applyConvertResult(await convertInlineEntriesToDraft({
-      input: convertGroupEntries.value,
+      input: entries.value,
       hostSlug: props.hostSlug,
       hostTitle: props.hostTitle,
       lang: props.defaultLang,
@@ -342,9 +431,12 @@ async function convertGroup(): Promise<void> {
   }
 }
 
+// §5.4 (v1.2): 複層モードの生 FC カード = 1 レイヤの変換 (layerMeta round-trip 保持)。
+// 複層モードガード付きで維持 — 単層・indeterminate ではレイヤ変換 (convertGroup) のみ
 async function convertFcEntry(index: number): Promise<void> {
   const entry = entries.value[index];
-  if (!props.hostSlug || props.readOnly || converting.value || !isConvertibleFcEntry(entry)) return;
+  if (!props.hostSlug || props.readOnly || converting.value) return;
+  if (layerMode.value !== "multi" || !isRawFcEntry(entry)) return;
   converting.value = true;
   try {
     applyConvertResult(await convertInlineEntriesToDraft({
@@ -431,7 +523,8 @@ function entryTitle(entry: unknown): string {
     if (typeof record.name === "string" && record.name) return record.name;
     if (typeof record.id === "string" && record.id) return record.id;
   }
-  return t("poiref.external_data");
+  // §5.11: name/id を持たない非参照 object のタイトル fallback (旧 external_data → inline_data)
+  return t("poiref.inline_data");
 }
 
 // カード副行 (地図選択の sourceIdLabel = slug表示 に対応)。参照要素の slug は pois 配列に

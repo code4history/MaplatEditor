@@ -670,10 +670,22 @@ try {
       ['poiref', 'convert_too_large'],
       ['poiref', 'add_blocked_note'],
       ['poiref', 'delete_external_body'],
-      ['poiref', 'external_note'],
+      // v1.2/v1.3 (G3): バッジ/注記2種化 + レイヤ警告の新規 7 キー (§5.11 / §7)
+      ['poiref', 'inline_data'],
+      ['poiref', 'external_url'],
+      ['poiref', 'inline_note'],
+      ['poiref', 'external_url_note'],
+      ['poiref', 'mixed_layer_warning'],
+      ['poiref', 'convert_blocked_note'],
+      ['poiref', 'layer_key_missing_warning'],
       ['mapedit', 'import_inline_poi_alert'],
       ['appedit', 'warn_mixed_pois'],
       ['appedit', 'poi_heal_failed'],
+    ];
+    // v1.2 (G3): 旧キーは 11 locale から削除済みであること (旧契約の残置禁止 — §5.11)
+    const REMOVED = [
+      ['poiref', 'external_data'],
+      ['poiref', 'external_note'],
     ];
     for (const locale of LOCALES) {
       const translation = JSON.parse(
@@ -685,13 +697,15 @@ try {
           throw new Error(`i18n key missing: ${locale} ${section}.${key}`);
         }
       }
+      for (const [section, key] of REMOVED) {
+        if (translation?.[section] && key in translation[section]) {
+          throw new Error(`i18n key must be removed: ${locale} ${section}.${key} (§5.11 旧契約の残置禁止)`);
+        }
+      }
       // 更新キーが旧文言のまま残っていないこと (ja のみ厳密確認)
       if (locale === 'ja') {
         if (translation.appedit.poi_heal_failed.includes('このまま保存すると失われます')) {
           throw new Error('appedit.poi_heal_failed (ja) が旧文言のまま (heal 温存後は虚偽になる)');
-        }
-        if (translation.poiref.external_note.includes('順番の変更と削除のみ')) {
-          throw new Error('poiref.external_note (ja) が旧文言のまま (変換導線を案内していない)');
         }
       }
     }
