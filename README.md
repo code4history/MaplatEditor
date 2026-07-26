@@ -60,12 +60,15 @@ binaries are distributed via GitHub Releases.
 - Remote (registered) POI sources are read-only; a "copy locally" action
   creates an editable local copy
 - Legacy map/app-embedded POIs (inline `pois` entries) are preserved as-is:
-  the POI data tab shows them as read-only "external data" cards with item
-  counts, and an explicit "Convert to GeoJSON" action turns them into an
-  editable POI source draft without touching the original data; while such
-  external data remains, GeoJSON POI sources cannot be added to the same
-  list (delete the external entries — with confirmation — or convert them
-  first)
+  the POI data tab shows them read-only, grouped into panes per viewer
+  layer, with item counts and badges distinguishing "Map-embedded POI" and
+  "External URL reference" entries, and an explicit "Convert to GeoJSON"
+  action — one per layer: a single-layer array converts as a whole, while
+  in a multi-layer list each FeatureCollection card converts on its own —
+  turns a layer into an editable POI source draft without touching the
+  original data; while such embedded data remains, GeoJSON POI sources
+  cannot be added to the same list (delete the embedded entries — with
+  confirmation — or convert them first)
 
 ### Resource Management
 

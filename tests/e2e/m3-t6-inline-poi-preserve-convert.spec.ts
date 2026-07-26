@@ -1,5 +1,9 @@
-// M3-T6: inline POI の保全パネル完成と GeoJSON 変換 E2E (設計 §11.1)。
-// 手順: seed → 表示(項目数 AC6-1) → 制約(AC6-3) → 変換(AC6-4/6-8(b)) → ドラフト編集保存(AC6-4後半)
+// M3-T6: inline POI の保全パネル完成と GeoJSON 変換 E2E (設計 §11.1 — v1.3 レイヤ単位ペイン)。
+// フィクスチャは §4.2 の完全分割表から導出 (shape 列は smoke Part I のクラス転記表と同一表):
+//   手順1-6 = C4 単層クリーン [object, object] / 手順4b = C2a [fc, fc] → C3 [fc, fc, object] /
+//   手順4c = C5 [object, object, fc, string] / 手順4d = C6b [string, object, fc]
+// 手順: seed → 表示(レイヤペイン+バッジ2種+項目数 AC6-1/6-12/6-13) → 制約(AC6-3)
+//       → 変換(レイヤ単位 AC6-4/6-8(b)/6-12) → ドラフト編集保存(AC6-4後半)
 //       → 削除確認(AC6-6)+再有効化(AC6-3後半) → zip インポートアラート(AC6-2, dialog stub)
 //       → heal 警告 UI 面(AC6-9)
 // dialog stub 基盤は m11-t10-dedup-import.spec.ts の実績文法 (app.evaluate で main 側 dialog 差し替え)。
@@ -34,23 +38,14 @@ async function openHash(page: Page, hash: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
 }
 
-// seed: pois に 旧 POI オブジェクト 2 件 (lat/lng + 任意キー) + 生 FC 1 件 (feature 2 件) を直接保存
-async function seedMapWithInlinePois(page: Page): Promise<{ uid: string; slug: string; pois: unknown[] }> {
-  return page.evaluate(async () => {
-    const slug = `t6-map-${Date.now()}`;
-    const pois = [
-      { name: '旧POI甲', lat: 39.7052, lng: 141.1592, start: 1599, image: 'mitsuishi_jinja.jpg' },
-      { name: '旧POI乙', lat: 39.7060, lng: 141.1600, memo: '任意キー' },
-      {
-        type: 'FeatureCollection', name: '生FCレイヤ',
-        features: [
-          { type: 'Feature', geometry: { type: 'Point', coordinates: [141.15, 39.70] }, properties: { name: 'F1' } },
-          { type: 'Feature', geometry: { type: 'Point', coordinates: [141.16, 39.71] }, properties: { name: 'F2' } },
-        ],
-      },
-    ];
-    const result = await window.mapedit.save({ slug, mapObject: {
-      mapID: slug, title: { ja: 'T6 地図' }, officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+// seed / 更新: 指定 pois を持つ地図を保存する (uid 指定時は更新 — m11-t8b の実績文法)
+async function saveMapWithPois(
+  page: Page,
+  args: { slug: string; uid?: string; title: string; pois: unknown[] },
+): Promise<{ uid: string; slug: string; pois: unknown[] }> {
+  return page.evaluate(async ({ slug, uid, title, pois }) => {
+    const payload: Record<string, unknown> = { slug, mapObject: {
+      mapID: slug, title: { ja: title }, officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
       attr: { ja: 'T6 attribution' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
       reference: '', url: '', lang: 'ja', imageExtension: 'jpg', width: 400, height: 300,
       gcps: [
@@ -60,10 +55,35 @@ async function seedMapWithInlinePois(page: Page): Promise<{ uid: string; slug: s
       ],
       edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
       pois,
-    }, tins: [] });
+    }, tins: [] };
+    if (uid) payload.uid = uid;
+    const result = await window.mapedit.save(payload as never);
     if (!result || result.result !== 'Success') throw new Error(`seed map failed: ${JSON.stringify(result)}`);
-    return { uid: result.uid as string, slug, pois };
-  });
+    return { uid: (result.uid ?? uid) as string, slug, pois };
+  }, args);
+}
+
+// 手順1 seed (C4 単層クリーン): 旧 POI オブジェクト 2 件のみ (lat/lng + 任意キー start/memo + 旧相対名 image)
+function singleLayerCleanPois(): unknown[] {
+  return [
+    { name: '旧POI甲', lat: 39.7052, lng: 141.1592, start: 1599, image: 'mitsuishi_jinja.jpg' },
+    { name: '旧POI乙', lat: 39.7060, lng: 141.1600, memo: '任意キー' },
+  ];
+}
+
+// 生 FC 要素 (id = レイヤ key。name は指定時のみ)
+function rawFc(id: string | null, name: string | null, featureCount: number): Record<string, unknown> {
+  const fc: Record<string, unknown> = {
+    type: 'FeatureCollection',
+    features: Array.from({ length: featureCount }, (_, i) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [141.15 + i * 0.01, 39.70 + i * 0.01] },
+      properties: { name: `F${i + 1}` },
+    })),
+  };
+  if (id !== null) fc.id = id;
+  if (name !== null) fc.name = name;
+  return fc;
 }
 
 async function seedPoiSource(page: Page): Promise<{ uid: string; slug: string }> {
@@ -101,6 +121,23 @@ async function clearRecordedMessages(app: ElectronApplication): Promise<void> {
   await app.evaluate(async () => { (globalThis as any).__t6MessageBoxLog = []; });
 }
 
+// POIデータタブを開いてペインスコープの locator を返す共通手順
+async function openPoisTab(page: Page, uid: string, slug: string) {
+  await openHash(page, `#/mapedit?uid=${uid}`);
+  await expect(page.getByTestId('map-slug')).toHaveValue(slug, { timeout: 30000 });
+  await page.getByTestId('map-tab-pois').click();
+  // ベースマップタブ等の別 ResourceSelector が v-show で DOM 共存するため、POI タブペインへスコープする
+  const poisPane = page.getByTestId('map-pois-tab-pane');
+  return { poisPane, cards: poisPane.locator('.selected-source') };
+}
+
+// 削除確認 dialog を confirm して 1 件消す
+async function confirmDeleteCard(page: Page, cards: ReturnType<Page['locator']>, index: number, remainAfter: number): Promise<void> {
+  await cards.nth(index).locator('.btn-outline-danger').click();
+  await page.getByTestId('delete-confirm-button').click();
+  await expect(cards).toHaveCount(remainAfter);
+}
+
 // fixture zip (maps/<slug>.json + tiles/<slug>/0/0/0.png + tmbs/<slug>.jpg) をテスト内生成
 async function buildMapZip(dir: string, slug: string, pois: unknown[] | undefined): Promise<string> {
   const store: Record<string, unknown> = {
@@ -121,31 +158,28 @@ async function buildMapZip(dir: string, slug: string, pois: unknown[] | undefine
 }
 
 test.describe('M3-T6 inline POI 保全・変換', () => {
-  test('手順1-6: 項目数表示・制約・変換・ドラフト編集保存・削除確認・再有効化', async () => {
+  test('手順1-6: 単層クリーン(C4) — レイヤペイン・項目数・制約・レイヤ変換・ドラフト編集保存・削除確認・再有効化', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t6-main-'));
     const { app, page } = await launch(e2eRoot);
     try {
       await stubMessageBoxRecording(app);
-      const seeded = await seedMapWithInlinePois(page);
+      const seeded = await saveMapWithPois(page, { slug: `t6-map-${Date.now()}`, title: 'T6 地図', pois: singleLayerCleanPois() });
       const source = await seedPoiSource(page);
 
-      // --- 手順2: POIデータタブで外部データバッジ + 項目数 (AC6-1) ---
-      await openHash(page, `#/mapedit?uid=${seeded.uid}`);
-      await expect(page.getByTestId('map-slug')).toHaveValue(seeded.slug, { timeout: 30000 });
-      await page.getByTestId('map-tab-pois').click();
-      // ベースマップタブ等の別 ResourceSelector が v-show で DOM 共存するため、POI タブペインへスコープする
-      const poisPane = page.getByTestId('map-pois-tab-pane');
-      const cards = poisPane.locator('.selected-source');
-      await expect(cards).toHaveCount(3, { timeout: 15000 });
-      await expect(poisPane.locator('.selected-source .badge', { hasText: '外部データ' })).toHaveCount(3);
+      // --- 手順2: 単層モード = レイヤペイン 1 枚 + バッジ「地図内定義POI」 + 項目数 (AC6-1, 6-12, 6-13) ---
+      const { poisPane, cards } = await openPoisTab(page, seeded.uid, seeded.slug);
+      await expect(poisPane.getByTestId('poiref-layer-pane')).toHaveCount(1, { timeout: 15000 });
+      await expect(cards).toHaveCount(2);
+      await expect(poisPane.locator('.selected-source .badge', { hasText: '地図内定義POI' })).toHaveCount(2);
       const counts = poisPane.getByTestId('poiref-item-count');
-      await expect(counts).toHaveCount(3);
+      await expect(counts).toHaveCount(2);
       await expect(counts.nth(0)).toHaveText(/1 項目/); // 旧オブジェクト = 1
       await expect(counts.nth(1)).toHaveText(/1 項目/);
-      await expect(counts.nth(2)).toHaveText(/2 項目/); // 生 FC = features 数
-      // 中身確認 UI (フォーム等) は追加されていない: 非参照カードに上書きフォームが無い
+      // 中身確認 UI (フォーム等) は追加されていない: 非参照メンバー行に上書きフォームが無い
       await expect(cards.first().locator('input')).toHaveCount(0);
+      // 単層クリーン = 混在警告なし (C4 — §4.2)
+      await expect(poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(0);
 
       // --- 手順3: 相互排他制約 (AC6-3 前半) ---
       const selectorPane = poisPane.locator('.source-pane-body');
@@ -154,15 +188,18 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       // ContextHelp (i) ボタンが見出し脇に出る (理由 = add_blocked_note)
       await expect(poisPane.locator(`[aria-label*="GeoJSON POIを追加できません"]`).first()).toBeVisible();
 
-      // --- 手順4: 変換 (AC6-4, AC6-8(b)) ---
-      // 群変換 (旧オブジェクト 2 件): ボタンラベルに件数
+      // --- 手順4: レイヤ変換 (単層 = ペインヘッダのボタン 1 個で配列全体を 1 ドラフト。AC6-4, 6-8(b), 6-12) ---
       const groupButton = poisPane.getByTestId('poiref-convert-group');
-      await expect(groupButton).toHaveText(/旧POI 2 件/);
+      await expect(groupButton).toHaveText(/旧POI 2 件/); // count = メンバー総数
+      await expect(groupButton).toBeEnabled(); // C4 クリーン = 変換可能 (§4.4)
+      // 変換ボタンはレイヤに 1 個のみ (一括 + 個別の二重構造なし — AC6-4)
+      await expect(poisPane.getByTestId('poiref-convert-group')).toHaveCount(1);
+      await expect(poisPane.getByTestId('poiref-convert-fc')).toHaveCount(0);
       await groupButton.click();
       await expect(poisPane.locator('.editor-diagnostic__message', { hasText: `POIドラフト「${seeded.slug}-poi」を作成しました` }))
         .toBeVisible({ timeout: 15000 });
-      // document (pois 配列) は不変: カード 3 枚のまま + DB 上も seed と同一
-      await expect(cards).toHaveCount(3);
+      // document (pois 配列) は不変: メンバー行 2 のまま + DB 上も seed と同一
+      await expect(cards).toHaveCount(2);
       const storedPois = await page.evaluate(async (uid) => (await (window as any).mapedit.request(uid)).pois, seeded.uid);
       expect(storedPois).toEqual(seeded.pois);
       // ドラフト出現 (kind 'poi' / baseRevision null / slug 自動採番 — slug 入力 UI なし)
@@ -170,14 +207,6 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       expect(draftsAfterGroup.length).toBe(1);
       expect(draftsAfterGroup[0].slug).toBe(`${seeded.slug}-poi`);
       expect(draftsAfterGroup[0].baseRevision).toBeNull();
-      // FC カードの「変換」→ 2 件目ドラフト <slug>-poi2 (衝突時連番)
-      await poisPane.getByTestId('poiref-convert-fc').click();
-      await expect(poisPane.locator('.editor-diagnostic__message', { hasText: `POIドラフト「${seeded.slug}-poi2」を作成しました` }))
-        .toBeVisible({ timeout: 15000 });
-      const draftsAfterFc = await page.evaluate(async () => window.assetDrafts.list('poi'));
-      expect(draftsAfterFc.map((d) => d.slug).sort()).toEqual([`${seeded.slug}-poi`, `${seeded.slug}-poi2`]);
-      // FC 変換ドラフトの title は FC.name 優先 (POI-114 整合)
-      expect(draftsAfterFc.find((d) => d.slug === `${seeded.slug}-poi2`)?.label).toBe('生FCレイヤ');
 
       // --- 手順5: POI 一覧のドラフトカード → PoiEdit 復元 → 保存 (AC6-4 後半) ---
       const groupDraftUid = draftsAfterGroup[0].assetUid;
@@ -197,12 +226,10 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
 
       // --- 手順6: 削除確認 (AC6-6) + 再有効化 (AC6-3 後半) ---
       await openHash(page, '#/maplist');
-      await openHash(page, `#/mapedit?uid=${seeded.uid}`);
-      await expect(page.getByTestId('map-slug')).toHaveValue(seeded.slug, { timeout: 30000 });
-      await page.getByTestId('map-tab-pois').click();
-      await expect(cards).toHaveCount(3, { timeout: 15000 });
+      const reopened = await openPoisTab(page, seeded.uid, seeded.slug);
+      await expect(reopened.cards).toHaveCount(2, { timeout: 15000 });
       // × → 確認 dialog (body = 変換導線つき Undo 可能文言) → cancel で残存
-      await cards.nth(0).locator('.btn-outline-danger').click();
+      await reopened.cards.nth(0).locator('.btn-outline-danger').click();
       const dialogBody = page.locator('.modal-body p', { hasText: 'この外部データを一覧から削除します' });
       await expect(dialogBody).toBeVisible();
       await expect(dialogBody).toHaveText(/Undoで取り消せます/);
@@ -210,20 +237,150 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       // 確認 title に項目数が併記される
       await expect(page.locator('.modal-title')).toHaveText(/旧POI甲（1 項目）/);
       await page.locator('.modal-footer .btn-outline-secondary').click(); // cancel
-      await expect(cards).toHaveCount(3);
-      // confirm で削除 ×3 (全非参照要素の削除)
-      for (let remaining = 3; remaining > 0; remaining--) {
-        await cards.nth(0).locator('.btn-outline-danger').click();
-        await page.getByTestId('delete-confirm-button').click();
-        await expect(cards).toHaveCount(remaining - 1);
-      }
+      await expect(reopened.cards).toHaveCount(2);
+      // confirm で削除 ×2 (全非参照要素の削除)
+      await confirmDeleteCard(page, reopened.cards, 0, 1);
+      await confirmDeleteCard(page, reopened.cards, 0, 0);
       // 追加が自動で再有効化される → 参照を追加できる
-      await expect(selectorPane).not.toHaveClass(/poi-selector-disabled/);
-      await selectorPane.locator(`[data-resource-uid="${source.uid}"]`).click();
-      await expect(cards).toHaveCount(1, { timeout: 10000 });
-      await expect(poisPane.locator('.selected-source .badge', { hasText: '外部データ' })).toHaveCount(0);
+      const selectorPane2 = reopened.poisPane.locator('.source-pane-body');
+      await expect(selectorPane2).not.toHaveClass(/poi-selector-disabled/);
+      await selectorPane2.locator(`[data-resource-uid="${source.uid}"]`).click();
+      await expect(reopened.cards).toHaveCount(1, { timeout: 10000 });
+      await expect(reopened.poisPane.locator('.selected-source .badge', { hasText: '地図内定義POI' })).toHaveCount(0);
+      // 参照のみ (= 先頭 fc 写像 → 複層モード) になったため単層レイヤペインは消える (AC6-12)
+      await expect(reopened.poisPane.getByTestId('poiref-layer-pane')).toHaveCount(0);
 
       console.log('  手順1-6: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('手順4b: 複層(C2a) — 要素ごと 1 ペイン・FC ごとの変換 → 壊れ要素追加で C3 (混在警告 + key 欠落注記)', async () => {
+    test.setTimeout(300_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t6-multi-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const poisMulti = [
+        rawFc('layer-a', '生FCレイヤA', 2),
+        rawFc('layer-b', null, 1),
+      ];
+      const seeded = await saveMapWithPois(page, { slug: `t6-multi-${Date.now()}`, title: 'T6 複層', pois: poisMulti });
+
+      // --- C2a: ペインは要素ごと (単層レイヤペインなし)・各生 FC カードに変換ボタン・混在警告なし ---
+      const { poisPane, cards } = await openPoisTab(page, seeded.uid, seeded.slug);
+      await expect(cards).toHaveCount(2, { timeout: 15000 });
+      await expect(poisPane.getByTestId('poiref-layer-pane')).toHaveCount(0);
+      await expect(poisPane.getByTestId('poiref-convert-group')).toHaveCount(0); // レイヤ一括ボタンは出ない
+      await expect(poisPane.getByTestId('poiref-convert-fc')).toHaveCount(2); // 1 カード = 1 レイヤ = 変換 1 個
+      await expect(poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(0);
+      await expect(poisPane.getByTestId('poiref-key-missing')).toHaveCount(0); // 両 FC とも key (id) あり
+      // 項目数 = features 数
+      const counts = poisPane.getByTestId('poiref-item-count');
+      await expect(counts.nth(0)).toHaveText(/2 項目/);
+      await expect(counts.nth(1)).toHaveText(/1 項目/);
+
+      // --- FC カードごとに変換 → <slug>-poi / <slug>-poi2 の 2 ドラフト (AC6-4, 6-8(b), 6-12) ---
+      await poisPane.getByTestId('poiref-convert-fc').nth(0).click();
+      await expect(poisPane.locator('.editor-diagnostic__message', { hasText: `POIドラフト「${seeded.slug}-poi」を作成しました` }))
+        .toBeVisible({ timeout: 15000 });
+      await poisPane.getByTestId('poiref-convert-fc').nth(1).click();
+      await expect(poisPane.locator('.editor-diagnostic__message', { hasText: `POIドラフト「${seeded.slug}-poi2」を作成しました` }))
+        .toBeVisible({ timeout: 15000 });
+      const drafts = await page.evaluate(async () => window.assetDrafts.list('poi'));
+      expect(drafts.map((d) => d.slug).sort()).toEqual([`${seeded.slug}-poi`, `${seeded.slug}-poi2`]);
+      // title は FC.name 優先 (POI-114) / name 無し FC はホストタイトル fallback (§5.4 手順4)
+      expect(drafts.find((d) => d.slug === `${seeded.slug}-poi`)?.label).toBe('生FCレイヤA');
+      expect(drafts.find((d) => d.slug === `${seeded.slug}-poi2`)?.label).toBe('T6 複層');
+      // document は不変
+      const storedPois = await page.evaluate(async (uid) => (await (window as any).mapedit.request(uid)).pois, seeded.uid);
+      expect(storedPois).toEqual(seeded.pois);
+
+      // --- C3 遷移: 末尾へ key 無し旧 POI object を 1 件追加して再表示 (v1.3 手順4b 拡張) ---
+      const poisBroken = [...poisMulti, { name: '壊れ旧POI', lat: 39.71, lng: 141.17 }];
+      await saveMapWithPois(page, { slug: seeded.slug, uid: seeded.uid, title: 'T6 複層', pois: poisBroken });
+      await openHash(page, '#/maplist');
+      const reopened = await openPoisTab(page, seeded.uid, seeded.slug);
+      await expect(reopened.cards).toHaveCount(3, { timeout: 15000 });
+      // 依然として複層 (先頭 fc) = 単層レイヤペインなし・FC カードのみ変換可
+      await expect(reopened.poisPane.getByTestId('poiref-layer-pane')).toHaveCount(0);
+      await expect(reopened.poisPane.getByTestId('poiref-convert-fc')).toHaveCount(2);
+      // 壊れ要素 (非 FC object) カード: 変換ボタンなし + 混在警告 + key 欠落注記 (AC6-12)
+      const brokenCard = reopened.cards.nth(2);
+      await expect(brokenCard.getByTestId('poiref-convert-fc')).toHaveCount(0);
+      await expect(brokenCard.getByTestId('poiref-mixed-warning')).toBeVisible();
+      await expect(brokenCard.getByTestId('poiref-key-missing')).toBeVisible();
+      // 混在警告・key 欠落注記は壊れ要素カードのみ (FC カードには出ない)
+      await expect(reopened.poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(1);
+      await expect(reopened.poisPane.getByTestId('poiref-key-missing')).toHaveCount(1);
+
+      console.log('  手順4b: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('手順4c/4d: 混在(C5) は単層 1 ペイン + 警告 + 変換 disabled → 整理で自動有効化 / 先頭 URL(C6b) も同様', async () => {
+    test.setTimeout(300_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t6-mixed-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      // --- 手順4c (C5 — 人間指摘の症状ケース): [旧POI甲, 旧POI乙, 生FC, URL] ---
+      const seededMixed = await saveMapWithPois(page, {
+        slug: `t6-mixed-${Date.now()}`, title: 'T6 混在',
+        pois: [...singleLayerCleanPois(), rawFc(null, '生FCレイヤ', 2), 'https://example.com/pois.json'],
+      });
+      const { poisPane, cards } = await openPoisTab(page, seededMixed.uid, seededMixed.slug);
+      await expect(cards).toHaveCount(4, { timeout: 15000 });
+      // 単層扱いで 1 ペイン (FC も URL もメンバー行として内包 — AC6-12)
+      await expect(poisPane.getByTestId('poiref-layer-pane')).toHaveCount(1);
+      // バッジ 2 種: 地図内定義POI × 3 (旧POI×2 + 生FC) / 外部URL参照 × 1 (AC6-13)
+      await expect(poisPane.locator('.selected-source .badge', { hasText: '地図内定義POI' })).toHaveCount(3);
+      await expect(poisPane.locator('.selected-source .badge', { hasText: '外部URL参照' })).toHaveCount(1);
+      // 混在警告 (ペイン上部・共有述語 = C5 警告あり) + 変換 disabled + 理由注記 (§4.4)
+      await expect(poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(1);
+      const groupButton = poisPane.getByTestId('poiref-convert-group');
+      await expect(groupButton).toBeDisabled();
+      await expect(poisPane.locator('[aria-label*="まとめて変換できません"]').first()).toBeVisible();
+      // 複層用の FC 個別変換ボタンは出ない (変換単位は常にレイヤ = このペインの 1 個のみ)
+      await expect(poisPane.getByTestId('poiref-convert-fc')).toHaveCount(0);
+
+      // FC メンバーを削除 → まだ disabled (URL 残存)。C4 化により混在警告は消える (§4.2 C4 行)
+      await confirmDeleteCard(page, cards, 2, 3);
+      await expect(groupButton).toBeDisabled();
+      await expect(poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(0);
+      // URL メンバーを削除 → 変換が自動有効化 (computed — §4.4)
+      await confirmDeleteCard(page, cards, 2, 2);
+      await expect(groupButton).toBeEnabled();
+      await groupButton.click();
+      await expect(poisPane.locator('.editor-diagnostic__message', { hasText: `POIドラフト「${seededMixed.slug}-poi」を作成しました` }))
+        .toBeVisible({ timeout: 15000 });
+      // 甲乙 2 features の 1 ドラフト
+      const draftFeatures = await page.evaluate(async () => {
+        const drafts = await window.assetDrafts.list('poi');
+        if (drafts.length !== 1) throw new Error(`draft count: ${drafts.length}`);
+        const envelope = await window.assetDrafts.get('poi', drafts[0].assetUid);
+        return ((envelope?.payload as { features?: unknown[] })?.features ?? []).length;
+      });
+      expect(draftFeatures).toBe(2);
+
+      // --- 手順4d (C6b — v1.3 新設): [URL, 旧POI甲, 生FC] = indeterminate ---
+      const seededUrlHead = await saveMapWithPois(page, {
+        slug: `t6-urlhead-${Date.now()}`, title: 'T6 先頭URL',
+        pois: ['https://example.com/pois.json', { name: '旧POI甲', lat: 39.7052, lng: 141.1592 }, rawFc(null, '生FC', 1)],
+      });
+      await openHash(page, '#/maplist');
+      const urlHead = await openPoisTab(page, seededUrlHead.uid, seededUrlHead.slug);
+      await expect(urlHead.cards).toHaveCount(3, { timeout: 15000 });
+      // 単層と同じ 1 ペイン (indeterminate — §4.2 C6b)
+      await expect(urlHead.poisPane.getByTestId('poiref-layer-pane')).toHaveCount(1);
+      // 混在警告あり (tail に fc と object の両方 — Major-1(c) 是正後の警告挙動)
+      await expect(urlHead.poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(1);
+      // 変換ボタン disabled (URL メンバー含み恒常 — §4.4)
+      await expect(urlHead.poisPane.getByTestId('poiref-convert-group')).toBeDisabled();
+      await expect(urlHead.poisPane.getByTestId('poiref-convert-fc')).toHaveCount(0);
+
+      console.log('  手順4c/4d: PASS');
     } finally {
       await quitElectronApplication(app);
     }
