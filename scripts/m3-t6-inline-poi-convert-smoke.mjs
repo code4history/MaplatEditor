@@ -10,7 +10,9 @@
 // Part E: 変換フロー失敗系 (検証エラー・20MB 超・put 失敗) で document/draft 不変 + 予約解放 (AC6-10)
 // Part F: resolvePoisArray 混在警告 (FC + 非 FC object → warn_mixed_pois / 文字列は数えない) (AC6-7)
 // Part G: heal 失敗時温存 (純関数 + AppDataService save round-trip で data_json に生値残存) (AC6-9)
-// Part H: i18n — 設計 §7 の全キーが 11 locale に存在
+// Part H: i18n — 設計 §7 の全キーが 11 locale に存在 + 削除キー (external_data/external_note) の残置なし
+// Part I: poisLayerStructure (§4.2 完全分割表の機械導出 — クラス転記表 + 341 通り全域列挙 +
+//         hasPoisLayerKey) (AC6-12)
 import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -37,6 +39,7 @@ try {
   const inlinePoiConvertPath = path.join(projectRoot, 'src/utils/inlinePoiConvert.ts');
   const poiReferenceUiPath = path.join(projectRoot, 'src/utils/poiReferenceUi.ts');
   const poiSourcesHealPath = path.join(projectRoot, 'src/utils/poiSourcesHeal.ts');
+  const poisLayerStructurePath = path.join(projectRoot, 'src/utils/poisLayerStructure.ts');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const poiServicePath = path.join(projectRoot, 'electron/services/PoiSourceService.ts');
@@ -471,6 +474,158 @@ try {
         assert.equal(loaded.poiSources, rawPoiSources, 'data_json に poiSources 生値が温存される');
       }
       console.log('m3-t6 smoke Part G (heal 失敗時温存 AC6-9): OK');
+
+      // ---- Part I: poisLayerStructure — §4.2 完全分割表のテスト機械導出 (AC6-12, v1.3) ----
+      {
+        const { poisEntryShape, poisLayerMode, hasMixedPoisShapes, hasPoisLayerKey } =
+          await import(${JSON.stringify(poisLayerStructurePath)});
+        type Shape = 'fc' | 'object' | 'string' | 'junk';
+
+        // (I-1) poisEntryShape の入力代表 (unknown 全域で 4 値排他の全域関数であることの確認)
+        const shapeCases: [unknown, Shape, string][] = [
+          [{ type: 'FeatureCollection', features: [] }, 'fc', 'FC object'],
+          [{ type: 'Feature', geometry: null, properties: {} }, 'object', '生 Feature'],
+          [{ name: '旧POI', lat: 1, lng: 2 }, 'object', '旧 POI オブジェクト'],
+          [{ poiUid: 'not-a-uuid' }, 'object', '非 UUID poiUid object'],
+          ['https://example.com/pois.json', 'string', 'URL 文字列'],
+          ['', 'string', '空文字列'],
+          [[1, 2], 'junk', '配列'],
+          [42, 'junk', '数値'],
+          [null, 'junk', 'null'],
+          [undefined, 'junk', 'undefined'],
+          [true, 'junk', 'boolean'],
+        ];
+        for (const [input, expected, label] of shapeCases) {
+          assert.equal(poisEntryShape(input), expected, 'poisEntryShape: ' + label);
+        }
+
+        // (I-2) §4.2 表の 10 行の定義条件を「各行独立の述語」として実装する。
+        // 決定木を if/else の逐次分岐で転記すると「ちょうど1クラスに分類される」assert が
+        // 構成上常に真になり網羅・排他の検証が vacuous になる (v1.3 レビュー Minor-1)。
+        // 各述語は他の行の否定 (else) に依存しない独立式であり、任意の入力に対して真になる
+        // 述語がちょうど 1 個であることを classify / (I-4) で毎回検証する
+        const tail = (seq: readonly Shape[]): readonly Shape[] => seq.slice(1);
+        const CLASS_PREDICATES: Record<string, (seq: readonly Shape[]) => boolean> = {
+          // C1: 空配列
+          C1: (seq) => seq.length === 0,
+          // C2a: 先頭 fc・tail も全て fc (tail 空含む)
+          C2a: (seq) => seq.length > 0 && seq[0] === 'fc' && tail(seq).every((s) => s === 'fc'),
+          // C2b: 先頭 fc・tail に object なし・string または junk あり
+          C2b: (seq) => seq.length > 0 && seq[0] === 'fc' && !tail(seq).includes('object')
+            && (tail(seq).includes('string') || tail(seq).includes('junk')),
+          // C3: 先頭 fc・tail に object あり (string / junk 共存可)
+          C3: (seq) => seq.length > 0 && seq[0] === 'fc' && tail(seq).includes('object'),
+          // C4: 先頭 object・fc を含まない
+          C4: (seq) => seq.length > 0 && seq[0] === 'object' && !seq.includes('fc'),
+          // C5: 先頭 object・fc を含む
+          C5: (seq) => seq.length > 0 && seq[0] === 'object' && seq.includes('fc'),
+          // C6a: 先頭 string・fc と object の両方は揃わない (tail 判定)
+          C6a: (seq) => seq.length > 0 && seq[0] === 'string'
+            && !(tail(seq).includes('fc') && tail(seq).includes('object')),
+          // C6b: 先頭 string・tail に fc と object の両方あり
+          C6b: (seq) => seq.length > 0 && seq[0] === 'string'
+            && tail(seq).includes('fc') && tail(seq).includes('object'),
+          // C7a: 先頭 junk・fc と object の両方は揃わない
+          C7a: (seq) => seq.length > 0 && seq[0] === 'junk'
+            && !(seq.includes('fc') && seq.includes('object')),
+          // C7b: 先頭 junk・fc と object の両方あり
+          C7b: (seq) => seq.length > 0 && seq[0] === 'junk'
+            && seq.includes('fc') && seq.includes('object'),
+        };
+        // クラス → 期待 (mode / warning)。警告列は hasMixedPoisShapes の値の転記 (mode ゲートなし — §4.2)
+        const CLASS_EXPECT: Record<string, { mode: string; warning: boolean }> = {
+          C1: { mode: 'empty', warning: false },
+          C2a: { mode: 'multi', warning: false },
+          C2b: { mode: 'multi', warning: false },
+          C3: { mode: 'multi', warning: true },
+          C4: { mode: 'single', warning: false },
+          C5: { mode: 'single', warning: true },
+          C6a: { mode: 'indeterminate', warning: false },
+          C6b: { mode: 'indeterminate', warning: true },
+          C7a: { mode: 'single', warning: false },
+          C7b: { mode: 'single', warning: true },
+        };
+        // 全述語を評価し「ちょうど 1 個が真」を assert してからそのクラス ID を返す
+        // (網羅 = 0 個ならここで fail / 排他 = 2 個以上でもここで fail)
+        const classify = (seq: readonly Shape[]): string => {
+          const hits = Object.keys(CLASS_PREDICATES).filter((id) => CLASS_PREDICATES[id](seq));
+          assert.equal(hits.length, 1,
+            'ちょうど1クラスに分類: [' + seq.join(',') + '] → ' + JSON.stringify(hits));
+          return hits[0];
+        };
+
+        // (I-3) クラス転記表: §4.2 の代表フィクスチャ列 (E2E フィクスチャの shape 列含む) を
+        // クラス ID 1対1で assert する。§4.2 の表に行を追加・変更した場合は本表を同時更新する
+        const TABLE: [Shape[], string, string][] = [
+          [[], 'C1', '§4.2 C1 空配列'],
+          [['fc', 'fc'], 'C2a', '§4.2 C2a [FC(id:a), FC(id:b)] / E2E 手順4b'],
+          [['fc'], 'C2a', '§4.2 C2a [参照] (参照 → fc 写像)'],
+          [['fc', 'string'], 'C2b', '§4.2 C2b [FC(id:a), "https://…"]'],
+          [['fc', 'junk'], 'C2b', '§4.2 C2b [FC(id:a), 42]'],
+          [['fc', 'object'], 'C3', '§4.2 C3 [FC(id:a), 旧POI]'],
+          [['fc', 'object', 'string'], 'C3', '§4.2 C3 [FC(id:a), 旧POI, "url"]'],
+          [['fc', 'fc', 'object'], 'C3', 'E2E 手順4b 拡張 (複層 + key 無し旧POI 追加で C3 へ遷移)'],
+          [['object', 'object'], 'C4', '§4.2 C4 [旧POI, 旧POI] / E2E 手順1 seed'],
+          [['object', 'string'], 'C4', '§4.2 C4 [旧POI, "https://…"] (変換 disabled だが警告なし)'],
+          [['object', 'object', 'fc', 'string'], 'C5', '§4.2 C5 [旧POI, 旧POI, 生FC, "url"] / E2E 手順4c'],
+          [['string'], 'C6a', '§4.2 C6a ["url"]'],
+          [['string', 'object'], 'C6a', '§4.2 C6a ["url", 旧POI]'],
+          [['string', 'fc'], 'C6a', '§4.2 C6a ["url", FC]'],
+          [['string', 'object', 'fc'], 'C6b', '§4.2 C6b ["url", 旧POI, 生FC] / E2E 手順4d'],
+          [['junk'], 'C7a', '§4.2 C7a [42]'],
+          [['junk', 'object'], 'C7a', '§4.2 C7a [null, 旧POI]'],
+          [['junk', 'fc', 'object'], 'C7b', '§4.2 C7b [[], 生FC, 旧POI]'],
+        ];
+        for (const [seq, classId, label] of TABLE) {
+          assert.equal(classify(seq), classId, 'クラス転記表: ' + label);
+          const expected = CLASS_EXPECT[classId];
+          assert.equal(poisLayerMode(seq), expected.mode, 'クラス転記表 mode: ' + label);
+          assert.equal(hasMixedPoisShapes(seq), expected.warning, 'クラス転記表 warning: ' + label);
+        }
+
+        // (I-4) 完全分割の全域列挙検証: shape 4 値 × 長さ 0〜4 の全列 (4^0+…+4^4 = 341 通り)。
+        // (i) すべての列で真になる述語がちょうど 1 個 (網羅・排他 = 完全分割) — classify 内 assert
+        // (ii) 各列でクラスの期待 (mode / warning) が共有述語の実出力と一致
+        const SHAPES: Shape[] = ['fc', 'object', 'string', 'junk'];
+        const allSeqs: Shape[][] = [[]];
+        let frontier: Shape[][] = [[]];
+        for (let len = 1; len <= 4; len++) {
+          const next: Shape[][] = [];
+          for (const seq of frontier) for (const s of SHAPES) next.push([...seq, s]);
+          allSeqs.push(...next);
+          frontier = next;
+        }
+        assert.equal(allSeqs.length, 341, '列挙数 = 341');
+        const classCounts: Record<string, number> = {};
+        for (const seq of allSeqs) {
+          const classId = classify(seq);
+          classCounts[classId] = (classCounts[classId] ?? 0) + 1;
+          const expected = CLASS_EXPECT[classId];
+          assert.equal(poisLayerMode(seq), expected.mode,
+            '全域列挙 mode: [' + seq.join(',') + '] (' + classId + ')');
+          assert.equal(hasMixedPoisShapes(seq), expected.warning,
+            '全域列挙 warning: [' + seq.join(',') + '] (' + classId + ')');
+        }
+        // 10 クラスすべてが実際に出現する (定義が空集合の行 = 死に行がないこと)
+        for (const classId of Object.keys(CLASS_PREDICATES)) {
+          assert.ok((classCounts[classId] ?? 0) > 0, 'クラス ' + classId + ' が全域列挙に出現する');
+        }
+
+        // (I-5) hasPoisLayerKey — viewer normalize_pois.ts:30 の key 導出
+        // (layer.id || (layer.properties && layer.properties.id)) の truthy 判定との一致
+        assert.equal(hasPoisLayerKey({ type: 'FeatureCollection', id: 'layer-a', features: [] }), true, 'id あり FC');
+        assert.equal(hasPoisLayerKey({ type: 'FeatureCollection', properties: { id: 'layer-b' }, features: [] }), true, 'properties.id のみの FC');
+        assert.equal(hasPoisLayerKey({ type: 'FeatureCollection', features: [] }), false, 'id 無し FC');
+        assert.equal(hasPoisLayerKey({ name: '旧POI', lat: 1, lng: 2 }), false, 'id 無し object');
+        assert.equal(hasPoisLayerKey({ id: '' }), false, 'falsy id ("") は key なし (viewer truthy 判定)');
+        assert.equal(hasPoisLayerKey({ id: 0 }), false, 'falsy id (0) は key なし');
+        assert.equal(hasPoisLayerKey({ id: '', properties: { id: 'x' } }), true, 'id falsy でも properties.id が truthy なら key あり');
+        assert.equal(hasPoisLayerKey(42), false, 'junk (数値)');
+        assert.equal(hasPoisLayerKey(null), false, 'junk (null)');
+        assert.equal(hasPoisLayerKey([1]), false, 'junk (配列)');
+        assert.equal(hasPoisLayerKey('https://example.com'), false, '文字列は対象外');
+      }
+      console.log('m3-t6 smoke Part I (poisLayerStructure 完全分割): OK');
       console.log('m3-t6 smoke: ALL OK');
     `
   );

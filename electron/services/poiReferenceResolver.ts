@@ -28,6 +28,7 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { parseIconRef, listIconSets } from '../../src/utils/iconRefs';
 import { compactLangResource, type LangResource } from '../../src/utils/langResource';
 import { DEFAULT_LANG } from '../../src/utils/poiGeoJson';
+import { poisEntryShape, hasMixedPoisShapes } from '../../src/utils/poisLayerStructure';
 import {
   collectAssetRefUids,
 } from '../../src/utils/poiContentMode';
@@ -297,12 +298,11 @@ export async function resolvePoisArray(pois: unknown): Promise<ResolvedPois> {
   // M3-T6 §5.7 (AC6-7): 解決後配列が FC と非 FC object の混在なら警告 (viewer P2a/P2b の解釈分裂 =
   // 確実に壊れる形)。判定は「解決後」に対して行う (参照要素は FC に置換済みのため、旧オブジェクト +
   // 参照の混在が確実に検出される)。文字列要素は数えない — URL が FC を返す正当構成 (P2a) への
-  // 恒常偽陽性を避ける (§8.1 の出口側判定)。自動変換は行わない
-  const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-    !!value && typeof value === 'object' && !Array.isArray(value);
-  const hasFc = out.some((entry) => isPlainObject(entry) && entry.type === 'FeatureCollection');
-  const hasNonFcObject = out.some((entry) => isPlainObject(entry) && entry.type !== 'FeatureCollection');
-  if (hasFc && hasNonFcObject) mergeWarnings(warnings, ['appedit.warn_mixed_pois']);
+  // 恒常偽陽性を避ける (§8.1 の出口側判定)。自動変換は行わない。
+  // v1.2 §5.10: 判定を共有述語 (poisLayerStructure) へ載せ替え — UI のレイヤ判別と同一実装
+  // (旧ローカル実装と論理同値: fc = isPlainObject && type==='FeatureCollection' /
+  //  object = isPlainObject && type!=='FeatureCollection' / 配列・文字列・数値は非カウント)。挙動不変
+  if (hasMixedPoisShapes(out.map(poisEntryShape))) mergeWarnings(warnings, ['appedit.warn_mixed_pois']);
   return { pois: out, files: [...sink.files.values()], warnings };
 }
 
