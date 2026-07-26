@@ -113,8 +113,12 @@ interface AppDocument {
   manifestSettings: ManifestSettings;
   // POI データ (43 §2.4): {poiUid, cachedTitle?, icon?, selectedIcon?} 参照要素と
   // 生要素 (URL 文字列 / FC 埋め込み) の混在配列。旧 poiSources (JSON 文字列) 形は
-  // 読込時に healAppDocumentPois が配列へ復元し、保存形は pois 配列のみ (Phase 8)
-  pois: unknown[];
+  // 読込時に healAppDocumentPois が配列へ復元し、保存形は pois 配列のみ (Phase 8)。
+  // M3-T6 §5.8: heal 失敗時は生値 (非配列) を温存するため unknown へ広げる (黙って消えない原則)。
+  // 表示は Array.isArray ガード + read-only (map 側と同文法)
+  pois: unknown;
+  // M3-T6 §5.8: heal 失敗時のみ旧 poiSources 生値を温存する (成功時は書かない — 従来どおり)
+  poiSources?: unknown;
   startFrom?: string;
   status?: string;
   extraInfo?: string;
@@ -619,9 +623,18 @@ function normalizeAppDocument(value: any): AppDocument {
   }
   // pois (配列) 優先。旧 poiSources (JSON 文字列) と多重 stringify 破損は heal で配列に復元する
   // (旧実装がここで JSON.stringify し直していたのが破損の根本原因 — 二度と文字列形にしない)。
-  // 復元不能 (failed) の場合は POIデータタブに警告を出す (このまま保存すると失われるため)
+  // M3-T6 §5.8 (H-5(d)): 復元不能 (failed) の場合は pois: [] を document へ書き込まず、
+  // 元の生値を温存する (保存しても data_json から消えない — 黙って消えない原則)。
+  // 表示は Array.isArray ガード + タブ read-only が受け止める。温存生値は preview/export では
+  // normalizeJsonArray により従来どおり空扱い (回帰ではない — 警告文言にも明記)。
+  // 「次回保存で治る」は heal 成功時のみ (現行どおり)
   const poiHeal = healAppDocumentPois(value);
-  normalized.pois = poiHeal.pois;
+  if (poiHeal.failed) {
+    if (value.pois != null) normalized.pois = value.pois;
+    if (value.poiSources != null) normalized.poiSources = value.poiSources;
+  } else {
+    normalized.pois = poiHeal.pois;
+  }
   poiHealFailed.value = poiHeal.failed;
   normalized.startFrom = value.startFrom || value.start_from;
   normalized.extraInfo = typeof value.extraInfo === "string" ? value.extraInfo : "";
@@ -1548,7 +1561,9 @@ function onPoisChange(next: unknown[]) {
       <div v-show="activeTab === 'pois'" class="h-100">
       <div class="h-100 overflow-hidden p-3 d-flex flex-column">
         <DiagnosticFeedback v-if="poiHealFailed" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_heal_failed') }]" scope="section" class="flex-shrink-0" />
-        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="appData.pois" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
+        <!-- M3-T6 §5.8: heal 失敗中は表示ガード (Array.isArray — MapEdit と同文法) + read-only で
+             生値温存を空配列表示の編集が上書きする経路を塞ぐ。§5.4: hostSlug/hostTitle は変換 slug/title 基底 -->
+        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="Array.isArray(appData.pois) ? appData.pois : []" :read-only="poiHealFailed" :host-slug="appData.appID" :host-title="appData.appName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>
 

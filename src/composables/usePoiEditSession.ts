@@ -52,6 +52,27 @@ function featureUid(feature: PoiEditorFeature): unknown {
   return feature.properties?._maplatUid;
 }
 
+// fc → PoiEditState 変換の共通純関数 (M3-T6 §5.4 手順4)。load() と inline POI 変換
+// (utils/inlinePoiConvert) の双方が同一実装を使う (恒久指示「同一扱い処理は共通実装へ」)。
+// fc の features 以外のトップレベルを layerMeta として保持し、type/lang は除外する (挙動不変)。
+export function toPoiEditState(detail: {
+  lang: LangCode;
+  slug: string;
+  title: LangResource;
+  fc: PoiEditorFC;
+}): PoiEditState {
+  const { features, type: _type, lang: _lang, ...rest } = detail.fc;
+  void _type;
+  void _lang;
+  return {
+    lang: detail.lang,
+    slug: detail.slug,
+    title: detail.title,
+    features: features.slice(),
+    layerMeta: rest as Record<string, unknown>,
+  };
+}
+
 export function usePoiEditSession(): PoiEditSession {
   let stack: UndoStack<PoiEditState> | null = null;
 
@@ -111,17 +132,9 @@ export function usePoiEditSession(): PoiEditSession {
     },
     opts?: { dirty?: boolean },
   ): void => {
-    const { features, type: _type, lang: _lang, ...rest } = detail.fc;
-    void _type;
-    void _lang;
     reset(
-      {
-        lang: detail.lang,
-        slug: detail.slug,
-        title: detail.title,
-        features: features.slice(),
-        layerMeta: rest as Record<string, unknown>,
-      },
+      // M3-T6: fc→state 変換は toPoiEditState (共通純関数) へ委譲 (挙動不変)
+      toPoiEditState(detail),
       // M11-T10b: 複製の dirty-open（即保存可能・hot-exit で下書き化）に使う
       opts?.dirty ?? false,
     );

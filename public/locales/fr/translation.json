@@ -353,7 +353,8 @@
     "thumbnail_manage": "Gestion des vignettes",
     "thumbnail_derive_52": "Créer aussi le 52px depuis le 512px",
     "thumbnail_replace_512": "Remplacer le 512px…",
-    "thumbnail_replace_52": "Remplacer le 52px…"
+    "thumbnail_replace_52": "Remplacer le 52px…",
+    "import_inline_poi_alert": "Les définitions de POI intégrées à la carte ne sont pas modifiables. Pour modifier ces POI, convertissez-les en GeoJSON."
   },
   "mapupload": {
     "map_image": "Image de la carte",
@@ -568,7 +569,7 @@
     "export_failed": "Échec de l'export.",
     "warn_missing_poi_source": "Certaines sources de POI référencées sont introuvables et ont été exclues de la sortie.",
     "warn_duplicate_poi_reference": "La même source de POI est référencée à la fois par l'application et par une carte. Les POI risquent de s'afficher en double.",
-    "poi_heal_failed": "Impossible de restaurer les paramètres POI enregistrés. Ils seront perdus si vous enregistrez maintenant.",
+    "poi_heal_failed": "Impossible de restaurer les données POI. Les données d'origine ne sont pas perdues à l'enregistrement, mais l'édition dans cet onglet est désactivée et elles ne sont pas prises en compte dans l'aperçu ni l'export.",
     "warn_unresolved_icon": "Certaines références d’icônes n’ont pas pu être résolues et ont été conservées telles quelles dans la sortie.",
     "warn_icon_too_small": "L'image source de l'icône PWA fait moins de 512px, les icônes générées peuvent donc paraître floues.",
     "export": {
@@ -582,7 +583,8 @@
       "missing_splash": "L'image de l'écran de démarrage est introuvable."
     },
     "no_app_name": "Please input an app name.",
-    "search_maps_placeholder": "Rechercher des cartes…"
+    "search_maps_placeholder": "Rechercher des cartes…",
+    "warn_mixed_pois": "Les données POI mélangent le format GeoJSON et d'autres formats. Elles risquent de ne pas s'afficher correctement dans la visionneuse. Convertissez les POI à l'ancien format en GeoJSON."
   },
   "mapmodel": {
     "untitled": "Titre non défini",
@@ -622,12 +624,21 @@
     "remove": "Désélectionner",
     "delete": "Supprimer",
     "external_data": "Données externes",
-    "external_note": "Données externes (URL ou GeoJSON intégré). Seuls le réordonnancement et la suppression sont possibles.",
+    "external_note": "Données externes (URL ou POI définis dans la carte). Vous pouvez les réordonner ou les supprimer, et les formats pris en charge peuvent être convertis en GeoJSON.",
     "icon_override": "Icône de remplacement",
     "selected_icon_override": "Icône de remplacement à la sélection",
     "override_title": "Titre de remplacement",
     "missing_source": "La source de POI référencée est introuvable (elle a peut-être été supprimée). Utilisez × pour retirer la référence.",
-    "search_placeholder": "Rechercher des POIs…"
+    "search_placeholder": "Rechercher des POIs…",
+    "external_item_count": "{{count}} élément(s)",
+    "convert_action": "Convertir en GeoJSON",
+    "convert_group_action": "Convertir {{count}} ancien(s) POI en GeoJSON en une fois",
+    "convert_success": "Le brouillon de POI « {{slug}} » a été créé. Vous pouvez le modifier depuis la liste des POI. Les données POI d'origine n'ont pas été modifiées.",
+    "convert_failed": "Échec de la conversion en GeoJSON.",
+    "convert_invalid": "Le résultat de la conversion n'a pas passé la validation ; aucun brouillon n'a été créé.",
+    "convert_too_large": "Le résultat de la conversion est trop volumineux pour être enregistré comme brouillon.",
+    "add_blocked_note": "Tant que des données externes (par ex. des POI définis dans la carte) subsistent, il est impossible d'ajouter des POI GeoJSON. Supprimez les données externes, ou convertissez-les en GeoJSON puis supprimez-les.",
+    "delete_external_body": "Ces données externes seront retirées de la liste (annulable). Pour vérifier leur contenu, convertissez-les en GeoJSON avant la suppression."
   },
   "poisource": {
     "title": "Sources de POI",

@@ -353,7 +353,8 @@
     "thumbnail_manage": "Quản lý ảnh thu nhỏ",
     "thumbnail_derive_52": "Tạo cả 52px từ 512px",
     "thumbnail_replace_512": "Thay thế 512px…",
-    "thumbnail_replace_52": "Thay thế 52px…"
+    "thumbnail_replace_52": "Thay thế 52px…",
+    "import_inline_poi_alert": "POI định nghĩa trong bản đồ không hỗ trợ chỉnh sửa. Để chỉnh sửa POI, hãy chuyển đổi POI sang GeoJSON."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
@@ -568,7 +569,7 @@
     "export_failed": "Xuất thất bại.",
     "warn_missing_poi_source": "Không tìm thấy một số nguồn POI được tham chiếu nên đã loại khỏi kết quả xuất.",
     "warn_duplicate_poi_reference": "Cùng một nguồn POI được tham chiếu bởi cả ứng dụng và bản đồ. POI có thể hiển thị hai lần.",
-    "poi_heal_failed": "Không thể khôi phục cài đặt POI đã lưu. Dữ liệu sẽ bị mất nếu bạn lưu ngay bây giờ.",
+    "poi_heal_failed": "Không thể khôi phục dữ liệu POI. Dữ liệu gốc không bị mất khi lưu, nhưng việc chỉnh sửa trong thẻ này bị vô hiệu hóa và dữ liệu không được phản ánh trong bản xem trước hay xuất.",
     "warn_unresolved_icon": "Một số tham chiếu biểu tượng không thể phân giải và được giữ nguyên trong kết quả xuất.",
     "warn_icon_too_small": "Ảnh nguồn biểu tượng PWA nhỏ hơn 512px nên các biểu tượng được tạo có thể bị mờ.",
     "export": {
@@ -582,7 +583,8 @@
       "missing_splash": "Không tìm thấy ảnh màn hình khởi động."
     },
     "no_app_name": "Please input an app name.",
-    "search_maps_placeholder": "Tìm bản đồ…"
+    "search_maps_placeholder": "Tìm bản đồ…",
+    "warn_mixed_pois": "Dữ liệu POI trộn lẫn định dạng GeoJSON và định dạng khác. Có thể hiển thị không đúng trong trình xem. Hãy chuyển đổi POI định dạng cũ sang GeoJSON."
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",
@@ -622,12 +624,21 @@
     "remove": "Bỏ chọn",
     "delete": "Xóa",
     "external_data": "Dữ liệu bên ngoài",
-    "external_note": "Dữ liệu bên ngoài (URL hoặc GeoJSON nhúng). Chỉ có thể sắp xếp lại và xóa.",
+    "external_note": "Dữ liệu ngoài (URL hoặc POI định nghĩa trong bản đồ). Có thể đổi thứ tự, xóa, và các định dạng được hỗ trợ có thể chuyển đổi sang GeoJSON.",
     "icon_override": "Biểu tượng ghi đè",
     "selected_icon_override": "Biểu tượng ghi đè khi chọn",
     "override_title": "Tiêu đề ghi đè",
     "missing_source": "Không tìm thấy nguồn POI được tham chiếu (có thể đã bị xóa). Dùng × để gỡ tham chiếu.",
-    "search_placeholder": "Tìm POI…"
+    "search_placeholder": "Tìm POI…",
+    "external_item_count": "{{count}} mục",
+    "convert_action": "Chuyển đổi sang GeoJSON",
+    "convert_group_action": "Chuyển đổi hàng loạt {{count}} POI kiểu cũ sang GeoJSON",
+    "convert_success": "Đã tạo bản nháp POI \"{{slug}}\". Bạn có thể chỉnh sửa từ danh sách POI. Dữ liệu POI gốc không bị thay đổi.",
+    "convert_failed": "Chuyển đổi sang GeoJSON thất bại.",
+    "convert_invalid": "Kết quả chuyển đổi không vượt qua kiểm tra nên không tạo bản nháp.",
+    "convert_too_large": "Kết quả chuyển đổi quá lớn nên không thể lưu làm bản nháp.",
+    "add_blocked_note": "Khi vẫn còn dữ liệu ngoài (ví dụ POI định nghĩa trong bản đồ), không thể thêm POI GeoJSON. Hãy xóa dữ liệu ngoài, hoặc chuyển đổi sang GeoJSON rồi xóa.",
+    "delete_external_body": "Dữ liệu ngoài này sẽ bị xóa khỏi danh sách (có thể hoàn tác bằng Undo). Để kiểm tra nội dung, hãy chuyển đổi sang GeoJSON trước khi xóa."
   },
   "poisource": {
     "title": "Nguồn POI",

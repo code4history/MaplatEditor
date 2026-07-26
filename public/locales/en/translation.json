@@ -347,7 +347,8 @@
     "thumbnail_manage": "Thumbnail management",
     "thumbnail_derive_52": "Also create 52px from 512px",
     "thumbnail_replace_512": "Replace 512px…",
-    "thumbnail_replace_52": "Replace 52px…"
+    "thumbnail_replace_52": "Replace 52px…",
+    "import_inline_poi_alert": "Map-embedded POI definitions are not editable. To edit these POIs, convert them to GeoJSON."
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -564,7 +565,7 @@
     "export_failed": "Export failed.",
     "warn_missing_poi_source": "Some referenced POI sources were not found and were omitted from the output.",
     "warn_duplicate_poi_reference": "The same POI source is referenced by both the app and a map. POIs may appear twice.",
-    "poi_heal_failed": "Could not restore the saved POI settings; they will be lost if you save now.",
+    "poi_heal_failed": "Could not restore the POI data. The original data is not lost when you save, but editing in this tab is disabled and the data is not reflected in previews or exports.",
     "warn_unresolved_icon": "Some icon references could not be resolved and were left unchanged in the output.",
     "warn_icon_too_small": "The PWA icon source image is smaller than 512px, so generated icons may look blurry.",
     "export": {
@@ -578,7 +579,8 @@
       "missing_splash": "The splash image was not found."
     },
     "no_app_name": "Please input an app name.",
-    "search_maps_placeholder": "Search maps…"
+    "search_maps_placeholder": "Search maps…",
+    "warn_mixed_pois": "The POI data mixes GeoJSON and non-GeoJSON formats. It may not display correctly in the viewer. Convert legacy-format POIs to GeoJSON."
   },
   "mapmodel": {
     "untitled": "Untitled",
@@ -618,12 +620,21 @@
     "remove": "Deselect",
     "delete": "Delete",
     "external_data": "External data",
-    "external_note": "External data (URL or embedded GeoJSON). Only reordering and deletion are available.",
+    "external_note": "External data (a URL or map-embedded POIs). You can reorder or delete it, and supported formats can be converted to GeoJSON.",
     "icon_override": "Icon override",
     "selected_icon_override": "Selected-state icon override",
     "override_title": "Title override",
     "missing_source": "The referenced POI source was not found (it may have been deleted). Use × to remove this reference.",
-    "search_placeholder": "Search POIs…"
+    "search_placeholder": "Search POIs…",
+    "external_item_count": "{{count}} item(s)",
+    "convert_action": "Convert to GeoJSON",
+    "convert_group_action": "Convert {{count}} legacy POI(s) to GeoJSON",
+    "convert_success": "Created POI draft \"{{slug}}\". You can edit it from the POI list. The original POI data has not been changed.",
+    "convert_failed": "Failed to convert to GeoJSON.",
+    "convert_invalid": "The conversion result failed validation, so no draft was created.",
+    "convert_too_large": "The conversion result is too large to save as a draft.",
+    "add_blocked_note": "While external data (such as map-embedded POIs) remains, GeoJSON POIs cannot be added. Delete the external data, or convert it to GeoJSON and then delete it.",
+    "delete_external_body": "This external data will be removed from the list (you can undo this). To inspect its contents, convert it to GeoJSON before deleting."
   },
   "poisource": {
     "title": "POI Sources",

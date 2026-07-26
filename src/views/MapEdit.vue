@@ -23,6 +23,7 @@ import osmThumb from '../assets/img/osm.png';
 import gsiThumb from '../assets/img/gsi.png';
 import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
 import { envelopeToBbox, resolveBaseMapSelectorText } from '../utils/appSourceModel';
+import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
@@ -3250,6 +3251,16 @@ const importMap = async () => {
             // タイル・マーカー反映
             if (histMap.url_) await loadMapTiles();
             gcpsToMarkers();
+            // M3-T6 §5.2 (AC6-2): 非参照 object 要素 (地図内定義型 POI) を含む zip のインポート
+            // 成功時にアラートを出す (既存 info ダイアログ文法)。検出は object のみ — URL 文字列は
+            // 変換導線が存在しないため対象外 (案内先のない要素で出すのは誤誘導になる)。
+            // 既存 DB 内データへの遡及通知は行わない (zip インポート時のみ)
+            if (Array.isArray(histMap.pois) && histMap.pois.some(isNonReferenceObjectEntry)) {
+                await (window as any).dialog.showMessageBox({
+                    type: 'info', buttons: ['OK'],
+                    message: t('mapedit.import_inline_poi_alert')
+                });
+            }
         }
     } finally {
         unsubscribe();
@@ -4122,6 +4133,8 @@ const goBack = async () => {
                     ref="poiRefEditor"
                     heading-key="poiref.selected_list_map"
                     :pois="Array.isArray(mapData.pois) ? mapData.pois : []"
+                    :host-slug="mapData.mapID"
+                    :host-title="mapData.title"
                     :active-lang="currentLang"
                     :default-lang="(mapData.lang || 'ja') as LangCode"
                     :language-options="SUPPORTED_LANGUAGES"

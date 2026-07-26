@@ -356,7 +356,8 @@
     "thumbnail_manage": "サムネイル管理",
     "thumbnail_derive_52": "512pxから52pxも作成する",
     "thumbnail_replace_512": "512pxを置換…",
-    "thumbnail_replace_52": "52pxを置換…"
+    "thumbnail_replace_52": "52pxを置換…",
+    "import_inline_poi_alert": "地図内定義型のPOI指定は編集に対応していません。POIを編集する場合は、POIをGeoJSONに変換してください。"
   },
   "mapupload": {
     "map_image": "地図画像",
@@ -573,7 +574,7 @@
     "export_failed": "エクスポートに失敗しました。",
     "warn_missing_poi_source": "参照しているPOIソースが見つからなかったため、出力から除外しました。",
     "warn_duplicate_poi_reference": "同じPOIソースがアプリと地図の両方から参照されています。POIが二重に表示される可能性があります。",
-    "poi_heal_failed": "保存されていたPOI設定を復元できませんでした。このまま保存すると失われます。",
+    "poi_heal_failed": "POIデータを復元できませんでした。元のデータは保存しても失われませんが、このタブでの編集は無効化され、プレビューやエクスポートには反映されません。",
     "warn_unresolved_icon": "解決できないアイコン参照があったため、元の値のまま出力しました。",
     "warn_icon_too_small": "PWAアイコン元画像が512pxより小さいため、生成されるアイコンが粗くなる可能性があります。",
     "export": {
@@ -587,7 +588,8 @@
       "missing_splash": "スプラッシュ画像が見つかりませんでした。"
     },
     "no_app_name": "アプリ名を入力してください。",
-    "search_maps_placeholder": "地図を検索…"
+    "search_maps_placeholder": "地図を検索…",
+    "warn_mixed_pois": "POIデータにGeoJSON形式とそれ以外の形式が混在しています。ビューアで正しく表示されない可能性があります。旧形式のPOIはGeoJSONへ変換してください。"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",
@@ -627,12 +629,21 @@
     "remove": "解除",
     "delete": "削除",
     "external_data": "外部データ",
-    "external_note": "外部データ(URLまたは埋め込みGeoJSON)です。順番の変更と削除のみ行えます。",
+    "external_note": "外部データ(URLまたは地図内定義型のPOI)です。順番の変更・削除のほか、対応する形式はGeoJSONへの変換ができます。",
     "icon_override": "上書きアイコン",
     "selected_icon_override": "選択時アイコン(上書き)",
     "override_title": "上書きタイトル",
     "missing_source": "参照先のPOIソースが見つかりません(削除された可能性があります)。×で参照を解除できます。",
-    "search_placeholder": "POIを検索…"
+    "search_placeholder": "POIを検索…",
+    "external_item_count": "{{count}} 項目",
+    "convert_action": "GeoJSONへ変換",
+    "convert_group_action": "旧POI {{count}} 件をまとめてGeoJSONへ変換",
+    "convert_success": "POIドラフト「{{slug}}」を作成しました。POI一覧から編集できます。元のPOIデータは変更されていません。",
+    "convert_failed": "GeoJSONへの変換に失敗しました。",
+    "convert_invalid": "変換結果が検証エラーになったため、ドラフトを作成しませんでした。",
+    "convert_too_large": "変換結果が大きすぎるため、下書きとして保存できません。",
+    "add_blocked_note": "外部データ（地図内定義型のPOI等）が残っている間は、GeoJSON POIを追加できません。外部データを削除するか、GeoJSONへ変換した上で削除してください。",
+    "delete_external_body": "この外部データを一覧から削除します（Undoで取り消せます）。中身を確認するには、削除の前にGeoJSONへの変換を行ってください。"
   },
   "poisource": {
     "title": "POIソース",

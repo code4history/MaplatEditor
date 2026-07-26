@@ -22,6 +22,15 @@ export function poiUidOf(entry: unknown): string | null {
   return typeof uid === "string" && UUID_PATTERN.test(uid) ? uid : null;
 }
 
+// 非参照 object 要素判定 (M3-T6 §5.2, v1.1 Info-2 — 同一扱い処理の共通実装)。
+// 「object (非配列・非 null) かつ参照要素でない」= 旧 POI オブジェクト / 生 Feature / 生 FC /
+// 非 UUID poiUid object の合成述語。利用箇所 = MapEdit の zip インポートアラート判定と
+// PoiReferenceEditor の非参照 object 判別 (renderer 側 2 箇所)。main 側 resolver には
+// 持ち込まない (poiUidOf 再定義規約 — 冒頭コメント参照)。
+export function isNonReferenceObjectEntry(entry: unknown): boolean {
+  return typeof entry === "object" && entry !== null && !Array.isArray(entry) && poiUidOf(entry) === null;
+}
+
 // pois 配列から selector の選択集合を復元する。重複参照は先勝ちで1つに畳む
 export function extractPoiRefs(pois: unknown[]): SelectedPoiSourceRef[] {
   const restored: SelectedPoiSourceRef[] = [];

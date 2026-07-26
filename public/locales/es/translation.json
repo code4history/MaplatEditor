@@ -353,7 +353,8 @@
     "thumbnail_manage": "Gestión de miniaturas",
     "thumbnail_derive_52": "Crear también 52px desde 512px",
     "thumbnail_replace_512": "Reemplazar 512px…",
-    "thumbnail_replace_52": "Reemplazar 52px…"
+    "thumbnail_replace_52": "Reemplazar 52px…",
+    "import_inline_poi_alert": "Las definiciones de POI dentro del mapa no admiten edición. Para editar estos POIs, conviértalos a GeoJSON."
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
@@ -568,7 +569,7 @@
     "export_failed": "Error al exportar.",
     "warn_missing_poi_source": "No se encontraron algunas fuentes de POI referenciadas y se omitieron de la salida.",
     "warn_duplicate_poi_reference": "La misma fuente de POI está referenciada tanto por la aplicación como por un mapa. Los POI podrían mostrarse dos veces.",
-    "poi_heal_failed": "No se pudieron restaurar los ajustes de POI guardados. Se perderán si guarda ahora.",
+    "poi_heal_failed": "No se pudieron restaurar los datos de POI. Los datos originales no se pierden al guardar, pero la edición en esta pestaña está deshabilitada y no se reflejan en la vista previa ni en la exportación.",
     "warn_unresolved_icon": "Algunas referencias de iconos no se pudieron resolver y se mantuvieron sin cambios en la salida.",
     "warn_icon_too_small": "La imagen de origen del icono PWA es menor de 512px, por lo que los iconos generados pueden verse borrosos.",
     "export": {
@@ -582,7 +583,8 @@
       "missing_splash": "No se encontró la imagen de la pantalla de bienvenida."
     },
     "no_app_name": "Please input an app name.",
-    "search_maps_placeholder": "Buscar mapas…"
+    "search_maps_placeholder": "Buscar mapas…",
+    "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON."
   },
   "mapmodel": {
     "untitled": "Título no establecido",
@@ -622,12 +624,21 @@
     "remove": "Deseleccionar",
     "delete": "Eliminar",
     "external_data": "Datos externos",
-    "external_note": "Datos externos (URL o GeoJSON incrustado). Solo se permite reordenar y eliminar.",
+    "external_note": "Datos externos (URL o POIs definidos dentro del mapa). Puede reordenarlos o eliminarlos, y los formatos compatibles pueden convertirse a GeoJSON.",
     "icon_override": "Icono de reemplazo",
     "selected_icon_override": "Icono de reemplazo al seleccionar",
     "override_title": "Título de reemplazo",
     "missing_source": "No se encontró la fuente de POI referenciada (puede haber sido eliminada). Use × para quitar la referencia.",
-    "search_placeholder": "Buscar POIs…"
+    "search_placeholder": "Buscar POIs…",
+    "external_item_count": "{{count}} elemento(s)",
+    "convert_action": "Convertir a GeoJSON",
+    "convert_group_action": "Convertir {{count}} POI(s) antiguos a GeoJSON de una vez",
+    "convert_success": "Se creó el borrador de POI «{{slug}}». Puede editarlo desde la lista de POI. Los datos de POI originales no se han modificado.",
+    "convert_failed": "No se pudo convertir a GeoJSON.",
+    "convert_invalid": "El resultado de la conversión no superó la validación, por lo que no se creó el borrador.",
+    "convert_too_large": "El resultado de la conversión es demasiado grande para guardarse como borrador.",
+    "add_blocked_note": "Mientras queden datos externos (como POIs definidos dentro del mapa), no se pueden añadir POIs GeoJSON. Elimine los datos externos o conviértalos a GeoJSON y luego elimínelos.",
+    "delete_external_body": "Estos datos externos se eliminarán de la lista (puede deshacerlo). Para revisar su contenido, conviértalos a GeoJSON antes de eliminarlos."
   },
   "poisource": {
     "title": "Fuentes de POI",

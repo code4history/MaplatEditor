@@ -353,7 +353,8 @@
     "thumbnail_manage": "썸네일 관리",
     "thumbnail_derive_52": "512px에서 52px도 생성",
     "thumbnail_replace_512": "512px 교체…",
-    "thumbnail_replace_52": "52px 교체…"
+    "thumbnail_replace_52": "52px 교체…",
+    "import_inline_poi_alert": "지도 내 정의형 POI 지정은 편집을 지원하지 않습니다. POI를 편집하려면 POI를 GeoJSON으로 변환하세요."
   },
   "mapupload": {
     "map_image": "지도 이미지",
@@ -568,7 +569,7 @@
     "export_failed": "내보내기에 실패했습니다.",
     "warn_missing_poi_source": "참조하는 POI 소스를 찾을 수 없어 출력에서 제외했습니다.",
     "warn_duplicate_poi_reference": "동일한 POI 소스가 앱과 지도 양쪽에서 참조되고 있습니다. POI가 이중으로 표시될 수 있습니다.",
-    "poi_heal_failed": "저장된 POI 설정을 복원할 수 없습니다. 지금 저장하면 손실됩니다.",
+    "poi_heal_failed": "POI 데이터를 복원할 수 없습니다. 원본 데이터는 저장해도 사라지지 않지만, 이 탭에서의 편집은 비활성화되며 미리보기나 내보내기에는 반영되지 않습니다.",
     "warn_unresolved_icon": "해석할 수 없는 아이콘 참조가 있어 원래 값 그대로 출력했습니다.",
     "warn_icon_too_small": "PWA 아이콘 원본 이미지가 512px보다 작아 생성된 아이콘이 흐릿하게 보일 수 있습니다.",
     "export": {
@@ -582,7 +583,8 @@
       "missing_splash": "스플래시 이미지를 찾을 수 없었습니다."
     },
     "no_app_name": "Please input an app name.",
-    "search_maps_placeholder": "지도 검색…"
+    "search_maps_placeholder": "지도 검색…",
+    "warn_mixed_pois": "POI 데이터에 GeoJSON 형식과 그 외 형식이 혼재되어 있습니다. 뷰어에서 올바르게 표시되지 않을 수 있습니다. 구형 POI는 GeoJSON으로 변환하세요."
   },
   "mapmodel": {
     "untitled": "제목 미설정",
@@ -622,12 +624,21 @@
     "remove": "선택 해제",
     "delete": "삭제",
     "external_data": "외부 데이터",
-    "external_note": "외부 데이터(URL 또는 내장 GeoJSON)입니다. 순서 변경과 삭제만 가능합니다.",
+    "external_note": "외부 데이터(URL 또는 지도 내 정의형 POI)입니다. 순서 변경·삭제 외에 지원되는 형식은 GeoJSON으로 변환할 수 있습니다.",
     "icon_override": "덮어쓰기 아이콘",
     "selected_icon_override": "선택 시 아이콘(덮어쓰기)",
     "override_title": "덮어쓰기 제목",
     "missing_source": "참조된 POI 소스를 찾을 수 없습니다(삭제되었을 수 있습니다). ×로 참조를 해제할 수 있습니다.",
-    "search_placeholder": "POI 검색…"
+    "search_placeholder": "POI 검색…",
+    "external_item_count": "{{count}}개 항목",
+    "convert_action": "GeoJSON으로 변환",
+    "convert_group_action": "구형 POI {{count}}건을 한꺼번에 GeoJSON으로 변환",
+    "convert_success": "POI 초안 \"{{slug}}\"을(를) 만들었습니다. POI 목록에서 편집할 수 있습니다. 원본 POI 데이터는 변경되지 않았습니다.",
+    "convert_failed": "GeoJSON 변환에 실패했습니다.",
+    "convert_invalid": "변환 결과가 검증 오류가 되어 초안을 만들지 않았습니다.",
+    "convert_too_large": "변환 결과가 너무 커서 초안으로 저장할 수 없습니다.",
+    "add_blocked_note": "외부 데이터(지도 내 정의형 POI 등)가 남아 있는 동안에는 GeoJSON POI를 추가할 수 없습니다. 외부 데이터를 삭제하거나 GeoJSON으로 변환한 후 삭제하세요.",
+    "delete_external_body": "이 외부 데이터를 목록에서 삭제합니다(실행 취소로 되돌릴 수 있습니다). 내용을 확인하려면 삭제 전에 GeoJSON으로 변환하세요."
   },
   "poisource": {
     "title": "POI 소스",

@@ -353,7 +353,8 @@
     "thumbnail_manage": "Manajemen thumbnail",
     "thumbnail_derive_52": "Buat juga 52px dari 512px",
     "thumbnail_replace_512": "Ganti 512px…",
-    "thumbnail_replace_52": "Ganti 52px…"
+    "thumbnail_replace_52": "Ganti 52px…",
+    "import_inline_poi_alert": "Definisi POI di dalam peta tidak dapat diedit. Untuk mengedit POI tersebut, konversikan ke GeoJSON."
   },
   "mapupload": {
     "map_image": "Gambar peta",
@@ -568,7 +569,7 @@
     "export_failed": "Ekspor gagal.",
     "warn_missing_poi_source": "Beberapa sumber POI yang dirujuk tidak ditemukan dan dihapus dari keluaran.",
     "warn_duplicate_poi_reference": "Sumber POI yang sama dirujuk oleh aplikasi dan peta sekaligus. POI mungkin ditampilkan dua kali.",
-    "poi_heal_failed": "Pengaturan POI yang tersimpan tidak dapat dipulihkan. Data akan hilang jika disimpan sekarang.",
+    "poi_heal_failed": "Data POI tidak dapat dipulihkan. Data asli tidak hilang saat disimpan, tetapi pengeditan di tab ini dinonaktifkan dan data tidak tercermin dalam pratinjau maupun ekspor.",
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "warn_icon_too_small": "Gambar sumber ikon PWA lebih kecil dari 512px, sehingga ikon yang dihasilkan mungkin tampak buram.",
     "export": {
@@ -582,7 +583,8 @@
       "missing_splash": "Gambar layar pembuka tidak ditemukan."
     },
     "no_app_name": "Please input an app name.",
-    "search_maps_placeholder": "Cari peta…"
+    "search_maps_placeholder": "Cari peta…",
+    "warn_mixed_pois": "Data POI mencampur format GeoJSON dan format lain. Mungkin tidak ditampilkan dengan benar di viewer. Konversikan POI format lama ke GeoJSON."
   },
   "mapmodel": {
     "untitled": "Belum berjudul",
@@ -622,12 +624,21 @@
     "remove": "Batalkan pilihan",
     "delete": "Hapus",
     "external_data": "Data eksternal",
-    "external_note": "Data eksternal (URL atau GeoJSON tersemat). Hanya pengurutan ulang dan penghapusan yang tersedia.",
+    "external_note": "Data eksternal (URL atau POI yang didefinisikan di dalam peta). Anda dapat mengubah urutan dan menghapusnya, dan format yang didukung dapat dikonversi ke GeoJSON.",
     "icon_override": "Ikon pengganti",
     "selected_icon_override": "Ikon pengganti saat dipilih",
     "override_title": "Judul pengganti",
     "missing_source": "Sumber POI yang dirujuk tidak ditemukan (mungkin telah dihapus). Gunakan × untuk melepas rujukan.",
-    "search_placeholder": "Cari POI…"
+    "search_placeholder": "Cari POI…",
+    "external_item_count": "{{count}} item",
+    "convert_action": "Konversi ke GeoJSON",
+    "convert_group_action": "Konversi {{count}} POI lama sekaligus ke GeoJSON",
+    "convert_success": "Draf POI \"{{slug}}\" telah dibuat. Anda dapat mengeditnya dari daftar POI. Data POI asli tidak diubah.",
+    "convert_failed": "Gagal mengonversi ke GeoJSON.",
+    "convert_invalid": "Hasil konversi gagal validasi, sehingga draf tidak dibuat.",
+    "convert_too_large": "Hasil konversi terlalu besar untuk disimpan sebagai draf.",
+    "add_blocked_note": "Selama masih ada data eksternal (mis. POI yang didefinisikan di dalam peta), POI GeoJSON tidak dapat ditambahkan. Hapus data eksternal, atau konversikan ke GeoJSON lalu hapus.",
+    "delete_external_body": "Data eksternal ini akan dihapus dari daftar (dapat dibatalkan dengan Undo). Untuk memeriksa isinya, konversikan ke GeoJSON sebelum menghapus."
   },
   "poisource": {
     "title": "Sumber POI",

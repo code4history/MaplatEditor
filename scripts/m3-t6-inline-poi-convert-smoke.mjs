@@ -260,6 +260,217 @@ try {
         assert.equal(raced.result, 'Exist', '全候補予約済み (枯渇) は Exist: ' + JSON.stringify(raced));
       }
       console.log('m3-t6 smoke Part C (importFile 自動採番): OK');
+
+      // ---- Part D: convertInlineEntries / toPoiEditState / isNonReferenceObjectEntry ----
+      {
+        const { convertInlineEntries, resolveConvertTitle } = await import(${JSON.stringify(inlinePoiConvertPath)});
+        const { toPoiEditState } = await import(${JSON.stringify(path.join(projectRoot, 'src/composables/usePoiEditSession.ts'))});
+        const { isNonReferenceObjectEntry, poiUidOf } = await import(${JSON.stringify(poiReferenceUiPath)});
+
+        // isNonReferenceObjectEntry (§5.2): 非参照 object のみ true
+        assert.equal(isNonReferenceObjectEntry({ name: 'p', lat: 1, lng: 2 }), true, '旧オブジェクト');
+        assert.equal(isNonReferenceObjectEntry({ type: 'FeatureCollection', features: [] }), true, '生FC');
+        assert.equal(isNonReferenceObjectEntry({ poiUid: 'not-a-uuid' }), true, '非UUID poiUid object');
+        assert.equal(isNonReferenceObjectEntry({ poiUid: '01234567-89ab-4cde-8f01-23456789abcd' }), false, '参照要素');
+        assert.equal(isNonReferenceObjectEntry('https://example.com/poi.json'), false, 'URL文字列');
+        assert.equal(isNonReferenceObjectEntry([1, 2]), false, '配列junk');
+        assert.equal(isNonReferenceObjectEntry(42), false, '数値junk');
+        // poiUidOf との整合 (再定義していない)
+        assert.equal(poiUidOf({ poiUid: '01234567-89ab-4cde-8f01-23456789abcd' }), '01234567-89ab-4cde-8f01-23456789abcd');
+
+        // 旧オブジェクト群 → 1 FC。whitelist 外キー (実在例 start — morioka_ndl 相当) も保持 (AC6-5, t5 実効確認)
+        const legacyGroup = [
+          { name: '三ツ石神社', lat: 39.7052, lng: 141.1592, image: 'mitsuishi_jinja.jpg', start: 1599, url: 'https://example.com/a' },
+          { type: 'Feature', geometry: { type: 'Point', coordinates: [141.15, 39.70] }, properties: { name: '生Feature', customKey: 'kept' } },
+        ];
+        const g = convertInlineEntries(legacyGroup, 'ja');
+        assert.equal(g.hasError, false, '旧オブジェクト群は error なし: ' + JSON.stringify(g.issues));
+        assert.equal(g.fc.type, 'FeatureCollection');
+        assert.equal(g.fc.features.length, 2);
+        const f0 = g.fc.features[0];
+        assert.deepEqual(f0.geometry.coordinates, [141.1592, 39.7052], 'lat/lng → coordinates');
+        assert.equal((f0.properties as any).start, 1599, 'whitelist 外キー start を保持 (t5)');
+        assert.equal((f0.properties as any).image, 'mitsuishi_jinja.jpg', 'image 旧相対ファイル名形は透過');
+        assert.ok((f0.properties as any).name, 'name 保持');
+        assert.equal((g.fc.features[1].properties as any).customKey, 'kept', 'Feature properties 透過');
+
+        // 生 FC 要素 → layerMeta round-trip (type/features/id/name/lang 以外のトップレベル保持)
+        const rawFc = {
+          type: 'FeatureCollection', name: 'FC名', icon: 'builtin:defaultpin', poiTemplate: { a: 1 },
+          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [135.0, 35.0] }, properties: { name: 'X' } }],
+        };
+        const r = convertInlineEntries(rawFc, 'ja');
+        assert.equal(r.hasError, false);
+        assert.equal((r.fc as any).icon, 'builtin:defaultpin', 'layerMeta icon round-trip');
+        assert.deepEqual((r.fc as any).poiTemplate, { a: 1 }, 'layerMeta poiTemplate round-trip');
+        assert.equal((r.fc as any).name, undefined, 'FC.name は layerMeta に残さない (title 側で扱う)');
+
+        // 非 Point 混入 → hasError (POI-104)
+        const badFc = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }, properties: {} }] };
+        assert.equal(convertInlineEntries(badFc, 'ja').hasError, true, '非 Point は error');
+
+        // resolveConvertTitle: FC.name 非空 → FC.name / 空 → hostTitle / 群 → hostTitle
+        assert.equal(resolveConvertTitle(rawFc, { ja: 'ホスト' }), 'FC名');
+        assert.deepEqual(resolveConvertTitle({ type: 'FeatureCollection', features: [] }, { ja: 'ホスト' }), { ja: 'ホスト' });
+        assert.deepEqual(resolveConvertTitle(legacyGroup, { ja: 'ホスト' }), { ja: 'ホスト' }, '群 (配列) は hostTitle');
+
+        // toPoiEditState: load() と同一実装 (fc の features 以外を layerMeta へ、type/lang 除外)
+        const st = toPoiEditState({ lang: 'ja', slug: 's', title: { ja: 'T' }, fc: r.fc });
+        assert.equal(st.slug, 's');
+        assert.equal(st.lang, 'ja');
+        assert.equal(st.features.length, 1);
+        assert.equal((st.layerMeta as any).icon, 'builtin:defaultpin');
+        assert.equal((st.layerMeta as any).type, undefined, 'layerMeta に type を含めない');
+        assert.equal((st.layerMeta as any).lang, undefined, 'layerMeta に lang を含めない');
+        assert.equal((st.layerMeta as any).features, undefined);
+      }
+      console.log('m3-t6 smoke Part D (convertInlineEntries/toPoiEditState): OK');
+
+      // ---- Part E: 変換フロー (convertInlineEntriesToDraft) — 成功系 + 失敗系で予約解放 (AC6-10) ----
+      {
+        const { convertInlineEntriesToDraft } = await import(${JSON.stringify(inlinePoiConvertPath)});
+        const makeEnv = () => {
+          const reserved = new Set<string>();
+          const released: string[] = [];
+          const puts: any[] = [];
+          let putBehavior: 'ok' | 'reject' = 'ok';
+          (globalThis as any).window = {
+            slugReservations: {
+              async check({ slug }: { slug: string }) { return reserved.has(slug) ? 'taken' : 'available'; },
+              async reserve({ slug }: { slug: string }) {
+                if (reserved.has(slug)) return { result: 'conflict' };
+                reserved.add(slug);
+                return { result: 'ok' };
+              },
+              async release({ slug }: { slug: string }) { released.push(slug); reserved.delete(slug); },
+            },
+            assetDrafts: {
+              async put(envelope: any) {
+                if (putBehavior === 'reject') throw new Error('put failed');
+                puts.push(envelope);
+              },
+            },
+          };
+          return { reserved, released, puts, setPut: (b: 'ok' | 'reject') => { putBehavior = b; } };
+        };
+        const goodInput = [{ name: 'p1', lat: 35.0, lng: 135.0, start: 1600 }];
+
+        // 成功系: -poi 採番・kind 'poi'・baseRevision null・payload = PoiEditState
+        {
+          const env = makeEnv();
+          const res = await convertInlineEntriesToDraft({ input: goodInput, hostSlug: 'nagoya', hostTitle: { ja: '名古屋地図' }, lang: 'ja' });
+          assert.ok(res.ok, '成功: ' + JSON.stringify(res));
+          assert.equal(res.ok && res.slug, 'nagoya-poi');
+          assert.equal(env.puts.length, 1);
+          const envl = env.puts[0];
+          assert.equal(envl.kind, 'poi');
+          assert.equal(envl.schemaVersion, 1);
+          assert.equal(envl.baseRevision, null, '新規下書き = baseRevision null');
+          assert.equal(envl.payload.slug, 'nagoya-poi');
+          assert.deepEqual(envl.payload.title, { ja: '名古屋地図' });
+          assert.equal(envl.payload.features.length, 1);
+          assert.equal(envl.payload.features[0].properties.start, 1600, 'payload にも whitelist 外キー保持');
+          assert.equal(env.released.length, 0, '成功時は予約解放しない (promote まで保持)');
+          // 2 回目 → -poi2
+          const res2 = await convertInlineEntriesToDraft({ input: goodInput, hostSlug: 'nagoya', hostTitle: { ja: '名古屋地図' }, lang: 'ja' });
+          assert.equal(res2.ok && res2.slug, 'nagoya-poi2', '衝突時 -poi2');
+        }
+        // 検証エラー → 予約解放 + put なし + reason invalid
+        {
+          const env = makeEnv();
+          const res = await convertInlineEntriesToDraft({
+            input: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }, properties: {} }] },
+            hostSlug: 'host', hostTitle: { ja: 'H' }, lang: 'ja',
+          });
+          assert.deepEqual(res, { ok: false, reason: 'invalid' });
+          assert.deepEqual(env.released, ['host-poi'], '検証エラーで予約解放');
+          assert.equal(env.puts.length, 0);
+        }
+        // 20MB 超 → 予約解放 + put なし + reason too-large
+        {
+          const env = makeEnv();
+          const big = [{ name: 'big', lat: 35, lng: 135, blob: 'x'.repeat(21 * 1024 * 1024) }];
+          const res = await convertInlineEntriesToDraft({ input: big, hostSlug: 'host', hostTitle: { ja: 'H' }, lang: 'ja' });
+          assert.deepEqual(res, { ok: false, reason: 'too-large' });
+          assert.deepEqual(env.released, ['host-poi']);
+          assert.equal(env.puts.length, 0);
+        }
+        // put 失敗 → 予約解放 + reason failed
+        {
+          const env = makeEnv();
+          env.setPut('reject');
+          const res = await convertInlineEntriesToDraft({ input: goodInput, hostSlug: 'host', hostTitle: { ja: 'H' }, lang: 'ja' });
+          assert.deepEqual(res, { ok: false, reason: 'failed' });
+          assert.deepEqual(env.released, ['host-poi'], 'put 失敗で予約解放');
+        }
+        // slug 全候補枯渇 → reason slug-exhausted (解放対象なし)
+        {
+          const env = makeEnv();
+          env.reserved.add('host-poi');
+          for (let i = 2; i <= 100; i++) env.reserved.add('host-poi' + i);
+          const res = await convertInlineEntriesToDraft({ input: goodInput, hostSlug: 'host', hostTitle: { ja: 'H' }, lang: 'ja' });
+          assert.deepEqual(res, { ok: false, reason: 'slug-exhausted' });
+          assert.equal(env.puts.length, 0);
+          assert.equal(env.released.length, 0, '予約が成立していないので解放なし');
+        }
+        delete (globalThis as any).window;
+      }
+      console.log('m3-t6 smoke Part E (変換フロー失敗系 AC6-10): OK');
+
+      // ---- Part F: resolvePoisArray 混在警告 (AC6-7) — Part C と同一 sandbox DB を共有 ----
+      {
+        const { default: poiSourceService } = await import(${JSON.stringify(poiServicePath)});
+        const { resolvePoisArray } = await import(${JSON.stringify(resolverPath)});
+        const created = await poiSourceService.createLocal({ slug: 'mixed-src', title: { ja: '混在検証' }, lang: 'ja' });
+        assert.equal(created.result, 'Success', 'createLocal: ' + JSON.stringify(created));
+        await poiSourceService.save(created.uid, {
+          slug: 'mixed-src', title: { ja: '混在検証' },
+          fc: { type: 'FeatureCollection', features: [{ type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.7, 35.6] }, properties: { name: { ja: 'F' } } }] },
+        });
+        const legacyObj = { name: '旧POI', lat: 35.6, lng: 139.7 };
+        // 旧オブジェクト + 参照 (解決後 FC) の混在 → warn_mixed_pois
+        const mixed = await resolvePoisArray([legacyObj, { poiUid: created.uid }]);
+        assert.ok(mixed.warnings.includes('appedit.warn_mixed_pois'), '混在で警告: ' + JSON.stringify(mixed.warnings));
+        // 参照のみ → 非発行
+        const refOnly = await resolvePoisArray([{ poiUid: created.uid }]);
+        assert.ok(!refOnly.warnings.includes('appedit.warn_mixed_pois'), '参照のみは警告なし');
+        // URL 文字列 + 参照 → 非発行 (文字列は数えない — §8.1 出口側判定)
+        const withUrl = await resolvePoisArray(['https://example.com/pois.geojson', { poiUid: created.uid }]);
+        assert.ok(!withUrl.warnings.includes('appedit.warn_mixed_pois'), 'URL 文字列は数えない: ' + JSON.stringify(withUrl.warnings));
+        // 旧オブジェクトのみ (FC なし) → 非発行
+        const legacyOnly = await resolvePoisArray([legacyObj]);
+        assert.ok(!legacyOnly.warnings.includes('appedit.warn_mixed_pois'), '旧オブジェクトのみは警告なし');
+      }
+      console.log('m3-t6 smoke Part F (resolver 混在警告 AC6-7): OK');
+
+      // ---- Part G: heal 失敗時温存 (AC6-9) — 純関数 + AppDataService save round-trip ----
+      {
+        const { healPoisValue, healAppDocumentPois } = await import(${JSON.stringify(poiSourcesHealPath)});
+        // 純関数: 復元不能な生値 → failed: true (AppEdit は pois:[] を document へ書かず生値を温存する)
+        assert.equal(healPoisValue('{broken json'), null);
+        assert.equal(healPoisValue({ layerKey: [] } as any), null, '非配列 object は復元不能');
+        assert.deepEqual(healAppDocumentPois({ pois: 'https://example.com/pois.json' }), { pois: [], failed: true });
+        assert.deepEqual(healAppDocumentPois({ poiSources: '{broken' }), { pois: [], failed: true });
+        assert.deepEqual(healAppDocumentPois({}), { pois: [], failed: false }, '元々未設定は failed ではない');
+
+        // save round-trip: 温存された生値 (非配列) が data_json に残存する
+        const { default: AppDataService } = await import(${JSON.stringify(appDataServicePath)});
+        const rawPois = 'https://example.com/legacy-pois.json'; // viewer P1 形の生値 (heal 復元不能)
+        const rawPoiSources = '"[[broken"';
+        const saved = await AppDataService.saveApp({
+          document: {
+            appID: 'heal-app', appName: { ja: 'Heal' }, title: { ja: 'Heal' }, description: {}, keywords: '',
+            siteUrl: '', lang: 'ja', sources: [], httpSettings: {}, appSettings: {}, manifestSettings: {},
+            pois: rawPois, poiSources: rawPoiSources,
+          },
+          slug: 'heal-app',
+        });
+        assert.equal(saved.result, 'Success', 'saveApp: ' + JSON.stringify(saved));
+        const loaded = await AppDataService.getApp('heal-app');
+        assert.equal(loaded.pois, rawPois, 'data_json に pois 生値が温存される');
+        assert.equal(loaded.poiSources, rawPoiSources, 'data_json に poiSources 生値が温存される');
+      }
+      console.log('m3-t6 smoke Part G (heal 失敗時温存 AC6-9): OK');
       console.log('m3-t6 smoke: ALL OK');
     `
   );
@@ -290,6 +501,47 @@ try {
     maxBuffer: 16 * 1024 * 1024,
   });
   process.stdout.write(stdout);
+
+  // ---- Part H: i18n — 設計 §7 の全キーが 11 locale に存在 (AC6-11 の i18n 面) ----
+  {
+    const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
+    const REQUIRED = [
+      ['poiref', 'external_item_count'],
+      ['poiref', 'convert_action'],
+      ['poiref', 'convert_group_action'],
+      ['poiref', 'convert_success'],
+      ['poiref', 'convert_failed'],
+      ['poiref', 'convert_invalid'],
+      ['poiref', 'convert_too_large'],
+      ['poiref', 'add_blocked_note'],
+      ['poiref', 'delete_external_body'],
+      ['poiref', 'external_note'],
+      ['mapedit', 'import_inline_poi_alert'],
+      ['appedit', 'warn_mixed_pois'],
+      ['appedit', 'poi_heal_failed'],
+    ];
+    for (const locale of LOCALES) {
+      const translation = JSON.parse(
+        await readFile(path.join(projectRoot, `public/locales/${locale}/translation.json`), 'utf8'),
+      );
+      for (const [section, key] of REQUIRED) {
+        const value = translation?.[section]?.[key];
+        if (typeof value !== 'string' || value.trim() === '') {
+          throw new Error(`i18n key missing: ${locale} ${section}.${key}`);
+        }
+      }
+      // 更新キーが旧文言のまま残っていないこと (ja のみ厳密確認)
+      if (locale === 'ja') {
+        if (translation.appedit.poi_heal_failed.includes('このまま保存すると失われます')) {
+          throw new Error('appedit.poi_heal_failed (ja) が旧文言のまま (heal 温存後は虚偽になる)');
+        }
+        if (translation.poiref.external_note.includes('順番の変更と削除のみ')) {
+          throw new Error('poiref.external_note (ja) が旧文言のまま (変換導線を案内していない)');
+        }
+      }
+    }
+    console.log('m3-t6 smoke Part H (i18n 11 locale): OK');
+  }
 } finally {
   await rm(workDir, { recursive: true, force: true });
 }

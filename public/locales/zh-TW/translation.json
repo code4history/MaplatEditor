@@ -353,7 +353,8 @@
     "thumbnail_manage": "縮圖管理",
     "thumbnail_derive_52": "同時從512px建立52px",
     "thumbnail_replace_512": "取代512px…",
-    "thumbnail_replace_52": "取代52px…"
+    "thumbnail_replace_52": "取代52px…",
+    "import_inline_poi_alert": "地圖內定義的 POI 指定不支援編輯。若要編輯 POI，請將 POI 轉換為 GeoJSON。"
   },
   "mapupload": {
     "map_image": "地圖圖像",
@@ -568,7 +569,7 @@
     "export_failed": "匯出失敗。",
     "warn_missing_poi_source": "未找到部分被引用的POI來源，已從輸出中排除。",
     "warn_duplicate_poi_reference": "同一POI來源同時被應用程式和地圖引用，POI可能會重複顯示。",
-    "poi_heal_failed": "無法還原已儲存的POI設定，若現在儲存將會遺失。",
+    "poi_heal_failed": "無法還原 POI 資料。儲存時原始資料不會遺失，但此分頁中的編輯已停用，且資料不會反映到預覽或匯出中。",
     "warn_unresolved_icon": "部分圖示引用無法解析，已按原值輸出。",
     "warn_icon_too_small": "PWA圖示來源圖片小於512px，產生的圖示可能會模糊。",
     "export": {
@@ -582,7 +583,8 @@
       "missing_splash": "未找到啟動畫面圖像。"
     },
     "no_app_name": "Please input an app name.",
-    "search_maps_placeholder": "搜尋地圖…"
+    "search_maps_placeholder": "搜尋地圖…",
+    "warn_mixed_pois": "POI 資料中混雜了 GeoJSON 格式與其他格式，可能無法在檢視器中正確顯示。請將舊格式 POI 轉換為 GeoJSON。"
   },
   "mapmodel": {
     "untitled": "標題未設定",
@@ -622,12 +624,21 @@
     "remove": "取消選擇",
     "delete": "刪除",
     "external_data": "外部資料",
-    "external_note": "外部資料(URL或內嵌GeoJSON)。僅可調整順序與刪除。",
+    "external_note": "外部資料（URL 或地圖內定義的 POI）。除變更順序與刪除外，支援的格式還可轉換為 GeoJSON。",
     "icon_override": "覆寫圖示",
     "selected_icon_override": "選取時圖示(覆寫)",
     "override_title": "覆寫標題",
     "missing_source": "找不到引用的POI資料來源(可能已被刪除)。可用×解除引用。",
-    "search_placeholder": "搜尋POI…"
+    "search_placeholder": "搜尋POI…",
+    "external_item_count": "{{count}} 個項目",
+    "convert_action": "轉換為 GeoJSON",
+    "convert_group_action": "將 {{count}} 個舊版 POI 一併轉換為 GeoJSON",
+    "convert_success": "已建立 POI 草稿「{{slug}}」。可在 POI 清單中編輯。原始 POI 資料未被變更。",
+    "convert_failed": "轉換為 GeoJSON 失敗。",
+    "convert_invalid": "轉換結果未通過驗證，因此未建立草稿。",
+    "convert_too_large": "轉換結果過大，無法儲存為草稿。",
+    "add_blocked_note": "在仍存在外部資料（如地圖內定義的 POI）期間，無法新增 GeoJSON POI。請刪除外部資料，或先轉換為 GeoJSON 再刪除。",
+    "delete_external_body": "將從清單中刪除此外部資料（可透過復原還原）。若要確認其內容，請在刪除前先轉換為 GeoJSON。"
   },
   "poisource": {
     "title": "POI來源",

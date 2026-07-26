@@ -6,10 +6,12 @@
        (編集 UI は作らない — Phase 8 設計コントラクト) -->
   <ResourceSelector>
     <template #list>
+      <!-- M3-T6 §5.3: 非参照要素 (object / URL 文字列 / junk) が残る間は追加を無効化する
+           相互排他制約 (入口ガード)。全非参照要素の削除で computed が自動再有効化する -->
       <div
         class="source-pane-body"
-        :class="{ 'poi-selector-disabled': readOnly }"
-        :aria-disabled="readOnly"
+        :class="{ 'poi-selector-disabled': readOnly || hasNonReferenceEntries }"
+        :aria-disabled="readOnly || hasNonReferenceEntries"
       >
         <ResourceSelectorList
           v-model:query="poiSearchQuery"
@@ -35,7 +37,34 @@
     </template>
 
     <template #selected>
-      <h5>{{ t(headingKey ?? "poiref.selected_list_app") }}</h5>
+      <h5 class="d-flex align-items-center gap-1">
+        <span>{{ t(headingKey ?? "poiref.selected_list_app") }}</span>
+        <!-- M3-T6 §5.3: 相互排他制約の理由提示 (m12-t11 の (i) ボタン文法) -->
+        <ContextHelp
+          v-if="hasNonReferenceEntries"
+          :text="t('poiref.add_blocked_note')"
+          :ariaLabel="t('poiref.add_blocked_note')"
+        />
+      </h5>
+      <!-- M3-T6 §5.4: 変換フィードバック (タブ内 DiagnosticFeedback — AppEdit poi_heal_failed と同文法) -->
+      <DiagnosticFeedback
+        v-if="convertFeedback"
+        scope="section"
+        class="mb-2"
+        :items="[{ key: 'inline-convert', severity: convertFeedback.severity, message: convertFeedback.message }]"
+      />
+      <!-- M3-T6 §5.4: 変換群 (旧 POI オブジェクト + 生 Feature) の一括変換ボタン。
+           1 件単位の変換は提供しない (P2b の 1 レイヤ意味論の保存 — 群 = 1 レイヤ) -->
+      <div v-if="hostSlug && convertGroupEntries.length > 0" class="d-flex align-items-center gap-1 mb-2">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-primary"
+          data-testid="poiref-convert-group"
+          :disabled="readOnly || converting"
+          @click="convertGroup"
+        >{{ t("poiref.convert_group_action", { count: convertGroupEntries.length }) }}</button>
+        <ContextHelp :text="t('poiref.external_note')" :ariaLabel="t('poiref.external_note')" />
+      </div>
       <ResourceEmptyState
         v-if="entries.length === 0"
         icon-class="bi bi-geo-alt"
@@ -59,11 +88,30 @@
               <small v-if="poiUidOf(entry) !== null" class="text-muted text-break">
                 {{ entrySubLabel(entry) }}
               </small>
+              <!-- M3-T6 §5.1: 外部データカードの項目数副行 (FC=feature数 / 旧オブジェクト・生Feature・
+                   非UUID poiUid=1 / URL 文字列・junk=非表示)。中身確認 UI はこれ以上追加しない -->
+              <small
+                v-else-if="entryItemCountLabel(entry) !== null"
+                class="text-muted text-break d-block"
+                data-testid="poiref-item-count"
+              >
+                {{ entryItemCountLabel(entry) }}
+              </small>
               <div v-if="isMissing(entry)" class="small text-warning-emphasis">
                 {{ t("poiref.missing_source") }}
               </div>
             </div>
             <div class="btn-group btn-group-sm flex-shrink-0">
+              <!-- M3-T6 §5.4: 生 FC 要素の要素単位変換 (layerMeta round-trip 保持) -->
+              <button
+                v-if="hostSlug && isConvertibleFcEntry(entry)"
+                type="button"
+                class="btn btn-outline-primary"
+                data-testid="poiref-convert-fc"
+                :disabled="readOnly || converting"
+                :title="t('poiref.convert_action')"
+                @click="convertFcEntry(index)"
+              >{{ t("poiref.convert_action") }}</button>
               <button
                 type="button"
                 class="btn btn-outline-secondary"
@@ -78,12 +126,13 @@
                 :title="t('poiref.move_down')"
                 @click="move(index, 1)"
               >↓</button>
+              <!-- M3-T6 §5.5: 非参照要素の × は削除確認へ (参照解除は現行どおり確認なし) -->
               <button
                 type="button"
                 class="btn btn-outline-danger"
                 :disabled="readOnly"
                 :title="poiUidOf(entry) === null ? t('poiref.delete') : t('poiref.remove')"
-                @click="removeAt(index)"
+                @click="requestRemove(index)"
               >×</button>
             </div>
           </div>
@@ -123,6 +172,17 @@
           <div v-else class="mb-0"><ContextHelp :text="t('poiref.external_note')" :ariaLabel="t('poiref.external_note')" /></div>
         </div>
       </div>
+      <!-- M3-T6 §5.5: 非参照要素の削除確認 (DeleteConfirmDialog 再利用 + body 差し替え。
+           inline 要素は index キー・backend 副作用なしのため useResourceDelete (uid 契約) は使わない) -->
+      <DeleteConfirmDialog
+        :visible="deleteConfirm.visible"
+        :title="deleteConfirm.title"
+        :references="[]"
+        :deleting="false"
+        :body="t('poiref.delete_external_body')"
+        @confirm="confirmRemove"
+        @cancel="deleteConfirm.visible = false"
+      />
     </template>
   </ResourceSelector>
 </template>
@@ -142,8 +202,11 @@ import ResourceMasterRow from "./resource-list/ResourceMasterRow.vue";
 import ResourceEmptyState from "./resource-list/ResourceEmptyState.vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import ContextHelp from "./editor-ui/ContextHelp.vue";
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
+import DeleteConfirmDialog from "./resource-list/DeleteConfirmDialog.vue";
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
-import { poiUidOf, extractPoiRefs, applyPoiSelection } from "../utils/poiReferenceUi";
+import { poiUidOf, extractPoiRefs, applyPoiSelection, isNonReferenceObjectEntry } from "../utils/poiReferenceUi";
+import { convertInlineEntriesToDraft, type InlineConvertResult } from "../utils/inlinePoiConvert";
 import { localizeTitle, type LangResource } from "../utils/langResource";
 import type { LangCode } from "../utils/editorLanguages";
 import type { PoiSourceListRow } from "../electron";
@@ -159,6 +222,10 @@ const props = defineProps<{
   // 右カラム見出しの i18n キー。App=「このアプリのPOIデータ一覧」/ Map=「この地図のPOIデータ一覧」
   headingKey?: string;
   spatialContext?: SelectorSpatialContextView;
+  // M3-T6 §5.4: 変換 slug の基底 (map=mapID / app=appID)。未指定時は変換ボタン非表示 (後方互換)
+  hostSlug?: string;
+  // M3-T6 §5.4: 変換群のドラフト title 基底 (map=title / app=appName)
+  hostTitle?: LangResource;
 }>();
 
 const emit = defineEmits<{
@@ -205,8 +272,125 @@ function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListIte
   };
 }
 
+// --- M3-T6: 相互排他制約・項目数・変換・削除確認 ---
+
+// §5.3: 非参照要素 (object・URL 文字列・junk すべて — §4/§8.1 Minor-1 吸収) が 1 つでも残る間、
+// GeoJSON POI ソースの追加を禁止する (入口ガード)。computed のため全削除で自動再有効化
+const hasNonReferenceEntries = computed(() => entries.value.some((entry) => poiUidOf(entry) === null));
+
+// §5.1: 項目数 (生 FC = features 数 / 旧オブジェクト・生 Feature・非 UUID poiUid = 1 /
+// URL 文字列・junk = null 非表示 — 項目数の概念が成立しないため。v1.1 Minor-2)
+function entryItemCount(entry: unknown): number | null {
+  if (poiUidOf(entry) !== null) return null;
+  if (!isNonReferenceObjectEntry(entry)) return null;
+  const record = entry as Record<string, unknown>;
+  if (record.type === "FeatureCollection") {
+    return Array.isArray(record.features) ? record.features.length : 0;
+  }
+  return 1;
+}
+
+// §5.1 の表示ラベル (null = 非表示。template の型 narrowing 都合で文字列化までここで行う)
+function entryItemCountLabel(entry: unknown): string | null {
+  const count = entryItemCount(entry);
+  return count === null ? null : t("poiref.external_item_count", { count });
+}
+
+// §4: 変換群 = 旧 POI オブジェクト + 生 Feature (非 UUID poiUid object は温存規約により対象外)。
+// 生 FC は要素単位で変換する
+function isConvertGroupEntry(entry: unknown): boolean {
+  if (!isNonReferenceObjectEntry(entry)) return false;
+  const record = entry as Record<string, unknown>;
+  return record.type !== "FeatureCollection" && !("poiUid" in record);
+}
+function isConvertibleFcEntry(entry: unknown): boolean {
+  if (!isNonReferenceObjectEntry(entry)) return false;
+  const record = entry as Record<string, unknown>;
+  return record.type === "FeatureCollection" && !("poiUid" in record);
+}
+const convertGroupEntries = computed(() => entries.value.filter(isConvertGroupEntry));
+
+// §5.4: 変換フィードバック (成功/失敗) — DiagnosticFeedback で表示 (ref 代入のみ、§9)
+const convertFeedback = ref<{ severity: "success" | "warning"; message: string } | null>(null);
+const converting = ref(false);
+
+function applyConvertResult(result: InlineConvertResult): void {
+  if (result.ok) {
+    convertFeedback.value = { severity: "success", message: t("poiref.convert_success", { slug: result.slug }) };
+    return;
+  }
+  const key =
+    result.reason === "invalid" ? "poiref.convert_invalid" :
+    result.reason === "too-large" ? "poiref.convert_too_large" :
+    "poiref.convert_failed"; // slug-exhausted / failed
+  convertFeedback.value = { severity: "warning", message: t(key) };
+}
+
+// 変換は document を一切変更しない (update:pois を発火しない — 非破壊・可逆。§5.4)
+async function convertGroup(): Promise<void> {
+  if (!props.hostSlug || props.readOnly || converting.value) return;
+  converting.value = true;
+  try {
+    applyConvertResult(await convertInlineEntriesToDraft({
+      input: convertGroupEntries.value,
+      hostSlug: props.hostSlug,
+      hostTitle: props.hostTitle,
+      lang: props.defaultLang,
+    }));
+  } finally {
+    converting.value = false;
+  }
+}
+
+async function convertFcEntry(index: number): Promise<void> {
+  const entry = entries.value[index];
+  if (!props.hostSlug || props.readOnly || converting.value || !isConvertibleFcEntry(entry)) return;
+  converting.value = true;
+  try {
+    applyConvertResult(await convertInlineEntriesToDraft({
+      input: entry,
+      hostSlug: props.hostSlug,
+      hostTitle: props.hostTitle,
+      lang: props.defaultLang,
+    }));
+  } finally {
+    converting.value = false;
+  }
+}
+
+// §5.5: 非参照要素の削除確認 (index キーの軽量ローカル state。deleting は常に false = 同期 splice)
+const deleteConfirm = ref<{ visible: boolean; title: string; index: number }>({
+  visible: false,
+  title: "",
+  index: -1,
+});
+
+function requestRemove(index: number): void {
+  const entry = entries.value[index];
+  if (poiUidOf(entry) !== null) {
+    removeAt(index); // 参照解除は現行どおり確認なし
+    return;
+  }
+  const count = entryItemCount(entry);
+  // 項目数の併記は §5.1 の表示対象と同一規則 (URL 文字列・junk では entryTitle のみ)
+  const title = count !== null
+    ? `${entryTitle(entry)}（${t("poiref.external_item_count", { count })}）`
+    : entryTitle(entry);
+  deleteConfirm.value = {
+    visible: true,
+    title: t("resource_list.delete_confirm_title", { title }),
+    index,
+  };
+}
+
+function confirmRemove(): void {
+  const { index } = deleteConfirm.value;
+  deleteConfirm.value = { visible: false, title: "", index: -1 };
+  removeAt(index);
+}
+
 function addPoiSource(item: PoiSourceListRow): void {
-  if (props.readOnly || isPoiSelected(item.uid)) return;
+  if (props.readOnly || hasNonReferenceEntries.value || isPoiSelected(item.uid)) return;
   onSelectionChange([...selectedRefs.value, {
     kind: "registered-poi-source",
     sourceId: item.uid,

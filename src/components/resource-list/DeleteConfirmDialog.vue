@@ -7,7 +7,8 @@
           <h6 class="modal-title">{{ title }}</h6>
         </div>
         <div class="modal-body">
-          <p class="mb-0">{{ t("resource_list.delete_irreversible") }}</p>
+          <!-- M3-T6: optional body で本文差し替え可 (未指定時は現行どおり delete_irreversible — 既存 5 資産種の呼び出しは無変更) -->
+          <p class="mb-0">{{ body ?? t("resource_list.delete_irreversible") }}</p>
           <div v-if="references && references.length" class="mt-2 small">
             <p class="mb-1 fw-bold">{{ t("resource_list.delete_referenced_by") }}</p>
             <ul class="mb-0 ps-3">
@@ -56,6 +57,8 @@ defineProps<{
   references?: DeleteReference[];
   referencesUnavailable?: boolean;
   deleting: boolean;
+  /** M3-T6: 本文差し替え (inline POI 削除の Undo 可能文言等)。未指定時は resource_list.delete_irreversible */
+  body?: string;
 }>();
 
 const emit = defineEmits<{
