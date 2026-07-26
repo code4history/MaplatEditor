@@ -9,7 +9,7 @@ import MapEditService from './MapEditService';
 import MapPurposeService from './MapPurposeService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset, isUnderFolder } from '../utils/resourceAssets';
-import { normalizeJsonArray } from '../utils/jsonArray';
+import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import SqliteDataService from './SqliteDataService';
 import {
   collectPoiUids,
@@ -157,7 +157,7 @@ class AppPreviewService {
     const documentLang = document.lang || 'ja';
     // POI 参照解決 (Phase 7): app pois の {poiUid} 集合。map 側との積が非空なら二重参照警告 (POI-142)
     const warnings: string[] = [];
-    const appPoisRaw = normalizeJsonArray(document.pois || document.poiSources);
+    const appPoisRaw = readAppDocumentPois(document).pois;
     const appPoiUids = collectPoiUids(appPoisRaw);
     let duplicateReference = false;
     const normalizedSources: AppSource[] = (Array.isArray(document.sources) ? document.sources : [])

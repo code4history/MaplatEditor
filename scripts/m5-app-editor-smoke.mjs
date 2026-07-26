@@ -21,7 +21,6 @@ try {
   const appDataServicePath = path.join(projectRoot, 'electron/services/AppDataService.ts');
   const sqliteDataServicePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
-  const poiSourcesHealPath = path.join(projectRoot, 'src/utils/poiSourcesHeal.ts');
 
   await mkdir(dataDir, { recursive: true });
   await writeFile(
@@ -222,46 +221,13 @@ try {
       await AppDataService.deleteApp(demoUid);
       assert.equal(await AppDataService.getApp(demoUid), null);
 
-      // --- Phase 8 Task 2: poiSources 多重 stringify 破損の読込 heal (バグ①根治) ---
-      // 旧 AppEdit は normalize のたびに poiSources 文字列を JSON.stringify し直していたため、
-      // 保存⇄読込の往復ごとにエスケープが一段深くなる破損が data_json に残っている。
-      // healAppDocumentPois が二重・三重エスケープ文字列を配列に復元できることを behavioral に確認。
-      // 戻り値は { pois, failed } (Phase 8 品質レビュー MAJOR-2: 復元失敗を呼び出し側が判別できるように)
-      const { healAppDocumentPois } = await import(${JSON.stringify(poiSourcesHealPath)});
-      const poisFixture = [
-        { poiUid: '11111111-1111-4111-8111-111111111111', cachedTitle: '京都POI', icon: 'builtin:defaultpin-red' },
-        'https://example.com/pois.geojson',
-      ];
-      const once = JSON.stringify(poisFixture);
-      const twice = JSON.stringify(once);
-      const thrice = JSON.stringify(twice);
-      assert.deepEqual(healAppDocumentPois({ poiSources: once }), { pois: poisFixture, failed: false }, '一重 stringify 文字列が配列に復元されるはず');
-      assert.deepEqual(healAppDocumentPois({ poiSources: twice }), { pois: poisFixture, failed: false }, '二重エスケープ文字列が配列に復元されるはず');
-      assert.deepEqual(healAppDocumentPois({ poiSources: thrice }), { pois: poisFixture, failed: false }, '三重エスケープ文字列が配列に復元されるはず');
-      // 実バグ形: 旧 saveApp が JSON.parse(破損 poiSources) を pois に入れたため pois 自体が文字列
-      assert.deepEqual(healAppDocumentPois({ pois: twice }), { pois: poisFixture, failed: false }, 'pois が破損文字列でも復元されるはず');
-      // pois 配列優先 (poiSources 旧形は fallback)
-      assert.deepEqual(
-        healAppDocumentPois({ pois: poisFixture, poiSources: '[]' }), { pois: poisFixture, failed: false },
-        'pois 配列が poiSources より優先されるはず'
-      );
-      // 6段エスケープ (MAX_REPARSE_DEPTH を 5→100 に緩和した効果の確認: 旧上限では復元不能だった深さ)
-      let sixTimesEscaped = poisFixture;
-      for (let i = 0; i < 6; i++) sixTimesEscaped = JSON.stringify(sixTimesEscaped);
-      assert.deepEqual(
-        healAppDocumentPois({ poiSources: sixTimesEscaped }), { pois: poisFixture, failed: false },
-        '6段エスケープでもPOIデータが復元されるはず'
-      );
-      // 復元不能・未設定は空配列。未設定 (null/undefined) は failed: false、
-      // 壊れたデータがあったのに復元できなかった場合は failed: true (data_json は書き換えないため破壊はしない)
-      assert.deepEqual(healAppDocumentPois({ poiSources: '{broken json' }), { pois: [], failed: true }, 'parse 不能は復元失敗のはず');
-      assert.deepEqual(healAppDocumentPois({ poiSources: '"loop"' }), { pois: [], failed: true }, '配列に到達しない文字列は復元失敗のはず');
-      assert.deepEqual(healAppDocumentPois({}), { pois: [], failed: false }, '未設定は復元失敗ではなく空配列のはず');
-      // 空文字列は「復元成功した空配列」ではなく復元失敗として扱う (MINOR-4: 多重 stringify 破損で
-      // 偶然 "" になったケースを黙って正常扱いしないため。poiSources も無ければ最終的に failed: true)
-      assert.deepEqual(healAppDocumentPois({ poiSources: '' }), { pois: [], failed: true }, '空文字列は復元失敗のはず (成功扱いで握り潰さない)');
-      assert.deepEqual(healAppDocumentPois({ pois: '', poiSources: once }), { pois: poisFixture, failed: false }, 'pois が空文字列でも poiSources へフォールバックするはず');
-      console.log('ok: healAppDocumentPois restores multi-escaped poiSources strings (including 6-level escaping) and reports failure for empty-string pois');
+      // --- M12-T30: 旧 Phase 8 Task 2 の poiSources 多重 stringify 復元 heal 期待値ブロックは
+      // ここにあった (healAppDocumentPois の多重エスケープ「復元成功」期待)。sp-0006（絶対遵守）に
+      // 基づき、当該復元ロジック (bounded reparse ループ) は実装ミスの後始末として撤去され、
+      // 単一実装 src/utils/appPoisFormat.ts の readAppDocumentPois（形式判定のみ・復元なし）へ
+      // 置き換えられた。削除ではなく契約変更に伴う置換であり、置き換え後の全分岐表（深さ1を含む
+      // 全文字列形が unsupported になることの behavioral 証明）は
+      // scripts/m12-t30-pois-write-shape-smoke.mjs Part A が引き継ぐ。
 
       console.log('M5 app editor smoke passed');
     `
@@ -370,43 +336,47 @@ try {
     /key: 'pois'[\s\S]{0,120}?editor_ui\.tabs\.pois/,
     'AppEdit.vue のタブバーに POI選択タブ (editor_ui.tabs.pois、§9 語彙) がない'
   );
-  // 読込 heal: pois 配列優先 + 旧 poiSources 文字列の bounded 再 parse 復元
+  // 読込形式判定 (M12-T30): pois 配列のみ正準。復元 (bounded reparse) は撤去済み — sp-0006
   assert.match(
     appEditView,
-    /import \{ healAppDocumentPois \} from "\.\.\/utils\/poiSourcesHeal"/,
-    'AppEdit.vue が heal (poiSourcesHeal) を import していない'
+    /import \{ readAppDocumentPois \} from "\.\.\/utils\/appPoisFormat"/,
+    'AppEdit.vue が readAppDocumentPois (appPoisFormat) を import していない'
   );
   assert.match(
     appEditView,
-    /const poiHeal = healAppDocumentPois\(value\)/,
-    'normalizeAppDocument が healAppDocumentPois で pois を復元していない'
+    /const poisRead = readAppDocumentPois\(value\)/,
+    'normalizeAppDocument が readAppDocumentPois で pois の形式判定をしていない'
   );
   assert.match(
     appEditView,
-    /normalized\.pois = poiHeal\.pois/,
-    'normalizeAppDocument が heal 結果の pois を反映していない'
+    /normalized\.pois = poisRead\.pois/,
+    'normalizeAppDocument が判定結果の pois を反映していない'
   );
-  // Phase 8 品質レビュー MAJOR-2: heal 失敗時 (poiHeal.failed) は画面上に警告を出す
-  // (console.warn だけでは編集者が気づかず、失われたまま保存してしまうリスクがあるため)
+  // 未対応形式 (poisRead.unsupported) は画面上に警告を出す (黙って消えない原則の可視化面)
   assert.match(
     appEditView,
-    /poiHealFailed\.value = poiHeal\.failed/,
-    'normalizeAppDocument が heal 失敗フラグ (poiHealFailed) を更新していない'
+    /poisUnsupported\.value = poisRead\.unsupported/,
+    'normalizeAppDocument が未対応形式フラグ (poisUnsupported) を更新していない'
   );
   assert.match(
     appEditView,
-    /v-if="poiHealFailed"[\s\S]{0,120}?appedit\.poi_heal_failed/,
-    'AppEdit.vue が pois heal 失敗時にオンスクリーン警告 (appedit.poi_heal_failed) を出していない'
+    /v-if="poisUnsupported"[\s\S]{0,120}?appedit\.poi_format_unsupported/,
+    'AppEdit.vue が未対応形式時にオンスクリーン警告 (appedit.poi_format_unsupported) を出していない'
   );
-  // 破損の根本原因の再発防止: AppEdit は poiSources を JSON 文字列として編集・再直列化する
-  // コードを一切持たない (内部表現・保存形とも pois 配列のみ。旧形は heal 側でのみ扱う)。
-  // m3-t6 §5.8 で heal 失敗時の生値温存 (normalized.poiSources = value.poiSources の無解釈
-  // passthrough) が正規契約になったため、検出対象は破損機構そのもの — poiSources への
-  // JSON.stringify/parse と ref (poiSources.value) — に限定する
+  // 旧契約 (heal / poiHealFailed / poi_heal_failed) の残置禁止
   assert.doesNotMatch(
     appEditView,
-    /poiSources\.value|JSON\.stringify\([^\n)]*poiSources|JSON\.parse\([^\n)]*poiSources/,
-    'AppEdit.vue に poiSources の文字列直列化コードが残存している — 二重 stringify 破損の再発リスク'
+    /healAppDocumentPois|healPoisValue|poiHealFailed|poi_heal_failed|poiSourcesHeal/,
+    'AppEdit.vue に旧 heal 契約 (poiSourcesHeal 系) が残存している'
+  );
+  // 破損の根本原因の再発防止 + M12-T30 v1.2（sp-0007）: AppEdit は旧 Editor 内部表現
+  // （JSON 文字列の内部表現、及びそれを扱う変数・型フィールド）を一切持たない
+  // (内部表現・保存形とも pois 配列のみ)。型定義・normalize 分岐・コメントいずれも
+  // 含めて当該語が0件であることを bare 検査で強制する
+  assert.doesNotMatch(
+    appEditView,
+    /poiSources/,
+    'AppEdit.vue に旧 Editor 内部表現（poiSources）への参照が残存している — M12-T30 v1.2 で完全撤去のはず'
   );
   // 書き戻し: PoiReferenceEditor の update:pois を配列のまま反映 + 履歴記録
   assert.match(appEditView, /function onPoisChange/, 'AppEdit.vue に update:pois の反映 (onPoisChange) がない');

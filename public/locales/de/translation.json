@@ -569,7 +569,7 @@
     "export_failed": "Export fehlgeschlagen.",
     "warn_missing_poi_source": "Einige referenzierte POI-Quellen wurden nicht gefunden und aus der Ausgabe entfernt.",
     "warn_duplicate_poi_reference": "Dieselbe POI-Quelle wird sowohl von der App als auch von einer Karte referenziert. POIs werden möglicherweise doppelt angezeigt.",
-    "poi_heal_failed": "Die POI-Daten konnten nicht wiederhergestellt werden. Die Originaldaten gehen beim Speichern nicht verloren, aber die Bearbeitung in diesem Tab ist deaktiviert und die Daten erscheinen nicht in Vorschau oder Export.",
+    "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor. Die Originaldaten gehen beim Speichern nicht verloren, aber die Bearbeitung in diesem Tab ist deaktiviert und die Daten werden nicht in Vorschau oder Export berücksichtigt.",
     "warn_unresolved_icon": "Einige Symbolverweise konnten nicht aufgelöst werden und wurden unverändert ausgegeben.",
     "warn_icon_too_small": "Das Quellbild des PWA-Symbols ist kleiner als 512px, daher können die generierten Symbole unscharf wirken.",
     "export": {

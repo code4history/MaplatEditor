@@ -38,7 +38,7 @@ try {
   const useResourceDuplicatePath = path.join(projectRoot, 'src/composables/useResourceDuplicate.ts');
   const inlinePoiConvertPath = path.join(projectRoot, 'src/utils/inlinePoiConvert.ts');
   const poiReferenceUiPath = path.join(projectRoot, 'src/utils/poiReferenceUi.ts');
-  const poiSourcesHealPath = path.join(projectRoot, 'src/utils/poiSourcesHeal.ts');
+  const appPoisFormatPath = path.join(projectRoot, 'src/utils/appPoisFormat.ts');
   const poisLayerStructurePath = path.join(projectRoot, 'src/utils/poisLayerStructure.ts');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
@@ -446,34 +446,34 @@ try {
       }
       console.log('m3-t6 smoke Part F (resolver 混在警告 AC6-7): OK');
 
-      // ---- Part G: heal 失敗時温存 (AC6-9) — 純関数 + AppDataService save round-trip ----
+      // ---- Part G: 未対応形式時温存 (AC6-9) — 純関数 + AppDataService save round-trip ----
+      // M12-T30: healPoisValue/healAppDocumentPois (bounded reparse 復元) は sp-0006 に基づき
+      // 撤去され、単一実装 readAppDocumentPois (形式判定のみ・復元なし) へ置き換えられた。
+      // 生値温存 round-trip (旧 :459-474) は契約継続のため無変更で維持する。
       {
-        const { healPoisValue, healAppDocumentPois } = await import(${JSON.stringify(poiSourcesHealPath)});
-        // 純関数: 復元不能な生値 → failed: true (AppEdit は pois:[] を document へ書かず生値を温存する)
-        assert.equal(healPoisValue('{broken json'), null);
-        assert.equal(healPoisValue({ layerKey: [] } as any), null, '非配列 object は復元不能');
-        assert.deepEqual(healAppDocumentPois({ pois: 'https://example.com/pois.json' }), { pois: [], failed: true });
-        assert.deepEqual(healAppDocumentPois({ poiSources: '{broken' }), { pois: [], failed: true });
-        assert.deepEqual(healAppDocumentPois({}), { pois: [], failed: false }, '元々未設定は failed ではない');
+        const { readAppDocumentPois } = await import(${JSON.stringify(appPoisFormatPath)});
+        // 純関数: 配列でない生値 → unsupported: true (AppEdit は pois:[] を document へ書かず生値を温存する)
+        assert.deepEqual(readAppDocumentPois({ pois: '{broken json' }), { pois: [], unsupported: true });
+        assert.deepEqual(readAppDocumentPois({ pois: { layerKey: [] } }), { pois: [], unsupported: true }, '非配列 object は unsupported');
+        assert.deepEqual(readAppDocumentPois({ pois: 'https://example.com/pois.json' }), { pois: [], unsupported: true });
+        assert.deepEqual(readAppDocumentPois({}), { pois: [], unsupported: false }, '元々未設定は unsupported ではない');
 
         // save round-trip: 温存された生値 (非配列) が data_json に残存する
         const { default: AppDataService } = await import(${JSON.stringify(appDataServicePath)});
         const rawPois = 'https://example.com/legacy-pois.json'; // viewer P1 形の生値 (heal 復元不能)
-        const rawPoiSources = '"[[broken"';
         const saved = await AppDataService.saveApp({
           document: {
             appID: 'heal-app', appName: { ja: 'Heal' }, title: { ja: 'Heal' }, description: {}, keywords: '',
             siteUrl: '', lang: 'ja', sources: [], httpSettings: {}, appSettings: {}, manifestSettings: {},
-            pois: rawPois, poiSources: rawPoiSources,
+            pois: rawPois,
           },
           slug: 'heal-app',
         });
         assert.equal(saved.result, 'Success', 'saveApp: ' + JSON.stringify(saved));
         const loaded = await AppDataService.getApp('heal-app');
         assert.equal(loaded.pois, rawPois, 'data_json に pois 生値が温存される');
-        assert.equal(loaded.poiSources, rawPoiSources, 'data_json に poiSources 生値が温存される');
       }
-      console.log('m3-t6 smoke Part G (heal 失敗時温存 AC6-9): OK');
+      console.log('m3-t6 smoke Part G (未対応形式時温存 AC6-9): OK');
 
       // ---- Part I: poisLayerStructure — §4.2 完全分割表のテスト機械導出 (AC6-12, v1.3) ----
       {
@@ -680,12 +680,15 @@ try {
       ['poiref', 'layer_key_missing_warning'],
       ['mapedit', 'import_inline_poi_alert'],
       ['appedit', 'warn_mixed_pois'],
-      ['appedit', 'poi_heal_failed'],
+      // M12-T30: poi_heal_failed → poi_format_unsupported へ改名（意味も「復元失敗」→「正準形式でない」へ変更）
+      ['appedit', 'poi_format_unsupported'],
     ];
     // v1.2 (G3): 旧キーは 11 locale から削除済みであること (旧契約の残置禁止 — §5.11)
+    // M12-T30: poi_heal_failed も同様に旧契約として削除済みであること
     const REMOVED = [
       ['poiref', 'external_data'],
       ['poiref', 'external_note'],
+      ['appedit', 'poi_heal_failed'],
     ];
     for (const locale of LOCALES) {
       const translation = JSON.parse(
@@ -702,10 +705,15 @@ try {
           throw new Error(`i18n key must be removed: ${locale} ${section}.${key} (§5.11 旧契約の残置禁止)`);
         }
       }
-      // 更新キーが旧文言のまま残っていないこと (ja のみ厳密確認)
+      // 新キーが「復元失敗」語彙（旧意味）のまま残っていないこと (ja のみ厳密確認)。
+      // M12-T30: 意味が「復元に失敗した」→「正準形式（配列）でない」へ変わったため、
+      // 「復元」という語自体が新文言に残っていると意味が虚偽になる
       if (locale === 'ja') {
-        if (translation.appedit.poi_heal_failed.includes('このまま保存すると失われます')) {
-          throw new Error('appedit.poi_heal_failed (ja) が旧文言のまま (heal 温存後は虚偽になる)');
+        if (translation.appedit.poi_format_unsupported.includes('このまま保存すると失われます')) {
+          throw new Error('appedit.poi_format_unsupported (ja) が旧 (heal 失敗) 文言のまま');
+        }
+        if (translation.appedit.poi_format_unsupported.includes('復元')) {
+          throw new Error('appedit.poi_format_unsupported (ja) に「復元」語彙が残っている (heal 温存後は意味が虚偽になる)');
         }
       }
     }

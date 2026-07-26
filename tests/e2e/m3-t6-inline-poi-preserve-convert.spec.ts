@@ -477,8 +477,9 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       await expect(page.getByTestId('app-id')).toHaveValue(seeded.slug, { timeout: 30000 });
       await page.locator('[role="tab"]', { hasText: 'POI選択' }).click();
       const appPoisPane = page.getByTestId('app-pois-tab-pane');
-      // 警告 (更新後文言: 保存で失われない・編集無効化・preview/export 非反映)
-      await expect(appPoisPane.locator('.editor-diagnostic__message', { hasText: 'POIデータを復元できませんでした' })).toBeVisible({ timeout: 15000 });
+      // 警告 (M12-T30 更新後文言: 「復元失敗」ではなく「エディタ未対応の形式」。
+      // 保存で失われない・編集無効化・preview/export 非反映の3点は不変)
+      await expect(appPoisPane.locator('.editor-diagnostic__message', { hasText: 'POIデータがエディタ未対応の形式です' })).toBeVisible({ timeout: 15000 });
       // タブ read-only (selector 無効化)
       await expect(appPoisPane.locator('.source-pane-body')).toHaveClass(/poi-selector-disabled/);
 
