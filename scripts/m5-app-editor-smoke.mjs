@@ -369,15 +369,14 @@ try {
     /healAppDocumentPois|healPoisValue|poiHealFailed|poi_heal_failed|poiSourcesHeal/,
     'AppEdit.vue に旧 heal 契約 (poiSourcesHeal 系) が残存している'
   );
-  // 破損の根本原因の再発防止: AppEdit は poiSources を JSON 文字列として編集・再直列化する
-  // コードを一切持たない (内部表現・保存形とも pois 配列のみ)。
-  // m3-t6 §5.8 で未対応形式時の生値温存 (normalized.poiSources = value.poiSources の無解釈
-  // passthrough) が正規契約になったため、検出対象は破損機構そのもの — poiSources への
-  // JSON.stringify/parse と ref (poiSources.value) — に限定する
+  // 破損の根本原因の再発防止 + M12-T30 v1.2（sp-0007）: AppEdit は旧 Editor 内部表現
+  // （JSON 文字列の内部表現、及びそれを扱う変数・型フィールド）を一切持たない
+  // (内部表現・保存形とも pois 配列のみ)。型定義・normalize 分岐・コメントいずれも
+  // 含めて当該語が0件であることを bare 検査で強制する
   assert.doesNotMatch(
     appEditView,
-    /poiSources\.value|JSON\.stringify\([^\n)]*poiSources|JSON\.parse\([^\n)]*poiSources/,
-    'AppEdit.vue に poiSources の文字列直列化コードが残存している — 二重 stringify 破損の再発リスク'
+    /poiSources/,
+    'AppEdit.vue に旧 Editor 内部表現（poiSources）への参照が残存している — M12-T30 v1.2 で完全撤去のはず'
   );
   // 書き戻し: PoiReferenceEditor の update:pois を配列のまま反映 + 履歴記録
   assert.match(appEditView, /function onPoisChange/, 'AppEdit.vue に update:pois の反映 (onPoisChange) がない');

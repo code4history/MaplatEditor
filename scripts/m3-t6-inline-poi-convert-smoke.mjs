@@ -456,25 +456,22 @@ try {
         assert.deepEqual(readAppDocumentPois({ pois: '{broken json' }), { pois: [], unsupported: true });
         assert.deepEqual(readAppDocumentPois({ pois: { layerKey: [] } }), { pois: [], unsupported: true }, '非配列 object は unsupported');
         assert.deepEqual(readAppDocumentPois({ pois: 'https://example.com/pois.json' }), { pois: [], unsupported: true });
-        assert.deepEqual(readAppDocumentPois({ poiSources: '{broken' }), { pois: [], unsupported: true });
         assert.deepEqual(readAppDocumentPois({}), { pois: [], unsupported: false }, '元々未設定は unsupported ではない');
 
         // save round-trip: 温存された生値 (非配列) が data_json に残存する
         const { default: AppDataService } = await import(${JSON.stringify(appDataServicePath)});
         const rawPois = 'https://example.com/legacy-pois.json'; // viewer P1 形の生値 (heal 復元不能)
-        const rawPoiSources = '"[[broken"';
         const saved = await AppDataService.saveApp({
           document: {
             appID: 'heal-app', appName: { ja: 'Heal' }, title: { ja: 'Heal' }, description: {}, keywords: '',
             siteUrl: '', lang: 'ja', sources: [], httpSettings: {}, appSettings: {}, manifestSettings: {},
-            pois: rawPois, poiSources: rawPoiSources,
+            pois: rawPois,
           },
           slug: 'heal-app',
         });
         assert.equal(saved.result, 'Success', 'saveApp: ' + JSON.stringify(saved));
         const loaded = await AppDataService.getApp('heal-app');
         assert.equal(loaded.pois, rawPois, 'data_json に pois 生値が温存される');
-        assert.equal(loaded.poiSources, rawPoiSources, 'data_json に poiSources 生値が温存される');
       }
       console.log('m3-t6 smoke Part G (未対応形式時温存 AC6-9): OK');
 

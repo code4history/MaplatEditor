@@ -117,8 +117,6 @@ interface AppDocument {
   // M3-T6 §5.8: 未対応形式時は生値 (非配列) を温存するため unknown へ広げる (黙って消えない原則)。
   // 表示は Array.isArray ガード + read-only (map 側と同文法)
   pois: unknown;
-  // M3-T6 §5.8 / M12-T30: 未対応形式時のみ旧 poiSources 生値を温存する (配列採用時は書かない — 従来どおり)
-  poiSources?: unknown;
   startFrom?: string;
   status?: string;
   extraInfo?: string;
@@ -629,7 +627,6 @@ function normalizeAppDocument(value: any): AppDocument {
   const poisRead = readAppDocumentPois(value);
   if (poisRead.unsupported) {
     if (value.pois != null) normalized.pois = value.pois;
-    if (value.poiSources != null) normalized.poiSources = value.poiSources;
   } else {
     normalized.pois = poisRead.pois;
   }
@@ -843,8 +840,8 @@ async function saveApp(): Promise<boolean> {
     saveOperationError.value = t("appedit.duplicate_appid");
     return false;
   }
-  // pois は配列のまま永続化する (正準形式 (配列) の場合は normalize で pois 配列に
-  // 統一済みのため、送信 document に poiSources キーは載らない — M12-T30)
+  // pois は配列のまま永続化する（正準形式でない場合は生値をそのまま温存する。
+  // 旧 Editor 内部表現は型からも撤去済み — M12-T30 v1.2）
   const document = cloneDocument(appData.value);
   // sources参照はuid (maplat)なので startFrom もuidで永続化する
   document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;

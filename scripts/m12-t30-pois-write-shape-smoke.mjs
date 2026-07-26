@@ -131,16 +131,20 @@ try {
 
       const cases = [
         { label: '配列', input: { pois: fixture }, expected: { pois: fixture, unsupported: false } },
-        { label: '未設定 (pois/poiSources とも undefined)', input: {}, expected: { pois: [], unsupported: false } },
-        { label: 'null (pois/poiSources とも null)', input: { pois: null, poiSources: null }, expected: { pois: [], unsupported: false } },
+        { label: '未設定 (pois undefined)', input: {}, expected: { pois: [], unsupported: false } },
+        { label: 'null (pois null)', input: { pois: null }, expected: { pois: [], unsupported: false } },
         { label: '深さ1 stringify', input: { pois: depth1 }, expected: { pois: [], unsupported: true } },
         { label: '深さ2 stringify', input: { pois: depth2 }, expected: { pois: [], unsupported: true } },
         { label: '深さ6 stringify', input: { pois: depth6 }, expected: { pois: [], unsupported: true } },
         { label: 'URL 文字列', input: { pois: 'https://example.com/pois.geojson' }, expected: { pois: [], unsupported: true } },
         { label: '空文字列', input: { pois: '' }, expected: { pois: [], unsupported: true } },
         { label: 'レイヤ名キー object', input: { pois: { main: [], id1: [] } }, expected: { pois: [], unsupported: true } },
-        { label: 'poiSources のみ残存', input: { poiSources: '[]' }, expected: { pois: [], unsupported: true } },
-        { label: '配列 + poiSources 併存 (配列採用)', input: { pois: fixture, poiSources: 'junk' }, expected: { pois: fixture, unsupported: false } },
+        {
+          label: 'poiSources のみ残存（無視され、pois 未設定として扱われる — M12-T30 v1.2 / sp-0007）',
+          input: { poiSources: '["junk"]' },
+          expected: { pois: [], unsupported: false },
+        },
+        { label: '配列 + poiSources 残存（無視され配列採用）', input: { pois: fixture, poiSources: 'junk' }, expected: { pois: fixture, unsupported: false } },
       ];
       for (const { label, input, expected } of cases) {
         const actual = readAppDocumentPois(input);
@@ -176,18 +180,16 @@ try {
       }
       console.log('ok: AppDataService round-trip（正常配列 pois の deep-equal 維持）');
 
-      // (ii) 未対応形式（URL 文字列 pois + junk poiSources）: 保存→読込で生値が逐語温存される
+      // (ii) 未対応形式（URL 文字列 pois）: 保存→読込で生値が逐語温存される
       {
         const rawPois = 'https://example.com/legacy-pois.json';
-        const rawPoiSources = '"[[broken"';
         const saved = await AppDataService.saveApp({
-          document: baseAppDoc({ appID: 't30-unsupported', pois: rawPois, poiSources: rawPoiSources }),
+          document: baseAppDoc({ appID: 't30-unsupported', pois: rawPois }),
           slug: 't30-unsupported',
         });
         assert.equal(saved.result, 'Success', 'saveApp (unsupported): ' + JSON.stringify(saved));
         const loaded = await AppDataService.getApp(saved.uid);
         assert.equal(loaded.pois, rawPois, 'data_json に pois 生値が逐語温存される');
-        assert.equal(loaded.poiSources, rawPoiSources, 'data_json に poiSources 生値が逐語温存される');
       }
       console.log('ok: AppDataService round-trip（未対応形式の生値温存）');
 
@@ -241,11 +243,28 @@ try {
   const appPoisFormatSrc = await readFile(appPoisFormatPath, 'utf8');
   assert.doesNotMatch(appPoisFormatSrc, /JSON\.parse/, 'appPoisFormat.ts に JSON.parse が含まれている（復元ロジックの再混入）');
   assert.match(appPoisFormatSrc, /export function readAppDocumentPois/, 'appPoisFormat.ts に readAppDocumentPois が定義されていない');
+  // M12-T30 v1.2（sp-0007・恒久指示）: poiSources は存在しないものとして扱う。コメントも含め
+  // appPoisFormat.ts のソース全体で当該語が0件であることと、シグネチャに poiSources パラメータが
+  // 存在しないことを機械的に強制する
+  assert.doesNotMatch(
+    appPoisFormatSrc,
+    /poiSources/,
+    'appPoisFormat.ts に poiSources への言及が残存している（M12-T30 v1.2: 存在しないものとして扱う）',
+  );
+  assert.match(
+    appPoisFormatSrc,
+    /export function readAppDocumentPois\(value: \{ pois\?: unknown \}\)/,
+    'readAppDocumentPois のシグネチャに poiSources パラメータが残存している',
+  );
 
   const appExportServiceSrc = await readFile(path.join(projectRoot, 'electron/services/AppExportService.ts'), 'utf8');
   const appPreviewServiceSrc = await readFile(path.join(projectRoot, 'electron/services/AppPreviewService.ts'), 'utf8');
   assert.doesNotMatch(appExportServiceSrc, /document\.poiSources/, 'AppExportService.ts に document.poiSources 読みが残存している');
   assert.doesNotMatch(appPreviewServiceSrc, /document\.poiSources/, 'AppPreviewService.ts に document.poiSources 読みが残存している');
+  // M12-T30 v1.2: 上記の document.poiSources 限定 assert に加え、bare poiSources へ強化する
+  // （プロダクションコード自体は document: any 経由のため無変更だが、将来の再混入を広く検出する）
+  assert.doesNotMatch(appExportServiceSrc, /poiSources/, 'AppExportService.ts に poiSources への言及が残存している（M12-T30 v1.2）');
+  assert.doesNotMatch(appPreviewServiceSrc, /poiSources/, 'AppPreviewService.ts に poiSources への言及が残存している（M12-T30 v1.2）');
   assert.match(appExportServiceSrc, /readAppDocumentPois/, 'AppExportService.ts が readAppDocumentPois を import/使用していない');
   assert.match(appPreviewServiceSrc, /readAppDocumentPois/, 'AppPreviewService.ts が readAppDocumentPois を import/使用していない');
   assert.doesNotMatch(appExportServiceSrc, /normalizeJsonArray/, 'AppExportService.ts に normalizeJsonArray への参照が残存している');
@@ -260,6 +279,13 @@ try {
   assert.match(appEditView, /poisUnsupported/, 'AppEdit.vue に poisUnsupported の配線がない');
   assert.doesNotMatch(appEditView, /poiHealFailed/, 'AppEdit.vue に旧 poiHealFailed の残存がある');
   assert.doesNotMatch(appEditView, /healAppDocumentPois|healPoisValue/, 'AppEdit.vue に旧 heal 関数への参照が残存している');
+  // M12-T30 v1.2（sp-0007）: AppEdit.vue に poiSources への参照（型定義・normalize 分岐・
+  // コメントいずれも含む）が完全撤去のはず
+  assert.doesNotMatch(
+    appEditView,
+    /poiSources/,
+    'AppEdit.vue に poiSources への参照が残存している（M12-T30 v1.2 で完全撤去のはず。型定義・normalize 分岐・コメントいずれも含めて0件）',
+  );
   assert.match(
     appEditView,
     /v-if="poisUnsupported"[\s\S]{0,120}?appedit\.poi_format_unsupported/,
