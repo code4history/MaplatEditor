@@ -1558,7 +1558,7 @@ function onPoisChange(next: unknown[]) {
       <!-- NOTE: v-show を d-flex と同じ div に置くと Bootstrap の display:flex!important に負けて
            v-show が効かず、後続タブ(プレビュー)を覆い隠す (MapEdit settings と同じ罠、2026-07-12)。
            v-show 専用ラッパーを挟む -->
-      <div v-show="activeTab === 'pois'" class="h-100">
+      <div v-show="activeTab === 'pois'" class="h-100" data-testid="app-pois-tab-pane">
       <div class="h-100 overflow-hidden p-3 d-flex flex-column">
         <DiagnosticFeedback v-if="poiHealFailed" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_heal_failed') }]" scope="section" class="flex-shrink-0" />
         <!-- M3-T6 §5.8: heal 失敗中は表示ガード (Array.isArray — MapEdit と同文法) + read-only で

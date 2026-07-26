@@ -4128,7 +4128,7 @@ const goBack = async () => {
 
             <!-- Tab: POIデータ (Phase 8 Task 2)。器は mapData.pois 配列、履歴は mapData の
                  deep-watch (scheduleHistorySnapshot) が拾う (MapEdit の既存方式) -->
-            <div v-show="activeTab === 'pois'" class="h-100 p-4 overflow-hidden">
+            <div v-show="activeTab === 'pois'" class="h-100 p-4 overflow-hidden" data-testid="map-pois-tab-pane">
                 <PoiReferenceEditor
                     ref="poiRefEditor"
                     heading-key="poiref.selected_list_map"

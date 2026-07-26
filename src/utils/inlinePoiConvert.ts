@@ -75,7 +75,10 @@ export async function convertInlineEntriesToDraft(args: {
   lang: LangCode;
 }): Promise<InlineConvertResult> {
   const reserved = await reserveSequencedSlug(args.hostSlug, "-poi", "poi-source", "poi-source");
-  if (reserved === null) return { ok: false, reason: "slug-exhausted" };
+  if (reserved === null) {
+    console.warn("[inlinePoiConvert] slug reservation exhausted for base:", args.hostSlug);
+    return { ok: false, reason: "slug-exhausted" };
+  }
   const release = async (): Promise<void> => {
     try {
       await window.slugReservations.release({ slug: reserved.slug, assetUid: reserved.uid });
@@ -86,6 +89,7 @@ export async function convertInlineEntriesToDraft(args: {
 
   const outcome = convertInlineEntries(args.input, args.lang);
   if (outcome.hasError) {
+    console.warn("[inlinePoiConvert] validation error:", JSON.stringify(outcome.issues));
     await release();
     return { ok: false, reason: "invalid" };
   }
@@ -104,20 +108,26 @@ export async function convertInlineEntriesToDraft(args: {
     updatedAt: new Date().toISOString(),
     payload,
   };
-  let encodedBytes = Number.POSITIVE_INFINITY;
+  // JSON 化は (1) 20MB 上限検査 と (2) plain object 化の両方を担う。
+  // 入力 entries は呼び出し側 (PoiReferenceEditor) では Vue reactive Proxy であり、
+  // Proxy のまま IPC (contextBridge) へ渡すと structured clone が
+  // "An object could not be cloned" で失敗するため、put へは JSON round-trip した
+  // plain envelope を渡す (envelope は契約上 JSON 直列化可能)。
+  let encoded: string | null = null;
   try {
-    encodedBytes = new TextEncoder().encode(JSON.stringify(envelope)).length;
+    encoded = JSON.stringify(envelope);
   } catch {
     // stringify 不能 (循環参照等) は too-large と同じく中断へ倒す (安全側)
   }
-  if (encodedBytes > MAX_ASSET_DRAFT_BYTES) {
+  if (encoded === null || new TextEncoder().encode(encoded).length > MAX_ASSET_DRAFT_BYTES) {
     await release();
     return { ok: false, reason: "too-large" };
   }
 
   try {
-    await window.assetDrafts.put(envelope);
-  } catch {
+    await window.assetDrafts.put(JSON.parse(encoded) as AssetDraftEnvelope<PoiEditState>);
+  } catch (cause) {
+    console.warn("[inlinePoiConvert] assetDrafts.put failed:", cause);
     await release();
     return { ok: false, reason: "failed" };
   }
