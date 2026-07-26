@@ -151,6 +151,7 @@ import { isTranslationMode } from "../../utils/editorLanguageMode";
 import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../../utils/editorLanguages";
 import { localizeTitle } from "../../utils/langResource";
 import { isEditableElement } from "../../utils/nativeTextUndo";
+import { suggestSlug as sharedSuggestSlug } from "../../utils/poiSourceSlug";
 
 interface VolatileSource { sourcePath: string; sourceName: string }
 interface AssetEditHistoryState { document: ImageAssetEditDocument; volatileSource: VolatileSource | null }
@@ -392,7 +393,10 @@ function applyHistory(): void {
 function undo(): void { history.undo(); applyHistory(); }
 function redo(): void { history.redo(); applyHistory(); }
 
-const suggestSlug = (name: string) => name.normalize("NFKD").replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
+// M3-T6 (§6.3 方針(i)): 局所実装を共有 suggestSlug へ統合。前処理 (NFKD + 不許可文字ラン →
+// ハイフン置換) で記号 → ハイフンの局所挙動 (map(1).png → map-1) を保存する。残余差分は
+// ハイフン連続圧縮 (a-@b → 旧 a--b / 新 a-b) と 100 切詰めの追加のみ (安全側容認 — 設計 §16-6)
+const suggestSlug = (name: string) => sharedSuggestSlug(name.normalize("NFKD").replace(/[^A-Za-z0-9._\s-]+/g, "-"), "");
 
 async function pickImageFile(): Promise<void> {
   if (!props.isNew || structuralDisabled.value) return;

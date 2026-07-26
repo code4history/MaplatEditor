@@ -25,6 +25,8 @@
     "smoke:m3-t2-poi-source-api": "node scripts/m3-t2-poi-source-api-smoke.mjs",
     "smoke:m3-t3-poi-source-manager": "node scripts/m3-t3-poi-source-manager-smoke.mjs",
     "smoke:m3-t4-app-poi-selector": "node scripts/m3-t4-app-poi-selector-smoke.mjs",
+    "smoke:m3-t6-inline-poi-convert": "node scripts/m3-t6-inline-poi-convert-smoke.mjs",
+    "test:e2e:m3-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m3-t6-inline-poi-preserve-convert.spec.ts",
     "smoke:m4-undo-redo": "node scripts/m4-undo-redo-smoke.mjs",
     "smoke:m4-t1-revisioned-save": "node scripts/m4-t1-revisioned-save-smoke.mjs",
     "smoke:m4-t4-poi-edit-session": "node scripts/m4-t4-poi-edit-session-smoke.mjs",

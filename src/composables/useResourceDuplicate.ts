@@ -1,23 +1,26 @@
 // M11-T10: 複製 slug 採番の共通処理（5資産種の一覧で共用）。
 // reserve は予約表しか見ないため、registry(保存済み資産)も見る check を前置しないと
-// 保存済み slug (taken) に対しても予約が成立してしまう。採番候補・切詰め幅・失敗判定を
-// ここへ一元化する。
+// 保存済み slug (taken) に対しても予約が成立してしまう。
+// M3-T6: 採番候補・切詰め幅・系列上限は utils/slugSequence.ts へ一本化した
+// (旧 candidate 実装と同値 — smoke:m3-t6 で表駆動検証)。reserveCopySlug は
+// reserveSequencedSlug(suffix "-copy") への挙動不変 wrapper (AC6-8(a))。
 import type { SlugFieldKind } from "../utils/slugReservationKind";
+import { findAvailableSlug } from "../utils/slugSequence";
 
-// suggestSlug と同じ slug 最大長。候補は suffix 込みでこの長さに収まるよう切り詰める。
-const SLUG_MAX = 100;
 const COPY_SUFFIX = "-copy";
-const COPY_MAX_INDEX = 100;
 
 export interface ReservedCopySlug {
   slug: string;
   uid: string;
 }
 
-// 複製用に新 UID を採番し、"-copy" → "-copy2".."-copy100" の順で空き slug を予約する。
-// 予約帰属は asset_uid=uid（D2改）。全候補枯渇時は null（呼出元が duplicate_failed 診断を出す）。
-export async function reserveCopySlug(
+// 新 UID を採番し、base+suffix → base+suffix+"2".."100" の順で空き slug を予約する。
+// 予約帰属は asset_uid=uid（D2改）。全候補枯渇時は null。
+// (a) 複製 "-copy" (reserveCopySlug) と (b) inline POI 変換 "-poi" (inlinePoiConvert) が
+// 同一の tryReserve 実装 (slugReservations.check → reserve) を共有する (設計 §6.2)。
+export async function reserveSequencedSlug(
   baseSlug: string | undefined,
+  suffix: string,
   assetKind: SlugFieldKind,
   fallbackBase: string,
 ): Promise<ReservedCopySlug | null> {
@@ -32,14 +35,19 @@ export async function reserveCopySlug(
       return false;
     }
   };
-  const candidate = (suffix: string): string => base.slice(0, SLUG_MAX - suffix.length) + suffix;
-  const first = candidate(COPY_SUFFIX);
-  if (await tryReserve(first)) return { slug: first, uid };
-  for (let i = 2; i <= COPY_MAX_INDEX; i++) {
-    const next = candidate(`${COPY_SUFFIX}${i}`);
-    if (await tryReserve(next)) return { slug: next, uid };
-  }
-  return null;
+  const slug = await findAvailableSlug(base, tryReserve, { suffix });
+  return slug === null ? null : { slug, uid };
+}
+
+// 複製用に新 UID を採番し、"-copy" → "-copy2".."-copy100" の順で空き slug を予約する。
+// 全候補枯渇時は null（呼出元が duplicate_failed 診断を出す）。
+// 公開シグネチャ・返値・候補系列・切詰めとも M11-T10 実装から不変 (M3-T6 で内部委譲のみ)。
+export async function reserveCopySlug(
+  baseSlug: string | undefined,
+  assetKind: SlugFieldKind,
+  fallbackBase: string,
+): Promise<ReservedCopySlug | null> {
+  return reserveSequencedSlug(baseSlug, COPY_SUFFIX, assetKind, fallbackBase);
 }
 
 // grid 一覧（Map/App）の複製遷移先。エディタ側 duplicateFrom 受け口の契約（設計v3.2）:
