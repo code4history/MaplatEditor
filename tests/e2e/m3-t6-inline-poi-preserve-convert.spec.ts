@@ -188,6 +188,22 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       // ContextHelp (i) ボタンが見出し脇に出る (理由 = add_blocked_note)
       await expect(poisPane.locator(`[aria-label*="GeoJSON POIを追加できません"]`).first()).toBeVisible();
 
+      // --- 手順3b (実装レビュー Minor-2): 視覚無効化 (pointer-events:none) を迂回する操作でも
+      // 追加が阻止されること。選択行は role="button" で Enter keydown が select を emit するため
+      // (ResourceMasterRow @keydown.enter)、キーボード操作は CSS の pointer-events では防げない。
+      // focus + Enter keydown を直接発火し、addPoiSource 冒頭の機能ガード
+      // (hasNonReferenceEntries early return — PoiReferenceEditor.vue) が最終防衛線として
+      // 参照追加を阻止することを assert する ---
+      const guardTargetRow = selectorPane.locator(`[data-resource-uid="${source.uid}"]`);
+      await expect(guardTargetRow).toHaveCount(1); // 空振り防止: 選択行の実在を先に確認
+      await guardTargetRow.evaluate((el) => {
+        (el as HTMLElement).focus();
+        el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      });
+      // 参照は追加されない: メンバー行 2 (非参照のみ) のまま・参照カード化した行なし
+      await expect(cards).toHaveCount(2);
+      await expect(poisPane.locator('.selected-source .badge', { hasText: '地図内定義POI' })).toHaveCount(2);
+
       // --- 手順4: レイヤ変換 (単層 = ペインヘッダのボタン 1 個で配列全体を 1 ドラフト。AC6-4, 6-8(b), 6-12) ---
       const groupButton = poisPane.getByTestId('poiref-convert-group');
       await expect(groupButton).toHaveText(/旧POI 2 件/); // count = メンバー総数
@@ -207,6 +223,19 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       expect(draftsAfterGroup.length).toBe(1);
       expect(draftsAfterGroup[0].slug).toBe(`${seeded.slug}-poi`);
       expect(draftsAfterGroup[0].baseRevision).toBeNull();
+
+      // --- 手順4' (実装レビュー Minor-3 / 設計 §11.1): document 不変は「保存 → 再読込で同一」で
+      // 確認する。上の DB 値比較は保存を挟まないため、変換がメモリ上の mapData.pois を変異させて
+      // いても検出できない。無関係編集 (title) で dirty 化 → UI 保存 (確認 dialog は stub が
+      // 自動 OK) → 保存後の再読取値が seed と deep-equal であることを assert する ---
+      // map-title はメタデータ編集タブ内 (v-show) のため先にタブを切り替える
+      await page.locator('[role="tab"]', { hasText: 'メタデータ編集' }).click();
+      await page.getByTestId('map-title').fill('T6 地図 (保存検証)');
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+      const poisAfterSaveReload = await page.evaluate(async (uid) => (await (window as any).mapedit.request(uid)).pois, seeded.uid);
+      expect(poisAfterSaveReload).toEqual(seeded.pois);
 
       // --- 手順5: POI 一覧のドラフトカード → PoiEdit 復元 → 保存 (AC6-4 後半) ---
       const groupDraftUid = draftsAfterGroup[0].assetUid;
@@ -431,6 +460,8 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t6-heal-'));
     const { app, page } = await launch(e2eRoot);
     try {
+      // 保存成功 dialog (appedit.success_save) を自動 OK するため stub を先に仕込む (手順8' 用)
+      await stubMessageBoxRecording(app);
       // 破損 pois (heal 復元不能な生値) を持つ app を seed
       const seeded = await page.evaluate(async () => {
         const slug = `t6-heal-${Date.now()}`;
@@ -450,6 +481,18 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       await expect(appPoisPane.locator('.editor-diagnostic__message', { hasText: 'POIデータを復元できませんでした' })).toBeVisible({ timeout: 15000 });
       // タブ read-only (selector 無効化)
       await expect(appPoisPane.locator('.source-pane-body')).toHaveClass(/poi-selector-disabled/);
+
+      // --- 手順8' (実装レビュー Minor-1 / AC6-9 の本体保証): 保存 → request で生値残存。
+      // 「POI タブに触れずに保存しただけでデータが消えない」が守るべき不変条件。
+      // 旧挙動 (heal 失敗でも normalize が pois: [] を document へ書込) では保存で生値が
+      // 消失するため、警告表示だけでなく保存 round-trip 後の残存を assert する ---
+      await page.locator('[role="tab"]', { hasText: 'メタデータ編集' }).click();
+      await page.getByTestId('app-title').fill('T6 Heal 保存検証');
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 30000 });
+      const storedApp = await page.evaluate(async (uid) => (window as any).appedit.request(uid), seeded.uid);
+      expect(storedApp.pois).toBe('https://example.com/legacy-pois.json');
 
       console.log('  手順8: PASS');
     } finally {
