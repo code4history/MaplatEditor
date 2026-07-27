@@ -43,20 +43,15 @@ async function openPoiEdit(page: Page, uid: string): Promise<void> {
   await page.waitForTimeout(2000);
 }
 
-/** IPC 経由で layer metadata を save する（UI save ボタンの overlay 問題を回避） */
-async function savePoiViaIpc(page: Page, uid: string): Promise<void> {
-  const result = await page.evaluate(async (poiUid) => {
-    const doc = await window.poiSources.get(poiUid);
-    if (!doc) throw new Error('POI source not found');
-    const r = await window.poiSources.save(poiUid, {
-      slug: doc.slug,
-      title: doc.title,
-      fc: doc.fc,
-      expectedRevision: doc.revision,
-    });
-    return r;
-  }, uid);
-  expect(result.result).toBe('Success');
+async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> {
+  await app.evaluate(async ({ dialog }) => {
+    (globalThis as any).__t1MessageBoxLog = [];
+    dialog.showMessageBox = (async (...args: unknown[]) => {
+      const options = (args.length >= 2 ? args[1] : args[0]) as { message?: string };
+      (globalThis as any).__t1MessageBoxLog.push(options?.message ?? '');
+      return { response: 0, checkboxChecked: false };
+    }) as typeof dialog.showMessageBox;
+  });
 }
 
 test.describe('M17-T1: POI layer metadata 編集 UI', () => {
@@ -67,6 +62,7 @@ test.describe('M17-T1: POI layer metadata 編集 UI', () => {
   test.beforeEach(async () => {
     e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'm17-t1-e2e-'));
     ({ app, page } = await launch(e2eRoot));
+    await stubMessageBoxRecording(app);
   });
 
   test.afterEach(async () => {
@@ -99,8 +95,9 @@ test.describe('M17-T1: POI layer metadata 編集 UI', () => {
     // hide を ON
     await hideCheckbox.check();
 
-    // 保存（IPC 経由で overlay ブロッキングを回避）
-    await savePoiViaIpc(page, uid);
+    // 保存
+    await page.getByTestId('editor-save').click();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
 
     // raw ペインで FC レベルの反映を確認
     const rawBtn = page.locator('button[data-editor-action="raw-pane"], button:has-text("Raw GeoJSON"), button:has-text("生GeoJSON")');
@@ -168,7 +165,8 @@ test.describe('M17-T1: POI layer metadata 編集 UI', () => {
     await layerIconInput.fill('builtin:defaultpin');
     await layerIconInput.press('Tab');
     await page.waitForTimeout(200);
-    await savePoiViaIpc(page, uid);
+    await page.getByTestId('editor-save').click();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
 
     // raw ペインを開く
     const rawBtn = page.locator('button[data-editor-action="raw-pane"], button:has-text("Raw GeoJSON"), button:has-text("生GeoJSON")');
