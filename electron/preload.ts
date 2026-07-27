@@ -50,6 +50,9 @@ contextBridge.exposeInMainWorld('mapedit', {
   // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
   uploadCsv: (csvRepl: string, csvUpSettings: any) =>
     ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings),
+  // M12-T20 (§5.1): 復元時ガード用の staging 実在照会
+  stagingStatus: (url_: string, uid?: string) =>
+    ipcRenderer.invoke('mapedit:stagingStatus', url_, uid),
   getWmtsFolder: () =>
     ipcRenderer.invoke('mapedit:getWmtsFolder'),
   onProgress(listener: (progress: any) => void): () => void {
@@ -76,8 +79,10 @@ contextBridge.exposeInMainWorld('wmtsGen', {
 contextBridge.exposeInMainWorld('mapupload', {
   // 旧実装: window.mapupload.showMapSelectDialog(mapImageLabel)
   // → ipcRenderer.invoke で結果を Promise として受け取る
-  showMapSelectDialog: (mapImageLabel: string) =>
-    ipcRenderer.invoke('mapupload:showMapSelectDialog', mapImageLabel),
+  // M12-T20 (§5.1): draftAssetUid を追加。main 側で staging dir
+  // (<draftTileRoot>/<draftAssetUid>) を共通バリデータ経由で解決する
+  showMapSelectDialog: (mapImageLabel: string, draftAssetUid: string) =>
+    ipcRenderer.invoke('mapupload:showMapSelectDialog', mapImageLabel, draftAssetUid),
 })
 
 contextBridge.exposeInMainWorld('versions', {
@@ -90,7 +95,9 @@ contextBridge.exposeInMainWorld('versions', {
 contextBridge.exposeInMainWorld('assetDrafts', {
   put: (draft: any) => ipcRenderer.invoke('asset-drafts:put', draft),
   get: (kind: string, assetUid: string) => ipcRenderer.invoke('asset-drafts:get', kind, assetUid),
-  remove: (kind: string, assetUid: string) => ipcRenderer.invoke('asset-drafts:remove', kind, assetUid),
+  // M12-T20 (§5.1): opts.keepStaging は dirty→clean 遷移専用（envelope のみ削除）
+  remove: (kind: string, assetUid: string, opts?: { keepStaging?: boolean }) =>
+    ipcRenderer.invoke('asset-drafts:remove', kind, assetUid, opts),
   list: (kind?: string) => ipcRenderer.invoke('asset-drafts:list', kind),
   flushSync: (draft: any) => ipcRenderer.sendSync('asset-drafts:flush-sync', draft),
 })

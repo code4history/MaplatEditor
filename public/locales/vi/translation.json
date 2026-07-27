@@ -354,7 +354,12 @@
     "thumbnail_derive_52": "Tạo cả 52px từ 512px",
     "thumbnail_replace_512": "Thay thế 512px…",
     "thumbnail_replace_52": "Thay thế 52px…",
-    "import_inline_poi_alert": "POI định nghĩa trong bản đồ không hỗ trợ chỉnh sửa. Để chỉnh sửa POI, hãy chuyển đổi POI sang GeoJSON."
+    "import_inline_poi_alert": "POI định nghĩa trong bản đồ không hỗ trợ chỉnh sửa. Để chỉnh sửa POI, hãy chuyển đổi POI sang GeoJSON.",
+    "draft_tiles_lost": "Không tìm thấy dữ liệu tạm thời của hình ảnh bản đồ. Vui lòng tải lên hình ảnh lại. Các chỉnh sửa khác của bạn (điểm khống chế, siêu dữ liệu, v.v.) vẫn được giữ nguyên.",
+    "draft_already_saved": "Lần lưu trước đã hoàn tất. Bản nháp này có thể trùng lặp với nội dung đã lưu. Hãy hủy bản nháp và mở lại bản đồ đã lưu, hoặc tải lên hình ảnh lại nếu bạn muốn thay đổi.",
+    "staging": {
+      "missing_tiles": "Không thể lưu bản đồ vì thiếu dữ liệu tạm thời của hình ảnh bản đồ. Vui lòng tải lên hình ảnh lại trước khi lưu."
+    }
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

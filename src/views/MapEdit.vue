@@ -707,6 +707,38 @@ const draftLifecycle = useAssetDraftLifecycle<MapEditHistoryState>({
     },
 });
 
+// M12-T20 (§6.4): 復元時ガード。draft 復元完了後に mapedit:stagingStatus を照会し、
+// タイル参照先（staging/tmp）が実在しなければ警告ダイアログを表示する。
+// 文言は分岐: savedTilesExist かつ conflict 分岐適用 → draft_already_saved（保存確定直後
+// クラッシュでは保存成功済みのため喪失警告は誤誘導）/ それ以外 → draft_tiles_lost（断定形を
+// 避けた喪失告知 + 再アップロード誘導）。**mapData は書き換えない**（表示のみ。sp-0006:
+// 読み込み側でのデータ改変はしない。下書き自体も破棄しない — GCP・メタデータは再アップロードで
+// 完全復旧できる。m3-t6「黙って消えない」原則）
+const warnIfDraftTilesLost = async (viaConflictApply: boolean) => {
+    const url_ = mapData.value?.url_ as string | undefined;
+    if (!url_) return;
+    try {
+        const status = await window.mapedit.stagingStatus(url_, mapUid.value || newMapUid || undefined);
+        if (!status || status.alive) return;
+        const key = viaConflictApply && status.savedTilesExist
+            ? 'mapedit.draft_already_saved'
+            : 'mapedit.draft_tiles_lost';
+        await (window as any).dialog.showMessageBox({
+            type: 'warning',
+            buttons: ['OK'],
+            message: t(key),
+        });
+    } catch (e) {
+        console.warn('[MapEdit] stagingStatus check failed:', e);
+    }
+};
+
+// M12-T20 (§6.4): conflict 分岐の適用は復元時ガードを viaConflictApply=true で通す
+const applyConflictDraft = async () => {
+    await draftLifecycle.resolveConflict('apply');
+    void warnIfDraftTilesLost(true);
+};
+
 // AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
 useInitialDraftPersist({
     slugState: slugFieldState,
@@ -1989,7 +2021,10 @@ onMounted(async () => {
     if (isNew && route.query.draftUid !== draftUid) {
         await router.replace({ query: { ...route.query, draftUid } });
     }
-    await draftLifecycle.open(draftUid, revision.value ?? null);
+    const restoreDecision = await draftLifecycle.open(draftUid, revision.value ?? null);
+    // M12-T20 (§6.4): auto-apply で復元された場合の復元時ガード（conflict 分岐は
+    // applyConflictDraft が担う）。表示のみのため mount 続行をブロックしない
+    if (restoreDecision === 'auto-apply') void warnIfDraftTilesLost(false);
     window.addEventListener('keydown', onHistoryKeydown);
     removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
 
@@ -2893,7 +2928,9 @@ const mapUpload = async () => {
 
     try {
         // 旧実装: window.mapupload.showMapSelectDialog(t('mapupload.map_image'))
-        const arg = await (window as any).mapupload.showMapSelectDialog(t('mapupload.map_image'));
+        // M12-T20 (§5.1): 下書きの asset uid（3529行の asset-uid / 1988行の draft キーと同一値）を
+        // 渡し、staging を <draftTileRoot>/<assetUid> に per-draft 化する
+        const arg = await (window as any).mapupload.showMapSelectDialog(t('mapupload.map_image'), mapUid.value || newMapUid);
 
         if (arg.err) {
             if (arg.err !== 'Canceled') {
@@ -3422,7 +3459,7 @@ const goBack = async () => {
         <DraftConflictDialog
             :visible="!!draftLifecycle.conflictDraft.value"
             @discard="draftLifecycle.resolveConflict('discard')"
-            @apply="draftLifecycle.resolveConflict('apply')"
+            @apply="applyConflictDraft"
         />
 
         <!-- ProgressModal: 旧実装の #staticModal 相当 -->

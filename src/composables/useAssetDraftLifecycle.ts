@@ -18,7 +18,8 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
   const core = createAssetDraftLifecycleCore({
     api: {
       put: (draft) => window.assetDrafts.put(draft),
-      remove: (kind, assetUid) => window.assetDrafts.remove(kind, assetUid),
+      // M12-T20 (§5.1): keepStaging opts を IPC までそのまま透過する
+      remove: (kind, assetUid, opts) => window.assetDrafts.remove(kind, assetUid, opts),
       flushSync: (draft) => window.assetDrafts.flushSync(draft),
     },
   });

@@ -354,7 +354,12 @@
     "thumbnail_derive_52": "Buat juga 52px dari 512px",
     "thumbnail_replace_512": "Ganti 512px…",
     "thumbnail_replace_52": "Ganti 52px…",
-    "import_inline_poi_alert": "Definisi POI di dalam peta tidak dapat diedit. Untuk mengedit POI tersebut, konversikan ke GeoJSON."
+    "import_inline_poi_alert": "Definisi POI di dalam peta tidak dapat diedit. Untuk mengedit POI tersebut, konversikan ke GeoJSON.",
+    "draft_tiles_lost": "Data sementara untuk gambar peta tidak dapat ditemukan. Silakan unggah gambar lagi. Suntingan Anda yang lain (titik kontrol, metadata, dll.) tetap tersimpan.",
+    "draft_already_saved": "Penyimpanan sebelumnya sudah selesai. Draf ini mungkin menduplikasi konten yang tersimpan. Buang draf dan buka kembali peta yang tersimpan, atau unggah gambar lagi jika ingin mengubahnya.",
+    "staging": {
+      "missing_tiles": "Peta tidak dapat disimpan karena data sementara untuk gambar peta hilang. Silakan unggah gambar lagi sebelum menyimpan."
+    }
   },
   "mapupload": {
     "map_image": "Gambar peta",

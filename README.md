@@ -88,11 +88,14 @@ binaries are distributed via GitHub Releases.
 ### Drafts and Data Safety
 
 - Edits auto-save as local drafts every few seconds and are restored when
-  you reopen a resource; if a save conflicts with a newer revision, a dialog
-  lets you resolve it
+  you reopen a resource; uploaded map images are also kept in an
+  app-managed draft area, so they survive OS restarts and temp-folder
+  cleanup; if a save conflicts with a newer revision, a dialog lets you
+  resolve it
 - Map, App, POI, Base Map, and Asset all follow the same "not created until
-  saved" flow — an abandoned new-resource draft is never written to disk,
-  and shows up as a draft card in the list that you can resume or discard
+  saved" flow — an abandoned new-resource draft is never written to the
+  data folder, and shows up as a draft card in the list that you can resume
+  or discard (discarding also releases the draft's image storage)
 - Deleting a map moves it to a trash location instead of deleting it
   immediately
 - MaplatEditor migrates the data folder to the current format automatically

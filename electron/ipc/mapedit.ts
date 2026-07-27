@@ -2,6 +2,10 @@ import { ipcMain, BrowserWindow, dialog, app } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
 // @ts-ignore
+import fileUrl from 'file-url';
+// M12-T20 (§5.0/§5.1): staging パスの解決・検証は共通バリデータのみを使う
+import { draftTileRoot, isDraftTileUrl, resolveStagingDirFromUrl, resolveDraftTileDir } from '../services/draftTilePaths';
+// @ts-ignore
 import csvParser from 'csv-parser';
 // @ts-ignore
 import proj from 'proj4';
@@ -108,6 +112,35 @@ export const registerMapEditHandlers = () => {
             console.error('Failed to handle mapedit:updateTin', e);
             throw e;
         }
+    });
+
+    // M12-T20 (§5.1): 復元時ガード用の staging 実在照会。
+    // alive: url_ の参照先（staging: バリデータ導出 dir / 後方互換 tmp: tmp/tiles 固定 dir）の実在。
+    //        恒久 URL・空は true（ガード非対象）。staging プレフィックス一致かつ導出 null は
+    //        fs に一切触れず alive:false（§5.0 の表 — 表示のみに接続されるため安全側）。
+    // savedTilesExist: uid 指定時に saveFolder/tiles/{uid} の実在（同バリデータ・root 差し替え。
+    //        null または uid 未指定なら false）。保存確定直後クラッシュの誤誘導防止（§6.4）
+    ipcMain.handle('mapedit:stagingStatus', async (_event, url_: string, uid?: string) => {
+        let alive = true;
+        if (typeof url_ === 'string' && url_) {
+            if (isDraftTileUrl(draftTileRoot, url_)) {
+                const stagingDir = resolveStagingDirFromUrl(draftTileRoot, url_);
+                alive = stagingDir ? await fs.pathExists(stagingDir) : false;
+            } else {
+                const tmpTileFolder = path.join(SettingsService.get('tmpFolder') as string, 'tiles');
+                if (url_.startsWith(fileUrl(tmpTileFolder) + '/')) {
+                    // 後方互換 tmp は固定 dir（url_ 由来の可変部がパス構築に入らないため導出不要）
+                    alive = await fs.pathExists(tmpTileFolder);
+                }
+            }
+        }
+        let savedTilesExist = false;
+        if (typeof uid === 'string' && uid) {
+            const tileFolder = path.join(SettingsService.get('saveFolder') as string, 'tiles');
+            const savedTileDir = resolveDraftTileDir(tileFolder, uid);
+            savedTilesExist = savedTileDir ? await fs.pathExists(savedTileDir) : false;
+        }
+        return { alive, savedTilesExist };
     });
 
     // 旧実装: mapedit_getWmtsFolder 相当
