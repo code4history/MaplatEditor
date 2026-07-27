@@ -600,6 +600,26 @@ try {
       assert.equal(afterLayerMetaSave.featureCount, 1, 'layer metadata 追加で feature_count がずれないはず');
       console.log('ok: (r) FC top-level layer metadata round-trips through save; id/name are not persisted (§2.3)');
 
+      // (r3) M17-T1/AC17-3: load → icon のみ変更 → save → get で未変更キーが保持される
+      // （patchLayerMeta が呼ぶサービス経路の end-to-end 検証）
+      const iconOnlySave = await poiSourceService.save(uid, {
+        slug: 'kyoto-poi',
+        title: '京都POI',
+        fc: {
+          ...afterLayerMetaSave.fc,
+          icon: 'builtin:defaultpin-selected',
+        },
+        expectedRevision: afterLayerMetaSave.revision,
+      });
+      assert.equal(iconOnlySave.result, 'Success', 'icon のみ変更 save は成功するはず: ' + JSON.stringify(iconOnlySave));
+      const afterIconOnly = await poiSourceService.get(uid);
+      assert.equal(afterIconOnly.fc.icon, 'builtin:defaultpin-selected', 'icon は変更後値に更新されるはず');
+      assert.equal(afterIconOnly.fc.selectedIcon, 'builtin:defaultpin-selected', 'selectedIcon は未変更で保持されるはず');
+      assert.equal(afterIconOnly.fc.hide, false, 'hide は未変更で保持されるはず');
+      assert.equal(afterIconOnly.fc.poiTemplate, '<div>{{name}}</div>', 'poiTemplate は未変更で保持されるはず (AC17-3)');
+      assert.deepEqual(afterIconOnly.fc.customMeta, { future: 'extension', nested: [1, 2, 3] }, 'customMeta は未変更で保持されるはず (AC17-3)');
+      console.log('ok: (r3) icon-only save preserves other layer metadata keys (M17-T1/AC17-3)');
+
       // (r2) importFile 経路でも同様に layer metadata が round-trip する
       const importLayerMetaFile = nodePath.join(workDir, 'import-layer-meta.geojson');
       await fsWriteFile(importLayerMetaFile, JSON.stringify({

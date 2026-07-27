@@ -564,6 +564,54 @@ try {
         '解除後も残存参照の上書きキーが温存されるはず: ' + JSON.stringify(partial));
       console.log('ok: (15) applyPoiSelection preserves reference override keys');
 
+      // --- M17-T1/AC17-4: entry icon が layer metadata icon を上書き (applyReferenceIconOverrides) ---
+      {
+        // 新規 POI ソース: layer metadata icon=asset UUID
+        const ac174 = await PoiSourceService.createLocal({ slug: 'ac174-poi', title: 'AC17-4 POI' });
+        assert.equal(ac174.result, 'Success');
+        await PoiSourceService.save(ac174.uid, {
+          slug: 'ac174-poi', title: 'AC17-4 POI',
+          fc: {
+            type: 'FeatureCollection',
+            icon: assetUid,
+            features: [
+              { type: 'Feature', id: 'f1',
+                geometry: { type: 'Point', coordinates: [136.0, 36.0] },
+                properties: { _maplatUid: '22222222-2222-4222-8222-222222222222', name: 'テスト' } },
+            ],
+          },
+          expectedRevision: 1,
+        });
+
+        // アプリ: entry に icon を指定（layer metadata icon を上書き）
+        const ac174App = {
+          appID: 'ac174-app',
+          title: { ja: 'AC17-4 アプリ' },
+          lang: 'ja',
+          sources: [
+            { sourceType: 'maplat', mapID: 'poimap', role: 'maplat', startFrom: true,
+              data: { mapID: 'poimap', maptype: 'maplat', noload: true } },
+          ],
+          httpSettings: { previewPort: 43182 },
+          appSettings: { homeLng: 135.05, homeLat: 35.05, defaultZoom: 15 },
+          startFrom: 'poimap',
+          pois: [
+            { poiUid: ac174.uid, cachedTitle: 'AC17-4 POI', icon: 'builtin:defaultpin' },
+          ],
+        };
+        await AppDataService.saveApp({ document: ac174App, slug: 'ac174-app' });
+
+        // preview で解決
+        const ac174Prepared = await AppPreviewService.prepare(ac174App);
+        assert.ok(ac174Prepared.url);
+        const ac174Token = new URL(ac174Prepared.url).pathname.split('/').filter(Boolean)[1];
+        const ac174Json = await (await fetch(ac174Prepared.url + 'apps/' + ac174Token + '.json')).json();
+
+        // AC17-4: entry の icon ('builtin:defaultpin') が layer metadata icon (asset UUID) を上書き
+        assert.equal(ac174Json.pois[0].icon, 'imgs/icons/builtin/defaultpin.png',
+          'AC17-4: entry の icon が layer metadata icon を上書きして解決されるはず (POI-112 applyReferenceIconOverrides)');
+      }
+
       console.log('M10-T1 poi reference resolver smoke passed');
       process.exit(0);
     `
