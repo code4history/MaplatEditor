@@ -141,7 +141,7 @@ try {
     entryFile,
     `
       import assert from 'node:assert/strict';
-      import { access, mkdir, writeFile } from 'node:fs/promises';
+      import { access, mkdir, writeFile, chmod } from 'node:fs/promises';
       import { default as fileUrl } from 'file-url';
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
@@ -200,8 +200,39 @@ try {
       const beforeRename = await SqliteDataService.findMapBySlug('legacy-map');
       const legacyUid = beforeRename.uid;
 
-      // (1) post-commit失敗: url_ が存在しないtmpタイルを指す改名保存 → DBコミット後の
-      //     fs.move が失敗し、確定した uid/slug/revision 付きの Error が返る
+      // (1a) M12-T20 (§6.5) 保存前実在ガード: url_ が存在しないtmpタイルを指す改名保存は、
+      //      DB に一切触れる前に Error を返す(「DB 行だけコミットされ画像喪失」の根絶。
+      //      §5.1 の表: tmpCheck||stagingCheck が真かつ移動元不存在は pre-commit Error)。
+      //      本シナリオはかつて(m12-t20以前)は post-commit 失敗として観測されていたが、
+      //      同タスクの主眼(移動元不存在クラスの根絶)により pre-commit 失敗へ変わった
+      const missingSourceGuarded = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update',
+                     url_: fileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map-renamed',
+        renameFromSlug: 'legacy-map',
+        expectedRevision: beforeRename.revision,
+      });
+      assert.equal(missingSourceGuarded.result, 'Error');
+      assert.equal(missingSourceGuarded.errorKey, 'mapedit.staging.missing_tiles');
+      assert.equal(missingSourceGuarded.uid, undefined, 'pre-commit ガードは DB に一切触れないため uid を返さない');
+      // DB は改名コミットされていない: 旧slugのまま・revisionも不変
+      assert.equal(await StorageAdapter.isSlugAvailable('legacy-map-renamed'), true);
+      assert.equal((await SqliteDataService.findMapBySlug('legacy-map')).revision, beforeRename.revision);
+      await access(origPath('legacy-map'));
+
+      // (1b) post-commit失敗(移動元は実在するがtiles/移動先の書込みが拒否される): DBコミット後の
+      //     fs.move が失敗し、確定した uid/slug/revision 付きの Error が返る(D5: 再試行完遂
+      //     のための意図的設計。post-commit catch は m12-t20 で無変更・移動元不存在クラスの
+      //     みが(1a)へ切り出された)。移動元(tmp)を実在させ保存前ガードを通過させたうえで、
+      //     移動先 saveFolder/tiles を読み取り専用にして move の新規エントリ作成を物理的に
+      //     拒否させる(fs.ensureDir(tileFolder) は既存ディレクトリの存在確認のみで書込み権限を
+      //     要求しないため、事前 chmod は save() 冒頭の ensureDir と干渉しない)
+      await mkdir(tmpTilesDir, { recursive: true });
+      const tileFolderPath = ${JSON.stringify(path.join(dataDir, 'tiles'))};
+      await mkdir(tileFolderPath, { recursive: true });
+      await chmod(tileFolderPath, 0o555);
       const poisoned = await StorageAdapter.saveMapForEdit({
         mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update',
                      url_: fileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
@@ -213,6 +244,7 @@ try {
         renameFromSlug: 'legacy-map',
         expectedRevision: beforeRename.revision,
       });
+      await chmod(tileFolderPath, 0o755);
       assert.equal(poisoned.result, 'Error');
       assert.equal(poisoned.uid, legacyUid);
       assert.equal(poisoned.slug, 'legacy-map-renamed');

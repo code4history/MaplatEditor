@@ -14,10 +14,12 @@ interface AppSettings {
 import defaultTmsList from '../tms_list.json';
 import { resolveEditorLanguage } from '../../src/utils/editorLanguages';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
+import { defaultDraftTileRoot } from './draftTilePaths';
 
 const runtimeStoragePaths = resolveRuntimeStoragePaths(
   process.env.MAPLAT_E2E_ROOT,
   path.join(app.getPath('documents'), app.getName()),
+  defaultDraftTileRoot(),
 );
 
 // lang はデフォルト値を持たせない: 未設定(初回起動)の場合はOSの言語から解決し

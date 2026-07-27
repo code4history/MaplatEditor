@@ -354,7 +354,12 @@
     "thumbnail_derive_52": "同时从512px创建52px",
     "thumbnail_replace_512": "替换512px…",
     "thumbnail_replace_52": "替换52px…",
-    "import_inline_poi_alert": "地图内定义的 POI 指定不支持编辑。若要编辑 POI，请将 POI 转换为 GeoJSON。"
+    "import_inline_poi_alert": "地图内定义的 POI 指定不支持编辑。若要编辑 POI，请将 POI 转换为 GeoJSON。",
+    "draft_tiles_lost": "找不到地图图像的临时数据。请重新上传图像。您的其他编辑内容（控制点、元数据等）已保留。",
+    "draft_already_saved": "上一次保存已完成。此草稿可能与已保存的内容重复。请舍弃草稿并重新打开已保存的地图，或如需更换图像请重新上传。",
+    "staging": {
+      "missing_tiles": "由于缺少地图图像的临时数据，无法保存地图。请重新上传图像后再保存。"
+    }
   },
   "mapupload": {
     "map_image": "地图图像",

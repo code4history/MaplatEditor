@@ -82,6 +82,8 @@ try {
       }
 
       // Test-2 正例: 800x400 (>512px) の画像 → thumbnail_512.jpg が aspect 2:1 で生成
+      // M12-T20: showMapSelectDialog の第2引数は「解決済み staging dir」であり、
+      // imageCutter はそこへ直接書き込む（tiles サブフォルダは付加しない）。
       const tmpFolder1 = nodePath.join(${JSON.stringify(workDir)}, 'tmp1');
       await fs.mkdir(tmpFolder1, { recursive: true });
       const srcFile1 = nodePath.join(${JSON.stringify(workDir)}, 'src800x400.png');
@@ -89,7 +91,7 @@ try {
       globalThis.__nextImagePath = srcFile1;
       const r1 = await showMapSelectDialog(null, tmpFolder1, '地図画像');
       assert.ok(!r1.err, 'imageCutter 800x400 成功: ' + JSON.stringify(r1));
-      const thumb512_1 = nodePath.join(tmpFolder1, 'tiles', 'thumbnail_512.jpg');
+      const thumb512_1 = nodePath.join(tmpFolder1, 'thumbnail_512.jpg');
       assert.ok(await fs.stat(thumb512_1).then(() => true).catch(() => false), 'thumbnail_512.jpg が生成される');
       const img1 = await Jimp.read(thumb512_1);
       const aspect1 = img1.width / img1.height;
@@ -105,11 +107,11 @@ try {
       globalThis.__nextImagePath = srcFile2;
       const r2 = await showMapSelectDialog(null, tmpFolder2, '地図画像');
       assert.ok(!r2.err, 'imageCutter 300x200 成功: ' + JSON.stringify(r2));
-      const thumb512_2 = nodePath.join(tmpFolder2, 'tiles', 'thumbnail_512.jpg');
+      const thumb512_2 = nodePath.join(tmpFolder2, 'thumbnail_512.jpg');
       const exists2 = await fs.stat(thumb512_2).then(() => true).catch(() => false);
       assert.equal(exists2, false, '長辺<=512px の画像では thumbnail_512.jpg はスキップ');
       // 52px は現行どおり生成される
-      assert.ok(await fs.stat(nodePath.join(tmpFolder2, 'tiles', 'thumbnail.jpg')).then(() => true).catch(() => false), '52px thumbnail.jpg は生成される');
+      assert.ok(await fs.stat(nodePath.join(tmpFolder2, 'thumbnail.jpg')).then(() => true).catch(() => false), '52px thumbnail.jpg は生成される');
       console.log('ok: Test-2 negative (300x200 -> 512px skipped, 52px generated)');
 
       console.log('m12-t15 upload smoke: ALL PASS');

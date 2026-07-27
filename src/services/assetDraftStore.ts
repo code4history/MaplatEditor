@@ -49,6 +49,27 @@ export function validateAssetDraftEnvelope(value: unknown): asserts value is Ass
 
 const storageKey = (kind: AssetDraftKind, assetUid: string) => `${KEY_PREFIX}${kind}:${assetUid}`;
 
+// M12-T20 (§5.1 実装注意/レビュー Info5): storage key `assetDrafts:{kind}:{assetUid}` の逆パース。
+// validUid は uid 中の ':' を許容するため単純 split は不可。プレフィックス除去後の**最初の** ':'
+// で kind/uid を分解する（kind 名は固定集合で ':' を含まない）
+function parseStorageKey(key: string): { kind: AssetDraftKind; assetUid: string } | null {
+  if (!key.startsWith(KEY_PREFIX)) return null;
+  const rest = key.slice(KEY_PREFIX.length);
+  const sep = rest.indexOf(':');
+  if (sep < 0) return null;
+  const kind = rest.slice(0, sep);
+  const assetUid = rest.slice(sep + 1);
+  if (!isKind(kind) || !validUid(assetUid)) return null;
+  return { kind, assetUid };
+}
+
+// M12-T20 (§5.1): draft 削除の main 側チョークポイント。envelope 削除（remove の
+// keepStaging でない経路 / removeKey の隔離削除 — 常に）に同期して staging dir 回収等の
+// 後始末を注入できる。hook の失敗は envelope 削除自体を妨げない
+export interface AssetDraftStoreHooks {
+  onRemoved?: (kind: AssetDraftKind, assetUid: string) => void;
+}
+
 // 多言語オブジェクト({ja: "..", en: ".."})または文字列から最初の非空文字列を返す
 function firstLangValue(value: unknown): string | undefined {
   if (typeof value === 'string' && value.trim()) return value.trim();
@@ -84,7 +105,10 @@ function draftSlugOf(payload: unknown): string | undefined {
 }
 
 export class AssetDraftStore {
-  constructor(private readonly store: AssetDraftKeyValueStore) {}
+  constructor(
+    private readonly store: AssetDraftKeyValueStore,
+    private readonly hooks: AssetDraftStoreHooks = {},
+  ) {}
 
   put(value: AssetDraftEnvelope): void {
     validateAssetDraftEnvelope(value);
@@ -109,9 +133,12 @@ export class AssetDraftStore {
     }
   }
 
-  remove(kind: AssetDraftKind, assetUid: string): void {
+  // M12-T20 (§5.1): keepStaging=true は envelope のみ削除し onRemoved（staging 物理削除）を
+  // 発火しない（dirty→clean 遷移専用。悪用しても「削除しない」方向のみの緩和で、残渣は
+  // 起動時孤児 GC が回収するため安全上の新リスクはない）
+  remove(kind: AssetDraftKind, assetUid: string, opts?: { keepStaging?: boolean }): void {
     if (!isKind(kind) || !validUid(assetUid)) return;
-    this.removeKey(storageKey(kind, assetUid));
+    this.removeKey(storageKey(kind, assetUid), opts?.keepStaging === true);
   }
 
   list(kind?: AssetDraftKind): AssetDraftSummary[] {
@@ -139,9 +166,19 @@ export class AssetDraftStore {
     return summaries.sort((left, right) => left.updatedAt.localeCompare(right.updatedAt));
   }
 
-  private removeKey(key: string): void {
+  // M12-T20 (§5.1): 隔離削除（get/list の validate 失敗）からの直接呼び出しは keepStaging を
+  // 渡さない = onRemoved を**常に**発火する（壊れた envelope → draft 死亡 → staging はゴミ）
+  private removeKey(key: string, keepStaging = false): void {
     this.store.delete(key);
     const index = this.store.get<string[]>(INDEX_KEY, []).filter((entry) => entry !== key);
     this.store.set(INDEX_KEY, index);
+    if (keepStaging || !this.hooks.onRemoved) return;
+    const parsed = parseStorageKey(key);
+    if (!parsed) return;
+    try {
+      this.hooks.onRemoved(parsed.kind, parsed.assetUid);
+    } catch (cause) {
+      console.warn('[assetDraftStore] onRemoved hook failed:', cause);
+    }
   }
 }

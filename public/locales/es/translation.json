@@ -354,7 +354,12 @@
     "thumbnail_derive_52": "Crear también 52px desde 512px",
     "thumbnail_replace_512": "Reemplazar 512px…",
     "thumbnail_replace_52": "Reemplazar 52px…",
-    "import_inline_poi_alert": "Las definiciones de POI dentro del mapa no admiten edición. Para editar estos POIs, conviértalos a GeoJSON."
+    "import_inline_poi_alert": "Las definiciones de POI dentro del mapa no admiten edición. Para editar estos POIs, conviértalos a GeoJSON.",
+    "draft_tiles_lost": "No se encontraron los datos temporales de la imagen del mapa. Vuelva a subir la imagen. Sus demás ediciones (puntos de control, metadatos, etc.) se conservan.",
+    "draft_already_saved": "El guardado anterior ya se completó. Este borrador puede duplicar el contenido guardado. Descarte el borrador y vuelva a abrir el mapa guardado, o vuelva a subir la imagen si desea cambiarla.",
+    "staging": {
+      "missing_tiles": "No se pudo guardar el mapa porque faltan los datos temporales de la imagen del mapa. Vuelva a subir la imagen antes de guardar."
+    }
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

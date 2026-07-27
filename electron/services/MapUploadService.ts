@@ -15,8 +15,6 @@ import fileUrl from 'file-url';
 import { Jimp } from 'jimp';
 import { ProgressReporter } from '../utils/ProgressReporter';
 
-let outFolder: string;
-
 /**
  * 旧実装 thumbExtractor.make_thumbnail() 相当
  * 旧実装: 52px 以内に縮小した JPEG を生成
@@ -107,13 +105,16 @@ async function makeThumbnail512(
  *
  * @param win       - プログレス通知先 BrowserWindow
  * @param srcFile   - アップロード元画像ファイルパス
- * @param tmpFolder - 一時保存ルート（settings.tmpFolder）
+ * @param outFolder - 下書き staging dir（M12-T20 §6.1: 必ず共通バリデータ
+ *                    resolveDraftTileDir で解決済みのパスを handler から受け取る。
+ *                    imageCutter 自身はパスを組み立てない — assetUid='..' 等での
+ *                    親領域クリア事故の構造的排除）
  * @returns { width, height, url, imageExtension } or { err }
  */
 async function imageCutter(
     win: BrowserWindow,
     srcFile: string,
-    tmpFolder: string
+    outFolder: string
 ): Promise<{ width?: number; height?: number; url?: string; imageExtension?: string; err?: any }> {
     try {
         // 拡張子判定（旧実装と同じロジック）
@@ -123,8 +124,9 @@ async function imageCutter(
         let toExtKey = match[2].toLowerCase();
         if (toExtKey === 'jpeg') toExtKey = 'jpg';
 
-        // 旧実装: outFolder = ${tmpFolder}/tiles を毎回クリア
-        outFolder = path.resolve(tmpFolder, 'tiles');
+        // M12-T20 (§6.1): 自 dir のみをクリアして書く（旧実装の tmpFolder/tiles 全消しを置換。
+        // 単一スロット衝突の解消）。削除プリミティブは fs.remove（symlink 非追従。§6.1 の契約
+        // — fs.emptyDir 等リンク先へ降りるプリミティブは使わない）
         try {
             await fs.stat(outFolder);
             await fs.remove(outFolder);
@@ -221,7 +223,7 @@ async function imageCutter(
  */
 export async function showMapSelectDialog(
     win: BrowserWindow,
-    tmpFolder: string,
+    stagingDir: string,
     mapImageLabel: string
 ): Promise<{ width?: number; height?: number; url?: string; imageExtension?: string; err?: string }> {
     const ret = await dialog.showOpenDialog(win, {
@@ -235,5 +237,6 @@ export async function showMapSelectDialog(
         return { err: 'Canceled' };
     }
 
-    return await imageCutter(win, ret.filePaths[0], tmpFolder);
+    // M12-T20: stagingDir は IPC handler が resolveDraftTileDir で解決済み（§6.1）
+    return await imageCutter(win, ret.filePaths[0], stagingDir);
 }

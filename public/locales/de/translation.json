@@ -354,7 +354,12 @@
     "thumbnail_derive_52": "52px auch aus 512px erstellen",
     "thumbnail_replace_512": "512px ersetzen…",
     "thumbnail_replace_52": "52px ersetzen…",
-    "import_inline_poi_alert": "In der Karte eingebettete POI-Definitionen können nicht bearbeitet werden. Um diese POIs zu bearbeiten, wandeln Sie sie in GeoJSON um."
+    "import_inline_poi_alert": "In der Karte eingebettete POI-Definitionen können nicht bearbeitet werden. Um diese POIs zu bearbeiten, wandeln Sie sie in GeoJSON um.",
+    "draft_tiles_lost": "Die temporären Daten des Kartenbilds wurden nicht gefunden. Bitte laden Sie das Bild erneut hoch. Ihre übrigen Bearbeitungen (Passpunkte, Metadaten usw.) bleiben erhalten.",
+    "draft_already_saved": "Das vorherige Speichern wurde bereits abgeschlossen. Dieser Entwurf könnte den gespeicherten Inhalt duplizieren. Verwerfen Sie den Entwurf und öffnen Sie die gespeicherte Karte erneut, oder laden Sie das Bild erneut hoch, wenn Sie es ändern möchten.",
+    "staging": {
+      "missing_tiles": "Die Karte konnte nicht gespeichert werden, da die temporären Daten des Kartenbilds fehlen. Bitte laden Sie das Bild erneut hoch, bevor Sie speichern."
+    }
   },
   "mapupload": {
     "map_image": "Kartenbild",

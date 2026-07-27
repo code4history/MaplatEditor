@@ -12,7 +12,9 @@ export interface MapListAPI {
 export interface AssetDraftsAPI {
     put(draft: import('./types/assetDraft').AssetDraftEnvelope): Promise<void>;
     get(kind: import('./types/assetDraft').AssetDraftKind, assetUid: string): Promise<import('./types/assetDraft').AssetDraftEnvelope | null>;
-    remove(kind: import('./types/assetDraft').AssetDraftKind, assetUid: string): Promise<void>;
+    // M12-T20 (§5.1): keepStaging=true は envelope のみ削除し staging 物理削除を行わない
+    // (dirty→clean 遷移専用。残渣は起動時孤児 GC が回収)
+    remove(kind: import('./types/assetDraft').AssetDraftKind, assetUid: string, opts?: { keepStaging?: boolean }): Promise<void>;
     list(kind?: import('./types/assetDraft').AssetDraftKind): Promise<import('./types/assetDraft').AssetDraftSummary[]>;
     flushSync(draft: import('./types/assetDraft').AssetDraftEnvelope): { ok: boolean; error?: string };
 }
@@ -284,6 +286,8 @@ export interface MapEditAPI {
     downloadSaved(mapRef: string): Promise<'Success' | 'Canceled' | 'Error'>;
     // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
     uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
+    // M12-T20 (§5.1): 復元時ガード用の staging 実在照会
+    stagingStatus(url_: string, uid?: string): Promise<{ alive: boolean; savedTilesExist: boolean }>;
     getWmtsFolder(): Promise<any>;
     onProgress(listener: (progress: any) => void): () => void;
 }

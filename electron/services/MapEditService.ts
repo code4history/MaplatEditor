@@ -8,6 +8,8 @@ import * as storeHandler from '../utils/store_handler';
 import SettingsService from './SettingsService';
 import { normalizeOriginalExt, resolveRuntimeOriginal } from './MapOriginalImageService';
 import MapMutationQueue from './MapMutationQueue';
+// M12-T20 (§5.0/§5.1): 下書き staging (draft-tiles) のパス解決は共通バリデータのみを使う
+import { draftTileRoot, isDraftTileUrl, resolveStagingDirFromUrl } from './draftTilePaths';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
@@ -222,13 +224,36 @@ class MapEditService {
         const tmpUrl = fileUrl(tmpTileFolder);
 
         const regex = new RegExp(`^${tmpUrl}`);
+        // M12-T20: tmpCheck は後方互換（過去の正規形式 = 修正前に作られ tmp が生存している draft）
+        // のため存置する（§5.1）。新規アップロードは stagingCheck（draft-tiles）に乗る
         const tmpCheck = url_ && url_.match(regex);
 
-        // M13-T2 (§5.3): 新規原本アップロード(tmpCheck)で未対応拡張子なら、DB write に
-        // 一切触れる前に reject する。既存地図の更新(tmpCheck=false)は従来どおり legacy
+        // M12-T20 (§5.1/§6.2): 下書き staging (draft-tiles) 判定。移動元 dir の導出は
+        // 共通バリデータ resolveStagingDirFromUrl のみ（プレフィックス判定・包含検証とも同関数系。
+        // regex は使わない）。staging プレフィックス一致かつ導出 null は「DB write 前に Error」
+        // （§5.0 の表。正規フローで発生せず、利用者への対処も移動元不存在と同一 = 再アップロード）
+        const stagingUrlCandidate = isDraftTileUrl(draftTileRoot, url_);
+        const stagingDir = stagingUrlCandidate && url_ ? resolveStagingDirFromUrl(draftTileRoot, url_) : null;
+        if (stagingUrlCandidate && !stagingDir) {
+            return { result: 'Error', errorKey: 'mapedit.staging.missing_tiles' };
+        }
+        const stagingCheck = stagingDir !== null;
+
+        // M13-T2 (§5.3): 新規原本アップロード(tmpCheck/stagingCheck)で未対応拡張子なら、DB write に
+        // 一切触れる前に reject する。既存地図の更新(両検査とも false)は従来どおり legacy
         // imageExtension をそのまま使うため、この reject の対象外(AC-T2-3)
-        if (tmpCheck && normalizedExt === null) {
+        if ((tmpCheck || stagingCheck) && normalizedExt === null) {
             return { result: 'Error', errorKey: 'mapedit.originals.unsupported_extension' };
+        }
+
+        // M12-T20 (§6.5): 保存前実在ガード — 移動元が保存開始時点で既に消えている場合、
+        // DB に一切触れる前に明示 Error を返す（「DB 行だけコミットされ画像喪失」の根絶。
+        // M13-T2 の未対応拡張子 precheck と同型・同位置）
+        if (tmpCheck || stagingCheck) {
+            const moveSourceFolder = stagingCheck ? stagingDir! : tmpTileFolder;
+            if (!(await fs.pathExists(moveSourceFolder))) {
+                return { result: 'Error', errorKey: 'mapedit.staging.missing_tiles' };
+            }
         }
 
         // M13-T2 (§5.8): 同一 uid への save/rename/clone/delete/migration を直列化する。
@@ -341,21 +366,35 @@ class MapEditService {
             let newTileUrl: string | undefined;
             // --- ファイル操作 (DBコミット後・ここでの失敗はDBを巻き戻さない) ---
             try {
-                if (tmpCheck) {
+                if (tmpCheck || stagingCheck) {
                     // M13-T2 (§5.3): 新規原本アップロードは canonical(uid キー)へ書き込む。
-                    // normalizedExt は tmpCheck 分岐の直前で null チェック済みのため non-null
+                    // normalizedExt は 両検査分岐の直前で null チェック済みのため non-null
                     const canonicalOriginal = path.join(originalFolder, `${savedUid}.${normalizedExt}`);
-                    // tmpフォルダからの永続フォルダへの移動 (uidパス)
+                    // M12-T20 (§6.2): 移動元は stagingCheck なら共通バリデータで導出済みの
+                    // staging dir、後方互換 tmpCheck なら従来の tmp/tiles（移動ロジック自体は不変）
+                    const moveSourceFolder = stagingCheck ? stagingDir! : tmpTileFolder;
+                    // staging/tmp フォルダからの永続フォルダへの移動 (uidパス)
                     try { await fs.remove(newTile); } catch { /* noop */ }
-                    await fs.move(tmpTileFolder, newTile);
-                    // M12-T17 (§6.1 #2): tmp プレフィックス文字列置換方式。url_ は tmpCheck 判定
-                    // (225行) により regex(^tmpUrl) に必ずマッチすることが保証されているため、
-                    // 置換後は元の {z}/{x}/{y}.ext サフィックスがそのまま保持される。
-                    // 置換を関数形式にする(設計レビュー v2 Minor1): 第2引数が文字列だと
-                    // $&/$`/$'/$n が特殊置換パターンとして解釈され、saveFolder パスに $ が
-                    // 含まれる場合に恒久URLが破損する(実測確認済み)。関数形式なら戻り値が
-                    // そのままリテラルとして挿入されるため、この種の解釈は一切発生しない
-                    newTileUrl = url_!.replace(regex, () => fileUrl(newTile));
+                    await fs.move(moveSourceFolder, newTile);
+                    if (stagingCheck) {
+                        // M12-T20 (§6.2): staging 分岐の newTileUrl は regex を使わず
+                        // startsWith/slice 方式で構築する（M12-T19 clone 分岐と同方式。
+                        // パスに regex メタ文字や $ 特殊置換が含まれる環境での破損を構造的に排除）。
+                        // url_ は resolveStagingDirFromUrl 由来のため通常必ずプレフィックスに一致する
+                        const stagingUrlPrefix = fileUrl(stagingDir!) + '/';
+                        if (url_ && url_.startsWith(stagingUrlPrefix)) {
+                            newTileUrl = fileUrl(newTile) + '/' + url_.slice(stagingUrlPrefix.length);
+                        }
+                    } else {
+                        // M12-T17 (§6.1 #2): tmp プレフィックス文字列置換方式。url_ は tmpCheck 判定
+                        // により regex(^tmpUrl) に必ずマッチすることが保証されているため、
+                        // 置換後は元の {z}/{x}/{y}.ext サフィックスがそのまま保持される。
+                        // 置換を関数形式にする(M12-T17 設計レビュー v2 Minor1): 第2引数が文字列だと
+                        // $&/$`/$'/$n が特殊置換パターンとして解釈され、saveFolder パスに $ が
+                        // 含まれる場合に恒久URLが破損する(実測確認済み)。関数形式なら戻り値が
+                        // そのままリテラルとして挿入されるため、この種の解釈は一切発生しない
+                        newTileUrl = url_!.replace(regex, () => fileUrl(newTile));
+                    }
                     const tmpOriginal = path.join(newTile, `original.${normalizedExt}`);
                     try { await fs.remove(canonicalOriginal); } catch { /* noop */ }
                     if (await fs.pathExists(tmpOriginal)) {

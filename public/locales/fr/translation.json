@@ -354,7 +354,12 @@
     "thumbnail_derive_52": "Créer aussi le 52px depuis le 512px",
     "thumbnail_replace_512": "Remplacer le 512px…",
     "thumbnail_replace_52": "Remplacer le 52px…",
-    "import_inline_poi_alert": "Les définitions de POI intégrées à la carte ne sont pas modifiables. Pour modifier ces POI, convertissez-les en GeoJSON."
+    "import_inline_poi_alert": "Les définitions de POI intégrées à la carte ne sont pas modifiables. Pour modifier ces POI, convertissez-les en GeoJSON.",
+    "draft_tiles_lost": "Les données temporaires de l'image de la carte sont introuvables. Veuillez téléverser à nouveau l'image. Vos autres modifications (points de contrôle, métadonnées, etc.) sont conservées.",
+    "draft_already_saved": "L'enregistrement précédent est déjà terminé. Ce brouillon peut faire double emploi avec le contenu enregistré. Supprimez le brouillon et rouvrez la carte enregistrée, ou téléversez à nouveau l'image si vous souhaitez la modifier.",
+    "staging": {
+      "missing_tiles": "La carte n'a pas pu être enregistrée car les données temporaires de l'image de la carte sont manquantes. Veuillez téléverser à nouveau l'image avant d'enregistrer."
+    }
   },
   "mapupload": {
     "map_image": "Image de la carte",

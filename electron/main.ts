@@ -151,7 +151,41 @@ import { ipcMain } from 'electron'
 import SqliteDataService from './services/SqliteDataService'
 import { runManual } from './services/OriginalsMigrationService'
 
-app.whenReady().then(() => {
+// M12-T20 (§5.1/§6.3): 起動時孤児 GC
+import fs from 'fs-extra'
+import AssetDraftService from './services/AssetDraftService'
+import { draftTileRoot, resolveDraftTileDir } from './services/draftTilePaths'
+
+// M12-T20 (§5.1/§6.3): 下書きタイル staging 領域 (<draftTileRoot>/*) のうち、対応する
+// draft envelope が存在しない孤児 dir を起動時に回収する。ウィンドウ生成前に完了させるため、
+// save と並行して走ることは構造的にない（§6.5 の TOCTOU 受容論拠の前提）。
+// 削除パスの構築も共通バリデータ resolveDraftTileDir 経由に統一し、解決不能なエントリは
+// 削除せず warn に留める（誤削除より孤児残置を選ぶ — §5.0 の表）
+async function gcOrphanDraftTiles(): Promise<void> {
+  let entries: string[]
+  try {
+    entries = await fs.readdir(draftTileRoot)
+  } catch {
+    // 領域未作成（初回起動等）は何もしない
+    return
+  }
+  for (const entry of entries) {
+    const stagingDir = resolveDraftTileDir(draftTileRoot, entry)
+    if (!stagingDir) {
+      console.warn(`[draft-tiles GC] skip unresolvable entry: ${JSON.stringify(entry)}`)
+      continue
+    }
+    try {
+      if (AssetDraftService.get('map', entry)) continue
+      // fs.remove は symlink 非追従（§6.1 の削除プリミティブ契約）
+      await fs.remove(stagingDir)
+    } catch (e) {
+      console.warn(`[draft-tiles GC] failed to collect ${stagingDir}:`, e)
+    }
+  }
+}
+
+app.whenReady().then(async () => {
   // HMR時の「2重登録」エラーを防ぐため、既存ハンドラを事前に解除する
   ipcMain.removeHandler('settings:get')
   ipcMain.removeHandler('settings:set')
@@ -165,6 +199,7 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('mapedit:set-base-map-visibility')
   ipcMain.removeHandler('mapedit:updateTin')
   ipcMain.removeHandler('mapedit:save')
+  ipcMain.removeHandler('mapedit:stagingStatus')
   ipcMain.removeHandler('mapedit:checkExtentMap')
   ipcMain.removeHandler('mapupload:showMapSelectDialog')
   ipcMain.removeHandler('mapedit:getWmtsFolder')
@@ -235,6 +270,8 @@ app.whenReady().then(() => {
   registerImageAssetHandlers()
   registerSlugReservationHandlers()
   registerSearchHandlers()
+  // M12-T20 (§6.3): 孤児 staging の回収はウィンドウ生成前に完了させる（save と並行させない）
+  await gcOrphanDraftTiles()
   createWindow()
   setupMenu()
 

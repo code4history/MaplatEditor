@@ -357,7 +357,12 @@
     "thumbnail_derive_52": "512pxから52pxも作成する",
     "thumbnail_replace_512": "512pxを置換…",
     "thumbnail_replace_52": "52pxを置換…",
-    "import_inline_poi_alert": "地図内定義型のPOI指定は編集に対応していません。POIを編集する場合は、POIをGeoJSONに変換してください。"
+    "import_inline_poi_alert": "地図内定義型のPOI指定は編集に対応していません。POIを編集する場合は、POIをGeoJSONに変換してください。",
+    "draft_tiles_lost": "地図画像の一時データが見つかりません。画像を再アップロードしてください。他の編集内容（対応点・メタデータなど）は保持されています。",
+    "draft_already_saved": "前回の保存は完了しています。この下書きは保存済みの内容と重複している可能性があります。下書きを破棄して保存済みの地図を開き直すか、画像を変更する場合は再アップロードしてください。",
+    "staging": {
+      "missing_tiles": "地図画像の一時データが見つからないため保存できませんでした。画像を再アップロードしてから保存してください。"
+    }
   },
   "mapupload": {
     "map_image": "地図画像",

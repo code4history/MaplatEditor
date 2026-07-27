@@ -348,7 +348,12 @@
     "thumbnail_derive_52": "Also create 52px from 512px",
     "thumbnail_replace_512": "Replace 512px…",
     "thumbnail_replace_52": "Replace 52px…",
-    "import_inline_poi_alert": "Map-embedded POI definitions are not editable. To edit these POIs, convert them to GeoJSON."
+    "import_inline_poi_alert": "Map-embedded POI definitions are not editable. To edit these POIs, convert them to GeoJSON.",
+    "draft_tiles_lost": "The temporary data for the map image could not be found. Please upload the image again. Your other edits (control points, metadata, etc.) are preserved.",
+    "draft_already_saved": "The previous save has already completed. This draft may duplicate the saved content. Discard the draft and reopen the saved map, or upload the image again if you want to change it.",
+    "staging": {
+      "missing_tiles": "The map could not be saved because the temporary data for the map image is missing. Please upload the image again before saving."
+    }
   },
   "mapupload": {
     "map_image": "Map Image",

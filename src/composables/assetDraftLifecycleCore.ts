@@ -19,7 +19,8 @@ interface DraftIdentity {
 
 interface AssetDraftCoreApi {
   put(draft: AssetDraftEnvelope): Promise<void>;
-  remove(kind: AssetDraftKind, assetUid: string): Promise<void>;
+  // M12-T20 (§5.1): opts.keepStaging=true は envelope のみ削除（staging 物理削除なし）
+  remove(kind: AssetDraftKind, assetUid: string, opts?: { keepStaging?: boolean }): Promise<void>;
   flushSync(draft: AssetDraftEnvelope): { ok: boolean; error?: string };
 }
 
@@ -74,11 +75,14 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
     }
   };
 
-  const removePersisted = async () => {
+  // M12-T20 (§5.1): keepStaging=true は dirty→clean 遷移（Undo で振出しに戻る等）専用。
+  // envelope のみ即時削除し staging dir は残置する（セッション内 Redo → 保存の生存。AC20-9）。
+  // Redo せず hot exit した残渣は次回起動時の孤児 GC が回収する（§6.3）
+  const removePersisted = async (keepStaging = false) => {
     const target = identity ? { ...identity } : null;
     if (!target) return;
     if (pendingPersist) await pendingPersist.catch(() => undefined);
-    await options.api.remove(target.kind, target.assetUid);
+    await options.api.remove(target.kind, target.assetUid, keepStaging ? { keepStaging: true } : undefined);
   };
 
   return {
@@ -98,7 +102,10 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
         // D9/S7a (M11-T7/AC10): dirty→clean 遷移(Undo 等の checkpoint clean)で
         // 永続 draft を即時除去し、再起動時の draft 復活を防ぐ。store が正になるだけで、
         // T5 の liveDraftOverrides/reconcile 契約は不変。
-        if (wasDirty && identity) void removePersisted();
+        // M12-T20 (§6.3/AC20-9): この契機のみ keepStaging=true — staging dir を残置し、
+        // セッション内 Redo → 保存を退行させない（履歴は in-memory のためセッションを跨いだ
+        // Redo は構造的に成立せず、残渣は次回起動時孤児 GC が回収する）
+        if (wasDirty && identity) void removePersisted(true);
         return;
       }
       if (!identity) return;

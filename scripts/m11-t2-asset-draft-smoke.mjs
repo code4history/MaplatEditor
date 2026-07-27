@@ -359,17 +359,22 @@ try {
     'electron/services/runtimeStoragePaths.ts',
     'runtimeStoragePaths.mjs',
   );
-  assert.deepEqual(resolveRuntimeStoragePaths(undefined, '/real/default'), {
+  // M12-T20 (§5.1): resolveRuntimeStoragePaths は必須第3引数 defaultDraftTileRoot を取り、
+  // 戻り値に draftTileRoot を含む。非隔離側は引数パススルー、隔離側は
+  // <e2eRoot>/draft-tiles を返す契約（electron/services/runtimeStoragePaths.ts）
+  assert.deepEqual(resolveRuntimeStoragePaths(undefined, '/real/default', '/real/draft-tiles'), {
     isolated: false,
     saveFolder: '/real/default',
     settingsStoreCwd: undefined,
     assetDraftStoreCwd: undefined,
+    draftTileRoot: '/real/draft-tiles',
   });
-  assert.deepEqual(resolveRuntimeStoragePaths('/tmp/maplat-e2e', '/real/default'), {
+  assert.deepEqual(resolveRuntimeStoragePaths('/tmp/maplat-e2e', '/real/default', '/real/draft-tiles'), {
     isolated: true,
     saveFolder: path.resolve('/tmp/maplat-e2e/save-folder'),
     settingsStoreCwd: path.resolve('/tmp/maplat-e2e/electron-store/settings'),
     assetDraftStoreCwd: path.resolve('/tmp/maplat-e2e/electron-store/asset-drafts'),
+    draftTileRoot: path.resolve('/tmp/maplat-e2e/draft-tiles'),
   });
   const settingsSource = await readFile(path.join(projectRoot, 'electron/services/SettingsService.ts'), 'utf8');
   assert.match(settingsSource, /MAPLAT_E2E_ROOT/);

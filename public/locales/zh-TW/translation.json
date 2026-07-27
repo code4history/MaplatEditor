@@ -354,7 +354,12 @@
     "thumbnail_derive_52": "同時從512px建立52px",
     "thumbnail_replace_512": "取代512px…",
     "thumbnail_replace_52": "取代52px…",
-    "import_inline_poi_alert": "地圖內定義的 POI 指定不支援編輯。若要編輯 POI，請將 POI 轉換為 GeoJSON。"
+    "import_inline_poi_alert": "地圖內定義的 POI 指定不支援編輯。若要編輯 POI，請將 POI 轉換為 GeoJSON。",
+    "draft_tiles_lost": "找不到地圖圖像的暫存資料。請重新上傳圖像。您的其他編輯內容（控制點、中繼資料等）已保留。",
+    "draft_already_saved": "上一次儲存已完成。此草稿可能與已儲存的內容重複。請捨棄草稿並重新開啟已儲存的地圖，或如需更換圖像請重新上傳。",
+    "staging": {
+      "missing_tiles": "由於缺少地圖圖像的暫存資料，無法儲存地圖。請重新上傳圖像後再儲存。"
+    }
   },
   "mapupload": {
     "map_image": "地圖圖像",

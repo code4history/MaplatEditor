@@ -48,8 +48,11 @@ async function saveFolderOf(page: Page): Promise<string> {
   return page.evaluate(() => window.settings.get('saveFolder'));
 }
 
-async function tmpFolderOf(page: Page): Promise<string> {
-  return page.evaluate(() => window.settings.get('tmpFolder'));
+// M12-T20: アップロード staging は揮発 tmp から永続 <e2eRoot>/draft-tiles/<assetUid> へ移行した。
+// 本 spec の「保存前は staging、保存後は恒久パス」という AC の意味は不変のまま、
+// 期待値のみ staging パスへ更新している（新規=draftUid、差し替え=地図 uid が staging キー）
+async function draftUidOf(page: Page): Promise<string | null> {
+  return page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
 }
 
 async function urlOf(page: Page): Promise<string | undefined> {
@@ -138,33 +141,35 @@ test.describe('M12-T17 保存直後のタイル参照リフレッシュ', () => 
       // 実 imageCutter を走らせる (dialog harness 経由の実 UI 操作)
       await uploadImageViaUi(page, app, imagePath);
 
-      const tmpFolder = await tmpFolderOf(page);
+      const draftTileRoot = path.join(e2eRoot, 'draft-tiles');
+      const draftUid = await draftUidOf(page);
+      expect(draftUid).toBeTruthy();
+      const stagingTileDir = path.join(draftTileRoot, draftUid!);
       const saveFolder = await saveFolderOf(page);
       const urlBeforeSave = await urlOf(page);
       expect(urlBeforeSave).toBeTruthy();
-      expect(urlBeforeSave).toContain(path.join(tmpFolder, 'tiles'));
+      expect(urlBeforeSave).toContain(stagingTileDir);
       const sourceIdBeforeSave = await tileSourceIdentity(page);
 
       // 保存 (確認ダイアログ・成功ダイアログは stub 済みで自動応答)
       await saveAndWaitUidAssigned(page);
       const uid: string = await page.evaluate(() => (window as any).testDebug.mapData.value.uid);
 
-      // AC3: 保存直後、url_ は恒久パス(tiles/{uid}/...)を指し、旧tmpパスを指さない
+      // AC3: 保存直後、url_ は恒久パス(tiles/{uid}/...)を指し、旧stagingパスを指さない
       await expect.poll(async () => urlOf(page), { timeout: 15_000 }).not.toBe(urlBeforeSave);
       const urlAfterSave = await urlOf(page);
       expect(urlAfterSave).toBeTruthy();
-      expect(urlAfterSave).not.toContain(tmpFolder);
+      expect(urlAfterSave).not.toContain(draftTileRoot);
       const permanentTileDir = path.join(saveFolder, 'tiles', uid);
       expect(urlAfterSave!.replace(/\\/g, '/')).toContain(encodeURI(permanentTileDir.replace(/\\/g, '/')));
 
       // AC2: タイルソースが実際に再生成されている(遷移なしで表示が壊れないことの直接的根拠)
       await expect.poll(async () => tileSourceIdentity(page), { timeout: 15_000 }).not.toBe(sourceIdBeforeSave);
 
-      // バックエンドのファイル移動が完了していること(disk実態、旧tmp参照残りの直接確認)
+      // バックエンドのファイル移動が完了していること(disk実態、旧staging参照残りの直接確認)
       const permanentTileStat = await stat(permanentTileDir).catch(() => null);
       expect(permanentTileStat?.isDirectory()).toBe(true);
-      const tmpTileDir = path.join(tmpFolder, 'tiles');
-      await expect.poll(async () => stat(tmpTileDir).then(() => true).catch(() => false), { timeout: 5_000 }).toBe(false);
+      await expect.poll(async () => stat(stagingTileDir).then(() => true).catch(() => false), { timeout: 5_000 }).toBe(false);
 
       console.log('  AC2/AC3 (new map): PASS');
     } finally {
@@ -189,17 +194,19 @@ test.describe('M12-T17 保存直後のタイル参照リフレッシュ', () => 
 
       await uploadImageViaUi(page, app, replaceImagePath);
 
-      const tmpFolder = await tmpFolderOf(page);
+      // M12-T20: 既存地図の画像差し替えの staging キーは地図 uid（draft キーと同一値）
+      const draftTileRoot = path.join(e2eRoot, 'draft-tiles');
+      const stagingTileDir = path.join(draftTileRoot, uid);
       const saveFolder = await saveFolderOf(page);
       const urlBeforeSave = await urlOf(page);
-      expect(urlBeforeSave).toContain(path.join(tmpFolder, 'tiles'));
+      expect(urlBeforeSave).toContain(stagingTileDir);
 
       await saveAndWaitUidAssigned(page);
 
       await expect.poll(async () => urlOf(page), { timeout: 15_000 }).not.toBe(urlBeforeSave);
       const urlAfterSave = await urlOf(page);
       expect(urlAfterSave).toBeTruthy();
-      expect(urlAfterSave).not.toContain(tmpFolder);
+      expect(urlAfterSave).not.toContain(draftTileRoot);
 
       const permanentTileDir = path.join(saveFolder, 'tiles', uid);
       const permanentTileStat = await stat(permanentTileDir).catch(() => null);
