@@ -1,6 +1,9 @@
 // M13-T5 (AC-T5-3): 旧バージョン形状データフォルダからの実 Electron 起動による
-// 起動時 migration パイプライン(legacy migration → thumbnail-512 mining → trash reconcile →
+// 起動時 migration パイプライン(legacy migration → thumbnail-512 mining →
 // originals UUID migration)の一気通貫検証。
+// (M12-T18: 旧段階3 trash reconcile は独自 trash の廃止に伴い撤去され、パイプラインは
+// 4段階 → 3段階になった。本 spec の assert はマーカー(段階1/2)と originals migration
+// 結果のみで reconcile に依存しないため、挙動改修なし・コメントのみ追随)
 // tests/e2e/m13-t2-single-instance-lock.spec.ts と同一パターン(mkdtemp + MAPLAT_E2E_ROOT +
 // --user-data-dir 必須)を踏襲する。フィクスチャは tests/fixtures/m13-t5-migration-pipeline/
 // 配下の実データ由来コピー(takabatake_kozu1/2、人間承認済み)+ 合成タイルを使う。
@@ -73,7 +76,7 @@ test('M13-T5: legacy migration -> thumbnail-512 mining -> originals UUID migrati
     await page.waitForLoadState('domcontentloaded');
 
     // --- §5.6 手順5: 同期点。window.maplist.request() の resolve は内部で
-    // SqliteDataService.getDb() を要求するため、resolve 時点で migrate() の4段階すべてが
+    // SqliteDataService.getDb() を要求するため、resolve 時点で migrate() の3段階すべてが
     // 完了していることが保証される(positional 契約: request(query, page, pageSize)) ---
     const result: any = await page.evaluate(() => (window as any).maplist.request('', 1, 50));
     const byMapID: Record<string, string> = Object.fromEntries(

@@ -92,6 +92,11 @@ try {
       export const BrowserWindow = class {
         static getAllWindows() { return [fakeWindow]; }
       };
+      // M12-T18: バンドルに含まれる MapDeleteTrashService が shell を named import するため
+      // export が必要 (本 smoke は trashItem を呼ばないので no-op で可)
+      export const shell = {
+        trashItem(_path: string) { return Promise.resolve(); },
+      };
     `
   );
   await writeFile(
