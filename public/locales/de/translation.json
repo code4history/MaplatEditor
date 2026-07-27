@@ -787,6 +787,9 @@
     "icon_clear": "Leeren",
     "icon_unresolved_set": "Unbekanntes Icon-Set",
     "icon_asset_missing": "Das referenzierte Bild-Asset wurde nicht gefunden",
+    "layer_metadata": "Layer-Metadaten",
+    "layer_icon": "Layer-Symbol",
+    "layer_selected_icon": "Layer-Symbol (ausgewählt)",
     "picker": {
       "title_icon": "Icon auswählen",
       "title_image": "Bild auswählen",

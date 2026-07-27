@@ -787,6 +787,9 @@
     "icon_clear": "Effacer",
     "icon_unresolved_set": "Jeu d'icônes inconnu",
     "icon_asset_missing": "La ressource d'image référencée est introuvable",
+    "layer_metadata": "Métadonnées de couche",
+    "layer_icon": "Icône de couche",
+    "layer_selected_icon": "Icône de couche (sélectionnée)",
     "picker": {
       "title_icon": "Sélectionner une icône",
       "title_image": "Sélectionner une image",

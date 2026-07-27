@@ -792,6 +792,9 @@
     "icon_clear": "クリア",
     "icon_unresolved_set": "未解決のアイコンセット",
     "icon_asset_missing": "参照先のアセットが見つかりません",
+    "layer_metadata": "レイヤ メタデータ",
+    "layer_icon": "レイヤ アイコン",
+    "layer_selected_icon": "レイヤ 選択中アイコン",
     "picker": {
       "title_icon": "アイコンを選択",
       "title_image": "画像を選択",

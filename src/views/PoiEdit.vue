@@ -113,7 +113,31 @@
               </option>
             </select>
           </div>
-          <div class="col-12 d-flex align-items-center justify-content-end gap-2">
+        </div>
+        <!-- M17-T1: layer metadata 編集フィールド (icon/selectedIcon) + featureCount/rawPane 統合 -->
+        <div class="mt-1 mb-1">
+          <span class="fw-bold small text-muted">{{ t("poiedit.layer_metadata") }}</span>
+        </div>
+        <div class="row align-items-start g-2">
+          <div class="col-4" data-testid="layer-icon">
+            <IconRefField
+              ref="layerIconFieldRef"
+              :model-value="layerIconValue"
+              :label="t('poiedit.layer_icon')"
+              :read-only="readOnly || translationMode"
+              @update:model-value="onLayerIconChange"
+            />
+          </div>
+          <div class="col-4" data-testid="layer-selected-icon">
+            <IconRefField
+              ref="layerSelectedIconFieldRef"
+              :model-value="layerSelectedIconValue"
+              :label="t('poiedit.layer_selected_icon')"
+              :read-only="readOnly || translationMode"
+              @update:model-value="onLayerSelectedIconChange"
+            />
+          </div>
+          <div class="col-4 d-flex align-items-center justify-content-end gap-2">
             <span class="text-muted small">{{ featureCount }} {{ t("poisource.features") }}</span>
             <button
               type="button"
@@ -221,6 +245,7 @@ import PoiAttributeForm from "../components/PoiAttributeForm.vue";
 import PoiEditMap from "../components/PoiEditMap.vue";
 import PoiFeatureList from "../components/PoiFeatureList.vue";
 import PoiRawPane from "../components/PoiRawPane.vue";
+import IconRefField from "../components/IconRefField.vue";
 import SlugField from "../components/editor-ui/SlugField.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import type { DiagnosticItem } from "../components/editor-ui/editorUiTypes";
@@ -259,9 +284,38 @@ const router = useRouter();
 const currentLang = ref<LangCode>(resolveEditorLanguage(i18next.language));
 
 const session = usePoiEditSession();
-const { state: editState, isDirty, canUndo, canRedo } = session;
+const { state: editState, isDirty, canUndo, canRedo, patchLayerMeta } = session;
 const translationMode = computed(() =>
   isTranslationMode(currentLang.value, editState.value?.lang),
+);
+
+// M17-T1: layer metadata 編集フィールド (icon/selectedIcon/hide)
+const layerIconFieldRef = ref<InstanceType<typeof IconRefField> | null>(null);
+const layerSelectedIconFieldRef = ref<InstanceType<typeof IconRefField> | null>(null);
+
+const layerIconValue = computed<string>(() => {
+  const v = editState.value?.layerMeta?.icon;
+  return typeof v === "string" ? v : "";
+});
+const layerSelectedIconValue = computed<string>(() => {
+  const v = editState.value?.layerMeta?.selectedIcon;
+  return typeof v === "string" ? v : "";
+});
+
+const onLayerIconChange = (value: string): void => {
+  if (value === layerIconValue.value) return;
+  patchLayerMeta({ icon: value });
+};
+const onLayerSelectedIconChange = (value: string): void => {
+  if (value === layerSelectedIconValue.value) return;
+  patchLayerMeta({ selectedIcon: value });
+};
+
+// M17-T1: pickerOpen 中のグローバルキー抑止
+const isIconPickerOpen = computed(
+  () =>
+    !!layerIconFieldRef.value?.pickerOpen ||
+    !!layerSelectedIconFieldRef.value?.pickerOpen,
 );
 
 // 地図ペイン (panTo / fitInitialView を expose。Task 8 の一覧選択からも使う)
@@ -925,7 +979,7 @@ const isInputTarget = (event: KeyboardEvent): boolean => {
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
-  if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2 + M17-T1)
   if (!(event.metaKey || event.ctrlKey)) return;
   const key = event.key.toLowerCase();
   if (key === "s") {
@@ -952,7 +1006,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 // 選択中 feature の Delete キー削除 (仕様 §4)。ReadOnly では無効。
 // macOS のフルキーボードでない Delete キーは event.key === "Backspace" なので両方受ける
 const onDeleteKeydown = (event: KeyboardEvent) => {
-  if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2 + M17-T1)
   if (saveHandle.saving.value || exporting.value || cloning.value) return; // Busy中は編集操作を抑止
   if (event.key !== "Delete" && event.key !== "Backspace") return;
   if (isInputTarget(event)) return;
@@ -966,7 +1020,7 @@ const onDeleteKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
-  if (attrForm.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2)
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2 + M17-T1)
   // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
   // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
   if (isEditableElement(document.activeElement)) return;

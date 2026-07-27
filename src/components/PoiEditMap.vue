@@ -46,6 +46,7 @@ import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
 import { localizeTitle } from "../utils/langResource";
 import { listIconSets, parseIconRef } from "../utils/iconRefs";
+import { resolveIconPair, resolveDisplayIcon } from "../utils/poiMarkerStyle";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
 
 const props = defineProps<{
@@ -221,12 +222,18 @@ const iconRefStyle = (refString: string): Style | null => {
   return style;
 };
 
-// feature のスタイル決定: 通常時は icon (無ければ青ピン)、選択中は selectedIcon
-// (無ければ赤ピン)。viewer と同じ「icon ⇄ selectedIcon 切替」の意味論
-const markerStyle = (properties: any, selected: boolean): Style => {
-  const raw = selected ? properties?.selectedIcon : properties?.icon;
-  if (typeof raw === "string" && raw.trim() !== "") {
-    const style = iconRefStyle(raw.trim());
+// feature のスタイル決定: viewer (MaplatCore createIconSet + setMarker) と整合する
+// icon 起点ペア継承モデル。feature.icon があれば feature ペアを使用、なければ layerMeta
+// ペアを継承。選択時も resolved icon を維持し、赤ピンは icon 不在時のみ（v1.4 α）。
+const markerStyle = (
+  properties: any,
+  selected: boolean,
+  layerMeta: Record<string, unknown>,
+): Style => {
+  const pair = resolveIconPair(properties, layerMeta);
+  const displayIcon = resolveDisplayIcon(pair, selected);
+  if (displayIcon) {
+    const style = iconRefStyle(displayIcon);
     if (style) return style;
   }
   return pinStyle(selected);
@@ -263,6 +270,7 @@ const redrawMarkers = (): void => {
   markerSource.clear();
   const state = session.state.value;
   if (!state) return;
+  const layerMeta = state.layerMeta;
   for (const feature of state.features) {
     const uid = feature.properties?._maplatUid;
     const coords = feature.geometry?.coordinates;
@@ -271,7 +279,7 @@ const redrawMarkers = (): void => {
     map.setMarker(
       merc,
       { _maplatUid: uid },
-      markerStyle(feature.properties, uid === session.selectedUid.value),
+      markerStyle(feature.properties, uid === session.selectedUid.value, layerMeta),
       "marker",
     );
   }
@@ -285,15 +293,17 @@ watch(session.selectedUid, (uid) => {
   if (!markerSource) return;
   // icon/selectedIcon の解決に session 側 properties が要るため uid → properties の
   // 索引を 1 回だけ作る (feature ごとの find は 3000 件で O(n^2) になるため)
+  const state = session.state.value;
+  const layerMeta = state?.layerMeta ?? {};
   const propsByUid = new Map<string, any>();
-  for (const f of session.state.value?.features ?? []) {
+  for (const f of state?.features ?? []) {
     const fuid = f.properties?._maplatUid;
     if (typeof fuid === "string") propsByUid.set(fuid, f.properties);
   }
   for (const feature of markerSource.getFeatures()) {
     const fuid = featureUid(feature);
     feature.setStyle(
-      markerStyle(fuid ? propsByUid.get(fuid) : undefined, fuid === uid),
+      markerStyle(fuid ? propsByUid.get(fuid) : undefined, fuid === uid, layerMeta),
     );
   }
   if (uid) panToIfOffscreen(uid);

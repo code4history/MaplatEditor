@@ -787,6 +787,9 @@
     "icon_clear": "清除",
     "icon_unresolved_set": "未知的圖示集",
     "icon_asset_missing": "找不到引用的素材",
+    "layer_metadata": "圖層中繼資料",
+    "layer_icon": "圖層圖示",
+    "layer_selected_icon": "圖層選取圖示",
     "picker": {
       "title_icon": "選擇圖示",
       "title_image": "選擇圖片",

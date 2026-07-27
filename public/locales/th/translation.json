@@ -787,6 +787,9 @@
     "icon_clear": "ล้าง",
     "icon_unresolved_set": "ไม่รู้จักชุดไอคอนนี้",
     "icon_asset_missing": "ไม่พบรูปภาพที่ถูกอ้างอิง",
+    "layer_metadata": "ข้อมูลเมตาดาต้าของชั้น",
+    "layer_icon": "ไอคอนชั้น",
+    "layer_selected_icon": "ไอคอนชั้น (เลือกแล้ว)",
     "picker": {
       "title_icon": "เลือกไอคอน",
       "title_image": "เลือกรูปภาพ",

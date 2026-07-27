@@ -787,6 +787,9 @@
     "icon_clear": "Hapus",
     "icon_unresolved_set": "Set ikon tidak dikenal",
     "icon_asset_missing": "Aset gambar yang dirujuk tidak ditemukan",
+    "layer_metadata": "Metadata Layer",
+    "layer_icon": "Ikon Layer",
+    "layer_selected_icon": "Ikon Layer (dipilih)",
     "picker": {
       "title_icon": "Pilih ikon",
       "title_image": "Pilih gambar",
