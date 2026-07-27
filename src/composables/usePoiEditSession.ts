@@ -40,6 +40,8 @@ export interface PoiEditSession {
   removeFeature(uid: string): void;
   moveFeature(uid: string, lngLat: [number, number]): void;
   patchFeatureProperties(uid: string, patch: Record<string, unknown>): void;
+  /** layer metadata (icon/selectedIcon/hide 等) を patch する。1 commit = 1 Undo 単位。 */
+  patchLayerMeta(patch: Record<string, unknown>): void;
   undo(): void;
   redo(): void;
   /** resetHistoryBase 相当 (UndoStack.save(): 履歴を現在 snapshot 1 件へ再基準化) */
@@ -205,6 +207,12 @@ export function usePoiEditSession(): PoiEditSession {
     });
   };
 
+  const patchLayerMeta = (patch: Record<string, unknown>): void => {
+    commit((draft) => {
+      draft.layerMeta = { ...draft.layerMeta, ...patch };
+    });
+  };
+
   const undo = (): void => {
     if (!stack) return;
     stack.undo();
@@ -247,6 +255,7 @@ export function usePoiEditSession(): PoiEditSession {
     removeFeature,
     moveFeature,
     patchFeatureProperties,
+    patchLayerMeta,
     undo,
     redo,
     markSaved,

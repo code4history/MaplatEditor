@@ -787,6 +787,10 @@
     "icon_clear": "Clear",
     "icon_unresolved_set": "Unknown icon set",
     "icon_asset_missing": "The referenced image asset was not found",
+    "layer_metadata": "Layer Metadata",
+    "layer_icon": "Layer Icon",
+    "layer_selected_icon": "Layer Selected Icon",
+    "layer_hide": "Hide Layer",
     "picker": {
       "title_icon": "Select an icon",
       "title_image": "Select an image",

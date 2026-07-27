@@ -157,6 +157,33 @@ try {
     console.log('  case 4 (moveFeature/removeFeature one undo each + unknown uid no-op): PASS');
   }
 
+  // ④b patchLayerMeta: 1 commit = 1 undo 単位
+  {
+    const session = loadSession();
+    session.patchLayerMeta({ icon: 'builtin:defaultpin' });
+    assert.equal(session.state.value.layerMeta.icon, 'builtin:defaultpin');
+    assert.equal(session.canUndo.value, true);
+    session.undo();
+    assert.equal(session.state.value.layerMeta.icon, undefined, 'undo must revert patchLayerMeta');
+    assert.equal(session.canUndo.value, false, 'one patchLayerMeta = one undo unit');
+    console.log('  case 4b (patchLayerMeta = one undo unit): PASS');
+  }
+
+  // ④c patchLayerMeta が未変更キーを保持（round-trip）
+  {
+    const session = loadSession();
+    session.patchLayerMeta({ icon: 'builtin:defaultpin' });
+    assert.equal(session.state.value.layerMeta.icon, 'builtin:defaultpin');
+    assert.deepEqual(session.state.value.layerMeta.name, { ja: 'レイヤ名' }, 'other keys must be preserved');
+    assert.deepEqual(session.state.value.layerMeta.customMeta, { keep: true }, 'unknown keys must be preserved');
+    // toSaveFc でも round-trip
+    const fc = session.toSaveFc();
+    assert.equal(fc.icon, 'builtin:defaultpin');
+    assert.deepEqual(fc.name, { ja: 'レイヤ名' });
+    assert.deepEqual(fc.customMeta, { keep: true });
+    console.log('  case 4c (patchLayerMeta preserves other keys + toSaveFc round-trip): PASS');
+  }
+
   // ⑤ structural sharing: 2 feature 中 1 つを patch → 未変更 feature はオブジェクト同一（===）
   {
     const session = loadSession();

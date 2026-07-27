@@ -782,6 +782,10 @@
     "icon_clear": "Borrar",
     "icon_unresolved_set": "Conjunto de iconos desconocido",
     "icon_asset_missing": "No se encontró el recurso de imagen referenciado",
+    "layer_metadata": "Metadatos de capa",
+    "layer_icon": "Icono de capa",
+    "layer_selected_icon": "Icono de capa (seleccionado)",
+    "layer_hide": "Ocultar capa",
     "picker": {
       "title_icon": "Seleccionar un icono",
       "title_image": "Seleccionar una imagen",

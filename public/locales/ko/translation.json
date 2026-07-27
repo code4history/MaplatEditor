@@ -782,6 +782,10 @@
     "icon_clear": "지우기",
     "icon_unresolved_set": "알 수 없는 아이콘 세트",
     "icon_asset_missing": "참조된 에셋을 찾을 수 없습니다",
+    "layer_metadata": "레이어 메타데이터",
+    "layer_icon": "레이어 아이콘",
+    "layer_selected_icon": "레이어 아이콘 (선택됨)",
+    "layer_hide": "레이어 숨기기",
     "picker": {
       "title_icon": "아이콘 선택",
       "title_image": "이미지 선택",

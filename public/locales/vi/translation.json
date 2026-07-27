@@ -782,6 +782,10 @@
     "icon_clear": "Xóa",
     "icon_unresolved_set": "Bộ biểu tượng không xác định",
     "icon_asset_missing": "Không tìm thấy tài nguyên ảnh được tham chiếu",
+    "layer_metadata": "Siêu dữ liệu lớp",
+    "layer_icon": "Biểu tượng lớp",
+    "layer_selected_icon": "Biểu tượng lớp (đã chọn)",
+    "layer_hide": "Ẩn lớp",
     "picker": {
       "title_icon": "Chọn biểu tượng",
       "title_image": "Chọn hình ảnh",
