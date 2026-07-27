@@ -53,6 +53,7 @@ import type { SlugFieldState } from "../composables/useSlugAvailability";
 import { runEditorExportDecision } from "../composables/useEditorExportDecision";
 import { isEditableElement } from "../utils/nativeTextUndo";
 import { isTranslationMode } from "../utils/editorLanguageMode";
+import { navigateBackToList } from "../utils/listBackNavigation";
 import type { AppSaveResult } from "../electron";
 
 import {
@@ -733,14 +734,9 @@ function localizedWithLang(value: any, lang: string): string {
 
 async function goBack() {
   await draftLifecycle.flush();
-  // 直前の履歴がアプリ一覧なら router.back()（?q= 等のクエリ保持 → backCache 復元が発火）。
-  // それ以外（直接編集画面を開いた等）は一覧へ push フォールバック。
-  const back = router.options.history.state.back as string | null;
-  if (typeof back === 'string' && back.startsWith('/applist')) {
-    router.back();
-    return;
-  }
-  await router.push("/applist");
+  // m12-t31: 一覧への遷移は navigateBackToList（router.push 一本）に統一する
+  // （preview iframe 内の Maplat viewer が joint session history を汚染するため）。
+  await navigateBackToList(router, "/applist");
 }
 
 function resetHistoryBase() {
