@@ -5,6 +5,7 @@ import SqliteDataService from './SqliteDataService';
 import SearchDataService, { type MapListResult } from './SearchDataService';
 import { resolveMapListImage } from './resourceImageResolver';
 import { deleteMapWithTrash } from './MapDeleteTrashService';
+import { hasStrictError } from './MapEditService';
 
 class MapDataService {
   private get folders() {
@@ -30,7 +31,7 @@ class MapDataService {
         const width = doc.width || (doc.compiled && doc.compiled.wh && doc.compiled.wh[0]);
         const height = doc.height || (doc.compiled && doc.compiled.wh && doc.compiled.wh[1]);
 
-        const previewDisabled = this.isPreviewDisabled(doc);
+        const previewDisabled = hasStrictError(doc);
         const res: any = {
             mapID,
             uid: doc.uid,
@@ -62,15 +63,6 @@ class MapDataService {
     }));
 
     return { ...rawResult, docs };
-  }
-
-  private isPreviewDisabled(doc: any): boolean {
-    if (this.isStrictErrorCompiled(doc.compiled)) return true;
-    return Array.isArray(doc.sub_maps) && doc.sub_maps.some((subMap: any) => this.isStrictErrorCompiled(subMap.compiled));
-  }
-
-  private isStrictErrorCompiled(compiled: any): boolean {
-    return compiled?.strict_status === 'strict_error' || Boolean(compiled?.kinks_points);
   }
 
   async searchExtent(extent: number[]): Promise<string[]> {

@@ -271,7 +271,10 @@ function applyReferenceIconOverrides(
 // 参照要素の icon/selectedIcon 上書きは解決後 FC のトップレベルへ適用 (Phase 8, POI-112 最小形)。
 // 置換後の FC (解決済み・生 FC の双方) の icon 参照文法を imgs/... へ解決し、
 // 実体コピー要求を files として返す (POI-117)。同一参照の重複コピーは dest キーで畳む
-export async function resolvePoisArray(pois: unknown): Promise<ResolvedPois> {
+export async function resolvePoisArray(
+  pois: unknown,
+  options: { exportForm?: (uid: string) => Promise<unknown | null> } = {},
+): Promise<ResolvedPois> {
   const warnings: string[] = [];
   const sink: IconResolutionSink = { files: new Map(), warnings };
   if (!Array.isArray(pois)) return { pois: [], files: [], warnings };
@@ -283,7 +286,7 @@ export async function resolvePoisArray(pois: unknown): Promise<ResolvedPois> {
       out.push(await resolveIconRefsInFc(entry, sink));
       continue;
     }
-    const fc = await PoiSourceService.exportForm(uid);
+    const fc = await (options.exportForm ?? ((poiUid: string) => PoiSourceService.exportForm(poiUid)))(uid);
     if (fc) {
       const overridden = applyReferenceIconOverrides(
         fc as unknown as Record<string, unknown>,

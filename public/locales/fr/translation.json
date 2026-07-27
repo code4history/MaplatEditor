@@ -946,6 +946,12 @@
     "import_poi": "Importer",
     "import_map": "Importer",
     "delete_confirm_title": "Delete \"{{title}}\"?",
-    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content.",
+    "badge_strict_error": "Erreur strict",
+    "badge_map_ref_error": "Erreur de référence de carte",
+    "badge_missing_base_map": "Fond de carte manquant",
+    "badge_missing_poi": "Référence POI manquante",
+    "badge_missing_asset": "Ressource manquante",
+    "badge_pois_format": "Format POI non pris en charge"
   }
 }

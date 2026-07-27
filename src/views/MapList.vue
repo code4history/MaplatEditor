@@ -93,7 +93,18 @@ const { hasDraft, newDrafts, latestNewDraft, refreshDrafts, removeNewDraft } = u
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
 const bboxQuery = computed(() => (typeof route.query.bbox === "string" ? route.query.bbox : null));
 const selectedUidRef = { value: null as string | null };
-const adapter = createMapListAdapter({ hasDraft, selectedUid: () => selectedUidRef.value });
+const adapter = createMapListAdapter({
+  hasDraft,
+  selectedUid: () => selectedUidRef.value,
+  diagnosticsLabels: {
+    strictError: t("resource_list.badge_strict_error"),
+    mapRefError: t("resource_list.badge_map_ref_error"),
+    missingBaseMap: t("resource_list.badge_missing_base_map"),
+    missingPoi: t("resource_list.badge_missing_poi"),
+    missingAsset: t("resource_list.badge_missing_asset"),
+    poisFormat: t("resource_list.badge_pois_format"),
+  },
+});
 const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<MapListRow, number>(
   adapter,
   { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" },

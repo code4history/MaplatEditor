@@ -119,7 +119,9 @@
     "smoke:m12-t19-clone-tile-ref": "node scripts/m12-t19-clone-tile-ref-smoke.mjs",
     "smoke:m12-t22-data-io-dormant-preservation": "node scripts/m12-t22-data-io-dormant-preservation-smoke.mjs",
     "smoke:m12-t18-os-trash-delete": "node scripts/m12-t18-os-trash-delete-smoke.mjs",
-    "test:e2e:m12-t18-os-trash-delete": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t18-os-trash-delete.spec.ts"
+    "test:e2e:m12-t18-os-trash-delete": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t18-os-trash-delete.spec.ts",
+    "smoke:m12-t16-resource-diagnostics": "node scripts/m12-t16-resource-diagnostics-smoke.mjs",
+    "test:e2e:m12-t16": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t16-resource-list-error-badges.spec.ts"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

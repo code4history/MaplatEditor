@@ -24,7 +24,7 @@
       <small v-if="isDisabled && item.disabledReason" class="resource-master-row__reason d-block text-danger">{{ item.disabledReason }}</small>
     </span>
     <span v-if="item.hasDraft && draftLabel" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
-    <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="badgeClass(badge.tone)">{{ badge.label }}</span>
+    <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="resourceBadgeClass(badge.tone)">{{ badge.label }}</span>
     <slot name="extra"></slot>
     <ResourceActionMenu v-if="showActionMenu" ref="menuRef" :actions="actions" @select="(key) => emit('action', key, item)" />
   </div>
@@ -34,7 +34,7 @@
 import { computed, ref } from "vue";
 import ResourceActionMenu from "./ResourceActionMenu.vue";
 import { buildResourceListActions } from "./buildResourceListActions";
-import type { ResourceListItemViewModel, ResourceListKind } from "./resourceListTypes";
+import { resourceBadgeClass, type ResourceListItemViewModel, type ResourceListKind } from "./resourceListTypes";
 
 const props = withDefaults(defineProps<{
   item: ResourceListItemViewModel;
@@ -64,9 +64,6 @@ const rowClass = computed(() => {
   if (isDisabled.value && !props.item.selected) classes["disabled"] = true;
   return classes;
 });
-function badgeClass(tone: "info" | "warning" | "neutral"): string {
-  return tone === "warning" ? "bg-warning text-dark" : tone === "info" ? "bg-info text-dark" : "bg-secondary";
-}
 function onActivate(): void {
   if (isDisabled.value || props.item.selected) return;
   emit("select", props.item.uid);

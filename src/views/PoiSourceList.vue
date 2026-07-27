@@ -106,6 +106,14 @@ const adapter = createPoiSourceListAdapter({
   featuresLabel: (count) => `${count} ${t("poisource.features")}`,
   localLabel: t("poisource.local"),
   remoteLabel: t("poisource.remote"),
+  diagnosticsLabels: {
+    strictError: t("resource_list.badge_strict_error"),
+    mapRefError: t("resource_list.badge_map_ref_error"),
+    missingBaseMap: t("resource_list.badge_missing_base_map"),
+    missingPoi: t("resource_list.badge_missing_poi"),
+    missingAsset: t("resource_list.badge_missing_asset"),
+    poisFormat: t("resource_list.badge_pois_format"),
+  },
 });
 const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, applyDeletion } =
   useInfiniteResourceList<PoiSourceListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => i18next.language });

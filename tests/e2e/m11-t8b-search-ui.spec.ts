@@ -36,11 +36,11 @@ async function seedSpatialDocuments(page: Page): Promise<{ mapUid: string; appUi
         [[0, 300], [15551351.4, 4249117.8]], [[400, 300], [15562483.3, 4249117.8]],
         [[400, 0], [15562483.3, 4259837.2]], [[0, 0], [15551351.4, 4259837.2]],
       ],
-      edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
+      edges: [], sub_maps: [], strictMode: 'loose', vertexMode: 'plain', status: 'New',
     };
     const first = await window.mapedit.save({ slug: mapSlug, mapObject, tins: [] });
     if (!first || first.result !== 'Success') throw new Error(`map create failed: ${JSON.stringify(first)}`);
-    const tin = await window.mapedit.updateTin(mapObject.gcps, [], 0, [400, 300], 'strict', 'plain');
+    const tin = await window.mapedit.updateTin(mapObject.gcps, [], 0, [400, 300], 'loose', 'plain');
     if (!Array.isArray(tin) || !tin[1]) throw new Error(`TIN compile failed: ${JSON.stringify(tin)}`);
     const savedMap = await window.mapedit.save({ slug: mapSlug, uid: first.uid, mapObject, tins: [tin[1]] });
     if (!savedMap || savedMap.result !== 'Success') throw new Error(`map update failed: ${JSON.stringify(savedMap)}`);

@@ -946,6 +946,12 @@
     "import_poi": "Nhập",
     "import_map": "Nhập",
     "delete_confirm_title": "Delete \"{{title}}\"?",
-    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content.",
+    "badge_strict_error": "Lỗi strict",
+    "badge_map_ref_error": "Lỗi tham chiếu bản đồ",
+    "badge_missing_base_map": "Thiếu bản đồ nền",
+    "badge_missing_poi": "Thiếu tham chiếu POI",
+    "badge_missing_asset": "Thiếu tài nguyên",
+    "badge_pois_format": "Định dạng POI không được hỗ trợ"
   }
 }

@@ -1,11 +1,17 @@
 import type { ResourceListAdapter, ResourceListItemViewModel } from "../../components/resource-list/resourceListTypes";
 import { localizeTitle } from "../../utils/langResource";
+import {
+  buildResourceDiagnosticsBadges,
+  type DiagnosticsBadgeLabels,
+  type ResourceDiagnostics,
+} from "../../utils/resourceDiagnosticsBadges";
 
-export interface MapListRow { uid: string; mapID: string; title: string; image: string | null; width?: number; height?: number; previewDisabled?: boolean; previewDisabledReason?: string }
+export interface MapListRow { uid: string; mapID: string; title: string; image: string | null; width?: number; height?: number; previewDisabled?: boolean; previewDisabledReason?: string; resourceDiagnostics?: ResourceDiagnostics }
 
 export interface MapListAdapterDeps {
   hasDraft: (uid: string) => boolean;
   selectedUid: () => string | null;
+  diagnosticsLabels?: DiagnosticsBadgeLabels;
 }
 
 // page式 maplist backend を cursor(=ページ番号) へ内部包装する（D1）。
@@ -22,8 +28,9 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
         image: doc.image ?? doc.thumbnail ?? null,
         width: doc.width,
         height: doc.height,
-        previewDisabled: doc.compiled?.strict_status === "strict_error" || Boolean(doc.compiled?.kinks_points) || (Array.isArray(doc.sub_maps) && doc.sub_maps.some((sub: any) => sub.compiled?.strict_status === "strict_error" || Boolean(sub.compiled?.kinks_points))),
+        previewDisabled: Boolean(doc.resourceDiagnostics?.kind === "map" && doc.resourceDiagnostics.strictError),
         previewDisabledReason: "appedit.preview.strict_error",
+        resourceDiagnostics: doc.resourceDiagnostics,
       }));
       return { items, total: result.total, nextCursor: result.next ?? null };
     },
@@ -34,7 +41,7 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
         title: item.title || item.mapID,
         thumbnailUrl: item.image,
         metadata: [],
-        badges: [],
+        badges: deps.diagnosticsLabels ? buildResourceDiagnosticsBadges(item.resourceDiagnostics, deps.diagnosticsLabels) : [],
         selected: deps.selectedUid() === item.uid,
         hasDraft: deps.hasDraft(item.uid),
         actions: ["duplicate", "delete"],

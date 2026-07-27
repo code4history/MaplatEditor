@@ -2,6 +2,10 @@ import i18next from "i18next";
 import type { ResourceListAdapter, ResourceListItemViewModel } from "../../components/resource-list/resourceListTypes";
 import type { PoiSourceListRow } from "../../electron";
 import { localizeTitle } from "../../utils/langResource";
+import {
+  buildResourceDiagnosticsBadges,
+  type DiagnosticsBadgeLabels,
+} from "../../utils/resourceDiagnosticsBadges";
 
 export interface PoiSourceAdapterDeps {
   hasDraft: (uid: string) => boolean;
@@ -9,6 +13,7 @@ export interface PoiSourceAdapterDeps {
   featuresLabel: (count: number) => string; // t('poisource.features') 合成
   localLabel: string;
   remoteLabel: string;
+  diagnosticsLabels?: DiagnosticsBadgeLabels;
   pageSize?: number;
 }
 
@@ -28,7 +33,10 @@ export function createPoiSourceListAdapter(deps: PoiSourceAdapterDeps): Resource
         title: localizeTitle(item.title, i18next.language) || item.slug,
         thumbnailUrl: null,
         metadata: [deps.featuresLabel(item.featureCount)],
-        badges: [{ key: "mode", label: item.mode === "local" ? deps.localLabel : deps.remoteLabel, tone: item.mode === "local" ? "info" : "neutral" }],
+        badges: [
+          { key: "mode", label: item.mode === "local" ? deps.localLabel : deps.remoteLabel, tone: item.mode === "local" ? "info" : "neutral" },
+          ...(deps.diagnosticsLabels ? buildResourceDiagnosticsBadges(item.resourceDiagnostics, deps.diagnosticsLabels) : []),
+        ],
         selected: deps.selectedUid() === item.uid,
         hasDraft: deps.hasDraft(item.uid),
         actions: ["duplicate", "delete"],

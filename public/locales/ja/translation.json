@@ -951,6 +951,12 @@
     "import_poi": "インポート",
     "import_map": "インポート",
     "delete_confirm_title": "「{{title}}」を削除しますか？",
-    "duplicate_failed": "複製に失敗しました。スラッグの確保または内容の複製ができませんでした。"
+    "duplicate_failed": "複製に失敗しました。スラッグの確保または内容の複製ができませんでした。",
+    "badge_strict_error": "strictエラー",
+    "badge_map_ref_error": "参照地図エラー",
+    "badge_missing_base_map": "ベースマップ欠損",
+    "badge_missing_poi": "POI参照欠損",
+    "badge_missing_asset": "アセット欠損",
+    "badge_pois_format": "POI形式未対応"
   }
 }

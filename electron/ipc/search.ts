@@ -3,6 +3,7 @@ import SqliteDataService from '../services/SqliteDataService';
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from '../utils/searchSpatial';
 import { wgs84BboxToMercator } from '../utils/webMercator';
 import { resolveAppListImage, resolveBaseMapListImage, resolveMapListImage512 } from '../services/resourceImageResolver';
+import { attachAppDiagnostics, attachMapDiagnostics, attachPoiSourceDiagnostics } from '../services/ResourceDiagnosticsService';
 
 function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[]; total: number; prev?: number; next?: number } {
   if (pageSize <= 0) {
@@ -40,6 +41,32 @@ async function attachImages<T>(
   return paged;
 }
 
+async function attachDiagnostics<T extends Record<string, any>>(
+  paged: { docs: T[]; total: number; prev?: number; next?: number },
+  pageSize: number,
+  attach: (docs: T[]) => Promise<T[]>,
+): Promise<typeof paged> {
+  if (pageSize <= 0) return paged;
+  await attach(paged.docs);
+  return paged;
+}
+
+async function attachMapListExtras<T extends Record<string, any>>(
+  paged: { docs: T[]; total: number; prev?: number; next?: number },
+  pageSize: number,
+): Promise<typeof paged> {
+  await attachDiagnostics(paged, pageSize, attachMapDiagnostics);
+  return attachImages(paged, pageSize, resolveMapListImage512);
+}
+
+async function attachAppListExtras<T extends Record<string, any>>(
+  paged: { docs: T[]; total: number; prev?: number; next?: number },
+  pageSize: number,
+): Promise<typeof paged> {
+  await attachDiagnostics(paged, pageSize, attachAppDiagnostics);
+  return attachImages(paged, pageSize, resolveAppListImage);
+}
+
 type SearchFilter = { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number };
 
 export function registerSearchHandlers() {
@@ -48,9 +75,9 @@ export function registerSearchHandlers() {
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'map');
       const filtered = filterDocsByExtentSlugs(docs, extentSlugs, (doc) => doc._id);
-      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveMapListImage512);
+      return attachMapListExtras(paginate(filtered, filter.page, filter.pageSize), filter.pageSize);
     }
-    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveMapListImage512);
+    return attachMapListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
   });
 
   ipcMain.handle('search:apps', async (_event, filter: SearchFilter) => {
@@ -58,9 +85,9 @@ export function registerSearchHandlers() {
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'app');
       const filtered = filterDocsByExtentSlugs(docs, extentSlugs, (doc) => doc._id);
-      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveAppListImage);
+      return attachAppListExtras(paginate(filtered, filter.page, filter.pageSize), filter.pageSize);
     }
-    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveAppListImage);
+    return attachAppListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
   });
 
   ipcMain.handle('search:poiSources', async (_event, filter: SearchFilter) => {
@@ -68,9 +95,9 @@ export function registerSearchHandlers() {
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'poi-source');
       const filtered = filterDocsByExtentSlugs(docs, extentSlugs, (doc) => doc.slug);
-      return paginate(filtered, filter.page, filter.pageSize);
+      return attachDiagnostics(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, attachPoiSourceDiagnostics);
     }
-    return paginate(docs, filter.page, filter.pageSize);
+    return attachDiagnostics(paginate(docs, filter.page, filter.pageSize), filter.pageSize, attachPoiSourceDiagnostics);
   });
 
   ipcMain.handle('search:baseMaps', async (_event, filter: SearchFilter) => {

@@ -23,6 +23,7 @@ import {
 import {
   compactLangObject,
   composeViewerSource,
+  extractTmsThumbnailBaseMapRef,
   hasViewerBasemapSource,
   normalizeAppSource,
   type AppSource,
@@ -235,16 +236,13 @@ class AppExportService {
       //     uidが解決できない場合(ベースマップ削除済み等)は保存値のまま出力する
       const thumbnailCopies = new Map<string, string>(); // 出力相対パス → コピー元相対パス
       for (const source of sources) {
-        if (source.sourceType !== 'tms' || !source.data) continue;
-        const thumbnail = source.data.thumbnail;
-        if (typeof thumbnail !== 'string') continue;
-        const match = thumbnail.match(/^tmbs\/([0-9a-f-]{36})\.([A-Za-z0-9]+)$/i);
-        if (!match) continue;
-        const baseMap = await SqliteDataService.findBaseMapByUid(match[1]);
+        const thumbnailRef = extractTmsThumbnailBaseMapRef(source);
+        if (!thumbnailRef) continue;
+        const baseMap = await SqliteDataService.findBaseMapByUid(thumbnailRef.uid);
         if (!baseMap) continue;
-        const outRel = `tmbs/${baseMap.slug}.${match[2]}`;
-        thumbnailCopies.set(outRel, thumbnail);
-        source.data.thumbnail = outRel;
+        const outRel = `tmbs/${baseMap.slug}.${thumbnailRef.ext}`;
+        thumbnailCopies.set(outRel, thumbnailRef.thumbnail);
+        source.data!.thumbnail = outRel;
       }
 
       // POI icon 参照解決 (POI-117) の実体コピー要求。app/map の全解決結果を dest キーで畳んで

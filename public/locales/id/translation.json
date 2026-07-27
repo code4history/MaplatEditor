@@ -946,6 +946,12 @@
     "import_poi": "Impor",
     "import_map": "Impor",
     "delete_confirm_title": "Delete \"{{title}}\"?",
-    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content.",
+    "badge_strict_error": "Kesalahan strict",
+    "badge_map_ref_error": "Kesalahan referensi peta",
+    "badge_missing_base_map": "Peta dasar hilang",
+    "badge_missing_poi": "Referensi POI hilang",
+    "badge_missing_asset": "Aset hilang",
+    "badge_pois_format": "Format POI tidak didukung"
   }
 }

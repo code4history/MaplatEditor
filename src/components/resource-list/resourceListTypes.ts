@@ -19,7 +19,14 @@ export interface ResourceListBatch<T, Cursor = string> {
 export interface ResourceListBadge {
   key: string;
   label: string;
-  tone: "info" | "warning" | "neutral";
+  tone: "info" | "warning" | "neutral" | "danger";
+}
+
+export function resourceBadgeClass(tone: ResourceListBadge["tone"]): string {
+  if (tone === "danger") return "bg-danger";
+  if (tone === "warning") return "bg-warning text-dark";
+  if (tone === "info") return "bg-info text-dark";
+  return "bg-secondary";
 }
 
 export interface ResourceListItemViewModel {

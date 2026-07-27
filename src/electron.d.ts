@@ -110,6 +110,7 @@ export interface PoiSourceListRow {
     featureCount: number;
     revision: number;
     updatedAt: string;
+    resourceDiagnostics?: import('./utils/resourceDiagnosticsBadges').ResourceDiagnostics;
 }
 
 export interface PoiSourceListResult {

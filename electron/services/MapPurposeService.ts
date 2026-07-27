@@ -13,18 +13,29 @@ import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
 export type ViewerPurpose = 'app-save' | 'app-preview' | 'app-export' | 'viewer-runtime';
 
 class MapPurposeService {
-    // mapRefs のいずれかが strict_error または不在なら reject する。空配列は即 resolve
-    async assertViewerRuntimeAllowed(mapRefs: string[], _purpose: ViewerPurpose): Promise<void> {
+    async classifyViewerRuntimeRefs(mapRefs: string[]): Promise<{ missing: string[]; strictError: string[] }> {
+        const missing: string[] = [];
+        const strictError: string[] = [];
         for (const ref of mapRefs) {
             const doc = await SqliteDataService.findMapByRef(ref);
             if (!doc) {
-                // 不在も strict と同じ拒否理由キーで統一する (§2.3: 呼び出し元 UI は既に
-                // appedit.preview.strict_error を「選択・表示不可」の一般的な理由文言として使っている)
-                throw new Error('appedit.preview.strict_error');
+                missing.push(ref);
+                continue;
             }
             if (hasStrictError(doc)) {
-                throw new Error('appedit.preview.strict_error');
+                strictError.push(ref);
             }
+        }
+        return { missing, strictError };
+    }
+
+    // mapRefs のいずれかが strict_error または不在なら reject する。空配列は即 resolve
+    async assertViewerRuntimeAllowed(mapRefs: string[], _purpose: ViewerPurpose): Promise<void> {
+        const classified = await this.classifyViewerRuntimeRefs(mapRefs);
+        if (classified.missing.length > 0 || classified.strictError.length > 0) {
+            // 不在も strict と同じ拒否理由キーで統一する (§2.3: 呼び出し元 UI は既に
+            // appedit.preview.strict_error を「選択・表示不可」の一般的な理由文言として使っている)
+            throw new Error('appedit.preview.strict_error');
         }
     }
 

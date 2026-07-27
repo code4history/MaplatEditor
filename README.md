@@ -75,6 +75,9 @@ binaries are distributed via GitHub Releases.
 - Five resource lists (Map / App / POI / Base Map / Asset) use infinite
   scroll and full-text search across all five types, plus bounding-box range
   search for Map, POI, Base Map, and App
+- Map, App, and POI source lists show diagnostic badges for strict map
+  errors, missing map/base-map/POI/asset references, and unsupported app POI
+  formats, using the same checks as save, preview, and export
 - Base map and image asset editing use left-list/right-edit master-detail
   screens (replacing the previous modal editors), with the selected item
   reflected in the URL for direct links

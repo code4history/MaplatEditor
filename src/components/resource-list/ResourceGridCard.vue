@@ -11,7 +11,7 @@
       <slot name="meta"></slot>
       <span
         v-for="badge in visibleBadges" :key="badge.key"
-        class="badge ms-0 me-1" :class="badgeClass(badge.tone)"
+        class="badge ms-0 me-1" :class="resourceBadgeClass(badge.tone)"
       >{{ badge.label }}</span>
     </router-link>
     <div class="resource-grid-card__actions">
@@ -24,7 +24,7 @@
 import { computed, ref } from "vue";
 import ResourceActionMenu from "./ResourceActionMenu.vue";
 import { buildResourceListActions } from "./buildResourceListActions";
-import type { ResourceListItemViewModel, ResourceListKind } from "./resourceListTypes";
+import { resourceBadgeClass, type ResourceListItemViewModel, type ResourceListKind } from "./resourceListTypes";
 
 const props = defineProps<{
   item: ResourceListItemViewModel;
@@ -41,9 +41,6 @@ const visibleBadges = computed(() => [
   ...(props.item.hasDraft ? [{ key: "__draft", label: props.draftLabel, tone: "warning" as const }] : []),
   ...props.item.badges,
 ]);
-function badgeClass(tone: "info" | "warning" | "neutral"): string {
-  return tone === "warning" ? "bg-warning text-dark" : tone === "info" ? "bg-info text-dark" : "bg-secondary";
-}
 function onContextMenu(event: MouseEvent): void {
   menuRef.value?.openAt(event.clientX, event.clientY);
 }

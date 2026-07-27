@@ -946,6 +946,12 @@
     "import_poi": "นำเข้า",
     "import_map": "นำเข้า",
     "delete_confirm_title": "Delete \"{{title}}\"?",
-    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content.",
+    "badge_strict_error": "ข้อผิดพลาด strict",
+    "badge_map_ref_error": "ข้อผิดพลาดการอ้างอิงแผนที่",
+    "badge_missing_base_map": "แผนที่ฐานหายไป",
+    "badge_missing_poi": "การอ้างอิง POI หายไป",
+    "badge_missing_asset": "แอสเซ็ตหายไป",
+    "badge_pois_format": "รูปแบบ POI ไม่รองรับ"
   }
 }

@@ -946,6 +946,12 @@
     "import_poi": "导入",
     "import_map": "导入",
     "delete_confirm_title": "Delete \"{{title}}\"?",
-    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content."
+    "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content.",
+    "badge_strict_error": "strict 错误",
+    "badge_map_ref_error": "参照地图错误",
+    "badge_missing_base_map": "底图缺失",
+    "badge_missing_poi": "POI 参照缺失",
+    "badge_missing_asset": "资源缺失",
+    "badge_pois_format": "POI 格式不受支持"
   }
 }

@@ -119,6 +119,25 @@ export interface AppSource {
   mapSlug?: string; // maplatのみ: Editor表示用slug(読込時に解決。Viewer出力しない)
 }
 
+export interface TmsThumbnailBaseMapRef {
+  uid: string;
+  ext: string;
+  thumbnail: string;
+}
+
+export function extractTmsThumbnailBaseMapRef(source: AppSource): TmsThumbnailBaseMapRef | null {
+  if (source.sourceType !== "tms" || !source.data) return null;
+  const thumbnail = source.data.thumbnail;
+  if (typeof thumbnail !== "string") return null;
+  const match = thumbnail.match(/^tmbs\/([0-9a-f-]{36})\.([A-Za-z0-9]+)$/i);
+  if (!match) return null;
+  return { uid: match[1], ext: match[2], thumbnail };
+}
+
+export function extractTmsThumbnailBaseMapUid(source: AppSource): string | null {
+  return extractTmsThumbnailBaseMapRef(source)?.uid ?? null;
+}
+
 export function createAppSourceFromBaseMap(
   master: Record<string, any>,
   appDefaultLang: string,
