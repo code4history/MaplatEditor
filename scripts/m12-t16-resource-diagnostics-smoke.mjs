@@ -20,13 +20,16 @@ const bundledFile = path.join(outDir, 'm12-t16-resource-diagnostics-smoke.mjs');
 try {
   const dataDir = path.join(workDir, 'data');
   const tmpDir = path.join(workDir, 'tmp');
+  const exportDir = path.join(workDir, 'export-out');
   await mkdir(dataDir, { recursive: true });
   await mkdir(tmpDir, { recursive: true });
+  await mkdir(exportDir, { recursive: true });
 
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const poiSourceServicePath = path.join(projectRoot, 'electron/services/PoiSourceService.ts');
   const appDataServicePath = path.join(projectRoot, 'electron/services/AppDataService.ts');
+  const appExportServicePath = path.join(projectRoot, 'electron/services/AppExportService.ts');
   const mapPurposeServicePath = path.join(projectRoot, 'electron/services/MapPurposeService.ts');
   const diagnosticsPath = path.join(projectRoot, 'electron/services/ResourceDiagnosticsService.ts');
   const badgesPath = path.join(projectRoot, 'src/utils/resourceDiagnosticsBadges.ts');
@@ -55,7 +58,7 @@ try {
         removeHandler: (ch: string) => handlers.delete(ch),
       };
       export const dialog = {
-        showSaveDialog() { return Promise.resolve({ canceled: true, filePath: undefined }); },
+        showSaveDialog() { return Promise.resolve((globalThis as any).__nextDialogResult || { canceled: true, filePath: undefined }); },
         showOpenDialog() { return Promise.resolve({ canceled: true, filePaths: [] }); },
         showMessageBox() { return Promise.resolve({ response: 0, checkboxChecked: false }); },
       };
@@ -89,6 +92,7 @@ try {
       import path from 'node:path';
       import { readFile } from 'node:fs/promises';
       import fs from 'fs-extra';
+      import AdmZip from 'adm-zip';
 
       process.env.APP_ROOT = ${JSON.stringify(projectRoot)};
 
@@ -99,6 +103,7 @@ try {
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
       const { default: PoiSourceService } = await import(${JSON.stringify(poiSourceServicePath)});
       const { default: AppDataService } = await import(${JSON.stringify(appDataServicePath)});
+      const { default: AppExportService } = await import(${JSON.stringify(appExportServicePath)});
       const { default: MapPurposeService } = await import(${JSON.stringify(mapPurposeServicePath)});
       const {
         attachMapDiagnostics,
@@ -123,6 +128,7 @@ try {
       const missingAssetUid = '88888888-8888-4888-8888-888888888888';
       const missingBaseMapUid = '77777777-7777-4777-8777-777777777777';
       const baseMapUid = '66666666-6666-4666-8666-666666666666';
+      const baseMapThumbnailBytes = Buffer.from('m12-t16-base-map-thumbnail');
 
       function fc(id: string, props: Record<string, unknown> = {}) {
         return {
@@ -157,6 +163,21 @@ try {
         title: { ja: '欠損POI' },
         fc: fc('asset-missing-poi', { html: { ja: '<p>画像 maplat-asset:' + missingAssetUid + '</p>' } }),
       });
+      const iconMissingPoi = await PoiSourceService.createLocal({ slug: 'diag-icon-missing-poi', title: { ja: 'icon欠損POI' }, lang: 'ja' });
+      assert.equal(iconMissingPoi.result, 'Success');
+      await PoiSourceService.save(iconMissingPoi.uid, {
+        slug: 'diag-icon-missing-poi',
+        title: { ja: 'icon欠損POI' },
+        fc: fc('icon-missing-poi', { icon: missingAssetUid }),
+      });
+      const remoteAssetMissingPoiUid = '55555555-5555-4555-8555-555555555555';
+      await SqliteDataService.createPoiSource('diag-remote-asset-missing-poi', {
+        title: { ja: 'remote欠損POI' },
+        mode: 'remote',
+        url: 'https://example.com/remote-poi.geojson',
+        dataJson: JSON.stringify(fc('remote-asset-missing-poi', { html: { ja: 'maplat-asset:' + missingAssetUid } })),
+        featureCount: 1,
+      }, remoteAssetMissingPoiUid);
 
       const { uid: normalMapUid } = await SqliteDataService.createMap('diag-normal-map', { title: { ja: '正常地図' }, compiled: { strict_status: 'strict' }, pois: [] });
       const { uid: strictMapUid } = await SqliteDataService.createMap('diag-strict-map', { title: { ja: 'strict地図' }, compiled: { strict_status: 'strict_error' }, pois: [] });
@@ -181,11 +202,17 @@ try {
         title: { ja: 'asset欠損地図' },
         pois: [fc('asset-map', { html: { ja: '<img src="maplat-asset:' + missingAssetUid + '">' } })],
       });
+      const { uid: iconMapUid } = await SqliteDataService.createMap('diag-icon-map', {
+        title: { ja: 'icon欠損地図' },
+        pois: [fc('icon-map', { icon: missingAssetUid })],
+      });
       const { uid: referencedAssetMapUid } = await SqliteDataService.createMap('diag-ref-asset-map', {
         title: { ja: '参照先asset欠損地図' },
         pois: [{ poiUid: assetMissingPoi.uid }],
       });
 
+      await fs.ensureDir(path.join(${JSON.stringify(dataDir)}, 'tmbs'));
+      await fs.writeFile(path.join(${JSON.stringify(dataDir)}, 'tmbs', baseMapUid + '.png'), baseMapThumbnailBytes);
       await SqliteDataService.saveUserBaseMap({
         uid: baseMapUid,
         slug: 'diag-base-ok',
@@ -200,34 +227,53 @@ try {
         SqliteDataService.findMapByRef(missingPoiMapUid),
         SqliteDataService.findMapByRef(inlineOnlyMapUid),
         SqliteDataService.findMapByRef(assetMapUid),
+        SqliteDataService.findMapByRef(iconMapUid),
         SqliteDataService.findMapByRef(referencedAssetMapUid),
       ]);
       await attachMapDiagnostics(mapDocs);
-      const [normalMap, strictMap, subStrictMap, missingPoiMap, inlineOnlyMap, assetMap, referencedAssetMap] = mapDocs;
+      const [normalMap, strictMap, subStrictMap, missingPoiMap, inlineOnlyMap, assetMap, iconMap, referencedAssetMap] = mapDocs;
       assert.deepEqual(normalMap.resourceDiagnostics, { kind: 'map', strictError: false, missingPoiRefs: false, missingAssetRefs: false });
       assert.equal(strictMap.resourceDiagnostics.strictError, true, 'M1 strict_error');
       assert.equal(subStrictMap.resourceDiagnostics.strictError, true, 'M1 sub_maps strict_error');
       assert.equal(missingPoiMap.resourceDiagnostics.missingPoiRefs, true, 'M2 missing poi');
       assert.equal(inlineOnlyMap.resourceDiagnostics.missingPoiRefs, false, 'M3 inline/url/non UUID は POI 欠損にしない');
       assert.equal(assetMap.resourceDiagnostics.missingAssetRefs, true, 'M4 inline FC asset 欠損');
+      assert.equal(iconMap.resourceDiagnostics.missingAssetRefs, true, 'M4 inline FC unresolved icon');
       assert.equal(referencedAssetMap.resourceDiagnostics.missingAssetRefs, true, 'M4 参照先 POI source 内 asset 欠損');
       console.log('ok: Part 2/3 map diagnostics classes');
 
       const mapRefCases = [
-        { label: 'present-normal', doc: { appID: 'app-present-normal', lang: 'ja', sources: [maplatSource(normalMapUid)] }, expected: false },
-        { label: 'missing', doc: { appID: 'app-missing', lang: 'ja', sources: [maplatSource(missingPoiUid)] }, expected: true },
-        { label: 'strict', doc: { appID: 'app-strict', lang: 'ja', sources: [maplatSource(strictMapUid)] }, expected: true },
-        { label: 'sub-strict', doc: { appID: 'app-sub-strict', lang: 'ja', sources: [maplatSource(subStrictMapUid)] }, expected: true },
+        { label: 'none', refs: [], expectedMissing: [], expectedStrict: [] },
+        { label: 'present-normal', refs: [normalMapUid], expectedMissing: [], expectedStrict: [] },
+        { label: 'present-normal-duplicate', refs: [normalMapUid, normalMapUid], expectedMissing: [], expectedStrict: [] },
+        { label: 'missing', refs: [missingPoiUid], expectedMissing: [missingPoiUid], expectedStrict: [] },
+        { label: 'missing-duplicate', refs: [missingPoiUid, missingPoiUid], expectedMissing: [missingPoiUid], expectedStrict: [] },
+        { label: 'strict', refs: [strictMapUid], expectedMissing: [], expectedStrict: [strictMapUid] },
+        { label: 'strict-duplicate', refs: [strictMapUid, strictMapUid], expectedMissing: [], expectedStrict: [strictMapUid] },
+        { label: 'sub-strict', refs: [subStrictMapUid], expectedMissing: [], expectedStrict: [subStrictMapUid] },
+        { label: 'present-plus-missing', refs: [normalMapUid, missingPoiUid], expectedMissing: [missingPoiUid], expectedStrict: [] },
+        { label: 'present-plus-strict', refs: [normalMapUid, strictMapUid], expectedMissing: [], expectedStrict: [strictMapUid] },
+        { label: 'missing-plus-strict', refs: [missingPoiUid, strictMapUid], expectedMissing: [missingPoiUid], expectedStrict: [strictMapUid] },
       ];
       for (const c of mapRefCases) {
-        await attachAppDiagnostics([c.doc]);
-        const refs = MapPurposeService.collectMaplatMapRefs(c.doc);
+        const expected = c.expectedMissing.length > 0 || c.expectedStrict.length > 0;
+        const doc = { appID: 'app-' + c.label, lang: 'ja', sources: c.refs.map(maplatSource) };
+        await attachAppDiagnostics([doc]);
+        const refs = MapPurposeService.collectMaplatMapRefs(doc);
         const classification = await MapPurposeService.classifyViewerRuntimeRefs(refs);
         const gateRejected = classification.missing.length > 0 || classification.strictError.length > 0;
-        const save = await AppDataService.saveApp({ slug: 'save-' + c.label, document: { ...c.doc, title: { ja: c.label } } });
-        assert.equal(c.doc.resourceDiagnostics.mapRefError, c.expected, c.label + ' mapRefError');
-        assert.equal(gateRejected, c.expected, c.label + ' classifyViewerRuntimeRefs');
-        assert.equal(save.result === 'Error', c.expected, c.label + ' AppDataService.saveApp gate');
+        assert.deepEqual([...refs].sort(), [...new Set(c.refs)].sort(), c.label + ' collectMaplatMapRefs dedup');
+        assert.deepEqual(classification.missing.sort(), c.expectedMissing.slice().sort(), c.label + ' missing refs');
+        assert.deepEqual(classification.strictError.sort(), c.expectedStrict.slice().sort(), c.label + ' strict refs');
+        if (expected) {
+          await assert.rejects(() => MapPurposeService.assertViewerRuntimeAllowed(refs), /appedit\\.preview\\.strict_error/, c.label + ' assertViewerRuntimeAllowed');
+        } else {
+          await MapPurposeService.assertViewerRuntimeAllowed(refs);
+        }
+        const save = await AppDataService.saveApp({ slug: 'save-' + c.label, document: { ...doc, title: { ja: c.label } } });
+        assert.equal(doc.resourceDiagnostics.mapRefError, expected, c.label + ' mapRefError');
+        assert.equal(gateRejected, expected, c.label + ' classifyViewerRuntimeRefs');
+        assert.equal(save.result === 'Error', expected, c.label + ' AppDataService.saveApp gate');
       }
       console.log('ok: Part 1 gate/classify/app diagnostics equivalence');
 
@@ -238,6 +284,7 @@ try {
         { label: 'base-pattern-out', doc: { appID: 'base-pattern-out', lang: 'ja', sources: [tmsSource('tmbs/not-a-uuid.png')] }, field: 'missingBaseMapRefs', expected: false },
         { label: 'app-poi-missing', doc: { appID: 'app-poi-missing', lang: 'ja', sources: [], pois: [{ poiUid: missingPoiUid }] }, field: 'missingPoiRefs', expected: true },
         { label: 'app-asset-missing', doc: { appID: 'app-asset-missing', lang: 'ja', sources: [], pois: [fc('app-asset', { html: { ja: 'maplat-asset:' + missingAssetUid } })] }, field: 'missingAssetRefs', expected: true },
+        { label: 'app-icon-missing', doc: { appID: 'app-icon-missing', lang: 'ja', sources: [], pois: [fc('app-icon', { icon: missingAssetUid })] }, field: 'missingAssetRefs', expected: true },
       ];
       for (const c of appCases) {
         await attachAppDiagnostics([c.doc]);
@@ -273,13 +320,41 @@ try {
       const poiRows = [
         { uid: normalPoi.uid, slug: 'diag-normal-poi', title: { ja: '正常POI' }, mode: 'local', url: null, featureCount: 1, revision: 1, updatedAt: '' },
         { uid: assetMissingPoi.uid, slug: 'diag-asset-missing-poi', title: { ja: '欠損POI' }, mode: 'local', url: null, featureCount: 1, revision: 1, updatedAt: '' },
+        { uid: remoteAssetMissingPoiUid, slug: 'diag-remote-asset-missing-poi', title: { ja: 'remote欠損POI' }, mode: 'remote', url: 'https://example.com/remote-poi.geojson', featureCount: 1, revision: 1, updatedAt: '' },
+        { uid: iconMissingPoi.uid, slug: 'diag-icon-missing-poi', title: { ja: 'icon欠損POI' }, mode: 'local', url: null, featureCount: 1, revision: 1, updatedAt: '' },
         { uid: missingPoiUid, slug: 'broken-poi', title: { ja: '破損POI' }, mode: 'local', url: null, featureCount: 0, revision: 1, updatedAt: '' },
       ];
       await attachPoiSourceDiagnostics(poiRows);
       assert.equal(poiRows[0].resourceDiagnostics.missingAssetRefs, false, 'P2 asset 欠損なし');
-      assert.equal(poiRows[1].resourceDiagnostics.missingAssetRefs, true, 'P1/P3 asset 欠損');
-      assert.equal(poiRows[2].resourceDiagnostics.missingAssetRefs, false, 'exportForm null は対象外');
+      assert.equal(poiRows[1].resourceDiagnostics.missingAssetRefs, true, 'P1 local html asset 欠損');
+      assert.equal(poiRows[2].resourceDiagnostics.missingAssetRefs, true, 'P3 remote snapshot html asset 欠損');
+      assert.equal(poiRows[3].resourceDiagnostics.missingAssetRefs, true, 'P1 local unresolved icon');
+      assert.equal(poiRows[4].resourceDiagnostics.missingAssetRefs, false, 'exportForm null は対象外');
       console.log('ok: Part 2 POI source diagnostics classes');
+
+      const fakeWin = { webContents: { send() {} } };
+      const exportZipPath = path.join(${JSON.stringify(exportDir)}, 'diag-thumbnail-export.zip');
+      (globalThis as any).__nextDialogResult = { canceled: false, filePath: exportZipPath };
+      const exportDocument = {
+        appID: 'diag_thumbnail_export',
+        title: { ja: 'thumbnail export' },
+        lang: 'ja',
+        sources: [tmsSource('tmbs/' + baseMapUid + '.png')],
+        appSettings: {},
+        httpSettings: { enableCache: false, pwaManifest: false },
+      };
+      const exported = await AppExportService.exportApp(fakeWin as any, exportDocument);
+      assert.equal(exported.result, 'Success', 'AppExportService thumbnail export should succeed: ' + JSON.stringify(exported));
+      assert.ok(!exported.warnings.includes('appedit.export.missing_thumbnail'), 'resolved base map thumbnail should not warn: ' + JSON.stringify(exported.warnings));
+      const exportExtractDir = path.join(${JSON.stringify(exportDir)}, 'diag-thumbnail-export-extract');
+      await fs.emptyDir(exportExtractDir);
+      new AdmZip(exported.outDir).extractAllTo(exportExtractDir, true);
+      const exportedAppJson = JSON.parse(await readFile(path.join(exportExtractDir, 'apps', 'diag_thumbnail_export.json'), 'utf8'));
+      assert.equal(exportedAppJson.sources[0].thumbnail, 'tmbs/diag-base-ok.png', 'export app JSON thumbnail is rewritten from uid to slug');
+      const copiedThumbnail = await readFile(path.join(exportExtractDir, 'tmbs', 'diag-base-ok.png'));
+      assert.ok(copiedThumbnail.equals(baseMapThumbnailBytes), 'export copies the original uid thumbnail bytes to the rewritten slug path');
+      assert.equal(await fs.pathExists(path.join(exportExtractDir, 'tmbs', baseMapUid + '.png')), false, 'export does not leave the internal uid thumbnail path in the package');
+      console.log('ok: Part 2 AppExportService thumbnail rewrite/copy path');
 
       let exportFormCalls = 0;
       const originalExportForm = PoiSourceServiceForMemo.exportForm;
@@ -363,13 +438,26 @@ try {
       console.log('ok: Part 6 i18n keys');
 
       const strictPattern = /strict_status\\s*===\\s*['"]strict_error['"]/g;
-      const staticFiles = [
-        'electron/services/MapEditService.ts',
-        'electron/services/MapDataService.ts',
-        'src/views/MapEdit.vue',
-        'src/views/resource-adapters/mapListAdapter.ts',
-        'electron/services/ResourceDiagnosticsService.ts',
-      ];
+      const scanRoots = ['src', 'electron', 'scripts', 'tests'];
+      const strictScanExtensions = new Set(['.cjs', '.cts', '.js', '.jsx', '.json', '.mjs', '.mts', '.ts', '.tsx', '.vue']);
+      async function collectTextFiles(relDir: string, out: string[] = []) {
+        const absDir = path.join(${JSON.stringify(projectRoot)}, relDir);
+        const entries = await fs.readdir(absDir, { withFileTypes: true });
+        for (const entry of entries) {
+          const childRel = path.join(relDir, entry.name);
+          if (entry.isDirectory()) {
+            if (entry.name === 'node_modules' || entry.name === '.git') continue;
+            await collectTextFiles(childRel, out);
+          } else if (entry.isFile() && strictScanExtensions.has(path.extname(entry.name))) {
+            out.push(childRel.split(path.sep).join('/'));
+          }
+        }
+        return out;
+      }
+      const staticFiles: string[] = [];
+      for (const root of scanRoots) {
+        staticFiles.push(...await collectTextFiles(root));
+      }
       const strictHits: string[] = [];
       for (const rel of staticFiles) {
         const text = await readFile(path.join(${JSON.stringify(projectRoot)}, rel), 'utf8');
@@ -379,6 +467,18 @@ try {
           strictHits.push(rel + ':' + lineNumber + ':' + lineText);
         }
       }
+      function allowedStrictHit(hit: string): boolean {
+        const lineText = hit.replace(/^[^:]+:\\d+:/, '');
+        if (hit.startsWith('electron/services/MapEditService.ts:')) {
+          return /compiled\\?\\.strict_status\\s*===\\s*['"]strict_error['"]/.test(lineText);
+        }
+        if (hit.startsWith('src/views/MapEdit.vue:')) {
+          return /tin\\.strict_status\\s*===\\s*['"]strict_error['"]/.test(lineText);
+        }
+        return hit.startsWith('scripts/m12-t16-resource-diagnostics-smoke.mjs:');
+      }
+      const unexpectedStrictHits = strictHits.filter((hit) => !allowedStrictHit(hit));
+      assert.deepEqual(unexpectedStrictHits, [], 'strict_status === strict_error 直書きは許容箇所以外に残さない: ' + unexpectedStrictHits.join(' | '));
       assert.equal(strictHits.filter((hit) => hit.startsWith('electron/services/MapEditService.ts')).length, 1, '正準 hasStrictError だけが MapEditService に残る');
       assert.ok(strictHits.some((hit) => hit.includes('src/views/MapEdit.vue') && hit.includes('tin.strict_status')), 'MapEdit.vue の TIN 単位判定は残す');
       assert.equal(strictHits.filter((hit) => hit.includes('src/views/MapEdit.vue')).length, 2, 'MapEdit.vue の TIN 単位判定は2箇所');
