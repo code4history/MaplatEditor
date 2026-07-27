@@ -1,8 +1,6 @@
-// M13-T4 スモーク: UUID originals lifecycle parity (rename/clone/delete) と startup reconcile。
+// M13-T4 スモーク: UUID originals lifecycle parity (rename/clone)。
 // m13-t2/t3 と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
-// MapEditService.save() の rename/clone 分岐、MapDataService.deleteMap()
-// (= MapDeleteTrashService.deleteMapWithTrash())、SqliteDataService.migrate() が呼ぶ
-// MapTrashReconcileService.reconcileDeletedMapsTrash(db) を behavioral に検証する。
+// MapEditService.save() の rename/clone 分岐を behavioral に検証する。
 // タスク設計 `docs/superpowers/specs/2026-07-24-m13-t4-originals-lifecycle-design.md` §5/§7/§8 準拠。
 // シナリオ:
 //   Part A: rename、canonical 保有 map（変更なしの確認、AC-T4-1）
@@ -11,13 +9,15 @@
 //   Part D: clone、canonical-only 複製元（AC-T4-2 主要ケース、m13-t2 Part G の既知差異の解消確認）
 //   Part E: clone、legacy-only 複製元（AC-T4-2）
 //   Part F: clone、原本解決不能な複製元（best-effort skip の確認、AC-T4-2）
-//   Part G: delete、canonical+legacy 併存（trash move + live 消失の確認、AC-T4-3）
-//   Part H: delete、DB delete 強制失敗 → ロールバック確認（AC-T4-3）
-//   Part I: delete、ambiguous legacy（2件併存）→ legacy 2件とも live 残置 + console.warn（AC-T4-3(c)）
-//   Part J: reconcile、trash+DB row 存在 → restore（AC-T4-5）
-//   Part K: reconcile、trash+DB row 存在+live 既存 → restore せず warning（AC-T4-5）
-//   Part L: reconcile、trash+DB row 不在 → 何もしない（AC-T4-5）
-//   Part M: delete 成功後の trash 非 purge（複数回の reconcile 実行後も trash 残存、AC-T4-4）
+//
+// M12-T18 (OS ゴミ箱移行) による改修:
+//   旧 Part G（trash move）/ Part H（rollback）/ Part I（ambiguous legacy 残置）の検証意図は、
+//   新契約（DB delete 先行 → 成功後にのみ shell.trashItem・rollback 廃止）の上位互換テスト
+//   scripts/m12-t18-os-trash-delete-smoke.mjs の Part A〜D へ委譲した。
+//   旧 Part J/K/L/M（startup reconcile・trash 非 purge）は、検証対象の機構
+//   (MapTrashReconcileService / 独自 trash 保持) 自体が m12-t18 で廃止されたため撤去した
+//   (廃止根拠: `docs/superpowers/specs/2026-07-27-m12-t18-os-trash-migration-design.md` §5.3 —
+//   新順序では reconcile が対象とした「退避済みだが DB 未削除」状態が構造的に発生しない)。
 import { mkdtemp, rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -40,8 +40,6 @@ try {
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const mapEditServicePath = path.join(projectRoot, 'electron/services/MapEditService.ts');
   const mapDataServicePath = path.join(projectRoot, 'electron/services/MapDataService.ts');
-  const mapDeleteTrashServicePath = path.join(projectRoot, 'electron/services/MapDeleteTrashService.ts');
-  const mapTrashReconcileServicePath = path.join(projectRoot, 'electron/services/MapTrashReconcileService.ts');
 
   await writeFile(
     electronStubFile,
@@ -71,6 +69,11 @@ try {
           clearStorageData() { return Promise.resolve(); },
         },
       };
+      // M12-T18: MapDeleteTrashService が shell を named import するため export が必要
+      // (本 smoke は delete を呼ばないので no-op で可)
+      export const shell = {
+        trashItem(_path: string) { return Promise.resolve(); },
+      };
     `
   );
   await writeFile(
@@ -98,9 +101,12 @@ try {
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
       const { default: MapEditService } = await import(${JSON.stringify(mapEditServicePath)});
+      // M12-T18: delete/reconcile 検証の撤去後も MapDataService をバンドルに含め続ける
+      // (MapDataService -> MapDeleteTrashService の import グラフを維持し、electron スタブの
+      // shell export 要件を本 smoke でも検出可能に保つ)。delete 挙動の検証自体は
+      // scripts/m12-t18-os-trash-delete-smoke.mjs へ委譲済み
       const { default: MapDataService } = await import(${JSON.stringify(mapDataServicePath)});
-      const { deleteMapWithTrash } = await import(${JSON.stringify(mapDeleteTrashServicePath)});
-      const { reconcileDeletedMapsTrash } = await import(${JSON.stringify(mapTrashReconcileServicePath)});
+      void MapDataService;
 
       function setSaveFolder(dir: string) {
         SettingsService.set('saveFolder', dir);
@@ -371,256 +377,12 @@ try {
       }
 
       // ============================================================
-      // Part G: delete、canonical+legacy 併存（trash move + live 消失の確認、AC-T4-3）
+      // 旧 Part G〜M (delete/rollback/ambiguous delete/reconcile/trash 非 purge) は M12-T18 で撤去。
+      // - G/H/I の検証意図は scripts/m12-t18-os-trash-delete-smoke.mjs の Part A〜D が
+      //   新契約 (DB delete 先行 → shell.trashItem・rollback 廃止) の上位互換として引き継ぐ
+      // - J/K/L/M は検証対象の機構 (MapTrashReconcileService / 独自 trash 保持) 自体が廃止
+      //   (根拠: docs/superpowers/specs/2026-07-27-m12-t18-os-trash-migration-design.md §5.3)
       // ============================================================
-      let trashRootG = '';
-      {
-        const { dataDir, originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-g'))});
-        await fs.ensureDir(originalsDir);
-
-        const UID_G1 = '60111111-1111-4111-8111-111111111111';
-        const tmpTileFolder = await prepareTmpUpload('jpg');
-        const saveG1 = await MapEditService.save({
-          mapObject: {
-            mapID: 'g1-delete-map', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder),
-            gcps: [], edges: [], sub_maps: [],
-          },
-          tins: [],
-          slug: 'g1-delete-map',
-          uid: UID_G1,
-          create: true,
-        });
-        assert.equal(saveG1.result, 'Success');
-        // T2 以前からの legacy 併存を模す(canonical と legacy が両方存在するケース)
-        await fs.writeFile(path.join(originalsDir, 'g1-delete-map.jpg'), 'legacy-bytes-g1');
-        const tileDir = path.join(dataDir, 'tiles', UID_G1);
-        const thumbFile = path.join(dataDir, 'tmbs', UID_G1 + '.jpg');
-        assert.ok(await fs.pathExists(tileDir), 'tiles ディレクトリが存在する前提');
-        assert.ok(await fs.pathExists(thumbFile), 'thumbnail が存在する前提');
-
-        await MapDataService.deleteMap(UID_G1);
-
-        assert.equal(await SqliteDataService.findMap(UID_G1), null, 'DB row は削除されているはず');
-        assert.ok(!(await fs.pathExists(path.join(originalsDir, UID_G1 + '.jpg'))), 'live canonical は消えているはず');
-        assert.ok(!(await fs.pathExists(path.join(originalsDir, 'g1-delete-map.jpg'))), 'live legacy は消えているはず');
-        assert.ok(!(await fs.pathExists(tileDir)), 'tiles ディレクトリは削除されるはず');
-        assert.ok(!(await fs.pathExists(thumbFile)), 'thumbnail は削除されるはず');
-
-        const trashUidRoot = path.join(dataDir, 'trash', 'maps', UID_G1);
-        const opDirs = await fs.readdir(trashUidRoot);
-        assert.equal(opDirs.length, 1, 'operationId ディレクトリが1件作られるはず');
-        trashRootG = path.join(trashUidRoot, opDirs[0]);
-        const trashedCanonical = path.join(trashRootG, 'originals', UID_G1 + '.jpg');
-        const trashedLegacy = path.join(trashRootG, 'legacy', 'g1-delete-map.jpg');
-        assert.ok(await fs.pathExists(trashedCanonical), 'canonical が trash へ move されているはず');
-        assert.equal(await fs.readFile(trashedCanonical, 'utf8'), 'uploaded-original-bytes-jpg');
-        assert.ok(await fs.pathExists(trashedLegacy), 'legacy が trash へ move されているはず');
-        assert.equal(await fs.readFile(trashedLegacy, 'utf8'), 'legacy-bytes-g1');
-        console.log('ok: (Part G) delete moves canonical+legacy to trash and removes them from live (AC-T4-3)');
-      }
-
-      // ============================================================
-      // Part H: delete、DB delete 強制失敗 → ロールバック確認（AC-T4-3）
-      // ============================================================
-      {
-        const { dataDir, originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-h'))});
-        await fs.ensureDir(originalsDir);
-
-        const UID_H1 = '70111111-1111-4111-8111-111111111111';
-        const tmpTileFolder = await prepareTmpUpload('jpg');
-        const saveH1 = await MapEditService.save({
-          mapObject: {
-            mapID: 'h1-delete-fail-map', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder),
-            gcps: [], edges: [], sub_maps: [],
-          },
-          tins: [],
-          slug: 'h1-delete-fail-map',
-          uid: UID_H1,
-          create: true,
-        });
-        assert.equal(saveH1.result, 'Success');
-        await fs.writeFile(path.join(originalsDir, 'h1-delete-fail-map.jpg'), 'legacy-bytes-h1');
-
-        const originalDeleteMap = SqliteDataService.deleteMap.bind(SqliteDataService);
-        SqliteDataService.deleteMap = async () => { throw new Error('forced-db-delete-failure'); };
-        let threw = false;
-        try {
-          await deleteMapWithTrash(UID_H1);
-        } catch (e: any) {
-          threw = true;
-          assert.equal(e.message, 'forced-db-delete-failure');
-        } finally {
-          SqliteDataService.deleteMap = originalDeleteMap;
-        }
-        assert.ok(threw, 'DB delete 失敗時は例外が伝播するはず');
-
-        assert.ok(await SqliteDataService.findMap(UID_H1), 'DB delete 失敗時は DB row が残っているはず');
-        const canonicalH1 = path.join(originalsDir, UID_H1 + '.jpg');
-        const legacyH1 = path.join(originalsDir, 'h1-delete-fail-map.jpg');
-        assert.ok(await fs.pathExists(canonicalH1), 'canonical は live へロールバックされているはず');
-        assert.equal(await fs.readFile(canonicalH1, 'utf8'), 'uploaded-original-bytes-jpg');
-        assert.ok(await fs.pathExists(legacyH1), 'legacy も live へロールバックされているはず');
-        assert.equal(await fs.readFile(legacyH1, 'utf8'), 'legacy-bytes-h1');
-        const trashUidRoot = path.join(dataDir, 'trash', 'maps', UID_H1);
-        const opDirs = await fs.readdir(trashUidRoot).catch(() => []);
-        for (const opDir of opDirs) {
-          const remaining = [
-            ...(await fs.readdir(path.join(trashUidRoot, opDir, 'originals')).catch(() => [])),
-            ...(await fs.readdir(path.join(trashUidRoot, opDir, 'legacy')).catch(() => [])),
-          ];
-          assert.deepEqual(remaining, [], 'ロールバック後は trash に何も残っていないはず: ' + opDir);
-        }
-        console.log('ok: (Part H) DB delete failure rolls back trash moves and rethrows (AC-T4-3)');
-      }
-
-      // ============================================================
-      // Part I: delete、ambiguous legacy（2件併存）→ legacy 2件とも live 残置 + console.warn
-      // (review v6 Info 3 / AC-T4-3(c) / レビュー v1 Major 2)
-      // ============================================================
-      {
-        const { dataDir, originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-i'))});
-        await fs.ensureDir(originalsDir);
-
-        const UID_I1 = '80111111-1111-4111-8111-111111111111';
-        const tmpTileFolder = await prepareTmpUpload('jpg');
-        const saveI1 = await MapEditService.save({
-          mapObject: {
-            mapID: 'i1-ambiguous-delete', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder),
-            gcps: [], edges: [], sub_maps: [],
-          },
-          tins: [],
-          slug: 'i1-ambiguous-delete',
-          uid: UID_I1,
-          create: true,
-        });
-        assert.equal(saveI1.result, 'Success');
-        await fs.writeFile(path.join(originalsDir, 'i1-ambiguous-delete.jpg'), 'legacy-jpg-i1');
-        await fs.writeFile(path.join(originalsDir, 'i1-ambiguous-delete.png'), 'legacy-png-i1');
-
-        const { warnings } = await readWarn(() => MapDataService.deleteMap(UID_I1));
-
-        assert.equal(await SqliteDataService.findMap(UID_I1), null, 'ambiguous legacy があっても DB row は削除されるはず');
-        assert.ok(
-          !(await fs.pathExists(path.join(originalsDir, UID_I1 + '.jpg'))),
-          'canonical は ambiguous legacy と無関係に trash へ move されるはず'
-        );
-        assert.ok(
-          await fs.pathExists(path.join(originalsDir, 'i1-ambiguous-delete.jpg')),
-          'ambiguous legacy(jpg) は move されず live に残置されるはず (review v6 Info 3)'
-        );
-        assert.ok(
-          await fs.pathExists(path.join(originalsDir, 'i1-ambiguous-delete.png')),
-          'ambiguous legacy(png) も move されず live に残置されるはず'
-        );
-        assert.ok(
-          warnings.some((w) => w.includes('ambiguous legacy') && w.includes('candidates=2') && w.includes(UID_I1) && w.includes('i1-ambiguous-delete')),
-          'legacyCandidateCount を含む console.warn が出るはず (AC-T4-3(c)): ' + JSON.stringify(warnings)
-        );
-        console.log('ok: (Part I) delete with ambiguous legacy leaves both legacy files live and warns with legacyCandidateCount (AC-T4-3(c))');
-      }
-
-      // ============================================================
-      // Part J: reconcile、trash+DB row 存在 → restore（AC-T4-5）
-      // ============================================================
-      {
-        const { dataDir, originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-j'))});
-        await fs.ensureDir(originalsDir);
-
-        const UID_J1 = 'j1111111-1111-4111-8111-111111111111';
-        await SqliteDataService.createMap('j1-reconcile-map', { imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] }, UID_J1);
-
-        const trashDir = path.join(dataDir, 'trash', 'maps', UID_J1, 'op-j1', 'originals');
-        await fs.ensureDir(trashDir);
-        await fs.writeFile(path.join(trashDir, UID_J1 + '.jpg'), 'trash-content-j1');
-
-        const db = await SqliteDataService.getDb();
-        await reconcileDeletedMapsTrash(db);
-
-        const livePath = path.join(originalsDir, UID_J1 + '.jpg');
-        assert.ok(await fs.pathExists(livePath), 'trash+DB row 存在の明白なケースは live へ restore されるはず (AC-T4-5)');
-        assert.equal(await fs.readFile(livePath, 'utf8'), 'trash-content-j1');
-        assert.ok(!(await fs.pathExists(path.join(trashDir, UID_J1 + '.jpg'))), 'restore 後は trash から無くなっているはず(move)');
-        console.log('ok: (Part J) reconcile restores files when trash exists and DB row still exists (AC-T4-5)');
-      }
-
-      // ============================================================
-      // Part K: reconcile、trash+DB row 存在+live 既存 → restore せず warning（AC-T4-5）
-      // ============================================================
-      {
-        const { dataDir, originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-k'))});
-        await fs.ensureDir(originalsDir);
-
-        const UID_K1 = 'k1111111-1111-4111-8111-111111111111';
-        await SqliteDataService.createMap('k1-reconcile-conflict', { imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] }, UID_K1);
-
-        const trashDir = path.join(dataDir, 'trash', 'maps', UID_K1, 'op-k1', 'originals');
-        await fs.ensureDir(trashDir);
-        await fs.writeFile(path.join(trashDir, UID_K1 + '.jpg'), 'trash-content-k1');
-
-        const livePath = path.join(originalsDir, UID_K1 + '.jpg');
-        await fs.writeFile(livePath, 'live-existing-k1');
-
-        const db = await SqliteDataService.getDb();
-        const { warnings } = await readWarn(() => reconcileDeletedMapsTrash(db));
-
-        assert.equal(await fs.readFile(livePath, 'utf8'), 'live-existing-k1', 'live に既存ファイルがある場合は上書きされないはず (AC-T4-5)');
-        assert.ok(await fs.pathExists(path.join(trashDir, UID_K1 + '.jpg')), 'restore しなかった trash ファイルはそのまま残るはず');
-        assert.equal(await fs.readFile(path.join(trashDir, UID_K1 + '.jpg'), 'utf8'), 'trash-content-k1');
-        assert.ok(
-          warnings.some((w) => w.includes('live path already exists')),
-          'live 既存時は console.warn が出るはず: ' + JSON.stringify(warnings)
-        );
-        console.log('ok: (Part K) reconcile does not overwrite an existing live file and warns instead (AC-T4-5)');
-      }
-
-      // ============================================================
-      // Part L: reconcile、trash+DB row 不在 → 何もしない（AC-T4-5）
-      // ============================================================
-      {
-        const { dataDir, originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-l'))});
-        await fs.ensureDir(originalsDir);
-
-        const UID_L1 = 'l1111111-1111-4111-8111-111111111111';
-        // 意図的に DB row を作らない(削除が正しく完了済みの状態を模す)
-        const trashDir = path.join(dataDir, 'trash', 'maps', UID_L1, 'op-l1', 'originals');
-        await fs.ensureDir(trashDir);
-        await fs.writeFile(path.join(trashDir, UID_L1 + '.jpg'), 'trash-content-l1');
-
-        const db = await SqliteDataService.getDb();
-        await reconcileDeletedMapsTrash(db);
-
-        assert.ok(
-          await fs.pathExists(path.join(trashDir, UID_L1 + '.jpg')),
-          'DB row 不在(削除完了済み)なら trash はそのまま保持されるはず (AC-T4-5)'
-        );
-        assert.ok(
-          !(await fs.pathExists(path.join(originalsDir, UID_L1 + '.jpg'))),
-          'DB row 不在なら live へ何も復元されないはず'
-        );
-        console.log('ok: (Part L) reconcile is a no-op when trash exists but no DB row exists (deletion already complete, AC-T4-5)');
-      }
-
-      // ============================================================
-      // Part M: delete 成功後の trash 非 purge（複数回の reconcile 実行後も trash 残存、AC-T4-4）
-      // ============================================================
-      {
-        assert.ok(trashRootG, 'Part G の trash パスが記録されているはず');
-        const { dataDir: dataDirG } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-g'))});
-        const db = await SqliteDataService.getDb();
-
-        const trashedCanonical = (await fs.readdir(path.join(trashRootG, 'originals')))[0];
-        const trashedCanonicalPath = path.join(trashRootG, 'originals', trashedCanonical);
-        const bytesBefore = await fs.readFile(trashedCanonicalPath, 'utf8');
-
-        // 複数回の reconcile 実行(アプリ再起動相当を模す)を経ても trash は変化しない
-        for (let i = 0; i < 3; i++) {
-          await reconcileDeletedMapsTrash(db);
-        }
-
-        assert.ok(await fs.pathExists(trashedCanonicalPath), 'delete 成功後の trash は自動 purge されないはず (AC-T4-4)');
-        assert.equal(await fs.readFile(trashedCanonicalPath, 'utf8'), bytesBefore, 'trash の内容も不変のはず');
-        console.log('ok: (Part M) trash from a completed delete survives repeated reconcile calls (no auto-purge, AC-T4-4)');
-      }
 
       console.log('M13-T4 originals lifecycle smoke passed');
       process.exit(0);

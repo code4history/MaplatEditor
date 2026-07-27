@@ -1,54 +1,35 @@
 import path from 'path';
 import fs from 'fs-extra';
-import { randomUUID } from 'node:crypto';
+import { shell } from 'electron';
 import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import MapMutationQueue from './MapMutationQueue';
 import { resolveDeletionTargets } from './MapOriginalImageService';
 
-// M13-T4 (v1.1、レビュー v1 Major 1 の解消): この import 構造は正当であり循環しない —
+// M12-T18: この import 構造は正当であり循環しない —
 // MapDeleteTrashService.ts -> SqliteDataService.ts の一方向 import のみで、
-// SqliteDataService.ts は本ファイルを import しない (reconcile 関連の呼び出しは
-// MapTrashReconcileService.ts 経由。同ファイル参照)。
-
-interface TrashMoveRecord { from: string; to: string }
+// SqliteDataService.ts は本ファイルを import しない。
 
 function getFolders() {
     const saveFolder = SettingsService.get('saveFolder') as string;
     return {
-        saveFolder,
         tileFolder: path.join(saveFolder, 'tiles'),
         thumbFolder: path.join(saveFolder, 'tmbs'),
-        trashMapsRoot: path.join(saveFolder, 'trash', 'maps'),
     };
 }
 
-async function moveToTrash(filePath: string, trashPath: string, moved: TrashMoveRecord[]): Promise<void> {
-    await fs.ensureDir(path.dirname(trashPath));
-    await fs.move(filePath, trashPath, { overwrite: false });
-    moved.push({ from: filePath, to: trashPath });
-}
-
-// DB delete 失敗時のロールバック。live 側に既に何か存在する場合は上書きしない
-// (別 mutation が queue 直列化を経ずに割り込むことは無いはずだが、防御的に確認する)
-async function rollbackMoves(moved: TrashMoveRecord[]): Promise<void> {
-    for (const m of [...moved].reverse()) {
-        try {
-            if (!(await fs.pathExists(m.from)) && (await fs.pathExists(m.to))) {
-                await fs.move(m.to, m.from, { overwrite: false });
-            }
-        } catch (e) {
-            console.error(`[MapDeleteTrashService] rollback move failed: ${m.to} -> ${m.from}`, e);
-        }
-    }
-}
-
-// M13-T4 (AC-T4-3/4): canonical (uid キー、複数拡張子variant全て) と、一意対応すると
-// 判定できた legacy (basenameがslugと完全一致する候補がちょうど1件) だけを
-// `trash/maps/<uid>/<operationId>/` へ move してから DB delete する。
-// DB delete 失敗時のみ live へロールバックする。DB success 後の trash は保持し、
-// 自動 purge しない (SI-4)。既存 ImageAssetService._trash パターン (DB delete が先)
-// とは意図的に順序を逆にしている (§4.4 参照: map originals の復元コスト高に基づく判断)
+// M12-T18 (SI-4 OS Trash Delegation): 地図削除時の originals 退避先を、独自 trash
+// ディレクトリ (m13-t4) から Electron `shell.trashItem` による OS ゴミ箱へ変更する。
+// - 順序は「DB delete 先行 → 成功後にのみ trashItem」。DB delete 失敗時はファイルを
+//   一切動かしていないため rethrow のみで足りる (rollback 機構は構造的に不要 = 撤去済み)。
+// - trashItem の個別失敗 (対象消滅・権限・ゴミ箱を持てないボリューム等) は per-file
+//   try/catch で warn + live 残置とし、削除処理全体は継続する (trashItem は失敗時に
+//   元位置残置の非破壊であることを実測済み。設計 §4.1/§4.2)。
+// - ambiguous legacy (同 slug 2件以上) は対象にせず live 残置 + warning (従来どおり)。
+// - tiles / tmbs / tmbs _512 は originals から再生成可能な派生物のため OS ゴミ箱に
+//   入れず、従来どおり fs.remove の直接削除を維持する (設計 §5.4)。
+// - 誤削除の救済は OS ゴミ箱 (Finder の「戻す」等) へ委譲する。復元位置はアプリから
+//   制御できず、DB row は復元されない (画像救済のみ。設計 §5.2)。
 export async function deleteMapWithTrash(uidOrMapID: string): Promise<void> {
     const doc = await SqliteDataService.findMapByRef(uidOrMapID);
     const fileKey = doc?.uid || uidOrMapID;
@@ -57,46 +38,41 @@ export async function deleteMapWithTrash(uidOrMapID: string): Promise<void> {
     if (!fileKey) return;
 
     return MapMutationQueue.run(fileKey, 'map-delete', async () => {
-        const { tileFolder, thumbFolder, trashMapsRoot } = getFolders();
+        const { tileFolder, thumbFolder } = getFolders();
         const slug = doc?.slug || uidOrMapID;
-        const moved: TrashMoveRecord[] = [];
 
+        // 削除対象の解決はファイルを動かさない読み取りのみ (resolveDeletionTargets)。
+        // trashItem は常に絶対パスのみを受け取る契約 (設計 §4.1: 相対パスは cwd 基準で
+        // 解決されるため禁止。resolveDeletionTargets は絶対パスを返す)
+        const trashTargets: string[] = [];
         if (doc) {
-            const operationId = randomUUID();
-            const trashRoot = path.join(trashMapsRoot, fileKey, operationId);
             const { canonicalPaths, legacyPath, legacyCandidateCount } = await resolveDeletionTargets(fileKey, slug);
-            // v1.1 (AC-T4-3(c), レビュー v1 Major 2): ambiguous legacy (2件以上) は move せず
-            // live に残置する (milestone §4.7.3 手順3)。何が起きたか運用者が追跡できるよう warning を残す
+            // ambiguous legacy (2件以上) は対象にせず live に残置する。何が起きたか運用者が
+            // 追跡できるよう warning を残す (m13-t4 からの挙動維持、AC18-5)
             if (legacyCandidateCount >= 2) {
-                console.warn(`[MapDeleteTrashService] delete: ambiguous legacy originals for uid=${fileKey} slug=${slug} (candidates=${legacyCandidateCount}); leaving all legacy files in place (not moved to trash)`);
+                console.warn(`[MapDeleteTrashService] delete: ambiguous legacy originals for uid=${fileKey} slug=${slug} (candidates=${legacyCandidateCount}); leaving all legacy files in place (not moved to the OS trash)`);
             }
-            for (const c of canonicalPaths) {
-                try {
-                    await moveToTrash(c.path, path.join(trashRoot, 'originals', path.basename(c.path)), moved);
-                } catch (e) {
-                    console.error(`[MapDeleteTrashService] failed moving canonical to trash: ${c.path}`, e);
-                }
-            }
-            if (legacyPath) {
-                try {
-                    await moveToTrash(legacyPath.path, path.join(trashRoot, 'legacy', path.basename(legacyPath.path)), moved);
-                } catch (e) {
-                    console.error(`[MapDeleteTrashService] failed moving legacy to trash: ${legacyPath.path}`, e);
-                }
-            }
+            for (const c of canonicalPaths) trashTargets.push(c.path);
+            if (legacyPath) trashTargets.push(legacyPath.path);
         }
 
-        try {
-            if (doc) await SqliteDataService.deleteMap(doc.uid);
-        } catch (e) {
-            console.error('[MapDeleteTrashService] DB delete failed; rolling back trash moves', e);
-            await rollbackMoves(moved);
-            throw e;
+        // DB delete を先行させる (M12-T18)。失敗時はこの時点で何もファイルを動かして
+        // いないため rethrow のみ (利用者には従来どおり DiagnosticFeedback で表示される)
+        if (doc) await SqliteDataService.deleteMap(doc.uid);
+
+        // DB 成功後にのみ、対象ファイルごとに OS ゴミ箱へ移す (per-file best-effort)。
+        // 失敗した対象は live (originals/) に孤児として残る非破壊側の帰結であり、
+        // 自動後始末機構は作らない (設計 §5.1/§5.3)
+        for (const target of trashTargets) {
+            try {
+                await shell.trashItem(target);
+            } catch (e) {
+                console.warn(`[MapDeleteTrashService] failed moving original to the OS trash; leaving it in place: ${target}`, e);
+            }
         }
 
         // DB success 後: tiles/tmbs/tmbs_512 を best-effort で削除する。失敗しても warning のみ、
-        // rollback しない (milestone §4.7.3 手順7)。既存実装が削除し忘れていた `_512.jpg` も
-        // ここで削除する (§4.3 で確認した既存バグの是正)
+        // rollback しない
         const tileDir = path.join(tileFolder, fileKey);
         try { if (await fs.pathExists(tileDir)) await fs.remove(tileDir); }
         catch (e) { console.warn(`[MapDeleteTrashService] failed to remove tile dir: ${tileDir}`, e); }
@@ -108,6 +84,5 @@ export async function deleteMapWithTrash(uidOrMapID: string): Promise<void> {
         const thumb512File = path.join(thumbFolder, `${fileKey}_512.jpg`);
         try { if (await fs.pathExists(thumb512File)) await fs.remove(thumb512File); }
         catch (e) { console.warn(`[MapDeleteTrashService] failed to remove 512 thumbnail: ${thumb512File}`, e); }
-        // trash は保持する (SI-4)。ここでは何もしない
     });
 }

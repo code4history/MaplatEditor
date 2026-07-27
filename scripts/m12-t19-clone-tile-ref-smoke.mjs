@@ -66,6 +66,12 @@ try {
           clearStorageData() { return Promise.resolve(); },
         },
       };
+      // M12-T18: バンドルに含まれる MapDeleteTrashService が shell を named import するため
+      // export が必要 (本 smoke の削除シナリオは originals 無しのため trashItem は呼ばれず、
+      // no-op で可。assert は不変)
+      export const shell = {
+        trashItem(_path: string) { return Promise.resolve(); },
+      };
     `
   );
   await writeFile(
