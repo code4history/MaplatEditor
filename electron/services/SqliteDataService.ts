@@ -30,7 +30,6 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { createResettableSingleFlight } from './ResettableSingleFlight';
 import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 import { runColdBoot } from './OriginalsMigrationService';
-import { reconcileDeletedMapsTrash } from './MapTrashReconcileService';
 import { writeLegacyMigrationReport, appendMigrationWarnings } from './MigrationReportService';
 
 type BaseMapScope = 'builtin' | 'user';
@@ -868,10 +867,11 @@ class SqliteDataService {
       db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(OPT_IN_VISIBILITY_FLIP_ID);
     }
 
-    // M13-T5 §4.1/§5.4: 起動時 migration パイプライン4段階の依存関係・失敗ポリシー
+    // M13-T5 §4.1/§5.4: 起動時 migration パイプライン3段階の依存関係・失敗ポリシー
     // (マイルストーン設計 §2.5・タスク設計 `2026-07-24-m13-t5-migration-pipeline-design.md`
-    // §4.1 準拠。本コメントはドキュメンテーション追加のみで、実行順序・条件分岐・
-    // try/catch の配置は一切変更しない):
+    // §4.1 準拠。M12-T18: 旧段階3 trash reconcile は独自 trash の廃止 = OS ゴミ箱委譲に
+    // 伴い撤去した — 新しい削除順序 (DB delete 先行) では reconcile が対象とした
+    // 「退避済みだが DB 未削除」状態が構造的に発生しない。4段階 → 3段階):
     //   段階1 legacy migration (runLegacyMigrationIfNeeded, 下記)
     //     foundational・fail-closed: 呼び出し元(ここ)に try/catch なし。地図の DB 行そのものを
     //     作る段階であり、失敗を隠して起動を続けるより早期に失敗を可視化する方が安全という
@@ -883,10 +883,7 @@ class SqliteDataService {
     //     (既知の限界。マイルストーン v3.1 SI-9 で対応案(a)=保証水準の明記を採用し、
     //     (b)=外側 try/catch 追加は不採用と決定済み。本タスクでは変更しない)。
     //     段階1完了後に実行する(maps テーブルへの行投入が段階1完了を前提とするため)
-    //   段階3 trash reconcile (reconcileDeletedMapsTrash, 下記)
-    //     best-effort enhancement: 呼び出し元(ここ)で try/catch 済み(二重防御)。
-    //     段階4より先に実行する(順序が逆だと crash 直後の起動で段階4が誤検知するため。詳細は下記コメント)
-    //   段階4 originals UUID migration (runColdBoot, 下記)
+    //   段階3 originals UUID migration (runColdBoot, 下記)
     //     best-effort enhancement: 呼び出し元(ここ)で try/catch 済み(二重防御)。
     //     migrate() はいかなる場合も本段階の失敗によって失敗してはならない契約
     await this.runLegacyMigrationIfNeeded(db);
@@ -897,20 +894,6 @@ class SqliteDataService {
     await this.migrateBaseMapIconPaths(db);
     // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
     await this.runThumbnail512MiningIfNeeded(db);
-
-    // M13-T4 (SI-8: T4 着手まで無効化されていた delete reconcile を本タスクで有効化する):
-    // trash へ move 済みだが DB delete が未完了 (crash等) の map を、DB row がまだ存在する
-    // 明白なケースだけ live へ復元する。runColdBoot と同じく db を直接渡し getDb() 再入を避ける。
-    // v1.1 (レビュー v1 Info 2 採用): originals UUID migration (runColdBoot) より先に実行する。
-    // 順序が逆だと、DB delete 失敗による crash 直後の起動で migration が先に走った場合、
-    // 実際には trash に存在するだけの original を skip_source_missing と誤って report してしまう
-    // (次回起動での migration 再走で自己回復するため correctness 問題ではないが、report 精度が
-    // 落ちる。追加コストなしで避けられるため、この順序を採用する)
-    try {
-      await reconcileDeletedMapsTrash(db);
-    } catch (e) {
-      console.error('[SqliteDataService] trash reconcile failed unexpectedly; continuing DB initialization without it', e);
-    }
 
     // 既存(T3): originals UUID migration
     // M13-T3: slug originals -> UUID originals の one-shot migration/report。
