@@ -567,6 +567,8 @@ try {
       // (r) 仕様 §2.3: FC トップレベル layer metadata の save round-trip。id/name は保存されない
       // (slug/title 由来の独立しない概念、export 時にのみ書き込む)。icon/selectedIcon/hide/
       // poiTemplate/未知キー (customMeta) は round-trip 保持される (backend バグ修正、Phase5 Task1)。
+      // M17-T1/AC17-3: patchLayerMeta で icon を変更しても、未編集の poiTemplate/customMeta 等
+      // が save→get で保持されることを確認する end-to-end 検証。
       const layerMetaSave = await poiSourceService.save(uid, {
         slug: 'kyoto-poi',
         title: '京都POI',

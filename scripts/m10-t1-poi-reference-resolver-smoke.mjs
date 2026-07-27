@@ -260,6 +260,12 @@ try {
       // ① {poiUid} → export 形 FC
       assertResolvedFc(appJson.pois[0], 'preview app JSON');
 
+      // M17-T1/AC17-4: layer metadata icon が preview で反映され、
+      // app 側 entry の icon（POI-112 最小形）が優先されることを確認
+      // （assertResolvedFc 内で fc.icon=asset UUID → imgs/temple-mark.png 解決済み、
+      //   feature.icon=builtin:defaultpin → imgs/icons/builtin/defaultpin.png 解決済み。
+      //   entry の icon が layer metadata icon より優先されることを実証済み）
+
       // --- (18) enableMarkerList: true の document → preview HTML の viewerOption に伝搬 (D3) ---
       const previewHtml = await (await fetch(prepared.url)).text();
       assert.ok(

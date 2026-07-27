@@ -126,8 +126,11 @@
           </div>
         </div>
         <!-- M17-T1: layer metadata 編集フィールド (icon/selectedIcon/hide) -->
-        <div class="row align-items-start g-2 mt-1">
-          <div class="col-4">
+        <div class="mt-1 mb-1">
+          <span class="fw-bold small text-muted">{{ t("poiedit.layer_metadata") }}</span>
+        </div>
+        <div class="row align-items-start g-2">
+          <div class="col-4" data-testid="layer-icon">
             <IconRefField
               ref="layerIconFieldRef"
               :model-value="layerIconValue"
@@ -136,7 +139,7 @@
               @update:model-value="onLayerIconChange"
             />
           </div>
-          <div class="col-4">
+          <div class="col-4" data-testid="layer-selected-icon">
             <IconRefField
               ref="layerSelectedIconFieldRef"
               :model-value="layerSelectedIconValue"
@@ -150,6 +153,7 @@
               <input
                 type="checkbox"
                 class="form-check-input"
+                data-testid="layer-hide"
                 :checked="layerHideValue"
                 :disabled="readOnly || translationMode"
                 @change="onLayerHideChange"
@@ -315,9 +319,11 @@ const layerHideValue = computed<boolean>(() => {
 });
 
 const onLayerIconChange = (value: string): void => {
+  if (value === layerIconValue.value) return;
   patchLayerMeta({ icon: value });
 };
 const onLayerSelectedIconChange = (value: string): void => {
+  if (value === layerSelectedIconValue.value) return;
   patchLayerMeta({ selectedIcon: value });
 };
 const onLayerHideChange = (e: Event): void => {
