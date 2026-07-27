@@ -785,7 +785,6 @@
     "layer_metadata": "图层元数据",
     "layer_icon": "图层图标",
     "layer_selected_icon": "图层选中图标",
-    "layer_hide": "隐藏图层",
     "picker": {
       "title_icon": "选择图标",
       "title_image": "选择图片",

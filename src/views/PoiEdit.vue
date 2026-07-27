@@ -113,19 +113,8 @@
               </option>
             </select>
           </div>
-          <div class="col-12 d-flex align-items-center justify-content-end gap-2">
-            <span class="text-muted small">{{ featureCount }} {{ t("poisource.features") }}</span>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              :class="{ active: rawPaneOpen }"
-              @click="toggleRawPane"
-            >
-              {{ t("poiedit.raw_pane") }}
-            </button>
-          </div>
         </div>
-        <!-- M17-T1: layer metadata 編集フィールド (icon/selectedIcon/hide) -->
+        <!-- M17-T1: layer metadata 編集フィールド (icon/selectedIcon) + featureCount/rawPane 統合 -->
         <div class="mt-1 mb-1">
           <span class="fw-bold small text-muted">{{ t("poiedit.layer_metadata") }}</span>
         </div>
@@ -148,18 +137,16 @@
               @update:model-value="onLayerSelectedIconChange"
             />
           </div>
-          <div class="col-4">
-            <label class="form-check form-check-inline small mb-0">
-              <input
-                type="checkbox"
-                class="form-check-input"
-                data-testid="layer-hide"
-                :checked="layerHideValue"
-                :disabled="readOnly || translationMode"
-                @change="onLayerHideChange"
-              />
-              {{ t("poiedit.layer_hide") }}
-            </label>
+          <div class="col-4 d-flex align-items-center justify-content-end gap-2">
+            <span class="text-muted small">{{ featureCount }} {{ t("poisource.features") }}</span>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              :class="{ active: rawPaneOpen }"
+              @click="toggleRawPane"
+            >
+              {{ t("poiedit.raw_pane") }}
+            </button>
           </div>
         </div>
       </div>
@@ -314,9 +301,6 @@ const layerSelectedIconValue = computed<string>(() => {
   const v = editState.value?.layerMeta?.selectedIcon;
   return typeof v === "string" ? v : "";
 });
-const layerHideValue = computed<boolean>(() => {
-  return editState.value?.layerMeta?.hide === true;
-});
 
 const onLayerIconChange = (value: string): void => {
   if (value === layerIconValue.value) return;
@@ -325,9 +309,6 @@ const onLayerIconChange = (value: string): void => {
 const onLayerSelectedIconChange = (value: string): void => {
   if (value === layerSelectedIconValue.value) return;
   patchLayerMeta({ selectedIcon: value });
-};
-const onLayerHideChange = (e: Event): void => {
-  patchLayerMeta({ hide: (e.target as HTMLInputElement).checked });
 };
 
 // M17-T1: pickerOpen 中のグローバルキー抑止

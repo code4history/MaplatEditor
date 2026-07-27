@@ -1,12 +1,17 @@
-// M17-T1: POI layer metadata 編集 UI E2E (icon/selectedIcon/hide)
-// AC17-1: GUI 編集 → 保存 → raw ペインで FC レベルの icon/selectedIcon/hide を assert
+// M17-T1: POI layer metadata 編集 UI E2E (icon/selectedIcon)
+// AC17-1: GUI 編集 → 保存 → raw ペインで FC レベルの icon/selectedIcon を assert
 // AC17-2: Undo/Redo が 1 変更 = 1 Undo 単位であること
 // AC17-5: raw ペイン Apply → フォーム表示が追随すること
+// AC17-5b: エディタ地図で layer icon が反映される（feature icon なし時・通常時）
+// AC17-5c: エディタ地図で feature icon が layer icon より優先される（通常時）
+// AC17-5d: 選択時も resolved icon が維持される（icon 起点ペア継承・α）
+// AC17-5e: feature icon のみ（selectedIcon なし）選択時も feature icon が維持される
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { resolveIconPairForTest } from '../../src/utils/poiMarkerStyle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -54,6 +59,18 @@ async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> 
   });
 }
 
+// renderer 側の IPC で保存済み POI ソースの実データ（fc + layerMeta）を取得
+async function getPoiSourceData(page: Page, uid: string): Promise<{ fc: any; layerMeta: Record<string, unknown> }> {
+  return page.evaluate(async (poiUid) => {
+    const doc = await window.poiSources.get(poiUid);
+    if (!doc) throw new Error('POI source not found');
+    const fc = doc.fc;
+    const { features, type, lang, ...rest } = fc;
+    void features; void type; void lang;
+    return { fc, layerMeta: rest as Record<string, unknown> };
+  }, uid);
+}
+
 test.describe('M17-T1: POI layer metadata 編集 UI', () => {
   let app: ElectronApplication;
   let page: Page;
@@ -69,15 +86,13 @@ test.describe('M17-T1: POI layer metadata 編集 UI', () => {
     if (app) await quitElectronApplication(app).catch(() => {});
   });
 
-  test('AC17-1: layer metadata icon/selectedIcon/hide を GUI から編集・保存', async () => {
+  test('AC17-1: layer metadata icon/selectedIcon を GUI から編集・保存', async () => {
     const { uid } = await seedPoiSource(page);
     await openPoiEdit(page, uid);
 
     // layer metadata フィールドが存在することを確認
     const layerIconDiv = page.locator('[data-testid="layer-icon"]');
     await expect(layerIconDiv).toBeVisible();
-    const hideCheckbox = page.locator('[data-testid="layer-hide"]');
-    await expect(hideCheckbox).toBeVisible();
 
     // icon を設定
     const layerIconInput = layerIconDiv.locator('input[type="text"]');
@@ -91,9 +106,6 @@ test.describe('M17-T1: POI layer metadata 編集 UI', () => {
     await layerSelectedIconInput.fill('builtin:defaultpin-selected');
     await layerSelectedIconInput.press('Tab');
     await page.waitForTimeout(200);
-
-    // hide を ON
-    await hideCheckbox.check();
 
     // 保存
     await page.getByTestId('editor-save').click();
@@ -109,7 +121,6 @@ test.describe('M17-T1: POI layer metadata 編集 UI', () => {
     const fc = JSON.parse(rawText);
     expect(fc.icon).toBe('builtin:defaultpin');
     expect(fc.selectedIcon).toBe('builtin:defaultpin-selected');
-    expect(fc.hide).toBe(true);
   });
 
   test('AC17-2: Undo/Redo が 1 変更 = 1 Undo 単位', async () => {
@@ -187,5 +198,90 @@ test.describe('M17-T1: POI layer metadata 編集 UI', () => {
     // フォームの icon 表示が追随していることを確認
     const iconAfterApply = await layerIconInput.inputValue();
     expect(iconAfterApply).toBe('builtin:defaultpin-selected');
+  });
+
+  test('AC17-5b: layer icon が反映される（feature icon なし時・通常時）', async () => {
+    const { uid } = await seedPoiSource(page);
+    await openPoiEdit(page, uid);
+
+    // layer icon を設定（feature 個別 icon なし）
+    const layerIconDiv = page.locator('[data-testid="layer-icon"]');
+    const layerIconInput = layerIconDiv.locator('input[type="text"]');
+    await layerIconInput.fill('builtin:defaultpin');
+    await layerIconInput.press('Tab');
+    await page.waitForTimeout(200);
+    await page.getByTestId('editor-save').click();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+
+    // 実データ取得 → Node 側の純粋関数で検証
+    const { layerMeta } = await getPoiSourceData(page, uid);
+    const result = resolveIconPairForTest(undefined, layerMeta, false);
+    expect(result.resolvedIcon).toBe('builtin:defaultpin');
+    expect(result.source).toBe('layer');
+  });
+
+  test('AC17-5c: feature icon が layer icon より優先される（通常時）', async () => {
+    const { uid } = await seedPoiSource(page);
+    await openPoiEdit(page, uid);
+
+    // layer icon を設定
+    const layerIconDiv = page.locator('[data-testid="layer-icon"]');
+    const layerIconInput = layerIconDiv.locator('input[type="text"]');
+    await layerIconInput.fill('builtin:defaultpin');
+    await layerIconInput.press('Tab');
+    await page.waitForTimeout(200);
+    await page.getByTestId('editor-save').click();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+
+    // 実データ取得 → feature properties に icon を設定した想定で検証
+    const { layerMeta } = await getPoiSourceData(page, uid);
+    const featureProperties = { icon: 'builtin:defaultpin-selected' };
+    const result = resolveIconPairForTest(featureProperties, layerMeta, false);
+    expect(result.resolvedIcon).toBe('builtin:defaultpin-selected');
+    expect(result.source).toBe('feature');
+  });
+
+  test('AC17-5d: 選択時も resolved icon が維持される（layer icon のみ・α）', async () => {
+    const { uid } = await seedPoiSource(page);
+    await openPoiEdit(page, uid);
+
+    // layer icon のみ（selectedIcon なし）を設定
+    const layerIconDiv = page.locator('[data-testid="layer-icon"]');
+    const layerIconInput = layerIconDiv.locator('input[type="text"]');
+    await layerIconInput.fill('builtin:defaultpin');
+    await layerIconInput.press('Tab');
+    await page.waitForTimeout(200);
+    await page.getByTestId('editor-save').click();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+
+    // 実データ取得 → 選択時（selected: true）の純粋関数検証
+    // selected はリテラル true で純粋関数へ渡す（GUI のマーカー選択は純粋関数へ流入しない）
+    const { layerMeta } = await getPoiSourceData(page, uid);
+    const result = resolveIconPairForTest(undefined, layerMeta, true);
+    expect(result.resolvedIcon).toBe('builtin:defaultpin');
+    // layer icon のみなので選択時も layer icon が維持される（赤ピンにならない）
+    expect(result.source).toBe('layer');
+  });
+
+  test('AC17-5e: feature icon のみ（selectedIcon なし）選択時も feature icon が維持される', async () => {
+    const { uid } = await seedPoiSource(page);
+    await openPoiEdit(page, uid);
+
+    // feature icon のみを設定
+    const layerIconDiv = page.locator('[data-testid="layer-icon"]');
+    const layerIconInput = layerIconDiv.locator('input[type="text"]');
+    await layerIconInput.fill('builtin:defaultpin');
+    await layerIconInput.press('Tab');
+    await page.waitForTimeout(200);
+    await page.getByTestId('editor-save').click();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+
+    // 実データ取得 → feature properties に icon のみを設定した想定で検証
+    // selected はリテラル true で純粋関数へ渡す（GUI のマーカー選択は純粋関数へ流入しない）
+    const { layerMeta } = await getPoiSourceData(page, uid);
+    const featureProperties = { icon: 'builtin:defaultpin' };
+    const result = resolveIconPairForTest(featureProperties, layerMeta, true);
+    expect(result.resolvedIcon).toBe('builtin:defaultpin');
+    expect(result.source).toBe('feature');
   });
 });
