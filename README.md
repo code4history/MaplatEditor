@@ -96,12 +96,13 @@ binaries are distributed via GitHub Releases.
   saved" flow — an abandoned new-resource draft is never written to the
   data folder, and shows up as a draft card in the list that you can resume
   or discard (discarding also releases the draft's image storage)
-- Deleting a map moves it to a trash location instead of deleting it
-  immediately
+- Deleting a map moves its original images to the operating system's Trash
+  (via Electron's `shell.trashItem`) instead of deleting them immediately,
+  so you can rescue them with the OS's standard "Put Back" operation
 - MaplatEditor migrates the data folder to the current format automatically
   on first launch after an upgrade — legacy data import, thumbnail
-  generation, trash reconciliation, and originals renaming — without
-  deleting existing data; see [Prerequisites](#prerequisites) for details
+  generation, and originals renaming — without deleting existing data; see
+  [Prerequisites](#prerequisites) for details
 - Only one instance of MaplatEditor runs at a time; launching a second
   instance brings the existing window to the front instead of opening a new
   one
@@ -206,10 +207,9 @@ The Map/App/POI editors and the POI-on-map editing pane share this set.
 
 > **Note**: On first launch after upgrading, MaplatEditor automatically
 > migrates the data folder to the current format (legacy data import,
-> thumbnail generation, trash reconciliation, and originals renaming to
-> UUID filenames). No existing map data is deleted, and each step resumes
-> safely if interrupted; startup may take longer than usual on that first
-> run.
+> thumbnail generation, and originals renaming to UUID filenames). No
+> existing map data is deleted, and each step resumes safely if
+> interrupted; startup may take longer than usual on that first run.
 
 <!-- Known Limitations: not one of the 11 template sections; added here as a
      MaplatEditor-specific note (design decision recorded in m14-t2 task
@@ -220,8 +220,11 @@ The Map/App/POI editors and the POI-on-map editing pane share this set.
   (exporting the map itself still works); an app that includes such a map,
   or that references a map missing from the database (e.g. deleted), cannot
   be saved, previewed, or exported until the issue is fixed.
-- Deleted maps move to a trash location, but MaplatEditor never purges the
-  trash automatically; disk usage grows until you clear it yourself.
+- When a map is deleted, its original images go to the operating system's
+  Trash; managing that Trash (restoring or emptying) is left to the OS and
+  to you, like any other trashed file. Restoring a file from the Trash
+  brings back the image file only — the map itself does not reappear in
+  MaplatEditor.
 - The 9 UI languages added beyond English/Japanese are machine translated
   and have not undergone human quality review.
 - The interface currently renders in light mode only, even when the OS is
