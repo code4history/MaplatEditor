@@ -238,14 +238,23 @@ try {
     assert.match(source, /draftLifecycle\.schedule/, `${viewName}: throttled schedule missing`);
     assert.match(source, /draftLifecycle\.flush\(\)/, `${viewName}: hot-exit flush missing`);
   }
-  // save cleanup: Map/App は markSaved、PoiEdit は M11-T10b の rebase+flush 契約
-  // （保存成功時に identity を保存済み行へ再構成し、追加編集が新規カード化しない）
-  for (const viewName of ['MapEdit.vue', 'AppEdit.vue']) {
-    const source = await readFile(path.join(projectRoot, 'src/views', viewName), 'utf8');
-    assert.match(source, /draftLifecycle\.markSaved\(\)/, `${viewName}: save cleanup missing`);
+  // save cleanup (m12-t29 拡張): 全エディタが markSaved → rebase → flush パターンを持つ。
+  // PoiEdit.vue は m11-t10b で先行導入、MapEdit/AppEdit/BaseMapEdit/AssetEdit は m12-t29 で追従。
+  // 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、identity を保存済み行の
+  // (uid, revision) へ再構成しないと、旧 draftUid のドラフトが取り残され、
+  // 正式データと同一 slug のドラフトが並ぶ不具合を防ぐための必須パターン。
+  const cleanupViewFiles = [
+    { name: 'MapEdit.vue', relative: 'src/views/MapEdit.vue' },
+    { name: 'AppEdit.vue', relative: 'src/views/AppEdit.vue' },
+    { name: 'PoiEdit.vue', relative: 'src/views/PoiEdit.vue' },
+    { name: 'BaseMapEdit.vue', relative: 'src/components/basemap/BaseMapEdit.vue' },
+    { name: 'AssetEdit.vue', relative: 'src/components/assets/AssetEdit.vue' },
+  ];
+  for (const v of cleanupViewFiles) {
+    const source = await readFile(path.join(projectRoot, v.relative), 'utf8');
+    assert.match(source, /draftLifecycle\.markSaved\(\)/, `${v.name}: save cleanup (markSaved) missing`);
+    assert.match(source, /draftLifecycle\.rebase\(/, `${v.name}: save cleanup (rebase) missing (m12-t29)`);
   }
-  const poiViewForCleanup = await readFile(path.join(projectRoot, 'src/views/PoiEdit.vue'), 'utf8');
-  assert.match(poiViewForCleanup, /draftLifecycle\.rebase\(/, 'PoiEdit.vue: save cleanup (rebase) missing');
   const mapView = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
   const appView = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
   const poiView = await readFile(path.join(projectRoot, 'src/views/PoiEdit.vue'), 'utf8');

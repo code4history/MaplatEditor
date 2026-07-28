@@ -253,6 +253,11 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     await hydrateSourceThumbnails();
     markHistorySaved();
     await draftLifecycle.markSaved();
+    // M12-T29: 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、identity を
+    // 保存済み行の (uid, revision) へ再構成する（PoiEdit.vue m11-t10b と同パターン）。
+    // これを怠ると旧 draftUid でドラフトが取り残され、正式データと同一 slug のドラフトが並ぶ。
+    draftLifecycle.rebase(result.uid, result.revision);
+    await draftLifecycle.flush();
     // 新規作成でuidが確定した場合、リロード時に正しいアプリを再オープンできるよう
     // URLのクエリを追随させる (履歴は汚さない)
     if (route.query.uid !== result.uid) {

@@ -171,6 +171,12 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         originalMapData.value = cloneDeep(mapData.value);
         markHistorySaved();
         await draftLifecycle.markSaved();
+        // M12-T29: 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、
+        // identity を保存済み行の (uid, revision) へ再構成しないと、その後の編集が
+        // 旧 draftUid で persist され、正式データと同一 slug のドラフトが取り残される。
+        // PoiEdit.vue の m11-t10b で確立した markSaved → rebase → flush パターンと同一。
+        draftLifecycle.rebase(result.uid, result.revision);
+        await draftLifecycle.flush();
         // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
         // 再オープンできるようURLのクエリを追随させる (履歴は汚さない)
         if (route.query.uid !== result.uid) {

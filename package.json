@@ -121,7 +121,8 @@
     "smoke:m12-t18-os-trash-delete": "node scripts/m12-t18-os-trash-delete-smoke.mjs",
     "test:e2e:m12-t18-os-trash-delete": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t18-os-trash-delete.spec.ts",
     "smoke:m12-t16-resource-diagnostics": "node scripts/m12-t16-resource-diagnostics-smoke.mjs",
-    "test:e2e:m12-t16": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t16-resource-list-error-badges.spec.ts"
+    "test:e2e:m12-t16": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t16-resource-list-error-badges.spec.ts",
+    "smoke:m12-t29-draft-leftover-fix": "node scripts/m12-t29-draft-leftover-fix-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",
