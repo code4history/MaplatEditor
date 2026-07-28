@@ -201,13 +201,15 @@ try {
         const phantom = users.filter((b) => b.mapID.endsWith('_2'));
         assert.equal(phantom.length, 0, 'Part B: {カタログmapID}_2 が 0 件（残骸混入なし）');
 
-        // visibility のカタログ mapID がビルトイン行の uid へ解決されている
+        // visibility は map_uid 解決に依存し、本 Part は地図を作らないため全行 warning-skip される
+        // （実装レビュー Minor-1 吸収: 恒真 assert を skip 経路の実 assert へ正直化。
+        //   カタログ mapID → ビルトイン uid 解決の実検証は smoke:m7-sqlite-write-store が
+        //   実マップ + tmsList_mapA.json の gsi_ort_USA10 で担保しており、AC32-4 の
+        //   visibility 節の検証手段はそちらが正）
         const db = await SqliteDataService.getDb();
         const visRows = db.prepare('SELECT map_uid, base_map_uid, enabled FROM map_base_map_visibility').all() as any[];
-        // visibility は map_uid 解決にも依存するが、map が無いと解決不可で warning skip される。
-        // ここでは base_map_uid がビルトイン uid として解決されていること（null でない）を確認
-        assert.ok(visRows.length >= 0, 'Part B: visibility テーブル読み取り可能');
-        console.log('Part B passed: 正規レガシー移行で残骸非取込・user 1 件・visibility 解決');
+        assert.equal(visRows.length, 0, 'Part B: map 不在のため visibility は全行 warning-skip（挿入 0 件）');
+        console.log('Part B passed: 正規レガシー移行で残骸非取込・user 1 件・visibility は skip 経路確認（解決実検証は m7 回帰）');
       }
 
       // ===================== Part C（AC32-5/8）: フォルダ切替時ドラフト全消去 + 同値ガード =====================

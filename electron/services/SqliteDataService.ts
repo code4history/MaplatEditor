@@ -933,8 +933,8 @@ class SqliteDataService {
   }
 
   private async runLegacyMigrationIfNeeded(db: DatabaseSync): Promise<void> {
-    // レガシー移行は初回のみ。退避アーキブ(_nedb.db/_settings)は残り続けるため、
-    // 「入力ファイルの有無」ではなく「移行を実際に実行するか」で進捗通知を判定する
+    // レガシー移行は初回のみ。退避アーカイブ(_nedb.db/_settings)は残り続けるため、
+    // 「入力ファイルの有無」ではなく schema_migrations の marker で移行済みを判定する
     const alreadyMigrated = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
       .get(LEGACY_MIGRATION_ID);
