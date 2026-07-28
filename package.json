@@ -32,6 +32,7 @@
     "test:e2e:m3-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m3-t6-inline-poi-preserve-convert.spec.ts",
     "test:e2e:m12-t30": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t30-pois-roundtrip.spec.ts",
     "test:e2e:m12-t31": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t31-preview-back-navigation.spec.ts",
+    "test:e2e:m12-t32": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t32-basemap-bootstrap.spec.ts",
     "smoke:m4-undo-redo": "node scripts/m4-undo-redo-smoke.mjs",
     "smoke:m4-t1-revisioned-save": "node scripts/m4-t1-revisioned-save-smoke.mjs",
     "smoke:m4-t4-poi-edit-session": "node scripts/m4-t4-poi-edit-session-smoke.mjs",
