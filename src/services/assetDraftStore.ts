@@ -141,6 +141,17 @@ export class AssetDraftStore {
     this.removeKey(storageKey(kind, assetUid), opts?.keepStaging === true);
   }
 
+  // M12-T32 §4.3: データフォルダ切替成功時に全ドラフト（envelope + map staging dir）を消去する。
+  // 既存の per-draft 削除経路（removeKey → onRemoved → staging fs.remove GC）を反復して通す。
+  // index 直接 delete で staging ファイルを孤児化する実装は禁止（回収漏れは起動時孤児 GC が backstop）。
+  // list() は index のスナップショットを返すため、反復中の remove による index 変更を安全に横断できる。
+  wipeAllDrafts(): void {
+    const summaries = this.list();
+    for (const { kind, assetUid } of summaries) {
+      this.remove(kind, assetUid);
+    }
+  }
+
   list(kind?: AssetDraftKind): AssetDraftSummary[] {
     if (kind !== undefined && !isKind(kind)) throw new TypeError('Invalid draft kind');
     const summaries: AssetDraftSummary[] = [];

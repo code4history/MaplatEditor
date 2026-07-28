@@ -99,6 +99,9 @@ binaries are distributed via GitHub Releases.
   saved" flow — an abandoned new-resource draft is never written to the
   data folder, and shows up as a draft card in the list that you can resume
   or discard (discarding also releases the draft's image storage)
+- Switching the data folder discards all unsaved drafts (draft cards and
+  their staging tiles); already-saved data is not affected. Drafts are
+  app-global and do not travel between data folders
 - Deleting a map moves its original images to the operating system's Trash
   (via Electron's `shell.trashItem`) instead of deleting them immediately,
   so you can rescue them with the OS's standard "Put Back" operation
