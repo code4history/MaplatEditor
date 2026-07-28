@@ -6,12 +6,9 @@ import path from 'path';
 interface AppSettings {
   lang: string;
   saveFolder: string;
-  tmsList: any[];
   [key: string]: any;
 }
 
-// @ts-ignore
-import defaultTmsList from '../tms_list.json';
 import { resolveEditorLanguage } from '../../src/utils/editorLanguages';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 import { defaultDraftTileRoot } from './draftTilePaths';
@@ -26,7 +23,6 @@ const runtimeStoragePaths = resolveRuntimeStoragePaths(
 // (非対応言語は en へフォールバック)、その結果を設定として永続化する
 const defaultSettings: AppSettings = {
   saveFolder: runtimeStoragePaths.saveFolder,
-  tmsList: defaultTmsList
 } as AppSettings;
 
 import { EventEmitter } from 'events';

@@ -9,9 +9,15 @@ export function registerSettingsHandlers() {
   });
 
   ipcMain.handle('settings:set', async (_, key: string, value: any) => {
+    // M12-T32 §4.3: saveFolder 切替前に旧値を捕捉し switchDataFolder(previous) へ渡す。
+    // 旧値は SettingsService.set で上書きされると失われるため、set の前で読む。
+    let previousSaveFolder: string | undefined;
+    if (key === 'saveFolder') {
+      previousSaveFolder = SettingsService.get('saveFolder');
+    }
     SettingsService.set(key, value);
     if (key === 'saveFolder') {
-        await MapDataService.switchDataFolder();
+        await MapDataService.switchDataFolder(previousSaveFolder);
         // saveFolder変更時、全ウィンドウにマップリストの更新を通知する
         BrowserWindow.getAllWindows().forEach(win => {
             win.webContents.send('maplist:refresh');

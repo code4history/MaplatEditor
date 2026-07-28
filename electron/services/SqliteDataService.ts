@@ -14,7 +14,6 @@ import { BrowserWindow } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
 import builtinBaseMaps from '../builtin_base_maps.json';
-import defaultTmsList from '../tms_list.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
@@ -544,10 +543,6 @@ function maybeJsonArray(value: any): any[] {
   return Array.isArray(value) ? value : [];
 }
 
-function isDefaultTmsList(value: any[]): boolean {
-  return JSON.stringify(value) === JSON.stringify(defaultTmsList);
-}
-
 function safeMapIDFromSpecificFile(fileName: string): string | null {
   const dotMatch = fileName.match(/^tmsList\.(.+)\.json$/);
   if (dotMatch) return dotMatch[1];
@@ -938,20 +933,33 @@ class SqliteDataService {
   }
 
   private async runLegacyMigrationIfNeeded(db: DatabaseSync): Promise<void> {
-    // レガシー移行は初回のみ。退避アーカイブ(_nedb.db/_settings)は残り続けるため、
+    // レガシー移行は初回のみ。退避アーキブ(_nedb.db/_settings)は残り続けるため、
     // 「入力ファイルの有無」ではなく「移行を実際に実行するか」で進捗通知を判定する
     const alreadyMigrated = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
       .get(LEGACY_MIGRATION_ID);
     if (alreadyMigrated) return;
 
-    const notifyProgress = await this.hasLegacyMigrationInputs();
+    // M12-T32 §4.1(2): レガシー入力(nedb.db/_nedb.db・settings/_settings)が存在しない
+    // 新規データフォルダでは取り込みを実行しない(ADR-0007: レガシー移行の入力は nedb.db / settings/)。
+    // marker は記録する: 従来どおり「このフォルダではレガシー移行済み」として扱い、
+    // 起動ごとの再スキャンを防ぐ(挙動は従来と同一)。
+    const hasInputs = await this.hasLegacyMigrationInputs();
+    if (!hasInputs) {
+      this.withTransaction(db, () => {
+        db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(LEGACY_MIGRATION_ID);
+      });
+      return;
+    }
+
+    // --- 以下、レガシー入力が実在する場合のみ到達(従来どおり)---
+    // 従来 notifyProgress は常に true となるため、恒真分岐は除去して常時通知に簡素化した。
     const report: MigrationReport = { renamedSlugs: [], renamedFiles: [], warnings: [] };
     try {
-      if (notifyProgress) sendMigrationProgress('database.migrating', 0);
-      if (notifyProgress) sendMigrationProgress('database.migrating_legacy_maps', 25, '(1/3)');
+      sendMigrationProgress('database.migrating', 0);
+      sendMigrationProgress('database.migrating_legacy_maps', 25, '(1/3)');
       const nedbDocs = await this.loadLegacyMapDocs();
-      if (notifyProgress) sendMigrationProgress('database.migrating_legacy_basemaps', 50, '(2/3)');
+      sendMigrationProgress('database.migrating_legacy_basemaps', 50, '(2/3)');
       const baseMapInputs = await this.loadLegacyBaseMapInputs();
       // DB書き込みは marker まで含めて1トランザクション(途中失敗時の部分取込を防ぐ)
       const mapIdToUid = this.withTransaction(db, () => {
@@ -964,7 +972,7 @@ class SqliteDataService {
       // ここで throw すると一時的な失敗(OneDriveのファイルロック等)により退避もreportも
       // 以後の起動で永久にスキップされてしまう。失敗は warning として report に残す
       await this.renameLegacyMapFiles(mapIdToUid, report);
-      if (notifyProgress) sendMigrationProgress('database.archiving_legacy_files', 75, '(3/3)');
+      sendMigrationProgress('database.archiving_legacy_files', 75, '(3/3)');
       try {
         await this.retireLegacyDataFiles();
       } catch (e: any) {
@@ -974,20 +982,18 @@ class SqliteDataService {
       }
       // report は移行を実際に実行した時のみ書く(退避アーカイブだけが残る2回目以降の起動では書かない)。
       // report 自体の書き込み失敗も migrate() を失敗させない(移行本体はコミット済みのため)
-      if (notifyProgress) {
-        // M13-T5 §5.2: atomic write(temp+fsync+rename)primitive へ差し替え。既存の
-        // fs.writeJson() 直接呼び出しを廃止(公開契約・失敗時に migrate() を失敗させない
-        // 方針は無変更。§5.1 の非対称ポリシーに従い、既存 report が壊れていても上書き回復する)
-        await writeLegacyMigrationReport(this.folders.saveFolder, report);
-        // 移行を実際に実行した起動でのみレンダラへ通知する(App.vue の一覧モーダル)。
-        // ウィンドウ未生成なら送られないが、report ファイルが正本として残る
-        BrowserWindow.getAllWindows().forEach((win) => {
-          win.webContents.send('app:migrationReport', report);
-        });
-      }
-      if (notifyProgress) sendMigrationProgress('database.migrated', 100, '(3/3)');
+      // M13-T5 §5.2: atomic write(temp+fsync+rename)primitive へ差し替え。既存の
+      // fs.writeJson() 直接呼び出しを廃止(公開契約・失敗時に migrate() を失敗させない
+      // 方針は無変更。§5.1 の非対称ポリシーに従い、既存 report が壊れていても上書き回復する)
+      await writeLegacyMigrationReport(this.folders.saveFolder, report);
+      // 移行を実際に実行した起動でのみレンダラへ通知する(App.vue の一覧モーダル)。
+      // ウィンドウ未生成なら送られないが、report ファイルが正本として残る
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('app:migrationReport', report);
+      });
+      sendMigrationProgress('database.migrated', 100, '(3/3)');
     } catch (e) {
-      if (notifyProgress) sendMigrationProgress('database.migration_failed', 100);
+      sendMigrationProgress('database.migration_failed', 100);
       throw e;
     }
   }
@@ -2823,18 +2829,15 @@ class SqliteDataService {
   }
 
   // settings(または退避済み _settings)配下のユーザーベースマップ/個別地図の表示設定を読み込む
+  // M12-T32 §4.1(1): electron-store tmsList（conf 自動書き込みの残骸）の読み込みは撤去。
+  // ユーザーデータは {saveFolder}/settings/tmsList.json のみが正規経路（§2.3 正規データ 3 層）
   private async loadLegacyBaseMapInputs(): Promise<{
     userLists: any[][];
     visibilityEntries: Array<{ mapID: string; baseMapId: string; enabled: boolean }>;
   }> {
     const settingsDir = await this.resolveLegacyPath(this.folders.settingsDir, this.folders.retiredSettingsDir);
-    const storeList = maybeJsonArray(SettingsService.get('tmsList'));
-    if (isDefaultTmsList(storeList)) {
-      storeList.length = 0;
-    }
 
     const userLists: any[][] = [];
-    if (storeList.length > 0) userLists.push(storeList);
     const visibilityEntries: Array<{ mapID: string; baseMapId: string; enabled: boolean }> = [];
     if (settingsDir) {
       const userTmsListPath = path.join(settingsDir, 'tmsList.json');
@@ -2885,7 +2888,7 @@ class SqliteDataService {
         if (!oldId) continue;
         const known = baseIdToUid.get(oldId);
         if (known) {
-          // 複数入力(electron-store設定とsettings/tmsList.json)に同一IDがある場合は後勝ちで内容更新
+          // 複数入力(settings/tmsList.json 内の重複等)に同一IDがある場合は後勝ちで内容更新
           const knownSlug = (db.prepare('SELECT slug FROM base_maps WHERE uid = ?').get(known) as any)?.slug;
           update.run(JSON.stringify({ ...tms, mapID: knownSlug }), known);
           continue;
