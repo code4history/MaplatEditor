@@ -204,6 +204,25 @@
                 @update:model-value="setOverride(index, 'selectedIcon', $event)"
               />
             </div>
+            <!-- M18-T1: 表示文脈ごとの hide 上書き (参照単位)。POI ソース自体は変更せず、
+                 この地図/アプリで開いたときの既定表示だけを非表示にする。2状態
+                 (ON = hide:true をセット / OFF = キーごと削除。false は書かない) -->
+            <div class="col-12">
+              <div class="form-check" data-testid="poiref-hide-override">
+                <input
+                  :id="`poiref-hide-${index}`"
+                  class="form-check-input"
+                  type="checkbox"
+                  :checked="hideOverride(entry)"
+                  :disabled="readOnly"
+                  @change="setHideOverride(index, ($event.target as HTMLInputElement).checked)"
+                >
+                <label class="form-check-label small" :for="`poiref-hide-${index}`">
+                  {{ t("poiref.hide_override") }}
+                </label>
+                <ContextHelp :text="t('poiref.hide_override_note')" :ariaLabel="t('poiref.hide_override_note')" />
+              </div>
+            </div>
           </div>
           <!-- 非参照メンバー行の注記 (M12-T11/R1 の (i) ボタン文法。§5.11: バッジ種別で
                inline_note / external_url_note を出し分け) -->
@@ -638,6 +657,30 @@ function setOverride(index: number, key: "icon" | "selectedIcon", raw: string): 
     updated[key] = value;
   } else {
     delete updated[key];
+  }
+  const next = [...entries.value];
+  next[index] = updated;
+  emit("update:pois", next);
+}
+
+// M18-T1: hide 上書きの現在値。true のみを ON とみなす
+// (設計正本 m18-t3 v1.3 §5.3: hide は true のみ有効。false/未定義はソース既定に従う)
+function hideOverride(entry: unknown): boolean {
+  return (entry as Record<string, unknown>).hide === true;
+}
+
+// M18-T1: hide 上書きの確定。ON = hide:true をセット / OFF = キーごと削除。
+// false は書き込まない (書き込み側は2状態のみ。setOverride の空文字→delete と同じ流儀)
+function setHideOverride(index: number, checked: boolean): void {
+  const current = entries.value[index];
+  if (!current || typeof current !== "object" || Array.isArray(current)) return;
+  const record = current as Record<string, unknown>;
+  if ((record.hide === true) === checked) return;
+  const updated: Record<string, unknown> = { ...record };
+  if (checked) {
+    updated.hide = true;
+  } else {
+    delete updated.hide;
   }
   const next = [...entries.value];
   next[index] = updated;

@@ -45,6 +45,7 @@
     "smoke:m8-t3-legacy-migration": "node scripts/m8-t3-legacy-migration-smoke.mjs",
     "smoke:m9-t1-poi-geojson": "node scripts/m9-t1-poi-geojson-smoke.mjs",
     "smoke:m18-t5-properties-migration": "node scripts/m18-t5-properties-migration-smoke.mjs",
+    "smoke:m18-t1-poi-hide-override": "node scripts/m18-t1-poi-hide-override-smoke.mjs",
     "smoke:m9-t2-poi-store": "node scripts/m9-t2-poi-store-smoke.mjs",
     "smoke:m9-t3-poi-service": "node scripts/m9-t3-poi-service-smoke.mjs",
     "smoke:m9-t4-image-asset": "node scripts/m9-t4-image-asset-smoke.mjs",
