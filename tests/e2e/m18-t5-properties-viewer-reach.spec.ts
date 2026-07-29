@@ -234,9 +234,11 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
       expect(viewerState.markerSrcs.length).toBe(1);
       expect(viewerState.markerSrcs[0]).toContain('imgs/icons/builtin/defaultpin.png');
 
-      // 8. 人間確認: ready 到達後に page.pause() で同一画面のAマーカー画像表示・B非表示を目視
-      // 実行者: PWDEBUG=1 pnpm test:e2e:m18-t5 でブラウザが一時停止する
-      await page.pause();
+      // 8. 人間確認: ready 到達後の画面（Aマーカー画像表示・B非表示・実 OSM タイル）は
+      // 2026-07-29 に人間が目視確認済み（task-state 記録）。page.pause は人間確認の完了に伴い
+      // 環境変数 opt-in 化 — 通常実行・CI は有限時間で終了する。
+      // 再確認したい場合: MAPLAT_E2E_PAUSE=1 PWDEBUG=1 pnpm test:e2e:m18-t5
+      if (process.env.MAPLAT_E2E_PAUSE === '1') await page.pause();
     } finally {
       await quitElectronApplication(app, page);
     }
