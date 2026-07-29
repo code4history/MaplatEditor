@@ -326,7 +326,10 @@ ${manifestLink}
       : window.MaplatUi && window.MaplatUi.MaplatUi
         ? window.MaplatUi.MaplatUi
         : window.Maplat;
-    MaplatPreview.createObject(option).catch((e) => {
+    MaplatPreview.createObject(option).then((previewApp) => {
+      // E2E・デバッグ用に viewer インスタンスを公開（m18-t5 AC5-12: iframe 内 ready/marker 到達の状態ベース待機に使用）
+      window.__maplatPreview = previewApp;
+    }).catch((e) => {
       document.body.innerHTML = '<pre style="padding:12px;color:#842029;background:#f8d7da;">' + (e && e.stack || e) + '</pre>';
     });
   </script>
