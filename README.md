@@ -59,6 +59,11 @@ binaries are distributed via GitHub Releases.
   read-only for performance
 - Remote (registered) POI sources are read-only; a "copy locally" action
   creates an editable local copy
+- Each POI source reference in a map or app can carry per-reference overrides
+  — title, icon, selected icon, and a "hidden by default" flag. The flag hides
+  that layer when the map/app is first opened (viewers can turn it back on)
+  without modifying the POI source itself, so the same source can start
+  visible in one app and hidden in another
 - Legacy map/app-embedded POIs (inline `pois` entries) are preserved as-is:
   the POI data tab shows them read-only, grouped into panes per viewer
   layer, with item counts and badges distinguishing "Map-embedded POI" and
