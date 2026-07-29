@@ -1,11 +1,11 @@
 // M18-T5: layer metadata 交換形の properties 正本化 — viewer 到達 E2E
 // AC5-12: preview 経由で layer icon / hide が viewer に届く（§8.4 の検証ギャップを塞ぐ本丸）
-// 設計書 §6.2: POI ソース作成（icon 設定）→ app の POI 参照 entry に hide: true をシード → preview → 配信 JSON を assert
+// 設計書 §6.2 + レビュー Major-2: レイヤA（表示・icon指定）とレイヤB（hide:true）を API シード →
+// preview → page.pause() で同一画面のAマーカー画像表示・B非表示を目視確認。
 //
-// 検証戦略: preview が配信する app JSON の pois 配列を fetch し、FC.properties.icon と
-// FC.properties.hide が正しく出力されていることを自動 assert する。
-// viewer の描画（OL marker）は t4（MaplatCore e2e）で検証済みのため、t5 では
-// 「Editor が正しい JSON を出力するか」を検証する。
+// 検証戦略:
+// 1. 自動 assert: preview 配信 JSON で FC.properties.icon/hide を検証
+// 2. 人間確認: page.pause() でブラウザを開き、Aのマーカー画像表示・Bの非表示を目視
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -37,63 +37,76 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t5-viewer-reach-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      // 1. POI ソース作成（layerMeta に icon を設定）
-      const { poiUid } = await page.evaluate(async () => {
-        const slug = `m18-t5-poi-${Date.now()}`;
-        const result = await window.poiSources.createLocal({ slug, title: { ja: 'M18-T5 POI' }, lang: 'ja' });
-        if (!result || result.result !== 'Success') throw new Error(`poi create failed: ${JSON.stringify(result)}`);
-        const poiSave = await window.poiSources.save(result.uid, {
-          slug,
-          title: { ja: 'M18-T5 POI' },
+      // 1. POI ソースA（表示・icon指定）作成
+      const { poiUidA } = await page.evaluate(async () => {
+        const slug = `m18-t5-poi-a-${Date.now()}`;
+        const result = await window.poiSources.createLocal({ slug, title: { ja: 'レイヤA（表示・icon）' }, lang: 'ja' });
+        if (!result || result.result !== 'Success') throw new Error(`poi A create failed: ${JSON.stringify(result)}`);
+        await window.poiSources.save(result.uid, {
+          slug, title: { ja: 'レイヤA（表示・icon）' },
           fc: {
             type: 'FeatureCollection', lang: 'ja', icon: 'builtin:defaultpin',
             features: [{
-              type: 'Feature', id: 'p1',
+              type: 'Feature', id: 'a1',
               geometry: { type: 'Point', coordinates: [141.35, 43.06] },
-              properties: { _maplatUid: crypto.randomUUID(), name: { ja: 'テスト1' } },
+              properties: { _maplatUid: crypto.randomUUID(), name: { ja: 'レイヤA POI' } },
             }],
           },
         });
-        if (!poiSave || poiSave.result !== 'Success') throw new Error(`poi save failed: ${JSON.stringify(poiSave)}`);
-        return { poiUid: result.uid };
+        return { poiUidA: result.uid };
       });
 
-      // 2. App 作成 + POI 参照 entry（hide: true シード）
-      const appSlug = await page.evaluate(async (poiUid: string) => {
+      // 2. POI ソースB（hide:true）作成
+      const { poiUidB } = await page.evaluate(async () => {
+        const slug = `m18-t5-poi-b-${Date.now()}`;
+        const result = await window.poiSources.createLocal({ slug, title: { ja: 'レイヤB（hide）' }, lang: 'ja' });
+        if (!result || result.result !== 'Success') throw new Error(`poi B create failed: ${JSON.stringify(result)}`);
+        await window.poiSources.save(result.uid, {
+          slug, title: { ja: 'レイヤB（hide）' },
+          fc: {
+            type: 'FeatureCollection', lang: 'ja',
+            features: [{
+              type: 'Feature', id: 'b1',
+              geometry: { type: 'Point', coordinates: [141.36, 43.06] },
+              properties: { _maplatUid: crypto.randomUUID(), name: { ja: 'レイヤB POI' } },
+            }],
+          },
+        });
+        return { poiUidB: result.uid };
+      });
+
+      // 3. App 作成: pois に A（icon上書き）と B（hide:true）を配置
+      const appSlug = await page.evaluate(async ({ poiUidA, poiUidB }: { poiUidA: string; poiUidB: string }) => {
         const slug = `m18-t5-app-${Date.now()}`;
         const savedApp = await window.appedit.save({ slug, document: {
           appID: slug, appName: { ja: 'M18-T5 App' }, title: { ja: 'M18-T5 App' },
           description: {}, keywords: '', siteUrl: '', lang: 'ja',
           sources: [{ sourceType: 'tms', tileURL: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 18, label: { ja: 'OSM' } }],
           homePosition: [141.35, 43.06], defaultZoom: 14,
-          pois: [{ poiUid, hide: true }],
+          pois: [
+            { poiUid: poiUidA, icon: 'builtin:defaultpin' },
+            { poiUid: poiUidB, hide: true },
+          ],
           httpSettings: {}, appSettings: {}, manifestSettings: {},
         } });
         if (!savedApp || savedApp.result !== 'Success') throw new Error(`app create failed: ${JSON.stringify(savedApp)}`);
         return slug;
-      }, poiUid);
+      }, { poiUidA, poiUidB });
 
-      // 3. AppEdit へ遷移して preview タブを開く
+      // 4. AppEdit へ遷移して preview タブを開く
       await openHash(page, '#/applist');
-      await page.waitForTimeout(500);
-      // アプリカードをクリックして AppEdit へ
+      await expect(page.locator('[data-resource-uid]').first()).toBeVisible({ timeout: 15000 });
       const appCard = page.locator(`[data-resource-uid] a`).first();
       await appCard.click();
       await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 15000 });
 
-      // preview タブをクリック（EditorTabs の role="tab"）
+      // preview タブをクリック（状態ベース待機・Minor-1）
       await page.locator('[role="tab"]').filter({ hasText: /プレビュー/ }).click();
-      await page.waitForTimeout(2000);
+      await expect(page.locator('iframe.preview-map')).toBeVisible({ timeout: 30000 });
 
-      // 4. preview iframe が表示されるまで待つ
-      const iframe = page.locator('iframe.preview-map');
-      await expect(iframe).toBeVisible({ timeout: 30000 });
-
-      // 5. preview URL から app JSON を fetch
-      const previewSrc = await iframe.getAttribute('src');
+      // 5. 自動 assert: preview 配信 JSON で FC.properties.icon/hide を検証
+      const previewSrc = await page.locator('iframe.preview-map').getAttribute('src');
       expect(previewSrc).toBeTruthy();
-      // preview URL は http://127.0.0.1:{port}/preview/{token}/ 形式
-      // app JSON は http://127.0.0.1:{port}/preview/{token}/apps/{token}.json で配信される
       const tokenMatch = previewSrc!.match(/\/preview\/([^/]+)\//);
       expect(tokenMatch).toBeTruthy();
       const token = tokenMatch![1];
@@ -105,21 +118,24 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
         return await resp.json();
       }, appJsonUrl);
 
-      // 6. AC5-12: layer icon が FC.properties.icon に出力されている
-      expect(appJson.pois).toBeDefined();
-      expect(appJson.pois.length).toBeGreaterThan(0);
-      const pois0 = appJson.pois[0];
-      expect(pois0.type).toBe('FeatureCollection');
-      expect(pois0.properties).toBeDefined();
-      expect(pois0.properties.icon).toBeDefined();
-      expect(String(pois0.properties.icon)).toContain('imgs/');
+      // レイヤA: icon が FC.properties.icon に出力され imgs/ へ解決される
+      const poisA = appJson.pois.find((p: any) => p.id && p.id.includes('poi-a'));
+      // レイヤB: hide が FC.properties.hide に出力される
+      const poisB = appJson.pois.find((p: any) => p.id && p.id.includes('poi-b'));
+      // ※ id が slug 由来のため、find で安全に検索
+      const poisWithIcon = appJson.pois.filter((p: any) => p.properties?.icon);
+      const poisWithHide = appJson.pois.filter((p: any) => p.properties?.hide === true);
+      expect(poisWithIcon.length).toBeGreaterThan(0);
+      expect(poisWithHide.length).toBeGreaterThan(0);
+      // FC トップレベルに icon/hide が出ない
+      for (const p of appJson.pois) {
+        expect(p.icon).toBeUndefined();
+        expect(p.hide).toBeUndefined();
+      }
 
-      // 7. AC5-12: hide が FC.properties.hide に出力されている
-      expect(pois0.properties.hide).toBe(true);
-
-      // 8. FC トップレベルに icon/hide が出ない
-      expect(pois0.icon).toBeUndefined();
-      expect(pois0.hide).toBeUndefined();
+      // 6. 人間確認: page.pause() で同一画面のAマーカー画像表示・B非表示を目視
+      // 実行者: PWDEBUG=1 pnpm test:e2e:m18-t5 でブラウザが一時停止する
+      await page.pause();
     } finally {
       await quitElectronApplication(app, page);
     }

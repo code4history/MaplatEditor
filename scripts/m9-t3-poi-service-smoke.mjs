@@ -329,6 +329,16 @@ try {
         ['imgs/portable-photo.png', 'pois/portable-import.geojson'],
       );
 
+      // m18-t5 Major-3: round-trip ZIP 内 GeoJSON の properties.icon が imgs/ へ解決されている
+      const roundTripGeoEntry = roundTripZip.getEntry('pois/portable-import.geojson');
+      const roundTripGeo = JSON.parse(roundTripGeoEntry.getData().toString('utf8'));
+      assert.equal(roundTripGeo.properties.icon, 'imgs/portable-photo.png',
+        'round-trip ZIP GeoJSON properties.icon must resolve to imgs/{slug}.{ext}');
+      // 画像 entry が ZIP に同梱されている
+      assert.ok(roundTripZip.getEntry('imgs/portable-photo.png'),
+        'round-trip ZIP must contain the image entry');
+      console.log('ok: m18-t5 Major-3 round-trip ZIP GeoJSON properties.icon resolved + image bundled');
+
       const invalidPackageFile = nodePath.join(workDir, 'portable-invalid.zip');
       const invalidPackageZip = new AdmZip();
       invalidPackageZip.addFile('imgs/cleanup-photo.png', packageImage);
