@@ -359,6 +359,9 @@
     "draft_already_saved": "El guardado anterior ya se completó. Este borrador puede duplicar el contenido guardado. Descarte el borrador y vuelva a abrir el mapa guardado, o vuelva a subir la imagen si desea cambiarla.",
     "staging": {
       "missing_tiles": "No se pudo guardar el mapa porque faltan los datos temporales de la imagen del mapa. Vuelva a subir la imagen antes de guardar."
+    },
+    "originals": {
+      "unsupported_extension": "Formato de imagen no admitido (solo jpg/jpeg/png). Vuelva a guardar con un formato de imagen diferente."
     }
   },
   "mapupload": {
@@ -390,7 +393,9 @@
     "migration_report_renamed": "Se cambiaron los siguientes ID para resolver conflictos de ID.",
     "migration_report_warnings": "Hay {{count}} advertencia(s). Consulte migration-report-v2.json en la carpeta de datos para más detalles.",
     "migrating_thumbnails_512": "Generando miniaturas de 512px",
-    "migrating_thumbnails_512_done": "Generación de miniaturas de 512px completada"
+    "migrating_thumbnails_512_done": "Generación de miniaturas de 512px completada",
+    "migrating_originals": "Migrando archivos originales a nombres UUID",
+    "migrating_originals_done": "Migración de archivos originales completada"
   },
   "applist": {
     "not_implement": "Aún no implementado",
@@ -648,7 +653,9 @@
     "convert_invalid": "El resultado de la conversión no superó la validación, por lo que no se creó el borrador.",
     "convert_too_large": "El resultado de la conversión es demasiado grande para guardarse como borrador.",
     "add_blocked_note": "Mientras queden datos externos (como POIs definidos dentro del mapa), no se pueden añadir POIs GeoJSON. Elimine los datos externos o conviértalos a GeoJSON y luego elimínelos.",
-    "delete_external_body": "Estos datos externos se eliminarán de la lista (puede deshacerlo). Para revisar su contenido, conviértalos a GeoJSON antes de eliminarlos."
+    "delete_external_body": "Estos datos externos se eliminarán de la lista (puede deshacerlo). Para revisar su contenido, conviértalos a GeoJSON antes de eliminarlos.",
+    "hide_override": "Oculto por defecto aquí",
+    "hide_override_note": "Cuando se marca, esta capa de POI comienza oculta al abrir este mapa/app (los espectadores pueden activarla). La fuente del POI no se modifica."
   },
   "poisource": {
     "title": "Fuentes de POI",

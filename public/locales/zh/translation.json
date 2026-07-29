@@ -359,6 +359,9 @@
     "draft_already_saved": "上一次保存已完成。此草稿可能与已保存的内容重复。请舍弃草稿并重新打开已保存的地图，或如需更换图像请重新上传。",
     "staging": {
       "missing_tiles": "由于缺少地图图像的临时数据，无法保存地图。请重新上传图像后再保存。"
+    },
+    "originals": {
+      "unsupported_extension": "不支持的图片格式（仅支持jpg/jpeg/png）。请用其他图片格式重新保存。"
     }
   },
   "mapupload": {
@@ -390,7 +393,9 @@
     "migration_report_renamed": "为解决 ID 冲突，已更改以下 ID。",
     "migration_report_warnings": "有 {{count}} 条警告。详情请查看数据文件夹中的 migration-report-v2.json。",
     "migrating_thumbnails_512": "正在生成512px缩略图",
-    "migrating_thumbnails_512_done": "512px缩略图生成完成"
+    "migrating_thumbnails_512_done": "512px缩略图生成完成",
+    "migrating_originals": "正在将原始文件迁移为UUID文件名",
+    "migrating_originals_done": "原始文件迁移完成"
   },
   "applist": {
     "not_implement": "未实现",
@@ -648,7 +653,9 @@
     "convert_invalid": "转换结果未通过校验，因此未创建草稿。",
     "convert_too_large": "转换结果过大，无法保存为草稿。",
     "add_blocked_note": "在仍存在外部数据（如地图内定义的 POI）期间，无法添加 GeoJSON POI。请删除外部数据，或先转换为 GeoJSON 再删除。",
-    "delete_external_body": "将从列表中删除此外部数据（可通过撤销恢复）。若要确认其内容，请在删除前先转换为 GeoJSON。"
+    "delete_external_body": "将从列表中删除此外部数据（可通过撤销恢复）。若要确认其内容，请在删除前先转换为 GeoJSON。",
+    "hide_override": "在此默认隐藏",
+    "hide_override_note": "勾选后，打开此地图/应用时该POI图层初始为隐藏状态（查看者可切换为显示）。不修改POI源本身。"
   },
   "poisource": {
     "title": "POI源",

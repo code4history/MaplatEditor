@@ -359,6 +359,9 @@
     "draft_already_saved": "Penyimpanan sebelumnya sudah selesai. Draf ini mungkin menduplikasi konten yang tersimpan. Buang draf dan buka kembali peta yang tersimpan, atau unggah gambar lagi jika ingin mengubahnya.",
     "staging": {
       "missing_tiles": "Peta tidak dapat disimpan karena data sementara untuk gambar peta hilang. Silakan unggah gambar lagi sebelum menyimpan."
+    },
+    "originals": {
+      "unsupported_extension": "Format gambar tidak didukung (hanya jpg/jpeg/png). Silakan simpan ulang dengan format gambar yang berbeda."
     }
   },
   "mapupload": {
@@ -390,7 +393,9 @@
     "migration_report_renamed": "ID berikut telah diubah untuk mengatasi konflik ID.",
     "migration_report_warnings": "Ada {{count}} peringatan. Lihat migration-report-v2.json di folder data untuk detailnya.",
     "migrating_thumbnails_512": "Membuat thumbnail 512px",
-    "migrating_thumbnails_512_done": "Pembuatan thumbnail 512px selesai"
+    "migrating_thumbnails_512_done": "Pembuatan thumbnail 512px selesai",
+    "migrating_originals": "Memigrasi file asli ke nama file UUID",
+    "migrating_originals_done": "Migrasi file asli selesai"
   },
   "applist": {
     "not_implement": "Belum diimplementasikan",
@@ -648,7 +653,9 @@
     "convert_invalid": "Hasil konversi gagal validasi, sehingga draf tidak dibuat.",
     "convert_too_large": "Hasil konversi terlalu besar untuk disimpan sebagai draf.",
     "add_blocked_note": "Selama masih ada data eksternal (mis. POI yang didefinisikan di dalam peta), POI GeoJSON tidak dapat ditambahkan. Hapus data eksternal, atau konversikan ke GeoJSON lalu hapus.",
-    "delete_external_body": "Data eksternal ini akan dihapus dari daftar (dapat dibatalkan dengan Undo). Untuk memeriksa isinya, konversikan ke GeoJSON sebelum menghapus."
+    "delete_external_body": "Data eksternal ini akan dihapus dari daftar (dapat dibatalkan dengan Undo). Untuk memeriksa isinya, konversikan ke GeoJSON sebelum menghapus.",
+    "hide_override": "Disembunyikan secara default di sini",
+    "hide_override_note": "Jika dicentang, lapisan POI ini mulai tersembunyi saat peta/app ini dibuka (pemirsa dapat mengaktifkannya). Sumber POI itu sendiri tidak diubah."
   },
   "poisource": {
     "title": "Sumber POI",

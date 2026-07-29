@@ -359,6 +359,9 @@
     "draft_already_saved": "L'enregistrement précédent est déjà terminé. Ce brouillon peut faire double emploi avec le contenu enregistré. Supprimez le brouillon et rouvrez la carte enregistrée, ou téléversez à nouveau l'image si vous souhaitez la modifier.",
     "staging": {
       "missing_tiles": "La carte n'a pas pu être enregistrée car les données temporaires de l'image de la carte sont manquantes. Veuillez téléverser à nouveau l'image avant d'enregistrer."
+    },
+    "originals": {
+      "unsupported_extension": "Format d'image non pris en charge (jpg/jpeg/png uniquement). Veuillez réenregistrer avec un format d'image différent."
     }
   },
   "mapupload": {
@@ -390,7 +393,9 @@
     "migration_report_renamed": "Les ID suivants ont été renommés afin de résoudre des conflits d'ID.",
     "migration_report_warnings": "Il y a {{count}} avertissement(s). Consultez migration-report-v2.json dans le dossier de données pour plus de détails.",
     "migrating_thumbnails_512": "Génération des vignettes 512px",
-    "migrating_thumbnails_512_done": "Génération des vignettes 512px terminée"
+    "migrating_thumbnails_512_done": "Génération des vignettes 512px terminée",
+    "migrating_originals": "Migration des fichiers originaux vers des noms UUID",
+    "migrating_originals_done": "Migration des fichiers originaux terminée"
   },
   "applist": {
     "not_implement": "Pas encore implémenté",
@@ -648,7 +653,9 @@
     "convert_invalid": "Le résultat de la conversion n'a pas passé la validation ; aucun brouillon n'a été créé.",
     "convert_too_large": "Le résultat de la conversion est trop volumineux pour être enregistré comme brouillon.",
     "add_blocked_note": "Tant que des données externes (par ex. des POI définis dans la carte) subsistent, il est impossible d'ajouter des POI GeoJSON. Supprimez les données externes, ou convertissez-les en GeoJSON puis supprimez-les.",
-    "delete_external_body": "Ces données externes seront retirées de la liste (annulable). Pour vérifier leur contenu, convertissez-les en GeoJSON avant la suppression."
+    "delete_external_body": "Ces données externes seront retirées de la liste (annulable). Pour vérifier leur contenu, convertissez-les en GeoJSON avant la suppression.",
+    "hide_override": "Masqué par défaut ici",
+    "hide_override_note": "Si coché, cette couche POI démarre masquée à l'ouverture de cette carte/app (les spectateurs peuvent l'activer). La source POI n'est pas modifiée."
   },
   "poisource": {
     "title": "Sources de POI",

@@ -359,6 +359,9 @@
     "draft_already_saved": "Lần lưu trước đã hoàn tất. Bản nháp này có thể trùng lặp với nội dung đã lưu. Hãy hủy bản nháp và mở lại bản đồ đã lưu, hoặc tải lên hình ảnh lại nếu bạn muốn thay đổi.",
     "staging": {
       "missing_tiles": "Không thể lưu bản đồ vì thiếu dữ liệu tạm thời của hình ảnh bản đồ. Vui lòng tải lên hình ảnh lại trước khi lưu."
+    },
+    "originals": {
+      "unsupported_extension": "Định dạng ảnh không được hỗ trợ (chỉ hỗ trợ jpg/jpeg/png). Vui lòng lưu lại với định dạng ảnh khác."
     }
   },
   "mapupload": {
@@ -390,7 +393,9 @@
     "migration_report_renamed": "Các ID sau đã được đổi tên để giải quyết xung đột ID.",
     "migration_report_warnings": "Có {{count}} cảnh báo. Xem chi tiết trong migration-report-v2.json ở thư mục dữ liệu.",
     "migrating_thumbnails_512": "Đang tạo ảnh thu nhỏ 512px",
-    "migrating_thumbnails_512_done": "Tạo ảnh thu nhỏ 512px hoàn tất"
+    "migrating_thumbnails_512_done": "Tạo ảnh thu nhỏ 512px hoàn tất",
+    "migrating_originals": "Đang di chuyển tệp gốc sang tên tệp UUID",
+    "migrating_originals_done": "Di chuyển tệp gốc hoàn tất"
   },
   "applist": {
     "not_implement": "Chưa triển khai",
@@ -648,7 +653,9 @@
     "convert_invalid": "Kết quả chuyển đổi không vượt qua kiểm tra nên không tạo bản nháp.",
     "convert_too_large": "Kết quả chuyển đổi quá lớn nên không thể lưu làm bản nháp.",
     "add_blocked_note": "Khi vẫn còn dữ liệu ngoài (ví dụ POI định nghĩa trong bản đồ), không thể thêm POI GeoJSON. Hãy xóa dữ liệu ngoài, hoặc chuyển đổi sang GeoJSON rồi xóa.",
-    "delete_external_body": "Dữ liệu ngoài này sẽ bị xóa khỏi danh sách (có thể hoàn tác bằng Undo). Để kiểm tra nội dung, hãy chuyển đổi sang GeoJSON trước khi xóa."
+    "delete_external_body": "Dữ liệu ngoài này sẽ bị xóa khỏi danh sách (có thể hoàn tác bằng Undo). Để kiểm tra nội dung, hãy chuyển đổi sang GeoJSON trước khi xóa.",
+    "hide_override": "Ẩn theo mặc định tại đây",
+    "hide_override_note": "Khi đánh dấu, lớp POI này sẽ bị ẩn khi mở bản đồ/ứng dụng này (người xem có thể bật lên). Nguồn POI không bị thay đổi."
   },
   "poisource": {
     "title": "Nguồn POI",

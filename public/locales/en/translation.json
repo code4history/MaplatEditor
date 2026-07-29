@@ -644,7 +644,9 @@
     "convert_invalid": "The conversion result failed validation, so no draft was created.",
     "convert_too_large": "The conversion result is too large to save as a draft.",
     "add_blocked_note": "While external data (such as map-embedded POIs) remains, GeoJSON POIs cannot be added. Delete the external data, or convert it to GeoJSON and then delete it.",
-    "delete_external_body": "This external data will be removed from the list (you can undo this). To inspect its contents, convert it to GeoJSON before deleting."
+    "delete_external_body": "This external data will be removed from the list (you can undo this). To inspect its contents, convert it to GeoJSON before deleting.",
+    "hide_override": "Hidden by default here",
+    "hide_override_note": "When checked, this POI layer starts hidden when this map/app is opened (viewers can turn it on). The POI source itself is not modified."
   },
   "poisource": {
     "title": "POI Sources",

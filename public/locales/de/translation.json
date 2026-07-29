@@ -359,6 +359,9 @@
     "draft_already_saved": "Das vorherige Speichern wurde bereits abgeschlossen. Dieser Entwurf könnte den gespeicherten Inhalt duplizieren. Verwerfen Sie den Entwurf und öffnen Sie die gespeicherte Karte erneut, oder laden Sie das Bild erneut hoch, wenn Sie es ändern möchten.",
     "staging": {
       "missing_tiles": "Die Karte konnte nicht gespeichert werden, da die temporären Daten des Kartenbilds fehlen. Bitte laden Sie das Bild erneut hoch, bevor Sie speichern."
+    },
+    "originals": {
+      "unsupported_extension": "Nicht unterstütztes Bildformat (nur jpg/jpeg/png werden unterstützt). Bitte mit einem anderen Bildformat erneut speichern."
     }
   },
   "mapupload": {
@@ -390,7 +393,9 @@
     "migration_report_renamed": "Die folgenden IDs wurden umbenannt, um ID-Konflikte zu beheben.",
     "migration_report_warnings": "Es liegen {{count}} Warnung(en) vor. Details finden Sie in der Datei migration-report-v2.json im Datenordner.",
     "migrating_thumbnails_512": "512px-Thumbnails werden generiert",
-    "migrating_thumbnails_512_done": "512px-Thumbnail-Generierung abgeschlossen"
+    "migrating_thumbnails_512_done": "512px-Thumbnail-Generierung abgeschlossen",
+    "migrating_originals": "Originale Dateien werden zu UUID-Dateinamen migriert",
+    "migrating_originals_done": "Migration der Originaldateien abgeschlossen"
   },
   "applist": {
     "not_implement": "Noch nicht implementiert",
@@ -648,7 +653,9 @@
     "convert_invalid": "Das Umwandlungsergebnis hat die Validierung nicht bestanden; es wurde kein Entwurf erstellt.",
     "convert_too_large": "Das Umwandlungsergebnis ist zu groß, um als Entwurf gespeichert zu werden.",
     "add_blocked_note": "Solange externe Daten (z. B. in der Karte eingebettete POIs) vorhanden sind, können keine GeoJSON-POIs hinzugefügt werden. Löschen Sie die externen Daten oder wandeln Sie sie in GeoJSON um und löschen Sie sie anschließend.",
-    "delete_external_body": "Diese externen Daten werden aus der Liste entfernt (mit Rückgängig widerrufbar). Um den Inhalt zu prüfen, wandeln Sie ihn vor dem Löschen in GeoJSON um."
+    "delete_external_body": "Diese externen Daten werden aus der Liste entfernt (mit Rückgängig widerrufbar). Um den Inhalt zu prüfen, wandeln Sie ihn vor dem Löschen in GeoJSON um.",
+    "hide_override": "Standardmäßig hier ausgeblendet",
+    "hide_override_note": "Wenn aktiviert, wird diese POI-Ebene beim Öffnen dieser Karte/App ausgeblendet (Betrachter können sie einschalten). Die POI-Quelle selbst wird nicht geändert."
   },
   "poisource": {
     "title": "POI-Quellen",
