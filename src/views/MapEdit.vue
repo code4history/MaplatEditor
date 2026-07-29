@@ -753,6 +753,13 @@ useInitialDraftPersist({
 });
 
 const scheduleHistorySnapshot = () => {
+    if (historyRestoring.value) {
+        if (historyTimer) {
+            clearTimeout(historyTimer);
+            historyTimer = undefined;
+        }
+        return;
+    }
     // F4 同型: 文書の変更で保存時 operation 診断を解消する(M11-T7/AC8)
     if (saveOperationError.value) saveOperationError.value = null;
     if (historyTimer) clearTimeout(historyTimer);
