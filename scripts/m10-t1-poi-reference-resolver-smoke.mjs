@@ -232,8 +232,8 @@ try {
         assert.equal(fc.type, 'FeatureCollection', label + ': pois[0] は FeatureCollection のはず');
         assert.equal(fc.id, 'kyoto-poi', label + ': FC.id === slug のはず (POI-133)');
         assert.equal(fc.name, '京都POI', label + ': FC.name === title のはず (ADR-0005 collapse)');
-        assert.equal(fc.icon, 'imgs/temple-mark.png',
-          label + ': layer metadata の asset UUID 参照が imgs/{slug}.{ext} に解決されるはず (POI-117)');
+        assert.equal(fc.properties.icon, 'imgs/temple-mark.png',
+          label + ': layer metadata の asset UUID 参照が FC.properties.icon に解決されるはず (POI-117, m18-t5)');
         assert.equal(fc.features.length, 1);
         const feature = fc.features[0];
         assert.equal(feature.id, 'kinkakuji');
@@ -262,7 +262,7 @@ try {
 
       // M17-T1/AC17-4: layer metadata icon が preview で反映され、
       // app 側 entry の icon（POI-112 最小形）が優先されることを確認
-      // （assertResolvedFc 内で fc.icon=asset UUID → imgs/temple-mark.png 解決済み、
+      // （assertResolvedFc 内で fc.properties.icon=asset UUID → imgs/temple-mark.png 解決済み、
       //   feature.icon=builtin:defaultpin → imgs/icons/builtin/defaultpin.png 解決済み。
       //   entry の icon が layer metadata icon より優先されることを実証済み）
 
@@ -385,7 +385,7 @@ try {
       const exportedAsset = await fsReadFile(nodePath.join(exportDir, 'imgs', 'temple-mark.png'));
       assert.ok(exportedAsset.equals(assetBytes), 'export された asset icon の中身は登録したバイト列のはず');
       // app JSON の参照が同梱ファイルを指すこと (assertResolvedFc で imgs/... 化は確認済み)
-      assert.equal(exportedAppJson.pois[0].icon, 'imgs/temple-mark.png');
+      assert.equal(exportedAppJson.pois[0].properties.icon, 'imgs/temple-mark.png');
       assert.equal(exportedAppJson.pois[0].features[0].properties.icon, 'imgs/icons/builtin/defaultpin.png');
       assert.ok(exported.warnings.includes(UNRESOLVED_ICON_KEY),
         'export warnings に unresolved icon キーが載るはず: ' + JSON.stringify(exported.warnings));
@@ -485,12 +485,12 @@ try {
       const overriddenFc: any = overrideResult.pois[0];
       assert.equal(overriddenFc.type, 'FeatureCollection', '上書きケースでも FC に解決されるはず');
       assert.equal(
-        overriddenFc.icon, 'imgs/icons/builtin/defaultpin-red.svg',
-        '参照側 icon 上書きがソース側 layer icon より勝ち、imgs/ へ解決されるはず: ' + overriddenFc.icon
+        overriddenFc.properties.icon, 'imgs/icons/builtin/defaultpin-red.svg',
+        '参照側 icon 上書きがソース側 layer icon より勝ち、imgs/ へ解決されるはず: ' + overriddenFc.properties.icon
       );
       assert.equal(
-        overriddenFc.selectedIcon, 'imgs/temple-mark.png',
-        '参照側 selectedIcon 上書き (asset UUID) も imgs/{slug}.{ext} へ解決されるはず: ' + overriddenFc.selectedIcon
+        overriddenFc.properties.selectedIcon, 'imgs/temple-mark.png',
+        '参照側 selectedIcon 上書き (asset UUID) も imgs/{slug}.{ext} へ解決されるはず: ' + overriddenFc.properties.selectedIcon
       );
       assert.ok(
         overrideResult.files.some((file: any) => file.dest === 'imgs/icons/builtin/defaultpin-red.svg'),
@@ -507,8 +507,8 @@ try {
         { poiUid: srcUid, cachedTitle: '京都POI', icon: '', selectedIcon: 42 },
       ]);
       const noOverrideFc: any = noOverrideResult.pois[0];
-      assert.equal(noOverrideFc.icon, 'imgs/temple-mark.png', '空文字 icon 上書きは無視されるはず');
-      assert.equal(noOverrideFc.selectedIcon, undefined, '非文字列 selectedIcon 上書きは無視されるはず');
+      assert.equal(noOverrideFc.properties.icon, 'imgs/temple-mark.png', '空文字 icon 上書きは無視されるはず');
+      assert.equal(noOverrideFc.properties.selectedIcon, undefined, '非文字列 selectedIcon 上書きは無視されるはず');
       console.log('ok: (14) reference-level icon/selectedIcon overrides win over source values and resolve');
 
       // --- (17) 参照要素の title 上書き (GUI 検証 D1) ---
@@ -608,7 +608,7 @@ try {
         const ac174Json = await (await fetch(ac174Prepared.url + 'apps/' + ac174Token + '.json')).json();
 
         // AC17-4: entry の icon ('builtin:defaultpin') が layer metadata icon (asset UUID) を上書き
-        assert.equal(ac174Json.pois[0].icon, 'imgs/icons/builtin/defaultpin.png',
+        assert.equal(ac174Json.pois[0].properties.icon, 'imgs/icons/builtin/defaultpin.png',
           'AC17-4: entry の icon が layer metadata icon を上書きして解決されるはず (POI-112 applyReferenceIconOverrides)');
       }
 

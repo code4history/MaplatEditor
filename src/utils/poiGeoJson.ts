@@ -102,9 +102,17 @@ export function normalizePoiSourceCollection(
   });
   const layerMeta: Record<string, unknown> = {};
   if (source.type === "FeatureCollection") {
+    // 1. FC トップレベル（過去形式・手書きデータ受容）を先に読む
     for (const [key, value] of Object.entries(source)) {
-      if (key === "type" || key === "features" || key === "id" || key === "name" || key === "lang") continue;
+      if (key === "type" || key === "features" || key === "id" || key === "name" || key === "lang" || key === "properties") continue;
       layerMeta[key] = value;
+    }
+    // 2. FC.properties（新しい正本）を優先で重ねる（同名キーは properties 側が勝つ）
+    const props = (source as Record<string, unknown>).properties;
+    if (isRecord(props)) {
+      for (const [key, value] of Object.entries(props)) {
+        layerMeta[key] = value;
+      }
     }
   }
   return { ...layerMeta, type: "FeatureCollection", lang, features: featuresWithMode };
@@ -591,9 +599,9 @@ export function toExportForm(
     };
   });
 
-  // FeatureCollection.id / name は GeoJSON foreign member。
-  // viewer は FC.id を layer key、FC.name を layer 名として読む (POI-133)。
-  // id/name は slug/title 由来で常に上書きする (§2.3: FC.id/name は独立概念として持たない)。
+  // layer metadata（icon/selectedIcon/hide/poiTemplate 等、§2.3）は FC.properties
+  // の直下へ書く（m18-t5 正本位置。viewer は FC.properties を cluster へ展開する）。
+  // FC.id（slug）/ FC.name（title）/ FC.lang は例外でトップレベルのまま（§5.4）。
   const out: Record<string, unknown> = {
     type: "FeatureCollection",
     id: slug,
@@ -602,14 +610,18 @@ export function toExportForm(
   if (name !== undefined) {
     out.name = name;
   }
-  // fc トップレベルの他の foreign member (layer metadata: icon/selectedIcon/hide/
-  // poiTemplate 等、§2.3) は export 形へそのまま持ち越す。raw ペイン表示→Apply の
-  // 往復で layerMeta を失わないためにもここでの pass-through が必要 (POI-136)。
-  for (const [key, value] of Object.entries(fc)) {
-    if (key === "type" || key === "features" || key === "id" || key === "name") {
-      continue;
-    }
-    out[key] = value;
+  if (fc.lang !== undefined) {
+    out.lang = fc.lang;
+  }
+  const layerMetaKeys = Object.keys(fc).filter(
+    (k) => k !== "type" && k !== "features" && k !== "id" && k !== "name" && k !== "lang"
+  );
+  const properties: Record<string, unknown> = {};
+  for (const key of layerMetaKeys) {
+    properties[key] = (fc as unknown as Record<string, unknown>)[key];
+  }
+  if (Object.keys(properties).length > 0) {
+    out.properties = properties;
   }
   out.features = features;
 

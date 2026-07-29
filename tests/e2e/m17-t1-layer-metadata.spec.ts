@@ -119,8 +119,8 @@ test.describe('M17-T1: POI layer metadata 編集 UI', () => {
     const textarea = page.locator('textarea');
     const rawText = await textarea.inputValue();
     const fc = JSON.parse(rawText);
-    expect(fc.icon).toBe('builtin:defaultpin');
-    expect(fc.selectedIcon).toBe('builtin:defaultpin-selected');
+    expect(fc.properties.icon).toBe('builtin:defaultpin');
+    expect(fc.properties.selectedIcon).toBe('builtin:defaultpin-selected');
   });
 
   test('AC17-2: Undo/Redo が 1 変更 = 1 Undo 単位', async () => {

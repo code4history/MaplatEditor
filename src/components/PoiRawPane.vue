@@ -70,8 +70,8 @@
 // 再生成するが、ユーザー編集中 (localDirty) は上書きせず、非表示 (visible=false) 中は
 // 大規模 FC の JSON.stringify を毎 commit 走らせないため再生成を止める。
 // Apply: ①JSON.parse ②fromExportForm (level==='error' があれば適用不可、warning のみは
-// 適用可 + 警告表示) ③parsed.id→slug / parsed.name→title / 他トップレベル→layerMeta
-// ④session.commit 1 回 (= 1 Undo、仕様 §5)。
+// 適用可 + 警告表示) ③parsed.id→slug / parsed.name→title / 他→layerMeta
+// （FC.properties を優先で重ねる・m18-t5） ④session.commit 1 回 (= 1 Undo、仕様 §5)。
 import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import type { PoiEditSession, PoiEditState } from "../composables/usePoiEditSession";
@@ -142,8 +142,8 @@ function clearMessages(): void {
   applyWarnings.value = [];
 }
 
-// 現在 snapshot → export 形 pretty JSON。toExportForm は layerMeta (fc トップレベル foreign
-// member) を pass-through するため、表示→Apply の往復で layer metadata は保存される
+// 現在 snapshot → export 形 pretty JSON。toExportForm は layerMeta を FC.properties へ書くため、
+// 表示→Apply の往復で layer metadata は保存される（m18-t5）
 function regenerate(): void {
   const state = props.session.state.value;
   if (!state) {
@@ -237,10 +237,16 @@ function apply(): void {
   );
   const layerMeta: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(rec)) {
-    if (key === "type" || key === "features" || key === "id" || key === "name" || key === "lang") {
+    if (key === "type" || key === "features" || key === "id" || key === "name" || key === "lang" || key === "properties") {
       continue;
     }
     layerMeta[key] = value;
+  }
+  // FC.properties（新しい正本）を優先で重ねる（同名キーは properties 側が勝つ）
+  if (rec.properties && typeof rec.properties === "object" && !Array.isArray(rec.properties)) {
+    for (const [key, value] of Object.entries(rec.properties)) {
+      layerMeta[key] = value;
+    }
   }
 
   // ④ commit 1 回で features/slug/title/layerMeta を差し替え (= 1 Undo、仕様 §5)。

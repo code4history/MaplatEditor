@@ -148,9 +148,16 @@ export class PoiSourceService {
     // エディタが独立概念として持たない (slug/title 由来、export 時にのみ書き込む、§2.3) ため
     // ここで削除する — これにより data_json が uid/slug/revision を含まない不変条件
     // (ADR-0007) も自動的に守られる (FC.id が slug と同じ文字列であっても data_json には残らない)。
-    const { type: _type, features: _features, id: _id, name: _name, lang: _lang, ...layerMeta } = isFc
+    // m18-t5: FC.properties（layer metadata の正本位置）を優先で layerMeta へ重ねる
+    const { type: _type, features: _features, id: _id, name: _name, lang: _lang, properties: _props, ...layerMeta } = isFc
       ? (input as Record<string, unknown>)
       : {};
+    if (isFc) {
+      const fcProps = (input as Record<string, unknown>).properties;
+      if (fcProps && typeof fcProps === 'object' && !Array.isArray(fcProps)) {
+        Object.assign(layerMeta, fcProps);
+      }
+    }
     const fc: PoiEditorFC = { ...layerMeta, type: 'FeatureCollection', lang: normalizedCollection.lang, features: withUids };
     const issues = validateFeatureCollection(fc);
     return { fc, issues, hasError: issues.some((i) => i.level === 'error') };

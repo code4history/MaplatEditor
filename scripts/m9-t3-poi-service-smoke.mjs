@@ -294,6 +294,7 @@ try {
           geometry: { type: 'Point', coordinates: [135.0, 35.0] },
           properties: { name: 'Portable', image: { src: 'imgs/portable-photo.png', desc: 'photo' } },
         }],
+        properties: { icon: 'imgs/portable-photo.png' },
       })));
       packageZip.writeZip(packageFile);
       const importedPackage = await poiSourceService.importFile({
@@ -305,6 +306,16 @@ try {
       assert.match(importedImageUid, UUID_PATTERN, 'package image path must become an Asset UID');
       const importedAsset = await SqliteDataService.findAsset(importedImageUid);
       assert.equal(importedAsset.slug, 'portable-photo');
+
+      // m18-t5: FC.properties.icon が import 経路で Asset UID へ復元される（dangling でない）
+      const importedLayerIcon = importedPackageDoc.fc.icon;
+      assert.match(importedLayerIcon, UUID_PATTERN, 'FC.properties.icon (layer icon) must become an Asset UID on import');
+
+      // m18-t5: 再 export で FC.properties.icon が維持される（Asset UID のまま・resolveIconRefsInFc は exportForm 単体では通らない）
+      const reExportedFc = await poiSourceService.exportForm(importedPackage.uid);
+      assert.equal(reExportedFc.properties.icon, importedLayerIcon,
+        're-export must preserve layer icon as Asset UID in FC.properties (resolveIconRefsInFc is applied at app/map JSON export, not exportForm)');
+      console.log('ok: m18-t5 FC.properties.icon portable ZIP import→export 往復');
 
       const { inspectPoiExport, writePoiExport } = await import(${JSON.stringify(packageServicePath)});
       const exportedPackageFc = await poiSourceService.exportForm(importedPackage.uid);

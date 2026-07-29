@@ -89,6 +89,17 @@ export async function rewritePoiMediaReferences<T>(document: T, resolve: MediaRe
   if (!document || typeof document !== 'object' || Array.isArray(document)) return document;
   const fc = document as Record<string, unknown>;
   let output = await rewriteProperties(fc, resolve);
+
+  // m18-t5: FC.properties（layer metadata の正本位置）の icon 参照書き換え
+  const fcProps = fc.properties;
+  if (fcProps && typeof fcProps === 'object' && !Array.isArray(fcProps)) {
+    const changedProps = await rewriteProperties(fcProps as Record<string, unknown>, resolve);
+    if (changedProps !== fcProps) {
+      output = output === fc ? { ...fc } : output;
+      output.properties = changedProps;
+    }
+  }
+
   if (Array.isArray(fc.features)) {
     const originalFeatures = fc.features;
     const features = await Promise.all(originalFeatures.map(async (feature) => {

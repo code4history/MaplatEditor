@@ -1,5 +1,5 @@
 // 登録 POI ソース参照 ({poiUid}) と icon 参照文法の main 側解決層 (Phase 7, 43 §2.4/§7/§8)。
-// document.pois / map data_json の pois 配列内の { poiUid, cachedTitle?, icon?, selectedIcon?, title? } 要素を
+// document.pois / map data_json の pois 配列内の { poiUid, cachedTitle?, icon?, selectedIcon?, title?, hide? } 要素を
 // PoiSourceService.exportForm の export 形 FeatureCollection へ置換する。
 // 生要素 (URL 文字列 / FC 埋め込み) は無加工で透過し (座標も丸めない)、
 // 見つからない/読めない poiUid は要素を落として 'appedit.warn_missing_poi_source' を1回だけ載せる。
@@ -9,7 +9,8 @@
 // warnings は静的 i18n キー (AppEdit 側の t(key) 表示と互換、パラメタ補間なし)。
 //
 // icon 参照文法の解決 (POI-117): pois 配列内の FC (解決済み・生 FC の双方) の layer metadata
-// (トップレベル icon/selectedIcon) と全 feature properties の icon/selectedIcon を走査し、
+// (FC.properties 配下の icon/selectedIcon — 過去形式として FC トップレベルも維持) と
+// 全 feature properties の icon/selectedIcon を走査し、
 //   - icon set 参照 ({setId}:{iconId}, 登録済み) → 'imgs/icons/{setId}/{iconId}.{ext}' + 実体コピー要求
 //   - asset UUID (assets テーブルに存在 + 実体あり) → 'imgs/{slug}.{ext}' + 実体コピー要求
 //   - URL / 相対パス → 無変更
@@ -142,7 +143,7 @@ async function resolveImageValue(
   return { value, changed: false };
 }
 
-// props (layer metadata または feature properties) の icon/selectedIcon を解決。
+// props（FC.properties layer metadata または feature properties）の icon/selectedIcon を解決。
 // 変更があった場合のみ shallow copy を返す (無変更なら null — 生 FC の無加工透過を保つ)
 async function resolveIconProps(
   props: Record<string, unknown>,
@@ -176,7 +177,18 @@ async function resolveIconRefsInFc(entry: unknown, sink: IconResolutionSink): Pr
   const fc = entry as Record<string, unknown>;
   if (fc.type !== 'FeatureCollection') return entry;
 
-  let out: Record<string, unknown> | null = await resolveIconProps(fc, sink);
+  let out: Record<string, unknown> | null = await resolveIconProps(fc, sink); // FC トップレベル（過去形式・維持）
+
+  // m18-t5: FC.properties（layer metadata の正本位置）の icon 参照解決
+  const existingProps = fc.properties;
+  if (existingProps && typeof existingProps === 'object' && !Array.isArray(existingProps)) {
+    const changedProps = await resolveIconProps(existingProps as Record<string, unknown>, sink);
+    if (changedProps) {
+      if (!out) out = { ...fc };
+      out.properties = changedProps;
+    }
+  }
+
   const features = fc.features;
   if (Array.isArray(features)) {
     let newFeatures: unknown[] | null = null;
@@ -240,9 +252,10 @@ export function hasSharedPoiUid(a: Set<string>, b: Set<string>): boolean {
   return false;
 }
 
-// 参照要素の icon/selectedIcon 上書き (Phase 8, POI-112 最小形) を解決後 FC のトップレベル
-// (layer metadata) へ適用する。string かつ非空の値のみ有効で、ソース側 FC に元々 icon が
-// あっても参照側の上書きが勝つ。ここでは参照文法のまま載せ、後段の resolveIconRefsInFc が
+// 参照要素の icon/selectedIcon/hide 上書き (Phase 8, POI-112 最小形 + m18-t5 hide) を解決後 FC の
+// FC.properties 配下 (layer metadata) へ適用する。string かつ非空の値のみ有効で、ソース側 FC に元々 icon が
+// あっても参照側の上書きが勝つ。hide は true のみ有効（§5.3 セマンティクス）。
+// ここでは参照文法のまま載せ、後段の resolveIconRefsInFc が
 // 通常の icon 解決 (imgs/ 書き換え + 実体コピー要求 + unresolved 警告) を等しく適用する。
 // title 上書き (GUI 検証 D1): 参照要素の title (LangResource) が非空なら、toExportForm が
 // FC.name に書くのと同じ交換形 (compactLangResource collapse、defaultLang=DEFAULT_LANG) で
@@ -252,23 +265,37 @@ function applyReferenceIconOverrides(
   entry: Record<string, unknown>,
 ): Record<string, unknown> {
   let out: Record<string, unknown> | null = null;
+  let props: Record<string, unknown> | null = null;
+  // 既存の properties を取得（copy-on-write）
+  const existingProps = (fc.properties && typeof fc.properties === 'object' && !Array.isArray(fc.properties)) ? fc.properties as Record<string, unknown> : {};
+
   for (const key of ['icon', 'selectedIcon']) {
     const value = entry[key];
     if (typeof value !== 'string' || value === '') continue;
-    if (!out) out = { ...fc };
-    out[key] = value;
+    if (!props) props = { ...existingProps };
+    props[key] = value;
+  }
+  // m18-t5: hide === true のみ有効（§5.3 セマンティクス）
+  if (entry.hide === true) {
+    if (!props) props = { ...existingProps };
+    props.hide = true;
   }
   const title = compactLangResource(entry.title as LangResource | null | undefined, DEFAULT_LANG);
   if (title !== undefined) {
+    // title は FC.name へ（viewer が読む場所・現行どおり）
     if (!out) out = { ...fc };
     out.name = title;
+  }
+  if (props) {
+    if (!out) out = { ...fc };
+    out.properties = props;
   }
   return out ?? fc;
 }
 
 // pois 配列内の {poiUid} 要素のみ export 形 FC に置換。生要素は透過 (icon 参照解決を除き無加工)。
 // missing は要素落ち + 警告キー1回。非配列入力は空配列扱い (呼び出し側で配列時のみ呼ぶこと)。
-// 参照要素の icon/selectedIcon 上書きは解決後 FC のトップレベルへ適用 (Phase 8, POI-112 最小形)。
+// 参照要素の icon/selectedIcon/hide 上書きは解決後 FC の FC.properties 配下へ適用 (Phase 8, POI-112 最小形 + m18-t5)。
 // 置換後の FC (解決済み・生 FC の双方) の icon 参照文法を imgs/... へ解決し、
 // 実体コピー要求を files として返す (POI-117)。同一参照の重複コピーは dest キーで畳む
 export async function resolvePoisArray(
