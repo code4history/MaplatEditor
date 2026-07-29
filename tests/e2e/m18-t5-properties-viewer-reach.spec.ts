@@ -11,13 +11,18 @@
 // 4. 人間確認: ready 到達後に page.pause() で同一画面のAマーカー画像表示・B非表示を目視
 import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
 import { mkdtemp, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
-// 外部 OSM タイルの差し替え用ローカル地図風タイル（tests/e2e/fixtures/fake-osm-tile.png）
+// 外部 OSM タイルのローカル fixture（tests/e2e/fixtures/osm-tiles/{z}/{x}/{y}.png）。
+// 札幌中心 zoom14 周辺の実タイルを事前取得して同梱（© OpenStreetMap contributors。
+// テスト用途の1回限り取得物で、実行時ネットワーク非依存・OSM サーバへの負荷も発生しない）。
+// 範囲外（パン等）のタイル要求は地図風ダミータイル（fake-osm-tile.png）へフォールバック。
+const OSM_TILE_FIXTURE_ROOT = path.resolve(import.meta.dirname, 'fixtures/osm-tiles');
 const FAKE_TILE_PATH = path.resolve(import.meta.dirname, 'fixtures/fake-osm-tile.png');
 
 async function openHash(page: Page, hash: string): Promise<void> {
@@ -34,11 +39,19 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
-  // 外部 OSM タイルをローカル地図風タイルへ差し替え（iframe 内からの要求も page.route で捕捉される）
+  // 外部 OSM タイルをローカル fixture へ差し替え（iframe 内からの要求も page.route で捕捉される。
+  // {z}/{x}/{y} が fixture にあれば実タイル、なければダミータイルを返す）
   const fakeTile = await readFile(FAKE_TILE_PATH);
-  await page.route('**/tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'image/png', body: fakeTile }),
-  );
+  await page.route('**/tile.openstreetmap.org/**', async (route) => {
+    const m = route.request().url().match(/tile\.openstreetmap\.org\/(\d+)\/(\d+)\/(\d+)\.png/);
+    if (m) {
+      const fixturePath = path.join(OSM_TILE_FIXTURE_ROOT, m[1], m[2], `${m[3]}.png`);
+      if (existsSync(fixturePath)) {
+        return route.fulfill({ status: 200, contentType: 'image/png', body: await readFile(fixturePath) });
+      }
+    }
+    return route.fulfill({ status: 200, contentType: 'image/png', body: fakeTile });
+  });
   return { app, page };
 }
 
@@ -100,7 +113,10 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
         const savedApp = await window.appedit.save({ slug, document: {
           appID: slug, appName: { ja: 'M18-T5 App' }, title: { ja: 'M18-T5 App' },
           description: {}, keywords: '', siteUrl: '', lang: 'ja',
-          sources: [{ sourceType: 'tms', tileURL: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 18, label: { ja: 'OSM' } }],
+          // ビルトイン OSM（viewer 内蔵辞書）。自作の tms ソース（tileURL キー）は viewer が
+          // `url` しか読まないため URL なしソースになりタイル要求が一度も発火しない（実測で特定。
+          // 人間指摘どおりビルトインを使うのが正）
+          sources: ['osm'],
           // viewer 向け homePosition は AppExportService が appSettings.homeLng/homeLat から組成する
           // （トップレベルの homePosition キーでは届かない → viewer が既定（東京 zoom 17）へ落ちる。
           //   v2 人間確認で「マーカーが見えない」となった根本原因。view assert で固定する）
@@ -134,6 +150,14 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
         const src = core?.mapObject?.getSource?.('marker');
         return !!src && src.getFeatures().length >= 1;
       }, undefined, { timeout: 60000 });
+
+      // ロードモーダル（アプリロード中です...）の消失を待機（modalBase が bootstrap で hide になる）。
+      // createObject 解決直後はモーダルが残っていることがあるため、画面系 assert/目視の前に必ず挟む
+      await frame.locator('.modalBase').waitFor({ state: 'hidden', timeout: 30000 });
+      // タイル描画の反映を rAF 2 回分で確定（ローカル fixture 配信のため実待ちはごく短い）
+      await frame.evaluate(() => new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined)));
+      }));
 
       // 6. 自動 assert（配信 JSON）: poisA/poisB を直接 assert（v2 Major-1 で指摘された未使用変数の解消）
       const previewSrc = await page.locator('iframe.preview-map').getAttribute('src');
