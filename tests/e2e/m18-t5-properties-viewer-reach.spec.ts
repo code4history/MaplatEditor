@@ -10,18 +10,15 @@
 // 3. 自動 assert（viewer 内部）: marker feature 数・A の style 画像 src・cluster の icon/hide 到達
 // 4. 人間確認: ready 到達後に page.pause() で同一画面のAマーカー画像表示・B非表示を目視
 import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
-// 1x1 透明 PNG（OSM タイル差し替え用）
-const TINY_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-  'base64',
-);
+// 外部 OSM タイルの差し替え用ローカル地図風タイル（tests/e2e/fixtures/fake-osm-tile.png）
+const FAKE_TILE_PATH = path.resolve(import.meta.dirname, 'fixtures/fake-osm-tile.png');
 
 async function openHash(page: Page, hash: string): Promise<void> {
   await page.evaluate((nextHash: string) => { location.hash = nextHash; }, hash);
@@ -37,9 +34,10 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
-  // 外部 OSM タイルをローカル 1x1 PNG へ差し替え（iframe 内からの要求も page.route で捕捉される）
+  // 外部 OSM タイルをローカル地図風タイルへ差し替え（iframe 内からの要求も page.route で捕捉される）
+  const fakeTile = await readFile(FAKE_TILE_PATH);
   await page.route('**/tile.openstreetmap.org/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'image/png', body: TINY_PNG }),
+    route.fulfill({ status: 200, contentType: 'image/png', body: fakeTile }),
   );
   return { app, page };
 }
@@ -103,12 +101,15 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
           appID: slug, appName: { ja: 'M18-T5 App' }, title: { ja: 'M18-T5 App' },
           description: {}, keywords: '', siteUrl: '', lang: 'ja',
           sources: [{ sourceType: 'tms', tileURL: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 18, label: { ja: 'OSM' } }],
-          homePosition: [141.35, 43.06], defaultZoom: 14,
+          // viewer 向け homePosition は AppExportService が appSettings.homeLng/homeLat から組成する
+          // （トップレベルの homePosition キーでは届かない → viewer が既定（東京 zoom 17）へ落ちる。
+          //   v2 人間確認で「マーカーが見えない」となった根本原因。view assert で固定する）
+          appSettings: { homeLng: 141.35, homeLat: 43.06, defaultZoom: 14 },
           pois: [
             { poiUid: poiUidA, icon: 'builtin:defaultpin' },
             { poiUid: poiUidB, hide: true },
           ],
-          httpSettings: {}, appSettings: {}, manifestSettings: {},
+          httpSettings: {}, manifestSettings: {},
         } });
         if (!savedApp || savedApp.result !== 'Success') throw new Error(`app create failed: ${JSON.stringify(savedApp)}`);
         return slug;
@@ -160,16 +161,21 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
         expect(p.hide).toBeUndefined();
       }
 
-      // 7. 自動 assert（viewer 内部状態）: cluster 到達 + marker layer の実描画
+      // 7. 自動 assert（viewer 内部状態）: view 位置 + cluster 到達 + marker layer の実描画
       const viewerState = await frame.evaluate(({ slugA, slugB }: { slugA: string; slugB: string }) => {
         const core = (window as any).__maplatPreview.core;
         const features = core.mapObject.getSource('marker').getFeatures();
         const srcOf = (f: any) => {
           const style = f.getStyle && f.getStyle();
-          const image = style && style.getImage && style.getImage();
+          const image = style && style.getImage ? style.getImage() : null;
           return image && image.getSrc ? image.getSrc() : null;
         };
+        const view = core.mapObject.getView();
+        const f0 = features[0];
         return {
+          viewCenter: view.getCenter(),
+          viewZoom: view.getZoom(),
+          markerPixel: f0 ? core.mapObject.getPixelFromCoordinate(f0.getGeometry().getCoordinates()) : null,
           clusterAIcon: core.pois?.[slugA]?.icon ?? null,
           clusterAHide: core.pois?.[slugA]?.hide ?? null,
           clusterBHide: core.pois?.[slugB]?.hide ?? null,
@@ -178,6 +184,19 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
           hiddenLayerKeys: core.listPoiLayers(true).map((l: any) => l.namespaceID),
         };
       }, { slugA, slugB });
+
+      // view は seed した homePosition（札幌）/ zoom 14 を使う（東京既定へ落ちないことを固定。
+      // これがあれば「テストは green だが画面にマーカーが見えない」を防げた）
+      const sapporo3857x = 141.35 * 20037508.34 / 180;
+      const sapporo3857y = 5321108.9; // 43.06N の実測値相当
+      expect(Math.abs(viewerState.viewCenter[0] - sapporo3857x)).toBeLessThan(30000);
+      expect(Math.abs(viewerState.viewCenter[1] - sapporo3857y)).toBeLessThan(30000);
+      expect(Math.abs(viewerState.viewZoom - 14)).toBeLessThan(0.5);
+      // マーカーは画面内（viewport 1200x620 前後の範囲）
+      expect(viewerState.markerPixel[0]).toBeGreaterThan(0);
+      expect(viewerState.markerPixel[0]).toBeLessThan(1600);
+      expect(viewerState.markerPixel[1]).toBeGreaterThan(0);
+      expect(viewerState.markerPixel[1]).toBeLessThan(1200);
 
       // cluster 到達: A の icon は imgs/ 解決値、A は非表示でない、B は hide === true
       expect(viewerState.clusterAIcon).toBe(appJson.pois.find((p: any) => String(p.id).includes('poi-a')).properties.icon);
