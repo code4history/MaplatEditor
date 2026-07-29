@@ -1280,17 +1280,17 @@ try {
   );
   assert.match(
     poiEdit,
-    /const onHistoryKeydown = \(event: KeyboardEvent\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen\) return;/,
+    /const onHistoryKeydown = \(event: KeyboardEvent\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen \|\| isIconPickerOpen\.value\) return;/,
     'PoiEdit の onHistoryKeydown が picker 表示中のガードを先頭に持っていない'
   );
   assert.match(
     poiEdit,
-    /const onDeleteKeydown = \(event: KeyboardEvent\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen\) return;/,
+    /const onDeleteKeydown = \(event: KeyboardEvent\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen \|\| isIconPickerOpen\.value\) return;/,
     'PoiEdit の onDeleteKeydown が picker 表示中のガードを先頭に持っていない'
   );
   assert.match(
     poiEdit,
-    /const onMainProcessMessage = \(message: string\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen\) return;/,
+    /const onMainProcessMessage = \(message: string\) => \{\s*\n\s*if \(attrForm\.value\?\.pickerOpen \|\| isIconPickerOpen\.value\) return;/,
     'PoiEdit の onMainProcessMessage が picker 表示中のガードを先頭に持っていない'
   );
 
@@ -1383,10 +1383,16 @@ try {
   );
 
   // 未設定/未解決は標準ピンへフォールバック、選択中は selectedIcon or 選択中ピン切替
+  // m17-t1 で markerStyle が resolveIconPair/resolveDisplayIcon へリファクタリング
   assert.match(
     poiEditMap,
-    /const raw = selected \? properties\?\.selectedIcon : properties\?\.icon;/,
-    'PoiEditMap の markerStyle が icon/selectedIcon の切替意味論になっていない'
+    /const pair = resolveIconPair\(properties, layerMeta\);/,
+    'PoiEditMap の markerStyle が resolveIconPair を呼んでいない'
+  );
+  assert.match(
+    poiEditMap,
+    /const displayIcon = resolveDisplayIcon\(pair, selected\);/,
+    'PoiEditMap の markerStyle が resolveDisplayIcon で selected 切替をしていない'
   );
   assert.match(
     poiEditMap,
@@ -1418,7 +1424,7 @@ try {
   );
   assert.match(
     poiEditMap,
-    /markerStyle\(feature\.properties, uid === session\.selectedUid\.value\)/,
+    /markerStyle\(feature\.properties, uid === session\.selectedUid\.value, layerMeta\)/,
     'PoiEditMap の redrawMarkers が markerStyle を使っていない'
   );
 
