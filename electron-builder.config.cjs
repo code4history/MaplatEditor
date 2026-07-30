@@ -24,7 +24,23 @@ const config = {
         output: 'release/${version}',
         buildResources: 'build',
     },
-    files: ['dist', 'dist-electron'],
+    // m1-t2: 内部パッケージ（@maplat/* / @c4h/*）は outer の pnpm workspace により
+    // 兄弟リポジトリの作業ディレクトリへ symlink 解決される。electron-builder は
+    // その実体を丸ごと収集するため、各リポジトリの package.json の files 指定
+    // （publish 時のみ有効）では防げず、public/ docs/ spec/ e2e/ dist-demo/ や
+    // 入れ子 node_modules まで asar へ入ってしまう（実測: @maplat/core だけで
+    // 3408 ファイル・うち public/ が 1197）。配布物には dist / src / parts のみ
+    // 必要なため、明示的に除外する。
+    files: [
+        'dist',
+        'dist-electron',
+        // 開発用ディレクトリを除外（実測: 除外前は @maplat/core だけで 3408 ファイル、
+        // うち public/ が 1197。除外後は 147 ファイル・asar は 330MB → 214MB）。
+        // node_modules/ は除外しないこと — 内部パッケージの実依存（@turf /
+        // lodash.template / whatwg-fetch 等）が入っており、消すと実行時に解決できない。
+        '!node_modules/@{maplat,c4h}/*/{public,docs,spec,e2e,tests,demo,dist-demo,scripts,.github}/**',
+        '!node_modules/@{maplat,c4h}/*/{*.md,*.log,.editorconfig,.prettierrc,eslint.config.*,vite.config.*,vitest.config.*,playwright*.config.*,tsconfig*.json,pnpm-lock.yaml}',
+    ],
 
     // macOS ビルド設定
     mac: {

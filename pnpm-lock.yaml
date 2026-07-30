@@ -12,8 +12,8 @@ importers:
         specifier: 1.5.4-r.1
         version: 1.5.4-r.1
       '@maplat/core':
-        specifier: github:code4history/MaplatCore#foss4g-hiroshima
-        version: https://codeload.github.com/code4history/MaplatCore/tar.gz/9b97eb5d1f5939f2ab94779612ac4067d6fc26b7(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
+        specifier: ^0.13.2
+        version: 0.13.2(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
       '@maplat/tin':
         specifier: ^0.14.1
         version: 0.14.1
@@ -21,8 +21,8 @@ importers:
         specifier: ^0.5.2
         version: 0.5.2
       '@maplat/ui':
-        specifier: github:code4history/Maplat#foss4g-hiroshima
-        version: https://codeload.github.com/code4history/Maplat/tar.gz/07ee37a5090055d5ea2c4c993a2a59ee2d2dfabc(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)
+        specifier: ^0.12.2
+        version: 0.12.2(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)
       '@popperjs/core':
         specifier: ^2.11.8
         version: 2.11.8
@@ -202,9 +202,8 @@ packages:
     resolution: {integrity: sha512-NaWZw9k61BWXm51aPrW8wZ3dS4MyLwAVHzQRqke3NDYF83/gPGWaIxr5g5tYYhwDkS/wRpMP326L1ciHDCe3+Q==}
     engines: {pnpm: '>=9.0.0'}
 
-  '@c4h/weiwudi@https://codeload.github.com/code4history/Weiwudi/tar.gz/efabc65d4052c9797442a4fdfcbc61459c5e02f1':
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/code4history/Weiwudi/tar.gz/efabc65d4052c9797442a4fdfcbc61459c5e02f1}
-    version: 0.3.1
+  '@c4h/weiwudi@0.3.1':
+    resolution: {integrity: sha512-B3m/rmx2ckTpiUcaAHjLByVAe+T4e1wznWCWlsqhvgykukru8D3UzWNLdXbZ5dHbTCUNNgtZsQn2ESmg3DFI/Q==}
     engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
     peerDependencies:
       workbox-routing: ^7.4.0
@@ -612,9 +611,8 @@ packages:
     resolution: {integrity: sha512-Es6WcD0nO5l+2BOQS4uLfNPYQaNDfbot3X1XUoloz+x0mPDS3eeORZJl06HXjwBG1fOGwCRnzK88LMdxKRrd6Q==}
     engines: {node: '>=6.0.0'}
 
-  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/9b97eb5d1f5939f2ab94779612ac4067d6fc26b7':
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/code4history/MaplatCore/tar.gz/9b97eb5d1f5939f2ab94779612ac4067d6fc26b7}
-    version: 0.13.2
+  '@maplat/core@0.13.2':
+    resolution: {integrity: sha512-gz80R1yWLDJxPi4yRWEjTnmbEjV/+32TKE5gSy10XAkV5rwv7FkM41q7bod90uuEOPUVZOxb22+qwJG5jWAM3A==}
     engines: {pnpm: '>=9'}
     peerDependencies:
       mapbox-gl: ^1.0.0 || ^2.0.0 || ^3.0.0
@@ -634,9 +632,8 @@ packages:
     resolution: {integrity: sha512-iDn0t3wRxXsgkSwBdbPUFcN/A/syRZgk4O5TcKf/kqyTgHuPnKNWL5PUbo4u9dXOoB/W8RvIdCJAIwk2MUZO8Q==}
     engines: {node: '>=20', pnpm: '>=9'}
 
-  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/07ee37a5090055d5ea2c4c993a2a59ee2d2dfabc':
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/code4history/Maplat/tar.gz/07ee37a5090055d5ea2c4c993a2a59ee2d2dfabc}
-    version: 0.12.2
+  '@maplat/ui@0.12.2':
+    resolution: {integrity: sha512-kl9OK+/fEdmC7MmJL+0xEIcJctX6oljQUrmmvz4oITlndtkST03GFkCwRNUTxJ2U+I7q4bJIdOFcNVzCSa0isQ==}
     engines: {npm: use-pnpm-please, pnpm: '>=9.0.0'}
     peerDependencies:
       mapbox-gl: ^1.0.0 || ^2.0.0 || ^3.0.0
@@ -2794,9 +2791,6 @@ packages:
     resolution: {integrity: sha512-x2wSZHEBK20CY+Wy+BPE7MrFQHW6sIsdaGUMEqmGAio+3gFzQaBYPwLRonUfQf9Ak8pBieqj9tUofX1+WtAEIg==}
     engines: {node: '>= 12'}
 
-  kdbush@4.0.2:
-    resolution: {integrity: sha512-WbCVYJ27Sz8zi9Q7Q0xHC+05iwkm3Znipc2XTlrnJbsHMYktW4hPhXUE8Ys1engBrvffoSCqbil1JQAa7clRpA==}
-
   kdbush@4.1.0:
     resolution: {integrity: sha512-e9vurzrXJQrFX6ckpHP3bvj5l+9CnYzkxDNnNQ1h2QTqdWsUAJgXiKdGNcOa1EY85dU8KbQ+z/FdQdB7P+9yfQ==}
 
@@ -4161,7 +4155,7 @@ snapshots:
       three: 0.171.0
       viewerjs: 1.11.7
 
-  '@c4h/weiwudi@https://codeload.github.com/code4history/Weiwudi/tar.gz/efabc65d4052c9797442a4fdfcbc61459c5e02f1(workbox-routing@7.4.1)':
+  '@c4h/weiwudi@0.3.1(workbox-routing@7.4.1)':
     dependencies:
       workbox-routing: 7.4.1
 
@@ -4603,9 +4597,9 @@ snapshots:
 
   '@mapbox/whoots-js@3.1.0': {}
 
-  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/9b97eb5d1f5939f2ab94779612ac4067d6fc26b7(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)':
+  '@maplat/core@0.13.2(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)':
     dependencies:
-      '@c4h/weiwudi': https://codeload.github.com/code4history/Weiwudi/tar.gz/efabc65d4052c9797442a4fdfcbc61459c5e02f1(workbox-routing@7.4.1)
+      '@c4h/weiwudi': 0.3.1(workbox-routing@7.4.1)
       '@maplat/transform': 0.5.2
       '@turf/turf': 7.3.4
       lodash.template: 4.5.0
@@ -4628,11 +4622,11 @@ snapshots:
     dependencies:
       '@turf/turf': 7.3.4
 
-  '@maplat/ui@https://codeload.github.com/code4history/Maplat/tar.gz/07ee37a5090055d5ea2c4c993a2a59ee2d2dfabc(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)':
+  '@maplat/ui@0.12.2(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(typescript@5.9.3)':
     dependencies:
       '@c4h/chuci': 0.2.6
-      '@c4h/weiwudi': https://codeload.github.com/code4history/Weiwudi/tar.gz/efabc65d4052c9797442a4fdfcbc61459c5e02f1(workbox-routing@7.4.1)
-      '@maplat/core': https://codeload.github.com/code4history/MaplatCore/tar.gz/9b97eb5d1f5939f2ab94779612ac4067d6fc26b7(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
+      '@c4h/weiwudi': 0.3.1(workbox-routing@7.4.1)
+      '@maplat/core': 0.13.2(mapbox-gl@3.25.0)(maplibre-gl@4.7.1)(ol@10.8.0)(workbox-routing@7.4.1)
       '@turf/turf': 7.3.4
       '@types/page': 1.11.9
       bootstrap.native: 5.1.10
@@ -5148,7 +5142,7 @@ snapshots:
       '@types/geojson': 7946.0.16
       '@types/geokdbush': 1.1.5
       geokdbush: 2.0.1
-      kdbush: 4.0.2
+      kdbush: 4.1.0
       tslib: 2.8.1
 
   '@turf/clusters-kmeans@7.3.4':
@@ -7815,8 +7809,6 @@ snapshots:
       graceful-fs: 4.2.11
 
   jsts@2.7.1: {}
-
-  kdbush@4.0.2: {}
 
   kdbush@4.1.0: {}
 
