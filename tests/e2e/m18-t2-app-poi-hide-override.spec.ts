@@ -2,9 +2,11 @@
 // 設計 docs/superpowers/specs/2026-07-30-m18-t2-app-poi-hide-override-ui-design.md v1.0 §6.2 準拠。
 //
 // 検証範囲（AC2-1/2/3/4/7/8/9/10）:
-//   1. AppEdit の POI タブで参照要素に hide チェックボックスが出る / 2. 非参照要素には出ない
+//   1. AppEdit の POI タブで参照要素に hide チェックボックスが出る
+//   2. 非参照要素（生 FC）には出ない（別 seed・シナリオ2で検証 = §6.2-2）
 //   3/4/7. ON → 保存 → 再読込 → OFF → 保存 の round-trip（OFF では hide キーごと消える）
-//   8. 他の上書き（icon）との佷存・並べ替え・追加選択・別参照の解除でも hide が保持される
+//   8a. 他の上書き（icon）との佷存（シナリオ1内で検証）
+//   8b. 追加選択・並べ替え・別参照の解除でも hide が保持される（シナリオ3で検証 = §6.2-4）
 //   9. viewer 到達: AppEdit の preview タブで app-level POI の hide が viewer に届く
 //      （app-level レイヤの namespaceID は prefix なしの key = normalize_pois:192-193 + index.ts:384）
 //   10. undo / redo（AppEdit の historyApplying + recordHistory 経路）
@@ -87,7 +89,7 @@ const POI_A_ID = 'a1';
 const POI_B_ID = 'b1';
 
 test.describe('M18-T2: アプリ管理 POI 編集の hide 上書き UI', () => {
-  test('AC2-1/2/3/4/7/8/9/10: hide 上書きの AppEdit UI・round-trip・viewer 到達・undo', async () => {
+  test('シナリオ1: AC2-1/3/4/7/8a/9/10: hide 上書きの AppEdit UI・round-trip・viewer 到達・undo', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t2-hide-override-'));
     const { app, page } = await launch(e2eRoot);
@@ -123,8 +125,9 @@ test.describe('M18-T2: アプリ管理 POI 編集の hide 上書き UI', () => {
       // AppEdit には preview タブが組み込みで存在するため、t1 のように別途 App を作成する必要はない。
       // sources はビルトイン OSM を使用（t5 と同一方式: viewer 内蔵辞書でタイル要求が発火する）。
       // homeLng/homeLat で viewer の初期位置を札幌に固定（t5 の教訓: デフォルト東京だとマーカーが見えない）。
-      // ※生 URL 非参照要素は seed に含めない — viewer が nodesLoader で fetch を試みて
-      //   タイムアウトするため。AC2-2（非参照要素に hide が出ない）は smoke で検証済み。
+      // ※生 URL 非参照要素は viewer 到達検証（シナリオ5）の seed に含めない — viewer の
+      //   nodesLoader が fetch を試みてタイムアウトするため。AC2-2 はシナリオ2（生 FC =
+      //   インライン・fetch 不要・preview 不使用の UI 検証）で別途検証する。
       const appUid = await page.evaluate(async ({ slug, poiUidA, poiUidB }: any) => {
         const uid = crypto.randomUUID();
         const r = await (window as any).appedit.save({
@@ -151,8 +154,7 @@ test.describe('M18-T2: アプリ管理 POI 編集の hide 上書き UI', () => {
       await expect(hideChecks).toHaveCount(2, { timeout: 30000 });
       console.log('  AC2-1: 参照要素に hide チェックボックスが2件: PASS');
 
-      // AC2-2（非参照要素に hide が出ない）は smoke で検証済み（t1 smoke が共用コンポーネントの
-      // v-else ブロックに poiref-hide-override が出現しないことを assert）
+      // AC2-2（非参照要素に hide が出ない）はシナリオ2（§6.2-2）で検証
 
       // ================= AC2-3/4/7: round-trip =================
       // 元の App へ戻る
@@ -201,7 +203,7 @@ test.describe('M18-T2: アプリ管理 POI 編集の hide 上書き UI', () => {
         .toBe(false);
       console.log('  AC2-4: OFF で hide キーごと消える: PASS');
 
-      // ================= AC2-8: 他の上書きとの佷存・選択操作での温存 =================
+      // ================= AC2-8a: 他の上書き（icon）との佷存 =================
       // B を再び ON にする。A には icon 上書きが既に設定済み（seed 時）。
       ({ poisPane } = await openAppPoisTab(page, appUid, appSlug));
       const hideChecks4 = poisPane.locator('[data-testid="poiref-hide-override"] input[type="checkbox"]');
@@ -222,7 +224,7 @@ test.describe('M18-T2: アプリ管理 POI 編集の hide 上書き UI', () => {
           return { aIcon: entryA?.icon ?? null, bHide: entryB?.hide ?? null };
         }, { timeout: 30000 })
         .toEqual({ aIcon: 'builtin:defaultpin', bHide: true });
-      console.log('  AC2-8: icon と hide の佷存が保持される: PASS');
+      console.log('  AC2-8a: icon と hide の佷存が保存後も保持される: PASS');
 
       // ================= AC2-10: undo / redo =================
       // AppEdit は recordHistory が即座に実行されるため、t1 のような expect.poll 待ちは不要。
@@ -326,6 +328,232 @@ test.describe('M18-T2: アプリ管理 POI 編集の hide 上書き UI', () => {
       if (process.env.MAPLAT_E2E_PAUSE === '1') {
         await page.pause();
       }
+    } finally {
+      await quitElectronApplication(app).catch(() => {});
+    }
+  });
+
+  // §6.2-2: AC2-2 — 非参照要素（生 FC）には hide チェックボックスが出ない。
+  // 別 seed（参照2件 + 生 FC 1件）。preview タブは開かない（UI 検証のみ・viewer 無関係）。
+  // 生 FC はインラインのため nodesLoader の fetch は発火しない（生 URL とは異なる）。
+  test('シナリオ2: AC2-2: 非参照要素（生 FC）には hide チェックボックスが出ない', async () => {
+    test.setTimeout(120_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t2-ac2-2-'));
+    const { app, page } = await launch(e2eRoot);
+    await stubMessageBoxOk(app);
+    const stamp = Date.now();
+    const slugA = `m18-t2-s2a-${stamp}`;
+    const slugB = `m18-t2-s2b-${stamp}`;
+    const appSlug = `m18-t2-s2-app-${stamp}`;
+
+    try {
+      // ---- seed: POI ソース A と B ----
+      const { poiUidA, poiUidB } = await page.evaluate(async ({ sa, sb, idA, idB }: any) => {
+        const mk = async (slug: string, titleJa: string, featureId: string, lng: number) => {
+          const created = await (window as any).poiSources.createLocal({ slug, title: { ja: titleJa }, lang: 'ja' });
+          if (!created || created.result !== 'Success') throw new Error(`poi create failed: ${JSON.stringify(created)}`);
+          await (window as any).poiSources.save(created.uid, {
+            slug, title: { ja: titleJa },
+            fc: {
+              type: 'FeatureCollection', lang: 'ja',
+              features: [{
+                type: 'Feature', id: featureId,
+                geometry: { type: 'Point', coordinates: [lng, 43.06] },
+                properties: { _maplatUid: crypto.randomUUID(), name: { ja: titleJa } },
+              }],
+            },
+          });
+          return created.uid as string;
+        };
+        return { poiUidA: await mk(sa, 'S2レイヤA', idA, 141.35), poiUidB: await mk(sb, 'S2レイヤB', idB, 141.36) };
+      }, { sa: slugA, sb: slugB, idA: POI_A_ID, idB: POI_B_ID });
+
+      // ---- seed: App（pois に参照2件 + 生 FC 1件を混在）----
+      // 生 FC はインラインのため fetch 不要（preview を開かないため viewer も無関係）
+      const appUid = await page.evaluate(async ({ slug, poiUidA, poiUidB }: any) => {
+        const uid = crypto.randomUUID();
+        const r = await (window as any).appedit.save({
+          uid, slug, create: true,
+          document: {
+            appID: slug, appName: { ja: 'S2 App' }, title: { ja: 'S2 App' },
+            description: {}, keywords: '', siteUrl: '', lang: 'ja',
+            sources: ['osm'],
+            appSettings: { homeLng: 141.35, homeLat: 43.06, defaultZoom: 14 },
+            pois: [
+              { poiUid: poiUidA },
+              { poiUid: poiUidB },
+              { type: 'FeatureCollection', id: 'raw-fc', features: [] },
+            ],
+            httpSettings: {}, manifestSettings: {},
+          },
+        });
+        if (!r || r.result !== 'Success') throw new Error(`app create failed: ${JSON.stringify(r)}`);
+        return uid;
+      }, { slug: appSlug, poiUidA, poiUidB });
+
+      // ---- POI タブを開き、参照2件分のみに hide UI が出ることを assert ----
+      const { poisPane, cards } = await openAppPoisTab(page, appUid, appSlug);
+      await expect(cards, 'シナリオ2: カード数は3件（参照2 + 生FC1）').toHaveCount(3, { timeout: 30000 });
+      await expect(
+        poisPane.locator('[data-testid="poiref-hide-override"]'),
+        'AC2-2: 参照要素2件分のみ hide UI が出る（生 FC 要素には出ない）',
+      ).toHaveCount(2);
+      console.log('  AC2-2: 非参照要素（生 FC）に hide チェックボックスが出ない: PASS');
+    } finally {
+      await quitElectronApplication(app).catch(() => {});
+    }
+  });
+
+  // §6.2-4: AC2-8b — 追加選択・並べ替え・別参照の解除でも hide が保持される。
+  // 別 seed（参照2件 → 追加選択で3件 → 並べ替え → 参照解除で2件）。
+  // 検証は保存形（readSavedAppPois）で行い、DOM の再マウントに依存しない。
+  test('シナリオ3: AC2-8b: 追加選択・並べ替え・別参照の解除でも hide が保持される', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t2-ac2-8b-'));
+    const { app, page } = await launch(e2eRoot);
+    await stubMessageBoxOk(app);
+    const stamp = Date.now();
+    const slugA = `m18-t2-s3a-${stamp}`;
+    const slugB = `m18-t2-s3b-${stamp}`;
+    const slugC = `m18-t2-s3c-${stamp}`;
+    const appSlug = `m18-t2-s3-app-${stamp}`;
+
+    try {
+      // ---- seed: POI ソース A, B, C ----
+      const { poiUidA, poiUidB, poiUidC } = await page.evaluate(async ({ sa, sb, sc, idA, idB, idC }: any) => {
+        const mk = async (slug: string, titleJa: string, featureId: string, lng: number) => {
+          const created = await (window as any).poiSources.createLocal({ slug, title: { ja: titleJa }, lang: 'ja' });
+          if (!created || created.result !== 'Success') throw new Error(`poi create failed: ${JSON.stringify(created)}`);
+          await (window as any).poiSources.save(created.uid, {
+            slug, title: { ja: titleJa },
+            fc: {
+              type: 'FeatureCollection', lang: 'ja',
+              features: [{
+                type: 'Feature', id: featureId,
+                geometry: { type: 'Point', coordinates: [lng, 43.06] },
+                properties: { _maplatUid: crypto.randomUUID(), name: { ja: titleJa } },
+              }],
+            },
+          });
+          return created.uid as string;
+        };
+        return {
+          poiUidA: await mk(sa, 'S3レイヤA（icon）', idA, 141.35),
+          poiUidB: await mk(sb, 'S3レイヤB（hide）', idB, 141.36),
+          poiUidC: await mk(sc, 'S3レイヤC（追加）', idC, 141.37),
+        };
+      }, { sa: slugA, sb: slugB, sc: slugC, idA: 'a3', idB: 'b3', idC: 'c3' });
+
+      // ---- seed: App（pois に A（icon）と B を参照）----
+      const appUid = await page.evaluate(async ({ slug, poiUidA, poiUidB }: any) => {
+        const uid = crypto.randomUUID();
+        const r = await (window as any).appedit.save({
+          uid, slug, create: true,
+          document: {
+            appID: slug, appName: { ja: 'S3 App' }, title: { ja: 'S3 App' },
+            description: {}, keywords: '', siteUrl: '', lang: 'ja',
+            sources: ['osm'],
+            appSettings: { homeLng: 141.35, homeLat: 43.06, defaultZoom: 14 },
+            pois: [
+              { poiUid: poiUidA, icon: 'builtin:defaultpin' },
+              { poiUid: poiUidB },
+            ],
+            httpSettings: {}, manifestSettings: {},
+          },
+        });
+        if (!r || r.result !== 'Success') throw new Error(`app create failed: ${JSON.stringify(r)}`);
+        return uid;
+      }, { slug: appSlug, poiUidA, poiUidB });
+
+      // ---- B の hide を ON にして保存 ----
+      let { poisPane } = await openAppPoisTab(page, appUid, appSlug);
+      let hideChecks = poisPane.locator('[data-testid="poiref-hide-override"] input[type="checkbox"]');
+      await expect(hideChecks).toHaveCount(2, { timeout: 30000 });
+      await hideChecks.nth(1).check(); // B の hide ON
+      await expect(hideChecks.nth(1)).toBeChecked();
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 20000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+
+      // ---- 追加選択: セレクタ左ペインで C をクリック → 3件になる ----
+      ({ poisPane } = await openAppPoisTab(page, appUid, appSlug));
+      const availableC = poisPane.locator(`[data-resource-uid="${poiUidC}"]`);
+      await expect(availableC, 'シナリオ3: セレクタに C が表示される').toBeVisible({ timeout: 30000 });
+      await availableC.click();
+
+      // 3件になったことを確認（A, B, C の順）
+      const cards = poisPane.locator('.selected-source');
+      await expect(cards, 'シナリオ3: 追加選択で3件になる').toHaveCount(3, { timeout: 10000 });
+
+      // B の hide が ON のまま保持されていることを DOM で確認
+      hideChecks = poisPane.locator('[data-testid="poiref-hide-override"] input[type="checkbox"]');
+      await expect(hideChecks, 'シナリオ3: hide UI は3件分').toHaveCount(3);
+      await expect(hideChecks.nth(1), 'AC2-8b: 追加選択後も B の hide が ON').toBeChecked();
+
+      // 保存して保存形で検証
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 20000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+      await expect
+        .poll(async () => {
+          const saved = await readSavedAppPois(page, appUid);
+          const a = saved.find((e: any) => e?.poiUid === poiUidA);
+          const b = saved.find((e: any) => e?.poiUid === poiUidB);
+          const c = saved.find((e: any) => e?.poiUid === poiUidC);
+          return { aIcon: a?.icon ?? null, bHide: b?.hide ?? null, cCount: c ? 1 : 0 };
+        }, { timeout: 30000 })
+        .toEqual({ aIcon: 'builtin:defaultpin', bHide: true, cCount: 1 });
+      console.log('  AC2-8b-1: 追加選択後も icon/hide が保持される: PASS');
+
+      // ---- 並べ替え: B（index 1）を ↓ で下へ移動 → [A, C, B] ----
+      ({ poisPane } = await openAppPoisTab(page, appUid, appSlug));
+      const cards2 = poisPane.locator('.selected-source');
+      await expect(cards2).toHaveCount(3, { timeout: 30000 });
+      // B は index 1。↓ ボタンをクリックして B を下へ移動
+      await cards2.nth(1).locator('button[title="下へ"]').click();
+
+      // 保存して並び順と上書きを検証
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 20000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+      await expect
+        .poll(async () => {
+          const saved = await readSavedAppPois(page, appUid);
+          return saved.map((e: any) => ({ uid: e?.poiUid, icon: e?.icon ?? null, hide: e?.hide ?? null }));
+        }, { timeout: 30000 })
+        .toEqual([
+          { uid: poiUidA, icon: 'builtin:defaultpin', hide: null },
+          { uid: poiUidC, icon: null, hide: null },
+          { uid: poiUidB, icon: null, hide: true },
+        ]);
+      console.log('  AC2-8b-2: 並べ替え後も icon/hide が保持される: PASS');
+
+      // ---- 別参照の解除: A（index 0）を × で解除 → [C, B] ----
+      // 設計 §6.2-4: "hide を ON にした参照とは別の参照を選択解除（×）し、
+      //   残った参照の hide / icon が保持されることを assert"
+      // A は icon を持つ参照で、B は hide を持つ参照。A を解除 → 残る C と B。
+      // B の hide が保持されることを検証。
+      ({ poisPane } = await openAppPoisTab(page, appUid, appSlug));
+      const cards3 = poisPane.locator('.selected-source');
+      await expect(cards3).toHaveCount(3, { timeout: 30000 });
+      // 参照解除は確認ダイアログなし（requestRemove → removeAt の直接呼び出し）
+      await cards3.nth(0).locator('.btn-outline-danger').click();
+      await expect(cards3, 'シナリオ3: 解除後は2件').toHaveCount(2, { timeout: 10000 });
+
+      // 保存して残った参照の上書きを検証
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 20000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
+      await expect
+        .poll(async () => {
+          const saved = await readSavedAppPois(page, appUid);
+          return saved.map((e: any) => ({ uid: e?.poiUid, hide: e?.hide ?? null }));
+        }, { timeout: 30000 })
+        .toEqual([
+          { uid: poiUidC, hide: null },
+          { uid: poiUidB, hide: true },
+        ]);
+      console.log('  AC2-8b-3: 別参照解除後も残った参照の hide が保持される: PASS');
     } finally {
       await quitElectronApplication(app).catch(() => {});
     }
