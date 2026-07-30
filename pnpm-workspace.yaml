@@ -5,7 +5,7 @@ nodeLinker: hoisted
 
 # build script 許可リスト。pnpm 11 で onlyBuiltDependencies(リスト形式)は廃止され
 # allowBuilds(マップ形式)に置換された(旧キーは警告なしで無視される)。
-# pnpm 9/10/11初期との両対応のため新旧両形式を併記する
+# pnpm 10 以前で開く場合に備えて旧形式も併記する(CI/ローカルとも 11 系。m1-t1)
 allowBuilds:
   '@parcel/watcher': true
   electron: true
