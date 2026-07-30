@@ -2,13 +2,17 @@ name: Build and Release
 
 on:
   # 署名ポリシー（Windows の eSigner は署名ごとに課金されるため、公証・リリースは明示的な手動操作に限定）:
-  #   glm52 push  : ビルドのみ（署名・公証なし）
+  #   glm52 / foss4g-hiroshima push : ビルドのみ（署名・公証なし）
   #   master push : Mac は署名のみ（公証なし。テスター配布用に xattr 不要のバイナリを作る）、Win は署名なし
   #   手動実行     : ブランチ問わず起動可能。通常は署名なしビルド。
   #                 「release」チェックを入れると Mac 署名+公証 / Win eSigner 署名 / draft Release 作成
   #                 を行うリリースビルドになる（master ブランチ限定。他ブランチではエラー停止）
+  #
+  # foss4g-hiroshima は現行の統合ブランチ（他7リポジトリの CI は既に全ブランチで走る）。
+  # 署名系ステップは github.ref == 'refs/heads/master' で分岐しているため、
+  # ここへ追加しても署名・公証・Release 作成はいずれも発火しない（m1-t2 で実測確認）。
   push:
-    branches: [master, glm52]
+    branches: [master, glm52, foss4g-hiroshima]
   workflow_dispatch:
     inputs:
       release:
