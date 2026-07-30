@@ -54,7 +54,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # build script 許可は pnpm-workspace.yaml の allowBuilds（pnpm 11 の新形式）参照
+          # overrides / allowBuilds は m1-t2 で不要と実測し撤去済み（pnpm-workspace.yaml も削除）
           version: 11
 
       - uses: actions/setup-node@v4
@@ -136,7 +136,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # build script 許可は pnpm-workspace.yaml の allowBuilds（pnpm 11 の新形式）参照
+          # overrides / allowBuilds は m1-t2 で不要と実測し撤去済み（pnpm-workspace.yaml も削除）
           version: 11
 
       - uses: actions/setup-node@v4
@@ -186,7 +186,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # build script 許可は pnpm-workspace.yaml の allowBuilds（pnpm 11 の新形式）参照
+          # overrides / allowBuilds は m1-t2 で不要と実測し撤去済み（pnpm-workspace.yaml も削除）
           version: 11
 
       - uses: actions/setup-node@v4
