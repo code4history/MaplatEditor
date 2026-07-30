@@ -143,7 +143,7 @@
     "@seald-io/nedb": "^4.1.2",
     "@types/geojson": "^7946.0.16",
     "@types/lodash-es": "^4.17.12",
-    "adm-zip": "^0.5.9",
+    "adm-zip": "^0.6.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "bootstrap-sass": "^3.4.3",
