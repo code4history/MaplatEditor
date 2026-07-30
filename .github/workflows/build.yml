@@ -58,13 +58,18 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # overrides / allowBuilds は m1-t2 で不要と実測し撤去済み（pnpm-workspace.yaml も削除）
+          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
+
+      # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      - name: Apply CI-only pnpm config
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       - name: Install dependencies
         run: pnpm install
@@ -140,13 +145,18 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # overrides / allowBuilds は m1-t2 で不要と実測し撤去済み（pnpm-workspace.yaml も削除）
+          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
+
+      # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      - name: Apply CI-only pnpm config
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       - name: Install dependencies
         run: pnpm install
@@ -190,13 +200,18 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # overrides / allowBuilds は m1-t2 で不要と実測し撤去済み（pnpm-workspace.yaml も削除）
+          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
+
+      # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      - name: Apply CI-only pnpm config
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       - name: Install dependencies
         run: pnpm install
