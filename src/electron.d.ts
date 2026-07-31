@@ -45,6 +45,7 @@ export interface AppEditAPI {
     request(uid: string): Promise<any>;
     save(payload: AppSavePayload): Promise<AppSaveResult>;
     preparePreview(document: any): Promise<{ url: string; port: number; warnings: string[] }>;
+    stopPreview(): Promise<void>;
     export(document: any): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
 }
 

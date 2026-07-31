@@ -48,4 +48,15 @@ export function registerAppHandlers() {
       throw e;
     }
   });
+
+  // M1-T6 (d-2): プレビュータブから離れる / AppEdit を離脱する際にサーバを止める。
+  // 従来は停止経路が無く、macOS ではウィンドウを閉じてもポートを掴んだまま常駐していた
+  ipcMain.handle('appedit:stop-preview', async () => {
+    try {
+      await AppPreviewService.shutdown();
+    } catch (e) {
+      console.error('Failed to handle appedit:stop-preview', e);
+      throw e;
+    }
+  });
 }

@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, dialog } from 'electron'
+import AppPreviewService from './services/AppPreviewService'
 // import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -84,6 +85,9 @@ function createWindow() {
   // 旧実装 main.js L.79-85 に準拠:
   // macOS では×ボタンでウィンドウを隠すだけにする（アプリ状態を保持）
   win.on('close', (e) => {
+    // M1-T6 (d-2): macOS では下の分岐でウィンドウを hide するだけなのでアプリは常駐する。
+    // ここで止めないとプレビューサーバがポートを掴んだまま残る
+    void AppPreviewService.shutdown()
     const closingWindow = win
     if (!draftFlushReady && closingWindow && !closingWindow.webContents.isDestroyed()) {
       e.preventDefault()
@@ -111,6 +115,8 @@ function createWindow() {
 // 旧実装 main.js L.88-93 に準拠: Cmd+Q 等でアプリ終了する場合のみ force_quit を立てる
 app.on('before-quit', () => {
   forceQuit = true
+  // M1-T6 (d-2): アプリ終了時にプレビューサーバを解放する
+  void AppPreviewService.shutdown()
 })
 
 // 全ウィンドウが閉じられたときにアプリを終了する（macOSを除く）
