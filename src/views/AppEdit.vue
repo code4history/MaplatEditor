@@ -588,6 +588,9 @@ onBeforeUnmount(() => {
   removeMainProcessListener?.();
   removeMainProcessListener = undefined;
   destroyPreview();
+  // M1-T6 (d-2): 画面離脱時にプレビューサーバを解放する。
+  // onBeforeUnmount は同期なので await できない。順序は main 側の operation queue が保証する
+  void window.appedit.stopPreview();
 });
 
 watch(activeTab, async (tab) => {
@@ -595,6 +598,10 @@ watch(activeTab, async (tab) => {
     await renderPreview();
   } else {
     destroyPreview();
+    // M1-T6 (d-2): プレビュータブから離れたらサーバを止める。
+    // renderPreview 冒頭の destroyPreview() からは呼ばない（描画のたびに close→listen の
+    // 往復が起きるため）。旧セッションの失効は prepare() 側の sessions.clear() が担う
+    await window.appedit.stopPreview();
   }
 });
 
