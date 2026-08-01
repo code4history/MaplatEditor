@@ -181,7 +181,12 @@ async function seedMapAndApp(e2eRoot: string): Promise<{ mapUid: string; appUid:
     // 推定ボタンが disabled のままになるため、seed 時点で行の存在を確かめて原因を明示する。
     const seedBbox = await page.evaluate((uid) => window.search.resourceBbox('map', uid), mapUid);
     if (!seedBbox) {
-      throw new Error(`seed map has no maps_rtree row (compiled.vertices_points が無い/不正): ${mapUid}`);
+      throw new Error(
+        `seed map has no maps_rtree row: ${mapUid}\n` +
+        'この行が無いと appCoverage が null を返し、推定ボタンが disabled のままになる。' +
+        '既知の要因は compiled.vertices_points の欠落/不正だが、maps_search_ai/au トリガや ' +
+        '保存経路の変更でも起こり得るため、原因は個別に切り分けること。',
+      );
     }
 
     const appUid = await page.evaluate(async (mapUid) => {
