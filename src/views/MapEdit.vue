@@ -628,8 +628,10 @@ const historyStack = ref<UndoStack<MapEditHistoryState> | null>(null);
 const historyReady = ref(false);
 
 // m1-t6-hotfix-1: 履歴診断（E2E 専用）。製品実行時はコストを持ち込まない（設計 §6.5）
-const historyDiagEnabled = Boolean(import.meta.env.DEV) || Boolean(import.meta.env.VITE_MAPLAT_E2E)
-    || (typeof window !== 'undefined' && Boolean((window as any).__MAPLAT_E2E__));
+// 露出ゲートは testDebug（:987）と同じ window.isE2E に揃える。
+// preload.ts:242 が MAPLAT_E2E_ROOT の有無で立てるため、製品実行時は常に false になる。
+const historyDiagEnabled = Boolean(import.meta.env.DEV)
+    || (typeof window !== 'undefined' && Boolean((window as any).isE2E));
 const HISTORY_JOURNAL_LIMIT = 200;
 type HistoryJournalEntry = Record<string, unknown>;
 const historyJournalBuf: HistoryJournalEntry[] = [];

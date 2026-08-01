@@ -70,12 +70,39 @@ async function previewFrame(page: Page): Promise<Frame> {
 }
 
 // POI データタブを開いてペインスコープの locator を返す（m3-t6 の共通手順を踏襲）
+// m1-t6-hotfix-1 (設計 §6.3): 抑止スコープの初期無効タグは route query で注入する。
+// W3(:2012)/W4(:1957-) は onMounted 内で走るため、testDebug 経由（mount 後）では
+// 基点条件を作れない。MAPLAT_NO_HISTORY_SUPPRESS=W2,W3,W4 で基点測定モードになる。
+const NO_HISTORY_SUPPRESS = process.env.MAPLAT_NO_HISTORY_SUPPRESS ?? '';
+
 async function openPoisTab(page: Page, uid: string, slug: string) {
-  await openHash(page, `#/mapedit?uid=${uid}`);
+  const suffix = NO_HISTORY_SUPPRESS ? `&noHistorySuppress=${NO_HISTORY_SUPPRESS}` : '';
+  await openHash(page, `#/mapedit?uid=${uid}${suffix}`);
   await expect(page.getByTestId('map-slug')).toHaveValue(slug, { timeout: 30000 });
+  // 注入が効いていないまま測ると基点が偽装されるため、測定前にアサートする（設計 §6.3・AC1）
+  const scopeState = await page.evaluate(() => (window as any).testDebug?.historyScopeState?.() ?? null);
+  expect(scopeState, 'testDebug.historyScopeState が露出していること').not.toBeNull();
+  expect(scopeState.diagEnabled, '履歴診断が有効であること').toBe(true);
+  expect(scopeState.W1, 'W1（復元）は常時 ON').toBe(true);
+  const expectedDisabled = NO_HISTORY_SUPPRESS.split(',').map((t) => t.trim()).filter(Boolean);
+  for (const tag of ['W2', 'W3', 'W4']) {
+    expect(scopeState[tag], `${tag} の有効/無効が注入どおりであること`).toBe(!expectedDisabled.includes(tag));
+  }
   await page.getByTestId('map-tab-pois').click();
   const poisPane = page.getByTestId('map-pois-tab-pane');
   return { poisPane, cards: poisPane.locator('.selected-source') };
+}
+
+async function historyMark(page: Page, label: string): Promise<void> {
+  await page.evaluate((l: string) => (window as any).testDebug?.historyMark?.(l), label);
+}
+
+async function historyDebug(page: Page): Promise<any> {
+  return await page.evaluate(() => (window as any).testDebug?.historyDebug?.() ?? null);
+}
+
+async function historyJournal(page: Page): Promise<any[]> {
+  return await page.evaluate(() => (window as any).testDebug?.historyJournal?.() ?? []);
 }
 
 // 保存済み地図の pois 配列を main 側から取得する（DOM ではなく保存形の直接検証）
@@ -251,13 +278,43 @@ test.describe('M18-T1: 地図管理 POI 編集の hide 上書き UI', () => {
       // 無条件に editable 扱い）でグローバル undo を抑止する。チェックボックスも <input> のため
       // フォーカスが載ったままでは Cmd/Ctrl+Z が効かない（既存の全フィールド共通の仕様）。
       // 実利用者と同じく、フォーカスを外してから undo する。
+      await historyMark(page, 'after-uncheck');
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
       await expect(hideChecks3.nth(1), 'AC1-10: undo で ON へ戻る').toBeChecked({ timeout: 15000 });
+      await historyMark(page, 'after-undo');
       // undo で mapData が差し替わりチェックボックスが再生成されるため、redo 前にも同じ理由で blur する
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      // m1-t6-hotfix-1 (設計 §6.3): redo 押下の直前に履歴状態を記録する。
+      // 失敗時に canRedo で「redo 枝が破棄された」か「スタックは健全」かを切り分ける
+      const historyBeforeRedo = await historyDebug(page);
       await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+z' : 'Control+Shift+z');
-      await expect(hideChecks3.nth(1), 'AC1-10: redo で OFF へ戻る').not.toBeChecked({ timeout: 15000 });
+      await historyMark(page, 'after-redo');
+      try {
+        await expect(hideChecks3.nth(1), 'AC1-10: redo で OFF へ戻る').not.toBeChecked({ timeout: 15000 });
+      } catch (e) {
+        // 設計 §6.4 の判定に必要な証跡を残してから送出する
+        const journalOnFail = await historyJournal(page);
+        console.log('[m1-t6-hotfix-1] REDO FAILED historyBeforeRedo=' + JSON.stringify(historyBeforeRedo));
+        console.log('[m1-t6-hotfix-1] JOURNAL=' + JSON.stringify(journalOnFail));
+        throw e;
+      }
+      {
+        // AC5b: after-undo〜after-redo 区間に unsuppressed な push が無いこと。
+        // 基点測定（W2-W4 無効）では発生しうるので、抑止有効時のみ検査する
+        const journal = await historyJournal(page);
+        const window_ = journal.filter((e: any) => e.phase === 'after-undo' || e.phase === 'after-redo');
+        const offending = window_.filter((e: any) => e.kind === 'push' && e.suppressed === false);
+        console.log('[m1-t6-hotfix-1] historyBeforeRedo=' + JSON.stringify(historyBeforeRedo));
+        console.log('[m1-t6-hotfix-1] undo-redo window=' + JSON.stringify(window_));
+        // AC4c: kind:'commit' の suppressed はすべて false（スコープ内から呼ばれていない）
+        for (const c of journal.filter((e: any) => e.kind === 'commit')) {
+          expect(c.suppressed, 'AC4c: commitHistorySnapshot はスコープ外から呼ばれる').toBe(false);
+        }
+        if (!NO_HISTORY_SUPPRESS) {
+          expect(offending, 'AC5b: undo→redo 区間に unsuppressed な push が無い').toEqual([]);
+        }
+      }
 
       // ================= AC1-4: OFF で hide キーごと消える =================
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 20000 });
