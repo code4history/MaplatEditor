@@ -17,10 +17,14 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   return { app, page };
 }
 
-async function createMapWithGcps(page: Page): Promise<string> {
+// m3-t1: strictMode を引数化した。既定は 'strict' で、既存呼び出し5箇所の挙動は一切変わらない。
+// seedMapAndApp だけが 'loose' を渡す（理由は seedMapAndApp のコメントを参照）。
+// GCP 定義を1箇所に保つのが目的である — AC4 の homeLng/homeLat 期待値（139.75 / 35.65）は
+// この GCP から導かれるため、seed を複製すると両者が将来ずれ得る。
+async function createMapWithGcps(page: Page, strictMode: 'strict' | 'loose' = 'strict'): Promise<string> {
   // T12-4: DB 直書きを防ぐため、素体 save 後に window.mapedit.updateTin で compiled を生成し、
   // 再度 save して compiled / rtree / fts をバックエンド側で永続化する。
-  return page.evaluate(async () => {
+  return page.evaluate(async (strictMode) => {
     const slug = `m11-t11-map-${Date.now()}`;
     const mapObject = {
       mapID: slug,
@@ -39,7 +43,7 @@ async function createMapWithGcps(page: Page): Promise<string> {
       ],
       edges: [],
       sub_maps: [],
-      strictMode: 'strict', vertexMode: 'plain', status: 'New',
+      strictMode, vertexMode: 'plain', status: 'New',
     };
     const r1 = await window.mapedit.save({ slug, mapObject, tins: [] });
     if (!r1 || r1.result !== 'Success') throw new Error(`Map seed failed: ${JSON.stringify(r1)}`);
@@ -54,7 +58,7 @@ async function createMapWithGcps(page: Page): Promise<string> {
     const r2 = await window.mapedit.save({ slug, uid: r1.uid, mapObject, tins: [tinResult[1]] });
     if (!r2 || r2.result !== 'Success') throw new Error(`Compiled map save failed: ${JSON.stringify(r2)}`);
     return r2.uid;
-  });
+  }, strictMode);
 }
 
 async function createPoiSource(page: Page): Promise<string> {
@@ -165,7 +169,25 @@ async function seedMapAndApp(e2eRoot: string): Promise<{ mapUid: string; appUid:
   // createMapWithGcps 内で素体 save → window.mapedit.updateTin → compiled 付き save を済ませている。
   const { app, page } = await launch(e2eRoot);
   try {
-    const mapUid = await createMapWithGcps(page);
+    // m3-t1: この seed だけ 'loose' を使う。'strict' で同じ GCP を組むと compiled が
+    // strict_status: 'strict_error'（かつ kinks_points 4件）になり、AppDataService.saveApp が
+    // DB 書き込み分岐より前の MapPurposeService.assertViewerRuntimeAllowed で maplat 参照を
+    // 拒否するため、下の appedit.save が result: 'Error' で落ちる（実測 2026-08-02）。
+    // AC4 の期待値（下記 homeLng/homeLat）は compiled.vertices_points から作られる
+    // maps_rtree の bbox 由来だが、その bbox は 'strict' / 'loose' で同一であることを実測済み。
+    const mapUid = await createMapWithGcps(page, 'loose');
+
+    // AC4 / HV-M2 は auto coverage を待つ。coverage は maps_rtree 行が無いと null になり
+    // 推定ボタンが disabled のままになるため、seed 時点で行の存在を確かめて原因を明示する。
+    const seedBbox = await page.evaluate((uid) => window.search.resourceBbox('map', uid), mapUid);
+    if (!seedBbox) {
+      throw new Error(
+        `seed map has no maps_rtree row: ${mapUid}\n` +
+        'この行が無いと appCoverage が null を返し、推定ボタンが disabled のままになる。' +
+        '既知の要因は compiled.vertices_points の欠落/不正だが、maps_search_ai/au トリガや ' +
+        '保存経路の変更でも起こり得るため、原因は個別に切り分けること。',
+      );
+    }
 
     const appUid = await page.evaluate(async (mapUid) => {
       const slug = `m11-t11-app-${Date.now()}`;
