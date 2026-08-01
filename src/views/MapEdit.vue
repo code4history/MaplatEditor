@@ -36,6 +36,7 @@ import {
     type LangCode,
 } from '../utils/editorLanguages';
 import { UndoStack } from '../services/editorUndoStack';
+import { useHistorySuppression } from '../composables/useHistorySuppression';
 import { editorComputeBackend } from '../services/editorComputeBackend';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
@@ -624,9 +625,108 @@ type MapEditHistoryState = {
 };
 
 const historyStack = ref<UndoStack<MapEditHistoryState> | null>(null);
-const historyRestoring = ref(false);
 const historyReady = ref(false);
-let historyTimer: ReturnType<typeof setTimeout> | undefined;
+
+// m1-t6-hotfix-1: 履歴診断（E2E 専用）。製品実行時はコストを持ち込まない（設計 §6.5）
+const historyDiagEnabled = Boolean(import.meta.env.DEV) || Boolean(import.meta.env.VITE_MAPLAT_E2E)
+    || (typeof window !== 'undefined' && Boolean((window as any).__MAPLAT_E2E__));
+const HISTORY_JOURNAL_LIMIT = 200;
+type HistoryJournalEntry = Record<string, unknown>;
+const historyJournalBuf: HistoryJournalEntry[] = [];
+let historyPhase = 'init';
+// changedFields 算出用の影スナップショット（監視9項目のみ）
+let historyShadow: Record<string, unknown> | null = null;
+
+const WATCHED_FIELDS = [
+    'mapData', 'sub_maps', 'gcps', 'edges', 'homePosition',
+    'mercZoom', 'strictMode', 'vertexMode', 'currentEditingLayer',
+] as const;
+
+const watchedSnapshotForDiag = (): Record<string, unknown> => ({
+    mapData: cloneDeep(mapData.value),
+    sub_maps: cloneDeep(sub_maps.value),
+    gcps: cloneDeep(gcps.value),
+    edges: cloneDeep(edges.value),
+    homePosition: cloneDeep(homePosition.value),
+    mercZoom: mercZoom.value,
+    strictMode: strictMode.value,
+    vertexMode: vertexMode.value,
+    currentEditingLayer: currentEditingLayer.value,
+});
+
+/**
+ * 履歴ジャーナルへ1件記録する（設計 §6.2）。
+ * 記録主体は常に MapEdit 側であり、useHistorySuppression は onDiagnostic で
+ * 事実を報告するだけで journal を直接書かない（INV-6）。
+ */
+const journal = (kind: string, originTags: string[] | null, extra: Record<string, unknown> = {}) => {
+    if (!historyDiagEnabled) return;
+    const now = watchedSnapshotForDiag();
+    const changedFields = historyShadow
+        ? WATCHED_FIELDS.filter((k) => !isEqual((historyShadow as any)[k], (now as any)[k]))
+        : [...WATCHED_FIELDS];
+    let mapDataDiffKeys: string[] = [];
+    if (changedFields.includes('mapData')) {
+        const before = (historyShadow?.mapData ?? {}) as Record<string, unknown>;
+        const after = (now.mapData ?? {}) as Record<string, unknown>;
+        const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+        mapDataDiffKeys = [...keys].filter((k) => !isEqual(before[k], after[k]));
+    }
+    historyShadow = now;
+    const snap = historyStack.value?.snapshot();
+    historyJournalBuf.push({
+        kind,
+        originTags,
+        changedFields,
+        mapDataDiffKeys,
+        suppressed: historySuppression.suppressed.value,
+        scopeTag: historySuppression.currentTag.value,
+        scopeStack: (extra.scopeStack as string[] | undefined) ?? undefined,
+        pointer: snap?.pointer ?? null,
+        length: snap?.history.length ?? null,
+        at: typeof performance !== 'undefined' ? performance.now() : 0,
+        phase: historyPhase,
+        ...extra,
+    });
+    if (historyJournalBuf.length > HISTORY_JOURNAL_LIMIT) historyJournalBuf.shift();
+};
+
+// route query からの初期無効タグ注入（設計 §5.2「初期無効タグの注入経路」）。
+// setup 時点で解決するため W3/W4（onMounted 内で走る）にも間に合う。
+// 製品実行時は診断が無効なので query に何が付いていても無視する。
+const initialDisabledScopeTags = (() => {
+    if (!historyDiagEnabled) return [];
+    const raw = route.query.noHistorySuppress;
+    const text = typeof raw === 'string' ? raw : Array.isArray(raw) ? String(raw[0] ?? '') : '';
+    return text.split(',').map((s) => s.trim()).filter(Boolean);
+})();
+
+const historySuppression = useHistorySuppression({
+    disabledTags: initialDisabledScopeTags,
+    // C7: 有効スコープ push の直前に保留中の編集を確定させる（設計 §5.6.2a）。
+    // ここで catch してはならない（composable が捕捉して onDiagnostic で返す契約）。
+    onBeforeFirstScope: () => {
+        const pending = historySuppression.cancelPendingSnapshot();
+        if (!pending) return;
+        recordHistorySnapshot(historySuppression.mergeOrigin(pending, ['(flush)']));
+        journal('flush', pending);
+    },
+    // composable → MapEdit の唯一の報告経路（設計 §5.6.6）。journal を書くのはこちら側
+    onDiagnostic: (e) => {
+        if (e.type === 'schedule') {
+            journal('schedule', e.origin, { scopeStack: e.scopeStack });
+        } else if (e.type === 'discard-suppressed') {
+            journal('skip-suppressed', historySuppression.mergeOrigin(e.origin, e.scopeStack), { scopeStack: e.scopeStack });
+        } else if (e.type === 'flush-error') {
+            journal('flush-error', historySuppression.mergeOrigin(null, e.scopeStack), {
+                scopeStack: e.scopeStack,
+                error: String((e.error as any)?.message ?? e.error),
+            });
+        }
+    },
+});
+const { withoutHistory, withoutHistoryAsync, cancelPendingSnapshot, mergeOrigin, snapshotScope } = historySuppression;
+const historyRestoring = historySuppression.suppressed;
 
 const captureHistoryState = (): MapEditHistoryState => ({
     // M11-T10: 複製元UID。draft 経由(hot-exit→復元→保存)でもタイル/サムネイル複製を失わない
@@ -642,8 +742,8 @@ const captureHistoryState = (): MapEditHistoryState => ({
     currentEditingLayer: currentEditingLayer.value,
 });
 
-const restoreHistoryState = async (state: MapEditHistoryState) => {
-    historyRestoring.value = true;
+const restoreHistoryState = async (state: MapEditHistoryState) => await withoutHistoryAsync('W1', async () => {
+    // W1（設計 §5.3.1）: 復元。源が復元スナップショットで宛先が ref = 読み込み・再同期（S2）
     copyFromUidSource.value = state.copyFromUid;
     mapData.value = cloneDeep(state.mapData);
     sub_maps.value = cloneDeep(state.sub_maps);
@@ -669,8 +769,7 @@ const restoreHistoryState = async (state: MapEditHistoryState) => {
         gcpsToMarkers();
         updateTin();
     }
-    historyRestoring.value = false;
-};
+});
 
 const initializeHistoryStack = () => {
     historyStack.value = new UndoStack<MapEditHistoryState>(captureHistoryState());
@@ -678,27 +777,43 @@ const initializeHistoryStack = () => {
 };
 
 const resetHistoryBase = () => {
-    if (historyTimer) {
-        clearTimeout(historyTimer);
-        historyTimer = undefined;
-    }
+    // C1（設計 §5.6.2）: 終端廃棄。履歴世代を作り直すため前世代の origin を持ち越さない
+    cancelPendingSnapshot();
     initializeHistoryStack();
     if (historyStack.value) historyStack.value.save();
 };
 
-const recordHistorySnapshot = () => {
-    if (!historyReady.value || historyRestoring.value || !historyStack.value) return;
+/**
+ * 履歴スナップショットを記録する（設計 §5.6.3）。
+ * origin は呼び出し側が確定させて渡す（取得と消費の責務分離 = INV-3）。
+ * 本関数は composable のタイマー origin を一切参照しない。
+ * すべての early return もジャーナルへ記録する（origin は take 済みで残留しえないため、
+ * 記録しないと「どこへ消えたか」が追えなくなる）。
+ */
+const recordHistorySnapshot = (origin: string[]) => {
+    if (!historyReady.value) { journal('skip-not-ready', origin); return; }
+    if (historyRestoring.value) { journal('skip-suppressed', origin); return; }
+    if (!historyStack.value) { journal('skip-no-stack', origin); return; }
     const nextState = captureHistoryState();
-    if (isEqual(historyStack.value.current(), nextState)) return;
+    if (isEqual(historyStack.value.current(), nextState)) { journal('skip-equal', origin); return; }
     historyStack.value.push(nextState);
+    journal('push', origin);
+};
+
+/**
+ * 非同期に着地した編集を、デバウンスを待たずにその場で確定させる（設計 §5.5・§5.6.2 の C3）。
+ * スコープ内から呼んではならない（recordHistorySnapshot は suppressed を尊重するため）。
+ */
+const commitHistorySnapshot = () => {
+    const pending = cancelPendingSnapshot();   // clear と take を同時に行う
+    recordHistorySnapshot(mergeOrigin(pending, ['(direct)', ...snapshotScope()]));
+    journal('commit', mergeOrigin(pending, ['(direct)']));
 };
 
 const markHistorySaved = () => {
-    if (historyTimer) {
-        clearTimeout(historyTimer);
-        historyTimer = undefined;
-    }
-    recordHistorySnapshot();
+    // C2（設計 §5.6.2）: 直接確定。保留 origin は破棄せず引き継ぐ
+    const pending = cancelPendingSnapshot();
+    recordHistorySnapshot(mergeOrigin(pending, ['(direct)', ...snapshotScope()]));
     if (historyStack.value) historyStack.value.save();
 };
 
@@ -753,20 +868,12 @@ useInitialDraftPersist({
 });
 
 const scheduleHistorySnapshot = () => {
-    if (historyRestoring.value) {
-        if (historyTimer) {
-            clearTimeout(historyTimer);
-            historyTimer = undefined;
-        }
-        return;
-    }
     // F4 同型: 文書の変更で保存時 operation 診断を解消する(M11-T7/AC8)
-    if (saveOperationError.value) saveOperationError.value = null;
-    if (historyTimer) clearTimeout(historyTimer);
-    historyTimer = setTimeout(() => {
-        historyTimer = undefined;
-        recordHistorySnapshot();
-    }, 0);
+    // 抑止中は scheduleWithOrigin が C4（終端廃棄）として処理し fn を呼ばない
+    if (!historyRestoring.value && saveOperationError.value) saveOperationError.value = null;
+    // C4（抑止中の終端廃棄）と C5（非抑止時の再スケジュール = origin 合成）は
+    // composable 側が担う（設計 §5.6.2）。発火時に take-and-clear 済みの origin が届く
+    historySuppression.scheduleWithOrigin((origin) => recordHistorySnapshot(origin));
 };
 
 const canUndo = computed(() => historyStack.value?.canUndo() ?? false);
@@ -1001,6 +1108,35 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         currentEditingLayer,
         baseMapFilterRegion,
         estimateHomeFromGcps,
+        // --- m1-t6-hotfix-1: 履歴診断（設計 §6.1・§6.2） ---
+        // UndoStack の pointer/history は private のため、公開 API snapshot() から導出する
+        historyDebug: () => {
+            const snap = historyStack.value?.snapshot();
+            return snap
+                ? {
+                      pointer: snap.pointer,
+                      length: snap.history.length,
+                      basePointer: snap.basePointer,
+                      canUndo: canUndo.value,
+                      canRedo: canRedo.value,
+                  }
+                : null;
+        },
+        historyJournal: () => historyJournalBuf.map((e) => ({ ...e })),
+        historyJournalClear: () => { historyJournalBuf.length = 0; },
+        historyMark: (label: string) => { historyPhase = label; },
+        // 注入結果の検証用（設計 §6.3。基点測定前にアサートする）
+        historyScopeState: () => ({
+            W1: historySuppression.isScopeEnabled('W1'),
+            W2: historySuppression.isScopeEnabled('W2'),
+            W3: historySuppression.isScopeEnabled('W3'),
+            W4: historySuppression.isScopeEnabled('W4'),
+            diagEnabled: historyDiagEnabled,
+            diagnosticErrors: historySuppression.diagnosticErrorCount(),
+        }),
+        // mount 後の補助切り替え。基点測定の主経路ではない（W3/W4 には間に合わない）
+        setHistoryScopeEnabled: (tag: string, enabled: boolean) =>
+            historySuppression.setScopeEnabled(tag, enabled),
     };
 }
 
@@ -1954,29 +2090,41 @@ onMounted(async () => {
               if (!source.status) source.status = 'New';
               const fresh = source;
               fresh.lang = fresh.lang || resolveEditorLanguage(i18next.language);
-              mapData.value = fresh;
-              originalMapData.value = cloneDeep(fresh);
+              // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+              withoutHistory('W4', () => {
+                mapData.value = fresh;
+                originalMapData.value = cloneDeep(fresh);
+              });
               // copyFromUid を保持: 保存時に tiles/thumbnail 複製
               copyFromUidSource.value = dupFrom;
             } else {
               // fallback to default
               const fresh: any = defaultMapData();
               fresh.lang = resolveEditorLanguage(i18next.language);
-              mapData.value = fresh;
-              originalMapData.value = cloneDeep(fresh);
+              // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+              withoutHistory('W4', () => {
+                mapData.value = fresh;
+                originalMapData.value = cloneDeep(fresh);
+              });
             }
           } catch (e) {
             console.error("Failed to duplicate map", e);
             const fresh: any = defaultMapData();
             fresh.lang = resolveEditorLanguage(i18next.language);
-            mapData.value = fresh;
-            originalMapData.value = cloneDeep(fresh);
+            // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+            withoutHistory('W4', () => {
+              mapData.value = fresh;
+              originalMapData.value = cloneDeep(fresh);
+            });
           }
         } else {
           const fresh: any = defaultMapData();
           fresh.lang = resolveEditorLanguage(i18next.language);
-          mapData.value = fresh;
-          originalMapData.value = cloneDeep(fresh);
+          // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+          withoutHistory('W4', () => {
+            mapData.value = fresh;
+            originalMapData.value = cloneDeep(fresh);
+          });
           // M11-T10 (AC11): MapList のインポート導線から遷移した場合、
           // 新規初期化後に既存の importMap フロー(ファイル選択→展開)を自動起動する
           if (route.query.import === '1') {
@@ -1994,8 +2142,11 @@ onMounted(async () => {
                 if (!data.status) data.status = 'Update';
                 adoptLoaded({ uid: data.uid ?? uid, slug: data.mapID, revision: data.revision });
                 mapID.value = data.mapID;
-                mapData.value = data;
-                originalMapData.value = cloneDeep(data);
+                // W4（設計 §5.3.1）: 永続化済み内容の読み込み（S3）
+                withoutHistory('W4', () => {
+                    mapData.value = data;
+                    originalMapData.value = cloneDeep(data);
+                });
             }
         } catch (e) {
             console.error("Failed to load map data:", e);
@@ -2009,18 +2160,25 @@ onMounted(async () => {
     // NOTE: mapData と originalMapData 両方に設定しないと isDirty が常に true になる
     try {
         const wmtsFolder = await (window as any).mapedit.getWmtsFolder();
-        mapData.value.wmtsFolder = wmtsFolder;
-        originalMapData.value.wmtsFolder = wmtsFolder;
+        // W3（設計 §5.3.1）: 実行環境のパス注入。originalMapData も同時更新している
+        // ことがコード上の signature S1（＝編集ではない）である
+        withoutHistory('W3', () => {
+            mapData.value.wmtsFolder = wmtsFolder;
+            originalMapData.value.wmtsFolder = wmtsFolder;
+        });
     } catch (_e) { /* 取得失敗時はデフォルト空文字のまま */ }
 
-    sub_maps.value = cloneDeep(mapData.value.sub_maps || []);
-    gcps.value = cloneDeep(mapData.value.gcps || []);
-    edges.value = cloneDeep(mapData.value.edges || []);
-    homePosition.value = mapData.value.homePosition;
-    mercZoom.value = mapData.value.mercZoom;
-    // 旧実装の defaultMap に合わせ、デフォルトは 'strict'（'auto' ではない）
-    strictMode.value = mapData.value.strictMode || 'strict';
-    vertexMode.value = mapData.value.vertexMode || 'plain';
+    // W4（設計 §5.3.1）: mount 時の初期状態構築。起点にユーザ操作が無い（S3）
+    withoutHistory('W4', () => {
+        sub_maps.value = cloneDeep(mapData.value.sub_maps || []);
+        gcps.value = cloneDeep(mapData.value.gcps || []);
+        edges.value = cloneDeep(mapData.value.edges || []);
+        homePosition.value = mapData.value.homePosition;
+        mercZoom.value = mapData.value.mercZoom;
+        // 旧実装の defaultMap に合わせ、デフォルトは 'strict'（'auto' ではない）
+        strictMode.value = mapData.value.strictMode || 'strict';
+        vertexMode.value = mapData.value.vertexMode || 'plain';
+    });
     // tinObjects: メインレイヤー + サブマップ分 の undefined で初期化（旧実装: vueMap.tinObjects = [...]）
     tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
     // M11-T10 (R6): compiled を持つレイヤーは種付けし再計算を省く(未訪問レイヤーの素体化も防ぐ)
@@ -2062,7 +2220,8 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-    if (historyTimer) clearTimeout(historyTimer);
+    // C6（設計 §5.6.2）: 終端廃棄
+    cancelPendingSnapshot();
     window.removeEventListener('keydown', onHistoryKeydown);
     removeMainProcessListener?.();
     removeMainProcessListener = undefined;
@@ -2646,12 +2805,17 @@ const loadMapTiles = async () => {
 
         // 旧実装の mapDataCommon フロー（vueMap.setInitialMap(json) 相当）:
         // mapData から gcps/edges/homePosition を反映
-        if (mapData.value.gcps) gcps.value = mapData.value.gcps;
-        if (mapData.value.edges) edges.value = mapData.value.edges;
-        if (mapData.value.homePosition) homePosition.value = mapData.value.homePosition;
-        if (mapData.value.mercZoom) mercZoom.value = mapData.value.mercZoom;
-        if (mapData.value.strictMode) strictMode.value = mapData.value.strictMode;
-        if (mapData.value.vertexMode) vertexMode.value = mapData.value.vertexMode;
+        // W2（設計 §5.3.1）: 源が mapData・宛先が ref の再同期（S2）。編集ではない。
+        // setTimeout(...,100) 起動 + タイル source 待ちで着地時刻が不定なため、
+        // 抑止しないと undo と redo の間に割り込んで redo 枝を破棄しうる（本不具合の主火種）
+        withoutHistory('W2', () => {
+            if (mapData.value.gcps) gcps.value = mapData.value.gcps;
+            if (mapData.value.edges) edges.value = mapData.value.edges;
+            if (mapData.value.homePosition) homePosition.value = mapData.value.homePosition;
+            if (mapData.value.mercZoom) mercZoom.value = mapData.value.mercZoom;
+            if (mapData.value.strictMode) strictMode.value = mapData.value.strictMode;
+            if (mapData.value.vertexMode) vertexMode.value = mapData.value.vertexMode;
+        });
 
         // mercMapのビューをGCPのバウンディングボックスに合わせて設定（旧実装 reflectIllstMap に準拠）
         // gcp[1] は既に EPSG:3857 座標（mercMap のクリックで記録）
@@ -2965,6 +3129,9 @@ const mapUpload = async () => {
             } else {
                 mapData.value.imageExtension = arg.imageExtension;
             }
+            // U17（設計 §5.5）: await を跨いで着地した編集。直後に W2 を内包する
+            // loadMapTiles() へ入るため、ここで明示確定しないと履歴に残らない
+            commitHistorySnapshot();
             // 旧実装: reflectIllstMap() → gcpsToMarkers() → updateTin()
             await loadMapTiles();
             gcpsToMarkers();
@@ -3416,6 +3583,8 @@ const wmtsGenerate = async () => {
         } else {
             // 旧実装: vueMap.wmtsHash = arg.hash
             mapData.value.wmtsHash = arg.hash;
+            // U22（設計 §5.5）: await を跨いで着地した編集の明示確定
+            commitHistorySnapshot();
             modalFinish('wmtsgenerate.success_generation');
         }
     } finally {

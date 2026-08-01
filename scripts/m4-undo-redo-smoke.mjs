@@ -34,7 +34,65 @@ try {
   assert.match(mapEdit, /performUndo\s*=\s*async/, 'MapEdit.vue must implement performUndo');
   assert.match(mapEdit, /performRedo\s*=\s*async/, 'MapEdit.vue must implement performRedo');
   assert.match(mapEdit, /recordHistorySnapshot/, 'MapEdit.vue must record history snapshots');
-  assert.match(mapEdit, /historyRestoring/, 'MapEdit.vue must guard restore from recording new history');
+  // m1-t6-hotfix-1 (AC8): 履歴記録契約は「文書の編集だけを記録し、読み込み・再同期は記録しない」
+  // （設計 2026-08-01-m1-t6-hotfix-1-mapedit-history-derived-write-design.md v1.9 §5.1）。
+  // 抑止は useHistorySuppression のスコープが担い、MapEdit は履歴タイマーを直接操作しない。
+  assert.match(mapEdit, /useHistorySuppression\(/, 'MapEdit.vue must own suppression scopes via useHistorySuppression');
+  assert.match(mapEdit, /withoutHistoryAsync\('W1'/, 'W1 (restore) must be wrapped in an async suppression scope');
+  for (const tag of ['W2', 'W3', 'W4']) {
+    assert.match(mapEdit, new RegExp(`withoutHistory\\('${tag}'`), `${tag} must be wrapped in a suppression scope`);
+  }
+  // INV-4: 履歴タイマーの直接操作が MapEdit から消えていること
+  assert.doesNotMatch(mapEdit, /clearTimeout\(/, 'MapEdit.vue must not clear the history timer directly (INV-4)');
+  assert.doesNotMatch(mapEdit, /historyTimer/, 'MapEdit.vue must not own the history timer any more (INV-4)');
+  // C1 / C6: MapEdit 側の終端廃棄
+  assert.match(
+    mapEdit,
+    /const resetHistoryBase = \(\) => \{[\s\S]{0,200}?cancelPendingSnapshot\(\)/,
+    'C1 resetHistoryBase must discard the pending snapshot origin',
+  );
+  assert.match(
+    mapEdit,
+    /onBeforeUnmount\(\(\) => \{[\s\S]{0,200}?cancelPendingSnapshot\(\)/,
+    'C6 onBeforeUnmount must discard the pending snapshot origin',
+  );
+  // C2 / C3: 直接確定は保留 origin を破棄せず引き継ぐ
+  for (const [name, re] of [
+    ['C2 markHistorySaved', /const markHistorySaved = \(\) => \{[\s\S]{0,400}?mergeOrigin\(pending, \['\(direct\)'/],
+    ['C3 commitHistorySnapshot', /const commitHistorySnapshot = \(\) => \{[\s\S]{0,400}?mergeOrigin\(pending, \['\(direct\)'/],
+  ]) {
+    assert.match(mapEdit, re, `${name} must carry the pending timer origin over`);
+  }
+  // C7: 進入直前フラッシュ。MapEdit 側では catch しない（composable が捕捉して報告する契約）
+  const flushCallback = mapEdit.match(/onBeforeFirstScope:\s*\(\)\s*=>\s*\{[\s\S]*?\n    \},/)?.[0] ?? '';
+  assert.ok(flushCallback, 'C7 onBeforeFirstScope callback could not be located');
+  assert.match(flushCallback, /cancelPendingSnapshot\(\)/, 'C7 must take the pending origin');
+  assert.match(flushCallback, /'\(flush\)'/, "C7 must tag its origin with '(flush)'");
+  assert.doesNotMatch(flushCallback, /\bcatch\b/, 'C7 callback must not catch (the composable catches and reports)');
+  // INV-3: origin は引数で渡る（取得と消費の責務分離）
+  assert.match(mapEdit, /const recordHistorySnapshot = \(origin/, 'recordHistorySnapshot must take an explicit origin (INV-3)');
+  // INV-6: journal を書くのは MapEdit 側。onDiagnostic の3分岐から journal() を呼ぶ
+  const diagHandler = mapEdit.match(/onDiagnostic:\s*\(e\)\s*=>\s*\{[\s\S]*?\n    \},/)?.[0] ?? '';
+  assert.ok(diagHandler, 'onDiagnostic handler could not be located');
+  for (const t of ['schedule', 'discard-suppressed', 'flush-error']) {
+    assert.ok(diagHandler.includes(`'${t}'`), `onDiagnostic must handle ${t}`);
+  }
+  assert.match(diagHandler, /journal\(/, 'onDiagnostic must record through MapEdit journal() (INV-6)');
+
+  // INV-7: composable 側の onDiagnostic 呼び出しはすべて try の内側にある
+  const suppression = await readFile(
+    path.join(projectRoot, 'src/composables/useHistorySuppression.ts'),
+    'utf8'
+  );
+  const bareDiagnosticCalls = suppression
+    .split('\n')
+    .filter((line) => /options\.onDiagnostic\?\.\(/.test(line)).length;
+  assert.equal(bareDiagnosticCalls, 1, 'onDiagnostic must be invoked from exactly one place (the reportDiagnostic wrapper)');
+  assert.match(
+    suppression,
+    /const reportDiagnostic[\s\S]{0,300}?try \{[\s\S]{0,120}?options\.onDiagnostic\?\.\(event\);[\s\S]{0,120}?\} catch/,
+    'the single onDiagnostic call must sit inside the non-interrupting try/catch wrapper (INV-7)',
+  );
 
   console.log('  [2/4] MapEdit history integration surface: PASS');
 
