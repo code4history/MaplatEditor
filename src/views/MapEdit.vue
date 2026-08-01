@@ -768,6 +768,13 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
     // here is only valid for Undo/Redo after the map runtime is ready; initial
     // draft rendering is performed by loadMapTiles() below.
     if (illstMap && mercMap && illstSource) {
+        // m1-t6-hotfix-2: 復元した mapData が指すタイルと表示中のタイルが異なるなら
+        // ソースを再構築する（設計 v1.1 §5.4）。gcpsToMarkers()/updateTin() は
+        // illstSource の座標変換を使うため、必ずそれらより前に行う。
+        // 本関数は W1 抑止スコープの内側なので、再構築に伴う書き戻しは履歴へ入らない。
+        if (tileIdentityKey(mapData.value) !== illstSourceKey) {
+            await exchangeTileSource();
+        }
         gcpsToMarkers();
         updateTin();
     }
@@ -1110,6 +1117,8 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         currentEditingLayer,
         baseMapFilterRegion,
         estimateHomeFromGcps,
+        // m1-t6-hotfix-2: タイルソース診断（設計 v1.1 §5.4a）
+        tileSourceDebug: () => ({ exchangeCount: illstSourceExchangeCount, key: illstSourceKey }),
         // --- m1-t6-hotfix-1: 履歴診断（設計 §6.1・§6.2） ---
         // UndoStack の pointer/history は private のため、公開 API snapshot() から導出する
         historyDebug: () => {
@@ -2781,6 +2790,23 @@ const initMaps = async () => {
 // loadMapTiles() をそのまま使うとサブレイヤー編集中(currentEditingLayer > 0)の gcps.value を
 // レイヤー0データで意図せず上書きしてしまう。タイルソースの差し替えだけが目的の呼び出しは
 // 本ヘルパーを使う(gcps/edges/ビュー中心/updateTin 等には一切触れない)
+// m1-t6-hotfix-2: タイルソースの同一性管理（設計 v1.1 §5.2・§5.3）
+// 拡張子の解決を1関数へ集約する。旧実装は mapData.extension を読んでいたが、
+// 当該キーはどこからも書かれず常に undefined だった（latent な死引数。設計 §3.3）。
+const resolveImageExtension = (md: any): string => md?.imageExtension || 'jpg';
+
+// タイル実体の同一性を決めるキー。mapID（スラッグ）と attr（帰属表示）は含めない。
+// 拡張子成分は url_ がある通常経路では冗長だが、url_ 不在で tiles/{mapID}/… を
+// 組み立てる経路では独立した同一性要素になるため残す（設計 §5.2 の注記）。
+const tileIdentityKey = (md: any): string =>
+    [md?.url_, md?.width, md?.height, resolveImageExtension(md)].join('|');
+
+// 現在 illstSource が構築された時点のキー。exchangeTileSource() の成功時のみ更新する
+// （呼び出し元は :189 保存成功 / loadMapTiles 冒頭 / restoreHistoryState の3経路。設計 §4.1）
+let illstSourceKey: string | null = null;
+// E2E 診断用の成功回数カウンタ（設計 §5.4a）
+let illstSourceExchangeCount = 0;
+
 const exchangeTileSource = async (): Promise<any> => {
     if (!illstMap) return null;
     const options = {
@@ -2790,12 +2816,15 @@ const exchangeTileSource = async (): Promise<any> => {
         height: mapData.value.height,
         attr: mapData.value.attr,
         noload: true, // HistMap/HistMap_tin を直接生成するためのフラグ
-        imageExtension: mapData.value.extension || 'jpg'
+        imageExtension: resolveImageExtension(mapData.value)
     };
     try {
         const source = await mapSourceFactory(options, {});
         illstSource = source;
         illstMap.exchangeSource(source);
+        // 成功時のみ更新する。失敗時は key を据え置き、次回の復元で再試行させる（設計 §5.4）
+        illstSourceKey = tileIdentityKey(mapData.value);
+        illstSourceExchangeCount++;
         return source;
     } catch (e) {
         console.error('[exchangeTileSource] mapSourceFactory でタイル読み込み失敗:', e);

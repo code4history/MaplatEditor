@@ -69,6 +69,37 @@ try {
   assert.match(flushCallback, /cancelPendingSnapshot\(\)/, 'C7 must take the pending origin');
   assert.match(flushCallback, /'\(flush\)'/, "C7 must tag its origin with '(flush)'");
   assert.doesNotMatch(flushCallback, /\bcatch\b/, 'C7 callback must not catch (the composable catches and reports)');
+  // === m1-t6-hotfix-2: 復元時のタイルソース再構築（設計 v1.1）===
+  // AC5: restoreHistoryState の本体で exchangeTileSource( が gcpsToMarkers( より前に現れる
+  {
+    const body = mapEdit.match(/const restoreHistoryState = async[\s\S]*?\n\}\);/)?.[0] ?? '';
+    assert.ok(body, 'restoreHistoryState could not be located');
+    // 位置比較はコメントを除いた実コードで行う（説明コメントが呼び出しより前に
+    // 同名を含むと偽陰性になるため）
+    const code = body.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+    const exchangeAt = code.indexOf('exchangeTileSource(');
+    const markersAt = code.indexOf('gcpsToMarkers(');
+    assert.ok(exchangeAt >= 0, 'restoreHistoryState must rebuild the tile source (m1-t6-hotfix-2 AC5)');
+    assert.ok(markersAt >= 0, 'restoreHistoryState must redraw markers');
+    assert.ok(exchangeAt < markersAt, 'the tile source must be rebuilt BEFORE gcpsToMarkers() (coordinate transforms depend on illstSource)');
+    assert.match(code, /tileIdentityKey\(/, 'restoreHistoryState must gate the rebuild on the tile identity key');
+  }
+  // AC3: extension / imageExtension の cleanup
+  assert.doesNotMatch(mapEdit, /mapData\.value\.extension\b/, 'mapData.value.extension must not be referenced (m1-t6-hotfix-2 AC3-b)');
+  assert.match(
+    mapEdit,
+    /const resolveImageExtension = [\s\S]{0,160}?imageExtension/,
+    'resolveImageExtension must read imageExtension (AC3-a)',
+  );
+  for (const [name, re] of [
+    ['exchangeTileSource', /const exchangeTileSource = async[\s\S]*?\n\};/],
+    ['tileIdentityKey', /const tileIdentityKey = [\s\S]*?;\n/],
+  ]) {
+    const body = mapEdit.match(re)?.[0] ?? '';
+    assert.ok(body, `${name} could not be located`);
+    assert.match(body, /resolveImageExtension\(/, `${name} must resolve the extension through resolveImageExtension() (AC3-c)`);
+  }
+
   // INV-8 (C8): 保留中の編集はポインタ移動より前に確定させる（設計 §5.6.2b）。
   // needle を一意にするため commitPendingBeforeNavigate() ラッパ経由であることを検査する。
   for (const fn of ['performUndo', 'performRedo']) {
