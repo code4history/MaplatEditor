@@ -126,6 +126,8 @@
     "smoke:m12-t17-upload-tile-ref": "node scripts/m12-t17-upload-tile-ref-smoke.mjs",
     "test:e2e:m12-t17": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t17-upload-tile-refresh.spec.ts",
     "test:e2e:m12-t20": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t20-draft-tile-durability.spec.ts",
+    "test:e2e:m1-t6-hotfix-2": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m1-t6-hotfix-2-tile-restore-on-undo.spec.ts",
+    "test:e2e:m12-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t1-edge-split.spec.ts",
     "smoke:m12-t19-clone-tile-ref": "node scripts/m12-t19-clone-tile-ref-smoke.mjs",
     "smoke:m12-t22-data-io-dormant-preservation": "node scripts/m12-t22-data-io-dormant-preservation-smoke.mjs",
     "smoke:m12-t18-os-trash-delete": "node scripts/m12-t18-os-trash-delete-smoke.mjs",
