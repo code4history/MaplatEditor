@@ -1178,14 +1178,27 @@ function onPoisChange(next: unknown[]) {
     }
 }
 
+// m1-t6-hotfix-1: 保留中の編集は「ポインタを動かす前」に確定させる。
+// C7（onBeforeFirstScope）は W1 スコープ進入直前に flush するが、undo/redo 経路では
+// その時点で既に historyStack.undo()/redo() がポインタを動かしているため、flush が
+// 移動後の枝へ push して redo 枝を切り捨ててしまう（基点測定で実測）。
+// ここで先に確定させれば、undo は「確定済みの直前状態」へ正しく戻る。
+const commitPendingBeforeNavigate = () => {
+    commitHistorySnapshot();
+};
+
 const performUndo = async () => {
-    if (!historyStack.value || !historyStack.value.canUndo()) return;
+    if (!historyStack.value) return;
+    commitPendingBeforeNavigate();
+    if (!historyStack.value.canUndo()) return;
     historyStack.value.undo();
     await restoreHistoryState(historyStack.value.current());
 };
 
 const performRedo = async () => {
-    if (!historyStack.value || !historyStack.value.canRedo()) return;
+    if (!historyStack.value) return;
+    commitPendingBeforeNavigate();
+    if (!historyStack.value.canRedo()) return;
     historyStack.value.redo();
     await restoreHistoryState(historyStack.value.current());
 };
