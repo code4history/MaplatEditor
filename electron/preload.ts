@@ -120,6 +120,7 @@ contextBridge.exposeInMainWorld('appedit', {
   request: (uid: string) => ipcRenderer.invoke('appedit:request', uid),
   save: (payload: any) => ipcRenderer.invoke('appedit:save', payload),
   preparePreview: (document: any) => ipcRenderer.invoke('appedit:prepare-preview', document),
+  stopPreview: () => ipcRenderer.invoke('appedit:stop-preview'),
   export: (document: any) => ipcRenderer.invoke('appedit:export', document),
 })
 
