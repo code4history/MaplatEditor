@@ -10,6 +10,39 @@ import SqliteDataService from './SqliteDataService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
 
+// m1-t7 (Minor-3): tiles/{fileKey}/0/0/0.{jpg,jpeg,png} を saveFolder 配下に封じ込めたうえで
+// file:// URL として解決する共通ヘルパ。
+//
+// この処理はもともと resolveMapListImage の tiles fallback と resolveMapTileByRef に
+// 同じものが2つ写しで存在し、前者にだけ追加された M12-T13 の封じ込めが後者へ伝播せず、
+// Cycle 1 包括セキュリティレビュー Minor-3 として顕在化した。挙動を似せて2箇所を直すのではなく
+// 単一実装へ畳んで、写しが再発しない形にしている。
+//
+// 封じ込めはディレクトリ（FS 読み取り前）と最終ファイルパスの二段で行う。前者は saveFolder 外の
+// ディレクトリを読みに行かないため、後者は将来 tileFile 名の生成規則が変わっても契約を守るため。
+export async function resolveTileZeroFileUrl(
+  saveFolder: string,
+  fileKey: string,
+): Promise<string | null> {
+  if (!fileKey) return null;
+  const thumbFolder = path.join(saveFolder, 'tiles', fileKey, '0', '0');
+  // fileKey が slug 由来で '..' を含む場合、path.join は正規化されて saveFolder 外を指しうる
+  if (!isUnderFolder(thumbFolder, saveFolder)) return null;
+  try {
+    const files = await fs.readdir(thumbFolder);
+    const tileFile = files.find((f) => /^0\.(jpg|jpeg|png)$/.test(f));
+    if (!tileFile) return null;
+    const tilePath = path.join(thumbFolder, tileFile);
+    if (!isUnderFolder(tilePath, saveFolder)) return null;
+    return `file://${tilePath.split(path.sep).join('/')}`;
+  } catch (e: any) {
+    if (e?.code !== 'ENOENT') {
+      console.error(`[resourceImageResolver] ${fileKey} のサムネイル読み込みエラー`, e);
+    }
+    return null;
+  }
+}
+
 // 地図一覧の画像: 正式サムネイル tmbs/{fileKey}.jpg → 無ければ tiles/{fileKey}/0/0/0.* fallback。
 // fileKey は uid 優先（ADR-0007。uid 欠落時は旧 slug パスへフォールバック）。
 // MapDataService.requestMaps の :58-79 と同一ロジックを共有化したもの（挙動不変）。
@@ -20,7 +53,6 @@ export async function resolveMapListImage(doc: {
   _id?: string;
 }): Promise<string | null> {
   const saveFolder = SettingsService.get('saveFolder');
-  const tileFolder = path.join(saveFolder, 'tiles');
   const uiThumbnailFolder = path.join(saveFolder, 'tmbs');
   // 旧実装（MapDataService.requestMaps）と同一順序: uid || (_id || mapID)
   const fileKey = doc.uid || doc._id || doc.mapID || doc.slug;
@@ -32,22 +64,8 @@ export async function resolveMapListImage(doc: {
     if (!isUnderFolder(uiThumbnail, saveFolder)) return null;
     return `file://${uiThumbnail.split(path.sep).join('/')}`;
   }
-  const thumbFolder = path.join(tileFolder, fileKey, '0', '0');
-  try {
-    const files = await fs.readdir(thumbFolder);
-    const tileFile = files.find((f) => /^0\.(jpg|jpeg|png)$/.test(f));
-    if (tileFile) {
-      const tilePath = path.join(thumbFolder, tileFile);
-      // sec-1 (M12-T13): tiles fallback 経路も同じく saveFolder 配下封じ込めを適用。
-      if (!isUnderFolder(tilePath, saveFolder)) return null;
-      return `file://${tilePath.split(path.sep).join('/')}`;
-    }
-  } catch (e: any) {
-    if (e?.code !== 'ENOENT') {
-      console.error(`[resourceImageResolver] ${fileKey} のサムネイル読み込みエラー`, e);
-    }
-  }
-  return null;
+  // sec-1 (M12-T13) の tiles fallback 封じ込めは m1-t7 で共通ヘルパへ移した
+  return resolveTileZeroFileUrl(saveFolder, fileKey);
 }
 
 // アプリ一覧の画像: アイコン → スプラッシュ → startFrom が Maplat 地図なら 0/0/0 タイル → null。
@@ -81,20 +99,16 @@ export async function resolveAppListImage(doc: any): Promise<string | null> {
   return null;
 }
 
-// startFrom 地図の 0/0/0 タイル解決（AppDataService.getMapTile と同一ロジック）
+// startFrom 地図の 0/0/0 タイル解決。
+// m1-t7 (Minor-3): 旧実装はここで tiles パスを自前に組み立てており、M12-T13 が
+// resolveMapListImage 側へ入れた saveFolder 封じ込めが適用されていなかった。
+// 同一操作である resolveTileZeroFileUrl へ委譲して封じ込めを一元化する。
+// あわせて、抽出元として AppDataService 側の同等関数を指していた旧コメントを外した
+// （当該関数は既に存在せず、grep が空振りする stale 参照になっていた）
 async function resolveMapTileByRef(mapRef: string): Promise<string | null> {
   const mapDoc = await SqliteDataService.findMapByRef(mapRef);
   if (!mapDoc?.uid) return null;
-  const saveFolder = SettingsService.get('saveFolder');
-  const thumbFolder = path.join(saveFolder, 'tiles', mapDoc.uid, '0', '0');
-  if (!fs.existsSync(thumbFolder)) return null;
-  try {
-    const files = await fs.readdir(thumbFolder);
-    const tileFile = files.find((f) => /^0\.(jpg|jpeg|png)$/.test(f));
-    return tileFile ? `file://${path.join(thumbFolder, tileFile).split(path.sep).join('/')}` : null;
-  } catch {
-    return null;
-  }
+  return resolveTileZeroFileUrl(SettingsService.get('saveFolder'), mapDoc.uid);
 }
 
 // M12-T15 (R6): 地図一覧の高精細サムネイル解決。

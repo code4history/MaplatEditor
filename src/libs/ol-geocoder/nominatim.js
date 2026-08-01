@@ -181,7 +181,11 @@ export class Nominatim {
 
       switch (this.options.provider) {
         case PROVIDERS.OSM:
-          addressHtml = `<span class="${klasses.road}">${row.address.name}</span>`;
+          // m1-t7 (Minor-1): 応答由来の値（Nominatim の display_name）は生補間せず、
+          // 既定分岐（addressTemplate）と同じ共有プリミティブ template() を通す。
+          // template() は {key} 置換時に必ず htmlEscape() を適用する（helpers/dom.js）。
+          // クラス名は定数であり応答由来ではないため、テンプレート外で補間する。
+          addressHtml = template(`<span class="${klasses.road}">{name}</span>`, row.address);
 
           break;
 

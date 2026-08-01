@@ -105,6 +105,8 @@
     "smoke:m12-t1-edge-split": "node scripts/m12-t1-edge-split-smoke.mjs",
     "smoke:m12-t1-hotfix-1-search-thumbnails": "node scripts/m12-t1-hotfix-1-search-thumbnails-smoke.mjs",
     "smoke:m12-t13-resolver-containment": "node scripts/m12-t13-resolver-containment-smoke.mjs",
+    "smoke:m1-t7-geocoder-escape": "node scripts/m1-t7-geocoder-escape-smoke.mjs",
+    "test:e2e:m1-t7": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m1-t7-geocoder-response-escape.spec.ts",
     "smoke:m12-t14-preview-containment": "node scripts/m12-t14-preview-containment-smoke.mjs",
     "smoke:m1-t6-preview-auth": "node scripts/m1-t6-preview-auth-smoke.mjs",
     "smoke:m13-t1-strict-export-guard": "node scripts/m13-t1-strict-export-guard-smoke.mjs",

@@ -8,7 +8,15 @@
 //   AC3: resolveBaseMapListImage の legacyPath も外なら null（多層化）
 //   AC4: AppAssetService.fileUrlFor は兄弟ディレクトリ ({saveFolder}-x) への relPath で null
 //   AC5: 正常系（tmbs/tiles/saveFolder 内の thumbnail/legacy/img）は現行どおり file:// を返す（非退行）
+//
+// m1-t7 で以下を追加する（設計 2026-08-01-m1-t7-geocoder-escape-and-path-containment-design.md §7）:
+//   AC4(t7): resolveMapTileByRef 経路（唯一の呼び出し元 resolveAppListImage を実経路で駆動）で
+//            uid が saveFolder 外へ脱出する場合に file:// を返さず null
+//   AC5(t7): 共通ヘルパ resolveTileZeroFileUrl が素性 fileKey で file:// を返し、脱出 fileKey で null
+//   AC6(t7): resolveMapTileByRef が独自にパスを組み立てず共通ヘルパへ委譲している（ソース検査）
+//   AC7(t7): 実体の無い AppDataService.getMapTile への stale 参照が解消されている（ソース検査）
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -25,6 +33,52 @@ const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'm12-t13-containment-smoke.mjs');
+
+// ---- m1-t7 AC6 / AC7: ソース検査（バンドル前に実施する） -------------------
+{
+  const resolverSrc = await readFile(
+    path.join(projectRoot, 'electron/services/resourceImageResolver.ts'),
+    'utf8',
+  );
+
+  // 行番号ではなく関数の構造で本体を切り出す（周辺の編集に強い）
+  const byRefMatch = resolverSrc.match(
+    /async function resolveMapTileByRef\([\s\S]*?\n\}\n/u,
+  );
+  assert.ok(byRefMatch, 'AC6(t7): resolveMapTileByRef の定義が見つからない');
+  const byRefBody = byRefMatch[0];
+
+  assert.match(
+    byRefBody,
+    /resolveTileZeroFileUrl\(/u,
+    'AC6(t7): resolveMapTileByRef は共通ヘルパ resolveTileZeroFileUrl() へ委譲すること',
+  );
+  assert.doesNotMatch(
+    byRefBody,
+    /path\.join\(/u,
+    'AC6(t7): resolveMapTileByRef が独自に tiles パスを組み立ててはならない（写しの再発）',
+  );
+  console.log('ok: AC6(t7) resolveMapTileByRef delegates to the shared helper');
+
+  // 共通ヘルパは resolveMapListImage の tiles fallback からも使われること（写しが1つに畳まれている）
+  const listImageMatch = resolverSrc.match(
+    /export async function resolveMapListImage\(doc:[\s\S]*?\n\}\n/u,
+  );
+  assert.ok(listImageMatch, 'AC6(t7): resolveMapListImage の定義が見つからない');
+  assert.match(
+    listImageMatch[0],
+    /resolveTileZeroFileUrl\(/u,
+    'AC6(t7): resolveMapListImage の tiles fallback も共通ヘルパを通ること',
+  );
+  console.log('ok: AC6(t7) resolveMapListImage tiles fallback shares the same helper');
+
+  assert.doesNotMatch(
+    resolverSrc,
+    /AppDataService\.getMapTile/u,
+    'AC7(t7): 実体の無い AppDataService.getMapTile への stale 参照を残さないこと',
+  );
+  console.log('ok: AC7(t7) stale reference to AppDataService.getMapTile removed');
+}
 
 try {
   const dataDir = path.join(workDir, 'data');
@@ -202,6 +256,59 @@ try {
       assert.equal(isUnderFolder(dataDir, dataDir), false,
         'isUnderFolder: base ちょうどは false（対象は常に配下ファイルのため実害なし）');
       console.log('ok: isUnderFolder util contract');
+
+      // ================= m1-t7: resolveMapTileByRef の封じ込め =================
+      // resolveMapTileByRef は非 export のため、唯一の呼び出し元 resolveAppListImage を
+      // 実経路で駆動する（テスト内でロジックを再現しない）。SqliteDataService は
+      // default export の singleton なので findMapByRef を差し替えれば DB なしで動く。
+      const { resolveAppListImage, resolveTileZeroFileUrl } =
+        await import(${JSON.stringify(path.join(projectRoot, 'electron/services/resourceImageResolver.ts'))});
+      const { default: SqliteDataService } =
+        await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SqliteDataService.ts'))});
+
+      const maplatAppDoc = (mapRef) => ({
+        lang: 'ja',
+        startFrom: mapRef,
+        sources: [{ sourceType: 'maplat', mapUid: mapRef, startFrom: true }],
+      });
+
+      // ---- AC4(t7): uid が saveFolder 外へ脱出するなら null ----
+      // parent(saveFolder)/escape-apptile/0/0/0.png を用意し、uid = '../../escape-apptile' で指す
+      const escapeAppTileDir = nodePath.join(workDir, 'escape-apptile', '0', '0');
+      await fsMkdir(escapeAppTileDir, { recursive: true });
+      await fsWriteFile(nodePath.join(escapeAppTileDir, '0.png'), PNG);
+      SqliteDataService.findMapByRef = async () => ({ uid: '../../escape-apptile' });
+      const ac4t7 = await resolveAppListImage(maplatAppDoc('../../escape-apptile'));
+      assert.equal(ac4t7, null,
+        'AC4(t7): startFrom 地図の uid が saveFolder 外へ脱出しても file:// を返さない: ' + ac4t7);
+      console.log('ok: AC4(t7) resolveMapTileByRef path returns null for escaping uid');
+
+      // ---- AC5(t7): 共通ヘルパの両極性（素性 fileKey は file://、脱出 fileKey は null）----
+      const tileUid = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
+      await fsMkdir(nodePath.join(dataDir, 'tiles', tileUid, '0', '0'), { recursive: true });
+      await fsWriteFile(nodePath.join(dataDir, 'tiles', tileUid, '0', '0', '0.png'), PNG);
+      const helperOk = await resolveTileZeroFileUrl(dataDir, tileUid);
+      assert.ok(helperOk && helperOk.startsWith('file://') && helperOk.includes('/tiles/' + tileUid + '/'),
+        'AC5(t7): 素性 fileKey では tiles の file:// を返す: ' + helperOk);
+      const helperEscape = await resolveTileZeroFileUrl(dataDir, '../../escape-apptile');
+      assert.equal(helperEscape, null,
+        'AC5(t7): 脱出 fileKey では null: ' + helperEscape);
+      const helperMissing = await resolveTileZeroFileUrl(dataDir, 'no-such-uid');
+      assert.equal(helperMissing, null,
+        'AC5(t7): タイル未存在（ENOENT）では null: ' + helperMissing);
+      console.log('ok: AC5(t7) resolveTileZeroFileUrl both polarities + ENOENT');
+
+      // ---- AC5(t7)-b: アプリ一覧の観測可能な非退行 ----
+      // 素性 uid では resolveAppListImage が従来どおり tiles の file:// を返す。
+      // 実測の注記: この成功系は resolveMapListImage512 → resolveMapListImage の
+      // tiles fallback が先に解決するため、resolveMapTileByRef の成功分岐は現状到達しない
+      // （両者が同じ uid の同じパスを見るため、後段は前段の部分集合になる）。
+      // したがってここで担保しているのは「アプリ一覧の画像解決が壊れていないこと」である。
+      SqliteDataService.findMapByRef = async () => ({ uid: tileUid });
+      const ac5t7b = await resolveAppListImage(maplatAppDoc(tileUid));
+      assert.ok(ac5t7b && ac5t7b.startsWith('file://') && ac5t7b.includes('/tiles/' + tileUid + '/'),
+        'AC5(t7)-b: 素性 uid のアプリ一覧画像は tiles の file:// を返す（非退行）: ' + ac5t7b);
+      console.log('ok: AC5(t7)-b resolveAppListImage non-regression for regular uid');
 
       console.log('m12-t13 smoke: ALL PASS');
     `
