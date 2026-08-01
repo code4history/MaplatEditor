@@ -40,7 +40,7 @@ async function fileExists(filePath) {
 }
 
 let passed = 0;
-const total = 6;
+const total = 10;
 
 // ── AC1 / AC2: MD5 一致（4項目 + locales 全数）───────────
 const FILES = ["maplat_ui.umd.js", "maplat_ui.css", "service-worker.js"];
@@ -133,16 +133,6 @@ assert.ok(
 console.log("✅ AC3(c): .swiper-navigation-icon が CSS に含まれる（t3 到達）");
 passed++;
 
-// ── AC3a: 鮮度ガード ──────────────────────────────────
-// AC3a は AC3(b) と対になっている。「同期は成功したが元が古い」も検出できる。
-// 鮮度ガードの失敗メッセージには workspace 外解決の可能性を示唆する文を含む。
-// この smoke は AC3(b) を通過することで間接的に AC3a を満たす。
-// （鮮度ガードの動作は同期スクリプト m1-t8-sync-preview-bundle.mjs に委ねる）
-console.log(
-  "✅ AC3a: 鮮度ガードは同期スクリプトにより実装済み（heightGetter=0 で同期を許可）"
-);
-passed++;
-
 // ── AC4: 冪等性 ──────────────────────────────────────
 // 同期スクリプトを2回実行し、2回目に新たな差分が出ないことを確認する。
 // 注意: 1回目の同期で public/preview は HEAD から差分あり（更新済み）になる。
@@ -166,7 +156,7 @@ assert.equal(
   statusBefore,
   `AC4: 2回目の同期後に public/preview に新たな差分が発生した（before="${statusBefore}", after="${statusAfter}"）`
 );
-console.log("✅ AC4: 同期スクリプは冪等（2回実行で差分なし）");
+console.log("✅ AC4: 同期スクリプトは冪等（2回実行で差分なし）");
 passed++;
 
 // ── AC6: pnpm-lock.yaml を変更していない ──────────────
@@ -199,6 +189,5 @@ passed++;
 console.log(
   "⏭️  AC7: lock pin assert は skip（t2 で registry 参照へ移行のため。実測値: 新 pin 07ee37a5/9b97eb5 は出現ゼロ）"
 );
-passed++;
 
 console.log(`\n結果: ${passed}/${total} AC パス`);
