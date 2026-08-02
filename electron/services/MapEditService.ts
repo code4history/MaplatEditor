@@ -5,6 +5,7 @@ import fileUrl from 'file-url';
 import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
+import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 import SettingsService from './SettingsService';
 import { normalizeOriginalExt, resolveRuntimeOriginal } from './MapOriginalImageService';
 import MapMutationQueue from './MapMutationQueue';
@@ -158,26 +159,10 @@ class MapEditService {
             return [json];
         }
 
-        if (json.url) {
-            url_ = json.url;
-        } else {
-             try {
-                if (await fs.pathExists(thumbFolder)) {
-                    const thumbs = await fs.readdir(thumbFolder);
-                    const tileFile = thumbs.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
-                    if (tileFile) {
-                        // タイルURLパターンを構築
-                        // file-url は file:///... 形式で返す
-                        // .../0/0/0.ext を .../{z}/{x}/{y}.ext に変換する
-                        let thumbURL = fileUrl(path.join(thumbFolder, tileFile));
-                        const pattern = /\/0\/0\/0\.(jpg|jpeg|png)$/;
-                        url_ = thumbURL.replace(pattern, '/{z}/{x}/{y}.$1');
-                    }
-                }
-             } catch (e) {
-                 console.error("[MapEditService] タイル検索エラー:", e);
-             }
-        }
+        // M5-T3: url_ の導出は共通実装 deriveRuntimeTileUrl() が正本。
+        // DataUploadService.extractZip も同じ関数を呼ぶ（二重実装の一本化）。
+        // whReady ガード（上）と store2HistMap（下）は呼び出し側の関心事として据え置く
+        url_ = await deriveRuntimeTileUrl(json, thumbFolder);
 
         const [store, tins] = await storeHandler.store2HistMap(json, true);
         (store as any).url_ = url_;
