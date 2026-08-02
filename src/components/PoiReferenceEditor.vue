@@ -149,6 +149,17 @@
                 :title="t('poiref.convert_action')"
                 @click="convertFcEntry(index)"
               >{{ t("poiref.convert_action") }}</button>
+              <!-- M4-T4 §5.5: 裸 URL 要素 (U4) に上書きを付ける。要素を {layer: URL} へ
+                   置き換えるだけで acceptsOverride が真になり、上書き編集ブロックが開く -->
+              <button
+                v-if="showsAddOverride(entry)"
+                type="button"
+                class="btn btn-outline-primary"
+                data-testid="poiref-add-override"
+                :disabled="readOnly"
+                :title="t('poiref.add_override')"
+                @click="addOverrideWrapper(index)"
+              >{{ t("poiref.add_override") }}</button>
               <button
                 type="button"
                 class="btn btn-outline-secondary"
@@ -649,6 +660,23 @@ function move(index: number, delta: number): void {
   const next = [...entries.value];
   const [item] = next.splice(index, 1);
   next.splice(target, 0, item);
+  emit("update:pois", next);
+}
+
+// M4-T4 §5.5: 裸 URL (U4) は上書きを載せる場所を持たないので、上書きを付けるには
+// ラッパー ({layer: URL}) へ変える必要がある。この形式変更は**利用者の明示操作**であり、
+// 読み込み側の正規化ではない (sp-0006)。∴ ボタンとして提供し、暗黙には行わない。
+// 配列要素位置ではラッパーのほうが安全なので (§5.5.1 の位置逆転)、この変換に副作用はない。
+function showsAddOverride(entry: unknown): boolean {
+  return typeof entry === "string" && entry.trim() !== "";
+}
+
+function addOverrideWrapper(index: number): void {
+  if (props.readOnly) return;
+  const entry = entries.value[index];
+  if (!showsAddOverride(entry)) return;
+  const next = [...entries.value];
+  next[index] = { layer: entry };
   emit("update:pois", next);
 }
 

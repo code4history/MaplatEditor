@@ -363,7 +363,7 @@
     "originals": {
       "unsupported_extension": "Format gambar tidak didukung (hanya jpg/jpeg/png). Silakan simpan ulang dengan format gambar yang berbeda."
     },
-    "poi_format_unsupported": "Data POI menggunakan format yang tidak didukung editor. Data asli tetap dipertahankan saat disimpan dan dikeluarkan apa adanya ke pratinjau dan ekspor, tetapi pengeditan pada tab ini dinonaktifkan."
+    "poi_format_unsupported": "Data POI menggunakan format yang tidak didukung editor (misalnya objek yang dikunci dengan nama lapisan). Data asli tetap dipertahankan saat disimpan dan dikeluarkan apa adanya ke pratinjau dan ekspor, tetapi pengeditan pada tab ini dinonaktifkan."
   },
   "mapupload": {
     "map_image": "Gambar peta",
@@ -580,7 +580,7 @@
     "export_failed": "Ekspor gagal.",
     "warn_missing_poi_source": "Beberapa sumber POI yang dirujuk tidak ditemukan dan dihapus dari keluaran.",
     "warn_duplicate_poi_reference": "Sumber POI yang sama dirujuk oleh aplikasi dan peta sekaligus. POI mungkin ditampilkan dua kali.",
-    "poi_format_unsupported": "Data POI berada dalam format yang tidak didukung oleh editor. Data asli tidak akan hilang saat disimpan, tetapi pengeditan di tab ini dinonaktifkan dan tidak akan tercermin dalam pratinjau maupun ekspor.",
+    "poi_format_unsupported": "Data POI berada dalam format yang tidak didukung oleh editor (misalnya objek yang dikunci dengan nama lapisan). Data asli tidak akan hilang saat disimpan, tetapi pengeditan di tab ini dinonaktifkan dan tidak akan tercermin dalam pratinjau maupun ekspor.",
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "warn_icon_too_small": "Gambar sumber ikon PWA lebih kecil dari 512px, sehingga ikon yang dihasilkan mungkin tampak buram.",
     "export": {
@@ -637,7 +637,10 @@
     "inline_data": "POI yang didefinisikan di dalam peta",
     "external_url": "Referensi URL eksternal",
     "inline_note": "POI yang didefinisikan langsung di dalam data peta. Pengeditan di panel ini tidak didukung. Anda dapat mengubah urutan, menghapusnya, serta mengonversinya ke GeoJSON.",
-    "external_url_note": "Entri POI yang merujuk ke URL eksternal. Pengeditan dan konversi tidak didukung. Anda dapat mengubah urutan dan menghapusnya.",
+    "layer_ref": "Referensi berkas eksternal",
+    "external_url_note": "Entri POI yang merujuk ke URL eksternal. Isinya tidak dapat diedit atau dikonversi, tetapi Anda dapat menggunakan \"Tambahkan penimpaan\" untuk menimpa atribut tampilan (judul, ikon, sembunyikan). Anda juga dapat mengubah urutan dan menghapusnya.",
+    "layer_ref_note": "Merujuk ke berkas eksternal dan hanya menimpa atribut tampilan untuk peta/app ini. Isi berkas yang dirujuk tidak diubah.",
+    "add_override": "Tambahkan penimpaan",
     "mixed_layer_warning": "Data POI berformat GeoJSON dan format lainnya tercampur. Viewer tidak dapat menampilkan larik ini dengan benar. Konversikan ke GeoJSON dan rapikan.",
     "convert_blocked_note": "Lapisan ini berisi GeoJSON, referensi URL eksternal, atau elemen yang tidak dapat dikonversi, sehingga tidak dapat dikonversi sekaligus. Hapus elemen tersebut untuk merapikannya, maka konversi akan tersedia.",
     "layer_key_missing_warning": "Elemen ini tidak memiliki pengenal lapisan (id), sehingga viewer akan gagal menampilkan keseluruhan data POI ini. Rapikan dengan mengonversinya ke GeoJSON (jika dapat dikonversi) atau menghapusnya.",

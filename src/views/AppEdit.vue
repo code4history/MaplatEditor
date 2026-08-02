@@ -19,7 +19,7 @@ import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import ContextHelp from "../components/editor-ui/ContextHelp.vue";
 import EditorTabs from "../components/editor-ui/EditorTabs.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
-import { acceptDocumentPois } from "../utils/appPoisFormat";
+import { acceptDocumentPois, writeDocumentPois } from "../utils/appPoisFormat";
 import { usePoisFormatGuard } from "../composables/usePoisFormatGuard";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
@@ -1170,17 +1170,15 @@ function createPreviewDocument(): AppDocument {
 // --- POIデータタブ配線 (Phase 8 Task 2, 43 §2.4) ---
 // 真実の器は appData.pois 配列 1 つ。順番変更/上書き/解除/追加は PoiReferenceEditor が
 // 配列ごと差し替えの update:pois で返すので、ここでは反映 + 履歴記録だけを行う。
-// M4-T1: 冒頭のガードと「空ならキー削除」は MapEdit と同一形。read-only は UI の入口を
-// 閉じるだけなので、書き込みの唯一の出口であるここでも未対応形式を弾く (二重防御)。
+// M4-T1: 冒頭のガードは MapEdit と同一形。read-only は UI の入口を閉じるだけなので、
+// 書き込みの唯一の出口であるここでも未対応形式を弾く (二重防御)。
+// M4-T4: 保存形の決定 (空ならキー削除 / 単独形の維持 / 素ラッパーの退化) は両画面で
+// 完全に同一なので、書き込み側の関所 writeDocumentPois へ寄せた (恒久指示: 同一扱い処理は
+// 共通実装へ徹底)。読み込み側の acceptDocumentPois と対称の位置づけ。
 // 履歴記録の方式 (AppEdit は明示 recordHistory / MapEdit は deep-watch) は所属先の差。
 function onPoisChange(next: unknown[]) {
   if (!poisGuard.acceptsWrite()) return;
-  if (next.length === 0) {
-    // 全解除で残らなければ pois キー自体を削除する (永続形は両画面同一 — 設計 §4.4)
-    delete appData.value.pois;
-  } else {
-    appData.value.pois = next;
-  }
+  writeDocumentPois(appData.value, next, appData.value.pois);
   recordHistory();
 }
 </script>

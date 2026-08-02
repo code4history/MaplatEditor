@@ -363,7 +363,7 @@
     "originals": {
       "unsupported_extension": "Format d'image non pris en charge (jpg/jpeg/png uniquement). Veuillez réenregistrer avec un format d'image différent."
     },
-    "poi_format_unsupported": "Les données de POI sont dans un format non pris en charge par l'éditeur. Les données d'origine sont conservées lors de l'enregistrement et sont exportées telles quelles vers l'aperçu et l'export, mais l'édition dans cet onglet est désactivée."
+    "poi_format_unsupported": "Les données de POI sont dans un format non pris en charge par l'éditeur (par exemple un objet indexé par nom de couche). Les données d'origine sont conservées lors de l'enregistrement et sont exportées telles quelles vers l'aperçu et l'export, mais l'édition dans cet onglet est désactivée."
   },
   "mapupload": {
     "map_image": "Image de la carte",
@@ -580,7 +580,7 @@
     "export_failed": "Échec de l'export.",
     "warn_missing_poi_source": "Certaines sources de POI référencées sont introuvables et ont été exclues de la sortie.",
     "warn_duplicate_poi_reference": "La même source de POI est référencée à la fois par l'application et par une carte. Les POI risquent de s'afficher en double.",
-    "poi_format_unsupported": "Les données POI sont dans un format non pris en charge par l'éditeur. Les données d'origine ne sont pas perdues à l'enregistrement, mais l'édition dans cet onglet est désactivée et elles ne seront pas prises en compte dans l'aperçu ni l'export.",
+    "poi_format_unsupported": "Les données POI sont dans un format non pris en charge par l'éditeur (par exemple un objet indexé par nom de couche). Les données d'origine ne sont pas perdues à l'enregistrement, mais l'édition dans cet onglet est désactivée et elles ne seront pas prises en compte dans l'aperçu ni l'export.",
     "warn_unresolved_icon": "Certaines références d’icônes n’ont pas pu être résolues et ont été conservées telles quelles dans la sortie.",
     "warn_icon_too_small": "L'image source de l'icône PWA fait moins de 512px, les icônes générées peuvent donc paraître floues.",
     "export": {
@@ -637,7 +637,10 @@
     "inline_data": "POI défini dans la carte",
     "external_url": "Référence d'URL externe",
     "inline_note": "POI définis directement dans les données de la carte. Leur modification dans ce panneau n'est pas prise en charge. Vous pouvez les réordonner, les supprimer et les convertir en GeoJSON.",
-    "external_url_note": "Une entrée de POI qui référence une URL externe. La modification et la conversion ne sont pas prises en charge. Vous pouvez la réordonner ou la supprimer.",
+    "layer_ref": "Référence de fichier externe",
+    "external_url_note": "Une entrée de POI qui référence une URL externe. Son contenu ne peut être ni modifié ni converti, mais « Ajouter des remplacements » permet de remplacer les attributs d'affichage (titre, icônes, masquage). Vous pouvez aussi la réordonner ou la supprimer.",
+    "layer_ref_note": "Référence un fichier externe et ne remplace que les attributs d'affichage pour cette carte/app. Le contenu référencé n'est pas modifié.",
+    "add_override": "Ajouter des remplacements",
     "mixed_layer_warning": "Des données de POI au format GeoJSON et dans d'autres formats sont mélangées. La visionneuse ne peut pas afficher correctement ce tableau. Convertissez-les en GeoJSON et faites le tri.",
     "convert_blocked_note": "Cette couche contient du GeoJSON, des références d'URL externes ou des éléments non convertibles ; elle ne peut donc pas être convertie dans son ensemble. Supprimez ces éléments pour faire le tri et la conversion deviendra possible.",
     "layer_key_missing_warning": "Cet élément n'a pas d'identifiant de couche (id) ; la visionneuse échouera donc à afficher l'ensemble de ces données de POI. Faites le tri en le convertissant en GeoJSON (si possible) ou en le supprimant.",

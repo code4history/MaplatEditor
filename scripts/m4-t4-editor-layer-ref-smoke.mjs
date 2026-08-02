@@ -7,8 +7,12 @@
 // Part D: writeDocumentPois の保存形（単独形維持・配列化・キー削除）               … AC7/AC8
 // Part E: 素ラッパーの退化（位置 × 上書き有無の4象限）                             … AC14
 // Part F: 保存され得る全形式が viewer 正本の分岐で受容される                       … AC15
+// Part G: acceptDocumentPois が単独形を配列へ書き換えない                          … §5.3 sp-0006
+// Part H: 両 View の onPoisChange が writeDocumentPois を通る                       … §5.4
+// Part I: 「上書きを追加」と3分類のバッジ・注記                                     … AC3/AC5
+// Part J: 新設文言が 11 言語すべてに存在する                                        … AC11
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
@@ -227,6 +231,66 @@ const URL_A = 'pois/a.geojson';
   assert.equal(accept({ main: [] }).main.length, 0, 'unsupported も生値温存（t1 の約束）');
   assert.equal(accept(undefined), '<キーなし>', '未設定はキーを作らない');
   console.log('ok: (G) acceptDocumentPois never rewrites the single-layer form');
+}
+
+// ============================================================
+// Part H: 書き込み側の関所が両 View で共有されている … 設計 §5.4（恒久指示: 同一扱い処理は共通実装へ）
+// ============================================================
+{
+  for (const name of ['AppEdit', 'MapEdit']) {
+    const src = await readFile(path.join(projectRoot, `src/views/${name}.vue`), 'utf8');
+    assert.match(
+      src,
+      /import \{[^}]*writeDocumentPois[^}]*\} from ['"]\.\.\/utils\/appPoisFormat['"]/,
+      `${name}.vue が writeDocumentPois を import していない`,
+    );
+    const body = src.match(/function onPoisChange\([^)]*\)[^{]*\{[\s\S]*?\n\}/);
+    assert.ok(body, `${name}.vue に onPoisChange が見つからない`);
+    assert.match(body[0], /writeDocumentPois\(/, `${name}.vue の onPoisChange が関所を通っていない`);
+    assert.doesNotMatch(
+      body[0],
+      /delete\s+\w+(\.value)?\.pois/,
+      `${name}.vue の onPoisChange に保存形の分岐が残っている（キー削除は関所の責務）`,
+    );
+    assert.doesNotMatch(
+      body[0],
+      /\.pois\s*=\s*next/,
+      `${name}.vue の onPoisChange が next を直接代入している（単独形が配列へ書き換わる）`,
+    );
+  }
+  console.log('ok: (H) both views delegate the write path to writeDocumentPois');
+}
+
+// ============================================================
+// Part I: 「上書きを追加」と3分類のバッジ・注記 … 設計 §5.2 / §5.5
+// ============================================================
+{
+  const src = await readFile(path.join(projectRoot, 'src/components/PoiReferenceEditor.vue'), 'utf8');
+  assert.match(src, /data-testid="poiref-add-override"/, '「上書きを追加」ボタンが無い');
+  assert.match(src, /poiref\.add_override/, 'poiref.add_override の文言が配線されていない');
+  assert.match(src, /poiref\.layer_ref\b/, 'poiref.layer_ref バッジが配線されていない');
+  assert.match(src, /poiref\.layer_ref_note/, 'poiref.layer_ref_note 注記が配線されていない');
+  assert.match(src, /function acceptsOverride/, '上書き編集の開放条件 acceptsOverride が無い');
+  console.log('ok: (I) the wrapper row exposes the override editor and the add-override action');
+}
+
+// ============================================================
+// Part J: 新設・改訂文言が 11 言語すべてに存在する … 設計 §5.7（AC11 の先行検査）
+// ============================================================
+{
+  const langs = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
+  const added = ['layer_ref', 'layer_ref_note', 'add_override'];
+  for (const lang of langs) {
+    const dict = JSON.parse(
+      await readFile(path.join(projectRoot, `public/locales/${lang}/translation.json`), 'utf8'),
+    );
+    for (const key of added) {
+      const value = dict.poiref?.[key];
+      assert.equal(typeof value, 'string', `${lang}: poiref.${key} が無い`);
+      assert.notEqual(value.trim(), '', `${lang}: poiref.${key} が空`);
+    }
+  }
+  console.log('ok: (J) the three new locale keys exist in all 11 languages');
 }
 
 await rm(workDir, { recursive: true, force: true });

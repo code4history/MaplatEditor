@@ -305,7 +305,13 @@ try {
         { label: 'stringify-deep', pois: JSON.stringify(JSON.stringify([fc('deep')])), expected: true },
         { label: 'stringify-empty-deep', pois: JSON.stringify(JSON.stringify([])), expected: true },
         { label: 'layer-object', pois: { main: fc('layer-object') }, expected: true },
-        { label: 'url-string', pois: 'https://example.com/pois.geojson', expected: true },
+        // M4-T4: pois の単独形（レイヤ1つを配列に包まず直接置く形）は viewer 正本が受容するので
+        // 未対応形式ではなくなった。unsupported のまま残るのは viewer も受容しない形だけである
+        // （多重 stringify の破損・レイヤ名キー object・数値）
+        { label: 'url-string', pois: 'https://example.com/pois.geojson', expected: false },
+        { label: 'single-wrapper', pois: { layer: 'https://example.com/pois.geojson', hide: true }, expected: false },
+        { label: 'single-fc', pois: fc('single'), expected: false },
+        { label: 'bare-wrapper-whole', pois: { layer: 'https://example.com/pois.geojson' }, expected: true },
         { label: 'junk-number', pois: 123, expected: true },
         { label: 'null', pois: null, expected: false },
         { label: 'undefined', expected: false },

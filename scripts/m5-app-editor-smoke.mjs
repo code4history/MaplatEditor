@@ -343,7 +343,9 @@ try {
   // 未対応形式を画面へ通知する) はそのままに、期待値を新しい共通実装へ更新する。
   assert.match(
     appEditView,
-    /import \{ acceptDocumentPois \} from "\.\.\/utils\/appPoisFormat"/,
+    // M4-T4: 書き込み側の関所 writeDocumentPois が加わり import が2つになった。
+    // 検査意図（AppEdit が形式仕様の単一実装から受け入れ関所を取ること）は不変
+    /import \{[^}]*\bacceptDocumentPois\b[^}]*\} from "\.\.\/utils\/appPoisFormat"/,
     'AppEdit.vue が acceptDocumentPois (appPoisFormat) を import していない'
   );
   assert.match(
@@ -397,8 +399,21 @@ try {
     const onPoisChangeIdx = appEditView.indexOf('function onPoisChange');
     const body = appEditView.slice(onPoisChangeIdx, onPoisChangeIdx + 420);
     assert.match(body, /if \(!poisGuard\.acceptsWrite\(\)\) return;/, 'onPoisChange に書き込みガードがない (M4-T1)');
-    assert.match(body, /delete appData\.value\.pois/, 'onPoisChange が空配列で pois キーを削除していない (M4-T1)');
-    assert.match(body, /appData\.value\.pois = next/, 'onPoisChange が pois 配列を反映していない');
+    // M4-T4: 空時のキー削除を含む保存形の決定は共通の書き込み関所 writeDocumentPois へ移した。
+    // View 内で直接 next を代入すると単独形が配列へ書き換わってしまうため（sp-0006）である。
+    // キー削除そのものの検証は m4-t4 smoke Part D が表駆動で担う。
+    assert.match(
+      body,
+      /writeDocumentPois\(appData\.value, next, appData\.value\.pois\)/,
+      'onPoisChange が書き込み関所 writeDocumentPois を通っていない (M4-T4)'
+    );
+    // M4-T4: 反映そのものも関所が担う（上の assert が経路を押さえている）。素の代入は
+    // 単独形を壊すため撤去済みで、残っていたら回帰である
+    assert.doesNotMatch(
+      body,
+      /appData\.value\.pois\s*=\s*next/,
+      'onPoisChange が pois を直接代入している（単独形が配列へ書き換わる — M4-T4 §5.4）'
+    );
     assert.match(body, /recordHistory\(\)/, 'onPoisChange が recordHistory (AppEdit の履歴方式) を呼んでいない');
   }
   // 参照判定・復元・書き戻しの純関数部は共有 util (utils/poiReferenceUi) に集約されたまま
@@ -466,7 +481,10 @@ try {
   assert.match(resourceSelector, /class="selected-pane/, 'ResourceSelector.vue に右カラム (selected-pane) がない');
   assert.match(
     poiReferenceEditor,
-    /class="btn-group btn-group-sm flex-shrink-0"[\s\S]{0,900}>↑<\/button>[\s\S]{0,600}>↓<\/button>[\s\S]{0,600}>×<\/button>/,
+    // M4-T4: btn-group の先頭に「上書きを追加」（U4 行のみ）が加わり、↑ までの距離が伸びた。
+    // 検査意図は ↑/↓/× がこの順で同じ btn-group に並ぶこと（地図選択と同配置）であり、
+    // 先行ボタンの本数に依存させない
+    /class="btn-group btn-group-sm flex-shrink-0"[\s\S]{0,1600}>↑<\/button>[\s\S]{0,600}>↓<\/button>[\s\S]{0,600}>×<\/button>/,
     'PoiReferenceEditor.vue の選択済みカードに ↑/↓/× の btn-group (地図選択と同配置) がない'
   );
   // 右カラム見出しは呼び出し側の headingKey prop で App/Map を差し替える

@@ -61,16 +61,23 @@ function isSingleLayerForm(pois: unknown): boolean {
   return isPoiLayerRefAsWhole(pois);
 }
 
-// URLレイヤとして受け入れる文字列か。空文字は除外し、**JSON 文字列化された配列/オブジェクトも除外**する。
+// URLレイヤとして受け入れる文字列か。空文字は除外し、**JSON 文字列化された値も除外**する。
 // 後者は旧 Editor の多重 stringify バグ由来の破損であり（M12-T30 で unsupported と確定）、
 // URL ではない。ここで supported にすると、破損を「URLレイヤ」として編集可能に見せてしまい、
 // 利用者が破損の上に編集を積むことになる。sp-0006 / 恒久指示「正規化 vs バグ後始末」に従い、
 // **復元も追認もせず unsupported のまま生値温存へ倒す**（read-only + 警告）。
 // viewer の nodesLoader も この文字列をそのまま fetch して失敗するだけで、意味は与えない。
+//
+// 除外する先頭文字は JSON の構造開始記号 `[` `{` `"` の3つ。深さ2以上の stringify は
+// `"` で始まる（`"[{…}]"` を更に stringify すると `"\"[{…}]\""`）ため、`[` `{` だけでは
+// 素通ししてしまう（M12-T30 の「深さ2 stringify」ケースで実測）。URL がこの3文字で
+// 始まることは無いので、判定は URL 側を狭めない。
+const JSON_OPENERS = ['[', '{', '"'];
+
 function isPoiUrlString(value: string): boolean {
   const trimmed = value.trim();
   if (trimmed === "") return false;
-  return !trimmed.startsWith("[") && !trimmed.startsWith("{");
+  return !JSON_OPENERS.includes(trimmed[0]);
 }
 
 /**

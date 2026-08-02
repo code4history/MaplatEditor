@@ -24,7 +24,7 @@ import gsiThumb from '../assets/img/gsi.png';
 import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
 import { envelopeToBbox, resolveBaseMapSelectorText } from '../utils/appSourceModel';
 import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
-import { acceptDocumentPois } from '../utils/appPoisFormat';
+import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
@@ -1195,16 +1195,13 @@ const poiRefEditor = ref<InstanceType<typeof PoiReferenceEditor> | null>(null);
 // M12-T10 v2.0 Min2: mapCanonicalBbox / refreshMapCanonicalBbox は dead code として削除
 // （POI spatial は poiSpatialContext へ移行済み、consumer なし）
 
-// M4-T1: 冒頭のガードと「空ならキー削除」は AppEdit と同一形。read-only は UI の入口を
-// 閉じるだけなので、書き込みの唯一の出口であるここでも未対応形式を弾く (二重防御)。
+// M4-T1: 冒頭のガードは AppEdit と同一形。read-only は UI の入口を閉じるだけなので、
+// 書き込みの唯一の出口であるここでも未対応形式を弾く (二重防御)。
+// M4-T4: 保存形の決定は AppEdit と完全に同一なので、書き込み側の関所 writeDocumentPois
+// へ寄せた (恒久指示: 同一扱い処理は共通実装へ徹底)。
 function onPoisChange(next: unknown[]) {
     if (!poisGuard.acceptsWrite()) return;
-    if (next.length === 0) {
-        // 全解除で生要素も残らなければ pois キー自体を削除し、旧データの JSON をきれいに保つ
-        delete mapData.value.pois;
-    } else {
-        mapData.value.pois = next;
-    }
+    writeDocumentPois(mapData.value, next, mapData.value.pois);
 }
 
 // m1-t6-hotfix-1: 保留中の編集は「ポインタを動かす前」に確定させる。

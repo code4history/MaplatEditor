@@ -35,7 +35,14 @@ console.log('  [1/4] AC2-1 AppEdit が PoiReferenceEditor を使用 + update:poi
 const onPoisChangeIdx = appEdit.indexOf('function onPoisChange');
 assert.ok(onPoisChangeIdx > 0, 'onPoisChange 関数が定義されている');
 const onPoisChangeBody = appEdit.slice(onPoisChangeIdx, onPoisChangeIdx + 420);
-assert.match(onPoisChangeBody, /appData\.value\.pois\s*=\s*next/, 'AC2-5: appData.value.pois = next を代入する');
+// M4-T4: 代入そのものは共通の書き込み関所 writeDocumentPois へ移った。素の `= next` では
+// 単独形の文書が配列へ書き換わってしまうため（sp-0006）、View から直接代入する形は撤去した。
+// 検査意図（update:pois の配列が appData の pois へ届くこと）は関所呼び出しで担保される。
+assert.match(
+  onPoisChangeBody,
+  /writeDocumentPois\(appData\.value, next, appData\.value\.pois\)/,
+  'AC2-5: update:pois の配列を書き込み関所 writeDocumentPois 経由で appData へ反映する'
+);
 assert.match(onPoisChangeBody, /recordHistory\(\)/, 'AC2-5: recordHistory() を呼び出す');
 assert.match(onPoisChangeBody, /acceptsWrite\(\)/, 'M4-T1: 未対応形式を弾く書き込みガードがある');
 console.log('  [2/4] AC2-5 onPoisChange の配線（代入 + recordHistory）: PASS');

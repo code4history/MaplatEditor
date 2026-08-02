@@ -51,15 +51,22 @@ try {
       const urlString = 'morioka_one_poi.json';
       const jsonString = JSON.stringify(refArray);
       const layerKeyObject = { main: [], shrines: [] };
+      const wrapperWhole = { layer: 'morioka_one_poi.json', hide: true };
+      const bareWrapper = { layer: 'morioka_one_poi.json' };
 
       const cases = [
         { id: 'F1', label: '参照配列（poiUid）', incoming: refArray, expect: 'same-ref', supported: true },
         { id: 'F2', label: '空配列', incoming: [], expect: 'same-ref', supported: true },
         { id: 'F3', label: '素の POI 配列', incoming: inlineArray, expect: 'same-ref', supported: true },
         { id: 'F4', label: '配列[URL 文字列]', incoming: urlArray, expect: 'same-ref', supported: true },
-        { id: 'F5', label: 'URL 文字列（単体）', incoming: urlString, expect: 'preserved', supported: false },
+        // M4-T4: 単独形（レイヤ1つを配列に包まず直接置く形）は viewer 正本が受容するので supported へ
+        // 変わった。**受け入れ側の挙動は不変**（生値を温存する）で、変わったのは supported 判定だけ
+        // である — この分離こそ sp-0006 の要求（読み込み側で保存形を書き換えない）である
+        { id: 'F5', label: 'URL 文字列（単体 = 単独形）', incoming: urlString, expect: 'preserved', supported: true },
         { id: 'F6', label: 'JSON 文字列化された配列', incoming: jsonString, expect: 'preserved', supported: false },
         { id: 'F7', label: 'レイヤ名キー object', incoming: layerKeyObject, expect: 'preserved', supported: false },
+        { id: 'F8', label: '上書き付きラッパー（単独形）', incoming: wrapperWhole, expect: 'preserved', supported: true },
+        { id: 'F9', label: '素ラッパー（単独形。viewer が受容しない）', incoming: bareWrapper, expect: 'preserved', supported: false },
       ];
 
       for (const c of cases) {
@@ -130,12 +137,22 @@ try {
       assert.deepEqual(guard.pois.value, refArray, 'B: 表示用配列の内容が一致する');
       assert.equal(guard.acceptsWrite(), true, 'B: supported なら書き込みを受け付ける');
 
-      // 文書丸ごと差し替え（履歴復帰 = 関所を通らない経路の模擬）でも判定が追随する
-      docRef.value = { pois: urlString };
+      // 文書丸ごと差し替え（履歴復帰 = 関所を通らない経路の模擬）でも判定が追随する。
+      // M4-T4: 未対応形式の代表を URL 文字列（単独形として supported になった）から
+      // レイヤ名キー object へ差し替える。検査意図＝判定の追随は不変
+      docRef.value = { pois: layerKeyObject };
       await nextTick();
       assert.equal(guard.unsupported.value, true, 'B: 未対応形式へ差し替えたら unsupported へ追随する');
       assert.deepEqual(guard.pois.value, [], 'B: 未対応形式の表示用配列は空');
       assert.equal(guard.acceptsWrite(), false, 'B: unsupported なら書き込みを拒否する');
+
+      // M4-T4: 単独形は supported になり、表示用には1要素配列へ写像される（文書は書き換えない）
+      docRef.value = { pois: urlString };
+      await nextTick();
+      assert.equal(guard.unsupported.value, false, 'B: 単独形 URL は supported');
+      assert.deepEqual(guard.pois.value, [urlString], 'B: 単独形は表示用に1要素配列へ写像される');
+      assert.equal(guard.acceptsWrite(), true, 'B: 単独形は書き込みを受け付ける');
+      assert.equal(docRef.value.pois, urlString, 'B: 文書側の保存形は単独形のまま（sp-0006）');
 
       docRef.value = { pois: inlineArray };
       await nextTick();
@@ -238,10 +255,14 @@ try {
     assert.ok(idx > 0, `${name} に onPoisChange が無い`);
     const body = src.slice(idx, idx + 420);
     assert.match(body, /acceptsWrite\(\)/, `AC1: ${name} の onPoisChange に書き込みガードが無い`);
+    // M4-T4: 空時のキー削除を含む保存形の決定は共通の書き込み関所 writeDocumentPois へ移した
+    // （両画面で完全に同一の写像だったため — 恒久指示「同一扱い処理は共通実装へ徹底」）。
+    // 「永続形は両画面同一」という検査意図は、両画面が同じ関所を通ることで従来より強く担保される。
+    // 空配列でキーが消えることそのものは m4-t4 smoke Part D が表駆動で検証する
     assert.match(
       body,
-      /delete\s+\w+\.value\.pois/,
-      `AC1: ${name} の onPoisChange に空時のキー削除が無い（永続形は両画面同一 — 設計 §4.4）`,
+      /writeDocumentPois\(/,
+      `AC1: ${name} の onPoisChange が書き込み関所 writeDocumentPois を通っていない（永続形は両画面同一 — 設計 §4.4）`,
     );
   }
 
