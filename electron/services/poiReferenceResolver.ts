@@ -29,7 +29,12 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { parseIconRef, listIconSets } from '../../src/utils/iconRefs';
 import { compactLangResource, type LangResource } from '../../src/utils/langResource';
 import { DEFAULT_LANG } from '../../src/utils/poiGeoJson';
-import { poisEntryShape, hasMixedPoisShapes, poisLayerKeyOf } from '../../src/utils/poisLayerStructure';
+import {
+  poisEntryShape,
+  hasMixedPoisShapes,
+  poisLayerKeyOf,
+  isPoiLayerRef,
+} from '../../src/utils/poisLayerStructure';
 import { sanitizePoiFileBase, reservePoiFileBase } from '../../src/utils/poiExportFileName';
 import {
   collectAssetRefUids,
@@ -380,29 +385,14 @@ export interface ExternalizedPois {
   warnings: string[];
 }
 
-// 上書きレイヤ (ラッパー) の許可キーは hide / title / icon / selectedIcon の4つ
-// (viewer 正本 MaplatCore/src/normalize_pois.ts:23 の OVERRIDE_KEYS)。キーごとに有効値の
-// 判定が異なるため、列挙ではなく buildPoiLayerRef 内で個別に扱う。
-// ラッパー判別で「座標を持つ = POI オブジェクト」を弾くためのキー。viewer :25-31 と同一
-const COORD_KEYS = ['lnglat', 'lng', 'lat', 'longitude', 'latitude'] as const;
+// M4-T4: ラッパー判別 isPoiLayerRef は src/utils/poisLayerStructure へ移設した（挙動同一）。
+// renderer の PoiReferenceEditor も同じ実装を使う — 判別が2箇所にあると t5 の viewer 修正時に
+// 片方だけ追随する事故が起きるため（恒久指示「同一扱い処理は共通実装へ徹底」）。
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
+// E2 判定用の局所ヘルパ（形状分類は poisLayerStructure が正本だが、ここは型ガードが要る）
 function isFeatureCollection(value: unknown): value is Record<string, unknown> {
-  return isPlainObject(value) && value.type === 'FeatureCollection';
-}
-
-// 配列要素文脈のラッパー判別。viewer 正本 isPoiLayerRef (normalize_pois.ts:36-46) と同一規則:
-// layer が string または FeatureCollection で、座標キーを持たない plain object
-function isPoiLayerRef(value: unknown): value is Record<string, unknown> {
-  if (!isPlainObject(value)) return false;
-  if (value.type === 'FeatureCollection') return false;
-  const layer = value.layer;
-  if (typeof layer !== 'string' && !isFeatureCollection(layer)) return false;
-  if (COORD_KEYS.some((key) => value[key] !== undefined)) return false;
-  return true;
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    && (value as Record<string, unknown>).type === 'FeatureCollection';
 }
 
 // FC を外部ファイルとして ctx へ登録し、参照 URL (dest) を返す。

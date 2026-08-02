@@ -11,6 +11,42 @@
 // string: 文字列 / junk: それ以外 (配列・数値・null・undefined・boolean 等)
 export type PoisEntryShape = "fc" | "object" | "string" | "junk";
 
+// M4-T4: 上書きレイヤ (ラッパー) の許可キー。viewer 正本 normalize_pois.ts:23 の OVERRIDE_KEYS と同一。
+export const POI_OVERRIDE_KEYS = ["hide", "title", "icon", "selectedIcon"] as const;
+
+// ラッパー判別で「座標を持つ = POI オブジェクト」を弾くキー。viewer 正本 :25-31 と同一。
+const COORD_KEYS = ["lnglat", "lng", "lat", "longitude", "latitude"] as const;
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// M4-T4: 上書きレイヤ (ラッパー) の判別。viewer 正本 isPoiLayerRef (normalize_pois.ts:36-46) と
+// 同一規則 — layer が string または FeatureCollection で、自身は FC ではなく、座標キーを持たない
+// plain object。main (poiReferenceResolver の外部ファイル化) と renderer (PoiReferenceEditor の
+// 要素分類) の双方がこの1本を使う (恒久指示「同一扱い処理は共通実装へ徹底」)。
+// t2 で resolver 内に private で置いていた同名関数はここへ移設した (挙動同一)。
+export function isPoiLayerRef(value: unknown): boolean {
+  if (!isPlainObject(value)) return false;
+  if (value.type === "FeatureCollection") return false;
+  const layer = value.layer;
+  const layerIsString = typeof layer === "string";
+  const layerIsFc = isPlainObject(layer) && layer.type === "FeatureCollection";
+  if (!layerIsString && !layerIsFc) return false;
+  if (COORD_KEYS.some(key => value[key] !== undefined)) return false;
+  return true;
+}
+
+// M4-T4: 上書きキーを1つ以上持つラッパーか。**非配列 (pois 全体) の位置ではこれが受容条件**である
+// — viewer の isPoiLayerRefAsWhole (normalize_pois.ts:49-51) が旧レイヤ辞書の保護のため上書きキーの
+// 存在を追加要求する。∴ 上書きを持たない素ラッパーを単独形で保存すると else 分岐 (レイヤ名キー
+// object 扱い) へ落ちて壊れる。配列要素位置では isPoiLayerRef だけで受容される (安全性が位置で逆転)。
+export function isPoiLayerRefAsWhole(value: unknown): boolean {
+  if (!isPoiLayerRef(value)) return false;
+  const record = value as Record<string, unknown>;
+  return POI_OVERRIDE_KEYS.some(key => record[key] !== undefined);
+}
+
 // unknown 全域で定義された 4 値排他の全域関数 (§4.2 決定木の第 2 段の判定源)
 export function poisEntryShape(entry: unknown): PoisEntryShape {
   if (typeof entry === "string") return "string";
@@ -27,10 +63,23 @@ export function poisEntryShape(entry: unknown): PoisEntryShape {
 // TypeError になり得るため editor 側の最弱仮定 — §4.2 C7 注記)
 export type PoisLayerMode = "empty" | "multi" | "single" | "indeterminate";
 
-export function poisLayerMode(shapes: readonly PoisEntryShape[]): PoisLayerMode {
+// M4-T4: viewer は先頭が FC **または上書きレイヤ**ならレイヤ配列モードへ入る
+// (normalize_pois.ts:106-109 の `layers[0].type === "FeatureCollection" || isPoiLayerRef(layers[0])`)。
+// shapes だけでは上書きレイヤと旧 POI オブジェクトを区別できない (どちらも "object") ため、
+// **元の要素列を必須の第2引数で受ける**。
+//
+// 任意引数にはしない: 渡し忘れた呼び出しが viewer と乖離した旧判定へ静かに落ちる罠になり、
+// 本タスクが是正している欠陥 (判定源の分裂) を共有述語の内部に作り直すことになるため。
+// 本モジュールは poiUidOf に依存しない (冒頭コメント) ので、参照 → "fc" の写像を済ませた shapes と
+// 生の entries の両方を受ける形が、この分業を壊さず二挙動も作らない唯一の形である。
+export function poisLayerMode(
+  shapes: readonly PoisEntryShape[],
+  entries: readonly unknown[],
+): PoisLayerMode {
   if (shapes.length === 0) return "empty";
   const head = shapes[0];
   if (head === "fc") return "multi";
+  if (isPoiLayerRef(entries[0])) return "multi";
   if (head === "string") return "indeterminate";
   return "single";
 }

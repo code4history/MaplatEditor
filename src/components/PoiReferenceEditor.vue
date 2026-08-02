@@ -173,7 +173,7 @@
               >×</button>
             </div>
           </div>
-          <div v-if="poiUidOf(entry) !== null" class="row g-2 mt-1">
+          <div v-if="acceptsOverride(entry)" class="row g-2 mt-1">
             <div class="col-12">
               <label class="form-label small mb-0">{{ t("poiref.override_title") }}</label>
               <LangResourceInput
@@ -267,6 +267,7 @@ import { poiUidOf, extractPoiRefs, applyPoiSelection, isNonReferenceObjectEntry 
 import {
   poisEntryShape,
   poisLayerMode,
+  isPoiLayerRef,
   hasMixedPoisShapes,
   hasPoisLayerKey,
   type PoisEntryShape,
@@ -367,7 +368,7 @@ function entryItemCountLabel(entry: unknown): string | null {
 const entryShapes = computed<readonly PoisEntryShape[]>(() =>
   entries.value.map((entry) => (poiUidOf(entry) !== null ? "fc" : poisEntryShape(entry))),
 );
-const layerMode = computed(() => poisLayerMode(entryShapes.value));
+const layerMode = computed(() => poisLayerMode(entryShapes.value, entries.value));
 const isMixedLayer = computed(() => hasMixedPoisShapes(entryShapes.value));
 
 // §4.4: 単層モードのレイヤ変換可能条件 = 全メンバーが旧 POI オブジェクト / 生 Feature
@@ -400,18 +401,31 @@ function showsLayerKeyMissing(entry: unknown, index: number): boolean {
     index >= 1 &&
     poiUidOf(entry) === null &&
     poisEntryShape(entry) !== "string" &&
+    // M4-T4: 上書きレイヤ (ラッパー) は viewer が isPoiLayerRef 分岐で受け、key は fetch 後の
+    // 中身から決まる。∴ ラッパー自身が id を持たなくても POI 全損にはならない (誤警告の是正)
+    !isPoiLayerRef(entry) &&
     !hasPoisLayerKey(entry)
   );
 }
 
+// M4-T4: 上書き4種 (title/icon/selectedIcon/hide) を編集できる要素か。
+// U1 = 登録 POI ソース参照 ({poiUid}) / U2・U3 = 上書きレイヤ ({layer:…})。
+// 同じ setter を共有する (恒久指示「同一扱い処理は共通実装へ徹底」) — 分岐条件だけを広げる
+function acceptsOverride(entry: unknown): boolean {
+  return poiUidOf(entry) !== null || isPoiLayerRef(entry);
+}
+
 // §5.11: バッジ 2 種 (string = 外部URL参照 / それ以外の非参照要素 = 地図内定義POI。
 // junk は inline 側帰属 — 第 3 バッジは増やさない)
+// M4-T4: 3 分類 — 上書きレイヤ = 外部ファイル参照 / 文字列 = 外部URL参照 / それ以外 = 地図内定義POI
 function entryBadgeLabel(entry: unknown): string {
+  if (isPoiLayerRef(entry)) return t("poiref.layer_ref");
   return typeof entry === "string" ? t("poiref.external_url") : t("poiref.inline_data");
 }
 
 // §5.11: 非参照メンバー行の注記キー (バッジと同じ object vs string の二分で出し分け)
 function entryNoteKey(entry: unknown): string {
+  if (isPoiLayerRef(entry)) return "poiref.layer_ref_note";
   return typeof entry === "string" ? "poiref.external_url_note" : "poiref.inline_note";
 }
 
