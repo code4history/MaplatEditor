@@ -314,14 +314,21 @@ test.describe('M11-T9 POI Content Mode', () => {
       }, seeded.poiUid);
       expect(exportResult?.result, `export result: ${JSON.stringify(exportResult)}`).toBe('Success');
 
-      // zip を検査: app json の html が imgs/{slug}.png に書き換わり、実体が同梱される
+      // zip を検査: html の maplat-asset が imgs/{slug}.png に書き換わり、実体が同梱される。
+      // M4-T2 以降、POI 実体は apps/*.json へインライン展開されず pois/*.geojson へ書き出される。
+      // ∴ html の書き換え結果は pois/ 側で検証する（app json 側には参照だけが残る）
       const zip = new AdmZip(zipPath);
       const names = zip.getEntries().map((e) => e.entryName);
       const appEntry = zip.getEntries().find((e) => /(^|\/)apps\/.*\.json$/.test(e.entryName));
       expect(appEntry, `apps json entry in: ${names.join(', ')}`).toBeTruthy();
       const appText = appEntry!.getData().toString('utf8');
-      expect(appText).toContain(`imgs/${assetSlug}.png`);
+      expect(appText).toContain(`pois/${assetSlug}-poi.geojson`);
       expect(appText).not.toContain('maplat-asset:');
+      const poiEntry = zip.getEntries().find((e) => /(^|\/)pois\/.*\.geojson$/.test(e.entryName));
+      expect(poiEntry, `pois geojson entry in: ${names.join(', ')}`).toBeTruthy();
+      const poiText = poiEntry!.getData().toString('utf8');
+      expect(poiText).toContain(`imgs/${assetSlug}.png`);
+      expect(poiText).not.toContain('maplat-asset:');
       expect(names.some((n) => n.endsWith(`imgs/${assetSlug}.png`)), `asset entry in: ${names.join(', ')}`).toBe(true);
 
       console.log('  AC13: PASS');

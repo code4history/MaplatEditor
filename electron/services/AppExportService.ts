@@ -15,10 +15,11 @@ import {
   hasSharedPoiUid,
   mergeIconFiles,
   mergeWarnings,
-  resolvePoisArray,
-  resolveAssetRefsForExport,
+  externalizePoisArray,
+  createPoiExternalizationContext,
   DUPLICATE_POI_REFERENCE_WARNING,
   type IconFile,
+  type PoiExternalizationContext,
 } from './poiReferenceResolver';
 import {
   compactLangObject,
@@ -249,8 +250,13 @@ class AppExportService {
       // 最後に outDir/imgs/... へまとめてコピーする
       const iconFiles = new Map<string, IconFile>();
 
-      // 1) apps/{appID}.json (pois の {poiUid} 参照は export 形 FC へ解決される、Phase 7)
-      const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings, iconFiles);
+      // POI の外部ファイル化 (M4-T2)。app JSON と map JSON をまたいで1つのコンテキストを共有し、
+      // 同じ POI ソースを両方が参照しても pois/<name>.geojson は1ファイルへ畳む。
+      // 処理順は app JSON → maps なので、同名衝突時の連番採番は「app が先に基底名を取る」で決定的
+      const poiCtx = createPoiExternalizationContext();
+
+      // 1) apps/{appID}.json (pois は pois/<name>.geojson への参照 + 上書き属性へ変換される、M4-T2)
+      const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings, iconFiles, poiCtx);
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
 
       // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
@@ -277,17 +283,12 @@ class AppExportService {
             duplicateReference = true;
             mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
           }
-          const resolved = await resolvePoisArray((mapJson as any).pois);
-          mergeWarnings(warnings, resolved.warnings);
-          mergeIconFiles(iconFiles, resolved.files);
-          // M11-T9: maplat-asset:<UID> をエクスポート用パスに解決 + Asset実体収集
-          const assetRefResults = await Promise.all(
-            resolved.pois.map((poi: unknown) => resolveAssetRefsForExport(poi, iconFiles)),
-          );
-          for (const r of assetRefResults) {
-            mergeWarnings(warnings, r.warnings);
-          }
-          (mapJson as any).pois = assetRefResults.map((r) => r.entry);
+          // M4-T2: 外部ファイル化。icon 参照文法 (POI-117) と maplat-asset:<UID> (M11-T9) の
+          // 解決は externalizePoisArray が実体側・参照側の双方で行う
+          const externalized = await externalizePoisArray((mapJson as any).pois, poiCtx);
+          mergeWarnings(warnings, externalized.warnings);
+          mergeIconFiles(iconFiles, externalized.files);
+          (mapJson as any).pois = externalized.pois;
         }
         await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson, { spaces: 4 });
         progressState.step++;
@@ -308,6 +309,21 @@ class AppExportService {
         if (fs.existsSync(thumb512)) {
           await fs.copy(thumb512, path.join(outDir, 'tmbs', `${slug}_512.jpg`));
         }
+      }
+
+      // 2.5) pois/{name}.geojson — app / map から参照される POI 実体 (M4-T2)。
+      //      app と map の双方の合成が終わってから一括で書き出す (同一ソースの二重参照は
+      //      poiCtx で既に1エントリへ畳まれている)。
+      //      dest は externalizePoisArray が sanitize 済みだが、書き出し直前にも境界を再検査する
+      //      (iconSetFilePath と同じ多重防御)。名前の基底には利用者が raw JSON で書ける
+      //      生 FC の id が含まれ、DB 側の slug 検査を通らないため — M4-T2 §2.3 / §5.2
+      const poisRoot = path.join(outDir, 'pois');
+      for (const doc of poiCtx.documents.values()) {
+        const target = path.resolve(outDir, ...doc.dest.split('/'));
+        if (target !== poisRoot && !target.startsWith(poisRoot + path.sep)) {
+          throw new Error(`POI document escaped the output directory: ${doc.dest}`);
+        }
+        await fs.outputJson(target, doc.json, { spaces: 4 });
       }
 
       // 3) TMSソースのサムネイル
@@ -458,13 +474,15 @@ class AppExportService {
 
   // Viewer形式の正規アプリJSON（camelCase・ビルトイン=文字列）。
   // viewerMapID: ソースのViewer向けmapID解決(maplatはuid→slug) (ADR-0007)。
-  // pois の {poiUid} 参照は export 形 FC へ解決し、警告 (missing 等) は warnings に合流する (Phase 7)
+  // pois は pois/<name>.geojson への参照 + 上書き属性へ変換し、警告 (missing 等) は warnings に
+  // 合流する (M4-T2。poiCtx は map JSON 側と共有して外部ファイルを1つへ畳む)
   private async composeAppJson(
     document: any,
     sources: AppSource[],
     viewerMapID: (source: AppSource) => string,
     warnings: string[],
     iconFiles: Map<string, IconFile>,
+    poiCtx: PoiExternalizationContext,
   ) {
     const lang = document.lang || 'ja';
     const out: Record<string, unknown> = {
@@ -491,17 +509,11 @@ class AppExportService {
     if (startFrom) out.startFrom = startFrom;
     const pois = readAppDocumentPois(document).pois;
     if (Array.isArray(pois) && pois.length > 0) {
-      const resolved = await resolvePoisArray(pois);
-      mergeWarnings(warnings, resolved.warnings);
-      mergeIconFiles(iconFiles, resolved.files);
-      // M11-T9: app 側 pois の asset ref も解決
-      const appAssetRefResults = await Promise.all(
-        resolved.pois.map((poi: unknown) => resolveAssetRefsForExport(poi, iconFiles)),
-      );
-      for (const r of appAssetRefResults) {
-        mergeWarnings(warnings, r.warnings);
-      }
-      if (appAssetRefResults.length > 0) out.pois = appAssetRefResults.map((r) => r.entry);
+      // M4-T2: 外部ファイル化 (icon / asset ref の解決も externalizePoisArray が担う)
+      const externalized = await externalizePoisArray(pois, poiCtx);
+      mergeWarnings(warnings, externalized.warnings);
+      mergeIconFiles(iconFiles, externalized.files);
+      if (externalized.pois.length > 0) out.pois = externalized.pois;
     }
     return out;
   }
