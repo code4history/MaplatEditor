@@ -1,9 +1,12 @@
 // export 出力の POI 外部ファイル名（`pois/<base>.geojson` の base）を決める純関数（M4-T2 §5.2）。
 //
-// なぜ出力側で sanitize が要るか: POI ソースの slug 構文（SLUG_PATTERN = /^[A-Za-z0-9_-]+$/,
-// src/utils/slug.ts）を強制しているのは renderer の useSlugAvailability だけで、
-// PoiSourceService.createSource / save は空文字チェックしかしない（M4-T2 設計 §2.3 の実測）。
-// ∴ `../` や `/` を含む slug が DB に存在し得るため、ファイル名を組み立てる直前に必ず通す。
+// なぜ出力側で sanitize が要るか: ファイル名の基底は POI ソースの slug だけでなく、
+// **生 FC / ラッパー内 FC の `id` / `properties.id`** からも来る（M4-T2 設計 §5.2 の E2 / E5）。
+// POI ソースの slug は SqliteDataService.registerAsset:1691 が isValidSlug（= SLUG_PATTERN,
+// electron/services/assetIdentity.ts:13）で弾くので安全だが、**FC の id は利用者が raw JSON
+// ペインで自由に書ける値で、この検査を一切通らない**。
+// ∴ `{"type":"FeatureCollection","id":"../../etc/passwd"}` を pois に置けば出力ディレクトリの
+// 外へ書き出され得る。ファイル名を組み立てる直前に必ず通すこと。
 //
 // suggestSlug（poiSourceSlug.ts）は流用しない。あちらは import 時の slug 提案であり
 // NFKD 正規化・拡張子除去・小文字化を含む。ここで必要なのは既存 slug を壊さない防御であって、

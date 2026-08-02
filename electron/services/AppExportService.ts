@@ -315,7 +315,8 @@ class AppExportService {
       //      app と map の双方の合成が終わってから一括で書き出す (同一ソースの二重参照は
       //      poiCtx で既に1エントリへ畳まれている)。
       //      dest は externalizePoisArray が sanitize 済みだが、書き出し直前にも境界を再検査する
-      //      (iconSetFilePath と同じ多重防御。DB の slug 構文が保証されていないため — M4-T2 §2.3)
+      //      (iconSetFilePath と同じ多重防御)。名前の基底には利用者が raw JSON で書ける
+      //      生 FC の id が含まれ、DB 側の slug 検査を通らないため — M4-T2 §2.3 / §5.2
       const poisRoot = path.join(outDir, 'pois');
       for (const doc of poiCtx.documents.values()) {
         const target = path.resolve(outDir, ...doc.dest.split('/'));
