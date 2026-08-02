@@ -16,6 +16,22 @@ import { Jimp } from 'jimp';
 import { ProgressReporter } from '../utils/ProgressReporter';
 
 /**
+ * M5-T6: 地図原本 JPEG のデコード上限（旧 Electron 版の互換復元）
+ *
+ * 旧実装 backend/src/mapupload.js:25-28（commit 0db2f94 "Scale up memory size"）は
+ * `Jimp.decoders['image/jpeg']` を差し替えて jpeg-js へ以下を渡していた。
+ * 新環境への移植（353a9ef）でこの行が脱落し、大容量の地図原本が取り込めなくなっていた。
+ *
+ * 値は旧版のものをそのまま復元する。ただし手段は復元しない — Jimp 1.x に `decoders` は無い。
+ *
+ * これは jpeg-js が自分で加算する会計カウンタの閾値であり、V8 ヒープとも実メモリとも
+ * 直接の関係はない。∴ この設定は「大きい画像を受け付ける」ことの許可であって
+ * 「成功の保証」ではない（実メモリが足りなければ OS レベルで失敗する）。
+ */
+const LARGE_MAP_JPEG_MAX_MEMORY_MB = 8192;   // jpeg-js 既定は 512
+const LARGE_MAP_JPEG_MAX_RESOLUTION_MP = 800; // jpeg-js 既定は 100
+
+/**
  * 旧実装 thumbExtractor.make_thumbnail() 相当
  * 旧実装: 52px 以内に縮小した JPEG を生成
  */
@@ -136,7 +152,18 @@ async function imageCutter(
         await fs.ensureDir(outFolder);
 
         // 旧実装: Jimp で画像読み込み、幅・高さ・最大ズーム計算
-        const imageJimp = await Jimp.read(srcFile);
+        // M5-T6: ここが原寸デコード地点であり、大容量原本が jpeg-js のガードで落ちていた箇所。
+        // Jimp.read はローカルファイルパスと Buffer の経路で第2引数 options を捨て、
+        // URL 経路だけが fromBuffer へ渡す（@jimp/core の read 実装）。
+        // ∴ Jimp.read(srcFile, options) では設定が届かないため fromBuffer を直接呼ぶ。
+        // PNG 入力時は image/jpeg の options が参照されないため無害
+        // （@jimp/js-png の DecodePngOptions にメモリ・解像度の上限は無い）。
+        const imageJimp = await Jimp.fromBuffer(await fs.readFile(srcFile), {
+            'image/jpeg': {
+                maxMemoryUsageInMB: LARGE_MAP_JPEG_MAX_MEMORY_MB,
+                maxResolutionInMP: LARGE_MAP_JPEG_MAX_RESOLUTION_MP,
+            },
+        });
         const width: number = imageJimp.width;   // 旧: imageJimp.bitmap.width
         const height: number = imageJimp.height; // 旧: imageJimp.bitmap.height
         const maxZoom = Math.ceil(Math.log(Math.max(width, height) / 256) / Math.log(2));
