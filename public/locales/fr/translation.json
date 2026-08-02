@@ -362,7 +362,8 @@
     },
     "originals": {
       "unsupported_extension": "Format d'image non pris en charge (jpg/jpeg/png uniquement). Veuillez réenregistrer avec un format d'image différent."
-    }
+    },
+    "poi_format_unsupported": "Les données de POI sont dans un format non pris en charge par l'éditeur. Les données d'origine sont conservées lors de l'enregistrement et sont exportées telles quelles vers l'aperçu et l'export, mais l'édition dans cet onglet est désactivée."
   },
   "mapupload": {
     "map_image": "Image de la carte",

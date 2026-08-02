@@ -362,7 +362,8 @@
     },
     "originals": {
       "unsupported_extension": "Format gambar tidak didukung (hanya jpg/jpeg/png). Silakan simpan ulang dengan format gambar yang berbeda."
-    }
+    },
+    "poi_format_unsupported": "Data POI menggunakan format yang tidak didukung editor. Data asli tetap dipertahankan saat disimpan dan dikeluarkan apa adanya ke pratinjau dan ekspor, tetapi pengeditan pada tab ini dinonaktifkan."
   },
   "mapupload": {
     "map_image": "Gambar peta",

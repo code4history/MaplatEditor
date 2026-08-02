@@ -336,27 +336,37 @@ try {
     /key: 'pois'[\s\S]{0,120}?editor_ui\.tabs\.pois/,
     'AppEdit.vue のタブバーに POI選択タブ (editor_ui.tabs.pois、§9 語彙) がない'
   );
-  // 読込形式判定 (M12-T30): pois 配列のみ正準。復元 (bounded reparse) は撤去済み — sp-0006
+  // 読込形式判定 (M12-T30): pois 配列のみ正準。復元 (bounded reparse) は撤去済み — sp-0006。
+  // M4-T1: 受け入れ (温存を含む) は AppEdit / MapEdit 共通の acceptDocumentPois が唯一の実装に
+  // なり、判定表示は共通 composable usePoisFormatGuard (computed) が担う。AppEdit 側の独自分岐
+  // (poisRead / poisUnsupported.value への代入) は撤去された — 検査の意図 (形式判定を経由し、
+  // 未対応形式を画面へ通知する) はそのままに、期待値を新しい共通実装へ更新する。
   assert.match(
     appEditView,
-    /import \{ readAppDocumentPois \} from "\.\.\/utils\/appPoisFormat"/,
-    'AppEdit.vue が readAppDocumentPois (appPoisFormat) を import していない'
+    /import \{ acceptDocumentPois \} from "\.\.\/utils\/appPoisFormat"/,
+    'AppEdit.vue が acceptDocumentPois (appPoisFormat) を import していない'
   );
   assert.match(
     appEditView,
-    /const poisRead = readAppDocumentPois\(value\)/,
-    'normalizeAppDocument が readAppDocumentPois で pois の形式判定をしていない'
+    /import \{ usePoisFormatGuard \} from "\.\.\/composables\/usePoisFormatGuard"/,
+    'AppEdit.vue が usePoisFormatGuard を import していない'
   );
   assert.match(
     appEditView,
-    /normalized\.pois = poisRead\.pois/,
-    'normalizeAppDocument が判定結果の pois を反映していない'
+    /acceptDocumentPois\(normalized, value\)/,
+    'normalizeAppDocument が共通の受け入れ関所 acceptDocumentPois を通していない'
   );
-  // 未対応形式 (poisRead.unsupported) は画面上に警告を出す (黙って消えない原則の可視化面)
+  // 未対応形式は画面上に警告を出す (黙って消えない原則の可視化面)。判定は computed なので
+  // 受け入れ関所を通らない履歴 undo/redo でも追随する
   assert.match(
     appEditView,
-    /poisUnsupported\.value = poisRead\.unsupported/,
-    'normalizeAppDocument が未対応形式フラグ (poisUnsupported) を更新していない'
+    /const \{ unsupported: poisUnsupported, pois: poisForEditor \} = poisGuard/,
+    'AppEdit.vue が共通ガードから poisUnsupported / poisForEditor を受けていない'
+  );
+  assert.doesNotMatch(
+    appEditView,
+    /poisUnsupported\.value\s*=/,
+    'AppEdit.vue に poisUnsupported への命令的代入が残存している (M4-T1 で computed へ移行済みのはず)'
   );
   assert.match(
     appEditView,
@@ -380,11 +390,17 @@ try {
   );
   // 書き戻し: PoiReferenceEditor の update:pois を配列のまま反映 + 履歴記録
   assert.match(appEditView, /function onPoisChange/, 'AppEdit.vue に update:pois の反映 (onPoisChange) がない');
-  assert.match(
-    appEditView,
-    /function onPoisChange\(next: unknown\[\]\) \{\s*\n\s*appData\.value\.pois = next;\s*\n\s*recordHistory\(\);/,
-    'onPoisChange が pois 配列反映 + recordHistory (AppEdit の履歴方式) になっていない'
-  );
+  // M4-T1: 本体に書き込みガード (未対応形式を弾く二重防御) と空時のキー削除 (永続形は両画面同一)
+  // が入ったため、本体完全一致から要素ごとの検査へ改める。recordHistory が AppEdit の履歴方式で
+  // あることは変わらないので、その検査意図は維持する。
+  {
+    const onPoisChangeIdx = appEditView.indexOf('function onPoisChange');
+    const body = appEditView.slice(onPoisChangeIdx, onPoisChangeIdx + 420);
+    assert.match(body, /if \(!poisGuard\.acceptsWrite\(\)\) return;/, 'onPoisChange に書き込みガードがない (M4-T1)');
+    assert.match(body, /delete appData\.value\.pois/, 'onPoisChange が空配列で pois キーを削除していない (M4-T1)');
+    assert.match(body, /appData\.value\.pois = next/, 'onPoisChange が pois 配列を反映していない');
+    assert.match(body, /recordHistory\(\)/, 'onPoisChange が recordHistory (AppEdit の履歴方式) を呼んでいない');
+  }
   // 参照判定・復元・書き戻しの純関数部は共有 util (utils/poiReferenceUi) に集約されたまま
   const poiReferenceUi = await readFile(path.join(projectRoot, 'src/utils/poiReferenceUi.ts'), 'utf8');
   const poiReferenceEditor = await readFile(path.join(projectRoot, 'src/components/PoiReferenceEditor.vue'), 'utf8');

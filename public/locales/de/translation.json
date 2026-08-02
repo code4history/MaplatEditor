@@ -362,7 +362,8 @@
     },
     "originals": {
       "unsupported_extension": "Nicht unterstütztes Bildformat (nur jpg/jpeg/png werden unterstützt). Bitte mit einem anderen Bildformat erneut speichern."
-    }
+    },
+    "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor. Die Originaldaten bleiben beim Speichern erhalten und werden unverändert in Vorschau und Export ausgegeben, die Bearbeitung in diesem Tab ist jedoch deaktiviert."
   },
   "mapupload": {
     "map_image": "Kartenbild",
