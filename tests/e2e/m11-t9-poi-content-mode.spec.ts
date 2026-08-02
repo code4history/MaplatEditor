@@ -220,15 +220,24 @@ test.describe('M11-T9 POI Content Mode', () => {
       const origin = m![1];
       const token = m![2];
 
+      // M4-T3: POI 実体は apps/*.json へインライン展開されず pois/*.geojson として配信される。
+      // ∴ html の maplat-asset 解決結果は pois/ 側で検証する（app json 側には参照だけが残る）。
+      // 解決形も preview 専用の絶対パスから export と同一の imgs/{slug}.{ext} へ統一された
       const appJsonRes = await fetch(`${origin}/preview/${token}/apps/${token}.json`);
       expect(appJsonRes.status).toBe(200);
       const appJsonText = await appJsonRes.text();
-      const resolvedUrl = `/preview/${token}/imgs/assets/${seeded.assetUid}.png`;
-      expect(appJsonText).toContain(resolvedUrl);
+      expect(appJsonText).toContain(`pois/${assetSlug}-poi.geojson`);
       expect(appJsonText).not.toContain('maplat-asset:');
 
+      const poiJsonRes = await fetch(`${origin}/preview/${token}/pois/${assetSlug}-poi.geojson`);
+      expect(poiJsonRes.status).toBe(200);
+      const poiJsonText = await poiJsonRes.text();
+      const resolvedUrl = `imgs/${assetSlug}.png`;
+      expect(poiJsonText).toContain(resolvedUrl);
+      expect(poiJsonText).not.toContain('maplat-asset:');
+
       // 解決済み URL から実体（画像バイト）が配信される
-      const assetRes = await fetch(`${origin}${resolvedUrl}`);
+      const assetRes = await fetch(`${origin}/preview/${token}/${resolvedUrl}`);
       expect(assetRes.status).toBe(200);
       const bytes = new Uint8Array(await assetRes.arrayBuffer());
       expect(bytes.length).toBeGreaterThan(0);
