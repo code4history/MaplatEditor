@@ -4,6 +4,7 @@ import AdmZip from 'adm-zip';
 import { app, dialog, BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
 import * as storeHandler from '../utils/store_handler';
+import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 import SqliteDataService from './SqliteDataService';
 
 class DataUploadService {
@@ -72,24 +73,23 @@ class DataUploadService {
             await fs.move(tmbPath, tmbToPath);
 
             // --- 原版の normalizeRequestData 相当 ---
-            // store2HistMap で store 形式 → histMap 形式に変換
-            const [histMap, tins] = await storeHandler.store2HistMap(mapData as any);
+            // store2HistMap で store 形式 → histMap 形式に変換。
+            // M5-T3: byCompiled=true は MapEditService.request と同じ値。renderer は import 経路でも
+            // 通常読み込み経路でも tins の各要素を Tin.setCompiled() へ渡すため、生 Compiled 形が要る
+            // （byCompiled=false が返す Transform インスタンスは IPC の structured clone で
+            // プロトタイプを失い、own-property も Compiled の形ではない）。
+            // compiled を持たない層は createTinFromGcpsAsync が常に文字列 sentinel を返すため
+            // byCompiled の影響を受けない
+            const [histMap, tins] = await storeHandler.store2HistMap(mapData as any, true);
             (histMap as any).mapID  = mapID;
             (histMap as any).uid = uid;
             (histMap as any).revision = 1;
             (histMap as any).status = 'Update';
 
-            // タイル URL を発見して url_ にセット
-            const thumbFolder = path.join(tileToPath, '0', '0');
-            if (fs.existsSync(thumbFolder)) {
-                const thumbs = await fs.readdir(thumbFolder);
-                const tileFile = thumbs.find(f => /^0\.(jpg|jpeg|png)$/.test(f));
-                if (tileFile) {
-                    let thumbURL = `file://${path.join(tileToPath, '0', '0', tileFile).split(path.sep).join('/')}`;
-                    thumbURL = thumbURL.replace(/\/0\/0\/0\./, '/{z}/{x}/{y}.');
-                    (histMap as any).url_ = thumbURL;
-                }
-            }
+            // M5-T3: url_ の導出は共通実装 deriveRuntimeTileUrl() が正本
+            // （MapEditService.normalizeRequestData と同一。二重実装の一本化）
+            const url_ = await deriveRuntimeTileUrl(mapData, path.join(tileToPath, '0', '0'));
+            if (url_) (histMap as any).url_ = url_;
 
             return { mapData: histMap, tins };
         } catch (err: any) {
