@@ -30,7 +30,10 @@ export interface HistMapStore {
   mapper: LangResource;
   reference: string;
   description: LangResource;
-  url: LangResource;
+  // M5-T2 (不変条件 I-1): url は利用者が指定する交換形のタイルURLテンプレート（単一文字列）であり、
+  // 多言語リソースではない。LangResource だったのは MaplatCore 側の i18n 分離時に
+  // メタデータの型を一括拡張した際の巻き添えで、それがこの写しにも及んでいた
+  url: string;
   lang: string;
   imageExtension: string;
   width?: number;
