@@ -461,6 +461,55 @@ try {
         '外部ファイル内 icon の実体も従来どおり同梱されるはず');
       console.log('ok: (C) exportApp externalizes pois into pois/*.geojson');
 
+      // ============================================================
+      // Part D: 単独形の文書が export に出る (M4-T4 AC16)
+      // ------------------------------------------------------------
+      // M4-T4 で readAppDocumentPois が単独形（レイヤ1つを配列に包まず直接置く形）を
+      // supported にしたことの **副次効果**。export / preview / 診断はいずれも
+      // readAppDocumentPois(document).pois を受け取るため、現行まで Array.isArray の判定に
+      // 落ちて無視されていた単独形の POI が出力されるようになる。t2/t3 の出力契約
+      // （配列 + ラッパー参照）に沿った形になることをここで確定させる。
+      // ============================================================
+      {
+        const { uid: soloMapUid } = await SqliteDataService.createMap('m4t2solo', {
+          title: { ja: 'm4t2単独形地図' },
+          pois: 'https://example.com/solo-pois.geojson',   // 実データ maps/morioka.json と同形
+        });
+        assert.ok(soloMapUid, '単独形 map fixture の作成');
+
+        const soloApp = {
+          appID: 'm4t2_solo_app',
+          title: { ja: 'm4t2単独形アプリ' },
+          lang: 'ja',
+          sources: [
+            { sourceType: 'maplat', mapID: 'm4t2solo', role: 'maplat', startFrom: true,
+              data: { mapID: 'm4t2solo', maptype: 'maplat', noload: true } },
+          ],
+          httpSettings: { previewPort: 43192 },
+          appSettings: { homeLng: 135.05, homeLat: 35.05, defaultZoom: 15 },
+          startFrom: 'm4t2solo',
+          pois: { layer: 'https://example.com/solo-app-pois.geojson', hide: true },
+        };
+        const soloResult: any = await AppExportService.exportApp(fakeWin as any, soloApp);
+        assert.ok(soloResult && soloResult.result === 'Success',
+          'AC16: 単独形の文書でも export が成功する: ' + JSON.stringify(soloResult));
+        const soloDir = nodePath.join(${JSON.stringify(workDir)}, 'export-extract-solo');
+        new AdmZip(soloResult.outDir).extractAllTo(soloDir, true);
+        const soloAppJson = JSON.parse(await fsReadFile(nodePath.join(soloDir, 'apps', 'm4t2_solo_app.json'), 'utf8'));
+        assert.deepEqual(
+          soloAppJson.pois,
+          [{ layer: 'https://example.com/solo-app-pois.geojson', hide: true }],
+          'AC16: 単独形の上書きレイヤが配列1件として出力される（t2 の出力契約と同形）',
+        );
+        const soloMapJson = JSON.parse(await fsReadFile(nodePath.join(soloDir, 'maps', 'm4t2solo.json'), 'utf8'));
+        assert.deepEqual(
+          soloMapJson.pois,
+          [{ layer: 'https://example.com/solo-pois.geojson' }],
+          'AC16: 単独形の裸 URL も配列要素位置ではラッパーへ包まれる（t2 の E3）',
+        );
+        console.log('ok: (D) single-layer-form documents now reach the export output (M4-T4 AC16)');
+      }
+
       console.log('m4-t2 export pois externalization smoke passed');
       process.exit(0);
     `

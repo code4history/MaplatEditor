@@ -359,6 +359,15 @@ const hasNonReferenceEntries = computed(() => entries.value.some((entry) => poiU
 // URL 文字列・junk = null 非表示 — 項目数の概念が成立しないため。v1.1 Minor-2)
 function entryItemCount(entry: unknown): number | null {
   if (poiUidOf(entry) !== null) return null;
+  // M4-T4: 上書きレイヤの項目数は参照先の中身。URL 参照は静的には数えられないので非表示
+  // （裸 URL 文字列と同じ扱い）、FC を包むラッパーは中身の feature 数を出す
+  if (isPoiLayerRef(entry)) {
+    const layer = (entry as Record<string, unknown>).layer;
+    if (typeof layer === "string") return null;
+    return Array.isArray((layer as Record<string, unknown>).features)
+      ? ((layer as Record<string, unknown>).features as unknown[]).length
+      : 0;
+  }
   if (!isNonReferenceObjectEntry(entry)) return null;
   const record = entry as Record<string, unknown>;
   if (record.type === "FeatureCollection") {
@@ -376,8 +385,15 @@ function entryItemCountLabel(entry: unknown): string | null {
 // §5.10 (v1.2/v1.3): レイヤ構造判定 — 共有述語 (poisLayerStructure = resolver 混在警告と同一実装)
 // の computed 連鎖がペイン構成 (§5.4)・変換可否 (§4.4)・混在警告表示の唯一の判定源。
 // 参照要素は "fc" へ写像する (resolver が FC に置換した後の形 = viewer が見る形で判別 — §4.2 前文)
+// M4-T4: **上書きレイヤ (ラッパー) も同じ理由で "fc" へ写像する。** ラッパーは viewer が
+// isPoiLayerRef 分岐で1レイヤとして受ける形であり (normalize_pois.ts:106-133)、生の POI
+// オブジェクト (壊れ要素) ではない。素の poisEntryShape では両者とも "object" になるため、
+// 写像しないと [生FC, ラッパー] が「GeoJSON形式とそれ以外の混在」と誤警告され、
+// AC2 が消した viewer-fatal 誤警告と同じ種類の誤りがもう1つ残る (E2E で実測)。
 const entryShapes = computed<readonly PoisEntryShape[]>(() =>
-  entries.value.map((entry) => (poiUidOf(entry) !== null ? "fc" : poisEntryShape(entry))),
+  entries.value.map((entry) =>
+    poiUidOf(entry) !== null || isPoiLayerRef(entry) ? "fc" : poisEntryShape(entry),
+  ),
 );
 const layerMode = computed(() => poisLayerMode(entryShapes.value, entries.value));
 const isMixedLayer = computed(() => hasMixedPoisShapes(entryShapes.value));
@@ -562,6 +578,14 @@ function entryTitle(entry: unknown): string {
     return localizeTitle(record.cachedTitle as LangResource | undefined, props.activeLang) || uid;
   }
   if (typeof entry === "string") return entry;
+  // M4-T4: 上書きレイヤは参照先そのものが同一性なので、layer の中身から題名を採る
+  // (URL ならその URL、FC なら FC の name/id)。ここを飛ばすと「地図内定義POI」の
+  // fallback へ落ち、バッジ (外部ファイル参照) と食い違う (E2E で実測)
+  if (isPoiLayerRef(entry)) {
+    const layer = (entry as Record<string, unknown>).layer;
+    if (typeof layer === "string") return layer;
+    entry = layer;
+  }
   if (entry && typeof entry === "object" && !Array.isArray(entry)) {
     const record = entry as Record<string, unknown>;
     if (typeof record.name === "string" && record.name) return record.name;

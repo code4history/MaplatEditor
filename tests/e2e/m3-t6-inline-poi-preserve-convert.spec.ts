@@ -462,13 +462,16 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
     try {
       // 保存成功 dialog (appedit.success_save) を自動 OK するため stub を先に仕込む (手順8' 用)
       await stubMessageBoxRecording(app);
-      // 破損 pois (heal 復元不能な生値) を持つ app を seed
+      // 破損 pois (heal 復元不能な生値) を持つ app を seed。
+      // M4-T4: 旧 fixture の URL 文字列は「単独形の URLレイヤ」として supported になったため、
+      // 未対応形式の代表を多重 stringify の破損へ差し替える（viewer 正本も受容しない形）。
+      // 検査意図（未対応形式は警告 + read-only + 保存しても生値が消えない）は不変
       const seeded = await page.evaluate(async () => {
         const slug = `t6-heal-${Date.now()}`;
         const uid = crypto.randomUUID();
         const r = await window.appedit.save({
           uid, slug, create: true,
-          document: { appID: slug, appName: { ja: 'T6 Heal' }, title: { ja: 'T6 Heal' }, description: {}, keywords: '', siteUrl: '', lang: 'ja', sources: [], pois: 'https://example.com/legacy-pois.json', httpSettings: {}, appSettings: {}, manifestSettings: {} },
+          document: { appID: slug, appName: { ja: 'T6 Heal' }, title: { ja: 'T6 Heal' }, description: {}, keywords: '', siteUrl: '', lang: 'ja', sources: [], pois: JSON.stringify(JSON.stringify([{ name: 'p', lat: 1, lng: 2 }])), httpSettings: {}, appSettings: {}, manifestSettings: {} },
         });
         if (!r || r.result !== 'Success') throw new Error(`create: ${JSON.stringify(r)}`);
         return { uid, slug };
@@ -493,7 +496,7 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       await page.getByTestId('editor-save').click();
       await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 30000 });
       const storedApp = await page.evaluate(async (uid) => (window as any).appedit.request(uid), seeded.uid);
-      expect(storedApp.pois).toBe('https://example.com/legacy-pois.json');
+      expect(storedApp.pois).toBe(JSON.stringify(JSON.stringify([{ name: 'p', lat: 1, lng: 2 }])));
 
       console.log('  手順8: PASS');
     } finally {
