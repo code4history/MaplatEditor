@@ -47,12 +47,23 @@ export function hasMixedPoisShapes(shapes: readonly PoisEntryShape[]): boolean {
 // (poiref.layer_key_missing_warning) の判定に使う — UI のみで使用し resolver の警告契約 (AC6-7)
 // は拡張しない (§5.10)
 export function hasPoisLayerKey(entry: unknown): boolean {
-  if (entry === null || typeof entry !== "object" || Array.isArray(entry)) return false;
+  return poisLayerKeyOf(entry) !== undefined;
+}
+
+// 上と同じ key 導出の値版 (M4-T2 §5.2)。truthy な key があればその値、無ければ undefined。
+// hasPoisLayerKey はこれの存在判定として実装されており、判定位置は常に1箇所で一致する
+// (id → properties.id の順・truthy 判定は viewer normalize_pois.ts:124 と同じ `||` 意味論)。
+// M4-T2 では外部ファイル名の基底として使う — viewer がレイヤ key を読む位置と揃えるため
+// (揃えないと、公開データ旧形の FC ような properties.id 側に key を持つ FC が
+//  fallback 名 'poi' へ落ちる)。
+export function poisLayerKeyOf(entry: unknown): unknown {
+  if (entry === null || typeof entry !== "object" || Array.isArray(entry)) return undefined;
   const record = entry as Record<string, unknown>;
-  if (record.id) return true;
+  if (record.id) return record.id;
   const properties = record.properties;
   if (properties !== null && typeof properties === "object" && !Array.isArray(properties)) {
-    return Boolean((properties as Record<string, unknown>).id);
+    const key = (properties as Record<string, unknown>).id;
+    if (key) return key;
   }
-  return false;
+  return undefined;
 }

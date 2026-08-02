@@ -360,17 +360,32 @@ try {
       const { default: AdmZip } = await import('adm-zip');
       const exportDir = nodePath.join(${JSON.stringify(workDir)}, 'export-extract');
       new AdmZip(exported.outDir).extractAllTo(exportDir, true);
+      // M4-T2: export の pois は **外部ファイル + URL 参照** になった (preview は従来どおり
+      // インライン展開のまま = t3 の責務)。∴ 解決済み FC の中身は外部ファイル側で検証する
       const exportedAppJson = JSON.parse(
         await fsReadFile(nodePath.join(exportDir, 'apps', 'poi_ref_app.json'), 'utf8')
       );
-      assertResolvedFc(exportedAppJson.pois[0], 'export app JSON');
       assert.equal(exportedAppJson.pois.length, 3, 'export でも missing 参照が落ちて 3 要素のはず');
-      assert.equal(exportedAppJson.pois[1], rawUrl, 'export でも生 URL は透過されるはず');
-      assert.deepEqual(exportedAppJson.pois[2], rawFc, 'export でも生 FC は無加工透過されるはず');
+      assert.deepEqual(exportedAppJson.pois[0], { layer: 'pois/kyoto-poi.geojson' },
+        'export app JSON: {poiUid} 参照は pois/<slug>.geojson への参照になるはず (M4-T2)');
+      assert.deepEqual(exportedAppJson.pois[1], { layer: rawUrl },
+        'export app JSON: 生 URL は {layer:URL} へ包まれるはず (M4-T2 E3)');
+      assert.deepEqual(exportedAppJson.pois[2], { layer: 'pois/embedded-raw.geojson' },
+        'export app JSON: 生 FC も外部ファイル化されるはず (M4-T2 E2)');
+      // 外部ファイルの中身が従来のインライン FC と同じであること (解決結果そのものは不変)
+      const externalizedFc = JSON.parse(
+        await fsReadFile(nodePath.join(exportDir, 'pois', 'kyoto-poi.geojson'), 'utf8')
+      );
+      assertResolvedFc(externalizedFc, 'export pois/kyoto-poi.geojson');
+      const externalizedRawFc = JSON.parse(
+        await fsReadFile(nodePath.join(exportDir, 'pois', 'embedded-raw.geojson'), 'utf8')
+      );
+      assert.deepEqual(externalizedRawFc, rawFc, 'export でも生 FC の中身は無加工のはず');
       const exportedMapJson = JSON.parse(
         await fsReadFile(nodePath.join(exportDir, 'maps', 'poimap.json'), 'utf8')
       );
-      assertResolvedFc(exportedMapJson.pois[0], 'export map JSON');
+      assert.deepEqual(exportedMapJson.pois[0], { layer: 'pois/kyoto-poi.geojson' },
+        'export map JSON も同じ外部ファイルを参照するはず (app と map で1ファイルへ畳む)');
       assert.ok(exported.warnings.includes(MISSING_KEY), 'export warnings に missing キーが載るはず: ' + JSON.stringify(exported.warnings));
       assert.equal(exported.warnings.filter((key: string) => key === MISSING_KEY).length, 1, 'export missing 警告キーは1回だけのはず');
       assert.ok(exported.warnings.includes(DUPLICATE_KEY), 'export warnings に duplicate キーが載るはず: ' + JSON.stringify(exported.warnings));
@@ -384,9 +399,9 @@ try {
         'export された builtin icon の中身は PNG のはず (Phase 8 Task 4: ビューア標準 png)');
       const exportedAsset = await fsReadFile(nodePath.join(exportDir, 'imgs', 'temple-mark.png'));
       assert.ok(exportedAsset.equals(assetBytes), 'export された asset icon の中身は登録したバイト列のはず');
-      // app JSON の参照が同梱ファイルを指すこと (assertResolvedFc で imgs/... 化は確認済み)
-      assert.equal(exportedAppJson.pois[0].properties.icon, 'imgs/temple-mark.png');
-      assert.equal(exportedAppJson.pois[0].features[0].properties.icon, 'imgs/icons/builtin/defaultpin.png');
+      // 外部ファイル側の参照が同梱ファイルを指すこと (M4-T2: 参照は app JSON ではなく pois/ 側)
+      assert.equal(externalizedFc.properties.icon, 'imgs/temple-mark.png');
+      assert.equal(externalizedFc.features[0].properties.icon, 'imgs/icons/builtin/defaultpin.png');
       assert.ok(exported.warnings.includes(UNRESOLVED_ICON_KEY),
         'export warnings に unresolved icon キーが載るはず: ' + JSON.stringify(exported.warnings));
       assert.equal(

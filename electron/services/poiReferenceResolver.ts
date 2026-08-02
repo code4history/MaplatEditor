@@ -29,7 +29,8 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { parseIconRef, listIconSets } from '../../src/utils/iconRefs';
 import { compactLangResource, type LangResource } from '../../src/utils/langResource';
 import { DEFAULT_LANG } from '../../src/utils/poiGeoJson';
-import { poisEntryShape, hasMixedPoisShapes } from '../../src/utils/poisLayerStructure';
+import { poisEntryShape, hasMixedPoisShapes, poisLayerKeyOf } from '../../src/utils/poisLayerStructure';
+import { sanitizePoiFileBase, reservePoiFileBase } from '../../src/utils/poiExportFileName';
 import {
   collectAssetRefUids,
 } from '../../src/utils/poiContentMode';
@@ -334,6 +335,236 @@ export async function resolvePoisArray(
   //  object = isPlainObject && type!=='FeatureCollection' / 配列・文字列・数値は非カウント)。挙動不変
   if (hasMixedPoisShapes(out.map(poisEntryShape))) mergeWarnings(warnings, ['appedit.warn_mixed_pois']);
   return { pois: out, files: [...sink.files.values()], warnings };
+}
+
+// ============================================================================
+// POI の外部ファイル化 (M4-T2)
+// ============================================================================
+// 本来の仕様は「POI はすべて外部ファイルに置き、設定は URL で参照する」であり、上書き仕様
+// ({layer, hide, title, icon, selectedIcon}) は外部ファイルを書き換えずに属性だけ差し替える
+// ために存在する (人間・2026-08-02)。resolvePoisArray は解決した FC をそのまま配列へ戻す
+// = インライン展開であり、上書きも FC へ焼き込んでしまう (applyReferenceIconOverrides)。
+//
+// resolvePoisArray は変更しない。資源診断 (ResourceDiagnosticsService.diagnosePois) が
+// 「解決後の FC そのもの」を走査して icon/asset の欠損を検出しており、参照形を返すと
+// 何も検査できなくなるため (設計 §2.4)。∴ 外部化は本関数群として独立に足す。
+
+/** 外部ファイルとして書き出す POI 実体。dest は出力ルート相対 posix パス */
+export interface PoiDocument {
+  dest: string;
+  json: unknown;
+}
+
+/**
+ * 外部化の作業状態。**export 1 回分で共有する** — app JSON と map JSON が同じ POI ソースを
+ * 参照した場合に、外部ファイルを1つへ畳むため。
+ */
+export interface PoiExternalizationContext {
+  /** poiUid → dest。同一ソースの再参照を同じファイルへ向ける */
+  byUid: Map<string, string>;
+  /** 使用済みファイル基底名。衝突時の連番採番に使う */
+  taken: Set<string>;
+  /** dest → 実体。重複書き出しを抑止する */
+  documents: Map<string, PoiDocument>;
+}
+
+export function createPoiExternalizationContext(): PoiExternalizationContext {
+  return { byUid: new Map(), taken: new Set(), documents: new Map() };
+}
+
+export interface ExternalizedPois {
+  pois: unknown[];
+  files: IconFile[];
+  /** ctx に溜まった全件を返す (この呼び出しで増えた分だけではない) */
+  documents: PoiDocument[];
+  warnings: string[];
+}
+
+// 上書きレイヤ (ラッパー) の許可キーは hide / title / icon / selectedIcon の4つ
+// (viewer 正本 MaplatCore/src/normalize_pois.ts:23 の OVERRIDE_KEYS)。キーごとに有効値の
+// 判定が異なるため、列挙ではなく buildPoiLayerRef 内で個別に扱う。
+// ラッパー判別で「座標を持つ = POI オブジェクト」を弾くためのキー。viewer :25-31 と同一
+const COORD_KEYS = ['lnglat', 'lng', 'lat', 'longitude', 'latitude'] as const;
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isFeatureCollection(value: unknown): value is Record<string, unknown> {
+  return isPlainObject(value) && value.type === 'FeatureCollection';
+}
+
+// 配列要素文脈のラッパー判別。viewer 正本 isPoiLayerRef (normalize_pois.ts:36-46) と同一規則:
+// layer が string または FeatureCollection で、座標キーを持たない plain object
+function isPoiLayerRef(value: unknown): value is Record<string, unknown> {
+  if (!isPlainObject(value)) return false;
+  if (value.type === 'FeatureCollection') return false;
+  const layer = value.layer;
+  if (typeof layer !== 'string' && !isFeatureCollection(layer)) return false;
+  if (COORD_KEYS.some((key) => value[key] !== undefined)) return false;
+  return true;
+}
+
+// FC を外部ファイルとして ctx へ登録し、参照 URL (dest) を返す。
+// 名前は viewer のレイヤ key と同じ位置 (FC.id || FC.properties.id) を基底とし、sanitize +
+// 連番一意化する。連番が枯渇したら null (呼び出し側がインライン透過へフォールバックする)。
+// 実体側では従来どおり icon 参照文法と asset ref を解決する — 外部ファイルになっても
+// viewer から見た imgs/... の位置は変わらない (どちらも index.html と同階層基準)。
+async function emitPoiDocument(
+  fc: unknown,
+  baseHint: unknown,
+  ctx: PoiExternalizationContext,
+  sink: IconResolutionSink,
+): Promise<string | null> {
+  const reserved = reservePoiFileBase(sanitizePoiFileBase(baseHint), ctx.taken);
+  if (reserved === null) return null;
+  const dest = `pois/${reserved}.geojson`;
+  const withIcons = await resolveIconRefsInFc(fc, sink);
+  const assetResolved = await resolveAssetRefsForExport(withIcons, sink.files);
+  mergeWarnings(sink.warnings, assetResolved.warnings);
+  ctx.documents.set(dest, { dest, json: assetResolved.entry });
+  return dest;
+}
+
+// 参照側オブジェクト (ラッパー) を組み立てる。上書きは **FC へ焼き込まず** ここへ載せる
+// (これが上書き仕様の存在意義。M4-T2 G2)。
+// 有効値の判定は applyReferenceIconOverrides と同一 — hide は true のみ、title は
+// compactLangResource が undefined を返さない場合のみ、icon/selectedIcon は非空 string のみ。
+//
+// 【落とし穴】従来は上書きを FC.properties へ載せてから後段の resolveIconRefsInFc が
+// icon 参照文法 (icon set 参照 / asset UUID) を imgs/... へ解決していた。ラッパーへ移す以上、
+// 同じ解決をここで通さないと上書きアイコンだけ生 UUID のまま出力され viewer で表示されない。
+async function buildPoiLayerRef(
+  dest: string,
+  entry: Record<string, unknown>,
+  sink: IconResolutionSink,
+): Promise<Record<string, unknown>> {
+  const wrapper: Record<string, unknown> = { layer: dest };
+  if (entry.hide === true) wrapper.hide = true;
+  const title = compactLangResource(entry.title as LangResource | null | undefined, DEFAULT_LANG);
+  if (title !== undefined) wrapper.title = title;
+  for (const key of ['icon', 'selectedIcon'] as const) {
+    const value = entry[key];
+    if (typeof value !== 'string' || value === '') continue;
+    const resolution = await resolveIconValue(value);
+    if (!resolution) {
+      wrapper[key] = value; // URL / 相対パス — 無変更 (resolveIconProps と同じ扱い)
+      continue;
+    }
+    if (resolution.kind === 'unresolved') {
+      mergeWarnings(sink.warnings, [UNRESOLVED_ICON_WARNING]);
+      wrapper[key] = value; // 原文維持
+      continue;
+    }
+    sink.files.set(resolution.file.dest, resolution.file);
+    wrapper[key] = resolution.dest;
+  }
+  return wrapper;
+}
+
+/**
+ * pois 配列を「外部ファイル + URL 参照 (+ 上書き属性)」の形へ変換する (M4-T2 §5.2 の正本表)。
+ *
+ * | 入力要素                       | 出力要素                                | 外部ファイル |
+ * |--------------------------------|-----------------------------------------|--------------|
+ * | E1 {poiUid, …上書き}           | {layer:"pois/<name>.geojson", …上書き}  | exportForm の FC |
+ * | E2 生 FC                       | {layer:"pois/<name>.geojson"}           | その FC |
+ * | E3 裸 URL 文字列               | {layer:"<原文>"}                        | なし |
+ * | E4 {layer:"<文字列>", …}       | そのまま透過                             | なし |
+ * | E5 {layer:<FC>, …}             | {layer:"pois/<name>.geojson", …上書き}  | その FC |
+ * | E6 それ以外 (レガシー POI 等)  | そのまま透過                             | なし |
+ * | E7 解決できない poiUid         | 要素を落とす + missing 警告 1 回        | なし |
+ *
+ * E3 の理由: 裸 URL 文字列は配列要素位置で現行 viewer が誤判定する (normalizeLayers は全要素を
+ * fetch で中身へ置換してから先頭要素でモード判定するため)。{layer:URL} へ包めば fetch 前に
+ * 判別されるので出力側だけで回避できる。viewer 側の堅牢化 (m4-t5) はこれとは独立に残る。
+ */
+export async function externalizePoisArray(
+  pois: unknown,
+  ctx: PoiExternalizationContext,
+  options: { exportForm?: (uid: string) => Promise<unknown | null> } = {},
+): Promise<ExternalizedPois> {
+  const warnings: string[] = [];
+  const sink: IconResolutionSink = { files: new Map(), warnings };
+  if (!Array.isArray(pois)) {
+    return { pois: [], files: [], documents: [...ctx.documents.values()], warnings };
+  }
+  const out: unknown[] = [];
+  // 混在警告 (M3-T6 §5.7) の判定は resolvePoisArray と同じ「解決後」基準を維持する。
+  // 入力配列で判定すると {poiUid} が 'object' に数えられ、参照 + 生 FC という正常構成が
+  // 恒常的に偽陽性になる。∴ 各要素が resolvePoisArray でどの shape になったかを記録する。
+  const resolvedShapes: ReturnType<typeof poisEntryShape>[] = [];
+  let missing = false;
+  for (const entry of pois) {
+    const uid = poiUidOf(entry);
+    if (uid) {
+      let dest = ctx.byUid.get(uid);
+      if (dest === undefined) {
+        const fc = await (options.exportForm ?? ((poiUid: string) => PoiSourceService.exportForm(poiUid)))(uid);
+        if (!fc) {
+          missing = true; // E7
+          continue;
+        }
+        const emitted = await emitPoiDocument(fc, poisLayerKeyOf(fc) ?? uid, ctx, sink);
+        if (emitted === null) {
+          // 連番枯渇 (同一基底名 100 件超)。黙って落とさずインライン透過へ倒す。
+          // 利用者向け警告キーは新設しない (§5.5) — main プロセスのログで可視化する
+          console.warn('[poiReferenceResolver] POI file name candidates exhausted; kept inline:', uid);
+          out.push(await resolveIconRefsInFc(fc, sink));
+          resolvedShapes.push(poisEntryShape(fc));
+          continue;
+        }
+        dest = emitted;
+        ctx.byUid.set(uid, dest);
+      }
+      out.push(await buildPoiLayerRef(dest, entry as Record<string, unknown>, sink)); // E1
+      resolvedShapes.push('fc'); // resolvePoisArray なら FC に置換されていた
+      continue;
+    }
+    if (isPoiLayerRef(entry)) {
+      const layer = entry.layer;
+      if (typeof layer === 'string') {
+        out.push(entry); // E4
+        resolvedShapes.push(poisEntryShape(entry));
+        continue;
+      }
+      const emitted = await emitPoiDocument(layer, poisLayerKeyOf(layer), ctx, sink);
+      if (emitted === null) {
+        console.warn('[poiReferenceResolver] POI file name candidates exhausted; kept inline wrapper');
+        out.push(entry);
+      } else {
+        out.push(await buildPoiLayerRef(emitted, entry, sink)); // E5
+      }
+      resolvedShapes.push(poisEntryShape(entry));
+      continue;
+    }
+    if (isFeatureCollection(entry)) {
+      const emitted = await emitPoiDocument(entry, poisLayerKeyOf(entry), ctx, sink);
+      if (emitted === null) {
+        console.warn('[poiReferenceResolver] POI file name candidates exhausted; kept inline FC');
+        out.push(await resolveIconRefsInFc(entry, sink));
+      } else {
+        out.push({ layer: emitted }); // E2
+      }
+      resolvedShapes.push('fc');
+      continue;
+    }
+    if (typeof entry === 'string') {
+      out.push({ layer: entry }); // E3
+      resolvedShapes.push('string'); // resolvePoisArray でも文字列は混在判定に数えない
+      continue;
+    }
+    out.push(entry); // E6
+    resolvedShapes.push(poisEntryShape(entry));
+  }
+  if (missing) mergeWarnings(warnings, ['appedit.warn_missing_poi_source']);
+  if (hasMixedPoisShapes(resolvedShapes)) mergeWarnings(warnings, ['appedit.warn_mixed_pois']);
+  return {
+    pois: out,
+    files: [...sink.files.values()],
+    documents: [...ctx.documents.values()],
+    warnings,
+  };
 }
 
 // icon 実体コピー要求の重複なし合流 (dest キーで畳む — 複数 pois 配列/複数 map をまたぐ集約用)
