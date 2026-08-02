@@ -136,7 +136,13 @@ try {
         { label: '深さ1 stringify', input: { pois: depth1 }, expected: { pois: [], unsupported: true } },
         { label: '深さ2 stringify', input: { pois: depth2 }, expected: { pois: [], unsupported: true } },
         { label: '深さ6 stringify', input: { pois: depth6 }, expected: { pois: [], unsupported: true } },
-        { label: 'URL 文字列', input: { pois: 'https://example.com/pois.geojson' }, expected: { pois: [], unsupported: true } },
+        // M4-T4: pois の単独形（レイヤ1つを配列に包まず直接置く形）は viewer 正本が受容するので
+        // supported へ変わった。表示用に1要素配列へ写像されるが、**文書の保存形は書き換えない**
+        // （sp-0006。acceptDocumentPois が生値を温存し、writeDocumentPois が保存形を決める）
+        { label: 'URL 文字列（単独形）', input: { pois: 'https://example.com/pois.geojson' }, expected: { pois: ['https://example.com/pois.geojson'], unsupported: false } },
+        { label: '上書き付きラッパー（単独形）', input: { pois: { layer: 'pois/a.geojson', hide: true } }, expected: { pois: [{ layer: 'pois/a.geojson', hide: true }], unsupported: false } },
+        // 素ラッパーの単独形は viewer の isPoiLayerRefAsWhole が上書きキーを追加要求するため受容されない
+        { label: '素ラッパー（単独形）', input: { pois: { layer: 'pois/a.geojson' } }, expected: { pois: [], unsupported: true } },
         { label: '空文字列', input: { pois: '' }, expected: { pois: [], unsupported: true } },
         { label: 'レイヤ名キー object', input: { pois: { main: [], id1: [] } }, expected: { pois: [], unsupported: true } },
         {
@@ -150,7 +156,7 @@ try {
         const actual = readAppDocumentPois(input);
         assert.deepEqual(actual, expected, \`readAppDocumentPois: \${label} — got \${JSON.stringify(actual)}\`);
       }
-      console.log('ok: readAppDocumentPois 全分岐表（深さ1を含む全文字列形が unsupported: true）');
+      console.log('ok: readAppDocumentPois 全分岐表（多重 stringify は全深さで unsupported / 単独形は supported）');
 
       // ---- Part B: 永続化層 round-trip ----
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
@@ -180,9 +186,11 @@ try {
       }
       console.log('ok: AppDataService round-trip（正常配列 pois の deep-equal 維持）');
 
-      // (ii) 未対応形式（URL 文字列 pois）: 保存→読込で生値が逐語温存される
+      // (ii) 未対応形式の生値温存: 保存→読込で生値が逐語温存される。
+      // M4-T4: 旧 fixture の URL 文字列は supported になったため、未対応形式の代表を
+      // 多重 stringify の破損へ差し替える（検査意図＝生値の逐語温存は不変）
       {
-        const rawPois = 'https://example.com/legacy-pois.json';
+        const rawPois = JSON.stringify(JSON.stringify([{ name: 'p', lat: 1, lng: 2 }]));
         const saved = await AppDataService.saveApp({
           document: baseAppDoc({ appID: 't30-unsupported', pois: rawPois }),
           slug: 't30-unsupported',
@@ -276,7 +284,8 @@ try {
   // 経由すること）は不変なので、期待値だけを新しい共通実装へ更新する。
   assert.match(
     appEditView,
-    /import \{ acceptDocumentPois \} from "\.\.\/utils\/appPoisFormat"/,
+    // M4-T4: 書き込み側の関所 writeDocumentPois が加わり import が2つになった（検査意図は不変）
+    /import \{[^}]*\bacceptDocumentPois\b[^}]*\} from "\.\.\/utils\/appPoisFormat"/,
     'AppEdit.vue が acceptDocumentPois (appPoisFormat) を import していない',
   );
   assert.match(appEditView, /poisUnsupported/, 'AppEdit.vue に poisUnsupported の配線がない');

@@ -363,7 +363,7 @@
     "originals": {
       "unsupported_extension": "Formato de imagen no admitido (solo jpg/jpeg/png). Vuelva a guardar con un formato de imagen diferente."
     },
-    "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor. Los datos originales se conservan al guardar y se exportan tal cual a la vista previa y a la exportación, pero la edición en esta pestaña está deshabilitada."
+    "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor (por ejemplo, un objeto indexado por nombre de capa). Los datos originales se conservan al guardar y se exportan tal cual a la vista previa y a la exportación, pero la edición en esta pestaña está deshabilitada."
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
@@ -580,7 +580,7 @@
     "export_failed": "Error al exportar.",
     "warn_missing_poi_source": "No se encontraron algunas fuentes de POI referenciadas y se omitieron de la salida.",
     "warn_duplicate_poi_reference": "La misma fuente de POI está referenciada tanto por la aplicación como por un mapa. Los POI podrían mostrarse dos veces.",
-    "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor. Los datos originales no se pierden al guardar, pero la edición en esta pestaña está deshabilitada y no se reflejarán en la vista previa ni en la exportación.",
+    "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor (por ejemplo, un objeto indexado por nombre de capa). Los datos originales no se pierden al guardar, pero la edición en esta pestaña está deshabilitada y no se reflejarán en la vista previa ni en la exportación.",
     "warn_unresolved_icon": "Algunas referencias de iconos no se pudieron resolver y se mantuvieron sin cambios en la salida.",
     "warn_icon_too_small": "La imagen de origen del icono PWA es menor de 512px, por lo que los iconos generados pueden verse borrosos.",
     "export": {
@@ -637,7 +637,10 @@
     "inline_data": "POI definido en el mapa",
     "external_url": "Referencia de URL externa",
     "inline_note": "POIs definidos directamente dentro de los datos del mapa. Su edición en este panel no es compatible. Puede reordenarlos o eliminarlos, y convertirlos a GeoJSON.",
-    "external_url_note": "Una entrada de POI que hace referencia a una URL externa. No se admite su edición ni conversión. Puede reordenarla o eliminarla.",
+    "layer_ref": "Referencia a archivo externo",
+    "external_url_note": "Una entrada de POI que hace referencia a una URL externa. Su contenido no se puede editar ni convertir, pero puede usar «Añadir sobrescrituras» para sobrescribir los atributos de visualización (título, iconos, ocultar). También puede reordenarla o eliminarla.",
+    "layer_ref_note": "Hace referencia a un archivo externo y solo sobrescribe los atributos de visualización para este mapa/app. El contenido referenciado no se modifica.",
+    "add_override": "Añadir sobrescrituras",
     "mixed_layer_warning": "Se mezclan datos de POI en formato GeoJSON y en otros formatos. El visor no puede mostrar este arreglo correctamente. Conviértalos a GeoJSON y organícelos.",
     "convert_blocked_note": "Esta capa contiene GeoJSON, referencias de URL externas o elementos no convertibles, por lo que no puede convertirse en conjunto. Elimine esos elementos para organizarla y la conversión estará disponible.",
     "layer_key_missing_warning": "Este elemento no tiene identificador de capa (id), por lo que el visor fallará al mostrar estos datos de POI en su conjunto. Organícelo convirtiéndolo a GeoJSON (si es convertible) o eliminándolo.",

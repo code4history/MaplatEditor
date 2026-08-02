@@ -363,7 +363,7 @@
     "originals": {
       "unsupported_extension": "不支援的圖片格式（僅支援jpg/jpeg/png）。請用其他圖片格式重新儲存。"
     },
-    "poi_format_unsupported": "POI 資料為編輯器不支援的格式。儲存時原始資料不會遺失，並會原樣輸出至預覽與匯出，但此分頁中的編輯已停用。"
+    "poi_format_unsupported": "POI 資料為編輯器不支援的格式（例如以圖層名稱為鍵的物件形式）。儲存時原始資料不會遺失，並會原樣輸出至預覽與匯出，但此分頁中的編輯已停用。"
   },
   "mapupload": {
     "map_image": "地圖圖像",
@@ -580,7 +580,7 @@
     "export_failed": "匯出失敗。",
     "warn_missing_poi_source": "未找到部分被引用的POI來源，已從輸出中排除。",
     "warn_duplicate_poi_reference": "同一POI來源同時被應用程式和地圖引用，POI可能會重複顯示。",
-    "poi_format_unsupported": "POI 資料的格式不受編輯器支援。儲存時原始資料不會遺失，但此分頁中的編輯將被停用，且不會反映到匯出或預覽中。",
+    "poi_format_unsupported": "POI 資料的格式不受編輯器支援（例如以圖層名稱為鍵的物件形式）。儲存時原始資料不會遺失，但此分頁中的編輯將被停用，且不會反映到匯出或預覽中。",
     "warn_unresolved_icon": "部分圖示引用無法解析，已按原值輸出。",
     "warn_icon_too_small": "PWA圖示來源圖片小於512px，產生的圖示可能會模糊。",
     "export": {
@@ -637,7 +637,10 @@
     "inline_data": "地圖內定義的 POI",
     "external_url": "外部 URL 參照",
     "inline_note": "直接定義在地圖資料內的 POI。此面板不支援編輯。除變更順序與刪除外，還可轉換為 GeoJSON。",
-    "external_url_note": "參照外部 URL 的 POI 指定。不支援編輯與轉換。可變更順序與刪除。",
+    "layer_ref": "外部檔案參照",
+    "external_url_note": "參照外部 URL 的 POI 指定。不支援編輯與轉換其內容，但可透過「新增覆寫設定」覆寫顯示屬性（標題、圖示、隱藏）。也可變更順序與刪除。",
+    "layer_ref_note": "參照外部檔案，僅在此地圖/應用程式中覆寫顯示屬性。被參照的內容本身不會被修改。",
+    "add_override": "新增覆寫設定",
     "mixed_layer_warning": "GeoJSON 格式與其他格式的 POI 資料混雜在一起。檢視器無法正確顯示此陣列。請轉換為 GeoJSON 並加以整理。",
     "convert_blocked_note": "此圖層包含 GeoJSON、外部 URL 參照或不支援轉換的元素，因此無法整體轉換。刪除相應元素加以整理後即可轉換。",
     "layer_key_missing_warning": "此元素沒有圖層識別碼（id），檢視器顯示整個 POI 資料時將發生錯誤。請透過轉換為 GeoJSON（如可轉換）或刪除來加以整理。",

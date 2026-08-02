@@ -278,14 +278,21 @@ class AppExportService {
         delete (mapJson as any).slug;
         delete (mapJson as any).revision;
         // map data_json の pois 内の {poiUid} 参照を export 形 FC へ解決 (生要素は透過、Phase 7)
-        if (Array.isArray((mapJson as any).pois)) {
-          if (!duplicateReference && hasSharedPoiUid(collectPoiUids((mapJson as any).pois), appPoiUids)) {
+        // M4-T4: 生の Array.isArray ではなく共通の readAppDocumentPois を通す。app 側 (:263,:510)
+        // が既にこの関数で読んでいるのに map 側だけ生判定だったため、**単独形 (レイヤ1つを配列に
+        // 包まず直接置く形) の地図では POI が export から丸ごと落ちていた**。実データ maps の
+        // 3件がこの形であり、t4 で MapEdit が編集可能にした形でもある ∴ 同一扱いへ寄せる
+        // (恒久指示「同一扱い処理は共通実装へ徹底」)。未対応形式は従来どおり空配列になるので、
+        // その場合の挙動 (pois を触らない) も変わらない。
+        const mapPois = readAppDocumentPois(mapJson as { pois?: unknown }).pois;
+        if (mapPois.length > 0) {
+          if (!duplicateReference && hasSharedPoiUid(collectPoiUids(mapPois), appPoiUids)) {
             duplicateReference = true;
             mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
           }
           // M4-T2: 外部ファイル化。icon 参照文法 (POI-117) と maplat-asset:<UID> (M11-T9) の
           // 解決は externalizePoisArray が実体側・参照側の双方で行う
-          const externalized = await externalizePoisArray((mapJson as any).pois, poiCtx);
+          const externalized = await externalizePoisArray(mapPois, poiCtx);
           mergeWarnings(warnings, externalized.warnings);
           mergeIconFiles(iconFiles, externalized.files);
           (mapJson as any).pois = externalized.pois;

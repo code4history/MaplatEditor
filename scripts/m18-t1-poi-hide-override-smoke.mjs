@@ -11,10 +11,13 @@ const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const editorPath = path.join(projectRoot, 'src/components/PoiReferenceEditor.vue');
 const editor = await readFile(editorPath, 'utf8');
 
-// 参照要素の「上書き欄ブロック」と、対になる非参照要素の注記ブロックの範囲を切り出す。
-// 注意: `v-if="poiUidOf(entry) !== null"` はカード内の小さい表示行にも使われているため
-// （PoiReferenceEditor.vue の :110 付近）、上書き欄は class="row g-2 mt-1" 付きの方で特定する。
-const OVERRIDE_BLOCK_MARK = 'v-if="poiUidOf(entry) !== null" class="row g-2 mt-1"';
+// 「上書き欄ブロック」と、対になる注記ブロックの範囲を切り出す。
+// M4-T4: 上書き欄の表示条件は `poiUidOf(entry) !== null` から `acceptsOverride(entry)`
+// （= 参照要素 **または** 上書きレイヤ）へ広がった。hide 上書きの契約（本 smoke の検査対象）は
+// 不変で、開く対象が増えただけである。上書きレイヤは viewer が同じ上書きキーを読む形なので、
+// 「hide UI は上書きを載せられる要素にだけ出す」という AC1-2 の意図はそのまま保たれる。
+// 注意: `class="row g-2 mt-1"` 付きの方で特定するのは従来どおり（小さい表示行と区別するため）。
+const OVERRIDE_BLOCK_MARK = 'v-if="acceptsOverride(entry)" class="row g-2 mt-1"';
 const NOTE_BLOCK_MARK = '<div v-else class="mb-0">';
 const refBlockStart = editor.indexOf(OVERRIDE_BLOCK_MARK);
 assert.ok(refBlockStart > 0, `参照要素の上書き欄ブロック（${OVERRIDE_BLOCK_MARK}）が存在する`);

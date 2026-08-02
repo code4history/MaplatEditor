@@ -149,6 +149,17 @@
                 :title="t('poiref.convert_action')"
                 @click="convertFcEntry(index)"
               >{{ t("poiref.convert_action") }}</button>
+              <!-- M4-T4 §5.5: 裸 URL 要素 (U4) に上書きを付ける。要素を {layer: URL} へ
+                   置き換えるだけで acceptsOverride が真になり、上書き編集ブロックが開く -->
+              <button
+                v-if="showsAddOverride(entry)"
+                type="button"
+                class="btn btn-outline-primary"
+                data-testid="poiref-add-override"
+                :disabled="readOnly"
+                :title="t('poiref.add_override')"
+                @click="addOverrideWrapper(index)"
+              >{{ t("poiref.add_override") }}</button>
               <button
                 type="button"
                 class="btn btn-outline-secondary"
@@ -173,7 +184,7 @@
               >×</button>
             </div>
           </div>
-          <div v-if="poiUidOf(entry) !== null" class="row g-2 mt-1">
+          <div v-if="acceptsOverride(entry)" class="row g-2 mt-1">
             <div class="col-12">
               <label class="form-label small mb-0">{{ t("poiref.override_title") }}</label>
               <LangResourceInput
@@ -267,6 +278,7 @@ import { poiUidOf, extractPoiRefs, applyPoiSelection, isNonReferenceObjectEntry 
 import {
   poisEntryShape,
   poisLayerMode,
+  isPoiLayerRef,
   hasMixedPoisShapes,
   hasPoisLayerKey,
   type PoisEntryShape,
@@ -347,6 +359,15 @@ const hasNonReferenceEntries = computed(() => entries.value.some((entry) => poiU
 // URL 文字列・junk = null 非表示 — 項目数の概念が成立しないため。v1.1 Minor-2)
 function entryItemCount(entry: unknown): number | null {
   if (poiUidOf(entry) !== null) return null;
+  // M4-T4: 上書きレイヤの項目数は参照先の中身。URL 参照は静的には数えられないので非表示
+  // （裸 URL 文字列と同じ扱い）、FC を包むラッパーは中身の feature 数を出す
+  if (isPoiLayerRef(entry)) {
+    const layer = (entry as Record<string, unknown>).layer;
+    if (typeof layer === "string") return null;
+    return Array.isArray((layer as Record<string, unknown>).features)
+      ? ((layer as Record<string, unknown>).features as unknown[]).length
+      : 0;
+  }
   if (!isNonReferenceObjectEntry(entry)) return null;
   const record = entry as Record<string, unknown>;
   if (record.type === "FeatureCollection") {
@@ -364,10 +385,17 @@ function entryItemCountLabel(entry: unknown): string | null {
 // §5.10 (v1.2/v1.3): レイヤ構造判定 — 共有述語 (poisLayerStructure = resolver 混在警告と同一実装)
 // の computed 連鎖がペイン構成 (§5.4)・変換可否 (§4.4)・混在警告表示の唯一の判定源。
 // 参照要素は "fc" へ写像する (resolver が FC に置換した後の形 = viewer が見る形で判別 — §4.2 前文)
+// M4-T4: **上書きレイヤ (ラッパー) も同じ理由で "fc" へ写像する。** ラッパーは viewer が
+// isPoiLayerRef 分岐で1レイヤとして受ける形であり (normalize_pois.ts:106-133)、生の POI
+// オブジェクト (壊れ要素) ではない。素の poisEntryShape では両者とも "object" になるため、
+// 写像しないと [生FC, ラッパー] が「GeoJSON形式とそれ以外の混在」と誤警告され、
+// AC2 が消した viewer-fatal 誤警告と同じ種類の誤りがもう1つ残る (E2E で実測)。
 const entryShapes = computed<readonly PoisEntryShape[]>(() =>
-  entries.value.map((entry) => (poiUidOf(entry) !== null ? "fc" : poisEntryShape(entry))),
+  entries.value.map((entry) =>
+    poiUidOf(entry) !== null || isPoiLayerRef(entry) ? "fc" : poisEntryShape(entry),
+  ),
 );
-const layerMode = computed(() => poisLayerMode(entryShapes.value));
+const layerMode = computed(() => poisLayerMode(entryShapes.value, entries.value));
 const isMixedLayer = computed(() => hasMixedPoisShapes(entryShapes.value));
 
 // §4.4: 単層モードのレイヤ変換可能条件 = 全メンバーが旧 POI オブジェクト / 生 Feature
@@ -400,18 +428,31 @@ function showsLayerKeyMissing(entry: unknown, index: number): boolean {
     index >= 1 &&
     poiUidOf(entry) === null &&
     poisEntryShape(entry) !== "string" &&
+    // M4-T4: 上書きレイヤ (ラッパー) は viewer が isPoiLayerRef 分岐で受け、key は fetch 後の
+    // 中身から決まる。∴ ラッパー自身が id を持たなくても POI 全損にはならない (誤警告の是正)
+    !isPoiLayerRef(entry) &&
     !hasPoisLayerKey(entry)
   );
 }
 
+// M4-T4: 上書き4種 (title/icon/selectedIcon/hide) を編集できる要素か。
+// U1 = 登録 POI ソース参照 ({poiUid}) / U2・U3 = 上書きレイヤ ({layer:…})。
+// 同じ setter を共有する (恒久指示「同一扱い処理は共通実装へ徹底」) — 分岐条件だけを広げる
+function acceptsOverride(entry: unknown): boolean {
+  return poiUidOf(entry) !== null || isPoiLayerRef(entry);
+}
+
 // §5.11: バッジ 2 種 (string = 外部URL参照 / それ以外の非参照要素 = 地図内定義POI。
 // junk は inline 側帰属 — 第 3 バッジは増やさない)
+// M4-T4: 3 分類 — 上書きレイヤ = 外部ファイル参照 / 文字列 = 外部URL参照 / それ以外 = 地図内定義POI
 function entryBadgeLabel(entry: unknown): string {
+  if (isPoiLayerRef(entry)) return t("poiref.layer_ref");
   return typeof entry === "string" ? t("poiref.external_url") : t("poiref.inline_data");
 }
 
 // §5.11: 非参照メンバー行の注記キー (バッジと同じ object vs string の二分で出し分け)
 function entryNoteKey(entry: unknown): string {
+  if (isPoiLayerRef(entry)) return "poiref.layer_ref_note";
   return typeof entry === "string" ? "poiref.external_url_note" : "poiref.inline_note";
 }
 
@@ -537,6 +578,14 @@ function entryTitle(entry: unknown): string {
     return localizeTitle(record.cachedTitle as LangResource | undefined, props.activeLang) || uid;
   }
   if (typeof entry === "string") return entry;
+  // M4-T4: 上書きレイヤは参照先そのものが同一性なので、layer の中身から題名を採る
+  // (URL ならその URL、FC なら FC の name/id)。ここを飛ばすと「地図内定義POI」の
+  // fallback へ落ち、バッジ (外部ファイル参照) と食い違う (E2E で実測)
+  if (isPoiLayerRef(entry)) {
+    const layer = (entry as Record<string, unknown>).layer;
+    if (typeof layer === "string") return layer;
+    entry = layer;
+  }
   if (entry && typeof entry === "object" && !Array.isArray(entry)) {
     const record = entry as Record<string, unknown>;
     if (typeof record.name === "string" && record.name) return record.name;
@@ -635,6 +684,23 @@ function move(index: number, delta: number): void {
   const next = [...entries.value];
   const [item] = next.splice(index, 1);
   next.splice(target, 0, item);
+  emit("update:pois", next);
+}
+
+// M4-T4 §5.5: 裸 URL (U4) は上書きを載せる場所を持たないので、上書きを付けるには
+// ラッパー ({layer: URL}) へ変える必要がある。この形式変更は**利用者の明示操作**であり、
+// 読み込み側の正規化ではない (sp-0006)。∴ ボタンとして提供し、暗黙には行わない。
+// 配列要素位置ではラッパーのほうが安全なので (§5.5.1 の位置逆転)、この変換に副作用はない。
+function showsAddOverride(entry: unknown): boolean {
+  return typeof entry === "string" && entry.trim() !== "";
+}
+
+function addOverrideWrapper(index: number): void {
+  if (props.readOnly) return;
+  const entry = entries.value[index];
+  if (!showsAddOverride(entry)) return;
+  const next = [...entries.value];
+  next[index] = { layer: entry };
   emit("update:pois", next);
 }
 

@@ -363,7 +363,7 @@
     "originals": {
       "unsupported_extension": "Định dạng ảnh không được hỗ trợ (chỉ hỗ trợ jpg/jpeg/png). Vui lòng lưu lại với định dạng ảnh khác."
     },
-    "poi_format_unsupported": "Dữ liệu POI ở định dạng mà trình chỉnh sửa không hỗ trợ. Dữ liệu gốc được giữ nguyên khi lưu và được xuất nguyên trạng sang bản xem trước và bản xuất, nhưng việc chỉnh sửa trên tab này bị vô hiệu hóa."
+    "poi_format_unsupported": "Dữ liệu POI ở định dạng mà trình chỉnh sửa không hỗ trợ (ví dụ đối tượng dùng tên lớp làm khóa). Dữ liệu gốc được giữ nguyên khi lưu và được xuất nguyên trạng sang bản xem trước và bản xuất, nhưng việc chỉnh sửa trên tab này bị vô hiệu hóa."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
@@ -580,7 +580,7 @@
     "export_failed": "Xuất thất bại.",
     "warn_missing_poi_source": "Không tìm thấy một số nguồn POI được tham chiếu nên đã loại khỏi kết quả xuất.",
     "warn_duplicate_poi_reference": "Cùng một nguồn POI được tham chiếu bởi cả ứng dụng và bản đồ. POI có thể hiển thị hai lần.",
-    "poi_format_unsupported": "Dữ liệu POI ở định dạng không được trình chỉnh sửa hỗ trợ. Dữ liệu gốc sẽ không bị mất khi lưu, nhưng việc chỉnh sửa trong thẻ này bị vô hiệu hóa và sẽ không được phản ánh trong bản xem trước hay xuất.",
+    "poi_format_unsupported": "Dữ liệu POI ở định dạng không được trình chỉnh sửa hỗ trợ (ví dụ đối tượng dùng tên lớp làm khóa). Dữ liệu gốc sẽ không bị mất khi lưu, nhưng việc chỉnh sửa trong thẻ này bị vô hiệu hóa và sẽ không được phản ánh trong bản xem trước hay xuất.",
     "warn_unresolved_icon": "Một số tham chiếu biểu tượng không thể phân giải và được giữ nguyên trong kết quả xuất.",
     "warn_icon_too_small": "Ảnh nguồn biểu tượng PWA nhỏ hơn 512px nên các biểu tượng được tạo có thể bị mờ.",
     "export": {
@@ -637,7 +637,10 @@
     "inline_data": "POI định nghĩa trong bản đồ",
     "external_url": "Tham chiếu URL bên ngoài",
     "inline_note": "POI được định nghĩa trực tiếp trong dữ liệu bản đồ. Không hỗ trợ chỉnh sửa trong bảng này. Có thể đổi thứ tự, xóa, và chuyển đổi sang GeoJSON.",
-    "external_url_note": "Mục POI tham chiếu đến URL bên ngoài. Không hỗ trợ chỉnh sửa và chuyển đổi. Có thể đổi thứ tự và xóa.",
+    "layer_ref": "Tham chiếu tệp bên ngoài",
+    "external_url_note": "Mục POI tham chiếu đến URL bên ngoài. Không hỗ trợ chỉnh sửa hay chuyển đổi nội dung, nhưng bạn có thể dùng \"Thêm ghi đè\" để ghi đè các thuộc tính hiển thị (tiêu đề, biểu tượng, ẩn). Bạn cũng có thể đổi thứ tự và xóa.",
+    "layer_ref_note": "Tham chiếu một tệp bên ngoài và chỉ ghi đè các thuộc tính hiển thị cho bản đồ/ứng dụng này. Nội dung được tham chiếu không bị thay đổi.",
+    "add_override": "Thêm ghi đè",
     "mixed_layer_warning": "Dữ liệu POI định dạng GeoJSON và định dạng khác đang lẫn lộn. Trình xem không thể hiển thị đúng mảng này. Hãy chuyển đổi sang GeoJSON và sắp xếp lại.",
     "convert_blocked_note": "Lớp này chứa GeoJSON, tham chiếu URL bên ngoài hoặc phần tử không hỗ trợ chuyển đổi, nên không thể chuyển đổi toàn bộ. Xóa các phần tử đó để sắp xếp lại thì có thể chuyển đổi.",
     "layer_key_missing_warning": "Phần tử này không có mã định danh lớp (id), nên trình xem sẽ báo lỗi khi hiển thị toàn bộ dữ liệu POI này. Hãy sắp xếp lại bằng cách chuyển đổi sang GeoJSON (nếu có thể) hoặc xóa.",

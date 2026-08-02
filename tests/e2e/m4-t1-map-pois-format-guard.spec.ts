@@ -2,10 +2,13 @@
 // 設計 docs/superpowers/specs/2026-08-02-m4-t1-map-pois-format-guard-design.md v1.3 §9 準拠。
 //
 // 検証範囲:
-//   AC3: pois が URL 文字列（実データ maps/morioka.json と同形）の地図で POI タブが read-only
-//   AC4: 同じ地図で mapedit.poi_format_unsupported の警告が出る
+//   AC3/AC4: 【M4-T4 で契約が変わった】pois が URL 文字列（実データ maps/morioka.json と同形）の
+//        地図は「単独形の URLレイヤ」として **編集可能** になった（viewer 正本が受容する形のため）。
+//        read-only と未対応形式の警告は出ない。t1 の read-only はこの形を扱えなかった時点の
+//        暫定であり、t4 の対応で不要になった
 //   AC5: 同じ地図で他タブを編集して保存しても pois の生値がそのまま残る
-//        （= 本タスクが塞ぐデータ喪失経路そのものの回帰テスト）
+//        （= 本タスクが塞ぐデータ喪失経路そのものの回帰テスト。**M4-T4 でも維持される** —
+//        単独形は要素数1のまま単独形で保存されるため、文字列がそのまま残る）
 //   AC6: 全解除の保存形が両画面ともキーなし／既存の空配列は配列のまま維持される
 //
 // read-only の判定について: m12-t30 は「左ペインの poi-selector-disabled は非参照要素の
@@ -118,7 +121,7 @@ async function saveEditor(page: Page): Promise<void> {
 }
 
 test.describe('M4-T1: pois 受け入れ関所と判定ガードの共通化', () => {
-  test('AC3/AC4/AC5: URL 文字列の地図は read-only + 警告 + 生値温存', async () => {
+  test('AC3/AC4/AC5: URL 文字列の地図は編集可能（M4-T4）＋生値温存', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m4-t1-url-'));
     const { app, page } = await launch(e2eRoot);
@@ -139,26 +142,30 @@ test.describe('M4-T1: pois 受け入れ関所と判定ガードの共通化', ()
 
       const { poisPane, cards } = await openMapPoisTab(page, uid, slug);
 
-      // ---- AC4: 未対応形式の警告が mapedit 名前空間の文言で出る ----
+      // ---- AC4（M4-T4 改訂）: 単独形は supported なので未対応形式の警告は出ない ----
       const warning = poisPane.locator('.editor-diagnostic__message');
-      await expect(warning, 'AC4: POI タブに警告が1件出る').toHaveCount(1, { timeout: 30000 });
-      await expect(warning).toContainText('エディタ未対応の形式');
-      await expect(warning, 'AC4: Map 側は「そのまま出力される」旨の文言（App とは事実が異なる）')
-        .toContainText('プレビューやエクスポートにはそのまま出力されます');
+      await expect(warning, 'AC4: 単独形の URLレイヤに未対応形式の警告は出ない').toHaveCount(0, { timeout: 30000 });
 
-      // ---- AC3: read-only（表示用配列は空なので相互排他制約は立たず、原因は readOnly のみ）----
-      await expect(cards, 'AC3: 未対応形式では選択済みカードが表示されない').toHaveCount(0);
+      // ---- AC3（M4-T4 改訂）: read-only ではなく、1件のカードとして編集可能に表示される ----
+      await expect(cards, 'AC3: 単独形の URLレイヤが1件のカードとして表示される').toHaveCount(1, { timeout: 30000 });
+      // 左ペインは無効化されたままだが、原因が readOnly から「非参照要素があるので POI ソースを
+      // 追加できない」（m3-t6 の既存制約 poiref.add_blocked_note）へ変わっている。
+      // read-only でないことは「カードが表示され操作できる」で示す（上の toHaveCount(1)）
       await expect(
         poisPane.locator('.poi-selector-disabled'),
-        'AC3: 左ペインが read-only で無効化されている',
+        'AC3: 左ペインの無効化は残る（原因は readOnly ではなく非参照要素の存在）',
       ).toHaveCount(1);
+      await expect(
+        poisPane.locator('.selected-source .btn-outline-danger').first(),
+        'AC3: read-only ではないので行の操作ボタンは有効',
+      ).toBeEnabled();
 
-      // ---- AC5: 他タブの編集を保存しても pois の生値が失われない ----
+      // ---- AC5: 他タブの編集を保存しても pois の生値が失われない（t4 でも維持される）----
       await saveEditor(page);
 
       const afterSave = await readSavedMapPois(page, uid);
       expect(afterSave.persistedHasKey, 'AC5: 保存後も pois キーが永続形に残る').toBe(true);
-      expect(afterSave.value, 'AC5: URL 参照が上書きされず生値のまま残る').toBe(URL_STRING_POIS);
+      expect(afterSave.value, 'AC5: 単独形は配列化されず URL 文字列のまま残る（sp-0006）').toBe(URL_STRING_POIS);
     } finally {
       await quitElectronApplication(app);
     }

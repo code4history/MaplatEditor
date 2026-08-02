@@ -363,7 +363,7 @@
     "originals": {
       "unsupported_extension": "Nicht unterstütztes Bildformat (nur jpg/jpeg/png werden unterstützt). Bitte mit einem anderen Bildformat erneut speichern."
     },
-    "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor. Die Originaldaten bleiben beim Speichern erhalten und werden unverändert in Vorschau und Export ausgegeben, die Bearbeitung in diesem Tab ist jedoch deaktiviert."
+    "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor (z. B. ein Objekt mit Ebenennamen als Schlüssel). Die Originaldaten bleiben beim Speichern erhalten und werden unverändert in Vorschau und Export ausgegeben, die Bearbeitung in diesem Tab ist jedoch deaktiviert."
   },
   "mapupload": {
     "map_image": "Kartenbild",
@@ -580,7 +580,7 @@
     "export_failed": "Export fehlgeschlagen.",
     "warn_missing_poi_source": "Einige referenzierte POI-Quellen wurden nicht gefunden und aus der Ausgabe entfernt.",
     "warn_duplicate_poi_reference": "Dieselbe POI-Quelle wird sowohl von der App als auch von einer Karte referenziert. POIs werden möglicherweise doppelt angezeigt.",
-    "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor. Die Originaldaten gehen beim Speichern nicht verloren, aber die Bearbeitung in diesem Tab ist deaktiviert und die Daten werden nicht in Vorschau oder Export berücksichtigt.",
+    "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor (z. B. ein Objekt mit Ebenennamen als Schlüssel). Die Originaldaten gehen beim Speichern nicht verloren, aber die Bearbeitung in diesem Tab ist deaktiviert und die Daten werden nicht in Vorschau oder Export berücksichtigt.",
     "warn_unresolved_icon": "Einige Symbolverweise konnten nicht aufgelöst werden und wurden unverändert ausgegeben.",
     "warn_icon_too_small": "Das Quellbild des PWA-Symbols ist kleiner als 512px, daher können die generierten Symbole unscharf wirken.",
     "export": {
@@ -637,7 +637,10 @@
     "inline_data": "In der Karte eingebetteter POI",
     "external_url": "Externe URL-Referenz",
     "inline_note": "In den Kartendaten direkt definierte POIs. Die Bearbeitung in diesem Panel wird nicht unterstützt. Reihenfolge ändern und Löschen sind möglich, außerdem die Umwandlung in GeoJSON.",
-    "external_url_note": "Ein POI-Eintrag, der auf eine externe URL verweist. Bearbeitung und Umwandlung werden nicht unterstützt. Reihenfolge ändern und Löschen sind möglich.",
+    "layer_ref": "Verweis auf externe Datei",
+    "external_url_note": "Ein POI-Eintrag, der auf eine externe URL verweist. Der Inhalt kann nicht bearbeitet oder umgewandelt werden, aber mit „Überschreibungen hinzufügen“ lassen sich die Anzeigeattribute (Titel, Symbole, Ausblenden) überschreiben. Reihenfolge ändern und Löschen sind ebenfalls möglich.",
+    "layer_ref_note": "Verweist auf eine externe Datei und überschreibt nur die Anzeigeattribute für diese Karte/App. Der Inhalt der referenzierten Datei wird nicht geändert.",
+    "add_override": "Überschreibungen hinzufügen",
     "mixed_layer_warning": "POI-Daten im GeoJSON-Format und in anderen Formaten sind gemischt. Der Viewer kann dieses Array nicht korrekt anzeigen. Wandeln Sie die Daten in GeoJSON um und bereinigen Sie sie.",
     "convert_blocked_note": "Diese Ebene enthält GeoJSON, externe URL-Referenzen oder nicht umwandelbare Elemente und kann daher nicht als Ganzes umgewandelt werden. Löschen Sie die betreffenden Elemente, dann wird die Umwandlung möglich.",
     "layer_key_missing_warning": "Dieses Element hat keinen Ebenenbezeichner (id), daher schlägt die Anzeige dieser POI-Daten im Viewer insgesamt fehl. Bereinigen Sie es durch Umwandlung in GeoJSON (falls möglich) oder durch Löschen.",

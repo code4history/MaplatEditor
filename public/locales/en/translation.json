@@ -354,7 +354,7 @@
     "staging": {
       "missing_tiles": "The map could not be saved because the temporary data for the map image is missing. Please upload the image again before saving."
     },
-    "poi_format_unsupported": "The POI data is in a format the editor does not support. The original data is preserved when you save and is output as-is to previews and exports, but editing on this tab is disabled."
+    "poi_format_unsupported": "The POI data is in a format the editor does not support (for example an object keyed by layer name). The original data is preserved when you save and is output as-is to previews and exports, but editing on this tab is disabled."
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -571,7 +571,7 @@
     "export_failed": "Export failed.",
     "warn_missing_poi_source": "Some referenced POI sources were not found and were omitted from the output.",
     "warn_duplicate_poi_reference": "The same POI source is referenced by both the app and a map. POIs may appear twice.",
-    "poi_format_unsupported": "The POI data is in a format not supported by the editor. The original data is not lost when you save, but editing in this tab is disabled and it will not be reflected in previews or exports.",
+    "poi_format_unsupported": "The POI data is in a format not supported by the editor (for example an object keyed by layer name). The original data is not lost when you save, but editing in this tab is disabled and it will not be reflected in previews or exports.",
     "warn_unresolved_icon": "Some icon references could not be resolved and were left unchanged in the output.",
     "warn_icon_too_small": "The PWA icon source image is smaller than 512px, so generated icons may look blurry.",
     "export": {
@@ -628,7 +628,10 @@
     "inline_data": "Map-embedded POI",
     "external_url": "External URL reference",
     "inline_note": "POIs defined directly inside the map data. Editing them in this panel is not supported. You can reorder or delete them, and convert them to GeoJSON.",
-    "external_url_note": "A POI entry that references an external URL. Editing and conversion are not supported. You can reorder or delete it.",
+    "layer_ref": "External file reference",
+    "external_url_note": "A POI entry that references an external URL. Its contents cannot be edited or converted, but you can use \"Add overrides\" to override the display attributes (title, icons, hidden). You can also reorder or delete it.",
+    "layer_ref_note": "References an external file and overrides only the display attributes for this map/app. The referenced content itself is not modified.",
+    "add_override": "Add overrides",
     "mixed_layer_warning": "GeoJSON-format and non-GeoJSON-format POI data are mixed together. The viewer cannot display this array correctly. Convert to GeoJSON and clean it up.",
     "convert_blocked_note": "This layer contains GeoJSON, external URL references, or elements that cannot be converted, so it cannot be converted as a whole. Delete those elements to clean it up, and conversion will become available.",
     "layer_key_missing_warning": "This element has no layer identifier (id), so the viewer will fail to display this POI data as a whole. Clean it up by converting it to GeoJSON (if convertible) or deleting it.",

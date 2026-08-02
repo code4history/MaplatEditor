@@ -228,12 +228,14 @@ class AppPreviewService {
     // ctx を触る区間は逐次 — Promise.all の中で並行に更新すると連番採番が非決定になる
     const poiCtx = createPoiExternalizationContext();
     for (const entry of entries) {
-      const rawMapPois = (entry as { rawMapPois?: unknown }).rawMapPois;
-      if (!Array.isArray(rawMapPois)) continue;
-      if (!duplicateReference && hasSharedPoiUid(collectPoiUids(rawMapPois), appPoiUids)) {
+      // M4-T4: 生の Array.isArray ではなく共通の readAppDocumentPois を通す（export 側と同一の
+      // 是正）。単独形の地図で POI が preview から丸ごと落ちるのを塞ぐ
+      const mapPois = readAppDocumentPois({ pois: (entry as { rawMapPois?: unknown }).rawMapPois }).pois;
+      if (mapPois.length === 0) continue;
+      if (!duplicateReference && hasSharedPoiUid(collectPoiUids(mapPois), appPoiUids)) {
         duplicateReference = true;
       }
-      const externalized = await externalizePoisArray(rawMapPois, poiCtx);
+      const externalized = await externalizePoisArray(mapPois, poiCtx);
       mergeWarnings(warnings, externalized.warnings);
       maps[entry.viewerMapID].pois = this.toHttpAsset(externalized.pois, token);
     }

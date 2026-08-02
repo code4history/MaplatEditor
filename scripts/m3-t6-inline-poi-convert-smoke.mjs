@@ -453,9 +453,19 @@ try {
       {
         const { readAppDocumentPois } = await import(${JSON.stringify(appPoisFormatPath)});
         // 純関数: 配列でない生値 → unsupported: true (AppEdit は pois:[] を document へ書かず生値を温存する)
-        assert.deepEqual(readAppDocumentPois({ pois: '{broken json' }), { pois: [], unsupported: true });
-        assert.deepEqual(readAppDocumentPois({ pois: { layerKey: [] } }), { pois: [], unsupported: true }, '非配列 object は unsupported');
-        assert.deepEqual(readAppDocumentPois({ pois: 'https://example.com/pois.json' }), { pois: [], unsupported: true });
+        // M4-T4: pois の単独形（レイヤ1つを配列に包まず直接置く形）は viewer 正本が受容するので
+        // supported へ変わった。unsupported のまま残るのは viewer も受容しない形だけである。
+        assert.deepEqual(
+          readAppDocumentPois({ pois: '{broken json' }),
+          { pois: [], unsupported: true },
+          'JSON 文字列化の破損は URL ではない（多重 stringify バグの後始末はしない — sp-0006）',
+        );
+        assert.deepEqual(readAppDocumentPois({ pois: { layerKey: [] } }), { pois: [], unsupported: true }, 'レイヤ名キー object は unsupported');
+        assert.deepEqual(
+          readAppDocumentPois({ pois: 'https://example.com/pois.json' }),
+          { pois: ['https://example.com/pois.json'], unsupported: false },
+          '単独形 URL は supported（viewer の nodesLoader が fetch して1レイヤにする）',
+        );
         assert.deepEqual(readAppDocumentPois({}), { pois: [], unsupported: false }, '元々未設定は unsupported ではない');
 
         // save round-trip: 温存された生値 (非配列) が data_json に残存する
@@ -554,6 +564,20 @@ try {
           return hits[0];
         };
 
+        // M4-T4: poisLayerMode は (shapes, entries) の両引数必須になった。shapes だけでは
+        // 上書きレイヤ ({layer:…}) と旧 POI オブジェクトを区別できず (どちらも "object")、
+        // viewer は前者が先頭ならレイヤ配列モードへ入るためである (normalize_pois.ts:106-109)。
+        // 本表が検証するのは §4.2 の **shape ベースの完全分割** なので、"object" の代表値には
+        // 上書きレイヤでない旧 POI オブジェクトを与える。上書きレイヤ先頭の判定 (→ multi) は
+        // m4-t4 smoke Part B が viewer 正本との一致として担当する。
+        const SHAPE_SAMPLE: Record<Shape, unknown> = {
+          fc: { type: 'FeatureCollection', id: 'x', features: [] },
+          object: { name: 'p', lnglat: [1, 2] },
+          string: 'https://example.com/pois.geojson',
+          junk: 42,
+        };
+        const entriesOf = (seq: Shape[]): unknown[] => seq.map((s) => SHAPE_SAMPLE[s]);
+
         // (I-3) クラス転記表: §4.2 の代表フィクスチャ列 (E2E フィクスチャの shape 列含む) を
         // クラス ID 1対1で assert する。§4.2 の表に行を追加・変更した場合は本表を同時更新する
         const TABLE: [Shape[], string, string][] = [
@@ -579,7 +603,7 @@ try {
         for (const [seq, classId, label] of TABLE) {
           assert.equal(classify(seq), classId, 'クラス転記表: ' + label);
           const expected = CLASS_EXPECT[classId];
-          assert.equal(poisLayerMode(seq), expected.mode, 'クラス転記表 mode: ' + label);
+          assert.equal(poisLayerMode(seq, entriesOf(seq)), expected.mode, 'クラス転記表 mode: ' + label);
           assert.equal(hasMixedPoisShapes(seq), expected.warning, 'クラス転記表 warning: ' + label);
         }
 
@@ -601,7 +625,7 @@ try {
           const classId = classify(seq);
           classCounts[classId] = (classCounts[classId] ?? 0) + 1;
           const expected = CLASS_EXPECT[classId];
-          assert.equal(poisLayerMode(seq), expected.mode,
+          assert.equal(poisLayerMode(seq, entriesOf(seq)), expected.mode,
             '全域列挙 mode: [' + seq.join(',') + '] (' + classId + ')');
           assert.equal(hasMixedPoisShapes(seq), expected.warning,
             '全域列挙 warning: [' + seq.join(',') + '] (' + classId + ')');

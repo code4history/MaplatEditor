@@ -194,7 +194,15 @@ try {
     'MapEdit.vue must pass the map heading key (poiref.selected_list_map) to PoiReferenceEditor'
   );
   assert.match(mapEdit, /function onPoisChange/, 'MapEdit.vue must apply update:pois back to mapData.pois');
-  assert.match(mapEdit, /delete mapData\.value\.pois/, 'MapEdit.vue must drop the pois key when nothing remains');
+  // M4-T4: 「空ならキー削除」を含む保存形の決定は、AppEdit と共通の書き込み関所
+// writeDocumentPois（appPoisFormat）へ移した。表明の意図（MapEdit が保存形を正しく決める経路を
+// 持つこと）は不変で、その所在が View 内の直書きから共通実装へ移っただけである。
+// 空配列でキーが消えることそのものは m4-t4 smoke Part D が表駆動で検証する。
+assert.match(
+  mapEdit,
+  /writeDocumentPois\(mapData\.value, next, mapData\.value\.pois\)/,
+  'MapEdit.vue must route the pois write path through writeDocumentPois (which drops the key when nothing remains)'
+);
   const settingsTab = mapEdit.match(/v-show="activeTab === 'settings'"[\s\S]*?<!-- 地域指定モーダル/)?.[0] ?? '';
   assert.ok(settingsTab, 'MapEdit.vue settings tab block could not be located');
   // POI カードは settings タブから撤去済み (POIデータタブへ移設)
