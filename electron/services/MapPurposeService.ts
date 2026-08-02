@@ -63,12 +63,26 @@ class MapPurposeService {
     async downloadSavedMap(win: BrowserWindow, mapRef: string): Promise<'Success' | 'Canceled' | 'Error'> {
         try {
             const previewJson = await MapEditService.buildPreviewSource(mapRef); // strict-free（§2.5）
-            const mapObject = { ...previewJson, mapID: previewJson.mapID, uid: previewJson.uid };
+            // M5-T1: mapDoc の取得を mapObject の合成より前へ移す。
+            // buildPreviewSource() は preview 用途のために url へ**ランタイム**のタイルURL
+            // (store.url_ ?? previewJson.url) を入れて返す。ローカルタイル地図ではこれが
+            // file:///Users/<ユーザ名>/… という実行環境の絶対パスになるため、そのまま搬出すると
+            // 交換形 JSON に絶対パスが焼き込まれ、再インポートで DB へ永続化されて
+            // 同梱タイルが二度と使われなくなる（設計書 §1.1）。
+            // ∴ **交換形の url は DB 正本**とする（不変条件 I-3）。AppExportService が
+            // DB doc + delete url_ で既に満たしている不変条件へ揃える。
+            // strict-free 読み出し・compiled 整備・tins は buildPreviewSource のまま使う（§1.3）
+            const mapDoc = await SqliteDataService.findMapByRef(mapRef);
+            const mapObject = {
+                ...previewJson,
+                mapID: previewJson.mapID,
+                uid: previewJson.uid,
+                url: mapDoc?.url,
+            };
             const tins = [
                 previewJson.compiled ?? 'tooLessGcps',
                 ...(previewJson.sub_maps ?? []).map((subMap: any) => subMap.compiled ?? 'tooLessGcps'),
             ];
-            const mapDoc = await SqliteDataService.findMapByRef(mapRef);
             const slug = mapDoc?.slug || previewJson.mapID;
             const fileKey = mapDoc?.uid || slug;
             const ret = await dialog.showSaveDialog(win, {
