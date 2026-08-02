@@ -115,9 +115,9 @@ interface AppDocument {
   manifestSettings: ManifestSettings;
   // POI データ (43 §2.4): {poiUid, cachedTitle?, icon?, selectedIcon?} 参照要素と
   // 生要素 (URL 文字列 / FC 埋め込み) の混在配列。editor 正準形は配列のみ (M12-T30)。
-  // readAppDocumentPois が形式判定 (復元は行わない) を行い、保存形は pois 配列のみ。
+  // acceptDocumentPois が形式判定と受け入れ (温存を含む) を行い、保存形は pois 配列のみ。
   // M3-T6 §5.8: 未対応形式時は生値 (非配列) を温存するため unknown へ広げる (黙って消えない原則)。
-  // 表示は Array.isArray ガード + read-only (map 側と同文法)
+  // M4-T1: 表示用配列と read-only は共通 composable usePoisFormatGuard から取る (MapEdit と同一実装)
   pois: unknown;
   startFrom?: string;
   status?: string;
@@ -1573,8 +1573,9 @@ function onPoisChange(next: unknown[]) {
       <div v-show="activeTab === 'pois'" class="h-100" data-testid="app-pois-tab-pane">
       <div class="h-100 overflow-hidden p-3 d-flex flex-column">
         <DiagnosticFeedback v-if="poisUnsupported" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_format_unsupported') }]" scope="section" class="flex-shrink-0" />
-        <!-- M3-T6 §5.8 / M12-T30: 未対応形式中は表示ガード (Array.isArray — MapEdit と同文法) + read-only で
-             生値温存を空配列表示の編集が上書きする経路を塞ぐ。§5.4: hostSlug/hostTitle は変換 slug/title 基底 -->
+        <!-- M3-T6 §5.8 / M12-T30 / M4-T1: 未対応形式中は表示ガード (poisForEditor — MapEdit と同一の
+             共通 composable) + read-only で、生値温存を空配列表示の編集が上書きする経路を塞ぐ。
+             §5.4: hostSlug/hostTitle は変換 slug/title 基底 -->
         <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="poisForEditor" :read-only="poisUnsupported" :host-slug="appData.appID" :host-title="appData.appName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>
