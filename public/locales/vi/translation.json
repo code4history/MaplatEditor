@@ -362,7 +362,8 @@
     },
     "originals": {
       "unsupported_extension": "Định dạng ảnh không được hỗ trợ (chỉ hỗ trợ jpg/jpeg/png). Vui lòng lưu lại với định dạng ảnh khác."
-    }
+    },
+    "poi_format_unsupported": "Dữ liệu POI ở định dạng mà trình chỉnh sửa không hỗ trợ. Dữ liệu gốc được giữ nguyên khi lưu và được xuất nguyên trạng sang bản xem trước và bản xuất, nhưng việc chỉnh sửa trên tab này bị vô hiệu hóa."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

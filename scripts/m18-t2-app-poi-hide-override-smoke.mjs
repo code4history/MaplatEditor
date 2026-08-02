@@ -30,11 +30,14 @@ assert.match(
 console.log('  [1/4] AC2-1 AppEdit が PoiReferenceEditor を使用 + update:pois 配線: PASS');
 
 // --- [2/4] AC2-5: onPoisChange が配列を appData.pois へ代入し recordHistory を呼ぶ ---
+// M4-T1: 本体に書き込みガードと空時のキー削除が入り、200文字窓では recordHistory() が
+// 窓外へ出るため窓を広げた（検査意図は不変。窓長の調整ではなく本体構成に合わせた更新）。
 const onPoisChangeIdx = appEdit.indexOf('function onPoisChange');
 assert.ok(onPoisChangeIdx > 0, 'onPoisChange 関数が定義されている');
-const onPoisChangeBody = appEdit.slice(onPoisChangeIdx, onPoisChangeIdx + 200);
+const onPoisChangeBody = appEdit.slice(onPoisChangeIdx, onPoisChangeIdx + 420);
 assert.match(onPoisChangeBody, /appData\.value\.pois\s*=\s*next/, 'AC2-5: appData.value.pois = next を代入する');
 assert.match(onPoisChangeBody, /recordHistory\(\)/, 'AC2-5: recordHistory() を呼び出す');
+assert.match(onPoisChangeBody, /acceptsWrite\(\)/, 'M4-T1: 未対応形式を弾く書き込みガードがある');
 console.log('  [2/4] AC2-5 onPoisChange の配線（代入 + recordHistory）: PASS');
 
 // --- [3/4] AC2-6: poisUnsupported が :read-only へ渡されている ---

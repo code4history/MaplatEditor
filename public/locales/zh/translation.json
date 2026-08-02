@@ -362,7 +362,8 @@
     },
     "originals": {
       "unsupported_extension": "不支持的图片格式（仅支持jpg/jpeg/png）。请用其他图片格式重新保存。"
-    }
+    },
+    "poi_format_unsupported": "POI 数据为编辑器不支持的格式。保存时原始数据不会丢失，并会原样输出到预览和导出中，但此标签页中的编辑已被禁用。"
   },
   "mapupload": {
     "map_image": "地图图像",

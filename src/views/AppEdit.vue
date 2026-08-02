@@ -19,7 +19,8 @@ import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import ContextHelp from "../components/editor-ui/ContextHelp.vue";
 import EditorTabs from "../components/editor-ui/EditorTabs.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
-import { readAppDocumentPois } from "../utils/appPoisFormat";
+import { acceptDocumentPois } from "../utils/appPoisFormat";
+import { usePoisFormatGuard } from "../composables/usePoisFormatGuard";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import ResourceSelector from "../components/ResourceSelector.vue";
@@ -310,8 +311,11 @@ const saveValidationError = computed<string | null>(() => {
 });
 // pois がエディタ正準形式 (配列) でないかどうか (M12-T30: 復元ではなく形式判定)。
 // true のまま保存しても data_json の生値は温存されるが (黙って消えない原則)、
-// このタブでの編集は無効化され preview/export には反映されないため、POIデータタブに警告を出す
-const poisUnsupported = ref(false);
+// このタブでの編集は無効化され preview/export には反映されないため、POIデータタブに警告を出す。
+// M4-T1: 判定は MapEdit と共通の usePoisFormatGuard へ寄せた。computed なので
+// 受け入れ関所を通らない履歴 undo/redo (performUndo/performRedo) でも実態に追随する
+const poisGuard = usePoisFormatGuard(() => appData.value);
+const { unsupported: poisUnsupported, pois: poisForEditor } = poisGuard;
 const mapSearchQuery = ref("");
 const baseMapSearchQuery = ref("");
 const previewError = ref<string | null>(null);
@@ -635,15 +639,11 @@ function normalizeAppDocument(value: any): AppDocument {
   // pois (配列) のみが editor 正準形式 (M12-T30: 復元は行わず形式判定のみ)。
   // M3-T6 §5.8 (H-5(d)): 未対応形式の場合は pois: [] を document へ書き込まず、
   // 元の生値を温存する (保存しても data_json から消えない — 黙って消えない原則)。
-  // 表示は Array.isArray ガード + タブ read-only が受け止める。温存生値は preview/export では
-  // readAppDocumentPois により従来どおり空扱い (回帰ではない — 警告文言にも明記)。
-  const poisRead = readAppDocumentPois(value);
-  if (poisRead.unsupported) {
-    if (value.pois != null) normalized.pois = value.pois;
-  } else {
-    normalized.pois = poisRead.pois;
-  }
-  poisUnsupported.value = poisRead.unsupported;
+  // M4-T1: 受け入れ (温存を含む) は MapEdit と共通の acceptDocumentPois が唯一の実装であり、
+  // MapEdit は setMapDocument から同じ関数を呼ぶ。判定表示は poisGuard (computed) が担う。
+  // 温存生値は preview/export では readAppDocumentPois により従来どおり空扱い
+  // (回帰ではない — 警告文言にも明記)。
+  acceptDocumentPois(normalized, value);
   normalized.startFrom = value.startFrom || value.start_from;
   normalized.extraInfo = typeof value.extraInfo === "string" ? value.extraInfo : "";
   normalized.coverageLngLats = Array.isArray(value.coverageLngLats) ? value.coverageLngLats : null;
@@ -1169,9 +1169,18 @@ function createPreviewDocument(): AppDocument {
 
 // --- POIデータタブ配線 (Phase 8 Task 2, 43 §2.4) ---
 // 真実の器は appData.pois 配列 1 つ。順番変更/上書き/解除/追加は PoiReferenceEditor が
-// 配列ごと差し替えの update:pois で返すので、ここでは反映 + 履歴記録だけを行う
+// 配列ごと差し替えの update:pois で返すので、ここでは反映 + 履歴記録だけを行う。
+// M4-T1: 冒頭のガードと「空ならキー削除」は MapEdit と同一形。read-only は UI の入口を
+// 閉じるだけなので、書き込みの唯一の出口であるここでも未対応形式を弾く (二重防御)。
+// 履歴記録の方式 (AppEdit は明示 recordHistory / MapEdit は deep-watch) は所属先の差。
 function onPoisChange(next: unknown[]) {
-  appData.value.pois = next;
+  if (!poisGuard.acceptsWrite()) return;
+  if (next.length === 0) {
+    // 全解除で残らなければ pois キー自体を削除する (永続形は両画面同一 — 設計 §4.4)
+    delete appData.value.pois;
+  } else {
+    appData.value.pois = next;
+  }
   recordHistory();
 }
 </script>
@@ -1566,7 +1575,7 @@ function onPoisChange(next: unknown[]) {
         <DiagnosticFeedback v-if="poisUnsupported" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_format_unsupported') }]" scope="section" class="flex-shrink-0" />
         <!-- M3-T6 §5.8 / M12-T30: 未対応形式中は表示ガード (Array.isArray — MapEdit と同文法) + read-only で
              生値温存を空配列表示の編集が上書きする経路を塞ぐ。§5.4: hostSlug/hostTitle は変換 slug/title 基底 -->
-        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="Array.isArray(appData.pois) ? appData.pois : []" :read-only="poisUnsupported" :host-slug="appData.appID" :host-title="appData.appName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
+        <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="poisForEditor" :read-only="poisUnsupported" :host-slug="appData.appID" :host-title="appData.appName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>
 

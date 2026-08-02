@@ -362,7 +362,8 @@
     },
     "originals": {
       "unsupported_extension": "지원하지 않는 이미지 형식입니다(jpg/jpeg/png만 지원). 다른 이미지 형식으로 다시 저장해 주세요."
-    }
+    },
+    "poi_format_unsupported": "POI 데이터가 편집기에서 지원하지 않는 형식입니다. 원본 데이터는 저장해도 사라지지 않으며 미리 보기와 내보내기에 그대로 출력되지만, 이 탭에서의 편집은 비활성화됩니다."
   },
   "mapupload": {
     "map_image": "지도 이미지",

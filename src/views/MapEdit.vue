@@ -24,6 +24,8 @@ import gsiThumb from '../assets/img/gsi.png';
 import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
 import { envelopeToBbox, resolveBaseMapSelectorText } from '../utils/appSourceModel';
 import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
+import { acceptDocumentPois } from '../utils/appPoisFormat';
+import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
@@ -259,6 +261,21 @@ const defaultMapData = () => ({
 });
 const mapData = ref<any>({});
 const originalMapData = ref<any>({}); // isDirty 比較用ディープクローン
+
+// M4-T1: Map 側の文書受け入れ関所。外部 (DB / ファイル / 複製元) から来た文書はすべてここを通す。
+// 現時点で Map は文書の正規化を行わないが、将来ここに正規化を挟んでも pois の温存は
+// acceptDocumentPois が保証する (AppEdit の normalizeAppDocument と同一の関数)。
+// 履歴復帰 (restoreHistoryState) は受け入れ済み文書の内部クローンなのでここを通さない
+// — AppEdit の performUndo/performRedo が normalizeAppDocument を通らないのと対称であり、
+// その経路の判定漏れは下の poisGuard (computed) が塞ぐ。
+function setMapDocument(incoming: any): void {
+    mapData.value = acceptDocumentPois(incoming, incoming);
+}
+
+// pois がエディタ正準形式 (配列) でないかどうか。判定・表示・read-only・書き込み可否は
+// AppEdit と共通の usePoisFormatGuard が唯一の実装 (M4-T1)
+const poisGuard = usePoisFormatGuard(() => mapData.value);
+const { unsupported: poisUnsupported, pois: poisForEditor } = poisGuard;
 // M11-T7: mapID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne の手動一意性
 // 確認機構は撤去し、保存時 confirmForSave(予約再確認)へ機構置換した。
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
@@ -1178,7 +1195,10 @@ const poiRefEditor = ref<InstanceType<typeof PoiReferenceEditor> | null>(null);
 // M12-T10 v2.0 Min2: mapCanonicalBbox / refreshMapCanonicalBbox は dead code として削除
 // （POI spatial は poiSpatialContext へ移行済み、consumer なし）
 
+// M4-T1: 冒頭のガードと「空ならキー削除」は AppEdit と同一形。read-only は UI の入口を
+// 閉じるだけなので、書き込みの唯一の出口であるここでも未対応形式を弾く (二重防御)。
 function onPoisChange(next: unknown[]) {
+    if (!poisGuard.acceptsWrite()) return;
     if (next.length === 0) {
         // 全解除で生要素も残らなければ pois キー自体を削除し、旧データの JSON をきれいに保つ
         delete mapData.value.pois;
@@ -2116,8 +2136,8 @@ onMounted(async () => {
               fresh.lang = fresh.lang || resolveEditorLanguage(i18next.language);
               // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
               withoutHistory('W4', () => {
-                mapData.value = fresh;
-                originalMapData.value = cloneDeep(fresh);
+                setMapDocument(fresh);
+                originalMapData.value = cloneDeep(mapData.value);
               });
               // copyFromUid を保持: 保存時に tiles/thumbnail 複製
               copyFromUidSource.value = dupFrom;
@@ -2127,8 +2147,8 @@ onMounted(async () => {
               fresh.lang = resolveEditorLanguage(i18next.language);
               // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
               withoutHistory('W4', () => {
-                mapData.value = fresh;
-                originalMapData.value = cloneDeep(fresh);
+                setMapDocument(fresh);
+                originalMapData.value = cloneDeep(mapData.value);
               });
             }
           } catch (e) {
@@ -2137,8 +2157,8 @@ onMounted(async () => {
             fresh.lang = resolveEditorLanguage(i18next.language);
             // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
             withoutHistory('W4', () => {
-              mapData.value = fresh;
-              originalMapData.value = cloneDeep(fresh);
+              setMapDocument(fresh);
+              originalMapData.value = cloneDeep(mapData.value);
             });
           }
         } else {
@@ -2146,8 +2166,8 @@ onMounted(async () => {
           fresh.lang = resolveEditorLanguage(i18next.language);
           // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
           withoutHistory('W4', () => {
-            mapData.value = fresh;
-            originalMapData.value = cloneDeep(fresh);
+            setMapDocument(fresh);
+            originalMapData.value = cloneDeep(mapData.value);
           });
           // M11-T10 (AC11): MapList のインポート導線から遷移した場合、
           // 新規初期化後に既存の importMap フロー(ファイル選択→展開)を自動起動する
@@ -2168,8 +2188,8 @@ onMounted(async () => {
                 mapID.value = data.mapID;
                 // W4（設計 §5.3.1）: 永続化済み内容の読み込み（S3）
                 withoutHistory('W4', () => {
-                    mapData.value = data;
-                    originalMapData.value = cloneDeep(data);
+                    setMapDocument(data);
+                    originalMapData.value = cloneDeep(mapData.value);
                 });
             }
         } catch (e) {
@@ -3282,8 +3302,8 @@ const reloadFromStore = async () => {
         data.wmtsFolder = mapData.value.wmtsFolder;
         adoptLoaded({ uid: data.uid ?? mapUid.value, slug: data.mapID, revision: data.revision });
         mapID.value = data.mapID;
-        mapData.value = data;
-        originalMapData.value = cloneDeep(data);
+        setMapDocument(data);
+        originalMapData.value = cloneDeep(mapData.value);
         sub_maps.value = cloneDeep(data.sub_maps || []);
         currentEditingLayer.value = 0;
         gcps.value = cloneDeep(data.gcps || []);
@@ -3490,8 +3510,8 @@ const importMap = async () => {
             // インポートで新規作成された地図のuid/revision/slugを正本として追跡 (ADR-0007)
             adoptLoaded({ uid: histMap.uid, slug: histMap.mapID, revision: histMap.revision });
             mapID.value = histMap.mapID;
-            mapData.value = histMap;
-            originalMapData.value = cloneDeep(histMap);
+            setMapDocument(histMap);
+            originalMapData.value = cloneDeep(mapData.value);
             sub_maps.value = cloneDeep(histMap.sub_maps || []);
             gcps.value = cloneDeep(histMap.gcps || []);
             edges.value = cloneDeep(histMap.edges || []);
@@ -4388,10 +4408,17 @@ const goBack = async () => {
             <!-- Tab: POIデータ (Phase 8 Task 2)。器は mapData.pois 配列、履歴は mapData の
                  deep-watch (scheduleHistorySnapshot) が拾う (MapEdit の既存方式) -->
             <div v-show="activeTab === 'pois'" class="h-100 p-4 overflow-hidden" data-testid="map-pois-tab-pane">
+                <!-- M4-T1: 未対応形式の警告。機構 (DiagnosticFeedback + read-only) は AppEdit と
+                     共通で、文言キーだけ画面別 — App は preview/export へ反映されないが Map は
+                     生値がそのまま出力されるため (人間判断 2026-08-02) -->
+                <div class="h-100 d-flex flex-column">
+                <DiagnosticFeedback v-if="poisUnsupported" :items="[{ key: 'h', severity: 'warning', message: t('mapedit.poi_format_unsupported') }]" scope="section" class="flex-shrink-0" />
                 <PoiReferenceEditor
                     ref="poiRefEditor"
+                    class="flex-grow-1"
                     heading-key="poiref.selected_list_map"
-                    :pois="Array.isArray(mapData.pois) ? mapData.pois : []"
+                    :pois="poisForEditor"
+                    :read-only="poisUnsupported"
                     :host-slug="mapData.mapID"
                     :host-title="mapData.title"
                     :active-lang="currentLang"
@@ -4416,6 +4443,7 @@ const goBack = async () => {
                     />
                   </template>
                 </PoiReferenceEditor>
+                </div>
                 <EnvelopeEditorModal
                     v-if="showPoiRegionModal"
                     :model-value="poiFilterRegion"

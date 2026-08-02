@@ -271,10 +271,13 @@ try {
   assert.doesNotMatch(appPreviewServiceSrc, /normalizeJsonArray/, 'AppPreviewService.ts に normalizeJsonArray への参照が残存している');
 
   const appEditView = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
+  // M4-T1: AppEdit の受け入れは共通関所 acceptDocumentPois（同じ appPoisFormat.ts）へ委譲され、
+  // readAppDocumentPois の直接 import は無くなった。検査の意図（AppEdit が形式仕様の単一実装を
+  // 経由すること）は不変なので、期待値だけを新しい共通実装へ更新する。
   assert.match(
     appEditView,
-    /import \{ readAppDocumentPois \} from "\.\.\/utils\/appPoisFormat"/,
-    'AppEdit.vue が readAppDocumentPois (appPoisFormat) を import していない',
+    /import \{ acceptDocumentPois \} from "\.\.\/utils\/appPoisFormat"/,
+    'AppEdit.vue が acceptDocumentPois (appPoisFormat) を import していない',
   );
   assert.match(appEditView, /poisUnsupported/, 'AppEdit.vue に poisUnsupported の配線がない');
   assert.doesNotMatch(appEditView, /poiHealFailed/, 'AppEdit.vue に旧 poiHealFailed の残存がある');
