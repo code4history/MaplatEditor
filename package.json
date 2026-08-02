@@ -145,7 +145,8 @@
     "test:e2e:m1-t3-swiper": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m1-t3-swiper-viewer-reach.spec.ts",
     "test:e2e:m1-t8": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m1-t8-preview-sanitized-viewer.spec.ts",
     "smoke:m1-t6-hotfix-1-history-suppression": "node scripts/m1-t6-hotfix-1-history-suppression-smoke.mjs",
-    "smoke:m4-t2-export-pois-externalization": "node scripts/m4-t2-export-pois-externalization-smoke.mjs"
+    "smoke:m4-t2-export-pois-externalization": "node scripts/m4-t2-export-pois-externalization-smoke.mjs",
+    "smoke:m4-t3-preview-pois-parity": "node scripts/m4-t3-preview-pois-parity-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

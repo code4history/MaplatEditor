@@ -257,8 +257,19 @@ try {
       const token = new URL(prepared.url).pathname.split('/').filter(Boolean)[1];
       const appJson = await (await fetch(prepared.url + 'apps/' + token + '.json')).json();
 
-      // ① {poiUid} → export 形 FC
-      assertResolvedFc(appJson.pois[0], 'preview app JSON');
+      // ① {poiUid} → pois/<slug>.geojson への参照（M4-T3: preview も export と同一形式）。
+      //    解決済み FC の中身は外部ファイル側で検証する
+      assert.deepEqual(appJson.pois[0], { layer: 'pois/kyoto-poi.geojson' },
+        'preview app JSON: {poiUid} 参照は pois/<slug>.geojson への参照になるはず (M4-T3)');
+      const previewFcA = await (await fetch(prepared.url + 'pois/kyoto-poi.geojson')).json();
+      assertResolvedFc(previewFcA, 'preview pois/kyoto-poi.geojson');
+      // ② 生 URL は {layer:URL} へ包まれ、生 FC も外部化される（M4-T2 の E2/E3 と同じ規則）
+      assert.deepEqual(appJson.pois[1], { layer: rawUrl },
+        'preview app JSON: 生 URL は {layer:URL} へ包まれるはず');
+      assert.deepEqual(appJson.pois[2], { layer: 'pois/embedded-raw.geojson' },
+        'preview app JSON: 生 FC も外部化されるはず');
+      const previewRawFc = await (await fetch(prepared.url + 'pois/embedded-raw.geojson')).json();
+      assert.deepEqual(previewRawFc, rawFc, 'preview でも生 FC の中身は無加工のはず');
 
       // M17-T1/AC17-4: layer metadata icon が preview で反映され、
       // app 側 entry の icon（POI-112 最小形）が優先されることを確認
@@ -273,16 +284,15 @@ try {
         'preview HTML の viewerOption に enableMarkerList: true が載るはず'
       );
 
-      // ② 生 URL / 生 FC は透過 (生 FC の座標は丸めない)
+      // ② 要素数（生 URL / 生 FC の扱いは上の ①② で assert 済み。M4-T3 で参照形になった）
       assert.equal(appJson.pois.length, 3, 'missing 参照が落ちて 3 要素のはず');
-      assert.equal(appJson.pois[1], rawUrl, '生 URL 文字列は透過されるはず');
-      assert.deepEqual(appJson.pois[2], rawFc, '生 FC は無加工で透過されるはず');
 
       // ②' 配信 app JSON の pois 配列順は document の定義順 (エディタ POIデータタブの並び順) を保持
       //     (2026-07-12 POI レイヤ順バグ修正: viewer 側 listPoiLayers も main 先頭 + この定義順で一覧化する)
+      //     M4-T3: 要素は {layer:…} 形になったため layer で順序を見る
       assert.deepEqual(
-        appJson.pois.map((entry: any) => (typeof entry === 'string' ? entry : entry.id)),
-        ['kyoto-poi', rawUrl, 'embedded-raw'],
+        appJson.pois.map((entry: any) => entry.layer),
+        ['pois/kyoto-poi.geojson', rawUrl, 'pois/embedded-raw.geojson'],
         '配信 pois 配列は定義順を保持するはず'
       );
 
@@ -303,7 +313,8 @@ try {
       );
       const mapJson = await (await fetch(prepared.url + 'maps/poimap.json')).json();
       assert.equal(mapJson.pois.length, 1, 'map JSON の pois も解決されるはず');
-      assertResolvedFc(mapJson.pois[0], 'preview map JSON');
+      assert.deepEqual(mapJson.pois[0], { layer: 'pois/kyoto-poi.geojson' },
+        'preview map JSON も同じ外部ファイルを参照するはず（app と map で1ファイルへ畳む）');
       console.log('ok: (1)-(4) preview app/map JSON resolve {poiUid} references with warnings');
 
       // --- (10) 解決後の imgs/... URL が preview セッションから実際に配信される (POI-117) ---
@@ -622,9 +633,16 @@ try {
         const ac174Token = new URL(ac174Prepared.url).pathname.split('/').filter(Boolean)[1];
         const ac174Json = await (await fetch(ac174Prepared.url + 'apps/' + ac174Token + '.json')).json();
 
-        // AC17-4: entry の icon ('builtin:defaultpin') が layer metadata icon (asset UUID) を上書き
-        assert.equal(ac174Json.pois[0].properties.icon, 'imgs/icons/builtin/defaultpin.png',
-          'AC17-4: entry の icon が layer metadata icon を上書きして解決されるはず (POI-112 applyReferenceIconOverrides)');
+        // AC17-4: entry の icon ('builtin:defaultpin') が layer metadata icon (asset UUID) を上書きする。
+        // M4-T3 以降、上書きは FC へ焼き込まれず**参照側 (wrapper)** に載る (M4-T2 G2)。
+        assert.equal(ac174Json.pois[0].layer, 'pois/ac174-poi.geojson');
+        assert.equal(ac174Json.pois[0].icon, 'imgs/icons/builtin/defaultpin.png',
+          'AC17-4: entry の icon が wrapper に載り imgs/ へ解決されるはず (M4-T2 の上書き移設)');
+        // 外部ファイル側にはソース本来の layer icon (asset UUID) が解決された値が残る
+        // = 上書きが焼き込まれていないことの対偶
+        const ac174Fc = await (await fetch(ac174Prepared.url + 'pois/ac174-poi.geojson')).json();
+        assert.equal(ac174Fc.properties.icon, 'imgs/temple-mark.png',
+          'AC17-4: 外部ファイルにはソース側 layer icon が残るはず (上書きを焼き込まない)');
       }
 
       console.log('M10-T1 poi reference resolver smoke passed');

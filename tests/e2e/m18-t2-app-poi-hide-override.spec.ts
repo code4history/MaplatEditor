@@ -286,15 +286,29 @@ test.describe('M18-T2: アプリ管理 POI 編集の hide 上書き UI', () => {
         return await resp.json();
       }, appJsonUrl);
 
-      const fcA = appJson.pois.find((p: any) => String(p?.id ?? '').includes(slugA) || String(p?.properties?.id ?? '').includes(POI_A_ID));
-      const fcB = appJson.pois.find((p: any) => String(p?.id ?? '').includes(slugB) || String(p?.properties?.id ?? '').includes(POI_B_ID));
-      expect(fcA, 'AC2-9(a): apps JSON にレイヤA の FC が存在する').toBeTruthy();
-      expect(fcB, 'AC2-9(a): apps JSON にレイヤB の FC が存在する').toBeTruthy();
-      expect(fcB.properties?.hide, 'AC2-9(a): B は FC.properties.hide === true').toBe(true);
-      expect(fcA.properties?.hide, 'AC2-9(a): A は非表示でない').not.toBe(true);
+      // M4-T3: 配信 JSON の pois は外部ファイルへの参照 + 上書き属性になった。
+      // hide は FC へ焼き込まれず参照側 (wrapper) に載る（M4-T2 G2）
+      const refA = appJson.pois.find((p: any) => String(p?.layer ?? '').includes(slugA));
+      const refB = appJson.pois.find((p: any) => String(p?.layer ?? '').includes(slugB));
+      expect(refA, 'AC2-9(a): apps JSON にレイヤA の参照が存在する').toBeTruthy();
+      expect(refB, 'AC2-9(a): apps JSON にレイヤB の参照が存在する').toBeTruthy();
+      expect(refA.layer, 'AC2-9(a): A は pois/<slug>.geojson を指す').toBe(`pois/${slugA}.geojson`);
+      expect(refB.layer, 'AC2-9(a): B は pois/<slug>.geojson を指す').toBe(`pois/${slugB}.geojson`);
+      expect(refB.hide, 'AC2-9(a): B の hide は参照側に載る').toBe(true);
+      expect(refA.hide, 'AC2-9(a): A は非表示でない').not.toBe(true);
       for (const p of appJson.pois) {
-        expect(p.hide, 'AC2-9(a): FC トップレベルに hide が出ない（properties 正本）').toBeUndefined();
+        expect(p.type, 'AC2-9(a): 配信 JSON にインライン FC が残らない').not.toBe('FeatureCollection');
       }
+      // 上書きが外部ファイルへ焼き込まれていないこと（旧「FC トップレベルに hide が出ない」の後継）
+      const previewBase = previewSrc!.replace(/\/$/, '');
+      const externalB: any = await page.evaluate(async (url: string) => {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`fetch ${url} failed: ${resp.status}`);
+        return await resp.json();
+      }, `${previewBase}/${refB.layer}`);
+      expect(externalB.type, 'AC2-9(a): 外部ファイルは FeatureCollection').toBe('FeatureCollection');
+      expect(externalB.properties?.hide, 'AC2-9(a): 外部ファイルに hide が焼き込まれない').toBeUndefined();
+      expect(externalB.hide, 'AC2-9(a): 外部ファイルのトップレベルにも hide が出ない').toBeUndefined();
 
       // (b)(c)(d) viewer 内部: app-level cluster / hidden 一覧 / marker 実描画
       // app-level POI レイヤは core.pois[<key>] に載る。

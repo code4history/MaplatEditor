@@ -388,15 +388,29 @@ test.describe('M18-T1: 地図管理 POI 編集の hide 上書き UI', () => {
         return await resp.json();
       }, mapJsonUrl);
 
-      const fcA = mapJson.pois.find((p: any) => String(p?.id ?? '').includes(slugA));
-      const fcB = mapJson.pois.find((p: any) => String(p?.id ?? '').includes(slugB));
-      expect(fcA, 'AC1-9(a): maps JSON にレイヤA の FC が存在する').toBeTruthy();
-      expect(fcB, 'AC1-9(a): maps JSON にレイヤB の FC が存在する').toBeTruthy();
-      expect(fcB.properties?.hide, 'AC1-9(a): B は FC.properties.hide === true').toBe(true);
-      expect(fcA.properties?.hide, 'AC1-9(a): A は非表示でない').not.toBe(true);
+      // M4-T3: 配信 JSON の pois は外部ファイルへの参照 + 上書き属性になった。
+      // hide は FC へ焼き込まれず参照側 (wrapper) に載る（M4-T2 G2）
+      const refA = mapJson.pois.find((p: any) => String(p?.layer ?? '').includes(slugA));
+      const refB = mapJson.pois.find((p: any) => String(p?.layer ?? '').includes(slugB));
+      expect(refA, 'AC1-9(a): maps JSON にレイヤA の参照が存在する').toBeTruthy();
+      expect(refB, 'AC1-9(a): maps JSON にレイヤB の参照が存在する').toBeTruthy();
+      expect(refA.layer, 'AC1-9(a): A は pois/<slug>.geojson を指す').toBe(`pois/${slugA}.geojson`);
+      expect(refB.layer, 'AC1-9(a): B は pois/<slug>.geojson を指す').toBe(`pois/${slugB}.geojson`);
+      expect(refB.hide, 'AC1-9(a): B の hide は参照側に載る').toBe(true);
+      expect(refA.hide, 'AC1-9(a): A は非表示でない').not.toBe(true);
       for (const p of mapJson.pois) {
-        expect(p.hide, 'AC1-9(a): FC トップレベルに hide が出ない（properties 正本）').toBeUndefined();
+        expect(p.type, 'AC1-9(a): 配信 JSON にインライン FC が残らない').not.toBe('FeatureCollection');
       }
+      // 上書きが外部ファイルへ焼き込まれていないこと（旧「FC トップレベルに hide が出ない」の後継）
+      const previewBase = previewSrc!.replace(/\/$/, '');
+      const externalB: any = await page.evaluate(async (url: string) => {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`fetch ${url} failed: ${resp.status}`);
+        return await resp.json();
+      }, `${previewBase}/${refB.layer}`);
+      expect(externalB.type, 'AC1-9(a): 外部ファイルは FeatureCollection').toBe('FeatureCollection');
+      expect(externalB.properties?.hide, 'AC1-9(a): 外部ファイルに hide が焼き込まれない').toBeUndefined();
+      expect(externalB.hide, 'AC1-9(a): 外部ファイルのトップレベルにも hide が出ない').toBeUndefined();
 
       // (b)(c)(d) viewer 内部: map source 側 cluster / hidden 一覧の exact 値 / marker 実描画
       const viewerState = await frame.evaluate(({ sa, sb, mapID }: any) => {

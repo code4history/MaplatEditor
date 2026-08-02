@@ -168,22 +168,33 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
         return await resp.json();
       }, appJsonUrl);
 
-      const poisA = appJson.pois.find((p: any) => p.id && String(p.id).includes('poi-a'));
-      const poisB = appJson.pois.find((p: any) => p.id && String(p.id).includes('poi-b'));
-      expect(poisA, '配信 JSON にレイヤAの FC が存在する').toBeTruthy();
-      expect(poisB, '配信 JSON にレイヤBの FC が存在する').toBeTruthy();
-      // レイヤA: 参照 icon 上書きが FC.properties.icon に出力され imgs/ へ解決される
-      expect(typeof poisA.properties.icon).toBe('string');
-      expect(poisA.properties.icon).toMatch(/^imgs\//);
+      // M4-T3: 配信 JSON の pois は外部ファイルへの参照 + 上書き属性になった。
+      // 参照側の上書きは FC へ焼き込まれず wrapper に載る（M4-T2 G2）
+      const poisA = appJson.pois.find((p: any) => p.layer && String(p.layer).includes('poi-a'));
+      const poisB = appJson.pois.find((p: any) => p.layer && String(p.layer).includes('poi-b'));
+      expect(poisA, '配信 JSON にレイヤAの参照が存在する').toBeTruthy();
+      expect(poisB, '配信 JSON にレイヤBの参照が存在する').toBeTruthy();
+      // レイヤA: 参照 icon 上書きが wrapper.icon に出力され imgs/ へ解決される
+      expect(typeof poisA.icon).toBe('string');
+      expect(poisA.icon).toMatch(/^imgs\//);
       // レイヤA: 非表示でない（hide が true でない）
-      expect(poisA.properties.hide).not.toBe(true);
-      // レイヤB: 参照 hide:true 上書きが FC.properties.hide === true に出力される
-      expect(poisB.properties.hide).toBe(true);
-      // FC トップレベルに icon/hide が出ない（properties 正本化）
+      expect(poisA.hide).not.toBe(true);
+      // レイヤB: 参照 hide:true 上書きが wrapper.hide === true に出力される
+      expect(poisB.hide).toBe(true);
+      // 配信 JSON にインライン FC が残らない
       for (const p of appJson.pois) {
-        expect(p.icon).toBeUndefined();
-        expect(p.hide).toBeUndefined();
+        expect(p.type).not.toBe('FeatureCollection');
       }
+      // 上書きが外部ファイルへ焼き込まれていないこと（旧「FC トップレベルに icon/hide が出ない」の後継）
+      const previewBase = previewSrc!.replace(/\/$/, '');
+      const externalB: any = await page.evaluate(async (url: string) => {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`fetch ${url} failed: ${resp.status}`);
+        return await resp.json();
+      }, `${previewBase}/${poisB.layer}`);
+      expect(externalB.type).toBe('FeatureCollection');
+      expect(externalB.properties?.hide, '外部ファイルに hide が焼き込まれない').toBeUndefined();
+      expect(externalB.hide).toBeUndefined();
 
       // 7. 自動 assert（viewer 内部状態）: view 位置 + cluster 到達 + marker layer の実描画
       const viewerState = await frame.evaluate(({ slugA, slugB }: { slugA: string; slugB: string }) => {
@@ -223,7 +234,8 @@ test.describe('M18-T5: properties 正本化 — viewer 到達', () => {
       expect(viewerState.markerPixel[1]).toBeLessThan(1200);
 
       // cluster 到達: A の icon は imgs/ 解決値、A は非表示でない、B は hide === true
-      expect(viewerState.clusterAIcon).toBe(appJson.pois.find((p: any) => String(p.id).includes('poi-a')).properties.icon);
+      // M4-T3: 参照側 (wrapper) の icon が viewer の cluster へ届いていること
+      expect(viewerState.clusterAIcon).toBe(poisA.icon);
       expect(viewerState.clusterAHide).not.toBe(true);
       expect(viewerState.clusterBHide).toBe(true);
       // B は listPoiLayers(true)（非表示レイヤ）に含まれる

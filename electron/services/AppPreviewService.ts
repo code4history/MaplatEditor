@@ -17,8 +17,8 @@ import {
   hasSharedPoiUid,
   iconSetFilePath,
   mergeWarnings,
-  resolvePoisArray,
-  resolveAssetRefsInFcForPreview,
+  externalizePoisArray,
+  createPoiExternalizationContext,
   DUPLICATE_POI_REFERENCE_WARNING,
 } from './poiReferenceResolver';
 import {
@@ -35,6 +35,9 @@ type PreviewSession = {
   token: string;
   app: any;
   maps: Record<string, any>;
+  // M4-T3: pois/<name>.geojson の実体。キーはファイル名 ('kyoto-poi.geojson')。
+  // export が outDir/pois/ へ書き出すのと同じ内容を、preview はメモリから配信する
+  poiDocuments: Record<string, unknown>;
   manifest: any;
   viewerOption: any;
   // POI 参照解決の警告 (静的 i18n キー)。prepare の返り値経由でレンダラの t(key) 表示に載せる
@@ -95,15 +98,12 @@ class AppPreviewService {
     return run;
   }
 
-  // maplat-asset:<UID> の実体パス解決 (map側/app側 pois 共通)。callback として渡すため arrow で束縛
-  private resolveAssetPath = async (uid: string): Promise<string | null> => {
-    const record = await SqliteDataService.findAsset(uid);
-    if (!record) return null;
-    const saveFolder = SettingsService.get('saveFolder') as string;
-    const src = path.join(saveFolder, 'assets', `${record.uid}.${record.ext}`);
-    if (!(await fs.pathExists(src))) return null;
-    return src;
-  };
+  // M4-T3: maplat-asset:<UID> の実体パス解決 (private resolveAssetPath) は撤去した。
+  // これは resolveAssetRefsInFcForPreview へ渡す callback 専用で、POI の asset 解決が
+  // externalizePoisArray の export 形 (imgs/{slug}.{ext}) へ統一されたことで唯一の用途を失い、
+  // noUnusedLocals に掛かるため残せない。実体は
+  // {saveFolder}/assets/{uid}.{ext} の存在確認だけなので、必要になれば容易に再生できる
+  // (poiReferenceResolver.resolveIconValue が同じ解決を持つ)。
 
   async prepare(document: any): Promise<{ url: string; port: number; warnings: string[] }> {
     return this.enqueue(() => this.prepareInner(document));
@@ -196,20 +196,9 @@ class AppPreviewService {
         const preview = await MapEditService.requestPreviewSource(source.mapUid);
         const viewerMapID = String(preview.mapID || source.mapUid);
         const label = source.label || preview.title || viewerMapID;
-        // map data_json の pois 内の {poiUid} 参照を export 形 FC へ解決 (生要素は透過)
-        let mapPois = preview.pois;
-        if (Array.isArray(mapPois)) {
-          if (!duplicateReference && hasSharedPoiUid(collectPoiUids(mapPois), appPoiUids)) {
-            duplicateReference = true;
-          }
-          const resolved = await resolvePoisArray(mapPois);
-          mergeWarnings(warnings, resolved.warnings);
-          mapPois = resolved.pois;
-          // M11-T9: maplat-asset:<UID> をプレビュー用パスに解決
-          mapPois = await Promise.all(
-            mapPois.map((poi: unknown) => resolveAssetRefsInFcForPreview(poi, token, this.resolveAssetPath)),
-          );
-        }
+        // M4-T3: pois の外部ファイル化は Promise.all の後段で逐次に行う (外部化コンテキストを
+        // app / map で共有するため、並行更新だと連番採番が非決定になる)。ここでは生値のまま置く
+        const rawMapPois = preview.pois;
         // サムネイル実体はuidパス (ADR-0007)。preview serverの tmbs/ 経路で配信される
         const thumbnail = `tmbs/${preview.uid || viewerMapID}.jpg`;
         maps[viewerMapID] = this.toHttpAsset(normalizeRuntimeKeys({
@@ -220,7 +209,7 @@ class AppPreviewService {
           title: preview.title || label,
           thumbnail,
           url: preview.url || preview.url_,
-          pois: mapPois,
+          pois: rawMapPois,
         }), token);
         const composed = composeViewerSource(source, {
           settingFilePrefix: 'maps/',
@@ -228,24 +217,41 @@ class AppPreviewService {
           maplatMapID: viewerMapID,
         }) as Record<string, unknown>;
         composed.thumbnail = thumbnail;
-        return { source, viewerMapID, composed };
+        return { source, viewerMapID, composed, rawMapPois };
       }
       // builtin → 素の文字列 / tms → Editor専用キー除去済みオブジェクト
       return { source, viewerMapID: source.mapUid, composed: composeViewerSource(source, { lang: documentLang }) };
     }));
+
+    // M4-T3: POI の外部ファイル化 (export と同一形式)。app / map で1つのコンテキストを共有し、
+    // 同じ POI ソースを両方が参照しても pois/<name>.geojson は1ファイルへ畳む。
+    // ctx を触る区間は逐次 — Promise.all の中で並行に更新すると連番採番が非決定になる
+    const poiCtx = createPoiExternalizationContext();
+    for (const entry of entries) {
+      const rawMapPois = (entry as { rawMapPois?: unknown }).rawMapPois;
+      if (!Array.isArray(rawMapPois)) continue;
+      if (!duplicateReference && hasSharedPoiUid(collectPoiUids(rawMapPois), appPoiUids)) {
+        duplicateReference = true;
+      }
+      const externalized = await externalizePoisArray(rawMapPois, poiCtx);
+      mergeWarnings(warnings, externalized.warnings);
+      maps[entry.viewerMapID].pois = this.toHttpAsset(externalized.pois, token);
+    }
     // startFromはViewer向けmapIDで渡す。document.startFromはuid(新形)/slug(旧形)のどちらもあり得る
     const startEntry =
       entries.find((entry) => entry.source.startFrom) ??
       entries.find((entry) =>
         entry.source.mapUid === document.startFrom || entry.source.mapSlug === document.startFrom);
-    // app 側 pois の {poiUid} 参照も同じ resolver で export 形 FC へ解決する
-    const resolvedAppPois = await resolvePoisArray(appPoisRaw);
-    mergeWarnings(warnings, resolvedAppPois.warnings);
-    // M11-T9: app 側 pois の maplat-asset:<UID> もプレビュー用パスに解決する
-    // (実装レビューv3: map 側のみ解決されており、POI選択タブで付けた app 直下 pois が未解決だった)
-    const appPoisAssetResolved = await Promise.all(
-      resolvedAppPois.pois.map((poi: unknown) => resolveAssetRefsInFcForPreview(poi, token, this.resolveAssetPath)),
-    );
+    // M4-T3: app 側 pois も同じコンテキストで外部化する (map の後 = 連番採番の順序が決定的)
+    const externalizedAppPois = await externalizePoisArray(appPoisRaw, poiCtx);
+    mergeWarnings(warnings, externalizedAppPois.warnings);
+    const appPoisForViewer = this.toHttpAsset(externalizedAppPois.pois, token);
+    // 外部ファイルの実体はメモリから配信する (export が outDir/pois/ へ書くのと同じ内容)。
+    // キーは dest から 'pois/' を除いたファイル名
+    const poiDocuments: Record<string, unknown> = {};
+    for (const doc of externalizedAppPois.documents) {
+      poiDocuments[doc.dest.replace(/^pois\//, '')] = doc.json;
+    }
     if (duplicateReference) mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
     const app = this.toHttpAsset(normalizeRuntimeKeys({
       appName: document.appName || document.title,
@@ -260,12 +266,13 @@ class AppPreviewService {
       defaultZoom: Number(document.appSettings?.defaultZoom || 10),
       startFrom: startEntry ? startEntry.viewerMapID : document.startFrom,
       sources: entries.map((entry) => entry.composed),
-      pois: appPoisAssetResolved,
+      pois: appPoisForViewer,
     }), token);
     return {
       token,
       app,
       maps,
+      poiDocuments,
       manifest: this.createManifest(document),
       viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(normalizedSources)),
       warnings,
@@ -365,6 +372,10 @@ class AppPreviewService {
     if (rest[0] === 'basemap_icons') return this.serveResourceAsset(rest, res);
     if (rest[0] === 'apps' && rest[1] === `${token}.json`) return this.sendJson(res, session.app);
     if (rest[0] === 'maps' && rest[1]) return this.sendJson(res, session.maps[rest[1].replace(/\.json$/, '')] || {});
+    // M4-T3: POI 実体の配信。maps と同じくセッションのメモリを引くだけ (ファイルシステムに触れない)。
+    // 未知キーは 404 ではなく {} を返す — viewer の nodesLoader は response.ok しか見ず、
+    // 404 だと throw して pois 全体が落ちるため (maps と同じ作法)
+    if (rest[0] === 'pois' && rest[1]) return this.sendJson(res, session.poiDocuments[rest[1]] || {});
     if (rest[0] === 'pwa' && rest[1] === `${token}_manifest.json`) return this.sendJson(res, session.manifest);
     if (rest[0] === 'assets') return this.servePackageAsset(rest.slice(1).join('/'), res);
     this.sendText(res, 404, 'Not Found');
