@@ -265,6 +265,43 @@ test.describe('M5-T7 編集済みタイルURLのランタイムタイル源再�
     }
   });
 
+  test('AC15c: url 空 + タイル実体なしでもフォールバックへ合流する', async () => {
+    test.setTimeout(300_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m5t7-fallback-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      // 寸法は確定しているがタイル実体が無い地図（seedSavedMap は width/height だけ入れ、
+      // タイルは生成しない）。§6.1 が扱う「url 空 + タイル実体なし」の状態そのもの。
+      const { uid } = await seedSavedMap(page);
+
+      // (1) 開き直し経路の挙動を記録する。main の deriveRuntimeTileUrl は
+      //     タイルが無いので undefined を返し、MaplatCore の addCommonOptions が
+      //     相対 URL を合成して構築は成功する（設計 §6.1）。
+      await openHash(page, `#/mapedit?uid=${uid}`, '[data-testid="map-title"]');
+      await expect.poll(async () => (await mapUrlPair(page)).url, { timeout: 15_000 }).toBe('');
+      const onLoad = await mapUrlPair(page);
+      expect(onLoad.url_).toBeUndefined();
+
+      // (2) 編集経路で同じ状態へ到達させる: 外部URLを入れて確定 → 空へ戻して確定
+      await urlInput(page).fill(EXT_URL);
+      await urlInput(page).blur();
+      await expect.poll(async () => (await mapUrlPair(page)).url_, { timeout: 15_000 }).toBe(EXT_URL);
+      const afterExternal = (await tileDebug(page)).exchangeCount;
+
+      await urlInput(page).fill('');
+      await urlInput(page).blur();
+      await expect.poll(async () => (await mapUrlPair(page)).url, { timeout: 15_000 }).toBe('');
+
+      // 設計 §6.1 の判断: (A) 交換する（フォールバック表示を受容）。
+      // ∴ url_ は開き直し経路と同じ undefined になり、交換も実際に行われる。
+      const afterCleared = await mapUrlPair(page);
+      expect(afterCleared.url_).toBe(onLoad.url_);
+      expect((await tileDebug(page)).exchangeCount).toBe(afterExternal + 1);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
   test('AC15: width/height 未確定なら何もしない', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m5t7-nowh-'));
