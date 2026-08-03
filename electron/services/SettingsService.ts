@@ -6,44 +6,54 @@ import path from 'path';
 interface AppSettings {
   lang: string;
   saveFolder: string;
-  /** M5-T6: JPEG デコーダへ渡す会計メモリ上限（MB = 2^20 バイト） */
-  jpegDecodeMaxMemoryMB: number;
-  /** M5-T6: JPEG デコーダへ渡す解像度上限（MP = 1e6 ピクセルの十進） */
-  jpegDecodeMaxResolutionMP: number;
+  /**
+   * M5-T8: JPEG デコードの会計メモリ**キャップ**（MB = 2^20 バイト）。`null` = 自動。
+   * M5-T6 では「デコーダへそのまま渡す運用値」だったが、m5-t8 で画像ごとの自動決定へ移り、
+   * この設定は「自動決定値がこれを超えたら弾く」上限の意味になった。
+   */
+  jpegDecodeMaxMemoryMB: number | null;
+  /** M5-T8: JPEG デコードの解像度**キャップ**（MP = 1e6 ピクセルの十進）。`null` = 自動 */
+  jpegDecodeMaxResolutionMP: number | null;
   [key: string]: any;
 }
 
 /**
- * M5-T6: JPEG デコード上限の既定値と下限。
+ * M5-T8: JPEG デコードキャップの下限。
  *
- * 既定値は旧 Electron 版（commit 0db2f94 / backend/src/mapupload.js:25-28）が
- * 明示していた値である。**十分性の保証ではない** — 実測トリガの画像（470 MP）は
- * 9865 MB を要し 8192 では足りないことが分かっている。だからこそ設定値にした。
+ * 既定は**「自動」（`null`）**である。M5-T6 の既定 8192 / 800 は撤去した — 実測トリガの
+ * 画像（470 MP・会計 9865 MB）が 8192 では通らず、利用者に設定を触らせる前提自体が
+ * 誤りだったためである。いまは画像ごとにヘッダから必要量を導出して渡す（設計 §5.3）。
  *
- * 下限は jpeg-js の既定値。これを下回る設定は現行より防御を弱めるだけなので受け付けない
+ * 下限は jpeg-js の既定値。これを下回るキャップは防御を弱めるだけなので受け付けない
  * （ガードの出自は decompression bomb 対策 CVE-2020-8175）。
- * 上限は設けない — 会計ガードは実メモリを予約しない算術しきい値であり、
- * 上限を設けると利用者が自分の画像を通せなくなる。
+ *
+ * **上限は機械安全枠（`resolveDecodeSafety()`）である**（人間指示 2026-08-03:
+ * 「自動かつ、入れさせる場合も上限値を設けてください」）。これを超える値を許すと、
+ * jpeg-js の会計ガードは通るのに V8 ヒープが尽きて**アプリが強制終了する**帯
+ * （設計 §3.6）へ利用者が自分で足を踏み入れられてしまう。
  */
-const JPEG_DECODE_MAX_MEMORY_MB_DEFAULT = 8192;
-const JPEG_DECODE_MAX_RESOLUTION_MP_DEFAULT = 800;
 const JPEG_DECODE_MAX_MEMORY_MB_MIN = 512;
 const JPEG_DECODE_MAX_RESOLUTION_MP_MIN = 100;
 
 /**
- * JPEG デコード上限の正規化。**この関数だけが正規化を行う**（読み出し・書き込みの両方が通る）。
+ * JPEG デコードキャップの正規化。**この関数だけが正規化を行う**（読み出し・書き込みの両方が通る）。
  *
  * 読み出し側でも正規化するのは、electron-store の実体が利用者の編集できる JSON ファイルで
  * あり、UI を通らない値が入り得るためである（過去形式の吸収ではなく、信頼できない入力の検証）。
+ *
+ * @returns 正規化済みのキャップ。`null` は**自動**（キャップなし）を意味する。
  */
-function normalizeJpegDecodeLimit(value: unknown, fallback: number, min: number): number {
-  // 数値と数値文字列だけを受け付ける（true → 1 のような暗黙変換で通さない）
-  if (typeof value !== 'number' && typeof value !== 'string') return fallback;
+function normalizeJpegDecodeCap(value: unknown, min: number, max: number): number | null {
+  // 未設定・空欄は「自動」。数値と数値文字列だけを受け付ける
+  // （true → 1 のような暗黙変換で通さない）。それ以外も「自動」へ落とす
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
   const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
-  return Math.max(min, Math.floor(numeric));
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return Math.min(max, Math.max(min, Math.floor(numeric)));
 }
 
+import { resolveDecodeSafety } from '../utils/decodeSafety';
 import { resolveEditorLanguage } from '../../src/utils/editorLanguages';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 import { defaultDraftTileRoot } from './draftTilePaths';
@@ -60,8 +70,9 @@ const runtimeStoragePaths = resolveRuntimeStoragePaths(
 // (lang の設計意図とは別種)
 const defaultSettings: AppSettings = {
   saveFolder: runtimeStoragePaths.saveFolder,
-  jpegDecodeMaxMemoryMB: JPEG_DECODE_MAX_MEMORY_MB_DEFAULT,
-  jpegDecodeMaxResolutionMP: JPEG_DECODE_MAX_RESOLUTION_MP_DEFAULT,
+  // M5-T8: 既定は「自動」。利用者が数値を入れたときだけキャップとして働く
+  jpegDecodeMaxMemoryMB: null,
+  jpegDecodeMaxResolutionMP: null,
 } as AppSettings;
 
 import { EventEmitter } from 'events';
@@ -150,31 +161,36 @@ class SettingsService extends EventEmitter {
   }
 
   /**
-   * M5-T6: JPEG デコーダへ渡す上限。**設定値の読み出し口はここ1つだけ**にする。
+   * M5-T8: JPEG デコードの**キャップ**。**設定値の読み出し口はここ1つだけ**にする。
    * 呼び出し側が `get('jpegDecodeMaxMemoryMB')` を直接読むと正規化が抜けるため作らない。
+   *
+   * `null` は**自動**（キャップなし）を意味する。運用値そのものではない点に注意
+   * （M5-T6 の `getJpegDecodeLimits` は運用値を返していた。**意味が変わったので改名した** —
+   * 同名のまま意味だけ変えると、旧義で読む人を誤らせる）。
    */
-  public getJpegDecodeLimits(): { maxMemoryUsageInMB: number; maxResolutionInMP: number } {
+  public getJpegDecodeCaps(): { maxMemoryUsageInMB: number | null; maxResolutionInMP: number | null } {
+    const safety = resolveDecodeSafety();
     return {
-      maxMemoryUsageInMB: normalizeJpegDecodeLimit(
+      maxMemoryUsageInMB: normalizeJpegDecodeCap(
         this.store.get('jpegDecodeMaxMemoryMB'),
-        JPEG_DECODE_MAX_MEMORY_MB_DEFAULT,
         JPEG_DECODE_MAX_MEMORY_MB_MIN,
+        safety.maxMemoryMB,
       ),
-      maxResolutionInMP: normalizeJpegDecodeLimit(
+      maxResolutionInMP: normalizeJpegDecodeCap(
         this.store.get('jpegDecodeMaxResolutionMP'),
-        JPEG_DECODE_MAX_RESOLUTION_MP_DEFAULT,
         JPEG_DECODE_MAX_RESOLUTION_MP_MIN,
+        safety.maxResolutionMP,
       ),
     };
   }
 
   public set(key: string, value: any): void {
     const oldValue = this.store.get(key);
-    // M5-T6: 書き込み側でも同じ正規化を通し、UI から不正値が保存されること自体を防ぐ
+    // M5-T8: 書き込み側でも同じ正規化を通し、UI から不正値・過大値が保存されること自体を防ぐ
     if (key === 'jpegDecodeMaxMemoryMB') {
-      value = normalizeJpegDecodeLimit(value, JPEG_DECODE_MAX_MEMORY_MB_DEFAULT, JPEG_DECODE_MAX_MEMORY_MB_MIN);
+      value = normalizeJpegDecodeCap(value, JPEG_DECODE_MAX_MEMORY_MB_MIN, resolveDecodeSafety().maxMemoryMB);
     } else if (key === 'jpegDecodeMaxResolutionMP') {
-      value = normalizeJpegDecodeLimit(value, JPEG_DECODE_MAX_RESOLUTION_MP_DEFAULT, JPEG_DECODE_MAX_RESOLUTION_MP_MIN);
+      value = normalizeJpegDecodeCap(value, JPEG_DECODE_MAX_RESOLUTION_MP_MIN, resolveDecodeSafety().maxResolutionMP);
     }
     this.store.set(key, value);
     if (key === 'saveFolder') {

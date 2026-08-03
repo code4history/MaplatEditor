@@ -16,6 +16,7 @@ import { Jimp } from 'jimp';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import SettingsService from './SettingsService';
 import { estimateJpegDecodeBudget, type JpegDecodeBudget } from '../utils/jpegDecodeBudget';
+import { resolveDecodeSafety } from '../utils/decodeSafety';
 
 /**
  * M5-T6: 画像取り込みの結果契約（設計 §6.1 が唯一の記述）。
@@ -27,6 +28,21 @@ import { estimateJpegDecodeBudget, type JpegDecodeBudget } from '../utils/jpegDe
 export type MapUploadResult =
     | { width: number; height: number; url: string; imageExtension: string }
     | { err: 'Canceled' }
+    /**
+     * M5-T8: 取り込み前の確認要求。`err` を持たない点が分岐鍵である
+     * （renderer は `needsConfirmation` を最優先で見る。設計 §6.2）。
+     * **選択したファイルパスは載せない** — renderer へ渡さず main 側で保持する。
+     */
+    | { needsConfirmation: 'long_import'; megapixels: number }
+    /**
+     * M5-T8: この機械では構造的に扱えない（V8 ヒープが尽きて強制終了する）。
+     * 確認プロンプトを出さずハードブロックする（人間指示 2026-08-03）。
+     */
+    | {
+          err: string;
+          errorCode: 'jpeg_machine_limit';
+          machine: { requiredHeapMB: number; availableHeapMB: number; megapixels: number };
+      }
     | {
           err: string;
           errorCode: 'jpeg_memory_limit';
@@ -39,7 +55,18 @@ export type MapUploadResult =
           configuredMP: number;
           prediction?: { megapixels: number; recommendedResolutionMP: number };
       }
+    /** M5-T8: `confirmed: true` で来たが、main 側に対応する選択が保持されていない */
+    | { err: string; errorCode: 'stale_confirmation' }
     | { err: string; errorCode: 'unknown' };
+
+/**
+ * M5-T8: 確認プロンプトを出す画素数の閾値（十進 MP）。
+ *
+ * タイル化の実測は 48 MP ≒ 65 秒 / 110 MP ≒ 286 秒（m5-t6 smoke）で `t ∝ MP^1.79`。
+ * 100 MP はおよそ4〜5分に相当し、ここから先は進捗バーだけでは足りない。
+ * これ未満は従来どおり無確認で進む（確認の出しすぎは無視されるだけで害になる）。
+ */
+export const LONG_IMPORT_THRESHOLD_MP = 100;
 
 /** jpeg-js の例外文言から、どちらのガードに当たったかを判別する（renderer では判別しない） */
 function classifyDecodeError(error: unknown): 'jpeg_memory_limit' | 'jpeg_resolution_limit' | 'unknown' {
@@ -147,16 +174,23 @@ async function makeThumbnail512(
  *                    親領域クリア事故の構造的排除）
  * @returns { width, height, url, imageExtension } or { err }
  */
-async function imageCutter(
+export async function imageCutter(
     win: BrowserWindow,
     srcFile: string,
-    outFolder: string
+    outFolder: string,
+    options: { confirmed?: boolean } = {}
 ): Promise<MapUploadResult> {
-    // M5-T6: 事前判定に使うため、デコード設定と原本バッファを先に用意する。
-    const decodeLimits = SettingsService.getJpegDecodeLimits();
+    // M5-T8: 事前判定に使う材料を先に揃える。
+    //   caps   = 利用者が明示したキャップ（null = 自動）
+    //   safety = この機械が構造的に耐えられる量（V8 heap_size_limit から実行時算出）
+    const caps = SettingsService.getJpegDecodeCaps();
+    const safety = resolveDecodeSafety();
     let sourceBuffer: Buffer;
     let budget: JpegDecodeBudget | null = null;
     let toExtKey: string;
+    // デコードへ実際に渡す値。budget があれば画像ごとの自動値、無ければ機械安全枠。
+    let effectiveMemoryMB: number;
+    let effectiveResolutionMP: number;
     try {
         // 拡張子判定（旧実装と同じロジック）
         const match = srcFile.match(/([^\\/]+)\.([^.]+)$/);
@@ -166,35 +200,65 @@ async function imageCutter(
 
         sourceBuffer = await fs.readFile(srcFile);
 
-        // M5-T6 (§5.4): デコードもタイル化も始める前に、ヘッダから必要量を予測して判定する。
-        // ここで弾けば利用者は数分待たされずに済み、かつ outFolder のクリアにも到達しないため
-        // **既存の下書きタイルを壊さない**。予測できない入力（PNG 等）は null が返り素通りする。
+        // M5-T6 (§5.4) / M5-T8 (§5.0): デコードもタイル化も始める前に判定する。
+        // ここで戻る経路は **outFolder のクリアに到達しない**ため、既存の下書きタイルを壊さない
+        // （この順序が不変条件。AC12 が番人）。予測できない入力（PNG 等）は null が返る。
         budget = estimateJpegDecodeBudget(sourceBuffer);
         if (budget) {
-            if (budget.requiredMemoryMB > decodeLimits.maxMemoryUsageInMB) {
+            // D2: この機械では構造的に扱えない。jpeg-js の会計ガードは通っても V8 ヒープが
+            // 尽きてプロセスごと落ちる領域であり、例外として catch できない。∴ 確認を出さず
+            // ここで止める（人間指示 2026-08-03）。
+            if (budget.decoderHeapMB > safety.maxDecoderHeapMB) {
                 return {
-                    err: `jpeg decode memory limit: required ${budget.requiredMemoryMB}MB > configured ${decodeLimits.maxMemoryUsageInMB}MB`,
+                    err: `jpeg decode machine limit: required heap ${budget.decoderHeapMB}MiB > available ${safety.maxDecoderHeapMB}MiB`,
+                    errorCode: 'jpeg_machine_limit',
+                    machine: {
+                        requiredHeapMB: budget.decoderHeapMB,
+                        availableHeapMB: safety.maxDecoderHeapMB,
+                        megapixels: budget.megapixels,
+                    },
+                };
+            }
+
+            // D3 / D4: 利用者が明示したキャップに当たった場合のみ弾く（自動のときは素通り）。
+            // 判定は「デコードへ渡す予定の自動値」に対して行う — キャップで頭打ちにした値を
+            // 渡して「デコード途中で落ちる」状態を作らないため。
+            if (caps.maxMemoryUsageInMB !== null && budget.recommendedMemoryMB > caps.maxMemoryUsageInMB) {
+                return {
+                    err: `jpeg decode memory limit: required ${budget.requiredMemoryMB}MB > configured cap ${caps.maxMemoryUsageInMB}MB`,
                     errorCode: 'jpeg_memory_limit',
-                    configuredMB: decodeLimits.maxMemoryUsageInMB,
+                    configuredMB: caps.maxMemoryUsageInMB,
                     prediction: {
                         requiredMemoryMB: budget.requiredMemoryMB,
                         recommendedMemoryMB: budget.recommendedMemoryMB,
                     },
                 };
             }
-            // jpeg-js のガードは `pixelsInFrame > maxResolutionInMP * 1e6` の厳密不等号。
-            // 同じ向きで判定する（等しい場合は通す）。
-            if (budget.megapixels > decodeLimits.maxResolutionInMP) {
+            if (caps.maxResolutionInMP !== null && budget.recommendedResolutionMP > caps.maxResolutionInMP) {
                 return {
-                    err: `jpeg decode resolution limit: ${budget.megapixels}MP > configured ${decodeLimits.maxResolutionInMP}MP`,
+                    err: `jpeg decode resolution limit: ${budget.megapixels}MP > configured cap ${caps.maxResolutionInMP}MP`,
                     errorCode: 'jpeg_resolution_limit',
-                    configuredMP: decodeLimits.maxResolutionInMP,
+                    configuredMP: caps.maxResolutionInMP,
                     prediction: {
                         megapixels: budget.megapixels,
                         recommendedResolutionMP: budget.recommendedResolutionMP,
                     },
                 };
             }
+
+            // D5: 上限は足りているが非常に時間がかかる。**確認を取るまで進まない**。
+            // ここも outFolder より前なので、キャンセルしても後始末は要らない。
+            if (!options.confirmed && budget.megapixels > LONG_IMPORT_THRESHOLD_MP) {
+                return { needsConfirmation: 'long_import', megapixels: budget.megapixels };
+            }
+
+            effectiveMemoryMB = budget.recommendedMemoryMB;
+            effectiveResolutionMP = budget.recommendedResolutionMP;
+        } else {
+            // D1: 予測できない（PNG・SOF 解析不能）。PNG では jpeg オプションが参照されないため
+            // 実害は無いが、値の出どころを「機械が耐えられる量」に揃えておく。
+            effectiveMemoryMB = safety.maxMemoryMB;
+            effectiveResolutionMP = safety.maxResolutionMP;
         }
     } catch (err) {
         return { err: err instanceof Error ? err.message : String(err), errorCode: 'unknown' };
@@ -221,10 +285,11 @@ async function imageCutter(
         // （@jimp/js-png の DecodePngOptions にメモリ・解像度の上限は無い）。
         // M5-T6: 上限は設定値から取る（既定 8192 / 800）。読み出し口は
         // SettingsService.getJpegDecodeLimits の1つだけ（正規化がそこに閉じている）。
+        // M5-T8: 渡す値は §5.3 の表のとおり画像ごとに自動決定した値である（設定の運用値ではない）。
         const imageJimp = await Jimp.fromBuffer(sourceBuffer, {
             'image/jpeg': {
-                maxMemoryUsageInMB: decodeLimits.maxMemoryUsageInMB,
-                maxResolutionInMP: decodeLimits.maxResolutionInMP,
+                maxMemoryUsageInMB: effectiveMemoryMB,
+                maxResolutionInMP: effectiveResolutionMP,
             },
         });
         const width: number = imageJimp.width;   // 旧: imageJimp.bitmap.width
@@ -309,7 +374,9 @@ async function imageCutter(
             return {
                 err: message,
                 errorCode,
-                configuredMB: decodeLimits.maxMemoryUsageInMB,
+                // M5-T8: 実際にデコーダへ渡した値を返す（キャップではない）。
+                // 事前判定を通り抜けてなおガードに当たった、という意味だからである
+                configuredMB: effectiveMemoryMB,
                 ...(budget
                     ? { prediction: { requiredMemoryMB: budget.requiredMemoryMB, recommendedMemoryMB: budget.recommendedMemoryMB } }
                     : {}),
@@ -319,7 +386,7 @@ async function imageCutter(
             return {
                 err: message,
                 errorCode,
-                configuredMP: decodeLimits.maxResolutionInMP,
+                configuredMP: effectiveResolutionMP,
                 ...(budget
                     ? { prediction: { megapixels: budget.megapixels, recommendedResolutionMP: budget.recommendedResolutionMP } }
                     : {}),
@@ -336,22 +403,40 @@ async function imageCutter(
  * 旧実装の IPC: ipcMain.on('mapupload_showMapSelectDialog', ...)
  * 新実装の IPC: ipcMain.handle('mapupload:showMapSelectDialog', ...)
  */
-export async function showMapSelectDialog(
+export async function selectMapImage(
     win: BrowserWindow,
-    stagingDir: string,
     mapImageLabel: string
-): Promise<MapUploadResult> {
+): Promise<string | null> {
     const ret = await dialog.showOpenDialog(win, {
         defaultPath: app.getPath('documents'),
         properties: ['openFile'],
         // 旧実装: filters: [{name: mapImageRepl, extensions: ['jpg', 'png', 'jpeg']}]
         filters: [{ name: mapImageLabel, extensions: ['jpg', 'png', 'jpeg'] }]
     });
+    if (ret.canceled) return null;
+    return ret.filePaths[0];
+}
 
-    if (ret.canceled) {
+/**
+ * 旧実装 MapUpload.showMapSelectDialog() 相当（選択 → タイル化を一息で行う合成）。
+ *
+ * M5-T8: 確認往復を挟む本番経路は `electron/ipc/mapupload.ts` が
+ * `selectMapImage` と `imageCutter` を個別に呼ぶ（選択の保持が必要なため）。
+ * 本関数は**確認を挟まない直接経路**として残す。既存の smoke（m12-t15 / m5-t6）が
+ * この窓口を使っており、それらは確認を必要としない。
+ * 100 MP を超える画像を確認なしで通したい場合は `options.confirmed` を渡す。
+ */
+export async function showMapSelectDialog(
+    win: BrowserWindow,
+    stagingDir: string,
+    mapImageLabel: string,
+    options: { confirmed?: boolean } = {}
+): Promise<MapUploadResult> {
+    const filePath = await selectMapImage(win, mapImageLabel);
+    if (filePath === null) {
         return { err: 'Canceled' };
     }
 
     // M12-T20: stagingDir は IPC handler が resolveDraftTileDir で解決済み（§6.1）
-    return await imageCutter(win, ret.filePaths[0], stagingDir);
+    return await imageCutter(win, filePath, stagingDir, options);
 }
