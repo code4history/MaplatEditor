@@ -95,12 +95,22 @@ async function restoreDialogs(app: ElectronApplication): Promise<void> {
  *  - properties.html 内の maplat-asset:
  *  - 通常/512px サムネイル・タイル実体
  */
-async function seedFullMap(page: Page, saveFolder: string, workDir: string): Promise<{
+async function seedFullMap(page: Page, saveFolder: string, workDir: string, options: {
+  visibleImages?: boolean;
+} = {}): Promise<{
   mapUid: string; mapSlug: string; poiUid: string; iconSlug: string; photoSlug: string;
 }> {
   // imageAssets.add は **実ファイルパス** を受ける（renderer から bytes は渡せない）
   const srcPng = path.join(workDir, 'seed-source.png');
-  await writeFile(srcPng, Buffer.from(PNG_B64, 'base64'));
+  if (options.visibleImages) {
+    // 人間確認では **目で見える画像**でなければ意味がない。
+    // 1×1 PNG では「アセットは登録されたが画像は見えない」状態になり確認にならない
+    // （2026-08-03 の検証で人間が指摘）
+    const { Jimp } = await import('jimp');
+    await new Jimp({ width: 96, height: 96, color: 0xe8453cff }).write(srcPng as `${string}.png`);
+  } else {
+    await writeFile(srcPng, Buffer.from(PNG_B64, 'base64'));
+  }
 
   const seeded = await page.evaluate(async (sourcePath) => {
     const stamp = Date.now();
@@ -416,7 +426,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       // 準備のあいだだけダイアログを差し替える。原本は先に退避しておく
       await snapshotDialogs(app);
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot);
+      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot, { visibleImages: true });
 
       // 取込に使う ZIP を作るため、ここでは一度スクリプトから搬出する
       const zipPath = path.join(e2eRoot, 'map-export.zip');
@@ -457,17 +467,23 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       console.log('');
       console.log(`  （.tmp-human-verify の実体: ${e2eRoot}）`);
       console.log('');
-      console.log('  用意したもの:');
-      console.log(`    元地図           : ${seeded.mapSlug} (uid=${seeded.mapUid})`);
-      console.log(`    搬出済み地図 ZIP : ${zipPath}`);
-      console.log(`    取込用 ZIP（別slug）: ${copyZip}  → slug: ${copySlug}`);
-      console.log(`    依存画像         : imgs/${seeded.iconSlug}.png / imgs/${seeded.photoSlug}.png`);
+      console.log('  用意したもの（すべて .tmp-human-verify 直下）:');
+      console.log(`    元地図       : ${seeded.mapSlug}`);
+      console.log('    map-export.zip … 元地図をそのまま搬出したもの（slug は元のまま）');
+      console.log(`    map-copy.zip   … 中の slug を ${copySlug} へ書き換えたもの`);
+      console.log(`    依存画像     : imgs/${seeded.iconSlug}.png（POI アイコン・96x96 赤）`);
+      console.log(`                   imgs/${seeded.photoSlug}.png（吹き出し埋め込み・96x96 赤）`);
+      console.log('');
+      console.log('  ★ 取込の確認では **map-copy.zip** を選んでください。');
+      console.log('    map-export.zip は元地図と同じ slug のため「既存のマップIDです」で弾かれます。');
+      console.log('    それは正しい挙動です — 重複 slug の自動採番は m5-t5 の担当であり、');
+      console.log('    本タスクは Exist の失敗契約を変えていません。');
       console.log('');
       console.log('  確認していただきたいこと:');
       console.log('   1. 搬出ボタンで保存先ダイアログが出て、指定した場所に ZIP ができること');
-      console.log('   2. 地図管理の「インポート」から複製が取り込め、slug が ' + copySlug + ' になること');
+      console.log('   2. 地図管理の「インポート」→ **map-copy.zip** で取り込め、slug が ' + copySlug + ' になること');
       console.log('   3. 取り込んだ地図の POI が管理下 POI ソースとして復元され、表示されること');
-      console.log('   4. プレビューで POI（アイコン画像・吹き出しの埋め込み画像）が出ること');
+      console.log('   4. プレビューで POI のアイコン画像と吹き出しの埋め込み画像が **見える** こと');
       console.log('   5. 取り込んだ地図を再搬出しても同じ資源構成の ZIP になること');
       console.log('   6. アプリ搬出 → viewer 読込で POI が表示されること');
       console.log('   7. 取込しただけでは下書きが増えないこと（今回の修正点）');
