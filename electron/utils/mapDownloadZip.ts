@@ -10,11 +10,10 @@ import { compactMapLangFields } from '../../src/utils/langResource';
 import { ProgressReporter } from './ProgressReporter';
 import {
   createPoiExternalizationContext,
-  externalizePoisArray,
+  externalizeMapDocumentPois,
   type IconFile,
   type PoiDocument,
 } from '../services/poiReferenceResolver';
-import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 
 // download 用の交換形 map JSON を組み立てる (M2)。histMap2Store + 言語畳み込みの後、
 // pois 内の {poiUid} 参照を resolvePoisArray で export 形 FC へ解決する
@@ -50,19 +49,17 @@ export async function composeDownloadMapJson(
   // 「map 側だけ生判定だったため単独形の地図で POI が丸ごと落ちていた・実データ3件が該当」
   // と記録している)。その是正が地図 ZIP 側に及んでいなかったのを本タスクで揃える
   // (恒久指示「同一扱い処理は共通実装へ徹底」)。
-  const pois = readAppDocumentPois(compiled as { pois?: unknown }).pois;
-  if (pois.length > 0) {
-    // M5-T4B: 解決を resolvePoisArray (インライン FC 化) から
-    // externalizePoisArray (pois/*.geojson への外部化) へ移す。app 搬出と同じ契約であり、
-    // 地図 ZIP でも POI 実体が独立ファイルになる。
-    // ctx の寿命は **搬出1回＝地図1枚**である (app 搬出は app + 全 map で1つを共有する。
-    // 出力プロファイルの差であって契約の差ではない)。
-    const ctx = createPoiExternalizationContext();
-    const externalized = await externalizePoisArray(pois, ctx);
-    warnings = externalized.warnings;
-    files = externalized.files;
-    documents = externalized.documents;
-    (compiled as any).pois = externalized.pois;
+  // M5-T4B: 解決を resolvePoisArray (インライン FC 化) から共通 API へ移す。
+  // externalizeMapDocumentPois は **アプリ搬出と共有する唯一の実装**であり、
+  // 読み出し (readAppDocumentPois) と外部化 (externalizePoisArray) を1本に束ねる。
+  // ctx の寿命は **搬出1回＝地図1枚**である (app 搬出は app + 全 map で1つを共有する。
+  // 出力プロファイルの差であって契約の差ではない)。
+  const ctx = createPoiExternalizationContext();
+  const { result } = await externalizeMapDocumentPois(compiled as { pois?: unknown }, ctx);
+  if (result) {
+    warnings = result.warnings;
+    files = result.files;
+    documents = result.documents;
   }
   return { compiled, warnings, files, documents };
 }

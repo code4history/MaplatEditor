@@ -29,6 +29,7 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { parseIconRef, listIconSets } from '../../src/utils/iconRefs';
 import { compactLangResource, type LangResource } from '../../src/utils/langResource';
 import { DEFAULT_LANG } from '../../src/utils/poiGeoJson';
+import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import {
   poisEntryShape,
   hasMixedPoisShapes,
@@ -558,6 +559,35 @@ export async function externalizePoisArray(
 }
 
 // icon 実体コピー要求の重複なし合流 (dest キーで畳む — 複数 pois 配列/複数 map をまたぐ集約用)
+/**
+ * M5-T4B: 交換形 map JSON の POI を読み、ctx で外部化して **書き戻す**。
+ *
+ * **地図 ZIP 搬出（mapDownloadZip）とアプリ搬出（AppExportService）が共有する唯一の実装**である。
+ * 従来この4行は両者に別々に書かれており、map 側だけ `Array.isArray` の生判定だったため
+ * 単独形の地図で POI が未処理のまま素通りしていた（m4-t4 が app 側だけ是正した欠陥）。
+ * 読み出しと外部化を1本にすることで、同種のずれが構造的に起きないようにする
+ * （恒久指示「同一扱い処理は共通実装へ徹底」）。
+ *
+ * **ctx の寿命は呼び出し側が決める** — 地図 ZIP は搬出1回＝地図1枚、アプリ搬出は
+ * app + 全 map で1つを共有する。これは出力プロファイルの差であって契約の差ではない。
+ *
+ * 戻り値の `sourcePois` は **外部化前**の読み出し結果である。呼び出し側が
+ * 固有の判定（アプリ搬出の二重参照検出など）に使うために返す。
+ * POI が1件も無い場合は `result` が null になり、`mapJson.pois` は触らない
+ * （元に無いキーを生やさない・未対応形式の生値を壊さない）。
+ */
+export async function externalizeMapDocumentPois(
+  mapJson: { pois?: unknown },
+  ctx: PoiExternalizationContext,
+  options: { exportForm?: (uid: string) => Promise<unknown | null> } = {},
+): Promise<{ sourcePois: unknown[]; result: ExternalizedPois | null }> {
+  const sourcePois = readAppDocumentPois(mapJson).pois;
+  if (sourcePois.length === 0) return { sourcePois, result: null };
+  const result = await externalizePoisArray(sourcePois, ctx, options);
+  (mapJson as { pois?: unknown }).pois = result.pois;
+  return { sourcePois, result };
+}
+
 export function mergeIconFiles(target: Map<string, IconFile>, added: IconFile[]): void {
   for (const file of added) {
     target.set(file.dest, file);

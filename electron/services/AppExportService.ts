@@ -16,6 +16,7 @@ import {
   mergeIconFiles,
   mergeWarnings,
   externalizePoisArray,
+  externalizeMapDocumentPois,
   createPoiExternalizationContext,
   DUPLICATE_POI_REFERENCE_WARNING,
   type IconFile,
@@ -284,18 +285,21 @@ class AppExportService {
         // 3件がこの形であり、t4 で MapEdit が編集可能にした形でもある ∴ 同一扱いへ寄せる
         // (恒久指示「同一扱い処理は共通実装へ徹底」)。未対応形式は従来どおり空配列になるので、
         // その場合の挙動 (pois を触らない) も変わらない。
-        const mapPois = readAppDocumentPois(mapJson as { pois?: unknown }).pois;
-        if (mapPois.length > 0) {
+        // M5-T4B: 読み出しと外部化を **地図 ZIP 搬出と共有する唯一の実装** へ寄せる
+        // (externalizeMapDocumentPois)。従来この4行は mapDownloadZip 側にも別々に書かれており、
+        // map 側だけ Array.isArray の生判定だったため単独形の地図で POI が素通りしていた。
+        // sourcePois は **外部化前** の読み出し結果で、下の二重参照検出に使う
+        // (アプリ搬出固有の判定であり共通化の対象ではない)。
+        const { sourcePois: mapPois, result: externalized } =
+          await externalizeMapDocumentPois(mapJson as { pois?: unknown }, poiCtx);
+        if (externalized) {
+          // 二重参照の警告は externalized.warnings より **先** に積む (従来の順序を保つ)
           if (!duplicateReference && hasSharedPoiUid(collectPoiUids(mapPois), appPoiUids)) {
             duplicateReference = true;
             mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
           }
-          // M4-T2: 外部ファイル化。icon 参照文法 (POI-117) と maplat-asset:<UID> (M11-T9) の
-          // 解決は externalizePoisArray が実体側・参照側の双方で行う
-          const externalized = await externalizePoisArray(mapPois, poiCtx);
           mergeWarnings(warnings, externalized.warnings);
           mergeIconFiles(iconFiles, externalized.files);
-          (mapJson as any).pois = externalized.pois;
         }
         await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson, { spaces: 4 });
         progressState.step++;
