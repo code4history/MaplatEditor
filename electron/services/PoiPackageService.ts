@@ -22,10 +22,21 @@ export type PoiExportInspection = {
   warnings: string[];
 };
 
+// M5-T4 (I-4c): 補償に到達できなかった残留物。**kind で対象を区別する** —
+// asset は「DB は消えたがバイト実体が live path に残る」という部分的な残留があり得るが
+// (retainedPath)、poi_sources 行は DB のみのため残留の形が異なる。1つの型に混ぜると
+// retainedPath が asset にしか意味を持たない曖昧なフィールドになる。
+export type CompensationResidue =
+  | { kind: 'asset'; assetUid: string; retainedPath?: string; dbError?: string }
+  | { kind: 'poiSource'; poiSourceUid: string; slug?: string; dbError?: string };
+
+/** 補償を最後まで試み、到達できなかったものを列挙して返す。**空配列 = 完全補償**。 */
+export type PoiZipImportCleanup = () => Promise<CompensationResidue[]>;
+
 export interface PoiZipImport {
   fc: FeatureCollection;
   createdAssetUids: string[];
-  cleanup(): Promise<void>;
+  cleanup: PoiZipImportCleanup;
 }
 
 function safeSlug(value: unknown): string {
@@ -120,10 +131,23 @@ export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
   const tempFolder = SettingsService.get('tmpFolder') as string;
   await fs.ensureDir(tempFolder);
 
-  const cleanup = async () => {
+  // M5-T4 (I-4c): 旧実装は `.catch(() => undefined)` で **退避失敗も DB 削除の throw も**
+  // 握り潰していた。∴ 補償を呼んだ側は残留の有無を知れず、補償を成功したことにしていた。
+  // 到達できなかったものを列挙して返す。**補償は途中で止めない**（残りの asset も試みる）。
+  const cleanup: PoiZipImportCleanup = async () => {
+    const residue: CompensationResidue[] = [];
     for (const uid of [...createdAssetUids].reverse()) {
-      await imageAssetService.delete(uid).catch(() => undefined);
+      try {
+        const result = await imageAssetService.delete(uid);
+        if (result.bytes === 'retained') {
+          residue.push({ kind: 'asset', assetUid: uid, retainedPath: result.retainedPath });
+        }
+      } catch (e) {
+        // DB 削除自体が失敗した場合。行が残るため補償未到達である
+        residue.push({ kind: 'asset', assetUid: uid, dbError: e instanceof Error ? e.message : String(e) });
+      }
     }
+    return residue;
   };
 
   try {

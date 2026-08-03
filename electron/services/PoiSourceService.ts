@@ -32,7 +32,7 @@ import {
   type PoiValidationIssue,
 } from '../../src/utils/poiGeoJson';
 import { findAvailableSlug } from '../../src/utils/slugSequence';
-import type { PoiZipImport } from './PoiPackageService';
+import type { PoiZipImport, CompensationResidue } from './PoiPackageService';
 import SettingsService from './SettingsService';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
@@ -43,6 +43,15 @@ const FETCH_TIMEOUT_MS = 10_000;
 // POI-121: fetch payload の規模ガード
 const REMOTE_WARN_BYTES = 5 * 1024 * 1024; // 5 MiB 超 → warning
 const REMOTE_MAX_BYTES = 50 * 1024 * 1024; // 50 MiB 超 → 登録拒否
+
+// M5-T4 (I-4c): cleanup() が返す残留物を main プロセスのログへ可視化する。
+// POI 単体 import の戻り値形（PoiSourceSaveResult）は **変えない** — 残留の利用者向け表示は
+// m5-t4 の責務外であり、ここでの追随は「握り潰さない」ことの担保に留める。
+// 地図 ZIP import 側は DataUploadService が residue を戻り値へ載せる（§6.3.2）。
+function logCompensationResidue(stage: string, residue: CompensationResidue[]): void {
+  if (residue.length === 0) return;
+  console.warn(`[PoiSourceService] 補償に到達できなかった残留物があります (${stage}):`, residue);
+}
 
 export interface PoiSourceListRequest {
   query: string;
@@ -473,14 +482,16 @@ export class PoiSourceService {
           input.lang || SettingsService.get('lang'),
         );
         if (prepared.hasError) {
-          await preparedImport.cleanup();
+          logCompensationResidue('importFile/invalid', await preparedImport.cleanup());
           return { result: 'Invalid', issues: prepared.issues };
         }
         const result = await this.createSource(resolvedSlug, input.title, 'local', prepared.fc, prepared.issues, undefined, input.uid);
-        if (!('result' in result) || result.result !== 'Success') await preparedImport.cleanup();
+        if (!('result' in result) || result.result !== 'Success') {
+          logCompensationResidue('importFile/create-failed', await preparedImport.cleanup());
+        }
         return result;
       } catch (e: any) {
-        if (preparedImport) await preparedImport.cleanup();
+        if (preparedImport) logCompensationResidue('importFile/throw', await preparedImport.cleanup());
         return { result: 'Error', code: 'invalid-request', message: e?.message ?? String(e) };
       }
     }
@@ -528,7 +539,10 @@ export class PoiSourceService {
       try {
         return resolvePoiSourceLanguage((imported.fc as PoiEditorFC).lang, fallbackLang || SettingsService.get('lang'));
       } finally {
-        await imported.cleanup();
+        // M5-T4: ここは **一時展開物の後始末** であり失敗補償ではない。戻り値型の変更には
+        // 追随するが、**部分ロールバックの伝播対象ではない**（正常系でも走る読み取り専用経路）。
+        // この区別を実装で潰さないこと。
+        logCompensationResidue('detectImportLanguage/finally', await imported.cleanup());
       }
     }
     const parsed = JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>;

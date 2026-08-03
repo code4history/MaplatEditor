@@ -36,6 +36,7 @@ try {
   const dataDir = path.join(workDir, 'data');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const servicePath = path.join(projectRoot, 'electron/services/ImageAssetService.ts');
+  const packageServicePath = path.join(projectRoot, 'electron/services/PoiPackageService.ts');
 
   await mkdir(dataDir, { recursive: true });
   await writeFile(electronStubFile, `
@@ -175,7 +176,99 @@ try {
       console.log('ok: AC7b-4 idempotent');
     }
 
-    console.log('m5-t4 compensation declaration (ImageAssetService) OK');
+    // -----------------------------------------------------------------------
+    // AC7b-5 【本題2】cleanup() が残留物一覧を返す。
+    //   現行は imageAssetService.delete(uid).catch(() => undefined) で
+    //   **退避失敗も DB 削除の throw も握り潰していた**。I-4c はこれを禁じる。
+    // -----------------------------------------------------------------------
+    {
+      const AdmZip = (await import('adm-zip')).default;
+      const { importPoiZip } = await import(${JSON.stringify(packageServicePath)});
+
+      // pois/x.geojson が imgs/photo.png を参照する POI 単体パッケージを組む
+      const zip = new AdmZip();
+      const fc = {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [134.7, 34.8] },
+          properties: { name: 'himeji', image: 'imgs/photo.png' },
+        }],
+      };
+      zip.addFile('pois/himeji.geojson', Buffer.from(JSON.stringify(fc)));
+      const { readFile: fsReadFile } = await import('node:fs/promises');
+      zip.addFile('imgs/photo.png', await fsReadFile(pngPath));
+      const zipPath = nodePath.join(fixtureDir, 'poi-package.zip');
+      await fsWriteFile(zipPath, zip.toBuffer());
+
+      const imported = await importPoiZip(zipPath);
+      assert.equal(imported.createdAssetUids.length, 1, '前提: asset が1件新規作成されること');
+      const createdUid = imported.createdAssetUids[0];
+      const livePath = nodePath.join(assetsDir, createdUid + '.png');
+      assert.equal(existsSync(livePath), true, '前提: 実体が live path にあること');
+
+      // 退避を失敗させる
+      const { rm: fsRm } = await import('node:fs/promises');
+      const trashPath = nodePath.join(assetsDir, '_trash');
+      await fsRm(trashPath, { recursive: true, force: true });
+      await fsWriteFile(trashPath, 'blocker');
+
+      const residue = await imported.cleanup();
+
+      assert.ok(Array.isArray(residue), 'AC7b: cleanup() は残留物一覧（配列）を返すこと');
+      assert.equal(residue.length, 1, 'AC7b: 到達できなかった補償が1件申告されること');
+      assert.equal(residue[0].kind, 'asset', 'AC7b: kind で対象を区別すること');
+      assert.equal(residue[0].assetUid, createdUid);
+      assert.equal(residue[0].retainedPath, livePath, 'AC7b: 残留した live path を申告すること');
+      assert.equal(existsSync(livePath), true, '申告どおり実体が残っていること');
+      assert.equal(await imageAssetService.get(createdUid), null, 'DB 行は消えていること');
+
+      await fsRm(trashPath, { force: true });
+      console.log('ok: AC7b-5 cleanup returns residue');
+    }
+
+    // -----------------------------------------------------------------------
+    // AC7b-6 完全補償なら空配列。かつ補償は途中で止めない（複数 asset の一部が失敗しても
+    //   残りを試み、失敗分だけを申告する）
+    // -----------------------------------------------------------------------
+    {
+      const AdmZip = (await import('adm-zip')).default;
+      const { importPoiZip } = await import(${JSON.stringify(packageServicePath)});
+      const { readFile: fsReadFile, rm: fsRm } = await import('node:fs/promises');
+
+      // 別バイトの画像を2枚（同一バイトだと sameStoredBytes で1つに畳まれる）
+      const png2Path = nodePath.join(fixtureDir, 'b.png');
+      await (new Jimp({ width: 5, height: 5, color: 0x00ff00ff }) as any).write(png2Path);
+
+      const zip = new AdmZip();
+      zip.addFile('pois/multi.geojson', Buffer.from(JSON.stringify({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [134.7, 34.8] },
+          properties: { image: ['imgs/one.png', 'imgs/two.png'] },
+        }],
+      })));
+      zip.addFile('imgs/one.png', await fsReadFile(pngPath));
+      zip.addFile('imgs/two.png', await fsReadFile(png2Path));
+      const zipPath = nodePath.join(fixtureDir, 'poi-multi.zip');
+      await fsWriteFile(zipPath, zip.toBuffer());
+
+      const imported = await importPoiZip(zipPath);
+      assert.equal(imported.createdAssetUids.length, 2, '前提: asset が2件新規作成されること');
+
+      // 完全補償できる状態（_trash は正常なディレクトリ）
+      await fsRm(nodePath.join(assetsDir, '_trash'), { recursive: true, force: true });
+      const residue = await imported.cleanup();
+      assert.deepEqual(residue, [], 'AC7b: 完全補償なら空配列であること');
+      for (const uid of imported.createdAssetUids) {
+        assert.equal(existsSync(nodePath.join(assetsDir, uid + '.png')), false, '実体が live path から消えていること');
+        assert.equal(await imageAssetService.get(uid), null, 'DB 行が消えていること');
+      }
+      console.log('ok: AC7b-6 empty residue on full compensation');
+    }
+
+    console.log('m5-t4 compensation declaration (ImageAssetService / cleanup) OK');
   `);
 
   await build({
@@ -193,7 +286,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, 'jimp'],
+        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, 'jimp', 'adm-zip'],
         output: { entryFileNames: 'compensation-smoke.mjs', format: 'es' },
       },
     },
