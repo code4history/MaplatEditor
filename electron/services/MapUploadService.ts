@@ -156,13 +156,13 @@ async function imageCutter(
     const decodeLimits = SettingsService.getJpegDecodeLimits();
     let sourceBuffer: Buffer;
     let budget: JpegDecodeBudget | null = null;
+    let toExtKey: string;
     try {
         // 拡張子判定（旧実装と同じロジック）
-        const regex = /([^\\/]+)\.([^.]+)$/;
-        const match = srcFile.match(regex);
+        const match = srcFile.match(/([^\\/]+)\.([^.]+)$/);
         if (!match) return { err: '画像拡張子エラー', errorCode: 'unknown' };
-        let toExtKeyPre = match[2].toLowerCase();
-        if (toExtKeyPre === 'jpeg') toExtKeyPre = 'jpg';
+        toExtKey = match[2].toLowerCase();
+        if (toExtKey === 'jpeg') toExtKey = 'jpg';
 
         sourceBuffer = await fs.readFile(srcFile);
 
@@ -201,11 +201,6 @@ async function imageCutter(
     }
 
     try {
-        const regex = /([^\\/]+)\.([^.]+)$/;
-        const match = srcFile.match(regex)!;
-        let toExtKey = match[2].toLowerCase();
-        if (toExtKey === 'jpeg') toExtKey = 'jpg';
-
         // M12-T20 (§6.1): 自 dir のみをクリアして書く（旧実装の tmpFolder/tiles 全消しを置換。
         // 単一スロット衝突の解消）。削除プリミティブは fs.remove（symlink 非追従。§6.1 の契約
         // — fs.emptyDir 等リンク先へ降りるプリミティブは使わない）
