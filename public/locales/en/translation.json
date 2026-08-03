@@ -119,7 +119,8 @@
     "theme": "Theme",
     "jpeg_decode_max_memory": "JPEG decode memory limit (MB)",
     "jpeg_decode_max_resolution": "JPEG resolution limit (MP)",
-    "jpeg_decode_desc": "Raise these when a large map image cannot be imported. They do not reserve actual memory."
+    "jpeg_decode_auto": "Auto",
+    "jpeg_decode_desc": "Normally you can leave these blank (auto); the required values are determined per image. If you enter a number it is treated as an upper limit (values beyond what this app can handle are lowered automatically)."
   },
   "maplist": {
     "title": "Map list",
@@ -359,7 +360,9 @@
     },
     "poi_format_unsupported": "The POI data is in a format the editor does not support (for example an object keyed by layer name). The original data is preserved when you save and is output as-is to previews and exports, but editing on this tab is disabled.",
     "error_image_memory_limit": "Decoding this map image needs about {{required}} MB, but the current setting is {{configured}} MB. Raise \"JPEG decode memory limit\" on the Settings page to {{recommended}} MB or more.",
-    "error_image_resolution_limit": "This map image is about {{megapixels}} MP, but the current setting is {{configured}} MP. Raise \"JPEG resolution limit\" on the Settings page to {{recommended}} MP or more."
+    "error_image_resolution_limit": "This map image is about {{megapixels}} MP, but the current setting is {{configured}} MP. Raise \"JPEG resolution limit\" on the Settings page to {{recommended}} MP or more.",
+    "error_image_machine_limit": "This map image is about {{megapixels}} MP and needs roughly {{required}} MB of working memory to decode, but this app can use at most about {{available}} MB. Please shrink the image before importing it.",
+    "confirm_long_image_import": "This map image is very large at about {{megapixels}} MP, so importing will take a long time (about 5 minutes at 100 MP, over an hour at 400 MP). Once started it cannot be canceled. Proceed?"
   },
   "mapupload": {
     "map_image": "Map Image",

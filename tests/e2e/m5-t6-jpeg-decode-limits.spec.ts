@@ -68,9 +68,9 @@ test.describe('M5-T6 JPEG デコード上限の設定値化と不足の事前通
       const resolution = page.locator('#jpegDecodeMaxResolutionMP');
       const saveButton = page.getByRole('button', { name: '保存' });
 
-      // 既定値が出ている
-      await expect(memory).toHaveValue('8192');
-      await expect(resolution).toHaveValue('800');
+      // M5-T8: 既定は「自動」= 空欄になった（8192 / 800 という運用値は廃止）
+      await expect(memory).toHaveValue('');
+      await expect(resolution).toHaveValue('');
       await expect(saveButton).toBeDisabled();
 
       // isDirty がメモリ側フィールドに効く
@@ -79,7 +79,7 @@ test.describe('M5-T6 JPEG デコード上限の設定値化と不足の事前通
 
       // リセットで戻る
       await page.getByRole('button', { name: 'リセット' }).click();
-      await expect(memory).toHaveValue('8192');
+      await expect(memory).toHaveValue('');
       await expect(saveButton).toBeDisabled();
 
       // isDirty が解像度側フィールドにも効く（片方だけの比較になっていないこと）
@@ -94,18 +94,31 @@ test.describe('M5-T6 JPEG デコード上限の設定値化と不足の事前通
       await saveButton.click();
       await expect(saveButton).toBeDisabled({ timeout: 10_000 });
 
-      // 画面を離れて戻ると保存値が出る
+      // M5-T8: 保存値は機械安全枠でクランプされ得る（人間指示: 手入力にも上限）。
+      // 期待値をこの機体で実測した安全枠から導出する（定数を書くと機体依存になる）
+      // Electron の process.getHeapStatistics()（単位 KB）を使う。
+      // app.evaluate の中では動的 import が main のバンドルへ解決されて使えない（実測）
+      const safety = await app.evaluate(() => {
+        const heapMB = (process as any).getHeapStatistics().heapSizeLimit / 1024;
+        const maxDecoderHeapMB = Math.floor(heapMB * 0.75 - 128);
+        const maxResolutionMP = Math.floor((maxDecoderHeapMB * 1024 * 1024 / 120) * 64 / 3 / 1e6);
+        return { maxResolutionMP, maxMemoryMB: Math.floor(maxResolutionMP * 1e6 * 22 / 1024 / 1024) };
+      });
+      const expectedMem = Math.min(12288, safety.maxMemoryMB);
+      const expectedRes = Math.min(1200, safety.maxResolutionMP);
+
+      // 画面を離れて戻ると保存値（クランプ後）が出る
       await openHash(page, '#/maplist');
       await openHash(page, '#/settings', '#langSwitcher');
-      await expect(memory).toHaveValue('12288');
-      await expect(resolution).toHaveValue('1200');
+      await expect(memory).toHaveValue(String(expectedMem));
+      await expect(resolution).toHaveValue(String(expectedRes));
 
       // main 側にも届いている
       const stored = await page.evaluate(async () => ({
         mem: await window.settings.get('jpegDecodeMaxMemoryMB'),
         res: await window.settings.get('jpegDecodeMaxResolutionMP'),
       }));
-      expect(stored).toEqual({ mem: 12288, res: 1200 });
+      expect(stored).toEqual({ mem: expectedMem, res: expectedRes });
     } finally {
       await quitElectronApplication(app);
     }

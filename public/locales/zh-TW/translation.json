@@ -128,7 +128,8 @@
     "theme": "主題",
     "jpeg_decode_max_memory": "JPEG 解碼記憶體上限 (MB)",
     "jpeg_decode_max_resolution": "JPEG 解析度上限 (MP)",
-    "jpeg_decode_desc": "當大尺寸地圖影像無法匯入時請調高。這些值不會預留實際記憶體。"
+    "jpeg_decode_auto": "自動",
+    "jpeg_decode_desc": "通常留空即可（自動），所需數值會依影像自動決定。若填入數字則視為上限（超出本應用程式處理能力的數值會自動下調）。"
   },
   "maplist": {
     "title": "地圖清單",
@@ -368,7 +369,9 @@
     },
     "poi_format_unsupported": "POI 資料為編輯器不支援的格式（例如以圖層名稱為鍵的物件形式）。儲存時原始資料不會遺失，並會原樣輸出至預覽與匯出，但此分頁中的編輯已停用。",
     "error_image_memory_limit": "解碼此地圖影像約需 {{required}} MB，但目前設定為 {{configured}} MB。請在設定頁面將「JPEG 解碼記憶體上限」調高到 {{recommended}} MB 以上。",
-    "error_image_resolution_limit": "此地圖影像約為 {{megapixels}} MP，但目前設定為 {{configured}} MP。請在設定頁面將「JPEG 解析度上限」調高到 {{recommended}} MP 以上。"
+    "error_image_resolution_limit": "此地圖影像約為 {{megapixels}} MP，但目前設定為 {{configured}} MP。請在設定頁面將「JPEG 解析度上限」調高到 {{recommended}} MP 以上。",
+    "error_image_machine_limit": "此地圖影像約 {{megapixels}} MP，解碼約需 {{required}} MB 工作記憶體，但本應用程式最多只能使用約 {{available}} MB。請先縮小影像後再匯入。",
+    "confirm_long_image_import": "此地圖影像非常大，約 {{megapixels}} MP，匯入將花費很長時間（100 MP 約 5 分鐘，400 MP 超過 1 小時）。開始後無法取消。要繼續嗎？"
   },
   "mapupload": {
     "map_image": "地圖圖像",

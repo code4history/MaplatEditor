@@ -128,7 +128,8 @@
     "theme": "Tema",
     "jpeg_decode_max_memory": "Límite de memoria de decodificación JPEG (MB)",
     "jpeg_decode_max_resolution": "Límite de resolución JPEG (MP)",
-    "jpeg_decode_desc": "Auméntelos cuando no se pueda importar una imagen de mapa grande. No reservan memoria real."
+    "jpeg_decode_auto": "Automático",
+    "jpeg_decode_desc": "Normalmente puede dejarlos en blanco (automático); los valores necesarios se determinan por imagen. Si introduce un número se trata como límite superior (los valores que superan lo que esta aplicación puede manejar se reducen automáticamente)."
   },
   "maplist": {
     "title": "Lista de mapas",
@@ -368,7 +369,9 @@
     },
     "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor (por ejemplo, un objeto indexado por nombre de capa). Los datos originales se conservan al guardar y se exportan tal cual a la vista previa y a la exportación, pero la edición en esta pestaña está deshabilitada.",
     "error_image_memory_limit": "Decodificar esta imagen de mapa necesita unos {{required}} MB, pero la configuración actual es {{configured}} MB. Aumente «Límite de memoria de decodificación JPEG» en la página de configuración a {{recommended}} MB o más.",
-    "error_image_resolution_limit": "Esta imagen de mapa tiene unos {{megapixels}} MP, pero la configuración actual es {{configured}} MP. Aumente «Límite de resolución JPEG» en la página de configuración a {{recommended}} MP o más."
+    "error_image_resolution_limit": "Esta imagen de mapa tiene unos {{megapixels}} MP, pero la configuración actual es {{configured}} MP. Aumente «Límite de resolución JPEG» en la página de configuración a {{recommended}} MP o más.",
+    "error_image_machine_limit": "Esta imagen de mapa tiene unos {{megapixels}} MP y necesita cerca de {{required}} MB de memoria de trabajo para decodificarse, pero esta aplicación puede usar como máximo unos {{available}} MB. Reduzca el tamaño de la imagen antes de importarla.",
+    "confirm_long_image_import": "Esta imagen de mapa es muy grande, unos {{megapixels}} MP, por lo que la importación tardará mucho (unos 5 minutos a 100 MP, más de una hora a 400 MP). Una vez iniciada no se puede cancelar. ¿Continuar?"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

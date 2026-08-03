@@ -128,7 +128,8 @@
     "theme": "テーマ",
     "jpeg_decode_max_memory": "JPEG 展開メモリ上限 (MB)",
     "jpeg_decode_max_resolution": "JPEG 解像度上限 (MP)",
-    "jpeg_decode_desc": "大きな地図画像が取り込めない場合に引き上げてください。実際のメモリを予約する値ではありません。"
+    "jpeg_decode_auto": "自動",
+    "jpeg_decode_desc": "通常は空欄 (自動) のままで構いません。画像ごとに必要な値が自動で決まります。数値を入れるとその値を上限として扱います (このアプリが扱える範囲を超える値は自動的に切り下げられます)。"
   },
   "maplist": {
     "title": "地図一覧",
@@ -368,7 +369,9 @@
     },
     "poi_format_unsupported": "POIデータがエディタ未対応の形式です（レイヤ名をキーにしたオブジェクト形式など）。元のデータは保存しても失われず、プレビューやエクスポートにはそのまま出力されますが、このタブでの編集は無効化されます。",
     "error_image_memory_limit": "この地図画像の展開には約 {{required}} MB が必要ですが、現在の設定は {{configured}} MB です。設定ページの「JPEG 展開メモリ上限」を {{recommended}} MB 以上に増やしてください。",
-    "error_image_resolution_limit": "この地図画像は約 {{megapixels}} MP ありますが、現在の設定は {{configured}} MP です。設定ページの「JPEG 解像度上限」を {{recommended}} MP 以上に増やしてください。"
+    "error_image_resolution_limit": "この地図画像は約 {{megapixels}} MP ありますが、現在の設定は {{configured}} MP です。設定ページの「JPEG 解像度上限」を {{recommended}} MP 以上に増やしてください。",
+    "error_image_machine_limit": "この地図画像は約 {{megapixels}} MP あり、展開に約 {{required}} MB の作業領域が必要ですが、このアプリが使える上限は約 {{available}} MB です。画像を縮小してから取り込んでください。",
+    "confirm_long_image_import": "この地図画像は約 {{megapixels}} MP と非常に大きく、取り込みに長い時間がかかります (100 MP で約5分、400 MP では1時間以上)。開始すると途中で取り消せません。実施しますか?"
   },
   "mapupload": {
     "map_image": "地図画像",
