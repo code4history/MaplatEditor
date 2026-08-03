@@ -21,10 +21,18 @@ export interface SlugSequenceOptions {
 
 // n=1: base+suffix (連番なし)、n>=2: base+suffix+n。
 // base は suffix+連番込みで slugMax に収まるよう切り詰める (旧 reserveCopySlug candidate と同一規則)。
+//
+// M5-T5: **生成部は必ず "-" で始まる** (人間指示 2026-08-03)。base との間に区切りが無いと
+// `foo2` が利用者の付けた名前なのか衝突回避で生成した名前なのか区別できないため。
+// suffix ("-copy" / "-poi" / "-local") は既に "-" 始まり ∴ 素の連番のときだけ足りない。
+// これを「suffix が空なら」の分岐ではなく **不変条件1つ** として表現する (全系統が同じ規則になる)。
+// n=1 は衝突が無く base をそのまま使う ∴ 生成部が存在せず "-" も付かない。
+// この非対称があるからこそ「"-" があれば生成名」という判定が成立する。
 export function slugCandidate(base: string, n: number, opts?: SlugSequenceOptions): string {
-  const suffix = (opts?.suffix ?? "") + (n >= 2 ? String(n) : "");
+  const generated = (opts?.suffix ?? "") + (n >= 2 ? String(n) : "");
+  const tail = generated && !generated.startsWith("-") ? "-" + generated : generated;
   const slugMax = opts?.slugMax ?? SLUG_MAX;
-  return base.slice(0, slugMax - suffix.length) + suffix;
+  return base.slice(0, slugMax - tail.length) + tail;
 }
 
 // 候補を順に tryAcquire へ渡し、最初に true を返した slug を返す。全候補枯渇は null。

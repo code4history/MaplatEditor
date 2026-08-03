@@ -122,10 +122,12 @@ try {
       }
       assert.equal(SLUG_MAX, 100, 'SLUG_MAX default must be 100');
       assert.equal(SEQUENCE_MAX_INDEX, 100, 'SEQUENCE_MAX_INDEX default must be 100');
-      // suffix 既定 "" 系列: base, base2, base3...
+      // suffix 既定 "" 系列: base, base-2, base-3...
+      // M5-T5: 生成部は必ず "-" 始まり（base 本体と生成部の境界を可視にする）。
+      // n=1 は衝突なし＝元の名前そのもの ∴ "-" は付かない。切詰は "-" 込みで効く。
       assert.equal(slugCandidate('foo', 1), 'foo');
-      assert.equal(slugCandidate('foo', 2), 'foo2');
-      assert.equal(slugCandidate('a'.repeat(100), 2), 'a'.repeat(99) + '2');
+      assert.equal(slugCandidate('foo', 2), 'foo-2');
+      assert.equal(slugCandidate('a'.repeat(100), 2), 'a'.repeat(98) + '-2');
       // "-poi" 系列
       assert.equal(slugCandidate('nagoya', 1, { suffix: '-poi' }), 'nagoya-poi');
       assert.equal(slugCandidate('nagoya', 2, { suffix: '-poi' }), 'nagoya-poi2');
@@ -134,9 +136,9 @@ try {
       // ---- Part A2: findAvailableSlug — 候補順に tryAcquire、最初の true を返す。全枯渇は null ----
       {
         const tried: string[] = [];
-        const got = await findAvailableSlug('foo', async (slug) => { tried.push(slug); return slug === 'foo3'; });
-        assert.equal(got, 'foo3');
-        assert.deepEqual(tried, ['foo', 'foo2', 'foo3']);
+        const got = await findAvailableSlug('foo', async (slug) => { tried.push(slug); return slug === 'foo-3'; });
+        assert.equal(got, 'foo-3');
+        assert.deepEqual(tried, ['foo', 'foo-2', 'foo-3']);
       }
       {
         let calls = 0;
@@ -238,8 +240,8 @@ try {
         assert.equal(c1.slug, 'foo');
         const c2 = await poiSourceService.importFile({ slug: 'foo', title: { ja: 'Foo' }, filePath: fileA });
         assert.equal(c2.result, 'Success', 'import 2 回目: ' + JSON.stringify(c2));
-        assert.equal(c2.slug, 'foo2', '同名 2 回目は foo2 へ自動採番');
-        // zip 経路: 同名 2 回 → bar / bar2 (importPoiZip が期待する pois/*.geojson 構成で生成)
+        assert.equal(c2.slug, 'foo-2', '同名 2 回目は foo-2 へ自動採番 (M5-T5: 生成部は "-" 始まり)');
+        // zip 経路: 同名 2 回 → bar / bar-2 (importPoiZip が期待する pois/*.geojson 構成で生成)
         const { default: AdmZip } = await import('adm-zip');
         const zipA = nodePath.join(${JSON.stringify(workDir)}, 'bar.zip');
         const zipBuilder = new AdmZip();
@@ -250,14 +252,17 @@ try {
         assert.equal(z1.slug, 'bar');
         const z2 = await poiSourceService.importFile({ slug: 'bar', title: { ja: 'Bar' }, filePath: zipA });
         assert.equal(z2.result, 'Success', 'zip import 2 回目: ' + JSON.stringify(z2));
-        assert.equal(z2.slug, 'bar2', 'zip 同名 2 回目は bar2 へ自動採番');
+        assert.equal(z2.slug, 'bar-2', 'zip 同名 2 回目は bar-2 へ自動採番 (M5-T5)');
         // レース相当: findAvailableSlug 通過後に createSource 側 isSlugAvailable が false になるケース。
         // 予約表に先取り予約を入れる (isSlugAvailable は予約表も見る) → Exist
-        const raceUid = crypto.randomUUID();
-        await SqliteDataService.reserveSlug({ slug: 'race', assetUid: raceUid, assetKind: 'poi-source', draftUid: raceUid });
-        for (let i = 2; i <= 100; i++) {
+        // M5-T5: 候補名を手書きせず **正本 slugCandidate から生成する**。
+        // 手書きすると採番規則が変わったとき fixture だけ旧規則に取り残され、
+        // 「埋めたつもりが埋まっていない」ため枯渇が発火せず、テストが黙って意味を失う。
+        for (let n = 1; n <= SEQUENCE_MAX_INDEX; n++) {
           const uid = crypto.randomUUID();
-          await SqliteDataService.reserveSlug({ slug: 'race' + i, assetUid: uid, assetKind: 'poi-source', draftUid: uid });
+          await SqliteDataService.reserveSlug({
+            slug: slugCandidate('race', n), assetUid: uid, assetKind: 'poi-source', draftUid: uid,
+          });
         }
         const raced = await poiSourceService.importFile({ slug: 'race', title: { ja: 'R' }, filePath: fileA });
         assert.equal(raced.result, 'Exist', '全候補予約済み (枯渇) は Exist: ' + JSON.stringify(raced));

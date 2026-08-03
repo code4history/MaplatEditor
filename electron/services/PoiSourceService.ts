@@ -472,7 +472,7 @@ export class PoiSourceService {
     }
   }
 
-  // import 衝突の自動採番 (M3-T6 §6.2 (c)): base, base2..base100 の順で isSlugAvailable
+  // import 衝突の自動採番 (M3-T6 §6.2 (c)): base, base-2..base-100 の順で isSlugAvailable
   // (DB + 予約表) の空きを探す。予約はしない — 直後の createSource が isSlugAvailable を
   // 再検査するため、レース (検査後の先取り) は従来どおり 'Exist' へ写像される。
   // 全候補枯渇時は null (呼び出し側が 'Exist' を返す)。
@@ -567,7 +567,7 @@ export class PoiSourceService {
     const prepared = this.prepare(fc, lang);
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
 
-    // slug は POI import の既存解決をそのまま使う（base, base2 … の空き探索）。
+    // slug は POI import の既存解決をそのまま使う（base, base-2 … の空き探索）。
     // 地図 slug とは別系統であり、地図側の衝突解決は m5-t5 の責務である。
     const resolvedSlug = await this.resolveImportSlug(name);
     if (resolvedSlug === null) return { result: 'Exist' };
