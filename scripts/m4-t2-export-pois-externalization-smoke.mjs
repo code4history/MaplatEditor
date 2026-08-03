@@ -443,15 +443,22 @@ try {
         'M5-T4B: アプリ ZIP の maps/<slug>.json も minify のはず: '
           + JSON.stringify(mapJsonText.slice(0, 120)),
       );
+      // pretty 側は **2-space** で固定する（2026-08-03 人間指示）。
+      // POI 単体パッケージの搬出（PoiPackageService:90,93）が既に 2-space であり、
+      // アプリ ZIP の pois/*.geojson だけ 4-space だったのを揃える
+      const prettyWith = (text: string, indent: number) =>
+        text.trim() === JSON.stringify(JSON.parse(text), null, indent);
       const appJsonText = await fsReadFile(nodePath.join(exportDir, 'apps', 'm4t2_app.json'), 'utf8');
-      assert.equal(
-        isMinified(appJsonText), false,
-        'M5-T4B: apps/<appID>.json は手編集用途のため pretty のまま（非回帰）',
+      assert.ok(
+        prettyWith(appJsonText, 2),
+        'M5-T4B: apps/<appID>.json は 2-space pretty のはず: '
+          + JSON.stringify(appJsonText.slice(0, 120)),
       );
       const poiDocText = await fsReadFile(nodePath.join(exportDir, 'pois', 'kyoto-poi.geojson'), 'utf8');
-      assert.equal(
-        isMinified(poiDocText), false,
-        'M5-T4B: pois/*.geojson は pretty のまま（非回帰）',
+      assert.ok(
+        prettyWith(poiDocText, 2),
+        'M5-T4B: pois/*.geojson は 2-space pretty のはず（POI 単体搬出と同じ）: '
+          + JSON.stringify(poiDocText.slice(0, 120)),
       );
       const mapJson = JSON.parse(mapJsonText);
       assert.equal(mapJson.pois.length, 1);

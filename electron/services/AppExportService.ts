@@ -258,7 +258,11 @@ class AppExportService {
 
       // 1) apps/{appID}.json (pois は pois/<name>.geojson への参照 + 上書き属性へ変換される、M4-T2)
       const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings, iconFiles, poiCtx);
-      await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
+      // M5-T4B: pretty の字下げは **2-space**（2026-08-03 人間指示）。
+      // 手編集用途のため pretty を保つが、幅は 4 ではなく 2 とする。
+      // POI 単体パッケージの搬出（PoiPackageService:90,93）が既に 2-space であり、
+      // アプリ搬出だけ 4-space だったのを揃える
+      await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 2 });
 
       // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
       const appPoiUids = collectPoiUids(readAppDocumentPois(document).pois);
@@ -342,7 +346,8 @@ class AppExportService {
         if (target !== poisRoot && !target.startsWith(poisRoot + path.sep)) {
           throw new Error(`POI document escaped the output directory: ${doc.dest}`);
         }
-        await fs.outputJson(target, doc.json, { spaces: 4 });
+        // 字下げは POI 単体パッケージの搬出（PoiPackageService:90,93）と同じ 2-space
+        await fs.outputJson(target, doc.json, { spaces: 2 });
       }
 
       // 3) TMSソースのサムネイル
