@@ -3,7 +3,9 @@
 // 固定する受け入れ条件:
 //   AC2  pois/*.geojson が **ZIP に実体として同梱される**（compose が dest を書くだけでは足りない）
 //   AC3  通常・512px の両サムネイルを含み、UID ではなく slug を使う
-//   AC4  maps/<slug>.json が minify である（アプリ ZIP の 4-space pretty と対比）
+//   AC4  maps/<slug>.json が minify である（**アプリ ZIP の地図 JSON も同じく minify**。
+//        v1.2 訂正: 整形はパッケージ単位ではなく内容種別単位。アプリ ZIP 側の固定は
+//        m4-t2-export-pois-externalization smoke が担う）
 //
 // compose 層の契約（外部参照へ変換されること）は map-export-poi-parity smoke が担う。
 // 本 smoke は **buildAndWriteMapZip が実際に書き出す ZIP の中身** を対象にする。
@@ -132,7 +134,7 @@ try {
     console.log('ok: AC3 通常・512px の両サムネイルが slug 名で入る');
 
     // -----------------------------------------------------------------------
-    // AC4: maps/<slug>.json は minify（アプリ ZIP の 4-space pretty と対比）
+    // AC4: maps/<slug>.json は minify（地図 JSON は搬出種別を問わず minify）
     // -----------------------------------------------------------------------
     assert.equal(
       mapText.includes('\\n'), false,

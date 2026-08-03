@@ -301,7 +301,15 @@ class AppExportService {
           mergeWarnings(warnings, externalized.warnings);
           mergeIconFiles(iconFiles, externalized.files);
         }
-        await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson, { spaces: 4 });
+        // M5-T4B: **地図 JSON は搬出種別を問わず minify** する（地図 ZIP と同じ扱い）。
+        // 地図データは容量が大きくなりやすく、整形の空白がそのまま配布サイズに乗る。
+        //
+        // マイルストーン設計 I-5 は「アプリ JSON は pretty / **地図 ZIP の** maps/<slug>.json は
+        // minify」と**パッケージ単位**で書かれていたため、アプリ ZIP に入る地図 JSON まで
+        // pretty のままになっていた。人間の指示は m5-t4 再設計時から一貫して
+        // 「地図 JSON は minify」という**内容種別単位**であり、こちらが正しい（2026-08-03 訂正）。
+        // pretty のまま残すのは手編集用途の apps/<appID>.json と pois/*.geojson である。
+        await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson);
         progressState.step++;
         reporter.update(progressState.step, `${slug} (0/${tileFileCounts.get(source) ?? 0})`);
 
