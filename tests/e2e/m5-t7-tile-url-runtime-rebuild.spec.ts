@@ -100,6 +100,27 @@ async function pressRedo(page: Page): Promise<void> {
 
 const urlInput = (page: Page) => page.getByTestId('map-tile-url');
 
+/** 既存の保存済み地図を IPC で seed する（m12-t17 / m1-t6-hotfix-2 の seedBareMap と同型） */
+async function seedSavedMap(page: Page): Promise<{ uid: string; slug: string }> {
+  return page.evaluate(async () => {
+    const mapSlug = `m5t7-existing-${Date.now()}`;
+    const mapR = await (window as any).mapedit.save({
+      slug: mapSlug,
+      mapObject: {
+        mapID: mapSlug, title: { ja: 'm5t7 existing map' },
+        officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+        attr: { ja: 'attr' }, dataAttr: {}, description: {},
+        license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
+        imageExtension: 'jpg', width: 400, height: 300,
+        gcps: [], edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
+      },
+      tins: [],
+    });
+    if (!mapR || mapR.result !== 'Success') throw new Error(JSON.stringify(mapR));
+    return { uid: mapR.uid, slug: mapSlug };
+  });
+}
+
 /** 画像をアップロード済みの新規地図を用意する（width/height と内部タイルが揃った状態） */
 async function prepareMapWithImage(app: ElectronApplication, page: Page, e2eRoot: string, slug: string): Promise<void> {
   const imagePath = path.join(e2eRoot, `${slug}.png`);
@@ -218,26 +239,26 @@ test.describe('M5-T7 編集済みタイルURLのランタイムタイル源再�
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m5t7-save-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      const slug = `m5t7-save-${Date.now()}`;
-      await prepareMapWithImage(app, page, e2eRoot, slug);
+      // 既存の保存済み地図を開いて編集する（新規地図の保存は本 AC の関心ではない）
+      const { uid } = await seedSavedMap(page);
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+      await openHash(page, `#/mapedit?uid=${uid}`, '[data-testid="map-title"]');
+      await expect.poll(async () => (await mapUrlPair(page)).url, { timeout: 15_000 }).toBe('');
 
       await urlInput(page).fill(EXT_URL);
       await urlInput(page).blur();
-      await expect.poll(async () => (await mapUrlPair(page)).url_, { timeout: 15_000 }).toBe(EXT_URL);
+      await expect.poll(async () => (await mapUrlPair(page)).url, { timeout: 15_000 }).toBe(EXT_URL);
 
       await page.getByTestId('editor-save').click();
-      await expect.poll(
-        async () => page.evaluate(() => (window as any).testDebug?.mapData?.value?.uid),
-        { timeout: 30_000 },
-      ).toBeTruthy();
+      // 保存完了は「isDirty が落ちて保存ボタンが再び無効になる」ことで判定する
+      await expect(page.getByTestId('editor-save')).toBeDisabled({ timeout: 30_000 });
 
-      // DB の地図ドキュメントを読み直す
-      const uid = await page.evaluate(() => (window as any).testDebug.mapData.value.uid);
+      // 保存後に DB から読み直す。url は入力値のまま、url_ は main が導出した値であり
+      // DB 由来ではない（外部URLなので両者が同値になる）
       const doc = await page.evaluate((u) => (window as any).mapedit.request(u), uid);
       expect(doc.url).toBe(EXT_URL);
-      // url_ は導出値なので保存されない（m5-t2 / m5-t3 の不変条件）。
-      // request の戻り値は main が導出した url_ を持つが、それは DB 由来ではない —
-      // 外部URLが入っているので url と同値になることで、DB に残っていないことが分かる
       expect(doc.url_).toBe(EXT_URL);
     } finally {
       await quitElectronApplication(app);

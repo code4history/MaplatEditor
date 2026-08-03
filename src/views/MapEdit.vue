@@ -791,7 +791,7 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
         // スナップショットが url 編集の途中（url は新しいが url_ は古い）で取られていた場合の
         // 補正であり、あわせて lastDerivedUrl を復元後の url へ更新する（設計 §5.3(b)）。
         // 交換の判断と実行は下に残す（exchange: false）。
-        await refreshRuntimeTileUrl({ exchange: false });
+        await refreshRuntimeTileUrl((mapData.value?.url ?? '') as string, { applyUrl: false, exchange: false });
         // m1-t6-hotfix-2: 復元した mapData が指すタイルと表示中のタイルが異なるなら
         // ソースを再構築する（設計 v1.1 §5.4）。gcpsToMarkers()/updateTin() は
         // illstSource の座標変換を使うため、必ずそれらより前に行う。
@@ -2874,54 +2874,63 @@ const markRuntimeTileUrlDerived = () => {
 };
 
 /**
- * @param exchange true なら交換まで行う。false なら url_ の再導出と lastDerivedUrl 更新のみ。
- * @returns **交換したか**（「交換が必要か」ではない）。exchange: false のときは常に false。
- *          呼び出し側は交換要否の信号として使わないこと（設計 §5.3(c)）。
+ * url に対応する url_ を main から取り直して mapData へ反映する。
+ *
+ * @param requested 反映したい url。確定経路では入力値、復元経路では復元後の mapData.url
+ * @param applyUrl  true なら mapData.url も requested で上書きする（確定経路）
+ * @param exchange  true なら同一性キーが変わったときにタイル源を交換する
+ * @returns **反映したか**（url_ ないし url を書いたか）。交換の有無ではない
  */
 const refreshRuntimeTileUrl = async (
-    { exchange }: { exchange: boolean } = { exchange: true },
+    requested: string,
+    { applyUrl, exchange }: { applyUrl: boolean; exchange: boolean },
 ): Promise<boolean> => {
-    const requested = (mapData.value?.url ?? '') as string;
     if (requested === lastDerivedUrl) return false;
-    // whReady 相当（MapEditService.normalizeRequestData と同じ判断）。
-    // 寸法未確定＝タイルがまだ無い段階では何もしない
-    if (!(mapData.value?.width && mapData.value?.height)) return false;
 
-    const derived = await (window as any).mapedit.deriveRuntimeTileUrl(
-        requested,
-        mapUid.value || newMapUid,
-    );
-    // await を跨いで mapData が差し替わっている場合は破棄する（後着の処理が正しい状態を作る）
-    if (((mapData.value?.url ?? '') as string) !== requested) return false;
+    // mapUpload と同じ作法: mapData への書き込みは **await の後にまとめて**行う。
+    // await より前に書くと、その時点で履歴スナップショットが着地して
+    // 「url は新しいが url_ は古い」中間エントリができ、Undo が1回で編集前へ戻らない（実測）。
+    const captured = mapData.value;
+    const whReady = !!(captured?.width && captured?.height);
 
-    lastDerivedUrl = requested;
-    // url_ はランタイム専用の導出値であり利用者の編集ではない。抑止しないと
-    // 「url を変えた」スナップショットに続けて「url_ が追随した」スナップショットができ、
-    // Undo が1回で編集前へ戻らない（設計 §8「余計な履歴記録を作らない」）。
-    // 経路 (b) は既に withoutHistoryAsync('W1') の内側だが、二重に入っても無害。
-    withoutHistory('W5', () => {
-        mapData.value.url_ = derived;
-    });
-    if (!exchange) return false;
-    if (tileIdentityKey(mapData.value) === illstSourceKey) return false;
-    await exchangeTileSource();
+    let derived: string | undefined;
+    if (whReady) {
+        derived = await (window as any).mapedit.deriveRuntimeTileUrl(
+            requested,
+            mapUid.value || newMapUid,
+        );
+        // await を跨いで mapData が差し替わっていたら破棄する（後着の処理が正しい状態を作る）
+        if (mapData.value !== captured) return false;
+        lastDerivedUrl = requested;
+    }
+
+    if (applyUrl) mapData.value.url = requested;
+    // 寸法未確定（＝タイルがまだ無い）なら url_ は触らない。
+    // 入力値そのものは捨てずに保持する（利用者の編集を失わせない）
+    if (!whReady) return applyUrl;
+
+    mapData.value.url_ = derived;
+    if (exchange && tileIdentityKey(mapData.value) !== illstSourceKey) {
+        await exchangeTileSource();
+    }
     return true;
 };
 
 /**
  * タイルURL欄の確定（blur / Enter）。
- * v-model 既定の input はキー入力ごとに発火するため使わない（設計 §5.3(a)）。
  *
- * 履歴の扱い（実装時に実測して確定した）: v-model による url の書き込みは
- * デバウンス付きでスナップショット化され、**本ハンドラの await（IPC）完了より前に着地する**。
- * ∴ そのスナップショットは「url は新しいが url_ は古い」中間状態を持つ。
- * ここで url_ 側も記録すると Undo が1回で編集前へ戻らなくなるため、url_ の書き込みは
- * 抑止して**履歴エントリを1つに保つ**。中間状態の url_ は、復元時に経路 (b) の
- * refreshRuntimeTileUrl({ exchange: false }) が作り直して補正する（設計 §5.3(b)）。
- * 明示的な recordHistorySnapshot は追加しない（試したところエントリが2つになった）。
+ * 入力欄は `v-model` ではなく `:value` + `@change` にしてある。`v-model` の既定は
+ * `input` イベントで**キー入力ごとに mapData.url を書く**ため、確定前に履歴エントリが
+ * 1つ着地してしまう（そのエントリは url_ が追随する前の中間状態になる）。
+ * mapUpload が1回の Undo で戻せるのは、mapData への書き込みが await の後に
+ * まとめて起きるからであり、ここも同じ形に揃えた。
  */
-const onTileUrlCommitted = async () => {
-    await refreshRuntimeTileUrl({ exchange: true });
+const onTileUrlCommitted = async (event: Event) => {
+    const next = (event.target as HTMLInputElement).value;
+    if (await refreshRuntimeTileUrl(next, { applyUrl: true, exchange: true })) {
+        // await を跨いで着地した編集なので明示確定する（mapUpload と同型）
+        commitHistorySnapshot();
+    }
 };
 
 const loadMapTiles = async () => {
@@ -4048,7 +4057,7 @@ const goBack = async () => {
                         </div>
                          <div class="col-md-8">
                              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_tile") }} <ContextHelp :text="t('mapedit.map_tile_desc')" :ariaLabel="t('mapedit.map_tile_desc')" /></label>
-                             <input type="text" class="form-control form-control-sm" data-testid="map-tile-url" v-model="mapData.url" @change="onTileUrlCommitted" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
+                             <input type="text" class="form-control form-control-sm" data-testid="map-tile-url" :value="mapData.url" @change="onTileUrlCommitted" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
                         </div>
                     </div>
 
