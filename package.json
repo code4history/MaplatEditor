@@ -159,7 +159,9 @@
     "smoke:m5-t4-managed-poi-source": "node scripts/m5-t4-managed-poi-source-smoke.mjs",
     "smoke:m5-t6-large-image-decode-limits": "node scripts/m5-t6-decode-budget-phase-a.mjs && node scripts/m5-t6-large-image-decode-limits-smoke.mjs",
     "smoke:m5-t6-decode-budget": "node scripts/m5-t6-decode-budget-phase-a.mjs",
-    "test:e2e:m5-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t6-jpeg-decode-limits.spec.ts"
+    "test:e2e:m5-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t6-jpeg-decode-limits.spec.ts",
+    "smoke:m5-t7-runtime-tile-url-ipc": "node scripts/m5-t7-runtime-tile-url-ipc-smoke.mjs",
+    "test:e2e:m5-t7": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t7-tile-url-runtime-rebuild.spec.ts"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

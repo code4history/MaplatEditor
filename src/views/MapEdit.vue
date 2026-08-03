@@ -270,6 +270,8 @@ const originalMapData = ref<any>({}); // isDirty 比較用ディープクロー�
 // その経路の判定漏れは下の poisGuard (computed) が塞ぐ。
 function setMapDocument(incoming: any): void {
     mapData.value = acceptDocumentPois(incoming, incoming);
+    // M5-T7: main 側で導出済みの url_ と対になる url を記録する（設計 §5.3 の初期化）
+    markRuntimeTileUrlDerived();
 }
 
 // pois がエディタ正準形式 (配列) でないかどうか。判定・表示・read-only・書き込み可否は
@@ -785,6 +787,11 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
     // here is only valid for Undo/Redo after the map runtime is ready; initial
     // draft rendering is performed by loadMapTiles() below.
     if (illstMap && mercMap && illstSource) {
+        // M5-T7: 復元された url に対して url_ を作り直してからキーを比較する。
+        // スナップショットが url 編集の途中（url は新しいが url_ は古い）で取られていた場合の
+        // 補正であり、あわせて lastDerivedUrl を復元後の url へ更新する（設計 §5.3(b)）。
+        // 交換の判断と実行は下に残す（exchange: false）。
+        await refreshRuntimeTileUrl({ exchange: false });
         // m1-t6-hotfix-2: 復元した mapData が指すタイルと表示中のタイルが異なるなら
         // ソースを再構築する（設計 v1.1 §5.4）。gcpsToMarkers()/updateTin() は
         // illstSource の座標変換を使うため、必ずそれらより前に行う。
@@ -2849,6 +2856,74 @@ const exchangeTileSource = async (): Promise<any> => {
     }
 };
 
+// M5-T7: url（交換形）→ url_（ランタイム専用）の再導出。
+//
+// なぜ main へ問い合わせるか（設計 §4）: url が空のとき url_ はタイル実体から組み立てる
+// 必要があり、renderer に持ち込むと m5-t3 が1本化した deriveRuntimeTileUrl が3箇所目として
+// 復活する。∴ 導出は main（mapedit:deriveRuntimeTileUrl）に閉じたまま呼ぶ。
+//
+// lastDerivedUrl は「url_ を最後に導出したときの url」であって「入力欄の直前値」ではない
+// （設計 §5.3）。入力欄基準にすると履歴復元で失効し、同じ値を再入力したときに早期 return して
+// url と url_ が食い違う ＝ 本タスクが直すはずの症状を新経路で再導入してしまう。
+// ∴ 更新は本関数の中だけで行い、経路 (a)(b) のどちらを通っても必ず更新される形にする。
+let lastDerivedUrl: string | null = null;
+
+/** 地図文書を丸ごと受け入れた直後に呼ぶ（url と url_ が対になっている状態の記録） */
+const markRuntimeTileUrlDerived = () => {
+    lastDerivedUrl = (mapData.value?.url ?? '') as string;
+};
+
+/**
+ * @param exchange true なら交換まで行う。false なら url_ の再導出と lastDerivedUrl 更新のみ。
+ * @returns **交換したか**（「交換が必要か」ではない）。exchange: false のときは常に false。
+ *          呼び出し側は交換要否の信号として使わないこと（設計 §5.3(c)）。
+ */
+const refreshRuntimeTileUrl = async (
+    { exchange }: { exchange: boolean } = { exchange: true },
+): Promise<boolean> => {
+    const requested = (mapData.value?.url ?? '') as string;
+    if (requested === lastDerivedUrl) return false;
+    // whReady 相当（MapEditService.normalizeRequestData と同じ判断）。
+    // 寸法未確定＝タイルがまだ無い段階では何もしない
+    if (!(mapData.value?.width && mapData.value?.height)) return false;
+
+    const derived = await (window as any).mapedit.deriveRuntimeTileUrl(
+        requested,
+        mapUid.value || newMapUid,
+    );
+    // await を跨いで mapData が差し替わっている場合は破棄する（後着の処理が正しい状態を作る）
+    if (((mapData.value?.url ?? '') as string) !== requested) return false;
+
+    lastDerivedUrl = requested;
+    // url_ はランタイム専用の導出値であり利用者の編集ではない。抑止しないと
+    // 「url を変えた」スナップショットに続けて「url_ が追随した」スナップショットができ、
+    // Undo が1回で編集前へ戻らない（設計 §8「余計な履歴記録を作らない」）。
+    // 経路 (b) は既に withoutHistoryAsync('W1') の内側だが、二重に入っても無害。
+    withoutHistory('W5', () => {
+        mapData.value.url_ = derived;
+    });
+    if (!exchange) return false;
+    if (tileIdentityKey(mapData.value) === illstSourceKey) return false;
+    await exchangeTileSource();
+    return true;
+};
+
+/**
+ * タイルURL欄の確定（blur / Enter）。
+ * v-model 既定の input はキー入力ごとに発火するため使わない（設計 §5.3(a)）。
+ *
+ * 履歴の扱い（実装時に実測して確定した）: v-model による url の書き込みは
+ * デバウンス付きでスナップショット化され、**本ハンドラの await（IPC）完了より前に着地する**。
+ * ∴ そのスナップショットは「url は新しいが url_ は古い」中間状態を持つ。
+ * ここで url_ 側も記録すると Undo が1回で編集前へ戻らなくなるため、url_ の書き込みは
+ * 抑止して**履歴エントリを1つに保つ**。中間状態の url_ は、復元時に経路 (b) の
+ * refreshRuntimeTileUrl({ exchange: false }) が作り直して補正する（設計 §5.3(b)）。
+ * 明示的な recordHistorySnapshot は追加しない（試したところエントリが2つになった）。
+ */
+const onTileUrlCommitted = async () => {
+    await refreshRuntimeTileUrl({ exchange: true });
+};
+
 const loadMapTiles = async () => {
     // 旧実装 reflectIllstMap に準拠: mapSourceFactory を使用
     // 非正方形タイル（HistMap）などの設定を適切に処理する
@@ -3973,7 +4048,7 @@ const goBack = async () => {
                         </div>
                          <div class="col-md-8">
                              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_tile") }} <ContextHelp :text="t('mapedit.map_tile_desc')" :ariaLabel="t('mapedit.map_tile_desc')" /></label>
-                             <input type="text" class="form-control form-control-sm" v-model="mapData.url" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
+                             <input type="text" class="form-control form-control-sm" data-testid="map-tile-url" v-model="mapData.url" @change="onTileUrlCommitted" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
                         </div>
                     </div>
 
