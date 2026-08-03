@@ -24,7 +24,7 @@
 //
 // harness は m12-t15-thumbnail-512 / m11-t3-editor-shell の実績文法に従う。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
@@ -404,7 +404,13 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
     test.skip(process.env.MAPLAT_E2E_PAUSE !== '1',
       '人間確認用。MAPLAT_E2E_PAUSE=1 pnpm test:e2e:m5-t4b で実行する');
     test.setTimeout(0);
-    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t4b-human-'));
+    // 【固定パスにする理由】ここは人間がコマンドをコピーして実アプリを開く導線である。
+    // mkdtemp のランダム suffix だと毎回貼り直しになり、実際に 2026-08-03 の検証で
+    // 伏せ字のまま実行されて EACCES になった。∴ 常に同じパスを使い、案内を安定させる。
+    // 前回分は毎回消してから作り直す（前の状態が混ざると確認にならない）
+    const e2eRoot = path.join(projectRoot, '.tmp-human-verify');
+    await rm(e2eRoot, { recursive: true, force: true });
+    await mkdir(e2eRoot, { recursive: true });
     const { app, page } = await launch(e2eRoot);
     try {
       // 準備のあいだだけダイアログを差し替える。原本は先に退避しておく
@@ -447,7 +453,9 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       console.log('');
       console.log('  次のコマンドで **実アプリ** を開いてください（Playwright 配下ではありません）:');
       console.log('');
-      console.log(`    MAPLAT_E2E_ROOT=${e2eRoot} pnpm run dev`);
+      console.log('    MAPLAT_E2E_ROOT=.tmp-human-verify pnpm run dev');
+      console.log('');
+      console.log(`  （.tmp-human-verify の実体: ${e2eRoot}）`);
       console.log('');
       console.log('  用意したもの:');
       console.log(`    元地図           : ${seeded.mapSlug} (uid=${seeded.mapUid})`);

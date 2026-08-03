@@ -41,5 +41,6 @@ build-electrobun/
 artifacts-electrobun/
 .tmp/
 .tmp-smoke/
+.tmp-human-verify/
 test-results/
 playwright-report/
