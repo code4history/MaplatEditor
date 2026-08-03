@@ -10,6 +10,13 @@
 //
 // 人間確認: MAPLAT_E2E_PAUSE=1 で最後の test がセットアップ済みの状態で一時停止する。
 //   MAPLAT_E2E_PAUSE=1 PWDEBUG=1 pnpm test:e2e:m5-t4b
+//
+// 【重要】PWDEBUG=1 の Playwright Inspector は **最初のアクションの前** で止まる。
+// そこはセットアップが1つも走っていない状態であり（地図も ZIP も無く、ネイティブ
+// ダイアログも差し替えたまま）、確認には使えない。Inspector の Resume を押して
+// 本 spec 末尾の page.pause() まで進めること。そこで初めて地図1件・ZIP 2つが揃い、
+// ダイアログが原本へ戻る。到達すると「=== M5-T4B 人間確認 ===」が出力される。
+//
 // harness は m12-t15-thumbnail-512 / m11-t3-editor-shell の実績文法に従う。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
@@ -419,8 +426,23 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       // 差し替えたままだと搬出が保存先を尋ねず、取込がファイル選択を出さない
       await restoreDialogs(app);
 
+      // 【JS の confirm() について】Playwright 配下では dialog リスナ未登録の
+      // window.confirm() が **自動 dismiss** され、常に false を返す（実測で確認）。
+      // 下書き削除は `if (!confirm(...)) return;` のため、押しても無反応に見える
+      // ＝ 製品の不具合と紛らわしい（2026-08-03 に人間が実際に踏んだ）。
+      //
+      // ネイティブの確認ダイアログを Playwright 配下で人間へ出す手段は無いため、
+      // ここでは accept 側へ倒し、**確認なしで実行される**ことを案内で明示する。
+      // 取り消しの意思表示が要る操作は pnpm run dev 側で確認する。
+      page.on('dialog', (dialog) => {
+        console.log(`  [自動 OK] ${dialog.type()}: ${dialog.message()}`);
+        void dialog.accept();
+      });
+
       console.log('');
-      console.log('=== M5-T4B 人間確認 ===');
+      console.log('=== M5-T4B 人間確認（ここまで来ていれば準備完了）===');
+      console.log('  ※ Inspector が冒頭で止まった状態では準備が1つも走っていません。');
+      console.log('    この見出しが出ていることが、確認を始めてよい合図です。');
       console.log(`  搬出済み地図 ZIP : ${zipPath}`);
       console.log(`  取込用 ZIP（別slug）: ${copyZip}  → slug: ${copySlug}`);
       console.log(`  元地図           : ${seeded.mapSlug} (uid=${seeded.mapUid})`);
@@ -429,6 +451,10 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       console.log('  ※ ネイティブダイアログは原本へ戻してあります。搬出ボタンを押せば');
       console.log('    保存先を尋ねるダイアログが出ます（準備中だけ差し替えていました）。');
       console.log('    取込は地図管理一覧の「インポート」ボタンから、上の「取込用 ZIP」を選んでください。');
+      console.log('');
+      console.log('  ※【制約】JS の確認ダイアログ（下書き削除など）は Playwright 配下では');
+      console.log('    人間に表示できません。ここでは自動で OK を返します（上に [自動 OK] と出ます）');
+      console.log('    ∴ 取り消しの意思表示が要る操作の確認は pnpm run dev 側で行ってください。');
       console.log('');
       console.log('  確認していただきたいこと:');
       console.log('   1. 搬出ボタンで保存先ダイアログが出て、指定した場所に ZIP ができること');
