@@ -125,7 +125,10 @@
     "confirm_close_no_save": "Les paramètres ont été modifiés mais non enregistrés.\nVoulez-vous fermer sans enregistrer ?",
     "select": "Sélectionner",
     "language": "Langue",
-    "theme": "Thème"
+    "theme": "Thème",
+    "jpeg_decode_max_memory": "Limite de mémoire de décodage JPEG (Mo)",
+    "jpeg_decode_max_resolution": "Limite de résolution JPEG (MP)",
+    "jpeg_decode_desc": "Augmentez ces valeurs si une grande image de carte ne peut pas être importée. Elles ne réservent pas de mémoire réelle."
   },
   "maplist": {
     "title": "Liste des cartes",
@@ -363,7 +366,9 @@
     "originals": {
       "unsupported_extension": "Format d'image non pris en charge (jpg/jpeg/png uniquement). Veuillez réenregistrer avec un format d'image différent."
     },
-    "poi_format_unsupported": "Les données de POI sont dans un format non pris en charge par l'éditeur (par exemple un objet indexé par nom de couche). Les données d'origine sont conservées lors de l'enregistrement et sont exportées telles quelles vers l'aperçu et l'export, mais l'édition dans cet onglet est désactivée."
+    "poi_format_unsupported": "Les données de POI sont dans un format non pris en charge par l'éditeur (par exemple un objet indexé par nom de couche). Les données d'origine sont conservées lors de l'enregistrement et sont exportées telles quelles vers l'aperçu et l'export, mais l'édition dans cet onglet est désactivée.",
+    "error_image_memory_limit": "Le décodage de cette image de carte nécessite environ {{required}} Mo, mais le réglage actuel est de {{configured}} Mo. Augmentez « Limite de mémoire de décodage JPEG » dans la page Réglages à {{recommended}} Mo ou plus.",
+    "error_image_resolution_limit": "Cette image de carte fait environ {{megapixels}} MP, mais le réglage actuel est de {{configured}} MP. Augmentez « Limite de résolution JPEG » dans la page Réglages à {{recommended}} MP ou plus."
   },
   "mapupload": {
     "map_image": "Image de la carte",

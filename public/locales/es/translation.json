@@ -125,7 +125,10 @@
     "confirm_close_no_save": "La configuración se ha modificado pero no se ha guardado.\n¿Desea cerrar sin guardar?",
     "select": "Seleccionar",
     "language": "Idioma",
-    "theme": "Tema"
+    "theme": "Tema",
+    "jpeg_decode_max_memory": "Límite de memoria de decodificación JPEG (MB)",
+    "jpeg_decode_max_resolution": "Límite de resolución JPEG (MP)",
+    "jpeg_decode_desc": "Auméntelos cuando no se pueda importar una imagen de mapa grande. No reservan memoria real."
   },
   "maplist": {
     "title": "Lista de mapas",
@@ -363,7 +366,9 @@
     "originals": {
       "unsupported_extension": "Formato de imagen no admitido (solo jpg/jpeg/png). Vuelva a guardar con un formato de imagen diferente."
     },
-    "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor (por ejemplo, un objeto indexado por nombre de capa). Los datos originales se conservan al guardar y se exportan tal cual a la vista previa y a la exportación, pero la edición en esta pestaña está deshabilitada."
+    "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor (por ejemplo, un objeto indexado por nombre de capa). Los datos originales se conservan al guardar y se exportan tal cual a la vista previa y a la exportación, pero la edición en esta pestaña está deshabilitada.",
+    "error_image_memory_limit": "Decodificar esta imagen de mapa necesita unos {{required}} MB, pero la configuración actual es {{configured}} MB. Aumente «Límite de memoria de decodificación JPEG» en la página de configuración a {{recommended}} MB o más.",
+    "error_image_resolution_limit": "Esta imagen de mapa tiene unos {{megapixels}} MP, pero la configuración actual es {{configured}} MP. Aumente «Límite de resolución JPEG» en la página de configuración a {{recommended}} MP o más."
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

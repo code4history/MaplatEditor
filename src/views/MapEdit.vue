@@ -3105,27 +3105,35 @@ const changeBaseMap = async () => {
 // =========================================================
 const modalVisible = ref(false);
 const modalText = ref('');
+// M5-T6: modalText と対になる i18n 補間パラメータ。
+// 更新は必ず**オブジェクトごと差し替える**（プロパティ単位で書き換えると ref の参照が
+// 変わらず ProgressModal 側の computed が再評価されない）
+const modalTextParams = ref<Record<string, unknown> | undefined>(undefined);
 const modalPercent = ref(0);
 const modalProgressText = ref('');
 const modalEnableClose = ref(false);
 
 /** vueModal.show(text) 相当 */
-const modalShow = (textKey: string) => {
+const modalShow = (textKey: string, params?: Record<string, unknown>) => {
     modalText.value = textKey;
+    modalTextParams.value = params;
     modalPercent.value = 0;
     modalProgressText.value = '';
     modalEnableClose.value = false;
     modalVisible.value = true;
 };
 /** vueModal.progress(text, percent, progressText) 相当 — IPC progress イベントから呼ぶ */
-const modalProgress = (textKey: string, percent: number, progressText: string) => {
+const modalProgress = (textKey: string, percent: number, progressText: string, params?: Record<string, unknown>) => {
     modalText.value = textKey;
+    modalTextParams.value = params;
     modalPercent.value = percent;
     modalProgressText.value = progressText;
 };
 /** vueModal.finish(text) 相当 — 処理完了時に呼ぶ */
-const modalFinish = (textKey: string) => {
+const modalFinish = (textKey: string, params?: Record<string, unknown>) => {
     modalText.value = textKey;
+    // オブジェクトごと差し替える（§10 のリアクティビティ設計）
+    modalTextParams.value = params;
     modalEnableClose.value = true;
 };
 /** vueModal.hide() 相当 — OK ボタンクリック or 自動非表示 */
@@ -3173,7 +3181,25 @@ const mapUpload = async () => {
         if (arg.err) {
             if (arg.err !== 'Canceled') {
                 console.error('[mapUpload] Error:', arg.err);
-                modalFinish('mapedit.error_image_upload');
+                // M5-T6 (§6.1): 分岐鍵は arg.prediction の有無。
+                // prediction は「全部入りか無しか」なので、あれば数値は揃っている。
+                // 無い場合（予測できなかった失敗）は従来どおり汎用文言へ落とす。
+                // 英文メッセージの文字列 parse は renderer では行わない（main 側で errorCode 化済み）。
+                if (arg.errorCode === 'jpeg_memory_limit' && arg.prediction) {
+                    modalFinish('mapedit.error_image_memory_limit', {
+                        required: arg.prediction.requiredMemoryMB,
+                        configured: arg.configuredMB,
+                        recommended: arg.prediction.recommendedMemoryMB,
+                    });
+                } else if (arg.errorCode === 'jpeg_resolution_limit' && arg.prediction) {
+                    modalFinish('mapedit.error_image_resolution_limit', {
+                        megapixels: Math.round(arg.prediction.megapixels),
+                        configured: arg.configuredMP,
+                        recommended: arg.prediction.recommendedResolutionMP,
+                    });
+                } else {
+                    modalFinish('mapedit.error_image_upload');
+                }
             } else {
                 // キャンセル: モーダルを閉じる
                 modalHide();
@@ -3709,6 +3735,7 @@ const goBack = async () => {
         <ProgressModal
             :visible="modalVisible"
             :text="modalText"
+            :text-params="modalTextParams"
             :percent="modalPercent"
             :progress-text="modalProgressText"
             :enable-close="modalEnableClose"

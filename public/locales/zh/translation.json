@@ -125,7 +125,10 @@
     "confirm_close_no_save": "设置已更改但尚未保存。\n确定不保存就关闭吗?",
     "select": "选择",
     "language": "语言",
-    "theme": "主题"
+    "theme": "主题",
+    "jpeg_decode_max_memory": "JPEG 解码内存上限 (MB)",
+    "jpeg_decode_max_resolution": "JPEG 分辨率上限 (MP)",
+    "jpeg_decode_desc": "当大尺寸地图图像无法导入时请调高。这些值不会预留实际内存。"
   },
   "maplist": {
     "title": "地图列表",
@@ -363,7 +366,9 @@
     "originals": {
       "unsupported_extension": "不支持的图片格式（仅支持jpg/jpeg/png）。请用其他图片格式重新保存。"
     },
-    "poi_format_unsupported": "POI 数据为编辑器不支持的格式（例如以图层名为键的对象形式）。保存时原始数据不会丢失，并会原样输出到预览和导出中，但此标签页中的编辑已被禁用。"
+    "poi_format_unsupported": "POI 数据为编辑器不支持的格式（例如以图层名为键的对象形式）。保存时原始数据不会丢失，并会原样输出到预览和导出中，但此标签页中的编辑已被禁用。",
+    "error_image_memory_limit": "解码此地图图像约需 {{required}} MB，但当前设置为 {{configured}} MB。请在设置页面将“JPEG 解码内存上限”调高到 {{recommended}} MB 以上。",
+    "error_image_resolution_limit": "此地图图像约为 {{megapixels}} MP，但当前设置为 {{configured}} MP。请在设置页面将“JPEG 分辨率上限”调高到 {{recommended}} MP 以上。"
   },
   "mapupload": {
     "map_image": "地图图像",

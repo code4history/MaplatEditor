@@ -80,6 +80,40 @@
               </div>
             </div>
 
+            <!-- M5-T6: JPEG デコード上限（大きな地図画像が取り込めないときに引き上げる） -->
+            <div class="row mb-3 align-items-center">
+              <label for="jpegDecodeMaxMemoryMB" class="col-sm-3 col-form-label text-end">{{
+                t("settings.jpeg_decode_max_memory")
+              }}</label>
+              <div class="col-sm-9">
+                <input
+                  type="number"
+                  class="form-control"
+                  id="jpegDecodeMaxMemoryMB"
+                  min="512"
+                  step="1"
+                  v-model.number="state.jpegDecodeMaxMemoryMB"
+                />
+              </div>
+            </div>
+
+            <div class="row mb-3 align-items-center">
+              <label for="jpegDecodeMaxResolutionMP" class="col-sm-3 col-form-label text-end">{{
+                t("settings.jpeg_decode_max_resolution")
+              }}</label>
+              <div class="col-sm-9">
+                <input
+                  type="number"
+                  class="form-control"
+                  id="jpegDecodeMaxResolutionMP"
+                  min="100"
+                  step="1"
+                  v-model.number="state.jpegDecodeMaxResolutionMP"
+                />
+                <div class="form-text">{{ t("settings.jpeg_decode_desc") }}</div>
+              </div>
+            </div>
+
             <!-- Buttons -->
             <div class="row">
               <div class="col-sm-9 offset-sm-3 d-flex justify-content-end gap-2">
@@ -137,16 +171,25 @@ const activeTab = ref("basic");
 const state = reactive({
   lang: "ja",
   saveFolder: "",
+  jpegDecodeMaxMemoryMB: 8192,
+  jpegDecodeMaxResolutionMP: 800,
 });
 
 // Original values for dirty checking
 const original = reactive({
   lang: "ja",
   saveFolder: "",
+  jpegDecodeMaxMemoryMB: 8192,
+  jpegDecodeMaxResolutionMP: 800,
 });
 
 const isDirty = computed(() => {
-  return state.lang !== original.lang || state.saveFolder !== original.saveFolder;
+  return (
+    state.lang !== original.lang ||
+    state.saveFolder !== original.saveFolder ||
+    state.jpegDecodeMaxMemoryMB !== original.jpegDecodeMaxMemoryMB ||
+    state.jpegDecodeMaxResolutionMP !== original.jpegDecodeMaxResolutionMP
+  );
 });
 
 onMounted(async () => {
@@ -164,6 +207,14 @@ onMounted(async () => {
       state.saveFolder = saveFolder;
       original.saveFolder = saveFolder;
     }
+    // M5-T6: 値の正規化は main 側（SettingsService）に閉じているので、ここでは受け取るだけ
+    for (const key of ["jpegDecodeMaxMemoryMB", "jpegDecodeMaxResolutionMP"] as const) {
+      const value = await window.settings.get(key);
+      if (typeof value === "number") {
+        state[key] = value;
+        original[key] = value;
+      }
+    }
   } catch (e) {
     console.error("Failed to load settings:", e);
   }
@@ -179,6 +230,8 @@ const showFolderDialog = async () => {
 const resetSettings = async () => {
     state.lang = original.lang;
     state.saveFolder = original.saveFolder;
+    state.jpegDecodeMaxMemoryMB = original.jpegDecodeMaxMemoryMB;
+    state.jpegDecodeMaxResolutionMP = original.jpegDecodeMaxResolutionMP;
     if (i18next.language !== state.lang) {
         await i18next.changeLanguage(state.lang);
     }
@@ -187,10 +240,20 @@ const resetSettings = async () => {
 const saveSettings = async () => {
     await window.settings.set("lang", state.lang);
     await window.settings.set("saveFolder", state.saveFolder);
-    
-    // Update original to match new saved state
+    await window.settings.set("jpegDecodeMaxMemoryMB", state.jpegDecodeMaxMemoryMB);
+    await window.settings.set("jpegDecodeMaxResolutionMP", state.jpegDecodeMaxResolutionMP);
+
+    // Update original to match new saved state.
+    // M5-T6: 正規化後の値を読み直す（下限で丸められた場合に画面と保存値がずれないように）
     original.lang = state.lang;
     original.saveFolder = state.saveFolder;
+    for (const key of ["jpegDecodeMaxMemoryMB", "jpegDecodeMaxResolutionMP"] as const) {
+      const saved = await window.settings.get(key);
+      if (typeof saved === "number") {
+        state[key] = saved;
+        original[key] = saved;
+      }
+    }
 
     if (i18next.language !== state.lang) {
         await i18next.changeLanguage(state.lang);

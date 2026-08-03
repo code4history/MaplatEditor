@@ -125,7 +125,10 @@
     "confirm_close_no_save": "設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?",
     "select": "選択",
     "language": "言語",
-    "theme": "テーマ"
+    "theme": "テーマ",
+    "jpeg_decode_max_memory": "JPEG 展開メモリ上限 (MB)",
+    "jpeg_decode_max_resolution": "JPEG 解像度上限 (MP)",
+    "jpeg_decode_desc": "大きな地図画像が取り込めない場合に引き上げてください。実際のメモリを予約する値ではありません。"
   },
   "maplist": {
     "title": "地図一覧",
@@ -363,7 +366,9 @@
     "staging": {
       "missing_tiles": "地図画像の一時データが見つからないため保存できませんでした。画像を再アップロードしてから保存してください。"
     },
-    "poi_format_unsupported": "POIデータがエディタ未対応の形式です（レイヤ名をキーにしたオブジェクト形式など）。元のデータは保存しても失われず、プレビューやエクスポートにはそのまま出力されますが、このタブでの編集は無効化されます。"
+    "poi_format_unsupported": "POIデータがエディタ未対応の形式です（レイヤ名をキーにしたオブジェクト形式など）。元のデータは保存しても失われず、プレビューやエクスポートにはそのまま出力されますが、このタブでの編集は無効化されます。",
+    "error_image_memory_limit": "この地図画像の展開には約 {{required}} MB が必要ですが、現在の設定は {{configured}} MB です。設定ページの「JPEG 展開メモリ上限」を {{recommended}} MB 以上に増やしてください。",
+    "error_image_resolution_limit": "この地図画像は約 {{megapixels}} MP ありますが、現在の設定は {{configured}} MP です。設定ページの「JPEG 解像度上限」を {{recommended}} MP 以上に増やしてください。"
   },
   "mapupload": {
     "map_image": "地図画像",

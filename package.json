@@ -151,7 +151,9 @@
     "smoke:m4-t4-editor-layer-ref": "node scripts/m4-t4-editor-layer-ref-smoke.mjs",
     "smoke:m5-t1-export-url-canonical": "node scripts/m5-t1-export-url-canonical-smoke.mjs",
     "smoke:m5-t2-url-type": "node scripts/m5-t2-url-type-smoke.mjs",
-    "smoke:m5-t6-large-image-decode-limits": "node scripts/m5-t6-large-image-decode-limits-smoke.mjs"
+    "smoke:m5-t6-large-image-decode-limits": "node scripts/m5-t6-decode-budget-phase-a.mjs && node scripts/m5-t6-large-image-decode-limits-smoke.mjs",
+    "smoke:m5-t6-decode-budget": "node scripts/m5-t6-decode-budget-phase-a.mjs",
+    "test:e2e:m5-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t6-jpeg-decode-limits.spec.ts"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

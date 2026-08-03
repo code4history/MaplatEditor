@@ -114,6 +114,14 @@ binaries are distributed via GitHub Releases.
   on first launch after an upgrade — legacy data import, thumbnail
   generation, and originals renaming — without deleting existing data; see
   [Prerequisites](#prerequisites) for details
+- Importing a map image is subject to JPEG decode limits (8192 MB of memory
+  and 800 MP of resolution by default). An image above the limits is
+  detected before decoding, and the error tells you **how much is needed,
+  what is currently configured, and what to set**. Raise "JPEG decode memory
+  limit" / "JPEG resolution limit" on the Settings page. These are
+  arithmetic thresholds that guard against decompression blow-ups; they
+  **do not reserve actual memory**, so raising them will not help if the
+  machine runs out of physical memory
 - Only one instance of MaplatEditor runs at a time; launching a second
   instance brings the existing window to the front instead of opening a new
   one
