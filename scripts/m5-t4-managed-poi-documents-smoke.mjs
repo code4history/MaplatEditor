@@ -249,7 +249,7 @@ try {
       await assert.rejects(
         () => importPoiZip(bigReadmePath),
         /POI package is too large/,
-        'AC19/AC1(d): payload 外 entry（巨大 README）による超過が製品経路で拒否されること',
+        'AC9/AC1(d): payload 外 entry（巨大 README）による超過が製品経路で拒否されること',
       );
       console.log('ok: AC9 importPoiZip の無変更 + payload 外超過の拒否');
     }
