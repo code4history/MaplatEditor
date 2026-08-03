@@ -588,6 +588,46 @@ export async function externalizeMapDocumentPois(
   return { sourcePois, result };
 }
 
+/**
+ * M5-T4B: POI 実体（`pois/<name>.geojson`）の書き出し。
+ *
+ * **地図 ZIP 搬出とアプリ搬出が共有する唯一の実装**である。
+ * 従来この書き出しは両者に別々に書かれており、次の2点がずれていた
+ * （2026-08-03 に人間が「同じ実体が経路で別物になっている」と指摘）:
+ *
+ *   1. **整形** — アプリ搬出は pretty、地図 ZIP は `JSON.stringify`（minify）だった。
+ *      同じ dest の同じ実体が、どちらの ZIP から出たかで別物になる
+ *   2. **境界検査** — アプリ搬出だけが「dest が pois/ の外へ出ていないか」を再検査していた。
+ *      地図 ZIP 側は `path.posix.basename` でディレクトリを捨てていたため素通りしていた
+ *
+ * 出力先ルートだけが呼び出し側の関心事である（アプリ搬出は配布ディレクトリ、
+ * 地図 ZIP は ZIP へ積む前の一時ディレクトリ）。∴ ルートを引数に取り、
+ * その下の `pois/` 配下であることを保証して書く。
+ *
+ * 戻り値は書き出した実ファイルパス（`documents` と同じ順序）。
+ */
+export const POI_DOCUMENT_JSON_SPACES = 2;
+
+export async function writePoiDocuments(
+  rootDir: string,
+  documents: Iterable<PoiDocument>,
+): Promise<string[]> {
+  const poisRoot = path.join(rootDir, 'pois');
+  const written: string[] = [];
+  for (const doc of documents) {
+    // dest は externalizePoisArray が sanitize 済みだが、書き出し直前にも境界を再検査する
+    // (iconSetFilePath と同じ多重防御)。名前の基底には利用者が raw JSON で書ける
+    // 生 FC の id が含まれ、DB 側の slug 検査を通らないため — M4-T2 §2.3 / §5.2
+    const target = path.resolve(rootDir, ...doc.dest.split('/'));
+    if (target !== poisRoot && !target.startsWith(poisRoot + path.sep)) {
+      throw new Error(`POI document escaped the output directory: ${doc.dest}`);
+    }
+    await fs.outputJson(target, doc.json, { spaces: POI_DOCUMENT_JSON_SPACES });
+    written.push(target);
+  }
+  return written;
+}
+
 export function mergeIconFiles(target: Map<string, IconFile>, added: IconFile[]): void {
   for (const file of added) {
     target.set(file.dest, file);

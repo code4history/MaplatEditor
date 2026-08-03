@@ -18,6 +18,7 @@ import {
   externalizePoisArray,
   externalizeMapDocumentPois,
   createPoiExternalizationContext,
+  writePoiDocuments,
   DUPLICATE_POI_REFERENCE_WARNING,
   type IconFile,
   type PoiExternalizationContext,
@@ -337,18 +338,9 @@ class AppExportService {
       // 2.5) pois/{name}.geojson — app / map から参照される POI 実体 (M4-T2)。
       //      app と map の双方の合成が終わってから一括で書き出す (同一ソースの二重参照は
       //      poiCtx で既に1エントリへ畳まれている)。
-      //      dest は externalizePoisArray が sanitize 済みだが、書き出し直前にも境界を再検査する
-      //      (iconSetFilePath と同じ多重防御)。名前の基底には利用者が raw JSON で書ける
-      //      生 FC の id が含まれ、DB 側の slug 検査を通らないため — M4-T2 §2.3 / §5.2
-      const poisRoot = path.join(outDir, 'pois');
-      for (const doc of poiCtx.documents.values()) {
-        const target = path.resolve(outDir, ...doc.dest.split('/'));
-        if (target !== poisRoot && !target.startsWith(poisRoot + path.sep)) {
-          throw new Error(`POI document escaped the output directory: ${doc.dest}`);
-        }
-        // 字下げは POI 単体パッケージの搬出（PoiPackageService:90,93）と同じ 2-space
-        await fs.outputJson(target, doc.json, { spaces: 2 });
-      }
+      //      M5-T4B: 書き出し（整形・境界検査）は地図 ZIP 搬出と共有する writePoiDocuments が担う。
+      //      ここに直接書くと、同じ dest の同じ実体が経路によって別物になる
+      await writePoiDocuments(outDir, poiCtx.documents.values());
 
       // 3) TMSソースのサムネイル
       //    tmbs/… はデータフォルダから、basemap_icons/… はアプリ同梱リソースからコピーする。

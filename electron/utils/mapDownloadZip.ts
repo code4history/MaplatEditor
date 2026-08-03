@@ -11,6 +11,7 @@ import { ProgressReporter } from './ProgressReporter';
 import {
   createPoiExternalizationContext,
   externalizeMapDocumentPois,
+  writePoiDocuments,
   type IconFile,
   type PoiDocument,
 } from '../services/poiReferenceResolver';
@@ -96,12 +97,15 @@ export async function buildAndWriteMapZip(
   // M5-T4B: 外部化した POI 実体 (pois/<name>.geojson) を一時領域へ書き出す。
   // map JSON の pois が指す dest と 1:1 で対応する ∴ ここを書かないと
   // **参照だけがあって実体が無い ZIP** になる。
-  const poiTmpFiles: string[] = [];
-  for (const doc of documents) {
-    const localPath = path.join(tmpFolder, `${slug}-${path.posix.basename(doc.dest)}`);
-    await fs.writeFile(localPath, JSON.stringify(doc.json));
-    poiTmpFiles.push(localPath);
-  }
+  //
+  // 書き出しは **アプリ搬出と共有する writePoiDocuments** が担う。
+  // 従来ここで JSON.stringify (minify) していたためアプリ ZIP の pretty と食い違い、
+  // 同じ dest の同じ実体が経路によって別物になっていた (2026-08-03 人間指摘)。
+  // 境界検査 (dest が pois/ の外へ出ていないか) も共有側にしか無かった。
+  // 一時ディレクトリを出力ルートに見立てて渡し、その下の pois/ へ書かせる
+  const poiStageDir = path.join(tmpFolder, `${slug}-poi-stage`);
+  await fs.remove(poiStageDir).catch(() => undefined);
+  const poiTmpFiles = await writePoiDocuments(poiStageDir, documents);
 
   // ZIP に追加するファイルリスト: [localPath, zipDir, zipName]
   const targets: [string, string, string][] = [
@@ -163,7 +167,7 @@ export async function buildAndWriteMapZip(
   zip.writeZip(zipFilePath);
 
   await fs.remove(tmpFile);
-  // M5-T4B: 外部化 POI の一時ファイルも後始末する
-  for (const p of poiTmpFiles) await fs.remove(p).catch(() => undefined);
+  // M5-T4B: 外部化 POI の一時領域も後始末する
+  await fs.remove(poiStageDir).catch(() => undefined);
   await fs.move(zipFilePath, targetFilePath, { overwrite: true });
 }

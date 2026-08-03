@@ -120,7 +120,18 @@ try {
         assert.equal(doc.type, 'FeatureCollection', 'AC2: 外部化された実体が FeatureCollection であること');
       }
     }
-    console.log('ok: AC2 pois/*.geojson が実体として同梱される');
+    // pois/*.geojson の整形は **搬出種別を問わず 2-space pretty**（アプリ ZIP と同じ）。
+    // 地図 ZIP 側だけ JSON.stringify（minify）で書いていた時期があり、
+    // 「同じ dest の同じ実体が経路で別物になる」状態だった（2026-08-03 人間指摘）
+    for (const name of names.filter((n: string) => n.startsWith('pois/'))) {
+      const text = zip.getEntry(name).getData().toString('utf8');
+      assert.equal(
+        text.trim(), JSON.stringify(JSON.parse(text), null, 2),
+        '地図 ZIP の ' + name + ' も 2-space pretty のはず（アプリ ZIP と同一契約）: '
+          + JSON.stringify(text.slice(0, 120)),
+      );
+    }
+    console.log('ok: AC2 pois/*.geojson が実体として同梱される（2-space pretty）');
 
     // -----------------------------------------------------------------------
     // AC3: 通常・512px の両サムネイル。UID ではなく slug

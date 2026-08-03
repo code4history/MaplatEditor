@@ -45,7 +45,25 @@ await mkdir(scratchRoot, { recursive: true });
   // 旧実装（インライン FC 化）へ戻っていないこと
   assert.equal(/resolvePoisArray\(/.test(mapSrc), false,
     'AC1: 地図 ZIP 搬出が resolvePoisArray（インライン FC 化）へ戻っていないこと');
-  console.log('ok: AC1 単一実装を両者が呼ぶ（ソース）');
+
+  // ---- POI 実体の **書き出し** も単一実装であること ----
+  // 外部化（参照形の決定）を共通化しても、書き出し（整形・境界検査）が2箇所にあると
+  // 同じ dest の同じ実体が経路によって別物になる。実際に地図 ZIP だけ minify・
+  // 境界検査なしで書いていた（2026-08-03 人間指摘）
+  assert.match(resolverSrc, /export async function writePoiDocuments\(/,
+    'AC1: POI 実体の書き出しが poiReferenceResolver に1つだけ定義されていること');
+  assert.match(mapSrc, /writePoiDocuments\(/,
+    'AC1: 地図 ZIP 搬出が共有の書き出しを呼ぶこと');
+  assert.match(appSrc, /writePoiDocuments\(/,
+    'AC1: アプリ搬出が共有の書き出しを呼ぶこと');
+  // 呼び出し側が自前で直列化・境界検査へ戻っていないこと
+  for (const [label, src] of [['地図 ZIP', mapSrc], ['アプリ', appSrc]]) {
+    assert.equal(/JSON\.stringify\(doc\.json\)/.test(src), false,
+      'AC1: ' + label + ' 搬出が POI 実体を自前で直列化していないこと');
+    assert.equal(/escaped the output directory/.test(src), false,
+      'AC1: ' + label + ' 搬出が境界検査を自前で持っていないこと（共有側の責務）');
+  }
+  console.log('ok: AC1 単一実装を両者が呼ぶ（参照形の決定・実体の書き出しの両方）');
 }
 
 // ---------------------------------------------------------------------------
