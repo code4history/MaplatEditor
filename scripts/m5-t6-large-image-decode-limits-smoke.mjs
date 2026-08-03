@@ -98,6 +98,9 @@ try {
 
       const { showMapSelectDialog } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/MapUploadService.ts'))});
       const { estimateJpegDecodeBudget } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/jpegDecodeBudget.ts'))});
+      // M5-T8: キャップの上限は機械安全枠になった。期待値をここから導出する（定数を書かない）
+      const { resolveDecodeSafety } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/decodeSafety.ts'))});
+      const safety = resolveDecodeSafety();
       const nodeFs = await import('node:fs');
       const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
 
@@ -165,7 +168,9 @@ try {
 
         globalThis.__nextImagePath = srcFile;
         const t1 = Date.now();
-        const r = await showMapSelectDialog(null, outFolder, '地図画像');
+        // M5-T8: 110 MP は確認閾値（LONG_IMPORT_THRESHOLD_MP = 100）を超えるため、
+        // 確認済みとして直接経路を通す。本 smoke の関心は上限の伝達であって確認 UI ではない
+        const r = await showMapSelectDialog(null, outFolder, '地図画像', { confirmed: true });
         const tCut = Date.now() - t1;
 
         // err は Error オブジェクトのこともあるため、RED 実証で文言が読めるよう展開する
@@ -198,10 +203,12 @@ try {
         catch (e) { failures.push(label + ' — ' + (e.message ?? String(e))); console.log('NG: ' + label + ' — ' + (e.message ?? String(e))); }
       };
 
-      okB('AC5 既定値が 8192 / 800', () => {
-        const d = SettingsService.getJpegDecodeLimits();
-        assert.equal(d.maxMemoryUsageInMB, 8192);
-        assert.equal(d.maxResolutionInMP, 800);
+      // M5-T8 で既定は「自動」(null) になった。8192 / 800 という運用値は無くなり、
+      // この2項目は「利用者が明示したときだけ効くキャップ」に変わっている
+      okB('AC5 既定は自動（null / null）— M5-T8 で運用値からキャップへ変更', () => {
+        const d = SettingsService.getJpegDecodeCaps();
+        assert.equal(d.maxMemoryUsageInMB, null);
+        assert.equal(d.maxResolutionInMP, null);
       });
 
       // AC7: 不正値は既定へ落ちる。store は利用者が編集できる JSON なので UI を通らない値が入り得る。
@@ -209,45 +216,53 @@ try {
       // set だけだと読み出し側の正規化が効いているかを証明できない。
       const rawStore = SettingsService.store; // private だが、読み出し側の検証にはここを突く必要がある
       for (const bad of [0, -1, 'abc', null, Infinity]) {
-        okB('AC7 不正値 ' + JSON.stringify(bad) + ' が既定へ落ちる（set 経由・例外を投げない）', () => {
+        okB('AC7 不正値 ' + JSON.stringify(bad) + ' が自動へ落ちる（set 経由・例外を投げない）', () => {
           SettingsService.set('jpegDecodeMaxMemoryMB', bad);
           SettingsService.set('jpegDecodeMaxResolutionMP', bad);
-          const d = SettingsService.getJpegDecodeLimits();
-          assert.equal(d.maxMemoryUsageInMB, 8192);
-          assert.equal(d.maxResolutionInMP, 800);
+          const d = SettingsService.getJpegDecodeCaps();
+          assert.equal(d.maxMemoryUsageInMB, null);
+          assert.equal(d.maxResolutionInMP, null);
         });
-        okB('AC7 不正値 ' + JSON.stringify(bad) + ' が既定へ落ちる（store 直書き＝手編集の JSON 相当）', () => {
+        okB('AC7 不正値 ' + JSON.stringify(bad) + ' が自動へ落ちる（store 直書き＝手編集の JSON 相当）', () => {
           rawStore.set('jpegDecodeMaxMemoryMB', bad);
           rawStore.set('jpegDecodeMaxResolutionMP', bad);
-          const d = SettingsService.getJpegDecodeLimits();
-          assert.equal(d.maxMemoryUsageInMB, 8192);
-          assert.equal(d.maxResolutionInMP, 800);
+          const d = SettingsService.getJpegDecodeCaps();
+          assert.equal(d.maxMemoryUsageInMB, null);
+          assert.equal(d.maxResolutionInMP, null);
         });
       }
 
       okB('AC8 下限が効く（256→512 / 50→100）', () => {
         SettingsService.set('jpegDecodeMaxMemoryMB', 256);
         SettingsService.set('jpegDecodeMaxResolutionMP', 50);
-        const d = SettingsService.getJpegDecodeLimits();
+        const d = SettingsService.getJpegDecodeCaps();
         assert.equal(d.maxMemoryUsageInMB, 512, 'jpeg-js 既定 512 を下回らない');
         assert.equal(d.maxResolutionInMP, 100, 'jpeg-js 既定 100 を下回らない');
       });
 
-      okB('正当な値はそのまま通り、小数は切り捨てられる', () => {
+      // M5-T8: 上限が付いた（人間指示: 手入力させる場合も上限値を設ける）。
+      // 20480 / 1200 は機械安全枠を超えるため、そのままでは通らなくなった
+      okB('小数は切り捨てられ、機械安全枠を超える値はクランプされる（M5-T8）', () => {
         SettingsService.set('jpegDecodeMaxMemoryMB', 20480.9);
         SettingsService.set('jpegDecodeMaxResolutionMP', 1200.7);
-        const d = SettingsService.getJpegDecodeLimits();
-        assert.equal(d.maxMemoryUsageInMB, 20480);
-        assert.equal(d.maxResolutionInMP, 1200);
+        const d = SettingsService.getJpegDecodeCaps();
+        assert.equal(d.maxMemoryUsageInMB, Math.min(20480, safety.maxMemoryMB));
+        assert.equal(d.maxResolutionInMP, Math.min(1200, safety.maxResolutionMP));
+      });
+      okB('安全枠内の正当な値はそのまま通る', () => {
+        const within = Math.max(512, Math.min(4096, safety.maxMemoryMB));
+        SettingsService.set('jpegDecodeMaxMemoryMB', within + 0.9);
+        assert.equal(SettingsService.getJpegDecodeCaps().maxMemoryUsageInMB, within);
       });
 
       // ============ Phase C: 事前判定と構造化エラー（AC10-AC14 / AC18） ============
       // 実測トリガ級の巨大画像を使わずに検証する。ガードは「設定値」に対する判定なので、
       // 小さい画像 + 意図的に低い設定値で同じ経路を通せる（実行時間を無駄にしない）。
 
+      // M5-T8: 「既定へ戻す」は 8192 / 800 ではなく**自動（キャップなし）**である
       const resetLimits = () => {
-        SettingsService.set('jpegDecodeMaxMemoryMB', 8192);
-        SettingsService.set('jpegDecodeMaxResolutionMP', 800);
+        SettingsService.set('jpegDecodeMaxMemoryMB', null);
+        SettingsService.set('jpegDecodeMaxResolutionMP', null);
       };
 
       /** prediction の「全部入りか無しか」を検査する（AC11b の不変条件） */
@@ -288,7 +303,8 @@ try {
         await fs.writeFile(nodePath.join(outFolder, SENTINEL), 'sentinel');
         globalThis.__nextImagePath = srcFile;
         const t = Date.now();
-        const r = await showMapSelectDialog(null, outFolder, '地図画像');
+        // M5-T8: 110 MP のケースは確認閾値を超えるため確認済みとして通す（上記 runCase と同じ理由）
+        const r = await showMapSelectDialog(null, outFolder, '地図画像', { confirmed: true });
         return {
           r, outFolder, elapsed: Date.now() - t,
           sentinelSurvived: await exists(nodePath.join(outFolder, SENTINEL)),

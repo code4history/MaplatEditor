@@ -85,8 +85,11 @@ contextBridge.exposeInMainWorld('mapupload', {
   // → ipcRenderer.invoke で結果を Promise として受け取る
   // M12-T20 (§5.1): draftAssetUid を追加。main 側で staging dir
   // (<draftTileRoot>/<draftAssetUid>) を共通バリデータ経由で解決する
-  showMapSelectDialog: (mapImageLabel: string, draftAssetUid: string) =>
-    ipcRenderer.invoke('mapupload:showMapSelectDialog', mapImageLabel, draftAssetUid),
+  // M5-T8 (§5.6): confirmed を追加。取り込み前確認の OK 後に**同じチャネルへ再送**すると、
+  // main は保持済みの選択で続行する（ファイル選択ダイアログは再表示されない）。
+  // 新規チャネルは作らない（useRevisionedAssetSave の revision 衝突と同形）
+  showMapSelectDialog: (mapImageLabel: string, draftAssetUid: string, confirmed?: boolean) =>
+    ipcRenderer.invoke('mapupload:showMapSelectDialog', mapImageLabel, draftAssetUid, confirmed),
 })
 
 contextBridge.exposeInMainWorld('versions', {

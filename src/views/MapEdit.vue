@@ -3260,7 +3260,33 @@ const mapUpload = async () => {
         // 旧実装: window.mapupload.showMapSelectDialog(t('mapupload.map_image'))
         // M12-T20 (§5.1): 下書きの asset uid（3529行の asset-uid / 1988行の draft キーと同一値）を
         // 渡し、staging を <draftTileRoot>/<assetUid> に per-draft 化する
-        const arg = await (window as any).mapupload.showMapSelectDialog(t('mapupload.map_image'), mapUid.value || newMapUid);
+        const invokeUpload = (confirmed?: boolean) =>
+            (window as any).mapupload.showMapSelectDialog(
+                t('mapupload.map_image'),
+                mapUid.value || newMapUid,
+                confirmed,
+            );
+        let arg = await invokeUpload();
+
+        // M5-T8 (§5.6/§5.7): 取り込み前の確認。**同じ IPC へ confirmed を載せて再送**する
+        // （useRevisionedAssetSave の revision 衝突と同形）。main が選択を保持しているため
+        // ファイル選択ダイアログは再表示されない。この時点でデコードもタイル化も、
+        // staging dir のクリアすらまだ起きていないので、キャンセルの後始末は不要である。
+        if (arg.needsConfirmation === 'long_import') {
+            const confirmLong = await (window as any).dialog.showMessageBox({
+                type: 'info',
+                buttons: ['OK', 'Cancel'],
+                cancelId: 1,
+                message: t('mapedit.confirm_long_image_import', {
+                    megapixels: Math.round(arg.megapixels),
+                }),
+            });
+            if (confirmLong.response === 1) {
+                modalHide();
+                return;
+            }
+            arg = await invokeUpload(true);
+        }
 
         if (arg.err) {
             if (arg.err !== 'Canceled') {
@@ -3269,7 +3295,15 @@ const mapUpload = async () => {
                 // prediction は「全部入りか無しか」なので、あれば数値は揃っている。
                 // 無い場合（予測できなかった失敗）は従来どおり汎用文言へ落とす。
                 // 英文メッセージの文字列 parse は renderer では行わない（main 側で errorCode 化済み）。
-                if (arg.errorCode === 'jpeg_memory_limit' && arg.prediction) {
+                if (arg.errorCode === 'jpeg_machine_limit') {
+                    // M5-T8: この機械では構造的に扱えない。machine は「全部入りか無しか」で
+                    // あり、この errorCode のときは必ず揃っている（設計 §6.2）
+                    modalFinish('mapedit.error_image_machine_limit', {
+                        megapixels: Math.round(arg.machine.megapixels),
+                        required: arg.machine.requiredHeapMB,
+                        available: arg.machine.availableHeapMB,
+                    });
+                } else if (arg.errorCode === 'jpeg_memory_limit' && arg.prediction) {
                     modalFinish('mapedit.error_image_memory_limit', {
                         required: arg.prediction.requiredMemoryMB,
                         configured: arg.configuredMB,

@@ -128,7 +128,8 @@
     "theme": "Tema",
     "jpeg_decode_max_memory": "Batas memori dekode JPEG (MB)",
     "jpeg_decode_max_resolution": "Batas resolusi JPEG (MP)",
-    "jpeg_decode_desc": "Naikkan nilai ini bila gambar peta besar tidak dapat diimpor. Nilai ini tidak memesan memori sebenarnya."
+    "jpeg_decode_auto": "Otomatis",
+    "jpeg_decode_desc": "Biasanya Anda dapat membiarkannya kosong (otomatis); nilai yang diperlukan ditentukan per citra. Jika Anda memasukkan angka, angka itu diperlakukan sebagai batas atas (nilai di luar kemampuan aplikasi ini akan diturunkan otomatis)."
   },
   "maplist": {
     "title": "Daftar Peta",
@@ -368,7 +369,9 @@
     },
     "poi_format_unsupported": "Data POI menggunakan format yang tidak didukung editor (misalnya objek yang dikunci dengan nama lapisan). Data asli tetap dipertahankan saat disimpan dan dikeluarkan apa adanya ke pratinjau dan ekspor, tetapi pengeditan pada tab ini dinonaktifkan.",
     "error_image_memory_limit": "Mendekode gambar peta ini memerlukan sekitar {{required}} MB, tetapi pengaturan saat ini {{configured}} MB. Naikkan \"Batas memori dekode JPEG\" di halaman Pengaturan menjadi {{recommended}} MB atau lebih.",
-    "error_image_resolution_limit": "Gambar peta ini sekitar {{megapixels}} MP, tetapi pengaturan saat ini {{configured}} MP. Naikkan \"Batas resolusi JPEG\" di halaman Pengaturan menjadi {{recommended}} MP atau lebih."
+    "error_image_resolution_limit": "Gambar peta ini sekitar {{megapixels}} MP, tetapi pengaturan saat ini {{configured}} MP. Naikkan \"Batas resolusi JPEG\" di halaman Pengaturan menjadi {{recommended}} MP atau lebih.",
+    "error_image_machine_limit": "Citra peta ini sekitar {{megapixels}} MP dan memerlukan sekitar {{required}} MB memori kerja untuk didekode, tetapi aplikasi ini hanya dapat menggunakan sekitar {{available}} MB. Perkecil citra sebelum mengimpornya.",
+    "confirm_long_image_import": "Citra peta ini sangat besar, sekitar {{megapixels}} MP, sehingga impor akan memakan waktu lama (sekitar 5 menit pada 100 MP, lebih dari satu jam pada 400 MP). Setelah dimulai tidak dapat dibatalkan. Lanjutkan?"
   },
   "mapupload": {
     "map_image": "Gambar peta",

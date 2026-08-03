@@ -92,7 +92,8 @@
                   id="jpegDecodeMaxMemoryMB"
                   min="512"
                   step="1"
-                  v-model.number="state.jpegDecodeMaxMemoryMB"
+                  :placeholder="t('settings.jpeg_decode_auto')"
+                  v-model="state.jpegDecodeMaxMemoryMB"
                 />
               </div>
             </div>
@@ -108,7 +109,8 @@
                   id="jpegDecodeMaxResolutionMP"
                   min="100"
                   step="1"
-                  v-model.number="state.jpegDecodeMaxResolutionMP"
+                  :placeholder="t('settings.jpeg_decode_auto')"
+                  v-model="state.jpegDecodeMaxResolutionMP"
                 />
                 <div class="form-text">{{ t("settings.jpeg_decode_desc") }}</div>
               </div>
@@ -168,20 +170,37 @@ const { t, i18next } = useTranslation();
 const activeTab = ref("basic");
 
 // State for form values
-const state = reactive({
+// M5-T8: JPEG デコードのキャップは既定が「自動」。UI では**空文字**が自動を表す
+// （`v-model.number` は空欄で '' を返すため、number 型では自動を表現できない。
+//  ∴ 文字列で持ち、保存時に null へ写像する）
+const state = reactive<{
+  lang: string;
+  saveFolder: string;
+  jpegDecodeMaxMemoryMB: string;
+  jpegDecodeMaxResolutionMP: string;
+}>({
   lang: "ja",
   saveFolder: "",
-  jpegDecodeMaxMemoryMB: 8192,
-  jpegDecodeMaxResolutionMP: 800,
+  jpegDecodeMaxMemoryMB: "",
+  jpegDecodeMaxResolutionMP: "",
 });
 
 // Original values for dirty checking
-const original = reactive({
+const original = reactive<{
+  lang: string;
+  saveFolder: string;
+  jpegDecodeMaxMemoryMB: string;
+  jpegDecodeMaxResolutionMP: string;
+}>({
   lang: "ja",
   saveFolder: "",
-  jpegDecodeMaxMemoryMB: 8192,
-  jpegDecodeMaxResolutionMP: 800,
+  jpegDecodeMaxMemoryMB: "",
+  jpegDecodeMaxResolutionMP: "",
 });
+
+/** 保存値（number | null）を UI の文字列表現へ。null / 未設定 = 自動 = 空文字 */
+const capToField = (value: unknown): string =>
+  typeof value === "number" && Number.isFinite(value) ? String(value) : "";
 
 const isDirty = computed(() => {
   return (
@@ -207,13 +226,12 @@ onMounted(async () => {
       state.saveFolder = saveFolder;
       original.saveFolder = saveFolder;
     }
-    // M5-T6: 値の正規化は main 側（SettingsService）に閉じているので、ここでは受け取るだけ
+    // M5-T6/M5-T8: 値の正規化は main 側（SettingsService）に閉じているので、ここでは受け取るだけ。
+    // null（自動）は空欄として表示する
     for (const key of ["jpegDecodeMaxMemoryMB", "jpegDecodeMaxResolutionMP"] as const) {
       const value = await window.settings.get(key);
-      if (typeof value === "number") {
-        state[key] = value;
-        original[key] = value;
-      }
+      state[key] = capToField(value);
+      original[key] = state[key];
     }
   } catch (e) {
     console.error("Failed to load settings:", e);
@@ -240,19 +258,19 @@ const resetSettings = async () => {
 const saveSettings = async () => {
     await window.settings.set("lang", state.lang);
     await window.settings.set("saveFolder", state.saveFolder);
-    await window.settings.set("jpegDecodeMaxMemoryMB", state.jpegDecodeMaxMemoryMB);
-    await window.settings.set("jpegDecodeMaxResolutionMP", state.jpegDecodeMaxResolutionMP);
+    // M5-T8: 空欄は「自動」= null として送る（main 側の normalizeJpegDecodeCap が受ける）
+    await window.settings.set("jpegDecodeMaxMemoryMB", state.jpegDecodeMaxMemoryMB === "" ? null : state.jpegDecodeMaxMemoryMB);
+    await window.settings.set("jpegDecodeMaxResolutionMP", state.jpegDecodeMaxResolutionMP === "" ? null : state.jpegDecodeMaxResolutionMP);
 
     // Update original to match new saved state.
-    // M5-T6: 正規化後の値を読み直す（下限で丸められた場合に画面と保存値がずれないように）
+    // M5-T6/M5-T8: 正規化後の値を読み直す（下限で丸められた場合・**機械安全枠の上限で
+    // 切り下げられた場合**に画面と保存値がずれないように）
     original.lang = state.lang;
     original.saveFolder = state.saveFolder;
     for (const key of ["jpegDecodeMaxMemoryMB", "jpegDecodeMaxResolutionMP"] as const) {
       const saved = await window.settings.get(key);
-      if (typeof saved === "number") {
-        state[key] = saved;
-        original[key] = saved;
-      }
+      state[key] = capToField(saved);
+      original[key] = state[key];
     }
 
     if (i18next.language !== state.lang) {

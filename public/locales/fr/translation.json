@@ -128,7 +128,8 @@
     "theme": "Thème",
     "jpeg_decode_max_memory": "Limite de mémoire de décodage JPEG (Mo)",
     "jpeg_decode_max_resolution": "Limite de résolution JPEG (MP)",
-    "jpeg_decode_desc": "Augmentez ces valeurs si une grande image de carte ne peut pas être importée. Elles ne réservent pas de mémoire réelle."
+    "jpeg_decode_auto": "Automatique",
+    "jpeg_decode_desc": "Vous pouvez normalement les laisser vides (automatique) ; les valeurs nécessaires sont déterminées pour chaque image. Si vous saisissez un nombre, il est traité comme une limite supérieure (les valeurs dépassant les capacités de cette application sont automatiquement réduites)."
   },
   "maplist": {
     "title": "Liste des cartes",
@@ -368,7 +369,9 @@
     },
     "poi_format_unsupported": "Les données de POI sont dans un format non pris en charge par l'éditeur (par exemple un objet indexé par nom de couche). Les données d'origine sont conservées lors de l'enregistrement et sont exportées telles quelles vers l'aperçu et l'export, mais l'édition dans cet onglet est désactivée.",
     "error_image_memory_limit": "Le décodage de cette image de carte nécessite environ {{required}} Mo, mais le réglage actuel est de {{configured}} Mo. Augmentez « Limite de mémoire de décodage JPEG » dans la page Réglages à {{recommended}} Mo ou plus.",
-    "error_image_resolution_limit": "Cette image de carte fait environ {{megapixels}} MP, mais le réglage actuel est de {{configured}} MP. Augmentez « Limite de résolution JPEG » dans la page Réglages à {{recommended}} MP ou plus."
+    "error_image_resolution_limit": "Cette image de carte fait environ {{megapixels}} MP, mais le réglage actuel est de {{configured}} MP. Augmentez « Limite de résolution JPEG » dans la page Réglages à {{recommended}} MP ou plus.",
+    "error_image_machine_limit": "Cette image de carte fait environ {{megapixels}} MP et nécessite près de {{required}} Mo de mémoire de travail pour être décodée, mais cette application peut utiliser au maximum environ {{available}} Mo. Veuillez réduire l'image avant de l'importer.",
+    "confirm_long_image_import": "Cette image de carte est très grande (environ {{megapixels}} MP), l'import prendra donc longtemps (environ 5 minutes à 100 MP, plus d'une heure à 400 MP). Une fois lancé, il ne peut pas être annulé. Continuer ?"
   },
   "mapupload": {
     "map_image": "Image de la carte",
