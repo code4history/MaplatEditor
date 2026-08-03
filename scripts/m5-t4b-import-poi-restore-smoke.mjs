@@ -243,6 +243,64 @@ try {
       console.log('ok: AC7 余剰 entry は import しない');
     }
 
+    // -----------------------------------------------------------------------
+    // M5-T4B: html 内の imgs 参照の逆変換（AC8 が捕まえた欠陥の局所テスト）
+    //
+    // 搬出（poiReferenceResolver.resolveAssetRefsForExport）は
+    // features[].properties.html の maplat-asset:<UID> を imgs/<slug>.<ext> へ置換する。
+    // その逆変換が無いと **ZIP 相対参照が DB へ入り**、再搬出で前の ZIP のパスが漏れる。
+    //
+    // 同梱されている参照は asset として正本化し、**同梱されていない参照は原文のまま残す**
+    // （html は利用者の自由記述であり、我々が書いた参照ではないものを Error にしない）
+    // -----------------------------------------------------------------------
+    {
+      const pngBytes = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        'base64');
+      const htmlFc = {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [134.69, 34.84] },
+          properties: {
+            name: 'html付',
+            html: { ja: '<img src="imgs/bundled-pic.png"><img src="imgs/foreign-pic.png">' },
+          },
+        }],
+      };
+      const slug = 'html-round' + (++seq);
+      const zip = new AdmZip();
+      zip.addFile('maps/' + slug + '.json', Buffer.from(JSON.stringify({
+        mapID: slug, title: slug, attr: 'test', lang: 'ja', gcps: [], edges: [],
+        pois: [{ layer: 'pois/html.geojson' }],
+      })));
+      zip.addFile('pois/html.geojson', Buffer.from(JSON.stringify(htmlFc)));
+      zip.addFile('imgs/bundled-pic.png', pngBytes);   // 同梱あり → 正本化
+      // imgs/foreign-pic.png は **同梱しない** → 原文維持（Error にしない）
+      zip.addFile('tmbs/' + slug + '.jpg', Buffer.from('THUMB'));
+      zip.addFile('tiles/' + slug + '/0/0/0.jpg', Buffer.from('TILE'));
+      const zipPath = nodePath.join(workDir, slug + '.zip');
+      await fsWriteFile(zipPath, zip.toBuffer());
+
+      const result = await dataUploadService.extractZip(zipPath);
+      assert.ok(result.mapData,
+        'html 内に未同梱の imgs 参照があっても import は成功すること（実際: '
+          + JSON.stringify(result).slice(0, 300) + '）');
+
+      const db = await SqliteDataService.getDb();
+      const row = db.prepare('SELECT data_json FROM poi_sources WHERE uid = ?')
+        .get(result.mapData.pois[0].poiUid) as any;
+      const html = JSON.stringify(JSON.parse(row.data_json).features[0].properties.html);
+
+      assert.equal(html.includes('imgs/bundled-pic.png'), false,
+        '同梱された imgs 参照が DB に ZIP 相対参照のまま残らないこと（実際: ' + html + '）');
+      assert.match(html, /maplat-asset:[0-9a-f-]{36}/,
+        '同梱された imgs 参照が maplat-asset: へ正本化されること（実際: ' + html + '）');
+      assert.ok(html.includes('imgs/foreign-pic.png'),
+        '未同梱の imgs 参照は原文のまま残ること（実際: ' + html + '）');
+      console.log('ok: html 内 imgs 参照の逆変換（同梱=正本化 / 未同梱=原文維持）');
+    }
+
     console.log('m5-t4b import poi restore OK');
   `);
 

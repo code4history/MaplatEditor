@@ -245,6 +245,26 @@ export async function importManagedPoiDocuments(
     }
   };
 
+  // M5-T4B: html 本文の imgs 参照を asset の正本記法へ戻す。
+  //
+  // 搬出側 (poiReferenceResolver.resolveAssetRefsForExport) は features[].properties.html の
+  // `maplat-asset:<UID>` を `imgs/<slug>.<ext>` へ置換して同梱する。その逆変換が無いと
+  // **ZIP 相対参照が DB へそのまま入り**、再搬出で前の ZIP のパスが漏れ出す (AC8)。
+  //
+  // resolveMedia と分ける理由: icon の正本は裸の asset UID だが、html 本文の正本は
+  // `maplat-asset:<UID>` である。同じ resolver を使うと html に裸 UID が書かれ、
+  // viewer からも editor からも画像として解決できない文字列になる。
+  const resolveHtmlAssetRef = async (imgsPath: string): Promise<string | null> => {
+    // html は **利用者が書く自由記述**である。ZIP に無い imgs/... は我々が書いた参照ではない
+    // ∴ Error にせず原文のまま残す。pois/*.geojson や icon の欠損を Error にする契約
+    // （AC7）とはここが違う — 搬出側は html へ書いた imgs/... を必ず同梱するため、
+    // 「我々が書いた参照」は常に byName に居る
+    if (!byName.has(imgsPath)) return null;
+    const resolved = await resolveMedia(imgsPath);
+    // icon set 参照 (`setId:iconId`) や未解決の原文はそのまま残す — asset ではない
+    return resolved === imgsPath || resolved.includes(':') ? null : resolved;
+  };
+
   const documents = new Map<string, FeatureCollection>();
   try {
     for (const dest of dests) {
@@ -260,7 +280,8 @@ export async function importManagedPoiDocuments(
       } catch {
         throw new Error('POI package GeoJSON is not valid JSON');
       }
-      documents.set(dest, await rewritePoiMediaReferences(fc, resolveMedia) as FeatureCollection);
+      documents.set(dest, await rewritePoiMediaReferences(
+        fc, resolveMedia, resolveHtmlAssetRef) as FeatureCollection);
     }
     return { documents, createdAssetUids, cleanup, warnings };
   } catch (error) {

@@ -162,7 +162,8 @@
     "smoke:m5-t4b-import-poi-restore": "node scripts/m5-t4b-import-poi-restore-smoke.mjs",
     "smoke:m5-t4b-import-compensation": "node scripts/m5-t4b-import-compensation-smoke.mjs",
     "smoke:m5-t4b-export-unification-parity": "node scripts/m5-t4b-export-unification-parity-smoke.mjs",
-    "smoke:m5-t4b-poi-representation-matrix": "node scripts/m5-t4b-poi-representation-matrix-smoke.mjs"
+    "smoke:m5-t4b-poi-representation-matrix": "node scripts/m5-t4b-poi-representation-matrix-smoke.mjs",
+    "smoke:m5-t4b-roundtrip-end-to-end": "node scripts/m5-t4b-roundtrip-end-to-end-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",
