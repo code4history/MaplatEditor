@@ -8,14 +8,19 @@
 // 「ボタンが押せる状態か」「ダイアログを経て実ファイルが出るか」「進捗オーバーレイが閉じるか」を
 // 通らない。∴ ここは実 Electron・実 UI 経路でのみ確認できる範囲に絞る。
 //
-// 人間確認: MAPLAT_E2E_PAUSE=1 で最後の test がセットアップ済みの状態で一時停止する。
-//   MAPLAT_E2E_PAUSE=1 PWDEBUG=1 pnpm test:e2e:m5-t4b
+// 人間確認:
+//   MAPLAT_E2E_PAUSE=1 pnpm test:e2e:m5-t4b
+// を実行すると最後の test が確認用の状態（地図1件・搬出済み ZIP・別 slug の取込用 ZIP）を
+// 用意し、**実アプリを開くコマンドを出力して終了**する。操作はそのコマンドで行う。
+// PWDEBUG は不要（Playwright Inspector 配下では操作しない）。
 //
-// 【重要】PWDEBUG=1 の Playwright Inspector は **最初のアクションの前** で止まる。
-// そこはセットアップが1つも走っていない状態であり（地図も ZIP も無く、ネイティブ
-// ダイアログも差し替えたまま）、確認には使えない。Inspector の Resume を押して
-// 本 spec 末尾の page.pause() まで進めること。そこで初めて地図1件・ZIP 2つが揃い、
-// ダイアログが原本へ戻る。到達すると「=== M5-T4B 人間確認 ===」が出力される。
+// 【なぜ page.pause() を使わないか】Playwright は JS ダイアログを必ず横取りする。
+// リスナ未登録なら自動 dismiss、登録すれば accept/dismiss をこちらが決めることになり、
+// **window.confirm() の可否を人間に委ねることが構造的にできない**。
+// 2026-08-03 に人間が両方の壊れ方を踏んだ（無反応 / 押す前に実行されダイアログだけ残る）。
+// いずれも製品不具合と紛らわしいため、自由操作は Playwright の外へ出した。
+// MAPLAT_E2E_ROOT が saveFolder・設定・下書き・staging をすべて隔離するため
+// (electron/services/runtimeStoragePaths.ts)、同じ root を実アプリへ渡せば状態は引き継がれる。
 //
 // harness は m12-t15-thumbnail-512 / m11-t3-editor-shell の実績文法に従う。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
@@ -395,9 +400,9 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
     }
   });
 
-  test('AC11 人間確認: 搬出済み地図・取込済み複製・アプリを揃えた状態で一時停止する', async () => {
+  test('AC11 人間確認: 確認用の状態を用意し、実アプリを開くコマンドを提示する', async () => {
     test.skip(process.env.MAPLAT_E2E_PAUSE !== '1',
-      '人間確認用。MAPLAT_E2E_PAUSE=1 PWDEBUG=1 pnpm test:e2e:m5-t4b で実行する');
+      '人間確認用。MAPLAT_E2E_PAUSE=1 pnpm test:e2e:m5-t4b で実行する');
     test.setTimeout(0);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t4b-human-'));
     const { app, page } = await launch(e2eRoot);
@@ -422,39 +427,33 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       const copyZip = path.join(e2eRoot, 'map-copy.zip');
       await rewriteZipSlug(zipPath, copyZip, seeded.mapSlug, copySlug);
 
-      // 【重要】ここから先は人間の操作領域である ∴ ダイアログを**原本へ戻す**。
-      // 差し替えたままだと搬出が保存先を尋ねず、取込がファイル選択を出さない
+      // 【方針】ここから先の自由操作は **Playwright の外**で行う。
+      //
+      // Playwright は JS ダイアログを必ず横取りする（リスナ未登録なら自動 dismiss、
+      // 登録すれば accept/dismiss をこちらが決める）。∴ window.confirm() の可否を
+      // 人間に委ねることが構造的にできない。実際 2026-08-03 に
+      //   - リスナ無し → 下書き削除が無反応（常に Cancel 相当）
+      //   - accept へ倒す → 押す前に削除され、描かれたダイアログだけ残る
+      // の両方を人間が踏み、いずれも製品不具合と紛らわしかった。
+      //
+      // MAPLAT_E2E_ROOT は saveFolder / 設定 / 下書き / staging をすべて隔離する
+      // (electron/services/runtimeStoragePaths.ts)。∴ **同じ root を実アプリへ渡せば**、
+      // ここで用意した状態のまま、ネイティブのダイアログが正しく効く環境で確認できる。
+      // 本 spec は「準備して引き渡す」までを担い、操作は実アプリで行う。
       await restoreDialogs(app);
 
-      // 【JS の confirm() について】Playwright 配下では dialog リスナ未登録の
-      // window.confirm() が **自動 dismiss** され、常に false を返す（実測で確認）。
-      // 下書き削除は `if (!confirm(...)) return;` のため、押しても無反応に見える
-      // ＝ 製品の不具合と紛らわしい（2026-08-03 に人間が実際に踏んだ）。
-      //
-      // ネイティブの確認ダイアログを Playwright 配下で人間へ出す手段は無いため、
-      // ここでは accept 側へ倒し、**確認なしで実行される**ことを案内で明示する。
-      // 取り消しの意思表示が要る操作は pnpm run dev 側で確認する。
-      page.on('dialog', (dialog) => {
-        console.log(`  [自動 OK] ${dialog.type()}: ${dialog.message()}`);
-        void dialog.accept();
-      });
-
       console.log('');
-      console.log('=== M5-T4B 人間確認（ここまで来ていれば準備完了）===');
-      console.log('  ※ Inspector が冒頭で止まった状態では準備が1つも走っていません。');
-      console.log('    この見出しが出ていることが、確認を始めてよい合図です。');
-      console.log(`  搬出済み地図 ZIP : ${zipPath}`);
-      console.log(`  取込用 ZIP（別slug）: ${copyZip}  → slug: ${copySlug}`);
-      console.log(`  元地図           : ${seeded.mapSlug} (uid=${seeded.mapUid})`);
-      console.log(`  依存画像         : imgs/${seeded.iconSlug}.png / imgs/${seeded.photoSlug}.png`);
+      console.log('=== M5-T4B 人間確認の準備が完了しました ===');
       console.log('');
-      console.log('  ※ ネイティブダイアログは原本へ戻してあります。搬出ボタンを押せば');
-      console.log('    保存先を尋ねるダイアログが出ます（準備中だけ差し替えていました）。');
-      console.log('    取込は地図管理一覧の「インポート」ボタンから、上の「取込用 ZIP」を選んでください。');
+      console.log('  次のコマンドで **実アプリ** を開いてください（Playwright 配下ではありません）:');
       console.log('');
-      console.log('  ※【制約】JS の確認ダイアログ（下書き削除など）は Playwright 配下では');
-      console.log('    人間に表示できません。ここでは自動で OK を返します（上に [自動 OK] と出ます）');
-      console.log('    ∴ 取り消しの意思表示が要る操作の確認は pnpm run dev 側で行ってください。');
+      console.log(`    MAPLAT_E2E_ROOT=${e2eRoot} pnpm run dev`);
+      console.log('');
+      console.log('  用意したもの:');
+      console.log(`    元地図           : ${seeded.mapSlug} (uid=${seeded.mapUid})`);
+      console.log(`    搬出済み地図 ZIP : ${zipPath}`);
+      console.log(`    取込用 ZIP（別slug）: ${copyZip}  → slug: ${copySlug}`);
+      console.log(`    依存画像         : imgs/${seeded.iconSlug}.png / imgs/${seeded.photoSlug}.png`);
       console.log('');
       console.log('  確認していただきたいこと:');
       console.log('   1. 搬出ボタンで保存先ダイアログが出て、指定した場所に ZIP ができること');
@@ -463,11 +462,11 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       console.log('   4. プレビューで POI（アイコン画像・吹き出しの埋め込み画像）が出ること');
       console.log('   5. 取り込んだ地図を再搬出しても同じ資源構成の ZIP になること');
       console.log('   6. アプリ搬出 → viewer 読込で POI が表示されること');
+      console.log('   7. 取込しただけでは下書きが増えないこと（今回の修正点）');
       console.log('');
-
-      await openHash(page, '#/mapedit');
-      await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30000 });
-      await page.pause();
+      console.log('  ※ この spec の Electron はこの後終了します。');
+      console.log('    実アプリと同時に動かすと同じ saveFolder を2プロセスが触るため、先に閉じます。');
+      console.log('');
     } finally {
       await quitElectronApplication(app);
     }
