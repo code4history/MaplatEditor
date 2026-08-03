@@ -159,7 +159,8 @@
     "smoke:m5-t4-managed-poi-source": "node scripts/m5-t4-managed-poi-source-smoke.mjs",
     "smoke:m5-t4b-map-export-poi-parity": "node scripts/m5-t4b-map-export-poi-parity-smoke.mjs",
     "smoke:m5-t4b-map-zip-contents": "node scripts/m5-t4b-map-zip-contents-smoke.mjs",
-    "smoke:m5-t4b-import-poi-restore": "node scripts/m5-t4b-import-poi-restore-smoke.mjs"
+    "smoke:m5-t4b-import-poi-restore": "node scripts/m5-t4b-import-poi-restore-smoke.mjs",
+    "smoke:m5-t4b-import-compensation": "node scripts/m5-t4b-import-compensation-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",
