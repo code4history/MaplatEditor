@@ -169,7 +169,8 @@
     "smoke:m5-t4b-roundtrip-end-to-end": "node scripts/m5-t4b-roundtrip-end-to-end-smoke.mjs",
     "test:e2e:m5-t4b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t4b-map-package-roundtrip.spec.ts",
     "test:e2e:m5-t4b-import-draft": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t4b-import-draft-cleanup.spec.ts",
-    "smoke:m5-t5-slug-rule-hyphen": "node scripts/m5-t5-slug-rule-hyphen-smoke.mjs"
+    "smoke:m5-t5-slug-rule-hyphen": "node scripts/m5-t5-slug-rule-hyphen-smoke.mjs",
+    "smoke:m5-t5-import-slug-resolver": "node scripts/m5-t5-import-slug-resolver-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",
