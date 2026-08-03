@@ -15,6 +15,7 @@ import SettingsService from '../services/SettingsService';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import MapPurposeService from '../services/MapPurposeService';
 import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
+import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
@@ -141,6 +142,41 @@ export const registerMapEditHandlers = () => {
             savedTilesExist = savedTileDir ? await fs.pathExists(savedTileDir) : false;
         }
         return { alive, savedTilesExist };
+    });
+
+    /**
+     * M5-T7: ランタイム専用タイル URL（url_）の導出。
+     *
+     * なぜ IPC が要るか（設計 §4）: url が空のとき url_ はファイルシステム上のタイル実体から
+     * 組み立てる必要がある。renderer に持ち込むと m5-t3 が1本化した deriveRuntimeTileUrl が
+     * 3箇所目として復活するため、導出は main に閉じたままここへ問い合わせる。
+     *
+     * 探索順は **draft → 保存済み**（設計 §5.2）。draft staging のキーは保存済み uid と同一
+     * （mapUpload が mapUid.value || newMapUid を渡す）なので、draft が無ければそのまま
+     * 保存済みへ落ちる＝通常ケースは変わらない。draft がある＝再アップロード保留中であり、
+     * そのとき mapData.width/height は新画像の値なので、旧保存タイルを返すと
+     * 新寸法×旧タイルの源ができてしまう。
+     *
+     * 導出そのものは deriveRuntimeTileUrl（m5-t3 の正本）に委ね、ここは thumbFolder の
+     * 決定だけを行う。パス組み立ては resolveDraftTileDir を通す（'..' 等での親領域参照を
+     * 構造的に排除する。M12-T20 §6.1 と同じ防御）。
+     */
+    ipcMain.handle('mapedit:deriveRuntimeTileUrl', async (_event, url?: string, mapRef?: string) => {
+        // url が非空ならタイル実体を見る必要がない（deriveRuntimeTileUrl が url をそのまま返す）
+        if (typeof url === 'string' && url) return deriveRuntimeTileUrl({ url }, '');
+
+        const candidates: string[] = [];
+        const draftDir = resolveDraftTileDir(draftTileRoot, mapRef);
+        if (draftDir) candidates.push(path.join(draftDir, '0', '0'));
+        const savedRoot = path.join(SettingsService.get('saveFolder') as string, 'tiles');
+        const savedDir = resolveDraftTileDir(savedRoot, mapRef);
+        if (savedDir) candidates.push(path.join(savedDir, '0', '0'));
+
+        for (const thumbFolder of candidates) {
+            const derived = await deriveRuntimeTileUrl(null, thumbFolder);
+            if (derived) return derived;
+        }
+        return undefined;
     });
 
     // 旧実装: mapedit_getWmtsFolder 相当
