@@ -1,14 +1,15 @@
-// m5-t4: 安全検証と容量上限の分離（設計 v1.6 §6.2.7）と、列挙 primitive の切り出し（§6.2.4）。
+// m5-t4: 安全検証と容量上限の分離（設計 v2.1 §5.1）と、列挙 primitive の切り出し。
 //
 // 固定する受け入れ条件:
-//   AC13     1件制約の所在 — findPoiDocumentEntry は「ちょうど1件」を維持し、
+//   AC4      1件制約の所在 — findPoiDocumentEntry は「ちょうど1件」を維持し、
 //            地図 ZIP は listPoiDocumentEntries を使う
-//   AC20     容量上限の適用範囲 — (a)(b) タイルは無制限 / (c) POI payload は同じ上限で拒否 /
-//            (d) POI 単体パッケージでは全 entry に効く（payload 外 entry を含む fixture 必須）
-//   AC21(b)  POI 経路のエラーメッセージが1文字も変わらない（kindLabel 既定値の維持）
+//   AC1      容量上限の適用範囲（契約レベル）— (a)(b) タイルは無制限 / (c) POI payload は
+//            同じ上限で拒否 / (d) POI 単体パッケージでは全 entry に効く（payload 外 entry を含む
+//            fixture 必須）。経路レベルは AC2（managed-poi-documents smoke）が担う
+//   AC3(b)   POI 経路のエラーメッセージが1文字も変わらない（kindLabel 既定値の維持）
 //
 // 本 smoke は純粋関数層（src/utils/poiPackage.ts）だけを対象とする。
-// 実行時点（extractAllTo の前）の固定は AC21(a) を担う別 smoke の責務である（§6.2.7b）。
+// 実行時点（extractAllTo の前）の固定は AC3(a) を担う別 smoke の責務である。
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
@@ -92,7 +93,7 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
 }
 
 // ---------------------------------------------------------------------------
-// AC20(a)(b): タイルが 512 entry / 100 MiB を超えても地図 ZIP は通る
+// AC1(a)(b): タイルが 512 entry / 100 MiB を超えても地図 ZIP は通る
 // ---------------------------------------------------------------------------
 {
   const entries = mapArchiveEntries();
@@ -109,17 +110,17 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
   // (a)(b) 安全検証は通り、容量上限は掛からない
   assert.doesNotThrow(
     () => assertSafeArchiveEntries(entries, 'map package'),
-    'AC20(a)(b): 512 entry 超・100 MiB 超のタイルを持つ地図 ZIP が安全検証を通ること',
+    'AC1(a)(b): 512 entry 超・100 MiB 超のタイルを持つ地図 ZIP が安全検証を通ること',
   );
   assert.doesNotThrow(
     () => assertPoiPayloadLimits(payloadOf(entries)),
-    'AC20(a)(b): タイルは POI payload ではないため容量上限の対象外であること',
+    'AC1(a)(b): タイルは POI payload ではないため容量上限の対象外であること',
   );
   assert.equal(payloadOf(entries).length, 0, 'fixture 前提: この地図 ZIP に POI payload は無い');
 }
 
 // ---------------------------------------------------------------------------
-// AC20(c): POI payload は POI 単体パッケージと同じ上限で拒否される
+// AC1(c): POI payload は POI 単体パッケージと同じ上限で拒否される
 //          （地図 ZIP 経路にこの検査は従来存在しないため「両経路の同値性」が固定対象）
 // ---------------------------------------------------------------------------
 {
@@ -133,7 +134,7 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
   assert.throws(
     () => assertPoiPayloadLimits(payloadOf(payloadHeavy)),
     /POI package is too large/,
-    'AC20(c): pois/+imgs/ の合計が 100 MiB を超える地図 ZIP は拒否されること',
+    'AC1(c): pois/+imgs/ の合計が 100 MiB を超える地図 ZIP は拒否されること',
   );
 
   // imgs/ の1件が 20 MiB 超
@@ -144,7 +145,7 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
   assert.throws(
     () => assertPoiPayloadLimits(payloadOf(oversizedImage)),
     /Packaged image is too large: imgs\/huge\.png/,
-    'AC20(c): imgs/ の1件が 20 MiB を超える地図 ZIP は拒否されること',
+    'AC1(c): imgs/ の1件が 20 MiB を超える地図 ZIP は拒否されること',
   );
 
   // 同じ payload を POI 単体パッケージ経路へ通しても同じ上限で落ちる（両経路の同値性）
@@ -154,12 +155,12 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
       { name: 'imgs/huge.png', size: POI_PACKAGE_MAX_IMAGE_BYTES + 1 },
     ]),
     /Packaged image is too large: imgs\/huge\.png/,
-    'AC20(c): POI 単体パッケージ経路も同じ上限・同じメッセージであること',
+    'AC1(c): POI 単体パッケージ経路も同じ上限・同じメッセージであること',
   );
 }
 
 // ---------------------------------------------------------------------------
-// AC20(d): POI 単体パッケージでは上限が「全 entry」に効く。
+// AC1(d): POI 単体パッケージでは上限が「全 entry」に効く。
 //          fixture は payload 外 entry による超過を必ず含める（§6.2.6 の訂正を固定する検証点）。
 //          委譲だけの再実装ではこの2件が素通りする。
 // ---------------------------------------------------------------------------
@@ -172,12 +173,12 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
   assert.throws(
     () => assertSafePoiPackageEntries(bigReadme),
     /POI package is too large/,
-    'AC20(d): payload 外 entry（巨大 README）による 100 MiB 超が POI 単体パッケージで拒否されること',
+    'AC1(d): payload 外 entry（巨大 README）による 100 MiB 超が POI 単体パッケージで拒否されること',
   );
   // 同じ入力は payload 限定の検査では通る = 委譲のみでは検知できないことの証明
   assert.doesNotThrow(
     () => assertPoiPayloadLimits(payloadOf(bigReadme)),
-    'AC20(d): payload へ絞ると README が勘定から外れる（∴ 委譲のみの再実装では素通りする）',
+    'AC1(d): payload へ絞ると README が勘定から外れる（∴ 委譲のみの再実装では素通りする）',
   );
 
   // (d-2) payload 外の名前で 512 entry 超
@@ -189,16 +190,16 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
   assert.throws(
     () => assertSafePoiPackageEntries(manyDocs),
     /POI package contains too many entries/,
-    'AC20(d): payload 外 entry による 512 entry 超が POI 単体パッケージで拒否されること',
+    'AC1(d): payload 外 entry による 512 entry 超が POI 単体パッケージで拒否されること',
   );
   assert.doesNotThrow(
     () => assertPoiPayloadLimits(payloadOf(manyDocs)),
-    'AC20(d): payload へ絞ると docs/ が勘定から外れる（∴ 委譲のみの再実装では素通りする）',
+    'AC1(d): payload へ絞ると docs/ が勘定から外れる（∴ 委譲のみの再実装では素通りする）',
   );
 }
 
 // ---------------------------------------------------------------------------
-// AC21(b): 安全検証は全 entry へ。メッセージは kindLabel 既定値で1文字も変わらない
+// AC3(b): 安全検証は全 entry へ。メッセージは kindLabel 既定値で1文字も変わらない
 // ---------------------------------------------------------------------------
 {
   // タイル位置に仕込んだ危険 entry を検出する（参照されない entry でも）
@@ -212,13 +213,13 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
     assert.throws(
       () => assertSafeArchiveEntries([{ name, size: 1 }], 'map package'),
       new RegExp(`Unsafe map package entry: ${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
-      `AC21: 危険な entry 名 ${name} が拒否されること`,
+      `AC3: 危険な entry 名 ${name} が拒否されること`,
     );
   }
   assert.throws(
     () => assertSafeArchiveEntries([{ name: 'tiles/link.jpg', size: 1, isSymlink: true }], 'map package'),
     /Unsafe map package entry: tiles\/link\.jpg/,
-    'AC21: symlink entry が拒否されること',
+    'AC3: symlink entry が拒否されること',
   );
   assert.throws(
     () => assertSafeArchiveEntries([
@@ -226,7 +227,7 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
       { name: 'tiles/0.jpg', size: 1 },
     ], 'map package'),
     /Duplicate map package entry: tiles\/0\.jpg/,
-    'AC21: 重複名が拒否されること',
+    'AC3: 重複名が拒否されること',
   );
 
   // kindLabel 既定値 = 'POI package'。POI 経路のメッセージは1文字も変わらない
@@ -237,12 +238,12 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
   assert.equal(
     messageOf(() => assertSafeArchiveEntries([{ name: '../escape.geojson', size: 1 }])),
     'Unsafe POI package entry: ../escape.geojson',
-    'AC21(b): kindLabel 省略時は既存の "POI package" 文言であること',
+    'AC3(b): kindLabel 省略時は既存の "POI package" 文言であること',
   );
   assert.equal(
     messageOf(() => assertSafePoiPackageEntries([{ name: '../escape.geojson', size: 1 }])),
     'Unsafe POI package entry: ../escape.geojson',
-    'AC21(b): 合成関数のメッセージが既存と1文字も変わらないこと',
+    'AC3(b): 合成関数のメッセージが既存と1文字も変わらないこと',
   );
   assert.equal(
     messageOf(() => assertSafePoiPackageEntries([
@@ -250,12 +251,12 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
       { name: 'pois/a.geojson', size: 1 },
     ])),
     'Duplicate POI package entry: pois/a.geojson',
-    'AC21(b): 重複名メッセージが既存と1文字も変わらないこと',
+    'AC3(b): 重複名メッセージが既存と1文字も変わらないこと',
   );
   assert.equal(
     messageOf(() => assertSafePoiPackageEntries([{ name: 'pois/a.geojson', size: -1 }])),
     'Invalid POI package entry size: pois/a.geojson',
-    'AC21(b): サイズ不正メッセージが既存と1文字も変わらないこと',
+    'AC3(b): サイズ不正メッセージが既存と1文字も変わらないこと',
   );
 }
 
@@ -287,29 +288,29 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
 }
 
 // ---------------------------------------------------------------------------
-// AC13: 1件制約の所在 — 列挙 primitive を切り出し、個数の要求は呼び出し側に残す
+// AC4: 1件制約の所在 — 列挙 primitive を切り出し、個数の要求は呼び出し側に残す
 // ---------------------------------------------------------------------------
 {
   const mapNames = ['maps/himeji.json', 'pois/a.geojson', 'pois/b.geojson', 'tiles/himeji/0/0/0.jpg'];
   assert.deepEqual(
     listPoiDocumentEntries(mapNames),
     ['pois/a.geojson', 'pois/b.geojson'],
-    'AC13: listPoiDocumentEntries は複数件をそのまま返すこと（地図 ZIP の要求）',
+    'AC4: listPoiDocumentEntries は複数件をそのまま返すこと（地図 ZIP の要求）',
   );
-  assert.deepEqual(listPoiDocumentEntries(['README']), [], 'AC13: 0件は空配列であること');
+  assert.deepEqual(listPoiDocumentEntries(['README']), [], 'AC4: 0件は空配列であること');
   // ネストは対象外（現行の正規表現 ^pois/[^/]+\.geojson$ を維持する）
   assert.deepEqual(
     listPoiDocumentEntries(['pois/sub/a.geojson']), [],
-    'AC13: pois/ 直下以外は POI 文書として列挙しないこと（既存挙動の維持）',
+    'AC4: pois/ 直下以外は POI 文書として列挙しないこと（既存挙動の維持）',
   );
 
   // findPoiDocumentEntry は「ちょうど1件」を維持する（POI 単体パッケージの入力検証を緩めない）
   assert.equal(findPoiDocumentEntry(['README', 'pois/himeji.geojson']), 'pois/himeji.geojson');
-  assert.throws(() => findPoiDocumentEntry([]), /found 0/, 'AC13: 0件で throw すること');
+  assert.throws(() => findPoiDocumentEntry([]), /found 0/, 'AC4: 0件で throw すること');
   assert.throws(
     () => findPoiDocumentEntry(['pois/a.geojson', 'pois/b.geojson']),
     /found 2/,
-    'AC13: 2件で throw すること（地図 ZIP の都合で緩めない）',
+    'AC4: 2件で throw すること（地図 ZIP の都合で緩めない）',
   );
 }
 

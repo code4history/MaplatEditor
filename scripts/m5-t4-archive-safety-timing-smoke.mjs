@@ -1,10 +1,10 @@
-// m5-t4: 地図 ZIP の安全検証の**実行時点**（タスク設計 v1.6 §6.2.7b）。
+// m5-t4: 地図 ZIP の安全検証の**実行時点**（タスク設計 v2.1 §5.1・AC3）。
 //
 // 固定する受け入れ条件:
-//   AC21(a)    tiles/ 位置の危険 entry（.. / 先頭スラッシュ / symlink / 重複名）が拒否される
-//   AC21(a-1)  **展開・ファイル書き込みの前に**拒否される（一時展開先に危険 entry が出現しない）
-//   AC21(a-2)  **pois/ を1件も含まない地図 ZIP でも**拒否される（dests が空でも検証が走る）
-//   AC21(a-3)  完全ロールバックとして residue を持たない { err } が返る
+//   AC3(a)     tiles/ 位置の危険 entry（.. / 先頭スラッシュ / symlink / 重複名）が拒否される
+//   AC3(a-1)   **展開・ファイル書き込みの前に**拒否される（一時展開先に危険 entry が出現しない）
+//   AC3(a-2)   **pois/ を1件も含まない地図 ZIP でも**拒否される（dests が空でも検証が走る）
+//   AC3(a-3)   完全ロールバックとして residue を持たない { err } が返る
 //
 // 【なぜ「範囲」だけでなく「時点」を固定するのか】
 // DataUploadService.extractZip は `new AdmZip(zipFile)` の直後に
@@ -85,7 +85,7 @@ function rawZip(entries) {
   return Buffer.concat([Buffer.concat(locals), cd, eocd]);
 }
 
-// 正常な地図 ZIP の骨格。**pois/ を1件も含まない**（AC21(a-2)）
+// 正常な地図 ZIP の骨格。**pois/ を1件も含まない**（AC3(a-2)）
 const MAP_SKELETON = [
   { name: 'maps/himeji.json', data: JSON.stringify({ title: 'himeji' }) },
   { name: 'tmbs/himeji.jpg', data: 'thumb' },
@@ -189,7 +189,7 @@ try {
     await fsMkdir(fixtureDir, { recursive: true });
     const zipTmpFolder = nodePath.join(tmpDir, 'zip');
 
-    // 一時展開先に何が出現したかを数える（AC21(a-1) の観察手段）
+    // 一時展開先に何が出現したかを数える（AC3(a-1) の観察手段）
     const extractedNames = async (): Promise<string[]> => {
       if (!existsSync(zipTmpFolder)) return [];
       const out: string[] = [];
@@ -213,26 +213,26 @@ try {
       const infos = zipEntryInfos(new AdmZip(zipPath));
       assert.equal(
         infos.some((i: any) => String(i.name).startsWith('pois/')), false,
-        c.label + ': AC21(a-2) fixture は pois/ を1件も含まないこと',
+        c.label + ': AC3(a-2) fixture は pois/ を1件も含まないこと',
       );
 
       const result = await dataUploadService.extractZip(zipPath);
 
       // (a) 拒否されること
       assert.ok(result && typeof result.err === 'string',
-        c.label + ': AC21(a) { err } で拒否されること（実際: ' + JSON.stringify(result) + '）');
+        c.label + ': AC3(a) { err } で拒否されること（実際: ' + JSON.stringify(result) + '）');
       assert.ok(result.err.includes(c.expect),
-        c.label + ': AC21(a) 安全検証のメッセージであること（実際: ' + result.err + '）');
+        c.label + ': AC3(a) 安全検証のメッセージであること（実際: ' + result.err + '）');
 
       // (a-3) 完全ロールバック（展開前の失敗なので残留が原理的に存在しない）
       assert.equal('residue' in result, false,
-        c.label + ': AC21(a-3) 展開前の失敗は残留を持たないため residue を付けないこと');
+        c.label + ': AC3(a-3) 展開前の失敗は残留を持たないため residue を付けないこと');
 
       // (a-1) 展開・ファイル書き込みの前に拒否されること
       const written = await extractedNames();
       assert.deepEqual(written, [],
-        c.label + ': AC21(a-1) 一時展開先に entry が1件も出現しないこと（実際に出た: ' + JSON.stringify(written) + '）');
-      console.log('ok: AC21(a) ' + c.label);
+        c.label + ': AC3(a-1) 一時展開先に entry が1件も出現しないこと（実際に出た: ' + JSON.stringify(written) + '）');
+      console.log('ok: AC3(a) ' + c.label);
     }
 
     // -----------------------------------------------------------------------

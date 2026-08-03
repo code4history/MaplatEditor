@@ -1,8 +1,8 @@
-// m5-t4: 補償の申告義務（マイルストーン設計 I-4c、タスク設計 v1.6 §6.3・§6.4）。
+// m5-t4: 補償の申告義務（マイルストーン設計 I-4c、タスク設計 v2.1 §5.2）。
 //
 // 固定する受け入れ条件:
-//   AC7b  補償の二次失敗を注入する。delete() が bytes:'retained' と retainedPath を返し、
-//         cleanup() が握り潰さず残留物一覧を返し、DB 削除側を失敗させた場合も申告される
+//   AC5   delete() の帰趨申告 — trashed / absent / retained + retainedPath + warning
+//   AC6   cleanup() の残留物一覧 — 空配列＝完全補償。DB 削除側の失敗も申告される
 //
 // 【なぜこの smoke が要るか】
 // ImageAssetService.delete() は DB 行を消した後、実体を _trash へ退避する。退避に失敗しても
@@ -11,7 +11,7 @@
 // 「実体が live path に残った」ことを呼び出し側へ伝えられない**ため、補償を呼んだ側は
 // 成功と区別できなかった。I-4c はこれを「補償は成功したことにできない」として禁じる。
 //
-// 【注入手段】assets/_trash を同名の通常ファイルで塞ぐ（設計 §7 AC7b の注入手段）。
+// 【注入手段】assets/_trash を同名の通常ファイルで塞ぐ（設計 v2.1 AC5 の注入手段）。
 // fs.ensureDir(trashDir) が ENOTDIR/EEXIST で throw し、現行の catch 経路をそのまま踏むため、
 // 製品コードにテスト用フックを足さずに再現できる。fs.move のモンキーパッチは実経路を
 // 回避したテストになりやすいため採らない。
@@ -95,32 +95,32 @@ try {
     const assetsDir = nodePath.join(dataDir, 'assets');
 
     // -----------------------------------------------------------------------
-    // AC7b-1 正常系: 退避に成功したら bytes:'trashed'。retainedPath は付かない
+    // AC5/6-1 正常系: 退避に成功したら bytes:'trashed'。retainedPath は付かない
     // -----------------------------------------------------------------------
     {
       const uid = await addAsset('trashed-ok');
       const result = await imageAssetService.delete(uid);
       assert.equal(result.ok, true, '正常系の ok:true は維持されること（既存 m9-t4 の回帰）');
-      assert.equal(result.bytes, 'trashed', 'AC7b: 退避に成功したら bytes は trashed であること');
-      assert.equal(result.retainedPath, undefined, 'AC7b: 残留していないので retainedPath は付かないこと');
-      assert.equal(result.warning, undefined, 'AC7b: 警告も付かないこと');
+      assert.equal(result.bytes, 'trashed', 'AC5/6: 退避に成功したら bytes は trashed であること');
+      assert.equal(result.retainedPath, undefined, 'AC5/6: 残留していないので retainedPath は付かないこと');
+      assert.equal(result.warning, undefined, 'AC5/6: 警告も付かないこと');
       assert.equal(existsSync(nodePath.join(assetsDir, uid + '.png')), false, 'live path から消えていること');
       assert.equal(existsSync(nodePath.join(assetsDir, '_trash', uid + '.png')), true, '_trash に退避されていること');
-      console.log('ok: AC7b-1 trashed');
+      console.log('ok: AC5/6-1 trashed');
     }
 
     // -----------------------------------------------------------------------
-    // AC7b-2 対象不在: no-op も ok:true。bytes は 'absent'
+    // AC5/6-2 対象不在: no-op も ok:true。bytes は 'absent'
     // -----------------------------------------------------------------------
     {
       const result = await imageAssetService.delete('00000000-0000-4000-8000-000000000000');
       assert.equal(result.ok, true, '対象不在の no-op は成功扱い（冪等）であること');
-      assert.equal(result.bytes, 'absent', 'AC7b: 実体が無いので bytes は absent であること');
-      console.log('ok: AC7b-2 absent');
+      assert.equal(result.bytes, 'absent', 'AC5/6: 実体が無いので bytes は absent であること');
+      console.log('ok: AC5/6-2 absent');
     }
 
     // -----------------------------------------------------------------------
-    // AC7b-3 【本題】退避失敗の注入 — _trash を通常ファイルで塞ぐ。
+    // AC5/6-3 【本題】退避失敗の注入 — _trash を通常ファイルで塞ぐ。
     //   実体は live path に残る（リポジトリ方針どおり DB 削除は成功）。
     //   その事実を戻り値で申告できることを固定する（I-4c）。
     // -----------------------------------------------------------------------
@@ -140,12 +140,12 @@ try {
       const result = await imageAssetService.delete(uid);
 
       assert.equal(result.ok, true, 'DB 削除は成功しているので ok:true は維持されること（方針は覆さない）');
-      assert.equal(result.bytes, 'retained', 'AC7b: 実体が live path に残ったことを bytes:retained で申告すること');
-      assert.equal(result.retainedPath, livePath, 'AC7b: 残留した live path の絶対パスを申告すること');
-      assert.ok(result.warning, 'AC7b: 警告が付くこと');
-      assert.equal(result.warning.stage, 'trash', 'AC7b: 警告の stage は trash であること');
+      assert.equal(result.bytes, 'retained', 'AC5/6: 実体が live path に残ったことを bytes:retained で申告すること');
+      assert.equal(result.retainedPath, livePath, 'AC5/6: 残留した live path の絶対パスを申告すること');
+      assert.ok(result.warning, 'AC5/6: 警告が付くこと');
+      assert.equal(result.warning.stage, 'trash', 'AC5/6: 警告の stage は trash であること');
       assert.equal(typeof result.warning.message, 'string');
-      assert.ok(result.warning.message.length > 0, 'AC7b: 警告メッセージが空でないこと');
+      assert.ok(result.warning.message.length > 0, 'AC5/6: 警告メッセージが空でないこと');
 
       assert.equal(existsSync(livePath), true, '実体は live path に残っていること（申告内容と一致）');
       const row = await imageAssetService.get(uid);
@@ -154,11 +154,11 @@ try {
       // 塞ぎを解除して後続へ影響させない
       const { rm: fsRm2 } = await import('node:fs/promises');
       await fsRm2(trashPath, { force: true });
-      console.log('ok: AC7b-3 retained (declared, not silently swallowed)');
+      console.log('ok: AC5/6-3 retained (declared, not silently swallowed)');
     }
 
     // -----------------------------------------------------------------------
-    // AC7b-4 冪等性: 一度 retained になった uid をもう一度 delete しても
+    // AC5/6-4 冪等性: 一度 retained になった uid をもう一度 delete しても
     //   DB 行が無いので absent を返す（残留の申告は1回目のみ）
     // -----------------------------------------------------------------------
     {
@@ -173,11 +173,11 @@ try {
       const second = await imageAssetService.delete(uid);
       assert.equal(second.ok, true);
       assert.equal(second.bytes, 'absent', 'DB 行が無い2回目は absent であること');
-      console.log('ok: AC7b-4 idempotent');
+      console.log('ok: AC5/6-4 idempotent');
     }
 
     // -----------------------------------------------------------------------
-    // AC7b-5 【本題2】cleanup() が残留物一覧を返す。
+    // AC5/6-5 【本題2】cleanup() が残留物一覧を返す。
     //   現行は imageAssetService.delete(uid).catch(() => undefined) で
     //   **退避失敗も DB 削除の throw も握り潰していた**。I-4c はこれを禁じる。
     // -----------------------------------------------------------------------
@@ -215,20 +215,20 @@ try {
 
       const residue = await imported.cleanup();
 
-      assert.ok(Array.isArray(residue), 'AC7b: cleanup() は残留物一覧（配列）を返すこと');
-      assert.equal(residue.length, 1, 'AC7b: 到達できなかった補償が1件申告されること');
-      assert.equal(residue[0].kind, 'asset', 'AC7b: kind で対象を区別すること');
+      assert.ok(Array.isArray(residue), 'AC5/6: cleanup() は残留物一覧（配列）を返すこと');
+      assert.equal(residue.length, 1, 'AC5/6: 到達できなかった補償が1件申告されること');
+      assert.equal(residue[0].kind, 'asset', 'AC5/6: kind で対象を区別すること');
       assert.equal(residue[0].assetUid, createdUid);
-      assert.equal(residue[0].retainedPath, livePath, 'AC7b: 残留した live path を申告すること');
+      assert.equal(residue[0].retainedPath, livePath, 'AC5/6: 残留した live path を申告すること');
       assert.equal(existsSync(livePath), true, '申告どおり実体が残っていること');
       assert.equal(await imageAssetService.get(createdUid), null, 'DB 行は消えていること');
 
       await fsRm(trashPath, { force: true });
-      console.log('ok: AC7b-5 cleanup returns residue');
+      console.log('ok: AC5/6-5 cleanup returns residue');
     }
 
     // -----------------------------------------------------------------------
-    // AC7b-6 完全補償なら空配列。かつ補償は途中で止めない（複数 asset の一部が失敗しても
+    // AC5/6-6 完全補償なら空配列。かつ補償は途中で止めない（複数 asset の一部が失敗しても
     //   残りを試み、失敗分だけを申告する）
     // -----------------------------------------------------------------------
     {
@@ -260,12 +260,12 @@ try {
       // 完全補償できる状態（_trash は正常なディレクトリ）
       await fsRm(nodePath.join(assetsDir, '_trash'), { recursive: true, force: true });
       const residue = await imported.cleanup();
-      assert.deepEqual(residue, [], 'AC7b: 完全補償なら空配列であること');
+      assert.deepEqual(residue, [], 'AC5/6: 完全補償なら空配列であること');
       for (const uid of imported.createdAssetUids) {
         assert.equal(existsSync(nodePath.join(assetsDir, uid + '.png')), false, '実体が live path から消えていること');
         assert.equal(await imageAssetService.get(uid), null, 'DB 行が消えていること');
       }
-      console.log('ok: AC7b-6 empty residue on full compensation');
+      console.log('ok: AC5/6-6 empty residue on full compensation');
     }
 
     console.log('m5-t4 compensation declaration (ImageAssetService / cleanup) OK');
