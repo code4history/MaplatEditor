@@ -233,7 +233,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
     }
   });
 
-  test('AC11-b: 別 slug へ import すると POI が管理下ソースへ復元され preview まで通る（取込ボタンは UI 未到達）', async () => {
+  test('AC11-b: MapList のインポートボタンから別 slug へ取り込み、POI が復元され preview まで通る', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t4b-import-'));
     const { app, page } = await launch(e2eRoot);
@@ -258,21 +258,20 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [inZip] })) as typeof dialog.showOpenDialog;
       }, copyZip);
 
-      // 【実測 2026-08-03】地図 ZIP の取込ボタンは **UI から到達できない**。
-      // MapEdit.vue:4171 の Data I/O ブロック（importMap を持つ）は activeTab === 'inout'
-      // でしか表示されず、EditorTabs の tabs 配列（:3777-3782）に 'inout' が無い。
-      // 同ブロックのコメント（:4162-4168）が「本ブロックへのUI導線はM11-T3で意図的に撤去済み。
-      // ロジックは削除禁止 — M12-T23 で再編復帰予定」と記録している。
-      // ∴ ボタン押下は再現できないため、そのボタンが呼ぶ **renderer の実 IPC 境界**を叩く。
-      // これはサービスを直接呼ぶのとは違い、preload・IPC・main のサービスを実際に通る
-      // （テスト内で importMap のロジックを再現しているわけではない）。
-      await openHash(page, '#/mapedit');
-      await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30000 });
-      const importResult = await page.evaluate(
-        () => (window as any).dataupload.showDataSelectDialog());
-      expect(importResult.err, `取込が失敗した: ${JSON.stringify(importResult).slice(0, 300)}`)
-        .toBeUndefined();
-      expect(importResult.mapData.mapID).toBe(copySlug);
+      // 実 UI の取込導線: MapList の「インポート」ボタン → /mapedit?new=1&import=1 へ遷移し、
+      // MapEdit の mount 後に importMap() が自動起動してファイル選択ダイアログを開く
+      // （M11-T10 AC11 が用意した経路。ImportSlot = [data-resource-import]）
+      await openHash(page, '#/maplist');
+      const importButton = page.locator('[data-resource-import]');
+      await expect(importButton).toBeVisible({ timeout: 30000 });
+      await importButton.click();
+
+      // 取込完了は進捗モーダルの成功表示で判定する
+      // （URL の import=1 は取込後もクエリに残るため終了判定に使えない）
+      await expect(page.getByText('正常に地図データが登録できました。'))
+        .toBeVisible({ timeout: 120000 });
+      // 取り込んだ地図が編集画面に載る
+      await expect(page.getByTestId('map-title')).toHaveValue('T4B 地図', { timeout: 30000 });
 
       // POI が **管理下 POI ソースとして復元**されていること（ZIP 相対参照のままにしない）
       const restored = await page.evaluate(async (slug) => {
@@ -289,7 +288,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       expect(previewSource).toBeTruthy();
       expect(JSON.stringify(previewSource)).not.toContain('pois/');
 
-      console.log('  AC11-b: PASS（別 slug 取込 → POI 復元 → preview。取込ボタンは UI 未到達のため IPC 境界から）');
+      console.log('  AC11-b: PASS（実 UI の MapList インポート → POI 復元 → preview）');
     } finally {
       await quitElectronApplication(app);
     }
@@ -427,21 +426,13 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       console.log(`  元地図           : ${seeded.mapSlug} (uid=${seeded.mapUid})`);
       console.log(`  依存画像         : imgs/${seeded.iconSlug}.png / imgs/${seeded.photoSlug}.png`);
       console.log('');
-      console.log('  【要判断】地図 ZIP の取込は現在 UI から到達できません。');
-      console.log('    MapEdit.vue:4171 の Data I/O ブロック（地図データ入力ボタン）は');
-      console.log("    activeTab === 'inout' でしか表示されず、タブ定義（:3777-3782）に 'inout' が");
-      console.log('    無いためです。M11-T3 で意図的に撤去され M12-T23 で再編復帰予定、と');
-      console.log('    同ファイルのコメントに記録されています。本タスクは導線を新設していません。');
-      console.log('    取込の確認は DevTools コンソールから次を実行してください:');
-      console.log('      await window.dataupload.showDataSelectDialog()');
-      console.log('    実行するとファイル選択ダイアログが出ます。上の「取込用 ZIP」を選んでください。');
-      console.log('');
       console.log('  ※ ネイティブダイアログは原本へ戻してあります。搬出ボタンを押せば');
       console.log('    保存先を尋ねるダイアログが出ます（準備中だけ差し替えていました）。');
+      console.log('    取込は地図管理一覧の「インポート」ボタンから、上の「取込用 ZIP」を選んでください。');
       console.log('');
       console.log('  確認していただきたいこと:');
       console.log('   1. 搬出ボタンで保存先ダイアログが出て、指定した場所に ZIP ができること');
-      console.log('   2. 上記コマンドで複製が取り込め、slug が ' + copySlug + ' になること');
+      console.log('   2. 地図管理の「インポート」から複製が取り込め、slug が ' + copySlug + ' になること');
       console.log('   3. 取り込んだ地図の POI が管理下 POI ソースとして復元され、表示されること');
       console.log('   4. プレビューで POI（アイコン画像・吹き出しの埋め込み画像）が出ること');
       console.log('   5. 取り込んだ地図を再搬出しても同じ資源構成の ZIP になること');
