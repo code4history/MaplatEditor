@@ -137,6 +137,11 @@ binaries are distributed via GitHub Releases.
   and 512px thumbnails, and any POI layers as separate `pois/*.geojson`
   files together with the images they reference; importing such a ZIP
   restores those layers as managed POI sources
+- If an imported map's ID collides with an existing one, the import no longer
+  fails: the map is assigned the next free ID (`{ID}-2`, `{ID}-3`, ...). The
+  existing map is never overwritten — the import adds a separate map. IDs are
+  unique across maps, apps, POI sources, and image assets, so the same rule
+  applies to every kind of import
 - A map with unresolved ground-control-point errors cannot be previewed, but
   exporting the map itself still succeeds; an app that includes such a map,
   or that references a map missing from the database (e.g. deleted), is
