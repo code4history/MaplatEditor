@@ -97,6 +97,9 @@ try {
       SettingsService.set('lang', 'ja');
 
       const { showMapSelectDialog } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/MapUploadService.ts'))});
+      const { estimateJpegDecodeBudget } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/jpegDecodeBudget.ts'))});
+      const nodeFs = await import('node:fs');
+      const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
 
       // AC4: 観測記録。閾値 assert は置かない（実メモリは物理メモリ・同時実行・GC タイミングに
       // 依存するため、閾値を置くと環境差で偽陰性・偽陽性のどちらも生む）。
@@ -188,21 +191,238 @@ try {
         }
       }
 
-      // AC1a: maxMemoryUsageInMB の伝達。48 MP は解像度上限 100 MP 未満なので、
-      // ここが GREEN になる理由は memory オプションの伝達以外にない（設計 §3.6）。
-      // maxZoom = ceil(log2(8000/256)) = ceil(4.97) = 5
-      await runCaseCollecting({ label: 'AC1a 48 MP JPEG（memory ガードの識別）',
-        w: 8000, h: 6000, ext: 'jpg', maxZoom: 5, dirName: 'ac1a-48mp' });
+      // ================= Phase B: 設定値化（AC5 / AC7 / AC8） =================
 
-      // AC1b: maxResolutionInMP の伝達。memory だけ 8192 にしても RED のままである実測が
-      // あるため（設計 §3.6）、ここが GREEN になるには resolution オプションの伝達を要する。
-      // maxZoom = ceil(log2(11000/256)) = ceil(5.43) = 6
-      await runCaseCollecting({ label: 'AC1b 110 MP JPEG（resolution ガードの識別）',
-        w: 11000, h: 10000, ext: 'jpg', maxZoom: 6, dirName: 'ac1b-110mp' });
+      const okB = (label, fn) => {
+        try { fn(); console.log('ok: ' + label); }
+        catch (e) { failures.push(label + ' — ' + (e.message ?? String(e))); console.log('NG: ' + label + ' — ' + (e.message ?? String(e))); }
+      };
+
+      okB('AC5 既定値が 8192 / 800', () => {
+        const d = SettingsService.getJpegDecodeLimits();
+        assert.equal(d.maxMemoryUsageInMB, 8192);
+        assert.equal(d.maxResolutionInMP, 800);
+      });
+
+      // AC7: 不正値は既定へ落ちる。store は利用者が編集できる JSON なので UI を通らない値が入り得る。
+      // set 経由（書き込み側の防御）と store 直書き（読み出し側の防御）の**両方**を確認する —
+      // set だけだと読み出し側の正規化が効いているかを証明できない。
+      const rawStore = SettingsService.store; // private だが、読み出し側の検証にはここを突く必要がある
+      for (const bad of [0, -1, 'abc', null, Infinity]) {
+        okB('AC7 不正値 ' + JSON.stringify(bad) + ' が既定へ落ちる（set 経由・例外を投げない）', () => {
+          SettingsService.set('jpegDecodeMaxMemoryMB', bad);
+          SettingsService.set('jpegDecodeMaxResolutionMP', bad);
+          const d = SettingsService.getJpegDecodeLimits();
+          assert.equal(d.maxMemoryUsageInMB, 8192);
+          assert.equal(d.maxResolutionInMP, 800);
+        });
+        okB('AC7 不正値 ' + JSON.stringify(bad) + ' が既定へ落ちる（store 直書き＝手編集の JSON 相当）', () => {
+          rawStore.set('jpegDecodeMaxMemoryMB', bad);
+          rawStore.set('jpegDecodeMaxResolutionMP', bad);
+          const d = SettingsService.getJpegDecodeLimits();
+          assert.equal(d.maxMemoryUsageInMB, 8192);
+          assert.equal(d.maxResolutionInMP, 800);
+        });
+      }
+
+      okB('AC8 下限が効く（256→512 / 50→100）', () => {
+        SettingsService.set('jpegDecodeMaxMemoryMB', 256);
+        SettingsService.set('jpegDecodeMaxResolutionMP', 50);
+        const d = SettingsService.getJpegDecodeLimits();
+        assert.equal(d.maxMemoryUsageInMB, 512, 'jpeg-js 既定 512 を下回らない');
+        assert.equal(d.maxResolutionInMP, 100, 'jpeg-js 既定 100 を下回らない');
+      });
+
+      okB('正当な値はそのまま通り、小数は切り捨てられる', () => {
+        SettingsService.set('jpegDecodeMaxMemoryMB', 20480.9);
+        SettingsService.set('jpegDecodeMaxResolutionMP', 1200.7);
+        const d = SettingsService.getJpegDecodeLimits();
+        assert.equal(d.maxMemoryUsageInMB, 20480);
+        assert.equal(d.maxResolutionInMP, 1200);
+      });
+
+      // ============ Phase C: 事前判定と構造化エラー（AC10-AC14 / AC18） ============
+      // 実測トリガ級の巨大画像を使わずに検証する。ガードは「設定値」に対する判定なので、
+      // 小さい画像 + 意図的に低い設定値で同じ経路を通せる（実行時間を無駄にしない）。
+
+      const resetLimits = () => {
+        SettingsService.set('jpegDecodeMaxMemoryMB', 8192);
+        SettingsService.set('jpegDecodeMaxResolutionMP', 800);
+      };
+
+      /** prediction の「全部入りか無しか」を検査する（AC11b の不変条件） */
+      function assertPredictionShape(r, label) {
+        if (r.prediction === undefined) return 'absent';
+        assert.equal(typeof r.prediction, 'object', label + ': prediction はオブジェクト');
+        const keys = r.errorCode === 'jpeg_memory_limit'
+          ? ['requiredMemoryMB', 'recommendedMemoryMB']
+          : ['megapixels', 'recommendedResolutionMP'];
+        for (const k of keys) {
+          assert.equal(typeof r.prediction[k], 'number',
+            label + ': prediction.' + k + ' が数値（部分的に埋まった中間状態を作らない）');
+        }
+        return 'present';
+      }
+
+      // 下限（メモリ 512 / 解像度 100）があるため、小さい画像では不足を作れない。
+      // ∴ 実サイズのフィクスチャを使い、v1.3 からの回帰ケース（48 MP / 110 MP）と統合する。
+      const bigJpg = nodePath.join(workDir, 'ac10-48mp.jpg');
+      await makeFixture(8000, 6000, bigJpg);                    // 48 MP / 4:4:4 → 予測 1008 MB
+      const bigBudget = estimateJpegDecodeBudget(await fs.readFile(bigJpg));
+
+      const hugeJpg = nodePath.join(workDir, 'ac11-110mp.jpg');
+      await makeFixture(11000, 10000, hugeJpg);                 // 110 MP
+      const hugeBudget = estimateJpegDecodeBudget(await fs.readFile(hugeJpg));
+
+      /**
+       * 番兵ファイルを置いてから取り込む。
+       * imageCutter は原寸デコードの前に outFolder を fs.remove でクリアするため、
+       * **番兵が残っていればデコード段まで到達していない**ことの構造的な証拠になる。
+       * 所要時間では判定しない（環境依存で偽陽性・偽陰性のどちらも生む）。
+       * 同時に「事前判定で弾いたとき既存の下書きタイルを壊さない」ことの検証も兼ねる。
+       */
+      const SENTINEL = 'do-not-delete.txt';
+      async function upload(dirName, srcFile) {
+        const outFolder = nodePath.join(workDir, dirName);
+        await fs.mkdir(outFolder, { recursive: true });
+        await fs.writeFile(nodePath.join(outFolder, SENTINEL), 'sentinel');
+        globalThis.__nextImagePath = srcFile;
+        const t = Date.now();
+        const r = await showMapSelectDialog(null, outFolder, '地図画像');
+        return {
+          r, outFolder, elapsed: Date.now() - t,
+          sentinelSurvived: await exists(nodePath.join(outFolder, SENTINEL)),
+        };
+      }
+
+      // --- AC6 RED 相当 + AC10: 既定の 512 相当ではメモリ不足を事前判定して弾く ---
+      resetLimits();
+      SettingsService.set('jpegDecodeMaxMemoryMB', 512);   // jpeg-js 既定と同じ＝下限
+      const memCase = await upload('ac10-mem', bigJpg);
+      okB('AC10 メモリ不足を事前判定し jpeg_memory_limit を返す（48 MP / 上限 512）', () => {
+        assert.equal(memCase.r.errorCode, 'jpeg_memory_limit', JSON.stringify(memCase.r));
+        assert.equal(memCase.r.configuredMB, 512);
+        assert.equal(assertPredictionShape(memCase.r, 'AC10'), 'present');
+        assert.equal(memCase.r.prediction.requiredMemoryMB, bigBudget.requiredMemoryMB);
+        assert.equal(memCase.r.prediction.recommendedMemoryMB, bigBudget.recommendedMemoryMB);
+      });
+      okB('AC10 原寸デコードもタイル化も開始していない（番兵が残る・時間では判定しない）', () => {
+        assert.equal(memCase.sentinelSurvived, true,
+          '事前判定で弾いた場合、imageCutter は outFolder のクリアにも到達しない'
+          + '（＝既存の下書きタイルを壊さない）');
+      });
+
+      // --- AC6 GREEN 相当 + AC12 + AC3: 推奨値をそのまま設定すると1回で通り、生成物も揃う ---
+      SettingsService.set('jpegDecodeMaxMemoryMB', memCase.r.prediction.recommendedMemoryMB);
+      const memRetry = await upload('ac12-mem-retry', bigJpg);
+      okB('AC12 推奨メモリ値（' + memCase.r.prediction.recommendedMemoryMB
+        + ' MB）をそのまま設定すると1回で通る（48 MP）', () => {
+        assert.ok(!memRetry.r.err, '成功する: ' + JSON.stringify(memRetry.r));
+        assert.equal(memRetry.r.width, 8000);
+        assert.equal(memRetry.r.height, 6000);
+        assert.equal(memRetry.r.imageExtension, 'jpg');
+        // 番兵チェックが「常に真」になっていないことの担保: 成功経路では消える
+        assert.equal(memRetry.sentinelSurvived, false,
+          '取り込みが進めば imageCutter が outFolder をクリアするので番兵は消える');
+      });
+      await (async () => {
+        // AC3: 生成物が揃う（maxZoom = ceil(log2(8000/256)) = 5）
+        try {
+          await assertArtifacts(memRetry.outFolder, 'jpg', 5, 'AC3 48 MP');
+          console.log('ok: AC3 生成物が揃う（48 MP・タイル化 ' + (memRetry.elapsed / 1000).toFixed(1) + 's）');
+        } catch (e) {
+          failures.push(e.message ?? String(e)); console.log('NG: ' + (e.message ?? String(e)));
+        }
+      })();
+
+      // --- AC11: 解像度不足も同様に事前判定で弾く（デコードしないので即座に返る） ---
+      resetLimits();
+      SettingsService.set('jpegDecodeMaxResolutionMP', 100);   // jpeg-js 既定と同じ＝下限
+      const resCase = await upload('ac11-res', hugeJpg);
+      okB('AC11 解像度不足を事前判定し jpeg_resolution_limit を返す（110 MP / 上限 100）', () => {
+        assert.equal(resCase.r.errorCode, 'jpeg_resolution_limit', JSON.stringify(resCase.r));
+        assert.equal(resCase.r.configuredMP, 100);
+        assert.equal(assertPredictionShape(resCase.r, 'AC11'), 'present');
+        assert.equal(resCase.r.prediction.megapixels, 110);
+        assert.equal(resCase.r.prediction.recommendedResolutionMP, 110,
+          'ceil(110) = 110。マージンを乗せない（v2.3）');
+      });
+      okB('AC11 原寸デコードもタイル化も開始していない（番兵が残る）', () => {
+        assert.equal(resCase.sentinelSurvived, true);
+      });
+
+      // --- AC12b + v1.3 の 110 MP 回帰: 推奨解像度（マージン無し）で1回で通る ---
+      SettingsService.set('jpegDecodeMaxResolutionMP', resCase.r.prediction.recommendedResolutionMP);
+      SettingsService.set('jpegDecodeMaxMemoryMB', hugeBudget.recommendedMemoryMB);
+      const resRetry = await upload('ac12b-res-retry', hugeJpg);
+      okB('AC12b 推奨解像度値 ceil(megapixels)=110（マージン無し）で1回で通る（110 MP）', () => {
+        assert.ok(!resRetry.r.err, '成功する: ' + JSON.stringify(resRetry.r));
+        assert.equal(resRetry.r.width, 11000);
+        assert.equal(resRetry.r.height, 10000);
+      });
+      await (async () => {
+        try {
+          await assertArtifacts(resRetry.outFolder, 'jpg', 6, 'AC3 110 MP');
+          console.log('ok: AC3 生成物が揃う（110 MP・タイル化 ' + (resRetry.elapsed / 1000).toFixed(1) + 's）');
+        } catch (e) {
+          failures.push(e.message ?? String(e)); console.log('NG: ' + (e.message ?? String(e)));
+        }
+      })();
+
+      const smallJpg = nodePath.join(workDir, 'small.jpg');
+      await makeFixture(1200, 900, smallJpg);
+
+      // --- AC13: 予測できない失敗は errorCode unknown（prediction を持たない） ---
+      resetLimits();
+      const brokenJpg = nodePath.join(workDir, 'broken.jpg');
+      {
+        // SOF は読めるが entropy data が壊れている JPEG（予測は立つがデコードは失敗する）
+        const good = await fs.readFile(smallJpg);
+        const broken = Buffer.from(good);
+        broken.fill(0x00, Math.floor(broken.length * 0.6));
+        await fs.writeFile(brokenJpg, broken);
+      }
+      {
+        const outFolder = nodePath.join(workDir, 'ac13-unknown');
+        await fs.mkdir(outFolder, { recursive: true });
+        globalThis.__nextImagePath = brokenJpg;
+        const r = await showMapSelectDialog(null, outFolder, '地図画像');
+        okB('AC13 上限起因でない失敗は errorCode unknown で、prediction を持たない', () => {
+          assert.ok(r.err, '失敗する: ' + JSON.stringify(r));
+          assert.equal(r.errorCode, 'unknown', JSON.stringify(r));
+          assert.equal(assertPredictionShape(r, 'AC13'), 'absent');
+        });
+      }
+
+      // --- AC14: Canceled は従来どおり ---
+      {
+        const outFolder = nodePath.join(workDir, 'ac14-cancel');
+        await fs.mkdir(outFolder, { recursive: true });
+        globalThis.__nextImagePath = null;   // showOpenDialog が canceled を返す
+        const r = await showMapSelectDialog(null, outFolder, '地図画像');
+        okB('AC14 Canceled は err のみで errorCode を付けない', () => {
+          assert.equal(r.err, 'Canceled');
+          assert.equal(r.errorCode, undefined, 'Canceled に errorCode は付かない');
+          assert.equal(r.prediction, undefined);
+        });
+      }
+
+      // --- AC18: 汎用エラーキーを削除していない ---
+      okB('AC18 mapedit.error_image_upload（汎用の受け皿）が11ロケールすべてに残っている', () => {
+        for (const lang of LOCALES) {
+          const t = JSON.parse(nodeFs.readFileSync(
+            nodePath.join(${JSON.stringify(projectRoot)}, 'public/locales', lang, 'translation.json'), 'utf8'));
+          assert.ok(t.mapedit && typeof t.mapedit.error_image_upload === 'string' && t.mapedit.error_image_upload.length > 0,
+            lang + ': mapedit.error_image_upload が残っている');
+        }
+      });
+
+      resetLimits();
 
       // AC5: PNG 非回帰。PNG のデコードオプションにはメモリ・解像度の上限が無く（設計 §3.5）、
       // image/jpeg の options は参照されない。
       // maxZoom = ceil(log2(1200/256)) = ceil(2.23) = 3
+      resetLimits();
       await runCaseCollecting({ label: 'AC5 PNG 原本（JPEG options の追加が PNG 経路を壊さない）',
         w: 1200, h: 900, ext: 'png', maxZoom: 3, dirName: 'ac5-png' });
 

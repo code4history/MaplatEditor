@@ -14,22 +14,42 @@ import fileUrl from 'file-url';
 // @ts-ignore
 import { Jimp } from 'jimp';
 import { ProgressReporter } from '../utils/ProgressReporter';
+import SettingsService from './SettingsService';
+import { estimateJpegDecodeBudget, type JpegDecodeBudget } from '../utils/jpegDecodeBudget';
 
 /**
- * M5-T6: 地図原本 JPEG のデコード上限（旧 Electron 版の互換復元）
+ * M5-T6: 画像取り込みの結果契約（設計 §6.1 が唯一の記述）。
  *
- * 旧実装 backend/src/mapupload.js:25-28（commit 0db2f94 "Scale up memory size"）は
- * `Jimp.decoders['image/jpeg']` を差し替えて jpeg-js へ以下を渡していた。
- * 新環境への移植（353a9ef）でこの行が脱落し、大容量の地図原本が取り込めなくなっていた。
- *
- * 値は旧版のものをそのまま復元する。ただし手段は復元しない — Jimp 1.x に `decoders` は無い。
- *
- * これは jpeg-js が自分で加算する会計カウンタの閾値であり、V8 ヒープとも実メモリとも
- * 直接の関係はない。∴ この設定は「大きい画像を受け付ける」ことの許可であって
- * 「成功の保証」ではない（実メモリが足りなければ OS レベルで失敗する）。
+ * 失敗時、予測由来の項目は `prediction` にまとめて**全部入りか無しか**にする。
+ * 個々を省略可にすると「requiredMemoryMB はあるが recommendedMemoryMB は無い」という
+ * 成立しない中間状態を作れてしまうため。renderer の分岐鍵も `prediction` の有無である。
  */
-const LARGE_MAP_JPEG_MAX_MEMORY_MB = 8192;   // jpeg-js 既定は 512
-const LARGE_MAP_JPEG_MAX_RESOLUTION_MP = 800; // jpeg-js 既定は 100
+export type MapUploadResult =
+    | { width: number; height: number; url: string; imageExtension: string }
+    | { err: 'Canceled' }
+    | {
+          err: string;
+          errorCode: 'jpeg_memory_limit';
+          configuredMB: number;
+          prediction?: { requiredMemoryMB: number; recommendedMemoryMB: number };
+      }
+    | {
+          err: string;
+          errorCode: 'jpeg_resolution_limit';
+          configuredMP: number;
+          prediction?: { megapixels: number; recommendedResolutionMP: number };
+      }
+    | { err: string; errorCode: 'unknown' };
+
+/** jpeg-js の例外文言から、どちらのガードに当たったかを判別する（renderer では判別しない） */
+function classifyDecodeError(error: unknown): 'jpeg_memory_limit' | 'jpeg_resolution_limit' | 'unknown' {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    if (message.includes('maxMemoryUsageInMB')) return 'jpeg_memory_limit';
+    if (message.includes('maxResolutionInMP')) return 'jpeg_resolution_limit';
+    return 'unknown';
+}
+
+
 
 /**
  * 旧実装 thumbExtractor.make_thumbnail() 相当
@@ -131,12 +151,58 @@ async function imageCutter(
     win: BrowserWindow,
     srcFile: string,
     outFolder: string
-): Promise<{ width?: number; height?: number; url?: string; imageExtension?: string; err?: any }> {
+): Promise<MapUploadResult> {
+    // M5-T6: 事前判定に使うため、デコード設定と原本バッファを先に用意する。
+    const decodeLimits = SettingsService.getJpegDecodeLimits();
+    let sourceBuffer: Buffer;
+    let budget: JpegDecodeBudget | null = null;
     try {
         // 拡張子判定（旧実装と同じロジック）
         const regex = /([^\\/]+)\.([^.]+)$/;
         const match = srcFile.match(regex);
-        if (!match) return { err: '画像拡張子エラー' };
+        if (!match) return { err: '画像拡張子エラー', errorCode: 'unknown' };
+        let toExtKeyPre = match[2].toLowerCase();
+        if (toExtKeyPre === 'jpeg') toExtKeyPre = 'jpg';
+
+        sourceBuffer = await fs.readFile(srcFile);
+
+        // M5-T6 (§5.4): デコードもタイル化も始める前に、ヘッダから必要量を予測して判定する。
+        // ここで弾けば利用者は数分待たされずに済み、かつ outFolder のクリアにも到達しないため
+        // **既存の下書きタイルを壊さない**。予測できない入力（PNG 等）は null が返り素通りする。
+        budget = estimateJpegDecodeBudget(sourceBuffer);
+        if (budget) {
+            if (budget.requiredMemoryMB > decodeLimits.maxMemoryUsageInMB) {
+                return {
+                    err: `jpeg decode memory limit: required ${budget.requiredMemoryMB}MB > configured ${decodeLimits.maxMemoryUsageInMB}MB`,
+                    errorCode: 'jpeg_memory_limit',
+                    configuredMB: decodeLimits.maxMemoryUsageInMB,
+                    prediction: {
+                        requiredMemoryMB: budget.requiredMemoryMB,
+                        recommendedMemoryMB: budget.recommendedMemoryMB,
+                    },
+                };
+            }
+            // jpeg-js のガードは `pixelsInFrame > maxResolutionInMP * 1e6` の厳密不等号。
+            // 同じ向きで判定する（等しい場合は通す）。
+            if (budget.megapixels > decodeLimits.maxResolutionInMP) {
+                return {
+                    err: `jpeg decode resolution limit: ${budget.megapixels}MP > configured ${decodeLimits.maxResolutionInMP}MP`,
+                    errorCode: 'jpeg_resolution_limit',
+                    configuredMP: decodeLimits.maxResolutionInMP,
+                    prediction: {
+                        megapixels: budget.megapixels,
+                        recommendedResolutionMP: budget.recommendedResolutionMP,
+                    },
+                };
+            }
+        }
+    } catch (err) {
+        return { err: err instanceof Error ? err.message : String(err), errorCode: 'unknown' };
+    }
+
+    try {
+        const regex = /([^\\/]+)\.([^.]+)$/;
+        const match = srcFile.match(regex)!;
         let toExtKey = match[2].toLowerCase();
         if (toExtKey === 'jpeg') toExtKey = 'jpg';
 
@@ -158,10 +224,12 @@ async function imageCutter(
         // ∴ Jimp.read(srcFile, options) では設定が届かないため fromBuffer を直接呼ぶ。
         // PNG 入力時は image/jpeg の options が参照されないため無害
         // （@jimp/js-png の DecodePngOptions にメモリ・解像度の上限は無い）。
-        const imageJimp = await Jimp.fromBuffer(await fs.readFile(srcFile), {
+        // M5-T6: 上限は設定値から取る（既定 8192 / 800）。読み出し口は
+        // SettingsService.getJpegDecodeLimits の1つだけ（正規化がそこに閉じている）。
+        const imageJimp = await Jimp.fromBuffer(sourceBuffer, {
             'image/jpeg': {
-                maxMemoryUsageInMB: LARGE_MAP_JPEG_MAX_MEMORY_MB,
-                maxResolutionInMP: LARGE_MAP_JPEG_MAX_RESOLUTION_MP,
+                maxMemoryUsageInMB: decodeLimits.maxMemoryUsageInMB,
+                maxResolutionInMP: decodeLimits.maxResolutionInMP,
             },
         });
         const width: number = imageJimp.width;   // 旧: imageJimp.bitmap.width
@@ -237,7 +305,32 @@ async function imageCutter(
         return { width, height, url, imageExtension: toExtKey };
 
     } catch (err) {
-        return { err };
+        // M5-T6 (§5.4): 事前判定を通り抜けたのにガードへ当たった場合の保険。
+        // 予測が立っていれば prediction を丸ごと添え、無ければキーごと省く
+        // （個々のフィールドに undefined を入れて部分的な payload を作らない）。
+        const message = err instanceof Error ? err.message : String(err);
+        const errorCode = classifyDecodeError(err);
+        if (errorCode === 'jpeg_memory_limit') {
+            return {
+                err: message,
+                errorCode,
+                configuredMB: decodeLimits.maxMemoryUsageInMB,
+                ...(budget
+                    ? { prediction: { requiredMemoryMB: budget.requiredMemoryMB, recommendedMemoryMB: budget.recommendedMemoryMB } }
+                    : {}),
+            };
+        }
+        if (errorCode === 'jpeg_resolution_limit') {
+            return {
+                err: message,
+                errorCode,
+                configuredMP: decodeLimits.maxResolutionInMP,
+                ...(budget
+                    ? { prediction: { megapixels: budget.megapixels, recommendedResolutionMP: budget.recommendedResolutionMP } }
+                    : {}),
+            };
+        }
+        return { err: message, errorCode: 'unknown' };
     }
 }
 
@@ -252,7 +345,7 @@ export async function showMapSelectDialog(
     win: BrowserWindow,
     stagingDir: string,
     mapImageLabel: string
-): Promise<{ width?: number; height?: number; url?: string; imageExtension?: string; err?: string }> {
+): Promise<MapUploadResult> {
     const ret = await dialog.showOpenDialog(win, {
         defaultPath: app.getPath('documents'),
         properties: ['openFile'],

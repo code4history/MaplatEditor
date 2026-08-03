@@ -6,7 +6,42 @@ import path from 'path';
 interface AppSettings {
   lang: string;
   saveFolder: string;
+  /** M5-T6: JPEG デコーダへ渡す会計メモリ上限（MB = 2^20 バイト） */
+  jpegDecodeMaxMemoryMB: number;
+  /** M5-T6: JPEG デコーダへ渡す解像度上限（MP = 1e6 ピクセルの十進） */
+  jpegDecodeMaxResolutionMP: number;
   [key: string]: any;
+}
+
+/**
+ * M5-T6: JPEG デコード上限の既定値と下限。
+ *
+ * 既定値は旧 Electron 版（commit 0db2f94 / backend/src/mapupload.js:25-28）が
+ * 明示していた値である。**十分性の保証ではない** — 実測トリガの画像（470 MP）は
+ * 9865 MB を要し 8192 では足りないことが分かっている。だからこそ設定値にした。
+ *
+ * 下限は jpeg-js の既定値。これを下回る設定は現行より防御を弱めるだけなので受け付けない
+ * （ガードの出自は decompression bomb 対策 CVE-2020-8175）。
+ * 上限は設けない — 会計ガードは実メモリを予約しない算術しきい値であり、
+ * 上限を設けると利用者が自分の画像を通せなくなる。
+ */
+const JPEG_DECODE_MAX_MEMORY_MB_DEFAULT = 8192;
+const JPEG_DECODE_MAX_RESOLUTION_MP_DEFAULT = 800;
+const JPEG_DECODE_MAX_MEMORY_MB_MIN = 512;
+const JPEG_DECODE_MAX_RESOLUTION_MP_MIN = 100;
+
+/**
+ * JPEG デコード上限の正規化。**この関数だけが正規化を行う**（読み出し・書き込みの両方が通る）。
+ *
+ * 読み出し側でも正規化するのは、electron-store の実体が利用者の編集できる JSON ファイルで
+ * あり、UI を通らない値が入り得るためである（過去形式の吸収ではなく、信頼できない入力の検証）。
+ */
+function normalizeJpegDecodeLimit(value: unknown, fallback: number, min: number): number {
+  // 数値と数値文字列だけを受け付ける（true → 1 のような暗黙変換で通さない）
+  if (typeof value !== 'number' && typeof value !== 'string') return fallback;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
+  return Math.max(min, Math.floor(numeric));
 }
 
 import { resolveEditorLanguage } from '../../src/utils/editorLanguages';
@@ -20,9 +55,13 @@ const runtimeStoragePaths = resolveRuntimeStoragePaths(
 );
 
 // lang はデフォルト値を持たせない: 未設定(初回起動)の場合はOSの言語から解決し
-// (非対応言語は en へフォールバック)、その結果を設定として永続化する
+// (非対応言語は en へフォールバック)、その結果を設定として永続化する。
+// 一方 M5-T6 の JPEG デコード上限は「初回から効いている値」であるべきなので既定を持たせる
+// (lang の設計意図とは別種)
 const defaultSettings: AppSettings = {
   saveFolder: runtimeStoragePaths.saveFolder,
+  jpegDecodeMaxMemoryMB: JPEG_DECODE_MAX_MEMORY_MB_DEFAULT,
+  jpegDecodeMaxResolutionMP: JPEG_DECODE_MAX_RESOLUTION_MP_DEFAULT,
 } as AppSettings;
 
 import { EventEmitter } from 'events';
@@ -110,8 +149,33 @@ class SettingsService extends EventEmitter {
     return this.store.store;
   }
 
+  /**
+   * M5-T6: JPEG デコーダへ渡す上限。**設定値の読み出し口はここ1つだけ**にする。
+   * 呼び出し側が `get('jpegDecodeMaxMemoryMB')` を直接読むと正規化が抜けるため作らない。
+   */
+  public getJpegDecodeLimits(): { maxMemoryUsageInMB: number; maxResolutionInMP: number } {
+    return {
+      maxMemoryUsageInMB: normalizeJpegDecodeLimit(
+        this.store.get('jpegDecodeMaxMemoryMB'),
+        JPEG_DECODE_MAX_MEMORY_MB_DEFAULT,
+        JPEG_DECODE_MAX_MEMORY_MB_MIN,
+      ),
+      maxResolutionInMP: normalizeJpegDecodeLimit(
+        this.store.get('jpegDecodeMaxResolutionMP'),
+        JPEG_DECODE_MAX_RESOLUTION_MP_DEFAULT,
+        JPEG_DECODE_MAX_RESOLUTION_MP_MIN,
+      ),
+    };
+  }
+
   public set(key: string, value: any): void {
     const oldValue = this.store.get(key);
+    // M5-T6: 書き込み側でも同じ正規化を通し、UI から不正値が保存されること自体を防ぐ
+    if (key === 'jpegDecodeMaxMemoryMB') {
+      value = normalizeJpegDecodeLimit(value, JPEG_DECODE_MAX_MEMORY_MB_DEFAULT, JPEG_DECODE_MAX_MEMORY_MB_MIN);
+    } else if (key === 'jpegDecodeMaxResolutionMP') {
+      value = normalizeJpegDecodeLimit(value, JPEG_DECODE_MAX_RESOLUTION_MP_DEFAULT, JPEG_DECODE_MAX_RESOLUTION_MP_MIN);
+    }
     this.store.set(key, value);
     if (key === 'saveFolder') {
       this.ensureDataDirectories();
