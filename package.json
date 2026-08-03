@@ -156,7 +156,9 @@
     "smoke:m5-t4-compensation-declaration": "node scripts/m5-t4-compensation-declaration-smoke.mjs",
     "smoke:m5-t4-archive-safety-timing": "node scripts/m5-t4-archive-safety-timing-smoke.mjs",
     "smoke:m5-t4-managed-poi-documents": "node scripts/m5-t4-managed-poi-documents-smoke.mjs",
-    "smoke:m5-t4-managed-poi-source": "node scripts/m5-t4-managed-poi-source-smoke.mjs"
+    "smoke:m5-t4-managed-poi-source": "node scripts/m5-t4-managed-poi-source-smoke.mjs",
+    "smoke:m5-t4b-map-export-poi-parity": "node scripts/m5-t4b-map-export-poi-parity-smoke.mjs",
+    "smoke:m5-t4b-map-zip-contents": "node scripts/m5-t4b-map-zip-contents-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",
