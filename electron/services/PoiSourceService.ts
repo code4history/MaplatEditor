@@ -53,6 +53,23 @@ function logCompensationResidue(stage: string, residue: CompensationResidue[]): 
   console.warn(`[PoiSourceService] 補償に到達できなかった残留物があります (${stage}):`, residue);
 }
 
+// M5-T4: managed POI 文書の表示名。**空文字にしない** — createSource は title を必須と
+// しないが、辿れる名前を残さないと利用者が POI 管理 UI で識別できなくなる。
+// 順序: FC の properties.title → FC 直下の title → dest の <name>。
+function deriveManagedPoiTitle(fc: unknown, name: string): unknown {
+  const doc = fc as { title?: unknown; properties?: { title?: unknown } } | null | undefined;
+  const candidates = [doc?.properties?.title, doc?.title];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim() !== '') return candidate;
+    // LangResource 形（{ja: "…"} 等）はそのまま通す
+    if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+      const values = Object.values(candidate as Record<string, unknown>);
+      if (values.some((v) => typeof v === 'string' && v.trim() !== '')) return candidate;
+    }
+  }
+  return name;
+}
+
 export interface PoiSourceListRequest {
   query: string;
   page: number;
@@ -518,6 +535,50 @@ export class PoiSourceService {
     const resolvedSlug = await this.resolveImportSlug(input.slug, input.uid);
     if (resolvedSlug === null) return { result: 'Exist' };
     return await this.createSource(resolvedSlug, input.title, 'local', prepared.fc, prepared.issues, undefined, input.uid);
+  }
+
+  /**
+   * M5-T4: 地図 ZIP 同梱の managed POI 文書から `poi_sources` 行を1つ作る。
+   *
+   * `PoiPackageService.importManagedPoiDocuments` が返すのは **正本化した FC まで**であり、
+   * `poiUid` を得るには行と slug registry の作成が要る。それを行う `createSource` は private
+   * のため、地図 ZIP import 用の入口をここに開ける。**ロジックは複製せず既存 createSource を呼ぶ。**
+   *
+   * 名前について: 読み取り側の `importManagedPoiDocuments`（複数形）と**単複1文字差**にすると、
+   * 本タスクが引いた責務境界（`poi_sources` を作る／作らない）を挟んで紛らわしい対になる。
+   * ∴ 責務が読める名前にする。
+   *
+   * **本 API は呼び出しごとに1行作る。** 同一 dest を指す複数 entry を1つへ畳むのは
+   * 呼び出し側（`Map<dest, poiUid>`）の責務である — ここで内部キャッシュを持つと
+   * import を跨いだ状態を抱えてしまう。
+   *
+   * 非 Success 時は**永続物を何も残さない**（`resolveImportSlug` は予約をせず、
+   * 行作成の失敗は mapWriteError へ写像される）。∴ 補償対象は
+   * 「今回 createSource に成功した poiUid のみ」で一意に決まる。
+   */
+  async createPoiSourceFromManagedDocument(
+    fc: unknown,
+    hint: { dest: string; lang?: string },
+  ): Promise<PoiSourceSaveResult> {
+    // "pois/<name>.geojson" → "<name>"
+    const name = path.basename(String(hint.dest ?? ''), '.geojson');
+    const lang = hint.lang || (SettingsService.get('lang') as string);
+
+    const prepared = this.prepare(fc, lang);
+    if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
+
+    // slug は POI import の既存解決をそのまま使う（base, base2 … の空き探索）。
+    // 地図 slug とは別系統であり、地図側の衝突解決は m5-t5 の責務である。
+    const resolvedSlug = await this.resolveImportSlug(name);
+    if (resolvedSlug === null) return { result: 'Exist' };
+
+    return await this.createSource(
+      resolvedSlug,
+      deriveManagedPoiTitle(fc, name),
+      'local',
+      prepared.fc,
+      prepared.issues,
+    );
   }
 
   // fetch → 正規化/検証 → 成功時のみ登録。fetch snapshot を data_json に永続 cache する
