@@ -49,6 +49,33 @@ async function stubMessageBoxAutoOk(app: ElectronApplication): Promise<void> {
   });
 }
 
+// ネイティブダイアログの原本を退避する。**人間確認の前に必ず戻す**ためのもの。
+// 差し替えたまま page.pause() すると、搬出ボタンが保存先を尋ねずに事前指定のパスへ書き、
+// 成功モーダルだけが出る — 自由操作のための一時停止なのにダイアログを潰してしまう
+async function snapshotDialogs(app: ElectronApplication): Promise<void> {
+  await app.evaluate(async ({ dialog }) => {
+    const g = globalThis as unknown as Record<string, unknown>;
+    if (!g.__m5t4bDialogOriginals) {
+      g.__m5t4bDialogOriginals = {
+        showSaveDialog: dialog.showSaveDialog,
+        showOpenDialog: dialog.showOpenDialog,
+        showMessageBox: dialog.showMessageBox,
+      };
+    }
+  });
+}
+
+async function restoreDialogs(app: ElectronApplication): Promise<void> {
+  await app.evaluate(async ({ dialog }) => {
+    const g = globalThis as unknown as Record<string, unknown>;
+    const originals = g.__m5t4bDialogOriginals as Record<string, unknown> | undefined;
+    if (!originals) throw new Error('snapshotDialogs を先に呼んでいない');
+    dialog.showSaveDialog = originals.showSaveDialog as typeof dialog.showSaveDialog;
+    dialog.showOpenDialog = originals.showOpenDialog as typeof dialog.showOpenDialog;
+    dialog.showMessageBox = originals.showMessageBox as typeof dialog.showMessageBox;
+  });
+}
+
 /**
  * 依存アセットを全種類持つ地図を作る。
  *  - POI 登録参照（管理下 POI ソース）
@@ -318,6 +345,50 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
     }
   });
 
+  // 人間確認の前提テスト（2026-08-03 の指摘への回帰）。
+  // 準備用に差し替えたネイティブダイアログを戻し忘れると、page.pause() 後に搬出ボタンが
+  // 保存先を尋ねずに事前指定のパスへ書き、成功モーダルだけが出る。
+  // 自由操作のための一時停止なのにダイアログを潰してしまうため、復元の成立を固定する。
+  test('AC11 人間確認の前提: 準備で差し替えたネイティブダイアログが原本へ戻る', async () => {
+    test.setTimeout(120_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t4b-dialog-'));
+    const { app } = await launch(e2eRoot);
+    try {
+      await snapshotDialogs(app);
+      await stubMessageBoxAutoOk(app);
+      await app.evaluate(async ({ dialog }) => {
+        dialog.showSaveDialog = (async () => ({ canceled: true })) as typeof dialog.showSaveDialog;
+        dialog.showOpenDialog = (async () => ({ canceled: true, filePaths: [] })) as typeof dialog.showOpenDialog;
+      });
+
+      const whileStubbed = await app.evaluate(async ({ dialog }) => {
+        const o = (globalThis as any).__m5t4bDialogOriginals;
+        return {
+          save: dialog.showSaveDialog === o.showSaveDialog,
+          open: dialog.showOpenDialog === o.showOpenDialog,
+          message: dialog.showMessageBox === o.showMessageBox,
+        };
+      });
+      // 前提: 実際に差し替わっていること（この assert が無いと復元検査が空振りする）
+      expect(whileStubbed).toEqual({ save: false, open: false, message: false });
+
+      await restoreDialogs(app);
+      const afterRestore = await app.evaluate(async ({ dialog }) => {
+        const o = (globalThis as any).__m5t4bDialogOriginals;
+        return {
+          save: dialog.showSaveDialog === o.showSaveDialog,
+          open: dialog.showOpenDialog === o.showOpenDialog,
+          message: dialog.showMessageBox === o.showMessageBox,
+        };
+      });
+      expect(afterRestore).toEqual({ save: true, open: true, message: true });
+
+      console.log('  AC11 前提: PASS（ダイアログが原本へ戻る）');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
   test('AC11 人間確認: 搬出済み地図・取込済み複製・アプリを揃えた状態で一時停止する', async () => {
     test.skip(process.env.MAPLAT_E2E_PAUSE !== '1',
       '人間確認用。MAPLAT_E2E_PAUSE=1 PWDEBUG=1 pnpm test:e2e:m5-t4b で実行する');
@@ -325,10 +396,12 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t4b-human-'));
     const { app, page } = await launch(e2eRoot);
     try {
+      // 準備のあいだだけダイアログを差し替える。原本は先に退避しておく
+      await snapshotDialogs(app);
       await stubMessageBoxAutoOk(app);
       const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot);
 
-      // 地図を搬出しておく
+      // 取込に使う ZIP を作るため、ここでは一度スクリプトから搬出する
       const zipPath = path.join(e2eRoot, 'map-export.zip');
       await app.evaluate(async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
@@ -338,13 +411,14 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       await page.locator('[data-editor-action="export"]').click();
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120000 });
 
-      // 別 slug の ZIP を用意し、取込ダイアログが返すようにしておく
+      // 別 slug の ZIP を用意する（取込の入力）
       const copySlug = `${seeded.mapSlug}-copy`;
       const copyZip = path.join(e2eRoot, 'map-copy.zip');
       await rewriteZipSlug(zipPath, copyZip, seeded.mapSlug, copySlug);
-      await app.evaluate(async ({ dialog }, inZip) => {
-        dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [inZip] })) as typeof dialog.showOpenDialog;
-      }, copyZip);
+
+      // 【重要】ここから先は人間の操作領域である ∴ ダイアログを**原本へ戻す**。
+      // 差し替えたままだと搬出が保存先を尋ねず、取込がファイル選択を出さない
+      await restoreDialogs(app);
 
       console.log('');
       console.log('=== M5-T4B 人間確認 ===');
@@ -358,16 +432,20 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       console.log("    activeTab === 'inout' でしか表示されず、タブ定義（:3777-3782）に 'inout' が");
       console.log('    無いためです。M11-T3 で意図的に撤去され M12-T23 で再編復帰予定、と');
       console.log('    同ファイルのコメントに記録されています。本タスクは導線を新設していません。');
-      console.log('    取込の確認は下の DevTools コンソールから次を実行してください:');
+      console.log('    取込の確認は DevTools コンソールから次を実行してください:');
       console.log('      await window.dataupload.showDataSelectDialog()');
-      console.log(`    （選択ダイアログは ${copyZip} を返すよう差し替え済みです）`);
+      console.log('    実行するとファイル選択ダイアログが出ます。上の「取込用 ZIP」を選んでください。');
+      console.log('');
+      console.log('  ※ ネイティブダイアログは原本へ戻してあります。搬出ボタンを押せば');
+      console.log('    保存先を尋ねるダイアログが出ます（準備中だけ差し替えていました）。');
       console.log('');
       console.log('  確認していただきたいこと:');
-      console.log('   1. 上記コマンドで複製が取り込め、slug が ' + copySlug + ' になること');
-      console.log('   2. 取り込んだ地図の POI が管理下 POI ソースとして復元され、表示されること');
-      console.log('   3. プレビューで POI（アイコン画像・吹き出しの埋め込み画像）が出ること');
-      console.log('   4. 取り込んだ地図を再搬出しても同じ資源構成の ZIP になること');
-      console.log('   5. アプリ搬出 → viewer 読込で POI が表示されること');
+      console.log('   1. 搬出ボタンで保存先ダイアログが出て、指定した場所に ZIP ができること');
+      console.log('   2. 上記コマンドで複製が取り込め、slug が ' + copySlug + ' になること');
+      console.log('   3. 取り込んだ地図の POI が管理下 POI ソースとして復元され、表示されること');
+      console.log('   4. プレビューで POI（アイコン画像・吹き出しの埋め込み画像）が出ること');
+      console.log('   5. 取り込んだ地図を再搬出しても同じ資源構成の ZIP になること');
+      console.log('   6. アプリ搬出 → viewer 読込で POI が表示されること');
       console.log('');
 
       await openHash(page, '#/mapedit');
