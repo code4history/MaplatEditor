@@ -7,7 +7,33 @@ import * as storeHandler from '../utils/store_handler';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 import SqliteDataService from './SqliteDataService';
 import { assertSafeArchiveEntries } from '../../src/utils/poiPackage';
-import { zipEntryInfos } from './PoiPackageService';
+import {
+  zipEntryInfos,
+  importManagedPoiDocuments,
+  type CompensationResidue,
+  type PoiZipImportCleanup,
+} from './PoiPackageService';
+import poiSourceService from './PoiSourceService';
+import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
+import { listPoiDocumentEntries } from '../../src/utils/poiPackage';
+
+// M5-T4B: 逆変換の入口は **map JSON の pois 配列** である。
+// ZIP のファイル一覧を起点にしてはならない — ファイル一覧は実体の供給元にすぎず、
+// 順序・上書き属性・重複参照・透過要素の情報は **すべて map JSON の pois にしかない**。
+const MANAGED_POI_DEST = /^pois\/[^/]+\.geojson$/i;
+
+function managedDestOf(entry: unknown): string | null {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const layer = (entry as { layer?: unknown }).layer;
+    if (typeof layer !== 'string' || !MANAGED_POI_DEST.test(layer)) return null;
+    return layer;
+}
+
+/** wrapper から layer を除いた上書き属性。**FC へ焼き込まず参照側に載せる**のが上書き仕様の存在意義 */
+function overridesOf(entry: unknown): Record<string, unknown> {
+    const { layer: _layer, ...rest } = entry as Record<string, unknown>;
+    return rest;
+}
 
 class DataUploadService {
     private get folders() {
@@ -32,9 +58,140 @@ class DataUploadService {
         return this.extractZip(ret.filePaths[0]);
     }
 
+    /**
+     * M5-T4B: map JSON が参照する managed POI を editor 正本形へ復元する。
+     *
+     * **入口は map JSON の pois 配列**（§5.2）。ZIP のファイル一覧は実体の供給元にすぎない。
+     * 配列の順序と要素数を保存し、管理下 entry だけを { poiUid, …上書き } へ戻す。
+     * 上書き属性は wrapper 側に載せたままにする（FC へ焼き込まない）。
+     *
+     * 重複排除は **本メソッドの責務**である — createPoiSourceFromManagedDocument は
+     * 呼び出しごとに1行作るため、同一 dest を指す複数 entry は Map<dest, poiUid> で畳む。
+     */
+    private async restoreManagedPois(zipFile: string, mapData: any): Promise<{
+        pois: unknown[] | null;
+        createdPoiUids: string[];
+        cleanupAssets: PoiZipImportCleanup | null;
+        warnings: string[];
+    }> {
+        const empty = { pois: null, createdPoiUids: [] as string[], cleanupAssets: null, warnings: [] as string[] };
+        const read = readAppDocumentPois(mapData as { pois?: unknown });
+        if (read.pois.length === 0) return empty;
+
+        // 参照されている dest（重複を畳んだ集合）
+        const referenced: string[] = [];
+        for (const entry of read.pois) {
+            const dest = managedDestOf(entry);
+            if (dest && !referenced.includes(dest)) referenced.push(dest);
+        }
+        if (referenced.length === 0) return empty;
+
+        const warnings: string[] = [];
+
+        // 余剰 entry: ZIP にあるのに map JSON が参照しない → warning。import しない
+        // （参照されない実体を勝手に取り込むと孤児 source が増える）
+        const inZip = listPoiDocumentEntries(zipEntryInfos(new AdmZip(zipFile)).map((i) => i.name));
+        for (const name of inZip) {
+            if (!referenced.includes(name)) {
+                warnings.push(`Unreferenced POI document in package: ${name}`);
+            }
+        }
+
+        // 欠損 dest は importManagedPoiDocuments が Error にする（黙って落とさない）
+        const imported = await importManagedPoiDocuments(zipFile, referenced);
+        warnings.push(...imported.warnings);
+
+        const createdPoiUids: string[] = [];
+        const byDest = new Map<string, string>();
+        try {
+            for (const dest of referenced) {
+                const fc = imported.documents.get(dest)!;
+                const result = await poiSourceService.createPoiSourceFromManagedDocument(fc, { dest });
+                if (!('result' in result) || result.result !== 'Success') {
+                    throw new Error(
+                        `Failed to create POI source for ${dest}: `
+                        + ('result' in result ? String((result as any).message ?? result.result) : 'unknown'),
+                    );
+                }
+                createdPoiUids.push(result.uid);
+                byDest.set(dest, result.uid);
+            }
+        } catch (e) {
+            // ここで失敗した場合、asset と作成済み source を巻き戻してから投げ直す。
+            // map 行はまだ無いので補償対象は2つだけである
+            await this.compensate({ createdPoiUids, cleanupAssets: imported.cleanup });
+            throw e;
+        }
+
+        // 順序と要素数を保存したまま復元する
+        const restored = read.pois.map((entry) => {
+            const dest = managedDestOf(entry);
+            if (!dest) return entry;                       // 透過（URL / インライン FC / 未知形）
+            return { poiUid: byDest.get(dest)!, ...overridesOf(entry) };
+        });
+
+        return { pois: restored, createdPoiUids, cleanupAssets: imported.cleanup, warnings };
+    }
+
+    /**
+     * M5-T4B: 補償（作成の逆順）。**途中で止めず**、到達できなかったものを残留として返す（I-4c）。
+     * 順序: 配置済みファイル → map 行 → poi_sources → asset
+     */
+    private async compensate(handle: {
+        placedPaths?: string[];
+        mapUid?: string;
+        createdPoiUids?: string[];
+        cleanupAssets?: PoiZipImportCleanup | null;
+    }): Promise<CompensationResidue[]> {
+        const residue: CompensationResidue[] = [];
+
+        // 1) 配置済みの tile・通常/512px サムネイル（新規 UID 配下のみ）
+        for (const p of handle.placedPaths ?? []) {
+            await fs.remove(p).catch((e) => {
+                console.warn('[DataUploadService] 配置済みファイルの補償に失敗:', p, e);
+            });
+        }
+        // 2) 新規 map 行
+        if (handle.mapUid) {
+            try {
+                await SqliteDataService.deleteMap(handle.mapUid);
+            } catch (e) {
+                console.warn('[DataUploadService] map 行の補償に失敗:', handle.mapUid, e);
+            }
+        }
+        // 3) 今回作成した poi_sources 行（**成功した作成のみ**が対象。逆順）
+        for (const uid of [...(handle.createdPoiUids ?? [])].reverse()) {
+            try {
+                await poiSourceService.delete(uid);
+            } catch (e) {
+                // 削除に到達できなかった → slug registry も解放されない ∴ 残留として申告する
+                residue.push({
+                    kind: 'poiSource',
+                    poiSourceUid: uid,
+                    dbError: e instanceof Error ? e.message : String(e),
+                });
+            }
+        }
+        // 4) 今回新規作成した asset
+        if (handle.cleanupAssets) {
+            residue.push(...(await handle.cleanupAssets()));
+        }
+        return residue;
+    }
+
     async extractZip(zipFile: string): Promise<any> {
         const { tileFolder, uiThumbnailFolder, tmpFolder } = this.folders;
         const dataTmpFolder = path.join(tmpFolder, 'zip');
+
+        // M5-T4B: 補償ハンドル。作成に成功したものだけを積み、失敗時に逆順で巻き戻す
+        const placedPaths: string[] = [];
+        let mapUid: string | undefined;
+        let restored: {
+            pois: unknown[] | null;
+            createdPoiUids: string[];
+            cleanupAssets: PoiZipImportCleanup | null;
+            warnings: string[];
+        } | null = null;
 
         try {
             await fs.remove(dataTmpFolder);
@@ -78,8 +235,26 @@ class DataUploadService {
             if (!fs.existsSync(tilePath)) throw 'NoTile';
             if (!fs.existsSync(tmbPath))  throw 'NoTmb';
 
+            // --- M5-T4B: 準備 — 外部 POI を editor 正本形へ復元する ---
+            // **map を保存する前**に行う。保存後だと、復元に失敗したとき既に map 行が
+            // 出来ており補償対象が増える。復元が失敗した場合は restoreManagedPois が
+            // 自前で asset / source を巻き戻して throw する（map 行はまだ無い）
+            restored = await this.restoreManagedPois(zipFile, mapData);
+            if (restored.warnings.length > 0) {
+                console.warn('[DataUploadService] POI restore warnings:', restored.warnings);
+            }
+            if (restored.pois !== null) {
+                // **常に配列へ復元する**（単独形へ戻さない）。搬出時点で単独形は1要素配列へ
+                // 正規化済みであり、ZIP に単独形だったという情報が残らないため戻す余地がない。
+                // かつ { poiUid } は非配列位置では読み戻せない（isPoiLayerRefAsWhole が
+                // 上書きキーを追加要求するため）∴ 配列に限るのが構造的に安全である
+                (mapData as any).pois = restored.pois;
+            }
+
             // --- 原版と同じ: raw mapData をそのまま新規作成 (uidが採番される) ---
+            // M5-T4B: pois は復元済みの内部形（{poiUid, …上書き}）で永続化される
             const { uid } = await SqliteDataService.createMap(mapID, mapData);
+            mapUid = uid;
 
             // 内部ファイル(tiles/tmbs)はuidキーに置く (ADR-0007)。zip内はslug名
             const tileToPath = path.join(tileFolder, uid);
@@ -88,8 +263,19 @@ class DataUploadService {
             // タイルとサムネイルを移動
             await fs.remove(tileToPath);
             await fs.move(tilePath, tileToPath);
+            placedPaths.push(tileToPath);
             await fs.remove(tmbToPath);
             await fs.move(tmbPath, tmbToPath);
+            placedPaths.push(tmbToPath);
+
+            // M5-T4B: 512px サムネイル。**旧 ZIP 互換のため入力に無い場合は保存対象なし**として扱う
+            const tmb512Path = path.join(tmbTmpFolder, `${mapID}_512.jpg`);
+            if (fs.existsSync(tmb512Path)) {
+                const tmb512ToPath = path.join(uiThumbnailFolder, `${uid}_512.jpg`);
+                await fs.remove(tmb512ToPath);
+                await fs.move(tmb512Path, tmb512ToPath);
+                placedPaths.push(tmb512ToPath);
+            }
 
             // --- 原版の normalizeRequestData 相当 ---
             // store2HistMap で store 形式 → histMap 形式に変換。
@@ -113,7 +299,24 @@ class DataUploadService {
             return { mapData: histMap, tins };
         } catch (err: any) {
             console.error('[DataUploadService] extractZip error', err);
-            return { err: typeof err === 'string' ? err : (err.message || 'Unknown') };
+            const message = typeof err === 'string' ? err : (err.message || 'Unknown');
+
+            // M5-T4B (I-4c): 補償し、**到達できなかったものを残留として申告する**。
+            // 補償が全て到達した場合のみ従来どおり { err } を返す。
+            // 残留が1件でもあれば residue を付ける ∴ 呼び出し側は 'residue' in result で
+            // 部分ロールバックを判定できる。renderer の既存 arg.err 分岐は追加フィールドの
+            // 影響を受けず無変更で通る
+            const residue = await this.compensate({
+                placedPaths,
+                mapUid,
+                createdPoiUids: restored?.createdPoiUids,
+                cleanupAssets: restored?.cleanupAssets,
+            });
+            if (residue.length > 0) {
+                console.warn('[DataUploadService] 補償に到達できなかった残留物があります:', residue);
+                return { err: message, residue };
+            }
+            return { err: message };
         }
     }
 }
