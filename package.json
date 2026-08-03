@@ -172,7 +172,8 @@
     "smoke:m5-t5-slug-rule-hyphen": "node scripts/m5-t5-slug-rule-hyphen-smoke.mjs",
     "smoke:m5-t5-import-slug-resolver": "node scripts/m5-t5-import-slug-resolver-smoke.mjs",
     "smoke:m5-t5-map-import-slug-collision": "node scripts/m5-t5-map-import-slug-collision-smoke.mjs",
-    "smoke:m5-t5-import-race-mapping": "node scripts/m5-t5-import-race-mapping-smoke.mjs"
+    "smoke:m5-t5-import-race-mapping": "node scripts/m5-t5-import-race-mapping-smoke.mjs",
+    "smoke:m5-t5-asset-slug-unification": "node scripts/m5-t5-asset-slug-unification-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

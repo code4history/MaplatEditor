@@ -267,16 +267,8 @@ class DataUploadService {
             const tmbPath   = path.join(tmbTmpFolder, `${mapID}.jpg`);
 
             // --- バリデーション (slugはグローバル一意: ADR-0007) ---
-            // M5-T5: 同名 slug を 'Exist' で拒否せず、POI import と同じ空き slug 解決へ揃える
-            // (base, base-2 … base-100)。規則は共有 API resolveImportSlug が正本。
-            //
-            // 【slug の3系統を混同しない】
-            //   読み出し (ZIP 内)   = 元 slug   … ZIP の中身は搬出時の名前のまま
-            //   内部格納             = uid       … ADR-0007。既に slug 非依存
-            //   DB / 返却 / 再搬出名 = 解決後 slug … 一意性の正本
-            // 読みを解決後 slug にすると衝突時に NoTile/NoTmb へ化ける (ZIP にその名前は無い)。
-            const resolvedSlug = await resolveImportSlug(mapID);
-            if (resolvedSlug === null) throw 'Exist'; // base-100 まで枯渇
+            // M5-T5: 同名 slug は 'Exist' で拒否せず自動解決するため、ここでの slug 検査は
+            // 無くなった。構造的な欠落 (タイル・サムネイル) だけを先に弾く。
             if (!fs.existsSync(tilePath)) throw 'NoTile';
             if (!fs.existsSync(tmbPath))  throw 'NoTmb';
 
@@ -295,6 +287,24 @@ class DataUploadService {
                 // 上書きキーを追加要求するため）∴ 配列に限るのが構造的に安全である
                 (mapData as any).pois = restored.pois;
             }
+
+            // --- M5-T5: 地図 slug の解決 ---
+            // 同名 slug を 'Exist' で拒否せず、POI import と同じ空き slug 解決へ揃える
+            // (base, base-2 … base-100)。規則は共有 API resolveImportSlug が正本。
+            //
+            // 【解決は restoreManagedPois の **後** で行う】
+            // slug は asset 種別を跨いで一意 (ADR-0007) であり、POI 復元は同じ import の中で
+            // poi_sources の slug を消費する。復元より前に解決すると、その結果は復元が
+            // 走った時点で古くなり、createMap が自分自身の import に負ける。
+            // 解決は **書込の直前** に置くのが唯一正しい位置である。
+            //
+            // 【slug の3系統を混同しない】
+            //   読み出し (ZIP 内)   = 元 slug   … ZIP の中身は搬出時の名前のまま
+            //   内部格納             = uid       … ADR-0007。既に slug 非依存
+            //   DB / 返却 / 再搬出名 = 解決後 slug … 一意性の正本
+            // 読みを解決後 slug にすると衝突時に NoTile/NoTmb へ化ける (ZIP にその名前は無い)。
+            const resolvedSlug = await resolveImportSlug(mapID);
+            if (resolvedSlug === null) throw 'Exist'; // base-100 まで枯渇
 
             // --- raw mapData をそのまま新規作成 (uidが採番される) ---
             // M5-T4B: pois は復元済みの内部形（{poiUid, …上書き}）で永続化される
