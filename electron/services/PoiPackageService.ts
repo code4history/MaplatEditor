@@ -8,6 +8,7 @@ import {
   assertSafePoiPackageEntries,
   findPoiDocumentEntry,
   rewritePoiMediaReferences,
+  type PoiPackageEntryInfo,
 } from '../../src/utils/poiPackage';
 import SqliteDataService from './SqliteDataService';
 import SettingsService from './SettingsService';
@@ -46,6 +47,21 @@ function safeSlug(value: unknown): string {
 function isSymlinkEntry(entry: AdmZip.IZipEntry): boolean {
   const mode = (Number(entry.header.attr) >>> 16) & 0o170000;
   return mode === 0o120000;
+}
+
+/**
+ * M5-T4: AdmZip の entry を安全検証・容量検査の入力形へ変換する共通処理。
+ *
+ * 地図 ZIP 側（DataUploadService）も同じ変換を要するが、そこで組み直すと
+ * **symlink 判定（上の isSymlinkEntry）が二重実装になる**。判定を1本に保つため
+ * ここを唯一の変換点とする（恒久指示「同一扱い処理は共通実装へ徹底」）。
+ */
+export function zipEntryInfos(zip: AdmZip): PoiPackageEntryInfo[] {
+  return zip.getEntries().map((entry) => ({
+    name: entry.entryName,
+    size: Number(entry.header.size),
+    isSymlink: isSymlinkEntry(entry),
+  }));
 }
 
 export async function inspectPoiExport(fc: FeatureCollection): Promise<PoiExportInspection> {
@@ -109,11 +125,9 @@ async function availableAssetSlug(base: string): Promise<string> {
 export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
   const zip = new AdmZip(filePath);
   const allEntries = zip.getEntries();
-  assertSafePoiPackageEntries(allEntries.map((entry) => ({
-    name: entry.entryName,
-    size: Number(entry.header.size),
-    isSymlink: isSymlinkEntry(entry),
-  })));
+  // POI 単体パッケージは **全 entry が payload** であるため、上限も全 entry へ掛ける
+  // （payload 外 entry による zip-bomb を取り逃がさない）
+  assertSafePoiPackageEntries(zipEntryInfos(zip));
   const entries = allEntries.filter((entry) => !entry.isDirectory);
   const poiEntryName = findPoiDocumentEntry(entries.map((entry) => entry.entryName));
   const byName = new Map(entries.map((entry) => [entry.entryName, entry]));

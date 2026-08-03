@@ -153,7 +153,8 @@
     "smoke:m5-t2-url-type": "node scripts/m5-t2-url-type-smoke.mjs",
     "smoke:m5-t3-url-derivation-unification": "node scripts/m5-t3-url-derivation-unification-smoke.mjs",
     "smoke:m5-t4-package-limit-scope": "node scripts/m5-t4-package-limit-scope-smoke.mjs",
-    "smoke:m5-t4-compensation-declaration": "node scripts/m5-t4-compensation-declaration-smoke.mjs"
+    "smoke:m5-t4-compensation-declaration": "node scripts/m5-t4-compensation-declaration-smoke.mjs",
+    "smoke:m5-t4-archive-safety-timing": "node scripts/m5-t4-archive-safety-timing-smoke.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",
