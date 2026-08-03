@@ -53,6 +53,19 @@ export type ImageAssetSaveResult =
   | { result: 'Error'; code: ImageAssetErrorCode; message?: string; uid?: string; slug?: string; revision?: number }
   | { error: 'revision-conflict'; current: number };
 
+// 削除結果 (M5-T4 / I-4c)。ok は **DB 行・registry の除去** の成否であり、対象不在の no-op も true。
+// bytes は **バイト実体の帰趨** を別軸で申告する — この2軸を分けないと、補償として delete を
+// 呼んだ側が「実体が live path に残っている」ことを検知できない。
+//   'absent'   実体がもともと無かった (対象不在 / ファイル欠落)
+//   'trashed'  _trash へ退避できた (残留なし)
+//   'retained' 退避に失敗し live path に残っている → retainedPath と warning が付く
+export type ImageAssetDeleteResult = {
+  ok: true;
+  bytes: 'absent' | 'trashed' | 'retained';
+  retainedPath?: string;
+  warning?: { stage: 'trash'; message: string };
+};
+
 // 一覧/取得行: バイト実体を含まない (43 §7)
 export interface ImageAssetSummary {
   uid: string;
@@ -305,30 +318,42 @@ export class ImageAssetService {
 
   // 削除: DB行・registryを掃除した後、実体は削除せず _trash へ退避する(ユーザーデータの保全)。
   // 対象が既に存在しない場合は no-op として成功扱い(冪等)
-  async delete(uid: string): Promise<{ ok: true }> {
+  //
+  // M5-T4 (I-4c): 退避の失敗を **戻り値で申告する**。「DBは正、ファイル操作の失敗はログのみ」
+  // というリポジトリ方針(本ファイル :9-11)は覆さない — DB 行が消えた以上 ok:true のままである。
+  // 変えたのは「呼び出し側が実体の帰趨を知れなかった」点だけである。補償として delete を呼ぶ
+  // 側は、実体が live path に残ったのか _trash へ退いたのかで残留物の有無が変わるため、
+  // ok:true だけでは **補償を成功したことにしてしまう**（I-4c が禁じる状態）。
+  async delete(uid: string): Promise<ImageAssetDeleteResult> {
     const existing = await SqliteDataService.findAsset(uid);
-    if (!existing) return { ok: true };
+    if (!existing) return { ok: true, bytes: 'absent' };
 
     await SqliteDataService.deleteAsset(uid);
 
     const from = path.join(this.assetsDir, `${existing.uid}.${existing.ext}`);
-    if (await fs.pathExists(from)) {
-      const trashDir = path.join(this.assetsDir, '_trash');
-      try {
-        await fs.ensureDir(trashDir);
-        let to = path.join(trashDir, `${existing.uid}.${existing.ext}`);
-        let suffix = 1;
-        while (await fs.pathExists(to)) {
-          to = path.join(trashDir, `${existing.uid}.${suffix}.${existing.ext}`);
-          suffix++;
-        }
-        await fs.move(from, to, { overwrite: false });
-      } catch (e) {
-        // DBは既にコミット済み: 退避に失敗しても削除自体は成功として扱う(実体は assets/ 直下に残るのみ)
-        console.warn(`[ImageAssetService] failed to move deleted asset to trash: ${from}`, e);
+    if (!(await fs.pathExists(from))) return { ok: true, bytes: 'absent' };
+
+    const trashDir = path.join(this.assetsDir, '_trash');
+    try {
+      await fs.ensureDir(trashDir);
+      let to = path.join(trashDir, `${existing.uid}.${existing.ext}`);
+      let suffix = 1;
+      while (await fs.pathExists(to)) {
+        to = path.join(trashDir, `${existing.uid}.${suffix}.${existing.ext}`);
+        suffix++;
       }
+      await fs.move(from, to, { overwrite: false });
+      return { ok: true, bytes: 'trashed' };
+    } catch (e) {
+      // DBは既にコミット済み: 退避に失敗しても削除自体は成功として扱う(実体は assets/ 直下に残るのみ)
+      console.warn(`[ImageAssetService] failed to move deleted asset to trash: ${from}`, e);
+      return {
+        ok: true,
+        bytes: 'retained',
+        retainedPath: from,
+        warning: { stage: 'trash', message: e instanceof Error ? e.message : String(e) },
+      };
     }
-    return { ok: true };
   }
 
   // 逆参照: uid-or-slug 参照を uid へ解決してから poi_sources を走査する (findAssetByRef と同じ
