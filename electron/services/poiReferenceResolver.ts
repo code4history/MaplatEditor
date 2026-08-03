@@ -29,6 +29,7 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { parseIconRef, listIconSets } from '../../src/utils/iconRefs';
 import { compactLangResource, type LangResource } from '../../src/utils/langResource';
 import { DEFAULT_LANG } from '../../src/utils/poiGeoJson';
+import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import {
   poisEntryShape,
   hasMixedPoisShapes,
@@ -558,6 +559,75 @@ export async function externalizePoisArray(
 }
 
 // icon 実体コピー要求の重複なし合流 (dest キーで畳む — 複数 pois 配列/複数 map をまたぐ集約用)
+/**
+ * M5-T4B: 交換形 map JSON の POI を読み、ctx で外部化して **書き戻す**。
+ *
+ * **地図 ZIP 搬出（mapDownloadZip）とアプリ搬出（AppExportService）が共有する唯一の実装**である。
+ * 従来この4行は両者に別々に書かれており、map 側だけ `Array.isArray` の生判定だったため
+ * 単独形の地図で POI が未処理のまま素通りしていた（m4-t4 が app 側だけ是正した欠陥）。
+ * 読み出しと外部化を1本にすることで、同種のずれが構造的に起きないようにする
+ * （恒久指示「同一扱い処理は共通実装へ徹底」）。
+ *
+ * **ctx の寿命は呼び出し側が決める** — 地図 ZIP は搬出1回＝地図1枚、アプリ搬出は
+ * app + 全 map で1つを共有する。これは出力プロファイルの差であって契約の差ではない。
+ *
+ * 戻り値の `sourcePois` は **外部化前**の読み出し結果である。呼び出し側が
+ * 固有の判定（アプリ搬出の二重参照検出など）に使うために返す。
+ * POI が1件も無い場合は `result` が null になり、`mapJson.pois` は触らない
+ * （元に無いキーを生やさない・未対応形式の生値を壊さない）。
+ */
+export async function externalizeMapDocumentPois(
+  mapJson: { pois?: unknown },
+  ctx: PoiExternalizationContext,
+  options: { exportForm?: (uid: string) => Promise<unknown | null> } = {},
+): Promise<{ sourcePois: unknown[]; result: ExternalizedPois | null }> {
+  const sourcePois = readAppDocumentPois(mapJson).pois;
+  if (sourcePois.length === 0) return { sourcePois, result: null };
+  const result = await externalizePoisArray(sourcePois, ctx, options);
+  (mapJson as { pois?: unknown }).pois = result.pois;
+  return { sourcePois, result };
+}
+
+/**
+ * M5-T4B: POI 実体（`pois/<name>.geojson`）の書き出し。
+ *
+ * **地図 ZIP 搬出とアプリ搬出が共有する唯一の実装**である。
+ * 従来この書き出しは両者に別々に書かれており、次の2点がずれていた
+ * （2026-08-03 に人間が「同じ実体が経路で別物になっている」と指摘）:
+ *
+ *   1. **整形** — アプリ搬出は pretty、地図 ZIP は `JSON.stringify`（minify）だった。
+ *      同じ dest の同じ実体が、どちらの ZIP から出たかで別物になる
+ *   2. **境界検査** — アプリ搬出だけが「dest が pois/ の外へ出ていないか」を再検査していた。
+ *      地図 ZIP 側は `path.posix.basename` でディレクトリを捨てていたため素通りしていた
+ *
+ * 出力先ルートだけが呼び出し側の関心事である（アプリ搬出は配布ディレクトリ、
+ * 地図 ZIP は ZIP へ積む前の一時ディレクトリ）。∴ ルートを引数に取り、
+ * その下の `pois/` 配下であることを保証して書く。
+ *
+ * 戻り値は書き出した実ファイルパス（`documents` と同じ順序）。
+ */
+export const POI_DOCUMENT_JSON_SPACES = 2;
+
+export async function writePoiDocuments(
+  rootDir: string,
+  documents: Iterable<PoiDocument>,
+): Promise<string[]> {
+  const poisRoot = path.join(rootDir, 'pois');
+  const written: string[] = [];
+  for (const doc of documents) {
+    // dest は externalizePoisArray が sanitize 済みだが、書き出し直前にも境界を再検査する
+    // (iconSetFilePath と同じ多重防御)。名前の基底には利用者が raw JSON で書ける
+    // 生 FC の id が含まれ、DB 側の slug 検査を通らないため — M4-T2 §2.3 / §5.2
+    const target = path.resolve(rootDir, ...doc.dest.split('/'));
+    if (target !== poisRoot && !target.startsWith(poisRoot + path.sep)) {
+      throw new Error(`POI document escaped the output directory: ${doc.dest}`);
+    }
+    await fs.outputJson(target, doc.json, { spaces: POI_DOCUMENT_JSON_SPACES });
+    written.push(target);
+  }
+  return written;
+}
+
 export function mergeIconFiles(target: Map<string, IconFile>, added: IconFile[]): void {
   for (const file of added) {
     target.set(file.dest, file);

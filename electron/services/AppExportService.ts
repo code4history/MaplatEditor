@@ -16,7 +16,9 @@ import {
   mergeIconFiles,
   mergeWarnings,
   externalizePoisArray,
+  externalizeMapDocumentPois,
   createPoiExternalizationContext,
+  writePoiDocuments,
   DUPLICATE_POI_REFERENCE_WARNING,
   type IconFile,
   type PoiExternalizationContext,
@@ -257,7 +259,11 @@ class AppExportService {
 
       // 1) apps/{appID}.json (pois は pois/<name>.geojson への参照 + 上書き属性へ変換される、M4-T2)
       const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings, iconFiles, poiCtx);
-      await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 4 });
+      // M5-T4B: pretty の字下げは **2-space**（2026-08-03 人間指示）。
+      // 手編集用途のため pretty を保つが、幅は 4 ではなく 2 とする。
+      // POI 単体パッケージの搬出（PoiPackageService:90,93）が既に 2-space であり、
+      // アプリ搬出だけ 4-space だったのを揃える
+      await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 2 });
 
       // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
       const appPoiUids = collectPoiUids(readAppDocumentPois(document).pois);
@@ -284,20 +290,31 @@ class AppExportService {
         // 3件がこの形であり、t4 で MapEdit が編集可能にした形でもある ∴ 同一扱いへ寄せる
         // (恒久指示「同一扱い処理は共通実装へ徹底」)。未対応形式は従来どおり空配列になるので、
         // その場合の挙動 (pois を触らない) も変わらない。
-        const mapPois = readAppDocumentPois(mapJson as { pois?: unknown }).pois;
-        if (mapPois.length > 0) {
+        // M5-T4B: 読み出しと外部化を **地図 ZIP 搬出と共有する唯一の実装** へ寄せる
+        // (externalizeMapDocumentPois)。従来この4行は mapDownloadZip 側にも別々に書かれており、
+        // map 側だけ Array.isArray の生判定だったため単独形の地図で POI が素通りしていた。
+        // sourcePois は **外部化前** の読み出し結果で、下の二重参照検出に使う
+        // (アプリ搬出固有の判定であり共通化の対象ではない)。
+        const { sourcePois: mapPois, result: externalized } =
+          await externalizeMapDocumentPois(mapJson as { pois?: unknown }, poiCtx);
+        if (externalized) {
+          // 二重参照の警告は externalized.warnings より **先** に積む (従来の順序を保つ)
           if (!duplicateReference && hasSharedPoiUid(collectPoiUids(mapPois), appPoiUids)) {
             duplicateReference = true;
             mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
           }
-          // M4-T2: 外部ファイル化。icon 参照文法 (POI-117) と maplat-asset:<UID> (M11-T9) の
-          // 解決は externalizePoisArray が実体側・参照側の双方で行う
-          const externalized = await externalizePoisArray(mapPois, poiCtx);
           mergeWarnings(warnings, externalized.warnings);
           mergeIconFiles(iconFiles, externalized.files);
-          (mapJson as any).pois = externalized.pois;
         }
-        await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson, { spaces: 4 });
+        // M5-T4B: **地図 JSON は搬出種別を問わず minify** する（地図 ZIP と同じ扱い）。
+        // 地図データは容量が大きくなりやすく、整形の空白がそのまま配布サイズに乗る。
+        //
+        // マイルストーン設計 I-5 は「アプリ JSON は pretty / **地図 ZIP の** maps/<slug>.json は
+        // minify」と**パッケージ単位**で書かれていたため、アプリ ZIP に入る地図 JSON まで
+        // pretty のままになっていた。人間の指示は m5-t4 再設計時から一貫して
+        // 「地図 JSON は minify」という**内容種別単位**であり、こちらが正しい（2026-08-03 訂正）。
+        // pretty のまま残すのは手編集用途の apps/<appID>.json と pois/*.geojson である。
+        await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson);
         progressState.step++;
         reporter.update(progressState.step, `${slug} (0/${tileFileCounts.get(source) ?? 0})`);
 
@@ -321,17 +338,9 @@ class AppExportService {
       // 2.5) pois/{name}.geojson — app / map から参照される POI 実体 (M4-T2)。
       //      app と map の双方の合成が終わってから一括で書き出す (同一ソースの二重参照は
       //      poiCtx で既に1エントリへ畳まれている)。
-      //      dest は externalizePoisArray が sanitize 済みだが、書き出し直前にも境界を再検査する
-      //      (iconSetFilePath と同じ多重防御)。名前の基底には利用者が raw JSON で書ける
-      //      生 FC の id が含まれ、DB 側の slug 検査を通らないため — M4-T2 §2.3 / §5.2
-      const poisRoot = path.join(outDir, 'pois');
-      for (const doc of poiCtx.documents.values()) {
-        const target = path.resolve(outDir, ...doc.dest.split('/'));
-        if (target !== poisRoot && !target.startsWith(poisRoot + path.sep)) {
-          throw new Error(`POI document escaped the output directory: ${doc.dest}`);
-        }
-        await fs.outputJson(target, doc.json, { spaces: 4 });
-      }
+      //      M5-T4B: 書き出し（整形・境界検査）は地図 ZIP 搬出と共有する writePoiDocuments が担う。
+      //      ここに直接書くと、同じ dest の同じ実体が経路によって別物になる
+      await writePoiDocuments(outDir, poiCtx.documents.values());
 
       // 3) TMSソースのサムネイル
       //    tmbs/… はデータフォルダから、basemap_icons/… はアプリ同梱リソースからコピーする。

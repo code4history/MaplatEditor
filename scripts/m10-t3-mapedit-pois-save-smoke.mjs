@@ -181,8 +181,15 @@ try {
       );
       console.log('ok: (3) maps without pois do not grow a pois key');
 
-      // --- ④ download 経路 (composeDownloadMapJson) でも {poiUid} 参照が export 形 FC へ
-      //     解決され、未解決の poiUid キーが出力に残らないこと (Phase 7 品質レビュー M2) ---
+      // --- ④ download 経路 (composeDownloadMapJson) でも {poiUid} 参照が解決され、
+      //     未解決の poiUid キーが出力に残らないこと (Phase 7 品質レビュー M2) ---
+      //
+      // 【M5-T4B で解決形が変わった】M2 当時は地図 ZIP だけが POI を
+      // **インライン FC** へ展開していたが、m5-t4b でアプリ搬出と同じ
+      // **外部参照**（pois/<name>.geojson + 実体同梱）へ統一された。
+      // ここで固定すべき意図は「未解決の {poiUid} を出力へ漏らさない」
+      // 「件数を変えない」「解決できるなら warning を出さない」であり、
+      // それらは保ったまま形だけを新契約へ合わせる（m5-t4b AC2）。
       const created = await PoiSourceService.createLocal({ slug: 'download-poi', title: 'ダウンロードPOI' });
       assert.equal(created.result, 'Success', 'createLocal は Success のはず: ' + JSON.stringify(created));
       const srcUid = created.uid;
@@ -214,24 +221,45 @@ try {
       );
       // download 経路と同じ入力形 (MapEditService.request で読み込んだ編集用オブジェクト) を合成する
       const downloadMapObject = await MapEditService.request(downloadSaveResult.uid);
-      const { compiled: downloadCompiled, warnings: downloadWarnings } =
+      const { compiled: downloadCompiled, warnings: downloadWarnings, documents: downloadDocuments } =
         await composeDownloadMapJson(downloadMapObject, []);
       assert.ok(Array.isArray(downloadCompiled.pois), 'download 出力に pois 配列があるはず');
       assert.equal(downloadCompiled.pois.length, 2, 'download 出力の pois 件数が変わらないはず');
-      const resolvedFc = downloadCompiled.pois[0];
+      const resolvedRef = downloadCompiled.pois[0];
       assert.ok(
-        resolvedFc && typeof resolvedFc === 'object' && !('poiUid' in resolvedFc),
-        'download 出力の pois[0] は未解決の {poiUid} ではなく解決済み FC のはず: ' + JSON.stringify(resolvedFc)
+        resolvedRef && typeof resolvedRef === 'object' && !('poiUid' in resolvedRef),
+        'download 出力の pois[0] に未解決の {poiUid} が残らないはず: ' + JSON.stringify(resolvedRef)
       );
-      assert.equal(resolvedFc.type, 'FeatureCollection', 'download 出力の pois[0] は FeatureCollection のはず');
-      assert.equal(resolvedFc.id, 'download-poi', 'download 出力の FC.id は POI ソースの slug のはず');
-      assert.equal(downloadCompiled.pois[1], RAW_URL, '生 URL は download 出力でも透過されるはず');
+      assert.equal(
+        resolvedRef.layer, 'pois/download-poi.geojson',
+        'M5-T4B: download 出力の pois[0] は外部参照 pois/<slug>.geojson のはず: '
+          + JSON.stringify(resolvedRef)
+      );
+      assert.equal(
+        resolvedRef.type, undefined,
+        'M5-T4B: インライン FC へ展開しないはず（実体は documents 側へ出る）'
+      );
+      // 実体は documents として返る（周囲の { compiled, warnings } と同じ戻り値）
+      assert.deepEqual(
+        downloadDocuments.map((d: any) => d.dest), ['pois/download-poi.geojson'],
+        'M5-T4B: 外部化された実体が documents へ乗るはず: ' + JSON.stringify(downloadDocuments)
+      );
+      assert.equal(
+        downloadDocuments[0].json.type, 'FeatureCollection',
+        'M5-T4B: 実体は export 形 FC のはず'
+      );
+      assert.deepEqual(
+        downloadCompiled.pois[1], { layer: RAW_URL },
+        'M5-T4B: 生 URL は {layer:URL} へ包まれて透過するはず'
+          + '（viewer の先頭要素モード判定を避けるため）: '
+          + JSON.stringify(downloadCompiled.pois[1])
+      );
       assert.ok(
         !JSON.stringify(downloadCompiled.pois).includes('"poiUid"'),
         'download 出力全体に未解決の poiUid キーが残らないはず'
       );
       assert.deepEqual(downloadWarnings, [], 'すべて解決できるため download の warnings は空のはず');
-      console.log('ok: (4) composeDownloadMapJson resolves {poiUid} references in download output (M2)');
+      console.log('ok: (4) composeDownloadMapJson resolves {poiUid} references in download output (M2 → M5-T4B 外部参照)');
 
       console.log('M10-T3 mapedit pois save smoke passed');
       process.exit(0);

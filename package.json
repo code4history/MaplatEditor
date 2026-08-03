@@ -159,7 +159,16 @@
     "smoke:m5-t4-managed-poi-source": "node scripts/m5-t4-managed-poi-source-smoke.mjs",
     "smoke:m5-t6-large-image-decode-limits": "node scripts/m5-t6-decode-budget-phase-a.mjs && node scripts/m5-t6-large-image-decode-limits-smoke.mjs",
     "smoke:m5-t6-decode-budget": "node scripts/m5-t6-decode-budget-phase-a.mjs",
-    "test:e2e:m5-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t6-jpeg-decode-limits.spec.ts"
+    "test:e2e:m5-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t6-jpeg-decode-limits.spec.ts",
+    "smoke:m5-t4b-map-export-poi-parity": "node scripts/m5-t4b-map-export-poi-parity-smoke.mjs",
+    "smoke:m5-t4b-map-zip-contents": "node scripts/m5-t4b-map-zip-contents-smoke.mjs",
+    "smoke:m5-t4b-import-poi-restore": "node scripts/m5-t4b-import-poi-restore-smoke.mjs",
+    "smoke:m5-t4b-import-compensation": "node scripts/m5-t4b-import-compensation-smoke.mjs",
+    "smoke:m5-t4b-export-unification-parity": "node scripts/m5-t4b-export-unification-parity-smoke.mjs",
+    "smoke:m5-t4b-poi-representation-matrix": "node scripts/m5-t4b-poi-representation-matrix-smoke.mjs",
+    "smoke:m5-t4b-roundtrip-end-to-end": "node scripts/m5-t4b-roundtrip-end-to-end-smoke.mjs",
+    "test:e2e:m5-t4b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t4b-map-package-roundtrip.spec.ts",
+    "test:e2e:m5-t4b-import-draft": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t4b-import-draft-cleanup.spec.ts"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

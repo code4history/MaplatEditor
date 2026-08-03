@@ -30,9 +30,20 @@ export type PoiExportInspection = {
 // asset は「DB は消えたがバイト実体が live path に残る」という部分的な残留があり得るが
 // (retainedPath)、poi_sources 行は DB のみのため残留の形が異なる。1つの型に混ぜると
 // retainedPath が asset にしか意味を持たない曖昧なフィールドになる。
+//
+// M5-T4B (実装レビュー Major-1): 地図 ZIP import の補償対象は4つある
+// （配置済みファイル → map 行 → poi_sources → asset）。m5-t4 は POI 単体パッケージだけを
+// 見ていたため asset / poiSource の2枝しか持たず、地図 ZIP 経路で足りていなかった。
+// 残り2枝が無いと、タイル数百 MB の残留や孤児 map 行が
+// **「完全に巻き戻した」として申告される**（= residue 無しの { err }）。I-4c 違反である。
+// union への追加は後方互換（既存の消費者はログ出力のみ）。
 export type CompensationResidue =
   | { kind: 'asset'; assetUid: string; retainedPath?: string; dbError?: string }
-  | { kind: 'poiSource'; poiSourceUid: string; slug?: string; dbError?: string };
+  | { kind: 'poiSource'; poiSourceUid: string; slug?: string; dbError?: string }
+  /** 配置済みの tile・サムネイル等が消せずに live path に残った */
+  | { kind: 'file'; path: string; error: string }
+  /** 新規作成した map 行が消せずに DB に残った（slug registry も解放されない） */
+  | { kind: 'mapRow'; mapUid: string; dbError: string };
 
 /** 補償を最後まで試み、到達できなかったものを列挙して返す。**空配列 = 完全補償**。 */
 export type PoiZipImportCleanup = () => Promise<CompensationResidue[]>;
@@ -245,6 +256,26 @@ export async function importManagedPoiDocuments(
     }
   };
 
+  // M5-T4B: html 本文の imgs 参照を asset の正本記法へ戻す。
+  //
+  // 搬出側 (poiReferenceResolver.resolveAssetRefsForExport) は features[].properties.html の
+  // `maplat-asset:<UID>` を `imgs/<slug>.<ext>` へ置換して同梱する。その逆変換が無いと
+  // **ZIP 相対参照が DB へそのまま入り**、再搬出で前の ZIP のパスが漏れ出す (AC8)。
+  //
+  // resolveMedia と分ける理由: icon の正本は裸の asset UID だが、html 本文の正本は
+  // `maplat-asset:<UID>` である。同じ resolver を使うと html に裸 UID が書かれ、
+  // viewer からも editor からも画像として解決できない文字列になる。
+  const resolveHtmlAssetRef = async (imgsPath: string): Promise<string | null> => {
+    // html は **利用者が書く自由記述**である。ZIP に無い imgs/... は我々が書いた参照ではない
+    // ∴ Error にせず原文のまま残す。pois/*.geojson や icon の欠損を Error にする契約
+    // （AC7）とはここが違う — 搬出側は html へ書いた imgs/... を必ず同梱するため、
+    // 「我々が書いた参照」は常に byName に居る
+    if (!byName.has(imgsPath)) return null;
+    const resolved = await resolveMedia(imgsPath);
+    // icon set 参照 (`setId:iconId`) や未解決の原文はそのまま残す — asset ではない
+    return resolved === imgsPath || resolved.includes(':') ? null : resolved;
+  };
+
   const documents = new Map<string, FeatureCollection>();
   try {
     for (const dest of dests) {
@@ -260,7 +291,8 @@ export async function importManagedPoiDocuments(
       } catch {
         throw new Error('POI package GeoJSON is not valid JSON');
       }
-      documents.set(dest, await rewritePoiMediaReferences(fc, resolveMedia) as FeatureCollection);
+      documents.set(dest, await rewritePoiMediaReferences(
+        fc, resolveMedia, resolveHtmlAssetRef) as FeatureCollection);
     }
     return { documents, createdAssetUids, cleanup, warnings };
   } catch (error) {

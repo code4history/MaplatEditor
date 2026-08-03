@@ -133,6 +133,10 @@ binaries are distributed via GitHub Releases.
 - POI sources export as GeoJSON, or as a ZIP package when they include image
   references, and can be imported back with internal image references
   resolved automatically
+- Maps export as a ZIP containing the map definition, tiles, both standard
+  and 512px thumbnails, and any POI layers as separate `pois/*.geojson`
+  files together with the images they reference; importing such a ZIP
+  restores those layers as managed POI sources
 - A map with unresolved ground-control-point errors cannot be previewed, but
   exporting the map itself still succeeds; an app that includes such a map,
   or that references a map missing from the database (e.g. deleted), is

@@ -116,6 +116,57 @@ export function findPoiDocumentEntry(names: readonly string[]): string {
 
 type MediaResolver = (value: string) => string | Promise<string>;
 
+/**
+ * M5-T4B: `properties.html` に埋め込まれた `imgs/<slug>.<ext>` を asset の正本記法へ戻す解決器。
+ *
+ * `MediaResolver` と分けているのは **正本の記法が違う**ためである。
+ * `icon` / `selectedIcon` / `image` の正本は**裸の asset UID**だが、
+ * html 本文中の正本は `maplat-asset:<UID>` である（`poiReferenceResolver.ASSET_REF_RE`）。
+ * 同じ resolver を使い回すと html に裸 UID が書かれ、viewer からも editor からも
+ * 画像として解決できない文字列になる。
+ *
+ * 戻り値 null は「asset として解決しない（原文を維持する）」を意味する。
+ */
+export type HtmlAssetRefResolver = (imgsPath: string) => Promise<string | null>;
+
+// html 本文中の imgs 参照。`imgs/icons/<set>/<id>.<ext>`（icon set の実体）は
+// スラッシュを許さないこの形にマッチしない ∴ 自然に対象外になる
+// （icon set は asset ではないため maplat-asset: 記法を持たない）。
+const HTML_IMGS_REF_RE = /imgs\/[A-Za-z0-9._-]+\.[A-Za-z0-9]+/g;
+
+// html は string か LangResource（{ja: "...", en: "..."}）のどちらかである。
+// 搬出側 replaceAssetRefsInLangValue と同じ2形を受ける（copy-on-write）。
+async function rewriteHtmlAssetRefs(
+  value: unknown,
+  resolve: HtmlAssetRefResolver,
+): Promise<{ value: unknown; changed: boolean }> {
+  if (typeof value === 'string') {
+    const found = [...new Set(value.match(HTML_IMGS_REF_RE) ?? [])];
+    if (found.length === 0) return { value, changed: false };
+    let out = value;
+    let changed = false;
+    for (const ref of found) {
+      const uid = await resolve(ref);
+      if (!uid) continue;
+      out = out.split(ref).join(`maplat-asset:${uid}`);
+      changed = true;
+    }
+    return { value: out, changed };
+  }
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const object = value as Record<string, unknown>;
+    let changed = false;
+    const next: Record<string, unknown> = {};
+    for (const [lang, text] of Object.entries(object)) {
+      const rewritten = await rewriteHtmlAssetRefs(text, resolve);
+      next[lang] = rewritten.value;
+      if (rewritten.changed) changed = true;
+    }
+    return { value: changed ? next : object, changed };
+  }
+  return { value, changed: false };
+}
+
 async function rewriteImage(value: unknown, resolve: MediaResolver): Promise<unknown> {
   if (typeof value === 'string') return resolve(value);
   if (Array.isArray(value)) return Promise.all(value.map((entry) => rewriteImage(entry, resolve)));
@@ -130,6 +181,7 @@ async function rewriteImage(value: unknown, resolve: MediaResolver): Promise<unk
 async function rewriteProperties(
   properties: Record<string, unknown>,
   resolve: MediaResolver,
+  resolveHtmlAssetRef?: HtmlAssetRefResolver,
 ): Promise<Record<string, unknown>> {
   let changed: Record<string, unknown> | null = null;
   for (const key of ['icon', 'selectedIcon'] as const) {
@@ -147,18 +199,31 @@ async function rewriteProperties(
       changed.image = next;
     }
   }
+  // M5-T4B: html 本文の imgs 参照を maplat-asset: へ戻す（搬出 resolveAssetRefsForExport の逆）。
+  // resolveHtmlAssetRef 未指定の呼び出し側は従来どおり html を触らない
+  if (resolveHtmlAssetRef && 'html' in properties) {
+    const rewritten = await rewriteHtmlAssetRefs(properties.html, resolveHtmlAssetRef);
+    if (rewritten.changed) {
+      if (!changed) changed = { ...properties };
+      changed.html = rewritten.value;
+    }
+  }
   return changed ?? properties;
 }
 
-export async function rewritePoiMediaReferences<T>(document: T, resolve: MediaResolver): Promise<T> {
+export async function rewritePoiMediaReferences<T>(
+  document: T,
+  resolve: MediaResolver,
+  resolveHtmlAssetRef?: HtmlAssetRefResolver,
+): Promise<T> {
   if (!document || typeof document !== 'object' || Array.isArray(document)) return document;
   const fc = document as Record<string, unknown>;
-  let output = await rewriteProperties(fc, resolve);
+  let output = await rewriteProperties(fc, resolve, resolveHtmlAssetRef);
 
   // m18-t5: FC.properties（layer metadata の正本位置）の icon 参照書き換え
   const fcProps = fc.properties;
   if (fcProps && typeof fcProps === 'object' && !Array.isArray(fcProps)) {
-    const changedProps = await rewriteProperties(fcProps as Record<string, unknown>, resolve);
+    const changedProps = await rewriteProperties(fcProps as Record<string, unknown>, resolve, resolveHtmlAssetRef);
     if (changedProps !== fcProps) {
       output = output === fc ? { ...fc } : output;
       output.properties = changedProps;
@@ -171,7 +236,8 @@ export async function rewritePoiMediaReferences<T>(document: T, resolve: MediaRe
       if (!feature || typeof feature !== 'object' || Array.isArray(feature)) return feature;
       const row = feature as Record<string, unknown>;
       if (!row.properties || typeof row.properties !== 'object' || Array.isArray(row.properties)) return feature;
-      const properties = await rewriteProperties(row.properties as Record<string, unknown>, resolve);
+      const properties = await rewriteProperties(
+        row.properties as Record<string, unknown>, resolve, resolveHtmlAssetRef);
       return properties === row.properties ? feature : { ...row, properties };
     }));
     if (features.some((feature, index) => feature !== originalFeatures[index])) {

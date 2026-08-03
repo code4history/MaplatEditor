@@ -428,7 +428,39 @@ try {
       assert.deepEqual(appJson.pois[2], { layer: 'https://example.com/external.geojson' });
 
       // --- AC2: maps/{slug}.json ---
-      const mapJson = JSON.parse(await fsReadFile(nodePath.join(exportDir, 'maps', 'm4t2map.json'), 'utf8'));
+      // M5-T4B: **地図 JSON は搬出種別を問わず minify** である。
+      // マイルストーン設計 I-5 は「アプリ JSON は pretty / 地図 ZIP の maps/<slug>.json は minify」と
+      // **パッケージ単位**で書かれていたが、人間の指示は m5-t4 再設計時から一貫して
+      // 「地図 JSON は minify」という **内容種別単位**であった（2026-08-03 に指摘・訂正）。
+      // アプリ ZIP の中の地図 JSON も同じ扱いにする（地図データは容量が大きくなりやすい）。
+      // pretty のままにするのは手編集用途の apps/<appID>.json と pois/*.geojson である。
+      const mapJsonText = await fsReadFile(nodePath.join(exportDir, 'maps', 'm4t2map.json'), 'utf8');
+      // minify 判定はエスケープに頼らず「正規の minify 直列化と一致するか」で見る
+      // （fs-extra は末尾へ改行を足すため trim してから比べる）
+      const isMinified = (text: string) => text.trim() === JSON.stringify(JSON.parse(text));
+      assert.ok(
+        isMinified(mapJsonText),
+        'M5-T4B: アプリ ZIP の maps/<slug>.json も minify のはず: '
+          + JSON.stringify(mapJsonText.slice(0, 120)),
+      );
+      // pretty 側は **2-space** で固定する（2026-08-03 人間指示）。
+      // POI 単体パッケージの搬出（PoiPackageService:90,93）が既に 2-space であり、
+      // アプリ ZIP の pois/*.geojson だけ 4-space だったのを揃える
+      const prettyWith = (text: string, indent: number) =>
+        text.trim() === JSON.stringify(JSON.parse(text), null, indent);
+      const appJsonText = await fsReadFile(nodePath.join(exportDir, 'apps', 'm4t2_app.json'), 'utf8');
+      assert.ok(
+        prettyWith(appJsonText, 2),
+        'M5-T4B: apps/<appID>.json は 2-space pretty のはず: '
+          + JSON.stringify(appJsonText.slice(0, 120)),
+      );
+      const poiDocText = await fsReadFile(nodePath.join(exportDir, 'pois', 'kyoto-poi.geojson'), 'utf8');
+      assert.ok(
+        prettyWith(poiDocText, 2),
+        'M5-T4B: pois/*.geojson は 2-space pretty のはず（POI 単体搬出と同じ）: '
+          + JSON.stringify(poiDocText.slice(0, 120)),
+      );
+      const mapJson = JSON.parse(mapJsonText);
       assert.equal(mapJson.pois.length, 1);
       assert.notEqual(mapJson.pois[0]?.type, 'FeatureCollection',
         'map JSON にインライン FC が残ってはいけない');
