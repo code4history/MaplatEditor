@@ -116,7 +116,10 @@
     "confirm_close_no_save": "The settings have been changed but not saved.\nDo you want to close without saving?",
     "select": "Select",
     "language": "Language",
-    "theme": "Theme"
+    "theme": "Theme",
+    "jpeg_decode_max_memory": "JPEG decode memory limit (MB)",
+    "jpeg_decode_max_resolution": "JPEG resolution limit (MP)",
+    "jpeg_decode_desc": "Raise these when a large map image cannot be imported. They do not reserve actual memory."
   },
   "maplist": {
     "title": "Map list",
@@ -354,7 +357,9 @@
     "staging": {
       "missing_tiles": "The map could not be saved because the temporary data for the map image is missing. Please upload the image again before saving."
     },
-    "poi_format_unsupported": "The POI data is in a format the editor does not support (for example an object keyed by layer name). The original data is preserved when you save and is output as-is to previews and exports, but editing on this tab is disabled."
+    "poi_format_unsupported": "The POI data is in a format the editor does not support (for example an object keyed by layer name). The original data is preserved when you save and is output as-is to previews and exports, but editing on this tab is disabled.",
+    "error_image_memory_limit": "Decoding this map image needs about {{required}} MB, but the current setting is {{configured}} MB. Raise \"JPEG decode memory limit\" on the Settings page to {{recommended}} MB or more.",
+    "error_image_resolution_limit": "This map image is about {{megapixels}} MP, but the current setting is {{configured}} MP. Raise \"JPEG resolution limit\" on the Settings page to {{recommended}} MP or more."
   },
   "mapupload": {
     "map_image": "Map Image",

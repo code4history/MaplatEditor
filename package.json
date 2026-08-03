@@ -156,7 +156,10 @@
     "smoke:m5-t4-compensation-declaration": "node scripts/m5-t4-compensation-declaration-smoke.mjs",
     "smoke:m5-t4-archive-safety-timing": "node scripts/m5-t4-archive-safety-timing-smoke.mjs",
     "smoke:m5-t4-managed-poi-documents": "node scripts/m5-t4-managed-poi-documents-smoke.mjs",
-    "smoke:m5-t4-managed-poi-source": "node scripts/m5-t4-managed-poi-source-smoke.mjs"
+    "smoke:m5-t4-managed-poi-source": "node scripts/m5-t4-managed-poi-source-smoke.mjs",
+    "smoke:m5-t6-large-image-decode-limits": "node scripts/m5-t6-decode-budget-phase-a.mjs && node scripts/m5-t6-large-image-decode-limits-smoke.mjs",
+    "smoke:m5-t6-decode-budget": "node scripts/m5-t6-decode-budget-phase-a.mjs",
+    "test:e2e:m5-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t6-jpeg-decode-limits.spec.ts"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

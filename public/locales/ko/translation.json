@@ -125,7 +125,10 @@
     "confirm_close_no_save": "설정이 변경되었지만 저장되지 않았습니다.\n저장하지 않고 닫으시겠습니까?",
     "select": "선택",
     "language": "언어",
-    "theme": "테마"
+    "theme": "테마",
+    "jpeg_decode_max_memory": "JPEG 디코딩 메모리 상한 (MB)",
+    "jpeg_decode_max_resolution": "JPEG 해상도 상한 (MP)",
+    "jpeg_decode_desc": "큰 지도 이미지를 가져올 수 없을 때 값을 올리세요. 실제 메모리를 예약하는 값이 아닙니다."
   },
   "maplist": {
     "title": "지도 목록",
@@ -363,7 +366,9 @@
     "originals": {
       "unsupported_extension": "지원하지 않는 이미지 형식입니다(jpg/jpeg/png만 지원). 다른 이미지 형식으로 다시 저장해 주세요."
     },
-    "poi_format_unsupported": "POI 데이터가 편집기에서 지원하지 않는 형식입니다(레이어 이름을 키로 하는 객체 형식 등). 원본 데이터는 저장해도 사라지지 않으며 미리 보기와 내보내기에 그대로 출력되지만, 이 탭에서의 편집은 비활성화됩니다."
+    "poi_format_unsupported": "POI 데이터가 편집기에서 지원하지 않는 형식입니다(레이어 이름을 키로 하는 객체 형식 등). 원본 데이터는 저장해도 사라지지 않으며 미리 보기와 내보내기에 그대로 출력되지만, 이 탭에서의 편집은 비활성화됩니다.",
+    "error_image_memory_limit": "이 지도 이미지를 디코딩하려면 약 {{required}} MB가 필요하지만 현재 설정은 {{configured}} MB입니다. 설정 페이지의 \"JPEG 디코딩 메모리 상한\"을 {{recommended}} MB 이상으로 올리세요.",
+    "error_image_resolution_limit": "이 지도 이미지는 약 {{megapixels}} MP이지만 현재 설정은 {{configured}} MP입니다. 설정 페이지의 \"JPEG 해상도 상한\"을 {{recommended}} MP 이상으로 올리세요."
   },
   "mapupload": {
     "map_image": "지도 이미지",

@@ -125,7 +125,10 @@
     "confirm_close_no_save": "Die Einstellungen wurden geändert, aber nicht gespeichert.\nMöchten Sie schließen, ohne zu speichern?",
     "select": "Auswählen",
     "language": "Sprache",
-    "theme": "Design"
+    "theme": "Design",
+    "jpeg_decode_max_memory": "JPEG-Dekodierungs-Speicherlimit (MB)",
+    "jpeg_decode_max_resolution": "JPEG-Auflösungslimit (MP)",
+    "jpeg_decode_desc": "Erhöhen Sie diese Werte, wenn ein großes Kartenbild nicht importiert werden kann. Sie reservieren keinen tatsächlichen Speicher."
   },
   "maplist": {
     "title": "Kartenliste",
@@ -363,7 +366,9 @@
     "originals": {
       "unsupported_extension": "Nicht unterstütztes Bildformat (nur jpg/jpeg/png werden unterstützt). Bitte mit einem anderen Bildformat erneut speichern."
     },
-    "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor (z. B. ein Objekt mit Ebenennamen als Schlüssel). Die Originaldaten bleiben beim Speichern erhalten und werden unverändert in Vorschau und Export ausgegeben, die Bearbeitung in diesem Tab ist jedoch deaktiviert."
+    "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor (z. B. ein Objekt mit Ebenennamen als Schlüssel). Die Originaldaten bleiben beim Speichern erhalten und werden unverändert in Vorschau und Export ausgegeben, die Bearbeitung in diesem Tab ist jedoch deaktiviert.",
+    "error_image_memory_limit": "Das Dekodieren dieses Kartenbilds benötigt etwa {{required}} MB, die aktuelle Einstellung ist jedoch {{configured}} MB. Erhöhen Sie „JPEG-Dekodierungs-Speicherlimit“ auf der Einstellungsseite auf {{recommended}} MB oder mehr.",
+    "error_image_resolution_limit": "Dieses Kartenbild hat etwa {{megapixels}} MP, die aktuelle Einstellung ist jedoch {{configured}} MP. Erhöhen Sie „JPEG-Auflösungslimit“ auf der Einstellungsseite auf {{recommended}} MP oder mehr."
   },
   "mapupload": {
     "map_image": "Kartenbild",

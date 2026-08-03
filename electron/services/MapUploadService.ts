@@ -14,6 +14,42 @@ import fileUrl from 'file-url';
 // @ts-ignore
 import { Jimp } from 'jimp';
 import { ProgressReporter } from '../utils/ProgressReporter';
+import SettingsService from './SettingsService';
+import { estimateJpegDecodeBudget, type JpegDecodeBudget } from '../utils/jpegDecodeBudget';
+
+/**
+ * M5-T6: 画像取り込みの結果契約（設計 §6.1 が唯一の記述）。
+ *
+ * 失敗時、予測由来の項目は `prediction` にまとめて**全部入りか無しか**にする。
+ * 個々を省略可にすると「requiredMemoryMB はあるが recommendedMemoryMB は無い」という
+ * 成立しない中間状態を作れてしまうため。renderer の分岐鍵も `prediction` の有無である。
+ */
+export type MapUploadResult =
+    | { width: number; height: number; url: string; imageExtension: string }
+    | { err: 'Canceled' }
+    | {
+          err: string;
+          errorCode: 'jpeg_memory_limit';
+          configuredMB: number;
+          prediction?: { requiredMemoryMB: number; recommendedMemoryMB: number };
+      }
+    | {
+          err: string;
+          errorCode: 'jpeg_resolution_limit';
+          configuredMP: number;
+          prediction?: { megapixels: number; recommendedResolutionMP: number };
+      }
+    | { err: string; errorCode: 'unknown' };
+
+/** jpeg-js の例外文言から、どちらのガードに当たったかを判別する（renderer では判別しない） */
+function classifyDecodeError(error: unknown): 'jpeg_memory_limit' | 'jpeg_resolution_limit' | 'unknown' {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    if (message.includes('maxMemoryUsageInMB')) return 'jpeg_memory_limit';
+    if (message.includes('maxResolutionInMP')) return 'jpeg_resolution_limit';
+    return 'unknown';
+}
+
+
 
 /**
  * 旧実装 thumbExtractor.make_thumbnail() 相当
@@ -115,15 +151,56 @@ async function imageCutter(
     win: BrowserWindow,
     srcFile: string,
     outFolder: string
-): Promise<{ width?: number; height?: number; url?: string; imageExtension?: string; err?: any }> {
+): Promise<MapUploadResult> {
+    // M5-T6: 事前判定に使うため、デコード設定と原本バッファを先に用意する。
+    const decodeLimits = SettingsService.getJpegDecodeLimits();
+    let sourceBuffer: Buffer;
+    let budget: JpegDecodeBudget | null = null;
+    let toExtKey: string;
     try {
         // 拡張子判定（旧実装と同じロジック）
-        const regex = /([^\\/]+)\.([^.]+)$/;
-        const match = srcFile.match(regex);
-        if (!match) return { err: '画像拡張子エラー' };
-        let toExtKey = match[2].toLowerCase();
+        const match = srcFile.match(/([^\\/]+)\.([^.]+)$/);
+        if (!match) return { err: '画像拡張子エラー', errorCode: 'unknown' };
+        toExtKey = match[2].toLowerCase();
         if (toExtKey === 'jpeg') toExtKey = 'jpg';
 
+        sourceBuffer = await fs.readFile(srcFile);
+
+        // M5-T6 (§5.4): デコードもタイル化も始める前に、ヘッダから必要量を予測して判定する。
+        // ここで弾けば利用者は数分待たされずに済み、かつ outFolder のクリアにも到達しないため
+        // **既存の下書きタイルを壊さない**。予測できない入力（PNG 等）は null が返り素通りする。
+        budget = estimateJpegDecodeBudget(sourceBuffer);
+        if (budget) {
+            if (budget.requiredMemoryMB > decodeLimits.maxMemoryUsageInMB) {
+                return {
+                    err: `jpeg decode memory limit: required ${budget.requiredMemoryMB}MB > configured ${decodeLimits.maxMemoryUsageInMB}MB`,
+                    errorCode: 'jpeg_memory_limit',
+                    configuredMB: decodeLimits.maxMemoryUsageInMB,
+                    prediction: {
+                        requiredMemoryMB: budget.requiredMemoryMB,
+                        recommendedMemoryMB: budget.recommendedMemoryMB,
+                    },
+                };
+            }
+            // jpeg-js のガードは `pixelsInFrame > maxResolutionInMP * 1e6` の厳密不等号。
+            // 同じ向きで判定する（等しい場合は通す）。
+            if (budget.megapixels > decodeLimits.maxResolutionInMP) {
+                return {
+                    err: `jpeg decode resolution limit: ${budget.megapixels}MP > configured ${decodeLimits.maxResolutionInMP}MP`,
+                    errorCode: 'jpeg_resolution_limit',
+                    configuredMP: decodeLimits.maxResolutionInMP,
+                    prediction: {
+                        megapixels: budget.megapixels,
+                        recommendedResolutionMP: budget.recommendedResolutionMP,
+                    },
+                };
+            }
+        }
+    } catch (err) {
+        return { err: err instanceof Error ? err.message : String(err), errorCode: 'unknown' };
+    }
+
+    try {
         // M12-T20 (§6.1): 自 dir のみをクリアして書く（旧実装の tmpFolder/tiles 全消しを置換。
         // 単一スロット衝突の解消）。削除プリミティブは fs.remove（symlink 非追従。§6.1 の契約
         // — fs.emptyDir 等リンク先へ降りるプリミティブは使わない）
@@ -136,7 +213,20 @@ async function imageCutter(
         await fs.ensureDir(outFolder);
 
         // 旧実装: Jimp で画像読み込み、幅・高さ・最大ズーム計算
-        const imageJimp = await Jimp.read(srcFile);
+        // M5-T6: ここが原寸デコード地点であり、大容量原本が jpeg-js のガードで落ちていた箇所。
+        // Jimp.read はローカルファイルパスと Buffer の経路で第2引数 options を捨て、
+        // URL 経路だけが fromBuffer へ渡す（@jimp/core の read 実装）。
+        // ∴ Jimp.read(srcFile, options) では設定が届かないため fromBuffer を直接呼ぶ。
+        // PNG 入力時は image/jpeg の options が参照されないため無害
+        // （@jimp/js-png の DecodePngOptions にメモリ・解像度の上限は無い）。
+        // M5-T6: 上限は設定値から取る（既定 8192 / 800）。読み出し口は
+        // SettingsService.getJpegDecodeLimits の1つだけ（正規化がそこに閉じている）。
+        const imageJimp = await Jimp.fromBuffer(sourceBuffer, {
+            'image/jpeg': {
+                maxMemoryUsageInMB: decodeLimits.maxMemoryUsageInMB,
+                maxResolutionInMP: decodeLimits.maxResolutionInMP,
+            },
+        });
         const width: number = imageJimp.width;   // 旧: imageJimp.bitmap.width
         const height: number = imageJimp.height; // 旧: imageJimp.bitmap.height
         const maxZoom = Math.ceil(Math.log(Math.max(width, height) / 256) / Math.log(2));
@@ -210,7 +300,32 @@ async function imageCutter(
         return { width, height, url, imageExtension: toExtKey };
 
     } catch (err) {
-        return { err };
+        // M5-T6 (§5.4): 事前判定を通り抜けたのにガードへ当たった場合の保険。
+        // 予測が立っていれば prediction を丸ごと添え、無ければキーごと省く
+        // （個々のフィールドに undefined を入れて部分的な payload を作らない）。
+        const message = err instanceof Error ? err.message : String(err);
+        const errorCode = classifyDecodeError(err);
+        if (errorCode === 'jpeg_memory_limit') {
+            return {
+                err: message,
+                errorCode,
+                configuredMB: decodeLimits.maxMemoryUsageInMB,
+                ...(budget
+                    ? { prediction: { requiredMemoryMB: budget.requiredMemoryMB, recommendedMemoryMB: budget.recommendedMemoryMB } }
+                    : {}),
+            };
+        }
+        if (errorCode === 'jpeg_resolution_limit') {
+            return {
+                err: message,
+                errorCode,
+                configuredMP: decodeLimits.maxResolutionInMP,
+                ...(budget
+                    ? { prediction: { megapixels: budget.megapixels, recommendedResolutionMP: budget.recommendedResolutionMP } }
+                    : {}),
+            };
+        }
+        return { err: message, errorCode: 'unknown' };
     }
 }
 
@@ -225,7 +340,7 @@ export async function showMapSelectDialog(
     win: BrowserWindow,
     stagingDir: string,
     mapImageLabel: string
-): Promise<{ width?: number; height?: number; url?: string; imageExtension?: string; err?: string }> {
+): Promise<MapUploadResult> {
     const ret = await dialog.showOpenDialog(win, {
         defaultPath: app.getPath('documents'),
         properties: ['openFile'],

@@ -33,3 +33,23 @@ _Note: This document should be updated continuously as more areas for improvemen
 - 非矩形 envelope の編集（現状は矩形bbox近似のみ）
 - エクスポートのZIP出力オプション、および出力後の簡易ローカルサーバでの動作確認機能
 - pwa-asset-generator のダークモードスプラッシュ（appleLaunchImageDarkMode）対応
+
+## 6. 地図原本タイル化のメモリ・実行時間（m5-t6 のスコープ外・実測あり）
+**現状**: `MapUploadService.imageCutter` はタイル1枚ごとに `imageJimp.clone()` で
+**原寸ビットマップ全体を複製**してから crop/resize する。複製はタイル数ぶん繰り返される。
+
+m5-t6 の実装時に実測した値:
+
+| 原本 | 原寸 RGBA | タイル総数 | タイル化時間 |
+|---|---|---|---|
+| 8000×6000（48 MP） | 約 183 MiB | 1025 | 41 秒 |
+| 11000×10000（110 MP） | 約 420 MiB | 2314 | 155 秒 |
+
+同じ実行での `process.memoryUsage()` のピークは heapUsed 88.7 MiB / external 2315.8 MiB。
+Jimp のビットマップは Buffer（V8 ヒープ外）であるため V8 の old-space 上限には掛からないが、
+実メモリと実行時間の観点では改善余地がある。実測トリガだった 470 MP の実画像では
+1 クローンあたり約 1.75 GiB を複製することになる。
+
+**提案**: クローンを介さず原寸ビットマップから直接タイル領域を読み出す（`crop` の対象を
+複製ではなく元バッファのビューにする、またはストリーミング分割へ置き換える）。
+m5-t6 はデコード設定の互換復元に閉じるスコープだったため触れていない。

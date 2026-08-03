@@ -125,7 +125,10 @@
     "confirm_close_no_save": "Cài đặt đã bị thay đổi nhưng chưa được lưu.\nBạn có muốn đóng mà không lưu không?",
     "select": "Chọn",
     "language": "Ngôn ngữ",
-    "theme": "Giao diện"
+    "theme": "Giao diện",
+    "jpeg_decode_max_memory": "Giới hạn bộ nhớ giải mã JPEG (MB)",
+    "jpeg_decode_max_resolution": "Giới hạn độ phân giải JPEG (MP)",
+    "jpeg_decode_desc": "Hãy tăng các giá trị này khi không thể nhập ảnh bản đồ lớn. Chúng không đặt trước bộ nhớ thực."
   },
   "maplist": {
     "title": "Danh sách bản đồ",
@@ -363,7 +366,9 @@
     "originals": {
       "unsupported_extension": "Định dạng ảnh không được hỗ trợ (chỉ hỗ trợ jpg/jpeg/png). Vui lòng lưu lại với định dạng ảnh khác."
     },
-    "poi_format_unsupported": "Dữ liệu POI ở định dạng mà trình chỉnh sửa không hỗ trợ (ví dụ đối tượng dùng tên lớp làm khóa). Dữ liệu gốc được giữ nguyên khi lưu và được xuất nguyên trạng sang bản xem trước và bản xuất, nhưng việc chỉnh sửa trên tab này bị vô hiệu hóa."
+    "poi_format_unsupported": "Dữ liệu POI ở định dạng mà trình chỉnh sửa không hỗ trợ (ví dụ đối tượng dùng tên lớp làm khóa). Dữ liệu gốc được giữ nguyên khi lưu và được xuất nguyên trạng sang bản xem trước và bản xuất, nhưng việc chỉnh sửa trên tab này bị vô hiệu hóa.",
+    "error_image_memory_limit": "Giải mã ảnh bản đồ này cần khoảng {{required}} MB, nhưng thiết lập hiện tại là {{configured}} MB. Hãy tăng \"Giới hạn bộ nhớ giải mã JPEG\" trong trang Cài đặt lên {{recommended}} MB trở lên.",
+    "error_image_resolution_limit": "Ảnh bản đồ này khoảng {{megapixels}} MP, nhưng thiết lập hiện tại là {{configured}} MP. Hãy tăng \"Giới hạn độ phân giải JPEG\" trong trang Cài đặt lên {{recommended}} MP trở lên."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
