@@ -6,6 +6,8 @@ import SettingsService from './SettingsService';
 import * as storeHandler from '../utils/store_handler';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 import SqliteDataService from './SqliteDataService';
+import { assertSafeArchiveEntries } from '../../src/utils/poiPackage';
+import { zipEntryInfos } from './PoiPackageService';
 
 class DataUploadService {
     private get folders() {
@@ -39,6 +41,23 @@ class DataUploadService {
             await fs.ensureDir(dataTmpFolder);
 
             const zip = new AdmZip(zipFile);
+
+            // M5-T4 (§6.2.7b): 安全検証は **extractAllTo の前** に、**全 entry へ**、
+            // **無条件で** 走らせる。
+            //
+            // extractAllTo は全 entry を無検証のままファイルシステムへ書くため、
+            // 危険 entry が実際に書き込まれるのはこの1行である。一方 map JSON を読めるのは
+            // 展開の後であり、外部 POI 参照から検証対象を絞る設計では **書き込みに間に合わない**。
+            // 参照されないタイル位置に仕込まれた `..` や symlink も展開時には等しく危険であり、
+            // 「参照しないから安全」ではない。∴ dests とも pois/ の有無とも無関係に走らせる。
+            //
+            // adm-zip 自身の zip-slip 対策には依存しない（バージョン依存の実装詳細であり、
+            // 契約として保証されたものではない）。呼び出し側で明示的に検証する。
+            //
+            // ここで throw しても **まだ何も書いていない** ため、補償は不要である
+            // （完全ロールバック。§6.3.2 の residue は付かない）。
+            assertSafeArchiveEntries(zipEntryInfos(zip), 'map package');
+
             zip.extractAllTo(dataTmpFolder, true);
 
             // maps/{mapID}.json を読む（原版と同じ）
