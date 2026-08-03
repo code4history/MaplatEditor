@@ -3540,6 +3540,24 @@ const importMap = async () => {
                     message: t('mapedit.import_inline_poi_alert')
                 });
             }
+            // M5-T4B (人間検証 2026-08-03): 取込のホストになった新規エディタの下書きを畳む。
+            //
+            // 取込導線は /mapedit?new=1&import=1 で **新規エディタ**を開くため、mount 時に
+            // newMapUid が採番され draftLifecycle がその identity で開かれる。取込が成功すると
+            // adoptLoaded がサーバ採番 uid を正本に引き取るが、identity は newMapUid のままで、
+            // かつ **履歴が dirty のまま**残る。∴ debounce 後の下書き書き込みが走り、
+            // 取り込んだ地図とは別に baseRevision:null の下書き（＝一覧に下書きカードとして出る）
+            // が1件生まれていた。実測では取込完了の約1.8秒後に出現する。
+            //
+            // 保存経路 (:174-183) が M12-T29 で確立した
+            //   originalMapData 更新 → markHistorySaved → markSaved → rebase → flush
+            // と同一手順を踏む。originalMapData は上で更新済みのため残り4つをここで行う。
+            // markHistorySaved を省くと dirty が残り、rebase 後の identity で
+            // 「保存済み地図の下書き」が書かれてしまう（実測で確認済み）。
+            markHistorySaved();
+            await draftLifecycle.markSaved();
+            draftLifecycle.rebase(histMap.uid, histMap.revision);
+            await draftLifecycle.flush();
         }
     } finally {
         unsubscribe();
