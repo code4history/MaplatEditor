@@ -14,6 +14,7 @@ import {
   type PoiZipImportCleanup,
 } from './PoiPackageService';
 import poiSourceService from './PoiSourceService';
+import { resolveImportSlug } from './importSlugResolver';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { listPoiDocumentEntries } from '../../src/utils/poiPackage';
 
@@ -265,8 +266,9 @@ class DataUploadService {
             const tilePath  = path.join(tileTmpFolder, mapID);
             const tmbPath   = path.join(tmbTmpFolder, `${mapID}.jpg`);
 
-            // --- 原版と同じバリデーション (slugはグローバル一意: ADR-0007) ---
-            if (!(await SqliteDataService.isSlugAvailable(mapID))) throw 'Exist';
+            // --- バリデーション (slugはグローバル一意: ADR-0007) ---
+            // M5-T5: 同名 slug は 'Exist' で拒否せず自動解決するため、ここでの slug 検査は
+            // 無くなった。構造的な欠落 (タイル・サムネイル) だけを先に弾く。
             if (!fs.existsSync(tilePath)) throw 'NoTile';
             if (!fs.existsSync(tmbPath))  throw 'NoTmb';
 
@@ -286,9 +288,46 @@ class DataUploadService {
                 (mapData as any).pois = restored.pois;
             }
 
-            // --- 原版と同じ: raw mapData をそのまま新規作成 (uidが採番される) ---
+            // --- M5-T5: 地図 slug の解決 ---
+            // 同名 slug を 'Exist' で拒否せず、POI import と同じ空き slug 解決へ揃える
+            // (base, base-2 … base-100)。規則は共有 API resolveImportSlug が正本。
+            //
+            // 【解決は restoreManagedPois の **後** で行う】
+            // slug は asset 種別を跨いで一意 (ADR-0007) であり、POI 復元は同じ import の中で
+            // poi_sources の slug を消費する。復元より前に解決すると、その結果は復元が
+            // 走った時点で古くなり、createMap が自分自身の import に負ける。
+            // 解決は **書込の直前** に置くのが唯一正しい位置である。
+            //
+            // 【slug の3系統を混同しない】
+            //   読み出し (ZIP 内)   = 元 slug   … ZIP の中身は搬出時の名前のまま
+            //   内部格納             = uid       … ADR-0007。既に slug 非依存
+            //   DB / 返却 / 再搬出名 = 解決後 slug … 一意性の正本
+            // 読みを解決後 slug にすると衝突時に NoTile/NoTmb へ化ける (ZIP にその名前は無い)。
+            const resolvedSlug = await resolveImportSlug(mapID);
+            if (resolvedSlug === null) throw 'Exist'; // base-100 まで枯渇
+
+            // --- raw mapData をそのまま新規作成 (uidが採番される) ---
             // M5-T4B: pois は復元済みの内部形（{poiUid, …上書き}）で永続化される
-            const { uid } = await SqliteDataService.createMap(mapID, mapData);
+            // M5-T5: slug は解決後の値。data_json 側は normalizeMapDocument が mapID を
+            // 落とすため、slug の正本は行の slug 列だけになる (ADR-0007)。
+            let uid: string;
+            try {
+              ({ uid } = await SqliteDataService.createMap(resolvedSlug, mapData));
+            } catch (e: any) {
+              // M5-T5 §5.4: 解決後 slug が createMap 到達までに先取りされた (レース)。
+              // 意味は枯渇と同じ「この slug では取り込めない」∴ 'Exist' へ写像し、
+              // renderer の既存分岐へ載せる (再試行すれば次の候補で成功する)。
+              //
+              // 【この写像を外側 catch に置いてはならない】
+              // createMap より前に走る restoreManagedPois も POI ソースの slug 衝突で
+              // 同じ 'Slug already in use' を投げ得る。外側で message を見ると
+              // **POI 復元の失敗を地図 slug のレースとして誤ラベルする**。
+              if (e?.kind === 'slug-reservation-conflict'
+                  || /^Slug already in use: /.test(String(e?.message ?? ''))) {
+                throw 'Exist';
+              }
+              throw e; // それ以外の createMap 失敗は従来どおり message のまま
+            }
             mapUid = uid;
 
             // 内部ファイル(tiles/tmbs)はuidキーに置く (ADR-0007)。zip内はslug名
@@ -321,7 +360,9 @@ class DataUploadService {
             // compiled を持たない層は createTinFromGcpsAsync が常に文字列 sentinel を返すため
             // byCompiled の影響を受けない
             const [histMap, tins] = await storeHandler.store2HistMap(mapData as any, true);
-            (histMap as any).mapID  = mapID;
+            // M5-T5: 返却する mapID は **解決後 slug**（DB の slug と一致させる）。
+            // ZIP 内の読み出しに使った元 slug (mapID) とは別物である。
+            (histMap as any).mapID  = resolvedSlug;
             (histMap as any).uid = uid;
             (histMap as any).revision = 1;
             (histMap as any).status = 'Update';

@@ -13,7 +13,7 @@ import {
   rewritePoiMediaReferences,
   type PoiPackageEntryInfo,
 } from '../../src/utils/poiPackage';
-import SqliteDataService from './SqliteDataService';
+import { resolveImportSlug } from './importSlugResolver';
 import SettingsService from './SettingsService';
 import imageAssetService from './ImageAssetService';
 import { resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
@@ -127,13 +127,19 @@ async function sameStoredBytes(slug: string, bytes: Buffer): Promise<string | nu
   }
 }
 
+// M5-T5: POI ZIP 同梱画像を asset 登録するときの slug 採番。
+// **共有 API resolveImportSlug が正本**（§5.1 経路5）。以前はここに独自ループがあり、
+//   - 候補列が base-2（正本の base-2 と偶然一致していた）
+//   - **上限が無く、候補が尽きると無限ループする**（例外も進捗も出ず import が固まる）
+//   - 長さ切詰が無く SLUG_MAX 超過を作り得た
+// という状態だった。ADR-0007 で slug は種別を跨いで一意 ∴ 採番規則を分けてはならない。
+//
+// 戻り値が string | null になる点が旧実装との差である。枯渇（null）は **新しい失敗契約を
+// 作らず**、呼び出し側の既存 throw 経路へ載せる（補償と residue は m5-t4b のまま働く）。
 async function availableAssetSlug(base: string): Promise<string> {
-  let candidate = base;
-  let suffix = 2;
-  while (!(await SqliteDataService.isSlugAvailable(candidate))) {
-    candidate = `${base}-${suffix++}`;
-  }
-  return candidate;
+  const slug = await resolveImportSlug(base);
+  if (!slug) throw new Error(`No available slug for packaged image: ${base}`);
+  return slug;
 }
 
 /**

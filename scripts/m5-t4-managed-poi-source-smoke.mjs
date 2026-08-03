@@ -33,6 +33,7 @@ try {
   const tmpDir = path.join(workDir, 'tmp');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const sourceServicePath = path.join(projectRoot, 'electron/services/PoiSourceService.ts');
+  const slugSequencePath = path.join(projectRoot, 'src/utils/slugSequence.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
 
   await mkdir(dataDir, { recursive: true });
@@ -74,6 +75,7 @@ try {
     SettingsService.set('tmpFolder', ${JSON.stringify(tmpDir)});
     const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
     const { default: poiSourceService } = await import(${JSON.stringify(sourceServicePath)});
+    const { slugCandidate } = await import(${JSON.stringify(slugSequencePath)});
 
     const fc = (extra: Record<string, unknown> = {}) => ({
       type: 'FeatureCollection',
@@ -126,7 +128,11 @@ try {
       );
       assert.equal(r.result, 'Success', 'AC10(b): 衝突しても新規作成が成功すること');
       assert.notEqual(r.slug, 'himeji', 'AC10(b): 別 slug を取ること');
-      assert.match(r.slug, /^himeji\\d+$/, 'AC10(b): base2 形式で解決されること（実際: ' + r.slug + '）');
+      // M5-T5: 生成部は必ず "-" 始まり（base 本体と生成部の境界を可視にする）。
+      // 規則を手書きせず **正本 slugCandidate と突き合わせる** — 規則が変わっても
+      // ここが旧規則に取り残されて黙って意味を失うことがない。
+      assert.equal(r.slug, slugCandidate('himeji', 2),
+        'AC10(b): 正本の2番目の候補（himeji-2）で解決されること（実際: ' + r.slug + '）');
 
       const after = await rowOf(before.uid);
       assert.deepEqual(after, before, 'AC10(b)/§6.2.5c: 既存 source は一切変更されないこと');

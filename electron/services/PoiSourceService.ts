@@ -31,7 +31,7 @@ import {
   type PoiEditorFC,
   type PoiValidationIssue,
 } from '../../src/utils/poiGeoJson';
-import { findAvailableSlug } from '../../src/utils/slugSequence';
+import { resolveImportSlug } from './importSlugResolver';
 import type { PoiZipImport, CompensationResidue } from './PoiPackageService';
 import SettingsService from './SettingsService';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
@@ -472,15 +472,9 @@ export class PoiSourceService {
     }
   }
 
-  // import 衝突の自動採番 (M3-T6 §6.2 (c)): base, base2..base100 の順で isSlugAvailable
-  // (DB + 予約表) の空きを探す。予約はしない — 直後の createSource が isSlugAvailable を
-  // 再検査するため、レース (検査後の先取り) は従来どおり 'Exist' へ写像される。
-  // 全候補枯渇時は null (呼び出し側が 'Exist' を返す)。
-  private async resolveImportSlug(slug: unknown, excludeUid?: string): Promise<string | null> {
-    const base = String(slug ?? '').trim();
-    if (!base) return base; // 空 slug は createSource の invalid-request 検査へそのまま委ねる
-    return findAvailableSlug(base, (candidate) => SqliteDataService.isSlugAvailable(candidate, excludeUid));
-  }
+  // M5-T5: import 衝突の自動採番は共有 API resolveImportSlug (importSlugResolver.ts) が正本。
+  // 以前はここに private 実装を持っていたが、地図 ZIP import と画像 asset import が
+  // それぞれ別の規則を持っていたため、import 方針を1箇所へ移設した。
 
   // .geojson/.json を読み、FeatureCollection または 旧POIオブジェクト形式を内部形化して
   // 新規 local ソースとして取り込む。Point以外を含む場合は取込拒否 (POI-104)。
@@ -488,7 +482,7 @@ export class PoiSourceService {
   async importFile(input: { slug: string; title: LangResource; filePath: string; lang?: string; langOverride?: boolean; uid?: string }): Promise<PoiSourceSaveResult> {
     const ext = path.extname(String(input.filePath ?? '')).toLowerCase();
     if (ext === '.zip') {
-      const resolvedSlug = await this.resolveImportSlug(input.slug, input.uid);
+      const resolvedSlug = await resolveImportSlug(input.slug, { excludeUid: input.uid });
       if (resolvedSlug === null) return { result: 'Exist' };
       let preparedImport: PoiZipImport | null = null;
       try {
@@ -532,7 +526,7 @@ export class PoiSourceService {
       input.lang || SettingsService.get('lang'),
     );
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
-    const resolvedSlug = await this.resolveImportSlug(input.slug, input.uid);
+    const resolvedSlug = await resolveImportSlug(input.slug, { excludeUid: input.uid });
     if (resolvedSlug === null) return { result: 'Exist' };
     return await this.createSource(resolvedSlug, input.title, 'local', prepared.fc, prepared.issues, undefined, input.uid);
   }
@@ -567,9 +561,9 @@ export class PoiSourceService {
     const prepared = this.prepare(fc, lang);
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
 
-    // slug は POI import の既存解決をそのまま使う（base, base2 … の空き探索）。
+    // slug は POI import の既存解決をそのまま使う（base, base-2 … の空き探索）。
     // 地図 slug とは別系統であり、地図側の衝突解決は m5-t5 の責務である。
-    const resolvedSlug = await this.resolveImportSlug(name);
+    const resolvedSlug = await resolveImportSlug(name);
     if (resolvedSlug === null) return { result: 'Exist' };
 
     return await this.createSource(

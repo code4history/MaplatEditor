@@ -149,10 +149,11 @@ try {
 
       const taken = new Set<string>();
       assert.equal(reservePoiFileBase('x', taken), 'x', '1件目は base そのもの');
-      assert.equal(reservePoiFileBase('x', taken), 'x2', '2件目は base2');
-      assert.equal(reservePoiFileBase('x', taken), 'x3', '3件目は base3');
+      // M5-T5: 生成部は必ず "-" 始まり（正本 slugCandidate の規則変更に追随）
+      assert.equal(reservePoiFileBase('x', taken), 'x-2', '2件目は base-2');
+      assert.equal(reservePoiFileBase('x', taken), 'x-3', '3件目は base-3');
       assert.equal(reservePoiFileBase('y', taken), 'y', '別 base は影響を受けない');
-      assert.deepEqual([...taken].sort(), ['x', 'x2', 'x3', 'y'], '確保した名前が taken に記録される');
+      assert.deepEqual([...taken].sort(), ['x', 'x-2', 'x-3', 'y'], '確保した名前が taken に記録される');
       const exhausted = new Set<string>();
       for (let n = 1; n <= 100; n++) assert.ok(reservePoiFileBase('z', exhausted) !== null);
       assert.equal(reservePoiFileBase('z', exhausted), null, '101 件目は枯渇して null');
@@ -370,7 +371,7 @@ try {
           ctx,
         );
         assert.deepEqual(result.pois.map((p: any) => p.layer), [
-          'pois/kyoto-poi.geojson', 'pois/kyoto-poi2.geojson', 'pois/kyoto-poi3.geojson',
+          'pois/kyoto-poi.geojson', 'pois/kyoto-poi-2.geojson', 'pois/kyoto-poi-3.geojson',
         ], '基底名の衝突は連番で一意化されるはず');
         assert.equal(result.documents.length, 3, '3件とも別ファイルとして書き出されるはず');
         console.log('ok: (B6) file base collisions are made unique by sequence');

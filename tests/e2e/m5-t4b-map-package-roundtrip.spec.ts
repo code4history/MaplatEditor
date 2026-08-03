@@ -23,191 +23,26 @@
 // (electron/services/runtimeStoragePaths.ts)、同じ root を実アプリへ渡せば状態は引き継がれる。
 //
 // harness は m12-t15-thumbnail-512 / m11-t3-editor-shell の実績文法に従う。
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { expect, test } from '@playwright/test';
+import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+// M5-T5: seed / ダイアログ退避 / ZIP slug 書き換えは m5-t5 の spec と **同じ処理** である。
+// 複製せず共通ハーネスへ寄せた（恒久指示「同一扱い処理は共通実装へ徹底」）。
+import {
+  launch,
+  openHash,
+  saveFolderOf,
+  stubMessageBoxAutoOk,
+  snapshotDialogs,
+  restoreDialogs,
+  dialogsAreOriginal,
+  seedFullMap,
+  rewriteZipSlug,
+} from './helpers/mapPackage';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
-const PNG_B64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-
-async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page: Page }> {
-  const app = await electron.launch({
-    args: [projectRoot, `--user-data-dir=${e2eRoot}`],
-    cwd: projectRoot,
-    env: { ...process.env, VITE_DEV_SERVER_URL: '', MAPLAT_E2E_ROOT: e2eRoot },
-  });
-  const page = await app.firstWindow();
-  await page.waitForLoadState('domcontentloaded');
-  await page.evaluate(() => window.settings.set('lang', 'ja'));
-  return { app, page };
-}
-
-async function openHash(page: Page, hash: string): Promise<void> {
-  await page.evaluate((nextHash) => { location.hash = nextHash; }, hash);
-  await page.waitForLoadState('domcontentloaded');
-}
-
-async function saveFolderOf(page: Page): Promise<string> {
-  return page.evaluate(() => window.settings.get('saveFolder'));
-}
-
-// 保存/インポート完了ダイアログを自動 OK する（ネイティブダイアログ待ちで止まらないように）
-async function stubMessageBoxAutoOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
-    dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
-  });
-}
-
-// ネイティブダイアログの原本を退避する。**人間確認の前に必ず戻す**ためのもの。
-// 差し替えたまま page.pause() すると、搬出ボタンが保存先を尋ねずに事前指定のパスへ書き、
-// 成功モーダルだけが出る — 自由操作のための一時停止なのにダイアログを潰してしまう
-async function snapshotDialogs(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
-    const g = globalThis as unknown as Record<string, unknown>;
-    if (!g.__m5t4bDialogOriginals) {
-      g.__m5t4bDialogOriginals = {
-        showSaveDialog: dialog.showSaveDialog,
-        showOpenDialog: dialog.showOpenDialog,
-        showMessageBox: dialog.showMessageBox,
-      };
-    }
-  });
-}
-
-async function restoreDialogs(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
-    const g = globalThis as unknown as Record<string, unknown>;
-    const originals = g.__m5t4bDialogOriginals as Record<string, unknown> | undefined;
-    if (!originals) throw new Error('snapshotDialogs を先に呼んでいない');
-    dialog.showSaveDialog = originals.showSaveDialog as typeof dialog.showSaveDialog;
-    dialog.showOpenDialog = originals.showOpenDialog as typeof dialog.showOpenDialog;
-    dialog.showMessageBox = originals.showMessageBox as typeof dialog.showMessageBox;
-  });
-}
-
-/**
- * 依存アセットを全種類持つ地図を作る。
- *  - POI 登録参照（管理下 POI ソース）
- *  - icon（asset UUID 参照文法）
- *  - properties.html 内の maplat-asset:
- *  - 通常/512px サムネイル・タイル実体
- */
-async function seedFullMap(page: Page, saveFolder: string, workDir: string, options: {
-  visibleImages?: boolean;
-} = {}): Promise<{
-  mapUid: string; mapSlug: string; poiUid: string; iconSlug: string; photoSlug: string;
-}> {
-  // imageAssets.add は **実ファイルパス** を受ける（renderer から bytes は渡せない）
-  const srcPng = path.join(workDir, 'seed-source.png');
-  if (options.visibleImages) {
-    // 人間確認では **目で見える画像**でなければ意味がない。
-    // 1×1 PNG では「アセットは登録されたが画像は見えない」状態になり確認にならない
-    // （2026-08-03 の検証で人間が指摘）
-    const { Jimp } = await import('jimp');
-    await new Jimp({ width: 96, height: 96, color: 0xe8453cff }).write(srcPng as `${string}.png`);
-  } else {
-    await writeFile(srcPng, Buffer.from(PNG_B64, 'base64'));
-  }
-
-  const seeded = await page.evaluate(async (sourcePath) => {
-    const stamp = Date.now();
-    const iconSlug = `t4b-icon-${stamp}`;
-    const photoSlug = `t4b-photo-${stamp}`;
-
-    // 画像 asset 2件（icon 用・html 埋め込み用）
-    const mkAsset = async (slug: string) => {
-      const r = await window.imageAssets.add({
-        slug, title: { ja: slug }, lang: 'ja', sourceName: `${slug}.png`, sourcePath,
-      });
-      if (!r || r.result !== 'Success') throw new Error(`asset ${slug}: ${JSON.stringify(r)}`);
-      return r.uid as string;
-    };
-    const iconUid = await mkAsset(iconSlug);
-    const photoUid = await mkAsset(photoSlug);
-
-    // 管理下 POI ソース（icon 参照 + html の maplat-asset: を持つ）
-    const poiSlug = `t4b-poi-${stamp}`;
-    const created = await window.poiSources.createLocal({
-      slug: poiSlug, title: { ja: 'T4B POI' }, lang: 'ja',
-    });
-    if (!created || created.result !== 'Success') throw new Error(`poi: ${JSON.stringify(created)}`);
-    await window.poiSources.save(created.uid, {
-      slug: poiSlug, title: { ja: 'T4B POI' },
-      fc: {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature', id: 'spot',
-          geometry: { type: 'Point', coordinates: [135.05, 35.05] },
-          properties: {
-            name: { ja: 'T4B スポット' },
-            icon: iconUid,
-            html: { ja: `<img src="maplat-asset:${photoUid}">` },
-          },
-        }],
-      },
-    });
-
-    // 地図（POI 登録参照つき）
-    const mapSlug = `t4b-map-${stamp}`;
-    const mapR = await window.mapedit.save({
-      slug: mapSlug,
-      mapObject: {
-        mapID: mapSlug, title: { ja: 'T4B 地図' },
-        officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-        attr: { ja: 'attr' }, dataAttr: {}, description: {},
-        license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
-        imageExtension: 'jpg', width: 400, height: 300,
-        gcps: [
-          [[0, 0], [135.0, 35.1]],
-          [[400, 0], [135.1, 35.1]],
-          [[200, 300], [135.05, 35.0]],
-        ],
-        edges: [], sub_maps: [], strictMode: 'loose', vertexMode: 'plain', status: 'New',
-        pois: [{ poiUid: created.uid, cachedTitle: 'T4B POI' }],
-      },
-      tins: [],
-    });
-    if (!mapR || mapR.result !== 'Success') throw new Error(`map: ${JSON.stringify(mapR)}`);
-    return { mapUid: mapR.uid as string, mapSlug, poiUid: created.uid as string, iconSlug, photoSlug };
-  }, srcPng);
-
-  // サムネイル・タイルの実体を配置する（搬出の同梱対象）
-  const bytes = Buffer.from(PNG_B64, 'base64');
-  const tmbs = path.join(saveFolder, 'tmbs');
-  await mkdir(tmbs, { recursive: true });
-  await writeFile(path.join(tmbs, `${seeded.mapUid}.jpg`), bytes);
-  await writeFile(path.join(tmbs, `${seeded.mapUid}_512.jpg`), bytes);
-  const tileDir = path.join(saveFolder, 'tiles', seeded.mapUid, '0', '0');
-  await mkdir(tileDir, { recursive: true });
-  await writeFile(path.join(tileDir, '0.jpg'), bytes);
-
-  return seeded;
-}
-
-// 地図 ZIP の slug を書き換えて別 slug の ZIP を作る（元の地図を残したまま複製を取り込む形）
-async function rewriteZipSlug(src: string, dest: string, from: string, to: string): Promise<void> {
-  const { default: AdmZip } = await import('adm-zip');
-  const input = new AdmZip(src);
-  const output = new AdmZip();
-  for (const entry of input.getEntries()) {
-    if (entry.isDirectory) continue;
-    const name = entry.entryName;
-    if (name === `maps/${from}.json`) {
-      const json = JSON.parse(entry.getData().toString('utf8'));
-      json.mapID = to;
-      output.addFile(`maps/${to}.json`, Buffer.from(JSON.stringify(json)));
-      continue;
-    }
-    let renamed = name;
-    if (name.startsWith(`tmbs/${from}`)) renamed = `tmbs/${to}${name.slice(`tmbs/${from}`.length)}`;
-    else if (name.startsWith(`tiles/${from}/`)) renamed = `tiles/${to}/${name.slice(`tiles/${from}/`.length)}`;
-    output.addFile(renamed, entry.getData());
-  }
-  output.writeZip(dest);
-}
 
 test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプリ搬出（AC11）', () => {
   test('AC11-a: MapEdit の搬出ボタンから出た ZIP に POI 実体・依存画像・通常/512px サムネイルが入る', async () => {
@@ -382,26 +217,12 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
         dialog.showOpenDialog = (async () => ({ canceled: true, filePaths: [] })) as typeof dialog.showOpenDialog;
       });
 
-      const whileStubbed = await app.evaluate(async ({ dialog }) => {
-        const o = (globalThis as any).__m5t4bDialogOriginals;
-        return {
-          save: dialog.showSaveDialog === o.showSaveDialog,
-          open: dialog.showOpenDialog === o.showOpenDialog,
-          message: dialog.showMessageBox === o.showMessageBox,
-        };
-      });
+      const whileStubbed = await dialogsAreOriginal(app);
       // 前提: 実際に差し替わっていること（この assert が無いと復元検査が空振りする）
       expect(whileStubbed).toEqual({ save: false, open: false, message: false });
 
       await restoreDialogs(app);
-      const afterRestore = await app.evaluate(async ({ dialog }) => {
-        const o = (globalThis as any).__m5t4bDialogOriginals;
-        return {
-          save: dialog.showSaveDialog === o.showSaveDialog,
-          open: dialog.showOpenDialog === o.showOpenDialog,
-          message: dialog.showMessageBox === o.showMessageBox,
-        };
-      });
+      const afterRestore = await dialogsAreOriginal(app);
       expect(afterRestore).toEqual({ save: true, open: true, message: true });
 
       console.log('  AC11 前提: PASS（ダイアログが原本へ戻る）');
@@ -474,10 +295,10 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       console.log(`    依存画像     : imgs/${seeded.iconSlug}.png（POI アイコン・96x96 赤）`);
       console.log(`                   imgs/${seeded.photoSlug}.png（吹き出し埋め込み・96x96 赤）`);
       console.log('');
-      console.log('  ★ 取込の確認では **map-copy.zip** を選んでください。');
-      console.log('    map-export.zip は元地図と同じ slug のため「既存のマップIDです」で弾かれます。');
-      console.log('    それは正しい挙動です — 重複 slug の自動採番は m5-t5 の担当であり、');
-      console.log('    本タスクは Exist の失敗契約を変えていません。');
+      console.log('  ★ 取込の確認では **map-copy.zip** を選んでください（別 slug の取込確認）。');
+      console.log('    ※ M5-T5 以降、map-export.zip（元地図と同じ slug）も弾かれず');
+      console.log('      自動採番で取り込めるようになりました。そちらの確認は');
+      console.log('      MAPLAT_E2E_PAUSE=1 pnpm test:e2e:m5-t5 で行ってください。');
       console.log('');
       console.log('  確認していただきたいこと:');
       console.log('   1. 搬出ボタンで保存先ダイアログが出て、指定した場所に ZIP ができること');

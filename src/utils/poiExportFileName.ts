@@ -37,7 +37,7 @@ export function sanitizePoiFileBase(raw: unknown): string {
 }
 
 /**
- * `taken` に対して未使用の基底名を確保する（`base`, `base2`, … `base100`）。
+ * `taken` に対して未使用の基底名を確保する（`base`, `base-2`, … `base-100`）。
  * 候補生成は slugCandidate（slugSequence）と同一規則。確保した名前は `taken` へ追加する。
  * 全候補が埋まっている場合は null（呼び出し側が非外部化のフォールバックへ倒す）。
  */
