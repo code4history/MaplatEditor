@@ -30,9 +30,20 @@ export type PoiExportInspection = {
 // asset は「DB は消えたがバイト実体が live path に残る」という部分的な残留があり得るが
 // (retainedPath)、poi_sources 行は DB のみのため残留の形が異なる。1つの型に混ぜると
 // retainedPath が asset にしか意味を持たない曖昧なフィールドになる。
+//
+// M5-T4B (実装レビュー Major-1): 地図 ZIP import の補償対象は4つある
+// （配置済みファイル → map 行 → poi_sources → asset）。m5-t4 は POI 単体パッケージだけを
+// 見ていたため asset / poiSource の2枝しか持たず、地図 ZIP 経路で足りていなかった。
+// 残り2枝が無いと、タイル数百 MB の残留や孤児 map 行が
+// **「完全に巻き戻した」として申告される**（= residue 無しの { err }）。I-4c 違反である。
+// union への追加は後方互換（既存の消費者はログ出力のみ）。
 export type CompensationResidue =
   | { kind: 'asset'; assetUid: string; retainedPath?: string; dbError?: string }
-  | { kind: 'poiSource'; poiSourceUid: string; slug?: string; dbError?: string };
+  | { kind: 'poiSource'; poiSourceUid: string; slug?: string; dbError?: string }
+  /** 配置済みの tile・サムネイル等が消せずに live path に残った */
+  | { kind: 'file'; path: string; error: string }
+  /** 新規作成した map 行が消せずに DB に残った（slug registry も解放されない） */
+  | { kind: 'mapRow'; mapUid: string; dbError: string };
 
 /** 補償を最後まで試み、到達できなかったものを列挙して返す。**空配列 = 完全補償**。 */
 export type PoiZipImportCleanup = () => Promise<CompensationResidue[]>;

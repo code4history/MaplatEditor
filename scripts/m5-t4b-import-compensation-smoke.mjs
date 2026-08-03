@@ -99,6 +99,24 @@ try {
       return { path: p, slug };
     };
 
+    // (C) 専用: POI 文書を2つ持つ ZIP（1件目を成功させ2件目で失敗させるため）
+    const buildTwoPoiZip = async (slugBase: string) => {
+      const slug = slugBase + (++seq);
+      const zip = new AdmZip();
+      zip.addFile('maps/' + slug + '.json', Buffer.from(JSON.stringify({
+        mapID: slug, title: slug, attr: 'test', lang: 'ja', gcps: [], edges: [],
+        pois: [{ layer: 'pois/layer.geojson' }, { layer: 'pois/layer2.geojson' }],
+      })));
+      zip.addFile('pois/layer.geojson', Buffer.from(JSON.stringify(fc('layer'))));
+      zip.addFile('pois/layer2.geojson', Buffer.from(JSON.stringify(fc('layer2'))));
+      zip.addFile('tmbs/' + slug + '.jpg', Buffer.from('THUMB'));
+      zip.addFile('tmbs/' + slug + '_512.jpg', Buffer.from('THUMB512'));
+      zip.addFile('tiles/' + slug + '/0/0/0.jpg', Buffer.from('TILE'));
+      const p = nodePath.join(workDir, slug + '.zip');
+      await fsWriteFile(p, zip.toBuffer());
+      return { path: p, slug };
+    };
+
     const counts = async () => {
       const db = await SqliteDataService.getDb();
       return {
@@ -202,6 +220,136 @@ try {
       // 後始末: 残った source を実際に消す（後続への影響を避ける）
       await originalDelete(poiResidue[0].poiSourceUid).catch(() => undefined);
       console.log('ok: AC10 kind:"poiSource" の residue が申告される');
+    }
+
+    // -----------------------------------------------------------------------
+    // 【実装レビュー Major-1】補償の二次失敗は **対象4つすべて** 申告されねばならない（I-4c）。
+    // 従来 residue へ載るのは対象3（poi_sources）と対象4（asset）だけで、
+    // 対象1（配置済み tile・サムネイルの削除失敗）と対象2（map 行の削除失敗）は
+    // console.warn のみだった ∴ タイル数百 MB の残留や孤児 map 行が
+    // 「完全に巻き戻した」（= residue なしの { err }）として申告されていた。
+    // -----------------------------------------------------------------------
+
+    // (A) 対象1: 配置済みファイルの削除失敗 → kind:'file'
+    {
+      const { path: zipPath } = await buildMapZip('resfile');
+      // 配置は成功させ、**補償の削除だけ**を失敗させる。
+      //
+      // 前段は移動先を掃除するため remove(tileToPath) を先に呼ぶ（この時点では未作成）。
+      // 補償はその配置済み実体を消す（この時点では存在する）。
+      // ∴ **実在するときだけ失敗**させれば、前段を通したまま補償だけを壊せる。
+      // 製品コードにテスト用フックは足していない。
+      const fsExtra = (await import('fs-extra')).default;
+      const originalRemove = fsExtra.remove;
+      const tilesRoot = nodePath.join(dataDir, 'tiles');
+
+      let result: any;
+      try {
+        (fsExtra as any).remove = async (target: string) => {
+          if (String(target).startsWith(tilesRoot) && existsSync(String(target))) {
+            throw new Error('injected: tile removal failed');
+          }
+          return originalRemove(target as any);
+        };
+        // 配置後に失敗させる（tmbs をファイルで塞ぐ → サムネイル移動が ENOTDIR）
+        await fsRm(tmbsDir, { recursive: true, force: true });
+        await fsWriteFile(tmbsDir, 'blocker');
+        result = await dataUploadService.extractZip(zipPath);
+      } finally {
+        (fsExtra as any).remove = originalRemove;
+        await fsRm(tmbsDir, { force: true });
+        await fsMkdir(tmbsDir, { recursive: true });
+      }
+
+      assert.ok(typeof result.err === 'string', '(A) 失敗として返ること');
+      assert.ok(Array.isArray(result.residue),
+        '(A) 配置済みファイルの補償失敗が residue に載ること（実際: '
+          + JSON.stringify(result).slice(0, 300) + '）');
+      const fileResidue = result.residue.filter((r: any) => r.kind === 'file');
+      assert.ok(fileResidue.length > 0,
+        '(A) kind:"file" の residue が申告されること（実際: ' + JSON.stringify(result.residue) + '）');
+      assert.ok(fileResidue[0].path, '(A) どのパスが残ったか分かること');
+      assert.match(fileResidue[0].error, /injected/, '(A) 失敗理由が申告に含まれること');
+      console.log('ok: Major-1(A) kind:"file" の residue');
+    }
+
+    // (B) 対象2: map 行の削除失敗 → kind:'mapRow'
+    {
+      const { path: zipPath } = await buildMapZip('resmap');
+      const originalDeleteMap = SqliteDataService.deleteMap.bind(SqliteDataService);
+      let called = 0;
+      (SqliteDataService as any).deleteMap = async (_uid: string) => {
+        called++;
+        throw new Error('injected: map row delete failed');
+      };
+      await fsRm(tmbsDir, { recursive: true, force: true });
+      await fsWriteFile(tmbsDir, 'blocker');
+
+      let result: any;
+      try {
+        result = await dataUploadService.extractZip(zipPath);
+      } finally {
+        (SqliteDataService as any).deleteMap = originalDeleteMap;
+        await fsRm(tmbsDir, { force: true });
+        await fsMkdir(tmbsDir, { recursive: true });
+      }
+
+      assert.ok(called > 0, '(B) 前提: map 行の補償が呼ばれていること');
+      assert.ok(Array.isArray(result.residue),
+        '(B) map 行の補償失敗が residue に載ること（実際: '
+          + JSON.stringify(result).slice(0, 300) + '）');
+      const mapResidue = result.residue.filter((r: any) => r.kind === 'mapRow');
+      assert.equal(mapResidue.length, 1,
+        '(B) kind:"mapRow" の residue が申告されること（実際: ' + JSON.stringify(result.residue) + '）');
+      assert.ok(mapResidue[0].mapUid, '(B) どの map 行が残ったか分かること');
+      assert.match(mapResidue[0].dbError, /injected/, '(B) 失敗理由が申告に含まれること');
+
+      // 後始末: 残った map 行を実際に消す
+      const db2 = await SqliteDataService.getDb();
+      const row = db2.prepare('SELECT uid FROM maps WHERE uid = ?').get(mapResidue[0].mapUid) as any;
+      if (row) await originalDeleteMap(row.uid);
+      console.log('ok: Major-1(B) kind:"mapRow" の residue');
+    }
+
+    // (C) restore 失敗経路: 内側 compensate の residue が捨てられていないこと
+    //     poi_sources の作成を失敗させ、かつ asset 補償も失敗させる
+    {
+      const { path: zipPath } = await buildTwoPoiZip('resrestore');
+      const originalCreate = poiSourceService.createPoiSourceFromManagedDocument
+        .bind(poiSourceService);
+      const originalDelete2 = poiSourceService.delete.bind(poiSourceService);
+      let createCalls = 0;
+      (poiSourceService as any).createPoiSourceFromManagedDocument = async (...args: any[]) => {
+        createCalls++;
+        if (createCalls === 1) return originalCreate(...(args as [any, any]));
+        return { result: 'Error', message: 'injected: create failed' };
+      };
+      // 1件目は成功させ、その巻き戻し（delete）を失敗させる
+      (poiSourceService as any).delete = async (_uid: string) => {
+        throw new Error('injected: rollback delete failed');
+      };
+
+      let result: any;
+      try {
+        result = await dataUploadService.extractZip(zipPath);
+      } finally {
+        (poiSourceService as any).createPoiSourceFromManagedDocument = originalCreate;
+        (poiSourceService as any).delete = originalDelete2;
+      }
+
+      assert.ok(typeof result.err === 'string', '(C) 失敗として返ること');
+      assert.ok(Array.isArray(result.residue),
+        '(C) restore 失敗経路でも内側の residue が外へ伝わること（実際: '
+          + JSON.stringify(result).slice(0, 300) + '）');
+      assert.ok(result.residue.some((r: any) => r.kind === 'poiSource'),
+        '(C) 巻き戻せなかった poi_sources が申告されること（実際: '
+          + JSON.stringify(result.residue) + '）');
+
+      // 後始末
+      for (const r of result.residue.filter((x: any) => x.kind === 'poiSource')) {
+        await originalDelete2(r.poiSourceUid).catch(() => undefined);
+      }
+      console.log('ok: Major-1(C) restore 失敗経路の residue が捨てられない');
     }
 
     console.log('m5-t4b import compensation OK');

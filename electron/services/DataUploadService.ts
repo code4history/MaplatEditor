@@ -17,6 +17,24 @@ import poiSourceService from './PoiSourceService';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { listPoiDocumentEntries } from '../../src/utils/poiPackage';
 
+// M5-T4B (実装レビュー Major-1): restore 失敗経路で先に走った補償の残留を、
+// throw する Error へ添えて外側へ運ぶための添え札。
+// 例外の identity（型・message・stack）は保つ ∴ 既存の失敗契約は変わらない。
+const RESIDUE_ON_ERROR = Symbol.for('maplat.compensationResidue');
+
+function attachResidue(error: unknown, residue: CompensationResidue[]): void {
+    if (error === null || (typeof error !== 'object' && typeof error !== 'function')) return;
+    const carrier = error as Record<symbol, unknown>;
+    const existing = carrier[RESIDUE_ON_ERROR];
+    carrier[RESIDUE_ON_ERROR] = Array.isArray(existing) ? [...existing, ...residue] : residue;
+}
+
+function detachResidue(error: unknown): CompensationResidue[] {
+    if (error === null || (typeof error !== 'object' && typeof error !== 'function')) return [];
+    const carried = (error as Record<symbol, unknown>)[RESIDUE_ON_ERROR];
+    return Array.isArray(carried) ? (carried as CompensationResidue[]) : [];
+}
+
 // M5-T4B: 逆変換の入口は **map JSON の pois 配列** である。
 // ZIP のファイル一覧を起点にしてはならない — ファイル一覧は実体の供給元にすぎず、
 // 順序・上書き属性・重複参照・透過要素の情報は **すべて map JSON の pois にしかない**。
@@ -118,8 +136,15 @@ class DataUploadService {
             }
         } catch (e) {
             // ここで失敗した場合、asset と作成済み source を巻き戻してから投げ直す。
-            // map 行はまだ無いので補償対象は2つだけである
-            await this.compensate({ createdPoiUids, cleanupAssets: imported.cleanup });
+            // map 行はまだ無いので補償対象は2つだけである。
+            //
+            // M5-T4B (実装レビュー Major-1): **内側の residue を捨てない**。
+            // 従来は戻り値を捨てて rethrow しており、外側 catch では restored が null のため
+            // 拾い直せず、この経路で asset が retained になっても poi_sources の削除に失敗しても
+            // 「残留なし」として申告されていた（I-4c 違反）。
+            // throw する Error へ添えて外側へ運ぶ（Error の identity は保つ）。
+            const residue = await this.compensate({ createdPoiUids, cleanupAssets: imported.cleanup });
+            if (residue.length > 0) attachResidue(e, residue);
             throw e;
         }
 
@@ -146,17 +171,27 @@ class DataUploadService {
         const residue: CompensationResidue[] = [];
 
         // 1) 配置済みの tile・通常/512px サムネイル（新規 UID 配下のみ）
+        //    M5-T4B (実装レビュー Major-1): 削除できなければ **残留として申告する**。
+        //    console.warn だけだと、タイル数百 MB が live path に残ったまま
+        //    「完全に巻き戻した」と申告されてしまう（I-4c 違反）
         for (const p of handle.placedPaths ?? []) {
-            await fs.remove(p).catch((e) => {
-                console.warn('[DataUploadService] 配置済みファイルの補償に失敗:', p, e);
-            });
+            try {
+                await fs.remove(p);
+            } catch (e) {
+                residue.push({ kind: 'file', path: p, error: e instanceof Error ? e.message : String(e) });
+            }
         }
         // 2) 新規 map 行
+        //    同上。消せなければ孤児 map 行が残り slug registry も解放されない
         if (handle.mapUid) {
             try {
                 await SqliteDataService.deleteMap(handle.mapUid);
             } catch (e) {
-                console.warn('[DataUploadService] map 行の補償に失敗:', handle.mapUid, e);
+                residue.push({
+                    kind: 'mapRow',
+                    mapUid: handle.mapUid,
+                    dbError: e instanceof Error ? e.message : String(e),
+                });
             }
         }
         // 3) 今回作成した poi_sources 行（**成功した作成のみ**が対象。逆順）
@@ -306,12 +341,17 @@ class DataUploadService {
             // 残留が1件でもあれば residue を付ける ∴ 呼び出し側は 'residue' in result で
             // 部分ロールバックを判定できる。renderer の既存 arg.err 分岐は追加フィールドの
             // 影響を受けず無変更で通る
-            const residue = await this.compensate({
-                placedPaths,
-                mapUid,
-                createdPoiUids: restored?.createdPoiUids,
-                cleanupAssets: restored?.cleanupAssets,
-            });
+            const residue = [
+                // restore 失敗経路で先に走った補償の残留（restored は null なので
+                // ハンドルからは拾えない）。Error へ添えられたものを合流させる
+                ...detachResidue(err),
+                ...await this.compensate({
+                    placedPaths,
+                    mapUid,
+                    createdPoiUids: restored?.createdPoiUids,
+                    cleanupAssets: restored?.cleanupAssets,
+                }),
+            ];
             if (residue.length > 0) {
                 console.warn('[DataUploadService] 補償に到達できなかった残留物があります:', residue);
                 return { err: message, residue };
