@@ -260,6 +260,33 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
 }
 
 // ---------------------------------------------------------------------------
+// 単独呼び出しへの自衛: NaN size が上限判定を無効化しないこと。
+// total が NaN になると以降の `total > MAX` が恒偽になり、**サイズ上限が黙って
+// 素通りする**（最悪の壊れ方）。合成経路では (a) が先に弾くが、(b) 単独では弾けない。
+// ---------------------------------------------------------------------------
+{
+  assert.throws(
+    () => assertPoiPayloadLimits([{ name: 'imgs/a.png', size: Number.NaN }]),
+    /Invalid POI package entry size: imgs\/a\.png/,
+    '(b) 単独呼び出しでも NaN size を弾くこと',
+  );
+  // NaN を弾かなければ、この巨大 entry が素通りしてしまう（弾く根拠）
+  assert.throws(
+    () => assertPoiPayloadLimits([
+      { name: 'imgs/nan.png', size: Number.NaN },
+      { name: 'pois/huge.geojson', size: POI_PACKAGE_MAX_EXPANDED_BYTES + 1 },
+    ]),
+    /Invalid POI package entry size/,
+    'NaN 混入時に後続の上限判定が無効化しないこと',
+  );
+  assert.throws(
+    () => assertPoiPayloadLimits([{ name: 'imgs/a.png', size: -1 }]),
+    /Invalid POI package entry size/,
+    '(b) 単独呼び出しでも負値を弾くこと',
+  );
+}
+
+// ---------------------------------------------------------------------------
 // AC13: 1件制約の所在 — 列挙 primitive を切り出し、個数の要求は呼び出し側に残す
 // ---------------------------------------------------------------------------
 {

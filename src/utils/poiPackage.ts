@@ -70,6 +70,13 @@ export function assertPoiPayloadLimits(entries: readonly PoiPackageEntryInfo[]):
   let total = 0;
   for (const entry of entries) {
     const name = String(entry.name);
+    // size の妥当性検査は (a) 側が持つ。ここで再度弾くのは **単独呼び出しへの自衛**である:
+    // NaN が1件でも混ざると total が NaN になり、以降の `total > MAX` が恒偽になって
+    // 上限判定そのものが無効化する（サイズ上限を黙って素通りさせる最悪の壊れ方）。
+    // 合成経路では (a) が先に throw するため、この行に到達するのは単独呼び出しのときだけである。
+    if (!Number.isSafeInteger(entry.size) || entry.size < 0) {
+      throw new Error(`Invalid POI package entry size: ${name}`);
+    }
     total += entry.size;
     if (/^imgs\/.+[^/]$/i.test(name) && entry.size > POI_PACKAGE_MAX_IMAGE_BYTES) {
       throw new Error(`Packaged image is too large: ${name}`);
