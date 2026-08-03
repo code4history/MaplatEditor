@@ -270,6 +270,8 @@ const originalMapData = ref<any>({}); // isDirty 比較用ディープクロー�
 // その経路の判定漏れは下の poisGuard (computed) が塞ぐ。
 function setMapDocument(incoming: any): void {
     mapData.value = acceptDocumentPois(incoming, incoming);
+    // M5-T7: main 側で導出済みの url_ と対になる url を記録する（設計 §5.3 の初期化）
+    markRuntimeTileUrlDerived();
 }
 
 // pois がエディタ正準形式 (配列) でないかどうか。判定・表示・read-only・書き込み可否は
@@ -785,6 +787,11 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
     // here is only valid for Undo/Redo after the map runtime is ready; initial
     // draft rendering is performed by loadMapTiles() below.
     if (illstMap && mercMap && illstSource) {
+        // M5-T7: 復元された url に対して url_ を作り直してからキーを比較する。
+        // スナップショットが url 編集の途中（url は新しいが url_ は古い）で取られていた場合の
+        // 補正であり、あわせて lastDerivedUrl を復元後の url へ更新する（設計 §5.3(b)）。
+        // 交換の判断と実行は下に残す（exchange: false）。
+        await refreshRuntimeTileUrl((mapData.value?.url ?? '') as string, { applyUrl: false, exchange: false });
         // m1-t6-hotfix-2: 復元した mapData が指すタイルと表示中のタイルが異なるなら
         // ソースを再構築する（設計 v1.1 §5.4）。gcpsToMarkers()/updateTin() は
         // illstSource の座標変換を使うため、必ずそれらより前に行う。
@@ -2849,6 +2856,83 @@ const exchangeTileSource = async (): Promise<any> => {
     }
 };
 
+// M5-T7: url（交換形）→ url_（ランタイム専用）の再導出。
+//
+// なぜ main へ問い合わせるか（設計 §4）: url が空のとき url_ はタイル実体から組み立てる
+// 必要があり、renderer に持ち込むと m5-t3 が1本化した deriveRuntimeTileUrl が3箇所目として
+// 復活する。∴ 導出は main（mapedit:deriveRuntimeTileUrl）に閉じたまま呼ぶ。
+//
+// lastDerivedUrl は「url_ を最後に導出したときの url」であって「入力欄の直前値」ではない
+// （設計 §5.3）。入力欄基準にすると履歴復元で失効し、同じ値を再入力したときに早期 return して
+// url と url_ が食い違う ＝ 本タスクが直すはずの症状を新経路で再導入してしまう。
+// ∴ 更新は本関数の中だけで行い、経路 (a)(b) のどちらを通っても必ず更新される形にする。
+let lastDerivedUrl: string | null = null;
+
+/** 地図文書を丸ごと受け入れた直後に呼ぶ（url と url_ が対になっている状態の記録） */
+const markRuntimeTileUrlDerived = () => {
+    lastDerivedUrl = (mapData.value?.url ?? '') as string;
+};
+
+/**
+ * url に対応する url_ を main から取り直して mapData へ反映する。
+ *
+ * @param requested 反映したい url。確定経路では入力値、復元経路では復元後の mapData.url
+ * @param applyUrl  true なら mapData.url も requested で上書きする（確定経路）
+ * @param exchange  true なら同一性キーが変わったときにタイル源を交換する
+ * @returns **反映したか**（url_ ないし url を書いたか）。交換の有無ではない
+ */
+const refreshRuntimeTileUrl = async (
+    requested: string,
+    { applyUrl, exchange }: { applyUrl: boolean; exchange: boolean },
+): Promise<boolean> => {
+    if (requested === lastDerivedUrl) return false;
+
+    // mapUpload と同じ作法: mapData への書き込みは **await の後にまとめて**行う。
+    // await より前に書くと、その時点で履歴スナップショットが着地して
+    // 「url は新しいが url_ は古い」中間エントリができ、Undo が1回で編集前へ戻らない（実測）。
+    const captured = mapData.value;
+    const whReady = !!(captured?.width && captured?.height);
+
+    let derived: string | undefined;
+    if (whReady) {
+        derived = await (window as any).mapedit.deriveRuntimeTileUrl(
+            requested,
+            mapUid.value || newMapUid,
+        );
+        // await を跨いで mapData が差し替わっていたら破棄する（後着の処理が正しい状態を作る）
+        if (mapData.value !== captured) return false;
+        lastDerivedUrl = requested;
+    }
+
+    if (applyUrl) mapData.value.url = requested;
+    // 寸法未確定（＝タイルがまだ無い）なら url_ は触らない。
+    // 入力値そのものは捨てずに保持する（利用者の編集を失わせない）
+    if (!whReady) return applyUrl;
+
+    mapData.value.url_ = derived;
+    if (exchange && tileIdentityKey(mapData.value) !== illstSourceKey) {
+        await exchangeTileSource();
+    }
+    return true;
+};
+
+/**
+ * タイルURL欄の確定（blur / Enter）。
+ *
+ * 入力欄は `v-model` ではなく `:value` + `@change` にしてある。`v-model` の既定は
+ * `input` イベントで**キー入力ごとに mapData.url を書く**ため、確定前に履歴エントリが
+ * 1つ着地してしまう（そのエントリは url_ が追随する前の中間状態になる）。
+ * mapUpload が1回の Undo で戻せるのは、mapData への書き込みが await の後に
+ * まとめて起きるからであり、ここも同じ形に揃えた。
+ */
+const onTileUrlCommitted = async (event: Event) => {
+    const next = (event.target as HTMLInputElement).value;
+    if (await refreshRuntimeTileUrl(next, { applyUrl: true, exchange: true })) {
+        // await を跨いで着地した編集なので明示確定する（mapUpload と同型）
+        commitHistorySnapshot();
+    }
+};
+
 const loadMapTiles = async () => {
     // 旧実装 reflectIllstMap に準拠: mapSourceFactory を使用
     // 非正方形タイル（HistMap）などの設定を適切に処理する
@@ -3991,7 +4075,7 @@ const goBack = async () => {
                         </div>
                          <div class="col-md-8">
                              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_tile") }} <ContextHelp :text="t('mapedit.map_tile_desc')" :ariaLabel="t('mapedit.map_tile_desc')" /></label>
-                             <input type="text" class="form-control form-control-sm" v-model="mapData.url" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
+                             <input type="text" class="form-control form-control-sm" data-testid="map-tile-url" :value="mapData.url" @change="onTileUrlCommitted" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
                         </div>
                     </div>
 

@@ -53,6 +53,10 @@ contextBridge.exposeInMainWorld('mapedit', {
   // M12-T20 (§5.1): 復元時ガード用の staging 実在照会
   stagingStatus: (url_: string, uid?: string) =>
     ipcRenderer.invoke('mapedit:stagingStatus', url_, uid),
+  // M5-T7: url（交換形）から url_（ランタイム専用）を導出する。導出は main の
+  // deriveRuntimeTileUrl（m5-t3 の正本）に閉じており renderer では複製しない
+  deriveRuntimeTileUrl: (url: string, mapRef?: string): Promise<string | undefined> =>
+    ipcRenderer.invoke('mapedit:deriveRuntimeTileUrl', url, mapRef),
   getWmtsFolder: () =>
     ipcRenderer.invoke('mapedit:getWmtsFolder'),
   onProgress(listener: (progress: any) => void): () => void {
