@@ -30,6 +30,20 @@ const BYTES_PER_SAMPLE_PER_COMPONENT = 5;
 const OUTPUT_BYTES_PER_PIXEL_BASE = 4;
 /** MCU 端数の上振れを吸収するマージン。**メモリ側にだけ乗せる**（§5.3 の表） */
 const MEMORY_MARGIN_RATIO = 1.03;
+/**
+ * M5-T8: 係数ブロック1個（`Int32Array(64)`）が要求する **V8 ヒープ**のバイト数。
+ *
+ * jpeg-js は成分ブロックを `Int32Array(64)` の **JS オブジェクトとして** 数百万個確保する
+ * （`decoder.js:595-613`）。`maxMemoryUsageInMB` の会計はバッキングストアの 256 B しか
+ * 数えず、**ラッパ（JSTypedArray + JSArrayBuffer）の V8 ヒープ消費は会計外**である。
+ * ∴ 会計ガードを通過しても V8 が先に尽き、**catch できないプロセス強制終了**になる領域が
+ * 存在する。それを事前に判定するための係数。
+ *
+ * 実測（実 Electron main / Electron 39.8.10 / arm64。m5-t8 設計 §3.1(a)）:
+ *   20 MP → 122.4 B/block ・ 50 MP → 119.6 ・ 110 MP → 118.6
+ * 安全側へ 120 を採る。
+ */
+export const V8_HEAP_BYTES_PER_BLOCK = 120;
 
 export interface JpegDecodeBudget {
     /** SOF が示す画像幅（ピクセル） */
@@ -50,6 +64,17 @@ export interface JpegDecodeBudget {
      * MCU 切り上げの影響を受けないため、不確かさが無い（設計 §5.3）。
      */
     recommendedResolutionMP: number;
+    /**
+     * M5-T8: jpeg-js が確保する係数ブロックの総数。`decoder.js:593-601` と**同じ式**で
+     * 算出する（近似ではない）。診断と回帰テストのために露出する。
+     */
+    decoderBlocks: number;
+    /**
+     * M5-T8: 上記ブロックが要求する **V8 ヒープ量（MiB = 2^20 バイト・切り上げ）**。
+     * `requiredMemoryMB`（jpeg-js の会計・MB = 2^20）とは**別の量**であり、
+     * 会計に含まれない。超過は例外ではなく**アプリの強制終了**として現れる。
+     */
+    decoderHeapMB: number;
 }
 
 interface SofComponent {
@@ -164,6 +189,17 @@ export function estimateJpegDecodeBudget(buffer: Buffer): JpegDecodeBudget | nul
     const requiredMemoryMB = Math.ceil((componentBytes + outputBytes) / 1024 / 1024);
     const megapixels = pixels / 1e6;
 
+    // M5-T8: 係数ブロック数は jpeg-js の prepareComponents（decoder.js:593-601）と同じ式で出す。
+    // MCU 単位への切り上げが2段（画素→MCU、MCU→成分ブロック）入るため、
+    // 「画素数 ÷ 64」の近似では端数が合わない。
+    const mcusPerLine = Math.ceil(width / 8 / maxHorizontal);
+    const mcusPerColumn = Math.ceil(height / 8 / maxVertical);
+    let decoderBlocks = 0;
+    for (const component of components) {
+        decoderBlocks +=
+            mcusPerColumn * component.verticalSampling * (mcusPerLine * component.horizontalSampling);
+    }
+
     return {
         width,
         height,
@@ -172,5 +208,7 @@ export function estimateJpegDecodeBudget(buffer: Buffer): JpegDecodeBudget | nul
         requiredMemoryMB,
         recommendedMemoryMB: Math.ceil(requiredMemoryMB * MEMORY_MARGIN_RATIO),
         recommendedResolutionMP: Math.ceil(megapixels),
+        decoderBlocks,
+        decoderHeapMB: Math.ceil((decoderBlocks * V8_HEAP_BYTES_PER_BLOCK) / 1024 / 1024),
     };
 }

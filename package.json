@@ -170,6 +170,7 @@
     "test:e2e:m5-t4b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t4b-map-package-roundtrip.spec.ts",
     "test:e2e:m5-t4b-import-draft": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t4b-import-draft-cleanup.spec.ts",
     "smoke:m5-t7-runtime-tile-url-ipc": "node scripts/m5-t7-runtime-tile-url-ipc-smoke.mjs",
+    "smoke:m5-t8-decode-safety": "node scripts/m5-t8-decode-safety-phase-a.mjs",
     "test:e2e:m5-t7": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t7-tile-url-runtime-rebuild.spec.ts"
   },
   "dependencies": {
