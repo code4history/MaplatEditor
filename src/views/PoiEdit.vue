@@ -249,7 +249,8 @@ import IconRefField from "../components/IconRefField.vue";
 import SlugField from "../components/editor-ui/SlugField.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import type { DiagnosticItem } from "../components/editor-ui/editorUiTypes";
-import { checkSlugAvailability, type SlugFieldState } from "../composables/useSlugAvailability";
+import { type SlugFieldState } from "../composables/useSlugAvailability";
+import { findLocalCloneSlug } from "../composables/useResourceDuplicate";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
@@ -912,14 +913,17 @@ async function cloneSourceToLocal(): Promise<void> {
   cloning.value = true;
   saveError.value = null;
   try {
-    // 空き slug を探索して自動提案 (ローカル側の slug はエディタでいつでも変更できる)
-    const base =
-      (confirmedSlug.value || state.slug).replace(/[^A-Za-z0-9_-]+/g, "-") || "poi";
-    let candidate = `${base}-local`;
-    for (let i = 2; i <= 50; i++) {
-      // M11-T7/AC17: 生 checkSlug ではなく sanctioned wrapper(registry AND 予約合成)で探索する
-      if (await checkSlugAvailability({ slug: candidate })) break;
-      candidate = `${base}-local${i}`;
+    // 空き slug を探索して自動提案 (ローカル側の slug はエディタでいつでも変更できる)。
+    // M5-T9: 候補生成は useResourceDuplicate へ移設した ("-copy" / "-poi" と同じ場所)。
+    // view に残すと service 層のテストから到達できず、実際に off-by-one が
+    // 長く検出されなかった。base の正規化も含めて向こう側の責務である。
+    const candidate = await findLocalCloneSlug(confirmedSlug.value || state.slug, "poi");
+    if (candidate === null) {
+      // 全候補が埋まっている。**cloneToLocal を呼ばない** —
+      // 従来は未検査の base-local50 を投げて失敗させていた
+      console.error("[PoiEdit] cloneToLocal: 空き slug が見つかりませんでした");
+      saveError.value = t("poiedit.clone_failed");
+      return;
     }
     const result = await window.poiSources.cloneToLocal(uid, { slug: candidate });
     if ("error" in result || result.result !== "Success") {
