@@ -40,6 +40,9 @@ const EDITOR_ONLY_KEYS = new Set([
   // composeViewerSourceが解決済みslug(または埋め込みid)で明示的に出力する
   "mapUid",
   "mapSlug",
+  // 種別軸（m6-t1）。エディタ識別子であり viewer が読むのは maptype。
+  // 出力からの除去は compose 境界の単一責任（normalize は内部形として data.kind を保持する）。
+  "kind",
 ]);
 
 // core側 normalizeArg はsnake_case等の旧キーを例外送出で拒否するため、
@@ -225,6 +228,8 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   }
 
   const rawData = raw?.data && typeof raw.data === "object" ? raw.data : raw;
+  // 種別軸（m6-t1）: kind は EDITOR_ONLY_KEYS に入るため strip 後には存在しない。よって strip 前に退避する。
+  const rawKind = raw?.kind ?? rawData?.kind;
   const data = stripEditorKeys(normalizeRuntimeKeys({ ...(rawData || {}) })) as Record<string, any>;
   // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (ADR-0007)
   const mapRef = raw?.mapUid || raw?.mapID || data.mapID || "";
@@ -268,7 +273,14 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   const label = pickLabel(raw, data, defaultLang);
   delete data.label;
   delete data.mapID;
-  delete data.maptype;
+  // 種別軸（m6-t1）: provider の maptype は保持し、それ以外（tms/merc）は従来どおり捨てる。
+  if (!(rawKind === "google" || rawKind === "mapbox" || rawKind === "maplibre")) {
+    delete data.maptype;
+  }
+  // 種別軸（m6-t1）: kind を AppSource.data に再付着する。本番の Export/Preview は必ず
+  // normalize→compose の連鎖を通るため、ここで保持しないと compose の rawKind が空になる
+  // （設計 v2.1 Critical 対応）。viewer 出力からの除去は compose 境界の EDITOR_ONLY_KEYS が担う。
+  if (rawKind != null) data.kind = rawKind;
   return {
     sourceType: "tms",
     mapUid: mapRef,
@@ -308,7 +320,12 @@ export function composeViewerSource(
     return out;
   }
 
-  const data = pruneEmpty(stripEditorKeys(normalizeRuntimeKeys({ ...(source.data || {}) })));
+  const raw = source.data || {};
+  // 種別軸（m6-t1）: kind は EDITOR_ONLY_KEYS に入るため strip 後には存在しない。よって
+  // strip 前に source.data から kind/maptype を退避し、maptype 決定で使う（設計 v2.1 C2 対応）。
+  const rawKind = raw.kind;
+  const rawMaptype = raw.maptype;
+  const data = pruneEmpty(stripEditorKeys(normalizeRuntimeKeys({ ...raw })));
   delete data.label;
   // 存在範囲(coverageLngLats)はEditor内の検索/ピッカー用メタデータであり、Viewerへは渡さない。
   // Viewerに渡る範囲は利用範囲(envelopeLngLats)のみ(ユーザー明示設定、既定は空)。
@@ -327,7 +344,13 @@ export function composeViewerSource(
   const out: Record<string, unknown> = {
     ...data,
     mapID: source.mapUid,
-    maptype: source.role === "overlay" ? "overlay" : "base",
+    // 種別軸（m6-t1）: provider は退避した rawMaptype を出力（欠落時は "base" へフォールバック。
+    // t1 では provider の maptype は t4/t5 が入れる前のため空で、role 分岐の base と同値＝出力不変）。
+    // tms / merc / 未設定は従来どおり role 分岐（出力不変）。
+    maptype:
+      rawKind === "google" || rawKind === "mapbox" || rawKind === "maplibre"
+        ? rawMaptype ?? "base"
+        : source.role === "overlay" ? "overlay" : "base",
   };
   const label = compactLangObject(source.label, options.lang);
   if (label) out.label = label;

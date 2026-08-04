@@ -42,7 +42,38 @@
     <DiagnosticFeedback v-if="readOnly" scope="section" data-testid="basemap-editor-readonly" :items="[{ key: 'builtin-readonly', severity: 'info', message: t('basemap.master_detail.builtin_read_only') }]" />
 
     <div class="flex-grow-1 overflow-auto p-3" data-testid="basemap-editor">
-      <div class="row g-3">
+      <!-- m6-t1: 種別軸（kind）選択 btn-group（フォームコンテナ先頭） -->
+      <div class="mb-3">
+        <div class="btn-group btn-group-sm" role="group" aria-label="basemap kind">
+          <button
+            v-for="k in KIND_OPTIONS"
+            :key="k"
+            type="button"
+            class="btn"
+            :class="document.kind === k ? 'btn-primary' : 'btn-outline-secondary'"
+            :disabled="kindDisabled(k)"
+            :title="kindDisabledReason(k) || undefined"
+            :data-testid="'basemap-kind-' + k"
+            @click="selectKind(k)"
+          >{{ t('basemap.kind.label_' + k) }}</button>
+        </div>
+        <!-- 未選択時: 種別選択を促す案内文（フォーム本体は非表示） -->
+        <div v-if="document.kind === null" class="text-muted small mt-2" data-testid="basemap-kind-prompt">
+          {{ t("basemap.kind.select_prompt") }}
+        </div>
+        <!-- merc 無効理由（disabledReason 文法: text-danger 常時表示） -->
+        <div v-if="document.kind !== null && kindDisabledReason('merc')" class="text-danger small mt-2">
+          {{ kindDisabledReason('merc') }}
+        </div>
+        <!-- provider-incomplete 診断（種別ボタン群直下の section 診断） -->
+        <DiagnosticFeedback
+          v-if="validation.errors.includes('provider-incomplete')"
+          scope="section"
+          data-testid="basemap-kind-provider-incomplete"
+          :items="[{ key: 'provider-incomplete', severity: 'danger', message: t('basemap.errors.provider_incomplete') }]"
+        />
+      </div>
+      <div v-if="document.kind !== null" class="row g-3">
         <div class="col-12 col-xl-6">
           <EditorField :label="t('basemap.modal.title_label')" :diagnostics="titleDiagnostics">
             <LangResourceInput
@@ -230,6 +261,7 @@ import {
   validateBaseMapDocument,
   type BaseMapCatalogItem,
   type BaseMapEditDocument,
+  type BaseMapKind,
 } from "../../utils/baseMapEditorDocument";
 import { envelopeToBbox } from "../../utils/appSourceModel";
 import { isTranslationMode } from "../../utils/editorLanguageMode";
@@ -302,7 +334,26 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   "min-zoom-invalid": "basemap.errors.min_zoom_invalid",
   "max-zoom-invalid": "basemap.errors.max_zoom_invalid",
   "zoom-range": "basemap.errors.zoom_order_invalid",
+  // m6-t1: kind 関連。kind-required は案内文で置き換えるため field 診断としては使わないが、
+  // provider-incomplete はボタン群直下の section 診断で表示する。
+  "kind-required": "basemap.errors.kind_required",
+  "provider-incomplete": "basemap.errors.provider_incomplete",
 };
+
+// m6-t1: 種別軸（kind）選択の btn-group。UI 状態は document.kind のみから決まり、追加の
+// component state を持たない（既存下書き復帰が自動で定まる）。
+const KIND_OPTIONS: readonly BaseMapKind[] = ["tms", "google", "mapbox", "maplibre", "merc"];
+const kindDisabled = (k: BaseMapKind): boolean => {
+  if (structuralDisabled.value) return true;
+  if (document.value.kind === null) return k === "merc"; // 未選択時: merc のみ不可
+  return true; // 選択後は5つとも不可（登録後に変更できない）
+};
+const kindDisabledReason = (k: BaseMapKind): string =>
+  k === "merc" && document.value.kind !== "merc" ? t("basemap.kind.merc_disabled_reason") : "";
+function selectKind(k: BaseMapKind): void {
+  if (kindDisabled(k)) return;
+  updateField("kind", k);
+}
 // field 診断（danger）への変換は共通 validationFieldDiagnostics(M11-T10)。全項目を即時表示（dirtyゲートなし）。
 // slug-required/slug-invalid は SlugField(required + 形式診断内蔵)が field 側で表示する。
 const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>

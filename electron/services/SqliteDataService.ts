@@ -169,7 +169,9 @@ const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
 export interface BaseMapSavePayload {
   uid?: string;
   slug: string;
-  tms: any;
+  // 種別軸（m6-t1）。renderer 側の tms.kind を素通しで data_json に書く。
+  // 平行型（src/electron.d.ts と同一）: kind 明示の最小差分（m11-t7:574 の 400 文字窓を維持）。
+  tms: { kind?: string } & Record<string, unknown>;
   expectedRevision?: number;
   create?: boolean;
 }

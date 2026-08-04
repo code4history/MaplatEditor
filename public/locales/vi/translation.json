@@ -111,7 +111,18 @@
       "delete_failed": "Xóa thất bại.",
       "load_failed": "Không lấy được danh sách bản đồ nền.",
       "always_failed": "Lưu cài đặt luôn hiển thị thất bại.",
-      "icon_generate_failed": "Không thể tạo biểu tượng. Vui lòng kiểm tra URL tile và phạm vi tồn tại."
+      "icon_generate_failed": "Không thể tạo biểu tượng. Vui lòng kiểm tra URL tile và phạm vi tồn tại.",
+      "kind_required": "Chọn một loại.",
+      "provider_incomplete": "Không thể lưu loại này cho đến khi đặt các trường bắt buộc."
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "URL ô bản đồ",
+      "label_merc": "Ô bản đồ Mercator",
+      "select_prompt": "Chọn loại bản đồ nền.",
+      "merc_disabled_reason": "Được tạo từ chỉnh sửa bản đồ"
     }
   },
   "settings": {

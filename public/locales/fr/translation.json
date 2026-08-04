@@ -111,7 +111,18 @@
       "delete_failed": "Échec de la suppression du fond de carte.",
       "load_failed": "Échec du chargement de la liste des fonds de carte.",
       "always_failed": "Échec de l'enregistrement du paramètre d'affichage permanent.",
-      "icon_generate_failed": "Échec de la génération de l'icône. Vérifiez l'URL des tuiles et la zone de couverture."
+      "icon_generate_failed": "Échec de la génération de l'icône. Vérifiez l'URL des tuiles et la zone de couverture.",
+      "kind_required": "Sélectionnez un type.",
+      "provider_incomplete": "Ce type ne peut pas être enregistré tant que les champs obligatoires ne sont pas définis."
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "URL de tuiles",
+      "label_merc": "Tuile Mercator",
+      "select_prompt": "Sélectionnez le type de carte de base.",
+      "merc_disabled_reason": "Généré depuis l'édition de carte"
     }
   },
   "settings": {

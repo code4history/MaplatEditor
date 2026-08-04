@@ -102,7 +102,18 @@
       "delete_failed": "Failed to delete the base map.",
       "load_failed": "Failed to load the base map list.",
       "always_failed": "Failed to update the always-visible setting.",
-      "icon_generate_failed": "Failed to generate the icon. Check the tile URL and coverage."
+      "icon_generate_failed": "Failed to generate the icon. Check the tile URL and coverage.",
+      "kind_required": "Select a type.",
+      "provider_incomplete": "This type cannot be saved until required fields are set."
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "Tile URL",
+      "label_merc": "Mercator tile",
+      "select_prompt": "Select the base map type.",
+      "merc_disabled_reason": "Generated from map editing"
     }
   },
   "settings": {

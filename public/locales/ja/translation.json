@@ -111,7 +111,18 @@
       "delete_failed": "削除に失敗しました。",
       "load_failed": "ベースマップ一覧の取得に失敗しました。",
       "always_failed": "常時表示設定の保存に失敗しました。",
-      "icon_generate_failed": "アイコンの生成に失敗しました。タイルURLと存在範囲を確認してください。"
+      "icon_generate_failed": "アイコンの生成に失敗しました。タイルURLと存在範囲を確認してください。",
+      "kind_required": "種別を選択してください。",
+      "provider_incomplete": "この種別は必須項目が未設定のため保存できません。"
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "タイルURL",
+      "label_merc": "メルカトルタイル",
+      "select_prompt": "ベースマップの種別を選択してください。",
+      "merc_disabled_reason": "地図編集から生成されます"
     }
   },
   "settings": {

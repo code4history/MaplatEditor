@@ -111,7 +111,18 @@
       "delete_failed": "Error al eliminar el mapa base.",
       "load_failed": "Error al cargar la lista de mapas base.",
       "always_failed": "Error al guardar la configuración de visibilidad permanente.",
-      "icon_generate_failed": "No se pudo generar el icono. Compruebe la URL de teselas y el área de cobertura."
+      "icon_generate_failed": "No se pudo generar el icono. Compruebe la URL de teselas y el área de cobertura.",
+      "kind_required": "Seleccione un tipo.",
+      "provider_incomplete": "Este tipo no se puede guardar hasta que se definan los campos obligatorios."
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "URL de teselas",
+      "label_merc": "Tesela de Mercator",
+      "select_prompt": "Seleccione el tipo de mapa base.",
+      "merc_disabled_reason": "Generado desde la edición del mapa"
     }
   },
   "settings": {

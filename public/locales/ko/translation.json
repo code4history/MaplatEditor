@@ -111,7 +111,18 @@
       "delete_failed": "삭제에 실패했습니다.",
       "load_failed": "베이스맵 목록을 가져오는 데 실패했습니다.",
       "always_failed": "항상 표시 설정 저장에 실패했습니다.",
-      "icon_generate_failed": "아이콘 생성에 실패했습니다. 타일 URL과 존재 범위를 확인해 주세요."
+      "icon_generate_failed": "아이콘 생성에 실패했습니다. 타일 URL과 존재 범위를 확인해 주세요.",
+      "kind_required": "유형을 선택하세요.",
+      "provider_incomplete": "필수 항목이 설정될 때까지 이 유형은 저장할 수 없습니다."
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "타일 URL",
+      "label_merc": "메르카토르 타일",
+      "select_prompt": "베이스맵 유형을 선택하세요.",
+      "merc_disabled_reason": "지도 편집에서 생성됩니다"
     }
   },
   "settings": {

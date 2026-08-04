@@ -111,7 +111,18 @@
       "delete_failed": "ลบไม่สำเร็จ",
       "load_failed": "ไม่สามารถดึงรายการแผนที่พื้นฐานได้",
       "always_failed": "บันทึกการตั้งค่าแสดงตลอดเวลาไม่สำเร็จ",
-      "icon_generate_failed": "สร้างไอคอนไม่สำเร็จ กรุณาตรวจสอบ URL ไทล์และขอบเขตที่มีอยู่"
+      "icon_generate_failed": "สร้างไอคอนไม่สำเร็จ กรุณาตรวจสอบ URL ไทล์และขอบเขตที่มีอยู่",
+      "kind_required": "เลือกประเภท",
+      "provider_incomplete": "ไม่สามารถบันทึกประเภทนี้ได้จนกว่าจะตั้งค่าฟิลด์ที่จำเป็น"
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "URL ของไทล์",
+      "label_merc": "ไทล์เมอร์เคเตอร์",
+      "select_prompt": "เลือกประเภทแผนที่ฐาน",
+      "merc_disabled_reason": "สร้างจากการแก้ไขแผนที่"
     }
   },
   "settings": {

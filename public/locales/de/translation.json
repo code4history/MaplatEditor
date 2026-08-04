@@ -111,7 +111,18 @@
       "delete_failed": "Löschen der Basiskarte fehlgeschlagen.",
       "load_failed": "Laden der Basiskartenliste fehlgeschlagen.",
       "always_failed": "Speichern der Einstellung für dauerhafte Sichtbarkeit fehlgeschlagen.",
-      "icon_generate_failed": "Das Symbol konnte nicht erzeugt werden. Prüfen Sie Kachel-URL und Abdeckungsbereich."
+      "icon_generate_failed": "Das Symbol konnte nicht erzeugt werden. Prüfen Sie Kachel-URL und Abdeckungsbereich.",
+      "kind_required": "Wählen Sie einen Typ.",
+      "provider_incomplete": "Dieser Typ kann erst gespeichert werden, wenn Pflichtfelder gesetzt sind."
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "Kachel-URL",
+      "label_merc": "Mercator-Kachel",
+      "select_prompt": "Wählen Sie den Basiskarten-Typ.",
+      "merc_disabled_reason": "Wird aus der Karteneditierung generiert"
     }
   },
   "settings": {

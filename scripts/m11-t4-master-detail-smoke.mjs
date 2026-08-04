@@ -121,6 +121,7 @@ try {
     slug: "custom",
     expectedRevision: 3,
     tms: {
+      kind: "tms", // m6-t1: kind は読み込み時 "tms" へ正規化され、保存時 tms.kind として永続化される
       lang: "en",
       title: { en: "Title" },
       label: { en: "Title" },

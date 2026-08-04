@@ -111,7 +111,18 @@
       "delete_failed": "删除失败。",
       "load_failed": "获取底图列表失败。",
       "always_failed": "保存始终显示设置失败。",
-      "icon_generate_failed": "图标生成失败。请检查瓦片URL和覆盖范围。"
+      "icon_generate_failed": "图标生成失败。请检查瓦片URL和覆盖范围。",
+      "kind_required": "请选择类型。",
+      "provider_incomplete": "此类型在设置必填字段前无法保存。"
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "瓦片URL",
+      "label_merc": "墨卡托瓦片",
+      "select_prompt": "请选择底图类型。",
+      "merc_disabled_reason": "由地图编辑生成"
     }
   },
   "settings": {

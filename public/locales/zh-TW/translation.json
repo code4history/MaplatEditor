@@ -111,7 +111,18 @@
       "delete_failed": "刪除失敗。",
       "load_failed": "取得底圖清單失敗。",
       "always_failed": "儲存永遠顯示設定失敗。",
-      "icon_generate_failed": "圖示產生失敗。請檢查圖磚URL與涵蓋範圍。"
+      "icon_generate_failed": "圖示產生失敗。請檢查圖磚URL與涵蓋範圍。",
+      "kind_required": "請選擇類型。",
+      "provider_incomplete": "此類型在設定必填欄位前無法儲存。"
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "瓦片URL",
+      "label_merc": "麥卡托瓦片",
+      "select_prompt": "請選擇底圖類型。",
+      "merc_disabled_reason": "由地圖編輯產生"
     }
   },
   "settings": {

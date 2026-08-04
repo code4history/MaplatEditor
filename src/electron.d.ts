@@ -255,7 +255,10 @@ export interface AppAssetsAPI {
 export interface BaseMapSavePayload {
     uid?: string;
     slug: string;
-    tms: any;
+    // 種別軸（m6-t1）。renderer 側は src/utils/baseMapEditorDocument.ts の BaseMapSavePayload で
+    // tms.kind: BaseMapKind を保持。main は素通しで data_json に書くため、ここは kind 明示の最小差分
+    // （{ kind?: string } & Record<string, unknown>）で契約を文書化する（m11-t7:574 の 400 文字窓を維持）。
+    tms: { kind?: string } & Record<string, unknown>;
     expectedRevision?: number;
     create?: boolean;
 }

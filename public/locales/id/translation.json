@@ -111,7 +111,18 @@
       "delete_failed": "Gagal menghapus.",
       "load_failed": "Gagal mengambil daftar peta dasar.",
       "always_failed": "Gagal menyimpan pengaturan selalu tampil.",
-      "icon_generate_failed": "Gagal membuat ikon. Periksa URL tile dan cakupan wilayah."
+      "icon_generate_failed": "Gagal membuat ikon. Periksa URL tile dan cakupan wilayah.",
+      "kind_required": "Pilih jenis.",
+      "provider_incomplete": "Jenis ini tidak dapat disimpan sampai bidang wajib ditetapkan."
+    },
+    "kind": {
+      "label_google": "Google",
+      "label_mapbox": "Mapbox",
+      "label_maplibre": "MapLibre",
+      "label_tms": "URL Tile",
+      "label_merc": "Tile Mercator",
+      "select_prompt": "Pilih jenis peta dasar.",
+      "merc_disabled_reason": "Dihasilkan dari pengeditan peta"
     }
   },
   "settings": {
