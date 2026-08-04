@@ -6,6 +6,7 @@
 // reserveSequencedSlug(suffix "-copy") への挙動不変 wrapper (AC6-8(a))。
 import type { SlugFieldKind } from "../utils/slugReservationKind";
 import { findAvailableSlug } from "../utils/slugSequence";
+import { checkSlugAvailability } from "./useSlugAvailability";
 
 const COPY_SUFFIX = "-copy";
 
@@ -48,6 +49,56 @@ export async function reserveCopySlug(
   fallbackBase: string,
 ): Promise<ReservedCopySlug | null> {
   return reserveSequencedSlug(baseSlug, COPY_SUFFIX, assetKind, fallbackBase);
+}
+
+// --- M5-T9: ローカル複製 ("-local") ---
+//
+// M3-T6 が (a) "-copy" と (b) "-poi" をここへ畳んだとき、**(c) "-local" だけが
+// PoiEdit.vue の中に取り残された**。view の中にあったため service 層のテストから
+// 到達できず、次の2つの欠陥がテストに掛からないまま残っていた:
+//   1. off-by-one — 候補を 49件しか検査せず、**未検査の base-local50 を返していた**
+//   2. 長さ切詰が無く SLUG_MAX を超える slug を生成し得た
+//      (isValidSlug は SLUG_PATTERN のパターンのみで長さを見ない)
+//
+// 【"-copy" / "-poi" と取得方式が違う】
+// あちらは check → reserve で **予約を成立させる**が、こちらは **空き確認のみ**である。
+// clone は直後の cloneToLocal が slug を確定する経路で、予約を挟むと解放責務が
+// 新たに生じる。findAvailableSlug の tryAcquire 抽象はこの差を吸収するためにある
+// (slugSequence.ts の該当コメント参照) ∴ **差を潰さず、規則だけを揃える**。
+const LOCAL_SUFFIX = "-local";
+const LOCAL_MAX_INDEX = 50;
+
+/**
+ * ローカル複製の base を正規化する。slug に使えない文字を "-" へ畳み、
+ * 結果が空なら fallbackBase を使う。
+ *
+ * **適用順が reserveSequencedSlug とは違う。** あちらは `baseSlug || fallbackBase` で
+ * fallback が先だが、こちらは **正規化してから空判定**する。順序を入れ替えると
+ * "札幌" のように全文字が不許可のときの結果が変わる (正: fallback / 誤: "-")。
+ */
+export function normalizeCloneBase(
+  baseSlug: string | undefined,
+  fallbackBase: string,
+): string {
+  return String(baseSlug ?? "").replace(/[^A-Za-z0-9_-]+/g, "-") || fallbackBase;
+}
+
+/**
+ * ローカル複製用の空き slug を探す。**予約はしない**（直後の cloneToLocal が確定する）。
+ * 候補は正本 slugSequence の規則（base-local, base-local2 … base-local50）。
+ *
+ * @returns 空き slug / 全候補が埋まっていれば `null`（呼出元が clone_failed を出す）
+ */
+export async function findLocalCloneSlug(
+  baseSlug: string | undefined,
+  fallbackBase: string,
+): Promise<string | null> {
+  const base = normalizeCloneBase(baseSlug, fallbackBase);
+  // M11-T7/AC17: 生 checkSlug ではなく sanctioned wrapper (registry AND 予約合成) を使う
+  return findAvailableSlug(base, (slug) => checkSlugAvailability({ slug }), {
+    suffix: LOCAL_SUFFIX,
+    maxIndex: LOCAL_MAX_INDEX,
+  });
 }
 
 // grid 一覧（Map/App）の複製遷移先。エディタ側 duplicateFrom 受け口の契約（設計v3.2）:
