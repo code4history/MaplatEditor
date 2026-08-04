@@ -35,6 +35,16 @@ export function slugCandidate(base: string, n: number, opts?: SlugSequenceOption
   return base.slice(0, slugMax - tail.length) + tail;
 }
 
+// M5-T5: 候補系列 (n=1..maxIndex) を順に生成する。
+//
+// M5-T10: **反復規則の唯一の実装**。非同期ドライバ (findAvailableSlug) と同期ドライバ
+// (findAvailableSlugSync) がこれを共有する。上限・順序・打ち切り条件を2箇所へ書くと、
+// 片方だけを直す事故が起きる — それは m5-t10 が是正しようとしている状況そのものである。
+export function* slugCandidates(base: string, opts?: SlugSequenceOptions): Generator<string> {
+  const maxIndex = opts?.maxIndex ?? SEQUENCE_MAX_INDEX;
+  for (let n = 1; n <= maxIndex; n++) yield slugCandidate(base, n, opts);
+}
+
 // 候補を順に tryAcquire へ渡し、最初に true を返した slug を返す。全候補枯渇は null。
 // tryAcquire の意味は呼び出し側の検査手段に委ねる (予約成立 / 空き確認 — 設計レビュー (2-e) の
 // 検査手段差はこのコールバック抽象で吸収する)。
@@ -43,10 +53,30 @@ export async function findAvailableSlug(
   tryAcquire: (slug: string) => Promise<boolean>,
   opts?: SlugSequenceOptions,
 ): Promise<string | null> {
-  const maxIndex = opts?.maxIndex ?? SEQUENCE_MAX_INDEX;
-  for (let n = 1; n <= maxIndex; n++) {
-    const candidate = slugCandidate(base, n, opts);
+  for (const candidate of slugCandidates(base, opts)) {
     if (await tryAcquire(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * M5-T10: `findAvailableSlug` の同期版。
+ *
+ * **同期文脈からしか呼べない場所のためにある。** 移行 / seed の3経路
+ * (SqliteDataService の applyBuiltinBaseMapSeed / importLegacyMaps / importLegacyBaseMaps) は
+ * node:sqlite の `DatabaseSync` トランザクション内にあり `await` を跨げない。
+ * 呼び出し元を async 化すると DB 初期化の同期性まで波及するため、ドライバ側を分けた。
+ *
+ * 反復規則・上限・枯渇時の戻り値 (null) は非同期版と `slugCandidates` を通じて共有する。
+ * 述語は `isAvailable` (空いていれば true) — 非同期版の `tryAcquire` と同じ向きである。
+ */
+export function findAvailableSlugSync(
+  base: string,
+  isAvailable: (slug: string) => boolean,
+  opts?: SlugSequenceOptions,
+): string | null {
+  for (const candidate of slugCandidates(base, opts)) {
+    if (isAvailable(candidate)) return candidate;
   }
   return null;
 }

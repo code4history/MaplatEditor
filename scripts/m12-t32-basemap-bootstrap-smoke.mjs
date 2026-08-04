@@ -197,9 +197,17 @@ try {
         const users = userBaseMaps(list);
         assert.equal(users.length, 1, 'Part B: user scope はちょうど 1 件（electron-store 残骸 267 件は取り込まれない）');
         assert.equal(users[0].mapID, 'user-legacy-only', 'Part B: ユーザー独自 mapID が取り込まれる');
-        // {カタログmapID}_2 が 0 件
-        const phantom = users.filter((b) => b.mapID.endsWith('_2'));
-        assert.equal(phantom.length, 0, 'Part B: {カタログmapID}_2 が 0 件（残骸混入なし）');
+        // M5-T10: 残骸混入を **slug の形ではなく登録内容** で判定する。
+        // 旧実装は users.filter((b) => b.mapID.endsWith('_2')) を見ていたが、直前2行で
+        // users が ['user-legacy-only'] に固定されており **恒真だった**
+        // （述語を endsWith('y') へ変異させると落ちることで確認済み。m5-t10 設計 §2）。
+        //
+        // 残骸がカタログ ID を先取りした場合、押し出されて改名されるのは **builtin 側**である。
+        // ∴ builtin の slug が全件カタログ ID と一致することを見る。採番規則が
+        // '_2' でも '-2' でも、この検査は同じ強さで働く（Part B-2 が判別力を示す）。
+        const renamedBuiltins = builtinBaseMaps(list).filter((b) => !catalogMapIds.has(b.mapID));
+        assert.deepEqual(renamedBuiltins.map((b) => b.mapID), [],
+          'Part B: builtin は全件カタログ ID のまま（残骸に先取りされて改名されていない）');
 
         // visibility は map_uid 解決に依存し、本 Part は地図を作らないため全行 warning-skip される
         // （実装レビュー Minor-1 吸収: 恒真 assert を skip 経路の実 assert へ正直化。
@@ -210,6 +218,49 @@ try {
         const visRows = db.prepare('SELECT map_uid, base_map_uid, enabled FROM map_base_map_visibility').all() as any[];
         assert.equal(visRows.length, 0, 'Part B: map 不在のため visibility は全行 warning-skip（挿入 0 件）');
         console.log('Part B passed: 正規レガシー移行で残骸非取込・user 1 件・visibility は skip 経路確認（解決実検証は m7 回帰）');
+      }
+
+      // ============ Part B-2（M5-T10）: Part B の残骸検査に判別力があることを示す ============
+      // Part B の検査（builtin が全件カタログ ID）は、衝突が起きていない状態では常に通る。
+      // **通らない状態を実際に作れること**を示さなければ、恒真アサートを別の恒真アサートへ
+      // 置き換えただけになる（m5-t10 設計 §3.4 の PROBE-3 却下と同じ落とし穴）。
+      //
+      // あわせて、衝突時に生成される slug が **正本の '-' 始まり規則**に従うことを検証する
+      // （m5-t10 の規則統一の seed 経路での end-to-end 検証 = AC5）。
+      {
+        const collideFolder = ${JSON.stringify(path.join(workDir, 'part-b2-collide'))};
+        await mkdir(collideFolder, { recursive: true });
+        SettingsService.set('saveFolder', collideFolder);
+        await SqliteDataService.reset();
+        const db2 = await SqliteDataService.getDb();
+
+        // 衝突状態を作る: builtin 'muroran00' の行と registry を消し、その slug を
+        // 利用者資産（地図）が先取りしている状態にする（m8-t2 (h) と同じ手法）
+        const victim = db2
+          .prepare("SELECT uid FROM base_maps WHERE scope = 'builtin' AND slug = 'muroran00'")
+          .get() as any;
+        assert.ok(victim, 'Part B-2 前提: builtin muroran00 がシードされている');
+        db2.prepare('DELETE FROM base_maps WHERE uid = ?').run(victim.uid);
+        db2.prepare('DELETE FROM asset_registry WHERE uid = ?').run(victim.uid);
+        await SqliteDataService.createMap('muroran00', { title: 'ビルトインIDを先取りした地図' });
+
+        // 再シード
+        await SqliteDataService.reset();
+        await SqliteDataService.getDb();
+        const collidedList = await SqliteDataService.listBaseMaps();
+        const collidedRenamed = builtinBaseMaps(collidedList).filter((b) => !catalogMapIds.has(b.mapID));
+
+        // (1) 判別力: Part B と同じ検査がここでは**落ちる**（＝恒真ではない）
+        assert.equal(collidedRenamed.length, 1,
+          'Part B-2: 先取りされたぶん builtin が1件だけ改名される（Part B の検査に判別力がある）');
+
+        // (2) 規則: 生成部は正本の '-' 始まり（M5-T10）
+        assert.equal(collidedRenamed[0].mapID, 'muroran00-2',
+          'Part B-2: 衝突時の生成 slug は正本規則 base-2（旧 base_2 ではない）');
+        assert.equal(collidedRenamed[0].data.builtinId, 'muroran00',
+          'Part B-2: builtinId はカタログ ID を保つ（再シードで同一行に再マッチする）');
+
+        console.log('Part B-2 passed: 残骸検査の判別力を実証 + seed 経路の生成 slug が正本規則');
       }
 
       // ===================== Part C（AC32-5/8）: フォルダ切替時ドラフト全消去 + 同値ガード =====================

@@ -176,12 +176,14 @@
     "smoke:m5-t5-asset-slug-unification": "node scripts/m5-t5-asset-slug-unification-smoke.mjs",
     "test:e2e:m5-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t5-map-import-slug-collision.spec.ts",
     "smoke:m5-t7-runtime-tile-url-ipc": "node scripts/m5-t7-runtime-tile-url-ipc-smoke.mjs",
+    "smoke:m5-t10-migration-slug-unification": "node scripts/m5-t10-migration-slug-unification-smoke.mjs",
     "smoke:m5-t8-decode-safety": "node scripts/m5-t8-decode-safety-phase-a.mjs",
     "smoke:m5-t8-auto-decode-limits": "node scripts/m5-t8-decode-safety-phase-a.mjs && node scripts/m5-t8-auto-decode-limits-smoke.mjs",
     "test:e2e:m5-t7": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t7-tile-url-runtime-rebuild.spec.ts",
     "test:e2e:m5-t8": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t8-auto-decode-limits.spec.ts",
     "smoke:m5-t9-clone-slug-unification": "node scripts/m5-t9-clone-slug-unification-smoke.mjs",
-    "test:e2e:m5-t9": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t9-clone-slug.spec.ts"
+    "test:e2e:m5-t9": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t9-clone-slug.spec.ts",
+    "test:e2e:m5-t10": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t10-seed-slug-collision.spec.ts"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

@@ -197,23 +197,24 @@ try {
       suffixDb.prepare('DELETE FROM base_maps WHERE uid = ?').run(muroranRow.uid);
       suffixDb.prepare('DELETE FROM asset_registry WHERE uid = ?').run(muroranRow.uid);
       await SqliteDataService.createMap('muroran00', { title: 'ビルトインIDを先取りした地図' });
-      // 再シード → builtin は muroran00_2 として復活し、builtinId=カタログID を保持する
+      // 再シード → builtin は muroran00-2 として復活し、builtinId=カタログID を保持する
+      // (M5-T10: 生成部は正本 slugSequence の "-" 始まり規則。旧 muroran00_2 から変更)
       await SqliteDataService.reset();
       await SqliteDataService.getDb();
       const suffixedCatalog = await SqliteDataService.listBaseMaps();
-      const suffixed = suffixedCatalog.find((item) => item.mapID === 'muroran00_2');
+      const suffixed = suffixedCatalog.find((item) => item.mapID === 'muroran00-2');
       assert.ok(suffixed, '先取りされたカタログIDのビルトインはサフィックス付きslugで復活するはず');
       assert.equal(suffixed.scope, 'builtin');
-      assert.equal(suffixed.data.mapID, 'muroran00_2');
+      assert.equal(suffixed.data.mapID, 'muroran00-2');
       assert.equal(suffixed.data.builtinId, 'muroran00');
       // サフィックス付きビルトインに地図単位の表示設定を付与する
-      await SqliteDataService.setBaseMapVisibilityForMapID('muroran00', 'muroran00_2', true);
+      await SqliteDataService.setBaseMapVisibilityForMapID('muroran00', 'muroran00-2', true);
       // 再起動2回: uid/slug が安定し、表示設定が消えないこと
       for (let reopen = 1; reopen <= 2; reopen++) {
         await SqliteDataService.reset();
         await SqliteDataService.getDb();
         const reopenedCatalog = await SqliteDataService.listBaseMaps();
-        const reopened = reopenedCatalog.find((item) => item.mapID === 'muroran00_2');
+        const reopened = reopenedCatalog.find((item) => item.mapID === 'muroran00-2');
         assert.ok(reopened, '再起動 ' + reopen + ' でサフィックス付きビルトインが消えてはいけない');
         assert.equal(reopened.uid, suffixed.uid, '再起動 ' + reopen + ' で uid が変わってはいけない');
         assert.equal(reopened.data.builtinId, 'muroran00');
@@ -222,7 +223,7 @@ try {
           '再起動 ' + reopen + ' で slug が振り直されてはいけない'
         );
         const reopenedVisibility = await SqliteDataService.getBaseMapVisibilityOfMapID('muroran00');
-        const visItem = reopenedVisibility.find((item) => item.mapID === 'muroran00_2');
+        const visItem = reopenedVisibility.find((item) => item.mapID === 'muroran00-2');
         assert.equal(visItem.enabled, true, '再起動 ' + reopen + ' で表示設定が消えてはいけない');
       }
       console.log('ok: (h) suffixed builtin keeps uid/slug/visibility across restarts');
