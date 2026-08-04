@@ -146,19 +146,20 @@ try {
         assert.equal(tatebayashi.slug, 'tatebayashi');
         assert.equal(tatebayashi.revision, 1);
 
-        // ベースマップ: 地図とslug衝突 → tatebayashi_2 へサフィックス
+        // ベースマップ: 地図とslug衝突 → tatebayashi-2 へサフィックス
+        // (M5-T10: 生成部は正本 slugSequence の "-" 始まり規則。旧 tatebayashi_2 から変更)
         const catalog = await SqliteDataService.listBaseMaps();
         const userBase = catalog.find((item: any) => item.scope === 'user');
         assert.ok(userBase, label + ': ユーザーベースマップが移行されるはず');
-        assert.equal(userBase.mapID, 'tatebayashi_2');
-        assert.equal(userBase.data.mapID, 'tatebayashi_2');
+        assert.equal(userBase.mapID, 'tatebayashi-2');
+        assert.equal(userBase.data.mapID, 'tatebayashi-2');
         assert.ok(!catalog.some((item: any) => item.scope === 'user' && item.mapID === 'tatebayashi'));
 
         // report: renamedSlugs 1件 + tmbs/tiles のリネーム記録
         const reportPath = nodePath.join(dataDir, 'migration-report-v2.json');
         const report = JSON.parse(await readFile(reportPath, 'utf8'));
         assert.deepEqual(report.renamedSlugs, [
-          { kind: 'base_map', from: 'tatebayashi', to: 'tatebayashi_2' },
+          { kind: 'base_map', from: 'tatebayashi', to: 'tatebayashi-2' },
         ]);
         assert.ok(Array.isArray(report.warnings));
         const renamedFroms = report.renamedFiles.map((entry: any) => entry.from).sort();
@@ -227,7 +228,7 @@ try {
       );
       const reopenReport = liveReportAfter;
       assert.deepEqual(reopenReport.renamedSlugs, [
-        { kind: 'base_map', from: 'tatebayashi', to: 'tatebayashi_2' },
+        { kind: 'base_map', from: 'tatebayashi', to: 'tatebayashi-2' },
       ]);
       console.log('ok: reopen does not re-run legacy migration');
 

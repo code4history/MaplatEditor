@@ -45,9 +45,9 @@ try {
       console.log('ok: generateUid returns distinct UUID v4 values');
 
       assert.equal(
-        resolveSlugCollision('map', (s) => ['map', 'map_2'].includes(s)),
-        'map_3',
-        '既存の map, map_2 と衝突する場合は map_3 になるはず'
+        resolveSlugCollision('map', (s) => ['map', 'map-2'].includes(s)),
+        'map-3',
+        '既存の map, map-2 と衝突する場合は map-3 になるはず (M5-T10: 生成部は正本の "-" 始まり)'
       );
       console.log('ok: resolveSlugCollision skips taken numeric suffixes');
 
@@ -74,12 +74,13 @@ try {
 
       assert.equal(
         resolveSlugCollision('untitled', (s) => s === 'untitled'),
-        'untitled_2',
-        'untitled が既に使われていれば untitled_2 になるはず'
+        'untitled-2',
+        'untitled が既に使われていれば untitled-2 になるはず (M5-T10)'
       );
       console.log('ok: resolveSlugCollision appends suffix to untitled when taken');
 
-      // 全候補が使用済みの場合は暴走せず上限(10000回)で打ち切りエラーになること
+      // 全候補が使用済みの場合は暴走せず上限で打ち切りエラーになること
+      // (M5-T10: 上限は正本 slugSequence の SEQUENCE_MAX_INDEX = 100。旧 10000 から変更)
       let exhaustionError: unknown = null;
       try {
         resolveSlugCollision('x', () => true);
@@ -87,8 +88,8 @@ try {
         exhaustionError = e;
       }
       assert.ok(exhaustionError instanceof Error, '全候補使用済みならErrorをthrowするはず');
-      assert.match((exhaustionError as Error).message, /10000/, 'エラーメッセージに試行上限(10000)が含まれるはず');
-      console.log('ok: resolveSlugCollision throws after 10000 exhausted attempts');
+      assert.match((exhaustionError as Error).message, /100/, 'エラーメッセージに試行上限(100)が含まれるはず');
+      console.log('ok: resolveSlugCollision throws after 100 exhausted attempts');
 
       console.log('M8-T1 asset identity smoke passed');
     `
