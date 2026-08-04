@@ -72,9 +72,14 @@ const LOCAL_MAX_INDEX = 50;
  * ローカル複製の base を正規化する。slug に使えない文字を "-" へ畳み、
  * 結果が空なら fallbackBase を使う。
  *
- * **適用順が reserveSequencedSlug とは違う。** あちらは `baseSlug || fallbackBase` で
- * fallback が先だが、こちらは **正規化してから空判定**する。順序を入れ替えると
- * "札幌" のように全文字が不許可のときの結果が変わる (正: fallback / 誤: "-")。
+ * **-copy / -poi との差は「正規化を持つかどうか」である。**
+ * reserveSequencedSlug は `baseSlug || fallbackBase` だけで正規化を持たない。
+ * clone にだけ正規化があるのは現行 view の挙動であり、その理由は記録されていない
+ * (本タスクは adaptation ∴ 挙動を保つ)。
+ *
+ * 正規化は空判定より **前** に走る ∴ **fallback が効くのは入力が完全に空のときだけ**である。
+ * "札幌" や "###" は "-" へ畳まれ、非空なので fallback には落ちない (= "--local" になる)。
+ * **これが現行の挙動であり、正しい**。改善余地としては設計 §8 へ申し送ってある。
  */
 export function normalizeCloneBase(
   baseSlug: string | undefined,
