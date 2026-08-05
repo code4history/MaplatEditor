@@ -9,6 +9,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { seedE2EProviderKeys } from './helpers/providerKeys';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 // m1-t6（45782）・開発者実行中（41781）と衝突しない固定ポート
@@ -61,6 +62,10 @@ test('m6-t5 AC16: maplibre マスタ保存 → プレビュー HTML へ maplibre
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
   try {
+    // m6-t6 (§3.6・§7.1 Minor m5): このテストの現行内容（maplibre のみ）はゲート対象外だが、
+    // m6-t4a v1.2 §4.4.3(b) がここへ mapbox の UI 作成ブロックを追加する予定のため、
+    // 義務的な事前措置として editor key を seed しておく（回帰対策ではない）
+    await seedE2EProviderKeys(page);
     // ---- 1) maplibre マスタを UI で作成・保存 ----
     await page.evaluate(() => { location.hash = '/basemaps'; });
     await page.getByTestId('basemap-new').click();

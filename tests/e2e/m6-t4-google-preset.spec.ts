@@ -10,6 +10,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { seedE2EProviderKeys } from './helpers/providerKeys';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const PRESETS = [
@@ -84,6 +85,8 @@ test('Google preset: select/save/reload, URL hidden, uniqueness UI', async () =>
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
   try {
+    // m6-t6 (§3.6): basemap-kind-google は BaseMapEdit.vue のエディタ用キー gate 対象
+    await seedE2EProviderKeys(page);
     await page.evaluate(() => {
       location.hash = '/basemaps?page=3';
     });

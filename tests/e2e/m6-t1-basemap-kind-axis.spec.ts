@@ -9,6 +9,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { seedE2EProviderKeys } from './helpers/providerKeys';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -42,6 +43,9 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
   try {
+    // m6-t6 (§3.6): google/mapbox 種別ボタンは AC7 の検証で有効な状態が前提のため、
+    // エディタ用キーの gate（BaseMapEdit.vue の kindDisabled）を先に満たしておく
+    await seedE2EProviderKeys(page);
     // 種別選択が「最初の編集」（AC8）。新規作成直後は kind 未選択状態。
     await page.evaluate(() => { location.hash = '/basemaps?page=3'; });
     await page.getByTestId('basemap-new').click();
