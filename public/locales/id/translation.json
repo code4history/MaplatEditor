@@ -400,8 +400,7 @@
     "map_image_license_note": "Catatan lisensi gambar peta",
     "map_image_license_note_desc": "Masukkan detail tambahan tentang lisensi gambar peta.",
     "map_gcp_license_note": "Catatan lisensi data",
-    "map_gcp_license_note_desc": "Masukkan detail tambahan tentang lisensi data.",
-    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
+    "map_gcp_license_note_desc": "Masukkan detail tambahan tentang lisensi data."
   },
   "mapupload": {
     "map_image": "Gambar peta",

@@ -391,8 +391,7 @@
     "map_image_license_note": "Map image license note",
     "map_image_license_note_desc": "Enter additional details about the map image license.",
     "map_gcp_license_note": "Data license note",
-    "map_gcp_license_note_desc": "Enter additional details about the data license.",
-    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
+    "map_gcp_license_note_desc": "Enter additional details about the data license."
   },
   "mapupload": {
     "map_image": "Map Image",

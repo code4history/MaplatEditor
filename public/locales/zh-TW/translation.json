@@ -400,8 +400,7 @@
     "map_image_license_note": "地圖影像授權備註",
     "map_image_license_note_desc": "輸入地圖影像授權的補充說明。",
     "map_gcp_license_note": "資料授權備註",
-    "map_gcp_license_note_desc": "輸入資料授權的補充說明。",
-    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
+    "map_gcp_license_note_desc": "輸入資料授權的補充說明。"
   },
   "mapupload": {
     "map_image": "地圖圖像",

@@ -108,6 +108,20 @@ export const normalizeKind = (value: unknown): BaseMapKind =>
     ? value
     : "tms";
 
+// m6-t5 v1.3: provider 種別の原子述語（google/mapbox/maplibre）。MapEdit 背景除外・
+// appSourceModel の maptype 判定など、同一扱いは本述語へ一元化する（恒久指示）
+export const PROVIDER_BASE_MAP_KINDS = ["google", "mapbox", "maplibre"] as const;
+export function isProviderKind(value: unknown): boolean {
+  return (PROVIDER_BASE_MAP_KINDS as readonly unknown[]).includes(value);
+}
+
+// m6-t5 v1.3: MapEdit 背景選択から除外する判定。kind（editor 軸）を優先し、
+// 欠落時は maptype（viewer 軸）を見る（旧保存形の保険）
+export function isProviderBaseMapData(
+  data: { kind?: unknown; maptype?: unknown } | null | undefined,
+): boolean {
+  return isProviderKind(data?.kind ?? data?.maptype);
+}
 
 /** m6-t5: mapbox:// または mapbox: スキーム */
 export function isMapboxScheme(style: string): boolean {
@@ -290,12 +304,10 @@ export function toBaseMapSavePayload(
       maxZoom: document.maxZoom,
       thumbnail: document.thumbnail,
       coverageLngLats: document.coverageLngLats?.map(([lng, lat]) => [lng, lat]) ?? null,
-      // m6-t5: mapbox/maplibre は viewer 向け maptype + style を data に載せる
-      ...((document.kind === "mapbox" || document.kind === "maplibre") && document.style
-        ? { maptype: document.kind, style: document.style }
-        : document.kind === "mapbox" || document.kind === "maplibre"
-          ? { maptype: document.kind, style: document.style ?? "" }
-          : {}),
+      // m6-t5: mapbox/maplibre は viewer 向け maptype + style を data に載せる（AC23-b: 単一 spread）
+      ...(document.kind === "mapbox" || document.kind === "maplibre"
+        ? { maptype: document.kind, style: document.style ?? "" }
+        : {}),
     },
   };
 }

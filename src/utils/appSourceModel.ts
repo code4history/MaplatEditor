@@ -1,4 +1,4 @@
-import { resolveBaseMapRuntimeText } from "./baseMapEditorDocument";
+import { isProviderKind, resolveBaseMapRuntimeText } from "./baseMapEditorDocument";
 import { BASE_MAP_LANG_ATTRS } from "./langResource";
 import type { LangResource } from "./langResource";
 
@@ -275,7 +275,8 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   delete data.label;
   delete data.mapID;
   // 種別軸（m6-t1）: provider の maptype は保持し、それ以外（tms/merc）は従来どおり捨てる。
-  if (!(rawKind === "google" || rawKind === "mapbox" || rawKind === "maplibre")) {
+  // m6-t5 v1.3: provider 判定は isProviderKind に一元化
+  if (!isProviderKind(rawKind)) {
     delete data.maptype;
   }
   // 種別軸（m6-t1）: kind を AppSource.data に再付着する。本番の Export/Preview は必ず
@@ -351,7 +352,7 @@ export function composeViewerSource(
     // t1 では provider の maptype は t4/t5 が入れる前のため空で、role 分岐の base と同値＝出力不変）。
     // tms / merc / 未設定は従来どおり role 分岐（出力不変）。
     maptype:
-      rawKind === "google" || rawKind === "mapbox" || rawKind === "maplibre"
+      isProviderKind(rawKind)
         ? rawMaptype ?? "base"
         : source.role === "overlay" ? "overlay" : "base",
   };

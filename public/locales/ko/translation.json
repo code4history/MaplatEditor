@@ -400,8 +400,7 @@
     "map_image_license_note": "지도 이미지 라이선스 보충",
     "map_image_license_note_desc": "지도 이미지 라이선스의 추가 설명을 입력합니다.",
     "map_gcp_license_note": "데이터 라이선스 보충",
-    "map_gcp_license_note_desc": "데이터 라이선스의 추가 설명을 입력합니다.",
-    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
+    "map_gcp_license_note_desc": "데이터 라이선스의 추가 설명을 입력합니다."
   },
   "mapupload": {
     "map_image": "지도 이미지",

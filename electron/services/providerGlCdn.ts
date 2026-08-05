@@ -40,6 +40,8 @@ export const PROVIDER_GL_CDN = {
   },
 } as const;
 
+// google は GL CDN が不要のため、ここは mapbox/maplibre の2種 subset 判定であり
+// baseMapEditorDocument の isProviderKind（3種）とは意図的に別述語とする
 function sourceKind(s: ProviderGlSourceLike): ProviderGlKind | null {
   const candidates = [s.maptype, s.kind, s.data?.maptype, s.data?.kind];
   for (const c of candidates) {
@@ -65,7 +67,7 @@ function tagAttrs(integrity: string): string {
   return ` integrity="${integrity}" crossorigin="anonymous"`;
 }
 
-/** head 内・ol.js より前に挿入する HTML 断片（link + script） */
+/** `<body>` 内・ol.js より前に挿入する HTML 断片（link + script） */
 export function renderProviderGlCdnTags(required: Set<ProviderGlKind>): string {
   const lines: string[] = [];
   const order: ProviderGlKind[] = ["maplibre", "mapbox"];

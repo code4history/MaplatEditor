@@ -400,8 +400,7 @@
     "map_image_license_note": "Ghi chú giấy phép ảnh bản đồ",
     "map_image_license_note_desc": "Nhập chi tiết bổ sung về giấy phép ảnh bản đồ.",
     "map_gcp_license_note": "Ghi chú giấy phép dữ liệu",
-    "map_gcp_license_note_desc": "Nhập chi tiết bổ sung về giấy phép dữ liệu.",
-    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
+    "map_gcp_license_note_desc": "Nhập chi tiết bổ sung về giấy phép dữ liệu."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

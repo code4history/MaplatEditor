@@ -72,13 +72,6 @@
           data-testid="basemap-kind-provider-incomplete"
           :items="[{ key: 'provider-incomplete', severity: 'danger', message: t('basemap.errors.provider_incomplete') }]"
         />
-        <!-- m6-t5: mapbox/maplibre style 検証 -->
-        <DiagnosticFeedback
-          v-if="styleSectionDiagnostics.length"
-          scope="section"
-          data-testid="basemap-style-diagnostics"
-          :items="styleSectionDiagnostics"
-        />
       </div>
       <div v-if="document.kind !== null" class="row g-3">
         <div class="col-12 col-xl-6">
@@ -452,6 +445,9 @@ function selectKind(k: BaseMapKind): void {
   if (kindDisabled(k)) return;
   updateField("kind", k);
   if (k === "mapbox" || k === "maplibre") {
+    // AC23-c: provider へ入るとき tms の url を消す（非表示になるためユーザーが消せず、
+    // 古い URL が payload に残るのを防ぐ。provider から離れるときの style クリアと対称）
+    updateField("url", "");
     const def = k === "mapbox" ? "basemap_icons/mapbox.png" : "basemap_icons/maplibre.png";
     const cur = document.value.thumbnail;
     if (!cur || cur === "basemap_icons/mapbox.png" || cur === "basemap_icons/maplibre.png") {
@@ -468,10 +464,10 @@ const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
 const attrDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["attr-required"]));
 const urlDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["url-required", "url-invalid"]));
+// m6-t5 v1.3 AC23-a: style 診断は field 側のみ（URL と同パターン。section 二重表示は撤去）
 const styleFieldDiagnostics = computed<DiagnosticItem[]>(() =>
   diagnosticsFor(["style-required", "style-mapbox-scheme-forbidden", "style-url-invalid"]),
 );
-const styleSectionDiagnostics = computed<DiagnosticItem[]>(() => styleFieldDiagnostics.value);
 const minZoomDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["min-zoom-invalid"]));
 // zoom-range(min/max の大小逆転)は max 側 field に表示する(サマリバナー廃止に伴う field 化)
 const maxZoomDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["max-zoom-invalid", "zoom-range"]));

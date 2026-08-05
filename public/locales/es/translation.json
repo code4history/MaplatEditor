@@ -400,8 +400,7 @@
     "map_image_license_note": "Nota de licencia de la imagen del mapa",
     "map_image_license_note_desc": "Introduzca detalles adicionales sobre la licencia de la imagen del mapa.",
     "map_gcp_license_note": "Nota de licencia de datos",
-    "map_gcp_license_note_desc": "Introduzca detalles adicionales sobre la licencia de los datos.",
-    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
+    "map_gcp_license_note_desc": "Introduzca detalles adicionales sobre la licencia de los datos."
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

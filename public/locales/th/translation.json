@@ -400,8 +400,7 @@
     "map_image_license_note": "หมายเหตุใบอนุญาตภาพแผนที่",
     "map_image_license_note_desc": "ป้อนรายละเอียดเพิ่มเติมเกี่ยวกับใบอนุญาตภาพแผนที่",
     "map_gcp_license_note": "หมายเหตุใบอนุญาตข้อมูล",
-    "map_gcp_license_note_desc": "ป้อนรายละเอียดเพิ่มเติมเกี่ยวกับใบอนุญาตข้อมูล",
-    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
+    "map_gcp_license_note_desc": "ป้อนรายละเอียดเพิ่มเติมเกี่ยวกับใบอนุญาตข้อมูล"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",

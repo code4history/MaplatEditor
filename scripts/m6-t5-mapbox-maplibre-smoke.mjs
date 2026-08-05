@@ -28,6 +28,8 @@ export {
   toBaseMapSavePayload,
   isMapboxScheme,
   isAllowedStyleUrl,
+  isProviderKind,
+  isProviderBaseMapData,
 } from ${modulePath("src/utils/baseMapEditorDocument.ts")};
 export {
   detectRequiredProviderGl,
@@ -62,6 +64,8 @@ const {
   toBaseMapSavePayload,
   isMapboxScheme,
   isAllowedStyleUrl,
+  isProviderKind,
+  isProviderBaseMapData,
   detectRequiredProviderGl,
   renderProviderGlCdnTags,
   PROVIDER_GL_CDN,
@@ -207,14 +211,45 @@ const base = {
   assert.doesNotMatch(prev, /detectRequiredProviderGl\(Object\.values\(session\.maps/);
 }
 
-// AC12: MapEdit 背景で Mapbox が disabledReason 付き
+// AC12（v1.3）: provider 3種別は loadBaseMapVisibility の単一投入点で除外。
+// 機能 assert（述語）+ 適用点 assert + v1.1 実装の撤去 assert
 {
+  // 述語の機能: kind 優先・maptype フォールバック
+  assert.equal(isProviderKind("google"), true);
+  assert.equal(isProviderKind("mapbox"), true);
+  assert.equal(isProviderKind("maplibre"), true);
+  assert.equal(isProviderKind("tms"), false);
+  assert.equal(isProviderKind("merc"), false);
+  assert.equal(isProviderKind(undefined), false);
+  assert.equal(isProviderBaseMapData({ kind: "maplibre" }), true);
+  assert.equal(isProviderBaseMapData({ maptype: "mapbox" }), true);
+  assert.equal(isProviderBaseMapData({ kind: "tms", maptype: "base" }), false);
+  assert.equal(isProviderBaseMapData(null), false);
+
   const mapedit = await readFile(
     path.join(projectRoot, "src/views/MapEdit.vue"),
     "utf8",
   );
-  assert.match(mapedit, /basemap_mapbox_not_in_editor/);
-  assert.match(mapedit, /isMapboxBaseMapItem/);
+  // 適用点: loadBaseMapVisibility 内で isProviderBaseMapData filter
+  assert.match(mapedit, /isProviderBaseMapData\(item\?\.data\)/);
+  // 撤去（needle は vm.disabledReason。裸の disabledReason は :3957 disabledReasonKey と部分一致するため禁止）
+  assert.doesNotMatch(mapedit, /isMapboxBaseMapItem/);
+  assert.doesNotMatch(mapedit, /vm\.disabledReason/);
+  assert.doesNotMatch(mapedit, /basemap_mapbox_not_in_editor/);
+  // adapter には filter を置かない（単一投入点の原則）
+  const adapter = await readFile(
+    path.join(projectRoot, "src/views/resource-adapters/baseMapVisibilityListAdapter.ts"),
+    "utf8",
+  );
+  assert.doesNotMatch(adapter, /isProviderBaseMapData/);
+  // locales 11言語からキー削除
+  const { readdir } = await import("node:fs/promises");
+  const langs = (await readdir(path.join(projectRoot, "public/locales"))).filter((d) => !d.includes("."));
+  assert.equal(langs.length, 11, "locales は11言語");
+  for (const lang of langs) {
+    const tr = await readFile(path.join(projectRoot, "public/locales", lang, "translation.json"), "utf8");
+    assert.ok(!tr.includes("basemap_mapbox_not_in_editor"), `AC12: ${lang} に撤去済みキー残存`);
+  }
 }
 
 // AC13: 既定サムネ（kind 選択で basemap_icons/{mapbox,maplibre}.png。実ファイル存在）

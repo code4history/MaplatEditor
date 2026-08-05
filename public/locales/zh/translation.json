@@ -400,8 +400,7 @@
     "map_image_license_note": "地图图像许可证备注",
     "map_image_license_note_desc": "输入地图图像许可证的补充说明。",
     "map_gcp_license_note": "数据许可证备注",
-    "map_gcp_license_note_desc": "输入数据许可证的补充说明。",
-    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
+    "map_gcp_license_note_desc": "输入数据许可证的补充说明。"
   },
   "mapupload": {
     "map_image": "地图图像",

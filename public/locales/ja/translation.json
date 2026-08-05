@@ -400,8 +400,7 @@
     "map_image_license_note": "地図画像ライセンス補足",
     "map_image_license_note_desc": "地図画像のライセンスの補足説明を入力します。",
     "map_gcp_license_note": "データライセンス補足",
-    "map_gcp_license_note_desc": "データのライセンスの補足説明を入力します。",
-    "basemap_mapbox_not_in_editor": "Mapbox ベースマップは地図編集の背景には使えません（エディタへ同梱できないため）。プレビューまたは公開アプリで表示してください。"
+    "map_gcp_license_note_desc": "データのライセンスの補足説明を入力します。"
   },
   "mapupload": {
     "map_image": "地図画像",

@@ -163,3 +163,87 @@ test('m6-t5 AC16: maplibre マスタ保存 → プレビュー HTML へ maplibre
     await quitElectronApplication(app);
   }
 });
+
+// m6-t5 AC12（v1.3）: provider 3種別は MapEdit 背景選択の左右両ペインに表示されない
+// （loadBaseMapVisibility の単一投入点で除外。人間判断 2026-08-05「選択肢に非表示」）
+test('m6-t5 AC12: provider マスタは MapEdit 背景選択の両ペインに表示されない', async () => {
+  test.setTimeout(240_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t5-ac12-'));
+  const { app, page } = await launch(e2eRoot);
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  try {
+    // provider マスタ2件（maplibre / mapbox）を IPC で seed
+    await page.evaluate(async (style) => {
+      const base = {
+        lang: 'ja',
+        title: { ja: 'prov' }, label: { ja: 'prov' },
+        attr: { ja: 'A' }, dataAttr: {},
+        license: '', dataLicense: '', licenseNote: {}, dataLicenseNote: {},
+        url: '', minZoom: null, maxZoom: null, thumbnail: '', coverageLngLats: null,
+      };
+      for (const [slug, kind, st] of [
+        ['e2e-m6t5-ml-hidden', 'maplibre', style],
+        ['e2e-m6t5-mb-hidden', 'mapbox', 'mapbox://styles/mapbox/streets-v12'],
+      ] as const) {
+        const r = await (window as any).baseMaps.saveUser({
+          slug, create: true,
+          tms: { ...base, kind, maptype: kind, style: st },
+        });
+        if (!r || (r.result && r.result !== 'Success')) throw new Error(`saveUser failed: ${JSON.stringify(r)}`);
+      }
+    }, MAPLIBRE_STYLE);
+
+    // 地図を seed してベースマップ設定タブへ（m12-t10 のパターン）
+    const seeded = await page.evaluate(async () => {
+      const mapSlug = `m6t5-map-${Date.now()}`;
+      const mapR = await (window as any).mapedit.save({
+        slug: mapSlug,
+        mapObject: {
+          mapID: mapSlug, title: { ja: 'm6t5 map', en: 'm6t5 map en' },
+          officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+          attr: { ja: 'attr' }, dataAttr: {}, description: {},
+          license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
+          imageExtension: 'jpg', width: 400, height: 300,
+          gcps: [[[0, 0], [15550000, 4160000]], [[400, 0], [15560000, 4160000]], [[400, 300], [15560000, 4150000]]],
+          edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
+        },
+        tins: [],
+      });
+      if (!mapR || mapR.result !== 'Success') throw new Error(JSON.stringify(mapR));
+      return { mapUid: mapR.uid };
+    });
+    await page.evaluate((uid: string) => { location.hash = `#/mapedit?uid=${uid}`; }, seeded.mapUid);
+    await expect(page.getByTestId('map-tab-settings')).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('map-tab-settings').click();
+    await expect(page.getByTestId('map-base-map-selector')).toBeVisible({ timeout: 30000 });
+
+    // IPC 上は provider 項目が存在する（保存はできている）
+    const visibility = await page.evaluate(async (uid: string) => {
+      return await (window as any).mapedit.getBaseMapVisibilityOfMapID(uid);
+    }, seeded.mapUid);
+    const ml = visibility.find((i: any) => i.mapID === 'e2e-m6t5-ml-hidden');
+    const mb = visibility.find((i: any) => i.mapID === 'e2e-m6t5-mb-hidden');
+    expect(ml, 'IPC 返却に maplibre マスタが無い（seed 失敗の可能性）').toBeTruthy();
+    expect(mb, 'IPC 返却に mapbox マスタが無い（seed 失敗の可能性）').toBeTruthy();
+
+    // 左ペイン（選択候補）に出ない
+    for (const item of [ml, mb]) {
+      await expect(
+        page.getByTestId('map-base-map-selector').locator(`[data-resource-uid="${item.uid}"]`),
+        `左ペインに ${item.mapID} が表示されている`,
+      ).toHaveCount(0);
+    }
+    // 右ペイン（選択済み）にも出ない
+    await expect(page.locator('[data-testid="map-selected-basemap-e2e-m6t5-ml-hidden"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="map-selected-basemap-e2e-m6t5-mb-hidden"]')).toHaveCount(0);
+    // 非 provider（osm）は従来どおり選択済みペインに出る（フィルタの誤爆が無いこと。
+    // osm は locked=常時表示のため右ペイン側を見る。m12-t10:91 と同じ定点）
+    await expect(page.locator('[data-testid="map-selected-basemap-osm"]')).toBeVisible({ timeout: 15000 });
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await quitElectronApplication(app);
+  }
+});

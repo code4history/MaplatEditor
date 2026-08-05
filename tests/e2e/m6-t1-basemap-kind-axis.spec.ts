@@ -115,10 +115,11 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-kind-provider');
     await fillAndCommit(page.getByTestId('basemap-title'), 'プロバイダ');
     // attr 必須 (m6-t2) も埋めるが style 空なら save disabled
-    const attr = page.getByTestId('basemap-attr').or(page.locator('[data-testid*="attr"]').first());
     if (await page.getByTestId('basemap-attr').count()) {
       await fillAndCommit(page.getByTestId('basemap-attr'), 'Attribution');
     }
+    // m6-t5 AC23-d: style 不足の証明を field レベルで可視化（is-invalid）。section 診断は AC23-a で撤去済み
+    await expect(page.getByTestId('basemap-style-url')).toHaveClass(/is-invalid/);
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 
     expect(pageErrors).toEqual([]);
