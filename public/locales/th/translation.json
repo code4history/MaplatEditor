@@ -100,7 +100,9 @@
       "license_note_label": "หมายเหตุใบอนุญาตภาพแผนที่",
       "data_attr_label": "การระบุที่มาข้อมูล",
       "data_license_label": "ใบอนุญาตข้อมูล",
-      "data_license_note_label": "หมายเหตุใบอนุญาตข้อมูล"
+      "data_license_note_label": "หมายเหตุใบอนุญาตข้อมูล",
+      "style_label": "Style URL",
+      "style_maplibre_hint": "MapLibre accepts https:// style.json only (mapbox:// is not allowed). Preview rendering requires the GL CDN."
     },
     "errors": {
       "id_required": "กรุณากรอก ID",
@@ -119,7 +121,10 @@
       "icon_generate_failed": "สร้างไอคอนไม่สำเร็จ กรุณาตรวจสอบ URL ไทล์และขอบเขตที่มีอยู่",
       "kind_required": "เลือกประเภท",
       "provider_incomplete": "ไม่สามารถบันทึกประเภทนี้ได้จนกว่าจะตั้งค่าฟิลด์ที่จำเป็น",
-      "attr_required": "จำเป็นต้องระบุที่มาของภาพแผนที่"
+      "attr_required": "จำเป็นต้องระบุที่มาของภาพแผนที่",
+      "style_required": "Style URL is required.",
+      "style_mapbox_scheme_forbidden": "MapLibre cannot use mapbox:// styles. Use an https:// style.json URL.",
+      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox)."
     },
     "kind": {
       "label_google": "Google",
@@ -395,7 +400,8 @@
     "map_image_license_note": "หมายเหตุใบอนุญาตภาพแผนที่",
     "map_image_license_note_desc": "ป้อนรายละเอียดเพิ่มเติมเกี่ยวกับใบอนุญาตภาพแผนที่",
     "map_gcp_license_note": "หมายเหตุใบอนุญาตข้อมูล",
-    "map_gcp_license_note_desc": "ป้อนรายละเอียดเพิ่มเติมเกี่ยวกับใบอนุญาตข้อมูล"
+    "map_gcp_license_note_desc": "ป้อนรายละเอียดเพิ่มเติมเกี่ยวกับใบอนุญาตข้อมูล",
+    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",

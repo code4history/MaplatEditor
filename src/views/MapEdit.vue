@@ -492,8 +492,18 @@ watch(() => baseMapVisibilityList.value, () => {
 
 // M12-T10 v2.0: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
 // adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
+function isMapboxBaseMapItem(item: BaseMapVisibilityItem): boolean {
+    const data = item?.data || {};
+    return data.kind === 'mapbox' || data.maptype === 'mapbox';
+}
+
 function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
-    return baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
+    const vm = baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
+    // m6-t5 AC12: Mapbox はエディタ背景に使えない（ADR-0014）
+    if (isMapboxBaseMapItem(item) && !item.enabled) {
+        vm.disabledReason = t('mapedit.basemap_mapbox_not_in_editor');
+    }
+    return vm;
 }
 
 // M12-T10 v2.0 HM3: 範囲コントロールの状態。manual 設定時 'manual' / GCP auto 存在時 'auto' / それ以外 'none'
@@ -4492,7 +4502,7 @@ const goBack = async () => {
                           :item="asResourceListRowFromVisibility(item)"
                           kind="base-map"
                           variant="selector"
-                          :disabled="item.locked"
+                          :disabled="item.locked || (isMapboxBaseMapItem(item) && !item.enabled)"
                           @select="setBaseMapEnabled(item, true)"
                         />
                       </template>

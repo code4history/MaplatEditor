@@ -30,11 +30,15 @@ import {
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { localizeTitle } from '../../src/utils/langResource';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
+import { detectRequiredProviderGl, renderProviderGlCdnTags } from './providerGlCdn';
 
 type PreviewSession = {
   token: string;
   app: any;
   maps: Record<string, any>;
+  // m6-t5: viewer 向け sources（compose 済み）。GL CDN 判定は maps ではなくこちらを見る
+  // （maps には maplat ソースしか入らず、basemap の mapbox/maplibre を検出できない）
+  viewerSources: Array<Record<string, unknown> | string>;
   // M4-T3: pois/<name>.geojson の実体。キーはファイル名 ('kyoto-poi.geojson')。
   // export が outDir/pois/ へ書き出すのと同じ内容を、preview はメモリから配信する
   poiDocuments: Record<string, unknown>;
@@ -274,6 +278,7 @@ class AppPreviewService {
       token,
       app,
       maps,
+      viewerSources: entries.map((entry) => entry.composed),
       poiDocuments,
       manifest: this.createManifest(document),
       viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(normalizedSources)),
@@ -401,7 +406,7 @@ ${manifestLink}
 </head>
 <body>
   <div class="mainview"><div id="map_div"></div></div>
-  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(detectRequiredProviderGl(session.viewerSources || []))}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
   <script>
     const option = ${JSON.stringify(session.viewerOption)};

@@ -45,13 +45,18 @@ export interface BaseMapEditDocument {
   coverageLngLats: [number, number][] | null;
   // 種別軸（m6-t1）。null = 未選択（新規作成直後のみ）。data に保持し AppSource.sourceType 軸は拡張しない。
   kind: BaseMapKind | null;
+  // m6-t5: mapbox / maplibre の style URL（他 kind では null）
+  style: string | null;
 }
 
 export interface BaseMapValidation {
   valid: boolean;
   errors: Array<
     | "kind-required" // 新設（m6-t1）。kind 未選択（null）
-    | "provider-incomplete" // 新設（m6-t1）。google/mapbox/maplibre で必須項目未実装（t1 では保存不可）
+    | "provider-incomplete" // google（t4 未マージ時）など必須項目未実装
+    | "style-required" // m6-t5: mapbox/maplibre で style 空
+    | "style-mapbox-scheme-forbidden" // m6-t5: maplibre で mapbox://
+    | "style-url-invalid" // m6-t5: 許可外 URL
     | "slug-required"
     | "slug-invalid"
     | "title-required"
@@ -87,6 +92,9 @@ export interface BaseMapSavePayload {
     maxZoom: number | null;
     thumbnail: string;
     coverageLngLats: [number, number][] | null;
+    // m6-t5: mapbox/maplibre のとき viewer 向け maptype + style
+    maptype?: string;
+    style?: string;
   };
 }
 
@@ -95,10 +103,44 @@ const nullableNumber = (value: unknown): number | null =>
 
 // kind の読み込み時正規化（ADR-0005 と同型）。既知5値のみ保持し、
 // 欠落・未知値・型不一致は "tms" へ落とす（前方互換: 将来の kind を古いビルドが開いても壊れない）。
-const normalizeKind = (value: unknown): BaseMapKind =>
+export const normalizeKind = (value: unknown): BaseMapKind =>
   value === "tms" || value === "google" || value === "mapbox" || value === "maplibre" || value === "merc"
     ? value
     : "tms";
+
+
+/** m6-t5: mapbox:// または mapbox: スキーム */
+export function isMapboxScheme(style: string): boolean {
+  const s = style.trim().toLowerCase();
+  return s.startsWith("mapbox://") || s.startsWith("mapbox:");
+}
+
+/** m6-t5: kind に応じた style URL 許可 */
+export function isAllowedStyleUrl(style: string, kind: "mapbox" | "maplibre"): boolean {
+  const s = style.trim();
+  if (!s) return false;
+  if (kind === "mapbox") {
+    if (isMapboxScheme(s)) return true;
+    try {
+      const u = new URL(s);
+      return u.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+  // maplibre: https only
+  try {
+    const u = new URL(s);
+    return u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+const normalizeStyle = (value: unknown, kind: BaseMapKind | null): string | null => {
+  if (kind !== "mapbox" && kind !== "maplibre") return null;
+  return typeof value === "string" ? value : null;
+};
 
 const coverage = (value: unknown): [number, number][] | null => {
   if (!Array.isArray(value)) return null;
@@ -146,6 +188,7 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
     thumbnail: typeof data.thumbnail === "string" ? data.thumbnail : "",
     coverageLngLats: coverage(data.coverageLngLats),
     kind: normalizeKind(data.kind),
+    style: normalizeStyle(data.style, normalizeKind(data.kind)),
   };
 }
 
@@ -170,6 +213,7 @@ export function newBaseMapDocument(uid: string, lang: LangCode): BaseMapEditDocu
     thumbnail: "",
     coverageLngLats: null,
     kind: null,
+    style: null,
   };
 }
 
@@ -179,9 +223,18 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   // kind 未選択 → kind-required（フォーム本体は出ない）
   if (kind === null) {
     errors.push("kind-required");
-  } else if (kind === "google" || kind === "mapbox" || kind === "maplibre") {
-    // t1: provider の必須項目（google のプリセット / mapbox・maplibre の style）は m6-t4/t5 で未実装。
-    // m6-t5 が style 欄を付けた時点で mapbox/maplibre は style-required へ置き換わる。
+  } else if (kind === "mapbox" || kind === "maplibre") {
+    // m6-t5: style 必須。maplibre は mapbox:// 禁止・https のみ。
+    const style = (document.style ?? "").trim();
+    if (!style) {
+      errors.push("style-required");
+    } else if (kind === "maplibre" && isMapboxScheme(style)) {
+      errors.push("style-mapbox-scheme-forbidden");
+    } else if (!isAllowedStyleUrl(style, kind)) {
+      errors.push("style-url-invalid");
+    }
+  } else if (kind === "google") {
+    // m6-t4 が maptype-required へ置換するまで provider-incomplete を維持
     errors.push("provider-incomplete");
   }
   if (!document.slug.trim()) errors.push("slug-required");
@@ -237,6 +290,12 @@ export function toBaseMapSavePayload(
       maxZoom: document.maxZoom,
       thumbnail: document.thumbnail,
       coverageLngLats: document.coverageLngLats?.map(([lng, lat]) => [lng, lat]) ?? null,
+      // m6-t5: mapbox/maplibre は viewer 向け maptype + style を data に載せる
+      ...((document.kind === "mapbox" || document.kind === "maplibre") && document.style
+        ? { maptype: document.kind, style: document.style }
+        : document.kind === "mapbox" || document.kind === "maplibre"
+          ? { maptype: document.kind, style: document.style ?? "" }
+          : {}),
     },
   };
 }

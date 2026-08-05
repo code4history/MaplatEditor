@@ -100,7 +100,9 @@
       "license_note_label": "Nota de licencia de la imagen del mapa",
       "data_attr_label": "Atribución de datos",
       "data_license_label": "Licencia de datos",
-      "data_license_note_label": "Nota de licencia de datos"
+      "data_license_note_label": "Nota de licencia de datos",
+      "style_label": "Style URL",
+      "style_maplibre_hint": "MapLibre accepts https:// style.json only (mapbox:// is not allowed). Preview rendering requires the GL CDN."
     },
     "errors": {
       "id_required": "Introduzca un ID.",
@@ -119,7 +121,10 @@
       "icon_generate_failed": "No se pudo generar el icono. Compruebe la URL de teselas y el área de cobertura.",
       "kind_required": "Seleccione un tipo.",
       "provider_incomplete": "Este tipo no se puede guardar hasta que se definan los campos obligatorios.",
-      "attr_required": "La atribución de la imagen del mapa es obligatoria."
+      "attr_required": "La atribución de la imagen del mapa es obligatoria.",
+      "style_required": "Style URL is required.",
+      "style_mapbox_scheme_forbidden": "MapLibre cannot use mapbox:// styles. Use an https:// style.json URL.",
+      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox)."
     },
     "kind": {
       "label_google": "Google",
@@ -395,7 +400,8 @@
     "map_image_license_note": "Nota de licencia de la imagen del mapa",
     "map_image_license_note_desc": "Introduzca detalles adicionales sobre la licencia de la imagen del mapa.",
     "map_gcp_license_note": "Nota de licencia de datos",
-    "map_gcp_license_note_desc": "Introduzca detalles adicionales sobre la licencia de los datos."
+    "map_gcp_license_note_desc": "Introduzca detalles adicionales sobre la licencia de los datos.",
+    "basemap_mapbox_not_in_editor": "Mapbox base maps cannot be used as the map-edit background (they are not bundled into the editor). Use Preview or a published app."
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

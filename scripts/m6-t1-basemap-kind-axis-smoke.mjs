@@ -91,12 +91,29 @@ try {
   assert.equal(tmsMissingUrl.errors.includes("kind-required"), false, "AC2: tms は kind-required を出さない");
   assert.equal(tmsMissingUrl.errors.includes("provider-incomplete"), false, "AC2: tms は provider-incomplete を出さない");
 
-  // google / mapbox / maplibre → provider-incomplete（t1 では必須項目未実装のため保存不可）
-  for (const pk of providerKinds) {
-    const doc = { ...tmsDoc, kind: pk, url: "" };
+  // m6-t5: mapbox/maplibre → style-required（style 空）。google は t4 未マージ時 provider-incomplete のまま。
+  for (const pk of ["mapbox", "maplibre"]) {
+    const doc = { ...tmsDoc, kind: pk, url: "", style: null };
     const v = validateBaseMapDocument(doc);
-    assert.equal(v.errors.includes("provider-incomplete"), true, `AC2: ${pk} は provider-incomplete`);
-    assert.equal(v.valid, false, `AC2: ${pk} は保存不可`);
+    assert.equal(v.errors.includes("style-required"), true, `AC2: ${pk} は style-required`);
+    assert.equal(v.errors.includes("provider-incomplete"), false, `AC2: ${pk} は provider-incomplete を出さない`);
+    assert.equal(v.valid, false, `AC2: ${pk} は style 空で保存不可`);
+  }
+  {
+    const doc = { ...tmsDoc, kind: "maplibre", url: "", style: "mapbox://styles/mapbox/streets-v11" };
+    const v = validateBaseMapDocument(doc);
+    assert.equal(v.errors.includes("style-mapbox-scheme-forbidden"), true, "AC2: maplibre+mapbox:// は forbidden");
+  }
+  {
+    const doc = { ...tmsDoc, kind: "maplibre", url: "", style: "https://example.com/style.json" };
+    const v = validateBaseMapDocument(doc);
+    assert.equal(v.errors.includes("style-required"), false, "AC2: maplibre+https は style-required 無し");
+    assert.equal(v.valid, true, "AC2: maplibre+https style は他項目OKなら valid");
+  }
+  {
+    const doc = { ...tmsDoc, kind: "google", url: "", style: null };
+    const v = validateBaseMapDocument(doc);
+    assert.equal(v.errors.includes("provider-incomplete"), true, "AC2: google は t4 未マージ時 provider-incomplete");
   }
   // null（未選択）→ kind-required
   const nullDoc = newBaseMapDocument(uid, "ja");
