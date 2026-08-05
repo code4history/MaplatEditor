@@ -244,6 +244,7 @@
                 <button
                   type="button"
                   class="btn btn-light border"
+                  data-testid="settings-reset-basemap"
                   :disabled="!isDirty"
                   @click="resetSettings"
                 >
@@ -252,6 +253,7 @@
                 <button
                   type="button"
                   class="btn btn-primary"
+                  data-testid="settings-save-basemap"
                   :disabled="!isDirty"
                   @click="saveSettings"
                 >
