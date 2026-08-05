@@ -35,6 +35,19 @@ import { detectRequiredProviderGl, renderProviderGlCdnTags } from './providerGlC
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
+import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
+import {
+  resolvePublishKey,
+  resolveStartFromViewerMapID,
+  PROVIDER_KEY_MISSING_WARNING,
+  type ProviderKeyKind,
+} from './providerKeyResolution';
+
+/** m6-t6 (§3.2): オンザフライ入力（保存しない・呼び出し単位）*/
+export type ProviderKeyOverride = {
+  googleApiKey?: string;
+  mapboxToken?: string;
+};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
@@ -150,7 +163,7 @@ class AppExportService {
     return SettingsService.get('saveFolder') as string;
   }
 
-  async exportApp(win: BrowserWindow, document: any): Promise<ExportResult> {
+  async exportApp(win: BrowserWindow, document: any, overrideKeys?: ProviderKeyOverride): Promise<ExportResult> {
     const warnings: string[] = [];
     const appID = String(document?.appID || '').trim();
     if (!appID) return { result: 'Error', warnings, message: 'appedit.no_appid' };
@@ -181,8 +194,23 @@ class AppExportService {
     // (mapedit:download と同方式)。途中失敗時はユーザーの選択先に何も残らない
     const tmpZipPath = `${outDir}.zip`;
 
+    // m6-t6 (§3.2): 鍵が2段（アプリ単位→設定ページ既定公開用）+ オンザフライでも解決できない
+    // provider ソースは、この時点で除外する。sources は以後（maplatSources・composeAppJson・
+    // サムネイルコピー・renderIndexHtml の overlay/CDN/startFrom）すべての起点になる単一の
+    // const のため、ここ1箇所を差し替えるだけで全導出に反映される（R21・設計レビュー M4）
     const sources: AppSource[] = (document.sources || [])
-      .map((raw: any) => normalizeAppSource(raw, document.lang || 'ja'));
+      .map((raw: any) => normalizeAppSource(raw, document.lang || 'ja'))
+      .filter((source: AppSource) => {
+        const kind = source.data?.kind as ProviderKeyKind | undefined;
+        if (!requiresProviderKey(kind)) return true;
+        const resolvedKind = kind as ProviderKeyKind;
+        const resolved =
+          resolvePublishKey(resolvedKind, document.httpSettings, SettingsService) ??
+          overrideKeys?.[resolvedKind === 'google' ? 'googleApiKey' : 'mapboxToken'];
+        if (resolved) return true;
+        mergeWarnings(warnings, [PROVIDER_KEY_MISSING_WARNING[resolvedKind]]);
+        return false;
+      });
     const maplatSources = sources.filter(source => source.sourceType === 'maplat');
 
     // catch 節でエラー時の進捗モーダル片付け(MINOR-3)に使うため try の外で宣言する
@@ -420,7 +448,7 @@ class AppExportService {
       // 7) index.html
       await fs.outputFile(
         path.join(outDir, 'index.html'),
-        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources), sources),
+        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources), sources, overrideKeys),
       );
       progressState.step++;
       reporter.update(progressState.step);
@@ -518,11 +546,19 @@ class AppExportService {
     ];
     out.defaultZoom = Number(document.appSettings?.defaultZoom ?? 17);
     // startFromはViewer向けmapID(slug)で出力する。document.startFromはuid(新形)/slug(旧形)
-    // のどちらもあり得るため、対応するソースを介して解決する
-    const startSource =
-      sources.find(source => source.startFrom) ??
-      sources.find(source => source.mapUid === document.startFrom || source.mapSlug === document.startFrom);
-    const startFrom = startSource ? viewerMapID(startSource) : document.startFrom;
+    // のどちらもあり得るため、対応するソースを介して解決する。
+    // m6-t6 (§3.2・M5): 3段照合を resolveStartFromViewerMapID へ共通化。除外されたソースは
+    // sources に存在しないため3段目でも一致せず、除外ソースを指す startFrom は自動的に undefined
+    // になる（document.startFrom への素通しはしない）
+    const startFrom = resolveStartFromViewerMapID(
+      sources.map(source => ({
+        startFrom: Boolean(source.startFrom),
+        mapUid: source.mapUid,
+        mapSlug: source.mapSlug,
+        viewerMapID: viewerMapID(source),
+      })),
+      document.startFrom,
+    );
     if (startFrom) out.startFrom = startFrom;
     const pois = readAppDocumentPois(document).pois;
     if (Array.isArray(pois) && pois.length > 0) {
@@ -736,7 +772,7 @@ class AppExportService {
     }
   }
 
-  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean, sources: readonly unknown[] = []): string {
+  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean, sources: readonly unknown[] = [], overrideKeys?: ProviderKeyOverride): string {
     const lang = document.lang || 'ja';
     const localized = resolveAppLocalizedMetadata({ ...document, appID });
     const title = escapeHtml(localized.appName);
@@ -794,8 +830,12 @@ class AppExportService {
       stateUrl: Boolean(httpSettings.stateUrl),
       enableShare: Boolean(httpSettings.enableShare),
     };
-    if (httpSettings.mapboxToken) viewerOption.mapboxToken = httpSettings.mapboxToken;
-    if (httpSettings.googleApiKey) viewerOption.googleApiKey = httpSettings.googleApiKey;
+    // m6-t6 (§3.2): アプリ単位キーの直読みをやめ、2段解決（アプリ単位→既定公開用）
+    // + オンザフライ（overrideKeys、保存しない）へ
+    const mapboxKey = resolvePublishKey('mapbox', httpSettings, SettingsService) ?? overrideKeys?.mapboxToken;
+    const googleKey = resolvePublishKey('google', httpSettings, SettingsService) ?? overrideKeys?.googleApiKey;
+    if (mapboxKey) viewerOption.mapboxToken = mapboxKey;
+    if (googleKey) viewerOption.googleApiKey = googleKey;
 
     return `<!DOCTYPE html>
 <html>

@@ -31,6 +31,13 @@ import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadat
 import { localizeTitle } from '../../src/utils/langResource';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { detectRequiredProviderGl, renderProviderGlCdnTags } from './providerGlCdn';
+import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
+import {
+  resolvePreviewKey,
+  resolveStartFromViewerMapID,
+  PROVIDER_KEY_MISSING_WARNING,
+  type ProviderKeyKind,
+} from './providerKeyResolution';
 
 type PreviewSession = {
   token: string;
@@ -193,7 +200,17 @@ class AppPreviewService {
     let duplicateReference = false;
     const normalizedSources: AppSource[] = (Array.isArray(document.sources) ? document.sources : [])
       .map((raw: any) => normalizeAppSource(raw, documentLang));
-    const entries = await Promise.all(normalizedSources.map(async (source: AppSource) => {
+    // m6-t6 (§3.1): 鍵が3段とも解決できない provider ソースは、この時点で除外する。
+    // 除外後の previewableSources を entries 組み立て・hasViewerBasemapSource・startFrom 解決の
+    // すべてで使い回すことで、除外が overlay/startFrom 判定へ正しく反映される（設計レビュー M3/M4/M5）
+    const previewableSources: AppSource[] = normalizedSources.filter((source) => {
+      const kind = source.data?.kind as ProviderKeyKind | undefined;
+      if (!requiresProviderKey(kind)) return true;
+      if (resolvePreviewKey(kind as ProviderKeyKind, document.httpSettings, SettingsService)) return true;
+      mergeWarnings(warnings, [PROVIDER_KEY_MISSING_WARNING[kind as ProviderKeyKind]]);
+      return false;
+    });
+    const entries = await Promise.all(previewableSources.map(async (source: AppSource) => {
       if (source.sourceType === 'maplat') {
         // uid正準参照 (ADR-0007)。旧保存形のslug参照もrequestPreviewSourceが解決する。
         // Viewer向けmapID(maps/{...}.json のキー)は解決済みslug
@@ -243,11 +260,18 @@ class AppPreviewService {
       mergeWarnings(warnings, externalized.warnings);
       maps[entry.viewerMapID].pois = this.toHttpAsset(externalized.pois, token);
     }
-    // startFromはViewer向けmapIDで渡す。document.startFromはuid(新形)/slug(旧形)のどちらもあり得る
-    const startEntry =
-      entries.find((entry) => entry.source.startFrom) ??
-      entries.find((entry) =>
-        entry.source.mapUid === document.startFrom || entry.source.mapSlug === document.startFrom);
+    // startFromはViewer向けmapIDで渡す。document.startFromはuid(新形)/slug(旧形)のどちらもあり得る。
+    // m6-t6 (§3.1・M5): 3段照合を resolveStartFromViewerMapID へ共通化。除外されたソースは
+    // entries に存在しないため3段目でも一致せず、除外ソースを指す startFrom は自動的に undefined になる
+    const resolvedStartFrom = resolveStartFromViewerMapID(
+      entries.map((entry) => ({
+        startFrom: Boolean(entry.source.startFrom),
+        mapUid: entry.source.mapUid,
+        mapSlug: entry.source.mapSlug,
+        viewerMapID: entry.viewerMapID,
+      })),
+      document.startFrom,
+    );
     // M4-T3: app 側 pois も同じコンテキストで外部化する (map の後 = 連番採番の順序が決定的)
     const externalizedAppPois = await externalizePoisArray(appPoisRaw, poiCtx);
     mergeWarnings(warnings, externalizedAppPois.warnings);
@@ -270,7 +294,7 @@ class AppPreviewService {
         finiteOr(document.appSettings?.homeLat, 35.681),
       ],
       defaultZoom: Number(document.appSettings?.defaultZoom || 10),
-      startFrom: startEntry ? startEntry.viewerMapID : document.startFrom,
+      startFrom: resolvedStartFrom,
       sources: entries.map((entry) => entry.composed),
       pois: appPoisForViewer,
     }), token);
@@ -281,7 +305,7 @@ class AppPreviewService {
       viewerSources: entries.map((entry) => entry.composed),
       poiDocuments,
       manifest: this.createManifest(document),
-      viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(normalizedSources)),
+      viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(previewableSources)),
       warnings,
     };
   }
@@ -443,8 +467,9 @@ ${renderProviderGlCdnTags(detectRequiredProviderGl(session.viewerSources || []))
       enableCache: Boolean(httpSettings.enableCache),
       stateUrl: Boolean(httpSettings.stateUrl),
       enableShare: Boolean(httpSettings.enableShare),
-      mapboxToken: httpSettings.mapboxToken || undefined,
-      googleApiKey: httpSettings.googleApiKey || undefined,
+      // m6-t6 (§3.1): アプリ単位キーの直読みをやめ、3段解決（エディタ用→アプリ単位→既定公開用）へ
+      mapboxToken: resolvePreviewKey('mapbox', httpSettings, SettingsService),
+      googleApiKey: resolvePreviewKey('google', httpSettings, SettingsService),
     };
   }
 
