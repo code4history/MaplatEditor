@@ -90,12 +90,17 @@
       "title_placeholder": "ex. : Mon fond de carte",
       "url_label": "Modèle d'URL des tuiles (format {z}/{x}/{y}, utilisez {-y} pour TMS)",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "Attribution (facultatif)",
+      "attr_label": "Attribution de l'image de la carte",
       "attr_placeholder": "ex. : © Example Provider",
       "min_zoom_label": "Niveau de zoom minimal (facultatif)",
       "max_zoom_label": "Niveau de zoom maximal (facultatif)",
       "cancel": "Annuler",
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "license_label": "Licence de l'image de la carte",
+      "license_note_label": "Mention de licence de l'image de la carte",
+      "data_attr_label": "Attribution des données",
+      "data_license_label": "Licence des données",
+      "data_license_note_label": "Mention de licence des données"
     },
     "errors": {
       "id_required": "Veuillez saisir un ID.",
@@ -113,7 +118,8 @@
       "always_failed": "Échec de l'enregistrement du paramètre d'affichage permanent.",
       "icon_generate_failed": "Échec de la génération de l'icône. Vérifiez l'URL des tuiles et la zone de couverture.",
       "kind_required": "Sélectionnez un type.",
-      "provider_incomplete": "Ce type ne peut pas être enregistré tant que les champs obligatoires ne sont pas définis."
+      "provider_incomplete": "Ce type ne peut pas être enregistré tant que les champs obligatoires ne sont pas définis.",
+      "attr_required": "L'attribution de l'image de la carte est requise."
     },
     "kind": {
       "label_google": "Google",
@@ -260,14 +266,14 @@
     "cc_by_nc_nd": "Creative Commons Attribution - Pas d'utilisation commerciale - Pas de modification",
     "cc0": "Creative Commons Zéro",
     "cc_pd": "Domaine public",
-    "map_gcp_license": "Licence des données de géoréférencement",
-    "map_gcp_license_desc": "Veuillez sélectionner la licence des données de géoréférencement.",
-    "map_copyright": "Copyright de l'image de la carte",
-    "map_copyright_pf": "Veuillez saisir la mention de copyright de l'image de la carte",
-    "map_copyright_desc": "Veuillez saisir la mention de copyright de l'image de la carte.",
-    "map_gcp_copyright": "Copyright des données de géoréférencement",
-    "map_gcp_copyright_pf": "Veuillez saisir la mention de copyright du géoréférencement",
-    "map_gcp_copyright_desc": "Veuillez saisir la mention de copyright du géoréférencement.",
+    "map_gcp_license": "Licence des données",
+    "map_gcp_license_desc": "Sélectionnez la licence des données.",
+    "map_copyright": "Attribution de l'image de la carte",
+    "map_copyright_pf": "Saisissez l'attribution de l'image de la carte",
+    "map_copyright_desc": "Saisissez l'attribution de l'image de la carte.",
+    "map_gcp_copyright": "Attribution des données",
+    "map_gcp_copyright_pf": "Saisissez l'attribution des données",
+    "map_gcp_copyright_desc": "Saisissez l'attribution des données.",
     "map_source": "Source",
     "map_source_pf": "Veuillez saisir la source",
     "map_source_desc": "Veuillez saisir la source de la carte.",
@@ -382,7 +388,14 @@
     "error_image_memory_limit": "Le décodage de cette image de carte nécessite environ {{required}} Mo, mais le réglage actuel est de {{configured}} Mo. Augmentez « Limite de mémoire de décodage JPEG » dans la page Réglages à {{recommended}} Mo ou plus.",
     "error_image_resolution_limit": "Cette image de carte fait environ {{megapixels}} MP, mais le réglage actuel est de {{configured}} MP. Augmentez « Limite de résolution JPEG » dans la page Réglages à {{recommended}} MP ou plus.",
     "error_image_machine_limit": "Cette image de carte fait environ {{megapixels}} MP et nécessite près de {{required}} Mo de mémoire de travail pour être décodée, mais cette application peut utiliser au maximum environ {{available}} Mo. Veuillez réduire l'image avant de l'importer.",
-    "confirm_long_image_import": "Cette image de carte est très grande (environ {{megapixels}} MP), l'import prendra donc longtemps (environ 5 minutes à 100 MP, plus d'une heure à 400 MP). Une fois lancé, il ne peut pas être annulé. Continuer ?"
+    "confirm_long_image_import": "Cette image de carte est très grande (environ {{megapixels}} MP), l'import prendra donc longtemps (environ 5 minutes à 100 MP, plus d'une heure à 400 MP). Une fois lancé, il ne peut pas être annulé. Continuer ?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Licence personnalisée",
+    "license_unset": "Non défini",
+    "map_image_license_note": "Mention de licence de l'image de la carte",
+    "map_image_license_note_desc": "Saisissez des précisions sur la licence de l'image de la carte.",
+    "map_gcp_license_note": "Mention de licence des données",
+    "map_gcp_license_note_desc": "Saisissez des précisions sur la licence des données."
   },
   "mapupload": {
     "map_image": "Image de la carte",
@@ -620,7 +633,7 @@
     "untitled": "Titre non défini",
     "no_title": "Veuillez indiquer le titre d'affichage.",
     "over_title": "Veuillez limiter le titre d'affichage ({{lang}}) à 30 caractères (ou 15 caractères pleine largeur).",
-    "image_copyright": "Veuillez indiquer la mention de copyright de l'image de la carte."
+    "image_copyright": "Veuillez indiquer l'attribution de l'image de la carte."
   },
   "wmtsgenerate": {
     "generate": "Générer les tuiles WMTS",

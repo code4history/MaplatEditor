@@ -40,7 +40,7 @@ async function fileExists(filePath) {
 }
 
 let passed = 0;
-const total = 10;
+const total = 11;
 
 // ── AC1 / AC2: MD5 一致（4項目 + locales 全数）───────────
 const FILES = ["maplat_ui.umd.js", "maplat_ui.css", "service-worker.js"];
@@ -189,5 +189,36 @@ passed++;
 console.log(
   "⏭️  AC7: lock pin assert は skip（t2 で registry 参照へ移行のため。実測値: 新 pin 07ee37a5/9b97eb5 は出現ゼロ）"
 );
+
+// ── AC8 (m6-t2 レビュー M4 再発防止): プレビュー配信ロケールのライセンス用語が正本一致 ──
+// 前回レビューで「Editor 正本は新用語だが、preview が読む tracked コピー public/preview/locales
+// が旧用語のまま」という配信同期漏れ (M4) が起きた。MD5 全数一致は AC1/AC2 が担保するが、
+// 「帰属/データ」の用語が正本と一致すること自体を明示的に固定する（再発防止）。
+const TERM_KEYS = ["attr", "dataAttr", "license", "dataLicense"];
+const previewLocalesDir = path.join(dstDir, "locales");
+const canonicalLocalesDir = path.join(srcDir, "assets", "locales");
+const { readdir: readdirLocales } = await import("node:fs/promises");
+const previewLangs = (await readdirLocales(previewLocalesDir)).filter((name) =>
+  /^[a-z]{2}(-[A-Z]{2})?$/.test(name)
+);
+assert.ok(previewLangs.length >= 11, `AC8: preview に 11 言語以上の locales があるはず（実際 ${previewLangs.length}）`);
+for (const lang of previewLangs) {
+  const canonical = JSON.parse(
+    await readFile(path.join(canonicalLocalesDir, lang, "translation.json"), "utf8")
+  );
+  const preview = JSON.parse(
+    await readFile(path.join(previewLocalesDir, lang, "translation.json"), "utf8")
+  );
+  for (const key of TERM_KEYS) {
+    assert.equal(
+      preview.html?.[key],
+      canonical.html?.[key],
+      `AC8: ${lang}: html.${key} が正本と一致しない（preview=${preview.html?.[key]}, canonical=${canonical.html?.[key]}）。` +
+        `プレビュー配信ロケール (public/preview/locales) を sync:preview-bundle で再同期してください。`
+    );
+  }
+}
+console.log(`✅ AC8: プレビュー配信ロケールのライセンス用語 (${TERM_KEYS.join("/")}) が全 ${previewLangs.length} 言語で正本一致`);
+passed++;
 
 console.log(`\n結果: ${passed}/${total} AC パス`);

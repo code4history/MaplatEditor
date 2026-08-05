@@ -90,12 +90,17 @@
       "title_placeholder": "예: 내 베이스맵",
       "url_label": "타일 URL 템플릿 ({z}/{x}/{y} 형식, TMS의 경우 {-y})",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "출처 표시 (선택)",
+      "attr_label": "지도 이미지 출처 표시",
       "attr_placeholder": "예: © Example Provider",
       "min_zoom_label": "최소 줌 레벨 (선택)",
       "max_zoom_label": "최대 줌 레벨 (선택)",
       "cancel": "취소",
-      "save": "저장"
+      "save": "저장",
+      "license_label": "지도 이미지 라이선스",
+      "license_note_label": "지도 이미지 라이선스 보충",
+      "data_attr_label": "데이터 출처 표시",
+      "data_license_label": "데이터 라이선스",
+      "data_license_note_label": "데이터 라이선스 보충"
     },
     "errors": {
       "id_required": "ID를 입력하세요.",
@@ -113,7 +118,8 @@
       "always_failed": "항상 표시 설정 저장에 실패했습니다.",
       "icon_generate_failed": "아이콘 생성에 실패했습니다. 타일 URL과 존재 범위를 확인해 주세요.",
       "kind_required": "유형을 선택하세요.",
-      "provider_incomplete": "필수 항목이 설정될 때까지 이 유형은 저장할 수 없습니다."
+      "provider_incomplete": "필수 항목이 설정될 때까지 이 유형은 저장할 수 없습니다.",
+      "attr_required": "지도 이미지 출처 표시는 필수입니다."
     },
     "kind": {
       "label_google": "Google",
@@ -260,14 +266,14 @@
     "cc_by_nc_nd": "크리에이티브 커먼즈 저작자표시-비영리-변경금지",
     "cc0": "크리에이티브 커먼즈 제로",
     "cc_pd": "퍼블릭 도메인",
-    "map_gcp_license": "매핑 데이터 라이선스",
-    "map_gcp_license_desc": "매핑 데이터의 라이선스를 선택하세요.",
-    "map_copyright": "지도 이미지 저작권",
-    "map_copyright_pf": "지도 이미지의 저작권 표기를 입력하세요",
-    "map_copyright_desc": "지도 이미지의 저작권 표기를 입력하세요.",
-    "map_gcp_copyright": "매핑 데이터 저작권",
-    "map_gcp_copyright_pf": "매핑의 저작권 표기를 입력하세요",
-    "map_gcp_copyright_desc": "매핑의 저작권 표기를 입력하세요.",
+    "map_gcp_license": "데이터 라이선스",
+    "map_gcp_license_desc": "데이터의 라이선스를 선택합니다.",
+    "map_copyright": "지도 이미지 출처 표시",
+    "map_copyright_pf": "지도 이미지의 출처 표시를 입력합니다",
+    "map_copyright_desc": "지도 이미지의 출처 표시를 입력합니다.",
+    "map_gcp_copyright": "데이터 출처 표시",
+    "map_gcp_copyright_pf": "데이터의 출처 표시를 입력합니다",
+    "map_gcp_copyright_desc": "데이터의 출처 표시를 입력합니다.",
     "map_source": "출처",
     "map_source_pf": "출처를 입력하세요",
     "map_source_desc": "지도의 출처를 입력하세요.",
@@ -382,7 +388,14 @@
     "error_image_memory_limit": "이 지도 이미지를 디코딩하려면 약 {{required}} MB가 필요하지만 현재 설정은 {{configured}} MB입니다. 설정 페이지의 \"JPEG 디코딩 메모리 상한\"을 {{recommended}} MB 이상으로 올리세요.",
     "error_image_resolution_limit": "이 지도 이미지는 약 {{megapixels}} MP이지만 현재 설정은 {{configured}} MP입니다. 설정 페이지의 \"JPEG 해상도 상한\"을 {{recommended}} MP 이상으로 올리세요.",
     "error_image_machine_limit": "이 지도 이미지는 약 {{megapixels}} MP이며 디코딩에 약 {{required}} MB의 작업 메모리가 필요하지만, 이 앱이 사용할 수 있는 최대치는 약 {{available}} MB입니다. 이미지를 축소한 뒤 가져오세요.",
-    "confirm_long_image_import": "이 지도 이미지는 약 {{megapixels}} MP로 매우 커서 가져오기에 오랜 시간이 걸립니다 (100 MP에서 약 5분, 400 MP에서는 1시간 이상). 시작하면 도중에 취소할 수 없습니다. 진행할까요?"
+    "confirm_long_image_import": "이 지도 이미지는 약 {{megapixels}} MP로 매우 커서 가져오기에 오랜 시간이 걸립니다 (100 MP에서 약 5분, 400 MP에서는 1시간 이상). 시작하면 도중에 취소할 수 없습니다. 진행할까요?",
+    "cc_odbl": "ODbL (오픈 데이터베이스 라이선스)",
+    "cc_custom": "사용자 지정 라이선스",
+    "license_unset": "미설정",
+    "map_image_license_note": "지도 이미지 라이선스 보충",
+    "map_image_license_note_desc": "지도 이미지 라이선스의 추가 설명을 입력합니다.",
+    "map_gcp_license_note": "데이터 라이선스 보충",
+    "map_gcp_license_note_desc": "데이터 라이선스의 추가 설명을 입력합니다."
   },
   "mapupload": {
     "map_image": "지도 이미지",
@@ -620,7 +633,7 @@
     "untitled": "제목 미설정",
     "no_title": "표시용 제목을 지정하세요.",
     "over_title": "표시용 제목({{lang}})을 15자(반각 30자) 이내로 입력하세요.",
-    "image_copyright": "지도 이미지의 저작권 표기를 지정하세요."
+    "image_copyright": "지도 이미지의 출처 표시를 지정하세요."
   },
   "wmtsgenerate": {
     "generate": "WMTS 타일 생성",

@@ -75,6 +75,8 @@ try {
     kind: "tms",
     slug: "valid-slug",
     title: { ja: "T" },
+    // m6-t2 が attr 必須化したためテストデータにも設定（両方残すのマージ対応）
+    attr: { ja: "© Ex" },
     url: "https://x/{z}/{x}/{y}.png",
   };
   assert.equal(validateBaseMapDocument(tmsDoc).valid, true, "AC2: tms で url 必須・有効");

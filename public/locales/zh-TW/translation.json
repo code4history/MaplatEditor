@@ -90,12 +90,17 @@
       "title_placeholder": "例:我的底圖",
       "url_label": "圖磚URL範本({z}/{x}/{y}格式,TMS時使用{-y})",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "版權標示(選填)",
+      "attr_label": "地圖影像署名",
       "attr_placeholder": "例:© Example Provider",
       "min_zoom_label": "最小縮放等級(選填)",
       "max_zoom_label": "最大縮放等級(選填)",
       "cancel": "取消",
-      "save": "儲存"
+      "save": "儲存",
+      "license_label": "地圖影像授權",
+      "license_note_label": "地圖影像授權備註",
+      "data_attr_label": "資料署名",
+      "data_license_label": "資料授權",
+      "data_license_note_label": "資料授權備註"
     },
     "errors": {
       "id_required": "請輸入ID。",
@@ -113,7 +118,8 @@
       "always_failed": "儲存永遠顯示設定失敗。",
       "icon_generate_failed": "圖示產生失敗。請檢查圖磚URL與涵蓋範圍。",
       "kind_required": "請選擇類型。",
-      "provider_incomplete": "此類型在設定必填欄位前無法儲存。"
+      "provider_incomplete": "此類型在設定必填欄位前無法儲存。",
+      "attr_required": "地圖影像署名为必填。"
     },
     "kind": {
       "label_google": "Google",
@@ -260,14 +266,14 @@
     "cc_by_nc_nd": "創用CC 姓名標示-非商業性-禁止改作",
     "cc0": "創用CC 公眾領域貢獻宣告(CC0)",
     "cc_pd": "公眾領域",
-    "map_gcp_license": "製圖資料授權條款",
-    "map_gcp_license_desc": "請選擇製圖資料的授權條款。",
-    "map_copyright": "地圖圖像版權",
-    "map_copyright_pf": "請輸入地圖圖像的版權標示",
-    "map_copyright_desc": "請輸入地圖圖像的版權標示。",
-    "map_gcp_copyright": "製圖資料版權",
-    "map_gcp_copyright_pf": "請輸入製圖的版權標示",
-    "map_gcp_copyright_desc": "請輸入製圖的版權標示。",
+    "map_gcp_license": "資料授權",
+    "map_gcp_license_desc": "選擇資料的授權。",
+    "map_copyright": "地圖影像署名",
+    "map_copyright_pf": "輸入地圖影像的署名",
+    "map_copyright_desc": "輸入地圖影像的署名。",
+    "map_gcp_copyright": "資料署名",
+    "map_gcp_copyright_pf": "輸入資料的署名",
+    "map_gcp_copyright_desc": "輸入資料的署名。",
     "map_source": "來源",
     "map_source_pf": "請輸入來源",
     "map_source_desc": "請輸入地圖的來源。",
@@ -382,7 +388,14 @@
     "error_image_memory_limit": "解碼此地圖影像約需 {{required}} MB，但目前設定為 {{configured}} MB。請在設定頁面將「JPEG 解碼記憶體上限」調高到 {{recommended}} MB 以上。",
     "error_image_resolution_limit": "此地圖影像約為 {{megapixels}} MP，但目前設定為 {{configured}} MP。請在設定頁面將「JPEG 解析度上限」調高到 {{recommended}} MP 以上。",
     "error_image_machine_limit": "此地圖影像約 {{megapixels}} MP，解碼約需 {{required}} MB 工作記憶體，但本應用程式最多只能使用約 {{available}} MB。請先縮小影像後再匯入。",
-    "confirm_long_image_import": "此地圖影像非常大，約 {{megapixels}} MP，匯入將花費很長時間（100 MP 約 5 分鐘，400 MP 超過 1 小時）。開始後無法取消。要繼續嗎？"
+    "confirm_long_image_import": "此地圖影像非常大，約 {{megapixels}} MP，匯入將花費很長時間（100 MP 約 5 分鐘，400 MP 超過 1 小時）。開始後無法取消。要繼續嗎？",
+    "cc_odbl": "ODbL（開放資料庫授權）",
+    "cc_custom": "自訂授權",
+    "license_unset": "未設定",
+    "map_image_license_note": "地圖影像授權備註",
+    "map_image_license_note_desc": "輸入地圖影像授權的補充說明。",
+    "map_gcp_license_note": "資料授權備註",
+    "map_gcp_license_note_desc": "輸入資料授權的補充說明。"
   },
   "mapupload": {
     "map_image": "地圖圖像",
@@ -620,7 +633,7 @@
     "untitled": "標題未設定",
     "no_title": "請指定顯示用標題。",
     "over_title": "顯示用標題({{lang}})請控制在15個字元(半形30個字元)以內。",
-    "image_copyright": "請指定地圖圖像的版權標示。"
+    "image_copyright": "請指定地圖影像的署名。"
   },
   "wmtsgenerate": {
     "generate": "產生WMTS圖磚",

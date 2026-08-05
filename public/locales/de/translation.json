@@ -90,12 +90,17 @@
       "title_placeholder": "z. B. Meine Basiskarte",
       "url_label": "Kachel-URL-Vorlage (Format {z}/{x}/{y}, für TMS {-y} verwenden)",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "Quellenangabe (optional)",
+      "attr_label": "Quellenangabe des Kartenbilds",
       "attr_placeholder": "z. B. © Example Provider",
       "min_zoom_label": "Minimale Zoomstufe (optional)",
       "max_zoom_label": "Maximale Zoomstufe (optional)",
       "cancel": "Abbrechen",
-      "save": "Speichern"
+      "save": "Speichern",
+      "license_label": "Lizenz des Kartenbilds",
+      "license_note_label": "Hinweis zur Lizenz des Kartenbilds",
+      "data_attr_label": "Datenattribution",
+      "data_license_label": "Datenlizenz",
+      "data_license_note_label": "Datenlizenzhinweis"
     },
     "errors": {
       "id_required": "Bitte geben Sie eine ID ein.",
@@ -113,7 +118,8 @@
       "always_failed": "Speichern der Einstellung für dauerhafte Sichtbarkeit fehlgeschlagen.",
       "icon_generate_failed": "Das Symbol konnte nicht erzeugt werden. Prüfen Sie Kachel-URL und Abdeckungsbereich.",
       "kind_required": "Wählen Sie einen Typ.",
-      "provider_incomplete": "Dieser Typ kann erst gespeichert werden, wenn Pflichtfelder gesetzt sind."
+      "provider_incomplete": "Dieser Typ kann erst gespeichert werden, wenn Pflichtfelder gesetzt sind.",
+      "attr_required": "Quellenangabe des Kartenbilds ist erforderlich."
     },
     "kind": {
       "label_google": "Google",
@@ -260,14 +266,14 @@
     "cc_by_nc_nd": "Creative Commons Namensnennung – Nicht kommerziell – Keine Bearbeitungen",
     "cc0": "Creative Commons Zero",
     "cc_pd": "Gemeinfrei (Public Domain)",
-    "map_gcp_license": "Lizenz der Kartierungsdaten",
-    "map_gcp_license_desc": "Bitte wählen Sie die Lizenz der Kartierungsdaten aus.",
-    "map_copyright": "Copyright des Kartenbilds",
-    "map_copyright_pf": "Bitte geben Sie den Copyright-Hinweis des Kartenbilds ein",
-    "map_copyright_desc": "Bitte geben Sie den Copyright-Hinweis des Kartenbilds ein.",
-    "map_gcp_copyright": "Copyright der Kartierungsdaten",
-    "map_gcp_copyright_pf": "Bitte geben Sie den Copyright-Hinweis der Kartierung ein",
-    "map_gcp_copyright_desc": "Bitte geben Sie den Copyright-Hinweis der Kartierung ein.",
+    "map_gcp_license": "Datenlizenz",
+    "map_gcp_license_desc": "Wählen Sie die Lizenz für die Daten.",
+    "map_copyright": "Quellenangabe des Kartenbilds",
+    "map_copyright_pf": "Geben Sie die Quellenangabe für das Kartenbild ein",
+    "map_copyright_desc": "Geben Sie die Quellenangabe für das Kartenbild ein.",
+    "map_gcp_copyright": "Datenattribution",
+    "map_gcp_copyright_pf": "Geben Sie die Quellenangabe für die Daten ein",
+    "map_gcp_copyright_desc": "Geben Sie die Quellenangabe für die Daten ein.",
     "map_source": "Quelle",
     "map_source_pf": "Bitte geben Sie die Quelle ein",
     "map_source_desc": "Bitte geben Sie die Quelle der Karte ein.",
@@ -382,7 +388,14 @@
     "error_image_memory_limit": "Das Dekodieren dieses Kartenbilds benötigt etwa {{required}} MB, die aktuelle Einstellung ist jedoch {{configured}} MB. Erhöhen Sie „JPEG-Dekodierungs-Speicherlimit“ auf der Einstellungsseite auf {{recommended}} MB oder mehr.",
     "error_image_resolution_limit": "Dieses Kartenbild hat etwa {{megapixels}} MP, die aktuelle Einstellung ist jedoch {{configured}} MP. Erhöhen Sie „JPEG-Auflösungslimit“ auf der Einstellungsseite auf {{recommended}} MP oder mehr.",
     "error_image_machine_limit": "Dieses Kartenbild hat etwa {{megapixels}} MP und benötigt zum Dekodieren rund {{required}} MB Arbeitsspeicher, diese App kann jedoch höchstens etwa {{available}} MB nutzen. Bitte verkleinern Sie das Bild vor dem Import.",
-    "confirm_long_image_import": "Dieses Kartenbild ist mit etwa {{megapixels}} MP sehr groß, daher dauert der Import lange (etwa 5 Minuten bei 100 MP, über eine Stunde bei 400 MP). Nach dem Start kann er nicht abgebrochen werden. Fortfahren?"
+    "confirm_long_image_import": "Dieses Kartenbild ist mit etwa {{megapixels}} MP sehr groß, daher dauert der Import lange (etwa 5 Minuten bei 100 MP, über eine Stunde bei 400 MP). Nach dem Start kann er nicht abgebrochen werden. Fortfahren?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Benutzerdefinierte Lizenz",
+    "license_unset": "Nicht festgelegt",
+    "map_image_license_note": "Hinweis zur Lizenz des Kartenbilds",
+    "map_image_license_note_desc": "Geben Sie zusätzliche Angaben zur Lizenz des Kartenbilds ein.",
+    "map_gcp_license_note": "Datenlizenzhinweis",
+    "map_gcp_license_note_desc": "Geben Sie zusätzliche Angaben zur Datenlizenz ein."
   },
   "mapupload": {
     "map_image": "Kartenbild",
@@ -620,7 +633,7 @@
     "untitled": "Titel nicht festgelegt",
     "no_title": "Bitte geben Sie den Anzeigetitel an.",
     "over_title": "Bitte begrenzen Sie den Anzeigetitel ({{lang}}) auf 30 Zeichen (bzw. 15 Vollbreitenzeichen).",
-    "image_copyright": "Bitte geben Sie den Copyright-Hinweis des Kartenbilds an."
+    "image_copyright": "Bitte geben Sie die Quellenangabe des Kartenbilds an."
   },
   "wmtsgenerate": {
     "generate": "WMTS-Kacheln erzeugen",

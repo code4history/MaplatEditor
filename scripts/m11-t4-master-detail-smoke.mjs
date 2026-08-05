@@ -126,6 +126,12 @@ try {
       title: { en: "Title" },
       label: { en: "Title" },
       attr: { ja: "帰属" },
+      // m6-t2: 5フィールド (dataAttr/license/dataLicense/licenseNote/dataLicenseNote) を常に出力する
+      dataAttr: {},
+      license: "",
+      dataLicense: "",
+      licenseNote: {},
+      dataLicenseNote: {},
       url: "https://x/{z}/{x}/{y}.png",
       minZoom: null,
       maxZoom: null,

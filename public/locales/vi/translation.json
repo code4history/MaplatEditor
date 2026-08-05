@@ -90,12 +90,17 @@
       "title_placeholder": "Ví dụ: Bản đồ nền của tôi",
       "url_label": "Mẫu URL tile (định dạng {z}/{x}/{y}, dùng {-y} nếu là TMS)",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "Ghi công (tùy chọn)",
+      "attr_label": "Ghi công ảnh bản đồ",
       "attr_placeholder": "Ví dụ: © Example Provider",
       "min_zoom_label": "Mức zoom tối thiểu (tùy chọn)",
       "max_zoom_label": "Mức zoom tối đa (tùy chọn)",
       "cancel": "Hủy",
-      "save": "Lưu"
+      "save": "Lưu",
+      "license_label": "Giấy phép ảnh bản đồ",
+      "license_note_label": "Ghi chú giấy phép ảnh bản đồ",
+      "data_attr_label": "Ghi công dữ liệu",
+      "data_license_label": "Giấy phép dữ liệu",
+      "data_license_note_label": "Ghi chú giấy phép dữ liệu"
     },
     "errors": {
       "id_required": "Vui lòng nhập ID.",
@@ -113,7 +118,8 @@
       "always_failed": "Lưu cài đặt luôn hiển thị thất bại.",
       "icon_generate_failed": "Không thể tạo biểu tượng. Vui lòng kiểm tra URL tile và phạm vi tồn tại.",
       "kind_required": "Chọn một loại.",
-      "provider_incomplete": "Không thể lưu loại này cho đến khi đặt các trường bắt buộc."
+      "provider_incomplete": "Không thể lưu loại này cho đến khi đặt các trường bắt buộc.",
+      "attr_required": "Bắt buộc ghi công ảnh bản đồ."
     },
     "kind": {
       "label_google": "Google",
@@ -260,14 +266,14 @@
     "cc_by_nc_nd": "Creative Commons Attribution-NonCommercial-NoDerivs (Ghi công-Phi thương mại-Không phái sinh)",
     "cc0": "Creative Commons Zero",
     "cc_pd": "Phạm vi công cộng",
-    "map_gcp_license": "Giấy phép dữ liệu lập bản đồ",
-    "map_gcp_license_desc": "Vui lòng chọn giấy phép của dữ liệu lập bản đồ.",
-    "map_copyright": "Bản quyền ảnh bản đồ",
-    "map_copyright_pf": "Vui lòng nhập ghi chú bản quyền của ảnh bản đồ",
-    "map_copyright_desc": "Vui lòng nhập ghi chú bản quyền của ảnh bản đồ.",
-    "map_gcp_copyright": "Bản quyền dữ liệu lập bản đồ",
-    "map_gcp_copyright_pf": "Vui lòng nhập ghi chú bản quyền của dữ liệu lập bản đồ",
-    "map_gcp_copyright_desc": "Vui lòng nhập ghi chú bản quyền của dữ liệu lập bản đồ.",
+    "map_gcp_license": "Giấy phép dữ liệu",
+    "map_gcp_license_desc": "Chọn giấy phép cho dữ liệu.",
+    "map_copyright": "Ghi công ảnh bản đồ",
+    "map_copyright_pf": "Nhập ghi công cho ảnh bản đồ",
+    "map_copyright_desc": "Nhập ghi công cho ảnh bản đồ.",
+    "map_gcp_copyright": "Ghi công dữ liệu",
+    "map_gcp_copyright_pf": "Nhập ghi công cho dữ liệu",
+    "map_gcp_copyright_desc": "Nhập ghi công cho dữ liệu.",
     "map_source": "Nguồn gốc",
     "map_source_pf": "Vui lòng nhập nguồn gốc",
     "map_source_desc": "Vui lòng nhập nguồn gốc của bản đồ.",
@@ -382,7 +388,14 @@
     "error_image_memory_limit": "Giải mã ảnh bản đồ này cần khoảng {{required}} MB, nhưng thiết lập hiện tại là {{configured}} MB. Hãy tăng \"Giới hạn bộ nhớ giải mã JPEG\" trong trang Cài đặt lên {{recommended}} MB trở lên.",
     "error_image_resolution_limit": "Ảnh bản đồ này khoảng {{megapixels}} MP, nhưng thiết lập hiện tại là {{configured}} MP. Hãy tăng \"Giới hạn độ phân giải JPEG\" trong trang Cài đặt lên {{recommended}} MP trở lên.",
     "error_image_machine_limit": "Ảnh bản đồ này khoảng {{megapixels}} MP và cần khoảng {{required}} MB bộ nhớ làm việc để giải mã, nhưng ứng dụng này chỉ dùng được tối đa khoảng {{available}} MB. Vui lòng thu nhỏ ảnh trước khi nhập.",
-    "confirm_long_image_import": "Ảnh bản đồ này rất lớn, khoảng {{megapixels}} MP, nên việc nhập sẽ mất nhiều thời gian (khoảng 5 phút ở 100 MP, hơn một giờ ở 400 MP). Khi đã bắt đầu thì không thể hủy. Tiếp tục?"
+    "confirm_long_image_import": "Ảnh bản đồ này rất lớn, khoảng {{megapixels}} MP, nên việc nhập sẽ mất nhiều thời gian (khoảng 5 phút ở 100 MP, hơn một giờ ở 400 MP). Khi đã bắt đầu thì không thể hủy. Tiếp tục?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Giấy phép tùy chỉnh",
+    "license_unset": "Chưa đặt",
+    "map_image_license_note": "Ghi chú giấy phép ảnh bản đồ",
+    "map_image_license_note_desc": "Nhập chi tiết bổ sung về giấy phép ảnh bản đồ.",
+    "map_gcp_license_note": "Ghi chú giấy phép dữ liệu",
+    "map_gcp_license_note_desc": "Nhập chi tiết bổ sung về giấy phép dữ liệu."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
@@ -620,7 +633,7 @@
     "untitled": "Chưa có tiêu đề",
     "no_title": "Vui lòng chỉ định tiêu đề hiển thị.",
     "over_title": "Vui lòng nhập tiêu đề hiển thị ({{lang}}) trong vòng 30 ký tự nửa độ rộng (15 ký tự toàn độ rộng).",
-    "image_copyright": "Vui lòng chỉ định ghi chú bản quyền của ảnh bản đồ."
+    "image_copyright": "Vui lòng chỉ định ghi công của ảnh bản đồ."
   },
   "wmtsgenerate": {
     "generate": "Tạo tile WMTS",

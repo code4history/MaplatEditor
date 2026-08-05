@@ -90,12 +90,17 @@
       "title_placeholder": "p. ej.: Mi mapa base",
       "url_label": "Plantilla de URL de teselas (formato {z}/{x}/{y}, use {-y} para TMS)",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "Atribución (opcional)",
+      "attr_label": "Atribución de la imagen del mapa",
       "attr_placeholder": "p. ej.: © Example Provider",
       "min_zoom_label": "Nivel de zoom mínimo (opcional)",
       "max_zoom_label": "Nivel de zoom máximo (opcional)",
       "cancel": "Cancelar",
-      "save": "Guardar"
+      "save": "Guardar",
+      "license_label": "Licencia de la imagen del mapa",
+      "license_note_label": "Nota de licencia de la imagen del mapa",
+      "data_attr_label": "Atribución de datos",
+      "data_license_label": "Licencia de datos",
+      "data_license_note_label": "Nota de licencia de datos"
     },
     "errors": {
       "id_required": "Introduzca un ID.",
@@ -113,7 +118,8 @@
       "always_failed": "Error al guardar la configuración de visibilidad permanente.",
       "icon_generate_failed": "No se pudo generar el icono. Compruebe la URL de teselas y el área de cobertura.",
       "kind_required": "Seleccione un tipo.",
-      "provider_incomplete": "Este tipo no se puede guardar hasta que se definan los campos obligatorios."
+      "provider_incomplete": "Este tipo no se puede guardar hasta que se definan los campos obligatorios.",
+      "attr_required": "La atribución de la imagen del mapa es obligatoria."
     },
     "kind": {
       "label_google": "Google",
@@ -260,14 +266,14 @@
     "cc_by_nc_nd": "Creative Commons Reconocimiento-NoComercial-SinObraDerivada",
     "cc0": "Creative Commons Cero",
     "cc_pd": "Dominio público",
-    "map_gcp_license": "Licencia de los datos de georreferenciación",
-    "map_gcp_license_desc": "Seleccione la licencia de los datos de georreferenciación.",
-    "map_copyright": "Copyright de la imagen del mapa",
-    "map_copyright_pf": "Introduzca la mención de copyright de la imagen del mapa",
-    "map_copyright_desc": "Introduzca la mención de copyright de la imagen del mapa.",
-    "map_gcp_copyright": "Copyright de los datos de georreferenciación",
-    "map_gcp_copyright_pf": "Introduzca la mención de copyright de la georreferenciación",
-    "map_gcp_copyright_desc": "Introduzca la mención de copyright de la georreferenciación.",
+    "map_gcp_license": "Licencia de datos",
+    "map_gcp_license_desc": "Seleccione la licencia de los datos.",
+    "map_copyright": "Atribución de la imagen del mapa",
+    "map_copyright_pf": "Introduzca la atribución de la imagen del mapa",
+    "map_copyright_desc": "Introduzca la atribución de la imagen del mapa.",
+    "map_gcp_copyright": "Atribución de datos",
+    "map_gcp_copyright_pf": "Introduzca la atribución de los datos",
+    "map_gcp_copyright_desc": "Introduzca la atribución de los datos.",
     "map_source": "Fuente",
     "map_source_pf": "Introduzca la fuente",
     "map_source_desc": "Introduzca la fuente del mapa.",
@@ -382,7 +388,14 @@
     "error_image_memory_limit": "Decodificar esta imagen de mapa necesita unos {{required}} MB, pero la configuración actual es {{configured}} MB. Aumente «Límite de memoria de decodificación JPEG» en la página de configuración a {{recommended}} MB o más.",
     "error_image_resolution_limit": "Esta imagen de mapa tiene unos {{megapixels}} MP, pero la configuración actual es {{configured}} MP. Aumente «Límite de resolución JPEG» en la página de configuración a {{recommended}} MP o más.",
     "error_image_machine_limit": "Esta imagen de mapa tiene unos {{megapixels}} MP y necesita cerca de {{required}} MB de memoria de trabajo para decodificarse, pero esta aplicación puede usar como máximo unos {{available}} MB. Reduzca el tamaño de la imagen antes de importarla.",
-    "confirm_long_image_import": "Esta imagen de mapa es muy grande, unos {{megapixels}} MP, por lo que la importación tardará mucho (unos 5 minutos a 100 MP, más de una hora a 400 MP). Una vez iniciada no se puede cancelar. ¿Continuar?"
+    "confirm_long_image_import": "Esta imagen de mapa es muy grande, unos {{megapixels}} MP, por lo que la importación tardará mucho (unos 5 minutos a 100 MP, más de una hora a 400 MP). Una vez iniciada no se puede cancelar. ¿Continuar?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Licencia personalizada",
+    "license_unset": "Sin establecer",
+    "map_image_license_note": "Nota de licencia de la imagen del mapa",
+    "map_image_license_note_desc": "Introduzca detalles adicionales sobre la licencia de la imagen del mapa.",
+    "map_gcp_license_note": "Nota de licencia de datos",
+    "map_gcp_license_note_desc": "Introduzca detalles adicionales sobre la licencia de los datos."
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
@@ -620,7 +633,7 @@
     "untitled": "Título no establecido",
     "no_title": "Especifique el título de visualización.",
     "over_title": "Limite el título de visualización ({{lang}}) a 30 caracteres (o 15 caracteres de ancho completo).",
-    "image_copyright": "Especifique la mención de copyright de la imagen del mapa."
+    "image_copyright": "Especifique la atribución de la imagen del mapa."
   },
   "wmtsgenerate": {
     "generate": "Generar teselas WMTS",

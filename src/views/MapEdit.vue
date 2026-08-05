@@ -14,6 +14,7 @@ import DraftConflictDialog from '../components/editor-ui/DraftConflictDialog.vue
 import EditorActionHeader from '../components/editor-ui/EditorActionHeader.vue';
 import EditorBusyOverlay from '../components/editor-ui/EditorBusyOverlay.vue';
 import LangValueChips from '../components/editor-ui/LangValueChips.vue';
+import LicenseSelect from '../components/editor-ui/LicenseSelect.vue';
 import SlugField from '../components/editor-ui/SlugField.vue';
 import EditorTabs from '../components/editor-ui/EditorTabs.vue';
 import DiagnosticFeedback from '../components/editor-ui/DiagnosticFeedback.vue';
@@ -243,6 +244,8 @@ const defaultMapData = () => ({
     createdAt: '',
     license: 'All right reserved',
     dataLicense: 'CC BY-SA',
+    licenseNote: '',
+    dataLicenseNote: '',
     contributor: '',
     mapper: '',
     reference: '',
@@ -1089,6 +1092,8 @@ const contributor = createLangComputed('contributor'); // テンプレートで�
 const mapper = createLangComputed('mapper');
 const attr = createLangComputed('attr');
 const dataAttr = createLangComputed('dataAttr');
+const licenseNote = createLangComputed('licenseNote');
+const dataLicenseNote = createLangComputed('dataLicenseNote');
 const description = createLangComputed('description');
 
 // テンプレート変数名とlangAttrキー名のマッピング
@@ -4060,44 +4065,37 @@ const goBack = async () => {
                         </div>
                     </div>
 
-                    <!-- Row 4 -->
+                    <!-- Row 4 (m6-t2): 地図画像の帰属・ライセンス・補足（レビュー指摘で 2行×3列 に再構成） -->
                     <div class="row g-1 mb-2">
-                         <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license") }} <ContextHelp :text="t('mapedit.map_image_license_desc')" :ariaLabel="t('mapedit.map_image_license_desc')" /></label>
-                            <select class="form-select form-select-sm" v-model="mapData.license" :disabled="translationMode">
-                                <option value="All right reserved">{{ t("mapedit.cc_allright_reserved") }}</option>
-                                <option value="CC BY">{{ t("mapedit.cc_by") }}</option>
-                                <option value="CC BY-SA">{{ t("mapedit.cc_by_sa") }}</option>
-                                <option value="CC BY-ND">{{ t("mapedit.cc_by_nd") }}</option>
-                                <option value="CC BY-NC">{{ t("mapedit.cc_by_nc") }}</option>
-                                <option value="CC BY-NC-SA">{{ t("mapedit.cc_by_nc_sa") }}</option>
-                                <option value="CC BY-NC-ND">{{ t("mapedit.cc_by_nc_nd") }}</option>
-                                <option value="CC0">{{ t("mapedit.cc0") }}</option>
-                                <option value="PD">{{ t("mapedit.cc_pd") }}</option>
-                            </select>
-                        </div>
-                         <div class="col-md-3">
-                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license") }} <ContextHelp :text="t('mapedit.map_gcp_license_desc')" :ariaLabel="t('mapedit.map_gcp_license_desc')" /></label>
-                             <select class="form-select form-select-sm" v-model="mapData.dataLicense" :disabled="translationMode">
-                                <option value="All right reserved">{{ t("mapedit.cc_allright_reserved") }}</option>
-                                <option value="CC BY">{{ t("mapedit.cc_by") }}</option>
-                                <option value="CC BY-SA">{{ t("mapedit.cc_by_sa") }}</option>
-                                <option value="CC BY-ND">{{ t("mapedit.cc_by_nd") }}</option>
-                                <option value="CC BY-NC">{{ t("mapedit.cc_by_nc") }}</option>
-                                <option value="CC BY-NC-SA">{{ t("mapedit.cc_by_nc_sa") }}</option>
-                                <option value="CC BY-NC-ND">{{ t("mapedit.cc_by_nc_nd") }}</option>
-                                <option value="CC0">{{ t("mapedit.cc0") }}</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_copyright_desc')" :ariaLabel="t('mapedit.map_copyright_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
                             <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.attr" scope="field" :items="[{ key: 'attr-required', severity: 'danger', message: saveError.attr }]" />
                         </div>
-                         <div class="col-md-3">
-                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_copyright") }} <LangValueChips :model-value="mapData.dataAttr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_gcp_copyright_desc')" :ariaLabel="t('mapedit.map_gcp_copyright_desc')" /></div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license") }} <ContextHelp :text="t('mapedit.map_image_license_desc')" :ariaLabel="t('mapedit.map_image_license_desc')" /></label>
+                            <LicenseSelect variant="image" test-id="mapedit-image-license" :model-value="mapData.license" :disabled="translationMode" @update:model-value="mapData.license = $event" />
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license_note") }} <LangValueChips :model-value="mapData.licenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_image_license_note_desc')" :ariaLabel="t('mapedit.map_image_license_note_desc')" /></div>
+                            <input type="text" class="form-control form-control-sm" v-model="licenseNote" :placeholder="t('mapedit.map_image_license_note')">
+                        </div>
+                    </div>
+
+                    <!-- Row 4b (m6-t2): データの帰属・ライセンス・補足（レビュー指摘で 2行×3列 に再構成） -->
+                    <div class="row g-1 mb-2">
+                        <div class="col-md-4">
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_copyright") }} <LangValueChips :model-value="mapData.dataAttr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_gcp_copyright_desc')" :ariaLabel="t('mapedit.map_gcp_copyright_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="dataAttr" :placeholder="t('mapedit.map_gcp_copyright_pf')">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license") }} <ContextHelp :text="t('mapedit.map_gcp_license_desc')" :ariaLabel="t('mapedit.map_gcp_license_desc')" /></label>
+                            <LicenseSelect variant="data" test-id="mapedit-data-license" :model-value="mapData.dataLicense" :disabled="translationMode" @update:model-value="mapData.dataLicense = $event" />
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license_note") }} <LangValueChips :model-value="mapData.dataLicenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_gcp_license_note_desc')" :ariaLabel="t('mapedit.map_gcp_license_note_desc')" /></div>
+                            <input type="text" class="form-control form-control-sm" v-model="dataLicenseNote" :placeholder="t('mapedit.map_gcp_license_note')">
                         </div>
                     </div>
                     

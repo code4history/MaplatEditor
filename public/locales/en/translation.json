@@ -81,12 +81,17 @@
       "title_placeholder": "e.g. My Base Map",
       "url_label": "Tile URL template ({z}/{x}/{y} format, use {-y} for TMS)",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "Attribution (optional)",
+      "attr_label": "Map image attribution",
       "attr_placeholder": "e.g. © Example Provider",
       "min_zoom_label": "Min zoom level (optional)",
       "max_zoom_label": "Max zoom level (optional)",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "license_label": "Map image license",
+      "license_note_label": "Map image license note",
+      "data_attr_label": "Data attribution",
+      "data_license_label": "Data license",
+      "data_license_note_label": "Data license note"
     },
     "errors": {
       "id_required": "Please input a slug (ID).",
@@ -104,7 +109,8 @@
       "always_failed": "Failed to update the always-visible setting.",
       "icon_generate_failed": "Failed to generate the icon. Check the tile URL and coverage.",
       "kind_required": "Select a type.",
-      "provider_incomplete": "This type cannot be saved until required fields are set."
+      "provider_incomplete": "This type cannot be saved until required fields are set.",
+      "attr_required": "Map image attribution is required."
     },
     "kind": {
       "label_google": "Google",
@@ -251,14 +257,14 @@
     "cc_by_nc_nd": "Creative Commons Attribution-NonCommercial-NoDerivs",
     "cc0": "Creative Commons Zero",
     "cc_pd": "Public Domain",
-    "map_gcp_license": "License of Mapping Data",
-    "map_gcp_license_desc": "Enter the license of mapping data.",
-    "map_copyright": "Map Image Copyright",
-    "map_copyright_pf": "Enter the copyright description of map image.",
-    "map_copyright_desc": "Enter the copyright description of map image.",
-    "map_gcp_copyright": "Mapping Data Copyright",
-    "map_gcp_copyright_pf": "Enter the copyright description of mapping data.",
-    "map_gcp_copyright_desc": "Enter the copyright description of mapping data.",
+    "map_gcp_license": "Data license",
+    "map_gcp_license_desc": "Select the license for the data.",
+    "map_copyright": "Map image attribution",
+    "map_copyright_pf": "Enter the attribution for the map image",
+    "map_copyright_desc": "Enter the attribution for the map image.",
+    "map_gcp_copyright": "Data attribution",
+    "map_gcp_copyright_pf": "Enter the attribution for the data",
+    "map_gcp_copyright_desc": "Enter the attribution for the data.",
     "map_source": "Source",
     "map_source_pf": "Enter the source of Map.",
     "map_source_desc": "Enter the source of Map.",
@@ -373,7 +379,14 @@
     "error_image_memory_limit": "Decoding this map image needs about {{required}} MB, but the current setting is {{configured}} MB. Raise \"JPEG decode memory limit\" on the Settings page to {{recommended}} MB or more.",
     "error_image_resolution_limit": "This map image is about {{megapixels}} MP, but the current setting is {{configured}} MP. Raise \"JPEG resolution limit\" on the Settings page to {{recommended}} MP or more.",
     "error_image_machine_limit": "This map image is about {{megapixels}} MP and needs roughly {{required}} MB of working memory to decode, but this app can use at most about {{available}} MB. Please shrink the image before importing it.",
-    "confirm_long_image_import": "This map image is very large at about {{megapixels}} MP, so importing will take a long time (about 5 minutes at 100 MP, over an hour at 400 MP). Once started it cannot be canceled. Proceed?"
+    "confirm_long_image_import": "This map image is very large at about {{megapixels}} MP, so importing will take a long time (about 5 minutes at 100 MP, over an hour at 400 MP). Once started it cannot be canceled. Proceed?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Custom license",
+    "license_unset": "Unset",
+    "map_image_license_note": "Map image license note",
+    "map_image_license_note_desc": "Enter additional details about the map image license.",
+    "map_gcp_license_note": "Data license note",
+    "map_gcp_license_note_desc": "Enter additional details about the data license."
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -611,7 +624,7 @@
     "untitled": "Untitled",
     "no_title": "Enter title for representation.",
     "over_title": "Enter {{lang}} title for representation within 30 half-width characters (or 15 full-width characters).",
-    "image_copyright": "Enter representation of map image's copyright."
+    "image_copyright": "Enter the attribution of the map image."
   },
   "wmtsgenerate": {
     "generate": "WMTS Tile Generation",

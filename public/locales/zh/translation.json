@@ -90,12 +90,17 @@
       "title_placeholder": "例:我的底图",
       "url_label": "瓦片URL模板({z}/{x}/{y}格式,TMS时使用{-y})",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "版权信息(可选)",
+      "attr_label": "地图图像署名",
       "attr_placeholder": "例:© Example Provider",
       "min_zoom_label": "最小缩放级别(可选)",
       "max_zoom_label": "最大缩放级别(可选)",
       "cancel": "取消",
-      "save": "保存"
+      "save": "保存",
+      "license_label": "地图图像许可证",
+      "license_note_label": "地图图像许可证备注",
+      "data_attr_label": "数据署名",
+      "data_license_label": "数据许可证",
+      "data_license_note_label": "数据许可证备注"
     },
     "errors": {
       "id_required": "请输入ID。",
@@ -113,7 +118,8 @@
       "always_failed": "保存始终显示设置失败。",
       "icon_generate_failed": "图标生成失败。请检查瓦片URL和覆盖范围。",
       "kind_required": "请选择类型。",
-      "provider_incomplete": "此类型在设置必填字段前无法保存。"
+      "provider_incomplete": "此类型在设置必填字段前无法保存。",
+      "attr_required": "地图图像署名为必填。"
     },
     "kind": {
       "label_google": "Google",
@@ -260,14 +266,14 @@
     "cc_by_nc_nd": "知识共享 署名-非商业性使用-禁止演绎",
     "cc0": "知识共享 CC0",
     "cc_pd": "公共领域",
-    "map_gcp_license": "制图数据许可证",
-    "map_gcp_license_desc": "请选择制图数据的许可证。",
-    "map_copyright": "地图图像版权",
-    "map_copyright_pf": "请输入地图图像的版权标注",
-    "map_copyright_desc": "请输入地图图像的版权标注。",
-    "map_gcp_copyright": "制图数据版权",
-    "map_gcp_copyright_pf": "请输入制图的版权标注",
-    "map_gcp_copyright_desc": "请输入制图的版权标注。",
+    "map_gcp_license": "数据许可证",
+    "map_gcp_license_desc": "选择数据的许可证。",
+    "map_copyright": "地图图像署名",
+    "map_copyright_pf": "输入地图图像的署名",
+    "map_copyright_desc": "输入地图图像的署名。",
+    "map_gcp_copyright": "数据署名",
+    "map_gcp_copyright_pf": "输入数据的署名",
+    "map_gcp_copyright_desc": "输入数据的署名。",
     "map_source": "来源",
     "map_source_pf": "请输入来源",
     "map_source_desc": "请输入地图的来源。",
@@ -382,7 +388,14 @@
     "error_image_memory_limit": "解码此地图图像约需 {{required}} MB，但当前设置为 {{configured}} MB。请在设置页面将“JPEG 解码内存上限”调高到 {{recommended}} MB 以上。",
     "error_image_resolution_limit": "此地图图像约为 {{megapixels}} MP，但当前设置为 {{configured}} MP。请在设置页面将“JPEG 分辨率上限”调高到 {{recommended}} MP 以上。",
     "error_image_machine_limit": "此地图图像约 {{megapixels}} MP，解码约需 {{required}} MB 工作内存，但本应用最多只能使用约 {{available}} MB。请先缩小图像后再导入。",
-    "confirm_long_image_import": "此地图图像非常大，约 {{megapixels}} MP，导入将花费很长时间（100 MP 约 5 分钟，400 MP 超过 1 小时）。开始后无法取消。要继续吗？"
+    "confirm_long_image_import": "此地图图像非常大，约 {{megapixels}} MP，导入将花费很长时间（100 MP 约 5 分钟，400 MP 超过 1 小时）。开始后无法取消。要继续吗？",
+    "cc_odbl": "ODbL（开放数据库许可证）",
+    "cc_custom": "自定义许可证",
+    "license_unset": "未设置",
+    "map_image_license_note": "地图图像许可证备注",
+    "map_image_license_note_desc": "输入地图图像许可证的补充说明。",
+    "map_gcp_license_note": "数据许可证备注",
+    "map_gcp_license_note_desc": "输入数据许可证的补充说明。"
   },
   "mapupload": {
     "map_image": "地图图像",
@@ -620,7 +633,7 @@
     "untitled": "标题未设置",
     "no_title": "请指定显示用标题。",
     "over_title": "显示用标题({{lang}})请控制在15个字符(半角30个字符)以内。",
-    "image_copyright": "请指定地图图像的版权标注。"
+    "image_copyright": "请指定地图图像的署名。"
   },
   "wmtsgenerate": {
     "generate": "生成WMTS瓦片",
