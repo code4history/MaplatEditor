@@ -107,15 +107,19 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
     await expect(page.getByTestId('basemap-title')).toHaveValue('種別テスト');
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 
-    // AC7: provider 種別を選ぶと provider-incomplete 診断が表示され保存不可
-    // 種別は選択後にロックされるため、google/mapbox/maplibre の対称性は smoke（AC2）で検証する
+    // AC7 / m6-t5 AC19: mapbox 選択で style 欄が出る。空 style では保存不可（provider-incomplete は出ない）
     await page.getByTestId('basemap-new').click();
     await page.getByTestId('basemap-kind-mapbox').click();
-    await expect(page.getByTestId('basemap-kind-provider-incomplete')).toBeVisible();
-    await expect(page.getByTestId('basemap-kind-provider-incomplete')).toContainText(/保存できません|cannot be saved/i);
-    // slug/title を入れても保存は不可（provider-incomplete）
+    await expect(page.getByTestId('basemap-style-url')).toBeVisible();
+    await expect(page.getByTestId('basemap-kind-provider-incomplete')).toHaveCount(0);
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-kind-provider');
     await fillAndCommit(page.getByTestId('basemap-title'), 'プロバイダ');
+    // attr 必須 (m6-t2) も埋めるが style 空なら save disabled
+    if (await page.getByTestId('basemap-attr').count()) {
+      await fillAndCommit(page.getByTestId('basemap-attr'), 'Attribution');
+    }
+    // m6-t5 AC23-d: style 不足の証明を field レベルで可視化（is-invalid）。section 診断は AC23-a で撤去済み
+    await expect(page.getByTestId('basemap-style-url')).toHaveClass(/is-invalid/);
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 
     expect(pageErrors).toEqual([]);

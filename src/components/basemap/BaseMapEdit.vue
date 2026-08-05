@@ -65,7 +65,7 @@
         <div v-if="kindDisabledReason('merc')" class="text-danger small mt-2" data-testid="basemap-kind-merc-reason">
           {{ kindDisabledReason('merc') }}
         </div>
-        <!-- provider-incomplete 診断（種別ボタン群直下の section 診断） -->
+        <!-- provider-incomplete 診断（種別ボタン群直下の section 診断）: google 等 t4 未完了時 -->
         <DiagnosticFeedback
           v-if="validation.errors.includes('provider-incomplete')"
           scope="section"
@@ -244,7 +244,8 @@
         </div>
 
         <div class="col-12"><hr class="my-1"></div>
-        <div v-if="document.kind === 'tms'" class="col-12">
+        <div class="col-12">
+                  <template v-if="document.kind === 'tms'">
           <EditorField :label="t('basemap.modal.url_label')" label-for="basemap-url-input" :diagnostics="urlDiagnostics">
             <input
               id="basemap-url-input"
@@ -257,6 +258,25 @@
               @change="updateField('url', ($event.target as HTMLInputElement).value.trim())"
             >
           </EditorField>
+        </template>
+        <template v-else-if="document.kind === 'mapbox' || document.kind === 'maplibre'">
+          <EditorField :label="t('basemap.modal.style_label')" label-for="basemap-style-input" :diagnostics="styleFieldDiagnostics">
+            <input
+              id="basemap-style-input"
+              :value="document.style || ''"
+              type="text"
+              class="form-control form-control-sm"
+              :class="{ 'is-invalid': styleFieldDiagnostics.length }"
+              data-testid="basemap-style-url"
+              :placeholder="document.kind === 'maplibre' ? 'https://.../style.json' : 'mapbox://styles/... or https://...'"
+              :disabled="structuralDisabled"
+              @change="updateField('style', ($event.target as HTMLInputElement).value.trim() || null)"
+            >
+          </EditorField>
+          <p v-if="document.kind === 'maplibre'" class="form-text small text-muted" data-testid="basemap-style-maplibre-hint">
+            {{ t('basemap.modal.style_maplibre_hint') }}
+          </p>
+        </template>
         </div>
         <div class="col-6">
           <EditorField :label="t('basemap.modal.min_zoom_label')" label-for="basemap-min-zoom-input" :diagnostics="minZoomDiagnostics">
@@ -442,6 +462,9 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   "kind-required": "basemap.errors.kind_required",
   "provider-incomplete": "basemap.errors.provider_incomplete",
   "maptype-required": "basemap.errors.maptype_required",
+  "style-required": "basemap.errors.style_required",
+  "style-mapbox-scheme-forbidden": "basemap.errors.style_mapbox_scheme_forbidden",
+  "style-url-invalid": "basemap.errors.style_url_invalid",
 };
 
 // m6-t1: 種別軸（kind）選択の btn-group。UI 状態は document.kind のみから決まり、追加の
@@ -457,6 +480,18 @@ const kindDisabledReason = (k: BaseMapKind): string =>
 function selectKind(k: BaseMapKind): void {
   if (kindDisabled(k)) return;
   updateField("kind", k);
+  if (k === "mapbox" || k === "maplibre") {
+    // AC23-c: provider へ入るとき tms の url を消す（非表示になるためユーザーが消せず、
+    // 古い URL が payload に残るのを防ぐ。provider から離れるときの style クリアと対称）
+    updateField("url", "");
+    const def = k === "mapbox" ? "basemap_icons/mapbox.png" : "basemap_icons/maplibre.png";
+    const cur = document.value.thumbnail;
+    if (!cur || cur === "basemap_icons/mapbox.png" || cur === "basemap_icons/maplibre.png") {
+      updateField("thumbnail", def);
+    }
+  } else {
+    updateField("style", null);
+  }
 }
 
 // m6-t4: Google プリセット（2段目）
@@ -545,6 +580,10 @@ const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
 const attrDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["attr-required"]));
 const urlDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["url-required", "url-invalid"]));
+// m6-t5 v1.3 AC23-a: style 診断は field 側のみ（URL と同パターン。section 二重表示は撤去）
+const styleFieldDiagnostics = computed<DiagnosticItem[]>(() =>
+  diagnosticsFor(["style-required", "style-mapbox-scheme-forbidden", "style-url-invalid"]),
+);
 const minZoomDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["min-zoom-invalid"]));
 // zoom-range(min/max の大小逆転)は max 側 field に表示する(サマリバナー廃止に伴う field 化)
 const maxZoomDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["max-zoom-invalid", "zoom-range"]));

@@ -189,7 +189,9 @@
     "test:e2e:m5-t8": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t8-auto-decode-limits.spec.ts",
     "smoke:m5-t9-clone-slug-unification": "node scripts/m5-t9-clone-slug-unification-smoke.mjs",
     "test:e2e:m5-t9": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t9-clone-slug.spec.ts",
-    "test:e2e:m5-t10": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t10-seed-slug-collision.spec.ts"
+    "test:e2e:m5-t10": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t10-seed-slug-collision.spec.ts",
+    "smoke:m6-t5-mapbox-maplibre": "node scripts/m6-t5-mapbox-maplibre-smoke.mjs",
+    "test:e2e:m6-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t5-mapbox-maplibre.spec.ts"
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.4-r.1",

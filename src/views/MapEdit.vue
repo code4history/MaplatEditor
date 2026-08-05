@@ -28,7 +28,7 @@ import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
-import { resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
+import { isProviderBaseMapData, resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
@@ -492,6 +492,8 @@ watch(() => baseMapVisibilityList.value, () => {
 
 // M12-T10 v2.0: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
 // adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
+// m6-t5 v1.3: provider 種別は loadBaseMapVisibility の単一投入点で除外済みのため、
+// ここでの個別 disabled 制御は持たない
 function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
     return baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
 }
@@ -3052,7 +3054,12 @@ const loadBaseMapVisibility = async () => {
     baseMapVisibilityError.value = '';
     try {
         const list = await (window as any).mapedit.getBaseMapVisibilityOfMapID(baseMapVisibilityMapRef());
-        baseMapVisibilityList.value = Array.isArray(list) ? list : [];
+        // m6-t5 v1.3: provider 種別（google/mapbox/maplibre）はエディタ背景に使えないため
+        // 単一投入点で除外する（人間判断 2026-08-05「選択肢に非表示」）。
+        // 左右両ペイン（adapter / enabledBaseMaps）と背景レイヤ生成（enabledBaseMapData）の
+        // 3消費者すべてにここで効かせる。adapter 側には置かない（二重適用防止）
+        baseMapVisibilityList.value = (Array.isArray(list) ? list : [])
+            .filter((item: BaseMapVisibilityItem) => !isProviderBaseMapData(item?.data));
     } catch (e: any) {
         console.error('[loadBaseMapVisibility] Failed:', e);
         baseMapVisibilityError.value = e?.message || String(e);

@@ -50,14 +50,19 @@ export interface BaseMapEditDocument {
   kind: BaseMapKind | null;
   // Google プリセット値（m6-t4）。kind === "google" のときのみ非 null。
   maptype: GoogleMapType | null;
+  // m6-t5: mapbox / maplibre の style URL（他 kind では null）
+  style: string | null;
 }
 
 export interface BaseMapValidation {
   valid: boolean;
   errors: Array<
     | "kind-required" // 新設（m6-t1）。kind 未選択（null）
-    | "provider-incomplete" // 新設（m6-t1）。mapbox/maplibre で必須項目未実装（m6-t5 まで保存不可）
+    | "provider-incomplete" // 新設（m6-t1）。t4/t5 で google=maptype-required・mapbox/maplibre=style 系へ置換済み（型互換のため残置）
     | "maptype-required" // 新設（m6-t4）。kind === "google" で maptype 未選択
+    | "style-required" // m6-t5: mapbox/maplibre で style 空
+    | "style-mapbox-scheme-forbidden" // m6-t5: maplibre で mapbox://
+    | "style-url-invalid" // m6-t5: 許可外 URL
     | "slug-required"
     | "slug-invalid"
     | "title-required"
@@ -93,8 +98,9 @@ export interface BaseMapSavePayload {
     maxZoom: number | null;
     thumbnail: string;
     coverageLngLats: [number, number][] | null;
-    // m6-t4: kind === "google" のときのみ出力
+    // m6-t4: kind === "google" のときのみ出力 / m6-t5: mapbox/maplibre のとき viewer 向け maptype + style
     maptype?: string;
+    style?: string;
   };
 }
 
@@ -122,6 +128,54 @@ export const normalizeGoogleMaptype = (
 ): GoogleMapType | null => {
   if (kind !== "google") return null;
   return GOOGLE_MAPTYPES.includes(value as GoogleMapType) ? (value as GoogleMapType) : null;
+};
+
+// m6-t5 v1.3: provider 種別の原子述語（google/mapbox/maplibre）。MapEdit 背景除外・
+// appSourceModel の maptype 判定など、同一扱いは本述語へ一元化する（恒久指示）
+export const PROVIDER_BASE_MAP_KINDS = ["google", "mapbox", "maplibre"] as const;
+export function isProviderKind(value: unknown): boolean {
+  return (PROVIDER_BASE_MAP_KINDS as readonly unknown[]).includes(value);
+}
+
+// m6-t5 v1.3: MapEdit 背景選択から除外する判定。kind（editor 軸）を優先し、
+// 欠落時は maptype（viewer 軸）を見る（旧保存形の保険）
+export function isProviderBaseMapData(
+  data: { kind?: unknown; maptype?: unknown } | null | undefined,
+): boolean {
+  return isProviderKind(data?.kind ?? data?.maptype);
+}
+
+/** m6-t5: mapbox:// または mapbox: スキーム */
+export function isMapboxScheme(style: string): boolean {
+  const s = style.trim().toLowerCase();
+  return s.startsWith("mapbox://") || s.startsWith("mapbox:");
+}
+
+/** m6-t5: kind に応じた style URL 許可 */
+export function isAllowedStyleUrl(style: string, kind: "mapbox" | "maplibre"): boolean {
+  const s = style.trim();
+  if (!s) return false;
+  if (kind === "mapbox") {
+    if (isMapboxScheme(s)) return true;
+    try {
+      const u = new URL(s);
+      return u.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+  // maplibre: https only
+  try {
+    const u = new URL(s);
+    return u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+const normalizeStyle = (value: unknown, kind: BaseMapKind | null): string | null => {
+  if (kind !== "mapbox" && kind !== "maplibre") return null;
+  return typeof value === "string" ? value : null;
 };
 
 const coverage = (value: unknown): [number, number][] | null => {
@@ -172,6 +226,7 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
     coverageLngLats: coverage(data.coverageLngLats),
     kind,
     maptype: normalizeGoogleMaptype(data.maptype, kind),
+    style: normalizeStyle(data.style, kind),
   };
 }
 
@@ -197,6 +252,7 @@ export function newBaseMapDocument(uid: string, lang: LangCode): BaseMapEditDocu
     coverageLngLats: null,
     kind: null,
     maptype: null,
+    style: null,
   };
 }
 
@@ -210,8 +266,15 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
     // m6-t4: Google の必須項目は maptype（4プリセットから選択）。
     if (!document.maptype) errors.push("maptype-required");
   } else if (kind === "mapbox" || kind === "maplibre") {
-    // m6-t5 が style 欄を実装するまで保存不可。
-    errors.push("provider-incomplete");
+    // m6-t5: style 必須。maplibre は mapbox:// 禁止・https のみ。
+    const style = (document.style ?? "").trim();
+    if (!style) {
+      errors.push("style-required");
+    } else if (kind === "maplibre" && isMapboxScheme(style)) {
+      errors.push("style-mapbox-scheme-forbidden");
+    } else if (!isAllowedStyleUrl(style, kind)) {
+      errors.push("style-url-invalid");
+    }
   }
   if (!document.slug.trim()) errors.push("slug-required");
   else if (!/^[A-Za-z0-9_-]+$/.test(document.slug.trim())) errors.push("slug-invalid");
@@ -268,6 +331,10 @@ export function toBaseMapSavePayload(
       coverageLngLats: document.coverageLngLats?.map(([lng, lat]) => [lng, lat]) ?? null,
       // m6-t4: kind === "google" のときのみ maptype を出力
       ...(document.kind === "google" && document.maptype ? { maptype: document.maptype } : {}),
+      // m6-t5: mapbox/maplibre は viewer 向け maptype + style を data に載せる（AC23-b: 単一 spread）
+      ...(document.kind === "mapbox" || document.kind === "maplibre"
+        ? { maptype: document.kind, style: document.style ?? "" }
+        : {}),
     },
   };
 }

@@ -100,7 +100,9 @@
       "license_note_label": "Hinweis zur Lizenz des Kartenbilds",
       "data_attr_label": "Datenattribution",
       "data_license_label": "Datenlizenz",
-      "data_license_note_label": "Datenlizenzhinweis"
+      "data_license_note_label": "Datenlizenzhinweis",
+      "style_label": "Style URL",
+      "style_maplibre_hint": "MapLibre accepts https:// style.json only (mapbox:// is not allowed). Preview rendering requires the GL CDN."
     },
     "errors": {
       "id_required": "Bitte geben Sie eine ID ein.",
@@ -120,7 +122,10 @@
       "kind_required": "Wählen Sie einen Typ.",
       "provider_incomplete": "Dieser Typ kann erst gespeichert werden, wenn Pflichtfelder gesetzt sind.",
       "attr_required": "Quellenangabe des Kartenbilds ist erforderlich.",
-      "maptype_required": "Wählen Sie eine Google-Maps-Voreinstellung."
+      "maptype_required": "Wählen Sie eine Google-Maps-Voreinstellung.",
+      "style_required": "Style URL is required.",
+      "style_mapbox_scheme_forbidden": "MapLibre cannot use mapbox:// styles. Use an https:// style.json URL.",
+      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox)."
     },
     "kind": {
       "label_google": "Google",

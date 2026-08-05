@@ -100,7 +100,9 @@
       "license_note_label": "지도 이미지 라이선스 보충",
       "data_attr_label": "데이터 출처 표시",
       "data_license_label": "데이터 라이선스",
-      "data_license_note_label": "데이터 라이선스 보충"
+      "data_license_note_label": "데이터 라이선스 보충",
+      "style_label": "Style URL",
+      "style_maplibre_hint": "MapLibre accepts https:// style.json only (mapbox:// is not allowed). Preview rendering requires the GL CDN."
     },
     "errors": {
       "id_required": "ID를 입력하세요.",
@@ -120,7 +122,10 @@
       "kind_required": "유형을 선택하세요.",
       "provider_incomplete": "필수 항목이 설정될 때까지 이 유형은 저장할 수 없습니다.",
       "attr_required": "지도 이미지 출처 표시는 필수입니다.",
-      "maptype_required": "Google 지도 프리셋을 선택하세요."
+      "maptype_required": "Google 지도 프리셋을 선택하세요.",
+      "style_required": "Style URL is required.",
+      "style_mapbox_scheme_forbidden": "MapLibre cannot use mapbox:// styles. Use an https:// style.json URL.",
+      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox)."
     },
     "kind": {
       "label_google": "Google",

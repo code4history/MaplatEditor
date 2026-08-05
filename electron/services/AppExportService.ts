@@ -31,6 +31,7 @@ import {
   normalizeAppSource,
   type AppSource,
 } from '../../src/utils/appSourceModel';
+import { detectRequiredProviderGl, renderProviderGlCdnTags } from './providerGlCdn';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
@@ -419,7 +420,7 @@ class AppExportService {
       // 7) index.html
       await fs.outputFile(
         path.join(outDir, 'index.html'),
-        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources)),
+        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources), sources),
       );
       progressState.step++;
       reporter.update(progressState.step);
@@ -735,7 +736,7 @@ class AppExportService {
     }
   }
 
-  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean): string {
+  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean, sources: readonly unknown[] = []): string {
     const lang = document.lang || 'ja';
     const localized = resolveAppLocalizedMetadata({ ...document, appID });
     const title = escapeHtml(localized.appName);
@@ -821,7 +822,7 @@ ${headLines.join('\n')}
     <div id="map_div"></div>
   </div>
 
-  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(detectRequiredProviderGl(sources as any))}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
   <script>
     var option = ${JSON.stringify(viewerOption, null, 2).replace(/\n/g, '\n    ')};

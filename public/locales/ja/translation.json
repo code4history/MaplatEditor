@@ -100,7 +100,9 @@
       "license_note_label": "地図画像ライセンス補足",
       "data_attr_label": "データ帰属",
       "data_license_label": "データライセンス",
-      "data_license_note_label": "データライセンス補足"
+      "data_license_note_label": "データライセンス補足",
+      "style_label": "スタイル URL",
+      "style_maplibre_hint": "MapLibre は https:// の style.json のみ受け付けます（mapbox:// 不可）。描画確認はプレビューを使ってください。"
     },
     "errors": {
       "id_required": "スラッグ (ID) を入力してください。",
@@ -120,7 +122,10 @@
       "kind_required": "種別を選択してください。",
       "provider_incomplete": "この種別は必須項目が未設定のため保存できません。",
       "attr_required": "地図画像帰属を入力してください。",
-      "maptype_required": "Google マップのプリセットを選択してください。"
+      "maptype_required": "Google マップのプリセットを選択してください。",
+      "style_required": "スタイル URL は必須です。",
+      "style_mapbox_scheme_forbidden": "MapLibre では mapbox:// スタイルは使えません。https:// の style.json URL を指定してください。",
+      "style_url_invalid": "有効なスタイル URL を入力してください（https://。Mapbox は mapbox:// も可）。"
     },
     "kind": {
       "label_google": "Google",
