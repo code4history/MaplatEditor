@@ -47,6 +47,7 @@ export interface BaseMapValidation {
     | "slug-required"
     | "slug-invalid"
     | "title-required"
+    | "attr-required"
     | "url-required"
     | "url-invalid"
     | "min-zoom-invalid"
@@ -158,6 +159,8 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   if (!document.slug.trim()) errors.push("slug-required");
   else if (!/^[A-Za-z0-9_-]+$/.test(document.slug.trim())) errors.push("slug-invalid");
   if (!document.title[document.defaultLang]?.trim()) errors.push("title-required");
+  // m6-t2 (レビュー M2): 地図画像帰属 (attr) を必須化。地図側と同様、既定言語の値が空なら error
+  if (!document.attr[document.defaultLang]?.trim()) errors.push("attr-required");
   if (!document.url.trim()) errors.push("url-required");
   else if (!(document.url.includes("{z}") && document.url.includes("{x}") && (document.url.includes("{y}") || document.url.includes("{-y}")))) {
     errors.push("url-invalid");

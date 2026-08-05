@@ -90,17 +90,17 @@
       "title_placeholder": "例: マイベースマップ",
       "url_label": "タイルURLテンプレート ({z}/{x}/{y} 形式、TMSの場合は {-y})",
       "url_placeholder": "https://example.com/tiles/{z}/{x}/{y}.png",
-      "attr_label": "帰属表示 (任意)",
+      "attr_label": "地図画像帰属",
       "attr_placeholder": "例: © Example Provider",
       "min_zoom_label": "最小ズームレベル (任意)",
       "max_zoom_label": "最大ズームレベル (任意)",
       "cancel": "キャンセル",
       "save": "保存",
-      "license_label": "画像/スタイルのライセンス",
-      "license_note_label": "ライセンス補足",
-      "data_attr_label": "データの帰属表記",
-      "data_license_label": "データのライセンス",
-      "data_license_note_label": "データのライセンス補足"
+      "license_label": "地図画像ライセンス",
+      "license_note_label": "地図画像ライセンス補足",
+      "data_attr_label": "データ帰属",
+      "data_license_label": "データライセンス",
+      "data_license_note_label": "データライセンス補足"
     },
     "errors": {
       "id_required": "スラッグ (ID) を入力してください。",
@@ -116,7 +116,8 @@
       "delete_failed": "削除に失敗しました。",
       "load_failed": "ベースマップ一覧の取得に失敗しました。",
       "always_failed": "常時表示設定の保存に失敗しました。",
-      "icon_generate_failed": "アイコンの生成に失敗しました。タイルURLと存在範囲を確認してください。"
+      "icon_generate_failed": "アイコンの生成に失敗しました。タイルURLと存在範囲を確認してください。",
+      "attr_required": "地図画像帰属を入力してください。"
     }
   },
   "settings": {
@@ -254,14 +255,14 @@
     "cc_by_nc_nd": "クリエイティブ・コモンズ 表示-非営利-改変禁止",
     "cc0": "クリエイティブ・コモンズ・ゼロ",
     "cc_pd": "パブリックドメイン",
-    "map_gcp_license": "マッピングデータライセンス",
-    "map_gcp_license_desc": "マッピングデータのライセンスを選択してください。",
-    "map_copyright": "地図画像コピーライト",
-    "map_copyright_pf": "地図画像のコピーライト表記を入力してください",
-    "map_copyright_desc": "地図画像のコピーライト表記を入力してください。",
-    "map_gcp_copyright": "マッピングデータコピーライト",
-    "map_gcp_copyright_pf": "マッピングのコピーライト表記を入力してください",
-    "map_gcp_copyright_desc": "マッピングのコピーライト表記を入力してください。",
+    "map_gcp_license": "データライセンス",
+    "map_gcp_license_desc": "データのライセンスを選択してください。",
+    "map_copyright": "地図画像帰属",
+    "map_copyright_pf": "地図画像の帰属表記を入力してください",
+    "map_copyright_desc": "地図画像の帰属表記を入力してください。",
+    "map_gcp_copyright": "データ帰属",
+    "map_gcp_copyright_pf": "データの帰属表記を入力してください",
+    "map_gcp_copyright_desc": "データの帰属表記を入力してください。",
     "map_source": "典拠",
     "map_source_pf": "典拠を入力してください",
     "map_source_desc": "地図の典拠を入力してください。",
@@ -380,10 +381,10 @@
     "cc_odbl": "ODbL (Open Database License)",
     "cc_custom": "カスタムライセンス",
     "license_unset": "未設定",
-    "map_image_license_note": "ライセンス補足",
-    "map_image_license_note_desc": "ライセンスの補足説明（承認番号・出典URLなど）を入力します。",
+    "map_image_license_note": "地図画像ライセンス補足",
+    "map_image_license_note_desc": "地図画像のライセンスの補足説明を入力します。",
     "map_gcp_license_note": "データライセンス補足",
-    "map_gcp_license_note_desc": "マッピングデータのライセンスの補足説明を入力します。"
+    "map_gcp_license_note_desc": "データのライセンスの補足説明を入力します。"
   },
   "mapupload": {
     "map_image": "地図画像",

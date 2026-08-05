@@ -69,6 +69,7 @@ try {
     toBaseMapSavePayload,
     composeViewerSource,
     createAppSourceFromBaseMap,
+    validateBaseMapDocument,
   } = await import(pathToFileURL(bundledFile).href);
   // 単独実行を可能にするため bundledFile の import を相対解決させる
   // (rollup ssr は相対 import を同ディレクトリへまとめる。既存 smoke と同じ手順)。
@@ -82,6 +83,20 @@ try {
   assert.deepEqual(fresh.licenseNote, {}, "AC2: licenseNote は空オブジェクトのはず");
   assert.deepEqual(fresh.dataLicenseNote, {}, "AC2: dataLicenseNote は空オブジェクトのはず");
   assert.deepEqual(fresh.dataAttr, {}, "AC2: dataAttr は空オブジェクトのはず");
+
+  // --- M2 (レビュー差し戻し): attr (地図画像帰属) を必須化 ---
+  const attrMissing = { ...fresh, slug: "custom", title: { fr: "Titre" }, url: "https://x/{z}/{x}/{y}.png" };
+  const attrMissingValidation = validateBaseMapDocument(attrMissing);
+  assert.ok(
+    !attrMissingValidation.valid && attrMissingValidation.errors.includes("attr-required"),
+    "M2: attr 未設定のベースマップは invalid で attr-required を含むはず。実際: " + JSON.stringify(attrMissingValidation.errors),
+  );
+  const attrPresent = { ...attrMissing, attr: { fr: "© Exemple" } };
+  assert.ok(
+    validateBaseMapDocument(attrPresent).valid,
+    "M2: attr を既定言語で設定すれば valid のはず",
+  );
+  console.log("ok: M2 attr (地図画像帰属) is required in validateBaseMapDocument");
   console.log("ok: AC2 newBaseMapDocument defaults (license/dataLicense = empty string)");
 
   // --- AC1: fromBaseMapCatalogItem → toBaseMapSavePayload の往復で5フィールドが保たれる ---

@@ -102,8 +102,11 @@
             @select-language="activeLang = $event"
           />
         </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.attr_label") }}</label>
+        <!-- m6-t2 (レビュー M2): 帰属・ライセンスを 3行 に再構成。
+             1行目: 地図画像帰属 / データ帰属 / 2行目: 地図画像ライセンス / 補足 / 3行目: データライセンス / 補足。
+             attr は必須 (地図側と同様) -->
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.attr_label") }} <span class="text-danger">*</span></label>
           <LangResourceInput
             input-testid="basemap-attr"
             :model-value="document.attr"
@@ -111,13 +114,25 @@
             :default-lang="document.defaultLang"
             :language-options="SUPPORTED_LANGUAGES"
             :disabled="readOnly || saving || sessionTransitionPending"
+            :invalid="attrDiagnostics.length > 0"
             @update:model-value="updateResource('attr', $event)"
             @select-language="activeLang = $event"
           />
+          <DiagnosticFeedback v-if="attrDiagnostics.length" scope="field" :items="attrDiagnostics" />
         </div>
-
-        <!-- m6-t2: ベースマップの 2×2 と自由記述2欄。license/dataLicense は構造項目 (select) で、
-             言語別フィールド (dataAttr/licenseNote/dataLicenseNote) は LangResourceInput -->
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.data_attr_label") }}</label>
+          <LangResourceInput
+            input-testid="basemap-data-attr"
+            :model-value="document.dataAttr"
+            :active-lang="activeLang"
+            :default-lang="document.defaultLang"
+            :language-options="SUPPORTED_LANGUAGES"
+            :disabled="readOnly || saving || sessionTransitionPending"
+            @update:model-value="updateResource('dataAttr', $event)"
+            @select-language="activeLang = $event"
+          />
+        </div>
         <div class="col-12 col-xl-6">
           <label class="form-label fw-semibold">{{ t("basemap.modal.license_label") }}</label>
           <LicenseSelect
@@ -139,19 +154,6 @@
             :language-options="SUPPORTED_LANGUAGES"
             :disabled="readOnly || saving || sessionTransitionPending"
             @update:model-value="updateResource('licenseNote', $event)"
-            @select-language="activeLang = $event"
-          />
-        </div>
-        <div class="col-12 col-xl-6">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.data_attr_label") }}</label>
-          <LangResourceInput
-            input-testid="basemap-data-attr"
-            :model-value="document.dataAttr"
-            :active-lang="activeLang"
-            :default-lang="document.defaultLang"
-            :language-options="SUPPORTED_LANGUAGES"
-            :disabled="readOnly || saving || sessionTransitionPending"
-            @update:model-value="updateResource('dataAttr', $event)"
             @select-language="activeLang = $event"
           />
         </div>
@@ -362,6 +364,7 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   "slug-required": "basemap.errors.id_required",
   "slug-invalid": "basemap.errors.id_invalid",
   "title-required": "basemap.errors.title_required",
+  "attr-required": "basemap.errors.attr_required",
   "url-required": "basemap.errors.url_required",
   "url-invalid": "basemap.errors.url_invalid",
   "min-zoom-invalid": "basemap.errors.min_zoom_invalid",
@@ -373,6 +376,7 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
 const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
   validationFieldDiagnostics(validation.value.errors, VALIDATION_MESSAGE_KEYS, t, codes);
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
+const attrDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["attr-required"]));
 const urlDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["url-required", "url-invalid"]));
 const minZoomDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["min-zoom-invalid"]));
 // zoom-range(min/max の大小逆転)は max 側 field に表示する(サマリバナー廃止に伴う field 化)
