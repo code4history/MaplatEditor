@@ -93,6 +93,7 @@
     "smoke:m6-t1-basemap-kind-axis": "node scripts/m6-t1-basemap-kind-axis-smoke.mjs",
     "smoke:m6-t4-google-preset": "node scripts/m6-t4-google-preset-smoke.mjs",
     "smoke:m6-t4b-google-preset-defaults": "node scripts/m6-t4b-google-preset-defaults-smoke.mjs",
+    "smoke:m6-t6-api-key-tiers": "node scripts/m6-t6-api-key-tiers-smoke.mjs",
     "smoke:m6-t2-icon-refs": "node scripts/m6-t2-icon-refs-smoke.mjs",
     "smoke:m6-t3-asset-list": "node scripts/m6-t3-asset-list-smoke.mjs",
     "smoke:m5-app-editor": "node scripts/m5-app-editor-smoke.mjs",

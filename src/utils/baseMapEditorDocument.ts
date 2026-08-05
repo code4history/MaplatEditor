@@ -137,6 +137,15 @@ export function isProviderKind(value: unknown): boolean {
   return (PROVIDER_BASE_MAP_KINDS as readonly unknown[]).includes(value);
 }
 
+// m6-t6: 「キー(API キー/アクセストークン)が要る」種別の原子述語（google/mapbox の2種）。
+// isProviderKind（3種・provider 判定）とも providerGlCdn.ts の sourceKind（GL CDN 要否・
+// mapbox/maplibre の2種）とも異なる第3の述語であり、意図的に別定義とする（maplibre は
+// スタイル自体にキーを含められるため GL は要るがエディタ管理のキーは要らない）
+export const PROVIDER_KEY_REQUIRED_KINDS = ["google", "mapbox"] as const;
+export function requiresProviderKey(value: unknown): boolean {
+  return (PROVIDER_KEY_REQUIRED_KINDS as readonly unknown[]).includes(value);
+}
+
 // m6-t5 v1.3: MapEdit 背景選択から除外する判定。kind（editor 軸）を優先し、
 // 欠落時は maptype（viewer 軸）を見る（旧保存形の保険）
 export function isProviderBaseMapData(
