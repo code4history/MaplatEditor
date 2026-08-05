@@ -376,6 +376,7 @@ import {
   fromBaseMapCatalogItem,
   newBaseMapDocument,
   normalizeKind,
+  requiresProviderKey,
   resolveBaseMapRuntimeText,
   toBaseMapSavePayload,
   validateBaseMapDocument,
@@ -470,13 +471,41 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
 // m6-t1: 種別軸（kind）選択の btn-group。UI 状態は document.kind のみから決まり、追加の
 // component state を持たない（既存下書き復帰が自動で定まる）。
 const KIND_OPTIONS: readonly BaseMapKind[] = ["tms", "google", "mapbox", "maplibre", "merc"];
+
+// m6-t6 (§3.4): エディタ用キー未設定時、google/mapbox の種別選択を disabled にするための
+// 読み込み。null = 「まだ取得できていない」（安全側 disabled）。取得完了で文字列（空文字含む）へ
+const editorGoogleApiKey = ref<string | null>(null);
+const editorMapboxToken = ref<string | null>(null);
+onMounted(async () => {
+  editorGoogleApiKey.value = (await window.settings.get("editorGoogleApiKey")) || "";
+  editorMapboxToken.value = (await window.settings.get("editorMapboxToken")) || "";
+});
+function editorKeyFor(k: BaseMapKind): string | null {
+  if (k === "google") return editorGoogleApiKey.value;
+  if (k === "mapbox") return editorMapboxToken.value;
+  return "";
+}
+// 未取得中(null)も含めて「非空文字列でなければキー無し」として扱う（安全側 disabled）
+function hasEditorKey(k: BaseMapKind): boolean {
+  return typeof editorKeyFor(k) === "string" && editorKeyFor(k) !== "";
+}
+
 const kindDisabled = (k: BaseMapKind): boolean => {
   if (structuralDisabled.value) return true;
-  if (document.value.kind === null) return k === "merc"; // 未選択時: merc のみ不可
+  if (document.value.kind === null) {
+    if (k === "merc") return true; // 未選択時: merc のみ不可
+    if (requiresProviderKey(k) && !hasEditorKey(k)) return true; // m6-t6: エディタ用キー未設定
+    return false;
+  }
   return true; // 選択後は5つとも不可（登録後に変更できない）
 };
-const kindDisabledReason = (k: BaseMapKind): string =>
-  k === "merc" && document.value.kind !== "merc" ? t("basemap.kind.merc_disabled_reason") : "";
+const kindDisabledReason = (k: BaseMapKind): string => {
+  if (k === "merc" && document.value.kind !== "merc") return t("basemap.kind.merc_disabled_reason");
+  if (document.value.kind === null && requiresProviderKey(k) && !hasEditorKey(k)) {
+    return t("basemap.kind.key_required_reason", { provider: t(`basemap.kind.label_${k}`) });
+  }
+  return "";
+};
 function selectKind(k: BaseMapKind): void {
   if (kindDisabled(k)) return;
   updateField("kind", k);
