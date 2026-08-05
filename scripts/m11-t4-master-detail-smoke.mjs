@@ -298,6 +298,34 @@ try {
   assert.equal(composeViewerSource(builtinSource, { lang: "ja" }), "osm");
   assert.deepEqual(normalizeAppSource(builtinSource, "ja").label, builtinMaster.label);
 
+  // m6-t3 AC16: composeViewerSource が license を運ぶのは sourceType=tms の 326件。
+  // VIEWER_BUILTIN (osm/gsi/gsi_ortho) は文字列 ID のみ返すのでここでは対象外。
+  const tmsBuiltinMaster = {
+    mapID: "gsi_gazo1",
+    lang: "en",
+    title: { ja: "地理院航空写真1974-78", en: "GSI Aerial Photographs 1974–1978" },
+    label: { ja: "空撮 1974-78", en: "Aero 1974-78" },
+    attr: { ja: "国土地理院", en: "The Geospatial Information Authority of Japan" },
+    license: "Custom",
+    dataLicense: "Custom",
+    licenseNote: {
+      ja: "公共データ利用規約 第1.0版（PDL1.0）／出典：国土地理院ウェブサイト",
+      en: "Public Data License 1.0 / Source: GSI website",
+    },
+    dataLicenseNote: {
+      ja: "公共データ利用規約 第1.0版（PDL1.0）",
+      en: "Public Data License 1.0",
+    },
+    url: "https://example.test/{z}/{x}/{y}.png",
+  };
+  const tmsBuiltinSource = createAppSourceFromBaseMap(tmsBuiltinMaster, "ja");
+  assert.equal(tmsBuiltinSource.sourceType, "tms");
+  const tmsRuntime = composeViewerSource(tmsBuiltinSource, { lang: "ja" });
+  assert.equal(typeof tmsRuntime, "object");
+  assert.equal(tmsRuntime.license, "Custom");
+  assert.equal(tmsRuntime.dataLicense, "Custom");
+  assert.equal(tmsRuntime.mapID, "gsi_gazo1");
+
   const routeComposable = await readFile(
     path.join(projectRoot, "src/composables/useMasterDetailRouteState.ts"),
     "utf8",

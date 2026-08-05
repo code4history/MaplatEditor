@@ -120,24 +120,68 @@ function konjakuLabel(row, mapID) {
   return { ja: `${region.ja} ${era}`, en: `${region.en} ${era}` };
 }
 
-const BASE_MAP_ATTRS = {
-  gsi_ort_USA10: "The Geospatial Information Authority of Japan",
-  gsi_ort_old10: "The Geospatial Information Authority of Japan",
-  gsi_gazo1: "The Geospatial Information Authority of Japan",
-  gsi_gazo2: "The Geospatial Information Authority of Japan",
-  gsi_gazo3: "The Geospatial Information Authority of Japan",
-  gsi_gazo4: "The Geospatial Information Authority of Japan",
-  affrc_rapid16: "農研機構農業環境研究部門",
-  affrc_tokyo5k: "農研機構農業環境研究部門",
+const GSI_PROVIDER = {
+  attr: { ja: "国土地理院", en: "The Geospatial Information Authority of Japan" },
+  license: "Custom",
+  dataLicense: "Custom",
+  licenseNote: { ja: "公共データ利用規約 第1.0版（PDL1.0）／出典：国土地理院ウェブサイト", en: "Public Data License 1.0 / Source: GSI website" },
+  dataLicenseNote: { ja: "公共データ利用規約 第1.0版（PDL1.0）", en: "Public Data License 1.0" },
+};
+
+const NARO_PROVIDER = {
+  attr: { ja: "農研機構農業環境研究部門", en: "NARO Institute for Agro-Environmental Sciences" },
+  license: "CC BY",
+  dataLicense: "CC BY",
+  licenseNote: { ja: "CC BY 2.1 日本", en: "CC BY 2.1 Japan" },
+  dataLicenseNote: { ja: "CC BY 2.1 日本", en: "CC BY 2.1 Japan" },
+};
+
+const PROVIDER_ATTRS = {
+  gsi_ort_USA10: GSI_PROVIDER,
+  gsi_ort_old10: GSI_PROVIDER,
+  gsi_gazo1: GSI_PROVIDER,
+  gsi_gazo2: GSI_PROVIDER,
+  gsi_gazo3: GSI_PROVIDER,
+  gsi_gazo4: GSI_PROVIDER,
+  affrc_rapid16: NARO_PROVIDER,
+  affrc_tokyo5k: NARO_PROVIDER,
+};
+
+const KONJAKU_PROVIDER = {
+  attr: { ja: "今昔マップ on the web（埼玉大学教育学部 谷 謙二）", en: "Konjaku Map on the Web" },
+  license: "Custom",
+  dataLicense: "Custom",
+  licenseNote: { ja: "国土地理院長の使用/複製承認 R4JHf18 ほか", en: "Permission from GSI Director-General (R4JHf18, etc.)" },
+  dataLicenseNote: { ja: "国土地理院長の使用/複製承認 R4JHf18 ほか", en: "Permission from GSI Director-General (R4JHf18, etc.)" },
+};
+
+const VIEWER_BUILTIN_LICENSES = {
+  osm: {
+    attr: { ja: "©\uFE0E OpenStreetMap contributors", en: "©\uFE0E OpenStreetMap contributors" },
+    license: "Custom",
+    dataLicense: "ODbL",
+    licenseNote: {
+      ja: "©\uFE0E OpenStreetMap contributors（OpenStreetMap Copyright: https://www.openstreetmap.org/copyright）",
+      en: "©\uFE0E OpenStreetMap contributors (OpenStreetMap Copyright: https://www.openstreetmap.org/copyright)",
+    },
+    // dataLicenseNote は未設定（ODbL アイコンが表意するため）
+  },
+  gsi: GSI_PROVIDER,
+  gsi_ortho: GSI_PROVIDER,
 };
 
 function bboxToEnvelope([west, south, east, north]) {
   return [[west, south], [east, south], [east, north], [west, north]];
 }
 
-function resourceAttr(value) {
-  if (!value) return undefined;
-  return value.includes("農研機構") ? { ja: value, en: "NARO Institute for Agro-Environmental Sciences" } : { en: value };
+function applyProviderFields(entry, provider) {
+  if (!provider) return;
+  if (provider.attr) entry.attr = provider.attr;
+  if (provider.license) entry.license = provider.license;
+  if (provider.dataLicense) entry.dataLicense = provider.dataLicense;
+  if (provider.licenseNote) entry.licenseNote = provider.licenseNote;
+  if (provider.dataLicenseNote) entry.dataLicenseNote = provider.dataLicenseNote;
+  // dataAttr は本タスクでは設定しない（空ならキーを出さない）
 }
 
 export function buildBuiltinBaseMaps(catalog, legacyList) {
@@ -162,8 +206,7 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
     if (row.tileUrl) entry.url = row.tileUrl;
     if (row.minZoom != null) entry.minZoom = row.minZoom;
     if (row.maxZoom != null) entry.maxZoom = row.maxZoom;
-    const attr = resourceAttr(BASE_MAP_ATTRS[mapID] || legacyByID.get(mapID)?.attr);
-    if (attr) entry.attr = attr;
+    applyProviderFields(entry, PROVIDER_ATTRS[mapID] || VIEWER_BUILTIN_LICENSES[mapID]);
     if (row.bboxWest != null) entry.coverageLngLats = bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]);
     if (row.icon52NoYear) entry.thumbnail = `basemap_icons/${mapID}.png`;
     if (row.icon512NoYear) entry.thumbnail512 = `basemap_icons_512/${mapID}.png`;
@@ -183,7 +226,11 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
     const label = konjakuLabel(row, mapID);
     output.push({
       mapID, lang: "en", title, label,
-      attr: resourceAttr(legacy?.attr || "Konjaku Map on the Web"),
+      attr: KONJAKU_PROVIDER.attr,
+      license: KONJAKU_PROVIDER.license,
+      dataLicense: KONJAKU_PROVIDER.dataLicense,
+      licenseNote: KONJAKU_PROVIDER.licenseNote,
+      dataLicenseNote: KONJAKU_PROVIDER.dataLicenseNote,
       url: row.tileUrl, minZoom: row.minZoom, maxZoom: row.maxZoom,
       coverageLngLats: bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]),
       thumbnail: `basemap_icons/${mapID}.png`,
