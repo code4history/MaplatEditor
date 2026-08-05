@@ -23,6 +23,8 @@ import { acceptDocumentPois, writeDocumentPois } from "../utils/appPoisFormat";
 import { usePoisFormatGuard } from "../composables/usePoisFormatGuard";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
+import ExportKeyPromptModal from "../components/editor-ui/ExportKeyPromptModal.vue";
+import { requiresProviderKey } from "../utils/baseMapEditorDocument";
 import ResourceSelector from "../components/ResourceSelector.vue";
 import ResourceSelectorList from "../components/ResourceSelectorList.vue";
 import ResourceMasterRow from "../components/resource-list/ResourceMasterRow.vue";
@@ -932,11 +934,54 @@ async function chooseAppExport(hasSaved: boolean) {
   return "cancel" as const;
 }
 
+// m6-t6 (§3.2): 書き出し前チェック。アプリの sources から鍵が要る provider（google/mapbox）を
+// 集め、各 kind についてアプリ単位キー・設定ページ既定公開用キーの両方が空かを判定する
+// （renderer は既にどちらの値も参照可能 — 新規 IPC 不要）。
+// 戻り値: undefined = プロンプト不要 / null = ユーザーがキャンセル / object = 入力値（空欄可）
+const exportKeyPromptVisible = ref(false);
+const exportKeyPromptMissingKinds = ref<Array<"google" | "mapbox">>([]);
+let exportKeyPromptResolve: ((value: { googleApiKey?: string; mapboxToken?: string } | null) => void) | null = null;
+
+function onExportKeyPromptSubmit(value: { googleApiKey?: string; mapboxToken?: string } | null) {
+  exportKeyPromptVisible.value = false;
+  exportKeyPromptResolve?.(value);
+  exportKeyPromptResolve = null;
+}
+
+async function resolveExportOverrideKeys(
+  document: any,
+): Promise<{ googleApiKey?: string; mapboxToken?: string } | null | undefined> {
+  const kinds = new Set<"google" | "mapbox">();
+  for (const source of document.sources || []) {
+    const kind = source?.data?.kind;
+    if (requiresProviderKey(kind)) kinds.add(kind as "google" | "mapbox");
+  }
+  const missing: Array<"google" | "mapbox"> = [];
+  for (const kind of kinds) {
+    const appKey =
+      kind === "google" ? document.httpSettings?.googleApiKey : document.httpSettings?.mapboxToken;
+    if (appKey) continue;
+    const defaultKey = await window.settings.get(
+      kind === "google" ? "defaultPublishGoogleApiKey" : "defaultPublishMapboxToken",
+    );
+    if (defaultKey) continue;
+    missing.push(kind);
+  }
+  if (missing.length === 0) return undefined;
+  exportKeyPromptMissingKinds.value = missing;
+  exportKeyPromptVisible.value = true;
+  return await new Promise((resolve) => {
+    exportKeyPromptResolve = resolve;
+  });
+}
+
 async function exportSavedApp(): Promise<boolean> {
   if (!appUid.value) return false;
   try {
     const document = cloneDocument(await window.appedit.request(appUid.value));
-    const result = await window.appedit.export(document);
+    const overrideKeys = await resolveExportOverrideKeys(document);
+    if (overrideKeys === null) return false; // ユーザーがオンザフライ入力をキャンセル
+    const result = await window.appedit.export(document, overrideKeys ?? undefined);
     if (result.result === "Canceled") return false;
     if (result.result === "Error") {
       await (window as any).dialog.showMessageBox({
@@ -1618,6 +1663,12 @@ function onPoisChange(next: unknown[]) {
       help-key="appedit.app_coverage_modal_help"
       @update:model-value="applyAppCoverage"
       @close="appCoverageModalVisible = false"
+    />
+
+    <ExportKeyPromptModal
+      :visible="exportKeyPromptVisible"
+      :missing-kinds="exportKeyPromptMissingKinds"
+      @submit="onExportKeyPromptSubmit"
     />
   </div>
 </template>
