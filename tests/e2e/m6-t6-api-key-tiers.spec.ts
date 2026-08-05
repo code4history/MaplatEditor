@@ -2,9 +2,12 @@
 // AC1: Settings の「ベースマップ」タブでキー保存・再読込
 // AC2: エディタ用キーと既定公開用キーが同一値のとき警告
 // AC3: BaseMapEdit の google/mapbox 種別選択ゲート（キー無しで disabled、設定後に有効化）
-// AC5: プレビュー: 鍵が解決できない provider ソースは除外され warnings に積まれる
+// AC5(a): プレビュー: 鍵が解決できない provider ソースは sources から除外され warnings に積まれる。
+//         startFrom(2段目)は生存ソースへ解決され、overlay は生存ソースがあれば true のまま
+// AC5(b): 唯一の背景ソースが除外されたとき、startFrom は出力されず overlay は false になる
 // AC8: 書き出し: 両方空のとき overrideKeys 未指定ならソース除外・警告、指定すれば反映される
-// AC14: 旧形 slug の startFrom 救済（resolveStartFromViewerMapID の3段目）
+// AC14: 旧形 slug の startFrom 救済（resolveStartFromViewerMapID の3段目・実 maplat ソースで検証。
+//       L-1 是正: 従来テストは builtin(osm) で2段目しか通っていなかった）
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -28,6 +31,37 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 async function openHash(page: Page, hash: string): Promise<void> {
   await page.evaluate((nextHash) => { location.hash = nextHash; }, hash);
   await page.waitForLoadState('domcontentloaded');
+}
+
+// L-1 是正: AC5/AC14 を AC8 と同水準（実際に配信された JSON/HTML を検証）へ引き上げるためのヘルパー。
+// prepare() が返す url (http://localhost:<port>/preview/<token>/) からトークンを取り出し、
+// AppPreviewService.ts:410 の /apps/{token}.json ルートで composed app JSON を取得する
+function tokenFromPreviewUrl(previewUrl: string): string {
+  const segments = new URL(previewUrl).pathname.split('/').filter(Boolean);
+  return segments[1];
+}
+
+async function fetchPreviewJson(page: Page, previewUrl: string, relativePath: string): Promise<any> {
+  const url = previewUrl.replace(/\/$/, '') + '/' + relativePath;
+  return page.evaluate(async (u) => {
+    const resp = await fetch(u);
+    if (!resp.ok) throw new Error(`fetch ${u} failed: ${resp.status}`);
+    return await resp.json();
+  }, url);
+}
+
+// AppPreviewService.ts:442 が埋め込む `const option = {...};` を取り出す。
+// JSON.stringify の出力は1行にまとまるため、行単位で前後を切り落とせば安全
+// (option 値の中身に "};" 等の文字列が混じっても壊れない)
+async function fetchPreviewOption(page: Page, previewUrl: string): Promise<any> {
+  const html = await page.evaluate(async (u) => {
+    const resp = await fetch(u);
+    if (!resp.ok) throw new Error(`fetch ${u} failed: ${resp.status}`);
+    return await resp.text();
+  }, previewUrl);
+  const line = html.split('\n').find((l) => l.trim().startsWith('const option = '));
+  if (!line) throw new Error('preview HTML に option スクリプトが見つからない');
+  return JSON.parse(line.trim().replace(/^const option = /, '').replace(/;$/, ''));
 }
 
 test('AC1/AC2: Settings ベースマップタブでキーの保存・再読込・同一値警告', async () => {
@@ -115,55 +149,174 @@ test('AC3: エディタ用キー未設定時、google/mapbox 種別ボタンが 
   }
 });
 
-test('AC5/AC14: プレビューは鍵未解決の provider ソースを除外し、旧形 slug の startFrom は救済される', async () => {
+test('AC5(a): プレビューは鍵未解決の provider ソースを sources から除外し、startFrom(2段目)は生存ソースへ解決される', async () => {
   test.setTimeout(120_000);
-  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t6-preview-'));
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t6-preview-exclude-'));
   const { app, page } = await launch(e2eRoot);
   try {
-    const result = await page.evaluate(async () => {
-      const appID = `t6-preview-${Date.now()}`;
-      const document = {
-        appID,
-        lang: 'ja',
-        title: { ja: 't6 preview app' },
-        appName: { ja: 't6 preview app' },
-        description: {},
-        keywords: '',
-        siteUrl: '',
-        sources: [
-          {
-            // 鍵が3段とも未解決（editor/publish/override いずれも無し）の google ソース。
-            // mapUid はこのソース自身の viewerMapID（旧形 slug 相当）にもなる
-            mapUid: 'legacy-google-slug',
-            role: 'base',
-            startFrom: true,
-            data: { kind: 'google', maptype: 'google_roadmap' },
-          },
-          {
-            mapUid: 'osm',
-            role: 'base',
-            data: {},
-          },
-        ],
-        // AC14: 旧形 startFrom（mapUid と同じ slug 文字列。2段目の mapUid/mapSlug 一致でも解決するが、
-        // ここでは3段目の viewerMapID 一致経路を単体でも確認できるよう builtin 側で検証する
-        startFrom: 'osm',
-        pois: [],
-        httpSettings: {},
-        appSettings: {},
-        manifestSettings: {},
-      };
+    const appID = `t6-preview-exclude-${Date.now()}`;
+    const document = {
+      appID,
+      lang: 'ja',
+      title: { ja: 't6 preview app' },
+      appName: { ja: 't6 preview app' },
+      description: {},
+      keywords: '',
+      siteUrl: '',
+      sources: [
+        // 鍵が3段とも未解決（editor/publish/override いずれも無し）の google ソース
+        { mapUid: 'legacy-google-slug', role: 'base', data: { kind: 'google', maptype: 'google_roadmap' } },
+        { mapUid: 'osm', role: 'base', data: {} },
+      ],
+      // 2段目（mapUid/mapSlug 一致）で解決される旧形 startFrom
+      startFrom: 'osm',
+      pois: [],
+      // overlay=true でも生存ソース(osm)がある限り true のまま維持されることを併せて確認する
+      httpSettings: { overlay: true },
+      appSettings: {},
+      manifestSettings: {},
+    };
+    const { preview } = await page.evaluate(async (doc) => {
       const uid = crypto.randomUUID();
-      const saveResult = await window.appedit.save({ uid, slug: appID, create: true, document });
+      const saveResult = await window.appedit.save({ uid, slug: doc.appID, create: true, document: doc });
       if (!saveResult || saveResult.result !== 'Success') throw new Error(`save failed: ${JSON.stringify(saveResult)}`);
       const loaded = await window.appedit.request(uid);
       const preview = await window.appedit.preparePreview(loaded.document ?? loaded);
-      await window.appedit.stopPreview();
       return { preview };
-    });
+    }, document);
 
-    // AC5: google ソースの鍵が未解決のため警告が積まれる
-    expect(result.preview.warnings).toContain('appedit.warn_provider_google_key_missing');
+    expect(preview.warnings).toContain('appedit.warn_provider_google_key_missing');
+
+    const token = tokenFromPreviewUrl(preview.url);
+    const appJson = await fetchPreviewJson(page, preview.url, `apps/${token}.json`);
+    // 除外: google ソースが sources に現れない
+    expect(JSON.stringify(appJson.sources)).not.toContain('google');
+    // 非除外: osm ソースは維持される
+    expect(JSON.stringify(appJson.sources)).toContain('osm');
+    // startFrom: 除外ソースを指していないため、生存ソース(osm)の viewerMapID(=mapUid)へ解決される
+    expect(appJson.startFrom).toBe('osm');
+
+    const option = await fetchPreviewOption(page, preview.url);
+    expect(option.overlay).toBe(true);
+
+    await page.evaluate(() => window.appedit.stopPreview());
+  } finally {
+    await quitElectronApplication(app);
+  }
+});
+
+test('AC5(b): 唯一の背景ソースが鍵未解決で除外されたとき、overlay は false になり startFrom も出力されない（クラッシュしない）', async () => {
+  test.setTimeout(120_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t6-preview-empty-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    const appID = `t6-preview-empty-${Date.now()}`;
+    const document = {
+      appID,
+      lang: 'ja',
+      title: { ja: 't6 preview app (sole source excluded)' },
+      appName: { ja: 't6 preview app' },
+      description: {},
+      keywords: '',
+      siteUrl: '',
+      // 唯一の背景ソースが鍵未解決の google。他にフォールバック可能なソースが無い
+      sources: [
+        { mapUid: 'legacy-google-solo', role: 'base', startFrom: true, data: { kind: 'google', maptype: 'google_roadmap' } },
+      ],
+      pois: [],
+      httpSettings: { overlay: true },
+      appSettings: {},
+      manifestSettings: {},
+    };
+    const { preview } = await page.evaluate(async (doc) => {
+      const uid = crypto.randomUUID();
+      const saveResult = await window.appedit.save({ uid, slug: doc.appID, create: true, document: doc });
+      if (!saveResult || saveResult.result !== 'Success') throw new Error(`save failed: ${JSON.stringify(saveResult)}`);
+      const loaded = await window.appedit.request(uid);
+      const preview = await window.appedit.preparePreview(loaded.document ?? loaded);
+      return { preview };
+    }, document);
+
+    expect(preview.warnings).toContain('appedit.warn_provider_google_key_missing');
+
+    const token = tokenFromPreviewUrl(preview.url);
+    const appJson = await fetchPreviewJson(page, preview.url, `apps/${token}.json`);
+    expect(appJson.sources).toEqual([]);
+    // 除外ソースを指していた startFrom は出力されない(undefined)
+    expect(appJson.startFrom).toBeUndefined();
+
+    // httpSettings.overlay=true でも、生存する背景ソースが無いため overlay は false に落ちる
+    // (AppPreviewService.ts:468 hasViewerBasemapSource(previewableSources) が false を返す)
+    const option = await fetchPreviewOption(page, preview.url);
+    expect(option.overlay).toBe(false);
+
+    await page.evaluate(() => window.appedit.stopPreview());
+  } finally {
+    await quitElectronApplication(app);
+  }
+});
+
+test('AC14: 旧形 slug の startFrom 救済（mapUid=uuid・viewerMapID=slug 一致による3段目照合）', async () => {
+  test.setTimeout(180_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t6-tier3-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    // 実地図を1件作る。mapUid(uuid) と viewerMapID(slug=mapID) が異なることを利用し、
+    // 3段目 (viewerMapID === document.startFrom) だけが一致する状況を作る
+    const mapSlug = `t6-tier3-map-${Date.now()}`;
+    const { uid: mapUid } = await page.evaluate(async (slug) => {
+      const mapR = await window.mapedit.save({
+        slug,
+        mapObject: {
+          mapID: slug, title: { ja: 't6 tier3 map' },
+          officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
+          attr: { ja: 'attr' }, dataAttr: {}, description: {},
+          license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
+          imageExtension: 'jpg', width: 400, height: 300,
+          gcps: [[[0, 0], [15550000, 4160000]], [[400, 0], [15560000, 4160000]], [[400, 300], [15560000, 4150000]]],
+          edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
+        },
+        tins: [],
+      });
+      if (!mapR || mapR.result !== 'Success') throw new Error(`seed map failed: ${JSON.stringify(mapR)}`);
+      return { uid: mapR.uid as string };
+    }, mapSlug);
+
+    const appID = `t6-tier3-app-${Date.now()}`;
+    const document = {
+      appID,
+      lang: 'ja',
+      title: { ja: 't6 tier3 app' },
+      appName: { ja: 't6 tier3 app' },
+      description: {},
+      keywords: '',
+      siteUrl: '',
+      // mapSlug を持たせず、ソース自身の startFrom フラグも立てない
+      // → 1段目(フラグ)・2段目(mapUid/mapSlug一致)はいずれも不一致になる
+      sources: [{ sourceType: 'maplat', mapUid }],
+      // document.startFrom を viewerMapID(=地図の slug) に一致させ、3段目でのみ解決させる
+      startFrom: mapSlug,
+      pois: [],
+      httpSettings: {},
+      appSettings: {},
+      manifestSettings: {},
+    };
+    const { preview } = await page.evaluate(async (doc) => {
+      const uid = crypto.randomUUID();
+      const saveResult = await window.appedit.save({ uid, slug: doc.appID, create: true, document: doc });
+      if (!saveResult || saveResult.result !== 'Success') throw new Error(`save failed: ${JSON.stringify(saveResult)}`);
+      const loaded = await window.appedit.request(uid);
+      const preview = await window.appedit.preparePreview(loaded.document ?? loaded);
+      return { preview };
+    }, document);
+
+    const token = tokenFromPreviewUrl(preview.url);
+    const appJson = await fetchPreviewJson(page, preview.url, `apps/${token}.json`);
+    // 3段目が実際に発火していることの確認: mapUid(uuid) ではなく viewerMapID(slug) が出力される
+    expect(appJson.startFrom).toBe(mapSlug);
+    expect(appJson.startFrom).not.toBe(mapUid);
+
+    await page.evaluate(() => window.appedit.stopPreview());
   } finally {
     await quitElectronApplication(app);
   }

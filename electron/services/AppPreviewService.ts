@@ -139,7 +139,11 @@ class AppPreviewService {
     this.sessions.clear();
     this.sessions.set(token, previewSession);
     return {
-      url: `http://127.0.0.1:${this.port}/preview/${token}/`,
+      // m6-t6 hotfix H-B: Google/Mapbox の HTTP リファラー制限は一般に localhost を許可し
+      // 127.0.0.1 を許可しない運用が実情のため、返却 URL を localhost へ揃える（人間検証 H-4）。
+      // listen() の bind アドレス(127.0.0.1)とは独立で、127.0.0.1 到達性はそのまま維持する
+      // (isAllowedHost/isAllowedOrigin は既に localhost/127.0.0.1 双方を許可済み)
+      url: `http://localhost:${this.port}/preview/${token}/`,
       port: this.port!,
       warnings: previewSession.warnings,
     };
@@ -154,7 +158,9 @@ class AppPreviewService {
     if (!this.port) return;
     try {
       await session.defaultSession.clearStorageData({
-        origin: `http://127.0.0.1:${this.port}`,
+        // m6-t6 hotfix H-B: 返却 URL(localhost) と揃えないと別オリジン扱いになり、
+        // Weiwudi タイルキャッシュ等が消えずプレビュー間で残留する
+        origin: `http://localhost:${this.port}`,
         storages: ['indexdb', 'serviceworkers', 'cachestorage'],
       });
     } catch (e) {
@@ -646,7 +652,8 @@ ${renderProviderGlCdnTags(detectRequiredProviderGl(session.viewerSources || []))
     const pathname = encodeURI(toUrlPathname(fileURLToPath(value)))
       .replace(/%7B/g, '{')
       .replace(/%7D/g, '}');
-    return `http://127.0.0.1:${this.port}/local-file/${token}${pathname}`;
+    // m6-t6 hotfix H-B: プレビューページ本体(localhost)と同一オリジンへ揃える
+    return `http://localhost:${this.port}/local-file/${token}${pathname}`;
   }
 }
 
