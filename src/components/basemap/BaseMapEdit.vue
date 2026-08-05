@@ -61,8 +61,8 @@
         <div v-if="document.kind === null" class="text-muted small mt-2" data-testid="basemap-kind-prompt">
           {{ t("basemap.kind.select_prompt") }}
         </div>
-        <!-- merc 無効理由（disabledReason 文法: text-danger 常時表示） -->
-        <div v-if="document.kind !== null && kindDisabledReason('merc')" class="text-danger small mt-2">
+        <!-- merc 無効理由（disabledReason 文法: text-danger 常時表示）。merc は選択不可のため常時表示 -->
+        <div v-if="kindDisabledReason('merc')" class="text-danger small mt-2" data-testid="basemap-kind-merc-reason">
           {{ kindDisabledReason('merc') }}
         </div>
         <!-- provider-incomplete 診断（種別ボタン群直下の section 診断） -->

@@ -42,13 +42,13 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
   try {
-    // AC8 前半: 種別選択が「最初の編集」になる。新規作成直後は kind 未選択状態。
+    // 種別選択が「最初の編集」（AC8）。新規作成直後は kind 未選択状態。
     await page.evaluate(() => { location.hash = '/basemaps?page=3'; });
     await page.getByTestId('basemap-new').click();
     await expect(page).toHaveURL(/uid=.*new=1/);
     await expect(page.getByTestId('basemap-editor')).toBeVisible();
 
-    // AC3: kind 未選択 → フォーム本体は非表示・prompt 表示・merc disabled・tms 活性
+    // AC3: kind 未選択 → フォーム本体は非表示・prompt 表示・merc disabled・他4つは活性
     await expect(page.getByTestId('basemap-kind-prompt')).toBeVisible();
     await expect(page.getByTestId('basemap-title')).toHaveCount(0);
     await expect(page.getByTestId('basemap-kind-merc')).toBeDisabled();
@@ -57,13 +57,13 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
       await expect(page.getByTestId(`basemap-kind-${k}`)).toBeEnabled();
     }
 
-    // AC8: kind 未選択のまま離脱 → フォーム編集なしのため下書きは生まれない（再訪しても prompt のまま）
+    // AC8a: kind 未選択のまま離脱 → フォーム編集なしのため下書きは生まれない（再訪しても prompt の新規）
     await page.evaluate(() => { location.hash = '/basemaps'; });
-    await page.evaluate(() => { location.hash = '/basemaps?page=3'; });
-    await expect(page.getByTestId('basemap-new')).toBeVisible();
-
-    // AC3: tms を選択 → フォーム表示・prompt 消滅・5つとも disabled・tms 強調
     await page.getByTestId('basemap-new').click();
+    await expect(page.getByTestId('basemap-kind-prompt')).toBeVisible();
+    await expect(page.getByTestId('basemap-title')).toHaveCount(0);
+
+    // AC3: tms 選択 → フォーム表示・prompt 消滅・5つとも disabled・tms primary
     await page.getByTestId('basemap-kind-tms').click();
     await expect(page.getByTestId('basemap-kind-prompt')).toHaveCount(0);
     await expect(page.getByTestId('basemap-title')).toBeVisible();
@@ -71,9 +71,16 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
       await expect(page.getByTestId(`basemap-kind-${k}`)).toBeDisabled();
     }
     await expect(page.getByTestId('basemap-kind-tms')).toHaveClass(/btn-primary/);
-    await expect(page.getByTestId('basemap-kind-google')).toHaveClass(/btn-outline-secondary/);
 
-    // 保存: tms は url 必須。slug/title/url を埋めて保存
+    // AC8b: tms 選択で下書きが確定 → reload（beforeUnload で draft flush）→ 下書き復帰で tms ロック状態
+    await page.reload();
+    await expect(page.getByTestId('basemap-title')).toBeVisible();
+    await expect(page.getByTestId('basemap-kind-tms')).toHaveClass(/btn-primary/);
+    for (const k of KIND_BUTTONS) {
+      await expect(page.getByTestId(`basemap-kind-${k}`)).toBeDisabled();
+    }
+
+    // AC11 + AC4: slug/title/url を埋めて保存 → 再オープンで tms 維持・既存編集が現行どおり
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-kind-tms');
     await fillAndCommit(page.getByTestId('basemap-title'), '種別テスト');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
@@ -82,32 +89,31 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
     await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
 
-    // AC4: 再オープン → kind が tms として強調・5つとも disabled・既存編集操作が現行どおり
+    // AC4: 再オープン → kind が tms として強調・5つとも disabled
     await page.getByTestId('basemap-row-e2e-kind-tms').click();
     await expect(page.getByTestId('basemap-kind-tms')).toHaveClass(/btn-primary/);
     for (const k of KIND_BUTTONS) {
       await expect(page.getByTestId(`basemap-kind-${k}`)).toBeDisabled();
     }
     await expect(page.getByTestId('basemap-title')).toHaveValue('種別テスト');
-    await page.getByTestId('basemap-title').fill('種別テスト2');
+    // LangResourceInput は @change（blur 確定）なので fillAndCommit で dirty 化 → save 有効
+    await fillAndCommit(page.getByTestId('basemap-title'), '種別テスト2');
     await expect(page.getByTestId('editor-save')).toBeEnabled();
+    // 編集を undo して clean に戻す（AC7 の新規作成へ安全に進む）
+    await page.getByTestId('editor-undo').click();
+    await expect(page.getByTestId('basemap-title')).toHaveValue('種別テスト');
+    await expect(page.getByTestId('editor-save')).toBeDisabled();
 
     // AC7: provider 種別を選ぶと provider-incomplete 診断が表示され保存不可
-    // 新規で mapbox を選ぶ（tms では url 必須だが mapbox は url 不要・provider-incomplete で保存不可）
+    // 種別は選択後にロックされるため、google/mapbox/maplibre の対称性は smoke（AC2）で検証する
     await page.getByTestId('basemap-new').click();
     await page.getByTestId('basemap-kind-mapbox').click();
     await expect(page.getByTestId('basemap-kind-provider-incomplete')).toBeVisible();
     await expect(page.getByTestId('basemap-kind-provider-incomplete')).toContainText(/保存できません|cannot be saved/i);
-    // タイトルを入れても保存は不可（provider-incomplete）
+    // slug/title を入れても保存は不可（provider-incomplete）
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-kind-provider');
     await fillAndCommit(page.getByTestId('basemap-title'), 'プロバイダ');
     await expect(page.getByTestId('editor-save')).toBeDisabled();
-
-    // google / maplibre も対称に provider-incomplete
-    await page.getByTestId('basemap-kind-google').click();
-    await expect(page.getByTestId('basemap-kind-provider-incomplete')).toBeVisible();
-    await page.getByTestId('basemap-kind-maplibre').click();
-    await expect(page.getByTestId('basemap-kind-provider-incomplete')).toBeVisible();
 
     expect(pageErrors).toEqual([]);
   } finally {
