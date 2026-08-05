@@ -80,8 +80,28 @@ async function installDialogHarness(app: ElectronApplication): Promise<void> {
 async function openNewBaseMap(page: Page): Promise<string> {
   await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
   await page.getByTestId('basemap-new').click();
+  // m6-t1: 新規ベースマップは種別選択が最初の編集。ただし A/B で draft を共有する本 spec では
+  // 既に kind が付いた draft を開くことがあるため、tms が活性（kind 未選択）のときだけ選択する。
+  const kindTms = page.getByTestId('basemap-kind-tms');
+  if (await kindTms.isEnabled()) {
+    await kindTms.click();
+  }
   await expect(page.getByTestId('basemap-slug')).toBeVisible();
   return page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
+}
+
+// m6-t1: 製品 UI は「同時に2つの provisional 新規 basemap」を保証しない（latestNewDraft が1本）。
+// A/B で userData を共有する本 spec の save-race では、B は latestNewDraft 再利用（basemap-new）を
+// 使わず、fresh uid で #/basemaps?uid=<new>&new=1 を直開きして、A と異なる uid を保証する。
+async function openFreshBaseMap(page: Page): Promise<string> {
+  const newUid = crypto.randomUUID();
+  await openHash(page, `#/basemaps?uid=${newUid}&new=1`, '[data-master-detail="base-map"]');
+  const kindTms = page.getByTestId('basemap-kind-tms');
+  if (await kindTms.isEnabled()) {
+    await kindTms.click();
+  }
+  await expect(page.getByTestId('basemap-slug')).toBeVisible();
+  return newUid;
 }
 
 async function waitForOwnedReservation(page: Page, slug: string, uid: string): Promise<void> {
@@ -141,7 +161,7 @@ test('instance B save conflicts with instance A reservation and creates no asset
     await waitForOwnedReservation(a.page, slug, aUid);
 
     // Bが同じslugで新規basemapを開く
-    const bUid = await openNewBaseMap(b.page);
+    const bUid = await openFreshBaseMap(b.page);
     // Major-B: 異なるasset UIDで開始されることを確認
     expect(bUid).not.toBe('');
     expect(aUid).not.toBe(bUid);

@@ -334,6 +334,7 @@ test.describe('M11-T10 Dedup/Import', () => {
       await openHash(page, '#/basemaps');
       await expect(page.getByTestId('basemap-new')).toBeVisible({ timeout: 15000 });
       await page.getByTestId('basemap-new').click();
+      await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
       await page.getByTestId('basemap-slug').fill('t10-md-base');
       await page.getByTestId('basemap-slug').press('Tab');
       await page.getByTestId('basemap-title').fill('T10 MD Base');
@@ -354,6 +355,7 @@ test.describe('M11-T10 Dedup/Import', () => {
 
       // 新規追加 → 複製内容・presetSlug を引きずらず空で開く
       await page.getByTestId('basemap-new').click();
+      await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
       await expect(page.getByTestId('basemap-slug')).toHaveValue('', { timeout: 10000 });
       await expect(page.getByTestId('basemap-title')).toHaveValue('');
       const hash = await page.evaluate(() => location.hash);

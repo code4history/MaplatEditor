@@ -133,6 +133,7 @@ test('base map pilot: unified help, field diagnostics, immediate summary, and no
   try {
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await expect(page.locator('[data-testid="basemap-editor"]')).toBeVisible();
 
     // AC3: slug 入力が monospace（computed font に mono が含まれる）
@@ -186,6 +187,7 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     // F5: 新規 draft をヘッダーから破棄すると、左 List の下書き行が消える
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-discard-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '破棄予定');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
@@ -199,6 +201,7 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
 
     // F4: ID 重複の operation 診断が Undo（文書変更）で消える
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '重複元');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
@@ -209,6 +212,7 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
 
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '重複先');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
@@ -276,6 +280,7 @@ test('captures regression screenshots for human review', async () => {
     // pilot 2 Edit（新規追加ボタン経由でエディタを開く）
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await expect(page.locator('[data-testid="basemap-editor"]')).toBeVisible();
     await shot('06-base-map-edit');
 
@@ -323,6 +328,7 @@ test('F8: draft badges stay consistent across row switching', async () => {
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     for (const [slug, title] of [['f8-switch-a', 'F8切替A'], ['f8-switch-b', 'F8切替B']] as const) {
       await page.getByTestId('basemap-new').click();
+      await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
       await fillAndCommit(page.getByTestId('basemap-slug'), slug);
       await fillAndCommit(page.getByTestId('basemap-title'), title);
       await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');

@@ -245,6 +245,7 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
 
     // user 基図を 1 件作成
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await page.getByTestId('basemap-slug').fill('e2e-user-basemap');
     await page.getByTestId('basemap-slug').press('Tab');
     await page.getByTestId('basemap-title').fill('E2E User BaseMap');

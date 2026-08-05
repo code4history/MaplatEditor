@@ -93,6 +93,7 @@ test.describe('M12-T11 説明事項・エラー出力 UI 文法統一', () => {
       await openHash(page, '#/basemaps');
       await expect(page.getByTestId('basemap-new')).toBeVisible({ timeout: 15000 });
       await page.getByTestId('basemap-new').click();
+      await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
       await expect(page.getByTestId('basemap-slug')).toBeVisible({ timeout: 15000 });
 
       // 形式不正の slug を入力してフォーカスアウト

@@ -379,6 +379,7 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     // --- BaseMap Edit (AC1/AC7) ---
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await expectSlugField(page, 'basemap-slug');
     await expectHeadOrder(page, 'タイトル');
     await expectSlugInputAlignment(page, 'basemap-slug', 'basemap-title');
@@ -494,6 +495,7 @@ test('new base map creation mints uid, reserves slug, and persists initial draft
     // 新規ベースマップを開く(UID事前採番済み)
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await expect(page.getByTestId('basemap-slug')).toBeVisible();
 
     // UIDがroute queryから取得できる = 事前採番済み
@@ -565,6 +567,7 @@ test('new base map save fails cleanly when slug is reserved by another owner', a
     // 新規ベースマップで同slugを入力 → reserved-by-other
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     const newUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
     expect(newUid).not.toBe('');
     await page.getByTestId('basemap-slug').fill(clashSlug);
@@ -610,6 +613,7 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
     // 既存 basemap を 1 件保存
     await openHash(runtime.page, '#/basemaps', '[data-master-detail="base-map"]');
     await runtime.page.getByTestId('basemap-new').click();
+    await runtime.page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await runtime.page.getByTestId('basemap-slug').fill('e2e-t7-draft-base');
     await runtime.page.getByTestId('basemap-slug').press('Tab');
     await runtime.page.getByTestId('basemap-title').fill('T7ドラフト');
@@ -726,6 +730,7 @@ test('stale reserve completion cannot publish available or create a draft while 
 
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await expect(page.getByTestId('basemap-slug')).toBeVisible();
     const uid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
     expect(uid).not.toBe('');
@@ -796,6 +801,7 @@ test('release failure keeps the editor uid and draft until discard retry succeed
 
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await expect(page.getByTestId('basemap-slug')).toBeVisible();
     const uid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('uid') ?? '');
     expect(uid).not.toBe('');

@@ -66,6 +66,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await expect(page.getByTestId('basemap-row-gsi_ortho')).toBeVisible();
     await page.getByTestId('basemap-search').fill('e2e');
     await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await expect(page).toHaveURL(/uid=.*new=1/);
     await expect(page.getByTestId('editor-save')).toBeDisabled();
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-user-basemap');
