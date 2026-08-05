@@ -119,7 +119,8 @@
       "icon_generate_failed": "图标生成失败。请检查瓦片URL和覆盖范围。",
       "kind_required": "请选择类型。",
       "provider_incomplete": "此类型在设置必填字段前无法保存。",
-      "attr_required": "地图图像署名为必填。"
+      "attr_required": "地图图像署名为必填。",
+      "maptype_required": "请选择 Google 地图预设。"
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "墨卡托瓦片",
       "select_prompt": "请选择底图类型。",
       "merc_disabled_reason": "由地图编辑生成"
+    },
+    "google": {
+      "preset_label": "Google 地图预设",
+      "preset_roadmap": "路线图",
+      "preset_satellite": "卫星",
+      "preset_hybrid": "混合",
+      "preset_terrain": "地形",
+      "preset_already_registered": "{{name}} 已注册。",
+      "presets_already_registered": "已注册：{{names}}"
     }
   },
   "settings": {

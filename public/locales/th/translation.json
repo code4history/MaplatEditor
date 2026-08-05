@@ -119,7 +119,8 @@
       "icon_generate_failed": "สร้างไอคอนไม่สำเร็จ กรุณาตรวจสอบ URL ไทล์และขอบเขตที่มีอยู่",
       "kind_required": "เลือกประเภท",
       "provider_incomplete": "ไม่สามารถบันทึกประเภทนี้ได้จนกว่าจะตั้งค่าฟิลด์ที่จำเป็น",
-      "attr_required": "จำเป็นต้องระบุที่มาของภาพแผนที่"
+      "attr_required": "จำเป็นต้องระบุที่มาของภาพแผนที่",
+      "maptype_required": "เลือกพรีเซ็ต Google Maps"
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "ไทล์เมอร์เคเตอร์",
       "select_prompt": "เลือกประเภทแผนที่ฐาน",
       "merc_disabled_reason": "สร้างจากการแก้ไขแผนที่"
+    },
+    "google": {
+      "preset_label": "พรีเซ็ต Google Maps",
+      "preset_roadmap": "แผนที่ถนน",
+      "preset_satellite": "ดาวเทียม",
+      "preset_hybrid": "ไฮบริด",
+      "preset_terrain": "ภูมิประเทศ",
+      "preset_already_registered": "{{name}} ถูกลงทะเบียนแล้ว",
+      "presets_already_registered": "ลงทะเบียนแล้ว: {{names}}"
     }
   },
   "settings": {

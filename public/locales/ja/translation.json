@@ -119,7 +119,8 @@
       "icon_generate_failed": "アイコンの生成に失敗しました。タイルURLと存在範囲を確認してください。",
       "kind_required": "種別を選択してください。",
       "provider_incomplete": "この種別は必須項目が未設定のため保存できません。",
-      "attr_required": "地図画像帰属を入力してください。"
+      "attr_required": "地図画像帰属を入力してください。",
+      "maptype_required": "Google マップのプリセットを選択してください。"
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "メルカトルタイル",
       "select_prompt": "ベースマップの種別を選択してください。",
       "merc_disabled_reason": "地図編集から生成されます"
+    },
+    "google": {
+      "preset_label": "Google マップのプリセット",
+      "preset_roadmap": "道路地図",
+      "preset_satellite": "航空写真",
+      "preset_hybrid": "ハイブリッド",
+      "preset_terrain": "地形",
+      "preset_already_registered": "{{name}} は既に登録されています。",
+      "presets_already_registered": "登録済み: {{names}}"
     }
   },
   "settings": {

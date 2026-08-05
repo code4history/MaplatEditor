@@ -110,7 +110,8 @@
       "icon_generate_failed": "Failed to generate the icon. Check the tile URL and coverage.",
       "kind_required": "Select a type.",
       "provider_incomplete": "This type cannot be saved until required fields are set.",
-      "attr_required": "Map image attribution is required."
+      "attr_required": "Map image attribution is required.",
+      "maptype_required": "Select a Google Maps preset."
     },
     "kind": {
       "label_google": "Google",
@@ -120,6 +121,15 @@
       "label_merc": "Mercator tile",
       "select_prompt": "Select the base map type.",
       "merc_disabled_reason": "Generated from map editing"
+    },
+    "google": {
+      "preset_label": "Google Maps preset",
+      "preset_roadmap": "Roadmap",
+      "preset_satellite": "Satellite",
+      "preset_hybrid": "Hybrid",
+      "preset_terrain": "Terrain",
+      "preset_already_registered": "{{name}} is already registered.",
+      "presets_already_registered": "Already registered: {{names}}"
     }
   },
   "settings": {

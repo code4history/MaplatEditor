@@ -119,7 +119,8 @@
       "icon_generate_failed": "Không thể tạo biểu tượng. Vui lòng kiểm tra URL tile và phạm vi tồn tại.",
       "kind_required": "Chọn một loại.",
       "provider_incomplete": "Không thể lưu loại này cho đến khi đặt các trường bắt buộc.",
-      "attr_required": "Bắt buộc ghi công ảnh bản đồ."
+      "attr_required": "Bắt buộc ghi công ảnh bản đồ.",
+      "maptype_required": "Chọn preset Google Maps."
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "Ô bản đồ Mercator",
       "select_prompt": "Chọn loại bản đồ nền.",
       "merc_disabled_reason": "Được tạo từ chỉnh sửa bản đồ"
+    },
+    "google": {
+      "preset_label": "Preset Google Maps",
+      "preset_roadmap": "Đường phố",
+      "preset_satellite": "Vệ tinh",
+      "preset_hybrid": "Kết hợp",
+      "preset_terrain": "Địa hình",
+      "preset_already_registered": "{{name}} đã được đăng ký.",
+      "presets_already_registered": "Đã đăng ký: {{names}}"
     }
   },
   "settings": {
