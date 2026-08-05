@@ -138,7 +138,9 @@
       "preset_hybrid": "ハイブリッド",
       "preset_terrain": "地形",
       "preset_already_registered": "{{name}} は既に登録されています。",
-      "presets_already_registered": "登録済み: {{names}}"
+      "presets_already_registered": "登録済み: {{names}}",
+      "default_license_note": "Google Maps Platform の利用規約が適用されます。帰属表記は表示したままにしてください。",
+      "default_data_license_note": "地図データおよび画像 © Google。Google Maps Platform の利用規約を参照してください。"
     }
   },
   "settings": {

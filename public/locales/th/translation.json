@@ -138,7 +138,9 @@
       "preset_hybrid": "ไฮบริด",
       "preset_terrain": "ภูมิประเทศ",
       "preset_already_registered": "{{name}} ถูกลงทะเบียนแล้ว",
-      "presets_already_registered": "ลงทะเบียนแล้ว: {{names}}"
+      "presets_already_registered": "ลงทะเบียนแล้ว: {{names}}",
+      "default_license_note": "ใช้ข้อกำหนดของ Google Maps Platform ต้องแสดงการระบุที่มาไว้",
+      "default_data_license_note": "ข้อมูลแผนที่และภาพ © Google ดูข้อกำหนดของ Google Maps Platform"
     }
   },
   "settings": {

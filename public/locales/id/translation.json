@@ -138,7 +138,9 @@
       "preset_hybrid": "Hibrida",
       "preset_terrain": "Medan",
       "preset_already_registered": "{{name}} sudah terdaftar.",
-      "presets_already_registered": "Sudah terdaftar: {{names}}"
+      "presets_already_registered": "Sudah terdaftar: {{names}}",
+      "default_license_note": "Berlaku ketentuan Google Maps Platform. Atribusi harus tetap terlihat.",
+      "default_data_license_note": "Data peta dan citra © Google. Lihat ketentuan Google Maps Platform."
     }
   },
   "settings": {

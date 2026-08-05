@@ -138,7 +138,9 @@
       "preset_hybrid": "Híbrido",
       "preset_terrain": "Terreno",
       "preset_already_registered": "{{name}} ya está registrado.",
-      "presets_already_registered": "Ya registrado: {{names}}"
+      "presets_already_registered": "Ya registrado: {{names}}",
+      "default_license_note": "Se aplican los términos de Google Maps Platform. La atribución debe permanecer visible.",
+      "default_data_license_note": "Datos de mapas e imágenes © Google. Consulte los términos de Google Maps Platform."
     }
   },
   "settings": {

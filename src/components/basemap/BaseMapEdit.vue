@@ -268,6 +268,7 @@
               max="25"
               class="form-control form-control-sm"
               :class="{ 'is-invalid': minZoomDiagnostics.length }"
+              data-testid="basemap-min-zoom"
               :disabled="structuralDisabled"
               @change="updateNumber('minZoom', ($event.target as HTMLInputElement).value)"
             >
@@ -283,6 +284,7 @@
               max="25"
               class="form-control form-control-sm"
               :class="{ 'is-invalid': maxZoomDiagnostics.length }"
+              data-testid="basemap-max-zoom"
               :disabled="structuralDisabled"
               @change="updateNumber('maxZoom', ($event.target as HTMLInputElement).value)"
             >
@@ -362,6 +364,7 @@ import {
   type BaseMapKind,
   type GoogleMapType,
 } from "../../utils/baseMapEditorDocument";
+import { applyGooglePresetDefaults, buildGooglePresetDefaults } from "../../utils/googlePresetDefaults";
 import { envelopeToBbox } from "../../utils/appSourceModel";
 import { isTranslationMode } from "../../utils/editorLanguageMode";
 import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../../utils/editorLanguages";
@@ -512,14 +515,16 @@ function isGoogleDefaultThumbnail(path: string): boolean {
 
 function selectGooglePreset(maptype: GoogleMapType): void {
   if (presetDisabled(maptype) || structuralDisabled.value) return;
-  const currentThumb = document.value.thumbnail;
+  const current = document.value;
   const nextThumb =
-    !currentThumb || isGoogleDefaultThumbnail(currentThumb)
+    !current.thumbnail || isGoogleDefaultThumbnail(current.thumbnail)
       ? `basemap_icons/google_${maptype.replace("google_", "")}.png`
-      : currentThumb;
-  // 1 commit = 1 undo ステップ
+      : current.thumbnail;
+  // m6-t4b: 帰属・ライセンス・ズーム既定を §4.2 ポリシーでマージ（1 commit = 1 undo）
+  const defaults = buildGooglePresetDefaults(current.defaultLang);
+  const merged = applyGooglePresetDefaults(current, defaults);
   commit({
-    ...document.value,
+    ...merged,
     maptype,
     thumbnail: nextThumb,
   });

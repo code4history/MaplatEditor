@@ -138,7 +138,9 @@
       "preset_hybrid": "Kết hợp",
       "preset_terrain": "Địa hình",
       "preset_already_registered": "{{name}} đã được đăng ký.",
-      "presets_already_registered": "Đã đăng ký: {{names}}"
+      "presets_already_registered": "Đã đăng ký: {{names}}",
+      "default_license_note": "Áp dụng điều khoản Google Maps Platform. Phải giữ nguyên dòng ghi công.",
+      "default_data_license_note": "Dữ liệu bản đồ và hình ảnh © Google. Xem điều khoản Google Maps Platform."
     }
   },
   "settings": {
