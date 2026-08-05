@@ -121,20 +121,20 @@ function konjakuLabel(row, mapID) {
 }
 
 const GSI_PROVIDER = {
-    attr: { ja: "国土地理院", en: "The Geospatial Information Authority of Japan" },
-    license: "Custom",
-    dataLicense: "Custom",
-    licenseNote: { ja: "公共データ利用規約 第1.0版（PDL1.0）／出典：国土地理院ウェブサイト", en: "Public Data License 1.0 / Source: GSI website" },
-    dataLicenseNote: { ja: "公共データ利用規約 第1.0版（PDL1.0）", en: "Public Data License 1.0" },
-  };
+  attr: { ja: "国土地理院", en: "The Geospatial Information Authority of Japan" },
+  license: "Custom",
+  dataLicense: "Custom",
+  licenseNote: { ja: "公共データ利用規約 第1.0版（PDL1.0）／出典：国土地理院ウェブサイト", en: "Public Data License 1.0 / Source: GSI website" },
+  dataLicenseNote: { ja: "公共データ利用規約 第1.0版（PDL1.0）", en: "Public Data License 1.0" },
+};
 
 const NARO_PROVIDER = {
-    attr: { ja: "農研機構農業環境研究部門", en: "NARO Institute for Agro-Environmental Sciences" },
-    license: "CC BY",
-    dataLicense: "CC BY",
-    licenseNote: { ja: "CC BY 2.1 日本", en: "CC BY 2.1 Japan" },
-    dataLicenseNote: { ja: "CC BY 2.1 日本", en: "CC BY 2.1 Japan" },
-  };
+  attr: { ja: "農研機構農業環境研究部門", en: "NARO Institute for Agro-Environmental Sciences" },
+  license: "CC BY",
+  dataLicense: "CC BY",
+  licenseNote: { ja: "CC BY 2.1 日本", en: "CC BY 2.1 Japan" },
+  dataLicenseNote: { ja: "CC BY 2.1 日本", en: "CC BY 2.1 Japan" },
+};
 
 const PROVIDER_ATTRS = {
   gsi_ort_USA10: GSI_PROVIDER,
