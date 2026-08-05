@@ -128,7 +128,9 @@ contextBridge.exposeInMainWorld('appedit', {
   save: (payload: any) => ipcRenderer.invoke('appedit:save', payload),
   preparePreview: (document: any) => ipcRenderer.invoke('appedit:prepare-preview', document),
   stopPreview: () => ipcRenderer.invoke('appedit:stop-preview'),
-  export: (document: any) => ipcRenderer.invoke('appedit:export', document),
+  // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
+  export: (document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }) =>
+    ipcRenderer.invoke('appedit:export', document, overrideKeys),
 })
 
 contextBridge.exposeInMainWorld('dialog', {

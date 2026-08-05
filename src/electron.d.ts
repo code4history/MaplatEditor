@@ -46,7 +46,8 @@ export interface AppEditAPI {
     save(payload: AppSavePayload): Promise<AppSaveResult>;
     preparePreview(document: any): Promise<{ url: string; port: number; warnings: string[] }>;
     stopPreview(): Promise<void>;
-    export(document: any): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
+    // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
+    export(document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
 }
 
 export interface AppEventsAPI {

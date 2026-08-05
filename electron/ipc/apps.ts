@@ -35,9 +35,10 @@ export function registerAppHandlers() {
     }
   });
 
-  ipcMain.handle('appedit:export', async (event, document: any) => {
+  // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
+  ipcMain.handle('appedit:export', async (event, document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }) => {
     const win = BrowserWindow.fromWebContents(event.sender)!;
-    return await AppExportService.exportApp(win, document);
+    return await AppExportService.exportApp(win, document, overrideKeys);
   });
 
   ipcMain.handle('appedit:prepare-preview', async (_event, document: any) => {
