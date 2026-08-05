@@ -119,7 +119,8 @@
       "icon_generate_failed": "Gagal membuat ikon. Periksa URL tile dan cakupan wilayah.",
       "kind_required": "Pilih jenis.",
       "provider_incomplete": "Jenis ini tidak dapat disimpan sampai bidang wajib ditetapkan.",
-      "attr_required": "Atribusi gambar peta wajib diisi."
+      "attr_required": "Atribusi gambar peta wajib diisi.",
+      "maptype_required": "Pilih preset Google Maps."
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "Tile Mercator",
       "select_prompt": "Pilih jenis peta dasar.",
       "merc_disabled_reason": "Dihasilkan dari pengeditan peta"
+    },
+    "google": {
+      "preset_label": "Preset Google Maps",
+      "preset_roadmap": "Peta jalan",
+      "preset_satellite": "Satelit",
+      "preset_hybrid": "Hibrida",
+      "preset_terrain": "Medan",
+      "preset_already_registered": "{{name}} sudah terdaftar.",
+      "presets_already_registered": "Sudah terdaftar: {{names}}"
     }
   },
   "settings": {

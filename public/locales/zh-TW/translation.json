@@ -119,7 +119,8 @@
       "icon_generate_failed": "圖示產生失敗。請檢查圖磚URL與涵蓋範圍。",
       "kind_required": "請選擇類型。",
       "provider_incomplete": "此類型在設定必填欄位前無法儲存。",
-      "attr_required": "地圖影像署名为必填。"
+      "attr_required": "地圖影像署名为必填。",
+      "maptype_required": "請選擇 Google 地圖預設。"
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "麥卡托瓦片",
       "select_prompt": "請選擇底圖類型。",
       "merc_disabled_reason": "由地圖編輯產生"
+    },
+    "google": {
+      "preset_label": "Google 地圖預設",
+      "preset_roadmap": "道路地圖",
+      "preset_satellite": "衛星",
+      "preset_hybrid": "混合",
+      "preset_terrain": "地形",
+      "preset_already_registered": "{{name}} 已註冊。",
+      "presets_already_registered": "已註冊：{{names}}"
     }
   },
   "settings": {

@@ -119,7 +119,8 @@
       "icon_generate_failed": "No se pudo generar el icono. Compruebe la URL de teselas y el área de cobertura.",
       "kind_required": "Seleccione un tipo.",
       "provider_incomplete": "Este tipo no se puede guardar hasta que se definan los campos obligatorios.",
-      "attr_required": "La atribución de la imagen del mapa es obligatoria."
+      "attr_required": "La atribución de la imagen del mapa es obligatoria.",
+      "maptype_required": "Seleccione un preajuste de Google Maps."
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "Tesela de Mercator",
       "select_prompt": "Seleccione el tipo de mapa base.",
       "merc_disabled_reason": "Generado desde la edición del mapa"
+    },
+    "google": {
+      "preset_label": "Preajuste de Google Maps",
+      "preset_roadmap": "Mapa",
+      "preset_satellite": "Satélite",
+      "preset_hybrid": "Híbrido",
+      "preset_terrain": "Terreno",
+      "preset_already_registered": "{{name}} ya está registrado.",
+      "presets_already_registered": "Ya registrado: {{names}}"
     }
   },
   "settings": {

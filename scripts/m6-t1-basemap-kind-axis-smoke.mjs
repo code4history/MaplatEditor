@@ -20,7 +20,8 @@ const outDir = path.join(workDir, "dist");
 const modulePath = (relativePath) => JSON.stringify(path.join(projectRoot, relativePath));
 
 const knownKinds = ["tms", "google", "mapbox", "maplibre", "merc"];
-const providerKinds = ["google", "mapbox", "maplibre"];
+// m6-t4: google は maptype-required へ移行したため、provider-incomplete 対象は mapbox/maplibre のみ
+const providerKinds = ["mapbox", "maplibre"];
 
 const kindOf = (doc) => doc.kind;
 
@@ -91,7 +92,7 @@ try {
   assert.equal(tmsMissingUrl.errors.includes("kind-required"), false, "AC2: tms は kind-required を出さない");
   assert.equal(tmsMissingUrl.errors.includes("provider-incomplete"), false, "AC2: tms は provider-incomplete を出さない");
 
-  // google / mapbox / maplibre → provider-incomplete（t1 では必須項目未実装のため保存不可）
+  // mapbox / maplibre → provider-incomplete（google は m6-t4 で maptype-required へ移行）
   for (const pk of providerKinds) {
     const doc = { ...tmsDoc, kind: pk, url: "" };
     const v = validateBaseMapDocument(doc);

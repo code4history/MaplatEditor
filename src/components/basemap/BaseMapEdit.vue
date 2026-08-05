@@ -72,6 +72,36 @@
           data-testid="basemap-kind-provider-incomplete"
           :items="[{ key: 'provider-incomplete', severity: 'danger', message: t('basemap.errors.provider_incomplete') }]"
         />
+        <!-- m6-t4: Google プリセット選択（kind === "google" のとき） -->
+        <div v-if="document.kind === 'google'" class="mt-3" data-testid="basemap-google-preset-group">
+          <label class="form-label fw-semibold small">{{ t("basemap.google.preset_label") }}</label>
+          <div class="btn-group btn-group-sm" role="group" aria-label="google preset">
+            <button
+              v-for="preset in GOOGLE_PRESETS"
+              :key="preset.value"
+              type="button"
+              class="btn"
+              :class="document.maptype === preset.value ? 'btn-primary' : 'btn-outline-secondary'"
+              :disabled="presetDisabled(preset.value) || structuralDisabled"
+              :title="presetDisabledReason(preset.value) || undefined"
+              :data-testid="'basemap-google-preset-' + preset.suffix"
+              @click="selectGooglePreset(preset.value)"
+            >{{ t(preset.labelKey) }}</button>
+          </div>
+          <div
+            v-if="registeredGooglePresetLabels.length > 0"
+            class="text-danger small mt-2"
+            data-testid="basemap-google-preset-registered-reason"
+          >
+            {{ t("basemap.google.presets_already_registered", { names: registeredGooglePresetLabels.join(", ") }) }}
+          </div>
+          <DiagnosticFeedback
+            v-if="validation.errors.includes('maptype-required')"
+            scope="section"
+            data-testid="basemap-google-maptype-required"
+            :items="[{ key: 'maptype-required', severity: 'danger', message: t('basemap.errors.maptype_required') }]"
+          />
+        </div>
       </div>
       <div v-if="document.kind !== null" class="row g-3">
         <div class="col-12 col-xl-6">
@@ -214,7 +244,7 @@
         </div>
 
         <div class="col-12"><hr class="my-1"></div>
-        <div class="col-12">
+        <div v-if="document.kind === 'tms'" class="col-12">
           <EditorField :label="t('basemap.modal.url_label')" label-for="basemap-url-input" :diagnostics="urlDiagnostics">
             <input
               id="basemap-url-input"
@@ -323,12 +353,14 @@ import { UndoStack } from "../../services/editorUndoStack";
 import {
   fromBaseMapCatalogItem,
   newBaseMapDocument,
+  normalizeKind,
   resolveBaseMapRuntimeText,
   toBaseMapSavePayload,
   validateBaseMapDocument,
   type BaseMapCatalogItem,
   type BaseMapEditDocument,
   type BaseMapKind,
+  type GoogleMapType,
 } from "../../utils/baseMapEditorDocument";
 import { envelopeToBbox } from "../../utils/appSourceModel";
 import { isTranslationMode } from "../../utils/editorLanguageMode";
@@ -406,6 +438,7 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   // provider-incomplete はボタン群直下の section 診断で表示する。
   "kind-required": "basemap.errors.kind_required",
   "provider-incomplete": "basemap.errors.provider_incomplete",
+  "maptype-required": "basemap.errors.maptype_required",
 };
 
 // m6-t1: 種別軸（kind）選択の btn-group。UI 状態は document.kind のみから決まり、追加の
@@ -422,6 +455,84 @@ function selectKind(k: BaseMapKind): void {
   if (kindDisabled(k)) return;
   updateField("kind", k);
 }
+
+// m6-t4: Google プリセット（2段目）
+const GOOGLE_PRESETS = [
+  { value: "google_roadmap" as const, suffix: "roadmap", labelKey: "basemap.google.preset_roadmap" },
+  { value: "google_satellite" as const, suffix: "satellite", labelKey: "basemap.google.preset_satellite" },
+  { value: "google_hybrid" as const, suffix: "hybrid", labelKey: "basemap.google.preset_hybrid" },
+  { value: "google_terrain" as const, suffix: "terrain", labelKey: "basemap.google.preset_terrain" },
+] as const;
+
+const registeredPresets = ref<Set<string>>(new Set());
+let registeredPresetsToken = 0;
+
+async function refreshRegisteredPresets(): Promise<void> {
+  if (document.value.kind !== "google") {
+    registeredPresets.value = new Set();
+    return;
+  }
+  const token = ++registeredPresetsToken;
+  const catalog = await window.baseMaps.list();
+  if (token !== registeredPresetsToken) return;
+  if (document.value.kind !== "google") {
+    registeredPresets.value = new Set();
+    return;
+  }
+  const googleItems = catalog.filter(
+    (item) => item.scope === "user" && normalizeKind(item.data?.kind) === "google",
+  );
+  registeredPresets.value = new Set(
+    googleItems
+      .filter((item) => item.uid !== document.value.uid)
+      .map((item) => item.data?.maptype as string)
+      .filter((v): v is string => typeof v === "string" && v.length > 0),
+  );
+}
+
+const presetDisabled = (maptype: string): boolean => registeredPresets.value.has(maptype);
+
+const presetDisabledReason = (maptype: string): string => {
+  if (!presetDisabled(maptype)) return "";
+  const preset = GOOGLE_PRESETS.find((p) => p.value === maptype);
+  const name = preset ? t(preset.labelKey) : maptype;
+  return t("basemap.google.preset_already_registered", { name });
+};
+
+// registeredPresets(ref) の後に computed（設計 v3.1 m4 / Minor: registeredGooglePresets は削除し Labels のみ）
+const registeredGooglePresetLabels = computed(() =>
+  GOOGLE_PRESETS
+    .filter((p) => registeredPresets.value.has(p.value))
+    .map((p) => t(p.labelKey)),
+);
+
+function isGoogleDefaultThumbnail(path: string): boolean {
+  return GOOGLE_PRESETS.some((p) => `basemap_icons/google_${p.suffix}.png` === path);
+}
+
+function selectGooglePreset(maptype: GoogleMapType): void {
+  if (presetDisabled(maptype) || structuralDisabled.value) return;
+  const currentThumb = document.value.thumbnail;
+  const nextThumb =
+    !currentThumb || isGoogleDefaultThumbnail(currentThumb)
+      ? `basemap_icons/google_${maptype.replace("google_", "")}.png`
+      : currentThumb;
+  // 1 commit = 1 undo ステップ
+  commit({
+    ...document.value,
+    maptype,
+    thumbnail: nextThumb,
+  });
+}
+
+watch(
+  [() => document.value.kind, () => document.value.uid],
+  ([kind]) => {
+    if (kind === "google") void refreshRegisteredPresets();
+    else registeredPresets.value = new Set();
+  },
+  { immediate: true },
+);
 // field 診断（danger）への変換は共通 validationFieldDiagnostics(M11-T10)。全項目を即時表示（dirtyゲートなし）。
 // slug-required/slug-invalid は SlugField(required + 形式診断内蔵)が field 側で表示する。
 const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
@@ -450,6 +561,9 @@ const draftLifecycle = useAssetDraftLifecycle<BaseMapEditDocument>({
 });
 
 function resetSession(item: BaseMapCatalogItem | null, uid: string): void {
+  // m6-t4: 前セッションの登録済みプリセットと in-flight list を無効化
+  registeredPresetsToken++;
+  registeredPresets.value = new Set();
   const next = item
     ? fromBaseMapCatalogItem(item)
     : props.isNew && props.duplicateSourceItem
@@ -663,6 +777,16 @@ async function save(): Promise<void> {
   error.value = "";
   saving.value = true;
   try {
+    // m6-t4: Google maptype 一意制約（複製経路の最終防衛。UI disabled だけでは不十分）
+    if (document.value.kind === "google" && document.value.maptype) {
+      await refreshRegisteredPresets();
+      if (presetDisabled(document.value.maptype)) {
+        const preset = GOOGLE_PRESETS.find((p) => p.value === document.value.maptype);
+        const name = preset ? t(preset.labelKey) : String(document.value.maptype);
+        error.value = t("basemap.google.preset_already_registered", { name });
+        return;
+      }
+    }
     // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)。
     // registry 重複は backend の unique 制約(Exist)が最終防衛。
     const slugOk = await slugField.value?.confirmForSave() ?? true;

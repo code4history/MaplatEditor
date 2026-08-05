@@ -119,7 +119,8 @@
       "icon_generate_failed": "Das Symbol konnte nicht erzeugt werden. Prüfen Sie Kachel-URL und Abdeckungsbereich.",
       "kind_required": "Wählen Sie einen Typ.",
       "provider_incomplete": "Dieser Typ kann erst gespeichert werden, wenn Pflichtfelder gesetzt sind.",
-      "attr_required": "Quellenangabe des Kartenbilds ist erforderlich."
+      "attr_required": "Quellenangabe des Kartenbilds ist erforderlich.",
+      "maptype_required": "Wählen Sie eine Google-Maps-Voreinstellung."
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "Mercator-Kachel",
       "select_prompt": "Wählen Sie den Basiskarten-Typ.",
       "merc_disabled_reason": "Wird aus der Karteneditierung generiert"
+    },
+    "google": {
+      "preset_label": "Google-Maps-Voreinstellung",
+      "preset_roadmap": "Karte",
+      "preset_satellite": "Satellit",
+      "preset_hybrid": "Hybrid",
+      "preset_terrain": "Gelände",
+      "preset_already_registered": "{{name}} ist bereits registriert.",
+      "presets_already_registered": "Bereits registriert: {{names}}"
     }
   },
   "settings": {

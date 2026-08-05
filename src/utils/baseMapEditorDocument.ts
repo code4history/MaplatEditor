@@ -23,6 +23,9 @@ export interface BaseMapCatalogItem extends BaseMapCatalogItemLike {
 // "tms" は従来のタイルURL地図（既定）。provider（google/mapbox/maplibre）は m6-t4/t5、merc は m6-t8 が担当。
 export type BaseMapKind = "tms" | "google" | "mapbox" | "maplibre" | "merc";
 
+// Google プリセット値（m6-t4）。kind === "google" のときのみ意味を持つ。
+export type GoogleMapType = "google_roadmap" | "google_satellite" | "google_hybrid" | "google_terrain";
+
 export interface BaseMapEditDocument {
   uid: string;
   scope: "builtin" | "user";
@@ -45,13 +48,16 @@ export interface BaseMapEditDocument {
   coverageLngLats: [number, number][] | null;
   // 種別軸（m6-t1）。null = 未選択（新規作成直後のみ）。data に保持し AppSource.sourceType 軸は拡張しない。
   kind: BaseMapKind | null;
+  // Google プリセット値（m6-t4）。kind === "google" のときのみ非 null。
+  maptype: GoogleMapType | null;
 }
 
 export interface BaseMapValidation {
   valid: boolean;
   errors: Array<
     | "kind-required" // 新設（m6-t1）。kind 未選択（null）
-    | "provider-incomplete" // 新設（m6-t1）。google/mapbox/maplibre で必須項目未実装（t1 では保存不可）
+    | "provider-incomplete" // 新設（m6-t1）。mapbox/maplibre で必須項目未実装（m6-t5 まで保存不可）
+    | "maptype-required" // 新設（m6-t4）。kind === "google" で maptype 未選択
     | "slug-required"
     | "slug-invalid"
     | "title-required"
@@ -87,6 +93,8 @@ export interface BaseMapSavePayload {
     maxZoom: number | null;
     thumbnail: string;
     coverageLngLats: [number, number][] | null;
+    // m6-t4: kind === "google" のときのみ出力
+    maptype?: string;
   };
 }
 
@@ -95,10 +103,26 @@ const nullableNumber = (value: unknown): number | null =>
 
 // kind の読み込み時正規化（ADR-0005 と同型）。既知5値のみ保持し、
 // 欠落・未知値・型不一致は "tms" へ落とす（前方互換: 将来の kind を古いビルドが開いても壊れない）。
-const normalizeKind = (value: unknown): BaseMapKind =>
+// m6-t4: BaseMapEdit の登録済み判定でも使うため export する。
+export const normalizeKind = (value: unknown): BaseMapKind =>
   value === "tms" || value === "google" || value === "mapbox" || value === "maplibre" || value === "merc"
     ? value
     : "tms";
+
+const GOOGLE_MAPTYPES: readonly GoogleMapType[] = [
+  "google_roadmap",
+  "google_satellite",
+  "google_hybrid",
+  "google_terrain",
+];
+
+export const normalizeGoogleMaptype = (
+  value: unknown,
+  kind: BaseMapKind | null,
+): GoogleMapType | null => {
+  if (kind !== "google") return null;
+  return GOOGLE_MAPTYPES.includes(value as GoogleMapType) ? (value as GoogleMapType) : null;
+};
 
 const coverage = (value: unknown): [number, number][] | null => {
   if (!Array.isArray(value)) return null;
@@ -127,6 +151,7 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
   // license / dataLicense は ASCII 語彙の単一文字列。非文字列は空文字へ落とす (§4.1)
   const license = typeof data.license === "string" ? data.license : "";
   const dataLicense = typeof data.dataLicense === "string" ? data.dataLicense : "";
+  const kind = normalizeKind(data.kind);
   return {
     uid: item.uid,
     scope: item.scope,
@@ -145,7 +170,8 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
     maxZoom: nullableNumber(data.maxZoom),
     thumbnail: typeof data.thumbnail === "string" ? data.thumbnail : "",
     coverageLngLats: coverage(data.coverageLngLats),
-    kind: normalizeKind(data.kind),
+    kind,
+    maptype: normalizeGoogleMaptype(data.maptype, kind),
   };
 }
 
@@ -170,6 +196,7 @@ export function newBaseMapDocument(uid: string, lang: LangCode): BaseMapEditDocu
     thumbnail: "",
     coverageLngLats: null,
     kind: null,
+    maptype: null,
   };
 }
 
@@ -179,9 +206,11 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   // kind 未選択 → kind-required（フォーム本体は出ない）
   if (kind === null) {
     errors.push("kind-required");
-  } else if (kind === "google" || kind === "mapbox" || kind === "maplibre") {
-    // t1: provider の必須項目（google のプリセット / mapbox・maplibre の style）は m6-t4/t5 で未実装。
-    // m6-t5 が style 欄を付けた時点で mapbox/maplibre は style-required へ置き換わる。
+  } else if (kind === "google") {
+    // m6-t4: Google の必須項目は maptype（4プリセットから選択）。
+    if (!document.maptype) errors.push("maptype-required");
+  } else if (kind === "mapbox" || kind === "maplibre") {
+    // m6-t5 が style 欄を実装するまで保存不可。
     errors.push("provider-incomplete");
   }
   if (!document.slug.trim()) errors.push("slug-required");
@@ -237,6 +266,8 @@ export function toBaseMapSavePayload(
       maxZoom: document.maxZoom,
       thumbnail: document.thumbnail,
       coverageLngLats: document.coverageLngLats?.map(([lng, lat]) => [lng, lat]) ?? null,
+      // m6-t4: kind === "google" のときのみ maptype を出力
+      ...(document.kind === "google" && document.maptype ? { maptype: document.maptype } : {}),
     },
   };
 }

@@ -119,7 +119,8 @@
       "icon_generate_failed": "Échec de la génération de l'icône. Vérifiez l'URL des tuiles et la zone de couverture.",
       "kind_required": "Sélectionnez un type.",
       "provider_incomplete": "Ce type ne peut pas être enregistré tant que les champs obligatoires ne sont pas définis.",
-      "attr_required": "L'attribution de l'image de la carte est requise."
+      "attr_required": "L'attribution de l'image de la carte est requise.",
+      "maptype_required": "Sélectionnez un préréglage Google Maps."
     },
     "kind": {
       "label_google": "Google",
@@ -129,6 +130,15 @@
       "label_merc": "Tuile Mercator",
       "select_prompt": "Sélectionnez le type de carte de base.",
       "merc_disabled_reason": "Généré depuis l'édition de carte"
+    },
+    "google": {
+      "preset_label": "Préréglage Google Maps",
+      "preset_roadmap": "Plan",
+      "preset_satellite": "Satellite",
+      "preset_hybrid": "Hybride",
+      "preset_terrain": "Relief",
+      "preset_already_registered": "{{name}} est déjà enregistré.",
+      "presets_already_registered": "Déjà enregistré : {{names}}"
     }
   },
   "settings": {
