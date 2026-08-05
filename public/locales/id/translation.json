@@ -622,7 +622,7 @@
     "untitled": "Belum berjudul",
     "no_title": "Silakan tentukan judul untuk tampilan.",
     "over_title": "Silakan masukkan judul tampilan ({{lang}}) dalam 30 karakter setengah lebar (15 karakter lebar penuh).",
-    "image_copyright": "Silakan tentukan keterangan hak cipta gambar peta."
+    "image_copyright": "Silakan tentukan atribusi gambar peta."
   },
   "wmtsgenerate": {
     "generate": "Buat tile WMTS",

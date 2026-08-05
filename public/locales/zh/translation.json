@@ -622,7 +622,7 @@
     "untitled": "标题未设置",
     "no_title": "请指定显示用标题。",
     "over_title": "显示用标题({{lang}})请控制在15个字符(半角30个字符)以内。",
-    "image_copyright": "请指定地图图像的版权标注。"
+    "image_copyright": "请指定地图图像的署名。"
   },
   "wmtsgenerate": {
     "generate": "生成WMTS瓦片",

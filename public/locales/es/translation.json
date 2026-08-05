@@ -622,7 +622,7 @@
     "untitled": "Título no establecido",
     "no_title": "Especifique el título de visualización.",
     "over_title": "Limite el título de visualización ({{lang}}) a 30 caracteres (o 15 caracteres de ancho completo).",
-    "image_copyright": "Especifique la mención de copyright de la imagen del mapa."
+    "image_copyright": "Especifique la atribución de la imagen del mapa."
   },
   "wmtsgenerate": {
     "generate": "Generar teselas WMTS",

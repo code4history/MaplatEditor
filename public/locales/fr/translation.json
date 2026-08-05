@@ -622,7 +622,7 @@
     "untitled": "Titre non défini",
     "no_title": "Veuillez indiquer le titre d'affichage.",
     "over_title": "Veuillez limiter le titre d'affichage ({{lang}}) à 30 caractères (ou 15 caractères pleine largeur).",
-    "image_copyright": "Veuillez indiquer la mention de copyright de l'image de la carte."
+    "image_copyright": "Veuillez indiquer l'attribution de l'image de la carte."
   },
   "wmtsgenerate": {
     "generate": "Générer les tuiles WMTS",

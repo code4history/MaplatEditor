@@ -622,7 +622,7 @@
     "untitled": "Titel nicht festgelegt",
     "no_title": "Bitte geben Sie den Anzeigetitel an.",
     "over_title": "Bitte begrenzen Sie den Anzeigetitel ({{lang}}) auf 30 Zeichen (bzw. 15 Vollbreitenzeichen).",
-    "image_copyright": "Bitte geben Sie den Copyright-Hinweis des Kartenbilds an."
+    "image_copyright": "Bitte geben Sie die Quellenangabe des Kartenbilds an."
   },
   "wmtsgenerate": {
     "generate": "WMTS-Kacheln erzeugen",

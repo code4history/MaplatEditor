@@ -622,7 +622,7 @@
     "untitled": "タイトル未設定",
     "no_title": "表示用タイトルを指定してください。",
     "over_title": "表示用タイトル({{lang}})を15文字(半角30文字)以内にしてください。",
-    "image_copyright": "地図画像のコピーライト表記を指定してください。"
+    "image_copyright": "地図画像の帰属表記を指定してください。"
   },
   "wmtsgenerate": {
     "generate": "WMTSタイル生成",

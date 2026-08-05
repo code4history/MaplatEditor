@@ -622,7 +622,7 @@
     "untitled": "Chưa có tiêu đề",
     "no_title": "Vui lòng chỉ định tiêu đề hiển thị.",
     "over_title": "Vui lòng nhập tiêu đề hiển thị ({{lang}}) trong vòng 30 ký tự nửa độ rộng (15 ký tự toàn độ rộng).",
-    "image_copyright": "Vui lòng chỉ định ghi chú bản quyền của ảnh bản đồ."
+    "image_copyright": "Vui lòng chỉ định ghi công của ảnh bản đồ."
   },
   "wmtsgenerate": {
     "generate": "Tạo tile WMTS",

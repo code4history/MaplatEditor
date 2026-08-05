@@ -613,7 +613,7 @@
     "untitled": "Untitled",
     "no_title": "Enter title for representation.",
     "over_title": "Enter {{lang}} title for representation within 30 half-width characters (or 15 full-width characters).",
-    "image_copyright": "Enter representation of map image's copyright."
+    "image_copyright": "Enter the attribution of the map image."
   },
   "wmtsgenerate": {
     "generate": "WMTS Tile Generation",

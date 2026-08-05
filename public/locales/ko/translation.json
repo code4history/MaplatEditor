@@ -622,7 +622,7 @@
     "untitled": "제목 미설정",
     "no_title": "표시용 제목을 지정하세요.",
     "over_title": "표시용 제목({{lang}})을 15자(반각 30자) 이내로 입력하세요.",
-    "image_copyright": "지도 이미지의 저작권 표기를 지정하세요."
+    "image_copyright": "지도 이미지의 출처 표시를 지정하세요."
   },
   "wmtsgenerate": {
     "generate": "WMTS 타일 생성",
