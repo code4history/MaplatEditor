@@ -95,7 +95,12 @@
       "min_zoom_label": "最小ズームレベル (任意)",
       "max_zoom_label": "最大ズームレベル (任意)",
       "cancel": "キャンセル",
-      "save": "保存"
+      "save": "保存",
+      "license_label": "画像/スタイルのライセンス",
+      "license_note_label": "ライセンス補足",
+      "data_attr_label": "データの帰属表記",
+      "data_license_label": "データのライセンス",
+      "data_license_note_label": "データのライセンス補足"
     },
     "errors": {
       "id_required": "スラッグ (ID) を入力してください。",
@@ -371,7 +376,14 @@
     "error_image_memory_limit": "この地図画像の展開には約 {{required}} MB が必要ですが、現在の設定は {{configured}} MB です。設定ページの「JPEG 展開メモリ上限」を {{recommended}} MB 以上に増やしてください。",
     "error_image_resolution_limit": "この地図画像は約 {{megapixels}} MP ありますが、現在の設定は {{configured}} MP です。設定ページの「JPEG 解像度上限」を {{recommended}} MP 以上に増やしてください。",
     "error_image_machine_limit": "この地図画像は約 {{megapixels}} MP あり、展開に約 {{required}} MB の作業領域が必要ですが、このアプリが使える上限は約 {{available}} MB です。画像を縮小してから取り込んでください。",
-    "confirm_long_image_import": "この地図画像は約 {{megapixels}} MP と非常に大きく、取り込みに長い時間がかかります (100 MP で約5分、400 MP では1時間以上)。開始すると途中で取り消せません。実施しますか?"
+    "confirm_long_image_import": "この地図画像は約 {{megapixels}} MP と非常に大きく、取り込みに長い時間がかかります (100 MP で約5分、400 MP では1時間以上)。開始すると途中で取り消せません。実施しますか?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "カスタムライセンス",
+    "license_unset": "未設定",
+    "map_image_license_note": "ライセンス補足",
+    "map_image_license_note_desc": "ライセンスの補足説明（承認番号・出典URLなど）を入力します。",
+    "map_gcp_license_note": "データライセンス補足",
+    "map_gcp_license_note_desc": "マッピングデータのライセンスの補足説明を入力します。"
   },
   "mapupload": {
     "map_image": "地図画像",

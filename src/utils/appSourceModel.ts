@@ -1,4 +1,5 @@
 import { resolveBaseMapRuntimeText } from "./baseMapEditorDocument";
+import { BASE_MAP_LANG_ATTRS } from "./langResource";
 import type { LangResource } from "./langResource";
 
 // アプリ設定のソース(sources)モデル共有ロジック。
@@ -316,11 +317,13 @@ export function composeViewerSource(
   delete data.coverageLngLats;
   const defaultLang = String(data.defaultLang || data.lang || "en");
   const runtimeLang = options.lang ?? defaultLang;
-  if (data.title !== undefined) {
-    data.title = resolveBaseMapRuntimeText(data.title as LangResource, runtimeLang, defaultLang);
-  }
-  if (data.attr !== undefined) {
-    data.attr = resolveBaseMapRuntimeText(data.attr as LangResource, runtimeLang, defaultLang);
+  // m6-t2: ベースマップの言語別フィールド (BASE_MAP_LANG_ATTRS) を共通ループで解決する。
+  // 解決結果が空文字になったキーは落とす (ADR-0005: 全言語空のフィールドは出力しない)。
+  for (const key of BASE_MAP_LANG_ATTRS) {
+    if (data[key] === undefined) continue;
+    const text = resolveBaseMapRuntimeText(data[key] as LangResource, runtimeLang, defaultLang);
+    if (text === "") delete data[key];
+    else data[key] = text;
   }
   delete data.defaultLang;
   delete data.lang;

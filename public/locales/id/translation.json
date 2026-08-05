@@ -95,7 +95,12 @@
       "min_zoom_label": "Level zoom minimum (opsional)",
       "max_zoom_label": "Level zoom maksimum (opsional)",
       "cancel": "Batal",
-      "save": "Simpan"
+      "save": "Simpan",
+      "license_label": "Lisensi gambar/gaya",
+      "license_note_label": "Catatan lisensi",
+      "data_attr_label": "Atribusi data",
+      "data_license_label": "Lisensi data",
+      "data_license_note_label": "Catatan lisensi data"
     },
     "errors": {
       "id_required": "Silakan masukkan ID.",
@@ -371,7 +376,14 @@
     "error_image_memory_limit": "Mendekode gambar peta ini memerlukan sekitar {{required}} MB, tetapi pengaturan saat ini {{configured}} MB. Naikkan \"Batas memori dekode JPEG\" di halaman Pengaturan menjadi {{recommended}} MB atau lebih.",
     "error_image_resolution_limit": "Gambar peta ini sekitar {{megapixels}} MP, tetapi pengaturan saat ini {{configured}} MP. Naikkan \"Batas resolusi JPEG\" di halaman Pengaturan menjadi {{recommended}} MP atau lebih.",
     "error_image_machine_limit": "Citra peta ini sekitar {{megapixels}} MP dan memerlukan sekitar {{required}} MB memori kerja untuk didekode, tetapi aplikasi ini hanya dapat menggunakan sekitar {{available}} MB. Perkecil citra sebelum mengimpornya.",
-    "confirm_long_image_import": "Citra peta ini sangat besar, sekitar {{megapixels}} MP, sehingga impor akan memakan waktu lama (sekitar 5 menit pada 100 MP, lebih dari satu jam pada 400 MP). Setelah dimulai tidak dapat dibatalkan. Lanjutkan?"
+    "confirm_long_image_import": "Citra peta ini sangat besar, sekitar {{megapixels}} MP, sehingga impor akan memakan waktu lama (sekitar 5 menit pada 100 MP, lebih dari satu jam pada 400 MP). Setelah dimulai tidak dapat dibatalkan. Lanjutkan?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Lisensi kustom",
+    "license_unset": "Belum diatur",
+    "map_image_license_note": "Catatan lisensi",
+    "map_image_license_note_desc": "Masukkan detail lisensi tambahan (mis. nomor persetujuan, URL sumber).",
+    "map_gcp_license_note": "Catatan lisensi data",
+    "map_gcp_license_note_desc": "Masukkan detail tambahan tentang lisensi data pemetaan."
   },
   "mapupload": {
     "map_image": "Gambar peta",

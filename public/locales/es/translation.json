@@ -95,7 +95,12 @@
       "min_zoom_label": "Nivel de zoom mínimo (opcional)",
       "max_zoom_label": "Nivel de zoom máximo (opcional)",
       "cancel": "Cancelar",
-      "save": "Guardar"
+      "save": "Guardar",
+      "license_label": "Licencia de imagen/estilo",
+      "license_note_label": "Nota de licencia",
+      "data_attr_label": "Atribución de datos",
+      "data_license_label": "Licencia de datos",
+      "data_license_note_label": "Nota de licencia de datos"
     },
     "errors": {
       "id_required": "Introduzca un ID.",
@@ -371,7 +376,14 @@
     "error_image_memory_limit": "Decodificar esta imagen de mapa necesita unos {{required}} MB, pero la configuración actual es {{configured}} MB. Aumente «Límite de memoria de decodificación JPEG» en la página de configuración a {{recommended}} MB o más.",
     "error_image_resolution_limit": "Esta imagen de mapa tiene unos {{megapixels}} MP, pero la configuración actual es {{configured}} MP. Aumente «Límite de resolución JPEG» en la página de configuración a {{recommended}} MP o más.",
     "error_image_machine_limit": "Esta imagen de mapa tiene unos {{megapixels}} MP y necesita cerca de {{required}} MB de memoria de trabajo para decodificarse, pero esta aplicación puede usar como máximo unos {{available}} MB. Reduzca el tamaño de la imagen antes de importarla.",
-    "confirm_long_image_import": "Esta imagen de mapa es muy grande, unos {{megapixels}} MP, por lo que la importación tardará mucho (unos 5 minutos a 100 MP, más de una hora a 400 MP). Una vez iniciada no se puede cancelar. ¿Continuar?"
+    "confirm_long_image_import": "Esta imagen de mapa es muy grande, unos {{megapixels}} MP, por lo que la importación tardará mucho (unos 5 minutos a 100 MP, más de una hora a 400 MP). Una vez iniciada no se puede cancelar. ¿Continuar?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Licencia personalizada",
+    "license_unset": "Sin establecer",
+    "map_image_license_note": "Nota de licencia",
+    "map_image_license_note_desc": "Introduzca detalles adicionales de la licencia (p. ej. número de aprobación, URL de la fuente).",
+    "map_gcp_license_note": "Nota de licencia de datos",
+    "map_gcp_license_note_desc": "Introduzca detalles adicionales sobre la licencia de los datos de mapeo."
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

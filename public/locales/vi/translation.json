@@ -95,7 +95,12 @@
       "min_zoom_label": "Mức zoom tối thiểu (tùy chọn)",
       "max_zoom_label": "Mức zoom tối đa (tùy chọn)",
       "cancel": "Hủy",
-      "save": "Lưu"
+      "save": "Lưu",
+      "license_label": "Giấy phép hình ảnh/kiểu",
+      "license_note_label": "Ghi chú giấy phép",
+      "data_attr_label": "Ghi công dữ liệu",
+      "data_license_label": "Giấy phép dữ liệu",
+      "data_license_note_label": "Ghi chú giấy phép dữ liệu"
     },
     "errors": {
       "id_required": "Vui lòng nhập ID.",
@@ -371,7 +376,14 @@
     "error_image_memory_limit": "Giải mã ảnh bản đồ này cần khoảng {{required}} MB, nhưng thiết lập hiện tại là {{configured}} MB. Hãy tăng \"Giới hạn bộ nhớ giải mã JPEG\" trong trang Cài đặt lên {{recommended}} MB trở lên.",
     "error_image_resolution_limit": "Ảnh bản đồ này khoảng {{megapixels}} MP, nhưng thiết lập hiện tại là {{configured}} MP. Hãy tăng \"Giới hạn độ phân giải JPEG\" trong trang Cài đặt lên {{recommended}} MP trở lên.",
     "error_image_machine_limit": "Ảnh bản đồ này khoảng {{megapixels}} MP và cần khoảng {{required}} MB bộ nhớ làm việc để giải mã, nhưng ứng dụng này chỉ dùng được tối đa khoảng {{available}} MB. Vui lòng thu nhỏ ảnh trước khi nhập.",
-    "confirm_long_image_import": "Ảnh bản đồ này rất lớn, khoảng {{megapixels}} MP, nên việc nhập sẽ mất nhiều thời gian (khoảng 5 phút ở 100 MP, hơn một giờ ở 400 MP). Khi đã bắt đầu thì không thể hủy. Tiếp tục?"
+    "confirm_long_image_import": "Ảnh bản đồ này rất lớn, khoảng {{megapixels}} MP, nên việc nhập sẽ mất nhiều thời gian (khoảng 5 phút ở 100 MP, hơn một giờ ở 400 MP). Khi đã bắt đầu thì không thể hủy. Tiếp tục?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Giấy phép tùy chỉnh",
+    "license_unset": "Chưa đặt",
+    "map_image_license_note": "Ghi chú giấy phép",
+    "map_image_license_note_desc": "Nhập chi tiết giấy phép bổ sung (ví dụ: số phê duyệt, URL nguồn).",
+    "map_gcp_license_note": "Ghi chú giấy phép dữ liệu",
+    "map_gcp_license_note_desc": "Nhập chi tiết bổ sung về giấy phép dữ liệu bản đồ."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

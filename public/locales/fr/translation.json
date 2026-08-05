@@ -95,7 +95,12 @@
       "min_zoom_label": "Niveau de zoom minimal (facultatif)",
       "max_zoom_label": "Niveau de zoom maximal (facultatif)",
       "cancel": "Annuler",
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "license_label": "Licence de l'image/du style",
+      "license_note_label": "Mention de licence",
+      "data_attr_label": "Attribution des données",
+      "data_license_label": "Licence des données",
+      "data_license_note_label": "Mention de licence des données"
     },
     "errors": {
       "id_required": "Veuillez saisir un ID.",
@@ -371,7 +376,14 @@
     "error_image_memory_limit": "Le décodage de cette image de carte nécessite environ {{required}} Mo, mais le réglage actuel est de {{configured}} Mo. Augmentez « Limite de mémoire de décodage JPEG » dans la page Réglages à {{recommended}} Mo ou plus.",
     "error_image_resolution_limit": "Cette image de carte fait environ {{megapixels}} MP, mais le réglage actuel est de {{configured}} MP. Augmentez « Limite de résolution JPEG » dans la page Réglages à {{recommended}} MP ou plus.",
     "error_image_machine_limit": "Cette image de carte fait environ {{megapixels}} MP et nécessite près de {{required}} Mo de mémoire de travail pour être décodée, mais cette application peut utiliser au maximum environ {{available}} Mo. Veuillez réduire l'image avant de l'importer.",
-    "confirm_long_image_import": "Cette image de carte est très grande (environ {{megapixels}} MP), l'import prendra donc longtemps (environ 5 minutes à 100 MP, plus d'une heure à 400 MP). Une fois lancé, il ne peut pas être annulé. Continuer ?"
+    "confirm_long_image_import": "Cette image de carte est très grande (environ {{megapixels}} MP), l'import prendra donc longtemps (environ 5 minutes à 100 MP, plus d'une heure à 400 MP). Une fois lancé, il ne peut pas être annulé. Continuer ?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Licence personnalisée",
+    "license_unset": "Non défini",
+    "map_image_license_note": "Mention de licence",
+    "map_image_license_note_desc": "Saisissez des précisions sur la licence (n° d'approbation, URL de la source, etc.).",
+    "map_gcp_license_note": "Mention de licence des données",
+    "map_gcp_license_note_desc": "Saisissez des précisions sur la licence des données de cartographie."
   },
   "mapupload": {
     "map_image": "Image de la carte",

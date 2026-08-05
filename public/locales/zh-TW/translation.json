@@ -95,7 +95,12 @@
       "min_zoom_label": "最小縮放等級(選填)",
       "max_zoom_label": "最大縮放等級(選填)",
       "cancel": "取消",
-      "save": "儲存"
+      "save": "儲存",
+      "license_label": "影像/樣式授權",
+      "license_note_label": "授權備註",
+      "data_attr_label": "資料署名",
+      "data_license_label": "資料授權",
+      "data_license_note_label": "資料授權備註"
     },
     "errors": {
       "id_required": "請輸入ID。",
@@ -371,7 +376,14 @@
     "error_image_memory_limit": "解碼此地圖影像約需 {{required}} MB，但目前設定為 {{configured}} MB。請在設定頁面將「JPEG 解碼記憶體上限」調高到 {{recommended}} MB 以上。",
     "error_image_resolution_limit": "此地圖影像約為 {{megapixels}} MP，但目前設定為 {{configured}} MP。請在設定頁面將「JPEG 解析度上限」調高到 {{recommended}} MP 以上。",
     "error_image_machine_limit": "此地圖影像約 {{megapixels}} MP，解碼約需 {{required}} MB 工作記憶體，但本應用程式最多只能使用約 {{available}} MB。請先縮小影像後再匯入。",
-    "confirm_long_image_import": "此地圖影像非常大，約 {{megapixels}} MP，匯入將花費很長時間（100 MP 約 5 分鐘，400 MP 超過 1 小時）。開始後無法取消。要繼續嗎？"
+    "confirm_long_image_import": "此地圖影像非常大，約 {{megapixels}} MP，匯入將花費很長時間（100 MP 約 5 分鐘，400 MP 超過 1 小時）。開始後無法取消。要繼續嗎？",
+    "cc_odbl": "ODbL（開放資料庫授權）",
+    "cc_custom": "自訂授權",
+    "license_unset": "未設定",
+    "map_image_license_note": "授權備註",
+    "map_image_license_note_desc": "輸入授權補充說明（如核准編號、來源URL）。",
+    "map_gcp_license_note": "資料授權備註",
+    "map_gcp_license_note_desc": "輸入地圖資料授權的補充說明。"
   },
   "mapupload": {
     "map_image": "地圖圖像",

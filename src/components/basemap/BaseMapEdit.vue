@@ -116,6 +116,70 @@
           />
         </div>
 
+        <!-- m6-t2: ベースマップの 2×2 と自由記述2欄。license/dataLicense は構造項目 (select) で、
+             言語別フィールド (dataAttr/licenseNote/dataLicenseNote) は LangResourceInput -->
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.license_label") }}</label>
+          <LicenseSelect
+            variant="image"
+            allow-unset
+            test-id="basemap-license"
+            :model-value="document.license"
+            :disabled="structuralDisabled"
+            @update:model-value="updateField('license', $event)"
+          />
+        </div>
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.license_note_label") }}</label>
+          <LangResourceInput
+            input-testid="basemap-license-note"
+            :model-value="document.licenseNote"
+            :active-lang="activeLang"
+            :default-lang="document.defaultLang"
+            :language-options="SUPPORTED_LANGUAGES"
+            :disabled="readOnly || saving || sessionTransitionPending"
+            @update:model-value="updateResource('licenseNote', $event)"
+            @select-language="activeLang = $event"
+          />
+        </div>
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.data_attr_label") }}</label>
+          <LangResourceInput
+            input-testid="basemap-data-attr"
+            :model-value="document.dataAttr"
+            :active-lang="activeLang"
+            :default-lang="document.defaultLang"
+            :language-options="SUPPORTED_LANGUAGES"
+            :disabled="readOnly || saving || sessionTransitionPending"
+            @update:model-value="updateResource('dataAttr', $event)"
+            @select-language="activeLang = $event"
+          />
+        </div>
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.data_license_label") }}</label>
+          <LicenseSelect
+            variant="data"
+            allow-unset
+            test-id="basemap-data-license"
+            :model-value="document.dataLicense"
+            :disabled="structuralDisabled"
+            @update:model-value="updateField('dataLicense', $event)"
+          />
+        </div>
+        <div class="col-12 col-xl-6">
+          <label class="form-label fw-semibold">{{ t("basemap.modal.data_license_note_label") }}</label>
+          <LangResourceInput
+            input-testid="basemap-data-license-note"
+            :model-value="document.dataLicenseNote"
+            :active-lang="activeLang"
+            :default-lang="document.defaultLang"
+            :language-options="SUPPORTED_LANGUAGES"
+            :disabled="readOnly || saving || sessionTransitionPending"
+            @update:model-value="updateResource('dataLicenseNote', $event)"
+            @select-language="activeLang = $event"
+          />
+        </div>
+
         <div class="col-12"><hr class="my-1"></div>
         <div class="col-12">
           <EditorField :label="t('basemap.modal.url_label')" label-for="basemap-url-input" :diagnostics="urlDiagnostics">
@@ -216,6 +280,7 @@ import EditorField from "../editor-ui/EditorField.vue";
 import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
 import ContextHelp from "../editor-ui/ContextHelp.vue";
 import SlugField from "../editor-ui/SlugField.vue";
+import LicenseSelect from "../editor-ui/LicenseSelect.vue";
 import type { DiagnosticItem, EditorSaveState } from "../editor-ui/editorUiTypes";
 import { validationFieldDiagnostics } from "../editor-ui/validationDiagnostics";
 import { useAssetDraftLifecycle } from "../../composables/useAssetDraftLifecycle";
@@ -417,11 +482,13 @@ function commit(next: BaseMapEditDocument): void {
 }
 
 function updateField<K extends keyof BaseMapEditDocument>(key: K, value: BaseMapEditDocument[K]): void {
-  if (structuralDisabled.value && !(["title", "label", "attr"] as string[]).includes(key)) return;
+  // 翻訳モード (structuralDisabled) では構造項目 (title/label/attr/license/dataLicense) は編集不可。
+  // 言語別フィールド (dataAttr/licenseNote/dataLicenseNote) は編集可能。設計 §4.2。
+  if (structuralDisabled.value && !(["title", "label", "attr", "dataAttr", "licenseNote", "dataLicenseNote"] as string[]).includes(key)) return;
   commit({ ...document.value, [key]: clone(value) });
 }
 
-function updateResource(key: "title" | "label" | "attr", value: string | Record<string, string> | undefined): void {
+function updateResource(key: "title" | "label" | "attr" | "dataAttr" | "licenseNote" | "dataLicenseNote", value: string | Record<string, string> | undefined): void {
   const normalized = typeof value === "object" && value ? value : value ? { [document.value.defaultLang]: value } : {};
   updateField(key, normalized);
 }

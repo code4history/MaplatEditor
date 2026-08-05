@@ -95,7 +95,12 @@
       "min_zoom_label": "Minimale Zoomstufe (optional)",
       "max_zoom_label": "Maximale Zoomstufe (optional)",
       "cancel": "Abbrechen",
-      "save": "Speichern"
+      "save": "Speichern",
+      "license_label": "Bild-/Stil-Lizenz",
+      "license_note_label": "Lizenzhinweis",
+      "data_attr_label": "Datenattribution",
+      "data_license_label": "Datenlizenz",
+      "data_license_note_label": "Datenlizenzhinweis"
     },
     "errors": {
       "id_required": "Bitte geben Sie eine ID ein.",
@@ -371,7 +376,14 @@
     "error_image_memory_limit": "Das Dekodieren dieses Kartenbilds benötigt etwa {{required}} MB, die aktuelle Einstellung ist jedoch {{configured}} MB. Erhöhen Sie „JPEG-Dekodierungs-Speicherlimit“ auf der Einstellungsseite auf {{recommended}} MB oder mehr.",
     "error_image_resolution_limit": "Dieses Kartenbild hat etwa {{megapixels}} MP, die aktuelle Einstellung ist jedoch {{configured}} MP. Erhöhen Sie „JPEG-Auflösungslimit“ auf der Einstellungsseite auf {{recommended}} MP oder mehr.",
     "error_image_machine_limit": "Dieses Kartenbild hat etwa {{megapixels}} MP und benötigt zum Dekodieren rund {{required}} MB Arbeitsspeicher, diese App kann jedoch höchstens etwa {{available}} MB nutzen. Bitte verkleinern Sie das Bild vor dem Import.",
-    "confirm_long_image_import": "Dieses Kartenbild ist mit etwa {{megapixels}} MP sehr groß, daher dauert der Import lange (etwa 5 Minuten bei 100 MP, über eine Stunde bei 400 MP). Nach dem Start kann er nicht abgebrochen werden. Fortfahren?"
+    "confirm_long_image_import": "Dieses Kartenbild ist mit etwa {{megapixels}} MP sehr groß, daher dauert der Import lange (etwa 5 Minuten bei 100 MP, über eine Stunde bei 400 MP). Nach dem Start kann er nicht abgebrochen werden. Fortfahren?",
+    "cc_odbl": "ODbL (Open Database License)",
+    "cc_custom": "Benutzerdefinierte Lizenz",
+    "license_unset": "Nicht festgelegt",
+    "map_image_license_note": "Lizenzhinweis",
+    "map_image_license_note_desc": "Zusätzliche Lizenzangaben (z. B. Genehmigungsnummer, Quell-URL) eingeben.",
+    "map_gcp_license_note": "Datenlizenzhinweis",
+    "map_gcp_license_note_desc": "Zusätzliche Angaben zur Lizenz der Kartierungsdaten eingeben."
   },
   "mapupload": {
     "map_image": "Kartenbild",

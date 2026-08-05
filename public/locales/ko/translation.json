@@ -95,7 +95,12 @@
       "min_zoom_label": "최소 줌 레벨 (선택)",
       "max_zoom_label": "최대 줌 레벨 (선택)",
       "cancel": "취소",
-      "save": "저장"
+      "save": "저장",
+      "license_label": "이미지/스타일 라이선스",
+      "license_note_label": "라이선스 보충",
+      "data_attr_label": "데이터 저작자 표시",
+      "data_license_label": "데이터 라이선스",
+      "data_license_note_label": "데이터 라이선스 보충"
     },
     "errors": {
       "id_required": "ID를 입력하세요.",
@@ -371,7 +376,14 @@
     "error_image_memory_limit": "이 지도 이미지를 디코딩하려면 약 {{required}} MB가 필요하지만 현재 설정은 {{configured}} MB입니다. 설정 페이지의 \"JPEG 디코딩 메모리 상한\"을 {{recommended}} MB 이상으로 올리세요.",
     "error_image_resolution_limit": "이 지도 이미지는 약 {{megapixels}} MP이지만 현재 설정은 {{configured}} MP입니다. 설정 페이지의 \"JPEG 해상도 상한\"을 {{recommended}} MP 이상으로 올리세요.",
     "error_image_machine_limit": "이 지도 이미지는 약 {{megapixels}} MP이며 디코딩에 약 {{required}} MB의 작업 메모리가 필요하지만, 이 앱이 사용할 수 있는 최대치는 약 {{available}} MB입니다. 이미지를 축소한 뒤 가져오세요.",
-    "confirm_long_image_import": "이 지도 이미지는 약 {{megapixels}} MP로 매우 커서 가져오기에 오랜 시간이 걸립니다 (100 MP에서 약 5분, 400 MP에서는 1시간 이상). 시작하면 도중에 취소할 수 없습니다. 진행할까요?"
+    "confirm_long_image_import": "이 지도 이미지는 약 {{megapixels}} MP로 매우 커서 가져오기에 오랜 시간이 걸립니다 (100 MP에서 약 5분, 400 MP에서는 1시간 이상). 시작하면 도중에 취소할 수 없습니다. 진행할까요?",
+    "cc_odbl": "ODbL (오픈 데이터베이스 라이선스)",
+    "cc_custom": "사용자 지정 라이선스",
+    "license_unset": "미설정",
+    "map_image_license_note": "라이선스 보충",
+    "map_image_license_note_desc": "라이선스 추가 설명(승인 번호, 출처 URL 등)을 입력합니다.",
+    "map_gcp_license_note": "데이터 라이선스 보충",
+    "map_gcp_license_note_desc": "매핑 데이터 라이선스의 추가 설명을 입력합니다."
   },
   "mapupload": {
     "map_image": "지도 이미지",

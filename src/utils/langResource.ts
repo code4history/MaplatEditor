@@ -18,7 +18,21 @@ export const MAP_LANG_ATTRS = [
   "mapper",
   "attr",
   "dataAttr",
+  "licenseNote",
+  "dataLicenseNote",
   "description",
+] as const;
+
+// ベースマップ文書の言語別フィールドの正本 (m6-t2)。
+// title/attr は既存、dataAttr/licenseNote/dataLicenseNote は本タスクで新設。
+// label を含めない: label は compactLangObject を使う別経路 (appSourceModel) であり、
+// fromBaseMapCatalogItem でも label || title のフォールバックを持つ特別扱いだから。
+export const BASE_MAP_LANG_ATTRS = [
+  "title",
+  "attr",
+  "dataAttr",
+  "licenseNote",
+  "dataLicenseNote",
 ] as const;
 
 // 任意の入力(プレーン文字列/オブジェクト/空)→ 内部形(オブジェクト、空エントリ除去)

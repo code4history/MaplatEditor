@@ -26,6 +26,10 @@ export interface HistMapStore {
   era: LangResource;
   license: string;
   dataLicense: string;
+  // m6-t2: ライセンスの自由記述欄。多言語 (LangResource)。keys へも必ず追加する
+  // (無いと MapEditService.save の histMap2Store で保存時に消える。m10-t3 の pois と同じ穴)
+  licenseNote: LangResource;
+  dataLicenseNote: LangResource;
   contributor: LangResource;
   mapper: LangResource;
   reference: string;
@@ -68,6 +72,8 @@ const keys: (keyof HistMapStore)[] = [
   "era",
   "license",
   "dataLicense",
+  "licenseNote",
+  "dataLicenseNote",
   "contributor",
   "mapper",
   "reference",
