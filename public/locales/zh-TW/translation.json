@@ -134,7 +134,9 @@
       "label_tms": "瓦片URL",
       "label_merc": "麥卡托瓦片",
       "select_prompt": "請選擇底圖類型。",
-      "merc_disabled_reason": "由地圖編輯產生"
+      "merc_disabled_reason": "由地圖編輯產生",
+
+      "key_required_reason": "尚未設定 {{provider}} 的編輯器金鑰。請在「設定 > 底圖」中註冊。"
     },
     "google": {
       "preset_label": "Google 地圖預設",
@@ -163,7 +165,25 @@
     "jpeg_decode_max_memory": "JPEG 解碼記憶體上限 (MB)",
     "jpeg_decode_max_resolution": "JPEG 解析度上限 (MP)",
     "jpeg_decode_auto": "自動",
-    "jpeg_decode_desc": "通常留空即可（自動），所需數值會依影像自動決定。若填入數字則視為上限（超出本應用程式處理能力的數值會自動下調）。"
+    "jpeg_decode_desc": "通常留空即可（自動），所需數值會依影像自動決定。若填入數字則視為上限（超出本應用程式處理能力的數值會自動下調）。",
+
+    "editor_api_key_heading": "編輯器金鑰",
+
+    "editor_api_key_notice": "用於地圖編輯時的背景繪製、預覽和縮圖產生。由於無法限制使用範圍，將其視為內部機密，請與發布用金鑰分開發行。",
+
+    "editor_google_api_key": "Google API 金鑰",
+
+    "editor_mapbox_token": "Mapbox 存取權杖",
+
+    "default_publish_api_key_heading": "預設發布金鑰",
+
+    "default_publish_api_key_notice": "當未設定應用程式專屬金鑰時使用的預設值。",
+
+    "default_publish_google_api_key": "Google API 金鑰（預設）",
+
+    "default_publish_mapbox_token": "Mapbox 存取權杖（預設）",
+
+    "same_key_warning": "{{provider}} 的編輯器金鑰與預設發布金鑰相同。建議發行另一組金鑰。"
   },
   "maplist": {
     "title": "地圖清單",
@@ -632,6 +652,20 @@
     "poi_format_unsupported": "POI 資料的格式不受編輯器支援（例如以圖層名稱為鍵的物件形式）。儲存時原始資料不會遺失，但此分頁中的編輯將被停用，且不會反映到匯出或預覽中。",
     "warn_unresolved_icon": "部分圖示引用無法解析，已按原值輸出。",
     "warn_icon_too_small": "PWA圖示來源圖片小於512px，產生的圖示可能會模糊。",
+
+    "warn_provider_google_key_missing": "由於未設定 API 金鑰，Google 背景地圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
+
+    "warn_provider_mapbox_key_missing": "由於未設定 API 金鑰，Mapbox 背景地圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
+
+    "export_key_prompt_title": "輸入發布用 API 金鑰",
+
+    "export_key_prompt_description": "所選提供者的發布金鑰尚未設定。此金鑰僅用於本次匯出，不會被儲存。留空則不會包含對應的背景地圖。",
+
+    "export_key_prompt_label_google": "Google API 金鑰",
+
+    "export_key_prompt_label_mapbox": "Mapbox 存取權杖",
+
+    "export_key_prompt_continue": "使用此內容匯出",
     "export": {
       "progress": "匯出中...",
       "zipping": "正在建立ZIP檔案",

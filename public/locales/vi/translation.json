@@ -134,7 +134,9 @@
       "label_tms": "URL ô bản đồ",
       "label_merc": "Ô bản đồ Mercator",
       "select_prompt": "Chọn loại bản đồ nền.",
-      "merc_disabled_reason": "Được tạo từ chỉnh sửa bản đồ"
+      "merc_disabled_reason": "Được tạo từ chỉnh sửa bản đồ",
+
+      "key_required_reason": "Chưa thiết lập khóa trình chỉnh sửa cho {{provider}}. Hãy đăng ký tại Cài đặt > Bản đồ nền."
     },
     "google": {
       "preset_label": "Preset Google Maps",
@@ -163,7 +165,25 @@
     "jpeg_decode_max_memory": "Giới hạn bộ nhớ giải mã JPEG (MB)",
     "jpeg_decode_max_resolution": "Giới hạn độ phân giải JPEG (MP)",
     "jpeg_decode_auto": "Tự động",
-    "jpeg_decode_desc": "Thông thường bạn có thể để trống (tự động); giá trị cần thiết được xác định theo từng ảnh. Nếu nhập một số, số đó được coi là giới hạn trên (giá trị vượt quá khả năng của ứng dụng sẽ tự động bị hạ xuống)."
+    "jpeg_decode_desc": "Thông thường bạn có thể để trống (tự động); giá trị cần thiết được xác định theo từng ảnh. Nếu nhập một số, số đó được coi là giới hạn trên (giá trị vượt quá khả năng của ứng dụng sẽ tự động bị hạ xuống).",
+
+    "editor_api_key_heading": "Khóa API của trình chỉnh sửa",
+
+    "editor_api_key_notice": "Được dùng để hiển thị nền khi chỉnh sửa bản đồ, xem trước và tạo ảnh thu nhỏ. Được coi là bí mật nội bộ không thể giới hạn phạm vi, vì vậy hãy cấp một khóa riêng biệt với khóa xuất bản.",
+
+    "editor_google_api_key": "Khóa API Google",
+
+    "editor_mapbox_token": "Mã truy cập Mapbox",
+
+    "default_publish_api_key_heading": "Khóa xuất bản mặc định",
+
+    "default_publish_api_key_notice": "Giá trị mặc định được dùng khi chưa thiết lập khóa riêng cho ứng dụng.",
+
+    "default_publish_google_api_key": "Khóa API Google (mặc định)",
+
+    "default_publish_mapbox_token": "Mã truy cập Mapbox (mặc định)",
+
+    "same_key_warning": "Khóa trình chỉnh sửa và khóa xuất bản mặc định của {{provider}} giống nhau. Nên cấp một khóa riêng biệt."
   },
   "maplist": {
     "title": "Danh sách bản đồ",
@@ -632,6 +652,20 @@
     "poi_format_unsupported": "Dữ liệu POI ở định dạng không được trình chỉnh sửa hỗ trợ (ví dụ đối tượng dùng tên lớp làm khóa). Dữ liệu gốc sẽ không bị mất khi lưu, nhưng việc chỉnh sửa trong thẻ này bị vô hiệu hóa và sẽ không được phản ánh trong bản xem trước hay xuất.",
     "warn_unresolved_icon": "Một số tham chiếu biểu tượng không thể phân giải và được giữ nguyên trong kết quả xuất.",
     "warn_icon_too_small": "Ảnh nguồn biểu tượng PWA nhỏ hơn 512px nên các biểu tượng được tạo có thể bị mờ.",
+
+    "warn_provider_google_key_missing": "Bản đồ nền Google không được đưa vào vì chưa thiết lập khóa API. Hãy đăng ký khóa trình chỉnh sửa tại Cài đặt > Bản đồ nền, hoặc thiết lập khóa của ứng dụng.",
+
+    "warn_provider_mapbox_key_missing": "Bản đồ nền Mapbox không được đưa vào vì chưa thiết lập khóa API. Hãy đăng ký khóa trình chỉnh sửa tại Cài đặt > Bản đồ nền, hoặc thiết lập khóa của ứng dụng.",
+
+    "export_key_prompt_title": "Nhập khóa API xuất bản",
+
+    "export_key_prompt_description": "Khóa xuất bản của nhà cung cấp đã chọn chưa được thiết lập. Khóa này chỉ được dùng cho lần xuất này và sẽ không được lưu lại. Nếu để trống, bản đồ nền tương ứng sẽ không được đưa vào.",
+
+    "export_key_prompt_label_google": "Khóa API Google",
+
+    "export_key_prompt_label_mapbox": "Mã truy cập Mapbox",
+
+    "export_key_prompt_continue": "Xuất với các giá trị này",
     "export": {
       "progress": "Đang xuất...",
       "zipping": "Đang tạo tệp ZIP",

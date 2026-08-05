@@ -134,7 +134,9 @@
       "label_tms": "Kachel-URL",
       "label_merc": "Mercator-Kachel",
       "select_prompt": "Wählen Sie den Basiskarten-Typ.",
-      "merc_disabled_reason": "Wird aus der Karteneditierung generiert"
+      "merc_disabled_reason": "Wird aus der Karteneditierung generiert",
+
+      "key_required_reason": "Der Editor-Schlüssel für {{provider}} ist nicht festgelegt. Registrieren Sie ihn unter Einstellungen > Basiskarte."
     },
     "google": {
       "preset_label": "Google-Maps-Voreinstellung",
@@ -163,7 +165,25 @@
     "jpeg_decode_max_memory": "JPEG-Dekodierungs-Speicherlimit (MB)",
     "jpeg_decode_max_resolution": "JPEG-Auflösungslimit (MP)",
     "jpeg_decode_auto": "Automatisch",
-    "jpeg_decode_desc": "Normalerweise können Sie diese Felder leer lassen (automatisch); die erforderlichen Werte werden je Bild bestimmt. Geben Sie eine Zahl ein, wird sie als Obergrenze behandelt (Werte über dem für diese App Machbaren werden automatisch verringert)."
+    "jpeg_decode_desc": "Normalerweise können Sie diese Felder leer lassen (automatisch); die erforderlichen Werte werden je Bild bestimmt. Geben Sie eine Zahl ein, wird sie als Obergrenze behandelt (Werte über dem für diese App Machbaren werden automatisch verringert).",
+
+    "editor_api_key_heading": "Editor-API-Schlüssel",
+
+    "editor_api_key_notice": "Wird für die Kartenbearbeitung im Hintergrund, die Vorschau und die Erstellung von Miniaturansichten verwendet. Er gilt als internes Geheimnis, das nicht eingeschränkt werden kann; verwenden Sie daher einen anderen Schlüssel als den Veröffentlichungsschlüssel.",
+
+    "editor_google_api_key": "Google API-Schlüssel",
+
+    "editor_mapbox_token": "Mapbox-Zugriffstoken",
+
+    "default_publish_api_key_heading": "Standard-Veröffentlichungsschlüssel",
+
+    "default_publish_api_key_notice": "Der Standardwert, der verwendet wird, wenn kein app-spezifischer Schlüssel festgelegt ist.",
+
+    "default_publish_google_api_key": "Google API-Schlüssel (Standard)",
+
+    "default_publish_mapbox_token": "Mapbox-Zugriffstoken (Standard)",
+
+    "same_key_warning": "Der Editor-Schlüssel und der Standard-Veröffentlichungsschlüssel für {{provider}} sind identisch. Es wird empfohlen, einen separaten Schlüssel auszustellen."
   },
   "maplist": {
     "title": "Kartenliste",
@@ -632,6 +652,20 @@
     "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor (z. B. ein Objekt mit Ebenennamen als Schlüssel). Die Originaldaten gehen beim Speichern nicht verloren, aber die Bearbeitung in diesem Tab ist deaktiviert und die Daten werden nicht in Vorschau oder Export berücksichtigt.",
     "warn_unresolved_icon": "Einige Symbolverweise konnten nicht aufgelöst werden und wurden unverändert ausgegeben.",
     "warn_icon_too_small": "Das Quellbild des PWA-Symbols ist kleiner als 512px, daher können die generierten Symbole unscharf wirken.",
+
+    "warn_provider_google_key_missing": "Die Google-Hintergrundkarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
+
+    "warn_provider_mapbox_key_missing": "Die Mapbox-Hintergrundkarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
+
+    "export_key_prompt_title": "Veröffentlichungs-API-Schlüssel eingeben",
+
+    "export_key_prompt_description": "Der Veröffentlichungsschlüssel für den ausgewählten Anbieter ist nicht festgelegt. Er wird nur für diesen Export verwendet und nicht gespeichert. Bleibt das Feld leer, wird die entsprechende Hintergrundkarte nicht einbezogen.",
+
+    "export_key_prompt_label_google": "Google API-Schlüssel",
+
+    "export_key_prompt_label_mapbox": "Mapbox-Zugriffstoken",
+
+    "export_key_prompt_continue": "Mit diesen Werten exportieren",
     "export": {
       "progress": "Wird exportiert...",
       "zipping": "ZIP-Datei wird erstellt",

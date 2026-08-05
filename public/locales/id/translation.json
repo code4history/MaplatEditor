@@ -134,7 +134,9 @@
       "label_tms": "URL Tile",
       "label_merc": "Tile Mercator",
       "select_prompt": "Pilih jenis peta dasar.",
-      "merc_disabled_reason": "Dihasilkan dari pengeditan peta"
+      "merc_disabled_reason": "Dihasilkan dari pengeditan peta",
+
+      "key_required_reason": "Kunci editor untuk {{provider}} belum diatur. Daftarkan di Pengaturan > Peta Dasar."
     },
     "google": {
       "preset_label": "Preset Google Maps",
@@ -163,7 +165,25 @@
     "jpeg_decode_max_memory": "Batas memori dekode JPEG (MB)",
     "jpeg_decode_max_resolution": "Batas resolusi JPEG (MP)",
     "jpeg_decode_auto": "Otomatis",
-    "jpeg_decode_desc": "Biasanya Anda dapat membiarkannya kosong (otomatis); nilai yang diperlukan ditentukan per citra. Jika Anda memasukkan angka, angka itu diperlakukan sebagai batas atas (nilai di luar kemampuan aplikasi ini akan diturunkan otomatis)."
+    "jpeg_decode_desc": "Biasanya Anda dapat membiarkannya kosong (otomatis); nilai yang diperlukan ditentukan per citra. Jika Anda memasukkan angka, angka itu diperlakukan sebagai batas atas (nilai di luar kemampuan aplikasi ini akan diturunkan otomatis).",
+
+    "editor_api_key_heading": "Kunci API Editor",
+
+    "editor_api_key_notice": "Digunakan untuk render latar belakang saat mengedit peta, pratinjau, dan pembuatan thumbnail. Diperlakukan sebagai rahasia internal yang tidak dapat dibatasi, jadi terbitkan kunci yang terpisah dari kunci publikasi.",
+
+    "editor_google_api_key": "Kunci API Google",
+
+    "editor_mapbox_token": "Token Akses Mapbox",
+
+    "default_publish_api_key_heading": "Kunci Publikasi Default",
+
+    "default_publish_api_key_notice": "Nilai default yang digunakan saat kunci khusus aplikasi belum diatur.",
+
+    "default_publish_google_api_key": "Kunci API Google (default)",
+
+    "default_publish_mapbox_token": "Token Akses Mapbox (default)",
+
+    "same_key_warning": "Kunci editor dan kunci publikasi default untuk {{provider}} sama. Disarankan untuk menerbitkan kunci yang terpisah."
   },
   "maplist": {
     "title": "Daftar Peta",
@@ -632,6 +652,20 @@
     "poi_format_unsupported": "Data POI berada dalam format yang tidak didukung oleh editor (misalnya objek yang dikunci dengan nama lapisan). Data asli tidak akan hilang saat disimpan, tetapi pengeditan di tab ini dinonaktifkan dan tidak akan tercermin dalam pratinjau maupun ekspor.",
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "warn_icon_too_small": "Gambar sumber ikon PWA lebih kecil dari 512px, sehingga ikon yang dihasilkan mungkin tampak buram.",
+
+    "warn_provider_google_key_missing": "Peta latar Google tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
+
+    "warn_provider_mapbox_key_missing": "Peta latar Mapbox tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
+
+    "export_key_prompt_title": "Masukkan Kunci API Publikasi",
+
+    "export_key_prompt_description": "Kunci publikasi untuk penyedia yang dipilih belum diatur. Kunci ini hanya akan digunakan untuk ekspor ini dan tidak akan disimpan. Jika dibiarkan kosong, peta latar yang sesuai tidak akan disertakan.",
+
+    "export_key_prompt_label_google": "Kunci API Google",
+
+    "export_key_prompt_label_mapbox": "Token Akses Mapbox",
+
+    "export_key_prompt_continue": "Ekspor dengan nilai ini",
     "export": {
       "progress": "Sedang mengekspor...",
       "zipping": "Sedang membuat berkas ZIP",

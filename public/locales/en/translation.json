@@ -125,7 +125,9 @@
       "label_tms": "Tile URL",
       "label_merc": "Mercator tile",
       "select_prompt": "Select the base map type.",
-      "merc_disabled_reason": "Generated from map editing"
+      "merc_disabled_reason": "Generated from map editing",
+
+      "key_required_reason": "The editor {{provider}} key is not set. Register it under Settings > Base Map."
     },
     "google": {
       "preset_label": "Google Maps preset",
@@ -154,7 +156,25 @@
     "jpeg_decode_max_memory": "JPEG decode memory limit (MB)",
     "jpeg_decode_max_resolution": "JPEG resolution limit (MP)",
     "jpeg_decode_auto": "Auto",
-    "jpeg_decode_desc": "Normally you can leave these blank (auto); the required values are determined per image. If you enter a number it is treated as an upper limit (values beyond what this app can handle are lowered automatically)."
+    "jpeg_decode_desc": "Normally you can leave these blank (auto); the required values are determined per image. If you enter a number it is treated as an upper limit (values beyond what this app can handle are lowered automatically).",
+
+    "editor_api_key_heading": "Editor API Keys",
+
+    "editor_api_key_notice": "Used for background rendering in map editing, previews, and thumbnail generation. Treated as an internal secret that cannot be restricted, so issue a separate key from the publish key.",
+
+    "editor_google_api_key": "Google API Key",
+
+    "editor_mapbox_token": "Mapbox Access Token",
+
+    "default_publish_api_key_heading": "Default Publish Keys",
+
+    "default_publish_api_key_notice": "The default value used when an app-specific key is not set.",
+
+    "default_publish_google_api_key": "Google API Key (default)",
+
+    "default_publish_mapbox_token": "Mapbox Access Token (default)",
+
+    "same_key_warning": "The editor key and default publish key for {{provider}} are identical. It is recommended to issue a separate key."
   },
   "maplist": {
     "title": "Map list",
@@ -623,6 +643,20 @@
     "poi_format_unsupported": "The POI data is in a format not supported by the editor (for example an object keyed by layer name). The original data is not lost when you save, but editing in this tab is disabled and it will not be reflected in previews or exports.",
     "warn_unresolved_icon": "Some icon references could not be resolved and were left unchanged in the output.",
     "warn_icon_too_small": "The PWA icon source image is smaller than 512px, so generated icons may look blurry.",
+
+    "warn_provider_google_key_missing": "The Google background map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
+
+    "warn_provider_mapbox_key_missing": "The Mapbox background map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
+
+    "export_key_prompt_title": "Enter Publish API Key",
+
+    "export_key_prompt_description": "The publish key for the selected provider is not set. It will be used only for this export and will not be saved. If left blank, the corresponding background map will not be included.",
+
+    "export_key_prompt_label_google": "Google API Key",
+
+    "export_key_prompt_label_mapbox": "Mapbox Access Token",
+
+    "export_key_prompt_continue": "Export with these values",
     "export": {
       "progress": "Exporting...",
       "zipping": "Generating zip file",

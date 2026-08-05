@@ -134,7 +134,9 @@
       "label_tms": "URL de teselas",
       "label_merc": "Tesela de Mercator",
       "select_prompt": "Seleccione el tipo de mapa base.",
-      "merc_disabled_reason": "Generado desde la edición del mapa"
+      "merc_disabled_reason": "Generado desde la edición del mapa",
+
+      "key_required_reason": "La clave del editor de {{provider}} no está configurada. Regístrela en Configuración > Mapa base."
     },
     "google": {
       "preset_label": "Preajuste de Google Maps",
@@ -163,7 +165,25 @@
     "jpeg_decode_max_memory": "Límite de memoria de decodificación JPEG (MB)",
     "jpeg_decode_max_resolution": "Límite de resolución JPEG (MP)",
     "jpeg_decode_auto": "Automático",
-    "jpeg_decode_desc": "Normalmente puede dejarlos en blanco (automático); los valores necesarios se determinan por imagen. Si introduce un número se trata como límite superior (los valores que superan lo que esta aplicación puede manejar se reducen automáticamente)."
+    "jpeg_decode_desc": "Normalmente puede dejarlos en blanco (automático); los valores necesarios se determinan por imagen. Si introduce un número se trata como límite superior (los valores que superan lo que esta aplicación puede manejar se reducen automáticamente).",
+
+    "editor_api_key_heading": "Claves API del editor",
+
+    "editor_api_key_notice": "Se usan para el fondo de la edición de mapas, la vista previa y la generación de miniaturas. Se tratan como un secreto interno que no se puede restringir, así que emita una clave distinta de la clave de publicación.",
+
+    "editor_google_api_key": "Clave API de Google",
+
+    "editor_mapbox_token": "Token de acceso de Mapbox",
+
+    "default_publish_api_key_heading": "Claves de publicación predeterminadas",
+
+    "default_publish_api_key_notice": "El valor predeterminado que se usa cuando no hay una clave específica de la app.",
+
+    "default_publish_google_api_key": "Clave API de Google (predeterminada)",
+
+    "default_publish_mapbox_token": "Token de acceso de Mapbox (predeterminado)",
+
+    "same_key_warning": "La clave del editor y la clave de publicación predeterminada de {{provider}} son idénticas. Se recomienda emitir una clave distinta."
   },
   "maplist": {
     "title": "Lista de mapas",
@@ -632,6 +652,20 @@
     "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor (por ejemplo, un objeto indexado por nombre de capa). Los datos originales no se pierden al guardar, pero la edición en esta pestaña está deshabilitada y no se reflejarán en la vista previa ni en la exportación.",
     "warn_unresolved_icon": "Algunas referencias de iconos no se pudieron resolver y se mantuvieron sin cambios en la salida.",
     "warn_icon_too_small": "La imagen de origen del icono PWA es menor de 512px, por lo que los iconos generados pueden verse borrosos.",
+
+    "warn_provider_google_key_missing": "El mapa de fondo de Google no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
+
+    "warn_provider_mapbox_key_missing": "El mapa de fondo de Mapbox no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
+
+    "export_key_prompt_title": "Introducir clave API de publicación",
+
+    "export_key_prompt_description": "La clave de publicación del proveedor seleccionado no está configurada. Se usará solo para esta exportación y no se guardará. Si se deja en blanco, el mapa de fondo correspondiente no se incluirá.",
+
+    "export_key_prompt_label_google": "Clave API de Google",
+
+    "export_key_prompt_label_mapbox": "Token de acceso de Mapbox",
+
+    "export_key_prompt_continue": "Exportar con estos valores",
     "export": {
       "progress": "Exportando...",
       "zipping": "Creando el archivo ZIP",

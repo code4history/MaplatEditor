@@ -134,7 +134,8 @@
       "label_tms": "タイルURL",
       "label_merc": "メルカトルタイル",
       "select_prompt": "ベースマップの種別を選択してください。",
-      "merc_disabled_reason": "地図編集から生成されます"
+      "merc_disabled_reason": "地図編集から生成されます",
+      "key_required_reason": "エディタ用の {{provider}} キーが未設定です。設定 > ベースマップ で登録してください。"
     },
     "google": {
       "preset_label": "Google マップのプリセット",
@@ -163,7 +164,16 @@
     "jpeg_decode_max_memory": "JPEG 展開メモリ上限 (MB)",
     "jpeg_decode_max_resolution": "JPEG 解像度上限 (MP)",
     "jpeg_decode_auto": "自動",
-    "jpeg_decode_desc": "通常は空欄 (自動) のままで構いません。画像ごとに必要な値が自動で決まります。数値を入れるとその値を上限として扱います (このアプリが扱える範囲を超える値は自動的に切り下げられます)。"
+    "jpeg_decode_desc": "通常は空欄 (自動) のままで構いません。画像ごとに必要な値が自動で決まります。数値を入れるとその値を上限として扱います (このアプリが扱える範囲を超える値は自動的に切り下げられます)。",
+    "editor_api_key_heading": "エディタ用キー",
+    "editor_api_key_notice": "地図編集の背景描画・プレビュー・サムネイル生成に使われます。制限をかけられない内部シークレットとして扱われるため、公開用とは別のキーを発行してください。",
+    "editor_google_api_key": "Google API キー",
+    "editor_mapbox_token": "Mapbox アクセストークン",
+    "default_publish_api_key_heading": "既定の公開用キー",
+    "default_publish_api_key_notice": "アプリ個別のキーが未設定のときに使われる既定値です。",
+    "default_publish_google_api_key": "Google API キー（既定）",
+    "default_publish_mapbox_token": "Mapbox アクセストークン（既定）",
+    "same_key_warning": "{{provider}} のエディタ用キーと既定公開用キーが同一です。別のキーを発行することを推奨します。"
   },
   "maplist": {
     "title": "地図一覧",
@@ -632,6 +642,13 @@
     "poi_format_unsupported": "POIデータがエディタ未対応の形式です（レイヤ名をキーにしたオブジェクト形式など）。元のデータは保存しても失われませんが、このタブでの編集は無効化され、プレビューやエクスポートには反映されません。",
     "warn_unresolved_icon": "解決できないアイコン参照があったため、元の値のまま出力しました。",
     "warn_icon_too_small": "PWAアイコン元画像が512pxより小さいため、生成されるアイコンが粗くなる可能性があります。",
+    "warn_provider_google_key_missing": "Google の背景地図は API キー未設定のため含まれません。設定 > ベースマップ でエディタ用キーを登録するか、アプリのキーを設定してください。",
+    "warn_provider_mapbox_key_missing": "Mapbox の背景地図は API キー未設定のため含まれません。設定 > ベースマップ でエディタ用キーを登録するか、アプリのキーを設定してください。",
+    "export_key_prompt_title": "公開用 API キーの入力",
+    "export_key_prompt_description": "選択した提供元の公開用キーが未設定です。今回の書き出しにのみ使用し、保存はされません。空欄のまま書き出すと、該当する背景地図は含まれません。",
+    "export_key_prompt_label_google": "Google API キー",
+    "export_key_prompt_label_mapbox": "Mapbox アクセストークン",
+    "export_key_prompt_continue": "この内容で書き出す",
     "export": {
       "progress": "エクスポート中...",
       "zipping": "ZIPファイルを作成中",

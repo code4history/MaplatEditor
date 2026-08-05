@@ -134,7 +134,9 @@
       "label_tms": "瓦片URL",
       "label_merc": "墨卡托瓦片",
       "select_prompt": "请选择底图类型。",
-      "merc_disabled_reason": "由地图编辑生成"
+      "merc_disabled_reason": "由地图编辑生成",
+
+      "key_required_reason": "尚未设置 {{provider}} 的编辑器密钥。请在“设置 > 底图”中注册。"
     },
     "google": {
       "preset_label": "Google 地图预设",
@@ -163,7 +165,25 @@
     "jpeg_decode_max_memory": "JPEG 解码内存上限 (MB)",
     "jpeg_decode_max_resolution": "JPEG 分辨率上限 (MP)",
     "jpeg_decode_auto": "自动",
-    "jpeg_decode_desc": "通常留空即可（自动），所需数值会按图像自动确定。若填入数字则视为上限（超出本应用处理能力的数值会自动下调）。"
+    "jpeg_decode_desc": "通常留空即可（自动），所需数值会按图像自动确定。若填入数字则视为上限（超出本应用处理能力的数值会自动下调）。",
+
+    "editor_api_key_heading": "编辑器密钥",
+
+    "editor_api_key_notice": "用于地图编辑时的背景渲染、预览和缩略图生成。由于无法限制使用范围，将其视为内部机密，请与发布用密钥分开签发。",
+
+    "editor_google_api_key": "Google API 密钥",
+
+    "editor_mapbox_token": "Mapbox 访问令牌",
+
+    "default_publish_api_key_heading": "默认发布密钥",
+
+    "default_publish_api_key_notice": "当未设置应用专属密钥时使用的默认值。",
+
+    "default_publish_google_api_key": "Google API 密钥（默认）",
+
+    "default_publish_mapbox_token": "Mapbox 访问令牌（默认）",
+
+    "same_key_warning": "{{provider}} 的编辑器密钥与默认发布密钥相同。建议签发另一个密钥。"
   },
   "maplist": {
     "title": "地图列表",
@@ -632,6 +652,20 @@
     "poi_format_unsupported": "POI 数据的格式不受编辑器支持（例如以图层名为键的对象形式）。保存时原始数据不会丢失，但此标签页中的编辑将被禁用，且不会反映到预览或导出中。",
     "warn_unresolved_icon": "部分图标引用无法解析，已按原值输出。",
     "warn_icon_too_small": "PWA图标源图片小于512px，生成的图标可能会模糊。",
+
+    "warn_provider_google_key_missing": "由于未设置 API 密钥，Google 背景地图未包含在内。请在“设置 > 底图”中注册编辑器密钥，或设置应用密钥。",
+
+    "warn_provider_mapbox_key_missing": "由于未设置 API 密钥，Mapbox 背景地图未包含在内。请在“设置 > 底图”中注册编辑器密钥，或设置应用密钥。",
+
+    "export_key_prompt_title": "输入发布用 API 密钥",
+
+    "export_key_prompt_description": "所选提供方的发布密钥尚未设置。该密钥仅用于本次导出，不会被保存。留空则不会包含相应的背景地图。",
+
+    "export_key_prompt_label_google": "Google API 密钥",
+
+    "export_key_prompt_label_mapbox": "Mapbox 访问令牌",
+
+    "export_key_prompt_continue": "使用此内容导出",
     "export": {
       "progress": "导出中...",
       "zipping": "正在创建ZIP文件",
