@@ -14,10 +14,11 @@
         </li>
         <li class="nav-item">
           <a
-            class="nav-link disabled"
+            class="nav-link"
             :class="{ active: activeTab === 'basemap' }"
             href="#"
-            @click.prevent=""
+            data-testid="settings-basemap-tab"
+            @click.prevent="activeTab = 'basemap'"
             >{{ t("settings.base_map") }}</a
           >
         </li>
@@ -141,13 +142,125 @@
           </form>
         </div>
 
-        <!-- Base Map Settings Tab (Empty/Disabled) -->
+        <!-- Base Map Settings Tab (m6-t6: API キーの3段構成) -->
         <div
           class="tab-pane fade"
           :class="{ 'show active': activeTab === 'basemap' }"
           id="basemap"
           role="tabpanel"
-        ></div>
+        >
+          <form class="form-horizontal">
+            <h5>{{ t("settings.editor_api_key_heading") }}</h5>
+            <p class="form-text">{{ t("settings.editor_api_key_notice") }}</p>
+
+            <div class="row mb-2 align-items-center">
+              <label for="editorGoogleApiKey" class="col-sm-3 col-form-label text-end">{{
+                t("settings.editor_google_api_key")
+              }}</label>
+              <div class="col-sm-9">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editorGoogleApiKey"
+                  data-testid="settings-editor-google-api-key"
+                  v-model="state.editorGoogleApiKey"
+                />
+              </div>
+            </div>
+            <div class="row mb-3 align-items-center">
+              <div class="col-sm-9 offset-sm-3">
+                <div
+                  v-if="sameKeyWarning.google"
+                  class="text-warning small"
+                  data-testid="settings-same-key-warning-google"
+                >
+                  {{ t("settings.same_key_warning", { provider: t("basemap.kind.label_google") }) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-2 align-items-center">
+              <label for="editorMapboxToken" class="col-sm-3 col-form-label text-end">{{
+                t("settings.editor_mapbox_token")
+              }}</label>
+              <div class="col-sm-9">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editorMapboxToken"
+                  data-testid="settings-editor-mapbox-token"
+                  v-model="state.editorMapboxToken"
+                />
+              </div>
+            </div>
+            <div class="row mb-3 align-items-center">
+              <div class="col-sm-9 offset-sm-3">
+                <div
+                  v-if="sameKeyWarning.mapbox"
+                  class="text-warning small"
+                  data-testid="settings-same-key-warning-mapbox"
+                >
+                  {{ t("settings.same_key_warning", { provider: t("basemap.kind.label_mapbox") }) }}
+                </div>
+              </div>
+            </div>
+
+            <h5 class="mt-4">{{ t("settings.default_publish_api_key_heading") }}</h5>
+            <p class="form-text">{{ t("settings.default_publish_api_key_notice") }}</p>
+
+            <div class="row mb-3 align-items-center">
+              <label for="defaultPublishGoogleApiKey" class="col-sm-3 col-form-label text-end">{{
+                t("settings.default_publish_google_api_key")
+              }}</label>
+              <div class="col-sm-9">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="defaultPublishGoogleApiKey"
+                  data-testid="settings-default-publish-google-api-key"
+                  v-model="state.defaultPublishGoogleApiKey"
+                />
+              </div>
+            </div>
+
+            <div class="row mb-3 align-items-center">
+              <label for="defaultPublishMapboxToken" class="col-sm-3 col-form-label text-end">{{
+                t("settings.default_publish_mapbox_token")
+              }}</label>
+              <div class="col-sm-9">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="defaultPublishMapboxToken"
+                  data-testid="settings-default-publish-mapbox-token"
+                  v-model="state.defaultPublishMapboxToken"
+                />
+              </div>
+            </div>
+
+            <!-- Buttons（basic タブと同じ共有 state を保存/破棄する） -->
+            <div class="row">
+              <div class="col-sm-9 offset-sm-3 d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  class="btn btn-light border"
+                  :disabled="!isDirty"
+                  @click="resetSettings"
+                >
+                  {{ t("common.reset") }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  :disabled="!isDirty"
+                  @click="saveSettings"
+                >
+                  <i class="bi bi-save me-1"></i>{{ t("common.save") }}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
 
         <!-- Original Map Settings Tab (Empty/Disabled) -->
         <div
@@ -169,6 +282,15 @@ import { SUPPORTED_LANGUAGES } from "../utils/editorLanguages";
 const { t, i18next } = useTranslation();
 const activeTab = ref("basic");
 
+// m6-t6: ベースマップタブの4キー（エディタ用×2 + 既定公開用×2）。onMounted/saveSettings で
+// ループ処理するための一覧（R9 の既存パターンと同型）
+const BASEMAP_KEY_FIELDS = [
+  "editorGoogleApiKey",
+  "editorMapboxToken",
+  "defaultPublishGoogleApiKey",
+  "defaultPublishMapboxToken",
+] as const;
+
 // State for form values
 // M5-T8: JPEG デコードのキャップは既定が「自動」。UI では**空文字**が自動を表す
 // （`v-model.number` は空欄で '' を返すため、number 型では自動を表現できない。
@@ -178,11 +300,19 @@ const state = reactive<{
   saveFolder: string;
   jpegDecodeMaxMemoryMB: string;
   jpegDecodeMaxResolutionMP: string;
+  editorGoogleApiKey: string;
+  editorMapboxToken: string;
+  defaultPublishGoogleApiKey: string;
+  defaultPublishMapboxToken: string;
 }>({
   lang: "ja",
   saveFolder: "",
   jpegDecodeMaxMemoryMB: "",
   jpegDecodeMaxResolutionMP: "",
+  editorGoogleApiKey: "",
+  editorMapboxToken: "",
+  defaultPublishGoogleApiKey: "",
+  defaultPublishMapboxToken: "",
 });
 
 // Original values for dirty checking
@@ -191,12 +321,32 @@ const original = reactive<{
   saveFolder: string;
   jpegDecodeMaxMemoryMB: string;
   jpegDecodeMaxResolutionMP: string;
+  editorGoogleApiKey: string;
+  editorMapboxToken: string;
+  defaultPublishGoogleApiKey: string;
+  defaultPublishMapboxToken: string;
 }>({
   lang: "ja",
   saveFolder: "",
   jpegDecodeMaxMemoryMB: "",
   jpegDecodeMaxResolutionMP: "",
+  editorGoogleApiKey: "",
+  editorMapboxToken: "",
+  defaultPublishGoogleApiKey: "",
+  defaultPublishMapboxToken: "",
 });
+
+// m6-t6 (§3.3): エディタ用キーと既定公開用キーが非空かつ同一値の場合の警告
+// （マイルストーン §2.2「エディタ用キーを公開用キーとして流用するトグルは作らない。
+// 同一値の場合は警告を出す」）
+const sameKeyWarning = computed(() => ({
+  google:
+    state.editorGoogleApiKey !== "" &&
+    state.editorGoogleApiKey === state.defaultPublishGoogleApiKey,
+  mapbox:
+    state.editorMapboxToken !== "" &&
+    state.editorMapboxToken === state.defaultPublishMapboxToken,
+}));
 
 /** 保存値（number | null）を UI の文字列表現へ。null / 未設定 = 自動 = 空文字 */
 const capToField = (value: unknown): string =>
@@ -207,7 +357,8 @@ const isDirty = computed(() => {
     state.lang !== original.lang ||
     state.saveFolder !== original.saveFolder ||
     state.jpegDecodeMaxMemoryMB !== original.jpegDecodeMaxMemoryMB ||
-    state.jpegDecodeMaxResolutionMP !== original.jpegDecodeMaxResolutionMP
+    state.jpegDecodeMaxResolutionMP !== original.jpegDecodeMaxResolutionMP ||
+    BASEMAP_KEY_FIELDS.some((key) => state[key] !== original[key])
   );
 });
 
@@ -233,6 +384,12 @@ onMounted(async () => {
       state[key] = capToField(value);
       original[key] = state[key];
     }
+    // m6-t6: ベースマップタブの4キー（未設定時は window.settings.get が undefined を返す）
+    for (const key of BASEMAP_KEY_FIELDS) {
+      const value = await window.settings.get(key);
+      state[key] = typeof value === "string" ? value : "";
+      original[key] = state[key];
+    }
   } catch (e) {
     console.error("Failed to load settings:", e);
   }
@@ -250,6 +407,9 @@ const resetSettings = async () => {
     state.saveFolder = original.saveFolder;
     state.jpegDecodeMaxMemoryMB = original.jpegDecodeMaxMemoryMB;
     state.jpegDecodeMaxResolutionMP = original.jpegDecodeMaxResolutionMP;
+    for (const key of BASEMAP_KEY_FIELDS) {
+      state[key] = original[key];
+    }
     if (i18next.language !== state.lang) {
         await i18next.changeLanguage(state.lang);
     }
@@ -261,6 +421,9 @@ const saveSettings = async () => {
     // M5-T8: 空欄は「自動」= null として送る（main 側の normalizeJpegDecodeCap が受ける）
     await window.settings.set("jpegDecodeMaxMemoryMB", state.jpegDecodeMaxMemoryMB === "" ? null : state.jpegDecodeMaxMemoryMB);
     await window.settings.set("jpegDecodeMaxResolutionMP", state.jpegDecodeMaxResolutionMP === "" ? null : state.jpegDecodeMaxResolutionMP);
+    for (const key of BASEMAP_KEY_FIELDS) {
+      await window.settings.set(key, state[key]);
+    }
 
     // Update original to match new saved state.
     // M5-T6/M5-T8: 正規化後の値を読み直す（下限で丸められた場合・**機械安全枠の上限で
@@ -270,6 +433,10 @@ const saveSettings = async () => {
     for (const key of ["jpegDecodeMaxMemoryMB", "jpegDecodeMaxResolutionMP"] as const) {
       const saved = await window.settings.get(key);
       state[key] = capToField(saved);
+      original[key] = state[key];
+    }
+    // m6-t6: ベースマップキーは正規化を挟まないので読み直し不要。dirty 判定を閉じるだけでよい
+    for (const key of BASEMAP_KEY_FIELDS) {
       original[key] = state[key];
     }
 
