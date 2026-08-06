@@ -89,6 +89,18 @@ async function seedStrictMap(page: Page, saveFolder: string): Promise<{ uid: str
   return { uid, slug };
 }
 
+// 実装レビュー M-1: ProgressReporter のテキストキーが wmtsgenerate.* のままだと
+// modalProgress() が本文を上書きし、生成中ずっと「WMTS」表示になる（ADR-0015違反）。
+// modalShow('merc.generating_tile') 直後（進捗イベント到達前）のスナップショットを取り、
+// 「メルカトルタイル」を含み「WMTS」を含まないことを固定する
+async function expectMercProgressText(page: Page): Promise<void> {
+  const modalBody = page.locator('.modal.d-block .modal-body').first();
+  await expect(modalBody).toBeVisible({ timeout: 15_000 });
+  const text = await modalBody.textContent();
+  expect(text).toContain('メルカトルタイル');
+  expect(text).not.toContain('WMTS');
+}
+
 async function generateAndWaitForCompletion(page: Page): Promise<void> {
   const okButton = page.getByRole('button', { name: 'OK' });
   await expect(okButton).toBeEnabled({ timeout: 60_000 });
@@ -110,6 +122,7 @@ test.describe('M6-T8 メルカトルタイル生成', () => {
 
       // --- 1回目: 既存 merc 0件 → 確認なしで新規作成 (AC3) ---
       await generateButton.click();
+      await expectMercProgressText(page); // 実装レビュー M-1 回帰（ADR-0015: UIに"WMTS"を出さない）
       await generateAndWaitForCompletion(page);
 
       const listAfterFirst = await page.evaluate(() => window.baseMaps.list());

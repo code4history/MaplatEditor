@@ -99,7 +99,7 @@ class WmtsGeneratorService {
             if (!resolved) {
                 // タスク設計レビュー v1 Minor 6: strict_error キーの流用をやめ、専用の非 i18n
                 // 診断文字列を確定する。renderer 側 wmtsGenerate() は arg.err を
-                // console.error するだけで、表示は既存の汎用 wmtsgenerate.error_generation
+                // console.error するだけで、表示は既存の汎用 merc.error_generation（m6-t8）
                 return { hash, err: new Error(`originals.unresolved: failed to resolve runtime original for uid=${uid} slug=${mapID}`) };
             }
             const imagePath = resolved.path;
@@ -161,10 +161,14 @@ class WmtsGeneratorService {
             }
 
             // --- プログレス ---
+            // 実装レビュー M-1: 進捗イベントのテキストキーは modalProgress() 経由でモーダル本文を
+            // 上書きするため、ADR-0015（UIから "WMTS" を排除）に従い merc.* を使う
+            // （呼び出し元は m6-t8 の新規 merc タブのみ。wmtsgenerate.generating_tile は
+            // もう参照されない）
             const reporter = new ProgressReporter(
                 'mapedit:taskProgress',
                 processArray.length,
-                'wmtsgenerate.generating_tile',
+                'merc.generating_tile',
                 ''
             );
             reporter.setWindow(win);

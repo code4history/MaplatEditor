@@ -4439,7 +4439,10 @@ const goBack = async () => {
               「メルカトルタイル」タブへ分離・移設済み（M4-(2)対応）。本ブロックが参照する i18n
               キー（public/locales/*/translation.json の dataio.* 全28キー・
               mapedit.export_map_data）も削除禁止（JSON側にコメント記載不可のため本注記が
-              唯一の防御線。§3.4参照）。wmtsgenerate.* 5キーは新規mercタブ側で引き続き使用する。
+              唯一の防御線。§3.4参照）。実装レビューM-1（m6-t8）: ユーザー向け文言はADR-0015に
+              従いwmtsgenerate.*ではなくmerc.*を使う（新規mercタブの生成中モーダル・完了/エラー表示
+              とも merc.* を参照）。wmtsgenerate.* 5キーはコードから参照されなくなったが、
+              JSON定義自体はM12-T22の休眠保全対象として削除しない。
               詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
             -->
             <div v-show="activeTab === 'inout'" class="h-100 overflow-auto p-4">

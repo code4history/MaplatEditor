@@ -29,12 +29,16 @@ try {
   // 分離・移設されたことに伴い、文言を「CSVインポートは削除禁止・WMTS生成部分は到達可能になった」へ更新
   assert.match(
     mapEdit,
-    /<!-- 旧実装 mapedit\.html L\.274-375[\s\S]{0,80}<!--\s*\n\s*M12-T22: 本ブロックへのUI導線はM11-T3で意図的に撤去済み[\s\S]{0,600}v-show="activeTab === 'inout'"/,
+    /<!-- 旧実装 mapedit\.html L\.274-375[\s\S]{0,80}<!--\s*\n\s*M12-T22: 本ブロックへのUI導線はM11-T3で意図的に撤去済み[\s\S]{0,900}v-show="activeTab === 'inout'"/,
     '#1 Data IO パネル本体のブロックコメントが欠落している',
   );
   assert.match(mapEdit, /dataio\.\* 全28キー・\n\s*mapedit\.export_map_data/, '#1 ブロックコメントの dataio.* i18n キー削除禁止明記が欠落している');
   assert.match(mapEdit, /WMTS生成部分（旧実装 mapedit\.html の同タブ下部）はm6-t8で新規\n\s*「メルカトルタイル」タブへ分離・移設済み/, '#1 ブロックコメントのWMTS生成部分移設明記が欠落している');
-  assert.match(mapEdit, /wmtsgenerate\.\* 5キーは新規mercタブ側で引き続き使用する/, '#1 ブロックコメントのwmtsgenerate.*継続使用明記が欠落している');
+  // 実装レビューM-1是正: wmtsgenerate.*は「引き続き使用する」ではなく、実装レビューで
+  // ProgressReporterのテキストキーがmerc.*へ修正された結果コードから参照されなくなった
+  // （ADR-0015: UIから"WMTS"を排除）。JSON定義自体はM12-T22の休眠保全対象として残す
+  assert.match(mapEdit, /ユーザー向け文言はADR-0015に\n\s*従いwmtsgenerate\.\*ではなくmerc\.\*を使う/, '#1 ブロックコメントのADR-0015準拠(merc.*使用)明記が欠落している');
+  assert.match(mapEdit, /wmtsgenerate\.\* 5キーはコードから参照されなくなったが、\n\s*JSON定義自体はM12-T22の休眠保全対象として削除しない/, '#1 ブロックコメントのwmtsgenerate.*休眠保全（コード非参照）明記が欠落している');
 
   // #2 mainLayerHash（computed）
   assert.match(
