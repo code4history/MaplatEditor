@@ -662,9 +662,7 @@
     "no_app_name": "アプリ名を入力してください。",
     "search_maps_placeholder": "地図を検索…",
     "warn_mixed_pois": "POIデータにGeoJSON形式とそれ以外の形式が混在しています。ビューアで正しく表示されない可能性があります。旧形式のPOIはGeoJSONへ変換してください。",
-    "provider_source_note": "APIキーと種別からタイルURLが自動的に構築されるため、直接入力の必要はありません。",
-    "refetch_from_master": "マスタから再取得",
-    "refetch_master_not_found": "参照元のベースマップが見つかりませんでした（削除された可能性があります）。"
+    "provider_source_note": "APIキーと種別からタイルURLが自動的に構築されるため、直接入力の必要はありません。"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",

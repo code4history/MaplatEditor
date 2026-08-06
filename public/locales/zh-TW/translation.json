@@ -679,9 +679,7 @@
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "搜尋地圖…",
     "warn_mixed_pois": "POI 資料中混雜了 GeoJSON 格式與其他格式，可能無法在檢視器中正確顯示。請將舊格式 POI 轉換為 GeoJSON。",
-    "provider_source_note": "圖磚URL會根據API金鑰與種類自動建立，無需手動輸入。",
-    "refetch_from_master": "從主資料重新取得",
-    "refetch_master_not_found": "找不到參照的底圖主資料（可能已被刪除）。"
+    "provider_source_note": "圖磚URL會根據API金鑰與種類自動建立，無需手動輸入。"
   },
   "mapmodel": {
     "untitled": "標題未設定",

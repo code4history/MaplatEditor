@@ -679,9 +679,7 @@
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Tìm bản đồ…",
     "warn_mixed_pois": "Dữ liệu POI trộn lẫn định dạng GeoJSON và định dạng khác. Có thể hiển thị không đúng trong trình xem. Hãy chuyển đổi POI định dạng cũ sang GeoJSON.",
-    "provider_source_note": "URL ô bản đồ được tạo tự động từ khóa API và loại, nên không cần nhập thủ công.",
-    "refetch_from_master": "Lấy lại từ bản gốc",
-    "refetch_master_not_found": "Không tìm thấy bản đồ nền gốc được tham chiếu (có thể đã bị xóa)."
+    "provider_source_note": "URL ô bản đồ được tạo tự động từ khóa API và loại, nên không cần nhập thủ công."
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",

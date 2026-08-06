@@ -15,7 +15,6 @@ import type { LangCode } from "../utils/editorLanguages";
 import {
   bboxToEnvelope,
   envelopeToBbox,
-  createAppSourceFromBaseMap,
   type AppSource,
 } from "../utils/appSourceModel";
 import { isProviderKind } from "../utils/baseMapEditorDocument";
@@ -47,28 +46,6 @@ const data = computed(() => {
 // m6-t9 §3.1: provider kind (google/mapbox/maplibre) は API キー+maptype からタイル URL を
 // 内部構築するため、生の url 入力欄を出す意味がない（m6-t6 H-A と同型の汚染経路にもなり得る）
 const isProvider = computed(() => isProviderKind(data.value.kind));
-
-// m6-t9 §3.2: マスタから再取得。新規 IPC は追加せず window.baseMaps.list() を再利用する
-// （refreshRegisteredPresets と同型のパターン）
-const refetchError = ref<string | null>(null);
-async function refetchFromMaster() {
-  refetchError.value = null;
-  const catalog = await window.baseMaps.list();
-  // AppSource.mapUid の実体は mapID（slug）であり uid（UUID）ではない（appSourceModel.ts:114-116,163,172）
-  const item = catalog.find((entry) => entry.mapID === props.source.mapUid);
-  if (!item) {
-    refetchError.value = t("appedit.refetch_master_not_found");
-    return;
-  }
-  const rebuilt = createAppSourceFromBaseMap(
-    { mapID: item.mapID, ...(item.data || {}) },
-    props.defaultLang,
-  );
-  props.source.data = rebuilt.data ?? {};
-  if (rebuilt.label) props.source.label = rebuilt.label;
-  if (rebuilt.title !== undefined) props.source.title = rebuilt.title;
-  emit("change");
-}
 
 // title/attr は文字列または言語オブジェクトの両形式があるため現在言語で読み書きする
 function langText(key: "title" | "attr") {
@@ -150,11 +127,11 @@ async function uploadThumbnail() {
     <div v-else-if="source.sourceType === 'tms'" class="row g-2 mt-1">
       <div class="col-md-4">
         <div class="form-label small mb-0 d-flex align-items-center gap-1">{{ t("appedit.source_title") }} <LangValueChips :model-value="data.title" :active-lang="currentLang" :default-lang="defaultLang" :language-options="languageOptions" @select-language="emit('select-language', $event)" /></div>
-        <input :value="langText('title')" type="text" class="form-control form-control-sm" data-testid="app-source-title" @input="setLangText('title', ($event.target as HTMLInputElement).value)">
+        <input :value="langText('title')" type="text" class="form-control form-control-sm" @input="setLangText('title', ($event.target as HTMLInputElement).value)">
       </div>
       <div class="col-md-4">
         <div class="form-label small mb-0 d-flex align-items-center gap-1">{{ t("appedit.source_attr") }} <LangValueChips :model-value="data.attr" :active-lang="currentLang" :default-lang="defaultLang" :language-options="languageOptions" @select-language="emit('select-language', $event)" /></div>
-        <input :value="langText('attr')" type="text" class="form-control form-control-sm" data-testid="app-source-attr" @input="setLangText('attr', ($event.target as HTMLInputElement).value)">
+        <input :value="langText('attr')" type="text" class="form-control form-control-sm" @input="setLangText('attr', ($event.target as HTMLInputElement).value)">
       </div>
       <div class="col-md-2">
         <label class="form-label small mb-0">{{ t("appedit.min_zoom") }}</label>
@@ -179,21 +156,9 @@ async function uploadThumbnail() {
           <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="translationMode" @click="uploadThumbnail">
             {{ t("appedit.upload") }}
           </button>
-          <!-- m6-t9 §3.2: マスタから再取得。登録済みマスタ由来（mapUid 非空）の tms ソースに限る -->
-          <button
-            v-if="source.mapUid"
-            type="button"
-            class="btn btn-sm btn-outline-secondary"
-            :disabled="translationMode"
-            data-testid="app-source-refetch-from-master"
-            @click="refetchFromMaster"
-          >
-            {{ t("appedit.refetch_from_master") }}
-          </button>
         </div>
         <!-- M12-T11 (R3/C33): inline text-danger から DF field へ -->
         <DiagnosticFeedback v-if="uploadError" scope="field" :items="[{ key: 'thumbnail-upload', severity: 'danger', message: uploadError }]" />
-        <DiagnosticFeedback v-if="refetchError" scope="operation" data-testid="app-source-refetch-error" :items="[{ key: 'refetch-not-found', severity: 'danger', message: refetchError }]" />
       </div>
 
       <!-- overlay専用設定 -->

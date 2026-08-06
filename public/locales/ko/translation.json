@@ -679,9 +679,7 @@
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "지도 검색…",
     "warn_mixed_pois": "POI 데이터에 GeoJSON 형식과 그 외 형식이 혼재되어 있습니다. 뷰어에서 올바르게 표시되지 않을 수 있습니다. 구형 POI는 GeoJSON으로 변환하세요.",
-    "provider_source_note": "타일 URL은 API 키와 종류로부터 자동으로 구성되므로 직접 입력할 필요가 없습니다.",
-    "refetch_from_master": "마스터에서 다시 가져오기",
-    "refetch_master_not_found": "참조된 베이스맵 마스터를 찾을 수 없습니다(삭제되었을 수 있습니다)."
+    "provider_source_note": "타일 URL은 API 키와 종류로부터 자동으로 구성되므로 직접 입력할 필요가 없습니다."
   },
   "mapmodel": {
     "untitled": "제목 미설정",

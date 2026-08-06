@@ -679,9 +679,7 @@
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Cari peta…",
     "warn_mixed_pois": "Data POI mencampur format GeoJSON dan format lain. Mungkin tidak ditampilkan dengan benar di viewer. Konversikan POI format lama ke GeoJSON.",
-    "provider_source_note": "URL tile dibuat otomatis dari kunci API dan jenis, sehingga tidak perlu diisi manual.",
-    "refetch_from_master": "Ambil ulang dari master",
-    "refetch_master_not_found": "Peta dasar master yang dirujuk tidak ditemukan (mungkin telah dihapus)."
+    "provider_source_note": "URL tile dibuat otomatis dari kunci API dan jenis, sehingga tidak perlu diisi manual."
   },
   "mapmodel": {
     "untitled": "Belum berjudul",

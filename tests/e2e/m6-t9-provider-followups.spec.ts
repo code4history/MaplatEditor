@@ -1,6 +1,6 @@
 // m6-t9: provider/basemap 周辺の是正6件（m6-t4/t5/t6 実装レビュー由来）
 // AC1: provider kind（google/mapbox/maplibre）の AppSource は url 入力欄が表示されない。tms（無印）は従来どおり表示される
-// AC3: 「マスタから再取得」ボタン押下で、マスタの最新値がアプリソースへ反映される
+// AC3: 【v1.4 で撤去・m6-t10 へ移管】「マスタから再取得」機能自体を m6-t9 から撤去したため、当該テストも削除
 // AC6: 種別選択ボタン・プリセットボタンで、無効なボタンにのみ ContextHelp が表示され、有効なボタンには出ない
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
@@ -20,15 +20,6 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   return { app, page };
-}
-
-// AppEdit.vue の保存成功ハンドラは window.dialog.showMessageBox で OK ダイアログを出す
-// (:269)。実 OS ダイアログはヘッドレス Electron では応答が無く saving が finally まで
-// 戻らないため、m11-t4-master-detail.spec.ts の installDialogHarness と同型のスタブが必要
-async function installMessageBoxHarness(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
-    dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
-  });
 }
 
 async function fillAndCommit(locator: ReturnType<Page['getByTestId']>, value: string): Promise<void> {
@@ -124,70 +115,6 @@ test('m6-t9 AC1/AC6: provider kind hides url field in AppSourceEditor; ContextHe
     await expect(tmsSource).toBeVisible();
     await expect(tmsSource.getByTestId('app-source-url-field')).toBeVisible();
     await expect(tmsSource.getByTestId('app-source-url')).toHaveValue('https://example.com/{z}/{x}/{y}.png');
-
-    expect(pageErrors).toEqual([]);
-  } finally {
-    await quitElectronApplication(app);
-  }
-});
-
-test('m6-t9 AC3: refetch from master pulls the latest master value into the app source', async () => {
-  test.setTimeout(180_000);
-  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t9-ac3-'));
-  const { app, page } = await launch(e2eRoot);
-  await installMessageBoxHarness(app);
-  const pageErrors: string[] = [];
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-
-  try {
-    await seedE2EProviderKeys(page);
-
-    // AppEdit の既定言語は 'ja'（AppEdit.vue:221）のため、attr も ja キーで seed する
-    const slug = `m6t9-refetch-${Date.now()}`;
-    await seedBaseMap(page, slug, baseTmsDoc({
-      kind: 'google',
-      maptype: 'google_roadmap',
-      url: '',
-      attr: { ja: 'Old Attr' },
-    }));
-
-    // アプリを作成しソースを追加。追加直後は master の attr（Old Attr）がコピーされる
-    await page.evaluate(() => { location.hash = '/appedit'; });
-    await expect(page.getByTestId('app-id')).toBeVisible();
-    const appSlug = `m6t9-app-refetch-${Date.now()}`;
-    await fillAndCommit(page.getByTestId('app-id'), appSlug);
-    await fillAndCommit(page.getByTestId('app-title'), 'M6T9 Refetch App');
-    await page.getByTestId('app-sources-tab').click();
-    await page.getByTestId('app-basemap-mode').click();
-    await page.getByTestId('app-basemap-search').fill(slug);
-    await expect(page.getByTestId(`app-basemap-row-${slug}`)).toBeVisible();
-    await page.getByTestId(`app-basemap-row-${slug}`).click();
-    const source = page.getByTestId(`app-selected-source-${slug}`);
-    await expect(source.getByTestId('app-source-attr')).toHaveValue('Old Attr');
-
-    await expect(page.getByTestId('editor-save')).toBeEnabled();
-    await page.getByTestId('editor-save').click();
-    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 30_000 });
-    const savedAppUrl = page.url();
-
-    // マスタ側を編集して attr を更新（UI 経由。selectGooglePreset の attr 上書き防止を踏まえ、
-    // 既に非空の attr は自動上書きされないため手動で変更する）
-    await page.evaluate(() => { location.hash = '/basemaps'; });
-    await page.getByTestId(`basemap-row-${slug}`).click();
-    await expect(page.getByTestId('basemap-google-preset-group')).toBeVisible();
-    await fillAndCommit(page.getByTestId('basemap-attr'), 'New Attr');
-    await expect(page.getByTestId('editor-save')).toBeEnabled();
-    await page.getByTestId('editor-save').click();
-    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 30_000 });
-
-    // アプリ側へ戻り、再取得ボタンで最新値（New Attr）を取り込む
-    await page.evaluate((url: string) => { location.href = url; }, savedAppUrl);
-    await expect(page.getByTestId('app-sources-tab')).toBeVisible();
-    await page.getByTestId('app-sources-tab').click();
-    const reopenedSource = page.getByTestId(`app-selected-source-${slug}`);
-    await expect(reopenedSource.getByTestId('app-source-attr')).toHaveValue('Old Attr');
-    await reopenedSource.getByTestId('app-source-refetch-from-master').click();
-    await expect(reopenedSource.getByTestId('app-source-attr')).toHaveValue('New Attr');
 
     expect(pageErrors).toEqual([]);
   } finally {
