@@ -44,6 +44,8 @@ const EDITOR_ONLY_KEYS = new Set([
   // 種別軸（m6-t1）。エディタ識別子であり viewer が読むのは maptype。
   // 出力からの除去は compose 境界の単一責任（normalize は内部形として data.kind を保持する）。
   "kind",
+  // m6-t7: TileJSON 取り込み出自 URL。エディタ専用メタデータ（出自の記録のみ。再取得機能は m6 では作らない）。
+  "tileJsonSourceUrl",
 ]);
 
 // core側 normalizeArg はsnake_case等の旧キーを例外送出で拒否するため、
