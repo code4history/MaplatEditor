@@ -12,14 +12,20 @@
  * （実測: MaplatCore単体ビルドでは `Vs`、Maplat 経由の再ビルドでは `n1` 等、識別子は
  * ビルドのたびに変わり得る）。そのため関数名の literal grep ではなく、URL 自動補完の
  * ガード節という *構造* を identifier-agnostic な正規表現で検出する:
- *   /&&!\w+\(\w+\.maptype\)&&\(\w+\.url=/
+ *   /&&\s*!\w+\(\w+\.maptype\)\s*&&\s*\(\w+\.url\s*=/
  * この正規表現は、ガード対象の2箇所（WMTS 分岐×2）でのみ一致し、ガード対象外の
  * 3箇所目（genuine maplat map 用の自動補完）では一致しない（識別子非依存で確認済み）。
+ * 実装レビュー round3 Minor M-1: 当初 `\s*` を含めず minify（空白除去）済み UMD しか
+ * 想定していなかったため、空白を保持する ESM ビルド（`dist/maplat_core.js`）を検査できて
+ * いなかった。`\s*` を演算子の前後へ足し、UMD/ESM いずれの空白有無でも一致するよう強化した
+ * （UMD/ESM 両方で2件一致することを実測確認済み）。
  *
  * AC1: MaplatCore/dist/maplat_core.umd.js に signature が2箇所
  * AC2: node_modules/@maplat/ui/dist/maplat_ui.umd.js に signature が2箇所
  * AC3: public/preview/maplat_ui.umd.js に signature が2箇所
  * AC4: dist/preview/maplat_ui.umd.js に signature が2箇所（pnpm build 成果物）
+ * AC5: MaplatCore/dist/maplat_core.js（ESM・空白保持ビルド）に signature が2箇所
+ *      （round3 M-1 是正 — 当初 UMD のみ検査していた）
  */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -27,7 +33,7 @@ import path from "node:path";
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 
-const GUARD_SIGNATURE = /&&!\w+\(\w+\.maptype\)&&\(\w+\.url=/g;
+const GUARD_SIGNATURE = /&&\s*!\w+\(\w+\.maptype\)\s*&&\s*\(\w+\.url\s*=/g;
 const EXPECTED_COUNT = 2;
 
 async function grepCount(filePath) {
@@ -57,6 +63,11 @@ const checks = [
     id: "AC4",
     label: "dist/preview/maplat_ui.umd.js（pnpm build 成果物。ビルド未実行だと存在しない）",
     filePath: path.join(projectRoot, "dist/preview/maplat_ui.umd.js"),
+  },
+  {
+    id: "AC5",
+    label: "MaplatCore/dist/maplat_core.js（ESM・空白保持ビルド）",
+    filePath: path.join(projectRoot, "../MaplatCore/dist/maplat_core.js"),
   },
 ];
 
