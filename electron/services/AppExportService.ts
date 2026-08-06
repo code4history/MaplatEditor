@@ -52,6 +52,12 @@ export type ProviderKeyOverride = {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
 
+// m6-t8 §3.11: merc ソースの書き出しディレクトリ名衝突（同一名で異なる baseMapUid）の警告キー。
+// 既存の appedit.warn_* 警告キー群（PROVIDER_KEY_MISSING_WARNING/DUPLICATE_POI_REFERENCE_WARNING 等）
+// の命名規約に合わせる（設計書は appedit.errors.merc_name_collision としていたが、既存の appedit.errors.*
+// 名前空間は存在せず、警告チャネルはすべて appedit.warn_* を使っているため、実装時にこの規約へ揃えた）。
+export const MERC_NAME_COLLISION_WARNING = 'appedit.warn_merc_name_collision';
+
 function findExistingPath(candidates: string[]) {
   return candidates.find(candidate => fs.existsSync(candidate)) || candidates[0];
 }
@@ -213,6 +219,42 @@ class AppExportService {
       });
     const maplatSources = sources.filter(source => source.sourceType === 'maplat');
 
+    // m6-t8 §3.11: merc ソースの抽出（kind==='merc' かつ baseMapUid を持つ tms ソース）。
+    // url = "merc/{dirName}/{z}/{x}/{y}.png" からアプリソース選択時点のディレクトリ名を取り出す。
+    interface MercExportEntry { source: AppSource; baseMapUid: string; dirName: string; }
+    const mercEntries: MercExportEntry[] = [];
+    for (const source of sources) {
+      if (source.sourceType !== 'tms') continue;
+      const kind = source.data?.kind;
+      const baseMapUid = source.data?.baseMapUid;
+      if (kind !== 'merc' || typeof baseMapUid !== 'string') continue;
+      const url = String(source.data?.url ?? '');
+      const match = url.match(/^merc\/([^/]+)\//);
+      if (!match) continue; // 導出url形式でない(異常値)。既存の警告パターンと同じくskip
+      mercEntries.push({ source, baseMapUid, dirName: match[1] });
+    }
+    // 名前衝突診断: 同一 dirName で異なる baseMapUid を持つエントリを検出 (AC8)
+    const mercDirNameToUids = new Map<string, Set<string>>();
+    for (const entry of mercEntries) {
+      const set = mercDirNameToUids.get(entry.dirName) ?? new Set<string>();
+      set.add(entry.baseMapUid);
+      mercDirNameToUids.set(entry.dirName, set);
+    }
+    const conflictedMercDirNames = new Set(
+      [...mercDirNameToUids.entries()].filter(([, uids]) => uids.size > 1).map(([name]) => name),
+    );
+    if (conflictedMercDirNames.size > 0) {
+      mergeWarnings(warnings, [MERC_NAME_COLLISION_WARNING]);
+    }
+    // 衝突した dirName は最初の1件のみ実際にコピーする（後勝ちで無警告に上書きされないよう、
+    // 進捗事前計上と実コピーの両方でこの決定済み配列を共有する）
+    const mercCopiedDirNamesSeen = new Set<string>();
+    const mercEntriesToCopy = mercEntries.filter((entry) => {
+      if (conflictedMercDirNames.has(entry.dirName) && mercCopiedDirNamesSeen.has(entry.dirName)) return false;
+      mercCopiedDirNamesSeen.add(entry.dirName);
+      return true;
+    });
+
     // catch 節でエラー時の進捗モーダル片付け(MINOR-3)に使うため try の外で宣言する
     let reporter: ProgressReporter | undefined;
 
@@ -246,6 +288,11 @@ class AppExportService {
         const count = fs.existsSync(tileDir) ? await countTileFiles(tileDir) : 0;
         tileFileCounts.set(source, count);
         totalTileFiles += count;
+      }
+      // m6-t8: merc タイル数も進捗の事前計上へ織り込む（名前衝突で実コピーされないエントリは除く）
+      for (const entry of mercEntriesToCopy) {
+        const mercDir = path.join(this.saveFolder, 'merc', entry.baseMapUid);
+        totalTileFiles += fs.existsSync(mercDir) ? await countTileFiles(mercDir) : 0;
       }
 
       // 進捗: タイルファイル単位 + 地図ごとの残り作業(JSON書き出し/tmbコピー) + 固定ステップ(アセット/PWA/HTML)
@@ -361,6 +408,22 @@ class AppExportService {
         const thumb512 = path.join(this.saveFolder, 'tmbs', `${mapDoc.uid}_512.jpg`);
         if (fs.existsSync(thumb512)) {
           await fs.copy(thumb512, path.join(outDir, 'tmbs', `${slug}_512.jpg`));
+        }
+      }
+
+      // 2a) merc ソース: merc/{baseMapUid} → merc/{dirName} へコピーし、tilejson.json の
+      //     tiles[] をディレクトリ名入りへ差し替える (m6-t8 §3.11/§3.4・AC7/AC8)。
+      //     衝突した dirName は mercEntriesToCopy の時点で最初の1件のみに絞り込み済み。
+      for (const entry of mercEntriesToCopy) {
+        const mercDir = path.join(this.saveFolder, 'merc', entry.baseMapUid);
+        if (!fs.existsSync(mercDir)) continue; // タイル未生成(異常値)。既存tiles/tmbsと同型のsilent skip
+        const mercOutDir = path.join(outDir, 'merc', entry.dirName);
+        await copyTilesWithProgress(mercDir, mercOutDir, entry.dirName, reporter, progressState);
+        const tileJsonSrc = path.join(mercDir, 'tilejson.json');
+        if (fs.existsSync(tileJsonSrc)) {
+          const tileJson = await fs.readJson(tileJsonSrc);
+          tileJson.tiles = [`${entry.dirName}/{z}/{x}/{y}.png`];
+          await fs.outputJson(path.join(mercOutDir, 'tilejson.json'), tileJson);
         }
       }
 

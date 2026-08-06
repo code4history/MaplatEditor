@@ -665,6 +665,7 @@
     "poi_format_unsupported": "Data POI berada dalam format yang tidak didukung oleh editor (misalnya objek yang dikunci dengan nama lapisan). Data asli tidak akan hilang saat disimpan, tetapi pengeditan di tab ini dinonaktifkan dan tidak akan tercermin dalam pratinjau maupun ekspor.",
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "warn_icon_too_small": "Gambar sumber ikon PWA lebih kecil dari 512px, sehingga ikon yang dihasilkan mungkin tampak buram.",
+    "warn_merc_name_collision": "Beberapa set tile Mercator memiliki nama yang sama; hanya yang pertama yang diekspor.",
 
     "warn_provider_google_key_missing": "Peta latar Google tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
 
@@ -705,6 +706,21 @@
     "success_generation": "Pembuatan tile WMTS berhasil.",
     "generating_tile": "Sedang membuat tile WMTS.",
     "result_folder": "Hasil pembuatan akan dikeluarkan di bawah folder \"{{folder}}\"."
+  },
+  "merc": {
+    "tab_title": "Set Tile Mercator",
+    "tab_description": "Buat set tile Mercator dari pengaturan GCP peta ini dan daftarkan sebagai peta dasar.",
+    "generate": "Buat Tile Mercator",
+    "generate_not_ready": "Tidak dapat dijalankan karena pengaturan GCP belum lengkap, atau tile sudah mutakhir.",
+    "generating_tile": "Sedang membuat tile Mercator.",
+    "success_generation": "Pembuatan tile Mercator berhasil.",
+    "error_generation": "Terjadi kesalahan saat membuat tile Mercator.",
+    "default_title_suffix": "Tile Mercator",
+    "modal_title": "Pilih Set Tile Mercator",
+    "modal_select_description": "Ditemukan set tile Mercator yang sudah dibuat dari peta ini. Pilih salah satu untuk diperbarui, atau buat yang baru.",
+    "modal_create_new": "Buat Baru",
+    "modal_create_confirm": "Buat",
+    "modal_attr_help": "Anda dapat mengisinya nanti dari layar edit."
   },
   "menu": {
     "quit": "Keluar dari MaplatEditor",
@@ -1025,7 +1041,8 @@
       "pois": "Pilih POI",
       "maps": "Pilih peta",
       "preview": "Pratinjau",
-      "gcps_requires_image": "Daftarkan gambar peta terlebih dahulu"
+      "gcps_requires_image": "Daftarkan gambar peta terlebih dahulu",
+      "merc": "Tile Mercator"
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",

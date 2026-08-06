@@ -665,6 +665,7 @@
     "poi_format_unsupported": "Dữ liệu POI ở định dạng không được trình chỉnh sửa hỗ trợ (ví dụ đối tượng dùng tên lớp làm khóa). Dữ liệu gốc sẽ không bị mất khi lưu, nhưng việc chỉnh sửa trong thẻ này bị vô hiệu hóa và sẽ không được phản ánh trong bản xem trước hay xuất.",
     "warn_unresolved_icon": "Một số tham chiếu biểu tượng không thể phân giải và được giữ nguyên trong kết quả xuất.",
     "warn_icon_too_small": "Ảnh nguồn biểu tượng PWA nhỏ hơn 512px nên các biểu tượng được tạo có thể bị mờ.",
+    "warn_merc_name_collision": "Có nhiều bộ tile Mercator trùng tên; chỉ bộ đầu tiên được xuất ra.",
 
     "warn_provider_google_key_missing": "Bản đồ nền Google không được đưa vào vì chưa thiết lập khóa API. Hãy đăng ký khóa trình chỉnh sửa tại Cài đặt > Bản đồ nền, hoặc thiết lập khóa của ứng dụng.",
 
@@ -705,6 +706,21 @@
     "success_generation": "Tạo tile WMTS thành công.",
     "generating_tile": "Đang tạo tile WMTS.",
     "result_folder": "Kết quả tạo sẽ được xuất vào thư mục \"{{folder}}\"."
+  },
+  "merc": {
+    "tab_title": "Bộ tile Mercator",
+    "tab_description": "Tạo bộ tile Mercator từ thiết lập GCP của bản đồ này và đăng ký làm bản đồ nền.",
+    "generate": "Tạo tile Mercator",
+    "generate_not_ready": "Không thể thực hiện vì thiết lập GCP chưa hoàn tất, hoặc tile đã được cập nhật mới nhất.",
+    "generating_tile": "Đang tạo tile Mercator.",
+    "success_generation": "Tạo tile Mercator thành công.",
+    "error_generation": "Đã xảy ra lỗi khi tạo tile Mercator.",
+    "default_title_suffix": "Tile Mercator",
+    "modal_title": "Chọn bộ tile Mercator",
+    "modal_select_description": "Đã tìm thấy các bộ tile Mercator được tạo từ bản đồ này. Hãy chọn một bộ để cập nhật, hoặc tạo mới.",
+    "modal_create_new": "Tạo mới",
+    "modal_create_confirm": "Tạo",
+    "modal_attr_help": "Bạn có thể nhập sau tại màn hình chỉnh sửa."
   },
   "menu": {
     "quit": "Thoát MaplatEditor",
@@ -1025,7 +1041,8 @@
       "pois": "Chọn POI",
       "maps": "Chọn bản đồ",
       "preview": "Xem trước",
-      "gcps_requires_image": "Hãy đăng ký ảnh bản đồ trước"
+      "gcps_requires_image": "Hãy đăng ký ảnh bản đồ trước",
+      "merc": "Tile Mercator"
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",

@@ -513,26 +513,34 @@ try {
       const testImage = new Jimp({ width: 400, height: 300, color: 0xff0000ff });
       const imageBuffer = await testImage.getBuffer('image/jpeg');
 
+      // m6-t8 (AC12): targetBaseMapUid を引数列の末尾に追加（design review m-1: 末尾配置で
+      // 既存 string 引数との取り違えを防ぐ）。出力先は merc/{targetBaseMapUid}（旧 wmts/{mapID} ではない）
+      const TARGET_BASE_MAP_UID_H1 = 'ta111111-1111-4111-8111-111111111111';
       const UID_H1 = 'h1111111-1111-4111-8111-111111111111';
       await fs.writeFile(path.join(originalsDir, UID_H1 + '.jpg'), imageBuffer);
       const genH1 = await WmtsGeneratorService.generate(
-        undefined, UID_H1, 'h1-slug', 400, 300, wmtsCompiled, 'jpg', 'hash-h1'
+        undefined, UID_H1, 'h1-slug', 400, 300, wmtsCompiled, 'jpg', 'hash-h1', TARGET_BASE_MAP_UID_H1
       );
       assert.equal(genH1.err, undefined, 'canonical originals から解決できれば err は無いはず: ' + JSON.stringify(genH1.err));
       assert.equal(genH1.hash, 'hash-h1');
-      console.log('ok: (H-1) WmtsGeneratorService.generate(): resolves canonical originals/<uid>.<ext>');
+      assert.equal(genH1.tileJson?.tilejson, '3.0.0', 'm6-t8: 戻り値に TileJSON 3.0.0 文書が含まれるはず');
+      assert.deepEqual(genH1.tileJson?.tiles, ['{z}/{x}/{y}.png'], 'm6-t8: 生成時点の tiles は自己参照の相対パスのはず');
+      const mercTileRoot = path.join(originalsDir, '..', 'merc', TARGET_BASE_MAP_UID_H1);
+      assert.ok(await fs.pathExists(mercTileRoot), 'm6-t8: 出力先が merc/{targetBaseMapUid} 配下であるはず（旧 wmts/{mapID} ではない）');
+      assert.ok(await fs.pathExists(path.join(mercTileRoot, 'tilejson.json')), 'm6-t8: merc/{targetBaseMapUid}/tilejson.json が書かれるはず');
+      console.log('ok: (H-1) WmtsGeneratorService.generate(): resolves canonical originals/<uid>.<ext> and outputs merc/{targetBaseMapUid} + tilejson.json (m6-t8 AC1/AC2/AC12)');
 
       const UID_H2 = 'h2222222-2222-4222-8222-222222222222';
       await fs.writeFile(path.join(originalsDir, 'h2-legacy-slug.jpg'), imageBuffer);
       const genH2 = await WmtsGeneratorService.generate(
-        undefined, UID_H2, 'h2-legacy-slug', 400, 300, wmtsCompiled, 'jpg', 'hash-h2'
+        undefined, UID_H2, 'h2-legacy-slug', 400, 300, wmtsCompiled, 'jpg', 'hash-h2', 'ta222222-2222-4222-8222-222222222222'
       );
       assert.equal(genH2.err, undefined, 'canonical 不在でも一意な legacy へ fallback できれば err は無いはず: ' + JSON.stringify(genH2.err));
       console.log('ok: (H-2) WmtsGeneratorService.generate(): falls back to unique legacy originals/<slug>.<ext>');
 
       const UID_H3 = 'h3333333-3333-4333-8333-333333333333';
       const genH3 = await WmtsGeneratorService.generate(
-        undefined, UID_H3, 'h3-nothing-here', 400, 300, wmtsCompiled, 'jpg', 'hash-h3'
+        undefined, UID_H3, 'h3-nothing-here', 400, 300, wmtsCompiled, 'jpg', 'hash-h3', 'ta333333-3333-4333-8333-333333333333'
       );
       assert.ok(genH3.err, 'canonical/legacy とも解決できなければ err が返るはず');
       assert.ok(

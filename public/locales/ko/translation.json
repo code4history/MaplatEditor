@@ -665,6 +665,7 @@
     "poi_format_unsupported": "POI 데이터가 에디터에서 지원하지 않는 형식입니다(레이어 이름을 키로 하는 객체 형식 등). 저장해도 원본 데이터는 사라지지 않지만, 이 탭에서의 편집은 비활성화되며 미리보기나 내보내기에는 반영되지 않습니다.",
     "warn_unresolved_icon": "해석할 수 없는 아이콘 참조가 있어 원래 값 그대로 출력했습니다.",
     "warn_icon_too_small": "PWA 아이콘 원본 이미지가 512px보다 작아 생성된 아이콘이 흐릿하게 보일 수 있습니다.",
+    "warn_merc_name_collision": "동일한 이름의 메르카토르 타일 세트가 여러 개 있어 첫 번째 항목만 내보냈습니다.",
 
     "warn_provider_google_key_missing": "API 키가 설정되지 않아 Google 배경 지도가 포함되지 않습니다. 설정 > 베이스맵에서 에디터용 키를 등록하거나 앱의 키를 설정하세요.",
 
@@ -705,6 +706,21 @@
     "success_generation": "WMTS 타일 생성에 성공했습니다.",
     "generating_tile": "WMTS 타일을 생성하는 중입니다.",
     "result_folder": "생성 결과는 \"{{folder}}\" 폴더 아래에 출력됩니다."
+  },
+  "merc": {
+    "tab_title": "메르카토르 타일 세트",
+    "tab_description": "이 지도의 GCP 설정으로부터 메르카토르 타일 세트를 생성하여 베이스맵으로 등록합니다.",
+    "generate": "메르카토르 타일 생성",
+    "generate_not_ready": "GCP 설정이 완료되지 않았거나 이미 최신 상태로 생성되어 있어 실행할 수 없습니다.",
+    "generating_tile": "메르카토르 타일을 생성하는 중입니다.",
+    "success_generation": "메르카토르 타일 생성에 성공했습니다.",
+    "error_generation": "메르카토르 타일 생성 중 오류가 발생했습니다.",
+    "default_title_suffix": "메르카토르 타일",
+    "modal_title": "메르카토르 타일 세트 선택",
+    "modal_select_description": "이 지도로부터 생성된 메르카토르 타일 세트가 있습니다. 갱신할 항목을 선택하거나 새로 만드세요.",
+    "modal_create_new": "새로 만들기",
+    "modal_create_confirm": "생성",
+    "modal_attr_help": "나중에 편집 화면에서 입력할 수 있습니다."
   },
   "menu": {
     "quit": "MaplatEditor 종료",
@@ -1025,7 +1041,8 @@
       "pois": "POI 선택",
       "maps": "지도 선택",
       "preview": "미리보기",
-      "gcps_requires_image": "먼저 지도 이미지를 등록하세요"
+      "gcps_requires_image": "먼저 지도 이미지를 등록하세요",
+      "merc": "메르카토르 타일"
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",

@@ -4,6 +4,11 @@
 // の存在を assert する。本スモークはコード側の「削除禁止」注記が誤って失われていないこと、
 // および翻訳ファイルから休眠専用キーが誤って削除されていないことを検出する回帰テスト。
 //
+// m6-t8 (2026-08-06): WMTS 生成部分（#1 コメント文言の一部・#11 wmtsGenerate・#13
+// WmtsGeneratorService クラス・#17 preload.ts wmtsGen bridge）が到達可能になったことに伴い、
+// 該当4箇所の assert を「到達可能になった」旨の新文言へ更新した。CSV インポート関連（#1 の
+// 残り・#2-#10・#12・#14-#16・#18）は無改修のまま。
+//
 // 参照: docs/superpowers/specs/2026-07-25-m12-t22-data-io-dormant-preservation-design.md
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -20,13 +25,16 @@ try {
 
   const mapEdit = await readProjectFile('src/views/MapEdit.vue');
 
-  // #1 パネル本体（v-show wrapper 全体を覆うブロックコメント）
+  // #1 パネル本体（v-show wrapper 全体を覆うブロックコメント）。m6-t8: WMTS生成部分がmercタブへ
+  // 分離・移設されたことに伴い、文言を「CSVインポートは削除禁止・WMTS生成部分は到達可能になった」へ更新
   assert.match(
     mapEdit,
     /<!-- 旧実装 mapedit\.html L\.274-375[\s\S]{0,80}<!--\s*\n\s*M12-T22: 本ブロックへのUI導線はM11-T3で意図的に撤去済み[\s\S]{0,600}v-show="activeTab === 'inout'"/,
     '#1 Data IO パネル本体のブロックコメントが欠落している',
   );
-  assert.match(mapEdit, /dataio\.\* 全28キー・wmtsgenerate\.\* 全5キー・mapedit\.export_map_data/, '#1 ブロックコメントの i18n キー削除禁止明記が欠落している');
+  assert.match(mapEdit, /dataio\.\* 全28キー・\n\s*mapedit\.export_map_data/, '#1 ブロックコメントの dataio.* i18n キー削除禁止明記が欠落している');
+  assert.match(mapEdit, /WMTS生成部分（旧実装 mapedit\.html の同タブ下部）はm6-t8で新規\n\s*「メルカトルタイル」タブへ分離・移設済み/, '#1 ブロックコメントのWMTS生成部分移設明記が欠落している');
+  assert.match(mapEdit, /wmtsgenerate\.\* 5キーは新規mercタブ側で引き続き使用する/, '#1 ブロックコメントのwmtsgenerate.*継続使用明記が欠落している');
 
   // #2 mainLayerHash（computed）
   assert.match(
@@ -91,11 +99,11 @@ try {
     '#10 updateWholeGcps の保全注記が欠落している',
   );
 
-  // #11 wmtsGenerate()
+  // #11 wmtsGenerate(): m6-t8でMapEdit.vueの新規mercタブから到達可能になった（関数名は維持）
   assert.match(
     mapEdit,
-    /vueMap\.\$on\('wmtsGenerate'\) 相当\n\/\/ M12-T22: 休眠パネル専用（削除禁止・M4-\(2\)へ転用予定）\n\/\/ 有効条件: wmtsEditReady\nconst wmtsGenerate = async/,
-    '#11 wmtsGenerate の保全注記が欠落している',
+    /vueMap\.\$on\('wmtsGenerate'\) 相当\n\/\/ M12-T22: 本ロジックはm6-t8でMapEdit\.vueの新規「メルカトルタイル」タブから到達可能になった\n\/\/ （M12-T22が転用予定としていたM4-\(2\)に対応）。関数名\(wmtsGenerate\)は維持し、呼び出し元の\n\/\/ ボタンのみ休眠inoutタブから新規mercタブへ移設した（設計 §3\.2）。有効条件: wmtsEditReady\n[\s\S]{0,300}async function wmtsGenerate\(\): Promise<void> \{/,
+    '#11 wmtsGenerate の保全注記が欠落している（m6-t8で到達可能へ更新後の文言）',
   );
 
   // #12 uploadCsv()
@@ -105,11 +113,11 @@ try {
     '#12 uploadCsv の保全注記が欠落している',
   );
 
-  // #13 WmtsGeneratorService（クラス全体）
+  // #13 WmtsGeneratorService（クラス全体）: m6-t8で新規mercタブから到達可能になった
   const wmtsService = await readProjectFile('electron/services/WmtsGeneratorService.ts');
   assert.match(
     wmtsService,
-    /\/\/ M12-T22: 本クラスへのUI導線はM11-T3で意図的に撤去済み[\s\S]{0,400}class WmtsGeneratorService \{/,
+    /\/\/ M12-T22: 本クラスへのUI導線はM11-T3で撤去されていたが、m6-t8でMapEdit\.vueの[\s\S]{0,400}class WmtsGeneratorService \{/,
     '#13 WmtsGeneratorService クラスの保全注記が欠落している',
   );
   // m4-tin-v2-mode-smoke が依存する行に保全コメントが割り込んでいないことも同時に確認
@@ -144,7 +152,7 @@ try {
   );
   assert.match(
     preload,
-    /\/\/ M12-T22: 休眠パネル専用（削除禁止・M4-\(2\)へ転用予定）\ncontextBridge\.exposeInMainWorld\('wmtsGen', \{/,
+    /\/\/ M12-T22: m6-t8でMapEdit\.vueの新規「メルカトルタイル」タブから到達可能になった\ncontextBridge\.exposeInMainWorld\('wmtsGen', \{/,
     '#17 preload.ts wmtsGen bridge の保全注記が欠落している',
   );
 

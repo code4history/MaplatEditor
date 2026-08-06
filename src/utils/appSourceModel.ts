@@ -46,6 +46,9 @@ const EDITOR_ONLY_KEYS = new Set([
   "kind",
   // m6-t7: TileJSON 取り込み出自 URL。エディタ専用メタデータ（出自の記録のみ。再取得機能は m6 では作らない）。
   "tileJsonSourceUrl",
+  // m6-t8: merc 選択時に付与するベースマップ UID。書き出し時の merc/{uid} 解決専用（§3.7）。
+  // normalizeAppSource/composeViewerSource いずれの分岐にも影響しないため kind のような退避は不要。
+  "baseMapUid",
 ]);
 
 // core側 normalizeArg はsnake_case等の旧キーを例外送出で拒否するため、
@@ -233,6 +236,10 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   const rawData = raw?.data && typeof raw.data === "object" ? raw.data : raw;
   // 種別軸（m6-t1）: kind は EDITOR_ONLY_KEYS に入るため strip 後には存在しない。よって strip 前に退避する。
   const rawKind = raw?.kind ?? rawData?.kind;
+  // m6-t8: baseMapUid も EDITOR_ONLY_KEYS に入るため strip 後には存在しない。AppExportService の
+  // merc 抽出（§3.11）が sources[].data.baseMapUid を読むため、kind と同じく strip 前に退避し、
+  // 内部表現（AppSource.data）には残す。viewer 出力（composeViewerSource）からは除去したままにする。
+  const rawBaseMapUid = raw?.baseMapUid ?? rawData?.baseMapUid;
   const data = stripEditorKeys(normalizeRuntimeKeys({ ...(rawData || {}) })) as Record<string, any>;
   // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (ADR-0007)
   const mapRef = raw?.mapUid || raw?.mapID || data.mapID || "";
@@ -285,6 +292,8 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   // normalize→compose の連鎖を通るため、ここで保持しないと compose の rawKind が空になる
   // （設計 v2.1 Critical 対応）。viewer 出力からの除去は compose 境界の EDITOR_ONLY_KEYS が担う。
   if (rawKind != null) data.kind = rawKind;
+  // m6-t8: baseMapUid を再付着する（kind と同じ「strip 前退避→内部表現へ再付着」パターン）
+  if (rawBaseMapUid != null) data.baseMapUid = rawBaseMapUid;
   return {
     sourceType: "tms",
     mapUid: mapRef,

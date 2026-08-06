@@ -498,9 +498,13 @@ const KIND_OPTIONS: readonly BaseMapKind[] = ["tms", "google", "mapbox", "maplib
 // 読み込み。null = 「まだ取得できていない」（安全側 disabled）。取得完了で文字列（空文字含む）へ
 const editorGoogleApiKey = ref<string | null>(null);
 const editorMapboxToken = ref<string | null>(null);
+// m6-t8 §3.10: merc マスタは url を保存していないため、file:// でのタイル解決に
+// データフォルダの絶対パスが要る。既存の共通取得経路（SettingsService.get('saveFolder')）を使う
+const dataFolderPath = ref<string | null>(null);
 onMounted(async () => {
   editorGoogleApiKey.value = (await window.settings.get("editorGoogleApiKey")) || "";
   editorMapboxToken.value = (await window.settings.get("editorMapboxToken")) || "";
+  dataFolderPath.value = (await window.settings.get("saveFolder")) || "";
 });
 function editorKeyFor(k: BaseMapKind): string | null {
   if (k === "google") return editorGoogleApiKey.value;
@@ -954,6 +958,15 @@ async function prepareForDelete(): Promise<void> {
 defineExpose({ prepareForDelete });
 
 const overlayTms = computed(() => {
+  // m6-t8 §3.10: merc は url が保存されていないため、実行時に file:// を都度導出する（保存はしない）
+  if (document.value.kind === "merc") {
+    if (!document.value.uid || !dataFolderPath.value) return null;
+    return {
+      url: `file://${dataFolderPath.value}/merc/${document.value.uid}/{z}/{x}/{y}.png`,
+      minZoom: document.value.minZoom ?? undefined,
+      maxZoom: document.value.maxZoom ?? undefined,
+    };
+  }
   const url = document.value.url.trim();
   if (!(url.includes("{z}") && url.includes("{x}") && (url.includes("{y}") || url.includes("{-y}")))) return null;
   return { url, minZoom: document.value.minZoom ?? undefined, maxZoom: document.value.maxZoom ?? undefined };

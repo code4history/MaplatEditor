@@ -2698,6 +2698,23 @@ class SqliteDataService {
     this.withTransaction(db, () => {
       this.deleteBaseMapRow(db, String(existing.uid));
     });
+    // m6-t8 §3.12 (ADR-0016): DB delete 成功後、merc タイルを best-effort 削除する。
+    // MapDeleteTrashService と同型のパターン（rollback しない・個別 try/catch + console.warn）。
+    // 元地図（sourceMapUid の参照先）の削除ではこのステップは発火しない（ベースマップ削除専用）。
+    let data: any = null;
+    try {
+      data = existing.data_json ? JSON.parse(String(existing.data_json)) : null;
+    } catch {
+      data = null;
+    }
+    if (data && data.kind === 'merc') {
+      const mercDir = path.join(this.folders.saveFolder, 'merc', String(existing.uid));
+      try {
+        if (await fs.pathExists(mercDir)) await fs.remove(mercDir);
+      } catch (e: any) {
+        console.warn(`[SqliteDataService] failed to remove merc tile dir: ${mercDir}`, e);
+      }
+    }
   }
 
   private deleteBaseMapRow(db: DatabaseSync, uid: string): void {

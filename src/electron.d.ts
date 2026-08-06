@@ -326,6 +326,29 @@ export interface MapEditAPI {
     onProgress(listener: (progress: any) => void): () => void;
 }
 
+// m6-t8 §3.4: 生成される TileJSON 3.0.0 文書の renderer 側型
+export interface MercTileJsonDocument {
+    tilejson: '3.0.0';
+    tiles: [string];
+    minzoom: number;
+    maxzoom: number;
+    bounds: [number, number, number, number];
+}
+
+// m6-t8: メルカトルタイル生成。従来 (window as any).wmtsGen として呼ばれていたが型付けする
+export interface WmtsGenAPI {
+    generate(
+        uid: string,
+        mapID: string,
+        width: number,
+        height: number,
+        tinSerial: any,
+        extKey: string,
+        hash: string,
+        targetBaseMapUid: string,
+    ): Promise<{ hash: string; tileJson?: MercTileJsonDocument; err?: any }>;
+}
+
 declare global {
   interface Window {
     settings: SettingsAPI;
@@ -342,6 +365,7 @@ declare global {
     imageAssets: ImageAssetsAPI;
     slugReservations: SlugReservationApi;
     search: SearchAPI;
+    wmtsGen: WmtsGenAPI;
     isE2E: boolean;
     testDebug?: any;
   }

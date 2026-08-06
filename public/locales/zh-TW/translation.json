@@ -665,6 +665,7 @@
     "poi_format_unsupported": "POI 資料的格式不受編輯器支援（例如以圖層名稱為鍵的物件形式）。儲存時原始資料不會遺失，但此分頁中的編輯將被停用，且不會反映到匯出或預覽中。",
     "warn_unresolved_icon": "部分圖示引用無法解析，已按原值輸出。",
     "warn_icon_too_small": "PWA圖示來源圖片小於512px，產生的圖示可能會模糊。",
+    "warn_merc_name_collision": "有多個麥卡托圖磚集使用相同名稱，僅匯出了第一個。",
 
     "warn_provider_google_key_missing": "由於未設定 API 金鑰，Google 背景地圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
 
@@ -705,6 +706,21 @@
     "success_generation": "WMTS圖磚產生成功。",
     "generating_tile": "正在產生WMTS圖磚。",
     "result_folder": "產生結果將輸出至「{{folder}}」資料夾下。"
+  },
+  "merc": {
+    "tab_title": "麥卡托圖磚集",
+    "tab_description": "根據此地圖的控制點設定產生麥卡托圖磚集，並將其註冊為底圖。",
+    "generate": "產生麥卡托圖磚",
+    "generate_not_ready": "由於控制點設定未完成，或圖磚已是最新狀態，無法執行。",
+    "generating_tile": "正在產生麥卡托圖磚。",
+    "success_generation": "麥卡托圖磚產生成功。",
+    "error_generation": "產生麥卡托圖磚時發生錯誤。",
+    "default_title_suffix": "麥卡托圖磚",
+    "modal_title": "選擇麥卡托圖磚集",
+    "modal_select_description": "找到了由此地圖產生的麥卡托圖磚集。請選擇要更新的項目，或新增一個。",
+    "modal_create_new": "新增",
+    "modal_create_confirm": "建立",
+    "modal_attr_help": "您可以稍後在編輯畫面中填寫。"
   },
   "menu": {
     "quit": "結束MaplatEditor",
@@ -1025,7 +1041,8 @@
       "pois": "POI選擇",
       "maps": "地圖選擇",
       "preview": "預覽",
-      "gcps_requires_image": "請先登錄地圖圖像"
+      "gcps_requires_image": "請先登錄地圖圖像",
+      "merc": "麥卡托圖磚"
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",

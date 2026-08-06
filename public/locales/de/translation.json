@@ -665,6 +665,7 @@
     "poi_format_unsupported": "Die POI-Daten liegen in einem vom Editor nicht unterstützten Format vor (z. B. ein Objekt mit Ebenennamen als Schlüssel). Die Originaldaten gehen beim Speichern nicht verloren, aber die Bearbeitung in diesem Tab ist deaktiviert und die Daten werden nicht in Vorschau oder Export berücksichtigt.",
     "warn_unresolved_icon": "Einige Symbolverweise konnten nicht aufgelöst werden und wurden unverändert ausgegeben.",
     "warn_icon_too_small": "Das Quellbild des PWA-Symbols ist kleiner als 512px, daher können die generierten Symbole unscharf wirken.",
+    "warn_merc_name_collision": "Mehrere Mercator-Kachelsätze hatten denselben Namen; nur der erste wurde exportiert.",
 
     "warn_provider_google_key_missing": "Die Google-Hintergrundkarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
 
@@ -705,6 +706,21 @@
     "success_generation": "Die WMTS-Kacheln wurden erfolgreich erzeugt.",
     "generating_tile": "WMTS-Kacheln werden erzeugt.",
     "result_folder": "Die Ergebnisse werden im Ordner „{{folder}}“ abgelegt."
+  },
+  "merc": {
+    "tab_title": "Mercator-Kachelsatz",
+    "tab_description": "Erzeugen Sie aus den GCP-Einstellungen dieser Karte einen Mercator-Kachelsatz und registrieren Sie ihn als Basiskarte.",
+    "generate": "Mercator-Kacheln erzeugen",
+    "generate_not_ready": "Kann nicht ausgeführt werden, da die GCP-Einrichtung unvollständig ist oder die Kacheln bereits aktuell sind.",
+    "generating_tile": "Mercator-Kacheln werden erzeugt.",
+    "success_generation": "Die Mercator-Kacheln wurden erfolgreich erzeugt.",
+    "error_generation": "Bei der Erzeugung der Mercator-Kacheln ist ein Fehler aufgetreten.",
+    "default_title_suffix": "Mercator-Kacheln",
+    "modal_title": "Mercator-Kachelsatz auswählen",
+    "modal_select_description": "Für diese Karte wurden bereits erzeugte Mercator-Kachelsätze gefunden. Wählen Sie einen zum Aktualisieren aus oder erstellen Sie einen neuen.",
+    "modal_create_new": "Neu erstellen",
+    "modal_create_confirm": "Erstellen",
+    "modal_attr_help": "Sie können dies später im Bearbeitungsbildschirm ausfüllen."
   },
   "menu": {
     "quit": "MaplatEditor beenden",
@@ -1025,7 +1041,8 @@
       "pois": "POIs auswählen",
       "maps": "Karten auswählen",
       "preview": "Vorschau",
-      "gcps_requires_image": "Zuerst ein Kartenbild registrieren"
+      "gcps_requires_image": "Zuerst ein Kartenbild registrieren",
+      "merc": "Mercator-Kacheln"
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",

@@ -7,24 +7,72 @@ import { BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { resolveRuntimeOriginal } from './MapOriginalImageService';
+import { mercatorBboxToWgs84 } from '../utils/webMercator';
 
 const MERC_MAX = 20037508.342789244;
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 interface PixelColor { r: number; g: number; b: number; a: number; }
 
-// M12-T22: 本クラスへのUI導線はM11-T3で意図的に撤去済み（MapEdit.vueの休眠
-// Data IOパネル内 wmtsGenerate() のみが window.wmtsGen.generate 経由で呼び出す）。
-// ロジックは削除禁止 — M4-(2)（既存Maplat定義→WMTS出力→ベースマップ登録）へ
-// 転用予定。参照する i18n キー（wmtsgenerate.* 全5キー、public/locales/*/
-// translation.json）も同様に削除禁止（§3.4参照）。
+// m6-t8: TileJSON 3.0.0 出力の型（tiles は生成時点で自己参照の相対パス1本。
+// 書き出し時に AppExportService 側でディレクトリ名入りへ差し替える。設計 §3.4）
+export interface TileJsonDocument {
+    tilejson: '3.0.0';
+    tiles: [string];
+    minzoom: number;
+    maxzoom: number;
+    bounds: [number, number, number, number];
+}
+
+// m6-t8 §3.4: タイル範囲（最大ズームでの west/east/north/south タイル index）から
+// TileJSON の bounds（経緯度 [west, south, east, north]）を導出する。
+// メルカトル座標への変換は既存 mercatorBboxToWgs84（electron/utils/webMercator.ts）を
+// そのまま再利用し、新規の逆変換ロジックは書かない（design review M-1）。
+export function computeMercTileBounds(
+    tileXw: number,
+    tileXe: number,
+    tileYn: number,
+    tileYs: number,
+    maxZoom: number,
+): [number, number, number, number] {
+    const tilesPerSide = Math.pow(2, maxZoom);
+    const unit = (2 * MERC_MAX) / tilesPerSide;
+    const mercXWest = tileXw * unit - MERC_MAX;
+    const mercXEast = (tileXe + 1) * unit - MERC_MAX;
+    const mercYNorth = MERC_MAX - tileYn * unit;
+    const mercYSouth = MERC_MAX - (tileYs + 1) * unit;
+    return mercatorBboxToWgs84([mercXWest, mercYSouth, mercXEast, mercYNorth]);
+}
+
+// m6-t8 §3.4: merc/{targetBaseMapUid}/tilejson.json として書き出す TileJSON 文書を組み立てる
+export function buildMercTileJson(
+    tileXw: number,
+    tileXe: number,
+    tileYn: number,
+    tileYs: number,
+    minZoom: number,
+    maxZoom: number,
+): TileJsonDocument {
+    return {
+        tilejson: '3.0.0',
+        tiles: ['{z}/{x}/{y}.png'],
+        minzoom: minZoom,
+        maxzoom: maxZoom,
+        bounds: computeMercTileBounds(tileXw, tileXe, tileYn, tileYs, maxZoom),
+    };
+}
+
+// M12-T22: 本クラスへのUI導線はM11-T3で撤去されていたが、m6-t8でMapEdit.vueの
+// 新規「メルカトルタイル」タブから到達可能になった（M12-T22が転用予定としていた
+// M4-(2)に対応）。ロジック・i18nキー（wmtsgenerate.* 全5キー、public/locales/*/
+// translation.json）は削除しない（§3.4参照）。
 // 詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
 class WmtsGeneratorService {
     private get folders() {
         const saveFolder = SettingsService.get('saveFolder') as string;
         return {
             originalFolder: path.join(saveFolder, 'originals'),
-            wmtsFolder:     path.join(saveFolder, 'wmts'),
+            mercFolder:     path.join(saveFolder, 'merc'),
         };
     }
 
@@ -36,14 +84,15 @@ class WmtsGeneratorService {
         height: number,
         tinSerial: any,
         extKey: string,
-        hash: string
-    ): Promise<{ hash: string; err?: any }> {
+        hash: string,
+        targetBaseMapUid: string
+    ): Promise<{ hash: string; tileJson?: TileJsonDocument; err?: any }> {
         try {
             const tin = new Tin(TIN_V2_OPTIONS);
             tin.setCompiled(tinSerial);
 
             extKey = extKey || 'jpg';
-            const { wmtsFolder } = this.folders;
+            const { mercFolder } = this.folders;
             // M13-T2 (§5.4): originals の runtime read は canonical(uid キー)-first、
             // canonical 不在時のみ一意な legacy(slug キー) fallback で解決する
             const resolved = await resolveRuntimeOriginal(uid, mapID, extKey);
@@ -54,7 +103,8 @@ class WmtsGeneratorService {
                 return { hash, err: new Error(`originals.unresolved: failed to resolve runtime original for uid=${uid} slug=${mapID}`) };
             }
             const imagePath = resolved.path;
-            const tileRoot  = path.join(wmtsFolder, mapID);
+            // m6-t8 (ADR-0016): タイルの所有者は元地図ではなく出力先ベースマップの UID
+            const tileRoot  = path.join(mercFolder, targetBaseMapUid);
 
             // --- 原版と同じ: 4隅を変換して zoom 計算 ---
             const lt = tin.transform([0,     0      ], false, true) as number[];
@@ -136,7 +186,12 @@ class WmtsGeneratorService {
                 reporter.update(i + 1);
             }
 
-            return { hash };
+            // m6-t8 §3.4: 生成時点で tilejson.json を書く（tiles は自己参照の相対パス。
+            // 書き出し時のディレクトリ名はまだ定まっていないため、後で AppExportService 側が差し替える）
+            const tileJson = buildMercTileJson(tileXw, tileXe, tileYn, tileYs, minZoom, maxZoom);
+            await fs.outputJson(path.join(tileRoot, 'tilejson.json'), tileJson);
+
+            return { hash, tileJson };
         } catch (err: any) {
             console.error('[WmtsGeneratorService] generate error', err);
             return { hash, err };

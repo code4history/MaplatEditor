@@ -1,11 +1,27 @@
 import fs from 'fs-extra';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
 import { dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
 
 const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
+
+// m6-t8 §3.10: merc マスタのタイル URL は file:// で渡ってくる。Node の fetch()/undici は
+// file: スキームを解決できないため、file:// のときだけ fs.readFile で直接読む分岐を持つ。
+async function readTile(url: string): Promise<Buffer> {
+  if (url.startsWith('file://')) {
+    return fs.readFile(fileURLToPath(url));
+  }
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(10000),
+    // 識別可能なUAを明示する(既定のnode UAを拒否するタイルサーバー対策も兼ねる)
+    headers: { 'User-Agent': 'MaplatEditor (https://github.com/code4history/MaplatEditor)' },
+  });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  return Buffer.from(await res.arrayBuffer());
+}
 
 type UploadResult = {
   err?: string;
@@ -209,18 +225,10 @@ class AppAssetService {
           .replace('{y}', String(ty))
           .replace('{-y}', String(range.n - 1 - ty));
         fetches.push(
-          fetch(url, {
-            signal: AbortSignal.timeout(10000),
-            // 識別可能なUAを明示する(既定のnode UAを拒否するタイルサーバー対策も兼ねる)
-            headers: { 'User-Agent': 'MaplatEditor (https://github.com/code4history/MaplatEditor)' },
-          })
-            .then(async (res) => {
-              if (res.ok) return { tx, ty, buffer: Buffer.from(await res.arrayBuffer()) };
-              failures.push(`${res.status} ${url}`);
-              return null;
-            })
+          readTile(url)
+            .then((buffer) => ({ tx, ty, buffer }))
             .catch((e) => {
-              failures.push(`${e?.name || 'fetch error'} ${url}`);
+              failures.push(`${e?.message || e?.name || 'fetch error'} ${url}`);
               return null;
             })
         );

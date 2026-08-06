@@ -665,6 +665,7 @@
     "poi_format_unsupported": "Les données POI sont dans un format non pris en charge par l'éditeur (par exemple un objet indexé par nom de couche). Les données d'origine ne sont pas perdues à l'enregistrement, mais l'édition dans cet onglet est désactivée et elles ne seront pas prises en compte dans l'aperçu ni l'export.",
     "warn_unresolved_icon": "Certaines références d’icônes n’ont pas pu être résolues et ont été conservées telles quelles dans la sortie.",
     "warn_icon_too_small": "L'image source de l'icône PWA fait moins de 512px, les icônes générées peuvent donc paraître floues.",
+    "warn_merc_name_collision": "Plusieurs jeux de tuiles Mercator partageaient le même nom ; seul le premier a été exporté.",
 
     "warn_provider_google_key_missing": "Le fond de carte Google n'est pas inclus car aucune clé API n'est définie. Enregistrez une clé d'éditeur dans Paramètres > Fond de carte, ou définissez la clé de l'application.",
 
@@ -705,6 +706,21 @@
     "success_generation": "La génération des tuiles WMTS a réussi.",
     "generating_tile": "Génération des tuiles WMTS en cours.",
     "result_folder": "Les résultats générés sont exportés dans le dossier « {{folder}} »."
+  },
+  "merc": {
+    "tab_title": "Jeu de tuiles Mercator",
+    "tab_description": "Générez un jeu de tuiles Mercator à partir des GCP de cette carte et enregistrez-le comme fond de carte.",
+    "generate": "Générer les tuiles Mercator",
+    "generate_not_ready": "Impossible d'exécuter : la configuration des GCP est incomplète ou les tuiles sont déjà à jour.",
+    "generating_tile": "Génération des tuiles Mercator en cours.",
+    "success_generation": "La génération des tuiles Mercator a réussi.",
+    "error_generation": "Une erreur s'est produite lors de la génération des tuiles Mercator.",
+    "default_title_suffix": "Tuiles Mercator",
+    "modal_title": "Sélectionner un jeu de tuiles Mercator",
+    "modal_select_description": "Des jeux de tuiles Mercator déjà générés à partir de cette carte ont été trouvés. Choisissez-en un à mettre à jour, ou créez-en un nouveau.",
+    "modal_create_new": "Créer un nouveau",
+    "modal_create_confirm": "Créer",
+    "modal_attr_help": "Vous pourrez le renseigner plus tard depuis l'écran d'édition."
   },
   "menu": {
     "quit": "Quitter MaplatEditor",
@@ -1025,7 +1041,8 @@
       "pois": "Sélectionner les POI",
       "maps": "Sélectionner les cartes",
       "preview": "Aperçu",
-      "gcps_requires_image": "Enregistrez d'abord l'image de la carte"
+      "gcps_requires_image": "Enregistrez d'abord l'image de la carte",
+      "merc": "Tuiles Mercator"
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",

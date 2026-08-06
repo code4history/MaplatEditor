@@ -138,6 +138,9 @@ interface MapListItem {
 }
 
 interface BaseMapItem {
+  // m6-t8: 実行時には BaseMapCatalogItem 由来の値が既に渡ってきているが、型定義に uid が
+  // 欠落していたため実態に合わせる（既存の型不一致。実害なし・merc の baseMapUid 導出に必要）
+  uid: string;
   mapID: string;
   scope: "builtin" | "user";
   data: any;
@@ -1054,8 +1057,16 @@ function addBaseMapSource(item: BaseMapItem) {
   if (appData.value.sources.some((source) => source.mapUid === item.mapID && source.sourceType !== "maplat")) return;
   // builtinを含め、マスタの全言語resource/提供範囲等はApp文書へ独立コピーする。
   // Viewer出力時だけbuiltinは従来どおり文字列IDへ畳み込む。
+  // m6-t8 §3.7: merc は url を保存していないため、選択時点の slug(=item.mapID) から導出し、
+  // 導出元ベースマップ UID を baseMapUid として持たせる（書き出し時の merc/{uid} 解決に使う）
+  const isMerc = (item.data?.kind as string | undefined) === "merc";
+  const derivedUrl = isMerc ? `merc/${item.mapID}/{z}/{x}/{y}.png` : undefined;
   const source = createAppSourceFromBaseMap(
-    { mapID: item.mapID, ...(item.data || {}) },
+    {
+      mapID: item.mapID,
+      ...(item.data || {}),
+      ...(isMerc ? { url: derivedUrl, baseMapUid: item.uid } : {}),
+    },
     appData.value.lang,
   ) as AppSource;
   source.thumbnail = item.thumbnailUrl || undefined;

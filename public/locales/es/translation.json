@@ -665,6 +665,7 @@
     "poi_format_unsupported": "Los datos de POI están en un formato no compatible con el editor (por ejemplo, un objeto indexado por nombre de capa). Los datos originales no se pierden al guardar, pero la edición en esta pestaña está deshabilitada y no se reflejarán en la vista previa ni en la exportación.",
     "warn_unresolved_icon": "Algunas referencias de iconos no se pudieron resolver y se mantuvieron sin cambios en la salida.",
     "warn_icon_too_small": "La imagen de origen del icono PWA es menor de 512px, por lo que los iconos generados pueden verse borrosos.",
+    "warn_merc_name_collision": "Varios conjuntos de teselas de Mercator compartían el mismo nombre; solo se exportó el primero.",
 
     "warn_provider_google_key_missing": "El mapa de fondo de Google no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
 
@@ -705,6 +706,21 @@
     "success_generation": "Las teselas WMTS se generaron correctamente.",
     "generating_tile": "Generando teselas WMTS.",
     "result_folder": "Los resultados generados se exportan en la carpeta «{{folder}}»."
+  },
+  "merc": {
+    "tab_title": "Conjunto de teselas de Mercator",
+    "tab_description": "Genere un conjunto de teselas de Mercator a partir de los GCP de este mapa y regístrelo como mapa base.",
+    "generate": "Generar teselas de Mercator",
+    "generate_not_ready": "No se puede ejecutar porque la configuración de GCP está incompleta o las teselas ya están actualizadas.",
+    "generating_tile": "Generando teselas de Mercator.",
+    "success_generation": "Las teselas de Mercator se generaron correctamente.",
+    "error_generation": "Se ha producido un error al generar las teselas de Mercator.",
+    "default_title_suffix": "Teselas de Mercator",
+    "modal_title": "Seleccionar conjunto de teselas de Mercator",
+    "modal_select_description": "Se encontraron conjuntos de teselas de Mercator ya generados a partir de este mapa. Elija uno para actualizarlo o cree uno nuevo.",
+    "modal_create_new": "Crear nuevo",
+    "modal_create_confirm": "Crear",
+    "modal_attr_help": "Puede completarlo más tarde desde la pantalla de edición."
   },
   "menu": {
     "quit": "Salir de MaplatEditor",
@@ -1025,7 +1041,8 @@
       "pois": "Seleccionar POIs",
       "maps": "Seleccionar mapas",
       "preview": "Vista previa",
-      "gcps_requires_image": "Registre primero la imagen del mapa"
+      "gcps_requires_image": "Registre primero la imagen del mapa",
+      "merc": "Teselas de Mercator"
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",

@@ -49,6 +49,9 @@ export interface BaseMapEditDocument {
   // m6-t7: TileJSON URL からの取り込みで埋まった場合の出自 URL。null = 未取り込み（手動作成/tiles編集）。
   // EDITOR_ONLY_KEYS 経由で viewer 出力からは除去される（appSourceModel.ts §3.3）。再取得機能は m6 では作らない。
   tileJsonSourceUrl: string | null;
+  // m6-t8: merc マスタが生成元とした地図の UID。参照整合性は課さない出自メモ（AC11）。
+  // EDITOR_ONLY_KEYS 経由で viewer 出力からは除去される（appSourceModel.ts §3.7）。
+  sourceMapUid: string | null;
   // 種別軸（m6-t1）。null = 未選択（新規作成直後のみ）。data に保持し AppSource.sourceType 軸は拡張しない。
   kind: BaseMapKind | null;
   // Google プリセット値（m6-t4）。kind === "google" のときのみ非 null。
@@ -103,6 +106,8 @@ export interface BaseMapSavePayload {
     coverageLngLats: [number, number][] | null;
     // m6-t7: TileJSON 取り込み出自 URL。無条件出力（coverageLngLats と同型。EDITOR_ONLY_KEYS で strip）
     tileJsonSourceUrl: string | null;
+    // m6-t8: merc 生成元地図の UID。無条件出力（tileJsonSourceUrl と同型。EDITOR_ONLY_KEYS で strip）
+    sourceMapUid: string | null;
     // m6-t4: kind === "google" のときのみ出力 / m6-t5: mapbox/maplibre のとき viewer 向け maptype + style
     maptype?: string;
     style?: string;
@@ -239,6 +244,7 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
     thumbnail: typeof data.thumbnail === "string" ? data.thumbnail : "",
     coverageLngLats: coverage(data.coverageLngLats),
     tileJsonSourceUrl: typeof data.tileJsonSourceUrl === "string" ? data.tileJsonSourceUrl : null,
+    sourceMapUid: typeof data.sourceMapUid === "string" ? data.sourceMapUid : null,
     kind,
     maptype: normalizeGoogleMaptype(data.maptype, kind),
     style: normalizeStyle(data.style, kind),
@@ -266,6 +272,7 @@ export function newBaseMapDocument(uid: string, lang: LangCode): BaseMapEditDocu
     thumbnail: "",
     coverageLngLats: null,
     tileJsonSourceUrl: null,
+    sourceMapUid: null,
     kind: null,
     maptype: null,
     style: null,
@@ -346,6 +353,7 @@ export function toBaseMapSavePayload(
       thumbnail: document.thumbnail,
       coverageLngLats: document.coverageLngLats?.map(([lng, lat]) => [lng, lat]) ?? null,
       tileJsonSourceUrl: document.tileJsonSourceUrl,
+      sourceMapUid: document.sourceMapUid,
       // m6-t4: kind === "google" のときのみ maptype を出力
       ...(document.kind === "google" && document.maptype ? { maptype: document.maptype } : {}),
       // m6-t5: mapbox/maplibre は viewer 向け maptype + style を data に載せる（AC23-b: 単一 spread）

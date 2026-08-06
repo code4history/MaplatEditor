@@ -23,7 +23,8 @@ import noImage from '../assets/img/no_image.png';
 import osmThumb from '../assets/img/osm.png';
 import gsiThumb from '../assets/img/gsi.png';
 import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
-import { envelopeToBbox, resolveBaseMapSelectorText } from '../utils/appSourceModel';
+import { envelopeToBbox, resolveBaseMapSelectorText, bboxToEnvelope } from '../utils/appSourceModel';
+import MercTileSetModal, { type MercExistingEntry } from '../components/mapedit/MercTileSetModal.vue';
 import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
@@ -3791,41 +3792,144 @@ const exportMap = async () => {
     }
 };
 
-// 旧実装: vueMap.$on('wmtsGenerate') 相当
-// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
-// 有効条件: wmtsEditReady
-const wmtsGenerate = async () => {
+// m6-t8 §3.8/§3.9: メルカトルタイル生成フロー本体（targetBaseMapUid 確定後の実処理）。
+interface MercGenerationTarget {
+    mode: 'new' | 'existing';
+    uid: string;
+    slug: string;
+    title: string;
+    attr: string;
+}
+const mercModalVisible = ref(false);
+const mercExistingEntries = ref<MercExistingEntry[]>([]);
+const mercExistingItemsRaw = ref<Array<{ uid: string; mapID: string; data: any; revision: number }>>([]);
+const mercNewUid = ref('');
+const mercDefaultTitle = computed(() => `${title.value || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
+const mercDefaultSlug = computed(() => `merc-${mapData.value.mapID}`);
+
+async function generateMercTileSet(target: MercGenerationTarget): Promise<void> {
     if (!tinObjects.value[0] || typeof tinObjects.value[0] === 'string') return;
-    modalShow('wmtsgenerate.generating_tile');
+    // wmtsEditReady（呼び出し前提）が mainLayerHash の真値を要求するため実質到達しないが、
+    // window.wmtsGen.generate() の hash 引数が string 必須のため型を絞る
+    if (!mainLayerHash.value) return;
+    modalShow('merc.generating_tile');
     const unsubscribe = window.mapedit.onProgress((progress) => {
         modalProgress(progress.text, progress.percent, progress.progress);
     });
     try {
-        // 旧実装: window.wmtsGen.generate(vueMap.mapID, vueMap.width, vueMap.height, vueMap.tinObjects[0].getCompiled(), vueMap.imageExtension, vueMap.mainLayerHash)
-        // M13-T2 (§5.4): uid を先頭引数に追加 (canonical-first runtime read に必要)
-        const arg = await (window as any).wmtsGen.generate(
+        // m6-t8 §3.3: targetBaseMapUid は引数列の末尾（design review m-1: 隣接 string 引数との取り違え防止）
+        const arg = await window.wmtsGen.generate(
             mapData.value.uid,
             mapData.value.mapID,
             mapData.value.width,
             mapData.value.height,
             JSON.parse(JSON.stringify(tinObjects.value[0].getCompiled())),
             mapData.value.imageExtension || 'jpg',
-            mainLayerHash.value
+            mainLayerHash.value,
+            target.uid,
         );
-        if (arg.err) {
-            console.error('[wmtsGenerate]', arg.err);
-            modalFinish('wmtsgenerate.error_generation');
-        } else {
-            // 旧実装: vueMap.wmtsHash = arg.hash
-            mapData.value.wmtsHash = arg.hash;
-            // U22（設計 §5.5）: await を跨いで着地した編集の明示確定
-            commitHistorySnapshot();
-            modalFinish('wmtsgenerate.success_generation');
+        if (arg.err || !arg.tileJson) {
+            console.error('[generateMercTileSet]', arg.err);
+            modalFinish('merc.error_generation');
+            return;
         }
+        // 旧実装 wmtsGenerate() と同じ: wmtsHash フィールド名は不変(ADR-0015)。U22 (§5.5) の
+        // await 跨ぎ確定パターンも踏襲する
+        mapData.value.wmtsHash = arg.hash;
+        commitHistorySnapshot();
+        const coverageLngLats = bboxToEnvelope(arg.tileJson.bounds);
+        const lang = mapData.value.lang || 'ja';
+        if (target.mode === 'new') {
+            await window.baseMaps.saveUser({
+                uid: target.uid,
+                slug: target.slug,
+                create: true,
+                tms: {
+                    kind: 'merc',
+                    lang,
+                    title: { [lang]: target.title },
+                    label: { [lang]: target.title },
+                    attr: { [lang]: target.attr },
+                    dataAttr: {},
+                    license: '',
+                    dataLicense: '',
+                    licenseNote: {},
+                    dataLicenseNote: {},
+                    url: '',
+                    minZoom: arg.tileJson.minzoom,
+                    maxZoom: arg.tileJson.maxzoom,
+                    thumbnail: '',
+                    coverageLngLats,
+                    tileJsonSourceUrl: null,
+                    sourceMapUid: mapData.value.uid,
+                },
+            });
+        } else {
+            // 既存マスタ更新: title/attr等の人手編集済みメタデータは保持し、タイル生成結果のみ上書きする
+            const existingItem = mercExistingItemsRaw.value.find((item) => item.uid === target.uid);
+            if (existingItem) {
+                // Vue reactive Proxy は structured clone できず IPC 送信で失敗するため、
+                // JSON 往復で plain object へ剥がしてから渡す（appSourceModel.ts の
+                // createAppSourceFromBaseMap と同型のパターン）
+                const plainData = JSON.parse(JSON.stringify(existingItem.data));
+                await window.baseMaps.saveUser({
+                    uid: target.uid,
+                    slug: existingItem.mapID,
+                    expectedRevision: existingItem.revision,
+                    tms: { ...plainData, minZoom: arg.tileJson.minzoom, maxZoom: arg.tileJson.maxzoom, coverageLngLats },
+                });
+            }
+        }
+        modalFinish('merc.success_generation');
+    } catch (cause) {
+        console.error('[generateMercTileSet]', cause);
+        modalFinish('merc.error_generation');
     } finally {
         unsubscribe();
     }
-};
+}
+
+// 旧実装: vueMap.$on('wmtsGenerate') 相当
+// M12-T22: 本ロジックはm6-t8でMapEdit.vueの新規「メルカトルタイル」タブから到達可能になった
+// （M12-T22が転用予定としていたM4-(2)に対応）。関数名(wmtsGenerate)は維持し、呼び出し元の
+// ボタンのみ休眠inoutタブから新規mercタブへ移設した（設計 §3.2）。有効条件: wmtsEditReady
+// 「生成」ボタン押下時: 既存 merc マスタ(この地図由来)を window.baseMaps.list() のclient-side
+// フィルタで取得する(新規IPCなし。m6-t9の前例に倣う)。0件なら黙って新規作成、1件以上ならモーダルで選ばせる
+async function wmtsGenerate(): Promise<void> {
+    if (!mapData.value.uid) return;
+    const list = await window.baseMaps.list();
+    const matched = list.filter((item) => item.data?.kind === 'merc' && item.data?.sourceMapUid === mapData.value.uid);
+    mercExistingItemsRaw.value = matched;
+    mercExistingEntries.value = matched.map((item) => ({
+        uid: item.uid,
+        title: resolveBaseMapSelectorText(item.data, currentLang.value),
+        slug: item.mapID,
+    }));
+    mercNewUid.value = crypto.randomUUID();
+    if (matched.length === 0) {
+        await generateMercTileSet({
+            mode: 'new',
+            uid: mercNewUid.value,
+            slug: mercDefaultSlug.value,
+            title: mercDefaultTitle.value,
+            attr: '',
+        });
+        return;
+    }
+    mercModalVisible.value = true;
+}
+
+function onMercModalCancel(): void {
+    mercModalVisible.value = false;
+}
+async function onMercSelectExisting(uid: string): Promise<void> {
+    mercModalVisible.value = false;
+    await generateMercTileSet({ mode: 'existing', uid, slug: '', title: '', attr: '' });
+}
+async function onMercCreateNew(payload: { uid: string; slug: string; title: string; attr: string }): Promise<void> {
+    mercModalVisible.value = false;
+    await generateMercTileSet({ mode: 'new', ...payload });
+}
 
 // 旧実装: vueMap.$on('uploadCsv') 相当
 // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
@@ -3954,6 +4058,7 @@ const goBack = async () => {
                     { key: 'gcps', labelKey: 'editor_ui.tabs.gcps', disabled: !gcpsEditReady, disabledReasonKey: 'editor_ui.tabs.gcps_requires_image', testid: 'map-tab-gcps' },
                     { key: 'settings', labelKey: 'editor_ui.tabs.base_maps', testid: 'map-tab-settings' },
                     { key: 'pois', labelKey: 'editor_ui.tabs.pois', testid: 'map-tab-pois' },
+                    { key: 'merc', labelKey: 'editor_ui.tabs.merc', testid: 'map-tab-merc' },
                 ]"
                 @update:model-value="activeTab = $event"
             />
@@ -4329,11 +4434,12 @@ const goBack = async () => {
             <!-- 旧実装 mapedit.html L.274-375 の wmtsTab に完全準拠 -->
             <!--
               M12-T22: 本ブロックへのUI導線はM11-T3で意図的に撤去済み（activeTabを'inout'へ
-              設定する経路が存在しない）。ロジックは削除禁止 — CSV GCPインポートはM12-T23で
-              再編復帰予定、WMTS生成はM4-(2)（既存Maplat定義→WMTS出力→ベースマップ登録）へ
-              転用予定。本ブロックが参照する i18n キー（public/locales/*/translation.json の
-              dataio.* 全28キー・wmtsgenerate.* 全5キー・mapedit.export_map_data）も同様に
-              削除禁止（JSON側にコメント記載不可のため本注記が唯一の防御線。§3.4参照）。
+              設定する経路が存在しない）。CSV GCPインポート部分のロジックは削除禁止 — M12-T23で
+              再編復帰予定。WMTS生成部分（旧実装 mapedit.html の同タブ下部）はm6-t8で新規
+              「メルカトルタイル」タブへ分離・移設済み（M4-(2)対応）。本ブロックが参照する i18n
+              キー（public/locales/*/translation.json の dataio.* 全28キー・
+              mapedit.export_map_data）も削除禁止（JSON側にコメント記載不可のため本注記が
+              唯一の防御線。§3.4参照）。wmtsgenerate.* 5キーは新規mercタブ側で引き続き使用する。
               詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
             -->
             <div v-show="activeTab === 'inout'" class="h-100 overflow-auto p-4">
@@ -4450,20 +4556,40 @@ const goBack = async () => {
                                     :disabled="!!saveError || isDirty"
                                     @click="exportMap">{{ t("mapedit.export_map_data") }}</button>
                         </div>
-                        <hr>
-                        <!-- WMTS 生成 -->
-                        <!-- 旧実装: v-bind:disabled="!wmtsEditReady" -->
-                        <div class="mb-2">
-                            <label class="form-label d-block">{{ t("wmtsgenerate.generate") }}</label>
-                            <button type="button" class="btn btn-secondary"
-                                    :disabled="!wmtsEditReady"
-                                    @click="wmtsGenerate">{{ t("wmtsgenerate.generate") }}</button>
-                        </div>
-                        <p class="small text-muted text-end">
-                            {{ t("wmtsgenerate.result_folder", { folder: mapData.wmtsFolder }) }}
-                        </p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Tab: Mercator Tile Set (m6-t8 §3.2: 休眠inoutタブのWMTS生成部分をここへ分離・移設。
+                 CSVインポートはinoutタブ側に残す。生成ロジック自体(wmtsGenerate)は不変・呼び出し元のみ移動) -->
+            <div v-show="activeTab === 'merc'" class="h-100 overflow-auto p-4" data-testid="map-merc-tab-pane">
+                <div class="card">
+                    <div class="card-header bg-light fw-bold">{{ t("merc.tab_title") }}</div>
+                    <div class="card-body">
+                        <p class="text-muted small">{{ t("merc.tab_description") }}</p>
+                        <!-- 旧実装 wmtsGenerate() の有効条件をそのまま踏襲 -->
+                        <div class="mb-2">
+                            <button type="button" class="btn btn-secondary" data-testid="merc-generate-button"
+                                    :disabled="!wmtsEditReady"
+                                    @click="wmtsGenerate">{{ t("merc.generate") }}</button>
+                            <DiagnosticFeedback
+                                v-if="!wmtsEditReady"
+                                scope="field"
+                                :items="[{ key: 'merc-not-ready', severity: 'info', message: t('merc.generate_not_ready') }]"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <MercTileSetModal
+                    :visible="mercModalVisible"
+                    :existing-entries="mercExistingEntries"
+                    :default-title="mercDefaultTitle"
+                    :default-slug="mercDefaultSlug"
+                    :new-uid="mercNewUid"
+                    @select-existing="onMercSelectExisting"
+                    @create-new="onMercCreateNew"
+                    @cancel="onMercModalCancel"
+                />
             </div>
 
             <!-- Tab: Base map settings -->

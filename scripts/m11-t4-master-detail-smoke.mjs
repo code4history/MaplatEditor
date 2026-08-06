@@ -139,6 +139,8 @@ try {
       coverageLngLats: null,
       // m6-t7: tileJsonSourceUrl は無条件出力（coverageLngLats と同型）
       tileJsonSourceUrl: null,
+      // m6-t8 (AC13): sourceMapUid も無条件出力（同型）
+      sourceMapUid: null,
     },
   });
 

@@ -655,6 +655,7 @@
     "poi_format_unsupported": "POIデータがエディタ未対応の形式です（レイヤ名をキーにしたオブジェクト形式など）。元のデータは保存しても失われませんが、このタブでの編集は無効化され、プレビューやエクスポートには反映されません。",
     "warn_unresolved_icon": "解決できないアイコン参照があったため、元の値のまま出力しました。",
     "warn_icon_too_small": "PWAアイコン元画像が512pxより小さいため、生成されるアイコンが粗くなる可能性があります。",
+    "warn_merc_name_collision": "同じ名前で異なるメルカトルタイルセットが複数あったため、最初の1件のみ書き出しました。",
     "warn_provider_google_key_missing": "Google の背景地図は API キー未設定のため含まれません。設定 > ベースマップ でエディタ用キーを登録するか、アプリのキーを設定してください。",
     "warn_provider_mapbox_key_missing": "Mapbox の背景地図は API キー未設定のため含まれません。設定 > ベースマップ でエディタ用キーを登録するか、アプリのキーを設定してください。",
     "export_key_prompt_title": "公開用 API キーの入力",
@@ -688,6 +689,21 @@
     "success_generation": "WMTSタイル生成に成功しました。",
     "generating_tile": "WMTSタイル生成中です。",
     "result_folder": "生成結果は\"{{folder}}\"フォルダの下に出力されます。"
+  },
+  "merc": {
+    "tab_title": "メルカトルタイルセット",
+    "tab_description": "この地図のGCP設定からメルカトルタイルセットを生成し、ベースマップとして登録します。",
+    "generate": "メルカトルタイル生成",
+    "generate_not_ready": "GCP設定が未完了、または既に最新の状態で生成済みのため実行できません。",
+    "generating_tile": "メルカトルタイル生成中です。",
+    "success_generation": "メルカトルタイル生成に成功しました。",
+    "error_generation": "メルカトルタイル生成でエラーが発生しました。",
+    "default_title_suffix": "メルカトルタイル",
+    "modal_title": "メルカトルタイルセットの選択",
+    "modal_select_description": "この地図から生成済みのメルカトルタイルセットが見つかりました。更新するものを選ぶか、新規に作成してください。",
+    "modal_create_new": "新規作成",
+    "modal_create_confirm": "作成",
+    "modal_attr_help": "後から編集画面で入力できます。"
   },
   "menu": {
     "quit": "MaplatEditorを終了",
@@ -1010,7 +1026,8 @@
       "pois": "POI選択",
       "maps": "地図選択",
       "preview": "プレビュー",
-      "gcps_requires_image": "先に地図画像を登録してください"
+      "gcps_requires_image": "先に地図画像を登録してください",
+      "merc": "メルカトルタイル"
     },
     "untitled": "タイトル未設定"
   },

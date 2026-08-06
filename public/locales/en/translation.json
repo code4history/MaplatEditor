@@ -656,6 +656,7 @@
     "poi_format_unsupported": "The POI data is in a format not supported by the editor (for example an object keyed by layer name). The original data is not lost when you save, but editing in this tab is disabled and it will not be reflected in previews or exports.",
     "warn_unresolved_icon": "Some icon references could not be resolved and were left unchanged in the output.",
     "warn_icon_too_small": "The PWA icon source image is smaller than 512px, so generated icons may look blurry.",
+    "warn_merc_name_collision": "Multiple Mercator tile sets shared the same name; only the first one was exported.",
 
     "warn_provider_google_key_missing": "The Google background map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
 
@@ -696,6 +697,21 @@
     "success_generation": "WMTS tile generation succeeded.",
     "generating_tile": "WMTS tiles are being generated.",
     "result_folder": "Generated results are outputted under \"{{folder}}\" folder."
+  },
+  "merc": {
+    "tab_title": "Mercator Tile Set",
+    "tab_description": "Generate a Mercator tile set from this map's GCP settings and register it as a base map.",
+    "generate": "Generate Mercator Tiles",
+    "generate_not_ready": "Cannot run because GCP setup is incomplete, or tiles are already up to date.",
+    "generating_tile": "Mercator tiles are being generated.",
+    "success_generation": "Mercator tile generation succeeded.",
+    "error_generation": "Error in Mercator tile generation.",
+    "default_title_suffix": "Mercator Tiles",
+    "modal_title": "Select Mercator Tile Set",
+    "modal_select_description": "Existing Mercator tile sets generated from this map were found. Choose one to update, or create a new one.",
+    "modal_create_new": "Create New",
+    "modal_create_confirm": "Create",
+    "modal_attr_help": "You can fill this in later from the edit screen."
   },
   "menu": {
     "quit": "Quit MaplatEditor",
@@ -1027,7 +1043,8 @@
       "pois": "Select POIs",
       "maps": "Select Maps",
       "preview": "Preview",
-      "gcps_requires_image": "Register a map image first"
+      "gcps_requires_image": "Register a map image first",
+      "merc": "Mercator Tiles"
     },
     "untitled": "Untitled"
   },

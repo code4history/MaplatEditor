@@ -72,11 +72,12 @@ contextBridge.exposeInMainWorld('dataupload', {
   showDataSelectDialog: () => ipcRenderer.invoke('dataupload:showDataSelectDialog'),
 })
 
-// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
+// M12-T22: m6-t8でMapEdit.vueの新規「メルカトルタイル」タブから到達可能になった
 contextBridge.exposeInMainWorld('wmtsGen', {
   // M13-T2 (§5.4/§7): uid 追加。runtime read の canonical-first 解決に必要
-  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string) =>
-    ipcRenderer.invoke('wmtsGen:generate', uid, mapID, width, height, tinSerial, extKey, hash),
+  // m6-t8: targetBaseMapUid を末尾に追加（出力先ベースマップの UID。ADR-0016）
+  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string, targetBaseMapUid: string) =>
+    ipcRenderer.invoke('wmtsGen:generate', uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid),
 })
 
 // 旧実装: window.mapupload 相当
