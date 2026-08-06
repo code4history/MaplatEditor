@@ -157,12 +157,13 @@ class AppPreviewService {
   private async purgePreviewStorage(): Promise<void> {
     if (!this.port) return;
     try {
-      await session.defaultSession.clearStorageData({
-        // m6-t6 hotfix H-B: 返却 URL(localhost) と揃えないと別オリジン扱いになり、
-        // Weiwudi タイルキャッシュ等が消えずプレビュー間で残留する
-        origin: `http://localhost:${this.port}`,
-        storages: ['indexdb', 'serviceworkers', 'cachestorage'],
-      });
+      const storages: Array<'indexdb' | 'serviceworkers' | 'cachestorage'> =
+        ['indexdb', 'serviceworkers', 'cachestorage'];
+      // m6-t6 hotfix H-B/N-1: 返却 URL は localhost だが、H-B 適用前の 127.0.0.1 オリジンにも
+      // 過去のプレビュー由来ストレージ(Weiwudi タイルキャッシュ等)が残っている可能性があるため、
+      // アップグレード後もその旧オリジン分が永久に purge 対象外へ落ちないよう両方を消す
+      await session.defaultSession.clearStorageData({ origin: `http://localhost:${this.port}`, storages });
+      await session.defaultSession.clearStorageData({ origin: `http://127.0.0.1:${this.port}`, storages });
     } catch (e) {
       console.error('[AppPreviewService] failed to purge preview storage', e);
     }
