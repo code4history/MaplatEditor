@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { seedE2EProviderKeys } from './helpers/providerKeys';
+import { assertRowThumbnailRendered } from './helpers/resourceThumbnail';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 // m1-t6（45782）・開発者実行中（41781）と衝突しない固定ポート
@@ -90,6 +91,30 @@ test('m6-t5 AC16: maplibre マスタ保存 → プレビュー HTML へ maplibre
     await expect(page.getByTestId('editor-save')).toBeEnabled();
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
+
+    // m6-t4a AC5: 一覧行の既定サムネイルが実描画される（保存直後、/basemaps master-detail の左ペインに残る）
+    await assertRowThumbnailRendered(page, 'e2e-m6t5-maplibre');
+
+    // m6-t4a AC5: mapbox は selectKind の既定サムネ設定（BaseMapEdit.vue:516,518）を通すため
+    // IPC seed ではなく UI 経由で作成する（IPC seed は thumbnail が空のまま残る）。
+    // エディタ用 Mapbox トークンはこのテスト冒頭の seedE2EProviderKeys(page) で
+    // BaseMapEdit の唯一のマウント点（直前の maplibre 作成時の basemap-new）より前に
+    // 既に設定済みのため、ここで追加の鍵設定は不要
+    await page.getByTestId('basemap-new').click();
+    await expect(page.getByTestId('basemap-kind-mapbox')).toBeEnabled();
+    await page.getByTestId('basemap-kind-mapbox').click();
+    await expect(page.getByTestId('basemap-kind-mapbox')).toHaveClass(/btn-primary/);
+    await expect(page.getByTestId('basemap-style-url')).toBeVisible();
+    await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-m6t5-mapbox-thumb');
+    await fillAndCommit(page.getByTestId('basemap-title'), 'MBサムネ確認');
+    await fillAndCommit(page.getByTestId('basemap-attr'), '© Mapbox');
+    await fillAndCommit(page.getByTestId('basemap-style-url'), 'mapbox://styles/mapbox/streets-v12');
+    await expect(page.getByTestId('editor-save')).toBeEnabled();
+    await page.getByTestId('editor-save').click();
+    await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
+
+    // m6-t4a AC5: mapbox 行の既定サムネイルが実描画される
+    await assertRowThumbnailRendered(page, 'e2e-m6t5-mapbox-thumb');
 
     // 保存データに maptype/style が載っている（AC2 の永続化側）
     const master = await page.evaluate(async () => {

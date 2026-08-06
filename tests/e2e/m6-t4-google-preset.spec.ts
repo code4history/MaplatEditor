@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { seedE2EProviderKeys } from './helpers/providerKeys';
+import { assertRowThumbnailRendered } from './helpers/resourceThumbnail';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const PRESETS = [
@@ -114,6 +115,8 @@ test('Google preset: select/save/reload, URL hidden, uniqueness UI', async () =>
     await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
 
     await page.getByTestId(`basemap-row-${slug}`).click();
+    // m6-t4a AC5: 一覧行の既定サムネイルが実描画される（クリック直後、行はまだ左ペインに残る）
+    await assertRowThumbnailRendered(page, slug);
     await expect(page.getByTestId('basemap-google-preset-group')).toBeVisible();
     await expect(page.getByTestId('basemap-google-preset-roadmap')).toHaveClass(/btn-primary/);
     await expect(page.getByTestId('basemap-url')).toHaveCount(0);

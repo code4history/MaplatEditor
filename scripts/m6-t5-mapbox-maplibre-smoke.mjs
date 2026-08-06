@@ -1,12 +1,14 @@
 /**
  * m6-t5 smoke: style 契約 / CDN 共通モジュール / peerDeps / wiring
  * m11-t4 と同様に vite で contracts をバンドルして検証する。
+ * m6-t4a AC1/AC3: AC13 ブロックへ単色プレースホルダ検出・寸法検証を追加
  */
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { Jimp } from "jimp";
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
@@ -17,6 +19,30 @@ const outDir = path.join(workDir, "dist");
 
 const modulePath = (relativePath) =>
   JSON.stringify(path.join(projectRoot, relativePath));
+
+// m6-t4a 設計 §4.3: 単色プレースホルダでないことの検証（6x6 グリッドサンプルで distinct 色数を数える）
+async function assertNotSolidColor(filePath, label) {
+  const img = await Jimp.read(filePath);
+  const { width, height } = img.bitmap;
+  const seen = new Set();
+  const steps = 6;
+  for (let i = 0; i < steps; i++) {
+    for (let j = 0; j < steps; j++) {
+      const x = Math.min(width - 1, Math.floor((width / steps) * i));
+      const y = Math.min(height - 1, Math.floor((height / steps) * j));
+      seen.add(img.getPixelColor(x, y));
+    }
+  }
+  assert.ok(seen.size >= 4, `${label}: 単色プレースホルダの疑い（distinct=${seen.size}）`);
+}
+
+// m6-t4a 設計 §4.3: 寸法検証（assertNotSolidColor とは独立に Jimp.read する）
+async function assertDimensions(filePath, expected, label) {
+  const img = await Jimp.read(filePath);
+  const { width, height } = img.bitmap;
+  assert.equal(width, expected, `${label}: 幅が ${expected}px でない（実測 ${width}px）`);
+  assert.equal(height, expected, `${label}: 高さが ${expected}px でない（実測 ${height}px）`);
+}
 
 await import("node:fs/promises").then(({ writeFile }) =>
   writeFile(
@@ -265,6 +291,22 @@ const base = {
       stat(path.join(projectRoot, "public/basemap_icons", name)),
     );
     assert.equal(st.isFile(), true, `AC13: basemap_icons/${name} 存在`);
+  }
+
+  // ---- m6-t4a AC1: 単色プレースホルダでないこと・52px寸法（basemap_icons/） ----
+  for (const name of ["mapbox.png", "maplibre.png"]) {
+    const icon = path.join(projectRoot, "public/basemap_icons", name);
+    await assertNotSolidColor(icon, `${name} (52px)`);
+    await assertDimensions(icon, 52, `${name} (52px)`);
+  }
+
+  // ---- m6-t4a AC2/AC9: 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
+  for (const name of ["mapbox.png", "maplibre.png"]) {
+    const icon512 = path.join(projectRoot, "public/basemap_icons_512", name);
+    const st512 = await import("node:fs/promises").then(({ stat }) => stat(icon512));
+    assert.equal(st512.isFile(), true, `${name} (512px) 存在`);
+    await assertNotSolidColor(icon512, `${name} (512px)`);
+    await assertDimensions(icon512, 512, `${name} (512px)`);
   }
 }
 
