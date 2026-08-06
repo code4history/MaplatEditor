@@ -669,7 +669,10 @@
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Search maps…",
-    "warn_mixed_pois": "The POI data mixes GeoJSON and non-GeoJSON formats. It may not display correctly in the viewer. Convert legacy-format POIs to GeoJSON."
+    "warn_mixed_pois": "The POI data mixes GeoJSON and non-GeoJSON formats. It may not display correctly in the viewer. Convert legacy-format POIs to GeoJSON.",
+    "provider_source_note": "The tile URL is built automatically from the API key and type, so no manual input is needed.",
+    "refetch_from_master": "Refetch from master",
+    "refetch_master_not_found": "The referenced base map master could not be found (it may have been deleted)."
   },
   "mapmodel": {
     "untitled": "Untitled",

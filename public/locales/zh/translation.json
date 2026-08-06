@@ -678,7 +678,10 @@
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "搜索地图…",
-    "warn_mixed_pois": "POI 数据中混杂了 GeoJSON 格式与其他格式，可能无法在查看器中正确显示。请将旧格式 POI 转换为 GeoJSON。"
+    "warn_mixed_pois": "POI 数据中混杂了 GeoJSON 格式与其他格式，可能无法在查看器中正确显示。请将旧格式 POI 转换为 GeoJSON。",
+    "provider_source_note": "瓦片URL会根据API密钥和类型自动构建，无需手动输入。",
+    "refetch_from_master": "从主数据重新获取",
+    "refetch_master_not_found": "找不到引用的底图主数据（可能已被删除）。"
   },
   "mapmodel": {
     "untitled": "标题未设置",

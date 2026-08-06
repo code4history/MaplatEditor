@@ -678,7 +678,10 @@
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Buscar mapas…",
-    "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON."
+    "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON.",
+    "provider_source_note": "La URL del mosaico se genera automáticamente a partir de la clave de API y el tipo, por lo que no es necesario introducirla manualmente.",
+    "refetch_from_master": "Volver a obtener desde el maestro",
+    "refetch_master_not_found": "No se pudo encontrar el mapa base maestro referenciado (es posible que haya sido eliminado)."
   },
   "mapmodel": {
     "untitled": "Título no establecido",

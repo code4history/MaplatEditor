@@ -678,7 +678,10 @@
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Rechercher des cartes…",
-    "warn_mixed_pois": "Les données POI mélangent le format GeoJSON et d'autres formats. Elles risquent de ne pas s'afficher correctement dans la visionneuse. Convertissez les POI à l'ancien format en GeoJSON."
+    "warn_mixed_pois": "Les données POI mélangent le format GeoJSON et d'autres formats. Elles risquent de ne pas s'afficher correctement dans la visionneuse. Convertissez les POI à l'ancien format en GeoJSON.",
+    "provider_source_note": "L'URL de la tuile est construite automatiquement à partir de la clé API et du type, aucune saisie manuelle n'est nécessaire.",
+    "refetch_from_master": "Récupérer à nouveau depuis le maître",
+    "refetch_master_not_found": "Le fond de carte maître référencé est introuvable (il a peut-être été supprimé)."
   },
   "mapmodel": {
     "untitled": "Titre non défini",

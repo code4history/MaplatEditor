@@ -42,28 +42,35 @@
     <DiagnosticFeedback v-if="readOnly" scope="section" data-testid="basemap-editor-readonly" :items="[{ key: 'builtin-readonly', severity: 'info', message: t('basemap.master_detail.builtin_read_only') }]" />
 
     <div class="flex-grow-1 overflow-auto p-3" data-testid="basemap-editor">
-      <!-- m6-t1: 種別軸（kind）選択 btn-group（フォームコンテナ先頭） -->
+      <!-- m6-t1: 種別軸（kind）選択（フォームコンテナ先頭）。m6-t9 §3.5: 無効理由の ContextHelp
+           （btn-link ルートの button）を混在させると Bootstrap の .btn-group ボーダー結合/角丸
+           セレクタに巻き込まれ見た目が崩れるため、.btn-group ではなく flex + gap の個別ボタン
+           へ変更する（人間指摘のとおりレイアウトの厳密な連結は不要・許容範囲内） -->
       <div class="mb-3">
-        <div class="btn-group btn-group-sm" role="group" aria-label="basemap kind">
-          <button
-            v-for="k in KIND_OPTIONS"
-            :key="k"
-            type="button"
-            class="btn"
-            :class="document.kind === k ? 'btn-primary' : 'btn-outline-secondary'"
-            :disabled="kindDisabled(k)"
-            :title="kindDisabledReason(k) || undefined"
-            :data-testid="'basemap-kind-' + k"
-            @click="selectKind(k)"
-          >{{ t('basemap.kind.label_' + k) }}</button>
+        <div class="d-flex flex-wrap align-items-center gap-1" role="group" aria-label="basemap kind">
+          <template v-for="k in KIND_OPTIONS" :key="k">
+            <button
+              type="button"
+              class="btn btn-sm"
+              :class="document.kind === k ? 'btn-primary' : 'btn-outline-secondary'"
+              :disabled="kindDisabled(k)"
+              :title="kindDisabledReason(k) || undefined"
+              :data-testid="'basemap-kind-' + k"
+              @click="selectKind(k)"
+            >{{ t('basemap.kind.label_' + k) }}</button>
+            <!-- 無効理由をボタン右側の ContextHelp（? アイコン）で明示。:title は
+                 m6-t6-api-key-tiers.spec.ts:133 が非空を assert しているため維持する -->
+            <ContextHelp
+              v-if="kindDisabledReason(k)"
+              :text="kindDisabledReason(k)"
+              :ariaLabel="t('basemap.kind.label_' + k)"
+              :data-testid="'basemap-kind-' + k + '-reason'"
+            />
+          </template>
         </div>
         <!-- 未選択時: 種別選択を促す案内文（フォーム本体は非表示） -->
         <div v-if="document.kind === null" class="text-muted small mt-2" data-testid="basemap-kind-prompt">
           {{ t("basemap.kind.select_prompt") }}
-        </div>
-        <!-- merc 無効理由（disabledReason 文法: text-danger 常時表示）。merc は選択不可のため常時表示 -->
-        <div v-if="kindDisabledReason('merc')" class="text-danger small mt-2" data-testid="basemap-kind-merc-reason">
-          {{ kindDisabledReason('merc') }}
         </div>
         <!-- provider-incomplete 診断（種別ボタン群直下の section 診断）: google 等 t4 未完了時 -->
         <DiagnosticFeedback
@@ -75,25 +82,24 @@
         <!-- m6-t4: Google プリセット選択（kind === "google" のとき） -->
         <div v-if="document.kind === 'google'" class="mt-3" data-testid="basemap-google-preset-group">
           <label class="form-label fw-semibold small">{{ t("basemap.google.preset_label") }}</label>
-          <div class="btn-group btn-group-sm" role="group" aria-label="google preset">
-            <button
-              v-for="preset in GOOGLE_PRESETS"
-              :key="preset.value"
-              type="button"
-              class="btn"
-              :class="document.maptype === preset.value ? 'btn-primary' : 'btn-outline-secondary'"
-              :disabled="presetDisabled(preset.value) || structuralDisabled"
-              :title="presetDisabledReason(preset.value) || undefined"
-              :data-testid="'basemap-google-preset-' + preset.suffix"
-              @click="selectGooglePreset(preset.value)"
-            >{{ t(preset.labelKey) }}</button>
-          </div>
-          <div
-            v-if="registeredGooglePresetLabels.length > 0"
-            class="text-danger small mt-2"
-            data-testid="basemap-google-preset-registered-reason"
-          >
-            {{ t("basemap.google.presets_already_registered", { names: registeredGooglePresetLabels.join(", ") }) }}
+          <div class="d-flex flex-wrap align-items-center gap-1" role="group" aria-label="google preset">
+            <template v-for="preset in GOOGLE_PRESETS" :key="preset.value">
+              <button
+                type="button"
+                class="btn btn-sm"
+                :class="document.maptype === preset.value ? 'btn-primary' : 'btn-outline-secondary'"
+                :disabled="presetDisabled(preset.value) || structuralDisabled"
+                :title="presetDisabledReason(preset.value) || undefined"
+                :data-testid="'basemap-google-preset-' + preset.suffix"
+                @click="selectGooglePreset(preset.value)"
+              >{{ t(preset.labelKey) }}</button>
+              <ContextHelp
+                v-if="presetDisabledReason(preset.value)"
+                :text="presetDisabledReason(preset.value)"
+                :ariaLabel="t(preset.labelKey)"
+                :data-testid="'basemap-google-preset-' + preset.suffix + '-reason'"
+              />
+            </template>
           </div>
           <DiagnosticFeedback
             v-if="validation.errors.includes('maptype-required')"
@@ -565,13 +571,6 @@ const presetDisabledReason = (maptype: string): string => {
   const name = preset ? t(preset.labelKey) : maptype;
   return t("basemap.google.preset_already_registered", { name });
 };
-
-// registeredPresets(ref) の後に computed（設計 v3.1 m4 / Minor: registeredGooglePresets は削除し Labels のみ）
-const registeredGooglePresetLabels = computed(() =>
-  GOOGLE_PRESETS
-    .filter((p) => registeredPresets.value.has(p.value))
-    .map((p) => t(p.labelKey)),
-);
 
 function isGoogleDefaultThumbnail(path: string): boolean {
   return GOOGLE_PRESETS.some((p) => `basemap_icons/google_${p.suffix}.png` === path);

@@ -678,7 +678,10 @@
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "ค้นหาแผนที่…",
-    "warn_mixed_pois": "ข้อมูล POI มีทั้งรูปแบบ GeoJSON และรูปแบบอื่นปะปนกัน อาจแสดงผลไม่ถูกต้องในวิวเวอร์ โปรดแปลง POI รูปแบบเก่าเป็น GeoJSON"
+    "warn_mixed_pois": "ข้อมูล POI มีทั้งรูปแบบ GeoJSON และรูปแบบอื่นปะปนกัน อาจแสดงผลไม่ถูกต้องในวิวเวอร์ โปรดแปลง POI รูปแบบเก่าเป็น GeoJSON",
+    "provider_source_note": "URL ไทล์จะถูกสร้างขึ้นโดยอัตโนมัติจากคีย์ API และประเภท จึงไม่จำเป็นต้องป้อนด้วยตนเอง",
+    "refetch_from_master": "ดึงข้อมูลใหม่จากมาสเตอร์",
+    "refetch_master_not_found": "ไม่พบแผนที่ฐานต้นแบบที่อ้างอิง (อาจถูกลบไปแล้ว)"
   },
   "mapmodel": {
     "untitled": "ยังไม่มีชื่อ",
