@@ -31,6 +31,7 @@ try {
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const wmtsServicePath = path.join(projectRoot, 'electron/services/WmtsGeneratorService.ts');
   const appExportServicePath = path.join(projectRoot, 'electron/services/AppExportService.ts');
+  const appPreviewServicePath = path.join(projectRoot, 'electron/services/AppPreviewService.ts');
 
   await writeFile(
     electronStubFile,
@@ -418,6 +419,62 @@ try {
         assert.match(serviceSource, /Jimp\\.fromBuffer\\(/, 'm-4: generate() は Jimp.fromBuffer を使うはず');
         assert.doesNotMatch(serviceSource, /Jimp\\.read\\(imagePath\\)/, 'm-4: round2 の欠陥形 Jimp.read(imagePath) が復活していないはず');
         console.log('ok: (I) WmtsGeneratorService.ts: Jimp.fromBuffer 使用をソーステキストで固定 (Minor m-4)');
+      }
+
+      // ============================================================
+      // (J) AppPreviewService: merc タイルのプレビュー配信 (実装レビュー round3 M-5)
+      //     二重欠陥: (a) handlePreview に 'merc' 分岐が無く 404、(b) URL は選択時点の slug
+      //     (dirName) だがディスクは merc/{baseMapUid} にある(ADR-0016)ため単純にルートを
+      //     足すだけでも直らない。session.mercDirToUid での uid 解決までを検証する
+      // ============================================================
+      {
+        const { Writable } = await import('node:stream');
+        const { default: AppPreviewService } = await import(${JSON.stringify(appPreviewServicePath)});
+        const previewService = AppPreviewService as any;
+
+        class MockRes extends Writable {
+          statusCode;
+          headersSent = false;
+          _write(_chunk, _enc, cb) { cb(); }
+          writeHead(status, _headers) { this.statusCode = status; this.headersSent = true; return this; }
+        }
+        const finish = (res) => new Promise((resolve) => res.on('finish', resolve));
+
+        // J-1: createSession が previewableSources から mercDirToUid を構築する
+        const previewMercUid = '22222222-4444-4444-8444-444444444444';
+        const previewDoc = {
+          appID: 'merc_preview_j', title: { ja: 'J' }, lang: 'ja',
+          sources: [{
+            sourceType: 'tms', mapUid: 'merc-preview-dir', role: 'base',
+            data: {
+              kind: 'merc', baseMapUid: previewMercUid, url: 'merc/merc-preview-dir/{z}/{x}/{y}.png',
+              lang: 'ja', title: { ja: 'J' }, label: { ja: 'J' }, attr: { ja: 'j' },
+            },
+          }],
+        };
+        const session = await previewService.createSession('tok-merc-j', previewDoc);
+        assert.equal(session.mercDirToUid['merc-preview-dir'], previewMercUid,
+          'J-1: createSession は previewableSources から dirName→baseMapUid を構築するはず');
+        console.log('ok: (J-1) AppPreviewService.createSession: mercDirToUid 構築 (M-5)');
+
+        // J-2: handlePreview の merc ルートが dirName を uid へ解決してディスクの実ファイルを配信する
+        previewService.sessions.set('tok-merc-j', session);
+        const mercTileDir = path.join(${JSON.stringify(dataDir)}, 'merc', previewMercUid, '5', '10');
+        await fse.ensureDir(mercTileDir);
+        await fs.writeFile(path.join(mercTileDir, '20.png'), imageBuffer);
+
+        const okRes = new MockRes();
+        await previewService.handlePreview('tok-merc-j', ['merc', 'merc-preview-dir', '5', '10', '20.png'], okRes);
+        assert.equal(okRes.statusCode, 200,
+          'J-2: dirName(選択時点のslug)からuidへ解決し merc/{uid}/... の実ファイルを200配信するはず: ' + okRes.statusCode);
+        await finish(okRes);
+        console.log('ok: (J-2) AppPreviewService.handlePreview: merc/{dirName}/... を uid 解決して配信する (M-5)');
+
+        // J-3: 未知の dirName（対応表に無い）は 404（他人のuidを誤って推測配信しない）
+        const missRes = new MockRes();
+        await previewService.handlePreview('tok-merc-j', ['merc', 'unknown-dir', '5', '10', '20.png'], missRes);
+        assert.equal(missRes.statusCode, 404, 'J-3: 未知の dirName は404のはず: ' + missRes.statusCode);
+        console.log('ok: (J-3) AppPreviewService.handlePreview: 未知のdirNameは404 (M-5)');
       }
 
       console.log('M6-T8 merc tile set smoke passed');

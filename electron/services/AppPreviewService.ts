@@ -23,6 +23,7 @@ import {
 } from './poiReferenceResolver';
 import {
   composeViewerSource,
+  extractMercSourceRefs,
   hasViewerBasemapSource,
   normalizeAppSource,
   type AppSource,
@@ -53,6 +54,10 @@ type PreviewSession = {
   viewerOption: any;
   // POI 参照解決の警告 (静的 i18n キー)。prepare の返り値経由でレンダラの t(key) 表示に載せる
   warnings: string[];
+  // 実装レビュー round3 M-5: merc ソースの url ディレクトリ名(選択時点のslug) → baseMapUid。
+  // ディスク上のタイルは merc/{baseMapUid} にある(ADR-0016)ため、'/preview/{token}/merc/{dirName}/...'
+  // の配信時にこの対応表で uid へ解決する
+  mercDirToUid: Record<string, string>;
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -290,6 +295,12 @@ class AppPreviewService {
       poiDocuments[doc.dest.replace(/^pois\//, '')] = doc.json;
     }
     if (duplicateReference) mergeWarnings(warnings, [DUPLICATE_POI_REFERENCE_WARNING]);
+    // 実装レビュー round3 M-5: merc ソースの dirName(選択時点のslug) → baseMapUid。
+    // AppExportService と同じ抽出関数を共有する（同一ロジックの重複を避ける）
+    const mercDirToUid: Record<string, string> = {};
+    for (const entry of extractMercSourceRefs(previewableSources)) {
+      mercDirToUid[entry.dirName] = entry.baseMapUid;
+    }
     const app = this.toHttpAsset(normalizeRuntimeKeys({
       appName: document.appName || document.title,
       title: document.title || document.appName,
@@ -314,6 +325,7 @@ class AppPreviewService {
       manifest: this.createManifest(document),
       viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(previewableSources)),
       warnings,
+      mercDirToUid,
     };
   }
 
@@ -402,6 +414,9 @@ class AppPreviewService {
     if (rest.length === 0) return this.sendHtml(res, this.renderHtml(session));
     if (rest[0] === 'service-worker.js') return this.servePackageAsset('service-worker.js', res);
     if (rest[0] === 'tiles') return this.servePreviewTile(rest.slice(1), res);
+    // 実装レビュー round3 M-5: merc タイル配信。URL は選択時点のslug(dirName)だがディスクは
+    // baseMapUid で保存されている(ADR-0016)ため、session.mercDirToUid で uid へ解決してから配信する
+    if (rest[0] === 'merc' && rest[1]) return this.serveMercTile(rest[1], rest.slice(2), session, res);
     if (rest[0] === 'tmbs') return this.serveDataFile('tmbs', rest.slice(1), res);
     if (rest[0] === 'img') return this.serveDataFile('img', rest.slice(1), res);
     // M11-T9: maplat-asset:<UID> 解決用の Asset 実体配信。既存 imgs 分岐より前に置く
@@ -554,6 +569,16 @@ ${renderProviderGlCdnTags(detectRequiredProviderGl(session.viewerSources || []))
   private async servePreviewTile(tileSegments: string[], res: http.ServerResponse): Promise<void> {
     const saveFolder = SettingsService.get('saveFolder') as string;
     await this.serveLocalFile(path.join(saveFolder, 'tiles', ...tileSegments), res);
+  }
+
+  // 実装レビュー round3 M-5: merc/{dirName}/{...} を merc/{baseMapUid}/{...} へ解決して配信する。
+  // dirName は createSession が構築した session.mercDirToUid (AppExportService と共有の
+  // extractMercSourceRefs 由来) でのみ引く。未知の dirName は 404（maps/{unknown} と同じ作法）
+  private async serveMercTile(dirName: string, tileSegments: string[], session: PreviewSession, res: http.ServerResponse): Promise<void> {
+    const baseMapUid = session.mercDirToUid[decodeURIComponent(dirName)];
+    if (!baseMapUid) return this.sendText(res, 404, 'Not Found');
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    await this.serveLocalFile(path.join(saveFolder, 'merc', baseMapUid, ...tileSegments), res);
   }
 
   private async serveLocalFile(filePath: string, res: http.ServerResponse): Promise<void> {

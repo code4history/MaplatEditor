@@ -26,6 +26,7 @@ import {
 import {
   compactLangObject,
   composeViewerSource,
+  extractMercSourceRefs,
   extractTmsThumbnailBaseMapRef,
   hasViewerBasemapSource,
   normalizeAppSource,
@@ -219,20 +220,9 @@ class AppExportService {
       });
     const maplatSources = sources.filter(source => source.sourceType === 'maplat');
 
-    // m6-t8 §3.11: merc ソースの抽出（kind==='merc' かつ baseMapUid を持つ tms ソース）。
-    // url = "merc/{dirName}/{z}/{x}/{y}.png" からアプリソース選択時点のディレクトリ名を取り出す。
-    interface MercExportEntry { source: AppSource; baseMapUid: string; dirName: string; }
-    const mercEntries: MercExportEntry[] = [];
-    for (const source of sources) {
-      if (source.sourceType !== 'tms') continue;
-      const kind = source.data?.kind;
-      const baseMapUid = source.data?.baseMapUid;
-      if (kind !== 'merc' || typeof baseMapUid !== 'string') continue;
-      const url = String(source.data?.url ?? '');
-      const match = url.match(/^merc\/([^/]+)\//);
-      if (!match) continue; // 導出url形式でない(異常値)。既存の警告パターンと同じくskip
-      mercEntries.push({ source, baseMapUid, dirName: match[1] });
-    }
+    // m6-t8 §3.11: merc ソースの抽出（実装レビュー round3 M-5: AppPreviewService と共有する
+    // 抽出関数へ一本化。url = "merc/{dirName}/{z}/{x}/{y}.png" からディレクトリ名を取り出す）。
+    const mercEntries = extractMercSourceRefs(sources);
     // 名前衝突診断: 同一 dirName で異なる baseMapUid を持つエントリを検出 (AC8)
     const mercDirNameToUids = new Map<string, Set<string>>();
     for (const entry of mercEntries) {

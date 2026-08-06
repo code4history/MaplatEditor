@@ -147,6 +147,32 @@ export function extractTmsThumbnailBaseMapUid(source: AppSource): string | null 
   return extractTmsThumbnailBaseMapRef(source)?.uid ?? null;
 }
 
+export interface MercSourceRef {
+  source: AppSource;
+  baseMapUid: string;
+  dirName: string;
+}
+
+// 実装レビュー round3 M-5: merc ソース(kind==="merc" かつ baseMapUid を持つ tms ソース)の抽出。
+// url = "merc/{dirName}/{z}/{x}/{y}.png" から選択時点のディレクトリ名(=slug)を取り出す。
+// ディスク上のタイルは merc/{baseMapUid} にある(ADR-0016)ため、書き出し(AppExportService)と
+// プレビュー配信(AppPreviewService)の両方が dirName→baseMapUid の対応を必要とする。
+// 同一ロジックを重複させないよう、この一箇所へ共有する（人間指示: 同一扱い処理は共通実装へ徹底）
+export function extractMercSourceRefs(sources: readonly AppSource[]): MercSourceRef[] {
+  const entries: MercSourceRef[] = [];
+  for (const source of sources) {
+    if (source.sourceType !== "tms") continue;
+    const kind = source.data?.kind;
+    const baseMapUid = source.data?.baseMapUid;
+    if (kind !== "merc" || typeof baseMapUid !== "string") continue;
+    const url = String(source.data?.url ?? "");
+    const match = url.match(/^merc\/([^/]+)\//);
+    if (!match) continue; // 導出url形式でない(異常値)。既存の警告パターンと同じくskip
+    entries.push({ source, baseMapUid, dirName: match[1] });
+  }
+  return entries;
+}
+
 export function createAppSourceFromBaseMap(
   master: Record<string, any>,
   appDefaultLang: string,
