@@ -74,3 +74,15 @@ m5-t8 は取り込み前に所要時間の確認プロンプトを出すよう�
 
 **13 倍の開きがある。** ∴ 合成フィクスチャで測った係数を実写の見積もりへ持ち込んではならない。
 m5-t8 の確認プロンプトが所要時間の**分数を表示しない**のはこのためである。
+
+## 7. basemap_icons_512 の読み出し実装（m6-t4a のスコープ外）
+
+**現状**: m6-t4a で `public/basemap_icons_512/{google_roadmap,google_satellite,google_hybrid,
+google_terrain,mapbox,maplibre}.png` を新規配置したが、これを読み出す詳細プレビュー UI は
+どこにも実装されていない。google/mapbox/maplibre は `builtin_base_maps.json` に登場せず
+`thumbnail512` フィールド自体を持たないため、`resolveBaseMapListImage`
+（`resourceImageResolver.ts:140`）にも512px分岐が無い。約2.6MBの参照されないアセットが
+配置されるのみで、活用されるまで孤児化する。
+
+**提案**: 一覧行ホバー時またはクリック時の拡大プレビュー等、512px を活かす UI を後続タスクで
+設計する。
