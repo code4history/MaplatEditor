@@ -83,7 +83,7 @@
     "test:e2e:m6-t7": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t7-tilejson-import.spec.ts",
     "test:e2e:m6-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t6-api-key-tiers.spec.ts",
     "test:e2e:m6-t9": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t9-provider-followups.spec.ts",
-    "test:e2e:m6-t9-ac5-verify": "node scripts/ensure-electron.mjs && pnpm run build && PWDEBUG=1 playwright test tests/e2e/m6-t9-ac5-maplibre-flicker-verify.spec.ts --headed",
+    "test:e2e:m6-t9-ac5-verify": "node scripts/ensure-electron.mjs && pnpm run build && M6T9_AC5_INTERACTIVE=1 PWDEBUG=1 playwright test tests/e2e/m6-t9-ac5-maplibre-flicker-verify.spec.ts --headed",
     "test:e2e:m6-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t4-google-preset.spec.ts",
     "test:e2e:m6-t4b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t4b-google-preset-defaults.spec.ts",
     "test:e2e:m11-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t5-shell-tokens.spec.ts",
