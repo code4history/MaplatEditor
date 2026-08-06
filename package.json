@@ -95,6 +95,7 @@
     "smoke:m6-t4-google-preset": "node scripts/m6-t4-google-preset-smoke.mjs",
     "smoke:m6-t4b-google-preset-defaults": "node scripts/m6-t4b-google-preset-defaults-smoke.mjs",
     "smoke:m6-t6-api-key-tiers": "node scripts/m6-t6-api-key-tiers-smoke.mjs",
+    "smoke:m6-t7-tilejson-import": "node scripts/m6-t7-tilejson-import-smoke.mjs",
     "smoke:m6-t6-preview-bundle-provider-url-guard": "node scripts/m6-t6-preview-bundle-provider-url-guard-smoke.mjs",
     "smoke:m6-t2-icon-refs": "node scripts/m6-t2-icon-refs-smoke.mjs",
     "smoke:m6-t3-asset-list": "node scripts/m6-t3-asset-list-smoke.mjs",
