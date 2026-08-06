@@ -252,6 +252,25 @@
         <div class="col-12"><hr class="my-1"></div>
         <div class="col-12">
                   <template v-if="document.kind === 'tms'">
+          <div class="mb-2">
+            <label class="form-label fw-semibold mb-0">{{ t("basemap.tilejson.label") }}</label>
+            <div class="d-flex gap-2">
+              <input
+                v-model="tileJsonUrlInput"
+                type="text"
+                class="form-control form-control-sm font-monospace"
+                data-testid="basemap-tilejson-url-input"
+                :disabled="structuralDisabled || importingTileJson"
+              >
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary text-nowrap"
+                data-testid="basemap-tilejson-import"
+                :disabled="structuralDisabled || importingTileJson || !tileJsonUrlInput.trim()"
+                @click="importTileJson"
+              >{{ importingTileJson ? t("basemap.tilejson.importing") : t("basemap.tilejson.import") }}</button>
+            </div>
+          </div>
           <EditorField :label="t('basemap.modal.url_label')" label-for="basemap-url-input" :diagnostics="urlDiagnostics">
             <input
               id="basemap-url-input"
@@ -354,7 +373,7 @@
       @update:model-value="updateField('coverageLngLats', $event)"
       @close="showEnvelopeModal = false"
     />
-    <EditorBusyOverlay :visible="saving || generatingIcon" :label="saving ? t('editor_ui.save_state.saving') : t('basemap.generating_icon')" />
+    <EditorBusyOverlay :visible="saving || generatingIcon || importingTileJson" :label="saving ? t('editor_ui.save_state.saving') : (importingTileJson ? t('basemap.tilejson.importing') : t('basemap.generating_icon'))" />
   </section>
 </template>
 
@@ -441,6 +460,9 @@ const activeLang = ref<LangCode>(document.value.defaultLang);
 const saving = ref(false);
 const generatingIcon = ref(false);
 const error = ref("");
+// m6-t7: TileJSON URL からの取り込み
+const tileJsonUrlInput = ref("");
+const importingTileJson = ref(false);
 const conflictRevision = ref<number | null>(null);
 const overwritePending = ref(false);
 const thumbnailUrl = ref<string | null>(props.item?.thumbnailUrl ?? null);
@@ -950,6 +972,43 @@ async function uploadIcon(): Promise<void> {
   } catch (cause) {
     console.error("Failed to upload base map icon", cause);
     error.value = t("appedit.error_invalid_image");
+  }
+}
+
+// m6-t7: TileJSON URL からの tms マスタ取り込み。attribution/name はプレーン文字列
+// (多言語非対応) のため document.defaultLang のスロットにのみ書き込む（他言語スロットは変更しない）。
+// 実装レビュー M-1: selectGooglePreset（:602-617、m6-t4b「1 commit = 1 undo」）と同型に、
+// 変更後の文書を1回組み立てて commit() を1回だけ呼ぶ（updateField の多重呼び出しは undo が
+// フィールド数だけ積まれてしまうため使わない）。
+async function importTileJson(): Promise<void> {
+  if (structuralDisabled.value) return;
+  const url = tileJsonUrlInput.value.trim();
+  if (!url) return;
+  importingTileJson.value = true;
+  error.value = "";
+  try {
+    const result = await window.baseMaps.importTileJson(url);
+    if (!result.ok) {
+      error.value = t(`basemap.errors.tilejson_${result.code.replace(/-/g, "_")}`);
+      return;
+    }
+    const current = document.value;
+    commit({
+      ...current,
+      url: result.fields.url,
+      minZoom: result.fields.minZoom,
+      maxZoom: result.fields.maxZoom,
+      // AC4: フィールドが無ければ（undefined）既存フォーム値を保持する
+      attr: result.fields.attr !== undefined ? { ...current.attr, [current.defaultLang]: result.fields.attr } : current.attr,
+      title: result.fields.title !== undefined ? { ...current.title, [current.defaultLang]: result.fields.title } : current.title,
+      coverageLngLats: result.fields.coverageLngLats !== undefined ? result.fields.coverageLngLats : current.coverageLngLats,
+      tileJsonSourceUrl: result.sourceUrl,
+    });
+  } catch (cause) {
+    console.error("Failed to import TileJSON", cause);
+    error.value = t("basemap.errors.tilejson_unknown");
+  } finally {
+    importingTileJson.value = false;
   }
 }
 

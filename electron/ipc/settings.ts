@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron';
 import SettingsService from '../services/SettingsService';
 import MapDataService from '../services/MapDataService';
 import { resolveBaseMapListImage } from '../services/resourceImageResolver';
+import { importTileJson } from '../services/TileJsonImportService';
 
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get', (_, key: string) => {
@@ -69,5 +70,10 @@ export function registerSettingsHandlers() {
 
   ipcMain.handle('basemaps:set-always', async (_, baseMapUid: string, always: boolean) => {
     await SettingsService.setBaseMapAlways(baseMapUid, always);
+  });
+
+  // m6-t7: tms 編集画面の「TileJSON から読み込む」ボタン用
+  ipcMain.handle('basemaps:import-tilejson', async (_, url: string) => {
+    return await importTileJson(url);
   });
 }

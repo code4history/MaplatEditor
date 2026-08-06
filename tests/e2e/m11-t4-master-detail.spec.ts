@@ -71,6 +71,9 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await expect(page.getByTestId('editor-save')).toBeDisabled();
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-user-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), 'テストベースマップ');
+    // m6-t2 以降 attr は全 kind で必須（baseMapEditorDocument.ts の attr-required）。
+    // 埋めないと validation が通らず editor-save が disabled のままになる
+    await fillAndCommit(page.getByTestId('basemap-attr'), 'テスト帰属');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
     await expect(page.getByTestId('editor-save')).toBeEnabled();
     await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });

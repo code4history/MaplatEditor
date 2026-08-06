@@ -270,11 +270,39 @@ export type BaseMapSaveResult =
     | { result: 'Error'; code: 'not-found' | 'invalid-request' | 'internal'; message?: string }
     | { error: 'revision-conflict'; current: number };
 
+// m6-t7: TileJsonImportService.ts の型を electron.d.ts 側で複製する（既存の BaseMapsAPI 等と
+// 同じく main プロセス側の型を import せず独自定義する慣例に合わせる）
+export type TileJsonImportResult =
+    | { ok: true; fields: TileJsonMappedFields; sourceUrl: string }
+    | {
+          ok: false;
+          code:
+              | 'unsupported-scheme'
+              | 'network'
+              | 'http-status'
+              | 'too-large'
+              | 'invalid-json'
+              | 'missing-tiles'
+              | 'vector-tileset';
+          message?: string;
+      };
+
+export interface TileJsonMappedFields {
+    url: string;
+    minZoom: number;
+    maxZoom: number;
+    attr?: string;
+    title?: string;
+    coverageLngLats?: [number, number][];
+}
+
 export interface BaseMapsAPI {
     list(): Promise<Array<{ uid: string; mapID: string; scope: "builtin" | "user"; data: any; revision: number; thumbnailUrl?: string | null; alwaysVisible: boolean; alwaysLocked: boolean }>>;
     saveUser(payload: BaseMapSavePayload): Promise<BaseMapSaveResult>;
     deleteUser(baseMapUid: string): Promise<void>;
     setAlways(baseMapUid: string, always: boolean): Promise<void>;
+    // m6-t7: tms 編集画面の「TileJSON から読み込む」ボタン用
+    importTileJson(url: string): Promise<TileJsonImportResult>;
 }
 
 export interface MapEditAPI {

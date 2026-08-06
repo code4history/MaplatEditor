@@ -95,6 +95,11 @@
       "style_label": "Style URL",
       "style_maplibre_hint": "MapLibre accepts https:// style.json only (mapbox:// is not allowed). Preview rendering requires the GL CDN."
     },
+    "tilejson": {
+      "label": "Load from TileJSON",
+      "import": "Import",
+      "importing": "Importing..."
+    },
     "errors": {
       "id_required": "Please input a slug (ID).",
       "id_invalid": "The slug (ID) can only contain alphanumeric characters, hyphens, and underscores.",
@@ -116,7 +121,15 @@
       "maptype_required": "Select a Google Maps preset.",
       "style_required": "Style URL is required.",
       "style_mapbox_scheme_forbidden": "MapLibre cannot use mapbox:// styles. Use an https:// style.json URL.",
-      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox)."
+      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox).",
+      "tilejson_unsupported_scheme": "Please enter a URL starting with http:// or https://.",
+      "tilejson_network": "Failed to fetch the TileJSON. Please check your network connection.",
+      "tilejson_http_status": "Failed to fetch the TileJSON (server error).",
+      "tilejson_too_large": "The TileJSON is too large.",
+      "tilejson_invalid_json": "The TileJSON is malformed (could not be parsed as JSON).",
+      "tilejson_missing_tiles": "The TileJSON has no tiles array.",
+      "tilejson_vector_tileset": "This is a vector tileset. Please register the style JSON URL using the MapLibre type instead.",
+      "tilejson_unknown": "An unexpected error occurred while loading the TileJSON."
     },
     "kind": {
       "label_google": "Google",

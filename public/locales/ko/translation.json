@@ -104,6 +104,11 @@
       "style_label": "Style URL",
       "style_maplibre_hint": "MapLibre accepts https:// style.json only (mapbox:// is not allowed). Preview rendering requires the GL CDN."
     },
+    "tilejson": {
+      "label": "TileJSON에서 불러오기",
+      "import": "불러오기",
+      "importing": "불러오는 중..."
+    },
     "errors": {
       "id_required": "ID를 입력하세요.",
       "id_invalid": "ID에는 영숫자, 하이픈, 언더스코어만 사용할 수 있습니다.",
@@ -125,7 +130,15 @@
       "maptype_required": "Google 지도 프리셋을 선택하세요.",
       "style_required": "Style URL is required.",
       "style_mapbox_scheme_forbidden": "MapLibre cannot use mapbox:// styles. Use an https:// style.json URL.",
-      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox)."
+      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox).",
+      "tilejson_unsupported_scheme": "http:// 또는 https://로 시작하는 URL을 입력하세요.",
+      "tilejson_network": "TileJSON을 가져오지 못했습니다. 네트워크 연결을 확인하세요.",
+      "tilejson_http_status": "TileJSON을 가져오지 못했습니다(서버 오류).",
+      "tilejson_too_large": "TileJSON 크기가 너무 큽니다.",
+      "tilejson_invalid_json": "TileJSON 형식이 올바르지 않습니다(JSON으로 해석할 수 없음).",
+      "tilejson_missing_tiles": "TileJSON에 tiles 배열이 없습니다.",
+      "tilejson_vector_tileset": "이것은 벡터 타일셋입니다. MapLibre 종류에서 스타일 JSON URL을 등록하세요.",
+      "tilejson_unknown": "TileJSON을 불러오는 중 예기치 않은 오류가 발생했습니다."
     },
     "kind": {
       "label_google": "Google",

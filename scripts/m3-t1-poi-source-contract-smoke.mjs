@@ -88,7 +88,15 @@ try {
 
   // --- Part 5: Remote fetch guard ---
   // http/https のみ許可 + POI-121 の payload サイズガード (warn/max)
-  assert.match(serviceSource, /https?:/, 'PoiSourceService に scheme 検査がない');
+  // m6-t7: scheme 検証は electron/services/remoteFetchGuard.ts の guardedFetch へ抽出済み。
+  // PoiSourceService.ts 自体はそれを呼ぶだけになったため、scheme 検査は委譲先の
+  // remoteFetchGuard.ts 側で確認し、PoiSourceService.ts 側は guardedFetch への委譲を確認する
+  const remoteFetchGuardSource = await readFile(
+    path.join(projectRoot, 'electron/services/remoteFetchGuard.ts'),
+    'utf8'
+  );
+  assert.match(serviceSource, /guardedFetch/, 'PoiSourceService が guardedFetch (scheme 検査の委譲先) を使っていない');
+  assert.match(remoteFetchGuardSource, /https?:/, 'remoteFetchGuard に scheme 検査がない');
   assert.match(serviceSource, /payload-too-large/, 'PoiSourceService に payload-too-large ガードがない');
   assert.match(serviceSource, /remoteWarnBytes|REMOTE_WARN_BYTES/, 'PoiSourceService に warn 閾値がない');
   assert.match(serviceSource, /remoteMaxBytes|REMOTE_MAX_BYTES/, 'PoiSourceService に max 閾値がない');

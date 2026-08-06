@@ -169,6 +169,8 @@ contextBridge.exposeInMainWorld('baseMaps', {
   saveUser: (payload: { uid?: string; slug: string; tms: any; expectedRevision?: number; create?: boolean }) => ipcRenderer.invoke('basemaps:save-user', payload),
   deleteUser: (baseMapUid: string) => ipcRenderer.invoke('basemaps:delete-user', baseMapUid),
   setAlways: (baseMapUid: string, always: boolean) => ipcRenderer.invoke('basemaps:set-always', baseMapUid, always),
+  // m6-t7: tms 編集画面の「TileJSON から読み込む」ボタン用
+  importTileJson: (url: string) => ipcRenderer.invoke('basemaps:import-tilejson', url),
 })
 
 contextBridge.exposeInMainWorld('appAssets', {
