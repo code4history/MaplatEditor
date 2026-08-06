@@ -359,6 +359,67 @@ try {
       }
       console.log('ok: (G-5) resolveMercDecodeOptions: 非JPEG入力は機械の安全枠へフォールバックする');
 
+      // ============================================================
+      // (H) SqliteDataService.saveUserBaseMap: merc 新規作成時のサムネイル継承 (実装レビュー round3 M-6)
+      // ============================================================
+      {
+        const THUMB_SRC_UID = 'eeeeeeee-4444-4444-8444-444444444444';
+        const THUMB_TARGET_UID = 'ffffffff-4444-4444-8444-444444444444';
+        const tmbsDir = path.join(${JSON.stringify(dataDir)}, 'tmbs');
+        await fse.ensureDir(tmbsDir);
+        await fs.writeFile(path.join(tmbsDir, THUMB_SRC_UID + '.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+        await fs.writeFile(path.join(tmbsDir, THUMB_SRC_UID + '_512.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+
+        const savedH = await SqliteDataService.saveUserBaseMap({
+          uid: THUMB_TARGET_UID, slug: 'merc-thumb-h', create: true,
+          tms: {
+            kind: 'merc', lang: 'ja', title: { ja: 'H' }, label: { ja: 'H' },
+            attr: { ja: 'h' }, dataAttr: {}, license: '', dataLicense: '', licenseNote: {}, dataLicenseNote: {},
+            url: '', minZoom: 0, maxZoom: 1, thumbnail: '', coverageLngLats: null,
+            tileJsonSourceUrl: null, sourceMapUid: THUMB_SRC_UID,
+          },
+        });
+        assert.equal(savedH.revision, 2, 'M-6: サムネイル継承で行が2回目の更新を受けるはず（revision=2）');
+        assert.ok(await fse.pathExists(path.join(tmbsDir, THUMB_TARGET_UID + '.jpg')), 'M-6: 52px サムネイルが own uid 名へ複製されるはず');
+        assert.ok(await fse.pathExists(path.join(tmbsDir, THUMB_TARGET_UID + '_512.jpg')), 'M-6: 512px サムネイルも複製されるはず');
+        assert.ok(await fse.pathExists(path.join(tmbsDir, THUMB_SRC_UID + '.jpg')), 'M-6: 複製元（元地図側）のファイルは move ではなく copy のため残るはず');
+        const catalogH = await SqliteDataService.findBaseMapByUid(THUMB_TARGET_UID);
+        assert.equal(catalogH.data.thumbnail, 'tmbs/' + THUMB_TARGET_UID + '.jpg', 'M-6: thumbnail フィールドが own uid 名を指すはず');
+        console.log('ok: (H-1) saveUserBaseMap: merc新規作成でサムネイル未指定なら元地図から継承する (M-6)');
+
+        // 明示的に thumbnail が指定されていれば継承は起きない（既存動作を壊さない）
+        const THUMB_TARGET_UID_2 = '11111111-4444-4444-8444-444444444444';
+        const savedH2 = await SqliteDataService.saveUserBaseMap({
+          uid: THUMB_TARGET_UID_2, slug: 'merc-thumb-h2', create: true,
+          tms: {
+            kind: 'merc', lang: 'ja', title: { ja: 'H2' }, label: { ja: 'H2' },
+            attr: { ja: 'h2' }, dataAttr: {}, license: '', dataLicense: '', licenseNote: {}, dataLicenseNote: {},
+            url: '', minZoom: 0, maxZoom: 1, thumbnail: 'tmbs/custom-explicit.jpg', coverageLngLats: null,
+            tileJsonSourceUrl: null, sourceMapUid: THUMB_SRC_UID,
+          },
+        });
+        assert.equal(savedH2.revision, 1, 'M-6: thumbnail 明示指定時は継承処理が起きず revision=1 のままのはず');
+        assert.ok(!(await fse.pathExists(path.join(tmbsDir, THUMB_TARGET_UID_2 + '.jpg'))), 'M-6: thumbnail 明示指定時は own uid 名の複製が作られないはず');
+        const catalogH2 = await SqliteDataService.findBaseMapByUid(THUMB_TARGET_UID_2);
+        assert.equal(catalogH2.data.thumbnail, 'tmbs/custom-explicit.jpg', 'M-6: 明示指定した thumbnail がそのまま保存されるはず');
+        console.log('ok: (H-2) saveUserBaseMap: thumbnail 明示指定時は継承しない (M-6)');
+      }
+
+      // ============================================================
+      // (I) 実装レビュー round3 Minor m-4: WmtsGeneratorService.generate() が
+      //     Jimp.fromBuffer を実際に使っていることをソーステキストで固定する。
+      //     Part G は純粋関数 resolveMercDecodeOptions() のみを検証しており、呼び出し側
+      //     （generate() 本体）を round2 の欠陥形 Jimp.read(imagePath) へ戻しても Part A〜G は
+      //     通ってしまう（レビュアーが実証）。m3-t1-poi-source-contract-smoke.mjs の
+      //     ソーステキストassert前例に倣う
+      // ============================================================
+      {
+        const serviceSource = await fs.readFile(${JSON.stringify(wmtsServicePath)}, 'utf-8');
+        assert.match(serviceSource, /Jimp\\.fromBuffer\\(/, 'm-4: generate() は Jimp.fromBuffer を使うはず');
+        assert.doesNotMatch(serviceSource, /Jimp\\.read\\(imagePath\\)/, 'm-4: round2 の欠陥形 Jimp.read(imagePath) が復活していないはず');
+        console.log('ok: (I) WmtsGeneratorService.ts: Jimp.fromBuffer 使用をソーステキストで固定 (Minor m-4)');
+      }
+
       console.log('M6-T8 merc tile set smoke passed');
       process.exit(0);
     `,

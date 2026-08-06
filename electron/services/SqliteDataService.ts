@@ -2662,10 +2662,19 @@ class SqliteDataService {
     // 失敗した場合にアイコン実体だけ先に動かして再試行時に参照切れになるのを防ぐ)。
     // 付け替え失敗時は暫定名のまま残る(参照は有効なまま)
     const relocated = await this.relocateBaseMapIcon(uid, typeof tms?.thumbnail === 'string' ? tms.thumbnail : '');
+    // 実装レビュー round3 M-6: merc マスタ新規作成でサムネイル未指定なら、元地図
+    // (sourceMapUid) のサムネイルを own uid 名へ複製し既定値とする。relocate と同じ理由
+    // (作成失敗時の参照切れ防止) で行コミット後に行う。ユーザーは BaseMapEdit.vue の
+    // 既存編集フォームで差し替え可能
+    const hasExplicitThumbnail = typeof tms?.thumbnail === 'string' && tms.thumbnail !== '';
+    const inheritedThumb = (!hasExplicitThumbnail && data.kind === 'merc' && typeof data.sourceMapUid === 'string')
+      ? await this.inheritMercThumbnail(uid, data.sourceMapUid)
+      : null;
+    const thumbUpdate = relocated ?? inheritedThumb;
     let revision = 1;
-    if (relocated) {
-      data.thumbnail = relocated;
-      // revisionカウンタは更新毎に進める、の不変条件を保つ(付け替えも1回の内容更新)
+    if (thumbUpdate) {
+      data.thumbnail = thumbUpdate;
+      // revisionカウンタは更新毎に進める、の不変条件を保つ(付け替え/継承も1回の内容更新)
       db.prepare(`UPDATE base_maps SET data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`)
         .run(JSON.stringify(data), uid);
       revision = 2;
@@ -2687,6 +2696,28 @@ class SqliteDataService {
       return newRel;
     } catch (e: any) {
       console.warn(`[SqliteDataService] base map icon relocation failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
+      return null;
+    }
+  }
+
+  // 実装レビュー round3 M-6: merc マスタの既定サムネイル継承。
+  // 元地図の 52px/512px サムネイル (tmbs/{sourceMapUid}.jpg・_512.jpg) を own uid 名へ複製する
+  // (relocateBaseMapIcon の move と異なり、複製元＝元地図のファイルは残す必要があるため copy)。
+  // 52px 実体が無ければ null(呼出元は payload の thumbnail をそのまま使う)。512px は任意(無くても52pxのみ複製する)
+  private async inheritMercThumbnail(uid: string, sourceMapUid: string): Promise<string | null> {
+    const { saveFolder } = this.folders;
+    const src52 = path.join(saveFolder, 'tmbs', `${sourceMapUid}.jpg`);
+    if (!(await fs.pathExists(src52))) return null;
+    try {
+      const dest52 = path.join(saveFolder, 'tmbs', `${uid}.jpg`);
+      await fs.copy(src52, dest52, { overwrite: false });
+      const src512 = path.join(saveFolder, 'tmbs', `${sourceMapUid}_512.jpg`);
+      if (await fs.pathExists(src512)) {
+        await fs.copy(src512, path.join(saveFolder, 'tmbs', `${uid}_512.jpg`), { overwrite: false });
+      }
+      return `tmbs/${uid}.jpg`;
+    } catch (e: any) {
+      console.warn(`[SqliteDataService] merc thumbnail inheritance failed: ${sourceMapUid} -> ${uid} (${e?.message ?? e})`);
       return null;
     }
   }

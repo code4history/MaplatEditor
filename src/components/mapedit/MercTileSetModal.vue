@@ -17,6 +17,8 @@ const props = defineProps<{
   existingEntries: readonly MercExistingEntry[];
   defaultTitle: string;
   defaultSlug: string;
+  // 実装レビュー round3 M-6: 元地図の帰属（現在言語）を新規作成フォームの既定値として渡す
+  defaultAttr: string;
   // 新規作成モード用に事前採番された UID（SlugField の予約 lifecycle に必要）
   newUid: string;
 }>();
@@ -40,7 +42,7 @@ watch(
       mode.value = 'select';
       slugLive.value = props.defaultSlug;
       title.value = props.defaultTitle;
-      attr.value = '';
+      attr.value = props.defaultAttr;
     }
   },
 );

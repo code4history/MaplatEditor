@@ -137,6 +137,11 @@ test.describe('M6-T8 メルカトルタイル生成', () => {
       );
       expect(mercEntries1.length).toBe(1);
       expect(mercEntries1[0].data.url).toBe('');
+      // 実装レビュー round3 M-6: 元地図の帰属・ライセンスが既定値として継承されるはず
+      // （seedStrictMap の mapObject: attr={ja:'m6-t8 attribution'}, license='PD', dataLicense='CC BY-SA'）
+      expect(mercEntries1[0].data.attr).toEqual({ ja: 'm6-t8 attribution' });
+      expect(mercEntries1[0].data.license).toBe('PD');
+      expect(mercEntries1[0].data.dataLicense).toBe('CC BY-SA');
       const firstUid = mercEntries1[0].uid;
       const firstRevision = mercEntries1[0].revision;
       const firstTitle = mercEntries1[0].data.title;

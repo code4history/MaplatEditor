@@ -3806,6 +3806,8 @@ const mercExistingEntries = ref<MercExistingEntry[]>([]);
 const mercExistingItemsRaw = ref<Array<{ uid: string; mapID: string; data: any; revision: number }>>([]);
 const mercNewUid = ref('');
 const mercDefaultTitle = computed(() => `${title.value || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
+// 実装レビュー round3 M-6: モーダルの手入力欄の既定値を元地図の帰属（現在言語）から継承する
+const mercDefaultAttr = computed(() => attr.value);
 // 実装レビュー round3 M-3: slugSequence.ts の派生 slug 規約（生成部は必ず "-" で始まる、
 // 人間指示 2026-08-03）に合わせ、接尾辞形式 {元slug}-merc とする（旧: 接頭辞 merc-{元slug}）。
 const mercDefaultSlug = computed(() => `${mapData.value.mapID}-merc`);
@@ -3866,6 +3868,11 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
         const coverageLngLats = bboxToEnvelope(arg.tileJson.bounds);
         const lang = mapData.value.lang || 'ja';
         if (target.mode === 'new') {
+            // 実装レビュー round3 M-6: 元地図の帰属・ライセンスを既定値として継承する
+            // （BaseMapEdit.vue の既存編集フォームで差し替え可能）。attr のみモーダルに手入力欄が
+            // あるため、非空ならその言語スロットだけ上書きし、他言語スロットは元地図の値を保つ
+            const inheritedAttr = cloneDeep(mapData.value.attr) || {};
+            if (target.attr) inheritedAttr[lang] = target.attr;
             await window.baseMaps.saveUser({
                 uid: target.uid,
                 slug: target.slug,
@@ -3875,12 +3882,12 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
                     lang,
                     title: { [lang]: target.title },
                     label: { [lang]: target.title },
-                    attr: { [lang]: target.attr },
-                    dataAttr: {},
-                    license: '',
-                    dataLicense: '',
-                    licenseNote: {},
-                    dataLicenseNote: {},
+                    attr: inheritedAttr,
+                    dataAttr: cloneDeep(mapData.value.dataAttr) || {},
+                    license: mapData.value.license || '',
+                    dataLicense: mapData.value.dataLicense || '',
+                    licenseNote: cloneDeep(mapData.value.licenseNote) || {},
+                    dataLicenseNote: cloneDeep(mapData.value.dataLicenseNote) || {},
                     url: '',
                     minZoom: arg.tileJson.minzoom,
                     maxZoom: arg.tileJson.maxzoom,
@@ -4625,6 +4632,7 @@ const goBack = async () => {
                     :existing-entries="mercExistingEntries"
                     :default-title="mercDefaultTitle"
                     :default-slug="mercDefaultSlug"
+                    :default-attr="mercDefaultAttr"
                     :new-uid="mercNewUid"
                     @select-existing="onMercSelectExisting"
                     @create-new="onMercCreateNew"
