@@ -98,6 +98,19 @@ test('TileJSON import: UI presence, successful import populates form, vector til
     await expect(page.getByText(/W130.*S30.*E140.*N40/)).toBeVisible();
     await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
 
+    // 実装レビュー M-1: 1回の取り込み = 1 commit = undo 1回で取り込み前へ完全に戻ること
+    await page.getByTestId('editor-undo').click();
+    await expect(page.getByTestId('basemap-url')).toHaveValue('');
+    await expect(page.getByTestId('basemap-min-zoom')).toHaveValue('');
+    await expect(page.getByTestId('basemap-max-zoom')).toHaveValue('');
+    await expect(page.getByTestId('basemap-attr')).toHaveValue('');
+    await expect(page.getByTestId('basemap-title')).toHaveValue('');
+    await expect(page.getByText(/W130.*S30.*E140.*N40/)).toHaveCount(0);
+    // redo で取り込み後の状態へ戻し、以降のテストを継続する
+    await page.getByTestId('editor-redo').click();
+    await expect(page.getByTestId('basemap-url')).toHaveValue('https://example.test/{z}/{x}/{y}.png');
+    await expect(page.getByTestId('basemap-attr')).toHaveValue('Example Attribution');
+
     // slug を埋めて保存可能な状態にする（AC2 の反映がフォーム経由で保存できることの確認）
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-tilejson-import');
     await expect(page.getByTestId('editor-save')).toBeEnabled();

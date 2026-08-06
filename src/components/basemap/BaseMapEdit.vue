@@ -978,7 +978,11 @@ async function uploadIcon(): Promise<void> {
 
 // m6-t7: TileJSON URL からの tms マスタ取り込み。attribution/name はプレーン文字列
 // (多言語非対応) のため document.defaultLang のスロットにのみ書き込む（他言語スロットは変更しない）。
+// 実装レビュー M-1: selectGooglePreset（:602-617、m6-t4b「1 commit = 1 undo」）と同型に、
+// 変更後の文書を1回組み立てて commit() を1回だけ呼ぶ（updateField の多重呼び出しは undo が
+// フィールド数だけ積まれてしまうため使わない）。
 async function importTileJson(): Promise<void> {
+  if (structuralDisabled.value) return;
   const url = tileJsonUrlInput.value.trim();
   if (!url) return;
   importingTileJson.value = true;
@@ -989,19 +993,18 @@ async function importTileJson(): Promise<void> {
       error.value = t(`basemap.errors.tilejson_${result.code.replace(/-/g, "_")}`);
       return;
     }
-    updateField("url", result.fields.url);
-    updateField("minZoom", result.fields.minZoom);
-    updateField("maxZoom", result.fields.maxZoom);
-    if (result.fields.attr !== undefined) {
-      updateField("attr", { ...document.value.attr, [document.value.defaultLang]: result.fields.attr });
-    }
-    if (result.fields.title !== undefined) {
-      updateField("title", { ...document.value.title, [document.value.defaultLang]: result.fields.title });
-    }
-    if (result.fields.coverageLngLats !== undefined) {
-      updateField("coverageLngLats", result.fields.coverageLngLats);
-    }
-    updateField("tileJsonSourceUrl", result.sourceUrl);
+    const current = document.value;
+    commit({
+      ...current,
+      url: result.fields.url,
+      minZoom: result.fields.minZoom,
+      maxZoom: result.fields.maxZoom,
+      // AC4: フィールドが無ければ（undefined）既存フォーム値を保持する
+      attr: result.fields.attr !== undefined ? { ...current.attr, [current.defaultLang]: result.fields.attr } : current.attr,
+      title: result.fields.title !== undefined ? { ...current.title, [current.defaultLang]: result.fields.title } : current.title,
+      coverageLngLats: result.fields.coverageLngLats !== undefined ? result.fields.coverageLngLats : current.coverageLngLats,
+      tileJsonSourceUrl: result.sourceUrl,
+    });
   } catch (cause) {
     console.error("Failed to import TileJSON", cause);
     error.value = t("basemap.errors.tilejson_unknown");
