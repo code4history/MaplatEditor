@@ -171,6 +171,46 @@ test.describe('M6-T8 メルカトルタイル生成', () => {
     }
   });
 
+  // 実装レビュー round3 M-3/M-4 回帰: 既定 slug は接尾辞形式（{元slug}-merc）で、
+  // 衝突時は slugSequence の既存規則どおり連番（-merc2）が振られる。
+  test('M-3/M-4回帰: 既定slugが接尾辞規約に従い、衝突時は連番になる', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t8-slug-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+      const { uid: mapUid, slug: mapSlug } = await seedStrictMap(page, saveFolder);
+
+      // {mapSlug}-merc を先に別リソースとして占有し、衝突採番を誘発する
+      await page.evaluate(async (slug) => {
+        const r = await window.baseMaps.saveUser({
+          create: true,
+          slug,
+          tms: { kind: 'tms', title: {}, label: {}, attr: {}, url: 'https://example.com/{z}/{x}/{y}.png' },
+        });
+        if (!r || !r.uid) throw new Error(`occupant seed failed: ${JSON.stringify(r)}`);
+      }, `${mapSlug}-merc`);
+
+      await openHash(page, `#/mapedit?uid=${mapUid}`);
+      await page.getByTestId('map-tab-merc').click();
+      const generateButton = page.getByTestId('merc-generate-button');
+      await expect(generateButton).toBeEnabled({ timeout: 15_000 });
+      await generateButton.click();
+      await expectMercProgressText(page);
+      await generateAndWaitForCompletion(page);
+
+      const list = await page.evaluate(() => window.baseMaps.list());
+      const mercEntry = list.find(
+        (item) => item.data?.kind === 'merc' && item.data?.sourceMapUid === mapUid,
+      );
+      expect(mercEntry).toBeTruthy();
+      // M-3: 生成部は必ず "-" で始まる接尾辞形式（slugSequence.ts の不変条件、人間指示 2026-08-03）
+      // M-4: {元slug}-merc は占有済みのため、既存 slugSequence 規則どおり -merc2 に採番される
+      expect(mercEntry!.mapID).toBe(`${mapSlug}-merc2`);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
   test('AC10: merc マスタのアイコン生成が file:// 経由で成功する', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t8-icon-'));
     const { app, page } = await launch(e2eRoot);

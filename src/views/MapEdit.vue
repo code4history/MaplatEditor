@@ -30,6 +30,7 @@ import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { isProviderBaseMapData, resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
+import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
@@ -3805,7 +3806,10 @@ const mercExistingEntries = ref<MercExistingEntry[]>([]);
 const mercExistingItemsRaw = ref<Array<{ uid: string; mapID: string; data: any; revision: number }>>([]);
 const mercNewUid = ref('');
 const mercDefaultTitle = computed(() => `${title.value || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
-const mercDefaultSlug = computed(() => `merc-${mapData.value.mapID}`);
+// 実装レビュー round3 M-3: slugSequence.ts の派生 slug 規約（生成部は必ず "-" で始まる、
+// 人間指示 2026-08-03）に合わせ、接尾辞形式 {元slug}-merc とする（旧: 接頭辞 merc-{元slug}）。
+const mercDefaultSlug = computed(() => `${mapData.value.mapID}-merc`);
+const MERC_SLUG_SUFFIX = '-merc';
 
 async function generateMercTileSet(target: MercGenerationTarget): Promise<void> {
     if (!tinObjects.value[0] || typeof tinObjects.value[0] === 'string') return;
@@ -3927,17 +3931,28 @@ async function wmtsGenerate(): Promise<void> {
         title: resolveBaseMapSelectorText(item.data, currentLang.value),
         slug: item.mapID,
     }));
-    mercNewUid.value = crypto.randomUUID();
     if (matched.length === 0) {
+        // 実装レビュー round3 M-4: モーダルを介さない自動作成経路には SlugField の
+        // 生存中衝突検査が無い。base_maps.slug は TEXT NOT NULL UNIQUE のため、
+        // slugSequence の既存4系統目として "-merc" を使い、衝突時は連番（-merc2…）へ回す
+        // （(a) "-copy" / (b) "-poi" / (c) import 衝突採番と同じ reserveSequencedSlug 実装を共有）。
+        const reserved = await reserveSequencedSlug(mapData.value.mapID, MERC_SLUG_SUFFIX, 'base-map', mapData.value.mapID);
+        if (reserved === null) {
+            modalShow('merc.generating_tile');
+            modalFinish('merc.error_generation');
+            return;
+        }
+        mercNewUid.value = reserved.uid;
         await generateMercTileSet({
             mode: 'new',
-            uid: mercNewUid.value,
-            slug: mercDefaultSlug.value,
+            uid: reserved.uid,
+            slug: reserved.slug,
             title: mercDefaultTitle.value,
             attr: '',
         });
         return;
     }
+    mercNewUid.value = crypto.randomUUID();
     mercModalVisible.value = true;
 }
 
