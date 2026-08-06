@@ -80,6 +80,7 @@
     "test:e2e:m11-t3": "pnpm run build && playwright test tests/e2e/m11-t3-editor-shell.spec.ts",
     "test:e2e:m11-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t4-master-detail.spec.ts",
     "test:e2e:m6-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t1-basemap-kind-axis.spec.ts",
+    "test:e2e:m6-t7": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t7-tilejson-import.spec.ts",
     "test:e2e:m6-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t6-api-key-tiers.spec.ts",
     "test:e2e:m6-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t4-google-preset.spec.ts",
     "test:e2e:m6-t4b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t4b-google-preset-defaults.spec.ts",
