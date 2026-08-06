@@ -3830,7 +3830,29 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
         );
         if (arg.err || !arg.tileJson) {
             console.error('[generateMercTileSet]', arg.err);
-            modalFinish('merc.error_generation');
+            // 実装レビュー M-2: JPEG デコード予算超過を、画像アップロード（:3311-3333）と同型で
+            // 差別化表示する。分岐鍵は arg.errorCode（未知/未設定は従来どおり汎用文言）
+            if (arg.errorCode === 'jpeg_machine_limit' && arg.machine) {
+                modalFinish('mapedit.error_image_machine_limit', {
+                    megapixels: Math.round(arg.machine.megapixels),
+                    required: arg.machine.requiredHeapMB,
+                    available: arg.machine.availableHeapMB,
+                });
+            } else if (arg.errorCode === 'jpeg_memory_limit' && arg.prediction && 'requiredMemoryMB' in arg.prediction) {
+                modalFinish('mapedit.error_image_memory_limit', {
+                    required: arg.prediction.requiredMemoryMB,
+                    configured: arg.configuredMB,
+                    recommended: arg.prediction.recommendedMemoryMB,
+                });
+            } else if (arg.errorCode === 'jpeg_resolution_limit' && arg.prediction && 'megapixels' in arg.prediction) {
+                modalFinish('mapedit.error_image_resolution_limit', {
+                    megapixels: Math.round(arg.prediction.megapixels),
+                    configured: arg.configuredMP,
+                    recommended: arg.prediction.recommendedResolutionMP,
+                });
+            } else {
+                modalFinish('merc.error_generation');
+            }
             return;
         }
         // 旧実装 wmtsGenerate() と同じ: wmtsHash フィールド名は不変(ADR-0015)。U22 (§5.5) の

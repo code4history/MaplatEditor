@@ -91,12 +91,18 @@ async function seedStrictMap(page: Page, saveFolder: string): Promise<{ uid: str
 
 // 実装レビュー M-1: ProgressReporter のテキストキーが wmtsgenerate.* のままだと
 // modalProgress() が本文を上書きし、生成中ずっと「WMTS」表示になる（ADR-0015違反）。
-// modalShow('merc.generating_tile') 直後（進捗イベント到達前）のスナップショットを取り、
-// 「メルカトルタイル」を含み「WMTS」を含まないことを固定する
+// 実装レビュー Minor m-3: 判定力を持つのは「進捗イベント到達後」のテキストのみ
+// （到達前は modalShow の初期文言 merc.generating_tile がまだ残っており、ADR-0015 違反が
+// あってもここでは検出できない）。expect.poll で進捗テキスト「(現在/合計)」の出現を
+// 構造的に待ってから本文を読むことで、タイミングに依存せず判定力を保証する
+// （待たずに読むコードへ「正す」変更をしても黙って壊れない）
 async function expectMercProgressText(page: Page): Promise<void> {
   const modalBody = page.locator('.modal.d-block .modal-body').first();
   await expect(modalBody).toBeVisible({ timeout: 15_000 });
-  const text = await modalBody.textContent();
+  await expect
+    .poll(async () => (await modalBody.textContent()) ?? '', { timeout: 15_000 })
+    .toMatch(/\(\d+\/\d+\)/); // ProgressReporter の progressText "(current/total)" が来るまで待つ
+  const text = (await modalBody.textContent()) ?? '';
   expect(text).toContain('メルカトルタイル');
   expect(text).not.toContain('WMTS');
 }

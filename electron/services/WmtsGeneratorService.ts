@@ -8,6 +8,8 @@ import SettingsService from './SettingsService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { resolveRuntimeOriginal } from './MapOriginalImageService';
 import { mercatorBboxToWgs84 } from '../utils/webMercator';
+import { estimateJpegDecodeBudget } from '../utils/jpegDecodeBudget';
+import { resolveDecodeSafety, type DecodeSafety } from '../utils/decodeSafety';
 
 const MERC_MAX = 20037508.342789244;
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
@@ -62,6 +64,68 @@ export function buildMercTileJson(
     };
 }
 
+// 実装レビュー M-2: 大きな地図画像（スキャン地図の大半）で jpeg-js の既定
+// maxMemoryUsageInMB=512 を超えて生成が必ず失敗していた欠陥への対応。
+// MapUploadService.ts の imageCutter() と同じ会計モデル（jpegDecodeBudget/decodeSafety）を
+// 適用し、SOF ヘッダからの予測値と機械の安全キャップを突き合わせてから Jimp.fromBuffer へ渡す。
+// Jimp.read(path, options) はローカルパス経路で options を捨てるため使えない
+// （@jimp/core の read 実装。MapUploadService.ts:281-284 参照）。
+export interface MercDecodeError {
+    err: string;
+    errorCode: 'jpeg_machine_limit' | 'jpeg_memory_limit' | 'jpeg_resolution_limit';
+    configuredMB?: number;
+    configuredMP?: number;
+    prediction?: { requiredMemoryMB: number; recommendedMemoryMB: number } | { megapixels: number; recommendedResolutionMP: number };
+    machine?: { requiredHeapMB: number; availableHeapMB: number; megapixels: number };
+}
+
+export interface MercDecodeOptions {
+    maxMemoryUsageInMB: number;
+    maxResolutionInMP: number;
+}
+
+/**
+ * バッファの SOF ヘッダから jpeg-js の会計要求量を予測し、機械の安全キャップ・設定キャップと
+ * 突き合わせて Jimp.fromBuffer へ渡す実効値を決定する（純粋関数・実デコード不要）。
+ * JPEG でない/SOF を解析できない場合は機械の安全枠をそのまま使う（PNG は無害。§3.8）。
+ */
+export function resolveMercDecodeOptions(
+    buffer: Buffer,
+    caps: { maxMemoryUsageInMB: number | null; maxResolutionInMP: number | null },
+    safety: DecodeSafety,
+): MercDecodeOptions | MercDecodeError {
+    const budget = estimateJpegDecodeBudget(buffer);
+    if (!budget) {
+        return { maxMemoryUsageInMB: safety.maxMemoryMB, maxResolutionInMP: safety.maxResolutionMP };
+    }
+    // この機械では構造的に扱えない（V8 ヒープが会計外で尽きプロセス強制終了になる領域）。
+    // 会計ガードの調整では直せないため、確認を出さずここで止める（MapUploadService と同型）
+    if (budget.decoderHeapMB > safety.maxDecoderHeapMB) {
+        return {
+            err: `jpeg decode machine limit: required heap ${budget.decoderHeapMB}MiB > available ${safety.maxDecoderHeapMB}MiB`,
+            errorCode: 'jpeg_machine_limit',
+            machine: { requiredHeapMB: budget.decoderHeapMB, availableHeapMB: safety.maxDecoderHeapMB, megapixels: budget.megapixels },
+        };
+    }
+    if (caps.maxMemoryUsageInMB !== null && budget.recommendedMemoryMB > caps.maxMemoryUsageInMB) {
+        return {
+            err: `jpeg decode memory limit: required ${budget.requiredMemoryMB}MB > configured cap ${caps.maxMemoryUsageInMB}MB`,
+            errorCode: 'jpeg_memory_limit',
+            configuredMB: caps.maxMemoryUsageInMB,
+            prediction: { requiredMemoryMB: budget.requiredMemoryMB, recommendedMemoryMB: budget.recommendedMemoryMB },
+        };
+    }
+    if (caps.maxResolutionInMP !== null && budget.recommendedResolutionMP > caps.maxResolutionInMP) {
+        return {
+            err: `jpeg decode resolution limit: ${budget.megapixels}MP > configured cap ${caps.maxResolutionInMP}MP`,
+            errorCode: 'jpeg_resolution_limit',
+            configuredMP: caps.maxResolutionInMP,
+            prediction: { megapixels: budget.megapixels, recommendedResolutionMP: budget.recommendedResolutionMP },
+        };
+    }
+    return { maxMemoryUsageInMB: budget.recommendedMemoryMB, maxResolutionInMP: budget.recommendedResolutionMP };
+}
+
 // M12-T22: 本クラスへのUI導線はM11-T3で撤去されていたが、m6-t8でMapEdit.vueの
 // 新規「メルカトルタイル」タブから到達可能になった（M12-T22が転用予定としていた
 // M4-(2)に対応）。ロジック・i18nキー（wmtsgenerate.* 全5キー、public/locales/*/
@@ -86,7 +150,7 @@ class WmtsGeneratorService {
         extKey: string,
         hash: string,
         targetBaseMapUid: string
-    ): Promise<{ hash: string; tileJson?: TileJsonDocument; err?: any }> {
+    ): Promise<{ hash: string; tileJson?: TileJsonDocument; err?: any; errorCode?: MercDecodeError['errorCode']; configuredMB?: number; configuredMP?: number; prediction?: MercDecodeError['prediction']; machine?: MercDecodeError['machine'] }> {
         try {
             const tin = new Tin(TIN_V2_OPTIONS);
             tin.setCompiled(tinSerial);
@@ -105,6 +169,18 @@ class WmtsGeneratorService {
             const imagePath = resolved.path;
             // m6-t8 (ADR-0016): タイルの所有者は元地図ではなく出力先ベースマップの UID
             const tileRoot  = path.join(mercFolder, targetBaseMapUid);
+
+            // 実装レビュー M-2: デコードもタイル化も始める前に判定する（MapUploadService.imageCutter
+            // と同じ順序）。ここで戻る経路はタイル生成に一切着手していないため後始末は不要
+            const imageBufferSource = await fs.readFile(imagePath);
+            const decodeOptions = resolveMercDecodeOptions(
+                imageBufferSource,
+                SettingsService.getJpegDecodeCaps(),
+                resolveDecodeSafety(),
+            );
+            if ('errorCode' in decodeOptions) {
+                return { hash, ...decodeOptions };
+            }
 
             // --- 原版と同じ: 4隅を変換して zoom 計算 ---
             const lt = tin.transform([0,     0      ], false, true) as number[];
@@ -175,7 +251,12 @@ class WmtsGeneratorService {
             reporter.update(0);
 
             // --- 画像読み込み（raw buffer を maxZoomTileLoop に渡す）---
-            const imageJimp = await Jimp.read(imagePath);
+            // 実装レビュー M-2: Jimp.read(path, options) はローカルパス経路で options を捨てる
+            // （@jimp/core）ため、事前に読んだ buffer を fromBuffer へ渡し、decodeOptions
+            // （SOFヘッダ予測+安全キャップ突き合わせ済み）を確実に効かせる
+            const imageJimp = await Jimp.fromBuffer(imageBufferSource, {
+                'image/jpeg': decodeOptions,
+            });
             const imageBuffer = imageJimp.bitmap.data as Buffer;
 
             for (let i = 0; i < processArray.length; i++) {

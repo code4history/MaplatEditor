@@ -91,7 +91,7 @@ try {
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
 
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
-      const { default: WmtsGeneratorService } = await import(${JSON.stringify(wmtsServicePath)});
+      const { default: WmtsGeneratorService, resolveMercDecodeOptions } = await import(${JSON.stringify(wmtsServicePath)});
       const { default: AppExportService, MERC_NAME_COLLISION_WARNING } = await import(${JSON.stringify(appExportServicePath)});
       const {
         createAppSourceFromBaseMap,
@@ -277,6 +277,87 @@ try {
       const stillRegistered = await SqliteDataService.findBaseMapByUid(TARGET_UID_F);
       assert.ok(stillRegistered, 'AC11: merc ベースマップ自体も削除されないはず（参照整合性を課さない出自メモ）');
       console.log('ok: (F) 元地図削除は merc タイル/ベースマップに一切影響しない (AC11)');
+
+      // ============================================================
+      // (G) resolveMercDecodeOptions(): 実装レビュー M-2 — 実サイズ画像での生成失敗の回帰線。
+      //     実デコードは不要。SOF ヘッダのみの合成 JPEG で予測・分岐を検証する
+      //     （m5-t6-decode-budget-phase-a.mjs の synthSofHeader と同型の技法）
+      // ============================================================
+      /** SOF ヘッダだけを持つ最小の JPEG 断片を組む（実デコード不要。4:2:0 相当のsampling） */
+      function synthSofHeader(w, h, comps, marker = 0xC0) {
+        const n = comps.length;
+        const segLen = 8 + n * 3;
+        const buf = Buffer.alloc(2 + 2 + segLen);
+        buf.writeUInt16BE(0xFFD8, 0);
+        buf.writeUInt16BE(0xFF00 | marker, 2);
+        buf.writeUInt16BE(segLen, 4);
+        buf.writeUInt8(8, 6);
+        buf.writeUInt16BE(h, 7);
+        buf.writeUInt16BE(w, 9);
+        buf.writeUInt8(n, 11);
+        comps.forEach((c, idx) => {
+          const o = 12 + idx * 3;
+          buf.writeUInt8(idx + 1, o);
+          buf.writeUInt8((c.h << 4) | c.v, o + 1);
+          buf.writeUInt8(0, o + 2);
+        });
+        return buf;
+      }
+      const YUV420 = [{ h: 2, v: 2 }, { h: 1, v: 1 }, { h: 1, v: 1 }];
+
+      // G-1: レビューが実測した失敗ケース(1)相当（10000x6915, 4:2:0）。
+      //      機械の安全キャップを非常に低く設定し、jpeg_machine_limit を固定する
+      {
+        const buf = synthSofHeader(10000, 6915, YUV420);
+        const tinySafety = { heapSizeLimitMB: 100, maxDecoderHeapMB: 1, maxResolutionMP: 1000, maxMemoryMB: 100000 };
+        const result = resolveMercDecodeOptions(buf, { maxMemoryUsageInMB: null, maxResolutionInMP: null }, tinySafety);
+        assert.equal(result.errorCode, 'jpeg_machine_limit', 'G-1: 機械の安全キャップを超える巨大画像は jpeg_machine_limit を返すはず: ' + JSON.stringify(result));
+        assert.ok(result.machine.requiredHeapMB > tinySafety.maxDecoderHeapMB, 'G-1: machine.requiredHeapMB が安全キャップを上回っているはず');
+      }
+      console.log('ok: (G-1) resolveMercDecodeOptions: 巨大画像は jpeg_machine_limit を返す (M-2回帰)');
+
+      // G-2: レビューが実測した失敗ケース(2)相当（7987x5544, 4:2:0）。機械キャップは十分だが
+      //      利用者設定キャップ(小さい値)を超えるため jpeg_memory_limit を固定する
+      {
+        const buf = synthSofHeader(7987, 5544, YUV420);
+        const generousSafety = { heapSizeLimitMB: 100000, maxDecoderHeapMB: 100000, maxResolutionMP: 100000, maxMemoryMB: 100000 };
+        const result = resolveMercDecodeOptions(buf, { maxMemoryUsageInMB: 512, maxResolutionInMP: null }, generousSafety);
+        assert.equal(result.errorCode, 'jpeg_memory_limit', 'G-2: 設定キャップ(512MB)を超える画像は jpeg_memory_limit を返すはず: ' + JSON.stringify(result));
+        assert.equal(result.configuredMB, 512);
+        assert.ok(result.prediction.requiredMemoryMB > 512, 'G-2: prediction.requiredMemoryMB が設定キャップを上回っているはず（612〜929MB程度を期待）');
+      }
+      console.log('ok: (G-2) resolveMercDecodeOptions: 実測失敗ケース(2)相当は jpeg_memory_limit を返す (M-2回帰)');
+
+      // G-3: 解像度キャップ超過は jpeg_resolution_limit を返す
+      {
+        const buf = synthSofHeader(10000, 6915, YUV420);
+        const generousSafety = { heapSizeLimitMB: 100000, maxDecoderHeapMB: 100000, maxResolutionMP: 100000, maxMemoryMB: 100000 };
+        const result = resolveMercDecodeOptions(buf, { maxMemoryUsageInMB: null, maxResolutionInMP: 10 }, generousSafety);
+        assert.equal(result.errorCode, 'jpeg_resolution_limit', 'G-3: 解像度キャップ(10MP)を超える画像は jpeg_resolution_limit を返すはず: ' + JSON.stringify(result));
+        assert.equal(result.configuredMP, 10);
+      }
+      console.log('ok: (G-3) resolveMercDecodeOptions: 解像度キャップ超過は jpeg_resolution_limit を返す');
+
+      // G-4: キャップ内に収まる画像はエラーを返さず、budget 由来の推奨値を返す
+      {
+        const buf = synthSofHeader(400, 300, YUV420);
+        const generousSafety = { heapSizeLimitMB: 100000, maxDecoderHeapMB: 100000, maxResolutionMP: 100000, maxMemoryMB: 100000 };
+        const result = resolveMercDecodeOptions(buf, { maxMemoryUsageInMB: null, maxResolutionInMP: null }, generousSafety);
+        assert.equal('errorCode' in result, false, 'G-4: キャップ内の画像はエラーを返さないはず: ' + JSON.stringify(result));
+        assert.ok(result.maxMemoryUsageInMB > 0 && result.maxResolutionInMP > 0, 'G-4: 実効デコードオプションが返るはず');
+      }
+      console.log('ok: (G-4) resolveMercDecodeOptions: キャップ内の画像は budget 由来の推奨値を返す');
+
+      // G-5: JPEG でない（SOF を解析できない）入力は機械の安全枠へフォールバックする（PNG 等）
+      {
+        const pngLike = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+        const safety = { heapSizeLimitMB: 1000, maxDecoderHeapMB: 500, maxResolutionMP: 250, maxMemoryMB: 300 };
+        const result = resolveMercDecodeOptions(pngLike, { maxMemoryUsageInMB: 10, maxResolutionInMP: 10 }, safety);
+        assert.equal('errorCode' in result, false, 'G-5: 非JPEG入力はエラーにならず安全枠へフォールバックするはず');
+        assert.equal(result.maxMemoryUsageInMB, safety.maxMemoryMB, 'G-5: 非JPEGは設定キャップではなく機械の安全枠を使うはず（§3.8: PNGはoptions非参照のため無害）');
+        assert.equal(result.maxResolutionInMP, safety.maxResolutionMP);
+      }
+      console.log('ok: (G-5) resolveMercDecodeOptions: 非JPEG入力は機械の安全枠へフォールバックする');
 
       console.log('M6-T8 merc tile set smoke passed');
       process.exit(0);

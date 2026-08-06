@@ -346,7 +346,17 @@ export interface WmtsGenAPI {
         extKey: string,
         hash: string,
         targetBaseMapUid: string,
-    ): Promise<{ hash: string; tileJson?: MercTileJsonDocument; err?: any }>;
+    ): Promise<{
+        hash: string;
+        tileJson?: MercTileJsonDocument;
+        err?: any;
+        // 実装レビュー M-2: JPEG デコード予算超過の構造化エラー（MapUploadResult と同型）
+        errorCode?: 'jpeg_machine_limit' | 'jpeg_memory_limit' | 'jpeg_resolution_limit';
+        configuredMB?: number;
+        configuredMP?: number;
+        prediction?: { requiredMemoryMB: number; recommendedMemoryMB: number } | { megapixels: number; recommendedResolutionMP: number };
+        machine?: { requiredHeapMB: number; availableHeapMB: number; megapixels: number };
+    }>;
 }
 
 declare global {
