@@ -73,6 +73,15 @@ test('AC1/AC2: Settings ベースマップタブでキーの保存・再読込�
     await page.getByTestId('settings-basemap-tab').click();
     await expect(page.getByTestId('settings-editor-google-api-key')).toBeVisible();
 
+    // m6-t9 §3.6/AC8: 説明文が ContextHelp（? アイコン）で表示される
+    // （m12-t11-description-grammar.spec.ts:68-70 の確立済みパターン）
+    const editorKeyHelp = page.getByTestId('settings-editor-api-key-help');
+    await expect(editorKeyHelp).toBeVisible();
+    await editorKeyHelp.click();
+    await expect(page.locator('.popover')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('settings-default-publish-api-key-help')).toBeVisible();
+
     // AC2: 同一値を入れると警告が出る（保存前・入力段階で判定）
     await page.getByTestId('settings-editor-google-api-key').fill('same-value-key');
     await page.getByTestId('settings-default-publish-google-api-key').fill('same-value-key');

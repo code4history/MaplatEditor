@@ -132,10 +132,14 @@ test('Google preset: select/save/reload, URL hidden, uniqueness UI', async () =>
     for (const p of PRESETS) {
       await expect(page.getByTestId(`basemap-google-preset-${p.suffix}`)).toBeDisabled();
     }
-    const reason = page.getByTestId('basemap-google-preset-registered-reason');
-    await expect(reason).toBeVisible();
-    const reasonText = await reason.innerText();
-    expect(/Roadmap|Satellite|Hybrid|Terrain|道路|航空|ハイブリッド|地形/.test(reasonText)).toBeTruthy();
+    // m6-t9 §3.5: 固定 text-danger ブロック（basemap-google-preset-registered-reason）は廃止され
+    // ContextHelp（? アイコン、data-testid: basemap-google-preset-{suffix}-reason）へ置き換わった。
+    // m12-t11-description-grammar.spec.ts:68-70 の確立済みパターン（click → .popover 内容確認 → Escape）を踏襲
+    const reasonHelp = page.getByTestId('basemap-google-preset-roadmap-reason');
+    await expect(reasonHelp).toBeVisible();
+    await reasonHelp.click();
+    await expect(page.locator('.popover')).toContainText(/Roadmap|道路/, { timeout: 5000 });
+    await page.keyboard.press('Escape');
 
     expect(pageErrors).toEqual([]);
   } finally {
