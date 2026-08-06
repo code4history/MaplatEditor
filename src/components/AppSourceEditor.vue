@@ -17,6 +17,7 @@ import {
   envelopeToBbox,
   type AppSource,
 } from "../utils/appSourceModel";
+import { isProviderKind } from "../utils/baseMapEditorDocument";
 
 const props = defineProps<{
   source: AppSource & { thumbnail?: string };
@@ -41,6 +42,10 @@ const data = computed(() => {
   if (!props.source.data) props.source.data = {};
   return props.source.data as Record<string, any>;
 });
+
+// m6-t9 §3.1: provider kind (google/mapbox/maplibre) は API キー+maptype からタイル URL を
+// 内部構築するため、生の url 入力欄を出す意味がない（m6-t6 H-A と同型の汚染経路にもなり得る）
+const isProvider = computed(() => isProviderKind(data.value.kind));
 
 // title/attr は文字列または言語オブジェクトの両形式があるため現在言語で読み書きする
 function langText(key: "title" | "attr") {
@@ -136,9 +141,14 @@ async function uploadThumbnail() {
         <label class="form-label small mb-0">{{ t("appedit.max_zoom") }}</label>
         <input :value="data.maxZoom ?? ''" type="number" min="1" max="25" class="form-control form-control-sm" :disabled="translationMode" @change="setNumber('maxZoom', ($event.target as HTMLInputElement).value)">
       </div>
-      <div class="col-md-8">
+      <!-- m6-t9 §3.1: provider kind (google/mapbox/maplibre) は API キー+maptype から内部的に
+           タイル URL を構築するため、生の url 入力欄は出さない（builtin と同様に説明のみ） -->
+      <div v-if="!isProvider" class="col-md-8" data-testid="app-source-url-field">
         <label class="form-label small mb-0">{{ t("appedit.source_url") }}</label>
-        <input v-model="data.url" type="text" class="form-control form-control-sm font-monospace" :disabled="translationMode" @input="emit('change')">
+        <input v-model="data.url" type="text" class="form-control form-control-sm font-monospace" :disabled="translationMode" data-testid="app-source-url" @input="emit('change')">
+      </div>
+      <div v-else class="col-md-8 d-flex align-items-end" data-testid="app-source-url-provider-note">
+        <ContextHelp :text="t('appedit.provider_source_note')" :ariaLabel="t('appedit.provider_source_note')" />
       </div>
       <div class="col-md-4">
         <label class="form-label small mb-0 d-flex align-items-center gap-1">{{ t("appedit.thumbnail") }} <ContextHelp :text="t('appedit.thumbnail_note')" :ariaLabel="t('appedit.thumbnail_note')" /></label>

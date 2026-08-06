@@ -150,8 +150,7 @@
           role="tabpanel"
         >
           <form class="form-horizontal">
-            <h5>{{ t("settings.editor_api_key_heading") }}</h5>
-            <p class="form-text">{{ t("settings.editor_api_key_notice") }}</p>
+            <h5 class="d-flex align-items-center gap-1">{{ t("settings.editor_api_key_heading") }} <ContextHelp :text="t('settings.editor_api_key_notice')" :ariaLabel="t('settings.editor_api_key_notice')" data-testid="settings-editor-api-key-help" /></h5>
 
             <div class="row mb-2 align-items-center">
               <label for="editorGoogleApiKey" class="col-sm-3 col-form-label text-end">{{
@@ -205,8 +204,7 @@
               </div>
             </div>
 
-            <h5 class="mt-4">{{ t("settings.default_publish_api_key_heading") }}</h5>
-            <p class="form-text">{{ t("settings.default_publish_api_key_notice") }}</p>
+            <h5 class="mt-4 d-flex align-items-center gap-1">{{ t("settings.default_publish_api_key_heading") }} <ContextHelp :text="t('settings.default_publish_api_key_notice')" :ariaLabel="t('settings.default_publish_api_key_notice')" data-testid="settings-default-publish-api-key-help" /></h5>
 
             <div class="row mb-3 align-items-center">
               <label for="defaultPublishGoogleApiKey" class="col-sm-3 col-form-label text-end">{{
@@ -280,6 +278,7 @@
 import { reactive, onMounted, ref, computed } from "vue";
 import { useTranslation } from "i18next-vue";
 import { SUPPORTED_LANGUAGES } from "../utils/editorLanguages";
+import ContextHelp from "../components/editor-ui/ContextHelp.vue";
 
 const { t, i18next } = useTranslation();
 const activeTab = ref("basic");
