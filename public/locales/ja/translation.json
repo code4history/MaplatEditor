@@ -104,6 +104,11 @@
       "style_label": "スタイル URL",
       "style_maplibre_hint": "MapLibre は https:// の style.json のみ受け付けます（mapbox:// 不可）。描画確認はプレビューを使ってください。"
     },
+    "tilejson": {
+      "label": "TileJSON から読み込む",
+      "import": "読み込む",
+      "importing": "読み込み中..."
+    },
     "errors": {
       "id_required": "スラッグ (ID) を入力してください。",
       "id_invalid": "スラッグ (ID) には半角英数字、ハイフン、アンダースコアのみ使用できます。",
@@ -125,7 +130,15 @@
       "maptype_required": "Google マップのプリセットを選択してください。",
       "style_required": "スタイル URL は必須です。",
       "style_mapbox_scheme_forbidden": "MapLibre では mapbox:// スタイルは使えません。https:// の style.json URL を指定してください。",
-      "style_url_invalid": "有効なスタイル URL を入力してください（https://。Mapbox は mapbox:// も可）。"
+      "style_url_invalid": "有効なスタイル URL を入力してください（https://。Mapbox は mapbox:// も可）。",
+      "tilejson_unsupported_scheme": "http:// または https:// の URL を入力してください。",
+      "tilejson_network": "TileJSON の取得に失敗しました。ネットワーク接続を確認してください。",
+      "tilejson_http_status": "TileJSON の取得に失敗しました（サーバエラー）。",
+      "tilejson_too_large": "TileJSON のサイズが大きすぎます。",
+      "tilejson_invalid_json": "TileJSON の形式が不正です（JSON として解析できません）。",
+      "tilejson_missing_tiles": "TileJSON に tiles 配列がありません。",
+      "tilejson_vector_tileset": "これはベクタタイルセットです。MapLibre 種別でスタイルJSONのURLを登録してください。",
+      "tilejson_unknown": "TileJSON の読み込み中に予期しないエラーが発生しました。"
     },
     "kind": {
       "label_google": "Google",

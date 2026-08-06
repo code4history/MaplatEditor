@@ -104,6 +104,11 @@
       "style_label": "Style URL",
       "style_maplibre_hint": "MapLibre accepts https:// style.json only (mapbox:// is not allowed). Preview rendering requires the GL CDN."
     },
+    "tilejson": {
+      "label": "Charger depuis TileJSON",
+      "import": "Charger",
+      "importing": "Chargement..."
+    },
     "errors": {
       "id_required": "Veuillez saisir un ID.",
       "id_invalid": "L'ID ne peut contenir que des caractères alphanumériques, des tirets et des underscores.",
@@ -125,7 +130,15 @@
       "maptype_required": "Sélectionnez un préréglage Google Maps.",
       "style_required": "Style URL is required.",
       "style_mapbox_scheme_forbidden": "MapLibre cannot use mapbox:// styles. Use an https:// style.json URL.",
-      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox)."
+      "style_url_invalid": "Enter a valid style URL (https://, or mapbox:// for Mapbox).",
+      "tilejson_unsupported_scheme": "Veuillez saisir une URL commençant par http:// ou https://.",
+      "tilejson_network": "Échec de la récupération du TileJSON. Veuillez vérifier votre connexion réseau.",
+      "tilejson_http_status": "Échec de la récupération du TileJSON (erreur serveur).",
+      "tilejson_too_large": "Le TileJSON est trop volumineux.",
+      "tilejson_invalid_json": "Le TileJSON est invalide (impossible de l'analyser en tant que JSON).",
+      "tilejson_missing_tiles": "Le TileJSON ne contient pas de tableau tiles.",
+      "tilejson_vector_tileset": "Il s'agit d'un jeu de tuiles vectorielles. Veuillez enregistrer l'URL du style JSON avec le type MapLibre.",
+      "tilejson_unknown": "Une erreur inattendue s'est produite lors du chargement du TileJSON."
     },
     "kind": {
       "label_google": "Google",
