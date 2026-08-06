@@ -35,6 +35,7 @@ import { resolveImportSlug } from './importSlugResolver';
 import type { PoiZipImport, CompensationResidue } from './PoiPackageService';
 import SettingsService from './SettingsService';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
+import { guardedFetch } from './remoteFetchGuard';
 
 // POI editor の default 言語 (ADR-0005 既定、poiGeoJson.ts と一致)
 const DEFAULT_LANG = 'ja';
@@ -136,11 +137,6 @@ interface PreparedFc {
   issues: PoiValidationIssue[];
   hasError: boolean;
 }
-
-type RemoteFetchResult =
-  | { ok: true; text: string; contentLanguage?: string }
-  | { ok: false; tooLarge: true }
-  | { ok: false; tooLarge?: false; code: 'network' | 'http-status'; message: string };
 
 export class PoiSourceService {
   private readonly remoteWarnBytes: number;
@@ -268,84 +264,31 @@ export class PoiSourceService {
     }
   }
 
-  // scheme 検査は呼び出し元 (fetchSnapshot) が済ませている前提。
-  // 本文は stream で逐次読みし、累積バイト数が remoteMaxBytes を超えた時点で abort する
-  // (POI-121)。content-length 事前チェックだけでは chunked 応答を捕捉できず、
-  // response.text() は判定前に全量バッファしてしまうため
-  private async fetchRemote(url: string): Promise<RemoteFetchResult> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.fetchTimeoutMs);
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) {
-        return { ok: false, code: 'http-status', message: `HTTP ${response.status} ${response.statusText}` };
-      }
-      // content-length が明らかに上限超過なら本文を読まずに打ち切る
-      const contentLength = response.headers.get('content-length');
-      if (contentLength && Number.parseInt(contentLength, 10) > this.remoteMaxBytes) {
-        controller.abort();
-        return { ok: false, tooLarge: true };
-      }
-      if (!response.body) {
-        // body stream 非対応環境の保険 (Node の fetch は常に body を持つ)
-        const text = await response.text();
-        if (Buffer.byteLength(text, 'utf8') > this.remoteMaxBytes) {
-          return { ok: false, tooLarge: true };
-        }
-        return { ok: true, text, contentLanguage: response.headers.get('content-language') || undefined };
-      }
-      const reader = response.body.getReader();
-      const chunks: Buffer[] = [];
-      let total = 0;
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (!value) continue;
-        total += value.byteLength;
-        if (total > this.remoteMaxBytes) {
-          controller.abort();
-          return { ok: false, tooLarge: true };
-        }
-        chunks.push(Buffer.from(value));
-      }
-      return { ok: true, text: Buffer.concat(chunks).toString('utf8'), contentLanguage: response.headers.get('content-language') || undefined };
-    } catch (e: any) {
-      const message = e?.name === 'AbortError' ? 'Fetch timed out' : String(e);
-      return { ok: false, code: 'network', message };
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
   // fetch → POI-121 サイズガード → JSON parse → 内部形化+検証。
   // 戻り値: 登録/更新に使える snapshot、または失敗を表す PoiSourceSaveResult
+  // m6-t7: scheme 検証・タイムアウト・ストリームサイズガードは remoteFetchGuard.ts の
+  // guardedFetch へ抽出済み（TileJsonImportService と共用）。写像は下記のとおりで、
+  // 外部挙動（failure の形・エラーコード）は抽出前と完全に不変
+  // （docs/superpowers/specs/2026-08-06-m6-t7-tilejson-import-design.md §3.1 の写像表）。
   private async fetchSnapshot(
     url: string,
     fallbackLang: string = DEFAULT_LANG,
   ): Promise<{ ok: true; fc: PoiEditorFC; issues: PoiValidationIssue[] } | { ok: false; failure: PoiSourceSaveResult }> {
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(url);
-    } catch {
-      return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'unsupported-scheme' }] } };
-    }
-    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-      return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'unsupported-scheme' }] } };
-    }
-
-    const fetched = await this.fetchRemote(url);
+    const fetched = await guardedFetch(url, { timeoutMs: this.fetchTimeoutMs, maxBytes: this.remoteMaxBytes });
     if (!fetched.ok) {
-      if (fetched.tooLarge) {
+      if (fetched.code === 'unsupported-scheme') {
+        return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'unsupported-scheme' }] } };
+      }
+      if (fetched.code === 'too-large') {
         return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'payload-too-large' }] } };
       }
+      // fetched.code は 'network' | 'http-status' に絞り込まれる（判別可能 union）
       return { ok: false, failure: { result: 'Error', code: fetched.code, message: fetched.message } };
     }
     const byteSize = Buffer.byteLength(fetched.text, 'utf8');
     if (byteSize > this.remoteMaxBytes) {
+      // guardedFetch のストリーミングガードで既に補足されるはずの経路だが、既存コードの
+      // 二重チェックをそのまま保持する（除去は m6-t7 のスコープ外）
       return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'payload-too-large' }] } };
     }
     let parsed: unknown;
