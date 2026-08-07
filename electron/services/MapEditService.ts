@@ -1,6 +1,5 @@
 import path from 'path';
 import fs from 'fs-extra';
-// @ts-ignore
 import fileUrl from 'file-url';
 import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';

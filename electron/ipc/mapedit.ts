@@ -1,7 +1,6 @@
 import { ipcMain, BrowserWindow, dialog, app } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
-// @ts-ignore
 import fileUrl from 'file-url';
 // M12-T20 (§5.0/§5.1): staging パスの解決・検証は共通バリデータのみを使う
 import { draftTileRoot, isDraftTileUrl, resolveStagingDirFromUrl, resolveDraftTileDir } from '../services/draftTilePaths';

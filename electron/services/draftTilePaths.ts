@@ -16,7 +16,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app } from 'electron';
-// @ts-ignore (file-url は型定義を持たない既存依存。MapUploadService と同様)
 import fileUrl from 'file-url';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 
