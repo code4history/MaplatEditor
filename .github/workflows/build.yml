@@ -50,6 +50,10 @@ jobs:
   build-mac:
     needs: prepare
     runs-on: macos-latest
+    # 公証は Apple のキュー次第で長引く。既定（360分）のままだと応答が返らないときに
+    # 6時間まるごと消費してから cancelled になる（m6-t12 AC7 の初回実走で実測）。
+    # ビルド 5分 + 公証（x64/arm64 の2回）に十分な余裕を見つつ、早く失敗させる
+    timeout-minutes: 120
     # 署名系 secrets は environment `release` に置く（m6-t12 §2.4）。release 実行時のみ
     # Required reviewers の承認が挟まり、push ビルド（ci 側）からは secrets を読めない
     environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.release) && 'release' || 'ci' }}
@@ -140,6 +144,8 @@ jobs:
   build-win:
     needs: prepare
     runs-on: windows-latest
+    # 実測 4分台。eSigner の応答待ちを見込んでも 45 分あれば十分（早期失敗のため）
+    timeout-minutes: 45
     environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.release) && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
@@ -225,6 +231,8 @@ jobs:
   build-linux:
     needs: prepare
     runs-on: ubuntu-latest
+    # 実測 1分半。署名を伴わないため短く倒す
+    timeout-minutes: 30
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
