@@ -40,8 +40,8 @@ overrides:
   # 脆弱経路は electron-store > conf > (ajv-formats >) ajv のみ。
   "conf>ajv": "^8.18.0"
   "ajv-formats>ajv": "^8.18.0"
-  brace-expansion: "^2.1.2"
-  fast-uri: "^3.1.4"
+  brace-expansion: "^2.1.4"
+  fast-uri: "^3.1.5"
   file-type: "^21.3.1"
   minimatch: "^9.0.7"
   path-to-regexp: "~1.9.0"
