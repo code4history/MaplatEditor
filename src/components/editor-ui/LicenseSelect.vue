@@ -7,7 +7,7 @@
     @change="onChange"
   >
     <!-- allowUnset のとき先頭に「未設定」空選択肢を置く (ベースマップ専用。地図側は既存の既定値運用を変えない) -->
-    <option v-if="allowUnset" value="">{{ t("mapedit.license_unset") }}</option>
+    <option v-if="allowUnset" value="">{{ t(unsetLabelKey) }}</option>
     <option v-for="option in options" :key="option.value" :value="option.value">
       {{ t(option.labelKey) }}
     </option>
@@ -31,10 +31,15 @@ const props = withDefaults(defineProps<{
   allowUnset?: boolean;
   disabled?: boolean;
   testId?: string;
+  // m6-t10 v1.4 (§4.1b): allowUnset の空選択肢のラベルキー。
+  // マスタ編集では「未設定」だが、アプリソース編集では「マスタに従う」を意味する。
+  // 既定は現行のハードコード値と同一なので MapEdit / BaseMapEdit の表示は変わらない
+  unsetLabelKey?: string;
 }>(), {
   allowUnset: false,
   disabled: false,
   testId: "",
+  unsetLabelKey: "mapedit.license_unset",
 });
 
 const emit = defineEmits<{

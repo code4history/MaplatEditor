@@ -501,12 +501,70 @@ try {
     console.log('ok: AC27 帰属・ライセンス系5キーの往復');
   }
 
+  // ============ AC28（v1.4・IR-H-2）: 操作子種別がマスタ編集フォームと一致し、共通部品の既定値が変わらない ============
+  {
+    const read = async (rel) => await readFile(path.join(projectRoot, rel), 'utf8');
+    const appSourceEditor = await read('src/components/AppSourceEditor.vue');
+    const baseMapEdit = await read('src/components/basemap/BaseMapEdit.vue');
+    const langInput = await read('src/components/LangResourceInput.vue');
+    const licenseSelect = await read('src/components/editor-ui/LicenseSelect.vue');
+
+    // (a) 言語別6欄は LangResourceInput（マスタ編集フォームと同じ部品）で描く
+    assert.match(
+      appSourceEditor, /import LangResourceInput from/,
+      'AC28: 言語別欄はマスタ編集フォームと同じ LangResourceInput を使う（§3.8-8）',
+    );
+    // 手書き input + LangValueChips の組が残っていないこと（共通実装へ寄せた証明）
+    assert.doesNotMatch(
+      appSourceEditor, /<LangValueChips/,
+      'AC28: LangValueChips の直接使用は LangResourceInput の内部へ移る',
+    );
+
+    // (b) ライセンス2欄は LicenseSelect。variant / allowUnset がマスタ編集フォームと同じ
+    assert.match(appSourceEditor, /import LicenseSelect from/, 'AC28: ライセンス欄は LicenseSelect');
+    for (const variant of ['image', 'data']) {
+      assert.ok(
+        new RegExp(`variant="${variant}"`).test(appSourceEditor),
+        `AC28: variant="${variant}" がマスタ編集フォームと一致する`,
+      );
+      assert.ok(
+        new RegExp(`variant="${variant}"`).test(baseMapEdit),
+        `AC28(前提): マスタ編集フォームも variant="${variant}" を使っている`,
+      );
+    }
+    assert.match(appSourceEditor, /allow-unset/, 'AC28: allowUnset で「マスタに従う」を選べる');
+    assert.match(appSourceEditor, /appedit\.license_inherit/, 'AC28: 空選択肢は「マスタに従う」表記');
+
+    // (c) 共通部品の追加 prop は**既定値が現行挙動と同一**（BaseMapEdit を無改修に保つ前提）
+    assert.match(langInput, /clearable\?: boolean/, 'AC28: LangResourceInput に clearable prop');
+    assert.match(langInput, /placeholder\?: string/, 'AC28: LangResourceInput に placeholder prop');
+    assert.match(langInput, /clearable: false/, 'AC28: clearable の既定は false（BaseMapEdit は type=text のまま）');
+    assert.match(licenseSelect, /unsetLabelKey\?: string/, 'AC28: LicenseSelect に unsetLabelKey prop');
+    assert.match(
+      licenseSelect, /unsetLabelKey: "mapedit\.license_unset"/,
+      'AC28: unsetLabelKey の既定は現行のハードコード値と同一（MapEdit/BaseMapEdit の表示を変えない）',
+    );
+    // BaseMapEdit は無改修＝新 prop を1つも渡していない
+    for (const prop of ['clearable', 'unset-label-key', 'unsetLabelKey']) {
+      assert.equal(
+        baseMapEdit.includes(prop), false,
+        `AC28: BaseMapEdit は無改修（${prop} を渡していない）`,
+      );
+    }
+    console.log('ok: AC28 操作子種別の一致と共通部品の既定値互換');
+  }
+
   // ============ AC7: 操作子と定数の一致（明示アンカーで機械照合）============
   {
     const editorSrc = await readFile(path.join(projectRoot, 'src/components/AppSourceEditor.vue'), 'utf8');
+    // アンカーは**ソーステキストのリテラル**を要求する（動的バインドだと照合から漏れる。
+    // 設計レビュー round4 Info 1）。LangResourceInput へは input-testid prop で素通しするため、
+    // v1.4 で input-testid も同じリテラル形として受け付ける。
     const anchors = new Set(
-      [...editorSrc.matchAll(/data-testid="app-source-override-([a-zA-Z]+)"/g)].map((m) => m[1]),
+      [...editorSrc.matchAll(/(?:data|input)-testid="app-source-override-([a-zA-Z]+)"/g)].map((m) => m[1]),
     );
+    // v1.4 §3.8-7: 解除の×は別接頭辞。override 側の抽出へ 'clear' が混入していないこと
+    assert.equal(anchors.has('clear'), false, 'AC7: 解除の×は app-source-clear- 接頭辞で分離する');
     const declared = new Set([...APP_SOURCE_OVERRIDABLE_KEYS, ...APP_SOURCE_OWNED_KEYS]);
     assert.deepEqual(
       [...anchors].sort(), [...declared].sort(),

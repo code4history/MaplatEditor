@@ -694,6 +694,7 @@
     "search_maps_placeholder": "Karten suchen…",
     "warn_mixed_pois": "Die POI-Daten mischen GeoJSON- und Nicht-GeoJSON-Formate. Sie werden im Viewer möglicherweise nicht korrekt angezeigt. Wandeln Sie POIs im Altformat in GeoJSON um.",
     "provider_source_note": "Die Kachel-URL wird automatisch aus dem API-Schlüssel und dem Typ erstellt, eine manuelle Eingabe ist nicht erforderlich.",
+    "license_inherit": "Follow master",
     "override_reset": "Auf Master zurücksetzen",
     "source_url_master_note": "Die Kachel-URL wird am Basiskarten-Master verwaltet und kann nicht pro App überschrieben werden.",
     "error_missing_base_map_master": "Die Basiskarte für diese Quelle fehlt. Sie wird von Export und Vorschau ausgeschlossen.",
