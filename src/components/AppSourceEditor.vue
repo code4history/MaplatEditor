@@ -173,7 +173,7 @@ async function uploadThumbnail() {
         <div class="form-label small mb-0 d-flex align-items-center gap-1">
           {{ t("appedit.source_label") }}
           <LangValueChips :model-value="source.label" :active-lang="currentLang" :default-lang="defaultLang" :language-options="languageOptions" @select-language="emit('select-language', $event)" />
-          <button v-if="isOverridden('label')" type="button" class="btn btn-sm btn-link p-0 small" :disabled="translationMode" @click="clearOverride('label')">
+          <button v-if="isOverridden('label')" type="button" class="btn btn-sm btn-link p-0 small" :disabled="translationMode" data-testid="app-source-reset-label" @click="clearOverride('label')">
             {{ t("appedit.override_reset") }}
           </button>
         </div>
@@ -183,7 +183,7 @@ async function uploadThumbnail() {
         <div class="form-label small mb-0 d-flex align-items-center gap-1">
           {{ t("appedit.source_title") }}
           <LangValueChips :model-value="overrides.title" :active-lang="currentLang" :default-lang="defaultLang" :language-options="languageOptions" @select-language="emit('select-language', $event)" />
-          <button v-if="isOverridden('title')" type="button" class="btn btn-sm btn-link p-0 small" :disabled="translationMode" @click="clearOverride('title')">
+          <button v-if="isOverridden('title')" type="button" class="btn btn-sm btn-link p-0 small" :disabled="translationMode" data-testid="app-source-reset-title" @click="clearOverride('title')">
             {{ t("appedit.override_reset") }}
           </button>
         </div>
@@ -193,7 +193,7 @@ async function uploadThumbnail() {
         <div class="form-label small mb-0 d-flex align-items-center gap-1">
           {{ t("appedit.source_attr") }}
           <LangValueChips :model-value="overrides.attr" :active-lang="currentLang" :default-lang="defaultLang" :language-options="languageOptions" @select-language="emit('select-language', $event)" />
-          <button v-if="isOverridden('attr')" type="button" class="btn btn-sm btn-link p-0 small" :disabled="translationMode" @click="clearOverride('attr')">
+          <button v-if="isOverridden('attr')" type="button" class="btn btn-sm btn-link p-0 small" :disabled="translationMode" data-testid="app-source-reset-attr" @click="clearOverride('attr')">
             {{ t("appedit.override_reset") }}
           </button>
         </div>
@@ -221,7 +221,7 @@ async function uploadThumbnail() {
           <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="translationMode" data-testid="app-source-override-thumbnail" @click="uploadThumbnail">
             {{ t("appedit.upload") }}
           </button>
-          <button v-if="isOverridden('thumbnail')" type="button" class="btn btn-sm btn-outline-danger" :disabled="translationMode" @click="clearOverride('thumbnail')">
+          <button v-if="isOverridden('thumbnail')" type="button" class="btn btn-sm btn-outline-danger" :disabled="translationMode" data-testid="app-source-reset-thumbnail" @click="clearOverride('thumbnail')">
             {{ t("appedit.override_reset") }}
           </button>
         </div>

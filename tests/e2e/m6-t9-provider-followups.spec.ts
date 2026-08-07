@@ -1,5 +1,11 @@
 // m6-t9: provider/basemap 周辺の是正6件（m6-t4/t5/t6 実装レビュー由来）
-// AC1: provider kind（google/mapbox/maplibre）の AppSource は url 入力欄が表示されない。tms（無印）は従来どおり表示される
+// AC1: provider kind（google/mapbox/maplibre）の AppSource は url 入力欄が表示されない。
+//      【m6-t10 §3.3 / AC14 で上位規則へ吸収】url の上書き欄は **全種別** から撤去された。
+//      ベースマップの同一性そのものを変える操作であり、マスタ側で別のベースマップを作るべきもの。
+//      ∴ 「provider は出ない / tms は出る」という m6-t9 当時の対比は成立しなくなった。
+//      本テストは「url 入力欄が出ないこと」を provider と tms の**両方**で固定し、
+//      注記が provider 専用（app-source-url-provider-note）から共通（app-source-url-note）へ
+//      移ったことを併せて固定する。撤去そのものの意図は m6-t10 の E2E が受け持つ
 // AC3: 【v1.4 で撤去・m6-t10 へ移管】「マスタから再取得」機能自体を m6-t9 から撤去したため、当該テストも削除
 // AC6: 種別選択ボタン・プリセットボタンで、無効なボタンにのみ ContextHelp が表示され、有効なボタンには出ない
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
@@ -91,7 +97,7 @@ test('m6-t9 AC1/AC6: provider kind hides url field in AppSourceEditor; ContextHe
     await expect(page.getByTestId('basemap-kind-maplibre-reason')).toHaveCount(0);
     await expect(page.getByTestId('basemap-kind-tms-reason')).toHaveCount(0);
 
-    // ---- AC1: アプリへソース追加 → provider kind は url 欄が出ない、tms は出る ----
+    // ---- AC1: アプリへソース追加 → url 欄は provider / tms のいずれでも出ない（m6-t10 §3.3）----
     await page.evaluate(() => { location.hash = '/appedit'; });
     await expect(page.getByTestId('app-id')).toBeVisible();
     const appSlug = `m6t9-app-${Date.now()}`;
@@ -106,15 +112,17 @@ test('m6-t9 AC1/AC6: provider kind hides url field in AppSourceEditor; ContextHe
     const googleSource = page.getByTestId(`app-selected-source-${googleSlug}`);
     await expect(googleSource).toBeVisible();
     await expect(googleSource.getByTestId('app-source-url-field')).toHaveCount(0);
-    await expect(googleSource.getByTestId('app-source-url-provider-note')).toBeVisible();
+    await expect(googleSource.getByTestId('app-source-url-note')).toBeVisible();
 
     await page.getByTestId('app-basemap-search').fill(tmsSlug);
     await expect(page.getByTestId(`app-basemap-row-${tmsSlug}`)).toBeVisible();
     await page.getByTestId(`app-basemap-row-${tmsSlug}`).click();
     const tmsSource = page.getByTestId(`app-selected-source-${tmsSlug}`);
     await expect(tmsSource).toBeVisible();
-    await expect(tmsSource.getByTestId('app-source-url-field')).toBeVisible();
-    await expect(tmsSource.getByTestId('app-source-url')).toHaveValue('https://example.com/{z}/{x}/{y}.png');
+    // m6-t10 AC14: tms でも url 欄は出ない。注記は provider と共通のものになった
+    await expect(tmsSource.getByTestId('app-source-url-field')).toHaveCount(0);
+    await expect(tmsSource.getByTestId('app-source-url')).toHaveCount(0);
+    await expect(tmsSource.getByTestId('app-source-url-note')).toBeVisible();
 
     expect(pageErrors).toEqual([]);
   } finally {
