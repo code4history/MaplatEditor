@@ -169,20 +169,37 @@ jobs:
         run: pnpm run dist:win
 
       # eSigner による post-build 署名（m6-t12 §2.3・release 実行のみ）。
-      # dir_path 配下の署名可能ファイル = Setup.exe（x64/arm64 の2本）のみが対象で、
-      # 署名回数は 2/リリース に抑える（eSigner は署名ごとに課金・§7-2 方針）。
+      # 署名対象は file_path で明示した Setup.exe 2本のみ = 署名回数 2/リリース
+      # （eSigner は署名ごとに課金・§7-2 方針）。dir_path（batch_sign）を使わないのは、
+      # 署名不可ファイル（latest.yml / *.blockmap）混在時の挙動が action 側で未文書化のため
+      # （実装レビュー IR-1: 課金付き経路に未確認挙動を置かない）。
+      # ファイル名は electron-builder.config.cjs の artifactName
+      # '${productName}-Windows-${version}-${arch}-Setup.${ext}'（productName=MaplatEditor）から決定的。
       # electron-builder の win.sign hook を使わない理由・アプリ本体 exe を署名しない
       # トレードオフは docs/release-signing.md を参照
-      - name: Sign Windows installers (SSL.com eSigner)
+      - name: Sign Windows installer x64 (SSL.com eSigner)
         if: github.event_name == 'workflow_dispatch' && inputs.release
         uses: SSLcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b # v1.3.2
         with:
-          command: batch_sign
+          command: sign
           username: ${{ secrets.ES_USERNAME }}
           password: ${{ secrets.ES_PASSWORD }}
           credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-          dir_path: release/${{ env.VERSION }}
+          file_path: release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe
+          override: 'true'
+          environment_name: PROD
+
+      - name: Sign Windows installer arm64 (SSL.com eSigner)
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        uses: SSLcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b # v1.3.2
+        with:
+          command: sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          file_path: release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
           override: 'true'
           environment_name: PROD
 

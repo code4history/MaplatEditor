@@ -125,8 +125,23 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // AC4: release=false で発火しない条件式（eSigner・metadata 再計算・公証・Release job）
   const RELEASE_COND = /github\.event_name == 'workflow_dispatch' && inputs\.release/;
   const winSteps = wf.jobs['build-win'].steps;
-  const esigner = winSteps.find((s) => (s.uses ?? '').startsWith('SSLcom/esigner-codesign@'));
-  assert.ok(esigner && RELEASE_COND.test(esigner.if ?? ''), 'AC4: eSigner ステップは release 実行限定');
+  // IR-1: 署名対象は file_path 明示の2ステップ（x64/arm64）。dir_path の「署名不可ファイル
+  // 混在時の挙動」は action 側で未文書化のため、課金付き経路では決定的な指定だけを使う
+  const esigners = winSteps.filter((s) => (s.uses ?? '').startsWith('SSLcom/esigner-codesign@'));
+  assert.equal(esigners.length, 2, 'IR-1: eSigner は file_path 明示の2ステップ');
+  for (const s of esigners) {
+    assert.ok(RELEASE_COND.test(s.if ?? ''), 'AC4: eSigner ステップは release 実行限定');
+    assert.equal(s.with.command, 'sign', 'IR-1: 単一ファイル署名コマンドを使う');
+    assert.ok(!('dir_path' in s.with), 'IR-1: dir_path を使わない');
+  }
+  const signTargets = esigners.map((s) => String(s.with.file_path));
+  assert.ok(
+    signTargets.some((t) => t.endsWith('-x64-Setup.exe')) &&
+    signTargets.some((t) => t.endsWith('-arm64-Setup.exe')),
+    'IR-1: x64/arm64 の Setup.exe を artifactName パターンどおり明示指定'
+  );
+  // dir_path の不使用は上の per-step 検査（with キー）で担保する。文字列全域 grep にしないのは
+  // 「dir_path を使わない理由」を説明するコメント自体まで禁止しないため
   const resign = winSteps.find((s) => (s.run ?? '').includes('resign-update-metadata'));
   assert.ok(resign && RELEASE_COND.test(resign.if ?? ''), 'AC4: metadata 再計算は release 実行限定');
   const macSteps = wf.jobs['build-mac'].steps;
