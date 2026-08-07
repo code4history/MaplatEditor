@@ -4,7 +4,7 @@ export default {
   app: {
     name: 'MaplatEditorM2',
     identifier: 'dev.code4history.maplat-editor.m2',
-    version: '0.7.0-m2',
+    version: '1.0.0-rc1-m2',
     description: 'Maplat Editor Electrobun minimum PoC for FOSS4G desktop runtime work.',
   },
   build: {
