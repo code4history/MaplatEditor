@@ -110,8 +110,19 @@ function setLangResource(key: LangKey, value: string | Record<string, string> | 
     value === undefined ||
     value === "" ||
     (typeof value === "object" && Object.keys(value).length === 0);
-  if (isEmpty) clearOverride(key);
-  else writeOverride(key, value);
+  if (isEmpty) {
+    clearOverride(key);
+    return;
+  }
+  // **上書きは必ず言語オブジェクトで保存する。** LangResourceInput は「現在言語＝既定言語 かつ
+  // 既存値が文字列でない」ときプレーン文字列を emit するが、それをそのまま保存してはならない。
+  // 交換形の平文は「その文書の既定言語の値」を意味し（ADR-0005・設計 §3.5.5）、
+  // アプリ側の上書きの既定言語は**アプリ文書の lang**、出力時の解釈基準は**マスタの lang** である。
+  // 両者が違うソース（例: アプリ ja / builtin osm は lang: "en"）では、平文で保存すると
+  // 出力側が en の値として解釈し、ja を上書きしたつもりが en を書き換えてしまう。
+  // 実測で確認した実害: osm の title を ja で上書きしても viewer の title.ja がマスタ値のまま残る。
+  const normalized = typeof value === "string" ? { [props.currentLang]: value } : value;
+  writeOverride(key, normalized);
 }
 
 // スカラー（license / dataLicense）。空文字＝「マスタに従う」なので解除へ倒す
