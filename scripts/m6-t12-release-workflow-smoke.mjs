@@ -186,4 +186,36 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   console.log('  [4/4] AC6 repo 側残存なし: PASS');
 }
 
+// ───────────────────────────────────────────────
+// AC9: 公証経路が二重にならない（AC7 実走で発見した欠陥の回帰止め）
+//
+// electron-builder 24.13.3 は APPLE_ID を env に見つけると自前の notarizeIfProvided を
+// 走らせる。mac.notarize が未定義だと macPackager.js:501 の
+// `const { appBundleId, ascProvider } = options` が undefined を分解して落ちる（実測）。
+// 本プロジェクトの公証は afterSign（scripts/notarize/notarize.cjs）が担うため、
+// electron-builder 側は明示的に false で止める。両方有効だと二重公証になる。
+// ───────────────────────────────────────────────
+{
+  process.env.APPLE_ID = 'smoke@example.com';
+  process.env.APPLE_APP_SPECIFIC_PASSWORD = 'xxxx-xxxx-xxxx-xxxx';
+  process.env.APPLE_TEAM_ID = 'SMOKETEAM1';
+  const { createRequire } = await import('node:module');
+  const req = createRequire(import.meta.url);
+  const configPath = path.join(projectRoot, 'electron-builder.config.cjs');
+  delete req.cache?.[configPath];
+  const cfg = req(configPath);
+
+  assert.equal(
+    cfg.mac.notarize, false,
+    'AC9: APPLE_ID 設定時に mac.notarize が明示 false でない'
+    + '（electron-builder 自前の公証が起動し、mac.notarize 未定義のため分解エラーで落ちる）'
+  );
+  assert.equal(
+    cfg.afterSign, 'scripts/notarize/notarize.cjs',
+    'AC9: 公証は afterSign フックが担う（APPLE_ID があるとき）'
+  );
+  assert.equal(cfg.mac.hardenedRuntime, true, 'AC9: 公証時は Hardened Runtime が有効');
+  console.log('  [5/5] AC9 公証経路の単一化: PASS');
+}
+
 console.log('\nm6-t12 release-workflow smoke: すべて成功');

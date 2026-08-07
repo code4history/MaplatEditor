@@ -50,6 +50,13 @@ const config = {
         // Hardened Runtime は公証に必須だが、APPLE_ID 未設定時は無効化
         hardenedRuntime: isMacSigning,
         gatekeeperAssess: false,
+        // 公証は afterSign（scripts/notarize/notarize.cjs）が担うため、electron-builder
+        // 自前の公証は明示的に止める。**false を省略できない**: electron-builder 24.13.3 は
+        // APPLE_ID を env に見つけると notarizeIfProvided を起動し、mac.notarize が未定義だと
+        // macPackager.js:501 の `const { appBundleId, ascProvider } = options` が undefined を
+        // 分解して落ちる（m6-t12 AC7 の初回実走で実測。回帰止めは AC9）。
+        // 仮に落ちなくても afterSign と二重に公証してしまう
+        notarize: false,
         ...(isMacSigning && {
             entitlements: 'scripts/notarize/entitlements.mac.plist',
             entitlementsInherit: 'scripts/notarize/entitlements.mac.plist',
