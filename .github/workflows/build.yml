@@ -18,6 +18,10 @@ on:
         description: 'リリースビルド（Mac 公証 + Win eSigner 署名 + draft Release 作成。eSigner の署名回数を消費。master か prerelease バージョン限定）'
         type: boolean
         default: false
+      skip_notarize:
+        description: 'Mac の公証を省く（署名のみ。Apple の公証キューが滞留しているときの回避用。Gatekeeper の警告は出る）'
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # GitHub Release 作成に必要
@@ -112,8 +116,12 @@ jobs:
 
       # 公証環境変数のセット（リリースビルドのみ）
       # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
+      # skip_notarize が true のときは APPLE_ID を渡さない。notarize.cjs は APPLE_ID 不在で
+      # スキップする既存経路を持つため（scripts/notarize/notarize.cjs:14）、署名済み・未公証の
+      # DMG がそのまま得られる。Apple の公証キューが滞留したとき（m6-t12 AC7 で 7 時間超の
+      # In Progress を実測）にビルド全体を止めないための逃げ道である
       - name: Set macOS notarization environment
-        if: github.event_name == 'workflow_dispatch' && inputs.release
+        if: github.event_name == 'workflow_dispatch' && inputs.release && !inputs.skip_notarize
         shell: bash
         env:
           _APPLE_ID: ${{ secrets.APPLE_ID }}

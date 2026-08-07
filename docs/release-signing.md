@@ -120,6 +120,9 @@ eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI
 1. [https://github.com/code4history/MaplatEditor/actions/workflows/build.yml](https://github.com/code4history/MaplatEditor/actions/workflows/build.yml) を開く
 2. 右上の **Run workflow** → ブランチを選ぶ → **「リリースビルド（...）」にチェック** → Run workflow
    - 実行できる条件: **master ブランチ**、または **prerelease バージョン**（package.json の version に `-` を含む。例 `1.0.0-rc1`）の任意ブランチ。正式版バージョンを master 以外から release 実行するとガードが止める
+   - ⚠️ **`skip_notarize` チェック**: Apple の公証キューが滞留しているときだけ ON にする。
+     Mac は「署名のみ・未公証」の DMG になり（Gatekeeper の警告は出るが「開発元不明」よりは緩い）、
+     ビルド全体が公証待ちで止まるのを避けられる。通常は OFF のまま
 3. 実行が始まると build-mac / build-win が **承認待ち（Review deployments）**になる → 黄色の表示をクリックし、`release` にチェックして **Approve and deploy**
 4. 完了後の確認:
    - **Artifacts**: mac-artifacts（.dmg / .dmg.blockmap / latest-mac.yml）、win-artifacts（Setup.exe / .exe.blockmap / latest.yml）、linux-artifacts（.AppImage / latest-linux.yml）
@@ -134,3 +137,24 @@ eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI
 - Windows は**署名後に auto-update メタデータを再生成**している（`scripts/m6-t12/resign-update-metadata.mjs`）。署名でバイナリが変わるため、これを怠ると自動更新が壊れる。ワークフローが自動でやるので通常は意識不要
 - Linux（AppImage）は署名なし（現行方針）
 - 証明書の期限が切れたら: Apple → Part A をやり直して secrets 1・2 を更新 / SSL.com → 証明書更新後、Credential ID が変わっていないか B-2 で確認
+
+## Part F: 公証が終わらないとき（2026-08-07 に実際に遭遇）
+
+Apple の公証は通常15分以内に終わるが、キューに滞留して何時間も `In Progress` のまま返らないことがある
+（初回の Developer ID 提出で 7 時間超を実測）。**署名・アップロードが成功していれば、こちらの設定の問題ではない。**
+
+**状態の確認**（費用ゼロ。ビルドログの `submissions/<ID>` から ID を拾う）:
+
+```bash
+xcrun notarytool info <submission-id> --apple-id "<Apple ID>" --team-id "<Team ID>" --password "<アプリ用パスワード>"
+```
+
+| status | 意味 | 対処 |
+|---|---|---|
+| `Accepted` | 完了済み | 再実行すれば通る。既存の .app には `xcrun stapler staple` だけでもよい |
+| `In Progress` | Apple のキューに滞留 | 待つ。24時間を超えたら Apple Developer サポートへ問い合わせる |
+| `Invalid` | アプリ側に問題 | `xcrun notarytool log <submission-id> …` で原因を特定して修正 |
+
+**待てないとき**: Part D の手順2で **`skip_notarize` を ON** にして実行する。署名済み・未公証の DMG が得られる
+（各ビルドジョブには timeout-minutes を設定済みなので、公証待ちで6時間消費することはない）。
+公証が復旧したら `skip_notarize` を OFF にして再実行すること。
