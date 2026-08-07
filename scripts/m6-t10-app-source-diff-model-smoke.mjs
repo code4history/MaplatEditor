@@ -299,8 +299,17 @@ try {
         title: { ja: '手で直したタイトル', en: 'User Map' }, // ← マスタと異なる
         attr: { ja: '作者' },                                // ← マスタと同値
         url: 'https://tiles.example.test/{z}/{x}/{y}.png',   // ← 操作子なし。捨てる
-        license: 'CC BY',                                    // ← 操作子なし。捨てる
         coverageLngLats: [[130, 32]],                        // ← 操作子なし。捨てる
+        // v1.4 §3.7.1: 帰属・ライセンス系5キー。**マスタと異なる値**を入れてある
+        // （マスタは license 'CC BY' / dataLicense 'ODbL' / dataAttr {ja:'データ作者'}
+        //   / licenseNote {ja:'補足'} / dataLicenseNote {ja:'データ補足'}）。
+        // これらは v1.4 で上書き可になったが、**移行時だけは無条件に捨てる**。
+        // 操作子が無かった時代のコピーはユーザーの選択を含まないため（設計 §3.7.1）
+        license: 'PD',
+        dataLicense: 'CC0',
+        dataAttr: { ja: '古いデータ作者' },
+        licenseNote: { ja: '古い補足' },
+        dataLicenseNote: { ja: '古いデータ補足' },
         minZoom: 5, maxZoom: 18,                             // ← マスタと同値
         thumbnail: 'tmbs/uid-tms.png',                       // ← マスタと同値
         envelopeLngLats: [[130.5, 32.5]],                    // ← アプリ所有。無条件に温存
@@ -316,8 +325,17 @@ try {
     assert.equal('minZoom' in ov, false, 'AC5: マスタと同値なら上書きにしない');
     assert.equal('thumbnail' in ov, false, 'AC5: マスタと同値なら上書きにしない');
     assert.deepEqual(ov.envelopeLngLats, [[130.5, 32.5]], 'AC5: アプリ所有キーは無条件に温存');
-    for (const key of ['url', 'license', 'coverageLngLats', 'kind', 'mapID', 'lang']) {
+    for (const key of ['url', 'coverageLngLats', 'kind', 'mapID', 'lang']) {
       assert.equal(key in ov, false, `AC5: 操作子の無いキー（${key}）は捨てる`);
+    }
+    // v1.4 §3.7.1: 上書き可になった5キーも、移行時は**マスタと異なっていても**捨てる
+    for (const key of ['license', 'dataLicense', 'dataAttr', 'licenseNote', 'dataLicenseNote']) {
+      assert.equal(
+        key in ov, false,
+        `AC5(v1.4 §3.7.1): 帰属・ライセンス系（${key}）は移行時は無条件に捨てる。` +
+          `温存すると、操作子が無かった時代の古いコピーが上書きとして固定され、` +
+          `マスタ側でライセンス表記を直しても既存アプリへ届かなくなる`,
+      );
     }
     assert.equal(migrated.source.label, undefined, 'AC5: label もマスタと同値なら上書きにしない');
     assert.equal(migrated.source.baseMapUid, 'uid-tms', 'AC5: baseMapUid を補う');
@@ -423,6 +441,64 @@ try {
     assert.deepEqual(source.overrides ?? {}, {}, '新規追加時の上書きは空');
     assert.equal('data' in source, false, 'data（マスタ全コピー）は廃止');
     console.log('ok: createAppSourceFromBaseMap が参照＋空 overrides を返す');
+  }
+
+  // ============ AC27（v1.4・IR-H-2）: 帰属・ライセンス系5キーの上書きが往復する ============
+  {
+    assert.deepEqual(
+      [...APP_SOURCE_OVERRIDABLE_KEYS].sort(),
+      ['attr', 'dataAttr', 'dataLicense', 'dataLicenseNote', 'label', 'license', 'licenseNote', 'maxZoom', 'minZoom', 'thumbnail', 'title'],
+      'AC27: 宣言テーブルが v1.4 の11キーになる（§3.2）',
+    );
+
+    const source = {
+      sourceType: 'tms', mapUid: 'user-tms', baseMapUid: 'uid-tms', role: 'base',
+      overrides: {
+        // 言語別3キー: 編集した言語のみ保存（§3.5.5 の保存側）
+        dataAttr: { ja: 'アプリ側のデータ帰属' },
+        licenseNote: { ja: 'アプリ側の補足' },
+        dataLicenseNote: { ja: 'アプリ側のデータ補足' },
+        // スカラー2キー
+        license: 'CC BY-SA',
+        dataLicense: 'PD',
+      },
+    };
+    const out = composeViewerSource(source, { lang: 'ja', lookup });
+
+    // スカラーはそのまま出る
+    assert.equal(out.license, 'CC BY-SA', 'AC27: license の上書きがアプリ JSON 要素へ出る');
+    assert.equal(out.dataLicense, 'PD', 'AC27: dataLicense の上書きがアプリ JSON 要素へ出る');
+
+    // 言語別はマスタとマージした完全な言語オブジェクト（§3.5.5 の出力側）。
+    // マスタの dataAttr は {ja:'データ作者'} で ja のみ ∴ 上書き後も ja のみ → 交換形で平文へ畳まれる
+    assert.equal(out.dataAttr, 'アプリ側のデータ帰属', 'AC27: dataAttr の上書きが出る（ja のみなので交換形の平文）');
+    assert.equal(out.licenseNote, 'アプリ側の補足', 'AC27: licenseNote の上書きが出る');
+    assert.equal(out.dataLicenseNote, 'アプリ側のデータ補足', 'AC27: dataLicenseNote の上書きが出る');
+
+    // 未上書きなら**アプリ JSON 要素に出ない**（設定ファイル側のマスタ値が効く）
+    const bare = composeViewerSource(
+      { sourceType: 'tms', mapUid: 'user-tms', baseMapUid: 'uid-tms', role: 'base', overrides: {} },
+      { lang: 'ja', lookup },
+    );
+    for (const key of ['dataAttr', 'license', 'dataLicense', 'licenseNote', 'dataLicenseNote']) {
+      assert.equal(key in bare, false, `AC27: 未上書きの ${key} はアプリ JSON 要素に出ない`);
+    }
+    // 設定ファイル側にはマスタ値が出ている（消費側が引ける先が必ずある）
+    const setting = composeBaseMapSettingFile(lookup.byUid('uid-tms'), 'base');
+    assert.equal(setting.license, 'CC BY', 'AC27: 未上書き時に効くのは設定ファイル側のマスタ値');
+    assert.equal(setting.dataLicense, 'ODbL');
+    assert.equal(setting.dataAttr, 'データ作者');
+
+    // 多言語マスタでは未編集言語がマスタ値のまま残る（キー単位全置換への対処・§3.5.5）
+    const osmOverride = composeViewerSource(
+      { sourceType: 'builtin', mapUid: 'osm', baseMapUid: 'uid-osm', role: 'base', overrides: { licenseNote: { ja: 'アプリ補足' } } },
+      { lang: 'ja', lookup },
+    );
+    assert.deepEqual(
+      osmOverride.licenseNote, { en: 'OSM copyright', ja: 'アプリ補足' },
+      'AC27: 言語別の上書きは編集言語だけ差し替わり、未編集言語はマスタ値が残る',
+    );
+    console.log('ok: AC27 帰属・ライセンス系5キーの往復');
   }
 
   // ============ AC7: 操作子と定数の一致（明示アンカーで機械照合）============

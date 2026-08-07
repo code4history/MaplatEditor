@@ -129,6 +129,12 @@ export const APP_SOURCE_OVERRIDABLE_KEYS = [
   "minZoom",
   "maxZoom",
   "thumbnail",
+  // v1.4（IR-H-2・設計 §3.8-8）: 帰属・ライセンス系。操作子はマスタ編集フォームと同種別
+  "dataAttr",
+  "license",
+  "dataLicense",
+  "licenseNote",
+  "dataLicenseNote",
 ] as const;
 
 // マスタに対応物が無く、常にアプリ所有のもの（マスタとの比較を行わない点だけが異なる）。
@@ -159,6 +165,22 @@ export const COMMON_OPTION_KEYS = [
 const LANG_OBJECT_KEYS: readonly string[] = [...BASE_MAP_LANG_ATTRS, "label"];
 
 const OVERRIDABLE_KEY_SET = new Set<string>(APP_SOURCE_OVERRIDABLE_KEYS);
+
+// v1.4（設計 §3.7.1）: 旧形（data 全コピー）の移行に限り、無条件に捨てるキー。
+// この5キーは v1.4 で上書き可になったが、**それ以前は操作子が無かった**。∴ 旧 data に
+// 入っている値は createAppSourceFromBaseMap が追加時点のマスタから機械的にコピーした
+// ものであり、ユーザーの選択を1件も含まない。マスタの現在値と食い違っていても、それは
+// 「ユーザーが変えた」ではなく「コピーが古い」だけである。
+// これを上書きとして温存すると、ライセンス表記の誤りをマスタで直しても既存アプリだけ
+// 古い表記のまま出力される — 本タスクの動機（帰属・ライセンスを細かく管理できるように
+// する / マスタの変更をアプリへ届ける）そのものに反する固定化が起きる。
+const MIGRATION_DISCARD_KEYS = new Set<string>([
+  "dataAttr",
+  "license",
+  "dataLicense",
+  "licenseNote",
+  "dataLicenseNote",
+]);
 const OWNED_KEY_SET = new Set<string>(APP_SOURCE_OWNED_KEYS);
 
 // 設定ファイル（maps/<slug>.json）へ出してはならないキー。
@@ -271,6 +293,8 @@ function migrateLegacyData(
       overrides[key] = value;
       continue;
     }
+    // §3.7.1: v1.4 で上書き可になった5キーは、移行時だけは無条件に捨てる
+    if (MIGRATION_DISCARD_KEYS.has(key)) continue;
     if (!OVERRIDABLE_KEY_SET.has(key) || key === "label") continue;
     if (value === undefined || value === null || value === "") continue;
     if (valueEquals(key, value, master.data[key], defaultLang)) continue;
