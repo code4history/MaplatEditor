@@ -200,10 +200,15 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     await expect(draftRow).toHaveCount(0);
 
     // F4: ID 重複の operation 診断が Undo（文書変更）で消える
+    // NOTE (m6-t10 実装時に吸収): m6-t2 が attr を必須化した（validateBaseMapDocument の
+    // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。本 spec は
+    // m6-t2 以降ずっと RED だった（最終更新は m6-t1 の edd897b）。m11-t4 は af691aa で
+    // 同じ吸収を済ませているので、それに揃えて basemap-attr の入力を足す。
     await page.getByTestId('basemap-new').click();
     await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '重複元');
+    await fillAndCommit(page.getByTestId('basemap-attr'), 'テスト帰属');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
     // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
     await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
@@ -215,6 +220,7 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
     await fillAndCommit(page.getByTestId('basemap-title'), '重複先');
+    await fillAndCommit(page.getByTestId('basemap-attr'), 'テスト帰属');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
     await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
     await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
@@ -331,6 +337,7 @@ test('F8: draft badges stay consistent across row switching', async () => {
       await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
       await fillAndCommit(page.getByTestId('basemap-slug'), slug);
       await fillAndCommit(page.getByTestId('basemap-title'), title);
+      await fillAndCommit(page.getByTestId('basemap-attr'), 'テスト帰属');
       await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
       // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
