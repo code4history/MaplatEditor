@@ -46,10 +46,3 @@ overrides:
   minimatch: "^9.0.7"
   path-to-regexp: "~1.9.0"
   postcss: "^8.5.18"
-
-# ---- 暫定 override（m1-t3）: m9 の一斉publish で撤去すること ----
-# 上流が我々自身のパッケージ（@c4h/chuci の swiper / @maplat/core の lodash.template）であり、
-# publish すれば自然に伝播する。ローカルは outer workspace の symlink により既に伝播済み。
-# CI が npm 公開版を引く期間だけ必要な措置である。撤去条件は設計書 §2.3 と m9 の carryover を参照。
-  lodash.template: "^4.18.1"  # m9 で撤去
-  swiper: "^12.1.2"  # m9 で撤去
