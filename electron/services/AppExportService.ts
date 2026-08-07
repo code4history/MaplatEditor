@@ -61,6 +61,17 @@ const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
 // 既存の appedit.warn_* 警告キー群（PROVIDER_KEY_MISSING_WARNING/DUPLICATE_POI_REFERENCE_WARNING 等）
 // の命名規約に合わせる（設計書は appedit.errors.merc_name_collision としていたが、既存の appedit.errors.*
 // 名前空間は存在せず、警告チャネルはすべて appedit.warn_* を使っているため、実装時にこの規約へ揃えた）。
+// m6-t10 (AC9): maps/<slug>.json の出力パス衝突ガード。
+// slug は asset_registry で kind 横断に UNIQUE（ADR-0007）なので、正常系では発火しない。
+// 発火したら「ベースマップと Maplat 地図が同一 slug を主張している」＝ 不変条件の破れであり、
+// 黙って上書きすると片方の地図がパッケージから消える。∴ warning ではなく throw する。
+export function assertNoMapJsonCollision(written: ReadonlySet<string>, slug: string): void {
+  if (!written.has(slug)) return;
+  throw new Error(
+    `maps/${slug}.json の出力が衝突しました（ベースマップと Maplat 地図が同一 slug を主張しています）`,
+  );
+}
+
 export const MERC_NAME_COLLISION_WARNING = 'appedit.warn_merc_name_collision';
 
 function findExistingPath(candidates: string[]) {
@@ -438,9 +449,7 @@ class AppExportService {
       //     地図 JSON と同じく minify（内容種別単位の規則。m5-t4b）。
       const writtenMapJsonSlugs = new Set(maplatSources.map(source => String(maplatDocs.get(source)?.slug ?? '')));
       for (const [slug, settingFile] of baseMapSettingFiles) {
-        if (writtenMapJsonSlugs.has(slug)) {
-          throw new Error(`maps/${slug}.json の出力が衝突しました（ベースマップと Maplat 地図が同一 slug を主張しています）`);
-        }
+        assertNoMapJsonCollision(writtenMapJsonSlugs, slug);
         writtenMapJsonSlugs.add(slug);
         await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), settingFile);
       }
