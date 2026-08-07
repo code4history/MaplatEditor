@@ -596,6 +596,25 @@ try {
     console.log('ok: AC7 操作子と宣言テーブルの一致');
   }
 
+  // ============ hotfix 回帰ガード（2026-08-07 人間報告の2バグ）============
+  {
+    const appEditSrc = await readFile(path.join(projectRoot, 'src/views/AppEdit.vue'), 'utf8');
+    // バグA: normalizeSource の label←title 強制補完（設計 P2 の廃止対象）が残っていると、
+    // ロードのたびに title 由来の label が上書きとして実体化する（保存→再読込で復活）。
+    // AppEdit.vue は label へ代入してはならない（label の操作子と保存は AppSourceEditor 側の責務）
+    assert.equal(
+      /source\.label\s*=/.test(appEditSrc), false,
+      'hotfix: AppEdit.vue に label への代入（強制補完の残骸）が無いこと',
+    );
+    // バグB: maplat ソースの label 操作子（§3.8-6 の移設時に消えた退行の復旧）
+    const editorSrc = await readFile(path.join(projectRoot, 'src/components/AppSourceEditor.vue'), 'utf8');
+    assert.match(
+      editorSrc, /input-testid="app-source-maplat-label"/,
+      'hotfix: maplat ソースに label 操作子があること（override- 接頭辞ではない = AC7 集合に混入しない）',
+    );
+    console.log('ok: hotfix 回帰ガード（label 強制補完の廃止・maplat label 操作子の復旧）');
+  }
+
   console.log('\nm6-t10 app-source-diff-model smoke: すべて成功');
 } finally {
   await rm(workDir, { recursive: true, force: true });

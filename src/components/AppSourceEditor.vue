@@ -192,8 +192,29 @@ async function uploadThumbnail() {
 
 <template>
   <div>
-    <!-- maplat: 設定項目なし（map.json 側で設定する） -->
-    <div v-if="source.sourceType === 'maplat'" />
+    <!-- maplat: label のみ編集可（他のメタデータは map.json 側で設定する）。
+         m6-t10 hotfix (2026-08-07): §3.8-6 の label 操作子移設で maplat 分岐が空になり、
+         maplat ソースの label 編集が消えていた退行の復旧。maplat にはマスタ（ベースマップ）が
+         無いためプレースホルダは出さない。空にする＝label を外す（viewer は設定ファイルの
+         year へフォールバックする従来挙動）。testid は override- 接頭辞にしない
+         （AC7 の照合集合は「マスタ対応の上書き可フィールド」であり、maplat の label は
+         マスタとの差分ではないため） -->
+    <div v-if="source.sourceType === 'maplat'" class="row g-2 mt-1">
+      <div class="col-md-6">
+        <label class="form-label small mb-0">{{ t("appedit.source_label") }}</label>
+        <LangResourceInput
+          :model-value="source.label"
+          :active-lang="currentLang"
+          :default-lang="defaultLang"
+          :language-options="languageOptions"
+          :disabled="translationMode"
+          clearable
+          input-testid="app-source-maplat-label"
+          @update:model-value="setLangResource('label', $event)"
+          @select-language="emit('select-language', $event)"
+        />
+      </div>
+    </div>
 
     <!-- m6-t10 §3.6: マスタが引けないソース。削除以外の操作を無効化する -->
     <DiagnosticFeedback

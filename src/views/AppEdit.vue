@@ -707,11 +707,11 @@ function normalizeSource(value: any, defaultLang?: string): AppSource {
       ? title
       : localizedWithLang(title, defaultLang || "ja") || fallbackID;
   }
-  if (source.sourceType !== "builtin") {
-    source.label = {
-      ...normalizeLangObject(value.label || value.data?.label || source.label || source.title, defaultLang),
-    };
-  }
+  // m6-t10 hotfix (2026-08-07): 旧「label/title 強制補完」はここに残っていた最後の1箇所。
+  // 差分保持モデルでは label は「上書き分のみ・未上書いならキー不在」であり、title からの
+  // 補完はロードのたびに title 由来の値を上書きとして実体化させる（保存→再読込で復活する
+  // 見かけ上のバグの原因）。保存済み label は normalizeAppSource(pickLabel) が保持するため、
+  // ここで補完してはならない（設計 P2 の廃止対象）。
   source.thumbnail = typeof value === "object" && value !== null ? value.thumbnail : undefined;
   return source;
 }
