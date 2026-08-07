@@ -142,6 +142,11 @@ test('m6-t10 AC12/AC14/AC25/AC28: 差分保持フォーム（プレースホル�
   try {
     const tmsSlug = `m6t10-tms-${Date.now()}`;
     await seedBaseMap(page, tmsSlug, { ...masterTmsDoc });
+    // IR2-H-1 のエッジ検証用（ライセンス未設定のマスタ）。
+    // **AppEdit へ入る前に seed する** — baseMapMasters は onMounted で1回読むだけなので、
+    // 画面表示後に seed したマスタは lookup に載らず、ソースがマスタ欠落表示になる
+    const unsetSlug = `m6t10-unset-${Date.now()}`;
+    await seedBaseMap(page, unsetSlug, { ...masterTmsDoc, license: '', dataLicense: '' });
 
     const card = await newAppWithSource(page, `m6t10-app-${Date.now()}`, tmsSlug);
 
@@ -218,14 +223,35 @@ test('m6-t10 AC12/AC14/AC25/AC28: 差分保持フォーム（プレースホル�
     // ---- AC12(c): ライセンスは空選択肢「マスタに従う」で解除する ----
     const licenseSelect = card.getByTestId('app-source-override-license');
     await expect(licenseSelect).toHaveValue('');
+    // IR2-H-1: 空選択肢は「マスタに従う（そのとき効くマスタの値）」。
+    // テキスト欄の placeholder と同じ「未上書き時の実効値の提示」を select に適用したもの。
+    // 表示はライセンス語彙の**ローカライズ済みラベル**（保存値そのままではない）
     await expect(
       licenseSelect.locator('option[value=""]'),
-      'AC12: 空選択肢は「マスタに従う」表記',
-    ).toHaveText('マスタに従う');
+      'IR2-H-1: 空選択肢にマスタの現在値が併記される',
+    ).toHaveText('マスタに従う（クリエイティブ・コモンズ 表示-継承）');
+    await expect(
+      card.getByTestId('app-source-override-dataLicense').locator('option[value=""]'),
+      'IR2-H-1: データライセンス側も同様',
+    ).toHaveText('マスタに従う（ODbL (Open Database License)）');
     await licenseSelect.selectOption('CC BY');
     await expect(licenseSelect).toHaveValue('CC BY');
     await licenseSelect.selectOption('');
     await expect(licenseSelect, 'AC12: 空選択肢で解除される').toHaveValue('');
+
+    // IR2-H-1 のエッジ: マスタ側が未設定なら「マスタに従う（未設定）」。
+    // viewer 側に license のフォールバック規則は無く（META_KEYS がそのまま運ぶだけ）、
+    // 空は本当に「ライセンス未設定」を意味する。∴ マスタ編集フォームが同じ状態に使う
+    // 文言（mapedit.license_unset）をそのまま括弧内へ入れる
+    await page.getByTestId('app-basemap-search').fill(unsetSlug);
+    await expect(page.getByTestId(`app-basemap-row-${unsetSlug}`)).toBeVisible({ timeout: 30000 });
+    await page.getByTestId(`app-basemap-row-${unsetSlug}`).click();
+    const unsetCard = page.getByTestId(`app-selected-source-${unsetSlug}`);
+    await expect(unsetCard).toBeVisible();
+    await expect(
+      unsetCard.getByTestId('app-source-override-license').locator('option[value=""]'),
+      'IR2-H-1: マスタ未設定時は「マスタに従う（未設定）」',
+    ).toHaveText('マスタに従う（未設定）');
 
     // ---- AC14: url の入力欄は tms でも出ない。代わりに「マスタで管理する」注記が出る ----
     await expect(card.getByTestId('app-source-url-field'), 'AC14: url 入力欄は撤去済み').toHaveCount(0);

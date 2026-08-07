@@ -694,7 +694,7 @@
     "search_maps_placeholder": "ค้นหาแผนที่…",
     "warn_mixed_pois": "ข้อมูล POI มีทั้งรูปแบบ GeoJSON และรูปแบบอื่นปะปนกัน อาจแสดงผลไม่ถูกต้องในวิวเวอร์ โปรดแปลง POI รูปแบบเก่าเป็น GeoJSON",
     "provider_source_note": "URL ไทล์จะถูกสร้างขึ้นโดยอัตโนมัติจากคีย์ API และประเภท จึงไม่จำเป็นต้องป้อนด้วยตนเอง",
-    "license_inherit": "Follow master",
+    "license_inherit": "ตามต้นฉบับ ({{value}})",
     "override_reset": "คืนค่าเป็นต้นฉบับ",
     "source_url_master_note": "URL ของไทล์จัดการที่ต้นฉบับแผนที่ฐาน และไม่สามารถกำหนดทับรายแอปได้",
     "error_missing_base_map_master": "ไม่พบแผนที่ฐานของแหล่งข้อมูลนี้ จะถูกยกเว้นจากการส่งออกและตัวอย่าง",

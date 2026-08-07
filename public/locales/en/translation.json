@@ -685,7 +685,7 @@
     "search_maps_placeholder": "Search maps…",
     "warn_mixed_pois": "The POI data mixes GeoJSON and non-GeoJSON formats. It may not display correctly in the viewer. Convert legacy-format POIs to GeoJSON.",
     "provider_source_note": "The tile URL is built automatically from the API key and type, so no manual input is needed.",
-    "license_inherit": "Follow master",
+    "license_inherit": "Follow master ({{value}})",
     "override_reset": "Reset to master",
     "source_url_master_note": "The tile URL is managed on the base map master and cannot be overridden per app.",
     "error_missing_base_map_master": "The base map for this source is missing. It will be excluded from export and preview.",

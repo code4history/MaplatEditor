@@ -5,7 +5,7 @@
 //          AC6(overlay 保全) / AC19(builtin の url) / AC21(commonOptions 禁止キー)
 //          AC23(merc の url 導出) / AC24(言語別の上書き粒度)
 // AC7（操作子と定数の一致）は AppSourceEditor.vue のソーステキストを読むため本 smoke の末尾で扱う。
-import { mkdir, mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -534,6 +534,23 @@ try {
     }
     assert.match(appSourceEditor, /allow-unset/, 'AC28: allowUnset で「マスタに従う」を選べる');
     assert.match(appSourceEditor, /appedit\.license_inherit/, 'AC28: 空選択肢は「マスタに従う」表記');
+    // IR2-H-1: 空選択肢へマスタの現在値を併記する（テキスト欄 placeholder と同じ実効値提示）
+    assert.match(
+      appSourceEditor, /unset-label-value/,
+      'AC28(IR2-H-1): 空選択肢へマスタの実効値を渡している',
+    );
+    assert.match(
+      licenseSelect, /unsetLabelValue\?: string/,
+      'AC28(IR2-H-1): LicenseSelect が実効値を受け取る prop を持つ',
+    );
+    // 11言語すべてで補間形になっていること（1言語だけ直し忘れる事故を塞ぐ）
+    for (const lang of (await readdir(path.join(projectRoot, 'public/locales'))).sort()) {
+      const dict = JSON.parse(await read(`public/locales/${lang}/translation.json`));
+      assert.ok(
+        String(dict.appedit.license_inherit).includes('{{value}}'),
+        `AC28(IR2-H-1): ${lang} の appedit.license_inherit が補間形（{{value}}）になっている`,
+      );
+    }
 
     // (c) 共通部品の追加 prop は**既定値が現行挙動と同一**（BaseMapEdit を無改修に保つ前提）
     assert.match(langInput, /clearable\?: boolean/, 'AC28: LangResourceInput に clearable prop');

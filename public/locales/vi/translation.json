@@ -694,7 +694,7 @@
     "search_maps_placeholder": "Tìm bản đồ…",
     "warn_mixed_pois": "Dữ liệu POI trộn lẫn định dạng GeoJSON và định dạng khác. Có thể hiển thị không đúng trong trình xem. Hãy chuyển đổi POI định dạng cũ sang GeoJSON.",
     "provider_source_note": "URL ô bản đồ được tạo tự động từ khóa API và loại, nên không cần nhập thủ công.",
-    "license_inherit": "Follow master",
+    "license_inherit": "Theo bản gốc ({{value}})",
     "override_reset": "Đặt lại về bản gốc",
     "source_url_master_note": "URL ô bản đồ được quản lý ở bản gốc bản đồ nền và không thể ghi đè theo từng ứng dụng.",
     "error_missing_base_map_master": "Không tìm thấy bản đồ nền cho nguồn này. Nguồn sẽ bị loại khỏi xuất bản và xem trước.",

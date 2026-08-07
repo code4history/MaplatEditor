@@ -7,7 +7,7 @@
     @change="onChange"
   >
     <!-- allowUnset のとき先頭に「未設定」空選択肢を置く (ベースマップ専用。地図側は既存の既定値運用を変えない) -->
-    <option v-if="allowUnset" value="">{{ t(unsetLabelKey) }}</option>
+    <option v-if="allowUnset" value="">{{ t(unsetLabelKey, { value: unsetLabelValue }) }}</option>
     <option v-for="option in options" :key="option.value" :value="option.value">
       {{ t(option.labelKey) }}
     </option>
@@ -35,11 +35,16 @@ const props = withDefaults(defineProps<{
   // マスタ編集では「未設定」だが、アプリソース編集では「マスタに従う」を意味する。
   // 既定は現行のハードコード値と同一なので MapEdit / BaseMapEdit の表示は変わらない
   unsetLabelKey?: string;
+  // m6-t10 IR2-H-1: 空選択肢へ併記する実効値（例:「マスタに従う（ODbL）」）。
+  // ラベルキー側の {{value}} へ差し込む。補間を持たないキー（mapedit.license_unset）では
+  // i18next が余分な引数を無視するため、既定の呼び出し側は影響を受けない
+  unsetLabelValue?: string;
 }>(), {
   allowUnset: false,
   disabled: false,
   testId: "",
   unsetLabelKey: "mapedit.license_unset",
+  unsetLabelValue: "",
 });
 
 const emit = defineEmits<{

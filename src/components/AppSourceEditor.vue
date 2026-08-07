@@ -26,6 +26,7 @@ import LangResourceInput from "./LangResourceInput.vue";
 import ContextHelp from "./editor-ui/ContextHelp.vue";
 import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 import LicenseSelect from "./editor-ui/LicenseSelect.vue";
+import { LICENSE_VOCABULARY } from "../utils/licenseVocabulary";
 import type { LangCode } from "../utils/editorLanguages";
 import {
   bboxToEnvelope,
@@ -74,6 +75,18 @@ function masterText(key: string): string {
     masterLang.value,
   );
 }
+// m6-t10 IR2-H-1: ライセンス欄の空選択肢へ併記する「マスタに従ったときの実効値」。
+// 保存値（ASCII）ではなく語彙のローカライズ済みラベルを出す（選択肢の表示と揃える）。
+// マスタが未設定なら、マスタ編集フォームが同じ状態に使う文言をそのまま入れる
+// （viewer 側に license のフォールバック規則は無く、空は本当に「未設定」を意味する）。
+function masterLicenseLabel(key: "license" | "dataLicense"): string {
+  const value = String(master.value[key] ?? "");
+  if (!value) return t("mapedit.license_unset");
+  const option = LICENSE_VOCABULARY.find((item) => item.value === value);
+  // 語彙外の値（旧データ等）は保存値をそのまま見せる。黙って「未設定」に潰さない
+  return option ? t(option.labelKey) : value;
+}
+
 function masterNumber(key: string): string {
   const value = master.value[key];
   return typeof value === "number" && Number.isFinite(value) ? String(value) : "";
@@ -262,6 +275,7 @@ async function uploadThumbnail() {
           variant="image"
           allow-unset
           unset-label-key="appedit.license_inherit"
+          :unset-label-value="masterLicenseLabel('license')"
           data-testid="app-source-override-license"
           :model-value="scalarValue('license')"
           :disabled="translationMode"
@@ -289,6 +303,7 @@ async function uploadThumbnail() {
           variant="data"
           allow-unset
           unset-label-key="appedit.license_inherit"
+          :unset-label-value="masterLicenseLabel('dataLicense')"
           data-testid="app-source-override-dataLicense"
           :model-value="scalarValue('dataLicense')"
           :disabled="translationMode"

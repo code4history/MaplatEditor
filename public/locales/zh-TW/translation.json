@@ -694,7 +694,7 @@
     "search_maps_placeholder": "搜尋地圖…",
     "warn_mixed_pois": "POI 資料中混雜了 GeoJSON 格式與其他格式，可能無法在檢視器中正確顯示。請將舊格式 POI 轉換為 GeoJSON。",
     "provider_source_note": "圖磚URL會根據API金鑰與種類自動建立，無需手動輸入。",
-    "license_inherit": "Follow master",
+    "license_inherit": "跟隨主資料（{{value}}）",
     "override_reset": "恢復為主資料",
     "source_url_master_note": "圖磚 URL 在底圖主資料中管理，無法依應用程式覆寫。",
     "error_missing_base_map_master": "找不到此來源的底圖，將自匯出與預覽中排除。",
