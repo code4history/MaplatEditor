@@ -306,7 +306,19 @@ try {
         // tms のみのアプリでは注入しない
         const plain = await AppPreviewService.createSession('tok-gl2', { appID: 'gl_app2', title: { ja: 'GL2' }, lang: 'ja', sources: [tmsSource], appSettings: {}, httpSettings: {} });
         assert.deepEqual(plain.requiredProviderGl, [], 'GL: tms のみでは GL CDN を注入しない');
-        console.log('ok: GL CDN 判定がマスタ経由（m6-t5 AC16 の退行止め）');
+        // 書き出し側も同じ関数を通る。renderIndexHtml は lookup を任意引数で受けるため、
+        // 渡し忘れると検出が黙って空になる。∴ 生成された index.html の実体で固定する
+        const zipPath = path.join(${JSON.stringify(exportDir)}, 'gl.zip');
+        (globalThis as any).__nextDialogResult = { canceled: false, filePath: zipPath };
+        const exported = await AppExportService.exportApp(fakeWin, { ...doc, appID: 'gl_export' });
+        assert.equal(exported.result, 'Success', JSON.stringify(exported));
+        const html = new AdmZip(exported.outDir).getEntry('index.html').getData().toString('utf8');
+        assert.ok(html.includes('maplibre-gl'), 'GL: 書き出し index.html にも maplibre-gl CDN が入るはず');
+        assert.ok(
+          html.indexOf('maplibre-gl') < html.indexOf('assets/ol.js'),
+          'GL: CDN タグは ol.js より前に入るはず',
+        );
+        console.log('ok: GL CDN 判定がマスタ経由（m6-t5 AC16 の退行止め・プレビューと書き出しの両方）');
       }
 
       console.log('M6-T10 export/preview smoke passed');
