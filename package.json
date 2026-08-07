@@ -85,6 +85,7 @@
     "test:e2e:m6-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t6-api-key-tiers.spec.ts",
     "test:e2e:m6-t9": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t9-provider-followups.spec.ts",
     "test:e2e:m6-t10": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t10-app-source-diff-model.spec.ts",
+    "e2e:m6-t10-human": "node scripts/ensure-electron.mjs && pnpm run build && MAPLAT_HUMAN_CHECK=1 PWDEBUG=1 playwright test tests/e2e/m6-t10-human-check.spec.ts --headed --workers=1",
     "test:e2e:m6-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t4-google-preset.spec.ts",
     "test:e2e:m6-t4b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t4b-google-preset-defaults.spec.ts",
     "test:e2e:m11-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t5-shell-tokens.spec.ts",
