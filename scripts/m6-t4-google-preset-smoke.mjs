@@ -78,6 +78,8 @@ try {
     createAppSourceFromBaseMap,
     normalizeAppSource,
     composeViewerSource,
+    composeBaseMapSettingFile,
+    createBaseMapMasterLookup,
   } = await import(pathToFileURL(path.join(outDir, "contracts.mjs")).href);
 
   const uid = "22222222-2222-4222-8222-222222222222";
@@ -167,13 +169,23 @@ try {
     kind: "google",
     maptype: "google_roadmap",
   };
-  const appSrc = createAppSourceFromBaseMap(masterGoogle, "ja");
-  assert.equal(appSrc.data.kind, "google", "AC7: createAppSourceFromBaseMap が kind を保持");
-  const viewer = composeViewerSource(appSrc);
-  assert.equal(viewer.maptype, "google_roadmap", "AC7: composeViewerSource が google_roadmap を出力");
+  // m6-t10 (ADR-0017): google_roadmap の運び先はアプリ JSON から設定ファイルへ移った。
+  // 「create → 連鎖の末端まで google_roadmap が生きる」という AC7 の趣旨は維持する。
+  const masterGoogleItem = { uid: "uid-google", mapID: "google-master", data: { mapID: "google-master", ...masterGoogle } };
+  const lookup = createBaseMapMasterLookup([masterGoogleItem]);
+  const appSrc = createAppSourceFromBaseMap(masterGoogleItem, "ja");
+  assert.equal(appSrc.baseMapUid, "uid-google", "AC7: createAppSourceFromBaseMap が参照を持つ");
+  const viewer = composeViewerSource(appSrc, { lookup });
+  assert.equal("maptype" in viewer, false, "AC7: m6-t10 でアプリ JSON に maptype は出さない");
+  assert.equal(viewer.settingFile, "maps/google-master.json", "AC7: 設定ファイル参照を出す");
+  assert.equal(
+    composeBaseMapSettingFile(masterGoogleItem, appSrc.role).maptype,
+    "google_roadmap",
+    "AC7: 設定ファイル側が google_roadmap を出力",
+  );
   // normalize 経由でも同じ
   const normalized = normalizeAppSource(appSrc);
-  assert.equal(composeViewerSource(normalized).maptype, "google_roadmap", "AC7: normalize→compose でも google_roadmap");
+  assert.equal("maptype" in composeViewerSource(normalized, { lookup }), false, "AC7: normalize→compose でも maptype は出ない");
 
   // ---- AC12 ロケール ----
   const localeRoot = path.join(projectRoot, "public/locales");

@@ -79,6 +79,8 @@ try {
     applyImageAssetDraft,
     clampScrollTop,
     composeViewerSource,
+    composeBaseMapSettingFile,
+    createBaseMapMasterLookup,
     createAppSourceFromBaseMap,
     fromBaseMapCatalogItem,
     fromImageAssetRow,
@@ -276,18 +278,26 @@ try {
     url: "https://x/{z}/{x}/{y}.png",
     coverageLngLats: [[135, 34], [136, 34], [136, 35], [135, 35]],
   };
-  const appSource = createAppSourceFromBaseMap(master, "ja");
+  // m6-t10 (ADR-0018): App ソースはマスタ値をコピーせず参照＋上書き差分のみを持つ。
+  // 表示値はマスタから解決するため、検査対象を設定ファイルとアプリ JSON の両方に分けた。
+  const masterItem = { uid: "uid-master", mapID: master.mapID, data: { ...master } };
+  const lookup = createBaseMapMasterLookup([masterItem]);
+  const appSource = createAppSourceFromBaseMap(masterItem, "ja");
   assert.equal(resolveBaseMapSelectorText(master, "ja"), "地図ラベル");
   assert.equal(resolveBaseMapSelectorText(master, "en"), "Map label");
-  assert.deepEqual(appSource.label, master.label);
-  assert.notEqual(appSource.label, master.label);
-  assert.equal(appSource.title, "地図");
-  assert.equal(appSource.data.defaultLang, "ja");
-  const runtimeSource = composeViewerSource(appSource, { lang: "ja" });
-  assert.equal(runtimeSource.title, "地図");
-  assert.equal(runtimeSource.attr, "帰属");
-  assert.equal("coverageLngLats" in runtimeSource, false);
+  assert.equal(appSource.label, undefined, "m6-t10: 追加直後は上書きが無いので label はキーごと不在");
+  assert.equal(appSource.baseMapUid, "uid-master");
+  assert.equal(appSource.title, "地図", "Editor 表示用 title はマスタから解決して持つ");
+  const runtimeSource = composeBaseMapSettingFile(masterItem, appSource.role);
+  // m6-t10 §3.5.5: 設定ファイルは ADR-0005 の交換形（多言語オブジェクト）を保つ。
+  // 言語の解決は viewer 側（ui.translate）が行う — エディタ側では解決しない
+  assert.deepEqual(runtimeSource.title, { ja: "地図", en: "Map" });
+  assert.deepEqual(runtimeSource.attr, { ja: "帰属", en: "Attribution" });
+  assert.equal("coverageLngLats" in runtimeSource, false, "ADR-0004: 存在範囲は viewer へ渡さない");
   assert.equal("defaultLang" in runtimeSource, false);
+  const appElement = composeViewerSource(appSource, { lang: "ja", lookup });
+  assert.equal(appElement.settingFile, `maps/${master.mapID}.json`);
+  assert.equal("title" in appElement, false, "m6-t10: 未上書きの title はアプリ JSON に出ない");
   assert.deepEqual(resolveBaseMapLayerMetadata(master, "ja"), { title: "地図", attr: "帰属" });
   const builtinMaster = {
     mapID: "osm",
@@ -295,12 +305,15 @@ try {
     title: { ja: "OpenStreetMap", en: "OpenStreetMap" },
     label: { ja: "OpenStreetMap", en: "OpenStreetMap" },
   };
-  const builtinSource = createAppSourceFromBaseMap(builtinMaster, "ja");
-  assert.deepEqual(builtinSource.label, builtinMaster.label);
-  assert.notEqual(builtinSource.label, builtinMaster.label);
-  assert.equal(builtinSource.data.defaultLang, "ja");
-  assert.equal(composeViewerSource(builtinSource, { lang: "ja" }), "osm");
-  assert.deepEqual(normalizeAppSource(builtinSource, "ja").label, builtinMaster.label);
+  const builtinItem = { uid: "uid-osm", mapID: "osm", data: { ...builtinMaster } };
+  const builtinLookup = createBaseMapMasterLookup([builtinItem]);
+  const builtinSource = createAppSourceFromBaseMap(builtinItem, "ja");
+  assert.equal(builtinSource.sourceType, "builtin");
+  assert.equal(builtinSource.label, undefined, "m6-t10: 追加直後は上書きが無い");
+  // m6-t10 (ADR-0017): builtin の文字列出力は廃止した。設定ファイル参照になる
+  assert.deepEqual(composeViewerSource(builtinSource, { lang: "ja", lookup: builtinLookup }), {
+    mapID: "osm", settingFile: "maps/osm.json",
+  });
 
   // m6-t3 AC16: composeViewerSource が license を運ぶのは sourceType=tms の 326件。
   // VIEWER_BUILTIN (osm/gsi/gsi_ortho) は文字列 ID のみ返すのでここでは対象外。
@@ -322,9 +335,11 @@ try {
     },
     url: "https://example.test/{z}/{x}/{y}.png",
   };
-  const tmsBuiltinSource = createAppSourceFromBaseMap(tmsBuiltinMaster, "ja");
+  const tmsBuiltinItem = { uid: "uid-gsi-gazo1", mapID: "gsi_gazo1", data: { ...tmsBuiltinMaster } };
+  const tmsBuiltinSource = createAppSourceFromBaseMap(tmsBuiltinItem, "ja");
   assert.equal(tmsBuiltinSource.sourceType, "tms");
-  const tmsRuntime = composeViewerSource(tmsBuiltinSource, { lang: "ja" });
+  // m6-t10: license の運び先は設定ファイル側（AC16 の趣旨は「326件で license が運ばれる」）
+  const tmsRuntime = composeBaseMapSettingFile(tmsBuiltinItem, tmsBuiltinSource.role);
   assert.equal(typeof tmsRuntime, "object");
   assert.equal(tmsRuntime.license, "Custom");
   assert.equal(tmsRuntime.dataLicense, "Custom");

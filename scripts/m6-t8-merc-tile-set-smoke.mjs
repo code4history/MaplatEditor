@@ -96,6 +96,8 @@ try {
       const { default: AppExportService, MERC_NAME_COLLISION_WARNING } = await import(${JSON.stringify(appExportServicePath)});
       const {
         createAppSourceFromBaseMap,
+        createBaseMapMasterLookup,
+        composeBaseMapSettingFile,
         normalizeAppSource,
         composeViewerSource,
       } = await import(${JSON.stringify(path.join(projectRoot, 'src/utils/appSourceModel.ts'))});
@@ -173,26 +175,32 @@ try {
       assert.equal(catalogItem.data.sourceMapUid, SRC_MAP_UID, 'sourceMapUid が保存されるはず');
       assert.equal(catalogItem.data.url, '', 'merc は url を保存しないはず（読み込み時は常に空文字）');
 
-      // AppEdit.vue addBaseMapSource 相当: item.mapID(=slug) から url を導出し baseMapUid を付与する
-      const isMerc = catalogItem.data.kind === 'merc';
-      const derivedUrl = isMerc ? \`merc/\${catalogItem.slug}/{z}/{x}/{y}.png\` : undefined;
-      const appSource = createAppSourceFromBaseMap(
-        { mapID: catalogItem.slug, ...(catalogItem.data || {}), ...(isMerc ? { url: derivedUrl, baseMapUid: catalogItem.uid } : {}) },
-        'ja',
-      );
-      assert.equal(appSource.data.url, 'merc/merc-source-a/{z}/{x}/{y}.png', 'AC5: url は選択時点の slug から導出されるはず');
-      assert.equal(appSource.data.baseMapUid, TARGET_UID_1, 'AC5: baseMapUid が付与されるはず');
-      console.log('ok: (B) createAppSourceFromBaseMap: merc の url/baseMapUid 導出 (AC5)');
+      // m6-t10 (ADR-0018): AppEdit.vue addBaseMapSource 相当。マスタ値はコピーせず参照のみ持つ。
+      // merc の url も選択時点ではなく **書き出し時にマスタの現在 slug から導出**する（§3.5.4）。
+      // これにより旧形にあった「選択時点 slug が取り残される」乖離が構造的に消える。
+      const masterItem = { uid: catalogItem.uid, mapID: catalogItem.slug, data: catalogItem.data || {} };
+      const lookup = createBaseMapMasterLookup([masterItem]);
+      const appSource = createAppSourceFromBaseMap(masterItem, 'ja');
+      assert.equal(appSource.baseMapUid, TARGET_UID_1, 'AC5: baseMapUid（マスタ参照）を持つはず');
+      assert.deepEqual(appSource.overrides ?? {}, {}, 'AC5: m6-t10 では全コピーせず上書きは空');
+      const settingFile = composeBaseMapSettingFile(masterItem, appSource.role);
+      assert.equal(settingFile.url, 'merc/merc-source-a/{z}/{x}/{y}.png', 'AC5: 設定ファイルの url はマスタの現在 slug から導出されるはず');
+      console.log('ok: (B) createAppSourceFromBaseMap + 設定ファイル: merc の url 導出 (AC5)');
 
-      // normalizeAppSource は内部表現として baseMapUid を保持する（AppExportService が読むため）
-      const stored = { sourceType: appSource.sourceType, mapUid: appSource.mapUid, role: appSource.role, data: appSource.data };
+      // 差分保持形の往復（保存 → 読み込み）
+      const stored = {
+        sourceType: appSource.sourceType, mapUid: appSource.mapUid,
+        baseMapUid: appSource.baseMapUid, role: appSource.role, overrides: appSource.overrides,
+      };
       const normalized = normalizeAppSource(stored, 'ja');
-      assert.equal(normalized.data.baseMapUid, TARGET_UID_1, 'normalizeAppSource: baseMapUid は内部表現に残るはず（kindと同じ退避パターン）');
-      // composeViewerSource（viewer 出力）からは除去される (AC6)
-      const viewerOut = composeViewerSource(normalized, { lang: 'ja' });
-      assert.equal('baseMapUid' in viewerOut, false, 'AC6: composeViewerSource の出力に baseMapUid が含まれないはず');
-      assert.equal('kind' in viewerOut, false, 'AC6 (回帰): kind も除去されるはず（既存挙動）');
-      console.log('ok: (B) EDITOR_ONLY_KEYS: baseMapUid は内部表現に残り viewer 出力からのみ除去される (AC6)');
+      assert.equal(normalized.baseMapUid, TARGET_UID_1, 'baseMapUid はトップレベルの正規キーとして往復する');
+      // アプリ JSON 側には baseMapUid も kind も出さない (AC6)
+      const viewerOut = composeViewerSource(normalized, { lang: 'ja', lookup });
+      assert.equal('baseMapUid' in viewerOut, false, 'AC6: アプリ JSON に baseMapUid が含まれないはず');
+      assert.equal('kind' in viewerOut, false, 'AC6 (回帰): kind も出ないはず');
+      assert.equal('baseMapUid' in settingFile, false, 'AC6: 設定ファイルにも baseMapUid は出ないはず');
+      assert.equal('sourceMapUid' in settingFile, false, 'AC6: 出自メモ（sourceMapUid）も設定ファイルに出ないはず');
+      console.log('ok: (B) baseMapUid はエディタ内部表現に留まり viewer 出力の双方から除去される (AC6)');
 
       // ============================================================
       // (C) AppExportService.exportApp(): merc コピー + tiles[] 差し替え (AC7)
@@ -218,13 +226,29 @@ try {
       console.log('ok: (C) AppExportService.exportApp: merc/{dirName} コピー + tiles[] 差し替え (AC7)');
 
       // ============================================================
-      // (D) 名前衝突診断: 同一 dirName・異なる baseMapUid は最初の1件のみコピー (AC8)
+      // (D) m6-t10: dirName 衝突は**構造的に到達不能**になった (AC8 の再定義)
       // ============================================================
+      // 旧モデルでは dirName が「アプリへ追加した時点の slug」としてアプリ文書に凍結されていたため、
+      // 別のマスタを同じ dirName で参照する状態が作れた。m6-t10 (§3.5.4) では dirName を
+      // **マスタの現在 slug** から書き出しのたびに導出する。slug は asset_registry で kind 横断に
+      // UNIQUE なので、異なるマスタが同じ dirName を主張することはあり得ない。
+      // ∴ MERC_NAME_COLLISION_WARNING は防御的 assert として残るが発火しない。
       const TARGET_UID_2 = 'cccccccc-2222-4222-8222-222222222222';
       await generateMercFor(SRC_MAP_UID, TARGET_UID_2);
+      await SqliteDataService.saveUserBaseMap({
+        uid: TARGET_UID_2,
+        slug: 'merc-source-b',
+        create: true,
+        tms: {
+          kind: 'merc', lang: 'ja', title: { ja: 'メルカトルB' }, label: { ja: 'メルカトルB' },
+          attr: { ja: '帰属B' }, dataAttr: {}, license: '', dataLicense: '', licenseNote: {}, dataLicenseNote: {},
+          url: '', minZoom: gen1.tileJson.minzoom, maxZoom: gen1.tileJson.maxzoom, thumbnail: '',
+          coverageLngLats: [[w, s], [e, s], [e, n], [w, n]],
+          tileJsonSourceUrl: null, sourceMapUid: SRC_MAP_UID,
+        },
+      });
       const storedDup = {
-        sourceType: 'tms', mapUid: 'merc-source-a', role: 'base',
-        data: { kind: 'merc', baseMapUid: TARGET_UID_2, url: 'merc/merc-source-a/{z}/{x}/{y}.png', lang: 'ja', title: { ja: 'B' }, label: { ja: 'B' }, attr: { ja: 'b' } },
+        sourceType: 'tms', mapUid: 'merc-source-b', baseMapUid: TARGET_UID_2, role: 'base', overrides: {},
       };
       const zipPathD = path.join(${JSON.stringify(exportDir)}, 'export-d.zip');
       (globalThis as any).__nextDialogResult = { canceled: false, filePath: zipPathD };
@@ -234,11 +258,17 @@ try {
       };
       const exportedD = await AppExportService.exportApp(fakeWin, docD);
       assert.equal(exportedD.result, 'Success');
-      assert.ok(exportedD.warnings.includes(MERC_NAME_COLLISION_WARNING), 'AC8: 名前衝突で warning が出るはず: ' + JSON.stringify(exportedD.warnings));
+      assert.ok(
+        !exportedD.warnings.includes(MERC_NAME_COLLISION_WARNING),
+        'AC8: m6-t10 では dirName がマスタの現在 slug から導出されるため衝突しないはず: ' + JSON.stringify(exportedD.warnings),
+      );
       const zipD = new AdmZip(zipPathD);
-      const mercEntriesD = zipD.getEntries().map((e) => e.entryName).filter((name) => name.startsWith('merc/merc-source-a/'));
-      assert.ok(mercEntriesD.length > 1, 'AC8: 衝突していても最初の1件はコピーされるはず');
-      console.log('ok: (D) AppExportService.exportApp: 名前衝突診断 + 最初の1件のみコピー (AC8)');
+      const namesD = zipD.getEntries().map((e) => e.entryName);
+      assert.ok(namesD.some((name) => name.startsWith('merc/merc-source-a/')), 'AC8: 1件目は自分の slug 名でコピーされるはず');
+      assert.ok(namesD.some((name) => name.startsWith('merc/merc-source-b/')), 'AC8: 2件目も自分の slug 名でコピーされるはず（旧モデルでは失われていた）');
+      assert.ok(namesD.includes('maps/merc-source-a.json'), 'AC8: 各ベースマップの設定ファイルが出るはず (m6-t10)');
+      assert.ok(namesD.includes('maps/merc-source-b.json'), 'AC8: 各ベースマップの設定ファイルが出るはず (m6-t10)');
+      console.log('ok: (D) dirName はマスタの現在 slug から導出され、衝突が構造的に消える (AC8 再定義)');
 
       // ============================================================
       // (E) SqliteDataService.deleteUserBaseMap: merc タイル削除 (AC9)。他 kind は非発火
@@ -441,15 +471,24 @@ try {
         const finish = (res) => new Promise((resolve) => res.on('finish', resolve));
 
         // J-1: createSession が previewableSources から mercDirToUid を構築する
+        // m6-t10: dirName はマスタの現在 slug から導出されるため、マスタの登録が前提になる
         const previewMercUid = '22222222-4444-4444-8444-444444444444';
+        await SqliteDataService.saveUserBaseMap({
+          uid: previewMercUid,
+          slug: 'merc-preview-dir',
+          create: true,
+          tms: {
+            kind: 'merc', lang: 'ja', title: { ja: 'J' }, label: { ja: 'J' },
+            attr: { ja: 'j' }, dataAttr: {}, license: '', dataLicense: '', licenseNote: {}, dataLicenseNote: {},
+            url: '', minZoom: 5, maxZoom: 5, thumbnail: '', coverageLngLats: null,
+            tileJsonSourceUrl: null, sourceMapUid: null,
+          },
+        });
         const previewDoc = {
           appID: 'merc_preview_j', title: { ja: 'J' }, lang: 'ja',
           sources: [{
-            sourceType: 'tms', mapUid: 'merc-preview-dir', role: 'base',
-            data: {
-              kind: 'merc', baseMapUid: previewMercUid, url: 'merc/merc-preview-dir/{z}/{x}/{y}.png',
-              lang: 'ja', title: { ja: 'J' }, label: { ja: 'J' }, attr: { ja: 'j' },
-            },
+            sourceType: 'tms', mapUid: 'merc-preview-dir', baseMapUid: previewMercUid,
+            role: 'base', overrides: {},
           }],
         };
         const session = await previewService.createSession('tok-merc-j', previewDoc);

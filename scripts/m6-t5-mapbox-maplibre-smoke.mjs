@@ -64,6 +64,8 @@ export {
 } from ${modulePath("electron/services/providerGlCdn.ts")};
 export {
   composeViewerSource,
+  composeBaseMapSettingFile,
+  createBaseMapMasterLookup,
   normalizeAppSource,
 } from ${modulePath("src/utils/appSourceModel.ts")};
 `,
@@ -96,6 +98,8 @@ const {
   renderProviderGlCdnTags,
   PROVIDER_GL_CDN,
   composeViewerSource,
+  composeBaseMapSettingFile,
+  createBaseMapMasterLookup,
   normalizeAppSource,
 } = await import(pathToFileURL(path.join(outDir, "contracts.mjs")).href);
 
@@ -167,12 +171,18 @@ const base = {
       attr: "A",
     },
   };
-  const out = composeViewerSource(normalizeAppSource(raw));
+  // m6-t10 (ADR-0017): maptype / style の運び先はアプリ JSON から設定ファイルへ移った。
+  const master = { uid: "uid-ml1", mapID: "ml1", data: { mapID: "ml1", lang: "ja", ...raw.data } };
+  const lookup = createBaseMapMasterLookup([master]);
+  const out = composeBaseMapSettingFile(master, "base");
+  const appElement = composeViewerSource(normalizeAppSource(raw), { lookup });
+  assert.equal("maptype" in appElement, false, "AC5: アプリ JSON に maptype は出さない");
+  assert.equal(appElement.settingFile, "maps/ml1.json", "AC5: 設定ファイル参照を出す");
   assert.equal(out.maptype, "maplibre", "AC5: maptype=maplibre");
   assert.equal(
     out.style,
     "https://tile.openstreetmap.jp/styles/osm-bright/style.json",
-    "AC5: style が viewer 出力に載る",
+    "AC5: style が設定ファイル出力に載る",
   );
   assert.equal("kind" in out, false, "AC5: kind は出力に出ない（EDITOR_ONLY）");
 }

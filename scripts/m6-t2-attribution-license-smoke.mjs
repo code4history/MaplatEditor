@@ -68,6 +68,8 @@ try {
     newBaseMapDocument,
     toBaseMapSavePayload,
     composeViewerSource,
+    composeBaseMapSettingFile,
+    createBaseMapMasterLookup,
     createAppSourceFromBaseMap,
     validateBaseMapDocument,
   } = await import(pathToFileURL(bundledFile).href);
@@ -147,28 +149,52 @@ try {
     "AC4: BASE_MAP_LANG_ATTRS の要素が想定どおり",
   );
 
-  const source = createAppSourceFromBaseMap(base, "ja");
-  const runtimeSource = composeViewerSource(source, { lang: "ja" });
-  assert.equal(runtimeSource.title, "タイトル", "AC4: composeViewerSource が title を解決するはず");
-  assert.equal(runtimeSource.attr, "帰属", "AC4: composeViewerSource が attr を解決するはず");
-  assert.equal(runtimeSource.dataAttr, "データ帰属", "AC4: composeViewerSource が dataAttr を解決するはず");
-  assert.equal(runtimeSource.licenseNote, "補足", "AC4: composeViewerSource が licenseNote を解決するはず");
-  assert.equal(runtimeSource.dataLicenseNote, "データ補足", "AC4: composeViewerSource が dataLicenseNote を解決するはず");
+  // m6-t10 (ADR-0017): 5フィールドの運び先はアプリ JSON から**設定ファイル**へ移った。
+  // また ADR-0005 の交換形（既定言語のみは平文へ畳む）を保ち、言語の解決は viewer 側
+  // （ui.translate）が行う。∴ 検査対象を composeBaseMapSettingFile へ移し、
+  // 「5件が運ばれる／空のキーは落ちる」という AC4 の趣旨はそのまま維持する。
+  const masterForSetting = {
+    uid,
+    mapID: "custom",
+    data: {
+      mapID: "custom",
+      lang: "ja",
+      title: "タイトル",
+      attr: { ja: "帰属" },
+      dataAttr: { ja: "データ帰属" },
+      license: "CC BY",
+      dataLicense: "ODbL",
+      licenseNote: { ja: "補足" },
+      dataLicenseNote: "データ補足",
+      url: "https://example.test/{z}/{x}/{y}.png",
+    },
+  };
+  const settingFile = composeBaseMapSettingFile(masterForSetting, "base");
+  assert.equal(settingFile.title, "タイトル", "AC4: 設定ファイルが title を運ぶはず");
+  assert.equal(settingFile.attr, "帰属", "AC4: 設定ファイルが attr を運ぶはず");
+  assert.equal(settingFile.dataAttr, "データ帰属", "AC4: 設定ファイルが dataAttr を運ぶはず");
+  assert.equal(settingFile.licenseNote, "補足", "AC4: 設定ファイルが licenseNote を運ぶはず");
+  assert.equal(settingFile.dataLicenseNote, "データ補足", "AC4: 設定ファイルが dataLicenseNote を運ぶはず");
+  assert.equal(settingFile.license, "CC BY", "AC4: license は単一文字列のまま運ばれる");
+  assert.equal(settingFile.dataLicense, "ODbL", "AC4: dataLicense は単一文字列のまま運ばれる");
+  // アプリ JSON 側にはマスタ由来値を出さない（上書きが無いため参照だけになる）
+  const lookup = createBaseMapMasterLookup([masterForSetting]);
+  const appElement = composeViewerSource(createAppSourceFromBaseMap(masterForSetting, "ja"), { lang: "ja", lookup });
+  for (const key of ["title", "attr", "dataAttr", "licenseNote", "dataLicenseNote", "license", "dataLicense"]) {
+    assert.ok(!(key in appElement), `AC4: 未上書きの ${key} はアプリ JSON に出ない（設定ファイル側が持つ）`);
+  }
 
-  // 空文字へ解決したキーは出力されない（AC4: 解決結果が空のキーは出力されない）
-  const baseNoNote = fromBaseMapCatalogItem({
+  // 空へ解決したキーは出力されない（AC4: 解決結果が空のキーは出力されない）
+  const masterNoNote = {
     uid,
     mapID: "custom2",
-    scope: "user",
-    revision: 1,
-    data: { lang: "ja", title: "T", attr: { ja: "A" } },
-  });
-  const sourceNoNote = createAppSourceFromBaseMap(baseNoNote, "ja");
-  const runtimeNoNote = composeViewerSource(sourceNoNote, { lang: "ja" });
-  assert.ok(!("licenseNote" in runtimeNoNote), "AC4: 空の licenseNote は出力されないはず");
-  assert.ok(!("dataLicenseNote" in runtimeNoNote), "AC4: 空の dataLicenseNote は出力されないはず");
-  assert.ok(!("dataAttr" in runtimeNoNote), "AC4: 空の dataAttr は出力されないはず");
-  console.log("ok: AC4 BASE_MAP_LANG_ATTRS resolves and drops empty-resolved keys");
+    data: { mapID: "custom2", lang: "ja", title: "T", attr: { ja: "A" }, url: "https://example.test/{z}/{x}/{y}.png" },
+  };
+  const settingNoNote = composeBaseMapSettingFile(masterNoNote, "base");
+  assert.ok(!("licenseNote" in settingNoNote), "AC4: 空の licenseNote は出力されないはず");
+  assert.ok(!("dataLicenseNote" in settingNoNote), "AC4: 空の dataLicenseNote は出力されないはず");
+  assert.ok(!("dataAttr" in settingNoNote), "AC4: 空の dataAttr は出力されないはず");
+  console.log("ok: AC4 BASE_MAP_LANG_ATTRS が設定ファイルへ運ばれ、空のキーは落ちる");
 
   // --- AC7: 語彙が licenseVocabulary.ts 単一の正本で image 11 / data 10、PD は data に無い ---
   assert.equal(IMAGE_LICENSE_OPTIONS.length, 11, "AC7: image は11件のはず。実際: " + IMAGE_LICENSE_OPTIONS.length);

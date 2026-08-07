@@ -398,6 +398,21 @@ try {
       '逸脱2: 既定言語(en)以外の単一エントリは平文へ畳まない（畳むと既定言語の値だと誤読される）');
     console.log('ok: 逸脱2 交換形の畳み込み基準はマスタの lang');
   }
+  {
+    // 実装中に自己発見した回帰の固定: **アプリ JSON 側**の畳み込み基準は
+    // 「アプリ文書の既定言語」（options.lang）であり、マスタの lang ではない。
+    // 設定ファイル側（マスタの lang 基準）と混同すると、lang 未指定時に勝手に平文へ畳まれる。
+    const source = {
+      sourceType: 'tms', mapUid: 'user-tms', baseMapUid: 'uid-tms', role: 'base',
+      overrides: {}, label: { ja: '迅速測図' },
+    };
+    const noLang = composeViewerSource(source, { lookup });
+    assert.deepEqual(noLang.label, { ja: '迅速測図' },
+      'lang 未指定なら畳まない（マスタの lang=ja へフォールバックして平文化してはならない）');
+    const withJa = composeViewerSource(source, { lang: 'ja', lookup });
+    assert.equal(withJa.label, '迅速測図', 'アプリ文書の既定言語と一致するときだけ平文へ畳む');
+    console.log('ok: アプリ JSON の畳み込み基準はアプリ文書の言語');
+  }
 
   // ============ createAppSourceFromBaseMap: 全コピーの廃止 ============
   {

@@ -142,8 +142,14 @@ try {
       function maplatSource(ref: string) {
         return { sourceType: 'maplat', mapUid: ref, role: 'maplat', startFrom: true, data: { mapID: ref, maptype: 'maplat', noload: true } };
       }
-      function tmsSource(thumbnail: string) {
-        return { sourceType: 'tms', mapUid: 'tms-' + thumbnail, role: 'base', data: { mapID: 'tms-' + thumbnail, thumbnail } };
+      // m6-t10 (AC22): マスタ欠落の判定根拠が「サムネイルのuid逆算」から
+      // 「resolveAppSource の解決結果」へ変わった。∴ フィクスチャも参照で作る。
+      // 新形（baseMapUid を持つ）と旧形（data 全コピー・baseMapUid なし）の両方を用意する。
+      function tmsSourceNew(slug: string, uid?: string) {
+        return { sourceType: 'tms', mapUid: slug, ...(uid ? { baseMapUid: uid } : {}), role: 'base', overrides: {} };
+      }
+      function tmsSourceLegacy(slug: string, extra: Record<string, unknown> = {}) {
+        return { sourceType: 'tms', mapUid: slug, role: 'base', data: { mapID: slug, ...extra } };
       }
       function assertBadgeKeys(actual: any[], expected: string[], label: string) {
         assert.deepEqual(actual.map((badge) => badge.key), expected, label + ' badge key order');
@@ -278,10 +284,16 @@ try {
       console.log('ok: Part 1 gate/classify/app diagnostics equivalence');
 
       const appCases = [
-        { label: 'base-missing', doc: { appID: 'base-missing', lang: 'ja', sources: [tmsSource('tmbs/' + missingBaseMapUid + '.png')] }, field: 'missingBaseMapRefs', expected: true },
-        { label: 'base-present', doc: { appID: 'base-present', lang: 'ja', sources: [tmsSource('tmbs/' + baseMapUid + '.png')] }, field: 'missingBaseMapRefs', expected: false },
-        { label: 'base-builtin', doc: { appID: 'base-builtin', lang: 'ja', sources: [{ sourceType: 'builtin', mapUid: 'osm', role: 'base' }] }, field: 'missingBaseMapRefs', expected: false },
-        { label: 'base-pattern-out', doc: { appID: 'base-pattern-out', lang: 'ja', sources: [tmsSource('tmbs/not-a-uuid.png')] }, field: 'missingBaseMapRefs', expected: false },
+        // 新形（baseMapUid で解決）
+        { label: 'base-missing-new', doc: { appID: 'base-missing-new', lang: 'ja', sources: [tmsSourceNew('gone-slug', missingBaseMapUid)] }, field: 'missingBaseMapRefs', expected: true },
+        { label: 'base-present-new', doc: { appID: 'base-present-new', lang: 'ja', sources: [tmsSourceNew('diag-base-ok', baseMapUid)] }, field: 'missingBaseMapRefs', expected: false },
+        // 旧形（baseMapUid を持たない）。r2-M-2: ここで baseMapUid を直接照合すると
+        // undefined の照合になり、全件誤検出か全件検出漏れのどちらかに倒れる
+        { label: 'base-present-legacy', doc: { appID: 'base-present-legacy', lang: 'ja', sources: [tmsSourceLegacy('diag-base-ok', { url: 'https://example.com/{z}/{x}/{y}.png' })] }, field: 'missingBaseMapRefs', expected: false },
+        { label: 'base-missing-legacy', doc: { appID: 'base-missing-legacy', lang: 'ja', sources: [tmsSourceLegacy('gone-slug', { url: 'https://example.com/{z}/{x}/{y}.png' })] }, field: 'missingBaseMapRefs', expected: true },
+        // サムネイルを持たないソースの欠落。旧実装（thumbnail の uid 逆算）では検出できなかった
+        { label: 'base-missing-no-thumbnail', doc: { appID: 'base-missing-no-thumb', lang: 'ja', sources: [tmsSourceNew('gone-slug-2')] }, field: 'missingBaseMapRefs', expected: true },
+        { label: 'base-builtin', doc: { appID: 'base-builtin', lang: 'ja', sources: [{ sourceType: 'builtin', mapUid: 'osm', role: 'base', overrides: {} }] }, field: 'missingBaseMapRefs', expected: false },
         { label: 'app-poi-missing', doc: { appID: 'app-poi-missing', lang: 'ja', sources: [], pois: [{ poiUid: missingPoiUid }] }, field: 'missingPoiRefs', expected: true },
         { label: 'app-asset-missing', doc: { appID: 'app-asset-missing', lang: 'ja', sources: [], pois: [fc('app-asset', { html: { ja: 'maplat-asset:' + missingAssetUid } })] }, field: 'missingAssetRefs', expected: true },
         { label: 'app-icon-missing', doc: { appID: 'app-icon-missing', lang: 'ja', sources: [], pois: [fc('app-icon', { icon: missingAssetUid })] }, field: 'missingAssetRefs', expected: true },
@@ -345,7 +357,7 @@ try {
         appID: 'diag_thumbnail_export',
         title: { ja: 'thumbnail export' },
         lang: 'ja',
-        sources: [tmsSource('tmbs/' + baseMapUid + '.png')],
+        sources: [tmsSourceNew('diag-base-ok', baseMapUid)],
         appSettings: {},
         httpSettings: { enableCache: false, pwaManifest: false },
       };
@@ -356,7 +368,12 @@ try {
       await fs.emptyDir(exportExtractDir);
       new AdmZip(exported.outDir).extractAllTo(exportExtractDir, true);
       const exportedAppJson = JSON.parse(await readFile(path.join(exportExtractDir, 'apps', 'diag_thumbnail_export.json'), 'utf8'));
-      assert.equal(exportedAppJson.sources[0].thumbnail, 'tmbs/diag-base-ok.png', 'export app JSON thumbnail is rewritten from uid to slug');
+      // m6-t10: thumbnail の運び先はアプリ JSON から設定ファイル（maps/<slug>.json）へ移った。
+      // 「uid 名から slug 名へ書き換えてコピーする」という検査の趣旨は不変。
+      assert.equal(exportedAppJson.sources[0].settingFile, 'maps/diag-base-ok.json', 'app JSON refers to the setting file');
+      assert.ok(!('thumbnail' in exportedAppJson.sources[0]), 'm6-t10: 未上書きの thumbnail はアプリ JSON に出ない');
+      const exportedSettingFile = JSON.parse(await readFile(path.join(exportExtractDir, 'maps', 'diag-base-ok.json'), 'utf8'));
+      assert.equal(exportedSettingFile.thumbnail, 'tmbs/diag-base-ok.png', 'setting file thumbnail is rewritten from uid to slug');
       const copiedThumbnail = await readFile(path.join(exportExtractDir, 'tmbs', 'diag-base-ok.png'));
       assert.ok(copiedThumbnail.equals(baseMapThumbnailBytes), 'export copies the original uid thumbnail bytes to the rewritten slug path');
       assert.equal(await fs.pathExists(path.join(exportExtractDir, 'tmbs', baseMapUid + '.png')), false, 'export does not leave the internal uid thumbnail path in the package');

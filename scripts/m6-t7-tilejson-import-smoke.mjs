@@ -60,6 +60,8 @@ try {
     importTileJson,
     normalizeAppSource,
     composeViewerSource,
+    composeBaseMapSettingFile,
+    createBaseMapMasterLookup,
     createAppSourceFromBaseMap,
   } = await import(pathToFileURL(path.join(outDir, "contracts.mjs")).href);
 
@@ -299,19 +301,25 @@ try {
       url: "https://f.test/{z}/{x}/{y}.png",
       tileJsonSourceUrl: "https://f.test/tiles.json",
     };
-    const appSource = createAppSourceFromBaseMap(master, "ja");
-    assert.equal(appSource.data.tileJsonSourceUrl, "https://f.test/tiles.json", "AC8: createAppSourceFromBaseMap は tileJsonSourceUrl をコピーする（strip はしない）");
-    const composed = composeViewerSource(appSource);
-    assert.equal("tileJsonSourceUrl" in composed, false, "AC8: composeViewerSource 出力に tileJsonSourceUrl が含まれない");
-    assert.equal(composed.tileJsonSourceUrl, undefined, "AC8: composed.tileJsonSourceUrl は undefined");
+    // m6-t10: tileJsonSourceUrl はエディタ専用メタデータであり、アプリ JSON にも
+    // 設定ファイルにも出てはならない（SETTING_FILE_EXCLUDED_KEYS）。AC8 の趣旨は不変。
+    const masterItem = { uid: "uid-tj", mapID: "tj1", data: { mapID: "tj1", ...master } };
+    const lookup = createBaseMapMasterLookup([masterItem]);
+    const appSource = createAppSourceFromBaseMap(masterItem, "ja");
+    const composed = composeViewerSource(appSource, { lookup });
+    assert.equal("tileJsonSourceUrl" in composed, false, "AC8: アプリ JSON に tileJsonSourceUrl が含まれない");
+    const settingFile = composeBaseMapSettingFile(masterItem, appSource.role);
+    assert.equal("tileJsonSourceUrl" in settingFile, false, "AC8: 設定ファイルにも tileJsonSourceUrl が含まれない");
+    assert.equal(settingFile.url, "https://f.test/{z}/{x}/{y}.png", "AC8: 取り込んだ url 自体は設定ファイルへ運ばれる");
 
-    // normalizeAppSource 自体も stripEditorKeys を呼ぶ（appSourceModel.ts:236、レビュー Info i-4 で確認済みの
-    // 既存挙動）。kind と異なり tileJsonSourceUrl は AppSource 側の分岐に一切使われないため退避不要で、
-    // normalizeAppSource の時点で既に消える（無害。マスタ document 側の永続化とは別経路）。
+    // 旧保存形（data 全コピー）を読んだ場合も、tileJsonSourceUrl は overrides へ入らない
+    // （操作子が無いキーは移行時に捨てる。設計 §3.7）
+    const legacyMaster = { uid: "uid-tj2", mapID: "tj2", data: { mapID: "tj2", lang: "ja", url: "https://g.test/{z}/{x}/{y}.png" } };
+    const legacyLookup = createBaseMapMasterLookup([legacyMaster]);
     const raw = { sourceType: "base-map", mapID: "tj2", role: "base", data: { url: "https://g.test/{z}/{x}/{y}.png", tileJsonSourceUrl: "https://g.test/tiles.json" } };
     const normalized = normalizeAppSource(raw);
-    assert.equal("tileJsonSourceUrl" in normalized.data, false, "AC8: normalizeAppSource の時点で既に tileJsonSourceUrl が除去される（kindと異なり退避不要）");
-    const composed2 = composeViewerSource(normalized);
+    assert.equal("tileJsonSourceUrl" in normalized.legacyData, false, "AC8: normalizeAppSource の時点で既に除去される");
+    const composed2 = composeViewerSource(normalized, { lookup: legacyLookup });
     assert.equal("tileJsonSourceUrl" in composed2, false, "AC8: normalize→compose でも viewer 出力から除去される");
   }
 

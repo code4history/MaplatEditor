@@ -53,6 +53,8 @@ try {
     toBaseMapSavePayload,
     normalizeAppSource,
     composeViewerSource,
+    composeBaseMapSettingFile,
+    createBaseMapMasterLookup,
     createAppSourceFromBaseMap,
   } = await import(pathToFileURL(path.join(outDir, "contracts.mjs")).href);
 
@@ -132,60 +134,74 @@ try {
   const savedNull = toBaseMapSavePayload({ ...newBaseMapDocument(uid, "ja"), slug: "s", title: { ja: "T" } }, null);
   assert.equal(savedNull.tms.kind, "tms", "AC11: kind null は保存時 \"tms\" へ正規化");
 
-  // ---- AC5 / AC6: normalize→compose 本番連鎖の出力不変性 ----
-  // 現行実装の固定出力を期待値として、3入力の出力が kind 導入後も同値であることを JSON 正準形で比較。
-  // 参考: kind 無し・tms・merc はいずれも role 分岐（base）へ落ちる。
-  const baseSourceInputs = [
-    { label: "kind無し", raw: { sourceType: "base-map", mapID: "t1", role: "base", data: { url: "https://x/{z}/{x}/{y}.png", maxZoom: 18 } } },
-    { label: "tms", raw: { sourceType: "base-map", mapID: "t1", role: "base", data: { url: "https://x/{z}/{x}/{y}.png", maxZoom: 18, kind: "tms" } } },
-    { label: "merc", raw: { sourceType: "base-map", mapID: "t1", role: "base", data: { url: "https://x/{z}/{x}/{y}.png", maxZoom: 18, kind: "merc" } } },
+  // ---- AC5 / AC6: kind が viewer へ漏れないこと（m6-t10 で境界が移動）----
+  // m6-t10 (ADR-0017): maptype はアプリ JSON ではなく設定ファイル側が持つようになった。
+  // kind はどちらにも出てはならない、という AC6 の趣旨は不変なので、両方の出力で検査する。
+  const kindCases = [
+    { label: "kind無し", kind: undefined, expectedMaptype: "base" },
+    { label: "tms", kind: "tms", expectedMaptype: "base" },
+    { label: "merc", kind: "merc", expectedMaptype: "base" },
   ];
   const canonical = (v) => JSON.stringify(v ?? null);
-  for (const { label, raw } of baseSourceInputs) {
-    const normalized = normalizeAppSource(raw);
-    const out = composeViewerSource(normalized);
-    assert.equal(canonical(out.maptype), canonical("base"), `AC5(${label}): maptype=base`);
+  for (const { label, kind, expectedMaptype } of kindCases) {
+    const master = {
+      uid: `uid-${label}`,
+      mapID: "t1",
+      data: { mapID: "t1", lang: "ja", url: "https://x/{z}/{x}/{y}.png", maxZoom: 18, ...(kind ? { kind } : {}) },
+    };
+    const lookup = createBaseMapMasterLookup([master]);
+    const normalized = normalizeAppSource({ sourceType: "base-map", mapID: "t1", role: "base", data: { ...master.data } });
+    const out = composeViewerSource(normalized, { lookup });
     assert.equal(canonical(out.mapID), canonical("t1"), `AC5(${label}): mapID=t1`);
-    assert.equal("kind" in out, false, `AC6(${label}): kind は出力に出ない`);
-    assert.equal(out.kind, undefined, `AC6(${label}): out.kind は undefined`);
-    // normalize 後の AppSource.data.kind は内部保持される（tms/merc も再付着）
-    if (raw.data && "kind" in raw.data) {
-      assert.equal(normalized.data.kind, raw.data.kind, `AC5(${label}): normalize 後 data.kind 保持`);
-    }
+    assert.equal(out.settingFile, "maps/t1.json", `AC5(${label}): 設定ファイル参照を出す`);
+    assert.equal("maptype" in out, false, `AC5(${label}): m6-t10 でアプリ JSON に maptype は出さない`);
+    assert.equal("kind" in out, false, `AC6(${label}): kind はアプリ JSON に出ない`);
+
+    const settingFile = composeBaseMapSettingFile(master, normalized.role);
+    assert.equal(canonical(settingFile.maptype), canonical(expectedMaptype), `AC5(${label}): 設定ファイル側 maptype=${expectedMaptype}`);
+    assert.equal("kind" in settingFile, false, `AC6(${label}): kind は設定ファイルにも出ない`);
   }
 
-  // ---- AC13: normalize→compose で provider 分岐が生きる ----
-  // role 導出値（base）と異なる maptype を合成入力で与え、normalize→compose 後にその maptype が残ること・kind が出ないことを検証
+  // ---- AC13: provider の maptype が連鎖の末端（設定ファイル）まで生きる ----
   const providerCases = [
     { kind: "google", maptype: "google_roadmap", expected: "google_roadmap" },
     { kind: "mapbox", maptype: "mapbox", expected: "mapbox" },
     { kind: "maplibre", maptype: "maplibre", expected: "maplibre" },
   ];
   for (const pc of providerCases) {
-    const raw = { sourceType: "base-map", mapID: "prov", role: "base", data: { url: "", kind: pc.kind, maptype: pc.maptype } };
-    const normalized = normalizeAppSource(raw);
-    assert.equal(normalized.data.kind, pc.kind, `AC13(${pc.kind}): normalize 後 data.kind 保持`);
-    assert.equal(normalized.data.maptype, pc.maptype, `AC13(${pc.kind}): normalize 後 data.maptype 保持`);
-    const out = composeViewerSource(normalized);
-    assert.equal(canonical(out.maptype), canonical(pc.expected), `AC13(${pc.kind}): compose 出力 maptype=${pc.expected}（role 導出 base と異なる）`);
+    const master = {
+      uid: `uid-${pc.kind}`,
+      mapID: "prov",
+      data: { mapID: "prov", lang: "ja", url: "", kind: pc.kind, maptype: pc.maptype },
+    };
+    const lookup = createBaseMapMasterLookup([master]);
+    const normalized = normalizeAppSource({ sourceType: "base-map", mapID: "prov", role: "base", data: { ...master.data } });
+    const out = composeViewerSource(normalized, { lookup });
+    assert.equal("maptype" in out, false, `AC13(${pc.kind}): アプリ JSON に maptype は出さない`);
     assert.equal("kind" in out, false, `AC13(${pc.kind}): kind は出力に出ない`);
-    assert.equal(out.kind, undefined, `AC13(${pc.kind}): out.kind は undefined`);
+    const settingFile = composeBaseMapSettingFile(master, normalized.role);
+    assert.equal(canonical(settingFile.maptype), canonical(pc.expected), `AC13(${pc.kind}): 設定ファイル側 maptype=${pc.expected}（role 導出 base より provider が優先）`);
+    assert.equal("kind" in settingFile, false, `AC13(${pc.kind}): kind は設定ファイルに出ない`);
+    assert.equal("url" in settingFile, false, `AC13(${pc.kind}): provider は url を出さない（§3.5.4）`);
   }
 
-  // ---- AC13 補強: createAppSourceFromBaseMap → normalize → compose の一貫経路 ----
-  // エディタ内部形（master.data.kind 保持）→ App コピー → 書き出し連鎖で provider maptype が生きる
+  // ---- AC13 補強: createAppSourceFromBaseMap → compose の一貫経路 ----
   const masterGoogle = {
+    uid: "uid-google-master",
     mapID: "google-master",
-    lang: "ja",
-    title: { ja: "Google" },
-    kind: "google",
-    maptype: "google_roadmap",
+    data: { mapID: "google-master", lang: "ja", title: { ja: "Google" }, kind: "google", maptype: "google_roadmap" },
   };
+  const googleLookup = createBaseMapMasterLookup([masterGoogle]);
   const appSource = createAppSourceFromBaseMap(masterGoogle, "ja");
-  assert.equal(appSource.data.kind, "google", "AC13: createAppSourceFromBaseMap が kind を data へ保持");
-  const composedAppSource = composeViewerSource(appSource);
-  assert.equal(composedAppSource.maptype, "google_roadmap", "AC13: create→compose で provider maptype が生きる");
+  assert.equal(appSource.baseMapUid, "uid-google-master", "AC13: 参照（baseMapUid）を持つ");
+  assert.deepEqual(appSource.overrides ?? {}, {}, "AC13: m6-t10 では全コピーせず上書きは空");
+  const composedAppSource = composeViewerSource(appSource, { lookup: googleLookup });
   assert.equal("kind" in composedAppSource, false, "AC13: kind は出力に出ない");
+  assert.equal(
+    composeBaseMapSettingFile(masterGoogle, appSource.role).maptype,
+    "google_roadmap",
+    "AC13: create→設定ファイルで provider maptype が生きる",
+  );
 
   console.log("m6-t1-basemap-kind-axis smoke: PASS");
 } finally {

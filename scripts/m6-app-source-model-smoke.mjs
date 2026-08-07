@@ -35,12 +35,23 @@ try {
     envelopeToBbox,
     hasViewerBasemapSource,
     isViewerBuiltin,
+    createBaseMapMasterLookup,
   } = mod;
 
-  // 1. 文字列ビルトイン → builtin → 文字列出力
+  // m6-t10 (ADR-0017/0018): 出力はマスタ参照＋上書き差分になったため、compose にはマスタ解決器が要る。
+  // 本 smoke はモデルの契約を見るものなので、最小限のマスタだけを置く。
+  const lookup = createBaseMapMasterLookup([
+    { uid: 'uid-osm', mapID: 'osm', data: { mapID: 'osm', lang: 'en', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19 } },
+    { uid: 'uid-gsi', mapID: 'gsi', data: { mapID: 'gsi', lang: 'ja', title: '地理院地図', url: 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png' } },
+    { uid: 'uid-kanto', mapID: 'kanto_rapid-900913', data: { mapID: 'kanto_rapid-900913', lang: 'ja', url: 'https://example.test/{z}/{x}/{y}.jpg', maxZoom: 17 } },
+  ]);
+
+  // 1. 文字列ビルトイン → builtin。m6-t10: 出力は文字列ではなく設定ファイル参照（ADR-0017）
   const builtin = normalizeAppSource('osm');
   assert.equal(builtin.sourceType, 'builtin');
-  assert.equal(composeViewerSource(builtin), 'osm');
+  assert.deepEqual(composeViewerSource(builtin, { lookup }), {
+    mapID: 'osm', settingFile: 'maps/osm.json',
+  });
   assert.ok(isViewerBuiltin('gsi_ortho'));
   assert.ok(!isViewerBuiltin('gsi_ort_USA10'));
 
@@ -52,7 +63,9 @@ try {
     data: { mapID: 'gsi', title: '地理院地図', always: true },
   });
   assert.equal(legacyBuiltin.sourceType, 'builtin');
-  assert.equal(composeViewerSource(legacyBuiltin), 'gsi');
+  assert.deepEqual(composeViewerSource(legacyBuiltin, { lookup }), {
+    mapID: 'gsi', settingFile: 'maps/gsi.json',
+  });
 
   // 3. tms overlay: snake_case正規化 + Editor専用キー除去 + maptype出力
   const overlay = normalizeAppSource({
@@ -73,17 +86,22 @@ try {
   // builtin/tmsソースは登録地図ではなく埋め込みコピー(Inherited Source Defaults)なので、
   // mapUidフィールドにはビルトインID/TMS地図IDをそのまま保持する(uid解決対象外)
   assert.equal(overlay.mapUid, 'kanto_rapid-900913');
-  assert.ok(overlay.data.envelopeLngLats);
-  assert.equal(overlay.data.envelopLngLats, undefined);
-  assert.equal(overlay.data.always, undefined);
-  const composedOverlay = composeViewerSource(overlay);
-  assert.equal(composedOverlay.maptype, 'overlay');
+  // m6-t10: 旧形の全コピーは legacyData として温存され、resolveAppSource が overrides へ翻訳する
+  assert.ok(overlay.legacyData.envelopeLngLats, 'snake_case 正規化は legacyData の時点で効く');
+  assert.equal(overlay.legacyData.envelopLngLats, undefined);
+  assert.equal(overlay.legacyData.always, undefined, 'Editor 専用キーは除去される');
+  const composedOverlay = composeViewerSource(overlay, { lookup });
+  // maptype は出さない（source_ex.ts:126 が先に成立して settingFile が読まれなくなるため）。
+  // overlay であることは設定ファイル側の maptype で表現する（§3.5.1）
+  assert.equal(composedOverlay.maptype, undefined, 'm6-t10: アプリ JSON に maptype を出さない');
   assert.equal(composedOverlay.mapID, 'kanto_rapid-900913');
+  assert.equal(composedOverlay.settingFile, 'maps/kanto_rapid-900913.json');
   assert.deepEqual(composedOverlay.label, { ja: '迅速測図' });
   assert.equal(composedOverlay.always, undefined);
   assert.equal(composedOverlay.sourceType, undefined);
   assert.equal(composedOverlay.role, undefined);
   assert.equal(composedOverlay.startFrom, undefined);
+  assert.equal(composedOverlay.url, undefined, 'm6-t10: マスタ由来値はアプリ JSON に出さない');
 
   // 4. maplat(旧保存形 mapID=slug): mapUidへ受容 + label最小出力 + settingFilePrefix
   const maplat = normalizeAppSource({
@@ -132,7 +150,9 @@ try {
   });
   assert.equal(suffixedBuiltin.sourceType, 'builtin');
   assert.equal(suffixedBuiltin.mapUid, 'osm');
-  assert.equal(composeViewerSource(suffixedBuiltin), 'osm');
+  assert.deepEqual(composeViewerSource(suffixedBuiltin, { lookup }), {
+    mapID: 'osm', settingFile: 'maps/osm.json',
+  });
   assert.equal(hasViewerBasemapSource([suffixedBuiltin, maplatByUid]), true);
 
   // 5. bbox ⇄ envelope
