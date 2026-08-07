@@ -577,7 +577,10 @@ export function composeViewerSource(
         ...normalizeLangResource(masterData[key] as LangResource | undefined, masterLang),
         ...normalizeLangResource(value as LangResource, masterLang),
       };
-      const compact = compactLangObject(merged, options.lang ?? masterLang);
+      // 畳み込みの基準は**アプリ文書の既定言語**（options.lang）である。
+      // マスタの lang へフォールバックしてはならない — アプリ JSON の交換形の平文は
+      // 「アプリ文書の既定言語の値」を意味するため（設定ファイル側の基準とは別物。§3.5.5）。
+      const compact = compactLangObject(merged, options.lang);
       if (compact !== undefined) out[key] = compact;
       continue;
     }
