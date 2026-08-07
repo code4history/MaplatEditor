@@ -1,5 +1,5 @@
 import { isProviderKind, resolveBaseMapRuntimeText } from "./baseMapEditorDocument";
-import { BASE_MAP_LANG_ATTRS } from "./langResource";
+import { BASE_MAP_LANG_ATTRS, normalizeLangResource } from "./langResource";
 import type { LangResource } from "./langResource";
 
 // アプリ設定のソース(sources)モデル共有ロジック。
@@ -114,37 +114,183 @@ export function stripEditorKeys(data: Record<string, unknown>): Record<string, u
   return Object.fromEntries(Object.entries(data).filter(([key]) => !EDITOR_ONLY_KEYS.has(key)));
 }
 
+// ---------------------------------------------------------------------------
+// m6-t10: 差分保持ストレージモデル（ADR-0018）と出力文法（ADR-0017）
+// ---------------------------------------------------------------------------
+
+// 上書き可能フィールドの宣言テーブル（設計 §3.2）。
+// 規則: 「アプリソース編集フォームに操作子があるとき、かつそのときに限り上書き可能」。
+// AppSourceEditor.vue の data-testid="app-source-override-<key>" と AC7 で機械照合する。
+// マスタに対応物があり、操作子があるもの。
+export const APP_SOURCE_OVERRIDABLE_KEYS = [
+  "label",
+  "title",
+  "attr",
+  "minZoom",
+  "maxZoom",
+  "thumbnail",
+] as const;
+
+// マスタに対応物が無く、常にアプリ所有のもの（マスタとの比較を行わない点だけが異なる）。
+// envelopeLngLats は ADR-0004 の利用範囲、mercator シフトは overlay 専用の位置合わせ。
+export const APP_SOURCE_OWNED_KEYS = [
+  "envelopeLngLats",
+  "mercatorXShift",
+  "mercatorYShift",
+] as const;
+
+// MaplatCore の sourcesLoader が全ソースへ Object.assign する commonOptions のキー
+// （index.ts:364-374）。オブジェクトリテラルのため値が undefined でも own key として
+// 実体化し、settingFile 経路（source_ex.ts:188）で設定ファイル側の同名キーを潰す。
+// ∴ 設定ファイルへは出力しない（設計 §3.5.3・AC21）。
+export const COMMON_OPTION_KEYS = [
+  "homePos",
+  "defZoom",
+  "zoomRestriction",
+  "mercMinZoom",
+  "mercMaxZoom",
+  "enableCache",
+  "key",
+  "mapboxMap",
+  "maplibreMap",
+] as const;
+
+// 言語別フィールド（交換形を保つ。ADR-0005）。BASE_MAP_LANG_ATTRS は label を含まないため足す。
+const LANG_OBJECT_KEYS: readonly string[] = [...BASE_MAP_LANG_ATTRS, "label"];
+
+const OVERRIDABLE_KEY_SET = new Set<string>(APP_SOURCE_OVERRIDABLE_KEYS);
+const OWNED_KEY_SET = new Set<string>(APP_SOURCE_OWNED_KEYS);
+
+// 設定ファイル（maps/<slug>.json）へ出してはならないキー。
+const SETTING_FILE_EXCLUDED_KEYS = new Set<string>([
+  ...EDITOR_ONLY_KEYS,
+  ...COMMON_OPTION_KEYS,
+  // ADR-0004: 存在範囲はエディタ専用メタデータ。Viewer へ渡すと Weiwudi の対象範囲が暴発する
+  "coverageLngLats",
+  // m6-t8: 生成元地図の出自メモ（エディタ専用）
+  "sourceMapUid",
+  // エディタ内部の builtin 識別子
+  "builtinId",
+]);
+
 export interface AppSource {
   sourceType: SourceKind;
   // 地図参照 (ADR-0007):
   // - maplat: 登録地図の Asset UID (旧保存形は slug。読込時に main 側で uid へ解決される)
-  // - builtin/tms: 登録地図ではないためuid解決対象外。ビルトインID/TMS地図IDをそのまま埋め込み保持
+  // - builtin/tms: ベースマップの slug。表示・startFrom 照合に使う
   mapUid: string;
+  // m6-t10: ベースマップマスタへの安定参照（ADR-0018）。slug 改名に耐える。
+  // 旧保存形は持たないため、resolveAppSource が slug 経由で解決して補う。
+  baseMapUid?: string;
   role: SourceRole;
   startFrom?: boolean;
+  // 上書き分のみ。未上書きならキーごと不在（歴史的にトップレベルにあるため位置は動かさない）
   label?: Record<string, string>;
-  data?: Record<string, any>; // tmsのみ: Viewerに渡る設定(camelCase)
+  // m6-t10: アプリ側の上書き差分のみ。マスタ値は持たない（ADR-0018）
+  overrides?: Record<string, any>;
   title?: string; // Editor表示専用(出力しない)
   mapSlug?: string; // maplatのみ: Editor表示用slug(読込時に解決。Viewer出力しない)
+  // 旧保存形（data にマスタ全コピー）を読んだときの生値。resolveAppSource が
+  // マスタと突き合わせて overrides へ翻訳する（設計 §3.7）。保存時には残さない。
+  legacyData?: Record<string, any>;
 }
 
-export interface TmsThumbnailBaseMapRef {
+// ---------------------------------------------------------------------------
+// マスタ解決（設計 §3.4）
+// ---------------------------------------------------------------------------
+
+export interface BaseMapMasterLike {
   uid: string;
-  ext: string;
-  thumbnail: string;
+  mapID: string;
+  data: Record<string, any>;
 }
 
-export function extractTmsThumbnailBaseMapRef(source: AppSource): TmsThumbnailBaseMapRef | null {
-  if (source.sourceType !== "tms" || !source.data) return null;
-  const thumbnail = source.data.thumbnail;
-  if (typeof thumbnail !== "string") return null;
-  const match = thumbnail.match(/^tmbs\/([0-9a-f-]{36})\.([A-Za-z0-9]+)$/i);
-  if (!match) return null;
-  return { uid: match[1], ext: match[2], thumbnail };
+export interface BaseMapMasterLookup {
+  byUid(uid: string): BaseMapMasterLike | undefined;
+  bySlug(slug: string): BaseMapMasterLike | undefined;
 }
 
-export function extractTmsThumbnailBaseMapUid(source: AppSource): string | null {
-  return extractTmsThumbnailBaseMapRef(source)?.uid ?? null;
+export type ResolvedAppSource =
+  | { ok: true; source: AppSource; master: BaseMapMasterLike; merged: Record<string, any> }
+  | { ok: false; source: AppSource; reason: "master-missing" };
+
+// 言語別フィールドの同値判定（ADR-0005 の交換形のゆれを吸収する）。
+// プレーン文字列と {lang: text} を同じ土俵へ載せてから比較する。
+function langEquals(a: unknown, b: unknown, defaultLang: string): boolean {
+  const na = normalizeLangResource(a as LangResource | undefined, defaultLang);
+  const nb = normalizeLangResource(b as LangResource | undefined, defaultLang);
+  const keys = new Set([...Object.keys(na), ...Object.keys(nb)]);
+  for (const key of keys) {
+    if ((na[key] ?? "") !== (nb[key] ?? "")) return false;
+  }
+  return true;
+}
+
+function valueEquals(key: string, a: unknown, b: unknown, defaultLang: string): boolean {
+  if (LANG_OBJECT_KEYS.includes(key)) return langEquals(a, b, defaultLang);
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+// 旧保存形（data にマスタ全コピー）→ 新形（overrides + label）への翻訳（設計 §3.7）。
+// - 操作子の無いキーは捨てる（以後マスタから読む）
+// - 操作子のあるキーはマスタの現在値と比較し、異なるときだけ上書きとして温存する
+// - アプリ所有キーは無条件で温存する
+function migrateLegacyData(
+  source: AppSource,
+  master: BaseMapMasterLike,
+): { overrides: Record<string, any>; label?: Record<string, string> } {
+  const legacy = source.legacyData ?? {};
+  const defaultLang = String(master.data.lang || master.data.defaultLang || "en");
+  const overrides: Record<string, any> = { ...(source.overrides || {}) };
+
+  for (const [key, value] of Object.entries(legacy)) {
+    if (OWNED_KEY_SET.has(key)) {
+      overrides[key] = value;
+      continue;
+    }
+    if (!OVERRIDABLE_KEY_SET.has(key) || key === "label") continue;
+    if (value === undefined || value === null || value === "") continue;
+    if (valueEquals(key, value, master.data[key], defaultLang)) continue;
+    overrides[key] = value;
+  }
+
+  // label は歴史的にトップレベルにあるため別扱い（保存位置は動かさない・設計 §3.1）
+  let label = source.label;
+  const legacyLabel = source.label ?? legacy.label;
+  if (legacyLabel === undefined || langEquals(legacyLabel, master.data.label, defaultLang)) {
+    label = undefined;
+  } else {
+    label = legacyLabel as Record<string, string>;
+  }
+  return { overrides, label };
+}
+
+// AppSource + マスタ → 解決済み（マスタ土台 + アプリ上書き）。
+// マージ順は MaplatCore の Object.assign(resp, options)（source_ex.ts:188）と同一に揃える。
+export function resolveAppSource(
+  source: AppSource,
+  lookup: BaseMapMasterLookup,
+): ResolvedAppSource {
+  const master =
+    (source.baseMapUid ? lookup.byUid(source.baseMapUid) : undefined) ??
+    lookup.bySlug(source.mapUid);
+  if (!master) return { ok: false, source, reason: "master-missing" };
+
+  const resolved: AppSource = { ...source, baseMapUid: master.uid };
+  if (resolved.legacyData) {
+    const { overrides, label } = migrateLegacyData(resolved, master);
+    resolved.overrides = overrides;
+    if (label === undefined) delete resolved.label;
+    else resolved.label = label;
+    delete resolved.legacyData;
+  }
+  resolved.overrides = resolved.overrides ?? {};
+
+  const { mapID: _mapID, ...masterRest } = master.data;
+  const effective: Record<string, any> = { ...resolved.overrides };
+  if (resolved.label !== undefined) effective.label = resolved.label;
+  const merged = { ...masterRest, ...effective };
+  return { ok: true, source: resolved, master, merged };
 }
 
 export interface MercSourceRef {
@@ -153,58 +299,45 @@ export interface MercSourceRef {
   dirName: string;
 }
 
-// 実装レビュー round3 M-5: merc ソース(kind==="merc" かつ baseMapUid を持つ tms ソース)の抽出。
-// url = "merc/{dirName}/{z}/{x}/{y}.png" から選択時点のディレクトリ名(=slug)を取り出す。
-// ディスク上のタイルは merc/{baseMapUid} にある(ADR-0016)ため、書き出し(AppExportService)と
-// プレビュー配信(AppPreviewService)の両方が dirName→baseMapUid の対応を必要とする。
-// 同一ロジックを重複させないよう、この一箇所へ共有する（人間指示: 同一扱い処理は共通実装へ徹底）
-export function extractMercSourceRefs(sources: readonly AppSource[]): MercSourceRef[] {
+// merc ソースの抽出。ディスク上のタイルは merc/{baseMapUid} にある(ADR-0016)ため、
+// 書き出し(AppExportService)とプレビュー配信(AppPreviewService)の両方が
+// dirName→baseMapUid の対応を必要とする。同一ロジックを重複させないよう一箇所へ共有する。
+// m6-t10: 差分保持モデルでは kind も url もアプリ側に無いため、マスタから引く。
+// dirName はマスタの現在 slug（旧形の「選択時点 slug」との乖離が構造的に消える。設計 §3.5.4）。
+export function extractMercSourceRefs(
+  sources: readonly AppSource[],
+  lookup: BaseMapMasterLookup,
+): MercSourceRef[] {
   const entries: MercSourceRef[] = [];
   for (const source of sources) {
-    if (source.sourceType !== "tms") continue;
-    const kind = source.data?.kind;
-    const baseMapUid = source.data?.baseMapUid;
-    if (kind !== "merc" || typeof baseMapUid !== "string") continue;
-    const url = String(source.data?.url ?? "");
-    const match = url.match(/^merc\/([^/]+)\//);
-    if (!match) continue; // 導出url形式でない(異常値)。既存の警告パターンと同じくskip
-    entries.push({ source, baseMapUid, dirName: match[1] });
+    if (source.sourceType === "maplat") continue;
+    const resolved = resolveAppSource(source, lookup);
+    if (!resolved.ok) continue;
+    if (resolved.master.data.kind !== "merc") continue;
+    entries.push({
+      source: resolved.source,
+      baseMapUid: resolved.master.uid,
+      dirName: resolved.master.mapID,
+    });
   }
   return entries;
 }
 
+// m6-t10: マスタの全コピーをやめ、参照＋空 overrides を返す（ADR-0018）。
+// 第2引数の appDefaultLang は Editor 表示用 title の解決にのみ使う（保存値には入らない）。
 export function createAppSourceFromBaseMap(
-  master: Record<string, any>,
+  master: BaseMapMasterLike,
   appDefaultLang: string,
 ): AppSource {
   const mapID = String(master.mapID || "");
-  // rendererからはVue reactive Proxyが渡るため、JSON文書としてplain objectへ剥がす。
-  // structuredCloneはProxyをcloneできず、AppのBase Map選択がDataCloneErrorになる。
-  const cloned = JSON.parse(JSON.stringify(master));
-  const labelSource = cloned.label ?? cloned.title;
-  const label = typeof labelSource === "string"
-    ? { [cloned.lang || "en"]: labelSource }
-    : { ...(labelSource || {}) };
-  delete cloned.mapID;
-  delete cloned.label;
-  cloned.defaultLang = appDefaultLang;
-  if (isViewerBuiltin(mapID)) {
-    return {
-      sourceType: "builtin",
-      mapUid: mapID,
-      role: "base",
-      label,
-      data: cloned,
-      title: resolveBaseMapRuntimeText(master.title, appDefaultLang, master.lang || "en"),
-    };
-  }
+  const data = master.data || {};
   return {
-    sourceType: "tms",
+    sourceType: isViewerBuiltin(mapID) ? "builtin" : "tms",
     mapUid: mapID,
-    role: cloned.maptype === "overlay" ? "overlay" : "base",
-    label,
-    data: cloned,
-    title: resolveBaseMapRuntimeText(master.title, appDefaultLang, master.lang || "en"),
+    baseMapUid: master.uid,
+    role: data.maptype === "overlay" ? "overlay" : "base",
+    overrides: {},
+    title: resolveBaseMapRuntimeText(data.title, appDefaultLang, data.lang || "en"),
   };
 }
 
@@ -250,13 +383,40 @@ function pickLabel(
   return { ...candidate };
 }
 
-// 任意の保存形(レガシー文字列 / 旧AppEdit形(mapID) / 新形(mapUid)) → AppSource
+// 任意の保存形(レガシー文字列 / 旧AppEdit形(mapID) / 差分保持形) → AppSource
+//
+// m6-t10: 差分保持形（`overrides` を持つ）は無変換で受け、旧形（`data` にマスタ全コピー）は
+// `legacyData` として温存する。マスタとの突き合わせによる翻訳は resolveAppSource が行う
+// （本関数は純粋関数のままとし、マスタ比較は行わない。設計 §3.4 / §3.7）。
 export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   if (typeof raw === "string") {
     if (isViewerBuiltin(raw)) {
-      return { sourceType: "builtin", mapUid: raw, role: "base" };
+      return { sourceType: "builtin", mapUid: raw, role: "base", overrides: {} };
     }
-    return { sourceType: "tms", mapUid: raw, role: "base", data: {} };
+    return { sourceType: "tms", mapUid: raw, role: "base", overrides: {} };
+  }
+
+  // 差分保持形の判定は `overrides` の有無で行う。createAppSourceFromBaseMap も
+  // 移行後の保存も必ず overrides を持つため、旧形と一意に区別できる。
+  if (raw && typeof raw === "object" && raw.overrides !== undefined) {
+    const kind: SourceKind =
+      raw.sourceType === "maplat" || raw.sourceType === "builtin" || raw.sourceType === "tms"
+        ? raw.sourceType
+        : isViewerBuiltin(String(raw.mapUid || ""))
+          ? "builtin"
+          : "tms";
+    const out: AppSource = {
+      sourceType: kind,
+      mapUid: String(raw.mapUid || raw.mapID || ""),
+      role: raw.role === "overlay" ? "overlay" : kind === "maplat" ? "maplat" : "base",
+      startFrom: Boolean(raw.startFrom),
+      overrides: { ...(raw.overrides || {}) },
+    };
+    if (typeof raw.baseMapUid === "string") out.baseMapUid = raw.baseMapUid;
+    if (raw.label && typeof raw.label === "object") out.label = { ...raw.label };
+    if (typeof raw.title === "string") out.title = raw.title;
+    if (typeof raw.mapSlug === "string") out.mapSlug = raw.mapSlug;
+    return out;
   }
 
   const rawData = raw?.data && typeof raw.data === "object" ? raw.data : raw;
@@ -299,7 +459,9 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
       role: "base",
       startFrom: Boolean(raw?.startFrom),
       label: pickLabel(raw, data, defaultLang),
-      data: raw?.data && typeof raw.data === "object" ? structuredClone(raw.data) : undefined,
+      // m6-t10: 旧形の全コピーは legacyData として温存し、resolveAppSource が翻訳する
+      legacyData: data,
+      ...(typeof rawBaseMapUid === "string" ? { baseMapUid: rawBaseMapUid } : {}),
       title: typeof raw?.title === "string" ? raw.title : undefined,
     };
   }
@@ -309,24 +471,18 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   const label = pickLabel(raw, data, defaultLang);
   delete data.label;
   delete data.mapID;
-  // 種別軸（m6-t1）: provider の maptype は保持し、それ以外（tms/merc）は従来どおり捨てる。
-  // m6-t5 v1.3: provider 判定は isProviderKind に一元化
-  if (!isProviderKind(rawKind)) {
-    delete data.maptype;
-  }
-  // 種別軸（m6-t1）: kind を AppSource.data に再付着する。本番の Export/Preview は必ず
-  // normalize→compose の連鎖を通るため、ここで保持しないと compose の rawKind が空になる
-  // （設計 v2.1 Critical 対応）。viewer 出力からの除去は compose 境界の EDITOR_ONLY_KEYS が担う。
-  if (rawKind != null) data.kind = rawKind;
-  // m6-t8: baseMapUid を再付着する（kind と同じ「strip 前退避→内部表現へ再付着」パターン）
-  if (rawBaseMapUid != null) data.baseMapUid = rawBaseMapUid;
   return {
     sourceType: "tms",
     mapUid: mapRef,
     role,
     startFrom: Boolean(raw?.startFrom),
     label,
-    data,
+    // m6-t10: 旧形の全コピーは legacyData として温存し、resolveAppSource が
+    // マスタと突き合わせて overrides へ翻訳する（設計 §3.7）。
+    // 旧来ここで行っていた kind / baseMapUid の「strip 前退避 → data へ再付着」は
+    // 不要になった（overrides に kind は入らず、baseMapUid はトップレベルへ昇格する）。
+    legacyData: data,
+    ...(typeof rawBaseMapUid === "string" ? { baseMapUid: rawBaseMapUid } : {}),
     title: typeof raw?.title === "string" ? raw.title : undefined,
   };
 }
@@ -338,15 +494,24 @@ function pruneEmpty(data: Record<string, unknown>): Record<string, unknown> {
 }
 
 // AppSource → Viewer出力(アプリJSON sources要素)
-// builtin=文字列 / maplat={mapID,label(+settingFile)} / tms=data展開+maptype
+//
+// m6-t10 (ADR-0017): エディタの正式出力は全ソース共通で
+//   { mapID, settingFile: "maps/<slug>.json", …上書き分のみ }
+// になった。builtin の文字列出力とインライン全定義は廃止した（Viewer は後方互換で読む）。
+// maplat だけは従来どおり（もともと settingFile 参照であり本タスクの対象外）。
+//
 // maplatMapID: maplatソースのViewer向けmapID(=slug)。uid参照の呼び出し側が
 // uid→slug解決して渡す (ADR-0007: viewer互換)。未指定時はmapUid値をそのまま使う
+// lookup: ベースマップマスタの解決器。ベースマップ由来ソースでは必須
 export function composeViewerSource(
   source: AppSource,
-  options: { settingFilePrefix?: string; lang?: string; maplatMapID?: string } = {},
+  options: {
+    settingFilePrefix?: string;
+    lang?: string;
+    maplatMapID?: string;
+    lookup?: BaseMapMasterLookup;
+  } = {},
 ): string | Record<string, unknown> {
-  if (source.sourceType === "builtin") return source.mapUid;
-
   if (source.sourceType === "maplat") {
     const viewerMapID = options.maplatMapID ?? source.mapUid;
     const out: Record<string, unknown> = { mapID: viewerMapID };
@@ -359,43 +524,93 @@ export function composeViewerSource(
     return out;
   }
 
-  const raw = source.data || {};
-  // 種別軸（m6-t1）: kind は EDITOR_ONLY_KEYS に入るため strip 後には存在しない。よって
-  // strip 前に source.data から kind/maptype を退避し、maptype 決定で使う（設計 v2.1 C2 対応）。
-  const rawKind = raw.kind;
-  const rawMaptype = raw.maptype;
-  const data = pruneEmpty(stripEditorKeys(normalizeRuntimeKeys({ ...raw })));
-  delete data.label;
-  // 存在範囲(coverageLngLats)はEditor内の検索/ピッカー用メタデータであり、Viewerへは渡さない。
-  // Viewerに渡る範囲は利用範囲(envelopeLngLats)のみ(ユーザー明示設定、既定は空)。
-  // 広域の存在範囲をenvelopeとして渡すとWeiwudi(SWタイルキャッシュ)の対象範囲が暴発する(ADR-0004)
-  delete data.coverageLngLats;
-  const defaultLang = String(data.defaultLang || data.lang || "en");
-  const runtimeLang = options.lang ?? defaultLang;
-  // m6-t2: ベースマップの言語別フィールド (BASE_MAP_LANG_ATTRS) を共通ループで解決する。
-  // 解決結果が空文字になったキーは落とす (ADR-0005: 全言語空のフィールドは出力しない)。
-  for (const key of BASE_MAP_LANG_ATTRS) {
-    if (data[key] === undefined) continue;
-    const text = resolveBaseMapRuntimeText(data[key] as LangResource, runtimeLang, defaultLang);
-    if (text === "") delete data[key];
-    else data[key] = text;
+  // ベースマップ由来ソース（builtin / tms）: ID 参照 + 上書き分のみ（ADR-0017）。
+  // **maptype は出さない**。出すと MaplatCore の source_ex.ts:126 が先に成立し、
+  // settingFile が読まれずインライン経路へ落ちる。
+  const resolved = options.lookup ? resolveAppSource(source, options.lookup) : null;
+  if (options.lookup && (!resolved || !resolved.ok)) {
+    // マスタ欠落。呼び出し側（Export / Preview）が事前に除外する契約だが、
+    // 万一到達した場合は参照だけを出して壊れた出力を作らない（設計 §3.6）。
+    return { mapID: source.mapUid };
   }
-  delete data.defaultLang;
-  delete data.lang;
+  const master = resolved && resolved.ok ? resolved.master : null;
+  const viewerMapID = master ? master.mapID : source.mapUid;
+  const masterData = master ? master.data : {};
+  const masterLang = String(masterData.lang || masterData.defaultLang || "en");
+  const prefix = options.settingFilePrefix ?? "maps/";
+
   const out: Record<string, unknown> = {
-    ...data,
-    mapID: source.mapUid,
-    // 種別軸（m6-t1）: provider は退避した rawMaptype を出力（欠落時は "base" へフォールバック。
-    // t1 では provider の maptype は t4/t5 が入れる前のため空で、role 分岐の base と同値＝出力不変）。
-    // tms / merc / 未設定は従来どおり role 分岐（出力不変）。
-    maptype:
-      isProviderKind(rawKind)
-        ? rawMaptype ?? "base"
-        : source.role === "overlay" ? "overlay" : "base",
+    mapID: viewerMapID,
+    settingFile: `${prefix}${viewerMapID}.json`,
   };
-  const label = compactLangObject(source.label, options.lang);
-  if (label) out.label = label;
+
+  // 上書き分を載せる。言語別フィールドは MaplatCore のマージがキー単位の全置換であるため、
+  // マスタ値とマージした完全な言語オブジェクトを出す（設計 §3.5.5）。
+  const overrides: Record<string, any> = { ...(source.overrides || {}) };
+  if (source.label !== undefined) overrides.label = source.label;
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value === undefined || value === null || value === "") continue;
+    if (LANG_OBJECT_KEYS.includes(key)) {
+      const merged = {
+        ...normalizeLangResource(masterData[key] as LangResource | undefined, masterLang),
+        ...normalizeLangResource(value as LangResource, masterLang),
+      };
+      const compact = compactLangObject(merged, options.lang ?? masterLang);
+      if (compact !== undefined) out[key] = compact;
+      continue;
+    }
+    out[key] = value;
+  }
   return out;
+}
+
+// マスタ → 設定ファイル `maps/<slug>.json` の中身（設計 §3.5）。
+// パッケージごとに生成する導出物であり、アプリ間で共有されない。∴ role を焼き込んでよい。
+export function composeBaseMapSettingFile(
+  master: BaseMapMasterLike,
+  role: SourceRole,
+  options: { lang?: string } = {},
+): Record<string, unknown> {
+  const masterData = master.data || {};
+  const kind = masterData.kind;
+  const masterLang = String(masterData.lang || masterData.defaultLang || "en");
+  const data = normalizeRuntimeKeys({ ...masterData }) as Record<string, any>;
+
+  for (const key of Object.keys(data)) {
+    if (SETTING_FILE_EXCLUDED_KEYS.has(key)) delete data[key];
+  }
+  delete data.mapID;
+
+  // 言語別フィールドは ADR-0005 の交換形へ畳む（言語の解決は viewer 側 ui.translate が行う）。
+  // 畳み込みの基準は**この設定ファイル自身の既定言語**（= マスタの lang。data.lang として同梱される）
+  // であり、アプリの表示言語ではない。options.lang は将来の拡張用に受けるが基準には使わない。
+  for (const key of LANG_OBJECT_KEYS) {
+    if (data[key] === undefined) continue;
+    const compact = compactLangObject(
+      normalizeLangResource(data[key] as LangResource, masterLang),
+      masterLang,
+    );
+    if (compact === undefined) delete data[key];
+    else data[key] = compact;
+  }
+
+  // §3.5.1: 上から順に評価し、最初に成立した行を採る（provider は role より優先）
+  const maptype = isProviderKind(kind)
+    ? String(masterData.maptype ?? "base")
+    : role === "overlay"
+      ? "overlay"
+      : "base";
+
+  // §3.5.4: kind 別の url。merc はマスタが url を持たない（空文字）ため現在 slug から導出し、
+  // provider は url を出さない（source_ex.ts:221-224 が削除するため）。
+  if (isProviderKind(kind)) {
+    delete data.url;
+    delete data.urls;
+  } else if (kind === "merc") {
+    data.url = `merc/${master.mapID}/{z}/{x}/{y}.png`;
+  }
+
+  return pruneEmpty({ ...data, mapID: master.mapID, maptype });
 }
 
 // bbox [w,s,e,n] → envelopeLngLats 4隅 [[w,s],[e,s],[e,n],[w,n]]
