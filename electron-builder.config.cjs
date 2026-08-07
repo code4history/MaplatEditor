@@ -1,19 +1,17 @@
 // electron-builder 設定ファイル
 //
-// 署名の判定ロジック:
-//   macOS 署名のみ: MAC_SIGN=true で Hardened Runtime 付き署名（公証なし。テスター配布用）
+// 署名の判定ロジック（m6-t12 §2.3/§2.4）:
+//   macOS 署名のみ: MAC_SIGN=true で Hardened Runtime 付き署名（公証なし）
 //   macOS 署名+公証: APPLE_ID 環境変数が設定されている場合（リリース用）
-//   Windows: WIN_CSC_LINK または CSC_LINK が設定されている場合のみ署名
+//   Windows: electron-builder では署名しない。SSL.com eSigner による post-build 署名へ
+//   一本化した（クラウド署名のため証明書ファイルを配れない。手順は docs/release-signing.md）
 //
 // ローカルビルド: .env ファイルに APPLE_ID 等を記載すれば署名+公証される
-// CI: build.yml がトリガー種別に応じて環境変数を出し分ける（詳細は build.yml 冒頭コメント）
+// CI: build.yml が release 実行時のみ環境変数を出し分ける（詳細は build.yml 冒頭コメント）
 
 // macOS: 署名（Hardened Runtime）は「署名のみ」「署名+公証」のどちらでも有効化
 const isMacNotarize = !!process.env.APPLE_ID;
 const isMacSigning = isMacNotarize || process.env.MAC_SIGN === 'true';
-
-// Windows: WIN_CSC_LINK または CSC_LINK が設定されていれば署名
-const isWinSigning = !!process.env.WIN_CSC_LINK || !!process.env.CSC_LINK;
 
 /** @type {import('electron-builder').Configuration} */
 const config = {

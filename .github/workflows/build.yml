@@ -1,22 +1,21 @@
 name: Build and Release
 
 on:
-  # 署名ポリシー（Windows の eSigner は署名ごとに課金されるため、公証・リリースは明示的な手動操作に限定）:
-  #   glm52 / foss4g-hiroshima push : ビルドのみ（署名・公証なし）
-  #   master push : Mac は署名のみ（公証なし。テスター配布用に xattr 不要のバイナリを作る）、Win は署名なし
-  #   手動実行     : ブランチ問わず起動可能。通常は署名なしビルド。
-  #                 「release」チェックを入れると Mac 署名+公証 / Win eSigner 署名 / draft Release 作成
-  #                 を行うリリースビルドになる（master ブランチ限定。他ブランチではエラー停止）
-  #
-  # foss4g-hiroshima は現行の統合ブランチ（他7リポジトリの CI は既に全ブランチで走る）。
-  # 署名系ステップは github.ref == 'refs/heads/master' で分岐しているため、
-  # ここへ追加しても署名・公証・Release 作成はいずれも発火しない（m1-t2 で実測確認）。
+  # 署名ポリシー（m6-t12 §2.4。Windows の eSigner は署名ごとに課金されるため、署名・公証・リリースは明示的な手動操作に限定）:
+  #   push（master / glm52 / foss4g-hiroshima）: ビルドのみ（署名・公証なし）。
+  #     ※ 旧仕様にあった「master push で Mac 署名のみ」は m6-t12 で廃止した — 署名系 secrets を
+  #        environment `release`（Required reviewers 保護）へ隔離したため push ビルドからは読めない。
+  #        テスター配布用の署名済みバイナリは master で release=true を実行して得ること。
+  #   手動実行: ブランチ問わず起動可能。通常は署名なしビルド。
+  #     「release」チェックで Mac 署名+公証 / Win eSigner 署名 / draft Release 作成を行う。
+  #     許可条件は master、または prerelease バージョン（version に '-' を含む。例 1.0.0-rc1）の
+  #     任意ブランチ（判定の単一実装: scripts/m6-t12/check-release-guard.mjs）。
   push:
     branches: [master, glm52, foss4g-hiroshima]
   workflow_dispatch:
     inputs:
       release:
-        description: 'リリースビルド（Mac 公証 + Win 署名 + Release 作成。eSigner の署名回数を消費。master 限定）'
+        description: 'リリースビルド（Mac 公証 + Win eSigner 署名 + draft Release 作成。eSigner の署名回数を消費。master か prerelease バージョン限定）'
         type: boolean
         default: false
 
@@ -25,24 +24,25 @@ permissions:
 
 jobs:
   # ─────────────────────────────────────────────
-  # バージョン番号取得（全ジョブで共有）
+  # バージョン番号取得 + release ガード（全ジョブで共有）
   # ─────────────────────────────────────────────
   prepare:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.ver.outputs.version }}
     steps:
-      # リリースビルドは master 限定（署名回数の浪費と誤リリースを防ぐ）
-      - name: Guard release trigger
-        if: github.event_name == 'workflow_dispatch' && inputs.release && github.ref != 'refs/heads/master'
-        run: |
-          echo "::error::リリースビルド（release=true）は master ブランチでのみ実行できます。"
-          exit 1
-
       - uses: actions/checkout@v4
       - name: Get version from package.json
         id: ver
         run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
+      # リリースビルドの許可判定（m6-t12 §2.2）。version 取得後に置くのが要点
+      # （prerelease 判定に version が必要）。判定ロジックは smoke（AC3）と同一実装
+      - name: Guard release trigger
+        env:
+          RELEASE: ${{ inputs.release }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: node scripts/m6-t12/check-release-guard.mjs
 
   # ─────────────────────────────────────────────
   # macOS ビルド（x64 + arm64 DMG）
@@ -50,12 +50,15 @@ jobs:
   build-mac:
     needs: prepare
     runs-on: macos-latest
+    # 署名系 secrets は environment `release` に置く（m6-t12 §2.4）。release 実行時のみ
+    # Required reviewers の承認が挟まり、push ビルド（ci 側）からは secrets を読めない
+    environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.release) && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
           # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
@@ -74,12 +77,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Developer ID 証明書のインポート（Mac 署名は master push とリリースビルドの両方で行う）
+      # Developer ID 証明書のインポート（release 実行のみ。m6-t12 で master push 署名経路を廃止）
       # インポート成功時に MAC_SIGN=true を設定 → electron-builder が Hardened Runtime 付き署名を行う
       # （Secret 未設定の場合はスクリプト内でスキップ）
       # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する
       - name: Import Apple Developer certificate
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || (github.event_name == 'workflow_dispatch' && inputs.release)
+        if: github.event_name == 'workflow_dispatch' && inputs.release
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
@@ -103,7 +106,7 @@ jobs:
           rm certificate.p12
           echo "MAC_SIGN=true" >> $GITHUB_ENV
 
-      # 公証環境変数のセット（リリースビルドのみ。master push では公証しない＝時間短縮）
+      # 公証環境変数のセット（リリースビルドのみ）
       # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
       - name: Set macOS notarization environment
         if: github.event_name == 'workflow_dispatch' && inputs.release
@@ -137,12 +140,13 @@ jobs:
   build-win:
     needs: prepare
     runs-on: windows-latest
+    environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.release) && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
           # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
@@ -161,22 +165,33 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # 署名環境変数のセット（リリースビルドのみ。eSigner の署名回数を消費するため master push でも署名しない）
-      # ※ 空文字を env: に渡すと electron-builder がパスとして解釈して誤動作するため $GITHUB_ENV 経由で設定
-      - name: Set Windows code signing environment
-        if: github.event_name == 'workflow_dispatch' && inputs.release
-        shell: bash
-        env:
-          _WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          _WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-        run: |
-          if [ -n "$_WIN_CSC_LINK" ]; then
-            echo "WIN_CSC_LINK=$_WIN_CSC_LINK" >> $GITHUB_ENV
-            echo "WIN_CSC_KEY_PASSWORD=$_WIN_CSC_KEY_PASSWORD" >> $GITHUB_ENV
-          fi
-
       - name: Build Windows
         run: pnpm run dist:win
+
+      # eSigner による post-build 署名（m6-t12 §2.3・release 実行のみ）。
+      # dir_path 配下の署名可能ファイル = Setup.exe（x64/arm64 の2本）のみが対象で、
+      # 署名回数は 2/リリース に抑える（eSigner は署名ごとに課金・§7-2 方針）。
+      # electron-builder の win.sign hook を使わない理由・アプリ本体 exe を署名しない
+      # トレードオフは docs/release-signing.md を参照
+      - name: Sign Windows installers (SSL.com eSigner)
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        uses: SSLcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b # v1.3.2
+        with:
+          command: batch_sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          dir_path: release/${{ env.VERSION }}
+          override: 'true'
+          environment_name: PROD
+
+      # 署名でバイナリが変わったため、latest.yml の sha512/size と .exe.blockmap を
+      # 署名済みバイナリから再生成する（怠ると auto-update が壊れる /
+      # 差分更新が常時全量フォールバックする。m6-t12 §2.3・AC5）
+      - name: Update auto-update metadata after signing
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        run: node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -184,10 +199,11 @@ jobs:
           name: win-artifacts
           path: |
             release/${{ env.VERSION }}/*.exe
+            release/${{ env.VERSION }}/*.exe.blockmap
             release/${{ env.VERSION }}/latest.yml
 
   # ─────────────────────────────────────────────
-  # Linux ビルド（x64 + arm64 AppImage）
+  # Linux ビルド（x64 + arm64 AppImage・署名なし＝現行方針）
   # ─────────────────────────────────────────────
   build-linux:
     needs: prepare
@@ -197,7 +213,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
           # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
@@ -231,12 +247,13 @@ jobs:
             release/${{ env.VERSION }}/latest-linux.yml
 
   # ─────────────────────────────────────────────
-  # GitHub Release 作成（手動リリースビルドのみ。master 限定は prepare の Guard で担保）
+  # GitHub Release 作成（手動リリースビルドのみ。許可条件は prepare の Guard で担保）
   # ─────────────────────────────────────────────
   release:
     needs: [prepare, build-mac, build-win, build-linux]
     if: github.event_name == 'workflow_dispatch' && inputs.release
     runs-on: ubuntu-latest
+    environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.release) && 'release' || 'ci' }}
     steps:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
@@ -245,7 +262,7 @@ jobs:
           merge-multiple: true
 
       - name: Create GitHub Release (draft)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: v${{ needs.prepare.outputs.version }}
           name: MaplatEditor v${{ needs.prepare.outputs.version }}
