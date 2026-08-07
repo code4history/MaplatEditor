@@ -34,7 +34,7 @@ import {
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { localizeTitle } from '../../src/utils/langResource';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
-import { detectRequiredProviderGl, renderProviderGlCdnTags } from './providerGlCdn';
+import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, type ProviderGlKind } from './providerGlCdn';
 import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
 import {
   resolvePreviewKey,
@@ -51,6 +51,9 @@ type PreviewSession = {
   // m6-t5: viewer 向け sources（compose 済み）。GL CDN 判定は maps ではなくこちらを見る
   // （maps には maplat ソースしか入らず、basemap の mapbox/maplibre を検出できない）
   viewerSources: Array<Record<string, unknown> | string>;
+  // m6-t10: GL CDN の要否は viewer 要素からは判定できなくなった（maptype/kind をマスタ所有へ移し、
+  // 定義本体を maps/<slug>.json 側へ置いたため）。∴ 合成時にマスタから判定した結果を持ち回る
+  requiredProviderGl: ProviderGlKind[];
   // M4-T3: pois/<name>.geojson の実体。キーはファイル名 ('kyoto-poi.geojson')。
   // export が outDir/pois/ へ書き出すのと同じ内容を、preview はメモリから配信する
   poiDocuments: Record<string, unknown>;
@@ -354,6 +357,12 @@ class AppPreviewService {
       app,
       maps,
       viewerSources: entries.map((entry) => entry.composed),
+      requiredProviderGl: [
+        ...detectRequiredProviderGlFromAppSources(previewableSources, (source) => {
+          const resolved = resolveAppSource(source, baseMapLookup);
+          return resolved.ok ? resolved.master.data : null;
+        }),
+      ],
       poiDocuments,
       manifest: this.createManifest(document),
       viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(previewableSources)),
@@ -485,7 +494,7 @@ ${manifestLink}
 </head>
 <body>
   <div class="mainview"><div id="map_div"></div></div>
-${renderProviderGlCdnTags(detectRequiredProviderGl(session.viewerSources || []))}  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(new Set(session.requiredProviderGl || []))}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
   <script>
     const option = ${JSON.stringify(session.viewerOption)};

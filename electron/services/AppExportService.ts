@@ -35,7 +35,7 @@ import {
   type AppSource,
   type BaseMapMasterLookup,
 } from '../../src/utils/appSourceModel';
-import { detectRequiredProviderGl, renderProviderGlCdnTags } from './providerGlCdn';
+import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags } from './providerGlCdn';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
@@ -555,7 +555,7 @@ class AppExportService {
       // 7) index.html
       await fs.outputFile(
         path.join(outDir, 'index.html'),
-        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources), sources, overrideKeys),
+        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources), sources, overrideKeys, baseMapLookup),
       );
       progressState.step++;
       reporter.update(progressState.step);
@@ -882,7 +882,7 @@ class AppExportService {
     }
   }
 
-  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean, sources: readonly unknown[] = [], overrideKeys?: ProviderKeyOverride): string {
+  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean, sources: readonly AppSource[] = [], overrideKeys?: ProviderKeyOverride, baseMapLookup?: BaseMapMasterLookup): string {
     const lang = document.lang || 'ja';
     const localized = resolveAppLocalizedMetadata({ ...document, appID });
     const title = escapeHtml(localized.appName);
@@ -972,7 +972,11 @@ ${headLines.join('\n')}
     <div id="map_div"></div>
   </div>
 
-${renderProviderGlCdnTags(detectRequiredProviderGl(sources as any))}  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(detectRequiredProviderGlFromAppSources(sources, (source) => {
+  if (!baseMapLookup) return null;
+  const resolved = resolveAppSource(source, baseMapLookup);
+  return resolved.ok ? resolved.master.data : null;
+}))}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
   <script>
     var option = ${JSON.stringify(viewerOption, null, 2).replace(/\n/g, '\n    ')};

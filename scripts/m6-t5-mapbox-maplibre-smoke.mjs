@@ -241,10 +241,19 @@ const base = {
   assert.match(prev, /from ['"]\.\/providerGlCdn['"]/);
   assert.match(exp, /renderProviderGlCdnTags/);
   assert.match(prev, /renderProviderGlCdnTags/);
-  // Preview の GL 判定は session.maps（maplat ソースのみ）ではなく viewerSources（compose 済み
-  // basemap を含む）を見ること。maps ベースだと maplibre basemap を検出できない（実装中に検出した欠陥）
-  assert.match(prev, /detectRequiredProviderGl\(session\.viewerSources/);
+  // Preview の GL 判定は session.maps（maplat ソースのみ）を見てはならない。
+  // maps ベースだと maplibre basemap を検出できない（m6-t5 実装中に検出した欠陥）。
+  //
+  // m6-t10 で判定元がもう一度動いた: 差分保持モデル（ADR-0017/0018）では viewer 要素が
+  // maptype も kind も持たなくなり、compose 済み要素からも検出できなくなった。
+  // ∴ マスタの解決結果から判定する detectRequiredProviderGlFromAppSources へ移し、
+  // 結果を session.requiredProviderGl として持ち回る。旧2形（maps ベース・
+  // compose 済み要素ベース）のどちらへも戻らないことを固定する。
+  assert.match(prev, /detectRequiredProviderGlFromAppSources\(previewableSources/);
+  assert.match(prev, /renderProviderGlCdnTags\(new Set\(session\.requiredProviderGl/);
   assert.doesNotMatch(prev, /detectRequiredProviderGl\(Object\.values\(session\.maps/);
+  assert.doesNotMatch(prev, /detectRequiredProviderGl\(session\.viewerSources/);
+  assert.match(exp, /detectRequiredProviderGlFromAppSources\(sources/);
 }
 
 // AC12（v1.3）: provider 3種別は loadBaseMapVisibility の単一投入点で除外。

@@ -63,6 +63,28 @@ export function detectRequiredProviderGl(
   return out;
 }
 
+/**
+ * m6-t10 (ADR-0017/0018): アプリ側の viewer 要素は **maptype も kind も持たない**。
+ * どちらもマスタ所有へ移し、定義本体は maps/<slug>.json 側に置いたためである。
+ * ∴ 合成後の要素を detectRequiredProviderGl へ渡しても mapbox/maplibre を検出できない
+ * （m6-t5 AC16 の E2E がこの退行を捕捉した）。GL の要否はマスタの解決結果から判定する。
+ *
+ * Export と Preview の両 HTML 生成器はこの関数だけを呼ぶ（同一扱いは共通実装へ徹底）。
+ */
+export function detectRequiredProviderGlFromAppSources(
+  sources: Iterable<{ sourceType: string }>,
+  resolveMasterData: (source: any) => Record<string, unknown> | null,
+): Set<ProviderGlKind> {
+  const masters: ProviderGlSourceLike[] = [];
+  for (const source of sources) {
+    // maplat ソースはベースマップマスタを持たず、GL も要さない
+    if (!source || source.sourceType === "maplat") continue;
+    const data = resolveMasterData(source);
+    if (data) masters.push(data as ProviderGlSourceLike);
+  }
+  return detectRequiredProviderGl(masters);
+}
+
 function tagAttrs(integrity: string): string {
   return ` integrity="${integrity}" crossorigin="anonymous"`;
 }

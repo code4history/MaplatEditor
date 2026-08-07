@@ -127,6 +127,22 @@ try {
         },
       });
 
+      // m6-t10 実装レビュー前の自己発見退行（m6-t5 AC16 の E2E が捕捉）:
+      // 差分保持モデルでは viewer 要素が maptype/kind を持たないため、GL CDN の要否を
+      // 合成後の要素からは判定できない。マスタから判定する経路を機能で固定する
+      const MAPLIBRE_UID = 'dddddddd-4444-4444-8444-dddddddddddd';
+      await SqliteDataService.saveUserBaseMap({
+        uid: MAPLIBRE_UID, slug: 'diff-maplibre', create: true,
+        tms: {
+          kind: 'maplibre', lang: 'ja', title: { ja: 'MapLibre' }, label: { ja: 'ML' },
+          attr: { ja: 'ML' }, dataAttr: {}, license: '', dataLicense: '',
+          licenseNote: {}, dataLicenseNote: {},
+          url: '', minZoom: 0, maxZoom: 20, thumbnail: '', coverageLngLats: null,
+          tileJsonSourceUrl: null, sourceMapUid: null,
+          maptype: 'maplibre', style: 'https://tiles.example.test/style.json',
+        },
+      });
+
       const tmsSource = { sourceType: 'tms', mapUid: 'diff-tms', baseMapUid: TMS_UID, role: 'base', startFrom: true, overrides: {} };
 
       // ============ AC8: maps/<slug>.json と settingFile 参照 ============
@@ -269,6 +285,28 @@ try {
         );
         assert.equal(session.viewerSources.length, 1, 'AC10: 欠落ソースはプレビューからも除外されるはず');
         console.log('ok: AC10 プレビュー側の除外・警告');
+      }
+
+      // ============ 退行止め: GL CDN の判定はマスタから引く ============
+      {
+        const mlSource = { sourceType: 'tms', mapUid: 'diff-maplibre', baseMapUid: MAPLIBRE_UID, role: 'base', startFrom: true, overrides: {} };
+        const doc = { appID: 'gl_app', title: { ja: 'GL' }, lang: 'ja', sources: [mlSource], appSettings: {}, httpSettings: {} };
+        const session = await AppPreviewService.createSession('tok-gl', doc);
+        // 前提: viewer 要素は maptype/kind を持たない（この形だからこそ旧判定が壊れた）
+        const composed = session.viewerSources[0];
+        assert.equal('maptype' in composed, false, 'GL: viewer 要素は maptype を持たない');
+        assert.equal('kind' in composed, false, 'GL: viewer 要素は kind を持たない');
+        // 設定ファイル側には maptype が載る（viewer がここを読んで MapLibreMap を作る）
+        assert.equal(session.maps['diff-maplibre'].maptype, 'maplibre');
+        // 判定はマスタから引くので maplibre が検出される
+        assert.deepEqual(
+          session.requiredProviderGl, ['maplibre'],
+          'GL: maplibre マスタを参照するアプリでは maplibre GL CDN が要ると判定されるはず',
+        );
+        // tms のみのアプリでは注入しない
+        const plain = await AppPreviewService.createSession('tok-gl2', { appID: 'gl_app2', title: { ja: 'GL2' }, lang: 'ja', sources: [tmsSource], appSettings: {}, httpSettings: {} });
+        assert.deepEqual(plain.requiredProviderGl, [], 'GL: tms のみでは GL CDN を注入しない');
+        console.log('ok: GL CDN 判定がマスタ経由（m6-t5 AC16 の退行止め）');
       }
 
       console.log('M6-T10 export/preview smoke passed');
