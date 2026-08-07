@@ -64,6 +64,10 @@ export function resolvePreviewKey(
 }
 
 /** 除外・診断の警告キー（preview/export 共通。warnings チャネルは補間パラメータを持たない） */
+// m6-t10 (§3.6・ADR-0018): ベースマップマスタが解決できないソースは、書き出し・プレビューから
+// 除外して警告する。スナップショットを持たない設計上の帰結（人間判断 2026-08-07）。
+export const BASE_MAP_MASTER_MISSING_WARNING = 'appedit.warn_missing_base_map_master';
+
 export const PROVIDER_KEY_MISSING_WARNING: Record<ProviderKeyKind, string> = {
   google: "appedit.warn_provider_google_key_missing",
   mapbox: "appedit.warn_provider_mapbox_key_missing",

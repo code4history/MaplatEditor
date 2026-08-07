@@ -31,6 +31,7 @@ import ResourceMasterRow from "../components/resource-list/ResourceMasterRow.vue
 import ResourceEmptyState from "../components/resource-list/ResourceEmptyState.vue";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
+import { createBaseMapMasterLookup, resolveAppSource } from "../utils/appSourceModel";
 import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 import { useSelectorSpatialContext } from "../composables/useSelectorSpatialContext";
@@ -402,7 +403,29 @@ const keywordsText = createAppLangComputed("keywords");
 const manifestNameText = createManifestLangComputed("name");
 const manifestShortNameText = createManifestLangComputed("shortName");
 
+// m6-t10 (§3.4): ベースマップマスタの解決器。差分保持モデルでは、フォームの
+// プレースホルダ（上書きしなかった場合に効く値）も一覧の表示名もマスタ側から引く。
+// main プロセスと同一の構築実装（createBaseMapMasterLookup）を共有する。
+const baseMapMasters = ref<Array<{ uid: string; mapID: string; data: any }>>([]);
+const baseMapLookup = computed(() => createBaseMapMasterLookup(baseMapMasters.value));
+
+async function refreshBaseMapMasters() {
+  try {
+    baseMapMasters.value = await window.baseMaps.list();
+  } catch {
+    baseMapMasters.value = [];
+  }
+}
+
+// ソースのマスタ生 data。null = マスタ欠落（AppSourceEditor が欠落表示にする）
+function masterDataOf(source: AppSource): Record<string, any> | null {
+  if (source.sourceType === "maplat") return null;
+  const resolved = resolveAppSource(source, baseMapLookup.value);
+  return resolved.ok ? resolved.master.data : null;
+}
+
 onMounted(async () => {
+  await refreshBaseMapMasters();
   // アプリ編集はuid正準で開く (ADR-0007): /appedit?uid=<uid>。uid未指定は新規作成
   const uid = typeof route.query.uid === "string" ? route.query.uid : "";
   if (uid) {
@@ -583,10 +606,15 @@ function estimateHomeFromSources() {
 // maplatのサムネイル実体はuidパス tmbs/{uid}.jpg (ADR-0007)
 async function hydrateSourceThumbnails() {
   for (const source of appData.value.sources) {
-    if (source.thumbnail || source.sourceType === "builtin") continue;
+    if (source.thumbnail) continue;
+    // m6-t10: マスタ由来値はアプリ文書に無いためマスタから引く（上書きがあれば上書きを優先）
     const rel = source.sourceType === "maplat"
       ? `tmbs/${source.mapUid}.jpg`
-      : String((source.data as any)?.thumbnail || `tmbs/${source.mapUid}_menu.jpg`);
+      : String(
+          source.overrides?.thumbnail
+            || masterDataOf(source)?.thumbnail
+            || `tmbs/${source.mapUid}_menu.jpg`,
+        );
     const url = await window.appAssets.fileUrl(rel);
     if (url) source.thumbnail = url;
   }
@@ -674,7 +702,7 @@ function normalizeSource(value: any, defaultLang?: string): AppSource {
   const source = normalizeAppSource(value, defaultLang) as AppSource;
   if (!source.title) {
     const fallbackID = source.mapSlug || source.mapUid;
-    const title = source.label || (source.data as any)?.title || fallbackID;
+    const title = source.label || source.overrides?.title || fallbackID;
     source.title = typeof title === "string"
       ? title
       : localizedWithLang(title, defaultLang || "ja") || fallbackID;
@@ -955,8 +983,12 @@ async function resolveExportOverrideKeys(
   document: any,
 ): Promise<{ googleApiKey?: string; mapboxToken?: string } | null | undefined> {
   const kinds = new Set<"google" | "mapbox">();
-  for (const source of document.sources || []) {
-    const kind = source?.data?.kind;
+  for (const raw of document.sources || []) {
+    // m6-t10: kind は差分保持モデルではアプリ側に無いためマスタから引く
+    const source = normalizeSource(raw, document.lang);
+    if (source.sourceType === "maplat") continue;
+    const resolved = resolveAppSource(source, baseMapLookup.value);
+    const kind = resolved.ok ? resolved.master.data.kind : undefined;
     if (requiresProviderKey(kind)) kinds.add(kind as "google" | "mapbox");
   }
   const missing: Array<"google" | "mapbox"> = [];
@@ -1052,28 +1084,16 @@ async function addMapSource(item: MapListItem) {
 }
 
 function addBaseMapSource(item: BaseMapItem) {
-  // builtin/tmsソースは登録地図ではないためuid解決の対象外。ビルトインID/TMS地図IDを
-  // そのまま埋め込み値として保持する(app保存時の追加コピーであり、他エンティティへの参照ではない)
   if (appData.value.sources.some((source) => source.mapUid === item.mapID && source.sourceType !== "maplat")) return;
-  // builtinを含め、マスタの全言語resource/提供範囲等はApp文書へ独立コピーする。
-  // Viewer出力時だけbuiltinは従来どおり文字列IDへ畳み込む。
-  // m6-t8 §3.7: merc は url を保存していないため、選択時点の slug(=item.mapID) から導出し、
-  // 導出元ベースマップ UID を baseMapUid として持たせる（書き出し時の merc/{uid} 解決に使う）
-  const isMerc = (item.data?.kind as string | undefined) === "merc";
-  const derivedUrl = isMerc ? `merc/${item.mapID}/{z}/{x}/{y}.png` : undefined;
+  // m6-t10 (ADR-0018): マスタの全コピーはやめ、参照（baseMapUid）＋空の上書きだけを持つ。
+  // マスタ由来値（url / zoom / 帰属 / ライセンス / サムネイル）は書き出し・プレビュー時に
+  // マスタから読む。∴ merc の url 導出も選択時点ではなく composeBaseMapSettingFile が行い
+  // （§3.5.4）、旧形にあった「選択時点 slug が取り残される」乖離が構造的に消える。
   const source = createAppSourceFromBaseMap(
-    {
-      mapID: item.mapID,
-      ...(item.data || {}),
-      ...(isMerc ? { url: derivedUrl, baseMapUid: item.uid } : {}),
-    },
+    { uid: item.uid, mapID: item.mapID, data: item.data || {} },
     appData.value.lang,
   ) as AppSource;
   source.thumbnail = item.thumbnailUrl || undefined;
-  if (source.sourceType === "tms" && source.data && !source.data.thumbnail && item.thumbnailUrl) {
-    // マスタにthumbnail未設定の旧ユーザーベースマップ: Viewer規約のtmbs/{mapID}_menu.jpgを補完
-    source.data.thumbnail = `tmbs/${item.mapID}_menu.jpg`;
-  }
   appData.value.sources.push(source);
   ensureSingleStartFrom();
   recordHistory();
@@ -1108,7 +1128,7 @@ function ensureSingleStartFrom() {
 }
 
 function sourceTitle(source: AppSource): string {
-  return source.title || source.data?.title || sourceIdLabel(source);
+  return source.title || sourceIdLabel(source);
 }
 
 // 選択済みソースのID表示: maplatはuidではなく表示用slugを出す (ADR-0007)
@@ -1586,10 +1606,11 @@ function onPoisChange(next: unknown[]) {
                 </div>
               </div>
               <div class="row g-2 mt-2 align-items-center">
-                <div v-if="source.sourceType !== 'builtin' && source.label" class="col-md-5">
-                  <div class="form-label small mb-0 d-flex align-items-center gap-1">{{ t("appedit.source_label") }} <LangValueChips :model-value="source.label" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
-                  <input v-model="source.label[currentLang]" type="text" class="form-control form-control-sm" @input="recordHistory">
-                </div>
+                <!-- m6-t10 §3.8-6: label の操作子は AppSourceEditor.vue へ移設した。
+                     旧実装の v-if="… && source.label" は「上書きが無い＝キー不在」を正とする
+                     差分保持モデルでは操作子ごと消えてしまう。加えて label はプレースホルダ
+                     （マスタ値の提示）と解除ボタンの対象であり、それらを実装する masterData の
+                     配線は AppSourceEditor にしかない。上書き可能フィールドの扱いを1箇所へ集める -->
                 <div class="col-auto">
                   <div class="form-check">
                     <input :id="`start-${index}`" class="form-check-input" type="radio" name="startFrom" :checked="source.startFrom" :disabled="translationMode" @change="setStartFrom(source)">
@@ -1611,6 +1632,7 @@ function onPoisChange(next: unknown[]) {
                 :translation-mode="translationMode"
                 :fallback-center="homePosition ?? undefined"
                 :app-coverage-lng-lats="appData.coverageLngLats ?? null"
+                :master-data="masterDataOf(source)"
                 @select-language="selectEditorLanguage"
                 @change="recordHistory"
               />

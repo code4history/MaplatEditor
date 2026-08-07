@@ -10,8 +10,9 @@ import {
   resolvePoisArray,
 } from './poiReferenceResolver';
 import {
-  extractTmsThumbnailBaseMapUid,
+  createBaseMapMasterLookup,
   normalizeAppSource,
+  resolveAppSource,
   type AppSource,
 } from '../../src/utils/appSourceModel';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
@@ -78,16 +79,24 @@ async function diagnosePois(
   };
 }
 
+// m6-t10 (AC22): 判定根拠を resolveAppSource の解決結果へ差し替える。
+//
+// 旧実装は source.data.thumbnail を `tmbs/{uuid}.{ext}` として正規表現で解釈し、逆算した uid を
+// 照合していた（extractTmsThumbnailBaseMapUid）。差分保持モデルでは source.data が無くなる。
+// ここで source.baseMapUid を「直接」照合してはならない — 旧保存形のソースは baseMapUid を
+// 持たず、実データは保存し直すまで全件が旧形であるため、undefined の照合になる（設計 r2-M-2）。
+// ∴ 解決順（baseMapUid → mapUid(slug)）を持つ唯一の実装である resolveAppSource を通す。
+// これによりプレビュー・書き出しの除外判定（§3.6）と診断が同一経路になり、食い違わない。
+//
+// 判定範囲は拡大する: 旧実装は「サムネイルが uid 形のパスを持つソース」しか検査していなかったが、
+// 新実装は全ベースマップ由来ソースが対象になる。
 async function hasMissingBaseMapRef(document: any): Promise<boolean> {
   const sources: AppSource[] = (Array.isArray(document?.sources) ? document.sources : [])
-    .map((raw: any) => normalizeAppSource(raw, document?.lang || 'ja'));
-  for (const source of sources) {
-    const uid = extractTmsThumbnailBaseMapUid(source);
-    if (!uid) continue;
-    const baseMap = await SqliteDataService.findBaseMapByUid(uid);
-    if (!baseMap) return true;
-  }
-  return false;
+    .map((raw: any) => normalizeAppSource(raw, document?.lang || 'ja'))
+    .filter((source: AppSource) => source.sourceType !== 'maplat');
+  if (sources.length === 0) return false;
+  const lookup = createBaseMapMasterLookup(await SqliteDataService.listBaseMaps());
+  return sources.some((source) => !resolveAppSource(source, lookup).ok);
 }
 
 export async function attachMapDiagnostics<T extends Record<string, any>>(docs: T[]): Promise<T[]> {

@@ -26,11 +26,14 @@ import {
 import {
   compactLangObject,
   composeViewerSource,
+  composeBaseMapSettingFile,
+  createBaseMapMasterLookup,
   extractMercSourceRefs,
-  extractTmsThumbnailBaseMapRef,
+  resolveAppSource,
   hasViewerBasemapSource,
   normalizeAppSource,
   type AppSource,
+  type BaseMapMasterLookup,
 } from '../../src/utils/appSourceModel';
 import { detectRequiredProviderGl, renderProviderGlCdnTags } from './providerGlCdn';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
@@ -41,6 +44,7 @@ import {
   resolvePublishKey,
   resolveStartFromViewerMapID,
   PROVIDER_KEY_MISSING_WARNING,
+  BASE_MAP_MASTER_MISSING_WARNING,
   type ProviderKeyKind,
 } from './providerKeyResolution';
 
@@ -205,10 +209,25 @@ class AppExportService {
     // provider ソースは、この時点で除外する。sources は以後（maplatSources・composeAppJson・
     // サムネイルコピー・renderIndexHtml の overlay/CDN/startFrom）すべての起点になる単一の
     // const のため、ここ1箇所を差し替えるだけで全導出に反映される（R21・設計レビュー M4）
+    // m6-t10 (§3.4): ベースマップマスタの解決器。プレビュー側と同一実装を共有する
+    const baseMapLookup = createBaseMapMasterLookup(await SettingsService.listBaseMaps());
     const sources: AppSource[] = (document.sources || [])
       .map((raw: any) => normalizeAppSource(raw, document.lang || 'ja'))
+      // m6-t10 (§3.6): マスタが引けないソースは除外して警告する（スナップショットを持たない
+      // 設計の帰結。人間判断 2026-08-07）。kind をマスタから引くため provider 判定より先に行う
       .filter((source: AppSource) => {
-        const kind = source.data?.kind as ProviderKeyKind | undefined;
+        if (source.sourceType === 'maplat') return true;
+        if (resolveAppSource(source, baseMapLookup).ok) return true;
+        mergeWarnings(warnings, [BASE_MAP_MASTER_MISSING_WARNING]);
+        return false;
+      })
+      .filter((source: AppSource) => {
+        if (source.sourceType === 'maplat') return true;
+        // m6-t10: kind は差分保持モデルではアプリ側に無いためマスタから引く
+        const resolvedSource = resolveAppSource(source, baseMapLookup);
+        const kind = (resolvedSource.ok ? resolvedSource.master.data.kind : undefined) as
+          | ProviderKeyKind
+          | undefined;
         if (!requiresProviderKey(kind)) return true;
         const resolvedKind = kind as ProviderKeyKind;
         const resolved =
@@ -219,10 +238,11 @@ class AppExportService {
         return false;
       });
     const maplatSources = sources.filter(source => source.sourceType === 'maplat');
+    const baseMapSources = sources.filter(source => source.sourceType !== 'maplat');
 
     // m6-t8 §3.11: merc ソースの抽出（実装レビュー round3 M-5: AppPreviewService と共有する
-    // 抽出関数へ一本化。url = "merc/{dirName}/{z}/{x}/{y}.png" からディレクトリ名を取り出す）。
-    const mercEntries = extractMercSourceRefs(sources);
+    // 抽出関数へ一本化）。m6-t10: dirName はマスタの現在 slug（§3.5.4）。
+    const mercEntries = extractMercSourceRefs(sources, baseMapLookup);
     // 名前衝突診断: 同一 dirName で異なる baseMapUid を持つエントリを検出 (AC8)
     const mercDirNameToUids = new Map<string, Set<string>>();
     for (const entry of mercEntries) {
@@ -300,18 +320,29 @@ class AppExportService {
       const progressState = { step: 0 };
       reporter.update(progressState.step);
 
-      // 0b) TMSソースのアイコン: 内部はuid名(tmbs/{uid}.png)だが、出力(アプリJSON内の
-      //     thumbnailパスとコピー先ファイル名)はslug名に解決する (ADR-0007: viewer互換)。
-      //     uidが解決できない場合(ベースマップ削除済み等)は保存値のまま出力する
+      // 0b) m6-t10 (ADR-0017): ベースマップの定義本体を maps/<slug>.json として組み立てる。
+      //     アプリ JSON 側は参照＋上書き分のみになるため、サムネイル等のマスタ由来値は
+      //     こちらに載る。∴ 出力パスの解決（uid名 → slug名。ADR-0007: viewer互換）も
+      //     ここで設定ファイルに対して行う。
       const thumbnailCopies = new Map<string, string>(); // 出力相対パス → コピー元相対パス
-      for (const source of sources) {
-        const thumbnailRef = extractTmsThumbnailBaseMapRef(source);
-        if (!thumbnailRef) continue;
-        const baseMap = await SqliteDataService.findBaseMapByUid(thumbnailRef.uid);
-        if (!baseMap) continue;
-        const outRel = `tmbs/${baseMap.slug}.${thumbnailRef.ext}`;
-        thumbnailCopies.set(outRel, thumbnailRef.thumbnail);
-        source.data!.thumbnail = outRel;
+      const baseMapSettingFiles = new Map<string, Record<string, unknown>>(); // slug → 設定ファイル
+      for (const source of baseMapSources) {
+        const resolvedSource = resolveAppSource(source, baseMapLookup);
+        if (!resolvedSource.ok) continue; // 上の filter で除外済み（到達しない）
+        const { master } = resolvedSource;
+        const settingFile = composeBaseMapSettingFile(master, resolvedSource.source.role, {
+          lang: document.lang || 'ja',
+        });
+        const thumbnail = settingFile.thumbnail;
+        if (typeof thumbnail === 'string') {
+          const match = thumbnail.match(/^tmbs\/([0-9a-f-]{36})\.([A-Za-z0-9]+)$/i);
+          if (match) {
+            const outRel = `tmbs/${master.mapID}.${match[2]}`;
+            thumbnailCopies.set(outRel, thumbnail);
+            settingFile.thumbnail = outRel;
+          }
+        }
+        baseMapSettingFiles.set(master.mapID, settingFile);
       }
 
       // POI icon 参照解決 (POI-117) の実体コピー要求。app/map の全解決結果を dest キーで畳んで
@@ -324,7 +355,7 @@ class AppExportService {
       const poiCtx = createPoiExternalizationContext();
 
       // 1) apps/{appID}.json (pois は pois/<name>.geojson への参照 + 上書き属性へ変換される、M4-T2)
-      const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings, iconFiles, poiCtx);
+      const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings, iconFiles, poiCtx, baseMapLookup);
       // M5-T4B: pretty の字下げは **2-space**（2026-08-03 人間指示）。
       // 手編集用途のため pretty を保つが、幅は 4 ではなく 2 とする。
       // POI 単体パッケージの搬出（PoiPackageService:90,93）が既に 2-space であり、
@@ -401,6 +432,19 @@ class AppExportService {
         }
       }
 
+      // 2z) m6-t10 (ADR-0017): ベースマップの設定ファイルを maps/<slug>.json へ書き出す。
+      //     slug は asset_registry で kind 横断に UNIQUE なので maplat 地図と衝突しないが、
+      //     衝突すれば片方の地図が黙って消えるため、検出したら warning ではなく throw する（AC9）。
+      //     地図 JSON と同じく minify（内容種別単位の規則。m5-t4b）。
+      const writtenMapJsonSlugs = new Set(maplatSources.map(source => String(maplatDocs.get(source)?.slug ?? '')));
+      for (const [slug, settingFile] of baseMapSettingFiles) {
+        if (writtenMapJsonSlugs.has(slug)) {
+          throw new Error(`maps/${slug}.json の出力が衝突しました（ベースマップと Maplat 地図が同一 slug を主張しています）`);
+        }
+        writtenMapJsonSlugs.add(slug);
+        await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), settingFile);
+      }
+
       // 2a) merc ソース: merc/{baseMapUid} → merc/{dirName} へコピーし、tilejson.json の
       //     tiles[] をディレクトリ名入りへ差し替える (m6-t8 §3.11/§3.4・AC7/AC8)。
       //     衝突した dirName は mercEntriesToCopy の時点で最初の1件のみに絞り込み済み。
@@ -424,12 +468,13 @@ class AppExportService {
       //      ここに直接書くと、同じ dest の同じ実体が経路によって別物になる
       await writePoiDocuments(outDir, poiCtx.documents.values());
 
-      // 3) TMSソースのサムネイル
+      // 3) ベースマップのサムネイル
       //    tmbs/… はデータフォルダから、basemap_icons/… はアプリ同梱リソースからコピーする。
-      //    uid名のアイコンはslug名の出力パスへ解決済み(thumbnailCopies)
-      for (const source of sources) {
-        if (source.sourceType !== 'tms') continue;
-        const thumbnail = source.data?.thumbnail;
+      //    uid名のアイコンはslug名の出力パスへ解決済み(thumbnailCopies)。
+      //    m6-t10: 参照元が source.data から設定ファイル（maps/<slug>.json）へ移った。
+      //    builtin も同じ経路を通る（文字列出力の廃止により設定ファイルを持つため）。
+      for (const settingFile of baseMapSettingFiles.values()) {
+        const thumbnail = settingFile.thumbnail;
         if (typeof thumbnail !== 'string') continue;
         if (thumbnail.startsWith('tmbs/')) {
           const from = path.join(this.saveFolder, thumbnailCopies.get(thumbnail) ?? thumbnail);
@@ -581,13 +626,16 @@ class AppExportService {
     warnings: string[],
     iconFiles: Map<string, IconFile>,
     poiCtx: PoiExternalizationContext,
+    baseMapLookup: BaseMapMasterLookup,
   ) {
     const lang = document.lang || 'ja';
     const out: Record<string, unknown> = {
       // 交換形: デフォルト言語のみの多言語フィールドはプレーン文字列に畳み込む (ADR-0005)
       appName: compactLangObject(document.appName || document.title, lang),
       lang,
-      sources: sources.map(source => composeViewerSource(source, { lang, maplatMapID: viewerMapID(source) })),
+      sources: sources.map(source =>
+        composeViewerSource(source, { lang, maplatMapID: viewerMapID(source), lookup: baseMapLookup }),
+      ),
     };
     const description = compactLangObject(document.description, lang);
     if (description) out.description = description;

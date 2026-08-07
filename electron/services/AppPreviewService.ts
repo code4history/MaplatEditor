@@ -22,10 +22,13 @@ import {
   DUPLICATE_POI_REFERENCE_WARNING,
 } from './poiReferenceResolver';
 import {
+  composeBaseMapSettingFile,
   composeViewerSource,
+  createBaseMapMasterLookup,
   extractMercSourceRefs,
   hasViewerBasemapSource,
   normalizeAppSource,
+  resolveAppSource,
   type AppSource,
 } from '../../src/utils/appSourceModel';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
@@ -37,6 +40,7 @@ import {
   resolvePreviewKey,
   resolveStartFromViewerMapID,
   PROVIDER_KEY_MISSING_WARNING,
+  BASE_MAP_MASTER_MISSING_WARNING,
   type ProviderKeyKind,
 } from './providerKeyResolution';
 
@@ -212,11 +216,25 @@ class AppPreviewService {
     let duplicateReference = false;
     const normalizedSources: AppSource[] = (Array.isArray(document.sources) ? document.sources : [])
       .map((raw: any) => normalizeAppSource(raw, documentLang));
+    // m6-t10 (§3.4): ベースマップマスタの解決器。renderer 側と同一実装を共有する
+    const baseMapLookup = createBaseMapMasterLookup(await SettingsService.listBaseMaps());
+    // m6-t10 (§3.6): マスタが引けないソースは除外して警告する。provider キー除外より **先** に
+    // 行う（kind をマスタから引くため。除外順は startFrom 解決へも波及する）
+    const resolvableSources: AppSource[] = normalizedSources.filter((source) => {
+      if (source.sourceType === 'maplat') return true;
+      const resolved = resolveAppSource(source, baseMapLookup);
+      if (resolved.ok) return true;
+      mergeWarnings(warnings, [BASE_MAP_MASTER_MISSING_WARNING]);
+      return false;
+    });
     // m6-t6 (§3.1): 鍵が3段とも解決できない provider ソースは、この時点で除外する。
     // 除外後の previewableSources を entries 組み立て・hasViewerBasemapSource・startFrom 解決の
     // すべてで使い回すことで、除外が overlay/startFrom 判定へ正しく反映される（設計レビュー M3/M4/M5）
-    const previewableSources: AppSource[] = normalizedSources.filter((source) => {
-      const kind = source.data?.kind as ProviderKeyKind | undefined;
+    // m6-t10: kind は差分保持モデルではアプリ側に無いためマスタから引く
+    const previewableSources: AppSource[] = resolvableSources.filter((source) => {
+      if (source.sourceType === 'maplat') return true;
+      const resolved = resolveAppSource(source, baseMapLookup);
+      const kind = (resolved.ok ? resolved.master.data.kind : undefined) as ProviderKeyKind | undefined;
       if (!requiresProviderKey(kind)) return true;
       if (resolvePreviewKey(kind as ProviderKeyKind, document.httpSettings, SettingsService)) return true;
       mergeWarnings(warnings, [PROVIDER_KEY_MISSING_WARNING[kind as ProviderKeyKind]]);
@@ -252,8 +270,23 @@ class AppPreviewService {
         composed.thumbnail = thumbnail;
         return { source, viewerMapID, composed, rawMapPois };
       }
-      // builtin → 素の文字列 / tms → Editor専用キー除去済みオブジェクト
-      return { source, viewerMapID: source.mapUid, composed: composeViewerSource(source, { lang: documentLang }) };
+      // m6-t10 (ADR-0017): ベースマップも maps/<slug>.json 参照＋上書き分の形で出す。
+      // 定義本体は設定ファイル側に置き、プレビューサーバの /maps/<slug>.json で配信する。
+      const resolved = resolveAppSource(source, baseMapLookup);
+      // 上の resolvableSources で除外済みのため ok のはずだが、型を絞るために確認する
+      if (!resolved.ok) {
+        return { source, viewerMapID: source.mapUid, composed: composeViewerSource(source, { lang: documentLang, lookup: baseMapLookup }) };
+      }
+      const viewerMapID = resolved.master.mapID;
+      maps[viewerMapID] = this.toHttpAsset(
+        composeBaseMapSettingFile(resolved.master, resolved.source.role, { lang: documentLang }),
+        token,
+      );
+      return {
+        source: resolved.source,
+        viewerMapID,
+        composed: composeViewerSource(resolved.source, { lang: documentLang, lookup: baseMapLookup }),
+      };
     }));
 
     // M4-T3: POI の外部ファイル化 (export と同一形式)。app / map で1つのコンテキストを共有し、
@@ -298,7 +331,7 @@ class AppPreviewService {
     // 実装レビュー round3 M-5: merc ソースの dirName(選択時点のslug) → baseMapUid。
     // AppExportService と同じ抽出関数を共有する（同一ロジックの重複を避ける）
     const mercDirToUid: Record<string, string> = {};
-    for (const entry of extractMercSourceRefs(previewableSources)) {
+    for (const entry of extractMercSourceRefs(previewableSources, baseMapLookup)) {
       mercDirToUid[entry.dirName] = entry.baseMapUid;
     }
     const app = this.toHttpAsset(normalizeRuntimeKeys({

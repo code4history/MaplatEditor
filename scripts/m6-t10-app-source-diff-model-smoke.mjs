@@ -244,7 +244,22 @@ try {
     assert.equal(resolved.merged.minZoom, 5, 'AC3: 未上書きはマスタ値');
     assert.equal(resolved.merged.url, 'https://tiles.example.test/{z}/{x}/{y}.png', 'AC3: マスタが土台');
     assert.deepEqual(resolved.merged.envelopeLngLats, [[130.1, 32.1]], 'AC3: アプリ所有キーも merged に出る');
+    // 設計逸脱1の固定: merged は「実効値」であり、label を除外しない。
+    // 上書きが無ければマスタの label が残る（MaplatCore 修正後の Object.assign(resp, options) と同型）
+    assert.deepEqual(resolved.merged.label, { ja: 'ユーザ' },
+      '逸脱1: 未上書きの label は merged にマスタ値として残る（§3.4 の「label を除く」からの意図的逸脱）');
     console.log('ok: AC3 マージ順（マスタ土台 + アプリ上書き）');
+  }
+  {
+    // 設計逸脱1の固定（上書きあり側）: 上書きがあれば上書き値が勝つ
+    const source = {
+      sourceType: 'tms', mapUid: 'user-tms', baseMapUid: 'uid-tms', role: 'base',
+      overrides: {}, label: { ja: 'アプリのラベル' },
+    };
+    const resolved = resolveAppSource(source, lookup);
+    assert.deepEqual(resolved.merged.label, { ja: 'アプリのラベル' },
+      '逸脱1: 上書きがあれば merged.label は上書き値');
+    console.log('ok: 逸脱1 merged.label のセマンティクス');
   }
   {
     // 解決順: baseMapUid → 無ければ mapUid(slug)。旧形は baseMapUid を持たない
@@ -364,6 +379,24 @@ try {
     assert.equal(out.title.en, 'Master Renamed', 'AC24: マスタの未上書き言語の修正が反映される');
     assert.equal(out.title.ja, 'アプリ固有タイトル', 'AC24: 上書き済み言語はアプリ側が勝つ');
     console.log('ok: AC24 マスタ追随性');
+  }
+  {
+    // 設計逸脱2の固定: 設定ファイルの交換形の畳み込み基準は「その文書の既定言語」＝マスタの lang。
+    // アプリの表示言語ではない（別言語のアプリから同じマスタを参照しても設定ファイルの意味が変わらない）。
+    const master = lookup.bySlug('osm'); // マスタの lang は 'en'
+    const asJa = composeBaseMapSettingFile(master, 'base', { lang: 'ja' });
+    const asEn = composeBaseMapSettingFile(master, 'base', { lang: 'en' });
+    assert.deepEqual(asJa, asEn,
+      '逸脱2: 設定ファイルの内容はアプリの表示言語に依存しない（畳み込み基準はマスタの lang）');
+    // 単一エントリでもマスタの lang と一致しなければ畳まない
+    const jaOnlyMaster = {
+      uid: 'uid-ja-only', mapID: 'ja-only',
+      data: { mapID: 'ja-only', lang: 'en', title: { ja: '日本語だけ' }, attr: 'x', url: 'https://e.test/{z}/{x}/{y}.png' },
+    };
+    const out = composeBaseMapSettingFile(jaOnlyMaster, 'base', { lang: 'ja' });
+    assert.deepEqual(out.title, { ja: '日本語だけ' },
+      '逸脱2: 既定言語(en)以外の単一エントリは平文へ畳まない（畳むと既定言語の値だと誤読される）');
+    console.log('ok: 逸脱2 交換形の畳み込み基準はマスタの lang');
   }
 
   // ============ createAppSourceFromBaseMap: 全コピーの廃止 ============

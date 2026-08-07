@@ -693,7 +693,11 @@
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "搜索地图…",
     "warn_mixed_pois": "POI 数据中混杂了 GeoJSON 格式与其他格式，可能无法在查看器中正确显示。请将旧格式 POI 转换为 GeoJSON。",
-    "provider_source_note": "瓦片URL会根据API密钥和类型自动构建，无需手动输入。"
+    "provider_source_note": "瓦片URL会根据API密钥和类型自动构建，无需手动输入。",
+    "override_reset": "恢复为主数据",
+    "source_url_master_note": "瓦片 URL 在底图主数据中管理，无法按应用覆盖。",
+    "error_missing_base_map_master": "找不到该源的底图，将从导出和预览中排除。",
+    "warn_missing_base_map_master": "已排除找不到底图的源。"
   },
   "mapmodel": {
     "untitled": "标题未设置",

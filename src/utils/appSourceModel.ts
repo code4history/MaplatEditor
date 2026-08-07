@@ -210,6 +210,29 @@ export interface BaseMapMasterLookup {
   bySlug(slug: string): BaseMapMasterLike | undefined;
 }
 
+// ベースマップ一覧（renderer: window.baseMaps.list() / main: SettingsService.listBaseMaps()）
+// から lookup を作る。両プロセスが同一実装を使う（恒久指示: 同一扱い処理は共通実装へ徹底）。
+export function createBaseMapMasterLookup(
+  items: readonly { uid: string; mapID: string; data: any }[],
+): BaseMapMasterLookup {
+  const byUid = new Map<string, BaseMapMasterLike>();
+  const bySlug = new Map<string, BaseMapMasterLike>();
+  for (const item of items) {
+    if (!item || typeof item.uid !== "string") continue;
+    const master: BaseMapMasterLike = {
+      uid: item.uid,
+      mapID: String(item.mapID || ""),
+      data: (item.data && typeof item.data === "object" ? item.data : {}) as Record<string, any>,
+    };
+    byUid.set(master.uid, master);
+    if (master.mapID) bySlug.set(master.mapID, master);
+  }
+  return {
+    byUid: (uid: string) => byUid.get(uid),
+    bySlug: (slug: string) => bySlug.get(slug),
+  };
+}
+
 export type ResolvedAppSource =
   | { ok: true; source: AppSource; master: BaseMapMasterLike; merged: Record<string, any> }
   | { ok: false; source: AppSource; reason: "master-missing" };
@@ -420,11 +443,10 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   }
 
   const rawData = raw?.data && typeof raw.data === "object" ? raw.data : raw;
-  // 種別軸（m6-t1）: kind は EDITOR_ONLY_KEYS に入るため strip 後には存在しない。よって strip 前に退避する。
-  const rawKind = raw?.kind ?? rawData?.kind;
-  // m6-t8: baseMapUid も EDITOR_ONLY_KEYS に入るため strip 後には存在しない。AppExportService の
-  // merc 抽出（§3.11）が sources[].data.baseMapUid を読むため、kind と同じく strip 前に退避し、
-  // 内部表現（AppSource.data）には残す。viewer 出力（composeViewerSource）からは除去したままにする。
+  // m6-t10: kind の「strip 前退避 → data へ再付着」（m6-t1）は不要になった。
+  // 差分保持モデルでは kind は overrides に入らず、必要な箇所はマスタから引く。
+  // baseMapUid は EDITOR_ONLY_KEYS に入るため strip 後には存在しない。トップレベルの
+  // 正規キーへ昇格させるため、ここで strip 前に退避する（設計 §3.7）。
   const rawBaseMapUid = raw?.baseMapUid ?? rawData?.baseMapUid;
   const data = stripEditorKeys(normalizeRuntimeKeys({ ...(rawData || {}) })) as Record<string, any>;
   // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (ADR-0007)
@@ -566,10 +588,13 @@ export function composeViewerSource(
 
 // マスタ → 設定ファイル `maps/<slug>.json` の中身（設計 §3.5）。
 // パッケージごとに生成する導出物であり、アプリ間で共有されない。∴ role を焼き込んでよい。
+// 第3引数は**意図的に未使用**である。設定ファイルの内容はアプリの表示言語に依存してはならない
+// （同じマスタを別言語のアプリから参照しても設定ファイルの意味が変わらないこと）。
+// 呼び出し側が誤って lang を効かせようとしないよう、受け取ったうえで使わないことを型で示す。
 export function composeBaseMapSettingFile(
   master: BaseMapMasterLike,
   role: SourceRole,
-  options: { lang?: string } = {},
+  _options: { lang?: string } = {},
 ): Record<string, unknown> {
   const masterData = master.data || {};
   const kind = masterData.kind;
