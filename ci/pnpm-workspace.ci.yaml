@@ -14,13 +14,20 @@
 #
 # 中身の出自: CI と同条件（CI=true・--no-ignore-scripts・単独 clone 相当）で
 #   pnpm install を実行し、ERR_PNPM_IGNORED_BUILDS が報告したパッケージを全数採録した。
-#   増減した場合は同じ手順で測り直すこと。
+#   増減した場合は同じ手順で測り直すこと。**依存パッケージのメジャー更新を行ったら必ず測り直す**
+#   （m18-t8 で electron-builder 24→26 の際に electron-winstaller が増え、CI が停止した）。
 
 allowBuilds:
   "@parcel/watcher": true
   electron: true
   esbuild: true
   less: true
+  # m18-t8(2026-08-09): electron-builder 26 化で electron-builder-squirrel-windows 経由に
+  # 入ってきた。install スクリプトは vendor/7z-<arch>.exe を vendor/7z.exe へコピーするだけ
+  # （ネットワークアクセスなし・実読で確認）だが、**我々の Windows ターゲットは nsis であり
+  # Squirrel を使わない**ため実行する理由がない。false は「明示的に拒否」の意味で、
+  # 未記載のときの ERR_PNPM_IGNORED_BUILDS も出さない（pnpm 11 の仕様）。
+  electron-winstaller: false
 
 overrides:
 
