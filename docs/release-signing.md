@@ -81,6 +81,13 @@
 1. [https://www.ssl.com](https://www.ssl.com) にログイン → ダッシュボードの **Orders**（注文）一覧
 2. コード署名証明書（EV/OV Code Signing）の注文をクリックして詳細を開く
 3. 詳細ページ内の **「eSigner」タブ（またはセクション）**を開く
+
+> **実測メモ（2026-08-07）**: 注文一覧の行末に出る `[activate eSigner cloud signing]` リンクは
+> **ヘルプ記事へ飛ぶだけ**で有効化画面ではなかった。正しい入口は、注文行の下の小さなリンク群
+> `open : details : documents : seal` の **`details`** から注文詳細を開き、ページ内の
+> **eSigner Cloud Signing Enrollment パネル**（PIN 入力欄と `create OTP and issue certificate`
+> ボタンがある枠）である。有効化には**継続課金の同意ダイアログ**が出るので、料金条件を確認してから
+> `Enroll` を押すこと。
 4. **Credential ID**（`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` 形式の UUID）をコピー → `ES_CREDENTIAL_ID`
    - 見つからない場合、eSigner への証明書の enrollment（登録）がまだの可能性がある。その場合同ページに「eSigner に登録」する案内が出るので、案内に従って登録すると 2FA 設定（B-3）に進む
 
@@ -89,7 +96,27 @@
 eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI は **TOTP シークレット文字列**から OTP を自動生成する。
 
 1. eSigner の 2FA 設定画面（B-2 の enrollment 時、または SSL.com ダッシュボードの eSigner 設定）で QR コードが表示される
-2. QR コードの近くにある **「text version」（テキスト表示）**リンクを開くと、base32 の文字列（例: `JBSWY3DPEHPK3PXP...`）が見える。**これが `ES_TOTP_SECRET`**
+2. QR コードの**すぐ下にある `secret code:` 欄**に base32 の文字列（例: `JBSWY3DPEHPK3PXP...`）が
+   表示される。**これが `ES_TOTP_SECRET`**
+   - **実測メモ（2026-08-07）**: 初回 enrollment 直後は `secret code:` 欄が**空のまま表示された**。
+     この状態で別経路（QR のデコード等）から取った値を登録すると、CI の署名が
+     `Error: The OTP is invalid` で失敗する。**欄が空なら値を取らず `get new QR Code` で再発行する**こと
+     （再発行後は欄に値が入ることを実測）。QR をデコードして `otpauth://` URL から取る場合は
+     `secret=` の直後から `&` の直前までが正しい範囲だが、eSigner の URL はこの形式でないことが
+     あるため **`secret code:` 欄を正とする**
+   - 登録前の検証（推奨）: 認証アプリにも同じ QR を登録し、下記で計算した6桁が一致することを確かめる。
+     一致しなければ署名を実行する前に気づける
+
+     ```bash
+     python3 -c "
+     import base64,hmac,struct,time
+     s=input('secret: ').strip().upper().replace(' ','')
+     k=base64.b32decode(s+'='*(-len(s)%8))
+     c=struct.pack('>Q',int(time.time())//30)
+     h=hmac.new(k,c,'sha1').digest(); o=h[19]&15
+     print(str((struct.unpack('>I',h[o:o+4])[0]&0x7fffffff)%1000000).zfill(6))
+     "
+     ```
 3. ⚠️ **既に認証アプリで設定済みで文字列を控えていない場合**: ダッシュボードから eSigner の 2FA を**リセット**して再設定し、そのとき表示される文字列を保存する（リセットしても証明書自体には影響しない）
 
 ### B-4. 知っておくべき注意2点
