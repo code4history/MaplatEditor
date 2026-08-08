@@ -202,13 +202,13 @@
     "test:e2e:m5-t10": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m5-t10-seed-slug-collision.spec.ts",
     "smoke:m6-t5-mapbox-maplibre": "node scripts/m6-t5-mapbox-maplibre-smoke.mjs",
     "smoke:m6-t12-release-workflow": "node scripts/m6-t12-release-workflow-smoke.mjs",
+    "smoke:m18-t8-packaging": "node scripts/m18-t8-packaging-smoke.mjs",
     "test:e2e:m6-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t5-mapbox-maplibre.spec.ts",
     "smoke:m6-t10-app-source-diff-model": "node scripts/m6-t10-app-source-diff-model-smoke.mjs",
     "smoke:m6-t10-export-preview": "node scripts/m6-t10-export-preview-smoke.mjs",
     "smoke:m6-t10-preview-bundle-guard": "node scripts/m6-t10-preview-bundle-label-merge-guard-smoke.mjs"
   },
   "dependencies": {
-    "@duckdb/node-api": "1.5.4-r.1",
     "@maplat/core": "^1.0.0-rc1",
     "@maplat/tin": "^1.0.0-rc1",
     "@maplat/transform": "^1.0.0-rc1",
@@ -251,7 +251,7 @@
     "dotenv": "^17.4.0",
     "electrobun": "^1.18.1",
     "electron": "^39.8.5",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^26.15.3",
     "js-yaml": "^4.3.0",
     "sass": "^1.97.3",
     "typescript": "^5.9.3",

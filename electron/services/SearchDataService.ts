@@ -1,39 +1,25 @@
 // Search Layer (ADR-0001/0003): 一覧・全文・位置情報検索を担当する。
-// 既定はWrite Store(SQLite)のFTS5(日本語はIntl.Segmenterで分かち書き)+R-Tree索引。
+// Write Store(SQLite)のFTS5(日本語はIntl.Segmenterで分かち書き)+R-Tree索引を使う。
 // 索引はmaps/appsへの書き込みトリガで同一トランザクション更新されるため、
 // 書き込み直後の検索反映(read-your-writes)が構造的に保証される。
-// DuckDB経路(インメモリDuckDB + sqlite拡張のREAD_ONLYライブATTACH + JSフィルタ)も
-// 温存しているが、node:sqliteとsqlite拡張の2つの独立したSQLite実装が同じ
-// WAL共有メモリ(-shm)をmmapする構成となり、クラウド同期フォルダ上でSIGBUS
-// クラッシュの実績があるため既定では使用しない(ADR-0001の追記参照)。
-// DuckDB経路の再有効化: 環境変数 MAPLAT_SEARCH_ENGINE=duckdb
-import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
+//
+// m18-t8(2026-08-09): DuckDB経路(インメモリDuckDB + sqlite拡張のREAD_ONLYライブATTACH)を撤去した。
+// 撤去理由:
+//   (1) 2026-07-04以降、既定から外れて休眠していた(node:sqliteとsqlite拡張の2つの独立した
+//       SQLite実装が同じWAL共有メモリ(-shm)をmmapし、クラウド同期フォルダ上でSIGBUSクラッシュ)
+//   (2) 実装がDuckDB固有の能力を一切使っていなかった。全件SELECTしてJS側でfilterするだけで、
+//       FTSも空間SQLも未使用。既定のSQLite経路(FTS5+R-Tree)のほうが高機能だった
+//   (3) DuckDBのnode-apiパッケージがasarの108MBを占めていた(実測。node_modules内で単独最大)
+// 将来DuckDB側のSQLが必要になった場合は、ADR-0001が示すsnapshotアタッチ方式で新規に設計する。
 import SqliteDataService, {
-  appRowToDocument,
-  mapRowToDocument,
   type AppListResult,
   type MapListResult,
 } from './SqliteDataService';
 
 export type { AppListResult, MapListResult } from './SqliteDataService';
 
-const ATTACH_ALIAS = 'write_store';
 
-// 遅延評価(呼び出しごと)にして、テストや再起動なしの切り替え検証を可能にする
-function activeSearchEngine(): 'sqlite' | 'duckdb' {
-  return process.env.MAPLAT_SEARCH_ENGINE === 'duckdb' ? 'duckdb' : 'sqlite';
-}
 
-function checkLocaleAttr(attr: any, condition: string): boolean {
-  if (!attr) return false;
-  const conds = condition.trim().split(/\s+/);
-  if (typeof attr === 'string') {
-    return conds.every(cond => new RegExp(cond, 'i').test(attr));
-  }
-  return conds.every(cond =>
-    Object.values(attr as Record<string, string>).some(v => new RegExp(cond, 'i').test(v))
-  );
-}
 
 function paginate(rawDocs: any[], page: number, pageSize: number): MapListResult {
   // pageSize<=0 は全件取得(ページネーションなし)
@@ -59,121 +45,27 @@ function paginate(rawDocs: any[], page: number, pageSize: number): MapListResult
 }
 
 class SearchDataService {
-  private connection: DuckDBConnection | null = null;
-  private attachedFile: string | null = null;
-  private extensionUnavailable = false;
-
+  // m18-t8: DuckDB接続をここで保持していたが撤去した。現在このクラスは状態を持たない。
+  // reset() は公開APIとして残す — MapDataService.switchDataFolder() が
+  // SqliteDataService.reset() と対で呼んでおり、シグネチャ互換を保つため。
+  // 実体を持たなくなったので何もしない（データフォルダ切替時の実状態リセットは
+  // 直後に呼ばれる SqliteDataService.reset() が担う）。
   async reset(): Promise<void> {
-    if (this.connection) {
-      try {
-        this.connection.disconnectSync();
-      } catch {
-        // noop
-      }
-    }
-    this.connection = null;
-    this.attachedFile = null;
-    this.extensionUnavailable = false;
-  }
-
-  // DuckDB経路が有効な場合のみ、Write Storeをアタッチ済みのDuckDB接続を返す。
-  // それ以外(既定のsqliteモード、拡張が使えない環境)はnullを返しWrite Store直読みになる。
-  private async getConnection(): Promise<DuckDBConnection | null> {
-    if (activeSearchEngine() !== 'duckdb') return null;
-    if (this.extensionUnavailable) return null;
-    const sqliteFile = SqliteDataService.databaseFile;
-    // Write Store側のファイル作成/マイグレーションを先に済ませる
-    await SqliteDataService.getDb();
-    if (this.connection && this.attachedFile === sqliteFile) return this.connection;
-
-    await this.reset();
-    try {
-      const instance = await DuckDBInstance.create(':memory:');
-      const connection = await instance.connect();
-      await connection.run(`ATTACH '${sqliteFile.replace(/'/g, "''")}' AS ${ATTACH_ALIAS} (TYPE sqlite, READ_ONLY)`);
-      this.connection = connection;
-      this.attachedFile = sqliteFile;
-      return connection;
-    } catch (e) {
-      console.error('[SearchDataService] DuckDB sqlite attach failed; falling back to Write Store scan', e);
-      this.extensionUnavailable = true;
-      this.connection = null;
-      this.attachedFile = null;
-      return null;
-    }
-  }
-
-  private async readAllMapDocs(): Promise<any[]> {
-    const connection = await this.getConnection();
-    if (!connection) return SqliteDataService.readAllMaps();
-    const reader = await connection.runAndReadAll(
-      `SELECT uid, slug, data_json, revision FROM ${ATTACH_ALIAS}.maps ORDER BY slug`
-    );
-    return (reader.getRowObjectsJson() as any[]).map(mapRowToDocument);
-  }
-
-  private async readAllAppDocs(): Promise<any[]> {
-    const connection = await this.getConnection();
-    if (!connection) return SqliteDataService.readAllApps();
-    const reader = await connection.runAndReadAll(
-      `SELECT uid, slug, data_json, revision FROM ${ATTACH_ALIAS}.apps ORDER BY slug`
-    );
-    return (reader.getRowObjectsJson() as any[]).map(appRowToDocument);
+    // no-op（保持する状態が無い）
   }
 
   async listMaps(query: string = '', page: number = 1, pageSize: number = 20): Promise<MapListResult> {
-    if (activeSearchEngine() !== 'duckdb') {
-      const rawDocs = await SqliteDataService.searchMaps(query);
-      return paginate(rawDocs, page, pageSize);
-    }
-    let rawDocs = await this.readAllMapDocs();
-    if (query && query.trim()) {
-      rawDocs = rawDocs.filter((doc) =>
-        ['title', 'officialTitle', 'description'].some(attr => checkLocaleAttr(doc[attr], query))
-      );
-    }
+    const rawDocs = await SqliteDataService.searchMaps(query);
     return paginate(rawDocs, page, pageSize);
   }
 
   async listApps(query: string = '', page: number = 1, pageSize: number = 20): Promise<AppListResult> {
-    if (activeSearchEngine() !== 'duckdb') {
-      const rawDocs = await SqliteDataService.searchApps(query);
-      return paginate(rawDocs, page, pageSize);
-    }
-    let rawDocs = await this.readAllAppDocs();
-    if (query && query.trim()) {
-      rawDocs = rawDocs.filter((doc) =>
-        ['title', 'description', 'keywords'].some(attr => checkLocaleAttr(doc[attr], query)) ||
-        checkLocaleAttr(doc.appName, query) ||
-        checkLocaleAttr(doc.manifestSettings?.name, query) ||
-        checkLocaleAttr(doc.manifestSettings?.shortName, query) ||
-        new RegExp(query.trim(), 'i').test(doc.appID || doc._id || '')
-      );
-    }
+    const rawDocs = await SqliteDataService.searchApps(query);
     return paginate(rawDocs, page, pageSize);
   }
 
   async searchExtent(extent: number[], kind: 'map' | 'poi-source' | 'app' = 'map'): Promise<string[]> {
-    if (activeSearchEngine() !== 'duckdb') {
-      return SqliteDataService.searchExtent(extent, kind);
-    }
-    if (kind !== 'map') return []; // DuckDB経路はmapのみ対応。非mapはSQLiteフォールバックに委譲
-    const docs = await this.readAllMapDocs();
-    return docs
-      .filter((doc) => {
-        if (!doc.compiled) return false;
-        const pts = doc.compiled.vertices_points;
-        if (!pts || pts.length === 0) return false;
-        const ext: number[] = pts.reduce((ret: number[], vertex: any) => {
-          const merc = vertex[1];
-          if (ret.length === 0) return [merc[0], merc[1], merc[0], merc[1]];
-          return [Math.min(ret[0], merc[0]), Math.min(ret[1], merc[1]),
-                  Math.max(ret[2], merc[0]), Math.max(ret[3], merc[1])];
-        }, []);
-        return extent[0] <= ext[2] && ext[0] <= extent[2] &&
-               extent[1] <= ext[3] && ext[1] <= extent[3];
-      })
-      .map((doc) => doc._id);
+    return SqliteDataService.searchExtent(extent, kind);
   }
 }
 

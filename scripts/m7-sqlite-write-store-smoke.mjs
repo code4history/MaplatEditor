@@ -484,14 +484,13 @@ try {
       await access(${JSON.stringify(path.join(retiredDataDir, '_nedb.db'))});
       await access(${JSON.stringify(path.join(retiredDataDir, '_settings'))});
 
-      // DuckDB経路(MAPLAT_SEARCH_ENGINE=duckdb)も温存されており、同じ結果を返すこと
-      process.env.MAPLAT_SEARCH_ENGINE = 'duckdb';
+      // m18-t8(2026-08-09): DuckDB経路の同値確認はここにあったが、経路ごと撤去したため削除した。
+      // 撤去理由は electron/services/SearchDataService.ts の冒頭コメントと ADR-0001 を参照。
+      // reset() は公開APIとして残っているので、呼べること自体は非退行として確認する。
       await SearchDataService.reset();
-      const duckdbList = await SearchDataService.listMaps('Retired', 1, 20);
-      assert.equal(duckdbList.docs.length, 1);
-      assert.equal(duckdbList.docs[0]._id, 'retired-map');
-      delete process.env.MAPLAT_SEARCH_ENGINE;
-      await SearchDataService.reset();
+      const afterReset = await SearchDataService.listMaps('Retired', 1, 20);
+      assert.equal(afterReset.docs.length, 1);
+      assert.equal(afterReset.docs[0]._id, 'retired-map');
 
       console.log('M7 SQLite write store smoke passed');
     `
