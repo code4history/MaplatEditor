@@ -58,7 +58,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   ok(run('verify', 'refs/heads/wip/anything', '0.1.0-alpha1'), 'AC3(h) verify + alpha → 許可');
   ok(run('verify', 'refs/heads/master', '1.0.0-rc1'), 'AC3(i) verify + master + rc → 許可');
 
-  console.log('  [1/5] AC3 リリースガード 9ケース（2軸モデル）: PASS');
+  console.log('  [1/7] AC3 リリースガード 9ケース（2軸モデル）: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -104,7 +104,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // legacy トップレベル（旧 electron-updater 互換）も更新される
   assert.equal(updated.sha512, sha512b64(readFileSync(path.join(dir, updated.path))), 'AC5 legacy sha512 も更新');
 
-  console.log('  [2/5] AC5 latest.yml 再計算 + blockmap 再生成: PASS');
+  console.log('  [2/7] AC5 latest.yml 再計算 + blockmap 再生成: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -204,7 +204,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const upload = winSteps.find((s) => (s.uses ?? '').startsWith('actions/upload-artifact'));
   assert.ok(String(upload.with.path).includes('*.exe.blockmap'), 'AC1: win artifacts に blockmap を含む');
 
-  console.log('  [3/5] AC1/AC4/AC6/AC10 build.yml 静的検査: PASS');
+  console.log('  [3/7] AC1/AC4/AC6/AC10 build.yml 静的検査: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -215,7 +215,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   assert.ok(!config.includes('WIN_CSC_LINK'), 'AC6: electron-builder.config.cjs に WIN_CSC_LINK が残存しない');
   assert.ok(!config.includes('isWinSigning'), 'AC6: 未使用 isWinSigning が撤去されている');
   assert.ok(existsSync(GUARD) && existsSync(RESIGN), 'P3/P4 スクリプトが実在する');
-  console.log('  [4/5] AC6 repo 側残存なし: PASS');
+  console.log('  [4/7] AC6 repo 側残存なし: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -247,7 +247,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     'AC9: 公証は afterSign フックが担う（APPLE_ID があるとき）'
   );
   assert.equal(cfg.mac.hardenedRuntime, true, 'AC9: 公証時は Hardened Runtime が有効');
-  console.log('  [5/6] AC9 公証経路の単一化: PASS');
+  console.log('  [5/7] AC9 公証経路の単一化: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -286,7 +286,45 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
       `AC11: ${job} の checkout は persist-credentials: false`
     );
   }
-  console.log('  [6/6] AC11 GITHUB_TOKEN の最小権限: PASS');
+  console.log('  [6/7] AC11 GITHUB_TOKEN の最小権限: PASS');
+}
+
+// ───────────────────────────────────────────────
+// AC12: Hardened Runtime 下で V8 が起動できる entitlements（2026-08-09 の起動不能事故）
+//
+// Apple Silicon では Hardened Runtime 下の V8 が JIT 用 CodeRange を MAP_JIT で確保する。
+// これを許すのは com.apple.security.cs.allow-jit のみで、
+// allow-unsigned-executable-memory は別物であり代替にならない。欠けると **署名ビルドだけ**が
+// 起動直後に「Failed to reserve virtual memory for CodeRange」で自死し、
+// 未署名のローカルビルドでは再現しないため CI のビルド成功だけでは検出できない
+// （1.0.0-rc1 の公証済み .app で実測。同じ .app に allow-jit を足して再署名すると起動した）。
+// ───────────────────────────────────────────────
+{
+  const entPath = path.join(projectRoot, 'scripts/notarize/entitlements.mac.plist');
+  const ent = readFileSync(entPath, 'utf8');
+
+  // <key>…</key> の直後の <true/> までを1組として拾う（順序・空白に依存しない）
+  const granted = new Set(
+    [...ent.matchAll(/<key>\s*([^<]+?)\s*<\/key>\s*<true\s*\/>/g)].map((m) => m[1])
+  );
+  assert.ok(
+    granted.has('com.apple.security.cs.allow-jit'),
+    'AC12: entitlements に com.apple.security.cs.allow-jit が無い'
+      + '（Apple Silicon の署名ビルドが V8 の CodeRange 確保に失敗して起動直後に落ちる。'
+      + ' allow-unsigned-executable-memory は代替にならない）'
+  );
+
+  // 署名時のみ有効化される entitlements 経路が、上のファイルを指していること。
+  // entitlementsInherit も同じでなければヘルパー（Renderer/GPU/Plugin）に権限が渡らない
+  const cfgSrc = readFileSync(path.join(projectRoot, 'electron-builder.config.cjs'), 'utf8');
+  for (const key of ['entitlements', 'entitlementsInherit']) {
+    assert.match(
+      cfgSrc,
+      new RegExp(`${key}:\\s*'scripts/notarize/entitlements\\.mac\\.plist'`),
+      `AC12: electron-builder.config.cjs の ${key} が entitlements.mac.plist を指していない`
+    );
+  }
+  console.log('  [7/7] AC12 Hardened Runtime 下の JIT entitlements: PASS');
 }
 
 console.log('\nm6-t12 release-workflow smoke: すべて成功');

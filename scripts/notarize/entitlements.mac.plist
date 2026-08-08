@@ -2,6 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
   <dict>
+    <!-- Apple Silicon の Hardened Runtime 下では、V8 が JIT 用の CodeRange を確保するのに
+         MAP_JIT が要る。これを許すのは allow-jit だけで、下の
+         allow-unsigned-executable-memory は別物であり代替にならない。
+         欠けると署名ビルドだけが起動直後に
+         「Fatal process out of memory: Failed to reserve virtual memory for CodeRange」
+         で自死する（1.0.0-rc1 の公証済み .app で実測・2026-08-09）。
+         electron-builder.config.cjs の entitlements / entitlementsInherit の両方が
+         本ファイルを指すため、ヘルパー（Renderer/GPU/Plugin）にも同じ権限が渡る。
+         回帰止めは scripts/m6-t12-release-workflow-smoke.mjs の AC12。 -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
   </dict>
