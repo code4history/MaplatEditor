@@ -25,29 +25,40 @@ const WORKFLOW = path.join(projectRoot, '.github/workflows/build.yml');
 const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 
 // ───────────────────────────────────────────────
-// AC3: release ガード（workflow と同一実装を直接実行）
+// AC3: リリースガード（workflow と同一実装を直接実行）
+//
+// 2軸モデル（人間決定 D6・2026-08-08）:
+//   mode=verify … Mac 署名のみ / Win 署名なし / Release 作らない → 課金ゼロ → 全バージョン許可
+//   mode=full   … Mac 署名+公証 / Win eSigner 署名 / draft Release → 課金あり → rc 以降に限定
+// 「rc 以降」の定義: prerelease 識別子が rc 始まり（alpha/beta は拒否）、
+//   または正式版（prerelease なし）で ref が master
 // ───────────────────────────────────────────────
 {
-  const run = (RELEASE, GITHUB_REF, VERSION) =>
+  const run = (MODE, GITHUB_REF, VERSION) =>
     spawnSync(process.execPath, [GUARD], {
-      env: { ...process.env, RELEASE, GITHUB_REF, VERSION },
+      env: { ...process.env, MODE, GITHUB_REF, VERSION },
       encoding: 'utf8',
     });
+  const ok = (r, msg) => assert.equal(r.status, 0, `${msg}: ${r.stderr}${r.stdout}`);
+  const ng = (r, msg, re) => {
+    assert.equal(r.status, 1, msg);
+    if (re) assert.match(r.stderr + r.stdout, re, `${msg}（理由の説明）`);
+  };
 
-  const a = run('true', 'refs/heads/master', '1.0.0');
-  assert.equal(a.status, 0, `AC3(a) master+正式版+release は許可: ${a.stderr}`);
+  // --- mode=full: rc 以降のみ ---
+  ok(run('full', 'refs/heads/master', '1.0.0'), 'AC3(a) full + master + 正式版 → 許可');
+  ok(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-rc1'), 'AC3(b) full + 非master + rc → 許可');
+  ok(run('full', 'refs/heads/any/branch', '2.0.0-rc.3'), 'AC3(c) full + rc.3 表記も許可');
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0'), 'AC3(d) full + 非master + 正式版 → 拒否', /master/);
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-alpha1'), 'AC3(e) full + alpha → 拒否', /rc/);
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-beta2'), 'AC3(f) full + beta → 拒否', /rc/);
 
-  const b = run('true', 'refs/heads/foss4g-hiroshima', '1.0.0-rc1');
-  assert.equal(b.status, 0, `AC3(b) 非master+prerelease+release は許可: ${b.stderr}`);
+  // --- mode=verify: 課金ゼロにつき全バージョン許可 ---
+  ok(run('verify', 'refs/heads/foss4g-hiroshima', '1.0.0'), 'AC3(g) verify + 非master + 正式版 → 許可');
+  ok(run('verify', 'refs/heads/wip/anything', '0.1.0-alpha1'), 'AC3(h) verify + alpha → 許可');
+  ok(run('verify', 'refs/heads/master', '1.0.0-rc1'), 'AC3(i) verify + master + rc → 許可');
 
-  const c = run('true', 'refs/heads/foss4g-hiroshima', '1.0.0');
-  assert.equal(c.status, 1, 'AC3(c) 非master+正式版+release は拒否');
-  assert.match(c.stderr + c.stdout, /master/, 'AC3(c) 拒否理由に master 限定の説明がある');
-
-  const d = run('false', 'refs/heads/foss4g-hiroshima', '1.0.0');
-  assert.equal(d.status, 0, `AC3(d) release=false は ref/version に関わらず拒否しない: ${d.stderr}`);
-
-  console.log('  [1/4] AC3 release ガード 4ケース: PASS');
+  console.log('  [1/5] AC3 リリースガード 9ケース（2軸モデル）: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -93,7 +104,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // legacy トップレベル（旧 electron-updater 互換）も更新される
   assert.equal(updated.sha512, sha512b64(readFileSync(path.join(dir, updated.path))), 'AC5 legacy sha512 も更新');
 
-  console.log('  [2/4] AC5 latest.yml 再計算 + blockmap 再生成: PASS');
+  console.log('  [2/5] AC5 latest.yml 再計算 + blockmap 再生成: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -122,15 +133,34 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // eSigner action が存在する
   assert.ok(uses.some((u) => u.startsWith('SSLcom/esigner-codesign@')), 'AC1: eSigner action を使用');
 
-  // AC4: release=false で発火しない条件式（eSigner・metadata 再計算・公証・Release job）
-  const RELEASE_COND = /github\.event_name == 'workflow_dispatch' && inputs\.release/;
+  // AC4: 課金・公証を伴う経路が mode=full のときだけ発火する（D6 の2軸モデル）
+  const FULL_COND = /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/;
+  const DISPATCH_COND = /github\.event_name == 'workflow_dispatch'/;
+
+  // AC10: 入力が2軸（mode / platforms）であり、既定が課金ゼロ側であること
+  const inputs = wf.on.workflow_dispatch.inputs;
+  assert.deepEqual(Object.keys(inputs).sort(), ['mode', 'platforms'], 'AC10: 入力は mode / platforms の2軸');
+  assert.deepEqual(inputs.mode.options, ['verify', 'full'], 'AC10: mode の選択肢');
+  assert.equal(inputs.mode.default, 'verify', 'AC10: mode の既定は課金ゼロ側（verify）');
+  assert.deepEqual(inputs.platforms.options, ['all', 'mac', 'win', 'linux'], 'AC10: platforms の選択肢');
+  assert.equal(inputs.platforms.default, 'all', 'AC10: platforms の既定は all');
+
+  // AC10: platforms フィルタが各ビルドジョブに掛かる（push では常に全部走る）
+  for (const [job, key] of [['build-mac', 'mac'], ['build-win', 'win'], ['build-linux', 'linux']]) {
+    const cond = wf.jobs[job].if ?? '';
+    assert.match(cond, /github\.event_name != 'workflow_dispatch'/, `AC10: ${job} は push で常に走る`);
+    assert.ok(
+      cond.includes("inputs.platforms == 'all'") && cond.includes(`inputs.platforms == '${key}'`),
+      `AC10: ${job} が platforms フィルタを持つ`
+    );
+  }
   const winSteps = wf.jobs['build-win'].steps;
   // IR-1: 署名対象は file_path 明示の2ステップ（x64/arm64）。dir_path の「署名不可ファイル
   // 混在時の挙動」は action 側で未文書化のため、課金付き経路では決定的な指定だけを使う
   const esigners = winSteps.filter((s) => (s.uses ?? '').startsWith('SSLcom/esigner-codesign@'));
   assert.equal(esigners.length, 2, 'IR-1: eSigner は file_path 明示の2ステップ');
   for (const s of esigners) {
-    assert.ok(RELEASE_COND.test(s.if ?? ''), 'AC4: eSigner ステップは release 実行限定');
+    assert.ok(FULL_COND.test(s.if ?? ''), 'AC4: eSigner 署名は mode=full 限定（verify では Win 署名なし）');
     assert.equal(s.with.command, 'sign', 'IR-1: 単一ファイル署名コマンドを使う');
     assert.ok(!('dir_path' in s.with), 'IR-1: dir_path を使わない');
   }
@@ -143,16 +173,18 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // dir_path の不使用は上の per-step 検査（with キー）で担保する。文字列全域 grep にしないのは
   // 「dir_path を使わない理由」を説明するコメント自体まで禁止しないため
   const resign = winSteps.find((s) => (s.run ?? '').includes('resign-update-metadata'));
-  assert.ok(resign && RELEASE_COND.test(resign.if ?? ''), 'AC4: metadata 再計算は release 実行限定');
+  assert.ok(resign && FULL_COND.test(resign.if ?? ''), 'AC4: metadata 再計算は mode=full 限定');
   const macSteps = wf.jobs['build-mac'].steps;
   const notarize = macSteps.find((s) => (s.name ?? '').includes('notarization'));
-  assert.ok(notarize && RELEASE_COND.test(notarize.if ?? ''), 'AC4: 公証 env は release 実行限定');
-  assert.ok(RELEASE_COND.test(wf.jobs.release.if ?? ''), 'AC4: Release job は release 実行限定');
+  assert.ok(notarize && FULL_COND.test(notarize.if ?? ''), 'AC4: 公証 env は mode=full 限定');
+  assert.ok(FULL_COND.test(wf.jobs.release.if ?? '') && (wf.jobs.release.if ?? '').includes("inputs.platforms == 'all'"),
+    'AC4: draft Release は mode=full かつ platforms=all 限定');
 
   // AC6: 旧 WIN_CSC_LINK と master push 署名経路の残存なし（repo 側の全域 grep は下で実施）
   assert.ok(!src.includes('WIN_CSC_LINK'), 'AC6: build.yml に WIN_CSC_LINK が残存しない');
   const importCert = macSteps.find((s) => (s.name ?? '').includes('Apple Developer certificate'));
-  assert.ok(importCert && RELEASE_COND.test(importCert.if ?? ''), 'AC6: 証明書インポートは release 実行限定');
+  assert.ok(importCert && DISPATCH_COND.test(importCert.if ?? ''), 'AC6: 証明書インポートは dispatch 限定');
+  assert.ok(!FULL_COND.test(importCert.if ?? ''), 'AC10: Mac の署名は verify でも行う（full 限定にしない）');
   assert.ok(!/push' && github\.ref == 'refs\/heads\/master'/.test(importCert.if ?? ''),
     'AC6: master push 署名経路が撤去されている');
 
@@ -164,15 +196,15 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // §2.4: 動的 environment（release 実行時のみ 'release'）
   for (const job of ['build-mac', 'build-win', 'release']) {
     const envmt = String(wf.jobs[job].environment ?? '');
-    assert.ok(envmt.includes("'release'") && envmt.includes('inputs.release'),
-      `AC1: ${job} に動的 environment（release 切替）がある`);
+    assert.ok(envmt.includes("'release'") && envmt.includes("workflow_dispatch"),
+      `AC1: ${job} に動的 environment（dispatch のとき release 環境）がある`);
   }
 
   // P1(e): win アーティファクトに blockmap を含める
   const upload = winSteps.find((s) => (s.uses ?? '').startsWith('actions/upload-artifact'));
   assert.ok(String(upload.with.path).includes('*.exe.blockmap'), 'AC1: win artifacts に blockmap を含む');
 
-  console.log('  [3/4] AC1/AC4/AC6 build.yml 静的検査: PASS');
+  console.log('  [3/5] AC1/AC4/AC6/AC10 build.yml 静的検査: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -183,7 +215,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   assert.ok(!config.includes('WIN_CSC_LINK'), 'AC6: electron-builder.config.cjs に WIN_CSC_LINK が残存しない');
   assert.ok(!config.includes('isWinSigning'), 'AC6: 未使用 isWinSigning が撤去されている');
   assert.ok(existsSync(GUARD) && existsSync(RESIGN), 'P3/P4 スクリプトが実在する');
-  console.log('  [4/4] AC6 repo 側残存なし: PASS');
+  console.log('  [4/5] AC6 repo 側残存なし: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -215,7 +247,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     'AC9: 公証は afterSign フックが担う（APPLE_ID があるとき）'
   );
   assert.equal(cfg.mac.hardenedRuntime, true, 'AC9: 公証時は Hardened Runtime が有効');
-  console.log('  [5/5] AC9 公証経路の単一化: PASS');
+  console.log('  [5/6] AC9 公証経路の単一化: PASS');
 }
 
 console.log('\nm6-t12 release-workflow smoke: すべて成功');

@@ -142,21 +142,49 @@ eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI
 
 ---
 
-## Part D: 署名付きリリースビルドの実行
+## Part D: 署名付きビルドの実行
 
-1. [https://github.com/code4history/MaplatEditor/actions/workflows/build.yml](https://github.com/code4history/MaplatEditor/actions/workflows/build.yml) を開く
-2. 右上の **Run workflow** → ブランチを選ぶ → **「リリースビルド（...）」にチェック** → Run workflow
-   - 実行できる条件: **master ブランチ**、または **prerelease バージョン**（package.json の version に `-` を含む。例 `1.0.0-rc1`）の任意ブランチ。正式版バージョンを master 以外から release 実行するとガードが止める
-   - ⚠️ **`skip_notarize` チェック**: Apple の公証キューが滞留しているときだけ ON にする。
-     Mac は「署名のみ・未公証」の DMG になり（Gatekeeper の警告は出るが「開発元不明」よりは緩い）、
-     ビルド全体が公証待ちで止まるのを避けられる。通常は OFF のまま
-3. 実行が始まると build-mac / build-win が **承認待ち（Review deployments）**になる → 黄色の表示をクリックし、`release` にチェックして **Approve and deploy**
+実行は **`mode`（署名レベル）** と **`platforms`（対象）** の2軸で指定する。
+
+| mode | Mac | Win | draft Release | 課金 | 使えるバージョン |
+|---|---|---|---|---|---|
+| **`verify`**（既定・動作確認用） | 署名のみ（公証なし） | **署名なし** | 作らない | **ゼロ** | **全部**（alpha / beta も可） |
+| **`full`**（完全） | 署名 + 公証 | eSigner 署名 | 作る | **eSigner 2回** | **rc 以降**（下記） |
+
+**`platforms`**: `all`（既定）/ `mac` / `win` / `linux`
+
+`mode=full` が使えるバージョン:
+
+- `1.0.0-rc1` / `2.0.0-rc.3` のように **prerelease 識別子が `rc` 始まり** → 任意のブランチで可
+- `1.0.0` のような **正式版** → **master ブランチ限定**
+- `1.0.0-alpha1` / `-beta2` → **拒否**（`mode=verify` を使うこと）
+
+### 実行手順
+
+1. [Actions → Build and Release](https://github.com/code4history/MaplatEditor/actions/workflows/build.yml) を開く
+2. 右上の **Run workflow** → ブランチを選ぶ → **mode** と **platforms** を選んで Run workflow
+3. build-mac / build-win が **承認待ち（Review deployments）**になる → 黄色の表示をクリックし、`release` にチェックして **Approve and deploy**
+   - dispatch 実行では mode に関わらず environment `release` を使う（Mac 署名に証明書が要るため）
 4. 完了後の確認:
    - **Artifacts**: mac-artifacts（.dmg / .dmg.blockmap / latest-mac.yml）、win-artifacts（Setup.exe / .exe.blockmap / latest.yml）、linux-artifacts（.AppImage / latest-linux.yml）
-   - **Releases** に draft（下書き）の Release ができている → 内容を確認して人間が Publish する（自動公開はしない）
+   - `mode=full` かつ `platforms=all` のときだけ **Releases に draft** ができる → 内容を確認して人間が Publish する（自動公開はしない）
 5. 署名の確認（任意・初回推奨）:
-   - Mac: DMG からアプリを取り出し `codesign -dv --verbose=2 MaplatEditor.app`、公証は `spctl -a -vv MaplatEditor.app`（`accepted` / `Notarized Developer ID` と出れば成功）
-   - Windows: Setup.exe を右クリック → プロパティ → **デジタル署名**タブに SSL.com 発行の署名が見える
+   - Mac: `codesign -dv --verbose=2 MaplatEditor.app` / 公証まで見るなら `spctl -a -vv MaplatEditor.app`（`accepted` / `Notarized Developer ID`）
+   - Windows: Setup.exe を右クリック → プロパティ → **デジタル署名**タブ
+
+### よくある使い分け
+
+| やりたいこと | mode | platforms |
+|---|---|---|
+| 配布物を一式作る | `full` | `all` |
+| 動作確認だけ（課金ゼロ） | `verify` | `all` |
+| Apple の公証が復旧したので **Mac だけ焼き直す** | `full` | `mac` |
+| Mac の署名だけ試す | `verify` | `mac` |
+| Win の署名だけやり直す | `full` | `win` |
+| Win のビルドが通るかだけ見る | `verify` | `win` |
+| Linux だけ | どちらでも | `linux` |
+
+**`platforms` を絞れることの意味**: eSigner は署名ごとに課金されるため、Mac の都合で全体を焼き直すと Windows の署名代が無駄になる。Apple の公証待ちが発生したときは `mac` + `full` で Mac だけ作り直し、Windows は前回の Artifacts を流用すればよい。
 
 ## Part E: 仕様メモ（運用者向け）
 
@@ -182,6 +210,7 @@ xcrun notarytool info <submission-id> --apple-id "<Apple ID>" --team-id "<Team I
 | `In Progress` | Apple のキューに滞留 | 待つ。24時間を超えたら Apple Developer サポートへ問い合わせる |
 | `Invalid` | アプリ側に問題 | `xcrun notarytool log <submission-id> …` で原因を特定して修正 |
 
-**待てないとき**: Part D の手順2で **`skip_notarize` を ON** にして実行する。署名済み・未公証の DMG が得られる
+**待てないとき**: `mode=verify` で実行する。署名済み・未公証の DMG が得られる
 （各ビルドジョブには timeout-minutes を設定済みなので、公証待ちで6時間消費することはない）。
-公証が復旧したら `skip_notarize` を OFF にして再実行すること。
+公証が復旧したら **`mode=full` + `platforms=mac`** で Mac だけ焼き直せば、Windows の署名代を
+再度払わずに公証済み DMG を揃えられる。
