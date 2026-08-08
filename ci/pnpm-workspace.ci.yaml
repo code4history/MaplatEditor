@@ -43,9 +43,12 @@ overrides:
   brace-expansion: "^2.1.4"
   fast-uri: "^3.1.5"
   file-type: "^21.3.1"
+  ip-address: "^10.3.1"
   minimatch: "^9.0.7"
+  nanoid: "3.3.17"
   path-to-regexp: "~1.9.0"
   postcss: "^8.5.18"
+  undici: "^7.29.0"
 
 # 自組織パッケージは publisher が我々自身のため、pnpm 11 既定の 24h 隔離
 # （minimumReleaseAge=1440・サプライチェーン保護）の対象外とする。第三者依存への
