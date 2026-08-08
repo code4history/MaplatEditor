@@ -55,7 +55,7 @@ function grepRepo(pattern, dirs) {
   const allDeps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies };
   const duck = Object.keys(allDeps).filter((k) => k.startsWith('@duckdb/'));
   assert.deepEqual(duck, [], `AC2: @duckdb/* が依存に残っている: ${duck.join(', ')}`);
-  console.log('  [1/6] AC1/AC2 依存宣言（electron-builder 26 / @duckdb 不在）: PASS');
+  console.log('  [1/7] AC1/AC2 依存宣言（electron-builder 26 / @duckdb 不在）: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -73,7 +73,7 @@ function grepRepo(pattern, dirs) {
     envRefs, [],
     `AC4: MAPLAT_SEARCH_ENGINE の参照が残っている:\n${envRefs.join('\n')}`
   );
-  console.log('  [2/6] AC3/AC4 DuckDB 経路の残骸なし: PASS');
+  console.log('  [2/7] AC3/AC4 DuckDB 経路の残骸なし: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -99,7 +99,7 @@ function grepRepo(pattern, dirs) {
     src, /kind !== 'map'/,
     'AC5: kind!==map を空配列で返す旧 DuckDB 経路の欠損が残っている'
   );
-  console.log('  [3/6] AC5 公開 API の不変性: PASS');
+  console.log('  [3/7] AC5 公開 API の不変性: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -111,9 +111,9 @@ function grepRepo(pattern, dirs) {
     const txt = readFileSync(adr, 'utf8');
     assert.match(txt, /Update \(2026-08-09, m18-t8\): the DuckDB path is removed\./,
       'AC10: ADR-0001 に撤去の追記が無い');
-    console.log('  [4/6] AC10 ADR-0001 の追記: PASS');
+    console.log('  [4/7] AC10 ADR-0001 の追記: PASS');
   } else {
-    console.log(`  [4/6] AC10 ADR-0001: SKIP（outer が見えない実行位置: ${adr}）`);
+    console.log(`  [4/7] AC10 ADR-0001: SKIP（outer が見えない実行位置: ${adr}）`);
   }
 }
 
@@ -161,7 +161,7 @@ function findAsar() {
   const asar = findAsar();
   if (!asar) {
     // 黙って通さない。何が未検証かを明示する（AC7/AC8 は root でのビルド後に確定させる）
-    console.log('  [5/6] AC7/AC8 asar の中身: **SKIP — ビルド生成物が無い**');
+    console.log('  [5/7] AC7/AC8 asar の中身: **SKIP — ビルド生成物が無い**');
     console.log('        推移依存の同梱は静的検査では証明できない。root（完全 workspace）で');
     console.log('        `pnpm run dist:mac:arm64` 等を実行してから本 smoke を再実行すること。');
   } else {
@@ -190,8 +190,48 @@ function findAsar() {
       count > 100,
       `AC7: asar の node_modules が ${count} 件しかない（直接依存のみ＝29 件前後なら収集が壊れている）`
     );
-    console.log(`  [5/6] AC7/AC8 asar の中身: PASS（${count} パッケージ／@duckdb 不在）`);
+    console.log(`  [5/7] AC7/AC8 asar の中身: PASS（${count} パッケージ／@duckdb 不在）`);
   }
+}
+
+// ───────────────────────────────────────────────
+// AC12: 単独 lockfile が package.json と一致すること
+//
+// CI は monorepo ではなく**各リポジトリを単独 clone** し、リポジトリ自身の
+// pnpm-lock.yaml を frozen-lockfile で使う。∴ ワークスペースルートの lock だけを
+// 再解決しても CI は直らない。実際 m18-t8 の実装で本ファイルの更新を落とし、
+// Linux ジョブが ERR_PNPM_OUTDATED_LOCKFILE で落ちた（2026-08-09）。
+// 更新手段: outer で `node scripts/m1-t2/refresh-standalone-locks.mjs MaplatEditor`
+// ───────────────────────────────────────────────
+{
+  const lock = read('pnpm-lock.yaml');
+  // importers の "." ブロックだけを切り出す（他 importer があっても混ざらないように）
+  const impStart = lock.indexOf('\nimporters:');
+  assert.ok(impStart >= 0, 'AC12: pnpm-lock.yaml に importers セクションが無い');
+  const dotStart = lock.indexOf('\n  .:', impStart);
+  assert.ok(dotStart >= 0, 'AC12: pnpm-lock.yaml に importers["."] が無い');
+  // 次の同階層 importer（2スペース + 非空白）またはトップレベルキーまで
+  const rest = lock.slice(dotStart + 1);
+  const endRel = rest.slice(1).search(/\n(?:  \S|\S)/);
+  const dotBlock = endRel < 0 ? rest : rest.slice(0, endRel + 1);
+
+  // "      <name>:\n        specifier: <spec>" を全数拾う
+  const lockSpecs = new Map(
+    [...dotBlock.matchAll(/\n {6}('?[^'\n:]+'?):\n {8}specifier: (.+)/g)]
+      .map((m) => [m[1].replace(/^'|'$/g, ''), m[2].trim()])
+  );
+  const manifest = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies };
+
+  const missing = Object.keys(manifest).filter((k) => !lockSpecs.has(k));
+  const extra = [...lockSpecs.keys()].filter((k) => !(k in manifest));
+  const mismatched = Object.entries(manifest)
+    .filter(([k, v]) => lockSpecs.has(k) && lockSpecs.get(k) !== v)
+    .map(([k, v]) => `${k}（manifest: ${v} / lock: ${lockSpecs.get(k)}）`);
+
+  assert.deepEqual(missing, [], `AC12: lockfile に無い依存: ${missing.join(', ')}`);
+  assert.deepEqual(extra, [], `AC12: package.json から消えたのに lockfile に残る依存: ${extra.join(', ')}`);
+  assert.deepEqual(mismatched, [], `AC12: specifier 不一致: ${mismatched.join(' / ')}`);
+  console.log(`  [6/7] AC12 単独 lockfile の整合（${lockSpecs.size} 依存）: PASS`);
 }
 
 // ───────────────────────────────────────────────
@@ -202,7 +242,7 @@ function findAsar() {
   const wired = Object.entries(scripts).find(([, v]) => v.includes('m18-t8-packaging-smoke.mjs'));
   assert.ok(wired, 'rule-0012: 本 smoke が package.json の scripts から呼ばれていない');
   assert.equal(wired[0], 'smoke:m18-t8-packaging', 'rule-0012: 命名規約 smoke:<task-id> に従うこと');
-  console.log('  [6/6] rule-0012 package.json への結線: PASS');
+  console.log('  [7/7] rule-0012 package.json への結線: PASS');
 }
 
 console.log('\nm18-t8 packaging smoke: すべて成功');
