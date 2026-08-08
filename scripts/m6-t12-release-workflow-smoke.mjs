@@ -250,4 +250,43 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   console.log('  [5/6] AC9 公証経路の単一化: PASS');
 }
 
+// ───────────────────────────────────────────────
+// AC11: GITHUB_TOKEN の最小権限（セキュリティレビュー SR-t12-M-1）
+//
+// contents: write を必要とするのは Release を作る release ジョブだけである。
+// workflow レベルに置くとビルド3ジョブの GITHUB_TOKEN にも書き込み権限が乗り、
+// checkout の既定（persist-credentials: true）が .git/config へ残したトークンを
+// 経由して、ビルド時に走る依存ツリー（vite / vue-tsc / electron-builder の
+// プラグイン群）の汚染がそのままリポジトリ書き込みに直結する。署名パイプラインでは
+// 「次に署名される内容を書き換えられる」ことを意味するため、
+// 外部 action を SHA ピンする脅威モデルと整合させる。
+// ───────────────────────────────────────────────
+{
+  const wf = yaml.load(readFileSync(WORKFLOW, 'utf8'));
+
+  assert.equal(
+    wf.permissions?.contents, 'read',
+    'AC11: workflow レベルの permissions.contents は read（write を全ジョブへ配らない）'
+  );
+  assert.equal(
+    wf.jobs.release.permissions?.contents, 'write',
+    'AC11: contents: write は Release を作る release ジョブにのみ与える'
+  );
+  for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux']) {
+    assert.notEqual(
+      wf.jobs[job].permissions?.contents, 'write',
+      `AC11: ${job} に contents: write を与えない`
+    );
+  }
+  // 多層防御: ビルドジョブの checkout はトークンを .git/config へ残さない
+  for (const job of ['build-mac', 'build-win', 'build-linux']) {
+    const co = wf.jobs[job].steps.find((s) => (s.uses ?? '').startsWith('actions/checkout@'));
+    assert.equal(
+      co?.with?.['persist-credentials'], false,
+      `AC11: ${job} の checkout は persist-credentials: false`
+    );
+  }
+  console.log('  [6/6] AC11 GITHUB_TOKEN の最小権限: PASS');
+}
+
 console.log('\nm6-t12 release-workflow smoke: すべて成功');

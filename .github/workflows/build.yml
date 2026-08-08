@@ -32,8 +32,16 @@ on:
         default: all
         options: [all, mac, win, linux]
 
+# GITHUB_TOKEN は既定を read に絞り、contents: write は Release を作る release ジョブへ
+# job 単位で与える（セキュリティレビュー SR-t12-M-1・2026-08-08）。
+# workflow レベルに write を置くとビルド3ジョブのトークンにも書き込み権限が乗り、
+# checkout が .git/config へ残したトークン（既定 persist-credentials: true）を経由して、
+# ビルド時に走る依存ツリー（vite / vue-tsc / electron-builder のプラグイン群）の汚染が
+# そのままリポジトリ書き込みに直結する。署名パイプラインではそれは「次に署名される内容を
+# 書き換えられる」ことを意味し、外部 action を SHA ピンする脅威モデルと矛盾する。
+# 回帰止めは smoke の AC11。
 permissions:
-  contents: write  # GitHub Release 作成に必要
+  contents: read
 
 jobs:
   # ─────────────────────────────────────────────
@@ -76,6 +84,9 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          persist-credentials: false
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
@@ -172,6 +183,9 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          persist-credentials: false
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
@@ -260,6 +274,9 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          persist-credentials: false
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
@@ -303,6 +320,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && inputs.platforms == 'all'
     runs-on: ubuntu-latest
     environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode != '') && 'release' || 'ci' }}
+    # draft Release の作成にだけ書き込みが要る。workflow 既定の read をここでだけ引き上げる
+    permissions:
+      contents: write
     steps:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
