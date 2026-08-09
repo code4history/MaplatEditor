@@ -3,9 +3,10 @@
 //      【m6-t10 §3.3 / AC14 で上位規則へ吸収】url の上書き欄は **全種別** から撤去された。
 //      ベースマップの同一性そのものを変える操作であり、マスタ側で別のベースマップを作るべきもの。
 //      ∴ 「provider は出ない / tms は出る」という m6-t9 当時の対比は成立しなくなった。
-//      本テストは「url 入力欄が出ないこと」を provider と tms の**両方**で固定し、
-//      注記が provider 専用（app-source-url-provider-note）から共通（app-source-url-note）へ
-//      移ったことを併せて固定する。撤去そのものの意図は m6-t10 の E2E が受け持つ
+//      本テストは「url 入力欄が出ないこと」を provider と tms の**両方**で固定する。
+//      【m19-t3・人間指示】url がマスタ管理である旨の注記（app-source-url-note）は削除された。
+//      上書き欄が全廃された画面では「変更できない」注記だけが浮き、隣接する欄の説明と誤読される。
+//      ∴ 本テストも注記の可視性ではなく**不在**を固定する。撤去そのものの意図は m6-t10 の E2E が受け持つ
 // AC3: 【v1.4 で撤去・m6-t10 へ移管】「マスタから再取得」機能自体を m6-t9 から撤去したため、当該テストも削除
 // AC6: 種別選択ボタン・プリセットボタンで、無効なボタンにのみ ContextHelp が表示され、有効なボタンには出ない
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
@@ -112,17 +113,17 @@ test('m6-t9 AC1/AC6: provider kind hides url field in AppSourceEditor; ContextHe
     const googleSource = page.getByTestId(`app-selected-source-${googleSlug}`);
     await expect(googleSource).toBeVisible();
     await expect(googleSource.getByTestId('app-source-url-field')).toHaveCount(0);
-    await expect(googleSource.getByTestId('app-source-url-note')).toBeVisible();
+    await expect(googleSource.getByTestId('app-source-url-note'), 'm19-t3: 注記は削除された').toHaveCount(0);
 
     await page.getByTestId('app-basemap-search').fill(tmsSlug);
     await expect(page.getByTestId(`app-basemap-row-${tmsSlug}`)).toBeVisible();
     await page.getByTestId(`app-basemap-row-${tmsSlug}`).click();
     const tmsSource = page.getByTestId(`app-selected-source-${tmsSlug}`);
     await expect(tmsSource).toBeVisible();
-    // m6-t10 AC14: tms でも url 欄は出ない。注記は provider と共通のものになった
+    // m6-t10 AC14: tms でも url 欄は出ない（m19-t3 で注記は削除された）
     await expect(tmsSource.getByTestId('app-source-url-field')).toHaveCount(0);
     await expect(tmsSource.getByTestId('app-source-url')).toHaveCount(0);
-    await expect(tmsSource.getByTestId('app-source-url-note')).toBeVisible();
+    await expect(tmsSource.getByTestId('app-source-url-note'), 'm19-t3: 注記は削除された').toHaveCount(0);
 
     expect(pageErrors).toEqual([]);
   } finally {

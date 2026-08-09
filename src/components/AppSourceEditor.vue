@@ -1,17 +1,35 @@
 <script setup lang="ts">
 // アプリ内ソースのrole別ピンポイント設定フォーム。
-// - maplat: 設定項目なし（map.json 側で設定する想定）
+// - maplat: 表示ラベルのみ（他のメタデータは map.json 側で設定する想定）
 // - builtin(osm/gsi/gsi_ortho) / tms: 同一のフォーム
 //
 // m6-t10 (ADR-0018): 保持するのは「マスタ値からの上書き差分」だけである。
 // 未上書きのフィールドは入力欄が空で、placeholder にマスタの実効値を薄く出す。
 //
-// m6-t10 v1.4 (§3.8-2・IR-H-1): 提示モデルは「入力があればそれを指定、消せば既定＝マスタ値」。
-// 独立した「マスタに戻す」ボタンは置かない。× は MapList/AppList の既存デザイン2種を
-// 欄の種別ごとに踏襲する（新規デザインは起こさない）:
+// m19-t3 (m19 §4.4 の凍結契約): アプリ文書がベースマップマスタに対して持てる上書きは
+// **表示ラベル 1 個**へ縮んだ。表題・帰属・ライセンス・ズーム範囲・サムネイルはマスタが正本
+// であり、アプリごとに固定するとマスタ側の訂正（とくにライセンス表記）が既存アプリへ届かない。
+// ∴ 操作子ごと撤去した。残るのは表示ラベル（唯一の上書き）と、マスタに対応物が無い
+// アプリ所有 3 キー（利用範囲 / mercator シフト 2 欄）だけである。
+//
+// url の上書き欄は m6-t10 §3.3 で撤去済みで、その旨の注記（appedit.source_url_master_note /
+// data-testid="app-source-url-note"）が残っていたが、**人間の指示により削除した**（m19-t3）。
+// 上書き欄がすべて消えた画面では「変更できない」注記だけが浮き、隣接する欄の説明と誤読される。
+// 代替の説明は UI へ置かない。url がマスタ管理であることは ADR-0018 と ADR-0017 が正本である。
+//
+// 提示モデルは「入力があればそれを指定、消せば既定＝マスタ値」。独立した「マスタに戻す」
+// ボタンは置かない。× は MapList/AppList の既存デザインを欄の種別ごとに踏襲する:
 //   - 言語別テキスト → 検索バー方式（type="search" の native ×。LangResourceInput の clearable）
-//   - 数値 / thumbnail / envelope → 範囲フィルタ方式（値があるときだけ隣に bi-x-lg ボタン）
-//   - license / dataLicense → LicenseSelect の allowUnset（空選択肢＝マスタに従う）
+//   - 利用範囲 → 範囲フィルタ方式（値があるときだけ隣に bi-x-lg ボタン）
+//
+// **translationMode の適用範囲（m19-t3・人間検証 AC15）**: 翻訳モード（活性言語 ≠ 文書の既定言語）
+// で無効化するのは**言語に依存しない構造的な値だけ**である。言語別テキスト（表示ラベル）は
+// 翻訳モードでこそ編集する対象なので無効化してはならない。これはリポジトリ共通の規律であり、
+// BaseMapEdit.vue が構造的な欄（structuralDisabled = readOnly || translationMode || …）と
+// 言語別欄（translationMode を意図的に外した式）で disabled を書き分けているのが原型である。
+// MapEdit.vue の map-title / map-label、AppEdit.vue の app-title / app-manifest-name も同様に
+// disabled を持たない。本コンポーネントだけが表示ラベルへ translationMode を掛けており、
+// 「チップは出るのに翻訳を入力できない」欠陥になっていた（base 74c3806 から存在）。
 //
 // m6-t10 (ADR-0017): builtin の文字列出力を廃止したため、builtin への上書きも
 // viewer へ届くようになった。∴ tms と別扱いする理由が無くなり、フォームを共通化した。
@@ -23,10 +41,7 @@ import { computed, ref } from "vue";
 import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "./EnvelopeEditorModal.vue";
 import LangResourceInput from "./LangResourceInput.vue";
-import ContextHelp from "./editor-ui/ContextHelp.vue";
 import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
-import LicenseSelect from "./editor-ui/LicenseSelect.vue";
-import { LICENSE_VOCABULARY } from "../utils/licenseVocabulary";
 import type { LangCode } from "../utils/editorLanguages";
 import {
   bboxToEnvelope,
@@ -56,7 +71,6 @@ const emit = defineEmits<{
 
 const { t } = useTranslation();
 const showEnvelopeModal = ref(false);
-const uploadError = ref<string | null>(null);
 
 const overrides = computed(() => {
   if (!props.source.overrides) props.source.overrides = {};
@@ -75,27 +89,10 @@ function masterText(key: string): string {
     masterLang.value,
   );
 }
-// m6-t10 IR2-H-1: ライセンス欄の空選択肢へ併記する「マスタに従ったときの実効値」。
-// 保存値（ASCII）ではなく語彙のローカライズ済みラベルを出す（選択肢の表示と揃える）。
-// マスタが未設定なら、マスタ編集フォームが同じ状態に使う文言をそのまま入れる
-// （viewer 側に license のフォールバック規則は無く、空は本当に「未設定」を意味する）。
-function masterLicenseLabel(key: "license" | "dataLicense"): string {
-  const value = String(master.value[key] ?? "");
-  if (!value) return t("mapedit.license_unset");
-  const option = LICENSE_VOCABULARY.find((item) => item.value === value);
-  // 語彙外の値（旧データ等）は保存値をそのまま見せる。黙って「未設定」に潰さない
-  return option ? t(option.labelKey) : value;
-}
-
-function masterNumber(key: string): string {
-  const value = master.value[key];
-  return typeof value === "number" && Number.isFinite(value) ? String(value) : "";
-}
-
-// ---- 上書きの読み書き（label だけは歴史的にトップレベル。設計 §3.1）----
-function readOverride(key: string): any {
-  return key === "label" ? props.source.label : overrides.value[key];
-}
+// ---- 上書きの書き込み（label だけは歴史的にトップレベル。設計 §3.1）----
+// m19-t3: 読み出し側の `readOverride` は唯一の利用者だった isOverridden / scalarValue が
+// 廃止されて未使用になった（vue-tsc の noUnusedLocals が検出）。§4.5 (a) と同じ判断で削除する。
+// 読み出しは template が `overrides.xxx` / `source.label` を直接見る形へ一本化されている。
 function writeOverride(key: string, value: any) {
   if (key === "label") props.source.label = value;
   else overrides.value[key] = value;
@@ -106,15 +103,10 @@ function clearOverride(key: string) {
   else delete overrides.value[key];
   emit("change");
 }
-function isOverridden(key: string): boolean {
-  const value = readOverride(key);
-  return value !== undefined && value !== null && value !== "";
-}
-
-// 言語別フィールド（label/title/attr/dataAttr/licenseNote/dataLicenseNote）は
-// LangResourceInput が現在言語で読み書きする（マスタ編集フォームと同一部品・§3.8-8）。
-// 保存は編集した言語のみ（設計 §3.5.5）。出力側でマスタとマージされる。
-type LangKey = "label" | "title" | "attr" | "dataAttr" | "licenseNote" | "dataLicenseNote";
+// 言語別フィールド（m19-t3 以後は label のみ）は LangResourceInput が現在言語で読み書きする
+// （マスタ編集フォームと同一部品・§3.8-8）。保存は編集した言語のみ（設計 §3.5.5）。
+// 出力側でマスタとマージされる。
+type LangKey = "label";
 
 // 全言語が空になったら上書きごと解除する（空文字の上書きに意味が無いため。設計 §3.8-2）。
 // LangResourceInput は全言語が空のとき {} または "" を返すので、そこで解除へ倒す。
@@ -138,16 +130,7 @@ function setLangResource(key: LangKey, value: string | Record<string, string> | 
   writeOverride(key, normalized);
 }
 
-// スカラー（license / dataLicense）。空文字＝「マスタに従う」なので解除へ倒す
-function setScalar(key: string, value: string) {
-  if (value === "") clearOverride(key);
-  else writeOverride(key, value);
-}
-function scalarValue(key: string): string {
-  const value = readOverride(key);
-  return typeof value === "string" ? value : "";
-}
-
+// 数値（mercator シフト 2 欄）。空欄＝上書きなしなので解除へ倒す
 function setNumber(key: string, raw: string) {
   const value = raw === "" ? undefined : Number(raw);
   if (value === undefined || Number.isNaN(value)) clearOverride(key);
@@ -173,20 +156,23 @@ function onEnvelopeUpdate(value: [number, number][] | null) {
   else clearOverride("envelopeLngLats");
 }
 
-async function uploadThumbnail() {
-  uploadError.value = null;
-  // tmsソースのmapUidはTMS地図ID(登録地図のuidとは別体系。サムネイルはtmbs/{id}_menu.jpg命名のまま)
-  const result = await window.appAssets.uploadTmsThumbnail(props.source.mapUid);
-  if (result.err === "Canceled") return;
-  if (result.err) {
-    uploadError.value = t("appedit.error_invalid_image");
-    return;
-  }
-  // m6-t10: アプリ専用アセットのアップロードは thumbnail の上書きとして保存する
-  // （round4 M-5 が「二分原則で機械的にマスタ側へ倒れる」と指摘した問題は、
-  //   差分保持モデルでは「ユーザーが操作子を使った ＝ 上書き」として自然に解ける）
-  writeOverride("thumbnail", result.path);
-  (props.source as any).thumbnail = result.fileUrl;
+// m19-t3: 「存在範囲からコピー」。マスタの存在範囲（coverageLngLats）を利用範囲へ写す。
+// ADR-0004 が退けたのは coverage の**自動継承**であり、ユーザーの明示操作は想定内である
+// （ADR 自身が「usage = coverage は 1 回の大きなドラッグ」と述べている。t3 はそれを 1 クリックにする）。
+// 活性条件は BaseMapEdit の「存在範囲から生成」（basemap.generate_icon）の先例に揃え、
+// v-if ではなく :disabled にする（存在範囲を登録すれば使えることを見せる必要があるため）。
+const coverageAvailable = computed(
+  () => Array.isArray(master.value.coverageLngLats) && master.value.coverageLngLats.length > 0,
+);
+
+function copyCoverageToEnvelope() {
+  const coverage = master.value.coverageLngLats;
+  if (!Array.isArray(coverage) || coverage.length === 0) return;
+  // 生の 4 隅をそのまま写す（bbox へ潰すと非矩形の存在範囲で情報が落ちる）。
+  // マスタ配列の参照をアプリ文書へ差し込まないよう深いコピーを渡す。
+  // EnvelopeEditorModal の確定（onEnvelopeUpdate）と同じ writeOverride 経路を通し、
+  // 履歴（change emit → recordHistory）も同一に保つ。
+  writeOverride("envelopeLngLats", coverage.map((point: [number, number]) => [...point]));
 }
 </script>
 
@@ -207,7 +193,6 @@ async function uploadThumbnail() {
           :active-lang="currentLang"
           :default-lang="defaultLang"
           :language-options="languageOptions"
-          :disabled="translationMode"
           clearable
           input-testid="app-source-maplat-label"
           @update:model-value="setLangResource('label', $event)"
@@ -238,155 +223,11 @@ async function uploadThumbnail() {
           :default-lang="defaultLang"
           :language-options="languageOptions"
           :placeholder="masterText('label')"
-          :disabled="translationMode"
           clearable
           input-testid="app-source-override-label"
           @update:model-value="setLangResource('label', $event)"
           @select-language="emit('select-language', $event)"
         />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label small mb-0">{{ t("appedit.source_title") }}</label>
-        <LangResourceInput
-          :model-value="overrides.title"
-          :active-lang="currentLang"
-          :default-lang="defaultLang"
-          :language-options="languageOptions"
-          :placeholder="masterText('title')"
-          :disabled="translationMode"
-          clearable
-          input-testid="app-source-override-title"
-          @update:model-value="setLangResource('title', $event)"
-          @select-language="emit('select-language', $event)"
-        />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label small mb-0">{{ t("appedit.source_attr") }}</label>
-        <LangResourceInput
-          :model-value="overrides.attr"
-          :active-lang="currentLang"
-          :default-lang="defaultLang"
-          :language-options="languageOptions"
-          :placeholder="masterText('attr')"
-          :disabled="translationMode"
-          clearable
-          input-testid="app-source-override-attr"
-          @update:model-value="setLangResource('attr', $event)"
-          @select-language="emit('select-language', $event)"
-        />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label small mb-0">{{ t("basemap.modal.data_attr_label") }}</label>
-        <LangResourceInput
-          :model-value="overrides.dataAttr"
-          :active-lang="currentLang"
-          :default-lang="defaultLang"
-          :language-options="languageOptions"
-          :placeholder="masterText('dataAttr')"
-          :disabled="translationMode"
-          clearable
-          input-testid="app-source-override-dataAttr"
-          @update:model-value="setLangResource('dataAttr', $event)"
-          @select-language="emit('select-language', $event)"
-        />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label small mb-0">{{ t("basemap.modal.license_label") }}</label>
-        <LicenseSelect
-          variant="image"
-          allow-unset
-          unset-label-key="appedit.license_inherit"
-          :unset-label-value="masterLicenseLabel('license')"
-          data-testid="app-source-override-license"
-          :model-value="scalarValue('license')"
-          :disabled="translationMode"
-          @update:model-value="setScalar('license', $event)"
-        />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label small mb-0">{{ t("basemap.modal.license_note_label") }}</label>
-        <LangResourceInput
-          :model-value="overrides.licenseNote"
-          :active-lang="currentLang"
-          :default-lang="defaultLang"
-          :language-options="languageOptions"
-          :placeholder="masterText('licenseNote')"
-          :disabled="translationMode"
-          clearable
-          input-testid="app-source-override-licenseNote"
-          @update:model-value="setLangResource('licenseNote', $event)"
-          @select-language="emit('select-language', $event)"
-        />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label small mb-0">{{ t("basemap.modal.data_license_label") }}</label>
-        <LicenseSelect
-          variant="data"
-          allow-unset
-          unset-label-key="appedit.license_inherit"
-          :unset-label-value="masterLicenseLabel('dataLicense')"
-          data-testid="app-source-override-dataLicense"
-          :model-value="scalarValue('dataLicense')"
-          :disabled="translationMode"
-          @update:model-value="setScalar('dataLicense', $event)"
-        />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label small mb-0">{{ t("basemap.modal.data_license_note_label") }}</label>
-        <LangResourceInput
-          :model-value="overrides.dataLicenseNote"
-          :active-lang="currentLang"
-          :default-lang="defaultLang"
-          :language-options="languageOptions"
-          :placeholder="masterText('dataLicenseNote')"
-          :disabled="translationMode"
-          clearable
-          input-testid="app-source-override-dataLicenseNote"
-          @update:model-value="setLangResource('dataLicenseNote', $event)"
-          @select-language="emit('select-language', $event)"
-        />
-      </div>
-
-      <!-- 数値2欄。× は範囲フィルタ方式（値があるときだけ隣に bi-x-lg ボタン）。§3.8-2。
-           type="search" にしないのは min/max/スピナー/数値入力モードを失うため -->
-      <div class="col-md-3">
-        <label class="form-label small mb-0">{{ t("appedit.min_zoom") }}</label>
-        <div class="d-flex align-items-center gap-1">
-          <input :value="overrides.minZoom ?? ''" type="number" min="0" max="25" class="form-control form-control-sm" :placeholder="masterNumber('minZoom')" :disabled="translationMode" data-testid="app-source-override-minZoom" @change="setNumber('minZoom', ($event.target as HTMLInputElement).value)">
-          <button v-if="isOverridden('minZoom')" type="button" class="btn btn-outline-secondary btn-sm" :disabled="translationMode" :title="t('appedit.override_reset')" :aria-label="t('appedit.override_reset')" data-testid="app-source-clear-minZoom" @click="clearOverride('minZoom')">
-            <i class="bi bi-x-lg" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label small mb-0">{{ t("appedit.max_zoom") }}</label>
-        <div class="d-flex align-items-center gap-1">
-          <input :value="overrides.maxZoom ?? ''" type="number" min="1" max="25" class="form-control form-control-sm" :placeholder="masterNumber('maxZoom')" :disabled="translationMode" data-testid="app-source-override-maxZoom" @change="setNumber('maxZoom', ($event.target as HTMLInputElement).value)">
-          <button v-if="isOverridden('maxZoom')" type="button" class="btn btn-outline-secondary btn-sm" :disabled="translationMode" :title="t('appedit.override_reset')" :aria-label="t('appedit.override_reset')" data-testid="app-source-clear-maxZoom" @click="clearOverride('maxZoom')">
-            <i class="bi bi-x-lg" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- m6-t10 §3.3: url の上書き欄は撤去した。ベースマップの同一性そのものを変える操作であり、
-           マスタ側で別のベースマップを作るべきもの。provider では m6-t9 §3.1 で既に非表示だった -->
-      <div class="col-md-6 d-flex align-items-end" data-testid="app-source-url-note">
-        <ContextHelp :text="t('appedit.source_url_master_note')" :ariaLabel="t('appedit.source_url_master_note')" />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label small mb-0 d-flex align-items-center gap-1">
-          {{ t("appedit.thumbnail") }}
-          <ContextHelp :text="t('appedit.thumbnail_note')" :ariaLabel="t('appedit.thumbnail_note')" />
-        </label>
-        <div class="d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="translationMode" data-testid="app-source-override-thumbnail" @click="uploadThumbnail">
-            {{ t("appedit.upload") }}
-          </button>
-          <button v-if="isOverridden('thumbnail')" type="button" class="btn btn-outline-secondary btn-sm" :disabled="translationMode" :title="t('appedit.override_reset')" :aria-label="t('appedit.override_reset')" data-testid="app-source-clear-thumbnail" @click="clearOverride('thumbnail')">
-            <i class="bi bi-x-lg" aria-hidden="true"></i>
-          </button>
-        </div>
-        <DiagnosticFeedback v-if="uploadError" scope="field" :items="[{ key: 'thumbnail-upload', severity: 'danger', message: uploadError }]" />
       </div>
 
       <!-- overlay専用設定（マスタに対応物が無く、常にアプリ所有） -->
@@ -422,11 +263,25 @@ async function uploadThumbnail() {
           <button type="button" class="btn btn-sm btn-outline-primary" :disabled="translationMode" @click="showEnvelopeModal = true">
             {{ t("appedit.envelope_pick") }}
           </button>
+          <!-- m19-t3: マスタの存在範囲を利用範囲へ写す。存在範囲が未登録でもボタンは見せ、
+               :disabled で不活性にする（BaseMapEdit の「存在範囲から生成」と同じ形）。
+               接頭辞は app-source-copy- — envelopeLngLats の補助操作であって独立キーではないため、
+               AC7 の照合集合（app-source-override-*）へは混入させない -->
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            :disabled="translationMode || !coverageAvailable"
+            data-testid="app-source-copy-coverage-envelopeLngLats"
+            @click="copyCoverageToEnvelope"
+          >
+            {{ t("appedit.envelope_copy_coverage") }}
+          </button>
           <button v-if="bbox" type="button" class="btn btn-outline-secondary btn-sm" :disabled="translationMode" :title="t('appedit.envelope_clear')" :aria-label="t('appedit.envelope_clear')" data-testid="app-source-clear-envelopeLngLats" @click="clearEnvelope">
             <i class="bi bi-x-lg" aria-hidden="true"></i>
           </button>
         </div>
       </div>
+
     </div>
 
     <EnvelopeEditorModal

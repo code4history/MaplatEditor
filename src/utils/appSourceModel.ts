@@ -118,24 +118,14 @@ export function stripEditorKeys(data: Record<string, unknown>): Record<string, u
 // m6-t10: 差分保持ストレージモデル（ADR-0018）と出力文法（ADR-0017）
 // ---------------------------------------------------------------------------
 
-// 上書き可能フィールドの宣言テーブル（設計 §3.2）。
-// 規則: 「アプリソース編集フォームに操作子があるとき、かつそのときに限り上書き可能」。
+// 上書き可能フィールドの宣言テーブル（m19 §4.4 で 1.0.0 まで凍結）。
+// 規則: 「アプリソース編集フォームに操作子があるとき、かつそのときに限り上書き可能」(ADR-0018)。
 // AppSourceEditor.vue の data-testid="app-source-override-<key>" と AC7 で機械照合する。
-// マスタに対応物があり、操作子があるもの。
-export const APP_SOURCE_OVERRIDABLE_KEYS = [
-  "label",
-  "title",
-  "attr",
-  "minZoom",
-  "maxZoom",
-  "thumbnail",
-  // v1.4（IR-H-2・設計 §3.8-8）: 帰属・ライセンス系。操作子はマスタ編集フォームと同種別
-  "dataAttr",
-  "license",
-  "dataLicense",
-  "licenseNote",
-  "dataLicenseNote",
-] as const;
+//
+// m19-t3: title / attr / dataAttr / license / dataLicense / licenseNote / dataLicenseNote /
+// minZoom / maxZoom / thumbnail の 10 個を廃止した。いずれもベースマップマスタが正本であり、
+// アプリごとに持たせるとマスタ側の訂正（とくにライセンス表記）が既存アプリへ届かなくなる。
+export const APP_SOURCE_OVERRIDABLE_KEYS = ["label"] as const;
 
 // マスタに対応物が無く、常にアプリ所有のもの（マスタとの比較を行わない点だけが異なる）。
 // envelopeLngLats は ADR-0004 の利用範囲、mercator シフトは overlay 専用の位置合わせ。
@@ -166,22 +156,27 @@ const LANG_OBJECT_KEYS: readonly string[] = [...BASE_MAP_LANG_ATTRS, "label"];
 
 const OVERRIDABLE_KEY_SET = new Set<string>(APP_SOURCE_OVERRIDABLE_KEYS);
 
-// v1.4（設計 §3.7.1）: 旧形（data 全コピー）の移行に限り、無条件に捨てるキー。
-// この5キーは v1.4 で上書き可になったが、**それ以前は操作子が無かった**。∴ 旧 data に
-// 入っている値は createAppSourceFromBaseMap が追加時点のマスタから機械的にコピーした
-// ものであり、ユーザーの選択を1件も含まない。マスタの現在値と食い違っていても、それは
-// 「ユーザーが変えた」ではなく「コピーが古い」だけである。
-// これを上書きとして温存すると、ライセンス表記の誤りをマスタで直しても既存アプリだけ
-// 古い表記のまま出力される — 本タスクの動機（帰属・ライセンスを細かく管理できるように
-// する / マスタの変更をアプリへ届ける）そのものに反する固定化が起きる。
-const MIGRATION_DISCARD_KEYS = new Set<string>([
-  "dataAttr",
-  "license",
-  "dataLicense",
-  "licenseNote",
-  "dataLicenseNote",
-]);
 const OWNED_KEY_SET = new Set<string>(APP_SOURCE_OWNED_KEYS);
+
+// 差分保持形（overrides）として**保存済み**の値のうち、読み込み時に受け入れるキー。
+// label は歴史的にトップレベルへ保存するため（設計 §3.1）overrides 側からは除く。
+// **列挙を手で書かない**: 宣言テーブルから導出することで、テーブルと濾過が乖離しない（ADR-0018）。
+//
+// m19-t3: 宣言テーブルの縮小は migrateLegacyData（旧「data 全コピー」形の移行）にしか効かず、
+// m6-t10 期に差分保持形として保存された廃止キーは丸ごとコピーされて viewer まで届いてしまう。
+// ∴ 読み込み経路（normalizeAppSource は製品の 6 経路すべてが通る）で 1 枚濾す。
+// これは「捨てる」濾過であり、廃止キーを別キーへ移す・既定値を合成する・マスタ値で埋める
+// といった「救う」分岐は 1 つも持たない（sp-0007）。
+const PERSISTED_OVERRIDE_KEY_SET = new Set<string>(
+  [...APP_SOURCE_OVERRIDABLE_KEYS, ...APP_SOURCE_OWNED_KEYS].filter(key => key !== "label"),
+);
+
+function pickPersistedOverrides(raw: unknown): Record<string, any> {
+  if (!raw || typeof raw !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, any>).filter(([key]) => PERSISTED_OVERRIDE_KEY_SET.has(key)),
+  );
+}
 
 // 設定ファイル（maps/<slug>.json）へ出してはならないキー。
 const SETTING_FILE_EXCLUDED_KEYS = new Set<string>([
@@ -280,6 +275,10 @@ function valueEquals(key: string, a: unknown, b: unknown, defaultLang: string): 
 // - 操作子の無いキーは捨てる（以後マスタから読む）
 // - 操作子のあるキーはマスタの現在値と比較し、異なるときだけ上書きとして温存する
 // - アプリ所有キーは無条件で温存する
+//
+// m19-t3: 宣言テーブルが `label` 1 個へ縮んだ結果、本関数の実効的な意味は
+// 「アプリ所有 3 キーだけを温存し、他はすべて捨てる」になった。判定は宣言テーブルから
+// 導かれるものであり、キー列挙を手で書き直してはならない（ADR-0018 の規則の実装）。
 function migrateLegacyData(
   source: AppSource,
   master: BaseMapMasterLike,
@@ -293,8 +292,6 @@ function migrateLegacyData(
       overrides[key] = value;
       continue;
     }
-    // §3.7.1: v1.4 で上書き可になった5キーは、移行時だけは無条件に捨てる
-    if (MIGRATION_DISCARD_KEYS.has(key)) continue;
     if (!OVERRIDABLE_KEY_SET.has(key) || key === "label") continue;
     if (value === undefined || value === null || value === "") continue;
     if (valueEquals(key, value, master.data[key], defaultLang)) continue;
@@ -457,7 +454,8 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
       mapUid: String(raw.mapUid || raw.mapID || ""),
       role: raw.role === "overlay" ? "overlay" : kind === "maplat" ? "maplat" : "base",
       startFrom: Boolean(raw.startFrom),
-      overrides: { ...(raw.overrides || {}) },
+      // m19-t3: 廃止した上書きキーの残存値はここで捨てる（sp-0007・設計 §5.2）
+      overrides: pickPersistedOverrides(raw.overrides),
     };
     if (typeof raw.baseMapUid === "string") out.baseMapUid = raw.baseMapUid;
     if (raw.label && typeof raw.label === "object") out.label = { ...raw.label };
