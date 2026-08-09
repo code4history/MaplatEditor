@@ -42,6 +42,10 @@
     "settings": "設定"
   },
   "basemap": {
+    "thumbnail_manage": "サムネイル管理",
+    "thumbnail_replace_512": "512pxを置換…",
+    "thumbnail_replace_52": "52pxを置換…",
+    "thumbnail_derive_52": "512pxから52pxも作成する",
     "description": "地図編集の下敷きに使えるユーザ定義ベースマップ(XYZ/TMSタイル)を管理します。",
     "add": "ベースマップ追加",
     "master_detail": {

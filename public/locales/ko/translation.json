@@ -42,6 +42,10 @@
     "settings": "설정"
   },
   "basemap": {
+    "thumbnail_manage": "썸네일 관리",
+    "thumbnail_replace_512": "512px 교체…",
+    "thumbnail_replace_52": "52px 교체…",
+    "thumbnail_derive_52": "512px에서 52px도 생성",
     "description": "지도 편집의 배경으로 사용할 수 있는 사용자 정의 베이스맵(XYZ/TMS 타일)을 관리합니다.",
     "add": "베이스맵 추가",
     "master_detail": {

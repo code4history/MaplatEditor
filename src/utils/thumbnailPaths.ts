@@ -71,3 +71,16 @@ export function thumb512PathFor(thumbnailRelPath: string): string | null {
 export function thumb52PathFor(fileKey: string, ext: string): string {
   return `tmbs/${fileKey}.${ext}`;
 }
+
+/**
+ * 相対パスがアプリ同梱リソース側のサムネイルを指すか（saveFolder ではなく resources から解決する）。
+ *
+ * 52px（`basemap_icons/`）に加えて、その 512px（ディレクトリ差替え規則の出力先）も同じ判定に含める。
+ * 含めないと 512px が saveFolder 分岐へ落ちて必ず解決失敗し、ビルトインおよび
+ * kind=google/mapbox/maplibre のプリセット既定を持つ文書で 512px プレビューが常に空になる。
+ *
+ * 判定に使うディレクトリ名を派生規約と同じ場所に置くため、呼び出し元にリテラルを持たせない。
+ */
+export function isBundledThumbnailPath(relPath: string): boolean {
+  return relPath.startsWith(BASEMAP_ICONS_PREFIX) || relPath.startsWith(BASEMAP_ICONS_512_PREFIX);
+}

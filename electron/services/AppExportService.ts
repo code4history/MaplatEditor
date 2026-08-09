@@ -496,7 +496,7 @@ class AppExportService {
           }
           // M12-T15 (G): ユーザー basemap の 512px も同梱する。
           // m19-t2 (ADR-0007 違反 B の是正): この時点の `thumbnail` は既に出力側（slug 名）へ
-          // 差し替わっている。∴ コピー元を同じ値から導くと saveFolder/tmbs/{slug}_512.* を読みに行き、
+          // 差し替わっている。∴ コピー元を同じ値から導くと saveFolder 側を slug 名で読みに行き、
           // 実体（uid 名）に当たらず黙って同梱されなかった。52px（直上）が既に採っている
           // thumbnailCopies による uid 名への引き戻しと同型にし、出力先とコピー元を分離する。
           const out512 = thumb512PathFor(thumbnail);

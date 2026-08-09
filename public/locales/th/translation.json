@@ -42,6 +42,10 @@
     "settings": "การตั้งค่า"
   },
   "basemap": {
+    "thumbnail_manage": "จัดการภาพย่อ",
+    "thumbnail_replace_512": "แทนที่ 512px…",
+    "thumbnail_replace_52": "แทนที่ 52px…",
+    "thumbnail_derive_52": "สร้าง 52px จาก 512px ด้วย",
     "description": "จัดการแผนที่พื้นฐานที่ผู้ใช้กำหนดเอง (ไทล์ XYZ/TMS) ซึ่งใช้เป็นพื้นหลังในการแก้ไขแผนที่",
     "add": "เพิ่มแผนที่พื้นฐาน",
     "master_detail": {

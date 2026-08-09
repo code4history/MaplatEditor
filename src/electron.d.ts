@@ -240,7 +240,15 @@ export interface ImageAssetsAPI {
 
 export interface AppAssetsAPI {
     uploadTmsThumbnail(mapID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
-    replaceMapThumbnail(mapUid: string, kind: '512' | '52', derive52: boolean): Promise<{ fileUrl?: string; fileUrl52?: string; err?: string }>;
+    // m19-t2: ext は省略可能（既定 'jpg' = 地図の uid 規約）。返値の path / path52 は kind 依存で、
+    // path は「kind が指す側の所在」である（kind='512' では 512px）。52px の所在は
+    // kind==='52' ? path : path52 でのみ求める（`path52 ?? path` は 512px を掴むため禁止）。
+    replaceMapThumbnail(
+        mapUid: string,
+        kind: '512' | '52',
+        derive52: boolean,
+        ext?: string
+    ): Promise<{ fileUrl?: string; fileUrl52?: string; path?: string; path52?: string; err?: string }>;
     generateTmsThumbnail(
         mapID: string,
         tms: { url?: string; minZoom?: number; maxZoom?: number },

@@ -161,22 +161,25 @@ const runLateStaticChecks = async () => {
   assert.equal(countMatches(assetSrc, /['"`]tmbs\//), 0,
     'AC3: AppAssetService.ts の本体に tmbs/ リテラルが無い（thumb52PathFor / thumb512PathFor へ集約）');
 
-  // AC2(b): AppExportService.ts のベースマップ分岐に _512 リテラルが 0（地図分岐 3 行は t5 所有）
+  // AC2(b): AppExportService.ts のベースマップ分岐に 512px パスのインライン派生が 0。
+  //   needle は `_512\.`（= パスリテラル）。素の `_512` は i18n キー名等も拾うため使わない（v1.2）。
+  //   地図分岐の 3 行は t5 所有のため対象外。行番号ではなく節の境界で切り出して判定する。
   const exportSrc = await readFile(appExportServicePath, 'utf8');
-  const exportHits = exportSrc.split('\n')
-    .map((line, i) => ({ line, no: i + 1 }))
-    .filter(({ line }) => /_512/.test(line));
-  for (const hit of exportHits) {
-    assert.ok(hit.no < 460,
-      `AC2(b): ベースマップ分岐（460 行以降）に _512 リテラルが残っている: ${hit.no}: ${hit.line.trim()}`);
-  }
-  assert.equal(exportHits.length, 3,
-    `AC2(b): 残る _512 は地図分岐の 3 行のみ（t5 所有。実測 ${exportHits.length}）`);
+  const baseMapThumbStart = exportSrc.indexOf('// 3) ベースマップのサムネイル');
+  const baseMapThumbEnd = exportSrc.indexOf('// 3b)');
+  assert.ok(baseMapThumbStart > 0 && baseMapThumbEnd > baseMapThumbStart,
+    'AC2(b): ベースマップのサムネイル節を特定できる');
+  const baseMapThumbSection = exportSrc.slice(baseMapThumbStart, baseMapThumbEnd);
+  assert.equal(countMatches(baseMapThumbSection, /_512\./), 0,
+    'AC2(b): ベースマップ分岐に 512px パスのインライン派生が無い（thumb512PathFor 経由）');
+  assert.equal(countMatches(exportSrc, /_512\./), 3,
+    `AC2(b): 残る _512. は地図分岐の 3 行のみ（t5 所有。実測 ${countMatches(exportSrc, /_512\./)}）`);
 
-  // AC2(c): BaseMapEdit.vue に _512 リテラルが 0
+  // AC2(c): BaseMapEdit.vue に 512px パスのインライン派生が 0。
+  //   needle は `_512\.`。i18n キー `basemap.thumbnail_replace_512` と testid は派生ではないため対象外（v1.2）。
   const baseMapEditSrc = await readFile(path.join(projectRoot, 'src/components/basemap/BaseMapEdit.vue'), 'utf8');
-  assert.equal(countMatches(baseMapEditSrc, /_512/), 0,
-    'AC2(c): BaseMapEdit.vue に _512 リテラルが無い（thumbnail512Url は ref 名で一致しない）');
+  assert.equal(countMatches(baseMapEditSrc, /_512\./), 0,
+    'AC2(c): BaseMapEdit.vue に 512px パスのインライン派生が無い');
 
   // AC2(d)（v1.2 で再定式化）: SqliteDataService.ts の `_512\b` 一致件数が現況 11 から増えない
   const sqliteSrc = await readFile(sqlitePath, 'utf8');

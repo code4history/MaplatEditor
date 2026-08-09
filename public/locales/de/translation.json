@@ -42,6 +42,10 @@
     "settings": "Einstellungen"
   },
   "basemap": {
+    "thumbnail_manage": "Thumbnail-Verwaltung",
+    "thumbnail_replace_512": "512px ersetzen…",
+    "thumbnail_replace_52": "52px ersetzen…",
+    "thumbnail_derive_52": "52px auch aus 512px erstellen",
     "description": "Verwalten Sie benutzerdefinierte Basiskarten (XYZ/TMS-Kacheln), die als Hintergrund bei der Kartenbearbeitung verwendet werden können.",
     "add": "Basiskarte hinzufügen",
     "master_detail": {

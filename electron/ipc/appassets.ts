@@ -18,10 +18,14 @@ export function registerAppAssetHandlers() {
   });
 
   // M12-T15 (R5): Maplat地図サムネイルの置換アップロード（512px/52px 独立 + 512px→52px 流用）
-  ipcMain.handle('appassets:replace-map-thumbnail', async (event, mapUid: string, kind: '512' | '52', derive52: boolean) => {
-    const win = BrowserWindow.fromWebContents(event.sender)!;
-    return await AppAssetService.replaceMapThumbnail(win, mapUid, kind, derive52);
-  });
+  // m19-t2: ext を透過（省略時は 'jpg' = 地図の既定）。チャネル名は変えない
+  ipcMain.handle(
+    'appassets:replace-map-thumbnail',
+    async (event, mapUid: string, kind: '512' | '52', derive52: boolean, ext?: string) => {
+      const win = BrowserWindow.fromWebContents(event.sender)!;
+      return await AppAssetService.replaceMapThumbnail(win, mapUid, kind, derive52, ext);
+    },
+  );
 
   ipcMain.handle(
     'appassets:generate-tms-thumbnail',

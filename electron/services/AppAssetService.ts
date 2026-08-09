@@ -7,7 +7,7 @@ import SettingsService from './SettingsService';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
 // m19-t2: 512px パスの派生規約は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）。
 // electron/ から src/utils/ を import する前例は多数実在する（mapDownloadZip.ts / AppPreviewService.ts ほか）。
-import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
+import { isBundledThumbnailPath, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 
 const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
 
@@ -305,13 +305,13 @@ class AppAssetService {
   }
 
   // saveFolder相対パス → file:// URL（存在しない場合はnull）
-  // ビルトインベースマップのアイコン(basemap_icons/)はアプリ同梱リソースから解決する。
-  // m19-t2: その 512px（basemap_icons_512/）も同梱リソースにあるため同じ分岐へ通す。
-  // 通さないと saveFolder 分岐へ落ちて必ず null になり、ビルトイン／プリセットの 512px プレビューが空になる。
+  // ビルトインベースマップのアイコンはアプリ同梱リソースから解決する。
+  // m19-t2: 判定を isBundledThumbnailPath へ委ね、52px だけでなくその 512px も同じ分岐へ通す
+  // （通さないと saveFolder 分岐へ落ちて必ず null になり 512px プレビューが空になる）。
   // 封じ込めは resolveResourceAsset 側の relPath.includes('..') 拒否が担い、境界は既存と同一である。
   fileUrlFor(relPath: string): string | null {
     if (typeof relPath !== 'string' || !relPath.trim()) return null;
-    if (relPath.startsWith('basemap_icons/') || relPath.startsWith('basemap_icons_512/')) {
+    if (isBundledThumbnailPath(relPath)) {
       return resourceAssetFileUrl(relPath);
     }
     const baseFolder = path.resolve(this.saveFolder);

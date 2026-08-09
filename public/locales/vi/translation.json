@@ -42,6 +42,10 @@
     "settings": "Cài đặt"
   },
   "basemap": {
+    "thumbnail_manage": "Quản lý ảnh thu nhỏ",
+    "thumbnail_replace_512": "Thay thế 512px…",
+    "thumbnail_replace_52": "Thay thế 52px…",
+    "thumbnail_derive_52": "Tạo cả 52px từ 512px",
     "description": "Quản lý các bản đồ nền do người dùng định nghĩa (tile XYZ/TMS) dùng làm lớp nền khi chỉnh sửa bản đồ.",
     "add": "Thêm bản đồ nền",
     "master_detail": {

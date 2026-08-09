@@ -33,6 +33,10 @@
     "settings": "Settings"
   },
   "basemap": {
+    "thumbnail_manage": "Thumbnail management",
+    "thumbnail_replace_512": "Replace 512px…",
+    "thumbnail_replace_52": "Replace 52px…",
+    "thumbnail_derive_52": "Also create 52px from 512px",
     "description": "Manage user-defined base maps (XYZ/TMS tiles) usable as background in map editing.",
     "add": "Add Base Map",
     "master_detail": {
