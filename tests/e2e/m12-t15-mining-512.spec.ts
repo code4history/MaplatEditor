@@ -8,6 +8,8 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { Jimp } from 'jimp';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+// m19-t5: 512px は webp。符号化/復号の唯一の実装（宛先拡張子で選ぶ）へ委譲する
+import { readImageMeta } from '../../electron/utils/thumbnail512Codec';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -99,7 +101,8 @@ test.describe('M12-T15 Fix-1: 起動時 512px マイニング', () => {
         }, { timeout: 30_000 }).toBe(true);
 
         // Test-1 の核心: 生成された 512px が正しいアスペクト比（900:300 = 3:1、白帯なし）
-        const image = await Jimp.read(thumb512Path);
+        // m19-t5: 512px は webp。codec の readImageMeta を使う
+        const image = (await readImageMeta(thumb512Path))!;
         const aspect = image.width / image.height;
         // crop なし（破損）は全グリッド 1024x512（aspect 2）。M6 は端タイル実寸から 900x300 へ crop（aspect 3）。
         // 長辺512px なので 512 x 171 付近（aspect ≈ 3）になることを検証

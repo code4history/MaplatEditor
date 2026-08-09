@@ -6,6 +6,8 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+// m19-t5: 512px は webp。符号化/復号の唯一の実装（宛先拡張子で選ぶ）へ委譲する
+import { readImageMeta } from '../../electron/utils/thumbnail512Codec';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
@@ -124,7 +126,8 @@ test.describe('M12-T15 512pxアイコン活用', () => {
 
       // 置換された 512px が実ファイルとして存在（緑画像から生成）
       const thumb512Path = `${saveFolder}/tmbs/${uid}_512.webp`;
-      const image = await Jimp.read(thumb512Path);
+      // m19-t5: 512px は webp。Jimp は webp を decode できないため codec の readImageMeta を使う
+      const image = (await readImageMeta(thumb512Path))!;
       expect(Math.max(image.width, image.height)).toBeLessThanOrEqual(512);
       // 「52px も作成」チェックが ON のため 52px も更新される
       const thumb52Path = `${saveFolder}/tmbs/${uid}.jpg`;
@@ -197,7 +200,7 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       // AC6: 512px がある地図の grid card は _512.webp を使う（画像読み込みを poll で待つ）
       const card = page.locator(`[data-resource-uid="${uid}"]`);
       await expect(card).toBeVisible({ timeout: 15000 });
-      await expect.poll(async () => card.locator('img').getAttribute('src'), { timeout: 15000 }).toMatch(/_512\.jpg/);
+      await expect.poll(async () => card.locator('img').getAttribute('src'), { timeout: 15000 }).toMatch(/_512\.webp/);
 
       console.log('  AC6: PASS');
     } finally {
@@ -236,7 +239,7 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       // AC7: favicon 未設定のアプリは地図の 512px を使う
       const appCard = page.locator(`[data-resource-uid]`).filter({ hasText: 't15 app' });
       await expect(appCard).toBeVisible({ timeout: 15000 });
-      await expect(appCard.locator('img')).toHaveAttribute('src', /_512\.jpg/);
+      await expect(appCard.locator('img')).toHaveAttribute('src', /_512\.webp/);
 
       console.log('  AC7: PASS');
     } finally {

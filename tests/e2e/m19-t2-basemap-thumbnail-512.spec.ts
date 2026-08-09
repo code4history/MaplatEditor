@@ -16,6 +16,8 @@ import { mkdtemp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+// m19-t5: 512px は webp。符号化/復号の唯一の実装（宛先拡張子で選ぶ）へ委譲する
+import { readImageMeta, writeImageByExt } from '../../electron/utils/thumbnail512Codec';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -83,7 +85,8 @@ async function placeThumbnails(saveFolder: string, key: string): Promise<void> {
   await mkdir(tmbs, { recursive: true });
   const { Jimp } = await import('jimp');
   await new Jimp({ width: 52, height: 26, color: 0xff0000ff }).write(path.join(tmbs, `${key}.png`) as `${string}.${string}`);
-  await new Jimp({ width: 512, height: 256, color: 0xff0000ff }).write(path.join(tmbs, `${key}_512.webp`) as `${string}.${string}`);
+  // m19-t5: 512px は webp。Jimp は webp を encode できないため codec の writeImageByExt を使う
+  await writeImageByExt(new Jimp({ width: 512, height: 256, color: 0xff0000ff }), path.join(tmbs, `${key}_512.webp`));
 }
 
 const exists = (p: string) => stat(p).then(() => true).catch(() => false);
@@ -165,7 +168,7 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       await expect.poll(async () => img512.getAttribute('src'), { timeout: 15000 }).not.toBe(srcBefore);
 
       const { Jimp } = await import('jimp');
-      const image512 = await Jimp.read(path.join(saveFolder, 'tmbs', `${uid}_512.webp`));
+      const image512 = (await readImageMeta(path.join(saveFolder, 'tmbs', `${uid}_512.webp`)))!;
       expect(Math.max(image512.width, image512.height)).toBe(512);
       // derive52 ON なので 52px も置換ソースから作り直される（元は 52x26、置換後は 52x26 だが色が変わる）
       const image52 = await Jimp.read(path.join(saveFolder, 'tmbs', `${uid}.png`));
@@ -317,7 +320,7 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       // 旧実装は保存後も document.thumbnail に暫定名を持ち続けたため、そこから導く
       // tmbs/{slug}_512.webp が実体を失い 512px プレビューが消えていた。
       await expect(img512).toBeVisible({ timeout: 15000 });
-      await expect(img512).toHaveAttribute('src', new RegExp(`${uid}_512\\.png`), { timeout: 15000 });
+      await expect(img512).toHaveAttribute('src', new RegExp(`${uid}_512\\.webp`), { timeout: 15000 });
       // 52px の実体も uid 名で解決できる ⇒ §6.5 の強制 ON に落ちない
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeEnabled({ timeout: 15000 });
 
