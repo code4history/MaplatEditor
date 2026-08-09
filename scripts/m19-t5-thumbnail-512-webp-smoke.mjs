@@ -353,7 +353,173 @@ await writeFile(
     }
 
     // ============ Part M / R: 実サービス ============
-    ${'/* injected below */'}
+    const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
+    SettingsService.set('lang', 'ja');
+    const { default: SqliteDataService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SqliteDataService.ts'))});
+    const THUMBNAIL_512_WEBP_ID = '2026-08-10-thumbnail-512-webp-v1';
+
+    const exists = (p: string) => fse.pathExists(p);
+    const useSaveFolder = async (dir: string) => {
+      await fse.ensureDir(nodePath.join(dir, 'tmbs'));
+      SettingsService.set('saveFolder', dir);
+      await SqliteDataService.reset();
+      return SqliteDataService.getDb();
+    };
+    const markerApplied = (db: any) =>
+      Boolean(db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(THUMBNAIL_512_WEBP_ID));
+
+    // ============ Part M: 既存ユーザデータの移行（AC-7） ============
+    {
+      // --- M-1 正常系: jpg / png の 512px が webp へ移り、元が消え、寸法が保たれる ---
+      const okDir = nodePath.join(workDir, 'migrate-ok');
+      await fse.ensureDir(nodePath.join(okDir, 'tmbs'));
+      // 旧形式の実データを模す（リテラルで置くのが正しい。これは「過去の正規形式」の再現である）
+      await new Jimp({ width: 60, height: 40, color: 0xff0000ff }).write(nodePath.join(okDir, 'tmbs', 'x_512.jpg') as \`\${string}.\${string}\`);
+      await new Jimp({ width: 30, height: 20, color: 0x00ff00ff }).write(nodePath.join(okDir, 'tmbs', 'y_512.png') as \`\${string}.\${string}\`);
+      // 52px は据え置き（巻き込まれてはならない）
+      await new Jimp({ width: 52, height: 35, color: 0x0000ffff }).write(nodePath.join(okDir, 'tmbs', 'x.jpg') as \`\${string}.\${string}\`);
+
+      const db = await useSaveFolder(okDir);
+
+      // (a) 正規形が生成される
+      assert.ok(await exists(nodePath.join(okDir, 'tmbs', 'x_512.webp')), 'AC-7(a): jpg の 512px が webp へ移る');
+      assert.ok(await exists(nodePath.join(okDir, 'tmbs', 'y_512.webp')), 'AC-7(a): png の 512px が webp へ移る');
+      // (b) 元ファイルが消える（二重状態を残さない）
+      assert.equal(await exists(nodePath.join(okDir, 'tmbs', 'x_512.jpg')), false, 'AC-7(b): 元の jpg が消える');
+      assert.equal(await exists(nodePath.join(okDir, 'tmbs', 'y_512.png')), false, 'AC-7(b): 元の png が消える');
+      // (c) 寸法が保存される
+      assert.deepEqual(await readImageMeta(nodePath.join(okDir, 'tmbs', 'x_512.webp')), { width: 60, height: 40 }, 'AC-7(c): 寸法が保たれる（jpg 由来）');
+      assert.deepEqual(await readImageMeta(nodePath.join(okDir, 'tmbs', 'y_512.webp')), { width: 30, height: 20 }, 'AC-7(c): 寸法が保たれる（png 由来）');
+      // 52px は無傷
+      assert.ok(await exists(nodePath.join(okDir, 'tmbs', 'x.jpg')), 'AC-7: 52px は移行対象外（拡張子非対称）');
+      // (d) マーカー
+      assert.ok(markerApplied(db), 'AC-7(d): schema_migrations にマーカーが入る');
+
+      // 冪等性: 再実行しても何も壊れない
+      await SqliteDataService.reset();
+      const db2 = await SqliteDataService.getDb();
+      assert.ok(markerApplied(db2), 'AC-7: 再起動しても 1 回限り（マーカー維持）');
+      assert.ok(await exists(nodePath.join(okDir, 'tmbs', 'x_512.webp')), 'AC-7: 再実行で正規形が壊れない');
+      console.log('ok: M 既存ユーザデータの移行（生成 / 元削除 / 寸法保存 / マーカー / 冪等）');
+    }
+
+    {
+      // --- M-2 失敗注入: 読めないファイルが 1 件でもあればマーカーを書かない（次回起動で再試行） ---
+      const ngDir = nodePath.join(workDir, 'migrate-ng');
+      await fse.ensureDir(nodePath.join(ngDir, 'tmbs'));
+      await new Jimp({ width: 24, height: 16, color: 0xffcc00ff }).write(nodePath.join(ngDir, 'tmbs', 'good_512.jpg') as \`\${string}.\${string}\`);
+      // 画像として復号できない実体（破損ファイル）
+      await fse.writeFile(nodePath.join(ngDir, 'tmbs', 'broken_512.jpg'), Buffer.from('this is not an image'));
+
+      const db = await useSaveFolder(ngDir);
+
+      assert.equal(markerApplied(db), false, 'AC-7: 1 件でも失敗したらマーカーを書かない');
+      // 成功したものは移っている（バッチは止めない）
+      assert.ok(await exists(nodePath.join(ngDir, 'tmbs', 'good_512.webp')), 'AC-7: 個別失敗でバッチを止めない');
+      // 失敗したものは**元が残る**（webp の書き込み成功を確認してから元を消すため）
+      assert.ok(await exists(nodePath.join(ngDir, 'tmbs', 'broken_512.jpg')), 'AC-7: 失敗時は元ファイルが残る（データを失わない）');
+      console.log('ok: M 失敗注入（マーカー非書き込み / バッチ継続 / 元ファイル保全）');
+    }
+
+    // ============ Part R: relocate 堅牢化の回帰（設計 §9。m19-t2 実装レビュー v2 Minor-1 の引き受け） ============
+    {
+      const rDir = nodePath.join(workDir, 'relocate');
+      await useSaveFolder(rDir);
+      const tmbs = (name: string) => nodePath.join(rDir, 'tmbs', name);
+      const rel512Of = (rel52: string) => thumb512PathFor(rel52)!;
+      const abs = (rel: string) => nodePath.join(rDir, rel);
+
+      const makeIcon = async (absPath: string) => {
+        const img = new Jimp({ width: 16, height: 12, color: 0x336699ff });
+        await writeImageByExt(img, absPath);
+      };
+
+      const savePayload = (uid: string, slug: string, thumbnail: string) => ({
+        uid, slug, create: true,
+        tms: {
+          kind: 'tms', lang: 'ja', title: { ja: slug }, label: { ja: slug },
+          attr: { ja: 'attr' }, dataAttr: {}, license: 'CC BY', dataLicense: 'ODbL',
+          licenseNote: {}, dataLicenseNote: {},
+          url: 'https://tiles.example.test/{z}/{x}/{y}.png',
+          minZoom: 0, maxZoom: 18,
+          thumbnail,
+          coverageLngLats: null, tileJsonSourceUrl: null, sourceMapUid: null,
+        },
+      });
+
+      // console.error の呼び出し回数を数える（512px の失敗が warn に埋もれず error で出ること）
+      const withErrorCount = async <T>(fn: () => Promise<T>): Promise<{ result: T; errors: number }> => {
+        const original = console.error;
+        let errors = 0;
+        console.error = (...args: unknown[]) => { errors++; original(...args); };
+        try {
+          const result = await fn();
+          return { result, errors };
+        } finally {
+          console.error = original;
+        }
+      };
+
+      // ---- R-1: 順序 + 中止 ----
+      // 512px の移動先を先に作っておく -> fs.move(overwrite:false) が失敗する。
+      // 期待: relocate が null を返し、**52px は暫定名のまま**（対で動かせないなら動かさない）
+      {
+        const uid = globalThis.crypto.randomUUID();
+        const prov52 = 'tmbs/prov-r1.png';
+        await makeIcon(abs(prov52));
+        await makeIcon(abs(rel512Of(prov52)));
+        const dest52 = 'tmbs/' + uid + '.png';
+        await makeIcon(abs(rel512Of(dest52))); // 512px の移動先に先客を置く
+
+        const { result: saved, errors } = await withErrorCount(() =>
+          SqliteDataService.saveUserBaseMap(savePayload(uid, 'bm-r1', prov52)),
+        );
+
+        assert.equal(saved.thumbnail, prov52, 'R-1: 付け替えを中止し thumbnail は暫定名のまま');
+        assert.equal(await exists(abs(dest52)), false, 'R-1: **52px は uid 名へ動いていない**（順序と中止が効いている）');
+        assert.ok(await exists(abs(prov52)), 'R-1: 52px は暫定名に残る（参照は有効なまま）');
+        assert.ok(await exists(abs(rel512Of(prov52))), 'R-1: 512px も暫定名に残る');
+        assert.ok(errors >= 1, 'R-1: 512px の失敗は console.error で出る（warn に埋もれない）');
+        console.log('ok: R-1 順序 + 中止（512px が動かせなければ 52px も動かさない・error 出力あり）');
+      }
+
+      // ---- R-2: ロールバック ----
+      // 52px の移動先を先に作っておく -> 512px は一度 uid 名へ動くが 52px の move が失敗する。
+      // 期待: 512px が暫定名へ**戻っている**
+      {
+        const uid = globalThis.crypto.randomUUID();
+        const prov52 = 'tmbs/prov-r2.png';
+        await makeIcon(abs(prov52));
+        await makeIcon(abs(rel512Of(prov52)));
+        const dest52 = 'tmbs/' + uid + '.png';
+        await makeIcon(abs(dest52)); // 52px の移動先に先客を置く
+
+        const saved = await SqliteDataService.saveUserBaseMap(savePayload(uid, 'bm-r2', prov52));
+
+        assert.equal(saved.thumbnail, prov52, 'R-2: 付け替えは失敗し thumbnail は暫定名のまま');
+        assert.ok(await exists(abs(rel512Of(prov52))), 'R-2: **512px が暫定名へロールバックされている**');
+        assert.equal(await exists(abs(rel512Of(dest52))), false, 'R-2: 512px は uid 名に残っていない');
+        console.log('ok: R-2 ロールバック（52px が失敗したら 512px を戻す）');
+      }
+
+      // ---- R-3: 正常系 ----
+      {
+        const uid = globalThis.crypto.randomUUID();
+        const prov52 = 'tmbs/prov-r3.png';
+        await makeIcon(abs(prov52));
+        await makeIcon(abs(rel512Of(prov52)));
+        const dest52 = 'tmbs/' + uid + '.png';
+
+        const saved = await SqliteDataService.saveUserBaseMap(savePayload(uid, 'bm-r3', prov52));
+
+        assert.equal(saved.thumbnail, dest52, 'R-3: 戻り値が uid 名の 52px パス');
+        assert.ok(await exists(abs(dest52)), 'R-3: 52px が uid 名へ移動');
+        assert.ok(await exists(abs(rel512Of(dest52))), 'R-3: 512px が uid 名へ移動');
+        assert.equal(await exists(abs(prov52)), false, 'R-3: 52px の暫定名は残らない');
+        assert.equal(await exists(abs(rel512Of(prov52))), false, 'R-3: 512px の暫定名は残らない');
+        console.log('ok: R-3 正常系（52px・512px とも uid 名へ移動）');
+      }
+    }
   `,
   'utf8',
 );
