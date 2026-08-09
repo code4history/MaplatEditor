@@ -200,6 +200,170 @@ await writeFile(
       });
     }
 
+    // ============================================================
+    // Part 3: 実サービスの無回帰（AC-N3 / AC-N4 / AC-N6）
+    //
+    // 実 imageCutter の出力タイル群と、smoke 内の参照ループ
+    // （旧経路 clone().crop().resize().write()）の出力を全ファイル・全バイト比較する。
+    // このテストは「置換前後で出力が変わらない」ことの番人であり、**置換前から緑である**のが正しい。
+    // ============================================================
+    {
+      const W = 1400, H = 900;   // maxZoom 3 / 33 タイル。thumbnail_512.jpg 経路が走る最小規模
+      const ext = 'jpg';
+      const fixtureDir = nodePath.join(workDir, 'part3');
+      await fs.mkdir(fixtureDir, { recursive: true });
+      const srcFile = nodePath.join(fixtureDir, 'fixture.' + ext);
+
+      {
+        const img = new Jimp({ width: W, height: H });
+        fillPseudoRandom(img.bitmap, 987654321);
+        await img.write(srcFile);
+      }
+
+      // --- AC-N6: ProgressReporter.prototype.update を spy する ---
+      // 設計書 §8.1 は webContents.send の**回数**を数える記述だったが、ProgressReporter は
+      // 5% 刻み + 30 秒 heartbeat で送信を throttle するため send 回数 != update 回数である。
+      // さらに heartbeat は実時間依存であり、本タスクは実行時間そのものを変える。
+      // ∴ 回数は update の spy で数え、send の記録は**内容**の確認にのみ使う
+      //（設計レビュー v1 Major-1 の訂正）。
+      const { ProgressReporter } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/ProgressReporter.ts'))});
+      const updateArgs = [];
+      const originalUpdate = ProgressReporter.prototype.update;
+      ProgressReporter.prototype.update = function (...args) {
+        updateArgs.push(args);
+        return originalUpdate.apply(this, args);
+      };
+      const sendRecords = [];
+      const fakeWin = { webContents: { send: (channel, payload) => sendRecords.push({ channel, payload }) } };
+
+      // --- 実 imageCutter（検証対象の実経路） ---
+      const outA = nodePath.join(fixtureDir, 'actual');
+      const result = await imageCutter(fakeWin, srcFile, outA);
+      ProgressReporter.prototype.update = originalUpdate;
+
+      ok('AC-N3 前提 imageCutter が成功する', () => {
+        assert.equal(result.err, undefined, JSON.stringify(result));
+        assert.equal(result.width, W);
+        assert.equal(result.height, H);
+        assert.equal(result.imageExtension, ext);
+      });
+
+      // --- 参照ループ（旧経路。実装から消える clone().crop().resize() を smoke が保持する） ---
+      const outB = nodePath.join(fixtureDir, 'reference');
+      await fs.mkdir(outB, { recursive: true });
+      const refImage = await Jimp.read(srcFile);
+      const refW = refImage.width, refH = refImage.height;
+      const maxZoom = Math.ceil(Math.log(Math.max(refW, refH) / 256) / Math.log(2));
+      // タスクリスト構築式は MapUploadService の実装と同一（旧腕の定義そのもの）
+      const refTasks = [];
+      for (let z = maxZoom; z >= 0; z--) {
+        const pw = Math.round(refW / Math.pow(2, maxZoom - z));
+        const ph = Math.round(refH / Math.pow(2, maxZoom - z));
+        for (let tx = 0; tx * 256 < pw; tx++) {
+          const tw = (tx + 1) * 256 > pw ? pw - tx * 256 : 256;
+          const sx = tx * 256 * Math.pow(2, maxZoom - z);
+          const sw = (tx + 1) * 256 * Math.pow(2, maxZoom - z) > refW ? refW - sx : 256 * Math.pow(2, maxZoom - z);
+          const tileDir = nodePath.resolve(outB, String(z), String(tx));
+          await fs.mkdir(tileDir, { recursive: true });
+          for (let ty = 0; ty * 256 < ph; ty++) {
+            const th = (ty + 1) * 256 > ph ? ph - ty * 256 : 256;
+            const sy = ty * 256 * Math.pow(2, maxZoom - z);
+            const sh = (ty + 1) * 256 * Math.pow(2, maxZoom - z) > refH ? refH - sy : 256 * Math.pow(2, maxZoom - z);
+            refTasks.push([nodePath.resolve(tileDir, ty + '.' + ext), sx, sy, sw, sh, tw, th]);
+          }
+        }
+      }
+      // 分岐網羅の確認（設計レビュー §7.3 の検証観点）: crop の両分岐を実際に踏んでいること
+      const shortcutCount = refTasks.filter((t) => t[1] === 0 && t[3] === refW).length;
+      const nonShortcutCount = refTasks.length - shortcutCount;
+      ok('AC-N3 前提 実タスクリストが crop の両分岐を踏む（ショートカット / 非ショートカット）', () => {
+        assert.ok(shortcutCount > 0, 'ショートカット分岐 (x=0 && w=width) が ' + shortcutCount + ' 件');
+        assert.ok(nonShortcutCount > 0, '非ショートカット分岐が ' + nonShortcutCount + ' 件');
+      });
+      for (const t of refTasks) {
+        const canvasJimp = refImage.clone()
+          .crop({ x: t[1], y: t[2], w: t[3], h: t[4] })
+          .resize({ w: t[5], h: t[6] });
+        await canvasJimp.write(t[0]);
+      }
+
+      // --- AC-N3: タイル群の全ファイル・全バイト一致 ---
+      async function tileManifest(root) {
+        const out = [];
+        async function walk(dir, rel) {
+          for (const e of (await fs.readdir(dir, { withFileTypes: true })).sort((a, b) => a.name < b.name ? -1 : 1)) {
+            const p = nodePath.join(dir, e.name);
+            const r = rel ? rel + '/' + e.name : e.name;
+            if (e.isDirectory()) await walk(p, r);
+            else if (/^\\d+\\/\\d+\\/\\d+\\.[a-z]+$/.test(r)) out.push(r + ':' + sha256(await fs.readFile(p)));
+          }
+        }
+        await walk(root, '');
+        out.sort();
+        return out;
+      }
+      const manA = await tileManifest(outA);
+      const manB = await tileManifest(outB);
+      ok('AC-N3 タイルの相対パス集合が一致する（' + manA.length + ' 枚）', () => {
+        assert.deepEqual(manA.map((s) => s.split(':')[0]), manB.map((s) => s.split(':')[0]));
+        assert.equal(manA.length, refTasks.length, 'タイル数 = タスク数');
+      });
+      let mismatches = 0;
+      for (let i = 0; i < Math.min(manA.length, manB.length); i++) if (manA[i] !== manB[i]) mismatches++;
+      ok('AC-N3 全タイルの sha256 が一致する（旧経路の出力とバイト単位で同一）', () => {
+        assert.equal(mismatches, 0, mismatches + ' 枚が不一致');
+        assert.equal(sha256(Buffer.from(manA.join('\\n'))), sha256(Buffer.from(manB.join('\\n'))));
+      });
+      const manifestHash = sha256(Buffer.from(manA.join('\\n')));
+      console.log('AC-N3 tile manifest sha256 = ' + manifestHash + ' (' + manA.length + ' tiles, '
+        + 'shortcut=' + shortcutCount + ' non-shortcut=' + nonShortcutCount + ')');
+
+      // --- AC-N4: 付随物 ---
+      // original.<ext> は fs.copy(srcFile, ...) による**元ファイルからの直コピー**であり、
+      // タイル経路に依存しない（∴ バイト同一の保証はむしろ強い。設計レビュー Minor-3）。
+      // thumbnail.jpg / thumbnail_512.jpg は生成済みタイルから導出され、その生成コードは
+      // 本タスクで 1 行も変更していない。∴ AC-N3 が通れば内容も同一である。
+      const originalPath = nodePath.join(outA, 'original.' + ext);
+      ok('AC-N4 original.' + ext + ' が元ファイルとバイト単位で同一（fs.copy による直コピー）', () => {
+        assert.equal(sha256(nodeFs.readFileSync(originalPath)), sha256(nodeFs.readFileSync(srcFile)));
+      });
+      for (const name of ['thumbnail.jpg', 'thumbnail_512.jpg']) {
+        ok('AC-N4 ' + name + ' が生成され非ゼロサイズ（一致したタイルから導出）', () => {
+          const st = nodeFs.statSync(nodePath.join(outA, name));
+          assert.ok(st.size > 0, name + ' のサイズ = ' + st.size);
+        });
+      }
+      // フィクスチャは決定的（固定シードの擬似乱数）なので、この 3 行はコードを変えない限り
+      // 実行のたびに同じ値になる。∴ 置換の前後で走らせて突き合わせれば、タイル以外の生成物にも
+      // バイト同一性の観測が及ぶ（AC-N4 の補強。合否は上の assert が持つ）。
+      console.log('AC-N4 artifacts sha256: original.' + ext + '=' + sha256(nodeFs.readFileSync(originalPath)));
+      for (const name of ['thumbnail.jpg', 'thumbnail_512.jpg']) {
+        console.log('AC-N4 artifacts sha256: ' + name + '=' + sha256(nodeFs.readFileSync(nodePath.join(outA, name))));
+      }
+
+      // --- AC-N6: 進捗契約が不変 ---
+      ok('AC-N6 update の呼び出し回数がタイル数 + 1（初期化の update(0) を含む）', () => {
+        assert.equal(updateArgs.length, refTasks.length + 1,
+          'update 回数 = ' + updateArgs.length + ' / 期待 ' + (refTasks.length + 1));
+      });
+      ok('AC-N6 update の第 1 引数が 0..N の連番（1 タイル 1 回）', () => {
+        assert.deepEqual(updateArgs.map((a) => a[0]), Array.from({ length: refTasks.length + 1 }, (_, i) => i));
+      });
+      ok('AC-N6 send の内容が不変（チャネル / i18n キー / progress 形式）— 回数は assert しない', () => {
+        assert.ok(sendRecords.length > 0, 'send が 1 回以上発生している');
+        for (const r of sendRecords) {
+          assert.equal(r.channel, 'mapedit:taskProgress', 'チャネル');
+          assert.ok(['mapupload.dividing_tile', 'mapupload.next_thumbnail'].includes(r.payload.text),
+            'i18n キー: ' + r.payload.text);
+          assert.match(String(r.payload.progress), /^\\(\\d+\\/\\d+\\)$/, 'progress 形式: ' + r.payload.progress);
+          assert.equal(String(r.payload.progress).split('/')[1].replace(')', ''), String(refTasks.length),
+            'progress の総数 = タイル数');
+        }
+      });
+      console.log('AC-N6 観測: update 呼び出し ' + updateArgs.length + ' 回 / '
+        + 'webContents.send ' + sendRecords.length + ' 回（throttle により一致しないのが正常）');
+    }
+
     if (failures.length > 0) {
       throw new Error('m19-t6 smoke: ' + failures.length + ' 件の受け入れ条件が失敗 / ' + failures.join(' / '));
     }
