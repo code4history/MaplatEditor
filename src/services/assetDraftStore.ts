@@ -89,7 +89,6 @@ function draftLabelOf(payload: unknown): string | undefined {
   return (
     firstLangValue(p.appName) ??
     firstLangValue(p.title) ??
-    firstLangValue(p.officialTitle) ??
     firstLangValue(p.name)
   );
 }

@@ -17,6 +17,7 @@ import builtinBaseMaps from '../builtin_base_maps.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
+import { unifyMapNameFields, adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
 import {
   createSlugReservationService,
   slugCheckResultIsAvailable,
@@ -140,6 +141,11 @@ const SEARCH_INDEX_BACKFILL_ID = '2026-07-16-app-fts-rtree-backfill';
 // オプトアウト時代の行が存在し得ないため no-op だが、旧コード経路が再実行
 // されないよう marker のみ記録する
 const OPT_IN_VISIBILITY_FLIP_ID = '2026-07-05-opt-in-base-map-visibility';
+// m19-t1: 地図の名称属性を 1.0.0 の語彙(表示ラベル label / タイトル title)へ移す一度きりの
+// in-place migration。写像は非冪等(素朴形なら 2 回目で label が潰れる)であり、
+// この marker が **主の守り** である。src/utils/mapNameUnification.ts の実装形は副の守りに
+// すぎず、marker を省いてよい根拠にはならない
+const MAP_NAME_UNIFICATION_MIGRATION_ID = '2026-08-09-m19-t1-map-name-unification';
 
 // 常時表示から外せないベースマップ(ビューア/エディタの最終フォールバック基盤)。slug で判定
 const FORCED_ALWAYS_BASE_MAP_IDS = new Set(['osm']);
@@ -518,7 +524,19 @@ function assetRowToRecord(row: any): AssetRecord {
   };
 }
 
-function normalizeMapDocument(document: any): any {
+type NormalizeMapDocumentOptions = {
+  // ★m19-t1: レガシー取込(importLegacyMaps)専用。ここで true を渡してよいのは
+  //   importLegacyMaps だけである(AC-18a が行番号レンジで機械検証する)。
+  //   理由: 取込行は同一 migrate() 実行内の後段 applyMapNameUnificationMigration が
+  //   marker 保護下で写像する。取込は行を作るだけで写像を持たない、という配置規律のため。
+  //   これは「渡し忘れると値が全損する」類のオプションではない(既定経路の
+  //   adoptDeprecatedMapNames が取込時点で写像するので結果は同じになる)。
+  //   守っているのは値の保全ではなく配置規律である。「冗長だから消す」も
+  //   「これが無いと全損する」も、どちらも誤読である。
+  preserveDeprecatedForMigration?: boolean;
+};
+
+function normalizeMapDocument(document: any, options?: NormalizeMapDocumentOptions): any {
   // 言語別フィールドはDB内では常にオブジェクト形 (ADR-0005)。
   // nedb移行やインポート由来のプレーン文字列(=デフォルト言語の値)もここで正規化される
   const normalized = normalizeMapLangFields({ ...document });
@@ -528,7 +546,11 @@ function normalizeMapDocument(document: any): any {
   delete normalized.uid;
   delete normalized.slug;
   delete normalized.revision;
-  return normalized;
+  if (options?.preserveDeprecatedForMigration) return normalized;
+  // m19-t1: 0.7.0 の交換形(廃止された名称属性を持つ map.json)を 1.0.0 の語彙へ写す。
+  // キー在時のみ発火し完全に冪等であるため常設経路に置いてよい。1.0.0 のエディタが
+  // 書く文書にキーは存在しないので、v2 の保存経路では一切発火しない
+  return adoptDeprecatedMapNames(normalized);
 }
 
 function normalizeAppDocument(document: any): any {
@@ -732,7 +754,9 @@ class SqliteDataService {
       tokenizeForSearch(String(text ?? ''))
     );
     db.function('maplat_map_fts_raw', { deterministic: true }, (dataJson: unknown) =>
-      ftsRawFromJson(String(dataJson ?? ''), ['title', 'officialTitle', 'description'])
+      // m19-t1: 名称語彙の統一にあわせ、ベースマップ側(下記 maplat_base_map_fts_raw)と
+      // 同型の列構成へ。検索語の集合は保存される(同じ文字列が別の列から入るだけ)
+      ftsRawFromJson(String(dataJson ?? ''), ['title', 'label', 'description'])
     );
     db.function('maplat_app_fts_raw', { deterministic: true }, (dataJson: unknown) =>
       ftsRawFromJson(String(dataJson ?? ''), [
@@ -892,6 +916,22 @@ class SqliteDataService {
     // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
     await this.runThumbnail512MiningIfNeeded(db);
 
+    // m19-t1: 地図の名称属性を 1.0.0 の語彙へ移す(marker 保護下の一度きり)。
+    // 配置理由: 上の runLegacyMigrationIfNeeded(neDB 0.7.0 取込)より必ず後に置く必要がある
+    // (取込行も同じ一度きりの migration で移行させるため。取込側に移行ロジックを二重実装しない)。
+    // 順序の安全性は marker 設計が保証する: runLegacyMigrationIfNeeded はレガシー入力が
+    // 無い新規フォルダでも marker だけは記録して返るため、「名称移行の marker が立った後に
+    // レガシー取込が走る」順序は起こり得ない。
+    // また、取込と本段階の間に走る 5 段階(applyBaseMapLanguageMigration /
+    // applyProvisionalVisibilityKeyMigration / sweepStaleProvisionalVisibility /
+    // migrateBaseMapIconPaths / runThumbnail512MiningIfNeeded)は maps.data_json を
+    // 1 行も書き換えない(書き込み先は base_maps / map_base_map_visibility / apps のみ)。
+    // runColdBoot の try/catch より前に置く: runColdBoot は「migrate() はいかなる場合も
+    // 本段階の失敗によって失敗してはならない」best-effort 段階として最後尾に固定されている。
+    // 一方この移行は失敗したら migrate() を失敗させるべきである(半分移行された DB で
+    // 起動してはならない)。∴ best-effort 段階を最後に保つ形が正しい
+    this.applyMapNameUnificationMigration(db);
+
     // 既存(T3): originals UUID migration
     // M13-T3: slug originals -> UUID originals の one-shot migration/report。
     // v1.1 (レビュー v1 Major 2c): runColdBoot(db) 呼び出し全体を try/catch で防御する。
@@ -931,6 +971,36 @@ class SqliteDataService {
       }
       db.prepare('INSERT INTO schema_migrations (id) VALUES (?)')
         .run(BASE_MAP_LANGUAGE_MIGRATION_ID);
+    });
+  }
+
+  // m19-t1: 地図の名称属性を 1.0.0 の語彙へ移す一度きりの in-place migration。
+  // applyBaseMapLanguageMigration と同型(marker 判定 → 全行読み出し → withTransaction 内で
+  // UPDATE ... WHERE uid = ? → 同一トランザクションで marker INSERT)。
+  //
+  // 写像は src/utils/mapNameUnification.ts の単一の純関数に閉じている(取込側に二重実装しない)。
+  // 写像は非冪等であり、この marker が主の守りである。
+  //
+  // maps の **全行** を UPDATE する: maps_search_au トリガが行 UPDATE のたびに maps_fts の
+  // 当該行を削除・再投入するため、FTS 索引は新しい列構成で自動的に張り直される
+  // (別途の索引再構築は不要)。
+  //
+  // 失敗ポリシー: withTransaction 内で完結し、失敗したら例外を投げて migrate() を失敗させる
+  // (半移行状態のまま利用者に見せない)。次回起動時は marker 不在の状態から再試行できる。
+  private applyMapNameUnificationMigration(db: DatabaseSync): void {
+    const applied = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(MAP_NAME_UNIFICATION_MIGRATION_ID);
+    if (applied) return;
+    const rows = db.prepare('SELECT uid, data_json FROM maps').all() as any[];
+    this.withTransaction(db, () => {
+      const update = db.prepare('UPDATE maps SET data_json = ? WHERE uid = ?');
+      for (const row of rows) {
+        const data = JSON.parse(String(row.data_json || '{}'));
+        update.run(JSON.stringify(unifyMapNameFields(data)), row.uid);
+      }
+      db.prepare('INSERT INTO schema_migrations (id) VALUES (?)')
+        .run(MAP_NAME_UNIFICATION_MIGRATION_ID);
     });
   }
 
@@ -2844,7 +2914,10 @@ class SqliteDataService {
       if (slug !== oldId) report.renamedSlugs.push({ kind: 'map', from: oldId, to: slug });
       const uid = generateUid();
       this.registerAsset(db, 'map', uid, slug);
-      insert.run(uid, slug, JSON.stringify(normalizeMapDocument(doc)));
+      // m19-t1: 取込は行を作るだけで写像を持たない。廃止された名称属性は保持したまま
+      // insert し、同一 migrate() 実行内の後段 applyMapNameUnificationMigration が
+      // marker 保護下で一手に写像する(取込側に移行ロジックを二重実装しない)
+      insert.run(uid, slug, JSON.stringify(normalizeMapDocument(doc, { preserveDeprecatedForMigration: true })));
       mapIdToUid.set(oldId, uid);
     }
     return mapIdToUid;

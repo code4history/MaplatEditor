@@ -206,7 +206,9 @@
     "test:e2e:m6-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t5-mapbox-maplibre.spec.ts",
     "smoke:m6-t10-app-source-diff-model": "node scripts/m6-t10-app-source-diff-model-smoke.mjs",
     "smoke:m6-t10-export-preview": "node scripts/m6-t10-export-preview-smoke.mjs",
-    "smoke:m6-t10-preview-bundle-guard": "node scripts/m6-t10-preview-bundle-label-merge-guard-smoke.mjs"
+    "smoke:m6-t10-preview-bundle-guard": "node scripts/m6-t10-preview-bundle-label-merge-guard-smoke.mjs",
+    "smoke:m19-t1-map-name-unification": "node scripts/m19-t1-map-name-unification-smoke.mjs",
+    "test:e2e:m19-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t1-map-name-unification.spec.ts"
   },
   "dependencies": {
     "@maplat/core": "^1.0.0-rc1",
