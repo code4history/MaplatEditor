@@ -202,8 +202,13 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     // F4: ID 重複の operation 診断が Undo（文書変更）で消える
     // NOTE (m6-t10 実装時に吸収): m6-t2 が attr を必須化した（validateBaseMapDocument の
     // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。本 spec は
-    // m6-t2 以降ずっと RED だった（最終更新は m6-t1 の edd897b）。m11-t4 は af691aa で
+    // m6-t2 以降ずっと RED だった。m11-t4 は af691aa で
     // 同じ吸収を済ませているので、それに揃えて basemap-attr の入力を足す。
+    //
+    // 訂正（2026-08-09）: 旧版は「最終更新は m6-t1 の edd897b」と書いていたが、edd897b と
+    // ecc2c3d は互いに祖先ではない（merge-base は d536bf1f。別ブランチが後で合流した）。
+    // ∴ git 系譜としては「前」と言えない。実時刻では edd897b 09:18 → ecc2c3d 10:19（同日）
+    // であり、「spec を最後に触った後で attr が必須化された」という事実関係と結論は変わらない。
     await page.getByTestId('basemap-new').click();
     await page.getByTestId('basemap-kind-tms').click(); // m6-t1: 新規ベースマップは種別選択が最初の編集
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-dup-basemap');
