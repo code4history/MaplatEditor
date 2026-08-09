@@ -17,6 +17,8 @@ import builtinBaseMaps from '../builtin_base_maps.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
+// m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
+import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import {
   createSlugReservationService,
   slugCheckResultIsAvailable,
@@ -2688,15 +2690,38 @@ class SqliteDataService {
     const match = thumbnail.match(/^tmbs\/([^/]+)\.([A-Za-z0-9]+)$/);
     if (!match || match[1] === uid) return null;
     const { saveFolder } = this.folders;
-    const newRel = `tmbs/${uid}.${match[2]}`;
+    const newRel = thumb52PathFor(uid, match[2]);
     try {
       const from = path.join(saveFolder, thumbnail);
       if (!(await fs.pathExists(from))) return null;
       await fs.move(from, path.join(saveFolder, newRel), { overwrite: false });
+      // m19-t2 (ADR-0007 違反 A の是正): 52px だけを uid 名へ寄せると、未保存中に生成された
+      // 512px が暫定名（slug 名）に取り残される。内部ストレージキーは uid のみ参照してよい
+      // （ADR-0007）ため、同じ規則で 512px も追随させる。
+      await this.relocateBaseMapIconLarge(thumbnail, newRel);
       return newRel;
     } catch (e: any) {
       console.warn(`[SqliteDataService] base map icon relocation failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
       return null;
+    }
+  }
+
+  // m19-t2: 52px の付け替えに追随する 512px の付け替え（best-effort）。
+  // 派生規約は thumb512PathFor に集約しており、ここでリテラルを組み立てない。
+  // 失敗しても 52px の付け替え結果は活かす（既存の失敗ポリシーに揃え warn のみ）。
+  private async relocateBaseMapIconLarge(oldRel52: string, newRel52: string): Promise<void> {
+    const oldLarge = thumb512PathFor(oldRel52);
+    const newLarge = thumb512PathFor(newRel52);
+    if (!oldLarge || !newLarge || oldLarge === newLarge) return;
+    const { saveFolder } = this.folders;
+    try {
+      const from = path.join(saveFolder, oldLarge);
+      if (!(await fs.pathExists(from))) return;
+      await fs.move(from, path.join(saveFolder, newLarge), { overwrite: false });
+    } catch (e: any) {
+      console.warn(
+        `[SqliteDataService] base map large icon relocation failed: ${oldLarge} -> ${newLarge} (${e?.message ?? e})`,
+      );
     }
   }
 

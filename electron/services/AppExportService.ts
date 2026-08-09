@@ -37,6 +37,8 @@ import {
 } from '../../src/utils/appSourceModel';
 import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags } from './providerGlCdn';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
+// m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
+import { thumb512PathFor } from '../../src/utils/thumbnailPaths';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
@@ -492,12 +494,17 @@ class AppExportService {
           } else {
             warnings.push('appedit.export.missing_thumbnail');
           }
-          // M12-T15 (G): ユーザー basemap の 512px も同梱する（tmbs/{mapID}_512.png → 同じ相対パス）
-          const thumbnail512 = thumbnail.replace(/^(tmbs\/.+?)\.([a-z]+)$/i, '$1_512.$2');
-          if (thumbnail512 !== thumbnail && thumbnail512.startsWith('tmbs/')) {
-            const from512 = path.join(this.saveFolder, thumbnail512);
+          // M12-T15 (G): ユーザー basemap の 512px も同梱する。
+          // m19-t2 (ADR-0007 違反 B の是正): この時点の `thumbnail` は既に出力側（slug 名）へ
+          // 差し替わっている。∴ コピー元を同じ値から導くと saveFolder/tmbs/{slug}_512.* を読みに行き、
+          // 実体（uid 名）に当たらず黙って同梱されなかった。52px（直上）が既に採っている
+          // thumbnailCopies による uid 名への引き戻しと同型にし、出力先とコピー元を分離する。
+          const out512 = thumb512PathFor(thumbnail);
+          const src512 = thumb512PathFor(thumbnailCopies.get(thumbnail) ?? thumbnail);
+          if (out512 && src512) {
+            const from512 = path.join(this.saveFolder, src512);
             if (fs.existsSync(from512)) {
-              await fs.copy(from512, path.join(outDir, thumbnail512));
+              await fs.copy(from512, path.join(outDir, out512));
             }
           }
         } else if (thumbnail.startsWith('basemap_icons/')) {
