@@ -4195,7 +4195,7 @@ const goBack = async () => {
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_copyright_desc')" :ariaLabel="t('mapedit.map_copyright_desc')" /></div>
-                            <input type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
+                            <input data-testid="map-attr" type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
                             <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.attr" scope="field" :items="[{ key: 'attr-required', severity: 'danger', message: saveError.attr }]" />
                         </div>
