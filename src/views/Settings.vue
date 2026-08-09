@@ -22,15 +22,6 @@
             >{{ t("settings.base_map") }}</a
           >
         </li>
-        <li class="nav-item">
-          <a
-            class="nav-link disabled"
-            :class="{ active: activeTab === 'original' }"
-            href="#"
-            @click.prevent=""
-            >{{ t("settings.original_map") }}</a
-          >
-        </li>
       </ul>
 
       <div class="tab-content">
@@ -100,9 +91,17 @@
             </div>
 
             <div class="row mb-3 align-items-center">
-              <label for="jpegDecodeMaxResolutionMP" class="col-sm-3 col-form-label text-end">{{
-                t("settings.jpeg_decode_max_resolution")
-              }}</label>
+              <label
+                for="jpegDecodeMaxResolutionMP"
+                class="col-sm-3 col-form-label text-end d-flex align-items-center justify-content-end gap-1"
+              >
+                {{ t("settings.jpeg_decode_max_resolution") }}
+                <ContextHelp
+                  :text="t('settings.jpeg_decode_desc')"
+                  :ariaLabel="t('settings.jpeg_decode_desc')"
+                  data-testid="settings-jpeg-decode-help"
+                />
+              </label>
               <div class="col-sm-9">
                 <input
                   type="number"
@@ -113,7 +112,6 @@
                   :placeholder="t('settings.jpeg_decode_auto')"
                   v-model="state.jpegDecodeMaxResolutionMP"
                 />
-                <div class="form-text">{{ t("settings.jpeg_decode_desc") }}</div>
               </div>
             </div>
 
@@ -261,14 +259,6 @@
             </div>
           </form>
         </div>
-
-        <!-- Original Map Settings Tab (Empty/Disabled) -->
-        <div
-          class="tab-pane fade"
-          :class="{ 'show active': activeTab === 'original' }"
-          id="original"
-          role="tabpanel"
-        ></div>
       </div>
     </div>
   </div>

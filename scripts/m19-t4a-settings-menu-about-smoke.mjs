@@ -135,4 +135,52 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   console.log("  [5/6] about.html: process.versions除去 / バージョン最新化 / ADR-0011著作権 / query受信: PASS");
 }
 
-console.log("m19-t4a settings/menu/about smoke: PASS (partial — S3/S4/S5 wiring)");
+// --- AC1 / AC2 / AC3 の smoke 側: Settings.vue と 11 言語 translation.json ---
+{
+  const settingsVue = await readSrc("src/views/Settings.vue");
+
+  // AC1: 「オリジナル地図設定」タブ（settings.original_map）が Settings.vue から消えている
+  assert.equal(
+    (settingsVue.match(/settings\.original_map/g) || []).length,
+    0,
+    "src/views/Settings.vue must not reference settings.original_map (C1: expected 0)",
+  );
+  // 設計 §7.1: タブは3→2枚になる。第3タブの id="original" tab-pane も消える
+  assert.equal(
+    (settingsVue.match(/id="original"/g) || []).length,
+    0,
+    "src/views/Settings.vue must not contain the id=\"original\" tab-pane",
+  );
+
+  // AC3: ContextHelp タグ数が 2 → 3、form-text の jpeg_decode_desc が 0 件
+  const contextHelpCount = (settingsVue.match(/<ContextHelp/g) || []).length;
+  assert.equal(contextHelpCount, 3, `src/views/Settings.vue must have 3 <ContextHelp> tags (C1 AC3: got ${contextHelpCount})`);
+  assert.ok(
+    !/<div class="form-text">\{\{\s*t\("settings\.jpeg_decode_desc"\)\s*\}\}<\/div>/.test(settingsVue),
+    "src/views/Settings.vue must not render jpeg_decode_desc as a plain form-text div anymore",
+  );
+  assert.ok(
+    /data-testid="settings-jpeg-decode-help"/.test(settingsVue),
+    "src/views/Settings.vue must add the settings-jpeg-decode-help ContextHelp",
+  );
+  console.log("  [6/6a] Settings.vue: オリジナル地図設定タブ削除 / ContextHelp化: PASS");
+}
+
+// AC2: settings.original_map が 11 言語すべてから消えている
+{
+  const { readdir } = await import("node:fs/promises");
+  const localesDir = path.join(projectRoot, "public/locales");
+  const langs = (await readdir(localesDir, { withFileTypes: true }))
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+  assert.equal(langs.length, 11, `expected 11 locale directories, found ${langs.length}: ${langs.join(",")}`);
+  let stillHasKey = 0;
+  for (const lang of langs) {
+    const raw = await readSrc(`public/locales/${lang}/translation.json`);
+    if (/"original_map"\s*:/.test(raw)) stillHasKey++;
+  }
+  assert.equal(stillHasKey, 0, `AC2: settings.original_map must be removed from all 11 locale files (still present in ${stillHasKey})`);
+  console.log("  [6/6b] 11言語 translation.json から settings.original_map 削除: PASS");
+}
+
+console.log("m19-t4a settings/menu/about smoke: PASS (full)");
