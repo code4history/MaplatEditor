@@ -236,7 +236,10 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
 
     await openHash(page, `#/mapedit?uid=${mapUid}`, '#mapDocumentLanguage');
     await expectHeaderOrder(page);
-    await expect(page.locator('.nav-tabs .nav-link')).toHaveCount(4);
+    // NOTE (既存RED吸収): m6-t8 (90da8c5) が MapEdit へ merc タブ(map-tab-merc)を無条件で
+    // 追加したため、MapEdit のタブは metadata/gcps/settings/pois/merc の 5 枚になった。
+    // 本 spec は m6-t8 以降ずっと RED だった（期待値 4 は m11-t3 初版 e71b84b のまま）。
+    await expect(page.locator('.nav-tabs .nav-link')).toHaveCount(5);
     const mapEnglishChip = page.locator('.lang-value-chip', { hasText: 'EN' }).first();
     await expect(mapEnglishChip).toHaveAttribute('title', 'English: T3 Map');
     await mapEnglishChip.click();
