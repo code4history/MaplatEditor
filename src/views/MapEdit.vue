@@ -34,6 +34,7 @@ import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
+import { thumb512PathFor, thumb52PathFor } from '../utils/thumbnailPaths';
 import {
     SUPPORTED_LANGUAGES,
     resolveEditorLanguage,
@@ -430,7 +431,9 @@ function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
 }
 
 // M12-T15 (R5): サムネイル管理（512px/52px の置換アップロード + 512px→52px 流用）。
-// プレビューは appAssets.fileUrl で tmbs/{uid}(.|_512).jpg を解決する（存在しなければ placeholder）
+// プレビューは appAssets.fileUrl で 52px / 512px の各所在を解決する（存在しなければ placeholder）。
+// m19-t5: 拡張子は非対称（52px は地図の .jpg 規約のまま / 512px は THUMB_512_EXT が決める）。
+// 512px 側のパスは派生規約の単一モジュールから導き、ここで文字列を組み立てない。
 const thumbnail512Url = ref<string | null>(null);
 const thumbnail52Url = ref<string | null>(null);
 const derive52FromUpload = ref(true); // 「52px も作成する」チェックボックス（既定 ON）
@@ -441,12 +444,14 @@ const thumbnailNonce = ref(0);
 async function refreshThumbnails(): Promise<void> {
     if (!mapUid.value) { thumbnail512Url.value = null; thumbnail52Url.value = null; return; }
     const v = `?v=${thumbnailNonce.value}`;
+    const rel52 = thumb52PathFor(mapUid.value, 'jpg');
     try {
-        const url512 = await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}_512.jpg`);
+        const rel512 = thumb512PathFor(rel52);
+        const url512 = rel512 ? await (window as any).appAssets.fileUrl(rel512) : null;
         thumbnail512Url.value = url512 ? url512 + v : null;
     } catch { thumbnail512Url.value = null; }
     try {
-        const url52 = await (window as any).appAssets.fileUrl(`tmbs/${mapUid.value}.jpg`);
+        const url52 = await (window as any).appAssets.fileUrl(rel52);
         thumbnail52Url.value = url52 ? url52 + v : null;
     } catch { thumbnail52Url.value = null; }
 }

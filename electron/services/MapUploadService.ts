@@ -17,6 +17,10 @@ import { ProgressReporter } from '../utils/ProgressReporter';
 import SettingsService from './SettingsService';
 import { estimateJpegDecodeBudget, type JpegDecodeBudget } from '../utils/jpegDecodeBudget';
 import { resolveDecodeSafety } from '../utils/decodeSafety';
+// m19-t5: 512px 中間ファイルの名前は派生規約と同じ場所で導き、符号化は宛先拡張子だけで決める
+// 唯一の実装へ委譲する（タスク設計 v1.0 §4.1 / §4.2）。
+import { THUMB_512_TMP_BASENAME } from '../../src/utils/thumbnailPaths';
+import { writeImageByExt } from '../utils/thumbnail512Codec';
 
 /**
  * M5-T6: 画像取り込みの結果契約（設計 §6.1 が唯一の記述）。
@@ -214,7 +218,7 @@ async function makeThumbnail512(
         });
     }
 
-    await canvas.write(to as `${string}.${string}`);
+    await writeImageByExt(canvas, to);
 }
 
 /**
@@ -419,7 +423,7 @@ export async function imageCutter(
 
         // M12-T15 R3: ズーム2タイルから長辺512pxサムネイル生成（§C3: maxZoom < 2 はスキップ）
         if (maxZoom >= 2) {
-            const thumb512To = path.resolve(outFolder, 'thumbnail_512.jpg');
+            const thumb512To = path.resolve(outFolder, THUMB_512_TMP_BASENAME);
             await makeThumbnail512(outFolder, thumb512To, toExtKey, width, height, maxZoom);
         }
 

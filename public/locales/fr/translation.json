@@ -475,6 +475,8 @@
     "migration_report_warnings": "Il y a {{count}} avertissement(s). Consultez migration-report-v2.json dans le dossier de données pour plus de détails.",
     "migrating_thumbnails_512": "Génération des vignettes 512px",
     "migrating_thumbnails_512_done": "Génération des vignettes 512px terminée",
+    "migrating_thumbnails_512_webp": "Conversion des vignettes 512px en WebP",
+    "migrating_thumbnails_512_webp_done": "Conversion des vignettes 512px en WebP terminée",
     "migrating_originals": "Migration des fichiers originaux vers des noms UUID",
     "migrating_originals_done": "Migration des fichiers originaux terminée"
   },

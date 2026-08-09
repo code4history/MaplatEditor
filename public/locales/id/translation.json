@@ -475,6 +475,8 @@
     "migration_report_warnings": "Ada {{count}} peringatan. Lihat migration-report-v2.json di folder data untuk detailnya.",
     "migrating_thumbnails_512": "Membuat thumbnail 512px",
     "migrating_thumbnails_512_done": "Pembuatan thumbnail 512px selesai",
+    "migrating_thumbnails_512_webp": "Mengonversi thumbnail 512px ke WebP",
+    "migrating_thumbnails_512_webp_done": "Konversi thumbnail 512px ke WebP selesai",
     "migrating_originals": "Memigrasi file asli ke nama file UUID",
     "migrating_originals_done": "Migrasi file asli selesai"
   },

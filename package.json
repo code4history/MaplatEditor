@@ -219,9 +219,11 @@
     "test:e2e:m19-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t1-map-name-unification.spec.ts",
     "smoke:m19-t4a-settings-menu-about": "node --experimental-strip-types scripts/m19-t4a-settings-menu-about-smoke.mjs",
     "test:e2e:m19-t4a": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t4a-settings-and-about.spec.ts",
-    "smoke:editor-locale-parity": "node scripts/editor-locale-parity.mjs"
+    "smoke:editor-locale-parity": "node scripts/editor-locale-parity.mjs",
+    "smoke:m19-t5-thumbnail-512-webp": "node scripts/m19-t5-thumbnail-512-webp-smoke.mjs"
   },
   "dependencies": {
+    "@jsquash/webp": "^1.5.0",
     "@maplat/core": "^1.0.0-rc1",
     "@maplat/tin": "^1.0.0-rc1",
     "@maplat/transform": "^1.0.0-rc1",

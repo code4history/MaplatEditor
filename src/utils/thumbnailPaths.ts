@@ -12,12 +12,33 @@
 // `path` を使わず文字列操作だけで実装している。
 
 /**
- * 512px 側の符号化形式。null = 入力の拡張子を引き継ぐ（現行）。
+ * 512px 側の符号化形式。null = 入力の拡張子を引き継ぐ。
  *
- * m19-t5（サムネイルの webp 化）は **この 1 定数を 'webp' へ変えるだけ**で全経路が webp 化する。
+ * 【単一変化点】m19-t5 以降、**この 1 定数を変えればパス派生と符号化が同時に切り替わる**。
+ * 符号化側は `electron/utils/thumbnail512Codec.ts` が担い、「512px か否か」ではなく
+ * **宛先パスの拡張子だけ**で符号化器を選ぶ。∴ ここを `null` へ戻せば
+ * 派生パスの拡張子が入力側へ戻り、それに追随して符号化器も Jimp 経路へ戻る
+ * （この不変条件は smoke:m19-t5-thumbnail-512-webp の Part D が機械照合する）。
+ *
  * 52px 側との非対称（52px は現行形式のまま）はここで吸収される。
+ *
+ * 注: m19-t2 期の注釈は「本定数の変更だけで全経路が追随する」と述べていたが、これは**成立しなかった**。
+ * (A) 512px 派生を本モジュールへ通していない製品コードが 10 ファイル残っていた（m19-t5 で掃討）／
+ * (B) jimp@1.6.1 は webp を encode も decode もできない（実測: `Unsupported MIME type: image/webp`）。
+ * ∴ 単一変化点は「パス」だけでなく**「パス＋符号化」**として成立させる必要があった。
+ * 上記の対（本定数 + thumbnail512Codec）がその答えである。
  */
-export const THUMB_512_EXT: string | null = null;
+export const THUMB_512_EXT: string | null = 'webp';
+
+/**
+ * タイル出力フォルダ内に置かれる 512px 中間ファイルの名前。
+ * `MapUploadService` が書き、`MapEditService` が `tmbs/` へ移す。
+ *
+ * リテラルを 2 ファイルへ直書きすると「製品コードにインライン派生を残さない」完了条件に反するため、
+ * 派生規約と同じ場所（本モジュール）で導く。THUMB_512_EXT が null のとき（＝入力拡張子の引き継ぎ）は
+ * 中間ファイルの生成元が地図タイルで拡張子が一意に定まらないため、従来値 `jpg` を用いる。
+ */
+export const THUMB_512_TMP_BASENAME: string = `thumbnail_512.${THUMB_512_EXT ?? 'jpg'}`;
 
 const BASEMAP_ICONS_PREFIX = 'basemap_icons/';
 const BASEMAP_ICONS_512_PREFIX = 'basemap_icons_512/';

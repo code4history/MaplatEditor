@@ -17,6 +17,16 @@ import poiSourceService from './PoiSourceService';
 import { resolveImportSlug } from './importSlugResolver';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { listPoiDocumentEntries } from '../../src/utils/poiPackage';
+import { THUMB_512_EXT, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
+import { transcodeImage } from '../utils/thumbnail512Codec';
+
+// m19-t5 (§8.3): 交換形式（ZIP）が持ち込む 512px サムネイルの拡張子候補。
+//
+// **これは読み込み側の fallback 分岐ではない。** 受け取った交換ファイルを 1 件だけ拾い、
+// thumb512PathFor が返す唯一のパス（正規形）へ**書き直す**ための、書き込み側の正規化である
+// （sp-0006: 正規化は書き込み側へ・二重状態を作らない）。
+// 旧 ZIP（0.7.0 期〜M12-T15 期）は 512px を JPEG で同梱しており、正規形で来るとは限らない。
+const THUMB_512_IMPORT_EXT_CANDIDATES = [THUMB_512_EXT ?? 'jpg', 'jpg', 'jpeg', 'png'];
 
 // M5-T4B (実装レビュー Major-1): restore 失敗経路で先に走った補償の残留を、
 // throw する Error へ添えて外側へ運ぶための添え札。
@@ -342,13 +352,29 @@ class DataUploadService {
             await fs.move(tmbPath, tmbToPath);
             placedPaths.push(tmbToPath);
 
-            // M5-T4B: 512px サムネイル。**旧 ZIP 互換のため入力に無い場合は保存対象なし**として扱う
-            const tmb512Path = path.join(tmbTmpFolder, `${mapID}_512.jpg`);
-            if (fs.existsSync(tmb512Path)) {
-                const tmb512ToPath = path.join(uiThumbnailFolder, `${uid}_512.jpg`);
-                await fs.remove(tmb512ToPath);
-                await fs.move(tmb512Path, tmb512ToPath);
-                placedPaths.push(tmb512ToPath);
+            // M5-T4B: 512px サムネイル。**旧 ZIP 互換のため入力に無い場合は保存対象なし**として扱う。
+            // m19-t5 (§8.3): 入力の拡張子は交換形式の世代によって異なるため候補から 1 件だけ拾い、
+            // 正規形（thumb512PathFor が返す唯一のパス）へ置く。正規形以外で来たものは transcode する
+            // （＝受け取った時点で正規化し、以後は読み込み側に分岐を残さない）。
+            const tmb512ToRel = thumb512PathFor(thumb52PathFor(uid, 'jpg'));
+            const tmb512FromRel = thumb512PathFor(thumb52PathFor(mapID, 'jpg'));
+            if (tmb512ToRel && tmb512FromRel) {
+                const tmb512ToPath = path.join(uiThumbnailFolder, path.posix.basename(tmb512ToRel));
+                // ZIP 内の名前は slug（mapID）キー。stem は派生規約から導き、拡張子だけを候補で差し替える
+                const fromStem = path.posix.basename(tmb512FromRel).replace(/\.[^.]+$/, '');
+                for (const ext of THUMB_512_IMPORT_EXT_CANDIDATES) {
+                    const candidate = path.join(tmbTmpFolder, `${fromStem}.${ext}`);
+                    if (!fs.existsSync(candidate)) continue;
+                    await fs.remove(tmb512ToPath);
+                    if (ext === (THUMB_512_EXT ?? 'jpg')) {
+                        await fs.move(candidate, tmb512ToPath);
+                    } else {
+                        await transcodeImage(candidate, tmb512ToPath);
+                        await fs.remove(candidate);
+                    }
+                    placedPaths.push(tmb512ToPath);
+                    break;
+                }
             }
 
             // --- 原版の normalizeRequestData 相当 ---
