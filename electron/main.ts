@@ -483,18 +483,28 @@ function createAboutWindow() {
     maximizable: false,
     title: 'About MaplatEditor',
     autoHideMenuBar: true,
-    webPreferences: { 
-      nodeIntegration: true,
-      contextIsolation: false,
+    webPreferences: {
+      // m19-t4a (§7.4 案2): nodeIntegration/contextIsolation は既定へ戻す。preload も渡さない
+      // （contextBridge も IPC も使わない。露出する Node/Electron API はゼロ）。
+      // webSecurity: false はメインウィンドウ側の是正が後送りである限り単独では意味を持たないため据え置く（§1.2）
       webSecurity: false
     }
   });
   aboutWin.setMenu(null);
-  
-  // publicフォルダからabout.htmlを読み込む
+
+  // publicフォルダからabout.htmlを読み込む。バージョン値は preload/contextBridge を使わず
+  // loadFile の query で渡す（§6 のインタフェース契約。露出面ゼロを保つ唯一の経路）
   const aboutPath = path.join(process.env.VITE_PUBLIC as string, 'about.html');
-  aboutWin.loadFile(aboutPath);
-  
+  aboutWin.loadFile(aboutPath, {
+    query: {
+      appVersion: app.getVersion(),
+      electron: process.versions.electron,
+      chrome: process.versions.chrome,
+      node: process.versions.node,
+      v8: process.versions.v8
+    }
+  });
+
   // aboutWin.webContents.openDevTools({ mode: 'detach' }); // デバッグ時はコメント解除
   aboutWin.on('closed', () => { aboutWin = null; });
 }

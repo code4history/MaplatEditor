@@ -76,26 +76,29 @@
     </div>
     
     <h1 id="productName">MaplatEditor</h1>
-    <div class="version">Version 0.7.0</div>
-    
-    <div class="copyright">Copyright (c) 2015-2022 Code for History</div>
-    
+    <div class="version" id="appVersion">Version …</div>
+
+    <div class="copyright">Copyright 2019-2026 Kohei Otsuka, Code for History / Nayuta, Inc.</div>
+
     <div class="versions-table" id="versions">
         Loading versions...
     </div>
 
     <script>
         try {
-            // direct access via nodeIntegration
-            const v = process.versions;
+            // m19-t4a (§6/§7.4): main プロセスから loadFile の query で受け取る
+            // （preload なし・contextBridge なし・IPC なし。露出面ゼロ）
+            const q = new URLSearchParams(location.search);
+            const g = (k) => q.get(k) ?? '-';
+            document.getElementById('appVersion').textContent = 'Version ' + g('appVersion');
             document.getElementById('versions').innerHTML = `
-                <div><span>electron</span>: ${v.electron}</div>
-                <div><span>chrome</span>: ${v.chrome}</div>
-                <div><span>node</span>: ${v.node}</div>
-                <div><span>v8</span>: ${v.v8}</div>
+                <div><span>electron</span>: ${g('electron')}</div>
+                <div><span>chrome</span>: ${g('chrome')}</div>
+                <div><span>node</span>: ${g('node')}</div>
+                <div><span>v8</span>: ${g('v8')}</div>
             `;
         } catch (e) {
-            document.getElementById('versions').innerHTML = 
+            document.getElementById('versions').innerHTML =
                 '<div style="color:red">Error: ' + e.message + '</div>';
         }
         document.addEventListener('contextmenu', event => event.preventDefault());
