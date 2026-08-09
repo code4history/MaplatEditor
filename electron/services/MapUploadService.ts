@@ -76,7 +76,57 @@ function classifyDecodeError(error: unknown): 'jpeg_memory_limit' | 'jpeg_resolu
     return 'unknown';
 }
 
-
+/**
+ * m19-t6: 原寸ビットマップの矩形領域だけを取り出す（原寸全体を複製しない）。
+ *
+ * 返り値は Jimp v1 の `image.clone().crop({x,y,w,h}).bitmap` と **バイト単位で同一**である。
+ * - `crop` は行優先で矩形を写すだけ（@jimp/plugin-crop + @jimp/utils の scan）なので、
+ *   行単位の Buffer.copy と結果が一致する
+ * - `x===0 && w===source.width` の分岐は `crop` 自身のショートカット（Buffer の view）と同じもの。
+ *   行が連続しているためコピーが要らない
+ *
+ * 返す bitmap は **必ず新しいオブジェクト**である（`source` を返さない）。
+ * Jimp の `resize` は bitmap オブジェクトをその場で書き換えるため、`source` をそのまま渡すと
+ * 原本が破壊される（プラグインラッパの都合で `crop` も同様にその場で書き換える）。
+ * data だけを共有するのは安全である（resize は入力バッファを読むだけで書き込まない）。
+ *
+ * **等価性の上界**: `crop` / `scan` はインデックス計算に `<< 2`（32bit 演算）を使うのに対し、
+ * 本関数は `* 4`（float64・2^53 まで正確）を使う。∴ 厳密なバイト一致が成立するのは
+ * `width * height < 2^29 px`（= 536,870,912 px ≒ 536.9 MP）までである。
+ * これを超える領域では jimp の `crop` 側が 32bit シフトのオーバーフローで破綻しており
+ * （ショートカット分岐は `Buffer.slice(負値)` が末尾からのオフセットと解釈されるため
+ * **例外を投げずに誤ったデータを返す**。非ショートカット分岐は `readUInt32BE` で RangeError）、
+ * 本関数は `* 4` を使うためこの領域でも正しい結果を返す。∴ 上界の外は回帰ではなく改善である。
+ */
+export function cropRegionBitmap(
+    source: { data: Buffer; width: number; height: number },
+    xArg: number,
+    yArg: number,
+    wArg: number,
+    hArg: number
+): { data: Buffer; width: number; height: number } {
+    // crop が入力を丸めているため、丸めまで含めて同一にする
+    // （現在の呼び出し値はすべて整数だが「crop の差し替え」という契約を崩さない）。
+    const x = Math.round(xArg);
+    const y = Math.round(yArg);
+    const w = Math.round(wArg);
+    const h = Math.round(hArg);
+    if (x === 0 && w === source.width) {
+        // 行が連続しているためコピー不要（crop のショートカットと同一の分岐条件）。
+        // slice は Buffer では非推奨エイリアスのため subarray を使う。
+        const start = (source.width * y + x) * 4;
+        return { data: source.data.subarray(start, start + h * w * 4), width: w, height: h };
+    }
+    // Buffer.alloc（ゼロ埋め）を使う。全バイトを書き込むので機能上は allocUnsafe で足りるが、
+    // 万一の書き漏れが未初期化ヒープの画像への混入になるため採らない。
+    const data = Buffer.alloc(w * h * 4);
+    const rowBytes = w * 4;
+    for (let row = 0; row < h; row++) {
+        const s = (source.width * (y + row) + x) * 4;
+        source.data.copy(data, row * rowBytes, s, s + rowBytes);
+    }
+    return { data, width: w, height: h };
+}
 
 /**
  * 旧実装 thumbExtractor.make_thumbnail() 相当
