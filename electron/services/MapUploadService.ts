@@ -342,6 +342,12 @@ export async function imageCutter(
                 maxResolutionInMP: effectiveResolutionMP,
             },
         });
+        // m19-t6: デコード後、圧縮元バッファは以降どこからも読まれない
+        // （original.<ext> のコピーは fs.copy が srcFile から直接行う）。
+        // タイル化は数分続くため、ここで参照を落として解放できるようにする。
+        // 型を `Buffer | null` に変えず空バッファを代入するのは、188 行の宣言と非 null 前提を保ち、
+        // `!` の追加や制御フローの変更を持ち込まないためである。
+        sourceBuffer = Buffer.alloc(0);
         const width: number = imageJimp.width;   // 旧: imageJimp.bitmap.width
         const height: number = imageJimp.height; // 旧: imageJimp.bitmap.height
         const maxZoom = Math.ceil(Math.log(Math.max(width, height) / 256) / Math.log(2));
@@ -384,11 +390,13 @@ export async function imageCutter(
         // タイル生成ループ
         for (let i = 0; i < tasks.length; i++) {
             const task = tasks[i];
-            // 旧実装: imageJimp.clone().crop(sx, sy, sw, sh).resize(tw, th)
-            // Jimp v1: crop({x,y,w,h}), resize({w,h})
-            const canvasJimp = imageJimp.clone()
-                .crop({ x: task[1], y: task[2], w: task[3], h: task[4] })
-                .resize({ w: task[5], h: task[6] });
+            // m19-t6: 旧実装は imageJimp.clone() で原寸 RGBA 全体を毎回複製していた
+            // （旧 Electron 版 backend/src/mapupload.js:123 から引き継いだ形）。
+            // cropRegionBitmap は clone().crop({x,y,w,h}) と同一の bitmap を、コピー無し／
+            // 矩形ぶんのコピーだけで返す。resize 以降は一切変えていない。
+            const canvasJimp = new Jimp(
+                cropRegionBitmap(imageJimp.bitmap, task[1], task[2], task[3], task[4])
+            ).resize({ w: task[5], h: task[6] });
             await canvasJimp.write(task[0] as `${string}.${string}`);
 
             progress.update(i + 1);

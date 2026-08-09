@@ -201,6 +201,127 @@ await writeFile(
     }
 
     // ============================================================
+    // Part 2: 性能（AC-P1 / AC-P2 / AC-P3）
+    //
+    // 同一プロセス・同一入力・同一矩形列で新旧 2 本の抽出経路を回す A/B。
+    // 過去の別マシンの記録（FUTURE_PLAN §6 の 41 秒 / m5-t6 smoke ヘッダの約 65 秒）は
+    // 1.6〜1.8 倍食い違っているため、しきい値の基礎に使わない（設計書 §3.6）。
+    //
+    // フィクスチャ 4096x4096: 幅が 256 の 2 冪倍ちょうどのため最低ズームがショートカット分岐に
+    // 入り、ピーク比が実装に対して決定的になる。
+    // ============================================================
+    {
+      const W = 4096, H = 4096;
+      const src = new Jimp({ width: W, height: H, color: 0x3366ccff });
+      const fullBytes = src.bitmap.data.byteLength;
+
+      // imageCutter と同一の式で構築したタスクリスト（ファイル書き出しはしない）
+      const maxZoom = Math.ceil(Math.log(Math.max(W, H) / 256) / Math.log(2));
+      const rects = [];
+      for (let z = maxZoom; z >= 0; z--) {
+        const pw = Math.round(W / Math.pow(2, maxZoom - z));
+        const ph = Math.round(H / Math.pow(2, maxZoom - z));
+        for (let tx = 0; tx * 256 < pw; tx++) {
+          const sx = tx * 256 * Math.pow(2, maxZoom - z);
+          const sw = (tx + 1) * 256 * Math.pow(2, maxZoom - z) > W ? W - sx : 256 * Math.pow(2, maxZoom - z);
+          for (let ty = 0; ty * 256 < ph; ty++) {
+            const sy = ty * 256 * Math.pow(2, maxZoom - z);
+            const sh = (ty + 1) * 256 * Math.pow(2, maxZoom - z) > H ? H - sy : 256 * Math.pow(2, maxZoom - z);
+            rects.push([sx, sy, sw, sh]);
+          }
+        }
+      }
+
+      // --- 旧腕: imageJimp.clone().crop({x,y,w,h}) ---
+      let oldMs = 0n, oldAlloc = 0, oldPeak = 0, oldPeakExternal = 0, oldPeakRss = 0;
+      for (const r of rects) {
+        const t0 = process.hrtime.bigint();
+        const cloned = src.clone();
+        // crop は bitmap をその場で書き換えて同じ image を返すため、クローンの ArrayBuffer は
+        // **crop の前に**控えておく（後で見ると必ず crop 後の値になり、view 判定が常に真になる）
+        const clonedArrayBuffer = cloned.bitmap.data.buffer;
+        const cropped = cloned.crop({ x: r[0], y: r[1], w: r[2], h: r[3] });
+        oldMs += process.hrtime.bigint() - t0;
+        // 新規確保の会計: clone は必ず原寸ぶんの新規 Buffer。crop はショートカット時のみ view。
+        const cloneBytes = fullBytes;
+        const viewOfClone = cropped.bitmap.data.buffer === clonedArrayBuffer;
+        const cropBytes = viewOfClone ? 0 : cropped.bitmap.data.byteLength;
+        oldAlloc += cloneBytes + cropBytes;
+        const live = fullBytes + cloneBytes + cropBytes;
+        if (live > oldPeak) {
+          oldPeak = live;
+          const m = process.memoryUsage();
+          oldPeakExternal = m.external; oldPeakRss = m.rss;
+        }
+      }
+
+      // --- 新腕: cropRegionBitmap(imageJimp.bitmap, x, y, w, h)（製品コードから import） ---
+      let newMs = 0n, newAlloc = 0, newPeak = 0, newPeakExternal = 0, newPeakRss = 0;
+      for (const r of rects) {
+        const t0 = process.hrtime.bigint();
+        const bm = cropRegionBitmap(src.bitmap, r[0], r[1], r[2], r[3]);
+        newMs += process.hrtime.bigint() - t0;
+        const viewOfSource = bm.data.buffer === src.bitmap.data.buffer;
+        const allocBytes = viewOfSource ? 0 : bm.data.byteLength;
+        newAlloc += allocBytes;
+        const live = fullBytes + allocBytes;
+        if (live > newPeak) {
+          newPeak = live;
+          const m = process.memoryUsage();
+          newPeakExternal = m.external; newPeakRss = m.rss;
+        }
+      }
+
+      const oldMsNum = Number(oldMs / 1000000n), newMsNum = Number(newMs / 1000000n);
+      console.log('AC-P 計測 フィクスチャ ' + W + 'x' + H + '（原寸 RGBA ' + mib(fullBytes) + ' MiB, '
+        + 'maxZoom ' + maxZoom + ', タイル数 ' + rects.length + '）');
+      console.log('AC-P1 抽出のみの所要時間        : 旧 ' + oldMsNum + ' ms / 新 ' + newMsNum + ' ms'
+        + '（比 ' + (newMsNum > 0 ? (oldMsNum / newMsNum).toFixed(1) : 'inf') + ' 倍）');
+      console.log('AC-P2 抽出のための新規確保 累計 : 旧 ' + mib(oldAlloc) + ' MiB / 新 ' + mib(newAlloc) + ' MiB'
+        + '（比 ' + (newAlloc > 0 ? (oldAlloc / newAlloc).toFixed(1) : 'inf') + ' 倍）');
+      console.log('AC-P3 抽出時のピーク live（会計）: 旧 ' + mib(oldPeak) + ' MiB / 新 ' + mib(newPeak) + ' MiB'
+        + '（比 ' + (newPeak / oldPeak).toFixed(3) + '）');
+      console.log('AC-P 副次記録（しきい値なし・GC 依存）: '
+        + '旧 external ' + mib(oldPeakExternal) + ' MiB / rss ' + mib(oldPeakRss) + ' MiB, '
+        + '新 external ' + mib(newPeakExternal) + ' MiB / rss ' + mib(newPeakRss) + ' MiB');
+
+      ok('AC-P1 抽出のみの所要時間が 5 倍以上短縮（new_ms * 5 <= old_ms）', () => {
+        assert.ok(newMsNum * 5 <= oldMsNum, '旧 ' + oldMsNum + ' ms / 新 ' + newMsNum + ' ms');
+      });
+      ok('AC-P2 抽出のための新規確保 累計が 20 倍以上削減（new_alloc * 20 <= old_alloc）', () => {
+        assert.ok(newAlloc * 20 <= oldAlloc, '旧 ' + mib(oldAlloc) + ' MiB / 新 ' + mib(newAlloc) + ' MiB');
+      });
+      ok('AC-P3 抽出時のピーク live が 0.75 倍以下（new_peak <= old_peak * 0.75）', () => {
+        assert.ok(newPeak <= oldPeak * 0.75, '旧 ' + mib(oldPeak) + ' MiB / 新 ' + mib(newPeak) + ' MiB');
+      });
+    }
+
+    // ============================================================
+    // Part 4: 圧縮元バッファの解放（AC-P4）
+    //
+    // 本項が保証するのは「Jimp.fromBuffer 以降に圧縮元バッファへの参照を残さないコード形状」
+    // までである（jpeg-js が入力 Buffer への参照を内部に保持しないことまでは検証していない。
+    // 設計レビュー v1 Minor-4）。
+    // ============================================================
+    {
+      const servicePath = nodePath.join(projectRoot, 'electron/services/MapUploadService.ts');
+      const lines = nodeFs.readFileSync(servicePath, 'utf8').split('\\n');
+      const fromBufferLine = lines.findIndex((l) => l.includes('Jimp.fromBuffer(sourceBuffer'));
+      // 行コメント内の言及は「参照」ではないので落とす（コード上の参照だけを数える）
+      const stripComment = (l) => l.replace(/\\/\\/.*$/, '');
+      const after = lines
+        .map((l, i) => ({ n: i + 1, l }))
+        .filter((e) => e.n > fromBufferLine + 1 && /\\bsourceBuffer\\b/.test(stripComment(e.l)));
+      ok('AC-P4 Jimp.fromBuffer より後に現れる sourceBuffer は解放行 1 行のみ', () => {
+        assert.ok(fromBufferLine >= 0, 'Jimp.fromBuffer(sourceBuffer の行が見つかる');
+        assert.equal(after.length, 1, '後続の出現: ' + JSON.stringify(after));
+        assert.match(after[0].l, /sourceBuffer = Buffer\\.alloc\\(0\\)/, '解放行である: ' + after[0].l);
+      });
+      console.log('AC-P4 観測: Jimp.fromBuffer は ' + (fromBufferLine + 1) + ' 行目、'
+        + '後続の sourceBuffer 出現は ' + after.map((e) => e.n).join(',') + ' 行目のみ');
+    }
+
+    // ============================================================
     // Part 3: 実サービスの無回帰（AC-N3 / AC-N4 / AC-N6）
     //
     // 実 imageCutter の出力タイル群と、smoke 内の参照ループ
