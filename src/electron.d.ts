@@ -273,7 +273,9 @@ export interface BaseMapSavePayload {
 }
 
 export type BaseMapSaveResult =
-    | { result: 'Success'; uid: string; revision: number }
+    // m19-t2: thumbnail は永続化された実効値。新規作成では backend が 52px/512px を
+    // uid 名へ付け替えるため payload の値と異なりうる（renderer は返値側を採ること）
+    | { result: 'Success'; uid: string; revision: number; thumbnail?: string }
     | { result: 'Exist' }
     | { result: 'Error'; code: 'not-found' | 'invalid-request' | 'internal'; message?: string }
     | { error: 'revision-conflict'; current: number };

@@ -240,7 +240,8 @@ class SettingsService extends EventEmitter {
   public async saveUserBaseMap(
     payload: { uid?: string; slug: string; tms: any; expectedRevision?: number },
   ): Promise<
-    | { result: 'Success'; uid: string; revision: number }
+    // m19-t2: thumbnail は永続化された実効値（新規作成では uid 名へ付け替わる）
+    | { result: 'Success'; uid: string; revision: number; thumbnail?: string }
     | { result: 'Exist' }
     | { result: 'Error'; code: 'not-found' | 'invalid-request' | 'internal'; message?: string }
     | { error: 'revision-conflict'; current: number }

@@ -37,6 +37,9 @@ const exportDir = path.join(workDir, 'export-out');
 await mkdir(dataDir, { recursive: true });
 await mkdir(exportDir, { recursive: true });
 
+// 1x1 PNG（S10 のローカルタイルサーバーが返すタイル）
+const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+
 const thumbnailPathsFile = path.join(projectRoot, 'src/utils/thumbnailPaths.ts');
 const builtinFile = path.join(projectRoot, 'electron/builtin_base_maps.json');
 const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
@@ -390,6 +393,68 @@ await writeFile(
           + JSON.stringify(names.filter((n) => n.startsWith('tmbs/'))));
       assert.equal(names.includes('tmbs/' + UID + '_512.png'), false, 'S5: uid 名は出力へ漏れない（ADR-0007 export 契約）');
       console.log('ok: S5 ベースマップ 512px の package 同梱（uid → slug 解決）');
+    }
+
+    // ============ S10: 新規ベースマップの「存在範囲から生成 → 初回保存」で 512px が残る ============
+    // 人間検証で見つかった欠陥の回帰。実フロー（生成は暫定名＝slug 名で書かれ、初回保存で
+    // uid 名へ付け替わる）を実サービスでそのまま踏む。
+    {
+      const nodeHttp = await import('node:http');
+      const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
+      await SqliteDataService.getDb();
+
+      const tilePng = Buffer.from(${JSON.stringify(PNG_B64)}, 'base64');
+      const server = nodeHttp.createServer((_req, res) => {
+        res.writeHead(200, { 'content-type': 'image/png' });
+        res.end(tilePng);
+      });
+      await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+      const port = server.address().port;
+      const tmsUrl = 'http://127.0.0.1:' + port + '/{z}/{x}/{y}.png';
+
+      const SLUG = 's10-generate-then-save';
+      const UID = 'ffffffff-6666-4666-8666-ffffffffffff';
+      const coverage = [[139.7, 35.6], [139.8, 35.7]];
+
+      // 未保存の新規ベースマップ: iconFileKey() は slug を返すため暫定名で書かれる
+      const gen = await AppAssetService.generateTmsThumbnail(SLUG, { url: tmsUrl, minZoom: 0, maxZoom: 18 }, coverage);
+      server.close();
+      assert.ok(!gen.err, 'S10: 存在範囲から生成が成功する: ' + JSON.stringify(gen));
+      assert.equal(gen.path, 'tmbs/' + SLUG + '.png', 'S10: 生成の返値は 52px の暫定名');
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '.png')), 'S10: 生成直後は 52px が暫定名で在る');
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '_512.png')), 'S10: 生成直後は 512px が暫定名で在る');
+
+      // 初回保存（create=true・preset uid）→ relocateBaseMapIcon が uid 名へ付け替える
+      const saved = await SqliteDataService.saveUserBaseMap({
+        uid: UID, slug: SLUG, create: true,
+        tms: {
+          kind: 'tms', lang: 'ja', title: { ja: 'S10' }, label: { ja: 'S10' },
+          attr: { ja: 'attr' }, dataAttr: {}, license: 'CC BY', dataLicense: 'ODbL',
+          licenseNote: {}, dataLicenseNote: {},
+          url: 'https://tiles.example.test/{z}/{x}/{y}.png',
+          minZoom: 0, maxZoom: 18,
+          thumbnail: gen.path,
+          coverageLngLats: coverage, tileJsonSourceUrl: null, sourceMapUid: null,
+        },
+      });
+      assert.equal(saved.uid, UID, 'S10: preset uid で保存される');
+
+      // 本欠陥の核心: 52px だけでなく 512px も uid 名へ寄っていること
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', UID + '.png')),
+        'S10: 保存後は 52px が uid 名で在る');
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', UID + '_512.png')),
+        'S10: 保存後は 512px も uid 名で在る（初回保存で 512px が消える欠陥の回帰）');
+      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '_512.png')), false,
+        'S10: 512px の暫定名が取り残されていない');
+      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '.png')), false,
+        'S10: 52px の暫定名が取り残されていない');
+
+      // 文書の thumbnail は 52px の uid 名を指す（INV-T）
+      const rows = await SqliteDataService.listBaseMaps();
+      const row = rows.find((r) => r.uid === UID);
+      assert.ok(row, 'S10: 保存されたベースマップが一覧に居る');
+      assert.equal(row.data.thumbnail, 'tmbs/' + UID + '.png', 'S10: thumbnail は 52px の uid 名');
+      console.log('ok: S10 生成 → 初回保存で 512px が uid 名へ寄る');
     }
 
     console.log('m19-t2 basemap thumbnail 512 smoke: ALL PASS');

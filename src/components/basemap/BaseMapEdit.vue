@@ -370,7 +370,6 @@
                   <div class="d-flex gap-2 flex-wrap">
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="basemap-thumbnail-replace-512" :disabled="structuralDisabled" @click="replaceThumbnail('512')">{{ t("basemap.thumbnail_replace_512") }}</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="basemap-thumbnail-replace-52" :disabled="structuralDisabled" @click="replaceThumbnail('52')">{{ t("basemap.thumbnail_replace_52") }}</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="structuralDisabled" @click="uploadIcon">{{ t("appedit.upload") }}</button>
                     <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled || !canGenerateIcon || generatingIcon" @click="generateIcon">
                       {{ generatingIcon ? t("basemap.generating_icon") : t("basemap.generate_icon") }}
                     </button>
@@ -958,12 +957,36 @@ async function save(): Promise<void> {
     revision.value = result.revision;
     // 保存成功(saved)で初めて originalSlug を確定 slug へ更新する(AC16 と同型の残作業引き継ぎ規約)
     originalSlug.value = captured.slug;
+    // m19-t2: 新規作成では backend が 52px/512px を暫定名（slug 名）から uid 名へ付け替え、
+    // thumbnail の実効値が変わる。renderer が payload の値を持ち続けると、そこから導く
+    // 512px パス（暫定名から導かれる側）が実体を失い、初回保存の直後に 512px プレビューが
+    // 消える。uid の書き換えと同じ形で history ごと実効値へ寄せる。
+    const savedThumbnail = typeof result.thumbnail === "string" ? result.thumbnail : null;
+    const relocatedThumbnail = savedThumbnail && savedThumbnail !== captured.thumbnail ? savedThumbnail : null;
     const snapshot = history.snapshot();
     history = UndoStack.fromSnapshot({
       ...snapshot,
-      history: snapshot.history.map((state) => ({ ...state, uid: result.uid })),
+      history: snapshot.history.map((state) => ({
+        ...state,
+        uid: result.uid,
+        // 付け替え前の値を持つ段だけを実効値へ寄せる（別の値を持つ段は触らない）
+        thumbnail: relocatedThumbnail && state.thumbnail === captured.thumbnail ? relocatedThumbnail : state.thumbnail,
+      })),
     });
     document.value = clone(history.current());
+    if (relocatedThumbnail) {
+      // 52px の生 URL も付け替え後の実体へ張り直す（旧 URL は移動済みで解決できない）。
+      // ここは「たった今書かれた 52px の所在」が確定している経路であり、§5.7 が温存を
+      // 決めた一覧側のレガシー補完経路とは別物である。
+      try {
+        const url52 = await window.appAssets.fileUrl(relocatedThumbnail);
+        if (url52) thumbnailUrl.value = url52;
+      } catch (cause) {
+        console.error("Failed to resolve relocated base map thumbnail", cause);
+      }
+      thumbnailNonce.value++;
+      await refreshThumbnails();
+    }
     if (capturedVersion === historyVersion.value) {
       history.save();
       historyVersion.value++;
@@ -1120,24 +1143,13 @@ async function replaceThumbnail(kind: "512" | "52"): Promise<void> {
   }
 }
 
-async function uploadIcon(): Promise<void> {
-  const key = iconFileKey();
-  if (!key) { error.value = t("basemap.errors.id_required"); return; }
-  try {
-    const result = await window.appAssets.uploadTmsThumbnail(key);
-    if (result.err === "Canceled") return;
-    if (result.err || !result.path) { error.value = t("appedit.error_invalid_image"); return; }
-    thumbnailUrl.value = result.fileUrl ?? null;
-    updateField("thumbnail", result.path);
-  } catch (cause) {
-    console.error("Failed to upload base map icon", cause);
-    error.value = t("appedit.error_invalid_image");
-  } finally {
-    thumbnailNonce.value++;
-    await refreshThumbnails();
-  }
-}
-
+// m19-t2: 旧「アップロード」（uploadIcon / uploadTmsThumbnail 経由）は撤去した。
+// 新設の replaceThumbnail('52') と機能が重複するうえ、書き込みキーを iconFileKey() から採り
+// 拡張子を .png に固定するため、規則 K（キーと拡張子を document.thumbnail から採る）を通らない。
+// 実害: merc 継承で thumbnail が tmbs/{uid}.jpg のベースマップに対して tmbs/{uid}.png を書いて
+// thumbnail を張り替えるため、そこから導く 512px（png 側）が実体を持たず、実在する
+// 512px（jpg 側）が参照不能になる。replaceThumbnail('52') は拡張子を thumbnail から採るため対で整合する。
+// uploadTmsThumbnail 自体は AppSourceEditor.vue が唯一の呼び出し元として残るため存置する。
 // m6-t7: TileJSON URL からの tms マスタ取り込み。attribution/name はプレーン文字列
 // (多言語非対応) のため document.defaultLang のスロットにのみ書き込む（他言語スロットは変更しない）。
 // 実装レビュー M-1: selectGooglePreset（:602-617、m6-t4b「1 commit = 1 undo」）と同型に、

@@ -119,6 +119,13 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeChecked();
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeEnabled();
 
+      // 地図管理と同型であること: 操作子は「512px を置換 / 52px を置換 / 存在範囲から生成」のみ。
+      // 旧「アップロード」は replaceThumbnail('52') と重複し、規則 K を通らない経路を
+      // 露出させていたため撤去した（人間検証の指摘）
+      await expect(page.getByRole('button', { name: 'アップロード', exact: true })).toHaveCount(0);
+      const card = page.getByText('サムネイル管理').locator('xpath=ancestor::div[contains(@class,"card")][1]');
+      await expect(card.locator('button')).toHaveCount(3);
+
       // --- 新規（thumbnail が空 = 規則 K が K2）: §6.5 の強制 ON ---
       // 強制 ON が落ちると K2 経路で derive52 OFF の 512px 単独置換が到達可能になり、
       // thumbnail の派生位置と食い違う 512px の孤児が生まれる
@@ -260,6 +267,61 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       expect(await readBaseMapThumbnail(page, uid)).toBe(`tmbs/${uid}.png`);
 
       console.log('  T4: PASS');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('T8: 新規ベースマップの初回保存後も 512px プレビューが残る（人間検証で見つかった欠陥の回帰）', async () => {
+    test.setTimeout(240_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m19t2-t8-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const saveFolder = await saveFolderOf(page);
+      await installDialogHarness(app, await makeSourceImage(e2eRoot, 'replace.png'));
+
+      const slug = `m19t2-keep-${Date.now().toString(36)}`;
+      await openHash(page, '#/basemaps');
+      await page.getByTestId('basemap-new').click();
+      await page.getByTestId('basemap-kind-tms').click();
+      await page.getByTestId('basemap-slug').fill(slug);
+      await page.getByTestId('basemap-slug').press('Tab');
+      await page.getByTestId('basemap-title').fill('m19-t2 keep');
+      await page.getByTestId('basemap-title').press('Tab');
+      await page.getByTestId('basemap-attr').fill('m19-t2 attr');
+      await page.getByTestId('basemap-attr').press('Tab');
+      await page.getByTestId('basemap-url').fill('https://tiles.example.test/{z}/{x}/{y}.png');
+      await page.getByTestId('basemap-url').press('Tab');
+
+      // 未保存のうちに 512px/52px を作る（暫定名＝slug 名で書かれる）
+      await page.getByTestId('basemap-thumbnail-replace-512').click();
+      const img512 = page.locator('img[alt="512px"]');
+      await expect(img512).toBeVisible({ timeout: 15000 });
+
+      // 初回保存（backend が 512px/52px を uid 名へ付け替える）
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 15000 });
+      await page.getByTestId('editor-save').click();
+      await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
+
+      const uid = await page.evaluate(async (targetSlug) => {
+        const rows = await window.baseMaps.list();
+        const row = rows.find((r) => r.mapID === targetSlug);
+        if (!row) throw new Error(`saved base map ${targetSlug} not found`);
+        return row.uid;
+      }, slug);
+
+      // 実体は uid 名へ寄っている（T4 が見ていた範囲）
+      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512.png`))).toBe(true);
+
+      // ここが T4 に無かった観点: 保存後もエディタが 512px を解決できること。
+      // 旧実装は保存後も document.thumbnail に暫定名を持ち続けたため、そこから導く
+      // tmbs/{slug}_512.png が実体を失い 512px プレビューが消えていた。
+      await expect(img512).toBeVisible({ timeout: 15000 });
+      await expect(img512).toHaveAttribute('src', new RegExp(`${uid}_512\\.png`), { timeout: 15000 });
+      // 52px の実体も uid 名で解決できる ⇒ §6.5 の強制 ON に落ちない
+      await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeEnabled({ timeout: 15000 });
+
+      console.log('  T8: PASS');
     } finally {
       await quitElectronApplication(app);
     }
