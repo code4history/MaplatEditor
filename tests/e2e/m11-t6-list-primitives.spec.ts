@@ -250,6 +250,11 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await page.getByTestId('basemap-slug').press('Tab');
     await page.getByTestId('basemap-title').fill('E2E User BaseMap');
     await page.getByTestId('basemap-title').press('Tab');
+    // NOTE (既存RED吸収): m6-t2 (ecc2c3d) が attr を必須化した（validateBaseMapDocument の
+    // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。m11-t4 は
+    // af691aa、m11-t5 は 9c2815e で同じ吸収を済ませているので、それに揃える。
+    await page.getByTestId('basemap-attr').fill('テスト帰属');
+    await page.getByTestId('basemap-attr').press('Tab');
     await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await page.getByTestId('basemap-url').press('Tab');
     // 非同期 validation/dirty 確定を待ってから保存（並列負荷時に click が無視されるのを防ぐ）

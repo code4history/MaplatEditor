@@ -169,6 +169,11 @@ test('instance B save conflicts with instance A reservation and creates no asset
     await b.page.getByTestId('basemap-slug').press('Tab');
     await b.page.getByTestId('basemap-title').fill('B conflict body');
     await b.page.getByTestId('basemap-title').press('Tab');
+    // NOTE (既存RED吸収): m6-t2 (ecc2c3d) が attr を必須化した（validateBaseMapDocument の
+    // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。
+    // m11-t4 は af691aa、m11-t5 は 9c2815e で同じ吸収を済ませているので、それに揃える。
+    await b.page.getByTestId('basemap-attr').fill('テスト帰属');
+    await b.page.getByTestId('basemap-attr').press('Tab');
     await b.page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await b.page.getByTestId('basemap-url').press('Tab');
 

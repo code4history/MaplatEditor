@@ -322,11 +322,14 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     await expectSlugInputAlignment(page, 'map-slug', 'map-title');
     // AC9: §9 tab 語彙 + role/aria。画像未登録 seed のため対応点編集は disabled
     const mapTabs = page.locator('.nav-tabs [role="tab"]');
-    await expect(mapTabs).toHaveCount(4);
+    // NOTE (既存RED吸収): m6-t8 (90da8c5) が merc タブ(map-tab-merc)を無条件で追加したため
+    // MapEdit のタブは 5 枚。本 assert は m6-t8 以降ずっと RED だった（AppEdit 側は 4 枚のまま）。
+    await expect(mapTabs).toHaveCount(5);
     await expect(mapTabs.nth(0)).toHaveText(/メタデータ編集/);
     await expect(mapTabs.nth(1)).toHaveText(/対応点編集/);
     await expect(mapTabs.nth(2)).toHaveText(/ベースマップ選択/);
     await expect(mapTabs.nth(3)).toHaveText(/POI選択/);
+    await expect(mapTabs.nth(4)).toHaveText(/メルカトルタイル/);
     await expect(mapTabs.nth(0)).toHaveAttribute('aria-selected', 'true');
     await expect(mapTabs.nth(1)).toHaveAttribute('aria-disabled', 'true');
     await expect(mapTabs.nth(1)).toHaveAttribute('title', /地図画像/);
@@ -519,8 +522,13 @@ test('new base map creation mints uid, reserves slug, and persists initial draft
     { timeout: 10_000 }).toBe(true);
 
     // 必須フィールドを埋めて保存
+    // NOTE (既存RED吸収): m6-t2 (ecc2c3d) が attr を必須化した（validateBaseMapDocument の
+    // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。
+    // m11-t4 は af691aa、m11-t5 は 9c2815e で同じ吸収を済ませているので、それに揃える。
     await page.getByTestId('basemap-title').fill('AC6新規ベースマップ');
     await page.getByTestId('basemap-title').press('Tab');
+    await page.getByTestId('basemap-attr').fill('テスト帰属');
+    await page.getByTestId('basemap-attr').press('Tab');
     await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await page.getByTestId('basemap-url').press('Tab');
     await expect(page.getByTestId('editor-save')).toBeEnabled();
@@ -578,6 +586,10 @@ test('new base map save fails cleanly when slug is reserved by another owner', a
     // 保存を試みる → confirmForSaveが拒否 → assetは作成されない
     await page.getByTestId('basemap-title').fill('AC6 Clash');
     await page.getByTestId('basemap-title').press('Tab');
+    // m6-t2 の attr 必須化（上記 NOTE）。attr を埋めておかないと保存ボタンの disabled が
+    // 「slug が他所で予約済み」ではなく「attr 未入力」由来になり、下の分岐が常に false 側へ落ちる。
+    await page.getByTestId('basemap-attr').fill('テスト帰属');
+    await page.getByTestId('basemap-attr').press('Tab');
     await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await page.getByTestId('basemap-url').press('Tab');
     const saveButton = page.getByTestId('editor-save');
@@ -618,6 +630,9 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
     await runtime.page.getByTestId('basemap-slug').press('Tab');
     await runtime.page.getByTestId('basemap-title').fill('T7ドラフト');
     await runtime.page.getByTestId('basemap-title').press('Tab');
+    // m6-t2 の attr 必須化（上記 NOTE）。未入力だと editor-save が disabled のままで click が timeout する。
+    await runtime.page.getByTestId('basemap-attr').fill('テスト帰属');
+    await runtime.page.getByTestId('basemap-attr').press('Tab');
     await runtime.page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
     await runtime.page.getByTestId('basemap-url').press('Tab');
     await runtime.page.getByTestId('editor-save').click();
