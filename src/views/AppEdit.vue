@@ -607,14 +607,11 @@ function estimateHomeFromSources() {
 async function hydrateSourceThumbnails() {
   for (const source of appData.value.sources) {
     if (source.thumbnail) continue;
-    // m6-t10: マスタ由来値はアプリ文書に無いためマスタから引く（上書きがあれば上書きを優先）
+    // m6-t10: マスタ由来値はアプリ文書に無いためマスタから引く。
+    // m19-t3: サムネイルの上書きは廃止したためマスタ（と命名規約）だけを見る
     const rel = source.sourceType === "maplat"
       ? `tmbs/${source.mapUid}.jpg`
-      : String(
-          source.overrides?.thumbnail
-            || masterDataOf(source)?.thumbnail
-            || `tmbs/${source.mapUid}_menu.jpg`,
-        );
+      : String(masterDataOf(source)?.thumbnail || `tmbs/${source.mapUid}_menu.jpg`);
     const url = await window.appAssets.fileUrl(rel);
     if (url) source.thumbnail = url;
   }
@@ -702,7 +699,8 @@ function normalizeSource(value: any, defaultLang?: string): AppSource {
   const source = normalizeAppSource(value, defaultLang) as AppSource;
   if (!source.title) {
     const fallbackID = source.mapSlug || source.mapUid;
-    const title = source.label || source.overrides?.title || fallbackID;
+    // m19-t3: title の上書きは廃止したため、表示名は label か fallback だけを見る
+    const title = source.label || fallbackID;
     source.title = typeof title === "string"
       ? title
       : localizedWithLang(title, defaultLang || "ja") || fallbackID;

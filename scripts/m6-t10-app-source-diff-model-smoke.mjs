@@ -16,6 +16,7 @@ const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'm6-t10-diff-model-'));
 const outDir = path.join(workDir, 'dist');
+const read = async (rel) => await readFile(path.join(projectRoot, rel), 'utf8');
 
 try {
   await build({
@@ -300,11 +301,8 @@ try {
         attr: { ja: '作者' },                                // ← マスタと同値
         url: 'https://tiles.example.test/{z}/{x}/{y}.png',   // ← 操作子なし。捨てる
         coverageLngLats: [[130, 32]],                        // ← 操作子なし。捨てる
-        // v1.4 §3.7.1: 帰属・ライセンス系5キー。**マスタと異なる値**を入れてある
-        // （マスタは license 'CC BY' / dataLicense 'ODbL' / dataAttr {ja:'データ作者'}
-        //   / licenseNote {ja:'補足'} / dataLicenseNote {ja:'データ補足'}）。
-        // これらは v1.4 で上書き可になったが、**移行時だけは無条件に捨てる**。
-        // 操作子が無かった時代のコピーはユーザーの選択を含まないため（設計 §3.7.1）
+        // m19-t3: 帰属・ライセンス系5キー。**マスタと異なる値**を入れてあるが、
+        // 上書き可能キーではなくなったため移行時に捨てられる
         license: 'PD',
         dataLicense: 'CC0',
         dataAttr: { ja: '古いデータ作者' },
@@ -319,27 +317,22 @@ try {
     const migrated = resolveAppSource(normalized, lookup);
     assert.equal(migrated.ok, true);
     const ov = migrated.source.overrides || {};
-    assert.deepEqual(ov.title, { ja: '手で直したタイトル', en: 'User Map' }, 'AC5: マスタと異なる値は上書きとして温存');
-    assert.equal('attr' in ov, false, 'AC5: マスタと同値なら上書きにしない');
-    assert.equal('maxZoom' in ov, false, 'AC5: マスタと同値なら上書きにしない');
-    assert.equal('minZoom' in ov, false, 'AC5: マスタと同値なら上書きにしない');
-    assert.equal('thumbnail' in ov, false, 'AC5: マスタと同値なら上書きにしない');
-    assert.deepEqual(ov.envelopeLngLats, [[130.5, 32.5]], 'AC5: アプリ所有キーは無条件に温存');
-    for (const key of ['url', 'coverageLngLats', 'kind', 'mapID', 'lang']) {
-      assert.equal(key in ov, false, `AC5: 操作子の無いキー（${key}）は捨てる`);
-    }
-    // v1.4 §3.7.1: 上書き可になった5キーも、移行時は**マスタと異なっていても**捨てる
-    for (const key of ['license', 'dataLicense', 'dataAttr', 'licenseNote', 'dataLicenseNote']) {
-      assert.equal(
-        key in ov, false,
-        `AC5(v1.4 §3.7.1): 帰属・ライセンス系（${key}）は移行時は無条件に捨てる。` +
-          `温存すると、操作子が無かった時代の古いコピーが上書きとして固定され、` +
-          `マスタ側でライセンス表記を直しても既存アプリへ届かなくなる`,
-      );
+    // m19-t3 AC8: 旧「data 全コピー」形からは **OWNED 3 キー以外すべて捨てる**。
+    // title はマスタと異なる値だが、上書き可能キーではなくなったため温存しない
+    assert.deepEqual(
+      ov, { envelopeLngLats: [[130.5, 32.5]] },
+      'm19-t3 AC8: 旧形移行で温存するのはアプリ所有キーだけ（title などは値が異なっても捨てる）',
+    );
+    for (const key of [
+      'title', 'attr', 'maxZoom', 'minZoom', 'thumbnail',
+      'url', 'coverageLngLats', 'kind', 'mapID', 'lang',
+      'license', 'dataLicense', 'dataAttr', 'licenseNote', 'dataLicenseNote',
+    ]) {
+      assert.equal(key in ov, false, `m19-t3 AC8: 廃止・非上書きキー（${key}）は捨てる`);
     }
     assert.equal(migrated.source.label, undefined, 'AC5: label もマスタと同値なら上書きにしない');
     assert.equal(migrated.source.baseMapUid, 'uid-tms', 'AC5: baseMapUid を補う');
-    console.log('ok: AC5 旧形の移行（編集UIの有無で二分）');
+    console.log('ok: AC5/m19-t3 AC8 旧形の移行（OWNED のみ温存）');
   }
   {
     // 言語別フィールドの表記ゆれ（プレーン文字列 ⇄ 言語オブジェクト）を吸収して比較する
@@ -443,67 +436,91 @@ try {
     console.log('ok: createAppSourceFromBaseMap が参照＋空 overrides を返す');
   }
 
-  // ============ AC27（v1.4・IR-H-2）: 帰属・ライセンス系5キーの上書きが往復する ============
+  // ============ m19-t3 AC1: 宣言テーブルが凍結契約（m19 §4.4）と一致する ============
+  // v1.4 の 11 キーは m19-t3 で `label` 1 個へ縮んだ。アプリ文書がベースマップマスタに対して
+  // 持てる上書きは表示ラベルだけであり、帰属・ライセンス・ズーム・サムネイルはマスタが正本。
   {
     assert.deepEqual(
       [...APP_SOURCE_OVERRIDABLE_KEYS].sort(),
-      ['attr', 'dataAttr', 'dataLicense', 'dataLicenseNote', 'label', 'license', 'licenseNote', 'maxZoom', 'minZoom', 'thumbnail', 'title'],
-      'AC27: 宣言テーブルが v1.4 の11キーになる（§3.2）',
+      ['label'],
+      'm19-t3 AC1: 上書き可能キーは label のみ（m19 §4.4 で 1.0.0 まで凍結）',
+    );
+    assert.deepEqual(
+      [...APP_SOURCE_OWNED_KEYS].sort(),
+      ['envelopeLngLats', 'mercatorXShift', 'mercatorYShift'],
+      'm19-t3 AC1: アプリ所有キーは 3 個のまま（H-2 で存置が確定）',
     );
 
-    const source = {
-      sourceType: 'tms', mapUid: 'user-tms', baseMapUid: 'uid-tms', role: 'base',
-      overrides: {
-        // 言語別3キー: 編集した言語のみ保存（§3.5.5 の保存側）
-        dataAttr: { ja: 'アプリ側のデータ帰属' },
-        licenseNote: { ja: 'アプリ側の補足' },
-        dataLicenseNote: { ja: 'アプリ側のデータ補足' },
-        // スカラー2キー
-        license: 'CC BY-SA',
-        dataLicense: 'PD',
-      },
-    };
-    const out = composeViewerSource(source, { lang: 'ja', lookup });
-
-    // スカラーはそのまま出る
-    assert.equal(out.license, 'CC BY-SA', 'AC27: license の上書きがアプリ JSON 要素へ出る');
-    assert.equal(out.dataLicense, 'PD', 'AC27: dataLicense の上書きがアプリ JSON 要素へ出る');
-
-    // 言語別はマスタとマージした完全な言語オブジェクト（§3.5.5 の出力側）。
-    // マスタの dataAttr は {ja:'データ作者'} で ja のみ ∴ 上書き後も ja のみ → 交換形で平文へ畳まれる
-    assert.equal(out.dataAttr, 'アプリ側のデータ帰属', 'AC27: dataAttr の上書きが出る（ja のみなので交換形の平文）');
-    assert.equal(out.licenseNote, 'アプリ側の補足', 'AC27: licenseNote の上書きが出る');
-    assert.equal(out.dataLicenseNote, 'アプリ側のデータ補足', 'AC27: dataLicenseNote の上書きが出る');
-
-    // 未上書きなら**アプリ JSON 要素に出ない**（設定ファイル側のマスタ値が効く）
+    // 未上書きなら**アプリ JSON 要素に出ない**（設定ファイル側のマスタ値が効く）。
+    // m19-t3 以後は「未上書き」ではなく「そもそも上書きできない」が、消費側が引ける先が
+    // 必ず設定ファイルにあることの保証は変わらないため assert を残す。
     const bare = composeViewerSource(
       { sourceType: 'tms', mapUid: 'user-tms', baseMapUid: 'uid-tms', role: 'base', overrides: {} },
       { lang: 'ja', lookup },
     );
-    for (const key of ['dataAttr', 'license', 'dataLicense', 'licenseNote', 'dataLicenseNote']) {
-      assert.equal(key in bare, false, `AC27: 未上書きの ${key} はアプリ JSON 要素に出ない`);
+    for (const key of ['dataAttr', 'license', 'dataLicense', 'licenseNote', 'dataLicenseNote', 'title', 'minZoom', 'maxZoom', 'thumbnail']) {
+      assert.equal(key in bare, false, `m19-t3 AC1: 上書きを持たない ${key} はアプリ JSON 要素に出ない`);
     }
     // 設定ファイル側にはマスタ値が出ている（消費側が引ける先が必ずある）
     const setting = composeBaseMapSettingFile(lookup.byUid('uid-tms'), 'base');
-    assert.equal(setting.license, 'CC BY', 'AC27: 未上書き時に効くのは設定ファイル側のマスタ値');
+    assert.equal(setting.license, 'CC BY', 'm19-t3 AC1: 効くのは設定ファイル側のマスタ値');
     assert.equal(setting.dataLicense, 'ODbL');
     assert.equal(setting.dataAttr, 'データ作者');
 
-    // 多言語マスタでは未編集言語がマスタ値のまま残る（キー単位全置換への対処・§3.5.5）
+    // 多言語マスタでは未編集言語がマスタ値のまま残る（キー単位全置換への対処・§3.5.5）。
+    // 唯一残った言語別上書き（label）で固定する
     const osmOverride = composeViewerSource(
-      { sourceType: 'builtin', mapUid: 'osm', baseMapUid: 'uid-osm', role: 'base', overrides: { licenseNote: { ja: 'アプリ補足' } } },
+      { sourceType: 'builtin', mapUid: 'osm', baseMapUid: 'uid-osm', role: 'base', overrides: {}, label: { ja: 'アプリラベル' } },
       { lang: 'ja', lookup },
     );
     assert.deepEqual(
-      osmOverride.licenseNote, { en: 'OSM copyright', ja: 'アプリ補足' },
-      'AC27: 言語別の上書きは編集言語だけ差し替わり、未編集言語はマスタ値が残る',
+      osmOverride.label, { en: 'OSM(Now)', ja: 'アプリラベル' },
+      'm19-t3 AC1: 言語別の上書き（label）は編集言語だけ差し替わり、未編集言語はマスタ値が残る',
     );
-    console.log('ok: AC27 帰属・ライセンス系5キーの往復');
+    console.log('ok: m19-t3 AC1 宣言テーブルの凍結');
+  }
+
+  // ============ m19-t3 AC9: 差分保持形で保存済みの廃止キーは読み込み時に落ちる ============
+  // sp-0007: overrides は m6-t10（未公開）で導入された保存形であり、廃止キーの残存値は捨てる。
+  // 救う分岐（別キーへの移送・既定値合成・マスタ値での穴埋め）は 1 つも足さない。
+  {
+    const normalized = normalizeAppSource({
+      sourceType: 'tms', mapUid: 'user-tms', baseMapUid: 'uid-tms', role: 'base',
+      overrides: {
+        title: { ja: '旧上書きタイトル' },
+        maxZoom: 9,
+        minZoom: 2,
+        thumbnail: 'tmbs/old.png',
+        attr: { ja: '旧帰属' },
+        dataAttr: { ja: '旧データ帰属' },
+        license: 'PD',
+        dataLicense: 'CC0',
+        licenseNote: { ja: '旧補足' },
+        dataLicenseNote: { ja: '旧データ補足' },
+        envelopeLngLats: [[1, 2]],
+        mercatorXShift: 0.5,
+        mercatorYShift: -0.25,
+      },
+    }, 'ja');
+    assert.deepEqual(
+      normalized.overrides,
+      { envelopeLngLats: [[1, 2]], mercatorXShift: 0.5, mercatorYShift: -0.25 },
+      'm19-t3 AC9: 廃止した上書きキーは読み込み時に落ち、アプリ所有キーだけが残る',
+    );
+    // 救っていないこと（別キーへ移していない・既定値を合成していない）の直接確認
+    for (const key of ['title', 'maxZoom', 'minZoom', 'thumbnail', 'attr', 'dataAttr', 'license', 'dataLicense', 'licenseNote', 'dataLicenseNote']) {
+      assert.equal(key in normalized, false, `m19-t3 AC9: ${key} をトップレベルへ移送していない`);
+    }
+    // label（唯一の上書き可能キー）はトップレベルに保存されるため従来どおり残る
+    const withLabel = normalizeAppSource({
+      sourceType: 'tms', mapUid: 'user-tms', role: 'base', overrides: {}, label: { ja: 'ラベル' },
+    }, 'ja');
+    assert.deepEqual(withLabel.label, { ja: 'ラベル' }, 'm19-t3 AC9: label は従来どおりトップレベルで保持する');
+    console.log('ok: m19-t3 AC9 差分保持形の廃止キー濾過');
   }
 
   // ============ AC28（v1.4・IR-H-2）: 操作子種別がマスタ編集フォームと一致し、共通部品の既定値が変わらない ============
   {
-    const read = async (rel) => await readFile(path.join(projectRoot, rel), 'utf8');
     const appSourceEditor = await read('src/components/AppSourceEditor.vue');
     const baseMapEdit = await read('src/components/basemap/BaseMapEdit.vue');
     const langInput = await read('src/components/LangResourceInput.vue');
@@ -520,37 +537,9 @@ try {
       'AC28: LangValueChips の直接使用は LangResourceInput の内部へ移る',
     );
 
-    // (b) ライセンス2欄は LicenseSelect。variant / allowUnset がマスタ編集フォームと同じ
-    assert.match(appSourceEditor, /import LicenseSelect from/, 'AC28: ライセンス欄は LicenseSelect');
-    for (const variant of ['image', 'data']) {
-      assert.ok(
-        new RegExp(`variant="${variant}"`).test(appSourceEditor),
-        `AC28: variant="${variant}" がマスタ編集フォームと一致する`,
-      );
-      assert.ok(
-        new RegExp(`variant="${variant}"`).test(baseMapEdit),
-        `AC28(前提): マスタ編集フォームも variant="${variant}" を使っている`,
-      );
-    }
-    assert.match(appSourceEditor, /allow-unset/, 'AC28: allowUnset で「マスタに従う」を選べる');
-    assert.match(appSourceEditor, /appedit\.license_inherit/, 'AC28: 空選択肢は「マスタに従う」表記');
-    // IR2-H-1: 空選択肢へマスタの現在値を併記する（テキスト欄 placeholder と同じ実効値提示）
-    assert.match(
-      appSourceEditor, /unset-label-value/,
-      'AC28(IR2-H-1): 空選択肢へマスタの実効値を渡している',
-    );
-    assert.match(
-      licenseSelect, /unsetLabelValue\?: string/,
-      'AC28(IR2-H-1): LicenseSelect が実効値を受け取る prop を持つ',
-    );
-    // 11言語すべてで補間形になっていること（1言語だけ直し忘れる事故を塞ぐ）
-    for (const lang of (await readdir(path.join(projectRoot, 'public/locales'))).sort()) {
-      const dict = JSON.parse(await read(`public/locales/${lang}/translation.json`));
-      assert.ok(
-        String(dict.appedit.license_inherit).includes('{{value}}'),
-        `AC28(IR2-H-1): ${lang} の appedit.license_inherit が補間形（{{value}}）になっている`,
-      );
-    }
+    // (b) m19-t3: ライセンス2欄（LicenseSelect）は AppSourceEditor から撤去した。
+    //     マスタ編集フォーム（BaseMapEdit）側の LicenseSelect は無改修で生き続ける
+    assert.match(baseMapEdit, /import LicenseSelect from/, 'AC28(前提): マスタ編集フォームは LicenseSelect を使い続ける');
 
     // (c) 共通部品の追加 prop は**既定値が現行挙動と同一**（BaseMapEdit を無改修に保つ前提）
     assert.match(langInput, /clearable\?: boolean/, 'AC28: LangResourceInput に clearable prop');
@@ -613,6 +602,116 @@ try {
       'hotfix: maplat ソースに label 操作子があること（override- 接頭辞ではない = AC7 集合に混入しない）',
     );
     console.log('ok: hotfix 回帰ガード（label 強制補完の廃止・maplat label 操作子の復旧）');
+  }
+
+  // ============ m19-t3 AC3: 解除の × は利用範囲 1 個だけになる ============
+  {
+    const editorSrc = await readFile(path.join(projectRoot, 'src/components/AppSourceEditor.vue'), 'utf8');
+    const clearAnchors = new Set(
+      [...editorSrc.matchAll(/data-testid="app-source-clear-([a-zA-Z]+)"/g)].map((m) => m[1]),
+    );
+    assert.deepEqual(
+      [...clearAnchors].sort(), ['envelopeLngLats'],
+      'm19-t3 AC3: 解除の × は利用範囲の 1 個だけ（minZoom / maxZoom / thumbnail は廃止）',
+    );
+    // 新設「存在範囲からコピー」は override- でも clear- でもない第3の接頭辞（AC7 の集合に混入しない）
+    assert.match(
+      editorSrc, /data-testid="app-source-copy-coverage-envelopeLngLats"/,
+      'm19-t3 AC7: 「存在範囲からコピー」のアンカーが在る',
+    );
+    console.log('ok: m19-t3 AC3 解除アンカーの縮小と copy アンカーの新設');
+  }
+
+  // ============ m19-t3 AC6: 廃止した操作子の記号と i18n キーが残っていない ============
+  {
+    const editorSrcRaw = await readFile(path.join(projectRoot, 'src/components/AppSourceEditor.vue'), 'utf8');
+    // 判定対象は**コードだけ**である。行コメント（// …）と HTML コメント（<!-- … -->）は
+    // 「なぜ廃止したか」を記すために廃止記号名を書くことがあり、それを検出すると偽陽性になる
+    const editorSrc = editorSrcRaw
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/^[ \t]*\/\/.*$/gm, '');
+    // 唯一の使用点が廃止された script 記号（設計 §4.4 の「凍結後の全数」を機械照合する）
+    for (const symbol of [
+      'isOverridden', 'setScalar', 'scalarValue', 'masterNumber', 'masterLicenseLabel',
+      'uploadThumbnail', 'uploadError', 'LicenseSelect', 'LICENSE_VOCABULARY',
+    ]) {
+      assert.doesNotMatch(
+        editorSrc, new RegExp(symbol),
+        `m19-t3 AC6: 使用点が廃止された ${symbol} が AppSourceEditor.vue に残っていない`,
+      );
+    }
+    // 廃止した i18n キー（11 言語すべてから消えていること）
+    const ABOLISHED_I18N_KEYS = [
+      'source_title', 'source_attr', 'min_zoom', 'max_zoom',
+      'thumbnail', 'thumbnail_note', 'override_reset', 'license_inherit',
+    ];
+    const locales = (await readdir(path.join(projectRoot, 'public/locales'))).sort();
+    assert.equal(locales.length, 11, 'm19-t3: locale は 11 言語');
+    for (const lang of locales) {
+      const dict = JSON.parse(await read(`public/locales/${lang}/translation.json`));
+      for (const key of ABOLISHED_I18N_KEYS) {
+        assert.equal(
+          key in dict.appedit, false,
+          `m19-t3 AC6: ${lang} の appedit.${key} が削除されている`,
+        );
+      }
+      // ---- AC4: 「表示ラベル」は 3 面共通の語（basemap.master_detail.label と同値）----
+      assert.equal(
+        dict.appedit.source_label, dict.basemap.master_detail.label,
+        `m19-t3 AC4: ${lang} の appedit.source_label がベースマップ側の「表示ラベル」と同値`,
+      );
+      // ---- AC5: DB 属性名の露出（"start_from"）をやめる ----
+      assert.notEqual(
+        dict.appedit.start_from, 'start_from',
+        `m19-t3 AC5: ${lang} の appedit.start_from が DB 属性名のままになっていない`,
+      );
+      assert.ok(
+        String(dict.appedit.start_from || '').trim().length > 0,
+        `m19-t3 AC5: ${lang} の appedit.start_from が非空`,
+      );
+      // ---- 新設キー（存在範囲からコピー）----
+      assert.ok(
+        String(dict.appedit.envelope_copy_coverage || '').trim().length > 0,
+        `m19-t3: ${lang} の appedit.envelope_copy_coverage が非空`,
+      );
+    }
+    // 製品コード・スクリプトに廃止キーの参照が残っていない
+    for (const rel of ['src/components/AppSourceEditor.vue', 'src/views/AppEdit.vue']) {
+      const src = await read(rel);
+      for (const key of ABOLISHED_I18N_KEYS) {
+        assert.doesNotMatch(
+          src, new RegExp(`appedit\\.${key}\\b`),
+          `m19-t3 AC6: ${rel} に appedit.${key} の参照が残っていない`,
+        );
+      }
+    }
+    // 廃止した上書きキーを読む分岐が AppEdit.vue に残っていない（sp-0007）
+    const appEditSrc = await read('src/views/AppEdit.vue');
+    assert.doesNotMatch(
+      appEditSrc, /overrides\?\.(thumbnail|title|attr|minZoom|maxZoom|license)/,
+      'm19-t3 AC6: AppEdit.vue に廃止した上書きキーを読む分岐が残っていない',
+    );
+    console.log('ok: m19-t3 AC4/AC5/AC6 廃止記号・廃止 i18n キー・新設語彙');
+  }
+
+  // ============ m19-t3 AC12（弱照合）: ADR-0018 の列挙が凍結後の集合になっている ============
+  {
+    const adr = await readFile(
+      path.join(projectRoot, '../docs/adr/0018-base-map-master-is-authoritative-for-app-sources.md'),
+      'utf8',
+    );
+    // 「上書き可能」と述べる文（Today that is …）に廃止キーが並んでいないこと。
+    // 主判定は手動レビューであり、ここは陳腐化の再発を機械で拾うための弱い網である
+    const overridableSentence = adr.match(/Today,? that is[^.]*\./)?.[0] ?? '';
+    assert.ok(overridableSentence.length > 0, 'm19-t3 AC12: ADR-0018 に上書き可能キーの列挙文がある');
+    for (const key of ['licenseNote', 'minZoom', 'maxZoom', 'thumbnail', 'title']) {
+      assert.equal(
+        overridableSentence.includes(key), false,
+        `m19-t3 AC12: ADR-0018 の上書き可能列挙から ${key} が外れている`,
+      );
+    }
+    assert.match(adr, /m19/, 'm19-t3 AC12: m19 §4.4 で凍結した旨が記されている');
+    console.log('ok: m19-t3 AC12 ADR-0018 の列挙更新（弱照合）');
   }
 
   console.log('\nm6-t10 app-source-diff-model smoke: すべて成功');

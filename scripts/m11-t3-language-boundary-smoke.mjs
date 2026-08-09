@@ -107,7 +107,9 @@ assert.match(
 assert.match(appEdit, /data-editor-document-language[^>]*:disabled="translationMode"/);
 assert.match(appEdit, /<PoiReferenceEditor[^>]*:active-lang="currentLang"/);
 assert.match(appEdit, /<AppSourceEditor[^>]*:default-lang="appData\.lang"/);
-assert.match(appEdit, /normalizeLangObject\(value\.label \|\| value\.data\?\.label/);
+// m19-t3: label 強制補完（normalizeLangObject(value.label || value.data?.label …)）を要求する
+// assert は m6-t10 hotfix（a9df183）が当該コードを廃止した時点で失効した。同じ保証は
+// m6-t10 smoke 側の `/source\.label\s*=/` 不在 assert が逆向きに担っているため削除する。
 assert.doesNotMatch(appEdit, /localizedWithLang\(title, "ja"\)/);
 
 const poiReferenceEditor = await readFile(
@@ -126,7 +128,9 @@ const appSourceEditor = await readFile(
   'utf8',
 );
 assert.match(appSourceEditor, /defaultLang:\s*LangCode/);
-assert.match(appSourceEditor, /<LangValueChips/);
+// m19-t3: `<LangValueChips` を要求する assert は m6-t10（b6dcfd1）が LangResourceInput へ
+// 寄せた時点で失効した。同じ保証は m6-t10 smoke の AC28（`<LangValueChips` の**不在**）が
+// 逆向きに担っている。2 本の smoke が正反対を要求する状態を解消するため削除する。
 assert.doesNotMatch(appSourceEditor, /props\.currentLang !== "ja"/);
 
 const appPreviewService = await readFile(
