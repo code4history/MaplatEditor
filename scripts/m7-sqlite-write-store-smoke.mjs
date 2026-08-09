@@ -183,7 +183,10 @@ try {
       // nedb由来のプレーン文字列(=デフォルト言語の値)はマイグレーション/ロードで正規化される
       const migrated = await SqliteDataService.findMapBySlug('legacy-map');
       assert.deepEqual(migrated.title, { ja: 'Legacy Map' });
-      assert.deepEqual(migrated.officialTitle, {});
+      // m19-t1: 廃止された名称属性は取込境界の受容 (adoptDeprecatedMapNames) で
+      // 1.0.0 の語彙へ写され、キーごと消える。旧 title は表示ラベルへ移る
+      assert.ok(!('officialTitle' in migrated), '廃止属性はキーごと消えるはず');
+      assert.deepEqual(migrated.label, { ja: 'Legacy Map' });
 
       // 書き込み直後の読み取り(read-your-writes): 単一レコードはWrite Store、一覧はSearch Layer
       await StorageAdapter.saveMapForEdit({
