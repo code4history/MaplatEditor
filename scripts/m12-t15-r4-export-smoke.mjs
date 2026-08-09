@@ -10,6 +10,8 @@ import { build } from 'vite';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+// m19-t5: 512px は webp。寸法確認は符号化規則を持つ codec 経由で行う
+const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'm12-t15-r4export-'));
@@ -67,6 +69,8 @@ try {
       import nodePath from 'node:path';
       import assert from 'node:assert/strict';
       import { Jimp } from 'jimp';
+      // m19-t5: 512px は webp。Jimp では decode できないため codec の readImageMeta を使う
+      import { readImageMeta } from ${JSON.stringify(codecFile)};
       import AdmZip from 'adm-zip';
 
       const dataDir = ${JSON.stringify(dataDir)};
@@ -92,12 +96,12 @@ try {
       assert.ok(!result.err, 'generateTmsThumbnail 成功: ' + JSON.stringify(result));
 
       const png52 = nodePath.join(dataDir, 'tmbs', mapID + '.png');
-      const png512 = nodePath.join(dataDir, 'tmbs', mapID + '_512.png');
+      const png512 = nodePath.join(dataDir, 'tmbs', mapID + '_512.webp');
       assert.ok(await fs.stat(png52).then(() => true).catch(() => false), 'R4: 52px tmbs/{mapID}.png が生成される');
-      assert.ok(await fs.stat(png512).then(() => true).catch(() => false), 'R4: 512px tmbs/{mapID}_512.png が生成される');
-      const img512 = await Jimp.read(png512);
+      assert.ok(await fs.stat(png512).then(() => true).catch(() => false), 'R4: 512px tmbs/{mapID}_512.webp が生成される');
+      const img512 = await readImageMeta(png512);
       assert.ok(Math.max(img512.width, img512.height) <= 512, 'R4: 512px の長辺は 512 以下');
-      const img52 = await Jimp.read(png52);
+      const img52 = await readImageMeta(png52);
       assert.ok(Math.max(img52.width, img52.height) <= 52, 'R4: 52px の長辺は 52 以下');
       console.log('ok: R4 basemap 512/52 同時生成');
 
@@ -120,7 +124,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@jsquash/webp'],
         output: {
           entryFileNames: 'm12-t15-r4export-smoke.mjs',
           format: 'es',

@@ -190,7 +190,7 @@ export async function seedFullMap(page: Page, saveFolder: string, workDir: strin
   const tmbs = path.join(saveFolder, 'tmbs');
   await mkdir(tmbs, { recursive: true });
   await writeFile(path.join(tmbs, `${seeded.mapUid}.jpg`), bytes);
-  await writeFile(path.join(tmbs, `${seeded.mapUid}_512.jpg`), bytes);
+  await writeFile(path.join(tmbs, `${seeded.mapUid}_512.webp`), bytes);
   const tileDir = path.join(saveFolder, 'tiles', seeded.mapUid, '0', '0');
   await mkdir(tileDir, { recursive: true });
   await writeFile(path.join(tileDir, '0.jpg'), bytes);

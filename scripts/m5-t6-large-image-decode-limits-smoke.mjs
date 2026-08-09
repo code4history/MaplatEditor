@@ -10,7 +10,7 @@
 //   AC1b  maxResolutionInMP の伝達 — 110 MP（11000x10000）JPEG が取り込める。
 //         memory だけ 8192 にしても RED のままである実測（設計 §3.6）があるため、
 //         GREEN は resolution 伝達を要する。
-//   AC3   生成物が揃う（タイル・original.<ext>・thumbnail.jpg・thumbnail_512.jpg）。
+//   AC3   生成物が揃う（タイル・original.<ext>・thumbnail.jpg・thumbnail_512.webp）。
 //   AC4   観測記録のみ（合否条件ではない）。heapUsed / external のピークを出力する。
 //         閾値 assert は置かないため、この項目でテストが失敗することはない。
 //   AC5   PNG 原本が従来どおり取り込める（JPEG options の追加が PNG 経路を壊さない）。
@@ -33,6 +33,8 @@ import { build } from 'vite';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+// m19-t5: 512px は webp。寸法確認は符号化規則を持つ codec 経由で行う
+const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'm5-t6-decode-'));
@@ -92,6 +94,8 @@ try {
       import nodePath from 'node:path';
       import assert from 'node:assert/strict';
       import { Jimp } from 'jimp';
+      // m19-t5: 512px は webp。Jimp では decode できないため codec の readImageMeta を使う
+      import { readImageMeta } from ${JSON.stringify(codecFile)};
 
       const workDir = ${JSON.stringify(workDir)};
       const dataDir = ${JSON.stringify(dataDir)};
@@ -149,11 +153,11 @@ try {
           label + ': thumbnail.jpg の長辺は 52px 以下: ' + thumbImg.width + 'x' + thumbImg.height);
 
         // maxZoom >= 2 のときだけ 512px サムネイルが生成される（M12-T15 §C3）
-        const thumb512 = nodePath.join(outFolder, 'thumbnail_512.jpg');
-        assert.ok(await exists(thumb512), label + ': thumbnail_512.jpg が実在する');
-        const thumb512Img = await Jimp.read(thumb512);
+        const thumb512 = nodePath.join(outFolder, 'thumbnail_512.webp');
+        assert.ok(await exists(thumb512), label + ': thumbnail_512.webp が実在する');
+        const thumb512Img = await readImageMeta(thumb512);
         assert.ok(Math.max(thumb512Img.width, thumb512Img.height) <= 512,
-          label + ': thumbnail_512.jpg の長辺は 512px 以下: ' + thumb512Img.width + 'x' + thumb512Img.height);
+          label + ': thumbnail_512.webp の長辺は 512px 以下: ' + thumb512Img.width + 'x' + thumb512Img.height);
       }
 
       // AC2a / AC2b の RED 実証のため、最初の失敗で打ち切らず全ケースを走らせて
@@ -473,7 +477,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@jsquash/webp'],
         output: {
           entryFileNames: 'm5-t6-decode-smoke.mjs',
           format: 'es',

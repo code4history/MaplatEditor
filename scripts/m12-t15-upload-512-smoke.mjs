@@ -1,5 +1,5 @@
 // M12-T15 (Test-2): 新規地図画像登録経路の 512px 生成検証。
-// imageCutter（showMapSelectDialog 経由）で thumbnail_512.jpg が正しいアスペクト比で生成されること、
+// imageCutter（showMapSelectDialog 経由）で thumbnail_512.webp が正しいアスペクト比で生成されること、
 // 長辺≤512px の画像ではスキップされることを、実データ不使用（一時フォルダ）で検証する。
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
@@ -10,6 +10,8 @@ import { build } from 'vite';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+// m19-t5: 512px は webp。寸法確認は符号化規則を持つ codec 経由で行う
+const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'm12-t15-upload-'));
@@ -68,6 +70,8 @@ try {
       import nodePath from 'node:path';
       import assert from 'node:assert/strict';
       import { Jimp } from 'jimp';
+      // m19-t5: 512px は webp。Jimp では decode できないため codec の readImageMeta を使う
+      import { readImageMeta } from ${JSON.stringify(codecFile)};
 
       const dataDir = ${JSON.stringify(dataDir)};
       const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
@@ -81,7 +85,7 @@ try {
         await img.write(filePath);
       }
 
-      // Test-2 正例: 800x400 (>512px) の画像 → thumbnail_512.jpg が aspect 2:1 で生成
+      // Test-2 正例: 800x400 (>512px) の画像 → thumbnail_512.webp が aspect 2:1 で生成
       // M12-T20: showMapSelectDialog の第2引数は「解決済み staging dir」であり、
       // imageCutter はそこへ直接書き込む（tiles サブフォルダは付加しない）。
       const tmpFolder1 = nodePath.join(${JSON.stringify(workDir)}, 'tmp1');
@@ -91,15 +95,15 @@ try {
       globalThis.__nextImagePath = srcFile1;
       const r1 = await showMapSelectDialog(null, tmpFolder1, '地図画像');
       assert.ok(!r1.err, 'imageCutter 800x400 成功: ' + JSON.stringify(r1));
-      const thumb512_1 = nodePath.join(tmpFolder1, 'thumbnail_512.jpg');
-      assert.ok(await fs.stat(thumb512_1).then(() => true).catch(() => false), 'thumbnail_512.jpg が生成される');
-      const img1 = await Jimp.read(thumb512_1);
+      const thumb512_1 = nodePath.join(tmpFolder1, 'thumbnail_512.webp');
+      assert.ok(await fs.stat(thumb512_1).then(() => true).catch(() => false), 'thumbnail_512.webp が生成される');
+      const img1 = await readImageMeta(thumb512_1);
       const aspect1 = img1.width / img1.height;
       assert.ok(aspect1 > 1.7 && aspect1 < 2.3, '800x400 の 512px は aspect ≈ 2:1（白帯なし）: ' + aspect1.toFixed(2));
       assert.ok(Math.max(img1.width, img1.height) <= 512, '長辺は 512px 以下');
       console.log('ok: Test-2 positive (800x400 -> 512px aspect ' + aspect1.toFixed(2) + ')');
 
-      // Test-2 負例: 300x200 (<=512px) の画像 → thumbnail_512.jpg はスキップ（§C3）
+      // Test-2 負例: 300x200 (<=512px) の画像 → thumbnail_512.webp はスキップ（§C3）
       const tmpFolder2 = nodePath.join(${JSON.stringify(workDir)}, 'tmp2');
       await fs.mkdir(tmpFolder2, { recursive: true });
       const srcFile2 = nodePath.join(${JSON.stringify(workDir)}, 'src300x200.png');
@@ -107,9 +111,9 @@ try {
       globalThis.__nextImagePath = srcFile2;
       const r2 = await showMapSelectDialog(null, tmpFolder2, '地図画像');
       assert.ok(!r2.err, 'imageCutter 300x200 成功: ' + JSON.stringify(r2));
-      const thumb512_2 = nodePath.join(tmpFolder2, 'thumbnail_512.jpg');
+      const thumb512_2 = nodePath.join(tmpFolder2, 'thumbnail_512.webp');
       const exists2 = await fs.stat(thumb512_2).then(() => true).catch(() => false);
-      assert.equal(exists2, false, '長辺<=512px の画像では thumbnail_512.jpg はスキップ');
+      assert.equal(exists2, false, '長辺<=512px の画像では thumbnail_512.webp はスキップ');
       // 52px は現行どおり生成される
       assert.ok(await fs.stat(nodePath.join(tmpFolder2, 'thumbnail.jpg')).then(() => true).catch(() => false), '52px thumbnail.jpg は生成される');
       console.log('ok: Test-2 negative (300x200 -> 512px skipped, 52px generated)');
@@ -133,7 +137,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@jsquash/webp'],
         output: {
           entryFileNames: 'm12-t15-upload-smoke.mjs',
           format: 'es',

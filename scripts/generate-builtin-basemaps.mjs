@@ -2,8 +2,9 @@
 // --data-only はJSONだけを書き換え、既存アイコンを一切削除・変更しない。
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
+// m19-t5: 512px は webp で書く。符号化規則は scripts 共通の実装へ委譲する（値の二重管理をしない）
+import { transcodeImage as encodeIcon512 } from "./lib/webpAssets.mjs";
 
 // m19-t5: 512px アイコンは webp で同梱する（配布物 116.05 MiB -> 37.98 MiB / -67.3%）。
 // 52px（basemap_icons/）は据え置き（凍結契約 §4.3.2-4 の拡張子非対称）。
@@ -253,40 +254,6 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
     }
   }
   return output;
-}
-
-// m19-t5: 512px アイコンを webp へ符号化して書く。
-// 品質は electron/utils/thumbnail512Codec.ts の THUMB_512_WEBP_QUALITY と同じ q85 を用いる
-// （本スクリプトはオフライン生成器であり main プロセスの TS を import できないため値を持つが、
-//  食い違いは smoke の Part B（合計サイズ閾値）が検出する）。
-async function encodeIcon512(srcPath, destPath) {
-  const { Jimp } = await import("jimp");
-  const { default: encode, init: initEnc } = await import("@jsquash/webp/encode.js");
-  if (!encodeIcon512.ready) {
-    const require_ = createRequire(import.meta.url);
-    const fs = await import("node:fs/promises");
-    // SIMD 版を先に試し、SIMD 非対応環境では compile が失敗するので非 SIMD 版へ落とす
-    for (const specifier of [
-      "@jsquash/webp/codec/enc/webp_enc_simd.wasm",
-      "@jsquash/webp/codec/enc/webp_enc.wasm",
-    ]) {
-      try {
-        await initEnc(await WebAssembly.compile(await fs.readFile(require_.resolve(specifier))));
-        encodeIcon512.ready = true;
-        break;
-      } catch { /* 次の候補へ */ }
-    }
-    if (!encodeIcon512.ready) throw new Error("webp encoder init failed");
-  }
-  const image = await Jimp.read(srcPath);
-  const data = new Uint8ClampedArray(
-    image.bitmap.data.buffer,
-    image.bitmap.data.byteOffset,
-    image.bitmap.data.byteLength,
-  );
-  const encoded = await encode({ data, width: image.bitmap.width, height: image.bitmap.height }, { quality: 85 });
-  const { writeFile: write } = await import("node:fs/promises");
-  await write(destPath, Buffer.from(encoded));
 }
 
 async function syncKnownIconFiles(catalog, catalogDir) {

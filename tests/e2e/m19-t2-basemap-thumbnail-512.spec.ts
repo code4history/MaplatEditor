@@ -77,13 +77,13 @@ async function seedSavedBaseMap(page: Page, thumbnailOf: (uid: string) => string
   }, thumbnailOf('{uid}'));
 }
 
-// saveFolder/tmbs/{key}.png と {key}_512.png を直接配置する
+// saveFolder/tmbs/{key}.png と {key}_512.webp を直接配置する
 async function placeThumbnails(saveFolder: string, key: string): Promise<void> {
   const tmbs = path.join(saveFolder, 'tmbs');
   await mkdir(tmbs, { recursive: true });
   const { Jimp } = await import('jimp');
   await new Jimp({ width: 52, height: 26, color: 0xff0000ff }).write(path.join(tmbs, `${key}.png`) as `${string}.${string}`);
-  await new Jimp({ width: 512, height: 256, color: 0xff0000ff }).write(path.join(tmbs, `${key}_512.png`) as `${string}.${string}`);
+  await new Jimp({ width: 512, height: 256, color: 0xff0000ff }).write(path.join(tmbs, `${key}_512.webp`) as `${string}.${string}`);
 }
 
 const exists = (p: string) => stat(p).then(() => true).catch(() => false);
@@ -113,7 +113,7 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       await expect(page.getByTestId('basemap-thumbnail-replace-512')).toBeVisible();
       await expect(page.getByTestId('basemap-thumbnail-replace-52')).toBeVisible();
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeVisible();
-      // 512px プレビュー（tmbs/{uid}_512.png を配置済み）
+      // 512px プレビュー（tmbs/{uid}_512.webp を配置済み）
       await expect(page.locator('img[alt="512px"]')).toBeVisible({ timeout: 15000 });
       // K1 かつ実体ありなので強制 ON ではない = 操作できる（既定は ON）
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeChecked();
@@ -165,13 +165,13 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       await expect.poll(async () => img512.getAttribute('src'), { timeout: 15000 }).not.toBe(srcBefore);
 
       const { Jimp } = await import('jimp');
-      const image512 = await Jimp.read(path.join(saveFolder, 'tmbs', `${uid}_512.png`));
+      const image512 = await Jimp.read(path.join(saveFolder, 'tmbs', `${uid}_512.webp`));
       expect(Math.max(image512.width, image512.height)).toBe(512);
       // derive52 ON なので 52px も置換ソースから作り直される（元は 52x26、置換後は 52x26 だが色が変わる）
       const image52 = await Jimp.read(path.join(saveFolder, 'tmbs', `${uid}.png`));
       expect(Math.max(image52.width, image52.height)).toBe(52);
       // 二重派生が起きていない
-      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.png`))).toBe(false);
+      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.webp`))).toBe(false);
 
       console.log('  T2: PASS');
     } finally {
@@ -201,7 +201,7 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       // 規則 U の同値ガード: K1 では thumbnail は同値のため更新されない（不変であることが正）
       expect(await readBaseMapThumbnail(page, uid)).toBe(`tmbs/${uid}.png`);
       // 52px 置換は 512px を触らない（地図側と同挙動）
-      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.png`))).toBe(false);
+      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.webp`))).toBe(false);
 
       console.log('  T3: PASS');
     } finally {
@@ -241,7 +241,7 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       await expect
         .poll(
           async () =>
-            (await exists(path.join(saveFolder, 'tmbs', `${slug}_512.png`)))
+            (await exists(path.join(saveFolder, 'tmbs', `${slug}_512.webp`)))
             && (await exists(path.join(saveFolder, 'tmbs', `${slug}.png`))),
           { timeout: 15000 },
         )
@@ -261,8 +261,8 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
 
       // AC7: 512px も uid 名へ移り、slug 名の取り残しが無い
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}.png`))).toBe(true);
-      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512.png`))).toBe(true);
-      expect(await exists(path.join(saveFolder, 'tmbs', `${slug}_512.png`))).toBe(false);
+      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512.webp`))).toBe(true);
+      expect(await exists(path.join(saveFolder, 'tmbs', `${slug}_512.webp`))).toBe(false);
       expect(await exists(path.join(saveFolder, 'tmbs', `${slug}.png`))).toBe(false);
       expect(await readBaseMapThumbnail(page, uid)).toBe(`tmbs/${uid}.png`);
 
@@ -311,11 +311,11 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       }, slug);
 
       // 実体は uid 名へ寄っている（T4 が見ていた範囲）
-      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512.png`))).toBe(true);
+      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512.webp`))).toBe(true);
 
       // ここが T4 に無かった観点: 保存後もエディタが 512px を解決できること。
       // 旧実装は保存後も document.thumbnail に暫定名を持ち続けたため、そこから導く
-      // tmbs/{slug}_512.png が実体を失い 512px プレビューが消えていた。
+      // tmbs/{slug}_512.webp が実体を失い 512px プレビューが消えていた。
       await expect(img512).toBeVisible({ timeout: 15000 });
       await expect(img512).toHaveAttribute('src', new RegExp(`${uid}_512\\.png`), { timeout: 15000 });
       // 52px の実体も uid 名で解決できる ⇒ §6.5 の強制 ON に落ちない
@@ -393,7 +393,7 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       await openHash(page, `#/basemaps?uid=${uid}`);
       await expect(page.getByTestId('basemap-editor')).toBeVisible({ timeout: 15000 });
 
-      const path512 = path.join(saveFolder, 'tmbs', `${uid}_512.png`);
+      const path512 = path.join(saveFolder, 'tmbs', `${uid}_512.webp`);
       const path52 = path.join(saveFolder, 'tmbs', `${uid}.png`);
       const before512 = await readFile(path512);
       const before52 = await readFile(path52);
@@ -409,7 +409,7 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       // (1) 512px は更新される
       await expect.poll(async () => (await readFile(path512)).equals(before512), { timeout: 15000 }).toBe(false);
       // (2) 二重派生（_512_512）が生成されない
-      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.png`))).toBe(false);
+      expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.webp`))).toBe(false);
       // (3) 52px は更新されない（derive52 OFF の意味論）
       expect((await readFile(path52)).equals(before52)).toBe(true);
 

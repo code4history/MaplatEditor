@@ -69,7 +69,7 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
   const entries = [
     { name: 'maps/himeji.json', size: 4096 },
     { name: 'tmbs/himeji.jpg', size: 20 * 1024 },
-    { name: 'tmbs/himeji_512.jpg', size: 80 * 1024 },
+    { name: 'tmbs/himeji_512.webp', size: 80 * 1024 },
   ];
   for (let i = 0; i < tiles; i += 1) {
     entries.push({ name: `tiles/himeji/14/${Math.floor(i / 32)}/${i % 32}.jpg`, size: tileSize });

@@ -1,6 +1,6 @@
 // M12-T15 (Fix-1/Test-1): 起動時 512px マイニングの一気通貫検証。
-// 実データ不使用（mkdtemp + MAPLAT_E2E_ROOT）。ズーム2タイルはあるが tmbs/{uid}_512.jpg がない地図を用意し、
-// 再起動で 512px マイニングが走り、白帯なし（アスペクト比が元画像通り）で tmbs/{uid}_512.jpg が生成されることを検証する。
+// 実データ不使用（mkdtemp + MAPLAT_E2E_ROOT）。ズーム2タイルはあるが tmbs/{uid}_512.webp がない地図を用意し、
+// 再起動で 512px マイニングが走り、白帯なし（アスペクト比が元画像通り）で tmbs/{uid}_512.webp が生成されることを検証する。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -75,7 +75,7 @@ test.describe('M12-T15 Fix-1: 起動時 512px マイニング', () => {
       // zoom2 タイルを配置（512px マイニング対象条件を満たす）
       await placeZoom2Tiles(saveFolder, uid);
 
-      // tmbs/{uid}_512.jpg はまだない（seed では生成されない）
+      // tmbs/{uid}_512.webp はまだない（seed では生成されない）
       // マイニング marker を削除して、次回起動で 512px マイニングが走る状態にする
       const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
       try {
@@ -91,8 +91,8 @@ test.describe('M12-T15 Fix-1: 起動時 512px マイニング', () => {
       // 2回目起動: 512px マイニングが走る
       const { app: app2 } = await launch(e2eRoot);
       try {
-        // マイニング完了を待つ（tmbs/{uid}_512.jpg が生成されるまで）
-        const thumb512Path = path.join(saveFolder, 'tmbs', `${uid}_512.jpg`);
+        // マイニング完了を待つ（tmbs/{uid}_512.webp が生成されるまで）
+        const thumb512Path = path.join(saveFolder, 'tmbs', `${uid}_512.webp`);
         await expect.poll(async () => {
           const { pathExists } = await import('fs-extra');
           return await pathExists(thumb512Path);

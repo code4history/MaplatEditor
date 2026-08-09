@@ -399,7 +399,7 @@ try {
         const tmbsDir = path.join(${JSON.stringify(dataDir)}, 'tmbs');
         await fse.ensureDir(tmbsDir);
         await fs.writeFile(path.join(tmbsDir, THUMB_SRC_UID + '.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
-        await fs.writeFile(path.join(tmbsDir, THUMB_SRC_UID + '_512.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+        await fs.writeFile(path.join(tmbsDir, THUMB_SRC_UID + '_512.webp'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
 
         const savedH = await SqliteDataService.saveUserBaseMap({
           uid: THUMB_TARGET_UID, slug: 'merc-thumb-h', create: true,
@@ -412,7 +412,7 @@ try {
         });
         assert.equal(savedH.revision, 2, 'M-6: サムネイル継承で行が2回目の更新を受けるはず（revision=2）');
         assert.ok(await fse.pathExists(path.join(tmbsDir, THUMB_TARGET_UID + '.jpg')), 'M-6: 52px サムネイルが own uid 名へ複製されるはず');
-        assert.ok(await fse.pathExists(path.join(tmbsDir, THUMB_TARGET_UID + '_512.jpg')), 'M-6: 512px サムネイルも複製されるはず');
+        assert.ok(await fse.pathExists(path.join(tmbsDir, THUMB_TARGET_UID + '_512.webp')), 'M-6: 512px サムネイルも複製されるはず');
         assert.ok(await fse.pathExists(path.join(tmbsDir, THUMB_SRC_UID + '.jpg')), 'M-6: 複製元（元地図側）のファイルは move ではなく copy のため残るはず');
         const catalogH = await SqliteDataService.findBaseMapByUid(THUMB_TARGET_UID);
         assert.equal(catalogH.data.thumbnail, 'tmbs/' + THUMB_TARGET_UID + '.jpg', 'M-6: thumbnail フィールドが own uid 名を指すはず');

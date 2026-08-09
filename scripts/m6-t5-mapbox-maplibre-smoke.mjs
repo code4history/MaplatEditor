@@ -8,7 +8,8 @@ import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
-import { Jimp } from "jimp";
+// m19-t5: 512px は webp。webp/非 webp を同じ規則で読む共通リーダーを使う
+import { readImageRGBA } from "./lib/webpAssets.mjs";
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
@@ -22,8 +23,9 @@ const modulePath = (relativePath) =>
 
 // m6-t4a 設計 §4.3: 単色プレースホルダでないことの検証（6x6 グリッドサンプルで distinct 色数を数える）
 async function assertNotSolidColor(filePath, label) {
-  const img = await Jimp.read(filePath);
-  const { width, height } = img.bitmap;
+  // m19-t5: 512px は webp。Jimp は webp を decode できないため共通リーダーへ委譲する
+  const img = await readImageRGBA(filePath);
+  const { width, height } = img;
   const seen = new Set();
   const steps = 6;
   for (let i = 0; i < steps; i++) {
@@ -36,10 +38,10 @@ async function assertNotSolidColor(filePath, label) {
   assert.ok(seen.size >= 4, `${label}: 単色プレースホルダの疑い（distinct=${seen.size}）`);
 }
 
-// m6-t4a 設計 §4.3: 寸法検証（assertNotSolidColor とは独立に Jimp.read する）
+// m6-t4a 設計 §4.3: 寸法検証（assertNotSolidColor とは独立に読み直す）
 async function assertDimensions(filePath, expected, label) {
-  const img = await Jimp.read(filePath);
-  const { width, height } = img.bitmap;
+  const img = await readImageRGBA(filePath);
+  const { width, height } = img;
   assert.equal(width, expected, `${label}: 幅が ${expected}px でない（実測 ${width}px）`);
   assert.equal(height, expected, `${label}: 高さが ${expected}px でない（実測 ${height}px）`);
 }
@@ -320,7 +322,7 @@ const base = {
   }
 
   // ---- m6-t4a AC2/AC9: 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
-  for (const name of ["mapbox.png", "maplibre.png"]) {
+  for (const name of ["mapbox.webp", "maplibre.webp"]) {
     const icon512 = path.join(projectRoot, "public/basemap_icons_512", name);
     const st512 = await import("node:fs/promises").then(({ stat }) => stat(icon512));
     assert.equal(st512.isFile(), true, `${name} (512px) 存在`);

@@ -61,7 +61,7 @@ try {
         licenseNote: { en: 'OSM copyright', ja: 'OSM 著作権' },
         url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         minZoom: 0, maxZoom: 19,
-        thumbnail: 'basemap_icons/osm.jpg', thumbnail512: 'basemap_icons/osm_512.jpg',
+        thumbnail: 'basemap_icons/osm.jpg', thumbnail512: 'basemap_icons/osm_512.webp',
       },
     },
     {

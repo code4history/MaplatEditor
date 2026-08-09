@@ -71,16 +71,16 @@ try {
 
       const uid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
-      // AC3: 512px があればそれを優先（tmbs/{uid}_512.jpg）
+      // AC3: 512px があればそれを優先（tmbs/{uid}_512.webp）
       await fs.mkdir(nodePath.join(dataDir, 'tmbs'), { recursive: true });
-      await fs.writeFile(nodePath.join(dataDir, 'tmbs', uid + '_512.jpg'), Buffer.from(${JSON.stringify(PNG_B64)}, 'base64'));
+      await fs.writeFile(nodePath.join(dataDir, 'tmbs', uid + '_512.webp'), Buffer.from(${JSON.stringify(PNG_B64)}, 'base64'));
       await fs.writeFile(nodePath.join(dataDir, 'tmbs', uid + '.jpg'), Buffer.from(${JSON.stringify(PNG_B64)}, 'base64'));
       const with512 = await resolveMapListImage512({ uid });
-      assert.ok(with512 && with512.includes('_512.jpg'), 'AC3: 512px があれば _512.jpg を優先: ' + with512);
+      assert.ok(with512 && with512.includes('_512.webp'), 'AC3: 512px があれば _512.webp を優先: ' + with512);
       console.log('ok: AC3 512px preferred over 52px');
 
       // AC3: 512px がなければ 52px へ fallback
-      await fs.rm(nodePath.join(dataDir, 'tmbs', uid + '_512.jpg'));
+      await fs.rm(nodePath.join(dataDir, 'tmbs', uid + '_512.webp'));
       const with52 = await resolveMapListImage512({ uid });
       assert.ok(with52 && with52.endsWith(uid + '.jpg') && !with52.includes('_512'), 'AC3: 512px なしで 52px へ fallback: ' + with52);
       console.log('ok: AC3 52px fallback when no 512px');

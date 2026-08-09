@@ -265,7 +265,7 @@ try {
       const slug = 'matrix-map';
       await fsMkdir(nodePath.join(dataDir, 'tmbs'), { recursive: true });
       await fsWriteFile(nodePath.join(dataDir, 'tmbs', uid + '.jpg'), 'THUMB');
-      await fsWriteFile(nodePath.join(dataDir, 'tmbs', uid + '_512.jpg'), 'THUMB512');
+      await fsWriteFile(nodePath.join(dataDir, 'tmbs', uid + '_512.webp'), 'THUMB512');
 
       const mapObject = {
         mapID: slug, title: '全表現地図', attr: 'test', lang: 'ja', gcps: [], edges: [],

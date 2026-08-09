@@ -71,7 +71,7 @@ try {
     // 内部ファイルは uid キーで置かれる（ADR-0007）。ZIP 内は slug 名になる
     await fsMkdir(nodePath.join(dataDir, 'tmbs'), { recursive: true });
     await fsWriteFile(nodePath.join(dataDir, 'tmbs', uid + '.jpg'), 'THUMB');
-    await fsWriteFile(nodePath.join(dataDir, 'tmbs', uid + '_512.jpg'), 'THUMB512');
+    await fsWriteFile(nodePath.join(dataDir, 'tmbs', uid + '_512.webp'), 'THUMB512');
     await fsMkdir(nodePath.join(dataDir, 'tiles', uid, '0', '0'), { recursive: true });
     await fsWriteFile(nodePath.join(dataDir, 'tiles', uid, '0', '0', '0.jpg'), 'TILE');
 
@@ -138,7 +138,7 @@ try {
     // -----------------------------------------------------------------------
     assert.ok(names.includes('tmbs/' + slug + '.jpg'), 'AC3: 通常サムネイルが slug 名で同梱されること');
     assert.ok(
-      names.includes('tmbs/' + slug + '_512.jpg'),
+      names.includes('tmbs/' + slug + '_512.webp'),
       'AC3: **512px サムネイル**が slug 名で同梱されること（実際の entry: ' + JSON.stringify(names) + '）',
     );
     assert.equal(has(new RegExp('^tmbs/' + uid)), false, 'AC3: UID 名の entry を含まないこと');

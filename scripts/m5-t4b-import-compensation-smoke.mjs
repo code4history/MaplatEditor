@@ -92,7 +92,7 @@ try {
       })));
       zip.addFile('pois/layer.geojson', Buffer.from(JSON.stringify(fc('layer'))));
       zip.addFile('tmbs/' + slug + '.jpg', Buffer.from('THUMB'));
-      zip.addFile('tmbs/' + slug + '_512.jpg', Buffer.from('THUMB512'));
+      zip.addFile('tmbs/' + slug + '_512.webp', Buffer.from('THUMB512'));
       zip.addFile('tiles/' + slug + '/0/0/0.jpg', Buffer.from('TILE'));
       const p = nodePath.join(workDir, slug + '.zip');
       await fsWriteFile(p, zip.toBuffer());
@@ -110,7 +110,7 @@ try {
       zip.addFile('pois/layer.geojson', Buffer.from(JSON.stringify(fc('layer'))));
       zip.addFile('pois/layer2.geojson', Buffer.from(JSON.stringify(fc('layer2'))));
       zip.addFile('tmbs/' + slug + '.jpg', Buffer.from('THUMB'));
-      zip.addFile('tmbs/' + slug + '_512.jpg', Buffer.from('THUMB512'));
+      zip.addFile('tmbs/' + slug + '_512.webp', Buffer.from('THUMB512'));
       zip.addFile('tiles/' + slug + '/0/0/0.jpg', Buffer.from('TILE'));
       const p = nodePath.join(workDir, slug + '.zip');
       await fsWriteFile(p, zip.toBuffer());

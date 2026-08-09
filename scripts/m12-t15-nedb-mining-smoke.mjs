@@ -1,5 +1,5 @@
 // M12-T15 (NeDB→512px 連続マイニング): 旧形式 nedb.db からの legacy 移行と 512px マイニングが
-// 1 回の getDb() で連続実行され、tmbs/{uid}_512.jpg が正しいアスペクト比で生成されることを検証する。
+// 1 回の getDb() で連続実行され、tmbs/{uid}_512.webp が正しいアスペクト比で生成されることを検証する。
 // 実データ不使用（一時フォルダ + electron/electron-store stub + vite ssr build）。
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
@@ -10,6 +10,8 @@ import { build } from 'vite';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+// m19-t5: 512px は webp。寸法確認は符号化規則を持つ codec 経由で行う
+const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'm12-t15-nedb-mining-'));
@@ -86,6 +88,8 @@ try {
       import nodePath from 'node:path';
       import assert from 'node:assert/strict';
       import { Jimp } from 'jimp';
+      // m19-t5: 512px は webp。Jimp では decode できないため codec の readImageMeta を使う
+      import { readImageMeta } from ${JSON.stringify(codecFile)};
 
       const dataDir = ${JSON.stringify(dataDir)};
       const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
@@ -102,12 +106,12 @@ try {
       assert.ok(map.uid, 'uid 採番される');
       console.log('ok: legacy 移行で oldmap が uid=' + map.uid + ' として取り込まれた');
 
-      // 連続 512px マイニング: tiles/{旧ID} は tiles/{uid} へリネームされ、tmbs/{uid}_512.jpg が生成される
-      const thumb512 = nodePath.join(dataDir, 'tmbs', map.uid + '_512.jpg');
-      assert.ok(await fs.stat(thumb512).then(() => true).catch(() => false), '連続マイニングで tmbs/{uid}_512.jpg が生成される');
+      // 連続 512px マイニング: tiles/{旧ID} は tiles/{uid} へリネームされ、tmbs/{uid}_512.webp が生成される
+      const thumb512 = nodePath.join(dataDir, 'tmbs', map.uid + '_512.webp');
+      assert.ok(await fs.stat(thumb512).then(() => true).catch(() => false), '連続マイニングで tmbs/{uid}_512.webp が生成される');
 
       // Fix-1: 白帯なし（アスペクト比 900:300 = 3:1）
-      const image = await Jimp.read(thumb512);
+      const image = await readImageMeta(thumb512);
       const aspect = image.width / image.height;
       assert.ok(aspect > 2.5, '連続マイニングの 512px は aspect ≈ 3:1（白帯なし）: ' + aspect.toFixed(2));
       assert.ok(Math.max(image.width, image.height) <= 512, '長辺は 512 以下');
@@ -132,7 +136,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@seald-io/nedb'],
+        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@jsquash/webp', '@seald-io/nedb'],
         output: {
           entryFileNames: 'm12-t15-nedb-mining-smoke.mjs',
           format: 'es',

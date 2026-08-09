@@ -4,9 +4,9 @@
 // 対象ケース（設計 §12.2）と対応 AC（設計 §11）:
 //   S1  thumb512PathFor の全域性 + ビルトイン 329 件の thumbnail512 明示属性との完全一致   -> AC1
 //   S2  public/basemap_icons と basemap_icons_512 の basename 集合一致                     -> AC1
-//   S3  replaceMapThumbnail(win, key, '512', true, 'png') が _512.png と .png を書く        -> AC3
+//   S3  replaceMapThumbnail(win, key, '512', true, 'png') が _512.webp と .png を書く        -> AC3
 //   S4  replaceMapThumbnail(win, key, '512', true)（ext 省略）が .jpg 規約を保つ            -> AC4
-//   S5  user ベースマップ書き出しで tmbs/{slug}.png と tmbs/{slug}_512.png の両方が出る     -> AC9
+//   S5  user ベースマップ書き出しで tmbs/{slug}.png と tmbs/{slug}_512.webp の両方が出る     -> AC9
 //   S6  BaseMapEditDocument / BaseMapSavePayload に thumbnail512 が無い                      -> AC8
 //   S7  11 言語の basemap.thumbnail_* 4 キーが揃い、mapedit.thumbnail_* が消えていない      -> AC10
 //   S8  返値セマンティクス（§6.1.1）と規則 U の機械証明 + 禁止形のソーステキスト assert     -> AC15(a)(c)
@@ -41,6 +41,8 @@ await mkdir(exportDir, { recursive: true });
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
 
 const thumbnailPathsFile = path.join(projectRoot, 'src/utils/thumbnailPaths.ts');
+// m19-t5: 512px は webp。寸法確認は Jimp ではなく符号化規則を持つ codec 経由で行う
+const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const builtinFile = path.join(projectRoot, 'electron/builtin_base_maps.json');
 const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
 const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
@@ -99,10 +101,13 @@ await writeFile(
 
 // S2: basemap_icons と basemap_icons_512 の basename 集合一致
 {
-  const a = (await readdir(path.join(projectRoot, 'public/basemap_icons'))).sort();
-  const b = (await readdir(path.join(projectRoot, 'public/basemap_icons_512'))).sort();
-  assert.deepEqual(a, b, 'S2: basemap_icons と basemap_icons_512 の basename 集合が一致する');
-  console.log(`ok: S2 basemap_icons / basemap_icons_512 basename 完全一致（${a.length} 件）`);
+  // m19-t5: 拡張子が非対称になった（52px = png 据え置き / 512px = webp）ため、
+  // 比較対象は拡張子を落とした stem 集合とする（対応関係そのものは変わっていない）。
+  const stem = (f) => f.slice(0, f.lastIndexOf('.'));
+  const a = (await readdir(path.join(projectRoot, 'public/basemap_icons'))).map(stem).sort();
+  const b = (await readdir(path.join(projectRoot, 'public/basemap_icons_512'))).map(stem).sort();
+  assert.deepEqual(a, b, 'S2: basemap_icons と basemap_icons_512 の stem 集合が一致する');
+  console.log(`ok: S2 basemap_icons / basemap_icons_512 stem 完全一致（${a.length} 件）`);
 }
 
 // S6: BaseMapEditDocument / BaseMapSavePayload に thumbnail512 が無い（ソーステキスト assert）
@@ -111,7 +116,9 @@ await writeFile(
   assert.equal(/thumbnail512/.test(docSrc), false, 'S6: baseMapEditorDocument.ts に thumbnail512 を追加していない');
   const dtsSrc = await readFile(path.join(projectRoot, 'src/electron.d.ts'), 'utf8');
   assert.equal(/thumbnail512/.test(dtsSrc), false, 'S6: electron.d.ts（BaseMapSavePayload 等）に thumbnail512 を追加していない');
-  // AC8(c): renderer は thumbnail512 明示属性を一切読まない（thumbnail512Url は ref 名なので除外）
+  // AC8(c): renderer は thumbnail512 明示属性を一切読まない。
+  // 属性名ではない識別子は除外する: thumbnail512Url（ref 名）/ thumbnail512Codec（m19-t5 の符号化モジュール名）。
+  const NON_ATTRIBUTE_IDENTIFIERS = ['thumbnail512Url', 'thumbnail512Codec'];
   const srcHits = [];
   const walk = async (dir) => {
     for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -120,7 +127,9 @@ await writeFile(
       if (!/\.(ts|vue|js)$/.test(entry.name)) continue;
       const text = await readFile(full, 'utf8');
       for (const line of text.split('\n')) {
-        if (line.includes('thumbnail512') && !line.includes('thumbnail512Url')) srcHits.push(`${full}: ${line.trim()}`);
+        if (!line.includes('thumbnail512')) continue;
+        const stripped = NON_ATTRIBUTE_IDENTIFIERS.reduce((acc, id) => acc.split(id).join(''), line);
+        if (stripped.includes('thumbnail512')) srcHits.push(`${full}: ${line.trim()}`);
       }
     }
   };
@@ -175,8 +184,10 @@ const runLateStaticChecks = async () => {
   const baseMapThumbSection = exportSrc.slice(baseMapThumbStart, baseMapThumbEnd);
   assert.equal(countMatches(baseMapThumbSection, /_512\./), 0,
     'AC2(b): ベースマップ分岐に 512px パスのインライン派生が無い（thumb512PathFor 経由）');
-  assert.equal(countMatches(exportSrc, /_512\./), 3,
-    `AC2(b): 残る _512. は地図分岐の 3 行のみ（t5 所有。実測 ${countMatches(exportSrc, /_512\./)}）`);
+  // m19-t5 完了後: m19-t2 が「t5 所有」として残していた地図分岐の 3 行も thumb512PathFor へ寄った。
+  // ∴ AppExportService 全体でインライン派生は 0 になる（t5 の AC-3 が全ファイルで機械照合する）。
+  assert.equal(countMatches(exportSrc, /_512\./), 0,
+    `AC2(b): AppExportService 全体で 512px のインライン派生が 0（m19-t5 で地図分岐も移行済み。実測 ${countMatches(exportSrc, /_512\./)}）`);
 
   // AC2(c): BaseMapEdit.vue に 512px パスのインライン派生が 0。
   //   needle は `_512\.`。i18n キー `basemap.thumbnail_replace_512` と testid は派生ではないため対象外（v1.2）。
@@ -220,6 +231,7 @@ await writeFile(
     import AdmZip from 'adm-zip';
 
     import { THUMB_512_EXT, thumb512PathFor, thumb52PathFor } from ${JSON.stringify(thumbnailPathsFile)};
+    import { readImageMeta } from ${JSON.stringify(codecFile)};
     import builtin from ${JSON.stringify(builtinFile)};
 
     const dataDir = ${JSON.stringify(dataDir)};
@@ -231,22 +243,22 @@ await writeFile(
       // (b)(c) 接尾辞規則。ビルトイン 329 件はすべて basemap_icons/ 参照であり実データでは
       //        ディレクトリ差替え規則しか検証されないため、接尾辞規則は合成パターンで担保する
       //        （設計レビュー v1 Info-4）
-      assert.equal(thumb512PathFor('tmbs/a.png'), 'tmbs/a_512.png', 'S1(b): tmbs 接尾辞規則（png）');
-      assert.equal(thumb512PathFor('tmbs/a.jpg'), 'tmbs/a_512.jpg', 'S1(c): tmbs 接尾辞規則（jpg）');
+      assert.equal(thumb512PathFor('tmbs/a.png'), 'tmbs/a_512.webp', 'S1(b): tmbs 接尾辞規則（png 入力 -> webp）');
+      assert.equal(thumb512PathFor('tmbs/a.jpg'), 'tmbs/a_512.webp', 'S1(c): tmbs 接尾辞規則（jpg）');
       // (d) ディレクトリ差替え規則
-      assert.equal(thumb512PathFor('basemap_icons/x.png'), 'basemap_icons_512/x.png', 'S1(d): ディレクトリ差替え規則');
+      assert.equal(thumb512PathFor('basemap_icons/x.png'), 'basemap_icons_512/x.webp', 'S1(d): ディレクトリ差替え規則（+ webp）');
       // (e) 全域性（定義域外は null）
       assert.equal(thumb512PathFor('img/x.png'), null, 'S1(e): tmbs/ でも basemap_icons/ でもなければ null');
       assert.equal(thumb512PathFor(''), null, 'S1(e): 空文字は null');
       assert.equal(thumb512PathFor('tmbs/noext'), null, 'S1(e): 拡張子が無ければ null');
       // 二重適用の検出（INV-T が破れた場合に何が起きるかの固定。§6.2.1）
-      assert.equal(thumb512PathFor('tmbs/a_512.png'), 'tmbs/a_512_512.png',
+      assert.equal(thumb512PathFor('tmbs/a_512.webp'), 'tmbs/a_512_512.webp',
         'S1: 512px パスを再適用すると _512_512 になる（INV-T を破ってはならない理由）');
       // thumb52PathFor
       assert.equal(thumb52PathFor('abc', 'png'), 'tmbs/abc.png', 'S1: thumb52PathFor（png）');
       assert.equal(thumb52PathFor('abc', 'jpg'), 'tmbs/abc.jpg', 'S1: thumb52PathFor（jpg。地図の既定）');
       // t5 の吸収点（現行は null = 入力の拡張子を引き継ぐ）
-      assert.equal(THUMB_512_EXT, null, 'S1: THUMB_512_EXT の現行値は null（m19-t5 が webp へ変える 1 定数）');
+      assert.equal(THUMB_512_EXT, 'webp', 'S1: THUMB_512_EXT の現行値は webp（m19-t5 が変えた単一変化点）');
 
       // (a) ビルトイン全件で 派生 === 明示属性
       const withAttr = builtin.filter((e) => 'thumbnail512' in e);
@@ -272,17 +284,18 @@ await writeFile(
     }
     const fakeWin = { webContents: { send() {} } } as any;
     const exists = (p) => fs.stat(p).then(() => true).catch(() => false);
-    const longSide = async (p) => { const i = await Jimp.read(p); return Math.max(i.width, i.height); };
+    // m19-t5: 512px は webp のため Jimp では読めない。webp/非 webp を同じ規則で読む codec へ委譲する
+    const longSide = async (p) => { const i = await readImageMeta(p); return Math.max(i.width, i.height); };
 
-    // ============ S3: ext='png' で tmbs/{key}_512.png と tmbs/{key}.png を書く ============
+    // ============ S3: ext='png' で tmbs/{key}_512.webp と tmbs/{key}.png を書く ============
     {
       (globalThis as any).__pickImagePath = srcImagePath;
       const key = 's3-basemap';
       const r = await AppAssetService.replaceMapThumbnail(fakeWin, key, '512', true, 'png');
       assert.ok(!r.err, 'S3: 成功する: ' + JSON.stringify(r));
-      const p512 = nodePath.join(dataDir, 'tmbs', key + '_512.png');
+      const p512 = nodePath.join(dataDir, 'tmbs', key + '_512.webp');
       const p52 = nodePath.join(dataDir, 'tmbs', key + '.png');
-      assert.ok(await exists(p512), 'S3: tmbs/{key}_512.png が書かれる');
+      assert.ok(await exists(p512), 'S3: tmbs/{key}_512.webp が書かれる');
       assert.ok(await exists(p52), 'S3: tmbs/{key}.png が書かれる（derive52）');
       assert.equal(await longSide(p512), 512, 'S3: 512px 側の長辺は 512');
       assert.equal(await longSide(p52), 52, 'S3: 52px 側の長辺は 52');
@@ -295,9 +308,11 @@ await writeFile(
       const key = 's4-map-uid';
       const r = await AppAssetService.replaceMapThumbnail(fakeWin, key, '512', true);
       assert.ok(!r.err, 'S4: 成功する: ' + JSON.stringify(r));
-      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', key + '_512.jpg')), 'S4: ext 省略で tmbs/{key}_512.jpg');
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', key + '_512.webp')), 'S4: ext 省略で tmbs/{key}_512.webp');
       assert.ok(await exists(nodePath.join(dataDir, 'tmbs', key + '.jpg')), 'S4: ext 省略で tmbs/{key}.jpg');
-      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', key + '_512.png')), false, 'S4: png は書かれない');
+      // m19-t5: 512px は入力拡張子によらず常に正規形（webp）。png 名の 512px も 52px も書かれない
+      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', key + '_512.png')), false, 'S4: 512px は png 名で書かれない');
+      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', key + '.png')), false, 'S4: 52px も png では書かれない（ext 省略の既定は jpg）');
       console.log('ok: S4 ext 省略時の .jpg 既定（地図側 parity）');
     }
 
@@ -307,9 +322,9 @@ await writeFile(
       (globalThis as any).__pickImagePath = srcImagePath;
       const k = 's8-a';
       const a = await AppAssetService.replaceMapThumbnail(fakeWin, k, '512', false, 'png');
-      assert.equal(a.path, 'tmbs/' + k + '_512.png', 'S8(a): path は 512px の相対パス');
+      assert.equal(a.path, 'tmbs/' + k + '_512.webp', 'S8(a): path は 512px の相対パス');
       assert.equal(a.path52, undefined, 'S8(a): path52 は undefined（← path52 ?? path が 512px を掴む理由）');
-      assert.ok(a.fileUrl && a.fileUrl.includes(k + '_512.png'), 'S8(a): fileUrl は 512px');
+      assert.ok(a.fileUrl && a.fileUrl.includes(k + '_512.webp'), 'S8(a): fileUrl は 512px');
       assert.equal(a.fileUrl52, undefined, 'S8(a): fileUrl52 は undefined');
       assert.equal(await exists(nodePath.join(dataDir, 'tmbs', k + '.png')), false, 'S8(a): 52px は書かれない');
 
@@ -317,7 +332,7 @@ await writeFile(
       (globalThis as any).__pickImagePath = srcImagePath;
       const kb = 's8-b';
       const b = await AppAssetService.replaceMapThumbnail(fakeWin, kb, '512', true, 'png');
-      assert.equal(b.path, 'tmbs/' + kb + '_512.png', 'S8(b): path は 512px');
+      assert.equal(b.path, 'tmbs/' + kb + '_512.webp', 'S8(b): path は 512px');
       assert.equal(b.path52, 'tmbs/' + kb + '.png', 'S8(b): path52 は 52px');
 
       // (c) kind='52' → path=52px / path52 は undefined（derive52 は無視される）
@@ -326,7 +341,7 @@ await writeFile(
       const c = await AppAssetService.replaceMapThumbnail(fakeWin, kc, '52', true, 'png');
       assert.equal(c.path, 'tmbs/' + kc + '.png', 'S8(c): path は 52px');
       assert.equal(c.path52, undefined, 'S8(c): path52 は常に undefined');
-      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', kc + '_512.png')), false, 'S8(c): 512px は書かれない');
+      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', kc + '_512.webp')), false, 'S8(c): 512px は書かれない');
 
       // 失敗経路（Canceled）: すべて undefined
       (globalThis as any).__pickImagePath = null;
@@ -337,7 +352,7 @@ await writeFile(
 
       // (d) いずれの経路でも _512_512 は生成されない
       for (const key of [k, kb, kc]) {
-        assert.equal(await exists(nodePath.join(dataDir, 'tmbs', key + '_512_512.png')), false,
+        assert.equal(await exists(nodePath.join(dataDir, 'tmbs', key + '_512_512.webp')), false,
           'S8(d): ' + key + ' で _512_512 が生成されない');
       }
 
@@ -361,7 +376,7 @@ await writeFile(
       await fse.ensureDir(nodePath.join(dataDir, 'tmbs'));
       const src = await fs.readFile(srcImagePath);
       await fs.writeFile(nodePath.join(dataDir, 'tmbs', UID + '.png'), src);
-      await fs.writeFile(nodePath.join(dataDir, 'tmbs', UID + '_512.png'), src);
+      await fs.writeFile(nodePath.join(dataDir, 'tmbs', UID + '_512.webp'), src);
 
       await SqliteDataService.saveUserBaseMap({
         uid: UID, slug: SLUG, create: true,
@@ -388,10 +403,10 @@ await writeFile(
       const names = new AdmZip(exported.outDir).getEntries().map((e) => e.entryName);
       assert.ok(names.includes('tmbs/' + SLUG + '.png'),
         'S5: 52px が slug 名で同梱される: ' + JSON.stringify(names.filter((n) => n.startsWith('tmbs/'))));
-      assert.ok(names.includes('tmbs/' + SLUG + '_512.png'),
+      assert.ok(names.includes('tmbs/' + SLUG + '_512.webp'),
         'S5/AC9: 512px も slug 名で同梱される（uid 名のコピー元から解決。ADR-0007 違反 B の是正）: '
           + JSON.stringify(names.filter((n) => n.startsWith('tmbs/'))));
-      assert.equal(names.includes('tmbs/' + UID + '_512.png'), false, 'S5: uid 名は出力へ漏れない（ADR-0007 export 契約）');
+      assert.equal(names.includes('tmbs/' + UID + '_512.webp'), false, 'S5: uid 名は出力へ漏れない（ADR-0007 export 契約）');
       console.log('ok: S5 ベースマップ 512px の package 同梱（uid → slug 解決）');
     }
 
@@ -422,7 +437,7 @@ await writeFile(
       assert.ok(!gen.err, 'S10: 存在範囲から生成が成功する: ' + JSON.stringify(gen));
       assert.equal(gen.path, 'tmbs/' + SLUG + '.png', 'S10: 生成の返値は 52px の暫定名');
       assert.ok(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '.png')), 'S10: 生成直後は 52px が暫定名で在る');
-      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '_512.png')), 'S10: 生成直後は 512px が暫定名で在る');
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '_512.webp')), 'S10: 生成直後は 512px が暫定名で在る');
 
       // 初回保存（create=true・preset uid）→ relocateBaseMapIcon が uid 名へ付け替える
       const saved = await SqliteDataService.saveUserBaseMap({
@@ -442,9 +457,9 @@ await writeFile(
       // 本欠陥の核心: 52px だけでなく 512px も uid 名へ寄っていること
       assert.ok(await exists(nodePath.join(dataDir, 'tmbs', UID + '.png')),
         'S10: 保存後は 52px が uid 名で在る');
-      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', UID + '_512.png')),
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', UID + '_512.webp')),
         'S10: 保存後は 512px も uid 名で在る（初回保存で 512px が消える欠陥の回帰）');
-      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '_512.png')), false,
+      assert.equal(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '_512.webp')), false,
         'S10: 512px の暫定名が取り残されていない');
       assert.equal(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '.png')), false,
         'S10: 52px の暫定名が取り残されていない');
@@ -476,7 +491,7 @@ await build({
     ssr: entryFile,
     target: 'node22',
     rollupOptions: {
-      external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+      external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@jsquash/webp'],
       output: { entryFileNames: 'm19-t2-thumb512-smoke.mjs', format: 'es' },
     },
   },

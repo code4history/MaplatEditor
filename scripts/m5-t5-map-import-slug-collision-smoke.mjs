@@ -81,7 +81,7 @@ try {
         width: 400, height: 300, gcps: [], edges: [],
       })));
       zip.addFile('tmbs/' + slug + '.jpg', Buffer.from('THUMB:' + slug));
-      if (opts.with512) zip.addFile('tmbs/' + slug + '_512.jpg', Buffer.from('THUMB512:' + slug));
+      if (opts.with512) zip.addFile('tmbs/' + slug + '_512.webp', Buffer.from('THUMB512:' + slug));
       zip.addFile('tiles/' + slug + '/0/0/0.jpg', Buffer.from('TILE:' + slug));
       const p = nodePath.join(workDir, slug + '-' + Math.random().toString(36).slice(2) + '.zip');
       zip.writeZip(p);
@@ -148,8 +148,8 @@ try {
         'AC4: タイルが tiles/<uid> へ格納されること');
       assert.equal(nodeFs.existsSync(nodePath.join(dataDir, 'tmbs', uid + '.jpg')), true,
         'AC4: 通常サムネイルが tmbs/<uid>.jpg へ格納されること');
-      assert.equal(nodeFs.existsSync(nodePath.join(dataDir, 'tmbs', uid + '_512.jpg')), true,
-        'AC4: 512px サムネイルが tmbs/<uid>_512.jpg へ格納されること');
+      assert.equal(nodeFs.existsSync(nodePath.join(dataDir, 'tmbs', uid + '_512.webp')), true,
+        'AC4: 512px サムネイルが tmbs/<uid>_512.webp へ格納されること');
       assert.equal(nodeFs.existsSync(nodePath.join(dataDir, 'tiles', third.mapData.mapID)), false,
         'AC4: 格納先が slug キーになっていないこと（ADR-0007）');
 
