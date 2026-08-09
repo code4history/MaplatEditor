@@ -392,14 +392,13 @@ const builtinThumbnails: Record<string, string> = {
 const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
     const manual = envelopeToBbox(baseMapFilterRegion.value);
     if (manual) {
-        return { bbox: manual, enabled: true, labelKey: 'resource_selector.context_map' };
+        return { bbox: manual, enabled: true };
     }
     const auto = gcpAutoRange.bbox.value;
     const expanded = auto ? expandBboxByRatio(auto, 0.05) : null;
     return {
         bbox: expanded,
         enabled: !!expanded,
-        labelKey: 'resource_selector.context_map',
     };
 });
 // stable インスタンス（computed で再生成しない）。source() が reactive に最新を返すため、
@@ -511,14 +510,13 @@ const showPoiRegionModal = ref(false);
 const poiSpatialContext = computed<SelectorSpatialContextView>(() => {
     const manual = envelopeToBbox(poiFilterRegion.value);
     if (manual) {
-        return { bbox: manual, enabled: true, labelKey: 'resource_selector.context_map' };
+        return { bbox: manual, enabled: true };
     }
     const auto = gcpAutoRange.bbox.value;
     const expanded = auto ? expandBboxByRatio(auto, 0.05) : null;
     return {
         bbox: expanded,
         enabled: !!expanded,
-        labelKey: 'resource_selector.context_map',
     };
 });
 const poiRangeState = computed<"none" | "auto" | "manual">(() => {
@@ -4628,12 +4626,12 @@ const goBack = async () => {
                       <template #range-filter>
                         <ResourceRangeFilterButton
                           :state="baseMapRangeState"
-                          :auto-label="t('mapedit.range_filter_gcp_active')"
-                          :manual-label="t('mapedit.range_filter_manual_active')"
-                          :none-label="t('mapedit.range_filter_none')"
+                          :auto-label="t('range_filter.active_auto')"
+                          :manual-label="t('range_filter.active_manual')"
+                          :none-label="t('range_filter.button')"
                           test-id="map-base-map-region-button"
                           clear-test-id="map-base-map-region-clear"
-                          :clear-title="t('appedit.envelope_clear')"
+                          :clear-title="t('range_filter.clear')"
                           @open="showBaseMapRegionModal = true"
                           @clear="baseMapFilterRegion = null"
                         />
@@ -4701,12 +4699,12 @@ const goBack = async () => {
                     </div>
                   </template>
                 </ResourceSelector>
-                <!-- 地域指定モーダル(Geocoder内蔵)。指定領域と存在範囲が重なるベースマップに絞り込む -->
+                <!-- 絞り込み範囲の指定モーダル(Geocoder内蔵)。指定した範囲と存在範囲が重なるベースマップに絞り込む -->
                 <EnvelopeEditorModal
                     v-if="showBaseMapRegionModal"
                     :model-value="baseMapFilterRegion"
-                    title-key="mapedit.base_map_region_modal_title"
-                    help-key="mapedit.base_map_region_modal_help"
+                    title-key="range_filter.modal_title"
+                    help-key="range_filter.modal_help_basemap"
                     :fallback-bbox="baseMapRegionFallbackBbox"
                     @update:model-value="baseMapFilterRegion = $event"
                     @close="showBaseMapRegionModal = false"
@@ -4741,12 +4739,12 @@ const goBack = async () => {
                   <template #range-filter>
                     <ResourceRangeFilterButton
                       :state="poiRangeState"
-                      :auto-label="t('mapedit.range_filter_gcp_active')"
-                      :manual-label="t('mapedit.range_filter_manual_active')"
-                      :none-label="t('mapedit.range_filter_none')"
+                      :auto-label="t('range_filter.active_auto')"
+                      :manual-label="t('range_filter.active_manual')"
+                      :none-label="t('range_filter.button')"
                       test-id="map-poi-range-button"
                       clear-test-id="map-poi-range-clear"
-                      :clear-title="t('appedit.envelope_clear')"
+                      :clear-title="t('range_filter.clear')"
                       @open="showPoiRegionModal = true"
                       @clear="poiFilterRegion = null"
                     />
@@ -4756,8 +4754,8 @@ const goBack = async () => {
                 <EnvelopeEditorModal
                     v-if="showPoiRegionModal"
                     :model-value="poiFilterRegion"
-                    title-key="mapedit.base_map_region_modal_title"
-                    help-key="mapedit.base_map_region_modal_help"
+                    title-key="range_filter.modal_title"
+                    help-key="range_filter.modal_help"
                     :fallback-bbox="baseMapRegionFallbackBbox"
                     @update:model-value="poiFilterRegion = $event"
                     @close="showPoiRegionModal = false"

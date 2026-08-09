@@ -125,7 +125,7 @@ interface AppDocument {
   startFrom?: string;
   status?: string;
   extraInfo?: string;
-  // アプリ提供範囲(参考情報)。Editor内でのみ使用し、Viewer出力には含めない
+  // アプリ対象範囲。Editor内でのみ使用し、Viewer出力には含めない
   coverageLngLats?: [number, number][] | null;
 }
 
@@ -1396,7 +1396,7 @@ function onPoisChange(next: unknown[]) {
           </div>
           <div class="row g-1 mb-2">
             <div class="col-12">
-              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_coverage") }} <ContextHelp :text="t('appedit.app_coverage_note')" :ariaLabel="t('appedit.app_coverage_note')" /></label>
+              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1" data-testid="app-coverage-label">{{ t("appedit.app_coverage") }} <ContextHelp :text="t('appedit.app_coverage_note')" :ariaLabel="t('appedit.app_coverage_note')" /></label>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="small font-monospace">{{ bboxLabel(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value) }}</span>
                 <button

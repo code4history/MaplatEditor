@@ -4,7 +4,7 @@
       <input :value="query" type="search" class="form-control form-control-sm" :placeholder="placeholder" :data-testid="inputTestid" @input="emit('update:query', ($event.target as HTMLInputElement).value)">
       <!-- M12-T10 v2.0 HM3: #range-filter slot が提供された場合はそれを使い、spatial-toggle は出さない（排他） -->
       <slot name="range-filter" v-if="hasRangeFilterSlot"></slot>
-      <button v-else-if="spatialContext" type="button" class="btn btn-outline-secondary btn-sm mt-2 w-100" data-testid="selector-spatial-toggle" @click="emit('toggle-spatial-context')">
+      <button v-else-if="spatialContext && spatialContext.labelKey" type="button" class="btn btn-outline-secondary btn-sm mt-2 w-100" data-testid="selector-spatial-toggle" @click="emit('toggle-spatial-context')">
         {{ spatialContext.enabled
           ? t('resource_selector.range_auto', { context: t(spatialContext.labelKey) })
           : t('resource_selector.range_none') }}

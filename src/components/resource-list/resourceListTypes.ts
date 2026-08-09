@@ -79,5 +79,5 @@ export type ResourceListState =
 export interface SelectorSpatialContextView {
   bbox: Wgs84Bbox | null;
   enabled: boolean;
-  labelKey: "resource_selector.context_map" | "resource_selector.context_app_coverage";
+  labelKey?: "resource_selector.context_app_coverage";
 }

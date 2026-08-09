@@ -37,7 +37,7 @@ const REQUIRED_KEYS = [
   "menu_delete", "menu_label", "total_only", "loaded_only", "search_placeholder",
 ];
 const KIND_KEYS = ["kind_map", "kind_poi_source", "kind_base_map", "kind_app", "kind_asset"];
-const SELECTOR_KEYS = ["context_map", "context_app_coverage", "range_auto", "range_none"];
+const SELECTOR_KEYS = ["context_app_coverage", "range_auto", "range_none"];
 const translations = {};
 for (const loc of LOCALES) {
   const t = JSON.parse(await read(`public/locales/${loc}/translation.json`));

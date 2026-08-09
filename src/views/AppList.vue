@@ -17,9 +17,9 @@
     >
       <template #range>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-testid="app-range-filter" @click="modalOpen = true">
-          <i class="bi bi-bounding-box me-1" aria-hidden="true"></i>{{ t("basemap.master_detail.range_filter") }}
+          <i class="bi bi-bounding-box me-1" aria-hidden="true"></i>{{ t("range_filter.button") }}
         </button>
-        <button v-if="bbox" type="button" class="btn btn-outline-secondary btn-sm" data-testid="app-range-clear" @click="clear">
+        <button v-if="bbox" type="button" class="btn btn-outline-secondary btn-sm" data-testid="app-range-clear" :title="t('range_filter.clear')" @click="clear">
           <i class="bi bi-x-lg" aria-hidden="true"></i>
         </button>
       </template>
@@ -37,7 +37,7 @@
         />
       </div>
     </ResourceListShell>
-    <EnvelopeEditorModal v-if="modalOpen" :model-value="envelopeForModal" title-key="basemap.coverage_modal_title" help-key="appedit.envelope_modal_help" @update:model-value="apply" @close="modalOpen = false" />
+    <EnvelopeEditorModal v-if="modalOpen" :model-value="envelopeForModal" title-key="range_filter.modal_title" help-key="range_filter.modal_help" @update:model-value="apply" @close="modalOpen = false" />
 
     <DeleteConfirmDialog
       :visible="deletion.dialog.visible" :title="deletion.dialog.title"
