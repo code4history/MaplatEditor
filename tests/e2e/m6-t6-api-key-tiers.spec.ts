@@ -8,11 +8,20 @@
 // AC8: 書き出し: 両方空のとき overrideKeys 未指定ならソース除外・警告、指定すれば反映される
 // AC14: 旧形 slug の startFrom 救済（resolveStartFromViewerMapID の3段目・実 maplat ソースで検証。
 //       L-1 是正: 従来テストは builtin(osm) で2段目しか通っていなかった）
+//
+// m6-t10（ADR-0018）追随: AC5/AC8 の provider ソースは、**ベースマップマスタを実際に登録した
+// 状態**でなければ検証できない。差分保持モデルでソースから kind が消え、マスタ所有になったため、
+// マスタ未登録のソースは resolveAppSource が master-missing として鍵判定より **先に** 除外して
+// しまう（AppPreviewService.ts / AppExportService.ts。設計 §3.6）。旧テストはソース自身の
+// data.kind で判定されていた m6-t6 当時の形のまま残っており、m6-t10 以降は
+// warn_missing_base_map_master へ落ちて鍵3段の経路を1行も踏んでいなかった。
+// ∴ マスタを seed したうえで「鍵だけが無い」状態を作る（seed しても鍵は一切設定しない）。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -163,6 +172,11 @@ test('AC5(a): プレビューは鍵未解決の provider ソースを sources �
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t6-preview-exclude-'));
   const { app, page } = await launch(e2eRoot);
   try {
+    // マスタは登録するが、エディタ用キー・既定公開用キーはいずれも設定しない
+    // （= 鍵3段すべてが未解決。seedE2EProviderKeys は**呼ばない**）
+    const googleSlug = 'legacy-google-slug';
+    await seedBaseMap(page, googleSlug, baseMapMasterDoc({ kind: 'google', maptype: 'google_roadmap', url: '' }));
+
     const appID = `t6-preview-exclude-${Date.now()}`;
     const document = {
       appID,
@@ -173,8 +187,10 @@ test('AC5(a): プレビューは鍵未解決の provider ソースを sources �
       keywords: '',
       siteUrl: '',
       sources: [
-        // 鍵が3段とも未解決（editor/publish/override いずれも無し）の google ソース
-        { mapUid: 'legacy-google-slug', role: 'base', data: { kind: 'google', maptype: 'google_roadmap' } },
+        // 鍵が3段とも未解決（editor/publish/override いずれも無し）の google ソース。
+        // 旧保存形（data にマスタ全コピー・baseMapUid 無し）のまま置き、resolveAppSource の
+        // slug 経由フォールバック（mapUid → bySlug）と legacyData 移行も併せて踏ませる
+        { mapUid: googleSlug, role: 'base', data: { kind: 'google', maptype: 'google_roadmap' } },
         { mapUid: 'osm', role: 'base', data: {} },
       ],
       // 2段目（mapUid/mapSlug 一致）で解決される旧形 startFrom
@@ -195,6 +211,9 @@ test('AC5(a): プレビューは鍵未解決の provider ソースを sources �
     }, document);
 
     expect(preview.warnings).toContain('appedit.warn_provider_google_key_missing');
+    // 退行止め: マスタ欠落による除外が先に成立していると、鍵3段の経路を1行も踏まないまま
+    // 「除外された」ことだけが偶然一致してしまう（m6-t10 で実際に起きた沈黙した被覆喪失）
+    expect(preview.warnings).not.toContain('appedit.warn_missing_base_map_master');
 
     const token = tokenFromPreviewUrl(preview.url);
     const appJson = await fetchPreviewJson(page, preview.url, `apps/${token}.json`);
@@ -219,6 +238,9 @@ test('AC5(b): 唯一の背景ソースが鍵未解決で除外されたとき、
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t6-preview-empty-'));
   const { app, page } = await launch(e2eRoot);
   try {
+    const soloSlug = 'legacy-google-solo';
+    await seedBaseMap(page, soloSlug, baseMapMasterDoc({ kind: 'google', maptype: 'google_roadmap', url: '' }));
+
     const appID = `t6-preview-empty-${Date.now()}`;
     const document = {
       appID,
@@ -230,7 +252,7 @@ test('AC5(b): 唯一の背景ソースが鍵未解決で除外されたとき、
       siteUrl: '',
       // 唯一の背景ソースが鍵未解決の google。他にフォールバック可能なソースが無い
       sources: [
-        { mapUid: 'legacy-google-solo', role: 'base', startFrom: true, data: { kind: 'google', maptype: 'google_roadmap' } },
+        { mapUid: soloSlug, role: 'base', startFrom: true, data: { kind: 'google', maptype: 'google_roadmap' } },
       ],
       pois: [],
       httpSettings: { overlay: true },
@@ -247,6 +269,7 @@ test('AC5(b): 唯一の背景ソースが鍵未解決で除外されたとき、
     }, document);
 
     expect(preview.warnings).toContain('appedit.warn_provider_google_key_missing');
+    expect(preview.warnings).not.toContain('appedit.warn_missing_base_map_master');
 
     const token = tokenFromPreviewUrl(preview.url);
     const appJson = await fetchPreviewJson(page, preview.url, `apps/${token}.json`);
@@ -339,6 +362,12 @@ test('AC8: 書き出しは鍵未解決の provider ソースを除外し、overr
     const zipPathA = path.join(e2eRoot, 'export-a.zip');
     const zipPathB = path.join(e2eRoot, 'export-b.zip');
 
+    // 鍵は一切設定しない（アプリ単位・既定公開用とも空）。(b) の overrideKeys だけが解決手段になる
+    const mapboxSlug = 'legacy-mapbox-slug';
+    await seedBaseMap(page, mapboxSlug, baseMapMasterDoc({
+      kind: 'mapbox', maptype: 'mapbox', style: 'mapbox://styles/mapbox/streets-v12', url: '',
+    }));
+
     const documentTemplate = {
       lang: 'ja',
       title: { ja: 't6 export app' },
@@ -347,7 +376,7 @@ test('AC8: 書き出しは鍵未解決の provider ソースを除外し、overr
       keywords: '',
       siteUrl: '',
       sources: [
-        { mapUid: 'legacy-mapbox-slug', role: 'base', data: { kind: 'mapbox', style: 'mapbox://styles/mapbox/streets-v12' } },
+        { mapUid: mapboxSlug, role: 'base', data: { kind: 'mapbox', style: 'mapbox://styles/mapbox/streets-v12' } },
         { mapUid: 'osm', role: 'base' },
       ],
       pois: [],
@@ -370,6 +399,7 @@ test('AC8: 書き出しは鍵未解決の provider ソースを除外し、overr
     }, documentTemplate);
     expect(resultA.result).toBe('Success');
     expect(resultA.warnings).toContain('appedit.warn_provider_mapbox_key_missing');
+    expect(resultA.warnings).not.toContain('appedit.warn_missing_base_map_master');
 
     const { default: AdmZipA } = await import('adm-zip');
     const zipA = new AdmZipA(zipPathA);

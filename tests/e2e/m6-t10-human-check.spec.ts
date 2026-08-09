@@ -22,22 +22,13 @@
 //   4. url 欄が無くなり注記だけになったことが、不足ではなく方針として読めるか（§3.3）
 //   5. マスタ欠落表示（下記手順）が、削除以外できないと伝わるか（§3.6）
 //        別ウィンドウ不要: ベースマップ管理でマスタを削除 → アプリ編集へ戻る
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { seedBaseMap } from './helpers/baseMapSeed';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
-
-async function seedBaseMap(page: Page, slug: string, tms: Record<string, unknown>): Promise<void> {
-  const result = await page.evaluate(
-    async ({ slug: s, tms: t }) => await (window as any).baseMaps.saveUser({
-      slug: s, create: true, uid: crypto.randomUUID(), tms: t,
-    }),
-    { slug, tms },
-  );
-  expect(result?.result, `seedBaseMap(${slug}) failed: ${JSON.stringify(result)}`).toBe('Success');
-}
 
 const masterDoc = (suffix: string) => ({
   lang: 'ja',

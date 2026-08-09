@@ -20,6 +20,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { seedBaseMap } from './helpers/baseMapSeed';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OSM_TILE_FIXTURE_ROOT = path.resolve(import.meta.dirname, 'fixtures/osm-tiles');
@@ -80,17 +81,6 @@ async function clickNativeSearchClear(locator: ReturnType<Page['getByTestId']>):
     `native × を押せませんでした（走査したオフセット: 右端から 11〜22px / 欄幅 ${box.width}px）。` +
       'type="search" が付いていないか、レイアウトが変わってボタン位置が範囲外へ出た可能性がある',
   );
-}
-
-async function seedBaseMap(page: Page, slug: string, tms: Record<string, unknown>): Promise<string> {
-  const result = await page.evaluate(
-    async ({ slug: s, tms: t }) => await (window as any).baseMaps.saveUser({
-      slug: s, create: true, uid: crypto.randomUUID(), tms: t,
-    }),
-    { slug, tms },
-  );
-  expect(result?.result, `seedBaseMap(${slug}) failed: ${JSON.stringify(result)}`).toBe('Success');
-  return result.uid as string;
 }
 
 // AppEdit の既定言語（AppEdit.vue currentLang = 'ja'）に揃える

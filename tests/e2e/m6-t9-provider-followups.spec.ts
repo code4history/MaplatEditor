@@ -14,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { seedE2EProviderKeys } from './helpers/providerKeys';
+import { baseMapMasterDoc as baseTmsDoc, seedBaseMap } from './helpers/baseMapSeed';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -32,45 +33,6 @@ async function fillAndCommit(locator: ReturnType<Page['getByTestId']>, value: st
   await locator.fill(value);
   await locator.press('Tab');
 }
-
-async function seedBaseMap(
-  page: Page,
-  slug: string,
-  tms: Record<string, unknown>,
-): Promise<string> {
-  const result = await page.evaluate(
-    async ({ slug: s, tms: t }) => {
-      return await (window as any).baseMaps.saveUser({
-        slug: s,
-        create: true,
-        uid: crypto.randomUUID(),
-        tms: t,
-      });
-    },
-    { slug, tms },
-  );
-  expect(result?.result, `seedBaseMap(${slug}) failed: ${JSON.stringify(result)}`).toBe('Success');
-  return result.uid as string;
-}
-
-// lang: 'ja' — AppEdit の既定言語（AppEdit.vue:221 currentLang = ref('ja')）と揃え、
-// langText('attr') 等の言語キー参照ミスマッチを避ける
-const baseTmsDoc = (extra: Record<string, unknown>) => ({
-  lang: 'ja',
-  title: { ja: 'T' },
-  label: { ja: 'T' },
-  attr: { ja: '© Test' },
-  dataAttr: {},
-  license: '',
-  dataLicense: '',
-  licenseNote: {},
-  dataLicenseNote: {},
-  minZoom: null,
-  maxZoom: null,
-  thumbnail: '',
-  coverageLngLats: null,
-  ...extra,
-});
 
 test('m6-t9 AC1/AC6: provider kind hides url field in AppSourceEditor; ContextHelp shows only when actually disabled', async () => {
   test.setTimeout(180_000);
