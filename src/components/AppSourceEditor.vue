@@ -17,6 +17,15 @@
 //   - 言語別テキスト → 検索バー方式（type="search" の native ×。LangResourceInput の clearable）
 //   - 利用範囲 → 範囲フィルタ方式（値があるときだけ隣に bi-x-lg ボタン）
 //
+// **translationMode の適用範囲（m19-t3・人間検証 AC15）**: 翻訳モード（活性言語 ≠ 文書の既定言語）
+// で無効化するのは**言語に依存しない構造的な値だけ**である。言語別テキスト（表示ラベル）は
+// 翻訳モードでこそ編集する対象なので無効化してはならない。これはリポジトリ共通の規律であり、
+// BaseMapEdit.vue が構造的な欄（structuralDisabled = readOnly || translationMode || …）と
+// 言語別欄（translationMode を意図的に外した式）で disabled を書き分けているのが原型である。
+// MapEdit.vue の map-title / map-label、AppEdit.vue の app-title / app-manifest-name も同様に
+// disabled を持たない。本コンポーネントだけが表示ラベルへ translationMode を掛けており、
+// 「チップは出るのに翻訳を入力できない」欠陥になっていた（base 74c3806 から存在）。
+//
 // m6-t10 (ADR-0017): builtin の文字列出力を廃止したため、builtin への上書きも
 // viewer へ届くようになった。∴ tms と別扱いする理由が無くなり、フォームを共通化した。
 //
@@ -27,7 +36,6 @@ import { computed, ref } from "vue";
 import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "./EnvelopeEditorModal.vue";
 import LangResourceInput from "./LangResourceInput.vue";
-import ContextHelp from "./editor-ui/ContextHelp.vue";
 import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 import type { LangCode } from "../utils/editorLanguages";
 import {
@@ -180,7 +188,6 @@ function copyCoverageToEnvelope() {
           :active-lang="currentLang"
           :default-lang="defaultLang"
           :language-options="languageOptions"
-          :disabled="translationMode"
           clearable
           input-testid="app-source-maplat-label"
           @update:model-value="setLangResource('label', $event)"
@@ -211,20 +218,11 @@ function copyCoverageToEnvelope() {
           :default-lang="defaultLang"
           :language-options="languageOptions"
           :placeholder="masterText('label')"
-          :disabled="translationMode"
           clearable
           input-testid="app-source-override-label"
           @update:model-value="setLangResource('label', $event)"
           @select-language="emit('select-language', $event)"
         />
-      </div>
-
-      <!-- m6-t10 §3.3: url の上書き欄は撤去した。ベースマップの同一性そのものを変える操作であり、
-           マスタ側で別のベースマップを作るべきもの。provider では m6-t9 §3.1 で既に非表示だった。
-           m19-t3: 同じ理屈が表題・帰属・ライセンス・ズーム範囲・サムネイルにも及ぶため、
-           それらの上書き欄も撤去した。注記だけを残す -->
-      <div class="col-md-6 d-flex align-items-end" data-testid="app-source-url-note">
-        <ContextHelp :text="t('appedit.source_url_master_note')" :ariaLabel="t('appedit.source_url_master_note')" />
       </div>
 
       <!-- overlay専用設定（マスタに対応物が無く、常にアプリ所有） -->
@@ -277,6 +275,21 @@ function copyCoverageToEnvelope() {
             <i class="bi bi-x-lg" aria-hidden="true"></i>
           </button>
         </div>
+      </div>
+
+      <!-- m6-t10 §3.3: url の上書き欄は撤去した。ベースマップの同一性そのものを変える操作であり、
+           マスタ側で別のベースマップを作るべきもの。provider では m6-t9 §3.1 で既に非表示だった。
+           m19-t3: 同じ理屈が表題・帰属・ライセンス・ズーム範囲・サムネイルにも及ぶため、
+           それらの上書き欄も撤去した。注記だけが残る。
+           **人間検証（欠陥B）**: 上書き欄が消えた結果、この注記が表示ラベルの直後に取り残され、
+           ラベルの説明と誤読された。∴ (1) ソース設定の**末尾**へ移し、(2) 素の `?` アイコン
+           （ContextHelp）をやめて注記文そのものを地の文として出す。ホバーしないと読めない形は、
+           隣の欄の説明と誤読される余地を残すため採らない。文面は BaseMapEdit の
+           `basemap-style-maplibre-hint`（:301 の form-text small text-muted）と同じ体裁に揃える -->
+      <div class="col-12">
+        <p class="form-text small text-muted mb-0" data-testid="app-source-url-note">
+          {{ t("appedit.source_url_master_note") }}
+        </p>
       </div>
     </div>
 

@@ -298,6 +298,106 @@ test('m6-t10 AC12/AC14/AC25/AC28: 差分保持フォーム（プレースホル�
   }
 });
 
+// m19-t3 AC15（人間検証由来）: 表示ラベルが翻訳モードで編集できること。
+//
+// 本タスクの要望は「表示ラベルを単言語要素 → 多言語要素にする」である。器（LangResourceInput）は
+// m6-t10 の時点で入っていたが、**欄に :disabled="translationMode" が付いていたため、既定言語以外へ
+// 切り替えると読み取り専用になり翻訳を入力できなかった**（base 74c3806 から存在した欠陥）。
+// チップは出るのに入力できない ＝ 機構として多言語になっていない。
+//
+// リポジトリ全体の規律（実測）: 翻訳モードで無効化するのは**言語に依存しない構造的な値だけ**である。
+//   - BaseMapEdit.vue: 構造的な欄は structuralDisabled（= readOnly || translationMode || saving || …）、
+//     言語別欄（LangResourceInput 6 箇所）は **translationMode を意図的に外した** disabled 式を使う
+//   - MapEdit.vue: slug / 既定言語 / ライセンス / タイル URL は translationMode で無効化、
+//     言語別の map-title / map-label には disabled が無い
+//   - AppEdit.vue: slug / 既定言語 / ポート / 色 / 座標 / role などは translationMode で無効化、
+//     言語別の app-title / app-manifest-name / app-manifest-short-name には disabled が無い
+// AppSourceEditor.vue だけがこの規律から外れていた。
+test('m19-t3 AC15: 表示ラベルは翻訳モードでも編集でき、言語間を往復できる（構造的な値は無効のまま）', async () => {
+  test.setTimeout(180_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m19-t3-translation-'));
+  const { app, page } = await launch(e2eRoot);
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  try {
+    const tmsSlug = `m19t3-tr-${Date.now()}`;
+    await seedBaseMap(page, tmsSlug, { ...masterTmsDoc });
+    const card = await newAppWithSource(page, `m19t3-app-${Date.now()}`, tmsSlug);
+
+    const label = card.getByTestId('app-source-override-label');
+    const langSelect = page.getByTestId('editor-language');
+
+    // ---- 既定言語（ja）で入力する ----
+    await expect(label, '既定言語では従来どおり編集できる').toBeEnabled();
+    await label.fill('ラベル日本語');
+    await label.press('Tab');
+    await expect(label).toHaveValue('ラベル日本語');
+
+    // mercator シフト欄を出すため overlay へ切り替えておく。role は**言語に依存しない構造的な値**で
+    // あり翻訳モードでは変更できない（AppEdit.vue:1619）ので、既定言語のうちに切り替える
+    await card.locator('select.form-select-sm').first().selectOption('overlay');
+    await expect(card.getByTestId('app-source-override-mercatorXShift')).toBeVisible();
+
+    // ---- 右上の言語セレクタで English へ切り替える（= 翻訳モード）----
+    await langSelect.selectOption('en');
+    // 人間の報告どおり JA チップが出る（ja に値があり、active が ja ではなくなったため）
+    await expect(
+      card.locator('.lang-value-chip', { hasText: 'JA' }),
+      'AC15: 他言語に値があることを示す JA チップが出る',
+    ).toBeVisible();
+    // **本丸**: 翻訳モードでも表示ラベルは編集できる（この assert が欠陥の再現そのもの）
+    await expect(label, 'AC15: 翻訳モードでも表示ラベルは編集できる').toBeEnabled();
+    await expect(label, 'AC15: en は未入力なので空欄').toHaveValue('');
+    await label.fill('Label in English');
+    await label.press('Tab');
+    await expect(label).toHaveValue('Label in English');
+
+    // ---- 翻訳モードでも、言語に依存しない構造的な値は無効のまま（既存の意図を壊さない）----
+    await expect(
+      card.getByTestId('app-source-copy-coverage-envelopeLngLats'),
+      'AC15: 構造的な操作（存在範囲からコピー）は翻訳モードで無効のまま',
+    ).toBeDisabled();
+    const envelopeInputs = card
+      .getByTestId('app-source-override-envelopeLngLats')
+      .locator('.envelope-input input');
+    for (let i = 0; i < 4; i += 1) {
+      await expect(
+        envelopeInputs.nth(i),
+        `AC15: 利用範囲の入力欄は翻訳モードで無効のまま（${i}）`,
+      ).toBeDisabled();
+    }
+    await expect(
+      card.getByTestId('app-source-override-mercatorXShift'),
+      'AC15: mercator シフトは翻訳モードで無効のまま',
+    ).toBeDisabled();
+    await expect(card.getByTestId('app-source-override-mercatorYShift')).toBeDisabled();
+    // role セレクト自体（構造的な値）も翻訳モードでは変更できないままであること
+    await expect(
+      card.locator('select.form-select-sm').first(),
+      'AC15: role セレクトは翻訳モードで無効のまま',
+    ).toBeDisabled();
+
+    // ---- 往復: en → ja → en で双方の値が保たれる ----
+    await langSelect.selectOption('ja');
+    await expect(label, 'AC15: ja へ戻すと ja の値が出る').toHaveValue('ラベル日本語');
+    await expect(label).toBeEnabled();
+    await expect(
+      card.locator('.lang-value-chip', { hasText: 'EN' }),
+      'AC15: ja から見ると EN チップが出る',
+    ).toBeVisible();
+    await langSelect.selectOption('en');
+    await expect(label, 'AC15: en へ戻すと en の値が保たれている').toHaveValue('Label in English');
+
+    // maplat 分岐の表示ラベル（app-source-maplat-label）は登録地図の seed が要るため
+    // 本 spec では扱わず、smoke 側のソーステキスト照合（m19-t3 AC15）で同じ規律を機械照合する
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await quitElectronApplication(app);
+  }
+});
+
 test('m6-t10 AC13: builtin(osm) への上書きが配信 JSON と viewer の両方へ届く', async () => {
   test.setTimeout(300_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6-t10-viewer-'));

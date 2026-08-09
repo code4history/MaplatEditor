@@ -694,6 +694,76 @@ try {
     console.log('ok: m19-t3 AC4/AC5/AC6 廃止記号・廃止 i18n キー・新設語彙');
   }
 
+  // ============ m19-t3 AC15（人間検証由来）: translationMode の適用範囲 ============
+  // 翻訳モードで無効化してよいのは**言語に依存しない構造的な値だけ**である。言語別テキスト
+  // （表示ラベル）を無効化すると、チップは出るのに翻訳を入力できない＝多言語要素として機能しない。
+  // リポジトリ共通の規律であり、BaseMapEdit が構造的な欄（structuralDisabled）と言語別欄
+  // （translationMode を外した式）で書き分けているのが原型。E2E（AC15）は builtin/tms 分岐を
+  // 実操作で検証するが、maplat 分岐は登録地図の seed が要るため本 smoke が機械照合で受け持つ。
+  {
+    const editorSrc = await read('src/components/AppSourceEditor.vue');
+
+    // (a) 表示ラベルの 2 操作子（maplat 分岐 / builtin・tms 分岐）が translationMode で無効化されない。
+    //     LangResourceInput の呼び出しブロックを取り出して、その中に :disabled が無いことを見る
+    const langInputBlocks = [...editorSrc.matchAll(/<LangResourceInput\b[\s\S]*?\/>/g)].map((m) => m[0]);
+    assert.equal(langInputBlocks.length, 2, 'm19-t3 AC15: 言語別欄は表示ラベルの 2 箇所だけ');
+    for (const testid of ['app-source-maplat-label', 'app-source-override-label']) {
+      const block = langInputBlocks.find((b) => b.includes(`input-testid="${testid}"`));
+      assert.ok(block, `m19-t3 AC15: ${testid} の LangResourceInput が在る`);
+      assert.doesNotMatch(
+        block, /:disabled=/,
+        `m19-t3 AC15: ${testid}（言語別テキスト）は翻訳モードで無効化してはならない。` +
+          'チップは出るのに翻訳を入力できない状態になり、多言語要素として機能しなくなる',
+      );
+    }
+
+    // (b) 言語に依存しない構造的な操作子は translationMode で無効のまま（既存の意図を壊していない）
+    for (const anchor of [
+      'data-testid="app-source-override-mercatorXShift"',
+      'data-testid="app-source-override-mercatorYShift"',
+      'data-testid="app-source-copy-coverage-envelopeLngLats"',
+      'data-testid="app-source-clear-envelopeLngLats"',
+    ]) {
+      const line = editorSrc.split('\n').find((l) => l.includes(anchor));
+      assert.ok(line, `m19-t3 AC15: ${anchor} が在る`);
+    }
+    // 上の 4 つのうち、単一行で書かれている 3 つは同じ行に :disabled="translationMode…" を持つ
+    for (const anchor of [
+      'data-testid="app-source-override-mercatorXShift"',
+      'data-testid="app-source-override-mercatorYShift"',
+      'data-testid="app-source-clear-envelopeLngLats"',
+    ]) {
+      const line = editorSrc.split('\n').find((l) => l.includes(anchor));
+      assert.match(
+        line, /:disabled="translationMode/,
+        `m19-t3 AC15: ${anchor}（構造的な値）は翻訳モードで無効のままであること`,
+      );
+    }
+    // 複数行で書かれた「存在範囲からコピー」も translationMode を含む
+    const copyBlock = editorSrc.match(/<button[^>]*[\s\S]*?data-testid="app-source-copy-coverage-envelopeLngLats"[\s\S]*?>/)[0];
+    assert.match(
+      copyBlock, /:disabled="translationMode \|\| !coverageAvailable"/,
+      'm19-t3 AC15: 「存在範囲からコピー」は翻訳モードで無効のままであること',
+    );
+
+    // (c) 欠陥B: url 注記が表示ラベルの直後に取り残されていない（ラベルの説明と誤読されない）。
+    //     注記はソース設定の末尾に置き、ホバー不要の地の文として出す
+    const noteIndex = editorSrc.indexOf('data-testid="app-source-url-note"');
+    const labelIndex = editorSrc.indexOf('input-testid="app-source-override-label"');
+    const envelopeIndex = editorSrc.indexOf('data-testid="app-source-override-envelopeLngLats"');
+    assert.ok(noteIndex > 0 && labelIndex > 0 && envelopeIndex > 0, 'm19-t3 AC15: 3 つのアンカーが在る');
+    assert.ok(
+      noteIndex > envelopeIndex,
+      'm19-t3 欠陥B: url 注記は利用範囲より後（ソース設定の末尾）に置く。' +
+        '表示ラベルの直後に残るとラベルの説明と誤読される',
+    );
+    assert.match(
+      editorSrc, /data-testid="app-source-url-note"[\s\S]{0,120}t\("appedit\.source_url_master_note"\)/,
+      'm19-t3 欠陥B: 注記文は地の文として出す（ホバーしないと読めない ContextHelp では出さない）',
+    );
+    console.log('ok: m19-t3 AC15 translationMode の適用範囲と url 注記の配置');
+  }
+
   // ============ m19-t3 AC12（弱照合）: ADR-0018 の列挙が凍結後の集合になっている ============
   {
     const adr = await readFile(
