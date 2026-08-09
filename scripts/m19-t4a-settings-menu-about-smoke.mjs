@@ -56,4 +56,25 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   console.log(`  [2/6] isRcOrLater 個別ケース（${cases.length}件）: PASS`);
 }
 
-console.log("m19-t4a settings/menu/about smoke: PASS (partial — releaseChannel only)");
+// --- AC4 続き: ソーステキスト assert（main.ts が releaseChannel を使って開発メニューを
+// 条件付きにしていること）。§3.1 regions: 541-582 行の template.push ブロックを包む ---
+{
+  const mainTs = await readSrc("electron/main.ts");
+  assert.ok(
+    /import\s*\{\s*shouldShowDevelopmentMenu\s*\}\s*from\s*['"]\.\/utils\/releaseChannel['"]/.test(mainTs),
+    "electron/main.ts must import shouldShowDevelopmentMenu from ./utils/releaseChannel",
+  );
+  const devMenuBlock = mainTs.match(/if\s*\(shouldShowDevelopmentMenu\(.*?\)\)\s*\{\s*template\.push\(\{[\s\S]*?\n {2,6}\}\)\s*\n\s*\}/);
+  assert.ok(
+    devMenuBlock,
+    "electron/main.ts must wrap the development menu template.push(...) block in an `if (shouldShowDevelopmentMenu(...))` guard",
+  );
+  assert.match(
+    devMenuBlock[0],
+    /menu\.run_originals_migration/,
+    "the guarded block must still contain the nested t7 menu item (menu.run_originals_migration) — t4a wraps, does not remove, t7's item",
+  );
+  console.log("  [3/6] main.ts: 開発メニューが shouldShowDevelopmentMenu で条件付き: PASS");
+}
+
+console.log("m19-t4a settings/menu/about smoke: PASS (partial — S3 wiring)");
