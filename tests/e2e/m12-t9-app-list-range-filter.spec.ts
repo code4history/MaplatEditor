@@ -69,7 +69,9 @@ test.describe('M12-T9 AppList range filter', () => {
 
       // クリックで EnvelopeEditorModal が開く
       await rangeBtn.click();
-      await expect(page.getByText('存在範囲を指定')).toBeVisible({ timeout: 15000 });
+      // m19-t11: ④のモーダルは①のキーを借りず range_filter.modal_title を使う
+      await expect(page.getByTestId('envelope-modal-title')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('envelope-modal-title')).toContainText('絞り込み範囲を指定');
 
       console.log('  AC1: PASS');
     } finally {

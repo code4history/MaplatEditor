@@ -225,7 +225,9 @@ test.describe('M12-T10 v2.0 MapEdit base map selector 2-pane', () => {
 
       // AC3: EnvelopeEditorModal が開く（ResourceRangeFilterButton の open）
       await rangeBtn.click();
-      await expect(page.getByText('絞り込む地域を指定')).toBeVisible({ timeout: 15000 });
+      // m19-t11: 「絞り込む地域を指定」は廃止。④の確定呼称は「絞り込み範囲」
+      await expect(page.getByTestId('envelope-modal-title')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('envelope-modal-title')).toContainText('絞り込み範囲を指定');
 
       // AC4: .resource-list__rows が適用されている
       await expect(page.getByTestId('map-base-map-selector').locator('.resource-list__rows')).toBeVisible();

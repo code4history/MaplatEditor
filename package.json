@@ -219,7 +219,12 @@
     "test:e2e:m19-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t1-map-name-unification.spec.ts",
     "smoke:m19-t4a-settings-menu-about": "node --experimental-strip-types scripts/m19-t4a-settings-menu-about-smoke.mjs",
     "test:e2e:m19-t4a": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t4a-settings-and-about.spec.ts",
-    "smoke:editor-locale-parity": "node scripts/editor-locale-parity.mjs"
+    "smoke:editor-locale-parity": "node scripts/editor-locale-parity.mjs",
+    "smoke:m19-t11-range-vocabulary": "node scripts/m19-t11-range-vocabulary-smoke.mjs",
+    "test:e2e:m19-t11": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t11-range-vocabulary.spec.ts",
+    "test:e2e:m11-t8b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t8b-search-ui.spec.ts",
+    "test:e2e:m11-t8-search-coverage": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t8-search-coverage.spec.ts",
+    "test:e2e:m11-t8-list-return-overlap": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t8-list-return-overlap.spec.ts"
   },
   "dependencies": {
     "@maplat/core": "^1.0.0-rc1",
