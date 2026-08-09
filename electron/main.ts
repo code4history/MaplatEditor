@@ -22,6 +22,9 @@ process.env.APP_ROOT = path.join(__dirname, '..')
 import { installBackendErrorForwarding } from './utils/backendErrorForwarder'
 installBackendErrorForwarding()
 
+// m19-t4a (§7.3): 配布物の RC 版以降で開発メニューを隠すための判定（electron 非依存の純関数）
+import { shouldShowDevelopmentMenu } from './utils/releaseChannel'
+
 // 🚧 ['ENV_NAME'] 形式で参照: vite:define プラグインの誤変換を回避（Vite@2.x 起因）
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
@@ -480,18 +483,28 @@ function createAboutWindow() {
     maximizable: false,
     title: 'About MaplatEditor',
     autoHideMenuBar: true,
-    webPreferences: { 
-      nodeIntegration: true,
-      contextIsolation: false,
+    webPreferences: {
+      // m19-t4a (§7.4 案2): nodeIntegration/contextIsolation は既定へ戻す。preload も渡さない
+      // （contextBridge も IPC も使わない。露出する Node/Electron API はゼロ）。
+      // webSecurity: false はメインウィンドウ側の是正が後送りである限り単独では意味を持たないため据え置く（§1.2）
       webSecurity: false
     }
   });
   aboutWin.setMenu(null);
-  
-  // publicフォルダからabout.htmlを読み込む
+
+  // publicフォルダからabout.htmlを読み込む。バージョン値は preload/contextBridge を使わず
+  // loadFile の query で渡す（§6 のインタフェース契約。露出面ゼロを保つ唯一の経路）
   const aboutPath = path.join(process.env.VITE_PUBLIC as string, 'about.html');
-  aboutWin.loadFile(aboutPath);
-  
+  aboutWin.loadFile(aboutPath, {
+    query: {
+      appVersion: app.getVersion(),
+      electron: process.versions.electron,
+      chrome: process.versions.chrome,
+      node: process.versions.node,
+      v8: process.versions.v8
+    }
+  });
+
   // aboutWin.webContents.openDevTools({ mode: 'detach' }); // デバッグ時はコメント解除
   aboutWin.on('closed', () => { aboutWin = null; });
 }
@@ -538,47 +551,49 @@ function setupMenu() {
     }
   ]
   
-  // 開発メニューを追加
-  template.push({
-    label: t('menu.development'),
-    submenu: [
-      { role: 'reload', label: t('menu.reload') },
-      { role: 'toggleDevTools', label: t('menu.toggleDevTools') },
-      { type: 'separator' },
-      {
-        label: t('menu.run_originals_migration'),
-        click: async () => {
-          try {
-            const db = await SqliteDataService.getDb(); // ここでは既に resolve 済み(app起動後のmenu click)
-            const result = await runManual(db);
-            const total = Object.values(result.summary).reduce((a: number, b: number) => a + b, 0);
-            const lines = Object.entries(result.summary).map(([kind, count]) => `  ${kind}: ${count}`);
-            const doneMessage = t('menu.originals_migration_done').replace('{count}', String(total));
-            const message = `${doneMessage}\n${lines.join('\n')}\n\n${t('menu.originals_migration_warnings_hint')}`;
-            const options = { type: 'info' as const, title: t('menu.run_originals_migration'), message };
-            // v1.1 (レビュー v1 Minor 6): forceQuit パターン(main.ts 33-34行)により
-            // macOS では全ウィンドウ閉鎖後もアプリ/メニューが生存し win は null になり得る。
-            // win が null の場合は BrowserWindow 引数なしの showMessageBox へフォールバックする
-            if (win) {
-              await dialog.showMessageBox(win, options);
-            } else {
-              await dialog.showMessageBox(options);
-            }
-          } catch (e: any) {
-            // v1.1: runManual() 自体は per-map failure を吸収するが(§5.1)、
-            // getDb() や dialog 自体の予期しない失敗にも click ハンドラとして防御的に備える
-            console.error('[main] manual originals migration failed', e);
-            const errorOptions = { type: 'error' as const, title: t('menu.run_originals_migration'), message: t('menu.originals_migration_failed') };
-            if (win) {
-              await dialog.showMessageBox(win, errorOptions);
-            } else {
-              await dialog.showMessageBox(errorOptions);
+  // 開発メニューを追加（m19-t4a §7.3: 配布物の RC 版以降では出力しない。開発実行・E2E では従来どおり出す）
+  if (shouldShowDevelopmentMenu(app.getVersion(), app.isPackaged)) {
+    template.push({
+      label: t('menu.development'),
+      submenu: [
+        { role: 'reload', label: t('menu.reload') },
+        { role: 'toggleDevTools', label: t('menu.toggleDevTools') },
+        { type: 'separator' },
+        {
+          label: t('menu.run_originals_migration'),
+          click: async () => {
+            try {
+              const db = await SqliteDataService.getDb(); // ここでは既に resolve 済み(app起動後のmenu click)
+              const result = await runManual(db);
+              const total = Object.values(result.summary).reduce((a: number, b: number) => a + b, 0);
+              const lines = Object.entries(result.summary).map(([kind, count]) => `  ${kind}: ${count}`);
+              const doneMessage = t('menu.originals_migration_done').replace('{count}', String(total));
+              const message = `${doneMessage}\n${lines.join('\n')}\n\n${t('menu.originals_migration_warnings_hint')}`;
+              const options = { type: 'info' as const, title: t('menu.run_originals_migration'), message };
+              // v1.1 (レビュー v1 Minor 6): forceQuit パターン(main.ts 33-34行)により
+              // macOS では全ウィンドウ閉鎖後もアプリ/メニューが生存し win は null になり得る。
+              // win が null の場合は BrowserWindow 引数なしの showMessageBox へフォールバックする
+              if (win) {
+                await dialog.showMessageBox(win, options);
+              } else {
+                await dialog.showMessageBox(options);
+              }
+            } catch (e: any) {
+              // v1.1: runManual() 自体は per-map failure を吸収するが(§5.1)、
+              // getDb() や dialog 自体の予期しない失敗にも click ハンドラとして防御的に備える
+              console.error('[main] manual originals migration failed', e);
+              const errorOptions = { type: 'error' as const, title: t('menu.run_originals_migration'), message: t('menu.originals_migration_failed') };
+              if (win) {
+                await dialog.showMessageBox(win, errorOptions);
+              } else {
+                await dialog.showMessageBox(errorOptions);
+              }
             }
           }
         }
-      }
-    ]
-  })
+      ]
+    })
+  }
 
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
