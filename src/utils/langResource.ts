@@ -7,10 +7,13 @@
 export type LangResource = string | Record<string, string>;
 
 // MapEditの言語別編集対象フィールド(MapEdit.vue langAttrと一致させること)
+// m19-t1: 廃止属性(0.7.0 の地図名称(正確))はここから外した。∴ normalizeMapLangFields は
+// それを正規化しない。レガシー取込で保持される値はプレーン文字列のまま行に入りうるため、
+// 移行の写像と取込境界の受容 (src/utils/mapNameUnification.ts) は必ず
+// normalizeLangResource(…, lang) を通してから読むこと。
 export const MAP_LANG_ATTRS = [
   "title",
   "label",
-  "officialTitle",
   "author",
   "era",
   "createdAt",

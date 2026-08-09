@@ -35,7 +35,6 @@ import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
 import {
-    LANGS_MAP,
     SUPPORTED_LANGUAGES,
     resolveEditorLanguage,
     type LangCode,
@@ -240,7 +239,6 @@ const defaultMapData = () => ({
     edges: [],
     sub_maps: [],
     status: 'New',
-    officialTitle: '',
     author: '',
     era: '',
     createdAt: '',
@@ -1088,7 +1086,6 @@ const createLangComputed = (key: string) => computed({
 // ローカライズフィールドの computed プロパティ
 const title = createLangComputed('title');
 const label = createLangComputed('label');
-const officialTitle = createLangComputed('officialTitle');
 const author = createLangComputed('author');
 const era = createLangComputed('era');
 const createdAt = createLangComputed('createdAt');
@@ -1101,7 +1098,7 @@ const dataLicenseNote = createLangComputed('dataLicenseNote');
 const description = createLangComputed('description');
 
 // テンプレート変数名とlangAttrキー名のマッピング
-// テンプレート: title, officialTitle, author, createAt(=createdAt), era, owner(=contributor), mapper
+// テンプレート: title, label, author, createAt(=createdAt), era, owner(=contributor), mapper
 // v-model="mapData.createAt" → langAttr の createdAt に対応
 // v-model="mapData.owner"    → langAttr の contributor に対応
 
@@ -1295,25 +1292,8 @@ const displayTitle = computed(() => {
     return title[lang] || '';
 });
 
-/**
- * 旧実装 zenHankakuLength 相当（map.js L.54）
- * 全角=2、半角=1 で文字列長を算出（最大30 = 全角15文字）
- *
- * 旧実装は escape() を使用: ASCII/Latin(U+0000-U+00FF) → %XX (長さ1扱い)、
- * CJK等(U+0100以上) → %uXXXX (長さ2扱い)。
- * escape() は非推奨のため、コードポイントで直接判定する同等実装に置換。
- */
-function zenHankakuLength(text: string): number {
-    let len = 0;
-    for (const char of text) {
-        const cp = char.codePointAt(0)!;
-        len += cp > 0xFF ? 2 : 1;
-    }
-    return len;
-}
-
-// 対応言語(ビューア対応言語と同一)は共有定義から導出。langコード → common.* i18nキー名
-const langsMap: Record<string, string> = LANGS_MAP;
+// m19-t1: 旧実装由来の zenHankakuLength（全角=2/半角=1 で最大30=全角15文字）は削除した。
+// 1.0.0 の凍結契約 §4.1 によりタイトルの文字数制限を撤廃したため参照が 0 になる。
 
 /**
  * 旧実装 computed.blockingGcpsError 相当（map.js L.289）
@@ -1340,21 +1320,13 @@ const saveError = computed(() => {
         err['mapID'] = 'mapedit.error_mapid_character';
     }
 
-    // --- title（表示用タイトル必須・長さ制限）---
+    // --- title（タイトル必須）---
+    // m19-t1: 長さ制限（全角15文字）は 1.0.0 の凍結契約 §4.1 により撤廃した。必須検証のみ残す。
+    // 表示ラベル(label)は任意項目であり検証しない
     const rawTitle = mapData.value.title;
     const lang = mapData.value.lang || 'ja';
     if (rawTitle == null || rawTitle === '') {
         err['title'] = t('mapmodel.no_title');
-    } else if (typeof rawTitle !== 'object') {
-        if (zenHankakuLength(rawTitle) > 30) {
-            err['title'] = t('mapmodel.over_title', { lang: t(`common.${langsMap[lang] || 'japanese'}`) });
-        }
-    } else {
-        for (const key of Object.keys(langsMap)) {
-            if (rawTitle[key] && zenHankakuLength(rawTitle[key]) > 30) {
-                err['title'] = t('mapmodel.over_title', { lang: t(`common.${langsMap[key]}`) });
-            }
-        }
     }
 
     // --- attr（地図画像コピーライト必須）---
@@ -4117,8 +4089,8 @@ const goBack = async () => {
                     <!-- Row 1 (M11-T7/AC7・§18b決定2): 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-5">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_repr") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_name_repr_desc')" :ariaLabel="t('mapedit.map_name_repr_desc')" /></div>
-                            <input data-testid="map-title" type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_name_repr_pf')">
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_title_label") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_title_desc')" :ariaLabel="t('mapedit.map_title_desc')" /></div>
+                            <input data-testid="map-title" type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_title_pf')">
                             <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.title" scope="field" :items="[{ key: 'title-required', severity: 'danger', message: saveError.title }]" />
                         </div>
@@ -4187,13 +4159,11 @@ const goBack = async () => {
                     <!-- Row 2 -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_label_desc')" :ariaLabel="t('mapedit.map_label_desc')" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_display_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_display_label_desc')" :ariaLabel="t('mapedit.map_display_label_desc')" /></div>
                             <input data-testid="map-label" type="text" class="form-control form-control-sm" v-model="label">
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_name_ofc") }} <LangValueChips :model-value="mapData.officialTitle" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_name_ofc_desc')" :ariaLabel="t('mapedit.map_name_ofc_desc')" /></div>
-                            <input type="text" class="form-control form-control-sm" v-model="officialTitle" :placeholder="t('mapedit.map_name_ofc_pf')">
-                        </div>
+                        <!-- m19-t1: 正式名欄(廃止属性)は削除した。空いた列に他の欄を繰り上げない
+                             (レイアウト再編は別タスクの射程であり、本タスクは名称の統一に限る) -->
                         <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_author") }} <LangValueChips :model-value="mapData.author" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_author_desc')" :ariaLabel="t('mapedit.map_author_desc')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="author" :placeholder="t('mapedit.map_author_pf')">

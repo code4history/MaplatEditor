@@ -232,9 +232,15 @@ try {
     /applySuccess:[\s\S]*?markHistorySaved\(\)/,
     'AppEdit保存成功時も履歴を初期化せず保存checkpointを記録する',
   );
+  // m19-t1: 引数を許す形へ緩めた。m1-t6-hotfix-1（commit 66003b0）が抑止スコープ +
+  // originTags 契約を配線した際、呼び出しが recordHistorySnapshot() から
+  // recordHistorySnapshot(mergeOrigin(pending, [...])) へ変わったが、この
+  // ソーステキスト assert だけが追随せず **着手前から赤だった**。
+  // 守りたい不変条件（保存直前に snapshot を積んでから checkpoint を記録する）は
+  // 現行実装で成立しており、引数の有無はその不変条件と無関係である。
   assert.match(
     mapEdit,
-    /const markHistorySaved = \(\) => \{[\s\S]*?recordHistorySnapshot\(\)[\s\S]*?historyStack\.value\.save\(\)/,
+    /const markHistorySaved = \(\) => \{[\s\S]*?recordHistorySnapshot\([\s\S]*?\)[\s\S]*?historyStack\.value\.save\(\)/,
     '保存直前の未確定変更を履歴へ積んでからcheckpointを記録する',
   );
   console.log('  [9/9] MapEdit save preserves editor history: PASS');

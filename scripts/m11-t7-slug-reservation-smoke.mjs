@@ -1061,7 +1061,7 @@ console.log("m11-t7 smoke Part F2: OK");
 // --- Part G: 5 Edit 先頭が タイトル→スラッグ(ID)→デフォルト言語、ラベル統一(AC7/§18b決定2) ---
 // 順序は template 内の初出 index で検証する(title label → <SlugField → default_lang_label)。
 const EDIT_ORDER = [
-  ["src/views/MapEdit.vue", 'mapedit.map_name_repr'],
+  ["src/views/MapEdit.vue", 'mapedit.map_title_label'],
   ["src/views/AppEdit.vue", 'appedit.app_name'],
   ["src/views/PoiEdit.vue", 'poisource.title_label'],
   ["src/components/basemap/BaseMapEdit.vue", 'basemap.modal.title_label'],

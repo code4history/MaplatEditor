@@ -318,7 +318,7 @@ test('five edits share SlugField with unified head order and §9 tabs', async ()
     // --- Map Edit (AC1/AC7/AC9) ---
     await openHash(page, `#/mapedit?uid=${mapUid}`, '#mapDocumentLanguage');
     await expectSlugField(page, 'map-slug');
-    await expectHeadOrder(page, '地図名称');
+    await expectHeadOrder(page, 'タイトル');
     await expectSlugInputAlignment(page, 'map-slug', 'map-title');
     // AC9: §9 tab 語彙 + role/aria。画像未登録 seed のため対応点編集は disabled
     const mapTabs = page.locator('.nav-tabs [role="tab"]');

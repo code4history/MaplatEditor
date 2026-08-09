@@ -61,13 +61,14 @@ test.describe('M12-T11 説明事項・エラー出力 UI 文法統一', () => {
       const titleLabel = page.getByTestId('map-title').locator('..');
       await expect(titleLabel.locator('[data-editor-help]').first()).toBeVisible();
 
-      // AC1: 表示用タイトル直下の説明 form-text（map_name_repr_desc）は存在しない
-      const metadataFormText = page.locator('.form-text.small', { hasText: '地図の表示用名称を15文字' });
+      // AC1: タイトル直下の説明 form-text（map_title_desc）は存在しない
+      // m19-t1: 文言は「地図の表示用名称を15文字…」から「地図のタイトルを…」へ（制限撤廃）
+      const metadataFormText = page.locator('.form-text.small', { hasText: '地図のタイトルを入力' });
       await expect(metadataFormText).toHaveCount(0);
 
       // AC1: (i) ボタンをクリックすると Popover で説明が表示される
       await titleLabel.locator('[data-editor-help]').first().click();
-      await expect(page.locator('.popover')).toContainText('地図の表示用名称を15文字', { timeout: 5000 });
+      await expect(page.locator('.popover')).toContainText('地図のタイトルを入力', { timeout: 5000 });
       await page.keyboard.press('Escape');
 
       // AC1: ベースマップ設定タブの見出しにも (i) ボタン（追加要件: エディタ設定の説明）

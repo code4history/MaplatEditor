@@ -15,8 +15,12 @@ type TinLike = string | Transform | Compiled;
 
 export interface HistMapStore {
   title: LangResource;
+  // m19-t1: 表示ラベル。多言語 (LangResource)。keys へも必ず追加する
+  // (無いと MapEditService.save の histMap2Store で保存時に消える。m6-t2 の licenseNote /
+  //  m10-t3 の pois と同じ穴。ただし前 2 件と違い label は「保存されていた値が落ちるように
+  //  なった」のではなく「器そのものが最初から無く一度も保存されたことがない」)
+  label: LangResource;
   attr: LangResource;
-  officialTitle: LangResource;
   dataAttr: LangResource;
   strictMode?: StrictMode;
   vertexMode?: VertexMode;
@@ -64,8 +68,8 @@ interface SubMap {
 
 const keys: (keyof HistMapStore)[] = [
   "title",
+  "label",
   "attr",
-  "officialTitle",
   "dataAttr",
   "author",
   "createdAt",
