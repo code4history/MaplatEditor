@@ -644,6 +644,8 @@ try {
     const ABOLISHED_I18N_KEYS = [
       'source_title', 'source_attr', 'min_zoom', 'max_zoom',
       'thumbnail', 'thumbnail_note', 'override_reset', 'license_inherit',
+      // 人間指示により削除（m19-t3）。唯一の使用点だった AppSourceEditor の注記ごと撤去した
+      'source_url_master_note',
     ];
     const locales = (await readdir(path.join(projectRoot, 'public/locales'))).sort();
     assert.equal(locales.length, 11, 'm19-t3: locale は 11 言語');
@@ -675,9 +677,12 @@ try {
         `m19-t3: ${lang} の appedit.envelope_copy_coverage が非空`,
       );
     }
-    // 製品コード・スクリプトに廃止キーの参照が残っていない
+    // 製品コード・スクリプトに廃止キーの参照が残っていない。
+    // 判定対象はコードだけである（廃止の経緯を記すコメントにキー名が出るため）
     for (const rel of ['src/components/AppSourceEditor.vue', 'src/views/AppEdit.vue']) {
-      const src = await read(rel);
+      const src = (await read(rel))
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace(/^[ \t]*\/\/.*$/gm, '');
       for (const key of ABOLISHED_I18N_KEYS) {
         assert.doesNotMatch(
           src, new RegExp(`appedit\\.${key}\\b`),
@@ -746,22 +751,23 @@ try {
       'm19-t3 AC15: 「存在範囲からコピー」は翻訳モードで無効のままであること',
     );
 
-    // (c) 欠陥B: url 注記が表示ラベルの直後に取り残されていない（ラベルの説明と誤読されない）。
-    //     注記はソース設定の末尾に置き、ホバー不要の地の文として出す
-    const noteIndex = editorSrc.indexOf('data-testid="app-source-url-note"');
-    const labelIndex = editorSrc.indexOf('input-testid="app-source-override-label"');
-    const envelopeIndex = editorSrc.indexOf('data-testid="app-source-override-envelopeLngLats"');
-    assert.ok(noteIndex > 0 && labelIndex > 0 && envelopeIndex > 0, 'm19-t3 AC15: 3 つのアンカーが在る');
-    assert.ok(
-      noteIndex > envelopeIndex,
-      'm19-t3 欠陥B: url 注記は利用範囲より後（ソース設定の末尾）に置く。' +
-        '表示ラベルの直後に残るとラベルの説明と誤読される',
+    // (c) 欠陥B: url がマスタ管理である旨の注記は**削除された**（人間指示）。
+    //     上書き欄が全廃された画面では「変更できない」注記だけが浮き、隣接する欄の説明と誤読される。
+    //     当初は「末尾へ移して地の文にする」是正を採ったが、人間の指示により撤去へ変更した。
+    //     url がマスタ管理であることの正本は ADR-0018 / ADR-0017 であり、UI へは戻さない
+    // 判定対象はコードだけ（削除の経緯を記すコメントに testid 名が出るため）
+    const editorCodeOnly = editorSrc
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/^[ \t]*\/\/.*$/gm, '');
+    assert.doesNotMatch(
+      editorCodeOnly, /app-source-url-note/,
+      'm19-t3（人間指示）: url のマスタ管理注記は AppSourceEditor から削除する',
     );
-    assert.match(
-      editorSrc, /data-testid="app-source-url-note"[\s\S]{0,120}t\("appedit\.source_url_master_note"\)/,
-      'm19-t3 欠陥B: 注記文は地の文として出す（ホバーしないと読めない ContextHelp では出さない）',
+    assert.doesNotMatch(
+      editorCodeOnly, /appedit\.source_url_master_note/,
+      'm19-t3（人間指示）: 注記の i18n キー参照も残さない',
     );
-    console.log('ok: m19-t3 AC15 translationMode の適用範囲と url 注記の配置');
+    console.log('ok: m19-t3 AC15 translationMode の適用範囲と url 注記の撤去');
   }
 
   // ============ m19-t3 AC12（弱照合）: ADR-0018 の列挙が凍結後の集合になっている ============

@@ -689,7 +689,6 @@
     "search_maps_placeholder": "Buscar mapas…",
     "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON.",
     "provider_source_note": "La URL del mosaico se genera automáticamente a partir de la clave de API y el tipo, por lo que no es necesario introducirla manualmente.",
-    "source_url_master_note": "La URL de teselas se gestiona en el maestro del mapa base y no puede sobrescribirse por aplicación.",
     "error_missing_base_map_master": "Falta el mapa base de esta fuente. Se excluirá de la exportación y la vista previa.",
     "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró."
   },

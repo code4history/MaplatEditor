@@ -12,6 +12,11 @@
 // ∴ 操作子ごと撤去した。残るのは表示ラベル（唯一の上書き）と、マスタに対応物が無い
 // アプリ所有 3 キー（利用範囲 / mercator シフト 2 欄）だけである。
 //
+// url の上書き欄は m6-t10 §3.3 で撤去済みで、その旨の注記（appedit.source_url_master_note /
+// data-testid="app-source-url-note"）が残っていたが、**人間の指示により削除した**（m19-t3）。
+// 上書き欄がすべて消えた画面では「変更できない」注記だけが浮き、隣接する欄の説明と誤読される。
+// 代替の説明は UI へ置かない。url がマスタ管理であることは ADR-0018 と ADR-0017 が正本である。
+//
 // 提示モデルは「入力があればそれを指定、消せば既定＝マスタ値」。独立した「マスタに戻す」
 // ボタンは置かない。× は MapList/AppList の既存デザインを欄の種別ごとに踏襲する:
 //   - 言語別テキスト → 検索バー方式（type="search" の native ×。LangResourceInput の clearable）
@@ -277,20 +282,6 @@ function copyCoverageToEnvelope() {
         </div>
       </div>
 
-      <!-- m6-t10 §3.3: url の上書き欄は撤去した。ベースマップの同一性そのものを変える操作であり、
-           マスタ側で別のベースマップを作るべきもの。provider では m6-t9 §3.1 で既に非表示だった。
-           m19-t3: 同じ理屈が表題・帰属・ライセンス・ズーム範囲・サムネイルにも及ぶため、
-           それらの上書き欄も撤去した。注記だけが残る。
-           **人間検証（欠陥B）**: 上書き欄が消えた結果、この注記が表示ラベルの直後に取り残され、
-           ラベルの説明と誤読された。∴ (1) ソース設定の**末尾**へ移し、(2) 素の `?` アイコン
-           （ContextHelp）をやめて注記文そのものを地の文として出す。ホバーしないと読めない形は、
-           隣の欄の説明と誤読される余地を残すため採らない。文面は BaseMapEdit の
-           `basemap-style-maplibre-hint`（:301 の form-text small text-muted）と同じ体裁に揃える -->
-      <div class="col-12">
-        <p class="form-text small text-muted mb-0" data-testid="app-source-url-note">
-          {{ t("appedit.source_url_master_note") }}
-        </p>
-      </div>
     </div>
 
     <EnvelopeEditorModal

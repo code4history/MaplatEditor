@@ -689,7 +689,6 @@
     "search_maps_placeholder": "Cari peta…",
     "warn_mixed_pois": "Data POI mencampur format GeoJSON dan format lain. Mungkin tidak ditampilkan dengan benar di viewer. Konversikan POI format lama ke GeoJSON.",
     "provider_source_note": "URL tile dibuat otomatis dari kunci API dan jenis, sehingga tidak perlu diisi manual.",
-    "source_url_master_note": "URL tile dikelola pada master peta dasar dan tidak dapat ditimpa per aplikasi.",
     "error_missing_base_map_master": "Peta dasar untuk sumber ini tidak ditemukan. Sumber ini akan dikecualikan dari ekspor dan pratinjau.",
     "warn_missing_base_map_master": "Sumber yang peta dasarnya tidak ditemukan telah dikecualikan."
   },

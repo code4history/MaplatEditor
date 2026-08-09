@@ -230,10 +230,15 @@ test('m6-t10 AC12/AC14/AC25/AC28: 差分保持フォーム（プレースホル�
     // 利用範囲が未設定なので × も出ない
     await expect(card.getByTestId('app-source-clear-envelopeLngLats')).toHaveCount(0);
 
-    // ---- AC14: url の入力欄は tms でも出ない。代わりに「マスタで管理する」注記が出る ----
+    // ---- AC14: url の入力欄は tms でも出ない ----
+    // m19-t3（人間指示）: 「マスタで管理する」注記は削除された。上書き欄が全廃された画面では
+    // 「変更できない」注記だけが浮き、隣接する欄の説明と誤読されるため
     await expect(card.getByTestId('app-source-url-field'), 'AC14: url 入力欄は撤去済み').toHaveCount(0);
     await expect(card.getByTestId('app-source-url'), 'AC14: url 入力欄は撤去済み').toHaveCount(0);
-    await expect(card.getByTestId('app-source-url-note'), 'AC14: マスタ管理の注記が出る').toBeVisible();
+    await expect(
+      card.getByTestId('app-source-url-note'),
+      'm19-t3: url のマスタ管理注記は削除された',
+    ).toHaveCount(0);
 
     // ---- overlay へ切り替えると、アプリ所有キー（mercator shift）の操作子が現れる ----
     await card.locator('select.form-select-sm').first().selectOption('overlay');
@@ -290,7 +295,7 @@ test('m6-t10 AC12/AC14/AC25/AC28: 差分保持フォーム（プレースホル�
     await expect(osmCard.getByTestId('app-source-override-label')).toHaveAttribute('placeholder', String(osm.label.ja));
     await expect(osmCard.getByTestId('app-source-override-url-field')).toHaveCount(0);
     await expect(osmCard.getByTestId('app-source-url-field'), 'AC14: builtin でも url 入力欄は出ない').toHaveCount(0);
-    await expect(osmCard.getByTestId('app-source-url-note')).toBeVisible();
+    await expect(osmCard.getByTestId('app-source-url-note')).toHaveCount(0);
 
     expect(pageErrors).toEqual([]);
   } finally {
