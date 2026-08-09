@@ -42,6 +42,10 @@
     "settings": "Pengaturan"
   },
   "basemap": {
+    "thumbnail_manage": "Manajemen thumbnail",
+    "thumbnail_replace_512": "Ganti 512px…",
+    "thumbnail_replace_52": "Ganti 52px…",
+    "thumbnail_derive_52": "Buat juga 52px dari 512px",
     "description": "Kelola peta dasar yang ditentukan pengguna (tile XYZ/TMS) yang dapat digunakan sebagai latar saat mengedit peta.",
     "add": "Tambah Peta Dasar",
     "master_detail": {

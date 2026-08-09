@@ -42,6 +42,10 @@
     "settings": "Configuración"
   },
   "basemap": {
+    "thumbnail_manage": "Gestión de miniaturas",
+    "thumbnail_replace_512": "Reemplazar 512px…",
+    "thumbnail_replace_52": "Reemplazar 52px…",
+    "thumbnail_derive_52": "Crear también 52px desde 512px",
     "description": "Gestione los mapas base definidos por el usuario (teselas XYZ/TMS) que se pueden usar como fondo al editar mapas.",
     "add": "Añadir mapa base",
     "master_detail": {

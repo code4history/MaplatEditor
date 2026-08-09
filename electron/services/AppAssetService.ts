@@ -5,6 +5,9 @@ import { dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
+// m19-t2: 512px パスの派生規約は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）。
+// electron/ から src/utils/ を import する前例は多数実在する（mapDownloadZip.ts / AppPreviewService.ts ほか）。
+import { isBundledThumbnailPath, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 
 const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
 
@@ -48,7 +51,23 @@ class AppAssetService {
     return ret.filePaths[0];
   }
 
+  // m19-t2: サムネイル書き込みの唯一のルーチン。長辺 px へ縮小して saveFolder 相対パスへ書く。
+  // 書き込み先の相対パスは thumb52PathFor / thumb512PathFor からのみ導き、ここでは組み立てない。
+  private async writeThumbnail(
+    image: { clone: () => any },
+    px: number,
+    relPath: string,
+  ): Promise<{ path: string; fileUrl: string }> {
+    const dest = path.join(this.saveFolder, relPath);
+    await fs.ensureDir(path.dirname(dest));
+    const resized = image.clone();
+    resizeToLongSide(resized, px);
+    await resized.write(dest as `${string}.${string}`);
+    return { path: relPath, fileUrl: this.toFileUrl(dest) };
+  }
+
   // 非ビルトインTMSのサムネイル: 長辺52pxの長方形規約(縦横比は保持し、正方形は要求しない)
+  // m19-t2: 公開シグネチャは不変のまま、書き込みを共通ルーチンへ委譲する（並行実装を残さない）。
   async uploadTmsThumbnail(win: BrowserWindow, mapID: string): Promise<UploadResult> {
     const file = await this.pickImage(win);
     if (!file) return { err: 'Canceled' };
@@ -58,26 +77,31 @@ class AppAssetService {
     } catch {
       return { err: 'InvalidImage' };
     }
-    resizeToIconLongSide(image);
-    const relPath = `tmbs/${sanitizeId(mapID)}.png`;
-    const dest = path.join(this.saveFolder, relPath);
-    await fs.ensureDir(path.dirname(dest));
-    await image.write(dest as `${string}.${string}`);
-    return {
-      path: relPath,
-      fileUrl: this.toFileUrl(dest),
-    };
+    const written = await this.writeThumbnail(image, ICON_LONG_SIDE, thumb52PathFor(sanitizeId(mapID), 'png'));
+    return { path: written.path, fileUrl: written.fileUrl };
   }
 
   // M12-T15 (R5): Maplat地図サムネイルの置換アップロード（リソース管理）。
   // 512px/52px を独立して置き換えられる。512px アップロード時に「52px も作成する」で 52px を流用生成できる。
-  // 画像は任意サイズを受け付け、長辺 512/52px へ縮小して tmbs/{uid}_512.jpg / tmbs/{uid}.jpg へ保存する。
+  // 画像は任意サイズを受け付け、長辺 512/52px へ縮小して保存する。
+  //
+  // m19-t2: 拡張子非依存へ一般化し、地図（.jpg 規約）とベースマップ（実 thumbnail の拡張子）で共有する。
+  // `ext` は末尾の省略可能引数であり、既定 'jpg' により地図側の呼び出し（MapEdit.vue）は無改修で従前どおり。
+  //
+  // 【返値セマンティクス】（タスク設計 §6.1.1 が唯一の定義。既存の fileUrl / fileUrl52 と同型）
+  //   kind='52'                : path = 52px  / path52 = undefined      （derive52 は無視される）
+  //   kind='512', derive52=true: path = 512px / path52 = 52px
+  //   kind='512', derive52=false: path = 512px / path52 = undefined
+  //   失敗(err)                : すべて undefined
+  // ∴ `path` は「kind が指す側の所在」であって「52px の所在」ではない。
+  //    呼び出し元が 52px を得るときに `path52 ?? path` と書いてはならない（512px を掴む。§6.2.3 規則 U）。
   async replaceMapThumbnail(
     win: BrowserWindow,
     mapUid: string,
     kind: '512' | '52',
     derive52: boolean,
-  ): Promise<{ fileUrl?: string; fileUrl52?: string; err?: string }> {
+    ext: string = 'jpg',
+  ): Promise<{ fileUrl?: string; fileUrl52?: string; path?: string; path52?: string; err?: string }> {
     const file = await this.pickImage(win);
     if (!file) return { err: 'Canceled' };
     let image;
@@ -86,30 +110,25 @@ class AppAssetService {
     } catch {
       return { err: 'InvalidImage' };
     }
-    const uid = sanitizeId(mapUid);
-    const result: { fileUrl?: string; fileUrl52?: string; err?: string } = {};
+    const rel52 = thumb52PathFor(sanitizeId(mapUid), ext);
+    const rel512 = thumb512PathFor(rel52);
+    const result: { fileUrl?: string; fileUrl52?: string; path?: string; path52?: string; err?: string } = {};
     if (kind === '512') {
-      const img512 = image.clone();
-      resizeToLongSide(img512, 512);
-      const dest512 = path.join(this.saveFolder, 'tmbs', `${uid}_512.jpg`);
-      await fs.ensureDir(path.dirname(dest512));
-      await img512.write(dest512 as `${string}.${string}`);
-      result.fileUrl = this.toFileUrl(dest512);
+      // key が空・拡張子が不正で派生規約の定義域から外れる場合（呼び出し元のガード漏れ）
+      if (!rel512) return { err: 'InvalidPath' };
+      const written512 = await this.writeThumbnail(image, 512, rel512);
+      result.path = written512.path;
+      result.fileUrl = written512.fileUrl;
       // 「52px も作成する」チェック時: 512px 元画像から 52px を流用生成
       if (derive52) {
-        const img52 = image.clone();
-        resizeToLongSide(img52, 52);
-        const dest52 = path.join(this.saveFolder, 'tmbs', `${uid}.jpg`);
-        await img52.write(dest52 as `${string}.${string}`);
-        result.fileUrl52 = this.toFileUrl(dest52);
+        const written52 = await this.writeThumbnail(image, ICON_LONG_SIDE, rel52);
+        result.path52 = written52.path;
+        result.fileUrl52 = written52.fileUrl;
       }
     } else {
-      const img52 = image.clone();
-      resizeToLongSide(img52, 52);
-      const dest52 = path.join(this.saveFolder, 'tmbs', `${uid}.jpg`);
-      await fs.ensureDir(path.dirname(dest52));
-      await img52.write(dest52 as `${string}.${string}`);
-      result.fileUrl = this.toFileUrl(dest52);
+      const written52 = await this.writeThumbnail(image, ICON_LONG_SIDE, rel52);
+      result.path = written52.path;
+      result.fileUrl = written52.fileUrl;
     }
     return result;
   }
@@ -273,30 +292,26 @@ class AppAssetService {
     canvas.crop({ x: safeX, y: safeY, w: safeW, h: safeH });
 
     // M12-T15 (R4): crop 済みの中間画像から 512px と 52px を同時生成する（stitch を共有）
-    // 512px 側を先に clone して縮小（resizeToLongSide は破壊的なため）
-    const canvas512 = canvas.clone();
-    resizeToLongSide(canvas512, 512);
-    const relPath512 = `tmbs/${sanitizeId(mapID)}_512.png`;
-    const dest512 = path.join(this.saveFolder, relPath512);
-    await fs.ensureDir(path.dirname(dest512));
-    await canvas512.write(dest512 as `${string}.${string}`);
-
-    resizeToIconLongSide(canvas);
-
+    // m19-t2: 512px 側のパスは thumb512PathFor が導く（出力パスは現行と同一。AC5 が機械確認する）
     // Maplat地図のサムネイル(tmbs/{mapID}.jpg)と同じ規約のパスに置く。
     // このためベースマップのIDはMaplat地図とID空間を共有し一意である必要がある
-    const relPath = `tmbs/${sanitizeId(mapID)}.png`;
-    const dest = path.join(this.saveFolder, relPath);
-    await fs.ensureDir(path.dirname(dest));
-    await canvas.write(dest as `${string}.${string}`);
-    return { path: relPath, fileUrl: this.toFileUrl(dest) };
+    const relPath = thumb52PathFor(sanitizeId(mapID), 'png');
+    const relPath512 = thumb512PathFor(relPath);
+    if (!relPath512) return { err: 'InvalidPath' };
+    // 512px 側を先に書く（writeThumbnail が clone するため元 canvas は非破壊）
+    await this.writeThumbnail(canvas, 512, relPath512);
+    const written = await this.writeThumbnail(canvas, ICON_LONG_SIDE, relPath);
+    return { path: written.path, fileUrl: written.fileUrl };
   }
 
   // saveFolder相対パス → file:// URL（存在しない場合はnull）
-  // ビルトインベースマップのアイコン(basemap_icons/)はアプリ同梱リソースから解決する
+  // ビルトインベースマップのアイコンはアプリ同梱リソースから解決する。
+  // m19-t2: 判定を isBundledThumbnailPath へ委ね、52px だけでなくその 512px も同じ分岐へ通す
+  // （通さないと saveFolder 分岐へ落ちて必ず null になり 512px プレビューが空になる）。
+  // 封じ込めは resolveResourceAsset 側の relPath.includes('..') 拒否が担い、境界は既存と同一である。
   fileUrlFor(relPath: string): string | null {
     if (typeof relPath !== 'string' || !relPath.trim()) return null;
-    if (relPath.startsWith('basemap_icons/')) {
+    if (isBundledThumbnailPath(relPath)) {
       return resourceAssetFileUrl(relPath);
     }
     const baseFolder = path.resolve(this.saveFolder);
@@ -312,9 +327,7 @@ class AppAssetService {
 const MERC_MAX = 20037508.342789244;
 
 // アイコン規約: 長辺52pxの長方形(縦横比保持)。正方形への引き伸ばしはしない
-function resizeToIconLongSide(image: { width: number; height: number; resize: (size: { w: number; h: number }) => unknown }): void {
-  resizeToLongSide(image, 52);
-}
+const ICON_LONG_SIDE = 52;
 
 // M12-T15: 長辺 px への縮小を一般化（52px / 512px 共通）
 function resizeToLongSide(image: { width: number; height: number; resize: (size: { w: number; h: number }) => unknown }, px: number): void {

@@ -42,6 +42,10 @@
     "settings": "Paramètres"
   },
   "basemap": {
+    "thumbnail_manage": "Gestion des vignettes",
+    "thumbnail_replace_512": "Remplacer le 512px…",
+    "thumbnail_replace_52": "Remplacer le 52px…",
+    "thumbnail_derive_52": "Créer aussi le 52px depuis le 512px",
     "description": "Gérez les fonds de carte définis par l'utilisateur (tuiles XYZ/TMS) utilisables comme arrière-plan lors de l'édition de cartes.",
     "add": "Ajouter un fond de carte",
     "master_detail": {

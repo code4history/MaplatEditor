@@ -18,6 +18,8 @@ import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
 import { unifyMapNameFields, adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
+// m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
+import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import {
   createSlugReservationService,
   slugCheckResultIsAvailable,
@@ -2675,7 +2677,10 @@ class SqliteDataService {
   // 楽観ロック(expectedRevision)は導入しない: ベースマップは小さな設定オブジェクトで
   // 編集UIも単一モーダルのため last-write-wins で足りる(revisionカウンタ自体は更新毎に
   // 進めており、必要になれば maps/apps と同じ方式を後付けできる)
-  async saveUserBaseMap(payload: BaseMapSavePayload): Promise<{ uid: string; revision: number }> {
+  // m19-t2: 戻り値へ thumbnail（永続化された実効値）を含める。新規作成では下の
+  // relocateBaseMapIcon / inheritMercThumbnail が thumbnail を uid 名へ書き換えるため、
+  // 呼び出し元（renderer）が payload の値を持ち続けると、そこから導く 512px パスが実体を失う。
+  async saveUserBaseMap(payload: BaseMapSavePayload): Promise<{ uid: string; revision: number; thumbnail?: string }> {
     const slug = String(payload?.slug ?? '').trim();
     if (!slug) throw new Error('slug is required');
     const tms = payload?.tms ?? {};
@@ -2704,7 +2709,11 @@ class SqliteDataService {
         db.prepare(
           `UPDATE base_maps SET slug = ?, data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
         ).run(slug, JSON.stringify({ ...tms, mapID: slug }), uid);
-        return { uid, revision: currentRevision + 1 };
+        return {
+          uid,
+          revision: currentRevision + 1,
+          thumbnail: typeof tms?.thumbnail === 'string' ? tms.thumbnail : undefined,
+        };
       });
     }
 
@@ -2749,7 +2758,7 @@ class SqliteDataService {
         .run(JSON.stringify(data), uid);
       revision = 2;
     }
-    return { uid, revision };
+    return { uid, revision, thumbnail: typeof data.thumbnail === 'string' ? data.thumbnail : undefined };
   }
 
   // 新規ベースマップ作成時のアイコン付け替え: tmbs/{暫定名}.{ext} → tmbs/{uid}.{ext}。
@@ -2758,15 +2767,53 @@ class SqliteDataService {
     const match = thumbnail.match(/^tmbs\/([^/]+)\.([A-Za-z0-9]+)$/);
     if (!match || match[1] === uid) return null;
     const { saveFolder } = this.folders;
-    const newRel = `tmbs/${uid}.${match[2]}`;
+    const newRel = thumb52PathFor(uid, match[2]);
+    const from = path.join(saveFolder, thumbnail);
+    if (!(await fs.pathExists(from))) return null;
+
+    // m19-t2 (ADR-0007 違反 A の是正): 52px だけを uid 名へ寄せると、未保存中に生成された
+    // 512px が暫定名（slug 名）に取り残される。内部ストレージキーは uid のみ参照してよい
+    // （ADR-0007）ため、同じ規則で 512px も追随させる。
+    //
+    // 【順序が意味を持つ】512px を先に動かす。52px を先に動かすと、512px の付け替えに
+    // 失敗したときに「52px は uid 名・512px は暫定名」という非対称が残り、保存後の
+    // thumbnail から導く 512px パスが実体を持たない状態になる（＝ 512px が消えたように見える）。
+    // 対で動かせないなら 52px も動かさず、暫定名のまま整合させる（参照は有効なまま）。
+    const large = await this.moveBaseMapIconLarge(thumbnail, newRel);
+    if (!large.ok) return null;
+
     try {
-      const from = path.join(saveFolder, thumbnail);
-      if (!(await fs.pathExists(from))) return null;
       await fs.move(from, path.join(saveFolder, newRel), { overwrite: false });
       return newRel;
     } catch (e: any) {
       console.warn(`[SqliteDataService] base map icon relocation failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
+      // 52px を動かせなかったので、先に動かした 512px を元へ戻して対の整合を保つ
+      if (large.moved) await this.moveBaseMapIconLarge(newRel, thumbnail);
       return null;
+    }
+  }
+
+  // m19-t2: 52px の付け替えに対応する 512px の付け替え。
+  // 派生規約は thumb512PathFor に集約しており、ここでリテラルを組み立てない。
+  // 戻り値の ok=false は「512px の実体があるのに動かせなかった」場合のみで、呼び出し元は
+  // 52px の付け替えを中止する。実体が無い場合は動かすものが無いだけなので ok=true とする。
+  private async moveBaseMapIconLarge(oldRel52: string, newRel52: string): Promise<{ ok: boolean; moved: boolean }> {
+    const oldLarge = thumb512PathFor(oldRel52);
+    const newLarge = thumb512PathFor(newRel52);
+    if (!oldLarge || !newLarge || oldLarge === newLarge) return { ok: true, moved: false };
+    const { saveFolder } = this.folders;
+    try {
+      const from = path.join(saveFolder, oldLarge);
+      if (!(await fs.pathExists(from))) return { ok: true, moved: false };
+      await fs.move(from, path.join(saveFolder, newLarge), { overwrite: false });
+      return { ok: true, moved: true };
+    } catch (e: any) {
+      // 52px 側の成功に埋もれると「512px だけ消える」原因の特定が難しくなるため error で出す
+      console.error(
+        `[SqliteDataService] base map large icon relocation failed (52px relocation aborted to keep the pair consistent): `
+          + `${oldLarge} -> ${newLarge} (${e?.message ?? e})`,
+      );
+      return { ok: false, moved: false };
     }
   }
 

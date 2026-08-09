@@ -42,6 +42,10 @@
     "settings": "設定"
   },
   "basemap": {
+    "thumbnail_manage": "縮圖管理",
+    "thumbnail_replace_512": "取代512px…",
+    "thumbnail_replace_52": "取代52px…",
+    "thumbnail_derive_52": "同時從512px建立52px",
     "description": "管理可作為地圖編輯背景使用的使用者自訂底圖(XYZ/TMS圖磚)。",
     "add": "新增底圖",
     "master_detail": {

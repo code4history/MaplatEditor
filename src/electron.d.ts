@@ -240,7 +240,15 @@ export interface ImageAssetsAPI {
 
 export interface AppAssetsAPI {
     uploadTmsThumbnail(mapID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
-    replaceMapThumbnail(mapUid: string, kind: '512' | '52', derive52: boolean): Promise<{ fileUrl?: string; fileUrl52?: string; err?: string }>;
+    // m19-t2: ext は省略可能（既定 'jpg' = 地図の uid 規約）。返値の path / path52 は kind 依存で、
+    // path は「kind が指す側の所在」である（kind='512' では 512px）。52px の所在は
+    // kind==='52' ? path : path52 でのみ求める（`path52 ?? path` は 512px を掴むため禁止）。
+    replaceMapThumbnail(
+        mapUid: string,
+        kind: '512' | '52',
+        derive52: boolean,
+        ext?: string
+    ): Promise<{ fileUrl?: string; fileUrl52?: string; path?: string; path52?: string; err?: string }>;
     generateTmsThumbnail(
         mapID: string,
         tms: { url?: string; minZoom?: number; maxZoom?: number },
@@ -265,7 +273,9 @@ export interface BaseMapSavePayload {
 }
 
 export type BaseMapSaveResult =
-    | { result: 'Success'; uid: string; revision: number }
+    // m19-t2: thumbnail は永続化された実効値。新規作成では backend が 52px/512px を
+    // uid 名へ付け替えるため payload の値と異なりうる（renderer は返値側を採ること）
+    | { result: 'Success'; uid: string; revision: number; thumbnail?: string }
     | { result: 'Exist' }
     | { result: 'Error'; code: 'not-found' | 'invalid-request' | 'internal'; message?: string }
     | { error: 'revision-conflict'; current: number };
