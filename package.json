@@ -158,6 +158,7 @@
     "test:e2e:m12-t16": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m12-t16-resource-list-error-badges.spec.ts",
     "smoke:m12-t29-draft-leftover-fix": "node scripts/m12-t29-draft-leftover-fix-smoke.mjs",
     "smoke:m19-t1-preview-bundle-namespaceID": "node scripts/m19-t1-preview-bundle-namespaceID-smoke.mjs",
+    "smoke:m19-t8-builtin-osm-data-attr": "node scripts/m19-t8-builtin-osm-data-attr-smoke.mjs",
     "sync:preview-bundle": "node scripts/m1-t8-sync-preview-bundle.mjs",
     "test:e2e:m1-t3-swiper": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m1-t3-swiper-viewer-reach.spec.ts",
     "test:e2e:m1-t8": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m1-t8-preview-sanitized-viewer.spec.ts",

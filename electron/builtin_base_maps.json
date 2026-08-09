@@ -36,6 +36,10 @@
    "ja": "©︎ OpenStreetMap contributors",
    "en": "©︎ OpenStreetMap contributors"
   },
+  "dataAttr": {
+   "ja": "©︎ OpenStreetMap contributors",
+   "en": "©︎ OpenStreetMap contributors"
+  },
   "license": "Custom",
   "dataLicense": "ODbL",
   "licenseNote": {
