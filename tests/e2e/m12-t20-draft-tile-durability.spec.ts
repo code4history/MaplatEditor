@@ -108,7 +108,7 @@ async function fillRequiredFields(page: Page, title: string, slug: string): Prom
   await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 15_000 });
   await page.getByTestId('map-title').fill(title);
   await page.getByTestId('map-slug').fill(slug);
-  await page.getByPlaceholder('地図画像のコピーライト表記を入力してください').fill('t20 test copyright');
+  await page.getByTestId('map-attr').fill('t20 test copyright');
 }
 
 async function saveAndWaitUidAssigned(page: Page): Promise<void> {

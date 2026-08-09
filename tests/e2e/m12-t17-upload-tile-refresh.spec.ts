@@ -135,8 +135,8 @@ test.describe('M12-T17 保存直後のタイル参照リフレッシュ', () => 
       const slug = `t17-new-${Date.now()}`;
       await page.getByTestId('map-title').fill('t17 new map');
       await page.getByTestId('map-slug').fill(slug);
-      // 地図画像コピーライト(必須項目、saveError.attr)を埋めないと保存ボタンが disabled のまま
-      await page.getByPlaceholder('地図画像のコピーライト表記を入力してください').fill('t17 test copyright');
+      // 地図画像の帰属表記(必須項目、saveError.attr)を埋めないと保存ボタンが disabled のまま
+      await page.getByTestId('map-attr').fill('t17 test copyright');
 
       // 実 imageCutter を走らせる (dialog harness 経由の実 UI 操作)
       await uploadImageViaUi(page, app, imagePath);
