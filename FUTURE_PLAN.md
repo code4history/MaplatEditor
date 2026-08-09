@@ -53,9 +53,15 @@ _Note: This document should be updated continuously as more areas for improvemen
 
 | 指標 | 旧（clone + crop） | 新（cropRegionBitmap） | 比 |
 |---|---|---|---|
-| 所要時間 | 2911 ms | 59 ms | 49.3 倍 |
+| 所要時間 | 4602 ms | 84 ms | 54.8 倍 |
 | 抽出のための新規確保 累計 | 22,080.0 MiB | 256.0 MiB | 86.3 倍 |
 | 抽出時のピーク live（会計値） | 144.0 MiB | 80.0 MiB | 0.556 |
+
+**注意**: 所要時間の行は最終確認実行の値（task-state の `AC-P1` と同じ実行）であり、
+**実行機と負荷に依存する観測値**である。同一実装でも 設計時 2660 → 54 ms（49.6 倍）/
+実装中 2911 → 59 ms（49.3 倍）/ レビュアー実測 3085 → 65 ms / 最終確認 4602 → 84 ms（54.8 倍）
+と幅が出る。∴ この行の絶対値を基準に使ってはならない。合否は smoke が毎回再計測する比
+（しきい値 5 倍）で決まる。下 2 行は会計値であり実行間で決定的で、設計時実測とも完全一致する。
 
 end-to-end のタイル化時間（`pnpm smoke:m5-t6-large-image-decode-limits` の観測値）:
 
