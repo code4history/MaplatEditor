@@ -158,6 +158,7 @@ const KONJAKU_PROVIDER = {
 const VIEWER_BUILTIN_LICENSES = {
   osm: {
     attr: { ja: "©\uFE0E OpenStreetMap contributors", en: "©\uFE0E OpenStreetMap contributors" },
+    dataAttr: { ja: "©\uFE0E OpenStreetMap contributors", en: "©\uFE0E OpenStreetMap contributors" },
     license: "Custom",
     dataLicense: "ODbL",
     licenseNote: {
@@ -177,11 +178,12 @@ function bboxToEnvelope([west, south, east, north]) {
 function applyProviderFields(entry, provider) {
   if (!provider) return;
   if (provider.attr) entry.attr = provider.attr;
+  if (provider.dataAttr) entry.dataAttr = provider.dataAttr;
   if (provider.license) entry.license = provider.license;
   if (provider.dataLicense) entry.dataLicense = provider.dataLicense;
   if (provider.licenseNote) entry.licenseNote = provider.licenseNote;
   if (provider.dataLicenseNote) entry.dataLicenseNote = provider.dataLicenseNote;
-  // dataAttr は本タスクでは設定しない（空ならキーを出さない）
+  // dataAttr は provider.dataAttr が定義されている場合のみ出力する（現状 osm のみ。決定 (a) の射程）
 }
 
 export function buildBuiltinBaseMaps(catalog, legacyList) {
