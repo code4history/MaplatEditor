@@ -368,15 +368,19 @@
                     <label class="form-check-label small" for="basemap-derive52">{{ t("basemap.thumbnail_derive_52") }}</label>
                   </div>
                   <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="basemap-thumbnail-replace-512" :disabled="structuralDisabled" @click="replaceThumbnail('512')">{{ t("basemap.thumbnail_replace_512") }}</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="basemap-thumbnail-replace-52" :disabled="structuralDisabled" @click="replaceThumbnail('52')">{{ t("basemap.thumbnail_replace_52") }}</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="basemap-thumbnail-replace-512" :disabled="structuralDisabled || thumbnailReplaceDisabled" @click="replaceThumbnail('512')">{{ t("basemap.thumbnail_replace_512") }}</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="basemap-thumbnail-replace-52" :disabled="structuralDisabled || thumbnailReplaceDisabled" @click="replaceThumbnail('52')">{{ t("basemap.thumbnail_replace_52") }}</button>
                     <button type="button" class="btn btn-sm btn-outline-primary" :disabled="structuralDisabled || !canGenerateIcon || generatingIcon" @click="generateIcon">
                       {{ generatingIcon ? t("basemap.generating_icon") : t("basemap.generate_icon") }}
                     </button>
                   </div>
+                  <!-- m19-t12 規則 T3: 書き込み先キーが未確定な理由を、押す前に見せる -->
+                  <DiagnosticFeedback v-if="thumbnailReplaceDisabledReason" scope="section" :items="[{ key: 'thumb-disabled', severity: 'info', message: thumbnailReplaceDisabledReason }]" />
                   <DiagnosticFeedback v-if="thumbnailError" scope="section" :items="[{ key: 'thumb-error', severity: 'danger', message: thumbnailError }]" />
                 </div>
               </div>
+              <!-- m19-t12 規則 T1: 地図管理と同一の i18n キーで同一文言を出す -->
+              <div class="small text-muted mt-2" data-testid="thumbnail-immediate-note">{{ t("editor_ui.thumbnail_immediate_note") }}</div>
             </div>
           </div>
         </div>
@@ -449,8 +453,9 @@ import { envelopeToBbox } from "../../utils/appSourceModel";
 import { isTranslationMode } from "../../utils/editorLanguageMode";
 import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../../utils/editorLanguages";
 import { isEditableElement } from "../../utils/nativeTextUndo";
-// m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
-import { thumb512PathFor } from "../../utils/thumbnailPaths";
+// m19-t12: サムネイル置換は地図管理と共有する単一実装を通す。
+// 512px パスの派生（thumb512PathFor）も当該 composable の内部へ移った。
+import { useThumbnailReplace } from "../../composables/useThumbnailReplace";
 import type { BaseMapSaveResult } from "../../electron";
 
 const props = withDefaults(defineProps<{
@@ -506,16 +511,9 @@ const overwritePending = ref(false);
 // resolveBaseMapListImage は thumbnail が空の旧ベースマップに対して tmbs/{mapID}_menu.jpg の
 // レガシー補完を持っており、切り替えるとその補完で表示できていた文書のプレビューが消えるため。
 const thumbnailUrl = ref<string | null>(props.item?.thumbnailUrl ?? null);
-// m19-t2: サムネイル管理（地図管理と同型）。
-// 置換・生成・アップロードのたびに ++ して同一 file:// URL のブラウザキャッシュを回避する。
-// キャッシュバスターの方式は ?v={nonce} に一本化する（旧 ?t=Date.now() は廃止）。
-const thumbnailNonce = ref(0);
-const thumbnail512Url = ref<string | null>(null);
-const thumbnailError = ref("");
-// 「512px から 52px も作成する」チェックボックス（既定 ON）。§6.5 の述語が真なら強制 ON。
-const derive52FromUpload = ref(true);
-// §6.5 の述語の第 2 項（52px の実体が存在するか）。fileUrl は非実在で null を返す
-const thumbnail52Exists = ref(false);
+// m19-t12: サムネイル置換の state（nonce / 512px URL / エラー / derive52 / 52px 実体の有無）は
+// useThumbnailReplace が所有する（下の「サムネイル管理」節で生成する）。ここで持つのは
+// ホスト固有の thumbnailUrl（= raw52UrlRef。一覧 IPC のレガシー補完を温存する。m19-t2 §5.7）だけ。
 const showEnvelopeModal = ref(false);
 const readOnly = computed(() => document.value.scope === "builtin");
 const editable = computed(() => !readOnly.value);
@@ -1063,33 +1061,77 @@ const thumbnailKeyParts = computed<{ fileKey: string; ext: string } | null>(() =
   return match ? { fileKey: match[1], ext: match[2] } : null; // null = K2（新たに tmbs/ 配下へ作る）
 });
 
-// §6.5: parity から意図的に逸脱する唯一の点。
-// ベースマップは thumbnail を文書属性として持つ（地図は uid 規約で暗黙）ため、52px の実体が
-// 無いまま thumbnail を tmbs/{key}.{ext} へ向けると一覧・書き出し・viewer のアイコンが空になる。
-// ∴ 規則 K が K2 に落ちる場合（または K1 でも実体が無い場合）は 52px の派生を強制する。
-const derive52Forced = computed(() => !(thumbnailKeyParts.value !== null && thumbnail52Exists.value));
-const derive52Model = computed<boolean>({
-  get: () => (derive52Forced.value ? true : derive52FromUpload.value),
-  set: (value: boolean) => { derive52FromUpload.value = value; },
+// m19-t12: 置換の実装本体は useThumbnailReplace（地図管理と共有する**単一実装**）。
+// ここが持つのはベースマップ固有の注入値だけである。
+//
+//   - rel52         : ベースマップだけが「指し先」を文書属性として持つ（地図は uid 規約パス）
+//   - writeTarget   : 規則 K（K1 = thumbnail から採る）／K2（iconFileKey）／規則 K0（空なら null）
+//   - forceDerive52 : §6.5 の述語（下記）
+//   - raw52UrlRef   : 一覧 IPC が解決した値を温存する（m19-t2 §5.7。設計 §4.3.3）
+//   - onPointerMoved: 規則 T2（指し先の移動は文書編集だが undo の対象にしない）
+const {
+  thumbnail512Url,
+  thumbnail52Url,
+  thumbnailError,
+  thumbnailNonce,
+  derive52Model,
+  derive52Forced,
+  replaceDisabled: thumbnailReplaceDisabled,
+  replaceDisabledReason: thumbnailReplaceDisabledReason,
+  refreshThumbnails,
+  replaceThumbnail,
+} = useThumbnailReplace({
+  rel52: () => document.value.thumbnail || null,
+  writeTarget: () => {
+    const parts = thumbnailKeyParts.value;
+    if (parts) return parts; // K1: キーと拡張子は document.thumbnail から採る（規則 K）
+    const fileKey = iconFileKey(); // K2: 新たに tmbs/ 配下へ作る
+    // 規則 K0: 未保存かつ slug 未入力で fileKey が空になる場合は書かない（uploadIcon と同じガード）。
+    // 書いてしまうと tmbs/.png が生じ、その値は K1 にも relocateBaseMapIcon の正規表現にも
+    // 一致しないため保存まで残り続ける。m19-t12 の規則 T3 により、この状態はボタンの
+    // disabled + 理由表示として押す前に見える。
+    return fileKey ? { fileKey, ext: "png" } : null;
+  },
+  disabledReason: () => t("basemap.errors.id_required"),
+  // §6.5: parity から意図的に逸脱する唯一の点。
+  // ベースマップは thumbnail を文書属性として持つ（地図は uid 規約で暗黙）ため、52px の実体が
+  // 無いまま thumbnail を tmbs/{key}.{ext} へ向けると一覧・書き出し・viewer のアイコンが空になる。
+  // ∴ 規則 K が K2 に落ちる場合（または K1 でも実体が無い場合）は 52px の派生を強制する。
+  //
+  // **K1 判定（thumbnailKeyParts !== null）の連言を落としてはならない。** 落とすと K2
+  // （thumbnail がプリセット basemap_icons/*.png）でも fileUrl が同梱リソースを truthy で
+  // 解決するため「52px の実体あり」と誤判定し、強制 ON が外れる。その状態で derive OFF の
+  // 512px 単独置換を行うと 512px だけが tmbs/ に生じ、m19-t2 が §6.5 で塞いだ孤児 512px が
+  // 再発する（E2E の E6 / AC6b がこの退行を捕らえる番人である）。
+  forceDerive52: ({ exists52 }) => !(thumbnailKeyParts.value !== null && exists52),
+  raw52UrlRef: thumbnailUrl,
+  onPointerMoved: (next) => { rebaseThumbnailPointer(next); },
 });
 
-// 52px プレビュー（生 URL + キャッシュバスター）。解決経路は従来どおり thumbnailUrl。
-const thumbnail52Url = computed(() => (thumbnailUrl.value ? `${thumbnailUrl.value}?v=${thumbnailNonce.value}` : null));
-
-async function refreshThumbnails(): Promise<void> {
-  const base = document.value.thumbnail ?? "";
-  const rel512 = base ? thumb512PathFor(base) : null;
-  try {
-    const url512 = rel512 ? await window.appAssets.fileUrl(rel512) : null;
-    thumbnail512Url.value = url512 ? `${url512}?v=${thumbnailNonce.value}` : null;
-  } catch {
-    thumbnail512Url.value = null;
-  }
-  try {
-    thumbnail52Exists.value = thumbnailKeyParts.value !== null && !!(await window.appAssets.fileUrl(base));
-  } catch {
-    thumbnail52Exists.value = false;
-  }
+// 規則 T2（m19-t12 §4.4）: 指し先の移動は「文書編集」だが「undo の対象」ではない。
+// 履歴の全段へ同じ値を焼き、pointer / basePointer を動かさない（＝ undo/redo で戻らない）。
+// これは save() の付け替え追随（初回保存で backend が暫定名→uid 名へ寄せる処理）で
+// m19-t2 が採用済みの同型パターンである。
+//
+// push しない理由: push すると undo 1 段で指し先だけが戻り、実ファイル（既に書き換わっている）と
+// 食い違う。全段へ焼けば undo/redo のどの位置からも指し先は新しいままになる。
+// markDirty する理由: rebase は pointer を動かさないため isDirty() が false のままになりうる。
+// それでは指し先が保存されず、書いた 512px が再オープン後に見えない（機能欠落）。
+function rebaseThumbnailPointer(next: string): void {
+  // 旧 updateField 経路（指し先を直接 commit していた形）が持っていたガードを保つ。
+  // thumbnail は updateField の翻訳モード例外リストに含まれない構造項目である
+  if (structuralDisabled.value) return;
+  if (document.value.thumbnail === next) return; // 規則 U の同値ガードは維持
+  const snapshot = history.snapshot();
+  history = UndoStack.fromSnapshot({
+    ...snapshot,
+    history: snapshot.history.map((state) => ({ ...state, thumbnail: next })),
+  });
+  history.markDirty();
+  document.value = clone(history.current());
+  historyVersion.value++;
+  draftLifecycle.schedule(true); // 下書きにも新しい指し先を載せる
+  emit("changed");
 }
 
 // 文書ロード・props.item 差し替え・undo/redo による thumbnail の変化に追随する
@@ -1098,50 +1140,6 @@ watch(
   () => { void refreshThumbnails(); },
   { immediate: true },
 );
-
-async function replaceThumbnail(kind: "512" | "52"): Promise<void> {
-  if (structuralDisabled.value) return;
-  thumbnailError.value = "";
-  const parts = thumbnailKeyParts.value;
-  const fileKey = parts ? parts.fileKey : iconFileKey();
-  const ext = parts ? parts.ext : "png";
-  // 規則 K0: 未保存かつ slug 未入力で fileKey が空になる場合は書かない（uploadIcon と同じガード）。
-  // 書いてしまうと tmbs/.png が生じ、その値は K1 にも relocateBaseMapIcon の正規表現にも
-  // 一致しないため保存まで残り続ける。
-  if (!fileKey) { thumbnailError.value = t("basemap.errors.id_required"); return; }
-  const derive52 = kind === "512" ? derive52Model.value : false;
-  try {
-    const result = await window.appAssets.replaceMapThumbnail(fileKey, kind, derive52, ext);
-    if (result?.err) {
-      if (result.err !== "Canceled") thumbnailError.value = t("appedit.error_invalid_image");
-      return;
-    }
-    // 規則 U（§6.2.3）: **このコールが新しい 52px を書いたときだけ** thumbnail を更新する。
-    // 返値の path は「kind が指す側の所在」であり 52px の所在ではない。
-    // ∴ path52 が無いときに path で代替するようなフォールバックを書いてはならない（512px を掴む）。
-    const written52 = kind === "52" ? result.path : result.path52;
-    if (written52) {
-      thumbnailUrl.value = (kind === "52" ? result.fileUrl : result.fileUrl52) ?? thumbnailUrl.value;
-      // 同値ガード: K1 経路で中身のない undo 段を積まない（1 commit = 1 undo）
-      if (written52 !== document.value.thumbnail) updateField("thumbnail", written52);
-    }
-    // 開発時の保険: K1 経路では返値による自己回復が効かない（derive52 OFF では updateField を
-    // 呼ばないため）。書き込み先が派生規約の位置と食い違ったら沈黙させない
-    if (import.meta.env.DEV && kind === "512" && parts && result.path !== thumb512PathFor(document.value.thumbnail)) {
-      console.warn(
-        "[BaseMapEdit] 512px の書き込み先が thumb512PathFor(document.thumbnail) と一致しません",
-        result.path,
-        document.value.thumbnail,
-      );
-    }
-  } catch (cause) {
-    console.error("Failed to replace base map thumbnail", cause);
-    thumbnailError.value = t("appedit.error_invalid_image");
-  } finally {
-    thumbnailNonce.value++;
-    await refreshThumbnails();
-  }
-}
 
 // m19-t2: 旧「アップロード」（uploadIcon / uploadTmsThumbnail 経由）は撤去した。
 // 新設の replaceThumbnail('52') と機能が重複するうえ、書き込みキーを iconFileKey() から採り
@@ -1197,7 +1195,10 @@ async function generateIcon(): Promise<void> {
     // m19-t2: キャッシュバスターは ?v={nonce} へ一本化する（旧 ?t=Date.now() を廃止）。
     // 生成は 512px も同時に作るため、512px プレビューの再解決も要る（下の refreshThumbnails）
     thumbnailUrl.value = result.fileUrl ?? null;
-    updateField("thumbnail", result.path);
+    // m19-t12 §4.5: 生成もファイルを即時に書く資源操作である。同一カード内で置換と異なる
+    // 意味論（dirty + undo 1 段）を持たせないため、置換と同じ rebase 経路へ寄せる。
+    // 副作用: K2 で生成した直後に undo でプリセットへ戻す経路は失われる（規則 T2 の帰結）。
+    rebaseThumbnailPointer(result.path);
   } catch (cause) {
     console.error("Failed to generate base map icon", cause);
     error.value = t("basemap.errors.icon_generate_failed");

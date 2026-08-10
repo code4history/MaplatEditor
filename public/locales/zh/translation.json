@@ -422,6 +422,7 @@
     "thumbnail_derive_52": "同时从512px创建52px",
     "thumbnail_replace_512": "替换512px…",
     "thumbnail_replace_52": "替换52px…",
+    "thumbnail_requires_save": "保存地图后即可替换缩略图。",
     "import_inline_poi_alert": "地图内定义的 POI 指定不支持编辑。若要编辑 POI，请将 POI 转换为 GeoJSON。",
     "draft_tiles_lost": "找不到地图图像的临时数据。请重新上传图像。您的其他编辑内容（控制点、元数据等）已保留。",
     "draft_already_saved": "上一次保存已完成。此草稿可能与已保存的内容重复。请舍弃草稿并重新打开已保存的地图，或如需更换图像请重新上传。",
@@ -992,6 +993,7 @@
     }
   },
   "editor_ui": {
+    "thumbnail_immediate_note": "替换的图像会立即写入文件（不属于保存或撤销的范围）。如需还原，请再次替换图像。",
     "slug_format_help": "仅可使用字母、数字、连字符和下划线。",
     "slug_label": "别名 (ID)",
     "default_lang_label": "默认语言",

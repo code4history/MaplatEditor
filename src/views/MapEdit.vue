@@ -34,7 +34,9 @@ import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
-import { thumb512PathFor, thumb52PathFor } from '../utils/thumbnailPaths';
+import { thumb52PathFor } from '../utils/thumbnailPaths';
+// m19-t12: サムネイル置換はベースマップ管理と共有する単一実装を通す
+import { useThumbnailReplace } from '../composables/useThumbnailReplace';
 import {
     SUPPORTED_LANGUAGES,
     resolveEditorLanguage,
@@ -432,41 +434,30 @@ function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
 // M12-T15 (R5): サムネイル管理（512px/52px の置換アップロード + 512px→52px 流用）。
 // プレビューは appAssets.fileUrl で 52px / 512px の各所在を解決する（存在しなければ placeholder）。
 // m19-t5: 拡張子は非対称（52px は地図の .jpg 規約のまま / 512px は THUMB_512_EXT が決める）。
-// 512px 側のパスは派生規約の単一モジュールから導き、ここで文字列を組み立てない。
-const thumbnail512Url = ref<string | null>(null);
-const thumbnail52Url = ref<string | null>(null);
-const derive52FromUpload = ref(true); // 「52px も作成する」チェックボックス（既定 ON）
-const thumbnailError = ref('');
-// M12-T15 (Fix-2): 置換後に同一 file:// URL でブラウザが画像をキャッシュするのを防ぐ cache buster。
-// 置換のたびにインクリメントして URL を一意にし、プレビューを再読込させる
-const thumbnailNonce = ref(0);
-async function refreshThumbnails(): Promise<void> {
-    if (!mapUid.value) { thumbnail512Url.value = null; thumbnail52Url.value = null; return; }
-    const v = `?v=${thumbnailNonce.value}`;
-    const rel52 = thumb52PathFor(mapUid.value, 'jpg');
-    try {
-        const rel512 = thumb512PathFor(rel52);
-        const url512 = rel512 ? await (window as any).appAssets.fileUrl(rel512) : null;
-        thumbnail512Url.value = url512 ? url512 + v : null;
-    } catch { thumbnail512Url.value = null; }
-    try {
-        const url52 = await (window as any).appAssets.fileUrl(rel52);
-        thumbnail52Url.value = url52 ? url52 + v : null;
-    } catch { thumbnail52Url.value = null; }
-}
-async function replaceThumbnail(kind: '512' | '52'): Promise<void> {
-    if (!mapUid.value) return;
-    thumbnailError.value = '';
-    try {
-        const result = await (window as any).appAssets.replaceMapThumbnail(mapUid.value, kind, kind === '512' ? derive52FromUpload.value : false);
-        if (result?.err && result.err !== 'Canceled') thumbnailError.value = result.err;
-    } catch (e: any) {
-        thumbnailError.value = e?.message || String(e);
-    }
-    // 置換後は nonce を上げてプレビューを強制再読込（同一 URL のブラウザキャッシュを回避）
-    thumbnailNonce.value++;
-    await refreshThumbnails();
-}
+//
+// m19-t12: 実装本体は useThumbnailReplace（ベースマップ管理と共有する**単一実装**）へ移した。
+// ここが持つのは注入値だけである。地図は「指し先」を持たない（52px の所在は mapUid からの
+// 規約パス）ため、規則 T2（onPointerMoved）の事例が存在しない。∴ 規則は 1 つ・実装は 1 つで、
+// 事例の有無だけが 2 画面の差である。
+//   - 規則 T1: 置換は即時反映の資源操作。保存・undo の対象ではない（地図側は従来からこの意味論）
+//   - 規則 T3: mapUid 未確定（未保存の新規地図）は書き込み先が決まらないため、無言 return を
+//              やめて disabled + 理由表示にする
+const {
+    thumbnail512Url,
+    thumbnail52Url,
+    thumbnailError,
+    derive52Model,
+    replaceDisabled: thumbnailReplaceDisabled,
+    replaceDisabledReason: thumbnailReplaceDisabledReason,
+    refreshThumbnails,
+    replaceThumbnail,
+} = useThumbnailReplace({
+    rel52: () => (mapUid.value ? thumb52PathFor(mapUid.value, 'jpg') : null),
+    writeTarget: () => (mapUid.value ? { fileKey: mapUid.value, ext: 'jpg' } : null),
+    disabledReason: () => t('mapedit.thumbnail_requires_save'),
+    // 地図は 52px の実体有無に関わらず強制しない（現行どおり）
+    forceDerive52: () => false,
+});
 watch(mapUid, () => { void refreshThumbnails(); }, { immediate: true });
 
 // M12-T10 v2.0 HM1: 楽観更新。旧 setBaseMapVisible と同型（in-place で item.enabled を更新、scroll 保持）。
@@ -4267,16 +4258,20 @@ const goBack = async () => {
                                         </div>
                                         <div class="flex-grow-1">
                                             <div class="form-check mb-2">
-                                                <input id="derive52" v-model="derive52FromUpload" class="form-check-input" type="checkbox" data-testid="thumbnail-derive-52">
+                                                <input id="derive52" v-model="derive52Model" class="form-check-input" type="checkbox" data-testid="thumbnail-derive-52">
                                                 <label class="form-check-label small" for="derive52">{{ t("mapedit.thumbnail_derive_52") }}</label>
                                             </div>
                                             <div class="d-flex gap-2">
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="thumbnail-replace-512" @click="replaceThumbnail('512')">{{ t("mapedit.thumbnail_replace_512") }}</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="thumbnail-replace-52" @click="replaceThumbnail('52')">{{ t("mapedit.thumbnail_replace_52") }}</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="thumbnail-replace-512" :disabled="thumbnailReplaceDisabled" @click="replaceThumbnail('512')">{{ t("mapedit.thumbnail_replace_512") }}</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="thumbnail-replace-52" :disabled="thumbnailReplaceDisabled" @click="replaceThumbnail('52')">{{ t("mapedit.thumbnail_replace_52") }}</button>
                                             </div>
+                                            <!-- m19-t12 規則 T3: 書き込み先キーが未確定な理由を、押す前に見せる -->
+                                            <DiagnosticFeedback v-if="thumbnailReplaceDisabledReason" scope="section" :items="[{ key: 'thumb-disabled', severity: 'info', message: thumbnailReplaceDisabledReason }]" />
                                             <DiagnosticFeedback v-if="thumbnailError" scope="section" :items="[{ key: 'thumb-error', severity: 'danger', message: thumbnailError }]" />
                                         </div>
                                     </div>
+                                    <!-- m19-t12 規則 T1: ベースマップ管理と同一の i18n キーで同一文言を出す -->
+                                    <div class="small text-muted mt-2" data-testid="thumbnail-immediate-note">{{ t("editor_ui.thumbnail_immediate_note") }}</div>
                                 </div>
                             </div>
                         </div>
