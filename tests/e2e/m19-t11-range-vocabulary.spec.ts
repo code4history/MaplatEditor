@@ -37,7 +37,7 @@
 // ---------------------------------------------------------------------------
 //
 // 属性名について: 本ファイルは tests/ 配下にあり、smoke の MC5（凍結契約 §4.6.2-1 の機械証明）が
-// src / electron / scripts / tests / public を走査して属性名の絶対数 472 / 43 / 6 を assert する。
+// src / electron / scripts / tests / public を走査して属性名の絶対数 473 / 43 / 6 を assert する。
 // ∴ **凍結属性名を literal で書かない**。断片から組み立てる（下の COVERAGE_ATTR）。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
