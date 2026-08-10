@@ -7,12 +7,15 @@
 //   AC5  開発実行（未パッケージ）では開発メニューが従来どおり出る
 //   AC7  Aboutのバージョン4値（electron/chrome/node/v8）が表示され赤字エラーにならない
 //   AC8  Aboutのバージョン表記がアプリの実バージョンと一致する
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
+// m20-t6 §5.2: evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出した
+// （m20-t6 の撮影スペックが同じロジックを要したため。挙動は無変更）
+import { applicationMenuLabels, evalMain, openAboutWindow } from './helpers/electronMenu';
 
 async function openHash(page: Page, hash: string, ready: string): Promise<void> {
   await page.evaluate((nextHash) => { location.hash = nextHash; }, hash);
@@ -21,21 +24,6 @@ async function openHash(page: Page, hash: string, ready: string): Promise<void> 
 
 async function forceJapanese(page: Page): Promise<void> {
   await page.evaluate(() => window.settings.set('lang', 'ja'));
-}
-
-// ElectronApplication.evaluate() は稀に「Resulting promise was garbage collected」で失敗する
-// （Playwright 側の既知の不安定挙動。ラウンドトリップの参照が早期に解放される競合で、
-// 起動直後の呼び出しで観測されやすい。実測: 3回に1回程度）。テスト対象のロジックとは無関係の
-// ハーネス側の揺らぎなので、その1エラーメッセージに限定して1回だけ再試行する。
-async function evalMain<T>(app: ElectronApplication, fn: Parameters<ElectronApplication['evaluate']>[0]): Promise<T> {
-  try {
-    return await app.evaluate(fn as any);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('garbage collected')) {
-      return await app.evaluate(fn as any);
-    }
-    throw error;
-  }
 }
 
 test.describe('m19-t4a 設定画面・アプリケーションメニュー・About ウィンドウの整理', () => {
@@ -82,9 +70,7 @@ test.describe('m19-t4a 設定画面・アプリケーションメニュー・Abo
     try {
       await forceJapanese(page);
       // launchIsolated の launch() は projectRoot を args に渡す未パッケージ起動のため isPackaged=false
-      const labels = await evalMain<string[]>(app, ({ Menu }) =>
-        (Menu.getApplicationMenu()?.items ?? []).map((item) => item.label),
-      );
+      const labels = await applicationMenuLabels(app);
       expect(labels).toContain('開発');
     } finally {
       await quitElectronApplication(app);
@@ -99,15 +85,7 @@ test.describe('m19-t4a 設定画面・アプリケーションメニュー・Abo
 
       const appVersion = await evalMain<string>(app, ({ app: electronApp }) => electronApp.getVersion());
 
-      const aboutWindowPromise = app.waitForEvent('window');
-      await evalMain(app, ({ Menu }) => {
-        const appMenu = (Menu.getApplicationMenu()?.items ?? [])[0];
-        const aboutItem = appMenu?.submenu?.items.find((item) => item.label?.includes('について'));
-        if (!aboutItem) throw new Error('About menu item not found');
-        aboutItem.click();
-      });
-      const aboutPage: Page = await aboutWindowPromise;
-      await aboutPage.waitForLoadState('domcontentloaded');
+      const aboutPage: Page = await openAboutWindow(app, 'について');
 
       const versionsText = await aboutPage.locator('#versions').innerText();
       expect(versionsText).not.toContain('Error:');
