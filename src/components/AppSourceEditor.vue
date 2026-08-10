@@ -42,6 +42,7 @@ import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "./EnvelopeEditorModal.vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
+import ContextHelp from "./editor-ui/ContextHelp.vue";
 import type { LangCode } from "../utils/editorLanguages";
 import {
   bboxToEnvelope,
@@ -58,7 +59,7 @@ const props = defineProps<{
   languageOptions: readonly { code: LangCode; nativeName: string }[];
   translationMode?: boolean;
   fallbackCenter?: [number, number];
-  // アプリ提供範囲(参考)。利用範囲ピッカーの薄緑ガイド+スナップ対象
+  // アプリ対象範囲。利用範囲ピッカーの薄緑ガイド+スナップ対象
   appCoverageLngLats?: [number, number][] | null;
   // m6-t10: マスタの生 data。**プレースホルダ（上書きしなかった場合に効く値）専用**であり、
   // マージ結果ではない。null = マスタ欠落（§3.6 で欠落表示になる）
@@ -247,7 +248,15 @@ function copyCoverageToEnvelope() {
            存在範囲と利用範囲は別概念であり、未設定時に効くのは「範囲指定なし」であって存在範囲ではない。
            v1.4 §3.8-2: 解除は範囲フィルタ方式の×へ揃える（MapList/AppList の範囲フィルタ解除と同型） -->
       <div class="col-12">
-        <label class="form-label small mb-0">{{ t("appedit.envelope") }}</label>
+        <label class="form-label small mb-0 d-flex align-items-center gap-1">
+          {{ t("appedit.envelope") }}
+          <ContextHelp
+            data-testid="app-source-envelope-help"
+            :title="t('appedit.envelope')"
+            :text="t('appedit.envelope_help')"
+            :ariaLabel="t('appedit.envelope_help')"
+          />
+        </label>
         <div class="d-flex align-items-center gap-2 flex-wrap" data-testid="app-source-override-envelopeLngLats">
           <div v-for="(labelKey, index) in ['envelope_west', 'envelope_south', 'envelope_east', 'envelope_north']" :key="labelKey" class="envelope-input">
             <span class="small text-muted">{{ t(`appedit.${labelKey}`) }}</span>

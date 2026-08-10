@@ -53,7 +53,8 @@ test('list toolbar stays below fixed header after editor -> list return', async 
 
   // エディタへ遷移し、実利用と同様にコンテンツをスクロールさせる
   await page.locator(`[data-resource-uid="bbbbbbbb-cccc-dddd-eeee-000000000001"] a`).click();
-  await expect(page.locator('text=アプリ提供範囲(参考)')).toBeVisible();
+  // m19-t11: ③の呼称は「アプリ提供範囲(参考)」→「アプリ対象範囲」
+  await expect(page.getByTestId('app-coverage-label')).toContainText('アプリ対象範囲');
   await page.evaluate(() => {
     const main = document.querySelector('.main-content') as HTMLElement | null;
     if (main) main.scrollTop = 200;

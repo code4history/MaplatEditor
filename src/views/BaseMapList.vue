@@ -59,8 +59,8 @@
     <EnvelopeEditorModal
       v-if="rangeFilterOpen"
       :model-value="filterEnvelope"
-      title-key="basemap.coverage_modal_title"
-      help-key="appedit.envelope_modal_help"
+      title-key="range_filter.modal_title"
+      help-key="range_filter.modal_help_basemap"
       @update:model-value="applyRangeFilter"
       @close="rangeFilterOpen = false"
     />

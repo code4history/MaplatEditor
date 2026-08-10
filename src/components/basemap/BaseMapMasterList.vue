@@ -15,14 +15,14 @@
       >
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1" data-testid="basemap-range-filter" @click="emit('open-range-filter')">
-          <i class="bi bi-bounding-box me-1" aria-hidden="true"></i>{{ t("basemap.master_detail.range_filter") }}
+          <i class="bi bi-bounding-box me-1" aria-hidden="true"></i>{{ t("range_filter.button") }}
         </button>
         <button
           v-if="rangeFilterActive"
           type="button"
           class="btn btn-outline-secondary btn-sm"
           data-testid="basemap-range-clear"
-          :title="t('basemap.master_detail.clear_range_filter')"
+          :title="t('range_filter.clear')"
           @click="emit('clear-range-filter')"
         >
           <i class="bi bi-x-lg" aria-hidden="true"></i>

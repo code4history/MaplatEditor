@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // 経緯度範囲(利用範囲/存在範囲)を地図上の矩形描画で指定するモーダル。
 // 矩形(bbox)のみ扱う。非矩形の既存値はbboxに近似して表示する。
-// coverageLngLats(地図の存在範囲)は薄青、appCoverageLngLats(アプリ提供範囲)は薄緑で表示。
+// coverageLngLats(地図の存在範囲)は薄青、appCoverageLngLats(アプリ対象範囲)は薄緑で表示。
 // 描画はどちらの境界にもスナップし、確定値は存在範囲の内側に自動クロップされる
-// (アプリ提供範囲は目安であり、はみ出し可)(ADR-0004)。
+// (アプリ対象範囲は目安であり、はみ出し可)(ADR-0004)。
 import { onBeforeUnmount, onMounted, ref, watch, computed } from "vue";
 import { useTranslation } from "i18next-vue";
 import Map from "ol/Map";
@@ -27,7 +27,7 @@ const props = defineProps<{
   fallbackCenter?: [number, number];
   // 存在範囲(薄青表示 + スナップ + 描画クロップの境界)。未指定なら自由描画
   coverageLngLats?: [number, number][] | null;
-  // アプリ提供範囲(薄緑表示 + スナップのみ。クロップはしない)
+  // アプリ対象範囲(薄緑表示 + スナップのみ。クロップはしない)
   appCoverageLngLats?: [number, number][] | null;
   // モーダルの文言(翻訳キー)。未指定なら利用範囲(envelope)用の既定文言
   titleKey?: string;
@@ -78,7 +78,7 @@ const coverageStyle = new Style({
   fill: new Fill({ color: "rgba(13, 110, 253, 0.08)" }),
 });
 
-// アプリ提供範囲: 薄い緑のポリゴン
+// アプリ対象範囲: 薄い緑のポリゴン
 const appCoverageStyle = new Style({
   stroke: new Stroke({ color: "#198754", width: 1 }),
   fill: new Fill({ color: "rgba(25, 135, 84, 0.08)" }),
@@ -208,7 +208,7 @@ onMounted(() => {
     renderBbox(cropped);
   });
   map.addInteraction(draw);
-  // 存在範囲/アプリ提供範囲の辺・頂点へポインタをスナップさせる(Drawより後に追加)
+  // 存在範囲/アプリ対象範囲の辺・頂点へポインタをスナップさせる(Drawより後に追加)
   if (coverage) map.addInteraction(new Snap({ source: coverageSource }));
   if (appCoverage) map.addInteraction(new Snap({ source: appCoverageSource }));
 
@@ -286,14 +286,14 @@ function confirm() {
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title d-flex align-items-center gap-1">{{ t(titleKey || "appedit.envelope_modal_title") }} <ContextHelp :text="helpText" :ariaLabel="helpText" /></h5>
+          <h5 class="modal-title d-flex align-items-center gap-1" data-testid="envelope-modal-title">{{ t(titleKey || "appedit.envelope_modal_title") }} <ContextHelp :text="helpText" :ariaLabel="helpText" /></h5>
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
         <div class="modal-body">
           <div ref="mapElement" class="envelope-map"></div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentBbox">
-              <span v-if="isGuide" class="badge text-bg-warning me-2" data-testid="envelope-guide-badge">{{ t("mapedit.base_map_region_guide") }}</span>
+              <span v-if="isGuide" class="badge text-bg-warning me-2" data-testid="envelope-guide-badge">{{ t("range_filter.guide_badge") }}</span>
               W {{ currentBbox[0] }} / S {{ currentBbox[1] }} / E {{ currentBbox[2] }} / N {{ currentBbox[3] }}
             </template>
             <template v-else>—</template>
