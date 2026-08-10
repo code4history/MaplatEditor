@@ -81,7 +81,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
 
       // AC3: 通常・512px の両サムネイルが slug 名で入る
       expect(names).toContain(`tmbs/${seeded.mapSlug}.jpg`);
-      expect(names).toContain(`tmbs/${seeded.mapSlug}_512.jpg`);
+      expect(names).toContain(`tmbs/${seeded.mapSlug}_512.webp`);
       expect(names.some((n) => n.startsWith(`tiles/${seeded.mapSlug}/`))).toBe(true);
 
       console.log('  AC11-a: PASS（実 UI の地図搬出）');

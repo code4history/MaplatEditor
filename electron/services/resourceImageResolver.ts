@@ -9,6 +9,8 @@ import AppAssetService from './AppAssetService';
 import SqliteDataService from './SqliteDataService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
+// m19-t5: 512px の所在は派生規約の単一モジュールから導く（拡張子は THUMB_512_EXT が決める）
+import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 
 // m1-t7 (Minor-3): tiles/{fileKey}/0/0/0.{jpg,jpeg,png} を saveFolder 配下に封じ込めたうえで
 // file:// URL として解決する共通ヘルパ。
@@ -88,7 +90,7 @@ export async function resolveAppListImage(doc: any): Promise<string | null> {
   const startSource = sources.find((source: any) => source.mapUid === startFromID || source.mapSlug === startFromID);
   if (startSource?.sourceType === 'maplat') {
     // M12-T15 (R7): favicon 未設定のアプリは、startFrom の地図の 512px サムネイルを優先解決する
-    // （地図タイル fallback の前に tmbs/{uid}_512.jpg を試す）
+    // （地図タイル fallback の前に 512px サムネイルを試す）
     const mapDoc = await SqliteDataService.findMapByRef(startSource.mapUid);
     if (mapDoc) {
       const thumb512 = await resolveMapListImage512(mapDoc);
@@ -112,8 +114,10 @@ async function resolveMapTileByRef(mapRef: string): Promise<string | null> {
 }
 
 // M12-T15 (R6): 地図一覧の高精細サムネイル解決。
-// tmbs/{uid}_512.jpg（512px、あれば）→ resolveMapListImage（52px → tile fallback）の順で解決する。
+// 512px（thumb512PathFor が導く唯一のパス。あれば）→ resolveMapListImage（52px → tile fallback）の順で解決する。
 // 512px は MapList grid card（200px 表示）の高精細化に使う。
+// m19-t5: 旧形式（jpg/png）を探し直す fallback は持たない。既存データは起動時 migration が
+// 正規形へ移す（sp-0006: 読み込み側に二重分岐を作らない）。
 export async function resolveMapListImage512(doc: {
   uid?: string;
   mapID?: string;
@@ -122,8 +126,9 @@ export async function resolveMapListImage512(doc: {
 }): Promise<string | null> {
   const saveFolder = SettingsService.get('saveFolder');
   const fileKey = doc.uid || doc._id || doc.mapID || doc.slug;
-  if (fileKey) {
-    const thumb512 = path.join(saveFolder, 'tmbs', `${fileKey}_512.jpg`);
+  const rel512 = fileKey ? thumb512PathFor(thumb52PathFor(fileKey, 'jpg')) : null;
+  if (rel512) {
+    const thumb512 = path.join(saveFolder, rel512);
     if (await fs.pathExists(thumb512)) {
       // M12-T13 と同型: fileKey が slug 由来で '..' を含む場合の saveFolder 配下封じ込め
       if (!isUnderFolder(thumb512, saveFolder)) return null;

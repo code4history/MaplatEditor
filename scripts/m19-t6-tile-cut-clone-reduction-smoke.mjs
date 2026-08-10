@@ -329,7 +329,7 @@ await writeFile(
     // このテストは「置換前後で出力が変わらない」ことの番人であり、**置換前から緑である**のが正しい。
     // ============================================================
     {
-      const W = 1400, H = 900;   // maxZoom 3 / 33 タイル。thumbnail_512.jpg 経路が走る最小規模
+      const W = 1400, H = 900;   // maxZoom 3 / 33 タイル。thumbnail_512.webp 経路が走る最小規模
       const ext = 'jpg';
       const fixtureDir = nodePath.join(workDir, 'part3');
       await fs.mkdir(fixtureDir, { recursive: true });
@@ -442,13 +442,13 @@ await writeFile(
       // --- AC-N4: 付随物 ---
       // original.<ext> は fs.copy(srcFile, ...) による**元ファイルからの直コピー**であり、
       // タイル経路に依存しない（∴ バイト同一の保証はむしろ強い。設計レビュー Minor-3）。
-      // thumbnail.jpg / thumbnail_512.jpg は生成済みタイルから導出され、その生成コードは
+      // thumbnail.jpg / thumbnail_512.webp は生成済みタイルから導出され、その生成コードは
       // 本タスクで 1 行も変更していない。∴ AC-N3 が通れば内容も同一である。
       const originalPath = nodePath.join(outA, 'original.' + ext);
       ok('AC-N4 original.' + ext + ' が元ファイルとバイト単位で同一（fs.copy による直コピー）', () => {
         assert.equal(sha256(nodeFs.readFileSync(originalPath)), sha256(nodeFs.readFileSync(srcFile)));
       });
-      for (const name of ['thumbnail.jpg', 'thumbnail_512.jpg']) {
+      for (const name of ['thumbnail.jpg', 'thumbnail_512.webp']) {
         ok('AC-N4 ' + name + ' が生成され非ゼロサイズ（一致したタイルから導出）', () => {
           const st = nodeFs.statSync(nodePath.join(outA, name));
           assert.ok(st.size > 0, name + ' のサイズ = ' + st.size);
@@ -458,7 +458,7 @@ await writeFile(
       // 実行のたびに同じ値になる。∴ 置換の前後で走らせて突き合わせれば、タイル以外の生成物にも
       // バイト同一性の観測が及ぶ（AC-N4 の補強。合否は上の assert が持つ）。
       console.log('AC-N4 artifacts sha256: original.' + ext + '=' + sha256(nodeFs.readFileSync(originalPath)));
-      for (const name of ['thumbnail.jpg', 'thumbnail_512.jpg']) {
+      for (const name of ['thumbnail.jpg', 'thumbnail_512.webp']) {
         console.log('AC-N4 artifacts sha256: ' + name + '=' + sha256(nodeFs.readFileSync(nodePath.join(outA, name))));
       }
 

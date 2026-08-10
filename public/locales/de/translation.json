@@ -475,6 +475,8 @@
     "migration_report_warnings": "Es liegen {{count}} Warnung(en) vor. Details finden Sie in der Datei migration-report-v2.json im Datenordner.",
     "migrating_thumbnails_512": "512px-Thumbnails werden generiert",
     "migrating_thumbnails_512_done": "512px-Thumbnail-Generierung abgeschlossen",
+    "migrating_thumbnails_512_webp": "512px-Thumbnails werden ins WebP-Format konvertiert",
+    "migrating_thumbnails_512_webp_done": "512px-Thumbnail-Konvertierung nach WebP abgeschlossen",
     "migrating_originals": "Originale Dateien werden zu UUID-Dateinamen migriert",
     "migrating_originals_done": "Migration der Originaldateien abgeschlossen"
   },

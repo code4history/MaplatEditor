@@ -69,7 +69,7 @@ async function buildMapZip(dest: string, slug: string): Promise<void> {
     }],
   })));
   zip.addFile(`tmbs/${slug}.jpg`, Buffer.from('THUMB'));
-  zip.addFile(`tmbs/${slug}_512.jpg`, Buffer.from('THUMB512'));
+  zip.addFile(`tmbs/${slug}_512.webp`, Buffer.from('THUMB512'));
   for (let z = 0; z < 6; z++) {
     for (let x = 0; x < 6; x++) {
       zip.addFile(`tiles/${slug}/${z}/${x}/0.jpg`, Buffer.from(`TILE-${z}-${x}`));

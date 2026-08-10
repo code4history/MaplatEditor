@@ -6,6 +6,8 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+// m19-t5: 512px は webp。符号化/復号の唯一の実装（宛先拡張子で選ぶ）へ委譲する
+import { readImageMeta } from '../../electron/utils/thumbnail512Codec';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
@@ -58,11 +60,11 @@ async function seedMap(page: Page): Promise<{ uid: string; slug: string }> {
   });
 }
 
-// saveFolder/tmbs/{uid}_512.jpg を直接配置する（512px サムネイルがある状態を作る）
+// saveFolder/tmbs/{uid}_512.webp を直接配置する（512px サムネイルがある状態を作る）
 async function placeThumbnails(saveFolder: string, uid: string): Promise<void> {
   const tmbs = path.join(saveFolder, 'tmbs');
   await mkdir(tmbs, { recursive: true });
-  await writeFile(path.join(tmbs, `${uid}_512.jpg`), Buffer.from(PNG_B64, 'base64'));
+  await writeFile(path.join(tmbs, `${uid}_512.webp`), Buffer.from(PNG_B64, 'base64'));
   await writeFile(path.join(tmbs, `${uid}.jpg`), Buffer.from(PNG_B64, 'base64'));
 }
 
@@ -83,9 +85,9 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       await expect(page.getByTestId('thumbnail-replace-52')).toBeVisible();
       await expect(page.getByTestId('thumbnail-derive-52')).toBeChecked();
 
-      // AC5: 512px プレビューが表示（tmbs/{uid}_512.jpg を配置済み）
+      // AC5: 512px プレビューが表示（tmbs/{uid}_512.webp を配置済み）
       const metadataTab = page.getByTestId('map-title').locator('xpath=ancestor::form');
-      await expect(metadataTab.locator('img[src*="_512.jpg"]')).toBeVisible({ timeout: 15000 });
+      await expect(metadataTab.locator('img[src*="_512.webp"]')).toBeVisible({ timeout: 15000 });
 
       console.log('  AC5: PASS');
     } finally {
@@ -112,7 +114,7 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 15000 });
 
       const metadataTab = page.getByTestId('map-title').locator('xpath=ancestor::form');
-      const img512 = metadataTab.locator('img[src*="_512.jpg"]');
+      const img512 = metadataTab.locator('img[src*="_512.webp"]');
       await expect(img512).toBeVisible({ timeout: 15000 });
       const srcBefore = await img512.getAttribute('src');
 
@@ -123,8 +125,9 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       await expect.poll(async () => img512.getAttribute('src'), { timeout: 15000 }).not.toBe(srcBefore);
 
       // 置換された 512px が実ファイルとして存在（緑画像から生成）
-      const thumb512Path = `${saveFolder}/tmbs/${uid}_512.jpg`;
-      const image = await Jimp.read(thumb512Path);
+      const thumb512Path = `${saveFolder}/tmbs/${uid}_512.webp`;
+      // m19-t5: 512px は webp。Jimp は webp を decode できないため codec の readImageMeta を使う
+      const image = (await readImageMeta(thumb512Path))!;
       expect(Math.max(image.width, image.height)).toBeLessThanOrEqual(512);
       // 「52px も作成」チェックが ON のため 52px も更新される
       const thumb52Path = `${saveFolder}/tmbs/${uid}.jpg`;
@@ -169,12 +172,12 @@ test.describe('M12-T15 512pxアイコン活用', () => {
         return exportResult;
       }, slug);
 
-      // zip を adm-zip で読み、tmbs/{slug}_512.jpg が同梱されることを検証
+      // zip を adm-zip で読み、tmbs/{slug}_512.webp が同梱されることを検証
       const { default: AdmZip } = await import('adm-zip');
       const zip = new AdmZip(zipPath);
       const names = zip.getEntries().map((entry) => entry.entryName);
       expect(names).toContain(`tmbs/${slug}.jpg`); // 52px（現行）
-      expect(names).toContain(`tmbs/${slug}_512.jpg`); // 512px（M12-T15 G）
+      expect(names).toContain(`tmbs/${slug}_512.webp`); // 512px（M12-T15 G）
 
       console.log('  AC8: PASS (export 同梱)');
     } finally {
@@ -194,10 +197,10 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       await openHash(page, '#/maplist');
       await expect(page.locator('[data-resource-list="map"]')).toBeVisible({ timeout: 15000 });
 
-      // AC6: 512px がある地図の grid card は _512.jpg を使う（画像読み込みを poll で待つ）
+      // AC6: 512px がある地図の grid card は _512.webp を使う（画像読み込みを poll で待つ）
       const card = page.locator(`[data-resource-uid="${uid}"]`);
       await expect(card).toBeVisible({ timeout: 15000 });
-      await expect.poll(async () => card.locator('img').getAttribute('src'), { timeout: 15000 }).toMatch(/_512\.jpg/);
+      await expect.poll(async () => card.locator('img').getAttribute('src'), { timeout: 15000 }).toMatch(/_512\.webp/);
 
       console.log('  AC6: PASS');
     } finally {
@@ -236,7 +239,7 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       // AC7: favicon 未設定のアプリは地図の 512px を使う
       const appCard = page.locator(`[data-resource-uid]`).filter({ hasText: 't15 app' });
       await expect(appCard).toBeVisible({ timeout: 15000 });
-      await expect(appCard.locator('img')).toHaveAttribute('src', /_512\.jpg/);
+      await expect(appCard.locator('img')).toHaveAttribute('src', /_512\.webp/);
 
       console.log('  AC7: PASS');
     } finally {

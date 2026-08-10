@@ -47,7 +47,7 @@
    "en": "©︎ OpenStreetMap contributors (OpenStreetMap Copyright: https://www.openstreetmap.org/copyright)"
   },
   "thumbnail": "basemap_icons/osm.png",
-  "thumbnail512": "basemap_icons_512/osm.png"
+  "thumbnail512": "basemap_icons_512/osm.webp"
  },
  {
   "mapID": "gsi",
@@ -97,7 +97,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/gsi.png",
-  "thumbnail512": "basemap_icons_512/gsi.png"
+  "thumbnail512": "basemap_icons_512/gsi.webp"
  },
  {
   "mapID": "gsi_ortho",
@@ -147,7 +147,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/gsi_ortho.png",
-  "thumbnail512": "basemap_icons_512/gsi_ortho.png"
+  "thumbnail512": "basemap_icons_512/gsi_ortho.webp"
  },
  {
   "mapID": "gsi_ort_USA10",
@@ -196,7 +196,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/gsi_ort_USA10.png",
-  "thumbnail512": "basemap_icons_512/gsi_ort_USA10.png"
+  "thumbnail512": "basemap_icons_512/gsi_ort_USA10.webp"
  },
  {
   "mapID": "gsi_ort_old10",
@@ -245,7 +245,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/gsi_ort_old10.png",
-  "thumbnail512": "basemap_icons_512/gsi_ort_old10.png"
+  "thumbnail512": "basemap_icons_512/gsi_ort_old10.webp"
  },
  {
   "mapID": "gsi_gazo1",
@@ -294,7 +294,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/gsi_gazo1.png",
-  "thumbnail512": "basemap_icons_512/gsi_gazo1.png"
+  "thumbnail512": "basemap_icons_512/gsi_gazo1.webp"
  },
  {
   "mapID": "gsi_gazo2",
@@ -343,7 +343,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/gsi_gazo2.png",
-  "thumbnail512": "basemap_icons_512/gsi_gazo2.png"
+  "thumbnail512": "basemap_icons_512/gsi_gazo2.webp"
  },
  {
   "mapID": "gsi_gazo3",
@@ -392,7 +392,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/gsi_gazo3.png",
-  "thumbnail512": "basemap_icons_512/gsi_gazo3.png"
+  "thumbnail512": "basemap_icons_512/gsi_gazo3.webp"
  },
  {
   "mapID": "gsi_gazo4",
@@ -441,7 +441,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/gsi_gazo4.png",
-  "thumbnail512": "basemap_icons_512/gsi_gazo4.png"
+  "thumbnail512": "basemap_icons_512/gsi_gazo4.webp"
  },
  {
   "mapID": "affrc_rapid16",
@@ -490,7 +490,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/affrc_rapid16.png",
-  "thumbnail512": "basemap_icons_512/affrc_rapid16.png"
+  "thumbnail512": "basemap_icons_512/affrc_rapid16.webp"
  },
  {
   "mapID": "affrc_tokyo5k",
@@ -539,7 +539,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/affrc_tokyo5k.png",
-  "thumbnail512": "basemap_icons_512/affrc_tokyo5k.png"
+  "thumbnail512": "basemap_icons_512/affrc_tokyo5k.webp"
  },
  {
   "mapID": "tokyo502man",
@@ -588,7 +588,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo502man.png",
-  "thumbnail512": "basemap_icons_512/tokyo502man.png"
+  "thumbnail512": "basemap_icons_512/tokyo502man.webp"
  },
  {
   "mapID": "tokyo5000",
@@ -637,7 +637,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo5000.png",
-  "thumbnail512": "basemap_icons_512/tokyo5000.png"
+  "thumbnail512": "basemap_icons_512/tokyo5000.webp"
  },
  {
   "mapID": "tokyo5001",
@@ -686,7 +686,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo5001.png",
-  "thumbnail512": "basemap_icons_512/tokyo5001.png"
+  "thumbnail512": "basemap_icons_512/tokyo5001.webp"
  },
  {
   "mapID": "tokyo5002",
@@ -735,7 +735,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo5002.png",
-  "thumbnail512": "basemap_icons_512/tokyo5002.png"
+  "thumbnail512": "basemap_icons_512/tokyo5002.webp"
  },
  {
   "mapID": "tokyo5003",
@@ -784,7 +784,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo5003.png",
-  "thumbnail512": "basemap_icons_512/tokyo5003.png"
+  "thumbnail512": "basemap_icons_512/tokyo5003.webp"
  },
  {
   "mapID": "tokyo5004",
@@ -833,7 +833,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo5004.png",
-  "thumbnail512": "basemap_icons_512/tokyo5004.png"
+  "thumbnail512": "basemap_icons_512/tokyo5004.webp"
  },
  {
   "mapID": "tokyo5005",
@@ -882,7 +882,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo5005.png",
-  "thumbnail512": "basemap_icons_512/tokyo5005.png"
+  "thumbnail512": "basemap_icons_512/tokyo5005.webp"
  },
  {
   "mapID": "tokyo5006",
@@ -931,7 +931,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo5006.png",
-  "thumbnail512": "basemap_icons_512/tokyo5006.png"
+  "thumbnail512": "basemap_icons_512/tokyo5006.webp"
  },
  {
   "mapID": "tokyo5007",
@@ -980,7 +980,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokyo5007.png",
-  "thumbnail512": "basemap_icons_512/tokyo5007.png"
+  "thumbnail512": "basemap_icons_512/tokyo5007.webp"
  },
  {
   "mapID": "chukyo2man",
@@ -1029,7 +1029,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo2man.png",
-  "thumbnail512": "basemap_icons_512/chukyo2man.png"
+  "thumbnail512": "basemap_icons_512/chukyo2man.webp"
  },
  {
   "mapID": "chukyo00",
@@ -1078,7 +1078,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo00.png",
-  "thumbnail512": "basemap_icons_512/chukyo00.png"
+  "thumbnail512": "basemap_icons_512/chukyo00.webp"
  },
  {
   "mapID": "chukyo01",
@@ -1127,7 +1127,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo01.png",
-  "thumbnail512": "basemap_icons_512/chukyo01.png"
+  "thumbnail512": "basemap_icons_512/chukyo01.webp"
  },
  {
   "mapID": "chukyo02",
@@ -1176,7 +1176,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo02.png",
-  "thumbnail512": "basemap_icons_512/chukyo02.png"
+  "thumbnail512": "basemap_icons_512/chukyo02.webp"
  },
  {
   "mapID": "chukyo03",
@@ -1225,7 +1225,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo03.png",
-  "thumbnail512": "basemap_icons_512/chukyo03.png"
+  "thumbnail512": "basemap_icons_512/chukyo03.webp"
  },
  {
   "mapID": "chukyo04",
@@ -1274,7 +1274,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo04.png",
-  "thumbnail512": "basemap_icons_512/chukyo04.png"
+  "thumbnail512": "basemap_icons_512/chukyo04.webp"
  },
  {
   "mapID": "chukyo05",
@@ -1323,7 +1323,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo05.png",
-  "thumbnail512": "basemap_icons_512/chukyo05.png"
+  "thumbnail512": "basemap_icons_512/chukyo05.webp"
  },
  {
   "mapID": "chukyo06",
@@ -1372,7 +1372,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo06.png",
-  "thumbnail512": "basemap_icons_512/chukyo06.png"
+  "thumbnail512": "basemap_icons_512/chukyo06.webp"
  },
  {
   "mapID": "chukyo07",
@@ -1421,7 +1421,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo07.png",
-  "thumbnail512": "basemap_icons_512/chukyo07.png"
+  "thumbnail512": "basemap_icons_512/chukyo07.webp"
  },
  {
   "mapID": "chukyo08",
@@ -1470,7 +1470,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/chukyo08.png",
-  "thumbnail512": "basemap_icons_512/chukyo08.png"
+  "thumbnail512": "basemap_icons_512/chukyo08.webp"
  },
  {
   "mapID": "keihansin2man",
@@ -1519,7 +1519,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin2man.png",
-  "thumbnail512": "basemap_icons_512/keihansin2man.png"
+  "thumbnail512": "basemap_icons_512/keihansin2man.webp"
  },
  {
   "mapID": "keihansin00",
@@ -1568,7 +1568,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin00.png",
-  "thumbnail512": "basemap_icons_512/keihansin00.png"
+  "thumbnail512": "basemap_icons_512/keihansin00.webp"
  },
  {
   "mapID": "keihansin01",
@@ -1617,7 +1617,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin01.png",
-  "thumbnail512": "basemap_icons_512/keihansin01.png"
+  "thumbnail512": "basemap_icons_512/keihansin01.webp"
  },
  {
   "mapID": "keihansin02",
@@ -1666,7 +1666,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin02.png",
-  "thumbnail512": "basemap_icons_512/keihansin02.png"
+  "thumbnail512": "basemap_icons_512/keihansin02.webp"
  },
  {
   "mapID": "keihansin03",
@@ -1715,7 +1715,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin03.png",
-  "thumbnail512": "basemap_icons_512/keihansin03.png"
+  "thumbnail512": "basemap_icons_512/keihansin03.webp"
  },
  {
   "mapID": "keihansin03x",
@@ -1764,7 +1764,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin03x.png",
-  "thumbnail512": "basemap_icons_512/keihansin03x.png"
+  "thumbnail512": "basemap_icons_512/keihansin03x.webp"
  },
  {
   "mapID": "keihansin04",
@@ -1813,7 +1813,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin04.png",
-  "thumbnail512": "basemap_icons_512/keihansin04.png"
+  "thumbnail512": "basemap_icons_512/keihansin04.webp"
  },
  {
   "mapID": "keihansin05",
@@ -1862,7 +1862,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin05.png",
-  "thumbnail512": "basemap_icons_512/keihansin05.png"
+  "thumbnail512": "basemap_icons_512/keihansin05.webp"
  },
  {
   "mapID": "keihansin06",
@@ -1911,7 +1911,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin06.png",
-  "thumbnail512": "basemap_icons_512/keihansin06.png"
+  "thumbnail512": "basemap_icons_512/keihansin06.webp"
  },
  {
   "mapID": "keihansin07",
@@ -1960,7 +1960,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/keihansin07.png",
-  "thumbnail512": "basemap_icons_512/keihansin07.png"
+  "thumbnail512": "basemap_icons_512/keihansin07.webp"
  },
  {
   "mapID": "tohoku_pacific_coast00",
@@ -2009,7 +2009,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tohoku_pacific_coast00.png",
-  "thumbnail512": "basemap_icons_512/tohoku_pacific_coast00.png"
+  "thumbnail512": "basemap_icons_512/tohoku_pacific_coast00.webp"
  },
  {
   "mapID": "tohoku_pacific_coast01",
@@ -2058,7 +2058,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tohoku_pacific_coast01.png",
-  "thumbnail512": "basemap_icons_512/tohoku_pacific_coast01.png"
+  "thumbnail512": "basemap_icons_512/tohoku_pacific_coast01.webp"
  },
  {
   "mapID": "tohoku_pacific_coast02",
@@ -2107,7 +2107,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tohoku_pacific_coast02.png",
-  "thumbnail512": "basemap_icons_512/tohoku_pacific_coast02.png"
+  "thumbnail512": "basemap_icons_512/tohoku_pacific_coast02.webp"
  },
  {
   "mapID": "tohoku_pacific_coast03",
@@ -2156,7 +2156,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tohoku_pacific_coast03.png",
-  "thumbnail512": "basemap_icons_512/tohoku_pacific_coast03.png"
+  "thumbnail512": "basemap_icons_512/tohoku_pacific_coast03.webp"
  },
  {
   "mapID": "kanto00",
@@ -2205,7 +2205,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanto00.png",
-  "thumbnail512": "basemap_icons_512/kanto00.png"
+  "thumbnail512": "basemap_icons_512/kanto00.webp"
  },
  {
   "mapID": "kanto01",
@@ -2254,7 +2254,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanto01.png",
-  "thumbnail512": "basemap_icons_512/kanto01.png"
+  "thumbnail512": "basemap_icons_512/kanto01.webp"
  },
  {
   "mapID": "kanto02",
@@ -2303,7 +2303,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanto02.png",
-  "thumbnail512": "basemap_icons_512/kanto02.png"
+  "thumbnail512": "basemap_icons_512/kanto02.webp"
  },
  {
   "mapID": "kanto03",
@@ -2352,7 +2352,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanto03.png",
-  "thumbnail512": "basemap_icons_512/kanto03.png"
+  "thumbnail512": "basemap_icons_512/kanto03.webp"
  },
  {
   "mapID": "sapporo00",
@@ -2401,7 +2401,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sapporo00.png",
-  "thumbnail512": "basemap_icons_512/sapporo00.png"
+  "thumbnail512": "basemap_icons_512/sapporo00.webp"
  },
  {
   "mapID": "sapporo01",
@@ -2450,7 +2450,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sapporo01.png",
-  "thumbnail512": "basemap_icons_512/sapporo01.png"
+  "thumbnail512": "basemap_icons_512/sapporo01.webp"
  },
  {
   "mapID": "sapporo02",
@@ -2499,7 +2499,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sapporo02.png",
-  "thumbnail512": "basemap_icons_512/sapporo02.png"
+  "thumbnail512": "basemap_icons_512/sapporo02.webp"
  },
  {
   "mapID": "sapporo03",
@@ -2548,7 +2548,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sapporo03.png",
-  "thumbnail512": "basemap_icons_512/sapporo03.png"
+  "thumbnail512": "basemap_icons_512/sapporo03.webp"
  },
  {
   "mapID": "sapporo04",
@@ -2597,7 +2597,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sapporo04.png",
-  "thumbnail512": "basemap_icons_512/sapporo04.png"
+  "thumbnail512": "basemap_icons_512/sapporo04.webp"
  },
  {
   "mapID": "asahikawa00",
@@ -2646,7 +2646,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/asahikawa00.png",
-  "thumbnail512": "basemap_icons_512/asahikawa00.png"
+  "thumbnail512": "basemap_icons_512/asahikawa00.webp"
  },
  {
   "mapID": "asahikawa01",
@@ -2695,7 +2695,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/asahikawa01.png",
-  "thumbnail512": "basemap_icons_512/asahikawa01.png"
+  "thumbnail512": "basemap_icons_512/asahikawa01.webp"
  },
  {
   "mapID": "asahikawa02",
@@ -2744,7 +2744,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/asahikawa02.png",
-  "thumbnail512": "basemap_icons_512/asahikawa02.png"
+  "thumbnail512": "basemap_icons_512/asahikawa02.webp"
  },
  {
   "mapID": "asahikawa03",
@@ -2793,7 +2793,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/asahikawa03.png",
-  "thumbnail512": "basemap_icons_512/asahikawa03.png"
+  "thumbnail512": "basemap_icons_512/asahikawa03.webp"
  },
  {
   "mapID": "asahikawa04",
@@ -2842,7 +2842,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/asahikawa04.png",
-  "thumbnail512": "basemap_icons_512/asahikawa04.png"
+  "thumbnail512": "basemap_icons_512/asahikawa04.webp"
  },
  {
   "mapID": "kushiro00",
@@ -2891,7 +2891,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kushiro00.png",
-  "thumbnail512": "basemap_icons_512/kushiro00.png"
+  "thumbnail512": "basemap_icons_512/kushiro00.webp"
  },
  {
   "mapID": "kushiro01",
@@ -2940,7 +2940,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kushiro01.png",
-  "thumbnail512": "basemap_icons_512/kushiro01.png"
+  "thumbnail512": "basemap_icons_512/kushiro01.webp"
  },
  {
   "mapID": "kushiro02",
@@ -2989,7 +2989,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kushiro02.png",
-  "thumbnail512": "basemap_icons_512/kushiro02.png"
+  "thumbnail512": "basemap_icons_512/kushiro02.webp"
  },
  {
   "mapID": "kushiro03",
@@ -3038,7 +3038,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kushiro03.png",
-  "thumbnail512": "basemap_icons_512/kushiro03.png"
+  "thumbnail512": "basemap_icons_512/kushiro03.webp"
  },
  {
   "mapID": "kushiro04",
@@ -3087,7 +3087,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kushiro04.png",
-  "thumbnail512": "basemap_icons_512/kushiro04.png"
+  "thumbnail512": "basemap_icons_512/kushiro04.webp"
  },
  {
   "mapID": "obihiro00",
@@ -3136,7 +3136,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/obihiro00.png",
-  "thumbnail512": "basemap_icons_512/obihiro00.png"
+  "thumbnail512": "basemap_icons_512/obihiro00.webp"
  },
  {
   "mapID": "obihiro01",
@@ -3185,7 +3185,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/obihiro01.png",
-  "thumbnail512": "basemap_icons_512/obihiro01.png"
+  "thumbnail512": "basemap_icons_512/obihiro01.webp"
  },
  {
   "mapID": "obihiro02",
@@ -3234,7 +3234,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/obihiro02.png",
-  "thumbnail512": "basemap_icons_512/obihiro02.png"
+  "thumbnail512": "basemap_icons_512/obihiro02.webp"
  },
  {
   "mapID": "obihiro03",
@@ -3283,7 +3283,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/obihiro03.png",
-  "thumbnail512": "basemap_icons_512/obihiro03.png"
+  "thumbnail512": "basemap_icons_512/obihiro03.webp"
  },
  {
   "mapID": "obihiro04",
@@ -3332,7 +3332,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/obihiro04.png",
-  "thumbnail512": "basemap_icons_512/obihiro04.png"
+  "thumbnail512": "basemap_icons_512/obihiro04.webp"
  },
  {
   "mapID": "tomakomai00",
@@ -3381,7 +3381,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tomakomai00.png",
-  "thumbnail512": "basemap_icons_512/tomakomai00.png"
+  "thumbnail512": "basemap_icons_512/tomakomai00.webp"
  },
  {
   "mapID": "tomakomai01",
@@ -3430,7 +3430,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tomakomai01.png",
-  "thumbnail512": "basemap_icons_512/tomakomai01.png"
+  "thumbnail512": "basemap_icons_512/tomakomai01.webp"
  },
  {
   "mapID": "tomakomai02",
@@ -3479,7 +3479,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tomakomai02.png",
-  "thumbnail512": "basemap_icons_512/tomakomai02.png"
+  "thumbnail512": "basemap_icons_512/tomakomai02.webp"
  },
  {
   "mapID": "tomakomai03",
@@ -3528,7 +3528,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tomakomai03.png",
-  "thumbnail512": "basemap_icons_512/tomakomai03.png"
+  "thumbnail512": "basemap_icons_512/tomakomai03.webp"
  },
  {
   "mapID": "tomakomai04",
@@ -3577,7 +3577,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tomakomai04.png",
-  "thumbnail512": "basemap_icons_512/tomakomai04.png"
+  "thumbnail512": "basemap_icons_512/tomakomai04.webp"
  },
  {
   "mapID": "muroran00",
@@ -3626,7 +3626,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/muroran00.png",
-  "thumbnail512": "basemap_icons_512/muroran00.png"
+  "thumbnail512": "basemap_icons_512/muroran00.webp"
  },
  {
   "mapID": "muroran01",
@@ -3675,7 +3675,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/muroran01.png",
-  "thumbnail512": "basemap_icons_512/muroran01.png"
+  "thumbnail512": "basemap_icons_512/muroran01.webp"
  },
  {
   "mapID": "muroran02",
@@ -3724,7 +3724,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/muroran02.png",
-  "thumbnail512": "basemap_icons_512/muroran02.png"
+  "thumbnail512": "basemap_icons_512/muroran02.webp"
  },
  {
   "mapID": "muroran03",
@@ -3773,7 +3773,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/muroran03.png",
-  "thumbnail512": "basemap_icons_512/muroran03.png"
+  "thumbnail512": "basemap_icons_512/muroran03.webp"
  },
  {
   "mapID": "muroran04",
@@ -3822,7 +3822,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/muroran04.png",
-  "thumbnail512": "basemap_icons_512/muroran04.png"
+  "thumbnail512": "basemap_icons_512/muroran04.webp"
  },
  {
   "mapID": "hakodate00",
@@ -3871,7 +3871,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hakodate00.png",
-  "thumbnail512": "basemap_icons_512/hakodate00.png"
+  "thumbnail512": "basemap_icons_512/hakodate00.webp"
  },
  {
   "mapID": "hakodate01",
@@ -3920,7 +3920,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hakodate01.png",
-  "thumbnail512": "basemap_icons_512/hakodate01.png"
+  "thumbnail512": "basemap_icons_512/hakodate01.webp"
  },
  {
   "mapID": "hakodate02",
@@ -3969,7 +3969,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hakodate02.png",
-  "thumbnail512": "basemap_icons_512/hakodate02.png"
+  "thumbnail512": "basemap_icons_512/hakodate02.webp"
  },
  {
   "mapID": "hakodate03",
@@ -4018,7 +4018,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hakodate03.png",
-  "thumbnail512": "basemap_icons_512/hakodate03.png"
+  "thumbnail512": "basemap_icons_512/hakodate03.webp"
  },
  {
   "mapID": "hakodate04",
@@ -4067,7 +4067,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hakodate04.png",
-  "thumbnail512": "basemap_icons_512/hakodate04.png"
+  "thumbnail512": "basemap_icons_512/hakodate04.webp"
  },
  {
   "mapID": "aomori00",
@@ -4116,7 +4116,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aomori00.png",
-  "thumbnail512": "basemap_icons_512/aomori00.png"
+  "thumbnail512": "basemap_icons_512/aomori00.webp"
  },
  {
   "mapID": "aomori01",
@@ -4165,7 +4165,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aomori01.png",
-  "thumbnail512": "basemap_icons_512/aomori01.png"
+  "thumbnail512": "basemap_icons_512/aomori01.webp"
  },
  {
   "mapID": "aomori02",
@@ -4214,7 +4214,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aomori02.png",
-  "thumbnail512": "basemap_icons_512/aomori02.png"
+  "thumbnail512": "basemap_icons_512/aomori02.webp"
  },
  {
   "mapID": "aomori03",
@@ -4263,7 +4263,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aomori03.png",
-  "thumbnail512": "basemap_icons_512/aomori03.png"
+  "thumbnail512": "basemap_icons_512/aomori03.webp"
  },
  {
   "mapID": "aomori04",
@@ -4312,7 +4312,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aomori04.png",
-  "thumbnail512": "basemap_icons_512/aomori04.png"
+  "thumbnail512": "basemap_icons_512/aomori04.webp"
  },
  {
   "mapID": "hirosaki00",
@@ -4361,7 +4361,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hirosaki00.png",
-  "thumbnail512": "basemap_icons_512/hirosaki00.png"
+  "thumbnail512": "basemap_icons_512/hirosaki00.webp"
  },
  {
   "mapID": "hirosaki01",
@@ -4410,7 +4410,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hirosaki01.png",
-  "thumbnail512": "basemap_icons_512/hirosaki01.png"
+  "thumbnail512": "basemap_icons_512/hirosaki01.webp"
  },
  {
   "mapID": "hirosaki02",
@@ -4459,7 +4459,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hirosaki02.png",
-  "thumbnail512": "basemap_icons_512/hirosaki02.png"
+  "thumbnail512": "basemap_icons_512/hirosaki02.webp"
  },
  {
   "mapID": "hirosaki03",
@@ -4508,7 +4508,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hirosaki03.png",
-  "thumbnail512": "basemap_icons_512/hirosaki03.png"
+  "thumbnail512": "basemap_icons_512/hirosaki03.webp"
  },
  {
   "mapID": "hirosaki04",
@@ -4557,7 +4557,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hirosaki04.png",
-  "thumbnail512": "basemap_icons_512/hirosaki04.png"
+  "thumbnail512": "basemap_icons_512/hirosaki04.webp"
  },
  {
   "mapID": "morioka00",
@@ -4606,7 +4606,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/morioka00.png",
-  "thumbnail512": "basemap_icons_512/morioka00.png"
+  "thumbnail512": "basemap_icons_512/morioka00.webp"
  },
  {
   "mapID": "morioka01",
@@ -4655,7 +4655,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/morioka01.png",
-  "thumbnail512": "basemap_icons_512/morioka01.png"
+  "thumbnail512": "basemap_icons_512/morioka01.webp"
  },
  {
   "mapID": "morioka02",
@@ -4704,7 +4704,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/morioka02.png",
-  "thumbnail512": "basemap_icons_512/morioka02.png"
+  "thumbnail512": "basemap_icons_512/morioka02.webp"
  },
  {
   "mapID": "morioka03",
@@ -4753,7 +4753,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/morioka03.png",
-  "thumbnail512": "basemap_icons_512/morioka03.png"
+  "thumbnail512": "basemap_icons_512/morioka03.webp"
  },
  {
   "mapID": "morioka04",
@@ -4802,7 +4802,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/morioka04.png",
-  "thumbnail512": "basemap_icons_512/morioka04.png"
+  "thumbnail512": "basemap_icons_512/morioka04.webp"
  },
  {
   "mapID": "iwatekennan00",
@@ -4851,7 +4851,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iwatekennan00.png",
-  "thumbnail512": "basemap_icons_512/iwatekennan00.png"
+  "thumbnail512": "basemap_icons_512/iwatekennan00.webp"
  },
  {
   "mapID": "iwatekennan01",
@@ -4900,7 +4900,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iwatekennan01.png",
-  "thumbnail512": "basemap_icons_512/iwatekennan01.png"
+  "thumbnail512": "basemap_icons_512/iwatekennan01.webp"
  },
  {
   "mapID": "iwatekennan02",
@@ -4949,7 +4949,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iwatekennan02.png",
-  "thumbnail512": "basemap_icons_512/iwatekennan02.png"
+  "thumbnail512": "basemap_icons_512/iwatekennan02.webp"
  },
  {
   "mapID": "iwatekennan03",
@@ -4998,7 +4998,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iwatekennan03.png",
-  "thumbnail512": "basemap_icons_512/iwatekennan03.png"
+  "thumbnail512": "basemap_icons_512/iwatekennan03.webp"
  },
  {
   "mapID": "iwatekennan04",
@@ -5047,7 +5047,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iwatekennan04.png",
-  "thumbnail512": "basemap_icons_512/iwatekennan04.png"
+  "thumbnail512": "basemap_icons_512/iwatekennan04.webp"
  },
  {
   "mapID": "sendai00",
@@ -5096,7 +5096,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sendai00.png",
-  "thumbnail512": "basemap_icons_512/sendai00.png"
+  "thumbnail512": "basemap_icons_512/sendai00.webp"
  },
  {
   "mapID": "sendai01",
@@ -5145,7 +5145,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sendai01.png",
-  "thumbnail512": "basemap_icons_512/sendai01.png"
+  "thumbnail512": "basemap_icons_512/sendai01.webp"
  },
  {
   "mapID": "sendai02",
@@ -5194,7 +5194,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sendai02.png",
-  "thumbnail512": "basemap_icons_512/sendai02.png"
+  "thumbnail512": "basemap_icons_512/sendai02.webp"
  },
  {
   "mapID": "sendai03",
@@ -5243,7 +5243,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sendai03.png",
-  "thumbnail512": "basemap_icons_512/sendai03.png"
+  "thumbnail512": "basemap_icons_512/sendai03.webp"
  },
  {
   "mapID": "sendai04",
@@ -5292,7 +5292,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sendai04.png",
-  "thumbnail512": "basemap_icons_512/sendai04.png"
+  "thumbnail512": "basemap_icons_512/sendai04.webp"
  },
  {
   "mapID": "akita00",
@@ -5341,7 +5341,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/akita00.png",
-  "thumbnail512": "basemap_icons_512/akita00.png"
+  "thumbnail512": "basemap_icons_512/akita00.webp"
  },
  {
   "mapID": "akita01",
@@ -5390,7 +5390,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/akita01.png",
-  "thumbnail512": "basemap_icons_512/akita01.png"
+  "thumbnail512": "basemap_icons_512/akita01.webp"
  },
  {
   "mapID": "akita02",
@@ -5439,7 +5439,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/akita02.png",
-  "thumbnail512": "basemap_icons_512/akita02.png"
+  "thumbnail512": "basemap_icons_512/akita02.webp"
  },
  {
   "mapID": "akita03",
@@ -5488,7 +5488,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/akita03.png",
-  "thumbnail512": "basemap_icons_512/akita03.png"
+  "thumbnail512": "basemap_icons_512/akita03.webp"
  },
  {
   "mapID": "yamagata2man",
@@ -5537,7 +5537,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamagata2man.png",
-  "thumbnail512": "basemap_icons_512/yamagata2man.png"
+  "thumbnail512": "basemap_icons_512/yamagata2man.webp"
  },
  {
   "mapID": "yamagata00",
@@ -5586,7 +5586,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamagata00.png",
-  "thumbnail512": "basemap_icons_512/yamagata00.png"
+  "thumbnail512": "basemap_icons_512/yamagata00.webp"
  },
  {
   "mapID": "yamagata01",
@@ -5635,7 +5635,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamagata01.png",
-  "thumbnail512": "basemap_icons_512/yamagata01.png"
+  "thumbnail512": "basemap_icons_512/yamagata01.webp"
  },
  {
   "mapID": "yamagata02",
@@ -5684,7 +5684,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamagata02.png",
-  "thumbnail512": "basemap_icons_512/yamagata02.png"
+  "thumbnail512": "basemap_icons_512/yamagata02.webp"
  },
  {
   "mapID": "yamagata03",
@@ -5733,7 +5733,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamagata03.png",
-  "thumbnail512": "basemap_icons_512/yamagata03.png"
+  "thumbnail512": "basemap_icons_512/yamagata03.webp"
  },
  {
   "mapID": "yonezawa00",
@@ -5782,7 +5782,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yonezawa00.png",
-  "thumbnail512": "basemap_icons_512/yonezawa00.png"
+  "thumbnail512": "basemap_icons_512/yonezawa00.webp"
  },
  {
   "mapID": "yonezawa01",
@@ -5831,7 +5831,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yonezawa01.png",
-  "thumbnail512": "basemap_icons_512/yonezawa01.png"
+  "thumbnail512": "basemap_icons_512/yonezawa01.webp"
  },
  {
   "mapID": "yonezawa02",
@@ -5880,7 +5880,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yonezawa02.png",
-  "thumbnail512": "basemap_icons_512/yonezawa02.png"
+  "thumbnail512": "basemap_icons_512/yonezawa02.webp"
  },
  {
   "mapID": "yonezawa03",
@@ -5929,7 +5929,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yonezawa03.png",
-  "thumbnail512": "basemap_icons_512/yonezawa03.png"
+  "thumbnail512": "basemap_icons_512/yonezawa03.webp"
  },
  {
   "mapID": "yonezawa04",
@@ -5978,7 +5978,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yonezawa04.png",
-  "thumbnail512": "basemap_icons_512/yonezawa04.png"
+  "thumbnail512": "basemap_icons_512/yonezawa04.webp"
  },
  {
   "mapID": "syonai00",
@@ -6027,7 +6027,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/syonai00.png",
-  "thumbnail512": "basemap_icons_512/syonai00.png"
+  "thumbnail512": "basemap_icons_512/syonai00.webp"
  },
  {
   "mapID": "syonai01",
@@ -6076,7 +6076,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/syonai01.png",
-  "thumbnail512": "basemap_icons_512/syonai01.png"
+  "thumbnail512": "basemap_icons_512/syonai01.webp"
  },
  {
   "mapID": "syonai02",
@@ -6125,7 +6125,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/syonai02.png",
-  "thumbnail512": "basemap_icons_512/syonai02.png"
+  "thumbnail512": "basemap_icons_512/syonai02.webp"
  },
  {
   "mapID": "syonai03",
@@ -6174,7 +6174,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/syonai03.png",
-  "thumbnail512": "basemap_icons_512/syonai03.png"
+  "thumbnail512": "basemap_icons_512/syonai03.webp"
  },
  {
   "mapID": "syonai04",
@@ -6223,7 +6223,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/syonai04.png",
-  "thumbnail512": "basemap_icons_512/syonai04.png"
+  "thumbnail512": "basemap_icons_512/syonai04.webp"
  },
  {
   "mapID": "fukushima00",
@@ -6272,7 +6272,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukushima00.png",
-  "thumbnail512": "basemap_icons_512/fukushima00.png"
+  "thumbnail512": "basemap_icons_512/fukushima00.webp"
  },
  {
   "mapID": "fukushima01",
@@ -6321,7 +6321,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukushima01.png",
-  "thumbnail512": "basemap_icons_512/fukushima01.png"
+  "thumbnail512": "basemap_icons_512/fukushima01.webp"
  },
  {
   "mapID": "fukushima02",
@@ -6370,7 +6370,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukushima02.png",
-  "thumbnail512": "basemap_icons_512/fukushima02.png"
+  "thumbnail512": "basemap_icons_512/fukushima02.webp"
  },
  {
   "mapID": "fukushima03",
@@ -6419,7 +6419,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukushima03.png",
-  "thumbnail512": "basemap_icons_512/fukushima03.png"
+  "thumbnail512": "basemap_icons_512/fukushima03.webp"
  },
  {
   "mapID": "fukushima04",
@@ -6468,7 +6468,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukushima04.png",
-  "thumbnail512": "basemap_icons_512/fukushima04.png"
+  "thumbnail512": "basemap_icons_512/fukushima04.webp"
  },
  {
   "mapID": "aizu00",
@@ -6517,7 +6517,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aizu00.png",
-  "thumbnail512": "basemap_icons_512/aizu00.png"
+  "thumbnail512": "basemap_icons_512/aizu00.webp"
  },
  {
   "mapID": "aizu01",
@@ -6566,7 +6566,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aizu01.png",
-  "thumbnail512": "basemap_icons_512/aizu01.png"
+  "thumbnail512": "basemap_icons_512/aizu01.webp"
  },
  {
   "mapID": "aizu02",
@@ -6615,7 +6615,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aizu02.png",
-  "thumbnail512": "basemap_icons_512/aizu02.png"
+  "thumbnail512": "basemap_icons_512/aizu02.webp"
  },
  {
   "mapID": "aizu03",
@@ -6664,7 +6664,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aizu03.png",
-  "thumbnail512": "basemap_icons_512/aizu03.png"
+  "thumbnail512": "basemap_icons_512/aizu03.webp"
  },
  {
   "mapID": "aizu04",
@@ -6713,7 +6713,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/aizu04.png",
-  "thumbnail512": "basemap_icons_512/aizu04.png"
+  "thumbnail512": "basemap_icons_512/aizu04.webp"
  },
  {
   "mapID": "niigata00",
@@ -6762,7 +6762,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/niigata00.png",
-  "thumbnail512": "basemap_icons_512/niigata00.png"
+  "thumbnail512": "basemap_icons_512/niigata00.webp"
  },
  {
   "mapID": "niigata01",
@@ -6811,7 +6811,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/niigata01.png",
-  "thumbnail512": "basemap_icons_512/niigata01.png"
+  "thumbnail512": "basemap_icons_512/niigata01.webp"
  },
  {
   "mapID": "niigata02",
@@ -6860,7 +6860,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/niigata02.png",
-  "thumbnail512": "basemap_icons_512/niigata02.png"
+  "thumbnail512": "basemap_icons_512/niigata02.webp"
  },
  {
   "mapID": "niigata03",
@@ -6909,7 +6909,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/niigata03.png",
-  "thumbnail512": "basemap_icons_512/niigata03.png"
+  "thumbnail512": "basemap_icons_512/niigata03.webp"
  },
  {
   "mapID": "niigata04",
@@ -6958,7 +6958,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/niigata04.png",
-  "thumbnail512": "basemap_icons_512/niigata04.png"
+  "thumbnail512": "basemap_icons_512/niigata04.webp"
  },
  {
   "mapID": "kanazawa2man",
@@ -7007,7 +7007,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanazawa2man.png",
-  "thumbnail512": "basemap_icons_512/kanazawa2man.png"
+  "thumbnail512": "basemap_icons_512/kanazawa2man.webp"
  },
  {
   "mapID": "kanazawa00",
@@ -7056,7 +7056,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanazawa00.png",
-  "thumbnail512": "basemap_icons_512/kanazawa00.png"
+  "thumbnail512": "basemap_icons_512/kanazawa00.webp"
  },
  {
   "mapID": "kanazawa01",
@@ -7105,7 +7105,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanazawa01.png",
-  "thumbnail512": "basemap_icons_512/kanazawa01.png"
+  "thumbnail512": "basemap_icons_512/kanazawa01.webp"
  },
  {
   "mapID": "kanazawa02",
@@ -7154,7 +7154,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanazawa02.png",
-  "thumbnail512": "basemap_icons_512/kanazawa02.png"
+  "thumbnail512": "basemap_icons_512/kanazawa02.webp"
  },
  {
   "mapID": "kanazawa03",
@@ -7203,7 +7203,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kanazawa03.png",
-  "thumbnail512": "basemap_icons_512/kanazawa03.png"
+  "thumbnail512": "basemap_icons_512/kanazawa03.webp"
  },
  {
   "mapID": "fukui2man",
@@ -7252,7 +7252,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukui2man.png",
-  "thumbnail512": "basemap_icons_512/fukui2man.png"
+  "thumbnail512": "basemap_icons_512/fukui2man.webp"
  },
  {
   "mapID": "fukui00",
@@ -7301,7 +7301,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukui00.png",
-  "thumbnail512": "basemap_icons_512/fukui00.png"
+  "thumbnail512": "basemap_icons_512/fukui00.webp"
  },
  {
   "mapID": "fukui01",
@@ -7350,7 +7350,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukui01.png",
-  "thumbnail512": "basemap_icons_512/fukui01.png"
+  "thumbnail512": "basemap_icons_512/fukui01.webp"
  },
  {
   "mapID": "fukui02",
@@ -7399,7 +7399,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukui02.png",
-  "thumbnail512": "basemap_icons_512/fukui02.png"
+  "thumbnail512": "basemap_icons_512/fukui02.webp"
  },
  {
   "mapID": "fukui03",
@@ -7448,7 +7448,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukui03.png",
-  "thumbnail512": "basemap_icons_512/fukui03.png"
+  "thumbnail512": "basemap_icons_512/fukui03.webp"
  },
  {
   "mapID": "nagano00",
@@ -7497,7 +7497,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagano00.png",
-  "thumbnail512": "basemap_icons_512/nagano00.png"
+  "thumbnail512": "basemap_icons_512/nagano00.webp"
  },
  {
   "mapID": "nagano01",
@@ -7546,7 +7546,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagano01.png",
-  "thumbnail512": "basemap_icons_512/nagano01.png"
+  "thumbnail512": "basemap_icons_512/nagano01.webp"
  },
  {
   "mapID": "nagano02",
@@ -7595,7 +7595,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagano02.png",
-  "thumbnail512": "basemap_icons_512/nagano02.png"
+  "thumbnail512": "basemap_icons_512/nagano02.webp"
  },
  {
   "mapID": "nagano03",
@@ -7644,7 +7644,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagano03.png",
-  "thumbnail512": "basemap_icons_512/nagano03.png"
+  "thumbnail512": "basemap_icons_512/nagano03.webp"
  },
  {
   "mapID": "nagano04",
@@ -7693,7 +7693,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagano04.png",
-  "thumbnail512": "basemap_icons_512/nagano04.png"
+  "thumbnail512": "basemap_icons_512/nagano04.webp"
  },
  {
   "mapID": "nagano05",
@@ -7742,7 +7742,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagano05.png",
-  "thumbnail512": "basemap_icons_512/nagano05.png"
+  "thumbnail512": "basemap_icons_512/nagano05.webp"
  },
  {
   "mapID": "matsumoto00",
@@ -7791,7 +7791,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsumoto00.png",
-  "thumbnail512": "basemap_icons_512/matsumoto00.png"
+  "thumbnail512": "basemap_icons_512/matsumoto00.webp"
  },
  {
   "mapID": "matsumoto01",
@@ -7840,7 +7840,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsumoto01.png",
-  "thumbnail512": "basemap_icons_512/matsumoto01.png"
+  "thumbnail512": "basemap_icons_512/matsumoto01.webp"
  },
  {
   "mapID": "matsumoto02",
@@ -7889,7 +7889,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsumoto02.png",
-  "thumbnail512": "basemap_icons_512/matsumoto02.png"
+  "thumbnail512": "basemap_icons_512/matsumoto02.webp"
  },
  {
   "mapID": "matsumoto03",
@@ -7938,7 +7938,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsumoto03.png",
-  "thumbnail512": "basemap_icons_512/matsumoto03.png"
+  "thumbnail512": "basemap_icons_512/matsumoto03.webp"
  },
  {
   "mapID": "matsumoto04",
@@ -7987,7 +7987,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsumoto04.png",
-  "thumbnail512": "basemap_icons_512/matsumoto04.png"
+  "thumbnail512": "basemap_icons_512/matsumoto04.webp"
  },
  {
   "mapID": "ina00",
@@ -8036,7 +8036,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/ina00.png",
-  "thumbnail512": "basemap_icons_512/ina00.png"
+  "thumbnail512": "basemap_icons_512/ina00.webp"
  },
  {
   "mapID": "ina01",
@@ -8085,7 +8085,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/ina01.png",
-  "thumbnail512": "basemap_icons_512/ina01.png"
+  "thumbnail512": "basemap_icons_512/ina01.webp"
  },
  {
   "mapID": "ina02",
@@ -8134,7 +8134,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/ina02.png",
-  "thumbnail512": "basemap_icons_512/ina02.png"
+  "thumbnail512": "basemap_icons_512/ina02.webp"
  },
  {
   "mapID": "ina03",
@@ -8183,7 +8183,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/ina03.png",
-  "thumbnail512": "basemap_icons_512/ina03.png"
+  "thumbnail512": "basemap_icons_512/ina03.webp"
  },
  {
   "mapID": "ina04",
@@ -8232,7 +8232,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/ina04.png",
-  "thumbnail512": "basemap_icons_512/ina04.png"
+  "thumbnail512": "basemap_icons_512/ina04.webp"
  },
  {
   "mapID": "hamamatsu2man",
@@ -8281,7 +8281,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hamamatsu2man.png",
-  "thumbnail512": "basemap_icons_512/hamamatsu2man.png"
+  "thumbnail512": "basemap_icons_512/hamamatsu2man.webp"
  },
  {
   "mapID": "hamamatsu00",
@@ -8330,7 +8330,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hamamatsu00.png",
-  "thumbnail512": "basemap_icons_512/hamamatsu00.png"
+  "thumbnail512": "basemap_icons_512/hamamatsu00.webp"
  },
  {
   "mapID": "hamamatsu01",
@@ -8379,7 +8379,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hamamatsu01.png",
-  "thumbnail512": "basemap_icons_512/hamamatsu01.png"
+  "thumbnail512": "basemap_icons_512/hamamatsu01.webp"
  },
  {
   "mapID": "hamamatsu02",
@@ -8428,7 +8428,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hamamatsu02.png",
-  "thumbnail512": "basemap_icons_512/hamamatsu02.png"
+  "thumbnail512": "basemap_icons_512/hamamatsu02.webp"
  },
  {
   "mapID": "hamamatsu03",
@@ -8477,7 +8477,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hamamatsu03.png",
-  "thumbnail512": "basemap_icons_512/hamamatsu03.png"
+  "thumbnail512": "basemap_icons_512/hamamatsu03.webp"
  },
  {
   "mapID": "hamamatsu04",
@@ -8526,7 +8526,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hamamatsu04.png",
-  "thumbnail512": "basemap_icons_512/hamamatsu04.png"
+  "thumbnail512": "basemap_icons_512/hamamatsu04.webp"
  },
  {
   "mapID": "hamamatsu05",
@@ -8575,7 +8575,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hamamatsu05.png",
-  "thumbnail512": "basemap_icons_512/hamamatsu05.png"
+  "thumbnail512": "basemap_icons_512/hamamatsu05.webp"
  },
  {
   "mapID": "tsu2man",
@@ -8624,7 +8624,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tsu2man.png",
-  "thumbnail512": "basemap_icons_512/tsu2man.png"
+  "thumbnail512": "basemap_icons_512/tsu2man.webp"
  },
  {
   "mapID": "tsu00",
@@ -8673,7 +8673,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tsu00.png",
-  "thumbnail512": "basemap_icons_512/tsu00.png"
+  "thumbnail512": "basemap_icons_512/tsu00.webp"
  },
  {
   "mapID": "tsu01",
@@ -8722,7 +8722,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tsu01.png",
-  "thumbnail512": "basemap_icons_512/tsu01.png"
+  "thumbnail512": "basemap_icons_512/tsu01.webp"
  },
  {
   "mapID": "tsu02",
@@ -8771,7 +8771,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tsu02.png",
-  "thumbnail512": "basemap_icons_512/tsu02.png"
+  "thumbnail512": "basemap_icons_512/tsu02.webp"
  },
  {
   "mapID": "tsu03",
@@ -8820,7 +8820,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tsu03.png",
-  "thumbnail512": "basemap_icons_512/tsu03.png"
+  "thumbnail512": "basemap_icons_512/tsu03.webp"
  },
  {
   "mapID": "tsu04",
@@ -8869,7 +8869,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tsu04.png",
-  "thumbnail512": "basemap_icons_512/tsu04.png"
+  "thumbnail512": "basemap_icons_512/tsu04.webp"
  },
  {
   "mapID": "iga00",
@@ -8918,7 +8918,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iga00.png",
-  "thumbnail512": "basemap_icons_512/iga00.png"
+  "thumbnail512": "basemap_icons_512/iga00.webp"
  },
  {
   "mapID": "iga01",
@@ -8967,7 +8967,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iga01.png",
-  "thumbnail512": "basemap_icons_512/iga01.png"
+  "thumbnail512": "basemap_icons_512/iga01.webp"
  },
  {
   "mapID": "iga02",
@@ -9016,7 +9016,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iga02.png",
-  "thumbnail512": "basemap_icons_512/iga02.png"
+  "thumbnail512": "basemap_icons_512/iga02.webp"
  },
  {
   "mapID": "iga03",
@@ -9065,7 +9065,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iga03.png",
-  "thumbnail512": "basemap_icons_512/iga03.png"
+  "thumbnail512": "basemap_icons_512/iga03.webp"
  },
  {
   "mapID": "iga04",
@@ -9114,7 +9114,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/iga04.png",
-  "thumbnail512": "basemap_icons_512/iga04.png"
+  "thumbnail512": "basemap_icons_512/iga04.webp"
  },
  {
   "mapID": "omi2man",
@@ -9163,7 +9163,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omi2man.png",
-  "thumbnail512": "basemap_icons_512/omi2man.png"
+  "thumbnail512": "basemap_icons_512/omi2man.webp"
  },
  {
   "mapID": "omi00",
@@ -9212,7 +9212,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omi00.png",
-  "thumbnail512": "basemap_icons_512/omi00.png"
+  "thumbnail512": "basemap_icons_512/omi00.webp"
  },
  {
   "mapID": "omi01",
@@ -9261,7 +9261,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omi01.png",
-  "thumbnail512": "basemap_icons_512/omi01.png"
+  "thumbnail512": "basemap_icons_512/omi01.webp"
  },
  {
   "mapID": "omi02",
@@ -9310,7 +9310,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omi02.png",
-  "thumbnail512": "basemap_icons_512/omi02.png"
+  "thumbnail512": "basemap_icons_512/omi02.webp"
  },
  {
   "mapID": "omi03",
@@ -9359,7 +9359,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omi03.png",
-  "thumbnail512": "basemap_icons_512/omi03.png"
+  "thumbnail512": "basemap_icons_512/omi03.webp"
  },
  {
   "mapID": "omi04",
@@ -9408,7 +9408,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omi04.png",
-  "thumbnail512": "basemap_icons_512/omi04.png"
+  "thumbnail512": "basemap_icons_512/omi04.webp"
  },
  {
   "mapID": "himeji2man",
@@ -9457,7 +9457,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/himeji2man.png",
-  "thumbnail512": "basemap_icons_512/himeji2man.png"
+  "thumbnail512": "basemap_icons_512/himeji2man.webp"
  },
  {
   "mapID": "himeji00",
@@ -9506,7 +9506,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/himeji00.png",
-  "thumbnail512": "basemap_icons_512/himeji00.png"
+  "thumbnail512": "basemap_icons_512/himeji00.webp"
  },
  {
   "mapID": "himeji01",
@@ -9555,7 +9555,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/himeji01.png",
-  "thumbnail512": "basemap_icons_512/himeji01.png"
+  "thumbnail512": "basemap_icons_512/himeji01.webp"
  },
  {
   "mapID": "himeji02",
@@ -9604,7 +9604,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/himeji02.png",
-  "thumbnail512": "basemap_icons_512/himeji02.png"
+  "thumbnail512": "basemap_icons_512/himeji02.webp"
  },
  {
   "mapID": "himeji03",
@@ -9653,7 +9653,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/himeji03.png",
-  "thumbnail512": "basemap_icons_512/himeji03.png"
+  "thumbnail512": "basemap_icons_512/himeji03.webp"
  },
  {
   "mapID": "wakayama2man",
@@ -9702,7 +9702,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/wakayama2man.png",
-  "thumbnail512": "basemap_icons_512/wakayama2man.png"
+  "thumbnail512": "basemap_icons_512/wakayama2man.webp"
  },
  {
   "mapID": "wakayama00",
@@ -9751,7 +9751,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/wakayama00.png",
-  "thumbnail512": "basemap_icons_512/wakayama00.png"
+  "thumbnail512": "basemap_icons_512/wakayama00.webp"
  },
  {
   "mapID": "wakayama01",
@@ -9800,7 +9800,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/wakayama01.png",
-  "thumbnail512": "basemap_icons_512/wakayama01.png"
+  "thumbnail512": "basemap_icons_512/wakayama01.webp"
  },
  {
   "mapID": "wakayama02",
@@ -9849,7 +9849,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/wakayama02.png",
-  "thumbnail512": "basemap_icons_512/wakayama02.png"
+  "thumbnail512": "basemap_icons_512/wakayama02.webp"
  },
  {
   "mapID": "wakayama03",
@@ -9898,7 +9898,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/wakayama03.png",
-  "thumbnail512": "basemap_icons_512/wakayama03.png"
+  "thumbnail512": "basemap_icons_512/wakayama03.webp"
  },
  {
   "mapID": "wakayama04",
@@ -9947,7 +9947,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/wakayama04.png",
-  "thumbnail512": "basemap_icons_512/wakayama04.png"
+  "thumbnail512": "basemap_icons_512/wakayama04.webp"
  },
  {
   "mapID": "tottori2man",
@@ -9996,7 +9996,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tottori2man.png",
-  "thumbnail512": "basemap_icons_512/tottori2man.png"
+  "thumbnail512": "basemap_icons_512/tottori2man.webp"
  },
  {
   "mapID": "tottori00",
@@ -10045,7 +10045,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tottori00.png",
-  "thumbnail512": "basemap_icons_512/tottori00.png"
+  "thumbnail512": "basemap_icons_512/tottori00.webp"
  },
  {
   "mapID": "tottori01",
@@ -10094,7 +10094,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tottori01.png",
-  "thumbnail512": "basemap_icons_512/tottori01.png"
+  "thumbnail512": "basemap_icons_512/tottori01.webp"
  },
  {
   "mapID": "tottori02",
@@ -10143,7 +10143,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tottori02.png",
-  "thumbnail512": "basemap_icons_512/tottori02.png"
+  "thumbnail512": "basemap_icons_512/tottori02.webp"
  },
  {
   "mapID": "tottori03",
@@ -10192,7 +10192,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tottori03.png",
-  "thumbnail512": "basemap_icons_512/tottori03.png"
+  "thumbnail512": "basemap_icons_512/tottori03.webp"
  },
  {
   "mapID": "matsue00",
@@ -10241,7 +10241,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsue00.png",
-  "thumbnail512": "basemap_icons_512/matsue00.png"
+  "thumbnail512": "basemap_icons_512/matsue00.webp"
  },
  {
   "mapID": "matsue01",
@@ -10290,7 +10290,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsue01.png",
-  "thumbnail512": "basemap_icons_512/matsue01.png"
+  "thumbnail512": "basemap_icons_512/matsue01.webp"
  },
  {
   "mapID": "matsue02",
@@ -10339,7 +10339,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsue02.png",
-  "thumbnail512": "basemap_icons_512/matsue02.png"
+  "thumbnail512": "basemap_icons_512/matsue02.webp"
  },
  {
   "mapID": "matsue03",
@@ -10388,7 +10388,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsue03.png",
-  "thumbnail512": "basemap_icons_512/matsue03.png"
+  "thumbnail512": "basemap_icons_512/matsue03.webp"
  },
  {
   "mapID": "matsue04",
@@ -10437,7 +10437,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsue04.png",
-  "thumbnail512": "basemap_icons_512/matsue04.png"
+  "thumbnail512": "basemap_icons_512/matsue04.webp"
  },
  {
   "mapID": "okayama2man",
@@ -10486,7 +10486,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/okayama2man.png",
-  "thumbnail512": "basemap_icons_512/okayama2man.png"
+  "thumbnail512": "basemap_icons_512/okayama2man.webp"
  },
  {
   "mapID": "okayama00",
@@ -10535,7 +10535,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/okayama00.png",
-  "thumbnail512": "basemap_icons_512/okayama00.png"
+  "thumbnail512": "basemap_icons_512/okayama00.webp"
  },
  {
   "mapID": "okayama01",
@@ -10584,7 +10584,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/okayama01.png",
-  "thumbnail512": "basemap_icons_512/okayama01.png"
+  "thumbnail512": "basemap_icons_512/okayama01.webp"
  },
  {
   "mapID": "okayama02",
@@ -10633,7 +10633,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/okayama02.png",
-  "thumbnail512": "basemap_icons_512/okayama02.png"
+  "thumbnail512": "basemap_icons_512/okayama02.webp"
  },
  {
   "mapID": "okayama03",
@@ -10682,7 +10682,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/okayama03.png",
-  "thumbnail512": "basemap_icons_512/okayama03.png"
+  "thumbnail512": "basemap_icons_512/okayama03.webp"
  },
  {
   "mapID": "hiroshima2man",
@@ -10731,7 +10731,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hiroshima2man.png",
-  "thumbnail512": "basemap_icons_512/hiroshima2man.png"
+  "thumbnail512": "basemap_icons_512/hiroshima2man.webp"
  },
  {
   "mapID": "hiroshima00",
@@ -10780,7 +10780,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hiroshima00.png",
-  "thumbnail512": "basemap_icons_512/hiroshima00.png"
+  "thumbnail512": "basemap_icons_512/hiroshima00.webp"
  },
  {
   "mapID": "hiroshima01",
@@ -10829,7 +10829,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hiroshima01.png",
-  "thumbnail512": "basemap_icons_512/hiroshima01.png"
+  "thumbnail512": "basemap_icons_512/hiroshima01.webp"
  },
  {
   "mapID": "hiroshima02",
@@ -10878,7 +10878,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hiroshima02.png",
-  "thumbnail512": "basemap_icons_512/hiroshima02.png"
+  "thumbnail512": "basemap_icons_512/hiroshima02.webp"
  },
  {
   "mapID": "hiroshima03",
@@ -10927,7 +10927,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hiroshima03.png",
-  "thumbnail512": "basemap_icons_512/hiroshima03.png"
+  "thumbnail512": "basemap_icons_512/hiroshima03.webp"
  },
  {
   "mapID": "hiroshima04",
@@ -10976,7 +10976,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/hiroshima04.png",
-  "thumbnail512": "basemap_icons_512/hiroshima04.png"
+  "thumbnail512": "basemap_icons_512/hiroshima04.webp"
  },
  {
   "mapID": "shunan00",
@@ -11025,7 +11025,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/shunan00.png",
-  "thumbnail512": "basemap_icons_512/shunan00.png"
+  "thumbnail512": "basemap_icons_512/shunan00.webp"
  },
  {
   "mapID": "shunan01",
@@ -11074,7 +11074,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/shunan01.png",
-  "thumbnail512": "basemap_icons_512/shunan01.png"
+  "thumbnail512": "basemap_icons_512/shunan01.webp"
  },
  {
   "mapID": "shunan02",
@@ -11123,7 +11123,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/shunan02.png",
-  "thumbnail512": "basemap_icons_512/shunan02.png"
+  "thumbnail512": "basemap_icons_512/shunan02.webp"
  },
  {
   "mapID": "shunan03",
@@ -11172,7 +11172,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/shunan03.png",
-  "thumbnail512": "basemap_icons_512/shunan03.png"
+  "thumbnail512": "basemap_icons_512/shunan03.webp"
  },
  {
   "mapID": "shunan04",
@@ -11221,7 +11221,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/shunan04.png",
-  "thumbnail512": "basemap_icons_512/shunan04.png"
+  "thumbnail512": "basemap_icons_512/shunan04.webp"
  },
  {
   "mapID": "yamaguchi2man",
@@ -11270,7 +11270,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamaguchi2man.png",
-  "thumbnail512": "basemap_icons_512/yamaguchi2man.png"
+  "thumbnail512": "basemap_icons_512/yamaguchi2man.webp"
  },
  {
   "mapID": "yamaguchi00",
@@ -11319,7 +11319,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamaguchi00.png",
-  "thumbnail512": "basemap_icons_512/yamaguchi00.png"
+  "thumbnail512": "basemap_icons_512/yamaguchi00.webp"
  },
  {
   "mapID": "yamaguchi01",
@@ -11368,7 +11368,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamaguchi01.png",
-  "thumbnail512": "basemap_icons_512/yamaguchi01.png"
+  "thumbnail512": "basemap_icons_512/yamaguchi01.webp"
  },
  {
   "mapID": "yamaguchi02",
@@ -11417,7 +11417,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamaguchi02.png",
-  "thumbnail512": "basemap_icons_512/yamaguchi02.png"
+  "thumbnail512": "basemap_icons_512/yamaguchi02.webp"
  },
  {
   "mapID": "yamaguchi03",
@@ -11466,7 +11466,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamaguchi03.png",
-  "thumbnail512": "basemap_icons_512/yamaguchi03.png"
+  "thumbnail512": "basemap_icons_512/yamaguchi03.webp"
  },
  {
   "mapID": "yamaguchi04",
@@ -11515,7 +11515,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yamaguchi04.png",
-  "thumbnail512": "basemap_icons_512/yamaguchi04.png"
+  "thumbnail512": "basemap_icons_512/yamaguchi04.webp"
  },
  {
   "mapID": "tokushima2man",
@@ -11564,7 +11564,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokushima2man.png",
-  "thumbnail512": "basemap_icons_512/tokushima2man.png"
+  "thumbnail512": "basemap_icons_512/tokushima2man.webp"
  },
  {
   "mapID": "tokushima00",
@@ -11613,7 +11613,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokushima00.png",
-  "thumbnail512": "basemap_icons_512/tokushima00.png"
+  "thumbnail512": "basemap_icons_512/tokushima00.webp"
  },
  {
   "mapID": "tokushima01",
@@ -11662,7 +11662,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokushima01.png",
-  "thumbnail512": "basemap_icons_512/tokushima01.png"
+  "thumbnail512": "basemap_icons_512/tokushima01.webp"
  },
  {
   "mapID": "tokushima02",
@@ -11711,7 +11711,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokushima02.png",
-  "thumbnail512": "basemap_icons_512/tokushima02.png"
+  "thumbnail512": "basemap_icons_512/tokushima02.webp"
  },
  {
   "mapID": "tokushima03",
@@ -11760,7 +11760,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokushima03.png",
-  "thumbnail512": "basemap_icons_512/tokushima03.png"
+  "thumbnail512": "basemap_icons_512/tokushima03.webp"
  },
  {
   "mapID": "tokushima04",
@@ -11809,7 +11809,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/tokushima04.png",
-  "thumbnail512": "basemap_icons_512/tokushima04.png"
+  "thumbnail512": "basemap_icons_512/tokushima04.webp"
  },
  {
   "mapID": "takamatsu2man",
@@ -11858,7 +11858,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/takamatsu2man.png",
-  "thumbnail512": "basemap_icons_512/takamatsu2man.png"
+  "thumbnail512": "basemap_icons_512/takamatsu2man.webp"
  },
  {
   "mapID": "takamatsu00",
@@ -11907,7 +11907,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/takamatsu00.png",
-  "thumbnail512": "basemap_icons_512/takamatsu00.png"
+  "thumbnail512": "basemap_icons_512/takamatsu00.webp"
  },
  {
   "mapID": "takamatsu01",
@@ -11956,7 +11956,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/takamatsu01.png",
-  "thumbnail512": "basemap_icons_512/takamatsu01.png"
+  "thumbnail512": "basemap_icons_512/takamatsu01.webp"
  },
  {
   "mapID": "takamatsu02",
@@ -12005,7 +12005,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/takamatsu02.png",
-  "thumbnail512": "basemap_icons_512/takamatsu02.png"
+  "thumbnail512": "basemap_icons_512/takamatsu02.webp"
  },
  {
   "mapID": "takamatsu03",
@@ -12054,7 +12054,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/takamatsu03.png",
-  "thumbnail512": "basemap_icons_512/takamatsu03.png"
+  "thumbnail512": "basemap_icons_512/takamatsu03.webp"
  },
  {
   "mapID": "matsuyama2man",
@@ -12103,7 +12103,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsuyama2man.png",
-  "thumbnail512": "basemap_icons_512/matsuyama2man.png"
+  "thumbnail512": "basemap_icons_512/matsuyama2man.webp"
  },
  {
   "mapID": "matsuyama00",
@@ -12152,7 +12152,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsuyama00.png",
-  "thumbnail512": "basemap_icons_512/matsuyama00.png"
+  "thumbnail512": "basemap_icons_512/matsuyama00.webp"
  },
  {
   "mapID": "matsuyama01",
@@ -12201,7 +12201,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsuyama01.png",
-  "thumbnail512": "basemap_icons_512/matsuyama01.png"
+  "thumbnail512": "basemap_icons_512/matsuyama01.webp"
  },
  {
   "mapID": "matsuyama02",
@@ -12250,7 +12250,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsuyama02.png",
-  "thumbnail512": "basemap_icons_512/matsuyama02.png"
+  "thumbnail512": "basemap_icons_512/matsuyama02.webp"
  },
  {
   "mapID": "matsuyama03",
@@ -12299,7 +12299,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/matsuyama03.png",
-  "thumbnail512": "basemap_icons_512/matsuyama03.png"
+  "thumbnail512": "basemap_icons_512/matsuyama03.webp"
  },
  {
   "mapID": "toyo00",
@@ -12348,7 +12348,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/toyo00.png",
-  "thumbnail512": "basemap_icons_512/toyo00.png"
+  "thumbnail512": "basemap_icons_512/toyo00.webp"
  },
  {
   "mapID": "toyo01",
@@ -12397,7 +12397,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/toyo01.png",
-  "thumbnail512": "basemap_icons_512/toyo01.png"
+  "thumbnail512": "basemap_icons_512/toyo01.webp"
  },
  {
   "mapID": "toyo02",
@@ -12446,7 +12446,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/toyo02.png",
-  "thumbnail512": "basemap_icons_512/toyo02.png"
+  "thumbnail512": "basemap_icons_512/toyo02.webp"
  },
  {
   "mapID": "toyo03",
@@ -12495,7 +12495,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/toyo03.png",
-  "thumbnail512": "basemap_icons_512/toyo03.png"
+  "thumbnail512": "basemap_icons_512/toyo03.webp"
  },
  {
   "mapID": "toyo04",
@@ -12544,7 +12544,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/toyo04.png",
-  "thumbnail512": "basemap_icons_512/toyo04.png"
+  "thumbnail512": "basemap_icons_512/toyo04.webp"
  },
  {
   "mapID": "kochi2man",
@@ -12593,7 +12593,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kochi2man.png",
-  "thumbnail512": "basemap_icons_512/kochi2man.png"
+  "thumbnail512": "basemap_icons_512/kochi2man.webp"
  },
  {
   "mapID": "kochi00",
@@ -12642,7 +12642,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kochi00.png",
-  "thumbnail512": "basemap_icons_512/kochi00.png"
+  "thumbnail512": "basemap_icons_512/kochi00.webp"
  },
  {
   "mapID": "kochi01",
@@ -12691,7 +12691,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kochi01.png",
-  "thumbnail512": "basemap_icons_512/kochi01.png"
+  "thumbnail512": "basemap_icons_512/kochi01.webp"
  },
  {
   "mapID": "kochi02",
@@ -12740,7 +12740,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kochi02.png",
-  "thumbnail512": "basemap_icons_512/kochi02.png"
+  "thumbnail512": "basemap_icons_512/kochi02.webp"
  },
  {
   "mapID": "kochi03",
@@ -12789,7 +12789,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kochi03.png",
-  "thumbnail512": "basemap_icons_512/kochi03.png"
+  "thumbnail512": "basemap_icons_512/kochi03.webp"
  },
  {
   "mapID": "fukuoka00",
@@ -12838,7 +12838,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukuoka00.png",
-  "thumbnail512": "basemap_icons_512/fukuoka00.png"
+  "thumbnail512": "basemap_icons_512/fukuoka00.webp"
  },
  {
   "mapID": "fukuoka01",
@@ -12887,7 +12887,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukuoka01.png",
-  "thumbnail512": "basemap_icons_512/fukuoka01.png"
+  "thumbnail512": "basemap_icons_512/fukuoka01.webp"
  },
  {
   "mapID": "fukuoka02",
@@ -12936,7 +12936,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukuoka02.png",
-  "thumbnail512": "basemap_icons_512/fukuoka02.png"
+  "thumbnail512": "basemap_icons_512/fukuoka02.webp"
  },
  {
   "mapID": "fukuoka03",
@@ -12985,7 +12985,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukuoka03.png",
-  "thumbnail512": "basemap_icons_512/fukuoka03.png"
+  "thumbnail512": "basemap_icons_512/fukuoka03.webp"
  },
  {
   "mapID": "fukuoka04",
@@ -13034,7 +13034,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukuoka04.png",
-  "thumbnail512": "basemap_icons_512/fukuoka04.png"
+  "thumbnail512": "basemap_icons_512/fukuoka04.webp"
  },
  {
   "mapID": "fukuoka05",
@@ -13083,7 +13083,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/fukuoka05.png",
-  "thumbnail512": "basemap_icons_512/fukuoka05.png"
+  "thumbnail512": "basemap_icons_512/fukuoka05.webp"
  },
  {
   "mapID": "saga2man",
@@ -13132,7 +13132,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/saga2man.png",
-  "thumbnail512": "basemap_icons_512/saga2man.png"
+  "thumbnail512": "basemap_icons_512/saga2man.webp"
  },
  {
   "mapID": "saga00",
@@ -13181,7 +13181,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/saga00.png",
-  "thumbnail512": "basemap_icons_512/saga00.png"
+  "thumbnail512": "basemap_icons_512/saga00.webp"
  },
  {
   "mapID": "saga01",
@@ -13230,7 +13230,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/saga01.png",
-  "thumbnail512": "basemap_icons_512/saga01.png"
+  "thumbnail512": "basemap_icons_512/saga01.webp"
  },
  {
   "mapID": "saga02",
@@ -13279,7 +13279,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/saga02.png",
-  "thumbnail512": "basemap_icons_512/saga02.png"
+  "thumbnail512": "basemap_icons_512/saga02.webp"
  },
  {
   "mapID": "saga03",
@@ -13328,7 +13328,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/saga03.png",
-  "thumbnail512": "basemap_icons_512/saga03.png"
+  "thumbnail512": "basemap_icons_512/saga03.webp"
  },
  {
   "mapID": "saga04",
@@ -13377,7 +13377,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/saga04.png",
-  "thumbnail512": "basemap_icons_512/saga04.png"
+  "thumbnail512": "basemap_icons_512/saga04.webp"
  },
  {
   "mapID": "nagasaki2man",
@@ -13426,7 +13426,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagasaki2man.png",
-  "thumbnail512": "basemap_icons_512/nagasaki2man.png"
+  "thumbnail512": "basemap_icons_512/nagasaki2man.webp"
  },
  {
   "mapID": "nagasaki00",
@@ -13475,7 +13475,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagasaki00.png",
-  "thumbnail512": "basemap_icons_512/nagasaki00.png"
+  "thumbnail512": "basemap_icons_512/nagasaki00.webp"
  },
  {
   "mapID": "nagasaki01",
@@ -13524,7 +13524,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagasaki01.png",
-  "thumbnail512": "basemap_icons_512/nagasaki01.png"
+  "thumbnail512": "basemap_icons_512/nagasaki01.webp"
  },
  {
   "mapID": "nagasaki02",
@@ -13573,7 +13573,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagasaki02.png",
-  "thumbnail512": "basemap_icons_512/nagasaki02.png"
+  "thumbnail512": "basemap_icons_512/nagasaki02.webp"
  },
  {
   "mapID": "nagasaki03",
@@ -13622,7 +13622,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagasaki03.png",
-  "thumbnail512": "basemap_icons_512/nagasaki03.png"
+  "thumbnail512": "basemap_icons_512/nagasaki03.webp"
  },
  {
   "mapID": "nagasaki04",
@@ -13671,7 +13671,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nagasaki04.png",
-  "thumbnail512": "basemap_icons_512/nagasaki04.png"
+  "thumbnail512": "basemap_icons_512/nagasaki04.webp"
  },
  {
   "mapID": "sasebo2man",
@@ -13720,7 +13720,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sasebo2man.png",
-  "thumbnail512": "basemap_icons_512/sasebo2man.png"
+  "thumbnail512": "basemap_icons_512/sasebo2man.webp"
  },
  {
   "mapID": "sasebo00",
@@ -13769,7 +13769,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sasebo00.png",
-  "thumbnail512": "basemap_icons_512/sasebo00.png"
+  "thumbnail512": "basemap_icons_512/sasebo00.webp"
  },
  {
   "mapID": "sasebo01",
@@ -13818,7 +13818,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sasebo01.png",
-  "thumbnail512": "basemap_icons_512/sasebo01.png"
+  "thumbnail512": "basemap_icons_512/sasebo01.webp"
  },
  {
   "mapID": "sasebo02",
@@ -13867,7 +13867,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sasebo02.png",
-  "thumbnail512": "basemap_icons_512/sasebo02.png"
+  "thumbnail512": "basemap_icons_512/sasebo02.webp"
  },
  {
   "mapID": "sasebo03",
@@ -13916,7 +13916,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/sasebo03.png",
-  "thumbnail512": "basemap_icons_512/sasebo03.png"
+  "thumbnail512": "basemap_icons_512/sasebo03.webp"
  },
  {
   "mapID": "omuta00",
@@ -13965,7 +13965,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omuta00.png",
-  "thumbnail512": "basemap_icons_512/omuta00.png"
+  "thumbnail512": "basemap_icons_512/omuta00.webp"
  },
  {
   "mapID": "omuta01",
@@ -14014,7 +14014,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omuta01.png",
-  "thumbnail512": "basemap_icons_512/omuta01.png"
+  "thumbnail512": "basemap_icons_512/omuta01.webp"
  },
  {
   "mapID": "omuta02",
@@ -14063,7 +14063,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omuta02.png",
-  "thumbnail512": "basemap_icons_512/omuta02.png"
+  "thumbnail512": "basemap_icons_512/omuta02.webp"
  },
  {
   "mapID": "omuta03",
@@ -14112,7 +14112,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omuta03.png",
-  "thumbnail512": "basemap_icons_512/omuta03.png"
+  "thumbnail512": "basemap_icons_512/omuta03.webp"
  },
  {
   "mapID": "omuta04",
@@ -14161,7 +14161,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omuta04.png",
-  "thumbnail512": "basemap_icons_512/omuta04.png"
+  "thumbnail512": "basemap_icons_512/omuta04.webp"
  },
  {
   "mapID": "omuta05",
@@ -14210,7 +14210,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/omuta05.png",
-  "thumbnail512": "basemap_icons_512/omuta05.png"
+  "thumbnail512": "basemap_icons_512/omuta05.webp"
  },
  {
   "mapID": "kumamoto2man",
@@ -14259,7 +14259,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kumamoto2man.png",
-  "thumbnail512": "basemap_icons_512/kumamoto2man.png"
+  "thumbnail512": "basemap_icons_512/kumamoto2man.webp"
  },
  {
   "mapID": "kumamoto00",
@@ -14308,7 +14308,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kumamoto00.png",
-  "thumbnail512": "basemap_icons_512/kumamoto00.png"
+  "thumbnail512": "basemap_icons_512/kumamoto00.webp"
  },
  {
   "mapID": "kumamoto01",
@@ -14357,7 +14357,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kumamoto01.png",
-  "thumbnail512": "basemap_icons_512/kumamoto01.png"
+  "thumbnail512": "basemap_icons_512/kumamoto01.webp"
  },
  {
   "mapID": "kumamoto02",
@@ -14406,7 +14406,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kumamoto02.png",
-  "thumbnail512": "basemap_icons_512/kumamoto02.png"
+  "thumbnail512": "basemap_icons_512/kumamoto02.webp"
  },
  {
   "mapID": "kumamoto03",
@@ -14455,7 +14455,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kumamoto03.png",
-  "thumbnail512": "basemap_icons_512/kumamoto03.png"
+  "thumbnail512": "basemap_icons_512/kumamoto03.webp"
  },
  {
   "mapID": "yatsushiro00",
@@ -14504,7 +14504,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yatsushiro00.png",
-  "thumbnail512": "basemap_icons_512/yatsushiro00.png"
+  "thumbnail512": "basemap_icons_512/yatsushiro00.webp"
  },
  {
   "mapID": "yatsushiro01",
@@ -14553,7 +14553,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yatsushiro01.png",
-  "thumbnail512": "basemap_icons_512/yatsushiro01.png"
+  "thumbnail512": "basemap_icons_512/yatsushiro01.webp"
  },
  {
   "mapID": "yatsushiro02",
@@ -14602,7 +14602,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yatsushiro02.png",
-  "thumbnail512": "basemap_icons_512/yatsushiro02.png"
+  "thumbnail512": "basemap_icons_512/yatsushiro02.webp"
  },
  {
   "mapID": "yatsushiro03",
@@ -14651,7 +14651,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yatsushiro03.png",
-  "thumbnail512": "basemap_icons_512/yatsushiro03.png"
+  "thumbnail512": "basemap_icons_512/yatsushiro03.webp"
  },
  {
   "mapID": "yatsushiro04",
@@ -14700,7 +14700,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/yatsushiro04.png",
-  "thumbnail512": "basemap_icons_512/yatsushiro04.png"
+  "thumbnail512": "basemap_icons_512/yatsushiro04.webp"
  },
  {
   "mapID": "oita00",
@@ -14749,7 +14749,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/oita00.png",
-  "thumbnail512": "basemap_icons_512/oita00.png"
+  "thumbnail512": "basemap_icons_512/oita00.webp"
  },
  {
   "mapID": "oita01",
@@ -14798,7 +14798,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/oita01.png",
-  "thumbnail512": "basemap_icons_512/oita01.png"
+  "thumbnail512": "basemap_icons_512/oita01.webp"
  },
  {
   "mapID": "oita02",
@@ -14847,7 +14847,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/oita02.png",
-  "thumbnail512": "basemap_icons_512/oita02.png"
+  "thumbnail512": "basemap_icons_512/oita02.webp"
  },
  {
   "mapID": "oita03",
@@ -14896,7 +14896,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/oita03.png",
-  "thumbnail512": "basemap_icons_512/oita03.png"
+  "thumbnail512": "basemap_icons_512/oita03.webp"
  },
  {
   "mapID": "nobeoka00",
@@ -14945,7 +14945,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nobeoka00.png",
-  "thumbnail512": "basemap_icons_512/nobeoka00.png"
+  "thumbnail512": "basemap_icons_512/nobeoka00.webp"
  },
  {
   "mapID": "nobeoka01",
@@ -14994,7 +14994,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nobeoka01.png",
-  "thumbnail512": "basemap_icons_512/nobeoka01.png"
+  "thumbnail512": "basemap_icons_512/nobeoka01.webp"
  },
  {
   "mapID": "nobeoka02",
@@ -15043,7 +15043,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nobeoka02.png",
-  "thumbnail512": "basemap_icons_512/nobeoka02.png"
+  "thumbnail512": "basemap_icons_512/nobeoka02.webp"
  },
  {
   "mapID": "nobeoka03",
@@ -15092,7 +15092,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nobeoka03.png",
-  "thumbnail512": "basemap_icons_512/nobeoka03.png"
+  "thumbnail512": "basemap_icons_512/nobeoka03.webp"
  },
  {
   "mapID": "nobeoka04",
@@ -15141,7 +15141,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/nobeoka04.png",
-  "thumbnail512": "basemap_icons_512/nobeoka04.png"
+  "thumbnail512": "basemap_icons_512/nobeoka04.webp"
  },
  {
   "mapID": "miyazaki00",
@@ -15190,7 +15190,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyazaki00.png",
-  "thumbnail512": "basemap_icons_512/miyazaki00.png"
+  "thumbnail512": "basemap_icons_512/miyazaki00.webp"
  },
  {
   "mapID": "miyazaki01",
@@ -15239,7 +15239,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyazaki01.png",
-  "thumbnail512": "basemap_icons_512/miyazaki01.png"
+  "thumbnail512": "basemap_icons_512/miyazaki01.webp"
  },
  {
   "mapID": "miyazaki02",
@@ -15288,7 +15288,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyazaki02.png",
-  "thumbnail512": "basemap_icons_512/miyazaki02.png"
+  "thumbnail512": "basemap_icons_512/miyazaki02.webp"
  },
  {
   "mapID": "miyazaki03",
@@ -15337,7 +15337,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyazaki03.png",
-  "thumbnail512": "basemap_icons_512/miyazaki03.png"
+  "thumbnail512": "basemap_icons_512/miyazaki03.webp"
  },
  {
   "mapID": "miyazaki04",
@@ -15386,7 +15386,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyazaki04.png",
-  "thumbnail512": "basemap_icons_512/miyazaki04.png"
+  "thumbnail512": "basemap_icons_512/miyazaki04.webp"
  },
  {
   "mapID": "miyakonojyou00",
@@ -15435,7 +15435,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyakonojyou00.png",
-  "thumbnail512": "basemap_icons_512/miyakonojyou00.png"
+  "thumbnail512": "basemap_icons_512/miyakonojyou00.webp"
  },
  {
   "mapID": "miyakonojyou01",
@@ -15484,7 +15484,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyakonojyou01.png",
-  "thumbnail512": "basemap_icons_512/miyakonojyou01.png"
+  "thumbnail512": "basemap_icons_512/miyakonojyou01.webp"
  },
  {
   "mapID": "miyakonojyou02",
@@ -15533,7 +15533,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyakonojyou02.png",
-  "thumbnail512": "basemap_icons_512/miyakonojyou02.png"
+  "thumbnail512": "basemap_icons_512/miyakonojyou02.webp"
  },
  {
   "mapID": "miyakonojyou03",
@@ -15582,7 +15582,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyakonojyou03.png",
-  "thumbnail512": "basemap_icons_512/miyakonojyou03.png"
+  "thumbnail512": "basemap_icons_512/miyakonojyou03.webp"
  },
  {
   "mapID": "miyakonojyou04",
@@ -15631,7 +15631,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/miyakonojyou04.png",
-  "thumbnail512": "basemap_icons_512/miyakonojyou04.png"
+  "thumbnail512": "basemap_icons_512/miyakonojyou04.webp"
  },
  {
   "mapID": "kagoshima5man",
@@ -15680,7 +15680,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kagoshima5man.png",
-  "thumbnail512": "basemap_icons_512/kagoshima5man.png"
+  "thumbnail512": "basemap_icons_512/kagoshima5man.webp"
  },
  {
   "mapID": "kagoshima2man",
@@ -15729,7 +15729,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kagoshima2man.png",
-  "thumbnail512": "basemap_icons_512/kagoshima2man.png"
+  "thumbnail512": "basemap_icons_512/kagoshima2man.webp"
  },
  {
   "mapID": "kagoshima00",
@@ -15778,7 +15778,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kagoshima00.png",
-  "thumbnail512": "basemap_icons_512/kagoshima00.png"
+  "thumbnail512": "basemap_icons_512/kagoshima00.webp"
  },
  {
   "mapID": "kagoshima01",
@@ -15827,7 +15827,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kagoshima01.png",
-  "thumbnail512": "basemap_icons_512/kagoshima01.png"
+  "thumbnail512": "basemap_icons_512/kagoshima01.webp"
  },
  {
   "mapID": "kagoshima02",
@@ -15876,7 +15876,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kagoshima02.png",
-  "thumbnail512": "basemap_icons_512/kagoshima02.png"
+  "thumbnail512": "basemap_icons_512/kagoshima02.webp"
  },
  {
   "mapID": "kagoshima03",
@@ -15925,7 +15925,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/kagoshima03.png",
-  "thumbnail512": "basemap_icons_512/kagoshima03.png"
+  "thumbnail512": "basemap_icons_512/kagoshima03.webp"
  },
  {
   "mapID": "okinawas00",
@@ -15974,7 +15974,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/okinawas00.png",
-  "thumbnail512": "basemap_icons_512/okinawas00.png"
+  "thumbnail512": "basemap_icons_512/okinawas00.webp"
  },
  {
   "mapID": "okinawas01",
@@ -16023,7 +16023,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/okinawas01.png",
-  "thumbnail512": "basemap_icons_512/okinawas01.png"
+  "thumbnail512": "basemap_icons_512/okinawas01.webp"
  },
  {
   "mapID": "okinawas02",
@@ -16072,7 +16072,7 @@
    ]
   ],
   "thumbnail": "basemap_icons/okinawas02.png",
-  "thumbnail512": "basemap_icons_512/okinawas02.png"
+  "thumbnail512": "basemap_icons_512/okinawas02.webp"
  },
  {
   "mapID": "okinawas03",
@@ -16121,6 +16121,6 @@
    ]
   ],
   "thumbnail": "basemap_icons/okinawas03.png",
-  "thumbnail512": "basemap_icons_512/okinawas03.png"
+  "thumbnail512": "basemap_icons_512/okinawas03.webp"
  }
 ]

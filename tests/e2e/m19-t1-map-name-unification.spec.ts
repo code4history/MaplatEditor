@@ -403,7 +403,7 @@ test.describe('M19-T1: 地図の名称属性統一と既存データ移行', () 
       const bytes = Buffer.from(PNG_B64, 'base64');
       await mkdir(path.join(saveFolder, 'tmbs'), { recursive: true });
       await writeFile(path.join(saveFolder, 'tmbs', `${mapUid}.jpg`), bytes);
-      await writeFile(path.join(saveFolder, 'tmbs', `${mapUid}_512.jpg`), bytes);
+      await writeFile(path.join(saveFolder, 'tmbs', `${mapUid}_512.webp`), bytes);
       await mkdir(path.join(saveFolder, 'tiles', mapUid, '0', '0'), { recursive: true });
       await writeFile(path.join(saveFolder, 'tiles', mapUid, '0', '0', '0.jpg'), bytes);
 

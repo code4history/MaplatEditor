@@ -38,7 +38,7 @@ import {
 import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags } from './providerGlCdn';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
-import { thumb512PathFor } from '../../src/utils/thumbnailPaths';
+import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
@@ -438,10 +438,15 @@ class AppExportService {
         if (fs.existsSync(thumb)) {
           await fs.copy(thumb, path.join(outDir, 'tmbs', `${slug}.jpg`));
         }
-        // M12-T15 (G): 512px サムネイルも package に同梱する（tmbs/{uid}_512.jpg → tmbs/{slug}_512.jpg）
-        const thumb512 = path.join(this.saveFolder, 'tmbs', `${mapDoc.uid}_512.jpg`);
-        if (fs.existsSync(thumb512)) {
-          await fs.copy(thumb512, path.join(outDir, 'tmbs', `${slug}_512.jpg`));
+        // M12-T15 (G): 512px サムネイルも package に同梱する（読み込みは uid キー、出力は slug 名）。
+        // m19-t5: 両辺とも派生規約の単一モジュールから導く（stem は変わらず拡張子だけが従う。ADR-0007 整合）
+        const src512 = thumb512PathFor(thumb52PathFor(mapDoc.uid, 'jpg'));
+        const out512 = thumb512PathFor(thumb52PathFor(slug, 'jpg'));
+        if (src512 && out512) {
+          const thumb512 = path.join(this.saveFolder, src512);
+          if (fs.existsSync(thumb512)) {
+            await fs.copy(thumb512, path.join(outDir, out512));
+          }
         }
       }
 

@@ -9,6 +9,8 @@ import { build } from 'vite';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+// m19-t5: 512px は webp。寸法確認は符号化規則を持つ codec 経由で行う
+const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'm12-t15-m6m7-'));
@@ -61,6 +63,8 @@ try {
       import nodePath from 'node:path';
       import assert from 'node:assert/strict';
       import { Jimp } from 'jimp';
+      // m19-t5: 512px は webp。Jimp では decode できないため codec の readImageMeta を使う
+      import { readImageMeta } from ${JSON.stringify(codecFile)};
 
       const dataDir = ${JSON.stringify(dataDir)};
       const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
@@ -93,8 +97,8 @@ try {
       // タイル実寸からコンテンツ寸法（673x991）を導出し、348x512 を生成するはず
       const svc = SqliteDataService;
       await svc.generateThumbnail512FromTiles(uid, dataDir, tileFolder, thumbFolder);
-      const thumb512 = nodePath.join(thumbFolder, uid + '_512.jpg');
-      const img = await Jimp.read(thumb512);
+      const thumb512 = nodePath.join(thumbFolder, uid + '_512.webp');
+      const img = await readImageMeta(thumb512);
       assert.equal(img.width, 348, 'M6: 348px 幅（673*512/991）: ' + img.width);
       assert.equal(img.height, 512, 'M6: 512px 高（長辺）: ' + img.height);
       console.log('ok: M6 端タイル付き 3x4 グリッド + data_json なしで 348x512 を正しく生成');
@@ -139,7 +143,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@seald-io/nedb'],
+        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@jsquash/webp', '@seald-io/nedb'],
         output: {
           entryFileNames: 'm12-t15-m6m7-smoke.mjs',
           format: 'es',

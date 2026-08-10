@@ -3,6 +3,14 @@
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+// m19-t5: 512px は webp で書く。符号化規則は scripts 共通の実装へ委譲する（値の二重管理をしない）
+import { transcodeImage as encodeIcon512 } from "./lib/webpAssets.mjs";
+
+// m19-t5: 512px アイコンは webp で同梱する（配布物 116.05 MiB -> 37.98 MiB / -67.3%）。
+// 52px（basemap_icons/）は据え置き（凍結契約 §4.3.2-4 の拡張子非対称）。
+// カタログ（リポジトリ外・未追跡）から再生成するときに webp になることを保証するのが本ファイルの責務であり、
+// 変換結果そのものは公開資産としてコミットされている。
+const THUMB_512_ASSET_EXT = "webp";
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const defaultCatalogPath = path.resolve(projectRoot, "../Playground/KTGIS/ktgis-maplat-catalog.json");
@@ -211,7 +219,7 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
     applyProviderFields(entry, PROVIDER_ATTRS[mapID] || VIEWER_BUILTIN_LICENSES[mapID]);
     if (row.bboxWest != null) entry.coverageLngLats = bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]);
     if (row.icon52NoYear) entry.thumbnail = `basemap_icons/${mapID}.png`;
-    if (row.icon512NoYear) entry.thumbnail512 = `basemap_icons_512/${mapID}.png`;
+    if (row.icon512NoYear) entry.thumbnail512 = `basemap_icons_512/${mapID}.${THUMB_512_ASSET_EXT}`;
     output.push(entry);
   }
   for (const row of catalog.rows) {
@@ -236,7 +244,7 @@ export function buildBuiltinBaseMaps(catalog, legacyList) {
       url: row.tileUrl, minZoom: row.minZoom, maxZoom: row.maxZoom,
       coverageLngLats: bboxToEnvelope([row.bboxWest, row.bboxSouth, row.bboxEast, row.bboxNorth]),
       thumbnail: `basemap_icons/${mapID}.png`,
-      ...(row.icon512NoYear ? { thumbnail512: `basemap_icons_512/${mapID}.png` } : {}),
+      ...(row.icon512NoYear ? { thumbnail512: `basemap_icons_512/${mapID}.${THUMB_512_ASSET_EXT}` } : {}),
     });
   }
   if (new Set(output.map((entry) => entry.mapID)).size !== output.length) throw new Error("generated Base Map mapID must be unique");
@@ -259,9 +267,13 @@ async function syncKnownIconFiles(catalog, catalogDir) {
     if (VIEWER_BUILTIN_IDS.has(mapID)) {
       await copyFile(path.join(catalogDir, row.icon52NoYear), path.join(assetImgDir, `${mapID}.png`));
     }
-    // R1/R2: 512px アイコンの取込（icon512NoYear があれば basemap_icons_512 へコピー）
+    // R1/R2: 512px アイコンの取込（icon512NoYear があれば basemap_icons_512 へ）。
+    // m19-t5: 単純コピーではなく webp へ符号化して書く（配布物削減。品質は thumbnail512Codec と同じ q85）。
     if (row.icon512NoYear) {
-      await copyFile(path.join(catalogDir, row.icon512NoYear), path.join(icon512OutputDir, `${mapID}.png`));
+      await encodeIcon512(
+        path.join(catalogDir, row.icon512NoYear),
+        path.join(icon512OutputDir, `${mapID}.${THUMB_512_ASSET_EXT}`),
+      );
     }
   }
 }

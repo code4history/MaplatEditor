@@ -475,6 +475,8 @@
     "migration_report_warnings": "有 {{count}} 条警告。详情请查看数据文件夹中的 migration-report-v2.json。",
     "migrating_thumbnails_512": "正在生成512px缩略图",
     "migrating_thumbnails_512_done": "512px缩略图生成完成",
+    "migrating_thumbnails_512_webp": "正在将512px缩略图转换为WebP格式",
+    "migrating_thumbnails_512_webp_done": "512px缩略图转换为WebP格式完成",
     "migrating_originals": "正在将原始文件迁移为UUID文件名",
     "migrating_originals_done": "原始文件迁移完成"
   },

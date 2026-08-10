@@ -8,6 +8,9 @@ import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
 // m19-t2: 512px パスの派生規約は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）。
 // electron/ から src/utils/ を import する前例は多数実在する（mapDownloadZip.ts / AppPreviewService.ts ほか）。
 import { isBundledThumbnailPath, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
+// m19-t5: 符号化は宛先の拡張子だけで決まる唯一の実装へ委譲する（タスク設計 v1.0 §4.2 規則 C）。
+// 52px 経路も同じ関数を通るが、拡張子が変わらないため挙動は不変である。
+import { writeImageByExt } from '../utils/thumbnail512Codec';
 
 const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
 
@@ -62,7 +65,7 @@ class AppAssetService {
     await fs.ensureDir(path.dirname(dest));
     const resized = image.clone();
     resizeToLongSide(resized, px);
-    await resized.write(dest as `${string}.${string}`);
+    await writeImageByExt(resized, dest);
     return { path: relPath, fileUrl: this.toFileUrl(dest) };
   }
 

@@ -19,7 +19,9 @@ import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
 import { unifyMapNameFields, adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
-import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
+import { THUMB_512_EXT, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
+// m19-t5: 512px の符号化・復号は宛先/入力の拡張子だけで決まる唯一の実装へ委譲する
+import { readImageMeta, transcodeImage, writeImageByExt } from '../utils/thumbnail512Codec';
 import {
   createSlugReservationService,
   slugCheckResultIsAvailable,
@@ -168,6 +170,11 @@ const BASE_MAP_LANGUAGE_MIGRATION_ID = '2026-07-14-m11-t4-basemap-language';
 // v1（'2026-07-20-thumbnail-512-mining'）は crop 前提が実データで成立しない場合に壊れた 512px を
 // 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）
 const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
+// m19-t5: 既存ユーザデータの 512px サムネイルを webp へ移す一度きりの migration。
+// 0.7.0（公開済み neDB 版）に 512px は存在しないが、M12-T15 R5 でユーザーが任意画像に置換した
+// 512px はタイルから再生成できない。∴「捨てて再マイニング」は採らず、その場で transcode する
+// （sp-0006: 正規化は書き込み側へ。読み込み側に「webp が無ければ jpg」の分岐は作らない）。
+const THUMBNAIL_512_WEBP_ID = '2026-08-10-thumbnail-512-webp-v1';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
@@ -915,6 +922,9 @@ class SqliteDataService {
     this.applyProvisionalVisibilityKeyMigration(db);
     this.sweepStaleProvisionalVisibility(db);
     await this.migrateBaseMapIconPaths(db);
+    // m19-t5: 既存 512px（jpg/png）を webp へ移す一度きりの migration。
+    // **マイニングより前**に置く（マイニングが webp で書いた直後に旧形式を探しに行かないため）。
+    await this.migrateThumbnail512ToWebpIfNeeded(db);
     // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
     await this.runThumbnail512MiningIfNeeded(db);
 
@@ -1216,8 +1226,87 @@ class SqliteDataService {
     });
   }
 
+  // m19-t5 (§8.2): 既存ユーザデータの 512px サムネイルを正規形（THUMB_512_EXT）へ移す一度きりの migration。
+  //
+  // 対象は saveFolder/tmbs/ 直下の「512px の接尾辞を持つが正規形以外の拡張子」のファイル全数。
+  // 1 件ずつ transcode し、**書き込みが成功してから**元を削除する（失敗時は元が残る）。
+  // 個別の失敗は warnings へ落として次へ進み、1 件でも失敗したらマーカーを書かない
+  // （次回起動で再試行する。BASE_MAP_ICON_MIGRATION_ID と同型）。
+  //
+  // 冪等性: マーカーで 1 回限り。マーカー未書き込みでの再実行時も、既に正規形へ移ったものは
+  // 元ファイルが無いため対象に入らない。
+  //
+  // マイニングのマーカーは上げない: transcode がすべてを正規形にするため、マイニングの
+  // 「512px が存在しない地図」条件は移行後も thumb512PathFor 経由で正しく判定される。
+  private async migrateThumbnail512ToWebpIfNeeded(db: DatabaseSync): Promise<void> {
+    const applied = db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(THUMBNAIL_512_WEBP_ID);
+    if (applied) return;
+
+    const canonicalExt = THUMB_512_EXT;
+    if (!canonicalExt) {
+      // THUMB_512_EXT が null（= 入力拡張子の引き継ぎ）へ戻された構成では移行対象が定義できない。
+      // 単一変化点を戻したときに旧データを壊さないため、何もせずマーカーだけを立てる。
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_WEBP_ID);
+      return;
+    }
+
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const thumbFolder = path.join(saveFolder, 'tmbs');
+    if (!(await fs.pathExists(thumbFolder))) {
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_WEBP_ID);
+      return;
+    }
+
+    // 512px の接尾辞は派生規約から導く（リテラルを持たない）。
+    // 例: thumb512PathFor が 'tmbs/x.jpg' から返す basename の stem と 'x' の差分が接尾辞になる
+    const sampleRel = thumb512PathFor(thumb52PathFor('x', 'jpg'))!;
+    const suffix512 = path.posix.basename(sampleRel).replace(/^x/, '').replace(/\.[^.]+$/, '');
+    const targets = (await fs.readdir(thumbFolder)).filter((name) => {
+      const dot = name.lastIndexOf('.');
+      if (dot < 0) return false;
+      const ext = name.slice(dot + 1).toLowerCase();
+      return name.slice(0, dot).endsWith(suffix512) && ext !== canonicalExt.toLowerCase();
+    });
+
+    if (targets.length === 0) {
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_WEBP_ID);
+      return;
+    }
+
+    sendMigrationProgress('database.migrating_thumbnails_512_webp', 0, '(512px)');
+    const warnings: string[] = [];
+    let done = 0;
+    for (const name of targets) {
+      const src = path.join(thumbFolder, name);
+      const dest = path.join(thumbFolder, `${name.slice(0, name.lastIndexOf('.'))}.${canonicalExt}`);
+      try {
+        await transcodeImage(src, dest);
+        await fs.remove(src);
+      } catch (e: any) {
+        warnings.push(`thumbnail 512 webp migration failed: ${name} (${e?.message ?? e})`);
+        console.warn(`[SqliteDataService] ${warnings[warnings.length - 1]}`);
+      }
+      done++;
+      sendMigrationProgress(
+        'database.migrating_thumbnails_512_webp',
+        Math.round((done / targets.length) * 100),
+        `(${done}/${targets.length})`,
+      );
+    }
+
+    if (warnings.length > 0) {
+      await appendMigrationWarnings(saveFolder, warnings);
+      console.warn(
+        `[SqliteDataService] thumbnail 512 webp migration left ${warnings.length} file(s) unmigrated; will retry on next startup`,
+      );
+    } else {
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_WEBP_ID);
+    }
+    sendMigrationProgress('database.migrating_thumbnails_512_webp_done', 100, '(512px)');
+  }
+
   // M12-T15 R3 §C2: 512px サムネイル起動時マイニング。
-  // 「ズーム2タイルは存在するが tmbs/{uid}_512.jpg がない地図」を対象に、
+  // 「ズーム2タイルは存在するが 512px サムネイルがない地図」を対象に、
   // ズーム2 stitch で 512px サムネイルを生成する。schema_migrations で1回限り実行を保証。
   // 個別地図の失敗は warnings へ記録し、バッチ全体は止めない（§C2 個別失敗時継続）。
   private async runThumbnail512MiningIfNeeded(db: DatabaseSync): Promise<void> {
@@ -1238,14 +1327,14 @@ class SqliteDataService {
     }
 
     // M7: マイニング対象を抽出。
-    //   (a) tmbs/{uid}_512.jpg が存在しない地図（新規）
+    //   (a) 512px サムネイルが存在しない地図（新規）
     //   (b) 壊れた 512px（crop 未実行で全グリッドキャンバスを縮小したもの）を持つ地図（自己修復）
     // R5 でユーザーが置換した 512px は破損シグネチャと寸法が異なるため巻き込まない。
     const targets: string[] = [];
     const skipped: string[] = [];
     for (const map of maps) {
       const uid = String(map.uid);
-      const thumb512Path = path.join(thumbFolder, `${uid}_512.jpg`);
+      const thumb512Path = path.join(saveFolder, thumb512PathFor(thumb52PathFor(uid, 'jpg'))!);
       const zoom2Dir = path.join(tileFolder, uid, '2');
       if (!await fs.pathExists(zoom2Dir)) {
         // §C3: ズーム2タイルが存在しない（小地図等）はスキップ
@@ -1320,7 +1409,10 @@ class SqliteDataService {
     sendMigrationProgress('database.migrating_thumbnails_512_done', 100, '(512px)');
   }
 
-  // M7: 既存の tmbs/{uid}_512.jpg が破損シグネチャ（crop 未実行で全グリッドキャンバスを長辺512に縮小した寸法）かを判定する。
+  // M7: 既存の 512px サムネイルが破損シグネチャ（crop 未実行で全グリッドキャンバスを長辺512に縮小した寸法）かを判定する。
+  // m19-t5: 512px の復号は readImageMeta を通す。Jimp は webp を decode できないため、
+  // ここを Jimp.read のままにすると必ず catch へ落ちて常に false を返し、自己修復が黙って死ぬ。
+  // （zoom2 タイルの読み込みは png/jpg のままなので Jimp.read でよい）
   // グリッド寸法（(maxX+1)*256 x (maxY+1)*256）とタイル実寸（コンテンツ境界）を比較し、
   // 端タイルがある（コンテンツ < グリッド）のに、実ファイルがグリッド全体を縮小した寸法と一致する場合に破損とみなす。
   // 正規生成（コンテンツ境界で crop 済み）や R5 のユーザー置換（寸法が破損シグネチャと異なる）は false を返す。
@@ -1353,8 +1445,9 @@ class SqliteDataService {
       const gridLong = Math.max(gridW, gridH);
       const brokenW = Math.round((gridW * 512) / gridLong);
       const brokenH = Math.round((gridH * 512) / gridLong);
-      const img = await Jimp.read(thumbPath);
-      return Math.abs(img.width - brokenW) <= 1 && Math.abs(img.height - brokenH) <= 1;
+      const meta = await readImageMeta(thumbPath);
+      if (!meta) return false;
+      return Math.abs(meta.width - brokenW) <= 1 && Math.abs(meta.height - brokenH) <= 1;
     } catch {
       return false;
     }
@@ -1366,7 +1459,7 @@ class SqliteDataService {
   // legacy データの DB 記録が不正・欠損でも正しく crop できる（data_json 依存の廃止）。
   private async generateThumbnail512FromTiles(
     uid: string,
-    _saveFolder: string,
+    saveFolder: string,
     tileFolder: string,
     thumbFolder: string
   ): Promise<void> {
@@ -1442,10 +1535,10 @@ class SqliteDataService {
       });
     }
 
-    // tmbs/{uid}_512.jpg へ保存
+    // 512px サムネイルの所在（派生規約の単一モジュールが導く）へ保存する
     await fs.ensureDir(thumbFolder);
-    const dest = path.join(thumbFolder, `${uid}_512.jpg`);
-    await canvas.write(dest as `${string}.${string}`);
+    const dest = path.join(saveFolder, thumb512PathFor(thumb52PathFor(uid, 'jpg'))!);
+    await writeImageByExt(canvas, dest);
   }
   // maps/appsへの書き込み(経路を問わず)でトリガが発火し、JSトークナイザで
   // 分かち書きした全文索引とbbox索引が同一トランザクション内で更新される。
@@ -2818,7 +2911,7 @@ class SqliteDataService {
   }
 
   // 実装レビュー round3 M-6: merc マスタの既定サムネイル継承。
-  // 元地図の 52px/512px サムネイル (tmbs/{sourceMapUid}.jpg・_512.jpg) を own uid 名へ複製する
+  // 元地図の 52px/512px サムネイルを own uid 名へ複製する
   // (relocateBaseMapIcon の move と異なり、複製元＝元地図のファイルは残す必要があるため copy)。
   // 52px 実体が無ければ null(呼出元は payload の thumbnail をそのまま使う)。512px は任意(無くても52pxのみ複製する)
   private async inheritMercThumbnail(uid: string, sourceMapUid: string): Promise<string | null> {
@@ -2828,9 +2921,13 @@ class SqliteDataService {
     try {
       const dest52 = path.join(saveFolder, 'tmbs', `${uid}.jpg`);
       await fs.copy(src52, dest52, { overwrite: false });
-      const src512 = path.join(saveFolder, 'tmbs', `${sourceMapUid}_512.jpg`);
-      if (await fs.pathExists(src512)) {
-        await fs.copy(src512, path.join(saveFolder, 'tmbs', `${uid}_512.jpg`), { overwrite: false });
+      const rel512From = thumb512PathFor(thumb52PathFor(sourceMapUid, 'jpg'));
+      const rel512To = thumb512PathFor(thumb52PathFor(uid, 'jpg'));
+      if (rel512From && rel512To) {
+        const src512 = path.join(saveFolder, rel512From);
+        if (await fs.pathExists(src512)) {
+          await fs.copy(src512, path.join(saveFolder, rel512To), { overwrite: false });
+        }
       }
       return `tmbs/${uid}.jpg`;
     } catch (e: any) {

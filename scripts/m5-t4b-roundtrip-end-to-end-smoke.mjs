@@ -129,7 +129,7 @@ try {
 
     await fsMkdir(nodePath.join(dataDir, 'tmbs'), { recursive: true });
     await fsWriteFile(nodePath.join(dataDir, 'tmbs', originUid + '.jpg'), 'THUMB-NORMAL');
-    await fsWriteFile(nodePath.join(dataDir, 'tmbs', originUid + '_512.jpg'), 'THUMB-512');
+    await fsWriteFile(nodePath.join(dataDir, 'tmbs', originUid + '_512.webp'), 'THUMB-512');
     await fsMkdir(nodePath.join(dataDir, 'tiles', originUid, '0', '0'), { recursive: true });
     await fsWriteFile(nodePath.join(dataDir, 'tiles', originUid, '0', '0', '0.jpg'), 'TILE-000');
 
@@ -171,7 +171,7 @@ try {
     assert.ok(zip1Names.includes('imgs/roundtrip-icon.png'), 'Step1: icon 実体が入ること');
     assert.ok(zip1Names.includes('imgs/roundtrip-photo.png'), 'Step1: html 内 asset の実体が入ること');
     assert.ok(zip1Names.includes('tmbs/' + originSlug + '.jpg'), 'Step1: 通常サムネイルが入ること');
-    assert.ok(zip1Names.includes('tmbs/' + originSlug + '_512.jpg'), 'Step1: 512px サムネイルが入ること');
+    assert.ok(zip1Names.includes('tmbs/' + originSlug + '_512.webp'), 'Step1: 512px サムネイルが入ること');
     assert.ok(zip1Names.some((n: string) => n.startsWith('tiles/' + originSlug + '/')), 'Step1: タイルが入ること');
     console.log('ok: Step1 搬出（POI/icon/maplat-asset:/通常・512px/タイル）');
 
@@ -292,7 +292,7 @@ try {
     assert.ok(zip3Names.includes('imgs/roundtrip-photo.png'),
       'Step6: 再搬出でも html 内 asset の実体が出ること');
     assert.ok(zip3Names.includes('tmbs/' + copySlug + '.jpg'), 'Step6: 通常サムネイルが出ること');
-    assert.ok(zip3Names.includes('tmbs/' + copySlug + '_512.jpg'), 'Step6: 512px サムネイルが出ること');
+    assert.ok(zip3Names.includes('tmbs/' + copySlug + '_512.webp'), 'Step6: 512px サムネイルが出ること');
     assert.ok(zip3Names.some((n: string) => n.startsWith('tiles/' + copySlug + '/')), 'Step6: タイルが出ること');
 
     // 参照と実体の整合（AC5 Part B と同じ一般形の不変条件を再搬出でも張る）

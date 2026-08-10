@@ -475,6 +475,8 @@
     "migration_report_warnings": "Có {{count}} cảnh báo. Xem chi tiết trong migration-report-v2.json ở thư mục dữ liệu.",
     "migrating_thumbnails_512": "Đang tạo ảnh thu nhỏ 512px",
     "migrating_thumbnails_512_done": "Tạo ảnh thu nhỏ 512px hoàn tất",
+    "migrating_thumbnails_512_webp": "Đang chuyển đổi ảnh thu nhỏ 512px sang WebP",
+    "migrating_thumbnails_512_webp_done": "Chuyển đổi ảnh thu nhỏ 512px sang WebP hoàn tất",
     "migrating_originals": "Đang di chuyển tệp gốc sang tên tệp UUID",
     "migrating_originals_done": "Di chuyển tệp gốc hoàn tất"
   },

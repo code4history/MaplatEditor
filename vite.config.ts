@@ -23,7 +23,9 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['node:sqlite', 'jimp', 'pwa-asset-generator', '@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+              // m19-t5: @jsquash/webp は 'jimp' と同型で external にする。バンドルすると
+              // wasm を import.meta.url 基準で解決できなくなるため、実 node_modules から解決させる。
+              external: ['node:sqlite', 'jimp', '@jsquash/webp', 'pwa-asset-generator', '@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
             },
           },
         },

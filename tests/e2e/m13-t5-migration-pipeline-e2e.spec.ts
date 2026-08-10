@@ -147,12 +147,12 @@ test('M13-T5: legacy migration -> thumbnail-512 mining -> originals UUID migrati
 
     // --- (512px 生成): 合成タイルにより実際に生成される(§5.5.2) ---
     expect(
-      await pathExistsBool(path.join(saveFolder, 'tmbs', `${uid1}_512.jpg`)),
-      'tmbs/<uid1>_512.jpg が生成されているはず',
+      await pathExistsBool(path.join(saveFolder, 'tmbs', `${uid1}_512.webp`)),
+      'tmbs/<uid1>_512.webp が生成されているはず',
     ).toBe(true);
     expect(
-      await pathExistsBool(path.join(saveFolder, 'tmbs', `${uid2}_512.jpg`)),
-      'tmbs/<uid2>_512.jpg が生成されているはず',
+      await pathExistsBool(path.join(saveFolder, 'tmbs', `${uid2}_512.webp`)),
+      'tmbs/<uid2>_512.webp が生成されているはず',
     ).toBe(true);
   } finally {
     if (app) {

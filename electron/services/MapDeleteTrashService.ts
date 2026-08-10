@@ -5,6 +5,8 @@ import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import MapMutationQueue from './MapMutationQueue';
 import { resolveDeletionTargets } from './MapOriginalImageService';
+// m19-t5: 512px の所在は派生規約の単一モジュールから導く（拡張子は THUMB_512_EXT が決める）
+import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 
 // M12-T18: この import 構造は正当であり循環しない —
 // MapDeleteTrashService.ts -> SqliteDataService.ts の一方向 import のみで、
@@ -13,6 +15,7 @@ import { resolveDeletionTargets } from './MapOriginalImageService';
 function getFolders() {
     const saveFolder = SettingsService.get('saveFolder') as string;
     return {
+        saveFolder,
         tileFolder: path.join(saveFolder, 'tiles'),
         thumbFolder: path.join(saveFolder, 'tmbs'),
     };
@@ -38,7 +41,7 @@ export async function deleteMapWithTrash(uidOrMapID: string): Promise<void> {
     if (!fileKey) return;
 
     return MapMutationQueue.run(fileKey, 'map-delete', async () => {
-        const { tileFolder, thumbFolder } = getFolders();
+        const { saveFolder, tileFolder, thumbFolder } = getFolders();
         const slug = doc?.slug || uidOrMapID;
 
         // 削除対象の解決はファイルを動かさない読み取りのみ (resolveDeletionTargets)。
@@ -81,7 +84,7 @@ export async function deleteMapWithTrash(uidOrMapID: string): Promise<void> {
         try { if (await fs.pathExists(thumbFile)) await fs.remove(thumbFile); }
         catch (e) { console.warn(`[MapDeleteTrashService] failed to remove thumbnail: ${thumbFile}`, e); }
 
-        const thumb512File = path.join(thumbFolder, `${fileKey}_512.jpg`);
+        const thumb512File = path.join(saveFolder, thumb512PathFor(thumb52PathFor(fileKey, 'jpg'))!);
         try { if (await fs.pathExists(thumb512File)) await fs.remove(thumb512File); }
         catch (e) { console.warn(`[MapDeleteTrashService] failed to remove 512 thumbnail: ${thumb512File}`, e); }
     });

@@ -334,7 +334,7 @@ try {
         await fs.ensureDir(tmpTileFolder);
         await fs.writeFile(path.join(tmpTileFolder, 'original.' + ext), 'uploaded-original-bytes');
         await fs.writeFile(path.join(tmpTileFolder, 'thumbnail.jpg'), 'thumb-bytes');
-        await fs.writeFile(path.join(tmpTileFolder, 'thumbnail_512.jpg'), 'thumb512-bytes');
+        await fs.writeFile(path.join(tmpTileFolder, 'thumbnail_512.webp'), 'thumb512-bytes');
       }
 
       const fileUrlModule = await import('file-url');

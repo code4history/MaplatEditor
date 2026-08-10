@@ -475,6 +475,8 @@
     "migration_report_warnings": "Hay {{count}} advertencia(s). Consulte migration-report-v2.json en la carpeta de datos para más detalles.",
     "migrating_thumbnails_512": "Generando miniaturas de 512px",
     "migrating_thumbnails_512_done": "Generación de miniaturas de 512px completada",
+    "migrating_thumbnails_512_webp": "Convirtiendo miniaturas de 512px a WebP",
+    "migrating_thumbnails_512_webp_done": "Conversión de miniaturas de 512px a WebP completada",
     "migrating_originals": "Migrando archivos originales a nombres UUID",
     "migrating_originals_done": "Migración de archivos originales completada"
   },

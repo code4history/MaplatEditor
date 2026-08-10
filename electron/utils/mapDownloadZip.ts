@@ -7,6 +7,8 @@ import recursiveFs from 'recursive-fs';
 import SettingsService from '../services/SettingsService';
 import * as storeHandler from './store_handler';
 import { compactMapLangFields } from '../../src/utils/langResource';
+// m19-t5: 読み込み元（uid キー）と ZIP 内の出力名（slug 名）の双方を派生規約の単一モジュールから導く
+import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { ProgressReporter } from './ProgressReporter';
 import {
   createPoiExternalizationContext,
@@ -118,7 +120,9 @@ export async function buildAndWriteMapZip(
   // **旧 ZIP 互換のため実体が無い場合は黙って省略する** — targets は下の addLocalFile が
   // fs.existsSync で存在確認するため、ここへ積むだけで不在時は自動的にスキップされる
   // (通常サムネイル・タイルと同じ扱い)。
-  targets.push([path.join(thumbFolder, `${fileKey}_512.jpg`), 'tmbs', `${slug}_512.jpg`]);
+  const src512 = thumb512PathFor(thumb52PathFor(fileKey, 'jpg'))!;
+  const out512 = thumb512PathFor(thumb52PathFor(slug, 'jpg'))!;
+  targets.push([path.join(saveFolder, src512), path.posix.dirname(out512), path.posix.basename(out512)]);
 
   // M5-T4B: 外部化した POI 実体を pois/<name>.geojson として同梱する
   for (let i = 0; i < documents.length; i++) {

@@ -166,7 +166,7 @@ try {
         await fs.writeFile(path.join(dirs.tilesDir, uid, '0', '0.jpg'), 'tile-bytes');
         await fs.ensureDir(dirs.thumbsDir);
         await fs.writeFile(path.join(dirs.thumbsDir, uid + '.jpg'), 'thumb-bytes');
-        await fs.writeFile(path.join(dirs.thumbsDir, uid + '_512.jpg'), 'thumb-512-bytes');
+        await fs.writeFile(path.join(dirs.thumbsDir, uid + '_512.webp'), 'thumb-512-bytes');
       }
 
       async function readWarn(fn: () => Promise<any>): Promise<{ result: any; warnings: string[] }> {
@@ -250,7 +250,7 @@ try {
         }
         assert.ok(!(await fs.pathExists(path.join(dirs.tilesDir, UID_B))), 'tiles はゴミ箱でなく従来どおり直接削除されるはず (§5.4)');
         assert.ok(!(await fs.pathExists(path.join(dirs.thumbsDir, UID_B + '.jpg'))), 'thumbnail は直接削除されるはず');
-        assert.ok(!(await fs.pathExists(path.join(dirs.thumbsDir, UID_B + '_512.jpg'))), '512 thumbnail は直接削除されるはず');
+        assert.ok(!(await fs.pathExists(path.join(dirs.thumbsDir, UID_B + '_512.webp'))), '512 thumbnail は直接削除されるはず');
         assert.ok(!(await fs.pathExists(path.join(dirs.dataDir, 'trash'))), '独自 trash/ ディレクトリは生成されないはず (AC18-3)');
         console.log('ok: (Part B) successful delete passes canonical variants + unique legacy to trashItem and removes tiles/tmbs directly (AC18-1/AC18-3)');
       }

@@ -1,6 +1,6 @@
 // M12-T15 (Fix-1/Test-1): 起動時 512px マイニングの一気通貫検証。
-// 実データ不使用（mkdtemp + MAPLAT_E2E_ROOT）。ズーム2タイルはあるが tmbs/{uid}_512.jpg がない地図を用意し、
-// 再起動で 512px マイニングが走り、白帯なし（アスペクト比が元画像通り）で tmbs/{uid}_512.jpg が生成されることを検証する。
+// 実データ不使用（mkdtemp + MAPLAT_E2E_ROOT）。ズーム2タイルはあるが tmbs/{uid}_512.webp がない地図を用意し、
+// 再起動で 512px マイニングが走り、白帯なし（アスペクト比が元画像通り）で tmbs/{uid}_512.webp が生成されることを検証する。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -8,6 +8,8 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { Jimp } from 'jimp';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+// m19-t5: 512px は webp。符号化/復号の唯一の実装（宛先拡張子で選ぶ）へ委譲する
+import { readImageMeta } from '../../electron/utils/thumbnail512Codec';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -75,7 +77,7 @@ test.describe('M12-T15 Fix-1: 起動時 512px マイニング', () => {
       // zoom2 タイルを配置（512px マイニング対象条件を満たす）
       await placeZoom2Tiles(saveFolder, uid);
 
-      // tmbs/{uid}_512.jpg はまだない（seed では生成されない）
+      // tmbs/{uid}_512.webp はまだない（seed では生成されない）
       // マイニング marker を削除して、次回起動で 512px マイニングが走る状態にする
       const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
       try {
@@ -91,15 +93,16 @@ test.describe('M12-T15 Fix-1: 起動時 512px マイニング', () => {
       // 2回目起動: 512px マイニングが走る
       const { app: app2 } = await launch(e2eRoot);
       try {
-        // マイニング完了を待つ（tmbs/{uid}_512.jpg が生成されるまで）
-        const thumb512Path = path.join(saveFolder, 'tmbs', `${uid}_512.jpg`);
+        // マイニング完了を待つ（tmbs/{uid}_512.webp が生成されるまで）
+        const thumb512Path = path.join(saveFolder, 'tmbs', `${uid}_512.webp`);
         await expect.poll(async () => {
           const { pathExists } = await import('fs-extra');
           return await pathExists(thumb512Path);
         }, { timeout: 30_000 }).toBe(true);
 
         // Test-1 の核心: 生成された 512px が正しいアスペクト比（900:300 = 3:1、白帯なし）
-        const image = await Jimp.read(thumb512Path);
+        // m19-t5: 512px は webp。codec の readImageMeta を使う
+        const image = (await readImageMeta(thumb512Path))!;
         const aspect = image.width / image.height;
         // crop なし（破損）は全グリッド 1024x512（aspect 2）。M6 は端タイル実寸から 900x300 へ crop（aspect 3）。
         // 長辺512px なので 512 x 171 付近（aspect ≈ 3）になることを検証

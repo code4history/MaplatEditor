@@ -10,6 +10,9 @@ import { normalizeOriginalExt, resolveRuntimeOriginal } from './MapOriginalImage
 import MapMutationQueue from './MapMutationQueue';
 // M12-T20 (§5.0/§5.1): 下書き staging (draft-tiles) のパス解決は共通バリデータのみを使う
 import { draftTileRoot, isDraftTileUrl, resolveStagingDirFromUrl } from './draftTilePaths';
+// m19-t5: 512px の中間ファイル名と保存先パスは派生規約の単一モジュールから導く
+// （インライン派生を製品コードに残さない。タスク設計 v1.0 §4.1 / §4.3 W5・W6）。
+import { THUMB_512_TMP_BASENAME, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
@@ -389,9 +392,10 @@ class MapEditService {
                     if (await fs.pathExists(tmpThumb)) {
                         await fs.move(tmpThumb, newThumbnail);
                     }
-                    // M12-T15 R3: thumbnail_512.jpg を tmbs/{uid}_512.jpg へ移動
-                    const tmpThumb512 = path.join(newTile, 'thumbnail_512.jpg');
-                    const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
+                    // M12-T15 R3: タイル出力フォルダの 512px 中間ファイルを tmbs/ 配下の uid 名へ移動する。
+                    // m19-t5: 両辺とも派生規約の単一モジュールから導く（拡張子は THUMB_512_EXT が決める）
+                    const tmpThumb512 = path.join(newTile, THUMB_512_TMP_BASENAME);
+                    const newThumbnail512 = path.join(saveFolder, thumb512PathFor(thumb52PathFor(savedUid, 'jpg'))!);
                     try { await fs.remove(newThumbnail512); } catch { /* noop */ }
                     if (await fs.pathExists(tmpThumb512)) {
                         await fs.move(tmpThumb512, newThumbnail512);
@@ -423,8 +427,8 @@ class MapEditService {
                     }
                     if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);
                     // M12-T15 (Fix-3): 複製元の 512px サムネイルも複製する（複製地図が 512px を持てない問題の修正）
-                    const oldThumbnail512 = path.join(thumbFolder, `${copySourceUid}_512.jpg`);
-                    const newThumbnail512 = path.join(thumbFolder, `${savedUid}_512.jpg`);
+                    const oldThumbnail512 = path.join(saveFolder, thumb512PathFor(thumb52PathFor(copySourceUid, 'jpg'))!);
+                    const newThumbnail512 = path.join(saveFolder, thumb512PathFor(thumb52PathFor(savedUid, 'jpg'))!);
                     if (await fs.pathExists(oldThumbnail512)) await fs.copy(oldThumbnail512, newThumbnail512);
                     // M13-T4 (AC-T4-2): 原本は複製元 uid の canonical-first / legacy-fallback 解決結果を
                     // 複製先の canonical 名 (uid キー) へ複写する。旧実装の legacy slug キー複写
