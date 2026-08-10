@@ -422,6 +422,7 @@
     "thumbnail_derive_52": "Crear también 52px desde 512px",
     "thumbnail_replace_512": "Reemplazar 512px…",
     "thumbnail_replace_52": "Reemplazar 52px…",
+    "thumbnail_requires_save": "Guarda el mapa para poder reemplazar su miniatura.",
     "import_inline_poi_alert": "Las definiciones de POI dentro del mapa no admiten edición. Para editar estos POIs, conviértalos a GeoJSON.",
     "draft_tiles_lost": "No se encontraron los datos temporales de la imagen del mapa. Vuelva a subir la imagen. Sus demás ediciones (puntos de control, metadatos, etc.) se conservan.",
     "draft_already_saved": "El guardado anterior ya se completó. Este borrador puede duplicar el contenido guardado. Descarte el borrador y vuelva a abrir el mapa guardado, o vuelva a subir la imagen si desea cambiarla.",
@@ -992,6 +993,7 @@
     }
   },
   "editor_ui": {
+    "thumbnail_immediate_note": "Las imágenes reemplazadas se escriben en el archivo de inmediato (no se incluyen en Guardar ni Deshacer). Para revertir, vuelve a reemplazar la imagen.",
     "slug_format_help": "Use solo letras, números, guion y guion bajo.",
     "slug_label": "Slug (ID)",
     "default_lang_label": "Idioma predeterminado",

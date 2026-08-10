@@ -422,6 +422,7 @@
     "thumbnail_derive_52": "512px에서 52px도 생성",
     "thumbnail_replace_512": "512px 교체…",
     "thumbnail_replace_52": "52px 교체…",
+    "thumbnail_requires_save": "지도를 저장하면 썸네일을 교체할 수 있습니다.",
     "import_inline_poi_alert": "지도 내 정의형 POI 지정은 편집을 지원하지 않습니다. POI를 편집하려면 POI를 GeoJSON으로 변환하세요.",
     "draft_tiles_lost": "지도 이미지의 임시 데이터를 찾을 수 없습니다. 이미지를 다시 업로드해 주세요. 다른 편집 내용(대응점, 메타데이터 등)은 유지됩니다.",
     "draft_already_saved": "이전 저장은 이미 완료되었습니다. 이 초안은 저장된 내용과 중복될 수 있습니다. 초안을 삭제하고 저장된 지도를 다시 열거나, 이미지를 변경하려면 다시 업로드해 주세요.",
@@ -992,6 +993,7 @@
     }
   },
   "editor_ui": {
+    "thumbnail_immediate_note": "교체한 이미지는 즉시 파일에 반영됩니다(저장 및 실행 취소 대상이 아닙니다). 되돌리려면 이미지를 다시 교체하세요.",
     "slug_format_help": "영숫자, 하이픈, 밑줄만 사용할 수 있습니다.",
     "slug_label": "슬러그 (ID)",
     "default_lang_label": "기본 언어",

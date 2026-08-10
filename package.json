@@ -226,7 +226,9 @@
     "test:e2e:m19-t11": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t11-range-vocabulary.spec.ts",
     "test:e2e:m11-t8b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t8b-search-ui.spec.ts",
     "test:e2e:m11-t8-search-coverage": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t8-search-coverage.spec.ts",
-    "test:e2e:m11-t8-list-return-overlap": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t8-list-return-overlap.spec.ts"
+    "test:e2e:m11-t8-list-return-overlap": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t8-list-return-overlap.spec.ts",
+    "smoke:m19-t12-thumbnail-replace-parity": "node scripts/m19-t12-thumbnail-replace-parity-smoke.mjs",
+    "test:e2e:m19-t12": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t12-thumbnail-replace-parity.spec.ts"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

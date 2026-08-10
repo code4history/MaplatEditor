@@ -407,6 +407,7 @@
     "thumbnail_derive_52": "Also create 52px from 512px",
     "thumbnail_replace_512": "Replace 512px…",
     "thumbnail_replace_52": "Replace 52px…",
+    "thumbnail_requires_save": "Save the map first to replace its thumbnail.",
     "import_inline_poi_alert": "Map-embedded POI definitions are not editable. To edit these POIs, convert them to GeoJSON.",
     "draft_tiles_lost": "The temporary data for the map image could not be found. Please upload the image again. Your other edits (control points, metadata, etc.) are preserved.",
     "draft_already_saved": "The previous save has already completed. This draft may duplicate the saved content. Discard the draft and reopen the saved map, or upload the image again if you want to change it.",
@@ -992,6 +993,7 @@
     }
   },
   "editor_ui": {
+    "thumbnail_immediate_note": "Replaced images are written to file immediately (not covered by Save or Undo). To revert, replace the image again.",
     "slug_format_help": "Use only letters, numbers, hyphen, and underscore.",
     "slug_label": "Slug (ID)",
     "default_lang_label": "Default language",
