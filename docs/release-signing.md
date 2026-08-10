@@ -214,3 +214,58 @@ xcrun notarytool info <submission-id> --apple-id "<Apple ID>" --team-id "<Team I
 （各ビルドジョブには timeout-minutes を設定済みなので、公証待ちで6時間消費することはない）。
 公証が復旧したら **`mode=full` + `platforms=mac`** で Mac だけ焼き直せば、Windows の署名代を
 再度払わずに公証済み DMG を揃えられる。
+
+## Part G: 証明書の有効期限と SmartScreen の評判（2026-08-10 実測）
+
+### 期限
+
+**Windows のコード署名証明書は 2027-08-07 14:34:06 UTC に失効する**（購入は1年分）。
+配布済みインストーラから実測した値である。
+
+```
+Subject: C=JP, ST=Ōsaka Prefecture, L=Osaka, O=NAYUTA, INC., CN=NAYUTA, INC.
+Issuer : SSL.com Code Signing Intermediate CA RSA R1
+Serial : 69:0f:5c:58:a3:3b:d5:e7:12:e2:02:d9:e8:8c:50:2f
+Policy : 2.23.140.1.4.1   ← OV（EV は 2.23.140.1.3）
+Not Before: Aug  7 14:34:06 2026 GMT
+Not After : Aug  7 14:34:06 2027 GMT
+```
+
+自分で確かめる手順（`<setup>` は署名済み Setup.exe）:
+
+```bash
+python3 - <<'PY'
+f='<setup>'
+d=open(f,'rb').read(0x1000)
+pe=int.from_bytes(d[0x3c:0x40],'little'); opt=pe+24
+magic=int.from_bytes(d[opt:opt+2],'little')
+base=opt+(112 if magic==0x20b else 96); sec=base+4*8
+rva=int.from_bytes(d[sec:sec+4],'little'); size=int.from_bytes(d[sec+4:sec+8],'little')
+h=open(f,'rb'); h.seek(rva); open('sig.p7b','wb').write(h.read(size)[8:])
+PY
+openssl pkcs7 -inform DER -in sig.p7b -print_certs -noout
+```
+
+### 期限が切れても既存の配布物は生き続ける（タイムスタンプ済み）
+
+署名には Microsoft のタイムスタンプ（OID `1.3.6.1.4.1.311.3.3.1`）が入っている。
+∴ **証明書が失効しても、失効前に署名した成果物の検証は通り続ける**。
+1年で失われるのは「**新しく署名する能力**」だけである。
+
+### 更新すると SmartScreen の評判がリセットされる
+
+- SmartScreen の警告は署名の不備ではなく**評判（reputation）**による。新しい発行者は必ず警告を受ける
+- **EV 証明書に上げても解決しない。** Microsoft は 2024 年に「EV は即座に評判を得る」挙動を廃止した。
+  現在は OV / EV とも実際のダウンロード実績で積む方式である（∴ 課金で近道は買えない）
+- 評判は **(a) 証明書** と **(b) ファイルのハッシュ** の両方に紐づく。
+  **ビルドが変わればファイル側の評判はリセットされる**（rc2 → rc3 で引き継がれない）
+- **証明書を再発行すると証明書側の評判もリセットされる**。これが更新時の実質的なコストである
+
+### 更新時にやること
+
+1. **期限切れ前に余裕をもって更新する。** 旧証明書が有効なうちに新証明書で何本かリリースを出しておくと移行が滑らかになる
+2. **Microsoft へ解析申請を出す**（無料・[提出フォーム](https://www.microsoft.com/en-us/wdsi/filesubmission)）。
+   開発者として誤検知を申告すると人手のレビューが入る。証明書の更新とは独立に効くので、更新直後にもう一度出せる
+3. eSigner は**クラウド署名で証明書は HSM に置かれたまま**である。`ES_CREDENTIAL_ID` はその証明書を指す ID で、
+   **署名のたびに証明書が変わることはない**（実測: rc2 と rc3 のシリアルが一致）。毎回変わるのは TOTP から生成する OTP だけ。
+   登録画面の `create OTP and issue certificate` は初回登録の操作であって、署名ごとの動作ではない
