@@ -159,7 +159,6 @@
       "label_merc": "메르카토르 타일",
       "select_prompt": "베이스맵 유형을 선택하세요.",
       "merc_disabled_reason": "지도 편집에서 생성됩니다",
-
       "key_required_reason": "에디터용 {{provider}} 키가 설정되지 않았습니다. 설정 > 베이스맵에서 등록하세요."
     },
     "google": {
@@ -189,23 +188,14 @@
     "jpeg_decode_max_resolution": "JPEG 해상도 상한 (MP)",
     "jpeg_decode_auto": "자동",
     "jpeg_decode_desc": "보통은 비워 두어도 (자동) 됩니다. 필요한 값은 이미지마다 자동으로 정해집니다. 숫자를 입력하면 그 값을 상한으로 취급합니다 (이 앱이 처리할 수 있는 범위를 넘는 값은 자동으로 낮춰집니다).",
-
     "editor_api_key_heading": "에디터용 키",
-
     "editor_api_key_notice": "지도 편집 배경 렌더링, 미리보기, 썸네일 생성에 사용됩니다. 제한을 걸 수 없는 내부 비밀 값으로 취급되므로 공개용 키와는 별도로 발급하세요.",
-
     "editor_google_api_key": "Google API 키",
-
     "editor_mapbox_token": "Mapbox 액세스 토큰",
-
     "default_publish_api_key_heading": "기본 공개용 키",
-
     "default_publish_api_key_notice": "앱별 키가 설정되지 않은 경우 사용되는 기본값입니다.",
-
     "default_publish_google_api_key": "Google API 키 (기본)",
-
     "default_publish_mapbox_token": "Mapbox 액세스 토큰 (기본)",
-
     "same_key_warning": "{{provider}}의 에디터용 키와 기본 공개용 키가 동일합니다. 별도의 키를 발급하는 것을 권장합니다."
   },
   "maplist": {
@@ -294,7 +284,6 @@
     "map_title_pf": "제목을 입력하세요",
     "map_title_desc": "지도의 제목을 입력하세요.",
     "map_display_label": "표시 라벨",
-    "map_display_label_desc": "뷰어의 소스 전환기에 표시되는 짧은 이름입니다.",
     "map_author": "제작자",
     "map_author_pf": "지도의 제작자를 입력하세요",
     "map_author_desc": "지도의 제작자를 입력하세요.",
@@ -311,7 +300,6 @@
     "map_mapper_pf": "매핑 수행자 등을 입력하세요",
     "map_mapper_desc": "매핑 수행자 등을 입력하세요.",
     "map_image_license": "지도 이미지 라이선스",
-    "map_image_license_desc": "지도의 라이선스를 선택하세요.",
     "cc_allright_reserved": "저작권 보유",
     "cc_by": "크리에이티브 커먼즈 저작자표시",
     "cc_by_sa": "크리에이티브 커먼즈 저작자표시-동일조건변경허락",
@@ -322,13 +310,10 @@
     "cc0": "크리에이티브 커먼즈 제로",
     "cc_pd": "퍼블릭 도메인",
     "map_gcp_license": "데이터 라이선스",
-    "map_gcp_license_desc": "데이터의 라이선스를 선택합니다.",
     "map_copyright": "지도 이미지 출처 표시",
     "map_copyright_pf": "지도 이미지의 출처 표시를 입력합니다",
-    "map_copyright_desc": "지도 이미지의 출처 표시를 입력합니다.",
     "map_gcp_copyright": "데이터 출처 표시",
     "map_gcp_copyright_pf": "데이터의 출처 표시를 입력합니다",
-    "map_gcp_copyright_desc": "데이터의 출처 표시를 입력합니다.",
     "map_source": "출처",
     "map_source_pf": "출처를 입력하세요",
     "map_source_desc": "지도의 출처를 입력하세요.",
@@ -441,9 +426,7 @@
     "cc_custom": "사용자 지정 라이선스",
     "license_unset": "미설정",
     "map_image_license_note": "지도 이미지 라이선스 보충",
-    "map_image_license_note_desc": "지도 이미지 라이선스의 추가 설명을 입력합니다.",
-    "map_gcp_license_note": "데이터 라이선스 보충",
-    "map_gcp_license_note_desc": "데이터 라이선스의 추가 설명을 입력합니다."
+    "map_gcp_license_note": "데이터 라이선스 보충"
   },
   "mapupload": {
     "map_image": "지도 이미지",
@@ -563,7 +546,9 @@
     "uniqueness_button": "고유성 확인",
     "app_name": "앱 이름",
     "description": "설명",
+    "description_note": "이 앱의 설명문입니다. 내보낸 앱의 index.html에 있는 meta description과 OGP(og:description), 그리고 앱 JSON의 description에 출력됩니다. 검색 결과나 SNS 공유 카드에 표시되는 요약이므로 한두 문장으로 간결하게 작성해 주세요.",
     "extra_info": "기타 정보",
+    "extra_info_note": "이 앱에 대한 자유 기술 메모입니다. 에디터 안에만 저장되며 미리보기에도 내보낸 앱에도 출력되지 않습니다. 공개하고 싶은 설명은 「설명」란에 작성해 주세요.",
     "map_list": "지도 목록",
     "base_map_list": "베이스맵 목록",
     "search_base_maps": "베이스맵을 검색…",
@@ -574,13 +559,21 @@
     "preview_port": "미리보기용 포트",
     "http_toggles": "특수 UI/HTTP 기능",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "내보낸 앱을 PWA(홈 화면에 추가해 단독 앱처럼 사용할 수 있는 형태)로 배포하는 설정입니다. 켜면 Web App Manifest를 출력하고 아래에 「매니페스트 설정」란이 나타납니다. 꺼져 있을 때는 「캐시」도 설정할 수 없습니다.",
     "overlay_ui": "오버레이 UI",
+    "overlay_ui_note": "고지도를 배경 지도 위에 반투명하게 겹쳐 표시하는 UI입니다. 뷰어에 겹쳐 보기 조작자가 표시됩니다. 배경이 될 베이스맵이 앱에 포함되어 있지 않으면 켜도 동작하지 않습니다.",
     "hide_marker_ui": "마커 숨김 UI",
+    "hide_marker_ui_note": "마커의 표시와 숨김을 전환하는 버튼입니다. 뷰어의 조작자로 추가됩니다. 마커 자체를 지우는 설정이 아니라 사용자가 일시적으로 숨길 수 있게 할 뿐입니다.",
     "marker_list_ui": "마커 목록 UI",
+    "marker_list_ui_note": "마커를 목록에서 골라 이동할 수 있는 버튼입니다. 뷰어의 조작자로 추가되어 지도에서 찾지 않고도 목적지로 이동할 수 있습니다. 마커가 하나도 없는 앱에서는 의미가 없습니다.",
     "border_ui": "엔벨로프 표시 UI",
+    "border_ui_note": "고지도의 범위를 테두리로 나타내는 표시를 전환하는 버튼입니다. 뷰어의 조작자로 추가됩니다. 여기서 나타내는 것은 지도의 외형이며 이용 범위의 편집과는 관계가 없습니다.",
     "cache_ui": "캐시",
+    "cache_ui_note": "한 번 읽어들인 타일을 단말에 저장해 다음 번이나 오프라인에서도 표시할 수 있게 하는 설정입니다. 내보낼 때 Service Worker를 함께 포함합니다. PWA가 전제이므로 「PWA」가 꺼져 있을 때는 설정할 수 없습니다.",
     "state_url": "상태 URL",
+    "state_url_note": "표시 중인 지도·위치·줌을 URL에 반영하는 설정입니다. 같은 URL을 다시 열면 같은 화면으로 돌아오며, 공유 기능도 이 설정을 전제로 합니다. 끄면 URL은 바뀌지 않습니다.",
     "share_ui": "공유 기능",
+    "share_ui_note": "표시 중인 상태를 공유하는 버튼입니다. 뷰어의 조작자로 추가됩니다. 「상태 URL」이 꺼져 있으면 버튼이 나타나지 않으므로 둘 다 켜 주세요.",
     "mapbox_token": "Mapbox token",
     "google_api_key": "Google API key",
     "app_settings": "앱 설정",
@@ -593,7 +586,7 @@
     "home_modal_help": "지도를 클릭하여 지점을 지정하세요.",
     "default_zoom": "기본 줌",
     "preview_warnings": "미리보기를 경고와 함께 표시했습니다.",
-    "manifest_settings": "manifest 설정",
+    "manifest_settings": "매니페스트 설정",
     "manifest_name": "앱 이름",
     "manifest_short_name": "짧은 이름",
     "manifest_background_color": "배경색",
@@ -660,19 +653,12 @@
     "warn_unresolved_icon": "해석할 수 없는 아이콘 참조가 있어 원래 값 그대로 출력했습니다.",
     "warn_icon_too_small": "PWA 아이콘 원본 이미지가 512px보다 작아 생성된 아이콘이 흐릿하게 보일 수 있습니다.",
     "warn_merc_name_collision": "동일한 이름의 메르카토르 타일 세트가 여러 개 있어 첫 번째 항목만 내보냈습니다.",
-
     "warn_provider_google_key_missing": "API 키가 설정되지 않아 Google 배경 지도가 포함되지 않습니다. 설정 > 베이스맵에서 에디터용 키를 등록하거나 앱의 키를 설정하세요.",
-
     "warn_provider_mapbox_key_missing": "API 키가 설정되지 않아 Mapbox 배경 지도가 포함되지 않습니다. 설정 > 베이스맵에서 에디터용 키를 등록하거나 앱의 키를 설정하세요.",
-
     "export_key_prompt_title": "공개용 API 키 입력",
-
     "export_key_prompt_description": "선택한 제공자의 공개용 키가 설정되지 않았습니다. 이번 내보내기에만 사용되며 저장되지 않습니다. 비워두면 해당 배경 지도가 포함되지 않습니다.",
-
     "export_key_prompt_label_google": "Google API 키",
-
     "export_key_prompt_label_mapbox": "Mapbox 액세스 토큰",
-
     "export_key_prompt_continue": "이 내용으로 내보내기",
     "export": {
       "progress": "내보내는 중...",
@@ -989,6 +975,15 @@
       "pick_failed": "파일을 선택할 수 없습니다",
       "references_unavailable": "참조 정보를 가져올 수 없습니다"
     }
+  },
+  "field_help": {
+    "display_label": "뷰어의 소스 전환기에 표시되는 짧은 이름입니다.",
+    "image_attribution": "지도 이미지의 출처 표시를 입력합니다.",
+    "image_license": "지도의 라이선스를 선택하세요.",
+    "image_license_note": "지도 이미지 라이선스의 추가 설명을 입력합니다.",
+    "data_attribution": "데이터의 출처 표시를 입력합니다.",
+    "data_license": "데이터의 라이선스를 선택합니다.",
+    "data_license_note": "데이터 라이선스의 추가 설명을 입력합니다."
   },
   "editor_ui": {
     "thumbnail_immediate_note": "교체한 이미지는 즉시 파일에 반영됩니다(저장 및 실행 취소 대상이 아닙니다). 되돌리려면 이미지를 다시 교체하세요.",

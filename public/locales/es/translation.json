@@ -159,7 +159,6 @@
       "label_merc": "Tesela de Mercator",
       "select_prompt": "Seleccione el tipo de mapa base.",
       "merc_disabled_reason": "Generado desde la edición del mapa",
-
       "key_required_reason": "La clave del editor de {{provider}} no está configurada. Regístrela en Configuración > Mapa base."
     },
     "google": {
@@ -189,23 +188,14 @@
     "jpeg_decode_max_resolution": "Límite de resolución JPEG (MP)",
     "jpeg_decode_auto": "Automático",
     "jpeg_decode_desc": "Normalmente puede dejarlos en blanco (automático); los valores necesarios se determinan por imagen. Si introduce un número se trata como límite superior (los valores que superan lo que esta aplicación puede manejar se reducen automáticamente).",
-
     "editor_api_key_heading": "Claves API del editor",
-
     "editor_api_key_notice": "Se usan para el fondo de la edición de mapas, la vista previa y la generación de miniaturas. Se tratan como un secreto interno que no se puede restringir, así que emita una clave distinta de la clave de publicación.",
-
     "editor_google_api_key": "Clave API de Google",
-
     "editor_mapbox_token": "Token de acceso de Mapbox",
-
     "default_publish_api_key_heading": "Claves de publicación predeterminadas",
-
     "default_publish_api_key_notice": "El valor predeterminado que se usa cuando no hay una clave específica de la app.",
-
     "default_publish_google_api_key": "Clave API de Google (predeterminada)",
-
     "default_publish_mapbox_token": "Token de acceso de Mapbox (predeterminado)",
-
     "same_key_warning": "La clave del editor y la clave de publicación predeterminada de {{provider}} son idénticas. Se recomienda emitir una clave distinta."
   },
   "maplist": {
@@ -294,7 +284,6 @@
     "map_title_pf": "Introduzca el título",
     "map_title_desc": "Introduzca el título del mapa.",
     "map_display_label": "Etiqueta visible",
-    "map_display_label_desc": "Un nombre breve mostrado en el selector de fuentes del visor.",
     "map_author": "Autor",
     "map_author_pf": "Introduzca el autor del mapa",
     "map_author_desc": "Introduzca el autor del mapa.",
@@ -311,7 +300,6 @@
     "map_mapper_pf": "Introduzca la persona que realizó la georreferenciación",
     "map_mapper_desc": "Introduzca la persona que realizó la georreferenciación.",
     "map_image_license": "Licencia de la imagen del mapa",
-    "map_image_license_desc": "Seleccione la licencia del mapa.",
     "cc_allright_reserved": "Todos los derechos reservados",
     "cc_by": "Creative Commons Reconocimiento",
     "cc_by_sa": "Creative Commons Reconocimiento-CompartirIgual",
@@ -322,13 +310,10 @@
     "cc0": "Creative Commons Cero",
     "cc_pd": "Dominio público",
     "map_gcp_license": "Licencia de datos",
-    "map_gcp_license_desc": "Seleccione la licencia de los datos.",
     "map_copyright": "Atribución de la imagen del mapa",
     "map_copyright_pf": "Introduzca la atribución de la imagen del mapa",
-    "map_copyright_desc": "Introduzca la atribución de la imagen del mapa.",
     "map_gcp_copyright": "Atribución de datos",
     "map_gcp_copyright_pf": "Introduzca la atribución de los datos",
-    "map_gcp_copyright_desc": "Introduzca la atribución de los datos.",
     "map_source": "Fuente",
     "map_source_pf": "Introduzca la fuente",
     "map_source_desc": "Introduzca la fuente del mapa.",
@@ -441,9 +426,7 @@
     "cc_custom": "Licencia personalizada",
     "license_unset": "Sin establecer",
     "map_image_license_note": "Nota de licencia de la imagen del mapa",
-    "map_image_license_note_desc": "Introduzca detalles adicionales sobre la licencia de la imagen del mapa.",
-    "map_gcp_license_note": "Nota de licencia de datos",
-    "map_gcp_license_note_desc": "Introduzca detalles adicionales sobre la licencia de los datos."
+    "map_gcp_license_note": "Nota de licencia de datos"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
@@ -563,7 +546,9 @@
     "uniqueness_button": "Comprobar unicidad",
     "app_name": "Nombre de la aplicación",
     "description": "Descripción",
+    "description_note": "La descripción de esta aplicación. Se escribe en la meta description y en el OGP (og:description) del index.html exportado, y en el campo description del JSON de la aplicación. Aparece como resumen en los resultados de búsqueda y en las tarjetas para compartir en redes sociales, así que redáctela en una o dos frases.",
     "extra_info": "Otra información",
+    "extra_info_note": "Una nota de texto libre sobre esta aplicación. Solo se guarda dentro del editor y no se escribe ni en la vista previa ni en la aplicación exportada. Lo que quiera publicar, escríbalo en el campo «Descripción».",
     "map_list": "Lista de mapas",
     "base_map_list": "Lista de mapas base",
     "search_base_maps": "Buscar mapas base…",
@@ -574,13 +559,21 @@
     "preview_port": "Puerto de vista previa",
     "http_toggles": "Funciones especiales de UI/HTTP",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Publica la aplicación exportada como PWA (una forma que se puede añadir a la pantalla de inicio y usar como una aplicación independiente). Al activarlo se genera un Web App Manifest y aparece debajo la sección «Configuración del manifest». Mientras esté desactivado tampoco se puede configurar «Caché».",
     "overlay_ui": "UI de superposición",
+    "overlay_ui_note": "Una interfaz que superpone el mapa histórico de forma semitransparente sobre el mapa de fondo. En el visor aparece un control de superposición. Si la aplicación no incluye ningún mapa base que sirva de fondo, activarlo no tiene efecto.",
     "hide_marker_ui": "UI para ocultar marcadores",
+    "hide_marker_ui_note": "Un botón que alterna entre mostrar y ocultar los marcadores. Se añade como control del visor. No elimina los marcadores en sí, solo permite al usuario ocultarlos temporalmente.",
     "marker_list_ui": "UI de lista de marcadores",
+    "marker_list_ui_note": "Un botón que permite elegir un marcador de una lista y desplazarse hasta él. Se añade como control del visor, de modo que se puede llegar a un lugar sin buscarlo en el mapa. No tiene sentido en una aplicación sin marcadores.",
     "border_ui": "UI de visualización de la envolvente",
+    "border_ui_note": "Un botón que alterna el contorno que indica la extensión del mapa histórico. Se añade como control del visor. Lo que dibuja es el contorno del mapa y no tiene relación con la edición del área de uso.",
     "cache_ui": "Caché",
+    "cache_ui_note": "Guarda en el dispositivo los teselas ya cargadas para poder mostrarlas la próxima vez y sin conexión. Al exportar se incluye un Service Worker. Requiere PWA, por lo que no se puede configurar mientras «PWA» esté desactivado.",
     "state_url": "URL de estado",
+    "state_url_note": "Refleja en la URL el mapa, la posición y el zoom que se están mostrando. Al volver a abrir la misma URL se recupera la misma vista, y la función de compartir da por supuesta esta opción. Si está desactivada, la URL no cambia.",
     "share_ui": "Función de compartir",
+    "share_ui_note": "Un botón que comparte el estado que se está mostrando. Se añade como control del visor. Mientras «URL de estado» esté desactivado el botón no aparece, así que active ambos.",
     "mapbox_token": "Token de Mapbox",
     "google_api_key": "Clave de API de Google",
     "app_settings": "Configuración de la aplicación",
@@ -660,19 +653,12 @@
     "warn_unresolved_icon": "Algunas referencias de iconos no se pudieron resolver y se mantuvieron sin cambios en la salida.",
     "warn_icon_too_small": "La imagen de origen del icono PWA es menor de 512px, por lo que los iconos generados pueden verse borrosos.",
     "warn_merc_name_collision": "Varios conjuntos de teselas de Mercator compartían el mismo nombre; solo se exportó el primero.",
-
     "warn_provider_google_key_missing": "El mapa de fondo de Google no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
-
     "warn_provider_mapbox_key_missing": "El mapa de fondo de Mapbox no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
-
     "export_key_prompt_title": "Introducir clave API de publicación",
-
     "export_key_prompt_description": "La clave de publicación del proveedor seleccionado no está configurada. Se usará solo para esta exportación y no se guardará. Si se deja en blanco, el mapa de fondo correspondiente no se incluirá.",
-
     "export_key_prompt_label_google": "Clave API de Google",
-
     "export_key_prompt_label_mapbox": "Token de acceso de Mapbox",
-
     "export_key_prompt_continue": "Exportar con estos valores",
     "export": {
       "progress": "Exportando...",
@@ -989,6 +975,15 @@
       "pick_failed": "No se pudo seleccionar el archivo",
       "references_unavailable": "No se pudo obtener la información de referencias"
     }
+  },
+  "field_help": {
+    "display_label": "Un nombre breve mostrado en el selector de fuentes del visor.",
+    "image_attribution": "Introduzca la atribución de la imagen del mapa.",
+    "image_license": "Seleccione la licencia del mapa.",
+    "image_license_note": "Introduzca detalles adicionales sobre la licencia de la imagen del mapa.",
+    "data_attribution": "Introduzca la atribución de los datos.",
+    "data_license": "Seleccione la licencia de los datos.",
+    "data_license_note": "Introduzca detalles adicionales sobre la licencia de los datos."
   },
   "editor_ui": {
     "thumbnail_immediate_note": "Las imágenes reemplazadas se escriben en el archivo de inmediato (no se incluyen en Guardar ni Deshacer). Para revertir, vuelve a reemplazar la imagen.",

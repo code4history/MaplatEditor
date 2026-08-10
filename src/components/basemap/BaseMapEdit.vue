@@ -157,7 +157,7 @@
           </select>
         </div>
         <div class="col-12 col-xl-6">
-          <label class="form-label fw-semibold">{{ t("basemap.master_detail.label") }}</label>
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.master_detail.label") }} <ContextHelp :text="t('field_help.display_label')" :ariaLabel="t('field_help.display_label')" /></label>
           <LangResourceInput
             input-testid="basemap-label"
             :model-value="document.label"
@@ -173,7 +173,7 @@
              1行目: 地図画像帰属 / データ帰属 / 2行目: 地図画像ライセンス / 補足 / 3行目: データライセンス / 補足。
              attr は必須 (地図側と同様) -->
         <div class="col-12 col-xl-6">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.attr_label") }} <span class="text-danger">*</span></label>
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.modal.attr_label") }} <span class="text-danger">*</span> <ContextHelp :text="t('field_help.image_attribution')" :ariaLabel="t('field_help.image_attribution')" /></label>
           <LangResourceInput
             input-testid="basemap-attr"
             :model-value="document.attr"
@@ -188,7 +188,7 @@
           <DiagnosticFeedback v-if="attrDiagnostics.length" scope="field" :items="attrDiagnostics" />
         </div>
         <div class="col-12 col-xl-6">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.data_attr_label") }}</label>
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.modal.data_attr_label") }} <ContextHelp :text="t('field_help.data_attribution')" :ariaLabel="t('field_help.data_attribution')" /></label>
           <LangResourceInput
             input-testid="basemap-data-attr"
             :model-value="document.dataAttr"
@@ -201,7 +201,7 @@
           />
         </div>
         <div class="col-12 col-xl-6">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.license_label") }}</label>
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.modal.license_label") }} <ContextHelp :text="t('field_help.image_license')" :ariaLabel="t('field_help.image_license')" /></label>
           <LicenseSelect
             variant="image"
             allow-unset
@@ -212,7 +212,7 @@
           />
         </div>
         <div class="col-12 col-xl-6">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.license_note_label") }}</label>
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.modal.license_note_label") }} <ContextHelp :text="t('field_help.image_license_note')" :ariaLabel="t('field_help.image_license_note')" /></label>
           <LangResourceInput
             input-testid="basemap-license-note"
             :model-value="document.licenseNote"
@@ -225,7 +225,7 @@
           />
         </div>
         <div class="col-12 col-xl-6">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.data_license_label") }}</label>
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.modal.data_license_label") }} <ContextHelp :text="t('field_help.data_license')" :ariaLabel="t('field_help.data_license')" /></label>
           <LicenseSelect
             variant="data"
             allow-unset
@@ -236,7 +236,7 @@
           />
         </div>
         <div class="col-12 col-xl-6">
-          <label class="form-label fw-semibold">{{ t("basemap.modal.data_license_note_label") }}</label>
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.modal.data_license_note_label") }} <ContextHelp :text="t('field_help.data_license_note')" :ariaLabel="t('field_help.data_license_note')" /></label>
           <LangResourceInput
             input-testid="basemap-data-license-note"
             :model-value="document.dataLicenseNote"

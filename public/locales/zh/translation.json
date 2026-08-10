@@ -159,7 +159,6 @@
       "label_merc": "墨卡托瓦片",
       "select_prompt": "请选择底图类型。",
       "merc_disabled_reason": "由地图编辑生成",
-
       "key_required_reason": "尚未设置 {{provider}} 的编辑器密钥。请在“设置 > 底图”中注册。"
     },
     "google": {
@@ -189,23 +188,14 @@
     "jpeg_decode_max_resolution": "JPEG 分辨率上限 (MP)",
     "jpeg_decode_auto": "自动",
     "jpeg_decode_desc": "通常留空即可（自动），所需数值会按图像自动确定。若填入数字则视为上限（超出本应用处理能力的数值会自动下调）。",
-
     "editor_api_key_heading": "编辑器密钥",
-
     "editor_api_key_notice": "用于地图编辑时的背景渲染、预览和缩略图生成。由于无法限制使用范围，将其视为内部机密，请与发布用密钥分开签发。",
-
     "editor_google_api_key": "Google API 密钥",
-
     "editor_mapbox_token": "Mapbox 访问令牌",
-
     "default_publish_api_key_heading": "默认发布密钥",
-
     "default_publish_api_key_notice": "当未设置应用专属密钥时使用的默认值。",
-
     "default_publish_google_api_key": "Google API 密钥（默认）",
-
     "default_publish_mapbox_token": "Mapbox 访问令牌（默认）",
-
     "same_key_warning": "{{provider}} 的编辑器密钥与默认发布密钥相同。建议签发另一个密钥。"
   },
   "maplist": {
@@ -294,7 +284,6 @@
     "map_title_pf": "请输入标题",
     "map_title_desc": "请输入地图的标题。",
     "map_display_label": "显示标签",
-    "map_display_label_desc": "显示在查看器源切换器中的简短名称。",
     "map_author": "制作者",
     "map_author_pf": "请输入地图的制作者",
     "map_author_desc": "请输入地图的制作者。",
@@ -311,7 +300,6 @@
     "map_mapper_pf": "请输入制图实施者等信息",
     "map_mapper_desc": "请输入制图实施者等信息。",
     "map_image_license": "地图图像许可证",
-    "map_image_license_desc": "请选择地图的许可证。",
     "cc_allright_reserved": "保留所有权利",
     "cc_by": "知识共享 署名",
     "cc_by_sa": "知识共享 署名-相同方式共享",
@@ -322,13 +310,10 @@
     "cc0": "知识共享 CC0",
     "cc_pd": "公共领域",
     "map_gcp_license": "数据许可证",
-    "map_gcp_license_desc": "选择数据的许可证。",
     "map_copyright": "地图图像署名",
     "map_copyright_pf": "输入地图图像的署名",
-    "map_copyright_desc": "输入地图图像的署名。",
     "map_gcp_copyright": "数据署名",
     "map_gcp_copyright_pf": "输入数据的署名",
-    "map_gcp_copyright_desc": "输入数据的署名。",
     "map_source": "来源",
     "map_source_pf": "请输入来源",
     "map_source_desc": "请输入地图的来源。",
@@ -441,9 +426,7 @@
     "cc_custom": "自定义许可证",
     "license_unset": "未设置",
     "map_image_license_note": "地图图像许可证备注",
-    "map_image_license_note_desc": "输入地图图像许可证的补充说明。",
-    "map_gcp_license_note": "数据许可证备注",
-    "map_gcp_license_note_desc": "输入数据许可证的补充说明。"
+    "map_gcp_license_note": "数据许可证备注"
   },
   "mapupload": {
     "map_image": "地图图像",
@@ -563,7 +546,9 @@
     "uniqueness_button": "唯一性确认",
     "app_name": "应用名称",
     "description": "说明",
+    "description_note": "本应用的说明文字。该值会输出到导出应用的 index.html 的 meta description 和 OGP（og:description），以及应用 JSON 的 description。由于它会作为摘要出现在搜索结果和社交分享卡片中，请用一到两句话简洁书写。",
     "extra_info": "其他信息",
+    "extra_info_note": "关于本应用的自由记述备注。它只保存在编辑器内部，既不会输出到预览，也不会输出到导出的应用。想要公开的说明请写在「说明」栏。",
     "map_list": "地图列表",
     "base_map_list": "底图列表",
     "search_base_maps": "搜索底图…",
@@ -574,13 +559,21 @@
     "preview_port": "预览用端口",
     "http_toggles": "特殊UI/HTTP功能",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "将导出的应用以 PWA（可添加到主屏幕、像独立应用一样使用的形态）方式发布的设置。开启后会输出 Web App Manifest，下方会出现「应用清单设置」栏。关闭时也无法设置「缓存」。",
     "overlay_ui": "叠加层UI",
+    "overlay_ui_note": "将古地图以半透明方式叠加显示在背景地图之上的 UI。查看器中会出现叠加操作控件。若应用中没有可作为背景的底图，即使开启也不会生效。",
     "hide_marker_ui": "隐藏标记UI",
+    "hide_marker_ui_note": "切换标记显示与隐藏的按钮。它会作为查看器的操作控件添加。它并非删除标记本身的设置，只是让使用者可以临时隐藏标记。",
     "marker_list_ui": "标记列表UI",
+    "marker_list_ui_note": "可从列表中选择标记并移动过去的按钮。它会作为查看器的操作控件添加，使用者无需在地图上寻找即可前往目标地点。在没有任何标记的应用中没有意义。",
     "border_ui": "范围显示UI",
+    "border_ui_note": "切换以边框显示古地图范围的按钮。它会作为查看器的操作控件添加。这里显示的是地图的外形，与使用范围的编辑无关。",
     "cache_ui": "缓存",
+    "cache_ui_note": "将已加载过的瓦片保存到设备，使其在下次访问及离线时也能显示的设置。导出时会一并附带 Service Worker。由于以 PWA 为前提，「PWA」关闭时无法设置。",
     "state_url": "状态URL",
+    "state_url_note": "将当前显示的地图、位置和缩放级别反映到 URL 的设置。重新打开同一个 URL 会回到相同的显示，分享功能也以此设置为前提。关闭后 URL 不会变化。",
     "share_ui": "分享功能",
+    "share_ui_note": "分享当前显示状态的按钮。它会作为查看器的操作控件添加。「状态URL」关闭时按钮不会出现，因此请同时开启两者。",
     "mapbox_token": "Mapbox token",
     "google_api_key": "Google API key",
     "app_settings": "应用设置",
@@ -593,7 +586,7 @@
     "home_modal_help": "请点击地图以指定地点。",
     "default_zoom": "默认缩放级别",
     "preview_warnings": "预览已打开，但存在警告。",
-    "manifest_settings": "manifest设置",
+    "manifest_settings": "应用清单设置",
     "manifest_name": "应用名称",
     "manifest_short_name": "简称",
     "manifest_background_color": "背景色",
@@ -660,19 +653,12 @@
     "warn_unresolved_icon": "部分图标引用无法解析，已按原值输出。",
     "warn_icon_too_small": "PWA图标源图片小于512px，生成的图标可能会模糊。",
     "warn_merc_name_collision": "存在多个同名的墨卡托瓦片集，仅导出了第一个。",
-
     "warn_provider_google_key_missing": "由于未设置 API 密钥，Google 背景地图未包含在内。请在“设置 > 底图”中注册编辑器密钥，或设置应用密钥。",
-
     "warn_provider_mapbox_key_missing": "由于未设置 API 密钥，Mapbox 背景地图未包含在内。请在“设置 > 底图”中注册编辑器密钥，或设置应用密钥。",
-
     "export_key_prompt_title": "输入发布用 API 密钥",
-
     "export_key_prompt_description": "所选提供方的发布密钥尚未设置。该密钥仅用于本次导出，不会被保存。留空则不会包含相应的背景地图。",
-
     "export_key_prompt_label_google": "Google API 密钥",
-
     "export_key_prompt_label_mapbox": "Mapbox 访问令牌",
-
     "export_key_prompt_continue": "使用此内容导出",
     "export": {
       "progress": "导出中...",
@@ -989,6 +975,15 @@
       "pick_failed": "无法选择文件",
       "references_unavailable": "无法获取引用信息"
     }
+  },
+  "field_help": {
+    "display_label": "显示在查看器源切换器中的简短名称。",
+    "image_attribution": "输入地图图像的署名。",
+    "image_license": "请选择地图的许可证。",
+    "image_license_note": "输入地图图像许可证的补充说明。",
+    "data_attribution": "输入数据的署名。",
+    "data_license": "选择数据的许可证。",
+    "data_license_note": "输入数据许可证的补充说明。"
   },
   "editor_ui": {
     "thumbnail_immediate_note": "替换的图像会立即写入文件（不属于保存或撤销的范围）。如需还原，请再次替换图像。",

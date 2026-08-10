@@ -159,7 +159,6 @@
       "label_merc": "Tile Mercator",
       "select_prompt": "Pilih jenis peta dasar.",
       "merc_disabled_reason": "Dihasilkan dari pengeditan peta",
-
       "key_required_reason": "Kunci editor untuk {{provider}} belum diatur. Daftarkan di Pengaturan > Peta Dasar."
     },
     "google": {
@@ -189,23 +188,14 @@
     "jpeg_decode_max_resolution": "Batas resolusi JPEG (MP)",
     "jpeg_decode_auto": "Otomatis",
     "jpeg_decode_desc": "Biasanya Anda dapat membiarkannya kosong (otomatis); nilai yang diperlukan ditentukan per citra. Jika Anda memasukkan angka, angka itu diperlakukan sebagai batas atas (nilai di luar kemampuan aplikasi ini akan diturunkan otomatis).",
-
     "editor_api_key_heading": "Kunci API Editor",
-
     "editor_api_key_notice": "Digunakan untuk render latar belakang saat mengedit peta, pratinjau, dan pembuatan thumbnail. Diperlakukan sebagai rahasia internal yang tidak dapat dibatasi, jadi terbitkan kunci yang terpisah dari kunci publikasi.",
-
     "editor_google_api_key": "Kunci API Google",
-
     "editor_mapbox_token": "Token Akses Mapbox",
-
     "default_publish_api_key_heading": "Kunci Publikasi Default",
-
     "default_publish_api_key_notice": "Nilai default yang digunakan saat kunci khusus aplikasi belum diatur.",
-
     "default_publish_google_api_key": "Kunci API Google (default)",
-
     "default_publish_mapbox_token": "Token Akses Mapbox (default)",
-
     "same_key_warning": "Kunci editor dan kunci publikasi default untuk {{provider}} sama. Disarankan untuk menerbitkan kunci yang terpisah."
   },
   "maplist": {
@@ -294,7 +284,6 @@
     "map_title_pf": "Silakan masukkan judul",
     "map_title_desc": "Silakan masukkan judul peta.",
     "map_display_label": "Label tampilan",
-    "map_display_label_desc": "Nama singkat yang ditampilkan pada pemilih sumber di penampil.",
     "map_author": "Pembuat",
     "map_author_pf": "Silakan masukkan pembuat peta",
     "map_author_desc": "Silakan masukkan pembuat peta.",
@@ -311,7 +300,6 @@
     "map_mapper_pf": "Silakan masukkan pelaksana pemetaan, dll.",
     "map_mapper_desc": "Silakan masukkan pelaksana pemetaan, dll.",
     "map_image_license": "Lisensi gambar peta",
-    "map_image_license_desc": "Silakan pilih lisensi peta.",
     "cc_allright_reserved": "Hak Cipta Dilindungi",
     "cc_by": "Creative Commons Attribution (Atribusi)",
     "cc_by_sa": "Creative Commons Attribution-ShareAlike (Atribusi-BerbagiSerupa)",
@@ -322,13 +310,10 @@
     "cc0": "Creative Commons Zero",
     "cc_pd": "Domain Publik",
     "map_gcp_license": "Lisensi data",
-    "map_gcp_license_desc": "Pilih lisensi untuk data.",
     "map_copyright": "Atribusi gambar peta",
     "map_copyright_pf": "Masukkan atribusi untuk gambar peta",
-    "map_copyright_desc": "Masukkan atribusi untuk gambar peta.",
     "map_gcp_copyright": "Atribusi data",
     "map_gcp_copyright_pf": "Masukkan atribusi untuk data",
-    "map_gcp_copyright_desc": "Masukkan atribusi untuk data.",
     "map_source": "Sumber",
     "map_source_pf": "Silakan masukkan sumber",
     "map_source_desc": "Silakan masukkan sumber peta.",
@@ -441,9 +426,7 @@
     "cc_custom": "Lisensi kustom",
     "license_unset": "Belum diatur",
     "map_image_license_note": "Catatan lisensi gambar peta",
-    "map_image_license_note_desc": "Masukkan detail tambahan tentang lisensi gambar peta.",
-    "map_gcp_license_note": "Catatan lisensi data",
-    "map_gcp_license_note_desc": "Masukkan detail tambahan tentang lisensi data."
+    "map_gcp_license_note": "Catatan lisensi data"
   },
   "mapupload": {
     "map_image": "Gambar peta",
@@ -563,7 +546,9 @@
     "uniqueness_button": "Periksa keunikan",
     "app_name": "Nama aplikasi",
     "description": "Deskripsi",
+    "description_note": "Deskripsi aplikasi ini. Nilainya ditulis ke meta description dan OGP (og:description) pada index.html hasil ekspor, serta ke kolom description pada JSON aplikasi. Teks ini muncul sebagai ringkasan di hasil pencarian dan kartu berbagi media sosial, jadi tulislah dalam satu sampai dua kalimat.",
     "extra_info": "Informasi lain",
+    "extra_info_note": "Catatan bebas mengenai aplikasi ini. Catatan ini hanya disimpan di dalam editor dan tidak ditulis ke pratinjau maupun ke aplikasi hasil ekspor. Tulis hal yang ingin dipublikasikan di kolom «Deskripsi».",
     "map_list": "Daftar peta",
     "base_map_list": "Daftar peta dasar",
     "search_base_maps": "Cari peta dasar…",
@@ -574,13 +559,21 @@
     "preview_port": "Port pratinjau",
     "http_toggles": "Fitur UI khusus/HTTP",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Menyajikan aplikasi hasil ekspor sebagai PWA (bentuk yang dapat ditambahkan ke layar beranda dan dipakai seperti aplikasi mandiri). Saat aktif, Web App Manifest dihasilkan dan bagian «Pengaturan manifest» muncul di bawah. Selama nonaktif, «Cache» juga tidak dapat diatur.",
     "overlay_ui": "UI overlay",
+    "overlay_ui_note": "Antarmuka yang menampilkan peta lama secara semitransparan di atas peta latar. Kendali overlay muncul di penampil. Jika aplikasi tidak memuat peta dasar sebagai latar, mengaktifkannya tidak berpengaruh.",
     "hide_marker_ui": "UI sembunyikan penanda",
+    "hide_marker_ui_note": "Tombol untuk menampilkan atau menyembunyikan penanda. Tombol ini ditambahkan sebagai kendali penampil. Tombol ini tidak menghapus penanda, hanya membiarkan pengguna menyembunyikannya sementara.",
     "marker_list_ui": "UI daftar penanda",
+    "marker_list_ui_note": "Tombol yang memungkinkan pengguna memilih penanda dari daftar dan berpindah ke sana. Tombol ini ditambahkan sebagai kendali penampil sehingga suatu tempat dapat dicapai tanpa mencarinya di peta. Tombol ini tidak berarti pada aplikasi tanpa penanda.",
     "border_ui": "UI tampilkan batas",
+    "border_ui_note": "Tombol untuk menampilkan atau menyembunyikan garis batas yang menunjukkan luas peta lama. Tombol ini ditambahkan sebagai kendali penampil. Yang digambar adalah garis luar peta, dan hal ini tidak berkaitan dengan penyuntingan cakupan penggunaan.",
     "cache_ui": "Cache",
+    "cache_ui_note": "Menyimpan ubin yang pernah dimuat ke perangkat agar dapat ditampilkan pada kunjungan berikutnya dan saat luring. Service Worker disertakan saat ekspor. Fitur ini mensyaratkan PWA, sehingga tidak dapat diatur selama «PWA» nonaktif.",
     "state_url": "URL status",
+    "state_url_note": "Menuliskan peta, posisi, dan zoom yang sedang ditampilkan ke dalam URL. Membuka kembali URL yang sama akan memulihkan tampilan yang sama, dan fitur berbagi mengandalkan pengaturan ini. Bila nonaktif, URL tidak berubah.",
     "share_ui": "Fitur berbagi",
+    "share_ui_note": "Tombol untuk membagikan keadaan yang sedang ditampilkan. Tombol ini ditambahkan sebagai kendali penampil. Selama «URL status» nonaktif tombol tidak muncul, jadi aktifkan keduanya.",
     "mapbox_token": "Mapbox token",
     "google_api_key": "Google API key",
     "app_settings": "Pengaturan aplikasi",
@@ -660,19 +653,12 @@
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "warn_icon_too_small": "Gambar sumber ikon PWA lebih kecil dari 512px, sehingga ikon yang dihasilkan mungkin tampak buram.",
     "warn_merc_name_collision": "Beberapa set tile Mercator memiliki nama yang sama; hanya yang pertama yang diekspor.",
-
     "warn_provider_google_key_missing": "Peta latar Google tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
-
     "warn_provider_mapbox_key_missing": "Peta latar Mapbox tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
-
     "export_key_prompt_title": "Masukkan Kunci API Publikasi",
-
     "export_key_prompt_description": "Kunci publikasi untuk penyedia yang dipilih belum diatur. Kunci ini hanya akan digunakan untuk ekspor ini dan tidak akan disimpan. Jika dibiarkan kosong, peta latar yang sesuai tidak akan disertakan.",
-
     "export_key_prompt_label_google": "Kunci API Google",
-
     "export_key_prompt_label_mapbox": "Token Akses Mapbox",
-
     "export_key_prompt_continue": "Ekspor dengan nilai ini",
     "export": {
       "progress": "Sedang mengekspor...",
@@ -989,6 +975,15 @@
       "pick_failed": "Tidak dapat memilih berkas",
       "references_unavailable": "Tidak dapat mengambil informasi referensi"
     }
+  },
+  "field_help": {
+    "display_label": "Nama singkat yang ditampilkan pada pemilih sumber di penampil.",
+    "image_attribution": "Masukkan atribusi untuk gambar peta.",
+    "image_license": "Silakan pilih lisensi peta.",
+    "image_license_note": "Masukkan detail tambahan tentang lisensi gambar peta.",
+    "data_attribution": "Masukkan atribusi untuk data.",
+    "data_license": "Pilih lisensi untuk data.",
+    "data_license_note": "Masukkan detail tambahan tentang lisensi data."
   },
   "editor_ui": {
     "thumbnail_immediate_note": "Gambar yang diganti langsung ditulis ke berkas (tidak termasuk dalam Simpan atau Urungkan). Untuk mengembalikannya, ganti gambar sekali lagi.",

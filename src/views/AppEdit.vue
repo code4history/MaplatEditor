@@ -211,8 +211,32 @@ const defaultApp = (): AppDocument => ({
   coverageLngLats: null,
 });
 
-const appData = ref<AppDocument>(defaultApp());
-const originalAppData = ref<AppDocument>(defaultApp());
+// m19-t4b (人間要望 2026-08-10): 【新規作成時のみ効く既定値】。
+//   defaultApp() は「新規アプリの初期値」と「読み込み時の欠落キー補完」(:718 の
+//   `const defaults = defaultApp().httpSettings`) の 2 つを兼ねている。∴ defaultApp() の値を
+//   変えると既存アプリ・取り込みアプリの解釈まで変わる (:182-183 の既存コメントが述べる不変条件。
+//   tests/e2e/m11-t3-editor-shell.spec.ts が httpSettings: {} で seed して依存している)。
+//   1.0.0 データスキーマは凍結済みであり、既存データの値も解釈も書き換えない。
+//   ∴ この表は「新規ドキュメントを組み立てる瞬間」にしか適用しない。
+//   新既定は 3 箇所へ散らさずこの 1 表へ集約し、適用も newAppDocument() 1 関数に閉じる
+//   (defaultApp() の中に if (isNew) のような分岐を作らない — 分岐は 2 つ目の規則を生む)。
+const NEW_APP_HTTP_OVERRIDES = {
+  pwaManifest: false, // 既定オフ
+  enableCache: false, // 既定オフ (PWA 前提のため PWA と同時にオフ)
+  enableMarkerList: true, // 既定オン
+} as const satisfies Partial<HttpSettings>;
+
+const newAppDocument = (): AppDocument => {
+  const doc = defaultApp();
+  Object.assign(doc.httpSettings, NEW_APP_HTTP_OVERRIDES);
+  return doc;
+};
+
+const appData = ref<AppDocument>(newAppDocument());
+const originalAppData = ref<AppDocument>(newAppDocument());
+// m19-t4b: PWA に従属する UI の唯一の判定点。マニフェスト設定欄の表示 (v-if) と
+//   キャッシュの可否 (:disabled) が同じ 1 つの式を見る (恒久指示: 同一扱いは共通実装へ寄せる)。
+const pwaEnabled = computed(() => appData.value.httpSettings.pwaManifest);
 const appCoverageAuto = useAppCoverageAutoCalc({ appDoc: appData as any });
 const appSpatialSource = computed<Wgs84Bbox | null>(() => envelopeToBbox(appData.value.coverageLngLats ?? appCoverageAuto.autoCoverage.value) as Wgs84Bbox | null);
 const appSourceSpatialContext = useSelectorSpatialContext(appSpatialSource);
@@ -798,6 +822,26 @@ function recordHistory() {
   historyStack.value.push(next);
 }
 
+// m19-t4b: PWA と、それに従属するキャッシュの変更を 1 つの履歴レコードへ畳む。
+//   v-model (vModelCheckbox ディレクティブ) の change リスナは created フックで登録されるため
+//   テンプレートの @change より先に走る。∴ ここに来た時点で pwaManifest は更新済みである
+//   (既存の @change="recordHistory" が変更後の値を記録しているのと同じ前提)。
+//
+//   watch(pwaEnabled) を使わない理由 (設計 §4.3.3):
+//     1. @change は同期 push・watch の既定 flush は 'pre' ∴ 履歴が 2 レコードに割れる
+//     2. ∴ Undo 1 回で禁止中間状態 (PWA オフ・キャッシュオン = disabled なのに checked) へ戻る
+//     3. performUndo/performRedo は historyApplying を同期ブロック内で true→false へ戻すため、
+//        watch 発火時には既に false。recordHistory() が新レコードを push して redo を壊す
+//     4. draftLifecycle.apply の文書差し替えで、復帰した下書きの値が黙って強制される
+//   ∴ 利用者がチェックボックスを操作したときにだけ強制する。読み込み・複製・下書き復帰・
+//   Undo/Redo は appData を丸ごと差し替えるだけなのでこのハンドラを通らない。
+//   PWA を再びオンにしてもキャッシュは自動で戻さない (片方向。復元規則は 2 つ目の規則になる)。
+function onPwaToggle() {
+  const http = appData.value.httpSettings;
+  if (!http.pwaManifest) http.enableCache = false; // キャッシュは PWA 前提
+  recordHistory(); // 2 つの変化をまとめて 1 レコードで push
+}
+
 function markHistorySaved() {
   recordHistory();
   historyStack.value?.save();
@@ -1323,6 +1367,30 @@ function onPoisChange(next: unknown[]) {
       />
     </div>
 
+    <!-- m19-t4b: タブ直下の 1 行メニューバー。地図領域（iframe）の外に置く操作 UI の置き場。
+         現在の住人はプレビュー言語切替のみだが、将来の追加操作 UI もここへ足す。
+         旧実装は .preview-lang の絶対配置で iframe に重なり、viewer のコンパス UI と
+         同じ場所を奪い合っていた（設計 §6.5.1）。
+         バーはプレビュータブでのみ表示する（他タブで空のバーが縦幅を食うのを避ける）。
+         #previewLang は tests/e2e/m1-t6-preview-restart.spec.ts が使うため必ず維持する -->
+    <!-- NOTE: d-flex は使わない。Bootstrap の .d-flex は display:flex !important であり、
+         v-show が付けるインライン display:none に勝ってしまう（他タブでバーが消えなくなる）。
+         ∴ flex 化は下の scoped style（.editor-tabbar-actions）で行う -->
+    <div v-show="activeTab === 'preview'"
+         class="editor-tabbar-actions px-4 py-1 border-bottom align-items-center justify-content-end gap-2"
+         data-testid="app-preview-toolbar">
+      <label class="small fw-bold mb-0" for="previewLang">{{ t("appedit.preview_lang") }}</label>
+      <select
+        id="previewLang"
+        class="form-select form-select-sm w-auto"
+        :value="previewLang"
+        @change="changePreviewLang(($event.target as HTMLSelectElement).value)"
+      >
+        <option value="">{{ t("appedit.preview_lang_default") }}</option>
+        <option v-for="(v, k) in langsMap" :key="k" :value="k">{{ t("common." + v) }}</option>
+      </select>
+    </div>
+
     <div class="flex-grow-1 position-relative overflow-hidden bg-white border-top">
       <div v-show="activeTab === 'metadata'" class="h-100 overflow-auto p-3">
         <form class="container-fluid" @submit.prevent>
@@ -1374,7 +1442,7 @@ function onPoisChange(next: unknown[]) {
           </div>
           <div class="row g-1 mb-2">
             <div class="col-12">
-              <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.description") }} <LangValueChips :model-value="appData.description" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
+              <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.description") }} <LangValueChips :model-value="appData.description" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('appedit.description_note')" :ariaLabel="t('appedit.description_note')" /></div>
               <textarea v-model="descriptionText" class="form-control form-control-sm" rows="5" @input="recordHistory" />
             </div>
           </div>
@@ -1390,7 +1458,7 @@ function onPoisChange(next: unknown[]) {
           </div>
           <div class="row g-1">
             <div class="col-12">
-              <label class="form-label fw-bold small mb-0">{{ t("appedit.extra_info") }}</label>
+              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.extra_info") }} <ContextHelp :text="t('appedit.extra_info_note')" :ariaLabel="t('appedit.extra_info_note')" /></label>
               <textarea v-model="appData.extraInfo" class="form-control form-control-sm font-monospace" rows="8" :disabled="translationMode" @input="recordHistory" />
             </div>
           </div>
@@ -1430,14 +1498,17 @@ function onPoisChange(next: unknown[]) {
               <div class="col-md-10">
                 <label class="form-label small fw-bold">{{ t("appedit.http_toggles") }}</label>
                 <div class="toggle-grid">
-                  <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.pwa_manifest") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.overlay" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.overlay_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableHideMarker" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.hide_marker_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableMarkerList" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.marker_list_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableBorder" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.border_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableCache" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.cache_ui") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.stateUrl" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.state_url") }}</label>
-                  <label class="form-check"><input v-model="appData.httpSettings.enableShare" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.share_ui") }}</label>
+                  <!-- m19-t4b: 8 トグルへ ContextHelp を追加。PWA は @change="onPwaToggle" で
+                       キャッシュの強制を 1 履歴レコードへ畳む（設計 §4.3.2）。
+                       キャッシュは PWA 従属（判定点は pwaEnabled computed 1 つ） -->
+                  <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" :disabled="translationMode" @change="onPwaToggle"> {{ t("appedit.pwa_manifest") }} <ContextHelp :text="t('appedit.pwa_manifest_note')" :ariaLabel="t('appedit.pwa_manifest_note')" /></label>
+                  <label class="form-check"><input v-model="appData.httpSettings.overlay" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.overlay_ui") }} <ContextHelp :text="t('appedit.overlay_ui_note')" :ariaLabel="t('appedit.overlay_ui_note')" /></label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableHideMarker" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.hide_marker_ui") }} <ContextHelp :text="t('appedit.hide_marker_ui_note')" :ariaLabel="t('appedit.hide_marker_ui_note')" /></label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableMarkerList" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.marker_list_ui") }} <ContextHelp :text="t('appedit.marker_list_ui_note')" :ariaLabel="t('appedit.marker_list_ui_note')" /></label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableBorder" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.border_ui") }} <ContextHelp :text="t('appedit.border_ui_note')" :ariaLabel="t('appedit.border_ui_note')" /></label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableCache" type="checkbox" class="form-check-input" :disabled="translationMode || !pwaEnabled" @change="recordHistory"> {{ t("appedit.cache_ui") }} <ContextHelp :text="t('appedit.cache_ui_note')" :ariaLabel="t('appedit.cache_ui_note')" /></label>
+                  <label class="form-check"><input v-model="appData.httpSettings.stateUrl" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.state_url") }} <ContextHelp :text="t('appedit.state_url_note')" :ariaLabel="t('appedit.state_url_note')" /></label>
+                  <label class="form-check"><input v-model="appData.httpSettings.enableShare" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.share_ui") }} <ContextHelp :text="t('appedit.share_ui_note')" :ariaLabel="t('appedit.share_ui_note')" /></label>
                 </div>
               </div>
               <div class="col-md-4">
@@ -1483,7 +1554,8 @@ function onPoisChange(next: unknown[]) {
             </div>
           </section>
 
-          <section v-if="appData.httpSettings.pwaManifest" class="settings-section mt-3">
+          <!-- m19-t4b: PWA 従属 UI の判定点は pwaEnabled computed 1 つ（キャッシュの :disabled と共有） -->
+          <section v-if="pwaEnabled" class="settings-section mt-3">
             <h5>{{ t("appedit.manifest_settings") }}</h5>
             <div class="row g-2">
               <div class="col-md-4">
@@ -1654,20 +1726,10 @@ function onPoisChange(next: unknown[]) {
       </div>
       </div>
 
-      <div v-show="activeTab === 'preview'" class="h-100 position-relative">
+      <!-- m19-t4b: 地図領域。言語切替バーがこの矩形と重ならないことを E2E が見る（AC14） -->
+      <div v-show="activeTab === 'preview'" class="h-100 position-relative" data-testid="app-preview-pane">
         <iframe v-if="previewUrl" class="preview-map" :src="previewUrl" />
-        <div class="preview-lang bg-white border rounded shadow-sm px-2 py-1 d-flex align-items-center gap-1">
-          <label class="small fw-bold mb-0" for="previewLang">{{ t("appedit.preview_lang") }}</label>
-          <select
-            id="previewLang"
-            class="form-select form-select-sm w-auto"
-            :value="previewLang"
-            @change="changePreviewLang(($event.target as HTMLSelectElement).value)"
-          >
-            <option value="">{{ t("appedit.preview_lang_default") }}</option>
-            <option v-for="(v, k) in langsMap" :key="k" :value="k">{{ t("common." + v) }}</option>
-          </select>
-        </div>
+        <!-- m19-t4b: 言語切替はタブ直下の 1 行メニューバーへ移した（設計 §6.5） -->
         <!-- M11-T7/AC8: section 診断(警告)へ移行(絶対配置の overlay 位置は .preview-error が担う) -->
         <DiagnosticFeedback
           v-if="previewError"
@@ -1764,10 +1826,9 @@ function onPoisChange(next: unknown[]) {
   right: 12px;
   z-index: 5;
 }
-.preview-lang {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 6;
+/* m19-t4b: タブ直下の 1 行メニューバー。display は !important を持たない宣言で与える
+   （Bootstrap の .d-flex を使うと v-show のインライン display:none に勝ってしまう） */
+.editor-tabbar-actions {
+  display: flex;
 }
 </style>

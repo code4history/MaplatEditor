@@ -159,7 +159,6 @@
       "label_merc": "Tuile Mercator",
       "select_prompt": "Sélectionnez le type de carte de base.",
       "merc_disabled_reason": "Généré depuis l'édition de carte",
-
       "key_required_reason": "La clé de l'éditeur pour {{provider}} n'est pas définie. Enregistrez-la dans Paramètres > Fond de carte."
     },
     "google": {
@@ -189,23 +188,14 @@
     "jpeg_decode_max_resolution": "Limite de résolution JPEG (MP)",
     "jpeg_decode_auto": "Automatique",
     "jpeg_decode_desc": "Vous pouvez normalement les laisser vides (automatique) ; les valeurs nécessaires sont déterminées pour chaque image. Si vous saisissez un nombre, il est traité comme une limite supérieure (les valeurs dépassant les capacités de cette application sont automatiquement réduites).",
-
     "editor_api_key_heading": "Clés API de l'éditeur",
-
     "editor_api_key_notice": "Utilisées pour l'affichage du fond de carte en édition, l'aperçu et la génération de vignettes. Considérée comme un secret interne qui ne peut pas être restreint, veuillez donc émettre une clé distincte de la clé de publication.",
-
     "editor_google_api_key": "Clé API Google",
-
     "editor_mapbox_token": "Jeton d'accès Mapbox",
-
     "default_publish_api_key_heading": "Clés de publication par défaut",
-
     "default_publish_api_key_notice": "Valeur par défaut utilisée lorsque aucune clé spécifique à l'application n'est définie.",
-
     "default_publish_google_api_key": "Clé API Google (par défaut)",
-
     "default_publish_mapbox_token": "Jeton d'accès Mapbox (par défaut)",
-
     "same_key_warning": "La clé de l'éditeur et la clé de publication par défaut pour {{provider}} sont identiques. Il est recommandé d'émettre une clé distincte."
   },
   "maplist": {
@@ -294,7 +284,6 @@
     "map_title_pf": "Veuillez saisir le titre",
     "map_title_desc": "Veuillez saisir le titre de la carte.",
     "map_display_label": "Libellé d’affichage",
-    "map_display_label_desc": "Un nom court affiché dans le sélecteur de sources du visualiseur.",
     "map_author": "Auteur",
     "map_author_pf": "Veuillez saisir l'auteur de la carte",
     "map_author_desc": "Veuillez saisir l'auteur de la carte.",
@@ -311,7 +300,6 @@
     "map_mapper_pf": "Veuillez saisir la personne ayant réalisé le géoréférencement",
     "map_mapper_desc": "Veuillez saisir la personne ayant réalisé le géoréférencement.",
     "map_image_license": "Licence de l'image de la carte",
-    "map_image_license_desc": "Veuillez sélectionner la licence de la carte.",
     "cc_allright_reserved": "Tous droits réservés",
     "cc_by": "Creative Commons Attribution",
     "cc_by_sa": "Creative Commons Attribution - Partage dans les mêmes conditions",
@@ -322,13 +310,10 @@
     "cc0": "Creative Commons Zéro",
     "cc_pd": "Domaine public",
     "map_gcp_license": "Licence des données",
-    "map_gcp_license_desc": "Sélectionnez la licence des données.",
     "map_copyright": "Attribution de l'image de la carte",
     "map_copyright_pf": "Saisissez l'attribution de l'image de la carte",
-    "map_copyright_desc": "Saisissez l'attribution de l'image de la carte.",
     "map_gcp_copyright": "Attribution des données",
     "map_gcp_copyright_pf": "Saisissez l'attribution des données",
-    "map_gcp_copyright_desc": "Saisissez l'attribution des données.",
     "map_source": "Source",
     "map_source_pf": "Veuillez saisir la source",
     "map_source_desc": "Veuillez saisir la source de la carte.",
@@ -441,9 +426,7 @@
     "cc_custom": "Licence personnalisée",
     "license_unset": "Non défini",
     "map_image_license_note": "Mention de licence de l'image de la carte",
-    "map_image_license_note_desc": "Saisissez des précisions sur la licence de l'image de la carte.",
-    "map_gcp_license_note": "Mention de licence des données",
-    "map_gcp_license_note_desc": "Saisissez des précisions sur la licence des données."
+    "map_gcp_license_note": "Mention de licence des données"
   },
   "mapupload": {
     "map_image": "Image de la carte",
@@ -563,7 +546,9 @@
     "uniqueness_button": "Vérifier l'unicité",
     "app_name": "Nom de l'application",
     "description": "Description",
+    "description_note": "La description de cette application. Elle est écrite dans la meta description et l’OGP (og:description) de l’index.html exporté, ainsi que dans le champ description du JSON de l’application. Elle apparaît comme résumé dans les résultats de recherche et les cartes de partage des réseaux sociaux : rédigez-la en une ou deux phrases.",
     "extra_info": "Autres informations",
+    "extra_info_note": "Une note libre à propos de cette application. Elle est conservée uniquement dans l’éditeur et n’est écrite ni dans l’aperçu ni dans l’application exportée. Ce que vous souhaitez publier doit aller dans le champ « Description ».",
     "map_list": "Liste des cartes",
     "base_map_list": "Liste des fonds de carte",
     "search_base_maps": "Rechercher des fonds de carte…",
@@ -574,13 +559,21 @@
     "preview_port": "Port de l'aperçu",
     "http_toggles": "Fonctionnalités UI/HTTP spéciales",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Diffuse l’application exportée sous forme de PWA (une forme que l’on peut ajouter à l’écran d’accueil et utiliser comme une application autonome). Lorsque l’option est activée, un Web App Manifest est produit et la section « Paramètres du manifest » apparaît en dessous. Tant qu’elle est désactivée, « Cache » ne peut pas non plus être configuré.",
     "overlay_ui": "UI de superposition",
+    "overlay_ui_note": "Une interface qui superpose la carte ancienne en semi-transparence sur la carte de fond. Un contrôle de superposition apparaît dans la visionneuse. Si l’application ne contient aucune carte de base servant de fond, l’activer reste sans effet.",
     "hide_marker_ui": "UI de masquage des marqueurs",
+    "hide_marker_ui_note": "Un bouton qui bascule l’affichage des marqueurs. Il est ajouté comme contrôle de la visionneuse. Il ne supprime pas les marqueurs eux-mêmes : il permet seulement à l’utilisateur de les masquer temporairement.",
     "marker_list_ui": "UI de liste des marqueurs",
+    "marker_list_ui_note": "Un bouton qui permet de choisir un marqueur dans une liste et de s’y rendre. Il est ajouté comme contrôle de la visionneuse, de sorte qu’un lieu peut être atteint sans le chercher sur la carte. Il n’a aucun sens dans une application sans marqueur.",
     "border_ui": "UI d'affichage de l'enveloppe",
+    "border_ui_note": "Un bouton qui bascule le contour indiquant l’étendue de la carte ancienne. Il est ajouté comme contrôle de la visionneuse. Ce qu’il trace est le contour de la carte, et cela n’a rien à voir avec la modification de la zone d’utilisation.",
     "cache_ui": "Cache",
+    "cache_ui_note": "Enregistre sur l’appareil les tuiles déjà chargées afin de pouvoir les afficher la fois suivante et hors ligne. Un Service Worker est inclus lors de l’export. L’option suppose PWA : elle ne peut donc pas être configurée tant que « PWA » est désactivé.",
     "state_url": "URL d'état",
+    "state_url_note": "Reporte dans l’URL la carte, la position et le zoom affichés. Rouvrir la même URL restitue la même vue, et la fonction de partage suppose ce réglage. Lorsqu’il est désactivé, l’URL ne change pas.",
     "share_ui": "Fonction de partage",
+    "share_ui_note": "Un bouton qui partage l’état affiché. Il est ajouté comme contrôle de la visionneuse. Tant que « URL d’état » est désactivé, le bouton n’apparaît pas : activez donc les deux.",
     "mapbox_token": "Jeton Mapbox",
     "google_api_key": "Clé API Google",
     "app_settings": "Paramètres de l'application",
@@ -660,19 +653,12 @@
     "warn_unresolved_icon": "Certaines références d’icônes n’ont pas pu être résolues et ont été conservées telles quelles dans la sortie.",
     "warn_icon_too_small": "L'image source de l'icône PWA fait moins de 512px, les icônes générées peuvent donc paraître floues.",
     "warn_merc_name_collision": "Plusieurs jeux de tuiles Mercator partageaient le même nom ; seul le premier a été exporté.",
-
     "warn_provider_google_key_missing": "Le fond de carte Google n'est pas inclus car aucune clé API n'est définie. Enregistrez une clé d'éditeur dans Paramètres > Fond de carte, ou définissez la clé de l'application.",
-
     "warn_provider_mapbox_key_missing": "Le fond de carte Mapbox n'est pas inclus car aucune clé API n'est définie. Enregistrez une clé d'éditeur dans Paramètres > Fond de carte, ou définissez la clé de l'application.",
-
     "export_key_prompt_title": "Saisir la clé API de publication",
-
     "export_key_prompt_description": "La clé de publication pour le fournisseur sélectionné n'est pas définie. Elle ne sera utilisée que pour cet export et ne sera pas enregistrée. Si elle est laissée vide, le fond de carte correspondant ne sera pas inclus.",
-
     "export_key_prompt_label_google": "Clé API Google",
-
     "export_key_prompt_label_mapbox": "Jeton d'accès Mapbox",
-
     "export_key_prompt_continue": "Exporter avec ces valeurs",
     "export": {
       "progress": "Export en cours...",
@@ -989,6 +975,15 @@
       "pick_failed": "Impossible de sélectionner un fichier",
       "references_unavailable": "Impossible de récupérer les informations de référence"
     }
+  },
+  "field_help": {
+    "display_label": "Un nom court affiché dans le sélecteur de sources du visualiseur.",
+    "image_attribution": "Saisissez l'attribution de l'image de la carte.",
+    "image_license": "Veuillez sélectionner la licence de la carte.",
+    "image_license_note": "Saisissez des précisions sur la licence de l'image de la carte.",
+    "data_attribution": "Saisissez l'attribution des données.",
+    "data_license": "Sélectionnez la licence des données.",
+    "data_license_note": "Saisissez des précisions sur la licence des données."
   },
   "editor_ui": {
     "thumbnail_immediate_note": "Les images remplacées sont écrites immédiatement dans le fichier (hors « Enregistrer » et « Annuler »). Pour revenir en arrière, remplacez à nouveau l’image.",

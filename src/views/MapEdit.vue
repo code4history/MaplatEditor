@@ -4153,7 +4153,7 @@ const goBack = async () => {
                     <!-- Row 2 -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_display_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_display_label_desc')" :ariaLabel="t('mapedit.map_display_label_desc')" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_display_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.display_label')" :ariaLabel="t('field_help.display_label')" /></div>
                             <input data-testid="map-label" type="text" class="form-control form-control-sm" v-model="label">
                         </div>
                         <!-- m19-t1: 正式名欄(廃止属性)は削除した。空いた列に他の欄を繰り上げない
@@ -4188,17 +4188,17 @@ const goBack = async () => {
                     <!-- Row 4 (m6-t2): 地図画像の帰属・ライセンス・補足（レビュー指摘で 2行×3列 に再構成） -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_copyright_desc')" :ariaLabel="t('mapedit.map_copyright_desc')" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.image_attribution')" :ariaLabel="t('field_help.image_attribution')" /></div>
                             <input data-testid="map-attr" type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
                             <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.attr" scope="field" :items="[{ key: 'attr-required', severity: 'danger', message: saveError.attr }]" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license") }} <ContextHelp :text="t('mapedit.map_image_license_desc')" :ariaLabel="t('mapedit.map_image_license_desc')" /></label>
+                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license") }} <ContextHelp :text="t('field_help.image_license')" :ariaLabel="t('field_help.image_license')" /></label>
                             <LicenseSelect variant="image" test-id="mapedit-image-license" :model-value="mapData.license" :disabled="translationMode" @update:model-value="mapData.license = $event" />
                         </div>
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license_note") }} <LangValueChips :model-value="mapData.licenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_image_license_note_desc')" :ariaLabel="t('mapedit.map_image_license_note_desc')" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license_note") }} <LangValueChips :model-value="mapData.licenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.image_license_note')" :ariaLabel="t('field_help.image_license_note')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="licenseNote" :placeholder="t('mapedit.map_image_license_note')">
                         </div>
                     </div>
@@ -4206,15 +4206,15 @@ const goBack = async () => {
                     <!-- Row 4b (m6-t2): データの帰属・ライセンス・補足（レビュー指摘で 2行×3列 に再構成） -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_copyright") }} <LangValueChips :model-value="mapData.dataAttr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_gcp_copyright_desc')" :ariaLabel="t('mapedit.map_gcp_copyright_desc')" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_copyright") }} <LangValueChips :model-value="mapData.dataAttr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.data_attribution')" :ariaLabel="t('field_help.data_attribution')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="dataAttr" :placeholder="t('mapedit.map_gcp_copyright_pf')">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license") }} <ContextHelp :text="t('mapedit.map_gcp_license_desc')" :ariaLabel="t('mapedit.map_gcp_license_desc')" /></label>
+                            <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license") }} <ContextHelp :text="t('field_help.data_license')" :ariaLabel="t('field_help.data_license')" /></label>
                             <LicenseSelect variant="data" test-id="mapedit-data-license" :model-value="mapData.dataLicense" :disabled="translationMode" @update:model-value="mapData.dataLicense = $event" />
                         </div>
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license_note") }} <LangValueChips :model-value="mapData.dataLicenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_gcp_license_note_desc')" :ariaLabel="t('mapedit.map_gcp_license_note_desc')" /></div>
+                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license_note") }} <LangValueChips :model-value="mapData.dataLicenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.data_license_note')" :ariaLabel="t('field_help.data_license_note')" /></div>
                             <input type="text" class="form-control form-control-sm" v-model="dataLicenseNote" :placeholder="t('mapedit.map_gcp_license_note')">
                         </div>
                     </div>
@@ -4579,9 +4579,12 @@ const goBack = async () => {
                  CSVインポートはinoutタブ側に残す。生成ロジック自体(wmtsGenerate)は不変・呼び出し元のみ移動) -->
             <div v-show="activeTab === 'merc'" class="h-100 overflow-auto p-4" data-testid="map-merc-tab-pane">
                 <div class="card">
-                    <div class="card-header bg-light fw-bold">{{ t("merc.tab_title") }}</div>
+                    <!-- m19-t4b: 説明文の提示形式を <p> から ContextHelp へ移した（値は不変） -->
+                    <div class="card-header bg-light fw-bold d-flex align-items-center gap-1">
+                        {{ t("merc.tab_title") }}
+                        <ContextHelp :title="t('merc.tab_title')" :text="t('merc.tab_description')" :ariaLabel="t('merc.tab_description')" />
+                    </div>
                     <div class="card-body">
-                        <p class="text-muted small">{{ t("merc.tab_description") }}</p>
                         <!-- 旧実装 wmtsGenerate() の有効条件をそのまま踏襲 -->
                         <div class="mb-2">
                             <button type="button" class="btn btn-secondary" data-testid="merc-generate-button"

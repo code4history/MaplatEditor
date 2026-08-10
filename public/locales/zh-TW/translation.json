@@ -159,7 +159,6 @@
       "label_merc": "麥卡托瓦片",
       "select_prompt": "請選擇底圖類型。",
       "merc_disabled_reason": "由地圖編輯產生",
-
       "key_required_reason": "尚未設定 {{provider}} 的編輯器金鑰。請在「設定 > 底圖」中註冊。"
     },
     "google": {
@@ -189,23 +188,14 @@
     "jpeg_decode_max_resolution": "JPEG 解析度上限 (MP)",
     "jpeg_decode_auto": "自動",
     "jpeg_decode_desc": "通常留空即可（自動），所需數值會依影像自動決定。若填入數字則視為上限（超出本應用程式處理能力的數值會自動下調）。",
-
     "editor_api_key_heading": "編輯器金鑰",
-
     "editor_api_key_notice": "用於地圖編輯時的背景繪製、預覽和縮圖產生。由於無法限制使用範圍，將其視為內部機密，請與發布用金鑰分開發行。",
-
     "editor_google_api_key": "Google API 金鑰",
-
     "editor_mapbox_token": "Mapbox 存取權杖",
-
     "default_publish_api_key_heading": "預設發布金鑰",
-
     "default_publish_api_key_notice": "當未設定應用程式專屬金鑰時使用的預設值。",
-
     "default_publish_google_api_key": "Google API 金鑰（預設）",
-
     "default_publish_mapbox_token": "Mapbox 存取權杖（預設）",
-
     "same_key_warning": "{{provider}} 的編輯器金鑰與預設發布金鑰相同。建議發行另一組金鑰。"
   },
   "maplist": {
@@ -294,7 +284,6 @@
     "map_title_pf": "請輸入標題",
     "map_title_desc": "請輸入地圖的標題。",
     "map_display_label": "顯示標籤",
-    "map_display_label_desc": "顯示在檢視器來源切換器中的簡短名稱。",
     "map_author": "製作者",
     "map_author_pf": "請輸入地圖的製作者",
     "map_author_desc": "請輸入地圖的製作者。",
@@ -311,7 +300,6 @@
     "map_mapper_pf": "請輸入製圖實施者等資訊",
     "map_mapper_desc": "請輸入製圖實施者等資訊。",
     "map_image_license": "地圖圖像授權條款",
-    "map_image_license_desc": "請選擇地圖的授權條款。",
     "cc_allright_reserved": "保留所有權利",
     "cc_by": "創用CC 姓名標示",
     "cc_by_sa": "創用CC 姓名標示-相同方式分享",
@@ -322,13 +310,10 @@
     "cc0": "創用CC 公眾領域貢獻宣告(CC0)",
     "cc_pd": "公眾領域",
     "map_gcp_license": "資料授權",
-    "map_gcp_license_desc": "選擇資料的授權。",
     "map_copyright": "地圖影像署名",
     "map_copyright_pf": "輸入地圖影像的署名",
-    "map_copyright_desc": "輸入地圖影像的署名。",
     "map_gcp_copyright": "資料署名",
     "map_gcp_copyright_pf": "輸入資料的署名",
-    "map_gcp_copyright_desc": "輸入資料的署名。",
     "map_source": "來源",
     "map_source_pf": "請輸入來源",
     "map_source_desc": "請輸入地圖的來源。",
@@ -441,9 +426,7 @@
     "cc_custom": "自訂授權",
     "license_unset": "未設定",
     "map_image_license_note": "地圖影像授權備註",
-    "map_image_license_note_desc": "輸入地圖影像授權的補充說明。",
-    "map_gcp_license_note": "資料授權備註",
-    "map_gcp_license_note_desc": "輸入資料授權的補充說明。"
+    "map_gcp_license_note": "資料授權備註"
   },
   "mapupload": {
     "map_image": "地圖圖像",
@@ -563,7 +546,9 @@
     "uniqueness_button": "唯一性確認",
     "app_name": "應用程式名稱",
     "description": "說明",
+    "description_note": "本應用程式的說明文字。該值會輸出到匯出應用程式的 index.html 的 meta description 與 OGP（og:description），以及應用程式 JSON 的 description。由於它會作為摘要出現在搜尋結果與社群分享卡片中，請用一到兩句話簡潔書寫。",
     "extra_info": "其他資訊",
+    "extra_info_note": "關於本應用程式的自由記述備註。它只儲存在編輯器內部，既不會輸出到預覽，也不會輸出到匯出的應用程式。想要公開的說明請寫在「說明」欄。",
     "map_list": "地圖清單",
     "base_map_list": "底圖清單",
     "search_base_maps": "搜尋底圖…",
@@ -574,13 +559,21 @@
     "preview_port": "預覽用連接埠",
     "http_toggles": "特殊UI/HTTP功能",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "將匯出的應用程式以 PWA（可加入主畫面、像獨立應用程式一樣使用的形態）方式發布的設定。開啟後會輸出 Web App Manifest，下方會出現「應用程式資訊清單設定」欄。關閉時也無法設定「快取」。",
     "overlay_ui": "疊加層UI",
+    "overlay_ui_note": "將古地圖以半透明方式疊加顯示在背景地圖之上的 UI。檢視器中會出現疊加操作控制項。若應用程式中沒有可作為背景的底圖，即使開啟也不會生效。",
     "hide_marker_ui": "隱藏標記UI",
+    "hide_marker_ui_note": "切換標記顯示與隱藏的按鈕。它會作為檢視器的操作控制項加入。它並非刪除標記本身的設定，只是讓使用者可以暫時隱藏標記。",
     "marker_list_ui": "標記清單UI",
+    "marker_list_ui_note": "可從清單中選擇標記並移動過去的按鈕。它會作為檢視器的操作控制項加入，使用者無須在地圖上尋找即可前往目標地點。在沒有任何標記的應用程式中沒有意義。",
     "border_ui": "範圍顯示UI",
+    "border_ui_note": "切換以外框顯示古地圖範圍的按鈕。它會作為檢視器的操作控制項加入。這裡顯示的是地圖的外形，與使用範圍的編輯無關。",
     "cache_ui": "快取",
+    "cache_ui_note": "將已載入過的圖磚儲存到裝置，使其在下次造訪及離線時也能顯示的設定。匯出時會一併附帶 Service Worker。由於以 PWA 為前提，「PWA」關閉時無法設定。",
     "state_url": "狀態URL",
+    "state_url_note": "將目前顯示的地圖、位置與縮放層級反映到 URL 的設定。重新開啟同一個 URL 會回到相同的顯示，分享功能也以此設定為前提。關閉後 URL 不會變化。",
     "share_ui": "分享功能",
+    "share_ui_note": "分享目前顯示狀態的按鈕。它會作為檢視器的操作控制項加入。「狀態URL」關閉時按鈕不會出現，因此請同時開啟兩者。",
     "mapbox_token": "Mapbox token",
     "google_api_key": "Google API key",
     "app_settings": "應用程式設定",
@@ -593,7 +586,7 @@
     "home_modal_help": "請點擊地圖以指定地點。",
     "default_zoom": "預設縮放等級",
     "preview_warnings": "預覽已開啟，但存在警告。",
-    "manifest_settings": "manifest設定",
+    "manifest_settings": "應用程式資訊清單設定",
     "manifest_name": "應用程式名稱",
     "manifest_short_name": "簡稱",
     "manifest_background_color": "背景色",
@@ -660,19 +653,12 @@
     "warn_unresolved_icon": "部分圖示引用無法解析，已按原值輸出。",
     "warn_icon_too_small": "PWA圖示來源圖片小於512px，產生的圖示可能會模糊。",
     "warn_merc_name_collision": "有多個麥卡托圖磚集使用相同名稱，僅匯出了第一個。",
-
     "warn_provider_google_key_missing": "由於未設定 API 金鑰，Google 背景地圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
-
     "warn_provider_mapbox_key_missing": "由於未設定 API 金鑰，Mapbox 背景地圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
-
     "export_key_prompt_title": "輸入發布用 API 金鑰",
-
     "export_key_prompt_description": "所選提供者的發布金鑰尚未設定。此金鑰僅用於本次匯出，不會被儲存。留空則不會包含對應的背景地圖。",
-
     "export_key_prompt_label_google": "Google API 金鑰",
-
     "export_key_prompt_label_mapbox": "Mapbox 存取權杖",
-
     "export_key_prompt_continue": "使用此內容匯出",
     "export": {
       "progress": "匯出中...",
@@ -989,6 +975,15 @@
       "pick_failed": "無法選擇檔案",
       "references_unavailable": "無法取得引用資訊"
     }
+  },
+  "field_help": {
+    "display_label": "顯示在檢視器來源切換器中的簡短名稱。",
+    "image_attribution": "輸入地圖影像的署名。",
+    "image_license": "請選擇地圖的授權條款。",
+    "image_license_note": "輸入地圖影像授權的補充說明。",
+    "data_attribution": "輸入資料的署名。",
+    "data_license": "選擇資料的授權。",
+    "data_license_note": "輸入資料授權的補充說明。"
   },
   "editor_ui": {
     "thumbnail_immediate_note": "替換的圖像會立即寫入檔案（不屬於儲存或復原的範圍）。如需還原，請再次替換圖像。",
