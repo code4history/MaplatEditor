@@ -65,28 +65,24 @@ try {
     `
       import assert from 'node:assert/strict';
       import { access, mkdir, writeFile } from 'node:fs/promises';
-      import { DatabaseSync } from 'node:sqlite';
       import nodePath from 'node:path';
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
 
-      // T4 legacy fixture: lang/labelがない既存user Base Mapをmigration対象として先置きする。
-      const legacyDb = new DatabaseSync(nodePath.join(${JSON.stringify(dataDir)}, 'maplat.sqlite'));
-      legacyDb.exec(\`
-        CREATE TABLE asset_registry (uid TEXT PRIMARY KEY, kind TEXT NOT NULL, slug TEXT NOT NULL UNIQUE);
-        CREATE TABLE base_maps (
-          uid TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, scope TEXT NOT NULL,
-          sort_order INTEGER NOT NULL, data_json TEXT NOT NULL,
-          revision INTEGER NOT NULL DEFAULT 1, updated_at TEXT DEFAULT (datetime('now'))
-        );
-        INSERT INTO asset_registry (uid, kind, slug)
-        VALUES ('33333333-3333-4333-8333-333333333333', 'base_map', 'user-base');
-        INSERT INTO base_maps (uid, slug, scope, sort_order, data_json)
-        VALUES ('33333333-3333-4333-8333-333333333333', 'user-base', 'user', 0,
-          '{"mapID":"user-base","title":"User Base","url":"https://example.test/{z}/{x}/{y}.png"}');
-      \`);
-      legacyDb.close();
+      // T4 legacy fixture: lang/label を持たないユーザーベースマップを移行対象として先置きする。
+      // m19-t7: 以前は SQLite の base_maps 行を直に捏造して起動時 migration
+      // applyBaseMapLanguageMigration に拾わせていたが、その段は撤去された（未公開の SQLite
+      // ストア内部の世代差を埋める段であり 0.7.0 からは到達しない）。∴ 実際に 0.7.0 が
+      // 世に出した形 = settings/tmsList.json のエントリとして置き、**取込の時点で**
+      // lang / label が付くことを確認する形へ移した（観測される結果は同じ）。
+      await mkdir(nodePath.join(${JSON.stringify(dataDir)}, 'settings'), { recursive: true });
+      await writeFile(
+        nodePath.join(${JSON.stringify(dataDir)}, 'settings', 'tmsList.json'),
+        JSON.stringify([
+          { mapID: 'user-base', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' },
+        ])
+      );
 
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
 
@@ -113,7 +109,8 @@ try {
       assert.equal(muroran.data.coverageLngLats.length, 4);
       assert.ok(initial.filter((item) => item.scope === 'builtin').length >= 329);
       const migratedUserBase = initial.find((item) => item.scope === 'user' && item.mapID === 'user-base');
-      assert.equal(migratedUserBase.data.lang, 'ja', 'lang欠落の旧user Base Mapはjaへ一度だけ補完するはず');
+      assert.ok(migratedUserBase, '0.7.0 の tmsList エントリが取り込まれるはず');
+      assert.equal(migratedUserBase.data.lang, 'ja', 'lang欠落の0.7.0 user Base Mapは取込時にjaが入るはず');
       assert.deepEqual(migratedUserBase.data.title, { ja: 'User Base' });
       assert.deepEqual(migratedUserBase.data.label, { ja: 'User Base' }, 'label欠落時はtitleをcloneするはず');
 
@@ -258,46 +255,16 @@ try {
       ).run(readdedUid);
       await SettingsService.setBaseMapVisibilityForMapID('fresh-draft', readdedUid, true);
 
-      // アイコンパスのuid化マイグレーション: レガシー状態(tmbs/{slug}.png参照)を捏造して
-      // マーカーを剥がし、再起動で ファイル改名 + base_maps/apps の参照書き換え が走ることを確認
-      const legacyIconRel = 'tmbs/my_basemap.png';
-      await mkdir(${JSON.stringify(path.join(dataDir, 'tmbs'))}, { recursive: true });
-      await writeFile(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/my_basemap.png', 'png-bytes');
-      const legacyData = JSON.parse(
-        db.prepare('SELECT data_json FROM base_maps WHERE uid = ?').get(readdedUid).data_json
-      );
-      legacyData.thumbnail = legacyIconRel;
-      db.prepare('UPDATE base_maps SET data_json = ? WHERE uid = ?').run(JSON.stringify(legacyData), readdedUid);
-      await SqliteDataService.createApp('icon-app', {
-        title: 'アイコン参照アプリ',
-        sources: [
-          // 新形(data.thumbnail)と旧フラット保存形(thumbnail直下)の両方を混在させる
-          { sourceType: 'tms', mapUid: 'my_basemap', data: { url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: legacyIconRel } },
-          { mapID: 'my_basemap', url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: legacyIconRel },
-        ],
-      });
-      db.prepare("DELETE FROM schema_migrations WHERE id = '2026-07-09-base-map-icon-uid-paths'").run();
-
-      // 一括prefix移行: 本接頭辞導入以前の旧コードが生slugキーで書いた暫定行は、
-      // マーカー付き移行で slug: 接頭辞へ付け替えられる(その後の採用も機能する)
-      db.prepare(
-        "INSERT INTO map_base_map_visibility (map_uid, base_map_uid, enabled) VALUES ('rawdraft', ?, 1)"
-      ).run(readdedUid);
-      db.prepare("DELETE FROM schema_migrations WHERE id = '2026-07-09-provisional-visibility-slug-prefix'").run();
+      // m19-t7: ここにあった 2 つの起動時 migration の検証（ベースマップアイコンパスの uid 化
+      // '2026-07-09-base-map-icon-uid-paths' と、暫定表示設定キーの一括 slug: 接頭辞化
+      // '2026-07-09-provisional-visibility-slug-prefix'）は、当該 migration ごと撤去した。
+      // どちらも未公開の SQLite ストア内部の世代差を埋める段であり、0.7.0 の入力からは
+      // 到達しない（0.7.0 のベースマップに thumbnail キーは実測 0 件。0.7.0 の取込が書く
+      // 可視性キーは常に uid なので生 slug 行も生じない）。
+      // 撤去後も残る「毎起動の掃除」sweepStaleProvisionalVisibility の検証は下に残す。
 
       await SqliteDataService.reset();
       const reopenedDb = await SqliteDataService.getDb();
-      const migratedThumb = JSON.parse(
-        reopenedDb.prepare('SELECT data_json FROM base_maps WHERE uid = ?').get(readdedUid).data_json
-      ).thumbnail;
-      assert.equal(migratedThumb, 'tmbs/' + readdedUid + '.png');
-      await access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/' + readdedUid + '.png');
-      await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/my_basemap.png'));
-      const migratedApp = await SqliteDataService.findAppBySlug('icon-app');
-      assert.equal(migratedApp.sources[0].data.thumbnail, 'tmbs/' + readdedUid + '.png',
-        'アプリ内のTMSソース参照もuidパスへ追随するはず');
-      assert.equal(migratedApp.sources[1].thumbnail, 'tmbs/' + readdedUid + '.png',
-        '旧フラット保存形(thumbnail直下)の参照も追随するはず');
 
       // TTL掃除の検証(上の再起動で実行済み): 古い暫定行は消え、新しい暫定行は残る
       const provisionalKeys = reopenedDb
@@ -306,19 +273,6 @@ try {
         .map((row) => row.map_uid);
       assert.ok(!provisionalKeys.includes('slug:abandoned-map'), '7日超の暫定行は掃除されるはず');
       assert.ok(provisionalKeys.includes('slug:fresh-draft'), '新しい暫定行は掃除されないはず');
-
-      // 一括prefix移行の検証(上の再起動で実行済み): 生slug行は slug: 接頭辞へ付け替えられ、
-      // その後の初回保存でuidキーへ採用される
-      assert.ok(provisionalKeys.includes('slug:rawdraft'), '生slugの暫定行はslug:接頭辞へ付け替えられるはず');
-      assert.ok(
-        !reopenedDb.prepare("SELECT 1 FROM map_base_map_visibility WHERE map_uid = 'rawdraft'").get(),
-        '生slugキーの行は残らないはず'
-      );
-      const { uid: rawDraftUid } = await SqliteDataService.createMap('rawdraft', { title: '生slug下書き地図' });
-      assert.ok(
-        (await SettingsService.getTmsListOfMapID(rawDraftUid)).some((tms) => tms.mapID === 'my_basemap'),
-        '付け替え後の暫定行も初回保存でuidキーへ採用されるはず'
-      );
 
       // UUID形状のslugを持つ未保存地図: 実在しないuid形状の参照は偽uidキーにならず
       // sentinel(slug:)に置かれ、初回保存でuidキーへ採用される

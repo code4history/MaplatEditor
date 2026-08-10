@@ -222,6 +222,7 @@
     "test:e2e:m19-t4a": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t4a-settings-and-about.spec.ts",
     "smoke:editor-locale-parity": "node scripts/editor-locale-parity.mjs",
     "smoke:m19-t5-thumbnail-512-webp": "node scripts/m19-t5-thumbnail-512-webp-smoke.mjs",
+    "smoke:m19-t7-migration-passthrough": "node scripts/m19-t7-migration-passthrough-smoke.mjs",
     "smoke:m19-t11-range-vocabulary": "node scripts/m19-t11-range-vocabulary-smoke.mjs",
     "test:e2e:m19-t11": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t11-range-vocabulary.spec.ts",
     "test:e2e:m11-t8b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m11-t8b-search-ui.spec.ts",

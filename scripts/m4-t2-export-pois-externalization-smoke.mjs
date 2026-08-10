@@ -327,7 +327,7 @@ try {
       }
 
       // --- sanitize と一意化 (AC6) ---
-      // 【実測 2026-08-02】POI ソースの slug は SqliteDataService.registerAsset:1691 が
+      // 【実測 2026-08-02】POI ソースの slug は SqliteDataService.registerAsset が
       // isValidSlug (= SLUG_PATTERN) で弾くため、危険な slug は DB に入らない。
       // ∴ 実際の攻撃面は **生 FC / ラッパーの FC.id** — これは利用者が raw JSON で書ける
       // 任意の文字列で、DB の検査を一切通らずに外部ファイル名の基底になる。

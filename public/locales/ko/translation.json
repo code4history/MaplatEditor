@@ -475,8 +475,6 @@
     "migration_report_warnings": "경고가 {{count}}건 있습니다. 자세한 내용은 데이터 폴더의 migration-report-v2.json을 확인하세요.",
     "migrating_thumbnails_512": "512px 썸네일 생성 중",
     "migrating_thumbnails_512_done": "512px 썸네일 생성 완료",
-    "migrating_thumbnails_512_webp": "512px 썸네일을 WebP로 변환 중",
-    "migrating_thumbnails_512_webp_done": "512px 썸네일 WebP 변환 완료",
     "migrating_originals": "원본 파일을 UUID 파일명으로 마이그레이션 중",
     "migrating_originals_done": "원본 파일 마이그레이션 완료"
   },

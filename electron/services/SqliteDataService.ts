@@ -17,11 +17,11 @@ import builtinBaseMaps from '../builtin_base_maps.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
-import { unifyMapNameFields, adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
+import { adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
-import { THUMB_512_EXT, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
+import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 // m19-t5: 512px の符号化・復号は宛先/入力の拡張子だけで決まる唯一の実装へ委譲する
-import { readImageMeta, transcodeImage, writeImageByExt } from '../utils/thumbnail512Codec';
+import { readImageMeta, writeImageByExt } from '../utils/thumbnail512Codec';
 import {
   createSlugReservationService,
   slugCheckResultIsAvailable,
@@ -139,17 +139,12 @@ export interface MigrationReport {
   warnings: string[];
 }
 
+// m19-t7: 0.7.0 → 1.0.0 は **一気通貫** で移行する(中間スキーマを通らない)。
+// ∴ 起動時の marker は 2 つだけである。0.7.0 の入力から到達しない段(SQLite ストアは
+// 未公開であり、その内部の世代差を埋める段は公開版に同梱する意味がない)は撤去した。
+// 撤去した marker ID は既存の開発用 DB の schema_migrations に残るが無害である
+// (孤児 marker はこのリポジトリで前例がある。掃除は書き込みを増やすだけなので行わない)。
 const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
-const SEARCH_INDEX_BACKFILL_ID = '2026-07-16-app-fts-rtree-backfill';
-// 表示設定オプトイン化(ADR-0006)のv1向け一括破棄。schema v2 の新規DBには
-// オプトアウト時代の行が存在し得ないため no-op だが、旧コード経路が再実行
-// されないよう marker のみ記録する
-const OPT_IN_VISIBILITY_FLIP_ID = '2026-07-05-opt-in-base-map-visibility';
-// m19-t1: 地図の名称属性を 1.0.0 の語彙(表示ラベル label / タイトル title)へ移す一度きりの
-// in-place migration。写像は非冪等(素朴形なら 2 回目で label が潰れる)であり、
-// この marker が **主の守り** である。src/utils/mapNameUnification.ts の実装形は副の守りに
-// すぎず、marker を省いてよい根拠にはならない
-const MAP_NAME_UNIFICATION_MIGRATION_ID = '2026-08-09-m19-t1-map-name-unification';
 
 // 常時表示から外せないベースマップ(ビューア/エディタの最終フォールバック基盤)。slug で判定
 const FORCED_ALWAYS_BASE_MAP_IDS = new Set(['osm']);
@@ -161,20 +156,11 @@ const FORCED_ALWAYS_BASE_MAP_IDS = new Set(['osm']);
 // 初回保存時に adoptProvisionalVisibility が uid キーへ引き継ぎ、放棄された行は
 // sweepStaleProvisionalVisibility が起動時に削除する
 const PROVISIONAL_MAP_KEY_PREFIX = 'slug:';
-// 暫定行の一括 slug: 接頭辞化(本接頭辞導入以前に書かれた行の一度きりの付け替え)
-const PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID = '2026-07-09-provisional-visibility-slug-prefix';
-// ユーザーベースマップのアイコンパス uid 化(tmbs/{slug}.png → tmbs/{uid}.png)
-const BASE_MAP_ICON_MIGRATION_ID = '2026-07-09-base-map-icon-uid-paths';
-const BASE_MAP_LANGUAGE_MIGRATION_ID = '2026-07-14-m11-t4-basemap-language';
 // M12-T15 M7: 512px サムネイル起動時マイニング（§C2）の v2 マーカー。レガシー移行後に1回だけ実行する。
 // v1（'2026-07-20-thumbnail-512-mining'）は crop 前提が実データで成立しない場合に壊れた 512px を
-// 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）
+// 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）。
+// これは「スキーマの移行」ではなく z2 タイルからの **導出** なので m19-t7 でも残る
 const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
-// m19-t5: 既存ユーザデータの 512px サムネイルを webp へ移す一度きりの migration。
-// 0.7.0（公開済み neDB 版）に 512px は存在しないが、M12-T15 R5 でユーザーが任意画像に置換した
-// 512px はタイルから再生成できない。∴「捨てて再マイニング」は採らず、その場で transcode する
-// （sp-0006: 正規化は書き込み側へ。読み込み側に「webp が無ければ jpg」の分岐は作らない）。
-const THUMBNAIL_512_WEBP_ID = '2026-08-10-thumbnail-512-webp-v1';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
@@ -533,19 +519,8 @@ function assetRowToRecord(row: any): AssetRecord {
   };
 }
 
-type NormalizeMapDocumentOptions = {
-  // ★m19-t1: レガシー取込(importLegacyMaps)専用。ここで true を渡してよいのは
-  //   importLegacyMaps だけである(AC-18a が行番号レンジで機械検証する)。
-  //   理由: 取込行は同一 migrate() 実行内の後段 applyMapNameUnificationMigration が
-  //   marker 保護下で写像する。取込は行を作るだけで写像を持たない、という配置規律のため。
-  //   これは「渡し忘れると値が全損する」類のオプションではない(既定経路の
-  //   adoptDeprecatedMapNames が取込時点で写像するので結果は同じになる)。
-  //   守っているのは値の保全ではなく配置規律である。「冗長だから消す」も
-  //   「これが無いと全損する」も、どちらも誤読である。
-  preserveDeprecatedForMigration?: boolean;
-};
-
-function normalizeMapDocument(document: any, options?: NormalizeMapDocumentOptions): any {
+// 地図文書の書き込み側の唯一の正規化点。**レガシー取込もここを通る**(m19-t7)。
+function normalizeMapDocument(document: any): any {
   // 言語別フィールドはDB内では常にオブジェクト形 (ADR-0005)。
   // nedb移行やインポート由来のプレーン文字列(=デフォルト言語の値)もここで正規化される
   const normalized = normalizeMapLangFields({ ...document });
@@ -555,11 +530,42 @@ function normalizeMapDocument(document: any, options?: NormalizeMapDocumentOptio
   delete normalized.uid;
   delete normalized.slug;
   delete normalized.revision;
-  if (options?.preserveDeprecatedForMigration) return normalized;
   // m19-t1: 0.7.0 の交換形(廃止された名称属性を持つ map.json)を 1.0.0 の語彙へ写す。
   // キー在時のみ発火し完全に冪等であるため常設経路に置いてよい。1.0.0 のエディタが
-  // 書く文書にキーは存在しないので、v2 の保存経路では一切発火しない
+  // 書く文書にキーは存在しないので、v2 の保存経路では一切発火しない。
+  //
+  // m19-t7: 0.7.0 の neDB 取込もこの既定経路を通る。以前は取込だけがここを素通りし、
+  // 同一 migrate() 実行内の後段 applyMapNameUnificationMigration が marker 保護下で
+  // 写像していたが、その後段を撤去した。∴ 写像の呼び出し点は本行 1 箇所だけになり、
+  // 「取込直後に中間形の行が DB に残る」窓も無くなった。
+  // 廃止属性のキーを持たない文書は写像の対象外である(移すものが無いので label を
+  // 補充しない)。0.7.0 の MapEdit はキーを必ず初期化するため実データでは 0 件である
   return adoptDeprecatedMapNames(normalized);
+}
+
+// m19-t7: 0.7.0 のユーザーベースマップ(settings/tmsList.json のエントリ)を 1.0.0 の形へ写す。
+// 撤去した起動時 migration applyBaseMapLanguageMigration の写像をそのまま移設したものであり、
+// **挙動は等価に保つ**(BASE_MAP_LANG_ATTRS の 5 属性へ広げない。広げると 0.7.0 に存在しない
+// dataAttr 等の空オブジェクトが新たに生えて文書の形が変わる。0.7.0 の実データに当該キーは 0 件)。
+//
+// 呼び出し元はレガシー取込の insert / update の 2 経路だけである(sp-0006: 正規化は書き込み側へ。
+// 読み込み側 baseMapRowToDocument には分岐を一切足さない)。
+//
+// ビルトインは対象外: シードが書く builtin_base_maps.json は全件が lang / label / 辞書形 title を
+// 既に持つ(実測 329/329)ため本関数は no-op であり、かつシードは毎起動で data_json を書き直すので
+// 撤去した段の効果は元々一時的だった。前提は m19-t7 smoke の AC-3 が機械固定する
+function normalizeLegacyBaseMapDocument(document: any, options: { scope: 'user' | 'builtin' }): any {
+  const data = { ...document };
+  const lang = typeof data.lang === 'string' && data.lang ? data.lang : options.scope === 'builtin' ? 'en' : 'ja';
+  const title = normalizeLangResource(data.title, lang);
+  const label = normalizeLangResource(data.label, lang);
+  return {
+    ...data,
+    lang,
+    title,
+    label: Object.keys(label).length > 0 ? label : { ...title },
+    attr: normalizeLangResource(data.attr, lang),
+  };
 }
 
 function normalizeAppDocument(document: any): any {
@@ -889,14 +895,6 @@ class SqliteDataService {
     // builtin base maps を最初に登録し、レガシー取込より先に clean slug を確保する (ADR-0007)
     this.applyBuiltinBaseMapSeed(db);
 
-    // オプトイン化(ADR-0006)の一括破棄は v1 schema 向け。v2 新規DBでは no-op として marker のみ記録
-    const visibilityFlipped = db
-      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
-      .get(OPT_IN_VISIBILITY_FLIP_ID);
-    if (!visibilityFlipped) {
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(OPT_IN_VISIBILITY_FLIP_ID);
-    }
-
     // M13-T5 §4.1/§5.4: 起動時 migration パイプライン3段階の依存関係・失敗ポリシー
     // (マイルストーン設計 §2.5・タスク設計 `2026-07-24-m13-t5-migration-pipeline-design.md`
     // §4.1 準拠。M12-T18: 旧段階3 trash reconcile は独自 trash の廃止 = OS ゴミ箱委譲に
@@ -916,33 +914,15 @@ class SqliteDataService {
     //   段階3 originals UUID migration (runColdBoot, 下記)
     //     best-effort enhancement: 呼び出し元(ここ)で try/catch 済み(二重防御)。
     //     migrate() はいかなる場合も本段階の失敗によって失敗してはならない契約
+    // m19-t7: 0.7.0 の取込は **1 回で凍結形へ到達する**。取込行を後から書き直す段は
+    // すべて撤去した(スキーマの写像は取込側 = 書き込み側の 1 点に集約した)。
+    // ∴ ここから下に「取込済みの行を 1.0.0 の形へ直す」段は存在しない。増やさないこと。
     await this.runLegacyMigrationIfNeeded(db);
-    this.applyBaseMapLanguageMigration(db);
-    // 以下はレガシー取込の後に走らせる(初回移行の直後でも取込済みの行が対象になるように)
-    this.applyProvisionalVisibilityKeyMigration(db);
+    // 放棄された暫定表示設定の掃除。marker を持たない**毎起動の掃除**であって migration ではない
     this.sweepStaleProvisionalVisibility(db);
-    await this.migrateBaseMapIconPaths(db);
-    // m19-t5: 既存 512px（jpg/png）を webp へ移す一度きりの migration。
-    // **マイニングより前**に置く（マイニングが webp で書いた直後に旧形式を探しに行かないため）。
-    await this.migrateThumbnail512ToWebpIfNeeded(db);
-    // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行
+    // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行。
+    // スキーマ移行ではなく z2 タイルからの導出であり、出力は最初から正規形（THUMB_512_EXT）
     await this.runThumbnail512MiningIfNeeded(db);
-
-    // m19-t1: 地図の名称属性を 1.0.0 の語彙へ移す(marker 保護下の一度きり)。
-    // 配置理由: 上の runLegacyMigrationIfNeeded(neDB 0.7.0 取込)より必ず後に置く必要がある
-    // (取込行も同じ一度きりの migration で移行させるため。取込側に移行ロジックを二重実装しない)。
-    // 順序の安全性は marker 設計が保証する: runLegacyMigrationIfNeeded はレガシー入力が
-    // 無い新規フォルダでも marker だけは記録して返るため、「名称移行の marker が立った後に
-    // レガシー取込が走る」順序は起こり得ない。
-    // また、取込と本段階の間に走る 5 段階(applyBaseMapLanguageMigration /
-    // applyProvisionalVisibilityKeyMigration / sweepStaleProvisionalVisibility /
-    // migrateBaseMapIconPaths / runThumbnail512MiningIfNeeded)は maps.data_json を
-    // 1 行も書き換えない(書き込み先は base_maps / map_base_map_visibility / apps のみ)。
-    // runColdBoot の try/catch より前に置く: runColdBoot は「migrate() はいかなる場合も
-    // 本段階の失敗によって失敗してはならない」best-effort 段階として最後尾に固定されている。
-    // 一方この移行は失敗したら migrate() を失敗させるべきである(半分移行された DB で
-    // 起動してはならない)。∴ best-effort 段階を最後に保つ形が正しい
-    this.applyMapNameUnificationMigration(db);
 
     // 既存(T3): originals UUID migration
     // M13-T3: slug originals -> UUID originals の one-shot migration/report。
@@ -957,63 +937,6 @@ class SqliteDataService {
     } catch (e) {
       console.error('[SqliteDataService] originals UUID migration failed unexpectedly; continuing DB initialization without it', e);
     }
-  }
-
-  private applyBaseMapLanguageMigration(db: DatabaseSync): void {
-    const applied = db
-      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
-      .get(BASE_MAP_LANGUAGE_MIGRATION_ID);
-    if (applied) return;
-    const rows = db.prepare('SELECT uid, scope, data_json FROM base_maps').all() as any[];
-    this.withTransaction(db, () => {
-      for (const row of rows) {
-        const data = JSON.parse(String(row.data_json || '{}'));
-        const lang = typeof data.lang === 'string' && data.lang ? data.lang : row.scope === 'builtin' ? 'en' : 'ja';
-        const title = normalizeLangResource(data.title, lang);
-        const label = normalizeLangResource(data.label, lang);
-        const normalized = {
-          ...data,
-          lang,
-          title,
-          label: Object.keys(label).length > 0 ? label : { ...title },
-          attr: normalizeLangResource(data.attr, lang),
-        };
-        db.prepare('UPDATE base_maps SET data_json = ? WHERE uid = ?')
-          .run(JSON.stringify(normalized), row.uid);
-      }
-      db.prepare('INSERT INTO schema_migrations (id) VALUES (?)')
-        .run(BASE_MAP_LANGUAGE_MIGRATION_ID);
-    });
-  }
-
-  // m19-t1: 地図の名称属性を 1.0.0 の語彙へ移す一度きりの in-place migration。
-  // applyBaseMapLanguageMigration と同型(marker 判定 → 全行読み出し → withTransaction 内で
-  // UPDATE ... WHERE uid = ? → 同一トランザクションで marker INSERT)。
-  //
-  // 写像は src/utils/mapNameUnification.ts の単一の純関数に閉じている(取込側に二重実装しない)。
-  // 写像は非冪等であり、この marker が主の守りである。
-  //
-  // maps の **全行** を UPDATE する: maps_search_au トリガが行 UPDATE のたびに maps_fts の
-  // 当該行を削除・再投入するため、FTS 索引は新しい列構成で自動的に張り直される
-  // (別途の索引再構築は不要)。
-  //
-  // 失敗ポリシー: withTransaction 内で完結し、失敗したら例外を投げて migrate() を失敗させる
-  // (半移行状態のまま利用者に見せない)。次回起動時は marker 不在の状態から再試行できる。
-  private applyMapNameUnificationMigration(db: DatabaseSync): void {
-    const applied = db
-      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
-      .get(MAP_NAME_UNIFICATION_MIGRATION_ID);
-    if (applied) return;
-    const rows = db.prepare('SELECT uid, data_json FROM maps').all() as any[];
-    this.withTransaction(db, () => {
-      const update = db.prepare('UPDATE maps SET data_json = ? WHERE uid = ?');
-      for (const row of rows) {
-        const data = JSON.parse(String(row.data_json || '{}'));
-        update.run(JSON.stringify(unifyMapNameFields(data)), row.uid);
-      }
-      db.prepare('INSERT INTO schema_migrations (id) VALUES (?)')
-        .run(MAP_NAME_UNIFICATION_MIGRATION_ID);
-    });
   }
 
   private async runLegacyMigrationIfNeeded(db: DatabaseSync): Promise<void> {
@@ -1082,27 +1005,6 @@ class SqliteDataService {
     }
   }
 
-  // 暫定表示設定キーの sentinel 化(一度きり): PROVISIONAL_MAP_KEY_PREFIX 導入以前に
-  // 生slugで書かれた暫定行(未保存地図向け)へ接頭辞を付ける。保存済み地図の行は
-  // 全て uid(UUID形状) なので対象外
-  private applyProvisionalVisibilityKeyMigration(db: DatabaseSync): void {
-    const applied = db
-      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
-      .get(PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID);
-    if (applied) return;
-    this.withTransaction(db, () => {
-      const rows = db.prepare('SELECT DISTINCT map_uid FROM map_base_map_visibility').all() as any[];
-      const rename = db.prepare('UPDATE map_base_map_visibility SET map_uid = ? WHERE map_uid = ?');
-      for (const row of rows) {
-        const key = String(row.map_uid);
-        if (UUID_PATTERN.test(key) || key.startsWith(PROVISIONAL_MAP_KEY_PREFIX)) continue;
-        rename.run(`${PROVISIONAL_MAP_KEY_PREFIX}${key}`, key);
-      }
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)')
-        .run(PROVISIONAL_VISIBILITY_PREFIX_MIGRATION_ID);
-    });
-  }
-
   // 放棄された暫定表示設定の掃除(毎起動)。未保存の地図が保存されないまま放棄されると
   // 暫定行(slug:キー)が残留し、slug は再利用可能なため同名の将来の地図に設定が
   // 継承されてしまう。編集セッションを跨ぐには十分な猶予として7日より古い行を削除する
@@ -1112,197 +1014,6 @@ class SqliteDataService {
        WHERE map_uid LIKE '${PROVISIONAL_MAP_KEY_PREFIX}%'
          AND updated_at < datetime('now', '-7 days')`
     ).run();
-  }
-
-  // ユーザーベースマップのアイコンを tmbs/{slug}.png(レガシー) から tmbs/{uid}.{ext} へ揃える(一度きり)。
-  // schema v2 移行では地図の tiles/tmbs のみ uid 化され、ベースマップのアイコンは slug 名のまま
-  // 残っていた(slug rename で実体と名前がずれる)。アプリ(apps.data_json)内の TMS ソースが
-  // 同じ相対パスをスナップショットしているため、同時に書き換える。
-  // ファイル移動 → DB 書き換えの順で行い、途中失敗しても再実行で収束する
-  // (移動済み+DB未反映のケースは「移動先が既に存在」として DB のみ更新される)。
-  // 一時的なファイル操作失敗(OneDriveのロック等はこのデータフォルダで既知の恒常ハザード)が
-  // あった場合はマーカーを書かず、次回起動で再試行する(成功済みの行はthumbnailがuid名になる
-  // ため自然に対象外となり、残った行だけが再処理される)。意図的なスキップ(移動先に先客/
-  // 実体なし)は解決済み扱いとし、マーカー記録を妨げない。
-  // ビルトインのアイコンは basemap_icons/ (同梱リソース) のためパターンに一致せず対象外
-  private async migrateBaseMapIconPaths(db: DatabaseSync): Promise<void> {
-    const applied = db
-      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
-      .get(BASE_MAP_ICON_MIGRATION_ID);
-    if (applied) return;
-    const { saveFolder } = this.folders;
-    const rows = db
-      .prepare(`SELECT uid, data_json FROM base_maps WHERE scope = 'user'`)
-      .all() as any[];
-    const renames = new Map<string, string>(); // 旧相対パス → 新相対パス
-    const baseMapUpdates: Array<{ uid: string; data: any }> = [];
-    let failedMoves = 0;
-    for (const row of rows) {
-      let data: any;
-      try {
-        data = JSON.parse(row.data_json);
-      } catch {
-        continue;
-      }
-      const thumbnail = typeof data?.thumbnail === 'string' ? data.thumbnail : '';
-      const match = thumbnail.match(/^tmbs\/([^/]+)\.([A-Za-z0-9]+)$/);
-      if (!match || match[1] === String(row.uid)) continue;
-      const newRel = `tmbs/${row.uid}.${match[2]}`;
-      const from = path.join(saveFolder, thumbnail);
-      const to = path.join(saveFolder, newRel);
-      try {
-        const fromExists = await fs.pathExists(from);
-        const toExists = await fs.pathExists(to);
-        if (fromExists && !toExists) {
-          await fs.move(from, to, { overwrite: false });
-        } else if (fromExists && toExists) {
-          // 想定外の先客: 実体を壊さないため参照もそのまま残す
-          console.warn(`[SqliteDataService] base map icon migration skipped (destination exists): ${thumbnail} -> ${newRel}`);
-          continue;
-        } else if (!fromExists && !toExists) {
-          // 実体なし(参照だけのレガシー): パスは触らない
-          continue;
-        }
-        // fromなし・toあり = 前回の部分実行で移動済み → DBのみ追随
-        renames.set(thumbnail, newRel);
-        data.thumbnail = newRel;
-        baseMapUpdates.push({ uid: String(row.uid), data });
-      } catch (e: any) {
-        failedMoves++;
-        console.warn(`[SqliteDataService] base map icon migration failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
-      }
-    }
-
-    // アプリの TMS ソースが旧パスを参照している場合は追随させる(旧保存形の
-    // フラット形(thumbnail直下)と新形(data.thumbnail)の両方を受容する)
-    const appUpdates: Array<{ uid: string; doc: any }> = [];
-    if (renames.size > 0) {
-      const appRows = db.prepare('SELECT uid, data_json FROM apps').all() as any[];
-      for (const appRow of appRows) {
-        let doc: any;
-        try {
-          doc = JSON.parse(appRow.data_json);
-        } catch {
-          continue;
-        }
-        let changed = false;
-        const sources = Array.isArray(doc?.sources) ? doc.sources : [];
-        for (const source of sources) {
-          if (!source || typeof source !== 'object') continue;
-          for (const holder of [source, source.data]) {
-            if (!holder || typeof holder !== 'object') continue;
-            const current = holder.thumbnail;
-            if (typeof current === 'string' && renames.has(current)) {
-              holder.thumbnail = renames.get(current);
-              changed = true;
-            }
-          }
-        }
-        if (changed) appUpdates.push({ uid: String(appRow.uid), doc });
-      }
-    }
-
-    this.withTransaction(db, () => {
-      const updateBaseMap = db.prepare(
-        `UPDATE base_maps SET data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
-      );
-      for (const update of baseMapUpdates) {
-        updateBaseMap.run(JSON.stringify(update.data), update.uid);
-      }
-      const updateApp = db.prepare(
-        `UPDATE apps SET data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
-      );
-      for (const update of appUpdates) {
-        updateApp.run(JSON.stringify(update.doc), update.uid);
-      }
-      // ファイル操作の失敗が1件でもあればマーカーを書かない(次回起動で残りを再試行)
-      if (failedMoves === 0) {
-        db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(BASE_MAP_ICON_MIGRATION_ID);
-      } else {
-        console.warn(
-          `[SqliteDataService] base map icon migration left ${failedMoves} icon(s) unmigrated; will retry on next startup`
-        );
-      }
-    });
-  }
-
-  // m19-t5 (§8.2): 既存ユーザデータの 512px サムネイルを正規形（THUMB_512_EXT）へ移す一度きりの migration。
-  //
-  // 対象は saveFolder/tmbs/ 直下の「512px の接尾辞を持つが正規形以外の拡張子」のファイル全数。
-  // 1 件ずつ transcode し、**書き込みが成功してから**元を削除する（失敗時は元が残る）。
-  // 個別の失敗は warnings へ落として次へ進み、1 件でも失敗したらマーカーを書かない
-  // （次回起動で再試行する。BASE_MAP_ICON_MIGRATION_ID と同型）。
-  //
-  // 冪等性: マーカーで 1 回限り。マーカー未書き込みでの再実行時も、既に正規形へ移ったものは
-  // 元ファイルが無いため対象に入らない。
-  //
-  // マイニングのマーカーは上げない: transcode がすべてを正規形にするため、マイニングの
-  // 「512px が存在しない地図」条件は移行後も thumb512PathFor 経由で正しく判定される。
-  private async migrateThumbnail512ToWebpIfNeeded(db: DatabaseSync): Promise<void> {
-    const applied = db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(THUMBNAIL_512_WEBP_ID);
-    if (applied) return;
-
-    const canonicalExt = THUMB_512_EXT;
-    if (!canonicalExt) {
-      // THUMB_512_EXT が null（= 入力拡張子の引き継ぎ）へ戻された構成では移行対象が定義できない。
-      // 単一変化点を戻したときに旧データを壊さないため、何もせずマーカーだけを立てる。
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_WEBP_ID);
-      return;
-    }
-
-    const saveFolder = SettingsService.get('saveFolder') as string;
-    const thumbFolder = path.join(saveFolder, 'tmbs');
-    if (!(await fs.pathExists(thumbFolder))) {
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_WEBP_ID);
-      return;
-    }
-
-    // 512px の接尾辞は派生規約から導く（リテラルを持たない）。
-    // 例: thumb512PathFor が 'tmbs/x.jpg' から返す basename の stem と 'x' の差分が接尾辞になる
-    const sampleRel = thumb512PathFor(thumb52PathFor('x', 'jpg'))!;
-    const suffix512 = path.posix.basename(sampleRel).replace(/^x/, '').replace(/\.[^.]+$/, '');
-    const targets = (await fs.readdir(thumbFolder)).filter((name) => {
-      const dot = name.lastIndexOf('.');
-      if (dot < 0) return false;
-      const ext = name.slice(dot + 1).toLowerCase();
-      return name.slice(0, dot).endsWith(suffix512) && ext !== canonicalExt.toLowerCase();
-    });
-
-    if (targets.length === 0) {
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_WEBP_ID);
-      return;
-    }
-
-    sendMigrationProgress('database.migrating_thumbnails_512_webp', 0, '(512px)');
-    const warnings: string[] = [];
-    let done = 0;
-    for (const name of targets) {
-      const src = path.join(thumbFolder, name);
-      const dest = path.join(thumbFolder, `${name.slice(0, name.lastIndexOf('.'))}.${canonicalExt}`);
-      try {
-        await transcodeImage(src, dest);
-        await fs.remove(src);
-      } catch (e: any) {
-        warnings.push(`thumbnail 512 webp migration failed: ${name} (${e?.message ?? e})`);
-        console.warn(`[SqliteDataService] ${warnings[warnings.length - 1]}`);
-      }
-      done++;
-      sendMigrationProgress(
-        'database.migrating_thumbnails_512_webp',
-        Math.round((done / targets.length) * 100),
-        `(${done}/${targets.length})`,
-      );
-    }
-
-    if (warnings.length > 0) {
-      await appendMigrationWarnings(saveFolder, warnings);
-      console.warn(
-        `[SqliteDataService] thumbnail 512 webp migration left ${warnings.length} file(s) unmigrated; will retry on next startup`,
-      );
-    } else {
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_WEBP_ID);
-    }
-    sendMigrationProgress('database.migrating_thumbnails_512_webp_done', 100, '(512px)');
   }
 
   // M12-T15 R3 §C2: 512px サムネイル起動時マイニング。
@@ -1781,74 +1492,12 @@ class SqliteDataService {
       END;
     `);
 
-    // トリガ導入以前に書き込まれた既存行の索引を一度だけ再構築する
-    const backfilled = db
-      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
-      .get(SEARCH_INDEX_BACKFILL_ID);
-    if (!backfilled) {
-      db.exec(`
-        BEGIN;
-        DELETE FROM maps_fts;
-        DELETE FROM maps_rtree;
-        DELETE FROM maps_rtree_key;
-        DELETE FROM apps_fts;
-        DELETE FROM apps_rtree;
-        DELETE FROM apps_rtree_key;
-        DELETE FROM base_maps_fts;
-        DELETE FROM assets_fts;
-        DELETE FROM poi_sources_rtree;
-        DELETE FROM poi_sources_rtree_key;
-        INSERT INTO maps_fts(uid, raw, words)
-          SELECT uid,
-                 slug || char(10) || maplat_map_fts_raw(data_json),
-                 maplat_tokenize(slug || ' ' || maplat_map_fts_raw(data_json))
-          FROM maps;
-        INSERT INTO maps_rtree_key(uid, rid)
-          SELECT uid, rowid FROM maps WHERE maplat_map_bbox(data_json) IS NOT NULL;
-        INSERT INTO maps_rtree(id, min_x, max_x, min_y, max_y)
-          SELECT rowid,
-                 json_extract(maplat_map_bbox(data_json), '$[0]'),
-                 json_extract(maplat_map_bbox(data_json), '$[2]'),
-                 json_extract(maplat_map_bbox(data_json), '$[1]'),
-                 json_extract(maplat_map_bbox(data_json), '$[3]')
-          FROM maps WHERE maplat_map_bbox(data_json) IS NOT NULL;
-        INSERT INTO apps_fts(uid, raw, words)
-          SELECT uid,
-                 slug || char(10) || maplat_app_fts_raw(data_json),
-                 maplat_tokenize(slug || ' ' || maplat_app_fts_raw(data_json))
-           FROM apps;
-         INSERT INTO apps_rtree_key(uid, rid)
-           SELECT uid, rowid FROM apps WHERE maplat_app_bbox(data_json) IS NOT NULL;
-         INSERT INTO apps_rtree(id, min_x, max_x, min_y, max_y)
-           SELECT rowid,
-                  json_extract(maplat_app_bbox(data_json), '$[0]'),
-                  json_extract(maplat_app_bbox(data_json), '$[2]'),
-                  json_extract(maplat_app_bbox(data_json), '$[1]'),
-                  json_extract(maplat_app_bbox(data_json), '$[3]')
-           FROM apps WHERE maplat_app_bbox(data_json) IS NOT NULL;
-         INSERT INTO base_maps_fts(uid, raw, words)
-          SELECT uid,
-                 slug || char(10) || maplat_base_map_fts_raw(data_json),
-                 maplat_tokenize(slug || ' ' || maplat_base_map_fts_raw(data_json))
-           FROM base_maps;
-         INSERT INTO poi_sources_rtree_key(uid, rid)
-           SELECT uid, rowid FROM poi_sources WHERE maplat_poi_bbox(data_json) IS NOT NULL;
-         INSERT INTO poi_sources_rtree(id, min_x, max_x, min_y, max_y)
-           SELECT rowid,
-                  json_extract(maplat_poi_bbox(data_json), '$[0]'),
-                  json_extract(maplat_poi_bbox(data_json), '$[2]'),
-                  json_extract(maplat_poi_bbox(data_json), '$[1]'),
-                  json_extract(maplat_poi_bbox(data_json), '$[3]')
-           FROM poi_sources WHERE maplat_poi_bbox(data_json) IS NOT NULL;
-         INSERT INTO assets_fts(uid, raw, words)
-          SELECT uid,
-                 maplat_asset_fts_raw(slug, title_json, source_name),
-                 maplat_tokenize(maplat_asset_fts_raw(slug, title_json, source_name))
-          FROM assets;
-        INSERT OR REPLACE INTO schema_migrations (id) VALUES ('${SEARCH_INDEX_BACKFILL_ID}');
-        COMMIT;
-      `);
-    }
+    // m19-t7: トリガ導入以前に書き込まれた既存行の索引を一度だけ再構築する backfill は撤去した。
+    // 上のトリガ定義は**毎起動で DROP & CREATE される**ため索引の器は常に最新であり、
+    // 行の索引化は投入時にトリガが行う。0.7.0 からの初回起動では backfill が走る時点で
+    // まだ 1 行も無い(取込は後段)ので構造的に 0 件であり、公開版に同梱する意味がない。
+    // 索引の張り直しが必要になったら、marker で 1 回きりにするのではなく毎起動の再構築として
+    // 書くこと(器と中身の生成タイミングを分けたことが「0 件で走る段」を生んだ)。
   }
 
   // --- asset registry (ADR-0007) ---
@@ -3058,10 +2707,10 @@ class SqliteDataService {
       if (slug !== oldId) report.renamedSlugs.push({ kind: 'map', from: oldId, to: slug });
       const uid = generateUid();
       this.registerAsset(db, 'map', uid, slug);
-      // m19-t1: 取込は行を作るだけで写像を持たない。廃止された名称属性は保持したまま
-      // insert し、同一 migrate() 実行内の後段 applyMapNameUnificationMigration が
-      // marker 保護下で一手に写像する(取込側に移行ロジックを二重実装しない)
-      insert.run(uid, slug, JSON.stringify(normalizeMapDocument(doc, { preserveDeprecatedForMigration: true })));
+      // m19-t7: 取込は他のすべての書き込みと同じ唯一の正規化点 normalizeMapDocument を通る。
+      // ∴ 行は **insert の瞬間から** 1.0.0 の凍結形であり、中間形は DB に一度も現れない
+      // (取込側に写像を二重実装するのではなく、既存の 1 点を素通りするのをやめただけである)
+      insert.run(uid, slug, JSON.stringify(normalizeMapDocument(doc)));
       mapIdToUid.set(oldId, uid);
     }
     return mapIdToUid;
@@ -3155,16 +2804,28 @@ class SqliteDataService {
         if (!oldId) continue;
         const known = baseIdToUid.get(oldId);
         if (known) {
-          // 複数入力(settings/tmsList.json 内の重複等)に同一IDがある場合は後勝ちで内容更新
+          // 複数入力(settings/tmsList.json 内の重複等)に同一IDがある場合は後勝ちで内容更新。
+          // m19-t7: update 経路も insert と同じ正規化を通す(片方だけ通すと重複入力のときだけ
+          // 1.0.0 の形でない行が残る)
           const knownSlug = (db.prepare('SELECT slug FROM base_maps WHERE uid = ?').get(known) as any)?.slug;
-          update.run(JSON.stringify({ ...tms, mapID: knownSlug }), known);
+          update.run(
+            JSON.stringify(normalizeLegacyBaseMapDocument({ ...tms, mapID: knownSlug }, { scope: 'user' })),
+            known,
+          );
           continue;
         }
         const slug = resolveSlugCollision(oldId, (s) => this.slugTaken(db, s));
         if (slug !== oldId) report.renamedSlugs.push({ kind: 'base_map', from: oldId, to: slug });
         const uid = generateUid();
         this.registerAsset(db, 'base_map', uid, slug);
-        insert.run(uid, slug, sortOrder++, JSON.stringify({ ...tms, mapID: slug }));
+        // m19-t7: 0.7.0 の生の tms オブジェクトではなく、1.0.0 の形(lang / label を持つ)で insert する。
+        // 以前は raw のまま書き、後段 applyBaseMapLanguageMigration が書き直していた
+        insert.run(
+          uid,
+          slug,
+          sortOrder++,
+          JSON.stringify(normalizeLegacyBaseMapDocument({ ...tms, mapID: slug }, { scope: 'user' })),
+        );
         baseIdToUid.set(oldId, uid);
       }
     }

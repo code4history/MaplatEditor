@@ -475,8 +475,6 @@
     "migration_report_warnings": "มีคำเตือน {{count}} รายการ โปรดดูรายละเอียดใน migration-report-v2.json ในโฟลเดอร์ข้อมูล",
     "migrating_thumbnails_512": "กำลังสร้างภาพย่อ 512px",
     "migrating_thumbnails_512_done": "สร้างภาพย่อ 512px เสร็จสิ้น",
-    "migrating_thumbnails_512_webp": "กำลังแปลงภาพย่อ 512px เป็น WebP",
-    "migrating_thumbnails_512_webp_done": "แปลงภาพย่อ 512px เป็น WebP เสร็จสิ้น",
     "migrating_originals": "กำลังย้ายไฟล์ต้นฉบับไปเป็นชื่อไฟล์ UUID",
     "migrating_originals_done": "การย้ายไฟล์ต้นฉบับเสร็จสิ้น"
   },

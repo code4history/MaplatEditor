@@ -1,0 +1,221 @@
+{
+  "maps": {
+    "empty-exact": {
+      "description": {
+        "ja": "Migrated from NeDB"
+      },
+      "attr": {},
+      "author": {},
+      "createdAt": {},
+      "license": "",
+      "lang": "ja",
+      "imageExtension": "jpg",
+      "width": 320,
+      "height": 200,
+      "gcps": [],
+      "edges": [],
+      "sub_maps": [],
+      "homePosition": [
+        0,
+        0
+      ],
+      "mercZoom": 0,
+      "strictMode": "strict",
+      "vertexMode": "plain",
+      "title": {
+        "ja": "江戸切絵図"
+      },
+      "label": {
+        "ja": "江戸切絵図"
+      }
+    },
+    "multilingual": {
+      "description": {
+        "ja": "Migrated from NeDB"
+      },
+      "attr": {},
+      "author": {},
+      "createdAt": {},
+      "license": "",
+      "lang": "ja",
+      "imageExtension": "jpg",
+      "width": 320,
+      "height": 200,
+      "gcps": [],
+      "edges": [],
+      "sub_maps": [],
+      "homePosition": [
+        0,
+        0
+      ],
+      "mercZoom": 0,
+      "strictMode": "strict",
+      "vertexMode": "plain",
+      "title": {
+        "ja": "盛岡城下之絵図",
+        "en": "Morioka Castle Town"
+      },
+      "label": {
+        "ja": "盛岡城下絵図",
+        "en": "Morioka Castle Town"
+      }
+    },
+    "no-exact-key": {
+      "description": {
+        "ja": "Migrated from NeDB"
+      },
+      "attr": {},
+      "author": {},
+      "createdAt": {},
+      "license": "",
+      "lang": "ja",
+      "imageExtension": "jpg",
+      "width": 320,
+      "height": 200,
+      "gcps": [],
+      "edges": [],
+      "sub_maps": [],
+      "homePosition": [
+        0,
+        0
+      ],
+      "mercZoom": 0,
+      "strictMode": "strict",
+      "vertexMode": "plain",
+      "title": {
+        "ja": "甲府城下絵図"
+      },
+      "label": {
+        "ja": "甲府城下絵図"
+      }
+    },
+    "plain-exact": {
+      "description": {
+        "ja": "Migrated from NeDB"
+      },
+      "attr": {},
+      "author": {},
+      "createdAt": {},
+      "license": "",
+      "lang": "ja",
+      "imageExtension": "jpg",
+      "width": 320,
+      "height": 200,
+      "gcps": [],
+      "edges": [],
+      "sub_maps": [],
+      "homePosition": [
+        0,
+        0
+      ],
+      "mercZoom": 0,
+      "strictMode": "strict",
+      "vertexMode": "plain",
+      "title": {
+        "ja": "館林城下之絵図"
+      },
+      "label": {
+        "ja": "館林城下絵図"
+      }
+    }
+  },
+  "baseMapsUser": {
+    "gsi-ortho": {
+      "mapID": "gsi-ortho",
+      "title": {
+        "ja": "地理院オルソ（後勝ち）"
+      },
+      "attr": {
+        "ja": "国土地理院"
+      },
+      "url": "https://example.test/o2/{z}/{x}/{y}.png",
+      "minZoom": 3,
+      "maxZoom": 17,
+      "lang": "ja",
+      "label": {
+        "ja": "地理院オルソ（後勝ち）"
+      }
+    },
+    "no-attr": {
+      "mapID": "no-attr",
+      "title": {
+        "ja": "Attr なし"
+      },
+      "url": "https://example.test/n/{z}/{x}/{y}.png",
+      "maxZoom": 16,
+      "lang": "ja",
+      "label": {
+        "ja": "Attr なし"
+      },
+      "attr": {}
+    }
+  },
+  "builtin": {
+    "count": 329,
+    "digest": "6ea76d7870db06bb5af62708a334be832c62cdea27bcf79389be1c60e6abd178",
+    "allNormalized": true,
+    "sample": {
+      "mapID": "osm",
+      "lang": "en",
+      "title": {
+        "ja": "OpenStreetMap",
+        "en": "OpenStreetMap",
+        "de": "OpenStreetMap",
+        "fr": "OpenStreetMap",
+        "es": "OpenStreetMap",
+        "ko": "OpenStreetMap",
+        "zh": "OpenStreetMap",
+        "zh-TW": "OpenStreetMap",
+        "vi": "OpenStreetMap",
+        "th": "OpenStreetMap",
+        "id": "OpenStreetMap"
+      },
+      "label": {
+        "ja": "OSM",
+        "en": "OSM",
+        "de": "OSM",
+        "fr": "OSM",
+        "es": "OSM",
+        "ko": "OSM",
+        "zh": "OSM",
+        "zh-TW": "OSM",
+        "vi": "OSM",
+        "th": "OSM",
+        "id": "OSM"
+      },
+      "always": true,
+      "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "minZoom": 0,
+      "maxZoom": 19,
+      "attr": {
+        "ja": "©︎ OpenStreetMap contributors",
+        "en": "©︎ OpenStreetMap contributors"
+      },
+      "dataAttr": {
+        "ja": "©︎ OpenStreetMap contributors",
+        "en": "©︎ OpenStreetMap contributors"
+      },
+      "license": "Custom",
+      "dataLicense": "ODbL",
+      "licenseNote": {
+        "ja": "©︎ OpenStreetMap contributors（OpenStreetMap Copyright: https://www.openstreetmap.org/copyright）",
+        "en": "©︎ OpenStreetMap contributors (OpenStreetMap Copyright: https://www.openstreetmap.org/copyright)"
+      },
+      "thumbnail": "basemap_icons/osm.png",
+      "thumbnail512": "basemap_icons_512/osm.webp",
+      "builtinId": "osm"
+    }
+  },
+  "markers": [
+    "2026-07-04-sqlite-write-store-legacy-import",
+    "2026-07-05-opt-in-base-map-visibility",
+    "2026-07-09-base-map-icon-uid-paths",
+    "2026-07-09-provisional-visibility-slug-prefix",
+    "2026-07-14-m11-t4-basemap-language",
+    "2026-07-16-app-fts-rtree-backfill",
+    "2026-07-21-thumbnail-512-mining-v2",
+    "2026-08-09-m19-t1-map-name-unification",
+    "2026-08-10-thumbnail-512-webp-v1"
+  ],
+  "reopenedIdentical": true
+}
