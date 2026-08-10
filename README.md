@@ -38,11 +38,30 @@ binaries are distributed via GitHub Releases.
 - Right-click a correspondence line to insert a midpoint GCP and split the
   line, restoring a workflow from the original editor
 - App editor covers base map and POI source selection, per-source settings
-  (built-in / TMS / WMTS), a coverage-area drawing tool, and PWA/OGP metadata
+  (built-in / TMS / WMTS), a coverage drawing tool, and PWA/OGP metadata
   (icons, splash image, keywords, canonical URL)
 - Creates data consumable by Maplat viewer libraries (`@maplat/ui` /
   `@maplat/core`); bundles OpenLayers and the Maplat core libraries so no
   separate install is needed
+
+### Map Metadata
+
+- Every map has a required **Title** — shown as the card name in resource
+  lists and as the header on the map's edit screen — and an optional
+  **Display label**, a short name shown in the viewer's map switcher. The
+  15-character length limit these fields had in earlier versions has been
+  removed; only Title being non-empty is still required
+- The display label is written to the map's exported `map.json` as `label`
+
+### App Delivery Settings
+
+- New apps default to PWA off, tile cache off, and Marker List UI on;
+  existing and imported apps keep their previously saved values (a missing
+  key falls back to the pre-1.0 defaults: PWA on, cache on, Marker List UI
+  off). Tile cache can only be enabled while PWA is enabled — turning PWA
+  off also turns the cache off
+- When an app references a map, the only per-app override available is the
+  map's **Display label**; all other map attributes come from the map itself
 
 ### POI Editor
 
@@ -59,11 +78,24 @@ binaries are distributed via GitHub Releases.
   read-only for performance
 - Remote (registered) POI sources are read-only; a "copy locally" action
   creates an editable local copy
+- Each managed POI source carries its own layer metadata — a Layer Icon and
+  Layer Selected Icon, edited on the POI source's own screen — used as that
+  source's default icon and selected-state icon
 - Each POI source reference in a map or app can carry per-reference overrides
   — title, icon, selected icon, and a "hidden by default" flag. The flag hides
   that layer when the map/app is first opened (viewers can turn it back on)
   without modifying the POI source itself, so the same source can start
-  visible in one app and hidden in another
+  visible in one app and hidden in another. These overrides share attribute
+  names with the source's own layer metadata above but apply at a different
+  level: the source's Layer Icon/Layer Selected Icon are its defaults, while
+  a reference's icon/selected-icon override replaces them for that one
+  map/app only
+- A map or app's `pois` field accepts six historical forms: a URL string, an
+  inline FeatureCollection, an array of FeatureCollections, an array of
+  legacy POI objects, an old layer-name-keyed dictionary, and a layer-ref
+  wrapper (`{ layer, hide?, title?, icon?, selectedIcon? }`). The layer-ref
+  wrapper — used by managed POI source references — is the current form; the
+  other five are legacy and kept for backward compatibility only
 - Legacy map/app-embedded POIs (inline `pois` entries) are preserved as-is:
   the POI data tab shows them read-only, grouped into panes per viewer
   layer, with item counts and badges distinguishing "Map-embedded POI" and
@@ -78,8 +110,8 @@ binaries are distributed via GitHub Releases.
 ### Resource Management
 
 - Five resource lists (Map / App / POI / Base Map / Asset) use infinite
-  scroll and full-text search across all five types, plus bounding-box range
-  search for Map, POI, Base Map, and App
+  scroll and full-text search across all five types, plus filter area search
+  for Map, POI, Base Map, and App
 - Map, App, and POI source lists show diagnostic badges for strict map
   errors, missing map/base-map/POI/asset references, and unsupported app POI
   formats, using the same checks as save, preview, and export
@@ -114,14 +146,19 @@ binaries are distributed via GitHub Releases.
   on first launch after an upgrade — legacy data import, thumbnail
   generation, and originals renaming — without deleting existing data; see
   [Prerequisites](#prerequisites) for details
-- Importing a map image is subject to JPEG decode limits (8192 MB of memory
-  and 800 MP of resolution by default). An image above the limits is
-  detected before decoding, and the error tells you **how much is needed,
-  what is currently configured, and what to set**. Raise "JPEG decode memory
-  limit" / "JPEG resolution limit" on the Settings page. These are
-  arithmetic thresholds that guard against decompression blow-ups; they
-  **do not reserve actual memory**, so raising them will not help if the
-  machine runs out of physical memory
+- Importing a map image is subject to JPEG decode limits. By default, both
+  "JPEG decode memory limit" and "JPEG resolution limit" on the Settings
+  page are blank, meaning the required amount is determined automatically
+  per image; entering a number instead sets an upper **cap** on that
+  automatic value (values beyond what this app can handle are lowered
+  automatically). An image whose automatic requirement exceeds the
+  configured cap is detected before decoding, and the error tells you **how
+  much is needed, what is currently configured, and what to set**. Very
+  large images (over 100 MP) also show a confirmation dialog before import,
+  since decoding can take several minutes and cannot be canceled once
+  started. These are arithmetic thresholds that guard against decompression
+  blow-ups; they **do not reserve actual memory**, so raising them will not
+  help if the machine runs out of physical memory
 - Only one instance of MaplatEditor runs at a time; launching a second
   instance brings the existing window to the front instead of opening a new
   one
@@ -129,14 +166,19 @@ binaries are distributed via GitHub Releases.
 ### Export and Import
 
 - Apps export as a single ZIP (`{appID}.zip`), optionally including a
-  static, PWA-ready build (manifest, icons, splash image)
+  static, PWA-ready build (manifest, icons, splash image); each map/base-map
+  source is referenced by a `settingFile` (`maps/<slug>.json`) rather than
+  embedded inline, and any base maps the app uses get their own
+  `maps/<slug>.json` written into the export alongside the maps'
 - POI sources export as GeoJSON, or as a ZIP package when they include image
   references, and can be imported back with internal image references
   resolved automatically
 - Maps export as a ZIP containing the map definition, tiles, both standard
-  and 512px thumbnails, and any POI layers as separate `pois/*.geojson`
-  files together with the images they reference; importing such a ZIP
-  restores those layers as managed POI sources
+  and 512px thumbnails, and a `pois/` directory holding one `*.geojson` file
+  per POI layer together with the images they reference — POI data always
+  leaves the map definition as an external file, referenced through a
+  layer-ref wrapper; importing such a ZIP restores those layers as managed
+  POI sources
 - If an imported map's ID collides with an existing one, the import no longer
   fails: the map is assigned the next free ID (`{ID}-2`, `{ID}-3`, ...). The
   existing map is never overwritten — the import adds a separate map. IDs are
@@ -152,6 +194,15 @@ binaries are distributed via GitHub Releases.
 - 512px high-definition thumbnails for maps, base maps, and apps are
   generated automatically on upload, and backfilled for existing data on
   first launch after upgrading
+- Maps, base maps, and apps also keep a 52px icon alongside the 512px
+  thumbnail; both can be replaced manually (**Replace 512px…** / **Replace
+  52px…**) from the Thumbnail management panel, with **Also create 52px
+  from 512px** checked by default so a single 512px replacement updates
+  both. For base maps, **Generate from coverage** produces the 512px
+  thumbnail and the 52px icon together from the same crop. Built-in base
+  maps cannot have their thumbnails replaced or generated
+- Thumbnail replacement bypasses Save and Undo — a replaced image is
+  written to file immediately; to revert, replace the image again
 - UI available in 11 languages: English, Japanese, German, Korean,
   Vietnamese, Chinese (Simplified), Chinese (Traditional), French, Spanish,
   Thai, and Indonesian. The 9 languages beyond English/Japanese are machine
@@ -159,9 +210,22 @@ binaries are distributed via GitHub Releases.
 - Open-source (Apache 2.0 from version 0.7.0) — companion to the Maplat
   viewer ecosystem
 
+### Settings and Application Menu
+
+- The Settings screen has two tabs: **Basic settings** and **Base map
+  settings** (a former third tab for original-map settings has been
+  removed)
+- Packaged (distributed) builds no longer show the **Development** menu in
+  the application menu; it still appears when running from source or under
+  E2E test automation
+- The About window's copyright notice follows ADR-0011
+  (`Copyright 2019-2026 Kohei Otsuka, Code for History / Nayuta, Inc.`) and
+  its version line is read from the running app rather than hard-coded
+
 <!-- SECTION 5: Quick Start -->
 ## Quick Start
 
+<!-- release-pinned:start -->
 > Release-dependent information (ADR-0012). The version `0.7.0` below is the
 > current release; update it on each new release.
 
@@ -178,12 +242,13 @@ MaplatEditor is distributed as a desktop installer via GitHub Releases.
 > See the [v0.7.0 release page](https://github.com/code4history/MaplatEditor/releases/tag/v0.7.0)
 > for the full list of assets (including Linux AppImage and Windows arm64)
 > and release notes.
+<!-- release-pinned:end -->
 
 ### Screenshots
 
-> Screenshots of the MapList and MapEdit screens are pending. The legacy Wiki
-> tutorial images are preserved in the
-> [Wiki Gallery](https://github.com/code4history/MaplatEditor/wiki/Gallery).
+> Current-version screenshots of the MapList and MapEdit screens are in the
+> [Wiki Gallery](https://github.com/code4history/MaplatEditor/wiki/Gallery),
+> alongside the legacy Wiki tutorial images.
 
 ### Development
 
@@ -278,6 +343,9 @@ repository; the Sister repositories table below is the public substitute)*
 | [MaplatTin](https://github.com/code4history/MaplatTin) | Apache 2.0 | `@maplat/tin` | TIN conversion |
 | [MaplatTransform](https://github.com/code4history/MaplatTransform) | Apache 2.0 | `@maplat/transform` | Coordinate transform |
 | [MaplatEditor](https://github.com/code4history/MaplatEditor) | Apache 2.0 | — | Data authoring tool (desktop) |
+| [Chuci](https://github.com/code4history/Chuci) | MIT | `@c4h/chuci` | Multimedia swiper/viewer components |
+| [Quyuan](https://github.com/code4history/Quyuan) | MIT | `@c4h/quyuan` | GeoJSON template extractor |
+| [Weiwudi](https://github.com/code4history/Weiwudi) | MIT | `@c4h/weiwudi` | Tile cache Service Worker |
 
 > MaplatEditor is the data authoring tool used to create the maps and POIs
 > that the viewers above render. The Maplat ecosystem is end-to-end:
