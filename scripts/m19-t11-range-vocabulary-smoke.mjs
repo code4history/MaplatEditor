@@ -265,7 +265,7 @@ const ATTR_APP_COVERAGE = "app" + "Coverage" + "LngLats";
 
 const FREEZE_ROOTS = ["src", "electron", "scripts", "tests", "public"];
 const FREEZE_EXPECTED = {
-  [ATTR_COVERAGE]: 472,
+  [ATTR_COVERAGE]: 473,
   [ATTR_ENVELOPE]: 43,
   [ATTR_APP_COVERAGE]: 6,
 };
@@ -304,6 +304,6 @@ assert.deepEqual(freezeCounts, FREEZE_EXPECTED,
   + `  期待（設計 §11 C8）: ${JSON.stringify(FREEZE_EXPECTED)}\n`
   + `  実測: ${JSON.stringify(freezeCounts)}\n`
   + `  属性を意図的に触った場合は rule-0015 に従い当該タスクが本 baseline を更新すること。`);
-console.log("m19-t11 smoke MC5: OK（属性名 472 / 43 / 6 — 凍結契約 §4.6.2-1 の機械証明）");
+console.log("m19-t11 smoke MC5: OK（属性名 473 / 43 / 6 — 凍結契約 §4.6.2-1 の機械証明）");
 
 console.log("m19-t11 smoke: ALL OK");

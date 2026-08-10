@@ -3,7 +3,7 @@
 // AC1  BaseMapEditDocument / BaseMapSavePayload.tms が §4.1 の5フィールドを持ち、
 //      fromBaseMapCatalogItem → toBaseMapSavePayload の往復で保たれる。
 // AC2  newBaseMapDocument の license / dataLicense が空文字（All right reserved を既定にしない）。
-// AC3  MAP_LANG_ATTRS が13件で licenseNote / dataLicenseNote を含み、url を含まない。
+// AC3  MAP_LANG_ATTRS が12件で licenseNote / dataLicenseNote を含み、url を含まない。
 // AC4  BASE_MAP_LANG_ATTRS が5件（label を含まない）で、composeViewerSource がそれを回して解決する。
 //      解決結果が空のキーは出力されない。
 // AC7  語彙が licenseVocabulary.ts 単一の正本から供給され、image 11件 / data 10件で PD は data に無い。
@@ -133,12 +133,12 @@ try {
   assert.deepEqual(payload.tms.dataAttr, { ja: "データ帰属" }, "AC1: 往復で dataAttr が保たれる");
   console.log("ok: AC1 fromBaseMapCatalogItem -> toBaseMapSavePayload roundtrip keeps 5 fields");
 
-  // --- AC3: MAP_LANG_ATTRS が13件で licenseNote/dataLicenseNote を含み url を含まない ---
-  assert.equal(MAP_LANG_ATTRS.length, 13, "AC3: MAP_LANG_ATTRS は13件のはず。実際: " + MAP_LANG_ATTRS.length);
+  // --- AC3: MAP_LANG_ATTRS が12件で licenseNote/dataLicenseNote を含み url を含まない ---
+  assert.equal(MAP_LANG_ATTRS.length, 12, "AC3: MAP_LANG_ATTRS は12件のはず。実際: " + MAP_LANG_ATTRS.length);
   assert.ok(MAP_LANG_ATTRS.includes("licenseNote"), "AC3: MAP_LANG_ATTRS に licenseNote を含むはず");
   assert.ok(MAP_LANG_ATTRS.includes("dataLicenseNote"), "AC3: MAP_LANG_ATTRS に dataLicenseNote を含むはず");
   assert.ok(!MAP_LANG_ATTRS.includes("url"), "AC3: MAP_LANG_ATTRS に url を含まないはず");
-  console.log("ok: AC3 MAP_LANG_ATTRS = 13 with licenseNote/dataLicenseNote, no url");
+  console.log("ok: AC3 MAP_LANG_ATTRS = 12 with licenseNote/dataLicenseNote, no url");
 
   // --- AC4: BASE_MAP_LANG_ATTRS が5件（label を含まない）で composeViewerSource が解決する ---
   assert.equal(BASE_MAP_LANG_ATTRS.length, 5, "AC4: BASE_MAP_LANG_ATTRS は5件のはず。実際: " + BASE_MAP_LANG_ATTRS.length);
