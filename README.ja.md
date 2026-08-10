@@ -216,23 +216,30 @@ MaplatEditor は Apache License 2.0（バージョン 0.7.0 以降）のオー�
 ## クイックスタート
 
 <!-- release-pinned:start -->
-> リリース依存情報（ADR-0012）。下記バージョン `0.7.0` は現在の
-> リリースです。リリースごとに更新してください。
+> **現在のリリース: `v1.0.0-rc3`**（リリース候補）。このブロックは本リポジトリで唯一
+> リリース版数を持つ場所です（ADR-0012）。ブロックの外はすべて 1.0 正式版を前提に
+> 書かれています。
+> npm で公開している Maplat ライブラリは `1.0.0-rc1` です。揃えるのは今後の一斉
+> パブリッシュの担当であり、本文書の範囲ではありません。
 
 ### ダウンロード
 
 MaplatEditor はデスクトップインストーラーとして GitHub Releases から配布して
 います。
 
-| プラットフォーム | ダウンロード |
+| プラットフォーム | インストーラー |
 |---|---|
-| Windows (x64) | [MaplatEditor-Windows-0.7.0-x64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Windows-0.7.0-x64-Setup.exe) |
-| macOS (Apple Silicon) | [MaplatEditor-Mac-0.7.0-arm64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Mac-0.7.0-arm64.dmg) |
-| macOS (Intel x64) | [MaplatEditor-Mac-0.7.0-x64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v0.7.0/MaplatEditor-Mac-0.7.0-x64.dmg) |
+| Windows (x64) | [MaplatEditor-Windows-1.0.0-rc3-x64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v1.0.0-rc3/MaplatEditor-Windows-1.0.0-rc3-x64-Setup.exe) |
+| Windows (arm64) | [MaplatEditor-Windows-1.0.0-rc3-arm64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v1.0.0-rc3/MaplatEditor-Windows-1.0.0-rc3-arm64-Setup.exe) |
+| Windows（統合版・どの arch か分からない場合はこれ） | [MaplatEditor-Windows-1.0.0-rc3-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v1.0.0-rc3/MaplatEditor-Windows-1.0.0-rc3-Setup.exe) |
+| macOS (Apple Silicon) | [MaplatEditor-Mac-1.0.0-rc3-arm64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v1.0.0-rc3/MaplatEditor-Mac-1.0.0-rc3-arm64.dmg) |
+| macOS (Intel) | [MaplatEditor-Mac-1.0.0-rc3-x64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v1.0.0-rc3/MaplatEditor-Mac-1.0.0-rc3-x64.dmg) |
+| Linux (x86_64) | [MaplatEditor-Linux-1.0.0-rc3-x86_64.AppImage](https://github.com/code4history/MaplatEditor/releases/download/v1.0.0-rc3/MaplatEditor-Linux-1.0.0-rc3-x86_64.AppImage) |
+| Linux (arm64) | [MaplatEditor-Linux-1.0.0-rc3-arm64.AppImage](https://github.com/code4history/MaplatEditor/releases/download/v1.0.0-rc3/MaplatEditor-Linux-1.0.0-rc3-arm64.AppImage) |
 
-> 全アセット一覧（Linux AppImage・Windows arm64 含む）とリリースノートは
-> [v0.7.0 リリースページ](https://github.com/code4history/MaplatEditor/releases/tag/v0.7.0)
-> を参照してください。
+> リリースノートとチェックサムは
+> [v1.0.0-rc3 リリースページ](https://github.com/code4history/MaplatEditor/releases/tag/v1.0.0-rc3)
+> にあります。
 <!-- release-pinned:end -->
 
 ### スクリーンショット
