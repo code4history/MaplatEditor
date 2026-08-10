@@ -159,7 +159,6 @@
       "label_merc": "Ô bản đồ Mercator",
       "select_prompt": "Chọn loại bản đồ nền.",
       "merc_disabled_reason": "Được tạo từ chỉnh sửa bản đồ",
-
       "key_required_reason": "Chưa thiết lập khóa trình chỉnh sửa cho {{provider}}. Hãy đăng ký tại Cài đặt > Bản đồ nền."
     },
     "google": {
@@ -189,23 +188,14 @@
     "jpeg_decode_max_resolution": "Giới hạn độ phân giải JPEG (MP)",
     "jpeg_decode_auto": "Tự động",
     "jpeg_decode_desc": "Thông thường bạn có thể để trống (tự động); giá trị cần thiết được xác định theo từng ảnh. Nếu nhập một số, số đó được coi là giới hạn trên (giá trị vượt quá khả năng của ứng dụng sẽ tự động bị hạ xuống).",
-
     "editor_api_key_heading": "Khóa API của trình chỉnh sửa",
-
     "editor_api_key_notice": "Được dùng để hiển thị nền khi chỉnh sửa bản đồ, xem trước và tạo ảnh thu nhỏ. Được coi là bí mật nội bộ không thể giới hạn phạm vi, vì vậy hãy cấp một khóa riêng biệt với khóa xuất bản.",
-
     "editor_google_api_key": "Khóa API Google",
-
     "editor_mapbox_token": "Mã truy cập Mapbox",
-
     "default_publish_api_key_heading": "Khóa xuất bản mặc định",
-
     "default_publish_api_key_notice": "Giá trị mặc định được dùng khi chưa thiết lập khóa riêng cho ứng dụng.",
-
     "default_publish_google_api_key": "Khóa API Google (mặc định)",
-
     "default_publish_mapbox_token": "Mã truy cập Mapbox (mặc định)",
-
     "same_key_warning": "Khóa trình chỉnh sửa và khóa xuất bản mặc định của {{provider}} giống nhau. Nên cấp một khóa riêng biệt."
   },
   "maplist": {
@@ -294,7 +284,6 @@
     "map_title_pf": "Vui lòng nhập tiêu đề",
     "map_title_desc": "Vui lòng nhập tiêu đề của bản đồ.",
     "map_display_label": "Nhãn hiển thị",
-    "map_display_label_desc": "Tên ngắn hiển thị trong bộ chọn nguồn của trình xem.",
     "map_author": "Tác giả",
     "map_author_pf": "Vui lòng nhập tác giả của bản đồ",
     "map_author_desc": "Vui lòng nhập tác giả của bản đồ.",
@@ -311,7 +300,6 @@
     "map_mapper_pf": "Vui lòng nhập người thực hiện việc lập bản đồ, v.v.",
     "map_mapper_desc": "Vui lòng nhập người thực hiện việc lập bản đồ, v.v.",
     "map_image_license": "Giấy phép ảnh bản đồ",
-    "map_image_license_desc": "Vui lòng chọn giấy phép của bản đồ.",
     "cc_allright_reserved": "Bảo lưu mọi quyền",
     "cc_by": "Creative Commons Attribution (Ghi công)",
     "cc_by_sa": "Creative Commons Attribution-ShareAlike (Ghi công-Chia sẻ tương tự)",
@@ -322,13 +310,10 @@
     "cc0": "Creative Commons Zero",
     "cc_pd": "Phạm vi công cộng",
     "map_gcp_license": "Giấy phép dữ liệu",
-    "map_gcp_license_desc": "Chọn giấy phép cho dữ liệu.",
     "map_copyright": "Ghi công ảnh bản đồ",
     "map_copyright_pf": "Nhập ghi công cho ảnh bản đồ",
-    "map_copyright_desc": "Nhập ghi công cho ảnh bản đồ.",
     "map_gcp_copyright": "Ghi công dữ liệu",
     "map_gcp_copyright_pf": "Nhập ghi công cho dữ liệu",
-    "map_gcp_copyright_desc": "Nhập ghi công cho dữ liệu.",
     "map_source": "Nguồn gốc",
     "map_source_pf": "Vui lòng nhập nguồn gốc",
     "map_source_desc": "Vui lòng nhập nguồn gốc của bản đồ.",
@@ -441,9 +426,7 @@
     "cc_custom": "Giấy phép tùy chỉnh",
     "license_unset": "Chưa đặt",
     "map_image_license_note": "Ghi chú giấy phép ảnh bản đồ",
-    "map_image_license_note_desc": "Nhập chi tiết bổ sung về giấy phép ảnh bản đồ.",
-    "map_gcp_license_note": "Ghi chú giấy phép dữ liệu",
-    "map_gcp_license_note_desc": "Nhập chi tiết bổ sung về giấy phép dữ liệu."
+    "map_gcp_license_note": "Ghi chú giấy phép dữ liệu"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
@@ -565,7 +548,9 @@
     "uniqueness_button": "Kiểm tra tính duy nhất",
     "app_name": "Tên ứng dụng",
     "description": "Mô tả",
+    "description_note": "Phần mô tả của ứng dụng này. Giá trị được ghi vào meta description và OGP (og:description) của index.html đã xuất, cũng như vào trường description trong JSON của ứng dụng. Nội dung này hiện ra dưới dạng tóm tắt trong kết quả tìm kiếm và thẻ chia sẻ trên mạng xã hội, vì vậy hãy viết ngắn gọn trong một đến hai câu.",
     "extra_info": "Thông tin khác",
+    "extra_info_note": "Ghi chú tự do về ứng dụng này. Nội dung chỉ được lưu bên trong trình biên tập và không được xuất ra bản xem trước hay ứng dụng đã xuất. Hãy viết phần muốn công bố vào ô «Mô tả».",
     "map_list": "Danh sách bản đồ",
     "base_map_list": "Danh sách bản đồ nền",
     "search_base_maps": "Tìm kiếm bản đồ nền…",
@@ -576,13 +561,21 @@
     "preview_port": "Cổng xem trước",
     "http_toggles": "Chức năng UI đặc biệt/HTTP",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Thiết lập phân phối ứng dụng đã xuất dưới dạng PWA (dạng có thể thêm vào màn hình chính và dùng như một ứng dụng độc lập). Khi bật, Web App Manifest sẽ được xuất ra và mục «Cài đặt manifest» xuất hiện bên dưới. Khi tắt thì cũng không thể thiết lập «Bộ nhớ đệm».",
     "overlay_ui": "UI lớp phủ",
+    "overlay_ui_note": "Giao diện chồng bản đồ cổ bán trong suốt lên trên bản đồ nền. Một điều khiển chồng lớp sẽ hiện ra trong trình xem. Nếu ứng dụng không chứa bản đồ nền nào để làm nền thì bật lên cũng không có tác dụng.",
     "hide_marker_ui": "UI ẩn điểm đánh dấu",
+    "hide_marker_ui_note": "Nút chuyển đổi giữa hiện và ẩn điểm đánh dấu. Nút được thêm vào như một điều khiển của trình xem. Nút không xóa bản thân các điểm đánh dấu, chỉ cho phép người dùng tạm ẩn chúng.",
     "marker_list_ui": "UI danh sách điểm đánh dấu",
+    "marker_list_ui_note": "Nút cho phép chọn một điểm đánh dấu từ danh sách và di chuyển tới đó. Nút được thêm vào như một điều khiển của trình xem, nhờ đó có thể tới nơi mong muốn mà không phải tìm trên bản đồ. Nút này vô nghĩa trong ứng dụng không có điểm đánh dấu nào.",
     "border_ui": "UI hiển thị đường viền",
+    "border_ui_note": "Nút chuyển đổi phần đường viền thể hiện phạm vi của bản đồ cổ. Nút được thêm vào như một điều khiển của trình xem. Thứ được vẽ ra là đường bao của bản đồ và không liên quan tới việc chỉnh sửa phạm vi sử dụng.",
     "cache_ui": "Bộ nhớ đệm",
+    "cache_ui_note": "Thiết lập lưu các ô bản đồ đã tải một lần vào thiết bị để có thể hiển thị ở lần sau và khi ngoại tuyến. Khi xuất, một Service Worker sẽ được đóng gói kèm. Thiết lập này cần có PWA nên không thể cấu hình khi «PWA» đang tắt.",
     "state_url": "URL trạng thái",
+    "state_url_note": "Thiết lập phản ánh bản đồ, vị trí và mức thu phóng đang hiển thị vào URL. Mở lại cùng một URL sẽ khôi phục đúng khung nhìn đó, và chức năng chia sẻ cũng dựa trên thiết lập này. Khi tắt, URL sẽ không thay đổi.",
     "share_ui": "Chức năng chia sẻ",
+    "share_ui_note": "Nút chia sẻ trạng thái đang hiển thị. Nút được thêm vào như một điều khiển của trình xem. Khi «URL trạng thái» đang tắt thì nút không hiện ra, vì vậy hãy bật cả hai.",
     "mapbox_token": "Mapbox token",
     "google_api_key": "Google API key",
     "app_settings": "Cài đặt ứng dụng",
@@ -662,19 +655,12 @@
     "warn_unresolved_icon": "Một số tham chiếu biểu tượng không thể phân giải và được giữ nguyên trong kết quả xuất.",
     "warn_icon_too_small": "Ảnh nguồn biểu tượng PWA nhỏ hơn 512px nên các biểu tượng được tạo có thể bị mờ.",
     "warn_merc_name_collision": "Có nhiều bộ tile Mercator trùng tên; chỉ bộ đầu tiên được xuất ra.",
-
     "warn_provider_google_key_missing": "Bản đồ nền Google không được đưa vào vì chưa thiết lập khóa API. Hãy đăng ký khóa trình chỉnh sửa tại Cài đặt > Bản đồ nền, hoặc thiết lập khóa của ứng dụng.",
-
     "warn_provider_mapbox_key_missing": "Bản đồ nền Mapbox không được đưa vào vì chưa thiết lập khóa API. Hãy đăng ký khóa trình chỉnh sửa tại Cài đặt > Bản đồ nền, hoặc thiết lập khóa của ứng dụng.",
-
     "export_key_prompt_title": "Nhập khóa API xuất bản",
-
     "export_key_prompt_description": "Khóa xuất bản của nhà cung cấp đã chọn chưa được thiết lập. Khóa này chỉ được dùng cho lần xuất này và sẽ không được lưu lại. Nếu để trống, bản đồ nền tương ứng sẽ không được đưa vào.",
-
     "export_key_prompt_label_google": "Khóa API Google",
-
     "export_key_prompt_label_mapbox": "Mã truy cập Mapbox",
-
     "export_key_prompt_continue": "Xuất với các giá trị này",
     "export": {
       "progress": "Đang xuất...",
@@ -991,6 +977,15 @@
       "pick_failed": "Không thể chọn tệp",
       "references_unavailable": "Không thể lấy thông tin tham chiếu"
     }
+  },
+  "field_help": {
+    "display_label": "Tên ngắn hiển thị trong bộ chọn nguồn của trình xem.",
+    "image_attribution": "Nhập ghi công cho ảnh bản đồ.",
+    "image_license": "Vui lòng chọn giấy phép của bản đồ.",
+    "image_license_note": "Nhập chi tiết bổ sung về giấy phép ảnh bản đồ.",
+    "data_attribution": "Nhập ghi công cho dữ liệu.",
+    "data_license": "Chọn giấy phép cho dữ liệu.",
+    "data_license_note": "Nhập chi tiết bổ sung về giấy phép dữ liệu."
   },
   "editor_ui": {
     "thumbnail_immediate_note": "Ảnh đã thay thế được ghi vào tệp ngay lập tức (không thuộc phạm vi Lưu hoặc Hoàn tác). Để khôi phục, hãy thay thế ảnh một lần nữa.",

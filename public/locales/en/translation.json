@@ -141,7 +141,6 @@
       "label_merc": "Mercator tile",
       "select_prompt": "Select the base map type.",
       "merc_disabled_reason": "Generated from map editing",
-
       "key_required_reason": "The editor {{provider}} key is not set. Register it under Settings > Base Map."
     },
     "google": {
@@ -171,23 +170,14 @@
     "jpeg_decode_max_resolution": "JPEG resolution limit (MP)",
     "jpeg_decode_auto": "Auto",
     "jpeg_decode_desc": "Normally you can leave these blank (auto); the required values are determined per image. If you enter a number it is treated as an upper limit (values beyond what this app can handle are lowered automatically).",
-
     "editor_api_key_heading": "Editor API Keys",
-
     "editor_api_key_notice": "Used for background rendering in map editing, previews, and thumbnail generation. Treated as an internal secret that cannot be restricted, so issue a separate key from the publish key.",
-
     "editor_google_api_key": "Google API Key",
-
     "editor_mapbox_token": "Mapbox Access Token",
-
     "default_publish_api_key_heading": "Default Publish Keys",
-
     "default_publish_api_key_notice": "The default value used when an app-specific key is not set.",
-
     "default_publish_google_api_key": "Google API Key (default)",
-
     "default_publish_mapbox_token": "Mapbox Access Token (default)",
-
     "same_key_warning": "The editor key and default publish key for {{provider}} are identical. It is recommended to issue a separate key."
   },
   "maplist": {
@@ -276,7 +266,6 @@
     "map_title_pf": "Enter the map title.",
     "map_title_desc": "Enter the title of the map.",
     "map_display_label": "Display label",
-    "map_display_label_desc": "A concise name shown in the viewer source switcher.",
     "map_author": "Author",
     "map_author_pf": "Enter author name of the map.",
     "map_author_desc": "Enter author name of the map.",
@@ -293,7 +282,6 @@
     "map_mapper_pf": "Enter the person who did mapping GCPs od the map.",
     "map_mapper_desc": "Enter the person who did mapping GCPs od the map.",
     "map_image_license": "License of Map Image",
-    "map_image_license_desc": "Enter the license of map image.",
     "cc_allright_reserved": "All Right Reserved",
     "cc_by": "Creative Commons Attribution",
     "cc_by_sa": "Creative Commons Attribution-ShareAlike",
@@ -304,13 +292,10 @@
     "cc0": "Creative Commons Zero",
     "cc_pd": "Public Domain",
     "map_gcp_license": "Data license",
-    "map_gcp_license_desc": "Select the license for the data.",
     "map_copyright": "Map image attribution",
     "map_copyright_pf": "Enter the attribution for the map image",
-    "map_copyright_desc": "Enter the attribution for the map image.",
     "map_gcp_copyright": "Data attribution",
     "map_gcp_copyright_pf": "Enter the attribution for the data",
-    "map_gcp_copyright_desc": "Enter the attribution for the data.",
     "map_source": "Source",
     "map_source_pf": "Enter the source of Map.",
     "map_source_desc": "Enter the source of Map.",
@@ -423,9 +408,7 @@
     "cc_custom": "Custom license",
     "license_unset": "Unset",
     "map_image_license_note": "Map image license note",
-    "map_image_license_note_desc": "Enter additional details about the map image license.",
-    "map_gcp_license_note": "Data license note",
-    "map_gcp_license_note_desc": "Enter additional details about the data license."
+    "map_gcp_license_note": "Data license note"
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -547,7 +530,9 @@
     "uniqueness_button": "Check Uniqueness",
     "app_name": "App Name",
     "description": "Description",
+    "description_note": "The description of this app. It is output to the meta description and OGP (og:description) of the exported index.html, and to the description field of the app JSON. It appears as the summary in search results and social share cards, so keep it to one or two sentences.",
     "extra_info": "Other Info",
+    "extra_info_note": "A free-form memo about this app. It is stored inside the editor only and is not output to the preview or to the exported app. Write anything you want to publish in the Description field instead.",
     "map_list": "Map List",
     "base_map_list": "Base Map List",
     "search_base_maps": "Search base maps…",
@@ -558,13 +543,21 @@
     "preview_port": "Preview Port",
     "http_toggles": "Special UI / HTTP Features",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Delivers the exported app as a PWA (a form that can be added to the home screen and used like a standalone app). When on, a Web App Manifest is emitted and the Manifest Settings section appears below. While it is off, Cache cannot be configured either.",
     "overlay_ui": "Overlay UI",
+    "overlay_ui_note": "A UI that overlays the historical map semi-transparently on top of the background map. An overlay control appears in the viewer. If the app contains no base map to serve as the background, turning it on has no effect.",
     "hide_marker_ui": "Hide Marker UI",
+    "hide_marker_ui_note": "A button that toggles markers between shown and hidden. It is added as a viewer control. It does not delete the markers themselves; it only lets the user hide them temporarily.",
     "marker_list_ui": "Marker List UI",
+    "marker_list_ui_note": "A button that lets the user pick a marker from a list and move to it. It is added as a viewer control, so a place can be reached without hunting for it on the map. It is meaningless in an app with no markers.",
     "border_ui": "Envelope UI",
+    "border_ui_note": "A button that toggles the outline showing the extent of the historical map. It is added as a viewer control. What it draws is the outline of the map, and it has nothing to do with editing the usage extent.",
     "cache_ui": "Cache",
+    "cache_ui_note": "Stores tiles that have been loaded once on the device so they can be shown next time and offline. A Service Worker is bundled at export. It requires PWA, so it cannot be configured while PWA is off.",
     "state_url": "State URL",
+    "state_url_note": "Reflects the map, position and zoom currently shown in the URL. Reopening the same URL restores the same view, and the share feature assumes this setting. When off, the URL does not change.",
     "share_ui": "Share",
+    "share_ui_note": "A button that shares the current view. It is added as a viewer control. The button does not appear while State URL is off, so turn both on.",
     "mapbox_token": "Mapbox token",
     "google_api_key": "Google API key",
     "app_settings": "App Settings",
@@ -644,19 +637,12 @@
     "warn_unresolved_icon": "Some icon references could not be resolved and were left unchanged in the output.",
     "warn_icon_too_small": "The PWA icon source image is smaller than 512px, so generated icons may look blurry.",
     "warn_merc_name_collision": "Multiple Mercator tile sets shared the same name; only the first one was exported.",
-
     "warn_provider_google_key_missing": "The Google background map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
-
     "warn_provider_mapbox_key_missing": "The Mapbox background map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
-
     "export_key_prompt_title": "Enter Publish API Key",
-
     "export_key_prompt_description": "The publish key for the selected provider is not set. It will be used only for this export and will not be saved. If left blank, the corresponding background map will not be included.",
-
     "export_key_prompt_label_google": "Google API Key",
-
     "export_key_prompt_label_mapbox": "Mapbox Access Token",
-
     "export_key_prompt_continue": "Export with these values",
     "export": {
       "progress": "Exporting...",
@@ -991,6 +977,15 @@
       "pick_failed": "Could not pick a file",
       "references_unavailable": "Could not retrieve reference information"
     }
+  },
+  "field_help": {
+    "display_label": "A concise name shown in the viewer source switcher.",
+    "image_attribution": "Enter the attribution for the map image.",
+    "image_license": "Enter the license of map image.",
+    "image_license_note": "Enter additional details about the map image license.",
+    "data_attribution": "Enter the attribution for the data.",
+    "data_license": "Select the license for the data.",
+    "data_license_note": "Enter additional details about the data license."
   },
   "editor_ui": {
     "thumbnail_immediate_note": "Replaced images are written to file immediately (not covered by Save or Undo). To revert, replace the image again.",

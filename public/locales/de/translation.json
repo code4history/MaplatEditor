@@ -159,7 +159,6 @@
       "label_merc": "Mercator-Kachel",
       "select_prompt": "Wählen Sie den Basiskarten-Typ.",
       "merc_disabled_reason": "Wird aus der Karteneditierung generiert",
-
       "key_required_reason": "Der Editor-Schlüssel für {{provider}} ist nicht festgelegt. Registrieren Sie ihn unter Einstellungen > Basiskarte."
     },
     "google": {
@@ -189,23 +188,14 @@
     "jpeg_decode_max_resolution": "JPEG-Auflösungslimit (MP)",
     "jpeg_decode_auto": "Automatisch",
     "jpeg_decode_desc": "Normalerweise können Sie diese Felder leer lassen (automatisch); die erforderlichen Werte werden je Bild bestimmt. Geben Sie eine Zahl ein, wird sie als Obergrenze behandelt (Werte über dem für diese App Machbaren werden automatisch verringert).",
-
     "editor_api_key_heading": "Editor-API-Schlüssel",
-
     "editor_api_key_notice": "Wird für die Kartenbearbeitung im Hintergrund, die Vorschau und die Erstellung von Miniaturansichten verwendet. Er gilt als internes Geheimnis, das nicht eingeschränkt werden kann; verwenden Sie daher einen anderen Schlüssel als den Veröffentlichungsschlüssel.",
-
     "editor_google_api_key": "Google API-Schlüssel",
-
     "editor_mapbox_token": "Mapbox-Zugriffstoken",
-
     "default_publish_api_key_heading": "Standard-Veröffentlichungsschlüssel",
-
     "default_publish_api_key_notice": "Der Standardwert, der verwendet wird, wenn kein app-spezifischer Schlüssel festgelegt ist.",
-
     "default_publish_google_api_key": "Google API-Schlüssel (Standard)",
-
     "default_publish_mapbox_token": "Mapbox-Zugriffstoken (Standard)",
-
     "same_key_warning": "Der Editor-Schlüssel und der Standard-Veröffentlichungsschlüssel für {{provider}} sind identisch. Es wird empfohlen, einen separaten Schlüssel auszustellen."
   },
   "maplist": {
@@ -294,7 +284,6 @@
     "map_title_pf": "Bitte geben Sie den Titel ein",
     "map_title_desc": "Bitte geben Sie den Titel der Karte ein.",
     "map_display_label": "Anzeigebezeichnung",
-    "map_display_label_desc": "Ein kurzer Name für die Quellenauswahl im Viewer.",
     "map_author": "Urheber",
     "map_author_pf": "Bitte geben Sie den Urheber der Karte ein",
     "map_author_desc": "Bitte geben Sie den Urheber der Karte ein.",
@@ -311,7 +300,6 @@
     "map_mapper_pf": "Bitte geben Sie die Person ein, die die Kartierung durchgeführt hat",
     "map_mapper_desc": "Bitte geben Sie die Person ein, die die Kartierung durchgeführt hat.",
     "map_image_license": "Lizenz des Kartenbilds",
-    "map_image_license_desc": "Bitte wählen Sie die Lizenz der Karte aus.",
     "cc_allright_reserved": "Alle Rechte vorbehalten",
     "cc_by": "Creative Commons Namensnennung",
     "cc_by_sa": "Creative Commons Namensnennung – Weitergabe unter gleichen Bedingungen",
@@ -322,13 +310,10 @@
     "cc0": "Creative Commons Zero",
     "cc_pd": "Gemeinfrei (Public Domain)",
     "map_gcp_license": "Datenlizenz",
-    "map_gcp_license_desc": "Wählen Sie die Lizenz für die Daten.",
     "map_copyright": "Quellenangabe des Kartenbilds",
     "map_copyright_pf": "Geben Sie die Quellenangabe für das Kartenbild ein",
-    "map_copyright_desc": "Geben Sie die Quellenangabe für das Kartenbild ein.",
     "map_gcp_copyright": "Datenattribution",
     "map_gcp_copyright_pf": "Geben Sie die Quellenangabe für die Daten ein",
-    "map_gcp_copyright_desc": "Geben Sie die Quellenangabe für die Daten ein.",
     "map_source": "Quelle",
     "map_source_pf": "Bitte geben Sie die Quelle ein",
     "map_source_desc": "Bitte geben Sie die Quelle der Karte ein.",
@@ -441,9 +426,7 @@
     "cc_custom": "Benutzerdefinierte Lizenz",
     "license_unset": "Nicht festgelegt",
     "map_image_license_note": "Hinweis zur Lizenz des Kartenbilds",
-    "map_image_license_note_desc": "Geben Sie zusätzliche Angaben zur Lizenz des Kartenbilds ein.",
-    "map_gcp_license_note": "Datenlizenzhinweis",
-    "map_gcp_license_note_desc": "Geben Sie zusätzliche Angaben zur Datenlizenz ein."
+    "map_gcp_license_note": "Datenlizenzhinweis"
   },
   "mapupload": {
     "map_image": "Kartenbild",
@@ -565,7 +548,9 @@
     "uniqueness_button": "Eindeutigkeit prüfen",
     "app_name": "App-Name",
     "description": "Beschreibung",
+    "description_note": "Die Beschreibung dieser App. Sie wird in die Meta-Description und das OGP (og:description) der exportierten index.html sowie in das Feld description der App-JSON ausgegeben. Sie erscheint als Zusammenfassung in Suchergebnissen und Share-Karten sozialer Netzwerke, fassen Sie sich daher in ein bis zwei Sätzen.",
     "extra_info": "Weitere Informationen",
+    "extra_info_note": "Eine formlose Notiz zu dieser App. Sie wird nur im Editor gespeichert und weder in die Vorschau noch in die exportierte App ausgegeben. Was veröffentlicht werden soll, gehört in das Feld „Beschreibung“.",
     "map_list": "Kartenliste",
     "base_map_list": "Basiskartenliste",
     "search_base_maps": "Basiskarten suchen…",
@@ -576,13 +561,21 @@
     "preview_port": "Vorschau-Port",
     "http_toggles": "Spezielle UI-/HTTP-Funktionen",
     "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Liefert die exportierte App als PWA aus (eine Form, die sich zum Startbildschirm hinzufügen und wie eine eigenständige App nutzen lässt). Ist die Option aktiv, wird ein Web App Manifest ausgegeben und darunter erscheint der Bereich „Manifest-Einstellungen“. Solange sie inaktiv ist, lässt sich auch „Cache“ nicht einstellen.",
     "overlay_ui": "Overlay-UI",
+    "overlay_ui_note": "Eine Oberfläche, die die historische Karte halbtransparent über die Hintergrundkarte legt. Im Viewer erscheint ein Bedienelement zur Überlagerung. Enthält die App keine Basiskarte als Hintergrund, bleibt die Option wirkungslos.",
     "hide_marker_ui": "Marker ausblenden (UI)",
+    "hide_marker_ui_note": "Eine Schaltfläche, die Marker ein- und ausblendet. Sie wird als Bedienelement im Viewer ergänzt. Sie löscht die Marker nicht, sondern lässt sie nur vorübergehend ausblenden.",
     "marker_list_ui": "Markerliste (UI)",
+    "marker_list_ui_note": "Eine Schaltfläche, über die sich ein Marker aus einer Liste auswählen und ansteuern lässt. Sie wird als Bedienelement im Viewer ergänzt, sodass ein Ort ohne Suchen auf der Karte erreichbar ist. In einer App ohne Marker ist sie sinnlos.",
     "border_ui": "Hüllkurven-Anzeige (UI)",
+    "border_ui_note": "Eine Schaltfläche, die die Umrisslinie der Ausdehnung der historischen Karte ein- und ausblendet. Sie wird als Bedienelement im Viewer ergänzt. Gezeichnet wird der Umriss der Karte; mit dem Bearbeiten des Nutzungsbereichs hat das nichts zu tun.",
     "cache_ui": "Cache",
+    "cache_ui_note": "Speichert einmal geladene Kacheln auf dem Gerät, damit sie beim nächsten Mal und offline angezeigt werden können. Beim Export wird ein Service Worker mitgeliefert. Die Option setzt PWA voraus und lässt sich daher nicht einstellen, solange „PWA“ inaktiv ist.",
     "state_url": "Status-URL",
+    "state_url_note": "Überträgt die aktuell angezeigte Karte, Position und Zoomstufe in die URL. Wird dieselbe URL erneut geöffnet, erscheint dieselbe Ansicht; auch die Teilen-Funktion setzt diese Einstellung voraus. Ist sie inaktiv, ändert sich die URL nicht.",
     "share_ui": "Teilen-Funktion",
+    "share_ui_note": "Eine Schaltfläche, die den aktuellen Zustand teilt. Sie wird als Bedienelement im Viewer ergänzt. Solange „Status-URL“ inaktiv ist, erscheint die Schaltfläche nicht; aktivieren Sie daher beides.",
     "mapbox_token": "Mapbox-Token",
     "google_api_key": "Google-API-Schlüssel",
     "app_settings": "App-Einstellungen",
@@ -662,19 +655,12 @@
     "warn_unresolved_icon": "Einige Symbolverweise konnten nicht aufgelöst werden und wurden unverändert ausgegeben.",
     "warn_icon_too_small": "Das Quellbild des PWA-Symbols ist kleiner als 512px, daher können die generierten Symbole unscharf wirken.",
     "warn_merc_name_collision": "Mehrere Mercator-Kachelsätze hatten denselben Namen; nur der erste wurde exportiert.",
-
     "warn_provider_google_key_missing": "Die Google-Hintergrundkarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
-
     "warn_provider_mapbox_key_missing": "Die Mapbox-Hintergrundkarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
-
     "export_key_prompt_title": "Veröffentlichungs-API-Schlüssel eingeben",
-
     "export_key_prompt_description": "Der Veröffentlichungsschlüssel für den ausgewählten Anbieter ist nicht festgelegt. Er wird nur für diesen Export verwendet und nicht gespeichert. Bleibt das Feld leer, wird die entsprechende Hintergrundkarte nicht einbezogen.",
-
     "export_key_prompt_label_google": "Google API-Schlüssel",
-
     "export_key_prompt_label_mapbox": "Mapbox-Zugriffstoken",
-
     "export_key_prompt_continue": "Mit diesen Werten exportieren",
     "export": {
       "progress": "Wird exportiert...",
@@ -991,6 +977,15 @@
       "pick_failed": "Datei konnte nicht ausgewählt werden",
       "references_unavailable": "Referenzinformationen konnten nicht abgerufen werden"
     }
+  },
+  "field_help": {
+    "display_label": "Ein kurzer Name für die Quellenauswahl im Viewer.",
+    "image_attribution": "Geben Sie die Quellenangabe für das Kartenbild ein.",
+    "image_license": "Bitte wählen Sie die Lizenz der Karte aus.",
+    "image_license_note": "Geben Sie zusätzliche Angaben zur Lizenz des Kartenbilds ein.",
+    "data_attribution": "Geben Sie die Quellenangabe für die Daten ein.",
+    "data_license": "Wählen Sie die Lizenz für die Daten.",
+    "data_license_note": "Geben Sie zusätzliche Angaben zur Datenlizenz ein."
   },
   "editor_ui": {
     "thumbnail_immediate_note": "Ersetzte Bilder werden sofort in die Datei geschrieben (nicht von „Speichern“ oder „Rückgängig“ erfasst). Zum Zurücksetzen das Bild erneut ersetzen.",
