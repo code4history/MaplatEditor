@@ -209,6 +209,19 @@ jobs:
       - name: Build Windows
         run: pnpm run dist:win
 
+      # 生成された NSIS ペイロードのコーデックを機械照合する（m19-t13）。
+      # nsis7z は解けないコーデックのエントリを**黙って落として完走する**ため、
+      # 「ビルド成功 / インストーラ成功 / アプリだけが存在しない」という形で不具合が成立する
+      # （v1.0.0-rc2 の arm64 で実際に起きた。MaplatEditor.exe と DLL 8 本が展開されなかった）。
+      # ∴ 終了コードやビルド緑では原理的に捕まらず、成果物の中身を直接見るしかない。
+      #
+      # 位置が要件である: 署名の **前** に置くことで、コーデック不正で落ちたときに
+      # eSigner を1回も呼ばない（署名は1回ごとに課金される）。if: を付けないのは、
+      # 課金ゼロの mode=verify と push ビルドでも走らせて日常の回帰の番人にするため。
+      # ファイル名は electron-builder.config.cjs の artifactName から決定的（eSigner ステップと同じ）。
+      - name: Verify Windows payload codec
+        run: pnpm run verify:m19-t13:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
+
       # eSigner による post-build 署名（m6-t12 §2.3・mode=full のみ。verify では署名しない）。
       # 署名対象は file_path で明示した Setup.exe 2本のみ = 署名回数 2/リリース
       # （eSigner は署名ごとに課金・§7-2 方針）。dir_path（batch_sign）を使わないのは、
