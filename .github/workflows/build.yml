@@ -219,6 +219,10 @@ jobs:
       # eSigner を1回も呼ばない（署名は1回ごとに課金される）。if: を付けないのは、
       # 課金ゼロの mode=verify と push ビルドでも走らせて日常の回帰の番人にするため。
       # ファイル名は electron-builder.config.cjs の artifactName から決定的（eSigner ステップと同じ）。
+      #
+      # アンカー規約（m19-t13 設計 §6.2）: root 側の結線検査は、この検査ステップのスクリプトキー名
+      # （または呼び先スクリプトの相対パス）に**最初に一致した行**をアンカーにする。
+      # ∴ このステップより上のコメントにそれらの文字列を書かないこと（誤アンカーする）。
       - name: Verify Windows payload codec
         run: pnpm run verify:m19-t13:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
 

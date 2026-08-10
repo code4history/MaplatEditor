@@ -71,11 +71,20 @@ function resolve7z() {
  * 見分けは `Type` キーの有無で行う。サマリブロックだけが `Type = 7z` / `Type = PE` を持ち、
  * ファイルエントリは Path / Size / Packed Size / Modified / Attributes / Method … しか持たない
  * （実測で確認）。`-ba`（ヘッダ抑止）に依存しないのは、古い 7-Zip でも同じ判定が成立するようにするため。
+ *
+ * **総数照合（v1.2・実装レビュー INF-1）**: ブロック分割に失敗したエントリを**黙って除外しない**。
+ * このパーサの前提（空値行が `key = ` の末尾空白付きで出ること等）は**手元の 7-Zip 26.02 でしか
+ * 検証されていない**。G2 が実際に走る GitHub `windows-latest` ランナーの 7-Zip は別版であり、
+ * `-slt` の出力細部が違えばブロック分割が崩れる。そのとき照合が無ければ本関数は
+ * **エントリを黙って落として「違反 0 件」で成功する**——本タスクが是正している nsis7z の
+ * silent skip と**同じ壊れ方**をする。`MaplatEditor.exe` 実在 assert は全崩壊しか捕まえられず、
+ * 部分的な取りこぼしは通してしまう。∴ 数が合わなければ die する（fail-closed）。
  */
 function parseSltEntries(stdout) {
+  const lines = stdout.split(/\r?\n/);
   const blocks = [];
   let current = null;
-  for (const rawLine of stdout.split(/\r?\n/)) {
+  for (const rawLine of lines) {
     // 行末を trim しないこと。空値の行は `Size = `（末尾に空白 1 個）の形で出るため、
     // trim すると `Size =` になって `key = value` に一致せず、エントリが分断される
     const m = /^([A-Za-z][A-Za-z ]*) = (.*)$/.exec(rawLine);
@@ -95,9 +104,32 @@ function parseSltEntries(stdout) {
   }
   if (current != null) blocks.push(current);
 
-  return blocks.filter(
+  const entries = blocks.filter(
     (b) => b.Path != null && b.Method != null && b.Type == null
   );
+
+  // ── 総数照合 ──
+  // **どちらで数えているか**: 左辺（declared）は「区切り行 `----------` **以降**に現れる
+  // `Path = ` 行の数」= 7-Zip が申告したエントリ総数。右辺は **サマリ除外後**のブロック数
+  // （= 本関数の返り値の要素数）。アーカイブ自身のサマリブロック（`Type` を持つもの、および
+  // NSIS の場合に現れる `Method` を持たない中間ブロック）はいずれも区切り行より **前** に
+  // 出るため左辺に含まれない。∴ 「除外後」同士の比較になり、サマリ分 +1 の補正は要らない
+  // （実測: rc2 arm64 の Setup.exe で declared=10 / entries=10）。
+  const sepAt = lines.findIndex((l) => /^-{10,}$/.test(l.trimEnd()));
+  const declared = sepAt < 0
+    ? -1
+    : lines.slice(sepAt + 1).filter((l) => /^Path = /.test(l)).length;
+
+  if (declared !== entries.length) {
+    die('`7z l -slt` の出力を解釈できない（エントリ総数が合わない）。'
+      + `\n  7-Zip の申告: ${sepAt < 0 ? "区切り行 '----------' が見つからない" : `${declared} エントリ`}`
+      + `\n  パースできた: ${entries.length} エントリ`
+      + '\n  この 7-Zip の -slt 出力形式は本パーサの前提（手元の 26.02 で検証）と異なる。'
+      + '\n  取りこぼしたエントリを黙って除外して「違反 0 件」で成功させない（fail-closed）。'
+      + '\n  対処: 実行中の 7-Zip の版を確認し、parseSltEntries のブロック分割を合わせること（m19-t13）');
+  }
+
+  return entries;
 }
 
 function list(sevenZip, archive) {
