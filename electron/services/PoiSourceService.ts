@@ -7,7 +7,8 @@
 // remote ソース (mode='remote') は read-only。fetch 結果のスナップショットを data_json に
 // 永続 cache する — 43 §2.1 の「session memory cache」からの意図的逸脱で、POI-118 の
 // 「network failure 時は cache で degraded 表示」を再起動を跨いで満たす上位互換
-// (計画書 2026-07-09-poi-editor-phase2-poi-backend.md 設計コントラクト参照)。
+// (計画書 outer リポジトリ docs/superpowers/plans/2026-07-09-poi-editor-phase2-poi-backend.md
+//  設計コントラクト参照)。
 // fetch payload には POI-121 の閾値を適用: 5MB 超 warning / 50MB 超 登録拒否。
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
