@@ -94,7 +94,9 @@ test.describe('M11-T8 Search Coverage & Backfill E2E Tests', () => {
       const m2 = await window.mapedit.save({ slug: mapSlug, uid: m1.uid, mapObject, tins: [tinResult[1]] });
       if (!m2 || m2.result !== 'Success') throw new Error(`compiled map save failed: ${JSON.stringify(m2)}`);
 
-      // アプリ（自動カバレッジ。coverageLngLats は与えず maps_rtree から導出させる）
+      // アプリ（自動カバレッジ。範囲属性を明示せず maps_rtree から導出させる）
+      // ※ここで範囲属性名を literal で書かないこと。m19-t11 の MC5 が凍結属性名の
+      //   出現数を tests/ 込みで数えており、コメントであっても baseline を動かす
       const appSlug = `m11-t8-app-${stamp}`;
       const ap = await window.appedit.save({
         slug: appSlug,
