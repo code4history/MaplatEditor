@@ -6,7 +6,7 @@
 //   B  ビルトイン 512px 資産が 335 件・全 webp・合計 45,000,000 B 未満                -> AC-2
 //   C  静的検査（インライン派生の集約・符号化点の単一性・読み込み側 fallback の不在） -> AC-3 / AC-4 / AC-10 / AC-13
 //   D  単一変化点の不変条件（THUMB_512_EXT を null へ戻すとパスも符号化も戻る）       -> AC-9
-//   M  既存ユーザデータ移行（*_512.{jpg,png} -> *_512.webp・マーカー・失敗時の非マーク）-> AC-7
+//   M  既存ユーザデータ移行（AC-7）は **m19-t7 で撤去**（migration ごと削除。理由は当該箇所のコメント）
 //   R  relocate 堅牢化の回帰（順序 + 中止 / ロールバック / 正常系）                    -> 設計 §9
 //
 // m19-t2 と同型 harness（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir）で、
@@ -352,11 +352,10 @@ await writeFile(
       console.log('ok: D 単一変化点（パス派生と符号化が同じ 1 定数で切り替わる）');
     }
 
-    // ============ Part M / R: 実サービス ============
+    // ============ Part R: 実サービス ============
     const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
     SettingsService.set('lang', 'ja');
     const { default: SqliteDataService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SqliteDataService.ts'))});
-    const THUMBNAIL_512_WEBP_ID = '2026-08-10-thumbnail-512-webp-v1';
 
     const exists = (p: string) => fse.pathExists(p);
     const useSaveFolder = async (dir: string) => {
@@ -365,62 +364,15 @@ await writeFile(
       await SqliteDataService.reset();
       return SqliteDataService.getDb();
     };
-    const markerApplied = (db: any) =>
-      Boolean(db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(THUMBNAIL_512_WEBP_ID));
 
-    // ============ Part M: 既存ユーザデータの移行（AC-7） ============
-    {
-      // --- M-1 正常系: jpg / png の 512px が webp へ移り、元が消え、寸法が保たれる ---
-      const okDir = nodePath.join(workDir, 'migrate-ok');
-      await fse.ensureDir(nodePath.join(okDir, 'tmbs'));
-      // 旧形式の実データを模す（リテラルで置くのが正しい。これは「過去の正規形式」の再現である）
-      await new Jimp({ width: 60, height: 40, color: 0xff0000ff }).write(nodePath.join(okDir, 'tmbs', 'x_512.jpg') as \`\${string}.\${string}\`);
-      await new Jimp({ width: 30, height: 20, color: 0x00ff00ff }).write(nodePath.join(okDir, 'tmbs', 'y_512.png') as \`\${string}.\${string}\`);
-      // 52px は据え置き（巻き込まれてはならない）
-      await new Jimp({ width: 52, height: 35, color: 0x0000ffff }).write(nodePath.join(okDir, 'tmbs', 'x.jpg') as \`\${string}.\${string}\`);
-
-      const db = await useSaveFolder(okDir);
-
-      // (a) 正規形が生成される
-      assert.ok(await exists(nodePath.join(okDir, 'tmbs', 'x_512.webp')), 'AC-7(a): jpg の 512px が webp へ移る');
-      assert.ok(await exists(nodePath.join(okDir, 'tmbs', 'y_512.webp')), 'AC-7(a): png の 512px が webp へ移る');
-      // (b) 元ファイルが消える（二重状態を残さない）
-      assert.equal(await exists(nodePath.join(okDir, 'tmbs', 'x_512.jpg')), false, 'AC-7(b): 元の jpg が消える');
-      assert.equal(await exists(nodePath.join(okDir, 'tmbs', 'y_512.png')), false, 'AC-7(b): 元の png が消える');
-      // (c) 寸法が保存される
-      assert.deepEqual(await readImageMeta(nodePath.join(okDir, 'tmbs', 'x_512.webp')), { width: 60, height: 40 }, 'AC-7(c): 寸法が保たれる（jpg 由来）');
-      assert.deepEqual(await readImageMeta(nodePath.join(okDir, 'tmbs', 'y_512.webp')), { width: 30, height: 20 }, 'AC-7(c): 寸法が保たれる（png 由来）');
-      // 52px は無傷
-      assert.ok(await exists(nodePath.join(okDir, 'tmbs', 'x.jpg')), 'AC-7: 52px は移行対象外（拡張子非対称）');
-      // (d) マーカー
-      assert.ok(markerApplied(db), 'AC-7(d): schema_migrations にマーカーが入る');
-
-      // 冪等性: 再実行しても何も壊れない
-      await SqliteDataService.reset();
-      const db2 = await SqliteDataService.getDb();
-      assert.ok(markerApplied(db2), 'AC-7: 再起動しても 1 回限り（マーカー維持）');
-      assert.ok(await exists(nodePath.join(okDir, 'tmbs', 'x_512.webp')), 'AC-7: 再実行で正規形が壊れない');
-      console.log('ok: M 既存ユーザデータの移行（生成 / 元削除 / 寸法保存 / マーカー / 冪等）');
-    }
-
-    {
-      // --- M-2 失敗注入: 読めないファイルが 1 件でもあればマーカーを書かない（次回起動で再試行） ---
-      const ngDir = nodePath.join(workDir, 'migrate-ng');
-      await fse.ensureDir(nodePath.join(ngDir, 'tmbs'));
-      await new Jimp({ width: 24, height: 16, color: 0xffcc00ff }).write(nodePath.join(ngDir, 'tmbs', 'good_512.jpg') as \`\${string}.\${string}\`);
-      // 画像として復号できない実体（破損ファイル）
-      await fse.writeFile(nodePath.join(ngDir, 'tmbs', 'broken_512.jpg'), Buffer.from('this is not an image'));
-
-      const db = await useSaveFolder(ngDir);
-
-      assert.equal(markerApplied(db), false, 'AC-7: 1 件でも失敗したらマーカーを書かない');
-      // 成功したものは移っている（バッチは止めない）
-      assert.ok(await exists(nodePath.join(ngDir, 'tmbs', 'good_512.webp')), 'AC-7: 個別失敗でバッチを止めない');
-      // 失敗したものは**元が残る**（webp の書き込み成功を確認してから元を消すため）
-      assert.ok(await exists(nodePath.join(ngDir, 'tmbs', 'broken_512.jpg')), 'AC-7: 失敗時は元ファイルが残る（データを失わない）');
-      console.log('ok: M 失敗注入（マーカー非書き込み / バッチ継続 / 元ファイル保全）');
-    }
-
+    // ============ Part M: 既存ユーザデータの移行（AC-7）— m19-t7 で撤去 ============
+    // migrateThumbnail512ToWebpIfNeeded（marker '2026-08-10-thumbnail-512-webp-v1'）は
+    // 0.7.0 の入力から到達しない段だったため、m19-t7 が起動時パイプラインごと削除した
+    //   - 0.7.0 は 512px を構造的に作れない（v0.7.0 のソース全文に 512px 生成機構が無い）
+    //   - ZIP 取込は受け取った時点で正規形へ transcode する（本 smoke の Part C が固定）
+    //   - マイニングの出力は最初から正規形（thumb512PathFor 経由）
+    // ∴ 非正規形の 512px が新たに生じる経路は無く、移行段を公開版へ同梱する意味が無い。
+    // 「正規形以外の 512px を作らない」という本質は Part A / C / D が引き続き固定している。
     // ============ Part R: relocate 堅牢化の回帰（設計 §9。m19-t2 実装レビュー v2 Minor-1 の引き受け） ============
     {
       const rDir = nodePath.join(workDir, 'relocate');

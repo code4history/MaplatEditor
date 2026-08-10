@@ -475,8 +475,6 @@
     "migration_report_warnings": "有 {{count}} 筆警告。詳情請查看資料夾中的 migration-report-v2.json。",
     "migrating_thumbnails_512": "正在產生512px縮圖",
     "migrating_thumbnails_512_done": "512px縮圖產生完成",
-    "migrating_thumbnails_512_webp": "正在將512px縮圖轉換為WebP格式",
-    "migrating_thumbnails_512_webp_done": "512px縮圖轉換為WebP格式完成",
     "migrating_originals": "正在將原始檔案遷移為UUID檔名",
     "migrating_originals_done": "原始檔案遷移完成"
   },

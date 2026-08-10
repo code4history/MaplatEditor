@@ -10,9 +10,20 @@
 //   AC-1c  store_handler の keys に label が入っている
 //   AC-2   保存経路 (histMap2Store) で label が保持される (behavioral)
 //   AC-4   unifyMapNameFields の写像が言語キー単位・無損失 (5 ケース)
-//   AC-18a preserveDeprecatedForMigration を渡す経路が importLegacyMaps の 1 箇所だけ
-//   AC-18b unifyMapNameFields の呼び出し点が規定の 2 箇所だけ
+//   AC-18a レガシー取込が写像を素通りしない（m19-t7 で不変条件を差し替え。旧: 取込だけが
+//          preserveDeprecatedForMigration で写像を持たない → 新: そのオプションが存在しない）
+//   AC-18b unifyMapNameFields の呼び出し点が mapNameUnification.ts の 1 箇所だけ
+//          （m19-t7 で 2 箇所 → 1 箇所。marker 保護下の one-shot migration を撤去したため）
 //   AC-18c adoptDeprecatedMapNames が冪等 (3 形)
+//
+// ★m19-t7 による不変条件の差し替えについて:
+//   旧不変条件は「写像の呼び出し点は 2 箇所（one-shot migration と取込境界ゲート）。
+//   レガシー取込からは呼ばない」だった。その規律の理由は「取込行は同一 migrate() 実行内の
+//   後段 applyMapNameUnificationMigration が marker 保護下で写像する」ことであり、
+//   m19-t7 がその後段を撤去したため前提が消滅した。差し替え後は
+//   「写像の呼び出し点は 1 箇所。到達経路は書き込み側の唯一の正規化点 normalizeMapDocument だけ。
+//   読み込み側からは呼ばない」であり、規律の目的（写像を 1 箇所に閉じる）は強化されている。
+//   assert は消していない（消すのではなく新しい条件へ書き換える）。
 //
 // なぜ AC-2 が必要か: electron/utils/store_handler.ts の keys 配列と HistMapStore の
 // フィールドの両方に label を足さないと、MapEditService.save (histMap2Store) で保存した
@@ -106,18 +117,20 @@ assert.ok(
 );
 console.log('ok: AC-1c store_handler の HistMapStore/keys に label の器がある');
 
-// AC-18a: preserveDeprecatedForMigration を渡す経路は importLegacyMaps の 1 箇所だけ
+// AC-18a (m19-t7 で差し替え): レガシー取込は写像を素通りしない。
+//   旧条件「preserveDeprecatedForMigration のコード行が 3 行あり、呼び出しは importLegacyMaps
+//   本体の 1 行だけ」は、当該オプションを撤去したことで維持不能になった。
+//   新条件: (1) 当該オプションはコード行に 1 件も無い、
+//           (2) importLegacyMaps 本体が normalizeMapDocument を **オプション無しで** 呼ぶ。
 const sqliteLines = sqliteText.split('\n');
 const preserveHits = sqliteLines
   .map((line, i) => ({ no: i + 1, line }))
   .filter(({ line }) => line.includes('preserveDeprecatedForMigration'))
   .filter(({ line }) => !/^\s*(\/\/|\*|\/\*)/.test(line));
-assert.equal(
-  preserveHits.length,
-  3,
-  `AC-18a: preserveDeprecatedForMigration のコード行は 3 行 (型定義 / 分岐 / 呼び出し) のはず。実際: ${preserveHits
-    .map((h) => h.no)
-    .join(',')}`
+assert.deepEqual(
+  preserveHits.map((h) => `${h.no}: ${h.line.trim()}`),
+  [],
+  'AC-18a: 取込だけ写像を素通りさせるオプションはコード行に残っていないはず (m19-t7 で撤去)'
 );
 // 呼び出し行が importLegacyMaps の本体行レンジにあることを行番号で assert する (目視ではない)
 function bodyRangeOf(lines, signatureNeedle) {
@@ -133,19 +146,31 @@ function bodyRangeOf(lines, signatureNeedle) {
   throw new Error(`関数 ${signatureNeedle} の終端が見つからない`);
 }
 const importLegacyRange = bodyRangeOf(sqliteLines, 'private importLegacyMaps(');
-const preserveCallLines = preserveHits.filter(
-  (h) => h.no >= importLegacyRange[0] && h.no <= importLegacyRange[1]
-);
+const normalizeCallsInImport = sqliteLines
+  .map((line, i) => ({ no: i + 1, line }))
+  .filter(({ no, line }) =>
+    no >= importLegacyRange[0] &&
+    no <= importLegacyRange[1] &&
+    line.includes('normalizeMapDocument(') &&
+    !/^\s*(\/\/|\*|\/\*)/.test(line)
+  );
 assert.equal(
-  preserveCallLines.length,
+  normalizeCallsInImport.length,
   1,
-  `AC-18a: preserveDeprecatedForMigration の呼び出しは importLegacyMaps 本体 (${importLegacyRange[0]}-${importLegacyRange[1]}) 内の 1 行のみのはず`
+  `AC-18a: importLegacyMaps 本体 (${importLegacyRange[0]}-${importLegacyRange[1]}) は書き込み側の唯一の正規化点 normalizeMapDocument をちょうど 1 回通るはず`
+);
+assert.match(
+  normalizeCallsInImport[0].line,
+  /normalizeMapDocument\(doc\)/,
+  'AC-18a: 取込は normalizeMapDocument を **オプション無しで** 呼ぶはず (写像を素通りさせない)'
 );
 console.log(
-  `ok: AC-18a preserveDeprecatedForMigration は 3 行、呼び出しは importLegacyMaps 本体 (行 ${preserveCallLines[0].no}) のみ`
+  `ok: AC-18a レガシー取込は唯一の正規化点を素通りしない (行 ${normalizeCallsInImport[0].no})`
 );
 
-// AC-18b: unifyMapNameFields の呼び出し点が規定の 2 箇所だけ
+// AC-18b (m19-t7 で差し替え): unifyMapNameFields の呼び出し点は 1 ファイルだけ。
+//   旧条件は 2 ファイル (SqliteDataService.ts の one-shot migration + mapNameUnification.ts)。
+//   m19-t7 が前者を撤去したので、写像に触れるのは写像モジュール自身だけになった。
 const unifyHits = [];
 for (const f of sources) {
   f.text.split('\n').forEach((line, i) => {
@@ -157,25 +182,36 @@ for (const f of sources) {
 const unifyFiles = [...new Set(unifyHits.map((h) => h.rel))].sort();
 assert.deepEqual(
   unifyFiles,
-  ['electron/services/SqliteDataService.ts', 'src/utils/mapNameUnification.ts'],
-  `AC-18b: unifyMapNameFields に触れるファイルは 2 つのみのはず。実際: ${unifyFiles.join(', ')}`
+  ['src/utils/mapNameUnification.ts'],
+  `AC-18b: unifyMapNameFields に触れるファイルは 1 つのみのはず。実際: ${unifyFiles.join(', ')}`
 );
-// mapRowToDocument / importLegacyMaps の本体には 1 件も無いこと
+// 唯一の到達経路 adoptDeprecatedMapNames は書き込み側の正規化点からのみ呼ばれ、
+// 読み込み側 (mapRowToDocument) からも取込 (importLegacyMaps) からも直接は呼ばれない
+const adoptHits = sqliteLines
+  .map((line, i) => ({ no: i + 1, line }))
+  .filter(({ line }) => line.includes('adoptDeprecatedMapNames') && !/^\s*(\/\/|\*|\/\*)/.test(line))
+  .filter(({ line }) => !/^\s*import\b/.test(line));
+assert.equal(
+  adoptHits.length,
+  1,
+  `AC-18b: adoptDeprecatedMapNames の呼び出しは 1 箇所のみのはず。実際: ${adoptHits.map((h) => h.no).join(',')}`
+);
+const normalizeMapDocumentRange = bodyRangeOf(sqliteLines, 'function normalizeMapDocument(');
+assert.ok(
+  adoptHits[0].no >= normalizeMapDocumentRange[0] && adoptHits[0].no <= normalizeMapDocumentRange[1],
+  `AC-18b: 唯一の呼び出しは normalizeMapDocument 本体 (${normalizeMapDocumentRange[0]}-${normalizeMapDocumentRange[1]}) の中にあるはず。実際: ${adoptHits[0].no}`
+);
 const mapRowRange = bodyRangeOf(sqliteLines, 'export function mapRowToDocument(');
 for (const [name, range] of [
   ['mapRowToDocument', mapRowRange],
   ['importLegacyMaps', importLegacyRange],
 ]) {
-  const inside = unifyHits.filter(
-    (h) => h.rel === 'electron/services/SqliteDataService.ts' && h.no >= range[0] && h.no <= range[1]
-  );
-  assert.deepEqual(
-    inside.map((h) => h.no),
-    [],
-    `AC-18b: ${name} の本体 (${range[0]}-${range[1]}) から写像を呼んではならない`
+  assert.ok(
+    !(adoptHits[0].no >= range[0] && adoptHits[0].no <= range[1]),
+    `AC-18b: ${name} の本体 (${range[0]}-${range[1]}) から写像を直接呼んではならない`
   );
 }
-console.log('ok: AC-18b unifyMapNameFields の呼び出し点は規定の 2 ファイルのみ / 禁止経路に無い');
+console.log('ok: AC-18b 写像に触れるのは mapNameUnification.ts のみ / 到達点は normalizeMapDocument の 1 箇所');
 
 // ---------------------------------------------------------------------------
 // Part 2: 写像の単体検証 + 保存経路の behavioral 検証 (AC-4 / AC-18c / AC-2)

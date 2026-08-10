@@ -41,7 +41,13 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixturesRoot = path.join(projectRoot, 'tests/fixtures/m13-t5-migration-pipeline');
 
-const MIGRATION_ID = '2026-08-09-m19-t1-map-name-unification';
+// m19-t7: 名称統一の one-shot migration は撤去された（0.7.0 → 1.0.0 は一気通貫で移行し、
+// 写像は書き込み側の唯一の正規化点で取込の瞬間に効く）。∴ この spec が確かめる不変条件は
+//   旧: 「名称統一 marker がちょうど 1 行あり、それが非冪等な写像を二重適用から守る」
+//   新: 「名称統一 marker は 1 行も無い。冪等なゲートが写像を守るので marker を要さない」
+// へ差し替えた。data_json が 2 回目起動後も完全一致するという **実質** の検証は不変である。
+const REMOVED_NAME_UNIFICATION_MIGRATION_ID = '2026-08-09-m19-t1-map-name-unification';
+const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
 // 廃止属性の名前をテスト側でも 1 箇所に閉じ込める
 const DEPRECATED = 'officialTitle';
 
@@ -178,11 +184,15 @@ test.describe('M19-T1: 地図の名称属性統一と既存データ移行', () 
         expect(all.length, 'AC-15: 母数が 0 の空振り緑を防ぐ').toBeGreaterThan(0);
         expect(emptyTitles.length, 'AC-15: 移行後に title が空の地図は 0 件のはず').toBe(0);
 
-        // --- AC-5: marker がちょうど 1 行 ---
-        const markers = db
+        // --- AC-5 (m19-t7 で差し替え): 名称統一 marker は無く、レガシー取込 marker だけがある ---
+        const removed = db
           .prepare('SELECT id FROM schema_migrations WHERE id = ?')
-          .all(MIGRATION_ID) as any[];
-        expect(markers.length, 'AC-5: 名称統一 marker がちょうど 1 行のはず').toBe(1);
+          .all(REMOVED_NAME_UNIFICATION_MIGRATION_ID) as any[];
+        expect(removed.length, 'AC-5: 撤去した名称統一 marker は記録されないはず').toBe(0);
+        const legacy = db
+          .prepare('SELECT id FROM schema_migrations WHERE id = ?')
+          .all(LEGACY_MIGRATION_ID) as any[];
+        expect(legacy.length, 'AC-5: レガシー取込 marker はちょうど 1 行のはず').toBe(1);
 
         firstSnapshot = docs;
       } finally {
@@ -205,10 +215,10 @@ test.describe('M19-T1: 地図の名称属性統一と既存データ移行', () 
           expect(docs[slug], `AC-5: ${slug} の data_json が 2 回目起動後も完全一致するはず`)
             .toEqual(firstSnapshot[slug]);
         }
-        const markers = db
+        const removed2 = db
           .prepare('SELECT id FROM schema_migrations WHERE id = ?')
-          .all(MIGRATION_ID) as any[];
-        expect(markers.length, 'AC-5: marker は 1 行のままのはず').toBe(1);
+          .all(REMOVED_NAME_UNIFICATION_MIGRATION_ID) as any[];
+        expect(removed2.length, 'AC-5: 2 回目起動でも撤去した marker は生えないはず').toBe(0);
       } finally {
         db.close();
       }
@@ -347,10 +357,10 @@ test.describe('M19-T1: 地図の名称属性統一と既存データ移行', () 
         .toEqual({ ja: '表示A', en: 'DisplayA' });
       expect(DEPRECATED in d2, 'AC-7B②: 廃止属性のキーは消えるはず').toBe(false);
 
-      const markers = db
+      const removed3 = db
         .prepare('SELECT id FROM schema_migrations WHERE id = ?')
-        .all(MIGRATION_ID) as any[];
-      expect(markers.length, 'AC-7B: 名称統一 marker が 1 行のはず').toBe(1);
+        .all(REMOVED_NAME_UNIFICATION_MIGRATION_ID) as any[];
+      expect(removed3.length, 'AC-7B: 撤去した名称統一 marker は記録されないはず').toBe(0);
     } finally {
       db.close();
     }
@@ -528,12 +538,18 @@ test.describe('M19-T1: 地図の名称属性統一と既存データ移行', () 
         console.log(`AC-10/AC-11: app export map.json label=${JSON.stringify(appMapJson.label)} title=${JSON.stringify(appMapJson.title)}`);
       }
 
-      // --- AC-7C: 移行 marker が既に立った DB へ 0.7.0 形の ZIP を取り込む ---
-      //   （= migration ではなく取込境界の受容 adoptDeprecatedMapNames が働くことの検証）
+      // --- AC-7C: レガシー取込が完了済みの DB へ 0.7.0 形の ZIP を取り込む ---
+      //   （= migration ではなく取込境界の受容 adoptDeprecatedMapNames が働くことの検証。
+      //     m19-t7 以後は「名称統一 marker が立った後」という前提が消えたので、
+      //     「レガシー取込が済み、かつ名称統一 marker は存在しない」を前提として確認する）
       const db0 = openDb(saveFolder);
       try {
-        const markers = db0.prepare('SELECT id FROM schema_migrations WHERE id = ?').all(MIGRATION_ID) as any[];
-        expect(markers.length, 'AC-7C: 前提として名称統一 marker が既に立っているはず').toBe(1);
+        const legacyMarkers = db0.prepare('SELECT id FROM schema_migrations WHERE id = ?').all(LEGACY_MIGRATION_ID) as any[];
+        expect(legacyMarkers.length, 'AC-7C: 前提としてレガシー取込 marker が立っているはず').toBe(1);
+        const removedMarkers = db0
+          .prepare('SELECT id FROM schema_migrations WHERE id = ?')
+          .all(REMOVED_NAME_UNIFICATION_MIGRATION_ID) as any[];
+        expect(removedMarkers.length, 'AC-7C: 名称統一 marker は存在しないはず（受容ゲートだけが働く）').toBe(0);
       } finally {
         db0.close();
       }

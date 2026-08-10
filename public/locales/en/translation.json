@@ -457,8 +457,6 @@
     "migration_report_warnings": "There are {{count}} warning(s). See migration-report-v2.json in the data folder for details.",
     "migrating_thumbnails_512": "Generating 512px thumbnails",
     "migrating_thumbnails_512_done": "512px thumbnail generation complete",
-    "migrating_thumbnails_512_webp": "Converting 512px thumbnails to WebP",
-    "migrating_thumbnails_512_webp_done": "512px thumbnail conversion to WebP complete",
     "migrating_originals": "Migrating original files to UUID filenames",
     "migrating_originals_done": "Original file migration complete"
   },

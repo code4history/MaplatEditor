@@ -6,7 +6,8 @@
 // 足した理由）が実アプリでも成立していることの裏取りを兼ねる — 同期版が正しく働かなければ
 // そもそも起動しない。
 //
-// 【衝突の作り方】`slugTaken` は `asset_registry` だけを見る（SqliteDataService:1723 実読）。
+// 【衝突の作り方】`slugTaken` は `asset_registry` だけを見る（SqliteDataService.slugTaken 実読。
+// m19-t7 で当該ファイルから 200 行超を削ったため、行番号ではなくシンボル名で指す）。
 // ∴ builtin の `base_maps` 行だけを消し、registry 行を残せば「slug は取られているが
 // ビルトイン行は無い」状態になり、次回起動の再シードが衝突回避へ入る。
 // 1文の DELETE で作れる最小の細工である。

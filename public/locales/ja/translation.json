@@ -465,8 +465,6 @@
     "migration_report_warnings": "警告が{{count}}件あります。詳細はデータフォルダの migration-report-v2.json を確認してください。",
     "migrating_thumbnails_512": "512pxサムネイルを生成しています",
     "migrating_thumbnails_512_done": "512pxサムネイルの生成が完了しました",
-    "migrating_thumbnails_512_webp": "512pxサムネイルをWebP形式へ変換しています",
-    "migrating_thumbnails_512_webp_done": "512pxサムネイルのWebP形式への変換が完了しました",
     "migrating_originals": "原本ファイルをUUID名へ移行しています",
     "migrating_originals_done": "原本ファイルの移行が完了しました"
   },
