@@ -90,12 +90,18 @@ binaries are distributed via GitHub Releases.
   level: the source's Layer Icon/Layer Selected Icon are its defaults, while
   a reference's icon/selected-icon override replaces them for that one
   map/app only
-- A map or app's `pois` field accepts six historical forms: a URL string, an
-  inline FeatureCollection, an array of FeatureCollections, an array of
-  legacy POI objects, an old layer-name-keyed dictionary, and a layer-ref
-  wrapper (`{ layer, hide?, title?, icon?, selectedIcon? }`). The layer-ref
-  wrapper — used by managed POI source references — is the current form; the
-  other five are legacy and kept for backward compatibility only
+- A map or app's `pois` field accepts six historical forms defined by the
+  Maplat viewer: a URL string, an inline FeatureCollection, an array of
+  FeatureCollections, an array of legacy POI objects, an old layer-name-keyed
+  dictionary, and a layer-ref wrapper (`{ layer, hide?, title?, icon?,
+  selectedIcon? }`). The layer-ref wrapper — used by managed POI source
+  references — is the current form; the URL string, inline FeatureCollection,
+  FeatureCollection array, and legacy POI object array are legacy but still
+  opened as read-only/convertible data by the editor (see below). The old
+  layer-name-keyed dictionary is the one exception: **MaplatEditor does not
+  support it at all** — the POI panel shows no entries and editing in that
+  tab is disabled, though the original data is preserved unchanged rather
+  than lost
 - Legacy map/app-embedded POIs (inline `pois` entries) are preserved as-is:
   the POI data tab shows them read-only, grouped into panes per viewer
   layer, with item counts and badges distinguishing "Map-embedded POI" and
@@ -155,8 +161,9 @@ binaries are distributed via GitHub Releases.
   configured cap is detected before decoding, and the error tells you **how
   much is needed, what is currently configured, and what to set**. Very
   large images (over 100 MP) also show a confirmation dialog before import,
-  since decoding can take several minutes and cannot be canceled once
-  started. These are arithmetic thresholds that guard against decompression
+  since decoding takes a long time at that size (roughly 5 minutes at
+  100 MP, over an hour at 400 MP) and cannot be canceled once started.
+  These are arithmetic thresholds that guard against decompression
   blow-ups; they **do not reserve actual memory**, so raising them will not
   help if the machine runs out of physical memory
 - Only one instance of MaplatEditor runs at a time; launching a second
