@@ -8,11 +8,27 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 // https://vitejs.dev/config/
 export default defineConfig({
   base: './',
+  css: {
+    preprocessorOptions: {
+      scss: {
+        silenceDeprecations: ['import', 'global-builtin', 'color-functions', 'if-function'],
+      },
+    },
+  },
   plugins: [
     vue(),
     electron({
       main: {
         entry: 'electron/main.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              // m19-t5: @jsquash/webp は 'jimp' と同型で external にする。バンドルすると
+              // wasm を import.meta.url 基準で解決できなくなるため、実 node_modules から解決させる。
+              external: ['node:sqlite', 'jimp', '@jsquash/webp', 'pwa-asset-generator', '@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+            },
+          },
+        },
       },
       preload: {
         input: path.join(__dirname, 'electron/preload.ts'),

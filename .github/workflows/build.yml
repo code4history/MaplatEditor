@@ -1,18 +1,51 @@
 name: Build and Release
 
 on:
-  # master プッシュ時に自動実行
+  # 署名ポリシー（m6-t12 §2.4 / 人間決定 D6・2026-08-08）。2軸で指定する:
+  #
+  #   mode=verify（既定・動作確認用）: Mac 署名のみ / Win 署名なし / draft Release なし
+  #     Apple は年額で署名ごとの課金がなく eSigner も呼ばないため **課金ゼロ**。∴ 全バージョン・全ブランチ可
+  #   mode=full（完全）:               Mac 署名+公証 / Win eSigner 署名 / draft Release 作成
+  #     eSigner は署名ごとに課金（2回/リリース）。∴ **rc 以降**に限定
+  #     （prerelease は rc 始まりのみ。正式版は master 限定。判定は scripts/m6-t12/check-release-guard.mjs）
+  #
+  #   platforms=all|mac|win|linux: 対象を絞れる。Apple の公証が復旧したときに
+  #     「Mac だけ焼き直す」（mac + full）が eSigner を再課金せずにできる
+  #
+  #   push（master / glm52 / foss4g-hiroshima）: 常に署名なしビルド。
+  #     旧仕様の「master push で Mac 署名のみ」は m6-t12 で廃止した — 署名系 secrets を
+  #     environment `release`（Required reviewers 保護）へ隔離したため push ビルドからは読めない
   push:
-    branches: [master]
-  # 手動実行（ブランチ問わず起動可能、署名は行わない）
+    branches: [master, glm52, foss4g-hiroshima]
   workflow_dispatch:
+    inputs:
+      mode:
+        description: '署名レベル'
+        type: choice
+        default: verify
+        options:
+          - verify   # 動作確認用: Mac 署名のみ / Win 署名なし / Release 作らない（課金ゼロ・全バージョン可）
+          - full     # 完全:       Mac 署名+公証 / Win eSigner 署名 / draft Release（eSigner 課金2回・rc 以降限定）
+      platforms:
+        description: 'ビルド対象'
+        type: choice
+        default: all
+        options: [all, mac, win, linux]
 
+# GITHUB_TOKEN は既定を read に絞り、contents: write は Release を作る release ジョブへ
+# job 単位で与える（セキュリティレビュー SR-t12-M-1・2026-08-08）。
+# workflow レベルに write を置くとビルド3ジョブのトークンにも書き込み権限が乗り、
+# checkout が .git/config へ残したトークン（既定 persist-credentials: true）を経由して、
+# ビルド時に走る依存ツリー（vite / vue-tsc / electron-builder のプラグイン群）の汚染が
+# そのままリポジトリ書き込みに直結する。署名パイプラインではそれは「次に署名される内容を
+# 書き換えられる」ことを意味し、外部 action を SHA ピンする脅威モデルと矛盾する。
+# 回帰止めは smoke の AC11。
 permissions:
-  contents: write  # GitHub Release 作成に必要
+  contents: read
 
 jobs:
   # ─────────────────────────────────────────────
-  # バージョン番号取得（全ジョブで共有）
+  # バージョン番号取得 + 実行可否ガード（全ジョブで共有）
   # ─────────────────────────────────────────────
   prepare:
     runs-on: ubuntu-latest
@@ -24,19 +57,41 @@ jobs:
         id: ver
         run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
 
+      # 実行可否の判定（m6-t12 §2.2 / D6）。version 取得後に置くのが要点
+      # （prerelease 判定に version が必要）。判定ロジックは smoke（AC3）と同一実装
+      - name: Guard build mode
+        env:
+          MODE: ${{ inputs.mode }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: node scripts/m6-t12/check-release-guard.mjs
+
   # ─────────────────────────────────────────────
   # macOS ビルド（x64 + arm64 DMG）
   # ─────────────────────────────────────────────
   build-mac:
     needs: prepare
+    # platforms で対象を絞る（push は常に全プラットフォーム）
+    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || inputs.platforms == 'mac'
     runs-on: macos-latest
+    # 公証は Apple のキュー次第で長引く。既定（360分）のままだと応答が返らないときに
+    # 6時間まるごと消費してから cancelled になる（m6-t12 AC7 の初回実走で実測）。
+    # ビルド 5分 + 公証（x64/arm64 の2回）に十分な余裕を見つつ、早く失敗させる
+    timeout-minutes: 120
+    # 署名系 secrets は environment `release` に置く（m6-t12 §2.4）。release 実行時のみ
+    # Required reviewers の承認が挟まり、push ビルド（ci 側）からは secrets を読めない
+    environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode != '') && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
         with:
+          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
+          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@v4
@@ -44,14 +99,20 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      - name: Apply CI-only pnpm config
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
+
       - name: Install dependencies
         run: pnpm install
 
-      # Developer ID 証明書のインポート
-      # master プッシュ時のみ実行（Secret 未設定の場合はスクリプト内でスキップ）
+      # Developer ID 証明書のインポート（dispatch のみ。verify / full とも Mac は署名する）
+      # インポート成功時に MAC_SIGN=true を設定 → electron-builder が Hardened Runtime 付き署名を行う
+      # （Secret 未設定の場合はスクリプト内でスキップ）
       # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する
       - name: Import Apple Developer certificate
-        if: github.ref == 'refs/heads/master'
+        if: github.event_name == 'workflow_dispatch' && inputs.mode != ''
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
@@ -73,11 +134,16 @@ jobs:
             -S apple-tool:,apple:,codesign: \
             -s -k "$KEYCHAIN_PASSWORD" build.keychain
           rm certificate.p12
+          echo "MAC_SIGN=true" >> $GITHUB_ENV
 
-      # 公証環境変数のセット（master かつ APPLE_ID が設定されている場合のみ）
+      # 公証環境変数のセット（mode=full のみ）
       # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
+      # mode=verify では APPLE_ID を渡さない。notarize.cjs は APPLE_ID 不在でスキップする
+      # 既存経路を持つため（scripts/notarize/notarize.cjs:14）、署名済み・未公証の DMG が
+      # そのまま得られる。Apple の公証キューが滞留したとき（m6-t12 AC7 で 7 時間超の
+      # In Progress を実測）に、動作確認だけ先へ進めるための経路でもある
       - name: Set macOS notarization environment
-        if: github.ref == 'refs/heads/master'
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
         shell: bash
         env:
           _APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -107,14 +173,24 @@ jobs:
   # ─────────────────────────────────────────────
   build-win:
     needs: prepare
+    # platforms で対象を絞る（push は常に全プラットフォーム）
+    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || inputs.platforms == 'win'
     runs-on: windows-latest
+    # 実測 4分台。eSigner の応答待ちを見込んでも 45 分あれば十分（早期失敗のため）
+    timeout-minutes: 45
+    environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode != '') && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
         with:
+          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
+          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@v4
@@ -122,25 +198,75 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      - name: Apply CI-only pnpm config
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
+
       - name: Install dependencies
         run: pnpm install
 
-      # 署名環境変数のセット（master かつ WIN_CSC_LINK が設定されている場合のみ）
-      # ※ 空文字を env: に渡すと electron-builder がパスとして解釈して誤動作するため $GITHUB_ENV 経由で設定
-      - name: Set Windows code signing environment
-        if: github.ref == 'refs/heads/master'
-        shell: bash
-        env:
-          _WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          _WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-        run: |
-          if [ -n "$_WIN_CSC_LINK" ]; then
-            echo "WIN_CSC_LINK=$_WIN_CSC_LINK" >> $GITHUB_ENV
-            echo "WIN_CSC_KEY_PASSWORD=$_WIN_CSC_KEY_PASSWORD" >> $GITHUB_ENV
-          fi
-
       - name: Build Windows
         run: pnpm run dist:win
+
+      # 生成された NSIS ペイロードのコーデックを機械照合する（m19-t13）。
+      # nsis7z は解けないコーデックのエントリを**黙って落として完走する**ため、
+      # 「ビルド成功 / インストーラ成功 / アプリだけが存在しない」という形で不具合が成立する
+      # （v1.0.0-rc2 の arm64 で実際に起きた。MaplatEditor.exe と DLL 8 本が展開されなかった）。
+      # ∴ 終了コードやビルド緑では原理的に捕まらず、成果物の中身を直接見るしかない。
+      #
+      # 位置が要件である: 署名の **前** に置くことで、コーデック不正で落ちたときに
+      # eSigner を1回も呼ばない（署名は1回ごとに課金される）。if: を付けないのは、
+      # 課金ゼロの mode=verify と push ビルドでも走らせて日常の回帰の番人にするため。
+      # ファイル名は electron-builder.config.cjs の artifactName から決定的（eSigner ステップと同じ）。
+      #
+      # アンカー規約（m19-t13 設計 §6.2）: root 側の結線検査は、この検査ステップのスクリプトキー名
+      # （または呼び先スクリプトの相対パス）に**最初に一致した行**をアンカーにする。
+      # ∴ このステップより上のコメントにそれらの文字列を書かないこと（誤アンカーする）。
+      - name: Verify Windows payload codec
+        run: pnpm run verify:m19-t13:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
+
+      # eSigner による post-build 署名（m6-t12 §2.3・mode=full のみ。verify では署名しない）。
+      # 署名対象は file_path で明示した Setup.exe 2本のみ = 署名回数 2/リリース
+      # （eSigner は署名ごとに課金・§7-2 方針）。dir_path（batch_sign）を使わないのは、
+      # 署名不可ファイル（latest.yml / *.blockmap）混在時の挙動が action 側で未文書化のため
+      # （実装レビュー IR-1: 課金付き経路に未確認挙動を置かない）。
+      # ファイル名は electron-builder.config.cjs の artifactName
+      # '${productName}-Windows-${version}-${arch}-Setup.${ext}'（productName=MaplatEditor）から決定的。
+      # electron-builder の win.sign hook を使わない理由・アプリ本体 exe を署名しない
+      # トレードオフは docs/release-signing.md を参照
+      - name: Sign Windows installer x64 (SSL.com eSigner)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        uses: SSLcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b # v1.3.2
+        with:
+          command: sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          file_path: release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe
+          override: 'true'
+          environment_name: PROD
+
+      - name: Sign Windows installer arm64 (SSL.com eSigner)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        uses: SSLcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b # v1.3.2
+        with:
+          command: sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          file_path: release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
+          override: 'true'
+          environment_name: PROD
+
+      # 署名でバイナリが変わったため、latest.yml の sha512/size と .exe.blockmap を
+      # 署名済みバイナリから再生成する（怠ると auto-update が壊れる /
+      # 差分更新が常時全量フォールバックする。m6-t12 §2.3・AC5）
+      - name: Update auto-update metadata after signing
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        run: node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -148,27 +274,42 @@ jobs:
           name: win-artifacts
           path: |
             release/${{ env.VERSION }}/*.exe
+            release/${{ env.VERSION }}/*.exe.blockmap
             release/${{ env.VERSION }}/latest.yml
 
   # ─────────────────────────────────────────────
-  # Linux ビルド（x64 + arm64 AppImage）
+  # Linux ビルド（x64 + arm64 AppImage・署名なし＝現行方針。mode に依存しない）
   # ─────────────────────────────────────────────
   build-linux:
     needs: prepare
+    # platforms で対象を絞る（push は常に全プラットフォーム）
+    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || inputs.platforms == 'linux'
     runs-on: ubuntu-latest
+    # 実測 1分半。署名を伴わないため短く倒す
+    timeout-minutes: 30
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
         with:
+          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
+          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
+
+      # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      - name: Apply CI-only pnpm config
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       - name: Install dependencies
         run: pnpm install
@@ -188,12 +329,17 @@ jobs:
             release/${{ env.VERSION }}/latest-linux.yml
 
   # ─────────────────────────────────────────────
-  # GitHub Release 作成（master プッシュ時のみ）
+  # GitHub Release 作成（mode=full + platforms=all のみ。許可条件は prepare の Guard で担保）
   # ─────────────────────────────────────────────
   release:
     needs: [prepare, build-mac, build-win, build-linux]
-    if: github.ref == 'refs/heads/master'
+    # draft Release は完全ビルドを全プラットフォーム揃えたときだけ作る
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && inputs.platforms == 'all'
     runs-on: ubuntu-latest
+    environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode != '') && 'release' || 'ci' }}
+    # draft Release の作成にだけ書き込みが要る。workflow 既定の read をここでだけ引き上げる
+    permissions:
+      contents: write
     steps:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
@@ -202,7 +348,7 @@ jobs:
           merge-multiple: true
 
       - name: Create GitHub Release (draft)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: v${{ needs.prepare.outputs.version }}
           name: MaplatEditor v${{ needs.prepare.outputs.version }}

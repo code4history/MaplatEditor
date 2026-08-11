@@ -1,0 +1,6 @@
+<!-- Maplat Editor builtin icon set (POI-139 / POI-126).
+     iconIds are append-only: existing ids must never change meaning once shipped.
+     Shape mirrors PoiEditMap.vue's pinStyle() inline SVG pin generator. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="26" height="36" viewBox="0 0 26 36">
+<path d="M13 1C6.4 1 1 6.4 1 13c0 9 12 22 12 22s12-13 12-22C25 6.4 19.6 1 13 1z" fill="#2E9E44" stroke="#333333" stroke-width="1.5"/>
+<circle cx="13" cy="13" r="4.5" fill="#FFFFFF"/></svg>

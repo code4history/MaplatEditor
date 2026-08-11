@@ -4,8 +4,11 @@ declare module 'adm-zip' {
         extractAllTo(targetPath: string, overwrite?: boolean): void;
         addLocalFolder(localPath: string, zipPath?: string): void;
         addLocalFile(localPath: string, zipPath?: string, newName?: string): void;
+        addFile(entryName: string, content: Buffer, comment?: string, attr?: number): void;
         getEntries(): AdmZip.IZipEntry[];
         writeZip(targetFileName?: string): void;
+        // adm-zip 0.5.x: 内部で toAsyncBuffer を使う非同期版 (MAJOR-2/MINOR-1 対応で使用)
+        writeZipPromise(targetFileName?: string, props?: { overwrite?: boolean; perm?: number }): Promise<void>;
         toBuffer(): Buffer;
     }
     namespace AdmZip {
@@ -13,6 +16,7 @@ declare module 'adm-zip' {
             entryName: string;
             getData(): Buffer;
             isDirectory: boolean;
+            header: { attr: number; size: number };
         }
     }
     export = AdmZip;

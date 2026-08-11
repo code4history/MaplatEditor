@@ -1,0 +1,151 @@
+/* M11-T6 共通 List CSS 正本（P2）。値は T5 の --editor-ui-* token へ委譲する。 */
+.resource-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.resource-list__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--editor-ui-space-2);
+  padding: var(--editor-ui-space-3);
+}
+
+.resource-list__search {
+  flex: 1 1 12rem;
+  min-width: 0;
+  height: var(--editor-ui-control-height);
+}
+
+.resource-list__status {
+  font-size: var(--editor-ui-font-size-sm);
+  color: var(--bs-secondary-color);
+  padding: 0 var(--editor-ui-space-3) var(--editor-ui-space-2);
+}
+
+.resource-list__content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* M12-T10 v2.0: 行コンテナ共通クラス。全 Master 行（selector / master-detail / 管理一覧）の唯一の間隔正本。
+   各画面の scoped CSS で gap を個別定義することは禁止（C1 対応）。 */
+.resource-list__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resource-list__sentinel {
+  height: 1px;
+}
+
+/* item 情報階層（thumbnail→title→Slug→metadata→badge→menu）は grid/master 共通の意味順 */
+.resource-item__title {
+  font-size: var(--editor-ui-font-size-base);
+  font-weight: 600;
+}
+
+.resource-item__slug,
+.resource-item__meta {
+  font-size: var(--editor-ui-font-size-sm);
+  color: var(--bs-secondary-color);
+}
+
+.resource-item__slug {
+  font-family: var(--editor-ui-font-mono);
+}
+
+/* action menu — Bootstrap .dropdown-menu{position:absolute} を同じspecificityで上書き
+   (本SCSSはBootstrapより後に読み込まれるため、宣言順で勝つ) */
+.resource-action-menu {
+  position: fixed;
+  z-index: var(--editor-ui-z-overlay);
+  min-width: 10rem;
+}
+
+/* item surface: 行表面の唯一の正本（M12-T10 v2.0）。
+   background #fff / border 1px / radius 4px / padding 0.5rem 1rem / gap で分離
+   hover は薄い背景変化、selected は #0d6efd 枠 + 青淡背景。
+   ResourceMasterRow の scoped CSS は全廃し、この global 正本のみで描画する（C1 対応）。
+   Bootstrap list-group-item 由来の border/角丸潰しを排除するため、root class から list-group-item 系を除去済み。 */
+/* M12-T10 v2.0 Min1: 共通プロパティ（background/border/radius/transition）のみ共有。
+   padding/flex/gap/cursor は .resource-master-row のみに指定（grid card は独自レイアウト） */
+.resource-grid-card,
+.resource-master-row {
+  background: #fff;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 4px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.resource-master-row {
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+}
+
+.resource-grid-card:hover,
+.resource-master-row:hover {
+  background: var(--bs-tertiary-bg);
+}
+
+/* 選択状態の統一（M12-T10 v2.0 HM6）: master-detail の詳細表示中 と selector の追加済み が同一の .selected（青）。
+   旧 .active は Bootstrap .list-group-item.active と競合するため .selected へ rename。
+   grid card は内側 router-link の :has で検出（従来どおり）。 */
+.resource-master-row.selected {
+  border-color: #0d6efd;
+  background: rgba(13, 110, 253, 0.06);
+  color: var(--bs-body-color);
+}
+.resource-master-row.selected .resource-item__title {
+  color: var(--bs-body-color);
+}
+.resource-master-row.selected .resource-item__slug,
+.resource-master-row.selected .resource-item__meta {
+  color: var(--bs-secondary-color);
+}
+
+.resource-grid-card:has(a.router-link-active) {
+  border-color: #0d6efd;
+  background: rgba(13, 110, 253, 0.06);
+}
+
+/* selector variant の追加不可表示（previewDisabled 等）。disabled は selected より優先しない（HM6: selected 優先） */
+.resource-master-row.disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+/* thumbnail 表示ボックス（48px。画像実体 52px 規約は不変、CSS 表示ボックスのみ） */
+.resource-master-row__thumb {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #f8f9fa;
+  border: 1px solid var(--bs-border-color);
+}
+.resource-master-row__thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.resource-master-row__placeholder {
+  color: var(--bs-secondary-color);
+}
+
+/* selector variant: 追加不可理由（text-danger で常時表示、§設計 4 HM4） */
+.resource-master-row__reason {
+  font-size: var(--editor-ui-font-size-sm);
+}
+
+/* item 間 gap は親コンテナ (.resource-list__rows) の gap: 6px で一元管理（M12-T10）。
+   旧 .resource-master-row + .resource-master-row { margin-top: 6px } は廃止。 */

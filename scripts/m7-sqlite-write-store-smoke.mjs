@@ -1,0 +1,534 @@
+// SQLite Write Store + DuckDB Search Layer (ADR-0001) の統合スモーク。
+// シナリオ1: 生きたレガシー入力(nedb.db / settings/)からのマイグレーションと
+//            Write Store経由のCRUD、Search Layer経由の一覧検索、退避リネーム。
+// シナリオ2: 退避済み入力(_nedb.db / _settings/)からもマイグレーションできること。
+import { mkdtemp, rm, writeFile, mkdir, access } from 'node:fs/promises';
+import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { build } from 'vite';
+
+const execFileAsync = promisify(execFile);
+const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+const scratchRoot = path.join(projectRoot, '.tmp-smoke');
+await mkdir(scratchRoot, { recursive: true });
+const workDir = await mkdtemp(path.join(scratchRoot, 'sqlite-write-store-'));
+const entryFile = path.join(workDir, 'sqlite-write-store-smoke.ts');
+const electronStubFile = path.join(workDir, 'electron-stub.ts');
+const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
+const outDir = path.join(workDir, 'dist');
+const bundledFile = path.join(outDir, 'sqlite-write-store-smoke.mjs');
+
+function legacyMapDoc(id, title) {
+  return JSON.stringify({
+    _id: id,
+    title,
+    officialTitle: '',
+    description: 'Migrated from NeDB',
+    attr: '',
+    dataAttr: '',
+    author: '',
+    createdAt: '',
+    era: '',
+    license: '',
+    dataLicense: '',
+    contributor: '',
+    mapper: '',
+    reference: '',
+    url: '',
+    lang: 'ja',
+    imageExtension: 'jpg',
+    width: 320,
+    height: 200,
+    gcps: [],
+    edges: [],
+    sub_maps: [],
+    homePosition: [0, 0],
+    mercZoom: 0,
+    strictMode: 'strict',
+    vertexMode: 'plain',
+  }) + '\n';
+}
+
+try {
+  const dataDir = path.join(workDir, 'data');
+  const settingsDir = path.join(dataDir, 'settings');
+  const retiredDataDir = path.join(workDir, 'data-retired');
+  const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const langResourcePath = path.join(projectRoot, 'src/utils/langResource.ts');
+  const mapDataPath = path.join(projectRoot, 'electron/services/MapDataService.ts');
+  const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
+  const searchPath = path.join(projectRoot, 'electron/services/SearchDataService.ts');
+  const storageAdapterPath = path.join(projectRoot, 'electron/adapters/ElectronStorageAdapter.ts');
+
+  await mkdir(settingsDir, { recursive: true });
+  await writeFile(
+    electronStubFile,
+    `
+      export const app = {
+        getPath(name: string) {
+          if (name === 'documents') return ${JSON.stringify(path.join(workDir, 'documents'))};
+          if (name === 'temp') return ${JSON.stringify(path.join(workDir, 'temp'))};
+          if (name === 'appData') return ${JSON.stringify(path.join(workDir, 'appData'))};
+          return ${JSON.stringify(workDir)};
+        },
+        getName() { return 'MaplatEditor'; },
+        whenReady() { return Promise.resolve(); },
+        exit(code?: number) { if (code && code !== 0) process.exitCode = code; },
+      };
+      export const dialog = {
+        showOpenDialog() { return Promise.resolve({ canceled: true, filePaths: [] }); },
+        showMessageBox() { return Promise.resolve({ response: 0 }); },
+      };
+      export const ipcMain = { handle() {} };
+      globalThis.__appProgressEvents = [];
+      const fakeWindow = {
+        webContents: {
+          send(channel: string, payload: any) {
+            globalThis.__appProgressEvents.push({ channel, payload });
+          },
+        },
+      };
+      export const BrowserWindow = class {
+        static getAllWindows() { return [fakeWindow]; }
+      };
+      // M12-T18: バンドルに含まれる MapDeleteTrashService が shell を named import するため
+      // export が必要 (本 smoke は trashItem を呼ばないので no-op で可)
+      export const shell = {
+        trashItem(_path: string) { return Promise.resolve(); },
+      };
+    `
+  );
+  await writeFile(
+    electronStoreStubFile,
+    `
+      export default class Store<T extends Record<string, any>> {
+        store: T;
+        constructor(options: { defaults?: T } = {}) {
+          this.store = { ...(options.defaults || {}) } as T;
+        }
+        get(key: string) { return this.store[key]; }
+        set(key: string, value: any) { this.store[key as keyof T] = value; }
+        has(key: string) { return Object.prototype.hasOwnProperty.call(this.store, key); }
+      }
+    `
+  );
+
+  // シナリオ1: 生きたレガシー入力
+  // mapA/mapB は個別表示設定(tmsList_mapA.json等)の対象地図。schema v2 では表示設定が
+  // 地図uidへ解決されるため、設定対象の地図もnedbに存在させる (ADR-0007)
+  await writeFile(
+    path.join(dataDir, 'nedb.db'),
+    legacyMapDoc('legacy-map', 'Legacy Map') + legacyMapDoc('mapA', 'Map A') + legacyMapDoc('mapB', 'Map B')
+  );
+  await writeFile(
+    path.join(settingsDir, 'tmsList.json'),
+    JSON.stringify([{ mapID: 'user-base', title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' }])
+  );
+  await writeFile(
+    path.join(settingsDir, 'tmsList_mapA.json'),
+    JSON.stringify({ 'user-base': false, 'gsi_ort_USA10': true })
+  );
+  await writeFile(
+    path.join(settingsDir, 'tmsList.mapB.json'),
+    JSON.stringify({ 'user-base': true, 'gsi_ort_USA10': false })
+  );
+
+  // シナリオ2: 退避済み入力(先行のDuckDB移行がリネームした状態を再現)
+  await mkdir(path.join(retiredDataDir, '_settings'), { recursive: true });
+  await writeFile(path.join(retiredDataDir, '_nedb.db'), legacyMapDoc('retired-map', 'Retired Map'));
+  await writeFile(
+    path.join(retiredDataDir, '_settings', 'tmsList.json'),
+    JSON.stringify([{ mapID: 'retired-base', title: 'Retired Base', url: 'https://example.test/{z}/{x}/{y}.png' }])
+  );
+
+  await writeFile(
+    entryFile,
+    `
+      import assert from 'node:assert/strict';
+      import { access, mkdir, writeFile, chmod } from 'node:fs/promises';
+      import { default as fileUrl } from 'file-url';
+
+      const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
+      SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
+
+      const { default: MapDataService } = await import(${JSON.stringify(mapDataPath)});
+      const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
+      const { default: SearchDataService } = await import(${JSON.stringify(searchPath)});
+      const { default: StorageAdapter } = await import(${JSON.stringify(storageAdapterPath)});
+
+      await SqliteDataService.getDb();
+      assert.ok(globalThis.__appProgressEvents.some((event) =>
+        event.channel === 'app:taskProgress' && event.payload.text === 'database.migrating'
+      ));
+      assert.equal(await StorageAdapter.isSlugAvailable('legacy-map'), false);
+      // 一覧検索はSearch Layer(DuckDB sqlite ATTACH)経由
+      const listed = await StorageAdapter.listMaps({ query: 'Legacy', page: 1, pageSize: 20 });
+      assert.equal(listed.docs.length, 1);
+      assert.equal(listed.docs[0].mapID, 'legacy-map');
+      // pageSize=0 は全件取得 (legacy-map / mapA / mapB の3件)
+      const listedAll = await StorageAdapter.listMaps({ query: '', page: 1, pageSize: 0 });
+      assert.equal(listedAll.docs.length, 3);
+      assert.equal(listedAll.next, false);
+      // schema v2: 移行された地図は uid(UUIDv4) と slug=旧ID を持つ (ADR-0007)
+      const migratedDoc = await SqliteDataService.findMapBySlug('legacy-map');
+      assert.match(migratedDoc.uid, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      assert.equal(migratedDoc.slug, 'legacy-map');
+      assert.equal(migratedDoc.revision, 1);
+
+      const loaded = await StorageAdapter.readMapForEdit('legacy-map');
+      assert.equal(loaded.mapID, 'legacy-map');
+      assert.equal(loaded.status, 'Update');
+      // 言語別フィールドの内部形は常にオブジェクト (ADR-0005)。
+      // nedb由来のプレーン文字列(=デフォルト言語の値)はマイグレーション/ロードで正規化される
+      const migrated = await SqliteDataService.findMapBySlug('legacy-map');
+      assert.deepEqual(migrated.title, { ja: 'Legacy Map' });
+      // m19-t1: 廃止された名称属性は取込境界の受容 (adoptDeprecatedMapNames) で
+      // 1.0.0 の語彙へ写され、キーごと消える。旧 title は表示ラベルへ移る
+      assert.ok(!('officialTitle' in migrated), '廃止属性はキーごと消えるはず');
+      assert.deepEqual(migrated.label, { ja: 'Legacy Map' });
+
+      // 書き込み直後の読み取り(read-your-writes): 単一レコードはWrite Store、一覧はSearch Layer
+      await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, title: 'Updated Legacy Map', status: 'Update' },
+        tins: ['tooLessGcps'],
+      });
+      const reloaded = await SqliteDataService.findMapBySlug('legacy-map');
+      // 保存経路でもプレーン文字列はオブジェクト形へ正規化される (ADR-0005)
+      assert.deepEqual(reloaded.title, { ja: 'Updated Legacy Map' });
+      const relisted = await StorageAdapter.listMaps({ query: 'Updated', page: 1, pageSize: 20 });
+      assert.equal(relisted.docs.length, 1);
+
+      // --- ADR-0007: uid経路の改名保存・楽観ロック・post-commitファイル操作失敗の再試行救済 ---
+      const originalsDir = ${JSON.stringify(path.join(dataDir, 'originals'))};
+      const tmpTilesDir = ${JSON.stringify(path.join(workDir, 'temp', 'MaplatEditor', 'tiles'))};
+      const origPath = (slug) => originalsDir + '/' + slug + '.jpg';
+      await mkdir(originalsDir, { recursive: true });
+      await writeFile(origPath('legacy-map'), 'original-image');
+      const beforeRename = await SqliteDataService.findMapBySlug('legacy-map');
+      const legacyUid = beforeRename.uid;
+
+      // (1a) M12-T20 (§6.5) 保存前実在ガード: url_ が存在しないtmpタイルを指す改名保存は、
+      //      DB に一切触れる前に Error を返す(「DB 行だけコミットされ画像喪失」の根絶。
+      //      §5.1 の表: tmpCheck||stagingCheck が真かつ移動元不存在は pre-commit Error)。
+      //      本シナリオはかつて(m12-t20以前)は post-commit 失敗として観測されていたが、
+      //      同タスクの主眼(移動元不存在クラスの根絶)により pre-commit 失敗へ変わった
+      const missingSourceGuarded = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update',
+                     url_: fileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map-renamed',
+        renameFromSlug: 'legacy-map',
+        expectedRevision: beforeRename.revision,
+      });
+      assert.equal(missingSourceGuarded.result, 'Error');
+      assert.equal(missingSourceGuarded.errorKey, 'mapedit.staging.missing_tiles');
+      assert.equal(missingSourceGuarded.uid, undefined, 'pre-commit ガードは DB に一切触れないため uid を返さない');
+      // DB は改名コミットされていない: 旧slugのまま・revisionも不変
+      assert.equal(await StorageAdapter.isSlugAvailable('legacy-map-renamed'), true);
+      assert.equal((await SqliteDataService.findMapBySlug('legacy-map')).revision, beforeRename.revision);
+      await access(origPath('legacy-map'));
+
+      // (1b) post-commit失敗(移動元は実在するがtiles/移動先の書込みが拒否される): DBコミット後の
+      //     fs.move が失敗し、確定した uid/slug/revision 付きの Error が返る(D5: 再試行完遂
+      //     のための意図的設計。post-commit catch は m12-t20 で無変更・移動元不存在クラスの
+      //     みが(1a)へ切り出された)。移動元(tmp)を実在させ保存前ガードを通過させたうえで、
+      //     移動先 saveFolder/tiles を読み取り専用にして move の新規エントリ作成を物理的に
+      //     拒否させる(fs.ensureDir(tileFolder) は既存ディレクトリの存在確認のみで書込み権限を
+      //     要求しないため、事前 chmod は save() 冒頭の ensureDir と干渉しない)
+      await mkdir(tmpTilesDir, { recursive: true });
+      const tileFolderPath = ${JSON.stringify(path.join(dataDir, 'tiles'))};
+      await mkdir(tileFolderPath, { recursive: true });
+      await chmod(tileFolderPath, 0o555);
+      const poisoned = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update',
+                     url_: fileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map-renamed',
+        // 機構置換(M11-T7/D5改): 旧 status:'Change:{旧slug}' の代わりに明示フィールド
+        // renameFromSlug で原本(originals)改名の残作業を引き継ぐ。editorは成功まで originalSlug を保持する
+        renameFromSlug: 'legacy-map',
+        expectedRevision: beforeRename.revision,
+      });
+      await chmod(tileFolderPath, 0o755);
+      assert.equal(poisoned.result, 'Error');
+      assert.equal(poisoned.uid, legacyUid);
+      assert.equal(poisoned.slug, 'legacy-map-renamed');
+      assert.equal(poisoned.revision, beforeRename.revision + 1);
+      // DB上は改名コミット済み。原本(originals)の改名はまだ行われていない
+      assert.equal((await SqliteDataService.findMapBySlug('legacy-map-renamed')).revision, poisoned.revision);
+      await access(origPath('legacy-map'));
+
+      // (2) revisionを補正しない再試行は楽観ロックで弾かれる(コミット済みrevisionが返る)
+      const stale = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map-renamed',
+        renameFromSlug: 'legacy-map',
+        expectedRevision: beforeRename.revision,
+      });
+      assert.equal(stale.error, 'revision-conflict');
+      assert.equal(stale.current, poisoned.revision);
+
+      // (3) Errorが返したrevisionで補正した再試行は成功し、孤児となった旧slugの原本改名を
+      //     引き継ぐ(M11-T7/D5改: レンダラは成功まで originalSlug を renameFromSlug として渡す)
+      const retried = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map-renamed',
+        renameFromSlug: 'legacy-map',
+        expectedRevision: poisoned.revision,
+      });
+      assert.equal(retried.result, 'Success');
+      assert.equal(retried.revision, poisoned.revision + 1);
+      await access(origPath('legacy-map-renamed'));
+      await assert.rejects(() => access(origPath('legacy-map')));
+
+      // (4) 通常の改名(元のslugへ戻す): uid維持でslugが付け替わり、原本も追随する
+      const renamedBack = await StorageAdapter.saveMapForEdit({
+        mapObject: { ...loaded, mapID: 'legacy-map', status: 'Update' },
+        tins: ['tooLessGcps'],
+        uid: legacyUid,
+        slug: 'legacy-map',
+        renameFromSlug: 'legacy-map-renamed',
+        expectedRevision: retried.revision,
+      });
+      assert.equal(renamedBack.result, 'Success');
+      const backDoc = await SqliteDataService.findMapBySlug('legacy-map');
+      assert.equal(backDoc.uid, legacyUid, 'slug改名でuidが変わってはいけない');
+      assert.equal(backDoc.revision, retried.revision + 1);
+      await access(origPath('legacy-map'));
+      await assert.rejects(() => access(origPath('legacy-map-renamed')));
+
+      // ADR-0005: 交換形(エクスポート)はデフォルト言語のみ→プレーン文字列、複数言語→オブジェクト
+      const langResource = await import(${JSON.stringify(langResourcePath)});
+      assert.deepEqual(langResource.normalizeLangResource('日本地図', 'ja'), { ja: '日本地図' });
+      assert.deepEqual(langResource.normalizeLangResource({ ja: '日本地図', en: '' }, 'ja'), { ja: '日本地図' });
+      assert.equal(langResource.compactLangResource({ ja: '日本地図' }, 'ja'), '日本地図');
+      assert.deepEqual(langResource.compactLangResource({ ja: '日本地図', en: 'Japan Map' }, 'ja'), { ja: '日本地図', en: 'Japan Map' });
+      // デフォルト言語以外の単一言語はオブジェクトのまま(言語情報を失わない)
+      assert.deepEqual(langResource.compactLangResource({ en: 'Japan Map' }, 'ja'), { en: 'Japan Map' });
+      assert.equal(langResource.compactLangResource({ ja: '' }, 'ja'), undefined);
+      const normalizedLabel = langResource.normalizeMapLangFields({
+        lang: 'ja',
+        title: '姫路古地図',
+        label: '姫路',
+      });
+      assert.deepEqual(normalizedLabel.label, { ja: '姫路' });
+      assert.equal(
+        langResource.compactMapLangFields({ lang: 'ja', label: { ja: '姫路' } }).label,
+        '姫路',
+      );
+      const compactedDoc = langResource.compactMapLangFields({ lang: 'ja', title: { ja: '日本地図' }, description: { ja: '説明', en: 'Desc' }, attr: {} });
+      assert.equal(compactedDoc.title, '日本地図');
+      assert.deepEqual(compactedDoc.description, { ja: '説明', en: 'Desc' });
+      assert.ok(!('attr' in compactedDoc));
+
+      // Write StoreはSQLiteファイル。DuckDBファイルは作られない
+      await access(${JSON.stringify(path.join(dataDir, 'maplat.sqlite'))});
+      await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'maplat.duckdb'))}));
+      // 消費済みレガシー入力は退避リネームされる(Legacy Data Retirement)
+      await access(${JSON.stringify(path.join(dataDir, '_nedb.db'))});
+      await access(${JSON.stringify(path.join(dataDir, '_settings'))});
+      await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'nedb.db'))}));
+      await assert.rejects(() => access(${JSON.stringify(settingsDir)}));
+
+      const mapA = await SettingsService.getTmsListOfMapID('mapA');
+      assert.ok(mapA.some((tms) => tms.mapID === 'osm'));
+      assert.ok(mapA.some((tms) => tms.mapID === 'gsi_ort_USA10'));
+      assert.ok(!mapA.some((tms) => tms.mapID === 'user-base'));
+      const mapAVisibility = await SettingsService.getBaseMapVisibilityOfMapID('mapA');
+      const mapAOsm = mapAVisibility.find((item) => item.mapID === 'osm');
+      const mapAUser = mapAVisibility.find((item) => item.mapID === 'user-base');
+      assert.equal(mapAOsm.locked, true);
+      assert.equal(mapAOsm.enabled, true);
+      assert.equal(mapAUser.enabled, false);
+
+      await SettingsService.setBaseMapVisibilityForMapID('mapA', 'osm', false);
+      await SettingsService.setBaseMapVisibilityForMapID('mapA', 'user-base', true);
+      const mapAUpdated = await SettingsService.getTmsListOfMapID('mapA');
+      assert.ok(mapAUpdated.some((tms) => tms.mapID === 'osm'));
+      assert.ok(mapAUpdated.some((tms) => tms.mapID === 'user-base'));
+
+      const mapB = await SettingsService.getTmsListOfMapID('mapB');
+      assert.ok(!mapB.some((tms) => tms.mapID === 'gsi_ort_USA10'));
+      assert.ok(mapB.some((tms) => tms.mapID === 'user-base'));
+
+      // オプトイン方式(ADR-0006): 設定のない地図には常時表示ベースマップのみが表示される
+      const mapC = await SettingsService.getTmsListOfMapID('mapC');
+      assert.deepEqual(mapC.map((tms) => tms.mapID).sort(), ['gsi', 'gsi_ortho', 'osm']);
+
+      // 常時表示の再編(ADR-0006): OSMは外せない/GSI系は外せる/任意のベースマップを常時表示にできる
+      const catalog = await SettingsService.listBaseMaps();
+      const catalogOsm = catalog.find((item) => item.mapID === 'osm');
+      const catalogGsi = catalog.find((item) => item.mapID === 'gsi');
+      const catalogUser = catalog.find((item) => item.mapID === 'user-base');
+      assert.equal(catalogOsm.alwaysVisible, true);
+      assert.equal(catalogOsm.alwaysLocked, true);
+      assert.equal(catalogGsi.alwaysVisible, true);
+      assert.equal(catalogGsi.alwaysLocked, false);
+      assert.equal(catalogUser.alwaysVisible, false);
+      await assert.rejects(() => SettingsService.setBaseMapAlways('osm', false));
+      await SettingsService.setBaseMapAlways('gsi', false);
+      await SettingsService.setBaseMapAlways('user-base', true);
+      const mapCUpdated = await SettingsService.getTmsListOfMapID('mapC');
+      assert.deepEqual(mapCUpdated.map((tms) => tms.mapID).sort(), ['gsi_ortho', 'osm', 'user-base']);
+      // 常時表示のベースマップは地図単位の設定ではロックされる
+      const mapCVisibility = await SettingsService.getBaseMapVisibilityOfMapID('mapC');
+      assert.equal(mapCVisibility.find((item) => item.mapID === 'user-base').locked, true);
+      // 後続アサーションに影響させないため常時表示設定を既定へ戻す
+      await SettingsService.setBaseMapAlways('gsi', true);
+      await SettingsService.setBaseMapAlways('user-base', false);
+
+      // FTS5(日本語分かち書き)とR-Tree(bbox)の索引がトリガで同期されること
+      const { uid: ryukyuUid } = await SqliteDataService.createMap('ryukyu-map', {
+        title: '正保琉球国絵図写',
+        compiled: { vertices_points: [[[0, 0], [15550000, 3070000]], [[1, 1], [15650000, 3170000]]] },
+      });
+      const { uid: kumaUid } = await SqliteDataService.createMap('kuma-map', { title: '球磨川流域地図' });
+      // 「琉球」: 単語一致のみヒット(「球」を含むだけの球磨川へは誤ヒットしない)
+      const jaHits = await SearchDataService.listMaps('琉球', 1, 0);
+      assert.deepEqual(jaHits.docs.map((doc) => doc._id), ['ryukyu-map']);
+      // トークン境界を跨ぐ部分文字列は raw LIKE フォールバックで従来同様ヒット
+      const substrHits = await SearchDataService.listMaps('図写', 1, 0);
+      assert.deepEqual(substrHits.docs.map((doc) => doc._id), ['ryukyu-map']);
+      // R-Tree: bbox交差検索(メルカトル座標)。削除でトリガが索引を掃除すること
+      assert.deepEqual(await SearchDataService.searchExtent([15500000, 3000000, 15700000, 3200000]), ['ryukyu-map']);
+      assert.deepEqual(await SearchDataService.searchExtent([0, 0, 100, 100]), []);
+      await SqliteDataService.deleteMap(ryukyuUid);
+      assert.deepEqual(await SearchDataService.searchExtent([15500000, 3000000, 15700000, 3200000]), []);
+      assert.equal((await SearchDataService.listMaps('琉球', 1, 0)).docs.length, 0);
+      await SqliteDataService.deleteMap(kumaUid);
+
+      // ビルトインベースマップはKTGISカタログ由来(重複なし・再シード安全)
+      const baseMaps = await SettingsService.listBaseMaps();
+      assert.ok(baseMaps.some((item) => item.scope === 'builtin' && item.mapID === 'osm'));
+      assert.ok(baseMaps.some((item) => item.scope === 'builtin' && item.mapID === 'muroran00'));
+      assert.ok(baseMaps.some((item) => item.scope === 'user' && item.mapID === 'user-base'));
+      // ID空間はMaplat地図とベースマップ(ビルトイン含む)で共有・一意
+      // (サムネイルが tmbs/{mapID}.* を共有するため)
+      assert.equal(await StorageAdapter.isSlugAvailable('osm'), false);
+      assert.equal(await StorageAdapter.isSlugAvailable('user-base'), false);
+      assert.equal(await StorageAdapter.isSlugAvailable('brand-new-id'), true);
+      await assert.rejects(() =>
+        SqliteDataService.saveUserBaseMap({ slug: 'legacy-map', tms: { title: 'x', url: 'https://example.test/{z}/{x}/{y}.png' } })
+      );
+
+      // slug改名(ADR-0007): uidが正本キーのため、改名は同一uidのslug付け替えとして行われる
+      // (payload = { uid?, slug, tms }。uid指定=更新、uidなし=新規)。
+      // 改名先の衝突はasset_registryのグローバル一意性で拒否される(旧grandfatheringは
+      // マイグレーション時のslugサフィックス解消に置き換えられ不要になった)
+      const { uid: dupUid } = await SqliteDataService.saveUserBaseMap({
+        slug: 'dup-base',
+        tms: { title: 'Dup', url: 'https://example.test/{z}/{x}/{y}.png' },
+      });
+      // 改名先が地図slugと衝突する場合は拒否
+      const { uid: anotherUid } = await SqliteDataService.createMap('another-map', { title: '別の地図' });
+      await assert.rejects(() =>
+        SqliteDataService.saveUserBaseMap({ uid: dupUid, slug: 'another-map', tms: { title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' } })
+      );
+      await SqliteDataService.deleteMap(anotherUid);
+      // 未使用slugへの改名は成功し、uidは変わらない
+      await SqliteDataService.saveUserBaseMap({ uid: dupUid, slug: 'dup-base-renamed', tms: { title: 'Dup2', url: 'https://example.test/{z}/{x}/{y}.png' } });
+      const afterRename = await SettingsService.listBaseMaps();
+      const renamedItem = afterRename.find((item) => item.scope === 'user' && item.mapID === 'dup-base-renamed');
+      assert.ok(renamedItem);
+      assert.equal(renamedItem.uid, dupUid, 'slug改名でuidが変わってはいけない');
+      assert.ok(!afterRename.some((item) => item.scope === 'user' && item.mapID === 'dup-base'));
+      await SqliteDataService.deleteUserBaseMap(dupUid);
+
+      // 改名で地図単位の表示設定が引き継がれること(mapAでuser-baseをオプトイン済み)
+      const userBaseUid = (await SettingsService.listBaseMaps()).find((item) => item.mapID === 'user-base').uid;
+      await SqliteDataService.saveUserBaseMap({ uid: userBaseUid, slug: 'user-base-renamed', tms: { title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' } });
+      const mapARenamed = await SettingsService.getTmsListOfMapID('mapA');
+      assert.ok(mapARenamed.some((tms) => tms.mapID === 'user-base-renamed'));
+      assert.ok(!mapARenamed.some((tms) => tms.mapID === 'user-base'));
+      // 後続アサーションのため元のIDへ戻す(設定も戻る)
+      await SqliteDataService.saveUserBaseMap({ uid: userBaseUid, slug: 'user-base', tms: { title: 'User Base', url: 'https://example.test/{z}/{x}/{y}.png' } });
+      assert.ok((await SettingsService.getTmsListOfMapID('mapA')).some((tms) => tms.mapID === 'user-base'));
+      await SearchDataService.reset();
+      await SqliteDataService.reset();
+      // 2回目以降の起動では移行済みのため、退避アーカイブが残っていても進捗通知(移行ダイアログ)は出ない
+      const legacyMigratedCount = (events) => events.filter(
+        (event) => event.channel === 'app:taskProgress' && event.payload.text === 'database.migrated',
+      ).length;
+      const legacyProgressCountBeforeReopen = legacyMigratedCount(globalThis.__appProgressEvents);
+      const rawDb = await SqliteDataService.getDb();
+      // M13-T3: cold-boot reopen は runColdBoot(db) の no-marker idempotent 再走を伴い、
+      // legacy-map が copyable と分類されて database.migrating_originals 進捗イベントが
+      // 新たに積まれる(意図どおりの挙動)。ここでは「レガシー移行(nedb->sqlite)固有の
+      // 進捗イベントが再発火しないこと」だけを検証し、元の検証意図を維持する
+      assert.equal(legacyMigratedCount(globalThis.__appProgressEvents), legacyProgressCountBeforeReopen,
+        'reopening an already-migrated DB must not re-emit legacy (nedb->sqlite) migration progress events');
+      const duplicateCheck = rawDb
+        .prepare('SELECT scope, slug, count(*) AS count FROM base_maps GROUP BY scope, slug HAVING count(*) > 1')
+        .all();
+      assert.equal(duplicateCheck.length, 0);
+      assert.ok(globalThis.__appProgressEvents.some((event) =>
+        event.channel === 'app:taskProgress' && event.payload.text === 'database.migrated'
+      ));
+      // 再オープンでオプトイン化の一括破棄(スキーマ移行)が再実行されないこと(明示選択が保持される)
+      const mapAAfterReopen = await SettingsService.getTmsListOfMapID('mapA');
+      assert.ok(mapAAfterReopen.some((tms) => tms.mapID === 'user-base'));
+
+      // シナリオ2: 退避済み入力(_nedb.db/_settings)からのマイグレーション
+      SettingsService.set('saveFolder', ${JSON.stringify(retiredDataDir)});
+      await MapDataService.switchDataFolder();
+      assert.equal(await SqliteDataService.isSlugAvailable('retired-map'), false);
+      const retiredList = await SearchDataService.listMaps('Retired', 1, 20);
+      assert.equal(retiredList.docs.length, 1);
+      const retiredBaseMaps = await SettingsService.listBaseMaps();
+      assert.ok(retiredBaseMaps.some((item) => item.scope === 'user' && item.mapID === 'retired-base'));
+      // 退避済み入力はそのまま残る(再リネームされない)
+      await access(${JSON.stringify(path.join(retiredDataDir, '_nedb.db'))});
+      await access(${JSON.stringify(path.join(retiredDataDir, '_settings'))});
+
+      // m18-t8(2026-08-09): DuckDB経路の同値確認はここにあったが、経路ごと撤去したため削除した。
+      // 撤去理由は electron/services/SearchDataService.ts の冒頭コメントと ADR-0001 を参照。
+      // reset() は公開APIとして残っているので、呼べること自体は非退行として確認する。
+      await SearchDataService.reset();
+      const afterReset = await SearchDataService.listMaps('Retired', 1, 20);
+      assert.equal(afterReset.docs.length, 1);
+      assert.equal(afterReset.docs[0]._id, 'retired-map');
+
+      console.log('M7 SQLite write store smoke passed');
+    `
+  );
+
+  await build({
+    configFile: false,
+    logLevel: 'silent',
+    resolve: {
+      alias: [
+        { find: 'electron', replacement: electronStubFile },
+        { find: 'electron-store', replacement: electronStoreStubFile },
+      ],
+    },
+    build: {
+      emptyOutDir: true,
+      outDir,
+      ssr: entryFile,
+      target: 'node22',
+      rollupOptions: {
+        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, 'jimp'],
+        output: {
+          entryFileNames: 'sqlite-write-store-smoke.mjs',
+          format: 'es',
+        },
+      },
+    },
+  });
+
+  await execFileAsync(process.execPath, [bundledFile], {
+    cwd: projectRoot,
+    timeout: 60000,
+    maxBuffer: 1024 * 1024 * 8,
+  });
+  console.log('M7 SQLite write store smoke passed');
+} finally {
+  await rm(workDir, { recursive: true, force: true });
+}

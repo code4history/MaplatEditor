@@ -21,7 +21,27 @@
             <a
               href="#"
               class="nav-link h-100 d-flex align-items-center px-4"
-              :class="{ active: currentRoute === 'AppList' }"
+              :class="{ active: isPoiSection }"
+              @click.prevent="navigate('PoiSourceList')"
+            >
+              {{ t("navbar.edit_poi") }}
+            </a>
+          </li>
+          <li class="nav-item h-100">
+            <a
+              href="#"
+              class="nav-link h-100 d-flex align-items-center px-4"
+              :class="{ active: currentRoute === 'BaseMapList' }"
+              @click.prevent="navigate('BaseMapList')"
+            >
+              {{ t("navbar.add_basemap") }}
+            </a>
+          </li>
+          <li class="nav-item h-100">
+            <a
+              href="#"
+              class="nav-link h-100 d-flex align-items-center px-4"
+              :class="{ active: isAppSection }"
               @click.prevent="navigate('AppList')"
             >
               {{ t("navbar.edit_app") }}
@@ -31,10 +51,21 @@
             <a
               href="#"
               class="nav-link h-100 d-flex align-items-center px-4"
+              :class="{ active: isAssetSection }"
+              @click.prevent="navigate('AssetList')"
+            >
+              {{ t("navbar.assets") }}
+            </a>
+          </li>
+          <li class="nav-item h-100">
+            <a
+              href="#"
+              class="nav-link h-100 d-flex align-items-center px-4"
               :class="{ active: currentRoute === 'Settings' }"
               @click.prevent="navigate('Settings')"
             >
-              {{ t("navbar.settings") }}
+              <!-- UIが読めない言語になっても設定へ辿り着けるよう、言語非依存のギアアイコンを併記 -->
+              <i class="bi bi-gear me-1"></i>{{ t("navbar.settings") }}
             </a>
           </li>
         </ul>
@@ -57,6 +88,18 @@ const isMapSection = computed(() => {
     return currentRoute.value === 'MapList' || currentRoute.value === 'MapEdit';
 });
 
+const isPoiSection = computed(() => {
+    return currentRoute.value === 'PoiSourceList' || currentRoute.value === 'PoiEdit';
+});
+
+const isAppSection = computed(() => {
+    return currentRoute.value === 'AppList' || currentRoute.value === 'AppEdit';
+});
+
+const isAssetSection = computed(() => {
+    return currentRoute.value === 'AssetList';
+});
+
 const navigate = (targetName: string) => {
     // Sticky Logic:
     // If we are in MapEdit, clicking "Edit Map" (targetName='MapList') does nothing.
@@ -71,29 +114,34 @@ const navigate = (targetName: string) => {
     // Map 'MapList' target to root path for router
     if (targetName === 'MapList') router.push('/');
     else if (targetName === 'AppList') router.push('/applist');
+    else if (targetName === 'PoiSourceList') router.push('/poisources');
+    else if (targetName === 'BaseMapList') router.push('/basemaps');
+    else if (targetName === 'AssetList') router.push('/assets');
     else if (targetName === 'Settings') router.push('/settings');
 };
 </script>
 
 <style scoped>
 .navbar {
-    height: 50px;
-    min-height: 50px;
-    background-color: #222 !important; /* BS3 navbar-inverse bg */
-    border-color: #080808;
+    height: var(--editor-ui-header-height);
+    min-height: var(--editor-ui-header-height);
+    background-color: var(--editor-ui-header-bg) !important; /* BS3 navbar-inverse bg */
+    border-color: var(--editor-ui-header-bg-active);
     padding: 0;
+    flex-wrap: nowrap !important;
 }
 
 .container-fluid {
     height: 100%;
     padding-left: 15px;
     padding-right: 15px;
+    flex-wrap: nowrap !important;
 }
 
 .navbar-brand {
-    color: #9d9d9d !important; /* BS3 brand color */
+    color: var(--editor-ui-header-fg) !important; /* BS3 brand color */
     font-size: 18px;
-    height: 50px;
+    height: var(--editor-ui-header-height);
     padding: 15px 15px;
     line-height: 20px;
     margin-right: 0;
@@ -102,7 +150,7 @@ const navigate = (targetName: string) => {
 }
 
 .navbar-brand:hover {
-    color: #fff !important;
+    color: var(--editor-ui-header-fg-active) !important;
 }
 
 .navbar-collapse {
@@ -111,6 +159,7 @@ const navigate = (targetName: string) => {
 
 .navbar-nav {
     flex-direction: row;
+    flex-wrap: nowrap;
     height: 100%;
     margin-bottom: 0;
 }
@@ -123,7 +172,7 @@ const navigate = (targetName: string) => {
 
 /* BS3 navbar-inverse link styles */
 .nav-link {
-    color: #9d9d9d !important;
+    color: var(--editor-ui-header-fg) !important;
     padding-top: 15px;
     padding-bottom: 15px;
     line-height: 20px;
@@ -132,19 +181,20 @@ const navigate = (targetName: string) => {
     align-items: center;
     border-radius: 0; /* Square */
     margin: 0;
+    white-space: nowrap;
     transition: color 0.2s, background-color 0.2s;
     font-size: 14px;
 }
 
 .nav-link:hover {
-    color: #fff !important;
+    color: var(--editor-ui-header-fg-active) !important;
     background-color: transparent; /* BS3 doesn't change bg on hover, only color */
 }
 
 /* BS3 navbar-inverse active styling */
 .nav-link.active {
-    color: #fff !important;
-    background-color: #080808 !important; /* Darker black background */
+    color: var(--editor-ui-header-fg-active) !important;
+    background-color: var(--editor-ui-header-bg-active) !important; /* Darker black background */
     box-shadow: none;
     border: none;
     margin-top: 0;

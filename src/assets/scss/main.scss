@@ -1,6 +1,13 @@
+// Application Shell token 正本（唯一の取込点）
+@import "./editor-ui-tokens.scss";
+
 // Import Bootstrap 5
 @import "bootstrap/scss/bootstrap";
 @import "bootstrap-icons/font/bootstrap-icons.css";
+
+// M11-T6 共通 List primitives CSS — Bootstrap 後に読み込み、
+// .dropdown-menu{position:absolute} や list-group-item 既定値を確実に上書きする。
+@import "../../components/resource-list/resource-list.scss";
 
 // OpenLayers & Plugins
 @import "ol/ol.css";

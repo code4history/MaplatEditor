@@ -1,0 +1,85 @@
+/* Application Shell token 正本（M11-T5）。ここが --editor-ui-* の唯一の定義箇所。
+   Bootstrap 変数を参照できるものは var(--bs-*) へ委譲し二重定義を避ける。
+   取込点は main.scss 冒頭の import のみ（main.ts には追加しない）。 */
+:root {
+  /* font */
+  --editor-ui-font-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --editor-ui-font-mono: var(--bs-font-monospace);
+  --editor-ui-font-size-sm: 12px;
+  --editor-ui-font-size-base: 14px;
+
+  /* spacing scale */
+  --editor-ui-space-1: 4px;
+  --editor-ui-space-2: 8px;
+  --editor-ui-space-3: 12px;
+  --editor-ui-space-4: 16px;
+  --editor-ui-space-5: 24px;
+
+  /* controls */
+  --editor-ui-control-height: 31px;
+  --editor-ui-control-height-compact: 24px;
+  --editor-ui-border-width: 1px;
+  --editor-ui-radius: 4px;
+  --editor-ui-focus-ring: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+
+  /* semantic family 前景基準 */
+  --editor-ui-color-neutral: var(--bs-secondary);
+  --editor-ui-color-info: var(--bs-info);
+  --editor-ui-color-success: var(--bs-success);
+  --editor-ui-color-warning: var(--bs-warning);
+  --editor-ui-color-danger: var(--bs-danger);
+
+  /* 診断: 文字色 */
+  --editor-ui-diag-info-fg: var(--bs-info-text-emphasis);
+  --editor-ui-diag-success-fg: var(--bs-success-text-emphasis);
+  --editor-ui-diag-warning-fg: var(--bs-warning-text-emphasis);
+  --editor-ui-diag-danger-fg: var(--bs-danger-text-emphasis);
+
+  /* 診断: 枠線 */
+  --editor-ui-diag-info-border: var(--bs-info-border-subtle);
+  --editor-ui-diag-success-border: var(--bs-success-border-subtle);
+  --editor-ui-diag-warning-border: var(--bs-warning-border-subtle);
+  --editor-ui-diag-danger-border: var(--bs-danger-border-subtle);
+
+  /* 診断: summary のみ背景 */
+  --editor-ui-diag-summary-bg-info: var(--bs-info-bg-subtle);
+  --editor-ui-diag-summary-bg-success: var(--bs-success-bg-subtle);
+  --editor-ui-diag-summary-bg-warning: var(--bs-warning-bg-subtle);
+  --editor-ui-diag-summary-bg-danger: var(--bs-danger-bg-subtle);
+  --editor-ui-diag-summary-padding: 8px 12px;
+
+  /* 黒 header（現行値の維持） */
+  --editor-ui-header-height: 50px;
+  --editor-ui-header-bg: #222;
+  --editor-ui-header-fg: #9d9d9d;
+  --editor-ui-header-fg-active: #fff;
+  --editor-ui-header-bg-active: #080808;
+
+  /* Busy overlay */
+  --editor-ui-overlay-bg: rgb(255 255 255 / 58%);
+
+  /* z-index（黒navbar は Bootstrap fixed-top 既定 1030 のままで対象外） */
+  --editor-ui-z-action-header: 20;
+  --editor-ui-z-overlay: 1040;
+}
+
+/* Slug / URL / raw data / code 用 utility */
+.editor-ui-mono {
+  font-family: var(--editor-ui-font-mono);
+}
+
+/* ContextHelp v3 共通カード。Popover は body 直下へ描画されるため非 scoped で定義する。
+   全ヘルプ共通の token 準拠カード（白背景 + subtle border + token radius / font-size-sm）。 */
+.editor-ui-help-popover.popover {
+  background-color: #fff;
+  border: var(--editor-ui-border-width) solid var(--bs-border-color);
+  border-radius: var(--editor-ui-radius);
+  font-size: var(--editor-ui-font-size-sm);
+}
+.editor-ui-help-popover .popover-header {
+  background-color: #fff;
+  font-size: var(--editor-ui-font-size-sm);
+}
+.editor-ui-help-popover .popover-body {
+  font-size: var(--editor-ui-font-size-sm);
+}

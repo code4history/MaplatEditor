@@ -6,37 +6,181 @@ import path from 'path';
 import { BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
 import { ProgressReporter } from '../utils/ProgressReporter';
+import { resolveRuntimeOriginal } from './MapOriginalImageService';
+import { mercatorBboxToWgs84 } from '../utils/webMercator';
+import { estimateJpegDecodeBudget } from '../utils/jpegDecodeBudget';
+import { resolveDecodeSafety, type DecodeSafety } from '../utils/decodeSafety';
 
 const MERC_MAX = 20037508.342789244;
+const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 interface PixelColor { r: number; g: number; b: number; a: number; }
 
+// m6-t8: TileJSON 3.0.0 出力の型（tiles は生成時点で自己参照の相対パス1本。
+// 書き出し時に AppExportService 側でディレクトリ名入りへ差し替える。設計 §3.4）
+export interface TileJsonDocument {
+    tilejson: '3.0.0';
+    tiles: [string];
+    minzoom: number;
+    maxzoom: number;
+    bounds: [number, number, number, number];
+}
+
+// m6-t8 §3.4: タイル範囲（最大ズームでの west/east/north/south タイル index）から
+// TileJSON の bounds（経緯度 [west, south, east, north]）を導出する。
+// メルカトル座標への変換は既存 mercatorBboxToWgs84（electron/utils/webMercator.ts）を
+// そのまま再利用し、新規の逆変換ロジックは書かない（design review M-1）。
+export function computeMercTileBounds(
+    tileXw: number,
+    tileXe: number,
+    tileYn: number,
+    tileYs: number,
+    maxZoom: number,
+): [number, number, number, number] {
+    const tilesPerSide = Math.pow(2, maxZoom);
+    const unit = (2 * MERC_MAX) / tilesPerSide;
+    const mercXWest = tileXw * unit - MERC_MAX;
+    const mercXEast = (tileXe + 1) * unit - MERC_MAX;
+    const mercYNorth = MERC_MAX - tileYn * unit;
+    const mercYSouth = MERC_MAX - (tileYs + 1) * unit;
+    return mercatorBboxToWgs84([mercXWest, mercYSouth, mercXEast, mercYNorth]);
+}
+
+// m6-t8 §3.4: merc/{targetBaseMapUid}/tilejson.json として書き出す TileJSON 文書を組み立てる
+export function buildMercTileJson(
+    tileXw: number,
+    tileXe: number,
+    tileYn: number,
+    tileYs: number,
+    minZoom: number,
+    maxZoom: number,
+): TileJsonDocument {
+    return {
+        tilejson: '3.0.0',
+        tiles: ['{z}/{x}/{y}.png'],
+        minzoom: minZoom,
+        maxzoom: maxZoom,
+        bounds: computeMercTileBounds(tileXw, tileXe, tileYn, tileYs, maxZoom),
+    };
+}
+
+// 実装レビュー M-2: 大きな地図画像（スキャン地図の大半）で jpeg-js の既定
+// maxMemoryUsageInMB=512 を超えて生成が必ず失敗していた欠陥への対応。
+// MapUploadService.ts の imageCutter() と同じ会計モデル（jpegDecodeBudget/decodeSafety）を
+// 適用し、SOF ヘッダからの予測値と機械の安全キャップを突き合わせてから Jimp.fromBuffer へ渡す。
+// Jimp.read(path, options) はローカルパス経路で options を捨てるため使えない
+// （@jimp/core の read 実装。MapUploadService.ts:281-284 参照）。
+export interface MercDecodeError {
+    err: string;
+    errorCode: 'jpeg_machine_limit' | 'jpeg_memory_limit' | 'jpeg_resolution_limit';
+    configuredMB?: number;
+    configuredMP?: number;
+    prediction?: { requiredMemoryMB: number; recommendedMemoryMB: number } | { megapixels: number; recommendedResolutionMP: number };
+    machine?: { requiredHeapMB: number; availableHeapMB: number; megapixels: number };
+}
+
+export interface MercDecodeOptions {
+    maxMemoryUsageInMB: number;
+    maxResolutionInMP: number;
+}
+
+/**
+ * バッファの SOF ヘッダから jpeg-js の会計要求量を予測し、機械の安全キャップ・設定キャップと
+ * 突き合わせて Jimp.fromBuffer へ渡す実効値を決定する（純粋関数・実デコード不要）。
+ * JPEG でない/SOF を解析できない場合は機械の安全枠をそのまま使う（PNG は無害。§3.8）。
+ */
+export function resolveMercDecodeOptions(
+    buffer: Buffer,
+    caps: { maxMemoryUsageInMB: number | null; maxResolutionInMP: number | null },
+    safety: DecodeSafety,
+): MercDecodeOptions | MercDecodeError {
+    const budget = estimateJpegDecodeBudget(buffer);
+    if (!budget) {
+        return { maxMemoryUsageInMB: safety.maxMemoryMB, maxResolutionInMP: safety.maxResolutionMP };
+    }
+    // この機械では構造的に扱えない（V8 ヒープが会計外で尽きプロセス強制終了になる領域）。
+    // 会計ガードの調整では直せないため、確認を出さずここで止める（MapUploadService と同型）
+    if (budget.decoderHeapMB > safety.maxDecoderHeapMB) {
+        return {
+            err: `jpeg decode machine limit: required heap ${budget.decoderHeapMB}MiB > available ${safety.maxDecoderHeapMB}MiB`,
+            errorCode: 'jpeg_machine_limit',
+            machine: { requiredHeapMB: budget.decoderHeapMB, availableHeapMB: safety.maxDecoderHeapMB, megapixels: budget.megapixels },
+        };
+    }
+    if (caps.maxMemoryUsageInMB !== null && budget.recommendedMemoryMB > caps.maxMemoryUsageInMB) {
+        return {
+            err: `jpeg decode memory limit: required ${budget.requiredMemoryMB}MB > configured cap ${caps.maxMemoryUsageInMB}MB`,
+            errorCode: 'jpeg_memory_limit',
+            configuredMB: caps.maxMemoryUsageInMB,
+            prediction: { requiredMemoryMB: budget.requiredMemoryMB, recommendedMemoryMB: budget.recommendedMemoryMB },
+        };
+    }
+    if (caps.maxResolutionInMP !== null && budget.recommendedResolutionMP > caps.maxResolutionInMP) {
+        return {
+            err: `jpeg decode resolution limit: ${budget.megapixels}MP > configured cap ${caps.maxResolutionInMP}MP`,
+            errorCode: 'jpeg_resolution_limit',
+            configuredMP: caps.maxResolutionInMP,
+            prediction: { megapixels: budget.megapixels, recommendedResolutionMP: budget.recommendedResolutionMP },
+        };
+    }
+    return { maxMemoryUsageInMB: budget.recommendedMemoryMB, maxResolutionInMP: budget.recommendedResolutionMP };
+}
+
+// M12-T22: 本クラスへのUI導線はM11-T3で撤去されていたが、m6-t8でMapEdit.vueの
+// 新規「メルカトルタイル」タブから到達可能になった（M12-T22が転用予定としていた
+// M4-(2)に対応）。ロジック・i18nキー（wmtsgenerate.* 全5キー、public/locales/*/
+// translation.json）は削除しない（§3.4参照）。
+// 詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
 class WmtsGeneratorService {
     private get folders() {
         const saveFolder = SettingsService.get('saveFolder') as string;
         return {
             originalFolder: path.join(saveFolder, 'originals'),
-            wmtsFolder:     path.join(saveFolder, 'wmts'),
+            mercFolder:     path.join(saveFolder, 'merc'),
         };
     }
 
     async generate(
         win: BrowserWindow,
+        uid: string,
         mapID: string,
         width: number,
         height: number,
         tinSerial: any,
         extKey: string,
-        hash: string
-    ): Promise<{ hash: string; err?: any }> {
+        hash: string,
+        targetBaseMapUid: string
+    ): Promise<{ hash: string; tileJson?: TileJsonDocument; err?: any; errorCode?: MercDecodeError['errorCode']; configuredMB?: number; configuredMP?: number; prediction?: MercDecodeError['prediction']; machine?: MercDecodeError['machine'] }> {
         try {
-            const tin = new Tin({});
+            const tin = new Tin(TIN_V2_OPTIONS);
             tin.setCompiled(tinSerial);
 
             extKey = extKey || 'jpg';
-            const { originalFolder, wmtsFolder } = this.folders;
-            const imagePath = path.join(originalFolder, `${mapID}.${extKey}`);
-            const tileRoot  = path.join(wmtsFolder, mapID);
+            const { mercFolder } = this.folders;
+            // M13-T2 (§5.4): originals の runtime read は canonical(uid キー)-first、
+            // canonical 不在時のみ一意な legacy(slug キー) fallback で解決する
+            const resolved = await resolveRuntimeOriginal(uid, mapID, extKey);
+            if (!resolved) {
+                // タスク設計レビュー v1 Minor 6: strict_error キーの流用をやめ、専用の非 i18n
+                // 診断文字列を確定する。renderer 側 wmtsGenerate() は arg.err を
+                // console.error するだけで、表示は既存の汎用 merc.error_generation（m6-t8）
+                return { hash, err: new Error(`originals.unresolved: failed to resolve runtime original for uid=${uid} slug=${mapID}`) };
+            }
+            const imagePath = resolved.path;
+            // m6-t8 (ADR-0016): タイルの所有者は元地図ではなく出力先ベースマップの UID
+            const tileRoot  = path.join(mercFolder, targetBaseMapUid);
+
+            // 実装レビュー M-2: デコードもタイル化も始める前に判定する（MapUploadService.imageCutter
+            // と同じ順序）。ここで戻る経路はタイル生成に一切着手していないため後始末は不要
+            const imageBufferSource = await fs.readFile(imagePath);
+            const decodeOptions = resolveMercDecodeOptions(
+                imageBufferSource,
+                SettingsService.getJpegDecodeCaps(),
+                resolveDecodeSafety(),
+            );
+            if ('errorCode' in decodeOptions) {
+                return { hash, ...decodeOptions };
+            }
 
             // --- 原版と同じ: 4隅を変換して zoom 計算 ---
             const lt = tin.transform([0,     0      ], false, true) as number[];
@@ -93,17 +237,26 @@ class WmtsGeneratorService {
             }
 
             // --- プログレス ---
+            // 実装レビュー M-1: 進捗イベントのテキストキーは modalProgress() 経由でモーダル本文を
+            // 上書きするため、ADR-0015（UIから "WMTS" を排除）に従い merc.* を使う
+            // （呼び出し元は m6-t8 の新規 merc タブのみ。wmtsgenerate.generating_tile は
+            // もう参照されない）
             const reporter = new ProgressReporter(
                 'mapedit:taskProgress',
                 processArray.length,
-                'wmtsgenerate.generating_tile',
+                'merc.generating_tile',
                 ''
             );
             reporter.setWindow(win);
             reporter.update(0);
 
             // --- 画像読み込み（raw buffer を maxZoomTileLoop に渡す）---
-            const imageJimp = await Jimp.read(imagePath);
+            // 実装レビュー M-2: Jimp.read(path, options) はローカルパス経路で options を捨てる
+            // （@jimp/core）ため、事前に読んだ buffer を fromBuffer へ渡し、decodeOptions
+            // （SOFヘッダ予測+安全キャップ突き合わせ済み）を確実に効かせる
+            const imageJimp = await Jimp.fromBuffer(imageBufferSource, {
+                'image/jpeg': decodeOptions,
+            });
             const imageBuffer = imageJimp.bitmap.data as Buffer;
 
             for (let i = 0; i < processArray.length; i++) {
@@ -118,7 +271,12 @@ class WmtsGeneratorService {
                 reporter.update(i + 1);
             }
 
-            return { hash };
+            // m6-t8 §3.4: 生成時点で tilejson.json を書く（tiles は自己参照の相対パス。
+            // 書き出し時のディレクトリ名はまだ定まっていないため、後で AppExportService 側が差し替える）
+            const tileJson = buildMercTileJson(tileXw, tileXe, tileYn, tileYs, minZoom, maxZoom);
+            await fs.outputJson(path.join(tileRoot, 'tilejson.json'), tileJson);
+
+            return { hash, tileJson };
         } catch (err: any) {
             console.error('[WmtsGeneratorService] generate error', err);
             return { hash, err };

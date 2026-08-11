@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, dialog } from 'electron'
+import AppPreviewService from './services/AppPreviewService'
 // import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -17,6 +18,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // │
 process.env.APP_ROOT = path.join(__dirname, '..')
 
+// バックエンドのエラー/警告をレンダラのコンソールへ転送する (#18)
+import { installBackendErrorForwarding } from './utils/backendErrorForwarder'
+installBackendErrorForwarding()
+
+// m19-t4a (§7.3): 配布物の RC 版以降で開発メニューを隠すための判定（electron 非依存の純関数）
+import { shouldShowDevelopmentMenu } from './utils/releaseChannel'
+
 // 🚧 ['ENV_NAME'] 形式で参照: vite:define プラグインの誤変換を回避（Vite@2.x 起因）
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
@@ -29,12 +37,36 @@ let win: BrowserWindow | null
 // 旧実装 main.js L.88-93 に準拠: macOS で Cmd+Q が押されるまで force_quit を false に保つ
 let forceQuit = false
 
+// M13-T2 (SI-6/§5.9): 同一 userData profile からの複数 Electron process による
+// DB/filesystem mutation を防ぐ。ロックを取得できなければ即座に quit する。
+// 【既知の限界(タスク設計 §6.5)】 app.requestSingleInstanceLock() は userData path 単位の
+// ロックであり、--user-data-dir を分離した複数プロセス(= 複数マシンから OneDrive 等で
+// クラウド同期された同一 saveFolder に同時アクセスする運用)は防げない。saveFolder 内
+// ロックファイル方式等の追加対策要否は人間判断待ち(マイルストーン再レビュー要の scope 超過)
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    }
+  })
+}
+
 function createWindow() {
+  let draftFlushReady = false
+  let draftFlushInProgress = false
   win = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 1200, // 旧実装に合わせた最小サイズ
-    minHeight: 800,
+    // 最小サイズ緩和 (ユーザー決定 2026-07-12): 旧実装の 1200x800 は可視領域が狭い環境で
+    // 画面からはみ出したまま縮められなかった。1000x640 = 2カラム UI (右ペイン 340px + 地図)
+    // が破綻しない下限
+    minWidth: 1000,
+    minHeight: 640,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -56,6 +88,26 @@ function createWindow() {
   // 旧実装 main.js L.79-85 に準拠:
   // macOS では×ボタンでウィンドウを隠すだけにする（アプリ状態を保持）
   win.on('close', (e) => {
+    // M1-T6 (d-2): macOS では下の分岐でウィンドウを hide するだけなのでアプリは常駐する。
+    // ここで止めないとプレビューサーバがポートを掴んだまま残る
+    void AppPreviewService.shutdown()
+    const closingWindow = win
+    if (!draftFlushReady && closingWindow && !closingWindow.webContents.isDestroyed()) {
+      e.preventDefault()
+      if (draftFlushInProgress) return
+      draftFlushInProgress = true
+      void closingWindow.webContents
+        .executeJavaScript("window.dispatchEvent(new Event('maplat:flush-drafts'))")
+        .catch((error) => console.warn('[asset-draft] renderer close flush failed:', error))
+        .finally(() => {
+          draftFlushInProgress = false
+          draftFlushReady = true
+          if (forceQuit) app.quit()
+          else closingWindow.close()
+        })
+      return
+    }
+    draftFlushReady = false
     if (process.platform === 'darwin' && !forceQuit) {
       e.preventDefault()
       win?.hide()
@@ -66,6 +118,8 @@ function createWindow() {
 // 旧実装 main.js L.88-93 に準拠: Cmd+Q 等でアプリ終了する場合のみ force_quit を立てる
 app.on('before-quit', () => {
   forceQuit = true
+  // M1-T6 (d-2): アプリ終了時にプレビューサーバを解放する
+  void AppPreviewService.shutdown()
 })
 
 // 全ウィンドウが閉じられたときにアプリを終了する（macOSを除く）
@@ -91,10 +145,56 @@ import { registerMapEditHandlers } from './ipc/mapedit'
 import { registerMapUploadHandlers } from './ipc/mapupload'
 import { registerDataUploadHandlers } from './ipc/dataupload'
 import { registerWmtsHandlers } from './ipc/wmts'
+import { registerAssetDraftHandlers } from './ipc/assetDrafts'
+import { registerAppHandlers } from './ipc/apps'
+import { registerPoisourceHandlers } from './ipc/poisource'
+import { registerAppAssetHandlers } from './ipc/appassets'
+import { registerAssetHandlers } from './ipc/assets'
+import { registerImageAssetHandlers } from './ipc/assets-images'
+import { registerSlugReservationHandlers } from './ipc/slugReservations'
+import { registerSearchHandlers } from './ipc/search'
 
 import { ipcMain } from 'electron'
 
-app.whenReady().then(() => {
+// M13-T3: 明示 migration 実行の起動面(menu item)から SqliteDataService.getDb() / runManual() を呼ぶ
+import SqliteDataService from './services/SqliteDataService'
+import { runManual } from './services/OriginalsMigrationService'
+
+// M12-T20 (§5.1/§6.3): 起動時孤児 GC
+import fs from 'fs-extra'
+import AssetDraftService from './services/AssetDraftService'
+import { draftTileRoot, resolveDraftTileDir } from './services/draftTilePaths'
+
+// M12-T20 (§5.1/§6.3): 下書きタイル staging 領域 (<draftTileRoot>/*) のうち、対応する
+// draft envelope が存在しない孤児 dir を起動時に回収する。ウィンドウ生成前に完了させるため、
+// save と並行して走ることは構造的にない（§6.5 の TOCTOU 受容論拠の前提）。
+// 削除パスの構築も共通バリデータ resolveDraftTileDir 経由に統一し、解決不能なエントリは
+// 削除せず warn に留める（誤削除より孤児残置を選ぶ — §5.0 の表）
+async function gcOrphanDraftTiles(): Promise<void> {
+  let entries: string[]
+  try {
+    entries = await fs.readdir(draftTileRoot)
+  } catch {
+    // 領域未作成（初回起動等）は何もしない
+    return
+  }
+  for (const entry of entries) {
+    const stagingDir = resolveDraftTileDir(draftTileRoot, entry)
+    if (!stagingDir) {
+      console.warn(`[draft-tiles GC] skip unresolvable entry: ${JSON.stringify(entry)}`)
+      continue
+    }
+    try {
+      if (AssetDraftService.get('map', entry)) continue
+      // fs.remove は symlink 非追従（§6.1 の削除プリミティブ契約）
+      await fs.remove(stagingDir)
+    } catch (e) {
+      console.warn(`[draft-tiles GC] failed to collect ${stagingDir}:`, e)
+    }
+  }
+}
+
+app.whenReady().then(async () => {
   // HMR時の「2重登録」エラーを防ぐため、既存ハンドラを事前に解除する
   ipcMain.removeHandler('settings:get')
   ipcMain.removeHandler('settings:set')
@@ -102,18 +202,64 @@ app.whenReady().then(() => {
   ipcMain.removeHandler('maplist:request')
   ipcMain.removeHandler('maplist:delete')
   ipcMain.removeHandler('mapedit:request')
+  ipcMain.removeHandler('mapedit:preview-source')
   ipcMain.removeHandler('mapedit:get-tms-list')
+  ipcMain.removeHandler('mapedit:get-base-map-visibility')
+  ipcMain.removeHandler('mapedit:set-base-map-visibility')
   ipcMain.removeHandler('mapedit:updateTin')
   ipcMain.removeHandler('mapedit:save')
-  ipcMain.removeHandler('mapedit:checkID')
+  ipcMain.removeHandler('mapedit:stagingStatus')
   ipcMain.removeHandler('mapedit:checkExtentMap')
   ipcMain.removeHandler('mapupload:showMapSelectDialog')
   ipcMain.removeHandler('mapedit:getWmtsFolder')
   ipcMain.removeHandler('mapedit:download')
+  ipcMain.removeHandler('mapedit:download-saved')
   ipcMain.removeHandler('mapedit:uploadCsv')
   ipcMain.removeHandler('dataupload:showDataSelectDialog')
   ipcMain.removeHandler('wmtsGen:generate')
   ipcMain.removeHandler('dialog:showMessageBox')
+  ipcMain.removeHandler('asset-drafts:put')
+  ipcMain.removeHandler('asset-drafts:get')
+  ipcMain.removeHandler('asset-drafts:remove')
+  ipcMain.removeHandler('asset-drafts:list')
+  ipcMain.removeAllListeners('asset-drafts:flush-sync')
+  ipcMain.removeHandler('applist:request')
+  ipcMain.removeHandler('applist:delete')
+  ipcMain.removeHandler('appedit:request')
+  ipcMain.removeHandler('appedit:save')
+  ipcMain.removeHandler('appedit:prepare-preview')
+  ipcMain.removeHandler('poisource:list')
+  ipcMain.removeHandler('poisource:get')
+  ipcMain.removeHandler('poisource:createLocal')
+  ipcMain.removeHandler('poisource:save')
+  ipcMain.removeHandler('poisource:importFile')
+  ipcMain.removeHandler('poisource:registerRemote')
+  ipcMain.removeHandler('poisource:refreshRemote')
+  ipcMain.removeHandler('poisource:cloneToLocal')
+  ipcMain.removeHandler('poisource:findReferences')
+  ipcMain.removeHandler('poisource:delete')
+  ipcMain.removeHandler('poisource:exportFile')
+  ipcMain.removeHandler('asset:checkSlug')
+  ipcMain.removeHandler('imageassets:add')
+  ipcMain.removeHandler('imageassets:list')
+  ipcMain.removeHandler('imageassets:search')
+  ipcMain.removeHandler('imageassets:get')
+  ipcMain.removeHandler('imageassets:update-metadata')
+  ipcMain.removeHandler('imageassets:delete')
+  ipcMain.removeHandler('imageassets:getFilePath')
+  // Minor-2 (M11-T7): slug reservation channels の HMR cleanup
+  ipcMain.removeHandler('slug-reservations:reserve')
+  ipcMain.removeHandler('slug-reservations:move')
+  ipcMain.removeHandler('slug-reservations:release')
+  ipcMain.removeHandler('slug-reservations:check')
+  ipcMain.removeHandler('search:maps')
+  ipcMain.removeHandler('search:apps')
+  ipcMain.removeHandler('search:poiSources')
+  ipcMain.removeHandler('search:baseMaps')
+  ipcMain.removeHandler('search:imageAssets')
+  ipcMain.removeHandler('search:extent')
+  ipcMain.removeHandler('search:appCoverage')
+  ipcMain.removeHandler('search:resourceBbox')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
@@ -125,6 +271,16 @@ app.whenReady().then(() => {
   registerMapUploadHandlers()
   registerDataUploadHandlers()
   registerWmtsHandlers()
+  registerAssetDraftHandlers()
+  registerAppHandlers()
+  registerPoisourceHandlers()
+  registerAppAssetHandlers()
+  registerAssetHandlers()
+  registerImageAssetHandlers()
+  registerSlugReservationHandlers()
+  registerSearchHandlers()
+  // M12-T20 (§6.3): 孤児 staging の回収はウィンドウ生成前に完了させる（save と並行させない）
+  await gcOrphanDraftTiles()
   createWindow()
   setupMenu()
 
@@ -151,7 +307,11 @@ const messages: Record<string, Record<string, string>> = {
     'menu.selectAll': 'Select All',
     'menu.development': 'Development',
     'menu.reload': 'Reload',
-    'menu.toggleDevTools': 'Toggle Developer Tools'
+    'menu.toggleDevTools': 'Toggle Developer Tools',
+    'menu.run_originals_migration': 'Migrate Originals to UUID Filenames',
+    'menu.originals_migration_done': 'Originals migration completed ({count} entries processed).',
+    'menu.originals_migration_warnings_hint': 'See migration-report-v2.json in the data folder for entries that were skipped and require manual review.',
+    'menu.originals_migration_failed': 'Originals migration failed. See the application log for details.'
   },
   ja: {
     'menu.maplateditor': 'MaplatEditor',
@@ -166,7 +326,146 @@ const messages: Record<string, Record<string, string>> = {
     'menu.selectAll': 'すべて選択',
     'menu.development': '開発',
     'menu.reload': '再読み込み',
-    'menu.toggleDevTools': '開発者ツール'
+    'menu.toggleDevTools': '開発者ツール',
+    'menu.run_originals_migration': '原本をUUIDファイル名へ移行',
+    'menu.originals_migration_done': '原本の移行が完了しました（{count}件処理）。',
+    'menu.originals_migration_warnings_hint': '手動確認が必要な項目は、保存先データフォルダの migration-report-v2.json をご確認ください。',
+    'menu.originals_migration_failed': '原本の移行に失敗しました。詳細はアプリケーションログを確認してください。'
+  },
+  de: {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': 'MaplatEditor beenden',
+    'menu.about': 'Über MaplatEditor',
+    'menu.edit': 'Bearbeiten',
+    'menu.undo': 'Rückgängig',
+    'menu.redo': 'Wiederholen',
+    'menu.cut': 'Ausschneiden',
+    'menu.copy': 'Kopieren',
+    'menu.paste': 'Einfügen',
+    'menu.selectAll': 'Alles auswählen',
+    'menu.development': 'Entwicklung',
+    'menu.reload': 'Neu laden',
+    'menu.toggleDevTools': 'Entwicklertools'
+  },
+  fr: {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': 'Quitter MaplatEditor',
+    'menu.about': 'À propos de MaplatEditor',
+    'menu.edit': 'Édition',
+    'menu.undo': 'Annuler',
+    'menu.redo': 'Rétablir',
+    'menu.cut': 'Couper',
+    'menu.copy': 'Copier',
+    'menu.paste': 'Coller',
+    'menu.selectAll': 'Tout sélectionner',
+    'menu.development': 'Développement',
+    'menu.reload': 'Recharger',
+    'menu.toggleDevTools': 'Outils de développement'
+  },
+  es: {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': 'Salir de MaplatEditor',
+    'menu.about': 'Acerca de MaplatEditor',
+    'menu.edit': 'Edición',
+    'menu.undo': 'Deshacer',
+    'menu.redo': 'Rehacer',
+    'menu.cut': 'Cortar',
+    'menu.copy': 'Copiar',
+    'menu.paste': 'Pegar',
+    'menu.selectAll': 'Seleccionar todo',
+    'menu.development': 'Desarrollo',
+    'menu.reload': 'Recargar',
+    'menu.toggleDevTools': 'Herramientas de desarrollo'
+  },
+  ko: {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': 'MaplatEditor 종료',
+    'menu.about': 'MaplatEditor 정보',
+    'menu.edit': '편집',
+    'menu.undo': '실행 취소',
+    'menu.redo': '다시 실행',
+    'menu.cut': '잘라내기',
+    'menu.copy': '복사',
+    'menu.paste': '붙여넣기',
+    'menu.selectAll': '모두 선택',
+    'menu.development': '개발',
+    'menu.reload': '새로 고침',
+    'menu.toggleDevTools': '개발자 도구'
+  },
+  zh: {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': '退出 MaplatEditor',
+    'menu.about': '关于 MaplatEditor',
+    'menu.edit': '编辑',
+    'menu.undo': '撤销',
+    'menu.redo': '重做',
+    'menu.cut': '剪切',
+    'menu.copy': '复制',
+    'menu.paste': '粘贴',
+    'menu.selectAll': '全选',
+    'menu.development': '开发',
+    'menu.reload': '重新加载',
+    'menu.toggleDevTools': '开发者工具'
+  },
+  'zh-TW': {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': '結束 MaplatEditor',
+    'menu.about': '關於 MaplatEditor',
+    'menu.edit': '編輯',
+    'menu.undo': '復原',
+    'menu.redo': '重做',
+    'menu.cut': '剪下',
+    'menu.copy': '複製',
+    'menu.paste': '貼上',
+    'menu.selectAll': '全選',
+    'menu.development': '開發',
+    'menu.reload': '重新載入',
+    'menu.toggleDevTools': '開發人員工具'
+  },
+  vi: {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': 'Thoát MaplatEditor',
+    'menu.about': 'Giới thiệu MaplatEditor',
+    'menu.edit': 'Chỉnh sửa',
+    'menu.undo': 'Hoàn tác',
+    'menu.redo': 'Làm lại',
+    'menu.cut': 'Cắt',
+    'menu.copy': 'Sao chép',
+    'menu.paste': 'Dán',
+    'menu.selectAll': 'Chọn tất cả',
+    'menu.development': 'Phát triển',
+    'menu.reload': 'Tải lại',
+    'menu.toggleDevTools': 'Công cụ nhà phát triển'
+  },
+  th: {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': 'ออกจาก MaplatEditor',
+    'menu.about': 'เกี่ยวกับ MaplatEditor',
+    'menu.edit': 'แก้ไข',
+    'menu.undo': 'เลิกทำ',
+    'menu.redo': 'ทำซ้ำ',
+    'menu.cut': 'ตัด',
+    'menu.copy': 'คัดลอก',
+    'menu.paste': 'วาง',
+    'menu.selectAll': 'เลือกทั้งหมด',
+    'menu.development': 'การพัฒนา',
+    'menu.reload': 'โหลดใหม่',
+    'menu.toggleDevTools': 'เครื่องมือนักพัฒนา'
+  },
+  id: {
+    'menu.maplateditor': 'MaplatEditor',
+    'menu.quit': 'Keluar dari MaplatEditor',
+    'menu.about': 'Tentang MaplatEditor',
+    'menu.edit': 'Edit',
+    'menu.undo': 'Urungkan',
+    'menu.redo': 'Ulangi',
+    'menu.cut': 'Potong',
+    'menu.copy': 'Salin',
+    'menu.paste': 'Tempel',
+    'menu.selectAll': 'Pilih semua',
+    'menu.development': 'Pengembangan',
+    'menu.reload': 'Muat ulang',
+    'menu.toggleDevTools': 'Alat pengembang'
   }
 };
 
@@ -184,18 +483,28 @@ function createAboutWindow() {
     maximizable: false,
     title: 'About MaplatEditor',
     autoHideMenuBar: true,
-    webPreferences: { 
-      nodeIntegration: true,
-      contextIsolation: false,
+    webPreferences: {
+      // m19-t4a (§7.4 案2): nodeIntegration/contextIsolation は既定へ戻す。preload も渡さない
+      // （contextBridge も IPC も使わない。露出する Node/Electron API はゼロ）。
+      // webSecurity: false はメインウィンドウ側の是正が後送りである限り単独では意味を持たないため据え置く（§1.2）
       webSecurity: false
     }
   });
   aboutWin.setMenu(null);
-  
-  // publicフォルダからabout.htmlを読み込む
+
+  // publicフォルダからabout.htmlを読み込む。バージョン値は preload/contextBridge を使わず
+  // loadFile の query で渡す（§6 のインタフェース契約。露出面ゼロを保つ唯一の経路）
   const aboutPath = path.join(process.env.VITE_PUBLIC as string, 'about.html');
-  aboutWin.loadFile(aboutPath);
-  
+  aboutWin.loadFile(aboutPath, {
+    query: {
+      appVersion: app.getVersion(),
+      electron: process.versions.electron,
+      chrome: process.versions.chrome,
+      node: process.versions.node,
+      v8: process.versions.v8
+    }
+  });
+
   // aboutWin.webContents.openDevTools({ mode: 'detach' }); // デバッグ時はコメント解除
   aboutWin.on('closed', () => { aboutWin = null; });
 }
@@ -223,8 +532,16 @@ function setupMenu() {
     {
       label: t('menu.edit'),
       submenu: [
-        { role: 'undo', label: t('menu.undo') },
-        { role: 'redo', label: t('menu.redo') },
+        {
+          label: t('menu.undo'),
+          accelerator: 'CmdOrCtrl+Z',
+          click: () => win?.webContents.send('main-process-message', 'menu:undo')
+        },
+        {
+          label: t('menu.redo'),
+          accelerator: process.platform === 'darwin' ? 'Shift+Cmd+Z' : 'Ctrl+Y',
+          click: () => win?.webContents.send('main-process-message', 'menu:redo')
+        },
         { type: 'separator' },
         { role: 'cut', label: t('menu.cut') },
         { role: 'copy', label: t('menu.copy') },
@@ -234,16 +551,50 @@ function setupMenu() {
     }
   ]
   
-  // 開発メニューを追加
-  template.push({
-    label: t('menu.development'),
-    submenu: [
-      { role: 'reload', label: t('menu.reload') },
-      { role: 'toggleDevTools', label: t('menu.toggleDevTools') }
-    ]
-  })
+  // 開発メニューを追加（m19-t4a §7.3: 配布物の RC 版以降では出力しない。開発実行・E2E では従来どおり出す）
+  if (shouldShowDevelopmentMenu(app.getVersion(), app.isPackaged)) {
+    template.push({
+      label: t('menu.development'),
+      submenu: [
+        { role: 'reload', label: t('menu.reload') },
+        { role: 'toggleDevTools', label: t('menu.toggleDevTools') },
+        { type: 'separator' },
+        {
+          label: t('menu.run_originals_migration'),
+          click: async () => {
+            try {
+              const db = await SqliteDataService.getDb(); // ここでは既に resolve 済み(app起動後のmenu click)
+              const result = await runManual(db);
+              const total = Object.values(result.summary).reduce((a: number, b: number) => a + b, 0);
+              const lines = Object.entries(result.summary).map(([kind, count]) => `  ${kind}: ${count}`);
+              const doneMessage = t('menu.originals_migration_done').replace('{count}', String(total));
+              const message = `${doneMessage}\n${lines.join('\n')}\n\n${t('menu.originals_migration_warnings_hint')}`;
+              const options = { type: 'info' as const, title: t('menu.run_originals_migration'), message };
+              // v1.1 (レビュー v1 Minor 6): forceQuit パターン(main.ts 33-34行)により
+              // macOS では全ウィンドウ閉鎖後もアプリ/メニューが生存し win は null になり得る。
+              // win が null の場合は BrowserWindow 引数なしの showMessageBox へフォールバックする
+              if (win) {
+                await dialog.showMessageBox(win, options);
+              } else {
+                await dialog.showMessageBox(options);
+              }
+            } catch (e: any) {
+              // v1.1: runManual() 自体は per-map failure を吸収するが(§5.1)、
+              // getDb() や dialog 自体の予期しない失敗にも click ハンドラとして防御的に備える
+              console.error('[main] manual originals migration failed', e);
+              const errorOptions = { type: 'error' as const, title: t('menu.run_originals_migration'), message: t('menu.originals_migration_failed') };
+              if (win) {
+                await dialog.showMessageBox(win, errorOptions);
+              } else {
+                await dialog.showMessageBox(errorOptions);
+              }
+            }
+          }
+        }
+      ]
+    })
+  }
 
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
 }
-
