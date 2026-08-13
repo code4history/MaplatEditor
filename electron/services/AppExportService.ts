@@ -174,6 +174,33 @@ const olPackageRoot = findExistingPath([
   path.resolve(__dirname, '..', 'node_modules/ol'),
 ]);
 
+/**
+ * asar の中からでも動くディレクトリ/ファイルのコピー。
+ *
+ * **`fs-extra` の `copy()` を asar 内のパスへ使ってはいけない。**
+ * fs-extra 11 の `copyDir` は内部で `fs.opendir()` を呼ぶが（`lib/copy/copy.js:118`）、
+ * **Electron の asar 対応は `opendir` を patch していない** ∴ ディレクトリでも
+ * `ENOTDIR: not a directory, opendir '.../app.asar/dist/preview/assets/locales'`
+ * で落ちる（2026-08-13・パッケージ済みアプリで実機発見）。
+ *
+ * `readdir` / `stat` / `readFile` は patch 済みなので、それだけで組み直す。
+ * 開発時（asar でない）でも同じ経路を通るため、挙動が分岐しない。
+ */
+async function copyFromPackage(src: string, dest: string): Promise<void> {
+  const stat = await fs.stat(src);
+  if (!stat.isDirectory()) {
+    await fs.ensureDir(path.dirname(dest));
+    // copyFile ではなく read → write。asar から読めることが保証されている経路を使う
+    await fs.writeFile(dest, await fs.readFile(src));
+    return;
+  }
+  await fs.ensureDir(dest);
+  const entries = await fs.readdir(src);
+  for (const entry of entries) {
+    await copyFromPackage(path.join(src, entry), path.join(dest, entry));
+  }
+}
+
 type ExportResult = {
   result: 'Success' | 'Canceled' | 'Error';
   // Success 時はユーザーが選んだ zip ファイルのパス (Phase 8 Task 6 で zip 出力へ統一)
@@ -876,20 +903,20 @@ class AppExportService {
         // public/preview/assets/* (locales等) はViewerが assets/ 直下として参照する
         const subEntries = await fs.readdir(path.join(previewAssetRoot, entry));
         for (const subEntry of subEntries) {
-          await fs.copy(path.join(previewAssetRoot, entry, subEntry), path.join(assetsDir, subEntry));
+          await copyFromPackage(path.join(previewAssetRoot, entry, subEntry), path.join(assetsDir, subEntry));
         }
         continue;
       }
-      await fs.copy(path.join(previewAssetRoot, entry), path.join(assetsDir, entry));
+      await copyFromPackage(path.join(previewAssetRoot, entry), path.join(assetsDir, entry));
     }
     const olJs = path.join(olPackageRoot, 'dist', 'ol.js');
     if (fs.existsSync(olJs) && !fs.existsSync(path.join(assetsDir, 'ol.js'))) {
-      await fs.copy(olJs, path.join(assetsDir, 'ol.js'));
+      await copyFromPackage(olJs, path.join(assetsDir, 'ol.js'));
     }
     if (enableCache) {
       const serviceWorker = path.join(previewAssetRoot, 'service-worker.js');
       if (fs.existsSync(serviceWorker)) {
-        await fs.copy(serviceWorker, path.join(outDir, 'service-worker.js'));
+        await copyFromPackage(serviceWorker, path.join(outDir, 'service-worker.js'));
       }
     }
   }
