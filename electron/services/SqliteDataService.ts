@@ -65,6 +65,9 @@ export interface BaseMapVisibilityItem {
   data: any;
   // M12-T10: IPC 返却時に resolveBaseMapListImage で付与される表示用フィールド（永続カラムではない）
   thumbnailUrl?: string | null;
+  // m22-t1: IPC 返却時に resolveBaseMapRuntimeTileUrl で付与される実行時専用フィールド
+  // （永続カラムではない）。merc かつ導出可能なときのみ own key として存在する。
+  url_?: string;
 }
 
 export interface BaseMapCatalogItem {
@@ -74,6 +77,8 @@ export interface BaseMapCatalogItem {
   data: any;
   alwaysVisible: boolean;
   alwaysLocked: boolean;
+  // m22-t1: BaseMapVisibilityItem.url_ と同じ（IPC 返却時のみ・非永続）
+  url_?: string;
 }
 
 // 楽観ロック(ADR-0007): expectedRevision 指定時に他の書き込みが先行していた場合に投げる

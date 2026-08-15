@@ -29,7 +29,7 @@ import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
-import { isProviderBaseMapData, resolveBaseMapLayerMetadata } from '../utils/baseMapEditorDocument';
+import { isProviderBaseMapData, resolveBaseMapLayerMetadata, toBaseMapLayerData } from '../utils/baseMapEditorDocument';
 import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
@@ -3036,9 +3036,11 @@ const loadBaseMapVisibility = async () => {
     }
 };
 
+// m22-t1: 実行時専用の url_ は item レベルに来るため、data だけを取り出すと落ちる。
+// 載せ替えは共通ヘルパー（PoiEditMap.vue と同一実装）に寄せる。
 const enabledBaseMapData = () => baseMapVisibilityList.value
     .filter((item) => item.enabled)
-    .map((item) => item.data);
+    .map(toBaseMapLayerData);
 
 const refreshBaseMapLayers = async () => {
     baseMapList.value = enabledBaseMapData();
@@ -3115,7 +3117,9 @@ const setupBaseMaps = async () => {
             } else {
                  source = await mapSourceFactory({
                      mapID: tms.mapID || 'custom',
-                     url: tms.url,
+                     // m22-t1: merc は url が空で保存される。実行時専用の url_ があればそれを使う
+                     // （空だと MaplatCore が tiles/{mapID}/…jpg を誤補完して 404 になる）
+                     url: tms.url_ || tms.url,
                      attr: localizedMeta.attr,
                      maptype: 'base',
                      maxZoom: tms.maxZoom || 18,

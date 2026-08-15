@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import SettingsService from '../services/SettingsService';
 import MapDataService from '../services/MapDataService';
-import { resolveBaseMapListImage } from '../services/resourceImageResolver';
+import { resolveBaseMapListImage, resolveBaseMapRuntimeTileUrl } from '../services/resourceImageResolver';
 import { importTileJson } from '../services/TileJsonImportService';
 
 export function registerSettingsHandlers() {
@@ -41,7 +41,14 @@ export function registerSettingsHandlers() {
     // M12-T10: basemaps:list / search:baseMaps と同型: resolveBaseMapListImage で thumbnailUrl を付与。
     // basemap_icons/=同梱リソース, tmbs/等=saveFolder 配下、ともに封じ込め済み(M12-T13)
     const items = await SettingsService.getBaseMapVisibilityOfMapID(mapRef);
-    return items.map((item: any) => ({ ...item, thumbnailUrl: resolveBaseMapListImage(item) }));
+    return items.map((item: any) => {
+      // m22-t1: merc の実行時タイル URL を item レベルへ付与する（data_json は汚さない）。
+      // 解決できたときだけキーを立てる。thumbnailUrl（解決不能時も null を own key として立てる）
+      // とは意図的に非対称である — url_ が立たない行の大半はそもそも対象外の非 merc であり
+      // 「解決できなかった」に表示上の意味が無い（設計書 §3.3 (3)）。
+      const runtimeTileUrl = resolveBaseMapRuntimeTileUrl(item);
+      return { ...item, thumbnailUrl: resolveBaseMapListImage(item), ...(runtimeTileUrl ? { url_: runtimeTileUrl } : {}) };
+    });
   });
 
   ipcMain.handle('mapedit:set-base-map-visibility', async (_, mapRef: string, baseMapRef: string, enabled: boolean) => {
@@ -53,7 +60,11 @@ export function registerSettingsHandlers() {
     // M12-T1-HOTFIX-1: マスタの thumbnail(basemap_icons/=同梱リソース, tmbs/等=データフォルダ)の
     // UI表示用URL解決は共有 resolver へ一元化（挙動不変。search:baseMaps 経路と同一実装）。
     // thumbnail未設定の旧ユーザーベースマップはtmbs/{mapID}_menu.jpgの存在で補完する。
-    return items.map((item: any) => ({ ...item, thumbnailUrl: resolveBaseMapListImage(item) }));
+    // m22-t1: merc の実行時タイル URL（url_）も同じ層・同じ粒度で付与する（設計書 §3.3）。
+    return items.map((item: any) => {
+      const runtimeTileUrl = resolveBaseMapRuntimeTileUrl(item);
+      return { ...item, thumbnailUrl: resolveBaseMapListImage(item), ...(runtimeTileUrl ? { url_: runtimeTileUrl } : {}) };
+    });
   });
 
   // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)
