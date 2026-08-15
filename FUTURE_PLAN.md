@@ -166,3 +166,32 @@ renderer バンドルへは載せられない。∴ 統合するには次のい�
 **提案**: 会期後に (i)〜(iii) のいずれかで統合し、あわせて b の percent-encoding 未適用を解消する。
 恒久指示「同一扱いの処理は共通実装へ寄せる」に対する**放棄ではなく延期**である
 （m22-t1 設計書 §3.6・人間ゲート G-7）。
+
+## 10. 同梱リソースの解決が outDir 名 `dist` に偶然依存している（m22-t1 のスコープ外）
+
+**現状**: `electron/utils/resourceAssets.ts:8` は
+`appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..')` とし、
+`:10-15` の `resourceRoots` を `[appRoot/public, appRoot/dist, __dirname/../public, __dirname/../dist]`
+の順で探す。smoke が vite の ssr build で作ったバンドルから読む場合、`APP_ROOT` は未設定であり
+`__dirname` は **outDir** を指す。∴ `resourceRoots[3]`（`__dirname/../dist`）が命中するのは
+**outDir の名前が literally `dist` のときだけ**である。
+
+vite の ssr build は outDir 名にかかわらず `publicDir` を複製する（outDir を `dist` と `dist-ipc` の
+2通りで空ビルドし、いずれにも `basemap_icons/` が複製されることを実測）。
+∴ 依存しているのは**複製の有無ではなく outDir の名前**である。
+
+**現に乗っている既存 smoke**: 少なくとも `scripts/m12-t1-hotfix-1-search-thumbnails-smoke.mjs:27` が
+outDir を `workDir/'dist'` にしており、この偶然に乗って `thumbnailUrl` の解決が成立している。
+outDir 名を変えた瞬間に解決が `null` へ落ちて赤くなる。
+
+**m22-t1 の smoke がどう回避したか**: 同 smoke は harness を2種類同居させる都合で outDir が
+2つある（`dist-ipc` / `dist-lib`）∴ 名前の偶然に乗れない。そこで `APP_ROOT` を明示的に設定している。
+実際に当該行をコメントアウトすると S8 が
+「thumbnailUrl の添付が維持されること: null」で赤くなることを実測済みである。
+
+**なぜ m22-t1 で直さなかったか**: 既存 smoke は現に緑であり、本タスクの責務外である。
+会期直前に無関係な面（56本規模の smoke 群の harness）を増やさない判断を採った。
+
+**提案**: 会期後に (a) `resourceAssets.ts` の探索を outDir 名に依存しない形へ改める、または
+(b) 既存 smoke 群が `APP_ROOT` を明示するよう揃える、のいずれかで偶然依存を解消する。
+放置しても現状は壊れないが、outDir 名の変更という**無関係な変更**が遠くの smoke を赤くする。

@@ -1,5 +1,6 @@
 // m22-t1 smoke: merc ベースマップの実行時タイル URL 導出（GCP 編集画面での表示是正）。
-// タスク設計 `docs/superpowers/specs/2026-08-15-m22-t1-merc-basemap-runtime-url-design.md` v1.2 §7.2 準拠。
+// タスク設計 `docs/superpowers/specs/2026-08-15-m22-t1-merc-basemap-runtime-url-design.md` v1.3 §7.2 準拠。
+// （S7 の `'url_' in result === false` 判定は v1.3 で追加された条件であり、本 smoke に実装されている）
 //
 // 本 smoke は **2種類の harness を1本に同居させる**（設計 §4.4 / round 3 申し送り9）:
 //   (I)  electron stub ＋ vite ssr build で ipcMain handler を直接起動する
