@@ -30,6 +30,8 @@ allowBuilds:
   electron-winstaller: false
 
 overrides:
+  # eslint / vitest まわりが引く js-yaml。>=4.0.0 <4.3.1 の high。4系の最新へ留める。
+  js-yaml: "^4.3.1"
 
 # ---- 恒久 override（m1-t3）----
 # 第三者依存の脆弱性。上流の更新を待つしかないため恒久。
@@ -54,7 +56,7 @@ overrides:
   minimatch: "^9.0.7"
   nanoid: "^3.3.18"
   path-to-regexp: "~1.9.0"
-  postcss: "^8.5.18"
+  postcss: "^8.5.23"
   undici: "^7.29.0"
 
 # 自組織パッケージは publisher が我々自身のため、pnpm 11 既定の 24h 隔離
