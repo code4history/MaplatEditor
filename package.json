@@ -280,7 +280,7 @@
     "electrobun": "^1.18.1",
     "electron": "^39.8.5",
     "electron-builder": "^26.15.3",
-    "js-yaml": "^4.3.0",
+    "js-yaml": "^4.3.1",
     "sass": "^1.97.3",
     "typescript": "^5.9.3",
     "vite": "^7.3.5",

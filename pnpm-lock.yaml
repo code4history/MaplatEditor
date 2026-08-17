@@ -70,7 +70,7 @@ importers:
         version: 5.4.0(i18next@25.10.10(typescript@5.9.3))(vue@3.5.32(typescript@5.9.3))
       jimp:
         specifier: ^1.6.1
-        version: 1.6.1(supports-color@7.2.0)
+        version: 1.6.1
       js-sha1:
         specifier: ^0.7.0
         version: 0.7.0
@@ -88,7 +88,7 @@ importers:
         version: 2.20.4
       pwa-asset-generator:
         specifier: ^8.1.5
-        version: 8.1.5(supports-color@7.2.0)
+        version: 8.1.5
       recursive-fs:
         specifier: ^2.1.0
         version: 2.1.0
@@ -104,7 +104,7 @@ importers:
     devDependencies:
       '@electron/notarize':
         specifier: ^2.5.0
-        version: 2.5.0(supports-color@7.2.0)
+        version: 2.5.0
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.62.1
@@ -128,16 +128,16 @@ importers:
         version: 17.4.0
       electrobun:
         specifier: ^1.18.1
-        version: 1.18.1(supports-color@7.2.0)
+        version: 1.18.1
       electron:
         specifier: ^39.8.5
-        version: 39.8.6(supports-color@7.2.0)
+        version: 39.8.6
       electron-builder:
         specifier: ^26.15.3
-        version: 26.15.3(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0)
+        version: 26.15.3(electron-builder-squirrel-windows@26.15.3)
       js-yaml:
-        specifier: ^4.3.0
-        version: 4.3.0
+        specifier: ^4.3.1
+        version: 4.3.1
       sass:
         specifier: ^1.97.3
         version: 1.97.3
@@ -1455,8 +1455,8 @@ packages:
     resolution: {integrity: sha512-a1wflyaL0tHtJSmLSOVybYhy22vRih4eduhhrkcjgrWGnRfrZtovJ2FRjxuTtkkj47O/baf0R86QU5OuYpz8fA==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
-  acorn@8.17.0:
-    resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
+  acorn@8.18.0:
+    resolution: {integrity: sha512-lGq+9yr1/GuAWaVYIHRjvvySG5/4VfKIvC8EWxStPdcDh/Ka7FG3twP6v4d5BkravUilhIAsG4Qj83t02LWUPQ==}
     engines: {node: '>=0.4.0'}
     hasBin: true
 
@@ -2278,6 +2278,10 @@ packages:
     resolution: {integrity: sha512-VWSRii4t0AFm6ixFFmLLx1t7wS1gh+ckoa84aOeapGum0h+EZd1EhEumSB+ZdDLnEPuucsVB9oB7cxJHap6Afg==}
     engines: {node: '>=14.14'}
 
+  fs-extra@11.4.0:
+    resolution: {integrity: sha512-EQsFzMUJkCKGr1ePqlYADkIUmHW1s3ZXr5Yqy6wbGrfUCphpl2maM/kyOIRA2HpP3AaFQTZXD4ldjek+nccddA==}
+    engines: {node: '>=14.14'}
+
   fs-extra@7.0.1:
     resolution: {integrity: sha512-YJDaCJZEnBmcbw13fvdAM9AwNOJwOzrE4pqMqBq5nFiEqXUqHwlK4B+3pUw6JNvfSPtX05xFHtYy/1ni01eGCw==}
     engines: {node: '>=6 <7 || >=8'}
@@ -2626,8 +2630,8 @@ packages:
   js-sha1@0.7.0:
     resolution: {integrity: sha512-oQZ1Mo7440BfLSv9TX87VNEyU52pXPVG19F9PL3gTgNt0tVxlZ8F4O6yze3CLuLx28TxotxvlyepCNaaV0ZjMw==}
 
-  js-yaml@4.3.0:
-    resolution: {integrity: sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==}
+  js-yaml@4.3.1:
+    resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
     hasBin: true
 
   json-buffer@3.0.1:
@@ -3385,6 +3389,10 @@ packages:
     resolution: {integrity: sha512-6R3J5M4AcbtLUdZmRv2SygeVaM7IhrLXu9BmnOGmmACak8fiUtOsYNWUS4uK7upbmHIBbLBeFeI//477BKLBzA==}
     engines: {node: '>=11.0.0'}
 
+  sax@1.6.1:
+    resolution: {integrity: sha512-42tBVwLWnaQvW5zc4HbZrTuWccECCZfBi92FDuwtqxasH+JbPB3/FOKb1m222K42R4WxuxzzMsTswfzgtSu64Q==}
+    engines: {node: '>=11.0.0'}
+
   semver-compare@1.0.0:
     resolution: {integrity: sha512-YM3/ITh2MJ5MtzaM429anh+x2jiLVjqILF4m4oyQB18W7Ggea7BfqdH/wGMK7dDiMghv/6WG7znWMwUDzJiXow==}
 
@@ -4032,46 +4040,46 @@ snapshots:
       fs-extra: 9.1.0
       minimist: 1.2.8
 
-  '@electron/get@2.0.3(supports-color@7.2.0)':
+  '@electron/get@2.0.3':
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       env-paths: 2.2.1
       fs-extra: 8.1.0
       got: 11.8.6
       progress: 2.0.3
       semver: 6.3.1
-      sumchecker: 3.0.1(supports-color@7.2.0)
+      sumchecker: 3.0.1
     optionalDependencies:
       global-agent: 3.0.0
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/get@3.1.0(supports-color@7.2.0)':
+  '@electron/get@3.1.0':
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       env-paths: 2.2.1
       fs-extra: 8.1.0
       got: 11.8.6
       progress: 2.0.3
       semver: 6.3.1
-      sumchecker: 3.0.1(supports-color@7.2.0)
+      sumchecker: 3.0.1
     optionalDependencies:
       global-agent: 3.0.0
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/notarize@2.5.0(supports-color@7.2.0)':
+  '@electron/notarize@2.5.0':
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       fs-extra: 9.1.0
       promise-retry: 2.0.1
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/osx-sign@1.3.3(supports-color@7.2.0)':
+  '@electron/osx-sign@1.3.3':
     dependencies:
       compare-version: 0.1.2
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       fs-extra: 10.1.0
       isbinaryfile: 4.0.10
       minimist: 1.2.8
@@ -4079,22 +4087,22 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/rebuild@4.2.0(supports-color@7.2.0)':
+  '@electron/rebuild@4.2.0':
     dependencies:
       '@malept/cross-spawn-promise': 2.0.0
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       node-abi: 4.33.0
       node-api-version: 0.2.1
       node-gyp: 12.4.0
-      read-binary-file-arch: 1.0.6(supports-color@7.2.0)
+      read-binary-file-arch: 1.0.6
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/universal@2.0.3(supports-color@7.2.0)':
+  '@electron/universal@2.0.3':
     dependencies:
       '@electron/asar': 3.4.1
       '@malept/cross-spawn-promise': 2.0.0
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       dir-compare: 4.2.0
       fs-extra: 11.3.3
       minimatch: 9.0.9
@@ -4102,11 +4110,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/windows-sign@1.2.2(supports-color@7.2.0)':
+  '@electron/windows-sign@1.2.2':
     dependencies:
       cross-dirname: 0.1.0
-      debug: 4.4.3(supports-color@7.2.0)
-      fs-extra: 11.3.3
+      debug: 4.4.3
+      fs-extra: 11.4.0
       minimist: 1.2.8
       postject: 1.0.0-alpha.6
     transitivePeerDependencies:
@@ -4204,21 +4212,21 @@ snapshots:
     dependencies:
       minipass: 7.1.2
 
-  '@jimp/core@1.6.1(supports-color@7.2.0)':
+  '@jimp/core@1.6.1':
     dependencies:
       '@jimp/file-ops': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       await-to-js: 3.0.0
       exif-parser: 0.1.12
-      file-type: 21.3.4(supports-color@7.2.0)
+      file-type: 21.3.4
       mime: 3.0.0
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/diff@1.6.1(supports-color@7.2.0)':
+  '@jimp/diff@1.6.1':
     dependencies:
-      '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
+      '@jimp/plugin-resize': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       pixelmatch: 5.3.0
@@ -4227,43 +4235,43 @@ snapshots:
 
   '@jimp/file-ops@1.6.1': {}
 
-  '@jimp/js-bmp@1.6.1(supports-color@7.2.0)':
+  '@jimp/js-bmp@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       bmp-ts: 1.0.9
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/js-gif@1.6.1(supports-color@7.2.0)':
+  '@jimp/js-gif@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/types': 1.6.1
       gifwrap: 0.10.1
       omggif: 1.0.10
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/js-jpeg@1.6.1(supports-color@7.2.0)':
+  '@jimp/js-jpeg@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/types': 1.6.1
       jpeg-js: 0.4.4
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/js-png@1.6.1(supports-color@7.2.0)':
+  '@jimp/js-png@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/types': 1.6.1
       pngjs: 7.0.0
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/js-tiff@1.6.1(supports-color@7.2.0)':
+  '@jimp/js-tiff@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/types': 1.6.1
       utif2: 4.1.0
     transitivePeerDependencies:
@@ -4275,9 +4283,9 @@ snapshots:
       '@jimp/utils': 1.6.1
       zod: 3.25.76
 
-  '@jimp/plugin-blur@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-blur@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/utils': 1.6.1
     transitivePeerDependencies:
       - supports-color
@@ -4287,9 +4295,9 @@ snapshots:
       '@jimp/types': 1.6.1
       zod: 3.25.76
 
-  '@jimp/plugin-color@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-color@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       tinycolor2: 1.6.0
@@ -4297,30 +4305,30 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/plugin-contain@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-contain@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/plugin-blit': 1.6.1
-      '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
+      '@jimp/plugin-resize': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       zod: 3.25.76
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/plugin-cover@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-cover@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-crop': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
+      '@jimp/plugin-crop': 1.6.1
+      '@jimp/plugin-resize': 1.6.1
       '@jimp/types': 1.6.1
       zod: 3.25.76
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/plugin-crop@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-crop@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       zod: 3.25.76
@@ -4348,15 +4356,15 @@ snapshots:
       '@jimp/types': 1.6.1
       zod: 3.25.76
 
-  '@jimp/plugin-hash@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-hash@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-bmp': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-jpeg': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-png': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-tiff': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-color': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
+      '@jimp/js-bmp': 1.6.1
+      '@jimp/js-jpeg': 1.6.1
+      '@jimp/js-png': 1.6.1
+      '@jimp/js-tiff': 1.6.1
+      '@jimp/plugin-color': 1.6.1
+      '@jimp/plugin-resize': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       any-base: 1.1.0
@@ -4368,11 +4376,11 @@ snapshots:
       '@jimp/types': 1.6.1
       zod: 3.25.76
 
-  '@jimp/plugin-print@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-print@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-jpeg': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-png': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
+      '@jimp/js-jpeg': 1.6.1
+      '@jimp/js-png': 1.6.1
       '@jimp/plugin-blit': 1.6.1
       '@jimp/types': 1.6.1
       parse-bmfont-ascii: 1.0.6
@@ -4388,30 +4396,30 @@ snapshots:
       image-q: 4.0.0
       zod: 3.25.76
 
-  '@jimp/plugin-resize@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-resize@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
       '@jimp/types': 1.6.1
       zod: 3.25.76
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/plugin-rotate@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-rotate@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-crop': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
+      '@jimp/plugin-crop': 1.6.1
+      '@jimp/plugin-resize': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       zod: 3.25.76
     transitivePeerDependencies:
       - supports-color
 
-  '@jimp/plugin-threshold@1.6.1(supports-color@7.2.0)':
+  '@jimp/plugin-threshold@1.6.1':
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-color': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-hash': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
+      '@jimp/plugin-color': 1.6.1
+      '@jimp/plugin-hash': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       zod: 3.25.76
@@ -4462,9 +4470,9 @@ snapshots:
     dependencies:
       cross-spawn: 7.0.6
 
-  '@malept/flatpak-bundler@0.4.0(supports-color@7.2.0)':
+  '@malept/flatpak-bundler@0.4.0':
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       fs-extra: 9.1.0
       lodash: 4.18.1
       tmp-promise: 3.0.3
@@ -4659,12 +4667,12 @@ snapshots:
 
   '@popperjs/core@2.11.8': {}
 
-  '@puppeteer/browsers@2.13.2(supports-color@7.2.0)':
+  '@puppeteer/browsers@2.13.2':
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
-      extract-zip: 2.0.1(supports-color@7.2.0)
+      debug: 4.4.3
+      extract-zip: 2.0.1
       progress: 2.0.3
-      proxy-agent: 6.5.0(supports-color@7.2.0)
+      proxy-agent: 6.5.0
       semver: 7.7.4
       tar-fs: 3.1.3
       yargs: 17.7.2
@@ -4789,9 +4797,9 @@ snapshots:
 
   '@thednp/shorty@2.0.14': {}
 
-  '@tokenizer/inflate@0.4.1(supports-color@7.2.0)':
+  '@tokenizer/inflate@0.4.1':
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       token-types: 6.1.2
     transitivePeerDependencies:
       - supports-color
@@ -6136,7 +6144,7 @@ snapshots:
 
   abbrev@4.0.0: {}
 
-  acorn@8.17.0:
+  acorn@8.18.0:
     optional: true
 
   adm-zip@0.6.0: {}
@@ -6170,38 +6178,38 @@ snapshots:
 
   app-builder-bin@4.0.0: {}
 
-  app-builder-lib@26.15.3(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0):
+  app-builder-lib@26.15.3(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3):
     dependencies:
       '@electron/asar': 3.4.1
       '@electron/fuses': 1.8.0
-      '@electron/get': 3.1.0(supports-color@7.2.0)
-      '@electron/notarize': 2.5.0(supports-color@7.2.0)
-      '@electron/osx-sign': 1.3.3(supports-color@7.2.0)
-      '@electron/rebuild': 4.2.0(supports-color@7.2.0)
-      '@electron/universal': 2.0.3(supports-color@7.2.0)
-      '@malept/flatpak-bundler': 0.4.0(supports-color@7.2.0)
+      '@electron/get': 3.1.0
+      '@electron/notarize': 2.5.0
+      '@electron/osx-sign': 1.3.3
+      '@electron/rebuild': 4.2.0
+      '@electron/universal': 2.0.3
+      '@malept/flatpak-bundler': 0.4.0
       '@noble/hashes': 2.3.0
       '@peculiar/webcrypto': 1.7.1
       '@types/fs-extra': 9.0.13
       ajv: 8.20.0
       asn1js: 3.0.10
       async-exit-hook: 2.0.1
-      builder-util: 26.15.3(supports-color@7.2.0)
-      builder-util-runtime: 9.7.0(supports-color@7.2.0)
+      builder-util: 26.15.3
+      builder-util-runtime: 9.7.0
       chromium-pickle-js: 0.2.0
       ci-info: 4.3.1
-      debug: 4.4.3(supports-color@7.2.0)
-      dmg-builder: 26.15.3(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0)
+      debug: 4.4.3
+      dmg-builder: 26.15.3(electron-builder-squirrel-windows@26.15.3)
       dotenv: 16.6.1
       dotenv-expand: 11.0.7
       ejs: 3.1.10
-      electron-builder-squirrel-windows: 26.15.3(dmg-builder@26.15.3)(supports-color@7.2.0)
-      electron-publish: 26.15.3(supports-color@7.2.0)
+      electron-builder-squirrel-windows: 26.15.3(dmg-builder@26.15.3)
+      electron-publish: 26.15.3
       fs-extra: 10.1.0
       hosted-git-info: 4.1.0
       isbinaryfile: 5.0.7
       jiti: 2.7.0
-      js-yaml: 4.3.0
+      js-yaml: 4.3.1
       json5: 2.2.3
       lazy-val: 1.0.5
       minimatch: 10.2.6
@@ -6413,24 +6421,24 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
-  builder-util-runtime@9.7.0(supports-color@7.2.0):
+  builder-util-runtime@9.7.0:
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       sax: 1.6.0
     transitivePeerDependencies:
       - supports-color
 
-  builder-util@26.15.3(supports-color@7.2.0):
+  builder-util@26.15.3:
     dependencies:
       '@types/debug': 4.1.13
-      builder-util-runtime: 9.7.0(supports-color@7.2.0)
+      builder-util-runtime: 9.7.0
       chalk: 4.1.2
       cross-spawn: 7.0.6
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       fs-extra: 10.1.0
-      http-proxy-agent: 7.0.2(supports-color@7.2.0)
-      https-proxy-agent: 7.0.6(supports-color@7.2.0)
-      js-yaml: 4.3.0
+      http-proxy-agent: 7.0.2
+      https-proxy-agent: 7.0.6
+      js-yaml: 4.3.1
       sanitize-filename: 1.6.4
       source-map-support: 0.5.21
       stat-mode: 1.0.0
@@ -6512,12 +6520,12 @@ snapshots:
 
   chownr@3.0.0: {}
 
-  chrome-launcher@1.2.1(supports-color@7.2.0):
+  chrome-launcher@1.2.1:
     dependencies:
       '@types/node': 25.2.3
       escape-string-regexp: 4.0.0
       is-wsl: 2.2.0
-      lighthouse-logger: 2.0.2(supports-color@7.2.0)
+      lighthouse-logger: 2.0.2
     transitivePeerDependencies:
       - supports-color
 
@@ -6711,11 +6719,9 @@ snapshots:
     dependencies:
       mimic-function: 5.0.1
 
-  debug@4.4.3(supports-color@7.2.0):
+  debug@4.4.3:
     dependencies:
       ms: 2.1.3
-    optionalDependencies:
-      supports-color: 7.2.0
 
   decamelize@1.2.0: {}
 
@@ -6775,12 +6781,12 @@ snapshots:
       minimatch: 3.1.5
       p-limit: 3.1.0
 
-  dmg-builder@26.15.3(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0):
+  dmg-builder@26.15.3(electron-builder-squirrel-windows@26.15.3):
     dependencies:
-      app-builder-lib: 26.15.3(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0)
-      builder-util: 26.15.3(supports-color@7.2.0)
+      app-builder-lib: 26.15.3(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
+      builder-util: 26.15.3
       fs-extra: 10.1.0
-      js-yaml: 4.3.0
+      js-yaml: 4.3.1
     transitivePeerDependencies:
       - electron-builder-squirrel-windows
       - supports-color
@@ -6848,34 +6854,34 @@ snapshots:
     dependencies:
       jake: 10.9.4
 
-  electrobun@1.18.1(supports-color@7.2.0):
+  electrobun@1.18.1:
     dependencies:
       '@babylonjs/core': 7.54.3
       '@types/bun': 1.3.14
       png-to-ico: 2.1.8
-      proxy-agent: 6.5.0(supports-color@7.2.0)
+      proxy-agent: 6.5.0
       rcedit: 4.0.1
       three: 0.165.0
     transitivePeerDependencies:
       - supports-color
 
-  electron-builder-squirrel-windows@26.15.3(dmg-builder@26.15.3)(supports-color@7.2.0):
+  electron-builder-squirrel-windows@26.15.3(dmg-builder@26.15.3):
     dependencies:
-      app-builder-lib: 26.15.3(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0)
-      builder-util: 26.15.3(supports-color@7.2.0)
-      electron-winstaller: 5.4.0(supports-color@7.2.0)
+      app-builder-lib: 26.15.3(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
+      builder-util: 26.15.3
+      electron-winstaller: 5.4.0
     transitivePeerDependencies:
       - dmg-builder
       - supports-color
 
-  electron-builder@26.15.3(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0):
+  electron-builder@26.15.3(electron-builder-squirrel-windows@26.15.3):
     dependencies:
-      app-builder-lib: 26.15.3(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0)
-      builder-util: 26.15.3(supports-color@7.2.0)
-      builder-util-runtime: 9.7.0(supports-color@7.2.0)
+      app-builder-lib: 26.15.3(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
+      builder-util: 26.15.3
+      builder-util-runtime: 9.7.0
       chalk: 4.1.2
       ci-info: 4.4.0
-      dmg-builder: 26.15.3(electron-builder-squirrel-windows@26.15.3)(supports-color@7.2.0)
+      dmg-builder: 26.15.3(electron-builder-squirrel-windows@26.15.3)
       fs-extra: 10.1.0
       lazy-val: 1.0.5
       simple-update-notifier: 2.0.0
@@ -6884,12 +6890,12 @@ snapshots:
       - electron-builder-squirrel-windows
       - supports-color
 
-  electron-publish@26.15.3(supports-color@7.2.0):
+  electron-publish@26.15.3:
     dependencies:
       '@types/fs-extra': 9.0.13
       aws4: 1.13.2
-      builder-util: 26.15.3(supports-color@7.2.0)
-      builder-util-runtime: 9.7.0(supports-color@7.2.0)
+      builder-util: 26.15.3
+      builder-util-runtime: 9.7.0
       chalk: 4.1.2
       form-data: 4.0.6
       fs-extra: 10.1.0
@@ -6903,23 +6909,23 @@ snapshots:
       conf: 15.1.0
       type-fest: 5.4.4
 
-  electron-winstaller@5.4.0(supports-color@7.2.0):
+  electron-winstaller@5.4.0:
     dependencies:
       '@electron/asar': 3.4.1
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       fs-extra: 7.0.1
       lodash: 4.18.1
       temp: 0.9.4
     optionalDependencies:
-      '@electron/windows-sign': 1.2.2(supports-color@7.2.0)
+      '@electron/windows-sign': 1.2.2
     transitivePeerDependencies:
       - supports-color
 
-  electron@39.8.6(supports-color@7.2.0):
+  electron@39.8.6:
     dependencies:
-      '@electron/get': 2.0.3(supports-color@7.2.0)
+      '@electron/get': 2.0.3
       '@types/node': 22.19.17
-      extract-zip: 2.0.1(supports-color@7.2.0)
+      extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color
 
@@ -7051,9 +7057,9 @@ snapshots:
     dependencies:
       is-extendable: 0.1.1
 
-  extract-zip@2.0.1(supports-color@7.2.0):
+  extract-zip@2.0.1:
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -7077,9 +7083,9 @@ snapshots:
 
   fflate@0.8.2: {}
 
-  file-type@21.3.4(supports-color@7.2.0):
+  file-type@21.3.4:
     dependencies:
-      '@tokenizer/inflate': 0.4.1(supports-color@7.2.0)
+      '@tokenizer/inflate': 0.4.1
       strtok3: 10.3.5
       token-types: 6.1.2
       uint8array-extras: 1.5.0
@@ -7142,6 +7148,13 @@ snapshots:
       graceful-fs: 4.2.11
       jsonfile: 6.2.0
       universalify: 2.0.1
+
+  fs-extra@11.4.0:
+    dependencies:
+      graceful-fs: 4.2.11
+      jsonfile: 6.2.1
+      universalify: 2.0.1
+    optional: true
 
   fs-extra@7.0.1:
     dependencies:
@@ -7221,11 +7234,11 @@ snapshots:
     dependencies:
       pump: 3.0.3
 
-  get-uri@6.0.5(supports-color@7.2.0):
+  get-uri@6.0.5:
     dependencies:
       basic-ftp: 5.3.1
       data-uri-to-buffer: 6.0.2
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
@@ -7348,10 +7361,10 @@ snapshots:
 
   http-cache-semantics@4.2.0: {}
 
-  http-proxy-agent@7.0.2(supports-color@7.2.0):
+  http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
@@ -7362,10 +7375,10 @@ snapshots:
 
   https-browserify@1.0.0: {}
 
-  https-proxy-agent@7.0.6(supports-color@7.2.0):
+  https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
@@ -7506,33 +7519,33 @@ snapshots:
       filelist: 1.0.6
       picocolors: 1.1.1
 
-  jimp@1.6.1(supports-color@7.2.0):
+  jimp@1.6.1:
     dependencies:
-      '@jimp/core': 1.6.1(supports-color@7.2.0)
-      '@jimp/diff': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-bmp': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-gif': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-jpeg': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-png': 1.6.1(supports-color@7.2.0)
-      '@jimp/js-tiff': 1.6.1(supports-color@7.2.0)
+      '@jimp/core': 1.6.1
+      '@jimp/diff': 1.6.1
+      '@jimp/js-bmp': 1.6.1
+      '@jimp/js-gif': 1.6.1
+      '@jimp/js-jpeg': 1.6.1
+      '@jimp/js-png': 1.6.1
+      '@jimp/js-tiff': 1.6.1
       '@jimp/plugin-blit': 1.6.1
-      '@jimp/plugin-blur': 1.6.1(supports-color@7.2.0)
+      '@jimp/plugin-blur': 1.6.1
       '@jimp/plugin-circle': 1.6.1
-      '@jimp/plugin-color': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-contain': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-cover': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-crop': 1.6.1(supports-color@7.2.0)
+      '@jimp/plugin-color': 1.6.1
+      '@jimp/plugin-contain': 1.6.1
+      '@jimp/plugin-cover': 1.6.1
+      '@jimp/plugin-crop': 1.6.1
       '@jimp/plugin-displace': 1.6.1
       '@jimp/plugin-dither': 1.6.1
       '@jimp/plugin-fisheye': 1.6.1
       '@jimp/plugin-flip': 1.6.1
-      '@jimp/plugin-hash': 1.6.1(supports-color@7.2.0)
+      '@jimp/plugin-hash': 1.6.1
       '@jimp/plugin-mask': 1.6.1
-      '@jimp/plugin-print': 1.6.1(supports-color@7.2.0)
+      '@jimp/plugin-print': 1.6.1
       '@jimp/plugin-quantize': 1.6.1
-      '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-rotate': 1.6.1(supports-color@7.2.0)
-      '@jimp/plugin-threshold': 1.6.1(supports-color@7.2.0)
+      '@jimp/plugin-resize': 1.6.1
+      '@jimp/plugin-rotate': 1.6.1
+      '@jimp/plugin-threshold': 1.6.1
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
     transitivePeerDependencies:
@@ -7554,7 +7567,7 @@ snapshots:
 
   js-sha1@0.7.0: {}
 
-  js-yaml@4.3.0:
+  js-yaml@4.3.1:
     dependencies:
       argparse: 2.0.1
 
@@ -7622,9 +7635,9 @@ snapshots:
     dependencies:
       immediate: 3.0.6
 
-  lighthouse-logger@2.0.2(supports-color@7.2.0):
+  lighthouse-logger@2.0.2:
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       marky: 1.3.0
     transitivePeerDependencies:
       - supports-color
@@ -7794,7 +7807,7 @@ snapshots:
   needle@3.5.0:
     dependencies:
       iconv-lite: 0.6.3
-      sax: 1.6.0
+      sax: 1.6.1
     optional: true
 
   netmask@2.1.1: {}
@@ -7936,16 +7949,16 @@ snapshots:
 
   p-try@2.2.0: {}
 
-  pac-proxy-agent@7.2.0(supports-color@7.2.0):
+  pac-proxy-agent@7.2.0:
     dependencies:
       '@tootallnate/quickjs-emscripten': 0.23.0
       agent-base: 7.1.4
-      debug: 4.4.3(supports-color@7.2.0)
-      get-uri: 6.0.5(supports-color@7.2.0)
-      http-proxy-agent: 7.0.2(supports-color@7.2.0)
-      https-proxy-agent: 7.0.6(supports-color@7.2.0)
+      debug: 4.4.3
+      get-uri: 6.0.5
+      http-proxy-agent: 7.0.2
+      https-proxy-agent: 7.0.6
       pac-resolver: 7.0.1
-      socks-proxy-agent: 8.0.5(supports-color@7.2.0)
+      socks-proxy-agent: 8.0.5
     transitivePeerDependencies:
       - supports-color
 
@@ -8151,16 +8164,16 @@ snapshots:
 
   protocol-buffers-schema@3.6.1: {}
 
-  proxy-agent@6.5.0(supports-color@7.2.0):
+  proxy-agent@6.5.0:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3(supports-color@7.2.0)
-      http-proxy-agent: 7.0.2(supports-color@7.2.0)
-      https-proxy-agent: 7.0.6(supports-color@7.2.0)
+      debug: 4.4.3
+      http-proxy-agent: 7.0.2
+      https-proxy-agent: 7.0.6
       lru-cache: 7.18.3
-      pac-proxy-agent: 7.2.0(supports-color@7.2.0)
+      pac-proxy-agent: 7.2.0
       proxy-from-env: 1.1.0
-      socks-proxy-agent: 8.0.5(supports-color@7.2.0)
+      socks-proxy-agent: 8.0.5
     transitivePeerDependencies:
       - supports-color
 
@@ -8185,11 +8198,11 @@ snapshots:
 
   punycode@1.4.1: {}
 
-  puppeteer-core@24.43.1(supports-color@7.2.0):
+  puppeteer-core@24.43.1:
     dependencies:
-      '@puppeteer/browsers': 2.13.2(supports-color@7.2.0)
+      '@puppeteer/browsers': 2.13.2
       chromium-bidi: 14.0.0(devtools-protocol@0.0.1608973)
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       devtools-protocol: 0.0.1608973
       typed-query-selector: 2.12.2
       webdriver-bidi-protocol: 0.4.1
@@ -8208,16 +8221,16 @@ snapshots:
 
   pvutils@1.2.0: {}
 
-  pwa-asset-generator@8.1.5(supports-color@7.2.0):
+  pwa-asset-generator@8.1.5:
     dependencies:
       cheerio: 1.2.0
-      chrome-launcher: 1.2.1(supports-color@7.2.0)
+      chrome-launcher: 1.2.1
       find-process: 2.1.1
       meow: 14.1.0
       mime-types: 3.0.2
       picocolors: 1.1.1
       pretty: 2.0.0
-      puppeteer-core: 24.43.1(supports-color@7.2.0)
+      puppeteer-core: 24.43.1
       slash: 5.1.0
     transitivePeerDependencies:
       - bare-abort-controller
@@ -8274,9 +8287,9 @@ snapshots:
     dependencies:
       cross-spawn-windows-exe: 1.2.0
 
-  read-binary-file-arch@1.0.6(supports-color@7.2.0):
+  read-binary-file-arch@1.0.6:
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
@@ -8410,6 +8423,9 @@ snapshots:
 
   sax@1.6.0: {}
 
+  sax@1.6.1:
+    optional: true
+
   semver-compare@1.0.0:
     optional: true
 
@@ -8495,10 +8511,10 @@ snapshots:
 
   smart-buffer@4.2.0: {}
 
-  socks-proxy-agent@8.0.5(supports-color@7.2.0):
+  socks-proxy-agent@8.0.5:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
       socks: 2.8.9
     transitivePeerDependencies:
       - supports-color
@@ -8583,9 +8599,9 @@ snapshots:
 
   stubborn-utils@1.0.2: {}
 
-  sumchecker@3.0.1(supports-color@7.2.0):
+  sumchecker@3.0.1:
     dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
+      debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
 
@@ -8654,7 +8670,7 @@ snapshots:
   terser@5.46.1:
     dependencies:
       '@jridgewell/source-map': 0.3.11
-      acorn: 8.17.0
+      acorn: 8.18.0
       commander: 2.20.3
       source-map-support: 0.5.21
     optional: true
