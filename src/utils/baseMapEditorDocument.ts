@@ -11,6 +11,9 @@ export interface BaseMapCatalogItemLike {
   scope: "builtin" | "user";
   revision: number;
   data: Record<string, unknown>;
+  // m22-t1: merc の実行時専用タイルURL。IPC 返却時にのみ item レベルへ付与され永続化されない。
+  // BaseMapCatalogItem は本型を extends するため、宣言はここ1箇所で両者に効く。
+  url_?: string;
 }
 
 export interface BaseMapCatalogItem extends BaseMapCatalogItemLike {
@@ -162,6 +165,28 @@ export function isProviderBaseMapData(
   data: { kind?: unknown; maptype?: unknown } | null | undefined,
 ): boolean {
   return isProviderKind(data?.kind ?? data?.maptype);
+}
+
+// m22-t1: ベースマップ IPC の item から、レイヤ生成に使う data 複製を作る。
+//
+// なぜ必要か（設計書 §3.4）: 実行時専用の url_ は item レベルに来る（永続層 data_json も
+// IPC が返す item.data も持たない）が、renderer はレイヤ生成のとき item を捨てて data の
+// 配列を組む。∴ 載せ替えが要る。同型の2箇所（MapEdit.vue の enabledBaseMapData /
+// PoiEditMap.vue の baseMapList 構築）を本ヘルパーへ寄せる（挙動を似せるのではなく同一実装）。
+//
+// 引数は最小構造型で受ける。2つの呼び出し元が渡す item の型が異なるためである
+// （MapEdit は BaseMapVisibilityItem で revision を持たず、PoiEditMap は
+// BaseMapsAPI.list() の item 型で revision を持つ）∴ BaseMapCatalogItemLike で受けると
+// MapEdit 側が型エラーになる。
+//
+// 行うのは**キーの移し替えだけ**であり、URL の組み立てではない（導出ロジックは main の
+// 単一関数に閉じる。m5-t3 が排したのは「同じ導出が複数箇所に散る」ことである）。
+// url_ が無ければ返り値にも載せない（IPC 側と同じ own key 規律。設計書 §3.3 (3)）。
+// 返り値は新しいオブジェクトであり、引数の item.data を破壊しない。
+export function toBaseMapLayerData(
+  item: { data?: any; url_?: string },
+): Record<string, any> {
+  return { ...(item?.data ?? {}), ...(item?.url_ ? { url_: item.url_ } : {}) };
 }
 
 /** m6-t5: mapbox:// または mapbox: スキーム */

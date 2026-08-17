@@ -9,6 +9,8 @@ import AppAssetService from './AppAssetService';
 import SqliteDataService from './SqliteDataService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
+// m22-t1: merc ベースマップの実行時タイル URL 導出（I/O 不要の純関数）
+import { deriveMercBaseMapTileUrl } from '../utils/mercBaseMapTileUrl';
 // m19-t5: 512px の所在は派生規約の単一モジュールから導く（拡張子は THUMB_512_EXT が決める）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 
@@ -165,4 +167,19 @@ export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; d
     }
   }
   return thumbnailUrl;
+}
+
+// m22-t1: merc ベースマップの実行時専用タイル URL（url_）を解決する。
+// resolveBaseMapListImage と同じ形（item を受け、saveFolder を SettingsService から読み、
+// 実行時専用の値を返す）であり、3つの IPC ハンドラ
+// （mapedit:get-base-map-visibility / basemaps:list / search:baseMaps）が本関数を共有する。
+// 挙動を似せるのではなく同一実装へ寄せる（恒久指示）。
+//
+// 引数型は resolveBaseMapListImage（{ mapID?, slug?, data? }）を流用しない。
+// 本関数は uid（ADR-0007 の正準キー。merc の実体ディレクトリ名）を必要とする。
+// 解決できない場合は undefined を返す。呼び出し側は url_ キーごと省くこと
+// （空文字を立てると mapSourceFactory の誤補完へ黙って戻る。設計書 §3.2 / §3.3 (3)）。
+export function resolveBaseMapRuntimeTileUrl(item: { uid?: string; data?: any }): string | undefined {
+  const saveFolder = SettingsService.get('saveFolder');
+  return deriveMercBaseMapTileUrl(item?.data, item?.uid, saveFolder);
 }

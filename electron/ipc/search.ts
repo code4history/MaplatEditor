@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import SqliteDataService from '../services/SqliteDataService';
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from '../utils/searchSpatial';
 import { wgs84BboxToMercator } from '../utils/webMercator';
-import { resolveAppListImage, resolveBaseMapListImage, resolveMapListImage512 } from '../services/resourceImageResolver';
+import { resolveAppListImage, resolveBaseMapListImage, resolveBaseMapRuntimeTileUrl, resolveMapListImage512 } from '../services/resourceImageResolver';
 import { attachAppDiagnostics, attachMapDiagnostics, attachPoiSourceDiagnostics } from '../services/ResourceDiagnosticsService';
 
 function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[]; total: number; prev?: number; next?: number } {
@@ -67,6 +67,28 @@ async function attachAppListExtras<T extends Record<string, any>>(
   return attachImages(paged, pageSize, resolveAppListImage);
 }
 
+// m22-t1: ベースマップ一覧の item レベル添付を1つの wrapper へ畳む
+// （同ファイルの attachMapListExtras / attachAppListExtras と同型）。
+//
+// 契約（落としてはならない挙動）: attachImages は pageSize<=0 && !attachWhenUnbounded で
+// 早期 return する（:34）。search:baseMaps は2つの呼び出し点とも attachWhenUnbounded=true
+// （全件添付）で呼んでいたため、畳む際にこの真値を落としてはならない。落とすと pageSize<=0 の
+// 全件経路（BaseMapList が使う limit:0）で thumbnailUrl ごと添付が消える。
+//
+// url_ は解決できたときだけ own key として立てる（設計書 §3.3 (3)。undefined own key を作らない）。
+async function attachBaseMapListExtras<T extends Record<string, any>>(
+  paged: { docs: T[]; total: number; prev?: number; next?: number },
+  pageSize: number,
+): Promise<typeof paged> {
+  // basemap catalog は有界集合のため pageSize<=0 でも全件添付する（basemaps:list と同じ挙動）
+  const attached = await attachImages(paged, pageSize, resolveBaseMapListImage, 'thumbnailUrl', true);
+  attached.docs = attached.docs.map((doc) => {
+    const runtimeTileUrl = resolveBaseMapRuntimeTileUrl(doc);
+    return (runtimeTileUrl ? { ...doc, url_: runtimeTileUrl } : doc) as T;
+  });
+  return attached;
+}
+
 type SearchFilter = { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number };
 
 export function registerSearchHandlers() {
@@ -104,10 +126,9 @@ export function registerSearchHandlers() {
     const docs = await SqliteDataService.searchBaseMaps(filter.q ?? '');
     if (filter.bbox) {
       const filtered = filterBaseMapsByBbox(docs, filter.bbox);
-      // basemap catalog は有界集合のため pageSize<=0 でも全件添付する（basemaps:list と同じ挙動）
-      return attachImages(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, resolveBaseMapListImage, 'thumbnailUrl', true);
+      return attachBaseMapListExtras(paginate(filtered, filter.page, filter.pageSize), filter.pageSize);
     }
-    return attachImages(paginate(docs, filter.page, filter.pageSize), filter.pageSize, resolveBaseMapListImage, 'thumbnailUrl', true);
+    return attachBaseMapListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
   });
 
   ipcMain.handle('search:imageAssets', async (_event, filter: SearchFilter) => {

@@ -45,6 +45,7 @@ import { containsCoordinate } from "ol/extent";
 import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
 import { localizeTitle } from "../utils/langResource";
+import { toBaseMapLayerData } from "../utils/baseMapEditorDocument";
 import { listIconSets, parseIconRef } from "../utils/iconRefs";
 import { resolveIconPair, resolveDisplayIcon } from "../utils/poiMarkerStyle";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
@@ -472,9 +473,11 @@ const setupBaseMaps = async (): Promise<void> => {
   if (baseMapList.value.length === 0) {
     try {
       const list = await window.baseMaps.list();
+      // m22-t1: 実行時専用の url_ は item レベルに来るため、data だけを取り出すと落ちる。
+      // 載せ替えは共通ヘルパー（MapEdit.vue と同一実装）に寄せる。
       baseMapList.value = list
         .filter((item) => item.alwaysVisible)
-        .map((item) => item.data);
+        .map(toBaseMapLayerData);
     } catch (e) {
       console.error("[PoiEditMap] Failed to fetch base map list via IPC:", e);
     }
@@ -520,7 +523,9 @@ const setupBaseMaps = async (): Promise<void> => {
           source = await mapSourceFactory(
             {
               mapID: tms.mapID || "custom",
-              url: tms.url,
+              // m22-t1: merc は url が空で保存される。実行時専用の url_ があればそれを使う
+              // （空だと MaplatCore が tiles/{mapID}/…jpg を誤補完して 404 になる）
+              url: tms.url_ || tms.url,
               attr: tms.attr,
               maptype: "base",
               maxZoom: tms.maxZoom || 18,

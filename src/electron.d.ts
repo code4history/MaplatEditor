@@ -307,7 +307,9 @@ export interface TileJsonMappedFields {
 }
 
 export interface BaseMapsAPI {
-    list(): Promise<Array<{ uid: string; mapID: string; scope: "builtin" | "user"; data: any; revision: number; thumbnailUrl?: string | null; alwaysVisible: boolean; alwaysLocked: boolean }>>;
+    // m22-t1: url_ は merc の実行時専用タイルURL。IPC 返却時にのみ item レベルへ付与され、
+    // 永続化されない（merc かつ導出可能なときのみ own key として存在する）
+    list(): Promise<Array<{ uid: string; mapID: string; scope: "builtin" | "user"; data: any; revision: number; thumbnailUrl?: string | null; url_?: string; alwaysVisible: boolean; alwaysLocked: boolean }>>;
     saveUser(payload: BaseMapSavePayload): Promise<BaseMapSaveResult>;
     deleteUser(baseMapUid: string): Promise<void>;
     setAlways(baseMapUid: string, always: boolean): Promise<void>;
