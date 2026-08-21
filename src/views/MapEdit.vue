@@ -1856,28 +1856,60 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
   }
 };
 
-const removeMarker = (arg: any, map: any) => {
+// m1-t1 (AC5a): 未確定 GCP（gcpIndex === 'new'）の待機解除を、面に依存しない共通実装 1 本へ寄せる。
+// 未確定マーカーは片面にしか存在しない（gcpsToMarkers の addMarkerToMap は座標が入っている面にしか
+// setMarker しない）ため、待っている側の面で map.getSource('marker') から 'new' を引くと undefined が
+// 返り、removeMarker 先頭の marker.get('gcpIndex') が TypeError になっていた。
+// gcpsToMarkers() は両面の marker ソースを clear して状態から置き直すため、newGcp を落としてから
+// 呼べば removeFeature を面ごとに呼ぶ必要がない ∴ 面非依存になる。
+// 終状態は現行 removeMarker の 'new' 経路と同一（newGcp / editingID / newlyAddEdge / 再描画）。
+const cancelPendingNewGcp = () => {
+    newGcp.value = undefined;
+    editingID.value = '';
+    newlyAddEdge.value = undefined;
+    gcpsToMarkers();
+};
+
+// m1-t1 (HR-3 / AC6 / AC7): 旧実装 old/frontend/src/mapedit.js:328-343 pairingMarker の parity 復元。
+// 両面のビューを当該 GCP の対応点へセンタリングする（ズームは illst = maxZoom - 1 / merc = 17）。
+// 表示専用であり GCP データを変更しない（既存前例: showHomePosition）。
+const pairingMarker = (arg: any) => {
+    const marker = arg.data.marker;
+    const gcpIndex = marker.get('gcpIndex');
+    if (gcpIndex === 'new' || gcpIndex === 'home') return;
+    const gcp = gcps.value[Number(gcpIndex)];
+    if (!gcp || !illstMap || !mercMap || !illstSource) return;
+    const illstView = illstMap.getView();
+    const mercView = mercMap.getView();
+    illstView.setCenter(illstSource.xy2SysCoord(gcp[0]));
+    mercView.setCenter(gcp[1]);
+    illstView.setZoom(illstSource.maxZoom - 1);
+    mercView.setZoom(17);
+};
+
+const removeMarker = (arg: any) => {
   const marker = arg.data.marker;
   const gcpIndex = marker.get('gcpIndex');
   if (gcpIndex === 'new') {
-    newGcp.value = undefined;
-    map.getSource('marker').removeFeature(marker);
-  } else {
-    // 接続エッジを削除し、インデックスを繰り下げる
-    for (let i = edges.value.length - 1; i >= 0; i--) {
-       const edge = edges.value[i];
-       if (edge[2][0] === Number(gcpIndex) || edge[2][1] === Number(gcpIndex)) {
-           edges.value.splice(i, 1);
-       } else {
-           if (edge[2][0] > Number(gcpIndex)) edge[2][0]--;
-           if (edge[2][1] > Number(gcpIndex)) edge[2][1]--;
-       }
-    }
-    gcps.value.splice(Number(gcpIndex), 1);
-    
-    gcpsToMarkers();
-    syncLayerData();
+    // m1-t1: 改修後、この分岐へ到達する UI 経路は無い（マーカー削除は F0 × 確定済みマーカーに
+    // しか出ず、'new' は必ず F1 / F2 に入る）。黙って消さず、共通実装への委譲として残す。
+    cancelPendingNewGcp();
+    return;
   }
+  // 接続エッジを削除し、インデックスを繰り下げる
+  for (let i = edges.value.length - 1; i >= 0; i--) {
+     const edge = edges.value[i];
+     if (edge[2][0] === Number(gcpIndex) || edge[2][1] === Number(gcpIndex)) {
+         edges.value.splice(i, 1);
+     } else {
+         if (edge[2][0] > Number(gcpIndex)) edge[2][0]--;
+         if (edge[2][1] > Number(gcpIndex)) edge[2][1]--;
+     }
+  }
+  gcps.value.splice(Number(gcpIndex), 1);
+
+  gcpsToMarkers();
+  syncLayerData();
   editingID.value = '';
   newlyAddEdge.value = undefined;
 };
@@ -2023,9 +2055,35 @@ const createContextMenu = (map: any) => {
     
     contextmenu.clear();
     
+     // m1-t1: フィーチャ命中時の項目構成の正本は
+     // docs/superpowers/specs/2026-08-21-m1-mapedit-contextmenu-and-basemap-align-milestone-design.md §6.1.1
+     // の相別契約表である。相の判定順は旧実装（old/frontend/src/mapedit.js:1016, 1025, 1027）と同じく
+     // F1（対応線作図中）→ F2（対応点待機中）→ F0（通常）。F1 / F2 はフィーチャ種別を問わず 1 項目。
      if (feature) {
-       if (feature.getGeometry()?.getType() === 'LineString') {
-          // フィーチャーがエッジの場合
+       const isLine = feature.getGeometry()?.getType() === 'LineString';
+       const gcpIndex = isLine ? undefined : feature.get('gcpIndex');
+       // 数値 gcpIndex を持つ確定済みマーカーか（home / 未確定 'new' / 対応線は偽）
+       const isFixedMarker = !isLine && gcpIndex !== 'home' && gcpIndex !== 'new';
+
+       // 編集中 ID の設定は相に依らず行う（改修前の挙動をそのまま維持する）。
+       // 右クリックでこれを設定する経路はここだけである（Drag.handleDownEvent は button === 2 を弾く）。
+       if (isFixedMarker) editingID.value = String(Number(gcpIndex) + 1);
+
+       if (newlyAddEdge.value !== undefined) {
+          // F1: 対応線作図中
+          if (isFixedMarker && newlyAddEdge.value !== Number(gcpIndex)) {
+              contextmenu.push({ text: t('mapedit.context_correspond_line_end') || 'Set End Point', data: { marker: feature }, callback: (e: any) => edgeEndMarker(e) });
+          } else {
+              // 起点自身・home・対応線・未確定マーカーはいずれも対応線キャンセル 1 項目。
+              // home を「対応線終了」に含めないのは意図した正規化である（旧実装は home にも
+              // 終了を出し、edgeEndMarker が ['home', 数値] を edges へ push しえた）。
+              contextmenu.push({ text: t('mapedit.context_correspond_line_cancel') || 'Cancel Edge', callback: () => { newlyAddEdge.value = undefined; gcpsToMarkers(); } });
+          }
+       } else if (newGcp.value !== undefined) {
+          // F2: 対応点待機中 — フィーチャ種別を問わずキャンセル 1 項目（Q3 の人間回答＝旧実装 parity）
+          contextmenu.push({ text: t('mapedit.context_cancel_add_marker'), callback: () => cancelPendingNewGcp() });
+       } else if (isLine) {
+          // F0 × 対応線
           const edgeStartEnd = feature.get('startEnd');
           contextmenu.push({
               text: t('mapedit.context_correspond_line_remove') || 'Remove Edge',
@@ -2038,29 +2096,21 @@ const createContextMenu = (map: any) => {
               data: { edge: feature },
               callback: (e: any) => addMarkerOnEdge(e, map)
           });
-       } else {
-        // フィーチャーがマーカーの場合
-        const gcpIndex = feature.get('gcpIndex');
-        if (gcpIndex === 'home') {
-           contextmenu.push({ text: t('mapedit.context_home_remove'), callback: () => removeHomePosition() });
-           contextmenu.push({ text: t('mapedit.context_home_show'),   callback: () => showHomePosition() });
-        } else if (gcpIndex !== 'new') {
-           editingID.value = String(Number(gcpIndex) + 1);
-           
-           if (newlyAddEdge.value === undefined) {
-               contextmenu.push({ text: t('mapedit.context_correspond_line_start') || 'Add Edge', data: { marker: feature }, callback: (e: any) => edgeStartMarker(e) });
-           } else if (newlyAddEdge.value !== Number(gcpIndex)) {
-               contextmenu.push({ text: t('mapedit.context_correspond_line_end') || 'Set End Point', data: { marker: feature }, callback: (e: any) => edgeEndMarker(e) });
-           } else {
-               contextmenu.push({ text: t('mapedit.context_correspond_line_cancel') || 'Cancel Edge', callback: () => { newlyAddEdge.value = undefined; gcpsToMarkers(); } });
-           }
-           
-           contextmenu.push({ text: t('mapedit.context_remove_marker'), data: { marker: feature }, callback: (e: any) => removeMarker(e, map) });
-        }
-      }
+       } else if (gcpIndex === 'home') {
+          // F0 × home マーカー
+          contextmenu.push({ text: t('mapedit.context_home_remove'), callback: () => removeHomePosition() });
+          contextmenu.push({ text: t('mapedit.context_home_show'),   callback: () => showHomePosition() });
+       } else if (isFixedMarker) {
+          // F0 × 確定済みマーカー。対応マーカー表示は対応線開始より前（旧実装 :1047 と同じ位置）
+          contextmenu.push({ text: t('mapedit.context_correspond_marker'), data: { marker: feature }, callback: (e: any) => pairingMarker(e) });
+          contextmenu.push({ text: t('mapedit.context_correspond_line_start') || 'Add Edge', data: { marker: feature }, callback: (e: any) => edgeStartMarker(e) });
+          contextmenu.push({ text: t('mapedit.context_remove_marker'), data: { marker: feature }, callback: (e: any) => removeMarker(e) });
+       }
+       // F0 × 未確定マーカー（'new'）は到達不能である。'new' フィーチャは newGcp が
+       // 立っているときにしか置かれない ∴ 必ず F1 か F2 のどちらかに入る。
     } else if (newGcp.value !== undefined && newGcp.value[map === illstMap ? 0 : 1] !== undefined) {
-      // 保留中のマーカー追加操作のキャンセルメニュー
-      contextmenu.push({ text: t('mapedit.context_cancel_add_marker'), callback: () => removeMarker({data: {marker: map.getSource('marker').getFeatures().find((f:any)=>f.get('gcpIndex')==='new')}}, map) });
+      // 保留中のマーカー追加操作のキャンセルメニュー（面非依存の共通実装を通す）
+      contextmenu.push({ text: t('mapedit.context_cancel_add_marker'), callback: () => cancelPendingNewGcp() });
     } else {
       contextmenu.push({ text: t('mapedit.context_add_marker'), callback: (e: any) => addNewMarker(e, map) });
       if (newlyAddEdge.value !== undefined) {

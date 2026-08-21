@@ -233,7 +233,9 @@
     "smoke:m19-t4b-editor-ui-help-and-defaults": "node scripts/m19-t4b-editor-ui-help-and-defaults-smoke.mjs",
     "test:e2e:m19-t4b": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t4b-editor-ui-help-and-defaults.spec.ts",
     "test:e2e:m20-t6-screenshots": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m20-t6-wiki-screenshots.spec.ts",
-    "smoke:m22-t1-merc-basemap-runtime-url": "node --experimental-strip-types scripts/m22-t1-merc-basemap-runtime-url-smoke.mjs"
+    "smoke:m22-t1-merc-basemap-runtime-url": "node --experimental-strip-types scripts/m22-t1-merc-basemap-runtime-url-smoke.mjs",
+    "smoke:mapedit-align-m1-t1-contextmenu": "node scripts/mapedit-align-m1-t1-contextmenu-smoke.mjs",
+    "test:e2e:mapedit-align-m1-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/mapedit-align-m1-t1-contextmenu.spec.ts"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

@@ -29,7 +29,11 @@
         position: relative;
         line-height: 20px;
         padding: 2px 5px;
-        white-space: nowrap;
+        // m1-t1 (HR-1): 長い項目テキストが箱の外へはみ出さないよう折り返しを許す。
+        // overflow-wrap は英語の長い連続語（Corresponding Line Start From This Marker 等）で
+        // 単語境界が来ない場合の保険である。
+        white-space: normal;
+        overflow-wrap: anywhere;
 
         &:not(.#{$separator}):hover {
             cursor: pointer;

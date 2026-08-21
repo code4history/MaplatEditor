@@ -126,7 +126,11 @@ export default class ContextMenu extends Control {
         const menu = document.createElement('ul')
 
         container.append(menu)
-        container.style.width = `${this.options.width}px`
+        // m1-t1 (HR-1): options.width の意味を「固定幅」から「上限幅」へ変える。
+        // 固定幅 + box-sizing: border-box では、内容が幅を超えても箱が広がらず文字がはみ出す。
+        // max-content と併せることで、短い項目は従来どおり詰まり、長い項目だけが上限で折り返す。
+        container.style.width = 'max-content'
+        container.style.maxWidth = `${this.options.width}px`
         container.classList.add(
             CSS_CLASSES.container,
             CSS_CLASSES.unselectable,
