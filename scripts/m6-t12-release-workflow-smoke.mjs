@@ -5,7 +5,8 @@
  * AC3: release ガード（P3 スクリプト）の4ケース
  * AC4: eSigner / 公証 / Release が release=false で発火しない（ワークフロー式の静的検査）
  * AC5: latest.yml 再計算 + blockmap 再生成（P4 スクリプト）
- * AC6: 旧 WIN_CSC_LINK 参照・master push 署名経路が残存しない
+ * AC6: 旧 WIN_CSC_LINK 参照が残存しない
+ * t1/AC1: 証明書インポートは if: を持たない（push でも実行 — t1・2026-08-21 で m6-t12 の dispatch 限定を撤廃）
  */
 import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
@@ -135,7 +136,6 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 
   // AC4: 課金・公証を伴う経路が mode=full のときだけ発火する（D6 の2軸モデル）
   const FULL_COND = /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/;
-  const DISPATCH_COND = /github\.event_name == 'workflow_dispatch'/;
 
   // AC10: 入力が2軸（mode / platforms）であり、既定が課金ゼロ側であること
   const inputs = wf.on.workflow_dispatch.inputs;
@@ -180,13 +180,15 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   assert.ok(FULL_COND.test(wf.jobs.release.if ?? '') && (wf.jobs.release.if ?? '').includes("inputs.platforms == 'all'"),
     'AC4: draft Release は mode=full かつ platforms=all 限定');
 
-  // AC6: 旧 WIN_CSC_LINK と master push 署名経路の残存なし（repo 側の全域 grep は下で実施）
+  // AC6: 旧 WIN_CSC_LINK の残存なし（repo 側の全域 grep は下で実施）
   assert.ok(!src.includes('WIN_CSC_LINK'), 'AC6: build.yml に WIN_CSC_LINK が残存しない');
+  // t1/AC1（2026-08-21・人間指示）: 証明書インポートは push でも実行する（m6-t12/AC6 の
+  // 「dispatch 限定」を撤廃）。Secret 未設定時のスキップはシェル内判定が担う。
+  // 旧「full 限定にしない」（m6-t12/AC10）は if 不在 assert に包含されるため撤去した
   const importCert = macSteps.find((s) => (s.name ?? '').includes('Apple Developer certificate'));
-  assert.ok(importCert && DISPATCH_COND.test(importCert.if ?? ''), 'AC6: 証明書インポートは dispatch 限定');
-  assert.ok(!FULL_COND.test(importCert.if ?? ''), 'AC10: Mac の署名は verify でも行う（full 限定にしない）');
-  assert.ok(!/push' && github\.ref == 'refs\/heads\/master'/.test(importCert.if ?? ''),
-    'AC6: master push 署名経路が撤去されている');
+  assert.ok(importCert, 't1/AC1: 証明書インポートステップが存在する');
+  assert.equal(importCert.if, undefined,
+    't1/AC1: 証明書インポートステップが if: を持たない（push でも実行され Mac は常に署名を試みる）');
 
   // §2.2: ガードは P3 スクリプト経由（判定の単一実装）
   const prepSteps = wf.jobs.prepare.steps;

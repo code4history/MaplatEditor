@@ -134,11 +134,22 @@ eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI
 3. **Deployment protection rules** で **Required reviewers** にチェック → 自分（kochizufan）を追加 → Save protection rules
    - これで release ビルドは**実行のたびに承認ボタンを押す**流れになる（誤爆と署名回数の浪費を防ぐ）
 4. 同じ画面の **Environment secrets** → **Add environment secret** で、冒頭の表の9点を1つずつ登録する
-   - ⚠️ **repo 全体の secrets（Settings → Secrets and variables → Actions）には置かない**こと。environment に置くから push ビルドから読めない、という設計である
+   - ⚠️ **repo 全体の secrets（Settings → Secrets and variables → Actions）には置かない**こと。公証・eSigner 系（表の3〜9）は `release` のみに置く。Mac 証明書2点（表の1・2）は push ビルドでも署名するため `ci` にも置く（下記 C-2。t1・2026-08-21）
 
-補足（見た目の話・実害なし）:
-- environment `ci` は保護なしのダミーで、初回の push ビルド時に自動作成されて環境一覧に載る。消さなくてよい
-- environment を使う関係で、push ビルドにも「deployment」記録が残るようになる。GitHub の仕様で、動作への影響はない
+### C-2. environment `ci` に Mac 証明書2点を登録する（push ビルドの署名用・t1・2026-08-21）
+
+push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 署名を行う（公証はしない）ため、`ci` にも証明書2点を置く。
+
+1. Part A の .p12 ファイル原本とそのパスワードを用意する（見つからない場合は Part A の手順でキーチェーンから書き出し直す — 証明書自体はキーチェーンにある）
+2. ターミナルで `base64 -i <p12ファイル> | pbcopy`（クリップボードへ base64 文字列が入る）
+3. Settings → Environments → **ci** → **Environment secrets** → **Add environment secret**
+   - Name: `APPLE_CERT_BASE64` / Value: 手順2の貼り付け
+   - Name: `APPLE_CERT_PASSWORD` / Value: .p12 のパスワード
+4. ⚠️ **不変条件: `ci` に置いてよい secret はこの2点のみ。それ以外 — 特に `APPLE_ID` — は絶対に置かない。** glm52 ブランチの build.yml は公証環境変数ステップの条件に glm52 を含むため、`ci` に `APPLE_ID` が入ると glm52 への push のたびに公証が発火し（「署名のみ」の方針に反する）、かつ glm52 世代の electron-builder 設定には `notarize: false` が無いためビルドがクラッシュしうる
+
+補足:
+- environment `ci` は push ビルドが現に使う environment である。deployment branch policy で master / glm52 / foss4g-hiroshima の3ブランチに限定してある（t1。他の ref のビルドから証明書を読めなくするため）
+- environment を使う関係で、push ビルドにも「deployment」記録が残る。GitHub の仕様で、動作への影響はない
 
 ---
 
@@ -188,10 +199,11 @@ eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI
 
 ## Part E: 仕様メモ（運用者向け）
 
-- **push（master / glm52 / foss4g-hiroshima）は常に無署名ビルド**。旧仕様の「master push で Mac 署名のみ」は m6-t12 で廃止した（secrets を environment に隔離したため）
+- **push（master / glm52 / foss4g-hiroshima）は Mac のみ Developer ID 署名（公証なし）・Win / Linux は無署名**。m6-t12 の「push は全プラットフォーム無署名」は t1（2026-08-21）で部分差し戻しした（Mac 証明書2点を `ci` にも配置 — Part C-2）。glm52 のみ Hardened Runtime なしの署名プロファイルになる（設計で受容済みの差。公証経路の無いテストビルドのため利用上の差はない）
 - Windows は**署名後に auto-update メタデータを再生成**している（`scripts/m6-t12/resign-update-metadata.mjs`）。署名でバイナリが変わるため、これを怠ると自動更新が壊れる。ワークフローが自動でやるので通常は意識不要
 - Linux（AppImage）は署名なし（現行方針）
-- 証明書の期限が切れたら: Apple → Part A をやり直して secrets 1・2 を更新 / SSL.com → 証明書更新後、Credential ID が変わっていないか B-2 で確認
+- 証明書の期限が切れたら: Apple → Part A をやり直して secrets 1・2 を **`release` と `ci` の両方**で更新する（t1 で2箇所化した運用コスト）/ SSL.com → 証明書更新後、Credential ID が変わっていないか B-2 で確認
+- `ci` 側の誤登録・期限切れ後の未更新は **push ビルド（build-mac）を毎回失敗させる（意図された fail-fast — 無署名で黙って続行しない）**。復旧 = Part A で .p12 を書き出し直し → `ci` と `release` の両方へ再登録 → 失敗した run を `gh run rerun`
 
 ## Part F: 公証が終わらないとき（2026-08-07 に実際に遭遇）
 
