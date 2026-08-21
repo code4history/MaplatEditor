@@ -434,6 +434,8 @@
     "basemap_align_reference_done": "Đã đặt điểm tham chiếu",
     "basemap_align_ground_truth_done": "Đã đặt ground truth",
     "basemap_align_osm_target_disabled": "Không thể căn chỉnh OSM",
+    "basemap_align_reset": "Đặt lại",
+    "basemap_align_cancel": "Hủy",
     "context_select_reference_point": "Chọn điểm tham chiếu",
     "context_select_ground_truth": "Chọn ground truth"
   },

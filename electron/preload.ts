@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('mapedit', {
   getBaseMapVisibilityOfMapID: (mapRef: string) => ipcRenderer.invoke('mapedit:get-base-map-visibility', mapRef),
   setBaseMapVisibilityForMapID: (mapRef: string, baseMapUid: string, enabled: boolean) =>
     ipcRenderer.invoke('mapedit:set-base-map-visibility', mapRef, baseMapUid, enabled),
+  // m1-t4 (HR-6): 位置合わせシフト値の編集環境永続化（visibility と同じ uid 正準。baseMapRef は slug も可）
+  getBaseMapShiftsOfMapID: (mapRef: string) => ipcRenderer.invoke('mapedit:get-base-map-shifts', mapRef),
+  setBaseMapShiftForMapID: (mapRef: string, baseMapRef: string, x: number, y: number) =>
+    ipcRenderer.invoke('mapedit:set-base-map-shift', mapRef, baseMapRef, x, y),
   updateTin: (gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any) =>
     ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex),
   // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (ADR-0007)

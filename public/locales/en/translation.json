@@ -416,6 +416,8 @@
     "basemap_align_reference_done": "Reference point set",
     "basemap_align_ground_truth_done": "Ground truth set",
     "basemap_align_osm_target_disabled": "OSM cannot be aligned",
+    "basemap_align_reset": "Reset",
+    "basemap_align_cancel": "Cancel",
     "context_select_reference_point": "Select reference point",
     "context_select_ground_truth": "Select ground truth"
   },

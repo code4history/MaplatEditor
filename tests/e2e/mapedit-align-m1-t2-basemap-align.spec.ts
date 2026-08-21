@@ -7,7 +7,9 @@
 //   AC1  副機能ドロップダウンに 3 つ目の選択肢が出る
 //   AC2  バーに現在のベースマップの保持値が出る（未計測なら 0.00。P1/P2 は対象の保持値）
 //   AC3  ベースマップ切替で表示値が随時そのベースマップの保持値へ変わる（§5.7）
-//   AC4  保持値はセッション限り（リロードで 0 に戻る）
+//   AC4  保持値は編集環境ストアへ即時永続化され、リロード後も残る
+//        （2026-08-21 m1-t4 改訂: HR-6 が HR-4.3 の「セッション限り」を明示的に逆転させたため
+//          期待を反転した = m1-t4/AC9。m1-t4 設計 §7 結果表 #1 / outer rule-0015）
 //   AC5  バー右端に「編集開始」ボタン
 //   AC6  P1: (a) 地図面操作不可 (b) ドロップダウン操作不可 (c) 切替ラジオ 0 件 (d) ボタン文言
 //   AC7  P1 で対象ソースの実効シフトが 0
@@ -560,7 +562,13 @@ test.describe('m1-t2 ベースマップ位置合わせモード', () => {
     }
   });
 
-  test('AC4: 保持値はセッション限り（リロードで 0.00 に戻る）', async () => {
+  // 2026-08-21 m1-t4 改訂（HR-6・m1-t4/AC9。m1-t4 設計 §7 結果表 #1 / outer rule-0015）:
+  // HR-6「あ、これは逆に保存されて欲しいです。…ベースマップ指定と同様、Saveする必要のない即時記憶で」が
+  // HR-4.3 の「セッション限り」を明示的に逆転させたため、本テストの期待を反転した
+  // （旧: リロードで 0.00 に戻る → 新: 編集環境ストアに保存され、リロード後も保持値が残る）。
+  // seed はメモリ専用の testDebug.seedBaseMapShifts では reload を跨げない（m1-t4 設計レビュー MIN-2）
+  // ∴ 実 IPC（mapedit.setBaseMapShiftForMapID = m1-t4 の永続経路）で書き、reload 後は実 load 経路で読む
+  test('AC4（m1-t4/AC9 で期待反転）: 保持値は編集環境ストアへ永続化され、リロード後も残る', async () => {
     test.setTimeout(240_000);
     const { app, page, errors, uid } = await bootstrap('maplat-m1t2-session-');
     try {
@@ -568,9 +576,11 @@ test.describe('m1-t2 ベースマップ位置合わせモード', () => {
       await functionSelect(page).selectOption('basemap_align');
       const dbg0 = await alignDebug(page);
       const other = dbg0.baseLayers.map((l) => l.mapID).find((id) => id !== 'osm')!;
-      await page.evaluate((id) => {
+      // 永続経路（実 IPC → SQLite）で書き、メモリも同値に seed して書込前の表示を固定する
+      await page.evaluate(async ({ mapUid, id }) => {
+        await (window as any).mapedit.setBaseMapShiftForMapID(mapUid, id, 55, 66);
         (window as any).testDebug.seedBaseMapShifts({ [id]: { x: 55, y: 66 } });
-      }, other);
+      }, { mapUid: uid, id: other });
       await setVisibleBaseMap(page, other);
       await expect(shiftX(page)).toHaveValue('55.00');
 
@@ -584,10 +594,14 @@ test.describe('m1-t2 ベースマップ位置合わせモード', () => {
       await waitBaseLayers(page);
       await functionSelect(page).selectOption('basemap_align');
       await setVisibleBaseMap(page, other);
-      await expect(shiftX(page)).toHaveValue('0.00');
-      await expect(shiftY(page)).toHaveValue('0.00');
+      // HR-6: 保持値が編集環境ストアから復元されて表示され、タイルにも実効値として載っている
+      await expect(shiftX(page)).toHaveValue('55.00');
+      await expect(shiftY(page)).toHaveValue('66.00');
       const dbgAfter = await alignDebug(page);
-      expect(Object.keys(dbgAfter.shifts).length).toBe(0);
+      expect(dbgAfter.shifts[other]).toEqual({ x: 55, y: 66 });
+      const otherLayer = dbgAfter.baseLayers.find((l) => l.mapID === other)!;
+      expect(otherLayer.mercatorXShift).toBe(55);
+      expect(otherLayer.mercatorYShift).toBe(66);
 
       expect(errors, `エラー: ${errors.join('\n')}`).toEqual([]);
     } finally {

@@ -232,6 +232,17 @@ class SettingsService extends EventEmitter {
     await SqliteDataService.setBaseMapVisibilityForMapID(mapRef, baseMapRef, enabled);
   }
 
+  // m1-t4 (HR-6): ベースマップ位置合わせのシフト値（編集環境ストア）。visibility と同じ passthrough
+  public async getBaseMapShiftsOfMapID(mapRef: string): Promise<any[]> {
+    const { default: SqliteDataService } = await import('./SqliteDataService');
+    return SqliteDataService.getBaseMapShiftsOfMapID(mapRef);
+  }
+
+  public async setBaseMapShiftForMapID(mapRef: string, baseMapRef: string, x: number, y: number): Promise<void> {
+    const { default: SqliteDataService } = await import('./SqliteDataService');
+    await SqliteDataService.setBaseMapShiftForMapID(mapRef, baseMapRef, x, y);
+  }
+
   public async listBaseMaps(): Promise<any[]> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
     return SqliteDataService.listBaseMaps();

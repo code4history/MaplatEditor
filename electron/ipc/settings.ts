@@ -55,6 +55,15 @@ export function registerSettingsHandlers() {
     await SettingsService.setBaseMapVisibilityForMapID(mapRef, baseMapRef, enabled);
   });
 
+  // m1-t4 (HR-6): ベースマップ位置合わせのシフト値（編集環境ストア）。visibility と同じ 4 層貫通
+  ipcMain.handle('mapedit:get-base-map-shifts', async (_, mapRef: string) => {
+    return await SettingsService.getBaseMapShiftsOfMapID(mapRef);
+  });
+
+  ipcMain.handle('mapedit:set-base-map-shift', async (_, mapRef: string, baseMapRef: string, x: number, y: number) => {
+    await SettingsService.setBaseMapShiftForMapID(mapRef, baseMapRef, x, y);
+  });
+
   ipcMain.handle('basemaps:list', async () => {
     const items = await SettingsService.listBaseMaps();
     // M12-T1-HOTFIX-1: マスタの thumbnail(basemap_icons/=同梱リソース, tmbs/等=データフォルダ)の

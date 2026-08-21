@@ -30,7 +30,7 @@ import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { isProviderBaseMapData, resolveBaseMapLayerMetadata, toBaseMapLayerData } from '../utils/baseMapEditorDocument';
-import { computeMercatorShift, applyShiftOverwrite, effectiveShiftOf, type MercatorShift } from '../utils/basemapAlign';
+import { computeMercatorShift, applyShiftOverwrite, effectiveShiftOf, isZeroShift, type MercatorShift } from '../utils/basemapAlign';
 import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
@@ -300,7 +300,10 @@ const newMapUid = (typeof route.query.uid === 'string' && route.query.uid && rou
 const copyFromUidSource = ref<string | undefined>(undefined); // M11-T10: 複製元UID
 const mappingUIRow = ref('layer');
 // m1-t2: ベースマップ位置合わせモードの状態（タスク設計 §5.2）。
-// すべて MapEdit セッション限りのメモリであり永続化しない（HR-4.3・C-3・ADR-0018）。
+// baseMapShifts（保持値）は編集環境ストア map_base_map_shift と同期する（m1-t4・HR-6・C-3 v1.2。
+// HR-4.3 の「非永続」は人間により明示的に逆転された）: 入場時に loadBaseMapShifts が読み込み、
+// 確定・リセットの 2 箇所だけが persistBaseMapShift 経由で即時書き込む（Save 不要）。
+// 相・対象・基準点・Ground Truth はセッション限りのメモリのまま。
 // MapEditHistoryState へは追加しない（undo / redo の対象にしない。AC23）。
 const baseMapShifts = ref<Record<string, MercatorShift>>({});     // 保持値。未計測は未登録＝ 0 扱い
 const alignPhase = ref<'P0' | 'P1' | 'P2'>('P0');                 // 相（P0 通常 / P1 基準点 / P2 Ground Truth）
@@ -2349,6 +2352,7 @@ onMounted(async () => {
             });
         } else if (newTab === 'settings') {
             loadBaseMapVisibility();
+            void loadBaseMapShifts();  // m1-t4 (HR-6): visibility と同じ site から並置で再読込
         }
         // M12-T10 v2.0 Min2: pois タブの refreshMapCanonicalBbox 呼出は dead code のため削除
     });
@@ -3199,6 +3203,29 @@ const applyBaseMapShifts = (group?: any) => {
     });
 };
 
+// m1-t4 (HR-6): 編集環境ストア map_base_map_shift から保持値を読み込む（前例 loadBaseMapVisibility の相似形。
+// 呼び出し site も loadBaseMapVisibility と同じ 2 箇所に並置する）。行が無いベースマップは未登録 = 0 扱い
+const loadBaseMapShifts = async () => {
+    if (!baseMapVisibilityMapRef() || !(window as any).mapedit?.getBaseMapShiftsOfMapID) return;
+    try {
+        const rows = await (window as any).mapedit.getBaseMapShiftsOfMapID(baseMapVisibilityMapRef());
+        baseMapShifts.value = Object.fromEntries(
+            (Array.isArray(rows) ? rows : []).map((r: any) => [String(r.mapID), { x: Number(r.x), y: Number(r.y) }]));
+        applyBaseMapShifts();
+    } catch (e) {
+        // §4.2 の逸脱宣言: エラー UI は足さない（メモリ値は失敗しても正しい。次回入場時に最後の成功値へ戻るだけ）
+        console.error('[loadBaseMapShifts] Failed:', e);
+    }
+};
+
+// m1-t4 (HR-6): 即時書込。書く side は「確定」と「リセット」の 2 箇所だけ（§5.1）。
+// メモリ更新（applyShiftOverwrite）が先・IPC は後の楽観更新で、0,0 は main 側が行 DELETE で表現する
+const persistBaseMapShift = (baseMapID: string, shift: MercatorShift) => {
+    if (!baseMapVisibilityMapRef() || !(window as any).mapedit?.setBaseMapShiftForMapID) return;
+    void (window as any).mapedit.setBaseMapShiftForMapID(baseMapVisibilityMapRef(), baseMapID, shift.x, shift.y)
+        .catch((e: any) => console.error('[persistBaseMapShift] Failed:', e));
+};
+
 // §5.4: ベースマップ切替候補の制御は title 退避 + renderPanel() の単一機構に寄せる。
 // ol-layerswitcher の renderLayers_ は if (l.get('title')) で偽値タイトルの層をスキップする
 // （dist/ol-layerswitcher.js:503 実測）∴ title を空にすればラジオごと消える。
@@ -3339,29 +3366,71 @@ const finishReferencePhase = () => {                    // P1 → P2（HR-4.7）
     applyBaseMapShifts();                               // HR-4.7(d): 非対象には保持値・対象は 0 のまま
 };
 
+// m1-t4 (AC7・恒久指示「同一扱いは共通実装へ」): P1/P2 を離れて P0 へ戻る後始末の単一実装。
+// 確定（finishGroundTruthPhase）とキャンセル（cancelBasemapAlign）の両方がこの 1 本を呼ぶ。
+// 内容は m1-t2 の finishGroundTruthPhase 後半（P0 復帰 8 要素）をそのまま関数抽出したもの
+const leaveAlignEditPhases = (restoreMapID: string | null) => {
+    alignPhase.value = 'P0';
+    clearAlignMarkers();                                // 両マーカーを消す（§6.2）
+    alignReferencePoint.value = null;
+    alignGroundTruth.value = null;
+    setIllstMapInteractive(true);                       // MIN-5: P0 復帰で再有効化
+    applySwitchableBaseMapsForPhase();
+    if (restoreMapID) setVisibleBaseMapLayer(restoreMapID);  // 対象ベースマップへ表示を戻す（P2 の OSM から）
+    applyBaseMapShifts();                               // 保持値の実効値を反映（HR-4.8）
+    alignTargetMapID.value = null;
+};
+
 const finishGroundTruthPhase = () => {                  // P2 → P0（確定。HR-4.8）
     const reference = alignReferencePoint.value;
     const groundTruth = alignGroundTruth.value;
     const target = alignTargetMapID.value;
     if (!reference || !groundTruth || !target) return;
     // C-2: shift = P_groundTruth − P_reference。合成は上書きであり加算しない
-    baseMapShifts.value = applyShiftOverwrite(
-        baseMapShifts.value, target, computeMercatorShift(reference, groundTruth));
-    alignPhase.value = 'P0';
-    clearAlignMarkers();                                // 確定で両マーカーを消す（§6.2）
-    alignReferencePoint.value = null;
-    alignGroundTruth.value = null;
-    setIllstMapInteractive(true);                       // MIN-5: P0 復帰で再有効化
-    applySwitchableBaseMapsForPhase();
-    setVisibleBaseMapLayer(target);                     // 対象ベースマップへ表示を戻す（§13 HR-4.8）
-    applyBaseMapShifts();                               // 新しい保持値を反映（HR-4.8）
-    alignTargetMapID.value = null;
+    const shift = computeMercatorShift(reference, groundTruth);
+    baseMapShifts.value = applyShiftOverwrite(baseMapShifts.value, target, shift);
+    leaveAlignEditPhases(target);
+    persistBaseMapShift(target, shift);                 // m1-t4 (HR-6): 確定で即時永続化（メモリが先・IPC は後）
+};
+
+// m1-t4 (HR-5.3): 編集中（P1/P2）のキャンセル。基準点指定作業を終了して P0 へ戻るだけで、
+// シフトの計算・上書き・永続化は一切行わない（保持値不変）
+const cancelBasemapAlign = () => {
+    if (alignPhase.value === 'P0') return;
+    leaveAlignEditPhases(alignTargetMapID.value);
+};
+
+// m1-t4 (HR-5.2): 非編集時（P0）のリセット。表示中ベースマップの保持値を 0,0 へ（メモリ上書き →
+// 単一適用 → 即時永続化。0,0 の永続化は main 側で行 DELETE になる = 再入場後も 0）
+const resetBaseMapShift = () => {
+    const target = alignBarMapID.value;
+    if (alignPhase.value !== 'P0' || !target) return;
+    baseMapShifts.value = applyShiftOverwrite(baseMapShifts.value, target, { x: 0, y: 0 });
+    applyBaseMapShifts();
+    persistBaseMapShift(target, { x: 0, y: 0 });
 };
 
 const onAlignPhaseButton = () => {
     if (alignPhase.value === 'P0') startBasemapAlign();
     else if (alignPhase.value === 'P1') finishReferencePhase();
     else finishGroundTruthPhase();
+};
+
+// m1-t4 (HR-5): 第 2 ボタン（相ボタンの一つ左隣）。P0 = リセット / P1・P2 = キャンセル（§5.2 の表が正本）
+const alignSecondButtonLabel = computed(() =>
+    alignPhase.value === 'P0' ? t('mapedit.basemap_align_reset') : t('mapedit.basemap_align_cancel'));
+// HR-5.2: P0 では保持値 0,0（未登録含む）なら無効。HR-5.3: P1/P2 のキャンセルは常に押せる
+// （相ボタンが disabled でも独立して効く）
+const alignSecondButtonDisabled = computed(() => {
+    if (alignPhase.value !== 'P0') return false;
+    const id = alignBarMapID.value;
+    if (!id) return true;
+    const held = baseMapShifts.value[id];
+    return !held || isZeroShift(held);
+});
+const onAlignSecondButton = () => {
+    if (alignPhase.value === 'P0') resetBaseMapShift();
+    else cancelBasemapAlign();
 };
 
 const refreshBaseMapLayers = async () => {
@@ -3377,6 +3446,7 @@ const setupBaseMaps = async () => {
 
     if (baseMapVisibilityList.value.length === 0 && baseMapVisibilityMapRef()) {
         await loadBaseMapVisibility();
+        await loadBaseMapShifts();  // m1-t4 (HR-6): 入場時に編集環境ストアから保持値を読み込む（visibility と並置）
     }
 
     if (baseMapVisibilityList.value.length > 0) {
@@ -4713,7 +4783,14 @@ const goBack = async () => {
                                          <label class="small fw-bold mb-0">{{ t('mapedit.mercator_y_shift') }}</label>
                                          <input type="text" class="form-control form-control-sm" disabled :value="alignShiftDisplay.y" data-testid="mapedit-align-shift-y">
                                      </div>
-                                     <div class="col-md-6"></div>
+                                     <div class="col-md-4"></div>
+                                     <!-- m1-t4: 第 2 ボタン（相ボタンの一つ左隣 = HR-5.1）。P0 はリセット（0,0 なら無効 = HR-5.2）、
+                                          P1/P2 はキャンセル（常に押せる = HR-5.3） -->
+                                     <div class="col-md-2">
+                                         <button class="btn btn-sm btn-outline-secondary w-100" data-testid="mapedit-align-second-button"
+                                             :disabled="alignSecondButtonDisabled"
+                                             @click="onAlignSecondButton">{{ alignSecondButtonLabel }}</button>
+                                     </div>
                                      <!-- バー右端の相ボタン（HR-4.5。文言は相で切替、対象 OSM のときは無効 = Q1） -->
                                      <div class="col-md-2">
                                          <button class="btn btn-sm btn-outline-secondary w-100" data-testid="mapedit-align-phase-button"

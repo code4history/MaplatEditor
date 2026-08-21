@@ -324,6 +324,9 @@ export interface MapEditAPI {
     getTmsListOfMapID(mapRef: string): Promise<any>;
     getBaseMapVisibilityOfMapID(mapRef: string): Promise<any>;
     setBaseMapVisibilityForMapID(mapRef: string, baseMapUid: string, enabled: boolean): Promise<void>;
+    // m1-t4 (HR-6): 位置合わせシフト値の編集環境永続化（visibility と同じ uid 正準）
+    getBaseMapShiftsOfMapID(mapRef: string): Promise<Array<{ baseMapUid: string; mapID: string; x: number; y: number }>>;
+    setBaseMapShiftForMapID(mapRef: string, baseMapRef: string, x: number, y: number): Promise<void>;
     updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any): Promise<any>;
     save(payload: MapSavePayload): Promise<MapSaveResult>;
     checkExtentMap(extent: number[]): Promise<any>;

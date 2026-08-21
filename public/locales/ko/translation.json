@@ -434,6 +434,8 @@
     "basemap_align_reference_done": "기준점 지정 완료",
     "basemap_align_ground_truth_done": "Ground Truth 지정 완료",
     "basemap_align_osm_target_disabled": "OSM은 위치 맞춤 대상이 될 수 없습니다",
+    "basemap_align_reset": "초기화",
+    "basemap_align_cancel": "취소",
     "context_select_reference_point": "기준점 선택",
     "context_select_ground_truth": "Ground Truth 선택"
   },

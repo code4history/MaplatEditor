@@ -5,8 +5,10 @@
 //   AC14 computeMercatorShift が shift = P_groundTruth − P_reference（C-2）である
 //   AC15 符号の unit 固定: 正の X は東・正の Y は北（両符号を両方向で固定）
 //   AC21(b) applyShiftOverwrite の 2 回適用が「置換」であり加算でない（C-2 の上書き意味論）
-//   AC4  保持値がセッション限りである静的確認: BaseMapEditDocument / 保存経路 /
-//        MapEditHistoryState のいずれにも当該フィールドが増えていない
+//   AC4  保持値が編集環境ストア（map_base_map_shift）以外へ書かれないことの静的確認:
+//        BaseMapEditDocument / 保存経路 / MapEditHistoryState のいずれにも当該フィールドが増えていない
+//        （2026-08-21 m1-t4 改訂: HR-6 が HR-4.3 の「非永続」を明示的に逆転させたため表題を改めた。
+//          個別 assert は C-3 v1.2 でも全部真のため原則維持 = m1-t4 設計 §7 結果表 #2 / outer rule-0015）
 //   AC16 シフト適用が単一実装（C-4）: source.mercatorXShift への代入が
 //        applyBaseMapShifts の中だけ・呼び出し 3 箇所以上
 //   AC6(c) 系（設計レビュー MIN-3 の処方）: setupBaseMaps 末尾で setSwitchableBaseMaps を
@@ -157,7 +159,9 @@ try {
   console.log('[5/7] MIN-3: setupBaseMaps 末尾の切替制限復元 OK');
 
   // ---------------------------------------------------------------- [6/7]
-  // AC4 / AC23: 保持値の非永続。BaseMapEditDocument / MapEditHistoryState / 保存経路に増えていない
+  // AC4 / AC23: 保持値は編集環境ストア以外へ書かない（2026-08-21 m1-t4 改訂・HR-6。
+  // 永続化は map_base_map_shift（編集環境ストア）だけが担い、地図文書（Save 対象）・
+  // BaseMapEditDocument・MapEditHistoryState（undo）には増えていないことを検査する
   {
     const baseMapDoc = await read('src/utils/baseMapEditorDocument.ts');
     assert.equal(countOf(baseMapDoc, 'mercatorXShift'), 0,
@@ -178,10 +182,10 @@ try {
     for (const idx of saveCallIdx) {
       const around = mapEdit.slice(Math.max(0, idx - 2000), idx + 2000);
       assert.equal(countOf(around, 'baseMapShifts'), 0,
-        'AC4: 保存呼び出しの近傍に baseMapShifts が現れる（永続化の疑い）');
+        'AC4: 保存呼び出しの近傍に baseMapShifts が現れる（地図文書への書込の疑い）');
     }
   }
-  console.log('[6/7] AC4/AC23: 非永続・undo 非対象の静的確認 OK');
+  console.log('[6/7] AC4/AC23: 編集環境ストア以外へ書かない・undo 非対象の静的確認 OK');
 
   // ---------------------------------------------------------------- [7/7]
   // AC18: i18n 9 キー × 11 言語・空値なし・末尾改行・appedit との文言一致

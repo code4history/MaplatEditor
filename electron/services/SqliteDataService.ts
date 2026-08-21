@@ -850,6 +850,14 @@ class SqliteDataService {
         updated_at TEXT DEFAULT (datetime('now')),
         PRIMARY KEY (map_uid, base_map_uid)
       );
+      CREATE TABLE IF NOT EXISTS map_base_map_shift (
+        map_uid TEXT NOT NULL,
+        base_map_uid TEXT NOT NULL,
+        shift_x REAL NOT NULL,
+        shift_y REAL NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now')),
+        PRIMARY KEY (map_uid, base_map_uid)
+      );
       CREATE TABLE IF NOT EXISTS base_map_always (
         base_map_uid TEXT PRIMARY KEY,
         always_visible INTEGER NOT NULL,
@@ -1016,6 +1024,13 @@ class SqliteDataService {
   private sweepStaleProvisionalVisibility(db: DatabaseSync): void {
     db.prepare(
       `DELETE FROM map_base_map_visibility
+       WHERE map_uid LIKE '${PROVISIONAL_MAP_KEY_PREFIX}%'
+         AND updated_at < datetime('now', '-7 days')`
+    ).run();
+    // m1-t4 (HR-6): シフト値の編集環境ストア map_base_map_shift も同じライフサイクルで掃除する
+    // （挙動を似せた並行関数は作らず、同一関数の中に両テーブルの処理を並べる = 恒久指示）
+    db.prepare(
+      `DELETE FROM map_base_map_shift
        WHERE map_uid LIKE '${PROVISIONAL_MAP_KEY_PREFIX}%'
          AND updated_at < datetime('now', '-7 days')`
     ).run();
@@ -1648,6 +1663,13 @@ class SqliteDataService {
          (SELECT base_map_uid FROM map_base_map_visibility WHERE map_uid = ?)`
     ).run(provisionalKey, uid);
     db.prepare('UPDATE map_base_map_visibility SET map_uid = ? WHERE map_uid = ?').run(uid, provisionalKey);
+    // m1-t4 (HR-6): シフト値の暫定行も同じ DELETE-dup + UPDATE で uid キーへ引き継ぐ（恒久指示: 同一関数へ並置）
+    db.prepare(
+      `DELETE FROM map_base_map_shift
+       WHERE map_uid = ? AND base_map_uid IN
+         (SELECT base_map_uid FROM map_base_map_shift WHERE map_uid = ?)`
+    ).run(provisionalKey, uid);
+    db.prepare('UPDATE map_base_map_shift SET map_uid = ? WHERE map_uid = ?').run(uid, provisionalKey);
   }
 
   // --- maps ---
@@ -1699,6 +1721,8 @@ class SqliteDataService {
       db.prepare('DELETE FROM maps WHERE uid = ?').run(uid);
       db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
       db.prepare('DELETE FROM map_base_map_visibility WHERE map_uid = ?').run(uid);
+      // m1-t4 (HR-6): シフト値の編集環境行も随伴削除する（恒久指示: 同一関数へ並置）
+      db.prepare('DELETE FROM map_base_map_shift WHERE map_uid = ?').run(uid);
     });
   }
 
@@ -2369,6 +2393,50 @@ class SqliteDataService {
     ).run(mapKey, base.uid, enabled ? 1 : 0);
   }
 
+  // m1-t4 (HR-6・C-3 v1.2): ベースマップ位置合わせのシフト値の編集環境永続化。
+  // map_base_map_visibility の完全相似形（粒度 (map_uid, base_map_uid)・即時書込・Save/undo 非対象・
+  // uid 正準・暫定キー slug:{slug}・adopt/sweep/削除随伴）。行が無いベースマップは「未計測 = 0 扱い」で、
+  // 0,0 は行 DELETE で表現する（メモリ側 effectiveShiftOf の「未登録 = 0」と表現を一致させる）
+  async getBaseMapShiftsOfMapID(
+    mapRef: string,
+  ): Promise<Array<{ baseMapUid: string; mapID: string; x: number; y: number }>> {
+    const db = await this.getDb();
+    const mapKey = this.resolveVisibilityMapKey(db, mapRef);
+    const rows = db
+      .prepare(
+        `SELECT s.base_map_uid, b.slug, s.shift_x, s.shift_y
+         FROM map_base_map_shift s
+         JOIN base_maps b ON b.uid = s.base_map_uid
+         WHERE s.map_uid = ?`
+      )
+      .all(mapKey) as any[];
+    return rows.map((row) => ({
+      baseMapUid: String(row.base_map_uid),
+      mapID: String(row.slug),
+      x: Number(row.shift_x),
+      y: Number(row.shift_y),
+    }));
+  }
+
+  async setBaseMapShiftForMapID(mapRef: string, baseMapRef: string, x: number, y: number): Promise<void> {
+    const db = await this.getDb();
+    const base = this.findBaseMapByRef(db, baseMapRef);
+    if (!base) {
+      console.warn(`[SqliteDataService] setBaseMapShiftForMapID: unknown base map ${baseMapRef}`);
+      return;
+    }
+    // 未保存の地図は'slug:{slug}'を仮キーに置く(初回保存時にuidキーへ引き継がれる)
+    const mapKey = this.resolveVisibilityMapKey(db, mapRef);
+    if (x === 0 && y === 0) {
+      db.prepare('DELETE FROM map_base_map_shift WHERE map_uid = ? AND base_map_uid = ?').run(mapKey, base.uid);
+      return;
+    }
+    db.prepare(
+      `INSERT OR REPLACE INTO map_base_map_shift (map_uid, base_map_uid, shift_x, shift_y, updated_at)
+       VALUES (?, ?, ?, ?, datetime('now'))`
+    ).run(mapKey, base.uid, x, y);
+  }
+
   async listBaseMaps(): Promise<BaseMapCatalogItem[]> {
     const db = await this.getDb();
     const overrides = this.alwaysOverrides(db);
@@ -2621,6 +2689,8 @@ class SqliteDataService {
     db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
     db.prepare('DELETE FROM map_base_map_visibility WHERE base_map_uid = ?').run(uid);
     db.prepare('DELETE FROM base_map_always WHERE base_map_uid = ?').run(uid);
+    // m1-t4 (HR-6): シフト値の編集環境行も随伴削除する（恒久指示: 同一関数へ並置）
+    db.prepare('DELETE FROM map_base_map_shift WHERE base_map_uid = ?').run(uid);
   }
 
   // --- migration internals ---

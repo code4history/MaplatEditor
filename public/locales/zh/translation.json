@@ -434,6 +434,8 @@
     "basemap_align_reference_done": "基准点指定完成",
     "basemap_align_ground_truth_done": "Ground Truth 指定完成",
     "basemap_align_osm_target_disabled": "OSM 无法作为对齐对象",
+    "basemap_align_reset": "重置",
+    "basemap_align_cancel": "取消",
     "context_select_reference_point": "选择基准点",
     "context_select_ground_truth": "选择 Ground Truth"
   },
