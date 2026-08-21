@@ -143,6 +143,10 @@ async function layerSwitcherRadios(page: Page): Promise<{ count: number; labels:
     const map = (window as any).testDebug.mercMapInfo().map;
     const ctrl = map.getControls().getArray()
       .find((c: any) => c.element?.classList?.contains('layer-switcher'));
+    // 実装レビュー MAJ-1: showPanel() はパネルが表示済みだと renderPanel() を呼ばず
+    // 古い DOM を読む ∴ hidePanel() で一度閉じてから開き、必ず再描画させる
+    // （これが無いと製品側の結線を外した変異でも PASS してしまう = 判別力ゼロ）
+    ctrl.hidePanel();
     ctrl.showPanel();
     const inputs = Array.from(document.querySelectorAll('.layer-switcher input[type=radio]')) as HTMLInputElement[];
     const labels = inputs.map((input) => {
