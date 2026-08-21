@@ -12,9 +12,10 @@ on:
   #   platforms=all|mac|win|linux: 対象を絞れる。Apple の公証が復旧したときに
   #     「Mac だけ焼き直す」（mac + full）が eSigner を再課金せずにできる
   #
-  #   push（master / glm52 / foss4g-hiroshima）: 常に署名なしビルド。
-  #     旧仕様の「master push で Mac 署名のみ」は m6-t12 で廃止した — 署名系 secrets を
-  #     environment `release`（Required reviewers 保護）へ隔離したため push ビルドからは読めない
+  #   push（master / glm52 / foss4g-hiroshima）: Mac は Developer ID 署名のみ（公証なし・課金ゼロ）、
+  #     Win / Linux は署名しない。Mac 証明書2 secrets は environment `ci` にも置く（t1・2026-08-21。
+  #     dispatch 忘れによる未署名配布事故を受けた人間指示で、m6-t12 の「push では署名しない」を部分差し戻し）。
+  #     公証・eSigner・Release 作成は従来どおり `release`（Required reviewers 保護）の dispatch 限定
   push:
     branches: [master, glm52, foss4g-hiroshima]
   workflow_dispatch:
@@ -77,8 +78,9 @@ jobs:
     # 6時間まるごと消費してから cancelled になる（m6-t12 AC7 の初回実走で実測）。
     # ビルド 5分 + 公証（x64/arm64 の2回）に十分な余裕を見つつ、早く失敗させる
     timeout-minutes: 120
-    # 署名系 secrets は environment `release` に置く（m6-t12 §2.4）。release 実行時のみ
-    # Required reviewers の承認が挟まり、push ビルド（ci 側）からは secrets を読めない
+    # 公証・eSigner 用 secrets は environment `release`（Required reviewers。m6-t12 §2.4）。
+    # Mac 証明書2件（APPLE_CERT_BASE64 / APPLE_CERT_PASSWORD）は push でも署名するため
+    # `ci` にも置く（t1・2026-08-21）。`ci` にはこの2件以外を置かない（docs/release-signing.md Part C）
     environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode != '') && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
@@ -107,12 +109,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Developer ID 証明書のインポート（dispatch のみ。verify / full とも Mac は署名する）
+      # Developer ID 証明書のインポート（push / dispatch とも実行。Mac は常に署名を試みる — t1・2026-08-21）
       # インポート成功時に MAC_SIGN=true を設定 → electron-builder が Hardened Runtime 付き署名を行う
-      # （Secret 未設定の場合はスクリプト内でスキップ）
+      # Secret 未設定（APPLE_CERT_BASE64 が空）の場合はシェル内でスキップし、無署名の DMG になる
       # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する
+      # 値はあるが組が壊れている（パスワード誤り・base64 破損）場合、このステップは意図的に失敗する
+      # （fail-fast — 無署名で黙って続行しない。発端事故の再生産を防ぐ）。
+      # 復旧: environment `ci` / `release` の secrets を再登録し、失敗した run を `gh run rerun`
       - name: Import Apple Developer certificate
-        if: github.event_name == 'workflow_dispatch' && inputs.mode != ''
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
