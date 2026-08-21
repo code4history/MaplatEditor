@@ -2,15 +2,21 @@ name: Build and Release
 
 on:
   # master プッシュ時に自動実行
-  # glm52: リリース前サンプル版のコンパイル用。署名・公証は secrets が設定されていれば master 同様に実施
-  #        （未設定なら安全にスキップ）。Release 作成のみ master 限定。成果物は Actions の artifacts から取得
+  # glm52: リリース前サンプル版のコンパイル用。Mac は environment `ci` の証明書2 secrets で
+  #        Developer ID 署名する（t1・2026-08-21。公証はしない。Secret 未設定なら安全にスキップ）。
+  #        この世代の electron-builder 設定は Hardened Runtime を有効化しないため、成果物は
+  #        Hardened Runtime なしの署名プロファイルになる（設計で受容済みの差）。
+  #        Win 署名なし。Release 作成のみ master 限定。成果物は Actions の artifacts から取得
   push:
     branches: [master, glm52]
-  # 手動実行（ブランチ問わず起動可能、署名は行わない）
+  # 手動実行（本ファイルが実行されるのは glm52 ref のみ。その場合も Mac は署名される — t1。公証はしない）
   workflow_dispatch:
 
+# 証明書を読める push ビルドへ書き込みトークンを渡さない（master 系の SR-t12-M-1 と同等 — t1）。
+# Release 作成ジョブは ref == master 限定で、glm52 ref で実行される本ファイルでは恒久スキップ
+# ∴ contents: write を要するジョブは無い
 permissions:
-  contents: write  # GitHub Release 作成に必要
+  contents: read
 
 jobs:
   # ─────────────────────────────────────────────
@@ -32,12 +38,18 @@ jobs:
   build-mac:
     needs: prepare
     runs-on: macos-latest
+    # Mac 証明書2 secrets（APPLE_CERT_BASE64 / APPLE_CERT_PASSWORD）を読むため environment `ci` を
+    # 使う（t1・2026-08-21）。`ci` にはこの2件以外を置かない契約（master 系 docs/release-signing.md Part C）
+    environment: ci
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # ビルド時に走る依存ツリーへトークンを渡さない（証明書を読むジョブの多層防御 — t1）
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
           # build script 許可は pnpm-workspace.yaml の allowBuilds（pnpm 11 の新形式）参照
@@ -52,7 +64,7 @@ jobs:
         run: pnpm install
 
       # Developer ID 証明書のインポート
-      # master プッシュ時のみ実行（Secret 未設定の場合はスクリプト内でスキップ）
+      # master / glm52 の ref で実行（Secret 未設定の場合はスクリプト内でスキップ — t1 で glm52 も署名対象）
       # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する
       - name: Import Apple Developer certificate
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/glm52'
@@ -78,7 +90,8 @@ jobs:
             -s -k "$KEYCHAIN_PASSWORD" build.keychain
           rm certificate.p12
 
-      # 公証環境変数のセット（master かつ APPLE_ID が設定されている場合のみ）
+      # 公証環境変数のセット（master / glm52 の ref で APPLE_ID が設定されている場合のみ。
+      # environment `ci` には APPLE_ID を置かない契約 ∴ glm52 push では発火しない — t1）
       # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
       - name: Set macOS notarization environment
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/glm52'
