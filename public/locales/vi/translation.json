@@ -426,7 +426,16 @@
     "cc_custom": "Giấy phép tùy chỉnh",
     "license_unset": "Chưa đặt",
     "map_image_license_note": "Ghi chú giấy phép ảnh bản đồ",
-    "map_gcp_license_note": "Ghi chú giấy phép dữ liệu"
+    "map_gcp_license_note": "Ghi chú giấy phép dữ liệu",
+    "edit_basemap_align": "Căn chỉnh bản đồ nền",
+    "mercator_x_shift": "Dịch chuyển X Mercator",
+    "mercator_y_shift": "Dịch chuyển Y Mercator",
+    "basemap_align_start": "Bắt đầu chỉnh sửa",
+    "basemap_align_reference_done": "Đã đặt điểm tham chiếu",
+    "basemap_align_ground_truth_done": "Đã đặt ground truth",
+    "basemap_align_osm_target_disabled": "Không thể căn chỉnh OSM",
+    "context_select_reference_point": "Chọn điểm tham chiếu",
+    "context_select_ground_truth": "Chọn ground truth"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

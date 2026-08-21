@@ -30,6 +30,7 @@ import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
 import { isProviderBaseMapData, resolveBaseMapLayerMetadata, toBaseMapLayerData } from '../utils/baseMapEditorDocument';
+import { computeMercatorShift, applyShiftOverwrite, effectiveShiftOf, type MercatorShift } from '../utils/basemapAlign';
 import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
 import { isTranslationMode } from '../utils/editorLanguageMode';
@@ -298,6 +299,14 @@ const newMapUid = (typeof route.query.uid === 'string' && route.query.uid && rou
     : (typeof route.query.draftUid === 'string' ? route.query.draftUid : crypto.randomUUID());
 const copyFromUidSource = ref<string | undefined>(undefined); // M11-T10: 複製元UID
 const mappingUIRow = ref('layer');
+// m1-t2: ベースマップ位置合わせモードの状態（タスク設計 §5.2）。
+// すべて MapEdit セッション限りのメモリであり永続化しない（HR-4.3・C-3・ADR-0018）。
+// MapEditHistoryState へは追加しない（undo / redo の対象にしない。AC23）。
+const baseMapShifts = ref<Record<string, MercatorShift>>({});     // 保持値。未計測は未登録＝ 0 扱い
+const alignPhase = ref<'P0' | 'P1' | 'P2'>('P0');                 // 相（P0 通常 / P1 基準点 / P2 Ground Truth）
+const alignTargetMapID = ref<string | null>(null);                // P1/P2 の対象ベースマップ
+const alignReferencePoint = ref<number[] | null>(null);           // EPSG:3857
+const alignGroundTruth = ref<number[] | null>(null);              // EPSG:3857
 const currentEditingLayer = ref(0);
 const editingID = ref('');
 const createCoordinateComputed = (isX: boolean, isIllst: boolean) => computed({
@@ -1172,6 +1181,40 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         // mount 後の補助切り替え。基点測定の主経路ではない（W3/W4 には間に合わない）
         setHistoryScopeEnabled: (tag: string, enabled: boolean) =>
             historySuppression.setScopeEnabled(tag, enabled),
+        // --- m1-t2: ベースマップ位置合わせの E2E 検証用（読み取りスナップショット） ---
+        basemapAlignDebug: () => {
+            const rootLayer = mercMap?.getLayers?.()?.item?.(0);
+            const layers = rootLayer?.get?.('layers') || rootLayer?.getLayers?.();
+            const alignSrc = mercMap?.getSource?.('basemapAlign');
+            return {
+                phase: alignPhase.value,
+                targetMapID: alignTargetMapID.value,
+                shifts: JSON.parse(JSON.stringify(baseMapShifts.value)),
+                referencePoint: alignReferencePoint.value ? [...alignReferencePoint.value] : null,
+                groundTruth: alignGroundTruth.value ? [...alignGroundTruth.value] : null,
+                baseLayers: layers?.getArray
+                    ? layers.getArray().filter((l: any) => l.get?.('mapID')).map((l: any) => ({
+                          mapID: l.get('mapID'),
+                          title: l.get('title'),
+                          visible: l.getVisible(),
+                          mercatorXShift: (l.getSource() as any)?.mercatorXShift || 0,
+                          mercatorYShift: (l.getSource() as any)?.mercatorYShift || 0,
+                      }))
+                    : [],
+                alignFeatures: alignSrc
+                    ? alignSrc.getFeatures().map((ft: any) => ({
+                          kind: ft.get('alignKind'),
+                          coord: ft.getGeometry().getCoordinates(),
+                      }))
+                    : [],
+            };
+        },
+        // 保持値の seed（AC3/AC11 の分離観測用。表示・適用経路は本物を通る）
+        seedBaseMapShifts: (shifts: Record<string, { x: number; y: number }>) => {
+            baseMapShifts.value = { ...shifts };
+        },
+        // AC16 / MIN-3 のレイヤ再構築駆動用
+        refreshBaseMapLayers: () => refreshBaseMapLayers(),
     };
 }
 
@@ -1493,6 +1536,10 @@ let illstMap: any = null;
 let illstSource: any = null;
 let mercMap: any = null;
 // let mercSource: any = null;
+// m1-t2: 地図面の contextmenu と LayerSwitcher はモード制御（§5.4 / §6.3）で
+// 実行時に enable/disable・renderPanel を呼ぶため、インスタンス参照を保持する
+let illstContextMenu: any = null;
+let layerSwitcher: any = null;
 
 // json/bounds レイヤーの VectorSource 参照キャッシュ（MaplatMap.getSource() 経由では取得できない）
 let illstJsonSource: VectorSource | null = null;
@@ -2045,6 +2092,22 @@ const createContextMenu = (map: any) => {
   });
 
   contextmenu.on('open', (evt: any) => {
+    contextmenu.clear();
+
+    // m1-t2 §6.1: P1 / P2 の間は地理面の右クリックが F0 / F1 / F2 のいずれよりも優先する。
+    // GCP マーカー・対応線に命中した場合も 1 項目のみ ∴ フィーチャ判定より前に早期 return する
+    // （HR-4.6(f) / HR-4.7(g) の「のみ」）。地図面は §6.2 で操作不可 ∴ 項目を出さない
+    if (alignPhase.value !== 'P0') {
+      if (map !== mercMap) return;
+      contextmenu.push({
+        text: alignPhase.value === 'P1'
+          ? t('mapedit.context_select_reference_point')
+          : t('mapedit.context_select_ground_truth'),
+        callback: (e: any) => selectAlignPoint(e.coordinate)
+      });
+      return;
+    }
+
     // contextmenu インスタンスの map プロパティは厳密に型付けされないため、引数の map を直接使用する
     const feature = map.forEachFeatureAtPixel(evt.pixel, (ft: any) => ft as Feature, {
       layerFilter(layer: any) {
@@ -2052,9 +2115,8 @@ const createContextMenu = (map: any) => {
       },
       hitTolerance: 5
     });
-    
-    contextmenu.clear();
-    
+
+
      // m1-t1: フィーチャ命中時の項目構成の正本は
      // docs/superpowers/specs/2026-08-21-m1-mapedit-contextmenu-and-basemap-align-milestone-design.md §6.1.1
      // の相別契約表である。相の判定順は旧実装（old/frontend/src/mapedit.js:1016, 1025, 1027）と同じく
@@ -2663,7 +2725,9 @@ const initMaps = async () => {
         ]),
         controls: controlDefaults()
     });
-    illstMap.addControl(createContextMenu(illstMap));
+    // m1-t2 §6.3: P1/P2 で contextmenu.disable() を呼ぶためインスタンスを保持する
+    illstContextMenu = createContextMenu(illstMap);
+    illstMap.addControl(illstContextMenu);
 
     // bounds 表示レイヤー（有効領域を赤ポリゴンで表示）
     const illstBoundsVSrc = new VectorSource({ wrapX: false });
@@ -2732,7 +2796,8 @@ const initMaps = async () => {
             new Drag()
         ]),
         controls: controlDefaults().extend([
-            new LayerSwitcher()
+            // m1-t2 §5.4: setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する
+            (layerSwitcher = new LayerSwitcher())
         ])
     });
     mercMap.addControl(createContextMenu(mercMap));
@@ -2773,6 +2838,13 @@ const initMaps = async () => {
     }
     // checkレイヤーはトップレベルに追加
     mercMap.getLayers().push(mercCheckLayer);
+    // m1-t2 C-8: 位置合わせマーカー専用レイヤ（check レイヤと同じくトップレベル）。
+    // createContextMenu の layerFilter は marker/edges のみを拾う ∴ このレイヤ上の
+    // マーカーを右クリックしても GCP 分岐へ落ちない
+    const mercAlignVSrc = new VectorSource({ wrapX: false });
+    const mercAlignLayer = new VectorLayer({ source: mercAlignVSrc });
+    mercAlignLayer.set('name', 'basemapAlign');
+    mercMap.getLayers().push(mercAlignLayer);
     // クリックイベント: 座標変換テスト
     mercMap.on('click', onMapClick);
     
@@ -3092,6 +3164,206 @@ const enabledBaseMapData = () => baseMapVisibilityList.value
     .filter((item) => item.enabled)
     .map(toBaseMapLayerData);
 
+// =========================================================
+// m1-t2: ベースマップ位置合わせモード（タスク設計 §5〜§6）
+// モード遷移・ボタン文言・バー表示値の正本はマイルストーン設計 §6.2 / §6.2.1
+// =========================================================
+
+// 地理面ベースマップ Group のレイヤ Collection を返す（group 指定時は未装着の Group を走査できる）
+const getBaseMapLayerCollection = (group?: any) => {
+    const rootLayer = group ?? mercMap?.getLayers?.()?.item?.(0);
+    const layers = rootLayer?.get?.('layers') || rootLayer?.getLayers?.();
+    return layers?.getArray ? layers : null;
+};
+
+// C-4: シフトのソースへの適用は単一実装へ集約する。呼び出し元は
+// (1) setupBaseMaps 末尾（レイヤ再生成後） (2) 確定時（HR-4.8） (3) 相遷移時 のすべて。
+// P1/P2 では対象ベースマップの「実効値」だけを 0 にする。保持値 baseMapShifts は変えない（§5.1）
+const applyBaseMapShifts = (group?: any) => {
+    const layers = getBaseMapLayerCollection(group);
+    if (!layers) return;
+    layers.getArray().forEach((layer: any) => {
+        const mapID = layer.get?.('mapID');
+        if (!mapID) return;
+        const source: any = layer.getSource?.();
+        if (!source) return;
+        const shift = effectiveShiftOf(baseMapShifts.value, mapID, alignPhase.value, alignTargetMapID.value);
+        const curX = source.mercatorXShift || 0;
+        const curY = source.mercatorYShift || 0;
+        if (curX === shift.x && curY === shift.y) return;  // 変わっていなければ再取得しない
+        source.mercatorXShift = shift.x;
+        source.mercatorYShift = shift.y;
+        // refresh() は revision を進めるだけで、タイル破棄は renderer 側の revision 比較で起きる
+        // （マイルストーン設計 §3.4.1 の 4 段機構。MaplatCore は変更しない = C-7）
+        source.refresh();
+    });
+};
+
+// §5.4: ベースマップ切替候補の制御は title 退避 + renderPanel() の単一機構に寄せる。
+// ol-layerswitcher の renderLayers_ は if (l.get('title')) で偽値タイトルの層をスキップする
+// （dist/ol-layerswitcher.js:503 実測）∴ title を空にすればラジオごと消える。
+// disabled クラスは見た目にすぎず input を無効化しない（案 γ の却下理由）
+const baseMapTitleStash: Record<string, string> = {};
+const setSwitchableBaseMaps = (allowed: 'all' | 'none' | { exclude: string }) => {
+    const layers = getBaseMapLayerCollection();
+    if (!layers) return;
+    layers.getArray().forEach((layer: any) => {
+        const mapID = layer.get?.('mapID');
+        if (!mapID) return;
+        const deny = allowed === 'none' || (typeof allowed === 'object' && allowed.exclude === mapID);
+        if (deny) {
+            const title = layer.get('title');
+            if (title) baseMapTitleStash[mapID] = title;
+            layer.set('title', '');
+        } else if (baseMapTitleStash[mapID] !== undefined) {
+            layer.set('title', baseMapTitleStash[mapID]);
+            delete baseMapTitleStash[mapID];
+        }
+    });
+    layerSwitcher?.renderPanel?.();
+};
+
+// 現在の相に応じた切替候補（P0=全許可 / P1=全禁止 / P2=対象以外許可）。
+// setupBaseMaps 末尾からも呼び直す（設計レビュー MIN-3: P1/P2 中の再構築で
+// title 退避が失われ切替禁止が解けるのを防ぐ。C-4 と同型の結線）
+const applySwitchableBaseMapsForPhase = () => {
+    setSwitchableBaseMaps(
+        alignPhase.value === 'P0' ? 'all'
+        : alignPhase.value === 'P1' ? 'none'
+        : { exclude: alignTargetMapID.value || '' });
+};
+
+// §6.3: 地図面の操作不可（HR-4.6(a) の literal な読み: パン・ズームも止める）。
+// 前例: PoiEditMap.vue の readOnly 処理（modify.setActive(false) + contextmenu.disable()）。
+// MapEdit.vue に setActive の既存呼び出しは無く illstMap の interaction はすべて既定 active
+// ∴ forEach(setActive(true)) で正しく戻る。
+// 呼び出し相（設計レビュー MIN-5 の決着）: P0→P1 で無効化し、P2 でも解除せず、
+// P0 復帰（確定時）で再有効化する。HR-4.6(b) の逐語「完了まで」と
+// マイルストーン設計 §6.2 モード表（P2 の地図面 = 操作不可）に整合させた
+const setIllstMapInteractive = (on: boolean) => {
+    if (!illstMap) return;
+    illstMap.getInteractions().forEach((i: any) => i.setActive(on));
+    if (illstContextMenu) {
+        if (on) illstContextMenu.enable(); else illstContextMenu.disable();
+    }
+};
+
+// §6.2: 位置合わせマーカー。同じ alignKind の既存フィーチャを消してから置く
+// ∴ 常に最後の 1 点のみが残る（HR-4.6(g) / HR-4.7(h)）
+const alignMarkerStyle = (kind: 'reference' | 'groundTruth') => {
+    const color = kind === 'reference' ? '#1E64C8' : '#C81E1E';
+    const svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20px" height="24px" viewBox="0 0 20 24" xml:space="preserve">
+<line x1="10" y1="12" x2="10" y2="24" stroke="${color}" stroke-width="2"></line>
+<circle cx="10" cy="8" r="7" fill="${color}" stroke="#FFFFFF" stroke-width="2"></circle></svg>`;
+    return new Style({
+        image: new Icon({ src: `data:image/svg+xml,${encodeURIComponent(svg)}`, anchor: [0.5, 1] })
+    });
+};
+
+const placeAlignMarker = (kind: 'reference' | 'groundTruth', coord: number[]) => {
+    if (!mercMap) return;
+    const src = mercMap.getSource('basemapAlign');
+    if (!src) return;
+    src.getFeatures()
+        .filter((ft: any) => ft.get('alignKind') === kind)
+        .forEach((ft: any) => src.removeFeature(ft));
+    mercMap.setMarker(coord, { alignKind: kind }, alignMarkerStyle(kind), 'basemapAlign');
+};
+
+const clearAlignMarkers = () => {
+    if (!mercMap) return;
+    mercMap.getSource('basemapAlign')?.clear();
+};
+
+// P1/P2 の地理面右クリックメニュー（1 項目のみ）から呼ばれる（§6.1）
+const selectAlignPoint = (coordinate: number[]) => {
+    const point = [coordinate[0], coordinate[1]];
+    if (alignPhase.value === 'P1') {
+        alignReferencePoint.value = point;
+        placeAlignMarker('reference', point);
+    } else if (alignPhase.value === 'P2') {
+        alignGroundTruth.value = point;
+        placeAlignMarker('groundTruth', point);
+    }
+};
+
+// ベースマップの可視レイヤをプログラム的に切り替える（HR-4.7(b) の OSM 強制と確定時の復帰に使う）。
+// setVisible は §5.7 の change:visible 購読を発火させ currentBaseMapID が追随する
+const setVisibleBaseMapLayer = (mapID: string) => {
+    const layers = getBaseMapLayerCollection();
+    if (!layers) return;
+    layers.getArray().forEach((layer: any) => {
+        if (!layer.get?.('mapID')) return;
+        layer.setVisible(layer.get('mapID') === mapID);
+    });
+};
+
+// バー表示（§6.2.1）: 常に「対象ベースマップの保持値」を出す。実効値は出さない。
+// P0 では表示中のベースマップ、P1/P2 では対象ベースマップのもの
+const alignBarMapID = computed(() =>
+    alignPhase.value === 'P0' ? currentBaseMapID.value : alignTargetMapID.value);
+const alignShiftDisplay = computed(() => {
+    const id = alignBarMapID.value;
+    const held = (id && baseMapShifts.value[id]) || { x: 0, y: 0 };
+    // 表示は toFixed(2)（前例: アプリソース override の step="0.01"）。内部の保持値は丸めない
+    return { x: held.x.toFixed(2), y: held.y.toFixed(2) };
+});
+const alignPhaseButtonLabel = computed(() =>
+    alignPhase.value === 'P0' ? t('mapedit.basemap_align_start')
+    : alignPhase.value === 'P1' ? t('mapedit.basemap_align_reference_done')
+    : t('mapedit.basemap_align_ground_truth_done'));
+// Q1（人間回答）: 対象ベースマップが OSM 自身のときは編集開始を無効化する。
+// P1/P2 では基準点 / Ground Truth を置くまで完了ボタンを無効にする
+// （置かずに完了すると確定式 GT − 基準点 が成立しないため。最小の防御であり相は増やさない）
+const alignPhaseButtonDisabled = computed(() =>
+    alignPhase.value === 'P0' ? currentBaseMapID.value === 'osm'
+    : alignPhase.value === 'P1' ? alignReferencePoint.value === null
+    : alignGroundTruth.value === null);
+
+const startBasemapAlign = () => {                       // P0 → P1（HR-4.6）
+    if (currentBaseMapID.value === 'osm') return;       // Q1: ボタン disabled と二重の防御
+    alignTargetMapID.value = currentBaseMapID.value;    // Info-5: P0→P1 遷移で現在値を写す（HR-4.6(e)「その時のベースマップ」）
+    alignReferencePoint.value = null;
+    alignGroundTruth.value = null;
+    alignPhase.value = 'P1';
+    setIllstMapInteractive(false);                      // HR-4.6(a)
+    applySwitchableBaseMapsForPhase();                  // HR-4.6(c)
+    applyBaseMapShifts();                               // HR-4.6(e): 対象の実効値を 0 へ
+};
+
+const finishReferencePhase = () => {                    // P1 → P2（HR-4.7）
+    if (alignReferencePoint.value === null) return;
+    alignPhase.value = 'P2';
+    setVisibleBaseMapLayer('osm');                      // HR-4.7(b): osm は強制常時有効 ∴ 必ず存在する
+    applySwitchableBaseMapsForPhase();                  // HR-4.7(c): 対象以外へは切替可
+    applyBaseMapShifts();                               // HR-4.7(d): 非対象には保持値・対象は 0 のまま
+};
+
+const finishGroundTruthPhase = () => {                  // P2 → P0（確定。HR-4.8）
+    const reference = alignReferencePoint.value;
+    const groundTruth = alignGroundTruth.value;
+    const target = alignTargetMapID.value;
+    if (!reference || !groundTruth || !target) return;
+    // C-2: shift = P_groundTruth − P_reference。合成は上書きであり加算しない
+    baseMapShifts.value = applyShiftOverwrite(
+        baseMapShifts.value, target, computeMercatorShift(reference, groundTruth));
+    alignPhase.value = 'P0';
+    clearAlignMarkers();                                // 確定で両マーカーを消す（§6.2）
+    alignReferencePoint.value = null;
+    alignGroundTruth.value = null;
+    setIllstMapInteractive(true);                       // MIN-5: P0 復帰で再有効化
+    applySwitchableBaseMapsForPhase();
+    setVisibleBaseMapLayer(target);                     // 対象ベースマップへ表示を戻す（§13 HR-4.8）
+    applyBaseMapShifts();                               // 新しい保持値を反映（HR-4.8）
+    alignTargetMapID.value = null;
+};
+
+const onAlignPhaseButton = () => {
+    if (alignPhase.value === 'P0') startBasemapAlign();
+    else if (alignPhase.value === 'P1') finishReferencePhase();
+    else finishGroundTruthPhase();
+};
+
 const refreshBaseMapLayers = async () => {
     baseMapList.value = enabledBaseMapData();
     await setupBaseMaps();
@@ -3184,8 +3456,8 @@ const setupBaseMaps = async () => {
         if (!source) return null;
 
         // 旧実装: source.setAttributions(attr) - mapSourceFactory 側で通常処理される
-        
-        return new Tile({
+
+        const tileLayer = new Tile({
             source: source,
             properties: {
                 title: localizedMeta.title,
@@ -3194,6 +3466,13 @@ const setupBaseMaps = async () => {
             },
             visible: tms.mapID === (currentBaseMapID.value || 'osm')
         });
+        // m1-t2 §5.7: LayerSwitcher による切替を currentBaseMapID へ追随させる（HR-4.4）。
+        // これは currentBaseMapID の意味を「setupBaseMaps 時点の値」から「現在値」へ変える是正であり、
+        // 既存の読み手 2 箇所（再構築時のフォールバック判定・初期 visible 判定）にも現在値のほうが正しい
+        tileLayer.on('change:visible', () => {
+            if (tileLayer.getVisible()) currentBaseMapID.value = tileLayer.get('mapID');
+        });
+        return tileLayer;
     }));
 
     const validLayers = layers.filter(l => l !== null);
@@ -3205,9 +3484,20 @@ const setupBaseMaps = async () => {
         layers: validLayers
     });
 
+    // m1-t2 C-4: シフトの実効値を setAt より前に載せる（設計レビュー MIN-4 の決着は
+    // §5.3 の INF-A 注記側 = 「代入した後で setAt する」。差し替え初回の renderFrame が
+    // 既に値の載ったソースを読むため、この経路は refresh() の revision 機構に依存しない。
+    // レビュアー実測ではどちらの順でも同一同期ブロック内で renderFrame は挟まらないが、
+    // 依存を消せる側へ寄せた）
+    applyBaseMapShifts(layerGroup);
+
     const mapLayers = mercMap.getLayers();
     // インデックス0（デフォルトベースレイヤー）をグループに置き換え
     mapLayers.setAt(0, layerGroup);
+
+    // m1-t2 設計レビュー MIN-3: レイヤ再構築は title を新たに載せ直す ∴ P1/P2 中に
+    // 再構築が起きると切替禁止（HR-4.6(c)/HR-4.7(c)）が解ける。相に応じて呼び直す
+    applySwitchableBaseMapsForPhase();
 };
 
 /*
@@ -4345,9 +4635,11 @@ const goBack = async () => {
                             <!-- Function Select -->
                             <div class="col-md-2">
                                 <label class="small fw-bold mb-0">{{ t("mapedit.map_function_select") }}</label>
-                                <select class="form-select form-select-sm" v-model="mappingUIRow">
+                                <!-- m1-t2 HR-4.6(b): P1/P2 の間は完了まで他の機能に変わらないよう操作不可（P2 でも解除しない） -->
+                                <select class="form-select form-select-sm" v-model="mappingUIRow" :disabled="alignPhase !== 'P0'">
                                     <option value="layer">{{ t("mapedit.edit_layer") }}</option>
                                     <option value="coordinate">{{ t("mapedit.edit_coordinate") }}</option>
+                                    <option value="basemap_align">{{ t("mapedit.edit_basemap_align") }}</option>
                                 </select>
                             </div>
 
@@ -4406,6 +4698,28 @@ const goBack = async () => {
                                       <div class="col-md-2">
                                          <label class="small fw-bold mb-0">{{ t('mapedit.latitude') }}</label>
                                          <input type="text" class="form-control form-control-sm" v-model.lazy.number="editingLat" :disabled="editingLat === ''">
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- m1-t2: Base Map Align Row（タスク設計 §5.5。既存 2 行の前例に倣いインライン・ContextHelp なし） -->
+                             <div class="col-md-10" v-if="mappingUIRow === 'basemap_align'">
+                                 <div class="row g-2 align-items-end">
+                                     <div class="col-md-2">
+                                         <label class="small fw-bold mb-0">{{ t('mapedit.mercator_x_shift') }}</label>
+                                         <input type="text" class="form-control form-control-sm" disabled :value="alignShiftDisplay.x" data-testid="mapedit-align-shift-x">
+                                     </div>
+                                     <div class="col-md-2">
+                                         <label class="small fw-bold mb-0">{{ t('mapedit.mercator_y_shift') }}</label>
+                                         <input type="text" class="form-control form-control-sm" disabled :value="alignShiftDisplay.y" data-testid="mapedit-align-shift-y">
+                                     </div>
+                                     <div class="col-md-6"></div>
+                                     <!-- バー右端の相ボタン（HR-4.5。文言は相で切替、対象 OSM のときは無効 = Q1） -->
+                                     <div class="col-md-2">
+                                         <button class="btn btn-sm btn-outline-secondary w-100" data-testid="mapedit-align-phase-button"
+                                             :disabled="alignPhaseButtonDisabled"
+                                             :title="alignPhase === 'P0' && currentBaseMapID === 'osm' ? t('mapedit.basemap_align_osm_target_disabled') : undefined"
+                                             @click="onAlignPhaseButton">{{ alignPhaseButtonLabel }}</button>
                                      </div>
                                  </div>
                              </div>

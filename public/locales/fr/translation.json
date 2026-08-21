@@ -426,7 +426,16 @@
     "cc_custom": "Licence personnalisée",
     "license_unset": "Non défini",
     "map_image_license_note": "Mention de licence de l'image de la carte",
-    "map_gcp_license_note": "Mention de licence des données"
+    "map_gcp_license_note": "Mention de licence des données",
+    "edit_basemap_align": "Aligner le fond de carte",
+    "mercator_x_shift": "Décalage X Mercator",
+    "mercator_y_shift": "Décalage Y Mercator",
+    "basemap_align_start": "Commencer l'édition",
+    "basemap_align_reference_done": "Point de référence défini",
+    "basemap_align_ground_truth_done": "Ground truth défini",
+    "basemap_align_osm_target_disabled": "OSM ne peut pas être aligné",
+    "context_select_reference_point": "Choisir le point de référence",
+    "context_select_ground_truth": "Choisir le ground truth"
   },
   "mapupload": {
     "map_image": "Image de la carte",

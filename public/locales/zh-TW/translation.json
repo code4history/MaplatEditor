@@ -426,7 +426,16 @@
     "cc_custom": "自訂授權",
     "license_unset": "未設定",
     "map_image_license_note": "地圖影像授權備註",
-    "map_gcp_license_note": "資料授權備註"
+    "map_gcp_license_note": "資料授權備註",
+    "edit_basemap_align": "底圖對齊",
+    "mercator_x_shift": "麥卡托X偏移",
+    "mercator_y_shift": "麥卡托Y偏移",
+    "basemap_align_start": "開始編輯",
+    "basemap_align_reference_done": "基準點指定完成",
+    "basemap_align_ground_truth_done": "Ground Truth 指定完成",
+    "basemap_align_osm_target_disabled": "OSM 無法作為對齊對象",
+    "context_select_reference_point": "選擇基準點",
+    "context_select_ground_truth": "選擇 Ground Truth"
   },
   "mapupload": {
     "map_image": "地圖圖像",

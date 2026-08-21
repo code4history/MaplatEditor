@@ -408,7 +408,16 @@
     "cc_custom": "Custom license",
     "license_unset": "Unset",
     "map_image_license_note": "Map image license note",
-    "map_gcp_license_note": "Data license note"
+    "map_gcp_license_note": "Data license note",
+    "edit_basemap_align": "Align base map",
+    "mercator_x_shift": "Mercator X shift",
+    "mercator_y_shift": "Mercator Y shift",
+    "basemap_align_start": "Start editing",
+    "basemap_align_reference_done": "Reference point set",
+    "basemap_align_ground_truth_done": "Ground truth set",
+    "basemap_align_osm_target_disabled": "OSM cannot be aligned",
+    "context_select_reference_point": "Select reference point",
+    "context_select_ground_truth": "Select ground truth"
   },
   "mapupload": {
     "map_image": "Map Image",

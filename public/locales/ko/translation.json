@@ -426,7 +426,16 @@
     "cc_custom": "사용자 지정 라이선스",
     "license_unset": "미설정",
     "map_image_license_note": "지도 이미지 라이선스 보충",
-    "map_gcp_license_note": "데이터 라이선스 보충"
+    "map_gcp_license_note": "데이터 라이선스 보충",
+    "edit_basemap_align": "베이스맵 위치 맞춤",
+    "mercator_x_shift": "메르카토르 X 시프트",
+    "mercator_y_shift": "메르카토르 Y 시프트",
+    "basemap_align_start": "편집 시작",
+    "basemap_align_reference_done": "기준점 지정 완료",
+    "basemap_align_ground_truth_done": "Ground Truth 지정 완료",
+    "basemap_align_osm_target_disabled": "OSM은 위치 맞춤 대상이 될 수 없습니다",
+    "context_select_reference_point": "기준점 선택",
+    "context_select_ground_truth": "Ground Truth 선택"
   },
   "mapupload": {
     "map_image": "지도 이미지",

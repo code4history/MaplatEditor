@@ -235,7 +235,9 @@
     "test:e2e:m20-t6-screenshots": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m20-t6-wiki-screenshots.spec.ts",
     "smoke:m22-t1-merc-basemap-runtime-url": "node --experimental-strip-types scripts/m22-t1-merc-basemap-runtime-url-smoke.mjs",
     "smoke:mapedit-align-m1-t1-contextmenu": "node scripts/mapedit-align-m1-t1-contextmenu-smoke.mjs",
-    "test:e2e:mapedit-align-m1-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/mapedit-align-m1-t1-contextmenu.spec.ts"
+    "test:e2e:mapedit-align-m1-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/mapedit-align-m1-t1-contextmenu.spec.ts",
+    "smoke:mapedit-align-m1-t2-basemap-align": "node scripts/mapedit-align-m1-t2-basemap-align-smoke.mjs",
+    "test:e2e:mapedit-align-m1-t2": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/mapedit-align-m1-t2-basemap-align.spec.ts"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

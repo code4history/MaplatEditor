@@ -426,7 +426,16 @@
     "cc_custom": "Lisensi kustom",
     "license_unset": "Belum diatur",
     "map_image_license_note": "Catatan lisensi gambar peta",
-    "map_gcp_license_note": "Catatan lisensi data"
+    "map_gcp_license_note": "Catatan lisensi data",
+    "edit_basemap_align": "Selaraskan peta dasar",
+    "mercator_x_shift": "Pergeseran X Mercator",
+    "mercator_y_shift": "Pergeseran Y Mercator",
+    "basemap_align_start": "Mulai penyuntingan",
+    "basemap_align_reference_done": "Titik referensi ditetapkan",
+    "basemap_align_ground_truth_done": "Ground truth ditetapkan",
+    "basemap_align_osm_target_disabled": "OSM tidak dapat diselaraskan",
+    "context_select_reference_point": "Pilih titik referensi",
+    "context_select_ground_truth": "Pilih ground truth"
   },
   "mapupload": {
     "map_image": "Gambar peta",

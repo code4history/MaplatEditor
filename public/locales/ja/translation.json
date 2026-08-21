@@ -426,7 +426,16 @@
     "cc_custom": "カスタムライセンス",
     "license_unset": "未設定",
     "map_image_license_note": "地図画像ライセンス補足",
-    "map_gcp_license_note": "データライセンス補足"
+    "map_gcp_license_note": "データライセンス補足",
+    "edit_basemap_align": "ベースマップ位置合わせ",
+    "mercator_x_shift": "メルカトルXシフト",
+    "mercator_y_shift": "メルカトルYシフト",
+    "basemap_align_start": "編集開始",
+    "basemap_align_reference_done": "基準点指定完了",
+    "basemap_align_ground_truth_done": "Ground Truth 指定完了",
+    "basemap_align_osm_target_disabled": "OSM は位置合わせの対象にできません",
+    "context_select_reference_point": "基準点を選ぶ",
+    "context_select_ground_truth": "Ground Truth を選ぶ"
   },
   "mapupload": {
     "map_image": "地図画像",

@@ -426,7 +426,16 @@
     "cc_custom": "自定义许可证",
     "license_unset": "未设置",
     "map_image_license_note": "地图图像许可证备注",
-    "map_gcp_license_note": "数据许可证备注"
+    "map_gcp_license_note": "数据许可证备注",
+    "edit_basemap_align": "底图对齐",
+    "mercator_x_shift": "墨卡托X偏移",
+    "mercator_y_shift": "墨卡托Y偏移",
+    "basemap_align_start": "开始编辑",
+    "basemap_align_reference_done": "基准点指定完成",
+    "basemap_align_ground_truth_done": "Ground Truth 指定完成",
+    "basemap_align_osm_target_disabled": "OSM 无法作为对齐对象",
+    "context_select_reference_point": "选择基准点",
+    "context_select_ground_truth": "选择 Ground Truth"
   },
   "mapupload": {
     "map_image": "地图图像",

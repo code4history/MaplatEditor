@@ -426,7 +426,16 @@
     "cc_custom": "Benutzerdefinierte Lizenz",
     "license_unset": "Nicht festgelegt",
     "map_image_license_note": "Hinweis zur Lizenz des Kartenbilds",
-    "map_gcp_license_note": "Datenlizenzhinweis"
+    "map_gcp_license_note": "Datenlizenzhinweis",
+    "edit_basemap_align": "Basiskarte ausrichten",
+    "mercator_x_shift": "Mercator-X-Verschiebung",
+    "mercator_y_shift": "Mercator-Y-Verschiebung",
+    "basemap_align_start": "Bearbeitung starten",
+    "basemap_align_reference_done": "Referenzpunkt festgelegt",
+    "basemap_align_ground_truth_done": "Ground Truth festgelegt",
+    "basemap_align_osm_target_disabled": "OSM kann nicht ausgerichtet werden",
+    "context_select_reference_point": "Referenzpunkt wählen",
+    "context_select_ground_truth": "Ground Truth wählen"
   },
   "mapupload": {
     "map_image": "Kartenbild",
