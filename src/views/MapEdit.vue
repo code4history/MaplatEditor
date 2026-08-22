@@ -33,6 +33,9 @@ import { isProviderBaseMapData, resolveBaseMapLayerMetadata, toBaseMapLayerData 
 import { computeMercatorShift, applyShiftOverwrite, effectiveShiftOf, isZeroShift, type MercatorShift } from '../utils/basemapAlign';
 import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
+// t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（§8.1 契約表）。
+// 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
+import { resolveSourceThumbnail } from '../utils/sourceThumbnail';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
 import { thumb52PathFor } from '../utils/thumbnailPaths';
@@ -2941,7 +2944,12 @@ const exchangeTileSource = async (): Promise<any> => {
         height: mapData.value.height,
         attr: mapData.value.attr,
         noload: true, // HistMap/HistMap_tin を直接生成するためのフラグ
-        imageExtension: resolveImageExtension(mapData.value)
+        imageExtension: resolveImageExtension(mapData.value),
+        // t1 HR-3: thumbnail 未指定だと MaplatCore mixin が相対仮置き fetch を行う
+        // （file:// では dist/tmbs/ 宛に解決され必ず失敗）。絶対 URL / noImage を渡して通さない。
+        // 同一性キー（tileIdentityKey）には含めない — 同一性は url_/width/height/imageExtension
+        // で決まる現行契約を維持（ADR-0007/0017/0018）
+        thumbnail: await resolveSourceThumbnail(mapUid.value || mapID.value)
     };
     try {
         const source = await mapSourceFactory(options, {});
@@ -3515,7 +3523,10 @@ const setupBaseMaps = async () => {
                      attr: localizedMeta.attr,
                      maptype: 'base',
                      maxZoom: tms.maxZoom || 18,
-                     minZoom: tms.minZoom || 0
+                     minZoom: tms.minZoom || 0,
+                     // t1 HR-3: thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
+                     // osm/gsi/gsi_ortho 経由（上の分岐）は source_ex 側で thumbnail 同梱のため不要
+                     thumbnail: await resolveSourceThumbnail(tms.mapID)
                  }, {});
             }
         } catch (e) {

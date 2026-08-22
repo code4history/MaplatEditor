@@ -20,6 +20,14 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 // m20-t6 §5.2: evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出済み
 import { evalMain, openAboutWindow } from './helpers/electronMenu';
+// AC5 の zip インポート工程は m5-t4b が確立した共有ヘルパー（seed/搬出/別 slug 化）を再利用する
+import {
+  openHash,
+  saveFolderOf,
+  seedFullMap,
+  stubMessageBoxAutoOk,
+  rewriteZipSlug,
+} from './helpers/mapPackage';
 
 async function forceJapanese(page: Page): Promise<void> {
   await page.evaluate(() => window.settings.set('lang', 'ja'));
@@ -113,6 +121,58 @@ test.describe('t1 ベースマップフォールバック統一（HR-2）', () =
       await expect(options).toHaveCount(3, { timeout: 20_000 });
       const values = await options.evaluateAll((els) => els.map((el) => (el as HTMLOptionElement).value));
       expect(values.sort()).toEqual(['gsi', 'gsi_ortho', 'osm']);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+});
+
+test.describe('t1 インポート直後サムネイルの相対 fetch 死除去（HR-3）', () => {
+  test('AC5: zip インポート直後に dist/tmbs/ 宛のページ相対要求が発生しない', async () => {
+    test.setTimeout(300_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac5-'));
+    const { app, page } = await launch(e2eRoot);
+    // 監視は全工程に先立って張る。旧実装はインポート直後の Source 初期化で
+    // MaplatCore mixin が相対仮置き fetch を行い、file:// ページ相対の
+    // dist/tmbs/<slug>.jpg 宛要求が必ず 1 件発生していた（設計 §7.3.1 実測）
+    const pageRelativeTmbsRequests: string[] = [];
+    page.on('request', (req) => {
+      if (/\/dist\/tmbs\//.test(req.url())) pageRelativeTmbsRequests.push(req.url());
+    });
+    try {
+      await stubMessageBoxAutoOk(app);
+      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot);
+
+      // 地図 ZIP を実 UI の搬出ボタンから作る（m5-t4b AC11-b と同じ導線）
+      const zipPath = path.join(e2eRoot, 'map-export.zip');
+      await app.evaluate(async ({ dialog }, outZip) => {
+        dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
+      }, zipPath);
+      await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);
+      await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30_000 });
+      await page.locator('[data-editor-action="export"]').click();
+      await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120_000 });
+
+      // 別 slug の ZIP を作り、取込ダイアログがそれを返すようにする
+      const copySlug = `${seeded.mapSlug}-copy`;
+      const copyZip = path.join(e2eRoot, 'map-copy.zip');
+      await rewriteZipSlug(zipPath, copyZip, seeded.mapSlug, copySlug);
+      await app.evaluate(async ({ dialog }, inZip) => {
+        dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [inZip] })) as typeof dialog.showOpenDialog;
+      }, copyZip);
+
+      // 実 UI の取込導線: MapList の「インポート」→ /mapedit?new=1&import=1 で新規エディタ起動
+      await openHash(page, '#/maplist');
+      const importButton = page.locator('[data-resource-import]');
+      await expect(importButton).toBeVisible({ timeout: 30_000 });
+      await importButton.click();
+      await expect(page.getByText('正常に地図データが登録できました。')).toBeVisible({ timeout: 120_000 });
+      await expect(page.getByTestId('map-title')).toHaveValue('T4B 地図', { timeout: 30_000 });
+
+      // インポート直後の Source 初期化（loadMapTiles / setupBaseMaps）が
+      // 完走するだけの猶予を置いてから集計する
+      await page.waitForTimeout(5_000);
+      expect(pageRelativeTmbsRequests).toEqual([]);
     } finally {
       await quitElectronApplication(app);
     }

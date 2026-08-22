@@ -46,6 +46,9 @@ import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
 import { localizeTitle } from "../utils/langResource";
 import { toBaseMapLayerData } from "../utils/baseMapEditorDocument";
+// t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（§8.1 契約表）。
+// 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
+import { resolveSourceThumbnail } from "../utils/sourceThumbnail";
 import { listIconSets, parseIconRef } from "../utils/iconRefs";
 import { resolveIconPair, resolveDisplayIcon } from "../utils/poiMarkerStyle";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
@@ -516,6 +519,9 @@ const setupBaseMaps = async (): Promise<void> => {
               maptype: "base",
               maxZoom: tms.maxZoom || 18,
               minZoom: tms.minZoom || 0,
+              // t1 HR-3: thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
+              // osm/gsi/gsi_ortho 経由（上の分岐）は source_ex 側で thumbnail 同梱のため不要
+              thumbnail: await resolveSourceThumbnail(tms.mapID),
             },
             {},
           );
