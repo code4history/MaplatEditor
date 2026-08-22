@@ -465,8 +465,9 @@ const baseMapTitle = (tms: any): string => {
 };
 
 // POI ソースは地図単位の表示設定を持たないため、一覧は Always-Visible な base map
-// (仕様 §3.3 POI-132) とする。IPC 失敗時は /tms_list.json → ハードコード既定 3 種の順で
-// フォールバック (MapEdit と同じ)
+// (仕様 §3.3 POI-132) とする。IPC 失敗時はハードコード既定 3 種へフォールバック。
+// （旧2段目の dev 専用 fetch（ルート直下の一覧 JSON・file:// 配布物で常に死ぬ）は
+// t1 HR-2 で撤去。1段目 IPC と3段目は実効内容が同一（always:true は osm/gsi/gsi_ortho のみ））
 const setupBaseMaps = async (): Promise<void> => {
   if (!map) return;
 
@@ -480,21 +481,6 @@ const setupBaseMaps = async (): Promise<void> => {
         .map(toBaseMapLayerData);
     } catch (e) {
       console.error("[PoiEditMap] Failed to fetch base map list via IPC:", e);
-    }
-
-    if (baseMapList.value.length === 0) {
-      try {
-        const response = await fetch("/tms_list.json");
-        if (response.ok) {
-          const json = await response.json();
-          if (Array.isArray(json)) {
-            const always = json.filter((tms) => tms.always);
-            baseMapList.value = always.length > 0 ? always : json;
-          }
-        }
-      } catch (e) {
-        console.log("No tms_list.json found at root or failed to load.", e);
-      }
     }
 
     if (baseMapList.value.length === 0) {

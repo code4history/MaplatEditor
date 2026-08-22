@@ -403,17 +403,42 @@ try {
     'PoiEditMap が session.selectedUid を更新していない'
   );
 
-  // base map selector: osm default + IPC 失敗時 /tms_list.json fallback (MapEdit 踏襲)
+  // base map selector: osm default + IPC 一覧（alwaysVisible フォールバック）
   assert.match(
     poiEditMap,
     /baseMaps\.list/,
     'PoiEditMap が window.baseMaps.list で base map 一覧を取っていない'
   );
-  assert.match(
+  // t1 HR-2 (設計 §7.2): renderer の /tms_list.json fetch は廃止。PoiEditMap 単体でなく
+  // src/ 全域で参照 0 件が要件（AC3・コメント含む）。PoiEdit 専用 smoke への MapEdit 側
+  // 検査混在は t1 設計レビュー Info 4 で許容済み（AC3 の正 = src/ 全域での消失のため）
+  assert.doesNotMatch(
     poiEditMap,
-    /tms_list\.json/,
-    'PoiEditMap に /tms_list.json fallback がない'
+    /tms_list/,
+    'PoiEditMap に廃止済みの /tms_list.json 参照が残っている'
   );
+  {
+    const { readdir } = await import('node:fs/promises');
+    const hits = [];
+    const walk = async (dir) => {
+      const entries = await readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await walk(full);
+        } else if (/\.(vue|ts|js|mjs)$/.test(entry.name)) {
+          const text = await readFile(full, 'utf8');
+          if (/tms_list/.test(text)) hits.push(path.relative(projectRoot, full));
+        }
+      }
+    };
+    await walk(path.join(projectRoot, 'src'));
+    assert.deepStrictEqual(
+      hits,
+      [],
+      `renderer (src/) に tms_list 参照が残っている（t1 HR-2 で廃止済み・AC3）: ${hits.join(', ')}`
+    );
+  }
   assert.match(
     poiEditMap,
     /['"]osm['"]/,

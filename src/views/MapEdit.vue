@@ -3475,18 +3475,18 @@ const setupBaseMaps = async () => {
             }
         }
         
-        // 2. IPC失敗またはmapIDなし時のフォールバック: ルートのtms_list.jsonを取得
+        // 2. 常時表示ベースマップへフォールバック（PoiEditMap setupBaseMaps の1段目と同一実装。
+        //    旧2段目の dev 専用 fetch（ルート直下の一覧 JSON・file:// 配布物で常に死ぬ）は撤去
+        //    （t1 設計 §7.2.1 決着: mapID 無し時の出るべきものは always 一覧＝osm/gsi/gsi_ortho。
+        //    恒久指示『同一扱いの処理は共通実装へ徹底』に従い preload API baseMaps.list() を共有）
         if (baseMapList.value.length === 0) {
             try {
-                const response = await fetch('/tms_list.json');
-                if (response.ok) {
-                    const json = await response.json();
-                    if (Array.isArray(json)) {
-                        baseMapList.value = json;
-                    }
-                }
+                const list = await window.baseMaps.list();
+                baseMapList.value = list
+                    .filter((item) => item.alwaysVisible)
+                    .map(toBaseMapLayerData);
             } catch (e) {
-                console.log("No tms_list.json found at root or failed to load.", e);
+                console.error("[setupBaseMaps] Failed to fetch always-visible base maps via IPC:", e);
             }
         }
         

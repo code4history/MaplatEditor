@@ -66,3 +66,55 @@ test.describe('t1 E2E ヘッドレス化（HR-1）', () => {
     }
   });
 });
+
+test.describe('t1 ベースマップフォールバック統一（HR-2）', () => {
+  test('AC4: 新規（未保存）エディタで /tms_list.json 要求が発生しない', async () => {
+    test.setTimeout(120_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac4-'));
+    const { app, page } = await launch(e2eRoot);
+    // 監視はナビゲーション前に張る（setupBaseMaps は mount 経路で走るため）
+    const tmsListRequests: string[] = [];
+    page.on('request', (req) => {
+      if (/tms_list\.json/.test(req.url())) tmsListRequests.push(req.url());
+    });
+    try {
+      await page.evaluate(() => window.settings.set('lang', 'ja'));
+      // 新規（未保存）エディタ: mapUid / mapID が空のため setupBaseMaps の1段目ガードが
+      // スキップされる経路。旧実装はここで dev 専用 fetch が発火していた
+      // （file:// 配布物相当の本実行形態では ERR_FILE_NOT_FOUND で失敗していた要求）
+      await page.evaluate((nextHash) => { location.hash = nextHash; }, '#/mapedit?new=1');
+      await expect(page.getByTestId('map-tab-settings')).toBeVisible({ timeout: 30_000 });
+      // setupBaseMaps 完了を含む十分な猶予を置いてから集計する（対象は「要求が発生しないこと」）
+      await page.waitForTimeout(3_000);
+      expect(tmsListRequests).toEqual([]);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('AC4: POI エディタのベースマップセレクターは常時表示3種（osm/gsi/gsi_ortho）', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac4-poi-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await page.evaluate(() => window.settings.set('lang', 'ja'));
+      // POI ソースを seed し PoiEdit を開く（m11-t9 の seed パターンと同型）
+      const poi = await page.evaluate(async () => {
+        const slug = `t1-ac4-poi-${Date.now()}`;
+        const created = await window.poiSources.createLocal({ slug, title: { ja: 'T1 POI', en: 'T1 POI' }, lang: 'ja' });
+        if (!created || created.result !== 'Success') throw new Error(JSON.stringify(created));
+        return created.uid as string;
+      });
+      await page.evaluate((nextHash) => { location.hash = nextHash; }, `#/poisources/${poi}`);
+      await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 20_000 });
+
+      // 地図右上オーバーレイのセレクター選択肢 = 常時表示（alwaysVisible）3種
+      const options = page.locator('#poiEditMap + div select option');
+      await expect(options).toHaveCount(3, { timeout: 20_000 });
+      const values = await options.evaluateAll((els) => els.map((el) => (el as HTMLOptionElement).value));
+      expect(values.sort()).toEqual(['gsi', 'gsi_ortho', 'osm']);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+});
