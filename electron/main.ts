@@ -32,6 +32,13 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
+// HR-1 (t1 設計 §7.1.2): E2E 実行時はウィンドウを生成時に表示しない（テストウィンドウの
+// フォーカス奪取を防ぐ）。判別は既存フック MAPLAT_E2E_ROOT をそのまま使う
+// （preload.ts の isE2E / services 各所と同一の env。新しい env を導入しない）。
+// paintWhenInitiallyHidden は既定 true のまま ∴ renderer は通常どおり描画され
+// Canvas / screenshot 系 e2e も影響を受けない
+const isE2EMainProcess = Boolean(process.env['MAPLAT_E2E_ROOT'])
+
 let win: BrowserWindow | null
 
 // 旧実装 main.js L.88-93 に準拠: macOS で Cmd+Q が押されるまで force_quit を false に保つ
@@ -68,6 +75,9 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 640,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    // HR-1 (t1 設計 §7.1.2): E2E 実行時のみ生成時に表示しない（webPreferences ブロックの外。
+    // m19-t4a smoke が webPreferences 内容を assert するためブロック内へ入れない）
+    show: !isE2EMainProcess,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       webSecurity: false // file:// などローカルリソース読み込みを許可
@@ -483,6 +493,8 @@ function createAboutWindow() {
     maximizable: false,
     title: 'About MaplatEditor',
     autoHideMenuBar: true,
+    // HR-1 (t1 設計 §7.1.2): メインウィンドウと同一の方針（webPreferences ブロックの外）
+    show: !isE2EMainProcess,
     webPreferences: {
       // m19-t4a (§7.4 案2): nodeIntegration/contextIsolation は既定へ戻す。preload も渡さない
       // （contextBridge も IPC も使わない。露出する Node/Electron API はゼロ）。
