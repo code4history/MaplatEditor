@@ -100,9 +100,22 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
     !/preload\s*:/.test(webPreferencesMatch[0]),
     "createAboutWindow()'s webPreferences must not have a preload key (zero exposure surface — §7.4 案2)",
   );
+  // t1 HR-4 (設計 §7.4.2): 判定対象からコメント行を除去してから test する。
+  // fnBody には直上の説明コメント（「webSecurity: false は…据え置く」行）が含まれ、
+  // 旧来の fnBody 全体への test はコメントだけにマッチして、実設定を true に書き換えても
+  // PASS し続ける穴だった（2026-08-22 調査文書 §3 で実測）。webSecurity の設定値自体は
+  // 本 smoke も変えない（会期後 m21-B-003 のカスタムプロトコル移行まで据え置き）
+  const fnBodyNoComments = fnBody.replace(/^[ \t]*\/\/.*$/gm, "");
   assert.ok(
-    /webSecurity\s*:\s*false/.test(fnBody),
-    "createAboutWindow()'s webSecurity: false must stay in place (§1.2 — deferred alongside the main window)",
+    /webSecurity\s*:\s*false/.test(fnBodyNoComments),
+    "createAboutWindow()'s webSecurity: false must stay in place as an actual setting (comment-only matches are rejected since t1)",
+  );
+  // 自己検査: コメント除去が効いていること（除外ヘルパー自体の劣化を smoke が自分で検出する）。
+  // main.ts の createAboutWindow 内で webSecurity に言及するのは実設定行とコメント行のみであり、
+  // 除去後に「コメント行としての webSecurity」が残っていれば除外が壊れている
+  assert.ok(
+    !/^[ \t]*\/\/[^\n]*webSecurity/m.test(fnBodyNoComments),
+    "comment stripping must remove comment lines mentioning webSecurity (self-check of the stripper since t1)",
   );
   assert.ok(
     /loadFile\([^)]*,\s*\{\s*query\s*:/.test(fnBody),
