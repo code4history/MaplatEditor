@@ -104,6 +104,9 @@ const config = {
         perMachine: false,
         allowToChangeInstallationDirectory: true,
         deleteAppDataOnUninstall: false,
+        // arch 別 2 本（x64 / arm64）のみを配布する。統合版（arch 無し）は生成しない（m1-t4）。
+        // 2 本の .exe 名は artifactName テンプレート由来であり、この設定では変わらない。
+        buildUniversalInstaller: false,
     },
 
     // Linux ビルド設定（署名不要）
