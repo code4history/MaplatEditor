@@ -1,13 +1,13 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import AdmZip from 'adm-zip';
 import { app, dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import MapPurposeService from './MapPurposeService';
 import { ProgressReporter } from '../utils/ProgressReporter';
+import { writeZipStreaming } from '../utils/zipWriter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import { packIco } from '../utils/icoPack';
 import {
@@ -608,42 +608,47 @@ class AppExportService {
       const initialTotal = totalTileFiles * 2 + maplatSources.length + 4;
       reporter.extendTotal(packageFiles.length - totalTileFiles);
       const finalTotal = initialTotal + (packageFiles.length - totalTileFiles);
-      const zip = new AdmZip();
+      // t1 (§4.3): adm-zip の全メモリ方式（原本+圧縮後+連結後の 3 重保持。2.14 GiB で
+      // Buffer.alloc が RangeError）を、Node 標準 zlib のみのストリーミング書き出しへ差し替える。
+      // 進捗の刻み方・文言・finalTotal-1 上限・staging → move は従来のまま保つ
       let zipped = 0;
       let sinceLastReport = 0;
       let lastReportTime = 0;
-      for (const rel of packageFiles) {
-        const zipDir = path
-          .dirname(rel)
-          .split(path.sep)
-          .filter(segment => segment && segment !== '.')
-          .join('/');
-        zip.addLocalFile(path.join(outDir, rel), zipDir, path.basename(rel));
-        zipped++;
-        sinceLastReport++;
-        progressState.step++;
-        // イベントループ解放 (MAJOR-2): addLocalFile は同期読込のため、大量ファイルで
-        // メインプロセスが固まらないよう50ファイルごとに1マクロタスク分だけ他イベントへ譲る
-        if (zipped % 50 === 0) {
-          await new Promise<void>(resolve => setImmediate(resolve));
-        }
-        const now = Date.now();
-        if (now - lastReportTime >= 200 || sinceLastReport >= 100 || zipped === packageFiles.length) {
-          lastReportTime = now;
-          sinceLastReport = 0;
-          // 100%はwriteZip(とmove)完了後にのみ到達させる(MINOR-1)。ここでは finalTotal-1 を
-          // 上限にし、addLocalFile 完了だけで完了文言(endMsg)が出てしまうのを防ぐ
-          reporter.update(
-            Math.min(progressState.step, finalTotal - 1),
-            `(${zipped}/${packageFiles.length})`,
-            'appedit.export.zipping',
-          );
-        }
-      }
+      await writeZipStreaming(
+        tmpZipPath,
+        packageFiles.map(rel => ({
+          // adm-zip addLocalFile(abs, zipDir, basename) と同値のエントリ名（§4.3.3 で実測同値）
+          entryName: rel.split(path.sep).filter(segment => segment && segment !== '.').join('/'),
+          localPath: path.join(outDir, rel),
+        })),
+        {
+          onEntry: async () => {
+            zipped++;
+            sinceLastReport++;
+            progressState.step++;
+            // イベントループ解放 (MAJOR-2 踏襲): 50 ファイルごとに1マクロタスク分だけ他イベントへ譲る
+            if (zipped % 50 === 0) await new Promise<void>(resolve => setImmediate(resolve));
+            const now = Date.now();
+            if (now - lastReportTime >= 200 || sinceLastReport >= 100 || zipped === packageFiles.length) {
+              lastReportTime = now;
+              sinceLastReport = 0;
+              // 最終件の update は整数パーセントが進まず ProgressReporter の 1% throttle に
+              // 落とされる(§1.3 の表示欠陥) ∴ 最終件に限り throttle を 1 回だけ無効化する(§4.5)
+              if (zipped === packageFiles.length) reporter!.forceNext();
+              // 100%はzip書き出し(とmove)完了後にのみ到達させる(MINOR-1)。ここでは finalTotal-1 を
+              // 上限にし、zip 追加完了だけで完了文言(endMsg)が出てしまうのを防ぐ
+              reporter!.update(
+                Math.min(progressState.step, finalTotal - 1),
+                `(${zipped}/${packageFiles.length})`,
+                'appedit.export.zipping',
+              );
+            }
+          },
+        },
+      );
       // ユーザー指定パスへ直接ではなく staging 領域(outDir と同じ temp 配下)の zip パスへ書き、
       // 成功後に move する(MINOR-2、mapedit:download と同方式)。途中失敗時はユーザーの選択先に
-      // 何も残らない。adm-zip 0.5.17 は writeZipPromise(内部で toAsyncBuffer)を持つため使用する
-      await zip.writeZipPromise(tmpZipPath);
+      // 何も残らない
       await fs.move(tmpZipPath, zipFilePath, { overwrite: true });
 
       // 100% / 完了文言(appedit.export.done)の送信は zip 書き出し・move が完了してから (MINOR-1)

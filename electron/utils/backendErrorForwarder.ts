@@ -1,4 +1,5 @@
 import { BrowserWindow } from 'electron';
+import { failAllInflight } from './inflightGuard';
 
 // バックエンド(メインプロセス)のエラー/警告をレンダラのDevToolsコンソールへ
 // 転送する (#18)。メイン側のログはターミナルにしか出ず、開発時に見落とされる
@@ -65,6 +66,7 @@ export function installBackendErrorForwarding() {
   };
 
   process.on('uncaughtException', (err) => {
+    failAllInflight(err); // t1: 実行中の appedit:export を settle させる（設計書 §4.5。unhandledRejection には結線しない）
     originalError('[uncaughtException]', err);
     broadcast('error', ['[uncaughtException]', err], originalError);
   });
