@@ -75,6 +75,15 @@ export class ProgressReporter {
     }
   }
 
+  // t1 (§4.5): 次の update() を throttle に関わらず必ず送信する（フェーズ境界の表示欠落を防ぐ）。
+  // lastPercent == null は update() の既存送信条件の第 1 項に既にある ∴ 既存ロジックは変えない。
+  // 1% throttle により「ループ最終件の update が整数パーセントの進まないまま落とされ、
+  // 進捗が (66753/68061) 等で止まって見える」表示欠陥（設計書 §1.3）の是正に使う
+  forceNext() {
+    this.lastPercent = null;
+    this.lastTime = null;
+  }
+
   // エラー終了時専用: percent=100 を送って呼び出し側のモーダルを閉じられる状態にしつつ、
   // 成功文言(endMsg)ではなくエラー用テキストを表示する。update() の throttle/endMsg 優先ロジック
   // を経由しない即時送信(エラーは頻度制御不要な単発イベントのため)
