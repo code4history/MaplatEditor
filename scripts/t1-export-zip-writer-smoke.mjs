@@ -2,7 +2,12 @@
 // タスク設計 `docs/superpowers/specs/2026-08-25-mapedit-export-zip-failure-t1-design.md` §8 準拠。
 //
 // 対象 AC:
-//   t1/AC2  新実装の zip エントリ名一覧が同一入力の adm-zip 出力と完全一致（順序含む）
+//   t1/AC2  新実装の zip エントリ名の**集合**が同一入力の adm-zip 出力と一致する
+//           （順序は契約外 — adm-zip 0.6.0 は書き出し時に名前でソート（zipFile.js:135-146）し、
+//           新実装は入力順を保存するため、本番の未ソート DFS 入力ではエントリ順が異なる。
+//           zip 仕様上エントリ順は任意で、既存検査の getEntries 全 20 箇所に順序依存 assert は
+//           0 件（実装レビュー v1 MAJ-2 実測）∴ 集合一致を契約とする。検査入力は本番
+//           listTileFiles と同じ**未ソート** stack DFS 順で与える）
 //   t1/AC3  (a) adm-zip で読める・展開できる (b) unzip -t OK (c) ditto -x -k OK
 //           (d) 展開結果が原本とバイト一致。70,000 エントリの ZIP64 経路では
 //               両方向の再帰一覧一致 + 件数 70,000 + getEntries().length===70000
@@ -129,7 +134,10 @@ try {
       } = await import(${JSON.stringify(zipWriterPath)});
 
       // ---- helpers ----
-      async function walkFiles(dir: string): Promise<string[]> {
+      // 本番の AppExportService.listTileFiles (:107-129) と同じ**未ソート** stack(LIFO) DFS。
+      // AC2 の検査入力はこの順で与える（実装レビュー v1 MAJ-2: ソート済み入力での比較は
+      // 本番経路（未ソート）を一度も通らず判別力が無い）
+      async function walkFilesProductionOrder(dir: string): Promise<string[]> {
         const out: string[] = [];
         const stack: string[] = [''];
         while (stack.length) {
@@ -143,7 +151,12 @@ try {
             else if (e.isFile()) out.push(cr);
           }
         }
-        return out.sort();
+        return out;
+      }
+      // ソート済み一覧。**順序を捨てた**木の照合（assertTreeEqual）専用であり、
+      // AC2 のエントリ順比較の入力には使わない（同上 MAJ-2 実測 4 の是正）
+      async function walkFiles(dir: string): Promise<string[]> {
+        return (await walkFilesProductionOrder(dir)).sort();
       }
       async function sha256(file: string): Promise<string> {
         return crypto.createHash('sha256').update(await readFile(file)).digest('hex');
@@ -242,7 +255,38 @@ try {
           assert.equal(buf.readUInt32LE(12), 150);
           assert.equal(buf.readUInt32LE(16), 1000);
         }
-        console.log('ok: t1/AC3(e) ヘッダエンコーダ単体検査（e1/e2/e3 + 非zip64）');
+        // (e4) 境界ちょうどの zip64 判定（実装レビュー v1 MIN-1）:
+        //   APPNOTE 4.4.21 / 4.4.22 / 4.4.24 は「当該フィールドの値が 0xFFFF / 0xFFFFFFFF の
+        //   ときは zip64 レコードを見よ」と定める ∴ 値が**ちょうど**境界値のときも 16/32bit
+        //   フィールドでは表現できず zip64 EOCD が必須（needZip64 は >= が正。> だと
+        //   境界ちょうどで sentinel だけ書いて zip64 レコードを書かない逸脱になる）。
+        //   encodeCentralDirectoryHeader 側（>=）との同一ファイル内整合も兼ねる
+        {
+          const eqCases = [
+            { name: 'entryCount', p: { entryCount: 0xffff, centralDirSize: 100, centralDirOffset: 200 } },
+            { name: 'centralDirSize', p: { entryCount: 3, centralDirSize: 0xffffffff, centralDirOffset: 200 } },
+            { name: 'centralDirOffset', p: { entryCount: 3, centralDirSize: 100, centralDirOffset: 0xffffffff } },
+          ];
+          for (const c of eqCases) {
+            const buf = encodeEndRecords(c.p);
+            assert.equal(buf.length, 56 + 20 + 22,
+              'e4: 境界ちょうど(' + c.name + ')で zip64 EOCD record + locator が生成されるはず');
+            assert.equal(buf.readUInt32LE(0), 0x06064b50, 'e4: zip64 EOCD record 署名 (' + c.name + ')');
+            // zip64 record 側に 64bit 真値が入る
+            assert.equal(buf.readBigUInt64LE(24), BigInt(c.p.entryCount), 'e4: 真値 entries (' + c.name + ')');
+            assert.equal(buf.readBigUInt64LE(40), BigInt(c.p.centralDirSize), 'e4: 真値 size (' + c.name + ')');
+            assert.equal(buf.readBigUInt64LE(48), BigInt(c.p.centralDirOffset), 'e4: 真値 offset (' + c.name + ')');
+          }
+          // 境界ちょうど(entryCount)で EOCD 側は sentinel（Math.min による飽和値と同値）
+          const eq = encodeEndRecords({ entryCount: 0xffff, centralDirSize: 100, centralDirOffset: 200 });
+          assert.equal(eq.readUInt16LE(76 + 8), 0xffff, 'e4: EOCD entries は sentinel');
+          // 境界の 1 つ手前は非 zip64 のまま（>= へ直しても範囲が広がり過ぎないこと）
+          const under = encodeEndRecords({
+            entryCount: 0xfffe, centralDirSize: 0xfffffffe, centralDirOffset: 0xfffffffe,
+          });
+          assert.equal(under.length, 22, 'e4: 境界未満（0xFFFE / 0xFFFFFFFE）は EOCD のみ');
+        }
+        console.log('ok: t1/AC3(e) ヘッダエンコーダ単体検査（e1/e2/e3/e4 + 非zip64）');
       }
 
       // ============================================================
@@ -293,7 +337,12 @@ try {
         // 非 ASCII 名 → UTF-8 名前 + 0x0800 フラグ経路
         await put(nodePath.join('地図', 'タイル画像.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 42]));
 
-        const rels = await walkFiles(srcDir);
+        // AC2 の検査入力は本番 listTileFiles と同じ**未ソート** stack DFS 順（MAJ-2 是正）。
+        // 前提条件: この fixture で DFS 順がソート順と実際に異なること（一致してしまう構成では
+        // 「未ソート入力を通した」ことにならず検査が空洞化する ∴ fixture 縮退をここで検出する）
+        const rels = await walkFilesProductionOrder(srcDir);
+        assert.notDeepEqual(rels, [...rels].sort(),
+          'AC2 前提条件: fixture の DFS 列挙順はソート順と異なるはず（未ソート入力の判別力）');
         const entries = rels.map((rel) => ({ entryName: entryNameOf(rel), localPath: nodePath.join(srcDir, rel) }));
 
         // 新実装で書く
@@ -304,7 +353,7 @@ try {
         } });
         assert.equal(onEntryCalls, entries.length, 'onEntry は全エントリで 1 回ずつ呼ばれるはず');
 
-        // 現行 adm-zip で同じ入力を書く（AC2 の比較対象）
+        // 現行 adm-zip で同じ入力（同じ未ソート順）を書く（AC2 の比較対象）
         const admZipPath = nodePath.join(WORK, 'small-admzip.zip');
         {
           const zip = new AdmZip();
@@ -315,12 +364,17 @@ try {
           await zip.writeZipPromise(admZipPath);
         }
 
-        // --- AC2: エントリ名一覧の完全一致（順序含む） ---
+        // --- AC2: エントリ名の**集合**一致（順序は契約外） ---
+        // adm-zip 0.6.0 は書き出し時に名前でソート（zipFile.js:135-146）し、新実装は入力順を
+        // 保存する ∴ 未ソート入力ではエントリ順は一致しない（それで正しい。zip 仕様上順序は
+        // 任意・既存検査に順序依存 assert 0 件 — 実装レビュー v1 MAJ-2）。集合一致のみを契約とする
         const ourNames = new AdmZip(ourZip).getEntries().map((e) => e.entryName);
         const admNames = new AdmZip(admZipPath).getEntries().map((e) => e.entryName);
-        assert.deepEqual(ourNames, admNames, 'AC2: エントリ名一覧が adm-zip 出力と完全一致するはず');
-        assert.deepEqual(ourNames, entries.map((e) => e.entryName), 'AC2: 入力順が保存されるはず');
-        console.log('ok: t1/AC2 エントリ名一覧の adm-zip 完全一致（' + ourNames.length + ' 件・非 ASCII 名含む）');
+        assert.deepEqual([...ourNames].sort(), [...admNames].sort(),
+          'AC2: エントリ名の集合が adm-zip 出力と一致するはず');
+        assert.deepEqual(ourNames, entries.map((e) => e.entryName), 'AC2: 新実装は入力順を保存するはず');
+        console.log('ok: t1/AC2 エントリ名集合の adm-zip 一致（' + ourNames.length +
+          ' 件・未ソート DFS 入力・非 ASCII 名含む）');
 
         // --- 圧縮方式の分岐確認（設計書 §4.3.2 step 2/3） ---
         const ourEntries = new AdmZip(ourZip).getEntries();
@@ -408,20 +462,35 @@ try {
       // ============================================================
       // SECTION 5: t1/AC6 搬出フロー検査（進捗が (N/N) まで到達してから完了文言へ）
       //   設計レビュー v1 M-1: forceNext() の単体検査では §4.3.3 での呼び出し欠落を
-      //   検出できない ∴ 実 AppExportService.exportApp を合成アプリに対して実行し、
+      //   検出できない ∴ 実 AppExportService.exportApp を合成アプリに対して実行する。
+      //
+      //   【決定化（実装レビュー v1 MAJ-1 是正）】caller throttle（AppExportService の
+      //   200ms/100件条件）は実時間依存であり、zip ループ途中で 200ms 条件が再発火すると
+      //   sinceLastReport がリセットされて送信列が実行ごとに変わる（設計書 v1.1 §8 の
+      //   「タイミング非依存」の論証は誤りだった — 挟まる送信はより低いパーセントで実際に
+      //   送信されるため条件が変わる。3 回中 3 回 99!==97 / 99!==93 で fail した実測）。
+      //   ∴ 本検査は exportApp 実行中だけ Date.now を凍結する。凍結下では 200ms 条件は
+      //   ループ先頭件（lastReportTime=0 との差が常に成立）でのみ発火し、以後の送信は
+      //   sinceLastReport>=100（zipped=101）と最終件（zipped===N）のみ ∴ 送信列が決定的になる。
+      //   （ProgressReporter 内部の heartbeat は new Date() の実時間だが 30s 閾値であり、
+      //   この fixture の実行は秒オーダー ∴ 発火しない — 設計レビュー v2 I-3 の前提のまま）
+      //
+      //   検査構造:
       //   (a) 前提条件: ループ最終件の update の整数パーセントが直前送信済みと等しい
-      //       （= forceNext() 無しなら throttle される規模）を assert したうえで
-      //   (b) (N/N) の zipping send の実在を assert する。
+      //       （= forceNext() 無しなら 1% throttle に落とされる規模）を assert
+      //   (b) (N/N) の zipping send の実在を assert
+      //   (c) 対照実行（レビュー是正案 1）: ProgressReporter.prototype.forceNext を no-op に
+      //       した実行では (N/N) send が**現れない**ことを assert（= 本検査が §4.3.3 の
+      //       forceNext() 呼び出し欠落を実際に検出できるという判別力の証明。fixture 縮退や
+      //       throttle constant の変更で判別力が消えた場合はここが fail する）
+      //
       //   規模検算（設計書 §8 の一般化。sandbox の非タイル実測 E=17:
       //   assets 13(css+umd+11locales) + index.html + favicon.ico + apps json + maps json。
       //   ol.js は sandbox では olPackageRoot が未解決のため入らない（vite が public/ を
-      //   bundle の dist/ へコピーし、previewAssetRoot は dist/preview で解決される — 実測）。
-      //   本番では ol.js が加わり E=18 になるが、本検査は E を直接使わず前提条件 (a) を
-      //   実測で assert するため空洞化しない）:
-      //   tiles=85 → N=102, finalTotal = 85+102+1+4 = 192。zip ループ先頭件で 200ms 条件が
-      //   必ず発火して caller throttle がリセットされるため、次の送信は zipped=101
-      //   （step 191 → 99%）、最終件 zipped=102 は step 192→cap 191 → 同じ 99%
-      //   ∴ forceNext() 無しでは落とされる。
+      //   bundle の dist/ へコピーし、previewAssetRoot は dist/preview で解決される — 実測））:
+      //   tiles=85 → N=102, finalTotal = 85+102+1+4 = 192。凍結下では zip ループ先頭件で
+      //   200ms 条件が 1 回だけ発火し、次の送信は zipped=101（step 191 → 99%）、
+      //   最終件 zipped=102 は step 192→cap 191 → 同じ 99% ∴ forceNext() 無しでは落とされる。
       //   規模が (a) を満たさない場合は本検査自身が fail する（fixture 縮退で空洞化しない）
       // ============================================================
       {
@@ -460,10 +529,16 @@ try {
         const fakeWin = { webContents: { send: (channel: string, payload: any) => sendRecords.push({ channel, payload }) } };
         const zipPath = nodePath.join(${JSON.stringify(exportDir)}, 't1-ac6.zip');
         (globalThis as any).__nextDialogResult = { canceled: false, filePath: zipPath };
+        // Date.now 凍結（上記【決定化】。exportApp 実行中のみ。new Date() は凍結しない —
+        // ProgressReporter の heartbeat(30s) は実時間のままだが秒オーダーの実行では発火しない）
+        const realDateNow = Date.now;
+        const frozenNow = realDateNow();
         let exported;
         try {
+          Date.now = () => frozenNow;
           exported = await AppExportService.exportApp(fakeWin, doc);
         } finally {
+          Date.now = realDateNow;
           ProgressReporter.prototype.update = originalUpdate;
         }
         assert.equal(exported.result, 'Success', 'AC6: 搬出が完走するはず: ' + JSON.stringify(exported));
@@ -501,6 +576,39 @@ try {
         assert.equal(exported.outDir, zipPath);
         assert.equal(new AdmZip(zipPath).getEntries().length, N, 'AC6: zip のエントリ数 = packageFiles 数');
         console.log('ok: t1/AC6 搬出フローで (N/N)=(' + N + '/' + N + ') 到達 → 完了文言（前提条件 (a) 成立を確認）');
+
+        // (c) 対照実行: forceNext() を no-op にすると (N/N) send が現れない（判別力の証明）。
+        //     §4.3.3 の reporter.forceNext() 呼び出しが欠落した製品コードと同じ挙動を
+        //     prototype 差し替えで再現する。Date.now 凍結も同一条件
+        {
+          const contrastSends: { channel: string; payload: any }[] = [];
+          const contrastWin = { webContents: { send: (channel: string, payload: any) => contrastSends.push({ channel, payload }) } };
+          const contrastZip = nodePath.join(${JSON.stringify(exportDir)}, 't1-ac6-contrast.zip');
+          (globalThis as any).__nextDialogResult = { canceled: false, filePath: contrastZip };
+          const originalForceNext = ProgressReporter.prototype.forceNext;
+          let contrastExported;
+          try {
+            Date.now = () => frozenNow;
+            ProgressReporter.prototype.forceNext = function () { /* 欠落の再現 */ };
+            contrastExported = await AppExportService.exportApp(contrastWin, doc);
+          } finally {
+            Date.now = realDateNow;
+            ProgressReporter.prototype.forceNext = originalForceNext;
+          }
+          assert.equal(contrastExported.result, 'Success', 'AC6(c): 対照実行も完走するはず');
+          const contrastZipSends = contrastSends.filter(
+            (r) => r.channel === 'app:taskProgress' && r.payload && r.payload.text === 'appedit.export.zipping',
+          );
+          assert.ok(contrastZipSends.length > 0, 'AC6(c): 対照実行にも zipping send はあるはず');
+          const nn = '(' + N + '/' + N + ')';
+          assert.ok(
+            contrastZipSends.every((r) => r.payload.progress !== nn),
+            'AC6(c) 対照実行: forceNext 欠落時は ' + nn + ' send が現れないはず（現れた場合、' +
+              '本検査は forceNext() の呼び出し欠落を検出できない = 判別力喪失）: ' +
+              JSON.stringify(contrastZipSends.map((r) => r.payload.progress)),
+          );
+          console.log('ok: t1/AC6(c) 対照実行で (N/N) send が消えることを確認（判別力の証明）');
+        }
       }
 
       // ============================================================

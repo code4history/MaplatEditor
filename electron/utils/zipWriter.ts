@@ -112,8 +112,11 @@ export function encodeCentralDirectoryHeader(rec: CentralRecord): Buffer {
 /**
  * EOCD（必要なら Zip64 EOCD record + locator を前置）のバイト列。
  *
- * 設計書 §4.3.2 step 10 の確定値（adm-zip 0.6.0 mainHeader.js:115-150 と同一規則）:
- * - needZip64 = entryCount > 0xFFFF || centralDirSize > 0xFFFFFFFF || centralDirOffset > 0xFFFFFFFF
+ * 設計書 §4.3.2 step 10 の確定値:
+ * - needZip64 = entryCount >= 0xFFFF || centralDirSize >= 0xFFFFFFFF || centralDirOffset >= 0xFFFFFFFF
+ *   （APPNOTE 4.4.21/4.4.22/4.4.24: 値がちょうど 0xFFFF / 0xFFFFFFFF のときも当該フィールドでは
+ *   表現できず zip64 が必須 ∴ `>=`。encodeCentralDirectoryHeader の飽和判定とも同じ規則。
+ *   adm-zip 0.6.0 mainHeader.js は `>` だがこれは APPNOTE からの逸脱 ∴ 追随しない — 実装レビュー v1 MIN-1）
  * - Zip64 EOCD record の size フィールド = 44（= レコード総長 56 − 12）
  * - Zip64 EOCD record の version made by / version needed = 45
  * - Zip64 EOCD locator の total number of disks = 1
@@ -125,7 +128,8 @@ export function encodeEndRecords(params: {
   centralDirOffset: number;
 }): Buffer {
   const { entryCount, centralDirSize, centralDirOffset } = params;
-  const needZip64 = entryCount > LIMIT_16 || centralDirSize > LIMIT_32 || centralDirOffset > LIMIT_32;
+  const needZip64 =
+    entryCount >= LIMIT_16 || centralDirSize >= LIMIT_32 || centralDirOffset >= LIMIT_32;
 
   const eocd = Buffer.alloc(22);
   eocd.writeUInt32LE(0x06054b50, 0); // EOCD 署名
