@@ -17,25 +17,30 @@
 // 環境変数:
 //   T1_SMOKE_WORKDIR: 作業ディレクトリの明示指定（既定: .tmp-smoke 配下の mkdtemp）
 //   T1_SMOKE_KEEP=1 : 終了後も作業ディレクトリを残す（実測証跡の残置用）
+//   T1_SMOKE_KEEP_BUILD=1 : vite ビルド出力（.tmp-smoke 配下）も残す（デバッグ用）
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'vite';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+// ビルド出力（vite バンドル）は常にプロジェクト配下に置く。プロジェクト外に置くと
+// external 指定の 'adm-zip' 等が bundle の位置から解決できず ERR_MODULE_NOT_FOUND になる（実測）
+const scratchRoot = path.join(projectRoot, '.tmp-smoke');
+await mkdir(scratchRoot, { recursive: true });
+const buildRoot = await mkdtemp(path.join(scratchRoot, 't1-export-zip-writer-build-'));
+// データ作業域（合成ツリー・zip・展開結果）は T1_SMOKE_WORKDIR で外へ出せる（証跡の残置用）
 let workDir;
 if (process.env.T1_SMOKE_WORKDIR) {
   workDir = path.resolve(process.env.T1_SMOKE_WORKDIR);
   await mkdir(workDir, { recursive: true });
 } else {
-  const scratchRoot = path.join(projectRoot, '.tmp-smoke');
-  await mkdir(scratchRoot, { recursive: true });
   workDir = await mkdtemp(path.join(scratchRoot, 't1-export-zip-writer-'));
 }
 const keepWorkDir = process.env.T1_SMOKE_KEEP === '1';
-const entryFile = path.join(workDir, 't1-export-zip-writer-smoke.ts');
-const electronStubFile = path.join(workDir, 'electron-stub.ts');
-const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
-const outDir = path.join(workDir, 'dist');
+const entryFile = path.join(buildRoot, 't1-export-zip-writer-smoke.ts');
+const electronStubFile = path.join(buildRoot, 'electron-stub.ts');
+const electronStoreStubFile = path.join(buildRoot, 'electron-store-stub.ts');
+const outDir = path.join(buildRoot, 'dist');
 const bundledFile = path.join(outDir, 't1-export-zip-writer-smoke.mjs');
 
 try {
@@ -106,6 +111,13 @@ try {
       import { promisify } from 'node:util';
       import { open, readFile, writeFile as fsWriteFile, mkdir as fsMkdir, readdir, stat } from 'node:fs/promises';
       import AdmZip from 'adm-zip';
+
+      // SECTION の AC4 検査が installBackendErrorForwarding() を呼ぶと process に
+      // unhandledRejection ハンドラが載り、以降のセクションで top-level await が reject しても
+      // Node の既定（exit 1）が抑止されて **exit 0 のまま黙って終了する**（本スモーク開発中に実測）。
+      // ∴ 本体を main() に包み、失敗を明示的に exit 1 へ変換する。成功マーカーの出力も必須とし、
+      // 呼び出し側（外側スクリプト）がマーカーの実在を検査する
+      const main = async () => {
 
       const execFileAsync = promisify(execFile);
       const WORK = ${JSON.stringify(workDir)};
@@ -337,7 +349,162 @@ try {
       }
 
       // ============================================================
-      // SECTION 4: t1/AC3 ZIP64 経路（70,000 エントリ > 65,535）
+      // SECTION 4: t1/AC4 uncaughtException 時の settle 保証（実結線経由）
+      //   設計レビュー v2 N-1: テスト内で自前結線せず、実モジュールの
+      //   installBackendErrorForwarding() が登録した uncaughtException ハンドラ
+      //   （backendErrorForwarder.ts:67 の 1 行追加）を経由して検査する。
+      //   自前結線だと :67 への 1 行追加の欠落を検出できず負検査も空洞化する。
+      // ============================================================
+      {
+        const { installBackendErrorForwarding } = await import(${JSON.stringify(backendErrorForwarderPath)});
+        const { runGuarded } = await import(${JSON.stringify(inflightGuardPath)});
+        installBackendErrorForwarding();
+
+        // --- 負検査: unhandledRejection では settle しない（結線されていないこと。§4.5） ---
+        {
+          let settled: any = null;
+          let resolveFn!: (v: string) => void;
+          const guarded = runGuarded('t1-neg', () => new Promise<string>((res) => { resolveFn = res; }));
+          guarded.then((v) => { settled = { v }; }, (e) => { settled = { e }; });
+          process.emit('unhandledRejection' as any, new Error('t1 synthetic rejection'), Promise.resolve());
+          await new Promise((r) => setTimeout(r, 100));
+          assert.equal(settled, null, 'AC4 負検査: unhandledRejection では tripwire が発火しないはず');
+          resolveFn('fn-result');
+          assert.equal(await guarded, 'fn-result', 'AC4 負検査: fn の結果がそのまま返るはず');
+          assert.deepEqual(settled, { v: 'fn-result' });
+        }
+
+        // --- 正検査: uncaughtException で必ず settle（発火源は実ハンドラ） ---
+        {
+          let settled: any = null;
+          const guarded = runGuarded('t1-pos', () => new Promise(() => { /* 永遠に pending（孤児化の再現） */ }));
+          guarded.then(() => { settled = { resolved: true }; }, (e) => { settled = { e }; });
+          const boom = new Error('t1 synthetic uncaught');
+          process.emit('uncaughtException' as any, boom);
+          await new Promise((r) => setImmediate(r));
+          assert.ok(settled && settled.e === boom, 'AC4 正検査: uncaughtException の例外で reject するはず: ' + settled);
+        }
+
+        // --- fn が正常に settle すれば登録は解除される（誤検知しない） ---
+        {
+          const value = await runGuarded('t1-ok', async () => 42);
+          assert.equal(value, 42);
+          // 完了後に uncaughtException が起きても済んだ呼び出しへは波及しない（Set から除去済み）
+          process.emit('uncaughtException' as any, new Error('t1 late uncaught'));
+          await new Promise((r) => setImmediate(r));
+        }
+
+        // --- 結線の実在（ソーステキストの固定）: ipc/apps.ts の appedit:export が runGuarded を通ること ---
+        {
+          const appsSrc = await readFile(${JSON.stringify(appsIpcPath)}, 'utf8');
+          assert.ok(
+            /runGuarded\\('appedit:export'/.test(appsSrc),
+            'AC4: appedit:export ハンドラが runGuarded を経由するはず',
+          );
+        }
+        console.log('ok: t1/AC4 uncaughtException で settle / unhandledRejection では settle しない（実結線経由）');
+      }
+
+      // ============================================================
+      // SECTION 5: t1/AC6 搬出フロー検査（進捗が (N/N) まで到達してから完了文言へ）
+      //   設計レビュー v1 M-1: forceNext() の単体検査では §4.3.3 での呼び出し欠落を
+      //   検出できない ∴ 実 AppExportService.exportApp を合成アプリに対して実行し、
+      //   (a) 前提条件: ループ最終件の update の整数パーセントが直前送信済みと等しい
+      //       （= forceNext() 無しなら throttle される規模）を assert したうえで
+      //   (b) (N/N) の zipping send の実在を assert する。
+      //   規模検算（設計書 §8 の一般化。sandbox の非タイル実測 E=17:
+      //   assets 13(css+umd+11locales) + index.html + favicon.ico + apps json + maps json。
+      //   ol.js は sandbox では olPackageRoot が未解決のため入らない（vite が public/ を
+      //   bundle の dist/ へコピーし、previewAssetRoot は dist/preview で解決される — 実測）。
+      //   本番では ol.js が加わり E=18 になるが、本検査は E を直接使わず前提条件 (a) を
+      //   実測で assert するため空洞化しない）:
+      //   tiles=85 → N=102, finalTotal = 85+102+1+4 = 192。zip ループ先頭件で 200ms 条件が
+      //   必ず発火して caller throttle がリセットされるため、次の送信は zipped=101
+      //   （step 191 → 99%）、最終件 zipped=102 は step 192→cap 191 → 同じ 99%
+      //   ∴ forceNext() 無しでは落とされる。
+      //   規模が (a) を満たさない場合は本検査自身が fail する（fixture 縮退で空洞化しない）
+      // ============================================================
+      {
+        const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
+        SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
+        const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
+        const { default: AppExportService } = await import(${JSON.stringify(appExportServicePath)});
+        const { ProgressReporter } = await import(${JSON.stringify(progressReporterPath)});
+        await SqliteDataService.getDb();
+
+        const { uid: mapUid } = await SqliteDataService.createMap('t1map', { title: { ja: 't1地図' } });
+        assert.ok(mapUid, '地図 fixture の作成');
+        // tiles: 85 ファイル（上の規模検算のとおり N=102 に合わせる）
+        const TILES = 85;
+        for (let i = 0; i < TILES; i++) {
+          const rel = nodePath.join('tiles', mapUid, String(Math.floor(i / 10)), i + '.png');
+          const abs = nodePath.join(${JSON.stringify(dataDir)}, rel);
+          await fsMkdir(nodePath.dirname(abs), { recursive: true });
+          await fsWriteFile(abs, Buffer.from([0x89, 0x50, 0x4e, 0x47, i & 0xff]));
+        }
+
+        const doc = {
+          appID: 't1_ac6_app', title: { ja: 'T1' }, lang: 'ja',
+          sources: [{ sourceType: 'maplat', mapUid, role: 'maplat', startFrom: true,
+            data: { mapID: 't1map', maptype: 'maplat', noload: true } }],
+          appSettings: {}, httpSettings: {},
+        };
+
+        const updateArgs: any[][] = [];
+        const originalUpdate = ProgressReporter.prototype.update;
+        ProgressReporter.prototype.update = function (...args: any[]) {
+          updateArgs.push(args);
+          return originalUpdate.apply(this, args);
+        };
+        const sendRecords: { channel: string; payload: any }[] = [];
+        const fakeWin = { webContents: { send: (channel: string, payload: any) => sendRecords.push({ channel, payload }) } };
+        const zipPath = nodePath.join(${JSON.stringify(exportDir)}, 't1-ac6.zip');
+        (globalThis as any).__nextDialogResult = { canceled: false, filePath: zipPath };
+        let exported;
+        try {
+          exported = await AppExportService.exportApp(fakeWin, doc);
+        } finally {
+          ProgressReporter.prototype.update = originalUpdate;
+        }
+        assert.equal(exported.result, 'Success', 'AC6: 搬出が完走するはず: ' + JSON.stringify(exported));
+
+        const progressSends = sendRecords.filter((r) => r.channel === 'app:taskProgress');
+        const zipSends = progressSends.filter((r) => r.payload && r.payload.text === 'appedit.export.zipping');
+        assert.ok(zipSends.length > 0, 'AC6: zipping フェーズの send が存在するはず');
+        const finalZipSend = zipSends[zipSends.length - 1];
+        const m = /^\\((\\d+)\\/(\\d+)\\)$/.exec(finalZipSend.payload.progress);
+        assert.ok(m && m[1] === m[2], 'AC6(b): (N/N) の zipping send が実在するはず: ' + finalZipSend.payload.progress);
+        const N = Number(m![2]);
+        assert.equal(N, TILES + 17, 'AC6: packageFiles の規模が規模検算と一致するはず' +
+          '（assets 構成が変わった場合は TILES を再調整して (a) を維持する）: ' + N);
+
+        // (a) 前提条件: (N/N) send の直前に送信済みのパーセントと、最終件のパーセントが等しい
+        //     （等しい ∴ forceNext() 無しでは 1% throttle に落とされる規模である）
+        const idx = progressSends.indexOf(finalZipSend);
+        assert.ok(idx > 0, 'AC6(a): (N/N) より前に送信済み send があるはず');
+        assert.equal(
+          finalZipSend.payload.percent, progressSends[idx - 1].payload.percent,
+          'AC6(a) 前提条件: 最終件のパーセントが直前送信済みパーセントと等しいはず（fixture 規模の検算）',
+        );
+        // update spy 側でも最終件の update が (N/N) で呼ばれたことを固定（send との突き合わせ）
+        const zipUpdates = updateArgs.filter((a) => a[2] === 'appedit.export.zipping');
+        assert.equal(zipUpdates[zipUpdates.length - 1][1], '(' + N + '/' + N + ')',
+          'AC6: ループ最終件の update が (N/N) で呼ばれるはず');
+
+        // (N/N) 到達の後に完了文言 (appedit.export.done / percent 100) へ切り替わる
+        const doneIdx = progressSends.findIndex(
+          (r) => r.payload && r.payload.text === 'appedit.export.done' && r.payload.percent === 100,
+        );
+        assert.ok(doneIdx > idx, 'AC6: (N/N) 到達後に完了文言へ切り替わるはず: doneIdx=' + doneIdx + ' idx=' + idx);
+
+        // 生成された zip の実在とエントリ数（搬出フローの成果物として読めること）
+        assert.equal(exported.outDir, zipPath);
+        assert.equal(new AdmZip(zipPath).getEntries().length, N, 'AC6: zip のエントリ数 = packageFiles 数');
+        console.log('ok: t1/AC6 搬出フローで (N/N)=(' + N + '/' + N + ') 到達 → 完了文言（前提条件 (a) 成立を確認）');
+      }
+
+      // ============================================================
+      // SECTION 6: t1/AC3 ZIP64 経路（70,000 エントリ > 65,535）
       //   設計書 §10 S1: ここが崩れたら停止（短縮しない）
       // ============================================================
       {
@@ -385,6 +552,15 @@ try {
       }
 
       console.log('T1 export zip writer smoke passed');
+      };
+
+      main().then(
+        () => { process.exit(0); },
+        (e) => {
+          console.error('[t1-smoke] FAILED:', (e && (e as any).stack) || e);
+          process.exit(1);
+        },
+      );
     `,
   );
 
@@ -422,13 +598,27 @@ try {
   const { execFile } = await import('node:child_process');
   const { promisify } = await import('node:util');
   const execFileAsync = promisify(execFile);
-  const { stdout } = await execFileAsync(process.execPath, [bundledFile], {
-    cwd: projectRoot,
-    timeout: 1200000,
-    maxBuffer: 1024 * 1024 * 64,
-  });
+  let stdout, stderr;
+  try {
+    ({ stdout, stderr } = await execFileAsync(process.execPath, [bundledFile], {
+      cwd: projectRoot,
+      timeout: 1200000,
+      maxBuffer: 1024 * 1024 * 64,
+    }));
+  } catch (e) {
+    // 子プロセス失敗時も stdout/stderr を可視化してから落とす
+    if (e && e.stdout) process.stdout.write(e.stdout);
+    if (e && e.stderr) process.stderr.write(e.stderr);
+    throw e;
+  }
   process.stdout.write(stdout);
+  if (stderr) process.stderr.write(stderr);
+  // 成功マーカーの実在検査（子プロセスが黙って exit 0 した場合を成功と区別する）
+  if (!stdout.includes('T1 export zip writer smoke passed')) {
+    throw new Error('t1 smoke: 成功マーカーが出力されていない（子プロセスが途中終了した可能性）');
+  }
 } finally {
+  if (process.env.T1_SMOKE_KEEP_BUILD !== "1") await rm(buildRoot, { recursive: true, force: true });
   if (keepWorkDir) {
     console.log(`T1 smoke workdir kept: ${workDir}`);
   } else {

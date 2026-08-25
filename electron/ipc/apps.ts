@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron';
 import AppDataService from '../services/AppDataService';
 import AppPreviewService from '../services/AppPreviewService';
 import AppExportService from '../services/AppExportService';
+import { runGuarded } from '../utils/inflightGuard';
 
 export function registerAppHandlers() {
   ipcMain.handle('applist:request', async (_event, query, page, pageSize) => {
@@ -36,9 +37,17 @@ export function registerAppHandlers() {
   });
 
   // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
+  // t1 (§4.5): runGuarded でメインプロセスの uncaughtException 時にも必ず settle させる
+  // （reply was never sent の構造的防壁。適用範囲は appedit:export のみ — blast radius を広げない）
   ipcMain.handle('appedit:export', async (event, document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }) => {
     const win = BrowserWindow.fromWebContents(event.sender)!;
-    return await AppExportService.exportApp(win, document, overrideKeys);
+    try {
+      return await runGuarded('appedit:export',
+        () => AppExportService.exportApp(win, document, overrideKeys));
+    } catch (e: any) {
+      console.error('Failed to handle appedit:export', e);
+      return { result: 'Error', warnings: [], message: e?.message || String(e) };
+    }
   });
 
   ipcMain.handle('appedit:prepare-preview', async (_event, document: any) => {
