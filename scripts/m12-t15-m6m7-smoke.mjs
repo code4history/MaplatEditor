@@ -143,7 +143,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@jsquash/webp', '@seald-io/nedb'],
+        external: ['@jsquash/webp', '@seald-io/nedb'],
         output: {
           entryFileNames: 'm12-t15-m6m7-smoke.mjs',
           format: 'es',

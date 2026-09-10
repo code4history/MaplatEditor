@@ -236,7 +236,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, 'jimp'],
+        external: ['jimp'],
         output: {
           entryFileNames: 'm12-t1-hotfix1-smoke.mjs',
           format: 'es',

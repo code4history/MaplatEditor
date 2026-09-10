@@ -507,7 +507,7 @@ await build({
     ssr: entryFile,
     target: 'node22',
     rollupOptions: {
-      external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+      external: [],
       output: {
         entryFileNames: 'm19-t6-smoke.mjs',
         format: 'es',

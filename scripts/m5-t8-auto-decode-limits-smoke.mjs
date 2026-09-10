@@ -387,7 +387,7 @@ await build({
     ssr: entryFile,
     target: 'node22',
     rollupOptions: {
-      external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+      external: [],
       output: { entryFileNames: 'phase-b.mjs', format: 'es' },
     },
   },
