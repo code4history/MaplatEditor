@@ -317,7 +317,6 @@ try {
       target: 'node22',
       rollupOptions: {
         external: [
-          '@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/,
           'jimp', 'pwa-asset-generator', '@maplat/tin', '@maplat/transform',
         ],
         output: { entryFileNames: 'm5-t1-export-url-canonical-smoke.mjs', format: 'es' },

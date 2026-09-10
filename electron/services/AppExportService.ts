@@ -633,15 +633,23 @@ class AppExportService {
               lastReportTime = now;
               sinceLastReport = 0;
               // 最終件の update は整数パーセントが進まず ProgressReporter の 1% throttle に
-              // 落とされる(§1.3 の表示欠陥) ∴ 最終件に限り throttle を 1 回だけ無効化する(§4.5)
-              if (zipped === packageFiles.length) reporter!.forceNext();
+              // 落とされる(§1.3 の表示欠陥) ∴ 最終件に限り throttle を 1 回だけ無効化する(§4.5)。
+              // 非最終件は従来どおり update() を呼び、1% 間隔の throttle を温存する（parity）
               // 100%はzip書き出し(とmove)完了後にのみ到達させる(MINOR-1)。ここでは finalTotal-1 を
               // 上限にし、zip 追加完了だけで完了文言(endMsg)が出てしまうのを防ぐ
-              reporter!.update(
-                Math.min(progressState.step, finalTotal - 1),
-                `(${zipped}/${packageFiles.length})`,
-                'appedit.export.zipping',
-              );
+              if (zipped === packageFiles.length) {
+                reporter!.updatePhaseEnd(
+                  Math.min(progressState.step, finalTotal - 1),
+                  `(${zipped}/${packageFiles.length})`,
+                  'appedit.export.zipping',
+                );
+              } else {
+                reporter!.update(
+                  Math.min(progressState.step, finalTotal - 1),
+                  `(${zipped}/${packageFiles.length})`,
+                  'appedit.export.zipping',
+                );
+              }
             }
           },
         },

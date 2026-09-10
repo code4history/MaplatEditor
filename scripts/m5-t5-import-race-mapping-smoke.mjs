@@ -193,7 +193,7 @@ try {
     build: {
       emptyOutDir: true, outDir, ssr: entryFile, target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, 'jimp', 'adm-zip'],
+        external: ['jimp', 'adm-zip'],
         output: { entryFileNames: 'entry.mjs', format: 'es' },
       },
     },

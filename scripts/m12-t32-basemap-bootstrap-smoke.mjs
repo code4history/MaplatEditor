@@ -361,7 +361,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, 'jimp', 'file-url'],
+        external: ['jimp', 'file-url'],
         output: {
           entryFileNames: 'basemap-bootstrap-smoke.mjs',
           format: 'es',

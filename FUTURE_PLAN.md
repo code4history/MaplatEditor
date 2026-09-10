@@ -125,18 +125,19 @@ UI設計より前に「そもそも335ファイル全部を512pxで持つ必要�
 **提案**: 一覧行ホバー時またはクリック時の拡大プレビュー等、512px を活かす UI を後続タスクで
 設計する。あわせて画像圧縮・配布サイズ削減の要否も同タスクで検討する。
 
-## 8. smoke 56本に残る `@duckdb` の esbuild external 指定（m18-t8 のスコープ外）
+## 8. smoke に残る `@duckdb` の esbuild external 指定（oct26-m4-t3 で解消済み）
 
-**現状**: `scripts/` 配下の **56ファイル**（`grep -rl "@duckdb" scripts/ | wc -l` 実測）が esbuild の
-`external` に `'@duckdb/node-api'` / `'@duckdb/node-bindings'` / `/^@duckdb\/node-bindings-.*/` を
-列挙している。m18-t8 で依存そのものを撤去したため、これらは**不活性な no-op** になった。
+**解消済み（2026-09-10, oct26-m4-t3）。**
 
-**なぜ m18-t8 で触らなかったか**: 56ファイルを一括編集すると、安全確認のため同数の smoke 再実走が
-必要になり、費用対効果が悪い。指定が残っていても実害はない（存在しないモジュール名を external に
-挙げても esbuild は何もしない）。
+**旧状態**: `scripts/` 配下の **64ファイル**（`grep -rl "@duckdb" scripts/ | grep -v m18-t8 | wc -l`
+実測。依存不在 assertion を持つ `m18-t8-packaging-smoke.mjs` を除く）が esbuild の `external` に
+`'@duckdb/node-api'` / `'@duckdb/node-bindings'` / `/^@duckdb\/node-bindings-.*/` の3要素を
+列挙していた。m18-t8 で依存そのものを撤去したため、これらは**不活性な no-op** だった
+（存在しないモジュール名を external に挙げても esbuild は何もしない）。
 
-**提案**: 別途まとめて機械置換し、代表的な smoke を数本走らせて確認する。放置しても壊れないが、
-削除済みの依存を参照する死んだ設定は後続の読み手を惑わせる。
+**対処**: oct26-m4-t3（issue #94）で scripts/ 配下 64ファイルから当該3要素のみを機械置換で除去した。
+`vite.config.ts:28` の同一3要素は、同配列が `pwa-asset-generator` external（#99）と共有されており、
+依存是正を行う `oct26-m5-t2` が同時に除去するのが最も安いため、本タスクでは触らず m5-t2 へ申し送った。
 
 ## 9. merc の実行時タイル URL 導出が2実装で並立している（m22-t1 のスコープ外）
 

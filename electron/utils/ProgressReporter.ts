@@ -84,6 +84,15 @@ export class ProgressReporter {
     this.lastTime = null;
   }
 
+  // フェーズ最終件の送信: throttle を1回だけ無効化して update を送る。
+  // （既存の forceNext(); update(...) workaround をクラス内へ構造化したもの。
+  //   #101 が指摘する「他の経路では同じことが起きる」への回答: 呼び出し側が内部状態
+  //   （lastPercent / lastTime）を forceNext() で直接叩かず、この第一級 API を使えばよい）
+  updatePhaseEnd(current: number, progressTextOverride?: string, msgOverride?: string) {
+    this.forceNext();
+    this.update(current, progressTextOverride, msgOverride);
+  }
+
   // エラー終了時専用: percent=100 を送って呼び出し側のモーダルを閉じられる状態にしつつ、
   // 成功文言(endMsg)ではなくエラー用テキストを表示する。update() の throttle/endMsg 優先ロジック
   // を経由しない即時送信(エラーは頻度制御不要な単発イベントのため)

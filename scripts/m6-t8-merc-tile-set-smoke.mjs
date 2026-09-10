@@ -537,9 +537,6 @@ try {
       target: 'node22',
       rollupOptions: {
         external: [
-          '@duckdb/node-api',
-          '@duckdb/node-bindings',
-          /^@duckdb\/node-bindings-.*/,
           'jimp',
           'adm-zip',
           'pwa-asset-generator',

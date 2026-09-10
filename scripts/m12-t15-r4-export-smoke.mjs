@@ -124,7 +124,7 @@ try {
       ssr: entryFile,
       target: 'node22',
       rollupOptions: {
-        external: ['@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/, '@jsquash/webp'],
+        external: ['@jsquash/webp'],
         output: {
           entryFileNames: 'm12-t15-r4export-smoke.mjs',
           format: 'es',

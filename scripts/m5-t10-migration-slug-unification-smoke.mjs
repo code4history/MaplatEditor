@@ -138,7 +138,7 @@ await build({
     ssr: entryFile,
     target: 'node22',
     rollupOptions: {
-      external: ['electron', 'electron-store', '@duckdb/node-api', '@duckdb/node-bindings', /^@duckdb\/node-bindings-.*/],
+      external: ['electron', 'electron-store'],
       output: { entryFileNames: 'm5-t10-smoke.mjs', format: 'es' },
     },
   },
