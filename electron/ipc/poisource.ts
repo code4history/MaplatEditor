@@ -2,6 +2,8 @@ import { ipcMain, dialog, app, BrowserWindow } from 'electron';
 import path from 'path';
 import poiSourceService from '../services/PoiSourceService';
 import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService';
+// #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
+import { runGuarded } from '../utils/inflightGuard';
 
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
@@ -10,12 +12,15 @@ export function registerPoisourceHandlers() {
   ipcMain.handle('poisource:get', (_, uid) => poiSourceService.get(uid));
   ipcMain.handle('poisource:createLocal', (_, input) => poiSourceService.createLocal(input));
   ipcMain.handle('poisource:save', (_, uid, payload) => poiSourceService.save(uid, payload));
-  ipcMain.handle('poisource:importFile', (_, input) => poiSourceService.importFile(input));
+  ipcMain.handle('poisource:importFile', (_, input) =>
+    runGuarded('poisource:importFile', () => poiSourceService.importFile(input)));
   ipcMain.handle('poisource:detectImportLanguage', (_, filePath, fallbackLang) =>
     poiSourceService.detectImportLanguage(filePath, fallbackLang));
   ipcMain.handle('poisource:registerRemote', (_, input) => poiSourceService.registerRemote(input));
-  ipcMain.handle('poisource:refreshRemote', (_, uid) => poiSourceService.refreshRemote(uid));
-  ipcMain.handle('poisource:cloneToLocal', (_, uid, input) => poiSourceService.cloneToLocal(uid, input));
+  ipcMain.handle('poisource:refreshRemote', (_, uid) =>
+    runGuarded('poisource:refreshRemote', () => poiSourceService.refreshRemote(uid)));
+  ipcMain.handle('poisource:cloneToLocal', (_, uid, input) =>
+    runGuarded('poisource:cloneToLocal', () => poiSourceService.cloneToLocal(uid, input)));
   ipcMain.handle('poisource:findReferences', (_, uid) => poiSourceService.findReferences(uid));
   ipcMain.handle('poisource:delete', (_, uid) => poiSourceService.delete(uid));
   // rendererから任意pathを受け取らず、保存先はnative dialogの返値だけを使う。
@@ -36,7 +41,7 @@ export function registerPoisourceHandlers() {
         ? await dialog.showSaveDialog(win, options)
         : await dialog.showSaveDialog(options);
       if (ret.canceled || !ret.filePath) return { result: 'Canceled' } as const;
-      await writePoiExport(inspection, ret.filePath);
+      await runGuarded('poisource:exportFile', () => writePoiExport(inspection, ret.filePath));
       return { result: 'Success', filePath: ret.filePath } as const;
     } catch (error) {
       console.error('[poisource:exportFile] failed:', error);

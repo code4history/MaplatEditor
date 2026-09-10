@@ -101,27 +101,26 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
     "createAboutWindow()'s webPreferences must not have a preload key (zero exposure surface — §7.4 案2)",
   );
   // t1 HR-4 (設計 §7.4.2): 判定対象からコメント行を除去してから test する。
-  // fnBody には直上の説明コメント（「webSecurity: false は…据え置く」行）が含まれ、
-  // 旧来の fnBody 全体への test はコメントだけにマッチして、実設定を true に書き換えても
-  // PASS し続ける穴だった（2026-08-22 調査文書 §3 で実測）。webSecurity の設定値自体は
-  // 本 smoke も変えない（会期後 m21-B-003 のカスタムプロトコル移行まで据え置き）
+  // #105 / oct26-m4-t2: webSecurity:false 据え置き assert を撤廃し、実設定として
+  // webSecurity: false が存在しないこと（webSecurity は既定 true へ戻ったこと）を assert する。
+  // （renderer は file:// 直読みから app:// カスタムスキームへ移行した）
   const fnBodyNoComments = fnBody.replace(/^[ \t]*\/\/.*$/gm, "");
   assert.ok(
-    /webSecurity\s*:\s*false/.test(fnBodyNoComments),
-    "createAboutWindow()'s webSecurity: false must stay in place as an actual setting (comment-only matches are rejected since t1)",
+    !/webSecurity\s*:\s*false/.test(fnBodyNoComments),
+    "createAboutWindow() must not set webSecurity: false (§105 是正後、webSecurity は既定 true)",
   );
   // 自己検査: コメント除去が効いていること（除外ヘルパー自体の劣化を smoke が自分で検出する）。
-  // main.ts の createAboutWindow 内で webSecurity に言及するのは実設定行とコメント行のみであり、
-  // 除去後に「コメント行としての webSecurity」が残っていれば除外が壊れている
   assert.ok(
     !/^[ \t]*\/\/[^\n]*webSecurity/m.test(fnBodyNoComments),
     "comment stripping must remove comment lines mentioning webSecurity (self-check of the stripper since t1)",
   );
+  // #105: About ウィンドウは app:// カスタムスキーム経由で配信し、バージョン値を query で渡す
+  // （旧 loadFile(...query:{...}) から loadURL('app://bundle/about.html?…') へ移行）
   assert.ok(
-    /loadFile\([^)]*,\s*\{\s*query\s*:/.test(fnBody),
-    "createAboutWindow() must pass appVersion/electron/chrome/node/v8 via loadFile's query option (§6/§7.4)",
+    /loadURL\(["'`]app:\/\/bundle\/about\.html\?/.test(fnBody),
+    "createAboutWindow() must load via app://bundle/about.html with a query (§105 app:// 移行)",
   );
-  console.log("  [4/6] main.ts createAboutWindow(): nodeIntegration/contextIsolation/preload/query 硬化: PASS");
+  console.log("  [4/6] main.ts createAboutWindow(): nodeIntegration/contextIsolation/preload/webSecurity/app:// 硬化: PASS");
 }
 
 // --- AC10 / AC8 / AC9: about.html のインラインscript・バージョン・著作権表記 ---

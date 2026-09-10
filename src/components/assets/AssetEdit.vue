@@ -152,6 +152,9 @@ import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../..
 import { localizeTitle } from "../../utils/langResource";
 import { isEditableElement } from "../../utils/nativeTextUndo";
 import { suggestSlug as sharedSuggestSlug } from "../../utils/poiSourceSlug";
+// #105: 表示用 URL は file:// から app://local へ移行した。複製時の「URL → 絶対パス」復元も
+// それに追随する (appUrlToLocalPath が URL をネイティブ絶対パスへ戻す)。
+import { appUrlToLocalPath } from "../../utils/appUrl";
 
 interface VolatileSource { sourcePath: string; sourceName: string }
 interface AssetEditHistoryState { document: ImageAssetEditDocument; volatileSource: VolatileSource | null }
@@ -243,12 +246,13 @@ function duplicateInitialDoc(source: ImageAssetRow, uid: string): ImageAssetEdit
 }
 
 // M11-T10 複製: 元アセットの実体ファイルを volatileSource として流し込む
-// (file:// URL を絶対パスへ正規化。新規保存(add)が sourcePath から実体を複製する)
+// (表示用 URL を絶対パスへ正規化。新規保存(add)が sourcePath から実体を複製する。
+//  #105: app://local へ移行済み。旧 file:// はフォールバックとして残す)
 async function prefillDuplicateSource(source: ImageAssetRow): Promise<void> {
   try {
     const fileUrl = await window.imageAssets.getFilePath(source.uid);
     if (!fileUrl) throw new Error("source file not found");
-    const sourcePath = decodeURIComponent(String(fileUrl).replace(/^file:\/\//, ""));
+    const sourcePath = appUrlToLocalPath(String(fileUrl)) ?? decodeURIComponent(String(fileUrl).replace(/^file:\/\//, ""));
     volatileSource.value = { sourcePath, sourceName: source.sourceName || `${source.slug}.${source.ext ?? "png"}` };
     previewUrl.value = String(fileUrl);
     pushCurrent();

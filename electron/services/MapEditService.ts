@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
-import fileUrl from 'file-url';
+// #105: ランタイムタイル URL は file:// から app://local へ移行する
+import { localFileUrl } from '../utils/appScheme';
 import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
@@ -208,7 +209,7 @@ class MapEditService {
 
         const tmpFolder = SettingsService.get('tmpFolder') as string;
         const tmpTileFolder = path.join(tmpFolder, 'tiles');
-        const tmpUrl = fileUrl(tmpTileFolder);
+        const tmpUrl = localFileUrl(tmpTileFolder);
 
         const regex = new RegExp(`^${tmpUrl}`);
         // M12-T20: tmpCheck は後方互換（過去の正規形式 = 修正前に作られ tmp が生存している draft）
@@ -368,9 +369,9 @@ class MapEditService {
                         // startsWith/slice 方式で構築する（M12-T19 clone 分岐と同方式。
                         // パスに regex メタ文字や $ 特殊置換が含まれる環境での破損を構造的に排除）。
                         // url_ は resolveStagingDirFromUrl 由来のため通常必ずプレフィックスに一致する
-                        const stagingUrlPrefix = fileUrl(stagingDir!) + '/';
+                        const stagingUrlPrefix = localFileUrl(stagingDir!) + '/';
                         if (url_ && url_.startsWith(stagingUrlPrefix)) {
-                            newTileUrl = fileUrl(newTile) + '/' + url_.slice(stagingUrlPrefix.length);
+                            newTileUrl = localFileUrl(newTile) + '/' + url_.slice(stagingUrlPrefix.length);
                         }
                     } else {
                         // M12-T17 (§6.1 #2): tmp プレフィックス文字列置換方式。url_ は tmpCheck 判定
@@ -380,7 +381,7 @@ class MapEditService {
                         // $&/$`/$'/$n が特殊置換パターンとして解釈され、saveFolder パスに $ が
                         // 含まれる場合に恒久URLが破損する(実測確認済み)。関数形式なら戻り値が
                         // そのままリテラルとして挿入されるため、この種の解釈は一切発生しない
-                        newTileUrl = url_!.replace(regex, () => fileUrl(newTile));
+                        newTileUrl = url_!.replace(regex, () => localFileUrl(newTile));
                     }
                     const tmpOriginal = path.join(newTile, `original.${normalizedExt}`);
                     try { await fs.remove(canonicalOriginal); } catch { /* noop */ }
@@ -420,9 +421,9 @@ class MapEditService {
                         // 教訓を踏まえ、置換対象文字列に対する解釈を一切発生させない構築方式を採用する)。
                         // 設計レビューv1 Minor1: 区切り文字(/)を跨がない前方一致は誤検出になり得るため、
                         // プレフィックス直後がパス区切りであることまで判定する(区切り込みで判定)。
-                        const oldTileUrlPrefix = fileUrl(oldTile) + '/';
+                        const oldTileUrlPrefix = localFileUrl(oldTile) + '/';
                         if (url_ && url_.startsWith(oldTileUrlPrefix)) {
-                            newTileUrl = fileUrl(newTile) + '/' + url_.slice(oldTileUrlPrefix.length);
+                            newTileUrl = localFileUrl(newTile) + '/' + url_.slice(oldTileUrlPrefix.length);
                         }
                     }
                     if (await fs.pathExists(oldThumbnail)) await fs.copy(oldThumbnail, newThumbnail);

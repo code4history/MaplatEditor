@@ -24,7 +24,8 @@
 // ことが前提。既存前例: electron/utils/releaseChannel.ts を
 // scripts/m19-t4a-settings-menu-about-smoke.mjs が直接 import している）。
 import path from 'node:path';
-import fileUrl from 'file-url';
+// #105: merc タイル URL は file:// から app://local へ移行する
+import { localFileUrl } from './appScheme';
 
 /**
  * merc ベースマップの実行時専用タイル URL（url_）を組み立てる。
@@ -50,8 +51,8 @@ export function deriveMercBaseMapTileUrl(
   // 利用者が URL を空にしただけの tms 種別にも作用してしまう。
   if (data?.kind !== 'merc') return undefined;
   if (!baseMapUid || !saveFolder) return undefined;
-  // file-url は file:///... 形式を返し、空白や非 ASCII を percent-encoding する
+  // localFileUrl は percent-encoding を行い、空白や非 ASCII を安全に載せる
   // （保存フォルダに空白・非 ASCII を含む環境。deriveRuntimeTileUrl が同じ理由で同じ
-  // ライブラリを使っている）。テンプレート部は後置のため無加工で残る。
-  return `${fileUrl(path.join(saveFolder, 'merc', baseMapUid))}/{z}/{x}/{y}.png`;
+  // ビルダーを使っている）。テンプレート部は後置のため無加工で残る。
+  return `${localFileUrl(path.join(saveFolder, 'merc', baseMapUid))}/{z}/{x}/{y}.png`;
 }

@@ -10,6 +10,8 @@ import MapEditService from './MapEditService';
 import MapPurposeService from './MapPurposeService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset, isUnderFolder } from '../utils/resourceAssets';
+// #105: プレビュー配信データの URL 書換（app://local → http://localhost）と Origin 判定に使う
+import { appUrlToLocalPath } from '../utils/appScheme';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import SqliteDataService from './SqliteDataService';
 import {
@@ -399,27 +401,49 @@ class AppPreviewService {
 
   // M1-T6 (a): Origin は補助検査。同一オリジンのナビゲーションとサブリソース GET は
   // Origin を送らないため「不在」は許可する。値がある場合もホスト部だけを見てポートは問わない。
-  // 理由: main.ts:67-70 が webSecurity:false のため、レンダラ本体
-  // (file:// なら Origin:null / dev なら http://localhost:<vite port>) からプレビューサーバへ
-  // 直接 fetch する経路が実在する(tests/e2e/m18-t5:163-169)。ポート一致を要求するとこれを弾く。
+  // 理由: 従来 main.ts が webSecurity:false だったため、レンダラ本体（file:// なら Origin:null /
+  // dev なら http://localhost:<vite port>）からプレビューサーバへ直接 fetch する経路が実在した
+  // (tests/e2e/m18-t5:163-169)。#105 で webSecurity:true へ戻し renderer は app://bundle になるため、
+  // app: scheme の Origin も許可する。ポート一致を要求すると上記経路を弾く。
   // rebinding 攻撃はリバインド後に同一オリジン扱いとなり Origin を送らないので、
   // ここを厳しくしても防御は増えない(主防御は Host)。
   private isAllowedOrigin(req: http.IncomingMessage): boolean {
     const origin = req.headers.origin;
     if (origin === undefined) return true;
     if (origin === 'null') return true;
+    return this.corsOriginFor(origin) === origin;
+  }
+
+  // #105: CORS 応答用。許可済み Origin（app: scheme または localhost 系）だけを echo して返す。
+  // それ以外は null（Access-Control-Allow-Origin を付けない）。
+  private corsOriginFor(origin: string): string | null {
     try {
       const { hostname, protocol } = new URL(origin);
-      if (protocol !== 'http:' && protocol !== 'https:') return false;
-      return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]';
+      if (protocol === 'app:') return origin;
+      if (protocol !== 'http:' && protocol !== 'https:') return null;
+      return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]' ? origin : null;
     } catch {
-      return false;
+      return null;
     }
   }
 
   private handle(req: http.IncomingMessage, res: http.ServerResponse) {
     if (!this.isAllowedHost(req) || !this.isAllowedOrigin(req)) {
       return this.sendText(res, 403, 'Forbidden');
+    }
+    // #105: webSecurity:true 化により、レンダラ（app://bundle / vite dev localhost）からの
+    // 直 fetch は CORS 対象になる。許可済み Origin を echo し、preflight に応答する。
+    const allowOrigin = this.corsOriginFor(req.headers.origin ?? '');
+    if (allowOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
     }
     const requestUrl = new URL(req.url || '/', `http://127.0.0.1:${this.port || 0}`);
     const segments = requestUrl.pathname.split('/').filter(Boolean);
@@ -713,11 +737,24 @@ ${renderProviderGlCdnTags(new Set(session.requiredProviderGl || []))}  <script s
 
   private toHttpUrl(value: any, token: string): any {
     if (typeof value !== 'string') return value;
-    if (!value.startsWith('file://')) return value;
+    // #105: 配信データのローカルリソース URL は app://local（旧 file://）で渡ってくる。
+    // プレビュー配信は http://localhost なので、絶対パスへ戻して /local-file/<token> に載せ替える。
+    // file:// は旧データ互換として残す。
+    let nativePath: string | null = null;
+    if (value.startsWith('app://local')) {
+      nativePath = appUrlToLocalPath(value);
+    } else if (value.startsWith('file://')) {
+      try {
+        nativePath = fileURLToPath(value);
+      } catch {
+        nativePath = null;
+      }
+    }
+    if (nativePath === null) return value;
     // M1-T6 (b): token を挟む。あわせて toUrlPathname で先頭 '/' を保証する。
     // 従来は Windows で 'C:/...' が直結して '/local-fileC:/...' になり、
     // handle() の分岐に一致せず 404 になっていた(既存欠陥の是正)
-    const pathname = encodeURI(toUrlPathname(fileURLToPath(value)))
+    const pathname = encodeURI(toUrlPathname(nativePath))
       .replace(/%7B/g, '{')
       .replace(/%7D/g, '}');
     // m6-t6 hotfix H-B: プレビューページ本体(localhost)と同一オリジンへ揃える

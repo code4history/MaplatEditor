@@ -1,5 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import WmtsGeneratorService from '../services/WmtsGeneratorService';
+// #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
+import { runGuarded } from '../utils/inflightGuard';
 
 // M12-T22: 本ハンドラ登録自体はmain.ts:138(import)/229(起動時呼び出し)により
 // 常時生きている。m6-t8でMapEdit.vueの新規「メルカトルタイル」タブから到達
@@ -19,6 +21,7 @@ export function registerWmtsHandlers() {
         targetBaseMapUid: string
     ) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
-        return WmtsGeneratorService.generate(win, uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid);
+        return await runGuarded('wmtsGen:generate', () =>
+            WmtsGeneratorService.generate(win, uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid));
     });
 }

@@ -5,6 +5,8 @@ import { dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
+// #105: saveFolder 配下の表示用 URL は file:// から app://local へ移行する
+import { localFileUrl, appUrlToLocalPath } from '../utils/appScheme';
 // m19-t2: 512px パスの派生規約は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）。
 // electron/ から src/utils/ を import する前例は多数実在する（mapDownloadZip.ts / AppPreviewService.ts ほか）。
 import { isBundledThumbnailPath, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
@@ -14,11 +16,17 @@ import { writeImageByExt } from '../utils/thumbnail512Codec';
 
 const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
 
-// m6-t8 §3.10: merc マスタのタイル URL は file:// で渡ってくる。Node の fetch()/undici は
-// file: スキームを解決できないため、file:// のときだけ fs.readFile で直接読む分岐を持つ。
+// m6-t8 §3.10: merc マスタのタイル URL は file://（旧）または app://local（#105 移行後）で
+// 渡ってくる。Node の fetch()/undici は file: / app: スキームを解決できないため、
+// そのときだけ localPath へ復号して fs.readFile で直接読む分岐を持つ。
 async function readTile(url: string): Promise<Buffer> {
   if (url.startsWith('file://')) {
     return fs.readFile(fileURLToPath(url));
+  }
+  if (url.startsWith('app://local')) {
+    const localPath = appUrlToLocalPath(url);
+    if (localPath !== null) return fs.readFile(localPath);
+    throw new Error(`invalid app://local url: ${url}`);
   }
   const res = await fetch(url, {
     signal: AbortSignal.timeout(10000),
@@ -42,7 +50,8 @@ class AppAssetService {
   }
 
   private toFileUrl(absPath: string): string {
-    return `file://${absPath.split(path.sep).join('/')}`;
+    // #105: file:// から app://local へ移行（webSecurity:true の下で renderer が読める形）
+    return localFileUrl(absPath);
   }
 
   private async pickImage(win: BrowserWindow): Promise<string | null> {

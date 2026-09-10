@@ -13,6 +13,8 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { selectMapImage, imageCutter } from '../services/MapUploadService';
 import { draftTileRoot, resolveDraftTileDir } from '../services/draftTilePaths';
+// #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
+import { runGuarded } from '../utils/inflightGuard';
 
 /**
  * M5-T8: 確認待ちの選択を保持する（設計 §5.6）。
@@ -58,14 +60,16 @@ export function registerMapUploadHandlers() {
                 }
                 // 一致したときだけ消費する（同じ確認を二度使えないようにする）
                 pendingSelections.delete(senderId);
-                return await imageCutter(win, pending.filePath, stagingDir, { confirmed: true });
+                return await runGuarded('mapupload:showMapSelectDialog', () =>
+                    imageCutter(win, pending.filePath, stagingDir, { confirmed: true }));
             }
 
             const filePath = await selectMapImage(win, mapImageLabel);
             if (filePath === null) {
                 return { err: 'Canceled' };
             }
-            const result = await imageCutter(win, filePath, stagingDir);
+            const result = await runGuarded('mapupload:showMapSelectDialog', () =>
+                imageCutter(win, filePath, stagingDir));
             if ('needsConfirmation' in result) {
                 pendingSelections.set(senderId, { filePath, draftAssetUid });
                 // ウィンドウが閉じられたら保持を捨てる（破棄済みウィンドウのエントリを残さない）

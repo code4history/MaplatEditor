@@ -32,6 +32,17 @@ on:
         type: choice
         default: all
         options: [all, mac, win, linux]
+      # #104 / oct26-m4-t2: exact commit SHA 宣言。mode=full では必須（check-release-guard.mjs が検証）。
+      # リポジトリ内の自己参照ファイル（release-manifest.json）は作らず、宣言は dispatch 入力で渡す。
+      # 照合の正は prepare が git rev-parse HEAD から生成する build-meta.json.editor_sha（AC-7 契約 (b)）。
+      expected_editor_sha:
+        description: 'ビルド対象 commit の40桁 SHA（mode=full では必須。全 checkout をこの SHA へ固定）'
+        type: string
+        required: false
+      expected_version:
+        description: '期待する配布バージョン（mode=full では必須。package.json の version と一致すること）'
+        type: string
+        required: false
 
 # GITHUB_TOKEN は既定を read に絞り、contents: write は Release を作る release ジョブへ
 # job 単位で与える（セキュリティレビュー SR-t12-M-1・2026-08-08）。
@@ -54,17 +65,38 @@ jobs:
       version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # #104: 全 checkout を expected_editor_sha（mode=full で必須）へ固定する。
+          # push では inputs が空のため、actions/checkout の既定 ref（トリガー commit）へフォールバックする。
+          persist-credentials: false
+          ref: ${{ inputs.expected_editor_sha }}
       - name: Get version from package.json
         id: ver
         run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
 
-      # 実行可否の判定（m6-t12 §2.2 / D6）。version 取得後に置くのが要点
-      # （prerelease 判定に version が必要）。判定ロジックは smoke（AC3）と同一実装
+      # 実行可否の判定（m6-t12 §2.2 / D6 + #104 exact SHA）。version 取得後に置くのが要点
+      # （prerelease 判定と expected_version 照合に version が必要）。判定ロジックは smoke（AC3）と同一実装
       - name: Guard build mode
         env:
           MODE: ${{ inputs.mode }}
           VERSION: ${{ steps.ver.outputs.version }}
+          EXPECTED_EDITOR_SHA: ${{ inputs.expected_editor_sha }}
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
         run: node scripts/m6-t12/check-release-guard.mjs
+
+      # #104: 成果物へ埋め込む build commit SHA の証明（provenance）。checkout を
+      # inputs.expected_editor_sha へ固定しているため、git rev-parse HEAD がビルド対象 commit になる。
+      # AC-7 は成果物内の build-meta.json.editor_sha == expected_editor_sha を照合する。
+      - name: Generate build provenance (build-meta.json)
+        run: |
+          printf '{"editor_sha":"%s","version":"%s"}\n' "$(git rev-parse HEAD)" "$(jq -r .version package.json)" > build-meta.json
+          cat build-meta.json
+      - name: Upload build-meta
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-meta
+          path: build-meta.json
+          if-no-files-found: error
 
   # ─────────────────────────────────────────────
   # macOS ビルド（x64 + arm64 DMG）
@@ -89,6 +121,8 @@ jobs:
         with:
           # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
           persist-credentials: false
+          # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
+          ref: ${{ inputs.expected_editor_sha }}
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
@@ -190,6 +224,8 @@ jobs:
         with:
           # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
           persist-credentials: false
+          # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
+          ref: ${{ inputs.expected_editor_sha }}
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
@@ -298,6 +334,8 @@ jobs:
         with:
           # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
           persist-credentials: false
+          # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
+          ref: ${{ inputs.expected_editor_sha }}
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:

@@ -3,6 +3,8 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+// #105: 同梱リソースの表示用 URL は file:// から app://bundle へ移行する
+import { bundleFileUrl } from './appScheme';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
@@ -26,7 +28,8 @@ export function resolveResourceAsset(relPath: string): string | null {
 
 export function resourceAssetFileUrl(relPath: string): string | null {
   const resolved = resolveResourceAsset(relPath);
-  return resolved ? `file://${resolved.split(path.sep).join('/')}` : null;
+  // #105: file:// から app://bundle へ移行（URL は relPath から決定的に導く）
+  return resolved ? bundleFileUrl(relPath) : null;
 }
 
 // saveFolder / folder 配下への封じ込め判定。`startsWith(path.resolve(folder) + path.sep)` で、

@@ -1,7 +1,7 @@
 // M12-T1-HOTFIX-1: 一覧/selector 用の image URL 解決の共有層。
 // MapDataService（maplist.request）と AppDataService（applist.request）が持っていた
 // 画像解決ロジックを search layer 経路（search:maps/search:apps）へ共通化する。
-// file:// URL を返し、解決不可は null（呼び出し側は no_image fallback へ）。
+// 表示用 URL を返し、解決不可は null（呼び出し側は no_image fallback へ）。
 import fs from 'fs-extra';
 import path from 'node:path';
 import SettingsService from './SettingsService';
@@ -9,6 +9,8 @@ import AppAssetService from './AppAssetService';
 import SqliteDataService from './SqliteDataService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
+// #105: saveFolder 配下の表示用 URL は file:// から app://local へ移行する
+import { localFileUrl } from '../utils/appScheme';
 // m22-t1: merc ベースマップの実行時タイル URL 導出（I/O 不要の純関数）
 import { deriveMercBaseMapTileUrl } from '../utils/mercBaseMapTileUrl';
 // m19-t5: 512px の所在は派生規約の単一モジュールから導く（拡張子は THUMB_512_EXT が決める）
@@ -38,7 +40,7 @@ export async function resolveTileZeroFileUrl(
     if (!tileFile) return null;
     const tilePath = path.join(thumbFolder, tileFile);
     if (!isUnderFolder(tilePath, saveFolder)) return null;
-    return `file://${tilePath.split(path.sep).join('/')}`;
+    return localFileUrl(tilePath);
   } catch (e: any) {
     if (e?.code !== 'ENOENT') {
       console.error(`[resourceImageResolver] ${fileKey} のサムネイル読み込みエラー`, e);
@@ -66,7 +68,7 @@ export async function resolveMapListImage(doc: {
     // sec-1 (M12-T13): fileKey が slug 由来で '..' を含む場合、path.join は正規化されて
     // saveFolder 外を指しうる。返却前に saveFolder 配下であることを確認し、外なら null へ落とす。
     if (!isUnderFolder(uiThumbnail, saveFolder)) return null;
-    return `file://${uiThumbnail.split(path.sep).join('/')}`;
+    return localFileUrl(uiThumbnail);
   }
   // sec-1 (M12-T13) の tiles fallback 封じ込めは m1-t7 で共通ヘルパへ移した
   return resolveTileZeroFileUrl(saveFolder, fileKey);
@@ -134,7 +136,7 @@ export async function resolveMapListImage512(doc: {
     if (await fs.pathExists(thumb512)) {
       // M12-T13 と同型: fileKey が slug 由来で '..' を含む場合の saveFolder 配下封じ込め
       if (!isUnderFolder(thumb512, saveFolder)) return null;
-      return `file://${thumb512.split(path.sep).join('/')}`;
+      return localFileUrl(thumb512);
     }
   }
   return resolveMapListImage(doc);
@@ -155,7 +157,7 @@ export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; d
     // sec-2 (M12-T13): 旧実装は startsWith(path.resolve(saveFolder)) だったが末尾 path.sep が無く、
     // 兄弟ディレクトリ（{saveFolder}-x）が prefix 一致で通過していた。isUnderFolder で厳密化。
     if (isUnderFolder(thumbPath, saveFolder) && fs.existsSync(thumbPath)) {
-      thumbnailUrl = `file://${thumbPath.split(path.sep).join('/')}`;
+      thumbnailUrl = localFileUrl(thumbPath);
     }
   }
   if (!thumbnailUrl) {
@@ -163,7 +165,7 @@ export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; d
     const legacyPath = path.join(saveFolder, 'tmbs', `${mapID}_menu.jpg`);
     // sec-2 (M12-T13): legacyPath も mapID に '..' が含まれれば脱出しうるため、同じく isUnderFolder で封じ込め（多層化）。
     if (isUnderFolder(legacyPath, saveFolder) && fs.existsSync(legacyPath)) {
-      thumbnailUrl = `file://${legacyPath.split(path.sep).join('/')}`;
+      thumbnailUrl = localFileUrl(legacyPath);
     }
   }
   return thumbnailUrl;
