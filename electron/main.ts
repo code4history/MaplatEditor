@@ -1,8 +1,11 @@
-import { app, BrowserWindow, Menu, dialog } from 'electron'
+import { app, BrowserWindow, Menu, dialog, protocol, net } from 'electron'
 import AppPreviewService from './services/AppPreviewService'
 // import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
+// #105 / oct26-m4-t2: renderer を file:// から app:// カスタムスキームへ移し、webSecurity:true
+// の下でローカルリソースを許可経路の allowlist に限定して配信する
+import { APP_SCHEME, resolveAppUrl } from './utils/appScheme'
 
 // const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -31,6 +34,22 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
+
+// #105 / oct26-m4-t2: app:// を標準スキームとして登録する。registerSchemesAsPrivileged は
+// app の ready 前に1回だけ呼ぶ必要がある（module のトップレベルに置く）。
+// standard: true で URL として解決され、secure: true で安全コンテキスト扱いになる。
+// supportFetchAPI により renderer から fetch でき、stream により大きいタイルも逐次配信できる。
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: APP_SCHEME,
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+    },
+  },
+])
 
 // HR-1 (t1 設計 §7.1.2): E2E 実行時はウィンドウを生成時に表示しない（テストウィンドウの
 // フォーカス奪取を防ぐ）。判別は既存フック MAPLAT_E2E_ROOT をそのまま使う
@@ -80,7 +99,6 @@ function createWindow() {
     show: !isE2EMainProcess,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
-      webSecurity: false // file:// などローカルリソース読み込みを許可
     },
   })
 
@@ -92,7 +110,10 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    // #105: file:// 直読みをやめ、app:// スキーム経由で配信する（webSecurity:true の下で
+    // ローカルリソースを許可経路に限定する）。実体解決は app.whenReady で登録した
+    // protocol.handle('app', …) が担う。
+    win.loadURL('app://bundle/index.html')
   }
 
   // 旧実装 main.js L.79-85 に準拠:
@@ -205,6 +226,22 @@ async function gcOrphanDraftTiles(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  // #105 / oct26-m4-t2: app:// のリクエストハンドラを登録する（registerSchemesAsPrivileged の後）。
+  // resolveAppUrl の許可経路 allowlist で解決できた実体のみ net.fetch で配信し、それ以外は 403。
+  protocol.handle(APP_SCHEME, (request) => {
+    const bundleRoots = [RENDERER_DIST, path.join(process.env.APP_ROOT, 'public')];
+    const saveFolder = SettingsService.get('saveFolder');
+    const localRoot = typeof saveFolder === 'string' && saveFolder ? saveFolder : path.join(process.env.APP_ROOT, 'dist');
+    const resolution = resolveAppUrl(request.url, { bundleRoots, localRoot });
+    if (!resolution) {
+      return new Response('Forbidden', {
+        status: 403,
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+      });
+    }
+    return net.fetch(pathToFileURL(resolution.filePath).toString());
+  });
+
   // HMR時の「2重登録」エラーを防ぐため、既存ハンドラを事前に解除する
   ipcMain.removeHandler('settings:get')
   ipcMain.removeHandler('settings:set')
@@ -498,24 +535,22 @@ function createAboutWindow() {
     webPreferences: {
       // m19-t4a (§7.4 案2): nodeIntegration/contextIsolation は既定へ戻す。preload も渡さない
       // （contextBridge も IPC も使わない。露出する Node/Electron API はゼロ）。
-      // webSecurity: false はメインウィンドウ側の是正が後送りである限り単独では意味を持たないため据え置く（§1.2）
-      webSecurity: false
+      // #105 / oct26-m4-t2: webSecurity は既定(true)へ戻した（file:// 直読みから app:// へ移行）。
     }
   });
   aboutWin.setMenu(null);
 
   // publicフォルダからabout.htmlを読み込む。バージョン値は preload/contextBridge を使わず
-  // loadFile の query で渡す（§6 のインタフェース契約。露出面ゼロを保つ唯一の経路）
-  const aboutPath = path.join(process.env.VITE_PUBLIC as string, 'about.html');
-  aboutWin.loadFile(aboutPath, {
-    query: {
-      appVersion: app.getVersion(),
-      electron: process.versions.electron,
-      chrome: process.versions.chrome,
-      node: process.versions.node,
-      v8: process.versions.v8
-    }
-  });
+  // query で渡す（§6 のインタフェース契約。露出面ゼロを保つ唯一の経路）。
+  // #105: file:// 直読みをやめ、app:// スキーム経由で配信する（メインウィンドウと同一方針）。
+  const aboutQuery = new URLSearchParams({
+    appVersion: app.getVersion(),
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    node: process.versions.node,
+    v8: process.versions.v8
+  }).toString();
+  aboutWin.loadURL(`app://bundle/about.html?${aboutQuery}`);
 
   // aboutWin.webContents.openDevTools({ mode: 'detach' }); // デバッグ時はコメント解除
   aboutWin.on('closed', () => { aboutWin = null; });

@@ -1,7 +1,8 @@
 import { ipcMain, BrowserWindow, dialog, app } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
-import fileUrl from 'file-url';
+// #105: タイル URL は file:// から app://local へ移行する
+import { localFileUrl } from '../utils/appScheme';
 // M12-T20 (§5.0/§5.1): staging パスの解決・検証は共通バリデータのみを使う
 import { draftTileRoot, isDraftTileUrl, resolveStagingDirFromUrl, resolveDraftTileDir } from '../services/draftTilePaths';
 // @ts-ignore
@@ -15,6 +16,8 @@ import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import MapPurposeService from '../services/MapPurposeService';
 import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
+// #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
+import { runGuarded } from '../utils/inflightGuard';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
@@ -106,7 +109,8 @@ export const registerMapEditHandlers = () => {
         try {
             const wh = index === 0 ? bounds : null;
             const bd = index !== 0 ? bounds : null;
-            const compiled = await createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex);
+            const compiled = await runGuarded('mapedit:updateTin',
+                () => createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex));
             return [index, compiled];
         } catch (e) {
             console.error('Failed to handle mapedit:updateTin', e);
@@ -128,7 +132,7 @@ export const registerMapEditHandlers = () => {
                 alive = stagingDir ? await fs.pathExists(stagingDir) : false;
             } else {
                 const tmpTileFolder = path.join(SettingsService.get('tmpFolder') as string, 'tiles');
-                if (url_.startsWith(fileUrl(tmpTileFolder) + '/')) {
+                if (url_.startsWith(localFileUrl(tmpTileFolder) + '/')) {
                     // 後方互換 tmp は固定 dir（url_ 由来の可変部がパス構築に入らないため導出不要）
                     alive = await fs.pathExists(tmpTileFolder);
                 }
@@ -205,7 +209,8 @@ export const registerMapEditHandlers = () => {
         });
         if (ret.canceled || !ret.filePath) return 'Canceled';
 
-        await buildAndWriteMapZip(win, mapObject, tins, slug, fileKey, ret.filePath);
+        await runGuarded('mapedit:download',
+            () => buildAndWriteMapZip(win, mapObject, tins, slug, fileKey, ret.filePath));
         return 'Success';
     });
 
@@ -213,7 +218,8 @@ export const registerMapEditHandlers = () => {
     // 例外は全てcatchして'Error'へ写像する薄いラッパー(実処理はMapPurposeService側)
     ipcMain.handle('mapedit:download-saved', async (event, mapRef: string) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
-        return await MapPurposeService.downloadSavedMap(win, mapRef);
+        return await runGuarded('mapedit:download-saved',
+            () => MapPurposeService.downloadSavedMap(win, mapRef));
     });
 
     // 旧実装: mapedit_uploadCsv 相当（CSV インポート）
@@ -239,7 +245,7 @@ export const registerMapEditHandlers = () => {
             skipLines: csvUpSettings.ignoreHeader ? 1 : 0,
         };
 
-        return new Promise((resolve) => {
+        return await runGuarded('mapedit:uploadCsv', () => new Promise((resolve) => {
             fs.createReadStream(file)
                 .pipe(csvParser(options))
                 .on('data', (data: any) => results.push(data))
@@ -272,7 +278,7 @@ export const registerMapEditHandlers = () => {
                     }
                 })
                 .on('error', (e: any) => resolve({ err: String(e) }));
-        });
+        }));
     });
 
     // 旧実装 mapedit.js L.50-52 に準拠:

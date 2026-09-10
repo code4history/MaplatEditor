@@ -17,7 +17,9 @@
  *     （正式版を作業ブランチから配布する事故を防ぐ。D2 の方針を継承）
  *
  * workflow（prepare ジョブ）と smoke（AC3）の両方から同一実装として呼ばれる。
- * 入力は env: MODE（verify / full）・GITHUB_REF（runner 提供）・VERSION。
+ * 入力は env: MODE（verify / full）・GITHUB_REF（runner 提供）・VERSION
+ * ・EXPECTED_EDITOR_SHA / EXPECTED_VERSION（#104: mode=full の exact commit SHA 宣言。
+ *   workflow_dispatch 入力 expected_editor_sha / expected_version から渡る）。
  */
 const mode = process.env.MODE ?? 'verify';
 const ref = process.env.GITHUB_REF ?? '';
@@ -26,6 +28,29 @@ const version = process.env.VERSION ?? '';
 if (mode !== 'full') {
   console.log(`ガード: mode=${mode} は課金を伴わないため制約なし（version=${version} / ${ref}）`);
   process.exit(0);
+}
+
+// #104 / oct26-m4-t2: mode=full は exact commit SHA 宣言を必須化する。
+// 宣言は workflow_dispatch 入力（expected_editor_sha / expected_version）であり、
+// prepare ジョブが env 経由で本スクリプトへ渡す。リポジトリ内の自己参照ファイル
+// （release-manifest.json）は作らない（v3 で撤回済み）。
+const expectedEditorSha = process.env.EXPECTED_EDITOR_SHA ?? '';
+const expectedVersion = process.env.EXPECTED_VERSION ?? '';
+
+if (!/^[0-9a-f]{40}$/.test(expectedEditorSha)) {
+  console.error(
+    `::error::完全ビルド（mode=full）には expected_editor_sha（40桁 hex）の宣言が必須です` +
+    `（現在: ${JSON.stringify(expectedEditorSha)}）。workflow_dispatch 入力 expected_editor_sha を指定してください。`
+  );
+  process.exit(1);
+}
+
+if (expectedVersion !== version) {
+  console.error(
+    `::error::完全ビルド（mode=full）の expected_version（${expectedVersion}）が ` +
+    `package.json の VERSION（${version}）と一致しません。宣言とビルド対象の版を揃えてください。`
+  );
+  process.exit(1);
 }
 
 // semver の prerelease 部（最初の '-' 以降、ビルドメタデータ '+' は除く）

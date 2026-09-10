@@ -453,6 +453,8 @@ import { envelopeToBbox } from "../../utils/appSourceModel";
 import { isTranslationMode } from "../../utils/editorLanguageMode";
 import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../../utils/editorLanguages";
 import { isEditableElement } from "../../utils/nativeTextUndo";
+// #105: merc 実行時タイル URL は file:// から app://local へ移行する
+import { localFileUrl } from "../../utils/appUrl";
 // m19-t12: サムネイル置換は地図管理と共有する単一実装を通す。
 // 512px パスの派生（thumb512PathFor）も当該 composable の内部へ移った。
 import { useThumbnailReplace } from "../../composables/useThumbnailReplace";
@@ -1029,11 +1031,12 @@ async function prepareForDelete(): Promise<void> {
 defineExpose({ prepareForDelete });
 
 const overlayTms = computed(() => {
-  // m6-t8 §3.10: merc は url が保存されていないため、実行時に file:// を都度導出する（保存はしない）
+  // m6-t8 §3.10: merc は url が保存されていないため、実行時に URL を都度導出する（保存はしない）。
+  // #105: file:// 直読みから app://local へ移行（webSecurity:true の下で renderer が読める形）
   if (document.value.kind === "merc") {
     if (!document.value.uid || !dataFolderPath.value) return null;
     return {
-      url: `file://${dataFolderPath.value}/merc/${document.value.uid}/{z}/{x}/{y}.png`,
+      url: `${localFileUrl(`${dataFolderPath.value}/merc/${document.value.uid}`)}/{z}/{x}/{y}.png`,
       minZoom: document.value.minZoom ?? undefined,
       maxZoom: document.value.maxZoom ?? undefined,
     };

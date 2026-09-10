@@ -10,7 +10,8 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { app, BrowserWindow, dialog } from 'electron';
-import fileUrl from 'file-url';
+// #105: タイル URL は file:// から app://local へ移行する
+import { localFileUrl } from '../utils/appScheme';
 // @ts-ignore
 import { Jimp } from 'jimp';
 import { ProgressReporter } from '../utils/ProgressReporter';
@@ -427,8 +428,8 @@ export async function imageCutter(
             await makeThumbnail512(outFolder, thumb512To, toExtKey, width, height, maxZoom);
         }
 
-        // 旧実装: url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`
-        const url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`;
+        // 旧実装: url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`（#105: app://local へ移行）
+        const url = `${localFileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`;
         return { width, height, url, imageExtension: toExtKey };
 
     } catch (err) {

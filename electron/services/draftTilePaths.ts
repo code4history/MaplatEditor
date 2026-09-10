@@ -14,9 +14,9 @@
  * 呼び出し側は catch を書かなくてよい。
  */
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { app } from 'electron';
-import fileUrl from 'file-url';
+// #105: タイル URL は file:// から app://local へ移行する（build/parse とも appScheme に一本化）
+import { localFileUrl, appUrlToLocalPath } from '../utils/appScheme';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 
 /** 非 isolated 環境での staging ルート既定値（設計 §5.1: userData/draft-tiles） */
@@ -66,14 +66,14 @@ export function resolveDraftTileDir(rootDir: string, segment: unknown): string |
 }
 
 /**
- * url_ が staging 領域（`fileUrl(draftTileRoot) + '/'`）を指しているかのプレフィックス判定
+ * url_ が staging 領域（`localFileUrl(draftTileRoot) + '/'`）を指しているかのプレフィックス判定
  * （セパレータ境界込み）。save の stagingCheck 分岐と stagingStatus が「staging 候補か」の
  * 一次判定に使う（候補だが resolveStagingDirFromUrl が null の場合の挙動は構築点ごとに
  * 設計 §5.0 の表で規定される）。
  */
 export function isDraftTileUrl(stagingRoot: string, url_: unknown): boolean {
   try {
-    return typeof url_ === 'string' && url_.startsWith(fileUrl(path.resolve(stagingRoot)) + '/');
+    return typeof url_ === 'string' && url_.startsWith(localFileUrl(path.resolve(stagingRoot)) + '/');
   } catch {
     return false;
   }
@@ -85,11 +85,11 @@ const TILE_TEMPLATE_SUFFIX_RE = /\/\{z\}\/\{x\}\/\{y\}\.[^./\\]+$/;
 /**
  * url_ から staging dir を導出する唯一の経路（設計 §5.0）。
  *   1. staging プレフィックス（セパレータ境界込み）で始まらなければ null
- *   2. `/{z}/{x}/{y}.<ext>` サフィックスを除いた部分を `fileURLToPath` で**実パスへ復号
+ *   2. `/{z}/{x}/{y}.<ext>` サフィックスを除いた部分を `appUrlToLocalPath` で**実パスへ復号
  *      してから**、`path.relative(root, resolved)` で得たセグメントを `resolveDraftTileDir`
  *      に委譲する（包含判定は同一実装を必ず通る）。検証は percent-decode 後の実パスに対して
  *      行う（`%2e%2e` 等のエンコード表現による `'..'` 迂回を防ぐため、生文字列比較で代替しない）
- *   3. decode 失敗（`fileURLToPath` の throw: `%2F` や不正 percent-encoding 等）を含め、
+ *   3. decode 失敗（`appUrlToLocalPath` の null: `%2F` や不正 percent-encoding 等）を含め、
  *      内部処理で発生する例外はすべて捕捉して null を返す（v1.2・レビュー v2 Minor1）
  */
 export function resolveStagingDirFromUrl(stagingRoot: string, url_: string): string | null {
@@ -99,7 +99,9 @@ export function resolveStagingDirFromUrl(stagingRoot: string, url_: string): str
     if (!suffixMatch || suffixMatch.index === undefined) return null;
     const dirUrl = url_.slice(0, suffixMatch.index);
     const root = path.resolve(stagingRoot);
-    const resolved = path.resolve(fileURLToPath(dirUrl));
+    const localPath = appUrlToLocalPath(dirUrl);
+    if (localPath === null) return null;
+    const resolved = path.resolve(localPath);
     const segment = path.relative(root, resolved);
     return resolveDraftTileDir(root, segment);
   } catch {

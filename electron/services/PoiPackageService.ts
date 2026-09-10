@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
 import type { FeatureCollection } from 'geojson';
+// #105: getFilePath は app://local を返すようになった。実体読取は app://local / file:// 双方を復号する
+import { appUrlToLocalPath } from '../utils/appScheme';
 import { listIconSets } from '../../src/utils/iconRefs';
 import {
   assertSafeArchiveEntries,
@@ -120,7 +122,11 @@ async function sameStoredBytes(slug: string, bytes: Buffer): Promise<string | nu
   const fileUrl = await imageAssetService.getFilePath(existing.uid);
   if (!fileUrl) return null;
   try {
-    const stored = await fs.readFile(fileURLToPath(fileUrl));
+    // #105: getFilePath は app://local を返す。旧 file:// 互換も残す
+    const localPath = appUrlToLocalPath(fileUrl)
+      ?? (fileUrl.startsWith('file://') ? fileURLToPath(fileUrl) : null);
+    if (localPath === null) return null;
+    const stored = await fs.readFile(localPath);
     return stored.equals(bytes) ? existing.uid : null;
   } catch {
     return null;

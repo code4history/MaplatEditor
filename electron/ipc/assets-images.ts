@@ -1,15 +1,19 @@
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import imageAssetService from '../services/ImageAssetService';
+// #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
+import { runGuarded } from '../utils/inflightGuard';
 
 // 画像アセット IPC (Phase 2 Task 4, ADR-0007)。channel prefix は imageassets:* を使う
 // (asset:checkSlug の asset:* 名前空間とは衝突しない)。結果 union は poisource:* と同形の慣習
 export function registerImageAssetHandlers() {
-  ipcMain.handle('imageassets:add', (_, input) => imageAssetService.add(input));
+  ipcMain.handle('imageassets:add', (_, input) =>
+    runGuarded('imageassets:add', () => imageAssetService.add(input)));
   ipcMain.handle('imageassets:list', () => imageAssetService.list());
   ipcMain.handle('imageassets:search', (_, query) => imageAssetService.search(query));
   ipcMain.handle('imageassets:get', (_, ref) => imageAssetService.get(ref));
-  ipcMain.handle('imageassets:update-metadata', (_, uid, input) => imageAssetService.updateMetadata(uid, input));
+  ipcMain.handle('imageassets:update-metadata', (_, uid, input) =>
+    runGuarded('imageassets:update-metadata', () => imageAssetService.updateMetadata(uid, input)));
   ipcMain.handle('imageassets:delete', (_, uid) => imageAssetService.delete(uid));
   ipcMain.handle('imageassets:getFilePath', (_, ref) => imageAssetService.getFilePath(ref));
   // 逆参照 (削除確認フローが使う。43 §7 の AID-006 と同型)

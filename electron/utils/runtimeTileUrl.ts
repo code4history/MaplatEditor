@@ -17,7 +17,8 @@
 //              混ぜると extractZip の { mapData, tins } 契約を意図せず変えてしまう（設計書 §2.6）
 import path from 'node:path';
 import fs from 'fs-extra';
-import fileUrl from 'file-url';
+// #105: ランタイムタイル URL は file:// から app://local へ移行する
+import { localFileUrl } from './appScheme';
 
 /**
  * ランタイム専用のタイルURL（url_）を決定する。
@@ -40,10 +41,10 @@ export async function deriveRuntimeTileUrl(
       const thumbs = await fs.readdir(thumbFolder);
       const tileFile = thumbs.find((f) => /^0\.(jpg|jpeg|png)$/.test(f));
       if (tileFile) {
-        // file-url は file:///... 形式を返し、空白や非 ASCII を percent-encoding する。
+        // localFileUrl は percent-encoding を行い、空白や非 ASCII を安全に載せる。
         // 末尾の /0/0/0.<ext> だけを /{z}/{x}/{y}.<ext> へ置換する（アンカー必須:
         // アンカーが無いとパス途中の /0/0/0. を誤置換し得る）
-        const thumbURL = fileUrl(path.join(thumbFolder, tileFile));
+        const thumbURL = localFileUrl(path.join(thumbFolder, tileFile));
         return thumbURL.replace(/\/0\/0\/0\.(jpg|jpeg|png)$/, '/{z}/{x}/{y}.$1');
       }
     }

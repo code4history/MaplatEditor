@@ -16,6 +16,8 @@ import SqliteDataService, { RevisionConflictError, AssetNotFoundError, type Asse
 import SettingsService from './SettingsService';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { normalizeLangResource, type LangResource } from '../../src/utils/langResource';
+// #105: 表示用 URL は file:// から app://local へ移行する
+import { localFileUrl } from '../utils/appScheme';
 
 // jimp が mime を返さない場合の拡張子フォールバック(通常は各デコーダが mime を設定する)
 const EXT_MIME_FALLBACK: Record<string, string> = {
@@ -365,13 +367,13 @@ export class ImageAssetService {
     return SqliteDataService.findAssetReferences(record.uid);
   }
 
-  // renderer 表示用の file:// URL (AppAssetService.fileUrlFor と同じ形)。実体が無ければ null
+  // renderer 表示用の URL (AppAssetService.fileUrlFor と同じ形)。実体が無ければ null
   async getFilePath(ref: string): Promise<string | null> {
     const record = await SqliteDataService.findAssetByRef(ref);
     if (!record) return null;
     const abs = path.join(this.assetsDir, `${record.uid}.${record.ext}`);
     if (!(await fs.pathExists(abs)) || !(await fs.stat(abs)).isFile()) return null;
-    return `file://${abs.split(path.sep).join('/')}`;
+    return localFileUrl(abs);
   }
 }
 

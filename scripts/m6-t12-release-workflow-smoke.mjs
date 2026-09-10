@@ -35,9 +35,19 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 //   または正式版（prerelease なし）で ref が master
 // ───────────────────────────────────────────────
 {
-  const run = (MODE, GITHUB_REF, VERSION) =>
+  // #104: mode=full は exact commit SHA 宣言（EXPECTED_EDITOR_SHA 40桁 hex / EXPECTED_VERSION）を
+  // env で受け取る。smoke は run() の opts で宣言を注入する。
+  const SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678'; // 40桁 hex
+  const run = (MODE, GITHUB_REF, VERSION, opts = {}) =>
     spawnSync(process.execPath, [GUARD], {
-      env: { ...process.env, MODE, GITHUB_REF, VERSION },
+      env: {
+        ...process.env,
+        MODE,
+        GITHUB_REF,
+        VERSION,
+        EXPECTED_EDITOR_SHA: opts.sha ?? '',
+        EXPECTED_VERSION: opts.version ?? '',
+      },
       encoding: 'utf8',
     });
   const ok = (r, msg) => assert.equal(r.status, 0, `${msg}: ${r.stderr}${r.stdout}`);
@@ -46,20 +56,27 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     if (re) assert.match(r.stderr + r.stdout, re, `${msg}（理由の説明）`);
   };
 
-  // --- mode=full: rc 以降のみ ---
-  ok(run('full', 'refs/heads/master', '1.0.0'), 'AC3(a) full + master + 正式版 → 許可');
-  ok(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-rc1'), 'AC3(b) full + 非master + rc → 許可');
-  ok(run('full', 'refs/heads/any/branch', '2.0.0-rc.3'), 'AC3(c) full + rc.3 表記も許可');
-  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0'), 'AC3(d) full + 非master + 正式版 → 拒否', /master/);
-  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-alpha1'), 'AC3(e) full + alpha → 拒否', /rc/);
-  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-beta2'), 'AC3(f) full + beta → 拒否', /rc/);
+  // --- mode=full: rc 以降のみ（+ #104 宣言必須）---
+  ok(run('full', 'refs/heads/master', '1.0.0', { sha: SHA, version: '1.0.0' }), 'AC3(a) full + master + 正式版 → 許可');
+  ok(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-rc1', { sha: SHA, version: '1.0.0-rc1' }), 'AC3(b) full + 非master + rc → 許可');
+  ok(run('full', 'refs/heads/any/branch', '2.0.0-rc.3', { sha: SHA, version: '2.0.0-rc.3' }), 'AC3(c) full + rc.3 表記も許可');
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0', { sha: SHA, version: '1.0.0' }), 'AC3(d) full + 非master + 正式版 → 拒否', /master/);
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-alpha1', { sha: SHA, version: '1.0.0-alpha1' }), 'AC3(e) full + alpha → 拒否', /rc/);
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-beta2', { sha: SHA, version: '1.0.0-beta2' }), 'AC3(f) full + beta → 拒否', /rc/);
 
-  // --- mode=verify: 課金ゼロにつき全バージョン許可 ---
+  // --- #104: mode=full の exact commit SHA 宣言（宣言欠落 / 不正 SHA / version 不一致は RED）---
+  ng(run('full', 'refs/heads/master', '1.0.0', { version: '1.0.0' }), 'AC3(j) full + expected_editor_sha 欠落 → 拒否', /expected_editor_sha/);
+  ng(run('full', 'refs/heads/master', '1.0.0', { sha: 'deadbeef', version: '1.0.0' }), 'AC3(k) full + expected_editor_sha 非 40桁 hex → 拒否', /expected_editor_sha/);
+  ng(run('full', 'refs/heads/master', '1.0.0', { sha: SHA, version: '1.0.1' }), 'AC3(l) full + expected_version 不一致 → 拒否', /expected_version/);
+  // exact GREEN（宣言が正しく存在し、master + 正式版 が通る）
+  ok(run('full', 'refs/heads/master', '1.0.0', { sha: SHA, version: '1.0.0' }), 'AC3(m) full + 宣言 exact（SHA + version 一致）→ 許可');
+
+  // --- mode=verify: 課金ゼロにつき全バージョン許可（#104 宣言は不要）---
   ok(run('verify', 'refs/heads/foss4g-hiroshima', '1.0.0'), 'AC3(g) verify + 非master + 正式版 → 許可');
   ok(run('verify', 'refs/heads/wip/anything', '0.1.0-alpha1'), 'AC3(h) verify + alpha → 許可');
   ok(run('verify', 'refs/heads/master', '1.0.0-rc1'), 'AC3(i) verify + master + rc → 許可');
 
-  console.log('  [1/7] AC3 リリースガード 9ケース（2軸モデル）: PASS');
+  console.log('  [1/7] AC3 リリースガード 13ケース（2軸モデル + #104 exact SHA 宣言）: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -137,13 +154,21 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // AC4: 課金・公証を伴う経路が mode=full のときだけ発火する（D6 の2軸モデル）
   const FULL_COND = /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/;
 
-  // AC10: 入力が2軸（mode / platforms）であり、既定が課金ゼロ側であること
+  // AC10: 入力が mode / platforms の2軸（+ #104 の exact SHA 宣言 expected_editor_sha / expected_version）であり、既定が課金ゼロ側であること
   const inputs = wf.on.workflow_dispatch.inputs;
-  assert.deepEqual(Object.keys(inputs).sort(), ['mode', 'platforms'], 'AC10: 入力は mode / platforms の2軸');
+  assert.deepEqual(
+    Object.keys(inputs).sort(),
+    ['expected_editor_sha', 'expected_version', 'mode', 'platforms'],
+    'AC10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version'
+  );
   assert.deepEqual(inputs.mode.options, ['verify', 'full'], 'AC10: mode の選択肢');
   assert.equal(inputs.mode.default, 'verify', 'AC10: mode の既定は課金ゼロ側（verify）');
   assert.deepEqual(inputs.platforms.options, ['all', 'mac', 'win', 'linux'], 'AC10: platforms の選択肢');
   assert.equal(inputs.platforms.default, 'all', 'AC10: platforms の既定は all');
+  assert.equal(inputs.expected_editor_sha.type, 'string', 'AC10: expected_editor_sha は string 入力');
+  assert.equal(inputs.expected_editor_sha.required, false, 'AC10: expected_editor_sha は任意（push では空でフォールバック）');
+  assert.equal(inputs.expected_version.type, 'string', 'AC10: expected_version は string 入力');
+  assert.equal(inputs.expected_version.required, false, 'AC10: expected_version は任意');
 
   // AC10: platforms フィルタが各ビルドジョブに掛かる（push では常に全部走る）
   for (const [job, key] of [['build-mac', 'mac'], ['build-win', 'win'], ['build-linux', 'linux']]) {
@@ -194,6 +219,43 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const prepSteps = wf.jobs.prepare.steps;
   assert.ok(prepSteps.some((s) => (s.run ?? '').includes('check-release-guard.mjs')),
     'AC1: prepare が check-release-guard.mjs を呼ぶ');
+
+  // #104 / oct26-m4-t2: 全 checkout を ref: inputs.expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
+  for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux']) {
+    const checkouts = (wf.jobs[job].steps ?? []).filter((s) => (s.uses ?? '').startsWith('actions/checkout@'));
+    assert.ok(checkouts.length > 0, `#104: ${job} に checkout step がある`);
+    for (const c of checkouts) {
+      assert.equal(c.with?.ref, '${{ inputs.expected_editor_sha }}',
+        `#104: ${job} の checkout が ref: inputs.expected_editor_sha を指す`);
+    }
+  }
+
+  // #104: prepare が guard へ EXPECTED_EDITOR_SHA / EXPECTED_VERSION を env で渡す
+  const guardStep = prepSteps.find((s) => (s.run ?? '').includes('check-release-guard.mjs'));
+  assert.ok(guardStep, '#104: prepare に guard step がある');
+  const guardEnv = guardStep.env ?? {};
+  assert.equal(guardEnv.EXPECTED_EDITOR_SHA, '${{ inputs.expected_editor_sha }}', '#104: guard へ EXPECTED_EDITOR_SHA を渡す');
+  assert.equal(guardEnv.EXPECTED_VERSION, '${{ inputs.expected_version }}', '#104: guard へ EXPECTED_VERSION を渡す');
+
+  // #104: prepare が git rev-parse HEAD から build-meta.json を生成し build-meta artifact として upload
+  const metaGen = prepSteps.find((s) => (s.run ?? '').includes('git rev-parse HEAD'));
+  assert.ok(metaGen && (metaGen.run ?? '').includes('build-meta.json'),
+    '#104: prepare が git rev-parse HEAD から build-meta.json を生成');
+  const metaUpload = prepSteps.find((s) =>
+    (s.uses ?? '').startsWith('actions/upload-artifact') && String(s.with?.name) === 'build-meta');
+  assert.ok(metaUpload && String(metaUpload.with?.path).includes('build-meta.json'),
+    '#104: build-meta を artifact として upload');
+
+  // #104: release-manifest.json は生成も参照もしない（v3 撤回）。step 実体（run / name / with）を
+  // 対象とし、宣言意図を説明するコメント中の言及は「参照」に含めない。
+  const allSteps = Object.values(wf.jobs).flatMap((j) => j.steps ?? []);
+  const manifestRefs = allSteps.some((s) =>
+    (s.run ?? '').includes('release-manifest.json') ||
+    String(s.name ?? '').includes('release-manifest.json') ||
+    String(s.with?.path ?? '').includes('release-manifest.json') ||
+    String(s.with?.name ?? '').includes('release-manifest.json')
+  );
+  assert.ok(!manifestRefs, '#104: どの step も release-manifest.json を生成・参照しない');
 
   // §2.4: 動的 environment（release 実行時のみ 'release'）
   for (const job of ['build-mac', 'build-win', 'release']) {

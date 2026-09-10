@@ -89,7 +89,7 @@ test.describe('t1 ベースマップフォールバック統一（HR-2）', () =
       await page.evaluate(() => window.settings.set('lang', 'ja'));
       // 新規（未保存）エディタ: mapUid / mapID が空のため setupBaseMaps の1段目ガードが
       // スキップされる経路。旧実装はここで dev 専用 fetch が発火していた
-      // （file:// 配布物相当の本実行形態では ERR_FILE_NOT_FOUND で失敗していた要求）
+      // （app://bundle 配布物相当の本実行形態では ERR_FILE_NOT_FOUND で失敗していた要求）
       await page.evaluate((nextHash) => { location.hash = nextHash; }, '#/mapedit?new=1');
       await expect(page.getByTestId('map-tab-settings')).toBeVisible({ timeout: 30_000 });
       // setupBaseMaps 完了を含む十分な猶予を置いてから集計する（対象は「要求が発生しないこと」）
@@ -133,7 +133,7 @@ test.describe('t1 インポート直後サムネイルの相対 fetch 死除去�
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac5-'));
     const { app, page } = await launch(e2eRoot);
     // 監視は全工程に先立って張る。旧実装はインポート直後の Source 初期化で
-    // MaplatCore mixin が相対仮置き fetch を行い、file:// ページ相対の
+    // MaplatCore mixin が相対仮置き fetch を行い、app://bundle ページ相対の
     // dist/tmbs/<slug>.jpg 宛要求が必ず 1 件発生していた（設計 §7.3.1 実測）
     const pageRelativeTmbsRequests: string[] = [];
     page.on('request', (req) => {

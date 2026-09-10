@@ -12,8 +12,9 @@
 //        段[3] タブ離脱  : 旧 port が **ECONNREFUSED**
 //                          = stopPreview() → shutdown() が実際に呼ばれたことの証明（本 spec の中核）
 //        段[4] タブ復帰  : preferred port を再取得し、新 token / viewer が到達可能
-//   AC26 レンダラ直 fetch: main.ts の webSecurity:false 下で file:// / Vite dev オリジンからの
+//   AC26 レンダラ直 fetch: main.ts の webSecurity:true 下で app://bundle / Vite dev オリジンからの
 //                          fetch が Origin 検査に弾かれないこと（m18-t5:163-169 の経路の非退行）
+//                          （#105: isAllowedOrigin が app: scheme を許可し CORS を echo する）
 import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -138,8 +139,8 @@ test.describe('M1-T6 プレビューサーバの停止ライフサイクル', ()
       expect(s1.port, 'preferred port で listen していない').toBe(PREVIEW_PORT);
       expect(await probe(s1.port, `/preview/${s1.token}/`), '段[1]: 起動直後の token が 200 にならない').toBe(200);
 
-      // ---- AC26: レンダラ本体からの直 fetch（webSecurity:false 下の実在経路）----
-      // Origin をポート一致で縛ると file:// の Origin: null / Vite dev の localhost:<vite> が
+      // ---- AC26: レンダラ本体からの直 fetch（webSecurity:true / app://bundle 下の実在経路）----
+      // Origin をポート一致で縛ると app://bundle の Origin / Vite dev の localhost:<vite> が
       // 弾かれ、m18-t5:163-169 が 403 で落ちる。その回帰をここで検出する
       const appJsonStatus = await page.evaluate(async (url: string) => {
         const resp = await fetch(url);
