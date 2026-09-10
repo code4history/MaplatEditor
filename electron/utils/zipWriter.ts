@@ -46,6 +46,26 @@ const LIMIT_32 = 0xffffffff;
 const LIMIT_16 = 0xffff;
 const DEFAULT_STORE_THRESHOLD = 8 * 1024 * 1024;
 
+/**
+ * oct26-m4-t1 (#103 MIN-2): 書出側エントリ名の自己防衛。
+ * 読取側 `src/utils/poiPackage.ts` の `assertSafeArchiveEntries`（L31-53）の書出側相当を
+ * 単独の判定関数として持つ（責務は「書出側で危険なエントリ名を埋め込まない」）。
+ * 拒否する名前: 空文字 / `\` を含む / `/` で始まる / ドライブ文字（`/^[A-Za-z]:/`）/
+ * セグメント `..` / NUL（`\u0000`）。
+ */
+function assertSafeWriteEntryName(entryName: string): void {
+  if (
+    entryName === '' ||
+    entryName.includes('\\') ||
+    entryName.startsWith('/') ||
+    /^[A-Za-z]:/.test(entryName) ||
+    entryName.split('/').some((segment) => segment === '..') ||
+    entryName.includes('\u0000')
+  ) {
+    throw new Error(`zipWriter: 安全でないエントリ名です: ${JSON.stringify(entryName)}`);
+  }
+}
+
 // st.mtime から DOS 日時へ。1980 未満は 1980-01-01 00:00:00 に丸める（設計書 §4.3.2 step 4）
 function toDosDateTime(mtime: Date): { dosTime: number; dosDate: number } {
   const d = mtime.getFullYear() < 1980 ? new Date(1980, 0, 1, 0, 0, 0) : mtime;
@@ -194,7 +214,13 @@ export async function writeZipStreaming(
   options?: ZipWriteOptions,
 ): Promise<void> {
   const storeThreshold = options?.storeThresholdBytes ?? DEFAULT_STORE_THRESHOLD;
-  const out = createWriteStream(targetPath);
+  // oct26-m4-t1 (#103 MIN-2): エントリ名の書出側自己防衛。危険名はストリームを開く前に throw する
+  for (const entry of entries) {
+    assertSafeWriteEntryName(entry.entryName);
+  }
+  // oct26-m4-t1 (#103 MIN-1): 既存ファイルを黙って上書きせず EEXIST で開けない 'wx' にする。
+  // 呼び出し元は一時 staging パスへ書き、成功後に fs.move するため既存ファイルとの衝突は起こらない
+  const out = createWriteStream(targetPath, { flags: 'wx' });
   let streamError: Error | null = null;
   out.on('error', (e) => {
     streamError = e instanceof Error ? e : new Error(String(e));

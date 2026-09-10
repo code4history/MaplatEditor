@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
-import AdmZip from 'adm-zip';
+import { writeZipStreaming } from './zipWriter';
 // @ts-ignore
 import recursiveFs from 'recursive-fs';
 import SettingsService from '../services/SettingsService';
@@ -150,9 +150,20 @@ export async function buildAndWriteMapZip(
     }
   } catch (_e) { /* タイルなし */ }
 
+  // oct26-m4-t1 (#98 残経路1・#102): 全メモリ方式の zip 書き出しを writeZipStreaming へ寄せる。
+  // targets（[localPath, zipDir, zipName]）を、実在ファイルだけ ZipSourceEntry へ写像する
+  // （fs.existsSync スキップは従来と同じ）。エントリ名は [zipDir, zipName] を '/' で繋ぐ
+  // （AppExportService の前例と同一規則。zipDir が空のときは zipName のみ）。
+  const entries = targets
+    .filter(([localPath]) => fs.existsSync(localPath))
+    .map(([localPath, zipDir, zipName]) => ({
+      entryName: [zipDir, zipName].filter((segment) => segment !== '').join('/'),
+      localPath,
+    }));
+
   const reporter = new ProgressReporter(
     'mapedit:taskProgress',
-    targets.length,
+    entries.length,
     'mapdownload.adding_zip',
     'mapdownload.creating_zip'
   );
@@ -160,15 +171,14 @@ export async function buildAndWriteMapZip(
   reporter.update(0);
 
   const zipFilePath = path.join(tmpFolder, `${slug}.zip`);
-  const zip = new AdmZip();
-  for (let i = 0; i < targets.length; i++) {
-    const [localPath, zipDir, zipName] = targets[i];
-    if (fs.existsSync(localPath)) {
-      zip.addLocalFile(localPath, zipDir, zipName);
-    }
-    reporter.update(i + 1);
-  }
-  zip.writeZip(zipFilePath);
+  // oct26-m4-t1（設計レビュー MIN-2）: staging パスは slug 由来の決定的パス。'wx' 化後は
+  // 残留ファイルがあると EEXIST で地図 DL が失敗し得るため、書き出し前に非存在を保証する
+  // （poiStageDir の先行削除と同じ既存慣行。成功時は fs.move が staging を移動して消える）。
+  await fs.remove(zipFilePath).catch(() => undefined);
+  // 進捗は「実際に書いたファイル数」で送る（分母は絞り込み後件数）。
+  await writeZipStreaming(zipFilePath, entries, {
+    onEntry: (i) => reporter.update(i + 1),
+  });
 
   await fs.remove(tmpFile);
   // M5-T4B: 外部化 POI の一時領域も後始末する

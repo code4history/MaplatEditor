@@ -17,6 +17,7 @@ import { resolveImportSlug } from './importSlugResolver';
 import SettingsService from './SettingsService';
 import imageAssetService from './ImageAssetService';
 import { resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
+import { writeZipStreaming, type ZipSourceEntry } from '../utils/zipWriter';
 
 export type PoiExportInspection = {
   kind: 'geojson' | 'zip';
@@ -96,21 +97,27 @@ export async function writePoiExport(inspection: PoiExportInspection, filePath: 
     tempFolder,
     `poi-export-${crypto.randomUUID()}.${inspection.kind === 'zip' ? 'zip' : 'geojson'}`,
   );
+  // oct26-m4-t1 (#98 残経路2・#102): 第1エントリはメモリ上の GeoJSON のため一時ファイルへ
+  // staging してから writeZipStreaming へ渡す（writeZipStreaming は localPath を disk から読む）。
+  const geoJsonStagePath = path.join(tempFolder, `poi-export-${crypto.randomUUID()}.geojson`);
   try {
     if (inspection.kind === 'geojson') {
       await fs.writeFile(tempPath, JSON.stringify(inspection.fc, null, 2), 'utf8');
     } else {
-      const zip = new AdmZip();
-      zip.addFile(`pois/${inspection.slug}.geojson`, Buffer.from(JSON.stringify(inspection.fc, null, 2)));
+      await fs.writeFile(geoJsonStagePath, JSON.stringify(inspection.fc, null, 2), 'utf8');
+      const entries: ZipSourceEntry[] = [
+        { entryName: `pois/${inspection.slug}.geojson`, localPath: geoJsonStagePath },
+        ...inspection.files.map((file) => ({ entryName: file.dest, localPath: file.src })),
+      ];
       for (const file of inspection.files) {
         if (!(await fs.pathExists(file.src))) throw new Error(`Package file not found: ${file.dest}`);
-        zip.addLocalFile(file.src, path.posix.dirname(file.dest), path.posix.basename(file.dest));
       }
-      await fs.writeFile(tempPath, zip.toBuffer());
+      await writeZipStreaming(tempPath, entries);
     }
     await fs.move(tempPath, filePath, { overwrite: true });
   } finally {
     await fs.remove(tempPath).catch(() => undefined);
+    await fs.remove(geoJsonStagePath).catch(() => undefined);
   }
 }
 

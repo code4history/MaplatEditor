@@ -28,6 +28,11 @@ import { transcodeImage } from '../utils/thumbnail512Codec';
 // 旧 ZIP（0.7.0 期〜M12-T15 期）は 512px を JPEG で同梱しており、正規形で来るとは限らない。
 const THUMB_512_IMPORT_EXT_CANDIDATES = [THUMB_512_EXT ?? 'jpg', 'jpg', 'jpeg', 'png'];
 
+// oct26-m4-t1 (#98 item 3): 読取側の 2 GiB 上限。adm-zip は 2 GiB 超の zip を読めない
+// （ERR_FS_FILE_TOO_LARGE を実測）。地図 import 経路のみ fail-fast で明示エラーにする
+// （POI import は展開後 100 MiB 上限で 2 GiB に到達しないため無変更で安全）。
+const ZIP_IMPORT_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+
 // M5-T4B (実装レビュー Major-1): restore 失敗経路で先に走った補償の残留を、
 // throw する Error へ添えて外側へ運ぶための添え札。
 // 例外の identity（型・message・stack）は保つ ∴ 既存の失敗契約は変わらない。
@@ -242,6 +247,19 @@ class DataUploadService {
         try {
             await fs.remove(dataTmpFolder);
             await fs.ensureDir(dataTmpFolder);
+
+            // oct26-m4-t1 (#98 item 3・#102 読取側): 読取側 2 GiB 上限の fail-fast ガード。
+            // new AdmZip より前にサイズ検査し、ERR_FS_FILE_TOO_LARGE ではなく決定的で
+            // ユーザー可視なエラーへ写像する（既存 catch が { err: message } へ写像するため、
+            // 孤児化や不可視の失敗にならない）。> 2 GiB の地図 ZIP を実際に import できる
+            // 完全ストリーミング読取は依存追加を要するため oct26-m5-t2 へ申し送る。
+            const zipSize = (await fs.stat(zipFile)).size;
+            if (zipSize > ZIP_IMPORT_MAX_BYTES) {
+                throw new Error(
+                    `Map package is too large to import: ${zipSize} bytes exceeds the 2 GiB limit ` +
+                    '(>2 GiB streaming import is deferred to oct26-m5-t2)',
+                );
+            }
 
             const zip = new AdmZip(zipFile);
 

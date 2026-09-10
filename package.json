@@ -240,7 +240,8 @@
     "smoke:mapedit-align-m1-t2-basemap-align": "node scripts/mapedit-align-m1-t2-basemap-align-smoke.mjs",
     "test:e2e:mapedit-align-m1-t2": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/mapedit-align-m1-t2-basemap-align.spec.ts",
     "smoke:mapedit-align-m1-t4-reset-persist": "node scripts/mapedit-align-m1-t4-reset-persist-smoke.mjs",
-    "test:e2e:mapedit-align-m1-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/mapedit-align-m1-t4-reset-persist.spec.ts"
+    "test:e2e:mapedit-align-m1-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/mapedit-align-m1-t4-reset-persist.spec.ts",
+    "smoke:oct26-m4-t1-zip-residual": "node scripts/oct26-m4-t1-zip-residual-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
