@@ -257,7 +257,7 @@ class DataUploadService {
             if (zipSize > ZIP_IMPORT_MAX_BYTES) {
                 throw new Error(
                     `Map package is too large to import: ${zipSize} bytes exceeds the 2 GiB limit ` +
-                    '(>2 GiB streaming import is deferred to oct26-m5-t2)',
+                    '(>2 GiB streaming import is not yet supported)',
                 );
             }
 

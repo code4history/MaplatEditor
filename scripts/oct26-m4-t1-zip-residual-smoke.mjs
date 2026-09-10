@@ -9,6 +9,8 @@
 //   MIN-2（設計レビュー申し送り）mapDownloadZip.ts が writeZipStreaming 呼び出し前に
 //        slug 由来 staging パス（`${slug}.zip`）の非存在を先行削除で保証していること
 //        （'wx' 化後、残留 staging ファイルによる EEXIST の地図 DL 失敗を防ぐ）
+//   MAJ-1（実装レビュー是正）writeZipStreaming が失敗した際、実際に open できた targetPath
+//        のみ後始末で削除し、'wx' で開けなかった既存ファイル・symlink は削除しないこと
 //
 // 実行方法: node scripts/oct26-m4-t1-zip-residual-smoke.mjs（pnpm run は使わない。
 //   outer lock 汚染回避。m6-t10 と同じ vite SSR ビルド + electron/electron-store スタブ方式）。
@@ -56,7 +58,7 @@ try {
 
   await writeFile(entryFile, `
     import assert from 'node:assert/strict';
-    import { writeFile as fsWriteFile, mkdir as fsMkdir, readFile as fsReadFile, open as fsOpen } from 'node:fs/promises';
+    import { writeFile as fsWriteFile, mkdir as fsMkdir, readFile as fsReadFile, open as fsOpen, symlink as fsSymlink, lstat as fsLstat, readlink as fsReadlink } from 'node:fs/promises';
     import nodePath from 'node:path';
     import AdmZip from 'adm-zip';
 
@@ -101,6 +103,45 @@ try {
       const okEntries = new AdmZip(okTarget).getEntries().map((e) => e.entryName);
       assert.deepEqual(okEntries, ['maps/foo.json'], 'AC2: 正常名は従来どおり書けること');
       console.log('ok AC2: 危険なエントリ名を reject し、正常名は書ける（' + dangerous.length + ' 種）');
+    }
+
+    // =====================================================================
+    // MAJ-1（実装レビュー是正）: 失敗時後始末が、'wx' で開けなかった既存ファイル・symlink を
+    // 削除しないこと。'wx' は既存があると EEXIST で開けない（= 自己防衛の意図）。その際、
+    // catch の fs.remove が「開けなかった既存ファイル・symlink」まで消すとデータ消失になる。
+    // =====================================================================
+    {
+      const maj1Src = nodePath.join(workDir, 'maj1-src.json');
+      await fsWriteFile(maj1Src, JSON.stringify({ payload: true }));
+
+      // 既存の通常ファイル
+      const existingFile = nodePath.join(workDir, 'maj1-existing.txt');
+      await fsWriteFile(existingFile, 'ORIGINAL-CONTENT');
+      await assert.rejects(
+        writeZipStreaming(existingFile, [{ entryName: 'maps/foo.json', localPath: maj1Src }]),
+        (err) => err && (err.code === 'EEXIST' || /EEXIST/.test(String(err?.message))),
+        'MAJ-1: 既存ファイルへ書くと EEXIST で reject されること',
+      );
+      assert.equal(await fsReadFile(existingFile, 'utf8'), 'ORIGINAL-CONTENT',
+        'MAJ-1: EEXIST の後、既存ファイルが削除されず残ること');
+
+      // 既存の symlink
+      const linkTarget = nodePath.join(workDir, 'maj1-link-target.txt');
+      await fsWriteFile(linkTarget, 'LINK-TARGET-CONTENT');
+      const symlinkPath = nodePath.join(workDir, 'maj1-existing-symlink');
+      await fsSymlink(linkTarget, symlinkPath);
+      await assert.rejects(
+        writeZipStreaming(symlinkPath, [{ entryName: 'maps/foo.json', localPath: maj1Src }]),
+        (err) => err && (err.code === 'EEXIST' || /EEXIST/.test(String(err?.message))),
+        'MAJ-1: 既存 symlink へ書くと EEXIST で reject されること',
+      );
+      const lst = await fsLstat(symlinkPath);
+      assert.ok(lst.isSymbolicLink(), 'MAJ-1: EEXIST の後、symlink 自体が削除されず残ること');
+      assert.equal(await fsReadlink(symlinkPath), linkTarget,
+        'MAJ-1: symlink の参照先（名前）が維持されること');
+      assert.equal(await fsReadFile(linkTarget, 'utf8'), 'LINK-TARGET-CONTENT',
+        'MAJ-1: symlink のリンク先ファイルが生存すること');
+      console.log('ok MAJ-1: 失敗時後始末が開けなかった既存ファイル・symlink を削除しない');
     }
 
     // =====================================================================

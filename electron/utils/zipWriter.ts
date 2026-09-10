@@ -206,7 +206,8 @@ function encodeLocalFileHeader(rec: CentralRecord): Buffer {
 /**
  * entries を targetPath へ 1 本の zip として**逐次**書き出す。
  * ピークメモリは O(最大エントリのサイズ) + O(エントリ数 × 約 100B)。
- * 失敗時は必ず reject し、書きかけの targetPath を削除する。
+ * 失敗時は必ず reject し、実際に開けた targetPath（書きかけ）を削除する。
+ * 'wx' で開けなかった既存ファイル・symlink は削除しない（実装レビュー MAJ-1）。
  */
 export async function writeZipStreaming(
   targetPath: string,
@@ -342,8 +343,14 @@ export async function writeZipStreaming(
     if (streamError) throw streamError;
   } catch (e) {
     out.destroy();
-    // 失敗時は書きかけの targetPath を残さない（設計書 §4.3.1 の契約）
-    await fs.remove(targetPath).catch(() => undefined);
+    // 失敗時は書きかけの targetPath を残さない（設計書 §4.3.1 の契約）。
+    // ただし 'wx' で開けなかった既存ファイル・symlink（streamError.code === 'EEXIST'）は
+    // 削除しない（実装レビュー MAJ-1）。'wx' の EEXIST は「対象パスが既に存在した」ことの
+    // 唯一の信号であり、それを消すとデータ消失になる。open が成功した場合や fail-fast 等の
+    // 自前 throw（streamError が null）は従来どおり書きかけを削除する。
+    if ((streamError as (Error & { code?: string }) | null)?.code !== 'EEXIST') {
+      await fs.remove(targetPath).catch(() => undefined);
+    }
     throw e;
   }
 }
