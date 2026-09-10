@@ -18,7 +18,7 @@
 import path from 'node:path';
 import fs from 'fs-extra';
 // #105: ランタイムタイル URL は file:// から app://local へ移行する
-import { localFileUrl } from './appScheme';
+import { localFileUrl, migrateLegacyFileUrl } from './appScheme';
 
 /**
  * ランタイム専用のタイルURL（url_）を決定する。
@@ -34,7 +34,10 @@ export async function deriveRuntimeTileUrl(
   json: { url?: string } | null | undefined,
   thumbFolder: string,
 ): Promise<string | undefined> {
-  if (json?.url) return json.url;
+  // MIN-2 是正: 交換形 url に旧 file:// が残っている既存地図は、webSecurity:true 下で表示不可に
+  // なるため、file:// のタイル URL テンプレートを app://local へ補正して返す（http/https や
+  // 認識できない独自形式は migrateLegacyFileUrl がそのまま返す）。
+  if (json?.url) return migrateLegacyFileUrl(json.url);
 
   try {
     if (await fs.pathExists(thumbFolder)) {

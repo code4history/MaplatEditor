@@ -16,6 +16,7 @@
  *   - 復号は `fileURLToPath` と同じく encoded 区切り文字（`%2F` / `%5C`）を拒否して迂回を防ぐ。
  */
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const APP_SCHEME = 'app';
 export const BUNDLE_HOST = 'bundle';
@@ -75,11 +76,42 @@ export function bundleFileUrl(relPath: string): string {
   return `app://${BUNDLE_HOST}/${forward}`;
 }
 
+/**
+ * 旧 `file://` のタイル URL テンプレートを `app://local` へ補正する（#105 / oct26-m4-t2 MIN-2）。
+ *
+ * 旧実装（file-url ライブラリ + 手組み `/{z}/{x}/{y}.<ext>`）が生成した交換形 url は
+ * `file:///abs/path/{z}/{x}/{y}.<ext>` の形で永続データに残り得る。webSecurity:true の下では
+ * renderer が file:// を読めないため、プレフィックスの実パス部分だけを再符号化して
+ * `app://local/<encoded>/abs/path/{z}/{x}/{y}.<ext>` へ写す。
+ *
+ * テンプレートサフィックスの `{z}/{x}/{y}` は literal のまま残す。`localFileUrl` をそのまま
+ * 当てると `%7Bz%7D` に符号化されてタイルテンプレートが壊れるため、サフィックスを分離して
+ * プレフィックス（実パス）だけを対象にする（`fileURLToPath` で旧 file URL を実パスへ復号）。
+ *
+ * 是正の範囲は「実際に旧実装が生成した形」に限る:
+ * - `file://` 以外（http/https/app:// 等）はそのまま返す（リモートタイル・既に app://local の URL を壊さない）
+ * - `/{z}/{x}/{y}.<ext>` サフィックスを持たない独自形式はそのまま返す（壊すより旧 URL のまま残す）
+ */
+export function migrateLegacyFileUrl(url: string): string {
+  if (!url.startsWith('file://')) return url;
+  const m = url.match(/^(.*)\/(\{z\}\/\{x\}\/\{y\}\.[^./\\]+)$/);
+  if (!m) return url;
+  try {
+    const nativePrefix = fileURLToPath(m[1]);
+    return `${localFileUrl(nativePrefix)}/${m[2]}`;
+  } catch {
+    return url;
+  }
+}
+
 export interface AppSchemeRoots {
   /** renderer 同梱リソースの探索ルート（先勝ち。例: [dist, public]） */
   bundleRoots: string[];
-  /** ローカルリソースの許可ルート（saveFolder）。この配下だけ配信を許可する */
-  localRoot: string;
+  /**
+   * ローカルリソースの許可ルート（複数）。`localFileUrl()` で実際に URL 化される置き場所だけを
+   * 列挙する（saveFolder / draftTileRoot / tmpFolder 配下の tiles）。この配下だけ配信を許可する。
+   */
+  localRoots: string[];
 }
 
 export interface AppUrlResolution {
@@ -108,7 +140,8 @@ function decodePathname(pathname: string): string {
  * app:// URL を許可経路の allowlist に照らして実ファイルパスへ解決する純関数。
  *
  * - `app://bundle/<rel>` … bundleRoots 配下の相対パス（renderer / 同梱リソース）
- * - `app://local/<abs>`  … localRoot（saveFolder）配下の絶対パス（ローカルリソース）
+ * - `app://local/<abs>`  … localRoots（saveFolder / draftTileRoot / tmpFolder 配下 tiles）の
+ *                           いずれかに含まれる絶対パス（ローカルリソース）
  * - それ以外（file:// / http(s):// / 未知 host）は null（拒否）
  *
  * 実体の存在確認は行わない（handler 側が net.fetch で 404 を返す）。ここでは
@@ -139,7 +172,9 @@ export function resolveAppUrl(rawUrl: string, roots: AppSchemeRoots): AppUrlReso
   if (u.hostname === LOCAL_HOST) {
     const nativePath = appUrlToLocalPath(rawUrl);
     if (nativePath === null) return null;
-    if (!isUnderRoot(nativePath, roots.localRoot)) return null;
+    // MAJ-1 是正: localRoots のいずれかの許可ルート配下かを判定する（旧実装は localRoot 単一で、
+    // draftTileRoot / tmpFolder 配下 tiles の下書き・一時タイルが 403 になっていた）。
+    if (!roots.localRoots.some((root) => isUnderRoot(nativePath, root))) return null;
     return { filePath: nativePath, mimeType: mimeFor(nativePath) };
   }
 

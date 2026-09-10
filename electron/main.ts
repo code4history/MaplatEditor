@@ -228,18 +228,34 @@ async function gcOrphanDraftTiles(): Promise<void> {
 app.whenReady().then(async () => {
   // #105 / oct26-m4-t2: app:// のリクエストハンドラを登録する（registerSchemesAsPrivileged の後）。
   // resolveAppUrl の許可経路 allowlist で解決できた実体のみ net.fetch で配信し、それ以外は 403。
-  protocol.handle(APP_SCHEME, (request) => {
+  protocol.handle(APP_SCHEME, async (request) => {
     const bundleRoots = [RENDERER_DIST, path.join(process.env.APP_ROOT, 'public')];
     const saveFolder = SettingsService.get('saveFolder');
-    const localRoot = typeof saveFolder === 'string' && saveFolder ? saveFolder : path.join(process.env.APP_ROOT, 'dist');
-    const resolution = resolveAppUrl(request.url, { bundleRoots, localRoot });
+    const fallbackRoot = path.join(process.env.APP_ROOT, 'dist');
+    // MAJ-1 是正: localFileUrl() が URL 化する置き場所（saveFolder / draftTileRoot /
+    // tmpFolder 配下の tiles）を正規の配信ルートとして許可する。allowlist を広げすぎないため、
+    // tmpFolder は「tiles サブディレクトリのみ」を許可する（mapDownloadZip 等の zip 一時領域は
+    // app://local で配信されない）。
+    const localRoots = [
+      typeof saveFolder === 'string' && saveFolder ? saveFolder : fallbackRoot,
+      draftTileRoot,
+      path.join(SettingsService.get('tmpFolder') as string, 'tiles'),
+    ];
+    const resolution = resolveAppUrl(request.url, { bundleRoots, localRoots });
     if (!resolution) {
       return new Response('Forbidden', {
         status: 403,
         headers: { 'content-type': 'text/plain; charset=utf-8' },
       });
     }
-    return net.fetch(pathToFileURL(resolution.filePath).toString());
+    const res = await net.fetch(pathToFileURL(resolution.filePath).toString());
+    // MIN-1 是正: net.fetch(file://…) の Content-Type に依存せず、mimeFor が導出した
+    // Content-Type を明示する（ES module .js は MIME が厳格のため、誤った Content-Type で
+    // bundle が読めない退行を防ぐ）。
+    return new Response(res.body, {
+      status: res.status,
+      headers: { 'content-type': resolution.mimeType },
+    });
   });
 
   // HMR時の「2重登録」エラーを防ぐため、既存ハンドラを事前に解除する
