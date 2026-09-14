@@ -252,7 +252,8 @@ class DataUploadService {
             // new AdmZip より前にサイズ検査し、ERR_FS_FILE_TOO_LARGE ではなく決定的で
             // ユーザー可視なエラーへ写像する（既存 catch が { err: message } へ写像するため、
             // 孤児化や不可視の失敗にならない）。> 2 GiB の地図 ZIP を実際に import できる
-            // 完全ストリーミング読取は依存追加を要するため oct26-m5-t2 へ申し送る。
+            // 完全ストリーミング読取は依存追加を要する機能追加で、脆弱性是正のタスクでは扱わない
+            // （oct26-m5-t16 設計 §10 で範囲外と記録し、oct26-m8-t1 の棚卸しへ回した）。
             const zipSize = (await fs.stat(zipFile)).size;
             if (zipSize > ZIP_IMPORT_MAX_BYTES) {
                 throw new Error(
@@ -277,7 +278,7 @@ class DataUploadService {
             //
             // ここで throw しても **まだ何も書いていない** ため、補償は不要である
             // （完全ロールバック。§6.3.2 の residue は付かない）。
-            assertSafeArchiveEntries(zipEntryInfos(zip), 'map package');
+            assertSafeArchiveEntries(zipEntryInfos(zip, 'map package'), 'map package');
 
             zip.extractAllTo(dataTmpFolder, true);
 

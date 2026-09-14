@@ -167,6 +167,25 @@ try {
     await writeFile(path.join(fixtureDirOuter, c.file), rawZip(c.entries));
   }
   await writeFile(path.join(fixtureDirOuter, 'safe.zip'), rawZip(MAP_SKELETON));
+  // oct26-m5-t16: adm-zip 0.6.1 で重複名の拒否が getEntries() の中へ移ったことに対する追加 fixture
+  //   evil-duplicate-2.zip   同じプロセスで読む 2 件目の重複名（0.6.1 の例外文言は entry 名が古くなる）
+  //   evil-poi-duplicate.zip POI パッケージ側の重複名
+  //   bad-cen.zip            central directory の署名を壊した ZIP（重複名以外の adm-zip の例外）
+  await writeFile(path.join(fixtureDirOuter, 'evil-duplicate-2.zip'), rawZip([
+    ...MAP_SKELETON,
+    { name: 'tiles/himeji/0/0/2.jpg', data: 'a' },
+    { name: 'tiles/himeji/0/0/2.jpg', data: 'b' },
+  ]));
+  await writeFile(path.join(fixtureDirOuter, 'evil-poi-duplicate.zip'), rawZip([
+    { name: 'pois/a.geojson', data: '{}' },
+    { name: 'pois/a.geojson', data: '{}' },
+  ]));
+  {
+    const buf = rawZip(MAP_SKELETON);
+    // EOCD（末尾 22 byte）の offset 16 が central directory の開始位置。そこの署名を 0 にする
+    buf.writeUInt32LE(0, buf.readUInt32LE(buf.length - 22 + 16));
+    await writeFile(path.join(fixtureDirOuter, 'bad-cen.zip'), buf);
+  }
 
   await writeFile(entryFile, `
     import assert from 'node:assert/strict';
@@ -204,15 +223,21 @@ try {
       return out;
     };
 
-    const CASES = ${JSON.stringify(CASES.map((c) => ({ label: c.label, file: c.file, expect: c.expect })))};
+    // hasPois は fixture の生成入力から判定する（oct26-m5-t16: adm-zip 0.6.1 は重複名の ZIP の
+    // getEntries() で投げるため、前提検査を adm-zip の読み取りに依存させない）
+    const CASES = ${JSON.stringify(CASES.map((c) => ({
+      label: c.label,
+      file: c.file,
+      expect: c.expect,
+      hasPois: c.entries.some((e) => e.name.startsWith('pois/')),
+    })))};
 
     for (const c of CASES) {
       const zipPath = nodePath.join(${JSON.stringify(fixtureDirOuter)}, c.file);
 
       // 前提: 危険 entry が **生のまま** ZIP に入っていること（fixture が無効化されていない）
-      const infos = zipEntryInfos(new AdmZip(zipPath));
       assert.equal(
-        infos.some((i: any) => String(i.name).startsWith('pois/')), false,
+        c.hasPois, false,
         c.label + ': AC3(a-2) fixture は pois/ を1件も含まないこと',
       );
 
@@ -265,6 +290,54 @@ try {
       }
       assert.ok(infos.some((i: any) => i.name === 'maps/himeji.json'));
       console.log('ok: zipEntryInfos が PoiPackageEntryInfo を組む');
+    }
+
+    // -----------------------------------------------------------------------
+    // oct26-m5-t16: 重複名のメッセージを adm-zip の版に依らず保つ。
+    // 0.6.1 は重複名を getEntries() の中で拒否し、その例外文言の entry 名は同一プロセスの
+    // 2 件目以降で古くなる（上流の不具合）。また例外の後に同じインスタンスを読み直すと
+    // 部分的な entry 一覧で黙って進む。製品は重複名だけを製品のメッセージへ写す。
+    // -----------------------------------------------------------------------
+    {
+      const { importPoiZip } = await import(${JSON.stringify(packageServicePath)});
+
+      // (i) 2 件目の重複名 ZIP（同じプロセス）
+      const dup2 = nodePath.join(${JSON.stringify(fixtureDirOuter)}, 'evil-duplicate-2.zip');
+      const r2 = await dataUploadService.extractZip(dup2);
+      assert.ok(r2 && typeof r2.err === 'string',
+        '2 件目の重複名: { err } で拒否されること（実際: ' + JSON.stringify(r2) + '）');
+      assert.ok(r2.err.startsWith('Duplicate map package entry'),
+        '2 件目の重複名: 製品のメッセージで始まること（実際: ' + r2.err + '）');
+      assert.equal(r2.err.includes('ADM-ZIP'), false,
+        '2 件目の重複名: adm-zip の例外文言を出さないこと（実際: ' + r2.err + '）');
+      const suffix = r2.err.slice('Duplicate map package entry'.length);
+      assert.ok(suffix === '' || suffix === ': tiles/himeji/0/0/2.jpg',
+        '2 件目の重複名: entry 名を出すなら実際の重複名であること（実際: ' + r2.err + '）');
+      const written2 = await extractedNames();
+      assert.deepEqual(written2, [],
+        '2 件目の重複名: 一時展開先に entry が1件も出現しないこと（実際に出た: ' + JSON.stringify(written2) + '）');
+      console.log('ok: oct26-m5-t16 (i) 2 件目の重複名 ZIP');
+
+      // (ii) POI パッケージの重複名
+      const poiDup = nodePath.join(${JSON.stringify(fixtureDirOuter)}, 'evil-poi-duplicate.zip');
+      await assert.rejects(
+        () => importPoiZip(poiDup),
+        (e: any) => {
+          assert.ok(String(e?.message).startsWith('Duplicate POI package entry'),
+            'POI の重複名: 製品のメッセージで拒否されること（実際: ' + e?.message + '）');
+          return true;
+        },
+      );
+      console.log('ok: oct26-m5-t16 (ii) POI パッケージの重複名');
+
+      // (iii) 重複名以外の adm-zip の例外は写さない
+      const badCen = nodePath.join(${JSON.stringify(fixtureDirOuter)}, 'bad-cen.zip');
+      assert.throws(
+        () => zipEntryInfos(new AdmZip(badCen), 'map package'),
+        /^Error: ADM-ZIP: Invalid CEN header/,
+        '重複名以外の adm-zip の例外は写さずにそのまま投げること',
+      );
+      console.log('ok: oct26-m5-t16 (iii) 重複名以外の adm-zip の例外は素通し');
     }
 
     console.log('m5-t4 archive safety timing OK');

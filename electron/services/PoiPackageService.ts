@@ -66,15 +66,35 @@ function isSymlinkEntry(entry: AdmZip.IZipEntry): boolean {
   return mode === 0o120000;
 }
 
+/** adm-zip 0.6.1 の util/errors.js DUPLICATE_ENTRY の前置部分（{0} の置換は前置部分に影響しない） */
+const ADM_ZIP_DUPLICATE_ENTRY = /^ADM-ZIP: Duplicate entry name /;
+
 /**
  * M5-T4: AdmZip の entry を安全検証・容量検査の入力形へ変換する共通処理。
  *
  * 地図 ZIP 側（DataUploadService）も同じ変換を要するが、そこで組み直すと
  * **symlink 判定（上の isSymlinkEntry）が二重実装になる**。判定を1本に保つため
  * ここを唯一の変換点とする（恒久指示「同一扱い処理は共通実装へ徹底」）。
+ *
+ * oct26-m5-t16: adm-zip 0.6.1 は重複した entry 名を `getEntries()` の中で
+ * `ADM-ZIP: Duplicate entry name "<名前>"` として拒否する。この例外だけを製品のメッセージ
+ * `Duplicate <kindLabel> entry` へ写し、それ以外の例外はそのまま投げ直す。
+ * adm-zip の文言の entry 名は同一プロセスの 2 件目以降で古くなる（上流の不具合）ため使わない。
+ * **重複名で投げた後は同じ AdmZip インスタンスを使わないこと**（0.6.1 の readEntries は例外の後に
+ * 部分的な entry 一覧を残し、読み直すと重複名の ZIP を黙って展開してしまう）。呼び出し元でこの例外を
+ * catch して同じ zip を使い続ける形にしない。
  */
-export function zipEntryInfos(zip: AdmZip): PoiPackageEntryInfo[] {
-  return zip.getEntries().map((entry) => ({
+export function zipEntryInfos(zip: AdmZip, kindLabel = 'POI package'): PoiPackageEntryInfo[] {
+  let entries: AdmZip.IZipEntry[];
+  try {
+    entries = zip.getEntries();
+  } catch (error) {
+    if (error instanceof Error && ADM_ZIP_DUPLICATE_ENTRY.test(error.message)) {
+      throw new Error(`Duplicate ${kindLabel} entry`);
+    }
+    throw error;
+  }
+  return entries.map((entry) => ({
     name: entry.entryName,
     size: Number(entry.header.size),
     isSymlink: isSymlinkEntry(entry),
