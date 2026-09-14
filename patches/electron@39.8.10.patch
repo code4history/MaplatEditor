@@ -1,0 +1,13 @@
+diff --git a/install.js b/install.js
+index 9d7ecaf..df04345 100644
+--- a/install.js
++++ b/install.js
+@@ -2,7 +2,7 @@
+ 
+ const { downloadArtifact } = require('@electron/get');
+ 
+-const extract = require('extract-zip');
++const { extract } = require('extract-zip');
+ 
+ const childProcess = require('child_process');
+ const fs = require('fs');

@@ -58,6 +58,9 @@ overrides:
   path-to-regexp: "~1.9.0"
   postcss: "^8.5.23"
   undici: "^7.29.0"
+  # extract-zip（high×2・修正版なし）→ Electron 公式の置換 fork。electron 側は patches/electron@39.8.10.patch と対（oct26-m5-t12）。
+  "@puppeteer/browsers>extract-zip": "npm:@electron-internal/extract-zip@^1.0.5"
+  "electron>extract-zip": "npm:@electron-internal/extract-zip@^1.0.5"
 
 # 自組織パッケージは publisher が我々自身のため、pnpm 11 既定の 24h 隔離
 # （minimumReleaseAge=1440・サプライチェーン保護）の対象外とする。第三者依存への
@@ -67,3 +70,8 @@ overrides:
 minimumReleaseAgeExclude:
   - "@maplat/*"
   - "@c4h/*"
+
+# oct26-m5-t12: electron@39.8.10 の install.js L5 を置換先の名前付き export に合わせる（Electron 40.10.3 以降と同じ形）。
+# electron を 40.10.3 以上へ上げるときに本節・patch・electron>extract-zip を外す（外し忘れは ERR_PNPM_UNUSED_PATCH）。
+patchedDependencies:
+  electron@39.8.10: patches/electron@39.8.10.patch
