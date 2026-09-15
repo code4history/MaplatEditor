@@ -20,6 +20,7 @@
 - 全エントリに `kind`・`reason`・`issue` が必須（空文字は不可）。smoke の `known-failure` は `expect`（失敗出力の固定部分。パスや乱数を含めない）が必須
 - e2e のエントリは `file`（`tests/e2e/` からの相対）・`line`（`test(` のある行）・`title`（その `test(` の第 1 引数。describe 名は含めない）
 - 表に書いていない smoke・spec は自動で実行対象になる（新しい smoke・spec を足したときに表を触る必要は無い）
+- **失敗を集めてから最後にまとめて throw する型の smoke** を `known-failure` に載せるときは、`expect` に失敗件数を含める（例: `3 件失敗`）。固定文言だけだと、同じ smoke の中で新しく増えた失敗が既知失敗に隠れる
 
 ## 手元で判定を通す
 
@@ -31,14 +32,26 @@ pnpm run build
 node scripts/ci/run-smokes.mjs --report smoke-report.json       # = pnpm run ci:smoke
 node scripts/ci/judge-test-results.mjs smoke --report smoke-report.json   # = pnpm run ci:judge
 
-# e2e（手元では m12-t18-os-trash-delete.spec.ts を外す。実際の ~/.Trash に書くため。runner では実行される）
-PLAYWRIGHT_JSON_OUTPUT_NAME=e2e-report-1.json ./node_modules/.bin/playwright test --forbid-only --shard=1/3 --reporter=json,list \
-  --grep-invert "m12-t18-os-trash-delete"; echo $? > playwright-exit-1.txt
-node scripts/ci/judge-test-results.mjs e2e --report e2e-report-1.json --exit-file playwright-exit-1.txt
+# e2e は 3 シャードすべてを回し、シャードごとに --shard n/3 を付けて判定する
+# 手元では m12-t18-os-trash-delete.spec.ts を外す（実際の ~/.Trash に書くため。runner では実行される）。
+# --grep-invert を使うときは 3 シャードすべてに同じものを付ける（シャードの割り当てがそろい、取りこぼしが出ない）
+for n in 1 2 3; do
+  PLAYWRIGHT_JSON_OUTPUT_NAME=e2e-report-$n.json ./node_modules/.bin/playwright test --forbid-only --shard=$n/3 --reporter=json,list \
+    --grep-invert "m12-t18-os-trash-delete"
+  echo $? > playwright-exit-$n.txt
+  node scripts/ci/judge-test-results.mjs e2e --report e2e-report-$n.json --exit-file playwright-exit-$n.txt --shard $n/3
+done
+
+# 取りこぼし（表のエントリがどのシャードにも現れない = not-observed）は 3 シャードの報告をまとめて measure-exclusions で見る
+node scripts/ci/measure-exclusions.mjs --smoke-report smoke-report.json \
+  --e2e-reports e2e-report-1.json,e2e-report-2.json,e2e-report-3.json --out exclusions-diff.json --fail-on-diff 1
 ```
 
-- 手元で e2e のファイルを外すとシャードの割り当てが runner と変わる。**手元の判定は `--shard` を付けずに全シャード分をまとめて見るか、外した上での参考値として扱う**
+- 判定器はシャード単位でしか判定しない（`--shard` を付けずに複数シャードをまとめて与える使い方は無い）。シャードをまたぐ検査は measure-exclusions が受け持つ
+- 手元で e2e のファイルを外すとシャードの割り当てが runner と変わる。手元の結果は外した上での参考値で、runner の結果が正本
+- `--forbid-only` を必ず付ける（`test.only` の混入で一部だけ実行した報告を緑と読まない）
 - 判定を**合流の証跡**に使うときは、中断（Ctrl-C・タイムアウト）していない報告であることが判定器で確かめられる（`interrupted`・注記の無い skipped・exit 0/1 以外は赤）
+- 報告ファイル（`smoke-report*.json`・`e2e-report*.json`・`playwright-exit*.txt`・`exclusions-diff.json`）は `.gitignore` 済み。commit しない
 
 ## 除外表の測り直し（`scripts/ci/measure-exclusions.mjs`）
 
@@ -47,7 +60,7 @@ node scripts/ci/measure-exclusions.mjs --smoke-report smoke-report.json \
   --e2e-reports e2e-report-1.json,e2e-report-2.json,e2e-report-3.json --out exclusions-diff.json
 ```
 
-表は書き換えない。差分案（`unregistered-failure`・`registered-but-passed`・`expect-mismatch`・`intermittent`・`registered-but-skipped`・`not-observed`）を JSON で出す。各行の `reason`・`issue`・`expect` を人（またはエージェント）が埋めて表を直す。**新しく出た失敗を `known-failure` に載せるときは、原因がその変更の外にあることを失敗ログで示し、`issue` に既存 Issue か新 Issue を書く。原因が分からない失敗は載せずに合流を止める。**
+表は書き換えない。差分案（`unregistered-failure`・`registered-but-passed`・`expect-mismatch`・`intermittent`（known-failure が再試行で合格した）・`registered-but-skipped`・`not-observed`）を JSON で出す（kind `intermittent` のエントリは結果を問わず差分にしない）。各行の `reason`・`issue`・`expect` を人（またはエージェント）が埋めて表を直す。**新しく出た失敗を `known-failure` に載せるときは、原因がその変更の外にあることを失敗ログで示し、`issue` に既存 Issue か新 Issue を書く。原因が分からない失敗は載せずに合流を止める。**
 
 ## 合流の順序と、表を直す責任（t5 と並行タスク）
 
