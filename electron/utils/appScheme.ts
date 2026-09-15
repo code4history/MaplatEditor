@@ -280,15 +280,14 @@ export function mimeFor(filePath: string): string {
 /**
  * ローカルリソース応答に付ける防御ヘッダ（oct26-m4-t2ff）。
  * 同一 origin 配信にしたことで、saveFolder 内の HTML/SVG を renderer と同じ origin で開けるようになる。
- * - CSP `sandbox`: その文書を不透明 origin で開き、スクリプトを走らせない（renderer の DOM・preload API に届かない）
- * - `nosniff`: 拡張子から決めた Content-Type 以外として解釈させない
- * - CORP `same-origin`: 他 origin のページからの no-cors 埋め込み（crossOrigin 無し <img> 等）も拒否する
+ * CSP `sandbox` でその文書を不透明 origin として開き、スクリプトを走らせない（renderer の DOM・preload API に届かない。
+ * 外すと同一 origin の iframe から親の DOM を書き換えられることを e2e AC-FF-7 の変異で実測）。
+ * CORP `same-origin` は app:// では効かなかった（付けても他 origin の crossOrigin 無し <img> が表示できた・実測）ので付けない。
+ * nosniff は Content-Type を mimeFor で明示しており、効きを確かめた経路が無いので付けない。
  */
 export function localResponseHeaders(): Record<string, string> {
   return {
     'content-security-policy': "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'",
-    'x-content-type-options': 'nosniff',
-    'cross-origin-resource-policy': 'same-origin',
   };
 }
 

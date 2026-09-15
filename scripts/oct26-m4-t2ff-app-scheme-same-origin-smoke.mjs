@@ -120,8 +120,6 @@ const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ 
   const get = (u) => handler(new Request(u));
   const expectedLocalHeaders = localResponseHeaders();
   assert.match(expectedLocalHeaders["content-security-policy"], /(^|;\s*)sandbox(;|$)/);
-  assert.equal(expectedLocalHeaders["x-content-type-options"], "nosniff");
-  assert.equal(expectedLocalHeaders["cross-origin-resource-policy"], "same-origin");
   const hasLocalHeaders = (res) => Object.entries(expectedLocalHeaders).every(([k, v]) => res.headers.get(k) === v);
   try {
     const ok = await get(localFileUrl(path.join(save, "tiles", "0.png")));
