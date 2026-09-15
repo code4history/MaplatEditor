@@ -12,7 +12,7 @@
 //   (e) rename: 既存slugへの改名 → Exist
 //   (f) rename: stale expectedRevision → { error:'revision-conflict', current }
 //   (g) rename: 正常系 → revision++ / registry 同期(旧slug解放・新slugで解決可能)
-//   (h) getFilePath: 実在ファイルは file:// URL を返す
+//   (h) getFilePath: 実在ファイルは app://local URL を返す（oct26-m4-t2 #105 で file:// から移行）
 //   (i) delete: 本体・registry 掃除 / ファイルは削除でなく _trash へ退避 / 旧slugは再利用可能
 //   (j) delete-race: rename の書込 (upsertAssetMeta) の直前に並行 delete (フックで注入、
 //       事前チェックの順序に依らずガードを直撃) → 復活 (revision=1 再INSERT + registry slug 再占有)
@@ -38,6 +38,7 @@ const bundledFile = path.join(outDir, 'image-asset-smoke.mjs');
 try {
   const dataDir = path.join(workDir, 'data');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const appSchemePath = path.join(projectRoot, 'electron/utils/appScheme.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const servicePath = path.join(projectRoot, 'electron/services/ImageAssetService.ts');
 
@@ -280,9 +281,15 @@ try {
       assert.equal(bySlugAfterRename.uid, uid, '新 slug で解決できるはず');
       console.log('ok: (g) rename bumps revision and syncs the registry');
 
-      // (h) getFilePath: 実在ファイルは file:// URL
+      // (h) getFilePath: 実在ファイルは app://local URL（oct26-m4-t2s: #105 の契約。renderer が webSecurity:true で読める形）
       const filePathResult = await imageAssetService.getFilePath(uid);
-      assert.ok(typeof filePathResult === 'string' && filePathResult.startsWith('file://'), 'getFilePath は file:// URL を返すはず: ' + filePathResult);
+      assert.ok(typeof filePathResult === 'string' && filePathResult.startsWith('app://local/'), 'getFilePath は app://local URL を返すはず (#105): ' + filePathResult);
+      const { appUrlToLocalPath } = await import(${JSON.stringify(appSchemePath)});
+      assert.equal(
+        appUrlToLocalPath(filePathResult),
+        nodePath.join(dataDir, 'assets', uid + '.png'),
+        'getFilePath の URL は assets/{uid}.{ext} の実パスへ復号されるはず: ' + filePathResult
+      );
       assert.ok(filePathResult.endsWith(uid + '.png'), 'getFilePath は {uid}.{ext} を指すはず');
       console.log('ok: (h) getFilePath resolves an existing file');
 

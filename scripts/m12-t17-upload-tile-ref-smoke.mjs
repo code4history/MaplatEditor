@@ -62,6 +62,7 @@ const bundledFile = path.join(outDir, 'm12-t17-upload-tile-ref-smoke.mjs');
 
 try {
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const appSchemePath = path.join(projectRoot, 'electron/utils/appScheme.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const mapEditServicePath = path.join(projectRoot, 'electron/services/MapEditService.ts');
 
@@ -136,8 +137,9 @@ try {
         return tmpTileFolder;
       }
 
-      const fileUrlModule = await import('file-url');
-      const fileUrl = fileUrlModule.default;
+      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app://local へ移った。
+      // 実運用で url_ を作る MapUploadService.imageCutter と同じビルダー（electron/utils/appScheme.ts）で fixture を組む
+      const { localFileUrl, appUrlToLocalPath } = await import(${JSON.stringify(appSchemePath)});
 
       // ============================================================
       // Part B: tmpCheck 分岐は恒久タイルURLを url として返し、
@@ -148,7 +150,7 @@ try {
         await fs.ensureDir(dataDir);
         const tmpTileFolder = await prepareTmpUpload('png');
         // 実運用の url_ フォーマット (MapUploadService.imageCutter): tmpタイルURL + テンプレサフィックス
-        const uploadedUrl = fileUrl(tmpTileFolder) + '/{z}/{x}/{y}.png';
+        const uploadedUrl = localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.png';
 
         const UID_B1 = 'b1111111-1111-4111-8111-111111111111';
         const saveB1 = await MapEditService.save({
@@ -164,7 +166,7 @@ try {
         assert.equal(saveB1.result, 'Success', 'tmpCheck 新規保存は Success のはず: ' + JSON.stringify(saveB1));
         assert.ok(typeof saveB1.url === 'string', 'tmpCheck 分岐は url を返すはず: ' + JSON.stringify(saveB1));
 
-        const expectedPermanentPrefix = fileUrl(path.join(tileFolder, UID_B1));
+        const expectedPermanentPrefix = localFileUrl(path.join(tileFolder, UID_B1));
         assert.ok(
           saveB1.url.startsWith(expectedPermanentPrefix),
           'url は恒久タイルフォルダ(tiles/' + UID_B1 + ')を指すはず: ' + saveB1.url
@@ -174,6 +176,13 @@ try {
           'url は {z}/{x}/{y}.ext サフィックスを保持するはず: ' + saveB1.url
         );
         assert.ok(!saveB1.url.includes(tmpTileFolder), 'url は旧tmpパスを含まないはず: ' + saveB1.url);
+        // oct26-m4-t2s: #105 の契約 — 恒久 url は app://local で、復号すると恒久タイルフォルダの実パスになる
+        assert.ok(saveB1.url.startsWith('app://local/'), 'url は app://local の契約に従うはず (#105): ' + saveB1.url);
+        assert.equal(
+          appUrlToLocalPath(saveB1.url.slice(0, -'/{z}/{x}/{y}.png'.length)),
+          path.join(tileFolder, UID_B1),
+          'url の実パス部分は恒久タイルフォルダ(tiles/' + UID_B1 + ')へ復号されるはず: ' + saveB1.url
+        );
 
         // バックエンドのファイル移動自体も既存どおり正しく完了していること (回帰確認)
         assert.ok(!(await fs.pathExists(tmpTileFolder)), 'tmpタイルフォルダは移動後に消えているはず');
@@ -191,7 +200,7 @@ try {
         const { dataDir, tileFolder } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-c-$&-in-path'))});
         await fs.ensureDir(dataDir);
         const tmpTileFolder = await prepareTmpUpload('jpg');
-        const uploadedUrl = fileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg';
+        const uploadedUrl = localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg';
 
         const UID_C1 = 'c1111111-1111-4111-8111-111111111111';
         const saveC1 = await MapEditService.save({
@@ -207,7 +216,7 @@ try {
         assert.equal(saveC1.result, 'Success');
         assert.ok(typeof saveC1.url === 'string');
 
-        const expectedPermanentPrefix = fileUrl(path.join(tileFolder, UID_C1));
+        const expectedPermanentPrefix = localFileUrl(path.join(tileFolder, UID_C1));
         // $ 特殊シーケンスハザードが起きていれば、期待するプレフィックスと一致せず
         // 旧tmpパス断片 ($&) や欠落 ($1 等) が紛れ込む。文字列比較で直接検出する。
         assert.equal(
@@ -219,6 +228,14 @@ try {
         assert.ok(
           !saveC1.url.includes(tmpTileFolder),
           '$& ハザードで旧tmpパスが結果に紛れ込んでいないはず: ' + saveC1.url
+        );
+        // oct26-m4-t2s: app://local はセグメントを encodeURIComponent するため '$&' は '%24%26' として載る。
+        // 復号すると '$&' を含む実パスへ正しく戻ること（置換ハザードの有無を実パスで確かめる）
+        assert.ok(saveC1.url.includes('%24%26') && !saveC1.url.includes('$&'), 'app://local では $& が符号化されるはず: ' + saveC1.url);
+        assert.equal(
+          appUrlToLocalPath(saveC1.url.slice(0, -'/{z}/{x}/{y}.jpg'.length)),
+          path.join(tileFolder, UID_C1),
+          '$ を含む saveFolder でも url は恒久タイルフォルダの実パスへ復号されるはず: ' + saveC1.url
         );
         console.log('ok: (Part C) $ characters in saveFolder path do not corrupt the permanent tile url (regex replacement hazard, review Minor1)');
       }
@@ -264,7 +281,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveESrc = await MapEditService.save({
           mapObject: {
-            mapID: 'e1-clone-src', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
+            mapID: 'e1-clone-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -291,7 +308,7 @@ try {
         });
         assert.equal(saveEDest.result, 'Success');
         assert.ok(typeof saveEDest.url === 'string', 'clone は url を含むようになったはず (M12-T19): ' + JSON.stringify(saveEDest));
-        const expectedDestPrefix = fileUrl(path.join(tileFolder, UID_E_DEST));
+        const expectedDestPrefix = localFileUrl(path.join(tileFolder, UID_E_DEST));
         assert.ok(
           saveEDest.url.startsWith(expectedDestPrefix),
           'url は複製先(' + UID_E_DEST + ')のタイルパスを指すはず(複製元ではない): ' + saveEDest.url
@@ -310,7 +327,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const createF1 = await MapEditService.save({
           mapObject: {
-            mapID: 'f1-rename-src', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
+            mapID: 'f1-rename-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],

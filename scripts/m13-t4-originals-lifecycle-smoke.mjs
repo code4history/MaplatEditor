@@ -37,6 +37,7 @@ const bundledFile = path.join(outDir, 'm13-t4-originals-lifecycle-smoke.mjs');
 
 try {
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const appSchemePath = path.join(projectRoot, 'electron/utils/appScheme.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const mapEditServicePath = path.join(projectRoot, 'electron/services/MapEditService.ts');
   const mapDataServicePath = path.join(projectRoot, 'electron/services/MapDataService.ts');
@@ -123,8 +124,9 @@ try {
         return tmpTileFolder;
       }
 
-      const fileUrlModule = await import('file-url');
-      const fileUrl = fileUrlModule.default;
+      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app://local へ移った。
+      // 実運用で url_ を作る MapUploadService.imageCutter と同じビルダー（electron/utils/appScheme.ts）で fixture を組む
+      const { localFileUrl } = await import(${JSON.stringify(appSchemePath)});
 
       async function readWarn(fn: () => Promise<any>): Promise<{ result: any; warnings: string[] }> {
         const warnings: string[] = [];
@@ -150,7 +152,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveA1Create = await MapEditService.save({
           mapObject: {
-            mapID: 'a1-canonical-map', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder),
+            mapID: 'a1-canonical-map', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -267,7 +269,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveDSrc = await MapEditService.save({
           mapObject: {
-            mapID: 'd1-clone-src', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder),
+            mapID: 'd1-clone-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],

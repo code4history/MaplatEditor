@@ -55,6 +55,7 @@ try {
   const settingsDir = path.join(dataDir, 'settings');
   const retiredDataDir = path.join(workDir, 'data-retired');
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const appSchemePath = path.join(projectRoot, 'electron/utils/appScheme.ts');
   const langResourcePath = path.join(projectRoot, 'src/utils/langResource.ts');
   const mapDataPath = path.join(projectRoot, 'electron/services/MapDataService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
@@ -147,7 +148,9 @@ try {
     `
       import assert from 'node:assert/strict';
       import { access, mkdir, writeFile, chmod } from 'node:fs/promises';
-      import { default as fileUrl } from 'file-url';
+      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app://local へ移った。
+      // 実運用で url_ を作る MapUploadService.imageCutter と同じビルダー（electron/utils/appScheme.ts）で fixture を組む
+      import { localFileUrl } from ${JSON.stringify(appSchemePath)};
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       SettingsService.set('saveFolder', ${JSON.stringify(dataDir)});
@@ -215,7 +218,7 @@ try {
       //      同タスクの主眼(移動元不存在クラスの根絶)により pre-commit 失敗へ変わった
       const missingSourceGuarded = await StorageAdapter.saveMapForEdit({
         mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update',
-                     url_: fileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
+                     url_: localFileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
         tins: ['tooLessGcps'],
         uid: legacyUid,
         slug: 'legacy-map-renamed',
@@ -243,7 +246,7 @@ try {
       await chmod(tileFolderPath, 0o555);
       const poisoned = await StorageAdapter.saveMapForEdit({
         mapObject: { ...loaded, mapID: 'legacy-map-renamed', status: 'Update',
-                     url_: fileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
+                     url_: localFileUrl(tmpTilesDir) + '/{z}/{x}/{y}.jpg' },
         tins: ['tooLessGcps'],
         uid: legacyUid,
         slug: 'legacy-map-renamed',

@@ -1,18 +1,20 @@
 // M12-T13 smoke: resourceImageResolver / AppAssetService.fileUrlFor のパス封じ込め防御多層化。
 // m12-t1-hotfix-1 smoke と同型の harness（electron/electron-store stub + vite ssr build）で
 // resolver 関数を直接起動し、以下を検証する:
-//   AC1: resolveMapListImage は '..' を含む fileKey で saveFolder 外の file:// を返さず null
+//   AC1: resolveMapListImage は '..' を含む fileKey で saveFolder 外の app://local を返さず null
 //        （tmbs 経路・tiles fallback 経路の両方）
 //   AC2: resolveBaseMapListImage は兄弟ディレクトリ ({saveFolder}-x/...) への thumbnail で null
 //        （startsWith(saveFolder) は通るが startsWith(saveFolder + sep) で除外される）
 //   AC3: resolveBaseMapListImage の legacyPath も外なら null（多層化）
 //   AC4: AppAssetService.fileUrlFor は兄弟ディレクトリ ({saveFolder}-x) への relPath で null
-//   AC5: 正常系（tmbs/tiles/saveFolder 内の thumbnail/legacy/img）は現行どおり file:// を返す（非退行）
+//   AC5: 正常系（tmbs/tiles/saveFolder 内の thumbnail/legacy/img）は表示用 URL を返す（非退行）
+//        ※oct26-m4-t2（#105）で表示用 URL は file:// から app://local へ移った。正常系は app://local で、
+//          かつ復号した実パスが期待のファイルと一致することを断言する
 //
 // m1-t7 で以下を追加する（設計 2026-08-01-m1-t7-geocoder-escape-and-path-containment-design.md §7）:
 //   AC4(t7): resolveMapTileByRef 経路（唯一の呼び出し元 resolveAppListImage を実経路で駆動）で
-//            uid が saveFolder 外へ脱出する場合に file:// を返さず null
-//   AC5(t7): 共通ヘルパ resolveTileZeroFileUrl が素性 fileKey で file:// を返し、脱出 fileKey で null
+//            uid が saveFolder 外へ脱出する場合に app://local を返さず null
+//   AC5(t7): 共通ヘルパ resolveTileZeroFileUrl が素性 fileKey で app://local を返し、脱出 fileKey で null
 //   AC6(t7): resolveMapTileByRef が独自にパスを組み立てず共通ヘルパへ委譲している（ソース検査）
 //   AC7(t7): 実体の無い AppDataService.getMapTile への stale 参照が解消されている（ソース検査）
 import assert from 'node:assert/strict';
@@ -139,6 +141,10 @@ try {
       const workDir = ${JSON.stringify(workDir)};
 
       const { __handlers } = await import(${JSON.stringify(electronStubFile)});
+      const { appUrlToLocalPath } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/appScheme.ts'))});
+      // oct26-m4-t2s: #105 の契約 — saveFolder 配下の表示用 URL は app://local で、復号すると実パスに戻る
+      const isLocalUrlFor = (url, expectedPath) =>
+        typeof url === 'string' && url.startsWith('app://local/') && appUrlToLocalPath(url) === expectedPath;
       const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
       SettingsService.set('saveFolder', dataDir);
       SettingsService.set('lang', 'ja');
@@ -154,7 +160,7 @@ try {
       await fsWriteFile(nodePath.join(workDir, 'escape-tmbs.jpg'), PNG);
       const ac1Tmbs = await resolveMapListImage({ uid: '../../escape-tmbs' });
       assert.equal(ac1Tmbs, null,
-        'AC1: fileKey が saveFolder 外へ脱出する tmbs パスは null（file:// を返さない）: ' + ac1Tmbs);
+        'AC1: fileKey が saveFolder 外へ脱出する tmbs パスは null（app://local を返さない）: ' + ac1Tmbs);
       console.log('ok: AC1 (tmbs) fileKey escaping saveFolder returns null');
 
       // (1-b) tiles fallback 経路: tmbs を空にして tiles 側に脱出ファイルを置く
@@ -168,15 +174,15 @@ try {
         'AC1: tiles fallback も fileKey が脱出すれば null: ' + ac1Tiles);
       console.log('ok: AC1 (tiles fallback) fileKey escaping saveFolder returns null');
 
-      // (1-c) 正常系（uid が UUID を想定した素性もので tmbs に実体がある）は file:// を返す
+      // (1-c) 正常系（uid が UUID を想定した素性もので tmbs に実体がある）は app://local を返す
       const okUid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
       const tmbsDir = nodePath.join(dataDir, 'tmbs');
       await fsMkdir(tmbsDir, { recursive: true });
       await fsWriteFile(nodePath.join(tmbsDir, okUid + '.jpg'), PNG);
       const ac1Ok = await resolveMapListImage({ uid: okUid });
-      assert.ok(ac1Ok && ac1Ok.startsWith('file://'),
-        'AC1 正常系: 素性 fileKey の tmbs は file:// を返す: ' + ac1Ok);
-      console.log('ok: AC1 (non-regression) regular tmbs returns file://');
+      assert.ok(isLocalUrlFor(ac1Ok, nodePath.join(tmbsDir, okUid + '.jpg')),
+        'AC1 正常系: 素性 fileKey の tmbs は app://local を返す (#105): ' + ac1Ok);
+      console.log('ok: AC1 (non-regression) regular tmbs returns app://local');
 
       // ---- AC2: resolveBaseMapListImage の兄弟ディレクトリ排除 ----
       // saveFolder の兄弟として {saveFolder}-x ディレクトリを作り、thumbnail を '../{basename}-x/...' で指定
@@ -193,14 +199,14 @@ try {
         'AC2: 兄弟ディレクトリ ({saveFolder}-x) への thumbnail は null: ' + ac2Thumb);
       console.log('ok: AC2 sibling directory thumbnail returns null');
 
-      // (2-b) 正常系: saveFolder 内の thumbnail は file:// を返す（非退行）
+      // (2-b) 正常系: saveFolder 内の thumbnail は app://local を返す（非退行）
       const insideThumbDir = nodePath.join(dataDir, 'thumbnails');
       await fsMkdir(insideThumbDir, { recursive: true });
       await fsWriteFile(nodePath.join(insideThumbDir, 'ok.png'), PNG);
       const ac2Ok = resolveBaseMapListImage({ data: { thumbnail: 'thumbnails/ok.png' } });
-      assert.ok(ac2Ok && ac2Ok.startsWith('file://'),
-        'AC2 正常系: saveFolder 内 thumbnail は file:// を返す: ' + ac2Ok);
-      console.log('ok: AC2 (non-regression) saveFolder-inside thumbnail returns file://');
+      assert.ok(isLocalUrlFor(ac2Ok, nodePath.join(insideThumbDir, 'ok.png')),
+        'AC2 正常系: saveFolder 内 thumbnail は app://local を返す (#105): ' + ac2Ok);
+      console.log('ok: AC2 (non-regression) saveFolder-inside thumbnail returns app://local');
 
       // ---- AC3: legacyPath 多層化 ----
       // mapID に '../../' を含めて saveFolder 外の legacy ファイルを指す
@@ -213,13 +219,13 @@ try {
         'AC3: legacyPath が saveFolder 外へ脱出する mapID は null: ' + ac3Legacy);
       console.log('ok: AC3 legacyPath escaping saveFolder returns null');
 
-      // (3-b) 正常系: 素性 mapID の legacy も現行どおり file:// を返す（非退行）
+      // (3-b) 正常系: 素性 mapID の legacy も現行どおり app://local を返す（非退行）
       const okMapID = 'regularmap';
       await fsWriteFile(nodePath.join(tmbsDir, okMapID + '_menu.jpg'), PNG);
       const ac3Ok = resolveBaseMapListImage({ mapID: okMapID, data: {} });
-      assert.ok(ac3Ok && ac3Ok.startsWith('file://'),
-        'AC3 正常系: 素性 mapID の legacy は file:// を返す: ' + ac3Ok);
-      console.log('ok: AC3 (non-regression) regular legacy path returns file://');
+      assert.ok(isLocalUrlFor(ac3Ok, nodePath.join(tmbsDir, okMapID + '_menu.jpg')),
+        'AC3 正常系: 素性 mapID の legacy は app://local を返す (#105): ' + ac3Ok);
+      console.log('ok: AC3 (non-regression) regular legacy path returns app://local');
 
       // ---- AC4: AppAssetService.fileUrlFor の兄弟ディレクトリ排除 ----
       // relPath = '../{basename}-x/thumb.png' → sibling ディレクトリへ脱出
@@ -229,14 +235,14 @@ try {
         'AC4: 兄弟ディレクトリ ({saveFolder}-x) への relPath は null: ' + ac4);
       console.log('ok: AC4 fileUrlFor sibling directory relPath returns null');
 
-      // (4-b) 正常系: saveFolder 内の iconSource は file:// を返す（非退行）
+      // (4-b) 正常系: saveFolder 内の iconSource は app://local を返す（非退行）
       const appImgDir = nodePath.join(dataDir, 'img');
       await fsMkdir(appImgDir, { recursive: true });
       await fsWriteFile(nodePath.join(appImgDir, 'appicon.png'), PNG);
       const ac4Ok = AppAssetService.fileUrlFor('img/appicon.png');
-      assert.ok(ac4Ok && ac4Ok.startsWith('file://'),
-        'AC4 正常系: saveFolder 内 iconSource は file:// を返す: ' + ac4Ok);
-      console.log('ok: AC4 (non-regression) saveFolder-inside iconSource returns file://');
+      assert.ok(isLocalUrlFor(ac4Ok, nodePath.join(appImgDir, 'appicon.png')),
+        'AC4 正常系: saveFolder 内 iconSource は app://local を返す (#105): ' + ac4Ok);
+      console.log('ok: AC4 (non-regression) saveFolder-inside iconSource returns app://local');
 
       // (4-c) basemap_icons/ 経路は resourceAssetFileUrl 経由で非退行
       const ac4Builtin = AppAssetService.fileUrlFor('basemap_icons/does-not-exist.png');
@@ -280,16 +286,16 @@ try {
       SqliteDataService.findMapByRef = async () => ({ uid: '../../escape-apptile' });
       const ac4t7 = await resolveAppListImage(maplatAppDoc('../../escape-apptile'));
       assert.equal(ac4t7, null,
-        'AC4(t7): startFrom 地図の uid が saveFolder 外へ脱出しても file:// を返さない: ' + ac4t7);
+        'AC4(t7): startFrom 地図の uid が saveFolder 外へ脱出しても app://local を返さない: ' + ac4t7);
       console.log('ok: AC4(t7) resolveMapTileByRef path returns null for escaping uid');
 
-      // ---- AC5(t7): 共通ヘルパの両極性（素性 fileKey は file://、脱出 fileKey は null）----
+      // ---- AC5(t7): 共通ヘルパの両極性（素性 fileKey は app://local、脱出 fileKey は null）----
       const tileUid = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
       await fsMkdir(nodePath.join(dataDir, 'tiles', tileUid, '0', '0'), { recursive: true });
       await fsWriteFile(nodePath.join(dataDir, 'tiles', tileUid, '0', '0', '0.png'), PNG);
       const helperOk = await resolveTileZeroFileUrl(dataDir, tileUid);
-      assert.ok(helperOk && helperOk.startsWith('file://') && helperOk.includes('/tiles/' + tileUid + '/'),
-        'AC5(t7): 素性 fileKey では tiles の file:// を返す: ' + helperOk);
+      assert.ok(isLocalUrlFor(helperOk, nodePath.join(dataDir, 'tiles', tileUid, '0', '0', '0.png')),
+        'AC5(t7): 素性 fileKey では tiles の app://local を返す (#105): ' + helperOk);
       const helperEscape = await resolveTileZeroFileUrl(dataDir, '../../escape-apptile');
       assert.equal(helperEscape, null,
         'AC5(t7): 脱出 fileKey では null: ' + helperEscape);
@@ -299,15 +305,15 @@ try {
       console.log('ok: AC5(t7) resolveTileZeroFileUrl both polarities + ENOENT');
 
       // ---- AC5(t7)-b: アプリ一覧の観測可能な非退行 ----
-      // 素性 uid では resolveAppListImage が従来どおり tiles の file:// を返す。
+      // 素性 uid では resolveAppListImage が従来どおり tiles の app://local を返す。
       // 実測の注記: この成功系は resolveMapListImage512 → resolveMapListImage の
       // tiles fallback が先に解決するため、resolveMapTileByRef の成功分岐は現状到達しない
       // （両者が同じ uid の同じパスを見るため、後段は前段の部分集合になる）。
       // したがってここで担保しているのは「アプリ一覧の画像解決が壊れていないこと」である。
       SqliteDataService.findMapByRef = async () => ({ uid: tileUid });
       const ac5t7b = await resolveAppListImage(maplatAppDoc(tileUid));
-      assert.ok(ac5t7b && ac5t7b.startsWith('file://') && ac5t7b.includes('/tiles/' + tileUid + '/'),
-        'AC5(t7)-b: 素性 uid のアプリ一覧画像は tiles の file:// を返す（非退行）: ' + ac5t7b);
+      assert.ok(isLocalUrlFor(ac5t7b, nodePath.join(dataDir, 'tiles', tileUid, '0', '0', '0.png')),
+        'AC5(t7)-b: 素性 uid のアプリ一覧画像は tiles の app://local を返す（非退行・#105）: ' + ac5t7b);
       console.log('ok: AC5(t7)-b resolveAppListImage non-regression for regular uid');
 
       console.log('m12-t13 smoke: ALL PASS');

@@ -27,7 +27,8 @@
 //   AC2 : 外部タイルURL地図 → 外部URLが完全一致で保持される
 //   AC3 : AC1a の zip を別スラッグで再インポート → preview が自分の uid のタイルを指す
 //   AC4 : ローカルタイルが実在する地図（設計 §6.1 分岐表の行3）の preview の url は
-//         従来どおり file://…/tiles/<uid>/{z}/{x}/{y}.<ext>（preview 経路の非回帰）
+//         ランタイムのタイル URL app://local/…/tiles/<uid>/{z}/{x}/{y}.<ext>（preview 経路の非回帰）
+//         ※oct26-m4-t2（#105）でランタイムのローカルタイル URL は file:// から app://local へ移った
 //   AC6 : 保存ダイアログのキャンセルで 'Canceled' を返し、出力先ファイルを作らない
 //         ※既存 m13-t1 smoke は全ケース canceled:false を注入しており、この分岐は未検証だった
 //
@@ -58,6 +59,7 @@ try {
   await mkdir(exportDir, { recursive: true });
 
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const appSchemePath = path.join(projectRoot, 'electron/utils/appScheme.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const mapEditServicePath = path.join(projectRoot, 'electron/services/MapEditService.ts');
   const dataUploadServicePath = path.join(projectRoot, 'electron/services/DataUploadService.ts');
@@ -127,6 +129,7 @@ try {
       const exportDir = ${JSON.stringify(exportDir)};
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
+      const { appUrlToLocalPath } = await import(${JSON.stringify(appSchemePath)});
       SettingsService.set('saveFolder', dataDir);
       SettingsService.set('tmpFolder', ${JSON.stringify(tmpDir)});
 
@@ -230,16 +233,23 @@ try {
       // 「preview は常に file://」という主張は成り立たない
       {
         const preview = await MapEditService.requestPreviewSource(emptyUid);
+        // oct26-m4-t2s: #105 の契約 — ランタイムのローカルタイル URL は app://local で、
+        // テンプレート部を除いた実パス部分は自分の uid のタイルフォルダへ復号される
         assert.match(
-          String(preview.url), /^file:\\/\\//,
-          'AC4: ローカルタイル地図の preview の url は file:// のままのはず（preview 経路の非回帰）。実際の値: ' + preview.url
+          String(preview.url), /^app:\\/\\/local\\//,
+          'AC4: ローカルタイル地図の preview の url は app://local のランタイム URL のはず（preview 経路の非回帰・#105）。実際の値: ' + preview.url
+        );
+        assert.equal(
+          appUrlToLocalPath(String(preview.url).replace(/\\/\\{z\\}\\/\\{x\\}\\/\\{y\\}\\.jpg$/, '')),
+          path.join(dataDir, 'tiles', emptyUid),
+          'AC4: preview の url の実パス部分は saveFolder/tiles/<uid> のはず。実際の値: ' + preview.url
         );
         assert.ok(
           String(preview.url).includes(emptyUid),
           'AC4: preview の url は自分の uid のタイルを指すはず。実際の値: ' + preview.url
         );
         assert.match(String(preview.url), /\\{z\\}\\/\\{x\\}\\/\\{y\\}\\.jpg$/, 'AC4: preview の url はタイルテンプレート形のはず');
-        console.log('ok: AC4 preview-source still returns the runtime file:// tile url');
+        console.log('ok: AC4 preview-source still returns the runtime app://local tile url');
       }
 
       // ===== AC3: AC1a の zip を別スラッグで再インポート → preview が自分の uid のタイルを指す =====
@@ -261,7 +271,7 @@ try {
 
         const dbDoc = await SqliteDataService.findMapByRef(newUid);
         assert.ok(
-          !String(dbDoc.url ?? '').startsWith('file:'),
+          !/^(file|app):/.test(String(dbDoc.url ?? '')),
           'AC3: 再インポートした地図の DB の url に絶対ローカルパスが永続化されていないはず。実際の値: ' + JSON.stringify(dbDoc.url)
         );
 

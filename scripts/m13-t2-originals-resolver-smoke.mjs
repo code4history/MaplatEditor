@@ -37,6 +37,7 @@ try {
   await mkdir(dataDir, { recursive: true });
 
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const appSchemePath = path.join(projectRoot, 'electron/utils/appScheme.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const mapEditServicePath = path.join(projectRoot, 'electron/services/MapEditService.ts');
   const wmtsGeneratorPath = path.join(projectRoot, 'electron/services/WmtsGeneratorService.ts');
@@ -337,9 +338,10 @@ try {
         await fs.writeFile(path.join(tmpTileFolder, 'thumbnail_512.webp'), 'thumb512-bytes');
       }
 
-      const fileUrlModule = await import('file-url');
-      const fileUrl = fileUrlModule.default;
-      const tmpUrl = fileUrl(tmpTileFolder);
+      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app://local へ移った。
+      // 実運用で url_ を作る MapUploadService.imageCutter と同じビルダー（electron/utils/appScheme.ts）で fixture を組む
+      const { localFileUrl } = await import(${JSON.stringify(appSchemePath)});
+      const tmpUrl = localFileUrl(tmpTileFolder);
 
       const UID_E1 = 'e1111111-1111-4111-8111-111111111111';
       await prepareTmpUpload('png');
@@ -370,7 +372,7 @@ try {
         mapObject: {
           mapID: 'e2-unsupported-ext',
           imageExtension: 'tiff',
-          url_: fileUrl(tmpTileFolder),
+          url_: localFileUrl(tmpTileFolder),
           gcps: [], edges: [], sub_maps: [],
         },
         tins: [],
@@ -452,7 +454,7 @@ try {
       await prepareTmpUpload('jpg');
       const saveGSrc = await MapEditService.save({
         mapObject: {
-          mapID: 'g-clone-source', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder),
+          mapID: 'g-clone-source', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
           gcps: [], edges: [], sub_maps: [],
         },
         tins: [],

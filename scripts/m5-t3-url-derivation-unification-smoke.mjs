@@ -24,7 +24,8 @@
 //   AC1 : 外部URL かつ ローカルタイルの地図 → import/保存/再読込/搬出のすべてで url が外部URLのまま
 //   AC2 : import 後の DB と搬出 zip の双方に url_ キーが現れない（不変条件 I-2）
 //   AC3 : import 直後と再読込後で url_ の導出結果が一致する【RED 対象・二重実装解消の本丸】
-//   AC4 : 空白と非 ASCII を含む保存フォルダで fileUrl() 側（percent-encoding あり）へ揃う
+//   AC4 : 空白と非 ASCII を含む保存フォルダで percent-encoding ありの URL ビルダー側へ揃う
+//         ※oct26-m4-t2（#105）でビルダーは file-url の fileUrl() から appScheme の localFileUrl()（app://local）へ移った
 //   AC5 : ローカルタイルのみ（url 空）→ import 直後の url_ が自 uid のタイルを指す（非回帰）
 //   AC6 : compiled を持つ層の tins 要素が生 Compiled 形【RED 対象】
 //   AC10: byCompiled の切替でメタデータが変わらない（Transform 経由の読みと等価）
@@ -56,7 +57,7 @@ const bundledFile = path.join(outDir, 'm5-t3-url-derivation-unification-smoke.mj
 try {
   // AC4: 保存フォルダのパスに**空白と非 ASCII**を含める。
   // 手組み（split(path.sep).join('/')）は percent-encoding しないため、
-  // fileUrl() 側と異なる URL を生成する。統一後は fileUrl() 側に揃う
+  // percent-encoding ありのビルダー（#105 以降は localFileUrl() = app://local）と異なる URL を生成する。統一後はビルダー側に揃う
   const dataDir = path.join(workDir, 'データ folder');
   const tmpDir = path.join(workDir, 'tmp');
   const exportDir = path.join(workDir, 'export-out');
@@ -65,6 +66,7 @@ try {
   await mkdir(exportDir, { recursive: true });
 
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const appSchemePath = path.join(projectRoot, 'electron/utils/appScheme.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const mapEditServicePath = path.join(projectRoot, 'electron/services/MapEditService.ts');
   const dataUploadServicePath = path.join(projectRoot, 'electron/services/DataUploadService.ts');
@@ -128,7 +130,6 @@ try {
       import fsp from 'node:fs/promises';
       import fse from 'fs-extra';
       import AdmZip from 'adm-zip';
-      import fileUrl from 'file-url';
       import { Transform } from '@maplat/transform';
 
       const EXT_URL = 'https://t.example.jp/ext/{z}/{x}/{y}.jpg';
@@ -137,6 +138,7 @@ try {
       const exportDir = ${JSON.stringify(exportDir)};
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
+      const { appUrlToLocalPath } = await import(${JSON.stringify(appSchemePath)});
       SettingsService.set('saveFolder', dataDir);
       SettingsService.set('tmpFolder', tmpDir);
 
@@ -252,20 +254,29 @@ try {
           'AC5: 末尾が /{z}/{x}/{y}.jpg のテンプレートになるはず。実際: ' + imported.mapData.url_
         );
 
-        // AC4【RED 対象】: 空白と非 ASCII を含む保存フォルダで fileUrl() 側へ揃う
+        // AC4【RED 対象】: 空白と非 ASCII を含む保存フォルダで percent-encoding ありのビルダー側へ揃う
+        // oct26-m4-t2s: #105 の契約（electron/utils/appScheme.ts 冒頭）— app://local + セグメント単位の
+        // encodeURIComponent。期待値は製品のビルダーを呼ばずに契約から独立に組み立てる（macOS 前提の POSIX パス）
         const thumbFolder = path.join(dataDir, 'tiles', uid, '0', '0');
-        const expected = fileUrl(path.join(thumbFolder, '0.jpg')).replace(/\\/0\\/0\\/0\\.jpg$/, '/{z}/{x}/{y}.jpg');
-        const naive = ('file://' + path.join(thumbFolder, '0.jpg').split(path.sep).join('/'))
+        const tileZero = path.join(thumbFolder, '0.jpg');
+        const expected = ('app://local' + tileZero.split('/').map((seg) => encodeURIComponent(seg)).join('/'))
+          .replace(/\\/0\\/0\\/0\\.jpg$/, '/{z}/{x}/{y}.jpg');
+        const naive = ('app://local' + tileZero.split(path.sep).join('/'))
           .replace(/\\/0\\/0\\/0\\./, '/{z}/{x}/{y}.');
         assert.notStrictEqual(
           expected, naive,
-          'AC4 の前提: 空白と非 ASCII を含むパスでは fileUrl() と手組みの出力が異なるはず（同じなら fixture が効いていない）'
+          'AC4 の前提: 空白と非 ASCII を含むパスでは percent-encoding ありと手組みの出力が異なるはず（同じなら fixture が効いていない）'
         );
         assert.strictEqual(
           imported.mapData.url_, expected,
-          'AC4: 統一後は fileUrl() 側（percent-encoding あり）へ揃うはず。実際: ' + imported.mapData.url_ + ' / 期待: ' + expected
+          'AC4: 統一後は percent-encoding ありの app://local ビルダー側へ揃うはず。実際: ' + imported.mapData.url_ + ' / 期待: ' + expected
         );
-        console.log('ok: AC4/AC5 local tile url_ uses fileUrl() form under space+non-ASCII path');
+        assert.strictEqual(
+          appUrlToLocalPath(String(imported.mapData.url_).replace(/\\/\\{z\\}\\/\\{x\\}\\/\\{y\\}\\.jpg$/, '')),
+          path.join(dataDir, 'tiles', uid),
+          'AC4: url_ の実パス部分は空白・非 ASCII を含む saveFolder/tiles/<uid> へ復号されるはず。実際: ' + imported.mapData.url_
+        );
+        console.log('ok: AC4/AC5 local tile url_ uses the percent-encoded app://local form under space+non-ASCII path');
       }
 
       // ===== AC6 / AC10: compiled を持つ層の tins =====

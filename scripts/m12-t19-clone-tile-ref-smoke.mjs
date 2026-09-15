@@ -34,6 +34,7 @@ const bundledFile = path.join(outDir, 'm12-t19-clone-tile-ref-smoke.mjs');
 
 try {
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
+  const appSchemePath = path.join(projectRoot, 'electron/utils/appScheme.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const mapEditServicePath = path.join(projectRoot, 'electron/services/MapEditService.ts');
   const mapDeleteTrashServicePath = path.join(projectRoot, 'electron/services/MapDeleteTrashService.ts');
@@ -95,7 +96,6 @@ try {
       import assert from 'node:assert/strict';
       import fs from 'fs-extra';
       import path from 'node:path';
-      import { fileURLToPath } from 'node:url';
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
@@ -117,8 +117,9 @@ try {
         return tmpTileFolder;
       }
 
-      const fileUrlModule = await import('file-url');
-      const fileUrl = fileUrlModule.default;
+      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app://local へ移った。
+      // 実運用で url_ を作る MapUploadService.imageCutter と同じビルダー（electron/utils/appScheme.ts）で fixture を組む
+      const { localFileUrl, appUrlToLocalPath } = await import(${JSON.stringify(appSchemePath)});
 
       // ============================================================
       // Part A (AC2/AC3): clone 保存成功時、MapSaveResult.url は複製先のタイルパスを指し
@@ -136,7 +137,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveASrc = await MapEditService.save({
           mapObject: {
-            mapID: 'a1-clone-src', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
+            mapID: 'a1-clone-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
             width: 100, height: 100, gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -168,7 +169,7 @@ try {
         assert.equal(saveADest.result, 'Success', '複製保存は Success のはず: ' + JSON.stringify(saveADest));
         assert.ok(typeof saveADest.url === 'string', 'AC2: clone 保存成功時、MapSaveResult.url が定義されるはず: ' + JSON.stringify(saveADest));
 
-        const expectedDestPrefix = fileUrl(path.join(tileFolder, UID_A_DEST));
+        const expectedDestPrefix = localFileUrl(path.join(tileFolder, UID_A_DEST));
         assert.ok(
           saveADest.url.startsWith(expectedDestPrefix),
           'AC2: url は複製先(' + UID_A_DEST + ')のタイルパスを指すはず: ' + saveADest.url
@@ -183,7 +184,10 @@ try {
         );
 
         // AC3: 実際にディスク上に存在するファイルを指す ({z}/{x}/{y} を実在座標 0/0/0 に置換して解決)
-        const resolvedPath = fileURLToPath(saveADest.url.replace('/{z}/{x}/{y}', '/0/0/0'));
+        // oct26-m4-t2s: url は app://local（#105）。復号は配信側と同じ appUrlToLocalPath で行う
+        assert.ok(saveADest.url.startsWith('app://local/'), 'url は app://local の契約に従うはず (#105): ' + saveADest.url);
+        const resolvedPath = appUrlToLocalPath(saveADest.url.replace('/{z}/{x}/{y}', '/0/0/0'));
+        assert.ok(resolvedPath !== null, 'AC3: url は app://local として復号できるはず: ' + saveADest.url);
         assert.ok(
           await fs.pathExists(resolvedPath),
           'AC3: url が指す実体ファイルがディスク上に存在するはず: ' + resolvedPath
@@ -230,7 +234,7 @@ try {
       {
         const reloaded = await MapEditService.request(UID_A_DEST);
         assert.ok(typeof reloaded.url_ === 'string', 'AC5: request() は url_ を構築するはず: ' + JSON.stringify(reloaded.url_));
-        const expectedDestPrefix = fileUrl(path.join(tileFolderPartA, UID_A_DEST));
+        const expectedDestPrefix = localFileUrl(path.join(tileFolderPartA, UID_A_DEST));
         assert.ok(
           reloaded.url_.startsWith(expectedDestPrefix),
           'AC5: 再オープン時の url_ は複製先自身(' + UID_A_DEST + ')のタイルパスを指すはず(自己修復の無回帰): ' + reloaded.url_
@@ -258,7 +262,7 @@ try {
             mapID: 'd1-clone-dest-missing', imageExtension: 'jpg',
             // url_ を敢えて設定しても(異常な入力として)、fs.pathExists(oldTile) ガードで
             // コピー自体が実行されないため url は構築されないはず
-            url_: fileUrl(path.join(tileFolder, UID_D_SRC)) + '/{z}/{x}/{y}.jpg',
+            url_: localFileUrl(path.join(tileFolder, UID_D_SRC)) + '/{z}/{x}/{y}.jpg',
             width: 100, height: 100, gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -288,7 +292,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveESrc = await MapEditService.save({
           mapObject: {
-            mapID: 'e1-clone-src', imageExtension: 'jpg', url_: fileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
+            mapID: 'e1-clone-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
             width: 100, height: 100, gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -301,10 +305,10 @@ try {
         // 異常な url_: UID_E_SRC のタイルパスを文字列プレフィックスとして含む別 uid (UID_E_OTHER)
         // 由来のタイルURL。区切り文字(/)を跨がずに前方一致するため、'/'を含めない startsWith だけでは
         // 誤って一致してしまう(壊れた置換結果を生む)危険がある。
-        const otherTilePrefix = fileUrl(path.join(tileFolder, UID_E_OTHER));
+        const otherTilePrefix = localFileUrl(path.join(tileFolder, UID_E_OTHER));
         const maliciousUrl_ = otherTilePrefix + '/{z}/{x}/{y}.jpg';
         assert.ok(
-          maliciousUrl_.startsWith(fileUrl(path.join(tileFolder, UID_E_SRC))),
+          maliciousUrl_.startsWith(localFileUrl(path.join(tileFolder, UID_E_SRC))),
           '前提: UID_E_SRC のタイルURLプレフィックスは(区切りなしで)UID_E_OTHER 由来のurl_の文字列プレフィックスであること'
         );
 

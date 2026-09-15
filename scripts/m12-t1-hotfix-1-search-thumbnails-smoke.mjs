@@ -2,7 +2,8 @@
 // m9-t3 型 harness（electron/electron-store stub + vite ssr build）で ipcMain handler を直接起動し、
 // resolver 契約・handler 添付・委譲 refactor（MapDataService/AppDataService 挙動不変）を検証する。
 // シナリオ:
-//   (a) tmbs/{uid}.jpg がある地図は search:maps で image=file:// tmbs が添付される
+//   (a) tmbs/{uid}.jpg がある地図は search:maps で image=app://local tmbs が添付される
+//       ※oct26-m4-t2（#105）で表示用 URL は file:// から app://local へ移った
 //   (b) tmbs が無く tiles/{uid}/0/0/0.png がある地図はタイル fallback が添付される
 //   (c) どちらも無い地図は image=null（no_image fallback 契約の維持）
 //   (d) search:apps は iconSource → splash → startFrom maplat タイルの優先順で添付される
@@ -89,6 +90,9 @@ try {
       const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
       const dataDir = ${JSON.stringify(dataDir)};
       const workDir = ${JSON.stringify(workDir)};
+      // oct26-m4-t2s: #105 の契約（electron/utils/appScheme.ts 冒頭）— app://local + セグメント単位の
+      // encodeURIComponent。期待値は製品のビルダーを呼ばずに契約から独立に組み立てる（macOS 前提の POSIX パス）
+      const appLocal = (absPath: string) => 'app://local' + absPath.split('/').map((seg) => encodeURIComponent(seg)).join('/');
 
       const { __handlers } = await import(${JSON.stringify(electronStubFile)});
       const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
@@ -125,11 +129,11 @@ try {
       await fsMkdir(tilesDir, { recursive: true });
       await fsWriteFile(nodePath.join(tilesDir, '0.png'), PNG);
 
-      // (a) tmbs/{uid}.jpg がある → image = file:// tmbs
+      // (a) tmbs/{uid}.jpg がある → image = app://local tmbs
       const mapsResult = await call('search:maps', { q: '', page: 1, pageSize: 20 });
       const mapDoc = mapsResult.docs.find((d: any) => d.slug === mapSlug);
       assert.ok(mapDoc, 'seed した地図が search:maps に含まれること');
-      assert.equal(mapDoc.image, 'file://' + nodePath.join(tmbsDir, mapUid + '.jpg').split(nodePath.sep).join('/'),
+      assert.equal(mapDoc.image, appLocal(nodePath.join(tmbsDir, mapUid + '.jpg')),
         'tmbs/{uid}.jpg が image として添付されること: ' + mapDoc.image);
       console.log('ok: (a) search:maps attaches tmbs file as image');
 
@@ -139,7 +143,7 @@ try {
       await (await import('node:fs/promises')).rename(tmbsFile, tmbsBackup);
       const mapsResult2 = await call('search:maps', { q: '', page: 1, pageSize: 20 });
       const mapDoc2 = mapsResult2.docs.find((d: any) => d.slug === mapSlug);
-      assert.equal(mapDoc2.image, 'file://' + nodePath.join(tilesDir, '0.png').split(nodePath.sep).join('/'),
+      assert.equal(mapDoc2.image, appLocal(nodePath.join(tilesDir, '0.png')),
         'tiles/{uid}/0/0/0.png が fallback 添付されること: ' + mapDoc2.image);
       console.log('ok: (b) tiles fallback is attached when tmbs is absent');
 
@@ -164,7 +168,7 @@ try {
         manifestSettings: { iconSource: 'img/icon.png' },
       });
       const appDoc2 = (await call('search:apps', { q: '', page: 1, pageSize: 20 })).docs.find((d: any) => d.slug === appSlug);
-      assert.ok(appDoc2.image && appDoc2.image.startsWith('file://'), 'iconSource が image として添付されること: ' + appDoc2.image);
+      assert.equal(appDoc2.image, appLocal(nodePath.join(appImgDir, 'icon.png')), 'iconSource が image として添付されること: ' + appDoc2.image);
       console.log('ok: (d) search:apps attaches iconSource as image');
 
       // (e) FTS・paginate 契約: total/next、q 一致
@@ -186,11 +190,11 @@ try {
       // (g) 既存経路（MapDataService.requestMaps / AppDataService.requestApps）の回帰なし
       const legacy = await MapDataService.requestMaps('', 1, 20);
       const legacyDoc = legacy.docs.find((d: any) => (d.mapID ?? d.slug) === mapSlug);
-      assert.equal(legacyDoc.image, 'file://' + nodePath.join(tmbsDir, mapUid + '.jpg').split(nodePath.sep).join('/'),
+      assert.equal(legacyDoc.image, appLocal(nodePath.join(tmbsDir, mapUid + '.jpg')),
         'maplist.request 経路の image 添付が委譲後も現行どおり: ' + legacyDoc.image);
       const legacyApp = await AppDataService.requestApps('', 1, 20);
       const legacyAppDoc = legacyApp.docs.find((d: any) => (d.appID ?? d.slug) === appSlug);
-      assert.ok(legacyAppDoc.image && legacyAppDoc.image.startsWith('file://'),
+      assert.equal(legacyAppDoc.image, appLocal(nodePath.join(appImgDir, 'icon.png')),
         'applist.request 経路の image 添付が委譲後も現行どおり: ' + legacyAppDoc.image);
       console.log('ok: (g) legacy request paths keep attaching images after delegation');
 

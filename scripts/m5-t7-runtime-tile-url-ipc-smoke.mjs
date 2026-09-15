@@ -38,7 +38,8 @@ const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'm5-t7-smoke.mjs');
 
 // AC2 の percent-encoding 経路も通るよう、保存フォルダに空白と非 ASCII を含める
-// （m5-t3 AC4 と同じ理由。fileUrl() 側の組み立てであることの確認を兼ねる）
+// （m5-t3 AC4 と同じ理由。percent-encoding ありのビルダー — oct26-m4-t2（#105）以降は appScheme の
+//  localFileUrl()（app://local）— の組み立てであることの確認を兼ねる）
 const dataDir = path.join(workDir, 'データ folder');
 const draftRoot = path.join(workDir, 'e2eroot', 'draft-tiles');
 await mkdir(dataDir, { recursive: true });
@@ -112,6 +113,7 @@ await writeFile(
     const { __handlers } = await import(${JSON.stringify(electronStubFile)});
     const { draftTileRoot } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/draftTilePaths.ts'))});
     const { deriveRuntimeTileUrl } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/runtimeTileUrl.ts'))});
+    const { appUrlToLocalPath } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/appScheme.ts'))});
 
     registerMapEditHandlers();
     const derive = __handlers.get('mapedit:deriveRuntimeTileUrl');
@@ -176,8 +178,14 @@ await writeFile(
       check('AC2 保存済みタイルから {z}/{x}/{y} 形式が返る', () => {
         assert.ok(typeof got === 'string', String(got));
         assert.ok(got.endsWith('/{z}/{x}/{y}.jpg'), '保存済み側の拡張子 jpg: ' + got);
-        assert.ok(got.startsWith('file:///'), 'file:// 形式: ' + got);
-        // 空白と非 ASCII が percent-encoding されている（fileUrl() 経由であることの確認）
+        // oct26-m4-t2s: #105 の契約 — ランタイムのローカルタイル URL は app://local
+        assert.ok(got.startsWith('app://local/'), 'app://local 形式 (#105): ' + got);
+        assert.equal(
+          appUrlToLocalPath(got.replace(/\\/\\{z\\}\\/\\{x\\}\\/\\{y\\}\\.jpg$/, '')),
+          nodePath.join(${JSON.stringify(dataDir)}, 'tiles', SAVED_ONLY_UID),
+          '実パス部分は空白・非 ASCII を含む saveFolder/tiles/<uid> へ復号される: ' + got
+        );
+        // 空白と非 ASCII が percent-encoding されている（localFileUrl() 経由であることの確認）
         assert.ok(!got.includes(' '), '空白が percent-encoding される: ' + got);
         assert.ok(got.includes('%'), '非 ASCII が percent-encoding される: ' + got);
       });

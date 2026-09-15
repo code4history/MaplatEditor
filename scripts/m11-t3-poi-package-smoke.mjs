@@ -108,8 +108,15 @@ const exportHandler = poiIpc.slice(
   poiIpc.indexOf("ipcMain.handle('poisource:exportFile'"),
   poiIpc.indexOf("ipcMain.handle('poisource:pickImportFile'"),
 );
+// oct26-m4-t2s: oct26-m4-t2（#100）で書き出しは runGuarded('poisource:exportFile', () => writePoiExport(...)) に
+// 包まれ、`await writePoiExport` の字面は消えた。順序の断言は呼び出し `writePoiExport(` の位置で行い、
+// どちらかが見つからない場合に順序比較が素通りしないよう実在も断言する
+const saveDialogAt = exportHandler.indexOf('showSaveDialog');
+const writeExportAt = exportHandler.indexOf('writePoiExport(');
+assert.notEqual(saveDialogAt, -1, 'POI export handler must open the save dialog');
+assert.notEqual(writeExportAt, -1, 'POI export handler must call writePoiExport');
 assert.ok(
-  exportHandler.indexOf('showSaveDialog') < exportHandler.indexOf('await writePoiExport'),
+  saveDialogAt < writeExportAt,
   'POI must choose the output path before generating the file',
 );
 assert.match(poiIpc, /extensions:\s*\[['"]geojson['"],\s*['"]json['"],\s*['"]zip['"]\]/);
