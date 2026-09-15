@@ -5,7 +5,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 // #105 / oct26-m4-t2: renderer を file:// から app:// カスタムスキームへ移し、webSecurity:true
 // の下でローカルリソースを許可経路の allowlist に限定して配信する
-import { APP_SCHEME, resolveAppUrl } from './utils/appScheme'
+// oct26-m4-t2ff: ローカルリソースは renderer と同一 origin（app://bundle/__local/）で配信し、corsEnabled を使わない
+import { APP_SCHEME, appSchemePrivileges, createAppSchemeHandler } from './utils/appScheme'
 
 // const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -39,15 +40,12 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 // app の ready 前に1回だけ呼ぶ必要がある（module のトップレベルに置く）。
 // standard: true で URL として解決され、secure: true で安全コンテキスト扱いになる。
 // supportFetchAPI により renderer から fetch でき、stream により大きいタイルも逐次配信できる。
+// oct26-m4-t2ff: privileges は appSchemePrivileges が唯一の決定点。本番は corsEnabled を付けない
+// （付けると任意 origin のページから app:// の中身を読める）。dev server 起動時だけ付く（理由は appScheme.ts）。
 protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_SCHEME,
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      stream: true,
-    },
+    privileges: appSchemePrivileges(VITE_DEV_SERVER_URL),
   },
 ])
 
@@ -228,35 +226,29 @@ async function gcOrphanDraftTiles(): Promise<void> {
 app.whenReady().then(async () => {
   // #105 / oct26-m4-t2: app:// のリクエストハンドラを登録する（registerSchemesAsPrivileged の後）。
   // resolveAppUrl の許可経路 allowlist で解決できた実体のみ net.fetch で配信し、それ以外は 403。
-  protocol.handle(APP_SCHEME, async (request) => {
-    const bundleRoots = [RENDERER_DIST, path.join(process.env.APP_ROOT, 'public')];
-    const saveFolder = SettingsService.get('saveFolder');
-    const fallbackRoot = path.join(process.env.APP_ROOT, 'dist');
-    // MAJ-1 是正: localFileUrl() が URL 化する置き場所（saveFolder / draftTileRoot /
-    // tmpFolder 配下の tiles）を正規の配信ルートとして許可する。allowlist を広げすぎないため、
-    // tmpFolder は「tiles サブディレクトリのみ」を許可する（mapDownloadZip 等の zip 一時領域は
-    // app://local で配信されない）。
-    const localRoots = [
-      typeof saveFolder === 'string' && saveFolder ? saveFolder : fallbackRoot,
-      draftTileRoot,
-      path.join(SettingsService.get('tmpFolder') as string, 'tiles'),
-    ];
-    const resolution = resolveAppUrl(request.url, { bundleRoots, localRoots });
-    if (!resolution) {
-      return new Response('Forbidden', {
-        status: 403,
-        headers: { 'content-type': 'text/plain; charset=utf-8' },
-      });
-    }
-    const res = await net.fetch(pathToFileURL(resolution.filePath).toString());
-    // MIN-1 是正: net.fetch(file://…) の Content-Type に依存せず、mimeFor が導出した
-    // Content-Type を明示する（ES module .js は MIME が厳格のため、誤った Content-Type で
-    // bundle が読めない退行を防ぐ）。
-    return new Response(res.body, {
-      status: res.status,
-      headers: { 'content-type': resolution.mimeType },
-    });
-  });
+  // oct26-m4-t2ff: 解決・失敗 status の写像・防御ヘッダは createAppSchemeHandler（appScheme.ts）が持つ。
+  // ここでは要求ごとの許可ルートと実ファイルの読み方だけを渡す。
+  protocol.handle(APP_SCHEME, createAppSchemeHandler({
+    getRoots: () => {
+      const saveFolder = SettingsService.get('saveFolder');
+      const fallbackRoot = path.join(process.env.APP_ROOT, 'dist');
+      return {
+        bundleRoots: [RENDERER_DIST, path.join(process.env.APP_ROOT, 'public')],
+        // MAJ-1 是正: localFileUrl() が URL 化する置き場所（saveFolder / draftTileRoot /
+        // tmpFolder 配下の tiles）を正規の配信ルートとして許可する。allowlist を広げすぎないため、
+        // tmpFolder は「tiles サブディレクトリのみ」を許可する（mapDownloadZip 等の zip 一時領域は
+        // ローカルリソースとして配信されない）。
+        localRoots: [
+          typeof saveFolder === 'string' && saveFolder ? saveFolder : fallbackRoot,
+          draftTileRoot,
+          path.join(SettingsService.get('tmpFolder') as string, 'tiles'),
+        ],
+      };
+    },
+    // MIN-1 是正: Content-Type は net.fetch(file://…) に依存せず handler 側で mimeFor から明示する
+    fetchFile: (filePath) => net.fetch(pathToFileURL(filePath).toString()),
+    warn: (...args) => console.warn(...args),
+  }));
 
   // HMR時の「2重登録」エラーを防ぐため、既存ハンドラを事前に解除する
   ipcMain.removeHandler('settings:get')

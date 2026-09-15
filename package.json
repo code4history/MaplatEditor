@@ -223,6 +223,8 @@
     "smoke:oct26-m4-t2-websecurity-guard": "node --experimental-strip-types scripts/oct26-m4-t2-websecurity-guard-smoke.mjs",
     "smoke:oct26-m4-t2-ipc-guard": "node scripts/oct26-m4-t2-ipc-guard-smoke.mjs",
     "smoke:oct26-m4-t2-ci-artifact-verify": "node scripts/oct26-m4-t2-ci-artifact-verify-smoke.mjs",
+    "smoke:oct26-m4-t2ff-app-scheme-same-origin": "node --experimental-strip-types scripts/oct26-m4-t2ff-app-scheme-same-origin-smoke.mjs",
+    "test:e2e:oct26-m4-t2ff": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/oct26-m4-t2ff-app-local-cors.spec.ts",
     "test:e2e:m19-t4a": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t4a-settings-and-about.spec.ts",
     "smoke:editor-locale-parity": "node scripts/editor-locale-parity.mjs",
     "smoke:m19-t5-thumbnail-512-webp": "node scripts/m19-t5-thumbnail-512-webp-smoke.mjs",

@@ -9,18 +9,52 @@
  * `node --experimental-strip-types` で直接 import できることが前提
  * （前例: electron/utils/releaseChannel.ts）。
  *
+ * oct26-m4-t2ff（第 2 版）: ローカルリソースは renderer と**同一 origin** の `app://bundle/__local/<abs>` で
+ * 配信する。m4-t2 の `app://local/<abs>` は renderer（app://bundle）と別 origin で、MaplatCore の
+ * crossOrigin="Anonymous" のタイル読込が CORS 拒否された。別 origin のまま app: に corsEnabled を付けると
+ * Chromium は応答の Access-Control-Allow-Origin を検査せず、プレビュー配信（http://127.0.0.1）や data: 等
+ * 任意の origin のページから中身を読めてしまう（実装レビュー IR1 Major-1 で実測）。同一 origin 化すれば
+ * corsEnabled が不要になり、corsEnabled の無い app:// は他 origin からの CORS 読込（fetch・crossOrigin 画像）を
+ * 受け付けないので、renderer 以外は読めない。旧 `app://local` は既存データ互換のため受理して新形へ正規化する。
+ *
  * エンコード規約（renderer 側 src/utils/appUrl.ts と必ず同期させること）:
  *   - パスは `encodeURIComponent` をセグメント単位で適用（`#` / `?` / `%` / 空白 / 非 ASCII も安全）。
  *   - Windows ドライブレター `C:`（先頭セグメント直後）だけはエンコードせず残す。
  *   - URL 経路は先頭 `/` を保証（`C:\...` → `/C:/...`）。
  *   - 復号は `fileURLToPath` と同じく encoded 区切り文字（`%2F` / `%5C`）を拒否して迂回を防ぐ。
  */
+import { access, constants as fsConstants, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const APP_SCHEME = 'app';
 export const BUNDLE_HOST = 'bundle';
+/** m4-t2 期の旧ローカル host（受理と正規化のみ。新規には生成しない） */
 export const LOCAL_HOST = 'local';
+/** 同一 origin のローカルリソース経路の接頭辞（oct26-m4-t2ff） */
+export const LOCAL_PATH_PREFIX = '/__local';
+/** ローカルリソース URL の接頭辞（renderer と同一 origin） */
+export const LOCAL_URL_PREFIX = `${APP_SCHEME}://${BUNDLE_HOST}${LOCAL_PATH_PREFIX}`;
+const LEGACY_LOCAL_URL_PREFIX = `${APP_SCHEME}://${LOCAL_HOST}`;
+
+/**
+ * app: スキームの privileges（oct26-m4-t2ff）。main.ts の registerSchemesAsPrivileged はここから作る。
+ *
+ * 本番（dev server URL なし・空文字）では corsEnabled を**付けない**。付けると任意 origin のページから
+ * app:// の中身を読めるようになる（IR1 Major-1）。ローカルリソースは同一 origin 配信なので不要。
+ * 開発起動（VITE_DEV_SERVER_URL あり）だけは renderer が http://localhost:<port> になり同一 origin にならないため
+ * 付ける。dev server URL を与えられる主体は main window に任意 URL を読ませられるので、新しい攻撃面ではない。
+ */
+export function appSchemePrivileges(devServerUrl?: string | null): {
+  standard: true;
+  secure: true;
+  supportFetchAPI: true;
+  stream: true;
+  corsEnabled?: true;
+} {
+  const base = { standard: true, secure: true, supportFetchAPI: true, stream: true } as const;
+  return devServerUrl ? { ...base, corsEnabled: true } : { ...base };
+}
 
 // ネイティブ絶対パス → URL 経路部分。先頭 `/` を保証（Windows 'C:\x' → '/C:/x'）。
 function toUrlPath(nativePath: string, sep: string = path.sep): string {
@@ -34,7 +68,7 @@ function fromUrlPath(urlPath: string): string {
 }
 
 /**
- * ネイティブ絶対パス → `app://local/<path>`。
+ * ネイティブ絶対パス → `app://bundle/__local/<path>`（oct26-m4-t2ff: renderer と同一 origin）。
  * saveFolder 配下のローカルリソース（タイル・サムネイル・merc・画像アセット等）の表示用 URL。
  */
 export function localFileUrl(absPath: string): string {
@@ -42,19 +76,47 @@ export function localFileUrl(absPath: string): string {
   const encoded = segments
     .map((s, i) => (i === 1 && /^[A-Za-z]:$/.test(s) ? s : encodeURIComponent(s)))
     .join('/');
-  return `app://${LOCAL_HOST}${encoded}`;
+  return `${LOCAL_URL_PREFIX}${encoded}`;
+}
+
+/** URL からローカルリソースの経路部分（先頭 `/` 付き）を取り出す。新形・旧 app://local 以外は null。 */
+function localPathnameOf(u: URL): string | null {
+  if (u.protocol !== 'app:') return null;
+  if (u.hostname === BUNDLE_HOST) {
+    if (!u.pathname.startsWith(LOCAL_PATH_PREFIX + '/')) return null;
+    return u.pathname.slice(LOCAL_PATH_PREFIX.length);
+  }
+  if (u.hostname === LOCAL_HOST) return u.pathname;
+  return null;
+}
+
+/** ローカルリソース URL（新形 `app://bundle/__local/` または旧 `app://local/`）か。 */
+export function isLocalAppUrl(url: unknown): boolean {
+  return typeof url === 'string' && (url.startsWith(LOCAL_URL_PREFIX + '/') || url.startsWith(LEGACY_LOCAL_URL_PREFIX + '/'));
 }
 
 /**
- * `app://local/<path>` → ネイティブ絶対パス。scheme / host が一致しない場合は null。
+ * 旧 `app://local/<path>` を新形 `app://bundle/__local/<path>` へ文字列のまま写す（oct26-m4-t2ff）。
+ * 経路部分（percent-encoding・`{z}/{x}/{y}` テンプレート）は無加工で残す。それ以外の値はそのまま返す。
+ */
+export function normalizeLocalAppUrl<T>(url: T): T {
+  if (typeof url === 'string' && url.startsWith(LEGACY_LOCAL_URL_PREFIX + '/')) {
+    return `${LOCAL_URL_PREFIX}${url.slice(LEGACY_LOCAL_URL_PREFIX.length)}` as T;
+  }
+  return url;
+}
+
+/**
+ * ローカルリソース URL（新形・旧 app://local）→ ネイティブ絶対パス。それ以外は null。
  * encoded 区切り文字（%2F / %5C）は fileURLToPath と同じく拒否する（迂回防止）。
  */
 export function appUrlToLocalPath(appUrl: string): string | null {
   try {
     const u = new URL(appUrl);
-    if (u.protocol !== 'app:' || u.hostname !== LOCAL_HOST) return null;
-    if (/%2f|%5c/i.test(u.pathname)) return null;
-    const segments = u.pathname.split('/').map((s) => {
+    const pathname = localPathnameOf(u);
+    if (pathname === null) return null;
+    if (/%2f|%5c/i.test(pathname)) return null;
+    const segments = pathname.split('/').map((s) => {
       try {
         return decodeURIComponent(s);
       } catch {
@@ -93,6 +155,8 @@ export function bundleFileUrl(relPath: string): string {
  * - `/{z}/{x}/{y}.<ext>` サフィックスを持たない独自形式はそのまま返す（壊すより旧 URL のまま残す）
  */
 export function migrateLegacyFileUrl(url: string): string {
+  // oct26-m4-t2ff: m4-t2 期の旧 app://local も同一 origin の新形へ写す
+  if (url.startsWith(LEGACY_LOCAL_URL_PREFIX + '/')) return normalizeLocalAppUrl(url);
   if (!url.startsWith('file://')) return url;
   const m = url.match(/^(.*)\/(\{z\}\/\{x\}\/\{y\}\.[^./\\]+)$/);
   if (!m) return url;
@@ -117,6 +181,8 @@ export interface AppSchemeRoots {
 export interface AppUrlResolution {
   filePath: string;
   mimeType: string;
+  /** bundle = 同梱リソース（renderer 本体） / local = ローカルリソース（防御ヘッダを付けて配信する） */
+  kind: 'bundle' | 'local';
 }
 
 // ルート直下（root 自身または root + 区切り境界込みの配下）だけを許可する。
@@ -157,25 +223,27 @@ export function resolveAppUrl(rawUrl: string, roots: AppSchemeRoots): AppUrlReso
   // file:// / http(s):// 等、app: 以外の scheme は一律拒否
   if (u.protocol !== 'app:') return null;
 
+  // oct26-m4-t2ff: ローカルリソース（新形 app://bundle/__local/ と旧 app://local/）は localRoots で判定する。
+  // bundle host でも __local 接頭辞なら同梱物側へは落とさない（許可外は null）。
+  if (localPathnameOf(u) !== null || (u.hostname === BUNDLE_HOST && u.pathname === LOCAL_PATH_PREFIX)) {
+    const nativePath = appUrlToLocalPath(rawUrl);
+    if (nativePath === null) return null;
+    // MAJ-1 是正: localRoots のいずれかの許可ルート配下かを判定する（旧実装は localRoot 単一で、
+    // draftTileRoot / tmpFolder 配下 tiles の下書き・一時タイルが 403 になっていた）。
+    if (!roots.localRoots.some((root) => isUnderRoot(nativePath, root))) return null;
+    return { filePath: nativePath, mimeType: mimeFor(nativePath), kind: 'local' };
+  }
+
   if (u.hostname === BUNDLE_HOST) {
     const rel = decodePathname(u.pathname).replace(/^\/+/, '');
     if (!rel || rel.split('/').some((s) => s === '..')) return null;
     for (const root of roots.bundleRoots) {
       const candidate = path.resolve(root, rel);
       if (isUnderRoot(candidate, root)) {
-        return { filePath: candidate, mimeType: mimeFor(candidate) };
+        return { filePath: candidate, mimeType: mimeFor(candidate), kind: 'bundle' };
       }
     }
     return null;
-  }
-
-  if (u.hostname === LOCAL_HOST) {
-    const nativePath = appUrlToLocalPath(rawUrl);
-    if (nativePath === null) return null;
-    // MAJ-1 是正: localRoots のいずれかの許可ルート配下かを判定する（旧実装は localRoot 単一で、
-    // draftTileRoot / tmpFolder 配下 tiles の下書き・一時タイルが 403 になっていた）。
-    if (!roots.localRoots.some((root) => isUnderRoot(nativePath, root))) return null;
-    return { filePath: nativePath, mimeType: mimeFor(nativePath) };
   }
 
   // 未知 host（無許可 origin）
@@ -207,4 +275,81 @@ const MIME: Record<string, string> = {
 export function mimeFor(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   return MIME[ext] ?? 'application/octet-stream';
+}
+
+/**
+ * ローカルリソース応答に付ける防御ヘッダ（oct26-m4-t2ff）。
+ * 同一 origin 配信にしたことで、saveFolder 内の HTML/SVG を renderer と同じ origin で開けるようになる。
+ * - CSP `sandbox`: その文書を不透明 origin で開き、スクリプトを走らせない（renderer の DOM・preload API に届かない）
+ * - `nosniff`: 拡張子から決めた Content-Type 以外として解釈させない
+ * - CORP `same-origin`: 他 origin のページからの no-cors 埋め込み（crossOrigin 無し <img> 等）も拒否する
+ */
+export function localResponseHeaders(): Record<string, string> {
+  return {
+    'content-security-policy': "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'",
+    'x-content-type-options': 'nosniff',
+    'cross-origin-resource-policy': 'same-origin',
+  };
+}
+
+/**
+ * ファイル読込失敗の errno → HTTP status（oct26-m4-t2ff・IR1 Minor-2）。
+ * 404 は「存在しない」（ENOENT・途中がファイルの ENOTDIR）に限る。MaplatCore は範囲外タイルも要求するので
+ * 欠損は正常系。権限・ディレクトリ等は 403、それ以外は 500 とし、404 に畳んで原因を隠さない。
+ */
+export function fsErrorStatus(code: string | undefined): number {
+  if (code === 'ENOENT' || code === 'ENOTDIR') return 404;
+  if (code === 'EACCES' || code === 'EPERM' || code === 'EISDIR') return 403;
+  return 500;
+}
+
+export interface AppSchemeHandlerDeps {
+  /** 要求ごとの許可ルート（saveFolder 等は設定で変わるため要求ごとに引く） */
+  getRoots: () => AppSchemeRoots;
+  /** 解決済みの実ファイルを読む（main では net.fetch(file://…)） */
+  fetchFile: (filePath: string) => Promise<Response>;
+  /** 欠損以外の失敗の記録先（main では console.warn） */
+  warn: (...args: unknown[]) => void;
+}
+
+/**
+ * protocol.handle(APP_SCHEME, …) に渡す handler を作る（oct26-m4-t2ff）。electron に依存しないので smoke で実挙動を測れる。
+ * - 許可経路外 → 403
+ * - stat / 読取権限の確認に失敗 → fsErrorStatus（ENOENT/ENOTDIR 以外は warn）・ディレクトリ → 403＋warn・読込例外 → 500＋warn
+ * - Content-Type は mimeFor が導出した値を明示（MIN-1）
+ * - ローカルリソースの応答（失敗応答を含む）には localResponseHeaders を付ける。ACAO は付けない
+ */
+export function createAppSchemeHandler(deps: AppSchemeHandlerDeps): (request: Request) => Promise<Response> {
+  const text = (status: number, body: string, extra: Record<string, string>) =>
+    new Response(body, { status, headers: { 'content-type': 'text/plain; charset=utf-8', ...extra } });
+  return async (request: Request): Promise<Response> => {
+    const resolution = resolveAppUrl(request.url, deps.getRoots());
+    if (!resolution) return text(403, 'Forbidden', {});
+    const extra = resolution.kind === 'local' ? localResponseHeaders() : {};
+    try {
+      const st = await stat(resolution.filePath);
+      if (st.isDirectory()) {
+        deps.warn(`[app-scheme] directory request refused (403): ${request.url}`);
+        return text(403, 'Forbidden', extra);
+      }
+      // stat は読取権限が無くても成功するので、読めるかを先に確かめて EACCES を 403 として区別する
+      await access(resolution.filePath, fsConstants.R_OK);
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException)?.code;
+      const status = fsErrorStatus(code);
+      if (status !== 404) deps.warn(`[app-scheme] ${code ?? 'unknown'} (${status}): ${request.url}`);
+      return text(status, status === 404 ? 'Not Found' : status === 403 ? 'Forbidden' : 'Internal Server Error', extra);
+    }
+    let res: Response;
+    try {
+      res = await deps.fetchFile(resolution.filePath);
+    } catch (e) {
+      deps.warn(`[app-scheme] read failed (500): ${request.url}: ${String(e)}`);
+      return text(500, 'Internal Server Error', extra);
+    }
+    return new Response(res.body, {
+      status: res.status,
+      headers: { 'content-type': resolution.mimeType, ...extra },
+    });
+  };
 }

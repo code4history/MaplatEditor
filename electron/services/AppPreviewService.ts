@@ -11,7 +11,7 @@ import MapPurposeService from './MapPurposeService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { resolveResourceAsset, isUnderFolder } from '../utils/resourceAssets';
 // #105: プレビュー配信データの URL 書換（app://local → http://localhost）と Origin 判定に使う
-import { appUrlToLocalPath } from '../utils/appScheme';
+import { appUrlToLocalPath, isLocalAppUrl } from '../utils/appScheme';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import SqliteDataService from './SqliteDataService';
 import {
@@ -737,11 +737,11 @@ ${renderProviderGlCdnTags(new Set(session.requiredProviderGl || []))}  <script s
 
   private toHttpUrl(value: any, token: string): any {
     if (typeof value !== 'string') return value;
-    // #105: 配信データのローカルリソース URL は app://local（旧 file://）で渡ってくる。
+    // #105: 配信データのローカルリソース URL は app://bundle/__local（oct26-m4-t2ff。旧 app://local・旧 file:// も）で渡ってくる。
     // プレビュー配信は http://localhost なので、絶対パスへ戻して /local-file/<token> に載せ替える。
     // file:// は旧データ互換として残す。
     let nativePath: string | null = null;
-    if (value.startsWith('app://local')) {
+    if (isLocalAppUrl(value)) {
       nativePath = appUrlToLocalPath(value);
     } else if (value.startsWith('file://')) {
       try {

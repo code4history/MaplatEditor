@@ -146,8 +146,9 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
   const legacy = migrateLegacyFileUrl("file:///tmp/oct26-m4-t2/save/tiles/a/{z}/{x}/{y}.png");
   assert.equal(
     legacy,
-    "app://local/tmp/oct26-m4-t2/save/tiles/a/{z}/{x}/{y}.png",
-    "旧 file:// テンプレートは app://local へ補正されるべき（{z}/{x}/{y} は literal のまま）",
+    // oct26-m4-t2ff: ローカルリソースは renderer と同一 origin の app://bundle/__local へ（旧 app://local から変更）
+    "app://bundle/__local/tmp/oct26-m4-t2/save/tiles/a/{z}/{x}/{y}.png",
+    "旧 file:// テンプレートは app://bundle/__local へ補正されるべき（{z}/{x}/{y} は literal のまま）",
   );
 
   // 補正後の app://local URL は resolveAppUrl で許可ルートとして解決できること
@@ -158,14 +159,16 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
   assert.ok(migrated, "補正後の app://local タイル URL は許可ルートとして解決されるべき");
   assert.equal(migrated.filePath, "/tmp/oct26-m4-t2/save/tiles/a/0/0/0.png");
 
-  // http/https / app:// はそのまま（リモートタイル・既に app://local の URL を壊さない）
+  // http/https と新形 app://bundle/__local はそのまま（リモートタイル・補正済み URL を壊さない）。
+  // oct26-m4-t2ff: m4-t2 期の旧 app://local は同一 origin の新形へ写す
   assert.equal(migrateLegacyFileUrl("https://example.com/{z}/{x}/{y}.png"), "https://example.com/{z}/{x}/{y}.png");
-  assert.equal(migrateLegacyFileUrl("app://local/tmp/x/tiles/a/{z}/{x}/{y}.png"), "app://local/tmp/x/tiles/a/{z}/{x}/{y}.png");
+  assert.equal(migrateLegacyFileUrl("app://bundle/__local/tmp/x/tiles/a/{z}/{x}/{y}.png"), "app://bundle/__local/tmp/x/tiles/a/{z}/{x}/{y}.png");
+  assert.equal(migrateLegacyFileUrl("app://local/tmp/x/tiles/a/{z}/{x}/{y}.png"), "app://bundle/__local/tmp/x/tiles/a/{z}/{x}/{y}.png");
 
   // 認識できないテンプレート（独自形式）は変更しない（壊すより旧 URL のまま残す）
   assert.equal(migrateLegacyFileUrl("file:///tmp/x/custom_{z}_{x}_{y}.png"), "file:///tmp/x/custom_{z}_{x}_{y}.png");
 
-  console.log("  [4/4] migrateLegacyFileUrl（旧 file:// → app://local 補正）: PASS");
+  console.log("  [4/4] migrateLegacyFileUrl（旧 file:// ・旧 app://local → app://bundle/__local 補正）: PASS");
 }
 
 console.log("=== 主判定 AC-1: PASS ===");

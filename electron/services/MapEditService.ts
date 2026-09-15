@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 // #105: ランタイムタイル URL は file:// から app://local へ移行する
-import { localFileUrl } from '../utils/appScheme';
+import { localFileUrl, normalizeLocalAppUrl } from '../utils/appScheme';
 import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
@@ -191,7 +191,8 @@ class MapEditService {
         // mapObject.uid を既存地図の更新とみなす (旧 status ベース呼び出しの救済)
         const uid: string | undefined =
             request.uid ?? (request.copyFromUid ? undefined : mapObject.uid ?? undefined);
-        const url_ = mapObject.url_ as string | undefined;
+        // oct26-m4-t2ff: m4-t2 期の旧 app://local は同一 origin の新形へ正規化してから tmp/staging/複製の判定に使う
+        const url_ = normalizeLocalAppUrl(mapObject.url_ as string | undefined);
         // M13-T2 (§5.1/§5.3): 従来の imageExtension 変数は legacy 分岐(copySourceUid/renamedFromSlug)
         // 専用に維持する (slug キーの originals ファイル名計算にそのまま使う、無変更)。
         // normalizedExt は tmpCheck 分岐 (新規原本アップロード) の canonical(uid キー)化専用に

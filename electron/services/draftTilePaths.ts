@@ -16,7 +16,7 @@
 import path from 'node:path';
 import { app } from 'electron';
 // #105: タイル URL は file:// から app://local へ移行する（build/parse とも appScheme に一本化）
-import { localFileUrl, appUrlToLocalPath } from '../utils/appScheme';
+import { localFileUrl, appUrlToLocalPath, normalizeLocalAppUrl } from '../utils/appScheme';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 
 /** 非 isolated 環境での staging ルート既定値（設計 §5.1: userData/draft-tiles） */
@@ -73,7 +73,8 @@ export function resolveDraftTileDir(rootDir: string, segment: unknown): string |
  */
 export function isDraftTileUrl(stagingRoot: string, url_: unknown): boolean {
   try {
-    return typeof url_ === 'string' && url_.startsWith(localFileUrl(path.resolve(stagingRoot)) + '/');
+    // oct26-m4-t2ff: m4-t2 期の旧 app://local も新形へ正規化してから判定する
+    return typeof url_ === 'string' && normalizeLocalAppUrl(url_).startsWith(localFileUrl(path.resolve(stagingRoot)) + '/');
   } catch {
     return false;
   }
@@ -92,8 +93,9 @@ const TILE_TEMPLATE_SUFFIX_RE = /\/\{z\}\/\{x\}\/\{y\}\.[^./\\]+$/;
  *   3. decode 失敗（`appUrlToLocalPath` の null: `%2F` や不正 percent-encoding 等）を含め、
  *      内部処理で発生する例外はすべて捕捉して null を返す（v1.2・レビュー v2 Minor1）
  */
-export function resolveStagingDirFromUrl(stagingRoot: string, url_: string): string | null {
+export function resolveStagingDirFromUrl(stagingRoot: string, rawUrl: string): string | null {
   try {
+    const url_ = normalizeLocalAppUrl(rawUrl);
     if (!isDraftTileUrl(stagingRoot, url_)) return null;
     const suffixMatch = url_.match(TILE_TEMPLATE_SUFFIX_RE);
     if (!suffixMatch || suffixMatch.index === undefined) return null;
