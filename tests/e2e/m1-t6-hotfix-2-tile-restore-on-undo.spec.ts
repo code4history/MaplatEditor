@@ -217,14 +217,24 @@ async function forceGcpsTabReady(page: Page): Promise<void> {
   await page.waitForFunction(() => !!(window as any).testDebug.illstMapInfo().source, undefined, { timeout: 60000 });
 }
 
+// 窓が小さい環境（#123: GitHub runner の画面 1024x768 で content が 1024x645 に縮む）では
+// 対象点が illst 地図の表示範囲の外に出て地図外の要素を右クリックしてしまうため、
+// 先に対象点を地図の中心へ寄せて描画を同期させ、表示範囲内にあることを確かめてから座標を取る（m12-t1 と同型）
 async function rightClickOnIllstMap(page: Page, xy: [number, number]): Promise<void> {
-  const point = await page.evaluate((target) => {
+  const probe = await page.evaluate((target) => {
     const info = (window as any).testDebug.illstMapInfo();
-    const pixel = info.map.getPixelFromCoordinate(info.source.xy2SysCoord(target));
+    const coord = info.source.xy2SysCoord(target);
+    info.map.getView().setCenter(coord);
+    info.map.renderSync();
+    const pixel = info.map.getPixelFromCoordinate(coord);
     const rect = document.getElementById('illstMap')!.getBoundingClientRect();
-    return { x: rect.left + pixel[0], y: rect.top + pixel[1] };
+    return { pixel, size: info.map.getSize(), x: rect.left + pixel[0], y: rect.top + pixel[1] };
   }, xy);
-  await page.mouse.click(point.x, point.y, { button: 'right' });
+  expect(probe.pixel[0]).toBeGreaterThanOrEqual(0);
+  expect(probe.pixel[1]).toBeGreaterThanOrEqual(0);
+  expect(probe.pixel[0]).toBeLessThan(probe.size[0]);
+  expect(probe.pixel[1]).toBeLessThan(probe.size[1]);
+  await page.mouse.click(probe.x, probe.y, { button: 'right' });
 }
 
 async function contextMenuTexts(page: Page): Promise<string[]> {

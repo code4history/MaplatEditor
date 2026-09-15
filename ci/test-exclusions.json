@@ -94,28 +94,12 @@
   ],
   "e2e": [
     {
-      "file": "m1-t6-hotfix-2-tile-restore-on-undo.spec.ts",
-      "line": 339,
-      "title": "AC2: タイル同一性キーが変わらない undo/redo（GCP 追加）では exchangeTileSource が呼ばれない",
-      "kind": "known-failure",
-      "reason": "runner 固有: m1-t6-hotfix-2-tile-restore-on-undo.spec.ts:358 の toContain('対応線上にマーカー追加') が 10 秒の predicate 待ちで失敗（Received \"\"・retry でも同じ）。runner の画面 1024x768 で窓の content が 1024x645 に縮み、右クリック点 (258,603) が illst 地図（高さ 366px）の外に出てメニューが開かない。手元（f85c847・2026-09-16）では 1200x768 で合格、content 1024x645 の模擬で同じ座標・同じ空メニューを再現",
-      "issue": "#123"
-    },
-    {
       "file": "m11-t8-new-draft-card.spec.ts",
       "line": 68,
       "title": "slug-less save shows visible error, recovers on edit, and new draft is discardable from editor",
       "kind": "known-failure",
       "reason": "slug 無し保存のエラー表示の検査が通らない（v1・t5 実装時は toBeDisabled が満たされない。d11ac0b ＋ t5 の測定では getByRole('button', { name: '保存' }) が 3 要素に一致する strict mode violation で 2 回とも失敗）",
       "issue": "#117"
-    },
-    {
-      "file": "m12-t1-edge-split.spec.ts",
-      "line": 110,
-      "title": "AC4+AC5+AC7+AC8+AC10: illst 側から対応点作成・edge 分割・Undo/Redo・保存保持・既存削除の退行なし",
-      "kind": "known-failure",
-      "reason": "runner 固有: m12-t1-edge-split.spec.ts:130 の toContain('対応線上にマーカー追加') が 10 秒の predicate 待ちで失敗（Received \"\"・retry でも同じ）。runner の画面 1024x768 で窓の content が 1024x645 に縮み、右クリック点 (258,603) が illst 地図（高さ 366px）の外に出てメニューが開かない。手元（f85c847・2026-09-16）では 1200x768 で合格、content 1024x645 の模擬で同じ座標・同じ空メニューを再現",
-      "issue": "#123"
     },
     {
       "file": "m12-t15-thumbnail-512.spec.ts",
