@@ -25,7 +25,10 @@
 // scripts/m19-t4a-settings-menu-about-smoke.mjs が直接 import している）。
 import path from 'node:path';
 // #105: merc タイル URL は file:// から app://local へ移行する
-import { localFileUrl } from './appScheme';
+// oct26-m4-t2s: 拡張子 `.ts` を明示する。上記の「node --experimental-strip-types で直接 import できる」前提は
+// 相対 import にも及び、Node の ESM 解決は拡張子を補わない（`./appScheme` では ERR_MODULE_NOT_FOUND）。
+// vite / vue-tsc（allowImportingTsExtensions）はどちらの書き方でも解決する。
+import { localFileUrl } from './appScheme.ts';
 
 /**
  * merc ベースマップの実行時専用タイル URL（url_）を組み立てる。
