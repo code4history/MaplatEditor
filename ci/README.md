@@ -5,7 +5,7 @@
 | job | 内容 |
 |---|---|
 | `smoke` | install → `pnpm run build` → `scripts/ci/run-smokes.mjs`（`smoke:*` を全数・直列）→ `scripts/ci/judge-test-results.mjs smoke` |
-| `e2e (1)〜(3)` | install → `pnpm run build` → `playwright test --shard=N/3`（exit を `playwright-exit.txt` に記録）→ `judge-test-results.mjs e2e` |
+| `e2e (1)〜(3)` | install → `pnpm run build` → `playwright test --forbid-only --shard=N/3`（exit を `playwright-exit.txt` に記録）→ `judge-test-results.mjs e2e` |
 
 **job の合否は判定器の exit だけで決まる。** 判定器は fail-closed で、報告が無い・壊れている・数が合わない・中断された、はすべて赤。
 
@@ -31,7 +31,7 @@ node scripts/ci/run-smokes.mjs --report smoke-report.json       # = pnpm run ci:
 node scripts/ci/judge-test-results.mjs smoke --report smoke-report.json   # = pnpm run ci:judge
 
 # e2e（手元では m12-t18-os-trash-delete.spec.ts を外す。実際の ~/.Trash に書くため。runner では実行される）
-PLAYWRIGHT_JSON_OUTPUT_NAME=e2e-report-1.json ./node_modules/.bin/playwright test --shard=1/3 --reporter=json,list \
+PLAYWRIGHT_JSON_OUTPUT_NAME=e2e-report-1.json ./node_modules/.bin/playwright test --forbid-only --shard=1/3 --reporter=json,list \
   --grep-invert "m12-t18-os-trash-delete"; echo $? > playwright-exit-1.txt
 node scripts/ci/judge-test-results.mjs e2e --report e2e-report-1.json --exit-file playwright-exit-1.txt
 ```

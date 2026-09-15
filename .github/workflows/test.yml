@@ -102,12 +102,13 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      # --forbid-only: spec に test.only が混入していると、一部だけ実行した報告が緑に見える（IR MIN-1）。混入時は Playwright が errors[] 付きで落ち、判定器が赤にする
       - name: Playwright
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-report.json
         run: |
           set +e
-          pnpm exec playwright test --shard=${{ matrix.shard }}/3 --reporter=json,list
+          pnpm exec playwright test --forbid-only --shard=${{ matrix.shard }}/3 --reporter=json,list
           echo "$?" > playwright-exit.txt
           exit 0
 

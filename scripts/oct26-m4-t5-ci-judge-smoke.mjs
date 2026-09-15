@@ -323,6 +323,9 @@ const green = (r, msg, re) => {
   assert.match(pw.run, /set \+e/, 'Playwright step は set +e');
   assert.match(pw.run, /--shard=\$\{\{ matrix\.shard \}\}\/3/, 'Playwright step は --shard');
   assert.match(pw.run, /--reporter=json/, 'Playwright step は json reporter');
+  // IR MIN-1: test.only の混入で一部だけ実行した報告を緑にしない。playwright test の起動行そのものに --forbid-only
+  const pwLine = pw.run.split('\n').find((l) => l.includes('playwright test')) ?? '';
+  assert.match(pwLine, /(^|\s)--forbid-only(\s|$)/, 'Playwright step の playwright test 行に --forbid-only（IR MIN-1）');
   assert.match(pw.run, /echo "\$\?" > playwright-exit\.txt\n\s*exit 0/, 'Playwright step は exit を playwright-exit.txt に書いて 0 で抜ける');
   assert.equal(pw.env?.PLAYWRIGHT_JSON_OUTPUT_NAME, 'e2e-report.json');
   const e2eJudge = e2e.steps.find((s) => (s.run ?? '').includes('judge-test-results.mjs e2e'));
