@@ -102,6 +102,17 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      # macOS runner の言語は en-US。MaplatEditor は設定が無いと app.getLocale() で UI 言語を決めるので、
+      # 日本語の文言を待つ e2e が英語 UI で落ちる。Electron（com.github.Electron）の言語を ja に固定し、
+      # Playwright の前に確かめる（マージ判断 oct26-m4-t5 追補 1。app domain は全体設定より優先される）
+      - name: Set Electron locale (ja)
+        run: |
+          defaults write com.github.Electron AppleLanguages -array ja
+          defaults read com.github.Electron AppleLanguages
+
+      - name: Check Electron locale
+        run: ./node_modules/.bin/electron scripts/ci/electron-locale-check.cjs
+
       # --forbid-only: spec に test.only が混入していると、一部だけ実行した報告が緑に見える（IR MIN-1）。混入時は Playwright が errors[] 付きで落ち、判定器が赤にする
       - name: Playwright
         env:

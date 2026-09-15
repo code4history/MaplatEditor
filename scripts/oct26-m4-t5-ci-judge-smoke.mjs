@@ -349,10 +349,21 @@ const green = (r, msg, re) => {
   assert.match(pwLine, /(^|\s)--forbid-only(\s|$)/, 'Playwright step の playwright test 行に --forbid-only（IR MIN-1）');
   assert.match(pw.run, /echo "\$\?" > playwright-exit\.txt\n\s*exit 0/, 'Playwright step は exit を playwright-exit.txt に書いて 0 で抜ける');
   assert.equal(pw.env?.PLAYWRIGHT_JSON_OUTPUT_NAME, 'e2e-report.json');
+  // 追補 1（F-AC6）: macOS runner は en-US。Playwright の前に Electron の言語を ja に固定し、確かめる
+  const pwIndex = e2e.steps.indexOf(pw);
+  const setLoc = e2e.steps.findIndex((s) => s.name === 'Set Electron locale (ja)');
+  const checkLoc = e2e.steps.findIndex((s) => s.name === 'Check Electron locale');
+  assert.ok(setLoc >= 0 && (e2e.steps[setLoc].run ?? '').includes('defaults write com.github.Electron AppleLanguages -array ja'), 'e2e job に Set Electron locale (ja)（defaults write com.github.Electron AppleLanguages -array ja）');
+  assert.ok(checkLoc >= 0 && (e2e.steps[checkLoc].run ?? '').includes('scripts/ci/electron-locale-check.cjs'), 'e2e job に Check Electron locale（scripts/ci/electron-locale-check.cjs）');
+  assert.ok(setLoc < checkLoc && checkLoc < pwIndex, `言語の設定 → 検査 → Playwright の順（${setLoc} / ${checkLoc} / ${pwIndex}）`);
+  for (const i of [setLoc, checkLoc]) {
+    assert.equal('continue-on-error' in e2e.steps[i], false, `${e2e.steps[i].name} は continue-on-error を持たない`);
+    assert.equal('if' in e2e.steps[i], false, `${e2e.steps[i].name} は if を持たない`);
+  }
   const e2eJudge = e2e.steps.find((s) => (s.run ?? '').includes('judge-test-results.mjs e2e'));
   assert.match(e2eJudge.run, /--report e2e-report\.json --exit-file playwright-exit\.txt --shard \$\{\{ matrix\.shard \}\}\/3/, 'e2e 判定 step の引数');
   assert.ok(e2e.steps.map((s) => s.run ?? '').includes('pnpm run build'), 'e2e job に pnpm run build');
-  console.log('  [3/5] AC5 test.yml の静的検査: PASS');
+  console.log('  [3/5] AC5 test.yml の静的検査（＋--forbid-only・Electron の言語固定）: PASS');
 }
 
 // ───────────────────────────── AC6 ─────────────────────────────
