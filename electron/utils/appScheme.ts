@@ -168,6 +168,24 @@ export function migrateLegacyFileUrl(url: string): string {
   }
 }
 
+/**
+ * 保存・staging 判定の入口で url_ を現行形へ正規化する（oct26-m4-t2s 第 2 版・MAJ-1）。
+ *
+ * 公開済み v1.0.0 で画像を取り込み未保存で終了した hot-exit 下書きは、mapData を丸ごと electron-store に残すため、
+ * url_ が `file:///<userData>/draft-tiles/<uid>/{z}/{x}/{y}.<ext>`（v1.0.0 の imageCutter の形）のまま復元される。
+ * 正規化が `normalizeLocalAppUrl`（旧 app://local だけ）だと file:// は staging とも tmp とも判定されず、
+ * 保存が Success を返しながらタイル・原本を恒久領域へ移さず、下書き削除で staging ごと画像が消えた。
+ *
+ * 規則は保存済み `json.url` 用の `migrateLegacyFileUrl` と同一（旧 app://local → 新形 / `file://…/{z}/{x}/{y}.<ext>` →
+ * 新形 / それ以外は無加工）。正規化は URL の形を揃えるだけで許可の判定はしない。staging・tmp・複製元のどれに当たるかは
+ * 呼び出し側が従来どおり「許可ルートから組んだ接頭辞（境界込み）」と `resolveDraftTileDir` の包含検証で決めるので、
+ * 許可ルート外・境界外の file:// を正規化しても移動元にはならない（`resolveAppUrl` の localRoots 判定と同じ境界規約）。
+ * 文字列以外（undefined 等）はそのまま返す。
+ */
+export function normalizeLegacyTileUrl<T>(url: T): T {
+  return (typeof url === 'string' ? migrateLegacyFileUrl(url) : url) as T;
+}
+
 export interface AppSchemeRoots {
   /** renderer 同梱リソースの探索ルート（先勝ち。例: [dist, public]） */
   bundleRoots: string[];

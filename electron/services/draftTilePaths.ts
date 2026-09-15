@@ -16,7 +16,7 @@
 import path from 'node:path';
 import { app } from 'electron';
 // #105: タイル URL は file:// から app://local へ移行する（build/parse とも appScheme に一本化）
-import { localFileUrl, appUrlToLocalPath, normalizeLocalAppUrl } from '../utils/appScheme';
+import { localFileUrl, appUrlToLocalPath, normalizeLegacyTileUrl } from '../utils/appScheme';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 
 /** 非 isolated 環境での staging ルート既定値（設計 §5.1: userData/draft-tiles） */
@@ -74,7 +74,8 @@ export function resolveDraftTileDir(rootDir: string, segment: unknown): string |
 export function isDraftTileUrl(stagingRoot: string, url_: unknown): boolean {
   try {
     // oct26-m4-t2ff: m4-t2 期の旧 app://local も新形へ正規化してから判定する
-    return typeof url_ === 'string' && normalizeLocalAppUrl(url_).startsWith(localFileUrl(path.resolve(stagingRoot)) + '/');
+    // oct26-m4-t2s（MAJ-1）: v1.0.0 の下書きの file://…/{z}/{x}/{y}.<ext> も同様（境界込み接頭辞の判定は不変）
+    return typeof url_ === 'string' && normalizeLegacyTileUrl(url_).startsWith(localFileUrl(path.resolve(stagingRoot)) + '/');
   } catch {
     return false;
   }
@@ -95,7 +96,7 @@ const TILE_TEMPLATE_SUFFIX_RE = /\/\{z\}\/\{x\}\/\{y\}\.[^./\\]+$/;
  */
 export function resolveStagingDirFromUrl(stagingRoot: string, rawUrl: string): string | null {
   try {
-    const url_ = normalizeLocalAppUrl(rawUrl);
+    const url_ = normalizeLegacyTileUrl(rawUrl);
     if (!isDraftTileUrl(stagingRoot, url_)) return null;
     const suffixMatch = url_.match(TILE_TEMPLATE_SUFFIX_RE);
     if (!suffixMatch || suffixMatch.index === undefined) return null;

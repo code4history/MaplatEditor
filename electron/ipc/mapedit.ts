@@ -2,7 +2,7 @@ import { ipcMain, BrowserWindow, dialog, app } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
 // #105: タイル URL は file:// から app://local へ移行する
-import { localFileUrl, normalizeLocalAppUrl } from '../utils/appScheme';
+import { localFileUrl, normalizeLegacyTileUrl } from '../utils/appScheme';
 // M12-T20 (§5.0/§5.1): staging パスの解決・検証は共通バリデータのみを使う
 import { draftTileRoot, isDraftTileUrl, resolveStagingDirFromUrl, resolveDraftTileDir } from '../services/draftTilePaths';
 // @ts-ignore
@@ -132,7 +132,8 @@ export const registerMapEditHandlers = () => {
                 alive = stagingDir ? await fs.pathExists(stagingDir) : false;
             } else {
                 const tmpTileFolder = path.join(SettingsService.get('tmpFolder') as string, 'tiles');
-                if (normalizeLocalAppUrl(url_).startsWith(localFileUrl(tmpTileFolder) + '/')) {
+                // oct26-m4-t2s（MAJ-1）: 旧 app://local と v1.0.0 の file:// も新形へ正規化してから判定する
+                if (normalizeLegacyTileUrl(url_).startsWith(localFileUrl(tmpTileFolder) + '/')) {
                     // 後方互換 tmp は固定 dir（url_ 由来の可変部がパス構築に入らないため導出不要）
                     alive = await fs.pathExists(tmpTileFolder);
                 }

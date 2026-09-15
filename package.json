@@ -224,6 +224,7 @@
     "smoke:oct26-m4-t2-ipc-guard": "node scripts/oct26-m4-t2-ipc-guard-smoke.mjs",
     "smoke:oct26-m4-t2-ci-artifact-verify": "node scripts/oct26-m4-t2-ci-artifact-verify-smoke.mjs",
     "smoke:oct26-m4-t2ff-app-scheme-same-origin": "node --experimental-strip-types scripts/oct26-m4-t2ff-app-scheme-same-origin-smoke.mjs",
+    "smoke:oct26-m4-t2s-legacy-draft-file-url": "node scripts/oct26-m4-t2s-legacy-draft-file-url-smoke.mjs",
     "test:e2e:oct26-m4-t2ff": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/oct26-m4-t2ff-app-local-cors.spec.ts",
     "test:e2e:m19-t4a": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t4a-settings-and-about.spec.ts",
     "smoke:editor-locale-parity": "node scripts/editor-locale-parity.mjs",
