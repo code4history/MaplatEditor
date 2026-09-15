@@ -1,0 +1,127 @@
+name: Tests
+
+# oct26-m4-t5（#121）: smoke（scripts/*-smoke.mjs）と e2e（Playwright + Electron）を CI で実行する。
+#
+# job の合否は「判定 step」（scripts/ci/judge-test-results.mjs）の exit だけで決まる:
+#   - smoke の実行 step は continue-on-error（失敗があっても判定まで進む）
+#   - Playwright step は exit を playwright-exit.txt に書いて 0 で抜ける
+#   - 判定 step は if: always() で必ず走り、報告が無い・壊れている・数が合わない場合も赤（fail-closed）
+#   - continue-on-error を持つのは smoke の実行 step だけ（判定 step は持たない）
+# 既知の失敗・実行しない smoke は ci/test-exclusions.json に理由と Issue つきで載せる。運用は ci/README.md。
+#
+# 安全面: GITHUB_TOKEN は read のみ・checkout はトークンを残さない・action はすべて 40 桁 SHA 固定・secrets を使わない。
+
+on:
+  pull_request:
+  push:
+    branches: [master, glm52, foss4g-hiroshima]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  # PR は新しい push で古い実行を取り消す。master 等への push は取り消さない（合流ごとの結果を残す）
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  smoke:
+    # macos-latest の繰り上げで OS が黙って変わるのを避ける（build.yml は変えない）
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          # outer の scripts/m1-t1/verify-pnpm-config.mjs（AC2b）が読む形（block 形式）で書く
+          version: 11
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Apply CI-only pnpm config
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # dist/ を読む smoke がある
+      - name: Build
+        run: pnpm run build
+
+      - name: Run smokes
+        id: run
+        continue-on-error: true
+        run: node scripts/ci/run-smokes.mjs --report smoke-report.json
+
+      - name: Judge smokes
+        if: always()
+        run: node scripts/ci/judge-test-results.mjs smoke --report smoke-report.json
+
+      - name: Upload smoke report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: smoke-report
+          path: smoke-report.json
+          if-no-files-found: warn
+
+  e2e:
+    runs-on: macos-26
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Apply CI-only pnpm config
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Playwright
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-report.json
+        run: |
+          set +e
+          pnpm exec playwright test --shard=${{ matrix.shard }}/3 --reporter=json,list
+          echo "$?" > playwright-exit.txt
+          exit 0
+
+      - name: Judge e2e
+        if: always()
+        run: node scripts/ci/judge-test-results.mjs e2e --report e2e-report.json --exit-file playwright-exit.txt --shard ${{ matrix.shard }}/3
+
+      - name: Upload e2e report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-${{ matrix.shard }}
+          path: |
+            e2e-report.json
+            playwright-exit.txt
+            test-results/
+          if-no-files-found: warn

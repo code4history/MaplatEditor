@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "policy": "暫定（測り直し前）。運用は ci/README.md を参照",
+  "smoke": [
+    { "name": "m2-electrobun-poc", "kind": "excluded", "reason": "runner に bun が無い（Electrobun PoC）", "issue": "#121" }
+  ],
+  "e2e": []
+}
