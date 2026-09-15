@@ -27,8 +27,8 @@
 //   AC2 : 外部タイルURL地図 → 外部URLが完全一致で保持される
 //   AC3 : AC1a の zip を別スラッグで再インポート → preview が自分の uid のタイルを指す
 //   AC4 : ローカルタイルが実在する地図（設計 §6.1 分岐表の行3）の preview の url は
-//         ランタイムのタイル URL app://local/…/tiles/<uid>/{z}/{x}/{y}.<ext>（preview 経路の非回帰）
-//         ※oct26-m4-t2（#105）でランタイムのローカルタイル URL は file:// から app://local へ移った
+//         ランタイムのタイル URL app://bundle/__local/…/tiles/<uid>/{z}/{x}/{y}.<ext>（preview 経路の非回帰）
+//         ※oct26-m4-t2（#105）・oct26-m4-t2ff（renderer と同一 origin 化）でランタイムのローカルタイル URL は file:// から app://bundle/__local へ移った
 //   AC6 : 保存ダイアログのキャンセルで 'Canceled' を返し、出力先ファイルを作らない
 //         ※既存 m13-t1 smoke は全ケース canceled:false を注入しており、この分岐は未検証だった
 //
@@ -233,11 +233,11 @@ try {
       // 「preview は常に file://」という主張は成り立たない
       {
         const preview = await MapEditService.requestPreviewSource(emptyUid);
-        // oct26-m4-t2s: #105 の契約 — ランタイムのローカルタイル URL は app://local で、
+        // oct26-m4-t2s: #105 の契約 — ランタイムのローカルタイル URL は app://bundle/__local で、
         // テンプレート部を除いた実パス部分は自分の uid のタイルフォルダへ復号される
         assert.match(
-          String(preview.url), /^app:\\/\\/local\\//,
-          'AC4: ローカルタイル地図の preview の url は app://local のランタイム URL のはず（preview 経路の非回帰・#105）。実際の値: ' + preview.url
+          String(preview.url), /^app:\\/\\/bundle\\/__local\\//,
+          'AC4: ローカルタイル地図の preview の url は app://bundle/__local のランタイム URL のはず（preview 経路の非回帰・#105）。実際の値: ' + preview.url
         );
         assert.equal(
           appUrlToLocalPath(String(preview.url).replace(/\\/\\{z\\}\\/\\{x\\}\\/\\{y\\}\\.jpg$/, '')),
@@ -249,7 +249,7 @@ try {
           'AC4: preview の url は自分の uid のタイルを指すはず。実際の値: ' + preview.url
         );
         assert.match(String(preview.url), /\\{z\\}\\/\\{x\\}\\/\\{y\\}\\.jpg$/, 'AC4: preview の url はタイルテンプレート形のはず');
-        console.log('ok: AC4 preview-source still returns the runtime app://local tile url');
+        console.log('ok: AC4 preview-source still returns the runtime app://bundle/__local tile url');
       }
 
       // ===== AC3: AC1a の zip を別スラッグで再インポート → preview が自分の uid のタイルを指す =====

@@ -137,7 +137,7 @@ try {
         return tmpTileFolder;
       }
 
-      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app://local へ移った。
+      // oct26-m4-t2s: m4-t2（#105）・m4-t2ff（同一 origin 化）でローカルタイル URL の契約は file:// から app://bundle/__local へ移った。
       // 実運用で url_ を作る MapUploadService.imageCutter と同じビルダー（electron/utils/appScheme.ts）で fixture を組む
       const { localFileUrl, appUrlToLocalPath } = await import(${JSON.stringify(appSchemePath)});
 
@@ -176,8 +176,8 @@ try {
           'url は {z}/{x}/{y}.ext サフィックスを保持するはず: ' + saveB1.url
         );
         assert.ok(!saveB1.url.includes(tmpTileFolder), 'url は旧tmpパスを含まないはず: ' + saveB1.url);
-        // oct26-m4-t2s: #105 の契約 — 恒久 url は app://local で、復号すると恒久タイルフォルダの実パスになる
-        assert.ok(saveB1.url.startsWith('app://local/'), 'url は app://local の契約に従うはず (#105): ' + saveB1.url);
+        // oct26-m4-t2s: #105 の契約 — 恒久 url は app://bundle/__local で、復号すると恒久タイルフォルダの実パスになる
+        assert.ok(saveB1.url.startsWith('app://bundle/__local/'), 'url は app://bundle/__local の契約に従うはず (#105): ' + saveB1.url);
         assert.equal(
           appUrlToLocalPath(saveB1.url.slice(0, -'/{z}/{x}/{y}.png'.length)),
           path.join(tileFolder, UID_B1),
@@ -229,9 +229,9 @@ try {
           !saveC1.url.includes(tmpTileFolder),
           '$& ハザードで旧tmpパスが結果に紛れ込んでいないはず: ' + saveC1.url
         );
-        // oct26-m4-t2s: app://local はセグメントを encodeURIComponent するため '$&' は '%24%26' として載る。
+        // oct26-m4-t2s: app://bundle/__local はセグメントを encodeURIComponent するため '$&' は '%24%26' として載る。
         // 復号すると '$&' を含む実パスへ正しく戻ること（置換ハザードの有無を実パスで確かめる）
-        assert.ok(saveC1.url.includes('%24%26') && !saveC1.url.includes('$&'), 'app://local では $& が符号化されるはず: ' + saveC1.url);
+        assert.ok(saveC1.url.includes('%24%26') && !saveC1.url.includes('$&'), 'app://bundle/__local では $& が符号化されるはず: ' + saveC1.url);
         assert.equal(
           appUrlToLocalPath(saveC1.url.slice(0, -'/{z}/{x}/{y}.jpg'.length)),
           path.join(tileFolder, UID_C1),

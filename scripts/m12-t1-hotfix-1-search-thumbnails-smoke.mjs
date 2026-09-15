@@ -2,8 +2,8 @@
 // m9-t3 型 harness（electron/electron-store stub + vite ssr build）で ipcMain handler を直接起動し、
 // resolver 契約・handler 添付・委譲 refactor（MapDataService/AppDataService 挙動不変）を検証する。
 // シナリオ:
-//   (a) tmbs/{uid}.jpg がある地図は search:maps で image=app://local tmbs が添付される
-//       ※oct26-m4-t2（#105）で表示用 URL は file:// から app://local へ移った
+//   (a) tmbs/{uid}.jpg がある地図は search:maps で image=app://bundle/__local tmbs が添付される
+//       ※oct26-m4-t2（#105）・oct26-m4-t2ff（renderer と同一 origin 化）で表示用 URL は file:// から app://bundle/__local へ移った
 //   (b) tmbs が無く tiles/{uid}/0/0/0.png がある地図はタイル fallback が添付される
 //   (c) どちらも無い地図は image=null（no_image fallback 契約の維持）
 //   (d) search:apps は iconSource → splash → startFrom maplat タイルの優先順で添付される
@@ -90,9 +90,9 @@ try {
       const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64');
       const dataDir = ${JSON.stringify(dataDir)};
       const workDir = ${JSON.stringify(workDir)};
-      // oct26-m4-t2s: #105 の契約（electron/utils/appScheme.ts 冒頭）— app://local + セグメント単位の
+      // oct26-m4-t2s: #105 の契約（electron/utils/appScheme.ts 冒頭）— app://bundle/__local + セグメント単位の
       // encodeURIComponent。期待値は製品のビルダーを呼ばずに契約から独立に組み立てる（macOS 前提の POSIX パス）
-      const appLocal = (absPath: string) => 'app://local' + absPath.split('/').map((seg) => encodeURIComponent(seg)).join('/');
+      const appLocal = (absPath: string) => 'app://bundle/__local' + absPath.split('/').map((seg) => encodeURIComponent(seg)).join('/');
 
       const { __handlers } = await import(${JSON.stringify(electronStubFile)});
       const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
@@ -129,7 +129,7 @@ try {
       await fsMkdir(tilesDir, { recursive: true });
       await fsWriteFile(nodePath.join(tilesDir, '0.png'), PNG);
 
-      // (a) tmbs/{uid}.jpg がある → image = app://local tmbs
+      // (a) tmbs/{uid}.jpg がある → image = app://bundle/__local tmbs
       const mapsResult = await call('search:maps', { q: '', page: 1, pageSize: 20 });
       const mapDoc = mapsResult.docs.find((d: any) => d.slug === mapSlug);
       assert.ok(mapDoc, 'seed した地図が search:maps に含まれること');

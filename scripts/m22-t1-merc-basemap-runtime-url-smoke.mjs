@@ -19,7 +19,7 @@
 // シナリオ:
 //   S1 deriveMercBaseMapTileUrl の純関数マトリクス（merc/非merc・uid 空・saveFolder 空・
 //      percent-encoding・テンプレート部 {z}/{x}/{y} 無加工）
-//      ※oct26-m4-t2（#105）で merc の実行時タイル URL は file:// から app://local へ移った
+//      ※oct26-m4-t2（#105）・oct26-m4-t2ff（renderer と同一 origin 化）で merc の実行時タイル URL は file:// から app://bundle/__local へ移った
 //   S2 IPC 3チャネルすべてが item レベルに同じ url_ を返す
 //   S3 同じ行の data.url は '' のままで、data に url_ キーが存在しない（'url_' in item.data === false）
 //   S4 item.data を丸ごと saveUser へ差し戻しても data_json に url_ が現れない（防壁不要の実証）
@@ -121,9 +121,9 @@ try {
       import { writeFile as fsWriteFile } from 'node:fs/promises';
 
       const dataDir = ${JSON.stringify(dataDir)};
-      // oct26-m4-t2s: #105 の契約（electron/utils/appScheme.ts 冒頭）— app://local + セグメント単位の
+      // oct26-m4-t2s: #105 の契約（electron/utils/appScheme.ts 冒頭）— app://bundle/__local + セグメント単位の
       // encodeURIComponent。期待値は製品のビルダーを呼ばずに契約から独立に組み立てる（macOS 前提の POSIX パス）
-      const appLocal = (absPath: string) => 'app://local' + absPath.split('/').map((seg) => encodeURIComponent(seg)).join('/');
+      const appLocal = (absPath: string) => 'app://bundle/__local' + absPath.split('/').map((seg) => encodeURIComponent(seg)).join('/');
       const MERC_UID = ${JSON.stringify(MERC_UID)};
       const MERC_SLUG = ${JSON.stringify(MERC_SLUG)};
       const NON_MERC = ${JSON.stringify(NON_MERC)};
@@ -371,7 +371,7 @@ try {
 
   assert.equal(
     deriveMercBaseMapTileUrl(mercData, 'uid-1', plainFolder),
-    `app://local${path.join(plainFolder, 'merc', 'uid-1').split(path.sep).join('/')}/{z}/{x}/{y}.png`,
+    `app://bundle/__local${path.join(plainFolder, 'merc', 'uid-1').split(path.sep).join('/')}/{z}/{x}/{y}.png`,
     'S1: merc は {saveFolder}/merc/{uid}/{z}/{x}/{y}.png を組み立てること',
   );
   for (const kind of ['tms', 'google', 'mapbox', 'maplibre']) {
@@ -391,11 +391,11 @@ try {
   // percent-encoding（保存フォルダに空白・非 ASCII を含む環境。#105 以降は appScheme の localFileUrl に委ねる）
   const encodedFolder = path.join(path.sep, 'Users', 'aa bb', 'データ');
   const encoded = deriveMercBaseMapTileUrl(mercData, 'uid-1', encodedFolder);
-  assert.ok(encoded.startsWith('app://local/'), 'S1: app://local 形式であること (#105): ' + encoded);
+  assert.ok(encoded.startsWith('app://bundle/__local/'), 'S1: app://bundle/__local 形式であること (#105): ' + encoded);
   assert.equal(
     encoded,
-    'app://local/Users/aa%20bb/%E3%83%87%E3%83%BC%E3%82%BF/merc/uid-1/{z}/{x}/{y}.png',
-    'S1: app://local + セグメント単位 percent-encoding + 無加工テンプレートの完全形であること (#105): ' + encoded,
+    'app://bundle/__local/Users/aa%20bb/%E3%83%87%E3%83%BC%E3%82%BF/merc/uid-1/{z}/{x}/{y}.png',
+    'S1: app://bundle/__local + セグメント単位 percent-encoding + 無加工テンプレートの完全形であること (#105): ' + encoded,
   );
   assert.ok(encoded.includes('aa%20bb'), 'S1: 空白が percent-encoding されること: ' + encoded);
   assert.equal(encoded.includes(' '), false, 'S1: 生の空白が残らないこと: ' + encoded);

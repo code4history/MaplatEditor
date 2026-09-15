@@ -117,7 +117,7 @@ try {
         return tmpTileFolder;
       }
 
-      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app://local へ移った。
+      // oct26-m4-t2s: m4-t2（#105）・m4-t2ff（同一 origin 化）でローカルタイル URL の契約は file:// から app://bundle/__local へ移った。
       // 実運用で url_ を作る MapUploadService.imageCutter と同じビルダー（electron/utils/appScheme.ts）で fixture を組む
       const { localFileUrl, appUrlToLocalPath } = await import(${JSON.stringify(appSchemePath)});
 
@@ -184,10 +184,10 @@ try {
         );
 
         // AC3: 実際にディスク上に存在するファイルを指す ({z}/{x}/{y} を実在座標 0/0/0 に置換して解決)
-        // oct26-m4-t2s: url は app://local（#105）。復号は配信側と同じ appUrlToLocalPath で行う
-        assert.ok(saveADest.url.startsWith('app://local/'), 'url は app://local の契約に従うはず (#105): ' + saveADest.url);
+        // oct26-m4-t2s: url は app://bundle/__local（#105）。復号は配信側と同じ appUrlToLocalPath で行う
+        assert.ok(saveADest.url.startsWith('app://bundle/__local/'), 'url は app://bundle/__local の契約に従うはず (#105): ' + saveADest.url);
         const resolvedPath = appUrlToLocalPath(saveADest.url.replace('/{z}/{x}/{y}', '/0/0/0'));
-        assert.ok(resolvedPath !== null, 'AC3: url は app://local として復号できるはず: ' + saveADest.url);
+        assert.ok(resolvedPath !== null, 'AC3: url は app://bundle/__local として復号できるはず: ' + saveADest.url);
         assert.ok(
           await fs.pathExists(resolvedPath),
           'AC3: url が指す実体ファイルがディスク上に存在するはず: ' + resolvedPath
