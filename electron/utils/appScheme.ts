@@ -22,6 +22,11 @@
  *   - Windows ドライブレター `C:`（先頭セグメント直後）だけはエンコードせず残す。
  *   - URL 経路は先頭 `/` を保証（`C:\...` → `/C:/...`）。
  *   - 復号は `fileURLToPath` と同じく encoded 区切り文字（`%2F` / `%5C`）を拒否して迂回を防ぐ。
+ *
+ * oct26-m4-t6（#120）: 応答に付ける CSP は `createAppSchemeHandler` の 1 分岐（responseHeadersFor）で決める。
+ *   - 同梱の HTML（index.html・about.html）には renderer CSP（RENDERER_CSP）だけを付ける
+ *   - ローカルリソース（__local・旧 app://local）には sandbox の CSP＋nosniff（localResponseHeaders）だけを付ける
+ *   - 2 本を重ねない（重ねると両方が適用され、sandbox 側の意図と別の制約が混ざる）。同梱の非 HTML には付けない
  */
 import { access, constants as fsConstants, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -296,17 +301,64 @@ export function mimeFor(filePath: string): string {
 }
 
 /**
+ * renderer（app://bundle の同梱 HTML）に付ける Content-Security-Policy（oct26-m4-t6・#120）。ポリシーの唯一の定義。
+ *
+ * - script-src／worker-src は `'self'` を書かずパスで限定する。Chromium の `'self'` は同一 origin の
+ *   `app://bundle/__local/…`（保存フォルダ・下書きタイル）まで含むので、書くと保存フォルダ内の任意ファイルを
+ *   スクリプト／Worker として実行できてしまう（設計レビュー MAJ-1）。`app://bundle/assets/` は Vite の既定出力
+ *   （エントリ・chunk・tinComputeWorker）、`app://bundle/about.js` は about ウィンドウの外出し先。
+ *   Vite の出力先がこのパスに収まることは oct26-m4-t6-csp smoke が実ビルド物で断言する
+ * - img-src は利用者登録のタイル URL を列挙できないので https:／http: を許す。connect-src の http はプレビュー配信
+ *   （http://localhost）だけ。frame-src もプレビュー iframe だけで、__local の HTML を renderer に埋め込ませない
+ * - dev 起動の main window（http://localhost の vite）はこの handler を通らないので付かない（about は付く）
+ */
+export const RENDERER_CSP = [
+  "default-src 'self'",
+  'script-src app://bundle/assets/ app://bundle/about.js',
+  "style-src 'self'",
+  "img-src 'self' data: https: http:",
+  "font-src 'self'",
+  "connect-src 'self' https: http://localhost:*",
+  'worker-src app://bundle/assets/',
+  'frame-src http://localhost:*',
+  "child-src 'none'",
+  "media-src 'self'",
+  "object-src 'none'",
+  "manifest-src 'self'",
+  "base-uri 'self'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+/** 同梱 HTML（renderer の文書）の応答に付けるヘッダ（oct26-m4-t6）。 */
+export function bundleDocumentHeaders(): Record<string, string> {
+  return { 'content-security-policy': RENDERER_CSP };
+}
+
+/**
  * ローカルリソース応答に付ける防御ヘッダ（oct26-m4-t2ff）。
  * 同一 origin 配信にしたことで、saveFolder 内の HTML/SVG を renderer と同じ origin で開けるようになる。
  * CSP `sandbox` でその文書を不透明 origin として開き、スクリプトを走らせない（renderer の DOM・preload API に届かない。
  * 外すと同一 origin の iframe から親の DOM を書き換えられることを e2e AC-FF-7 の変異で実測）。
  * CORP `same-origin` は app:// では効かなかった（付けても他 origin の crossOrigin 無し <img> が表示できた・実測）ので付けない。
- * nosniff は Content-Type を mimeFor で明示しており、効きを確かめた経路が無いので付けない。
+ * oct26-m4-t6: nosniff を付ける。効きの経路は renderer からの `<script src>`／`new Worker`（同一 origin なので
+ * renderer CSP の origin 単位の許可では止まらない）で、未知拡張子（octet-stream）・.json をスクリプトとして拒否させる
+ * （t6 AC7 の e2e で実測）。renderer CSP はここに重ねない。
  */
 export function localResponseHeaders(): Record<string, string> {
   return {
     'content-security-policy': "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'",
+    'x-content-type-options': 'nosniff',
   };
+}
+
+/**
+ * 応答に付ける防御ヘッダを 1 か所で決める（oct26-m4-t6）。kind で排他に分け、ローカルと同梱 HTML に 2 本の CSP を重ねない。
+ */
+function responseHeadersFor(resolution: AppUrlResolution): Record<string, string> {
+  if (resolution.kind === 'local') return localResponseHeaders();
+  if (resolution.mimeType === 'text/html') return bundleDocumentHeaders();
+  return {};
 }
 
 /**
@@ -335,6 +387,10 @@ export interface AppSchemeHandlerDeps {
  * - stat / 読取権限の確認に失敗 → fsErrorStatus（ENOENT/ENOTDIR 以外は warn）・ディレクトリ → 403＋warn・読込例外 → 500＋warn
  * - Content-Type は mimeFor が導出した値を明示（MIN-1）
  * - ローカルリソースの応答（失敗応答を含む）には localResponseHeaders を付ける。ACAO は付けない
+ * - 同梱 HTML の応答には renderer CSP（bundleDocumentHeaders）を付ける（oct26-m4-t6）
+ * - ローカルリソースのスクリプト系 MIME（.js/.mjs）は 403（oct26-m4-t6・MAJ-1 の案 B）。製品が __local で配信するのは
+ *   画像（タイル・サムネイル・merc・画像アセット）だけで、保存フォルダのスクリプトを renderer に読ませる経路は無い。
+ *   CSP のパス照合に依存しない独立の層で、CSP ヘッダが付かない dev 起動の main window にも効く
  */
 export function createAppSchemeHandler(deps: AppSchemeHandlerDeps): (request: Request) => Promise<Response> {
   const text = (status: number, body: string, extra: Record<string, string>) =>
@@ -342,7 +398,11 @@ export function createAppSchemeHandler(deps: AppSchemeHandlerDeps): (request: Re
   return async (request: Request): Promise<Response> => {
     const resolution = resolveAppUrl(request.url, deps.getRoots());
     if (!resolution) return text(403, 'Forbidden', {});
-    const extra = resolution.kind === 'local' ? localResponseHeaders() : {};
+    const extra = responseHeadersFor(resolution);
+    if (resolution.kind === 'local' && resolution.mimeType === 'text/javascript') {
+      deps.warn(`[app-scheme] script from local resource refused (403): ${request.url}`);
+      return text(403, 'Forbidden', extra);
+    }
     try {
       const st = await stat(resolution.filePath);
       if (st.isDirectory()) {
