@@ -44,3 +44,9 @@ artifacts-electrobun/
 .tmp-human-verify/
 test-results/
 playwright-report/
+
+# CI の判定器・測り直しの報告（oct26-m4-t5。手元で ci/README.md の手順を実行したときの出力）
+/smoke-report*.json
+/e2e-report*.json
+/playwright-exit*.txt
+/exclusions-diff.json

@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "policy": "確定版（oct26-m4-t5 合流直前の master d11ac0b ＋ t5 で測定。smoke 全数と e2e 3 シャード・Electron の言語は ja）。除外表に載ったものが通るようになったら赤・表に無い新しい失敗も赤。t5 合流後に合流する変更は、合流前に手元で ci:smoke → ci:judge（e2e も 3 シャード）を通し、直した既知失敗は同じ変更で表から外す。詳細は ci/README.md",
+  "smoke": [
+    {
+      "name": "m2-electrobun-poc",
+      "kind": "excluded",
+      "reason": "runner に bun が無い（Electrobun PoC）。setup-bun の SHA 固定導入は 11 月",
+      "issue": "#121"
+    },
+    {
+      "name": "t1-export-zip-writer",
+      "kind": "excluded",
+      "reason": "1 本で 585 秒超（v1 実測）。打ち切り 600 秒に掛かり smoke job を占有する。夜間 job は 11 月",
+      "issue": "#121"
+    },
+    {
+      "name": "m1-t2-registered-map-catalog",
+      "kind": "excluded",
+      "reason": "非公開の前提（SaaS 正本）が単独 clone に無い（v1 B 分類・非公開）",
+      "issue": "#121"
+    },
+    {
+      "name": "m11-t4-master-detail",
+      "kind": "excluded",
+      "reason": "Maplats 配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
+      "issue": "#121"
+    },
+    {
+      "name": "m19-t8-builtin-osm-data-attr",
+      "kind": "excluded",
+      "reason": "Maplats 配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
+      "issue": "#121"
+    },
+    {
+      "name": "m6-t10-app-source-diff-model",
+      "kind": "excluded",
+      "reason": "Maplats 配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
+      "issue": "#121"
+    },
+    {
+      "name": "m6-t10-preview-bundle-guard",
+      "kind": "excluded",
+      "reason": "../MaplatCore/dist の build 済み公開物が単独 clone に無い（v1 B 分類・公開物。MaplatCore build を CI に入れる案は 11 月）",
+      "issue": "#121"
+    },
+    {
+      "name": "m6-t6-preview-bundle-provider-url-guard",
+      "kind": "excluded",
+      "reason": "../MaplatCore の build 済み公開物が単独 clone に無い（v1 B 分類・公開物。11 月）",
+      "issue": "#121"
+    },
+    {
+      "name": "m1-t8-preview-bundle-sync",
+      "kind": "excluded",
+      "reason": "Maplats 配下の MaplatUI 配布物との MD5 照合で、単独 clone では比較元が無い（v1 D 分類・環境依存）",
+      "issue": "#121"
+    },
+    {
+      "name": "m12-t18-os-trash-delete",
+      "kind": "known-failure",
+      "reason": "起点（m4-t2 より前）から赤: electron/ に 'trash' の文字列が残存（AC18-3）（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
+      "expect": "製品コード (electron/) に 'trash' が残存している"
+    },
+    {
+      "name": "m19-t11-range-vocabulary",
+      "kind": "known-failure",
+      "reason": "起点（m4-t2 より前）から赤: 属性名の出現数が凍結 baseline と異なる（MC5）（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
+      "expect": "MC5: 属性名の出現数が凍結 baseline と異なる"
+    },
+    {
+      "name": "m4-undo-redo",
+      "kind": "known-failure",
+      "reason": "起点（m4-t2 より前）から赤: MapEdit.vue の構造変更で検査対象ブロックが見つからない（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
+      "expect": "MapEdit.vue settings tab block could not be located"
+    },
+    {
+      "name": "m12-t1-edge-split",
+      "kind": "known-failure",
+      "reason": "起点から赤（v1: 前提があっても赤）。runner では前提の監査文書（../docs）が無く ENOENT で落ちる（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
+      "expect": "docs/superpowers/reviews/2026-07-18-m12-t1-modernized-parity-audit.md'"
+    },
+    {
+      "name": "m6-t5-mapbox-maplibre",
+      "kind": "known-failure",
+      "reason": "起点から赤（v1: 前提があっても赤）。runner では ../MaplatCore/package.json が無く ENOENT で落ちる（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
+      "expect": "MaplatCore/package.json'"
+    }
+  ],
+  "e2e": [
+    {
+      "file": "m11-t8-new-draft-card.spec.ts",
+      "line": 68,
+      "title": "slug-less save shows visible error, recovers on edit, and new draft is discardable from editor",
+      "kind": "known-failure",
+      "reason": "slug 無し保存のエラー表示の検査が通らない（v1・t5 実装時は toBeDisabled が満たされない。d11ac0b ＋ t5 の測定では getByRole('button', { name: '保存' }) が 3 要素に一致する strict mode violation で 2 回とも失敗）",
+      "issue": "#117"
+    },
+    {
+      "file": "m12-t15-thumbnail-512.spec.ts",
+      "line": 188,
+      "title": "AC6: 地図一覧 grid card が 512px を優先表示する",
+      "kind": "intermittent",
+      "reason": "間欠: grid card の画像が _512.webp にならない（観測: v1 は再試行で合格・t5 実装時の測定は 2 回失敗・単独再実行で失敗 1 回／flaky 1 回・d11ac0b ＋ t5 の測定は 2 回失敗で no_image のまま）。同じ系列で合格と失敗の両方を観測",
+      "issue": "#117"
+    },
+    {
+      "file": "m12-t20-draft-tile-durability.spec.ts",
+      "line": 323,
+      "title": "AC20-3: 下書きの明示破棄（編集画面・一覧）で staging dir が回収される",
+      "kind": "intermittent",
+      "reason": "AC20-3: m4-t2 前の 10e09c1 から 10 回中 2〜9 回 PASS のタイミング依存・破棄後に下書きの記録が書き戻される欠陥の候補（#117 で別途見立て中。d11ac0b ＋ t5 の測定では 1 回目で合格）",
+      "issue": "#117"
+    },
+    {
+      "file": "m5-t7-tile-url-runtime-rebuild.spec.ts",
+      "line": 142,
+      "title": "AC8/AC9/AC11/AC12: 確定で切り替わり、未確定・同値では発火しない",
+      "kind": "known-failure",
+      "reason": "タイル URL の期待が file: で、実際は app://bundle/__local/…（t2ff 第 2 版以降。m4-t2 の app://local から形は変わったが file: ではない）",
+      "issue": "#117"
+    }
+  ]
+}

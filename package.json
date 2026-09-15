@@ -248,7 +248,11 @@
     "smoke:mapedit-align-m1-t4-reset-persist": "node scripts/mapedit-align-m1-t4-reset-persist-smoke.mjs",
     "smoke:oct26-m4-t3-progress-reporter": "node scripts/oct26-m4-t3-progress-reporter-smoke.mjs",
     "test:e2e:mapedit-align-m1-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/mapedit-align-m1-t4-reset-persist.spec.ts",
-    "smoke:oct26-m4-t1-zip-residual": "node scripts/oct26-m4-t1-zip-residual-smoke.mjs"
+    "smoke:oct26-m4-t1-zip-residual": "node scripts/oct26-m4-t1-zip-residual-smoke.mjs",
+    "ci:smoke": "node scripts/ci/run-smokes.mjs --report smoke-report.json",
+    "ci:judge": "node scripts/ci/judge-test-results.mjs smoke --report smoke-report.json",
+    "ci:measure-exclusions": "node scripts/ci/measure-exclusions.mjs",
+    "smoke:oct26-m4-t5-ci-judge": "node scripts/oct26-m4-t5-ci-judge-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
