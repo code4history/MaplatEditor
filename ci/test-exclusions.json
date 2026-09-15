@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy": "暫定版（oct26-m4-t5 実装時点 master ce5c6b6 で測定）。t5 合流直前の master で scripts/ci/measure-exclusions.mjs により測り直して確定する。除外表に載ったものが通るようになったら赤・表に無い新しい失敗も赤。t5 合流後に合流する変更は、合流前に手元で ci:smoke → ci:judge（e2e も）を通し、直した既知失敗は同じ変更で表から外す。詳細は ci/README.md",
+  "policy": "確定版（oct26-m4-t5 合流直前の master d11ac0b ＋ t5 で測定。smoke 全数と e2e 3 シャード・Electron の言語は ja）。除外表に載ったものが通るようになったら赤・表に無い新しい失敗も赤。t5 合流後に合流する変更は、合流前に手元で ci:smoke → ci:judge（e2e も 3 シャード）を通し、直した既知失敗は同じ変更で表から外す。詳細は ci/README.md",
   "smoke": [
     {
       "name": "m2-electrobun-poc",
@@ -57,136 +57,38 @@
       "issue": "#121"
     },
     {
-      "name": "m11-t3-poi-package",
-      "kind": "known-failure",
-      "reason": "m4-t2（app://local 化）以降赤。t2s の対象",
-      "issue": "#117",
-      "expect": "POI must choose the output path before generating the file"
-    },
-    {
-      "name": "m12-t1-hotfix-1-search-thumbnails",
-      "kind": "known-failure",
-      "reason": "app://local と file:// 期待のずれ（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "tmbs/{uid}.jpg が image として添付されること: app://local"
-    },
-    {
-      "name": "m12-t13-resolver-containment",
-      "kind": "known-failure",
-      "reason": "app://local と file:// 期待のずれ（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "AC1 正常系: 素性 fileKey の tmbs は file:// を返す: app://local"
-    },
-    {
-      "name": "m12-t17-upload-tile-ref",
-      "kind": "known-failure",
-      "reason": "tmpCheck 分岐が url を返さない（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "tmpCheck 分岐は url を返すはず"
-    },
-    {
-      "name": "m12-t19-clone-tile-ref",
-      "kind": "known-failure",
-      "reason": "tmpCheck 分岐が url を含まない（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "複製元自体の新規保存は url を含むはず(前提確認, tmpCheck分岐)"
-    },
-    {
-      "name": "m13-t2-originals-resolver",
-      "kind": "known-failure",
-      "reason": "canonical の originals が作られない（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "canonical(uidキー) の originals ファイルが作られるはず"
-    },
-    {
-      "name": "m13-t4-originals-lifecycle",
-      "kind": "known-failure",
-      "reason": "canonical が作られない（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "canonical が作られているはず"
-    },
-    {
-      "name": "m22-t1-merc-basemap-runtime-url",
-      "kind": "known-failure",
-      "reason": "merc の実行時タイル URL が app://local（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "S2: mapedit:get-base-map-visibility が item レベルへ merc の実行時タイル URL を付与すること: app://local"
-    },
-    {
-      "name": "m5-t1-export-url-canonical",
-      "kind": "known-failure",
-      "reason": "preview の url が file:// でなく app://local（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "AC4: ローカルタイル地図の preview の url は file:// のままのはず"
-    },
-    {
-      "name": "m5-t3-url-derivation-unification",
-      "kind": "known-failure",
-      "reason": "fileUrl() 側へ揃わず app://local（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "AC4: 統一後は fileUrl() 側（percent-encoding あり）へ揃うはず。実際: app://local"
-    },
-    {
-      "name": "m5-t7-runtime-tile-url-ipc",
-      "kind": "known-failure",
-      "reason": "タイル URL が file:// 形式でなく app://local（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "AC2 保存済みタイルから {z}/{x}/{y} 形式が返る — file:// 形式: app://local"
-    },
-    {
-      "name": "m6-t11-deprecated-deps",
-      "kind": "known-failure",
-      "reason": "electron/ipc/mapedit.ts から file-url の import が消え検査前提が崩れた（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "AC8: electron/ipc/mapedit.ts に file-url の import が見つからない"
-    },
-    {
-      "name": "m7-sqlite-write-store",
-      "kind": "known-failure",
-      "reason": "期待 Error に対し Success（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "'Success' !== 'Error'"
-    },
-    {
-      "name": "m9-t4-image-asset",
-      "kind": "known-failure",
-      "reason": "getFilePath が file:// でなく app://local（m4-t2 以降）。t2s の対象",
-      "issue": "#117",
-      "expect": "getFilePath は file:// URL を返すはず: app://local"
-    },
-    {
       "name": "m12-t18-os-trash-delete",
       "kind": "known-failure",
-      "reason": "起点（m4-t2 より前）から赤: electron/ に 'trash' の文字列が残存（AC18-3）。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121",
+      "reason": "起点（m4-t2 より前）から赤: electron/ に 'trash' の文字列が残存（AC18-3）（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
       "expect": "製品コード (electron/) に 'trash' が残存している"
     },
     {
       "name": "m19-t11-range-vocabulary",
       "kind": "known-failure",
-      "reason": "起点（m4-t2 より前）から赤: 属性名の出現数が凍結 baseline と異なる（MC5）。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121",
+      "reason": "起点（m4-t2 より前）から赤: 属性名の出現数が凍結 baseline と異なる（MC5）（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
       "expect": "MC5: 属性名の出現数が凍結 baseline と異なる"
     },
     {
       "name": "m4-undo-redo",
       "kind": "known-failure",
-      "reason": "起点（m4-t2 より前）から赤: MapEdit.vue の構造変更で検査対象ブロックが見つからない。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121",
+      "reason": "起点（m4-t2 より前）から赤: MapEdit.vue の構造変更で検査対象ブロックが見つからない（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
       "expect": "MapEdit.vue settings tab block could not be located"
     },
     {
       "name": "m12-t1-edge-split",
       "kind": "known-failure",
-      "reason": "起点から赤（v1: 前提があっても赤）。runner では前提の監査文書（../docs）が無く ENOENT で落ちる。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121",
+      "reason": "起点から赤（v1: 前提があっても赤）。runner では前提の監査文書（../docs）が無く ENOENT で落ちる（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
       "expect": "docs/superpowers/reviews/2026-07-18-m12-t1-modernized-parity-audit.md'"
     },
     {
       "name": "m6-t5-mapbox-maplibre",
       "kind": "known-failure",
-      "reason": "起点から赤（v1: 前提があっても赤）。runner では ../MaplatCore/package.json が無く ENOENT で落ちる。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121",
+      "reason": "起点から赤（v1: 前提があっても赤）。runner では ../MaplatCore/package.json が無く ENOENT で落ちる（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
+      "issue": "#117",
       "expect": "MaplatCore/package.json'"
     }
   ],
@@ -196,39 +98,31 @@
       "line": 68,
       "title": "slug-less save shows visible error, recovers on edit, and new draft is discardable from editor",
       "kind": "known-failure",
-      "reason": "slug 無し保存のエラー表示で toBeDisabled が満たされない（v1・本測定とも 2 回失敗）。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121"
+      "reason": "slug 無し保存のエラー表示の検査が通らない（v1・t5 実装時は toBeDisabled が満たされない。d11ac0b ＋ t5 の測定では getByRole('button', { name: '保存' }) が 3 要素に一致する strict mode violation で 2 回とも失敗）",
+      "issue": "#117"
     },
     {
       "file": "m12-t15-thumbnail-512.spec.ts",
       "line": 188,
       "title": "AC6: 地図一覧 grid card が 512px を優先表示する",
-      "kind": "known-failure",
-      "reason": "間欠: grid card の画像が _512.webp にならない（v1 は再試行で合格・本測定は 2 回失敗・単独再実行で失敗 1 回／flaky 1 回）。1 回目は観測 4 回すべて失敗。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121"
+      "kind": "intermittent",
+      "reason": "間欠: grid card の画像が _512.webp にならない（観測: v1 は再試行で合格・t5 実装時の測定は 2 回失敗・単独再実行で失敗 1 回／flaky 1 回・d11ac0b ＋ t5 の測定は 2 回失敗で no_image のまま）。同じ系列で合格と失敗の両方を観測",
+      "issue": "#117"
     },
     {
       "file": "m12-t20-draft-tile-durability.spec.ts",
-      "line": 219,
-      "title": "AC20-2 (2a): 参照先が消えた被害 draft は喪失警告が表示され、保存しても DB 行が作られない",
-      "kind": "known-failure",
-      "reason": "喪失警告／保存済み告知の文言が出ない（v1・本測定とも 2 回失敗）。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121"
-    },
-    {
-      "file": "m12-t20-draft-tile-durability.spec.ts",
-      "line": 274,
-      "title": "AC20-2 (2b): 保存確定直後クラッシュ相当の draft は喪失警告ではなく保存済み告知が表示される",
-      "kind": "known-failure",
-      "reason": "喪失警告／保存済み告知の文言が出ない（v1・本測定とも 2 回失敗）。個別 Issue 未起票（合流前の測り直しで起票）",
-      "issue": "#121"
+      "line": 323,
+      "title": "AC20-3: 下書きの明示破棄（編集画面・一覧）で staging dir が回収される",
+      "kind": "intermittent",
+      "reason": "AC20-3: m4-t2 前の 10e09c1 から 10 回中 2〜9 回 PASS のタイミング依存・破棄後に下書きの記録が書き戻される欠陥の候補（#117 で別途見立て中。d11ac0b ＋ t5 の測定では 1 回目で合格）",
+      "issue": "#117"
     },
     {
       "file": "m5-t7-tile-url-runtime-rebuild.spec.ts",
       "line": 142,
       "title": "AC8/AC9/AC11/AC12: 確定で切り替わり、未確定・同値では発火しない",
       "kind": "known-failure",
-      "reason": "タイル URL の期待が file: で実際は app://local（m4-t2 以降）",
+      "reason": "タイル URL の期待が file: で、実際は app://bundle/__local/…（t2ff 第 2 版以降。m4-t2 の app://local から形は変わったが file: ではない）",
       "issue": "#117"
     }
   ]
