@@ -213,7 +213,28 @@ const green = (r, msg, re) => {
   red(judge('e2e', { report: e2eReport(ren), exitCode: '1' }), '(補-4) known-failure の改名（同 file は実行済み）', /除外表の known-failure が報告に無い/);
   red(judge('e2e', { report: e2eReport(goodE2eSpecs()), exitCode: '0' }), '(補-5) exit 0 なのに unexpected あり', /exit が 0 なのに unexpected/);
 
-  console.log('  [1/5] AC2 判定器の合成ケース (a)〜(s)＋補強 5: PASS');
+  // N1（設計レビュー R2）: 中断されたシャードを緑に化けさせない
+  // SIGINT 中断の実報告（R2 r2probe/pw/report-sigint.json）と同じ形: exit 130・errors 0・既知失敗 1・
+  // 中断されたテスト（results[].status == interrupted）・未着手のテスト（results 空・skip 注記なし）
+  const sigint = [
+    e2eTest('known broken', 4, 'unexpected', [{ status: 'failed', retry: 0 }, { status: 'failed', retry: 1 }]),
+    e2eTest('passes', 3, 'skipped', [{ status: 'interrupted', retry: 0 }]),
+    e2eTest('other', 5, 'skipped', []),
+  ];
+  red(judge('e2e', { report: e2eReport(sigint), exitCode: '130' }), '(N1-a) SIGINT 中断（exit 130・既知失敗を含む）', /interrupted/);
+  red(judge('e2e', { report: e2eReport(sigint), exitCode: '1' }), '(N1-b) 中断の形で exit が 1 と記録されていても赤', /中断されたテスト/);
+  const unstarted = goodE2eSpecs();
+  unstarted[2] = e2eTest('other', 5, 'skipped', []);
+  red(judge('e2e', { report: e2eReport(unstarted), exitCode: '1' }), '(N1-c) skip 注記の無い skipped（未着手）', /skip の注記が無い skipped/);
+  red(judge('e2e', { report: e2eReport(goodE2eSpecs()), exitCode: '130' }), '(N1-d) Playwright exit が 0/1 以外', /exit が 130/);
+  const knownSkipped = goodE2eSpecs();
+  knownSkipped[1] = e2eTest('known broken', 4, 'skipped', [{ status: 'skipped', retry: 0 }], [{ type: 'skip', description: '後から skip' }]);
+  red(judge('e2e', { report: e2eReport(knownSkipped), exitCode: '0' }), '(N1-e) known-failure に後から test.skip（Info-3）', /known-failure の e2e が skipped/);
+  const fixme = goodE2eSpecs();
+  fixme[2] = e2eTest('other', 5, 'skipped', [{ status: 'skipped', retry: 0, annotations: [{ type: 'fixme' }] }]);
+  green(judge('e2e', { report: e2eReport(fixme), exitCode: '1' }), '(N1-対照) fixme 注記の skipped は緑');
+
+  console.log('  [1/5] AC2 判定器の合成ケース (a)〜(s)＋補強 5＋N1 6: PASS');
 }
 
 // ───────────────────────────── AC3 ─────────────────────────────
