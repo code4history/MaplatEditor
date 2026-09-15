@@ -1,10 +1,10 @@
 /**
  * oct26-m4-t5（#121）: CI の判定器・除外表・workflow・測り直しスクリプト・実行器の打ち切りの受け入れ検査
  *
- * AC2: 判定器が合成報告で赤／緑を正しく出す（(a)〜(s)）
+ * AC2: 判定器が合成報告で赤／緑を正しく出す（(a)〜(s)・IR MIN-2 の intermittent (t)〜(z)）
  * AC3: ci/test-exclusions.json の形式検査（実物が通る・壊した複製が落ちる）
  * AC5: .github/workflows/test.yml の静的検査
- * AC6: measure-exclusions.mjs が 3 種の差分を 1 件ずつ検出する
+ * AC6: measure-exclusions.mjs が 3 種の差分を 1 件ずつ検出する・intermittent は結果を問わず差分にしない（(m-1)）
  * AC1 の一部: 実行器の打ち切り（孫プロセスを残さない・実行器が孫の寿命まで止まらない）
  *
  * 合成データはすべて os.tmpdir() 配下に作る（リポジトリには書かない）。
@@ -52,6 +52,7 @@ fs.writeFileSync(
     "  test('known broken', async () => {});",
     "  test('other', async () => {});",
     "  test.skip('human only', async () => {});",
+    "  test('sometimes', async () => {});",
     '});',
     '',
   ].join('\n'),
@@ -234,7 +235,25 @@ const green = (r, msg, re) => {
   fixme[2] = e2eTest('other', 5, 'skipped', [{ status: 'skipped', retry: 0, annotations: [{ type: 'fixme' }] }]);
   green(judge('e2e', { report: e2eReport(fixme), exitCode: '1' }), '(N1-対照) fixme 注記の skipped は緑');
 
-  console.log('  [1/5] AC2 判定器の合成ケース (a)〜(s)＋補強 5＋N1 6: PASS');
+  // IR MIN-2: e2e 専用の kind intermittent（結果を問わず緑・skipped は赤・issue 必須・smoke では使えない）
+  const INTERMITTENT = { file: 'x.spec.ts', line: 7, title: 'sometimes', kind: 'intermittent', reason: '間欠', issue: '#0' };
+  const TABLE_I = writeJson(path.join(work, 'table-intermittent.json'), { ...baseTable, e2e: [...baseTable.e2e, INTERMITTENT] });
+  const withSometimes = (status, results, annotations) => [...goodE2eSpecs(), e2eTest('sometimes', 7, status, results, annotations)];
+  green(judge('e2e', { report: e2eReport(withSometimes('unexpected', [{ status: 'failed', retry: 0 }, { status: 'failed', retry: 1 }])), exitCode: '1', table: TABLE_I }),
+    '(t) intermittent が unexpected', /^- intermittent（許容）: x\.spec\.ts:7 sometimes（結果 unexpected/m);
+  green(judge('e2e', { report: e2eReport(withSometimes('flaky', [{ status: 'failed', retry: 0 }, { status: 'passed', retry: 1 }])), exitCode: '1', table: TABLE_I }),
+    '(u) intermittent が flaky', /^- intermittent（許容）: x\.spec\.ts:7 sometimes（結果 flaky/m);
+  green(judge('e2e', { report: e2eReport(withSometimes('expected')), exitCode: '1', table: TABLE_I }),
+    '(v) intermittent が expected', /^- intermittent（許容）: x\.spec\.ts:7 sometimes（結果 expected/m);
+  red(judge('e2e', { report: e2eReport(withSometimes('skipped', [{ status: 'skipped', retry: 0 }], [{ type: 'skip', description: '後から skip' }])), exitCode: '1', table: TABLE_I }),
+    '(w) intermittent が skipped', /intermittent の e2e が skipped/);
+  const smokeI = writeJson(path.join(work, 'table-smoke-intermittent.json'), { ...baseTable, smoke: [...baseTable.smoke, { name: 'beta', kind: 'intermittent', reason: '間欠', issue: '#0' }] });
+  red(judge('smoke', { report: smokeReport(goodSmokeResults()), table: smokeI }), '(x) smoke に kind intermittent', /intermittent は smoke では使えない/);
+  const noIssue = writeJson(path.join(work, 'table-intermittent-noissue.json'), { ...baseTable, e2e: [...baseTable.e2e, { ...INTERMITTENT, issue: '' }] });
+  red(judge('e2e', { report: e2eReport(withSometimes('unexpected')), exitCode: '1', table: noIssue }), '(y) intermittent の issue が空', /e2e\[1\]: issue が空/);
+  red(judge('e2e', { report: e2eReport(goodE2eSpecs()), exitCode: '1', table: TABLE_I }), '(z) intermittent の file は実行されたがテスト名が無い', /除外表の intermittent が報告に無い.*x\.spec\.ts:7 sometimes/);
+
+  console.log('  [1/5] AC2 判定器の合成ケース (a)〜(s)＋補強 5＋N1 6＋intermittent (t)〜(z) 7: PASS');
 }
 
 // ───────────────────────────── AC3 ─────────────────────────────
@@ -254,7 +273,8 @@ const green = (r, msg, re) => {
   };
   bad((t) => { delete t.smoke[0].reason; }, /reason が空/, 'reason 欠落');
   bad((t) => { delete t.smoke[0].issue; }, /issue が空/, 'issue 欠落');
-  bad((t) => { t.smoke[0].kind = 'skip'; }, /kind が known-failure \/ excluded ではない/, 'kind が 2 値外');
+  bad((t) => { t.smoke[0].kind = 'skip'; }, /kind が known-failure \/ excluded \/ intermittent ではない/, 'kind が 3 値外');
+  bad((t) => { t.smoke[1].kind = 'intermittent'; }, /intermittent は smoke では使えない/, 'smoke の intermittent');
   bad((t) => { t.smoke[0].name = 'no-such'; }, /package\.json に smoke:no-such が無い/, 'smoke 名が実在しない');
   bad((t) => { delete t.smoke[1].expect; }, /expect/, 'known-failure の expect 欠落');
   bad((t) => { t.smoke.push(structuredClone(t.smoke[0])); }, /重複/, 'smoke 重複');
@@ -263,12 +283,13 @@ const green = (r, msg, re) => {
   bad((t) => { t.e2e[0].line = 999; }, /999 行目が無い/, 'e2e の line が範囲外');
   bad((t) => { t.e2e[0].file = 'nope.spec.ts'; }, /tests\/e2e\/nope\.spec\.ts が無い/, 'e2e の file が無い');
   bad((t) => { t.e2e.push(structuredClone(t.e2e[0])); }, /重複/, 'e2e 重複');
-  bad((t) => { t.e2e[0].kind = 'excluded'; }, /known-failure だけを使う/, 'e2e の excluded');
+  bad((t) => { t.e2e[0].kind = 'excluded'; }, /known-failure \/ intermittent だけを使う/, 'e2e の excluded');
+  bad((t) => { t.e2e[0].kind = 'intermittent'; t.e2e[0].issue = ' '; }, /issue が空/, 'e2e の intermittent に issue 無し');
   bad((t) => { t.schema = 2; }, /schema が 1 ではない/, 'schema');
   // 形式検査に落ちた表では判定器が赤
   const broken = writeJson(path.join(work, 'table-broken.json'), { ...baseTable, smoke: [{ name: 'alpha', kind: 'excluded' }] });
   red(judge('smoke', { report: smokeReport(goodSmokeResults()), table: broken }), 'AC3 形式不備の表で判定器が赤', /reason が空/);
-  console.log('  [2/5] AC3 除外表の形式検査（実物 PASS・壊した複製 13 種 FAIL）: PASS');
+  console.log('  [2/5] AC3 除外表の形式検査（実物 PASS・壊した複製 15 種 FAIL）: PASS');
 }
 
 // ───────────────────────────── AC5 ─────────────────────────────
@@ -358,7 +379,20 @@ const green = (r, msg, re) => {
   const clean = writeJson(path.join(dir, 'smoke-clean.json'), smokeReport(goodSmokeResults()));
   const rc = spawnSync(process.execPath, [MEASURE, '--root', ROOT, '--exclusions', TABLE, '--smoke-report', clean, '--fail-on-diff', '1'], { encoding: 'utf8' });
   assert.equal(rc.status, 0, `差分なしは exit 0: ${rc.stdout}`);
-  console.log('  [4/5] AC6 measure-exclusions の 3 種検出: PASS');
+  // (m-1) IR MIN-2: intermittent は expected / unexpected / flaky のいずれも差分 0 件。報告のどこにも無いときだけ not-observed
+  const tableI = writeJson(path.join(dir, 'table-intermittent.json'), { ...baseTable, e2e: [...baseTable.e2e, { file: 'x.spec.ts', line: 7, title: 'sometimes', kind: 'intermittent', reason: '間欠', issue: '#0' }] });
+  const runs = { unexpected: [{ status: 'failed', retry: 0 }, { status: 'failed', retry: 1 }], flaky: [{ status: 'failed', retry: 0 }, { status: 'passed', retry: 1 }], expected: undefined };
+  for (const [status, results] of Object.entries(runs)) {
+    const f = writeJson(path.join(dir, `e2e-intermittent-${status}.json`), e2eReport([...goodE2eSpecs(), e2eTest('sometimes', 7, status, results)]));
+    const ri = spawnSync(process.execPath, [MEASURE, '--root', ROOT, '--exclusions', tableI, '--e2e-reports', f, '--fail-on-diff', '1'], { encoding: 'utf8' });
+    assert.equal(ri.status, 0, `(m-1) intermittent が ${status} なら差分 0 件で exit 0: ${ri.stdout}${ri.stderr}`);
+    assert.equal(JSON.parse(ri.stdout).total, 0, `(m-1) ${status}: total 0`);
+  }
+  const absent = writeJson(path.join(dir, 'e2e-intermittent-absent.json'), e2eReport(goodE2eSpecs()));
+  const ra = spawnSync(process.execPath, [MEASURE, '--root', ROOT, '--exclusions', tableI, '--e2e-reports', absent], { encoding: 'utf8' });
+  assert.equal(ra.status, 0, ra.stderr);
+  assert.deepEqual(JSON.parse(ra.stdout).e2e.map((d) => `${d.type}:${d.title}`), ['not-observed:sometimes'], '(m-1) 報告に無い intermittent だけが not-observed');
+  console.log('  [4/5] AC6 measure-exclusions の 3 種検出＋intermittent (m-1): PASS');
 }
 
 // ───────────────────────────── AC1（打ち切り） ─────────────────────────────

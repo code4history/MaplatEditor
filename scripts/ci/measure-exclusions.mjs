@@ -8,6 +8,7 @@
  *   - intermittent: 表の known-failure が e2e で flaky（再試行で合格）→ 要判断
  *   - expect-mismatch: smoke の known-failure が expect を出力に含まずに失敗 → expect 修正案（候補つき）
  *   - not-observed: 表の known-failure が、与えた報告のどこにも出てこない（e2e は全シャードを与えたときだけ意味がある）
+ *   - e2e の intermittent（IR MIN-2）: expected / unexpected / flaky は差分にしない。skipped は registered-but-skipped・報告のどこにも無ければ not-observed
  *
  * 使い方:
  *   node scripts/ci/measure-exclusions.mjs [--smoke-report smoke-report.json] [--e2e-reports a.json,b.json,c.json]
@@ -60,6 +61,10 @@ export function measure({ root, table, smokeReport, e2eReports }) {
         const key = `${t.file} ${t.title}`;
         const entry = known.get(key);
         if (entry) seen.add(key);
+        if (entry?.kind === 'intermittent') {
+          if (t.status === 'skipped') diff.e2e.push({ type: 'registered-but-skipped', file: t.file, line: t.line, title: t.title });
+          continue;
+        }
         if (t.status === 'unexpected' && !entry) {
           const firstError = t.results.flatMap((x) => x.errors ?? []).map((er) => String(er.message ?? '').split('\n')[0])[0] ?? '';
           diff.e2e.push({ type: 'unregistered-failure', file: t.file, line: t.line, title: t.title, error: firstError, proposal: { file: t.file, line: t.line, title: t.title, kind: 'known-failure', reason: 'TODO', issue: 'TODO' } });

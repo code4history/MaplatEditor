@@ -37,9 +37,11 @@ export function parseArgs(argv) {
 // ───────────────────────────── 除外表（AC3） ─────────────────────────────
 /**
  * 除外表を読み、形式を検査する。問題は errors に 1 行ずつ積む（1 件でもあれば判定は赤）。
- * - 全エントリに kind（known-failure / excluded）・reason・issue
+ * - 全エントリに kind（smoke: known-failure / excluded、e2e: known-failure / intermittent）・reason・issue
  * - smoke: name が package.json の smoke:* に実在・known-failure は expect 必須・name の重複無し
- * - e2e: kind は known-failure のみ（excluded は Playwright の実行対象から外れないので意味を持たない）
+ * - smoke: kind intermittent は使えない（smoke は 1 回しか実行しないので間欠を表せない）
+ * - e2e: kind は known-failure / intermittent のみ（excluded は Playwright の実行対象から外れないので意味を持たない）
+ *        intermittent（IR MIN-2）: 同じ commit で合格と失敗の両方を観測したもの。unexpected / flaky / expected のいずれも緑・skipped は赤・issue 必須
  *        tests/e2e/<file> の line 行に test( があり、その第 1 引数の文字列が title と一致・file+title の重複無し
  */
 export function loadExclusions(root, exclusionsPath) {
@@ -69,7 +71,7 @@ export function loadExclusions(root, exclusionsPath) {
       errors.push(`${where}: エントリがオブジェクトではない`);
       return false;
     }
-    if (!['known-failure', 'excluded'].includes(entry.kind)) errors.push(`${where}: kind が known-failure / excluded ではない（${JSON.stringify(entry.kind)}）`);
+    if (!['known-failure', 'excluded', 'intermittent'].includes(entry.kind)) errors.push(`${where}: kind が known-failure / excluded / intermittent ではない（${JSON.stringify(entry.kind)}）`);
     for (const k of ['reason', 'issue']) {
       if (typeof entry[k] !== 'string' || entry[k].trim() === '') errors.push(`${where}: ${k} が空`);
     }
@@ -80,6 +82,7 @@ export function loadExclusions(root, exclusionsPath) {
   table.smoke.forEach((entry, i) => {
     const where = `除外表 smoke[${i}]`;
     if (!common(entry, where)) return;
+    if (entry.kind === 'intermittent') errors.push(`${where}: kind intermittent は smoke では使えない（e2e 専用。smoke は 1 回しか実行しない）`);
     if (typeof entry.name !== 'string' || entry.name === '') {
       errors.push(`${where}: name が空`);
       return;
@@ -97,7 +100,7 @@ export function loadExclusions(root, exclusionsPath) {
   table.e2e.forEach((entry, i) => {
     const where = `除外表 e2e[${i}]`;
     if (!common(entry, where)) return;
-    if (entry.kind !== 'known-failure') errors.push(`${where}: e2e の kind は known-failure だけを使う（${JSON.stringify(entry.kind)}）`);
+    if (!['known-failure', 'intermittent'].includes(entry.kind)) errors.push(`${where}: e2e の kind は known-failure / intermittent だけを使う（${JSON.stringify(entry.kind)}）`);
     if (typeof entry.file !== 'string' || typeof entry.title !== 'string' || !Number.isInteger(entry.line)) {
       errors.push(`${where}: file（文字列）・line（整数）・title（文字列）が必要`);
       return;
@@ -285,10 +288,17 @@ export function judgeE2e({ report, table, exitText, shard }) {
   const flakyUnknown = [];
   const flakyKnown = [];
   const failedKnown = [];
+  const intermittentSeen = [];
   for (const t of tests) {
     const key = `${t.file}\u0000${t.title}`;
     const entry = known.get(key);
     if (entry) seenKnown.add(key);
+    // IR MIN-2: intermittent は結果を問わず緑（unexpected / flaky / expected）。skipped だけは赤（実行されていない＝何も観測していない）
+    if (entry?.kind === 'intermittent') {
+      if (t.status === 'skipped') failures.push(`intermittent の e2e が skipped（skip するなら除外表から外し、理由は spec 側に書く）: ${label(t)}`);
+      else if (['unexpected', 'flaky', 'expected'].includes(t.status)) intermittentSeen.push(`${label(t)}（結果 ${t.status}・${entry.issue}）`);
+      continue;
+    }
     switch (t.status) {
       case 'unexpected':
         if (entry) failedKnown.push(label(t));
@@ -310,16 +320,17 @@ export function judgeE2e({ report, table, exitText, shard }) {
     }
   }
 
-  // シャード内に file が在るのに known-failure のテスト名が見つからない → 名前変更・削除（表が古い）
+  // シャード内に file が在るのに表のテスト名（known-failure / intermittent）が見つからない → 名前変更・削除（表が古い）
   const filesInReport = new Set(tests.map((t) => t.file));
   for (const [key, e] of known) {
     if (filesInReport.has(e.file) && !seenKnown.has(key)) {
-      failures.push(`除外表の known-failure が報告に無い（同じ file は実行されている。テスト名の変更・削除なら表を直す）: ${e.file}:${e.line} ${e.title}`);
+      failures.push(`除外表の ${e.kind} が報告に無い（同じ file は実行されている。テスト名の変更・削除なら表を直す）: ${e.file}:${e.line} ${e.title}`);
     }
   }
 
   if (failedKnown.length) notes.push(`想定どおり失敗した known-failure（${failedKnown.length} 件）: ${failedKnown.join(' / ')}`);
   if (flakyUnknown.length) notes.push(`flaky（再試行で合格）${flakyUnknown.length} 件: ${flakyUnknown.join(' / ')}`);
+  for (const x of intermittentSeen) notes.push(`intermittent（許容）: ${x}`);
   if (flakyKnown.length) notes.push(`known-failure が間欠化（再試行で合格）${flakyKnown.length} 件: ${flakyKnown.join(' / ')}`);
   notes.push(`stats: expected=${s.expected} unexpected=${s.unexpected} flaky=${s.flaky} skipped=${s.skipped}・Playwright exit=${pwExit}`);
   return { failures, notes };
