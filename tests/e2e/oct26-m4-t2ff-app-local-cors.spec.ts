@@ -16,7 +16,11 @@
 //   AC-FF-5       欠損ファイルは 404・許可外は 403 のまま・renderer から status を読める
 //   AC-FF-6       他 origin 拒否: http://127.0.0.1:<port>（プレビュー配信と同種）と data:（origin null）のページから、
 //                 タイル・maplat.sqlite・symlink 先を fetch でも crossOrigin <img> でも読めない（新旧両形の URL）
-//   AC-FF-7       renderer と同一 origin で開いたローカル HTML が、renderer（親）の DOM に触れない
+//   AC-FF-7       renderer と同一 origin で開いたローカル HTML が、renderer（親）の DOM に触れない。
+//                 oct26-m4-t6（renderer CSP）以降は 2 層に分けて測る（t6 設計 v3 §3.3・AC5）:
+//                 7a renderer の iframe への埋め込みは renderer CSP の frame-src で拒否される（違反行 ≥1・親 title 不変）
+//                 7b renderer CSP の無い文書（トップレベルの非表示 BrowserWindow）で開いても、__local の sandbox CSP で
+//                    スクリプトが走らない（renderer CSP が iframe を拒否するので、7a だけでは sandbox の退行を検出できない）
 //   AC-FF-8       欠損以外の失敗を 404 に畳まない（権限 000 → 403・ディレクトリ → 403）
 //
 // URL は spec 内で組み立てる（electron/utils/appScheme.ts の localFileUrl を import すると、変更前の版で
@@ -391,7 +395,7 @@ test.describe('oct26-m4-t2ff ローカルデータの同一 origin 配信', () =
     const saveFolder: string = await launched.page.evaluate(() => window.settings.get('saveFolder'));
     const nopermPath = path.join(saveFolder, 'oct26-m4-t2ff-noperm.png');
     try {
-      const { app, page } = launched;
+      const { app, page, consoleTexts } = launched;
       // 素材: 有効な PNG タイル・saveFolder の外の秘密ファイルと、それを指す saveFolder 内 symlink・
       // 権限 000 のファイル・スクリプトを含む HTML。maplat.sqlite は起動時に saveFolder へ作られる。
       const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
@@ -406,6 +410,8 @@ test.describe('oct26-m4-t2ff ローカルデータの同一 origin 配信', () =
       await chmod(nopermPath, 0o000);
       await writeFile(path.join(saveFolder, 'oct26-m4-t2ff-evil.html'),
         '<!doctype html><script>try{parent.document.title="PWNED-BY-LOCAL-HTML"}catch(e){}</script>');
+      await writeFile(path.join(saveFolder, 'oct26-m4-t6-evil-top.html'),
+        '<!doctype html><title>LOCAL-HTML-TOP</title><script>document.title="PWNED-BY-LOCAL-HTML-TOP"</script>');
       await expect.poll(async () => stat(path.join(saveFolder, 'maplat.sqlite')).then(() => true).catch(() => false)).toBe(true);
 
       const targets: Record<string, string> = {};
@@ -461,8 +467,10 @@ test.describe('oct26-m4-t2ff ローカルデータの同一 origin 配信', () =
         }
       }
 
-      // ---- AC-FF-7: 同一 origin で開いたローカル HTML が renderer（親）の DOM に触れない ----
+      // ---- AC-FF-7a（oct26-m4-t6 AC5(a)）: 同一 origin のローカル HTML を renderer の iframe に埋め込めない
+      //      （renderer CSP の frame-src で拒否）・renderer（親）の DOM に触れない ----
       const titleBefore = await page.title();
+      const consoleBefore = consoleTexts.length;
       const htmlUrl = sameOriginLocalUrl(path.join(saveFolder, 'oct26-m4-t2ff-evil.html'));
       const iframeResult = await page.evaluate(async (u) => new Promise<{ loaded: boolean; title: string }>((resolve) => {
         const f = document.createElement('iframe');
@@ -472,9 +480,26 @@ test.describe('oct26-m4-t2ff ローカルデータの同一 origin 配信', () =
         f.src = u;
         document.body.appendChild(f);
       }), htmlUrl);
-      console.log('[AC-FF-7] same-origin local html', JSON.stringify({ titleBefore, iframeResult }));
+      const frameSrcViolations = consoleTexts.slice(consoleBefore).filter((t) => /Content Security Policy/.test(t) && /frame-src/.test(t));
+      console.log('[AC-FF-7a] same-origin local html in renderer iframe', JSON.stringify({ titleBefore, iframeResult, frameSrcViolations: frameSrcViolations.length }));
       expect.soft(iframeResult.title, 'ローカル HTML のスクリプトが renderer の DOM を書き換えた').not.toBe('PWNED-BY-LOCAL-HTML');
+      expect.soft(frameSrcViolations.length, 'renderer の iframe への __local HTML の埋め込みが frame-src で拒否されない').toBeGreaterThan(0);
       if (iframeResult.title === 'PWNED-BY-LOCAL-HTML') await page.evaluate((t) => { document.title = t; }, titleBefore);
+
+      // ---- AC-FF-7b（oct26-m4-t6 AC5(b)）: renderer CSP の無い文書（トップレベル）で開いたローカル HTML のスクリプトが走らない
+      //      （__local の sandbox CSP の効き。renderer CSP の frame-src に隠れないよう iframe を使わない）----
+      const topLevel = await app.evaluate(async ({ BrowserWindow }, u) => {
+        const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true } });
+        try {
+          await w.loadURL(u);
+          await new Promise((r) => setTimeout(r, 1000));
+          return { title: w.webContents.getTitle() };
+        } finally {
+          w.destroy();
+        }
+      }, sameOriginLocalUrl(path.join(saveFolder, 'oct26-m4-t6-evil-top.html')));
+      console.log('[AC-FF-7b] same-origin local html top-level', JSON.stringify(topLevel));
+      expect.soft(topLevel.title, 'トップレベルで開いたローカル HTML のスクリプトが走った（sandbox CSP が効いていない）／文書が読めていない').toBe('LOCAL-HTML-TOP');
 
       // ---- AC-FF-8: 欠損以外の失敗（権限 000・ディレクトリ）を 404 に畳まない ----
       const nopermUrl = sameOriginLocalUrl(nopermPath);

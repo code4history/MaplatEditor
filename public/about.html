@@ -2,73 +2,9 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' app: data:;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About MaplatEditor</title>
-   <!-- ... styles ... -->
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            padding: 40px 20px 20px 20px;
-            overflow: hidden !important;
-            text-align: center;
-            user-select: none;
-            cursor: default;
-            color: #333;
-            box-sizing: border-box;
-        }
-        
-        .logo-container {
-            margin: 0 0 20px 0;
-        }
-        
-        .logo-img {
-            width: 128px;
-            height: 128px;
-        }
-
-        h1 {
-            font-size: 24px;
-            font-weight: normal;
-            margin: 0 0 5px 0;
-            color: #333;
-        }
-
-        .version {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 20px;
-        }
-
-        .copyright {
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 20px;
-        }
-
-        .versions-table {
-            font-size: 12px;
-            color: #888;
-            line-height: 1.5;
-            text-align: left;
-            margin-top: 10px;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
-        }
-        
-        .versions-table span {
-            display: inline-block;
-            width: 70px;
-            font-weight: 600;
-        }
-    </style>
+    <link rel="stylesheet" href="about.css">
 </head>
 <body>
     <div class="logo-container">
@@ -84,24 +20,7 @@
         Loading versions...
     </div>
 
-    <script>
-        try {
-            // m19-t4a (§6/§7.4): main プロセスから loadFile の query で受け取る
-            // （preload なし・contextBridge なし・IPC なし。露出面ゼロ）
-            const q = new URLSearchParams(location.search);
-            const g = (k) => q.get(k) ?? '-';
-            document.getElementById('appVersion').textContent = 'Version ' + g('appVersion');
-            document.getElementById('versions').innerHTML = `
-                <div><span>electron</span>: ${g('electron')}</div>
-                <div><span>chrome</span>: ${g('chrome')}</div>
-                <div><span>node</span>: ${g('node')}</div>
-                <div><span>v8</span>: ${g('v8')}</div>
-            `;
-        } catch (e) {
-            document.getElementById('versions').innerHTML =
-                '<div style="color:red">Error: ' + e.message + '</div>';
-        }
-        document.addEventListener('contextmenu', event => event.preventDefault());
-    </script>
+    <!-- oct26-m4-t6: renderer CSP（script-src app://bundle/about.js・style-src 'self'）のため script/style は外出し -->
+    <script src="about.js"></script>
 </body>
 </html>

@@ -6,7 +6,8 @@
 //   [2] resolveAppUrl: __local と旧 app://local を localRoots で判定し kind:'local' を返す（同梱物へ落とさない）
 //   [3] privileges: 本番（dev server URL なし）は corsEnabled を持たない。dev のときだけ付く
 //   [4] handler（createAppSchemeHandler）の実挙動: 403/404/403(EACCES・ディレクトリ)/配信・local 応答の防御ヘッダ・
-//       ENOENT 以外の失敗は warn を残す（IR1 Minor-2）
+//       ENOENT 以外の失敗は warn を残す（IR1 Minor-2）。oct26-m4-t6: 同梱 HTML には renderer CSP（sandbox を含まない）・
+//       同梱の非 HTML には CSP 無し・__local の .js は 403＋nosniff（renderer CSP の詳細は oct26-m4-t6-csp smoke）
 //   [5] main.ts の配線: privileges と handler を上記の関数から作る・corsEnabled / ACAO をリテラルで持たない（IR1 Minor-1）
 //   [6] renderer 複製（src/utils/appUrl.ts）が electron 側と同じ URL を作る。表示時の変換 displayTileUrl（oct26-m4-t2s2）は
 //       旧 file://・旧 app://local の入力で main の migrateLegacyFileUrl と同じ URL を作る
@@ -20,6 +21,7 @@ import path from "node:path";
 import {
   APP_SCHEME,
   LOCAL_URL_PREFIX,
+  RENDERER_CSP,
   appSchemePrivileges,
   appUrlToLocalPath,
   createAppSchemeHandler,
@@ -108,6 +110,8 @@ const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ 
   await mkdir(path.join(save, "tiles"), { recursive: true });
   await mkdir(dist, { recursive: true });
   await writeFile(path.join(dist, "index.html"), "<!doctype html>");
+  await writeFile(path.join(dist, "app.js"), "void 0");
+  await writeFile(path.join(save, "evil.js"), "window.__x = 1");
   await writeFile(path.join(save, "tiles", "0.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
   await writeFile(path.join(save, "noperm.png"), "x");
   await chmod(path.join(save, "noperm.png"), 0o000);
@@ -131,7 +135,17 @@ const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ 
 
     const bundle = await get("app://bundle/index.html");
     assert.equal(bundle.status, 200);
-    assert.equal(bundle.headers.get("content-security-policy"), null, "同梱物（renderer 本体）には sandbox を付けない");
+    // oct26-m4-t6: 同梱物（renderer 本体）には sandbox を付けない。付くのは renderer CSP だけ
+    assert.equal(bundle.headers.get("content-security-policy"), RENDERER_CSP, "同梱 HTML（renderer 本体）には renderer CSP を付ける（oct26-m4-t6）");
+    assert.doesNotMatch(bundle.headers.get("content-security-policy") ?? "", /(^|;\s*)sandbox(;|$)/, "同梱物（renderer 本体）には sandbox を付けない");
+    const bundleJs = await get("app://bundle/app.js");
+    assert.equal(bundleJs.status, 200);
+    assert.equal(bundleJs.headers.get("content-security-policy"), null, "同梱の非 HTML（.js）には CSP を付けない（oct26-m4-t6）");
+
+    const localJs = await get(localFileUrl(path.join(save, "evil.js")));
+    assert.equal(localJs.status, 403, "__local のスクリプト（.js）は配信しない（oct26-m4-t6 MAJ-1 案 B）");
+    assert.ok(hasLocalHeaders(localJs), "__local の .js の 403 にも防御ヘッダ");
+    assert.equal(localJs.headers.get("x-content-type-options"), "nosniff", "__local の応答に nosniff（oct26-m4-t6）");
 
     const outside = await get(localFileUrl("/etc/hosts"));
     assert.equal(outside.status, 403);

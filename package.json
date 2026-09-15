@@ -252,7 +252,9 @@
     "ci:smoke": "node scripts/ci/run-smokes.mjs --report smoke-report.json",
     "ci:judge": "node scripts/ci/judge-test-results.mjs smoke --report smoke-report.json",
     "ci:measure-exclusions": "node scripts/ci/measure-exclusions.mjs",
-    "smoke:oct26-m4-t5-ci-judge": "node scripts/oct26-m4-t5-ci-judge-smoke.mjs"
+    "smoke:oct26-m4-t5-ci-judge": "node scripts/oct26-m4-t5-ci-judge-smoke.mjs",
+    "smoke:oct26-m4-t6-csp": "node --experimental-strip-types scripts/oct26-m4-t6-csp-smoke.mjs",
+    "test:e2e:oct26-m4-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/oct26-m4-t6-csp.spec.ts tests/e2e/oct26-m4-t2ff-app-local-cors.spec.ts"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

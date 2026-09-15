@@ -140,9 +140,11 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
     aboutHtml.includes("Copyright 2019-2026 Kohei Otsuka, Code for History / Nayuta, Inc."),
     "public/about.html must contain the ADR-0011 canonical copyright string (AC9)",
   );
+  // oct26-m4-t6: about のインライン script は CSP のため public/about.js へ外出しした。受信形式の断言は about.js を読む
+  const aboutJs = await readSrc("public/about.js");
   assert.ok(
-    /new URLSearchParams\(location\.search\)/.test(aboutHtml),
-    "public/about.html must read the received values via new URLSearchParams(location.search) (§6 受信形式)",
+    /new URLSearchParams\(location\.search\)/.test(aboutJs),
+    "public/about.js must read the received values via new URLSearchParams(location.search) (§6 受信形式)",
   );
   console.log("  [5/6] about.html: process.versions除去 / バージョン最新化 / ADR-0011著作権 / query受信: PASS");
 }
