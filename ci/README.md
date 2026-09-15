@@ -9,6 +9,8 @@
 
 e2e job は Playwright の前に Electron（`com.github.Electron`）の言語を `ja` に固定し（`defaults write com.github.Electron AppleLanguages -array ja`）、`scripts/ci/electron-locale-check.cjs` で `app.getLocale()` が `ja` であることを確かめる。
 macOS runner の言語は en-US で、MaplatEditor は設定が無いと OS の言語で UI を起動するため、日本語の文言を待つ e2e が英語 UI で落ちるのを防ぐ（マージ判断 oct26-m4-t5 追補 1）。
+e2e job の install は `--config.side-effects-cache=false` を付けて electron の postinstall を必ず走らせる。pnpm の side-effects cache は空ディレクトリを記録しないので、キャッシュから復元した Electron.app には `*.lproj` が無く、`app.getLocale()` が en-US になるため（追補 2。検査は `lproj=<n>` を出し、0 個なら NG）。
+手元で共有 node_modules を pnpm で張り直した後は、e2e の前に言語検査の出力の `lproj=`（macOS の Electron では 55）を見ること。0 なら同じ理由で `.lproj` が消えている。
 
 **job の合否は判定器の exit だけで決まる。** 判定器は fail-closed で、報告が無い・壊れている・数が合わない・中断された、はすべて赤。
 

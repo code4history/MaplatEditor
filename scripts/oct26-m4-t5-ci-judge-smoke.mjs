@@ -360,10 +360,15 @@ const green = (r, msg, re) => {
     assert.equal('continue-on-error' in e2e.steps[i], false, `${e2e.steps[i].name} は continue-on-error を持たない`);
     assert.equal('if' in e2e.steps[i], false, `${e2e.steps[i].name} は if を持たない`);
   }
+  // 追補 2（F-AC7）: pnpm の side-effects cache は空ディレクトリ（Electron.app の *.lproj）を記録しない。
+  // e2e job の install は side-effects cache を使わず electron の postinstall を必ず走らせる（smoke job は検査しない）
+  const e2eInstall = e2e.steps.find((s) => s.name === 'Install dependencies');
+  assert.ok(e2eInstall && /(^|\s)--config\.side-effects-cache=false(\s|$)/.test(e2eInstall.run ?? ''),
+    `e2e job の Install dependencies に --config.side-effects-cache=false（追補 2 F-AC7。run=${e2eInstall?.run}）`);
   const e2eJudge = e2e.steps.find((s) => (s.run ?? '').includes('judge-test-results.mjs e2e'));
   assert.match(e2eJudge.run, /--report e2e-report\.json --exit-file playwright-exit\.txt --shard \$\{\{ matrix\.shard \}\}\/3/, 'e2e 判定 step の引数');
   assert.ok(e2e.steps.map((s) => s.run ?? '').includes('pnpm run build'), 'e2e job に pnpm run build');
-  console.log('  [3/5] AC5 test.yml の静的検査（＋--forbid-only・Electron の言語固定）: PASS');
+  console.log('  [3/5] AC5 test.yml の静的検査（＋--forbid-only・Electron の言語固定・e2e install の side-effects cache 無効）: PASS');
 }
 
 // ───────────────────────────── AC6 ─────────────────────────────

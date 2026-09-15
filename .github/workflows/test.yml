@@ -96,8 +96,10 @@ jobs:
       - name: Apply CI-only pnpm config
         run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
+      # pnpm の side-effects cache は空ディレクトリを記録しないので、キャッシュから復元した Electron.app に .lproj が無く
+      # getLocale が en-US になる。postinstall を必ず走らせる（マージ判断 oct26-m4-t5 追補 2）
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --config.side-effects-cache=false
 
       - name: Build
         run: pnpm run build
