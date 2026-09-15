@@ -36,6 +36,8 @@ import { isEditableElement } from '../utils/nativeTextUndo';
 // t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（§8.1 契約表）。
 // 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
 import { resolveSourceThumbnail } from '../utils/sourceThumbnail';
+// oct26-m4-t2s2: 更新前の版の下書きに残る旧形 url_（file:// / app://local）を、タイル源に渡すときだけ現行形へ
+import { displayTileUrl } from '../utils/appUrl';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
 import { thumb52PathFor } from '../utils/thumbnailPaths';
@@ -2939,7 +2941,10 @@ const exchangeTileSource = async (): Promise<any> => {
     if (!illstMap) return null;
     const options = {
         mapID: mapID.value,
-        url: mapData.value.url_,
+        // oct26-m4-t2s2: v1.0.0 の未保存下書き（file://）・m4-t2 期（app://local）の url_ は renderer から読めず、
+        // 保存するまで左ペインが真っ白になった。表示のときだけ現行形へ写す（url_ は書き換えない。保存時の正規化は main）。
+        // 同一性キー（tileIdentityKey）は生の url_ のまま
+        url: displayTileUrl(mapData.value.url_),
         width: mapData.value.width,
         height: mapData.value.height,
         attr: mapData.value.attr,

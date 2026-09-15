@@ -8,7 +8,8 @@
 //   [4] handler（createAppSchemeHandler）の実挙動: 403/404/403(EACCES・ディレクトリ)/配信・local 応答の防御ヘッダ・
 //       ENOENT 以外の失敗は warn を残す（IR1 Minor-2）
 //   [5] main.ts の配線: privileges と handler を上記の関数から作る・corsEnabled / ACAO をリテラルで持たない（IR1 Minor-1）
-//   [6] renderer 複製（src/utils/appUrl.ts）が electron 側と同じ URL を作る
+//   [6] renderer 複製（src/utils/appUrl.ts）が electron 側と同じ URL を作る。表示時の変換 displayTileUrl（oct26-m4-t2s2）は
+//       旧 file://・旧 app://local の入力で main の migrateLegacyFileUrl と同じ URL を作る
 //
 // appScheme.ts / appUrl.ts は electron を import しないので `node --experimental-strip-types` で読める。
 import assert from "node:assert/strict";
@@ -209,7 +210,73 @@ const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ 
     assert.equal(rendererAppUrl.appUrlToLocalPath(localFileUrl(abs)), appUrlToLocalPath(localFileUrl(abs)));
   }
   assert.equal(rendererAppUrl.appUrlToLocalPath("app://local/tmp/t.png"), "/tmp/t.png", "renderer も旧 app://local を復号する");
-  console.log("  [6/6] renderer 複製（src/utils/appUrl.ts）と同じ URL: PASS");
+
+  // oct26-m4-t2s2: 表示時の変換（renderer の displayTileUrl）は、保存経路の正規化（main の migrateLegacyFileUrl）と
+  // 同じ URL を作る。v1.0.0 の未保存下書き（file://…/draft-tiles/<uid>/{z}/{x}/{y}.<ext>）と m4-t2 期の app://local を、
+  // 保存前でも対応点編集の左ペインに表示するため。規則が 2 か所にあるので、入力群で出力一致を固定する。
+  assert.equal(typeof rendererAppUrl.displayTileUrl, "function", "src/utils/appUrl.ts に displayTileUrl が必要（oct26-m4-t2s2）");
+  // v1.0.0 の file-url 4.0.0 と同じ符号化（依存を import せずに書く）
+  const fileUrlV1 = (abs) => encodeURI("file://" + abs).replace(/[?#]/g, encodeURIComponent);
+  const T = "/{z}/{x}/{y}.jpg";
+  const sameAsMain = [
+    // 通常の v1.0.0 形（空白・非 ASCII・# ? % を含むパス）
+    fileUrlV1("/Users/a b/Library/Application Support/MaplatEditor/draft-tiles/d1111111-1111-4111-8111-111111111111") + T,
+    fileUrlV1("/Users/山田/下書き 地図/draft-tiles/u") + "/{z}/{x}/{y}.png",
+    fileUrlV1("/tmp/x#y?z%w/draft-tiles/u") + T,
+    // Windows ドライブレター（3 本スラッシュ・2 本スラッシュ・小文字・符号化されたコロン）
+    "file:///C:/Users/x/AppData/Roaming/MaplatEditor/draft-tiles/u" + T,
+    "file://C:/Users/x/draft-tiles/u" + T,
+    "file:///c%3A/Users/x/draft-tiles/u" + T,
+    // localhost host（WHATWG 解析で空 host になる）・.. と %2e%2e（解析で解決される）・# ? の後ろは経路ではない
+    "file://localhost/tmp/draft-tiles/u" + T,
+    "file:///tmp/draft-tiles/a/../b" + T,
+    "file:///tmp/draft-tiles/%2e%2e/%2E%2E/etc" + T,
+    "file:///tmp/a#frag/b" + T,
+    "file:///tmp/a?q=1/b" + T,
+    "file:///tmp/a%25b%00c" + T,
+    "file://" + T,
+    // main が変換しない形（renderer もそのまま返す）
+    "file:///tmp/a%2Fb/u" + T,
+    "file:///tmp/a%2fb/u" + T,
+    "file://server/share/draft-tiles/u" + T,
+    "file:///tmp/%E3/u" + T,
+    "file:///tmp/draft-tiles/u",
+    "file:///tmp/draft-tiles/u/{z}/{x}/{y}.jpg.bak",
+    "file:///tmp/draft-tiles/u/{z}/{x}/{y}",
+    "FILE:///tmp/draft-tiles/u" + T,
+    // m4-t2 期の旧 app://local（未公開ビルドの下書き）
+    "app://local/Users/a%20b/draft-tiles/u" + T,
+    "app://local/C:/Users/x/draft-tiles/u" + T,
+    // 変換しない形（新形・リモート・同梱物）
+    "app://bundle/__local/Users/a%20b/draft-tiles/u" + T,
+    "https://example.com/tiles" + T,
+    "app://bundle/assets/x.png",
+    "",
+  ];
+  for (const input of sameAsMain) {
+    assert.equal(rendererAppUrl.displayTileUrl(input), migrateLegacyFileUrl(input), `renderer の displayTileUrl と main の migrateLegacyFileUrl が一致しない: ${input}`);
+  }
+  // 変換される形は同一 origin の新形になり、実パスへ復号できる（配信の許可は main の resolveAppUrl が決める）
+  {
+    const abs = "/Users/a b/Library/Application Support/MaplatEditor/draft-tiles/d1111111-1111-4111-8111-111111111111";
+    const out = rendererAppUrl.displayTileUrl(fileUrlV1(abs) + T);
+    assert.ok(out.startsWith("app://bundle/__local/"), out);
+    assert.ok(out.endsWith(T), `テンプレートは literal のまま残す: ${out}`);
+    assert.equal(appUrlToLocalPath(out.slice(0, -T.length)), abs, out);
+    assert.equal(rendererAppUrl.displayTileUrl("app://local/tmp/d" + T), "app://bundle/__local/tmp/d" + T);
+  }
+  // 意図的な差（設計メモ §3.3）: %5C を含む file:// は、POSIX の main は %5C を含む app URL に写すが、その URL は
+  // appUrlToLocalPath が拒否して配信されない。renderer は `\` を区切りとして扱うため変換せずに返す（どちらも表示されない）
+  {
+    const input = "file:///tmp/a%5Cb/u" + T;
+    assert.equal(rendererAppUrl.displayTileUrl(input), input, "renderer は %5C を含む file:// を変換しない");
+    const mainOut = migrateLegacyFileUrl(input);
+    assert.equal(appUrlToLocalPath(mainOut.slice(0, -T.length)), null, `main の出力も配信できない形であること: ${mainOut}`);
+  }
+  // 文字列以外はそのまま（mapData.url_ が未設定のとき）
+  assert.equal(rendererAppUrl.displayTileUrl(undefined), undefined);
+  assert.equal(rendererAppUrl.displayTileUrl(null), null);
+  console.log("  [6/6] renderer 複製（src/utils/appUrl.ts）と同じ URL・displayTileUrl と migrateLegacyFileUrl の一致: PASS");
 }
 
 console.log("=== oct26-m4-t2ff app-scheme same-origin smoke: PASS ===");

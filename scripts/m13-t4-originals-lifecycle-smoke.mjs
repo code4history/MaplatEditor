@@ -124,7 +124,7 @@ try {
         return tmpTileFolder;
       }
 
-      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app://local へ移った。
+      // oct26-m4-t2s: m4-t2（#105）でローカルタイル URL の契約は file:// から app:// へ移った（oct26-m4-t2ff 第 2 版で同一 origin の app://bundle/__local）。
       // 実運用で url_ を作る MapUploadService.imageCutter と同じビルダー（electron/utils/appScheme.ts）で fixture を組む
       const { localFileUrl } = await import(${JSON.stringify(appSchemePath)});
 

@@ -10,6 +10,10 @@
 // userData・saveFolder には空白と非 ASCII を含め、v1.0.0 の file-url の符号化（encodeURI 系）を復号できることも確かめる。
 // MAPLAT_E2E_ROOT は空にして、実運用と同じ `userData/draft-tiles` を staging ルートにする。
 //
+// oct26-m4-t2s2（IR2 Minor-1）: [1]〜[6] は 3 形（file://・app://local・app://bundle/__local）でループする。
+//   保存・staging 判定の入口から app://local の正規化だけを外す変異（mu8-entry）を、app://local の形が検出する。
+//   以下の説明の「旧 file://」は、[1]〜[6] では各形に読み替える。
+//
 // 断言（すべて走らせてから集約する）:
 //   [1] 判定関数: 旧 file:// の staging url_ を isDraftTileUrl が staging と認め、resolveStagingDirFromUrl が staging dir を返す
 //   [2] mapedit:stagingStatus: 旧 file:// の staging url_ で、staging が在れば alive=true・無ければ alive=false（復元時警告が働く）。
@@ -150,106 +154,128 @@ await writeFile(
       assert.equal(draftTileRoot, expectedStagingRoot);
     });
 
-    // ---------------- [1] 判定関数 ----------------
-    const UID1 = 'd1111111-1111-4111-8111-111111111111';
-    const staging1 = await makeStaging(UID1, 'one');
-    const legacy1 = fileUrlV1(staging1) + '/{z}/{x}/{y}.jpg';
-    console.log('fixture url_ (v1.0.0 形式): ' + legacy1);
-    await check('[1-a] fixture は v1.0.0 形式（file:// と空白・非 ASCII の percent-encoding）', () => {
-      assert.ok(legacy1.startsWith('file:///'), legacy1);
-      assert.ok(legacy1.includes('user%20data%20%E4%B8%8B%E6%9B%B8%E3%81%8D'), legacy1);
-    });
-    await check('[1-b] isDraftTileUrl は旧 file:// の staging url_ を staging と認める', () => {
-      assert.equal(isDraftTileUrl(draftTileRoot, legacy1), true);
-    });
-    await check('[1-c] resolveStagingDirFromUrl は旧 file:// の staging url_ から staging dir を導出する', () => {
-      assert.equal(resolveStagingDirFromUrl(draftTileRoot, legacy1), staging1);
-    });
+    // oct26-m4-t2s2（IR2 Minor-1）: [1]〜[6] を 3 形でループする。
+    //   file        … v1.0.0（公開版）の未保存下書き
+    //   appLocal    … m4-t2 期（未公開ビルド）の未保存下書き。保存経路の入口から app://local の正規化だけを外す変異
+    //                 （mu8-entry）をこの形が検出する
+    //   bundleLocal … 現行形（t2ff 第 2 版）。正規化の対象外で素通しされても同じ結果になること
+    // URL は各形の契約から独立に組む（製品のビルダー・定数を使わない）。
+    const encSeg = (p: string) => nodePath.resolve(p).split('/').map(encodeURIComponent).join('/');
+    const FORMS: Array<[string, (p: string) => string]> = [
+      ['file', fileUrlV1],
+      ['appLocal', (p) => 'app://local' + encSeg(p)],
+      ['bundleLocal', (p) => 'app://bundle/__local' + encSeg(p)],
+    ];
+    // 形ごとに別の uid（UUID v4 の形）: d は区分の 1 桁、n は形の番号（1〜3）
+    const uidOf = (d: string, n: number) =>
+      d.repeat(8) + '-' + d.repeat(4) + '-4' + d.repeat(3) + '-8' + d.repeat(3) + '-' + d.repeat(11) + String(n);
 
-    // ---------------- [2] mapedit:stagingStatus ----------------
-    await check('[2-a] stagingStatus: 旧 file:// の staging url_ で staging が在れば alive=true', async () => {
-      assert.ok(stagingStatus, 'mapedit:stagingStatus が登録されていない');
-      const st = await stagingStatus({}, legacy1);
-      assert.equal(st.alive, true, JSON.stringify(st));
-    });
-    await check('[2-b] stagingStatus: 旧 file:// の staging url_ で staging が無ければ alive=false（復元時警告が働く）', async () => {
-      const goneUrl = fileUrlV1(nodePath.join(draftTileRoot, 'd9999999-9999-4999-8999-999999999999')) + '/{z}/{x}/{y}.jpg';
-      const st = await stagingStatus({}, goneUrl);
-      assert.equal(st.alive, false, JSON.stringify(st));
-    });
+    let formNo = 0;
+    for (const [form, mk] of FORMS) {
+      formNo++;
+      const L = (label: string) => '[' + form + '] ' + label;
 
-    await check('[2-c] stagingStatus: 旧 file:// の後方互換 tmp url_ で tmp/tiles が無ければ alive=false', async () => {
-      const tmpTiles = nodePath.join(SettingsService.get('tmpFolder'), 'tiles');
-      assert.equal(await fs.pathExists(tmpTiles), false, '前提: この時点で tmp/tiles は無い');
-      const st = await stagingStatus({}, fileUrlV1(tmpTiles) + '/{z}/{x}/{y}.jpg');
-      assert.equal(st.alive, false, JSON.stringify(st));
-    });
+      // ---------------- [1] 判定関数 ----------------
+      const UID1 = uidOf('1', formNo);
+      const staging1 = await makeStaging(UID1, 'one-' + form);
+      const legacy1 = mk(staging1) + '/{z}/{x}/{y}.jpg';
+      console.log('fixture url_ (' + form + '): ' + legacy1);
+      await check(L('[1-a] fixture はその形の URL（空白・非 ASCII の percent-encoding）'), () => {
+        const head = form === 'file' ? 'file:///' : form === 'appLocal' ? 'app://local/' : 'app://bundle/__local/';
+        assert.ok(legacy1.startsWith(head), legacy1);
+        assert.ok(legacy1.includes('user%20data%20%E4%B8%8B%E6%9B%B8%E3%81%8D'), legacy1);
+      });
+      await check(L('[1-b] isDraftTileUrl は staging url_ を staging と認める'), () => {
+        assert.equal(isDraftTileUrl(draftTileRoot, legacy1), true);
+      });
+      await check(L('[1-c] resolveStagingDirFromUrl は staging url_ から staging dir を導出する'), () => {
+        assert.equal(resolveStagingDirFromUrl(draftTileRoot, legacy1), staging1);
+      });
 
-    // ---------------- [3] save(create) で移動し、下書き削除後も画像が残る ----------------
-    const res3 = await MapEditService.save({ mapObject: mapObject('legacy-draft-one', legacy1), tins: [], slug: 'legacy-draft-one', uid: UID1, create: true });
-    console.log('save [3]: ' + JSON.stringify(res3));
-    await check('[3-a] save は Success', () => { assert.equal(res3.result, 'Success'); });
-    await check('[3-b] 恒久 url は app://bundle/__local の契約で、実パスは tiles/<uid>・テンプレートを保つ', () => {
-      assert.equal(typeof res3.url, 'string', '恒久 url が返らない（staging と認識されていない）');
-      assert.ok(res3.url.startsWith(CONTRACT_PREFIX), res3.url);
-      assert.ok(res3.url.endsWith('/{z}/{x}/{y}.jpg'), res3.url);
-      assert.equal(urlDir(res3.url), nodePath.join(tilesDir, UID1), res3.url);
-    });
-    await check('[3-c] タイル・原本・サムネイルが恒久領域へ移り、staging は残らない', async () => {
-      assert.equal(await fs.readFile(nodePath.join(tilesDir, UID1, '0', '0', '0.jpg'), 'utf8'), 'tile-one');
-      assert.equal(await fs.readFile(nodePath.join(originalsDir, UID1 + '.jpg'), 'utf8'), 'original-one');
-      assert.equal(await fs.readFile(nodePath.join(tmbsDir, UID1 + '.jpg'), 'utf8'), 'thumb-one');
-      assert.equal(await fs.pathExists(staging1), false, 'staging が残っている（移動されていない）');
-    });
-    // 下書き削除（AssetDraftService.onRemoved）と同じ手順: resolveDraftTileDir で解決して fs.remove
-    {
-      const draftDir = resolveDraftTileDir(draftTileRoot, UID1);
-      if (draftDir) await fs.remove(draftDir);
+      // ---------------- [2] mapedit:stagingStatus ----------------
+      await check(L('[2-a] stagingStatus: staging url_ で staging が在れば alive=true'), async () => {
+        assert.ok(stagingStatus, 'mapedit:stagingStatus が登録されていない');
+        const st = await stagingStatus({}, legacy1);
+        assert.equal(st.alive, true, JSON.stringify(st));
+      });
+      await check(L('[2-b] stagingStatus: staging url_ で staging が無ければ alive=false（復元時警告が働く）'), async () => {
+        const goneUrl = mk(nodePath.join(draftTileRoot, uidOf('9', formNo))) + '/{z}/{x}/{y}.jpg';
+        const st = await stagingStatus({}, goneUrl);
+        assert.equal(st.alive, false, JSON.stringify(st));
+      });
+      await check(L('[2-c] stagingStatus: 後方互換 tmp url_ で tmp/tiles が無ければ alive=false'), async () => {
+        const tmpTiles = nodePath.join(SettingsService.get('tmpFolder'), 'tiles');
+        assert.equal(await fs.pathExists(tmpTiles), false, '前提: この時点で tmp/tiles は無い（前の形の [5] で移動済み）');
+        const st = await stagingStatus({}, mk(tmpTiles) + '/{z}/{x}/{y}.jpg');
+        assert.equal(st.alive, false, JSON.stringify(st));
+      });
+
+      // ---------------- [3] save(create) で移動し、下書き削除後も画像が残る ----------------
+      const res3 = await MapEditService.save({ mapObject: mapObject('legacy-draft-one-' + form, legacy1), tins: [], slug: 'legacy-draft-one-' + form, uid: UID1, create: true });
+      console.log('save [3] (' + form + '): ' + JSON.stringify(res3));
+      await check(L('[3-a] save は Success'), () => { assert.equal(res3.result, 'Success'); });
+      await check(L('[3-b] 恒久 url は app://bundle/__local の契約で、実パスは tiles/<uid>・テンプレートを保つ'), () => {
+        assert.equal(typeof res3.url, 'string', '恒久 url が返らない（staging と認識されていない）');
+        assert.ok(res3.url.startsWith(CONTRACT_PREFIX), res3.url);
+        assert.ok(res3.url.endsWith('/{z}/{x}/{y}.jpg'), res3.url);
+        assert.equal(urlDir(res3.url), nodePath.join(tilesDir, UID1), res3.url);
+      });
+      await check(L('[3-c] タイル・原本・サムネイルが恒久領域へ移り、staging は残らない'), async () => {
+        assert.equal(await fs.readFile(nodePath.join(tilesDir, UID1, '0', '0', '0.jpg'), 'utf8'), 'tile-one-' + form);
+        assert.equal(await fs.readFile(nodePath.join(originalsDir, UID1 + '.jpg'), 'utf8'), 'original-one-' + form);
+        assert.equal(await fs.readFile(nodePath.join(tmbsDir, UID1 + '.jpg'), 'utf8'), 'thumb-one-' + form);
+        assert.equal(await fs.pathExists(staging1), false, 'staging が残っている（移動されていない）');
+      });
+      // 下書き削除（AssetDraftService.onRemoved）と同じ手順: resolveDraftTileDir で解決して fs.remove
+      {
+        const draftDir = resolveDraftTileDir(draftTileRoot, UID1);
+        if (draftDir) await fs.remove(draftDir);
+      }
+      await check(L('[3-d] 下書き削除で staging を消した後も、タイルと原本は残る'), async () => {
+        assert.equal(await fs.pathExists(nodePath.join(tilesDir, UID1, '0', '0', '0.jpg')), true, 'タイルが失われた');
+        assert.equal(await fs.pathExists(nodePath.join(originalsDir, UID1 + '.jpg')), true, '原本が失われた');
+      });
+
+      // ---------------- [4] staging 欠損は DB に触れず Error ----------------
+      const UID4 = uidOf('4', formNo);
+      const legacy4 = mk(nodePath.join(draftTileRoot, UID4)) + '/{z}/{x}/{y}.jpg';
+      const res4 = await MapEditService.save({ mapObject: mapObject('legacy-draft-gone-' + form, legacy4), tins: [], slug: 'legacy-draft-gone-' + form, uid: UID4, create: true });
+      await check(L('[4] staging が既に無い url_ は Error（mapedit.staging.missing_tiles）で DB 行を作らない'), async () => {
+        assert.deepEqual(res4, { result: 'Error', errorKey: 'mapedit.staging.missing_tiles' }, JSON.stringify(res4));
+        assert.ok(!(await SqliteDataService.findMap(UID4)), 'DB 行が作られている');
+      });
+
+      // ---------------- [5] 後方互換 tmp ----------------
+      const UID5 = uidOf('5', formNo);
+      const tmpTileFolder = nodePath.join(SettingsService.get('tmpFolder'), 'tiles');
+      await fs.ensureDir(nodePath.join(tmpTileFolder, '0', '0'));
+      await fs.writeFile(nodePath.join(tmpTileFolder, '0', '0', '0.jpg'), 'tile-tmp-' + form);
+      await fs.writeFile(nodePath.join(tmpTileFolder, 'original.jpg'), 'original-tmp-' + form);
+      const legacy5 = mk(tmpTileFolder) + '/{z}/{x}/{y}.jpg';
+      const res5 = await MapEditService.save({ mapObject: mapObject('legacy-tmp-' + form, legacy5), tins: [], slug: 'legacy-tmp-' + form, uid: UID5, create: true });
+      console.log('save [5] (' + form + '): ' + JSON.stringify(res5));
+      await check(L('[5] tmp url_ も移動され、恒久 url と originals/<uid>.jpg ができる'), async () => {
+        assert.equal(res5.result, 'Success', JSON.stringify(res5));
+        assert.equal(typeof res5.url, 'string', '恒久 url が返らない（tmp と認識されていない）');
+        assert.ok(res5.url.startsWith(CONTRACT_PREFIX), res5.url);
+        assert.equal(urlDir(res5.url), nodePath.join(tilesDir, UID5), res5.url);
+        assert.equal(await fs.readFile(nodePath.join(tilesDir, UID5, '0', '0', '0.jpg'), 'utf8'), 'tile-tmp-' + form);
+        assert.equal(await fs.readFile(nodePath.join(originalsDir, UID5 + '.jpg'), 'utf8'), 'original-tmp-' + form);
+      });
+
+      // ---------------- [6] 複製元 ----------------
+      const UID6 = uidOf('6', formNo);
+      const legacy6 = mk(nodePath.join(tilesDir, UID1)) + '/{z}/{x}/{y}.jpg';
+      const res6 = await MapEditService.save({ mapObject: mapObject('legacy-clone-' + form, legacy6), tins: [], slug: 'legacy-clone-' + form, uid: UID6, copyFromUid: UID1, create: true });
+      console.log('save [6] (' + form + '): ' + JSON.stringify(res6));
+      await check(L('[6] 複製元タイル url_ でも、複製先を指す恒久 url が返る'), async () => {
+        assert.equal(res6.result, 'Success', JSON.stringify(res6));
+        assert.equal(typeof res6.url, 'string', '恒久 url が返らない');
+        assert.ok(res6.url.startsWith(CONTRACT_PREFIX), res6.url);
+        assert.equal(urlDir(res6.url), nodePath.join(tilesDir, UID6), res6.url);
+        assert.equal(await fs.readFile(nodePath.join(tilesDir, UID6, '0', '0', '0.jpg'), 'utf8'), 'tile-one-' + form);
+      });
     }
-    await check('[3-d] 下書き削除で staging を消した後も、タイルと原本は残る', async () => {
-      assert.equal(await fs.pathExists(nodePath.join(tilesDir, UID1, '0', '0', '0.jpg')), true, 'タイルが失われた');
-      assert.equal(await fs.pathExists(nodePath.join(originalsDir, UID1 + '.jpg')), true, '原本が失われた');
-    });
-
-    // ---------------- [4] staging 欠損は DB に触れず Error ----------------
-    const UID4 = 'd4444444-4444-4444-8444-444444444444';
-    const legacy4 = fileUrlV1(nodePath.join(draftTileRoot, UID4)) + '/{z}/{x}/{y}.jpg';
-    const res4 = await MapEditService.save({ mapObject: mapObject('legacy-draft-gone', legacy4), tins: [], slug: 'legacy-draft-gone', uid: UID4, create: true });
-    await check('[4] staging が既に無い旧 file:// url_ は Error（mapedit.staging.missing_tiles）で DB 行を作らない', async () => {
-      assert.deepEqual(res4, { result: 'Error', errorKey: 'mapedit.staging.missing_tiles' }, JSON.stringify(res4));
-      assert.ok(!(await SqliteDataService.findMap(UID4)), 'DB 行が作られている');
-    });
-
-    // ---------------- [5] 後方互換 tmp の旧 file:// ----------------
-    const UID5 = 'd5555555-5555-4555-8555-555555555555';
-    const tmpTileFolder = nodePath.join(SettingsService.get('tmpFolder'), 'tiles');
-    await fs.ensureDir(nodePath.join(tmpTileFolder, '0', '0'));
-    await fs.writeFile(nodePath.join(tmpTileFolder, '0', '0', '0.jpg'), 'tile-tmp');
-    await fs.writeFile(nodePath.join(tmpTileFolder, 'original.jpg'), 'original-tmp');
-    const legacy5 = fileUrlV1(tmpTileFolder) + '/{z}/{x}/{y}.jpg';
-    const res5 = await MapEditService.save({ mapObject: mapObject('legacy-tmp', legacy5), tins: [], slug: 'legacy-tmp', uid: UID5, create: true });
-    console.log('save [5]: ' + JSON.stringify(res5));
-    await check('[5] 旧 file:// の tmp url_ も移動され、恒久 url と originals/<uid>.jpg ができる', async () => {
-      assert.equal(res5.result, 'Success', JSON.stringify(res5));
-      assert.equal(typeof res5.url, 'string', '恒久 url が返らない（tmp と認識されていない）');
-      assert.ok(res5.url.startsWith(CONTRACT_PREFIX), res5.url);
-      assert.equal(urlDir(res5.url), nodePath.join(tilesDir, UID5), res5.url);
-      assert.equal(await fs.readFile(nodePath.join(tilesDir, UID5, '0', '0', '0.jpg'), 'utf8'), 'tile-tmp');
-      assert.equal(await fs.readFile(nodePath.join(originalsDir, UID5 + '.jpg'), 'utf8'), 'original-tmp');
-    });
-
-    // ---------------- [6] 複製元の旧 file:// ----------------
-    const UID6 = 'd6666666-6666-4666-8666-666666666666';
-    const legacy6 = fileUrlV1(nodePath.join(tilesDir, UID1)) + '/{z}/{x}/{y}.jpg';
-    const res6 = await MapEditService.save({ mapObject: mapObject('legacy-clone', legacy6), tins: [], slug: 'legacy-clone', uid: UID6, copyFromUid: UID1, create: true });
-    console.log('save [6]: ' + JSON.stringify(res6));
-    await check('[6] 旧 file:// の複製元タイル url_ でも、複製先を指す恒久 url が返る', async () => {
-      assert.equal(res6.result, 'Success', JSON.stringify(res6));
-      assert.equal(typeof res6.url, 'string', '恒久 url が返らない');
-      assert.ok(res6.url.startsWith(CONTRACT_PREFIX), res6.url);
-      assert.equal(urlDir(res6.url), nodePath.join(tilesDir, UID6), res6.url);
-      assert.equal(await fs.readFile(nodePath.join(tilesDir, UID6, '0', '0', '0.jpg'), 'utf8'), 'tile-one');
-    });
 
     // ---------------- [7] 許可ルート外・境界外は staging と認めない ----------------
     const UID7 = 'd7777777-7777-4777-8777-777777777777';
