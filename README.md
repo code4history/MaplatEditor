@@ -1,6 +1,6 @@
 <!-- SECTION 1: Header (logo, badges, title) -->
 <p align="center">
-  <img src="https://code4history.github.io/Maplat/page_imgs/maplat.png" alt="MaplatEditor logo" width="200" />
+  <img src="page_imgs/maplat.png" alt="MaplatEditor logo" width="200" />
 </p>
 
 <h1 align="center">MaplatEditor</h1>
