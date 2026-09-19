@@ -84,6 +84,15 @@ jobs:
           EXPECTED_VERSION: ${{ inputs.expected_version }}
         run: node scripts/m6-t12/check-release-guard.mjs
 
+      # oct26-m12-t5a（HR-26/4）: 新ビューア出力の鮮度ガード。check-release-guard.mjs の直後に
+      # 置くことで、full ビルド・未公開版の全ビルド経路（push / dispatch を問わない）が
+      # 旧ビューア同梱で止まる（H-M12-5' (a)）。enforce/warn はスクリプトが規則表で決める
+      #（workflow 入力で弱められない）。MODE は規則表（mode=full → enforce）にだけ渡す。
+      - name: Check bundled viewer freshness
+        env:
+          MODE: ${{ inputs.mode }}
+        run: node scripts/m12-t5/check-viewer-freshness.mjs
+
       # #104: 成果物へ埋め込む build commit SHA の証明（provenance）。checkout を
       # inputs.expected_editor_sha へ固定しているため、git rev-parse HEAD がビルド対象 commit になる。
       # AC-7 は成果物内の build-meta.json.editor_sha == expected_editor_sha を照合する。

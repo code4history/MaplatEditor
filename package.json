@@ -165,6 +165,7 @@
     "smoke:m19-t2-basemap-thumbnail-512": "node scripts/m19-t2-basemap-thumbnail-512-smoke.mjs",
     "test:e2e:m19-t2": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t2-basemap-thumbnail-512.spec.ts",
     "smoke:m19-t8-builtin-osm-data-attr": "node scripts/m19-t8-builtin-osm-data-attr-smoke.mjs",
+    "smoke:m12-t5-viewer-freshness-guard": "node scripts/m12-t5/check-viewer-freshness.mjs --self-test",
     "sync:preview-bundle": "node scripts/m1-t8-sync-preview-bundle.mjs",
     "test:e2e:m1-t3-swiper": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m1-t3-swiper-viewer-reach.spec.ts",
     "test:e2e:m1-t8": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m1-t8-preview-sanitized-viewer.spec.ts",

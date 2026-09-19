@@ -23,6 +23,10 @@ MaplatEditor is open-source under the Apache License 2.0 (from version 0.7.0).
 The package is **not published to npm** (`private: true` in `package.json`);
 binaries are distributed via GitHub Releases.
 
+## Caution
+
+> ⚠ **Map positions and the map data format version change.**
+
 <!-- SECTION 3: Language switch link -->
 **[Read this document in Japanese / 日本語で読む](README.ja.md)**
 

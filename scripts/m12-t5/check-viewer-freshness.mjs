@@ -1,0 +1,753 @@
+/**
+ * oct26-m12-t5a（HR-26/4）: MaplatEditor が「新ビューアを出力」していることを検査する鮮度ガード。
+ *
+ * 設計: 2026-09-19-oct26-m12-t5-design.md §4.2・§5（t5a）。以下 4 つの入口を持つ。
+ *
+ *   (A) 依存とビルド（--enforce / --warn / 自動）: 4 パッケージ（transform・tin・core・ui）と
+ *       同梱ビューア（public/preview）を個別に検査（A1〜A5）。
+ *   (B) 出力物（--export <zip または展開ディレクトリ>）: 書き出しに同梱された
+ *       ビューアと maps/*.json の compiled を検査。
+ *   (C) --self-test: 合成入力で A1〜A5・(B)・enforce/warn 規則表の判定の向きを確かめる。
+ *
+ * enforce / warn の選び方（固定。mode では決めない）:
+ *   - mode=full（署名・公証・draft Release）→ enforce
+ *   - package.json の version に対応する tag v<version> が origin に無い（未公開の版）→ enforce
+ *   - tag の有無を確かめられない（git ls-remote の失敗）→ enforce（fail-closed）
+ *   - 上のどれでもない（公開済みの版の再ビルド）→ warn（exit 0）
+ *
+ * 自動判定はスクリプトの中で行う（workflow の入力で弱められない）。CI の prepare ステップは
+ * 本スクリプトを引数なしで呼び、MODE env を渡す。
+ *
+ * 検査の判定ロジックは「facts を入力とする純関数」に分離してあり、--self-test は合成 facts で
+ * 各検査の向き（合格入力 → ok / 不合格入力 → ng）を確かめる。実環境の核となる facts は
+ * node_modules と pnpm-lock.yaml から集める。
+ */
+import { readFileSync, existsSync, statSync, readdirSync, appendFileSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import assert from 'node:assert/strict';
+import yaml from 'js-yaml';
+
+const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
+
+// 今回の NewTin が書き出すフォーマット版・weight_buffer は空（m12 設計 §1.1 / §4.2）
+const FORMAT_V2 = 2.00704;
+const FORMAT_V3 = 3.00001;
+const OLD_V2 = 2.00703;
+const OLD_V3 = 3;
+
+// Editor が地図保存で使う TIN 設定（electron/ipc/mapedit.ts:30 ほかと同一）
+const TIN_V2_OPTIONS = { useV2Algorithm: true };
+
+// A2 用の既存 GCP フィクスチャ（Editor の tests にある GCP。
+// tests/e2e/m5-t4b-import-draft-cleanup.spec.ts:49-53 の 3 点を再掲）。
+const GCP_WH = [400, 300];
+const GCP_STRICT = 'loose';
+const GCP_VERTEX = 'plain';
+const GCP_POINTS = [
+  [[0, 0], [135.0, 35.1]],
+  [[400, 0], [135.1, 35.1]],
+  [[200, 300], [135.05, 35.0]],
+];
+
+// ───────────────────────────────────────────────
+// 純関数ヘルパー
+// ───────────────────────────────────────────────
+
+/** リテラル出現回数（grep -o の 1 行あたり件数と同値）。 */
+function countLiteral(str, sub) {
+  return String(str).split(sub).length - 1;
+}
+
+function isEmptyPlainObject(v) {
+  return typeof v === 'object' && v !== null && !Array.isArray(v) && Object.keys(v).length === 0;
+}
+
+function parseSemver(v) {
+  const m = /^\s*(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?\s*$/.exec(String(v));
+  if (!m) return null;
+  return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]), raw: `${m[1]}.${m[2]}.${m[3]}` };
+}
+
+/**
+ * semver.minVersion の限定的代替。
+ *
+ * 本リポジトリの package.json は maplat 4 パッケージを `^X.Y.Z` で指定している。
+ * `semver` パッケージはこの checkout の node_modules に存在せず（install は禁止のため追加
+ * できない）、`^`/`~`/`>=`/裸版・`*`/`x` ワイルドカードへ絞って下限を求める。
+ * `>X`（開区間）や複雑な比較子は扱わない（本 repo では出現しない）。
+ */
+function minVersion(range) {
+  const r = String(range ?? '').trim();
+  if (!r) return null;
+  const candidates = [];
+  for (const raw of r.split(/\s+/)) {
+    let t = raw.replace(/^(>=|<=|~>|\|\||[~^<>=]{1,2})/, '').replace(/^v/, '');
+    const m = /^(\d+)(?:\.(\d+|\*|x))?(?:\.(\d+|\*|x))?/i.exec(t);
+    if (!m) continue;
+    const minor = !m[2] || /[*xX]/i.test(m[2]) ? 0 : Number(m[2]);
+    const patch = !m[3] || /[*xX]/i.test(m[3]) ? 0 : Number(m[3]);
+    candidates.push([Number(m[1]), minor, patch]);
+  }
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]) || (a[2] - b[2]));
+  const [ma, mi, pa] = candidates[0];
+  return `${ma}.${mi}.${pa}`;
+}
+
+/** "1.0.0(mapbox-gl@...)(...)" → "1.0.0"（lock の peer suffix を落とす）。 */
+function baseVersion(v) {
+  return String(v ?? '').split('(')[0].trim();
+}
+
+function sha256Hex(buf) {
+  return crypto.createHash('sha256').update(buf).digest('hex');
+}
+
+// ───────────────────────────────────────────────
+// pnpm-lock.yaml からの facts 抽出
+// ───────────────────────────────────────────────
+
+function loadLock(root) {
+  return yaml.load(readFileSync(path.join(root, 'pnpm-lock.yaml'), 'utf8'));
+}
+
+/** lock の packages 節から、パッケージの解決版（重複なし）を返す。 */
+function resolvedVersions(lock, pkg) {
+  const versions = new Set();
+  for (const key of Object.keys(lock.packages ?? {})) {
+    if (key.startsWith(pkg + '@')) versions.add(key.slice(pkg.length + 1));
+  }
+  return [...versions];
+}
+
+/** lock の snapshots 節から <pkg>@<resolved> の dependencies[depName] を返す（未解決なら undefined）。 */
+function snapshotDep(lock, pkg, resolvedVersion, depName) {
+  const prefix = `${pkg}@${resolvedVersion}`;
+  const key = Object.keys(lock.snapshots ?? {}).find(
+    (k) => k === prefix || k.startsWith(prefix + '(')
+  );
+  if (!key) return undefined;
+  const deps = lock.snapshots[key]?.dependencies ?? {};
+  return deps[depName];
+}
+
+// ───────────────────────────────────────────────
+// (B) 出力物の判定
+// ───────────────────────────────────────────────
+
+/**
+ * compiled の新旧判定。戻り値: 'old' | 'new' | 'invalid'。
+ *   old     … version が無い・2.00703 以下・3（旧 V3）。weight_buffer は問わない（HR-26/2）。
+ *   new     … 2.00704 / 3.00001 かつ weight_buffer が {}（空）。
+ *   invalid … どちらでもない（2.00704 なのに重みあり、3.00001 超の未知版、等）。
+ */
+function classifyCompiled(compiled) {
+  const v = compiled?.version;
+  if (v === undefined || v === null) return 'old';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 'invalid';
+  if (n <= OLD_V2) return 'old';
+  if (n === OLD_V3) return 'old';
+  if (n === FORMAT_V2 || n === FORMAT_V3) {
+    return isEmptyPlainObject(compiled?.weight_buffer) ? 'new' : 'invalid';
+  }
+  return 'invalid';
+}
+
+/** map json から検査対象の compiled（top-level と sub_maps）を集める。 */
+function collectCompiled(mapJson) {
+  const out = [];
+  if (mapJson?.compiled !== undefined) out.push(mapJson.compiled);
+  if (Array.isArray(mapJson?.sub_maps)) {
+    for (const s of mapJson.sub_maps) {
+      if (s?.compiled !== undefined) out.push(s.compiled);
+    }
+  }
+  return out;
+}
+
+/** (B) の判定。jsContent は同梱ビューア全文、mapJsons は [{name, json}]。 */
+function evaluateExport({ jsContent, mapJsons }) {
+  const viewerWb = countLiteral(jsContent ?? '', 'weight_buffer');
+  const viewerFmt = countLiteral(jsContent ?? '', String(FORMAT_V2));
+  const viewerOk = viewerWb === 0 && viewerFmt >= 1;
+
+  const mapResults = [];
+  for (const { name, json } of mapJsons) {
+    for (const compiled of collectCompiled(json)) {
+      mapResults.push({ name, cls: classifyCompiled(compiled) });
+    }
+  }
+  const invalid = mapResults.filter((r) => r.cls === 'invalid');
+  const oldCount = mapResults.filter((r) => r.cls === 'old').length;
+  const newCount = mapResults.filter((r) => r.cls === 'new').length;
+
+  return { viewerOk, viewerWb, viewerFmt, mapResults, invalid, oldCount, newCount, ok: viewerOk && invalid.length === 0 };
+}
+
+// ───────────────────────────────────────────────
+// enforce / warn 規則表（§4.2）
+// ───────────────────────────────────────────────
+
+/** git ls-remote の結果から tag 状態を決める。 */
+function classifyTagState(stdout, exitCode) {
+  if (exitCode !== 0) return 'unknown';
+  return String(stdout ?? '').trim() ? 'present' : 'absent';
+}
+
+/** 規則表: mode=full / tag 未公開 / tag 不明 は enforce、公開済み再ビルドは warn。 */
+function decideEnforceOrWarn({ mode, tagState }) {
+  if (mode === 'full') return 'enforce';
+  if (tagState !== 'present') return 'enforce';
+  return 'warn';
+}
+
+// ───────────────────────────────────────────────
+// (A) 検査関数（facts → { id, ok, details }）
+// ───────────────────────────────────────────────
+
+function lockAndSpecDetails(pkgLabel, specifier, lockVersions) {
+  const details = [];
+  const unique = lockVersions.length;
+  details.push({
+    name: `${pkgLabel}: lock で解決版が 1 種類だけ`,
+    ok: unique === 1,
+    detail: unique === 1 ? `1 種類（${lockVersions[0]}）` : `${unique} 種類（${lockVersions.join(', ')}）`,
+  });
+  const mv = minVersion(specifier);
+  const resolved = lockVersions[0];
+  details.push({
+    name: `${pkgLabel}: package.json 下限（minVersion）が解決版と一致`,
+    ok: mv != null && mv === resolved,
+    detail: `minVersion(${JSON.stringify(specifier)}) = ${mv}${mv === resolved ? '' : ' ≠ ' + (resolved ?? '（解決版なし）')}`,
+  });
+  return details;
+}
+
+function checkA1(facts) {
+  const details = lockAndSpecDetails('@maplat/transform', facts.specifiers.transform, facts.lockVersions.transform);
+  details.push({
+    name: '@maplat/transform: format_version === 2.00704',
+    ok: facts.content.formatVersion === FORMAT_V2,
+    detail: `format_version = ${facts.content.formatVersion}`,
+  });
+  details.push({
+    name: '@maplat/transform: dist/maplat_transform.js に weight_buffer が 0 件',
+    ok: facts.content.transformDistWeightBuffer === 0,
+    detail: `weight_buffer ${facts.content.transformDistWeightBuffer} 件`,
+  });
+  return { id: 'A1', ok: details.every((d) => d.ok), details };
+}
+
+/**
+ * A2〜A4 で使う「lock スナップショットの依存辺が期待版と一致」詳細。
+ */
+function edgeDetails(details, pkgLabel, depLabel, actualEdge, expectedVersion) {
+  const actual = baseVersion(actualEdge);
+  const edgeOk = actual !== '' && actual === expectedVersion;
+  details.push({
+    name: `${pkgLabel}: スナップショットの dependencies['${depLabel}'] が ${expectedVersion} と一致`,
+    ok: edgeOk,
+    detail: `${depLabel} = ${actualEdge ?? '（なし）'}${edgeOk ? '' : `（base=${actual} ≠ ${expectedVersion}）`}`,
+  });
+}
+
+function checkA2(facts, transformVersion) {
+  const details = lockAndSpecDetails('@maplat/tin', facts.specifiers.tin, facts.lockVersions.tin);
+  edgeDetails(details, '@maplat/tin', '@maplat/transform', facts.lockEdges.tinTransform, transformVersion);
+  const c = facts.content.tinCompiled;
+  const versionOk = c.version === FORMAT_V2;
+  const wbOk = c.weightBufferEmpty === true;
+  details.push({
+    name: '@maplat/tin: getCompiled() が version 2.00704 かつ weight_buffer が {}',
+    ok: versionOk && wbOk,
+    detail: `version=${c.version}, weight_buffer=${wbOk ? '{}' : '非空/欠落'}`,
+  });
+  return { id: 'A2', ok: details.every((d) => d.ok), details };
+}
+
+function checkA3(facts, transformVersion) {
+  const details = lockAndSpecDetails('@maplat/core', facts.specifiers.core, facts.lockVersions.core);
+  edgeDetails(details, '@maplat/core', '@maplat/transform', facts.lockEdges.coreTransform, transformVersion);
+  details.push({
+    name: '@maplat/core: dist/*.js に weight_buffer が 0 件',
+    ok: facts.content.coreDistWeightBuffer === 0,
+    detail: `dist/*.js に weight_buffer ${facts.content.coreDistWeightBuffer} 件`,
+  });
+  details.push({
+    name: '@maplat/core: src/** に weight_buffer が 0 件',
+    ok: facts.content.coreSrcWeightBuffer === 0,
+    detail: `src/** に weight_buffer ${facts.content.coreSrcWeightBuffer} 件`,
+  });
+  return { id: 'A3', ok: details.every((d) => d.ok), details };
+}
+
+function checkA4(facts, coreVersion) {
+  const details = lockAndSpecDetails('@maplat/ui', facts.specifiers.ui, facts.lockVersions.ui);
+  edgeDetails(details, '@maplat/ui', '@maplat/core', facts.lockEdges.uiCore, coreVersion);
+  details.push({
+    name: '@maplat/ui: dist/maplat_ui.umd.js に weight_buffer が 0 件 かつ 2.00704 が 1 件以上',
+    ok: facts.content.uiDistWeightBuffer === 0 && facts.content.uiDistFormatMarkers >= 1,
+    detail: `weight_buffer ${facts.content.uiDistWeightBuffer} 件 / 2.00704 ${facts.content.uiDistFormatMarkers} 件`,
+  });
+  return { id: 'A4', ok: details.every((d) => d.ok), details };
+}
+
+function checkA5(facts) {
+  const jsMatch = facts.preview.jsSha === facts.preview.distJsSha;
+  const cssMatch = facts.preview.cssSha === facts.preview.distCssSha;
+  return {
+    id: 'A5',
+    ok: jsMatch && cssMatch,
+    details: [
+      {
+        name: '同梱ビューア: public/preview/maplat_ui.umd.js の sha256 が ui dist と一致',
+        ok: jsMatch,
+        detail: jsMatch ? '一致' : `preview=${facts.preview.jsSha} ≠ dist=${facts.preview.distJsSha}`,
+      },
+      {
+        name: '同梱ビューア: public/preview/maplat_ui.css の sha256 が ui dist と一致',
+        ok: cssMatch,
+        detail: cssMatch ? '一致' : `preview=${facts.preview.cssSha} ≠ dist=${facts.preview.distCssSha}`,
+      },
+    ],
+  };
+}
+
+function runA(facts) {
+  const transformVersion = facts.lockVersions.transform[0];
+  const coreVersion = facts.lockVersions.core[0];
+  return [
+    checkA1(facts),
+    checkA2(facts, transformVersion),
+    checkA3(facts, transformVersion),
+    checkA4(facts, coreVersion),
+    checkA5(facts),
+  ];
+}
+
+// ───────────────────────────────────────────────
+// 実環境の facts 抽出
+// ───────────────────────────────────────────────
+
+async function countWeightBufferRecursive(dir) {
+  let total = 0;
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  for (const e of entries) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      total += await countWeightBufferRecursive(p);
+    } else if (e.isFile() && /\.(js|mjs|cjs|ts|tsx|d\.ts|map)$/.test(e.name)) {
+      total += countLiteral(await readFile(p, 'utf8'), 'weight_buffer');
+    }
+  }
+  return total;
+}
+
+async function countWeightBufferDistJs(dir) {
+  let total = 0;
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith('.js')) continue;
+    const p = path.join(dir, name);
+    try {
+      if (statSync(p).isFile()) total += countLiteral(readFileSync(p, 'utf8'), 'weight_buffer');
+    } catch {
+      // skip
+    }
+  }
+  return total;
+}
+
+async function buildTinCompiled() {
+  const { default: Tin } = await import('@maplat/tin');
+  const tin = new Tin(TIN_V2_OPTIONS);
+  tin.setWh(GCP_WH);
+  tin.setStrictMode(GCP_STRICT);
+  tin.setVertexMode(GCP_VERTEX);
+  tin.setPoints(GCP_POINTS);
+  tin.setEdges([]);
+  await tin.updateTinAsync();
+  const compiled = tin.getCompiled();
+  return {
+    version: compiled.version,
+    weightBufferEmpty: isEmptyPlainObject(compiled.weight_buffer),
+  };
+}
+
+async function gatherDepsFacts(root) {
+  const lock = loadLock(root);
+  const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const spec = (name) => pkg.dependencies?.[name] ?? pkg.devDependencies?.[name];
+
+  const lockVersions = {
+    transform: resolvedVersions(lock, '@maplat/transform'),
+    tin: resolvedVersions(lock, '@maplat/tin'),
+    core: resolvedVersions(lock, '@maplat/core'),
+    ui: resolvedVersions(lock, '@maplat/ui'),
+  };
+
+  const lockEdges = {
+    tinTransform: snapshotDep(lock, '@maplat/tin', lockVersions.tin[0], '@maplat/transform'),
+    coreTransform: snapshotDep(lock, '@maplat/core', lockVersions.core[0], '@maplat/transform'),
+    uiCore: snapshotDep(lock, '@maplat/ui', lockVersions.ui[0], '@maplat/core'),
+  };
+
+  const transformDist = readFileSync(
+    path.join(root, 'node_modules/@maplat/transform/dist/maplat_transform.js'),
+    'utf8'
+  );
+  const transformMod = await import(
+    pathToFileURL(path.join(root, 'node_modules/@maplat/transform/dist/maplat_transform.js')).href
+  );
+
+  const uiDistPath = path.join(root, 'node_modules/@maplat/ui/dist/maplat_ui.umd.js');
+  const uiDist = readFileSync(uiDistPath, 'utf8');
+
+  const tinCompiled = await buildTinCompiled();
+
+  const previewRoot = path.join(root, 'public/preview');
+  const dist = (f) => readFileSync(path.join(root, 'node_modules/@maplat/ui/dist', f));
+
+  return {
+    specifiers: {
+      transform: spec('@maplat/transform'),
+      tin: spec('@maplat/tin'),
+      core: spec('@maplat/core'),
+      ui: spec('@maplat/ui'),
+    },
+    lockVersions,
+    lockEdges,
+    content: {
+      formatVersion: transformMod.format_version,
+      transformDistWeightBuffer: countLiteral(transformDist, 'weight_buffer'),
+      tinCompiled,
+      coreDistWeightBuffer: await countWeightBufferDistJs(path.join(root, 'node_modules/@maplat/core/dist')),
+      coreSrcWeightBuffer: await countWeightBufferRecursive(path.join(root, 'node_modules/@maplat/core/src')),
+      uiDistWeightBuffer: countLiteral(uiDist, 'weight_buffer'),
+      uiDistFormatMarkers: countLiteral(uiDist, String(FORMAT_V2)),
+    },
+    preview: {
+      jsSha: sha256Hex(readFileSync(path.join(previewRoot, 'maplat_ui.umd.js'))),
+      distJsSha: sha256Hex(dist('maplat_ui.umd.js')),
+      cssSha: sha256Hex(readFileSync(path.join(previewRoot, 'maplat_ui.css'))),
+      distCssSha: sha256Hex(dist('maplat_ui.css')),
+    },
+  };
+}
+
+// ───────────────────────────────────────────────
+// 出力・実行
+// ───────────────────────────────────────────────
+
+function printResults(results, mode) {
+  let failed = false;
+  for (const r of results) {
+    for (const d of r.details) {
+      if (d.ok) {
+        console.log(`  ✅ ${d.name} — ${d.detail}`);
+      } else {
+        failed = true;
+        console.log(`  ❌ ${d.name} — ${d.detail}`);
+      }
+    }
+  }
+  console.log('');
+  if (mode === 'enforce') {
+    if (failed) {
+      console.error('::error:: viewer-freshness 検査が不合格（enforce）。新ビューア（純アフィン）への更新が必要です。');
+    } else {
+      console.log('✅ viewer-freshness 検査 すべて合格');
+    }
+  } else {
+    console.log(failed ? '⚠ viewer-freshness 検査は不合格（warn。exit 0）。' : '✅ viewer-freshness 検査 すべて合格');
+  }
+  return failed;
+}
+
+function emitSummary(lines) {
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    try {
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+    } catch {
+      // summary に書けなくても判定は stdout に出ている
+    }
+  }
+}
+
+async function runExport(target) {
+  const abs = path.resolve(target);
+  if (!existsSync(abs)) {
+    console.error(`::error:: --export の対象が存在しません: ${abs}`);
+    return 1;
+  }
+  let jsContent = null;
+  let mapJsons = [];
+  const isDir = statSync(abs).isDirectory();
+  if (isDir) {
+    const jsPath = path.join(abs, 'assets/maplat_ui.umd.js');
+    if (existsSync(jsPath)) jsContent = readFileSync(jsPath, 'utf8');
+    const mapsDir = path.join(abs, 'maps');
+    if (existsSync(mapsDir)) {
+      for (const name of readdirSync(mapsDir)) {
+        if (!name.endsWith('.json')) continue;
+        mapJsons.push({ name: `maps/${name}`, json: JSON.parse(readFileSync(path.join(mapsDir, name), 'utf8')) });
+      }
+    }
+  } else {
+    const { default: AdmZip } = await import('adm-zip');
+    const zip = new AdmZip(abs);
+    for (const entry of zip.getEntries()) {
+      if (entry.entryName === 'assets/maplat_ui.umd.js') {
+        jsContent = entry.getData().toString('utf8');
+      } else if (/^maps\/[^/]+\.json$/.test(entry.entryName)) {
+        mapJsons.push({ name: entry.entryName, json: JSON.parse(entry.getData().toString('utf8')) });
+      }
+    }
+  }
+
+  const r = evaluateExport({ jsContent, mapJsons });
+  console.log(`--export 対象: ${abs}（${isDir ? 'ディレクトリ' : 'zip'}）`);
+  console.log(`  同梱ビューア assets/maplat_ui.umd.js: weight_buffer ${r.viewerWb} 件 / 2.00704 ${r.viewerFmt} 件 → ${r.viewerOk ? '合格' : '不合格'}`);
+  console.log(`  maps/*.json compiled: 新 ${r.newCount} 件 / 旧 ${r.oldCount} 件 / 不正 ${r.invalid.length} 件`);
+  for (const bad of r.invalid) {
+    console.log(`  ❌ 不正 compiled: ${bad.name}（version/weight_buffer が新旧どちらでもない）`);
+  }
+  if (r.ok) {
+    console.log('✅ --export: 合格');
+    return 0;
+  }
+  console.error('::error:: --export が不合格（同梱ビューアが旧い、または unknown 版の compiled を含む）');
+  return 1;
+}
+
+async function runSelfTest() {
+  let passed = 0;
+  let total = 0;
+  const ok = (cond, msg) => {
+    total++;
+    assert.ok(cond, msg);
+    passed++;
+  };
+
+  // --- minVersion（semver.minVersion の限定代替）---
+  ok(minVersion('^1.0.0') === '1.0.0', 'minVersion(^1.0.0) = 1.0.0');
+  ok(minVersion('~1.2.3') === '1.2.3', 'minVersion(~1.2.3) = 1.2.3');
+  ok(minVersion('>=1.0.0') === '1.0.0', 'minVersion(>=1.0.0) = 1.0.0');
+  ok(minVersion('^0.2.3') === '0.2.3', 'minVersion(^0.2.3) = 0.2.3');
+  ok(minVersion('1.2.3') === '1.2.3', 'minVersion(1.2.3) = 1.2.3');
+
+  // --- 規則表（enforce/warn）---
+  ok(decideEnforceOrWarn({ mode: 'full', tagState: 'present' }) === 'enforce', '規則: mode=full → enforce');
+  ok(decideEnforceOrWarn({ mode: 'verify', tagState: 'absent' }) === 'enforce', '規則: 未公開（tag absent）→ enforce');
+  ok(decideEnforceOrWarn({ mode: 'verify', tagState: 'unknown' }) === 'enforce', '規則: tag 不明 → enforce（fail-closed）');
+  ok(decideEnforceOrWarn({ mode: 'verify', tagState: 'present' }) === 'warn', '規則: 公開済み再ビルド → warn');
+  ok(classifyTagState('', 0) === 'absent', 'tag 状態: 出力空 → absent');
+  ok(classifyTagState('abc refs/tags/v1.0.0', 0) === 'present', 'tag 状態: 出力あり → present');
+  ok(classifyTagState('', 1) === 'unknown', 'tag 状態: exit≠0 → unknown');
+
+  // --- compiled 分類（(B)）---
+  const C = (v, wb) => ({ version: v, weight_buffer: wb });
+  ok(classifyCompiled({}) === 'old', 'compiled: version 無し → old');
+  ok(classifyCompiled(C(OLD_V2, { a: 1 })) === 'old', 'compiled: 2.00703（重みあり）→ old');
+  ok(classifyCompiled(C(OLD_V3, { a: 1 })) === 'old', 'compiled: 3（旧 V3）→ old');
+  ok(classifyCompiled(C(FORMAT_V2, {})) === 'new', 'compiled: 2.00704 + {} → new');
+  ok(classifyCompiled(C(FORMAT_V3, {})) === 'new', 'compiled: 3.00001 + {} → new');
+  ok(classifyCompiled(C(FORMAT_V2, { a: 1 })) === 'invalid', 'compiled: 2.00704 + 重み → invalid');
+  ok(classifyCompiled(C(4, {})) === 'invalid', 'compiled: 未知版 4 → invalid');
+  ok(classifyCompiled(C(FORMAT_V2, undefined)) === 'invalid', 'compiled: 2.00704 + weight_buffer 欠落 → invalid');
+
+  // --- (B) 出力物の向き ---
+  const cleanViewer = '/* maplat viewer */ 2.00704';
+  const staleViewer = '/* maplat viewer */ weight_buffer';
+  const oldMap = { compiled: C(OLD_V2, { a: 1 }), sub_maps: [] };
+  const newMap = { compiled: C(FORMAT_V2, {}) };
+  const badMap = { compiled: C(FORMAT_V2, { a: 1 }) };
+  ok(evaluateExport({ jsContent: cleanViewer, mapJsons: [{ name: 'maps/a.json', json: oldMap }] }).ok === true,
+    '(B): 新ビューア + 旧 compiled → 合格（陰性対照）');
+  ok(evaluateExport({ jsContent: staleViewer, mapJsons: [{ name: 'maps/a.json', json: oldMap }] }).ok === false,
+    '(B): 旧ビューア（weight_buffer あり）→ 不合格（陽性対照）');
+  ok(evaluateExport({ jsContent: cleanViewer, mapJsons: [{ name: 'maps/a.json', json: badMap }] }).ok === false,
+    '(B): 新ビューア + 2.00704 重みあり compiled → 不合格');
+  ok(evaluateExport({ jsContent: cleanViewer, mapJsons: [{ name: 'maps/a.json', json: newMap }] }).newCount === 1,
+    '(B): 新 compiled の件数が 1');
+
+  // --- (A) 各検査の向き ---
+  const PASS = {
+    specifiers: { transform: '^1.0.0', tin: '^1.0.0', core: '^1.0.0', ui: '^1.0.0' },
+    lockVersions: { transform: ['1.0.0'], tin: ['1.0.0'], core: ['1.0.0'], ui: ['1.0.0'] },
+    lockEdges: { tinTransform: '1.0.0', coreTransform: '1.0.0', uiCore: '1.0.0' },
+    content: {
+      formatVersion: FORMAT_V2,
+      transformDistWeightBuffer: 0,
+      tinCompiled: { version: FORMAT_V2, weightBufferEmpty: true },
+      coreDistWeightBuffer: 0,
+      coreSrcWeightBuffer: 0,
+      uiDistWeightBuffer: 0,
+      uiDistFormatMarkers: 1,
+    },
+    preview: {
+      jsSha: 'a'.repeat(64), distJsSha: 'a'.repeat(64),
+      cssSha: 'b'.repeat(64), distCssSha: 'b'.repeat(64),
+    },
+  };
+  const clone = () => structuredClone(PASS);
+  ok(checkA1(PASS).ok === true, 'A1: 合格入力 → ok');
+  {
+    const f = clone();
+    f.content.formatVersion = OLD_V2;
+    ok(checkA1(f).ok === false, 'A1: format_version 2.00703 → ng');
+  }
+  {
+    const f = clone();
+    f.lockVersions.transform = ['0.5.2', '1.0.0']; // 2 種の transform を含む lock 断片
+    ok(checkA1(f).ok === false, 'A1: transform が lock に 2 種類 → ng');
+  }
+  {
+    const f = clone();
+    f.content.transformDistWeightBuffer = 3;
+    ok(checkA1(f).ok === false, 'A1: dist に weight_buffer 3 件 → ng');
+  }
+  {
+    const f = clone();
+    f.specifiers.transform = '^9.9.9';
+    ok(checkA1(f).ok === false, 'A1: 下限と解決版の不一致 → ng');
+  }
+
+  ok(checkA2(PASS, '1.0.0').ok === true, 'A2: 合格入力 → ok');
+  {
+    const f = clone();
+    f.content.tinCompiled.version = OLD_V2;
+    ok(checkA2(f, f.lockVersions.transform[0]).ok === false, 'A2: getCompiled version 2.00703 → ng');
+  }
+  {
+    const f = clone();
+    f.content.tinCompiled.weightBufferEmpty = false;
+    ok(checkA2(f, f.lockVersions.transform[0]).ok === false, 'A2: getCompiled 重みあり → ng');
+  }
+  {
+    const f = clone();
+    f.lockEdges.tinTransform = '0.5.2';
+    ok(checkA2(f, f.lockVersions.transform[0]).ok === false, 'A2: tin→transform の辺が不一致 → ng');
+  }
+
+  ok(checkA3(PASS, '1.0.0').ok === true, 'A3: 合格入力 → ok');
+  {
+    const f = clone();
+    f.content.coreDistWeightBuffer = 3;
+    ok(checkA3(f, f.lockVersions.transform[0]).ok === false, 'A3: core dist に重量 3 件 → ng');
+  }
+  {
+    const f = clone();
+    f.content.coreSrcWeightBuffer = 1;
+    ok(checkA3(f, f.lockVersions.transform[0]).ok === false, 'A3: core src に 1 件 → ng');
+  }
+  {
+    const f = clone();
+    f.lockEdges.coreTransform = '0.5.2';
+    ok(checkA3(f, f.lockVersions.transform[0]).ok === false, 'A3: core→transform の辺が不一致 → ng');
+  }
+
+  ok(checkA4(PASS, '1.0.0').ok === true, 'A4: 合格入力 → ok');
+  {
+    const f = clone();
+    f.content.uiDistWeightBuffer = 3;
+    ok(checkA4(f, f.lockVersions.core[0]).ok === false, 'A4: ui dist weight_buffer 3 件 → ng');
+  }
+  {
+    const f = clone();
+    f.content.uiDistFormatMarkers = 0;
+    ok(checkA4(f, f.lockVersions.core[0]).ok === false, 'A4: ui dist 2.00704 0 件 → ng');
+  }
+  {
+    const f = clone();
+    f.lockEdges.uiCore = '9.9.9';
+    ok(checkA4(f, f.lockVersions.core[0]).ok === false, 'A4: ui→core の辺が不一致 → ng');
+  }
+
+  ok(checkA5(PASS).ok === true, 'A5: 合格入力 → ok');
+  {
+    const f = clone();
+    f.preview.jsSha = 'c'.repeat(64);
+    ok(checkA5(f).ok === false, 'A5: 同期漏れ（sha256 不一致）→ ng');
+  }
+
+  console.log(`\n✅ --self-test: ${passed}/${total} ケース合格`);
+  return 0;
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(
+      [
+        'usage: node scripts/m12-t5/check-viewer-freshness.mjs [--enforce|--warn|--export <path>|--self-test]',
+        '  --enforce        A1〜A5 を検査し、不合格なら exit 1',
+        '  --warn           A1〜A5 を検査し、結果を出すが exit 0',
+        '  --export <path>  書き出し（zip または展開ディレクトリ）の (B) を検査',
+        '  --self-test      合成入力で判定の向きを検査（CI の smoke はこれを呼ぶ）',
+        '  （引数なし）      自動: 規則表（mode / tag）で enforce/warn を決めて A1〜A5 を検査',
+      ].join('\n')
+    );
+    return 0;
+  }
+
+  if (args.includes('--self-test')) {
+    return await runSelfTest();
+  }
+
+  const exportIdx = args.indexOf('--export');
+  if (exportIdx !== -1) {
+    const target = args[exportIdx + 1];
+    if (!target) {
+      console.error('::error:: --export には対象パスを指定してください');
+      return 2;
+    }
+    return await runExport(target);
+  }
+
+  let mode;
+  if (args.includes('--enforce')) mode = 'enforce';
+  else if (args.includes('--warn')) mode = 'warn';
+  else {
+    // 自動: 規則表で決める（mode env + tag の有無）
+    const envMode = (process.env.MODE ?? 'verify').trim();
+    const pkg = JSON.parse(readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
+    const version = pkg.version;
+    const lsRemote = spawnSync('git', ['ls-remote', '--tags', 'origin', `refs/tags/v${version}`], {
+      encoding: 'utf8',
+    });
+    const tagState = classifyTagState(lsRemote.stdout, lsRemote.status ?? (lsRemote.error ? 1 : 0));
+    mode = decideEnforceOrWarn({ mode: envMode, tagState });
+    console.log(
+      `[viewer-freshness] 自動判定: mode=${envMode} / version=${version} / tag v${version} = ${tagState} → ${mode}`
+    );
+  }
+
+  const facts = await gatherDepsFacts(projectRoot);
+  const results = runA(facts);
+  const failed = printResults(results, mode);
+  emitSummary([`viewer-freshness（${mode}）: ${failed ? '不合格' : '合格'}`]);
+  if (mode === 'enforce') return failed ? 1 : 0;
+  return 0;
+}
+
+main().then(
+  (code) => {
+    process.exitCode = code;
+  },
+  (err) => {
+    console.error('::error::', err?.stack ?? err);
+    process.exitCode = 1;
+  }
+);
