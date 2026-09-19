@@ -22,6 +22,10 @@ MaplatEditor は Apache License 2.0（バージョン 0.7.0 以降）のオー�
 プロジェクトです。npm には公開していません（`package.json` で `private: true`）。
 バイナリは GitHub Releases から配布しています。
 
+## 注意
+
+> ⚠ **地図データの表示位置とフォーマット版が変わります。**
+
 <!-- SECTION 3: Language switch link -->
 **[英語版はこちら / Read this document in English](README.md)**
 

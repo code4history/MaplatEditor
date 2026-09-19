@@ -78,6 +78,21 @@ assert.equal(
 );
 console.log("✅ 鮮度ガード PASS: heightGetter は 0 件");
 
+// ── A4 鮮度ガード（oct26-m12-t5a §4.2）─
+// weight_buffer が残っている＝純アフィン化（m12）前のビューアなので同期を拒否する。
+// 2.00704 の版表記が 1 件以上あることを併せて確認する（旧版は版表記を持たない）。
+// 不合格ならコピーせずに exit 1（assert 失敗 → 非ゼロ終了）。
+const weightBufferCount = (srcUmdContent.match(/weight_buffer/g) ?? []).length;
+const formatMarkerCount = (srcUmdContent.match(/2\.00704/g) ?? []).length;
+assert.ok(
+  weightBufferCount === 0 && formatMarkerCount >= 1,
+  `[A4 鮮度ガード失敗] コピー元（node_modules/@maplat/ui/dist/maplat_ui.umd.js）に ` +
+    `weight_buffer が ${weightBufferCount} 件残っている / 2.00704 版表記が ${formatMarkerCount} 件です。\n` +
+    `  これは m12（weight_buffer 廃止・純アフィン化）が反映されていないことを意味します。\n` +
+    `  Maplat UI の再生成と lock 再解決（M6 t5）が終わってから sync:preview-bundle を実行してください。`
+);
+console.log(`✅ A4 鮮度ガード PASS: weight_buffer 0 件 / 2.00704 1 件以上（${formatMarkerCount} 件）`);
+
 // ── 由来情報の取得 ───────────────────────────────────────────
 // node_modules/@maplat/ui は workspace では Maplat submodule への symlink。
 // 由来は symlink 先の実体（Maplat submodule の HEAD）とする。
