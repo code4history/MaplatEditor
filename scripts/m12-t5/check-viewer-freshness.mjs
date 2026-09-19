@@ -40,9 +40,9 @@ const OLD_V2 = 2.00703;
 const OLD_V3 = 3;
 
 // 依存なし検査（node_modules 無し）では transform/tin/core の中身（weight_buffer / format_version）を
-// 検証できないため、解決版の「旧世代拒否」で fail-closed にする。旧版（weight_buffer を残す世代）は
-// §4.1 のとおり 1.0.0 までで、純アフィン化（weight_buffer 除去）は次の版（> 1.0.0）で入る。
-const OLD_GENERATION_MAX = '1.0.0';
+// 検証できない。§4.2 の「新しさは中身で判定、版は整合性だけ」に合わせ、この分岐では版番号を
+// 新しさの根拠にしない（旧世代拒否は行わない）。版は整合性（解決版 1 種類・下限一致・依存辺一致）
+// の確認にだけ使い、依存の実体（node_modules）の中身の判定は依存導入後の完全検査で行う（FIX3）。
 
 // Editor が地図保存で使う TIN 設定（electron/ipc/mapedit.ts:30 ほかと同一）
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
@@ -591,10 +591,12 @@ function depsAvailableForAuto(root) {
 }
 
 /**
- * 依存なし検査: package.json（4 パッケージ宣言）と pnpm-lock.yaml（解決版・依存辺）をテキストで
- * 読み、設計 §4.2 の A1〜A4 の lock/spec 基準（解決版 1 種類・下限一致・依存辺一致）を評価し、
- * 依存なしでは中身（node_modules）を検証できないため解決版で旧世代（≤ 1.0.0）を拒否する
- * （fail-closed）。A5 相当は同梱ビューア public/preview/maplat_ui.umd.js の内容を直接検査する。
+ * 依存なし検査（prepare / node_modules 未導入）: 依存なしで確かめられるのは同梱ビューア
+ * （public/preview/maplat_ui.umd.js）の中身だけなので、それを早期ガードとして検査する。
+ * package.json（4 パッケージ宣言）と pnpm-lock.yaml（解決版・依存辺）はテキストで読み、
+ * 版は整合性の確認（解決版 1 種類・下限一致・依存辺一致）にだけ使う（§4.2「新しさは中身で
+ * 判定、版は整合性だけ」）。「解決版 > 1.0.0」を新しさの根拠にしない（FIX3）。依存の実体
+ * （node_modules）の中身の判定は依存導入後の完全検査（build ジョブの step）で行う。
  * 読めない・見つからない場合は該当 detail を不合格にする（fail-closed。enforce なら exit 1）。
  */
 function evaluateDependencyFreeFacts({ pkg, lockText, previewJs }) {
@@ -633,16 +635,6 @@ function evaluateDependencyFreeFacts({ pkg, lockText, previewJs }) {
     detail: lockMissing ? 'pnpm-lock.yaml を読めない' : versions.length >= 1 ? `解決版 ${versions.join(', ')}` : '解決版なし',
   });
 
-  const generationDetail = (label, versions) => {
-    const v = versions.length >= 1 ? baseVersion(versions[0]) : null;
-    const okNew = v != null && compareSemver(v, OLD_GENERATION_MAX) > 0;
-    return {
-      name: `${label}: 解決版が旧世代（≤ ${OLD_GENERATION_MAX}）でない`,
-      ok: okNew,
-      detail: v == null ? '（解決版なし）' : `${v} ${okNew ? '＞ ' + OLD_GENERATION_MAX : '≤ ' + OLD_GENERATION_MAX + '（旧世代）'}`,
-    };
-  };
-
   const A = (id, label, specifier, versions, edgeInfo) => {
     const details = [];
     details.push(declareDetail(label, specifier));
@@ -653,7 +645,6 @@ function evaluateDependencyFreeFacts({ pkg, lockText, previewJs }) {
       details.push({ name: `${label}: lock で解決版が 1 種類だけ`, ok: false, detail: versions.length === 0 ? '（解決版なし）' : '（読めないため判定不能）' });
       details.push({ name: `${label}: package.json 下限（minVersion）が解決版と一致`, ok: false, detail: '（判定不能）' });
     }
-    details.push(generationDetail(label, versions));
     // 依存先（expected）が解決されていない（lock 欠落等）場合は辺の detail は既に fail-closed 済み。
     // expected が無いと辺 detail が「undefined と一致」と表示されるため、その場合のみ省く。
     if (edgeInfo && edgeInfo.expected != null) edgeDetails(details, label, edgeInfo.dep, edgeInfo.edge, edgeInfo.expected);
@@ -1008,15 +999,15 @@ async function runSelfTest() {
   ok(textSnapshotDep(NEW_LOCK_TEXT, '@maplat/core', '1.1.0-rc.0', '@maplat/transform') === '1.1.0-rc.0', 'lock テキスト: core→transform の辺（peer 付きキー）');
   ok(textSnapshotDep(NEW_LOCK_TEXT, '@maplat/ui', '1.1.0-rc.0', '@maplat/core') === '1.1.0-rc.0(mapbox-gl@3.0.0)', 'lock テキスト: ui→core の辺');
 
-  // --- 依存なし検査（evaluateDependencyFreeFacts）の向き（Major-1 の是正 FIX2）---
+  // --- 依存なし検査（evaluateDependencyFreeFacts）の向き（FIX3: 版は整合性だけ。新しさを版で判定しない）---
   const NEW_PKG = { dependencies: { '@maplat/transform': '^1.1.0-rc.0', '@maplat/tin': '^1.1.0-rc.0', '@maplat/core': '^1.1.0-rc.0', '@maplat/ui': '^1.1.0-rc.0' } };
   const OLD_PKG = { dependencies: { '@maplat/transform': '^1.0.0', '@maplat/tin': '^1.0.0', '@maplat/core': '^1.0.0', '@maplat/ui': '^1.0.0' } };
   const NEW_PREVIEW = '/* maplat viewer */ 2.00704';
   const OLD_PREVIEW = '/* maplat viewer */ weight_buffer';
   ok(evaluateDependencyFreeFacts({ pkg: NEW_PKG, lockText: NEW_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === false,
-    '依存なし: 新 preview + 新 package/lock → 合格');
-  ok(evaluateDependencyFreeFacts({ pkg: OLD_PKG, lockText: OLD_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === true,
-    '依存なし: 新 preview + 旧 package/lock → 不合格（旧世代 1.0.0 を拒否。enforce exit 1 の向き）');
+    '依存なし: 新 preview + 1.1 系 package/lock → 合格（中身は判定しない。二段の一段目）');
+  ok(evaluateDependencyFreeFacts({ pkg: OLD_PKG, lockText: OLD_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === false,
+    '依存なし: 新 preview + 旧 package/lock（1.0.0 整合）→ 合格（版は新しさの根拠にしない。中身は依存導入後の完全検査で判定）');
   ok(evaluateDependencyFreeFacts({ pkg: OLD_PKG, lockText: NEW_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === true,
     '依存なし: 旧 package（下限 ^1.0.0）+ 新 lock（1.1.0-rc.0）→ 下限不一致で不合格');
   ok(evaluateDependencyFreeFacts({ pkg: NEW_PKG, lockText: NEW_LOCK_TEXT, previewJs: OLD_PREVIEW }).failed === true,
@@ -1027,6 +1018,18 @@ async function runSelfTest() {
     '依存なし: pnpm-lock.yaml を読めない → 不合格（fail-closed）');
   ok(evaluateDependencyFreeFacts({ pkg: { dependencies: {} }, lockText: NEW_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === true,
     '依存なし: 4 パッケージの宣言なし → 不合格（fail-closed）');
+
+  // --- FIX3: 二段の形 — 依存なし分岐は通してよいが、依存ありの完全検査が旧い依存実体を止める ---
+  {
+    const stale = clone(); // PASS（版・依存辺・preview は整合）を 1.1 系へ合わせ、依存の実体だけ旧いままにする
+    stale.specifiers = { transform: '^1.1.0-rc.0', tin: '^1.1.0-rc.0', core: '^1.1.0-rc.0', ui: '^1.1.0-rc.0' };
+    stale.lockVersions = { transform: ['1.1.0-rc.0'], tin: ['1.1.0-rc.0'], core: ['1.1.0-rc.0'], ui: ['1.1.0-rc.0'] };
+    stale.lockEdges = { tinTransform: '1.1.0-rc.0', coreTransform: '1.1.0-rc.0', uiCore: '1.1.0-rc.0' };
+    stale.content.formatVersion = OLD_V2;         // transform 実体が旧い（2.00703）
+    stale.content.transformDistWeightBuffer = 3;  // transform dist に weight_buffer 3 件
+    ok(runA(stale).some((r) => !r.ok) === true,
+      '依存あり完全検査（runA）: 新 preview + 1.1 系 package/lock + 旧い依存実体 → 不合格（enforce なら exit 1）');
+  }
 
   console.log(`\n✅ --self-test: ${passed}/${total} ケース合格`);
   return 0;
@@ -1090,13 +1093,16 @@ async function main() {
     return 0;
   }
 
-  // prepare 相当（node_modules 無し）: package.json（4 パッケージの宣言）と pnpm-lock.yaml（解決版・
-  // 依存辺）をテキストで読み、A1〜A4 の lock/spec 基準（解決版 1 種類・下限一致・依存辺一致）と
-  // 旧世代拒否（解決版 ≤ 1.0.0）を評価し、同梱ビューア public/preview の内容を直接検査する
-  // （fail-closed）。js-yaml / node_modules は使わない（Major-1 の是正 FIX2）。公開済みの版（warn）は
-  // 結果を出すだけ exit 0、未公開の版（enforce）は旧 package/lock や旧ビューア同梱で exit 1。
+  // prepare 相当（node_modules 無し）: 依存なしで確かめられるのは同梱ビューア public/preview の中身
+  // だけ。package.json（4 パッケージの宣言）と pnpm-lock.yaml（解決版・依存辺）をテキストで読み、
+  // 版は整合性の確認（解決版 1 種類・下限一致・依存辺一致）にだけ使い、同梱ビューアを直接検査する
+  // （fail-closed）。「解決版 > 1.0.0」を新しさの根拠にしない（FIX3 の是正）。依存の実体
+  // （node_modules）の中身の判定は依存導入後の完全検査で行う。js-yaml / node_modules は使わない。
+  // 公開済みの版（warn）は結果を出すだけ exit 0、未公開の版（enforce）は版の整合性違反・宣言欠落・
+  // 旧ビューア同梱で exit 1。
   console.log('[viewer-freshness] prepare（node_modules 無し）: package.json と pnpm-lock.yaml をテキストで読み、');
-  console.log('  A1〜A4 の lock/spec 基準（解決版 1 種類・下限一致・依存辺一致・旧世代拒否）と同梱ビューアを検査します。');
+  console.log('  版の整合性（解決版 1 種類・下限一致・依存辺一致）と同梱ビューアを検査します。');
+  console.log('  依存の実体（node_modules）の中身の判定は依存導入後の完全検査で行います。');
   const depFree = evaluateDependencyFree(projectRoot);
   const failed = printResults(depFree.results, mode);
   emitSummary([
