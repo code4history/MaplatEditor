@@ -30,7 +30,6 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
-import yaml from 'js-yaml';
 
 const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -68,9 +67,46 @@ function isEmptyPlainObject(v) {
 }
 
 function parseSemver(v) {
-  const m = /^\s*(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?\s*$/.exec(String(v));
+  const m = /^\s*v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?\s*$/.exec(String(v));
   if (!m) return null;
-  return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]), raw: `${m[1]}.${m[2]}.${m[3]}` };
+  return {
+    major: Number(m[1]),
+    minor: Number(m[2]),
+    patch: Number(m[3]),
+    prerelease: m[4] ? m[4].split('.') : undefined,
+  };
+}
+
+/** semver §11 の prerelease 比較。無いほう（正式版）が大きい。数値識別子 < 英数字識別子、数値は大小、英数字は ASCII 順。 */
+function comparePrerelease(a, b) {
+  if (a === undefined && b === undefined) return 0;
+  if (a === undefined) return 1;
+  if (b === undefined) return -1;
+  const len = Math.max(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined) return -1; // 前置が等しく識別子が少ないほうが小さい（例: rc < rc.0）
+    if (y === undefined) return 1;
+    if (x === y) continue;
+    const xn = /^\d+$/.test(x);
+    const yn = /^\d+$/.test(y);
+    if (xn && yn) return Number(x) - Number(y);
+    if (xn) return -1; // 数値識別子 < 英数字識別子
+    if (yn) return 1;
+    return x < y ? -1 : 1;
+  }
+  return 0;
+}
+
+/** semver の全順序（major.minor.patch、次いで prerelease）。a < b なら負・a > b なら正。不正値は末尾扱い。 */
+function compareSemver(a, b) {
+  const pa = parseSemver(a);
+  const pb = parseSemver(b);
+  if (!pa && !pb) return 0;
+  if (!pa) return 1;
+  if (!pb) return -1;
+  return (pa.major - pb.major) || (pa.minor - pb.minor) || (pa.patch - pb.patch) || comparePrerelease(pa.prerelease, pb.prerelease);
 }
 
 /**
@@ -80,6 +116,9 @@ function parseSemver(v) {
  * `semver` パッケージはこの checkout の node_modules に存在せず（install は禁止のため追加
  * できない）、`^`/`~`/`>=`/裸版・`*`/`x` ワイルドカードへ絞って下限を求める。
  * `>X`（開区間）や複雑な比較子は扱わない（本 repo では出現しない）。
+ *
+ * prerelease（`-rc.0` 等）は保持し、複数比較子の下限は compareSemver（prerelease の
+ * 順序を含む）で選ぶ。`^1.1.0-rc.0` の下限は `1.1.0-rc.0`（Major-2 の是正）。
  */
 function minVersion(range) {
   const r = String(range ?? '').trim();
@@ -87,16 +126,16 @@ function minVersion(range) {
   const candidates = [];
   for (const raw of r.split(/\s+/)) {
     let t = raw.replace(/^(>=|<=|~>|\|\||[~^<>=]{1,2})/, '').replace(/^v/, '');
-    const m = /^(\d+)(?:\.(\d+|\*|x))?(?:\.(\d+|\*|x))?/i.exec(t);
+    const m = /^(\d+)(?:\.(\d+|\*|x))?(?:\.(\d+|\*|x))?(-[0-9A-Za-z.-]+)?/i.exec(t);
     if (!m) continue;
     const minor = !m[2] || /[*xX]/i.test(m[2]) ? 0 : Number(m[2]);
     const patch = !m[3] || /[*xX]/i.test(m[3]) ? 0 : Number(m[3]);
-    candidates.push([Number(m[1]), minor, patch]);
+    const prerelease = m[4] ?? '';
+    candidates.push(`${m[1]}.${minor}.${patch}${prerelease}`);
   }
   if (!candidates.length) return null;
-  candidates.sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]) || (a[2] - b[2]));
-  const [ma, mi, pa] = candidates[0];
-  return `${ma}.${mi}.${pa}`;
+  candidates.sort(compareSemver);
+  return candidates[0];
 }
 
 /** "1.0.0(mapbox-gl@...)(...)" → "1.0.0"（lock の peer suffix を落とす）。 */
@@ -112,7 +151,11 @@ function sha256Hex(buf) {
 // pnpm-lock.yaml からの facts 抽出
 // ───────────────────────────────────────────────
 
-function loadLock(root) {
+async function loadLock(root) {
+  // js-yaml は devDependency。CI の prepare は依存導入前なので、ここを遅延 import にして、
+  // --self-test や prepare（node_modules 無し）の経路が js-yaml を要求しないようにする
+  // （Major-1 の是正）。
+  const { default: yaml } = await import('js-yaml');
   return yaml.load(readFileSync(path.join(root, 'pnpm-lock.yaml'), 'utf8'));
 }
 
@@ -171,11 +214,19 @@ function collectCompiled(mapJson) {
   return out;
 }
 
+/** ビューア bundle 内容の新旧判定（weight_buffer 0 件 かつ 2.00704 1 件以上が「新」）。 */
+function evaluateViewerBundle(jsContent) {
+  const weightBuffer = countLiteral(jsContent ?? '', 'weight_buffer');
+  const formatMarkers = countLiteral(jsContent ?? '', String(FORMAT_V2));
+  return { viewerOk: weightBuffer === 0 && formatMarkers >= 1, weightBuffer, formatMarkers };
+}
+
 /** (B) の判定。jsContent は同梱ビューア全文、mapJsons は [{name, json}]。 */
 function evaluateExport({ jsContent, mapJsons }) {
-  const viewerWb = countLiteral(jsContent ?? '', 'weight_buffer');
-  const viewerFmt = countLiteral(jsContent ?? '', String(FORMAT_V2));
-  const viewerOk = viewerWb === 0 && viewerFmt >= 1;
+  const viewer = evaluateViewerBundle(jsContent);
+  const viewerWb = viewer.weightBuffer;
+  const viewerFmt = viewer.formatMarkers;
+  const viewerOk = viewer.viewerOk;
 
   const mapResults = [];
   for (const { name, json } of mapJsons) {
@@ -385,7 +436,7 @@ async function buildTinCompiled() {
 }
 
 async function gatherDepsFacts(root) {
-  const lock = loadLock(root);
+  const lock = await loadLock(root);
   const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
   const spec = (name) => pkg.dependencies?.[name] ?? pkg.devDependencies?.[name];
 
@@ -443,6 +494,34 @@ async function gatherDepsFacts(root) {
       distCssSha: sha256Hex(dist('maplat_ui.css')),
     },
   };
+}
+
+/**
+ * prepare（node_modules 未導入）でも安全に分岐するための依存境界。
+ * A1〜A5 の核（transform/tin/core/ui の node_modules と lock 解析用 js-yaml）が
+ * 揃っていれば full 検査、無ければ依存なし検査（同梱ビューア直接検査）へ落とす。
+ */
+function depsAvailableForAuto(root) {
+  return [
+    'node_modules/@maplat/transform/dist/maplat_transform.js',
+    'node_modules/@maplat/tin',
+    'node_modules/@maplat/core/dist',
+    'node_modules/@maplat/core/src',
+    'node_modules/@maplat/ui/dist/maplat_ui.umd.js',
+    'node_modules/@maplat/ui/dist/maplat_ui.css',
+    'node_modules/js-yaml',
+  ].every((p) => existsSync(path.join(root, p)));
+}
+
+/**
+ * prepare 向けの依存なし検査: 書き出しにそのまま同梱されるコミット済み
+ * public/preview/maplat_ui.umd.js を直接検査する（(B) と同内容のゲート）。
+ * node_modules が無いため A1〜A4 と A5（dist との sha256 照合）はここでは実行しない。
+ */
+function checkPreviewBundleDependencyFree(root) {
+  const p = path.join(root, 'public/preview/maplat_ui.umd.js');
+  const js = existsSync(p) ? readFileSync(p, 'utf8') : '';
+  return evaluateViewerBundle(js);
 }
 
 // ───────────────────────────────────────────────
@@ -545,6 +624,16 @@ async function runSelfTest() {
   ok(minVersion('>=1.0.0') === '1.0.0', 'minVersion(>=1.0.0) = 1.0.0');
   ok(minVersion('^0.2.3') === '0.2.3', 'minVersion(^0.2.3) = 0.2.3');
   ok(minVersion('1.2.3') === '1.2.3', 'minVersion(1.2.3) = 1.2.3');
+  // --- prerelease を保持する minVersion と semver 比較（Major-2 の是正）---
+  ok(minVersion('^1.1.0-rc.0') === '1.1.0-rc.0', 'minVersion(^1.1.0-rc.0) = 1.1.0-rc.0（prerelease 保持）');
+  ok(compareSemver('1.1.0-rc.1', '1.1.0-rc.0') > 0, 'semver: 1.1.0-rc.1 > 1.1.0-rc.0');
+  ok(compareSemver('1.1.0', '1.1.0-rc.9') > 0, 'semver: 1.1.0 > 1.1.0-rc.9');
+  ok(compareSemver('1.1.0-rc.9', '1.1.0') < 0, 'semver: 1.1.0-rc.9 < 1.1.0');
+  ok(compareSemver('1.1.0-rc.10', '1.1.0-rc.9') > 0, 'semver: prerelease 数値 10 > 9');
+  ok(compareSemver('1.1.0-rc', '1.1.0-rc.0') < 0, 'semver: rc < rc.0（識別子が少ないほうが小さい）');
+  ok(compareSemver('1.1.0-alpha', '1.1.0-rc.0') < 0, 'semver: alpha < rc（ASCII 順）');
+  ok(compareSemver('1.1.0-rc.0', '1.1.0-rc.0') === 0, 'semver: 等しい → 0');
+  ok(minVersion('^1.1.0-rc.0 || 1.0.0') === '1.0.0', 'minVersion: 複数比較子で prerelease を含む下限選択');
 
   // --- 規則表（enforce/warn）---
   ok(decideEnforceOrWarn({ mode: 'full', tagState: 'present' }) === 'enforce', '規則: mode=full → enforce');
@@ -580,6 +669,11 @@ async function runSelfTest() {
     '(B): 新ビューア + 2.00704 重みあり compiled → 不合格');
   ok(evaluateExport({ jsContent: cleanViewer, mapJsons: [{ name: 'maps/a.json', json: newMap }] }).newCount === 1,
     '(B): 新 compiled の件数が 1');
+
+  // --- ビューア bundle の新旧判定（(B)・prepare 依存なし検査で共用）---
+  ok(evaluateViewerBundle('2.00704').viewerOk === true, 'viewer bundle: 2.00704 のみ → 新（合格）');
+  ok(evaluateViewerBundle('weight_buffer').viewerOk === false, 'viewer bundle: weight_buffer あり → 旧（不合格）');
+  ok(evaluateViewerBundle('2.00704 weight_buffer').viewerOk === false, 'viewer bundle: 2.00704 + weight_buffer → 不合格');
 
   // --- (A) 各検査の向き ---
   const PASS = {
@@ -734,11 +828,38 @@ async function main() {
     );
   }
 
-  const facts = await gatherDepsFacts(projectRoot);
-  const results = runA(facts);
-  const failed = printResults(results, mode);
-  emitSummary([`viewer-freshness（${mode}）: ${failed ? '不合格' : '合格'}`]);
-  if (mode === 'enforce') return failed ? 1 : 0;
+  if (depsAvailableForAuto(projectRoot)) {
+    const facts = await gatherDepsFacts(projectRoot);
+    const results = runA(facts);
+    const failed = printResults(results, mode);
+    emitSummary([`viewer-freshness（${mode}）: ${failed ? '不合格' : '合格'}`]);
+    if (mode === 'enforce') return failed ? 1 : 0;
+    return 0;
+  }
+
+  // prepare 相当（node_modules 無し）: A1〜A4 と A5（dist との sha256 照合）は実行できず、
+  // 書き出しに同梱される public/preview のビューアを依存なしで直接検査する（fail-closed）。
+  // 未導入の node_modules に依存しないため、依存導入前の prepare でも例外を起こさない
+  // （Major-1 の是正）。公開済みの版（warn）は結果を出すだけ exit 0、未公開の版（enforce）は
+  // 旧ビューア同梱（weight_buffer あり / 2.00704 無し）で exit 1。
+  const preview = checkPreviewBundleDependencyFree(projectRoot);
+  console.log('[viewer-freshness] prepare（node_modules 無し）: A1〜A4 と A5（dist 照合）はスキップし、');
+  console.log('  同梱ビューア public/preview/maplat_ui.umd.js を直接検査します。');
+  console.log(
+    `  同梱ビューア: weight_buffer ${preview.weightBuffer} 件 / 2.00704 ${preview.formatMarkers} 件 → ${preview.viewerOk ? '合格' : '不合格'}`
+  );
+  emitSummary([
+    `viewer-freshness（${mode}・prepare/node_modules 無し）: 同梱ビューア ${preview.viewerOk ? '合格' : '不合格'}`,
+  ]);
+  if (mode === 'enforce') {
+    if (!preview.viewerOk) {
+      console.error('::error:: viewer-freshness 検査が不合格（enforce）。同梱ビューアが旧い（weight_buffer あり / 2.00704 無し）。');
+      return 1;
+    }
+    console.log('✅ viewer-freshness 検査（prepare） すべて合格');
+    return 0;
+  }
+  console.log(preview.viewerOk ? '✅ viewer-freshness 検査（prepare） 合格' : '⚠ viewer-freshness 検査（prepare）: 同梱ビューアが旧い → warn（exit 0）');
   return 0;
 }
 

@@ -88,6 +88,9 @@ jobs:
       # 置くことで、full ビルド・未公開版の全ビルド経路（push / dispatch を問わない）が
       # 旧ビューア同梱で止まる（H-M12-5' (a)）。enforce/warn はスクリプトが規則表で決める
       #（workflow 入力で弱められない）。MODE は規則表（mode=full → enforce）にだけ渡す。
+      # prepare は依存導入（pnpm install は後続ジョブ）前なので node_modules が無い。スクリプトが
+      # それを検知し、公開済み版は warn（exit 0）・未公開版は同梱ビューア（public/preview）の
+      # 依存なし検査で enforce する（Major-1 の是正。js-yaml / node_modules は使わない）。
       - name: Check bundled viewer freshness
         env:
           MODE: ${{ inputs.mode }}
