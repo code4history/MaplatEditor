@@ -39,6 +39,11 @@ const FORMAT_V3 = 3.00001;
 const OLD_V2 = 2.00703;
 const OLD_V3 = 3;
 
+// 依存なし検査（node_modules 無し）では transform/tin/core の中身（weight_buffer / format_version）を
+// 検証できないため、解決版の「旧世代拒否」で fail-closed にする。旧版（weight_buffer を残す世代）は
+// §4.1 のとおり 1.0.0 までで、純アフィン化（weight_buffer 除去）は次の版（> 1.0.0）で入る。
+const OLD_GENERATION_MAX = '1.0.0';
+
 // Editor が地図保存で使う TIN 設定（electron/ipc/mapedit.ts:30 ほかと同一）
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
@@ -91,7 +96,13 @@ function comparePrerelease(a, b) {
     if (x === y) continue;
     const xn = /^\d+$/.test(x);
     const yn = /^\d+$/.test(y);
-    if (xn && yn) return Number(x) - Number(y);
+    if (xn && yn) {
+      // 数値識別子は任意長になり得るため Number() では精度落ちする（9007199254740993 が丸まる）。
+      // BigInt で正確に比較する（semver §11.4.3 の「数値で比較」を任意精度で満たす）。
+      const bx = BigInt(x);
+      const by = BigInt(y);
+      return bx < by ? -1 : bx > by ? 1 : 0;
+    }
     if (xn) return -1; // 数値識別子 < 英数字識別子
     if (yn) return 1;
     return x < y ? -1 : 1;
@@ -177,6 +188,72 @@ function snapshotDep(lock, pkg, resolvedVersion, depName) {
   if (!key) return undefined;
   const deps = lock.snapshots[key]?.dependencies ?? {};
   return deps[depName];
+}
+
+// ───────────────────────────────────────────────
+// pnpm-lock.yaml（テキスト）からの facts 抽出（js-yaml を使わない）
+// ───────────────────────────────────────────────
+
+/**
+ * pnpm-lock.yaml をテキスト（正規表現）で読み、packages 節にある <pkg> の解決版を重複なく返す。
+ * js-yaml の代わり（依存なし prepare で使用）。pnpm-lock v9 の 2 スペースインデントを想定。
+ */
+function textResolvedVersions(lockText, pkg) {
+  const versions = new Set();
+  let section = null;
+  for (const line of String(lockText ?? '').split('\n')) {
+    const sec = /^([A-Za-z][A-Za-z0-9_-]*):\s*$/.exec(line);
+    if (sec) {
+      section = sec[1];
+      continue;
+    }
+    if (section !== 'packages') continue;
+    const m = /^  ['"]?(@[^'"]+)['"]?:\s*$/.exec(line);
+    if (!m) continue;
+    const key = m[1];
+    if (!key.startsWith(pkg + '@')) continue;
+    versions.add(key.slice(pkg.length + 1).split('(')[0].trim());
+  }
+  return [...versions];
+}
+
+/**
+ * pnpm-lock.yaml をテキスト（正規表現）で読み、snapshots 節から <pkg>@<resolved> の
+ * dependencies[depName] を返す（未解決なら undefined）。js-yaml の snapshotDep() と同じ基準
+ * （dependencies 節だけを読む。optionalDependencies は読まない）。
+ */
+function textSnapshotDep(lockText, pkg, resolvedVersion, depName) {
+  if (!resolvedVersion) return undefined;
+  const prefix = `${pkg}@${resolvedVersion}`;
+  let section = null;
+  let currentKey = null;
+  let inDeps = false;
+  for (const line of String(lockText ?? '').split('\n')) {
+    const sec = /^([A-Za-z][A-Za-z0-9_-]*):\s*$/.exec(line);
+    if (sec) {
+      section = sec[1];
+      currentKey = null;
+      inDeps = false;
+      continue;
+    }
+    if (section !== 'snapshots') continue;
+    const keyM = /^  ['"]?(@[^'"]+)['"]?:\s*$/.exec(line);
+    if (keyM) {
+      currentKey = keyM[1];
+      inDeps = false;
+      continue;
+    }
+    const head = /^    ([A-Za-z][A-Za-z0-9_-]*):\s*$/.exec(line);
+    if (head) {
+      inDeps = head[1] === 'dependencies';
+      continue;
+    }
+    if (!inDeps || !currentKey) continue;
+    if (currentKey !== prefix && !currentKey.startsWith(prefix + '(')) continue;
+    const d = /^      ['"]?([@][^'"]+)['"]?:\s+([^\s]+)/.exec(line);
+    if (d && d[1] === depName) return d[2];
+  }
+  return undefined;
 }
 
 // ───────────────────────────────────────────────
@@ -514,14 +591,116 @@ function depsAvailableForAuto(root) {
 }
 
 /**
- * prepare 向けの依存なし検査: 書き出しにそのまま同梱されるコミット済み
- * public/preview/maplat_ui.umd.js を直接検査する（(B) と同内容のゲート）。
- * node_modules が無いため A1〜A4 と A5（dist との sha256 照合）はここでは実行しない。
+ * 依存なし検査: package.json（4 パッケージ宣言）と pnpm-lock.yaml（解決版・依存辺）をテキストで
+ * 読み、設計 §4.2 の A1〜A4 の lock/spec 基準（解決版 1 種類・下限一致・依存辺一致）を評価し、
+ * 依存なしでは中身（node_modules）を検証できないため解決版で旧世代（≤ 1.0.0）を拒否する
+ * （fail-closed）。A5 相当は同梱ビューア public/preview/maplat_ui.umd.js の内容を直接検査する。
+ * 読めない・見つからない場合は該当 detail を不合格にする（fail-closed。enforce なら exit 1）。
  */
-function checkPreviewBundleDependencyFree(root) {
-  const p = path.join(root, 'public/preview/maplat_ui.umd.js');
-  const js = existsSync(p) ? readFileSync(p, 'utf8') : '';
-  return evaluateViewerBundle(js);
+function evaluateDependencyFreeFacts({ pkg, lockText, previewJs }) {
+  const pkgMissing = pkg == null;
+  const lockMissing = lockText == null;
+  const spec = (name) => (pkgMissing ? undefined : pkg.dependencies?.[name] ?? pkg.devDependencies?.[name]);
+  const versionsOf = (name) => (lockMissing ? [] : textResolvedVersions(lockText, name));
+
+  const specifiers = {
+    transform: spec('@maplat/transform'),
+    tin: spec('@maplat/tin'),
+    core: spec('@maplat/core'),
+    ui: spec('@maplat/ui'),
+  };
+  const lockVersions = {
+    transform: versionsOf('@maplat/transform'),
+    tin: versionsOf('@maplat/tin'),
+    core: versionsOf('@maplat/core'),
+    ui: versionsOf('@maplat/ui'),
+  };
+  const lockEdges = {
+    tinTransform: lockMissing ? undefined : textSnapshotDep(lockText, '@maplat/tin', lockVersions.tin[0], '@maplat/transform'),
+    coreTransform: lockMissing ? undefined : textSnapshotDep(lockText, '@maplat/core', lockVersions.core[0], '@maplat/transform'),
+    uiCore: lockMissing ? undefined : textSnapshotDep(lockText, '@maplat/ui', lockVersions.ui[0], '@maplat/core'),
+  };
+
+  const declareDetail = (label, specifier) => ({
+    name: `${label}: package.json に宣言がある`,
+    ok: !pkgMissing && specifier != null,
+    detail: pkgMissing ? 'package.json を読めない' : specifier == null ? '宣言なし' : `指定 ${JSON.stringify(specifier)}`,
+  });
+
+  const readableDetail = (label, versions) => ({
+    name: `${label}: pnpm-lock.yaml を読める・解決版がある`,
+    ok: !lockMissing && versions.length >= 1,
+    detail: lockMissing ? 'pnpm-lock.yaml を読めない' : versions.length >= 1 ? `解決版 ${versions.join(', ')}` : '解決版なし',
+  });
+
+  const generationDetail = (label, versions) => {
+    const v = versions.length >= 1 ? baseVersion(versions[0]) : null;
+    const okNew = v != null && compareSemver(v, OLD_GENERATION_MAX) > 0;
+    return {
+      name: `${label}: 解決版が旧世代（≤ ${OLD_GENERATION_MAX}）でない`,
+      ok: okNew,
+      detail: v == null ? '（解決版なし）' : `${v} ${okNew ? '＞ ' + OLD_GENERATION_MAX : '≤ ' + OLD_GENERATION_MAX + '（旧世代）'}`,
+    };
+  };
+
+  const A = (id, label, specifier, versions, edgeInfo) => {
+    const details = [];
+    details.push(declareDetail(label, specifier));
+    details.push(readableDetail(label, versions));
+    if (!pkgMissing && !lockMissing && specifier != null && versions.length >= 1) {
+      details.push(...lockAndSpecDetails(label, specifier, versions));
+    } else if (specifier != null) {
+      details.push({ name: `${label}: lock で解決版が 1 種類だけ`, ok: false, detail: versions.length === 0 ? '（解決版なし）' : '（読めないため判定不能）' });
+      details.push({ name: `${label}: package.json 下限（minVersion）が解決版と一致`, ok: false, detail: '（判定不能）' });
+    }
+    details.push(generationDetail(label, versions));
+    // 依存先（expected）が解決されていない（lock 欠落等）場合は辺の detail は既に fail-closed 済み。
+    // expected が無いと辺 detail が「undefined と一致」と表示されるため、その場合のみ省く。
+    if (edgeInfo && edgeInfo.expected != null) edgeDetails(details, label, edgeInfo.dep, edgeInfo.edge, edgeInfo.expected);
+    return { id, ok: details.every((d) => d.ok), details };
+  };
+
+  const preview = evaluateViewerBundle(previewJs ?? '');
+  const results = [
+    A('A1', '@maplat/transform', specifiers.transform, lockVersions.transform, null),
+    A('A2', '@maplat/tin', specifiers.tin, lockVersions.tin, { dep: '@maplat/transform', edge: lockEdges.tinTransform, expected: lockVersions.transform[0] }),
+    A('A3', '@maplat/core', specifiers.core, lockVersions.core, { dep: '@maplat/transform', edge: lockEdges.coreTransform, expected: lockVersions.transform[0] }),
+    A('A4', '@maplat/ui', specifiers.ui, lockVersions.ui, { dep: '@maplat/core', edge: lockEdges.uiCore, expected: lockVersions.core[0] }),
+    {
+      id: 'preview',
+      ok: preview.viewerOk,
+      details: [{
+        name: '同梱ビューア: public/preview/maplat_ui.umd.js を依存なしで直接検査（weight_buffer 0 件 かつ 2.00704 1 件以上）',
+        ok: preview.viewerOk,
+        detail: `weight_buffer ${preview.weightBuffer} 件 / 2.00704 ${preview.formatMarkers} 件`,
+      }],
+    },
+  ];
+  return { results, failed: results.some((r) => !r.ok) };
+}
+
+/** 依存なし検査の実経路ラッパ: ファイルを読んで evaluateDependencyFreeFacts に渡す（読めなければ fail-closed）。 */
+function evaluateDependencyFree(root) {
+  let pkg = null;
+  let lockText = null;
+  let previewJs = '';
+  try {
+    pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+  } catch {
+    // 読めない → fail-closed（evaluateDependencyFreeFacts が pkgMissing として扱う）
+  }
+  try {
+    lockText = readFileSync(path.join(root, 'pnpm-lock.yaml'), 'utf8');
+  } catch {
+    // 読めない → fail-closed
+  }
+  const previewPath = path.join(root, 'public/preview/maplat_ui.umd.js');
+  try {
+    if (existsSync(previewPath)) previewJs = readFileSync(previewPath, 'utf8');
+  } catch {
+    // 読めない → preview は空扱い（evaluateViewerBundle('') は不合格）
+  }
+  return evaluateDependencyFreeFacts({ pkg, lockText, previewJs });
 }
 
 // ───────────────────────────────────────────────
@@ -634,6 +813,9 @@ async function runSelfTest() {
   ok(compareSemver('1.1.0-alpha', '1.1.0-rc.0') < 0, 'semver: alpha < rc（ASCII 順）');
   ok(compareSemver('1.1.0-rc.0', '1.1.0-rc.0') === 0, 'semver: 等しい → 0');
   ok(minVersion('^1.1.0-rc.0 || 1.0.0') === '1.0.0', 'minVersion: 複数比較子で prerelease を含む下限選択');
+  // --- 数値 prerelease の BigInt 比較（Minor の是正。Number() では両者が同順位になる）---
+  ok(compareSemver('1.1.0-rc.9007199254740993', '1.1.0-rc.9007199254740992') > 0, 'semver: 数値 prerelease 9007199254740993 > 9007199254740992（BigInt）');
+  ok(compareSemver('1.1.0-rc.9007199254740992', '1.1.0-rc.9007199254740993') < 0, 'semver: 数値 prerelease 9007199254740992 < 9007199254740993（BigInt）');
 
   // --- 規則表（enforce/warn）---
   ok(decideEnforceOrWarn({ mode: 'full', tagState: 'present' }) === 'enforce', '規則: mode=full → enforce');
@@ -775,6 +957,77 @@ async function runSelfTest() {
     ok(checkA5(f).ok === false, 'A5: 同期漏れ（sha256 不一致）→ ng');
   }
 
+  // --- pnpm-lock.yaml のテキスト解析（js-yaml を使わない。依存なし分岐用）---
+  const NEW_LOCK_TEXT = [
+    "lockfileVersion: '9.0'",
+    'packages:',
+    "  '@maplat/transform@1.1.0-rc.0':",
+    '    resolution: {integrity: sha512-T}',
+    "  '@maplat/tin@1.1.0-rc.0':",
+    '    resolution: {integrity: sha512-T}',
+    "  '@maplat/core@1.1.0-rc.0':",
+    '    resolution: {integrity: sha512-C}',
+    "  '@maplat/ui@1.1.0-rc.0':",
+    '    resolution: {integrity: sha512-U}',
+    'snapshots:',
+    "  '@maplat/tin@1.1.0-rc.0':",
+    '    dependencies:',
+    "      '@maplat/transform': 1.1.0-rc.0",
+    "  '@maplat/core@1.1.0-rc.0(mapbox-gl@3.0.0)':",
+    '    dependencies:',
+    "      '@maplat/transform': 1.1.0-rc.0",
+    "  '@maplat/ui@1.1.0-rc.0(mapbox-gl@3.0.0)':",
+    '    dependencies:',
+    "      '@maplat/core': 1.1.0-rc.0(mapbox-gl@3.0.0)",
+  ].join('\n');
+  const OLD_LOCK_TEXT = [
+    "lockfileVersion: '9.0'",
+    'packages:',
+    "  '@maplat/transform@1.0.0':",
+    '    resolution: {integrity: sha512-T}',
+    "  '@maplat/tin@1.0.0':",
+    '    resolution: {integrity: sha512-T}',
+    "  '@maplat/core@1.0.0':",
+    '    resolution: {integrity: sha512-C}',
+    "  '@maplat/ui@1.0.0':",
+    '    resolution: {integrity: sha512-U}',
+    'snapshots:',
+    "  '@maplat/tin@1.0.0':",
+    '    dependencies:',
+    "      '@maplat/transform': 1.0.0",
+    "  '@maplat/core@1.0.0(mapbox-gl@3.0.0)':",
+    '    dependencies:',
+    "      '@maplat/transform': 1.0.0",
+    "  '@maplat/ui@1.0.0(mapbox-gl@3.0.0)':",
+    '    dependencies:',
+    "      '@maplat/core': 1.0.0(mapbox-gl@3.0.0)",
+  ].join('\n');
+  ok(JSON.stringify(textResolvedVersions(NEW_LOCK_TEXT, '@maplat/transform')) === JSON.stringify(['1.1.0-rc.0']), 'lock テキスト: transform 解決版は 1 種類');
+  ok(JSON.stringify(textResolvedVersions(NEW_LOCK_TEXT, '@maplat/core')) === JSON.stringify(['1.1.0-rc.0']), 'lock テキスト: core 解決版は 1 種類');
+  ok(textSnapshotDep(NEW_LOCK_TEXT, '@maplat/tin', '1.1.0-rc.0', '@maplat/transform') === '1.1.0-rc.0', 'lock テキスト: tin→transform の辺');
+  ok(textSnapshotDep(NEW_LOCK_TEXT, '@maplat/core', '1.1.0-rc.0', '@maplat/transform') === '1.1.0-rc.0', 'lock テキスト: core→transform の辺（peer 付きキー）');
+  ok(textSnapshotDep(NEW_LOCK_TEXT, '@maplat/ui', '1.1.0-rc.0', '@maplat/core') === '1.1.0-rc.0(mapbox-gl@3.0.0)', 'lock テキスト: ui→core の辺');
+
+  // --- 依存なし検査（evaluateDependencyFreeFacts）の向き（Major-1 の是正 FIX2）---
+  const NEW_PKG = { dependencies: { '@maplat/transform': '^1.1.0-rc.0', '@maplat/tin': '^1.1.0-rc.0', '@maplat/core': '^1.1.0-rc.0', '@maplat/ui': '^1.1.0-rc.0' } };
+  const OLD_PKG = { dependencies: { '@maplat/transform': '^1.0.0', '@maplat/tin': '^1.0.0', '@maplat/core': '^1.0.0', '@maplat/ui': '^1.0.0' } };
+  const NEW_PREVIEW = '/* maplat viewer */ 2.00704';
+  const OLD_PREVIEW = '/* maplat viewer */ weight_buffer';
+  ok(evaluateDependencyFreeFacts({ pkg: NEW_PKG, lockText: NEW_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === false,
+    '依存なし: 新 preview + 新 package/lock → 合格');
+  ok(evaluateDependencyFreeFacts({ pkg: OLD_PKG, lockText: OLD_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === true,
+    '依存なし: 新 preview + 旧 package/lock → 不合格（旧世代 1.0.0 を拒否。enforce exit 1 の向き）');
+  ok(evaluateDependencyFreeFacts({ pkg: OLD_PKG, lockText: NEW_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === true,
+    '依存なし: 旧 package（下限 ^1.0.0）+ 新 lock（1.1.0-rc.0）→ 下限不一致で不合格');
+  ok(evaluateDependencyFreeFacts({ pkg: NEW_PKG, lockText: NEW_LOCK_TEXT, previewJs: OLD_PREVIEW }).failed === true,
+    '依存なし: 旧ビューア（weight_buffer あり）+ 新 package/lock → 不合格');
+  ok(evaluateDependencyFreeFacts({ pkg: null, lockText: NEW_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === true,
+    '依存なし: package.json を読めない → 不合格（fail-closed）');
+  ok(evaluateDependencyFreeFacts({ pkg: NEW_PKG, lockText: null, previewJs: NEW_PREVIEW }).failed === true,
+    '依存なし: pnpm-lock.yaml を読めない → 不合格（fail-closed）');
+  ok(evaluateDependencyFreeFacts({ pkg: { dependencies: {} }, lockText: NEW_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === true,
+    '依存なし: 4 パッケージの宣言なし → 不合格（fail-closed）');
+
   console.log(`\n✅ --self-test: ${passed}/${total} ケース合格`);
   return 0;
 }
@@ -837,29 +1090,19 @@ async function main() {
     return 0;
   }
 
-  // prepare 相当（node_modules 無し）: A1〜A4 と A5（dist との sha256 照合）は実行できず、
-  // 書き出しに同梱される public/preview のビューアを依存なしで直接検査する（fail-closed）。
-  // 未導入の node_modules に依存しないため、依存導入前の prepare でも例外を起こさない
-  // （Major-1 の是正）。公開済みの版（warn）は結果を出すだけ exit 0、未公開の版（enforce）は
-  // 旧ビューア同梱（weight_buffer あり / 2.00704 無し）で exit 1。
-  const preview = checkPreviewBundleDependencyFree(projectRoot);
-  console.log('[viewer-freshness] prepare（node_modules 無し）: A1〜A4 と A5（dist 照合）はスキップし、');
-  console.log('  同梱ビューア public/preview/maplat_ui.umd.js を直接検査します。');
-  console.log(
-    `  同梱ビューア: weight_buffer ${preview.weightBuffer} 件 / 2.00704 ${preview.formatMarkers} 件 → ${preview.viewerOk ? '合格' : '不合格'}`
-  );
+  // prepare 相当（node_modules 無し）: package.json（4 パッケージの宣言）と pnpm-lock.yaml（解決版・
+  // 依存辺）をテキストで読み、A1〜A4 の lock/spec 基準（解決版 1 種類・下限一致・依存辺一致）と
+  // 旧世代拒否（解決版 ≤ 1.0.0）を評価し、同梱ビューア public/preview の内容を直接検査する
+  // （fail-closed）。js-yaml / node_modules は使わない（Major-1 の是正 FIX2）。公開済みの版（warn）は
+  // 結果を出すだけ exit 0、未公開の版（enforce）は旧 package/lock や旧ビューア同梱で exit 1。
+  console.log('[viewer-freshness] prepare（node_modules 無し）: package.json と pnpm-lock.yaml をテキストで読み、');
+  console.log('  A1〜A4 の lock/spec 基準（解決版 1 種類・下限一致・依存辺一致・旧世代拒否）と同梱ビューアを検査します。');
+  const depFree = evaluateDependencyFree(projectRoot);
+  const failed = printResults(depFree.results, mode);
   emitSummary([
-    `viewer-freshness（${mode}・prepare/node_modules 無し）: 同梱ビューア ${preview.viewerOk ? '合格' : '不合格'}`,
+    `viewer-freshness（${mode}・prepare/node_modules 無し）: ${failed ? '不合格' : '合格'}`,
   ]);
-  if (mode === 'enforce') {
-    if (!preview.viewerOk) {
-      console.error('::error:: viewer-freshness 検査が不合格（enforce）。同梱ビューアが旧い（weight_buffer あり / 2.00704 無し）。');
-      return 1;
-    }
-    console.log('✅ viewer-freshness 検査（prepare） すべて合格');
-    return 0;
-  }
-  console.log(preview.viewerOk ? '✅ viewer-freshness 検査（prepare） 合格' : '⚠ viewer-freshness 検査（prepare）: 同梱ビューアが旧い → warn（exit 0）');
+  if (mode === 'enforce') return failed ? 1 : 0;
   return 0;
 }
 
