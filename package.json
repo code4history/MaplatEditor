@@ -1,7 +1,7 @@
 {
   "name": "maplat-editor",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0-rc.1",
   "description": "Maplat Editor - Historical Map Georeferencing Tool",
   "author": "Maplat Project",
   "type": "module",
@@ -260,10 +260,10 @@
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
-    "@maplat/core": "^1.0.0",
-    "@maplat/tin": "^1.0.0",
-    "@maplat/transform": "^1.0.0",
-    "@maplat/ui": "^1.0.0",
+    "@maplat/core": "^1.1.0-rc.1",
+    "@maplat/tin": "^1.1.0-rc.1",
+    "@maplat/transform": "^1.1.0-rc.1",
+    "@maplat/ui": "^1.1.0-rc.1",
     "@popperjs/core": "^2.11.8",
     "@seald-io/nedb": "^4.1.2",
     "@types/geojson": "^7946.0.16",

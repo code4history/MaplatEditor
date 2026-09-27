@@ -3,13 +3,13 @@
   // <define:self.__WB_MANIFEST>
   var define_self_WB_MANIFEST_default = [];
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_version.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_version.js
   try {
     self["workbox:core:7.4.0"] && _();
   } catch (e) {
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/logger.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/logger.js
   var logger = false ? null : (() => {
     if (!("__WB_DISABLE_DEV_LOGS" in globalThis)) {
       self.__WB_DISABLE_DEV_LOGS = false;
@@ -61,7 +61,7 @@
     return api;
   })();
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/models/messages/messages.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/models/messages/messages.js
   var messages = {
     "invalid-value": ({ paramName, validValueDescription, value }) => {
       if (!paramName || !validValueDescription) {
@@ -225,7 +225,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/models/messages/messageGenerator.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/models/messages/messageGenerator.js
   var generatorFunction = (code, details = {}) => {
     const message = messages[code];
     if (!message) {
@@ -235,7 +235,7 @@
   };
   var messageGenerator = false ? fallback : generatorFunction;
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/WorkboxError.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/WorkboxError.js
   var WorkboxError = class extends Error {
     /**
      *
@@ -253,7 +253,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/assert.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/assert.js
   var isArray = (value, details) => {
     if (!Array.isArray(value)) {
       throw new WorkboxError("not-an-array", details);
@@ -304,10 +304,10 @@
     isArrayOfClass
   };
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/models/quotaErrorCallbacks.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/models/quotaErrorCallbacks.js
   var quotaErrorCallbacks = /* @__PURE__ */ new Set();
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/registerQuotaErrorCallback.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/registerQuotaErrorCallback.js
   function registerQuotaErrorCallback(callback) {
     if (true) {
       finalAssertExports.isType(callback, "function", {
@@ -322,7 +322,7 @@
     }
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/cacheNames.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/cacheNames.js
   var _cacheNameDetails = {
     googleAnalytics: "googleAnalytics",
     precache: "precache-v2",
@@ -363,7 +363,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/cacheMatchIgnoreParams.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/cacheMatchIgnoreParams.js
   function stripParams(fullURL, ignoreParams) {
     const strippedURL = new URL(fullURL);
     for (const param of ignoreParams) {
@@ -387,7 +387,7 @@
     return;
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/canConstructResponseFromBodyStream.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/canConstructResponseFromBodyStream.js
   var supportStatus;
   function canConstructResponseFromBodyStream() {
     if (supportStatus === void 0) {
@@ -405,13 +405,13 @@
     return supportStatus;
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/dontWaitFor.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/dontWaitFor.js
   function dontWaitFor(promise) {
     void promise.then(() => {
     });
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/Deferred.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/Deferred.js
   var Deferred = class {
     /**
      * Creates a promise and exposes its resolve and reject functions as methods.
@@ -424,7 +424,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/executeQuotaErrorCallbacks.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/executeQuotaErrorCallbacks.js
   async function executeQuotaErrorCallbacks() {
     if (true) {
       logger.log(`About to run ${quotaErrorCallbacks.size} callbacks to clean up caches.`);
@@ -440,25 +440,25 @@
     }
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/getFriendlyURL.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/getFriendlyURL.js
   var getFriendlyURL = (url) => {
     const urlObj = new URL(String(url), location.href);
     return urlObj.href.replace(new RegExp(`^${location.origin}`), "");
   };
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/timeout.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/timeout.js
   function timeout(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/waitUntil.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/_private/waitUntil.js
   function waitUntil(event, asyncFn) {
     const returnPromise = asyncFn();
     event.waitUntil(returnPromise);
     return returnPromise;
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/copyResponse.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/copyResponse.js
   async function copyResponse(response, modifier) {
     let origin = null;
     if (response.url) {
@@ -479,12 +479,12 @@
     return new Response(body, modifiedResponseInit);
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/clientsClaim.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/clientsClaim.js
   function clientsClaim() {
     self.addEventListener("activate", () => self.clients.claim());
   }
 
-  // ../node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/skipWaiting.js
+  // node_modules/.pnpm/workbox-core@7.4.1/node_modules/workbox-core/skipWaiting.js
   function skipWaiting() {
     if (true) {
       logger.warn(`skipWaiting() from workbox-core is no longer recommended and will be removed in Workbox v7. Using self.skipWaiting() instead is equivalent.`);
@@ -492,13 +492,13 @@
     void self.skipWaiting();
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/_version.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/_version.js
   try {
     self["workbox:precaching:7.4.0"] && _();
   } catch (e) {
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/createCacheKey.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/createCacheKey.js
   var REVISION_SEARCH_PARAM = "__WB_REVISION__";
   function createCacheKey(entry) {
     if (!entry) {
@@ -531,7 +531,7 @@
     };
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/PrecacheInstallReportPlugin.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/PrecacheInstallReportPlugin.js
   var PrecacheInstallReportPlugin = class {
     constructor() {
       this.updatedURLs = [];
@@ -557,7 +557,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/PrecacheCacheKeyPlugin.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/PrecacheCacheKeyPlugin.js
   var PrecacheCacheKeyPlugin = class {
     constructor({ precacheController: precacheController2 }) {
       this.cacheKeyWillBeUsed = async ({ request, params }) => {
@@ -568,7 +568,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/printCleanupDetails.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/printCleanupDetails.js
   var logGroup = (groupTitle, deletedURLs) => {
     logger.groupCollapsed(groupTitle);
     for (const url of deletedURLs) {
@@ -585,7 +585,7 @@
     }
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/printInstallDetails.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/printInstallDetails.js
   function _nestedGroup(groupTitle, urls) {
     if (urls.length === 0) {
       return;
@@ -611,13 +611,13 @@
     }
   }
 
-  // ../node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/_version.js
+  // node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/_version.js
   try {
     self["workbox:strategies:7.4.0"] && _();
   } catch (e) {
   }
 
-  // ../node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/StrategyHandler.js
+  // node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/StrategyHandler.js
   function toRequest(input) {
     return typeof input === "string" ? new Request(input) : input;
   }
@@ -1036,7 +1036,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/Strategy.js
+  // node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/Strategy.js
   var Strategy = class {
     /**
      * Creates a new instance of the strategy and sets all documented option
@@ -1186,7 +1186,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/PrecacheStrategy.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/PrecacheStrategy.js
   var PrecacheStrategy = class _PrecacheStrategy extends Strategy {
     /**
      *
@@ -1344,7 +1344,7 @@
     }
   };
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/PrecacheController.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/PrecacheController.js
   var PrecacheController = class {
     /**
      * Create a new PrecacheController.
@@ -1598,7 +1598,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/getOrCreatePrecacheController.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/getOrCreatePrecacheController.js
   var precacheController;
   var getOrCreatePrecacheController = () => {
     if (!precacheController) {
@@ -1607,13 +1607,13 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     return precacheController;
   };
 
-  // ../node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/_version.js
+  // node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/_version.js
   try {
     self["workbox:routing:7.4.0"] && _();
   } catch (e) {
   }
 
-  // ../node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/utils/constants.js
+  // node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/utils/constants.js
   var defaultMethod = "GET";
   var validMethods = [
     "DELETE",
@@ -1624,7 +1624,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     "PUT"
   ];
 
-  // ../node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/utils/normalizeHandler.js
+  // node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/utils/normalizeHandler.js
   var normalizeHandler = (handler) => {
     if (handler && typeof handler === "object") {
       if (true) {
@@ -1649,7 +1649,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/Route.js
+  // node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/Route.js
   var Route = class {
     /**
      * Constructor for Route class.
@@ -1688,7 +1688,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/RegExpRoute.js
+  // node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/RegExpRoute.js
   var RegExpRoute = class extends Route {
     /**
      * If the regular expression contains
@@ -1729,7 +1729,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/Router.js
+  // node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/Router.js
   var Router = class {
     /**
      * Initializes a new Router.
@@ -2042,7 +2042,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/utils/getOrCreateDefaultRouter.js
+  // node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/utils/getOrCreateDefaultRouter.js
   var defaultRouter;
   var getOrCreateDefaultRouter = () => {
     if (!defaultRouter) {
@@ -2053,7 +2053,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     return defaultRouter;
   };
 
-  // ../node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/registerRoute.js
+  // node_modules/.pnpm/workbox-routing@7.4.1/node_modules/workbox-routing/registerRoute.js
   function registerRoute(capture, handler, method) {
     let route;
     if (typeof capture === "string") {
@@ -2099,7 +2099,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     return route;
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/removeIgnoredSearchParams.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/removeIgnoredSearchParams.js
   function removeIgnoredSearchParams(urlObject, ignoreURLParametersMatching = []) {
     for (const paramName of [...urlObject.searchParams.keys()]) {
       if (ignoreURLParametersMatching.some((regExp) => regExp.test(paramName))) {
@@ -2109,7 +2109,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     return urlObject;
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/generateURLVariations.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/utils/generateURLVariations.js
   function* generateURLVariations(url, { ignoreURLParametersMatching = [/^utm_/, /^fbclid$/], directoryIndex = "index.html", cleanURLs = true, urlManipulation } = {}) {
     const urlObject = new URL(url, location.href);
     urlObject.hash = "";
@@ -2134,7 +2134,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/PrecacheRoute.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/PrecacheRoute.js
   var PrecacheRoute = class extends Route {
     /**
      * @param {PrecacheController} precacheController A `PrecacheController`
@@ -2171,26 +2171,26 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/addRoute.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/addRoute.js
   function addRoute(options) {
     const precacheController2 = getOrCreatePrecacheController();
     const precacheRoute = new PrecacheRoute(precacheController2, options);
     registerRoute(precacheRoute);
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/precache.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/precache.js
   function precache(entries) {
     const precacheController2 = getOrCreatePrecacheController();
     precacheController2.precache(entries);
   }
 
-  // ../node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/precacheAndRoute.js
+  // node_modules/.pnpm/workbox-precaching@7.4.1/node_modules/workbox-precaching/precacheAndRoute.js
   function precacheAndRoute(entries, options) {
     precache(entries);
     addRoute(options);
   }
 
-  // ../node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/utils/messages.js
+  // node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/utils/messages.js
   var messages2 = {
     strategyStart: (strategyName, request) => `Using ${strategyName} to respond to '${getFriendlyURL(request.url)}'`,
     printFinalResponse: (response) => {
@@ -2202,7 +2202,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/plugins/cacheOkAndOpaquePlugin.js
+  // node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/plugins/cacheOkAndOpaquePlugin.js
   var cacheOkAndOpaquePlugin = {
     /**
      * Returns a valid response (to allow caching) if the status is 200 (OK) or
@@ -2222,7 +2222,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/StaleWhileRevalidate.js
+  // node_modules/.pnpm/workbox-strategies@7.4.1/node_modules/workbox-strategies/StaleWhileRevalidate.js
   var StaleWhileRevalidate = class extends Strategy {
     /**
      * @param {Object} [options]
@@ -2296,7 +2296,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/idb@7.1.1/node_modules/idb/build/wrap-idb-value.js
+  // node_modules/.pnpm/idb@7.1.1/node_modules/idb/build/wrap-idb-value.js
   var instanceOfAny = (object, constructors) => constructors.some((c) => object instanceof c);
   var idbProxyableTypes;
   var cursorAdvanceMethods;
@@ -2439,7 +2439,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
   }
   var unwrap = (value) => reverseTransformCache.get(value);
 
-  // ../node_modules/.pnpm/idb@7.1.1/node_modules/idb/build/index.js
+  // node_modules/.pnpm/idb@7.1.1/node_modules/idb/build/index.js
   function openDB(name, version, { blocked, upgrade, blocking, terminated } = {}) {
     const request = indexedDB.open(name, version);
     const openPromise = wrap(request);
@@ -2514,13 +2514,13 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     has: (target, prop) => !!getMethod(target, prop) || oldTraps.has(target, prop)
   }));
 
-  // ../node_modules/.pnpm/workbox-expiration@7.4.1/node_modules/workbox-expiration/_version.js
+  // node_modules/.pnpm/workbox-expiration@7.4.1/node_modules/workbox-expiration/_version.js
   try {
     self["workbox:expiration:7.4.0"] && _();
   } catch (e) {
   }
 
-  // ../node_modules/.pnpm/workbox-expiration@7.4.1/node_modules/workbox-expiration/models/CacheTimestampsModel.js
+  // node_modules/.pnpm/workbox-expiration@7.4.1/node_modules/workbox-expiration/models/CacheTimestampsModel.js
   var DB_NAME = "workbox-expiration";
   var CACHE_OBJECT_STORE = "cache-entries";
   var normalizeURL = (unNormalizedUrl) => {
@@ -2661,7 +2661,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-expiration@7.4.1/node_modules/workbox-expiration/CacheExpiration.js
+  // node_modules/.pnpm/workbox-expiration@7.4.1/node_modules/workbox-expiration/CacheExpiration.js
   var CacheExpiration = class {
     /**
      * To construct a new CacheExpiration instance you must provide at least
@@ -2801,7 +2801,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/workbox-expiration@7.4.1/node_modules/workbox-expiration/ExpirationPlugin.js
+  // node_modules/.pnpm/workbox-expiration@7.4.1/node_modules/workbox-expiration/ExpirationPlugin.js
   var ExpirationPlugin = class {
     /**
      * @param {ExpirationPluginOptions} config
@@ -2970,203 +2970,254 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // ../node_modules/.pnpm/@c4h+weiwudi@0.3.1_workbox-routing@7.4.1/node_modules/@c4h/weiwudi/dist/weiwudi-sw.es.js
-  function v(_2) {
-    const I = 20037508342789244e-9, x = {};
-    let m;
-    const S = (l, t, c, i) => l.replace("{z}", String(t)).replace("{x}", String(c)).replace("{y}", String(i)).replace("{-y}", String(Math.pow(2, t) - i - 1)), T = (l, t = "", c = 512) => {
-      const i = atob(l), o = [];
-      for (let a = 0; a < i.length; a += c) {
-        const e = i.slice(a, a + c), n = new Array(e.length);
-        for (let A = 0; A < e.length; A++)
-          n[A] = e.charCodeAt(A);
+  // node_modules/.pnpm/@c4h+weiwudi@1.1.0-rc.1_workbox-routing@7.4.1/node_modules/@c4h/weiwudi/dist/weiwudi-sw.es.js
+  function W(S) {
+    const u = 20037508342789244e-9, M = {};
+    let A;
+    self.addEventListener("install", (i) => {
+      i.waitUntil(self.skipWaiting());
+    }), self.addEventListener("activate", (i) => {
+      i.waitUntil(self.clients.claim());
+    });
+    const T = (i, t, r, c) => i.replace("{z}", String(t)).replace("{x}", String(r)).replace("{y}", String(c)).replace("{-y}", String(Math.pow(2, t) - c - 1)), v = (i, t = "", r = 512) => {
+      const c = atob(i), o = [];
+      for (let a = 0; a < c.length; a += r) {
+        const e = c.slice(a, a + r), n = new Array(e.length);
+        for (let m = 0; m < e.length; m++)
+          n[m] = e.charCodeAt(m);
         const s = new Uint8Array(n);
         o.push(s);
       }
       return new Blob(o, { type: t });
-    }, w = async (l, t, c) => new Promise((i, o) => {
+    }, g = async (i, t, r) => new Promise((c, o) => {
       try {
-        if (x[l]) i(x[l]);
+        if (M[i]) c(M[i]);
         else {
-          const r = indexedDB.open(l);
-          r.onupgradeneeded = function(a) {
+          const l = indexedDB.open(i);
+          l.onupgradeneeded = function(a) {
             const e = a.target.result;
-            t && c && e.createObjectStore(t, { keyPath: c });
-          }, r.onsuccess = function(a) {
+            t && r && e.createObjectStore(t, { keyPath: r });
+          }, l.onsuccess = function(a) {
             const e = a.target.result;
-            x[l] = e, i(e);
-          }, r.onerror = function(a) {
-            o(r.error);
+            M[i] = e, c(e);
+          }, l.onerror = function(a) {
+            o(l.error);
           };
         }
-      } catch (r) {
-        o(r);
+      } catch (l) {
+        o(l);
       }
-    }), R = async (l) => (x[l] && (x[l].close(), delete x[l]), new Promise((t, c) => {
+    }), B = async (i) => (M[i] && (M[i].close(), delete M[i]), new Promise((t, r) => {
       try {
-        const i = indexedDB.deleteDatabase(l);
-        i.onsuccess = async (o) => {
+        const c = indexedDB.deleteDatabase(i);
+        c.onsuccess = async (o) => {
           t();
-        }, i.onerror = function(o) {
-          c(o);
+        }, c.onerror = function(o) {
+          r(o);
         };
-      } catch (i) {
-        c(i);
+      } catch (c) {
+        r(c);
       }
-    })), X = async (l, t) => new Promise((c, i) => {
-      const o = l.transaction([t], "readwrite"), a = o.objectStore(t).clear();
+    })), R = async (i, t) => new Promise((r, c) => {
+      const o = i.transaction([t], "readwrite"), a = o.objectStore(t).clear();
       a.onsuccess = function(e) {
       }, a.onerror = function(e) {
-        i(e);
+        c(e);
       }, o.oncomplete = function(e) {
-        c();
+        r();
       }, o.onabort = function(e) {
-        i(e);
+        c(e);
       }, o.onerror = function(e) {
-        i(e);
+        c(e);
       };
-    }), B = async (l, t) => new Promise((c, i) => {
-      const o = l.transaction([t], "readonly"), a = o.objectStore(t).openCursor();
+    }), X = async (i, t) => new Promise((r, c) => {
+      const o = i.transaction([t], "readonly"), a = o.objectStore(t).openCursor();
       let e = 0, n = 0;
       a.onsuccess = function(s) {
-        const A = a.result;
-        A && (e++, n = n + A.value.blob.size, A.continue());
+        const m = a.result;
+        m && (e++, n = n + m.value.blob.size, m.continue());
       }, a.onerror = function(s) {
-        i(s);
+        c(s);
       }, o.oncomplete = function(s) {
-        c({
+        r({
           count: e,
           size: n
         });
       }, o.onabort = function(s) {
-        i(s);
+        c(s);
       }, o.onerror = function(s) {
-        i(s);
+        c(s);
       };
-    }), M = async (l, t, c, i) => new Promise((o, r) => {
-      const a = l.transaction([t], "readonly"), e = a.objectStore(t), n = i ? e.getKey(c) : e.get(c);
+    }), _2 = async (i, t, r, c) => new Promise((o, l) => {
+      const a = i.transaction([t], "readonly"), e = a.objectStore(t), n = c ? e.getKey(r) : e.get(r);
       n.onsuccess = function(s) {
       }, n.onerror = function(s) {
-        r(s);
+        l(s);
       }, a.oncomplete = function(s) {
         o(n.result);
       }, a.onabort = function(s) {
-        r(s);
+        l(s);
       }, a.onerror = function(s) {
-        r(s);
+        l(s);
       };
-    }), Z = async (l, t, c) => new Promise((i, o) => {
-      const r = l.transaction([t], "readwrite"), e = r.objectStore(t).put(c);
+    }), Z = async (i, t, r) => new Promise((c, o) => {
+      const l = i.transaction([t], "readwrite"), e = l.objectStore(t).put(r);
       e.onsuccess = function(n) {
       }, e.onerror = function(n) {
         o(n);
-      }, r.oncomplete = function(n) {
-        i();
-      }, r.onabort = function(n) {
+      }, l.oncomplete = function(n) {
+        c();
+      }, l.onabort = function(n) {
         o(n);
-      }, r.onerror = function(n) {
+      }, l.onerror = function(n) {
         o(n);
       };
-    }), Y = async (l, t, c) => new Promise((i, o) => {
-      const r = l.transaction([t], "readwrite"), e = r.objectStore(t).delete(c);
+    }), Y = async (i, t, r) => new Promise((c, o) => {
+      const l = i.transaction([t], "readwrite"), e = l.objectStore(t).delete(r);
       e.onsuccess = function(n) {
       }, e.onerror = function(n) {
         o(n);
-      }, r.oncomplete = function(n) {
-        i();
-      }, r.onabort = function(n) {
+      }, l.oncomplete = function(n) {
+        c();
+      }, l.onabort = function(n) {
         o(n);
-      }, r.onerror = function(n) {
+      }, l.onerror = function(n) {
         o(n);
       };
-    }), C = async (l, t) => new Promise((c, i) => {
-      const o = l.transaction([t], "readwrite"), a = o.objectStore(t).getAllKeys();
+    }), k = async (i, t) => new Promise((r, c) => {
+      const o = i.transaction([t], "readwrite"), a = o.objectStore(t).getAllKeys();
       a.onsuccess = function(e) {
       }, a.onerror = function(e) {
-        i(e);
+        c(e);
       }, o.oncomplete = function(e) {
-        c(a.result);
+        r(a.result);
       }, o.onabort = function(e) {
-        i(e);
+        c(e);
       }, o.onerror = function(e) {
-        i(e);
+        c(e);
       };
-    }), F = async ({ url: l, event: t }) => {
-      const c = t instanceof FetchEvent ? t : void 0, i = c && c.clientId ? await self.clients.get(c.clientId) : void 0, o = l.pathname.match(/^\/api\/([\w\d]+)(?:\/(.+))?$/);
+    }), C = async (i, t, r, c) => new Promise((o, l) => {
+      const a = i.transaction([t], "readwrite"), e = a.objectStore(t), n = [], s = e.openCursor();
+      s.onsuccess = function(m) {
+        const h = s.result;
+        if (h) {
+          const f = h.value;
+          f && f.z_x_y && n.push({
+            key: f.z_x_y,
+            size: f.blob ? f.blob.size : 0,
+            accessedAt: typeof f.accessedAt == "number" ? f.accessedAt : f.epoch || 0
+          }), h.continue();
+        } else {
+          n.sort((d, w) => d.accessedAt !== w.accessedAt ? d.accessedAt - w.accessedAt : d.key < w.key ? -1 : d.key > w.key ? 1 : 0);
+          const f = r.blob.size, p = c > 0 && f <= c, I = p ? n.filter((d) => d.key !== r.z_x_y) : n.slice();
+          let b = I.reduce((d, w) => d + w.size, 0);
+          const x = p ? c - f : c;
+          let D = 0;
+          for (; b > x && D < I.length; )
+            e.delete(I[D].key), b -= I[D].size, D++;
+          p && e.put(r);
+        }
+      }, s.onerror = function(m) {
+        l(m);
+      }, a.oncomplete = function(m) {
+        o();
+      }, a.onabort = function(m) {
+        l(m);
+      }, a.onerror = function(m) {
+        l(m);
+      };
+    }), z = async ({ url: i, event: t }) => {
+      const r = t instanceof FetchEvent ? t : void 0, c = r && r.clientId ? await self.clients.get(r.clientId) : void 0, o = i.pathname.match(/^\/api\/([\w\d]+)(?:\/(.+))?$/);
       if (o) {
-        const r = [...l.searchParams.entries()].reduce((s, A) => {
-          const h = l.searchParams.getAll(A[0]);
-          return h.length === 1 ? s[A[0]] = h[0] : s[A[0]] = h, s;
+        const l = [...i.searchParams.entries()].reduce((s, m) => {
+          const h = i.searchParams.getAll(m[0]);
+          return h.length === 1 ? s[m[0]] = h[0] : s[m[0]] = h, s;
         }, {}), a = o[1], e = o[2];
-        let n = await L(a, r, e, i);
+        let n = await L(a, l, e, c);
         if (n)
           return n instanceof Response || (n = new Response(n)), n;
       }
       return new Response("Not Found", { status: 404 });
-    }, E = async (l, t, c, i, o) => {
-      let r;
-      const a = await w("Weiwudi"), e = await M(a, "mapSetting", l);
+    }, E = async (i, t, r, c, o) => {
+      let l;
+      const a = await g("Weiwudi"), e = await _2(a, "mapSetting", i);
       if (!o) {
-        if (!e) return `Error: MapID "${l}" not found`;
-        if (t < (e.minZoom || 0) || t > (e.maxZoom || 0)) r = "zoom";
-        else if (e.minX !== void 0 && e.maxX !== void 0 && e.minY !== void 0 && e.maxY !== void 0) {
-          const f = Math.pow(2, (e.maxZoom || 0) - t), p = Math.floor((e.minX || 0) / f), b = Math.floor((e.maxX || 0) / f), g = Math.floor((e.minY || 0) / f), u = Math.floor((e.maxY || 0) / f);
-          (c < p || c > b || i < g || i > u) && (r = "extent");
+        if (!e) return `Error: MapID "${i}" not found`;
+        if (t < (e.minZoom || 0) || t > (e.maxZoom ?? 1 / 0)) l = "zoom";
+        else if (e.maxZoom !== void 0 && e.minX !== void 0 && e.maxX !== void 0 && e.minY !== void 0 && e.maxY !== void 0) {
+          const f = Math.pow(2, (e.maxZoom || 0) - t), p = Math.floor((e.minX || 0) / f), I = Math.floor((e.maxX || 0) / f), b = Math.floor((e.minY || 0) / f), x = Math.floor((e.maxY || 0) / f);
+          (r < p || r > I || c < b || c > x) && (l = "extent");
         }
       }
-      let n = {}, s, A = 200, h = "OK";
-      if (r)
-        r === "zoom" ? (A = 404, h = "Not Found") : (n = {
+      let n = {}, s, m = 200, h = "OK";
+      if (l)
+        l === "zoom" ? (m = 404, h = "Not Found") : (n = {
           "content-type": "image/png"
-        }, s = T("iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAAB3RJTUUH3QgIBToaSbAjlwAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAAA1BMVEX///+nxBvIAAAAAXRSTlMAQObYZgAAAFRJREFUeNrtwQEBAAAAgJD+r+4ICgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgBDwABHHIJwwAAAABJRU5ErkJggg==", n["content-type"]));
+        }, s = v("iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAAB3RJTUUH3QgIBToaSbAjlwAAABd0RVh0U29mdHdhcmUAR0xEUE5HIHZlciAzLjRxhaThAAAACHRwTkdHTEQzAAAAAEqAKR8AAAAEZ0FNQQAAsY8L/GEFAAAAA1BMVEX///+nxBvIAAAAAXRSTlMAQObYZgAAAFRJREFUeNrtwQEBAAAAgJD+r+4ICgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgBDwABHHIJwwAAAABJRU5ErkJggg==", n["content-type"]));
       else {
-        const f = await w(`Weiwudi_${l}`), p = await M(f, "tileCache", `${t}_${c}_${i}`, o), b = (/* @__PURE__ */ new Date()).getTime();
-        if (!p || !p.epoch || b - p.epoch > 864e5) {
-          let g = "";
-          e.url instanceof Array ? g = e.url[Math.floor(Math.random() * e.url.length)] : typeof e.url == "string" && (g = e.url);
-          const u = S(g, t, c, i);
+        const f = await g(`Weiwudi_${i}`), p = await _2(f, "tileCache", `${t}_${r}_${c}`, o), I = (/* @__PURE__ */ new Date()).getTime(), b = e.cacheTtl ?? 864e5;
+        if (!p || !p.epoch || I - p.epoch > b) {
+          let x = "";
+          e.url instanceof Array ? x = e.url[Math.floor(Math.random() * e.url.length)] : typeof e.url == "string" && (x = e.url);
+          const D = T(x, t, r, c);
           try {
-            const d = await fetch(u);
-            d.ok ? (n = {}, d.headers.forEach((D, $) => {
-              n[$] = D;
-            }), s = await d.blob(), await Z(f, "tileCache", {
-              z_x_y: `${t}_${c}_${i}`,
-              headers: n,
-              blob: s,
-              epoch: b
-            })) : (p ? (n = p.headers, s = p.blob) : (A = d.status, h = d.statusText, n = {}, d.headers.forEach((D, $) => {
-              n[$] = D;
-            }), s = await d.blob()), m && m.error++);
+            const d = await fetch(D);
+            if (d.ok) {
+              n = {}, d.headers.forEach((w, $) => {
+                n[$] = w;
+              }), s = await d.blob();
+              try {
+                const w = {
+                  z_x_y: `${t}_${r}_${c}`,
+                  headers: n,
+                  blob: s,
+                  epoch: I,
+                  accessedAt: I
+                }, $ = e.cacheMaxBytes;
+                $ === void 0 ? await Z(f, "tileCache", w) : await C(f, "tileCache", w, $);
+              } catch {
+                A && A.error++;
+              }
+            } else
+              p ? (n = p.headers, s = p.blob) : (m = d.status, h = d.statusText, n = {}, d.headers.forEach((w, $) => {
+                n[$] = w;
+              }), s = await d.blob()), A && A.error++;
           } catch {
-            p ? (n = p.headers, s = p.blob) : (A = 404, h = "Not Found"), m && m.error++;
+            p ? (n = p.headers, s = p.blob) : (m = 404, h = "Not Found"), A && A.error++;
           }
-        } else o || (n = p.headers, s = p.blob);
+        } else if (!o) {
+          n = p.headers, s = p.blob;
+          try {
+            p.accessedAt = I, await Z(f, "tileCache", p);
+          } catch {
+          }
+        }
       }
       return o ? void 0 : new Response(s, {
-        status: A,
+        status: m,
         statusText: h,
         headers: new Headers(n)
       });
-    }, P = async (l, t) => {
-      let c = 0, i = 0;
-      const o = await w(`Weiwudi_${t.mapID}`), r = await C(o, "tileCache");
+    }, F = async (i, t) => {
+      let r = 0, c = 0;
+      const o = await g(`Weiwudi_${t.mapID}`), l = await k(o, "tileCache");
       try {
         const a = [], e = t.minZoom || 0, n = t.maxZoom || 0;
         for (let h = e; h <= n; h++) {
-          const f = Math.pow(2, n - h), p = Math.floor((t.maxX || 0) / f), b = Math.floor((t.minX || 0) / f), g = Math.floor((t.maxY || 0) / f), u = Math.floor((t.minY || 0) / f);
-          for (let d = b; d <= p; d++)
-            for (let D = u; D <= g; D++)
-              a.push([h, d, D]);
+          const f = Math.pow(2, n - h), p = Math.floor((t.maxX || 0) / f), I = Math.floor((t.minX || 0) / f), b = Math.floor((t.maxY || 0) / f), x = Math.floor((t.minY || 0) / f);
+          for (let D = I; D <= p; D++)
+            for (let d = x; d <= b; d++)
+              a.push([h, D, d]);
         }
         a.length != t.totalTile && console.log("Number of tiles is different");
         let s = a.splice(0, 5);
         for (; s.length; ) {
-          if (!await self.clients.get(l.id)) {
-            m = void 0;
+          if (!await self.clients.get(i.id)) {
+            A = void 0;
             return;
           }
-          if (m && m.cancel) {
-            m = void 0, l.postMessage({
+          if (A && A.cancel) {
+            A = void 0, i.postMessage({
               type: "canceled",
               message: `Fetching tile of ${t.mapID} is canceled`,
               mapID: t.mapID
@@ -3174,48 +3225,48 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
             return;
           }
           const f = s.map((p) => {
-            if (!(r.indexOf(`${p[0]}_${p[1]}_${p[2]}`) >= 0))
+            if (!(l.indexOf(`${p[0]}_${p[1]}_${p[2]}`) >= 0))
               return E(t.mapID, p[0], p[1], p[2], true);
           });
-          await Promise.all(f), c += f.length, m && (m.count = c), i = Math.floor(c * 100 / (t.totalTile || 1)), l.postMessage({
+          await Promise.all(f), r += f.length, A && (A.count = r), c = Math.floor(r * 100 / (t.totalTile || 1)), i.postMessage({
             type: "proceed",
-            message: `Proceeding the tile fetching: ${t.mapID} ${i}% (${c} / ${t.totalTile})`,
-            percent: i,
-            processed: c,
-            error: m ? m.error : 0,
+            message: `Proceeding the tile fetching: ${t.mapID} ${c}% (${r} / ${t.totalTile})`,
+            percent: c,
+            processed: r,
+            error: A ? A.error : 0,
             total: t.totalTile,
             mapID: t.mapID
           }), s = a.splice(0, 5);
         }
-        const A = m ? m.error : 0;
-        m = void 0, l.postMessage({
+        const m = A ? A.error : 0;
+        A = void 0, i.postMessage({
           type: "finish",
-          message: `Fetched all tiles of ${t.mapID}${A ? ` with ${A} error cases` : ""}`,
+          message: `Fetched all tiles of ${t.mapID}${m ? ` with ${m} error cases` : ""}`,
           total: t.totalTile,
           mapID: t.mapID,
-          error: A
+          error: m
         });
       } catch (a) {
-        m = void 0, l.postMessage({
+        A = void 0, i.postMessage({
           type: "stop",
-          message: `Fetching stopped: ${t.mapID} ${c} / ${t.totalTile}`,
+          message: `Fetching stopped: ${t.mapID} ${r} / ${t.totalTile}`,
           reason: a,
-          processed: c,
+          processed: r,
           total: t.totalTile,
           mapID: t.mapID
         });
       }
-    }, L = async (l, t, c, i) => {
+    }, L = async (i, t, r, c) => {
       let o;
-      const r = (a, e) => e.reduce((n, s) => n || (a[s] === void 0 ? `Error: Attribute "${s}" is missing` : n), void 0);
+      const l = (a, e) => e.reduce((n, s) => n || (a[s] === void 0 ? `Error: Attribute "${s}" is missing` : n), void 0);
       try {
-        switch (l) {
+        switch (i) {
           case "ping":
             o = "Implemented";
             break;
           case "info":
-            if (o = r(t, ["mapID"]), !o) {
-              const a = await w("Weiwudi", "mapSetting", "mapID"), e = await M(a, "mapSetting", t.mapID);
+            if (o = l(t, ["mapID"]), !o) {
+              const a = await g("Weiwudi", "mapSetting", "mapID"), e = await _2(a, "mapSetting", t.mapID);
               e ? o = new Response(JSON.stringify(e), {
                 headers: new Headers({
                   "content-type": "application/json"
@@ -3224,11 +3275,15 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
             }
             break;
           case "add": {
-            const a = await w("Weiwudi", "mapSetting", "mapID");
-            if (o = r(t, ["mapID", "type", "url"]), !o)
-              switch (t.tileSize = parseInt(t.tileSize || 256), t.type) {
+            const a = await g("Weiwudi", "mapSetting", "mapID");
+            if (o = l(t, ["mapID", "type", "url"]), !o) {
+              if (t.tileSize = parseInt(t.tileSize || 256), t.cacheTtl !== void 0 && (t.cacheTtl = parseInt(t.cacheTtl)), t.cacheMaxBytes !== void 0) {
+                const e = String(t.cacheMaxBytes).trim(), n = parseInt(e);
+                !Number.isFinite(n) || n < 0 || String(n) !== e ? o = 'Error: Attribute "cacheMaxBytes" is not a valid non-negative integer' : t.cacheMaxBytes = n;
+              }
+              switch (t.type) {
                 case "xyz":
-                  if (o = r(t, ["width", "height"]), !o) {
+                  if (o = l(t, ["width", "height"]), !o) {
                     t.width = parseInt(t.width), t.height = parseInt(t.height);
                     const e = (n) => Math.ceil(Math.log(n / t.tileSize) / Math.log(2));
                     t.maxZoom = Math.max(e(t.width), e(t.height)), t.minZoom = t.minZoom ? parseInt(t.minZoom) : 0, t.minX = 0, t.minY = 0, t.maxX = Math.ceil(t.width / t.tileSize) - 1, t.maxY = Math.ceil(t.height / t.tileSize) - 1;
@@ -3239,24 +3294,25 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
                     const e = (s) => 6378137 * s * Math.PI / 180, n = (s) => 6378137 * Math.log(Math.tan(Math.PI / 360 * (90 + s)));
                     if (t.maxZoom && (t.maxZoom = parseInt(t.maxZoom)), t.minZoom && (t.minZoom = parseInt(t.minZoom)), t.maxLng && t.minLng && t.maxLat && t.minLat) {
                       t.maxLng = parseFloat(t.maxLng), t.minLng = parseFloat(t.minLng), t.maxLat = parseFloat(t.maxLat), t.minLat = parseFloat(t.minLat);
-                      const s = e(t.maxLng), A = e(t.minLng), h = n(t.maxLat), f = n(t.minLat);
-                      t.minX = Math.floor((I + A) / (2 * I) * Math.pow(2, t.maxZoom)), t.maxX = Math.floor((I + s) / (2 * I) * Math.pow(2, t.maxZoom)), t.minY = Math.floor((I - h) / (2 * I) * Math.pow(2, t.maxZoom)), t.maxY = Math.floor((I - f) / (2 * I) * Math.pow(2, t.maxZoom));
+                      const s = e(t.maxLng), m = e(t.minLng), h = n(t.maxLat), f = n(t.minLat);
+                      t.minX = Math.floor((u + m) / (2 * u) * Math.pow(2, t.maxZoom)), t.maxX = Math.floor((u + s) / (2 * u) * Math.pow(2, t.maxZoom)), t.minY = Math.floor((u - h) / (2 * u) * Math.pow(2, t.maxZoom)), t.maxY = Math.floor((u - f) / (2 * u) * Math.pow(2, t.maxZoom));
                     }
                   }
                   break;
                 default:
                   o = 'Error: Unknown "type" value';
               }
+            }
             if (!o) {
-              if (!r(t, ["maxX", "minX", "maxY", "minY", "minZoom", "maxZoom"])) {
+              if (!l(t, ["maxX", "minX", "maxY", "minY", "minZoom", "maxZoom"])) {
                 t.totalTile = 0;
                 const e = (n, s) => Math.floor(n / Math.pow(2, t.maxZoom - s));
                 for (let n = t.minZoom; n <= t.maxZoom; n++) {
-                  const s = e(t.minX, n), A = e(t.minY, n), h = e(t.maxX, n), f = e(t.maxY, n);
-                  t.totalTile += (h - s + 1) * (f - A + 1);
+                  const s = e(t.minX, n), m = e(t.minY, n), h = e(t.maxX, n), f = e(t.maxY, n);
+                  t.totalTile += (h - s + 1) * (f - m + 1);
                 }
               }
-              await Z(a, "mapSetting", t), await w(`Weiwudi_${t.mapID}`, "tileCache", "z_x_y"), o = new Response(JSON.stringify(t), {
+              await Z(a, "mapSetting", t), await g(`Weiwudi_${t.mapID}`, "tileCache", "z_x_y"), o = new Response(JSON.stringify(t), {
                 headers: new Headers({
                   "content-type": "application/json"
                 })
@@ -3265,31 +3321,31 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
             break;
           }
           case "clean":
-            if (o = r(t, ["mapID"]), m && m.mapID == t.mapID)
+            if (o = l(t, ["mapID"]), A && A.mapID == t.mapID)
               o = `Error: ${t.mapID} is under fetching process. Please cancel it first`;
             else if (!o) {
-              const a = await w(`Weiwudi_${t.mapID}`);
-              await X(a, "tileCache"), o = `Cleaned: ${t.mapID}`;
+              const a = await g(`Weiwudi_${t.mapID}`);
+              await R(a, "tileCache"), o = `Cleaned: ${t.mapID}`;
             }
             break;
           case "delete":
-            if (o = r(t, ["mapID"]), m && m.mapID == t.mapID)
+            if (o = l(t, ["mapID"]), A && A.mapID == t.mapID)
               o = `Error: ${t.mapID} is under fetching process. Please cancel it first`;
             else if (!o) {
-              await R(`Weiwudi_${t.mapID}`);
-              const a = await w("Weiwudi");
+              await B(`Weiwudi_${t.mapID}`);
+              const a = await g("Weiwudi");
               await Y(a, "mapSetting", t.mapID), o = `Deleted: ${t.mapID}`;
             }
             break;
           case "cancel":
-            o = r(t, ["mapID"]), m && m.mapID == t.mapID ? (m.cancel = true, o = `Fetching process of ${m.mapID} is canceled`) : o = `Error: There are no fetching process of ${t.mapID}`;
+            o = l(t, ["mapID"]), A && A.mapID == t.mapID ? (A.cancel = true, o = `Fetching process of ${A.mapID} is canceled`) : o = `Error: There are no fetching process of ${t.mapID}`;
             break;
           case "stats":
-            if (o = r(t, ["mapID"]), !o) {
-              const a = await w("Weiwudi"), e = await M(a, "mapSetting", t.mapID);
+            if (o = l(t, ["mapID"]), !o) {
+              const a = await g("Weiwudi"), e = await _2(a, "mapSetting", t.mapID);
               if (!e) o = `Error: MapID "${t.mapID}" not found`;
               else {
-                const n = await w(`Weiwudi_${t.mapID}`), s = await B(n, "tileCache");
+                const n = await g(`Weiwudi_${t.mapID}`), s = await X(n, "tileCache");
                 e.totalTile && (s.total = e.totalTile, s.percent = Math.floor(s.count / s.total * 100)), o = new Response(JSON.stringify(s), {
                   headers: new Headers({
                     "content-type": "application/json"
@@ -3299,34 +3355,34 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
             }
             break;
           case "cache": {
-            const a = c?.match(/^([^/]+)\/(\d+)\/(\d+)\/(\d+)$/);
+            const a = r?.match(/^([^/]+)\/(\d+)\/(\d+)\/(\d+)$/);
             a ? o = await E(a[1], parseInt(a[2]), parseInt(a[3]), parseInt(a[4])) : o = 'Error: "cache" api needs mapID, zoom, x, y settings';
             break;
           }
           case "fetchAll":
-            if (o = r(t, ["mapID"]), !o && i) {
-              const a = await w("Weiwudi"), e = await M(a, "mapSetting", t.mapID);
-              e ? e.totalTile ? m ? o = `Error: Another fetching process is running: "${m.mapID}" (${m.count} / ${m.total})` : (setTimeout(() => {
-                m = {
+            if (o = l(t, ["mapID"]), !o && c) {
+              const a = await g("Weiwudi"), e = await _2(a, "mapSetting", t.mapID);
+              e ? e.totalTile ? A ? o = `Error: Another fetching process is running: "${A.mapID}" (${A.count} / ${A.total})` : (setTimeout(() => {
+                A = {
                   mapID: t.mapID,
                   total: e.totalTile || 0,
                   count: 0,
                   error: 0
-                }, P(i, e);
+                }, F(c, e);
               }, 1), o = `Fetching task start: ${t.mapID}`) : o = `Error: Map "${t.mapID}" cannot fetch all tiles` : o = `Error: MapID "${t.mapID}" not found`;
             }
             break;
           default:
-            o = `Error: API ${l} not found`;
+            o = `Error: API ${i} not found`;
         }
       } catch (a) {
         o = `Error: ${a}`;
       }
       if (o) return o;
     };
-    _2(/^https?:\/\/weiwudi.example.com/, F, "GET");
+    S(/^https?:\/\/weiwudi.example.com/, z, "GET");
   }
-  v(registerRoute);
+  W(registerRoute);
 
   // src/service-worker/index.ts
   skipWaiting();
@@ -3335,7 +3391,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
   registerRoute(
     /(?:maps\/.+\.json|pwa\/.+|pois\/.+\.json|apps\/.+\.json|tmbs\/.+\.jpg|images\/.+\.(?:png|jpg))$/,
     new StaleWhileRevalidate({
-      cacheName: `resourcesCache-${"2026-08-07-10-27"}`,
+      cacheName: `resourcesCache-${"2026-09-27-19-24"}`,
       plugins: [
         new ExpirationPlugin({
           maxAgeSeconds: 86400,
