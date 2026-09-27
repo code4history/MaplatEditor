@@ -134,8 +134,10 @@ test.describe('oct26-m16-t2 main window・About ウィンドウの遷移ガー�
     const { app, page } = await launch(e2eRoot);
     try {
       await installRecorder(app);
-      const mainUrl = page.mainFrame().url();
-      expect(mainUrl).toMatch(/^app:\/\/bundle\//);
+      // 初期表示の router redirect（#/ → #/maplist）が済んでから main frame の URL を控える
+      // （控えた後に redirect が走ると、ガードと無関係に比較が合わなくなる）
+      const mainUrl = 'app://bundle/index.html#/maplist';
+      await expect.poll(() => page.mainFrame().url()).toBe(mainUrl);
       const before = await windowCount(app);
 
       await page.evaluate((src) => {
