@@ -1,0 +1,5 @@
+# 同梱ビューア（public/preview）は @maplat/ui の dist とバイト単位で同一であるべき配布物。
+# Windows のチェックアウト（core.autocrlf=true）で LF が CRLF に変換されると、
+# scripts/m12-t5/check-viewer-freshness.mjs の sha256 照合（同梱ビューア = ui dist）が Windows でだけ不一致になる。
+# 改行変換の対象から外し、どの OS でも取得したままのバイト列で扱う（oct26-m6-t6・2026-09-28）。
+public/preview/** -text
