@@ -7,6 +7,8 @@ import path from 'node:path'
 // の下でローカルリソースを許可経路の allowlist に限定して配信する
 // oct26-m4-t2ff: ローカルリソースは renderer と同一 origin（app://bundle/__local/）で配信し、corsEnabled を使わない
 import { APP_SCHEME, appSchemePrivileges, createAppSchemeHandler } from './utils/appScheme'
+// oct26-m16-t2 (F-C1): main window・About ウィンドウの遷移ガード
+import { installNavigationGuard } from './navigation-guard'
 
 // const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -99,6 +101,10 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.mjs'),
     },
   })
+
+  // oct26-m16-t2 (F-C1): 同梱物（開発時は dev server）以外への main frame の遷移と新規ウィンドウを止める。
+  // 止めないと、プレビュー内の POI の <a target="_top"> で外部ページが preload（IPC）ごと main window に載る
+  installNavigationGuard(win.webContents, VITE_DEV_SERVER_URL)
 
   // レンダラープロセスへのメッセージ送信テスト
   win.webContents.on('did-finish-load', () => {
@@ -547,6 +553,8 @@ function createAboutWindow() {
     }
   });
   aboutWin.setMenu(null);
+  // oct26-m16-t2 (F-C1): main window と同じ遷移ガード（about.html に外部リンクは無い ∴ 新規ウィンドウは一切開かない）
+  installNavigationGuard(aboutWin.webContents, VITE_DEV_SERVER_URL);
 
   // publicフォルダからabout.htmlを読み込む。バージョン値は preload/contextBridge を使わず
   // query で渡す（§6 のインタフェース契約。露出面ゼロを保つ唯一の経路）。
