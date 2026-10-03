@@ -124,10 +124,20 @@ function authenticodeMany(files) {
     + "subject = if ($s.SignerCertificate) { $s.SignerCertificate.Subject } else { $null } } } | ConvertTo-Json -Compress -Depth 3";
   const listFile = path.join(tmpdir(), `win-sign-list-${process.pid}.json`);
   writeFileSync(listFile, JSON.stringify(files));
-  const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-    env: { ...process.env, WIN_SIGN_LIST: listFile }, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
-  });
-  if (r.status !== 0) die(`Get-AuthenticodeSignature が失敗: ${r.stderr}`);
+  // pwsh（GitHub Actions の既定）から起動した powershell.exe は PSModulePath の食い違いで
+  // Microsoft.PowerShell.Security を読めないことがある（win-sign.cjs の authenticode() と同じ理由）。
+  // ∴ pwsh を優先し、無いときだけ PSModulePath を外して powershell.exe を使う。
+  const env = { ...process.env, WIN_SIGN_LIST: listFile };
+  const opts = { env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 };
+  let shell = 'pwsh';
+  let r = spawnSync(shell, ['-NoProfile', '-NonInteractive', '-Command', script], opts);
+  if (r.error && r.error.code === 'ENOENT') {
+    shell = 'powershell.exe';
+    delete env.PSModulePath;
+    r = spawnSync(shell, ['-NoProfile', '-NonInteractive', '-Command', script], opts);
+  }
+  if (r.error) die(`${shell} を起動できません: ${r.error.message}`);
+  if (r.status !== 0) die(`Get-AuthenticodeSignature が失敗（${shell}）: ${r.stderr}`);
   const parsed = JSON.parse(r.stdout.trim() || '[]');
   return new Map((Array.isArray(parsed) ? parsed : [parsed]).map((e) => [e.file, e]));
 }

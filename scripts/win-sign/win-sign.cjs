@@ -124,11 +124,28 @@ function authenticode(file) {
   if (process.platform !== 'win32') throw new Error('Authenticode の検証は Windows でしか行えません');
   const script = "$s = Get-AuthenticodeSignature -LiteralPath $env:WIN_SIGN_TARGET; "
     + "[pscustomobject]@{ status = [string]$s.Status; subject = if ($s.SignerCertificate) { $s.SignerCertificate.Subject } else { $null } } | ConvertTo-Json -Compress";
-  const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-    env: { ...process.env, WIN_SIGN_TARGET: file }, encoding: 'utf8', timeout: 120_000,
-  });
-  if (r.status !== 0) throw new Error(`Get-AuthenticodeSignature が失敗しました: ${r.stderr || r.stdout}`);
-  return JSON.parse(r.stdout.trim());
+  // GitHub Actions の Windows は step を PowerShell 7（pwsh）で動かす。そこから Windows PowerShell 5.1
+  // （powershell.exe）を起動すると、pwsh 用の PSModulePath を引き継いで Microsoft.PowerShell.Security の
+  // 読み込みに失敗し、Get-AuthenticodeSignature が「止まらないエラー」で $null を返す（終了コードは 0）。
+  // 1.1.0-rc.2 の初回 mode=full（run 37122225835）で status=''・subject=null となって止まった。
+  // ∴ pwsh があれば pwsh を使い、無いときだけ PSModulePath を外して powershell.exe を使う。
+  const env = { ...process.env, WIN_SIGN_TARGET: file };
+  let shell = 'pwsh';
+  let r = spawnSync(shell, ['-NoProfile', '-NonInteractive', '-Command', script], { env, encoding: 'utf8', timeout: 120_000 });
+  if (r.error && r.error.code === 'ENOENT') {
+    shell = 'powershell.exe';
+    delete env.PSModulePath;
+    r = spawnSync(shell, ['-NoProfile', '-NonInteractive', '-Command', script], { env, encoding: 'utf8', timeout: 120_000 });
+  }
+  if (r.error) throw new Error(`${shell} を起動できません: ${r.error.message}`);
+  if (r.status !== 0) throw new Error(`Get-AuthenticodeSignature が失敗しました（${shell}）: ${r.stderr || r.stdout}`);
+  const out = JSON.parse(r.stdout.trim());
+  // 状態が空 ＝ 署名が無効なのではなく、検証そのものが動いていない。署名の失敗と取り違えないよう、
+  // PowerShell のエラー出力を添えて止める
+  if (!out || !out.status) {
+    throw new Error(`Get-AuthenticodeSignature が結果を返しませんでした（${shell}・検証そのものの失敗）: ${(r.stderr || '').trim() || '(stderr なし)'}`);
+  }
+  return out;
 }
 
 /** 証明書の subject の CN が期待どおりか。.NET（Get-AuthenticodeSignature）は値にカンマを含むと
