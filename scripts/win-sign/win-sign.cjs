@@ -38,6 +38,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
+const os = require('node:os');
 
 const MODES = ['off', 'record', 'esigner'];
 
@@ -284,7 +285,28 @@ function resolveCodeSignTool() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// CodeSignTool は拡張子で署名形式を決める。.node（中身は PE の DLL）は
+// 「Unsupported file format for signing - node」で断られる（1.1.0-rc.2 の run 37125230712）。
+// ∴ 対応外の拡張子は、作業ディレクトリに .dll の名前でコピーして署名し、元のファイルへ書き戻す。
+const CODESIGNTOOL_EXTS = new Set(['.exe', '.dll', '.msi', '.sys', '.ocx', '.cab', '.cat', '.ps1', '.psm1', '.appx', '.msix']);
+
 async function codeSignTool(file) {
+  const ext = path.extname(file).toLowerCase();
+  if (!CODESIGNTOOL_EXTS.has(ext)) {
+    const base = process.env.WIN_SIGN_WORK_DIR ? path.resolve(process.env.WIN_SIGN_WORK_DIR) : os.tmpdir();
+    fs.mkdirSync(base, { recursive: true });
+    const tmpDir = fs.mkdtempSync(path.join(base, 'ext-'));
+    const alias = path.join(tmpDir, `${path.basename(file, path.extname(file))}.dll`);
+    fs.copyFileSync(file, alias);
+    console.log(`[win-sign] ${path.basename(file)} は CodeSignTool が拡張子で受け付けないため、${path.basename(alias)} として署名する`);
+    await codeSignToolRaw(alias);
+    fs.copyFileSync(alias, file);
+    return;
+  }
+  await codeSignToolRaw(file);
+}
+
+async function codeSignToolRaw(file) {
   for (const k of ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET']) {
     if (!process.env[k]) throw new Error(`${k} が未設定です（environment release の secrets）`);
   }
