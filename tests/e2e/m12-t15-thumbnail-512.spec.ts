@@ -193,8 +193,12 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       const { uid } = await seedMap(page);
       await placeThumbnails(await saveFolderOf(page), uid);
       // 初期ルートで MapList が先に読み込まれるため、別画面へ逃がしてから戻って再読み込みさせる
+      // 遷移の確定（遷移先画面の表示）を待ってから次の hash へ進む。待たずに書き換えると、遅い runner では
+      // 前の遷移が後の遷移に取り消され、一覧が再マウントされない（EDITOR-FLAKY-E2E-SUGI の調査結果）。
       await openHash(page, '#/basemaps');
+      await expect(page.locator('[data-master-detail="base-map"]')).toBeVisible({ timeout: 15000 });
       await openHash(page, '#/maplist');
+      await expect(page.locator('.map-list')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('[data-resource-list="map"]')).toBeVisible({ timeout: 15000 });
 
       // AC6: 512px がある地図の grid card は _512.webp を使う（画像読み込みを poll で待つ）
@@ -232,8 +236,11 @@ test.describe('M12-T15 512pxアイコン活用', () => {
       }, slug);
 
       // 初期ルートで AppList が先に読み込まれるため、別画面へ逃がしてから戻って再読み込みさせる
+      // 遷移の確定（遷移先画面の表示）を待ってから次の hash へ進む（AC6 と同じ理由）
       await openHash(page, '#/maplist');
+      await expect(page.locator('.map-list')).toBeVisible({ timeout: 15000 });
       await openHash(page, '#/applist');
+      await expect(page.locator('.app-list')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('[data-resource-list="app"]')).toBeVisible({ timeout: 15000 });
 
       // AC7: favicon 未設定のアプリは地図の 512px を使う

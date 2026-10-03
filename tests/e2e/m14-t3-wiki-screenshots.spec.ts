@@ -133,7 +133,11 @@ test('m14-t3: capture current-1..4 wiki screenshots (MapList / MapEdit-GCP / Poi
     await fillAndCommit(page.getByTestId('map-title'), 'Draft Map for Screenshot');
     await page.reload(); // beforeunload flushSync で draft を永続化する（m11-t5 の base map draft 検証と同じパターン）
     await page.waitForLoadState('domcontentloaded');
-    await openHash(page, '#/maplist', '.main-content');
+    // reload 後の初回遷移（/mapedit）が確定して編集画面が出るまで待ってから hash を変える。
+    // 待たずに書き換えると、遅い runner では初回遷移と競合して /maplist への遷移が
+    // 取り消される（EDITOR-FLAKY-E2E-SUGI の調査結果）。
+    await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 20000 });
+    await openHash(page, '#/maplist', '.map-list');
     await expect(page.locator('.resource-grid-card')).toHaveCount(3, { timeout: 20000 }); // フィクスチャ地図2件 + 下書き1件
     await page.waitForTimeout(500); // サムネイル描画の安定待ち
     await shot('current-1-map-list');

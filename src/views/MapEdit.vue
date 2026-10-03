@@ -2210,6 +2210,14 @@ const seedTinObjects = (tins: any[] | null): void => {
     });
 };
 
+// onMounted は async で、await の途中に画面を離れる（unmount される）ことがある。そのまま続きを
+// 実行すると、離れた先の URL へ router.replace で draftUid を付け、onBeforeUnmount の後に
+// keydown・main-process のリスナーを登録して残してしまう。onBeforeUnmount で立てるこのフラグを
+// await の後で見て、unmount 済みなら続き（URL 書き換え・下書きの open・リスナー登録・地図の初期化）をしない。
+let isUnmounted = false;
+// onMounted の await の後で作る watch は component に紐付かないため、onBeforeUnmount で明示的に止める
+let stopActiveTabWatch: (() => void) | undefined;
+
 onMounted(async () => {
     // 地図編集はuid正準で開く (ADR-0007): /mapedit?uid=<uid>。uid未指定は新規作成
     const uid = route.query.uid as string | undefined;
@@ -2296,6 +2304,7 @@ onMounted(async () => {
         }
     }
 
+    if (isUnmounted) return;
     // 編集言語の初期値は地図のデフォルト言語(未設定の旧データはja)
     currentLang.value = (mapData.value.lang || 'ja') as LangCode;
 
@@ -2310,6 +2319,7 @@ onMounted(async () => {
             originalMapData.value.wmtsFolder = wmtsFolder;
         });
     } catch (_e) { /* 取得失敗時はデフォルト空文字のまま */ }
+    if (isUnmounted) return;
 
     // W4（設計 §5.3.1）: mount 時の初期状態構築。起点にユーザ操作が無い（S3）
     withoutHistory('W4', () => {
@@ -2334,8 +2344,11 @@ onMounted(async () => {
     const draftUid = uid && uid !== 'new' ? uid : newMapUid;
     if (isNew && route.query.draftUid !== draftUid) {
         await router.replace({ query: { ...route.query, draftUid } });
+        if (isUnmounted) return;
     }
-    const restoreDecision = await draftLifecycle.open(draftUid, revision.value ?? null);
+    // open の await 中に unmount された場合は、閉じた画面への下書きの復元適用もしない（PoiEdit と同じ shouldApply）
+    const restoreDecision = await draftLifecycle.open(draftUid, revision.value ?? null, { shouldApply: () => !isUnmounted });
+    if (isUnmounted) return;
     // M12-T20 (§6.4): auto-apply で復元された場合の復元時ガード（conflict 分岐は
     // applyConflictDraft が担う）。表示のみのため mount 続行をブロックしない
     if (restoreDecision === 'auto-apply') void warnIfDraftTilesLost(false);
@@ -2349,7 +2362,7 @@ onMounted(async () => {
 
     // GCP タブへの切り替えを監視: v-show でマップコンテナが非表示の間は
     // OpenLayers が高さ 0 の div にレンダリングするため、updateSize() で強制再描画する
-    watch(activeTab, (newTab) => {
+    stopActiveTabWatch = watch(activeTab, (newTab) => {
         if (newTab === 'gcps') {
             nextTick(() => {
                 illstMap?.updateSize();
@@ -2364,6 +2377,9 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+    isUnmounted = true;
+    stopActiveTabWatch?.();
+    stopActiveTabWatch = undefined;
     // C6（設計 §5.6.2）: 終端廃棄
     cancelPendingSnapshot();
     window.removeEventListener('keydown', onHistoryKeydown);
