@@ -178,10 +178,14 @@ test.describe('M12-T32 ベースマップ重複修正', () => {
 
       // 下書きカードが /maplist に表示される（remount で refreshDrafts を走らせるため
       // 別ルートへ一旦抜けて戻る）
+      // 遷移の確定（遷移先画面の表示）を待ってから次の hash へ進む。待たずに書き換えると、遅い runner では
+      // 前の遷移が後の遷移に取り消され、一覧が再マウントされない（EDITOR-FLAKY-E2E-SUGI の調査結果）。
       await page.evaluate((h) => { location.hash = h; }, '#/applist');
       await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('.app-list')).toBeVisible({ timeout: 15_000 });
       await page.evaluate((h) => { location.hash = h; }, '#/maplist');
       await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('.map-list')).toBeVisible({ timeout: 15_000 });
       await expect.poll(
         async () => await page.locator(`[data-resource-uid="${draftUid}"]`).count(),
         { timeout: 15_000 },

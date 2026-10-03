@@ -264,8 +264,12 @@ test.describe('M11-T10 Dedup/Import', () => {
         (await page.evaluate(async () => (await window.maplist.request('', 1)).docs.map((d: any) => d.mapID))),
       { timeout: 30000 }).toContain(seeded.slug);
       // 初期ルートが #/maplist のため、同一hashでは再マウントされない。別ルート経由で再入する
+      // 遷移の確定（遷移先画面の表示）を待ってから次の hash へ進む。待たずに書き換えると、遅い runner では
+      // 前の遷移が後の遷移に取り消され、一覧が再マウントされない（EDITOR-FLAKY-E2E-SUGI の調査結果）。
       await openHash(page, '#/applist');
+      await expect(page.locator('.app-list')).toBeVisible({ timeout: 15000 });
       await openHash(page, '#/maplist');
+      await expect(page.locator('.map-list')).toBeVisible({ timeout: 15000 });
       await expect(page.locator(`[data-resource-uid="${seeded.uid}"]`)).toBeVisible({ timeout: 15000 });
 
       // 複製 → MapEdit が予約slug(-copy)で dirty オープン
@@ -291,8 +295,12 @@ test.describe('M11-T10 Dedup/Import', () => {
       await expect.poll(async () =>
         (await page.evaluate(async () => (await window.maplist.request('', 1)).docs.map((d: any) => d.mapID))),
       { timeout: 30000 }).toContain(`${seeded.slug}-copy`);
+      // 遷移の確定（遷移先画面の表示）を待ってから次の hash へ進む。待たずに書き換えると、遅い runner では
+      // 前の遷移が後の遷移に取り消され、一覧が再マウントされない（EDITOR-FLAKY-E2E-SUGI の調査結果）。
       await openHash(page, '#/applist');
+      await expect(page.locator('.app-list')).toBeVisible({ timeout: 15000 });
       await openHash(page, '#/maplist');
+      await expect(page.locator('.map-list')).toBeVisible({ timeout: 15000 });
       const copyUid = await page.evaluate(async (slug) =>
         (await window.maplist.request('', 1)).docs.find((d: any) => d.mapID === slug)?.uid, `${seeded.slug}-copy`);
       expect(copyUid).toBeTruthy();
