@@ -102,14 +102,6 @@
       "issue": "#117"
     },
     {
-      "file": "m12-t15-thumbnail-512.spec.ts",
-      "line": 188,
-      "title": "AC6: 地図一覧 grid card が 512px を優先表示する",
-      "kind": "intermittent",
-      "reason": "間欠: grid card の画像が _512.webp にならない（観測: v1 は再試行で合格・t5 実装時の測定は 2 回失敗・単独再実行で失敗 1 回／flaky 1 回・d11ac0b ＋ t5 の測定は 2 回失敗で no_image のまま）。同じ系列で合格と失敗の両方を観測",
-      "issue": "#117"
-    },
-    {
       "file": "m12-t20-draft-tile-durability.spec.ts",
       "line": 323,
       "title": "AC20-3: 下書きの明示破棄（編集画面・一覧）で staging dir が回収される",
