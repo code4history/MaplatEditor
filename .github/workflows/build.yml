@@ -6,7 +6,10 @@ on:
   #   mode=verify（既定・動作確認用）: Mac 署名のみ / Win 署名なし / draft Release なし
   #     Apple は年額で署名ごとの課金がなく eSigner も呼ばないため **課金ゼロ**。∴ 全バージョン・全ブランチ可
   #   mode=full（完全）:               Mac 署名+公証 / Win eSigner 署名 / draft Release 作成
-  #     eSigner は署名ごとに課金（2回/リリース）。∴ **rc 以降**に限定
+  #     eSigner は署名ごとに課金。∴ **rc 以降**に限定。Windows は配布物の全 PE を署名する（2026-10-03・
+  #     SAC 起動拒否への対処。Setup.exe だけでは SAC がアプリ本体と DLL を止める）。依存の版が同じなら
+  #     DLL 等は署名済みキャッシュ（Release `win-signed-cache`）から使い回すため、通常は 6 回/リリース
+  #     （MaplatEditor.exe・アンインストーラー・インストーラー × x64/arm64）。依存を上げた版は最大 28 回
   #     （prerelease は rc 始まりのみ。正式版は master 限定。判定は scripts/m6-t12/check-release-guard.mjs）
   #
   #   platforms=all|mac|win|linux: 対象を絞れる。Apple の公証が復旧したときに
@@ -26,7 +29,7 @@ on:
         default: verify
         options:
           - verify   # 動作確認用: Mac 署名のみ / Win 署名なし / Release 作らない（課金ゼロ・全バージョン可）
-          - full     # 完全:       Mac 署名+公証 / Win eSigner 署名 / draft Release（eSigner 課金2回・rc 以降限定）
+          - full     # 完全:       Mac 署名+公証 / Win eSigner 署名 / draft Release（eSigner 課金・通常6回・rc 以降限定）
       platforms:
         description: 'ビルド対象'
         type: choice
@@ -237,11 +240,15 @@ jobs:
     # platforms で対象を絞る（push は常に全プラットフォーム）
     if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || inputs.platforms == 'win'
     runs-on: windows-latest
-    # 実測 4分台。eSigner の応答待ちを見込んでも 45 分あれば十分（早期失敗のため）
-    timeout-minutes: 45
+    # 実測 4分台のビルドを mode=full では 2 回（課金前の予行 + 署名本番）行い、eSigner の応答待ち
+    # （初回・依存更新時は最大 28 署名）も見込む。早期失敗のため上限は残す
+    timeout-minutes: 90
     environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode != '') && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
+    outputs:
+      # 新しく署名してキャッシュへ足す候補の数（publish-win-sign-cache の起動条件）
+      win_sign_cache_new: ${{ steps.cache-outbox.outputs.count }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -278,7 +285,21 @@ jobs:
           MODE: ${{ inputs.mode }}
         run: node scripts/m12-t5/check-viewer-freshness.mjs
 
+      # ── Windows の署名（2026-10-03・SAC 起動拒否への対処。仕組みは scripts/win-sign/win-sign.cjs）──
+      # electron-builder のファイルごとの署名フックで、配布物に入る全 PE（アプリ本体 exe・DLL・Windows 用 .node・
+      # elevate.exe・アンインストーラー・インストーラー・NSIS プラグイン DLL）を署名する。WIN_SIGN_MODE で切り替える:
+      #   record  … 署名しない。フックに渡った全ファイルを記録する（課金ゼロ）。全経路で最初にこれを行う
+      #   esigner … SSL.com CodeSignTool で本当に署名する（mode=full のときだけ・課金あり）
+      # mode=full でも先に record で 1 回作り、下の検査（コーデック・署名の網羅）を**課金の前に**通す。
+      # 通ったときだけ esigner でもう一度作る（同じ dist/ から electron-builder だけを再実行する）。
+      # 署名済みキャッシュ（Release win-signed-cache の asset）は読むだけなのでトークン不要。
+      # record でもキャッシュを引き、本番で何回署名されるか（課金の見込み）を記録に残す。
       - name: Build Windows
+        env:
+          WIN_SIGN_MODE: record
+          WIN_SIGN_WORK_DIR: release/win-sign/rehearsal
+          WIN_SIGN_RECORD_FILE: release/win-sign/record-rehearsal.jsonl
+          WIN_SIGN_CACHE_URL: https://github.com/${{ github.repository }}/releases/download/win-signed-cache
         run: pnpm run dist:win
 
       # 生成された NSIS ペイロードのコーデックを機械照合する（m19-t13）。
@@ -288,9 +309,10 @@ jobs:
       # ∴ 終了コードやビルド緑では原理的に捕まらず、成果物の中身を直接見るしかない。
       #
       # 位置が要件である: 署名の **前** に置くことで、コーデック不正で落ちたときに
-      # eSigner を1回も呼ばない（署名は1回ごとに課金される）。if: を付けないのは、
+      # eSigner を1回も呼ばない（署名は1回ごとに課金される）。上の Build Windows は署名しない予行
+      # （record）であり、課金を伴う署名は下の「Build and sign Windows」で初めて起きる。if: を付けないのは、
       # 課金ゼロの mode=verify と push ビルドでも走らせて日常の回帰の番人にするため。
-      # ファイル名は electron-builder.config.cjs の artifactName から決定的（eSigner ステップと同じ）。
+      # ファイル名は electron-builder.config.cjs の artifactName から決定的（署名ステップと同じ）。
       #
       # アンカー規約（m19-t13 設計 §6.2）: root 側の結線検査は、この検査ステップのスクリプトキー名
       # （または呼び先スクリプトの相対パス）に**最初に一致した行**をアンカーにする。
@@ -298,44 +320,74 @@ jobs:
       - name: Verify Windows payload codec
         run: pnpm run verify:m19-t13:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
 
-      # eSigner による post-build 署名（m6-t12 §2.3・mode=full のみ。verify では署名しない）。
-      # 署名対象は file_path で明示した Setup.exe 2本のみ = 署名回数 2/リリース
-      # （eSigner は署名ごとに課金・§7-2 方針）。dir_path（batch_sign）を使わないのは、
-      # 署名不可ファイル（latest.yml / *.blockmap）混在時の挙動が action 側で未文書化のため
-      # （実装レビュー IR-1: 課金付き経路に未確認挙動を置かない）。
-      # ファイル名は electron-builder.config.cjs の artifactName
-      # '${productName}-Windows-${version}-${arch}-Setup.${ext}'（productName=MaplatEditor）から決定的。
-      # electron-builder の win.sign hook を使わない理由・アプリ本体 exe を署名しない
-      # トレードオフは docs/release-signing.md を参照
-      - name: Sign Windows installer x64 (SSL.com eSigner)
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
-        uses: SSLcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b # v1.3.2
-        with:
-          command: sign
-          username: ${{ secrets.ES_USERNAME }}
-          password: ${{ secrets.ES_PASSWORD }}
-          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
-          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-          file_path: release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe
-          override: 'true'
-          environment_name: PROD
+      # 署名の網羅の機械照合（課金の前）: インストーラーを展開し（$PLUGINSDIR/app-*.7z・アンインストーラーの中まで）、
+      # 中身で判定した全 PE が署名フックに渡った（または Microsoft 署名済み）ことを記録と SHA-256 で照らし合わせる。
+      # 漏れが 1 つでもあれば落ち、本番の署名へ進まない。記録の末尾に本番での署名回数の見込みが出る
+      - name: Verify Windows signing coverage (rehearsal, no billing)
+        run: node scripts/win-sign/verify-win-sign-coverage.mjs --record release/win-sign/record-rehearsal.jsonl --summary release/win-sign/coverage-rehearsal.json release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
 
-      - name: Sign Windows installer arm64 (SSL.com eSigner)
+      # SSL.com CodeSignTool の取得（mode=full のみ）。公式リリースの Windows 版 zip を版とハッシュで固定する。
+      # 版は esigner-codesign action v1.3.2（従来 Setup.exe の署名に使っていたもの）が内部で取得する v1.3.0 と同じ。
+      # zip は Java（jdk-11.0.2）を同梱するため、Java の導入 step は要らない。
+      # 設定ファイルは action v1.3.2 が PROD 環境で書き込む内容と同じ（公開値であり secret ではない）
+      - name: Set up SSL.com CodeSignTool
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
-        uses: SSLcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b # v1.3.2
-        with:
-          command: sign
-          username: ${{ secrets.ES_USERNAME }}
-          password: ${{ secrets.ES_PASSWORD }}
-          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
-          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-          file_path: release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
-          override: 'true'
-          environment_name: PROD
+        shell: pwsh
+        env:
+          CODESIGNTOOL_URL: https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.0/CodeSignTool-v1.3.0-windows.zip
+          CODESIGNTOOL_SHA256: e22094505decbe622afe5b0c27abc618ed2ba179bd94f3450490352399d5ef2a
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'CodeSignTool-v1.3.0-windows.zip'
+          $dir = Join-Path $env:RUNNER_TEMP 'CodeSignTool'
+          Invoke-WebRequest -Uri $env:CODESIGNTOOL_URL -OutFile $zip
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          if ($actual -ne $env:CODESIGNTOOL_SHA256) { throw "CodeSignTool の SHA-256 が一致しません: $actual" }
+          Expand-Archive -LiteralPath $zip -DestinationPath $dir -Force
+          $props = @(
+            'CLIENT_ID=kaXTRACNijSWsFdRKg_KAfD3fqrBlzMbWs6TwWHwAn8',
+            'OAUTH2_ENDPOINT=https://login.ssl.com/oauth2/token',
+            'CSC_API_ENDPOINT=https://cs.ssl.com',
+            'TSA_URL=http://ts.ssl.com',
+            'TSA_LEGACY_URL=http://ts.ssl.com/legacy'
+          ) -join "`n"
+          Set-Content -LiteralPath (Join-Path $dir 'conf/code_sign_tool.properties') -Value $props -NoNewline -Encoding utf8NoBOM
+          if (-not (Test-Path (Join-Path $dir 'jdk-11.0.2/bin/java.exe'))) { throw 'CodeSignTool 同梱の Java が見つかりません' }
+          "CODE_SIGN_TOOL_PATH=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      # 署名でバイナリが変わったため、latest.yml の sha512/size と .exe.blockmap を
-      # 署名済みバイナリから再生成する（怠ると auto-update が壊れる /
-      # 差分更新が常時全量フォールバックする。m6-t12 §2.3・AC5）
+      # 本番の署名ビルド（mode=full のみ・課金あり）。予行と同じ dist/ から electron-builder だけを再実行し、
+      # フックが CodeSignTool で 1 ファイルずつ署名する。キャッシュに当たったものは署名せずに差し替える
+      # （予行で取得・検証済みの asset を WIN_SIGN_CACHE_DIR で再利用する）。インストーラーの署名は
+      # electron-builder が blockmap と latest.yml を計算する**前**に行われるため、両者は署名済みの
+      # バイナリから計算される（app-builder-lib NsisTarget.js: signIf → createBlockmap）
+      - name: Build and sign Windows (SSL.com eSigner)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        env:
+          WIN_SIGN_MODE: esigner
+          WIN_SIGN_WORK_DIR: release/win-sign/esigner
+          WIN_SIGN_RECORD_FILE: release/win-sign/record-esigner.jsonl
+          WIN_SIGN_CACHE_DIR: release/win-sign/rehearsal/cache-fetched
+          WIN_SIGN_CACHE_URL: https://github.com/${{ github.repository }}/releases/download/win-signed-cache
+          WIN_SIGN_CACHE_OUTBOX: release/win-sign/cache-outbox
+          ES_USERNAME: ${{ secrets.ES_USERNAME }}
+          ES_PASSWORD: ${{ secrets.ES_PASSWORD }}
+          ES_CREDENTIAL_ID: ${{ secrets.ES_CREDENTIAL_ID }}
+          ES_TOTP_SECRET: ${{ secrets.ES_TOTP_SECRET }}
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never --win
+
+      # 署名本番の成果物の検査（mode=full のみ）: 全 PE の Authenticode が Valid で、署名者が
+      # NAYUTA, INC.（または Microsoft）であること。コーデックも署名後の成果物で照合し直す
+      - name: Verify Windows signatures (Authenticode)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        run: node scripts/win-sign/verify-win-sign-coverage.mjs --authenticode --summary release/win-sign/coverage-esigner.json release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
+
+      - name: Verify Windows payload codec (signed build)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        run: pnpm run verify:m19-t13:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
+
+      # auto-update メタデータの再計算（mode=full のみ）。署名をフックへ移したため electron-builder が
+      # 署名済みバイナリから latest.yml と blockmap を作っており、本来は不要（2026-10-03 に record ビルドで
+      # 実測: 再計算しても latest.yml はバイト一致・blockmap は展開後の中身が一致し gzip ヘッダーの OS 欄だけ違う）。
+      # 冪等な安全網として残す（m6-t12 §2.3・AC5）
       - name: Update auto-update metadata after signing
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
         run: node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }}
@@ -348,6 +400,85 @@ jobs:
             release/${{ env.VERSION }}/*.exe
             release/${{ env.VERSION }}/*.exe.blockmap
             release/${{ env.VERSION }}/latest.yml
+
+      # 署名の記録と照合結果（全モード・失敗時も）。何を署名し、何がキャッシュに当たったかの監査用
+      - name: Upload Windows signing records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-sign-records
+          path: |
+            release/win-sign/*.jsonl
+            release/win-sign/*.json
+          if-no-files-found: ignore
+
+      # 新しく署名したキャッシュ対象（DLL・elevate.exe・.node・NSIS プラグイン）を、書き込み権限のある
+      # publish-win-sign-cache ジョブへ artifact で渡す。このジョブに contents: write を与えない（SR-t12-M-1）
+      - name: Count signed-file cache candidates
+        id: cache-outbox
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        shell: bash
+        run: |
+          n=0
+          if [ -d release/win-sign/cache-outbox ]; then n=$(find release/win-sign/cache-outbox -type f -name '*.signed' | wc -l | tr -d ' '); fi
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+          echo "キャッシュへ足す候補: $n 件"
+
+      - name: Upload signed-file cache candidates
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && steps.cache-outbox.outputs.count != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-sign-cache-outbox
+          path: release/win-sign/cache-outbox/*.signed
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────
+  # 署名済みファイルのキャッシュを Release `win-signed-cache` の asset へ足す（mode=full のみ）
+  #
+  # 書き込み（asset の追加）には contents: write が要る。build-win に write を与えると、ビルド時に走る
+  # 依存ツリーの汚染がリポジトリ書き込みに直結する（SR-t12-M-1）ため、書き込みはこの専用ジョブに限る。
+  # このジョブは checkout も依存の導入もせず、リポジトリのコードを 1 行も実行しない（gh CLI だけ）。
+  # 取り込む側（scripts/win-sign/win-sign.cjs）は、asset を使う前に「署名を除いた中身が署名前ファイルと一致」
+  # 「Authenticode が Valid」「署名者が NAYUTA, INC.」を確かめるので、ここで改ざんされても取り込まれない。
+  # Release は prerelease として作り、配布物ではないことを本文に書く（アプリは electron-updater を使わない）
+  # ─────────────────────────────────────────────
+  publish-win-sign-cache:
+    needs: [prepare, build-win]
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.build-win.result == 'success' && needs.build-win.outputs.win_sign_cache_new != '0' && needs.build-win.outputs.win_sign_cache_new != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      CACHE_TAG: win-signed-cache
+    steps:
+      - name: Download signed-file cache candidates
+        uses: actions/download-artifact@v4
+        with:
+          name: win-sign-cache-outbox
+          path: outbox
+
+      - name: Publish to the cache release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "$CACHE_TAG" >/dev/null 2>&1; then
+            gh release create "$CACHE_TAG" --prerelease --latest=false --target "$GITHUB_SHA" \
+              --title "Windows 署名済みファイルのキャッシュ（配布物ではありません）" \
+              --notes "build.yml（mode=full）が Windows 配布物の署名に使い回す、署名済みの DLL・elevate.exe・.node・NSIS プラグインの保管場所です。アプリの配布物ではありません。asset 名は <署名前ファイルの SHA-256>--<ファイル名>.signed。取り込み時に中身と署名を検証します（scripts/win-sign/win-sign.cjs）。"
+          fi
+          existing=$(gh release view "$CACHE_TAG" --json assets --jq '.assets[].name')
+          for f in outbox/*.signed; do
+            name=$(basename "$f")
+            if printf '%s\n' "$existing" | grep -Fxq "$name"; then
+              echo "既にある: $name"
+            else
+              gh release upload "$CACHE_TAG" "$f"
+              echo "追加: $name"
+            fi
+          done
 
   # ─────────────────────────────────────────────
   # Linux ビルド（x64 + arm64 AppImage・署名なし＝現行方針。mode に依存しない）
@@ -424,9 +555,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # 配布物の artifact だけを落とす（win-sign-records / win-sign-cache-outbox を Release に載せない）
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: '{build-meta,mac-artifacts,win-artifacts,linux-artifacts}'
           path: artifacts
           merge-multiple: true
 
