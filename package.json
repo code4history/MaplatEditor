@@ -1,7 +1,7 @@
 {
   "name": "maplat-editor",
   "private": true,
-  "version": "1.1.0-rc.1",
+  "version": "1.1.0-rc.2",
   "description": "Maplat Editor - Historical Map Georeferencing Tool",
   "author": "Maplat Project",
   "type": "module",
@@ -213,6 +213,8 @@
     "smoke:m6-t12-release-workflow": "node scripts/m6-t12-release-workflow-smoke.mjs",
     "smoke:m18-t8-packaging": "node scripts/m18-t8-packaging-smoke.mjs",
     "verify:m19-t13:win-payload-codec": "node scripts/m19-t13/verify-win-payload-codec.mjs",
+    "verify:win-sign-coverage": "node scripts/win-sign/verify-win-sign-coverage.mjs",
+    "smoke:sac-win-sign": "node scripts/sac-win-sign-smoke.mjs",
     "test:e2e:m6-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m6-t5-mapbox-maplibre.spec.ts",
     "smoke:m6-t10-app-source-diff-model": "node scripts/m6-t10-app-source-diff-model-smoke.mjs",
     "smoke:m6-t10-export-preview": "node scripts/m6-t10-export-preview-smoke.mjs",

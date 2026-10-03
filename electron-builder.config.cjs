@@ -3,8 +3,10 @@
 // 署名の判定ロジック（m6-t12 §2.3/§2.4）:
 //   macOS 署名のみ: MAC_SIGN=true で Hardened Runtime 付き署名（公証なし）
 //   macOS 署名+公証: APPLE_ID 環境変数が設定されている場合（リリース用）
-//   Windows: electron-builder では署名しない。SSL.com eSigner による post-build 署名へ
-//   一本化した（クラウド署名のため証明書ファイルを配れない。手順は docs/release-signing.md）
+//   Windows: 配布物に入る全 PE（exe・dll・Windows 用 .node・elevate.exe・アンインストーラー・
+//   インストーラー・NSIS プラグイン DLL）を electron-builder のファイルごとの署名フック
+//   （scripts/win-sign/win-sign.cjs）で SSL.com eSigner により署名する。WIN_SIGN_MODE で切り替える
+//   （off=既定・署名しない / record=記録だけ・課金ゼロ / esigner=本番）。手順は docs/release-signing.md
 //
 // ローカルビルド: .env ファイルに APPLE_ID 等を記載すれば署名+公証される
 // CI: build.yml が release 実行時のみ環境変数を出し分ける（詳細は build.yml 冒頭コメント）
@@ -30,6 +32,10 @@
 // scripts/m19-t13/verify-win-payload-codec.mjs（G2）が生成物側で捕まえる。
 // ───────────────────────────────────────────────
 process.env.ELECTRON_BUILDER_7Z_FILTER = 'BCJ2';
+
+// Windows: 全 PE 署名（2026-10-03・SAC 起動拒否への対処。詳細は scripts/win-sign/win-sign.cjs 冒頭）
+const winSign = require('./scripts/win-sign/win-sign.cjs');
+const winSignEnabled = winSign.getMode() !== 'off';
 
 // macOS: 署名（Hardened Runtime）は「署名のみ」「署名+公証」のどちらでも有効化
 const isMacNotarize = !!process.env.APPLE_ID;
@@ -60,6 +66,16 @@ const config = {
         // lodash.template / whatwg-fetch 等）が入っており、消すと実行時に解決できない。
         '!node_modules/@{maplat,c4h}/*/{public,docs,spec,e2e,tests,demo,dist-demo,scripts,.github}/**',
         '!node_modules/@{maplat,c4h}/*/{*.md,*.log,.editorconfig,.prettierrc,eslint.config.*,vite.config.*,vitest.config.*,playwright*.config.*,tsconfig*.json,pnpm-lock.yaml}',
+        // Windows 用 .node はビルド中の CPU 向けだけを入れる（x64 のインストーラーに arm64 の .node を入れない。逆も同じ）。
+        // 実行時は @electron-internal/extract-zip（extract-zip の置き換え）の binding.js が process.arch で
+        // index.win32-<arch>-msvc.node を選ぶため、他 CPU 向けは読まれず、署名の課金だけが増える。
+        // ${arch} は electron-builder がアーキテクチャごとに展開する（!(…) は minimatch の否定 extglob）。
+        // ${os} は win / mac / linux に展開されるので、'${os}32' は Windows ビルドでだけ 'win32' になり、
+        // mac / linux ビルドでは何にも当たらない（macOS・Linux の同梱物は変えない）。
+        // **win.files に置かないこと**: platform 側の files は root の files を置き換え、dist / dist-electron の
+        // 限定が外れてプロジェクト全体が asar に入る（2026-10-03 に実測。builder-debug.yml の
+        // firstOrDefaultFilePatterns が '**/*' になった）
+        '!**/*.${os}32-!(${arch})-msvc.node',
     ],
 
     // macOS ビルド設定
@@ -86,6 +102,8 @@ const config = {
     },
     // 公証: APPLE_ID が設定されている場合のみ実行（スクリプト内でも再確認）
     afterSign: isMacNotarize ? 'scripts/notarize/notarize.cjs' : undefined,
+    // Windows: NSIS プラグイン DLL を署名済みの複写に差し替える（WIN_SIGN_MODE=off では登録しない）
+    beforePack: winSignEnabled ? winSign.beforePack : undefined,
 
     dmg: {
         artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
@@ -98,6 +116,18 @@ const config = {
             { target: 'nsis', arch: ['x64', 'arm64'] },
         ],
         artifactName: '${productName}-Windows-${version}-${arch}-Setup.${ext}',
+        ...(winSignEnabled && {
+            // .dll と .node もフックへ渡す（既定は .exe だけ）。除外（!xxx.dll）は書かない:
+            // app-builder-lib の shouldSignFile は肯定パターンを先に評価するため、'.dll' がある限り
+            // '!d3dcompiler_47.dll' は効かない（winPackager.js shouldSignFile）。
+            // Microsoft 署名済み DLL と非 Windows の .node はフック側（既存の署名 / PE 判定）で除く
+            signExts: ['.dll', '.node'],
+            signtoolOptions: {
+                sign: winSign.sign,
+                // 既定は ['sha1', 'sha256'] で**1 ファイルにつきフックが 2 回**呼ばれる（課金が倍）。sha256 だけにする
+                signingHashAlgorithms: ['sha256'],
+            },
+        }),
     },
     nsis: {
         oneClick: false,

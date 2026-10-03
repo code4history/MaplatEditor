@@ -122,7 +122,11 @@ eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI
 ### B-4. 知っておくべき注意2点
 
 - CI は **production 環境**（`environment_name: PROD`）で署名する。SSL.com の sandbox はテスト用で、本物の署名にならない
-- **署名は1回ごとに課金**される。本ワークフローはインストーラ（Setup.exe × 2 アーキテクチャ）のみ署名する設計で、**1リリース = 2署名**。アプリ内部の exe は署名しない（SmartScreen の評価対象は主にダウンロードされるインストーラであるため。将来問題が出たら署名範囲の拡大を再検討）
+- **署名は1回ごとに課金**される。本ワークフローは**配布物に入る全 Windows PE** を署名する（Part H）。
+  依存の版が変わらないリリースは **6 署名**（MaplatEditor.exe・アンインストーラー・インストーラー × x64/arm64）、
+  Electron 等の依存を上げたリリースは最大 **28 署名**（DLL 等を署名し直し、以後はキャッシュから使い回す）。
+  当初（v1.0.0〜v1.1.0-rc.1）は Setup.exe 2 本だけを署名していたが、Windows 11 のスマート アプリ コントロール（SAC）が
+  未署名のアプリ本体と DLL を止めたため（2026-10-03）、全 PE へ広げた
 - もし CI の署名ステップが「hash needs to be scanned first」で失敗したら、eSigner の Malware Blocker が有効になっている。build.yml の eSigner ステップに `malware_block: 'true'` を追加するか、SSL.com 側で Malware Blocker を無効化する
 
 ---
@@ -160,7 +164,7 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 | mode | Mac | Win | draft Release | 課金 | 使えるバージョン |
 |---|---|---|---|---|---|
 | **`verify`**（既定・動作確認用） | 署名のみ（公証なし） | **署名なし** | 作らない | **ゼロ** | **全部**（alpha / beta も可） |
-| **`full`**（完全） | 署名 + 公証 | eSigner 署名 | 作る | **eSigner 2回** | **rc 以降**（下記） |
+| **`full`**（完全） | 署名 + 公証 | eSigner 署名（全 PE） | 作る | **eSigner 通常 6 回**（依存更新時は最大 28 回） | **rc 以降**（下記） |
 
 **`platforms`**: `all`（既定）/ `mac` / `win` / `linux`
 
@@ -200,7 +204,7 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 ## Part E: 仕様メモ（運用者向け）
 
 - **push（master / glm52 / foss4g-hiroshima）は Mac のみ Developer ID 署名（公証なし）・Win / Linux は無署名**。m6-t12 の「push は全プラットフォーム無署名」は t1（2026-08-21）で部分差し戻しした（Mac 証明書2点を `ci` にも配置 — Part C-2）。glm52 のみ Hardened Runtime なしの署名プロファイルになる（設計で受容済みの差。公証経路の無いテストビルドのため利用上の差はない）
-- Windows は**署名後に auto-update メタデータを再生成**している（`scripts/m6-t12/resign-update-metadata.mjs`）。署名でバイナリが変わるため、これを怠ると自動更新が壊れる。ワークフローが自動でやるので通常は意識不要
+- Windows の署名は electron-builder のフックで行うため、latest.yml と .exe.blockmap は**署名済みのバイナリから**作られる（electron-builder はインストーラーを署名してから blockmap と latest.yml を計算する）。`scripts/m6-t12/resign-update-metadata.mjs` による再計算は冪等な安全網として残している
 - Linux（AppImage）は署名なし（現行方針）
 - 証明書の期限が切れたら: Apple → Part A をやり直して secrets 1・2 を **`release` と `ci` の両方**で更新する（t1 で2箇所化した運用コスト）/ SSL.com → 証明書更新後、Credential ID が変わっていないか B-2 で確認
 - `ci` 側の誤登録・期限切れ後の未更新は **push ビルド（build-mac）を毎回失敗させる（意図された fail-fast — 無署名で黙って続行しない）**。復旧 = Part A で .p12 を書き出し直し → `ci` と `release` の両方へ再登録 → 失敗した run を `gh run rerun`
@@ -281,3 +285,58 @@ openssl pkcs7 -inform DER -in sig.p7b -print_certs -noout
 3. eSigner は**クラウド署名で証明書は HSM に置かれたまま**である。`ES_CREDENTIAL_ID` はその証明書を指す ID で、
    **署名のたびに証明書が変わることはない**（実測: rc2 と rc3 のシリアルが一致）。毎回変わるのは TOTP から生成する OTP だけ。
    登録画面の `create OTP and issue certificate` は初回登録の操作であって、署名ごとの動作ではない
+
+## Part H: Windows の全 PE 署名と署名済みキャッシュ（2026-10-03）
+
+### なぜ
+
+v1.0.0 は Setup.exe しか署名していなかったため、Windows 11 の**スマート アプリ コントロール（SAC）**が
+インストール後の `MaplatEditor.exe` を「発行元を確認できない」として止めた。SAC は exe だけでなく **DLL も止める**。
+∴ 配布物に入る Windows PE をすべて署名する（Microsoft 署名済みの `d3dcompiler_47.dll`・`dxil.dll` は再署名しない）。
+
+### 署名されるもの（1 アーキテクチャあたり）
+
+| 種類 | ファイル | 毎回署名か |
+|---|---|---|
+| アプリ本体 | `MaplatEditor.exe` | 毎回（中身が毎リリース変わる） |
+| Electron の DLL | `ffmpeg.dll`・`libEGL.dll`・`libGLESv2.dll`・`vk_swiftshader.dll`・`vulkan-1.dll`・`dxcompiler.dll` | キャッシュ |
+| 昇格ヘルパー | `resources/elevate.exe`（x64/arm64 で同じファイル） | キャッシュ |
+| ネイティブモジュール | `resources/app.asar.unpacked/node_modules/extract-zip/index.win32-<arch>-msvc.node`（その CPU 向けだけを同梱） | キャッシュ |
+| NSIS プラグイン | `StdUtils.dll`・`System.dll`・`UAC.dll`・`WinShell.dll`・`nsDialogs.dll`・`nsExec.dll`・`nsis7z.dll`（x64/arm64 で共通・1 回だけ署名） | キャッシュ |
+| アンインストーラー | `Uninstall MaplatEditor.exe` | 毎回 |
+| インストーラー | `MaplatEditor-Windows-<版>-<arch>-Setup.exe` | 毎回 |
+
+### 仕組み
+
+- `electron-builder.config.cjs` が `win.signtoolOptions.sign` に `scripts/win-sign/win-sign.cjs` の関数を渡す。
+  electron-builder はファイルごとにこれを呼ぶ（`signExts: ['.dll', '.node']`・`signingHashAlgorithms: ['sha256']` で 1 ファイル 1 回）
+- NSIS プラグインは makensis が埋め込むためフックを通らない。`beforePack` で NSIS ツールセットを複写し、
+  使うプラグインだけ署名してから `ELECTRON_BUILDER_NSIS_DIR` / `ELECTRON_BUILDER_NSIS_RESOURCES_DIR` で使わせる
+- 環境変数 `WIN_SIGN_MODE`: `off`（既定・何もしない）/ `record`（署名せず記録だけ・課金ゼロ）/ `esigner`（本番）
+- build.yml は全経路でまず `record` でビルドし、コーデック検査と**署名の網羅検査**
+  （`scripts/win-sign/verify-win-sign-coverage.mjs`。インストーラーを入れ子まで展開し、全 PE がフックに渡ったかを照合）を
+  **課金の前に**通す。`mode=full` のときだけ、その後 `esigner` でもう一度ビルドし、全 PE の Authenticode を検査する
+- CodeSignTool は SSL.com 公式リリースの v1.3.0（Windows 版 zip。Java 同梱）を SHA-256 で固定して取得する
+
+### 署名済みキャッシュ
+
+- 依存の版が同じなら DLL 等はバイト単位で同じなので、署名済みファイルを GitHub Release **`win-signed-cache`**
+  （prerelease・配布物ではない）の asset に保管し、次のリリースで使い回す。asset 名は `<署名前の SHA-256>--<ファイル名>.signed`
+- 取り込む前に「署名を除いた中身が署名前ファイルと一致」「Authenticode が Valid」「署名者が NAYUTA, INC.」を確かめる。
+  1 つでも外れたら使わずに署名し直す（改ざんされた asset は取り込まれない）
+- 書き込みは `publish-win-sign-cache` ジョブ（`contents: write`・checkout も依存導入もしない）だけが行う。
+  build-win は新しく署名したものを artifact で渡すだけ（build ジョブに write を与えない — SR-t12-M-1）
+- 証明書を更新したら古い asset は署名者が変わるだけで検証は通る（期限切れでもタイムスタンプ済みなら Valid）。
+  作り直したいときは Release `win-signed-cache` の asset を消せば、次の `mode=full` で署名し直して足される
+
+### 手元での確かめ方（課金ゼロ）
+
+```bash
+WIN_SIGN_MODE=record WIN_SIGN_RECORD_FILE=$PWD/release/win-sign-record.jsonl pnpm run dist:win
+node scripts/win-sign/verify-win-sign-coverage.mjs --record release/win-sign-record.jsonl \
+  release/<版>/MaplatEditor-Windows-<版>-x64-Setup.exe release/<版>/MaplatEditor-Windows-<版>-arm64-Setup.exe
+```
+
+Apple Silicon の Mac で Rosetta が無い場合、既定の NSIS（3.0.4.1）の makensis が x86_64 専用のため起動しない。
+その場合は `pnpm run dist:win -c.toolsets.nsis=1.2.1`（NSIS 3.12・arm64 ネイティブ）で代用できる
+（同梱される PE の顔ぶれは同じ。CI の Windows ランナーは既定の NSIS で作る）

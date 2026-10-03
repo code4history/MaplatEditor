@@ -7,6 +7,8 @@
  * AC5: latest.yml 再計算 + blockmap 再生成（P4 スクリプト）
  * AC6: 旧 WIN_CSC_LINK 参照が残存しない
  * t1/AC1: 証明書インポートは if: を持たない（push でも実行 — t1・2026-08-21 で m6-t12 の dispatch 限定を撤廃）
+ * SAC（2026-10-03）: Windows は配布物の全 PE を electron-builder の署名フック（scripts/win-sign/win-sign.cjs）で
+ *   署名する。esigner-codesign action（Setup.exe 2 本だけ）は撤去し、CodeSignTool を版とハッシュで固定して取得する
  */
 import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
@@ -148,8 +150,9 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     const [, ref] = u.split('@');
     assert.match(ref ?? '', /^[0-9a-f]{40}$/, `AC1: サードパーティ action が SHA ピンされている: ${u}`);
   }
-  // eSigner action が存在する
-  assert.ok(uses.some((u) => u.startsWith('SSLcom/esigner-codesign@')), 'AC1: eSigner action を使用');
+  // SAC（2026-10-03）: 署名は electron-builder のフック経由に一本化。esigner-codesign action は使わない
+  assert.ok(!uses.some((u) => u.startsWith('SSLcom/esigner-codesign@')),
+    'SAC: esigner-codesign action（Setup.exe だけを署名）を使わない（署名はフック経由で全 PE）');
 
   // AC4: 課金・公証を伴う経路が mode=full のときだけ発火する（D6 の2軸モデル）
   const FULL_COND = /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/;
@@ -180,23 +183,49 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     );
   }
   const winSteps = wf.jobs['build-win'].steps;
-  // IR-1: 署名対象は file_path 明示の2ステップ（x64/arm64）。dir_path の「署名不可ファイル
-  // 混在時の挙動」は action 側で未文書化のため、課金付き経路では決定的な指定だけを使う
-  const esigners = winSteps.filter((s) => (s.uses ?? '').startsWith('SSLcom/esigner-codesign@'));
-  assert.equal(esigners.length, 2, 'IR-1: eSigner は file_path 明示の2ステップ');
-  for (const s of esigners) {
-    assert.ok(FULL_COND.test(s.if ?? ''), 'AC4: eSigner 署名は mode=full 限定（verify では Win 署名なし）');
-    assert.equal(s.with.command, 'sign', 'IR-1: 単一ファイル署名コマンドを使う');
-    assert.ok(!('dir_path' in s.with), 'IR-1: dir_path を使わない');
+  const stepIndex = (pred, what) => {
+    const i = winSteps.findIndex(pred);
+    assert.ok(i >= 0, `SAC: build-win に ${what} がある`);
+    return i;
+  };
+  const envOf = (st) => st.env ?? {};
+  // SAC: 予行（record・課金ゼロ）→ コーデック検査 → 署名網羅の検査 → 本番署名（esigner）の順。
+  // 検査は課金の前に置く（m19-t13 §6.3 の「壊れた成果物へ課金つきの署名をしない」を引き継ぐ）
+  const rehearsalAt = stepIndex((st) => st.name === 'Build Windows', '予行ビルド（Build Windows）');
+  const rehearsal = winSteps[rehearsalAt];
+  assert.equal(envOf(rehearsal).WIN_SIGN_MODE, 'record', 'SAC: Build Windows は record（署名しない・課金ゼロ）');
+  assert.equal(rehearsal.if, undefined, 'SAC: 予行は全経路（push / verify / full）で走る');
+  const codecAt = stepIndex((st) => (st.run ?? '').includes('verify:m19-t13:win-payload-codec'), 'コーデック検査');
+  const coverageAt = stepIndex((st) => (st.run ?? '').includes('verify-win-sign-coverage.mjs') && (st.run ?? '').includes('--record'), '署名網羅の検査（record）');
+  assert.equal(winSteps[coverageAt].if, undefined, 'SAC: 署名網羅の検査は全経路で走る（日常の回帰の番人）');
+  const esignerSteps = winSteps.filter((st) => envOf(st).WIN_SIGN_MODE === 'esigner');
+  assert.equal(esignerSteps.length, 1, 'SAC: 本番署名（WIN_SIGN_MODE=esigner）のビルドは 1 ステップ');
+  const esignerAt = winSteps.indexOf(esignerSteps[0]);
+  assert.ok(rehearsalAt < codecAt && codecAt < coverageAt && coverageAt < esignerAt,
+    'SAC: 予行 → コーデック検査 → 署名網羅の検査 → 本番署名 の順（検査を課金の前に置く）');
+  const esigner = esignerSteps[0];
+  assert.ok(FULL_COND.test(esigner.if ?? ''), 'AC4: eSigner 署名は mode=full 限定（verify では Win 署名なし）');
+  for (const k of ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET']) {
+    assert.equal(envOf(esigner)[k], `\${{ secrets.${k} }}`, `SAC: 本番署名ステップが ${k} を env で受け取る`);
   }
-  const signTargets = esigners.map((s) => String(s.with.file_path));
-  assert.ok(
-    signTargets.some((t) => t.endsWith('-x64-Setup.exe')) &&
-    signTargets.some((t) => t.endsWith('-arm64-Setup.exe')),
-    'IR-1: x64/arm64 の Setup.exe を artifactName パターンどおり明示指定'
-  );
-  // dir_path の不使用は上の per-step 検査（with キー）で担保する。文字列全域 grep にしないのは
-  // 「dir_path を使わない理由」を説明するコメント自体まで禁止しないため
+  // secrets（ES_*）を受け取るのは本番署名ステップだけ
+  for (const st of winSteps) {
+    if (st === esigner) continue;
+    assert.ok(!JSON.stringify(st).includes('secrets.ES_'), `SAC: 本番署名以外のステップが eSigner の secrets を参照しない: ${st.name ?? st.uses}`);
+  }
+  // CodeSignTool は公式リリースから版とハッシュを固定して取得し、本番署名の前に用意する
+  const cstAt = stepIndex((st) => (st.name ?? '').includes('CodeSignTool'), 'CodeSignTool の取得');
+  const cst = winSteps[cstAt];
+  assert.ok(FULL_COND.test(cst.if ?? ''), 'SAC: CodeSignTool の取得は mode=full 限定');
+  assert.match(envOf(cst).CODESIGNTOOL_URL ?? '', /^https:\/\/github\.com\/SSLcom\/CodeSignTool\/releases\/download\/v[0-9.]+\//,
+    'SAC: CodeSignTool は SSL.com の公式リリースから版を固定して取得');
+  assert.match(envOf(cst).CODESIGNTOOL_SHA256 ?? '', /^[0-9a-f]{64}$/, 'SAC: CodeSignTool の SHA-256 を固定');
+  assert.ok((cst.run ?? '').includes('Get-FileHash') && (cst.run ?? '').includes('CODESIGNTOOL_SHA256'),
+    'SAC: 取得した zip の SHA-256 を照合する');
+  assert.ok(cstAt < esignerAt, 'SAC: CodeSignTool の取得は本番署名の前');
+  // 本番署名の成果物を Authenticode で検査する
+  const acAt = stepIndex((st) => (st.run ?? '').includes('verify-win-sign-coverage.mjs') && (st.run ?? '').includes('--authenticode'), 'Authenticode の検査');
+  assert.ok(FULL_COND.test(winSteps[acAt].if ?? '') && esignerAt < acAt, 'SAC: Authenticode の検査は mode=full で本番署名の後');
   const resign = winSteps.find((s) => (s.run ?? '').includes('resign-update-metadata'));
   assert.ok(resign && FULL_COND.test(resign.if ?? ''), 'AC4: metadata 再計算は mode=full 限定');
   const macSteps = wf.jobs['build-mac'].steps;
@@ -336,6 +365,29 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     wf.jobs.release.permissions?.contents, 'write',
     'AC11: contents: write は Release を作る release ジョブにのみ与える'
   );
+  // SAC: 署名済みキャッシュの asset を足すジョブにも write が要る。ただし checkout も依存の導入もせず、
+  // リポジトリのコードを実行しない（依存ツリーの汚染が write トークンに届かない）
+  const cacheJob = wf.jobs['publish-win-sign-cache'];
+  assert.ok(cacheJob, 'SAC: publish-win-sign-cache ジョブがある');
+  assert.equal(cacheJob.permissions?.contents, 'write', 'SAC: publish-win-sign-cache は contents: write');
+  assert.match(cacheJob.if ?? '', /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/,
+    'SAC: キャッシュの書き込みは mode=full 限定');
+  for (const st of cacheJob.steps) {
+    const u = st.uses ?? '';
+    const r = st.run ?? '';
+    assert.ok(!u.startsWith('actions/checkout@') && !u.startsWith('pnpm/') && !u.startsWith('actions/setup-node'),
+      `SAC: publish-win-sign-cache はリポジトリを checkout しない・依存を入れない: ${u}`);
+    // コマンド位置の pnpm / npm / npx / node を禁じる（本文中の「.node」等の語は対象外）
+    assert.ok(!/(^|[\s;&|(])(pnpm|npm|npx|node)\s/m.test(r), 'SAC: publish-win-sign-cache はリポジトリのコードを実行しない');
+  }
+  for (const [name, job] of Object.entries(wf.jobs)) {
+    if (name === 'release' || name === 'publish-win-sign-cache') continue;
+    assert.notEqual(job.permissions?.contents, 'write', `AC11: ${name} に contents: write を与えない`);
+  }
+  // release ジョブは配布物の artifact だけを Release に載せる（署名の記録・キャッシュ候補を載せない）
+  const dl = wf.jobs.release.steps.find((st) => (st.uses ?? '').startsWith('actions/download-artifact'));
+  assert.equal(dl?.with?.pattern, '{build-meta,mac-artifacts,win-artifacts,linux-artifacts}',
+    'SAC: release は配布物の artifact だけを落とす');
   for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux']) {
     assert.notEqual(
       wf.jobs[job].permissions?.contents, 'write',
