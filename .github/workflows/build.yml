@@ -414,9 +414,11 @@ jobs:
 
       # 新しく署名したキャッシュ対象（DLL・elevate.exe・.node・NSIS プラグイン）を、書き込み権限のある
       # publish-win-sign-cache ジョブへ artifact で渡す。このジョブに contents: write を与えない（SR-t12-M-1）
+      # always(): 署名の途中でビルドが失敗しても、それまでに署名できたファイルは保管する（課金の取り直しを防ぐ。
+      # 1.1.0-rc.2 の run 37125230712 で .node の署名失敗により 15 本の署名済みファイルを失った）
       - name: Count signed-file cache candidates
         id: cache-outbox
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
         shell: bash
         run: |
           n=0
@@ -425,7 +427,7 @@ jobs:
           echo "キャッシュへ足す候補: $n 件"
 
       - name: Upload signed-file cache candidates
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && steps.cache-outbox.outputs.count != '0'
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && steps.cache-outbox.outputs.count != '0' && steps.cache-outbox.outputs.count != ''
         uses: actions/upload-artifact@v4
         with:
           name: win-sign-cache-outbox
@@ -444,7 +446,8 @@ jobs:
   # ─────────────────────────────────────────────
   publish-win-sign-cache:
     needs: [prepare, build-win]
-    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.build-win.result == 'success' && needs.build-win.outputs.win_sign_cache_new != '0' && needs.build-win.outputs.win_sign_cache_new != ''
+    # build-win が失敗しても、署名できた分は保管する（取り込み側が中身と署名を検証するので安全）
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.build-win.outputs.win_sign_cache_new != '0' && needs.build-win.outputs.win_sign_cache_new != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
