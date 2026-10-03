@@ -49,15 +49,19 @@ overrides:
   # 脆弱経路は electron-store > conf > (ajv-formats >) ajv のみ。
   "conf>ajv": "^8.18.0"
   "ajv-formats>ajv": "^8.18.0"
-  brace-expansion: "^2.1.4"
-  fast-uri: "^3.1.5"
+  # 2026-10-03 Dependabot（MaplatEditor 1.1.0-rc.2）: brace-expansion GHSA-6j4f-fj2g-mc7p / GHSA-qhr7-859c-m2p7（High）/
+  # GHSA-q2hr-2g5m-vwhr（Medium）は 2.1.7 で修正。経路は electron-builder（ビルド時）
+  brace-expansion: "^2.1.7"
+  # 2026-10-03: fast-uri GHSA-hrr3-gc8f-f4qj（Medium）は 3.1.8 で修正。経路は electron-store（実行時）
+  fast-uri: "^3.1.8"
   file-type: "^21.3.1"
   ip-address: "^10.3.1"
   minimatch: "^9.0.7"
   nanoid: "^3.3.18"
   path-to-regexp: "~1.9.0"
   postcss: "^8.5.23"
-  undici: "^7.29.0"
+  # 2026-10-03: undici GHSA-rfgv-xxqx-mfg5・GHSA-w293-vg96-wgc3（High）ほかは 7.29.1 で修正。経路は pwa-asset-generator（実行時）と node-gyp（ビルド時）
+  undici: "^7.29.1"
   # extract-zip（high×2・修正版なし）→ Electron 公式の置換 fork。electron 側は patches/electron@39.8.10.patch と対（oct26-m5-t12）。
   "@puppeteer/browsers>extract-zip": "npm:@electron-internal/extract-zip@^1.0.5"
   "electron>extract-zip": "npm:@electron-internal/extract-zip@^1.0.5"
