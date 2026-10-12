@@ -262,6 +262,7 @@
     "test:e2e:nov26-m6-t4": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t4-app-source-editor-behavior.spec.ts tests/e2e/nov26-m6-t4-maplat-label-placeholder.spec.ts",
     "smoke:nov26-m6-t5-asset-uuid-names": "node scripts/nov26-m6-t5-asset-uuid-names-smoke.mjs",
     "smoke:nov26-m6-t5-asset-uuid-migration": "node scripts/nov26-m6-t5-asset-uuid-migration-smoke.mjs",
+    "smoke:nov26-m6-t5-export-splash-name": "node scripts/nov26-m6-t5-export-splash-name-smoke.mjs",
     "test:e2e:nov26-m6-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t5-predraft-after-migration.spec.ts"
   },
   "dependencies": {
