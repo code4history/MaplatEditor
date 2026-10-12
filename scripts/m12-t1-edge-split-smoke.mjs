@@ -6,8 +6,15 @@
 //   (c) 分割 node 分配: thisPrev/thisLast/thatPrev/thatLast が旧版の slice 規則どおり
 //   (d) EDGE_ZERO_LENGTH: 端点同一（全長0）では mutation せず error code を返す
 //   (e) INVALID_COORDINATE_ARRAY: 構造不正（null node / 非配列 xy / 要素欠落）を検出する
+//
+// nov26-m6-t1 (#117 S4) で旧 Part 2（parity 監査台帳 AC1〜AC3）を削除した。Part 2 は MaplatEditor の
+// 外（旧 Maplats の ../docs/superpowers/reviews/2026-07-18-m12-t1-modernized-parity-audit.md と
+// ../docs/superpowers/state/nayuta-state.json の milestones.m12）を読む、完了済みの過去サイクルの
+// 統治記録の検査で、製品のどの挙動も守っていなかった。単独 clone にも CI の runner にも前提が無く、
+// outer の state も構造が変わって（milestones は配列）前提を揃えても赤だった。製品の検査（上の
+// (a)〜(e)）はそのまま残る。
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
@@ -156,61 +163,3 @@ try {
   await rm(workDir, { recursive: true, force: true });
 }
 
-// --- Part 2: parity 監査台帳（AC1/AC2/AC3）---
-// AC1: 台帳が全領域を網羅し、全行に旧版・現行参照と判定根拠がある
-// AC2: intentionally_removed 行に設計文書の証跡がある
-// AC3: missing 行があれば audit_finding_id 付き task が nayuta-state.json に登録されている
-{
-  const auditPath = path.join(projectRoot, '..', 'docs', 'superpowers', 'reviews', '2026-07-18-m12-t1-modernized-parity-audit.md');
-  const audit = await readFile(auditPath, 'utf8');
-  const sections = ['## MapList 領域', '## MapEdit 領域', '## AppList / App 領域', '## Settings 領域', '## Import / Export 領域', '## IPC / menu 領域', '## Backend 領域'];
-  for (const section of sections) {
-    assert.ok(audit.includes(section), `台帳に領域セクション ${section} があること`);
-  }
-  // 全行が 旧版参照・現行版参照・判定・根拠 の4列を持つこと（台帳表形式の検査）
-  const dataRows = audit.split('\n').filter((line) => /^\| (ML|ME|AP|ST|IO|IP|BE)-\d+ /.test(line));
-  assert.ok(dataRows.length >= 40, `台帳に40行以上の監査行があること（実績: ${dataRows.length}）`);
-  for (const row of dataRows) {
-    const cells = row.split('|').map((c) => c.trim()).filter((c) => c !== '');
-    assert.ok(cells.length >= 5, `監査行が必須列を持つこと: ${row.slice(0, 60)}`);
-    const judgment = cells[3];
-    assert.ok(
-      ['ported', 'fulfilled_differently', 'intentionally_removed', 'missing', 'human_decision_required'].some((j) => judgment.includes(j)),
-      `判定が分類語彙に属すること: ${judgment}`,
-    );
-    assert.ok(cells[4].length > 0, `根拠が記載されていること: ${cells[0]}`);
-  }
-  console.log('ok: AC1 audit ledger covers all areas with references and rationale');
-
-  // AC2: intentionally_removed 行に設計文書の参照がある
-  const removedRows = dataRows.filter((row) => row.includes('intentionally_removed'));
-  assert.ok(removedRows.length >= 3, `intentionally_removed 行が3件以上あること（実績: ${removedRows.length}）`);
-  for (const row of removedRows) {
-    assert.ok(/20\d{2}-\d{2}-\d{2}-[a-z0-9-]+\.md/.test(row), `intentionally_removed 行に設計文書参照があること: ${row.slice(0, 80)}`);
-  }
-  console.log('ok: AC2 intentionally_removed rows cite design documents');
-
-  // AC3: missing 行の後続 task 登録。判定列が厳密に `missing` の行のみを未解消とみなす
-  // （`missing → 本タスクで解消` や根拠文中の "missing" 文字列は未解消に含めない）。
-  // 本台帳では m12-t1 解消の1件のみで、M12-T5 以降への登録対象は 0 件
-  const statePath = path.join(projectRoot, '..', 'docs', 'superpowers', 'state', 'nayuta-state.json');
-  const state = JSON.parse(await readFile(statePath, 'utf8'));
-  const m12Tasks = state.milestones.m12.tasks;
-  // audit_finding_id は後続の別監査 (M12-T3 人間検証の F1〜F10、m12-t4 セキュリティレビューの
-  // m12-t4-sec-* 等) からも登録される。本台帳 (m12-t1 parity audit) と対応検査するのは
-  // 本台帳の行 ID 語彙 (ML|ME|AP|ST|IO|IP|BE)-n に一致する finding のみ
-  const LEDGER_FINDING_ID = /^(ML|ME|AP|ST|IO|IP|BE)-\d+$/;
-  const auditRegistered = (Array.isArray(m12Tasks) ? m12Tasks : Object.values(m12Tasks))
-    .filter((t) => t.audit_finding_id && LEDGER_FINDING_ID.test(t.audit_finding_id));
-  const unresolvedMissing = dataRows.filter((row) => {
-    const cells = row.split('|').map((c) => c.trim()).filter((c) => c !== '');
-    return cells[3] === 'missing' || cells[3] === '**missing**';
-  });
-  assert.equal(unresolvedMissing.length, 0, `未解消の missing 行がないこと（実績: ${unresolvedMissing.length}）`);
-  for (const t of auditRegistered) {
-    assert.ok(audit.includes(t.audit_finding_id), `audit_finding_id ${t.audit_finding_id} が台帳の missing 行と対応すること`);
-  }
-  console.log(`ok: AC3 missing registrations are consistent (unresolved missing: ${unresolvedMissing.length}, registered: ${auditRegistered.length})`);
-
-  console.log('m12-t1 audit smoke: ALL PASS');
-}

@@ -57,13 +57,6 @@
       "issue": "#121"
     },
     {
-      "name": "m12-t1-edge-split",
-      "kind": "known-failure",
-      "reason": "起点から赤（v1: 前提があっても赤）。runner では前提の監査文書（../docs）が無く ENOENT で落ちる（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
-      "issue": "#117",
-      "expect": "docs/superpowers/reviews/2026-07-18-m12-t1-modernized-parity-audit.md'"
-    },
-    {
       "name": "m6-t5-mapbox-maplibre",
       "kind": "known-failure",
       "reason": "起点から赤（v1: 前提があっても赤）。runner では ../MaplatCore/package.json が無く ENOENT で落ちる（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
