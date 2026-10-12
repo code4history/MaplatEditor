@@ -57,14 +57,5 @@
       "issue": "#121"
     }
   ],
-  "e2e": [
-    {
-      "file": "m12-t20-draft-tile-durability.spec.ts",
-      "line": 323,
-      "title": "AC20-3: 下書きの明示破棄（編集画面・一覧）で staging dir が回収される",
-      "kind": "intermittent",
-      "reason": "AC20-3: m4-t2 前の 10e09c1 から 10 回中 2〜9 回 PASS のタイミング依存・破棄後に下書きの記録が書き戻される欠陥の候補（#117 で別途見立て中。d11ac0b ＋ t5 の測定では 1 回目で合格）",
-      "issue": "#117"
-    }
-  ]
+  "e2e": []
 }

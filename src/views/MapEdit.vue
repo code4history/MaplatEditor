@@ -3911,7 +3911,8 @@ const discardRestoredDraft = async () => {
             message: t('editor_ui.delete_draft_confirm', { name }),
         });
         if (result.response !== 0) return;
-        await draftLifecycle.discard();
+        // endSession: 遷移で unmount するまでの間の文書の変化で下書きを書き戻さない（nov26-m6-t1 #117 E3）
+        await draftLifecycle.discard({ endSession: true });
         await router.push({ name: 'MapList' });
         return;
     }

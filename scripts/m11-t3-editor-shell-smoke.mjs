@@ -63,11 +63,21 @@ assert.match(
   /const markSaved = async[\s\S]*await core\.markSaved\(\)[\s\S]*draftRestored\.value = false/,
   'Saving a restored draft must immediately leave draft-restored state',
 );
+// nov26-m6-t1 (#117 E3): discard は core.markSaved ではなく core.discard を通す（破棄済みの印を立て、
+// 破棄の後の forced flush で書き戻さない）。core.discard 自体が pending の永続化を止めて削除することも見る
 assert.match(
   draftLifecycle,
-  /const discard = async[\s\S]*await core\.markSaved\(\)/,
+  /const discard = async[\s\S]*await core\.discard\(opts\)/,
   'Discard must cancel pending persistence as well as remove the stored draft',
 );
+{
+  const core = await readFile(path.join(projectRoot, 'src/composables/assetDraftLifecycleCore.ts'), 'utf8');
+  assert.match(
+    core,
+    /async discard\([^)]*\) \{\s*cancelTimer\(\);\s*dirty = false;\s*discarded = true;[\s\S]*?removePersisted\(\)/,
+    'core.discard must cancel pending persistence, mark discarded and remove the stored draft',
+  );
+}
 
 const busy = await readFile(
   path.join(projectRoot, 'src/components/editor-ui/EditorBusyOverlay.vue'),
