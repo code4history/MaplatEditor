@@ -3926,6 +3926,9 @@ const discardRestoredDraft = async () => {
     if (result.response !== 0) return;
     await draftLifecycle.discard();
     await reloadFromStore();
+    // 保存版を読み直し履歴の基点を戻し終えたので、破棄済みの印を解く（以後の最初の 1 回の編集も
+    // 下書きに残す。nov26-m6-t1 実装レビュー B19-MAJ-1）
+    draftLifecycle.endDiscardGuard();
 };
 
 // A-3: エラー点の順送り表示

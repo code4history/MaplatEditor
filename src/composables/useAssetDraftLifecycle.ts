@@ -128,6 +128,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     markSaved,
     rebase,
     discard,
+    endDiscardGuard: core.endDiscardGuard,
     flushSync: core.flushSync,
     currentUid,
     currentRevision,

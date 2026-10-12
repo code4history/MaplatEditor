@@ -143,7 +143,7 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
     },
     // nov26-m6-t1 (#117 E3): 明示破棄。markSaved と同じく envelope と staging を消すが、
     // 破棄の後（削除の途中を含む）に編集画面が閉じるまでの forced flush で書き戻さないよう、
-    // 破棄済みの印を立てる。印は利用者の次の編集（schedule(true)）か open で解ける。
+    // 破棄済みの印を立てる。印は利用者の次の編集（schedule(true)）か open・endDiscardGuard で解ける。
     // endSession=true（新規 asset の破棄 = 破棄の直後に編集画面を離れる）は、この identity での
     // 永続化を以後一切しない（close と同じ）。離れるまでの間に非同期の文書の変化（watcher の
     // schedule(true)）が来ても、unmount の flushSync で書き戻さない
@@ -153,15 +153,33 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
       discarded = true;
       // removePersisted は対象の identity を同期的に捕まえてから await する
       const removal = removePersisted();
+      const kept = { identity, serialize };
       if (opts?.endSession) {
         identity = null;
         serialize = null;
       }
-      await removal;
+      try {
+        await removal;
+      } catch (cause) {
+        // 削除に失敗したら下書きは残っている。編集画面に留まるので、この session の永続化を元へ戻す
+        // （identity を失ったまま残ると、以後の編集が保存まで下書きにならない。実装レビュー B19-MIN-2）
+        if (opts?.endSession && identity === null) {
+          identity = kept.identity;
+          serialize = kept.serialize;
+        }
+        discarded = false;
+        throw cause;
+      }
       error.value = null;
     },
     isDiscarded() {
       return discarded;
+    },
+    // 既存 asset の破棄で、編集画面が保存版を読み直し履歴の基点を戻し終えた後に呼ぶ。以後は通常どおり
+    // forced flush（shouldPersist）が「最初の 1 回の編集」の隙間を埋める（実装レビュー B19-MAJ-1:
+    // 履歴の記録は watcher より後に積まれるため、最初の 1 回は schedule(false) になり印が解けなかった）
+    endDiscardGuard() {
+      discarded = false;
     },
     close() {
       cancelTimer();

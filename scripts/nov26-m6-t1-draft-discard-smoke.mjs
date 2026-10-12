@@ -135,6 +135,39 @@ try {
     console.log('ok: [2b] core: 新規 asset の破棄（endSession）は以後の文書の変化でも書き戻さない');
   }
 
+  // [2c] 核: endSession の破棄で削除が失敗したら、identity を戻して以後の編集を下書きに残す（B19-MIN-2）
+  {
+    const calls = { put: 0 };
+    const store = new Map();
+    const api = {
+      async put(draft) { calls.put += 1; store.set(draft.assetUid, draft); },
+      async remove() { throw new Error('remove failed'); },
+      flushSync(draft) { store.set(draft.assetUid, draft); return { ok: true }; },
+    };
+    const timers = manualTimers();
+    const core = createAssetDraftLifecycleCore({ api, setTimeoutFn: timers.setTimeoutFn, clearTimeoutFn: timers.clearTimeoutFn });
+    core.open({ kind: 'map', assetUid: 'E', baseRevision: null }, () => ({ title: 'v' }));
+    await assert.rejects(core.discard({ endSession: true }), /remove failed/, '削除の失敗が呼び出し側へ伝わらない');
+    assert.equal(core.isDiscarded(), false, '削除に失敗したのに破棄済みのまま');
+    core.schedule(true);
+    await timers.runAll();
+    assert.equal(calls.put, 1, '削除の失敗の後の編集が下書きにならない（identity を失った）');
+    console.log('ok: [2c] core: endSession の削除が失敗したら session を戻し、以後の編集は下書きに残る');
+  }
+
+  // [2d] 核: 既存 asset の破棄の後、endDiscardGuard で印が解ける（読み直し後の最初の 1 回の編集の forced flush を通す。B19-MAJ-1）
+  {
+    const { api, release } = makeApi();
+    release();
+    const core = createAssetDraftLifecycleCore({ api });
+    core.open({ kind: 'map', assetUid: 'F', baseRevision: 2 }, () => ({ title: 'u' }));
+    await core.discard();
+    assert.equal(core.isDiscarded(), true);
+    core.endDiscardGuard();
+    assert.equal(core.isDiscarded(), false, 'endDiscardGuard で印が解けない');
+    console.log('ok: [2d] core: endDiscardGuard で破棄済みの印が解ける');
+  }
+
   // [3] composable: 破棄の途中に flush()（useInitialDraftPersist が slug の予約成功で呼ぶ経路・
   //     shouldPersist は true のまま）を重ねても、破棄の後に put も flushSync も走らない
   {
