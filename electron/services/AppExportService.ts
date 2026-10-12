@@ -36,6 +36,7 @@ import {
   type BaseMapMasterLookup,
 } from '../../src/utils/appSourceModel';
 import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags } from './providerGlCdn';
+import { renderExportedAppQueryScript } from './exportedAppQuery';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
@@ -1041,12 +1042,7 @@ ${renderProviderGlCdnTags(detectRequiredProviderGlFromAppSources(sources, (sourc
   <script src="assets/maplat_ui.umd.js"></script>
   <script>
     var option = ${JSON.stringify(viewerOption, null, 2).replace(/\n/g, '\n    ')};
-    var hashes = (window.location.href.split('#!'))[0];
-    hashes = hashes.slice(window.location.href.indexOf('?') + 1).split('&');
-    for (var i = 0; i < hashes.length; i++) {
-      var hash = hashes[i].split('=');
-      option[hash[0]] = hash[1] == 'true' ? true : hash[1] == 'false' ? false : hash[1];
-    }
+${renderExportedAppQueryScript(hasBasemap)}
     var MaplatApp = window.MaplatUi && window.MaplatUi.createObject
       ? window.MaplatUi
       : window.MaplatUi && window.MaplatUi.MaplatUi
