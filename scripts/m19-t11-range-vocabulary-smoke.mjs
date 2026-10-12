@@ -293,8 +293,10 @@ const FREEZE_ALIASES = [
   { name: "envelope" + "_lnglats", files: ["src/utils/appSourceModel.ts"] },
   { name: "envelop" + LNGLATS, files: ["src/utils/appSourceModel.ts", "scripts/m6-app-source-model-smoke.mjs"] }, // smoke は旧キーの正規化を検査する
   { name: "coverage" + "_lnglats", files: ["src/utils/appSourceModel.ts"] },
-  // e2e の fixture 定数（値を凍結名のキーへ入れて使う）
-  { name: "COVERAGE" + "_LNG_LATS", files: ["tests/e2e/m6-t10-app-source-diff-model.spec.ts"] },
+  // e2e の fixture 定数（値を凍結名のキーへ入れて使う）。定数名は属性名にならないので tests/e2e/ の
+  // どの spec でも許す（m6-t4 #146 の nov26-m6-t4-app-source-editor-behavior.spec.ts も使う。
+  // 実装レビュー B19-MAJ-2）。末尾が "/" の項目はディレクトリの接頭として扱う
+  { name: "COVERAGE" + "_LNG_LATS", files: ["tests/e2e/"] },
 ];
 
 const FREEZE_IDENT_RE = /(?<![A-Za-z0-9_$])(?:app)?(?:coverage|envelope?)[A-Za-z0-9_$]*?(?:lng|lon|lat)[A-Za-z0-9_$]*/gi;
@@ -320,7 +322,7 @@ function checkFreezeIdentifiers(texts) {
       seen.add(ident);
       if (FROZEN_ATTRS.includes(ident)) continue;
       const allowed = aliasFiles.get(ident);
-      if (allowed && allowed.has(rel)) continue;
+      if (allowed && [...allowed].some((f) => (f.endsWith("/") ? rel.startsWith(f) : rel === f))) continue;
       problems.push(`(b) 凍結名でない綴り ${ident} が ${rel} にある（改名・近縁綴りの疑い）`);
     }
   }
@@ -347,12 +349,13 @@ function checkFreezeIdentifiers(texts) {
     "coverage" + "_lnglats", // 別名だが許可されたファイルの外
     "app" + "coverage" + LNGLATS,
     "envelope" + "LngLat",
+    "COVERAGE" + "_LNG_LATS", // e2e の定数名は tests/e2e/ の外（製品）では許さない
   ]) {
     const mixed = new Map(baseTexts);
     mixed.set("src/views/AppEdit.vue", `const x = doc.${variant};\n`);
     assert.ok(checkFreezeIdentifiers(mixed).length > 0, `T1-2: 別綴り ${variant} を混ぜても (b) が赤にならない`);
   }
-  console.log("ok: (MC5 self-check T1-2) 宣言の削除・別綴り 4 種の混入はいずれも赤になる");
+  console.log("ok: (MC5 self-check T1-2) 宣言の削除・別綴り 5 種の混入はいずれも赤になる");
 }
 
 const freezeTexts = new Map();
