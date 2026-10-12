@@ -55,13 +55,6 @@
       "kind": "excluded",
       "reason": "Maplats 配下の MaplatUI 配布物との MD5 照合で、単独 clone では比較元が無い（v1 D 分類・環境依存）",
       "issue": "#121"
-    },
-    {
-      "name": "m6-t5-mapbox-maplibre",
-      "kind": "known-failure",
-      "reason": "起点から赤（v1: 前提があっても赤）。runner では ../MaplatCore/package.json が無く ENOENT で落ちる（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
-      "issue": "#117",
-      "expect": "MaplatCore/package.json'"
     }
   ],
   "e2e": [
